@@ -31,5 +31,5 @@ printsummary:
 	grep ^There $@ | grep -v warranty >>$(SUMMARYFILE)
 
 clean:
-	rm -f *.out $(SUMMARYFILE) PagedArray* *~ cmd-counters.csv \
-		secondo.log storedTypeSizes.pl
+	rm -rf *.out $(SUMMARYFILE) PagedArray* *~ cmd-counters.csv \
+		secondo.log storedTypeSizes.pl tmp

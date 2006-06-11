@@ -6,6 +6,8 @@
 //[ae] [\"a]
 //[oe] [\"o]
 
+\setcounter{tocdepth}{4}
+
 [1] The ~MovingRegionAlgebra~
 
 December 2005, initial version created by Holger M[ue]nx for bachelor
@@ -16,7 +18,7 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
-January-March 2006, various bugfixes and improvements by Holger M[ue]nx,
+January-May 2006, various bugfixes and improvements by Holger M[ue]nx,
 with the help of Victor Almeida and Thomas Behr.
 
 [TOC]
@@ -62,6 +64,10 @@ Open:
   * Feature: Calculations with values of datatype $Instant$ are done with
     double precision only and not with the datatypes own calculation
     operations.
+
+  * Feature: Operator ~traversed~ is not yet implemented. All code which
+    has been prepared for this operator so far is enclosed with 
+    ~\#ifdef MRA\_TRAVERSED ... \#endif // MRA\_TRAVERSED~.
 
   * Feature: Debug bug output is very verbose. Due to its verbosity, it
     has impact on the algebra's performance, when enabled. It would be useful
@@ -366,7 +372,8 @@ static void GaussTransform(const unsigned int n,
                 fprintf(stderr, "%7.3f ", a[j][k]);
             fprintf(stderr, "| %7.3f\n", b[j]);
         }
-        cerr << "=========================================================="
+        cerr << "============================="
+             << "============================="
              << endl;
     }
 
@@ -451,7 +458,8 @@ to $0$ during the substraction.
                 fprintf(stderr, "| %7.3f\n", b[j]);
             }
             cerr 
-                << "----------------------------------------------------------"
+                << "-----------------------------"
+                << "-----------------------------"
                 << endl;
         }
     }
@@ -1118,8 +1126,12 @@ $T1B+T1A\cdot (s, t)$ and Plane 2 is $T2B+T1A\cdot (s', t')$.
     }
 
     if (MRA_DEBUG) {
-        cerr << "T1B      T1A                T2B      T2A" << endl;
-        cerr << "-------  ---------------    -------  ---------------" << endl;
+        cerr << "T1B      T1A                "
+             << "T2B      T2A" 
+             << endl;
+        cerr << "-------  ---------------    "
+             << "-------  ---------------" 
+             << endl;
         for (unsigned int i = 0; i < 3; i++)
             fprintf(stderr, 
                     "%7.3f  %7.3f %7.3f    %7.3f  %7.3f %7.3f\n",
@@ -2247,7 +2259,7 @@ static void restrictUPointToInterval(const UPoint& up,
 }
 
 /*
-1 Supporting classes
+1 Supporting classes and class template
 
 Supporting classes are those, which are not registered as SECONDO datatypes
 but are used to implement the SECONDO datatypes ~intimeregion~, ~uregion~ and
@@ -2531,7 +2543,11 @@ be adjusted, and calculate the new initial and final end points.
 /*
 1.1 Class ~TrapeziumSegmentIntersection~
 
+1.1.1 Class definition
+
 The class definition has been moved to ~MovingRegionAlgebra.h~.
+
+1.1.1 Operator ~<~
  
 */
 
@@ -2579,10 +2595,7 @@ resulting in conflicts. The postfix ~Orig~ indicates who was here first!
 
 The class template definition has been moved to ~MovingRegionAlgebra.h~.
 
-*/
-
-/*
-1.1.1 Constructor template
+1.1.1 Constructor and destructor
 
 */
 
@@ -3195,8 +3208,23 @@ left of the interval from ~mp~.
             t = up->timeInterval.start;
             c = !up->timeInterval.lc;
 
-            if (++mrUnit < mr.GetNoComponents())
+            if (++mrUnit < mr.GetNoComponents()) {
                 mr.Get(mrUnit, ur);
+
+/*
+Check if the next interval of ~mr~ starts between the previous interval
+and the current interval in ~mp~. If so, note this in ~t~ and ~c~.
+
+No special handling of ~c~ is required if both intervals start in the
+same instance since ~c~ is not used in these cases (see cases 1, 2, 3,
+4.4.1 and 4.4.2 above).
+
+*/
+                if (ur->timeInterval.start < t) {
+                    t = ur->timeInterval.start;
+                    c = !ur->timeInterval.lc;
+                }
+            }
         } else {
 /*
 \textbf{Case 6:} Both intervals are disjunct, the interval from ~mr~ is
@@ -3220,8 +3248,23 @@ right of the interval from ~mp~.
             t = ur->timeInterval.start;
             c = !ur->timeInterval.lc;
 
-            if (++mpUnit < mp.GetNoComponents())
+            if (++mpUnit < mp.GetNoComponents()) {
                 mp.Get(mpUnit, up);
+
+/*
+Check if the next interval of ~mp~ starts between the previous interval
+and the current interval in ~mr~. If so, note this in ~t~ and ~c~.
+
+No special handling of ~c~ is required if both intervals start in the
+same instance since ~c~ is not used in these cases (see cases 1, 2, 3,
+4.4.1 and 4.4.2 above).
+
+*/
+                if (up->timeInterval.start < t) {
+                    t = up->timeInterval.start;
+                    c = !up->timeInterval.lc;
+                }
+            }
         }
 
         first = false;
@@ -3302,10 +3345,6 @@ There are still units to be processed in ~mp~. See the previous case for
     }
 }
 
-/*
-1.1.1 Destructor template
-
-*/
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
 RefinementPartitionOrig<Mapping1, Mapping2, Unit1, Unit2>
 ::~RefinementPartitionOrig() {
@@ -3316,7 +3355,9 @@ RefinementPartitionOrig<Mapping1, Mapping2, Unit1, Unit2>
 }
 
 /*
-1.1.1 Method template ~Size()~
+1.1.1 Methods
+
+1.1.1.1 Method template ~Size()~
 
 */
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
@@ -3329,7 +3370,7 @@ unsigned int RefinementPartitionOrig<Mapping1, Mapping2, Unit1, Unit2>
 }
 
 /*
-1.1.1 Method template ~Get()~
+1.1.1.1 Method template ~Get()~
 
 */
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
@@ -3349,7 +3390,7 @@ void RefinementPartitionOrig<Mapping1, Mapping2, Unit1, Unit2>
 }
 
 /*
-1.1.1 Method template ~AddUnits()~
+1.1.1.1 Method template ~AddUnits()~
 
 */
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
@@ -3361,12 +3402,12 @@ void RefinementPartitionOrig<Mapping1, Mapping2, Unit1, Unit2>
     const Instant& end,
     const bool lc,
     const bool rc) {
+
     if (MRA_DEBUG) {
-        cerr << "RP::AddUnits() called" << endl;
-        cerr << "RP::AddUnits() start="
-             << start.ToDouble()
+        cerr << "RP::AddUnits() called start="
+             << start.ToString()
              << " end="
-             << end.ToDouble()
+             << end.ToString()
              << " lc="
              << lc
              << " rc="
@@ -3438,61 +3479,39 @@ static TypeConstructor iregion(
     CheckIRegion );
 
 /*
-1 Class ~URegion~
-
-Please note that their is no corresponding SECONDO data type for this class.
-It is used internally by the MovingRegionAlgebra only, even though it is
-explicitely defined the theory of moving regions.
+1 Class ~URegionEmb~
 
 1.1 Class definition
 
 The class definition has been moved to ~MovingRegionAlgebra.h~.
 
-1.1 Constructors and destructor
+1.1 Constructors
 
 */
 
-URegion::URegion(const Interval<Instant>& interval) :
-    SpatialTemporalUnit<CRegion, 3>(interval),
-    role(NORMAL),
-    segmentsNormal(0),
-    segments(&segmentsNormal),
-    segmentsStartPos(0),
+URegionEmb::URegionEmb(const Interval<Instant>& tiv,
+                       unsigned int pos) :
+    segmentsStartPos(pos),
     segmentsNum(0),
-    bbox(false) {
+    bbox(false),
+    timeInterval(tiv) {
 
     if (MRA_DEBUG)
-        cerr << "URegion::URegion() #1 called, segments=" 
-             << segments
+        cerr << "URegionEmb::URegionEmb() #2 called"
              << endl;
 }
 
-URegion::URegion(const Interval<Instant>& interval,
-                 DBArray<MSegmentData>* segs,
-                 unsigned int pos) :
-    SpatialTemporalUnit<CRegion, 3>(interval),
-    role(EMBEDDED),
-    segments(segs),
+URegionEmb::URegionEmb(
+    DBArray<MSegmentData>* segments,
+    const Interval<Instant>& tiv,
+    const CRegion& region,
+    unsigned int pos) :
     segmentsStartPos(pos),
     segmentsNum(0),
-    bbox(false) {
+    timeInterval(tiv) {
 
     if (MRA_DEBUG)
-        cerr << "URegion::URegion() #2 called" << endl;
-}
-
-URegion::URegion(const Interval<Instant>& interval,
-                 const CRegion& region,
-                 DBArray<MSegmentData>* segs,
-                 unsigned int pos) :
-    SpatialTemporalUnit<CRegion, 3>(interval),
-    role(EMBEDDED),
-    segments(segs),
-    segmentsStartPos(pos),
-    segmentsNum(0) {
-
-    if (MRA_DEBUG)
-        cerr << "URegion::URegion() #4 called" << endl;
+        cerr << "URegionEmb::URegionEmb() #4 called" << endl;
     
     const CHalfSegment* prevChs = 0;
 
@@ -3504,7 +3523,7 @@ URegion::URegion(const Interval<Instant>& interval,
 
         if (prevChs && prevChs->GetRP() != thisChs->GetLP()) {
             if (MRA_DEBUG)
-                cerr << "URegion::URegion() swapping" << endl;
+                cerr << "URegionEmb::URegionEmb() swapping" << endl;
 
             MSegmentData dms(thisChs->GetAttr().faceno,
                              thisChs->GetAttr().cycleno,
@@ -3519,13 +3538,13 @@ URegion::URegion(const Interval<Instant>& interval,
                              thisChs->GetLP().GetX(),
                              thisChs->GetLP().GetY());
 
-            dms.degeneratedInitial = DGM_NONE;
-            dms.degeneratedFinal = DGM_NONE;
+            dms.SetDegeneratedInitial(DGM_NONE);
+            dms.SetDegeneratedFinal(DGM_NONE);
             
             segments->Put(segmentsStartPos+segmentsNum, dms);
         } else {
             if (MRA_DEBUG)
-                cerr << "URegion::URegion() no swapping" << endl;
+                cerr << "URegionEmb::URegionEmb() no swapping" << endl;
 
             MSegmentData dms(thisChs->GetAttr().faceno,
                              thisChs->GetAttr().cycleno,
@@ -3540,8 +3559,8 @@ URegion::URegion(const Interval<Instant>& interval,
                              thisChs->GetRP().GetX(),
                              thisChs->GetRP().GetY());
 
-            dms.degeneratedInitial = DGM_NONE;
-            dms.degeneratedFinal = DGM_NONE;
+            dms.SetDegeneratedInitial(DGM_NONE);
+            dms.SetDegeneratedFinal(DGM_NONE);
 
             segments->Put(segmentsStartPos+segmentsNum, dms);
         }
@@ -3552,1675 +3571,158 @@ URegion::URegion(const Interval<Instant>& interval,
     }
 
     Rectangle<2> rbb = region.BoundingBox();
-    double min[3] = { rbb.MinD(0), rbb.MinD(1), interval.start.ToDouble() };
-    double max[3] = { rbb.MaxD(0), rbb.MaxD(1), interval.end.ToDouble() };
+    double min[3] = { rbb.MinD(0), 
+                      rbb.MinD(1), 
+                      timeInterval.start.ToDouble() };
+    double max[3] = { rbb.MaxD(0), 
+                      rbb.MaxD(1), 
+                      timeInterval.end.ToDouble() };
     bbox.Set(true, min, max);
 }
- 
-void URegion::Destroy(void) {
-    if (MRA_DEBUG) cerr << "URegion::Destroy() called" << endl;
 
-    if (role == NORMAL) delete segments;
+/*
+1.1 Methods required to act as unit in ~Mapping~ template
+
+1.1.1 Method ~IsValid()~
+
+*/
+bool URegionEmb::IsValid(void) const {
+    return true;
 }
 
 /*
-1.1 Method ~Clone()~
+1.1.1 Method ~Disjoint()~
 
 */
-URegion* URegion::Clone(void) const {
-    if (MRA_DEBUG) cerr << "URegion::Clone() called" << endl;
-
-    URegion* res = new URegion(timeInterval);
-    res->CopyFrom(this);
-
-    return res;
+bool URegionEmb::Disjoint(const URegionEmb& ur) const {
+    return 
+        timeInterval.R_Disjoint(ur.timeInterval)
+        || ur.timeInterval.R_Disjoint(timeInterval);
 }
 
 /*
-1.1 Method ~CopyFrom()~
+1.1.1 Method ~TU\_Adjacent()~
 
 */
-void URegion::CopyFrom(const StandardAttribute* right) {
-    if (MRA_DEBUG) cerr << "URegion::CopyFrom() called" << endl;
-
-    const URegion* ur = (const URegion*) right;
-
-    role = NORMAL;
-    segments = &segmentsNormal;
-    segmentsStartPos = 0;
-    segmentsNum = ur->segmentsNum;
-    bbox = ur->bbox;
-
-    for (unsigned int i = 0; i < segmentsNum; i++) {
-        const MSegmentData* dms;
-        ur->segments->Get(segmentsStartPos+i, dms);
-        segments->Put(i, *dms);
-    }
-}
-
-const Rectangle<3> URegion::BoundingBox() const {
-    if (MRA_DEBUG) cerr << "URegion::BoundingBox() called" << endl;
-
-    return bbox;
+bool URegionEmb::TU_Adjacent(const URegionEmb& ur) const {
+    return
+        timeInterval.R_Adjacent(ur.timeInterval)
+        || ur.timeInterval.R_Adjacent(timeInterval);
 }
 
 /*
-1.1 ~DBArray~ access
+1.1.1 Operator ~==~
 
 */
-
-int URegion::NumOfFLOBs() const {
-    if (MRA_DEBUG) cerr << "URegion::NumOfFLOBs() called" << endl;
-
-    assert(role == NORMAL);
-
-    return 1;
-}
-
-FLOB* URegion::GetFLOB(const int i) {
-    if (MRA_DEBUG) cerr << "URegion::GetFLOB() called" << endl;
-
-    assert(role == NORMAL);
-    assert(i == 0);
-
-    return &segmentsNormal;
+bool URegionEmb::operator==(const URegionEmb& ur) const {
+    return timeInterval == ur.timeInterval;
 }
 
 /*
-1.1 Method ~IsEmbedded()~
+1.1.1 Method ~Before()~
 
 */
-bool URegion::IsEmbedded(void) {
-    if (MRA_DEBUG)
-        cerr << "URegion::IsEmbedded() called" << endl;
-
-    assert(role == NORMAL || role == EMBEDDED);
-
-    return role == EMBEDDED;
+bool URegionEmb::Before(const URegionEmb& ur) const {
+    return timeInterval.Before(ur.timeInterval);
 }
 
 /*
-1.1 Methods ~SetMSegmentData()~
+1.1.1 Method ~Compare()~
 
 */
-void URegion::SetMSegmentData(void) {
-    if (MRA_DEBUG)
-        cerr << "URegion::SetMSegmentData() #1 called" << endl;
-    
-    segments = &segmentsNormal;
-}
-
-void URegion::SetMSegmentData(DBArray<MSegmentData>* s) {
-    if (MRA_DEBUG)
-        cerr << "URegion::SetMSegmentData() #2 called" << endl;
-    
-    segments = s;
-}
-
-/*
-1.1 Method ~At()~
-
-This method is not part of the bachelor thesis but a stub is required to make
-~URegion~ non-abstract. To assure that accidential calls of this method are
-recognized, its body contains a failed assertion.
-
-*/
-bool URegion::At(const CRegion& val, TemporalUnit<CRegion>& result) const {
-    if (MRA_DEBUG) cerr << "URegion::At() called" << endl;
-
+bool URegionEmb::Compare(const URegionEmb* ur) const {
     assert(false);
+    return false;
 }
 
 /*
-1.1 Method ~Passes()~
+1.1 Moving segment access methods
 
-This method is not part of the bachelor thesis but a stub is required to make
-~URegion~ non-abstract. To assure that accidential calls of this method are
-recognized, its body contains a failed assertion.
+1.1.1 Method ~GetSegmentsNum()~
 
 */
-bool URegion::Passes(const CRegion& val) const {
-    if (MRA_DEBUG) cerr << "URegion::At() called" << endl;
-
-    assert(false);
-}
-
-/*
-1.1 Methods required for intersection with ~UPoint~
-
-1.1.1 Method ~RestrictedIntersectionFindNormal()~
-
-*/
-void URegion::RestrictedIntersectionFindNormal(
-    const Interval<Instant>& iv,
-    const UPoint& rUp,
-    MSegmentData& rDms,
-    bool& ip1present,
-    double& ip1x,
-    double& ip1y,
-    double& ip1t,
-    vector<TrapeziumSegmentIntersection>& vtsi) const {
-
+int URegionEmb::GetSegmentsNum(void) const {
     if (MRA_DEBUG)
-        cerr << "URegion::RIFN() called" << endl;
-
-/*
-Calculate end points of moving segment at time of intersection ~ip1t~.
-
-*/
-    double p1x, p1y, p2x, p2y;
-
-    if (nearlyEqual(iv.start.ToDouble(), iv.end.ToDouble())) {
-        p1x = rDms.initialStartX;
-        p1y = rDms.initialStartY;
-        p2x = rDms.initialEndX;
-        p2y = rDms.initialEndY;
-    } else {
-        double f =
-            (ip1t-iv.start.ToDouble())
-            /(iv.end.ToDouble()-iv.start.ToDouble());
-
-        p1x =
-            rDms.initialStartX
-            +(rDms.finalStartX-rDms.initialStartX)*f;
-        p1y =
-            rDms.initialStartY
-            +(rDms.finalStartY-rDms.initialStartY)*f;
-        p2x =
-            rDms.initialEndX
-            +(rDms.finalEndX-rDms.initialEndX)*f;
-        p2y =
-            rDms.initialEndY
-            +(rDms.finalEndY-rDms.initialEndY)*f;
-    }
-
-    if (MRA_DEBUG) {
-        cerr << "URegion::RIFN() rUp=("
-             << rUp.p0.GetX() << " " << rUp.p0.GetY()
-             << ")-("
-             << rUp.p1.GetX() << " " << rUp.p1.GetY()
-             << ")"
-             << endl;
-        cerr << "URegion::RIFN() p1=("
-             << p1x << " " << p1y
-             << ") p2=("
-             << p2x << " " << p2y
-             << ")"
-             << " ip1=("
-             << ip1x << " " << ip1y << " " << ip1t << ")"
-             << endl;
-    }
-
-    TrapeziumSegmentIntersection tsi;
-
-    tsi.x = ip1x;
-    tsi.y = ip1y;
-    tsi.t = ip1t;
-
-/*
-Is the ~UPoint~ instance constant and is it located on the segment?
-
-*/
-    if (nearlyEqual(rUp.p0.GetX(), ip1x)
-        && nearlyEqual(rUp.p0.GetY(), ip1y)
-        && nearlyEqual(rUp.p1.GetX(), ip1x)
-        && nearlyEqual(rUp.p1.GetY(), ip1y)) {
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFN() through p0 and p1" << endl;
-
-/*
-Yes, lets see if the moving segment did not touch the ~UPoint~ instance
-during initial time. If yes, we can deduce from the ~insideAbove~ attribute
-and the direction of the movement whether the ~URegion~ has been entered or
-left at the intersection point. If not, we just two identical points, one
-with TSI\_ENTER and one with TSI\_LEAVE, which indicates that the ~URegion~
-has been entered and left in the same instance.
-
-*/
-        if (!nearlyEqual(ip1t, iv.start.ToDouble())) {
-            if (pointAboveSegment(ip1x, ip1y,
-                                  rDms.initialStartX, rDms.initialStartY,
-                                  rDms.initialEndX, rDms.initialEndY)) {
-                tsi.type = rDms.insideAbove ? TSI_LEAVE : TSI_ENTER;
-            } else {
-                tsi.type = rDms.insideAbove ? TSI_ENTER : TSI_LEAVE;
-            }
-
-            if (MRA_DEBUG)
-                cerr << "URegion::RIFN() adding "
-                     << tsi.type
-                     << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                     << endl;
-            vtsi.push_back(tsi);
-        } else if (!nearlyEqual(ip1t, iv.end.ToDouble())) {
-            if (pointAboveSegment(ip1x, ip1y,
-                                  rDms.finalStartX, rDms.finalStartY,
-                                  rDms.finalEndX, rDms.finalEndY)) {
-                tsi.type = rDms.insideAbove ? TSI_ENTER : TSI_LEAVE;
-            } else {
-                tsi.type = rDms.insideAbove ? TSI_LEAVE : TSI_ENTER;
-            }
-
-            if (MRA_DEBUG)
-                cerr << "URegion::RIFN() adding "
-                     << tsi.type
-                     << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                     << endl;
-            vtsi.push_back(tsi);
-        } else {
-            if (MRA_DEBUG)
-                cerr << "URegion::RIFN() adding "
-                     << tsi.type
-                     << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                     << endl;
-            tsi.type = TSI_ENTER;
-            vtsi.push_back(tsi);
-
-            if (MRA_DEBUG)
-                cerr << "URegion::RIFN() adding "
-                     << tsi.type
-                     << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                     << endl;
-            tsi.type = TSI_LEAVE;
-            vtsi.push_back(tsi);
-        }
-
-/*
-Is one of the endpoints of the ~UPoint~ instance located on the segment?
-If so, check whether the other endpoint is above or below the segment.
-Together with the value of the ~insideAbove~ attribute, we can deduce
-whether the ~URegion~ instance has been entered or left.
-
-The same is checked for the end of the interval. This is to determine
-whether point and segment move into the same direction with the segment
-being faster than the point. In this case, both only touch without the
-point actually entering the ~URegion~ instance. 
-
-*/
-    } else if (nearlyEqual(rUp.p0.GetX(), ip1x)
-               && nearlyEqual(rUp.p0.GetY(), ip1y)) {
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFN() through p0" << endl;
-
-        if (pointAboveSegment(rUp.p1.GetX(), rUp.p1.GetY(),
-                              p1x, p1y, p2x, p2y)) {
-            tsi.type = rDms.insideAbove ? TSI_ENTER : TSI_LEAVE;
-        } else {
-            tsi.type = rDms.insideAbove ? TSI_LEAVE : TSI_ENTER;
-        }
-
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFN() adding "
-                 << tsi.type
-                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                 << endl;
-
-        vtsi.push_back(tsi);
-
-        if (pointAboveSegment(rUp.p1.GetX(), rUp.p1.GetY(),
-                              rDms.finalStartX, rDms.finalStartY,
-                              rDms.finalEndX, rDms.finalEndY)) {
-            tsi.type = tsi.type == TSI_ENTER ? TSI_LEAVE : TSI_ENTER;
-
-            if (MRA_DEBUG)
-                cerr << "URegion::RIFN() adding "
-                     << tsi.type
-                     << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                     << endl;
-
-            vtsi.push_back(tsi);
-        }
-
-/*
-Is the other endpoint of the ~UPoint~ instance located on the segment?
-If so, see handling of previous case.
-
-*/
-
-    } else if (nearlyEqual(rUp.p1.GetX(), ip1x)
-               && nearlyEqual(rUp.p1.GetY(), ip1y)) {
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFN() through p1" << endl;
-
-        if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
-                              p1x, p1y, p2x, p2y)) {
-            tsi.type = rDms.insideAbove ? TSI_LEAVE : TSI_ENTER;
-        } else {
-            tsi.type = rDms.insideAbove ? TSI_ENTER : TSI_LEAVE;
-        }
-
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFN() adding "
-                 << tsi.type
-                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                 << endl;
-
-        vtsi.push_back(tsi);
-
-        if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
-                              rDms.initialStartX, rDms.initialStartY,
-                              rDms.initialEndX, rDms.initialEndY)) {
-            tsi.type = tsi.type == TSI_ENTER ? TSI_LEAVE : TSI_ENTER;
-
-            if (MRA_DEBUG)
-                cerr << "URegion::RIFN() adding "
-                     << tsi.type
-                     << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                     << endl;
-
-            vtsi.push_back(tsi);
-        }
-
-/*
-At this point, we do know that one endpoint of the ~UPoint~ instance is
-left or above the segment. Lets find out which in the remaining two cases.
-
-*/
-    } else if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
-                                 rDms.initialStartX, rDms.initialStartY,
-                                 rDms.initialEndX, rDms.initialEndY)) {
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFN() p0 above segment" << endl;
-
-        tsi.type = rDms.insideAbove ? TSI_LEAVE : TSI_ENTER;
-
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFN() adding "
-                 << tsi.type
-                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                 << endl;
-
-        vtsi.push_back(tsi);
-    } else {
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFN() p0 below segment" << endl;
-
-        tsi.type = rDms.insideAbove ? TSI_ENTER : TSI_LEAVE;
-
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFN() adding "
-                 << tsi.type
-                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                 << endl;
-
-        vtsi.push_back(tsi);
-    }
-}
-
-
-/*
-1.1.1 Method ~RestrictedIntersectionFindInPlane()~
-
-*/
-void URegion::RestrictedIntersectionFindInPlane(
-    const Interval<Instant>& iv,
-    const UPoint& rUp,
-    bool& ip1present,
-    double& ip1x,
-    double& ip1y,
-    double& ip1t,
-    bool& ip2present,
-    double& ip2x,
-    double& ip2y,
-    double& ip2t,
-    vector<TrapeziumSegmentIntersection>& vtsi) const {
-
-    if (MRA_DEBUG)
-        cerr << "URegion::RIFIP() called" << endl;
-
-    TrapeziumSegmentIntersection tsi;
-
-    tsi.x = ip1x;
-    tsi.y = ip1y;
-    tsi.t = ip1t;
-
-    if ((nearlyEqual(ip1x, rUp.p0.GetX())
-         && nearlyEqual(ip1y, rUp.p0.GetY())
-         && nearlyEqual(ip2x, rUp.p1.GetX())
-         && nearlyEqual(ip2y, rUp.p1.GetY()))
-        || (nearlyEqual(ip1x, rUp.p1.GetX())
-            && nearlyEqual(ip1y, rUp.p1.GetY())
-            && nearlyEqual(ip2x, rUp.p0.GetX())
-            && nearlyEqual(ip2y, rUp.p0.GetY()))) {
-/*
-The ~URegion~ happily walks entirely along one of the moving segments of the
-~URegion~ instance. When the segments is entered, the ~URegion~ instance
-is entered, and when the segment is left, the ~URegion~ instance is left.
-
-*/
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() up on segment"
-                 << endl;
-
-        tsi.type = ip1t < ip2t ? TSI_ENTER : TSI_LEAVE;
-
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() adding "
-                 << tsi.type
-                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                 << endl;
-
-        vtsi.push_back(tsi);
-
-        tsi.type = ip1t < ip2t ? TSI_LEAVE : TSI_ENTER;
-        tsi.x = ip2x;
-        tsi.y = ip2y;
-        tsi.t = ip2t;
-
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() adding "
-                 << tsi.type
-                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                 << endl;
-
-        vtsi.push_back(tsi);
-
-    } else if (nearlyEqual(ip1x, rUp.p0.GetX())
-               && nearlyEqual(ip1y, rUp.p0.GetY())) {
-/*
-The ~URegion~ instance is entered via one of its edge points.
-
-*/
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() ip1=p0" << endl;
-
-        tsi.type = TSI_ENTER;
-
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() adding "
-                 << tsi.type
-                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                 << endl;
-
-        vtsi.push_back(tsi);
-
-        tsi.type = TSI_LEAVE;
-        tsi.x = ip2x;
-        tsi.y = ip2y;
-        tsi.t = ip2t;
-
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() adding "
-                 << tsi.type
-                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                 << endl;
-
-        vtsi.push_back(tsi);
-    } else if (nearlyEqual(ip1x, rUp.p1.GetX())
-               && nearlyEqual(ip1y, rUp.p1.GetY())) {
-/*
-The ~URegion~ instance is left via one of its edge points. See previous
-case.
-
-*/
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() ip1=p1" << endl;
-
-        tsi.type = TSI_LEAVE;
-
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() adding "
-                 << tsi.type
-                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                 << endl;
-
-        vtsi.push_back(tsi);
-
-        tsi.type = TSI_ENTER;
-        tsi.x = ip2x;
-        tsi.y = ip2y;
-        tsi.t = ip2t;
-
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() adding "
-                 << tsi.type
-                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                 << endl;
-
-        vtsi.push_back(tsi);
-    } else if (nearlyEqual(ip2x, rUp.p0.GetX())
-               && nearlyEqual(ip2y, rUp.p0.GetY())) {
-/*
-The ~URegion~ instance is entered via one of its edge points. See previous
-case.
-
-*/
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() ip2=p0" << endl;
-
-        tsi.type = TSI_LEAVE;
-
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() adding "
-                 << tsi.type
-                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                 << endl;
-
-        vtsi.push_back(tsi);
-
-        tsi.type = TSI_ENTER;
-        tsi.x = ip2x;
-        tsi.y = ip2y;
-        tsi.t = ip2t;
-
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() adding "
-                 << tsi.type
-                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                 << endl;
-
-        vtsi.push_back(tsi);
-    } else if (nearlyEqual(ip2x, rUp.p1.GetX())
-               && nearlyEqual(ip2y, rUp.p1.GetY())) {
-/*
-The ~URegion~ instance is left via one of its edge points. See previous
-case.
-
-*/
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() ip2=p1" << endl;
-
-        tsi.type = TSI_ENTER;
-
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() adding "
-                 << tsi.type
-                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                 << endl;
-
-        vtsi.push_back(tsi);
-
-        tsi.type = TSI_LEAVE;
-        tsi.x = ip2x;
-        tsi.y = ip2y;
-        tsi.t = ip2t;
-
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() adding "
-                 << tsi.type
-                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                 << endl;
-
-        vtsi.push_back(tsi);
-    } else {
-/*
-The ~URegion~ instance is entered and left elsewhere, ie. in the middle
-of the segments.
-
-*/
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() up covers segment" << endl;
-
-        tsi.type = ip1t < ip2t ? TSI_ENTER : TSI_LEAVE;
-
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() adding "
-                 << tsi.type
-                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                 << endl;
-
-        vtsi.push_back(tsi);
-
-        tsi.type = ip1t < ip2t ? TSI_LEAVE : TSI_ENTER;
-        tsi.x = ip2x;
-        tsi.y = ip2y;
-        tsi.t = ip2t;
-
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFIP() adding "
-                 << tsi.type
-                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
-                 << endl;
-
-        vtsi.push_back(tsi);
-    }
-}
-
-/*
-1.1 Method ~Plumbline()~
-
-*/
-unsigned int 
-URegion::Plumbline(const UPoint& up, const Interval<Instant>& iv) const{
-    if (MRA_DEBUG) cerr << "URegion::Plumbline() called" << endl;
-
-/*
-Since we know that ~up~ is not intersecting with any of the segments, we
-can pick any time in ~iv~ to examine ~up~ and the segments. We pick the
-middle of the interval:
-
-*/
-    double t =
-        iv.start.ToDouble()
-        +(iv.end.ToDouble()-iv.start.ToDouble())/2;
-
-    if (MRA_DEBUG)
-        cerr << "URegion::Plumbline() iv.start="
-             << iv.start.ToDouble()
-             << " iv.end="
-             << iv.end.ToDouble()
-             << " t="
-             << t
+        cerr << "URegionEmb::GetSegmentsNum() called, num="
+             << segmentsNum
              << endl;
 
-    double f;
+    return segmentsNum;
+}
 
 /*
-Calculate the position ~x~, ~y~ of ~up~ for ~t~.
+1.1.1 Method ~GetSegment()~
 
 */
-    if (nearlyEqual(up.timeInterval.start.ToDouble(),
-                    up.timeInterval.end.ToDouble()))
-        f = 0;
-    else
-        f = (t-up.timeInterval.start.ToDouble())
-            /(up.timeInterval.end.ToDouble()
-              -up.timeInterval.start.ToDouble());
+void URegionEmb::GetSegment(
+    DBArray<MSegmentData>* segments,
+    int pos, 
+    const MSegmentData*& dms) const {
 
     if (MRA_DEBUG)
-        cerr << "URegion::Plumbline() f=" << f << endl;
-
-    if (MRA_DEBUG)
-        cerr << "URegion::Plumbline() p0=("
-             << up.p0.GetX() << " " << up.p0.GetY()
-             << ") p1=("
-             << up.p1.GetX() << " " << up.p1.GetY()
-             << ")"
+        cerr << "URegionEmb::GetSegment() called, pos=" << pos
+             << ", segments="
+             << segments
              << endl;
 
-    double x = up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*f;
-    double y = up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*f;
-
-    if (MRA_DEBUG)
-        cerr << "URegion::Plumbline() x=" << x << " y=" << y << endl;
-
-/*
-Required to calculate the position of each segment for ~t~.
-
-*/
-    if (nearlyEqual(timeInterval.start.ToDouble(),
-                    timeInterval.end.ToDouble()))
-        f = 0;
-    else
-        f = (t-timeInterval.start.ToDouble())
-            /(timeInterval.end.ToDouble()
-              -timeInterval.start.ToDouble());
-
-/*
-~num~ is used to count the segments above ~(x, y)~.
-
-*/
-    unsigned int num = 0;
-
-/*
-Go through all segments...
-
-*/
-    for (unsigned int i = 0; i < segmentsNum; i++) {
-        if (MRA_DEBUG)
-            cerr << "URegion::Plumbline() segment #" << i << endl;
-
-        const MSegmentData *dms;
-        GetSegment(i, dms);
-
-/*
-Calculate position of segment at ~t~.
-
-*/
-        double p1x =
-            dms->initialStartX
-            +(dms->finalStartX-dms->initialStartX)*f;
-        double p1y =
-            dms->initialStartY
-            +(dms->finalStartY-dms->initialStartY)*f;
-        double p2x =
-            dms->initialEndX
-            +(dms->finalEndX-dms->initialEndX)*f;
-        double p2y =
-            dms->initialEndY
-            +(dms->finalEndY-dms->initialEndY)*f;
-
-        if (MRA_DEBUG)
-            cerr << "URegion::Plumbline() p1x=" << p1x
-                 << " p1y=" << p1y
-                 << " p2x=" << p2x
-                 << " p2y=" << p2y
-                 << endl;
-
-        if (nearlyEqual(p1x, p2x)) {
-/*
-Ignore vertical segments.
-
-*/
-            if (MRA_DEBUG)
-                cerr << "URegion::Plumbline() "
-                     << "vertical, ignored"
-                     << endl;
-        } else if (nearlyEqual(p1x, x) && lowerOrNearlyEqual(y, p1y)) {
-/*
-~(x, y)~ is one of the endpoints. Only count it if it is the right endpoint.
-
-*/
-            if (MRA_DEBUG)
-                cerr << "URegion::Plumbline() "
-                     << "plumbline through start point"
-                     << endl;
-
-            if (p1x > p2x) {
-                if (MRA_DEBUG)
-                    cerr << "URegion::Plumbline() counted" << endl;
-
-                num++;
-            } else {
-                if (MRA_DEBUG)
-                    cerr << "URegion::Plumbline() ignored" << endl;
-            }
-        } else if (nearlyEqual(p2x, x) && lowerOrNearlyEqual(y, p2y)) {
-/*
-~(x, y)~ is one of the endpoints. Only count it if it is the right endpoint.
-
-*/
-            if (MRA_DEBUG)
-                cerr << "URegion::Plumbline() "
-                     << "plumbline through end point"
-                     << endl;
-
-            if (p1x < p2x) {
-                if (MRA_DEBUG)
-                    cerr << "URegion::Plumbline() counted" << endl;
-
-                num++;
-            } else {
-                if (MRA_DEBUG)
-                    cerr << "URegion::Plumbline() ignored" << endl;
-            }
-        } else if (!between(p1x, x, p2x)) {
-/*
-~(x, y)~ is not below the segment.
-
-*/
-            if (MRA_DEBUG)
-                cerr << "URegion::Plumbline() "
-                     << "x not between p1x, p1y, ignored"
-                     << endl;
-        } else {
-/*
-~(x, y)~ is in the same ~x~-range as the segment. Count it if the segment
-is above ~(x, y)~.
-
-*/
-            if (MRA_DEBUG)
-                cerr << "URegion::Plumbline() "
-                     << "checking for intersection"
-                     << endl;
-
-            if (MRA_DEBUG) {
-                cerr << "URegion::Plumbline() nearlyEqual(p1x, x)="
-                     << nearlyEqual(p1x, x)
-                     << endl;
-                cerr << "URegion::Plumbline() nearlyEqual(p2x, x)="
-                     << nearlyEqual(p2x, x)
-                     << endl;
-            }
-
-            // solve p1x+(p2x-p1x)*s = x
-
-            double s = (x-p1x)/(p2x-p1x);
-            double ys = p1y+(p2y-p1y)*s;
-
-            if (MRA_DEBUG)
-                cerr << "URegion::Plumbline() ys=" << ys << endl;
-
-            if (lowerOrNearlyEqual(y, ys)) {
-                if (MRA_DEBUG)
-                    cerr << "URegion::Plumbline() below" << endl;
-
-                num++;
-            } else {
-                if (MRA_DEBUG)
-                    cerr << "URegion::Plumbline() not below" << endl;
-            }
-        }
-
-        if (MRA_DEBUG)
-            cerr << "URegion::Plumbline() num=" << num << endl;
-    }
-
-    return num;
+    segments->Get(segmentsStartPos+pos, dms);
 }
 
 /*
-1.1 Function ~RestrictedIntersectionFind()~
+1.1.1 Method ~PutSegment()~
 
 */
-void URegion::RestrictedIntersectionFind(
-    const UPoint& up,
-    const Interval<Instant>& iv,
-    vector<TrapeziumSegmentIntersection>& vtsi) const {
-
-/*
-Straightforward. Even being slightly cryptic, the debug output provides
-sufficient context to understand this method.
-
-*/
-    if (MRA_DEBUG)
-        cerr << "URegion::RIF() called" << endl;
-
-    UPoint rUp;
-    restrictUPointToInterval(up, iv, rUp);
-
-    for (unsigned int i = 0; i < segmentsNum; i++) {
-        const MSegmentData *dms;
-        GetSegment(i, dms);
-
-        if (MRA_DEBUG) {
-            cerr << "URegion::RIF() segment #"
-                 << i
-                 << ": ["
-                 << timeInterval.start.ToDouble()
-                 << " "
-                 << timeInterval.end.ToDouble()
-                 << " "
-                 << timeInterval.lc << " " << timeInterval.rc
-                 << "] ("
-                 << dms->initialStartX << " " << dms->initialStartY
-                 << " "
-                 << dms->initialEndX << " " << dms->initialEndY
-                 << ")-("
-                 << dms->finalStartX << " " << dms->finalStartY
-                 << " "
-                 << dms->finalEndX << " " << dms->finalEndY
-                 << ") ia="
-                 << dms->insideAbove
-                 << endl;
-            cerr << "URegion::RIF() point is ["
-                 << up.timeInterval.start.ToDouble()
-                 << " "
-                 << up.timeInterval.end.ToDouble()
-                 << " "
-                 << up.timeInterval.lc << " " << up.timeInterval.rc
-                 << "] ("
-                 << up.p0.GetX() << " " << up.p0.GetY()
-                 << " "
-                 << up.p1.GetX() << " " << up.p1.GetY()
-                 << ")"
-                 << endl;
-            cerr << "URegion::RIF() iv is ["
-                 << iv.start.ToDouble()
-                 << " "
-                 << iv.end.ToDouble()
-                 << " "
-                 << iv.lc
-                 << " "
-                 << iv.rc
-                 << "]"
-                 << endl;
-        }
-
-        MSegmentData rDms;
-        dms->restrictToInterval(timeInterval, iv, rDms);
-
-        if (MRA_DEBUG) {
-            cerr << "URegion::RIF() segment restricted to iv is ("
-                 << rDms.initialStartX << " " << rDms.initialStartY
-                 << " "
-                 << rDms.initialEndX << " " << rDms.initialEndY
-                 << ")-("
-                 << rDms.finalStartX << " " << rDms.finalStartY
-                 << " "
-                 << rDms.finalEndX << " " << rDms.finalEndY
-                 << ")"
-                 << endl;
-            cerr << "URegion::RIF() point restricted to iv is ("
-                 << rUp.p0.GetX() << " " << rUp.p0.GetY()
-                 << " "
-                 << rUp.p1.GetX() << " " << rUp.p1.GetY()
-                 << ")"
-                 << endl;
-        }
-
-        bool ip1present;
-        double ip1x;
-        double ip1y;
-        double ip1t;
-        bool ip2present;
-        double ip2x;
-        double ip2y;
-        double ip2t;
-
-        specialIntersectionTrapeziumSegment(
-            iv.start.ToDouble(), iv.end.ToDouble(),
-            rDms.initialStartX, rDms.initialStartY,
-            rDms.initialEndX, rDms.initialEndY,
-            rDms.finalStartX, rDms.finalStartY,
-            rDms.finalEndX, rDms.finalEndY,
-            rUp.p0.GetX(), rUp.p0.GetY(),
-            rUp.p1.GetX(), rUp.p1.GetY(),
-            ip1present, ip1x, ip1y, ip1t,
-            ip2present, ip2x, ip2y, ip2t);
-
-        if (MRA_DEBUG) {
-            cerr << "URegion::RIF() ip1present="
-                 << ip1present
-                 << endl;
-            cerr << "URegion::RIF() ip2present="
-                 << ip2present
-                 << endl;
-        }
-
-        if (ip1present) {
-            if (MRA_DEBUG)
-                cerr << "URegion::RIF() intersection" << endl;
-
-            if (ip2present
-                && !(nearlyEqual(ip1x, ip2x)
-                     && nearlyEqual(ip1y, ip2y)
-                     && nearlyEqual(ip1t, ip2t))) {
-                if (MRA_DEBUG)
-                    cerr << "URegion::RIF() in plane" << endl;
-
-                RestrictedIntersectionFindInPlane(
-                    iv, rUp,
-                    ip1present, ip1x, ip1y, ip1t,
-                    ip2present, ip2x, ip2y, ip2t,
-                    vtsi);
-            } else {
-                if (MRA_DEBUG)
-                    cerr << "URegion::RIF() not in plane" << endl;
-
-                RestrictedIntersectionFindNormal(
-                    iv, rUp, rDms,
-                    ip1present, ip1x, ip1y, ip1t,
-                    vtsi);
-            }
-        }
-    }
-}
-
-/*
-1.1 Function ~RestrictedIntersectionAddUPoint()~
-
-*/
-void URegion::RestrictedIntersectionAddUPoint(MPoint& res,
-                                              double starttime,
-                                              double endtime,
-                                              bool lc,
-                                              bool rc,
-                                              double x0,
-                                              double y0,
-                                              double x1,
-                                              double y1,
-                                              UPoint*& pending) const {
-    if (MRA_DEBUG) {
-        cerr << "URegion::RIAUP() called" << endl;
-        cerr << "URegion::RIAUP() starttime=" << starttime
-             << " endtime=" << endtime
-             << " lc=" << lc << " rc="
-             << rc
-             << " p0=(" << x0 << " " << y0
-             << ") p1=(" << x1 << " " << y1
-             << ")"
-             << endl;
-    }
-
-    Instant start(instanttype);
-    start.ReadFrom(starttime);
-
-    Instant end(instanttype);
-    end.ReadFrom(endtime);
-
-/*
-Straightforward again. If there is a previous unit pending, try to merge
-it. If we cannot merge it, put it into ~res~ and start new pending
-unit.
-
-(I am not sure, though, whether merging pending units is required. It may
-reduce the number of units produced - but is this really a requirement?)
-
-*/
-    if (pending) {
-        if (MRA_DEBUG)
-            cerr << "URegion::RIAUP() pending exists" << endl;
-
-        if (nearlyEqual(pending->timeInterval.end.ToDouble(),
-                        starttime)
-            && (pending->timeInterval.rc || lc)
-            && nearlyEqual(pending->p1.GetX(), x0)
-            && nearlyEqual(pending->p1.GetY(), y0)) {
-
-            if (MRA_DEBUG)
-                cerr << "URegion::RIAUP() intervals match" << endl;
-
-            if (nearlyEqual(pending->timeInterval.start.ToDouble(),
-                            pending->timeInterval.end.ToDouble())) {
-                if (MRA_DEBUG)
-                    cerr << "URegion::RIAUP() merge #1" << endl;
-
-                Interval<Instant> iv(start,
-                                     end,
-                                     true,
-                                     rc);
-
-                delete pending;
-                pending = new UPoint(iv, x0, y0, x1, y1);
-
-                if (MRA_DEBUG)
-                    cerr << "URegion::RIAUP() pending="
-                         << (unsigned int) pending
-                         << endl;
-
-                return;
-            } else if (nearlyEqual(starttime, endtime)) {
-                if (MRA_DEBUG)
-                    cerr << "URegion::RIAUP() merge #2" << endl;
-
-                Interval<Instant> iv(pending->timeInterval.start,
-                                     pending->timeInterval.end,
-                                     pending->timeInterval.lc,
-                                     true);
-
-                UPoint* dummy = new UPoint(iv,
-                                           pending->p0.GetX(),
-                                           pending->p0.GetY(),
-                                           pending->p1.GetX(),
-                                           pending->p1.GetY());
-                delete pending;
-                pending = dummy;
-
-                    if (MRA_DEBUG)
-                        cerr << "URegion::RIAUP() pending="
-                             << (unsigned int) pending
-                             << endl;
-
-                return;
-            } else {
-                if (MRA_DEBUG)
-                    cerr << "URegion::RIAUP() checking endpoints"
-                         << endl;
-
-                double f =
-                    (pending->timeInterval.start.ToDouble()
-                     -starttime)
-                    /(endtime-starttime);
-
-                double x = x0+(x1-x0)*f;
-                double y = y0+(y1-y0)*f;
-
-                if (nearlyEqual(pending->p0.GetX(), x)
-                    && nearlyEqual(pending->p0.GetY(), y)) {
-                    if (MRA_DEBUG)
-                        cerr << "URegion::RIAUP() merge #3" << endl;
-
-                    Interval<Instant> iv(pending->timeInterval.start,
-                                         end,
-                                         pending->timeInterval.lc,
-                                         rc);
-
-                    UPoint* dummy = new UPoint(iv,
-                                               pending->p0.GetX(),
-                                               pending->p0.GetY(),
-                                               x1,
-                                               y1);
-                    delete pending;
-                    pending = dummy;
-
-                    if (MRA_DEBUG)
-                        cerr << "URegion::RIAUP() pending="
-                             << (unsigned int) pending
-                             << endl;
-
-                    return;
-                }
-            }
-        }
-    }
-
-    if (MRA_DEBUG) cerr << "URegion::RIAUP() no merge" << endl;
-
-    if (pending) {
-        if (MRA_DEBUG)
-            cerr << "URegion::RIAUP() adding "
-                 << (unsigned int) pending
-                 << " iv=["
-                 << pending->timeInterval.start.ToDouble()
-                 << " "
-                 << pending->timeInterval.end.ToDouble()
-                 << " "
-                 << pending->timeInterval.lc
-                 << " "
-                 << pending->timeInterval.rc
-                 << "]"
-                 << endl;
-
-        if (!(nearlyEqual(pending->timeInterval.start.ToDouble(),
-                          pending->timeInterval.end.ToDouble())
-              && (!pending->timeInterval.lc
-                  || !pending->timeInterval.rc)))
-            res.Add(*pending);
-
-        delete pending;
-    }
-
-    Interval<Instant> iv(start, end, lc, rc);
-
-    pending = new UPoint(iv, x0, y0, x1, y1);
+void URegionEmb::PutSegment(
+    DBArray<MSegmentData>* segments,
+    int pos, 
+    const MSegmentData& dms) {
 
     if (MRA_DEBUG)
-        cerr << "URegion::RIAUP() pending="
-             << (unsigned int) pending
+        cerr << "URegionEmb::PutSegment() called, pos=" << pos
              << endl;
 
+    segments->Put(segmentsStartPos+pos, dms);
 }
 
 /*
-1.1 Function ~RestrictedIntersectionProcess()~
+1.1.1 Method ~SetSegmentInsideAbove()~
 
 */
-bool URegion::RestrictedIntersectionProcess(
-    const UPoint& up,
-    const Interval<Instant>& iv,
-    vector<TrapeziumSegmentIntersection>& vtsi,
-    MPoint& res,
-    UPoint*& pending) const {
+void URegionEmb::SetSegmentInsideAbove(
+    DBArray<MSegmentData>* segments,
+    int pos, 
+    bool insideAbove) {
 
-/*
-Check all intersections with the same coordinates. Bring them in
-useful order. For example, if we are inside region at a specific time
-and arrive at a $TSI\_ENTER$ and $TSI\_LEAVE$ intersection, we should
-consider the $TSI\_LEAVE$ intersection first.
-
-*/
-    if (MRA_DEBUG) cerr << "URegion::RIP() called" << endl;
-
-    if (vtsi.size() == 0) return false;
-
-    int prev_i = -1;
-    bool prev_c;
-
-    unsigned int pos = 0;
-
-    if (MRA_DEBUG && vtsi.size() > 0)
-        cerr << "URegion::RIP() (pre) intersection dump #"
-             << 0
-             << " type="
-             << vtsi[0].type
-             << " ip=["
-             << vtsi[0].x << " " << vtsi[0].y << " " << vtsi[0].t
-             << "]"
+    if (MRA_DEBUG)
+        cerr << "URegionEmb::GetSegmentLeftOrAbove() called, segments=" 
+             << segments
              << endl;
 
-    for (unsigned int i = 1; i < vtsi.size(); i++) {
-        if (MRA_DEBUG)
-            cerr << "URegion::RIP() intersection dump #"
-                 << i
-                 << " type="
-                 << vtsi[i].type
-                 << " ip=["
-                 << vtsi[i].x << " " << vtsi[i].y << " " << vtsi[i].t
-                 << "] pos="
-                 << pos
-                 << endl;
-
-//        if (vtsi[i].type == vtsi[pos].type) {
-        if (vtsi[i].type == TSI_IGNORE) {
-            if (MRA_DEBUG)
-                cerr << "URegion::RIP() removing" << endl;
-        } else {
-            if (MRA_DEBUG)
-                cerr << "URegion::RIP() keeping" << endl;
-
-            pos++;
-            if (pos < i) vtsi[pos] = vtsi[i];
-        }
-    }
-
-    for (unsigned int i = 0; i <= pos; i++) {
-        if (MRA_DEBUG) {
-            cerr << "URegion::RIP() intersection dump #"
-                 << i
-                 << " type="
-                 << vtsi[i].type
-                 << " ip=["
-                 << vtsi[i].x << " " << vtsi[i].y << " " << vtsi[i].t
-                 << "]"
-                 << endl;
-        }
-
-        if (i == 0 && vtsi[i].type == TSI_LEAVE) {
-            if (MRA_DEBUG)
-                cerr << "URegion::RIP() special case (start)"
-                     << endl;
-
-            bool rc =
-                nearlyEqual(vtsi[i].t, iv.end.ToDouble())
-                ? iv.rc
-                : true;
-
-            UPoint rUp;
-            restrictUPointToInterval(up, iv, rUp);
-
-            RestrictedIntersectionAddUPoint(
-                res,
-                iv.start.ToDouble(), vtsi[i].t, iv.lc, rc,
-                rUp.p0.GetX(), rUp.p0.GetY(), vtsi[i].x, vtsi[i].y,
-                pending);
-
-            prev_i = i;
-            prev_c = rc;
-        }
-
-        if (i > 0 && vtsi[i].type == TSI_LEAVE) {
-            bool lc =
-                nearlyEqual(vtsi[i-1].t, iv.start.ToDouble())
-                ? iv.lc
-                : true;
-
-            if (prev_i >= 0
-                && nearlyEqual(vtsi[prev_i].t, vtsi[i-1].t)
-                && prev_c)
-                lc = false;
-
-            bool rc =
-                nearlyEqual(vtsi[i].t, iv.end.ToDouble())
-                ? iv.rc
-                : true;
-
-            RestrictedIntersectionAddUPoint(
-                res,
-                vtsi[i-1].t, vtsi[i].t, lc, rc,
-                vtsi[i-1].x, vtsi[i-1].y, vtsi[i].x, vtsi[i].y,
-                pending);
-
-            prev_i = i;
-            prev_c = rc;
-        }
-
-        if (i == pos && vtsi[i].type == TSI_ENTER) {
-            if (MRA_DEBUG)
-                cerr << "URegion::RIP() special case (end)" << endl;
-
-            bool lc =
-                nearlyEqual(vtsi[i].t, iv.start.ToDouble())
-                ? iv.lc
-                : true;
-
-            if (prev_i >= 0
-                && nearlyEqual(vtsi[prev_i].t, vtsi[i].t)
-                && prev_c)
-                lc = false;
-
-            UPoint rUp;
-            restrictUPointToInterval(up, iv, rUp);
-
-            RestrictedIntersectionAddUPoint(
-                res,
-                vtsi[i].t, iv.end.ToDouble(), lc, iv.rc,
-                vtsi[i].x, vtsi[i].y, rUp.p1.GetX(), rUp.p1.GetY(),
-                pending);
-
-            prev_i = 0;
-        }
-    }
-
-    return prev_i >= 0;
+    const MSegmentData *auxDms;
+    segments->Get(segmentsStartPos+pos, auxDms);
+    MSegmentData dms( *auxDms );
+    dms.SetInsideAbove(insideAbove);
+    segments->Put(segmentsStartPos+pos, dms);
 }
 
 /*
-1.1 Function ~RestrictedIntersectionFix()~
+1.1.1 Method ~AddSegment()~
 
 */
-void URegion::RestrictedIntersectionFix(
-    vector<TrapeziumSegmentIntersection>& vtsi) const {
-
-/*
-Examines intersections with same coordinate, counts $TSI\_LEAVE$ and
-$TSI\_ENTER$ intersections and results in one or zero intersections with
-the same coordinate, based on whether there are more $TSI\_LEAVE$ or
-$TSI\_ENTER$ intersections or the same number of them.
-
-*/
-    TsiType lastType;
-
-    if (MRA_DEBUG)
-        for (unsigned int i = 0; i < vtsi.size(); i++)
-            cerr << "URegion::RIFix() intersection dump #"
-                 << i
-                 << " type="
-                 << vtsi[i].type
-                 << " ip=["
-                 << vtsi[i].x << " " << vtsi[i].y << " " << vtsi[i].t
-                 << "]"
-                 << endl;
-
-
-    for (unsigned int i = 0; i < vtsi.size(); i++) {
-        if (MRA_DEBUG)
-            cerr << "URegion::RIFix() post-sort i=" << i << endl;
-
-        unsigned int j;
-        unsigned int numEnter = 0;
-        unsigned int numLeave = 0;
-
-        double t = vtsi[i].t;
-        double x = vtsi[i].x;
-        double y = vtsi[i].y;
-
-        for (j = i;
-             j < vtsi.size()
-                 && nearlyEqual(vtsi[j].t, t)
-                 && nearlyEqual(vtsi[j].x, x)
-                 && nearlyEqual(vtsi[j].y, y);
-             j++) {
-            if (vtsi[j].type == TSI_ENTER)
-                numEnter++;
-            else
-                numLeave++;
-        }
-
-        j--;
-
-        if (MRA_DEBUG) {
-            cerr << "URegion::RIFix() post-sort j=" << j << endl;
-            cerr << "URegion::RIFix() post-sort numEnter="
-                 << numEnter
-                 << endl;
-            cerr << "URegion::RIFix() post-sort numLeave="
-                 << numLeave
-                 << endl;
-        }
-
-        if (j > i) {
-            if (numEnter == numLeave) {
-                if (i > 0 && lastType == TSI_ENTER) {
-                    vtsi[i].type = TSI_LEAVE;
-                    vtsi[i+1].type = TSI_ENTER;
-                    lastType = TSI_ENTER;
-                } else {
-                    vtsi[i].type = TSI_ENTER;
-                    vtsi[i+1].type = TSI_LEAVE;
-                    lastType = TSI_LEAVE;
-                }
-                for (unsigned int k = i+2; k <= j; k++)
-                    vtsi[k].type = TSI_IGNORE;
-            } else if (numEnter > numLeave) {
-                vtsi[i].type = TSI_ENTER;
-                for (unsigned int k = i+1; k <= j; k++)
-                    vtsi[k].type = TSI_IGNORE;
-                lastType = TSI_ENTER;
-            } else {
-                vtsi[i].type = TSI_LEAVE;
-                for (unsigned int k = i+1; k <= j; k++)
-                    vtsi[k].type = TSI_IGNORE;
-                lastType = TSI_LEAVE;
-            }
-
-            i = j;
-        } else {
-            lastType = vtsi[i].type;
-        }
-    }
-}
-
-/*
-1.1.1 Method ~RestrictedIntersection()~
-
-Checks whether the point unit ~up~ intersects this region unit, while
-both units are restricted to the interval ~iv~, which must be inside
-the interval of the two units (this is not checked and must be assured
-before this method is called!).
-
-*/
-void URegion::RestrictedIntersection(const UPoint& up,
-                                     const Interval<Instant>& iv,
-                                     MPoint& res,
-                                     UPoint*& pending) const {
-    if (MRA_DEBUG)
-        cerr << "URegion::RI() called" << endl;
-
-    vector<TrapeziumSegmentIntersection> vtsi;
-
-    RestrictedIntersectionFind(up, iv, vtsi);
+bool URegionEmb::AddSegment(
+    DBArray<MSegmentData>* segments,
+    CRegion& cr,
+    CRegion& rDir,
+    unsigned int faceno,
+    unsigned int cycleno,
+    unsigned int segmentno,
+    unsigned int partnerno,
+    double intervalLen,
+    ListExpr start,
+    ListExpr end) {
 
     if (MRA_DEBUG)
-        cerr << "URegion::RI() vtsi.size()=" << vtsi.size()
-             << endl;
-
-    sort(vtsi.begin(), vtsi.end());
-
-    RestrictedIntersectionFix(vtsi);
-
-    if (!RestrictedIntersectionProcess(up, iv, vtsi, res, pending)) {
-        if (MRA_DEBUG)
-            cerr << "URegion::RI() no intersection in whole unit"
-                 << endl;
-
-        unsigned int num = Plumbline(up, iv);
-
-        if (num > 0 && num % 2 == 1) {
-            UPoint rUp;
-            restrictUPointToInterval(up, iv, rUp);
-
-            RestrictedIntersectionAddUPoint(
-                res,
-                iv.start.ToDouble(), iv.end.ToDouble(),
-                iv.lc, iv.rc,
-                rUp.p0.GetX(), rUp.p0.GetY(),
-                rUp.p1.GetX(), rUp.p1.GetY(),
-                pending);
-        }
-    }
-}
-
-/*
-1.1 Method ~TemporalFunction()~
-
-*/
-void URegion::TemporalFunction(const Instant& t, CRegion& res) const {
-    if (MRA_DEBUG)
-        cerr << "URegion::TemporalFunction() called" << endl;
-
-/*
-Straightforward again. Calculate segments at specified instant,
-remove degenerated segments of initial or final instant, when they
-are not border of any region, and create region.
-
-*/
-    assert(t.IsDefined());
-    assert(timeInterval.Contains(t));
-
-    Instant t0 = timeInterval.start;
-    Instant t1 = timeInterval.end;
-
-    bool initialInstant = nearlyEqual(t0.ToDouble(), t.ToDouble());
-    bool finalInstant = nearlyEqual(t1.ToDouble(), t.ToDouble());
-
-    double f =
-        nearlyEqual(t0.ToDouble(), t1.ToDouble())
-        ? 0
-        : (t-t0)/(t1-t0);
-
-    int partnerno = 0;
-
-    CRegion* cr = new CRegion(0);
-
-    cr->StartBulkLoad();
-
-    for (unsigned int i = 0; i < segmentsNum; i++) {
-            if (MRA_DEBUG)
-                cerr << "URegion::TemporalFunction() segment #"
-                     << i
-                     << " ("
-                     << segmentsStartPos
-                     << ")"
-                     << endl;
-
-            const MSegmentData *dms;
-            segments->Get(segmentsStartPos+i, dms);
-
-            double xs =
-                dms->initialStartX
-                +(dms->finalStartX-dms->initialStartX)*f;
-            double ys =
-                dms->initialStartY
-                +(dms->finalStartY-dms->initialStartY)*f;
-            double xe =
-                dms->initialEndX
-                +(dms->finalEndX-dms->initialEndX)*f;
-            double ye =
-                dms->initialEndY
-                +(dms->finalEndY-dms->initialEndY)*f;
-
-            if (MRA_DEBUG)
-                cerr << "URegion::TemporalFunction()   value is "
-                     << xs << " " << ys << " " << xe << " " << ye
-                     << endl;
-
-            if (nearlyEqual(xs, xe) && nearlyEqual(ys, ye)) {
-                if (MRA_DEBUG)
-                    cerr << "URegion::TemporalFunction()   "
-                         << "reduced to point"
-                         << endl;
-                continue;
-            }
-
-            assert(dms->degeneratedInitial != DGM_UNKNOWN);
-            assert(dms->degeneratedFinal != DGM_UNKNOWN);
-
-            if ((initialInstant
-                 && dms->degeneratedInitial == DGM_IGNORE)
-                || (finalInstant
-                    && dms->degeneratedFinal == DGM_IGNORE)) {
-                if (MRA_DEBUG)
-                    cerr << "URegion::TemporalFunction()   "
-                         << "ignored degenerated"
-                         << endl;
-                continue;
-            }
-
-            Point s(true, xs, ys);
-            Point e(true, xe, ye);
-            CHalfSegment chs(true, true, s, e);
-
-            chs.attr.faceno = 0;
-            chs.attr.cycleno = 0;
-            chs.attr.edgeno = partnerno;
-            chs.attr.partnerno = partnerno++;
-
-            if (initialInstant
-                 && dms->degeneratedInitial == DGM_INSIDEABOVE)
-                chs.attr.insideAbove = true;
-            else if (initialInstant
-                 && dms->degeneratedInitial == DGM_NOTINSIDEABOVE)
-                chs.attr.insideAbove = false;
-            else if (finalInstant
-                 && dms->degeneratedFinal == DGM_INSIDEABOVE)
-                chs.attr.insideAbove = true;
-            else if (finalInstant
-                 && dms->degeneratedFinal == DGM_NOTINSIDEABOVE)
-                chs.attr.insideAbove = false;
-            else
-                chs.attr.insideAbove = dms->insideAbove;
-
-            *cr += chs;
-
-            chs.SetLDP(false);
-
-            *cr += chs;
-    }
-
-    cr->EndBulkLoad();
-
-//    cr->Sort();
-    cr->SetPartnerNo();
-
-    if (MRA_DEBUG)
-        for (int i = 0; i < cr->Size(); i++) {
-            const CHalfSegment *chs;
-            cr->Get(i, chs);
-
-            cerr << "URegion::TemporalFunction() segment #"
-                 << i
-                 << " lp=("
-                 << chs->GetLP().GetX()
-                 << ", "
-                 << chs->GetLP().GetY()
-                 << ") rp=("
-                 << chs->GetRP().GetX()
-                 << ", "
-                 << chs->GetRP().GetY()
-                 << ") ldp="
-                 << chs->GetLDP()
-                 << " attr="
-                 << chs->attr.faceno
-                 << " "
-                 << chs->attr.cycleno
-                 << " "
-                 << chs->attr.edgeno
-                 << " "
-                 << chs->attr.partnerno
-                 << " "
-                 << chs->attr.insideAbove
-                 << endl;
-        }
-
-    cr->ComputeRegion();
-
-    if (MRA_DEBUG)
-        for (int i = 0; i < cr->Size(); i++) {
-            const CHalfSegment *chs;
-            cr->Get(i, chs);
-
-            cerr << "URegion::TemporalFunction() segment #"
-                 << i
-                 << " lp=("
-                 << chs->GetLP().GetX()
-                 << ", "
-                 << chs->GetLP().GetY()
-                 << ") rp=("
-                 << chs->GetRP().GetX()
-                 << ", "
-                 << chs->GetRP().GetY()
-                 << ") ldp="
-                 << chs->GetLDP()
-                 << " attr="
-                 << chs->attr.faceno
-                 << " "
-                 << chs->attr.cycleno
-                 << " "
-                 << chs->attr.edgeno
-                 << " "
-                 << chs->attr.partnerno
-                 << " "
-                 << chs->attr.insideAbove
-                 << endl;
-        }
-
-/*
-This is quite ugly and may not work with other compilers than gcc.
-Since the ~Intime<Alpha>()~ constructors do not properly initial their
-~value~ attribute (which if of type ~CRegion~ in this case), there is
-no better solution right now.
-
-*/
-    memcpy(&res, cr, sizeof(*cr));
-    free(cr);
-}
-
-/*
-1.1 Method ~AddSegment()~
-
-*/
-bool URegion::AddSegment(CRegion& cr,
-                         CRegion& rDir,
-                         unsigned int faceno,
-                         unsigned int cycleno,
-                         unsigned int segmentno,
-                         unsigned int partnerno,
-                         double intervalLen,
-                         ListExpr start,
-                         ListExpr end) {
-    if (MRA_DEBUG)
-        cerr << "URegion::AddSegment() called "
+        cerr << "URegionEmb::AddSegment() called "
              << faceno
              << " "
              << cycleno
@@ -5311,7 +3813,7 @@ Create segment from list representation.
                            : (double) nl->IntValue(nl->Fourth(end)));
 
         if (MRA_DEBUG)
-            cerr << "URegion::AddSegment() segmentsNum="
+            cerr << "URegionEmb::AddSegment() segmentsNum="
                  << segmentsNum
                  << endl;
 
@@ -5321,7 +3823,7 @@ For each of the already existing segments:
 */
         for (int i = segmentsNum-1; i >= 0; i--) {
             if (MRA_DEBUG)
-                cerr << "URegion::AddSegment() i=" << i << endl;
+                cerr << "URegionEmb::AddSegment() i=" << i << endl;
 
             const MSegmentData *auxExistingDms;
 
@@ -5337,40 +3839,40 @@ All segments, which degenerate into each other, are collected in a list
 using the ~degeneratedInitialNext~ attribute.
 
 */
-            if (dms.degeneratedInitialNext < 0
-                && !dms.pointInitial
-                && !existingDms.pointInitial
+            if (dms.GetDegeneratedInitialNext() < 0
+                && !dms.GetPointInitial()
+                && !existingDms.GetPointInitial()
                 && ((nearlyEqual(
-                         dms.initialStartX,
-                         existingDms.initialStartX)
+                         dms.GetInitialStartX(),
+                         existingDms.GetInitialStartX())
                      && nearlyEqual(
-                            dms.initialStartY,
-                            existingDms.initialStartY)
+                            dms.GetInitialStartY(),
+                            existingDms.GetInitialStartY())
                      && nearlyEqual(
-                            dms.initialEndX,
-                            existingDms.initialEndX)
+                            dms.GetInitialEndX(),
+                            existingDms.GetInitialEndX())
                      && nearlyEqual(
-                            dms.initialEndY,
-                            existingDms.initialEndY))
+                            dms.GetInitialEndY(),
+                            existingDms.GetInitialEndY()))
                     || (nearlyEqual(
-                            dms.initialStartX,
-                            existingDms.initialEndX)
+                            dms.GetInitialStartX(),
+                            existingDms.GetInitialEndX())
                         && nearlyEqual(
-                                dms.initialStartY,
-                                existingDms.initialEndY)
+                                dms.GetInitialStartY(),
+                                existingDms.GetInitialEndY())
                         && nearlyEqual(
-                                dms.initialEndX,
-                                existingDms.initialStartX)
+                                dms.GetInitialEndX(),
+                                existingDms.GetInitialStartX())
                         && nearlyEqual(
-                                dms.initialEndY,
-                                existingDms.initialStartY)))) {
+                                dms.GetInitialEndY(),
+                                existingDms.GetInitialStartY())))) {
                 if (MRA_DEBUG)
-                    cerr << "URegion::AddSegment() "
+                    cerr << "URegionEmb::AddSegment() "
                          << "degen'ed initial in " << i
                          << endl;
 
-                dms.degeneratedInitialNext = 0;
-                existingDms.degeneratedInitialNext = segmentsNum+1;
+                dms.SetDegeneratedInitialNext(0);
+                existingDms.SetDegeneratedInitialNext(segmentsNum+1);
 
                 segments->Put(segmentsStartPos+i, existingDms);
             }
@@ -5379,40 +3881,40 @@ using the ~degeneratedInitialNext~ attribute.
 Same for the final instant.
 
 */
-            if (dms.degeneratedFinalNext < 0
-                && !dms.pointFinal
-                && !existingDms.pointFinal
+            if (dms.GetDegeneratedFinalNext() < 0
+                && !dms.GetPointFinal()
+                && !existingDms.GetPointFinal()
                 && ((nearlyEqual(
-                         dms.finalStartX,
-                         existingDms.finalStartX)
+                         dms.GetFinalStartX(),
+                         existingDms.GetFinalStartX())
                      && nearlyEqual(
-                            dms.finalStartY,
-                            existingDms.finalStartY)
+                            dms.GetFinalStartY(),
+                            existingDms.GetFinalStartY())
                      && nearlyEqual(
-                            dms.finalEndX,
-                            existingDms.finalEndX)
+                            dms.GetFinalEndX(),
+                            existingDms.GetFinalEndX())
                      && nearlyEqual(
-                            dms.finalEndY,
-                            existingDms.finalEndY))
+                            dms.GetFinalEndY(),
+                            existingDms.GetFinalEndY()))
                     || (nearlyEqual(
-                            dms.finalStartX,
-                            existingDms.finalEndX)
+                            dms.GetFinalStartX(),
+                            existingDms.GetFinalEndX())
                         && nearlyEqual(
-                               dms.finalStartY,
-                               existingDms.finalEndY)
+                               dms.GetFinalStartY(),
+                               existingDms.GetFinalEndY())
                         && nearlyEqual(
-                               dms.finalEndX,
-                               existingDms.finalStartX)
+                               dms.GetFinalEndX(),
+                               existingDms.GetFinalStartX())
                         && nearlyEqual(
-                               dms.finalEndY,
-                               existingDms.finalStartY)))) {
+                               dms.GetFinalEndY(),
+                               existingDms.GetFinalStartY())))) {
                 if (MRA_DEBUG)
-                    cerr << "URegion::AddSegment() "
+                    cerr << "URegionEmb::AddSegment() "
                          << "degen'ed final in " << i
                          << endl;
 
-                dms.degeneratedFinalNext = 0;
-                existingDms.degeneratedFinalNext = segmentsNum+1;
+                dms.SetDegeneratedFinalNext(0);
+                existingDms.SetDegeneratedFinalNext(segmentsNum+1);
 
                 segments->Put(segmentsStartPos+i, existingDms);
             }
@@ -5422,54 +3924,54 @@ If we have a point time interval, degeneration is not allowed.
 
 */
             if (nearlyEqual(intervalLen, 0.0)
-                && (dms.degeneratedInitialNext >= 0
-                    || dms.degeneratedFinalNext >= 0)) {
+                && (dms.GetDegeneratedInitialNext() >= 0
+                    || dms.GetDegeneratedFinalNext() >= 0)) {
                 stringstream msg;
                 msg << "  Units with zero length time interval must not" 
                     << " be degenerated." << endl
                     << "    New segment:" << endl
                     << "      Initial: ("
-                    << dms.initialStartX
+                    << dms.GetInitialStartX()
                     << " "
-                    << dms.initialStartY
+                    << dms.GetInitialStartY()
                     << ") - ("
-                    << dms.initialEndX
+                    << dms.GetInitialEndX()
                     << " "
-                    << dms.initialEndY
+                    << dms.GetInitialEndY()
                     << ")" << endl
                     << "      Final: ("
-                    << dms.finalStartX
+                    << dms.GetFinalStartX()
                     << " "
-                    << dms.finalStartY
+                    << dms.GetFinalStartY()
                     << ") - ("
-                    << dms.finalEndX
+                    << dms.GetFinalEndX()
                     << " "
-                    << dms.finalEndY;
+                    << dms.GetFinalEndY();
                 throw invalid_argument(msg.str());
             } else if (!nearlyEqual(intervalLen, 0.0)
-                     && dms.degeneratedInitialNext >= 0
-                     && dms.degeneratedFinalNext >= 0) {
+                     && dms.GetDegeneratedInitialNext() >= 0
+                     && dms.GetDegeneratedFinalNext() >= 0) {
                 stringstream msg;
                 msg << "  Units must not degenerate both in initial and" 
                     << " final instant." << endl
                     << "    New segment:" << endl
                     << "      Initial: ("
-                    << dms.initialStartX
+                    << dms.GetInitialStartX()
                     << " "
-                    << dms.initialStartY
+                    << dms.GetInitialStartY()
                     << ") - ("
-                    << dms.initialEndX
+                    << dms.GetInitialEndX()
                     << " "
-                    << dms.initialEndY
+                    << dms.GetInitialEndY()
                     << ")" << endl
                     << "      Final: ("
-                    << dms.finalStartX
+                    << dms.GetFinalStartX()
                     << " "
-                    << dms.finalStartY
+                    << dms.GetFinalStartY()
                     << ") - ("
-                    << dms.finalEndX
+                    << dms.GetFinalEndX()
                     << " "
-                    << dms.finalEndY;
+                    << dms.GetFinalEndY();
                 throw invalid_argument(msg.str());
             }
 
@@ -5482,22 +3984,22 @@ $(x, y, t)$, this is equivalent to the intersection of two trapeziums.
             unsigned int detailedResult;
 
             if (specialTrapeziumIntersects(intervalLen,
-                                           existingDms.initialStartX,
-                                           existingDms.initialStartY,
-                                           existingDms.initialEndX,
-                                           existingDms.initialEndY,
-                                           existingDms.finalStartX,
-                                           existingDms.finalStartY,
-                                           existingDms.finalEndX,
-                                           existingDms.finalEndY,
-                                           dms.initialStartX,
-                                           dms.initialStartY,
-                                           dms.initialEndX,
-                                           dms.initialEndY,
-                                           dms.finalStartX,
-                                           dms.finalStartY,
-                                           dms.finalEndX,
-                                           dms.finalEndY,
+                                           existingDms.GetInitialStartX(),
+                                           existingDms.GetInitialStartY(),
+                                           existingDms.GetInitialEndX(),
+                                           existingDms.GetInitialEndY(),
+                                           existingDms.GetFinalStartX(),
+                                           existingDms.GetFinalStartY(),
+                                           existingDms.GetFinalEndX(),
+                                           existingDms.GetFinalEndY(),
+                                           dms.GetInitialStartX(),
+                                           dms.GetInitialStartY(),
+                                           dms.GetInitialEndX(),
+                                           dms.GetInitialEndY(),
+                                           dms.GetFinalStartX(),
+                                           dms.GetFinalStartY(),
+                                           dms.GetFinalEndX(),
+                                           dms.GetFinalEndY(),
                                            detailedResult)) {
 
                 stringstream msg;
@@ -5506,41 +4008,41 @@ $(x, y, t)$, this is equivalent to the intersection of two trapeziums.
                     << ")." << endl
                     << "    Existing segment:" << endl
                     << "      Initial: ("
-                    << existingDms.initialStartX
+                    << existingDms.GetInitialStartX()
                     << " "
-                    << existingDms.initialStartY
+                    << existingDms.GetInitialStartY()
                     << ") - ("
-                    << existingDms.initialEndX
+                    << existingDms.GetInitialEndX()
                     << " "
-                    << existingDms.initialEndY
+                    << existingDms.GetInitialEndY()
                     << ")" << endl
                     << "      Final:  ("
-                    << existingDms.finalStartX
+                    << existingDms.GetFinalStartX()
                     << " "
-                    << existingDms.finalStartY
+                    << existingDms.GetFinalStartY()
                     << ") - ("
-                    << existingDms.finalEndX
+                    << existingDms.GetFinalEndX()
                     << " "
-                    << existingDms.finalEndY
+                    << existingDms.GetFinalEndY()
                     << ")" << endl
                     << "    New segment:" << endl
                     << "      Initial: ("
-                    << dms.initialStartX
+                    << dms.GetInitialStartX()
                     << " "
-                    << dms.initialStartY
+                    << dms.GetInitialStartY()
                     << ") - ("
-                    << dms.initialEndX
+                    << dms.GetInitialEndX()
                     << " "
-                    << dms.initialEndY
+                    << dms.GetInitialEndY()
                     << ")" << endl
                     << "      Final:  ("
-                    << dms.finalStartX
+                    << dms.GetFinalStartX()
                     << " "
-                    << dms.finalStartY
+                    << dms.GetFinalStartY()
                     << ") - ("
-                    << dms.finalEndX
+                    << dms.GetFinalEndX()
                     << " "
-                    << dms.finalEndY;
+                    << dms.GetFinalEndY();
                 throw invalid_argument(msg.str());
             }
         }
@@ -5552,13 +4054,17 @@ computation.
 */
         double t = nearlyEqual(intervalLen, 0.0) ? 0 : 0.5;
         double xs =
-            dms.initialStartX+(dms.finalStartX-dms.initialStartX)*t;
+            dms.GetInitialStartX()
+            +(dms.GetFinalStartX()-dms.GetInitialStartX())*t;
         double ys =
-            dms.initialStartY+(dms.finalStartY-dms.initialStartY)*t;
+            dms.GetInitialStartY()
+            +(dms.GetFinalStartY()-dms.GetInitialStartY())*t;
         double xe =
-            dms.initialEndX+(dms.finalEndX-dms.initialEndX)*t;
+            dms.GetInitialEndX()
+            +(dms.GetFinalEndX()-dms.GetInitialEndX())*t;
         double ye =
-            dms.initialEndY+(dms.finalEndY-dms.initialEndY)*t;
+            dms.GetInitialEndY()
+            +(dms.GetFinalEndY()-dms.GetInitialEndY())*t;
 
         Point s(true, xs, ys);
         Point e(true, xe, ye);
@@ -5572,28 +4078,28 @@ computation.
         chs.attr.insideAbove = chs.GetLP() == s;
 
         if (MRA_DEBUG) {
-            cerr << "URegion::AddSegment() initial "
-                 << dms.initialStartX
+            cerr << "URegionEmb::AddSegment() initial "
+                 << dms.GetInitialStartX()
                  << " "
-                 << dms.initialStartY
+                 << dms.GetInitialStartY()
                  << " "
-                 << dms.initialEndX
+                 << dms.GetInitialEndX()
                  << " "
-                 << dms.initialEndY
+                 << dms.GetInitialEndY()
                  << endl;
-            cerr << "URegion::AddSegment() final "
-                 << dms.finalStartX
+            cerr << "URegionEmb::AddSegment() final "
+                 << dms.GetFinalStartX()
                  << " "
-                 << dms.finalStartY
+                 << dms.GetFinalStartY()
                  << " "
-                 << dms.finalEndX
+                 << dms.GetFinalEndX()
                  << " "
-                 << dms.finalEndY
+                 << dms.GetFinalEndY()
                  << endl;
         }
 
         if (MRA_DEBUG)
-            cerr << "URegion::AddSegment() "
+            cerr << "URegionEmb::AddSegment() "
                  << faceno
                  << " "
                  << cycleno
@@ -5616,22 +4122,22 @@ computation.
             msg << "  CRegion checks for segment failed." << endl
                 << "    New segment:" << endl
                 << "      Initial: ("
-                << dms.initialStartX
+                << dms.GetInitialStartX()
                 << " "
-                << dms.initialStartY
+                << dms.GetInitialStartY()
                 << ") - ("
-                << dms.initialEndX
+                << dms.GetInitialEndX()
                 << " "
-                << dms.initialEndY
+                << dms.GetInitialEndY()
                 << ")" << endl
                 << "      Final:  ("
-                << dms.finalStartX
+                << dms.GetFinalStartX()
                 << " "
-                << dms.finalStartY
+                << dms.GetFinalStartY()
                 << ") - ("
-                << dms.finalEndX
+                << dms.GetFinalEndX()
                 << " "
-                << dms.finalEndY;
+                << dms.GetFinalEndY();
             throw invalid_argument(msg.str());
         }
 
@@ -5648,28 +4154,36 @@ computation.
         if (bbox.IsDefined()) {
             double min[3] = { bbox.MinD(0), bbox.MinD(1), bbox.MinD(2) };
             double max[3] = { bbox.MaxD(0), bbox.MaxD(1), bbox.MaxD(2) };
-            if (dms.initialStartX < min[0]) min[0] = dms.initialStartX;
-            if (dms.finalStartX < min[0]) min[0] = dms.finalStartX;
-            if (dms.initialStartY < min[1]) min[1] = dms.initialStartY;
-            if (dms.finalStartY < min[1]) min[1] = dms.finalStartY;
-            if (dms.initialStartX > max[0]) max[0] = dms.initialStartX;
-            if (dms.finalStartX > max[0]) max[0] = dms.finalStartX;
-            if (dms.initialStartY > max[1]) max[1] = dms.initialStartY;
-            if (dms.finalStartY > max[1]) max[1] = dms.finalStartY;
+            if (dms.GetInitialStartX() < min[0]) 
+                min[0] = dms.GetInitialStartX();
+            if (dms.GetFinalStartX() < min[0]) 
+                min[0] = dms.GetFinalStartX();
+            if (dms.GetInitialStartY() < min[1]) 
+                min[1] = dms.GetInitialStartY();
+            if (dms.GetFinalStartY() < min[1]) 
+                min[1] = dms.GetFinalStartY();
+            if (dms.GetInitialStartX() > max[0]) 
+                max[0] = dms.GetInitialStartX();
+            if (dms.GetFinalStartX() > max[0]) 
+                max[0] = dms.GetFinalStartX();
+            if (dms.GetInitialStartY() > max[1]) 
+                max[1] = dms.GetInitialStartY();
+            if (dms.GetFinalStartY() > max[1]) 
+                max[1] = dms.GetFinalStartY();
             bbox.Set(true, min, max);
 
         } else {
             double min[3] = 
-                { dms.initialStartX < dms.finalStartX 
-                  ? dms.initialStartX : dms.finalStartX,
-                  dms.initialStartY < dms.finalStartY 
-                  ? dms.initialStartY : dms.finalStartY,
+                { dms.GetInitialStartX() < dms.GetFinalStartX()
+                  ? dms.GetInitialStartX() : dms.GetFinalStartX(),
+                  dms.GetInitialStartY() < dms.GetFinalStartY() 
+                  ? dms.GetInitialStartY() : dms.GetFinalStartY(),
                   timeInterval.start.ToDouble() };
             double max[3] = 
-                { dms.initialStartX > dms.finalStartX 
-                  ? dms.initialStartX : dms.finalStartX,
-                  dms.initialStartY > dms.finalStartY 
-                  ? dms.initialStartY : dms.finalStartY,
+                { dms.GetInitialStartX() > dms.GetFinalStartX() 
+                  ? dms.GetInitialStartX() : dms.GetFinalStartX(),
+                  dms.GetInitialStartY() > dms.GetFinalStartY() 
+                  ? dms.GetInitialStartY() : dms.GetFinalStartY(),
                   timeInterval.end.ToDouble() };
             bbox.Set(true, min, max);
         }
@@ -5689,198 +4203,1625 @@ computation.
 }
 
 /*
+1.1 Helper methods for ~RestrictedIntersection()~
 
-1.1 Attribute access methods
-
-1.1.1 Method ~SetSegmentInsideAbove()~
+1.1.1 Method ~Plumbline()~
 
 */
-void URegion::SetSegmentInsideAbove(int pos, bool insideAbove) {
+unsigned int URegionEmb::Plumbline(
+    DBArray<MSegmentData>* segments,
+    const UPoint& up, 
+    const Interval<Instant>& iv) const{
+
+    if (MRA_DEBUG) cerr << "URegionEmb::Plumbline() called" << endl;
+
+/*
+Since we know that ~up~ is not intersecting with any of the segments, we
+can pick any time in ~iv~ to examine ~up~ and the segments. We pick the
+middle of the interval:
+
+*/
+    double t =
+        iv.start.ToDouble()
+        +(iv.end.ToDouble()-iv.start.ToDouble())/2;
+
     if (MRA_DEBUG)
-        cerr << "URegion::GetSegmentLeftOrAbove() called, segments=" 
-             << segments
+        cerr << "URegionEmb::Plumbline() iv.start="
+             << iv.start.ToDouble()
+             << " iv.end="
+             << iv.end.ToDouble()
+             << " t="
+             << t
              << endl;
 
-    const MSegmentData *auxDms;
-    segments->Get(segmentsStartPos+pos, auxDms);
-    MSegmentData dms( *auxDms );
-    dms.insideAbove = insideAbove;
-    segments->Put(segmentsStartPos+pos, dms);
-}
+    double f;
 
 /*
-1.1.1 Method ~GetSegmentsNum()~
+Calculate the position ~x~, ~y~ of ~up~ for ~t~.
 
 */
-int URegion::GetSegmentsNum(void) const {
+    if (nearlyEqual(up.timeInterval.start.ToDouble(),
+                    up.timeInterval.end.ToDouble()))
+        f = 0;
+    else
+        f = (t-up.timeInterval.start.ToDouble())
+            /(up.timeInterval.end.ToDouble()
+              -up.timeInterval.start.ToDouble());
+
     if (MRA_DEBUG)
-        cerr << "URegion::GetSegmentsNum() called, num="
-             << segmentsNum
+        cerr << "URegionEmb::Plumbline() f=" << f << endl;
+
+    if (MRA_DEBUG)
+        cerr << "URegionEmb::Plumbline() p0=("
+             << up.p0.GetX() << " " << up.p0.GetY()
+             << ") p1=("
+             << up.p1.GetX() << " " << up.p1.GetY()
+             << ")"
              << endl;
 
-    return segmentsNum;
-}
+    double x = up.p0.GetX()+(up.p1.GetX()-up.p0.GetX())*f;
+    double y = up.p0.GetY()+(up.p1.GetY()-up.p0.GetY())*f;
 
-/*
-1.1.1 Method ~GetSegment()~
-
-*/
-void URegion::GetSegment(int pos, const MSegmentData*& dms) const {
     if (MRA_DEBUG)
-        cerr << "URegion::GetSegment() called, pos=" << pos
-             << ", segments="
-             << segments
-             << endl;
-
-    segments->Get(segmentsStartPos+pos, dms);
-}
+        cerr << "URegionEmb::Plumbline() x=" << x << " y=" << y << endl;
 
 /*
-1.1.1 Method ~PutSegment()~
+Required to calculate the position of each segment for ~t~.
 
 */
-void URegion::PutSegment(int pos, const MSegmentData& dms) {
-    if (MRA_DEBUG)
-        cerr << "URegion::PutSegment() called, pos=" << pos
-             << endl;
-
-    segments->Put(segmentsStartPos+pos, dms);
-}
+    if (nearlyEqual(timeInterval.start.ToDouble(),
+                    timeInterval.end.ToDouble()))
+        f = 0;
+    else
+        f = (t-timeInterval.start.ToDouble())
+            /(timeInterval.end.ToDouble()
+              -timeInterval.start.ToDouble());
 
 /*
-1.1 Conversion to and from list representation
-
-1.1.1 Function ~OutURegion()~
+~num~ is used to count the segments above ~(x, y)~.
 
 */
-static ListExpr OutURegion(ListExpr typeInfo, Word value) {
-     if (MRA_DEBUG) cerr << "OutURegion() called" << endl;
+    unsigned int num = 0;
 
 /*
-Conversio to list representation is straightforward. Just loop through
-faces, cylces and segments and make sure that it is realised when one of
-these changes.
+Go through all segments...
 
 */
-    URegion* ur = (URegion*) value.addr;
-
-    int num = ur->GetSegmentsNum();
-
-    ListExpr faces = nl->TheEmptyList();
-    ListExpr facesLastElem = faces;
-
-    ListExpr face = nl->TheEmptyList();
-    ListExpr faceLastElem = face;
-    ListExpr cycle = nl->TheEmptyList();
-    ListExpr cycleLastElem = cycle;
-
-    for (int i = 0; i < num; i++) {
+    for (unsigned int i = 0; i < segmentsNum; i++) {
         if (MRA_DEBUG)
-            cerr << "OutURegion() segment #" << i << endl;
+            cerr << "URegionEmb::Plumbline() segment #" << i << endl;
 
-        const MSegmentData* dms;
-        ur->GetSegment(i, dms);
+        const MSegmentData *dms;
+        segments->Get(segmentsStartPos+i, dms);
+
+/*
+Calculate position of segment at ~t~.
+
+*/
+        double p1x =
+            dms->GetInitialStartX()
+            +(dms->GetFinalStartX()-dms->GetInitialStartX())*f;
+        double p1y =
+            dms->GetInitialStartY()
+            +(dms->GetFinalStartY()-dms->GetInitialStartY())*f;
+        double p2x =
+            dms->GetInitialEndX()
+            +(dms->GetFinalEndX()-dms->GetInitialEndX())*f;
+        double p2y =
+            dms->GetInitialEndY()
+            +(dms->GetFinalEndY()-dms->GetInitialEndY())*f;
 
         if (MRA_DEBUG)
-            cerr << "OutURegion() returned, dms=" << dms << endl;
-
-        if (MRA_DEBUG)
-            cerr << "OutURegion() point is "
-                 << dms->GetFaceNo()
-                 << " "
-                 << dms->GetCycleNo()
-                 << " ("
-                 << dms->GetInitialStartX()
-                 << ", "
-                 << dms->GetInitialStartY()
-                 << ", "
-                 << dms->GetFinalStartX()
-                 << ", "
-                 << dms->GetFinalStartY()
-                 << ")"
+            cerr << "URegionEmb::Plumbline() p1x=" << p1x
+                 << " p1y=" << p1y
+                 << " p2x=" << p2x
+                 << " p2y=" << p2y
                  << endl;
 
-        ListExpr p =
-            nl->FourElemList(
-                nl->RealAtom(dms->GetInitialStartX()),
-                nl->RealAtom(dms->GetInitialStartY()),
-                nl->RealAtom(dms->GetFinalStartX()),
-                nl->RealAtom(dms->GetFinalStartY()));
+        if (nearlyEqual(p1x, p2x)) {
+/*
+Ignore vertical segments.
 
-        if (cycle == nl->TheEmptyList()) {
-            if (MRA_DEBUG) cerr << "OutURegion() new cycle" << endl;
-            cycle = nl->OneElemList(p);
-            cycleLastElem = cycle;
-        } else {
+*/
             if (MRA_DEBUG)
-                cerr << "OutURegion() existing cycle" << endl;
-            cycleLastElem = nl->Append(cycleLastElem, p);
-        }
+                cerr << "URegionEmb::Plumbline() "
+                     << "vertical, ignored"
+                     << endl;
+        } else if (nearlyEqual(p1x, x) && lowerOrNearlyEqual(y, p1y)) {
+/*
+~(x, y)~ is one of the endpoints. Only count it if it is the right endpoint.
 
-        const MSegmentData *nextDms;
-        if (i < num-1) ur->GetSegment(i+1, nextDms);
-
-        if (i == num-1
-            || dms->GetCycleNo() != nextDms->GetCycleNo()
-            || dms->GetFaceNo() != nextDms->GetFaceNo()) {
+*/
             if (MRA_DEBUG)
-                cerr << "OutURegion() end of cycle" << endl;
+                cerr << "URegionEmb::Plumbline() "
+                     << "plumbline through start point"
+                     << endl;
 
-            if (face == nl->TheEmptyList()) {
+            if (p1x > p2x) {
                 if (MRA_DEBUG)
-                    cerr << "OutURegion() new face" << endl;
-                face = nl->OneElemList(cycle);
-                faceLastElem = face;
+                    cerr << "URegionEmb::Plumbline() counted" << endl;
+
+                num++;
             } else {
                 if (MRA_DEBUG)
-                    cerr << "OutURegion() existing face" << endl;
-                faceLastElem = nl->Append(faceLastElem, cycle);
+                    cerr << "URegionEmb::Plumbline() ignored" << endl;
             }
+        } else if (nearlyEqual(p2x, x) && lowerOrNearlyEqual(y, p2y)) {
+/*
+~(x, y)~ is one of the endpoints. Only count it if it is the right endpoint.
 
-            if (i == num-1
-                || dms->GetFaceNo() != nextDms->GetFaceNo()) {
+*/
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::Plumbline() "
+                     << "plumbline through end point"
+                     << endl;
+
+            if (p1x < p2x) {
                 if (MRA_DEBUG)
-                    cerr << "OutURegion() end of face" << endl;
-                if (faces == nl->TheEmptyList()) {
-                    faces = nl->OneElemList(face);
-                    facesLastElem = faces;
-                } else
-                    facesLastElem = nl->Append(facesLastElem, face);
+                    cerr << "URegionEmb::Plumbline() counted" << endl;
 
-                face = nl->TheEmptyList();
-                faceLastElem = face;
+                num++;
+            } else {
+                if (MRA_DEBUG)
+                    cerr << "URegionEmb::Plumbline() ignored" << endl;
+            }
+        } else if (!between(p1x, x, p2x)) {
+/*
+~(x, y)~ is not below the segment.
+
+*/
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::Plumbline() "
+                     << "x not between p1x, p1y, ignored"
+                     << endl;
+        } else {
+/*
+~(x, y)~ is in the same ~x~-range as the segment. Count it if the segment
+is above ~(x, y)~.
+
+*/
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::Plumbline() "
+                     << "checking for intersection"
+                     << endl;
+
+            if (MRA_DEBUG) {
+                cerr << "URegionEmb::Plumbline() nearlyEqual(p1x, x)="
+                     << nearlyEqual(p1x, x)
+                     << endl;
+                cerr << "URegionEmb::Plumbline() nearlyEqual(p2x, x)="
+                     << nearlyEqual(p2x, x)
+                     << endl;
             }
 
-            cycle = nl->TheEmptyList();
-            cycleLastElem = cycle;
+            // solve p1x+(p2x-p1x)*s = x
+
+            double s = (x-p1x)/(p2x-p1x);
+            double ys = p1y+(p2y-p1y)*s;
+
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::Plumbline() ys=" << ys << endl;
+
+            if (lowerOrNearlyEqual(y, ys)) {
+                if (MRA_DEBUG)
+                    cerr << "URegionEmb::Plumbline() below" << endl;
+
+                num++;
+            } else {
+                if (MRA_DEBUG)
+                    cerr << "URegionEmb::Plumbline() not below" << endl;
+            }
+        }
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::Plumbline() num=" << num << endl;
+    }
+
+    return num;
+}
+
+/*
+1.1.1 Method ~RestrictedIntersectionAddUPoint()~
+
+*/
+void URegionEmb::RestrictedIntersectionAddUPoint(MPoint& res,
+                                                 double starttime,
+                                                 double endtime,
+                                                 bool lc,
+                                                 bool rc,
+                                                 double x0,
+                                                 double y0,
+                                                 double x1,
+                                                 double y1,
+                                                 UPoint*& pending,
+                                                 bool merge) const {
+    if (MRA_DEBUG) {
+        cerr << "URegionEmb::RIAUP() called" << endl;
+        cerr << "URegionEmb::RIAUP() starttime=" << starttime
+             << " endtime=" << endtime
+             << " lc=" << lc << " rc="
+             << rc
+             << " p0=(" << x0 << " " << y0
+             << ") p1=(" << x1 << " " << y1
+             << ")"
+             << endl;
+    }
+
+    Instant start(instanttype);
+    start.ReadFrom(starttime);
+
+    Instant end(instanttype);
+    end.ReadFrom(endtime);
+
+/*
+Straightforward again. If there is a previous unit pending, try to merge
+it. If we cannot merge it, put it into ~res~ and start new pending
+unit.
+
+(I am not sure, though, whether merging pending units is required. It may
+reduce the number of units produced - but is this really a requirement?)
+
+*/
+    if (pending) {
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIAUP() pending exists" << endl;
+
+        if (MRA_DEBUG) {
+            cerr << "URegionEmb::RIAUP() pending: ["
+                 << pending->timeInterval.start.ToString()
+                 << " "
+                 << pending->timeInterval.end.ToString()
+                 << " "
+                 << pending->timeInterval.lc
+                 << " "
+                 << pending->timeInterval.rc
+                 << "] ("
+                 << pending->p0.GetX() << " " << pending->p0.GetY()
+                 << ")-("
+                 << pending->p1.GetX() << " " << pending->p1.GetY()
+                 << ")"
+                 << endl;
+            cerr << "URegionEmb::RIAUP() current: ["
+                 << start.ToString()
+                 << " "
+                 << end.ToString()
+                 << " "
+                 << lc
+                 << " "
+                 << rc
+                 << "] ("
+                 << x0 << " " << y0 
+                 << ")-(" 
+                 << x1 << " " << y1 
+                 << ")"
+                 << endl;
+        }
+
+        if (merge
+            && nearlyEqual(pending->timeInterval.end.ToDouble(),
+                           starttime)
+            && (pending->timeInterval.rc || lc)
+            && nearlyEqual(pending->p1.GetX(), x0)
+            && nearlyEqual(pending->p1.GetY(), y0)) {
+
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::RIAUP() intervals match" << endl;
+
+            if (nearlyEqual(pending->timeInterval.start.ToDouble(),
+                            pending->timeInterval.end.ToDouble())) {
+                if (MRA_DEBUG)
+                    cerr << "URegionEmb::RIAUP() merge #1" << endl;
+
+                Interval<Instant> iv(start,
+                                     end,
+                                     true,
+                                     rc);
+
+                delete pending;
+                pending = new UPoint(iv, x0, y0, x1, y1);
+
+                if (MRA_DEBUG)
+                    cerr << "URegionEmb::RIAUP() pending="
+                         << (unsigned int) pending
+                         << endl;
+
+                return;
+            } else if (nearlyEqual(starttime, endtime)) {
+                if (MRA_DEBUG)
+                    cerr << "URegionEmb::RIAUP() merge #2" << endl;
+
+                Interval<Instant> iv(pending->timeInterval.start,
+                                     pending->timeInterval.end,
+                                     pending->timeInterval.lc,
+                                     true);
+
+                UPoint* dummy = new UPoint(iv,
+                                           pending->p0.GetX(),
+                                           pending->p0.GetY(),
+                                           pending->p1.GetX(),
+                                           pending->p1.GetY());
+                delete pending;
+                pending = dummy;
+
+                if (MRA_DEBUG)
+                    cerr << "URegionEmb::RIAUP() pending="
+                         << (unsigned int) pending
+                         << endl;
+
+                return;
+            } else {
+                if (MRA_DEBUG)
+                    cerr << "URegionEmb::RIAUP() checking endpoints"
+                         << endl;
+
+                double f =
+                    (pending->timeInterval.start.ToDouble()
+                     -starttime)
+                    /(endtime-starttime);
+
+                double x = x0+(x1-x0)*f;
+                double y = y0+(y1-y0)*f;
+
+                if (MRA_DEBUG)
+                    cerr << "URegionEmb::RIAUP() f=" 
+                         << f
+                         << " -> x="
+                         << x
+                         << " y="
+                         << y
+                         << endl;
+
+
+                if (nearlyEqual(pending->p0.GetX(), x)
+                    && nearlyEqual(pending->p0.GetY(), y)) {
+                    if (MRA_DEBUG)
+                        cerr << "URegionEmb::RIAUP() merge #3" << endl;
+
+                    Interval<Instant> iv(pending->timeInterval.start,
+                                         end,
+                                         pending->timeInterval.lc,
+                                         rc);
+
+                    UPoint* dummy = new UPoint(iv,
+                                               pending->p0.GetX(),
+                                               pending->p0.GetY(),
+                                               x1,
+                                               y1);
+                    delete pending;
+                    pending = dummy;
+
+                    if (MRA_DEBUG)
+                        cerr << "URegionEmb::RIAUP() pending="
+                             << (unsigned int) pending
+                             << endl;
+
+                    return;
+                }
+            }
         }
     }
 
-    ListExpr res =
-        nl->TwoElemList(
-            nl->FourElemList(
-                OutDateTime(nl->TheEmptyList(),
-                            SetWord(&ur->timeInterval.start)),
-                OutDateTime(nl->TheEmptyList(),
-                            SetWord(&ur->timeInterval.end)),
-                nl->BoolAtom(ur->timeInterval.lc),
-                nl->BoolAtom(ur->timeInterval.rc)),
-            faces);
+    if (MRA_DEBUG) cerr << "URegionEmb::RIAUP() no merge" << endl;
 
-    return res;
+    if (pending) {
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIAUP() adding "
+                 << (unsigned int) pending
+                 << " iv=["
+                 << pending->timeInterval.start.ToDouble()
+                 << " "
+                 << pending->timeInterval.end.ToDouble()
+                 << " "
+                 << pending->timeInterval.lc
+                 << " "
+                 << pending->timeInterval.rc
+                 << "]"
+                 << endl;
+
+        if (!(nearlyEqual(pending->timeInterval.start.ToDouble(),
+                          pending->timeInterval.end.ToDouble())
+              && (!pending->timeInterval.lc
+                  || !pending->timeInterval.rc)))
+            // DEBUG
+            assert(pending->IsValid());
+            res.Add(*pending);
+
+        delete pending;
+    }
+
+    Interval<Instant> iv(start, end, lc, rc);
+
+    pending = new UPoint(iv, x0, y0, x1, y1);
+
+    if (MRA_DEBUG)
+        cerr << "URegionEmb::RIAUP() pending="
+             << (unsigned int) pending
+             << endl;
+
 }
 
 /*
+1.1.1 Method ~RestrictedIntersectionFindNormal()~
+
+*/
+void URegionEmb::RestrictedIntersectionFindNormal(
+    const Interval<Instant>& iv,
+    const UPoint& rUp,
+    MSegmentData& rDms,
+    bool& ip1present,
+    double& ip1x,
+    double& ip1y,
+    double& ip1t,
+    vector<TrapeziumSegmentIntersection>& vtsi) const {
+
+    if (MRA_DEBUG)
+        cerr << "URegionEmb::RIFN() called" << endl;
+
+/*
+Calculate end points of moving segment at time of intersection ~ip1t~.
+
+*/
+    double p1x, p1y, p2x, p2y;
+
+    if (nearlyEqual(iv.start.ToDouble(), iv.end.ToDouble())) {
+        p1x = rDms.GetInitialStartX();
+        p1y = rDms.GetInitialStartY();
+        p2x = rDms.GetInitialEndX();
+        p2y = rDms.GetInitialEndY();
+    } else {
+        double f =
+            (ip1t-iv.start.ToDouble())
+            /(iv.end.ToDouble()-iv.start.ToDouble());
+
+        p1x =
+            rDms.GetInitialStartX()
+            +(rDms.GetFinalStartX()-rDms.GetInitialStartX())*f;
+        p1y =
+            rDms.GetInitialStartY()
+            +(rDms.GetFinalStartY()-rDms.GetInitialStartY())*f;
+        p2x =
+            rDms.GetInitialEndX()
+            +(rDms.GetFinalEndX()-rDms.GetInitialEndX())*f;
+        p2y =
+            rDms.GetInitialEndY()
+            +(rDms.GetFinalEndY()-rDms.GetInitialEndY())*f;
+    }
+
+    if (MRA_DEBUG) {
+        cerr << "URegionEmb::RIFN() rUp=("
+             << rUp.p0.GetX() << " " << rUp.p0.GetY()
+             << ")-("
+             << rUp.p1.GetX() << " " << rUp.p1.GetY()
+             << ")"
+             << endl;
+        cerr << "URegionEmb::RIFN() p1=("
+             << p1x << " " << p1y
+             << ") p2=("
+             << p2x << " " << p2y
+             << ")"
+             << " ip1=("
+             << ip1x << " " << ip1y << " " << ip1t << ")"
+             << endl;
+    }
+
+    TrapeziumSegmentIntersection tsi;
+
+    tsi.x = ip1x;
+    tsi.y = ip1y;
+    tsi.t = ip1t;
+
+/*
+Is the ~UPoint~ instance constant and is it located on the segment?
+
+*/
+    if (nearlyEqual(rUp.p0.GetX(), ip1x)
+        && nearlyEqual(rUp.p0.GetY(), ip1y)
+        && nearlyEqual(rUp.p1.GetX(), ip1x)
+        && nearlyEqual(rUp.p1.GetY(), ip1y)) {
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFN() through p0 and p1" << endl;
+
+/*
+Yes, lets see if the moving segment did not touch the ~UPoint~ instance
+during initial time. If yes, we can deduce from the ~insideAbove~ attribute
+and the direction of the movement whether the ~URegion~ has been entered or
+left at the intersection point. If not, we just two identical points, one
+with TSI\_ENTER and one with TSI\_LEAVE, which indicates that the ~URegion~
+has been entered and left in the same instance.
+
+*/
+        if (!nearlyEqual(ip1t, iv.start.ToDouble())) {
+            if (pointAboveSegment(ip1x, ip1y,
+                                  rDms.GetInitialStartX(), 
+                                  rDms.GetInitialStartY(),
+                                  rDms.GetInitialEndX(), 
+                                  rDms.GetInitialEndY())) {
+                tsi.type = rDms.GetInsideAbove() ? TSI_LEAVE : TSI_ENTER;
+            } else {
+                tsi.type = rDms.GetInsideAbove() ? TSI_ENTER : TSI_LEAVE;
+            }
+
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::RIFN() adding "
+                     << tsi.type
+                     << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                     << endl;
+            vtsi.push_back(tsi);
+        } else if (!nearlyEqual(ip1t, iv.end.ToDouble())) {
+            if (pointAboveSegment(ip1x, ip1y,
+                                  rDms.GetFinalStartX(), 
+                                  rDms.GetFinalStartY(),
+                                  rDms.GetFinalEndX(), 
+                                  rDms.GetFinalEndY())) {
+                tsi.type = rDms.GetInsideAbove() ? TSI_ENTER : TSI_LEAVE;
+            } else {
+                tsi.type = rDms.GetInsideAbove() ? TSI_LEAVE : TSI_ENTER;
+            }
+
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::RIFN() adding "
+                     << tsi.type
+                     << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                     << endl;
+            vtsi.push_back(tsi);
+        } else {
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::RIFN() adding "
+                     << tsi.type
+                     << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                     << endl;
+            tsi.type = TSI_ENTER;
+            vtsi.push_back(tsi);
+
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::RIFN() adding "
+                     << tsi.type
+                     << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                     << endl;
+            tsi.type = TSI_LEAVE;
+            vtsi.push_back(tsi);
+        }
+
+/*
+Is one of the endpoints of the ~UPoint~ instance located on the segment?
+If so, check whether the other endpoint is above or below the segment.
+Together with the value of the ~insideAbove~ attribute, we can deduce
+whether the ~URegion~ instance has been entered or left.
+
+The same is checked for the end of the interval. This is to determine
+whether point and segment move into the same direction with the segment
+being faster than the point. In this case, both only touch without the
+point actually entering the ~URegion~ instance. 
+
+*/
+    } else if (nearlyEqual(rUp.p0.GetX(), ip1x)
+               && nearlyEqual(rUp.p0.GetY(), ip1y)) {
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFN() through p0" << endl;
+
+        if (pointAboveSegment(rUp.p1.GetX(), rUp.p1.GetY(),
+                              p1x, p1y, p2x, p2y)) {
+            tsi.type = rDms.GetInsideAbove() ? TSI_ENTER : TSI_LEAVE;
+        } else {
+            tsi.type = rDms.GetInsideAbove() ? TSI_LEAVE : TSI_ENTER;
+        }
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFN() adding "
+                 << tsi.type
+                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                 << endl;
+
+        vtsi.push_back(tsi);
+
+        if (pointAboveSegment(rUp.p1.GetX(), rUp.p1.GetY(),
+                              rDms.GetFinalStartX(), 
+                              rDms.GetFinalStartY(),
+                              rDms.GetFinalEndX(), 
+                              rDms.GetFinalEndY())) {
+            tsi.type = tsi.type == TSI_ENTER ? TSI_LEAVE : TSI_ENTER;
+
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::RIFN() adding "
+                     << tsi.type
+                     << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                     << endl;
+
+            vtsi.push_back(tsi);
+        }
+
+/*
+Is the other endpoint of the ~UPoint~ instance located on the segment?
+If so, see handling of previous case.
+
+*/
+
+    } else if (nearlyEqual(rUp.p1.GetX(), ip1x)
+               && nearlyEqual(rUp.p1.GetY(), ip1y)) {
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFN() through p1" << endl;
+
+        if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
+                              p1x, p1y, p2x, p2y)) {
+            tsi.type = rDms.GetInsideAbove() ? TSI_LEAVE : TSI_ENTER;
+        } else {
+            tsi.type = rDms.GetInsideAbove() ? TSI_ENTER : TSI_LEAVE;
+        }
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFN() adding "
+                 << tsi.type
+                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                 << endl;
+
+        vtsi.push_back(tsi);
+
+        if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
+                              rDms.GetInitialStartX(), 
+                              rDms.GetInitialStartY(),
+                              rDms.GetInitialEndX(), 
+                              rDms.GetInitialEndY())) {
+            tsi.type = tsi.type == TSI_ENTER ? TSI_LEAVE : TSI_ENTER;
+
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::RIFN() adding "
+                     << tsi.type
+                     << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                     << endl;
+
+            vtsi.push_back(tsi);
+        }
+
+/*
+At this point, we do know that one endpoint of the ~UPoint~ instance is
+left or above the segment. Lets find out which in the remaining two cases.
+
+*/
+    } else if (pointAboveSegment(rUp.p0.GetX(), rUp.p0.GetY(),
+                                 rDms.GetInitialStartX(), 
+                                 rDms.GetInitialStartY(),
+                                 rDms.GetInitialEndX(), 
+                                 rDms.GetInitialEndY())) {
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFN() p0 above segment" << endl;
+
+        tsi.type = rDms.GetInsideAbove() ? TSI_LEAVE : TSI_ENTER;
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFN() adding "
+                 << tsi.type
+                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                 << endl;
+
+        vtsi.push_back(tsi);
+    } else {
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFN() p0 below segment" << endl;
+
+        tsi.type = rDms.GetInsideAbove() ? TSI_ENTER : TSI_LEAVE;
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFN() adding "
+                 << tsi.type
+                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                 << endl;
+
+        vtsi.push_back(tsi);
+    }
+}
+
+
+/*
+1.1.1 Method ~RestrictedIntersectionFindInPlane()~
+
+*/
+void URegionEmb::RestrictedIntersectionFindInPlane(
+    const Interval<Instant>& iv,
+    const UPoint& rUp,
+    bool& ip1present,
+    double& ip1x,
+    double& ip1y,
+    double& ip1t,
+    bool& ip2present,
+    double& ip2x,
+    double& ip2y,
+    double& ip2t,
+    vector<TrapeziumSegmentIntersection>& vtsi) const {
+
+    if (MRA_DEBUG)
+        cerr << "URegionEmb::RIFIP() called" << endl;
+
+    TrapeziumSegmentIntersection tsi;
+
+    tsi.x = ip1x;
+    tsi.y = ip1y;
+    tsi.t = ip1t;
+
+    if ((nearlyEqual(ip1x, rUp.p0.GetX())
+         && nearlyEqual(ip1y, rUp.p0.GetY())
+         && nearlyEqual(ip2x, rUp.p1.GetX())
+         && nearlyEqual(ip2y, rUp.p1.GetY()))
+        || (nearlyEqual(ip1x, rUp.p1.GetX())
+            && nearlyEqual(ip1y, rUp.p1.GetY())
+            && nearlyEqual(ip2x, rUp.p0.GetX())
+            && nearlyEqual(ip2y, rUp.p0.GetY()))) {
+/*
+The ~URegion~ happily walks entirely along one of the moving segments of the
+~URegion~ instance. When the segments is entered, the ~URegion~ instance
+is entered, and when the segment is left, the ~URegion~ instance is left.
+
+*/
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() up on segment"
+                 << endl;
+
+        tsi.type = ip1t < ip2t ? TSI_ENTER : TSI_LEAVE;
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() adding "
+                 << tsi.type
+                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                 << endl;
+
+        vtsi.push_back(tsi);
+
+        tsi.type = ip1t < ip2t ? TSI_LEAVE : TSI_ENTER;
+        tsi.x = ip2x;
+        tsi.y = ip2y;
+        tsi.t = ip2t;
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() adding "
+                 << tsi.type
+                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                 << endl;
+
+        vtsi.push_back(tsi);
+
+    } else if (nearlyEqual(ip1x, rUp.p0.GetX())
+               && nearlyEqual(ip1y, rUp.p0.GetY())) {
+/*
+The ~URegion~ instance is entered via one of its edge points.
+
+*/
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() ip1=p0" << endl;
+
+        tsi.type = TSI_ENTER;
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() adding "
+                 << tsi.type
+                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                 << endl;
+
+        vtsi.push_back(tsi);
+
+        tsi.type = TSI_LEAVE;
+        tsi.x = ip2x;
+        tsi.y = ip2y;
+        tsi.t = ip2t;
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() adding "
+                 << tsi.type
+                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                 << endl;
+
+        vtsi.push_back(tsi);
+    } else if (nearlyEqual(ip1x, rUp.p1.GetX())
+               && nearlyEqual(ip1y, rUp.p1.GetY())) {
+/*
+The ~URegion~ instance is left via one of its edge points. See previous
+case.
+
+*/
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() ip1=p1" << endl;
+
+        tsi.type = TSI_LEAVE;
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() adding "
+                 << tsi.type
+                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                 << endl;
+
+        vtsi.push_back(tsi);
+
+        tsi.type = TSI_ENTER;
+        tsi.x = ip2x;
+        tsi.y = ip2y;
+        tsi.t = ip2t;
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() adding "
+                 << tsi.type
+                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                 << endl;
+
+        vtsi.push_back(tsi);
+    } else if (nearlyEqual(ip2x, rUp.p0.GetX())
+               && nearlyEqual(ip2y, rUp.p0.GetY())) {
+/*
+The ~URegion~ instance is entered via one of its edge points. See previous
+case.
+
+*/
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() ip2=p0" << endl;
+
+        tsi.type = TSI_LEAVE;
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() adding "
+                 << tsi.type
+                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                 << endl;
+
+        vtsi.push_back(tsi);
+
+        tsi.type = TSI_ENTER;
+        tsi.x = ip2x;
+        tsi.y = ip2y;
+        tsi.t = ip2t;
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() adding "
+                 << tsi.type
+                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                 << endl;
+
+        vtsi.push_back(tsi);
+    } else if (nearlyEqual(ip2x, rUp.p1.GetX())
+               && nearlyEqual(ip2y, rUp.p1.GetY())) {
+/*
+The ~URegion~ instance is left via one of its edge points. See previous
+case.
+
+*/
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() ip2=p1" << endl;
+
+        tsi.type = TSI_ENTER;
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() adding "
+                 << tsi.type
+                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                 << endl;
+
+        vtsi.push_back(tsi);
+
+        tsi.type = TSI_LEAVE;
+        tsi.x = ip2x;
+        tsi.y = ip2y;
+        tsi.t = ip2t;
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() adding "
+                 << tsi.type
+                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                 << endl;
+
+        vtsi.push_back(tsi);
+    } else {
+/*
+The ~URegion~ instance is entered and left elsewhere, ie. in the middle
+of the segments.
+
+*/
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() up covers segment" << endl;
+
+        tsi.type = ip1t < ip2t ? TSI_ENTER : TSI_LEAVE;
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() adding "
+                 << tsi.type
+                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                 << endl;
+
+        vtsi.push_back(tsi);
+
+        tsi.type = ip1t < ip2t ? TSI_LEAVE : TSI_ENTER;
+        tsi.x = ip2x;
+        tsi.y = ip2y;
+        tsi.t = ip2t;
+
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFIP() adding "
+                 << tsi.type
+                 << " " << tsi.x << " " << tsi.y << " " << tsi.t
+                 << endl;
+
+        vtsi.push_back(tsi);
+    }
+}
+
+ 
+/*
+1.1.1 Method ~RestrictedIntersectionFind()~
+
+*/
+
+void URegionEmb::RestrictedIntersectionFind(
+    DBArray<MSegmentData>* segments,
+    const UPoint& up,
+    const Interval<Instant>& iv,
+    vector<TrapeziumSegmentIntersection>& vtsi) const {
+
+/*
+Straightforward. Even being slightly cryptic, the debug output provides
+sufficient context to understand this method.
+
+*/
+    if (MRA_DEBUG)
+        cerr << "URegionEmb::RIF() called" << endl;
+
+    UPoint rUp;
+    restrictUPointToInterval(up, iv, rUp);
+
+    for (unsigned int i = 0; i < segmentsNum; i++) {
+        const MSegmentData *dms;
+        segments->Get(segmentsStartPos+i, dms);
+
+        if (MRA_DEBUG) {
+            cerr << "URegionEmb::RIF() segment #"
+                 << i
+                 << ": ["
+                 << timeInterval.start.ToDouble()
+                 << " "
+                 << timeInterval.end.ToDouble()
+                 << " "
+                 << timeInterval.lc << " " << timeInterval.rc
+                 << "] ("
+                 << dms->GetInitialStartX() << " " << dms->GetInitialStartY()
+                 << " "
+                 << dms->GetInitialEndX() << " " << dms->GetInitialEndY()
+                 << ")-("
+                 << dms->GetFinalStartX() << " " << dms->GetFinalStartY()
+                 << " "
+                 << dms->GetFinalEndX() << " " << dms->GetFinalEndY()
+                 << ") ia="
+                 << dms->GetInsideAbove()
+                 << endl;
+            cerr << "URegionEmb::RIF() point is ["
+                 << up.timeInterval.start.ToDouble()
+                 << " "
+                 << up.timeInterval.end.ToDouble()
+                 << " "
+                 << up.timeInterval.lc << " " << up.timeInterval.rc
+                 << "] ("
+                 << up.p0.GetX() << " " << up.p0.GetY()
+                 << " "
+                 << up.p1.GetX() << " " << up.p1.GetY()
+                 << ")"
+                 << endl;
+            cerr << "URegionEmb::RIF() iv is ["
+                 << iv.start.ToDouble()
+                 << " "
+                 << iv.end.ToDouble()
+                 << " "
+                 << iv.lc
+                 << " "
+                 << iv.rc
+                 << "]"
+                 << endl;
+        }
+
+        MSegmentData rDms;
+        dms->restrictToInterval(timeInterval, iv, rDms);
+
+        if (MRA_DEBUG) {
+            cerr << "URegionEmb::RIF() segment restricted to iv is ("
+                 << rDms.GetInitialStartX() << " " << rDms.GetInitialStartY()
+                 << " "
+                 << rDms.GetInitialEndX() << " " << rDms.GetInitialEndY()
+                 << ")-("
+                 << rDms.GetFinalStartX() << " " << rDms.GetFinalStartY()
+                 << " "
+                 << rDms.GetFinalEndX() << " " << rDms.GetFinalEndY()
+                 << ")"
+                 << endl;
+            cerr << "URegionEmb::RIF() point restricted to iv is ("
+                 << rUp.p0.GetX() << " " << rUp.p0.GetY()
+                 << " "
+                 << rUp.p1.GetX() << " " << rUp.p1.GetY()
+                 << ")"
+                 << endl;
+        }
+
+        bool ip1present;
+        double ip1x;
+        double ip1y;
+        double ip1t;
+        bool ip2present;
+        double ip2x;
+        double ip2y;
+        double ip2t;
+
+        specialIntersectionTrapeziumSegment(
+            iv.start.ToDouble(), iv.end.ToDouble(),
+            rDms.GetInitialStartX(), rDms.GetInitialStartY(),
+            rDms.GetInitialEndX(), rDms.GetInitialEndY(),
+            rDms.GetFinalStartX(), rDms.GetFinalStartY(),
+            rDms.GetFinalEndX(), rDms.GetFinalEndY(),
+            rUp.p0.GetX(), rUp.p0.GetY(),
+            rUp.p1.GetX(), rUp.p1.GetY(),
+            ip1present, ip1x, ip1y, ip1t,
+            ip2present, ip2x, ip2y, ip2t);
+
+        if (MRA_DEBUG) {
+            cerr << "URegionEmb::RIF() ip1present="
+                 << ip1present
+                 << endl;
+            cerr << "URegionEmb::RIF() ip2present="
+                 << ip2present
+                 << endl;
+        }
+
+        if (ip1present) {
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::RIF() intersection" << endl;
+
+            if (ip2present
+                && !(nearlyEqual(ip1x, ip2x)
+                     && nearlyEqual(ip1y, ip2y)
+                     && nearlyEqual(ip1t, ip2t))) {
+                if (MRA_DEBUG)
+                    cerr << "URegionEmb::RIF() in plane" << endl;
+
+                RestrictedIntersectionFindInPlane(
+                    iv, rUp,
+                    ip1present, ip1x, ip1y, ip1t,
+                    ip2present, ip2x, ip2y, ip2t,
+                    vtsi);
+            } else {
+                if (MRA_DEBUG)
+                    cerr << "URegionEmb::RIF() not in plane" << endl;
+
+                RestrictedIntersectionFindNormal(
+                    iv, rUp, rDms,
+                    ip1present, ip1x, ip1y, ip1t,
+                    vtsi);
+            }
+        }
+    }
+}
+
+/*
+1.1.1 Method ~RestrictedIntersectionFix()~
+
+*/
+void URegionEmb::RestrictedIntersectionFix(
+    vector<TrapeziumSegmentIntersection>& vtsi) const {
+
+/*
+Examines intersections with same coordinate, counts $TSI\_LEAVE$ and
+$TSI\_ENTER$ intersections and results in one or zero intersections with
+the same coordinate, based on whether there are more $TSI\_LEAVE$ or
+$TSI\_ENTER$ intersections or the same number of them.
+
+*/
+    TsiType lastType;
+
+    if (MRA_DEBUG)
+        for (unsigned int i = 0; i < vtsi.size(); i++)
+            cerr << "URegionEmb::RIFix() intersection dump #"
+                 << i
+                 << " type="
+                 << vtsi[i].type
+                 << " ip=["
+                 << vtsi[i].x << " " << vtsi[i].y << " " << vtsi[i].t
+                 << "]"
+                 << endl;
+
+
+    for (unsigned int i = 0; i < vtsi.size(); i++) {
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIFix() post-sort i=" << i << endl;
+
+        unsigned int j;
+        unsigned int numEnter = 0;
+        unsigned int numLeave = 0;
+
+        double t = vtsi[i].t;
+        double x = vtsi[i].x;
+        double y = vtsi[i].y;
+
+        for (j = i;
+             j < vtsi.size()
+                 && nearlyEqual(vtsi[j].t, t)
+                 && nearlyEqual(vtsi[j].x, x)
+                 && nearlyEqual(vtsi[j].y, y);
+             j++) {
+            if (vtsi[j].type == TSI_ENTER)
+                numEnter++;
+            else
+                numLeave++;
+        }
+
+        j--;
+
+        if (MRA_DEBUG) {
+            cerr << "URegionEmb::RIFix() post-sort j=" << j << endl;
+            cerr << "URegionEmb::RIFix() post-sort numEnter="
+                 << numEnter
+                 << endl;
+            cerr << "URegionEmb::RIFix() post-sort numLeave="
+                 << numLeave
+                 << endl;
+        }
+
+        if (j > i) {
+            if (numEnter == numLeave) {
+                if (i > 0 && lastType == TSI_ENTER) {
+                    vtsi[i].type = TSI_LEAVE;
+                    vtsi[i+1].type = TSI_ENTER;
+                    lastType = TSI_ENTER;
+                } else {
+                    vtsi[i].type = TSI_ENTER;
+                    vtsi[i+1].type = TSI_LEAVE;
+                    lastType = TSI_LEAVE;
+                }
+                for (unsigned int k = i+2; k <= j; k++)
+                    vtsi[k].type = TSI_IGNORE;
+            } else if (numEnter > numLeave) {
+                vtsi[i].type = TSI_ENTER;
+                for (unsigned int k = i+1; k <= j; k++)
+                    vtsi[k].type = TSI_IGNORE;
+                lastType = TSI_ENTER;
+            } else {
+                vtsi[i].type = TSI_LEAVE;
+                for (unsigned int k = i+1; k <= j; k++)
+                    vtsi[k].type = TSI_IGNORE;
+                lastType = TSI_LEAVE;
+            }
+
+            i = j;
+        } else {
+            lastType = vtsi[i].type;
+        }
+    }
+}
+
+/*
+1.1.1 Method ~RestrictedIntersectionProcess()~
+
+*/
+bool URegionEmb::RestrictedIntersectionProcess(
+    const UPoint& up,
+    const Interval<Instant>& iv,
+    vector<TrapeziumSegmentIntersection>& vtsi,
+    MPoint& res,
+    UPoint*& pending,
+    bool merge) const {
+
+/*
+Check all intersections with the same coordinates. Bring them in
+useful order. For example, if we are inside region at a specific time
+and arrive at a $TSI\_ENTER$ and $TSI\_LEAVE$ intersection, we should
+consider the $TSI\_LEAVE$ intersection first.
+
+*/
+    if (MRA_DEBUG) cerr << "URegionEmb::RIP() called" << endl;
+
+    if (vtsi.size() == 0) return false;
+
+    int prev_i = -1;
+    bool prev_c;
+
+    unsigned int pos = 0;
+
+    if (MRA_DEBUG && vtsi.size() > 0)
+        cerr << "URegionEmb::RIP() (pre) intersection dump #"
+             << 0
+             << " type="
+             << vtsi[0].type
+             << " ip=["
+             << vtsi[0].x << " " << vtsi[0].y << " " << vtsi[0].t
+             << "]"
+             << endl;
+
+    for (unsigned int i = 1; i < vtsi.size(); i++) {
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RIP() intersection dump #"
+                 << i
+                 << " type="
+                 << vtsi[i].type
+                 << " ip=["
+                 << vtsi[i].x << " " << vtsi[i].y << " " << vtsi[i].t
+                 << "] pos="
+                 << pos
+                 << endl;
+
+//        if (vtsi[i].type == vtsi[pos].type) {
+        if (vtsi[i].type == TSI_IGNORE) {
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::RIP() removing" << endl;
+        } else {
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::RIP() keeping" << endl;
+
+            pos++;
+            if (pos < i) vtsi[pos] = vtsi[i];
+        }
+    }
+
+    for (unsigned int i = 0; i <= pos; i++) {
+        if (MRA_DEBUG) {
+            cerr << "URegionEmb::RIP() intersection dump #"
+                 << i
+                 << " type="
+                 << vtsi[i].type
+                 << " ip=["
+                 << vtsi[i].x << " " << vtsi[i].y << " " << vtsi[i].t
+                 << "]"
+                 << endl;
+        }
+
+        if (i == 0 && vtsi[i].type == TSI_LEAVE) {
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::RIP() special case (start)"
+                     << endl;
+
+            bool rc =
+                nearlyEqual(vtsi[i].t, iv.end.ToDouble())
+                ? iv.rc
+                : true;
+
+            UPoint rUp;
+            restrictUPointToInterval(up, iv, rUp);
+
+            RestrictedIntersectionAddUPoint(
+                res,
+                iv.start.ToDouble(), vtsi[i].t, iv.lc, rc,
+                rUp.p0.GetX(), rUp.p0.GetY(), vtsi[i].x, vtsi[i].y,
+                pending,
+                merge);
+
+            prev_i = i;
+            prev_c = rc;
+        }
+
+        if (i > 0 && vtsi[i].type == TSI_LEAVE) {
+            bool lc =
+                nearlyEqual(vtsi[i-1].t, iv.start.ToDouble())
+                ? iv.lc
+                : true;
+
+            if (prev_i >= 0
+                && nearlyEqual(vtsi[prev_i].t, vtsi[i-1].t)
+                && prev_c)
+                lc = false;
+
+            bool rc =
+                nearlyEqual(vtsi[i].t, iv.end.ToDouble())
+                ? iv.rc
+                : true;
+
+            RestrictedIntersectionAddUPoint(
+                res,
+                vtsi[i-1].t, vtsi[i].t, lc, rc,
+                vtsi[i-1].x, vtsi[i-1].y, vtsi[i].x, vtsi[i].y,
+                pending,
+                merge);
+
+            prev_i = i;
+            prev_c = rc;
+        }
+
+        if (i == pos && vtsi[i].type == TSI_ENTER) {
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::RIP() special case (end)" << endl;
+
+            bool lc =
+                nearlyEqual(vtsi[i].t, iv.start.ToDouble())
+                ? iv.lc
+                : true;
+
+            if (prev_i >= 0
+                && nearlyEqual(vtsi[prev_i].t, vtsi[i].t)
+                && prev_c)
+                lc = false;
+
+            UPoint rUp;
+            restrictUPointToInterval(up, iv, rUp);
+
+            RestrictedIntersectionAddUPoint(
+                res,
+                vtsi[i].t, iv.end.ToDouble(), lc, iv.rc,
+                vtsi[i].x, vtsi[i].y, rUp.p1.GetX(), rUp.p1.GetY(),
+                pending,
+                merge);
+
+            prev_i = 0;
+        }
+    }
+
+    return prev_i >= 0;
+}
+
+/*
+1.1 Database operator methods
+
+These methods are used to implement the algebra's operators.
+
+1.1.1 Method ~RestrictedIntersection()~
+
+Checks whether the point unit ~up~ intersects this region unit, while
+both units are restricted to the interval ~iv~, which must be inside
+the interval of the two units (this is not checked and must be assured
+before this method is called!).
+
+*/
+void URegionEmb::RestrictedIntersection(DBArray<MSegmentData>* segments,
+                                        const UPoint& up,
+                                        const Interval<Instant>& iv,
+                                        MPoint& res,
+                                        UPoint*& pending,
+                                        bool merge) const {
+    if (MRA_DEBUG)
+        cerr << "URegionEmb::RI() called" << endl;
+
+    vector<TrapeziumSegmentIntersection> vtsi;
+
+    RestrictedIntersectionFind(segments, up, iv, vtsi);
+
+    if (MRA_DEBUG)
+        cerr << "URegionEmb::RI() vtsi.size()=" << vtsi.size()
+             << endl;
+
+    sort(vtsi.begin(), vtsi.end());
+
+    RestrictedIntersectionFix(vtsi);
+
+    if (!RestrictedIntersectionProcess(up, iv, vtsi, res, pending, merge)) {
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::RI() no intersection in whole unit"
+                 << endl;
+
+        unsigned int num = Plumbline(segments, up, iv);
+
+        if (num > 0 && num % 2 == 1) {
+            UPoint rUp;
+            restrictUPointToInterval(up, iv, rUp);
+
+            RestrictedIntersectionAddUPoint(
+                res,
+                iv.start.ToDouble(), iv.end.ToDouble(),
+                iv.lc, iv.rc,
+                rUp.p0.GetX(), rUp.p0.GetY(),
+                rUp.p1.GetX(), rUp.p1.GetY(),
+                pending,
+                merge);
+        }
+    }
+}
+
+/*
+1.1.1 Method ~TemporalFunction()~
+
+*/
+void URegionEmb::TemporalFunction(
+    const DBArray<MSegmentData>* segments,
+    const Instant& t, 
+    CRegion& res) const {
+
+    if (MRA_DEBUG)
+        cerr << "URegionEmb::TemporalFunction() called" << endl;
+
+/*
+Straightforward again. Calculate segments at specified instant,
+remove degenerated segments of initial or final instant, when they
+are not border of any region, and create region.
+
+*/
+    assert(t.IsDefined());
+    assert(timeInterval.Contains(t));
+
+    Instant t0 = timeInterval.start;
+    Instant t1 = timeInterval.end;
+
+    bool initialInstant = nearlyEqual(t0.ToDouble(), t.ToDouble());
+    bool finalInstant = nearlyEqual(t1.ToDouble(), t.ToDouble());
+
+    double f =
+        nearlyEqual(t0.ToDouble(), t1.ToDouble())
+        ? 0
+        : (t-t0)/(t1-t0);
+
+    int partnerno = 0;
+
+    CRegion* cr = new CRegion(0);
+
+    cr->StartBulkLoad();
+
+    for (unsigned int i = 0; i < segmentsNum; i++) {
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::TemporalFunction() segment #"
+                     << i
+                     << " ("
+                     << segmentsStartPos
+                     << ")"
+                     << endl;
+
+            const MSegmentData *dms;
+            segments->Get(segmentsStartPos+i, dms);
+
+            double xs =
+                dms->GetInitialStartX()
+                +(dms->GetFinalStartX()-dms->GetInitialStartX())*f;
+            double ys =
+                dms->GetInitialStartY()
+                +(dms->GetFinalStartY()-dms->GetInitialStartY())*f;
+            double xe =
+                dms->GetInitialEndX()
+                +(dms->GetFinalEndX()-dms->GetInitialEndX())*f;
+            double ye =
+                dms->GetInitialEndY()
+                +(dms->GetFinalEndY()-dms->GetInitialEndY())*f;
+
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::TemporalFunction()   value is "
+                     << xs << " " << ys << " " << xe << " " << ye
+                     << endl;
+
+            if (nearlyEqual(xs, xe) && nearlyEqual(ys, ye)) {
+                if (MRA_DEBUG)
+                    cerr << "URegionEmb::TemporalFunction()   "
+                         << "reduced to point"
+                         << endl;
+                continue;
+            }
+
+            assert(dms->GetDegeneratedInitial() != DGM_UNKNOWN);
+            assert(dms->GetDegeneratedFinal() != DGM_UNKNOWN);
+
+            if ((initialInstant
+                 && dms->GetDegeneratedInitial() == DGM_IGNORE)
+                || (finalInstant
+                    && dms->GetDegeneratedFinal() == DGM_IGNORE)) {
+                if (MRA_DEBUG)
+                    cerr << "URegionEmb::TemporalFunction()   "
+                         << "ignored degenerated"
+                         << endl;
+                continue;
+            }
+
+            Point s(true, xs, ys);
+            Point e(true, xe, ye);
+            CHalfSegment chs(true, true, s, e);
+
+            chs.attr.faceno = 0;
+            chs.attr.cycleno = 0;
+            chs.attr.edgeno = partnerno;
+            chs.attr.partnerno = partnerno++;
+
+            if (initialInstant
+                 && dms->GetDegeneratedInitial() == DGM_INSIDEABOVE)
+                chs.attr.insideAbove = true;
+            else if (initialInstant
+                 && dms->GetDegeneratedInitial() == DGM_NOTINSIDEABOVE)
+                chs.attr.insideAbove = false;
+            else if (finalInstant
+                 && dms->GetDegeneratedFinal() == DGM_INSIDEABOVE)
+                chs.attr.insideAbove = true;
+            else if (finalInstant
+                 && dms->GetDegeneratedFinal() == DGM_NOTINSIDEABOVE)
+                chs.attr.insideAbove = false;
+            else
+                chs.attr.insideAbove = dms->GetInsideAbove();
+
+            *cr += chs;
+
+            chs.SetLDP(false);
+
+            *cr += chs;
+    }
+
+    cr->EndBulkLoad();
+
+//    cr->Sort();
+    cr->SetPartnerNo();
+
+    if (MRA_DEBUG)
+        for (int i = 0; i < cr->Size(); i++) {
+            const CHalfSegment *chs;
+            cr->Get(i, chs);
+
+            cerr << "URegionEmb::TemporalFunction() segment #"
+                 << i
+                 << " lp=("
+                 << chs->GetLP().GetX()
+                 << ", "
+                 << chs->GetLP().GetY()
+                 << ") rp=("
+                 << chs->GetRP().GetX()
+                 << ", "
+                 << chs->GetRP().GetY()
+                 << ") ldp="
+                 << chs->GetLDP()
+                 << " attr="
+                 << chs->attr.faceno
+                 << " "
+                 << chs->attr.cycleno
+                 << " "
+                 << chs->attr.edgeno
+                 << " "
+                 << chs->attr.partnerno
+                 << " "
+                 << chs->attr.insideAbove
+                 << endl;
+        }
+
+    cr->ComputeRegion();
+
+    if (MRA_DEBUG)
+        for (int i = 0; i < cr->Size(); i++) {
+            const CHalfSegment *chs;
+            cr->Get(i, chs);
+
+            cerr << "URegionEmb::TemporalFunction() segment #"
+                 << i
+                 << " lp=("
+                 << chs->GetLP().GetX()
+                 << ", "
+                 << chs->GetLP().GetY()
+                 << ") rp=("
+                 << chs->GetRP().GetX()
+                 << ", "
+                 << chs->GetRP().GetY()
+                 << ") ldp="
+                 << chs->GetLDP()
+                 << " attr="
+                 << chs->attr.faceno
+                 << " "
+                 << chs->attr.cycleno
+                 << " "
+                 << chs->attr.edgeno
+                 << " "
+                 << chs->attr.partnerno
+                 << " "
+                 << chs->attr.insideAbove
+                 << endl;
+        }
+
+/*
+This is quite ugly and may not work with other compilers than gcc.
+Since the ~Intime<Alpha>()~ constructors do not properly initial their
+~value~ attribute (which if of type ~CRegion~ in this case), there is
+no better solution right now.
+
+*/
+    memcpy(&res, cr, sizeof(*cr));
+    free(cr);
+}
+
+/*
+1.1.1 Method ~BoundingBox()~
+
+*/
+const Rectangle<3> URegionEmb::BoundingBox() const {
+    if (MRA_DEBUG) cerr << "URegionEmb::BoundingBox() called" << endl;
+
+    return bbox;
+}
+
+/*
+1.1 In and out functions
+
 1.1.1 Function ~InURegionEmbedded()~
 
 */
-static Word InURegionEmbedded(const ListExpr typeInfo,
-                              const ListExpr instance,
-                              const int errorPos,
-                              ListExpr& errorInfo,
-                              bool& correct,
-                              DBArray<MSegmentData>* segments,
-                              unsigned int segmentsStartPos) {
+static URegionEmb* InURegionEmbedded(
+    const ListExpr instance,
+    const int errorPos,
+    ListExpr& errorInfo,
+    DBArray<MSegmentData>* segments,
+    unsigned int segmentsStartPos) {
+
     if (MRA_DEBUG)
         cerr << "InURegionEmbedded() called, segmentsStartPos="
              << segmentsStartPos
@@ -5893,12 +5834,11 @@ See there for more details.
 */
     if (nl->ListLength(instance) == 0) {
         cerr << "uregion not in format (<interval> <face>*)" << endl;
-        correct = false;
-        return SetWord(Address(0));
+        return 0;
     }
 
     if (MRA_DEBUG)
-        cerr << "InURegion() (<interval> <face>*) found" << endl;
+        cerr << "InURegionEmbedded() (<interval> <face>*) found" << endl;
 
     ListExpr interval = nl->First(instance);
 
@@ -5916,9 +5856,10 @@ See there for more details.
         cerr << "uregion interval not in format "
              << "(<real> <real> <bool> <bool>)"
              << endl;
-        correct = false;
-        return SetWord(Address(0));
+        return 0;
     }
+
+    bool correct;
 
     Instant *start =
         (Instant *) InInstant(nl->TheEmptyList(),
@@ -5928,8 +5869,7 @@ See there for more details.
                               correct).addr;
     if (!correct) {
         cerr << "uregion interval invalid start time" << endl;
-        correct = false;
-        return SetWord(Address(0));
+        return 0;
     }
 
     Instant *end =
@@ -5942,7 +5882,7 @@ See there for more details.
         cerr << "uregion interval invalid end time" << endl;
         correct = false;
         delete start;
-        return SetWord(Address(0));
+        return 0;
     }
 
     bool lc = nl->BoolValue(nl->Third(interval));
@@ -5952,10 +5892,9 @@ See there for more details.
         || (nearlyEqual(start->ToDouble(), end->ToDouble())
             && !(lc && rc))) {
         cerr << "uregion invalid interval" << endl;
-        correct = false;
         delete start;
         delete end;
-        return SetWord(Address(0));
+        return 0;
     }
 
     Interval<Instant> tinterval(*start, *end, lc, rc);
@@ -5970,12 +5909,7 @@ Create ~URegion~ instance and pass storage of segments, if we received
 any.
 
 */
-    URegion* uregion;
-
-    if (segments)
-        uregion = new URegion(tinterval, segments, segmentsStartPos);
-    else 
-        uregion = new URegion(tinterval);
+    URegionEmb* uregion = new URegionEmb(tinterval, segmentsStartPos);
 
     unsigned int faceno = 0;
     unsigned int partnerno = 0;
@@ -5987,8 +5921,7 @@ any.
     if (nl->ListLength(faces) == 0) {
         cerr << "uregion should contain at least one face" << endl;
         delete uregion;
-        correct = false;
-        return SetWord(Address(0));
+        return 0;
     }
 
 /*
@@ -5997,7 +5930,7 @@ any.
 */
     while (!nl->IsEmpty(faces)) {
         if (MRA_DEBUG)
-            cerr << "InURegion() face #" << faceno << endl;
+            cerr << "InURegionEmbedded() face #" << faceno << endl;
 
         ListExpr cycles = nl->First(faces);
 
@@ -6005,8 +5938,7 @@ any.
             cerr << "uregion face should contain at least one cycle"
                  << endl;
             delete uregion;
-            correct = false;
-            return SetWord(Address(0));
+            return 0;
         }
 
         unsigned int cycleno = 0;
@@ -6014,7 +5946,7 @@ any.
 
         while (!nl->IsEmpty(cycles)) {
             if (MRA_DEBUG)
-                cerr << "InURegion()   cycle #" << cycleno << endl;
+                cerr << "InURegionEmbedded()   cycle #" << cycleno << endl;
 
             pointno = 0;
 
@@ -6028,8 +5960,7 @@ any.
                      << "least three points"
                      << endl;
                 delete uregion;
-                correct = false;
-                return SetWord(Address(0));
+                return 0;
             }
 
             ListExpr firstPoint = nl->First(cyclepoints);
@@ -6040,14 +5971,15 @@ any.
 
             while (!nl->IsEmpty(cyclepoints)) {
                 if (MRA_DEBUG)
-                    cerr << "InURegion()     point #"
+                    cerr << "InURegionEmbedded()     point #"
                          << pointno
                          << endl;
 
                 ListExpr point = nl->First(cyclepoints);
 
                 if (prevPoint != 0
-                    && !uregion->AddSegment(cr,
+                    && !uregion->AddSegment(segments,
+                                            cr,
                                             rDir,
                                             faceno,
                                             cycleno,
@@ -6059,8 +5991,7 @@ any.
                     cerr << "uregion's segment checks failed"
                          << endl;
                     delete uregion;
-                    correct = false;
-                    return SetWord(Address(0));
+                    return 0;
                 }
 
                 prevPoint = point;
@@ -6069,7 +6000,8 @@ any.
                 partnerno++;
             }
 
-            if (!uregion->AddSegment(cr,
+            if (!uregion->AddSegment(segments,
+                                     cr,
                                      rDir,
                                      faceno,
                                      cycleno,
@@ -6081,8 +6013,7 @@ any.
                 cerr << "uregion's segment checks failed"
                      << endl;
                 delete uregion;
-                correct = false;
-                return SetWord(Address(0));
+                return 0;
             }
 
             partnerno++;
@@ -6100,7 +6031,7 @@ any.
                 cr.Get(h, chsInsideAbove);
 
                 if (MRA_DEBUG)
-                    cerr << "InURegion() i="
+                    cerr << "InURegionEmbedded() i="
                          << i
                          << " insideAbove="
                          << chsInsideAbove->attr.insideAbove
@@ -6119,7 +6050,7 @@ any.
                 //chsInsideAbove.attr.insideAbove = insideAbove;
                 //cr.UpdateAttr(h+1, chsInsideAbove.attr);
 
-                uregion->SetSegmentInsideAbove(i, insideAbove);
+                uregion->SetSegmentInsideAbove(segments, i, insideAbove);
 
                 h += 2;
                 i++;
@@ -6141,27 +6072,27 @@ any.
     if (MRA_DEBUG)
         for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
             const MSegmentData *dms;
-            uregion->GetSegment(i, dms);
+            uregion->GetSegment(segments, i, dms);
 
-            cerr << "InURegion() segment #"
+            cerr << "InURegionEmbedded() segment #"
                  << i
-                 << ": " << dms->faceno
-                 << " " << dms->cycleno
-                 << " " << dms->segmentno
+                 << ": " << dms->GetFaceNo()
+                 << " " << dms->GetCycleNo()
+                 << " " << dms->GetSegmentNo()
                  << " i=("
-                 << dms->initialStartX << ", " << dms->initialStartY
+                 << dms->GetInitialStartX() << ", " << dms->GetInitialStartY()
                  << ", "
-                 << dms->initialEndX << ", " << dms->initialEndY
+                 << dms->GetInitialEndX() << ", " << dms->GetInitialEndY()
                  << ") f=("
-                 << dms->finalStartX << ", " << dms->finalStartY
+                 << dms->GetFinalStartX() << ", " << dms->GetFinalStartY()
                  << ", "
-                 << dms->finalEndX << ", " << dms->finalEndY
+                 << dms->GetFinalEndX() << ", " << dms->GetFinalEndY()
                  << ") flags="
-                 << dms->insideAbove
-                 << " " << dms->pointInitial
-                 << " " << dms->pointFinal
-                 << " " << dms->degeneratedInitialNext
-                 << " " << dms->degeneratedFinalNext
+                 << dms->GetInsideAbove()
+                 << " " << dms->GetPointInitial()
+                 << " " << dms->GetPointFinal()
+                 << " " << dms->GetDegeneratedInitialNext()
+                 << " " << dms->GetDegeneratedFinalNext()
                  << endl;
         }
 
@@ -6177,139 +6108,137 @@ and inside below segments, we can ignore the entire list.
 */
     for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
         const MSegmentData *auxDms;
-        uregion->GetSegment(i, auxDms);
+        uregion->GetSegment(segments, i, auxDms);
         MSegmentData dms( *auxDms );
 
-        if (!dms.pointInitial && dms.degeneratedInitialNext < 0)
+        if (!dms.GetPointInitial() && dms.GetDegeneratedInitialNext() < 0)
             nonTrivialInitial = true;
-        if (!dms.pointFinal && dms.degeneratedFinalNext < 0)
+        if (!dms.GetPointFinal() && dms.GetDegeneratedFinalNext() < 0)
             nonTrivialFinal = true;
 
-        if (dms.degeneratedInitial == DGM_UNKNOWN) {
-            if (dms.degeneratedInitialNext >= 0) {
+        if (dms.GetDegeneratedInitial() == DGM_UNKNOWN) {
+            if (dms.GetDegeneratedInitialNext() >= 0) {
                 const MSegmentData *auxDegenDms;
                 MSegmentData degenDms;
                 unsigned int numInsideAbove = 0;
                 unsigned int numNotInsideAbove = 0;
                 for (int j = i+1;
                      j != 0;
-                     j = degenDms.degeneratedInitialNext) {
-                    uregion->GetSegment(j-1, auxDegenDms);
+                     j = degenDms.GetDegeneratedInitialNext()) {
+                    uregion->GetSegment(segments, j-1, auxDegenDms);
                     degenDms = *auxDegenDms;
                     if (MRA_DEBUG)
-                        cerr << "InURegion() degen-magic-i "
+                        cerr << "InURegionEmbedded() degen-magic-i "
                              << i
                              << " "
                              << j-1
                              << endl;
-                    if (degenDms.insideAbove)
+                    if (degenDms.GetInsideAbove())
                         numInsideAbove++;
                     else
                         numNotInsideAbove++;
                     if (j != i+1) {
-                        degenDms.degeneratedInitial = DGM_IGNORE;
-                        uregion->PutSegment(j-1, degenDms);
+                        degenDms.SetDegeneratedInitial(DGM_IGNORE);
+                        uregion->PutSegment(segments, j-1, degenDms);
                     }
                 }
 
                 if (MRA_DEBUG)
-                    cerr << "InURegion() degen-magic-i result "
+                    cerr << "InURegionEmbedded() degen-magic-i result "
                          << numInsideAbove
                          << " "
                          << numNotInsideAbove
                          << endl;
 
                 if (numInsideAbove == numNotInsideAbove) {
-                    dms.degeneratedInitial = DGM_IGNORE;
+                    dms.SetDegeneratedInitial(DGM_IGNORE);
                 } else if (numInsideAbove == numNotInsideAbove+1) {
-                    dms.degeneratedInitial = DGM_INSIDEABOVE;
+                    dms.SetDegeneratedInitial(DGM_INSIDEABOVE);
                 } else if (numInsideAbove+1 == numNotInsideAbove) {
-                    dms.degeneratedInitial = DGM_NOTINSIDEABOVE;
+                    dms.SetDegeneratedInitial(DGM_NOTINSIDEABOVE);
                 } else {
                     cerr << "segment ("
-                         << dms.initialStartX
-                         << ", " << dms.initialStartY
-                         << ")-(" << dms.initialEndX
-                         << ", " << dms.initialEndY
-                         << ") / (" << dms.finalStartX
-                         << ", " << dms.finalStartY
-                         << ")-(" << dms.finalEndX
-                         << ", " << dms.finalEndY
+                         << dms.GetInitialStartX()
+                         << ", " << dms.GetInitialStartY()
+                         << ")-(" << dms.GetInitialEndX()
+                         << ", " << dms.GetInitialEndY()
+                         << ") / (" << dms.GetFinalStartX()
+                         << ", " << dms.GetFinalStartY()
+                         << ")-(" << dms.GetFinalEndX()
+                         << ", " << dms.GetFinalEndY()
                          << ") incorrectly degenerated "
                          << "in initial instant"
                          << endl;
 
                     delete uregion;
-                    correct = false;
-                    return SetWord(Address(0));
+                    return 0;
                 }
             } else
-                dms.degeneratedInitial = DGM_NONE;
+                dms.SetDegeneratedInitial(DGM_NONE);
         }
 
-        if (dms.degeneratedFinal == DGM_UNKNOWN) {
-            if (dms.degeneratedFinalNext >= 0) {
+        if (dms.GetDegeneratedFinal() == DGM_UNKNOWN) {
+            if (dms.GetDegeneratedFinalNext() >= 0) {
                 const MSegmentData *auxDegenDms;
                 MSegmentData degenDms;
                 unsigned int numInsideAbove = 0;
                 unsigned int numNotInsideAbove = 0;
                 for (int j = i+1;
                      j != 0;
-                     j = degenDms.degeneratedFinalNext) {
-                    uregion->GetSegment(j-1, auxDegenDms);
+                     j = degenDms.GetDegeneratedFinalNext()) {
+                    uregion->GetSegment(segments, j-1, auxDegenDms);
                     degenDms = *auxDegenDms;
                     if (MRA_DEBUG)
-                        cerr << "InURegion() degen-magic-f "
+                        cerr << "InURegionEmbedded() degen-magic-f "
                              << i
                              << " "
                              << j-1
                              << endl;
-                    if (degenDms.insideAbove)
+                    if (degenDms.GetInsideAbove())
                         numInsideAbove++;
                     else
                         numNotInsideAbove++;
                     if (j != i+1) {
-                        degenDms.degeneratedFinal = DGM_IGNORE;
-                        uregion->PutSegment(j-1, degenDms);
+                        degenDms.SetDegeneratedFinal(DGM_IGNORE);
+                        uregion->PutSegment(segments, j-1, degenDms);
                     }
                 }
 
                 if (MRA_DEBUG)
-                    cerr << "InURegion() degen-magic-f result "
+                    cerr << "InURegionEmbedded() degen-magic-f result "
                          << numInsideAbove
                          << " "
                          << numNotInsideAbove
                          << endl;
 
                 if (numInsideAbove == numNotInsideAbove) {
-                    dms.degeneratedFinal = DGM_IGNORE;
+                    dms.SetDegeneratedFinal(DGM_IGNORE);
                 } else if (numInsideAbove == numNotInsideAbove+1) {
-                    dms.degeneratedFinal = DGM_INSIDEABOVE;
+                    dms.SetDegeneratedFinal(DGM_INSIDEABOVE);
                 } else if (numInsideAbove+1 == numNotInsideAbove) {
-                    dms.degeneratedFinal = DGM_NOTINSIDEABOVE;
+                    dms.SetDegeneratedFinal(DGM_NOTINSIDEABOVE);
                 } else {
                     cerr << "segment ("
-                         << dms.initialStartX
-                         << ", " << dms.initialStartY
-                         << ")-(" << dms.initialEndX
-                         << ", " << dms.initialEndY
-                         << ") / (" << dms.finalStartX
-                         << ", " << dms.finalStartY
-                         << ")-(" << dms.finalEndX
-                         << ", " << dms.finalEndY
+                         << dms.GetInitialStartX()
+                         << ", " << dms.GetInitialStartY()
+                         << ")-(" << dms.GetInitialEndX()
+                         << ", " << dms.GetInitialEndY()
+                         << ") / (" << dms.GetFinalStartX()
+                         << ", " << dms.GetFinalStartY()
+                         << ")-(" << dms.GetFinalEndX()
+                         << ", " << dms.GetFinalEndY()
                          << ") incorrectly degenerated "
                          << "in final instant"
                          << endl;
 
                     delete uregion;
-                    correct = false;
-                    return SetWord(Address(0));
+                    return 0;
                 }
             } else
-                dms.degeneratedFinal = DGM_NONE;
+                dms.SetDegeneratedFinal(DGM_NONE);
         }
 
-        uregion->PutSegment(i, dms);
+        uregion->PutSegment(segments, i, dms);
     }
 
 #ifdef SCHMUH
@@ -6336,47 +6265,306 @@ and inside below segments, we can ignore the entire list.
         for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
             const MSegmentData *dms;
 
-            uregion->GetSegment(i, dms);
+            uregion->GetSegment(segments, i, dms);
 
-            cerr << "InURegion() resulting segment #"
+            cerr << "InURegionEmbedded() resulting segment #"
                  << i
                  << ": "
-                 << dms->faceno
+                 << dms->GetFaceNo()
                  << " "
-                 << dms->cycleno
+                 << dms->GetCycleNo()
                  << " "
-                 << dms->segmentno
+                 << dms->GetSegmentNo()
                  << " i=("
-                 << dms->initialStartX
+                 << dms->GetInitialStartX()
                  << ", "
-                 << dms->initialStartY
+                 << dms->GetInitialStartY()
                  << ", "
-                 << dms->initialEndX
+                 << dms->GetInitialEndX()
                  << ", "
-                 << dms->initialEndY
+                 << dms->GetInitialEndY()
                  << ") f=("
-                 << dms->finalStartX
+                 << dms->GetFinalStartX()
                  << ", "
-                 << dms->finalStartY
+                 << dms->GetFinalStartY()
                  << ", "
-                 << dms->finalEndX
+                 << dms->GetFinalEndX()
                  << ", "
-                 << dms->finalEndY
+                 << dms->GetFinalEndY()
                  << ") flags="
-                 << dms->insideAbove
+                 << dms->GetInsideAbove()
                  << " "
-                 << dms->pointInitial
+                 << dms->GetPointInitial()
                  << " "
-                 << dms->pointFinal
+                 << dms->GetPointFinal()
                  << " "
-                 << dms->degeneratedInitialNext
+                 << dms->GetDegeneratedInitialNext()
                  << " "
-                 << dms->degeneratedFinalNext
+                 << dms->GetDegeneratedFinalNext()
                  << endl;
         }
 
-    correct = true;
-    return SetWord(Address(uregion));
+    return uregion;
+}
+
+/*
+1.1.1 Function ~OutURegionEmbedded()~
+
+*/
+static ListExpr OutURegionEmbedded(
+    const URegionEmb* ur,
+    DBArray<MSegmentData>* segments) {
+
+    if (MRA_DEBUG) 
+         cerr << "OutURegionEmbedded() called" << endl;
+
+/*
+Conversio to list representation is straightforward. Just loop through
+faces, cylces and segments and make sure that it is realised when one of
+these changes.
+
+*/
+
+    int num = ur->GetSegmentsNum();
+
+    ListExpr faces = nl->TheEmptyList();
+    ListExpr facesLastElem = faces;
+
+    ListExpr face = nl->TheEmptyList();
+    ListExpr faceLastElem = face;
+    ListExpr cycle = nl->TheEmptyList();
+    ListExpr cycleLastElem = cycle;
+
+    for (int i = 0; i < num; i++) {
+        if (MRA_DEBUG)
+            cerr << "OutURegionEmbedded() segment #" << i << endl;
+
+        const MSegmentData* dms;
+        ur->GetSegment(segments, i, dms);
+
+        if (MRA_DEBUG)
+            cerr << "OutURegionEmbedded() returned, dms=" << dms << endl;
+
+        if (MRA_DEBUG)
+            cerr << "OutURegionEmbedded() point is "
+                 << dms->GetFaceNo()
+                 << " "
+                 << dms->GetCycleNo()
+                 << " ("
+                 << dms->GetInitialStartX()
+                 << ", "
+                 << dms->GetInitialStartY()
+                 << ", "
+                 << dms->GetFinalStartX()
+                 << ", "
+                 << dms->GetFinalStartY()
+                 << ")"
+                 << endl;
+
+        ListExpr p =
+            nl->FourElemList(
+                nl->RealAtom(dms->GetInitialStartX()),
+                nl->RealAtom(dms->GetInitialStartY()),
+                nl->RealAtom(dms->GetFinalStartX()),
+                nl->RealAtom(dms->GetFinalStartY()));
+
+        if (cycle == nl->TheEmptyList()) {
+            if (MRA_DEBUG) cerr << "OutURegionEmbedded() new cycle" << endl;
+            cycle = nl->OneElemList(p);
+            cycleLastElem = cycle;
+        } else {
+            if (MRA_DEBUG)
+                cerr << "OutURegionEmbedded() existing cycle" << endl;
+            cycleLastElem = nl->Append(cycleLastElem, p);
+        }
+
+        const MSegmentData *nextDms;
+        if (i < num-1) ur->GetSegment(segments, i+1, nextDms);
+
+        if (i == num-1
+            || dms->GetCycleNo() != nextDms->GetCycleNo()
+            || dms->GetFaceNo() != nextDms->GetFaceNo()) {
+            if (MRA_DEBUG)
+                cerr << "OutURegionEmbedded() end of cycle" << endl;
+
+            if (face == nl->TheEmptyList()) {
+                if (MRA_DEBUG)
+                    cerr << "OutURegionEmbedded() new face" << endl;
+                face = nl->OneElemList(cycle);
+                faceLastElem = face;
+            } else {
+                if (MRA_DEBUG)
+                    cerr << "OutURegionEmbedded() existing face" << endl;
+                faceLastElem = nl->Append(faceLastElem, cycle);
+            }
+
+            if (i == num-1
+                || dms->GetFaceNo() != nextDms->GetFaceNo()) {
+                if (MRA_DEBUG)
+                    cerr << "OutURegionEmbedded() end of face" << endl;
+                if (faces == nl->TheEmptyList()) {
+                    faces = nl->OneElemList(face);
+                    facesLastElem = faces;
+                } else
+                    facesLastElem = nl->Append(facesLastElem, face);
+
+                face = nl->TheEmptyList();
+                faceLastElem = face;
+            }
+
+            cycle = nl->TheEmptyList();
+            cycleLastElem = cycle;
+        }
+    }
+
+    ListExpr res =
+        nl->TwoElemList(
+            nl->FourElemList(
+                OutDateTime(nl->TheEmptyList(),
+                            SetWord((void*) &ur->timeInterval.start)),
+                OutDateTime(nl->TheEmptyList(),
+                            SetWord((void*) &ur->timeInterval.end)),
+                nl->BoolAtom(ur->timeInterval.lc),
+                nl->BoolAtom(ur->timeInterval.rc)),
+            faces);
+
+    return res;
+}
+
+/*
+1 Data type ~uregion~
+
+1.1 Class ~URegion~
+
+1.1.1 Class definition
+
+The class definition has been moved to ~MovingRegionAlgebra.h~.
+
+1.1.1 Constructors
+
+*/
+
+URegion::URegion(unsigned int n) :
+    segments(n) {
+
+    if (MRA_DEBUG)
+        cerr << "URegion::URegion() #1 called" 
+             << endl;
+}
+
+/*
+1.1.1 Methods for database operators
+
+1.1.1.1 Method ~BoundingBox()~
+
+*/
+const Rectangle<3> URegion::BoundingBox() const {
+    if (MRA_DEBUG) cerr << "URegion::BoundingBox() called" << endl;
+
+    return uremb.BoundingBox();
+}
+
+/*
+1.1.1.1 Method ~At()~
+
+This method is not part of the bachelor thesis but a stub is required to make
+~URegion~ non-abstract. To assure that accidential calls of this method are
+recognized, its body contains a failed assertion.
+
+*/
+bool URegion::At(const CRegion& val, TemporalUnit<CRegion>& result) const {
+    if (MRA_DEBUG) cerr << "URegion::At() called" << endl;
+
+    assert(false);
+}
+
+/*
+1.1.1.1 Method ~Passes()~
+
+This method is not part of the bachelor thesis but a stub is required to make
+~URegion~ non-abstract. To assure that accidential calls of this method are
+recognized, its body contains a failed assertion.
+
+*/
+bool URegion::Passes(const CRegion& val) const {
+    if (MRA_DEBUG) cerr << "URegion::At() called" << endl;
+
+    assert(false);
+}
+
+/*
+1.1.1.1 Method ~TemporalFunction()~
+
+*/
+void URegion::TemporalFunction(const Instant& t, CRegion& res) const {
+    if (MRA_DEBUG)
+        cerr << "URegion::TemporalFunction() called" << endl;
+
+    uremb.TemporalFunction(&segments, t, res);
+}
+
+/*
+1.1.1 Methods for algebra integrations
+
+1.1.1.1 Method ~Clone()~
+
+*/
+URegion* URegion::Clone(void) const {
+    if (MRA_DEBUG) cerr << "URegion::Clone() called" << endl;
+
+    URegion* res = new URegion(0);
+    res->CopyFrom(this);
+
+    return res;
+}
+
+/*
+1.1.1.1 Method ~CopyFrom()~
+
+*/
+void URegion::CopyFrom(const StandardAttribute* right) {
+    if (MRA_DEBUG) cerr << "URegion::CopyFrom() called" << endl;
+
+    const URegion* ur = (const URegion*) right;
+
+    *this = *ur;
+}
+
+/*
+1.1.1.1 ~DBArray~ access
+
+*/
+
+int URegion::NumOfFLOBs() const {
+    if (MRA_DEBUG) cerr << "URegion::NumOfFLOBs() called" << endl;
+
+    return 1;
+}
+
+FLOB* URegion::GetFLOB(const int i) {
+    if (MRA_DEBUG) cerr << "URegion::GetFLOB() called" << endl;
+
+    assert(i == 0);
+
+    return &segments;
+}
+
+/*
+1.1 Algebra integration
+
+1.1.1 Function ~OutURegion()~
+
+*/
+static ListExpr OutURegion(ListExpr typeInfo, Word value) {
+     if (MRA_DEBUG) 
+         cerr << "OutURegion() called" << endl;
+
+    URegion* ur = (URegion*) value.addr;
+
+    return
+        OutURegionEmbedded(
+            ur->GetEmbedded(),
+            (DBArray<MSegmentData>*) ur->GetFLOB(0));
 }
 
 /*
@@ -6391,19 +6579,35 @@ static Word InURegion(const ListExpr typeInfo,
                       bool& correct) {
     if (MRA_DEBUG) cerr << "InURegion() called" << endl;
 
-        return
-        InURegionEmbedded(typeInfo,
-                          instance,
-                          errorPos,
-                          errorInfo,
-                          correct,
-                          0,
-                          0);
+    URegion* ur = new URegion(0);
+
+    URegionEmb* uremb = 
+        InURegionEmbedded(
+            instance,
+            errorPos,
+            errorInfo,
+            (DBArray<MSegmentData>*) ur->GetFLOB(0),
+            0);
+
+    if (!uremb) {
+        cerr << "Could not grok list representation of region unit."
+             << endl;
+        delete ur;
+        correct = false;
+        return SetWord(Address(0));
+    }
+
+    ur->timeInterval = uremb->timeInterval;
+    ur->SetEmbedded(uremb);
+    ur->SetDefined(true);
+
+    delete uremb;
+
+    correct = true;
+    return SetWord(Address(ur));
 }
 
 /*
-1.1 Algebra integration
-
 1.1.1 Function ~URegionProperty()~
 
 */
@@ -6473,13 +6677,7 @@ static bool CheckURegion(ListExpr type, ListExpr& errorInfo) {
 static Word CreateURegion(const ListExpr typeInfo) {
     if (MRA_DEBUG) cerr << "CreateURegion() called" << endl;
 
-/*
-~dummy~ is required to use single constructor, which creates its own storage
-for moving segments.
-
-*/
-    Interval<Instant> dummy;
-    return (SetWord(new URegion(dummy)));
+    return (SetWord(new URegion(0)));
 }
 
 /*
@@ -6545,9 +6743,7 @@ bool OpenURegion(SmiRecord& rec,
                  Word& w) {
     if (MRA_DEBUG) cerr << "OpenURegion() called" << endl;
 
-    URegion* ur = (URegion*) Attribute::Open(rec, offset, typeInfo);
-    ur->SetMSegmentData();
-    w = SetWord(ur);
+    w = SetWord(Attribute::Open(rec, offset, typeInfo));
 
     return true;
 }
@@ -6566,7 +6762,6 @@ static bool SaveURegion(SmiRecord& rec,
     if (MRA_DEBUG) cerr << "SaveURegion() called" << endl;
 
     URegion* ur = static_cast<URegion*> (w.addr);
-    assert(!ur->IsEmbedded());
     Attribute::Save(rec, offset, typeInfo, ur);
 
     return true;
@@ -6601,266 +6796,9 @@ static TypeConstructor uregion(
 
 The class definition has been moved to ~MovingRegionAlgebra.h~.
 
-1.1.1 Constructors
+1.1.1 Private methods
 
-*/
-
-MRegion::MRegion(const int n) :
-    Mapping<URegion, CRegion>(n),
-    msegmentdata(n) {
-
-    if (MRA_DEBUG)
-        cerr << "MRegion::MRegion(int) called" << endl;
-}
-
-MRegion::MRegion(MPoint& mp, CRegion& r) :
-    Mapping<URegion, CRegion>(0),
-    msegmentdata(0) {
-
-    if (MRA_DEBUG)
-        cerr << "MRegion::MRegion(MPoint, CRegion) called"
-             << endl;
-     r.logicsort();
-     for (int i = 0; i < mp.GetNoComponents(); i++) {
-          const UPoint *up;
-          mp.Get(i, up);
-          if (MRA_DEBUG)
-            cerr << "MRegion::MRegion(MPoint, CRegion) i="
-                 << i
-                 << " interval=["
-                 << up->timeInterval.start.ToString()
-                 << " ("
-                 << up->timeInterval.start.ToDouble()
-                 << ") "
-                 << up->timeInterval.end.ToString()
-                 << "("
-                 << up->timeInterval.end.ToDouble()
-                 << ") "
-                 << up->timeInterval.lc
-                 << " "
-                 << up->timeInterval.rc
-                 << "]"
-                 << endl;
-            URegion
-             ur(up->timeInterval,
-                 r,
-                 &msegmentdata,
-                msegmentdata.Size());
-         Add(ur);
-       }
-}
-
-/*
-~ Constructs a contiunues moving region from the parameters ~
-
-*/
-MRegion::MRegion(MPoint& mp, CRegion& r,int dummy) :
-    Mapping<URegion, CRegion>(0),
-    msegmentdata(0) {
-
-    if (MRA_DEBUG)
-        cerr << "MRegion::MRegion(MPoint, CRegion,int) called"
-             << endl;
-     r.logicsort();
-     bool isFirst = true;
-     Coord lastX, lastY;
-     Coord firstX, firstY;
-     for (int i = 0; i < mp.GetNoComponents(); i++) {
-          const UPoint *up;
-          mp.Get(i, up);
-          firstX = up->p0.GetX();
-          firstY = up->p0.GetY();
-         
-          if( ! isFirst &&  (firstX !=lastX || firstY != lastY)){
-                r.Translate(firstX-lastX, firstY-lastY);         
-          }else{
-              isFirst=false;
-          }
-          
-          lastX = up->p1.GetX();
-          lastY = up->p1.GetY();
-
-            URegion
-             ur(up->timeInterval,
-                 r,
-                 &msegmentdata,
-                msegmentdata.Size());
-           // now ur represents a static region
-           // if this is not the case, we change the final line
-           Coord tx = lastX-firstX;
-           Coord ty = lastY-firstY;
-           if(tx!=0 || ty!=0){
-               size_t usize = ur.GetSegmentsNum();
-               const MSegmentData* mseg;
-               for(size_t i=0;i<usize;i++){
-                  ur.GetSegment(i,mseg);
-                  MSegmentData dms(*mseg);
-                  dms.finalStartX += tx;
-                  dms.finalStartY += ty;
-                  dms.finalEndX += tx;
-                  dms.finalEndY += ty;
-                  ur.PutSegment(i,dms);
-               }
-           }
-           // change the bounding box of ur
-           Rectangle<3> rbb(ur.BoundingBox());
-           double t[3];
-           t[0] = tx;
-           t[1] = ty;
-           t[2] = 0.0;
-           rbb = rbb.Translate(t);
-           ur.SetBBox(ur.BoundingBox().Union(rbb));    
-
-         r.Translate(tx,ty);
-         Add(ur);
-       }
-}
-
-
-/*
-1.1.1 Method ~Clone()~
-
-*/
-
-MRegion* MRegion::Clone(void) const {
-    if (MRA_DEBUG) cerr << "MRegion::Clone() called" << endl;
-
-    MRegion* res = new MRegion(0);
-    res->CopyFrom(this);
-
-    return res;
-}
-
-/*
-1.1.1 Method ~CopyFrom()~
-
-*/
-void MRegion::CopyFrom(const StandardAttribute* right) {
-    if (MRA_DEBUG) 
-        cerr << "MRegion::CopyFrom() called, this="
-             << this
-             << ", &msegmentdata=" 
-             << &msegmentdata
-             << endl;
-
-    MRegion* mr = (MRegion*) right;
-
-    if (MRA_DEBUG) 
-        cerr << "MRegion::CopyFrom() called, &mr->msegmentdata=" 
-             << &mr->msegmentdata
-             << endl;
-
-/*
-~InMRegion()~ sorts the region units, therefore the following assumption
-should hold.
-
-*/
-    assert(mr->IsOrdered());
-
-    Clear();
-
-/*
-Copy the units and assure that their pointer to the ~DBAarry~ containing
-their moving segments points to this instance's ~DBArray~.
-
-*/
-    StartBulkLoad();
-    for(int i = 0; i < mr->GetNoComponents(); i++) {
-        const URegion* ur;
-        mr->Get(i, ur);
-        URegion newUr = *ur;
-        newUr.SetMSegmentData(&msegmentdata);
-        Add(newUr);
-    }
-    EndBulkLoad(false);
-
-/* 
-Copy the moving segments.
-
-*/
-    msegmentdata.Clear();
-    msegmentdata.Resize(mr->msegmentdata.Size());
-    for (int i = 0; i < mr->msegmentdata.Size(); i++) {
-        const MSegmentData* dms;
-        mr->msegmentdata.Get(i, dms);
-
-        if (MRA_DEBUG) 
-            cerr << "MRegion::CopyFrom() segment " 
-                 << i 
-                 << ": initial=[" 
-                 << dms->GetInitialStartX() 
-                 << " " << dms->GetInitialStartY() 
-                 << " " << dms->GetInitialEndX() 
-                 << " " << dms->GetInitialEndY()
-                 << "] final=["
-                 << dms->GetFinalStartX() 
-                 << " " << dms->GetFinalStartY() 
-                 << " " << dms->GetFinalEndX() 
-                 << " " << dms->GetFinalEndY()
-                 << "]"
-                 << endl;
-
-        msegmentdata.Put(i, *dms);
-    }
-}
-
-/*
-1.1.1 ~DBArray~ access
-
-*/
-
-int MRegion::NumOfFLOBs() const {
-    if (MRA_DEBUG) cerr << "MRegion::NumOfFLOBs() called" << endl;
-
-    return 2;
-}
-
-FLOB* MRegion::GetFLOB(const int i) {
-    if (MRA_DEBUG) cerr << "MRegion::GetFLOB() called" << endl;
-
-    assert(i == 0 || i == 1);
-
-    return
-        i == 0
-        ? Mapping<URegion, CRegion>::GetFLOB(0)
-        : &msegmentdata;
-}
-
-/*
-1.1.1 Methods ~Get()~
-
-*/
-void MRegion::Get(const int i, const URegion*& ur) const {
-    if (MRA_DEBUG)
-        cerr << "MRegion::Get() #2 called i=" << i << endl;
-    
-    Mapping<URegion, CRegion>::Get(i, ur);
-}
-
-/*
-1.1.1 Method ~Unittest2()~
-
-*/
-
-#ifdef MRA_UNITTEST
-bool MRegion::Unittest2(int pos) {
-
-    if (MRA_DEBUG)
-        cerr << "MRegion::Unittest2() called pos="
-             << pos
-             << endl;
-
-    if (pos < 0 || pos >= msegmentdata.Size()) return -1;
-
-    const MSegmentData *dms;
-    msegmentdata.Get(pos, dms);
-
-    return dms->GetInsideAbove();
-}
-#endif // MRA_UNITTEST
-
-/*
-1.1.1 Method ~Intersection()~
+1.1.1.1 Method ~IntersectionRP()~
 
 */
 void MRegion::IntersectionRP(
@@ -6869,8 +6807,9 @@ void MRegion::IntersectionRP(
     RefinementPartitionOrig<
         MRegion,
         MPoint,
-        URegion,
-        UPoint>& rp) {
+        URegionEmb,
+        UPoint>& rp,
+    bool merge) {
 
     if (MRA_DEBUG)
         cerr << "MRegion::IntersectionRP() #1 called" << endl;
@@ -6913,7 +6852,7 @@ and point unit, both restricted to this interval, intersect.
 
         if (urPos == -1 || upPos == -1) continue;
 
-        const URegion* ur;
+        const URegionEmb* ur;
         const UPoint* up;
 
         Get(urPos, ur);
@@ -6923,15 +6862,37 @@ and point unit, both restricted to this interval, intersect.
             cerr << "MRegion::IntersectionRP() both elements present"
                  << endl;
 
-        ur->RestrictedIntersection(*up, *iv, res, pending);
+        ur->RestrictedIntersection(
+            &msegmentdata, *up, *iv, res, pending, merge);
     }
 
     if (pending) {
         if (!(nearlyEqual(pending->timeInterval.start.ToDouble(),
                           pending->timeInterval.end.ToDouble())
               && (!pending->timeInterval.lc
-                  || !pending->timeInterval.rc)))
+                  || !pending->timeInterval.rc))) {
+            // DEBUG
+            cerr << "pending: ["
+                 << pending->timeInterval.start.ToDouble()
+                 << " "
+                 << pending->timeInterval.end.ToDouble()
+                 << " "
+                 << pending->timeInterval.lc
+                 << " "
+                 << pending->timeInterval.rc
+                 << "] ("
+                 << pending->p0.GetX()
+                 << " "
+                 << pending->p0.GetY()
+                 << ")-("
+                 << pending->p1.GetX()
+                 << " "
+                 << pending->p1.GetY()
+                 << ")"
+                 << endl;
+            assert(pending->IsValid());
             res.Add(*pending);
+        }
 
         delete pending;
     }
@@ -6943,24 +6904,7 @@ and point unit, both restricted to this interval, intersect.
 }
 
 /*
-1.1.1 Method ~Intersection()~
-
-*/
-void MRegion::Intersection(MPoint& mp, MPoint& res) {
-    if (MRA_DEBUG)
-        cerr << "MRegion::Intersection() #2 called" << endl;
-
-    RefinementPartitionOrig<
-        MRegion,
-        MPoint,
-        URegion,
-        UPoint> rp(*this, mp);
-
-    IntersectionRP(mp, res, rp);
-}
-
-/*
-1.1.1 Method ~InsideAddUBool()~
+1.1.1.1 Method ~InsideAddUBool()~
 
 */
 void MRegion::InsideAddUBool(MBool& res,
@@ -6985,22 +6929,32 @@ void MRegion::InsideAddUBool(MBool& res,
 
     CcBool bv(true, value);
 
+    if (MRA_DEBUG) 
+        cerr << "MRegion::InsideAddUBool() adding "
+             << start.ToString()
+             << " " 
+             << end.ToString()
+             << " "
+             << lc
+             << " "
+             << rc 
+             << endl;
+
     if (pending) {
         if (MRA_DEBUG) {
             cerr << "MRegion::InsideAddUBool() pending end="
-                 << pending->timeInterval.end.ToDouble()
+                 << pending->timeInterval.end.ToString()
                  << " rc="
                  << pending->timeInterval.rc
                  << endl;
             cerr << "MRegion::InsideAddUBool() current start="
-                 << starttime
+                 << start.ToString()
                  << " lc="
                  << lc
                  << endl;
         }
 
-        if (nearlyEqual(starttime,
-                        pending->timeInterval.end.ToDouble())
+        if (nearlyEqual(starttime, pending->timeInterval.end.ToDouble())
             && (pending->timeInterval.rc || lc)
             && pending->constValue.GetBoolval() == value) {
 
@@ -7008,20 +6962,41 @@ void MRegion::InsideAddUBool(MBool& res,
                 cerr << "MRegion::InsideAddUBool() connecting"
                      << endl;
 
-            if (nearlyEqual(pending->timeInterval.start.ToDouble(),
-                            pending->timeInterval.end.ToDouble())) {
-                Interval<Instant> iv(start,
-                                     end,
+            if (pending->timeInterval.start == pending->timeInterval.end) {
+                Interval<Instant> iv(pending->timeInterval.start,
+                                     pending->timeInterval.end,
                                      true,
                                      rc);
 
+                if (MRA_DEBUG)
+                    cerr << "MRegion::InsideAddUBool() connecting #1 to "
+                         << iv.start.ToString()
+                         << " "
+                         << iv.end.ToString()
+                         << " "
+                         << iv.lc
+                         << " "
+                         << iv.rc
+                         << endl;
+
                 delete pending;
                 pending = new UBool(iv, bv);
-            } else if (nearlyEqual(starttime, endtime)) {
-                Interval<Instant> iv(pending->timeInterval.start,
-                                     pending->timeInterval.end,
+            } else if (starttime == endtime) {
+                Interval<Instant> iv(start,
+                                     end,
                                      pending->timeInterval.lc,
                                      true);
+
+                if (MRA_DEBUG)
+                    cerr << "MRegion::InsideAddUBool() connecting #2 to "
+                         << iv.start.ToString()
+                         << " "
+                         << iv.end.ToString()
+                         << " "
+                         << iv.lc
+                         << " "
+                         << iv.rc
+                         << endl;
 
                 delete pending;
                 pending = new UBool(iv, bv);
@@ -7031,12 +7006,30 @@ void MRegion::InsideAddUBool(MBool& res,
                                      pending->timeInterval.lc,
                                      rc);
 
+                if (MRA_DEBUG)
+                    cerr << "MRegion::InsideAddUBool() connecting #3 to "
+                         << iv.start.ToString()
+                         << " "
+                         << iv.end.ToString()
+                         << " "
+                         << iv.lc
+                         << " "
+                         << iv.rc
+                         << endl;
+
                 delete pending;
                 pending = new UBool(iv, bv);
             }
         } else {
             if (MRA_DEBUG)
-                cerr << "MRegion::InsideAddUBool() not connecting"
+                cerr << "MRegion::InsideAddUBool() not connecting, pending is "
+                     << pending->timeInterval.start.ToString()
+                     << " "
+                     << pending->timeInterval.end.ToString()
+                     << " "
+                     << pending->timeInterval.lc
+                     << " "
+                     << pending->timeInterval.rc
                      << endl;
 
             res.Add(*pending);
@@ -7062,7 +7055,252 @@ void MRegion::InsideAddUBool(MBool& res,
 }
 
 /*
-1.1.1 Method ~Inside()~
+1.1.1 Constructors
+
+*/
+
+MRegion::MRegion(const int n) :
+    Mapping<URegionEmb, CRegion>(n),
+    msegmentdata(n) {
+
+    if (MRA_DEBUG)
+        cerr << "MRegion::MRegion(int) called" << endl;
+}
+
+MRegion::MRegion(MPoint& mp, CRegion& r) :
+    Mapping<URegionEmb, CRegion>(0),
+    msegmentdata(0) {
+
+    if (MRA_DEBUG)
+        cerr << "MRegion::MRegion(MPoint, CRegion) called"
+             << endl;
+
+    r.logicsort();
+
+    for (int i = 0; i < mp.GetNoComponents(); i++) {
+        const UPoint *up;
+        
+        mp.Get(i, up);
+            
+        if (MRA_DEBUG)
+            cerr << "MRegion::MRegion(MPoint, CRegion) i="
+                 << i
+                 << " interval=["
+                 << up->timeInterval.start.ToString()
+                 << " ("
+                 << up->timeInterval.start.ToDouble()
+                 << ") "
+                 << up->timeInterval.end.ToString()
+                 << "("
+                 << up->timeInterval.end.ToDouble()
+                 << ") "
+                 << up->timeInterval.lc
+                 << " "
+                 << up->timeInterval.rc
+                 << "]"
+                 << endl;
+        
+        URegionEmb
+            ur(&msegmentdata,
+               up->timeInterval,
+               r,
+               msegmentdata.Size());
+        Add(ur);
+    }
+}
+
+MRegion::MRegion(MPoint& mp, CRegion& r,int dummy) :
+    Mapping<URegionEmb, CRegion>(0),
+    msegmentdata(0) {
+
+    if (MRA_DEBUG)
+        cerr << "MRegion::MRegion(MPoint, CRegion,int) called"
+             << endl;
+    r.logicsort();
+    bool isFirst = true;
+    Coord lastX, lastY;
+    Coord firstX, firstY;
+    for (int i = 0; i < mp.GetNoComponents(); i++) {
+        const UPoint *up;
+        mp.Get(i, up);
+        firstX = up->p0.GetX();
+        firstY = up->p0.GetY();
+        
+        if( ! isFirst &&  (firstX !=lastX || firstY != lastY)){
+            r.Translate(firstX-lastX, firstY-lastY);         
+        }else{
+            isFirst=false;
+        }
+        
+        lastX = up->p1.GetX();
+        lastY = up->p1.GetY();
+        
+        URegionEmb
+            ur(&msegmentdata,
+               up->timeInterval,
+               r,
+               msegmentdata.Size());
+        // now ur represents a static region
+        // if this is not the case, we change the final line
+        Coord tx = lastX-firstX;
+        Coord ty = lastY-firstY;
+        if(tx!=0 || ty!=0){
+            size_t usize = ur.GetSegmentsNum();
+            const MSegmentData* mseg;
+            for(size_t i=0;i<usize;i++){
+                ur.GetSegment(&msegmentdata, i, mseg);
+                MSegmentData dms(*mseg);
+                dms.SetFinalStartX(dms.GetFinalStartX()+tx);
+                dms.SetFinalStartY(dms.GetFinalStartY()+ty);
+                dms.SetFinalEndX(dms.GetFinalEndX()+tx);
+                dms.SetFinalEndY(dms.GetFinalEndY()+ty);
+                ur.PutSegment(&msegmentdata, i, dms);
+            }
+        }
+        // change the bounding box of ur
+        Rectangle<3> rbb(ur.BoundingBox());
+        double t[3];
+        t[0] = tx;
+        t[1] = ty;
+        t[2] = 0.0;
+        rbb = rbb.Translate(t);
+        ur.SetBBox(ur.BoundingBox().Union(rbb));    
+        
+        r.Translate(tx,ty);
+        Add(ur);
+    }
+}
+
+/*
+1.1.1 Attribute access method 
+
+*/
+void MRegion::Get(const int i, const URegionEmb*& ur) const {
+    if (MRA_DEBUG)
+        cerr << "MRegion::Get() #2 called i=" 
+             << i 
+             << " (msegmentdata="
+             << &msegmentdata
+             << ")"
+             << endl;
+    
+    Mapping<URegionEmb, CRegion>::Get(i, ur);
+}
+
+/*
+1.1.1 Methods for database operators
+
+1.1.1.1 Method ~Intersection()~
+
+*/
+void MRegion::Intersection(MPoint& mp, MPoint& res) {
+    if (MRA_DEBUG)
+        cerr << "MRegion::Intersection() #2 called" << endl;
+
+// DEBUG
+    for (int i = 0; i < mp.GetNoComponents(); i++) {
+        const UPoint* unit;
+        mp.Get(i, unit);
+        cerr << "INPUT unit: iv=["
+             << setprecision(8)
+             << unit->timeInterval.start.ToString()
+             << " "
+             << unit->timeInterval.end.ToString()
+             << " "
+             << unit->timeInterval.lc
+             << " "
+             << unit->timeInterval.rc
+             << "] ("
+             << unit->p0.GetX()
+             << " "
+             << unit->p0.GetY()
+             << ")-("
+             << unit->p1.GetX()
+             << " "
+             << unit->p1.GetY()
+             << ")"
+             << endl;
+    }
+
+    RefinementPartitionOrig<
+        MRegion,
+        MPoint,
+        URegionEmb,
+        UPoint> rp(*this, mp);
+
+    IntersectionRP(mp, res, rp, true);
+
+// DEBUG
+  cerr << "res.GetNoComponents()=" << res.GetNoComponents() << endl;
+
+// DEBUG
+  const UPoint *lastunit, *unit;
+
+  if( res.GetNoComponents() == 1 )
+  {
+    res.Get(0, unit);
+    assert(unit->IsValid());
+  } else {
+    for (int i = 1; i < res.GetNoComponents(); i++) {
+      cerr << "#0" << endl;
+      res.Get( i-1, lastunit );
+      cerr << "#1" << endl;
+      assert(lastunit->IsValid());
+      cerr << "#2" << endl;
+      res.Get( i, unit );
+      assert(unit->IsValid());
+      if (!((!lastunit->Disjoint( *unit )) 
+            && (!lastunit->TU_Adjacent( *unit )))) {
+          cerr << "lastunit: iv=["
+               << setprecision(8)
+               << lastunit->timeInterval.start.ToDouble()
+               << " "
+               << lastunit->timeInterval.end.ToDouble()
+               << " "
+               << lastunit->timeInterval.lc
+               << " "
+               << lastunit->timeInterval.rc
+               << "] ("
+               << lastunit->p0.GetX()
+               << " "
+               << lastunit->p0.GetY()
+               << ")-("
+               << lastunit->p1.GetX()
+               << " "
+               << lastunit->p1.GetY()
+               << ")"
+               << endl;
+          cerr << "unit: iv=["
+               << setprecision(8)
+               << unit->timeInterval.start.ToDouble()
+               << " "
+               << unit->timeInterval.end.ToDouble()
+               << " "
+               << unit->timeInterval.lc
+               << " "
+               << unit->timeInterval.rc
+               << "] ("
+               << unit->p0.GetX()
+               << " "
+               << unit->p0.GetY()
+               << ")-("
+               << unit->p1.GetX()
+               << " "
+               << unit->p1.GetY()
+               << ")"
+               << endl;
+          cerr << "disjoint: " << lastunit->Disjoint( *unit ) << endl;
+          cerr << "adjacent: " << lastunit->TU_Adjacent( *unit ) << endl;
+
+//          assert(false);
+      }
+    }
+  }
+
+}
+
+/*
+1.1.1.1 Method ~Inside()~
 
 */
 void MRegion::Inside(MPoint& mp, MBool& res) {
@@ -7072,20 +7310,264 @@ void MRegion::Inside(MPoint& mp, MBool& res) {
 Use intersection algorithm and then see how the units in the result
 match to the original units in ~mp~.
 
+First, we have to create the refinement partition for ~mp~ and this
+~MRegion~ instance.
+
 */
     RefinementPartitionOrig<
         MRegion,
         MPoint,
-        URegion,
+        URegionEmb,
         UPoint> rp(*this, mp);
 
+/*
+We are calling ~IntersectionRP()~ with value ~false~ for parameter ~merge~.
+This means that the resulting ~URegionEmb~ instances in ~resMp~ are not
+merged, ie. one ~URegionEmb~ instance's interval is entirely within one
+interval in ~rp~.
+
+*/
     MPoint resMp;
-    IntersectionRP(mp, resMp, rp);
+    IntersectionRP(mp, resMp, rp, false);
 
     int mpPos = 0;
 
+/*
+Required for ~InsideAddUBool()~.
+
+*/
     UBool* pending = 0;
 
+/*
+Pass through all the intervals in ~rp~.
+
+*/
+    for (unsigned int rpPos = 0; rpPos < rp.Size(); rpPos++) {
+        if (MRA_DEBUG)
+            cerr << "MRegion::Inside() rpPos=" << rpPos 
+                 << " mpPos=" << mpPos
+                 << endl;
+
+/*
+Get the units for each interval in ~rp~.
+
+*/
+        Interval<Instant>* iv;
+        int urPos;
+        int upPos;
+
+        rp.Get(rpPos, iv, urPos, upPos);
+
+/*
+We are only interested in the intervals, which are contained in ~mp~.
+If an interval in ~rp~ is not in ~mp~, ~upPos~ is lower than $0$ and
+we skip this interval.
+
+*/
+        if (upPos < 0) continue;
+
+        double prev = iv->start.ToDouble();
+        bool prev_c = !iv->lc;
+
+/*
+Check every ~upoint~ instance in the intersection,
+which has an interval within the current interval.
+If we reach an instance outside the current interval,
+the ~for~ loop is left via a ~break~ statement.
+
+*/ 
+        for (; mpPos < resMp.GetNoComponents(); mpPos++) {
+            if (MRA_DEBUG)
+                cerr << "MRegion::Inside()   mpPos=" << mpPos
+                     << endl;
+            
+/*
+Get the current ~upoint~ instance.
+
+*/              
+            const UPoint *up;
+            resMp.Get(mpPos, up);
+            
+            if (MRA_DEBUG)
+                cerr << "MRegion::Inside()     rp iv=["
+                     << iv->start.ToString()
+                     << " "
+                     << iv->end.ToString()
+                     << " "
+                     << iv->lc
+                     << " "
+                     << iv->rc
+                     << "] up iv=["
+                     << up->timeInterval.start.ToString()
+                     << " "
+                     << up->timeInterval.end.ToString()
+                     << " "
+                     << up->timeInterval.lc
+                     << " "
+                     << up->timeInterval.rc
+                     << "]"
+                     << endl;
+            
+/*
+Is this ~upoint~ instance really within the current interval?
+
+*/
+            if (up->timeInterval.start.ToDouble() > iv->end.ToDouble()
+                || (up->timeInterval.start.ToDouble() == iv->end.ToDouble()
+                    && up->timeInterval.lc
+                    && !iv->rc)) {
+/*
+No, we reached the end of the current interval. We add a ~ubool~ instance
+with value ~false~ to the result, which closes the gap between the previously
+added ~ubool~ instance and the end of the current interval (only if 
+applicable).
+
+*/
+
+                if (MRA_DEBUG)
+                    cerr << "MRegion::Inside()     end of unit"
+                         << endl;
+                
+                if (prev < iv->end.ToDouble()) {
+                    if (MRA_DEBUG)
+                        cerr << "MRegion::Inside()     closing gap #2a"
+                             << endl;
+                    
+                    InsideAddUBool(res,
+                                   prev,
+                                   iv->end.ToDouble(),
+                                   !prev_c,
+                                   iv->rc,
+                                   false,
+                                   prev,
+                                   prev_c,
+                                   pending);
+                }
+                
+/*
+Break out of the loop iterating through the ~upoint~ instances in the
+intersection.
+
+*/
+                break;
+            } else {
+/*
+Yes, the current ~upoint~ instance is still within the current interval.
+
+*/
+                if (MRA_DEBUG)
+                    cerr << "MRegion::Inside()     inside unit"
+                         << endl;
+                
+/*
+Is there a gap between the previously added ~ubool~ instance and the
+start of the interval of the current ~upoint~ instance? If so, close 
+the gap by adding an ~ubool~ instance with an appropriate interval
+and value ~false~.
+
+*/
+                if (up->timeInterval.start.ToDouble() > prev) {
+                    if (MRA_DEBUG)
+                        cerr << "MRegion::Inside()     closing gap #1a"
+                             << endl;
+
+                    InsideAddUBool(res,
+                                   prev,
+                                   up->timeInterval.start.ToDouble(),
+                                   !prev_c,
+                                   !up->timeInterval.lc,
+                                   false,
+                                   prev,
+                                   prev_c,
+                                   pending);
+                } else if (up->timeInterval.start.ToDouble() == prev
+                           && !up->timeInterval.lc
+                           && prev_c) {
+                    if (MRA_DEBUG)
+                        cerr << "MRegion::Inside()     closing gap #1b"
+                             << endl;
+                    
+                    InsideAddUBool(res,
+                                   up->timeInterval.start.ToDouble(),
+                                   up->timeInterval.start.ToDouble(),
+                                   true,
+                                   true,
+                                   false,
+                                   prev,
+                                   prev_c,
+                                   pending);
+                }
+                    
+/*
+Add a ~ubool~ instance with the interval of the current ~upoint~ instance
+and value ~true~.
+
+*/
+                InsideAddUBool(res,
+                               up->timeInterval.start.ToDouble(),
+                               up->timeInterval.end.ToDouble(),
+                               up->timeInterval.lc,
+                               up->timeInterval.rc,
+                               true,
+                               prev,
+                               prev_c,
+                               pending);
+            }
+        }
+
+        if (mpPos == resMp.GetNoComponents()) {
+            if (MRA_DEBUG)
+                cerr << "MRegion::Inside()   end of units reached before"
+                     << endl;
+
+            if (prev < iv->end.ToDouble()) {
+                if (MRA_DEBUG)
+                    cerr << "MRegion::Inside()     closing gap #3a"
+                         << endl;
+
+                InsideAddUBool(res,
+                               prev,
+                               iv->end.ToDouble(),
+                               !prev_c,
+                               iv->rc,
+                               false,
+                               prev,
+                               prev_c,
+                               pending);
+            } else if (prev == iv->end.ToDouble()
+                       && !prev_c
+                       && iv->rc) {
+                if (MRA_DEBUG)
+                    cerr << "MRegion::Inside()     closing gap #3b"
+                         << endl;
+
+                InsideAddUBool(res,
+                               iv->end.ToDouble(),
+                               iv->end.ToDouble(),
+                               true,
+                               true,
+                               false,
+                               prev,
+                               prev_c,
+                               pending);
+            }
+        }
+    }
+    
+/*
+Since ~InsideAddUBool()~ is trying to merge adjacent ~ubool~ instances
+with identical value, there may be an ~ubool~ instance left in ~pending~,
+which needs to be added to the result.
+
+*/
+    if (pending) {
+        res.Add(*pending);
+        delete pending;
+    }
+
+    res.SetDefined(!res.IsEmpty());
+
+#ifdef SCHMUH
     for (unsigned int rpPos = 0; rpPos < rp.Size(); rpPos++) {
         if (MRA_DEBUG)
             cerr << "MRegion::Inside() rpPos=" << rpPos << endl;
@@ -7109,17 +7591,17 @@ match to the original units in ~mp~.
 
             if (MRA_DEBUG)
                 cerr << "MRegion::Inside()     rp iv=["
-                     << iv->start.ToDouble()
+                     << iv->start.ToString()
                      << " "
-                     << iv->end.ToDouble()
+                     << iv->end.ToString()
                      << " "
                      << iv->lc
                      << " "
                      << iv->rc
                      << "] up iv=["
-                     << up->timeInterval.start.ToDouble()
+                     << up->timeInterval.start.ToString()
                      << " "
-                     << up->timeInterval.end.ToDouble()
+                     << up->timeInterval.end.ToString()
                      << " "
                      << up->timeInterval.lc
                      << " "
@@ -7152,7 +7634,7 @@ match to the original units in ~mp~.
                              << "adding f for interval ["
                              << prev
                              << " "
-                             << up->timeInterval.start.ToDouble()
+                             << up->timeInterval.start.ToString()
                              << " "
                              << !prev_c
                              << " "
@@ -7174,9 +7656,9 @@ match to the original units in ~mp~.
                 if (MRA_DEBUG)
                     cerr << "MRegion::Inside()     "
                          << "adding t for interval ["
-                         << up->timeInterval.start.ToDouble()
+                         << up->timeInterval.start.ToString()
                          << " "
-                         << up->timeInterval.end.ToDouble()
+                         << up->timeInterval.end.ToString()
                          << " "
                          << up->timeInterval.lc
                          << " "
@@ -7212,7 +7694,7 @@ match to the original units in ~mp~.
                      << "adding f for interval ["
                      << prev
                      << " "
-                     << iv->end.ToDouble()
+                     << iv->end.ToString()
                      << " "
                      << !prev_c
                      << " "
@@ -7238,10 +7720,11 @@ match to the original units in ~mp~.
     }
 
     res.SetDefined(!res.IsEmpty());
+#endif
 }
 
 /*
-1.1.1 Method ~AtInstant()~
+1.1.1.1 Method ~AtInstant()~
 
 Method ~Mapping<Unit, Alpha>::AtInstant()~ is not sufficient since it
 does not deal with setting the unit's segment data DBArray.
@@ -7258,17 +7741,17 @@ void MRegion::AtInstant(Instant& t, Intime<CRegion>& result) {
     if( pos == -1 )
         result.SetDefined(false);
     else {
-        const URegion* posUnit;
+        const URegionEmb* posUnit;
         Get(pos, posUnit);
 
-        posUnit->TemporalFunction(t, result.value);
+        posUnit->TemporalFunction(&msegmentdata, t, result.value);
         result.instant.CopyFrom(&t);
         result.SetDefined(result.value.Size() > 0);
   }
 }
 
 /*
-1.1.1 Method ~Initial()~
+1.1.1.1 Method ~Initial()~
 
 Method ~Mapping<Unit, Alpha>::Initial()~ is not sufficient since it
 does not deal with setting the unit's segment data DBArray.
@@ -7285,7 +7768,7 @@ void MRegion::Initial(Intime<CRegion>& result) {
         return;
     }
 
-    const URegion* unit;
+    const URegionEmb* unit;
     Get(0, unit);
 
     if (!unit->timeInterval.lc) {
@@ -7294,13 +7777,16 @@ void MRegion::Initial(Intime<CRegion>& result) {
     }
         
     result.SetDefined(true);
-    unit->TemporalFunction(unit->timeInterval.start, result.value);
+    unit->TemporalFunction(
+        &msegmentdata, 
+        unit->timeInterval.start, 
+        result.value);
     result.instant.CopyFrom(&unit->timeInterval.start);
     result.SetDefined(result.value.Size() > 0);
 }
 
 /*
-1.1.1 Method ~Final()~
+1.1.1.1 Method ~Final()~
 
 Method ~Mapping<Unit, Alpha>::Final()~ is not sufficient since it
 does not deal with setting the unit's segment data DBArray.
@@ -7317,7 +7803,7 @@ void MRegion::Final(Intime<CRegion>& result) {
         return;
     }
 
-    const URegion* unit;
+    const URegionEmb* unit;
     Get(GetNoComponents()-1, unit);
         
     if (!unit->timeInterval.rc) {
@@ -7326,16 +7812,20 @@ void MRegion::Final(Intime<CRegion>& result) {
     }
         
     result.SetDefined(true);
-    unit->TemporalFunction(unit->timeInterval.end, result.value);
+    unit->TemporalFunction(
+        &msegmentdata, 
+        unit->timeInterval.end, 
+        result.value);
     result.instant.CopyFrom(&unit->timeInterval.end);
     result.SetDefined(result.value.Size() > 0);
 }
 
 /*
-1.1.1 Method ~Traversed()~
+1.1.1.1 Method ~Traversed()~
 
 */
 
+#ifdef MRA_TRAVERSED
 void MRegion::Traversed(CRegion& res) {
     if (MRA_DEBUG) cerr << "MRegion::Traversed() called" << endl;
 
@@ -7347,6 +7837,138 @@ accidential calls of this method.
 */
     assert(false);
 }
+#endif // MRA_TRAVERSED
+
+/*
+1.1.1 Methods for algebra integration
+
+1.1.1.1 Method ~Clone()~
+
+*/
+
+MRegion* MRegion::Clone(void) const {
+    if (1==1) cerr << "MRegion::Clone() called" << endl;
+
+    MRegion* res = new MRegion(0);
+    res->CopyFrom(this);
+
+    return res;
+}
+
+/*
+1.1.1.1 Method ~CopyFrom()~
+
+*/
+void MRegion::CopyFrom(const StandardAttribute* right) {
+    if (1==1) 
+        cerr << "MRegion::CopyFrom() called, this="
+             << this
+             << ", &msegmentdata=" 
+             << &msegmentdata
+             << endl;
+
+    MRegion* mr = (MRegion*) right;
+
+    if (MRA_DEBUG) 
+        cerr << "MRegion::CopyFrom() called, &mr->msegmentdata=" 
+             << &mr->msegmentdata
+             << endl;
+
+/*
+~InMRegion()~ sorts the region units, therefore the following assumption
+should hold.
+
+*/
+    assert(mr->IsOrdered());
+
+    Clear();
+
+/*
+Copy the units and assure that their pointer to the ~DBAarry~ containing
+their moving segments points to this instance's ~DBArray~.
+
+*/
+    StartBulkLoad();
+    for(int i = 0; i < mr->GetNoComponents(); i++) {
+        const URegionEmb* ur;
+        mr->Get(i, ur);
+        Add(*ur);
+    }
+    EndBulkLoad(false);
+
+/* 
+Copy the moving segments.
+
+*/
+    msegmentdata.Clear();
+    msegmentdata.Resize(mr->msegmentdata.Size());
+    for (int i = 0; i < mr->msegmentdata.Size(); i++) {
+        const MSegmentData* dms;
+        mr->msegmentdata.Get(i, dms);
+
+        if (MRA_DEBUG) 
+            cerr << "MRegion::CopyFrom() segment " 
+                 << i 
+                 << ": initial=[" 
+                 << dms->GetInitialStartX() 
+                 << " " << dms->GetInitialStartY() 
+                 << " " << dms->GetInitialEndX() 
+                 << " " << dms->GetInitialEndY()
+                 << "] final=["
+                 << dms->GetFinalStartX() 
+                 << " " << dms->GetFinalStartY() 
+                 << " " << dms->GetFinalEndX() 
+                 << " " << dms->GetFinalEndY()
+                 << "]"
+                 << endl;
+
+        msegmentdata.Put(i, *dms);
+    }
+}
+
+/*
+1.1.1.1 ~DBArray~ access
+
+*/
+
+int MRegion::NumOfFLOBs() const {
+    if (MRA_DEBUG) cerr << "MRegion::NumOfFLOBs() called" << endl;
+
+    return 2;
+}
+
+FLOB* MRegion::GetFLOB(const int i) {
+    if (MRA_DEBUG) cerr << "MRegion::GetFLOB() called" << endl;
+
+    assert(i == 0 || i == 1);
+
+    return
+        i == 0
+        ? Mapping<URegionEmb, CRegion>::GetFLOB(0)
+        : &msegmentdata;
+}
+
+/*
+1.1.1 Unit testing
+
+*/
+
+#ifdef MRA_UNITTEST
+bool MRegion::Unittest2(int pos) {
+
+    if (MRA_DEBUG)
+        cerr << "MRegion::Unittest2() called pos="
+             << pos
+             << endl;
+
+    if (pos < 0 || pos >= msegmentdata.Size()) return -1;
+
+    const MSegmentData *dms;
+    msegmentdata.Get(pos, dms);
+
+    return dms->GetInsideAbove();
+}
+#endif // MRA_UNITTEST
 
 /*
 1.1 Algebra integration
@@ -7418,7 +8040,8 @@ static bool CheckMRegion(ListExpr type, ListExpr& errorInfo) {
 */
 
 static ListExpr OutMRegion(ListExpr typeInfo, Word value) {
-    if (MRA_DEBUG) cerr << "OutMRegion() called" << endl;
+    if (MRA_DEBUG) 
+        cerr << "OutMRegion() called" << endl;
 
     MRegion* mr = (MRegion*) value.addr;
 
@@ -7429,11 +8052,20 @@ static ListExpr OutMRegion(ListExpr typeInfo, Word value) {
     ListExpr l = nl->TheEmptyList();
     ListExpr lastElem;
 
+    if (MRA_DEBUG) 
+        cerr << "OutMRegion() #units=" << mr->GetNoComponents() << endl;
+
     for (int i = 0; i < mr->GetNoComponents(); i++) {
-        const URegion* ur;
+        if (MRA_DEBUG) 
+            cerr << "OutMRegion() i=" << i << endl;
+
+        const URegionEmb* ur;
         mr->Get(i, ur);
+
         ListExpr unitList = 
-            OutURegion(nl->TheEmptyList(), SetWord((void*) ur));
+            OutURegionEmbedded(
+                ur,
+                (DBArray<MSegmentData>*) mr->GetFLOB(1));
 
         if (l == nl->TheEmptyList()) {
             l = nl->Cons(unitList, nl->TheEmptyList());
@@ -7464,16 +8096,18 @@ Word InMRegion(const ListExpr typeInfo,
         ListExpr first = nl->First(rest);
         rest = nl->Rest(rest);
 
-        URegion* ur =
-            (URegion*) InURegionEmbedded(
-                nl->TheEmptyList(),
+        URegionEmb* ur =
+            (URegionEmb*) InURegionEmbedded(
                 first,
                 errorPos,
                 errorInfo,
-                correct,
                 &mr->msegmentdata,
-                mr->msegmentdata.Size()).addr;
-        if(correct == false) return SetWord(Address(0));
+                mr->msegmentdata.Size());
+        if (!ur) {
+            mr->Destroy();
+            delete mr;
+            return SetWord(Address(0));
+        }
         mr->Add(*ur);
         delete ur;
     }
@@ -7499,25 +8133,9 @@ bool OpenMRegion(SmiRecord& rec,
                  size_t& offset,
                  const ListExpr typeInfo,
                  Word& w) {
-    if (MRA_DEBUG) cerr << "OpenMRegion() called" << endl;
+    if (1==1) cerr << "OpenMRegion() called" << endl;
 
-    MRegion* mr = (MRegion*) Attribute::Open(rec, offset, typeInfo);
-
-/*
-The cloning is required to assure that the ~segments~ pointers of the
-region units reference the moving region's ~msegmentdata~. 
-Since ~units~ is
-private in ~Mapping~ and since ~Mapping~ does not provide any methods
-to modify an existing unit, ~MRegion~ cannot provide such method
-either. The method ~Clone()~ assures, though, that each region unit
-properly references the moving region's ~msegmentdata~.
-
-*/
-    MRegion* res = mr->Clone();
-
-    delete mr;
-
-    w = SetWord(res);
+    w = SetWord(Attribute::Open(rec, offset, typeInfo));
 
     return true;
 }
@@ -7542,18 +8160,46 @@ static bool SaveMRegion(SmiRecord& rec,
 1.1.1 Type constructor ~mregion~
 
 */
+static Word CreateMRegion(const ListExpr typeInfo) {
+  if (MRA_DEBUG) cerr << "CreateMRegion() called" << endl;
+  return SetWord(new MRegion(0));
+}
+static void DeleteMRegion(const ListExpr typeInfo, Word& w) {
+  if (MRA_DEBUG) cerr << "DeleteMRegion() called" << endl;
+  ((MRegion*) w.addr)->Destroy();
+  delete (MRegion*) w.addr;
+  w.addr = 0;
+}
+static void CloseMRegion(const ListExpr typeInfo, Word& w) {
+  if (MRA_DEBUG) cerr << "CloseMRegion() called" << endl;
+  delete (MRegion*) w.addr;
+  w.addr = 0;
+}
+static Word CloneMRegion(const ListExpr typeInfo, const Word& w) {
+  if (MRA_DEBUG) cerr << "CloneMRegion() called" << endl;
+  return SetWord(((MRegion*) w.addr)->Clone());
+}
+static void* CastMRegion(void* addr) {
+  if (MRA_DEBUG) cerr << "CastMRegion() called" << endl;
+  return new (addr) MRegion;
+}
+static int SizeOfMRegion() {
+  if (MRA_DEBUG) cerr << "SizeOfMRegion() called" << endl;
+  return sizeof(MRegion);
+}
+
 static TypeConstructor mregion(
     "movingregion",
     MRegionProperty,
     OutMRegion,
     InMRegion,
     0, 0, // SaveToList, RestoreFromList
-    CreateMapping<MRegion>, DeleteMapping<MRegion>,
+    CreateMRegion, DeleteMRegion,
     OpenMRegion, SaveMRegion,
-    CloseMapping<MRegion>, CloneMapping<MRegion>,
-    CastMapping<MRegion>,
-    SizeOfMapping<MRegion>,
-    CheckMRegion );
+    CloseMRegion, CloneMRegion,
+    CastMRegion,
+    SizeOfMRegion,
+    CheckMRegion);
 
 /*
 1.1 Helper function(s)
@@ -7569,7 +8215,7 @@ static MPoint CreateMPointFromCPoint(MRegion* mr, CPoint* p) {
     MPoint mp(0);
 
     for (int i = 0; i < mr->GetNoComponents(); i++) {
-        const URegion* ur;
+        const URegionEmb* ur;
 
         mr->Get(i, ur);
 
@@ -7622,22 +8268,6 @@ static ListExpr MPointMRegionToMBoolTypeMap(ListExpr args) {
         && nl->IsEqual(nl->First(args), "mpoint")
         && nl->IsEqual(nl->Second(args), "movingregion"))
         return nl->SymbolAtom("mbool");
-    else
-        return nl->SymbolAtom("typeerror");
-}
-
-/*
-Used by ~atinstant~:
-
-*/
-static ListExpr MRegionInstantToIRegionTypeMap(ListExpr args) {
-    if (MRA_DEBUG)
-        cerr << "MRegionInstantToIRegionTypeMap() called" << endl;
-
-    if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), "movingregion")
-        && nl->IsEqual(nl->Second(args), "instant"))
-        return nl->SymbolAtom("intimeregion");
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -7708,6 +8338,8 @@ static ListExpr IRegionToRegionTypeMap(ListExpr args) {
 Used by ~traversed~:
 
 */
+
+#ifdef MRA_TRAVERSED
 static ListExpr MRegionToRegionTypeMap(ListExpr args) {
     if (MRA_DEBUG)
         cerr << "MRegionToRegionTypeMap() called" << endl;
@@ -7718,6 +8350,7 @@ static ListExpr MRegionToRegionTypeMap(ListExpr args) {
     else
         return nl->SymbolAtom("typeerror");
 }
+#endif // MRA_TRAVERSED
 
 /*
 
@@ -7761,6 +8394,26 @@ static ListExpr AtTypeMap(ListExpr args) {
 }
 
 /*
+Used by ~atinstant~:
+
+*/
+static ListExpr AtInstantTypeMap(ListExpr args) {
+    if (MRA_DEBUG)
+        cerr << "AtInstantTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 2
+        && nl->IsEqual(nl->First(args), "movingregion")
+        && nl->IsEqual(nl->Second(args), "instant"))
+        return nl->SymbolAtom("intimeregion");
+    else if (nl->ListLength(args) == 2
+        && nl->IsEqual(nl->First(args), "uregion")
+        && nl->IsEqual(nl->Second(args), "instant"))
+        return nl->SymbolAtom("intimeregion");
+    else
+        return nl->SymbolAtom("typeerror");
+}
+
+/*
 Used by ~mraprec~:
 
 */
@@ -7777,29 +8430,27 @@ static ListExpr MraprecTypeMap(ListExpr args) {
 }
 
 /*
-~Type mapping of the MOve operator~
+Type mapping of the ~move~ operator:
 
 */
 
 static ListExpr MoveTypeMap(ListExpr args){
-  cout << "MOveTypeMap called " << endl;
-  if(nl->ListLength(args)!=2){
-     ErrorReporter::ReportError("invalid number of arguments");
-     return nl->SymbolAtom("typeerror");
-  }
-  if(!nl->IsEqual(nl->First(args),"mpoint")){
-     ErrorReporter::ReportError("mpoint as first argument required");
-     return nl->SymbolAtom("typeerror");
-  }
-  if(!nl->IsEqual(nl->Second(args),"region")){
-     ErrorReporter::ReportError("region as second argument required");
-     return nl->SymbolAtom("typeerror");
-  }
-  cout << "Typemap returns movingregion" << endl;
-  return nl->SymbolAtom("movingregion");
-
+    cout << "MOveTypeMap called " << endl;
+    if(nl->ListLength(args)!=2){
+        ErrorReporter::ReportError("invalid number of arguments");
+        return nl->SymbolAtom("typeerror");
+    }
+    if(!nl->IsEqual(nl->First(args),"mpoint")){
+        ErrorReporter::ReportError("mpoint as first argument required");
+        return nl->SymbolAtom("typeerror");
+    }
+    if(!nl->IsEqual(nl->Second(args),"region")){
+        ErrorReporter::ReportError("region as second argument required");
+        return nl->SymbolAtom("typeerror");
+    }
+    cout << "Typemap returns movingregion" << endl;
+    return nl->SymbolAtom("movingregion");
 }
-
 
 /*
 Used by ~bbox~:
@@ -7900,23 +8551,6 @@ static int MRegionSelect(ListExpr args) {
 }
 
 /*
-Used by ~atinstant~:
-
-*/
-
-static int MRegionInstantSelect(ListExpr args) {
-    if (MRA_DEBUG)
-        cerr << "MRegionInstantSelect() called" << endl;
-
-    if (nl->ListLength(args) == 2
-        && nl->SymbolValue(nl->First(args)) == "movingregion"
-        && nl->SymbolValue(nl->Second(args)) == "instant")
-        return 0;
-    else
-        return -1;
-}
-
-/*
 Used by ~inst~ and ~val~:
 
 */
@@ -7978,6 +8612,27 @@ static int AtSelect(ListExpr args) {
     else if (nl->ListLength(args) == 2
         && nl->SymbolValue(nl->First(args)) == "movingregion"
         && nl->SymbolValue(nl->Second(args)) == "point")
+        return 1;
+    else
+        return -1;
+}
+
+/*
+Used by ~atinstant~:
+
+*/
+
+static int AtInstantSelect(ListExpr args) {
+    if (MRA_DEBUG)
+        cerr << "AtInstantSelect() called" << endl;
+
+    if (nl->ListLength(args) == 2
+        && nl->SymbolValue(nl->First(args)) == "movingregion"
+        && nl->SymbolValue(nl->Second(args)) == "instant")
+        return 0;
+    else if (nl->ListLength(args) == 2
+        && nl->SymbolValue(nl->First(args)) == "uregion"
+        && nl->SymbolValue(nl->Second(args)) == "instant")
         return 1;
     else
         return -1;
@@ -8128,6 +8783,31 @@ static int AtValueMap_MRegion(Word* args,
     return 0;
 }
 
+static int AtInstantValueMap_URegion(Word* args,
+                                     Word& result,
+                                     int message,
+                                     Word& local,
+                                     Supplier s) {
+    if (MRA_DEBUG) cerr << "AtInstantValueMap_URegion() called" << endl;
+
+    result = qp->ResultStorage(s);
+
+    URegion* ur = (URegion*) args[0].addr;
+    Instant* inst = (Instant*) args[1].addr;
+
+    Intime<CRegion>* res = (Intime<CRegion>*) result.addr;
+
+    if (ur->timeInterval.Contains(*inst)) {
+        ur->TemporalFunction(*inst, res->value);
+        res->instant.CopyFrom(inst);
+        res->SetDefined(true);
+    } else 
+        res->SetDefined(false);
+        
+    return 0;
+}
+
+#ifdef MRA_TRAVERSED
 static int TraversedValueMap(Word* args,
                              Word& result,
                              int message,
@@ -8147,7 +8827,7 @@ static int TraversedValueMap(Word* args,
 
     return 0;
 }
-
+#endif // MRA_TRAVERSED
 
 static int MraprecValueMap(Word* args,
                            Word& result,
@@ -8196,15 +8876,15 @@ static int MoveValueMap(Word* args,
                         int message,
                         Word& local,
                         Supplier s) {
-  cout << "MoveValueMap called" << endl;
-  result = qp->ResultStorage(s);
-  cout << "Step one ok "<< endl;
-  MPoint* mp = (MPoint* ) args[0].addr;
-  CRegion* reg = (CRegion*) args[1].addr;
-  MRegion res(*mp,*reg,0);
-  ((MRegion*)result.addr)->CopyFrom(&res);
-  res.Destroy();
-  return 0;
+    cout << "MoveValueMap called" << endl;
+    result = qp->ResultStorage(s);
+    cout << "Step one ok "<< endl;
+    MPoint* mp = (MPoint* ) args[0].addr;
+    CRegion* reg = (CRegion*) args[1].addr;
+    MRegion res(*mp,*reg,0);
+    ((MRegion*)result.addr)->CopyFrom(&res);
+    res.Destroy();
+    return 0;
 }
 
 /*
@@ -8318,13 +8998,14 @@ static int Unittest3ValueMap(Word* args,
 // *hm* remove value mapping array from non-overloaded operators
 
 static ValueMapping atinstantvaluemap[] =
-    { MappingAtInstant<MRegion, CRegion> };
+    { MappingAtInstant<MRegion, CRegion>,
+      AtInstantValueMap_URegion };
 
 static ValueMapping initialvaluemap[] =
-    { MappingInitial<MRegion, URegion, CRegion> };
+    { MappingInitial<MRegion, URegionEmb, CRegion> };
 
 static ValueMapping finalvaluemap[] =
-    { MappingFinal<MRegion, URegion, CRegion> };
+    { MappingFinal<MRegion, URegionEmb, CRegion> };
 
 static ValueMapping instvaluemap[] =
     { IntimeInst<CRegion> };
@@ -8349,8 +9030,10 @@ static ValueMapping atvaluemap[] =
     { AtValueMap_MPoint,
       AtValueMap_MRegion };
 
+#ifdef MRA_TRAVERSED
 static ValueMapping traversedvaluemap[] =
     { TraversedValueMap };
+#endif // MRA_TRAVERSED
 
 /*
 1.1 Operator specifications
@@ -8359,8 +9042,9 @@ static ValueMapping traversedvaluemap[] =
 
 static const string atinstantspec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>(mregion instant) -> iregion</text--->"
-     "    <text>_ atinstant _ </text--->"
+    "  ( <text>(mregion instant) -> iregion, "
+    "    (uregion instant) -> iregion,</text--->"
+    "    <text>_ atinstant _ </text--->"
     "    <text>Get the iregion value corresponding "
     "to the instant.</text--->"
     "    <text>mregion1 atinstant instant1</text---> ) )";
@@ -8436,7 +9120,15 @@ static const string atspec =
     "    <text>Restrict moving point to region or restrict moving region "
     "to point.</text--->"
     "    <text>mpoint1 at region1</text---> ) )";
+static const string movespec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>mpoint x region -> mregion</text--->"
+    "    <text>move(_,_)</text--->"
+    "    <text>Creates a moving region from the given region"
+    "  using the mpoint speed and direction </text--->"
+    "    <text>query move(mp,reg)</text---> ) )";
 
+#ifdef MRA_TRAVERSED
 static const string traversedspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>mregion -> region</text--->"
@@ -8444,6 +9136,7 @@ static const string traversedspec =
     "    <text>Projection of a moving region into "
     "the plane.</text--->"
     "    <text>traversed(mregion1)</text---> ) )";
+#endif // MRA_TRAVERSED
 
 static const string mraprecspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -8458,15 +9151,6 @@ static const string bboxspec =
     "    <text>bbox ( _ )</text--->"
     "    <text>Returns the 3d bounding box of the unit.</text--->"
     "    <text>bbox(mregion1)</text---> ) )";
-
-
-static const string movespec =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>mpoint x region -> mregion</text--->"
-    "    <text>move(_,_)</text--->"
-    "    <text>Creates a moving region from the given region"
-    "  using the mpoint speed and direction </text--->"
-    "    <text>query move(mp,reg)</text---> ) )";
 
 /*
 Used for unit testing only.
@@ -8489,10 +9173,10 @@ static const string unittestspec =
 
 static Operator atinstant("atinstant",
                           atinstantspec,
-                          1,
+                          2,
                           atinstantvaluemap,
-                          MRegionInstantSelect,
-                          MRegionInstantToIRegionTypeMap);
+                          AtInstantSelect,
+                          AtInstantTypeMap);
 
 static Operator initial("initial",
                         initialspec,
@@ -8557,12 +9241,14 @@ static Operator at("at",
                    AtSelect,
                    AtTypeMap);
 
+#ifdef MRA_TRAVERSED
 static Operator traversed("traversed",
                           traversedspec,
                           1,
                           traversedvaluemap,
                           MRegionSelect,
                           MRegionToRegionTypeMap);
+#endif // MRA_TRAVERSED
 
 static Operator mraprec("mraprec",
                         mraprecspec,
@@ -8581,6 +9267,7 @@ static Operator move("move",
                      MoveValueMap,
                      simpleSelect,
                      MoveTypeMap);
+
 /*
 Used for unit testing only.
 
@@ -8634,11 +9321,13 @@ public:
         AddOperator(&present);
         AddOperator(&intersection);
         AddOperator(&inside);
+        AddOperator(&move);
+#ifdef MRA_TRAVERSED
         AddOperator(&traversed);
+#endif // MRA_TRAVERSED
         AddOperator(&at);
         AddOperator(&mraprec);
         AddOperator(&bbox);
-        AddOperator(&move);
 
 /*
 Used for unit testing only.

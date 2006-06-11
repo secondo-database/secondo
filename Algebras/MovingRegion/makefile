@@ -39,7 +39,7 @@ MODNAME = MovingRegionAlgebra
 # unit test. The algebra will contain specific unit test operators which
 # do not have other applications than unit testing. It is recommend to
 # exclude this statement for production versions of the algebra.
-#UNITTEST = -DMRA_UNITTEST
+UNITTEST = -DMRA_UNITTEST
 
 # Use the mace CCFLAGS to add special compiler flags if needed.
 # In this case the defaults are sufficient
