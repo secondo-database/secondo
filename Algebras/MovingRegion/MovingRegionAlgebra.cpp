@@ -247,7 +247,13 @@ values of ~eps~. Prof. Dr. G[ue]ting reported an example with incorrect
 behaviour of operator ~at~ for the value $0.00001$. Thomas Behr reported that
 correct moving regions have been rejected for value $0.00000001$.
 
+The operator ~mraprec~ can be used to adjust the precision of double
+comparisons. Please note that the symbol ~MRA\_PREC~ has to be defined to
+include this operator in the algebra. The best place to do this is the
+~makefile~, and this has been already prepared at the top of the file.
+
 */
+
 //const double eps = 0.0001;
 //const double eps = 0.00000001;
 double eps = 0.00001;
@@ -1960,7 +1966,8 @@ $(p2x, p2y, t2)$ outside trapezium but still intersecting with trapezium.
                             << " caused by rounding errors."
                             << endl
                             << "Try adjusting the precision with the "
-                            << " mraprec operator"
+                            << " mraprec operator (if available in this"
+                            << " build of the MovingRegionAlgebra)."
                             << endl;
                         throw invalid_argument(msg.str());
                     }
@@ -2015,7 +2022,8 @@ $(p2x, p2y, t2)$ outside trapezium but still intersecting with trapezium.
                             << " caused by rounding errors."
                             << endl
                             << "Try adjusting the precision with the "
-                            << " mraprec operator"
+                            << " mraprec operator (if available in this"
+                            << " build of the MovingRegionAlgebra)."
                             << endl;
                         throw invalid_argument(msg.str());
                     }
@@ -2104,7 +2112,8 @@ $(p2x, p2y, t2)$ outside trapezium but still intersecting with trapezium.
                                 << " caused by rounding errors."
                                 << endl
                                 << "Try adjusting the precision with the "
-                                << " mraprec operator"
+                                << " mraprec operator (if available in this"
+                                << " build of the MovingRegionAlgebra)."
                                 << endl;
                             throw invalid_argument(msg.str());
                         }
@@ -2470,7 +2479,9 @@ Both segments are not vertical.
 }
 
 /*
-1.1.1 Method ~MSegmentData::restrictToInterval()~
+1.1.1 Other methods
+
+1.1.1.1 Method ~restrictToInterval()~
 
 */
 void MSegmentData::restrictToInterval(Interval<Instant> origIv,
@@ -2538,6 +2549,36 @@ be adjusted, and calculate the new initial and final end points.
         rDms.finalEndY =
             initialEndY+(finalEndY-initialEndY)*tf;
     }
+}
+
+/*
+1.1.1.1 Method ~ToString()~
+
+*/
+
+string MSegmentData::ToString(void) const {
+    ostringstream tmp;
+
+    tmp << "f/c/s=" << faceno 
+        << "/" << cycleno 
+        << "/" << segmentno
+        << " initial: p/d/dn=" << pointInitial 
+        << "/" << degeneratedInitial 
+        << "/" << degeneratedInitialNext
+        << " (" << initialStartX
+        << ", " << initialStartY
+        << ")-(" << initialEndX
+        << ", " << initialEndY
+        << " final: p/d/dn=" << pointFinal
+        << "/" << degeneratedFinal 
+        << "/" << degeneratedFinalNext
+        << " (" << finalStartX
+        << ", " << finalStartY
+        << ")-(" << finalEndX
+        << ", " << finalEndY
+        << ")";
+
+    return tmp.str();
 }
 
 /*
@@ -4077,26 +4118,10 @@ computation.
 
         chs.attr.insideAbove = chs.GetLP() == s;
 
-        if (MRA_DEBUG) {
-            cerr << "URegionEmb::AddSegment() initial "
-                 << dms.GetInitialStartX()
-                 << " "
-                 << dms.GetInitialStartY()
-                 << " "
-                 << dms.GetInitialEndX()
-                 << " "
-                 << dms.GetInitialEndY()
+        if (MRA_DEBUG)
+            cerr << "URegionEmb::AddSegment() "
+                 << dms.ToString()
                  << endl;
-            cerr << "URegionEmb::AddSegment() final "
-                 << dms.GetFinalStartX()
-                 << " "
-                 << dms.GetFinalStartY()
-                 << " "
-                 << dms.GetFinalEndX()
-                 << " "
-                 << dms.GetFinalEndY()
-                 << endl;
-        }
 
         if (MRA_DEBUG)
             cerr << "URegionEmb::AddSegment() "
@@ -5175,16 +5200,8 @@ sufficient context to understand this method.
                  << timeInterval.end.ToDouble()
                  << " "
                  << timeInterval.lc << " " << timeInterval.rc
-                 << "] ("
-                 << dms->GetInitialStartX() << " " << dms->GetInitialStartY()
-                 << " "
-                 << dms->GetInitialEndX() << " " << dms->GetInitialEndY()
-                 << ")-("
-                 << dms->GetFinalStartX() << " " << dms->GetFinalStartY()
-                 << " "
-                 << dms->GetFinalEndX() << " " << dms->GetFinalEndY()
-                 << ") ia="
-                 << dms->GetInsideAbove()
+                 << "] "
+                 << dms->ToString()
                  << endl;
             cerr << "URegionEmb::RIF() point is ["
                  << up.timeInterval.start.ToDouble()
@@ -5214,15 +5231,8 @@ sufficient context to understand this method.
         dms->restrictToInterval(timeInterval, iv, rDms);
 
         if (MRA_DEBUG) {
-            cerr << "URegionEmb::RIF() segment restricted to iv is ("
-                 << rDms.GetInitialStartX() << " " << rDms.GetInitialStartY()
-                 << " "
-                 << rDms.GetInitialEndX() << " " << rDms.GetInitialEndY()
-                 << ")-("
-                 << rDms.GetFinalStartX() << " " << rDms.GetFinalStartY()
-                 << " "
-                 << rDms.GetFinalEndX() << " " << rDms.GetFinalEndY()
-                 << ")"
+            cerr << "URegionEmb::RIF() segment restricted to iv is "
+                 << rDms.ToString()
                  << endl;
             cerr << "URegionEmb::RIF() point restricted to iv is ("
                  << rUp.p0.GetX() << " " << rUp.p0.GetY()
@@ -6076,23 +6086,8 @@ any.
 
             cerr << "InURegionEmbedded() segment #"
                  << i
-                 << ": " << dms->GetFaceNo()
-                 << " " << dms->GetCycleNo()
-                 << " " << dms->GetSegmentNo()
-                 << " i=("
-                 << dms->GetInitialStartX() << ", " << dms->GetInitialStartY()
-                 << ", "
-                 << dms->GetInitialEndX() << ", " << dms->GetInitialEndY()
-                 << ") f=("
-                 << dms->GetFinalStartX() << ", " << dms->GetFinalStartY()
-                 << ", "
-                 << dms->GetFinalEndX() << ", " << dms->GetFinalEndY()
-                 << ") flags="
-                 << dms->GetInsideAbove()
-                 << " " << dms->GetPointInitial()
-                 << " " << dms->GetPointFinal()
-                 << " " << dms->GetDegeneratedInitialNext()
-                 << " " << dms->GetDegeneratedFinalNext()
+                 << ": "
+                 << dms->ToString()
                  << endl;
         }
 
@@ -6241,26 +6236,6 @@ and inside below segments, we can ignore the entire list.
         uregion->PutSegment(segments, i, dms);
     }
 
-#ifdef SCHMUH
-    if (lc && !nonTrivialInitial) {
-        cerr << "no non-trivial segments in initial instant but "
-             << "time interval closed on left side"
-             << endl;
-        delete uregion;
-        correct = false;
-        return SetWord(Address(0));
-    }
-
-    if (rc && !nonTrivialFinal) {
-        cerr << "no non-trivial segments in final instant but "
-             << "time interval closed on right side"
-             << endl;
-        delete uregion;
-        correct = false;
-        return SetWord(Address(0));
-    }
-#endif
-
    if (MRA_DEBUG)
         for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
             const MSegmentData *dms;
@@ -6270,37 +6245,7 @@ and inside below segments, we can ignore the entire list.
             cerr << "InURegionEmbedded() resulting segment #"
                  << i
                  << ": "
-                 << dms->GetFaceNo()
-                 << " "
-                 << dms->GetCycleNo()
-                 << " "
-                 << dms->GetSegmentNo()
-                 << " i=("
-                 << dms->GetInitialStartX()
-                 << ", "
-                 << dms->GetInitialStartY()
-                 << ", "
-                 << dms->GetInitialEndX()
-                 << ", "
-                 << dms->GetInitialEndY()
-                 << ") f=("
-                 << dms->GetFinalStartX()
-                 << ", "
-                 << dms->GetFinalStartY()
-                 << ", "
-                 << dms->GetFinalEndX()
-                 << ", "
-                 << dms->GetFinalEndY()
-                 << ") flags="
-                 << dms->GetInsideAbove()
-                 << " "
-                 << dms->GetPointInitial()
-                 << " "
-                 << dms->GetPointFinal()
-                 << " "
-                 << dms->GetDegeneratedInitialNext()
-                 << " "
-                 << dms->GetDegeneratedFinalNext()
+                 << dms->ToString()
                  << endl;
         }
 
@@ -6319,7 +6264,7 @@ static ListExpr OutURegionEmbedded(
          cerr << "OutURegionEmbedded() called" << endl;
 
 /*
-Conversio to list representation is straightforward. Just loop through
+Conversion to list representation is straightforward. Just loop through
 faces, cylces and segments and make sure that it is realised when one of
 these changes.
 
@@ -7566,161 +7511,6 @@ which needs to be added to the result.
     }
 
     res.SetDefined(!res.IsEmpty());
-
-#ifdef SCHMUH
-    for (unsigned int rpPos = 0; rpPos < rp.Size(); rpPos++) {
-        if (MRA_DEBUG)
-            cerr << "MRegion::Inside() rpPos=" << rpPos << endl;
-
-        Interval<Instant>* iv;
-        int urPos;
-        int upPos;
-
-        rp.Get(rpPos, iv, urPos, upPos);
-
-        double prev = iv->start.ToDouble();
-        bool prev_c = !iv->lc;
-
-        for (; mpPos < resMp.GetNoComponents(); mpPos++) {
-            if (MRA_DEBUG)
-                cerr << "MRegion::Inside()   mpPos=" << mpPos
-                     << endl;
-
-            const UPoint *up;
-            resMp.Get(mpPos, up);
-
-            if (MRA_DEBUG)
-                cerr << "MRegion::Inside()     rp iv=["
-                     << iv->start.ToString()
-                     << " "
-                     << iv->end.ToString()
-                     << " "
-                     << iv->lc
-                     << " "
-                     << iv->rc
-                     << "] up iv=["
-                     << up->timeInterval.start.ToString()
-                     << " "
-                     << up->timeInterval.end.ToString()
-                     << " "
-                     << up->timeInterval.lc
-                     << " "
-                     << up->timeInterval.rc
-                     << "] prev="
-                     << prev
-                     << endl;
-
-            if ((lower(iv->start.ToDouble(),
-                       up->timeInterval.start.ToDouble())
-                 || (nearlyEqual(iv->start.ToDouble(),
-                                 up->timeInterval.start.ToDouble())
-                     && (iv->lc || !up->timeInterval.lc)))
-                && (lower(up->timeInterval.end.ToDouble(),
-                          iv->end.ToDouble())
-                    || (nearlyEqual(up->timeInterval.end.ToDouble(),
-                                    iv->end.ToDouble())
-                        && (!up->timeInterval.rc || iv->rc)))) {
-
-                if (MRA_DEBUG)
-                    cerr << "MRegion::Inside()     inside" << endl;
-
-                if (lower(prev, up->timeInterval.start.ToDouble())
-                    || (nearlyEqual(prev,
-                                    up->timeInterval.start.ToDouble())
-                        && !prev_c
-                        && !up->timeInterval.lc)) {
-                    if (MRA_DEBUG)
-                        cerr << "MRegion::Inside()     "
-                             << "adding f for interval ["
-                             << prev
-                             << " "
-                             << up->timeInterval.start.ToString()
-                             << " "
-                             << !prev_c
-                             << " "
-                             << !up->timeInterval.lc
-                             << "]"
-                             << endl;
-
-                    InsideAddUBool(res,
-                                   prev,
-                                   up->timeInterval.start.ToDouble(),
-                                   !prev_c,
-                                   !up->timeInterval.lc,
-                                   false,
-                                   prev,
-                                   prev_c,
-                                   pending);
-                }
-
-                if (MRA_DEBUG)
-                    cerr << "MRegion::Inside()     "
-                         << "adding t for interval ["
-                         << up->timeInterval.start.ToString()
-                         << " "
-                         << up->timeInterval.end.ToString()
-                         << " "
-                         << up->timeInterval.lc
-                         << " "
-                         << up->timeInterval.rc
-                         << "]"
-                         << endl;
-
-                InsideAddUBool(res,
-                               up->timeInterval.start.ToDouble(),
-                               up->timeInterval.end.ToDouble(),
-                               up->timeInterval.lc,
-                               up->timeInterval.rc,
-                               true,
-                               prev,
-                               prev_c,
-                               pending);
-            } else {
-                if (MRA_DEBUG)
-                    cerr << "MRegion::Inside()     "
-                         << "not inside"
-                         << endl;
-
-                break;
-            }
-        }
-
-        if (lower(prev, iv->end.ToDouble())
-            || (nearlyEqual(prev, iv->end.ToDouble())
-                && !prev_c
-                && iv->rc)) {
-            if (MRA_DEBUG)
-                cerr << "MRegion::Inside()     "
-                     << "adding f for interval ["
-                     << prev
-                     << " "
-                     << iv->end.ToString()
-                     << " "
-                     << !prev_c
-                     << " "
-                     << iv->rc
-                     << "]"
-                     << endl;
-
-            InsideAddUBool(res,
-                           prev,
-                           iv->end.ToDouble(),
-                           !prev_c,
-                           iv->rc,
-                           false,
-                           prev,
-                           prev_c,
-                           pending);
-        }
-    }
-
-    if (pending) {
-        res.Add(*pending);
-        delete pending;
-    }
-
-    res.SetDefined(!res.IsEmpty());
-#endif
 }
 
 /*
@@ -7847,7 +7637,7 @@ accidential calls of this method.
 */
 
 MRegion* MRegion::Clone(void) const {
-    if (1==1) cerr << "MRegion::Clone() called" << endl;
+    if (MRA_DEBUG) cerr << "MRegion::Clone() called" << endl;
 
     MRegion* res = new MRegion(0);
     res->CopyFrom(this);
@@ -7860,7 +7650,7 @@ MRegion* MRegion::Clone(void) const {
 
 */
 void MRegion::CopyFrom(const StandardAttribute* right) {
-    if (1==1) 
+    if (MRA_DEBUG) 
         cerr << "MRegion::CopyFrom() called, this="
              << this
              << ", &msegmentdata=" 
@@ -7976,8 +7766,6 @@ bool MRegion::Unittest2(int pos) {
 1.1.1 Function ~MRegionProperty()~
 
 */
-
-// *hm* Verify list representation
 
 static ListExpr MRegionProperty() {
     if (MRA_DEBUG) cerr << "MRegionProperty() called" << endl;
@@ -8133,7 +7921,7 @@ bool OpenMRegion(SmiRecord& rec,
                  size_t& offset,
                  const ListExpr typeInfo,
                  Word& w) {
-    if (1==1) cerr << "OpenMRegion() called" << endl;
+    if (MRA_DEBUG) cerr << "OpenMRegion() called" << endl;
 
     w = SetWord(Attribute::Open(rec, offset, typeInfo));
 
@@ -8418,6 +8206,7 @@ Used by ~mraprec~:
 
 */
 
+#ifdef MRA_PREC
 static ListExpr MraprecTypeMap(ListExpr args) {
     if (MRA_DEBUG)
         cerr << "MraprecTypeMap() called" << endl;
@@ -8428,6 +8217,7 @@ static ListExpr MraprecTypeMap(ListExpr args) {
     else
         return nl->SymbolAtom("typeerror");
 }
+#endif // MRA_PREC
 
 /*
 Type mapping of the ~move~ operator:
@@ -8829,6 +8619,7 @@ static int TraversedValueMap(Word* args,
 }
 #endif // MRA_TRAVERSED
 
+#ifdef MRA_PREC
 static int MraprecValueMap(Word* args,
                            Word& result,
                            int message,
@@ -8850,6 +8641,7 @@ static int MraprecValueMap(Word* args,
 
     return 0;
 }
+#endif // MRA_PREC
 
 static int BboxValueMap(Word* args,
                            Word& result,
@@ -8995,8 +8787,6 @@ static int Unittest3ValueMap(Word* args,
 
 */
 
-// *hm* remove value mapping array from non-overloaded operators
-
 static ValueMapping atinstantvaluemap[] =
     { MappingAtInstant<MRegion, CRegion>,
       AtInstantValueMap_URegion };
@@ -9138,12 +8928,14 @@ static const string traversedspec =
     "    <text>traversed(mregion1)</text---> ) )";
 #endif // MRA_TRAVERSED
 
+#ifdef MRA_PREC
 static const string mraprecspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>(real) -> bool</text--->"
     "    <text>mraprec ( _ )</text--->"
     "    <text>Sets precision of comparisons. Always returns true.</text--->"
     "    <text>mraprec(0.0001)</text---> ) )";
+#endif // MRA_PREC
 
 static const string bboxspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -9250,11 +9042,13 @@ static Operator traversed("traversed",
                           MRegionToRegionTypeMap);
 #endif // MRA_TRAVERSED
 
+#ifdef MRA_PREC
 static Operator mraprec("mraprec",
                         mraprecspec,
                         MraprecValueMap,
                         simpleSelect,
                         MraprecTypeMap);
+#endif // MRA_PREC
 
 static Operator bbox("bbox",
                      bboxspec,
@@ -9321,13 +9115,17 @@ public:
         AddOperator(&present);
         AddOperator(&intersection);
         AddOperator(&inside);
+        AddOperator(&at);
+        AddOperator(&bbox);
         AddOperator(&move);
+
 #ifdef MRA_TRAVERSED
         AddOperator(&traversed);
 #endif // MRA_TRAVERSED
-        AddOperator(&at);
+
+#ifdef MRA_PREC
         AddOperator(&mraprec);
-        AddOperator(&bbox);
+#endif // MRA_PREC
 
 /*
 Used for unit testing only.

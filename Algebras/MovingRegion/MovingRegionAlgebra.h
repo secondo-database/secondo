@@ -112,7 +112,6 @@ The constructor assures that the segment in initial and final instant is
 collinear.
 
 */
-
     unsigned int faceno;
     unsigned int cycleno;
     unsigned int segmentno;
@@ -236,6 +235,12 @@ original interval ~origIv~ has been restricted to ~restrIv~.
         Interval<Instant> origIv,
         Interval<Instant> restrIv,
         MSegmentData& rDms) const;
+
+/*
+Return ~string~ representation of moving segment.
+
+*/
+    string ToString(void) const;
 };
 
 /*
