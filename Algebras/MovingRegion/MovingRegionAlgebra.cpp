@@ -4461,8 +4461,10 @@ void URegionEmb::RestrictedIntersectionAddUPoint(MPoint& res,
                                                  UPoint*& pending,
                                                  bool merge) const {
     if (MRA_DEBUG) {
-        cerr << "URegionEmb::RIAUP() called" << endl;
-        cerr << "URegionEmb::RIAUP() starttime=" << starttime
+        cerr << "URegionEmb::RIAUP() called, merge=" << merge << endl;
+        cerr << "URegionEmb::RIAUP() starttime=" 
+             << setprecision(12)
+             << starttime
              << " endtime=" << endtime
              << " lc=" << lc << " rc="
              << rc
@@ -4477,6 +4479,13 @@ void URegionEmb::RestrictedIntersectionAddUPoint(MPoint& res,
 
     Instant end(instanttype);
     end.ReadFrom(endtime);
+
+    if (MRA_DEBUG)
+        cerr << "URegionEmb::RIAUP() as instant start="
+             << start.ToString()
+             << " end="
+             << end.ToString()
+             << endl;
 
 /*
 Straightforward again. If there is a previous unit pending, try to merge
@@ -4493,6 +4502,7 @@ reduce the number of units produced - but is this really a requirement?)
 
         if (MRA_DEBUG) {
             cerr << "URegionEmb::RIAUP() pending: ["
+                 << setprecision(8)
                  << pending->timeInterval.start.ToString()
                  << " "
                  << pending->timeInterval.end.ToString()
@@ -4507,6 +4517,7 @@ reduce the number of units produced - but is this really a requirement?)
                  << ")"
                  << endl;
             cerr << "URegionEmb::RIAUP() current: ["
+                 << setprecision(8)
                  << start.ToString()
                  << " "
                  << end.ToString()
@@ -4632,6 +4643,7 @@ reduce the number of units produced - but is this really a requirement?)
         if (MRA_DEBUG)
             cerr << "URegionEmb::RIAUP() adding "
                  << (unsigned int) pending
+                 << setprecision(12)
                  << " iv=["
                  << pending->timeInterval.start.ToDouble()
                  << " "
@@ -4647,8 +4659,6 @@ reduce the number of units produced - but is this really a requirement?)
                           pending->timeInterval.end.ToDouble())
               && (!pending->timeInterval.lc
                   || !pending->timeInterval.rc)))
-            // DEBUG
-            assert(pending->IsValid());
             res.Add(*pending);
 
         delete pending;
@@ -5262,12 +5272,15 @@ sufficient context to understand this method.
             ip1present, ip1x, ip1y, ip1t,
             ip2present, ip2x, ip2y, ip2t);
 
+        if (ip1t < iv.start.ToDouble() || ip1t > iv.end.ToDouble())
+            ip1present = false;
+        if (ip2t < iv.start.ToDouble() || ip2t > iv.end.ToDouble())
+            ip2present = false;
+
         if (MRA_DEBUG) {
-            cerr << "URegionEmb::RIF() ip1present="
-                 << ip1present
+            cerr << "URegionEmb::RIF() ip1present=" << ip1present 
                  << endl;
-            cerr << "URegionEmb::RIF() ip2present="
-                 << ip2present
+            cerr << "URegionEmb::RIF() ip2present=" << ip2present
                  << endl;
         }
 
@@ -5280,7 +5293,17 @@ sufficient context to understand this method.
                      && nearlyEqual(ip1y, ip2y)
                      && nearlyEqual(ip1t, ip2t))) {
                 if (MRA_DEBUG)
-                    cerr << "URegionEmb::RIF() in plane" << endl;
+                    cerr << "URegionEmb::RIF() in plane, ip1t=" << ip1t
+                         << ", ip2t=" << ip2t
+                         << ", interval=" << timeInterval.start.ToDouble()
+                         << " " << timeInterval.end.ToDouble()
+                         << " " << timeInterval.lc 
+                         << " " << timeInterval.rc
+                         << ", restricted=" << iv.start.ToDouble()
+                         << " " << iv.end.ToDouble()
+                         << " " << iv.lc
+                         << " " << iv.rc
+                         << endl;
 
                 RestrictedIntersectionFindInPlane(
                     iv, rUp,
@@ -5289,7 +5312,16 @@ sufficient context to understand this method.
                     vtsi);
             } else {
                 if (MRA_DEBUG)
-                    cerr << "URegionEmb::RIF() not in plane" << endl;
+                    cerr << "URegionEmb::RIF() not in plane, ip1t=" << ip1t
+                         << ", interval=" << timeInterval.start.ToDouble()
+                         << " " << timeInterval.end.ToDouble()
+                         << " " << timeInterval.lc 
+                         << " " << timeInterval.rc
+                         << ", restricted=" << iv.start.ToDouble()
+                         << " " << iv.end.ToDouble()
+                         << " " << iv.lc
+                         << " " << iv.rc
+                         << endl;
 
                 RestrictedIntersectionFindNormal(
                     iv, rUp, rDms,
@@ -5415,7 +5447,17 @@ and arrive at a $TSI\_ENTER$ and $TSI\_LEAVE$ intersection, we should
 consider the $TSI\_LEAVE$ intersection first.
 
 */
-    if (MRA_DEBUG) cerr << "URegionEmb::RIP() called" << endl;
+    if (MRA_DEBUG) 
+        cerr << "URegionEmb::RIP() called, interval=" 
+             << setprecision(12)
+             << iv.start.ToDouble()
+             << " "
+             << iv.end.ToDouble()
+             << " "
+             << iv.lc
+             << " " 
+             << iv.rc
+             << endl;
 
     if (vtsi.size() == 0) return false;
 
@@ -5459,6 +5501,18 @@ consider the $TSI\_LEAVE$ intersection first.
         }
     }
 
+    if (MRA_DEBUG) 
+        for (unsigned int i = 0; i <= pos; i++) 
+            cerr << "URegionEmb::RIP() intersection dump #"
+                 << setprecision(12)
+                 << i
+                 << " type="
+                 << vtsi[i].type
+                 << " ip=["
+                 << vtsi[i].x << " " << vtsi[i].y << " " << vtsi[i].t
+                 << "]"
+                 << endl;
+
     for (unsigned int i = 0; i <= pos; i++) {
         if (MRA_DEBUG) {
             cerr << "URegionEmb::RIP() intersection dump #"
@@ -5496,6 +5550,9 @@ consider the $TSI\_LEAVE$ intersection first.
         }
 
         if (i > 0 && vtsi[i].type == TSI_LEAVE) {
+            if (MRA_DEBUG)
+                cerr << "URegionEmb::RIP() normal case" << endl;
+
             bool lc =
                 nearlyEqual(vtsi[i-1].t, iv.start.ToDouble())
                 ? iv.lc
@@ -6816,26 +6873,6 @@ and point unit, both restricted to this interval, intersect.
                           pending->timeInterval.end.ToDouble())
               && (!pending->timeInterval.lc
                   || !pending->timeInterval.rc))) {
-            // DEBUG
-            cerr << "pending: ["
-                 << pending->timeInterval.start.ToDouble()
-                 << " "
-                 << pending->timeInterval.end.ToDouble()
-                 << " "
-                 << pending->timeInterval.lc
-                 << " "
-                 << pending->timeInterval.rc
-                 << "] ("
-                 << pending->p0.GetX()
-                 << " "
-                 << pending->p0.GetY()
-                 << ")-("
-                 << pending->p1.GetX()
-                 << " "
-                 << pending->p1.GetY()
-                 << ")"
-                 << endl;
-            assert(pending->IsValid());
             res.Add(*pending);
         }
 
@@ -6876,10 +6913,15 @@ void MRegion::InsideAddUBool(MBool& res,
 
     if (MRA_DEBUG) 
         cerr << "MRegion::InsideAddUBool() adding "
+             << setprecision(20)
              << start.ToString()
-             << " " 
+             << " ("
+             << starttime
+             << ") " 
              << end.ToString()
-             << " "
+             << " ("
+             << endtime
+             << ") "
              << lc
              << " "
              << rc 
@@ -7142,30 +7184,7 @@ void MRegion::Intersection(MPoint& mp, MPoint& res) {
     if (MRA_DEBUG)
         cerr << "MRegion::Intersection() #2 called" << endl;
 
-// DEBUG
-    for (int i = 0; i < mp.GetNoComponents(); i++) {
-        const UPoint* unit;
-        mp.Get(i, unit);
-        cerr << "INPUT unit: iv=["
-             << setprecision(8)
-             << unit->timeInterval.start.ToString()
-             << " "
-             << unit->timeInterval.end.ToString()
-             << " "
-             << unit->timeInterval.lc
-             << " "
-             << unit->timeInterval.rc
-             << "] ("
-             << unit->p0.GetX()
-             << " "
-             << unit->p0.GetY()
-             << ")-("
-             << unit->p1.GetX()
-             << " "
-             << unit->p1.GetY()
-             << ")"
-             << endl;
-    }
+    res.Clear();
 
     RefinementPartitionOrig<
         MRegion,
@@ -7174,74 +7193,6 @@ void MRegion::Intersection(MPoint& mp, MPoint& res) {
         UPoint> rp(*this, mp);
 
     IntersectionRP(mp, res, rp, true);
-
-// DEBUG
-  cerr << "res.GetNoComponents()=" << res.GetNoComponents() << endl;
-
-// DEBUG
-  const UPoint *lastunit, *unit;
-
-  if( res.GetNoComponents() == 1 )
-  {
-    res.Get(0, unit);
-    assert(unit->IsValid());
-  } else {
-    for (int i = 1; i < res.GetNoComponents(); i++) {
-      cerr << "#0" << endl;
-      res.Get( i-1, lastunit );
-      cerr << "#1" << endl;
-      assert(lastunit->IsValid());
-      cerr << "#2" << endl;
-      res.Get( i, unit );
-      assert(unit->IsValid());
-      if (!((!lastunit->Disjoint( *unit )) 
-            && (!lastunit->TU_Adjacent( *unit )))) {
-          cerr << "lastunit: iv=["
-               << setprecision(8)
-               << lastunit->timeInterval.start.ToDouble()
-               << " "
-               << lastunit->timeInterval.end.ToDouble()
-               << " "
-               << lastunit->timeInterval.lc
-               << " "
-               << lastunit->timeInterval.rc
-               << "] ("
-               << lastunit->p0.GetX()
-               << " "
-               << lastunit->p0.GetY()
-               << ")-("
-               << lastunit->p1.GetX()
-               << " "
-               << lastunit->p1.GetY()
-               << ")"
-               << endl;
-          cerr << "unit: iv=["
-               << setprecision(8)
-               << unit->timeInterval.start.ToDouble()
-               << " "
-               << unit->timeInterval.end.ToDouble()
-               << " "
-               << unit->timeInterval.lc
-               << " "
-               << unit->timeInterval.rc
-               << "] ("
-               << unit->p0.GetX()
-               << " "
-               << unit->p0.GetY()
-               << ")-("
-               << unit->p1.GetX()
-               << " "
-               << unit->p1.GetY()
-               << ")"
-               << endl;
-          cerr << "disjoint: " << lastunit->Disjoint( *unit ) << endl;
-          cerr << "adjacent: " << lastunit->TU_Adjacent( *unit ) << endl;
-
-//          assert(false);
-      }
-    }
-  }
-
 }
 
 /*
@@ -7250,6 +7201,8 @@ void MRegion::Intersection(MPoint& mp, MPoint& res) {
 */
 void MRegion::Inside(MPoint& mp, MBool& res) {
     if (MRA_DEBUG) cerr << "MRegion::Inside() called" << endl;
+
+    res.Clear();
 
 /*
 Use intersection algorithm and then see how the units in the result
@@ -7311,7 +7264,9 @@ we skip this interval.
 */
         if (upPos < 0) continue;
 
-        double prev = iv->start.ToDouble();
+        double prevtime = iv->start.ToDouble();
+        Instant prev(instanttype);
+        prev.ReadFrom(prevtime);
         bool prev_c = !iv->lc;
 
 /*
@@ -7357,8 +7312,8 @@ Get the current ~upoint~ instance.
 Is this ~upoint~ instance really within the current interval?
 
 */
-            if (up->timeInterval.start.ToDouble() > iv->end.ToDouble()
-                || (up->timeInterval.start.ToDouble() == iv->end.ToDouble()
+            if (up->timeInterval.start.Compare(&iv->end) > 0
+                || (up->timeInterval.start.Compare(&iv->end) == 0
                     && up->timeInterval.lc
                     && !iv->rc)) {
 /*
@@ -7373,20 +7328,21 @@ applicable).
                     cerr << "MRegion::Inside()     end of unit"
                          << endl;
                 
-                if (prev < iv->end.ToDouble()) {
+                if (prev.Compare(&iv->end) < 0) {
                     if (MRA_DEBUG)
                         cerr << "MRegion::Inside()     closing gap #2a"
                              << endl;
                     
                     InsideAddUBool(res,
-                                   prev,
+                                   prevtime,
                                    iv->end.ToDouble(),
                                    !prev_c,
                                    iv->rc,
                                    false,
-                                   prev,
+                                   prevtime,
                                    prev_c,
                                    pending);
+                    prev.ReadFrom(prevtime);
                 }
                 
 /*
@@ -7411,25 +7367,30 @@ the gap by adding an ~ubool~ instance with an appropriate interval
 and value ~false~.
 
 */
-                if (up->timeInterval.start.ToDouble() > prev) {
+                if (up->timeInterval.start.Compare(&prev) > 0) {
                     if (MRA_DEBUG)
-                        cerr << "MRegion::Inside()     closing gap #1a"
+                        cerr << "MRegion::Inside()     closing gap #1a, prev="
+                             << setprecision(20)
+                             << prevtime
                              << endl;
 
                     InsideAddUBool(res,
-                                   prev,
+                                   prevtime,
                                    up->timeInterval.start.ToDouble(),
                                    !prev_c,
                                    !up->timeInterval.lc,
                                    false,
-                                   prev,
+                                   prevtime,
                                    prev_c,
                                    pending);
-                } else if (up->timeInterval.start.ToDouble() == prev
+                    prev.ReadFrom(prevtime);
+                } else if (up->timeInterval.start.Compare(&prev) == 0
                            && !up->timeInterval.lc
                            && prev_c) {
                     if (MRA_DEBUG)
-                        cerr << "MRegion::Inside()     closing gap #1b"
+                        cerr << "MRegion::Inside()     closing gap #1b, prev="
+                             << setprecision(15)
+                             << prevtime
                              << endl;
                     
                     InsideAddUBool(res,
@@ -7438,9 +7399,10 @@ and value ~false~.
                                    true,
                                    true,
                                    false,
-                                   prev,
+                                   prevtime,
                                    prev_c,
                                    pending);
+                    prev.ReadFrom(prevtime);
                 }
                     
 /*
@@ -7454,9 +7416,10 @@ and value ~true~.
                                up->timeInterval.lc,
                                up->timeInterval.rc,
                                true,
-                               prev,
+                               prevtime,
                                prev_c,
                                pending);
+                prev.ReadFrom(prevtime);
             }
         }
 
@@ -7465,21 +7428,22 @@ and value ~true~.
                 cerr << "MRegion::Inside()   end of units reached before"
                      << endl;
 
-            if (prev < iv->end.ToDouble()) {
+            if (prev.Compare(&iv->end) < 0) {
                 if (MRA_DEBUG)
                     cerr << "MRegion::Inside()     closing gap #3a"
                          << endl;
 
                 InsideAddUBool(res,
-                               prev,
+                               prevtime,
                                iv->end.ToDouble(),
                                !prev_c,
                                iv->rc,
                                false,
-                               prev,
+                               prevtime,
                                prev_c,
                                pending);
-            } else if (prev == iv->end.ToDouble()
+                prev.ReadFrom(prevtime);
+            } else if (prev.Compare(&iv->end) == 0
                        && !prev_c
                        && iv->rc) {
                 if (MRA_DEBUG)
@@ -7492,9 +7456,10 @@ and value ~true~.
                                true,
                                true,
                                false,
-                               prev,
+                               prevtime,
                                prev_c,
                                pending);
+                prev.ReadFrom(prevtime);
             }
         }
     }
@@ -7506,6 +7471,9 @@ which needs to be added to the result.
 
 */
     if (pending) {
+        if (MRA_DEBUG)
+            cerr << "MRegion::Inside() adding pending" << endl;
+        
         res.Add(*pending);
         delete pending;
     }
