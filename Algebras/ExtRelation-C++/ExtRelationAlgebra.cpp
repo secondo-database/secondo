@@ -5769,9 +5769,11 @@ ListExpr SymmProductTypeMap(ListExpr args)
 5.10.5.2 Value mapping function of operator ~symmproduct~
 
 */
+
 struct SymmProductLocalInfo
 {
   TupleType *resultTupleType;
+
   TupleBuffer *rightRel;
   TupleBufferIterator *rightIter;
   TupleBuffer *leftRel;
@@ -5785,16 +5787,15 @@ struct SymmProductLocalInfo
 int
 SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word r, l, value;
+  Word r, l;
   SymmProductLocalInfo* pli;
-  Tuple *resultTuple;
 
   switch (message)
   {
     case OPEN :
     {
       long MAX_MEMORY = qp->MemoryAvailableForOperator();
-      cmsg.info("ERA:ShowMemInfo") << "SymmProductExtend.MAX_MEMORY (" 
+      cmsg.info("ERA:ShowMemInfo") << "SymmProduct.MAX_MEMORY (" 
                                    << MAX_MEMORY/1024 << " MB): " << endl;
       cmsg.send();
       pli = new SymmProductLocalInfo;
@@ -5809,6 +5810,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
 
       ListExpr resultType = GetTupleResultType( s );
       pli->resultTupleType = new TupleType( nl->Second( resultType ) );
+
       qp->Open(args[0].addr);
       qp->Open(args[1].addr);
 
@@ -5828,8 +5830,8 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
         {
           if( pli->currTuple == 0 )
           {
-            qp->Request(args[1].addr, r);
-            if( qp->Received( args[1].addr ) )
+            qp->Request(args[0].addr, r);
+            if( qp->Received( args[0].addr ) )
             {
               pli->currTuple = (Tuple*)r.addr;
               pli->leftIter = pli->leftRel->MakeScan();
@@ -5875,11 +5877,8 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
           else
             // We match the tuples.
           {
-            // XRIS: We must calculate the new attributes' values here
-            // and extend currTuple with them
-
-            resultTuple = new Tuple( pli->resultTupleType );
-            Concat( leftTuple, pli->currTuple, resultTuple );
+            Tuple *resultTuple = new Tuple( pli->resultTupleType );
+            Concat( pli->currTuple, leftTuple, resultTuple );
             leftTuple->DeleteIfAllowed();
             leftTuple = 0;
             result = SetWord( resultTuple );
@@ -5892,8 +5891,8 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
         {
           if( pli->currTuple == 0 )
           {
-            qp->Request(args[0].addr, l);
-            if( qp->Received( args[0].addr ) )
+            qp->Request(args[1].addr, l);
+            if( qp->Received( args[1].addr ) )
             {
               pli->currTuple = (Tuple*)l.addr;
               pli->rightIter = pli->rightRel->MakeScan();
@@ -5939,9 +5938,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
           else
             // We match the tuples.
           {
-            // XRIS: We must calculate the new attribute's values here
-            // and extend rightTuple
-            resultTuple = new Tuple( pli->resultTupleType );
+            Tuple *resultTuple = new Tuple( pli->resultTupleType );
             Concat( rightTuple, pli->currTuple, resultTuple );
             rightTuple->DeleteIfAllowed();
             rightTuple = 0;
@@ -5985,8 +5982,6 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   return 0;
 }
-
-
 
 
 /*
