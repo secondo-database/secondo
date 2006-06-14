@@ -1094,10 +1094,8 @@ implementation (regarding integration into the optimizer and switching between o
 */ 
 
 checkCalcTime(Head):-
-	get_time(Time1),
-	call(Head),
-	get_time(Time2),
-	Time3 is 1000*(Time2-Time1),
+	getTime(Hear, Time2),
+	Time3 is 1000*Time2,
 	write('Time needed for calculating the overall result: '), 
 	write(Time3), nl.
 

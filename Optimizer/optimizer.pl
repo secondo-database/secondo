@@ -2201,12 +2201,10 @@ Assign tuple sizes to a node. Tuple sizes are saved as facts of the form
 */
 
 :- dynamic nodeTupleSize/2.
+:- dynamic storedPredNoPET/3.
 
 setNodeTupleSize(Node, TupleSize) :- 
-  nodeTupleSize(Node, _),
-  retract(nodeTupleSize(Node, _, _)),
-  assertt(nodeTupleSize(Node, TupleSize)),
-				!.
+  nodeTupleSize(Node, _), !.
 
 setNodeTupleSize(Node, TupleSize) :-
   assert(nodeTupleSize(Node, TupleSize)).
@@ -2241,7 +2239,7 @@ setPredNoPET(Source, Target, CalcPET, ExpPET) :-
   setPredNoPET(Index, CalcPET, ExpPET), !.
 
 setPredNoPET(Index, CalcPET, ExpPET) :-
-  storedPredNoPET(Index, CalcPET, ExpPET), !.
+  storedPredNoPET(Index, _, _), !.
 
 setPredNoPET(Index, CalcPET, ExpPET) :-
   assert(storedPredNoPET(Index, CalcPET, ExpPET)), !.
@@ -2298,14 +2296,7 @@ Delete node sizes and selectivities of edges.
 deleteSizes :- 
   retractall(resultSize(_, _)),
   retractall(edgeSelectivity(_, _, _)),
-  retractall(nodeTupleSize(_, _)),
-  retractall(storedWindowIntersectsS(_)),
-  ( optimizerOption(nawracosts) 
-    -> ( retractall(storedExtendSTermCost(_, _)),
-         retractall(storedExtendAttrSize(_, _))
-       )
-    ;  true
-  ).
+  retractall(nodeTupleSize(_, _)).
 
 deleteSizesNawra :-
   retractall(storedPredNoPET(_, _, _)).
@@ -2642,7 +2633,11 @@ createCostEdge :- % use standard cost functions
 
 createCostEdges :- not(createCostEdge).
 
-deleteCostEdges :- retractall(costEdge(_, _, _, _, _, _)).
+deleteCostEdges :- 
+  retractall(costEdge(_, _, _, _, _, _)),
+  retractall(storedExtendSTermCost(_, _)),
+  retractall(storedExtendAttrSize(_, _)),
+  retractall(storedWindowIntersectsS(_)).
 
 costEdgeInfo(Edge) :-
   Edge = costEdge(Source, Target, Plan, Result, Size, Cost),
