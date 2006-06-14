@@ -160,6 +160,7 @@ show([Type, Value]) :-
   display(Type, Value).
 
 show(Y) :-
+  write(Y), 
   pretty_print(Y),
   nl.
 
@@ -820,11 +821,11 @@ notIsDatabaseOpen :-
   storedDatabaseOpen(Status),
   Status = 0.
 
-query(Query) :-
+query(Query, Time) :-
   isDatabaseOpen,
   atom(Query),
   atom_concat('query ', Query, QueryText), !,
-  secondo(QueryText).
+  getTime( secondo(QueryText), Time).
 
 let(Query) :-
   isDatabaseOpen,
@@ -889,4 +890,86 @@ restore(Query) :-
   op(800, fx, derive),
   op(800, fx, update),
   op(800, fx, restore).
+ 
+
+/*
+2.1 Generic display for printing formatted tables 
+
+Sometimes we want to collect some information and to print it 
+as a table, e.g. predicate ~writeSizes/0~. Below there are some
+predicates which display lists of well defined tuples as specified
+by a header list. If the data is presented in a prolog list
+as [t1, t2, ... tn] and ti are itself prolog lists of fixed length
+each value will be printed in a separate column. Example application:
+
+----
+    findall(X, createMyTuples(_, X), L ),
+    TupFormat = [ ['Size', 'c'], 
+                  ['Time', 'l'], 
+                  ['Error', 'l'] ],
+    showTuples(L, TupFormat). 
+----
+
+*/
+ 
+showTuples(L, TupFormat) :-
+  nl, nl, 
+  showHeader(TupFormat, WriteSpec),  
+  showTuplesRec(L, WriteSpec).
+ 
+showTuplesRec([], _).
+
+showTuplesRec([H|T], WriteSpec) :-
+  showTupleRec(H, WriteSpec), nl,
+  showTuplesRec(T, WriteSpec).
+
+showTupleRec([], _).
+
+showTupleRec([H|T], [Wh|Wt]) :- 
+  writef(Wh, [H]),
+  showTupleRec(T, Wt).
+
+showHeader(L, WriteSpec) :-
+  showHeaderRec(L, [], HeadList, [], WriteSpec, 0, Len),
+  showTuplesRec([HeadList], WriteSpec),
+  writef('%r', ['-', Len]), nl.
+ 
+showHeaderRec([], L1, L1, L2, L2, N, N).
+ 
+showHeaderRec([H|T], Tmp1, Res1, Tmp2, Res2, Tmp3, Res3 ) :-
+  H = [Attr, Adjust],
+  atom_length(Attr, Len),
+  FieldLen is Len + 4,
+  TotalLen is Tmp3 + FieldLen,
+  concat_atom(['%', FieldLen, Adjust], WriteSpec),
+  append(Tmp1, [Attr], L1),
+  append(Tmp2, [WriteSpec], L2),
+  showHeaderRec(T, L1, Res1, L2, Res2, TotalLen, Res3 ).
+
+/*
+2.2 The built in predicate ~portray~
+
+Pretty printing of user defined operators. The built in dynamic predicate
+~portray/1~ is used by the ~print~ predicate. It can be used to define how
+Terms should be typed. We use this to add spaces for prefix infix and postfix
+operators.
+
+*/
+ 
+portray(Term) :-
+  Term =.. [F | [Arg1, Arg2] ],
+  current_op(_, xfx, F),
+  print(Arg1), write(' '), write(F), write(' '), print(Arg2).
   
+portray(Term) :-
+  Term =.. [F | Arg1],
+  current_op(_, fx, Term),
+  write(F), write(' '), print(Arg1).
+
+portray(Term) :-
+  Term =.. [F | Arg1],
+  current_op(_, xf, Term),
+  print(Arg1), write(' '), write(F).
+
+portray(Term) :-
+  write(Term).
