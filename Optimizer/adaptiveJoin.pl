@@ -64,7 +64,7 @@ and '..' respectively.
 try_pjoin1SR(N, X, Y, Rel, Fields) :-
   isOfSecond(AttrRel, X, Y),
   isNotOfSecond(AttrStream, X, Y),
-  createpjoin1(AttrStream, N, AttrRel, Rel, Fields), !.
+  createpjoin1(AttrStream, N, AttrRel, Rel, Fields).
 
 
 try_pjoin1RS(N, X, Y, Rel, Fields) :-
@@ -78,12 +78,12 @@ try_pjoin1RS(N, X, Y, Rel, Fields) :-
 
 
 createpjoin1(AttrStream, N, AttrRel, Rel, [F1, F2, F3, F4]) :-   
-  %write('AttrStream: '), writeln(AttrStream),
-  %write('AttrRel: '), writeln(AttrRel),
+  write('AttrStream: '), writeln(AttrStream),
+  write('AttrRel: '), writeln(AttrRel),
   argument(N, Rel),
   Rel = rel(_, Var, _),
   hasIndex(Rel, AttrRel, IndexName, btree),
-  %writeln('pjoin1-hasindex'),
+  writeln('pjoin1-hasindex'),
   RelArg = rename(feed(implicitArg(2)), Var),
   F1 = field(attr(symj, _, l), symmjoin(implicitArg(1), RelArg, AttrStream =
   AttrRel)),
@@ -183,8 +183,13 @@ are presented below:
       ]  
       pdelete  count
      
-    (5) bug: sql select s:sname from[plz as p, staedte as s ]where p:plz=37263
-      
+   (5) bug: sql select s:sname from[plz as p, staedte as s ]where p:plz=37263
+   
+    (6) Better than standard optimizer:
+       
+       sql select count(*) from [plz as p1, plz as p2, plz as p3] 
+           where [p1:plz > 50000, p2:plz < 50200, p1:plz = p2:plz, p1:plz = p3:plz].
+     
 ----
 
 Obviously the main problems of the plan reorganization are
