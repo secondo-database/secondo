@@ -95,44 +95,6 @@ createNodeSize(Node, SizeStd, SizeEntropy, SizeReal) :-
   resultSize(Node, SizeEntropy),
   realResult(Node, SizeReal).
 
-/*
-2.2 Generic display for printing relations as formatted tables 
-
-*/
- 
-showTuples(L, TupFormat) :-
-  nl, nl, 
-  showHeader(TupFormat, WriteSpec),  
-  showTuplesRec(L, WriteSpec).
- 
-showTuplesRec([], _).
-
-showTuplesRec([H|T], WriteSpec) :-
-  showTupleRec(H, WriteSpec), nl,
-  showTuplesRec(T, WriteSpec).
-
-showTupleRec([], _).
-
-showTupleRec([H|T], [Wh|Wt]) :- 
-  writef(Wh, [H]),
-  showTupleRec(T, Wt).
-
-showHeader(L, WriteSpec) :-
-  showHeaderRec(L, [], HeadList, [], WriteSpec, 0, Len),
-  showTuplesRec([HeadList], WriteSpec),
-  writef('%r', ['-', Len]), nl.
- 
-showHeaderRec([], L1, L1, L2, L2, N, N).
- 
-showHeaderRec([H|T], Tmp1, Res1, Tmp2, Res2, Tmp3, Res3 ) :-
-  H = [Attr, Adjust],
-  atom_length(Attr, Len),
-  FieldLen is Len + 4,
-  TotalLen is Tmp3 + FieldLen,
-  concat_atom(['%', FieldLen, Adjust], WriteSpec),
-  append(Tmp1, [Attr], L1),
-  append(Tmp2, [WriteSpec], L2),
-  showHeaderRec(T, L1, Res1, L2, Res2, TotalLen, Res3 ).
 
 /*
 2.3 User Interface for displaying Estimation Values 
@@ -261,7 +223,7 @@ nodeSizeRelObj('NodeSizes', Schema, Values) :-
                ['SizeEntropy', 'real'], 
                ['SizeReal', 'real']     ],        
   makeRelType2(AttrList, Schema), !,
-  nCounter(qid, Qid),
+  getCounter(qid, Qid),
   findall([Qid, N, S1, S2, S3], createNodeSize(N, S1, S2, S3), InfoList), !,
   convertList(InfoList, '', Values).
   
@@ -272,14 +234,17 @@ queryRelObj('Queries', Schema, Values) :-
                ['JoinPreds', 'int'], 
                ['SelPreds', 'int']  ],        
   makeRelType2(AttrList, Schema), !,
-  nCounter(qid, Qid),
-  queryText(Qid, Query),
+  getCounter(qid, Qid),
+  queryText(Qid, Query, _, _, _, _),
   quoteText(Query, Query2), 
   atom(Query2),
-  nCounter(joinPred, Joins),
-  nCounter(selectionPred, Sels),
+  writeln(Query2),
+  getCounter(joinPred, Joins),
+  writeln(Joins),
+  getCounter(selectionPred, Sels),
   L = [[Qid, Query2, Joins, Sels]],
   convertList(L, '', Values).
+
 
 /*
 Some clauses for testing and debugging
@@ -682,7 +647,7 @@ translateEntropy(Stream1, Stream2, Cost1, Cost2) :-
   write('Executing the query in the small database...'),
   
   deleteEntropyNodes, !,
-  query(SmallQuery), !, nl,
+  query(SmallQuery, _), !, nl,
   
   write('First Plan:'), nl, 
   write( FirstQuery ), nl, nl,

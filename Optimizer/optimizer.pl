@@ -283,6 +283,13 @@ nextCounter(Name, Result) :-
 nextCounter(Name, 1) :-
   assert(nCounter(Name, 1)).
 
+
+getCounter(Name, Value) :-
+  nCounter(Name, Value), !.
+
+getCounter(Name, 0) :-
+  resetCounter(Name, 0).
+ 
 resetCounter(Name) :-
   retractall(nCounter(Name, _)).
 
