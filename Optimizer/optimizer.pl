@@ -2256,34 +2256,32 @@ getPredNoPET(Index, _, _) :-
   fail, !.
 
 /*
-----    writeSizes :-
+----    writeSizes/0
+        writeNodeSizes/0
+        writeEdgeSels/0
 ----
 
 Clauses for writing sizes and selectivities for nodes and edges.
 
 */
 
-writeNodeInfo(Node, Size) :-
-  write('Node: '), write(Node), nl,
-  write('Size: '), write(Size), nl,
-  nl.
+writeSizes :-
+  writeNodeSizes,
+  writeEdgeSels.
 
-writeEdgeInfo(Source, Target, Sel) :-
-  write('Source: '), write(Source), nl,
-  write('Target: '), write(Target), nl,
-  write('Selectivity: '), write(Sel), nl, nl.
+writeNodeSizes :-
+  findall([Node, Size], resultSize(Node, Size), L),
+  Format = [ [node, 'c'], 
+             [size, 'l'] ], 
+  showTuples(L, Format). 
 
-writeSize :-
-  resultSize(Node, Size),
-  writeNodeInfo(Node, Size),
-  fail.
- 
-writeSize :-
-  edgeSelectivity(Source, Target, Sel),
-  writeEdgeInfo(Source, Target, Sel),
-  fail.
- 
-writeSizes :- not(writeSize).
+writeEdgeSels :-
+  findall([Source, Target, Sel], edgeSelectivity(Source, Target, Sel), L),
+  Format = [ [source, 'c'], 
+             [target, 'c'],
+             [selectivity, 'l'] ], 
+  showTuples(L, Format). 
+
 
 /*
 ----    deleteSizes :-
@@ -2541,15 +2539,20 @@ costs for pjoin1 and pjoin2. Will only be used if option
 
 */
 
-cost(pjoin2(_, _, [ _ | _ ]), Sel, Sel, C) :-
+cost(pjoin2(X, Y, [ _ | _ ]), Sel, Size, C) :-
+  cost(X, 1, SizeX, _),
+  cost(Y, 1, SizeY, _),
+  Size is Sel * SizeX * SizeY,
   %cost(sortmergejoin(X, Y, _, _), Sel, S1, C1),
-  %cost(hashjoin(X, Y, _, _, 997), Sel, _, C2),
-  %S is S1,
+  %cost(hashjoin(X, Y, _, _, 997), Sel, S1, _),
   %C is min(C1, C2) - 1.
-  C is 1.
+  C is 10.0.
 
-cost(pjoin1(_, _, [ _ | _ ]), Sel, Sel, C) :-
-  C is 0.
+cost(pjoin1(X, Y, [ _ | _ ]), Sel, Size, C) :-
+  cost(X, 1, SizeX, _),
+  cost(Y, 1, SizeY, _),
+  Size is Sel * SizeX * SizeY,
+  C is 10.0.
 
 cost(extend(X, _), Sel, S, C) :-
   cost(X, Sel, S, C1),
@@ -4440,34 +4443,34 @@ defaultExceptionHandler(G) :-
      queryText/2.
 
 history :-
-  findall([Nr, X], queryText(Nr, X), R),
-  showHistory(R).
-
-showHistory([]).
- 
-showHistory([H|T]) :-
-  H = [Nr, Text],
-  write(Nr), write(': '), write(Text), nl,
-  showHistory(T).
+  findall([Nr, Sql, Plan, Costs, T1, T2], queryText(Nr, Sql, Plan, Costs, T1, T2), Tuples),
+  RelType = [rel, [tuple, [['QueryId', 'int'], 
+                           ['SqlText', 'text'], 
+                           ['BestPlan', 'text'],
+                           ['Costs', 'real'], 
+                           ['PlanBuild', 'int'],
+                           ['PlanExec', 'int']] ]],
+  display(RelType, Tuples).
 
 deleteHistory :-
-  retractall(queryText(_,_)).
+ retractall(queryText(_, _, _, _, _)).
 
-registerQuery(Term) :-
+registerQuery(Term, Query, Cost, PlanBuild, PlanExec) :-
   nextCounter(qid, Qid),
   resetCounter(joinPred),
   resetCounter(selectionPred),
-  term_to_atom(Term, QueryText),
-  assert( queryText(Qid, QueryText) ).
+  swritef(S, '%t', [Term]),
+  string_to_atom(S, Sql),
+  assert( queryText(Qid, Sql, Query, Cost, PlanBuild, PlanExec) ).
 
 % Default handling
 sql Term :- defaultExceptionHandler((
   isDatabaseOpen,
-  registerQuery(Term),
-  mOptimize(Term, Query, Cost),
+  getTime( mOptimize(Term, Query, Cost), PlanBuild ),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
-  query(Query)
+  query(Query, PlanExec),
+  registerQuery(Term, Query, Cost, PlanBuild, PlanExec)
  )).
 
 sql(Term, SecondoQueryRest) :- defaultExceptionHandler((
@@ -4476,7 +4479,7 @@ sql(Term, SecondoQueryRest) :- defaultExceptionHandler((
   concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
-  query(Query)
+  query(Query, _)
  )).
 
 
@@ -4572,14 +4575,14 @@ bestPlanCount :-
   plan_to_atom(P, S),
   atom_concat(S, ' count', Q),
   nl, write(Q), nl,
-  query(Q).
+  query(Q, _).
 
 bestPlanConsume :-
   bestPlan(P, _),
   plan_to_atom(P, S),
   atom_concat(S, ' consume', Q),
   nl, write(Q), nl,
-  query(Q).
+  query(Q, _).
 
 /*
 14 Query Rewriting
