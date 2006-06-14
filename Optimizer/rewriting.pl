@@ -1473,8 +1473,8 @@ insertExtend(PlanIn, PlanOut, AttrsIn, AttrsOut) :-
     -> ( PlanTmp =.. [symmjoin, ArgS1R, ArgS2R, PredE],
          extendPhrase(PlanTmp, ExtResult, PlanOut)
        )
-    ;  ( PlanTmp =.. [symmjoin, ArgS1R, ArgS2R, true],
-% should be PlanTmp =.. [symmproduct, ArgS1R, ArgS2R], but that seems to have an error
+    ;  ( % PlanTmp =.. [symmjoin, ArgS1R, ArgS2R, true],
+         PlanTmp =.. [symmproduct, ArgS1R, ArgS2R],
          extendPhrase(PlanTmp, ExtResult, PlanTmp2),
          modifyPredicate(Pred, PredE2, AttrsOut, [], _, _, _),
          PlanOut =.. [filter, PlanTmp2, PredE2]
@@ -2107,9 +2107,9 @@ Comment out this complete section for standard behavior.
 
 % predicates for testing CSE substitution:
 
-xristest :- delOption(rewriteCSE), 
-            setOption(rewriteRemove), 
-            open 'database opt'. % XRIS: testing only!
+testCSEopt :- delOption(rewriteCSE), 
+              setOption(rewriteRemove), 
+              open 'database opt'. % XRIS: testing only!
 
 :- [autotest].          % XRIS: testing only!
 
@@ -2179,6 +2179,21 @@ where  [t1:line = 1,
        ] 
 first 1.
 
+testCSE2berlin :-
+sql 
+select count(*) 
+from [trains as t1, 
+      trains as t2
+     ] 
+where [t1:trip passes mehringdamm, 
+       t2:trip passes mehringdamm, 
+       (  ( inst(final(t2:trip at mehringdamm)) 
+            - inst(initial(t1:trip at mehringdamm))) / oneminute) < 10,
+       (  (   inst(final(t2:trip at mehringdamm)) 
+            - inst(initial(t1:trip at mehringdamm))) / oneminute) >= 2, 
+       t1:line # t2:line
+      ].
+
 :- secondo('close database'),
    open 'database berlin',
    delOption(entropy),
@@ -2186,7 +2201,8 @@ first 1.
    debugLevel(rewriteCSE),
    debugLevel(rewritePlan),
    debugLevel(rewrite),
-   testCSEberlin.
+   testCSEberlin,
+   testCSE2berlin.
 
 ----
 
