@@ -2203,7 +2203,7 @@ Assign tuple sizes to a node. Tuple sizes are saved as facts of the form
 :- dynamic nodeTupleSize/2.
 :- dynamic storedPredNoPET/3.
 
-setNodeTupleSize(Node, TupleSize) :- 
+setNodeTupleSize(Node, _) :- 
   nodeTupleSize(Node, _), !.
 
 setNodeTupleSize(Node, TupleSize) :-
@@ -2238,7 +2238,7 @@ setPredNoPET(Source, Target, CalcPET, ExpPET) :-
   Index is Target - Source,
   setPredNoPET(Index, CalcPET, ExpPET), !.
 
-setPredNoPET(Index, CalcPET, ExpPET) :-
+setPredNoPET(Index, _, _) :-
   storedPredNoPET(Index, _, _), !.
 
 setPredNoPET(Index, CalcPET, ExpPET) :-
