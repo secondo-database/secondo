@@ -1473,7 +1473,8 @@ insertExtend(PlanIn, PlanOut, AttrsIn, AttrsOut) :-
     -> ( PlanTmp =.. [symmjoin, ArgS1R, ArgS2R, PredE],
          extendPhrase(PlanTmp, ExtResult, PlanOut)
        )
-    ;  ( PlanTmp =.. [symmproduct, ArgS1R, ArgS2R],
+    ;  ( PlanTmp =.. [symmjoin, ArgS1R, ArgS2R, true],
+% should be PlanTmp =.. [symmproduct, ArgS1R, ArgS2R], but that seems to have an error
          extendPhrase(PlanTmp, ExtResult, PlanTmp2),
          modifyPredicate(Pred, PredE2, AttrsOut, [], _, _, _),
          PlanOut =.. [filter, PlanTmp2, PredE2]

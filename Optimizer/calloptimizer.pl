@@ -39,7 +39,6 @@ The optimizer is started by loading this file.
 
 % C. Duentgen, Feb/2006: The solution used deprecated predicates, which now
 % have been replaced by newer ones for more recent polog versions.                          
-
 getprompt :-
   current_prolog_flag(version,Version),
   ( Version >=50407 
@@ -96,12 +95,18 @@ should be called, is it is deactivated, ~GoalOff~ is called.
 */
 
 optimizerOptionInfo(standard, none,
-                    '\tTurn off all extensions and use the standard optimizer.',
+                    '\tTurn off all options. Use standard optimizer.',
                     delAllOptions,
                     true
                    ).
 
-optimizerOptionInfo( adaptiveJoin, none,   
+optimizerOptionInfo(nawracosts, none,
+                    '\tUse cost functions as implemented by A. Nawra.',
+                    true,
+                    true 
+                   ).
+
+optimizerOptionInfo(adaptiveJoin, none,   
                      '\tAllow usage of adaptive join operators.',
                      ( delOption(entropy), 
                        delOption(intOrders(on)),
@@ -302,7 +307,11 @@ setOption(X) :-
   assert(optimizerOption(X)), 
   call(GoalOn),
   write('Switched on option: \''), write(X), write('\' - '), 
-  write(Text), write('\n'), !.
+  write(Text), write('\n'), 
+  ( X \= standard 
+    -> retractall(optimizerOption(standard))
+    ; true
+  ), !.
 
 setOption(X) :-
   write('Unknown option \''), write(X), write('\'.\n'), fail, !.
@@ -317,6 +326,10 @@ delOption(X) :-
          write(Text), write('\n')
        )
     ;  true
+  ), 
+  ( not(optimizerOption(_))
+    -> assert(optimizerOption(standard))
+    ; true
   ), !.
 
 delOneOption(X) :-
@@ -572,6 +585,7 @@ quit :- halt. % aliasing 'halt/0' in conformity to the Secondo system
 /*
 Testing in database opt
 ----
+
 :- [autotest], open 'database opt'.
 
 tt :- runExamples, showOptions.
@@ -583,6 +597,7 @@ s1 :- setOption(intOrders(quick)), tt, q1.
 s2 :- setOption(intOrders(on)), q1.
 s3 :- setOption(intOrders(path)), q1.
 s4 :- setOption(intOrders(test)), q1.
+
 ----
 
 */

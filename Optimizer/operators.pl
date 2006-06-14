@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [File ~operators.pl~]
 
+1.1 Constants for Certain Operators
+
 The constants for the operators have been determined by experiments. For
 those experiments, time measurement code was added to some relational operators 
 (hashjoin, product, and sortmergejoin). This permitted determining how much
@@ -54,6 +56,15 @@ projectTC(0.71).
 renameTC(0.1).
 windowintersectsTC(0.1).
 spatialjoinTC(10.0, 0.7).
+
+/*
+1.2 General Constants
+
+A fact with the value of the buffer size in bytes. This is the amount of mainmemory, operators are allowed to use to keep their internal data (e.g. hashtables, tuple buffers etc.).
+
+*/
+
+bufferSize(16384000).
 
 
 /*

@@ -2101,7 +2101,7 @@ selectivities as facts of the form edgeSelectivity(Source, Target, Sel).
 
 Delete sizes from memory.
 
-7.1 Assigning Sizes, Selectivities and Predicate Costs
+7.1 Assigning Sizes, Tuple Sizes, Selectivities and Predicate Costs
 
 It is important that edges are processed in the order in which they have been
 created. This will ensure that for an edge the size of its argument nodes are
@@ -2116,7 +2116,40 @@ assignSizes1 :-
   assignSize(Source, Target, Term, Result),
   fail.
 
+
+% Versions for A. Nawra's cost functions:
+
 assignSize(Source, Target, select(Arg, Pred), Result) :-
+  optimizerOption(nawracosts),
+  resSize(Arg, Card),
+  resTupleSize(Arg, TupleSize),
+  selectivity(Pred, Sel, CalcPET, ExpPET),
+  Size is Card * Sel,
+  setNodeSize(Result, Size),
+  setNodeTupleSize(Result, TupleSize),
+  setPredNoPET(Source, Target, CalcPET, ExpPET),
+  assert(edgeSelectivity(Source, Target, Sel)),
+  !.
+
+assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
+  optimizerOption(nawracosts),
+  resSize(Arg1, Card1),
+  resSize(Arg2, Card2),
+  resTupleSize(Arg1, TupleSize1),
+  resTupleSize(Arg2, TupleSize2),
+  selectivity(Pred, Sel, CalcPET, ExpPET),
+  Size is Card1 * Card2 * Sel,
+  addSizeTerms([TupleSize1,TupleSize2],TupleSize),
+  setNodeSize(Result, Size),
+  setNodeTupleSize(Result, TupleSize),
+  setPredNoPET(Source, Target, CalcPET, ExpPET),
+  assert(edgeSelectivity(Source, Target, Sel)),
+  !.
+
+% Versions for standard cost functions:
+
+assignSize(Source, Target, select(Arg, Pred), Result) :-
+  not(optimizerOption(nawracosts)),
   resSize(Arg, Card),
   selectivity(Pred, Sel),
   Size is Card * Sel,
@@ -2124,8 +2157,8 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   assert(edgeSelectivity(Source, Target, Sel)),
   !.
   
-
 assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
+  not(optimizerOption(nawracosts)),
   resSize(Arg1, Card1),
   resSize(Arg2, Card2),
   selectivity(Pred, Sel),
@@ -2155,9 +2188,74 @@ Argument ~Arg~ has size ~Size~.
 */
 
 resSize(arg(N), Size) :- argument(N, rel(Rel, _, _)), card(Rel, Size), !.
-resSize(arg(N), _) :- write('Error in optimizer: cannot find cardinality for '),
+resSize(arg(N), _) :- 
+  write('Error in optimizer: cannot find cardinality for '),
   argument(N, Rel), wp(Rel), nl, fail.
 resSize(res(N), Size) :- resultSize(N, Size), !.
+
+
+/*
+Assign tuple sizes to a node. Tuple sizes are saved as facts of the form 
+~nodeTupleSize(Node, sizeTerm(Core, InFlob, ExtFlob))~.
+
+*/
+
+:- dynamic nodeTupleSize/2.
+
+setNodeTupleSize(Node, TupleSize) :- 
+  nodeTupleSize(Node, _),
+  retract(nodeTupleSize(Node, _, _)),
+  assertt(nodeTupleSize(Node, TupleSize)),
+				!.
+
+setNodeTupleSize(Node, TupleSize) :-
+  assert(nodeTupleSize(Node, TupleSize)).
+
+/*
+Get the size of one single tuple from argument number ~N~.
+
+*/
+
+resTupleSize(arg(N), TupleSize) :-
+ argument(N, rel(Rel, _, _)),
+ tupleSizeSplit(Rel, TupleSize), % should also reflect initial projections
+ !.
+
+resTupleSize(res(N), TupleSize) :-
+  nodeTupleSize(N, TupleSize), !.
+
+resTupleSize(X, _) :-
+  write('ERROR in optimizer: cannot find tuplesize for \''),
+  write(X), write('\'.\n'),
+  throw(error_SQL(optimizer_resTupleSize(X, undefined))),
+  fail, !.
+
+
+/*
+Save and query Predicate Evalation Times (PETs) indexed by predicate number or by Source and Target node numbers.
+
+*/
+
+setPredNoPET(Source, Target, CalcPET, ExpPET) :-
+  Index is Target - Source,
+  setPredNoPET(Index, CalcPET, ExpPET), !.
+
+setPredNoPET(Index, CalcPET, ExpPET) :-
+  storedPredNoPET(Index, CalcPET, ExpPET), !.
+
+setPredNoPET(Index, CalcPET, ExpPET) :-
+  assert(storedPredNoPET(Index, CalcPET, ExpPET)), !.
+  
+getPredNoPET(Source, Target, CalcPET, ExpPET) :-
+  Index is Target - Source,
+  getPredNoPET(Index, CalcPET, ExpPET), !.
+
+getPredNoPET(Index, CalcPET, ExpPET) :-
+  storedPredNoPET(Index, CalcPET, ExpPET), !.
+
+getPredNoPET(Index, _, _) :-
+  throw(error_SQL(optimizer_getPredNoPET(Index, undefined, undefined))),
+  fail, !.
 
 /*
 ----    writeSizes :-
@@ -2169,7 +2267,8 @@ Clauses for writing sizes and selectivities for nodes and edges.
 
 writeNodeInfo(Node, Size) :-
   write('Node: '), write(Node), nl,
-  write('Size: '), write(Size), nl, nl.
+  write('Size: '), write(Size), nl,
+  nl.
 
 writeEdgeInfo(Source, Target, Sel) :-
   write('Source: '), write(Source), nl,
@@ -2198,7 +2297,18 @@ Delete node sizes and selectivities of edges.
 
 deleteSizes :- 
   retractall(resultSize(_, _)),
-  retractall(edgeSelectivity(_, _, _)).
+  retractall(edgeSelectivity(_, _, _)),
+  retractall(nodeTupleSize(_, _)),
+  retractall(storedWindowIntersectsS(_)),
+  ( optimizerOption(nawracosts) 
+    -> ( retractall(storedExtendSTermCost(_, _)),
+         retractall(storedExtendAttrSize(_, _))
+       )
+    ;  true
+  ).
+
+deleteSizesNawra :-
+  retractall(storedPredNoPET(_, _, _)).
 
 
 /*
@@ -2513,7 +2623,17 @@ These are plan edges extended by a cost measure.
 
 */
 
-createCostEdge :-
+
+createCostEdge :- % use Nawra's cost functions
+  optimizerOption(nawracosts),
+  planEdge(Source, Target, Term, Result),
+  edgeSelectivity(Source, Target, Sel),
+  costterm(Term, Sel, Source, Target, Size, Cost),
+  assert(costEdge(Source, Target, Term, Result, Size, Cost)),
+  fail.
+
+createCostEdge :- % use standard cost functions
+  not(optimizerOption(nawracosts)),
   planEdge(Source, Target, Term, Result),
   edgeSelectivity(Source, Target, Sel),
   cost(Term, Sel, Size, Cost),
@@ -2562,6 +2682,7 @@ bestPlan~ will unify a best plan according to the assigned costs.
  
 assignCosts :-
   deleteSizes,
+  (optimizerOption(nawracosts) -> deleteSizesNawra; true),
   deleteCostEdges,
   assignSizes, 
   createCostEdges.
@@ -3616,7 +3737,7 @@ translate1(Query, Stream3, Select2, Cost2) :-
   retractall(removeHiddenAttributes),
   translate(Query, Stream1, Select, Cost1), 
   translateEntropy(Stream1, Stream2, Cost1, Cost2), 
-% Hook for CSE substitution
+% Hook for CSE substitution:
   rewritePlanforCSE(Stream2, Stream3, Select, Select2), 
   !.
 
@@ -4536,4 +4657,9 @@ allCards :-
   computeCards,
   writeRealSizes.
  
+/*
+17 Loading extensions for Nawra Cost Functions
+
+*/
   
+:- [nawra].

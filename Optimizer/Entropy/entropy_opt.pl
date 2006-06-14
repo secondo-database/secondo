@@ -493,7 +493,7 @@ createSmallSelectivity2 :-
 
 prepare\_query\_small prepares the query to be executed in the small database.
 Assumes that the small database has the same indexes that are in the full database,
-but with the sufix '\_small'
+but with the suffix '\_small'
 
 */
  
@@ -703,6 +703,7 @@ translateEntropy(Stream1, Stream2, Cost1, Cost2) :-
   !.
 
 translateEntropy(Stream1, Stream1, Cost1, Cost1) :-
+  % Just clean up stored data and return the first plan with its estimated cost:
   deleteCounters,
   retract(buildingSmallPlan),
   retractall(selfJoin(_, _, _)),

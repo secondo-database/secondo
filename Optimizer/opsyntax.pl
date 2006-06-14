@@ -93,6 +93,9 @@ For all other forms, a plan\_to\_atom rule has to be programmed explicitly.
 
 secondoOp(distance, prefix, 2).
 secondoOp(intersection_new, prefix, 2).
+secondoOp(intersection, prefix, 2).
+secondoOp(theperiod, prefix, 2).
+
 secondoOp(union_new, prefix, 2).
 secondoOp(minus_new, prefix, 2).
 secondoOp(feed, postfix, 1).
@@ -116,6 +119,8 @@ secondoOp(min, postfixbrackets, 2).
 secondoOp(max, postfixbrackets, 2).
 secondoOp(avg, postfixbrackets, 2).
 secondoOp(tuplesize, postfix, 1).
+secondoOp(exttuplesize, postfix, 1).
+secondoOp(attrsize, postfixbrackets, 2).
 secondoOp(head, postfixbrackets, 2).
 secondoOp(windowintersects, postfixbrackets, 3).
 secondoOp(windowintersectsS, postfixbrackets, 2).
