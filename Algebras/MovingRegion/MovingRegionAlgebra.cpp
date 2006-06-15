@@ -3551,9 +3551,20 @@ URegionEmb::URegionEmb(
     segmentsNum(0),
     timeInterval(tiv) {
 
-    if (1==1)
+    if (MRA_DEBUG)
         cerr << "URegionEmb::URegionEmb() #4 called" << endl;
     
+/*
+The following code adds each segment of the region as constant moving segment
+to the region unit. Since region units do not use half segments, only one 
+half segment of each segment is considered. Each considered half segment may
+need to be reversed before it is added to the region unit so that clockwise
+or counter-clockwise order is maintained within the region unit.
+
+*/
+
+    int cycleStart = 0;
+
     for (int i = 0; i < region.Size(); i += 2) {
         const CHalfSegment *thisChs;
         region.Get(i, thisChs);
@@ -3561,15 +3572,23 @@ URegionEmb::URegionEmb(
         const CHalfSegment *nextChs;
         region.Get(i+2 == region.Size() ? 0 : i+2, nextChs);
 
-        if (1==1) {
+        if (thisChs->GetAttr().cycleno != nextChs->GetAttr().cycleno) {
+            region.Get(cycleStart, nextChs);
+            cycleStart = i+2;
+        }
+
+        if (MRA_DEBUG) {
             cerr << "URegionEmb::URegionEmb() i=" << i << endl; 
+            cerr << "URegionEmb::URegionEmb() cycleStart=" 
+                 << cycleStart 
+                 << endl; 
             cerr << "URegionEmb::URegionEmb() thisChs=" << *thisChs << endl;
             cerr << "URegionEmb::URegionEmb() nextChs=" << *nextChs << endl;
         }
 
         if (thisChs->GetRP() == nextChs->GetLP()
             || thisChs->GetRP() == nextChs->GetRP()) {
-            if (1==1) 
+            if (MRA_DEBUG) 
                 cerr << "URegionEmb::URegionEmb() not swapping" << endl; 
 
             MSegmentData dms(thisChs->GetAttr().faceno,
@@ -3588,14 +3607,14 @@ URegionEmb::URegionEmb(
             dms.SetDegeneratedInitial(DGM_NONE);
             dms.SetDegeneratedFinal(DGM_NONE);
 
-            if (1==1)
+            if (MRA_DEBUG)
                 cerr << "URegionEmb::URegionEmb() adding " 
                      << dms.ToString() 
                      << endl;
 
             segments->Put(segmentsStartPos+segmentsNum, dms);
         } else {
-            if (1==1) 
+            if (MRA_DEBUG) 
                 cerr << "URegionEmb::URegionEmb() swapping" << endl; 
 
             MSegmentData dms(thisChs->GetAttr().faceno,
@@ -3614,7 +3633,7 @@ URegionEmb::URegionEmb(
             dms.SetDegeneratedInitial(DGM_NONE);
             dms.SetDegeneratedFinal(DGM_NONE);
             
-            if (1==1)
+            if (MRA_DEBUG)
                 cerr << "URegionEmb::URegionEmb() adding " 
                      << dms.ToString() 
                      << endl;
