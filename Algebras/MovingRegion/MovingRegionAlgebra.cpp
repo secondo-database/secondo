@@ -2569,7 +2569,7 @@ string MSegmentData::ToString(void) const {
         << ", " << initialStartY
         << ")-(" << initialEndX
         << ", " << initialEndY
-        << " final: p/d/dn=" << pointFinal
+        << ") final: p/d/dn=" << pointFinal
         << "/" << degeneratedFinal 
         << "/" << degeneratedFinalNext
         << " (" << finalStartX
@@ -3551,41 +3551,26 @@ URegionEmb::URegionEmb(
     segmentsNum(0),
     timeInterval(tiv) {
 
-    if (MRA_DEBUG)
+    if (1==1)
         cerr << "URegionEmb::URegionEmb() #4 called" << endl;
     
-    const CHalfSegment* prevChs = 0;
-
     for (int i = 0; i < region.Size(); i += 2) {
         const CHalfSegment *thisChs;
         region.Get(i, thisChs);
-        
-        segments->Resize(segmentsStartPos+segmentsNum+1);
 
-        if (prevChs && prevChs->GetRP() != thisChs->GetLP()) {
-            if (MRA_DEBUG)
-                cerr << "URegionEmb::URegionEmb() swapping" << endl;
+        const CHalfSegment *nextChs;
+        region.Get(i+2 == region.Size() ? 0 : i+2, nextChs);
 
-            MSegmentData dms(thisChs->GetAttr().faceno,
-                             thisChs->GetAttr().cycleno,
-                             thisChs->GetAttr().edgeno,
-                             thisChs->GetAttr().insideAbove,
-                             thisChs->GetRP().GetX(),
-                             thisChs->GetRP().GetY(),
-                             thisChs->GetLP().GetX(),
-                             thisChs->GetLP().GetY(),
-                             thisChs->GetRP().GetX(),
-                             thisChs->GetRP().GetY(),
-                             thisChs->GetLP().GetX(),
-                             thisChs->GetLP().GetY());
+        if (1==1) {
+            cerr << "URegionEmb::URegionEmb() i=" << i << endl; 
+            cerr << "URegionEmb::URegionEmb() thisChs=" << *thisChs << endl;
+            cerr << "URegionEmb::URegionEmb() nextChs=" << *nextChs << endl;
+        }
 
-            dms.SetDegeneratedInitial(DGM_NONE);
-            dms.SetDegeneratedFinal(DGM_NONE);
-            
-            segments->Put(segmentsStartPos+segmentsNum, dms);
-        } else {
-            if (MRA_DEBUG)
-                cerr << "URegionEmb::URegionEmb() no swapping" << endl;
+        if (thisChs->GetRP() == nextChs->GetLP()
+            || thisChs->GetRP() == nextChs->GetRP()) {
+            if (1==1) 
+                cerr << "URegionEmb::URegionEmb() not swapping" << endl; 
 
             MSegmentData dms(thisChs->GetAttr().faceno,
                              thisChs->GetAttr().cycleno,
@@ -3603,12 +3588,41 @@ URegionEmb::URegionEmb(
             dms.SetDegeneratedInitial(DGM_NONE);
             dms.SetDegeneratedFinal(DGM_NONE);
 
+            if (1==1)
+                cerr << "URegionEmb::URegionEmb() adding " 
+                     << dms.ToString() 
+                     << endl;
+
+            segments->Put(segmentsStartPos+segmentsNum, dms);
+        } else {
+            if (1==1) 
+                cerr << "URegionEmb::URegionEmb() swapping" << endl; 
+
+            MSegmentData dms(thisChs->GetAttr().faceno,
+                             thisChs->GetAttr().cycleno,
+                             thisChs->GetAttr().edgeno,
+                             thisChs->GetAttr().insideAbove,
+                             thisChs->GetRP().GetX(),
+                             thisChs->GetRP().GetY(),
+                             thisChs->GetLP().GetX(),
+                             thisChs->GetLP().GetY(),
+                             thisChs->GetRP().GetX(),
+                             thisChs->GetRP().GetY(),
+                             thisChs->GetLP().GetX(),
+                             thisChs->GetLP().GetY());
+
+            dms.SetDegeneratedInitial(DGM_NONE);
+            dms.SetDegeneratedFinal(DGM_NONE);
+            
+            if (1==1)
+                cerr << "URegionEmb::URegionEmb() adding " 
+                     << dms.ToString() 
+                     << endl;
+
             segments->Put(segmentsStartPos+segmentsNum, dms);
         }
 
         segmentsNum++;
-
-        prevChs = thisChs;
     }
 
     Rectangle<2> rbb = region.BoundingBox();
@@ -8193,7 +8207,7 @@ Type mapping of the ~move~ operator:
 */
 
 static ListExpr MoveTypeMap(ListExpr args){
-    cout << "MOveTypeMap called " << endl;
+    if (MRA_DEBUG) cout << "MOveTypeMap called " << endl;
     if(nl->ListLength(args)!=2){
         ErrorReporter::ReportError("invalid number of arguments");
         return nl->SymbolAtom("typeerror");
@@ -8206,7 +8220,7 @@ static ListExpr MoveTypeMap(ListExpr args){
         ErrorReporter::ReportError("region as second argument required");
         return nl->SymbolAtom("typeerror");
     }
-    cout << "Typemap returns movingregion" << endl;
+    if (MRA_DEBUG) cout << "Typemap returns movingregion" << endl;
     return nl->SymbolAtom("movingregion");
 }
 
