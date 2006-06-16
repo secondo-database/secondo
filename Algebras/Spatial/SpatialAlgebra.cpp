@@ -13941,7 +13941,7 @@ ValueMapping windowclippingoutmap[] = {
 ValueMapping spatialclipmap[] = { clip_l };
 
 ValueMapping verticesmap[] = { Vertices_l,
-	          Vertices_r
+                Vertices_r
 
               };
 
