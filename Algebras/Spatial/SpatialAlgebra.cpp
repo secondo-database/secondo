@@ -1040,7 +1040,7 @@ ostream& Points::Print( ostream &os ) const
     os << "<";
     for( int i = 0; i < Size(); i++ )
     {
-  const Point *p;
+  const Point *p=0;
   Get( i, p );
   os << " " << *p;
     }
@@ -1071,7 +1071,7 @@ OutPoints( ListExpr typeInfo, Word value )
   }
   else
   {
-    const Point *p;
+    const Point *p=0;
     points->Get( 0, p );
     Point aux(*p);
     ListExpr result = nl->OneElemList( OutPoint( nl->TheEmptyList(),
@@ -4903,47 +4903,6 @@ ostream& operator<<( ostream& os, const CRegion& cr )
 
 void CRegion::SetPartnerNo()
 {
-
-  /*
-  assert( IsOrdered() );
-
-  if (this->Size()<=0)
-    return;
-
-  const CHalfSegment *chs;
-  int *pa = new int[Size()/2];
-
-  for( int i = 0; i < Size(); i++)
-  {
-    Get( i, chs );
-    if (chs->GetLDP())
-    {
-      //store at position partnerno of the partner
-      // array the position of the left half segment
-      //in the half segment array
-      assert( chs->attr.edgeno >= 0 && 
-              chs->attr.edgeno <= Size()/2 );
-      pa[chs->attr.edgeno]=i;
-    }
-    else
-    {
-      const CHalfSegment *chsLeft;
-      //assign the position of the right dominating half segment
-      // as the partner number of the right half segment
-      CHalfSegment aux( *chs );
-      aux.attr.partnerno = pa[chs->attr.edgeno];
-      UpdateAttr(i, aux.attr);
-      Get( chs->attr.partnerno, chsLeft );
-      //update the partner number of the left dominating half 
-      //segment to the position of the right half segment
-      //in the half segment array.
-      aux = *chsLeft;
-      aux.attr.partnerno = i;
-      UpdateAttr(chs->attr.partnerno, aux.attr);
-    }
-  }
-  delete []pa;
- */
   int size = Size();
   int tmp[size/2];
   const CHalfSegment*  chs;
@@ -9251,6 +9210,27 @@ windowclippingSelect( ListExpr args )
 }
 
 /*
+10.3.19 Selection function ~vertices~
+
+This select function is used for the ~vertices~ operator.
+
+*/
+
+int
+verticesSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+
+  if (SpatialTypeOfSymbol( arg1 ) == stline)
+      return (0);
+
+  if (SpatialTypeOfSymbol( arg1 ) == stregion)
+      return (1);
+
+  return (-1); // This point should never be reached
+}
+
+/*
 10.1.17 Type mapping function for operator ~components~
 
 This type mapping function is used for the ~components~ operator.
@@ -9280,10 +9260,11 @@ static ListExpr VerticesMap(ListExpr args){
      ErrorReporter::ReportError("one argument expected");
      return nl->SymbolAtom("typeerror");
    }
-   if(nl->IsEqual(nl->First(args),"region")){
+   if( (nl->IsEqual(nl->First(args),"region")) ||
+       (nl->IsEqual(nl->First(args),"line")) ){
       return nl->SymbolAtom("points");
    }
-   ErrorReporter::ReportError("region required");
+   ErrorReporter::ReportError("region or line required");
    return nl->SymbolAtom("typeerror");
 }
 
@@ -13701,7 +13682,7 @@ components_r( Word* args, Word& result, int message, Word& local, Supplier s )
 /*
 10.4.28 ~Vertices[_]r~
 
-This is the value mapping function for the vertices operator.
+These are the value mapping functions for the vertices operator.
 
 */
 static int Vertices_r(Word* args, Word& result, 
@@ -13717,6 +13698,29 @@ static int Vertices_r(Word* args, Word& result,
        Point p;
        for(int i=0;i<size;i++){
           reg->Get(i,hs);
+          p = hs->GetLP();
+          (*res) += p;
+          p = hs->GetRP();
+          (*res) += p;
+       }
+       res->EndBulkLoad();
+    }
+    return 0;
+}
+
+static int Vertices_l(Word* args, Word& result, 
+                      int message, Word& local, Supplier s ){
+    result = qp->ResultStorage(s);
+    CLine* ln = (CLine*) args[0].addr;
+    Points* res = (Points*) result.addr;
+    res->Clear();     
+    const CHalfSegment* hs;
+    if(!ln->IsEmpty()){
+       int size = ln->Size();
+       res->StartBulkLoad();
+       Point p;
+       for(int i=0;i<size;i++){
+          ln->Get(i,hs);
           p = hs->GetLP();
           (*res) += p;
           p = hs->GetRP();
@@ -13935,6 +13939,11 @@ ValueMapping windowclippingoutmap[] = {
 
 
 ValueMapping spatialclipmap[] = { clip_l };
+
+ValueMapping verticesmap[] = { Vertices_l,
+	          Vertices_r
+
+              };
 
 
 /*
@@ -14252,9 +14261,9 @@ const string SpatialSpecComponents  =
 
 const string SpatialSpecVertices  =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-        "( <text>region -> points</text--->"
+        "( <text>(region -> points) or (line -> points)</text--->"
         "<text>vertices(_)</text--->"
-        "<text>Returns the vertices of a region.</text--->"
+        "<text>Returns the vertices of a region or line.</text--->"
         "<text>query vertices(r1)</text--->"
         ") )";
 
@@ -14414,8 +14423,8 @@ Operator spatialcomponents
 
 
 Operator spatialvertices
-  ( "vertices", SpatialSpecVertices,  Vertices_r, 
-    Operator::SimpleSelect,  VerticesMap);
+  ( "vertices", SpatialSpecVertices,  2, verticesmap, 
+    verticesSelect,  VerticesMap);
 
 /*
 11 Creating the Algebra
