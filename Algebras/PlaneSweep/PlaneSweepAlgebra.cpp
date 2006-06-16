@@ -87,9 +87,9 @@ Segment::Segment(bool in, const CHalfSegment& inchs)
 functions to read and set property values of a segment-object
 
 */
-const Point& Segment::GetLP()	{  return chs.GetLP(); }
-const Point& Segment::GetRP()	{  return chs.GetRP();}
-bool Segment::GetIn1() const	{ return in1; }
+const Point& Segment::GetLP()   {  return chs.GetLP(); }
+const Point& Segment::GetRP()   {  return chs.GetRP();}
+bool Segment::GetIn1() const    { return in1; }
 
 void Segment::SetLP(const Point& p)   {
    if  ( p != chs.GetRP() && p != chs.GetLP() )
@@ -147,10 +147,10 @@ template<class E> class BinTreeNode
 public:
 
    BinTreeNode<E>() {};
-   E GetEntry()				{ return entry;}
-   void SetEntry(const E& newentry)	{ entry.Set(newentry); }
-   BinTreeNode<E>* GetNext()		{ return Next; }
-   BinTreeNode<E>* GetPred()		{ return Pred; }
+   E GetEntry()                         { return entry;}
+   void SetEntry(const E& newentry)     { entry.Set(newentry); }
+   BinTreeNode<E>* GetNext()            { return Next; }
+   BinTreeNode<E>* GetPred()            { return Pred; }
 
 private:
    friend class BinTree<E>;
@@ -346,12 +346,12 @@ template<class E> E BinTree<E>::GetFirstAndDelete () {
       while (next != NIL) {
          if ( en.Equal(next->GetEntry()) ) {
             BinTreeNode<E>* del = next;
-	    next = next->GetNext() ;
-	    assert (del);
-	    MakeDelete(del);
-	    mCount --;
-	    delete del;
-	    //del = 0;
+            next = next->GetNext() ;
+            assert (del);
+            MakeDelete(del);
+            mCount --;
+            delete del;
+            //del = 0;
          }
          else next = NIL;
       }
@@ -550,39 +550,39 @@ template<class E> void BinTree<E>::BalanceInsert(BinTreeNode<E>*
    while (node != Root && node->Parent->State == UNBAL)  {
       if ( node->Parent == node->Parent->Parent->Left) {
          BinTreeNode<E>* n2 = node->Parent->Parent->Right;
-	 if (n2->State == UNBAL) {
-	    node->Parent->State = BAL;
-	    n2->State = BAL;
-	    node->Parent->Parent->State = UNBAL ;
-	    node = node->Parent->Parent;
+         if (n2->State == UNBAL) {
+            node->Parent->State = BAL;
+            n2->State = BAL;
+            node->Parent->Parent->State = UNBAL ;
+            node = node->Parent->Parent;
          } // end second if
-	 else  {
-	     if (node == node->Parent->Right) {
-	        node = node->Parent;
-		RotateLeft (node);
-	     } // end if
-	     node->Parent->State = BAL;
-	     node->Parent->Parent->State = UNBAL;
-	     RotateRight (node->Parent->Parent);
-	 } // end else
+         else  {
+             if (node == node->Parent->Right) {
+                node = node->Parent;
+                RotateLeft (node);
+             } // end if
+             node->Parent->State = BAL;
+             node->Parent->Parent->State = UNBAL;
+             RotateRight (node->Parent->Parent);
+         } // end else
       } // end first if
       else {
           BinTreeNode<E>* n2 = node->Parent->Parent->Left;
-	  if ( n2->State == UNBAL) {
-	     node->Parent->State = BAL;
-	     n2->State = BAL;
-	     node->Parent->Parent->State = UNBAL;
-	     node = node->Parent->Parent;
-	  } // end if
-	  else {
-	     if ( node == node->Parent->Left) {
-	        node = node->Parent;
-		RotateRight(node);
-	     } // end if
-	     node->Parent->State = BAL;
-	     node->Parent->Parent->State = UNBAL;
-	     RotateLeft (node->Parent->Parent);
-	  } // end else
+          if ( n2->State == UNBAL) {
+             node->Parent->State = BAL;
+             n2->State = BAL;
+             node->Parent->Parent->State = UNBAL;
+             node = node->Parent->Parent;
+          } // end if
+          else {
+             if ( node == node->Parent->Left) {
+                node = node->Parent;
+                RotateRight(node);
+             } // end if
+             node->Parent->State = BAL;
+             node->Parent->Parent->State = UNBAL;
+             RotateLeft (node->Parent->Parent);
+          } // end else
       } // end else
    } // end while
    Root->State = BAL;
@@ -598,57 +598,57 @@ node)
    while (node != Root && node->State == BAL ) {
       if ( node == node->Parent->Left) {
          BinTreeNode<E>* n2 = node->Parent->Right;
-	 if (n2->State == UNBAL) {
-	    node->Parent->State = UNBAL;
-	    n2->State = BAL;
-	    RotateLeft(node->Parent);
-	    n2 = node->Parent->Right;
+         if (n2->State == UNBAL) {
+            node->Parent->State = UNBAL;
+            n2->State = BAL;
+            RotateLeft(node->Parent);
+            n2 = node->Parent->Right;
          } // end second if
-	 if (n2->Left->State == BAL && n2->Right->State == BAL)
-	 {
-	    n2->State = UNBAL;
-	    node = node->Parent;
-	 }
+         if (n2->Left->State == BAL && n2->Right->State == BAL)
+         {
+            n2->State = UNBAL;
+            node = node->Parent;
+         }
          else {
-	    if (n2->Right->State == BAL) {
-	       n2->Left->State = BAL;
-	       n2->State = UNBAL;
-	       RotateRight (n2);
-	       n2 = node->Parent->Right;
-	     } // end if
-	     n2->State = node->Parent->State;
-	     node->Parent->State = BAL;
-	     n2->Right->State = BAL;
-	     RotateLeft (node->Parent);
-	     node = Root;
-	 } // end else
+            if (n2->Right->State == BAL) {
+               n2->Left->State = BAL;
+               n2->State = UNBAL;
+               RotateRight (n2);
+               n2 = node->Parent->Right;
+             } // end if
+             n2->State = node->Parent->State;
+             node->Parent->State = BAL;
+             n2->Right->State = BAL;
+             RotateLeft (node->Parent);
+             node = Root;
+         } // end else
       } // end first if
       else {
           BinTreeNode<E>* n2 = node->Parent->Left;
-	  if ( n2->State == UNBAL) {
-	     node->Parent->State = UNBAL;
-	     n2->State = BAL;
-	     RotateRight(node->Parent);
-	     n2 = node->Parent->Left;
-	  } // end if
+          if ( n2->State == UNBAL) {
+             node->Parent->State = UNBAL;
+             n2->State = BAL;
+             RotateRight(node->Parent);
+             n2 = node->Parent->Left;
+          } // end if
           if ( n2->Right->State == BAL && n2->Left->State == BAL)
-	  {
-	     n2->State = UNBAL;
-	     node = node->Parent;
-	  } // end
-	  else {
-	     if ( n2->Left->State == BAL) {
-	        n2->Right->State = BAL;
-		n2->State = UNBAL;
-		RotateLeft (n2);
-	        n2 = node->Parent->Left;
-	     } // end if
-	     n2->State = node->Parent->State;
-	     node->Parent->State = BAL;
-	     n2->Left->State = BAL;
-	     RotateRight (node->Parent);
-	     node = Root;
-	  } // end else
+          {
+             n2->State = UNBAL;
+             node = node->Parent;
+          } // end
+          else {
+             if ( n2->Left->State == BAL) {
+                n2->Right->State = BAL;
+                n2->State = UNBAL;
+                RotateLeft (n2);
+                n2 = node->Parent->Left;
+             } // end if
+             n2->State = node->Parent->State;
+             node->Parent->State = BAL;
+             n2->Left->State = BAL;
+             RotateRight (node->Parent);
+             node = Root;
+          } // end else
       } // end else
    } // end while
    node->State = BAL;
@@ -677,13 +677,13 @@ template<class E> void BinTree<E>::MakeInsert (BinTreeNode<E>* node,
       node -> Parent = node2;
       if (c<0) {  // insert left
          InsertBeforeInList (node2, node);
-	 node2-> Left = node;
+         node2-> Left = node;
       }
       else  { // c>0
          node1 = TreeNext (node2);
-	 if (node1)  InsertBeforeInList ( node1, node);
-	 else      InsertAfterInList(Last, node);
-	 node2->Right = node;
+         if (node1)  InsertBeforeInList ( node1, node);
+         else      InsertAfterInList(Last, node);
+         node2->Right = node;
       }
    }
    else { // insert first entry
@@ -713,13 +713,13 @@ template<class E> void BinTree<E>::MakeInsert (BinTreeNode<E>* node,
       node -> Parent = node2;
       if (c<0) {  // insert left
          InsertBeforeInList (node2, node);
-	 node2-> Left = node;
+         node2-> Left = node;
       }
       else  { // c>0
          node1 = TreeNext (node2);
-	 if (node1)  InsertBeforeInList ( node1, node);
-	 else      InsertAfterInList(Last, node);
-	 node2->Right = node;
+         if (node1)  InsertBeforeInList ( node1, node);
+         else      InsertAfterInList(Last, node);
+         node2->Right = node;
       }
    }
    else { // insert first entry
@@ -749,13 +749,13 @@ template<class E> void BinTree<E>::MakeInsert (BinTreeNode<E>* node,
       node -> Parent = node2;
       if (c<0) {  // insert left
          InsertBeforeInList (node2, node);
-	 node2-> Left = node;
+         node2-> Left = node;
       }
       else  { // c>0
          node1 = TreeNext (node2);
-	 if (node1)  InsertBeforeInList ( node1, node);
-	 else      InsertAfterInList(Last, node);
-	 node2->Right = node;
+         if (node1)  InsertBeforeInList ( node1, node);
+         else      InsertAfterInList(Last, node);
+         node2->Right = node;
       }
    }
    else { // insert first entry
@@ -785,8 +785,8 @@ template<class E> void BinTree<E>::MakeDelete(BinTreeNode<E>* node) {
       node->Next->Parent = node->Parent;
       if (node->Next->Parent) {
          if (node->Next->Parent->Left == node)
-	    node->Next->Parent->Left = node->Next;
-	 else    node->Next->Parent->Right = node->Next;
+            node->Next->Parent->Left = node->Next;
+         else    node->Next->Parent->Right = node->Next;
       }
       else  Root = node->Next;
       node->Next->Left->Parent = node->Next;
@@ -816,7 +816,7 @@ template<class E> void BinTree<E>::MakeDelete(BinTreeNode<E>* node) {
       n1->Parent = node->Parent;
       if (n1->Parent) {
          if (n1->Parent->Left ==node)  n1->Parent->Left = n1;
-	 else    n1->Parent->Right = n1;
+         else    n1->Parent->Right = n1;
       }
       else  Root = n1;
       n1->Left->Parent = n1;
@@ -1065,13 +1065,13 @@ void XEvent::Set(const XEvent& event) {
    seg2 = event.seg2;
 }
 
-Coord XEvent::GetX() const		{return x;}
-Coord XEvent::GetY() const		{return y;}
-EventKind XEvent::GetKind() const	{return kind;}
-int XEvent::GetFirst() const     	{return seg1;}
-int XEvent::GetSecond() const 		{return seg2;}
-double XEvent::GetSlope() const		{return slope;}
-double XEvent::GetA() const		{return a;}
+Coord XEvent::GetX() const              {return x;}
+Coord XEvent::GetY() const              {return y;}
+EventKind XEvent::GetKind() const       {return kind;}
+int XEvent::GetFirst() const            {return seg1;}
+int XEvent::GetSecond() const           {return seg2;}
+double XEvent::GetSlope() const         {return slope;}
+double XEvent::GetA() const             {return a;}
 
 /*
 3.2.3 Operations
@@ -1104,30 +1104,30 @@ int XEvent::Less (const XEvent ev2, const Coord x) const
    if (GetX() < ev2.GetX())  { return -1; }
    else if (GetX() > ev2.GetX()) { return 1; }
    // then ordered by event-kind
-   else if (GetKind() < ev2.GetKind())  	{ return -1;}
-   else if (GetKind() > ev2.GetKind())  	{ return 1;}
+   else if (GetKind() < ev2.GetKind())          { return -1;}
+   else if (GetKind() > ev2.GetKind())          { return 1;}
    else  {// groups ordered by different categories
       if (GetKind() == leftSegment || GetKind() == verticalSegment) {
           // add at the end of a group
-         if (GetFirst() < ev2.GetFirst())	{ return -1;}
-	 else					{ return 1;}
+         if (GetFirst() < ev2.GetFirst())       { return -1;}
+         else                                   { return 1;}
       }
       else if (GetKind() == rightSegment) {
          // then ordered by y-value, then slope of the segment
-         if (GetY() < ev2.GetY())		{ return -1;}
-	 else if (GetY() > ev2.GetY())		{return 1;}
-	 else if (GetSlope() > ev2.GetSlope())	{return 1;}
-	 else 					{return -1;}
+         if (GetY() < ev2.GetY())               { return -1;}
+         else if (GetY() > ev2.GetY())          {return 1;}
+         else if (GetSlope() > ev2.GetSlope())  {return 1;}
+         else                                   {return -1;}
       }
       else if (GetKind() == intersection)  {
          // ordered by y-value
-         if (GetY() < ev2.GetY())		{return -1;}
-	 else					{return 1;}
+         if (GetY() < ev2.GetY())               {return -1;}
+         else                                   {return 1;}
       }
       else if (GetKind() == split)  {
          // ordered by y-value
-         if (GetY() < ev2.GetY())		{return -1;}
-	 else					{return 1;}
+         if (GetY() < ev2.GetY())               {return -1;}
+         else                                   {return 1;}
       }
       // should not reached
       else {
@@ -1139,12 +1139,12 @@ int XEvent::Less (const XEvent ev2, const Coord x) const
 
 const bool XEvent::operator< (const XEvent& ev2) const {
 
-	return !(Less(ev2, Coord()) < 1);
+        return !(Less(ev2, Coord()) < 1);
 }
 
 const bool XEvent::operator== (const XEvent& ev2) const {
 
-	return (Equal(ev2));
+        return (Equal(ev2));
 }
 
 ostream& operator<<(ostream &os, const XEvent& ev)
@@ -1193,14 +1193,14 @@ private:
 functions for initialising a tree and reading property values for a PQueue-Object
 
 */
-//PQueue::PQueue()  		{BinTree<XEvent> qu; }
-PQueue::PQueue()  		{priority_queue<XEvent> qu2; set<XEvent> s;}
+//PQueue::PQueue()              {BinTree<XEvent> qu; }
+PQueue::PQueue()                {priority_queue<XEvent> qu2; set<XEvent> s;}
 
-//bool PQueue::isEmpty()		{ return (qu.IsEmpty() ); }
-bool PQueue::isEmpty()		{ return (qu2.empty() ); }
+//bool PQueue::isEmpty()                { return (qu.IsEmpty() ); }
+bool PQueue::isEmpty()          { return (qu2.empty() ); }
 
-//int PQueue::size()		{ return (qu.GetCount()) ; }
-int PQueue::size()		{ return (qu2.size()) ; }
+//int PQueue::size()            { return (qu.GetCount()) ; }
+int PQueue::size()              { return (qu2.size()) ; }
 
 /*
 implements the push-function
@@ -1244,7 +1244,7 @@ void PQueue::insert (XEvent& event)   {
      //cout << "insert in multimap and priority_queue" << endl;
    }
 }*/
-	 
+         
 /*
 implements the functions top and pop of a priority queue in one function
 
@@ -1270,8 +1270,8 @@ XEvent PQueue::getFirstAndDelete()  {
       while ( node != 0 )  {
          XEvent ev = node->GetEntry();
          cout << "XEvent: "<< ev.GetX()<< " "<< ev.GetY()<< " "
-	 << ev.GetKind()<< " " << ev.GetFirst()<<" "<<ev.GetSecond()
-	 <<" "<<ev.GetSlope()<< " "<< ev.GetA()<< endl;
+         << ev.GetKind()<< " " << ev.GetFirst()<<" "<<ev.GetSecond()
+         <<" "<<ev.GetSlope()<< " "<< ev.GetA()<< endl;
          node = node->GetNext();
       }
    }
@@ -1365,9 +1365,9 @@ void SSSEntry:: Set(const SSSEntry& in)
    a = in.a;
 }
 
-double SSSEntry::Getk() const			{return k; }
-double SSSEntry::Geta() const			{return a; }
-int SSSEntry::GetSeg() const			{return chs; }
+double SSSEntry::Getk() const                   {return k; }
+double SSSEntry::Geta() const                   {return a; }
+int SSSEntry::GetSeg() const                    {return chs; }
 
 /*
 3.4.3 Functions for comparisation
@@ -1484,7 +1484,7 @@ void StatusLine::output(double x, Segment segs[])
       while ( p != 0 ) {
          SSSEntry en = p->GetEntry();
          cout << "y:"<< en.GetY(x, segs) << "  seg:"
-	      << en.GetSeg() << " k:" << en.Getk()
+              << en.GetSeg() << " k:" << en.Getk()
               << "  a:" << en.Geta() << endl;
          p = p->GetNext();
       }
@@ -1496,9 +1496,9 @@ void StatusLine::output(double x, Segment segs[])
 
 */
 
-StatusLine::StatusLine()	{ BinTree<SSSEntry> ssl;}
-bool StatusLine::IsEmpty() 	{ return  ssl.IsEmpty() ; }
-int StatusLine::Size()		{ return ssl.GetCount(); }
+StatusLine::StatusLine()        { BinTree<SSSEntry> ssl;}
+bool StatusLine::IsEmpty()      { return  ssl.IsEmpty() ; }
+int StatusLine::Size()          { return ssl.GetCount(); }
 BinTreeNode<SSSEntry>* StatusLine::GetNext
    (BinTreeNode<SSSEntry>* ent)  {return ent->GetNext();}
 BinTreeNode<SSSEntry>* StatusLine::GetPred
@@ -1533,8 +1533,8 @@ BinTreeNode<SSSEntry>* StatusLine::Find(const Coord x,
       node = ssl.Find(entry, oldx, segs );
       if (node == 0) {
          node = ssl.GetFirst();
-	 while (node!=0 && node->GetEntry().GetSeg()!=
-	    entry.GetSeg() )  node = node->GetNext() ;
+         while (node!=0 && node->GetEntry().GetSeg()!=
+            entry.GetSeg() )  node = node->GetNext() ;
        }
    }
    return node;
@@ -1559,21 +1559,21 @@ void StatusLine::Insert(Coord x, SSSEntry& entry, Segment sgs[],
      inter = InsertIntersection (sgs[psegnr].GetCHS(),
        sgs[segnr].GetCHS(), psegnr, segnr, pq);
        /*if (inter) { // pred and entry intersects comm
-	 BinTreeNode<SSSEntry>* predpred = pred->GetPred();
-	 if (predpred != 0 ) { // test for intersection with predpred
-	   cout << "predpred" << endl;
+         BinTreeNode<SSSEntry>* predpred = pred->GetPred();
+         if (predpred != 0 ) { // test for intersection with predpred
+           cout << "predpred" << endl;
            int ppsegnr = predpred->GetEntry().GetSeg();
-	   bool inter2=InsertIntersection(sgs[ppsegnr].GetCHS(),
-	     sgs[segnr].GetCHS(), ppsegnr,segnr,pq);
-	     if (inter2) { // and so on
+           bool inter2=InsertIntersection(sgs[ppsegnr].GetCHS(),
+             sgs[segnr].GetCHS(), ppsegnr,segnr,pq);
+             if (inter2) { // and so on
                BinTreeNode<SSSEntry>* predpredpred =
-		predpred->GetPred();
-	        if (predpredpred !=0) {
-		  cout << "predpredpred" << endl;
-	          int pppSegnr = predpredpred->GetEntry().GetSeg();
+                predpred->GetPred();
+                if (predpredpred !=0) {
+                  cout << "predpredpred" << endl;
+                  int pppSegnr = predpredpred->GetEntry().GetSeg();
                   InsertIntersection(sgs[pppSegnr].GetCHS(),
-		    sgs[segnr].GetCHS(), pppSegnr,segnr,pq);
-	       } // predpredpred
+                    sgs[segnr].GetCHS(), pppSegnr,segnr,pq);
+               } // predpredpred
             } // (inter2)
          } // predpred !=0
       } // (inter) comm */
@@ -1583,22 +1583,22 @@ void StatusLine::Insert(Coord x, SSSEntry& entry, Segment sgs[],
       inter = InsertIntersection (sgs[segnr].GetCHS(),
          sgs[sSegnr].GetCHS(), segnr, sSegnr, pq);
       /*if (inter) { // intersection entry- succ comm
-	BinTreeNode<SSSEntry>* succsucc = succ->GetNext();
-	if (succsucc != 0 ) { // succsucc exists
-	  cout << "succsucc" << endl;
+        BinTreeNode<SSSEntry>* succsucc = succ->GetNext();
+        if (succsucc != 0 ) { // succsucc exists
+          cout << "succsucc" << endl;
           int ssSegnr = succsucc->GetEntry().GetSeg();
-	  bool inter2= InsertIntersection (sgs[segnr].GetCHS(),
-	    sgs[ssSegnr].GetCHS(), segnr, ssSegnr,pq);
-	    if (inter2) { // intersection entry - succsucc
-	      BinTreeNode<SSSEntry>* succsuccsucc =
-	         succsucc->GetNext();
-	      if (succsuccsucc !=0) {
-		cout << "succsuccsucc" << endl;
-	        int sssSegnr = succsuccsucc->GetEntry().GetSeg();
-		InsertIntersection(sgs[segnr].GetCHS(),
-		  sgs[sssSegnr].GetCHS(), segnr,sssSegnr,pq);
-	   }
-	 } // (inter2)
+          bool inter2= InsertIntersection (sgs[segnr].GetCHS(),
+            sgs[ssSegnr].GetCHS(), segnr, ssSegnr,pq);
+            if (inter2) { // intersection entry - succsucc
+              BinTreeNode<SSSEntry>* succsuccsucc =
+                 succsucc->GetNext();
+              if (succsuccsucc !=0) {
+                cout << "succsuccsucc" << endl;
+                int sssSegnr = succsuccsucc->GetEntry().GetSeg();
+                InsertIntersection(sgs[segnr].GetCHS(),
+                  sgs[sssSegnr].GetCHS(), segnr,sssSegnr,pq);
+           }
+         } // (inter2)
        } // succsucc!0=
      } // (inter) comm */
    } // succ !=0
@@ -1619,11 +1619,11 @@ void StatusLine::Delete(Coord x, Coord oldx, SSSEntry& entry,
       if ( pred != 0 && succ != 0)
       {
          int s1 = pred->GetEntry().GetSeg();
-	 int s2 = succ->GetEntry().GetSeg();
+         int s2 = succ->GetEntry().GetSeg();
          // test for intersection with pred- and succ-CHalfSegment
          if (sgs[s1].GetIn1() != sgs[s2].GetIn1() )
             InsertIntersection (sgs[s1].GetCHS(), sgs[s2].GetCHS(),
-	    s1, s2, pq);
+            s1, s2, pq);
       }
       ssl.DeleteNode(en);
    }
@@ -1644,8 +1644,8 @@ bool StatusLine::innerInter( const CHalfSegment& chs1,
    const CHalfSegment& chs2, Point& resp, CHalfSegment& rchs,
    bool& first, bool& second ) const
 {
-   resp.SetDefined(false);   	rchs.SetDefined(false);
-   first = false;		second = false;
+   resp.SetDefined(false);      rchs.SetDefined(false);
+   first = false;               second = false;
    Coord xl,yl,xr,yr ,  Xl,Yl,Xr,Yr;
    double k, a, K, A;
    xl=chs1.GetLP().GetX();  yl=chs1.GetLP().GetY();
@@ -1688,18 +1688,18 @@ bool StatusLine::innerInter( const CHalfSegment& chs1,
          if (yl<yr)   { ylow=yl;  yup=yr;  }
          else         { ylow=yr;  yup=yl;  }
          if (Yl<Yr)   { Ylow=Yl;  Yup=Yr;  }
-         else	  { Ylow=Yr;  Yup=Yl;  }
+         else     { Ylow=Yr;  Yup=Yl;  }
          if  (((ylow>Ylow) && (ylow<Yup))||
-	      ((yup>Ylow) && (yup<Yup)) ||
+              ((yup>Ylow) && (yup<Yup)) ||
               ((Ylow>ylow) && (Ylow<yup))||
-	      ((Yup>ylow) && (Yup<yup))) {
+              ((Yup>ylow) && (Yup<yup))) {
             Point p1, p2;
-            if (ylow>Ylow)	p1.Set(xl, ylow);
-            else 		p1.Set(xl, Ylow);
-            if (yup<Yup) 	p2.Set(xl, yup);
-            else 		p2.Set(xl, Yup);
+            if (ylow>Ylow)      p1.Set(xl, ylow);
+            else                p1.Set(xl, Ylow);
+            if (yup<Yup)        p2.Set(xl, yup);
+            else                p2.Set(xl, Yup);
             rchs.Set(true, p1, p2);
-	    first = true; 	second = true;
+            first = true;       second = true;
             return true;
          }
          else return false;
@@ -1720,18 +1720,18 @@ bool StatusLine::innerInter( const CHalfSegment& chs1,
       #endif
          //(Xl, y0) is the intersection of l and L
          if ((Xl>xl) &&( Xl<xr))  {
-	    if ( (yy>=Yl) && (yy <= Yr) ) {
-	       resp.Set (Xl,yy);
-	       // test if rounding problem, then no intersection
-	       if ( (abs(xl-Xl) < DIST && abs(yl-yy) < DIST) ||
-	            (abs(xr-Xl) < DIST && abs(yr-yy) < DIST) ||
-		     abs(Yl-yy) < DIST || abs(Yr-yy) < DIST)
-	          return false;
-	       first = true;
+            if ( (yy>=Yl) && (yy <= Yr) ) {
+               resp.Set (Xl,yy);
+               // test if rounding problem, then no intersection
+               if ( (abs(xl-Xl) < DIST && abs(yl-yy) < DIST) ||
+                    (abs(xr-Xl) < DIST && abs(yr-yy) < DIST) ||
+                     abs(Yl-yy) < DIST || abs(Yr-yy) < DIST)
+                  return false;
+               first = true;
                if ( (yy>Yl) && (yy<Yr) ) second = true;
-	       return true;
-	    }
-	    else return false;
+               return true;
+            }
+            else return false;
          }
       }
    }  // else if (Xl==Xr)
@@ -1751,18 +1751,18 @@ bool StatusLine::innerInter( const CHalfSegment& chs1,
       #endif
          //(Xl, y0) is the intersection of l and L
          if ((xl>Xl) && (xl<Xr))  {
-	    if ( (yy>=yl) && (yy <= yr) ) {
-	       resp.Set (xl,yy);
-	       // test if rounding problem, then no intersection
-	       if ( (abs(Xl-xl) < DIST && abs(Yl-yy) < DIST) ||
-	            (abs(Xr-xl) < DIST && abs(Yr-yy) < DIST) ||
-		     abs(yl-yy) < DIST || abs(yr-yy) < DIST)
-	          return false;
-	       second = true;
+            if ( (yy>=yl) && (yy <= yr) ) {
+               resp.Set (xl,yy);
+               // test if rounding problem, then no intersection
+               if ( (abs(Xl-xl) < DIST && abs(Yl-yy) < DIST) ||
+                    (abs(Xr-xl) < DIST && abs(Yr-yy) < DIST) ||
+                     abs(yl-yy) < DIST || abs(yr-yy) < DIST)
+                  return false;
+               second = true;
                if ( (yy>yl) && (yy<yr) ) first = true;
-	       return true;
-	    }
-	    else return false;
+               return true;
+            }
+            else return false;
          }
       }
    }
@@ -1772,12 +1772,12 @@ bool StatusLine::innerInter( const CHalfSegment& chs1,
       if  (((xl>Xl) && (xl<Xr)) || ((xr>Xl) && (xr<Xr)) ||
            ((Xl>xl) && (Xl<xr)) || ((Xr>xl) && (Xr<xr)))  {
          Point p1, p2;
-         if (xl>Xl) 	p1.Set(xl, yl);
-         else  		p1.Set(Xl, Yl);
-         if (xr<Xr)	p2.Set(xr, yr);
-         else  		p2.Set(Xr, Yr);
+         if (xl>Xl)     p1.Set(xl, yl);
+         else           p1.Set(Xl, Yl);
+         if (xr<Xr)     p2.Set(xr, yr);
+         else           p2.Set(Xr, Yr);
          rchs.Set(true, p1, p2);
-	 first = true; second = true;
+         first = true; second = true;
          return true;
       }
      else return false;
@@ -1795,9 +1795,9 @@ bool StatusLine::innerInter( const CHalfSegment& chs1,
      // test if rounding problem, then no intersection
      resp.Set(xx,yy);
      if ( (abs(Xl-xx) < DIST && abs(Yl-yy) < DIST) ||
-	  (abs(Xr-xx) < DIST && abs(Yr-yy) < DIST) ||
-	  (abs(xl-xx) < DIST && abs(yl-yy) < DIST) ||
-	  (abs(xr-xx) < DIST && abs(yr-yy) < DIST) )
+          (abs(Xr-xx) < DIST && abs(Yr-yy) < DIST) ||
+          (abs(xl-xx) < DIST && abs(yl-yy) < DIST) ||
+          (abs(xr-xx) < DIST && abs(yr-yy) < DIST) )
         return false;
      if ((xx == xl || xx == xr) && xx > Xl && xx < Xr )
         {second = true; return true; }
@@ -1833,68 +1833,68 @@ bool StatusLine::InsertIntersection(const CHalfSegment& chs1,const
    if (innerinter)  {
       result = true;
       if (point.IsDefined() ) { // intersection in one point
-	 xp = point.GetX();  yp = point.GetY();
-	 // both segments intersect with their inner point
-	 if ( one && two) {XEvent ev1(xp, yp, s1, s2, intersection);
-	                  pq.insert(ev1);}
-	// only one segment must be split
-	 else if (one)
-	    {XEvent ev1(xp, yp, s1, split); pq.insert(ev1);}
-	 else if (two)
-	     {XEvent ev1(xp, yp, s2, split); pq.insert(ev1);}
+         xp = point.GetX();  yp = point.GetY();
+         // both segments intersect with their inner point
+         if ( one && two) {XEvent ev1(xp, yp, s1, s2, intersection);
+                          pq.insert(ev1);}
+        // only one segment must be split
+         else if (one)
+            {XEvent ev1(xp, yp, s1, split); pq.insert(ev1);}
+         else if (two)
+             {XEvent ev1(xp, yp, s2, split); pq.insert(ev1);}
       }
       else if (res.IsDefined() ) {  // overlap-intersection
          // both segments are the same
-	 if (chs1 == chs2) { return true;}
-	 // both segments starts with same point
-	 else if (chs1.GetLP() == chs2.GetLP() ) {
-	    if (chs1.Inside(chs2) ) {
-	       xp = chs1.GetRP().GetX();  yp = chs1.GetRP().GetY();
-	       XEvent ev1( xp, yp, s2, split);  pq.insert(ev1);
-     	    }
-	    else {
-	       xp = chs2.GetRP().GetX();  yp = chs2.GetRP().GetY();
-	       XEvent ev1(xp, yp, s1, split);   pq.insert(ev1);
-	    }
-	 }
-	 // both segments ends in same point
-	 else if (chs1.GetRP() == chs2.GetRP() )  {
-	    if (chs1.Inside(chs2) ) {
-	       xp = chs1.GetLP().GetX();  yp = chs1.GetLP().GetY();
-	       XEvent ev1(xp, yp, s2, split);   pq.insert(ev1);
-	    }
-	    else {
-	       xp = chs2.GetLP().GetX();  yp = chs2.GetLP().GetY();
-	       XEvent ev1(xp, yp, s1, split);   pq.insert(ev1);
-	    }
-	 }
-	 // one segement inside the other
-	 else if (chs1.Inside(chs2)) {
-	    xp = chs1.GetLP().GetX();   yp = chs1.GetLP().GetY();
-	    XEvent ev1(xp, yp, s2, split);      pq.insert(ev1);
-	    xp = chs1.GetRP().GetX();   yp = chs1.GetRP().GetY();
-	    XEvent ev2(xp, yp, s2, split);      pq.insert(ev2);
-	 }
-	 else if (chs2.Inside(chs1)) {
-	    xp = chs2.GetLP().GetX();  yp = chs2.GetLP().GetY();
-	    XEvent ev1 (xp, yp, s1, split);     pq.insert(ev1);
-	    xp = chs2.GetRP().GetX();   yp = chs2.GetRP().GetY();
-	    XEvent ev2 (xp, yp, s1, split);     pq.insert(ev2);
-	 }
-	 else  { // overlap without Inside
-	    if (chs1.GetRP() > chs2.GetRP() )   {
-	       xp = chs1.GetLP().GetX();  yp = chs1.GetLP().GetY();
-	       XEvent ev1(xp, yp, s2, split);   pq.insert(ev1);
-	       xp = chs2.GetRP().GetX();  yp = chs2.GetRP().GetY();
-	       XEvent ev2(xp, yp, s1, split);   pq.insert(ev2);
-	    }
-	    else {
-	       xp = chs1.GetRP().GetX();   yp = chs1.GetRP().GetY();
-	       XEvent ev1(xp, yp, s2, split);    pq.insert(ev1);
-	       xp = chs2.GetLP().GetX();   yp = chs2.GetLP().GetY();
-	       XEvent ev2(xp, yp, s1, split);    pq.insert(ev2);
-	    }
-	 } // overlap without Inside
+         if (chs1 == chs2) { return true;}
+         // both segments starts with same point
+         else if (chs1.GetLP() == chs2.GetLP() ) {
+            if (chs1.Inside(chs2) ) {
+               xp = chs1.GetRP().GetX();  yp = chs1.GetRP().GetY();
+               XEvent ev1( xp, yp, s2, split);  pq.insert(ev1);
+            }
+            else {
+               xp = chs2.GetRP().GetX();  yp = chs2.GetRP().GetY();
+               XEvent ev1(xp, yp, s1, split);   pq.insert(ev1);
+            }
+         }
+         // both segments ends in same point
+         else if (chs1.GetRP() == chs2.GetRP() )  {
+            if (chs1.Inside(chs2) ) {
+               xp = chs1.GetLP().GetX();  yp = chs1.GetLP().GetY();
+               XEvent ev1(xp, yp, s2, split);   pq.insert(ev1);
+            }
+            else {
+               xp = chs2.GetLP().GetX();  yp = chs2.GetLP().GetY();
+               XEvent ev1(xp, yp, s1, split);   pq.insert(ev1);
+            }
+         }
+         // one segement inside the other
+         else if (chs1.Inside(chs2)) {
+            xp = chs1.GetLP().GetX();   yp = chs1.GetLP().GetY();
+            XEvent ev1(xp, yp, s2, split);      pq.insert(ev1);
+            xp = chs1.GetRP().GetX();   yp = chs1.GetRP().GetY();
+            XEvent ev2(xp, yp, s2, split);      pq.insert(ev2);
+         }
+         else if (chs2.Inside(chs1)) {
+            xp = chs2.GetLP().GetX();  yp = chs2.GetLP().GetY();
+            XEvent ev1 (xp, yp, s1, split);     pq.insert(ev1);
+            xp = chs2.GetRP().GetX();   yp = chs2.GetRP().GetY();
+            XEvent ev2 (xp, yp, s1, split);     pq.insert(ev2);
+         }
+         else  { // overlap without Inside
+            if (chs1.GetRP() > chs2.GetRP() )   {
+               xp = chs1.GetLP().GetX();  yp = chs1.GetLP().GetY();
+               XEvent ev1(xp, yp, s2, split);   pq.insert(ev1);
+               xp = chs2.GetRP().GetX();  yp = chs2.GetRP().GetY();
+               XEvent ev2(xp, yp, s1, split);   pq.insert(ev2);
+            }
+            else {
+               xp = chs1.GetRP().GetX();   yp = chs1.GetRP().GetY();
+               XEvent ev1(xp, yp, s2, split);    pq.insert(ev1);
+               xp = chs2.GetLP().GetX();   yp = chs2.GetLP().GetY();
+               XEvent ev2(xp, yp, s1, split);    pq.insert(ev2);
+            }
+         } // overlap without Inside
       }  // res.Defined()
    } // innerinter
    return result;
@@ -1918,14 +1918,14 @@ void StatusLine::Exchange (BinTreeNode<SSSEntry>* e1,
       int s1 = pred->GetEntry().GetSeg();
       if (sgs[s1].GetIn1() != sgs[e].GetIn1() )
          InsertIntersection(sgs[s1].GetCHS(),sgs[e].GetCHS(),
-	 s1,e,pq);
+         s1,e,pq);
    }
    if (succ != 0 ) {
       int es = e2->GetEntry().GetSeg();
       int s2 = succ->GetEntry().GetSeg();
       if (sgs[es].GetIn1() != sgs[s2].GetIn1() )
          InsertIntersection(sgs[es].GetCHS(),sgs[s2].GetCHS(),es,
-	 s2,pq);
+         s2,pq);
    }
 }
 
@@ -1943,16 +1943,16 @@ public:
    VStructure();
    ~VStructure()   {};
    void Insert (Coord y);
-   void SetDefined(bool def)   	{ defined = def;}
-   bool IsDefined () 		{ return defined; }
+   void SetDefined(bool def)    { defined = def;}
+   bool IsDefined ()            { return defined; }
    void Clear();
 private:
    list<Coord>  vstruct;
    bool defined;
    Coord min, max;
-   bool IsEmpty()   		{ return vstruct.empty(); }
-   Coord GetMin()   		{ return min; }
-   Coord GetMax()   		{ return max; }
+   bool IsEmpty()               { return vstruct.empty(); }
+   Coord GetMin()               { return min; }
+   Coord GetMax()               { return max; }
    void Output();
 };
 
@@ -2039,16 +2039,16 @@ private:
 Initalisation, reading properties
 
 */
-VList::VList()     	   { list<Coord> vlist; }
-int VList::Size()    	   { return vlist.size(); }
+VList::VList()             { list<Coord> vlist; }
+int VList::Size()          { return vlist.size(); }
 Segment VList::First()   { return (vlist.front()); }
-bool VList::IsEmpty()	   { return vlist.empty(); }
+bool VList::IsEmpty()      { return vlist.empty(); }
 
 /*
 functions for handling the list
 
 */
-void VList::Clear()  	   { vlist.clear(); }
+void VList::Clear()        { vlist.clear(); }
 void VList::Insert (Segment& seg)   {vlist.push_back(seg);}
 void VList::DeleteFirst()  { vlist.erase(vlist.begin()); }
 
@@ -2100,95 +2100,95 @@ void VList::testOverlaps(Coord& sweepline, VStructure& vs,
       // test first Segment for overlaps with other CHalfSegments
       while ( (p != vlist.end()) &&  (deleted == false)  )  {
          Segment ref = *p;
-	 CHalfSegment test = ref.GetCHS();
-	 CHalfSegment res;
-	 bool overlap = chs.overlapintersect(test,res);
-	 //if (overlap) cout << "overlap is true" << endl;
-	 //cout << first << endl;
-	 //cout << ref << endl;
-	 //cout << res << endl;
-	 if (overlap  && ( first.GetIn1() != ref.GetIn1()) ) {
-	    // only different regions are tested
+         CHalfSegment test = ref.GetCHS();
+         CHalfSegment res;
+         bool overlap = chs.overlapintersect(test,res);
+         //if (overlap) cout << "overlap is true" << endl;
+         //cout << first << endl;
+         //cout << ref << endl;
+         //cout << res << endl;
+         if (overlap  && ( first.GetIn1() != ref.GetIn1()) ) {
+            // only different regions are tested
             // first segment inside the other Segment
-	    if (chs.Inside(test) ) {
-	       if (chs.GetLP()==test.GetLP()&&chs.GetRP()==
-	          test.GetRP()) { }
-	       else if (chs.GetLP() == test.GetLP() ) {
-		  Segment newseg(ref.GetIn1(),test);
-		  newseg.SetRP(res.GetRP());
-		  vlist.insert(p,newseg);
-		  ref.SetLP(res.GetRP());
-		  vlist.erase(p);  vlist.push_back(ref);
-	       }
-	       else if (chs.GetRP() == test.GetRP()) {
-	          Segment newseg(ref.GetIn1(),test);
-		  newseg.SetRP(res.GetLP());
-		  vlist.insert(p,newseg);
-		  ref.SetLP(res.GetLP());
-		  vlist.erase(p); vlist.push_back(ref);
-	       }
-	       else  {
-	          Segment newseg1(ref.GetIn1(),test);
-		  newseg1.SetRP(res.GetLP());
-		  vlist.insert(p,newseg1);
-		  Segment newseg2(ref.GetIn1(), test);
-		  newseg2.SetLP(res.GetLP());
-		  newseg2.SetRP(res.GetRP());
-		  vlist.insert(p,newseg2);
-		  ref.SetLP(res.GetRP());
-		  vlist.erase(p);
-		  vlist.push_back(ref);
-	       }
-	    }
-	    // second segment inside the other
-	    else if (test.Inside(chs))  {
-	       if (chs.GetLP() == test.GetLP() ) {
-		  Segment newseg(first.GetIn1(),chs);
-		  newseg.SetRP(res.GetRP());
-		  vlist.insert(p,newseg);
-		  first.SetLP(res.GetRP());
+            if (chs.Inside(test) ) {
+               if (chs.GetLP()==test.GetLP()&&chs.GetRP()==
+                  test.GetRP()) { }
+               else if (chs.GetLP() == test.GetLP() ) {
+                  Segment newseg(ref.GetIn1(),test);
+                  newseg.SetRP(res.GetRP());
+                  vlist.insert(p,newseg);
+                  ref.SetLP(res.GetRP());
+                  vlist.erase(p);  vlist.push_back(ref);
                }
-	       else if (chs.GetRP() == test.GetRP()) {
-		  Segment newseg(first.GetIn1(),chs);
-		  newseg.SetRP(res.GetLP());
-		  vlist.insert(p,newseg);
-		  first.SetLP(res.GetLP());
-	       }
-	       else  {
-		  Segment newseg1(first.GetIn1(),chs);
-		  newseg1.SetRP(res.GetLP());
-		  vlist.insert(p,newseg1);
-		  Segment newseg2(first.GetIn1(),chs);
-		  newseg2.SetLP(res.GetLP());
-		  newseg2.SetRP(res.GetRP());
-		  vlist.insert(p,newseg2);
-		  first.SetLP(res.GetRP());
-	       }
-	    }
-	    // overlap but not inside
-	    else if (res.GetLP() > chs.GetLP())  {
-	       Segment newseg1(first.GetIn1(),chs);
-	       newseg1.SetRP(res.GetLP());
-	       vlist.insert(p,newseg1);
-	       first.SetLP(res.GetLP());
-	       Segment newseg2(ref.GetIn1(),test);
-	       newseg2.SetRP(res.GetRP());
-	       vlist.insert(p,newseg2);
-	       ref.SetLP(res.GetRP());
-	       vlist.erase(p); vlist.push_back(ref);
-	    }
-	    else   {
-	       Segment newseg1(first.GetIn1(),chs);
-	       newseg1.SetRP(res.GetRP());
-	       vlist.insert(p,newseg1);
-	       first.SetLP(res.GetRP());
-	       Segment newseg2(ref.GetIn1(),test);
-	       newseg2.SetRP(res.GetLP());
-	       vlist.insert(p,newseg2);
-	       ref.SetLP(res.GetLP());
-	       vlist.erase(p); vlist.push_back(ref);
-	    }
-	 } // end overlap
+               else if (chs.GetRP() == test.GetRP()) {
+                  Segment newseg(ref.GetIn1(),test);
+                  newseg.SetRP(res.GetLP());
+                  vlist.insert(p,newseg);
+                  ref.SetLP(res.GetLP());
+                  vlist.erase(p); vlist.push_back(ref);
+               }
+               else  {
+                  Segment newseg1(ref.GetIn1(),test);
+                  newseg1.SetRP(res.GetLP());
+                  vlist.insert(p,newseg1);
+                  Segment newseg2(ref.GetIn1(), test);
+                  newseg2.SetLP(res.GetLP());
+                  newseg2.SetRP(res.GetRP());
+                  vlist.insert(p,newseg2);
+                  ref.SetLP(res.GetRP());
+                  vlist.erase(p);
+                  vlist.push_back(ref);
+               }
+            }
+            // second segment inside the other
+            else if (test.Inside(chs))  {
+               if (chs.GetLP() == test.GetLP() ) {
+                  Segment newseg(first.GetIn1(),chs);
+                  newseg.SetRP(res.GetRP());
+                  vlist.insert(p,newseg);
+                  first.SetLP(res.GetRP());
+               }
+               else if (chs.GetRP() == test.GetRP()) {
+                  Segment newseg(first.GetIn1(),chs);
+                  newseg.SetRP(res.GetLP());
+                  vlist.insert(p,newseg);
+                  first.SetLP(res.GetLP());
+               }
+               else  {
+                  Segment newseg1(first.GetIn1(),chs);
+                  newseg1.SetRP(res.GetLP());
+                  vlist.insert(p,newseg1);
+                  Segment newseg2(first.GetIn1(),chs);
+                  newseg2.SetLP(res.GetLP());
+                  newseg2.SetRP(res.GetRP());
+                  vlist.insert(p,newseg2);
+                  first.SetLP(res.GetRP());
+               }
+            }
+            // overlap but not inside
+            else if (res.GetLP() > chs.GetLP())  {
+               Segment newseg1(first.GetIn1(),chs);
+               newseg1.SetRP(res.GetLP());
+               vlist.insert(p,newseg1);
+               first.SetLP(res.GetLP());
+               Segment newseg2(ref.GetIn1(),test);
+               newseg2.SetRP(res.GetRP());
+               vlist.insert(p,newseg2);
+               ref.SetLP(res.GetRP());
+               vlist.erase(p); vlist.push_back(ref);
+            }
+            else   {
+               Segment newseg1(first.GetIn1(),chs);
+               newseg1.SetRP(res.GetRP());
+               vlist.insert(p,newseg1);
+               first.SetLP(res.GetRP());
+               Segment newseg2(ref.GetIn1(),test);
+               newseg2.SetRP(res.GetLP());
+               vlist.insert(p,newseg2);
+               ref.SetLP(res.GetLP());
+               vlist.erase(p); vlist.push_back(ref);
+            }
+         } // end overlap
          ++p;
       } // end 2nd while and now treat rightEnds of CHAlfSegments
       // tests if there are endpoints of other segments inside verticals
@@ -2196,21 +2196,21 @@ void VList::testOverlaps(Coord& sweepline, VStructure& vs,
       Coord max =  vs.GetMax();
       chs = first.GetCHS();
       if (!((chs.GetLP().GetY()<=min && chs.GetRP().GetY()<= min)
-	 ||(chs.GetLP().GetY()>=max && chs.GetRP().GetY()>= max))) {
-  	 list<Coord>::iterator ps = vs.vstruct.begin();
-	 bool ready = false;
-	 while (ps != vs.vstruct.end() && ready != true) {
-	    Coord y = *ps;
+         ||(chs.GetLP().GetY()>=max && chs.GetRP().GetY()>= max))) {
+         list<Coord>::iterator ps = vs.vstruct.begin();
+         bool ready = false;
+         while (ps != vs.vstruct.end() && ready != true) {
+            Coord y = *ps;
             if (y >= chs.GetRP().GetY())   ready = true;
-	    else if (y > chs.GetLP().GetY()) {// split CHalfsegment
-	       Point newp = Point(true, sweepline,y);
+            else if (y > chs.GetLP().GetY()) {// split CHalfsegment
+               Point newp = Point(true, sweepline,y);
                Segment newseg(first.GetIn1(),first.GetCHS());
-	       newseg.SetRP(newp);
-	       newlist.push_back(newseg);
-	       first.SetLP(newp);
-	    }
-	    ps++;
-	 }
+               newseg.SetRP(newp);
+               newlist.push_back(newseg);
+               first.SetLP(newp);
+            }
+            ps++;
+         }
       }
       newlist.push_back (first);
    } // end 1st while
@@ -2238,30 +2238,30 @@ void  VList::testStatusLine(StatusLine& sline, Segment segs[])
       // searches the next segment to the bottom of vertical segment
       BinTreeNode<SSSEntry>* node = sline.GetGreater(x,y,segs);
       while (node != 0)  {
-	 //cout << "StatusLine node != 0" << endl;
+         //cout << "StatusLine node != 0" << endl;
          SSSEntry  ent = node -> GetEntry();
          Segment testref = segs[ent.GetSeg()];
-	 //cout << testref << endl;
+         //cout << testref << endl;
          CHalfSegment test = testref.GetCHS() ;
          Point res;
-	 // tests if a segments intersects the vertical
+         // tests if a segments intersects the vertical
          bool inter = vert.spintersect (test, res);
-	 if (inter) { // intersection occurs
+         if (inter) { // intersection occurs
             //cout << "inter is true" << endl;
-	    Segment newseg1(vertref.GetIn1(), vert);
-	    newseg1.SetLP(res);
-	    vlist.push_front (newseg1);
-	    vertref.SetRP(res);
-	    Segment newseg2(testref.GetIn1(), test);
-	    newseg2.SetRP(res);
-	    newlist.push_back(newseg2);
-	    testref.SetLP(res);
+            Segment newseg1(vertref.GetIn1(), vert);
+            newseg1.SetLP(res);
+            vlist.push_front (newseg1);
+            vertref.SetRP(res);
+            Segment newseg2(testref.GetIn1(), test);
+            newseg2.SetRP(res);
+            newlist.push_back(newseg2);
+            testref.SetLP(res);
             //cout << "Testref: " << testref << endl;
             segs[ent.GetSeg()] = testref;
          } // end inter
-	 node = node->GetNext();
-	 if (node!=0 && node->GetEntry().GetY(x,segs)
-	    >vert.GetRP().GetY())  {node = 0;}
+         node = node->GetNext();
+         if (node!=0 && node->GetEntry().GetY(x,segs)
+            >vert.GetRP().GetY())  {node = 0;}
       } // all entries in statusline tested
       p++; // next vertical Segment
       newlist.push_back(vertref);
@@ -2301,7 +2301,7 @@ private:
 
 void MakeRealm::REALM( const CRegion* reg1, 
                        const CRegion* reg2, 
-		       CRegion* result1,
+                       CRegion* result1,
                        CRegion* result2      )
 {
    PQueue pqueue ;  // priority Queue for XEvents
@@ -2608,7 +2608,7 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
       if ( !pq.isEmpty() ) {
         event = pq.getFirstAndDelete();
         insertedCurrentSegment = false;
-      }	
+      } 
       i += 1;
       //cout << "Loop1: " << i << endl;
       //cout << "Size: " << vlist.Size();
@@ -2616,25 +2616,25 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
       //else cout << " PQNOTEmpty ";
       //else cout <<  "insertedCurrentSegment is false " << endl;
       if ( ((sweepline != event.GetX()) || (vlist.Size() > 1)) ||
-		      ( (pq.isEmpty()) && (vlist.Size() == 1) ) 
-		          && insertedCurrentSegment  )  { // new sweepline
+                      ( (pq.isEmpty()) && (vlist.Size() == 1) ) 
+                          && insertedCurrentSegment  )  { // new sweepline
          oldsweep = sweepline;
-      	 // handle all vertical CHalfSegments at old sweepline
+         // handle all vertical CHalfSegments at old sweepline
          if ( !vlist.IsEmpty() ) {
-		 //cout << "Size VList: " <<  vlist.Size() << endl;
-	    list<Segment> newlist = vlist.processAll(sweepline,vs,
-	       sl,segs);
-	    list<Segment>::iterator iter = newlist.begin();
+                 //cout << "Size VList: " <<  vlist.Size() << endl;
+            list<Segment> newlist = vlist.processAll(sweepline,vs,
+               sl,segs);
+            list<Segment>::iterator iter = newlist.begin();
             while (iter != newlist.end()) {
                Segment segment = *iter;
-	       //cout << "Segment: " << segment << endl;
-	       segment.CHSInsert(list1,list2);
+               //cout << "Segment: " << segment << endl;
+               segment.CHSInsert(list1,list2);
                ++iter;
             }
-	    vlist.Clear();   
-	    vs.Clear();
-	 }
-	 if (pq.isEmpty() && insertedCurrentSegment) return;
+            vlist.Clear();   
+            vs.Clear();
+         }
+         if (pq.isEmpty() && insertedCurrentSegment) return;
          sweepline = event.GetX();
       }
       Segment seg = segs[event.GetFirst()]; // get segment - entry
@@ -2647,92 +2647,92 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
       // XEvent for right end of CHalfSegment
       else if (event.GetKind() == rightSegment) {
          sl.Delete(event.GetX(), oldsweep, entry, segs, pq);
-	 if ( vs.IsDefined())   vs.Insert(event.GetY());
-	 //cout << "XEvent Right Segment: " << segs[event.GetFirst()] << endl;
-	 segs[event.GetFirst()].CHSInsert(list1,list2);
-	 /*list<CHalfSegment>::iterator it;
-	 it = list1.begin();
-	 while(it != list1.end()) cout << *it++ << endl;
-	 cout << endl;
+         if ( vs.IsDefined())   vs.Insert(event.GetY());
+         //cout << "XEvent Right Segment: " << segs[event.GetFirst()] << endl;
+         segs[event.GetFirst()].CHSInsert(list1,list2);
+         /*list<CHalfSegment>::iterator it;
+         it = list1.begin();
+         while(it != list1.end()) cout << *it++ << endl;
+         cout << endl;
          it = list2.begin();
-	 while(it != list2.end()) cout << *it++ << endl;
-	 cout << endl;*/
-	 insertedCurrentSegment = true;
+         while(it != list2.end()) cout << *it++ << endl;
+         cout << endl;*/
+         insertedCurrentSegment = true;
       }
       // XEvent for split one CHalfSegment
       else if (event.GetKind() == split) {
          Point point (true, event.GetX(), event.GetY() );
          Segment new1 ( seg.GetIn1(), seg.GetCHS());
-	 if ( (point != new1.GetLP()) && (point != new1.GetRP() ) ) {
-	    new1.SetRP(point);     new1.CHSInsert(list1,list2);
-	    seg.SetLP(point);      segs[event.GetFirst()] = seg;
-	 }
+         if ( (point != new1.GetLP()) && (point != new1.GetRP() ) ) {
+            new1.SetRP(point);     new1.CHSInsert(list1,list2);
+            seg.SetLP(point);      segs[event.GetFirst()] = seg;
+         }
       }
       // XEvent intersection
       else if (event.GetKind() == intersection)  {
          Point p (true, event.GetX(), event.GetY() ) ;
-	 if (oldP.IsDefined() && p.GetX()== oldP.GetX() &&
-	    p.GetY() == oldP.GetY() ){
-	    // multiple intersections in one point
-	    Segment seg2 = segs[event.GetSecond()];
-	    if (mi.find(event.GetFirst()) == mi.end()) {
-	       // split first Segment
-	       SSSEntry entry1 (event.GetFirst(), segs);
-	       sl.Delete(event.GetX(), oldsweep, entry1, segs, pq);
-	       Segment new1 ( seg.GetIn1(), seg.GetCHS());
-	       new1.SetRP(p);
-	       new1.CHSInsert(list1,list2);
-	       seg.SetLP(p);	segs[event.GetFirst()] = seg;
-	       mi.insert (event.GetFirst() );
-	       SSSEntry entry2(event.GetFirst(), segs);
-               sl.Insert(event.GetX(), entry2, segs, pq);
-	    }
-	    if ( mi.find(event.GetSecond()) == mi.end()  ){
-	       // split second segment
-	       SSSEntry entry1 (event.GetSecond(), segs);
-	       sl.Delete(event.GetX(), oldsweep, entry1, segs, pq);
-	       Segment new2 (seg2.GetIn1(),seg2.GetCHS());
-	       new2.SetRP(p);
-	       new2.CHSInsert(list1,list2);
-	       seg2.SetLP(p);	segs[event.GetSecond()] = seg2;
-	       mi.insert (event.GetSecond());
-	       SSSEntry entry2(event.GetSecond(),segs);
-               sl.Insert(event.GetX(),entry2, segs, pq);
-	    }
-	 }
-	 else {  // first intersection-event in this point
+         if (oldP.IsDefined() && p.GetX()== oldP.GetX() &&
+            p.GetY() == oldP.GetY() ){
+            // multiple intersections in one point
             Segment seg2 = segs[event.GetSecond()];
-	    Segment new1 ( seg.GetIn1(), seg.GetCHS());
-	    new1.SetRP(p);
-	    Segment new2 (seg2.GetIn1(),seg2.GetCHS());
-	    new2.SetRP(p);
-	    new1.CHSInsert(list1,list2);
-	    new2.CHSInsert(list1,list2);
-	    CHalfSegment chstest(seg.GetCHS());
-	    seg.SetLP(p);	segs[event.GetFirst()] = seg;
-	    seg2.SetLP(p);	segs[event.GetSecond()] = seg2;
-	    // first Intersection in this event-point
-	    oldP = p;
-	    mi.clear();
-	    mi.insert(event.GetFirst());
-	    mi.insert(event.GetSecond() );
-	    SSSEntry entry1(event.GetFirst(), segs);
-	    BinTreeNode<SSSEntry>* node1 =
-	       sl.Find(sweepline, oldsweep, entry1, segs );
-	    BinTreeNode<SSSEntry>* node2 = node1->GetNext();
-	    if (node2 !=0 &&
-	       node2->GetEntry().GetSeg() == event.GetSecond() ) {}
-	    else node2 = node1->GetPred();
-	    sl.Exchange(node1, node2, segs, pq);
-	 }
+            if (mi.find(event.GetFirst()) == mi.end()) {
+               // split first Segment
+               SSSEntry entry1 (event.GetFirst(), segs);
+               sl.Delete(event.GetX(), oldsweep, entry1, segs, pq);
+               Segment new1 ( seg.GetIn1(), seg.GetCHS());
+               new1.SetRP(p);
+               new1.CHSInsert(list1,list2);
+               seg.SetLP(p);    segs[event.GetFirst()] = seg;
+               mi.insert (event.GetFirst() );
+               SSSEntry entry2(event.GetFirst(), segs);
+               sl.Insert(event.GetX(), entry2, segs, pq);
+            }
+            if ( mi.find(event.GetSecond()) == mi.end()  ){
+               // split second segment
+               SSSEntry entry1 (event.GetSecond(), segs);
+               sl.Delete(event.GetX(), oldsweep, entry1, segs, pq);
+               Segment new2 (seg2.GetIn1(),seg2.GetCHS());
+               new2.SetRP(p);
+               new2.CHSInsert(list1,list2);
+               seg2.SetLP(p);   segs[event.GetSecond()] = seg2;
+               mi.insert (event.GetSecond());
+               SSSEntry entry2(event.GetSecond(),segs);
+               sl.Insert(event.GetX(),entry2, segs, pq);
+            }
+         }
+         else {  // first intersection-event in this point
+            Segment seg2 = segs[event.GetSecond()];
+            Segment new1 ( seg.GetIn1(), seg.GetCHS());
+            new1.SetRP(p);
+            Segment new2 (seg2.GetIn1(),seg2.GetCHS());
+            new2.SetRP(p);
+            new1.CHSInsert(list1,list2);
+            new2.CHSInsert(list1,list2);
+            CHalfSegment chstest(seg.GetCHS());
+            seg.SetLP(p);       segs[event.GetFirst()] = seg;
+            seg2.SetLP(p);      segs[event.GetSecond()] = seg2;
+            // first Intersection in this event-point
+            oldP = p;
+            mi.clear();
+            mi.insert(event.GetFirst());
+            mi.insert(event.GetSecond() );
+            SSSEntry entry1(event.GetFirst(), segs);
+            BinTreeNode<SSSEntry>* node1 =
+               sl.Find(sweepline, oldsweep, entry1, segs );
+            BinTreeNode<SSSEntry>* node2 = node1->GetNext();
+            if (node2 !=0 &&
+               node2->GetEntry().GetSeg() == event.GetSecond() ) {}
+            else node2 = node1->GetPred();
+            sl.Exchange(node1, node2, segs, pq);
+         }
       }
       // XEvent - bottom of a vertical Segment
       else if (event.GetKind() == verticalSegment)  {
-	j += 1;
-	//cout << "Loop2: " << j << endl;
+        j += 1;
+        //cout << "Loop2: " << j << endl;
         vs.SetDefined(true);      // build up VStructure
-	vlist.Insert(segs[event.GetFirst()]);
-	insertedCurrentSegment = true;
+        vlist.Insert(segs[event.GetFirst()]);
+        insertedCurrentSegment = true;
       }
       else  {   cout << " wrong eventkind !!!!!!!!!!!!!!!!!!!!"; }
    }
@@ -2789,8 +2789,8 @@ ostream& operator<<(ostream &os, const SEntry& en)
 {
   return (os   <<" CHS("<<en.GetCHS().GetLDP()
                <<") ("<< en.GetCHS().GetLP() << " "
-	       << en.GetCHS().GetRP() <<")  u=" << en.GetU()
-	       << "  o=" <<en.GetO() );
+               << en.GetCHS().GetRP() <<")  u=" << en.GetU()
+               << "  o=" <<en.GetO() );
 }
 
 /*
@@ -2845,18 +2845,18 @@ void SEntry::Set(const SEntry& in) {
    u = in.u;
 }
 
-void SEntry::SetU (int newU)		{ u = newU; }
-void SEntry::SetO (int newO) 		{ o = newO; }
+void SEntry::SetU (int newU)            { u = newU; }
+void SEntry::SetO (int newO)            { o = newO; }
 
 /*
 4.2.3 Functions for reading property values
 
 */
-CHalfSegment SEntry::GetCHS() const	{return ch;}
-int SEntry::GetU() const	     	{return u;}
-int SEntry::GetO() const	     	{return o;}
-double SEntry::GetSlope() const		{return slope;}
-double SEntry::GetA() const		{return a;}
+CHalfSegment SEntry::GetCHS() const     {return ch;}
+int SEntry::GetU() const                {return u;}
+int SEntry::GetO() const                {return o;}
+double SEntry::GetSlope() const         {return slope;}
+double SEntry::GetA() const             {return a;}
 
 /*
 4.2.4 Functions to compare two entries
@@ -2902,7 +2902,7 @@ Function used from template ~BinTree~.
 Input: SEntry, which is to be inserted od to be deleted
 result: -1 means that the new SEntry < SEntry in tree
          0 means that both SEntry are the same
-	+1 means that the new SEntry > SEntry in tree
+        +1 means that the new SEntry > SEntry in tree
 
 */
 int SEntry::Less (const SEntry in2, const Coord x, const
@@ -2927,23 +2927,23 @@ int SEntry::Less (const SEntry in2, const Coord x, const
             if ((y1-y2) < 0)           return -1;
             else if ( (y1-y2) > 0 )    return 1;
          }
-	 else {  //the point are very close
-	    // tests if new CHS is in same cycle as CHS
-	    // from same object inserted before
-	    cout << "very close" << endl;
-	    if (GetCHS().attr.faceno==oldev.GetCHS().attr.faceno &&
-	    GetCHS().attr.cycleno==oldev.GetCHS().attr.cycleno &&
-	    ((GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==1 ||
-	    (GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==-1))
-	    {
-	       if  (oldnode!=0 &&  oldnode->GetEntry().GetCHS()==
-	          in2.GetCHS())    return 1;
-	       else if (oldnode!=0 && oldnode->GetPred()!=0 &&
-	       oldnode->GetPred()->GetEntry().GetCHS()==in2.GetCHS())
-	          return 1;
-	    }
-	    if (GetSlope() < in2.GetSlope())    return -1;
-	    else  return 1;
+         else {  //the point are very close
+            // tests if new CHS is in same cycle as CHS
+            // from same object inserted before
+            cout << "very close" << endl;
+            if (GetCHS().attr.faceno==oldev.GetCHS().attr.faceno &&
+            GetCHS().attr.cycleno==oldev.GetCHS().attr.cycleno &&
+            ((GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==1 ||
+            (GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==-1))
+            {
+               if  (oldnode!=0 &&  oldnode->GetEntry().GetCHS()==
+                  in2.GetCHS())    return 1;
+               else if (oldnode!=0 && oldnode->GetPred()!=0 &&
+               oldnode->GetPred()->GetEntry().GetCHS()==in2.GetCHS())
+                  return 1;
+            }
+            if (GetSlope() < in2.GetSlope())    return -1;
+            else  return 1;
          } // else test < 0.00001
        } // else kommt vor
    } // if starts same koordinate
@@ -2952,33 +2952,33 @@ int SEntry::Less (const SEntry in2, const Coord x, const
       double test = GetCHS().GetLP().GetY() - in2.GetY(x);
       if ( test > 0.000001 || test < -0.000001) {
    //      cout << " testet y-Vergleich" << endl;
-         if (test < 0) 	   	 return -1;
-         else if ( test > 0 )	 return 1;
+         if (test < 0)           return -1;
+         else if ( test > 0 )    return 1;
       }
       else {  //  |test| < 0.000001 very close
          cout << " very close" << endl; ;
-	 if (GetCHS().attr.faceno == oldev.GetCHS().attr.faceno &&
-	 GetCHS().attr.cycleno == oldev.GetCHS().attr.cycleno &&
-	 ((GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==1 ||
-	 (GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==-1)) {
-//	    cout << " an alten segmenten anhaengen " << endl;
-//	    if (oldnode !=0 && oldnode->GetEntry().GetCHS() !=0)
-//	       cout <<" alter Knoten "<< oldnode->GetEntry().GetCHS() ;
-//	    if (oldnode != 0 && oldnode->GetPred() != 0 )
-//	       cout << "  vorgänger von oldnode " <<
-//	       oldnode->GetPred()->GetEntry().GetCHS();
-//	    cout << endl;
-	    if  (oldnode!=0 &&  oldnode->GetEntry().GetCHS()
-	        ==in2.GetCHS())   return 1;
-	    else if (oldnode != 0 && oldnode->GetPred() != 0 &&
-	       oldnode->GetPred()->GetEntry().GetCHS() == in2.GetCHS())
-	       return 1;
-	    else if (oldnode == 0)  return 1;
-	 }
-//	 cout << " keine alten vorhanden" << endl;
-	 if (GetSlope() < in2.GetSlope())  {//cout << " slope < " <<     endl;
-	 return -1;}
-	 else  return 1;
+         if (GetCHS().attr.faceno == oldev.GetCHS().attr.faceno &&
+         GetCHS().attr.cycleno == oldev.GetCHS().attr.cycleno &&
+         ((GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==1 ||
+         (GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==-1)) {
+//          cout << " an alten segmenten anhaengen " << endl;
+//          if (oldnode !=0 && oldnode->GetEntry().GetCHS() !=0)
+//             cout <<" alter Knoten "<< oldnode->GetEntry().GetCHS() ;
+//          if (oldnode != 0 && oldnode->GetPred() != 0 )
+//             cout << "  vorgänger von oldnode " <<
+//             oldnode->GetPred()->GetEntry().GetCHS();
+//          cout << endl;
+            if  (oldnode!=0 &&  oldnode->GetEntry().GetCHS()
+                ==in2.GetCHS())   return 1;
+            else if (oldnode != 0 && oldnode->GetPred() != 0 &&
+               oldnode->GetPred()->GetEntry().GetCHS() == in2.GetCHS())
+               return 1;
+            else if (oldnode == 0)  return 1;
+         }
+//       cout << " keine alten vorhanden" << endl;
+         if (GetSlope() < in2.GetSlope())  {//cout << " slope < " <<     endl;
+         return -1;}
+         else  return 1;
       } // |test|  < 0.0001
    }  // else
    else if ( GetCHS().GetRP().GetX()==x &&
@@ -3005,7 +3005,7 @@ int SEntry::Less (const SEntry in2, const Coord x, const
       else {
          if (GetSlope() < in2.GetSlope() )   return -1;
          else if (GetSlope() > in2.GetSlope() )   return 1;
-	 else      return 1;
+         else      return 1;
       }
    }
    return 0;
@@ -3047,11 +3047,11 @@ private:
 4.2.1 Initialisation and reading and setting property values
 
 */
-SLine::SLine()  			{BinTree<SEntry> qu;}
-bool SLine::IsEmpty()			{ return (qu.IsEmpty() ); }
-Coord SLine::GetX()			{ return x; }
-int SLine::GetSize()			{return qu.GetCount(); }
-void SLine::SetX(const Coord newx)	{ x = newx; }
+SLine::SLine()                          {BinTree<SEntry> qu;}
+bool SLine::IsEmpty()                   { return (qu.IsEmpty() ); }
+Coord SLine::GetX()                     { return x; }
+int SLine::GetSize()                    {return qu.GetCount(); }
+void SLine::SetX(const Coord newx)      { x = newx; }
 
 BinTreeNode<SEntry>* SLine::Insert (SEntry& in, const Coord x,
    SEntry& oldEntry, BinTreeNode<SEntry>* &oldnode)   {
@@ -3078,10 +3078,10 @@ SEntry SLine::FindAndDelete(SEntry& en, const Coord& x, const
        node = node2;
        if (node == 0) { // nothing found because of rounding
           node2 = qu.GetFirst();
-	  while (node2 != 0 && node2->GetEntry().GetCHS()
-	     != en.GetCHS()  )
-	     node2 = node2->GetNext() ;
-	  node = node2;
+          while (node2 != 0 && node2->GetEntry().GetCHS()
+             != en.GetCHS()  )
+             node2 = node2->GetNext() ;
+          node = node2;
        }
    }
    if (node != 0) {
@@ -3102,17 +3102,17 @@ void SLine::SLineOutput(const Coord x)
    if ( !qu.IsEmpty() ) {
       while (node != 0 )  {
          SEntry ev = node->GetEntry();
-	 CHalfSegment chs = ev.GetCHS();
-	 double abstand = ((chs.GetLP().GetX() - chs.GetRP().GetX())*
+         CHalfSegment chs = ev.GetCHS();
+         double abstand = ((chs.GetLP().GetX() - chs.GetRP().GetX())*
              (chs.GetLP().GetX() - chs.GetRP().GetX()) ) +
-	     ((chs.GetLP().GetY() - chs.GetRP().GetY()) *
-	     (chs.GetLP().GetY() - chs.GetRP().GetY())) ;
+             ((chs.GetLP().GetY() - chs.GetRP().GetY()) *
+             (chs.GetLP().GetY() - chs.GetRP().GetY())) ;
          cout <<" y:" << ev.GetY(x)
-	 << "  SEntry: " << ev.GetCHS()
-	      << "  U:" << ev.GetU() << "   o:" << ev.GetO()
-	      << "  slope:" << ev.GetSlope()
-	      << " Abstand LP-RP: " << abstand
-	      << endl;
+         << "  SEntry: " << ev.GetCHS()
+              << "  U:" << ev.GetU() << "   o:" << ev.GetO()
+              << "  slope:" << ev.GetSlope()
+              << " Abstand LP-RP: " << abstand
+              << endl;
          node = node->GetNext();
       }
    }
@@ -3199,53 +3199,53 @@ CRegion* MakeOp::Intersection(const CRegion* reg1, const CRegion* reg2)
       if (chsAkt.GetLDP() == false) {  // right end of segment
          chsAkt.SetLDP(true);
          SEntry ent (chsAkt);
-	 SEntry en;
-	 // delete segment from sweep line
-	 if (status == FIRST)  {
-	    SEntry in = sweepline.FindAndDelete(ent,aktSweep,
-	    oldSweep, oldEntry1, oldnode1);
-	    en.Set(in);
-	 }
-	 else {
-	    SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
-	    oldEntry2, oldnode2);
-	    en.Set(in);
-	 }
-	 if (en.GetO() == 2 || en.GetU() == 2) {
-	    // add segment to result?
+         SEntry en;
+         // delete segment from sweep line
+         if (status == FIRST)  {
+            SEntry in = sweepline.FindAndDelete(ent,aktSweep,
+            oldSweep, oldEntry1, oldnode1);
+            en.Set(in);
+         }
+         else {
+            SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
+            oldEntry2, oldnode2);
+            en.Set(in);
+         }
+         if (en.GetO() == 2 || en.GetU() == 2) {
+            // add segment to result?
 //  cout << " Ausgabe nr. " << counter << " chs " << chsAkt;
-	    chsAkt.attr.partnerno = counter;
-      chsAkt.SetLDP(false);	(*result) += chsAkt;
-	    chsAkt.SetLDP(true);	(*result) += chsAkt;
-	    counter++;
-	 }
+            chsAkt.attr.partnerno = counter;
+      chsAkt.SetLDP(false);     (*result) += chsAkt;
+            chsAkt.SetLDP(true);        (*result) += chsAkt;
+            counter++;
+         }
       }
       else { // left end of segment
          SEntry ent (chsAkt);
-	 BinTreeNode<SEntry>* node;
-	 // add segment into sweepline-Status-Structure
-	 if (status == FIRST)
-	  node = sweepline.Insert(ent,aktSweep,oldEntry1,oldnode1);
-	 else
-	  node = sweepline.Insert(ent,aktSweep,oldEntry2,oldnode2);
-	 // get predecessor of inserted entry
-	 BinTreeNode<SEntry>* pred = node->GetPred() ;
-	 int np = 0;
-	 int ms, ns;
-	 if (pred != 0) np = pred->GetEntry().GetO();
-	 // calculate new segmentclass of new ChalfSegment
-	 ms = np;    ns = np;
-	 if (status == FIRST || status == BOTH) {
-	    if (chs1->attr.insideAbove == true)	ns = ns+1;
-	    else 				ns = ns-1;
-	 }
-	 if (status == SECOND || status == BOTH) {
-	    if (chs2->attr.insideAbove == true)	ns = ns+1;
-	    else 				ns = ns-1;
-	 }  // set new segmentclasses in SEntry
-	 ent.SetU(ms);
-	 ent.SetO(ns);
-	 node->SetEntry(ent);
+         BinTreeNode<SEntry>* node;
+         // add segment into sweepline-Status-Structure
+         if (status == FIRST)
+          node = sweepline.Insert(ent,aktSweep,oldEntry1,oldnode1);
+         else
+          node = sweepline.Insert(ent,aktSweep,oldEntry2,oldnode2);
+         // get predecessor of inserted entry
+         BinTreeNode<SEntry>* pred = node->GetPred() ;
+         int np = 0;
+         int ms, ns;
+         if (pred != 0) np = pred->GetEntry().GetO();
+         // calculate new segmentclass of new ChalfSegment
+         ms = np;    ns = np;
+         if (status == FIRST || status == BOTH) {
+            if (chs1->attr.insideAbove == true) ns = ns+1;
+            else                                ns = ns-1;
+         }
+         if (status == SECOND || status == BOTH) {
+            if (chs2->attr.insideAbove == true) ns = ns+1;
+            else                                ns = ns-1;
+         }  // set new segmentclasses in SEntry
+         ent.SetU(ms);
+         ent.SetO(ns);
+         node->SetEntry(ent);
       } //  end else
       oldSweep = aktSweep ;
 // sweepline.SLineOutput(aktSweep);
@@ -3295,36 +3295,36 @@ CRegion* MakeOp::Intersection(const CRegion* reg1, const CRegion* reg2)
          if (status == SECOND || status == BOTH) {
             chsAkt.SetLDP(true);
             SEntry ent (chsAkt);
-	    // delete segment from sweep line
-	    SEntry en = sweepline.FindAndDelete(ent,aktSweep,
-	       oldSweep, oldEntry1, oldnode1);
-	 }
+            // delete segment from sweep line
+            SEntry en = sweepline.FindAndDelete(ent,aktSweep,
+               oldSweep, oldEntry1, oldnode1);
+         }
       }
       else { // left end of segment
          SEntry ent (chsAkt);
-	 // add segment into sweepline-Status-Structure
-	 BinTreeNode<SEntry>* node = sweepline.Insert(ent,
-	    aktSweep, oldEntry1, oldnode1);
-	 BinTreeNode<SEntry>* pred = node->GetPred() ;
-	 int np = 0;
-	 int ms, ns;
-	 if (pred != 0) np = pred->GetEntry().GetO();
-	 // calculate new segmentclass of new ChalfSegment
-	 ms = np;
-	 ns = np;
-	 if (status == SECOND || status == BOTH) {
-	    if (chs2->attr.insideAbove == true)	ns = ns+1;
-	    else 				ns = ns-1;
-	    ent.SetU(ms);
-	    ent.SetO(ns);
-	    node->SetEntry(ent);
-	 }
-	 if (status == FIRST || status == BOTH) {
-	    if (pred != 0 && pred->GetEntry().GetO() > 0)
-	       (*result) += chsAkt;
-	    // segments from line are deleted at once
-	    if (status == FIRST) sweepline.Delete(node);
-	 }
+         // add segment into sweepline-Status-Structure
+         BinTreeNode<SEntry>* node = sweepline.Insert(ent,
+            aktSweep, oldEntry1, oldnode1);
+         BinTreeNode<SEntry>* pred = node->GetPred() ;
+         int np = 0;
+         int ms, ns;
+         if (pred != 0) np = pred->GetEntry().GetO();
+         // calculate new segmentclass of new ChalfSegment
+         ms = np;
+         ns = np;
+         if (status == SECOND || status == BOTH) {
+            if (chs2->attr.insideAbove == true) ns = ns+1;
+            else                                ns = ns-1;
+            ent.SetU(ms);
+            ent.SetO(ns);
+            node->SetEntry(ent);
+         }
+         if (status == FIRST || status == BOTH) {
+            if (pred != 0 && pred->GetEntry().GetO() > 0)
+               (*result) += chsAkt;
+            // segments from line are deleted at once
+            if (status == FIRST) sweepline.Delete(node);
+         }
       } //  end else
       oldSweep = aktSweep ;
    } // end while
@@ -3358,7 +3358,7 @@ CLine* MakeOp::Intersection(const CLine* line1, const CLine* line2)
       // segments, which are the same in both arguments are added
       // in result
       if (chs1->GetLP()==chs2->GetLP() && chs1->GetRP()==chs2->GetRP())
-	 {  i ++;   j ++;   (*result) += *chs1; }
+         {  i ++;   j ++;   (*result) += *chs1; }
       else if ( *chs1 < *chs2)  i ++;
       else if ( *chs1 > *chs2)  j ++;
    } // end while
@@ -3400,42 +3400,42 @@ bool MakeOp::P_Intersects(const CRegion* reg1, const CRegion* reg2)
       if (chsAkt.GetLDP() == false) {  // right end of segment
          chsAkt.SetLDP(true);
          SEntry ent (chsAkt);
-	 // delete segment from sweep line
-	 if (status == FIRST)
-	    SEntry en = sweepline.FindAndDelete(ent,aktSweep,oldSweep,
-	       oldEntry1, oldnode1);
-	  else SEntry en = sweepline.FindAndDelete(ent,aktSweep,
-	     oldSweep, oldEntry2, oldnode2);
+         // delete segment from sweep line
+         if (status == FIRST)
+            SEntry en = sweepline.FindAndDelete(ent,aktSweep,oldSweep,
+               oldEntry1, oldnode1);
+          else SEntry en = sweepline.FindAndDelete(ent,aktSweep,
+             oldSweep, oldEntry2, oldnode2);
       }
       else { // left end of segment
          SEntry ent (chsAkt);
-	 BinTreeNode<SEntry>* node;
-	 // add segment into sweepline-Status-Structure
-	 if (status == FIRST)
-	    node=sweepline.Insert(ent,aktSweep,oldEntry1,oldnode1);
-	 else
-	    node=sweepline.Insert(ent,aktSweep,oldEntry2,oldnode2);
-	 BinTreeNode<SEntry>* pred = node->GetPred() ;
-	 int np = 0;
-	 int ms, ns;
-	 if (pred != 0) np = pred->GetEntry().GetO();
-	 // calculate new segmentclass of new ChalfSegment
-	 ms = np;
-	 ns = np;
-	 if (status == FIRST || status == BOTH) {
-	    if (chs1->attr.insideAbove == true)	ns = ns+1;
-	    else 				ns = ns-1;
-	 }
-	 if (status == SECOND || status == BOTH) {
-	    if (chs2->attr.insideAbove == true)	ns = ns+1;
-	    else 				ns = ns-1;
-	 }
-	 // if one intersection is found, break and return true
+         BinTreeNode<SEntry>* node;
+         // add segment into sweepline-Status-Structure
+         if (status == FIRST)
+            node=sweepline.Insert(ent,aktSweep,oldEntry1,oldnode1);
+         else
+            node=sweepline.Insert(ent,aktSweep,oldEntry2,oldnode2);
+         BinTreeNode<SEntry>* pred = node->GetPred() ;
+         int np = 0;
+         int ms, ns;
+         if (pred != 0) np = pred->GetEntry().GetO();
+         // calculate new segmentclass of new ChalfSegment
+         ms = np;
+         ns = np;
+         if (status == FIRST || status == BOTH) {
+            if (chs1->attr.insideAbove == true) ns = ns+1;
+            else                                ns = ns-1;
+         }
+         if (status == SECOND || status == BOTH) {
+            if (chs2->attr.insideAbove == true) ns = ns+1;
+            else                                ns = ns-1;
+         }
+         // if one intersection is found, break and return true
          if (ms == 2 || ns == 2) { return true; }
-	 // set new segmentclasses in SEntry
-	 ent.SetU(ms);
-	 ent.SetO(ns);
-	 node->SetEntry(ent);
+         // set new segmentclasses in SEntry
+         ent.SetU(ms);
+         ent.SetO(ns);
+         node->SetEntry(ent);
       } //  end else
       oldSweep = aktSweep ;
    } // end while
@@ -3477,36 +3477,36 @@ bool MakeOp::P_Intersects(const CRegion* reg, const CLine* line)
          if (status == SECOND || status == BOTH) {
             chsAkt.SetLDP(true);
             SEntry ent (chsAkt);
-	    // delete segment from sweep line
-	    SEntry en = sweepline.FindAndDelete(ent,aktSweep,
-	       oldSweep, oldEntry1, oldnode1);
-	 }
+            // delete segment from sweep line
+            SEntry en = sweepline.FindAndDelete(ent,aktSweep,
+               oldSweep, oldEntry1, oldnode1);
+         }
       }
       else { // left end of segment
          SEntry ent (chsAkt);
-	 // add segment into sweepline-Status-Structure
-	 BinTreeNode<SEntry>* node = sweepline.Insert(ent,aktSweep,
-	    oldEntry1, oldnode1);
-	 BinTreeNode<SEntry>* pred = node->GetPred() ;
-	 int np = 0;
-	 int ms, ns;
-	 if (pred != 0) np = pred->GetEntry().GetO();
-	 // calculate new segmentclass of new ChalfSegment
-	 ms = np;
-	 ns = np;
-	 if (status == SECOND || status == BOTH) {
-	    if (chs2->attr.insideAbove == true)	ns = ns+1;
-	    else 				ns = ns-1;
-	    ent.SetU(ms);
-	    ent.SetO(ns);
-	    node->SetEntry(ent);
-	 }
-	 if (status == FIRST || status == BOTH) {
-	    if ( pred != 0  && pred->GetEntry().GetO() > 0 )
-	       { return true; }
-	    // segments from line are deleted at once
-	    if (status == FIRST) sweepline.Delete(node);
-	 }
+         // add segment into sweepline-Status-Structure
+         BinTreeNode<SEntry>* node = sweepline.Insert(ent,aktSweep,
+            oldEntry1, oldnode1);
+         BinTreeNode<SEntry>* pred = node->GetPred() ;
+         int np = 0;
+         int ms, ns;
+         if (pred != 0) np = pred->GetEntry().GetO();
+         // calculate new segmentclass of new ChalfSegment
+         ms = np;
+         ns = np;
+         if (status == SECOND || status == BOTH) {
+            if (chs2->attr.insideAbove == true) ns = ns+1;
+            else                                ns = ns-1;
+            ent.SetU(ms);
+            ent.SetO(ns);
+            node->SetEntry(ent);
+         }
+         if (status == FIRST || status == BOTH) {
+            if ( pred != 0  && pred->GetEntry().GetO() > 0 )
+               { return true; }
+            // segments from line are deleted at once
+            if (status == FIRST) sweepline.Delete(node);
+         }
       } //  end else
       oldSweep = aktSweep ;
    } // end while
@@ -3576,35 +3576,35 @@ bool MakeOp::Intersects(const CRegion* reg1, const CRegion* reg2)
       if (chsAkt.GetLDP() == false) {  // right end of segment
          chsAkt.SetLDP(true);
          SEntry ent (chsAkt);
-	 // delete segment from sweep line
-	 if (status == FIRST)
-	    SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
-	       oldEntry1, oldnode1);
-	 else SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
-	       oldEntry2, oldnode2);
+         // delete segment from sweep line
+         if (status == FIRST)
+            SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
+               oldEntry1, oldnode1);
+         else SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
+               oldEntry2, oldnode2);
       }
       else { // left end of segment
          SEntry ent (chsAkt);
-	 BinTreeNode<SEntry>* node;
-	 // add segment into sweepline-Status-Structure
-	 if (status == FIRST)
-	    node = sweepline.Insert(ent,aktSweep, oldEntry1, oldnode1);
-	 else
-	    node = sweepline.Insert(ent,aktSweep, oldEntry2, oldnode2);
-	 BinTreeNode<SEntry>* pred = node->GetPred() ;
-	 int np = 0;
-	 int ms, ns;
-	 if (pred != 0) np = pred->GetEntry().GetO();
-	 // calculate new segmentclass of new ChalfSegment
-	 ms = np;
-	 ns = np;
-	 if (chsAkt.attr.insideAbove == true)	ns = ns+1;
-	 else 					ns = ns-1;
-	 // set segmentclasses in SEntry
-	 if (ms == 2 || ns == 2) return true;
-	 ent.SetU(ms);
-	 ent.SetO(ns);
-	 node->SetEntry(ent);
+         BinTreeNode<SEntry>* node;
+         // add segment into sweepline-Status-Structure
+         if (status == FIRST)
+            node = sweepline.Insert(ent,aktSweep, oldEntry1, oldnode1);
+         else
+            node = sweepline.Insert(ent,aktSweep, oldEntry2, oldnode2);
+         BinTreeNode<SEntry>* pred = node->GetPred() ;
+         int np = 0;
+         int ms, ns;
+         if (pred != 0) np = pred->GetEntry().GetO();
+         // calculate new segmentclass of new ChalfSegment
+         ms = np;
+         ns = np;
+         if (chsAkt.attr.insideAbove == true)   ns = ns+1;
+         else                                   ns = ns-1;
+         // set segmentclasses in SEntry
+         if (ms == 2 || ns == 2) return true;
+         ent.SetU(ms);
+         ent.SetO(ns);
+         node->SetEntry(ent);
       } //  end else
       oldSweep = aktSweep ;
    } // end while
@@ -3637,7 +3637,7 @@ bool MakeOp::Intersects (const CRegion* reg, const CLine* line) {
       res2->Get(j,chs2);
       if (chs1->GetLP()==chs2->GetLP()||chs1->GetLP()==chs2->GetRP()||
           chs1->GetRP()==chs2->GetLP()||chs1->GetRP()==chs2->GetRP() )
-	  return true;
+          return true;
       else if ( *chs1 < *chs2) {i ++; chsAkt = *chs1; status = FIRST;}
       else if ( *chs1 > *chs2) {j ++; chsAkt = *chs2; status = SECOND;}
       aktSweep = chsAkt.GetDPoint().GetX();
@@ -3645,36 +3645,36 @@ bool MakeOp::Intersects (const CRegion* reg, const CLine* line) {
          if (status == FIRST) {  // right end of segment of region
             chsAkt.SetLDP(true);
             SEntry ent (chsAkt);
-	    // delete segment from sweep line
-	    SEntry en = sweepline.FindAndDelete(ent,aktSweep,
-	       oldSweep, oldEntry1, oldnode1);
-	 }
+            // delete segment from sweep line
+            SEntry en = sweepline.FindAndDelete(ent,aktSweep,
+               oldSweep, oldEntry1, oldnode1);
+         }
       }
       else { // left end of segment
          SEntry ent (chsAkt);
-	 // add segment into sweepline-Status-Structure
-	 BinTreeNode<SEntry>* node = sweepline.Insert(ent,
-	    aktSweep, oldEntry1, oldnode1);
-	 BinTreeNode<SEntry>* pred = node->GetPred() ;
-	 if (status == FIRST ) {
-	    // insert CHalfSegment from region into sweepline
-	    int np = 0;
-	    int ms, ns;
-	    if (pred != 0) np = pred->GetEntry().GetO();
-	    // calculate new segmentclass of new ChalfSegment
-	    ms = np;
-	    ns = np;
-	    if (chs1->attr.insideAbove == true)
-	       { ent.SetU(0); ent.SetO(1); }
-	    else
-	       { ent.SetU(1); ent.SetO(0); }
-	    node->SetEntry(ent);
+         // add segment into sweepline-Status-Structure
+         BinTreeNode<SEntry>* node = sweepline.Insert(ent,
+            aktSweep, oldEntry1, oldnode1);
+         BinTreeNode<SEntry>* pred = node->GetPred() ;
+         if (status == FIRST ) {
+            // insert CHalfSegment from region into sweepline
+            int np = 0;
+            int ms, ns;
+            if (pred != 0) np = pred->GetEntry().GetO();
+            // calculate new segmentclass of new ChalfSegment
+            ms = np;
+            ns = np;
+            if (chs1->attr.insideAbove == true)
+               { ent.SetU(0); ent.SetO(1); }
+            else
+               { ent.SetU(1); ent.SetO(0); }
+            node->SetEntry(ent);
          } //  end else
-	 else if (status == SECOND) {
-	    if (pred != 0)
-	       { if (pred->GetEntry().GetO() == 1) return true; }
-	    else sweepline.Delete (node);
-	 }
+         else if (status == SECOND) {
+            if (pred != 0)
+               { if (pred->GetEntry().GetO() == 1) return true; }
+            else sweepline.Delete (node);
+         }
       }
       oldSweep = aktSweep ;
    } // end while
@@ -3702,7 +3702,7 @@ bool MakeOp::Intersects (const CLine* line1, const CLine* line2)
       if (chs1->GetLP()==chs2->GetLP() ||
           chs1->GetLP()==chs2->GetRP() ||
           chs1->GetRP()==chs2->GetLP() ||
-	  chs1->GetRP() == chs2->GetRP() ) return true;
+          chs1->GetRP() == chs2->GetRP() ) return true;
       if ( *chs1 < *chs2)       i ++;
       else if ( *chs1 > *chs2)  j ++;
    } // end while
@@ -3743,84 +3743,84 @@ CRegion* MakeOp::Union(const CRegion* reg1, const CRegion* reg2)
       // select_first
       //cout << "while start" << endl;
       if (i < res1->Size() && j < res2->Size() ) {
-	 //cout << "if1" << endl;
+         //cout << "if1" << endl;
          res1->Get(i,chs1);
          res2->Get(j,chs2);
          if (chs1->GetLP()==chs2->GetLP() && chs1->GetRP()==chs2->GetRP() ){
             i ++;   j ++;   chsAkt = *chs1;    status = BOTH; }
-	 else if ( *chs1 < *chs2) {i ++; chsAkt = *chs1; status = FIRST;}
+         else if ( *chs1 < *chs2) {i ++; chsAkt = *chs1; status = FIRST;}
          else if ( *chs1 > *chs2) {j ++; chsAkt = *chs2; status = SECOND;}
       }
       else if (i < res1->Size() ) {
-	 //cout << "if2" << endl;
+         //cout << "if2" << endl;
          res1->Get(i,chs1);  i ++;   chsAkt = *chs1;  status = FIRST;
       }
       else if ( j < res2->Size() ) {
-	 //cout << "if3" << endl;
+         //cout << "if3" << endl;
          res2->Get(j,chs2);  j ++;   chsAkt = *chs2;  status = SECOND;
       }
       aktSweep = chsAkt.GetDPoint().GetX();
       if (chsAkt.GetLDP() == false) { // right sement choosen
-	 //cout << "if4" << endl;
+         //cout << "if4" << endl;
          chsAkt.SetLDP(true);
          SEntry ent (chsAkt);
-	 SEntry en;
-	 // delete segment from sweep line
-	 if (status == FIRST) {
+         SEntry en;
+         // delete segment from sweep line
+         if (status == FIRST) {
             //cout << "if5" << endl;
-	    SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
-	    oldEntry1, oldnode1);
-	    en.Set(in);
-	 }
-	 else {
+            SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
+            oldEntry1, oldnode1);
+            en.Set(in);
+         }
+         else {
             //cout << "if6" << endl;
-	    SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
-	    oldEntry2, oldnode2);
-	    en.Set(in);
-	 }
-	 if (en.GetO() == 0 || en.GetU() == 0) {  // CHalfSegment in result
-	       //cout << "if7" << endl;
-	       chsAkt.attr.partnerno = counter;
-               chsAkt.SetLDP(false);	(*result) += chsAkt;
-	       chsAkt.SetLDP(true);	(*result) += chsAkt;
-	       counter++;
-	 }
-	 if (status == BOTH) {oldEntry1=oldEntry2; oldnode1=oldnode2;}
-	 //cout << "if8" << endl;}
-	 //cout << "right";
-	 //sweepline.SLineOutput(aktSweep);
+            SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
+            oldEntry2, oldnode2);
+            en.Set(in);
+         }
+         if (en.GetO() == 0 || en.GetU() == 0) {  // CHalfSegment in result
+               //cout << "if7" << endl;
+               chsAkt.attr.partnerno = counter;
+               chsAkt.SetLDP(false);    (*result) += chsAkt;
+               chsAkt.SetLDP(true);     (*result) += chsAkt;
+               counter++;
+         }
+         if (status == BOTH) {oldEntry1=oldEntry2; oldnode1=oldnode2;}
+         //cout << "if8" << endl;}
+         //cout << "right";
+         //sweepline.SLineOutput(aktSweep);
       }
       else { // left end of segment
-	 //cout << "if9" << endl;
+         //cout << "if9" << endl;
          SEntry ent (chsAkt);
-	 BinTreeNode<SEntry>* node;
-	 // add segment into sweepline-Status-Structure
-	 if (status == FIRST)  node = sweepline.Insert(ent,aktSweep,
-	    oldEntry1, oldnode1);
-	 else   node = sweepline.Insert(ent,aktSweep, oldEntry2, oldnode2);
-	 BinTreeNode<SEntry>* pred = node->GetPred() ;
-	 int np = 0;
-	 int ms, ns;
-	 if (pred != 0) np = pred->GetEntry().GetO();
-	 // calculate new segmentclass of new ChalfSegment
-	 ms = np;
-	 ns = np;
-	 if (status == FIRST || status == BOTH) {
-	    //cout << "if10" << endl;
-	    if (chs1->attr.insideAbove == true)	ns = ns+1;
-	    else 				ns = ns-1;
-	 }
-	 if (status == SECOND || status == BOTH) {
-	//cout << "if11" << endl;
-	    if (chs2->attr.insideAbove == true)	ns = ns+1;
-	    else 				ns = ns-1;
-	 }
-	 // set new segmentclasses in SEntry
-	 ent.SetU(ms);
-	 ent.SetO(ns);
-	 node->SetEntry(ent);
-	 //cout << "left";
-	 //sweepline.SLineOutput(aktSweep);
+         BinTreeNode<SEntry>* node;
+         // add segment into sweepline-Status-Structure
+         if (status == FIRST)  node = sweepline.Insert(ent,aktSweep,
+            oldEntry1, oldnode1);
+         else   node = sweepline.Insert(ent,aktSweep, oldEntry2, oldnode2);
+         BinTreeNode<SEntry>* pred = node->GetPred() ;
+         int np = 0;
+         int ms, ns;
+         if (pred != 0) np = pred->GetEntry().GetO();
+         // calculate new segmentclass of new ChalfSegment
+         ms = np;
+         ns = np;
+         if (status == FIRST || status == BOTH) {
+            //cout << "if10" << endl;
+            if (chs1->attr.insideAbove == true) ns = ns+1;
+            else                                ns = ns-1;
+         }
+         if (status == SECOND || status == BOTH) {
+        //cout << "if11" << endl;
+            if (chs2->attr.insideAbove == true) ns = ns+1;
+            else                                ns = ns-1;
+         }
+         // set new segmentclasses in SEntry
+         ent.SetU(ms);
+         ent.SetO(ns);
+         node->SetEntry(ent);
+         //cout << "left";
+         //sweepline.SLineOutput(aktSweep);
       } //  end else
       oldSweep = aktSweep ;
    } // end while
@@ -3857,10 +3857,10 @@ CLine* MakeOp::Union(const CLine* line1, const CLine* line2)
       if (i < res1->Size() && j < res2->Size() ) {
          res1->Get(i,chs1);
          res2->Get(j,chs2);
-	 // add same segments only once
+         // add same segments only once
          if (chs1->GetLP()== chs2->GetLP() && chs1->GetRP()== chs2->GetRP() )
-	    {  i ++;   j ++;   (*result) += *chs1; }
-	 else if ( *chs1 < *chs2) { i ++;  (*result) += *chs1; }
+            {  i ++;   j ++;   (*result) += *chs1; }
+         else if ( *chs1 < *chs2) { i ++;  (*result) += *chs1; }
          else if ( *chs1 > *chs2)  { j ++;  (*result) += *chs2; }
       }
       else if (i<res1->Size() )
@@ -3903,7 +3903,7 @@ CRegion* MakeOp::Minus(const CRegion* reg1, const CRegion* reg2)
          res1->Get(i,chs1);
          res2->Get(j,chs2);
          if (chs1->GetLP()==chs2->GetLP() && chs1->GetRP()==chs2->GetRP() )
-	    {i ++; j ++; chsAkt = *chs1;  status = BOTH;    }
+            {i ++; j ++; chsAkt = *chs1;  status = BOTH;    }
          else if ( *chs1 < *chs2) { i ++; chsAkt = *chs1; status = FIRST; }
          else if ( *chs1 > *chs2) { j ++; chsAkt = *chs2; status = SECOND; }
       }
@@ -3916,65 +3916,65 @@ CRegion* MakeOp::Minus(const CRegion* reg1, const CRegion* reg2)
       if (chsAkt.GetLDP() == false) {  // right end of segment
          chsAkt.SetLDP(true);
          SEntry ent (chsAkt);
-	 SEntry en;
-	 // delete segment from sweep line
-	 if (status == FIRST) {
-	    SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
-	       oldEntry1, oldnode1);
-	    en.Set(in);
-	 }
-	 else {
-	    SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
-	       oldEntry2, oldnode2);
-	    en.Set(in);
-	 }
-	 if (status == BOTH)
-	    {oldEntry1 = oldEntry2, oldnode1 = oldnode2;}
+         SEntry en;
+         // delete segment from sweep line
+         if (status == FIRST) {
+            SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
+               oldEntry1, oldnode1);
+            en.Set(in);
+         }
+         else {
+            SEntry in = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
+               oldEntry2, oldnode2);
+            en.Set(in);
+         }
+         if (status == BOTH)
+            {oldEntry1 = oldEntry2, oldnode1 = oldnode2;}
          if ( (status == FIRST && en.GetU() == 0 && en.GetO() == 1) ||
-	    (status == FIRST && en.GetU() == 1 && en.GetO() == 0) ||
-	    (status == BOTH && en.GetU() == 1 && en.GetO() == 1)) {
-	    chsAkt.attr.partnerno = counter;
-            chsAkt.SetLDP(false);	(*result) += chsAkt;
-	    chsAkt.SetLDP(true);	(*result) += chsAkt;
-	    counter++;
-	 }
-	 else if ( (status == SECOND && en.GetU()==1 && en.GetO()==2)||
-	 (status == SECOND && en.GetU() == 2 && en.GetO() == 1) ) {
-	    // attr insideABove must be changed for segments from 2nd
-	    chsAkt.attr.insideAbove = ! chsAkt.attr.insideAbove ;
-	    chsAkt.attr.partnerno = counter;
-            chsAkt.SetLDP(false);	(*result) += chsAkt;
-	    chsAkt.SetLDP(true);	(*result) += chsAkt;
-	    counter++;
-	 }
+            (status == FIRST && en.GetU() == 1 && en.GetO() == 0) ||
+            (status == BOTH && en.GetU() == 1 && en.GetO() == 1)) {
+            chsAkt.attr.partnerno = counter;
+            chsAkt.SetLDP(false);       (*result) += chsAkt;
+            chsAkt.SetLDP(true);        (*result) += chsAkt;
+            counter++;
+         }
+         else if ( (status == SECOND && en.GetU()==1 && en.GetO()==2)||
+         (status == SECOND && en.GetU() == 2 && en.GetO() == 1) ) {
+            // attr insideABove must be changed for segments from 2nd
+            chsAkt.attr.insideAbove = ! chsAkt.attr.insideAbove ;
+            chsAkt.attr.partnerno = counter;
+            chsAkt.SetLDP(false);       (*result) += chsAkt;
+            chsAkt.SetLDP(true);        (*result) += chsAkt;
+            counter++;
+         }
       }
       else { // left end of segment
          SEntry ent (chsAkt);
-	 BinTreeNode<SEntry>* node;
-	 // add segment into sweepline-Status-Structure
-	 if (status == FIRST)
-	    node = sweepline.Insert(ent,aktSweep, oldEntry1, oldnode1);
-	 else
-	    node = sweepline.Insert(ent,aktSweep, oldEntry2, oldnode2);
-	 if (status == BOTH) {oldEntry1 = oldEntry2, oldnode1 = oldnode2;}
-	 BinTreeNode<SEntry>* pred = node->GetPred() ;
-	 int np = 0;
-	 int ms, ns;
-	 if (pred != 0) np = pred->GetEntry().GetO();
-	 // calculate new segmentclass of new ChalfSegment
-	 ms = np; 	 ns = np;
-	 if (status == FIRST || status == BOTH) {
-	    if (chs1->attr.insideAbove == true)	ns = ns+1;
-	    else 				ns = ns-1;
-	 }
-	 if (status == SECOND || status == BOTH) {
-	    if (chs2->attr.insideAbove == true)	ns = ns+1;
-	    else 				ns = ns-1;
-	 }
-	 // set new segmentclasses in SEntry
-	 ent.SetU(ms);
-	 ent.SetO(ns);
-	 node->SetEntry(ent);
+         BinTreeNode<SEntry>* node;
+         // add segment into sweepline-Status-Structure
+         if (status == FIRST)
+            node = sweepline.Insert(ent,aktSweep, oldEntry1, oldnode1);
+         else
+            node = sweepline.Insert(ent,aktSweep, oldEntry2, oldnode2);
+         if (status == BOTH) {oldEntry1 = oldEntry2, oldnode1 = oldnode2;}
+         BinTreeNode<SEntry>* pred = node->GetPred() ;
+         int np = 0;
+         int ms, ns;
+         if (pred != 0) np = pred->GetEntry().GetO();
+         // calculate new segmentclass of new ChalfSegment
+         ms = np;        ns = np;
+         if (status == FIRST || status == BOTH) {
+            if (chs1->attr.insideAbove == true) ns = ns+1;
+            else                                ns = ns-1;
+         }
+         if (status == SECOND || status == BOTH) {
+            if (chs2->attr.insideAbove == true) ns = ns+1;
+            else                                ns = ns-1;
+         }
+         // set new segmentclasses in SEntry
+         ent.SetU(ms);
+         ent.SetO(ns);
+         node->SetEntry(ent);
       } //  end else
       oldSweep = aktSweep ;
    } // end while
@@ -4020,35 +4020,35 @@ CLine* MakeOp::Minus(const CLine* line, const CRegion* reg)
          resLine -> Get(i,chs1); i ++; chsAkt = *chs1; status = FIRST;}
       aktSweep = chsAkt.GetDPoint().GetX();
       if (chsAkt.GetLDP() == false) {  // delete right end
-	 if ( status == SECOND || status == BOTH ) {
+         if ( status == SECOND || status == BOTH ) {
             chsAkt.SetLDP(true);
             SEntry ent (chsAkt);
-	    // delete segment from sweep line
-	    SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
-	       oldEntry1, oldnode1);
-	 }
+            // delete segment from sweep line
+            SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
+               oldEntry1, oldnode1);
+         }
       }
       else { // chsAkt.GetLDP() == true
          SEntry ent (chsAkt);
-	 BinTreeNode<SEntry>* en = sweepline.Insert(ent,aktSweep,
-	    oldEntry1, oldnode1);
-	 BinTreeNode<SEntry>* pred = en->GetPred() ;
-	 if (status == FIRST ) {
-	    if (pred == 0 || (pred!=0 && pred->GetEntry().GetO()==0) )
-	    {
+         BinTreeNode<SEntry>* en = sweepline.Insert(ent,aktSweep,
+            oldEntry1, oldnode1);
+         BinTreeNode<SEntry>* pred = en->GetPred() ;
+         if (status == FIRST ) {
+            if (pred == 0 || (pred!=0 && pred->GetEntry().GetO()==0) )
+            {
          CHalfSegment auxChs1( *chs1 );
-	       (*result) += auxChs1;    auxChs1.SetLDP(false);
-	       (*result) += auxChs1;
-	    }
+               (*result) += auxChs1;    auxChs1.SetLDP(false);
+               (*result) += auxChs1;
+            }
             sweepline.Delete (en) ;
-	 }
-	 else {  // status == SECOND or BOTH
-	    if (chsAkt.attr.insideAbove == true)
-	       { ent.SetU(0); ent.SetO(1); }
-	    else
-	       { ent.SetU(1); ent.SetO(0); }
-	    en->SetEntry(ent);
-	 }
+         }
+         else {  // status == SECOND or BOTH
+            if (chsAkt.attr.insideAbove == true)
+               { ent.SetU(0); ent.SetO(1); }
+            else
+               { ent.SetU(1); ent.SetO(0); }
+            en->SetEntry(ent);
+         }
       } //  end else
       oldSweep = aktSweep ;
    } // end while
@@ -4080,14 +4080,14 @@ CLine* MakeOp::Minus(const CLine* line1, const CLine* line2)
          res1->Get(i,chs1);
          res2->Get(j,chs2);
          if (chs1->GetLP()==chs2->GetLP() && chs1->GetRP()==chs2->GetRP() )
-	    { i ++;  j ++; }
+            { i ++;  j ++; }
          else if ( *chs1 < *chs2) { i ++;  (*result) += *chs1;  }
          else if ( *chs1 > *chs2)  j ++;
       }
       else if (i < res1->Size() ) {
          res1->Get(i,chs1);
-	 i ++;
-	 (*result) += *chs1;
+         i ++;
+         (*result) += *chs1;
       }
    }
    res1->Destroy(); delete res1;
@@ -4135,16 +4135,16 @@ static ListExpr realmMap( ListExpr args )
       arg2 = nl->Second( args );
       if ( NewSpatialTypeOfSymbol( arg1 ) == stline &&
          NewSpatialTypeOfSymbol( arg2 ) == stline )
-	 return (nl->SymbolAtom( "line" ));
+         return (nl->SymbolAtom( "line" ));
       else if ( NewSpatialTypeOfSymbol( arg1 ) == stline &&
          NewSpatialTypeOfSymbol( arg2 ) == stregion )
-	 return (nl->SymbolAtom( "line" ));
+         return (nl->SymbolAtom( "line" ));
       else  if ( NewSpatialTypeOfSymbol( arg1 ) == stregion &&
          NewSpatialTypeOfSymbol( arg2 ) == stline )
-	 return (nl->SymbolAtom( "region" ));
+         return (nl->SymbolAtom( "region" ));
       else  if ( NewSpatialTypeOfSymbol( arg1 ) == stregion &&
          NewSpatialTypeOfSymbol( arg2 ) == stregion )
-	 return (nl->SymbolAtom( "region" ));
+         return (nl->SymbolAtom( "region" ));
    }
    return (nl->SymbolAtom( "typeerror" ));
 }
@@ -4331,14 +4331,14 @@ static int Inter_ll( Word* args, Word& result, int message,
             CLine* res = new CLine(0);
             MakeOp mo;
             res = mo.Intersection( line1, line2 );
-	    if ( res->IsEmpty() )
-	       ((CLine *)result.addr)->SetDefined( false );
+            if ( res->IsEmpty() )
+               ((CLine *)result.addr)->SetDefined( false );
             else
-	       result.addr = res;
+               result.addr = res;
             return(0);
          }
          else   {
-	    ((CLine *)result.addr)->SetDefined( false );
+            ((CLine *)result.addr)->SetDefined( false );
             return (0);
          }
       }
@@ -4346,10 +4346,10 @@ static int Inter_ll( Word* args, Word& result, int message,
          CLine* res = new CLine(0);
          MakeOp mo;
          res = mo.Intersection( line1, line2 );
-	 if ( res->IsEmpty() )
-	    ((CLine *)result.addr)->SetDefined( false );
+         if ( res->IsEmpty() )
+            ((CLine *)result.addr)->SetDefined( false );
          else
-	    result.addr = res;
+            result.addr = res;
          return(0);
       }
    }
@@ -4380,14 +4380,14 @@ static int Inter_lr( Word* args, Word& result, int message,
             CLine* res = new CLine(0);
             MakeOp mo;
             res = mo.Intersection( r2, l1 );
-	    if (res->IsEmpty() )
-	      ((CLine *)result.addr)->SetDefined( false );
+            if (res->IsEmpty() )
+              ((CLine *)result.addr)->SetDefined( false );
             else
-	      result.addr = res ;
+              result.addr = res ;
             return(0);
          }
          else   {
-	    ((CLine *)result.addr)->SetDefined( false );
+            ((CLine *)result.addr)->SetDefined( false );
             return (0);
          }
       }
@@ -4395,10 +4395,10 @@ static int Inter_lr( Word* args, Word& result, int message,
          CLine* res = new CLine(0);
          MakeOp mo;
          res = mo.Intersection( r2, l1  );
-	 if (res->IsEmpty() )
-	    ((CLine *)result.addr)->SetDefined( false );
+         if (res->IsEmpty() )
+            ((CLine *)result.addr)->SetDefined( false );
          else
-	    result.addr = res;
+            result.addr = res;
          return(0);
       }
    }
@@ -4429,14 +4429,14 @@ static int Inter_rl ( Word* args, Word& result, int message,
             CLine* res = new CLine(0);
             MakeOp mo;
             res = mo.Intersection( r2, l1 );
-	    if (res->IsEmpty() )
-	       ((CLine *)result.addr)->SetDefined( false );
+            if (res->IsEmpty() )
+               ((CLine *)result.addr)->SetDefined( false );
             else
-	       result.addr = res;
+               result.addr = res;
             return(0);
          }
          else   {
-	    ((CLine *)result.addr)->SetDefined( false );
+            ((CLine *)result.addr)->SetDefined( false );
             return (0);
          }
       }
@@ -4444,10 +4444,10 @@ static int Inter_rl ( Word* args, Word& result, int message,
          CLine* res = new CLine(0);
          MakeOp mo;
          res = mo.Intersection( r2, l1  );
-	 if (res->IsEmpty() )
-	    ((CLine *)result.addr)->SetDefined( false );
+         if (res->IsEmpty() )
+            ((CLine *)result.addr)->SetDefined( false );
          else
-	    result.addr = res;
+            result.addr = res;
          return(0);
       }
    }
@@ -4478,14 +4478,14 @@ static int Inter_rr( Word* args, Word& result, int message,
             CRegion* res = new CRegion(0);
             MakeOp mo;
             res = mo.Intersection( r1, r2 );
-	    if ( res->IsEmpty() )
-	       ((CRegion *)result.addr)->SetDefined( false );
+            if ( res->IsEmpty() )
+               ((CRegion *)result.addr)->SetDefined( false );
             else
-	       result.addr = res;
+               result.addr = res;
             return(0);
          }
          else   { // no intersection possible
-	    ((CRegion *)result.addr)->SetDefined( false );
+            ((CRegion *)result.addr)->SetDefined( false );
             return (0);
          }
       }
@@ -4493,8 +4493,8 @@ static int Inter_rr( Word* args, Word& result, int message,
          CRegion* res = new CRegion(0);
          MakeOp mo;
          res = mo.Intersection( r1, r2 );
-	 if ( res->IsEmpty() )
-	    ((CRegion *)result.addr)->SetDefined( false );
+         if ( res->IsEmpty() )
+            ((CRegion *)result.addr)->SetDefined( false );
          else
             result.addr = res;
          return(0);
@@ -4974,7 +4974,7 @@ static int Minus_rr( Word* args, Word& result, int message,
    CRegion *r2 = ((CRegion*)args[1].addr);
    if (r1->IsDefined() && r2->IsDefined() ) {
       if ( r1 -> IsEmpty() ) {
-	 ((CRegion *)result.addr)->SetDefined( false );
+         ((CRegion *)result.addr)->SetDefined( false );
          return(0);
       }
       else if ( r2->IsEmpty() ) {
@@ -4987,10 +4987,10 @@ static int Minus_rr( Word* args, Word& result, int message,
             CRegion* res = new CRegion(0);
             MakeOp mo;
             res = mo.Minus( r1, r2 );
-	    if (res->IsEmpty() )
-	       ((CRegion *)result.addr)->SetDefined( false );
+            if (res->IsEmpty() )
+               ((CRegion *)result.addr)->SetDefined( false );
             else
-	       result.addr = res;
+               result.addr = res;
             return(0);
          }
          else   {
@@ -5002,10 +5002,10 @@ static int Minus_rr( Word* args, Word& result, int message,
          CRegion* res = new CRegion(0);
          MakeOp mo;
          res = mo.Minus( r1, r2 );
-	 if (res->IsEmpty() )
-	    ((CRegion *)result.addr)->SetDefined( false );
+         if (res->IsEmpty() )
+            ((CRegion *)result.addr)->SetDefined( false );
          else
-	    result.addr = res;
+            result.addr = res;
          return(0);
       }
    }
@@ -5036,10 +5036,10 @@ Word& local, Supplier s )
             CLine* res = new CLine(0);
             MakeOp mo;
             res = mo.Minus( line,reg );
-	    if ( res -> IsEmpty() )
-	       ((CLine *)result.addr)->SetDefined( false );
+            if ( res -> IsEmpty() )
+               ((CLine *)result.addr)->SetDefined( false );
             else
-	       result.addr = res;
+               result.addr = res;
             return(0);
          }
          else   {
@@ -5052,9 +5052,9 @@ Word& local, Supplier s )
          MakeOp mo;
          res = mo.Minus( line, reg );
          if ( res -> IsEmpty() )
-	    ((CLine *)result.addr)->SetDefined( false );
+            ((CLine *)result.addr)->SetDefined( false );
          else
-	    result.addr = res;
+            result.addr = res;
          return(0);
       }
    } // if IsDefined()
@@ -5098,7 +5098,7 @@ Word& local, Supplier s )
    if (line1->IsDefined() && line2->IsDefined() )    {
       if (line1->IsEmpty() ) {
          ((CLine *) result.addr) -> SetDefined(false);
-	 return (0);
+         return (0);
       }
       else if (line2->IsEmpty() ) {
          result.addr = line1;
@@ -5107,29 +5107,29 @@ Word& local, Supplier s )
       else if (line1->BoundingBox().IsDefined() &&
       line2->BoundingBox().IsDefined() ) {
          if ((line1->BoundingBox().Intersects
-	 (line2->BoundingBox() ) ) ) {
-	    CLine* res = new CLine(0);
+         (line2->BoundingBox() ) ) ) {
+            CLine* res = new CLine(0);
             MakeOp mo;
             res = mo.Minus( line1, line2 );
-	    if (res->IsEmpty() )
-	       ((CLine *)result.addr)->SetDefined( false );
+            if (res->IsEmpty() )
+               ((CLine *)result.addr)->SetDefined( false );
             else
-	       result.addr = res;
+               result.addr = res;
             return(0);
-	 }
-	 else {
-	    result.addr = line1;
-	    return(0);
-	 }
+         }
+         else {
+            result.addr = line1;
+            return(0);
+         }
       }
       else {
          CLine* res = new CLine(0);
          MakeOp mo;
          res = mo.Minus( line1, line2 );
-	 if (res ->IsEmpty() )
-	    ((CLine *)result.addr)->SetDefined( false );
+         if (res ->IsEmpty() )
+            ((CLine *)result.addr)->SetDefined( false );
          else
-	    result.addr = res;
+            result.addr = res;
          return(0);
       }
    }
