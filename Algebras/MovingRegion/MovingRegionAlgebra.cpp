@@ -247,16 +247,26 @@ values of ~eps~. Prof. Dr. G[ue]ting reported an example with incorrect
 behaviour of operator ~at~ for the value $0.00001$. Thomas Behr reported that
 correct moving regions have been rejected for value $0.00000001$.
 
-The operator ~mraprec~ can be used to adjust the precision of double
+The operator ~mraprec~ can be used to set ~eps~, ie. to adjust the 
+precision of double
 comparisons. Please note that the symbol ~MRA\_PREC~ has to be defined to
 include this operator in the algebra. The best place to do this is the
 ~makefile~, and this has been already prepared at the top of the file.
+
+A special behaviour has been implemented for the check whether a moving
+segment is collinear with itself in its initial and ifnal instant (see
+section \ref{collinear}. Since this check is very prone to rounding errors,
+the additional constant ~epsRelaxFactor~ has been introduced. During this
+check, two floating point numbers are considered equal if their difference
+is less than the constant $eps\cdot\ epsRelaxFactor$. ~epsRelaxFactor~
+can be set with the operator ~mraprec~ too.
 
 */
 
 //const double eps = 0.0001;
 //const double eps = 0.00000001;
 double eps = 0.00001;
+double epsRelaxFactor = 10;
 
 /*
 1 Helper functions
@@ -2284,6 +2294,7 @@ region units in section \ref{uregion}.
 The class definition has been moved to ~MovingRegionAlgebra.h~.
 
 1.1.1 Constructor
+\label{collinear}
 
 */
 
@@ -2425,8 +2436,10 @@ Both segments are not vertical.
                  << endl;
         
         collinear = 
-            nearlyEqual((iey-isy)/(iex-isx), (fey-fsy)/(fex-fsx))
-            || nearlyEqual((iey-isy)*(fex-fsx), (fey-fsy)*(iex-isx));
+            abs((iey-isy)/(iex-isx)-(fey-fsy)/(fex-fsx)) 
+              <= eps*epsRelaxFactor
+            || abs((iey-isy)*(fex-fsx)-(fey-fsy)*(iex-isx)) 
+                 <= eps*epsRelaxFactor;
         
         if (!collinear) {
             cerr << setprecision(10)
@@ -7893,6 +7906,7 @@ Word InMRegion(const ListExpr typeInfo,
                 &mr->msegmentdata,
                 mr->msegmentdata.Size());
         if (!ur) {
+            correct = false;
             mr->Destroy();
             delete mr;
             return SetWord(Address(0));
@@ -8212,8 +8226,9 @@ static ListExpr MraprecTypeMap(ListExpr args) {
     if (MRA_DEBUG)
         cerr << "MraprecTypeMap() called" << endl;
 
-    if (nl->ListLength(args) == 1
-        && nl->IsEqual(nl->First(args), "real"))
+    if (nl->ListLength(args) == 2
+        && nl->IsEqual(nl->First(args), "real")
+        && nl->IsEqual(nl->Second(args), "real"))
         return nl->SymbolAtom("bool");
     else
         return nl->SymbolAtom("typeerror");
@@ -8631,12 +8646,14 @@ static int MraprecValueMap(Word* args,
     result = qp->ResultStorage(s);
     CcBool* res = (CcBool*) result.addr;
 
-    CcReal* r = (CcReal*) args[0].addr;
+    CcReal* r1 = (CcReal*) args[0].addr;
+    CcReal* r2 = (CcReal*) args[1].addr;
 
-    if (!r->IsDefined()) 
+    if (!r1->IsDefined() || !r2->IsDefined()) 
         res->SetDefined(false);
     else {
-        eps = r->GetRealval();
+        eps = r1->GetRealval();
+        epsRelaxFactor = r2->GetRealval();
         res->Set(true, true);
     }
 
@@ -8914,7 +8931,7 @@ static const string atspec =
 static const string movespec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>mpoint x region -> mregion</text--->"
-    "    <text>move(_,_)</text--->"
+    "    <text>move( _ , _)</text--->"
     "    <text>Creates a moving region from the given region"
     "  using the mpoint speed and direction </text--->"
     "    <text>query move(mp,reg)</text---> ) )";
@@ -8933,15 +8950,23 @@ static const string traversedspec =
 static const string mraprecspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>(real) -> bool</text--->"
-    "    <text>mraprec ( _ )</text--->"
-    "    <text>Sets precision of comparisons. Always returns true.</text--->"
-    "    <text>mraprec(0.0001)</text---> ) )";
+    "    <text>mraprec( _ , _ )</text--->"
+    "    <text>Sets precision of comparisons. Two floating point values "
+    "are considered equal by the algebra, if their difference is lower "
+    "or equal than the first parameter. The second parameter specifies "
+    "a relaxed comparison precision for the check whether a moving "
+    "segment is collinear with itself in its the initial and final "
+    "instant. In this case, two floating point values are considered "
+    "equal if their difference is lower or equal than the first "
+    "parameter times the second parameter. The operator "
+    "always returns true.</text--->"
+    "    <text>mraprec(0.0001, 10)</text---> ) )";
 #endif // MRA_PREC
 
 static const string bboxspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>(uregion) -> rect3</text--->"
-    "    <text>bbox ( _ )</text--->"
+    "    <text>bbox( _ )</text--->"
     "    <text>Returns the 3d bounding box of the unit.</text--->"
     "    <text>bbox(mregion1)</text---> ) )";
 
