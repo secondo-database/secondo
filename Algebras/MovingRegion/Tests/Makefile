@@ -23,7 +23,7 @@ printsummary:
 	@echo
 	@cat $(SUMMARYFILE)
 	@echo
-	@echo "Please see the respective .out files to detailed test results."
+	@echo "Please see the respective .out files for detailed test results."
 	@echo
 
 %.out: %.tests

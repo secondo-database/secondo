@@ -39,11 +39,11 @@ MODNAME = MovingRegionAlgebra
 # unit test. The algebra will contain specific unit test operators which
 # do not have other applications than unit testing. It is recommend to
 # exclude this statement for production versions of the algebra.
-UNITTEST = -DMRA_UNITTEST
+# UNITTEST = -DMRA_UNITTEST
 
 # Include this statement if you want to activate the mraprec operator,
 # which is used to adjust the precision of double comparisons.
-MRAPREC = -DMRA_PREC
+# MRAPREC = -DMRA_PREC
 
 # Use the mace CCFLAGS to add special compiler flags if needed.
 # In this case the defaults are sufficient

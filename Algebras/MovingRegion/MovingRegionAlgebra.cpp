@@ -3506,9 +3506,9 @@ Since the ~Intime<Alpha>()~ constructors do not properly initialise their
 no better solution right now to assure that ~value~ has a valid DBArray.
 
 */
-    CRegion* schmuh = new CRegion(0);
-    memcpy(&value, schmuh, sizeof(*schmuh));
-    free(schmuh);
+    CRegion* tmp = new CRegion(0);
+    memcpy(&value, tmp, sizeof(*tmp));
+    free(tmp);
 }
 
 IRegion::IRegion(const IRegion& ir) {
@@ -3524,9 +3524,9 @@ Since the ~Intime<Alpha>()~ constructors do not properly initialise their
 no better solution right now to assure that ~value~ has a valid DBArray.
 
 */
-    CRegion* schmuh = new CRegion(0);
-    memcpy(&value, schmuh, sizeof(*schmuh));
-    free(schmuh);
+    CRegion* tmp = new CRegion(0);
+    memcpy(&value, tmp, sizeof(*tmp));
+    free(tmp);
     if (ir.defined) value.CopyFrom(&ir.value);
 }
 
@@ -8556,7 +8556,7 @@ static int IntersectionValueMap(Word* args,
     } catch (invalid_argument& e) {
         cerr << "-----------------------------------------------------------"
              << endl
-             << "An error occured during the inside operation:"
+             << "An error occured during the intersection operation:"
              << endl
              << e.what()
              << endl
@@ -8625,7 +8625,7 @@ static int AtValueMap_MPoint(Word* args,
     } catch (invalid_argument& e) {
         cerr << "-----------------------------------------------------------"
              << endl
-             << "An error occured during the inside operation:"
+             << "An error occured during the at operation:"
              << endl
              << e.what()
              << endl
@@ -8661,7 +8661,7 @@ static int AtValueMap_MRegion(Word* args,
     } catch (invalid_argument& e) {
         cerr << "-----------------------------------------------------------"
              << endl
-             << "An error occured during the inside operation:"
+             << "An error occured during the at operation:"
              << endl
              << e.what()
              << endl
