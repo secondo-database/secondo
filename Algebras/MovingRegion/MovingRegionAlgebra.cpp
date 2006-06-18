@@ -18,7 +18,7 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
-January-May 2006, various bugfixes and improvements by Holger M[ue]nx,
+January-June 2006, various bugfixes and improvements by Holger M[ue]nx,
 with the help of Victor Almeida and Thomas Behr.
 
 [TOC]
@@ -208,6 +208,9 @@ The following groups of test cases are available:
   * ~Tests/intersection.tests~: Checks operators ~intersection~, ~inside~ 
     and ~at~.
 
+  * ~Tests/relation.tests~: Checks moving regions as tuple attributes of
+    relations.
+
 1 Defines and includes
 \label{defines}
 
@@ -366,7 +369,7 @@ static void minmax4(double a,
 /*
 1 Mathematical and geometrical functions
 
-1.1 Function ~GausTsransform()~
+1.1 Function ~GausTransform()~
 
 Apply the Gauss transformation to system of equations. The left hand sides
 of the equations are in matrix $a$ with $n$ rows and $m$ columns and the
@@ -3484,11 +3487,84 @@ void RefinementPartitionOrig<Mapping1, Mapping2, Unit1, Unit2>
 /*
 1 Data type ~intimeregion~
 
-The code for this data type is fairly simple because it can rely on the
-instantiation of class templates from the ~TemporalAlgebra~.
+1.1 Class ~IRegion~
+
+1.1.1 Class definition
+
+The class definition has been moved to ~MovingRegionAlgebra.h~.
+
+1.1.1 Constructors
 
 */
+IRegion::IRegion(bool dummy) {
+    if (MRA_DEBUG) cerr << "IRegion::IRegion() #2 called" << endl;
 
+/*
+This is quite ugly and may not work with other compilers than gcc.
+Since the ~Intime<Alpha>()~ constructors do not properly initialise their
+~value~ attribute (which if of type ~CRegion~ in this case), there is
+no better solution right now to assure that ~value~ has a valid DBArray.
+
+*/
+    CRegion* schmuh = new CRegion(0);
+    memcpy(&value, schmuh, sizeof(*schmuh));
+    free(schmuh);
+}
+
+IRegion::IRegion(const IRegion& ir) {
+    if (MRA_DEBUG) cerr << "IRegion::IRegion() #2 called" << endl;
+
+    instant = ir.instant;
+    defined = ir.defined;
+    
+/*
+This is quite ugly and may not work with other compilers than gcc.
+Since the ~Intime<Alpha>()~ constructors do not properly initialise their
+~value~ attribute (which if of type ~CRegion~ in this case), there is
+no better solution right now to assure that ~value~ has a valid DBArray.
+
+*/
+    CRegion* schmuh = new CRegion(0);
+    memcpy(&value, schmuh, sizeof(*schmuh));
+    free(schmuh);
+    if (ir.defined) value.CopyFrom(&ir.value);
+}
+
+/*
+1.1.1 Methods for algebra integration
+
+1.1.1.1 Method ~Clone()~
+
+*/
+IRegion* IRegion::Clone(void) const {
+    if (MRA_DEBUG) cerr << "IRegion::Clone() called" << endl;
+
+    return new IRegion(*this);
+}
+
+/*
+1.1.1.1 ~DBArray~ access
+
+*/
+int IRegion::NumOfFLOBs(void) const {
+    if (MRA_DEBUG) cerr << "IRegion::NumOfFLOBs() called" << endl;
+
+    return 1;
+}
+
+FLOB* IRegion::GetFLOB(const int i) {
+    if (MRA_DEBUG) cerr << "IRegion::GetFLOB() called" << endl;
+
+    assert(i == 0);
+    return value.GetFLOB(0);
+}
+
+/*
+1.1 Algebra integration
+
+1.1.1 Function ~IRegionProperty()~
+
+*/
 static ListExpr IRegionProperty() {
     if (MRA_DEBUG) cerr << "IRegionProperty() called" << endl;
 
@@ -3511,19 +3587,37 @@ static ListExpr IRegionProperty() {
                 example));
 }
 
+/*
+1.1.1 Function ~CheckIRegion()~
+
+*/
 static bool CheckIRegion(ListExpr type, ListExpr& errorInfo) {
     if (MRA_DEBUG) cerr << "CheckIRegion() called" << endl;
 
     return nl->IsEqual(type, "intimeregion");
 }
 
+/*
+1.1.1 Function ~CreateIRegion()~
+
+*/
+static Word CreateIRegion(const ListExpr typeInfo) {
+    if (MRA_DEBUG) cerr << "CreateIRegion() called" << endl;
+
+    return SetWord(new IRegion(false));
+}
+
+/*
+1.1.1 Type constructor ~iregion~
+
+*/
 static TypeConstructor iregion(
     "intimeregion",
     IRegionProperty,
     OutIntime<CRegion, OutRegion>,
     InIntime<CRegion, InRegion>,
     0, 0, // SaveToList, RestoreFromList
-    CreateIntime<CRegion>,
+    CreateIRegion,
     DeleteIntime<CRegion>,
     0, 0, // open, save
     CloseIntime<CRegion>,
@@ -5747,9 +5841,9 @@ are not border of any region, and create region.
 
     int partnerno = 0;
 
-    CRegion* cr = new CRegion(0);
+    res.Clear();
 
-    cr->StartBulkLoad();
+    res.StartBulkLoad();
 
     for (unsigned int i = 0; i < segmentsNum; i++) {
             if (MRA_DEBUG)
@@ -5827,22 +5921,22 @@ are not border of any region, and create region.
             else
                 chs.attr.insideAbove = dms->GetInsideAbove();
 
-            *cr += chs;
+            res += chs;
 
             chs.SetLDP(false);
 
-            *cr += chs;
+            res += chs;
     }
 
-    cr->EndBulkLoad();
+    res.EndBulkLoad();
 
-//    cr->Sort();
-    cr->SetPartnerNo();
+//    res.Sort();
+    res.SetPartnerNo();
 
     if (MRA_DEBUG)
-        for (int i = 0; i < cr->Size(); i++) {
+        for (int i = 0; i < res.Size(); i++) {
             const CHalfSegment *chs;
-            cr->Get(i, chs);
+            res.Get(i, chs);
 
             cerr << "URegionEmb::TemporalFunction() segment #"
                  << i
@@ -5869,12 +5963,12 @@ are not border of any region, and create region.
                  << endl;
         }
 
-    cr->ComputeRegion();
+    res.ComputeRegion();
 
     if (MRA_DEBUG)
-        for (int i = 0; i < cr->Size(); i++) {
+        for (int i = 0; i < res.Size(); i++) {
             const CHalfSegment *chs;
-            cr->Get(i, chs);
+            res.Get(i, chs);
 
             cerr << "URegionEmb::TemporalFunction() segment #"
                  << i
@@ -5900,16 +5994,6 @@ are not border of any region, and create region.
                  << chs->attr.insideAbove
                  << endl;
         }
-
-/*
-This is quite ugly and may not work with other compilers than gcc.
-Since the ~Intime<Alpha>()~ constructors do not properly initial their
-~value~ attribute (which if of type ~CRegion~ in this case), there is
-no better solution right now.
-
-*/
-    memcpy(&res, cr, sizeof(*cr));
-    free(cr);
 }
 
 /*
@@ -6552,7 +6636,7 @@ void URegion::TemporalFunction(const Instant& t, CRegion& res) const {
 }
 
 /*
-1.1.1 Methods for algebra integrations
+1.1.1 Methods for algebra integration
 
 1.1.1.1 Method ~Clone()~
 

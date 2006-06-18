@@ -285,37 +285,72 @@ query mr1pl5 inside mr1;
 
 ###############################################################################
 
-let mr1pk1 =
+let mr1pm1 =
     [ const mpoint value (((-10.0 10.0 TRUE TRUE) 
 		           (1.0 4.25 2.5 4.25))) ];
 
-#testcase "k11 - intersection"
+#testcase "m11 - intersection"
 #tolerance_real 0.00000001
 #yields (mpoint ((("2000-01-03" "2000-01-08" TRUE TRUE) (1.75 4.25 2.125 4.25))))
-query intersection(mr1pk1, mr1);
+query intersection(mr1pm1, mr1);
 
-#testcase "k12 - inside"
+#testcase "m12 - inside"
 #tolerance_real 0.00000001
 #yields (mbool ((("1999-12-24" "2000-01-03" TRUE FALSE) FALSE) (("2000-01-03" "2000-01-08" TRUE TRUE) TRUE) (("2000-01-08" "2000-01-13" FALSE TRUE) FALSE)))
-query mr1pk1 inside mr1;
+query mr1pm1 inside mr1;
 
 ###############################################################################
 
-let mr1pk2 =
+let mr1pm2 =
     [ const mpoint value (((0.0 10.0 TRUE TRUE) 
 		           (2.5 4.25 1.75 4.25))) ];
 
-#testcase "k21 - intersection"
+#testcase "m21 - intersection"
 #tolerance_real 0.00000001
 #yields (mpoint ((("2000-01-03" "2000-01-08" TRUE TRUE) (2.5 4.25 2.125 4.25))))
-query intersection(mr1pk2, mr1);
+query intersection(mr1pm2, mr1);
 
-#testcase "k22 - inside"
+#testcase "m22 - inside"
 #tolerance_real 0.00000001
 #yields (mbool ((("2000-01-03" "2000-01-08" TRUE TRUE) TRUE) (("2000-01-08" "2000-01-13" FALSE TRUE) FALSE)))
-query mr1pk2 inside mr1;
+query mr1pm2 inside mr1;
 
 ###############################################################################
+
+let r1 = [ const region value ((((200.0 100.0)
+                                 (100.0 100.0)
+                                 (100.0 200.0)
+                                 (200.0 200.0))
+                                ((175.0 125.0)
+                                 (125.0 125.0)
+                                 (125.0 175.0)
+                                 (175.0 175.0)))) ];
+
+let r1p1 =
+    [ const mpoint value (((0.0 10.0 TRUE TRUE) 
+		           (50.0 150.0 250.0 150.0))) ];
+
+#testcase "n - at"
+#yields (mpoint ((("2000-01-05-12:00" "2000-01-06-18:00" TRUE TRUE) (100.0 150.0 125.0 150.0)) (("2000-01-09-06:00" "2000-01-10-12:00" TRUE TRUE) (175.0 150.0 200.0 150.0))))
+query r1p1 at r1;
+
+###############################################################################
+
+let mr2 = [ const movingregion value (((0.0 10.0 TRUE FALSE)
+                                       ((((  0.0   0.0  50.0  50.0)  
+                                          (  0.0 100.0  50.0 150.0)
+                                          (100.0 100.0 150.0 150.0)
+                                          (100.0   0.0 150.0  50.0))
+                                         (( 25.0  25.0  75.0  75.0)
+                                          ( 25.0  75.0  75.0 125.0)
+                                          ( 75.0  75.0 125.0 125.0)
+                                          ( 75.0  25.0 125.0  75.0)))))) ];
+
+let mr2p1 = [ const point value (30.0 30.0) ];
+
+#testcase "o - at"
+#yields (mpoint ((("2000-01-04" "2000-01-09" TRUE TRUE) (30.0 30.0 30.0 30.0))))
+query mr2 at mr2p1;
 
 #teardown
 close database;

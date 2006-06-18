@@ -8,13 +8,15 @@
 
 [1] The ~MovingRegionAlgebra~
 
-December 2005, initial version created by Holger M[ue]nx.
+December 2005, initial version created by Holger M[ue]nx for bachelor
+thesis with Prof. Dr. G[ue]ting, Fachbereich Informatik,
+Fernuniversit[ae]t Hagen.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
-January-May 2006, various bugfixes and improvements by Holger M[ue]nx,
+January-June 2006, various bugfixes and improvements by Holger M[ue]nx,
 with the help of Victor Almeida and Thomas Behr.
 
 [TOC]
@@ -378,6 +380,58 @@ Runtime is $O(1)$.
         Interval<Instant>*& civ,
         int& ur,
         int& up);
+};
+
+/*
+1 Class ~IRegion~
+
+The code for this data type is fairly simple because it can mostly rely on the
+instantiation of the class template ~Intime~ with class ~CRegion~. Just a 
+number of specialized constructors and methods must be overwritten to assure
+that the ~DBArray~ in ~CRegion~ is properly handled. ~Intime~ itself does
+not care about whether its ~value~ attribute is of a class with ~DBArray~
+attributes or not.
+
+*/
+
+class IRegion : public Intime<CRegion> {
+public:
+/*
+1.1 Constructors
+
+The default constructor does nothing.
+
+*/
+    IRegion(void) {}
+
+/*
+Create a new ~IRegion~ instance without setting attribute default values.
+The ~value~ attribute is properly initialized with an empty region, though,
+to assure that its ~DBArray~ is properly initialized.
+
+*/
+    IRegion(bool dummy);
+
+/*
+Create a new ~IRegion~ instance and initialize it with the value of ~ir~.
+
+*/
+    IRegion(const IRegion& ir);
+
+/*
+1.1 Methods for algebra integration
+
+Clone this ~IRegion~ instance and return a pointer to the new instance.
+
+*/
+    IRegion* IRegion::Clone(void) const;
+
+/*
+~DBArray~ access methods. These do use the ~value~ attributes ~DBArray~.
+
+*/
+    int NumOfFLOBs(void) const;
+    FLOB* GetFLOB(const int i);
 };
 
 /*
@@ -880,7 +934,8 @@ set each unit to the constant value of ~r~.
     MRegion(MPoint& mp, CRegion& r);
 
 /*
-Constructs a contiunues moving region from the parameters.
+Constructs a contiunues moving region from the parameters. ~dummy~ is not
+used.
 
 */
     MRegion::MRegion(MPoint& mp, CRegion& r,int dummy);
