@@ -54,6 +54,18 @@ using namespace datetime;
 2 Type definitions, Auxiliary Functions
 
 */
+struct USegments
+{
+    int unitnr;
+    vector<MSegmentData> sgms;
+};
+
+struct GroupOfIntervals
+{
+    int unit_nr;
+    Interval<Instant> str_inst;
+};
+
 void MinMaxValueFunction(const UReal* utemp, double& minimum, double& maximum)
 {
     /*cout << endl;
@@ -835,6 +847,25 @@ MovingSANExtTypeMap( ListExpr args )
 }
 
 /*
+4.1.15 Type mapping function ~MPointExtTypeMapMPoint~
+
+It is for the operator ~velocity~.
+
+*/
+ListExpr
+MPointExtTypeMapMPoint( ListExpr args )
+{
+    if ( nl->ListLength( args ) == 1 )
+    {
+        ListExpr arg1 = nl->First( args );
+
+        if( nl->IsEqual( arg1, "mpoint" ) )
+            return nl->SymbolAtom( "mpoint" );
+    }
+    return nl->SymbolAtom( "typeerror" );
+}
+
+/*
 4.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -1084,17 +1115,17 @@ int MappingAtPeriodsExtMRegion( Word* args,
     Periods* per = (Periods*)args[1].addr;
     MRegion* pResult = (MRegion*)result.addr;
 
-    //Periods periods_result;
-    const URegion* utemp;
-    URegion utempout;
+    /*const URegionEmb* utemp;
     const Interval<Instant>* temp2;
     Interval<Instant> temp3;
     const MSegmentData* oldsmg;
+    const MSegmentData* temp_smg;
     MSegmentData newsmg;
-    //const Interval<Instant>* temp4;
+    vector<GroupOfIntervals> temp_intervals;
+    GroupOfIntervals inter_temp;
+    DBArray<MSegmentData>* tempsgms;
+    URegion* out_ureg;
 
-    pResult->Clear();
-    pResult->StartBulkLoad();
     for(int i=0;i<mr->GetNoComponents();i++)
     {
         mr->Get(i, utemp);
@@ -1104,33 +1135,46 @@ int MappingAtPeriodsExtMRegion( Word* args,
             if((utemp->timeInterval).Intersects(*temp2))
             {
                 (utemp->timeInterval).Intersection(*temp2, temp3);
-                //utempout = new URegion();
-                (utempout.timeInterval).CopyFrom(temp3);
-                /*for(int k=0;k<utemp->GetSegmentsNum();k++)
-                {
-                    utemp->GetSegment(k, oldsmg);
-                    oldsmg->restrictToInterval(utemp->timeInterval,
-                            temp3,
-                            newsmg);
-                    utempout->PutSegment(k, newsmg);
-                    delete(oldsmg);
-                }*/
-                pResult->Add(utempout);
-                //pResult->Add(*utempout);
-                //delete(utempout);
+                inter_temp.unit_nr = i;
+                (inter_temp.str_inst).CopyFrom(temp3);
+                temp_intervals.push_back(inter_temp);
             }
         }
     }
-    pResult->EndBulkLoad( false );
-
-    /*for(int i=0;i<periods_result.GetNoComponents();i++)
+    pResult->Clear();
+    pResult->StartBulkLoad();
+    for(int i=0;i<mr->GetNoComponents();i++)
     {
-        periods_result.Get(i, temp4);
-        cout << endl << i << ": [";
-        cout << (temp4->start).ToString() << " , ";
-        cout << (temp4->end).ToString();
-        cout << "]" << endl;
-    }*/
+        mr->Get(i, utemp);
+        tempsgms = new DBArray<MSegmentData>( utemp->GetSegmentsNum() );
+        for(int k=0;k<utemp->GetSegmentsNum();k++)
+        {
+            utemp->GetSegment(k, oldsmg);
+            oldsmg->restrictToInterval(utemp->timeInterval,
+            temp3,
+            newsmg);
+            tempsgms->Append(newsmg);
+        }
+        out_ureg = new URegion(temp_intervals[i].str_inst);
+        out_ureg->SetMSegmentData(tempsgms);
+        for(int t=0;t<tempsgms->Size();t++)
+        {
+            tempsgms->Get(t, temp_smg);
+            cout << endl << i << ": [";
+            cout << temp_smg->GetInitialStartX() << " , ";
+            cout << temp_smg->GetInitialStartY() << endl;
+            cout << temp_smg->GetInitialEndX() << " , ";
+            cout << temp_smg->GetInitialEndY() << endl;
+            cout << temp_smg->GetFinalStartX() << " , ";
+            cout << temp_smg->GetFinalStartY() << endl;
+            cout << temp_smg->GetFinalEndX() << " , ";
+            cout << temp_smg->GetFinalEndY() << endl;
+            cout << "]" << endl;
+        }
+        pResult->Add(*out_ureg);
+    }
+    pResult->EndBulkLoad( false );*/
+
 
     return 0;
 }
@@ -1881,6 +1925,48 @@ int MovingNeverExt(
 }
 
 /*
+4.3.17 Value mapping functions of operator ~velocity~
+
+*/
+int MovingVelocityExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MPoint* m = ((MPoint*)args[0].addr);
+    MPoint* pResult = ((MPoint*)result.addr);
+    //double speed, distance, t;
+    //const Point p0, p1;
+    const UPoint* unitin;
+
+    //pResult->Clear();
+    //pResult->StartBulkLoad();
+    for(int i=0;i<m->GetNoComponents();i++)
+    {
+        m->Get(i, unitin);
+        cout << endl;
+        cout << "p0: " << unitin->p0.GetX() << ", ";
+        cout << unitin->p0.GetY() << endl;
+        cout << "p1: " << unitin->p1.GetX() << ", ";
+        cout << unitin->p1.GetY() << endl;
+        cout << "t0: " << unitin->timeInterval.start.ToDouble() << endl;
+        cout << "t1: " << unitin->timeInterval.end.ToDouble() << endl;
+
+        /*t = unitin->timeInterval.end.ToDouble() -
+                unitin->timeInterval.start.ToDouble();
+        speed = distance / t;*/
+        //pResult->Add(unitout);
+    }
+    //pResult->EndBulkLoad( false );
+
+    return 0;
+}
+
+/*
 4.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -1959,6 +2045,9 @@ ValueMapping temporalalwaysextmap[] = {
 
 ValueMapping temporalneverextmap[] = {
     MovingNeverExt };
+
+ValueMapping temporalvelocityextmap[] = {
+    MovingVelocityExt };
 
 /*
 4.5 Specification strings
@@ -2102,7 +2191,7 @@ const string TemporalSpecDerivableExt =
 const string TemporalSpecSpeedExt  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>moving(mpoint) -> moving(real)</text--->"
+    "( <text>moving(point) -> moving(real)</text--->"
     "<text>speed ( _ )</text--->"
     "<text>Velocity of a mpoint given as mreal.</text--->"
     "<text>speed ( mp1 )</text--->"
@@ -2144,6 +2233,15 @@ const string BoolSpecNeverExt  =
     "<text>never ( _ )</text--->"
     "<text>Returns true if all units are FALSE.</text--->"
     "<text>never ( mb1 )</text--->"
+    ") )";
+
+const string TemporalSpecVelocityExt  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>moving(point) -> moving(point)</text--->"
+    "<text>velocity ( _ )</text--->"
+    "<text>Velocity of a mpoint given as mpoint(a vector function).</text--->"
+    "<text>velocity ( mp1 )</text--->"
     ") )";
 
 /*
@@ -2287,6 +2385,14 @@ Operator neverext(
     Operator::SimpleSelect,
     MovingSANExtTypeMap );
 
+Operator temporalvelocityext(
+    "velocity",
+    TemporalSpecVelocityExt,
+    1,
+    temporalvelocityextmap,
+    Operator::SimpleSelect,
+    MPointExtTypeMapMPoint);
+
 class TemporalExtAlgebra : public Algebra
 {
   public:
@@ -2329,6 +2435,7 @@ class TemporalExtAlgebra : public Algebra
         AddOperator( &temporalderivativeext );
         AddOperator( &temporalderivableext );
         AddOperator( &temporalspeedext );
+        AddOperator( &temporalvelocityext );
 
         AddOperator( &rangerangevaluesext );
 
