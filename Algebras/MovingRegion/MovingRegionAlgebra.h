@@ -488,7 +488,7 @@ during the interval.
 
 */
     unsigned int Plumbline(
-        DBArray<MSegmentData>* segments,
+        const DBArray<MSegmentData>* segments,
         const UPoint& up, 
         const Interval<Instant>& iv) const;
 
@@ -586,7 +586,7 @@ to vector ~vtsi~.
 
 */
     void RestrictedIntersectionFind(
-        DBArray<MSegmentData>* segments,
+        const DBArray<MSegmentData>* segments,
         const UPoint& up,
         const Interval<Instant>& iv,
         vector<TrapeziumSegmentIntersection>& vtsi) const;
@@ -640,7 +640,7 @@ Get number of segments, get specified segment, write specified segment.
 */
     int GetSegmentsNum(void) const;
     void GetSegment(
-        DBArray<MSegmentData>* segments,
+        const DBArray<MSegmentData>* segments,
         int pos, 
         const MSegmentData*& dms) const;
     void PutSegment(
@@ -707,7 +707,7 @@ units but only if ~merge~ is ~true~.
 
 */
     void RestrictedIntersection(
-        DBArray<MSegmentData>* segments,
+        const DBArray<MSegmentData>* segments,
         const UPoint& up,
         const Interval<Instant>& iv,
         MPoint& res,
@@ -744,6 +744,7 @@ Use it carefully to avoid inconsistencies.
 
 */
     bool IsValid(void) const;
+
     bool Disjoint(const URegionEmb& ur) const;
     bool TU_Adjacent(const URegionEmb& ur) const;
     bool operator==(const URegionEmb& ur) const;
@@ -947,6 +948,12 @@ Get ~URegion~ unit ~i~ from this ~MRegion~ instance and return it in ~ur~.
 
 */
     void Get(const int i, const URegionEmb*& ur) const;
+
+/*
+Allow read-only access to ~msegmentdata~.
+
+*/
+    const DBArray<MSegmentData>* GetMSegmentData(void);
 
 /*
 1.1 Methods for database operators

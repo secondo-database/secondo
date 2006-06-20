@@ -3836,7 +3836,7 @@ int URegionEmb::GetSegmentsNum(void) const {
 
 */
 void URegionEmb::GetSegment(
-    DBArray<MSegmentData>* segments,
+    const DBArray<MSegmentData>* segments,
     int pos, 
     const MSegmentData*& dms) const {
 
@@ -4374,7 +4374,7 @@ computation.
 
 */
 unsigned int URegionEmb::Plumbline(
-    DBArray<MSegmentData>* segments,
+    const DBArray<MSegmentData>* segments,
     const UPoint& up, 
     const Interval<Instant>& iv) const{
 
@@ -5321,7 +5321,7 @@ of the segments.
 */
 
 void URegionEmb::RestrictedIntersectionFind(
-    DBArray<MSegmentData>* segments,
+    const DBArray<MSegmentData>* segments,
     const UPoint& up,
     const Interval<Instant>& iv,
     vector<TrapeziumSegmentIntersection>& vtsi) const {
@@ -5763,7 +5763,7 @@ the interval of the two units (this is not checked and must be assured
 before this method is called!).
 
 */
-void URegionEmb::RestrictedIntersection(DBArray<MSegmentData>* segments,
+void URegionEmb::RestrictedIntersection(const DBArray<MSegmentData>* segments,
                                         const UPoint& up,
                                         const Interval<Instant>& iv,
                                         MPoint& res,
@@ -7289,7 +7289,9 @@ MRegion::MRegion(MPoint& mp, CRegion& r,int dummy) :
 }
 
 /*
-1.1.1 Attribute access method 
+1.1.1 Attribute access methods
+
+1.1.1.1 Method ~Get()~
 
 */
 void MRegion::Get(const int i, const URegionEmb*& ur) const {
@@ -7302,6 +7304,14 @@ void MRegion::Get(const int i, const URegionEmb*& ur) const {
              << endl;
     
     Mapping<URegionEmb, CRegion>::Get(i, ur);
+}
+
+/*
+1.1.1.1 Method ~GetMSegmentData()~
+
+*/
+const DBArray<MSegmentData>* MRegion::GetMSegmentData(void) {
+    return &msegmentdata;
 }
 
 /*
