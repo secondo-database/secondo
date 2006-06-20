@@ -82,6 +82,8 @@ The type system of the Temporal Algebra can be seen below.
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+using namespace datetime;
+
 /*
 3 C++ Classes (Defintion)
 
@@ -4584,7 +4586,7 @@ Word InIntime( const ListExpr typeInfo, const ListExpr instance,
                                              nl->First( instance ),
                                                          errorPos, 
                                                          errorInfo, 
-                                                         correct    ).addr;
+                                                         correct ).addr;
 
     if( correct == false )
     {
