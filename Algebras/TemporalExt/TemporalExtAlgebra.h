@@ -63,6 +63,15 @@ typedef Mapping< UString, CcString > MString;
 typedef Range<CcBool> RBool;
 typedef Range<CcString> RString;
 
+class MPointExt : public MPoint
+{
+public:
+
+    MPointExt() : MPoint() {}
+
+    void MDirection( MReal* result) const;
+};
+
 #endif // _TEMPORALEXT_ALGEBRA_H_
 
 

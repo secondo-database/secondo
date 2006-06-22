@@ -33,6 +33,7 @@ inclusion of header files concerning Secondo.
 #include <time.h>
 #include <vector>
 #include <map>
+#include <cmath>
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -51,9 +52,24 @@ using namespace datetime;
 
 /*
 
-2 Type definitions, Auxiliary Functions
+2 Type definitions, Auxiliary Functions, Implementations
 
 */
+
+/*
+Global variable for unit of time: milliseconds * FactorForUnitOfTime
+    FactorForUnitOfTime = 1. (default)
+
+*/
+float FactorForUnitOfTime = 1.;
+
+/*
+Global variable for unit of distance: meter * FactorForUnitOfDistance
+    FactorForUnitOfDistance = 1. (default)
+
+*/
+float FactorForUnitOfDistance = 1.;
+
 struct USegments
 {
     int unitnr;
@@ -149,6 +165,72 @@ void MinMaxValueFunction(const UReal* utemp, double& minimum, double& maximum)
     cout << endl;*/
 }
 
+void MPointExt::MDirection( MReal* result) const
+{
+    const UPoint* unitin;
+    UReal uresult;
+    float x0, y0, x1, y1, dx, dy;
+
+    result->Clear();
+    result->StartBulkLoad();
+    for(int i=0;i<GetNoComponents();i++)
+    {
+        Get(i, unitin);
+        /* Initializing uresult */
+        uresult.a = 0.;
+        uresult.b = 0.;
+        uresult.c = 0.;
+        uresult.r = false;
+        uresult.timeInterval = unitin->timeInterval;
+        x0 = unitin->p0.GetX();
+        y0 = unitin->p0.GetY();
+        x1 = unitin->p1.GetX();
+        y1 = unitin->p1.GetY();
+
+        /* Distances */
+        if((x0 > 0 && x1 < 0) || (x0 < 0 && x1 > 0))
+            dx = abs(unitin->p1.GetX())+abs(unitin->p0.GetX());
+        else
+            dx = abs(unitin->p1.GetX()-unitin->p0.GetX());
+
+        if((y0 > 0 && y1 < 0) || (y0 < 0 && y1 > 0))
+            dy = abs(unitin->p1.GetY())+abs(unitin->p0.GetY());
+        else
+            dy = abs(unitin->p1.GetY()-unitin->p0.GetY());
+
+        if(y0 == y1)
+        {
+            if(y0 == 0)
+            {
+                /* MPoint runs parallel with the x-axis */
+                uresult.SetDefined( true );
+            }
+            else
+            {
+                /* MPoint does not cross the x-axis */
+                uresult.SetDefined( false );
+            }
+        }
+        else
+        {
+            if(x0 == x1)
+            {
+                /* MPoint is perpendicular to the x-axis */
+                uresult.c = PI;
+                uresult.SetDefined( true );
+            }
+            else
+            {
+                uresult.c = atan( dy / dx );
+                uresult.SetDefined( true );
+            }
+        }
+        result->Add( uresult );
+    }
+    result->EndBulkLoad( false );
+}
+
+
 /*
 2.1 Auxiliary Funcions
 
@@ -161,6 +243,7 @@ bool CheckURealDerivable(const UReal* unit)
     UReal* tmp_unit = (UReal*)unit;
     return tmp_unit->r;
 }
+
 
 /*
 3.1 Type Constructor ~istring~
@@ -783,7 +866,7 @@ MovingRExtTypeMapBool( ListExpr args )
 /*
 4.1.12 Type mapping function ~MovingPointExtTypeMapMReal~
 
-It is for the operator ~speed~.
+It is for the operators ~speed~ ans ~mdirection~.
 
 */
 ListExpr
@@ -861,6 +944,25 @@ MPointExtTypeMapMPoint( ListExpr args )
 
         if( nl->IsEqual( arg1, "mpoint" ) )
             return nl->SymbolAtom( "mpoint" );
+    }
+    return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+4.1.16 Type mapping function RealPhysicalUnitsExtTypeMap
+
+It is for the operators ~setunitoftime~ and ~setunitofdistance~.
+
+*/
+ListExpr
+RealPhysicalUnitsExtTypeMap( ListExpr args )
+{
+    if ( nl->ListLength( args ) == 1 )
+    {
+        ListExpr arg1 = nl->First( args );
+
+        if( nl->IsEqual( arg1, "real" ) )
+            return nl->SymbolAtom( "real" );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -1523,6 +1625,7 @@ int MovingSpeedExt(
 
     Mapping* m = ((Mapping*)args[0].addr);
     MReal* pResult = ((MReal*)result.addr);
+
     double speed, distance, t;
     const Point p0, p1;
     const UPoint* unitin;
@@ -1533,9 +1636,10 @@ int MovingSpeedExt(
     for(int i=0;i<m->GetNoComponents();i++)
     {
         m->Get(i, unitin);
-        distance = unitin->p0.Distance(unitin->p1);
-        t = unitin->timeInterval.end.ToDouble() -
-            unitin->timeInterval.start.ToDouble();
+        distance = (unitin->p0.Distance(unitin->p1)) * FactorForUnitOfDistance;
+        t = ((unitin->timeInterval.end).GetAllMilliSeconds() -
+                (unitin->timeInterval.start).GetAllMilliSeconds())
+                * FactorForUnitOfTime;
         speed = distance / t;
         unitout.a = 0.;
         unitout.b = 0.;
@@ -1544,6 +1648,11 @@ int MovingSpeedExt(
         unitout.timeInterval = unitin->timeInterval;
         pResult->Add(unitout);
     }
+    /* Units */
+    cout << endl << endl;
+    cout << "Unit of speed: " << FactorForUnitOfDistance;
+    cout << " * m / " << FactorForUnitOfTime;
+    cout << " * ms" << endl << endl;
     pResult->EndBulkLoad( false );
 
     return 0;
@@ -1939,29 +2048,105 @@ int MovingVelocityExt(
 
     MPoint* m = ((MPoint*)args[0].addr);
     MPoint* pResult = ((MPoint*)result.addr);
-    //double speed, distance, t;
-    //const Point p0, p1;
     const UPoint* unitin;
+    UPoint* unitout;
+    float dx, dy, dt;
 
-    //pResult->Clear();
-    //pResult->StartBulkLoad();
+    pResult->Clear();
+    pResult->StartBulkLoad();
     for(int i=0;i<m->GetNoComponents();i++)
     {
         m->Get(i, unitin);
-        cout << endl;
-        cout << "p0: " << unitin->p0.GetX() << ", ";
-        cout << unitin->p0.GetY() << endl;
-        cout << "p1: " << unitin->p1.GetX() << ", ";
-        cout << unitin->p1.GetY() << endl;
-        cout << "t0: " << unitin->timeInterval.start.ToDouble() << endl;
-        cout << "t1: " << unitin->timeInterval.end.ToDouble() << endl;
-
-        /*t = unitin->timeInterval.end.ToDouble() -
-                unitin->timeInterval.start.ToDouble();
-        speed = distance / t;*/
-        //pResult->Add(unitout);
+        dx = unitin->p1.GetX()-unitin->p0.GetX();
+        dy = unitin->p1.GetY()-unitin->p0.GetY();
+        dt = ((unitin->timeInterval.end).GetAllMilliSeconds() -
+                (unitin->timeInterval.start).GetAllMilliSeconds()) *
+                FactorForUnitOfTime;
+        unitout = new UPoint(
+            unitin->timeInterval,
+            0, 0, dx/dt, dy/dt
+        );
+        pResult->Add(*unitout);
     }
-    //pResult->EndBulkLoad( false );
+    pResult->EndBulkLoad( false );
+
+    return 0;
+}
+
+/*
+4.3.18 Value mapping function of operator ~setunitoftime~
+
+*/
+int GlobalUnitOfTimeExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+    CcReal* f = ((CcReal*)args[0].addr);
+
+    if(f->GetRealval() > 0.)
+    {
+        FactorForUnitOfTime = f->GetRealval();
+        ((CcReal *)result.addr)->Set( FactorForUnitOfTime );
+        ((CcReal *)result.addr)->SetDefined( true );
+    }
+    else
+    {
+        ((CcReal *)result.addr)->SetDefined( false );
+    }
+
+    return 0;
+}
+
+/*
+4.3.19 Value mapping function of operator ~setunitofdistance~
+
+*/
+int GlobalUnitOfDistanceExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+    CcReal* f = ((CcReal*)args[0].addr);
+
+    if(f->GetRealval() > 0.)
+    {
+        FactorForUnitOfDistance = f->GetRealval();
+        ((CcReal *)result.addr)->Set( FactorForUnitOfDistance );
+        ((CcReal *)result.addr)->SetDefined( true );
+    }
+    else
+    {
+        ((CcReal *)result.addr)->SetDefined( false );
+    }
+
+    return 0;
+}
+
+
+/*
+4.3.20 Value mapping function of operator ~mdirection~
+
+*/
+int MovingMDirectionExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MPointExt* m = ((MPointExt*)args[0].addr);
+    MReal* pResult = ((MReal*)result.addr);
+
+    m->MDirection( pResult );
 
     return 0;
 }
@@ -2046,8 +2231,17 @@ ValueMapping temporalalwaysextmap[] = {
 ValueMapping temporalneverextmap[] = {
     MovingNeverExt };
 
+ValueMapping globalunitoftimeextmap[] = {
+    GlobalUnitOfTimeExt };
+
+ValueMapping globalunitofdistanceextmap[] = {
+    GlobalUnitOfDistanceExt };
+
 ValueMapping temporalvelocityextmap[] = {
     MovingVelocityExt };
+
+ValueMapping temporalmdirectionextmap[] = {
+    MovingMDirectionExt };
 
 /*
 4.5 Specification strings
@@ -2174,27 +2368,27 @@ const string TemporalSpecDerivativeExt  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>moving(real) -> moving(real)</text--->"
-    "<text>derivative ( _ )</text--->"
+    "<text>derivative_new ( _ )</text--->"
     "<text>Derivative of a mreal.</text--->"
-    "<text>derivative ( mr1 )</text--->"
+    "<text>derivative_new ( mr1 )</text--->"
     ") )";
 
 const string TemporalSpecDerivableExt =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>moving(mreal) -> moving(bool)</text--->"
-    "<text>derivable ( _ )</text--->"
+    "<text>derivable_new ( _ )</text--->"
     "<text>Checking if mreal is derivable.</text--->"
-    "<text>derivable ( mr1 )</text--->"
+    "<text>derivable_new ( mr1 )</text--->"
     ") )";
 
 const string TemporalSpecSpeedExt  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>moving(point) -> moving(real)</text--->"
-    "<text>speed ( _ )</text--->"
+    "<text>speed_new ( _ )</text--->"
     "<text>Velocity of a mpoint given as mreal.</text--->"
-    "<text>speed ( mp1 )</text--->"
+    "<text>speed_new ( mp1 )</text--->"
     ") )";
 
 const string RangeSpecRangevaluesExt  =
@@ -2239,9 +2433,36 @@ const string TemporalSpecVelocityExt  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>moving(point) -> moving(point)</text--->"
-    "<text>velocity ( _ )</text--->"
+    "<text>velocity_new ( _ )</text--->"
     "<text>Velocity of a mpoint given as mpoint(a vector function).</text--->"
-    "<text>velocity ( mp1 )</text--->"
+    "<text>velocity_new ( mp1 )</text--->"
+    ") )";
+
+const string GlobalSpecUnitOfTimeExt  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>real -> real</text--->"
+    "<text>setunitoftime ( _ )</text--->"
+    "<text>Set factor for unit of time: ms * real.</text--->"
+    "<text>velocsetunitoftime ( 0.001 )</text--->"
+    ") )";
+
+const string GlobalSpecUnitOfDistanceExt  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>real -> real</text--->"
+    "<text>setunitofdistance ( _ )</text--->"
+    "<text>Set factor for unit of distance: m * real.</text--->"
+    "<text>setunitofdistance ( 1000. )</text--->"
+    ") )";
+
+const string TemporalSpecMDirectionExt  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>mpoint -> mreal</text--->"
+    "<text>mdirection ( _ )</text--->"
+    "<text>Compute the angle between X-axis and the mpoints tangent.</text--->"
+    "<text>mdirection ( mp1 )</text--->"
     ") )";
 
 /*
@@ -2330,7 +2551,7 @@ Operator temporalvalext(
     IntimeExtTypeMapBase );
 
 Operator temporalderivativeext(
-    "derivative",
+    "derivative_new",
     TemporalSpecDerivativeExt,
     1,
     temporalderivativeextmap,
@@ -2338,7 +2559,7 @@ Operator temporalderivativeext(
     MovingRExtTypeMapMovingR);
 
 Operator temporalderivableext(
-    "derivable",
+    "derivable_new",
     TemporalSpecDerivableExt,
     1,
     temporalderivableextmap,
@@ -2346,7 +2567,7 @@ Operator temporalderivableext(
     MovingRExtTypeMapBool);
 
 Operator temporalspeedext(
-    "speed",
+    "speed_new",
     TemporalSpecSpeedExt,
     1,
     temporalspeedextmap,
@@ -2385,13 +2606,37 @@ Operator neverext(
     Operator::SimpleSelect,
     MovingSANExtTypeMap );
 
+Operator setunitoftimeext(
+    "setunitoftime",
+    GlobalSpecUnitOfTimeExt,
+    1,
+    globalunitoftimeextmap,
+    Operator::SimpleSelect,
+    RealPhysicalUnitsExtTypeMap );
+
+Operator setunitofdistanceext(
+    "setunitofdistance",
+    GlobalSpecUnitOfDistanceExt,
+    1,
+    globalunitofdistanceextmap,
+    Operator::SimpleSelect,
+    RealPhysicalUnitsExtTypeMap );
+
 Operator temporalvelocityext(
-    "velocity",
+    "velocity_new",
     TemporalSpecVelocityExt,
     1,
     temporalvelocityextmap,
     Operator::SimpleSelect,
     MPointExtTypeMapMPoint);
+
+Operator temporalmdirectionext(
+    "mdirection",
+    TemporalSpecMDirectionExt,
+    1,
+    temporalmdirectionextmap,
+    Operator::SimpleSelect,
+    MovingPointExtTypeMapMReal);
 
 class TemporalExtAlgebra : public Algebra
 {
@@ -2436,12 +2681,15 @@ class TemporalExtAlgebra : public Algebra
         AddOperator( &temporalderivableext );
         AddOperator( &temporalspeedext );
         AddOperator( &temporalvelocityext );
+        AddOperator( &temporalmdirectionext );
 
         AddOperator( &rangerangevaluesext );
 
         AddOperator( &sometimesext );
         AddOperator( &alwaysext );
         AddOperator( &neverext );
+        AddOperator( &setunitoftimeext );
+        AddOperator( &setunitofdistanceext );
 
     }
     ~TemporalExtAlgebra() {}
