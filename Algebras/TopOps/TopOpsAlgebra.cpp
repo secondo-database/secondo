@@ -512,7 +512,7 @@ void GetInt9M(Point* p1 , Point*  p2,Int9M& res){
   res.SetValue(0);
   // in each case, the exteriors intersect
   res.SetEE(true);
-  if(Compare(p1,p1)==0){
+  if(Compare(p1,p2)==0){
     res.SetII(true);
   }else{
     res.SetIE(true);
