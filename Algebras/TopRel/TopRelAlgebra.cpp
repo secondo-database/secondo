@@ -172,15 +172,23 @@ bool Int9M::ReadFrom(const ListExpr LE){
 
    if(nl->AtomType(LE)==IntType){
       int v = nl->IntValue(LE);
-      if(v<0) return false;
-      if(v>511) return false;
+      if(v<0){
+         ErrorReporter::ReportError("matrixnaumber less than zero");
+         return false;
+      }
+      if(v>511){
+         ErrorReporter::ReportError("matrix number more than 511");
+         return false;
+      }
       value = (unsigned short) v;
       defined = true;
       return true;
    }
 
-   if(nl->ListLength(LE)!=9)
+   if(nl->ListLength(LE)!=9){
+      ErrorReporter::ReportError("invalid listlength");
       return false;
+   }
    unsigned short tmp=0;
    unsigned short pos=256;
    ListExpr r = LE;
@@ -192,8 +200,11 @@ bool Int9M::ReadFrom(const ListExpr LE){
          b = nl->BoolValue(f);
       else if(nl->AtomType(f)==IntType)
          b = nl->IntValue(f)!=0;
-      else // not an allowed type
+      else{ // not an allowed type
+         ErrorReporter::ReportError("matrix entry must"
+                                    " be an int or a boolean");
          return false;
+      }
       if(b)
          tmp = tmp | pos;
       pos = pos/2;
@@ -520,6 +531,7 @@ bool Cluster::ReadFrom(const ListExpr LE){
       return true;
    }
 
+
    /*
    The second case is a list containing valid matrices.
    */
@@ -534,30 +546,35 @@ bool Cluster::ReadFrom(const ListExpr LE){
    ListExpr scan = LE;
    ListExpr elem;
    // first, get the name of this cluster
-   if(nl->ListLength(scan)<1)
+   if(nl->ListLength(scan)<1){
+       ErrorReporter::ReportError("Clustername missing");
        return false;
+   }
    elem = nl->First(scan);
    if(nl->AtomType(elem)!=StringType){
       ErrorReporter::ReportError("The first elem in the"
                                  " list is not a string");
       return false;
    }
+
    strcpy(TMPname, nl->StringValue(elem).c_str());
    scan = nl->Rest(scan);
    Int9M current;
    while(!nl->IsEmpty(scan) && correct){
        elem = nl->First(scan);
        scan = nl->Rest(scan);
-       if(!current.ReadFrom(elem))
+       if(!current.ReadFrom(elem)){
           correct = false;
+       }
        else{
           unsigned short v = current.GetNumber();
           SetValueAt(v,true,TMP);
        }
    }
 
-   if(!correct)
+   if(!correct){
       return false;
+   }
    memcpy(BitVector,TMP,64);
    strcpy(name,TMPname);
    defined = true;
@@ -620,9 +637,9 @@ bool Cluster::Adjacent(const Attribute*) const{
 }
 
 /*
-2.2.8 Functions manipulation the defined state
+2.2.8 Functions for the defined state
 
-With this functions we can query and set the value of the
+With these functions we can query and set the value of the
 defined flag of this cluster.
 
 */
@@ -922,6 +939,7 @@ bool PredicateGroup::ReadFrom(const ListExpr instance){
     The maximum count of non-overlapping, non-empty clusters is 512.
    */
    if(length>512){
+      ErrorReporter::ReportError("too many clusters");
       return false;
    }
    unSpecified.MakeEmpty();
@@ -929,26 +947,40 @@ bool PredicateGroup::ReadFrom(const ListExpr instance){
    Cluster CurrentCluster(false);
    Cluster AllClusters[length];
    int pos =0;
-   while(!nl->IsEmpty(instance)){
+   ListExpr LE = instance;
+
+   while(!nl->IsEmpty(LE)){
       // error in cluster representation
-      if(!CurrentCluster.ReadFrom(instance))
+      ListExpr cl = nl->First(LE);
+      if(!CurrentCluster.ReadFrom(cl)){
          return false;
+      }
       // empty clusters are not allowed
-      if(CurrentCluster.IsEmpty())
+      if(CurrentCluster.IsEmpty()){
+         ErrorReporter::ReportError("empty clusters are not allowed");
          return false;
+      }
       //  overlapping cluster found
-      if(! unSpecified.Contains(&CurrentCluster))
+      if(! unSpecified.Contains(&CurrentCluster)){
+         ErrorReporter::ReportError("Clusters overlap");
          return  false;
+      }
       // check whether name already used
       const STRING* name = CurrentCluster.GetName();
       for(int i=0;i<pos;i++)
-         if(strcmp(*(AllClusters[i].GetName()),*name)==0)
+         if(strcmp(*(AllClusters[i].GetName()),*name)==0){
+              ErrorReporter::ReportError("non disjoint names found");
               return false;
-      if(strcmp(*name,UNSPECIFIED)==0) // forbidden name
-              return false;
+         }
+          
+      if(strcmp(*name,UNSPECIFIED)==0){ // forbidden name
+          ErrorReporter::ReportError(" non valid name for cluster");
+          return false;
+      }
       unSpecified.Minus(&CurrentCluster);
       AllClusters[pos].Equalize(CurrentCluster);
       pos++;
+      LE = nl->Rest(LE);
    }
    // if this state is reached, the list representation is correct
    defined = true;
