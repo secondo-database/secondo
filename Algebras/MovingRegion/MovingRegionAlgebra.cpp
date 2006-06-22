@@ -7080,8 +7080,8 @@ void MRegion::InsideAddUBool(MBool& res,
                      << endl;
 
             if (pending->timeInterval.start == pending->timeInterval.end) {
-                Interval<Instant> iv(pending->timeInterval.start,
-                                     pending->timeInterval.end,
+                Interval<Instant> iv(start,
+                                     end,
                                      true,
                                      rc);
 

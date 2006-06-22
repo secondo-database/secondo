@@ -13,6 +13,14 @@ commands:
    (cd Algebras/MovingRegion; make clean)
    make
 
+If you are getting an unexpected high number of errors for the files
+
+   refinementpartition.tests
+   insideabove.tests
+   trapeziumintersection.tests,
+
+please check the MRA_UNITTEST symbol has been defined properly.
+
 To run the tests, execute the following commands:
 
    cd Algebras/MovingRegion/Tests
