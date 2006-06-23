@@ -46,17 +46,17 @@ endif
 	   -e "/^int yyparse (void[ *]*);$$/d" \
 	   -e "/^YYSTYPE yylval;/d" \
 	   -e "/^YYPARSE_RETURN_TYPE yyparse (void[ *]*);$$/d" \
-	   -e s/__NLParser__parse/NLParser::yyparse/g \
-	   -e s/__NLParser__lex/yylex/g \
-	   -e s/__NLParser__error/yyerror/g \
-	   -e s/__NLParser__lval/NLParser::yylval/g \
-	   -e s/__NLParser__char/NLParser::yychar/g \
-	   -e s/__NLParser__debug/NLParser::yydebug/g \
-	   -e s/__NLParser__nerrs/NLParser::yynerrs/g \
+	   -e s/__NLParser__parse/NLParser::parse/g \
+	   -e s/__NLParser__lex/NLParser::lex/g \
+	   -e s/__NLParser__error/NLParser::error/g \
+	   -e s/__NLParser__lval/NLParser::lval/g \
+	   -e s/__NLParser__char/NLParser::ychar/g \
+	   -e s/__NLParser__debug/NLParser::debug/g \
+	   -e s/__NLParser__nerrs/NLParser::nerrs/g \
 		   < NLParser.tab.c > NLParser.tab.cpp
 	$(RM) NLParser.tab.c
 	sed \
-	   -e s/__NLParser__lval/NLParser::yylval/g \
+	   -e s/__NLParser__lval/NLParser::lval/g \
 	   < NLParser.tab.h > NLParser.tab.hpp
 	$(RM) NLParser.tab.h
 

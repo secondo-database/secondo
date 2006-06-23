@@ -73,6 +73,7 @@ natural language (like each second monday of the month) can't be modelled.
 #include "RepTree.h"
 
 using namespace datetime;
+using namespace toprel;
 
 #include "TemporalAlgebra.h"
 

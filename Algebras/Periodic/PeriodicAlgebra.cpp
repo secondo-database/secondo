@@ -4284,7 +4284,7 @@ void PMSimple<T, Unit>::SetRightClosed(SubMove submove, bool value){
   }
   if(submove.arrayNumber == PERIOD){
       PeriodicMove PM;
-      periodicMoves.Get(submove.arrayIndex,CM);
+      periodicMoves.Get(submove.arrayIndex,PM);
              
   }
 }

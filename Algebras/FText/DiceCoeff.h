@@ -60,7 +60,7 @@ public:
     ~DiceNode();
     void insert(string text,bool  left);
     double getCoeff();
-    void DiceNode::print(char root);
+    void print(char root);
 private:
    int left;
    int right;

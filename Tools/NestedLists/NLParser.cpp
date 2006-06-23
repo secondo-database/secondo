@@ -40,43 +40,44 @@ NLParser::NLParser( NestedList* nestedList, istream* ip, ostream* op )
   : isp( ip ), osp( op ), nl( nestedList )
 {
   listExpression = 0;
-  lex = new NLScanner( nestedList, isp, osp );
+  nlScanner = new NLScanner( nestedList, isp, osp );
 }
 
 NLParser::~NLParser()
 {
-  delete lex;
+  delete nlScanner;
 }
 
 int
-NLParser::yylex()
+NLParser::lex()
 {
   if ( RTFlag::isActive("NLParser:Debug") ) {
-    yydebug = 1;
+    debug = 1;
   } else {
-    yydebug = 0;
+    debug = 0;
   }
   
   if ( RTFlag::isActive("NLScanner:Debug") ) {
-    lex->SetDebug(1);
+    nlScanner->SetDebug(1);
   } else {
-    lex->SetDebug(0);
+    nlScanner->SetDebug(0);
   }
 
 
-  return (lex->yylex());
+  return (nlScanner->yylex());
 }
 
 void
-NLParser::yyerror( char* s )
+NLParser::error( char* s )
 {
   cmsg.error() << "Nested-List Parser: " << endl << "  " << s 
-       << " processing character '" << lex->YYText() 
+       << " processing character '" << nlScanner->YYText() 
        << "' (= " 
        << setiosflags(ios::hex|ios::showbase) 
-       << static_cast<unsigned short>( *(lex->YYText()) ) 
+       << static_cast<unsigned short>( *(nlScanner->YYText()) ) 
        << resetiosflags(ios::hex|ios::showbase) 
-       << ") at line " << lex->lines <<" and col " << lex->cols << "!"
+       << ") at line " << nlScanner->lines 
+       << " and col " << nlScanner->cols << "!"
        << endl;
   cmsg.send();
 }

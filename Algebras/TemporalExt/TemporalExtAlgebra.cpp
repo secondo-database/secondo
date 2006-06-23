@@ -41,14 +41,11 @@ inclusion of header files concerning Secondo.
 #include "SpatialAlgebra.h"
 #include "TemporalAlgebra.h"
 #include "MovingRegionAlgebra.h"
+#include "DateTime.h"
+#include "TemporalExtAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
-
-#include "DateTime.h"
-using namespace datetime;
-
-#include "TemporalExtAlgebra.h"
 
 /*
 

@@ -352,11 +352,14 @@ struct TextRecord
 {
   TextsEntry next;
   char       field[TextFragmentSize];
-  // unsigned char emptyChars; This may be useful for storing binary data in Text Atoms
+
+  // unsigned char emptyChars; This may be useful for storing binary 
+  // data in Text Atoms
   // currently a value of 0 in field indicates the end.
-  // Cardinal length of the has been removed from the NodeRecord definition to
-  // shrink the size of a node record. A future improvement could be a meta record
-  // which stores the length and/or other information about a text atom.
+  // Cardinal length of the has been removed from the NodeRecord 
+  // definition to shrink the size of a node record. A future 
+  // improvement could be a meta record which stores the length 
+  // and/or other information about a text atom.
 };
 typedef TextRecord* Text;
 
@@ -697,7 +700,9 @@ A wrapper for ~WriteToString~ which directly returns a string object.
 
 */
 
-  void WriteListExpr( const ListExpr list, ostream& ostr = cout, const int offset=4 );
+  void WriteListExpr( const ListExpr list, 
+                      ostream& ostr = cout, 
+                      const int offset=4 );
 
 /*
 Writes a ~list~ indented by level to standard output or another ostream. 
@@ -757,12 +762,23 @@ Similarly, there are procedures to access the second, ..., sixth element.
 Acessing the first element is a basic operation defined above.
 
 */
-  inline ListExpr Second( const ListExpr list ) { return (NthElement( 2, 2, list )); };
-  inline ListExpr  Third( const ListExpr list ) { return (NthElement( 3, 3, list )); };
-  inline ListExpr Fourth( const ListExpr list ) { return (NthElement( 4, 4, list )); };
-  inline ListExpr  Fifth( const ListExpr list ) { return (NthElement( 5, 5, list )); };
-  inline ListExpr  Sixth( const ListExpr list ) { return (NthElement( 6, 6, list )); };
-  inline ListExpr  Nth( int n, const ListExpr list ) { return (NthElement( n, n, list )); };
+  inline ListExpr Second( const ListExpr list ) 
+    { return (NthElement( 2, 2, list )); };
+
+  inline ListExpr  Third( const ListExpr list ) 
+    { return (NthElement( 3, 3, list )); };
+
+  inline ListExpr Fourth( const ListExpr list ) 
+    { return (NthElement( 4, 4, list )); };
+
+  inline ListExpr  Fifth( const ListExpr list ) 
+    { return (NthElement( 5, 5, list )); };
+
+  inline ListExpr  Sixth( const ListExpr list ) 
+    { return (NthElement( 6, 6, list )); };
+
+  inline ListExpr  Nth( int n, const ListExpr list ) 
+    { return (NthElement( n, n, list )); };
 
 /*
 A pointer to the respective element is returned. Result may be the empty list,
@@ -1104,13 +1120,13 @@ prototypes for functions used for the binary encoding/decoding of lists
   
   byte  GetBinaryType(const ListExpr list) const;
   char* hton(long value) const;
-  inline void  NestedList::swap(char* buffer,int size) const;
+  inline void swap(char* buffer,int size) const;
   
 
   // the internal represenatation of lists
   
   CTable<StringRecord> *stringTable; // storage for strings
-  string NestedList::StringSymbolValue( const ListExpr atom ) const;
+  string StringSymbolValue( const ListExpr atom ) const;
   
   CTable<NodeRecord>   *nodeTable;   // storage for nodes
 

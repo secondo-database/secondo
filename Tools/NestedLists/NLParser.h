@@ -35,24 +35,27 @@ class NLScanner;
 class NLParser
 {
  public:
-  NLParser( NestedList* nestedList, std::istream* ip = 0, std::ostream* op = 0 );
+  NLParser( NestedList* nestedList, 
+            std::istream* ip = 0, 
+            std::ostream* op = 0 );
   virtual ~NLParser();
-  int         yyparse();
+  int         parse();
   ListExpr    GetNestedList() { return listExpression; }
-  static int         yydebug;
+  static int         debug;
  protected:
   ListExpr    listExpression;
   stack<ListExpr> lists;
-  int         yylex(); //inline int NLParser::yylex() { return (GetLexer()->yylex()); }
-  void        yyerror( char* );
+  int         lex(); 
+  //inline int NLParser::yylex() { return (GetLexer()->yylex()); }
+  void        error( char* );
   std::istream*    isp;  // istream being parsed
   std::ostream*    osp;  // ostream being output to
-  NLScanner*  lex;  // Lexical analyzer to use;
+  NLScanner*  nlScanner;  // Lexical analyzer to use;
   NestedList* nl;
 
-  static ListExpr    yylval;
-  static int         yychar;
-  static int         yynerrs;
+  static ListExpr    lval;
+  static int         ychar;
+  static int         nerrs;
 
   friend class NLScanner;
 };

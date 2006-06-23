@@ -125,7 +125,7 @@ class FileSystem
 Returns the current folder (directory).
 
 */
-  static string FileSystem::GetParentFolder( const string& folder, int level = 1 );
+  static string GetParentFolder( const string& folder, int level = 1 );
 /*
 Returns the parent of directory ~folder~. The optional second parameter
 indicates the number of levels to go upwards.

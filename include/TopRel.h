@@ -150,6 +150,8 @@ representing the 9 entries in the matrix.
 
 */
 
+namespace toprel {
+
 class Int9M:  public  StandardAttribute{
    public:
 
@@ -457,7 +459,7 @@ an attribute type within secondo relations.
 
 */
 
-       virtual ostream& Int9M::Print( ostream& os ) const;
+       virtual ostream& Print( ostream& os ) const;
 
 /*
 2.1.21 CompareTo function
@@ -1197,5 +1199,7 @@ private:
    mutable bool sorted;
    Cluster unSpecified; // Cluster containing all non-used matrices
 };
+
+} // namespace toprel
 
 #endif

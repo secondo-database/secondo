@@ -89,6 +89,8 @@ level remains. Models are also removed from type constructors.
 February 2006, M. Spiekermann. Bug fixes in type mapping of the ~distribute~ and in the
 value mapping of the ~summarize~ operator.
 
+June 2006, V. Almeida moved some code to the FunVector.h and FunVector.cpp files
+
 1 Preliminaries
 
 1.1 Includes
@@ -113,40 +115,14 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
-bool operator<( const FunInfo& f1, const FunInfo& f2 )
-{
-  return (f1.no < f2.no);
-}
-
-std::ostream&
-operator<<( std::ostream& os, const FunInfo& f )
-{
-  os << "function " << f.name << " used " << f.timesUsed
-     << " times, used CPU time: " << f.consumedTime << " seconds.";
-  return os;
-}
-
-
-namespace {
-
 /*
 1.2 Dummy Functions
-
-These functions are needed for the definition of a type constructor (function
-~DummyCast~) or for the definition of a non-overloaded operator (function
-~simpleSelect~).
 
 */
 static void*
 DummyCast( void* addr )
 {
   return (0);
-}
-
-static int
-simpleSelect( ListExpr args )
-{
-  return 0;
 }
 
 /*
@@ -751,343 +727,6 @@ TypeConstructor array (
       CheckArray );
 
 /*
-3 Implementation of Utility Datastructures for handling parameter functions 
-
-*/
-
-FunInfo::FunInfo() {}
-
-FunInfo::FunInfo( int No, string Name, Supplier s )
-{
-  no = No;
-  name = Name;
-  supplier = s;
-  timesUsed = 0;
-  consumedTime = 0;
-}
-
-double
-FunInfo::getTime() {
-  return consumedTime;
-}
-
-void
-FunInfo::request( Word* arguments, int n, Word& funresult, string info = "" )
-{
-  ArgVectorPointer funargs;
-  clock_t c1;
-  clock_t c2;
-  double timediff;
-
-  funargs = qp->Argument( supplier );
-
-  for (int i=0; i<n; i++) {
-    (*funargs)[i] = arguments[i];
-  }
-
-  if (info != "") {
-    cout << info << ", ";
-  }
-
-  cout << "function " << name << ", ";
-
-  c1 = clock();
-  qp->Request( supplier, funresult );
-  c2 = clock();
-
-  timediff = (double)(c2 - c1) / CLOCKS_PER_SEC;
-
-  timesUsed++;
-  consumedTime += timediff;
-
-  cout << "used CPU time: " << timediff << " (" << consumedTime
-       << ") seconds." << endl;
-}
-
-
-void
-FunInfo::open()
-{
-  qp->Open(supplier);
-} 
-
-void
-FunInfo::close()
-{
-  qp->Close(supplier);
-} 
-
-void
-FunInfo::request( Word argument, Word& funresult, string info = "" )
-{
-  request(&argument, 1, funresult, info);
-}
-
-void
-FunInfo::request( Word firstArg, Word secondArg, Word& funresult,
-                  string info = "" )
-{
-  Word arguments[2] = { firstArg, secondArg };
-  request(arguments, 2, funresult, info);
-}
-
-
-
-void
-FunVector::addFunction( string name, Supplier s )
-{
-  //cout << "size: " << funInfos.size() << endl;
-  FunInfo f( funInfos.size()+1, name, s );
-  funInfos.push_back(f);
-}
-
-void
-FunVector::load( Word suppl, Word* funNames, const bool doRequest /*= false*/ )
-{
-  Supplier funSupplier = (Supplier)suppl.addr;
-  Supplier supplier1;
-  Supplier supplier2;
-
-  int noOfFuns = qp->GetNoSons(funSupplier);
-
-  for (int i=0; i<noOfFuns; i++) {
-
-    Word wfunName = funNames[i];
-    if (doRequest)
-    {
-	qp->Request(funNames[i].addr, wfunName);
-    }
-    const STRING* name = ((CcString*)wfunName.addr)->GetStringval();
-
-    //cerr << "Function " << i << "/" << noOfFuns << *name << endl;
-    supplier1 = qp->GetSupplier(funSupplier, i);
-    supplier2 = qp->GetSupplier(supplier1, 1);
-
-    addFunction(*name, supplier2);
-  }
-}
-
-void
-FunVector::requestFun( int funNo, Word argument, Word& funresult,
-                       string info = "" )
-{
-  funInfos[funNo].request(argument, funresult, info);
-}
-
-void
-FunVector::requestFun( int funNo, Word firstArgument, Word secondArgument,
-                       Word& funresult, string info = "" )
-{
-  funInfos[funNo].request(firstArgument, secondArgument, funresult, info);
-}
-
-void
-FunVector::requestAll( Word argument, Word& funresult, string info = "" )
-{
-  for(int i=0; i<(int)funInfos.size(); i++) {
-    requestFun(i, argument, funresult, info);
-  }
-}
-
-void
-FunVector::requestAll( Word firstArgument, Word secondArgument,
-                       Word& funresult, string info = "" )
-{
-  for(int i=0; i<(int)funInfos.size(); i++) {
-    requestFun(i, firstArgument, secondArgument, funresult, info);
-  }
-}
-
-void
-FunVector::sendMsgForAll(int msg) 
-{
-  for (size_t i=0; i < funInfos.size(); i++ )
-  {
-    switch (msg) {
-      case OPEN: funInfos[i].open();
-      case CLOSE: funInfos[i].close();
-      default: assert(false);           
-    } 
-  }
-} 
-
-
-void
-FunVector::reorder()
-
-// Precondition:  All functions between the second and the last element of the
-//                vector are ordered by their used CPU time.
-// Postcondition: All functions of the vector are ordered by their used CPU
-//                time.
-
-{
-  int n=funInfos.size();
-
-  if (n > 1) {
-    if (funInfos[0].getTime() > funInfos[1].getTime()) {
-
-      // Find the position where to insert the first element, insert the first
-      // element at this position and then remove this element from the first
-      // position.
-
-      int l = 0;
-      int r = n;
-      int m;
-
-      do {
-        m = (l+r) / 2;
-
-        if (funInfos[m].getTime() <= funInfos[0].getTime()) {
-          l = m;
-        }
-        else {
-          r = m;
-        }
-      }
-      while ( (m < (n-1))
-              && !((funInfos[m].getTime() <= funInfos[0].getTime())
-                   && (funInfos[0].getTime() < funInfos[m+1].getTime())) );
-
-      funInfos.insert( funInfos.begin() + m + 1, funInfos[0] );
-      funInfos.erase( funInfos.begin() );
-    }
-  }
-}
-
-int
-FunVector::getMin()
-
-// Returns the index of the function with the minimum used CPU time. If there
-// are more such functions, the index of the first of these functions is
-// returned.
-
-{
-  int min=0;
-
-  for (int i=0; i < (int)funInfos.size(); i++) {
-    if (funInfos[i].getTime() < funInfos[min].getTime()) {
-      min = i;
-    }
-  }
-
-  return min;
-}
-
-void
-FunVector::writeSummary()
-{
-  sort(funInfos.begin(), funInfos.end());
-
-  for (int i=0; i < (int)funInfos.size(); i++) {
-    cout << "SUMMARY, " << funInfos[i] << "\n";
-  }
-}
-
-
-
-/*
-3.3 Class ~SwitchAlgorithm~
-
-The switch algorithm is implemented as a sub-class of the class ~FunVector~.
-
-An object of the class ~SwitchAlgorithm~ is initialized like an object of the
-class ~FunInfo~. For each requests, the switch algorithm chooses the function
-with the (so far) lowest total used CPU time.
-
-*/
-class SwitchAlgorithm : public FunVector {
-  public:
-    void request(Word, Word&, string);
-    void request(Word, Word, Word&, string);
-  private:
-    int counter;
-};
-
-void
-SwitchAlgorithm::request( Word argument, Word& funresult, string info = "" )
-{
-  requestFun(0, argument, funresult, info);
-  reorder();
-}
-
-void
-SwitchAlgorithm::request( Word firstArgument, Word secondArgument,
-                          Word& funresult, string info = "" )
-{
-  requestFun(0, firstArgument, secondArgument, funresult, info);
-  reorder();
-}
-
-/*
-3.4 Class ~SelectAlgorithm~
-
-The select algorithm is implemented as a sub-class of the class ~FunVector~.
-
-An object of the class ~SelectAlgorithm~ is initialized analogous to an object
-of the class ~FunInfo~. In addition to a set of functions, the parameter
-~testSize~ has to be set to a number greater than zero. For the first
-~testSize~ requests, all functions are used for evaluation. After that, the
-function with the (so far) lowest total used CPU time is selected for all
-further requests. However, this selection will not be changed later on.
-
-*/
-class SelectAlgorithm : public FunVector {
-  public:
-    SelectAlgorithm();
-    void setTestSize(int);
-    void request(Word, Word&, string);
-    void request(Word, Word, Word&, string);
-  private:
-    int testSize;
-    int selectedFun;
-    int counter;
-};
-
-SelectAlgorithm::SelectAlgorithm()
-{
-  testSize = 0;
-  selectedFun = -1;
-  counter = 0;
-}
-
-void
-SelectAlgorithm::setTestSize( int n )
-{
-  testSize = n;
-}
-
-void
-SelectAlgorithm::request( Word argument, Word& funresult, string info = "" )
-{
-  if (counter++ < testSize) {
-    requestAll(argument, funresult, info);
-  }
-  else {
-    if (selectedFun == -1) {
-      selectedFun = getMin();
-    }
-
-    requestFun(selectedFun, argument, funresult, info);
-  }
-}
-
-void
-SelectAlgorithm::request( Word firstArgument, Word secondArgument,
-                          Word& funresult, string info = "" )
-{
-  if (counter++ < testSize) {
-    requestAll(firstArgument, secondArgument, funresult, info);
-  }
-  else {
-    if (selectedFun == -1) {
-      selectedFun = getMin();
-    }
-
-    requestFun(selectedFun, firstArgument, secondArgument, funresult, info);
-  }
-}
-
-/*
 4 Operators
 
 4.1 Operator ~size~
@@ -1138,7 +777,7 @@ Operator size (
       "size",
       sizeSpec,
       sizeFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       sizeTypeMap );
 
 /*
@@ -1253,7 +892,7 @@ Operator get (
       "get",
       getSpec,
       getFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       getTypeMap );
 
 /*
@@ -1365,7 +1004,7 @@ Operator put (
       "put",
       putSpec,
       putFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       putTypeMap );
 
 /*
@@ -1444,7 +1083,7 @@ Operator makearray(
       "makearray",
       makearraySpec,
       makearrayFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       makearrayTypeMap );
 
 /*
@@ -1567,7 +1206,7 @@ Operator sortarray(
       "sortarray",
       sortarraySpec,
       sortarrayFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       sortarrayTypeMap );
 
 /*
@@ -1671,7 +1310,7 @@ Operator tie(
       "tie",
       tieSpec,
       tieFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       tieTypeMap );
 
 /*
@@ -1778,7 +1417,7 @@ Operator cumulate (
       "cumulate",
       cumulateSpec,
       cumulateFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       cumulateTypeMap );
 
 /*
@@ -2010,7 +1649,7 @@ Operator distribute (
       "distribute",
       distributeSpec,
       distributeFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       distributeTypeMap );
 
 /*
@@ -2164,7 +1803,7 @@ Operator summarize (
       "summarize",
       summarizeSpec,
       summarizeFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       summarizeTypeMap );
 
 /*
@@ -2253,7 +1892,7 @@ Operator loop (
       "loop",
       loopSpec,
       loopFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       loopTypeMap );
 
 /*
@@ -2352,7 +1991,7 @@ Operator loopa (
       "loopa",
       loopaSpec,
       loopaFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       loopaTypeMap );
 
 /*
@@ -2424,7 +2063,7 @@ Operator loopb (
       "loopb",
       loopbSpec,
       loopbFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       loopaTypeMap );
 
 /*
@@ -2574,7 +2213,7 @@ Operator loopswitch (
       "loopswitch",
       loopswitchSpec,
       loopswitchFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       loopswitchTypeMap );
 
 /*
@@ -2732,7 +2371,7 @@ Operator loopswitcha (
       "loopswitcha",
       loopswitchaSpec,
       loopswitchaFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       loopswitchaTypeMap );
 
 /*
@@ -2811,7 +2450,7 @@ Operator loopswitchb (
       "loopswitchb",
       loopswitchbSpec,
       loopswitchbFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       loopswitchaTypeMap );
 
 /*
@@ -2919,7 +2558,7 @@ Operator loopselect (
       "loopselect",
       loopselectSpec,
       loopselectFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       loopselectTypeMap );
 
 /*
@@ -3026,7 +2665,7 @@ Operator loopselecta (
       "loopselecta",
       loopselectaSpec,
       loopselectaFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       loopselectaTypeMap );
 
 /*
@@ -3119,7 +2758,7 @@ Operator loopselectb (
       "loopselectb",
       loopselectbSpec,
       loopselectbFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       loopselectaTypeMap );
 
 /*
@@ -3337,7 +2976,7 @@ Operator partjoin (
       "partjoin",
       partjoinSpec,
       partjoinFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       partjoinTypeMap );
 
 /*
@@ -3582,7 +3221,7 @@ Operator partjoinswitch (
       "partjoinswitch",
       partjoinswitchSpec,
       partjoinswitchFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       partjoinswitchTypeMap );
 
 /*
@@ -3753,7 +3392,7 @@ Operator partjoinselect (
       "partjoinselect",
       partjoinselectSpec,
       partjoinselectFun,
-      simpleSelect,
+      Operator::SimpleSelect,
       partjoinselectTypeMap );
 
 /*
@@ -3795,7 +3434,7 @@ Operator ELEMENT (
       "ELEMENT",
       ELEMENTSpec,
       0,
-      simpleSelect,
+      Operator::SimpleSelect,
       ELEMENTTypeMap );
 
 /*
@@ -3838,7 +3477,7 @@ Operator ELEMENT2 (
       "ELEMENT2",
       ELEMENT2Spec,
       0,
-      simpleSelect,
+      Operator::SimpleSelect,
       ELEMENT2TypeMap );
 
 /*
@@ -3910,8 +3549,6 @@ InitializeArrayAlgebra( NestedList* nlRef,
   qp = qpRef;
   am = amRef;
   return (&arrayAlgebra);
-}
-
 }
 
 /*

@@ -2671,7 +2671,7 @@ class EdgePoint : public Point
     }
 
 
-    inline bool EdgePoint::operator<( const EdgePoint& p ) const
+    inline bool operator<( const EdgePoint& p ) const
     {
       assert( defined && p.defined );
       if( this->x < p.x )

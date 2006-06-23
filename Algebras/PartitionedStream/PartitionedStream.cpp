@@ -235,7 +235,7 @@ struct StreamBase
   }
   
   StreamBase() : state(closed) {} 
-  StreamBase(StreamBase& rhs) : state(rhs.state) {} 
+  StreamBase(const StreamBase& rhs) : state(rhs.state) {} 
     
 };
 
@@ -249,11 +249,11 @@ struct StreamOpAddr : public StreamBase<StreamOpAddr>
   
   StreamOpAddr( Supplier s ) : stream(s) {} 
   
-  StreamOpAddr( StreamOpAddr& rhs ) : 
+  StreamOpAddr( const StreamOpAddr& rhs ) : 
     StreamBase<StreamOpAddr>(rhs), 
     stream(rhs.stream) 
   {} 
-  
+ 
   inline void open() 
   {
     if (state == closed) {

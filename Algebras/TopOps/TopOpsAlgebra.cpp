@@ -88,6 +88,7 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 Coord  EPSILON = 0.000001;
 
+using namespace toprel;
 
 /*
 3.3 Statistical information 
@@ -1339,7 +1340,7 @@ static int TopOpsSelect(ListExpr args){
 In this section instances of the algebra operators are build.
 
 */
-Operator toprel(
+Operator optoprel(
         "toprel",     // name
          TopRelSpec,   // specification
          sizeof(TopRelMap)/sizeof(ValueMapping),  // number of functions
@@ -1384,7 +1385,7 @@ Operator topops_get_stat(
 class TopOpsAlgebra : public Algebra {
   public:
      TopOpsAlgebra() : Algebra() {
-        AddOperator(&toprel);
+        AddOperator(&optoprel);
         AddOperator(&toppred);
 #ifdef TOPOPS_USE_STATISTIC
         AddOperator(&topops_reset_stat);

@@ -953,8 +953,8 @@ public:
    double GetA() const;
    int Less (const XEvent ev2, const Coord x) const;
    bool Equal (const XEvent ev2) const;
-   const bool XEvent::operator< (const XEvent& ev2) const;
-   const bool XEvent::operator== (const XEvent& ev2) const;
+   const bool operator< (const XEvent& ev2) const;
+   const bool operator== (const XEvent& ev2) const;
 
 
 private:
@@ -1307,8 +1307,7 @@ public:
    const double GetY (Coord x, Segment segs[]) const;
    double Getk() const;
    double Geta() const;
-   int SSSEntry:: Less (const SSSEntry in2, const Coord x,
-      Segment segs[]) const;
+   int Less (const SSSEntry in2, const Coord x, Segment segs[]) const;
 
 private:
    int chs;

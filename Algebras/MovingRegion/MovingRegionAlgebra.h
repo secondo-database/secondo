@@ -424,7 +424,7 @@ Create a new ~IRegion~ instance and initialize it with the value of ~ir~.
 Clone this ~IRegion~ instance and return a pointer to the new instance.
 
 */
-    IRegion* IRegion::Clone(void) const;
+    IRegion* Clone(void) const;
 
 /*
 ~DBArray~ access methods. These do use the ~value~ attributes ~DBArray~.
@@ -939,7 +939,7 @@ Constructs a contiunues moving region from the parameters. ~dummy~ is not
 used.
 
 */
-    MRegion::MRegion(MPoint& mp, CRegion& r,int dummy);
+    MRegion(MPoint& mp, CRegion& r,int dummy);
 
 /*
 1.1 Attribute access methods

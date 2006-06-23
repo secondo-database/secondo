@@ -223,12 +223,9 @@ The following groups of test cases are available:
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-
 #include "TemporalAlgebra.h"
 #include "MovingRegionAlgebra.h"
-
 #include "DateTime.h"
-using namespace datetime;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

@@ -74,7 +74,7 @@ class FunInfo {
 };
 
 /*
-2.2 Class ~FunVector~
+1.2 Class ~FunVector~
 
 This class uses the class template ["]vector["]. Each object of the class
 ~FunVector~ contains a vector of ~FunInfo~ objects. The vector is initialized
@@ -113,6 +113,49 @@ class FunVector {
     void sendMsgForAll(const int msg); 
     std::vector<FunInfo> funInfos;
     void addFunction(string, Supplier);
+};
+
+/*
+1.3 Class ~SwitchAlgorithm~
+
+The switch algorithm is implemented as a sub-class of the class ~FunVector~.
+
+An object of the class ~SwitchAlgorithm~ is initialized like an object of the
+class ~FunInfo~. For each requests, the switch algorithm chooses the function
+with the (so far) lowest total used CPU time.
+
+*/
+class SwitchAlgorithm : public FunVector {
+  public:
+    void request(Word, Word&, string);
+    void request(Word, Word, Word&, string);
+  private:
+    int counter;
+};
+
+/*
+1.4 Class ~SelectAlgorithm~
+
+The select algorithm is implemented as a sub-class of the class ~FunVector~.
+
+An object of the class ~SelectAlgorithm~ is initialized analogous to an object
+of the class ~FunInfo~. In addition to a set of functions, the parameter
+~testSize~ has to be set to a number greater than zero. For the first
+~testSize~ requests, all functions are used for evaluation. After that, the
+function with the (so far) lowest total used CPU time is selected for all
+further requests. However, this selection will not be changed later on.
+
+*/
+class SelectAlgorithm : public FunVector {
+  public:
+    SelectAlgorithm();
+    void setTestSize(int);
+    void request(Word, Word&, string);
+    void request(Word, Word, Word&, string);
+  private:
+    int testSize;
+    int selectedFun;
+    int counter;
 };
 
 bool operator<( const FunInfo& f1, const FunInfo& f2 );

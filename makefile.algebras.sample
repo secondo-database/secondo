@@ -147,8 +147,5 @@ ALGEBRAS     += PictureAlgebra
 #JNI_ALGEBRA_DIRS := JBBox
 #JNIALGEBRAS      := JBBoxAlgebra
 
-#JNI_ALGEBRA_DIRS += JNIExample
-#JNIALGEBRAS      += JNIExampleAlgebra
-
 #JNI_ALGEBRA_DIRS += Rose
 #JNIALGEBRAS      += RoseAlgebra

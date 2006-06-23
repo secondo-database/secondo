@@ -819,7 +819,7 @@ NestedList::ReadFromFile ( const string& fileName, ListExpr& list )
   if ( ifile )
   {
     NLParser* nlParser = new NLParser( this, &ifile );
-    if ( nlParser->yyparse() == 0 )
+    if ( nlParser->parse() == 0 )
     {
       list = nlParser->GetNestedList();
       success = true;
@@ -1003,7 +1003,7 @@ NestedList::ReadFromString( const string& nlChars, ListExpr& list )
   if ( inString )
   {
     NLParser* nlParser = new NLParser( this, &inString );
-    if ( nlParser->yyparse() == 0 )
+    if ( nlParser->parse() == 0 )
     {
       list = nlParser->GetNestedList();
       success = true;

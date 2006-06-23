@@ -50,8 +50,12 @@ using namespace std;
 #include "JPEGPicture.h"
 #include "ImageConverter.h"
 
+#include "DateTime.h"
+
 extern NestedList* nl;
 extern QueryProcessor *qp;
+
+using namespace datetime;
 
 /*
 

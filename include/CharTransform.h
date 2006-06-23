@@ -37,6 +37,7 @@ allows a pretty folding of words with a specified text length.
 #include <vector>
 #include <string>
 #include <iostream>
+#include <cassert>
 
 using namespace std;
 

@@ -60,7 +60,7 @@ using namespace std;
 #include "CharTransform.h"
 #include "LogMsg.h"
 
-#define yylval NLParser::yylval
+#define yylval NLParser::lval
 
 extern "C" int yywrap();
 

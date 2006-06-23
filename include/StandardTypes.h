@@ -294,7 +294,7 @@ class CcReal : public StandardAttribute
   }
 
   
-  inline void CcReal::Set( float v ) 
+  inline void Set( float v ) 
   { 
     defined = true, 
     realval = v; 
@@ -502,7 +502,7 @@ class CcString : public StandardAttribute
     stringsCreated++; 
   }
 
-  inline CcString::~CcString() 
+  inline ~CcString() 
   { 
     stringsDeleted++; 
   }

@@ -86,7 +86,6 @@ The also used classes ~Track~ and ~Event~ are only transient. They are not inher
 #include <sstream>
 
 using namespace std;
-using namespace midialgebra;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -96,7 +95,7 @@ The using of a namespace avoids the modifier ''static'' in function
 declarations.
 
 */
-namespace {
+namespace midialgebra {
 
 /*
 2 Implementation of class ~Midi~
@@ -5196,10 +5195,13 @@ Operator get_name_midi (
         stringTypeMap           //type mapping
  );
 
+} // namespace midialgebra
+
 /*
 5 Creating the Algebra
 
 */
+using namespace midialgebra;
 
 class MidiAlgebra : public Algebra
 {
@@ -5233,8 +5235,6 @@ class MidiAlgebra : public Algebra
   }
   ~MidiAlgebra() {};
 };
-
-} // ''local'' namespace
 
 MidiAlgebra midiAlgebra;
 

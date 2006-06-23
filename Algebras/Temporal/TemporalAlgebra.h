@@ -87,9 +87,6 @@ using namespace datetime;
 /*
 3 C++ Classes (Defintion)
 
-*/
-
-/*
 3.1 Instant
 
 This class represents a time instant, or a point in time. It will be

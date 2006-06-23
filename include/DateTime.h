@@ -51,6 +51,8 @@ will change the type of the this object to a {\tt duration}.
 #include "NestedList.h"
 #include "StandardAttribute.h"
 
+namespace datetime {
+
   // milliseconds of a single day
 #define MILLISECONDS 86400000L
 
@@ -564,10 +566,10 @@ delta in [0,1].
                      int &month, int &day) const;
 };
 
-namespace datetime{
 Word InInstant( const ListExpr typeInfo, const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr OutDateTime( ListExpr typeInfo, Word value );
+
 }
 
 

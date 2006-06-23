@@ -79,10 +79,7 @@ extern QueryProcessor* qp;
 
 
 #include "DateTime.h"
-using namespace datetime;
-
 #include "TemporalAlgebra.h"
-
 
 /*
 1.1 Definition of some constants
