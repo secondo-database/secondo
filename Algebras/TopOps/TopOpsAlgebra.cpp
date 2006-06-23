@@ -95,6 +95,8 @@ Coord  EPSILON = 0.000001;
 The following variables collect some statistical information.
 
 */
+
+#ifdef TOPOPS_USE_STATISTIC
 int GetCalls_p_p;
 int GetCalls_ps_p;
 int GetCalls_ps_ps;
@@ -107,6 +109,7 @@ int bb_ps_ps;
 int bb_l_p;
 int bb_l_ps;
 int bb_l_l;
+#endif
 
 /*
 ~ResetStatistic~
@@ -115,6 +118,8 @@ This functions sets all variables holding statistical
 information to int initial values.
 
 */
+
+#ifdef TOPOPS_USE_STATISTIC
 static void ResetStatistic(){
  GetCalls_p_p=0;
  GetCalls_ps_p=0;
@@ -129,7 +134,7 @@ static void ResetStatistic(){
  bb_l_ps=0;
  bb_l_l=0;
 }
-
+#endif
 
 /*
 3.3 Type Mapping of the __TopPred__ operator
@@ -508,7 +513,9 @@ Complexity: O(1)
 */
 
 void GetInt9M(Point* p1 , Point*  p2,Int9M& res){
+#ifdef TOPOPS_USE_STATISTIC
   GetCalls_p_p++;
+#endif
   res.SetValue(0);
   // in each case, the exteriors intersect
   res.SetEE(true);
@@ -531,7 +538,9 @@ value.
 
 */
 void GetInt9M(Points*  ps, Point* p,Int9M& res){
+#ifdef TOPOPS_USE_STATISTIC
   GetCalls_ps_p++;
+#endif
   // initialization
   res.SetValue(true);
   res.SetEE(true); // holds always
@@ -539,7 +548,10 @@ void GetInt9M(Points*  ps, Point* p,Int9M& res){
   // check for emptyness
   if(ps->IsEmpty()){ // the simples case
      res.SetEI(true);
+
+#ifdef TOPOPS_USE_STATISTIC
      bb_ps_p++;
+#endif
      return;
   }  
   
@@ -549,7 +561,9 @@ void GetInt9M(Points*  ps, Point* p,Int9M& res){
   if(!box_p.Intersects(box_ps)){
       res.SetIE(true);
       res.SetEI(true);
+#ifdef TOPOPS_USE_STATISTIC
       bb_ps_p++;
+#endif
       return;
   }
 
@@ -580,8 +594,10 @@ void GetInt9M(Points* ps1, Points*  ps2,
 
 
   
+#ifdef TOPOPS_USE_STATISTIC
 
    GetCalls_ps_ps++;
+#endif
    int n1 = ps1->Size();
    int n2 = ps2->Size();
 
@@ -590,19 +606,25 @@ void GetInt9M(Points* ps1, Points*  ps2,
 
    if(n1<=0 && n2<=0){
       // there are no inner parts which can intersect any part
+#ifdef TOPOPS_USE_STATISTIC
      bb_ps_ps++;
+#endif
      return;
    }
    if(n1<=0){
       // some points of ps2 are in the exterior of ps1
       res.SetEI(true);
+#ifdef TOPOPS_USE_STATISTIC
       bb_ps_ps++;
+#endif
       return;
    }
    if(n2<=0){
       // symmetrically to the previous case
       res.SetIE(true);
+#ifdef TOPOPS_USE_STATISTIC
       bb_ps_ps++;
+#endif
       return;
    }
    // bounding box check
@@ -612,7 +634,9 @@ void GetInt9M(Points* ps1, Points*  ps2,
       // non empty disjoint points values
       res.SetIE(true);
       res.SetEI(true);
+#ifdef TOPOPS_USE_STATISTIC
       bb_ps_ps++;
+#endif
       return;
    }
 
@@ -686,12 +710,16 @@ Complexity: O(n)
 
 */
 void GetInt9M(CLine const* const line, Point const* const point,Int9M& res){
+#ifdef TOPOPS_USE_STATISTIC
    GetCalls_l_p++;
+#endif
    res.SetValue(0);
    res.SetEE(true);
    if(line->IsEmpty()){
      res.SetEI(true);
+#ifdef TOPOPS_USE_STATISTIC
      bb_l_p++;
+#endif
      return;
    }
    // the interior of a non-empty line has always
@@ -708,7 +736,9 @@ void GetInt9M(CLine const* const line, Point const* const point,Int9M& res){
       if(NumberOfEndpoints(line,1)>0){
         res.SetBE(true); 
       }
+#ifdef TOPOPS_USE_STATISTIC
       bb_l_p++;
+#endif
       return;
    }
 
@@ -777,13 +807,17 @@ __line__ and a pointset as 9-intersection matrix.
 */
 void GetInt9M(CLine const* const line, Points const* const ps, Int9M& res){
 
+#ifdef TOPOPS_USE_STATISTIC
    GetCalls_l_ps++;
+#endif
    
    res.SetValue(0);
    res.SetEE(true);
    /** special case empty line **/ 
    if(line->IsEmpty()){
+#ifdef TOPOPS_USE_STATISTIC
       bb_l_ps++;
+#endif
       if(!ps->IsEmpty()){
          res.SetEI(true);
       }
@@ -801,7 +835,9 @@ void GetInt9M(CLine const* const line, Points const* const ps, Int9M& res){
      if(num>0){
        res.SetBE(true);
      }
+#ifdef TOPOPS_USE_STATISTIC
      bb_l_ps++; 
+#endif
      return;
    }
 
@@ -815,7 +851,9 @@ void GetInt9M(CLine const* const line, Points const* const ps, Int9M& res){
         res.SetBE(true);
       }
       res.SetIE(true);
+#ifdef TOPOPS_USE_STATISTIC
       bb_l_ps++;
+#endif
       return;
    }
 
@@ -938,20 +976,26 @@ This function computes the 9-intesection matrix for two line objects.
 
 */
 void GetInt9M(CLine const* const line1, CLine const* const line2, Int9M& res){
+#ifdef TOPOPS_USE_STATISTIC
   GetCalls_l_l++;
+#endif
   res.SetValue(0);;
   res.SetEE(true);
   // check for emptyness
   if(line1->IsEmpty()){
     if(line2->IsEmpty()){ // no more intersection possible
+#ifdef TOPOPS_USE_STATISTIC
        bb_l_l++;
+#endif
        return; 
     }else{
       res.SetEI(true);
       if( NumberOfEndpoints(line2,1)>0){
          res.SetEB(true);
       }
+#ifdef TOPOPS_USE_STATISTIC
       bb_l_l++;
+#endif
       return;
     }
   }
@@ -961,7 +1005,9 @@ void GetInt9M(CLine const* const line1, CLine const* const line2, Int9M& res){
      if(NumberOfEndpoints(line1,1)>0){
         res.SetBE(true);
      }
+#ifdef TOPOPS_USE_STATISTIC
      bb_l_l++;
+#endif
      return;
   }
   // bounding box check
@@ -976,7 +1022,9 @@ void GetInt9M(CLine const* const line1, CLine const* const line2, Int9M& res){
      if(NumberOfEndpoints(line2,1)>0){
        res.SetEB(true);
      }
+#ifdef TOPOPS_USE_STATISTIC
      bb_l_l++;
+#endif
      return;
   }
 
@@ -1354,7 +1402,9 @@ extern "C"
 Algebra* InitializeTopOpsAlgebra( NestedList* nlRef, QueryProcessor* qpRef ) {
     nl = nlRef;
     qp = qpRef;
+#ifdef TOPOPS_USE_STATISTIC
     ResetStatistic();
+#endif
     return (&topOpsAlgebra);
 }
 
