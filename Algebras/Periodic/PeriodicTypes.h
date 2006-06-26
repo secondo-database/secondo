@@ -26,6 +26,12 @@
 //[arabicpagenum] [\pagenumbering{arabic}]
 //[resetpagenum] [\setcounter{page}{1}]
 
+//[tabstart] [\begin{tabular}]
+//[tabend] [\end{tabular}]
+//[colsep] [&]
+//[rowsep] [\\]
+
+
 
 [titlepage]
 [emptypage]
@@ -128,6 +134,7 @@ class PBBox: public StandardAttribute {
     bool IsDefined() const;
     bool IsEmpty() const;
     void SetDefined( const bool defined );
+    void SetEmpty(const bool empty );
     size_t HashValue() const;
     void CopyFrom(const StandardAttribute* arg);
     ListExpr ToListExpr() const;
@@ -151,8 +158,21 @@ class PBBox: public StandardAttribute {
     double maxX;
     double minY;
     double maxY;
-    bool defined;
-    bool isEmpty;
+
+/*
+~state~
+
+This variable describes the state (consisting of defined and empty) 
+in the following way:
+
+[tabstart]{lllll}
+  defined [colsep] 0 [colsep] 0 [colsep] 1 [colsep] 1  [rowsep]
+  empty   [colsep] 0 [colsep] 1 [colsep] 0 [colsep] 1  [rowsep]
+  state   [colsep] 0 [colsep] 1 [colsep] 2 [colsep] 3  
+[tabend]
+
+*/
+    unsigned char  state;
 };
 
 /*
@@ -412,12 +432,30 @@ interval at the right end as well as the left end at the same time.
     bool Plus(const RelInterval* I); 
   private:
     DateTime length;
-    bool leftClosed;
-    bool rightClosed;
-    bool defined;
-    bool canDelete;
+
+/*
+~state~
+
+The ~state~ variable describes a set of flags, in particular
+leftClosed, rightClosed, defined, and canDelete.
+
+
+
+
+*/    
+    unsigned char state;
+
     RelInterval(const DateTime* length, const bool leftClosed,
                 const bool rightClosed);
+
+    void ChangeLeftClosed(const bool value);
+    void ChangeRightClosed(const bool value);
+    void ChangeDefined(const bool value);
+    void ChangeCanDelete(const bool value);
+    bool GetLeftClosed() const;
+    bool GetRightClosed() const;
+    bool GetDefined() const;
+    bool GetCanDelete() const;
 };
 
 

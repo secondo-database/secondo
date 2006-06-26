@@ -289,15 +289,14 @@ PBBox::PBBox(){
 /*
 ~Constructor~
 
-This constructor creates an undefined bounding box.
+This constructor creates an empty  box.
 
 [3] O(1)
 
 */
 PBBox::PBBox(int dummy){
    __TRACE__
-   defined = true;
-   isEmpty = true;
+   state = 1;
 }
 
 /*
@@ -311,8 +310,8 @@ containing only the point (x,y).
 */
 PBBox::PBBox(const double x, const double y){
    __TRACE__
-  defined=true;
-  isEmpty=false;
+  SetDefined(true);
+  SetEmpty(false);
   minX=maxX=x;
   minY=maxY=y;
 }
@@ -333,8 +332,8 @@ PBBox::PBBox(const double minX, const double minY,
   this->maxX = minX<maxX?maxX:minX;
   this->minY = minY<maxY?minY:maxY;
   this->maxY = minY<maxY?maxY:minY;
-  defined = true;
-  isEmpty = false;
+  SetDefined(true);
+  SetEmpty(false);
 }
 
 
@@ -409,7 +408,7 @@ This function returns true if this PBBox is in a defined state.
 */
 bool PBBox::IsDefined() const{
     __TRACE__
- return defined;
+ return (state&2)>0;
 }
 
 /*
@@ -423,7 +422,7 @@ any point of the Euclidean Plane.
 */
 bool PBBox::IsEmpty() const{
     __TRACE__
-  return isEmpty;
+  return (state&1)>0;
 }
 
 
@@ -431,16 +430,17 @@ bool PBBox::IsEmpty() const{
 ~SetDefined~
 
 The ~SetDefined~ function sets the defined state of this bounding box.
-Because the internal values of this box can have invalid value, this
-function will only have an effect if the argument is false.
 
 [3] O(1)
 
 */
 void PBBox::SetDefined( bool defined ){
     __TRACE__
- if(!defined)
-    this->defined = defined;
+    if(defined){
+      state = state | 2 ;
+    } else{
+      state = state & ~2;
+    }
 }
 
 /*
@@ -453,8 +453,8 @@ This fuction returns a Hash-Value of this bounding box.
 */
 size_t PBBox::HashValue() const{
     __TRACE__
-  if(!defined) return (size_t) 0;
-  if(isEmpty) return (size_t) 1;
+  if(!IsDefined()) return (size_t) 0;
+  if(IsEmpty()) return (size_t) 1;
    return (size_t)  abs(minX + maxX*(maxY-minY));
 }
 
@@ -483,9 +483,9 @@ This function translates this bounding box to its nested list representation.
 */
 ListExpr PBBox::ToListExpr()const{
     __TRACE__
-   if(!defined)
+   if(!IsDefined())
        return nl->SymbolAtom("undefined");
-    if(isEmpty)
+    if(IsEmpty())
        return nl->SymbolAtom("empty");
     return nl->FourElemList(nl->RealAtom(minX),
                             nl->RealAtom(minY),
@@ -505,13 +505,13 @@ ListExpr.
 bool PBBox::ReadFrom(const ListExpr LE){
     __TRACE__
  if(nl->IsEqual(LE,"undefined")){
-      defined = false;
-      isEmpty=true;
+      SetDefined(false);
+      SetEmpty(true);
       return true;
   }
   if(nl->IsEqual(LE,"empty")){
-     defined = true;
-     isEmpty = true;
+     SetDefined(true);
+     SetEmpty(true);
      return true;
   }
   if(nl->ListLength(LE)!=4)
@@ -526,8 +526,8 @@ bool PBBox::ReadFrom(const ListExpr LE){
   maxX = x1<x2?x2:x1;
   minY = y1<y2?y1:y2;
   maxY = y1<y2?y2:y1;
-  isEmpty=false;
-  defined =true;
+  SetEmpty(false);
+  SetDefined(true);
   return true;
 }
 
@@ -544,13 +544,17 @@ An undefined Bounding box is less than a defined one.
 */
 int PBBox::CompareTo(const PBBox* B2)const {
     __TRACE__
- if(!defined&&!B2->defined) return 0;
-  if(!defined&&B2->defined) return -1;
-  if(defined&&!B2->defined) return 1;
+  bool defined = this->IsDefined();
+  bool B2defined = B2->IsDefined();
+  if(!defined&&!B2defined) return 0;
+  if(!defined&&B2defined) return -1;
+  if(defined&&!B2defined) return 1;
   // Now holds that this and B2 are defined
-  if(isEmpty&&B2->isEmpty) return 0;
-  if(isEmpty&&!B2->isEmpty) return -1;
-  if(!isEmpty&&B2->isEmpty) return 1;
+  bool isEmpty = this->IsEmpty();
+  bool B2isEmpty = B2->IsEmpty();
+  if(isEmpty&&B2isEmpty) return 0;
+  if(isEmpty&&!B2isEmpty) return -1;
+  if(!isEmpty&&B2isEmpty) return 1;
   // both boxes are not empty
   if(minX<B2->minX) return -1;
   if(minX>B2->minX) return 1;
@@ -574,8 +578,8 @@ contained in this bounding box.
 */
 bool PBBox::Contains(const double x,const double y)const{
     __TRACE__
- if(!defined) return false;
-  if(isEmpty) return false;
+ if(!IsDefined()) return false;
+  if(IsEmpty()) return false;
   return x>=minX && x<=maxX && y>=minY && y<=maxY;
 }
 
@@ -590,8 +594,8 @@ The following function checks whether B2 is contained in this PBBox.
 */
 bool PBBox::Contains(const PBBox* B2)const {
     __TRACE__
-  if(!defined) return false;
-   if(isEmpty) return B2->isEmpty;
+  if(!IsDefined()) return false;
+   if(IsEmpty()) return B2->IsEmpty();
    return Contains(B2->minX,B2->minY) && Contains(B2->maxX,B2->maxY);
 }
 
@@ -606,8 +610,8 @@ Returns a clone of this;
 PBBox* PBBox::Clone() const{
     __TRACE__
  PBBox* res = new PBBox(minX,minY,maxX,maxY);
-  res->defined = defined;
-  res->isEmpty = isEmpty;
+  res->SetDefined(this->IsDefined());
+  res->SetEmpty(this->IsEmpty());
   return res;
 }
 
@@ -626,8 +630,7 @@ void PBBox::Equalize(const PBBox* B2){
    maxX = B2->maxX;
    minY = B2->minY;
    maxY = B2->maxY;
-   defined = B2->defined;
-   isEmpty = B2->isEmpty;
+   state = B2->state;
 }
 
 /*
@@ -641,21 +644,21 @@ B2. If both boxes are disjoint the result will be undefined.
 */
 void PBBox::Intersection(const PBBox* B2){
     __TRACE__
- if(!defined) return;
-  if(!B2->defined){
-    defined=false;
+ if(!IsDefined()) return;
+  if(!B2->IsDefined()){
+    SetDefined(false);
     return;
   }
-  if(isEmpty) return;
-  if(B2->isEmpty){
-     isEmpty=true;
+  if(IsEmpty()) return;
+  if(B2->IsEmpty()){
+     SetEmpty(true);
      return;
   }
   minX = minX>B2->minX? minX : B2->minX;
   maxX = maxX<B2->maxX? maxX : B2->maxX;
   minY = minY>B2->minY? minY : B2->minY;
   maxY = maxY<B2->maxY? maxY : B2->maxY;
-  isEmpty = minX<=maxX && minY<=maxY;
+  SetEmpty(minX<=maxX && minY<=maxY);
 }
 
 /*
@@ -668,8 +671,8 @@ void PBBox::Intersection(const PBBox* B2){
 */
 bool PBBox::Intersects(const PBBox* B2)const{
     __TRACE__
- if(!defined || !B2->defined) return false;
-  if(isEmpty || B2->isEmpty) return false;
+ if(!IsDefined() || !B2->IsDefined()) return false;
+  if(IsEmpty() || B2->IsEmpty()) return false;
   if(minX>B2->maxX) return false; //right of B2
   if(maxX<B2->minX) return false; //left of B2
   if(minY>B2->maxY) return false; //over B2
@@ -690,8 +693,8 @@ containing a single point will yield the same result.
 */
 double PBBox::Size()const {
     __TRACE__
- if(!defined) return -1;
-  if(isEmpty) return 0;
+ if(!IsDefined()) return -1;
+ if(IsEmpty()) return 0;
   return (maxX-minX)*(maxY-minY);
 }
 
@@ -706,16 +709,16 @@ both this bounding box as well as B2.
 */
 void PBBox::Union(const PBBox* B2){
     __TRACE__
- if(!B2->defined){ // operators are only allowed on defined arguments
-     defined = false;
+ if(!B2->IsDefined()){ // operators are only allowed on defined arguments
+     SetDefined(false);
      return;
   }
-  if(!defined) return; // see above
+  if(!IsDefined()) return; // see above
 
-  if(B2->isEmpty) return; // no change
+  if(B2->IsEmpty()) return; // no change
 
   // this and B2 are defined and not empty
-  if(isEmpty){
+  if(IsEmpty()){
       Equalize(B2);
       return;
   }
@@ -736,9 +739,9 @@ box to contain the point defined by (x,y)
 */
 void PBBox::Union(const double x, const double y){
     __TRACE__
-if(!defined)return;
- if(isEmpty){
-    isEmpty=false;
+if(!IsDefined())return;
+ if(IsEmpty()){
+    SetEmpty(false);
     minX=maxX=x;
     minY=maxY=y;
     return;
@@ -762,7 +765,7 @@ undefined.
 */
 void PBBox::SetUndefined(){
     __TRACE__
-  defined=false;
+  SetDefined(false);
 }
 
 /*
@@ -785,8 +788,8 @@ This functions returns a vertex of this box.
 */
 bool PBBox::GetVertex(const int No, double& x, double& y)const{
     __TRACE__
-  if(!defined) return false;
-   if(isEmpty) return false;
+  if(!IsDefined()) return false;
+  if(IsEmpty()) return false;
 
    if(No==0){
      x = minX;
@@ -817,13 +820,29 @@ bool PBBox::GetVertex(const int No, double& x, double& y)const{
 /*
 ~SetEmpty~
 
-Sets a bounding box to be empty.
+Sets a bounding box to be empty and defined.
 
 */
 void PBBox::SetEmpty(){
-   isEmpty = true;
-   defined = true;
+   SetEmpty(true);
+   SetDefined(true);
 }
+
+/*
+~SetEmpty~
+
+Sets the isEmpty flag of this box.
+
+*/
+void PBBox::SetEmpty(const bool value){
+   if(value){
+     state = state | 1;
+   }else{
+     state = state & ~1;
+   }
+   
+}
+
 
 
 /*
@@ -834,9 +853,9 @@ This function returns a string representation of a bounding box.
 */
 string PBBox::ToString() const {
        ostringstream res;
-       if(!defined)
+       if(!IsDefined())
           res << "[undefined]";
-       else if(isEmpty)
+       else if(IsEmpty())
           res << "[empty]";
        else{
           res << "[" << minX <<", " << minY << ", ";
@@ -906,10 +925,10 @@ This constructor creates a defined single instant with length 0.
 RelInterval::RelInterval(int dummy){
     __TRACE__
    length = DateTime(durationtype);
-   leftClosed=true;
-   rightClosed=true;
-   defined=true;
-   canDelete=false;
+   ChangeLeftClosed(true);
+   ChangeRightClosed(true);
+   ChangeDefined(true);
+   ChangeCanDelete(false);
 }
 
 /*
@@ -928,8 +947,8 @@ RelInterval::RelInterval(const DateTime* length, const bool leftClosed,
   int comp=length->CompareTo(&Zero);
   assert(comp>=0);
   assert(comp>0 || (leftClosed && rightClosed));
-  this->leftClosed=leftClosed;
-  this->rightClosed=rightClosed;
+  this->ChangeLeftClosed(leftClosed);
+  this->ChangeRightClosed(rightClosed);
   this->length.Equalize(length);
 }
 
@@ -947,7 +966,7 @@ When D2 can't appended to this false is returned.
    if(!CanAppended(R2))
        return false;
     length.Add(&(R2->length));
-    rightClosed = R2->rightClosed;
+    ChangeRightClosed(R2->IsRightClosed());
     return true;
  }
 
@@ -961,10 +980,10 @@ This function checks whether D2 can appended to this RelInterval.
 */
 bool RelInterval::CanAppended(const RelInterval* D2)const {
     __TRACE__
-  if(rightClosed)
-     return ! D2->leftClosed;
+  if(IsRightClosed())
+     return ! D2->IsLeftClosed();
   else
-     return D2->leftClosed; 
+     return D2->IsLeftClosed(); 
 }
 
 /*
@@ -977,17 +996,20 @@ Checks whether T is contained in this RelInterval
 */
 bool RelInterval::Contains(const DateTime* T)const {
     __TRACE__
-  DateTime Zero=DateTime(durationtype);
+   if(!IsDefined()){
+      return false;
+   }
+   DateTime Zero=DateTime(durationtype);
    int compz = T->CompareTo(&Zero);
    if(compz<0)
      return false;
    if(compz==0)
-     return leftClosed;
+     return IsLeftClosed();
    int compe = T->CompareTo(&length);
    if(compe<0)
       return true;
    if(compe==0)
-      return rightClosed;
+      return IsRightClosed();
    return false;
 }
 
@@ -1031,22 +1053,22 @@ This function compares two RelIntervals.
 */
 int RelInterval::CompareTo(const RelInterval* D2)const {
    __TRACE__
-  if(!defined && !D2->defined){ 
+  if(!IsDefined() && !D2->IsDefined()){ 
       return 0;
   }
-  if(!defined && D2->defined){
+  if(!IsDefined() && D2->IsDefined()){
       return -1;
   }
-  if(defined && !D2->defined){
+  if(IsDefined() && !D2->IsDefined()){
        return 1;
   }
   // at this point both involved intervals are defined
-  if(leftClosed && !D2->leftClosed) return -1;
-  if(!leftClosed && D2->leftClosed) return 1;
+  if(IsLeftClosed() && !D2->IsLeftClosed()) return -1;
+  if(!IsLeftClosed() && D2->IsLeftClosed()) return 1;
   int tc = length.CompareTo(&(D2->length));
   if(tc!=0) return tc;
-  if(!rightClosed && D2->rightClosed) return -1;
-  if(rightClosed && !D2->rightClosed) return 1;
+  if(!IsRightClosed() && D2->IsRightClosed()) return -1;
+  if(IsRightClosed() && !D2->IsRightClosed()) return 1;
   return 0;
 }
 
@@ -1087,8 +1109,8 @@ void RelInterval::CopyFrom(const StandardAttribute* arg){
 size_t RelInterval::HashValue() const{
     __TRACE__
   size_t lhv = length.HashValue();
-  if(leftClosed) lhv = lhv +1;
-  if(rightClosed) lhv = lhv +1;
+  if(IsLeftClosed()) lhv = lhv +1;
+  if(IsRightClosed()) lhv = lhv +1;
   return lhv;
 }
 
@@ -1105,17 +1127,17 @@ The return value indicates whether a rest exists.
 bool RelInterval::Split(const double delta, const bool closeFirst,
                         RelInterval& Rest){
     __TRACE__
-  if((delta==0) &&  (!leftClosed || !closeFirst))
+  if((delta==0) &&  (!IsLeftClosed() || !closeFirst))
      return false;
-  if((delta==1) && (!rightClosed || closeFirst))
+  if((delta==1) && (!IsRightClosed() || closeFirst))
      return false;
 
    if(length.IsZero())
      return false;
 
   Rest.Equalize(this);
-  rightClosed=closeFirst;
-  Rest.leftClosed=!closeFirst;
+  ChangeRightClosed(closeFirst);
+  Rest.SetLeftClosed(!closeFirst);
   length.Split(delta,Rest.length);
   return true;
 }
@@ -1142,33 +1164,33 @@ bool RelInterval::Split(const DateTime duration, const bool closeFirst,
    if(duration.LessThanZero()){
       // the complete interval is picked up by Rest
       Rest.Equalize(this);
-      this->defined=false; 
+      this->ChangeDefined(false); 
       return true;
    }
    // duration left of this interval
-   if(duration.IsZero() & (!closeFirst || ! leftClosed)){
+   if(duration.IsZero() & (!closeFirst || ! IsLeftClosed())){
       Rest.Equalize(this);
-      this->defined=false;
+      this->ChangeDefined(false);
       return true;
    }
    // duration right on this interval
    if(duration>length){
       // Rest will not be defined
-      Rest.defined=false;
+      Rest.ChangeDefined(false);
       return true;
    }
    // duration right on this interval
-   if(duration==length & (!rightClosed || closeFirst)){
+   if(duration==length & (!IsRightClosed() || closeFirst)){
        // Rest will not be defined
-       Rest.defined=false;
+       Rest.ChangeDefined(false);
        return true;
    } 
   // the splitting instance is inside this interval
    Rest.length = this->length - duration;
-   Rest.rightClosed=this->rightClosed;
-   Rest.leftClosed=!closeFirst;
+   Rest.ChangeRightClosed(this->IsRightClosed());
+   Rest.ChangeLeftClosed(!closeFirst);
    this->length = duration;
-   this->rightClosed=closeFirst;
+   this->ChangeRightClosed(closeFirst);
    return true;
 }
 
@@ -1185,10 +1207,7 @@ the value of D2.
 void RelInterval::Equalize(const RelInterval* D2){
     __TRACE__
   length.Equalize(&(D2->length));
-  leftClosed=D2->leftClosed;
-  rightClosed=D2->rightClosed;
-  defined = D2->defined;
-  canDelete = D2->canDelete;
+  state = D2->state;
 }
 
 /*
@@ -1244,13 +1263,13 @@ ListExpr RelInterval::ToListExpr(const bool typeincluded)const{
   if(typeincluded)
        return nl->TwoElemList(nl->SymbolAtom("rinterval"),
                    nl->ThreeElemList(
-                       nl->BoolAtom(leftClosed),
-                       nl->BoolAtom(rightClosed),
+                       nl->BoolAtom(IsLeftClosed()),
+                       nl->BoolAtom(IsRightClosed()),
                        time));
    else
       return nl->ThreeElemList(
-                   nl->BoolAtom(leftClosed),
-                   nl->BoolAtom(rightClosed),
+                   nl->BoolAtom(IsLeftClosed()),
+                   nl->BoolAtom(IsRightClosed()),
                    time);
 }
 
@@ -1265,7 +1284,7 @@ contained in it.
 */
 bool RelInterval::IsLeftClosed()const{
     __TRACE__
-  return leftClosed;
+  return GetLeftClosed();
 }
 
 /*
@@ -1278,7 +1297,7 @@ This function will return true iff the interval is right closed.
 */
 bool RelInterval::IsRightClosed()const{
     __TRACE__
- return rightClosed;
+ return GetRightClosed();
 }
 
 
@@ -1343,8 +1362,8 @@ bool RelInterval::ReadFrom(const ListExpr LE, const bool typeincluded){
         cerr << __POS__ << ": invalid values in interval" << endl;
       return false;
    }
-   leftClosed=LC;
-   rightClosed=RC;
+   ChangeLeftClosed(LC);
+   ChangeRightClosed(RC);
    length.Equalize(&time);
    
    return true;
@@ -1366,9 +1385,9 @@ bool RelInterval::Set(const DateTime* length, const bool leftClosed,
                       const bool rightClosed){
     __TRACE__
  if((length->IsZero()) && (!leftClosed || !rightClosed)) return false;
- this->defined=true;
- this->leftClosed=leftClosed;
- this->rightClosed=rightClosed;
+ this->ChangeDefined(true);
+ this->ChangeLeftClosed(leftClosed);
+ this->ChangeRightClosed(rightClosed);
  this->length.Equalize(length);
  return true;
 }
@@ -1382,7 +1401,7 @@ This function sets the closure of this interval at its left end.
 
 */
 void RelInterval::SetLeftClosed(bool LC){
-   this->leftClosed = LC;
+   this->ChangeLeftClosed(LC);
 }  
 
 /*
@@ -1393,7 +1412,7 @@ right end of this interval.
 
 */
 void RelInterval::SetRightClosed(bool RC){
-   this->rightClosed = RC;
+   this->ChangeRightClosed(RC);
 }  
 
 /*
@@ -1405,8 +1424,8 @@ this two functions.
 
 */
 void RelInterval::SetClosure(bool LC,bool RC){
-   this->leftClosed = LC;
-   this->rightClosed = RC;
+   this->ChangeLeftClosed(LC);
+   this->ChangeRightClosed(RC);
 }
 
 
@@ -1424,7 +1443,7 @@ is returned.
 */
 bool RelInterval::SetLength(const DateTime* T){
     __TRACE__
-   if(T->IsZero() && (!leftClosed || !rightClosed)) return false;
+   if(T->IsZero() && (!IsLeftClosed() || !IsRightClosed())) return false;
    length.Equalize(T);
    return true;
 }
@@ -1440,14 +1459,14 @@ This function returns a string representation of this RelInterval.
 */
 string RelInterval::ToString()const{
     __TRACE__
-  if(!defined){
+  if(!IsDefined()){
      return "_undefined_";
   }
   ostringstream tmp;
-   tmp << (leftClosed?"[":"]");
+   tmp << (IsLeftClosed()?"[":"]");
    tmp << " 0.0 , ";
    tmp << length.ToString();
-   tmp << (rightClosed?"]":"[");
+   tmp << (IsRightClosed()?"]":"[");
    return tmp.str();
 }
 
@@ -1484,7 +1503,7 @@ right is taken from the argument.
 
 */
 bool RelInterval::Plus(const RelInterval* I){
-  rightClosed = I->rightClosed;
+  ChangeRightClosed(I->IsRightClosed());
   length.Add(&(I->length));
   return true;
 }
@@ -1524,7 +1543,7 @@ as an attribute within a relation.
 
 */
 void RelInterval::Destroy(){
-   canDelete=true;
+   ChangeCanDelete(true);
 }
 
 int RelInterval::NumOfFLOBs() const{
@@ -1540,10 +1559,59 @@ bool RelInterval::Adjacent(const Attribute*)const{
    return false;
 }
 bool RelInterval::IsDefined() const{ 
-   return defined;
+   return GetDefined();
 }
 void RelInterval::SetDefined(bool defined){ 
-   this->defined = defined;
+   this->ChangeDefined(defined);
+}
+
+/* 
+~Changing flags ~
+
+*/
+
+void RelInterval::ChangeLeftClosed(const bool value){
+   if(value){
+      state = (state | 1);
+   }else{
+      state = (state & ~1);
+   }
+}
+void RelInterval::ChangeRightClosed(const bool value){
+   if(value){
+      state = state | 2;
+   }else{
+      state = state & ~2;
+   }
+}
+void RelInterval::ChangeDefined(const bool value){
+   if(value){
+      state = state | 4;
+   }else{
+      state = state & ~4;
+   }
+
+}
+void RelInterval::ChangeCanDelete(const bool value){
+   if(value){
+      state = state | 8;
+   }else{
+      state = state & ~8;
+   }
+}
+
+
+bool RelInterval::GetLeftClosed() const{
+   return (state & 1 )>0;
+};
+bool RelInterval::GetRightClosed() const{
+    return (state & 2) >0;
+}
+bool RelInterval::GetDefined() const{
+    return (state & 4) > 0;
+}
+bool RelInterval::GetCanDelete() const{
+    return (state & 8) > 0;
 }
 
 /*
@@ -6297,9 +6365,9 @@ box to __cout__, __cerr__ or whatever.
 ostream& operator<< (ostream &os, const PBBox BB){
    __TRACE__
  os << "PBBox[";
-  if(!BB.defined)
+  if(!BB.IsDefined())
     os << "undefined]";
-  else if (BB.isEmpty)
+  else if (BB.IsEmpty())
     os << "empty]";
   else{
     os << "(" << BB.minX << "," << BB.minY << ")";
