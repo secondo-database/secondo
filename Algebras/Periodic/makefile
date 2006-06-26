@@ -59,7 +59,7 @@ PeriodicAlgebra.doc.tex: PeriodicAlgebra.doc Figures/ObviousSolution.eps Figures
 %eps:
 	make -C Figures 
 
-PeriodicAlgebra.doc: PeriodicAlgebra.cpp List2.h RepTree.h RepTree.cpp NodeTypes.h  makefile
+PeriodicAlgebra.doc: PeriodicTypes.h PeriodicAlgebra.cpp List2.h RepTree.h RepTree.cpp NodeTypes.h  makefile
 	cat PeriodicTypes.h >PeriodicAlgebra.doc
 	echo -e "\n[newpage]\n" >>PeriodicAlgebra.doc
 	cat PeriodicAlgebra.cpp >> PeriodicAlgebra.doc
