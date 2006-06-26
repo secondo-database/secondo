@@ -430,11 +430,11 @@ void MPerimeter(MRegion& reg, MReal& res) {
     res.Clear();
     res.StartBulkLoad();
     for(int n = 0; n < nocomponents; n++){
-      const URegion *ur;
+      const URegionEmb *ur; 
       UReal ures;
       double start = 0.0, end = 0.0;
       reg.Get(n, ur);
-      if(!ur->IsDefined())
+      if(!ur->IsValid())
         continue;
       if(TLA_DEBUG){
         cout<<"URegion # "<<n<<" "<<"[ "<<ur->timeInterval.start.ToString()
@@ -443,7 +443,7 @@ void MPerimeter(MRegion& reg, MReal& res) {
       int number = ur->GetSegmentsNum();
       for(int i = 0; i < number; i++){
         const MSegmentData *dms;
-        ur->GetSegment(i, dms);
+        ur->GetSegment(reg.GetMSegmentData(), i, dms);
         if(dms->GetCycleNo() == 0){ //only outercycles
           start += sqrt(pow(dms->GetInitialStartX() - dms->GetInitialEndX(), 2)
                  + pow(dms->GetInitialStartY() - dms->GetInitialEndY(), 2));   
@@ -478,11 +478,11 @@ void MArea(MRegion& reg, MReal& res) {
     res.Clear();
     res.StartBulkLoad();
     for(int n = 0; n < reg.GetNoComponents(); n++){
-      const URegion *ur;
+      const URegionEmb *ur;
       UReal ures;
       double at = 0.0, bt = 0.0, ct = 0.0;
       reg.Get(n, ur);
-      if(!ur->IsDefined())
+      if(!ur->IsValid())
         continue;
       if(TLA_DEBUG){
         cout<<"URegion # "<<n<<" "<<"[ "<<ur->timeInterval.start.ToString()
@@ -495,7 +495,7 @@ void MArea(MRegion& reg, MReal& res) {
       int number = ur->GetSegmentsNum();
       for(int i = 0; i < number; i++){
         const MSegmentData *dms;
-        ur->GetSegment(i, dms);
+        ur->GetSegment(reg.GetMSegmentData(), i, dms);
         double kx1 = (dms->GetFinalStartX() - dms->GetInitialStartX()) / dt;
         double kx2 = (dms->GetFinalEndX()   - dms->GetInitialEndX())   / dt;
         double ky1 = (dms->GetFinalStartY() - dms->GetInitialStartY()) / dt;
@@ -536,11 +536,11 @@ void RCenter(MRegion& reg, MPoint& res) {
     res.Clear();
     res.StartBulkLoad();
     for(int n = 0; n < reg.GetNoComponents(); n++){
-      const URegion *ur;
+      const URegionEmb *ur;
       double Ainitial = 0.0, Axinitial = 0.0, Ayinitial = 0.0,
              Afinal = 0.0, Axfinal = 0.0, Ayfinal = 0.0;
       reg.Get(n, ur);
-      if(!ur->IsDefined())
+      if(!ur->IsValid())
         continue;
       if(TLA_DEBUG){
         cout<<"URegion # "<<n<<" "<<"[ "<<ur->timeInterval.start.ToString()
@@ -549,7 +549,7 @@ void RCenter(MRegion& reg, MPoint& res) {
       int number = ur->GetSegmentsNum();
       const MSegmentData *dms;
       for(int i = 0; i < number; i++){
-        ur->GetSegment(i, dms);
+        ur->GetSegment(reg.GetMSegmentData(), i, dms);
 
        //Calculate Area of Beginning and End of Unit
        Ainitial += (dms->GetInitialEndX() 
@@ -646,15 +646,15 @@ void NComponents(MRegion& reg, MInt& res) {
     res.Clear();
     res.StartBulkLoad();
     for(int n = 0; n < reg.GetNoComponents(); n++){
-      const URegion *ur;
+      const URegionEmb *ur;
       reg.Get(n, ur);
-      if(!ur->IsDefined())
+      if(!ur->IsValid())
         continue;
       if(TLA_DEBUG){
         cout<<"URegion # "<<n<<" "<<"[ "<<ur->timeInterval.start.ToString()
         <<" "<<ur->timeInterval.end.ToString()<<" ]";}
       const MSegmentData *dms;
-      ur->GetSegment(ur->GetSegmentsNum() - 1, dms);
+      ur->GetSegment(reg.GetMSegmentData(),ur->GetSegmentsNum() - 1, dms);
       CcInt *constVal = new CcInt(true, dms->GetFaceNo() + 1);
       UInt *ures = new UInt(ur->timeInterval, *constVal);
 
@@ -2435,7 +2435,7 @@ For Operators ~=~, ~\#~ and ~minus~ forMovingRegion/Region
 void MovingRegionCompareMS( MRegion *mr, CRegion *r, MBool *result,
  int op) 
 {
-  const URegion *ur;
+  const URegionEmb *ur;
   UBool uBool;   //Part of the result
   
   result->Clear();
@@ -2444,7 +2444,7 @@ void MovingRegionCompareMS( MRegion *mr, CRegion *r, MBool *result,
     cout<<"MovingRegionCompareMS called"<<endl;
   for(int i = 0; i < mr->GetNoComponents(); i++){
     mr->Get(i, ur);
-    if(!(ur->IsDefined() && r->IsDefined()))
+    if(!(ur->IsValid() && r->IsDefined()))
         continue;
     int number = ur->GetSegmentsNum();
     if(TLA_DEBUG){
@@ -2457,8 +2457,7 @@ void MovingRegionCompareMS( MRegion *mr, CRegion *r, MBool *result,
     const MSegmentData *dms;
     int i = 0;
     while(staticequal && (i < ur->GetSegmentsNum())){
-      ur->GetSegment(i, dms);
-      
+      ur->GetSegment(mr->GetMSegmentData(), i, dms);
       if (dms->GetInitialStartX() == dms->GetFinalStartX()
        && dms->GetInitialStartY() == dms->GetFinalStartY()
        && dms->GetInitialEndX()   == dms->GetFinalEndX()
@@ -2618,7 +2617,7 @@ void MovingRegionCompareMS( MRegion *mr, CRegion *r, MBool *result,
         if(TLA_DEBUG)
           cout<<"add interval # "<<i<<endl;
         pResult->Get(i, per);
-        ur->TemporalFunction(per->start, snapshot);
+        ur->TemporalFunction(mr->GetMSegmentData(), per->start, snapshot);
         if(*r == snapshot){
           if(TLA_DEBUG)
             cout<<"r == snapshot!"<<endl;
@@ -2678,7 +2677,8 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
 {
   if(TLA_DEBUG)
     cout<<"MovingRegionCompareMM called"<<endl;
-  RefinementPartitionLift<MRegion, MRegion, URegion, URegion> rp(*mr1, *mr2);
+  RefinementPartitionLift<MRegion, MRegion, URegionEmb, URegionEmb>
+     rp(*mr1, *mr2);
   if(TLA_DEBUG)
     cout<<"RefimentPartiion done with size "<<rp.Size()<<endl;
   Interval<Instant>* iv;
@@ -2699,11 +2699,11 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
       cout<<"bothoperators in iv # "<<i<<" [ "
       <<iv->start.ToString()<<" "<<iv->end.ToString()<<" "<<iv->lc<<" "
       <<iv->rc<<" ] reg1Pos "<<reg1Pos<<", reg2Pos "<<reg2Pos <<endl;}
-    const URegion *ureg1;
-    const URegion *ureg2;
+    const URegionEmb *ureg1;
+    const URegionEmb *ureg2;
     mr1->Get(reg1Pos, ureg1);
     mr2->Get(reg2Pos, ureg2);
-    if(!(ureg1->IsDefined() && ureg2->IsDefined()))
+    if(!(ureg1->IsValid() && ureg2->IsValid()))
         continue;
     if(ureg1->GetSegmentsNum() != ureg1->GetSegmentsNum()){
       uBool.timeInterval = *iv;
@@ -2738,7 +2738,7 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
     bool uregionPerhapsEqual = false;
     MSegmentData rdms1;
     
-    ureg1->GetSegment(0, dms1);
+    ureg1->GetSegment(mr1->GetMSegmentData(), 0, dms1);
     dms1->restrictToInterval(ureg1->timeInterval, *iv, rdms1);
     
     pResult->Clear();
@@ -2746,7 +2746,7 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
       const MSegmentData *dms2; 
       MSegmentData rdms2;
       
-      ureg2->GetSegment(n, dms2);
+      ureg2->GetSegment(mr2->GetMSegmentData(), n, dms2);
       dms2->restrictToInterval(ureg2->timeInterval, *iv, rdms2);
       double ts = MPointInMPoint(
         rdms1.GetInitialStartX(), rdms1.GetInitialStartY(),
@@ -2816,16 +2816,16 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
       time.ReadFrom(0.1  * (iv->end.ToDouble() - iv->start.ToDouble()) 
                          + iv->start.ToDouble());
       time.SetType(instanttype);
-      ureg1->TemporalFunction(time, snapshot1);
-      ureg2->TemporalFunction(time, snapshot2);
+      ureg1->TemporalFunction(mr1->GetMSegmentData(), time, snapshot1);
+      ureg2->TemporalFunction(mr2->GetMSegmentData(), time, snapshot2);
       if(snapshot1 == snapshot2){
         if(TLA_DEBUG)
           cout<<"snapshots of iv->start are equal"<<endl;
         time.ReadFrom(0.1  * (iv->end.ToDouble() - iv->start.ToDouble()) 
                            + iv->start.ToDouble());
         time.SetType(instanttype);
-        ureg1->TemporalFunction(time, snapshot1);
-        ureg2->TemporalFunction(time, snapshot2);
+        ureg1->TemporalFunction(mr1->GetMSegmentData(), time, snapshot1);
+        ureg2->TemporalFunction(mr2->GetMSegmentData(), time, snapshot2);
         if(snapshot1 == snapshot2){
             
           uBool.timeInterval = *iv;
@@ -2866,8 +2866,8 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
         
         */
         continue;
-      ureg1->TemporalFunction(per->start, snapshot1);
-      ureg2->TemporalFunction(per->start, snapshot2);
+      ureg1->TemporalFunction(mr1->GetMSegmentData(), per->start, snapshot1);
+      ureg2->TemporalFunction(mr2->GetMSegmentData(), per->start, snapshot2);
       if(snapshot1 == snapshot2){
         if(TLA_DEBUG)
           cout<<"snapshot equal!"<<endl;
@@ -3956,7 +3956,7 @@ implemented yet.
 */
 
 void copyMRegionMPoint(MRegion& reg, MPoint& pt, MRegion& result) {
-    RefinementPartitionLift<MRegion, MPoint, URegion, UPoint> rp(reg,pt);
+    RefinementPartitionLift<MRegion, MPoint, URegionEmb, UPoint> rp(reg,pt);
     Interval<Instant>* iv;
     int regPos;
     int ptPos;
@@ -3972,10 +3972,10 @@ void copyMRegionMPoint(MRegion& reg, MPoint& pt, MRegion& result) {
         cout<<"bothoperators in iv # "<<i<<" [ "
         <<iv->start.ToString()<<" "<<iv->end.ToString()<<" "
         <<iv->lc<<" "<<iv->rc<<" ] regPos "<<regPos<<endl;}
-      const URegion *ureg;
+      const URegionEmb *ureg;
       const UPoint *up;
       reg.Get(regPos, ureg);
-      if(!ureg->IsDefined())
+      if(!ureg->IsValid())
         continue;
       pt.Get(ptPos, up);  
       if(!up->IsDefined())
@@ -5204,7 +5204,7 @@ int IsEmptyValueMap(Word* args, Word& result, int message,
       uBool.timeInterval.start.SetType(instanttype);
       for( int i = 0; i < reg->GetNoComponents(); i++) {
         reg->Get(i, ureg); 
-        if(!ureg->IsDefined())
+        if(!ureg->IsValid())
         continue;     
     
         uBool.timeInterval.rc = !ureg->timeInterval.lc;
@@ -5318,9 +5318,9 @@ int MFalseValueMap(Word* args, Word& result, int message,
     pResult->Clear();
     pResult->StartBulkLoad();
     for( int i = 0; i < reg->GetNoComponents(); i++) {
-      const URegion *ureg;
+      const URegionEmb *ureg;
       reg->Get(i, ureg);
-      if(!ureg->IsDefined())
+      if(!ureg->IsValid())
         continue;
       uBool.timeInterval = ureg->timeInterval; 
       uBool.constValue.Set(true,false);
@@ -6306,7 +6306,7 @@ static ValueMapping temporalmgreaterequalmap[] =    {
                 TemporalSMCompare<MString, UString, CcString, 1>};
                 
 static ValueMapping temporalliftisemptyvaluemap[] = {
-                IsEmptyValueMap<MRegion, URegion>,
+                IsEmptyValueMap<MRegion, URegionEmb>,
                 IsEmptyValueMap<MBool, UBool>,
                 IsEmptyValueMap<MInt, UInt>,
                 IsEmptyValueMap<MReal, UReal>,
