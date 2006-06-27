@@ -34,8 +34,8 @@ TESTNAMES += tctable tpctable tnestedlist
 # Some Tools
 TESTNAMES += tfilesystem tprofiles
 
-# Storage Mangement Interface
-TESTNAMES += tsmi tsmi3
+# Storage Mangement Interface and Berkeley-DB
+TESTNAMES += tsmi tsmi3 bdbtest bdb-perf
 
 # Socket Communication
 TESTNAMES += tsock1 tsock2 tsock3
