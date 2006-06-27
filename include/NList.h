@@ -115,6 +115,9 @@ struct Symbols {
     static const string& BOOL() { 
        static string s("bool"); return s; 
     }  
+    static const string& REL() { 
+       static string s("rel"); return s; 
+    }  
 };  
 
 
@@ -429,6 +432,11 @@ functions.
   inline bool checkStreamTuple(NList& attrs)
   {
     return checkDepth3(sym.stream, sym.tuple, attrs);
+  }
+
+  inline bool checkRel(NList& attrs)
+  {
+    return checkDepth3(sym.rel, sym.tuple, attrs);
   }
 
   inline bool checkLength(const int len, string& err)
