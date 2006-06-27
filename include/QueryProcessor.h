@@ -237,7 +237,7 @@ abstraction. In this case, it is not evaluable, but we may want to store
 the function in a database object. 
 
 */
-  void Eval( const OpTree tree, Word& result,
+  void Eval( void* node, Word& result,
              const int message );
 /*
 Traverses the operator tree ~tree~ calling operator implementations for
@@ -245,7 +245,7 @@ each node, and returns the result in ~result~. The ~message~ is "OPEN"[4],
 "REQUEST"[4], or "CLOSE"[4] and is used only if the root node produces a stream.
 
 */
-  void Destroy( OpTree& tree, const bool destroyRootValue );  
+  void Destroy( OpTree& node, const bool destroyRootValue );
 /*
 Deletes an operator tree object. If ~DestroyRootValue~ is "false"[4], the
 result value stored in the root node is not deleted.
@@ -406,12 +406,18 @@ Construct an operator tree from ~expr~. Allocate argument vectors for all
 functions and then call ~subtree~ to do the job.
 
 */
-  ListExpr ListOfTree( OpTree tree, ostream& os );
+  ListExpr ListOfTree( void* node, ostream& os );
 /*
 Represents an operator tree through a list expression. Used for testing.
 Additionally more detailed information will be printed into ~os~.
 
 */
+  const char* MsgToStr(const int msg);
+/*
+Translates a message ito its name.
+   
+*/
+  
   void SetDebugLevel( const int level );
 /*
 Sets the debug level for the query processor. The following levels are defined:
@@ -614,6 +620,8 @@ Construct operator tree recursively for a given annotated ~expr~. See
     return (SecondoSystem::GetCatalog());
   };
 
+  void Destroy( void*& node, const bool destroyRootValue );  
+  
   NestedList*     nl;
   AlgebraManager* algebraManager;
   

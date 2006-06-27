@@ -500,7 +500,7 @@ arguments. In this case the operator must
       int		algebraId;
       int		opFunId;
       int		noSons;
-      OpTree		sons[MAXARG];
+      ArgVector		sons;
       bool		isFun;
       ArgVectorPointer	funArgs;
       int		funNo; // needed for testing only 
@@ -652,7 +652,7 @@ ostream& operator<<(ostream& os, const OpNode& node) {
         os << tab(f2) << "Node(s)[ ";
         for (int i=0; i<node.u.op.noSons; i++) 
         {
-           it = OpNodeAddr2Id.find( (void*)node.u.op.sons[i] );
+           it = OpNodeAddr2Id.find( (void*)node.u.op.sons[i].addr );
            if ( it != OpNodeAddr2Id.end() ) 
              os << it->second << " "; 
            else 
@@ -662,7 +662,7 @@ ostream& operator<<(ostream& os, const OpNode& node) {
         
         os << tab(f2) << "Addresses[ ";
         for (int i=0; i<node.u.op.noSons; i++) 
-           os << (void*)node.u.op.sons[i] << " ";
+           os << (void*)node.u.op.sons[i].addr << " ";
         os << "]" << endl;
 
         os << tab(f) << "noSons = " 
@@ -819,13 +819,14 @@ a tree into a list expression which we can then print.
 */
 
 ListExpr
-QueryProcessor::ListOfTree( OpTree tree, ostream& os )
+QueryProcessor::ListOfTree( void* node, ostream& os )
 {
 /*
 Represents an operator tree through a list expression. Used for testing.
 Additonally more detailed information is printed int ~os~
 
 */
+  OpTree tree = static_cast<OpTree>( node );
   ListExpr list = nl->TheEmptyList();
   ListExpr last = nl->TheEmptyList();
   int i = 0;
@@ -880,12 +881,12 @@ Additonally more detailed information is printed int ~os~
         if ( tree->u.op.noSons > 0)
         {
           list = 
-            nl->OneElemList( ListOfTree( tree->u.op.sons[0], os ) );
+            nl->OneElemList( ListOfTree( tree->u.op.sons[0].addr, os ) );
           last = list;
           for ( i = 1; i < tree->u.op.noSons; i++ )
           {
             last = nl->Append( last, 
-	          ListOfTree( tree->u.op.sons[i], os ) );
+	          ListOfTree( tree->u.op.sons[i].addr, os ) );
           }
         }
         else
@@ -2416,6 +2417,7 @@ QueryProcessor::SubtreeX( const ListExpr expr )
       (*argVectors[i])[j].addr = 0;
     }
   }
+  
   bool first = true;  
   OpTree resultTree = Subtree( expr, first );
   if ( debugMode )
@@ -2596,7 +2598,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
       while ( !nl->IsEmpty( list ) )
       {
-        node->u.op.sons[node->u.op.noSons] = 
+        node->u.op.sons[node->u.op.noSons].addr = 
           Subtree( nl->First( list ), first, node );
         node->u.op.noSons++;
         list = nl->Rest( list );
@@ -2683,7 +2685,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       list = nl->Third( nl->First( expr ) );
       while (!nl->IsEmpty( list ))
       {
-        node->u.op.sons[node->u.op.noSons] = 
+        node->u.op.sons[node->u.op.noSons].addr = 
           Subtree( nl->First( list ), first, node );
         node->u.op.noSons++;
         list = nl->Rest( list );
@@ -2725,13 +2727,13 @@ QueryProcessor::Subtree( const ListExpr expr,
 			     application of an abstraction */
       node->u.op.opFunId = 0;
       node->u.op.noSons = 1;
-      node->u.op.sons[0] = 
+      node->u.op.sons[0].addr = 
         Subtree( nl->First(nl->Third(nl->First(expr))), 
                  first, node ); /* the abstraction */
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
       while ( !nl->IsEmpty( list ) )
       { /* the arguments */
-        node->u.op.sons[node->u.op.noSons] = 
+        node->u.op.sons[node->u.op.noSons].addr = 
           Subtree( nl->First( list ), first, node );
         node->u.op.noSons++;
         list = nl->Rest( list );
@@ -2885,13 +2887,19 @@ the function in a database object.
 }
 
 void
+QueryProcessor::Destroy( void*& node, const bool destroyRootValue )
+{
+  Destroy( static_cast<OpTree>(node), destroyRootValue );
+} 
+
+void
 QueryProcessor::Destroy( OpTree& tree, const bool destroyRootValue )
 {
 /*
 Deletes an operator tree object.
 
 */
-
+  //OpTree tree = static_cast<OpTree>( node );
   // reinitialize static OpNode information
   OpNodeAddr2Id.clear();
   OpNodeIdCtr = 0;
@@ -2908,9 +2916,9 @@ Deletes an operator tree object.
         for ( int i = 0; i < tree->u.op.noSons; i++ )
         {
           if( tree->u.op.resultAlgId == 0 )
-            Destroy( tree->u.op.sons[i], destroyRootValue );
+            Destroy( tree->u.op.sons[i].addr, destroyRootValue );
           else
-            Destroy( tree->u.op.sons[i], true );
+            Destroy( tree->u.op.sons[i].addr, true );
         } /* for */
         if ( tree->u.op.isFun )
         {
@@ -2978,12 +2986,32 @@ Deletes an operator tree object.
 }
 
 /*
+Translate a message code int its name
+   
+*/
+
+const char* 
+QueryProcessor::MsgToStr(const int msg) {
+  
+ switch (msg % 10) {
+    case OPEN: return "OPEN";
+    case REQUEST:  return "REQUEST";
+    case CLOSE: return "CLOSE";
+    case YIELD: return "YIELD";
+    case CANCEL: return "CANCEL";
+    default: return "UNKNOWN";
+ }            
+} 
+
+
+/*
 6.3 Evaluating an Operator Tree: Procedure ~eval~
 
 */
 
+
 void
-QueryProcessor::Eval( const OpTree tree, 
+QueryProcessor::Eval( void* node, 
                       Word& result, 
                       const int message)
 {
@@ -2997,6 +3025,8 @@ Note: This function still needs to be adapted to handle the special operators
 the moment. 
 
 */
+  OpNode* tree = static_cast<OpNode*>( node );
+ 
   static string fn("QP:Eval ");
   static map<int, bool>::const_iterator it;
  
@@ -3014,9 +3044,10 @@ the moment.
   {
     if ( traceNodes ) 
     {
-      cerr << fn << "Node " << tree->id 
-                 << " result = " << (void*)result.addr 
-                 << " msg = " << message << endl;
+      cerr << fn << "*** Eval( Node " << tree->id 
+                 << ", result = " << (void*)result.addr 
+                 << ", msg = " << MsgToStr(message) 
+                 << "(" << message << ") ) ***" << endl;
     }
 
 /* 
@@ -3056,7 +3087,7 @@ request the next element.
 */
       case IndirectObject:
       {
-        int argIndex = tree->u.iobj.argIndex;
+        const int argIndex = tree->u.iobj.argIndex;
         
         if ( (*tree->u.iobj.vector)[MAXARG-argIndex].addr == 0 )
         { 
@@ -3071,28 +3102,21 @@ request the next element.
             cerr << fn << "Parameter function's caller node = " 
                  << caller->id << endl;
           }
-          // copy arguments
-          for ( i = 0; i < caller->u.op.noSons; i++ )
-          {
-            arg[i].addr = caller->u.op.sons[i];
-            if ( traceNodes ) {
-                cerr << fn << "Copy argument " << i << endl;
-            }
-          }
           status = algebraManager->Execute( caller->u.op.algebraId, 
 			                    caller->u.op.opFunId,
-                                            arg, result, 
+                                            caller->u.op.sons, result, 
 					    (argIndex*FUNMSG)+message, 
 					    caller->u.op.local, 
 					    caller );
         
-          tree->u.iobj.received = (status == YIELD); } 
-          if (traceNodes) 
-          { 
-           cerr << fn << "IndirectObject return [" 
-                << (void*)result.addr << "]" << endl;
-          } 
-          return; 
+          tree->u.iobj.received = (status == YIELD); 
+        } 
+        if (traceNodes) 
+        { 
+         cerr << fn << "{IndirectObject with Argindex = " << argIndex 
+                    << "} return [" << (void*)result.addr << "]" << endl;
+        } 
+        return; 
       }
 /* 
  
@@ -3107,71 +3131,71 @@ operator's value mapping function.
       {
         for ( i = 0; i < tree->u.op.noSons; i++ )
         {
-          if ( tree->u.op.sons[i]->evaluable && 
+          if ( ((OpNode*)(tree->u.op.sons[i].addr))->evaluable && 
                !tree->u.op.isStream )
           {
             // Not a stream operator! Compute result values
             // for all evaluable sons
             if ( traceNodes ) 
             {
-              cerr << fn << "Eval(son[" << i << "], arg[" 
-                   << i << "])" << endl;
+              cerr << fn << "Compute result for son[" << i << "]" << endl;
             }
-            Eval( tree->u.op.sons[i], arg[i], message );
+            Eval( tree->u.op.sons[i].addr, arg[i], message );
           }
           else
           {
             // A stream operator! Copy the sons into the local
             // argument vector
-            arg[i].addr = tree->u.op.sons[i];
+            arg[i].addr = tree->u.op.sons[i].addr;
             if ( traceNodes ) 
             {
-              cerr << fn << "Copy argument " << i << endl;
+              cerr << fn << "Argument son[" << i << "] is a stream" << endl;
             }
           }
         }
 
         if ( tree->u.op.algebraId == 0 && tree->u.op.opFunId == 0 )
         { 
-          // This algebra und function ID's are used to 
+          // These algebra und function ID's are used to 
           // indicate an abstraction application 
           ArgVectorPointer absArgs;
           if ( traceNodes )
           {
-            cout << fn << "The tree is: " << endl;
+            cerr << fn << "*** Abstraction application " << endl;
             nl->WriteListExpr( ListOfTree( tree, cerr ), cout, 2 );
-            cout << endl;
+            cerr << endl;
           }
-          absArgs = Argument(tree->u.op.sons[0] );
+          absArgs = Argument(tree->u.op.sons[0].addr );
           for ( i = 1; i < tree->u.op.noSons; i++ )
           {
             (*absArgs)[i-1] = arg[i];
             if ( traceNodes )
             {
-              cout << fn << "argument " << i-1 << " is" 
-                   << int(arg[i].addr) << endl;
+              cerr << fn << "absArgs[" << i-1 << "] = " 
+                   << (void*)arg[i].addr << endl;
             }
           }
-          Eval( tree->u.op.sons[0], result, message );
+          Eval( tree->u.op.sons[0].addr, result, message );
         }
         else 
         { 
           // A ~normal~ operator! 
           if ( traceNodes ) 
           { 
-            cerr << fn << "*** Execute Value Function with args" 
-                 << endl;
             it = argsPrinted.find(tree->id);
             if ( (it == argsPrinted.end())) 
             {
+              cerr << fn << "*** Value mapping function's args" 
+                   << endl;
               for ( i = 0; i < tree->u.op.noSons; i++ ) 
               {
-                cerr << fn << "Eval arg[" << i << "].addr = " 
+                cerr << fn << "arg[" << i << "].addr = " 
                      << arg[i].addr << endl;
               }
               argsPrinted[tree->id] = true;
             }
-            cerr << fn << "*** End" << endl;
+            cerr << fn << "*** Call value mapping for "
+                 << nl->SymbolValue(tree->u.op.symbol) << endl;
           }
           status =
             algebraManager->Execute( tree->u.op.algebraId, 
@@ -3316,7 +3340,7 @@ QueryProcessor::GetSupplier( const Supplier s, const int no )
   {        /* is an arglist node*/
     if ( no < node->u.op.noSons )
     {
-      return (node->u.op.sons[no]);
+      return (node->u.op.sons[no].addr);
     }
     else
     {
@@ -3336,7 +3360,7 @@ QueryProcessor::GetSupplier( const Supplier s, const int no )
 
 /*
 For each operator in an operator tree, the query processor allocates a
-storage block for the result value (which it also destroys after
+torage block for the result value (which it also destroys after
 execution of the query). The operator's evaluation function can call
 this procedure ~resultStorage~ to get the Word of that storage block.
 As a parameter ~s~, the operator's node Word has to be given which is
@@ -3586,7 +3610,7 @@ QueryProcessor::ExecuteQuery( const string& queryListStr,
     {
       // evaluate the operator tree
       qpp->Eval( tree, queryResult, OPEN );
-      qpp->Destroy( tree, false );
+      qpp->Destroy( (void*)tree, false );
     }
     else 
     {
