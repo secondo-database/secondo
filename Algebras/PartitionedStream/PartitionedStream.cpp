@@ -406,7 +406,7 @@ struct PartStreamMappings {
   template<class T>
   inline static T* nextOfStream(const Word& w)
   {
-    Word wTuple; 
+    Word wTuple = SetWord(0); 
     qp->Request(w.addr, wTuple);
     if( qp->Received(w.addr) )
       return static_cast<T*>( wTuple.addr );
@@ -417,7 +417,7 @@ struct PartStreamMappings {
   template<class T>
   inline static T* nextOfStream2(const Supplier s)
   {
-    Word wTuple; 
+    Word wTuple = SetWord(0);
     qp->Request(s, wTuple);
     if( qp->Received(s) )
       return static_cast<T*>( wTuple.addr );
@@ -758,8 +758,8 @@ static int pdelete_vm( Word* args, Word& result, int message,
 	   else // a normal tuple 
 	   {
 	     //TRACE( pre << "Tuple: " << *(pt->tuple) )
-             delete pt;
              result.addr = pt->tuple;
+             delete pt;
 	     return YIELD;
 	   } 
 	}
@@ -1009,7 +1009,7 @@ struct MarkerQueue {
      return t;
    };
    
-   queue<const Marker*> q;
+   queue< const Marker* > q;
    size_t max;
    bool endOfStream;   
 };  
@@ -1045,21 +1045,16 @@ static int puse_vm( Word* args, Word& result, int message,
       // position. This indicates that the argument is a stream.
       (*funargs)[MAXARG-1] = SetWord(s);
   
-      // The parameter function's return type is a stream
-      // hence we need to open it
-      qp->Open(fun.addr);
-
       // initalize local information. The first tuple of a nonempty
       // ptuple stream must be a marker tuple.
       m = new MarkerQueue();
       local.addr = m;
-      PTuple* pt = nextPTuple(inStream);
-      if (pt)
-      { 
-        assert(pt->marker);
-        m->push( pt->marker );
-      }
 
+      // The parameter function's return type is a stream
+      // hence we need to open it
+      qp->Open(fun.addr);
+      //TRACE("param function opened!")
+      
       return 0;
     }
     case REQUEST: {
@@ -1153,7 +1148,7 @@ to be evaluated by the parameter function. If a marker is
       // This message must be ignored since we will send a CLOSE message
       // to our input stream when requested by our parent node
 
-      //TRACE(pre << "Message FUNMSG+CLOSE received")
+      TRACE(pre << "Message FUNMSG+CLOSE received")
       return 0;
     }
     case CLOSE: {
@@ -1163,7 +1158,7 @@ to be evaluated by the parameter function. If a marker is
       qp->Close(inStream.addr);
       
       // send a close message to the parameter fun in order that it can be
-      // propageted to its childs.
+      // propagated to its childs.
       qp->Close(fun.addr);
       
       delete m; 
