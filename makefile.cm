@@ -267,7 +267,7 @@ $(SECONDO_DEMO)/bin/Secondo%: Secondo%
 	cp $< $@
 	strip $@
 
-
+srcprefix := secondo
 define checkTag
   @if [ -z "$(tag)" ]; then echo -e "\n Error: Variable \"tag\" not set! \n"; exit 1; fi
 endef
@@ -288,7 +288,7 @@ mkArchives: $(fileList)
 	rm -rf $(SRC_FILES)
 	tar -czf $(LIN_SRC) -T $<
 # a list of file endings which need not to be recoded
-	find secondo ! \( \
+	find $(srcprefix) ! \( \
           -type d \
           -or -name "*.bmp" \
           -or -name "*.book" \
@@ -312,18 +312,18 @@ mkArchives: $(fileList)
         \) \
         -exec recode lat1..cp1252 {} \;
 	cat $< | zip -9 -r $(WIN_SRC) -@ > /dev/null
-	rm -rf secondo
+	rm -rf $(srcprefix) 
 
 .PHONY: rmList
 rmList: 
 	rm -f $(fileList)
 
-$(fileList): secondo/makefile
-	CM-Scripts/mkpublic.sh nonpublic.filelist $@
+$(fileList): $(srcprefix)/makefile
+	CM-Scripts/mkpublic.sh nonpublic.filelist $@ $(srcprefix)
 
-secondo/makefile:
+$(srcprefix)/makefile:
 	$(checkTag)
-	cvs -Q export -r$(tag) secondo
+	cvs -Q export -r$(tag) -d$(srcprefix) secondo
 
 
 $(net)/installsdk: install.bash

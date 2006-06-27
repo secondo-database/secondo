@@ -5,12 +5,17 @@
 # makes a list of all files except those
 # specified in $1 and writes them to $2
 
-if [ $# != 2 ]; then
-  echo "Usage: $0 input-file output-file"
+if let $[$# < 2]; then
+  echo "Usage: $0 input-file output-file [prefix=secondo]"
   exit 1
 else
   infile=$1
   outfile=$2
+fi
+
+prefix="secondo"
+if [ $# == 3 ]; then
+  prefix=$3
 fi
 
 exec 3< $infile
@@ -18,8 +23,8 @@ exec 4> $outfile
 i=1
 section=0
 
-cmd="find secondo "
-sedcmd="cat secondo/makefile.algebras.temp"
+cmd="find $prefix "
+sedcmd="cat $prefix/makefile.algebras.temp"
 
 while read <&3 line; do
   if [ ${#line} -gt 0 ]; then
@@ -30,8 +35,8 @@ while read <&3 line; do
         algebradir=`echo $line | awk -F" " ' { print $2 }'`
 
         echo "Excluding algebra: $algebra (dir: $algebradir)"
-        if [ -d "secondo/Algebras/$algebradir" ]; then
-          cmd=$cmd" -regex \"secondo/Algebras/$algebradir\" -prune -o "
+        if [ -d "$prefix/Algebras/$algebradir" ]; then
+          cmd=$cmd" -regex \"$prefix/Algebras/$algebradir\" -prune -o "
         fi
 
         sedcmd=$sedcmd" | sed -e \"/ALGEBRAS.*\+\=.*$algebra/d\""
@@ -39,17 +44,17 @@ while read <&3 line; do
 
       elif [ $section -eq 2 ]; then
 
-        if [ -d "secondo/$line" ]; then
+        if [ -d "$prefix/$line" ]; then
           echo "Excluding directory: $line"
-          cmd=$cmd" -regex \"secondo/$line\" -prune -o "
+          cmd=$cmd" -regex \"$prefix/$line\" -prune -o "
           entered=1
         fi
 
       elif [ $section -eq 3 ]; then
 
-        if [ -f "secondo/$line" ]; then
+        if [ -f "$prefix/$line" ]; then
           echo "Excluding file: $line"
-          cmd=$cmd"! -regex \"secondo/$line\" "
+          cmd=$cmd"! -regex \"$prefix/$line\" "
           entered=1
         fi
 
@@ -77,14 +82,15 @@ while read <&3 line; do
   fi
 done
 
+# remove non-public algebra modules from makefile.algebras
 cmd=$cmd" ! -type d -print"
 sedcmd=$sedcmd" | sed -e \"/^$/N;/\n$/D\""
 echo "sedcmd: $sedcmd"
 echo "cmd: $cmd"
 eval $cmd > $2
-cp secondo/makefile.algebras.sample secondo/makefile.algebras.temp
-eval $sedcmd > secondo/makefile.algebras.sample
-rm secondo/makefile.algebras.temp
+cp $prefix/makefile.algebras.sample $prefix/makefile.algebras.temp
+eval $sedcmd > $prefix/makefile.algebras.sample
+rm $prefix/makefile.algebras.temp
 
 exit 0
 
