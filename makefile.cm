@@ -340,20 +340,19 @@ changes: /tmp/modfiles.list
 /tmp/cvslist:	
 	cvs -nq update | grep "^[MAC] " | sed -e "s#[M,A,C] #./#g" > $@
 
-
 .PHONY: backup 
 backup: backup.tgz
 	rm -f /tmp/modfiles.list
 
 ifndef days
-days:=0
+days:=7
 endif
 ifndef hours 
 hours:=1
 endif
 /tmp/modfiles.list: /tmp/cvslist
 	rm -f $@
-	find . -cmin -$$[$(days)*24+$(hours)*60] -a -type f ! -ipath "*/pd/*" ! -iregex ".*\.\(\(tab\|yy\)\..*\|log\|a\|o\|class\|dep\)" >> $@
+	find . -cmin -$$[($(days)*24+$(hours))*60] -size -1024k -a -type f ! -ipath "*/pd*/*" ! -iregex ".*\.\(\(tab\|yy\)\..*\|log\|a\|o\|class\|dep\)" >> $@
 	cat $< >> $@
 
 backup.tgz: /tmp/modfiles.list
