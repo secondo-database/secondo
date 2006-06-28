@@ -560,15 +560,22 @@ checkIsInList(X, ObjList, Type) :-
 checkIsInList(_, _, _) :-
   fail.
 
+
+/* 
+Some facts which store important state information
+
+*/
+ 
 :- dynamic storeupdateRel/1.
 :- dynamic storeupdateIndex/1.
 :- dynamic storedDatabaseOpen/1.
+
+% the facts above get asserted with value 0 at the startup
+% of the optimizer. Refer to calloptimizer.pl
+
 :- dynamic databaseName/1.
 
-storeupdateRel(0).
-storeupdateIndex(0).
-storedDatabaseOpen(0).
-% ( databaseName/1 gets asserted, when a database is opened)
+% databaseName/1 gets asserted, when a database is opened
 
 
 secondoResultSucceeded(Result) :-
@@ -821,6 +828,10 @@ notIsDatabaseOpen :-
   storedDatabaseOpen(Status),
   Status = 0.
 
+
+query(Query) :-
+  query(Query, _).
+ 
 query(Query, Time) :-
   isDatabaseOpen,
   atom(Query),
@@ -932,7 +943,8 @@ showTupleRec([H|T], [Wh|Wt]) :-
 showHeader(L, WriteSpec) :-
   showHeaderRec(L, [], HeadList, [], WriteSpec, 0, Len),
   showTuplesRec([HeadList], WriteSpec),
-  writef('%r', ['-', Len]), nl.
+  Len2 is Len + 2,
+  writef('%r', ['-', Len2]), nl.
  
 showHeaderRec([], L1, L1, L2, L2, N, N).
  
@@ -941,7 +953,7 @@ showHeaderRec([H|T], Tmp1, Res1, Tmp2, Res2, Tmp3, Res3 ) :-
   atom_length(Attr, Len),
   FieldLen is Len + 4,
   TotalLen is Tmp3 + FieldLen,
-  concat_atom(['%', FieldLen, Adjust], WriteSpec),
+  concat_atom([' %', FieldLen, Adjust], WriteSpec),
   append(Tmp1, [Attr], L1),
   append(Tmp2, [WriteSpec], L2),
   showHeaderRec(T, L1, Res1, L2, Res2, TotalLen, Res3 ).

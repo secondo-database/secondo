@@ -521,9 +521,13 @@ dc(_,_) :- !.
 % Startup procedure for the optimizer
 :- [opsyntax].
 :- loadFiles(standard).        % load the files for the standard optimizer 
-:- assert(highNode(0)),
-   assert(boundarySize(0)),
-   assert(boundaryMaxSize(0)).
+
+:- assert( storeupdateRel(0) ),
+   assert( storeupdateIndex(0) ),
+   assert( storedDatabaseOpen(0) ),
+   assert( highNode(0) ),
+   assert( boundarySize(0) ),
+   assert( boundaryMaxSize(0) ).
   
 /*
 5.2 Setting Startup Options
