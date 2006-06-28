@@ -24,4 +24,8 @@ else
   nice -n 19  $runner $*
 fi
 
+rc=$?
+
 rm -rf $tempDir
+
+exit $rc

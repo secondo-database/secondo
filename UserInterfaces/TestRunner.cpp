@@ -110,6 +110,7 @@ class TestRunner : public Application
   string            iFileName;
   string            oFileName;
   string            cmd;
+  int               num;
   bool              isStdInput;
   bool              quit;
   bool              verbose;
@@ -161,6 +162,7 @@ TestRunner::TestRunner( const TTYParameter& tp )
   port          = tp.port;
   iFileName     = tp.iFileName;
   oFileName     = tp.oFileName;
+  num           = parse<int>(tp.num);
   string cmd    = "";
   isStdInput    = true;
   quit          = false;
@@ -480,18 +482,23 @@ TestRunner::GetCommand()
           {
             assert(state == TESTCASE);
             string toleranceStr = parse<string>( restOfLine );
+            int offset=0;
+            string suffix("");
             if (toleranceStr[0] == '%') 
             {
               realValTolerance.isRelative = true;
               cout << "Relative";
+              offset=1;
+              suffix="%";
             }              
             else
             {
               realValTolerance.isRelative = false;
               cout << "Absolute";
             }               
-            realValTolerance.value = parse<double>( toleranceStr.substr(1) );
-            cout << " tolerance set to " << realValTolerance.value << endl;
+            realValTolerance.value = parse<double>( toleranceStr.substr(offset) );
+            cout << " tolerance set to " 
+                 << realValTolerance.value << suffix << endl;
           }
           else if(command.find("yields") == 0)
           {
@@ -569,11 +576,27 @@ TestRunner::GetCommand()
 void
 TestRunner::ProcessCommands()
 {
+  if (num > 0) {
+     cout << "Running only test case number " << num << "!" << endl;
+  }
+   
   while (!cin.eof() && !quit)
   {
     if ( GetCommand() )
     {
-      ProcessCommand();
+      // if a number is specified only run a specific test case
+      if (num > 0) {        
+        if ( state == TESTCASE ) {
+          if (testCaseNumber == num)
+            ProcessCommand();
+        } else {
+          ProcessCommand();
+        }  
+      }     
+      else // run every command 
+      {
+        ProcessCommand();
+      }  
     }
   }
 }

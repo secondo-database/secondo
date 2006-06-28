@@ -18,9 +18,21 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 # An example test spec for the Secondo TestRunner
-# run with : TestRunner -i example.test
+# run it with : 
 #
-# (TestRunner can be found in directory UserInterfaces)
+#  TestRunner -i example.test
+#
+# By default a temporary database directory will be created. If you
+# want to use existing databases run
+#
+#  TestRunner --no-tmp -i <file>
+#
+# If one of your tests (say number N ) reports an error you can run
+# it directly by
+#
+# TestRunner -i <file> -num N 
+#
+# this is useful for debugging
 
 # A test specification consists of initial commands, a section of commands
 # setting up the test, a sequence of test cases, and a section of commands
@@ -178,6 +190,15 @@ query staedte feed consume count;
 #testcase FloatingPoint1
 # yields (real 3.184)
 query 10 / 3.14 
+
+# Alternatively you can specify an relative tolerance, e.g.
+#
+# tolerance_real %10.0
+
+#testcase FloatingPoint2
+# yields (real 3.3)
+query 10 / 3.14 
+
 
 
 # An unspecified yields definition will result in an error
