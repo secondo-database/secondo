@@ -249,6 +249,13 @@ Example call:
 */
 
 
+createPredicateFacts(Preds) :-
+  optimizerOption(adaptiveJoin),   
+  storePredicates(Preds), !.
+ 
+createPredicateFacts(_). 
+
+
 pog(Rels, Preds, Nodes, Edges) :-
   length(Rels, N), reverse(Rels, Rels2), deleteArguments,
   partition(Rels2, N, Partition0),
@@ -256,7 +263,9 @@ pog(Rels, Preds, Nodes, Edges) :-
   pog2(Partition0, M, Preds2, Nodes, Edges),
   deleteNodes, storeNodes(Nodes),
   deleteEdges, storeEdges(Edges),
-  deletePlanEdges, deleteVariables, deleteCounters, createPlanEdges,
+  deleteVariables, deleteCounters,
+  createPredicateFacts(Preds), 
+  deletePlanEdges, createPlanEdges,
   HighNode is 2**M -1,
   retract(highNode(_)), assert(highNode(HighNode)).
   % uncomment next line for debugging
@@ -1863,18 +1872,44 @@ join(arg(N), Arg2, pr(X=Y, _, _)) => loopjoin(Arg2S, MatchExpr) :-
   Arg2 => Arg2S,
   exactmatch(IndexName, arg(N), Expr2) => MatchExpr.
 
+/*
+Try to apply projections as early as possible!
 
+*/
+
+ 
 exactmatch(IndexName, arg(N), Expr) =>
-  exactmatch(IndexName, rel(Name, *, Case), Expr) :-
-  argument(N, rel(Name, *, Case)),
+  exactmatch(IndexName, Rel, Expr) :-
+  isStarQuery, 
+  argument(N, Rel),
+  Rel = rel(_, *, _), % no renaming needed 
   !.
 
 exactmatch(IndexName, arg(N), Expr) =>
-  rename(exactmatch(IndexName, rel(Name, Var, Case), Expr), Var) :-
-  argument(N, rel(Name, Var, Case)),
+  rename(exactmatch(IndexName, Rel, Expr), Var) :-
+  isStarQuery, % no need for project
+  argument(N, Rel),
+  Rel = rel(_, Var, _),
   !.
 
+exactmatch(IndexName, arg(N), Expr) =>
+  project(exactmatch(IndexName, Rel, Expr), AttrNames) :-
+  not(isStarQuery), 
+  argument(N, Rel ),
+  Rel = rel(_, *, _), % no renaming needed
+  usedAttrList(Rel, AttrNames),
+  !.
 
+ 
+exactmatch(IndexName, arg(N), Expr) =>
+  rename(project(exactmatch(IndexName, Rel, Expr), AttrNames), Var) :-
+  not(isStarQuery), 
+  argument(N, Rel),
+  Rel = rel(_, Var, _), % with renaming
+  usedAttrList(Rel, AttrNames),
+  !.
+
+ 
 /*
 One could easily add rules for ~loopjoin~ with ~rightrange~ and ~leftrange~
 operators for joins on "<=", ">=", "<" and ">" here.
@@ -2016,8 +2051,10 @@ details refer to ~adaptiveJoin.pl~.
 
 */ 
 
-join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2(Arg1S, Arg2S, Fields) :-
-  optimizerOption(adaptiveJoin), 
+join00(Arg1S, Arg2S, Pred) => pjoin2(Arg1S, Arg2S, Fields) :-
+  optimizerOption(adaptiveJoin),
+  not( possibleIndexJoin(Pred) ),
+  Pred = pr(X = Y, _, _),
   try_pjoin2(X, Y, Fields).
 
 
@@ -2058,6 +2095,7 @@ createPlanEdge :-
 createPlanEdges :- not(createPlanEdge).
 
 deletePlanEdges :- retractall(planEdge(_, _, _, _)).
+
 
 planEdgeInfoAll(Source, Target) :-
   write('Source: '), write(Source), nl,
@@ -2278,15 +2316,23 @@ writeSizes :-
 
 writeNodeSizes :-
   findall([Node, Size], resultSize(Node, Size), L),
-  Format = [ [node, 'c'], 
-             [size, 'l'] ], 
+  Format = [ ['Node', 'l'], 
+             ['Size', 'l'] ], 
   showTuples(L, Format). 
 
+edgeSelInfo(Source, Target, Sel, Pred) :-
+ edgeSelectivity(Source, Target, Sel),
+ edge(Source, Target, join(_, _, pr(Pred,_,_)), _, _, _).
+ 
+edgeSelInfo(Source, Target, Sel, Pred) :-
+ edgeSelectivity(Source, Target, Sel),
+ edge(Source, Target, select(_, pr(Pred,_)), _, _, _).
+ 
 writeEdgeSels :-
-  findall([Source, Target, Sel], edgeSelectivity(Source, Target, Sel), L),
-  Format = [ [source, 'c'], 
-             [target, 'c'],
-             [selectivity, 'l'] ], 
+ findall([Source-Target, Sel, Pred], edgeSelInfo(Source, Target, Sel, Pred), L),
+  Format = [ ['Edge', 'l'], 
+             ['Selectivity', 'l'], 
+             ['Predicate', 'l'] ], 
   showTuples(L, Format). 
 
 
@@ -2553,7 +2599,7 @@ cost(pjoin2(X, Y, [ _ | _ ]), Sel, Size, C) :-
   %cost(sortmergejoin(X, Y, _, _), Sel, S1, C1),
   %cost(hashjoin(X, Y, _, _, 997), Sel, S1, _),
   %C is min(C1, C2) - 1.
-  C is 10.0.
+  C is 100.0.
 
 cost(pjoin1(X, Y, [ _ | _ ]), Sel, Size, C) :-
   cost(X, 1, SizeX, _),
@@ -4569,7 +4615,6 @@ mStreamOptimize(intersection [Term | Terms], Query, Cost) :-
 
 mStreamOptimize(Term, Query, Cost) :-
   streamOptimize(Term, Query, Cost).
-
 
 
 /*
