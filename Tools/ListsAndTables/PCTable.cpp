@@ -368,7 +368,7 @@ CTable<T>::Iterator::operator++() {
 template<typename T>
 
 const typename CTable<T>::Iterator
-CTable<T>::Iterator::operator++( int ) {
+CTable<T>::Iterator::operator++( int /*n = 0*/ ) {
 
   assert( ct != 0 );
   typename CTable<T>::Iterator temp( *this );
@@ -378,7 +378,11 @@ CTable<T>::Iterator::operator++( int ) {
   do {
      if (current >= ct->highestValid) break;
      current++;
-     ct->valid->Get(current, isvalid);
+     assert(!ct->OutOfRange(current));
+     // 27.07.2006, spm: valgrind reports an error for the next code line
+     // when running a query which uses the groupby  operator of the 
+     // OldRelationAlgebra! 
+     ct->valid->Get(current, isvalid); 
      //cerr << "### it_++prefix: current = " << current << endl;
   }
   while (!isvalid);
