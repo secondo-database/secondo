@@ -5450,7 +5450,7 @@ Result type of ~groupby~ operation.
 ListExpr 
 CcGroupByTypeMap(ListExpr args)
 {
-  // To avoid code redundancy the type mapping is 
+  // To avoid redundant code the type mapping is 
   // implemented in the file ExtRelationAlgebra.cpp
   return GroupByTypeMap2(args, true);
 }
@@ -5459,36 +5459,40 @@ CcGroupByTypeMap(ListExpr args)
 
 7.20.2 Value mapping function of operator ~groupby~
 
+Remark this implementation causes a SIGSEGV - to be fixed!
+
 */
+
+
 
 int 
 CcGroupByValueMapping(Word* args, Word& result, int message, Word& local, Supplier supplier)
 {
-  CcTuple *t;
-  CcTuple *s;
-  Word sWord;
-  Word relWord;
-  CcRel* tp;
-  CcRelIT* relIter;
-  int i, j, k;
-  int numberatt;
-  bool ifequal;
-  Word value;
+  CcTuple *t = 0;
+  CcTuple *s = 0;
+  Word sWord = SetWord(0);
+  Word relWord = SetWord(0);
+  CcRel* tp = 0;
+  CcRelIT* relIter = 0;
+  int i=0, j=0, k=0;
+  int numberatt = 0;
+  bool ifequal = false;
+  Word value = SetWord(0);
   Supplier  value2;
   Supplier supplier1;
   Supplier supplier2;
-  int ind;
-  int noOffun;
+  int ind = 0;
+  int noOffun = 0;
   ArgVectorPointer vector;
   const int indexOfCountArgument = 3;
   const int startIndexOfExtraArguments = indexOfCountArgument +1;
-  int attribIdx;
-  Word nAttributesWord;
-  Word attribIdxWord;
+  int attribIdx = 0;
+  Word nAttributesWord = SetWord(0);
+  Word attribIdxWord = SetWord(0);
 
   switch(message)
   {
-    case OPEN:
+    case OPEN: 
       qp->Open (args[0].addr);
       qp->Request(args[0].addr, sWord);
       if (qp->Received(args[0].addr))
@@ -5503,6 +5507,7 @@ CcGroupByValueMapping(Word* args, Word& result, int message, Word& local, Suppli
 
     case REQUEST:
       tp = new CcRel;
+      SHOW(tp)
       if(local.addr == 0)
       {
         delete tp;
@@ -5511,8 +5516,10 @@ CcGroupByValueMapping(Word* args, Word& result, int message, Word& local, Suppli
       else
       {
         t = (CcTuple*)local.addr;
-        t = t->CloneIfNecessary();
+        t = t->Clone();
         t->SetFree(false);
+        SHOW(t)
+        SHOW(*t)
         tp->AppendTuple(t);
       }
       qp->Request(args[indexOfCountArgument].addr, nAttributesWord);
@@ -5533,8 +5540,10 @@ CcGroupByValueMapping(Word* args, Word& result, int message, Word& local, Suppli
         }
         if (ifequal)
         {
-          s = s->CloneIfNecessary();
+          s = s->Clone();
           s->SetFree(false);
+          SHOW(s)
+          SHOW(*s)
           tp->AppendTuple(s);
           qp->Request(args[0].addr, sWord);
         }
@@ -5548,9 +5557,13 @@ CcGroupByValueMapping(Word* args, Word& result, int message, Word& local, Suppli
 
       t = new CcTuple;
       t->SetFree(true);
+      SHOW(tp)
       relIter = tp->MakeNewScan();
+      TRACE("GetNextTuple")
       s = relIter->GetNextTuple();
-
+      
+      SHOW(s)
+      SHOW(*s)
       for(i = 0; i < numberatt; i++)
       {
         qp->Request(args[startIndexOfExtraArguments+i].addr, attribIdxWord);
@@ -5562,6 +5575,7 @@ CcGroupByValueMapping(Word* args, Word& result, int message, Word& local, Suppli
       t->SetNoAttrs(numberatt + noOffun);
       delete relIter;
 
+      SHOW(noOffun) 
       for(ind = 0; ind < noOffun; ind++)
       {
         supplier1 = qp->GetSupplier(value2, ind);
@@ -5571,9 +5585,10 @@ CcGroupByValueMapping(Word* args, Word& result, int message, Word& local, Suppli
         qp->Request(supplier2, value);
         t->Put(numberatt + ind, ((Attribute*)value.addr)->Clone()) ;
       }
+      SHOW(*t)
       result = SetWord(t);
       relWord = SetWord(tp);
-      DeleteCcRel(relWord);
+      //DeleteCcRel(relWord);
       return YIELD;
 
     case CLOSE:

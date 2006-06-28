@@ -53,6 +53,7 @@ level remains. Models are also removed from type constructors.
 using namespace std;
 
 #include "OldRelationAlgebra.h"
+#include "LogMsg.h"
 
 int ccTuplesCreated = 0;
 int ccTuplesDeleted = 0;
@@ -135,6 +136,8 @@ Figure 1: Main memory representation of a tuple (class ~CcTuple~) [tuple.eps]
 CcTuple::CcTuple ()
 {
   NoOfAttr = 0;
+  id = 0;
+  isFree = false;
   for (int i=0; i < MaxSizeOfAttr; i++)
     AttrList[i] = 0;
     ccTuplesCreated++;
