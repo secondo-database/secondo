@@ -183,6 +183,7 @@ removes the first argument if present.
   string port;
   string iFileName;
   string oFileName;
+  string num;
   
   typedef enum {Test, Optimizer, Server, TTY} RunMode;
   RunMode runMode;
@@ -196,6 +197,7 @@ removes the first argument if present.
     port          = "";
     iFileName     = "";
     oFileName     = "";
+    num           = "";
 
     numArgs = argc;
     argValues = argv;
@@ -258,6 +260,10 @@ CheckConfiguration()
   "-----------------------------------------------------------------------\n" <<
   "  -h host    : Host address of Secondo server        (SECONDO_HOST)\n" <<
   "  -p port    : Port of Secondo server                (SECONDO_PORT)\n" <<
+  "\n" << 
+  "Mode test only:\n" <<
+  "-----------------------------------------------------------------------\n" <<
+  "  -num N     : run only the specified test number \n" <<
   "\n" <<
   "Note: Command line options overrule environment variables.\n";
 
@@ -307,6 +313,10 @@ CheckConfiguration()
     else if ( argOk && argSwitch == "-p" )  // Port
     {
       port = argValue;
+    }
+    else if ( argOk && argSwitch == "-num" )  // Number of test case
+    {
+      num = argValue;
     }
     else if ( argSwitch == "-test" )  // TestRunner mode
     {
