@@ -503,10 +503,6 @@ query KreisT feed extend[GebietInt: .Gebiet intersects_new .GebietT] project[Geb
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/planesweepalgebra/KreisInt
 query KreisT feed extend[GebietInt: .Gebiet p_intersects .GebietT] project[GebietInt] consume;
 
-#testcase Union Real Data 2
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/planesweepalgebra/deu
-query KreisT feed aggregateB[Gebiet; fun(s1:region, s2:region) union_new(s1,s2);[const region value()]];
-
 #teardown
 close database;
 delete database planesweeptest;
