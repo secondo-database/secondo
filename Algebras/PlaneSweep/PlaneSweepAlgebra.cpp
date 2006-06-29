@@ -1906,25 +1906,27 @@ with this function two entries are exchanged. A test for intersection for new ne
 void StatusLine::Exchange (BinTreeNode<SSSEntry>* e1,
    BinTreeNode<SSSEntry>* e2, Segment sgs[], PQueue& pq)
 {
-   BinTreeNode<SSSEntry>* pred = e1->GetPred();
-   BinTreeNode<SSSEntry>* succ = e2->GetNext();
-   SSSEntry entry1 ( e1->GetEntry() );
-   SSSEntry entry2 ( e2->GetEntry() );
-   e2->SetEntry(entry1);
-   e1->SetEntry(entry2);
-   if (pred != 0 ) {
-      int e = e1->GetEntry().GetSeg();
-      int s1 = pred->GetEntry().GetSeg();
-      if (sgs[s1].GetIn1() != sgs[e].GetIn1() )
-         InsertIntersection(sgs[s1].GetCHS(),sgs[e].GetCHS(),
-         s1,e,pq);
-   }
-   if (succ != 0 ) {
-      int es = e2->GetEntry().GetSeg();
-      int s2 = succ->GetEntry().GetSeg();
-      if (sgs[es].GetIn1() != sgs[s2].GetIn1() )
-         InsertIntersection(sgs[es].GetCHS(),sgs[s2].GetCHS(),es,
-         s2,pq);
+   if ( (e1 != 0) && (e2 != 0) ) {
+     BinTreeNode<SSSEntry>* pred = e1->GetPred();
+     BinTreeNode<SSSEntry>* succ = e2->GetNext();
+     SSSEntry entry1 ( e1->GetEntry() );
+     SSSEntry entry2 ( e2->GetEntry() );
+     e2->SetEntry(entry1);
+     e1->SetEntry(entry2);
+     if (pred != 0 ) {
+       int e = e1->GetEntry().GetSeg();
+       int s1 = pred->GetEntry().GetSeg();
+       if (sgs[s1].GetIn1() != sgs[e].GetIn1() )
+          InsertIntersection(sgs[s1].GetCHS(),sgs[e].GetCHS(),
+          s1,e,pq);
+     }
+     if (succ != 0 ) {
+        int es = e2->GetEntry().GetSeg();
+        int s2 = succ->GetEntry().GetSeg();
+        if (sgs[es].GetIn1() != sgs[s2].GetIn1() )
+           InsertIntersection(sgs[es].GetCHS(),sgs[s2].GetCHS(),es,
+           s2,pq);
+     }
    }
 }
 
@@ -2337,12 +2339,15 @@ void MakeRealm::REALM( const CRegion* reg1,
               //cout << "hier ok2" << endl;
    while (! res1.empty() )  {
       CHalfSegment chs = res1.back();
-      //cout << chs << endl;
+      //if ( ((abs(chs.GetLP().GetX() - chs.GetRP().GetX())) < 0.0000000001)) 
+      //{res1.pop_back(); continue;}
+      //cout << chs.GetLP().GetX() << " " << chs.GetRP().GetX() 
+      //<< " " << chs.GetLP().GetX() - chs.GetRP().GetX() << endl;
       chs.attr.partnerno = counter;
       chs.SetLDP(true);       result1->InsertHs(chs);
       chs.SetLDP(false);      result1->InsertHs(chs);
-      res1.pop_back();
       counter ++;
+      res1.pop_back();
    }
    result1 -> EndBulkLoad(true);
    result1->SetPartnerNo();
@@ -2354,6 +2359,7 @@ void MakeRealm::REALM( const CRegion* reg1,
    counter = 0;
    while (! res2.empty() )    {
       CHalfSegment chs = res2.front();
+      //cout << chs << endl;
       chs.attr.partnerno = counter;
       chs.SetLDP(true);       result2->InsertHs(chs);
       chs.SetLDP(false);      result2->InsertHs(chs);
@@ -2363,8 +2369,10 @@ void MakeRealm::REALM( const CRegion* reg1,
    result2 -> EndBulkLoad(true);
    result2->SetPartnerNo();
    result2->ComputeRegion();
-   //cout << result1 << endl;
-   //cout << result2 << endl;
+   //cout << "REALM1" << endl;
+   //cout << *result1 << endl;
+   //cout << "REALM2" << endl;
+   //cout << *result2 << endl;
 }
 
 void MakeRealm::REALM(const CRegion* reg1, const CRegion* reg2, 
@@ -2627,6 +2635,12 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
             while (iter != newlist.end()) {
                Segment segment = *iter;
                //cout << "Segment: " << segment << endl;
+	       if ( (abs(segment.GetLP().GetX() - 
+			 segment.GetRP().GetX()) < 0.000001) &&
+		    (abs(segment.GetLP().GetY() - 
+			 segment.GetRP().GetY()) < 0.000001) ){
+	           cout << "XEvent Right Segment1: ";
+	           cout << " Equal: "  << segment << endl;}
                segment.CHSInsert(list1,list2);
                ++iter;
             }
@@ -2647,7 +2661,13 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
       else if (event.GetKind() == rightSegment) {
          sl.Delete(event.GetX(), oldsweep, entry, segs, pq);
          if ( vs.IsDefined())   vs.Insert(event.GetY());
-         //cout << "XEvent Right Segment: " << segs[event.GetFirst()] << endl;
+	 if ( (abs(segs[event.GetFirst()].GetLP().GetX() - 
+		   segs[event.GetFirst()].GetRP().GetX()) < 0.000001) && 
+	      (abs(segs[event.GetFirst()].GetLP().GetY() - 
+		   segs[event.GetFirst()].GetRP().GetY()) < 0.000001) ){
+	   //cout << "XEvent Right Segment2: ";
+	   //cout << " Equal: "  << segs[event.GetFirst()] << endl;
+	 }
          segs[event.GetFirst()].CHSInsert(list1,list2);
          /*list<CHalfSegment>::iterator it;
          it = list1.begin();
@@ -2663,7 +2683,12 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
          Point point (true, event.GetX(), event.GetY() );
          Segment new1 ( seg.GetIn1(), seg.GetCHS());
          if ( (point != new1.GetLP()) && (point != new1.GetRP() ) ) {
-            new1.SetRP(point);     new1.CHSInsert(list1,list2);
+            new1.SetRP(point);
+	    if ( (abs(new1.GetLP().GetX() - new1.GetRP().GetX()) < 0.000001) &&
+	         (abs(new1.GetLP().GetY() - new1.GetRP().GetY()) < 0.000001) ){
+	      cout << "XEvent Right Segment3: ";
+	      cout << " Equal: "  << new1 << endl;}       
+	    new1.CHSInsert(list1,list2);
             seg.SetLP(point);      segs[event.GetFirst()] = seg;
          }
       }
@@ -2680,6 +2705,12 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
                sl.Delete(event.GetX(), oldsweep, entry1, segs, pq);
                Segment new1 ( seg.GetIn1(), seg.GetCHS());
                new1.SetRP(p);
+	       if ( (abs(new1.GetLP().GetX() - 
+			 new1.GetRP().GetX()) < 0.000001) &&
+		    (abs(new1.GetLP().GetY() - 
+			 new1.GetRP().GetY()) < 0.000001) ){
+	         cout << "XEvent Right Segment4: ";
+	         cout << " Equal: "  << new1 << endl;}  
                new1.CHSInsert(list1,list2);
                seg.SetLP(p);    segs[event.GetFirst()] = seg;
                mi.insert (event.GetFirst() );
@@ -2692,6 +2723,12 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
                sl.Delete(event.GetX(), oldsweep, entry1, segs, pq);
                Segment new2 (seg2.GetIn1(),seg2.GetCHS());
                new2.SetRP(p);
+	       if ( (abs(new2.GetLP().GetX() - 
+			 new2.GetRP().GetX()) < 0.000001) && 
+		    (abs(new2.GetLP().GetY() - 
+			 new2.GetRP().GetY()) < 0.000001) ){
+	        cout << "XEvent Right Segment5: ";
+	        cout << " Equal: "  << new2 << endl;}  
                new2.CHSInsert(list1,list2);
                seg2.SetLP(p);   segs[event.GetSecond()] = seg2;
                mi.insert (event.GetSecond());
@@ -2705,6 +2742,16 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
             new1.SetRP(p);
             Segment new2 (seg2.GetIn1(),seg2.GetCHS());
             new2.SetRP(p);
+	    if ( (abs(new1.GetLP().GetX() - new1.GetRP().GetX()) < 0.000001) &&
+	         (abs(new1.GetLP().GetY() - new1.GetRP().GetY()) < 0.000001) ){
+	      //cout << "XEvent Right Segment6a: ";
+	      //cout << " Equal: "  << new1 << endl;
+	      continue;} 
+            if ( (abs(new2.GetLP().GetX() - new2.GetRP().GetX()) < 0.000001) &&
+	         (abs(new2.GetLP().GetY() - new2.GetRP().GetY()) < 0.000001) ){
+	      //cout << "XEvent Right Segment6b: ";
+	      //cout << " Equal: "  << new2 << endl;
+	      continue;}  
             new1.CHSInsert(list1,list2);
             new2.CHSInsert(list1,list2);
             CHalfSegment chstest(seg.GetCHS());
