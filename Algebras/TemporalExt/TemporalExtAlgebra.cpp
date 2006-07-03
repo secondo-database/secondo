@@ -51,9 +51,6 @@ extern QueryProcessor *qp;
 
 2 Type definitions, Auxiliary Functions, Implementations
 
-*/
-
-/*
 Global variable for unit of time: milliseconds * FactorForUnitOfTime
     FactorForUnitOfTime = 1. (default)
 
@@ -81,11 +78,8 @@ struct GroupOfIntervals
 
 void MinMaxValueFunction(const UReal* utemp, double& minimum, double& maximum)
 {
-    /*cout << endl;
-    cout << "==========> Starting MinMaxValueFunction()" << endl;*/
     double t0, t1, t0_value, t1_value, a, b, c;
     double t_extrem, t_extrem_value;
-    //double minimum, maximum;
     bool lh = utemp->timeInterval.lc;
     bool rh = utemp->timeInterval.rc;
     bool conv_conc = true;
@@ -120,8 +114,10 @@ void MinMaxValueFunction(const UReal* utemp, double& minimum, double& maximum)
         t_extrem_value = a * pow( t_extrem, 2 ) + b * t_extrem + c;
         if(t0_value < t_extrem_value)
         {
-        /* The parabola is concave */
-        //cout << "--->CONCAVE!" << endl;
+        /*
+        The parabola is concave
+
+        */
         maximum = t_extrem;
         if(t0_value < t1_value)
             minimum = t0;
@@ -130,8 +126,10 @@ void MinMaxValueFunction(const UReal* utemp, double& minimum, double& maximum)
         }
         else
         {
-        /* The parabola is convex */
-        //cout << "--->CONVEX!" << endl;
+        /*
+        The parabola is convex
+
+        */
         minimum = t_extrem;
         if(t0_value < t1_value)
             maximum = t1;
@@ -141,26 +139,119 @@ void MinMaxValueFunction(const UReal* utemp, double& minimum, double& maximum)
     }
     else
     {
-        //cout << "--->PIECE OF CURVE OR A LINEAR ECUATION!" << endl;
         if(t0_value < t1_value)
         {
         maximum = t1;
         minimum = t0;
-        //cout << "---> Curve goes up!!" << endl;
         }
         else
         {
         maximum = t0;
         minimum = t1;
-        //cout << "---> Curve goes down!!" << endl;
         }
     }
 
-    /*cout << "---> maximum: " << maximum << endl;
-    cout << "---> minimum: " << minimum << endl;
-    cout << "==========> Ending MinMaxValueFunction()" << endl;
-    cout << endl;*/
 }
+
+/*
+Function AngleToXAxis
+
+Parameters:
+
+  p1: a pointer to start point
+  p2: a pointer to end point
+
+Result:
+
+  Float res: the angle of the line between both points to the X-axis
+
+This function was copied from the SpatialAlgebra, from the
+Value Mapping Function direction_pp
+
+*/
+double AngleToXAxis(Point* p1, Point* p2, bool &defined)
+{
+    double res;
+    double k;
+    double direction; //from p1 to p2
+
+    if (( p1->IsDefined())&&(p2->IsDefined())&&(*p1!=*p2))
+    {
+      Coord x1=p1->GetX();
+      Coord y1=p1->GetY();
+      Coord x2=p2->GetX();
+      Coord y2=p2->GetY();
+
+      if (x1==x2)
+      {
+        if (y2>y1)
+        {
+          res = 90.;
+          defined = true;
+        }
+        else
+        {
+          res = 270.;
+          defined = true;
+        }
+      }
+
+      if (y1==y2)
+      {
+          if (x2>x1)
+          {
+            res = 0.;
+            defined = true;
+          }
+          else
+          {
+            res = 180.;
+            defined = true;
+          }
+      }
+#ifdef RATIONAL_COORDINATES
+  k=((y2.IsInteger()? y2.IntValue():y2.Value()) -
+        (y1.IsInteger()? y1.IntValue():y1.Value())) /
+       ((x2.IsInteger()? x2.IntValue():x2.Value()) -
+        (x1.IsInteger()? x1.IntValue():x1.Value()));
+#else
+  k=(y2 - y1) / (x2 - x1);
+#endif
+  direction=atan(k) * 180 /  PI;
+
+      int area;
+      if ((x2>x1)&&(y2>y1))
+      {
+        area=1;
+      }
+      else if ((x2<x1)&&(y2>y1))
+      {
+        area=2;
+        direction=180+direction;
+      }
+      else if ((x2<x1)&&(y2<y1))
+      {
+        area=3;
+        direction=180+direction;
+      }
+      else if ((x2>x1)&&(y2<y1))
+      {
+        area=4;
+        direction=360+direction;
+      }
+
+      res = direction;
+      defined = true;
+    }
+    else
+    {
+      res = 0.;
+      defined = false;
+    }
+
+    return res;
+}
+
 
 void MPointExt::MDirection( MReal* result) const
 {
@@ -173,7 +264,10 @@ void MPointExt::MDirection( MReal* result) const
     for(int i=0;i<GetNoComponents();i++)
     {
         Get(i, unitin);
-        /* Initializing uresult */
+        /*
+        Initializing uresult
+
+        */
         uresult.a = 0.;
         uresult.b = 0.;
         uresult.c = 0.;
@@ -184,7 +278,10 @@ void MPointExt::MDirection( MReal* result) const
         x1 = unitin->p1.GetX();
         y1 = unitin->p1.GetY();
 
-        /* Distances */
+        /*
+        Distances
+
+        */
         if((x0 > 0 && x1 < 0) || (x0 < 0 && x1 > 0))
             dx = abs(unitin->p1.GetX())+abs(unitin->p0.GetX());
         else
@@ -199,12 +296,18 @@ void MPointExt::MDirection( MReal* result) const
         {
             if(y0 == 0)
             {
-                /* MPoint runs parallel with the x-axis */
+                /*
+                MPoint runs parallel with the x-axis
+
+                */
                 uresult.SetDefined( true );
             }
             else
             {
-                /* MPoint does not cross the x-axis */
+                /*
+                MPoint does not cross the x-axis
+
+                */
                 uresult.SetDefined( false );
             }
         }
@@ -212,7 +315,10 @@ void MPointExt::MDirection( MReal* result) const
         {
             if(x0 == x1)
             {
-                /* MPoint is perpendicular to the x-axis */
+                /*
+                MPoint is perpendicular to the x-axis
+
+                */
                 uresult.c = PI;
                 uresult.SetDefined( true );
             }
@@ -2708,6 +2814,7 @@ InitializeTemporalExtAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
   qp = qpRef;
   return (&tempExtAlgebra);
 }
+
 
 
 
