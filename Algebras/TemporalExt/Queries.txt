@@ -1,0 +1,147 @@
+Beispielanfragen in der Datenbank "berlin"
+******************************************
+
+Operator: deftime
+*****************
+mstring -> periods
+
+mregion -> periods
+
+
+Operator: rangevalues
+*********************
+mint -> rint
+------------
+query rangevalues(Trains feed filter[.Line = 7] extend[Time: periods2mint(deftime(.Trip))] remove[Trip] aggregateB[Time; fun(m1: mint, m2: mint) m1 + m2; zero()])
+
+mbool -> rbool
+--------------
+query rangevalues(derivable(speed(train8)))
+
+mstring -> rstring
+------------------
+Mit der Datenbank "bodensee_boats":
+query Schiffe feed extend[rngs: rangevalues(.Namen)] consume
+
+mreal -> rreal
+--------------
+query rangevalues(d1)
+query rangevalues(speed(train8))
+
+
+Operator: locations
+*******************
+mpoint -> points
+
+
+Operator: inst
+**************
+istring -> instant
+
+iregion -> instant
+
+
+Operator: val
+*************
+istring -> string
+
+iregion -> region
+
+
+Operator: atinstant
+*******************
+mstring x instant -> istring
+
+
+Operator: atperiods
+*******************
+mstring x periods -> mstring
+
+mregion x periods -> mregion
+
+
+Operator: initial, final
+************************
+
+mstring -> istring
+
+mregion -> iregion
+
+Operator: present
+*****************
+mint x instant -> bool
+
+mregion x instant -> bool
+
+mstring x periods -> bool
+
+mregion x periods -> bool
+
+Operator: at
+************
+mint x int -> mint
+mbool x bool -> mbool
+mstring x string -> mstring
+mreal x real -> mreal
+
+mint x rint -> mint
+mbool x rbool -> mbool
+mstring x rstring -> mstring
+mreal x rreal -> mreal
+
+mpoint x points -> mpoint
+mpoint x line -> mpoint
+
+mregion x point -> mpoint
+
+
+Operators: atmin, atmax
+***********************
+mint -> mint
+mbool -> mbool
+mstring -> mstring
+mreal -> mreal
+
+Operation: passes
+*****************
+mint x int -> bool
+mbool x bool -> bool
+mstring x string -> bool
+mreal x real -> bool
+
+mpoint x points -> bool
+mpoint x line -> bool
+
+mregion x point -> bool
+mregion x points -> bool
+
+Operation: derivative_new
+*************************
+mreal -> mreal
+
+
+Operation: derivable_new
+************************
+mreal -> mreal
+
+
+Operation: speed_new
+********************
+mpoint -> mreal
+query setunitoftime(0.000000278)
+query setunitofdistance(0.001)
+query speed_new(train5)
+Die Geschwindigkeiten werden in km/h ausgegeben.
+
+Operation: velocity_new
+***********************
+mpoint -> mpoint
+
+
+Operation: mdirection
+*********************
+mpoint -> mreal
+query mdirection(train5)
+Hier werden die Winkel in Radian ausgegeben.
+
+
