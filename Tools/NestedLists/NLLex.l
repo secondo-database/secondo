@@ -41,6 +41,7 @@ into a format called base64 which maps 24 bits of input to 4 letters into an alp
 
 */
 
+%option noyywrap
 
 %{
 #include <malloc.h>
@@ -61,8 +62,6 @@ using namespace std;
 #include "LogMsg.h"
 
 #define yylval NLParser::lval
-
-extern "C" int yywrap();
 
 char buffer[MAX_STRINGSIZE+1];
 char *s = buffer;
@@ -261,5 +260,4 @@ file		"<file>"[^<]+"</file--->"
                  return (ZZERROR); 
                }
 %%
-extern "C" int yywrap() { return 1; }
 

@@ -2093,8 +2093,8 @@ QueryProcessor::TestOverloadedOperators( const string&
                                          int& alId,
                                          int& opId,
                                          int& opFunId,
-                                         const bool checkFunId,
-                                         const bool traceMode ) 
+                                         bool checkFunId,
+                                         bool traceMode ) 
 {
   ListExpr resultType = nl->TheEmptyList();
 
@@ -2887,13 +2887,14 @@ the function in a database object.
 }
 
 void
-QueryProcessor::Destroy( void*& node, const bool destroyRootValue )
+QueryProcessor::Destroy( void*& node, bool destroyRootValue )
 {
-  Destroy( static_cast<OpTree>(node), destroyRootValue );
+  OpTree aux = static_cast<OpTree>(node);
+  Destroy( aux, destroyRootValue );
 } 
 
 void
-QueryProcessor::Destroy( OpTree& tree, const bool destroyRootValue )
+QueryProcessor::Destroy( OpTree& tree, bool destroyRootValue )
 {
 /*
 Deletes an operator tree object.
@@ -3610,7 +3611,7 @@ QueryProcessor::ExecuteQuery( const string& queryListStr,
     {
       // evaluate the operator tree
       qpp->Eval( tree, queryResult, OPEN );
-      qpp->Destroy( (void*)tree, false );
+      qpp->Destroy( tree, false );
     }
     else 
     {

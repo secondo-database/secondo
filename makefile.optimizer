@@ -38,10 +38,13 @@ else
    $(warning Variable PL_INCLUDE_DIR not defined. If you want to use the optimizer you have to set it up!)
 endif
 
-export PL_LIB_DIR PL_INCLUDE_DIR optimizer
-export OptMsg := "true"
+ifndef PL_LIB
+  PL_LIB = pl
 endif
 
+export PL_LIB_DIR PL_INCLUDE_DIR PL_LIB optimizer
+export OptMsg := "true"
+endif
 
 ifeq ($(optimizer),"true")
 OPTIMIZER_SERVER = optserver
@@ -50,7 +53,7 @@ OPTIMIZER_SERVER = optserver
 ifeq ($(platform),win32)
 PLLDFLAGS := $(PL_LIB_DIR)/libpl.lib -lm
 else
-PLLDFLAGS := -L$(PL_LIB_DIR) -lpl -lreadline -lncurses -lm 
+PLLDFLAGS := -L$(PL_LIB_DIR) -l$(PL_LIB) -lreadline -lncurses -lm 
 endif
 
 
