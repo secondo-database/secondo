@@ -46,6 +46,7 @@ January 10, 2006 Victor Almeida removed the ~model~ token.
 %x TEXT_SP
 
 %option yylineno
+%option noyywrap
 
 %{
 #include "SecParser.tab.hpp"
@@ -55,7 +56,6 @@ January 10, 2006 Victor Almeida removed the ~model~ token.
 
 #define yylval xxlval
 extern int yylval;
-extern "C" int yywrap();
 
 ostringstream* text_sp = 0;
 

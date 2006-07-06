@@ -59,6 +59,7 @@ public:
    Segment() {};
    ~Segment() {};
    Segment(bool reg, const CHalfSegment& inchs);
+   Segment(const Segment& s);
    const Point& GetLP();
    const Point& GetRP();
    void SetLP(const Point& p);
@@ -67,6 +68,7 @@ public:
    const CHalfSegment& GetCHS();
    void CHSInsert(list<CHalfSegment>& r1, list<CHalfSegment>& r2);
 
+   inline Segment& operator=( const Segment& s );
 
 private:
    bool in1;
@@ -81,6 +83,12 @@ Segment::Segment(bool in, const CHalfSegment& inchs)
    in1 = in;
    chs = inchs;
    chs.SetLDP(true);
+}
+
+Segment::Segment(const Segment& s)
+{
+  in1 = s.in1;
+  chs = s.chs;
 }
 
 /*
@@ -112,6 +120,13 @@ void Segment::CHSInsert(list<CHalfSegment>& r1,
 {
    if (GetIn1())   r1.push_front(GetCHS());
    else  r2.push_front(GetCHS() );
+}
+
+Segment& Segment::operator=( const Segment& s )
+{ 
+  in1 = s.in1; 
+  chs = s.chs; 
+  return *this; 
 }
 
 ostream& operator<<(ostream &os, Segment& segm)
@@ -943,6 +958,7 @@ public:
       EventKind event);
    XEvent(Coord& x, Coord& y, int inseg, EventKind event);
    XEvent(XEvent* event);
+   XEvent(const XEvent& event);
    void Set(const XEvent& event);
    Coord GetX() const;
    Coord GetY() const;
@@ -951,11 +967,11 @@ public:
    int GetSecond() const;
    double GetSlope() const;
    double GetA() const;
-   int Less (const XEvent ev2, const Coord x) const;
-   bool Equal (const XEvent ev2) const;
+   int Less (const XEvent& ev2, const Coord x) const;
+   bool Equal (const XEvent& ev2) const;
    const bool operator< (const XEvent& ev2) const;
    const bool operator== (const XEvent& ev2) const;
-
+   XEvent& operator= (const XEvent& ev);
 
 private:
    Coord x;
@@ -965,9 +981,6 @@ private:
    EventKind kind;
    int seg1;
    int seg2;
-
-   //XEvent& operator= (const XEvent& ev);
-
 };
 
 /*
@@ -990,6 +1003,17 @@ XEvent::XEvent(XEvent* event)
    seg2 = event->seg2;
 }
 
+XEvent::XEvent(const XEvent& event)
+{
+   x = event. x;
+   y = event. y;
+   slope = event.slope;
+   a = event.a;
+   kind= event.kind;
+   seg1 = event.seg1;
+   seg2 = event.seg2;
+}
+
 /*
 construktors for event-kind split
 
@@ -1007,7 +1031,6 @@ XEvent::XEvent(Coord& inx, Coord& iny, int inseg,
       slope = 0;
       a = 0;
    }
-   else  { }
 }
 
 /*
@@ -1027,7 +1050,6 @@ XEvent:: XEvent(Coord& inx, Coord& iny, int inseg, double k1,
       seg1 = inseg;
       seg2 = -1;
    }
-   else { }
  }
 
 /*
@@ -1046,7 +1068,6 @@ XEvent:: XEvent(Coord& inx, Coord& iny, int inseg1,
       slope = 0;
       a= 0;
    }
-   else  {  }
 }
 
 /*
@@ -1078,9 +1099,13 @@ double XEvent::GetA() const             {return a;}
 
 */
 
-//XEvent& XEvent::operator= (const XEvent& ev)  { return *this;}
+XEvent& XEvent::operator= (const XEvent& ev)  
+{ 
+  Set(ev); 
+  return *this;
+}
 
-bool XEvent::Equal (const XEvent ev2) const
+bool XEvent::Equal (const XEvent& ev2) const
 {
    if (GetKind() == ev2.GetKind() && GetFirst()== ev2.GetFirst() &&
        GetSecond() == ev2.GetSecond() )    return true;
@@ -1096,7 +1121,7 @@ template BinTree to insert the XEvents in the right node.
 
 */
 
-int XEvent::Less (const XEvent ev2, const Coord x) const
+int XEvent::Less (const XEvent& ev2, const Coord x) const
 {
    //if ( Equal (ev2) )  { cout << "kommt tatsächlich vor" << endl; return 0;}
    // ordered by x-value
@@ -1300,14 +1325,15 @@ public:
    ~SSSEntry() {};
    SSSEntry(int inseg, Segment segs[] );
    SSSEntry(int inseg, double ink, double ina);
+   SSSEntry(const SSSEntry& s);
    void Set(const SSSEntry& in);
 
-   bool Equal (const SSSEntry se) const;
+   bool Equal (const SSSEntry& se) const;
    int GetSeg() const;
    const double GetY (Coord x, Segment segs[]) const;
    double Getk() const;
    double Geta() const;
-   int Less (const SSSEntry in2, const Coord x, Segment segs[]) const;
+   int Less (const SSSEntry& in2, const Coord x, Segment segs[]) const;
 
 private:
    int chs;
@@ -1324,6 +1350,13 @@ SSSEntry:: SSSEntry(int inseg, double ink, double ina)
    chs = inseg;
    k = ink;
    a = ina;
+}
+
+SSSEntry:: SSSEntry(const SSSEntry& s)
+{
+   chs = s.chs;
+   k = s.k;
+   a = s.a;
 }
 
 /*
@@ -1372,7 +1405,7 @@ int SSSEntry::GetSeg() const                    {return chs; }
 3.4.3 Functions for comparisation
 
 */
-bool SSSEntry::Equal(const SSSEntry se) const
+bool SSSEntry::Equal(const SSSEntry& se) const
 {
    if (GetSeg() == se.GetSeg()) return true;
    else return false;
@@ -1413,7 +1446,7 @@ const double SSSEntry::GetY(Coord x, Segment segs[]) const  {
    }
 }
 
-int SSSEntry:: Less (const SSSEntry in2, const Coord x,
+int SSSEntry:: Less (const SSSEntry& in2, const Coord x,
    Segment segs[]) const
 {
    if (Equal(in2)) return 0;
@@ -2227,7 +2260,7 @@ for each vertical segment in the list the sweep line is scanned from the bottom 
 void  VList::testStatusLine(StatusLine& sline, Segment segs[])
 {
    list<Segment> newlist;
-   list<Segment>::iterator p = vlist.begin();
+//   list<Segment>::iterator p = vlist.begin();
    //cout << "StatusLine" << endl;
    //sline.output(1,segs); cout << endl;
    while ( ! IsEmpty() )  {
@@ -2264,7 +2297,7 @@ void  VList::testStatusLine(StatusLine& sline, Segment segs[])
          if (node!=0 && node->GetEntry().GetY(x,segs)
             >vert.GetRP().GetY())  {node = 0;}
       } // all entries in statusline tested
-      p++; // next vertical Segment
+//      p++; // next vertical Segment
       newlist.push_back(vertref);
    }
    vlist = newlist;
@@ -2804,6 +2837,7 @@ public:
    ~SEntry() {};
    SEntry(CHalfSegment& inch);
    SEntry(SEntry* in);
+   SEntry(const SEntry& s);
    void Set(const SEntry& in);
    const double GetY(Coord x) const;
    int GetU() const;
@@ -2811,10 +2845,10 @@ public:
    CHalfSegment GetCHS() const;
    void SetU(int newU);
    void SetO(int newO);
-   int Less (const SEntry ev2, const Coord x, const SEntry oldev,
+   int Less (const SEntry &ev2, const Coord x, const SEntry& oldev,
        BinTreeNode<SEntry>* oldnode ) const;
-   bool Equal (const SEntry in2) const;
-   //SEntry& operator= (const SEntry& in);
+   bool Equal (const SEntry& in2) const;
+   SEntry& operator= (const SEntry& in);
 
 public:  // eigentlich private
    double GetSlope() const;
@@ -2850,6 +2884,15 @@ SEntry::SEntry(SEntry* in)
    a = in->a;
    o = in -> o;
    u = in ->u;
+}
+
+SEntry::SEntry(const SEntry& in)
+{
+   ch = in.ch;
+   slope = in.slope;
+   a = in.a;
+   o = in.o;
+   u = in.u;
 }
 
 SEntry::SEntry(CHalfSegment& inch)
@@ -2937,7 +2980,7 @@ const double SEntry::GetY(Coord x) const  {
    }
 }
 
-bool SEntry::Equal (const SEntry in2) const
+bool SEntry::Equal (const SEntry& in2) const
 {
    if (GetCHS() == in2.GetCHS() )  return true;
    else { return false;}
@@ -2951,8 +2994,8 @@ result: -1 means that the new SEntry < SEntry in tree
         +1 means that the new SEntry > SEntry in tree
 
 */
-int SEntry::Less (const SEntry in2, const Coord x, const
-   SEntry oldev, BinTreeNode<SEntry>* oldnode) const
+int SEntry::Less (const SEntry& in2, const Coord x, const
+   SEntry& oldev, BinTreeNode<SEntry>* oldnode) const
 {
    //cout << " test Sentry in Less   1. CHS:" << endl;
  //       << GetCHS() << "     2.CHS: " << in2.GetCHS() << endl; ;
@@ -3055,6 +3098,12 @@ int SEntry::Less (const SEntry in2, const Coord x, const
       }
    }
    return 0;
+}
+
+SEntry& SEntry::operator=( const SEntry& e )
+{
+  Set(e);
+  return *this;
 }
 
 /*
