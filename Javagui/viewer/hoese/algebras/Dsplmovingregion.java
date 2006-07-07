@@ -125,7 +125,7 @@ public class Dsplmovingregion extends DisplayTimeGraph implements DsplSimple{
    * @return a single EdgeMap consisting of ax,bx,ay,by coefficiants
    * @see <a href="Dsplmovingregionsrc.html#readEdgeMap">Source</a>
    */
-  private EdgeMap readEdgeMap (ListExpr le) {
+  protected EdgeMap readEdgeMap (ListExpr le) {
     Double value[] =  {
       null, null, null, null
     };
@@ -144,7 +144,7 @@ public class Dsplmovingregion extends DisplayTimeGraph implements DsplSimple{
   /** The method readUnit writes all cycles contained in a single Unit
     * to a Vector and returns it.
     **/
-  private RegionMap readRegionMap(ListExpr reg) {
+  protected RegionMap readRegionMap(ListExpr reg) {
     Vector res = new Vector();
     int numberOfPoints = 0;
     while(!reg.isEmpty()){ // scan each face

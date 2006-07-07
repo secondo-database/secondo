@@ -76,7 +76,6 @@ public class Dsplureal extends Dsplmovingreal implements
 		}
 		Intervals.add(in);
 		MRealMaps.add(rm);
-		v = v.rest();
     err = false;
   }
 
