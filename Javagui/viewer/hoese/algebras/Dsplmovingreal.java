@@ -38,16 +38,17 @@ import tools.Reporter;
 public class Dsplmovingreal extends DsplGeneric implements 
       Timed,Function,ExternDisplay,LabelAttribute, RenderAttribute{
 
-  Interval boundingInterval;
-  Vector Intervals = new Vector(10, 5);
-  Vector MRealMaps = new Vector(10, 5);
-  double PixelTime;
-  double min=Double.POSITIVE_INFINITY ;
-  double max=Double.NEGATIVE_INFINITY ;
-  final static int PSIZE=300;
-  boolean err;
-  boolean defined;
-  /** format specification for label **/ static java.text.DecimalFormat format = new java.text.DecimalFormat("#.####");
+  protected Interval boundingInterval;
+  protected Vector Intervals = new Vector(10, 5);
+  protected Vector MRealMaps = new Vector(10, 5);
+  protected double PixelTime;
+  protected double min=Double.POSITIVE_INFINITY ;
+  protected double max=Double.NEGATIVE_INFINITY ;
+  protected final static int PSIZE=300;
+  protected boolean err;
+  protected boolean defined;
+  /** format specification for label **/ 
+  static java.text.DecimalFormat format = new java.text.DecimalFormat("#.####");
   
 
 
@@ -329,7 +330,7 @@ public class Dsplmovingreal extends DsplGeneric implements
    * @param le A four element list
    * @return A MRealMap-instance with the formula parameter
    */
-  private MRealMap readMRealMap (ListExpr le) {
+  protected  MRealMap readMRealMap (ListExpr le) {
     Double value[] =  {
       null, null, null
     };
