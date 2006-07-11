@@ -69,7 +69,46 @@ public:
 
     MPointExt() : MPoint() {}
 
-    void MDirection( MReal* result) const;
+    void MDirection( MReal* result ) const;
+    void Locations( Points* result ) const;
+};
+
+template<class Unit, class Alpha>
+class MappingExt : public Mapping<Unit, Alpha>
+{
+public:
+    MappingExt() : Mapping<Unit, Alpha>() {}
+
+    void AtMin( Mapping<Unit, Alpha> &result ) const;
+
+    void AtMax( Mapping<Unit, Alpha> &result ) const;
+};
+
+class URealExt : public UReal
+{
+public:
+    URealExt() : UReal() {}
+
+    double GetUnitMin() const { return unit_min; }
+
+    double GetUnitMax() const { return unit_max; }
+
+    void SetUnitMin( double min ) { unit_min = min; }
+
+    void SetUnitMax( double max) { unit_max = max; }
+
+private:
+    double unit_min, unit_max;
+};
+
+class MRealExt : public MReal
+{
+public:
+    MRealExt() : MReal() {}
+
+    void AtMin( MReal &result ) const;
+
+    void AtMax( MReal &result ) const;
 };
 
 #endif // _TEMPORALEXT_ALGEBRA_H_
