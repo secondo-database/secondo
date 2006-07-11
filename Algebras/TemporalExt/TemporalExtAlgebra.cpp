@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 0 TODO
 
 
-1 Includes and Initialization
+1 Includes and Initializationtemporallocationsext
 
 Place for initialization of pointer variables, constants and namespaces and
 inclusion of header files concerning Secondo.
@@ -87,6 +87,13 @@ void MinMaxValueFunction(const UReal* utemp, double& minimum, double& maximum)
 
     t0 = utemp->timeInterval.start.ToDouble();
     t1 = utemp->timeInterval.end.ToDouble();
+
+    if(0)
+    {
+        cout << "Range: " << endl;
+        cout << "t0: " << t0 << endl;
+        cout << "t1: " << t1 << endl << endl;
+    }
 
     a = utemp->a;
     b = utemp->b;
@@ -169,7 +176,7 @@ This function was copied from the SpatialAlgebra, from the
 Value Mapping Function direction_pp
 
 */
-double AngleToXAxis(Point* p1, Point* p2, bool &defined)
+double AngleToXAxis(const Point* p1, const Point* p2, bool &defined)
 {
     double res;
     double k;
@@ -257,82 +264,217 @@ void MPointExt::MDirection( MReal* result) const
 {
     const UPoint* unitin;
     UReal uresult;
-    float x0, y0, x1, y1, dx, dy;
+    bool defined;
 
     result->Clear();
     result->StartBulkLoad();
     for(int i=0;i<GetNoComponents();i++)
     {
         Get(i, unitin);
-        /*
-        Initializing uresult
-
-        */
+        // Initializing uresult
         uresult.a = 0.;
         uresult.b = 0.;
         uresult.c = 0.;
         uresult.r = false;
         uresult.timeInterval = unitin->timeInterval;
-        x0 = unitin->p0.GetX();
-        y0 = unitin->p0.GetY();
-        x1 = unitin->p1.GetX();
-        y1 = unitin->p1.GetY();
-
-        /*
-        Distances
-
-        */
-        if((x0 > 0 && x1 < 0) || (x0 < 0 && x1 > 0))
-            dx = abs(unitin->p1.GetX())+abs(unitin->p0.GetX());
-        else
-            dx = abs(unitin->p1.GetX()-unitin->p0.GetX());
-
-        if((y0 > 0 && y1 < 0) || (y0 < 0 && y1 > 0))
-            dy = abs(unitin->p1.GetY())+abs(unitin->p0.GetY());
-        else
-            dy = abs(unitin->p1.GetY()-unitin->p0.GetY());
-
-        if(y0 == y1)
-        {
-            if(y0 == 0)
-            {
-                /*
-                MPoint runs parallel with the x-axis
-
-                */
-                uresult.SetDefined( true );
-            }
-            else
-            {
-                /*
-                MPoint does not cross the x-axis
-
-                */
-                uresult.SetDefined( false );
-            }
-        }
-        else
-        {
-            if(x0 == x1)
-            {
-                /*
-                MPoint is perpendicular to the x-axis
-
-                */
-                uresult.c = PI;
-                uresult.SetDefined( true );
-            }
-            else
-            {
-                uresult.c = atan( dy / dx );
-                uresult.SetDefined( true );
-            }
-        }
+        uresult.c = AngleToXAxis( &(unitin->p0), &(unitin->p1), defined );
+        uresult.SetDefined( defined );
         result->Add( uresult );
     }
     result->EndBulkLoad( false );
 }
 
+void MPointExt::Locations( Points* result ) const
+{
+    const UPoint* unitin;
+    vector<Point> points;
+    vector<CHalfSegment> hsegments;
+    CHalfSegment* temp_hs;
+    bool contained;
+
+    for(int i=0;i<GetNoComponents();i++)
+    {
+        Get(i, unitin);
+        if(unitin->p0 == unitin->p1)
+        {
+            points.push_back(unitin->p0);
+        }
+        else
+        {
+            temp_hs = new CHalfSegment( true, false, unitin->p0, unitin->p1);
+            hsegments.push_back(*temp_hs);
+        }
+    }
+
+    result->Clear();
+    result->StartBulkLoad();
+    for(size_t i=0;i<points.size();i++)
+    {
+        contained = false;
+        for(size_t j=0;j<hsegments.size();j++)
+        {
+            if(hsegments[j].Contains(points[i]))
+                contained = true;
+        }
+        if(!contained)
+        {
+            if(0)
+            {
+                cout << endl << "NOT CONTAINED!!!!!!!!!!!!!!!" << endl;
+                cout << "x=" << points[i].GetX() << endl;
+                cout << "y=" << points[i].GetY() << endl;
+                result->InsertPt(points[i]);
+            }
+        }
+        else
+        {
+            if(0)
+            {
+                cout << endl << "CONTAINED!!!!!!!!!!!!!!!" << endl;
+                cout << "x=" << points[i].GetX() << endl;
+                cout << "y=" << points[i].GetY() << endl;
+            }
+        }
+    }
+    result->EndBulkLoad( false );
+
+}
+
+template <class Unit, class Alpha>
+void MappingExt<Unit, Alpha>::AtMin( Mapping<Unit, Alpha> &result ) const
+{
+    const Unit* utemp;
+    const Unit* umin;
+
+    Get(0, umin);
+    for(int i=1;i<GetNoComponents();i++)
+    {
+        Get(i, utemp);
+        if(0)
+        {
+            cout << endl << "Compare: ";
+            cout << (utemp->constValue).Compare( &(umin->constValue) ) << endl;
+        }
+        if((utemp->constValue).Compare( &(umin->constValue) ) < 0)
+            ((Unit*)umin)->CopyFrom( utemp );
+    }
+
+    result.Clear();
+    result.StartBulkLoad();
+    result.Add( *umin );
+    result.EndBulkLoad( false );
+}
+
+template <class Unit, class Alpha>
+void MappingExt<Unit, Alpha>::AtMax( Mapping<Unit, Alpha> &result ) const
+{
+    const Unit* utemp;
+    const Unit* umax;
+
+    Get(0, umax);
+    for(int i=1;i<GetNoComponents();i++)
+    {
+        Get(i, utemp);
+        if(0)
+        {
+            cout << endl << "Compare: ";
+            cout << (utemp->constValue).Compare( &(umax->constValue) ) << endl;
+        }
+        if((utemp->constValue).Compare( &(umax->constValue) ) > 0)
+            ((Unit*)umax)->CopyFrom( utemp );
+    }
+
+    result.Clear();
+    result.StartBulkLoad();
+    result.Add( *umax );
+    result.EndBulkLoad( false );
+}
+
+void MRealExt::AtMin( MReal &result ) const
+{
+    const UReal* utemp;
+    const UReal* uresult;
+    double min;
+    int unit_num;
+    double unit_min, unit_max;
+
+    Get(0, utemp);
+    MinMaxValueFunction(utemp, unit_min, unit_max);
+    ((URealExt*)utemp)->SetUnitMin( unit_min );
+    ((URealExt*)utemp)->SetUnitMax( unit_max );
+    min = ((URealExt*)utemp)->GetUnitMin();
+    unit_num = 0;
+
+    if(0)
+        cout << "GetUnitMin(): " << ((URealExt*)utemp)->GetUnitMin() << endl;
+
+    for(int i=1;i<GetNoComponents();i++)
+    {
+        Get(i, utemp);
+        MinMaxValueFunction(utemp, unit_min, unit_max);
+        ((URealExt*)utemp)->SetUnitMin( unit_min );
+        ((URealExt*)utemp)->SetUnitMax( unit_max );
+        if(0)
+        {
+            cout << "GetUnitMin(): " << ((URealExt*)utemp)->GetUnitMin();
+            cout << endl;
+        }
+        if(((URealExt*)utemp)->GetUnitMin() < min)
+        {
+            min = ((URealExt*)utemp)->GetUnitMin();
+            unit_num = i;
+        }
+    }
+    Get( unit_num, uresult );
+
+    result.Clear();
+    result.StartBulkLoad();
+    result.Add( *uresult );
+    result.EndBulkLoad( false );
+}
+
+void MRealExt::AtMax( MReal &result ) const
+{
+    const UReal* utemp;
+    const UReal* uresult;
+    double max;
+    int unit_num;
+    double unit_min, unit_max;
+
+    Get(0, utemp);
+    MinMaxValueFunction(utemp, unit_min, unit_max);
+    ((URealExt*)utemp)->SetUnitMin( unit_min );
+    ((URealExt*)utemp)->SetUnitMax( unit_max );
+    max = ((URealExt*)utemp)->GetUnitMax();
+    unit_num = 0;
+
+    if(0)
+        cout << "GetUnitMax(): " << ((URealExt*)utemp)->GetUnitMax() << endl;
+
+    for(int i=1;i<GetNoComponents();i++)
+    {
+        Get(i, utemp);
+        MinMaxValueFunction(utemp, unit_min, unit_max);
+        ((URealExt*)utemp)->SetUnitMin( unit_min );
+        ((URealExt*)utemp)->SetUnitMax( unit_max );
+        if(0)
+        {
+            cout << "GetUnitMax(): " << ((URealExt*)utemp)->GetUnitMax();
+            cout << endl;
+        }
+        if(((URealExt*)utemp)->GetUnitMax() > max)
+        {
+            max = ((URealExt*)utemp)->GetUnitMax();
+            unit_num = i;
+        }
+    }
+    Get( unit_num, uresult );
+
+    result.Clear();
+    result.StartBulkLoad();
+    result.Add( *uresult );
+    result.EndBulkLoad( false );
+}
 
 /*
 2.1 Auxiliary Funcions
@@ -1071,6 +1213,51 @@ RealPhysicalUnitsExtTypeMap( ListExpr args )
 }
 
 /*
+4.1.17 Type mapping function MovingPointExtTypeMapPoints
+
+It is for the operator ~locations~.
+
+*/
+ListExpr
+MovingPointExtTypeMapPoints( ListExpr args )
+{
+    if ( nl->ListLength( args ) == 1 )
+    {
+        ListExpr arg1 = nl->First( args );
+
+        if( nl->IsEqual( arg1, "mpoint" ) )
+            return nl->SymbolAtom( "points" );
+    }
+    return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+4.1.18 Type mapping function MovingExtTypeMapMoving
+
+It is for the operators ~atmin~ and ~atmax~.
+
+*/
+ListExpr
+MovingExtTypeMapMoving( ListExpr args )
+{
+    if ( nl->ListLength( args ) == 1 )
+    {
+        ListExpr arg1 = nl->First( args );
+
+        if( nl->IsEqual( arg1, "mint" ) )
+            return nl->SymbolAtom( "mint" );
+        if( nl->IsEqual( arg1, "mbool" ) )
+            return nl->SymbolAtom( "mbool" );
+        if( nl->IsEqual( arg1, "mstring" ) )
+            return nl->SymbolAtom( "mstring" );
+        if( nl->IsEqual( arg1, "mreal" ) )
+            return nl->SymbolAtom( "mreal" );
+
+    }
+    return nl->SymbolAtom( "typeerror" );
+}
+
+/*
 4.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -1260,6 +1447,32 @@ MovingPeriodsSelect( ListExpr args )
 
     if( nl->SymbolValue( arg1 ) == "movingregion" )
         return 1;
+
+    return -1; // This point should never be reached
+}
+
+/*
+4.2.8 Selection function ~MovingAtMinMaxSelect~
+
+Is used for the operators ~atmin~ and ~atmax~.
+
+*/
+int
+MovingAtMinMaxSelect( ListExpr args )
+{
+    ListExpr arg1 = nl->First( args );
+
+    if( nl->SymbolValue( arg1 ) == "mbool" )
+        return 0;
+
+    if( nl->SymbolValue( arg1 ) == "mint" )
+        return 1;
+
+    if( nl->SymbolValue( arg1 ) == "mstring" )
+        return 2;
+
+    if( nl->SymbolValue( arg1 ) == "mreal" )
+        return 3;
 
     return -1; // This point should never be reached
 }
@@ -2255,6 +2468,102 @@ int MovingMDirectionExt(
 }
 
 /*
+4.3.21 Value mapping function of operator ~locations~
+
+*/
+int MovingLocationsExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MPointExt* m = ((MPointExt*)args[0].addr);
+    Points* pResult = ((Points*)result.addr);
+
+    m->Locations( pResult );
+
+    return 0;
+}
+
+
+/*
+4.3.22 Value mapping functions of operator ~atmin~
+
+*/
+template <class Mapping, class Unit, class Alpha>
+int MappingAtminExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MappingExt<Unit, Alpha>* m = ((MappingExt<Unit, Alpha>*)args[0].addr);
+    Mapping* pResult = ((Mapping*)result.addr);
+    //pResult->Clear();
+    m->AtMin( *pResult );
+
+    return 0;
+}
+
+template <class Mapping, class Unit, class Alpha>
+int MappingAtmaxExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MappingExt<Unit, Alpha>* m = ((MappingExt<Unit, Alpha>*)args[0].addr);
+    Mapping* pResult = ((Mapping*)result.addr);
+    //pResult->Clear();
+    m->AtMax( *pResult );
+
+    return 0;
+}
+
+int MappingAtminExt_r(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MRealExt* m = ((MRealExt*)args[0].addr);
+    MReal* pResult = ((MReal*)result.addr);
+    //pResult->Clear();
+    m->AtMin( *pResult );
+
+    return 0;
+}
+
+int MappingAtmaxExt_r(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MRealExt* m = ((MRealExt*)args[0].addr);
+    MReal* pResult = ((MReal*)result.addr);
+    //pResult->Clear();
+    m->AtMax( *pResult );
+
+    return 0;
+}
+
+/*
 4.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -2345,6 +2654,21 @@ ValueMapping temporalvelocityextmap[] = {
 
 ValueMapping temporalmdirectionextmap[] = {
     MovingMDirectionExt };
+
+ValueMapping temporallocationsextmap[] = {
+    MovingLocationsExt };
+
+ValueMapping temporalatminextmap[] = {
+    MappingAtminExt<MBool, UBool, CcBool>,
+    MappingAtminExt<MInt, UInt, CcInt>,
+    MappingAtminExt<MString, UString, CcString>,
+    MappingAtminExt_r,};
+
+ValueMapping temporalatmaxextmap[] = {
+    MappingAtmaxExt<MBool, UBool, CcBool>,
+    MappingAtmaxExt<MInt, UInt, CcInt>,
+    MappingAtmaxExt<MString, UString, CcString>,
+    MappingAtmaxExt_r,};
 
 /*
 4.5 Specification strings
@@ -2568,6 +2892,35 @@ const string TemporalSpecMDirectionExt  =
     "<text>mdirection ( mp1 )</text--->"
     ") )";
 
+const string TemporalSpecLocationsExt  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>mpoint -> points</text--->"
+    "<text>locations ( _ )</text--->"
+    "<text>Get projection of mpoints which are immobile and isolated.</text--->"
+    "<text>locations ( mp1 )</text--->"
+    ") )";
+
+const string TemporalSpecAtminExt  =
+    "( ( \"Signature\" \"\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>T in {int, bool, real, string},</text--->"
+    "<text>moving(T) -> moving(T)</text--->"
+    "<text>atmin ( _ )</text--->"
+    "<text>Get moving(T) restricted to the least value.</text--->"
+    "<text>atmin ( mi1 )</text--->"
+    ") )";
+
+const string TemporalSpecAtmaxExt  =
+    "( ( \"Signature\" \"\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>T in {int, bool, real, string},</text--->"
+    "<text>moving(T) -> moving(T)</text--->"
+    "<text>atmax ( _ )</text--->"
+    "<text>Get moving(T) restricted to the largest value.</text--->"
+    "<text>atmax ( mi1 )</text--->"
+    ") )";
+
 /*
 4.6 Operators
 
@@ -2741,6 +3094,30 @@ Operator temporalmdirectionext(
     Operator::SimpleSelect,
     MovingPointExtTypeMapMReal);
 
+Operator temporallocationsext(
+    "locations",
+    TemporalSpecLocationsExt,
+    1,
+    temporallocationsextmap,
+    Operator::SimpleSelect,
+    MovingPointExtTypeMapPoints);
+
+Operator temporalatminext(
+    "atmin",
+    TemporalSpecAtminExt,
+    4,
+    temporalatminextmap,
+    MovingAtMinMaxSelect,
+    MovingExtTypeMapMoving);
+
+Operator temporalatmaxext(
+    "atmax",
+    TemporalSpecAtmaxExt,
+    4,
+    temporalatmaxextmap,
+    MovingAtMinMaxSelect,
+    MovingExtTypeMapMoving);
+
 class TemporalExtAlgebra : public Algebra
 {
   public:
@@ -2785,6 +3162,9 @@ class TemporalExtAlgebra : public Algebra
         AddOperator( &temporalspeedext );
         AddOperator( &temporalvelocityext );
         AddOperator( &temporalmdirectionext );
+        AddOperator( &temporallocationsext );
+        AddOperator( &temporalatminext );
+        AddOperator( &temporalatmaxext );
 
         AddOperator( &rangerangevaluesext );
 
