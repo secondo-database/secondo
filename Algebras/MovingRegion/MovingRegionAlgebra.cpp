@@ -8366,6 +8366,25 @@ static ListExpr BboxTypeMap(ListExpr args) {
 }
 
 /*
+Type mapping of the ~verttrajectory~ operator:
+
+*/
+
+static ListExpr VertTrajectoryTypeMap(ListExpr args){
+   if(nl->ListLength(args)!=1){
+       ErrorReporter::ReportError("wrong number of arguments");
+       return nl->SymbolAtom("typeerror");
+   }
+   ListExpr arg = nl->First(args);
+   if(nl->IsEqual(arg,"uregion") || nl->IsEqual(arg,"movingregion")){
+     return nl->SymbolAtom("line");
+   }
+   ErrorReporter::ReportError("uregion or movingregion"
+                              " expected but got ");
+   return nl->SymbolAtom("typeerror");
+}
+
+/*
 1.1.1 For unit testing operators
 
 */
@@ -8533,6 +8552,19 @@ static int AtInstantSelect(ListExpr args) {
         return 1;
     else
         return -1;
+}
+
+/*
+Used by ~vertrajectory~:
+
+*/
+
+static int VertTrajectorySelect(ListExpr args){
+   ListExpr arg = nl->First(args);
+   if(nl->IsEqual(arg,"uregion"))
+      return 0;
+   else
+      return 1;
 }
 
 /*
@@ -8891,6 +8923,36 @@ static int Unittest3ValueMap(Word* args,
 }
 #endif // MRA_UNITTEST
 
+template <class T>
+static int VertTrajectory_ValueMap(Word* args,
+                                     Word& result,
+                                     int message,
+                                     Word& local,
+                                     Supplier s) {
+    result = qp->ResultStorage(s);
+    T* ur = (T*) args[0].addr;
+    const DBArray<MSegmentData>* segments = ur->GetMSegmentData();
+    int size = segments->Size();
+    CLine* L = (CLine*) result.addr;
+    L->Clear();
+    L->StartBulkLoad();
+    const MSegmentData* mseg;
+    cout << " insert " << size << " segments" << endl;
+    CHalfSegment chs(false);
+    for(int i=0;i<size;i++){
+        segments->Get(i,mseg);
+        Point P1(true,mseg->GetInitialStartX(),mseg->GetInitialStartY());
+        Point P2(true,mseg->GetFinalStartX(),mseg->GetFinalStartY());
+        chs.Set(true,P1,P2);
+        cout << "insert " << chs << "to the line" << endl;
+        (*L)+=chs;
+        chs.SetLDP(false);
+        (*L)+=chs; 
+    } 
+    L->EndBulkLoad();
+    return 0;
+}
+
 /*
 1.1 Value mapping arrays
 
@@ -8928,6 +8990,10 @@ static ValueMapping insidevaluemap[] =
 static ValueMapping atvaluemap[] =
     { AtValueMap_MPoint,
       AtValueMap_MRegion };
+
+static ValueMapping verttrajectoryvaluemap[] =
+    { VertTrajectory_ValueMap<URegion>, 
+      VertTrajectory_ValueMap<MRegion>};
 
 #ifdef MRA_TRAVERSED
 static ValueMapping traversedvaluemap[] =
@@ -9061,6 +9127,13 @@ static const string bboxspec =
     "    <text>Returns the 3d bounding box of the unit.</text--->"
     "    <text>bbox(mregion1)</text---> ) )";
 
+static const string verttrajectoryspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>(uregion || mregion) -> line</text--->"
+    "    <text>verttrajectory( _ )</text--->"
+    "    <text>Computes the trajectory of the vertices </text--->"
+    "    <text>verttrajectory(mregion1)</text---> ) )";
+
 /*
 Used for unit testing only.
 
@@ -9179,6 +9252,13 @@ static Operator move("move",
                      simpleSelect,
                      MoveTypeMap);
 
+static Operator verttrajectory("verttrajectory",
+                   verttrajectoryspec,
+                   2,
+                   verttrajectoryvaluemap,
+                   VertTrajectorySelect,
+                   VertTrajectoryTypeMap);
+
 /*
 Used for unit testing only.
 
@@ -9235,6 +9315,7 @@ public:
         AddOperator(&at);
         AddOperator(&bbox);
         AddOperator(&move);
+	AddOperator(&verttrajectory);
 
 #ifdef MRA_TRAVERSED
         AddOperator(&traversed);

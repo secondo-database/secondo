@@ -825,7 +825,13 @@ required to make this class non-abstract.
     virtual bool At(const CRegion& val, 
                     TemporalUnit<CRegion>& result) const;
     virtual bool Passes(const CRegion& val) const;
+/* 
+Return the interal array containing the moving segments for read-only access.
 
+*/
+   const DBArray<MSegmentData>* GetMSegmentData(){
+       return &segments;
+   }
 /*
 Return the bounding box of the region unit. This is an $O(1)$ operation
 since the bounding box is calculated when the region unit is created.
