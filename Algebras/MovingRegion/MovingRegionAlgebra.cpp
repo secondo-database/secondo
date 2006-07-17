@@ -3829,6 +3829,22 @@ int URegionEmb::GetSegmentsNum(void) const {
 }
 
 /*
+1.1.2 Method ~GetStartPos()~
+
+*/
+const int URegionEmb::GetStartPos() const{
+    if (MRA_DEBUG)
+        cerr << "URegionEmb::GetStartPos() called, sp="
+             << segmentsStartPos
+             << endl;
+
+    return segmentsStartPos;
+}
+
+
+
+
+/*
 1.1.1 Method ~GetSegment()~
 
 */
@@ -9315,7 +9331,7 @@ public:
         AddOperator(&at);
         AddOperator(&bbox);
         AddOperator(&move);
-	AddOperator(&verttrajectory);
+        AddOperator(&verttrajectory);
 
 #ifdef MRA_TRAVERSED
         AddOperator(&traversed);

@@ -639,6 +639,8 @@ Get number of segments, get specified segment, write specified segment.
 
 */
     int GetSegmentsNum(void) const;
+    const int GetStartPos() const;
+
     void GetSegment(
         const DBArray<MSegmentData>* segments,
         int pos, 
