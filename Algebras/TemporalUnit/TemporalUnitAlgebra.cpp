@@ -41,9 +41,98 @@ Feruniversit[ae]t Hagen.
 
 -----
 
+*/
+
+/*
+
+July 2006, Christian D[ue]ntgen: The so far implemented operators do not suffice
+to model typical queries using the compact unit representation ~moving(T)~ with
+relations of units. Instead, we also need variants of spatiotemporal operators
+that process streams of units.
+
+So we are to implement:
+
+----
+
+OK   ufeed: unit(a) --> stream(unit(a))                                   
+
+     intersects: unit(a) x unit(a) --> stream(ubool)
+     intersects: stream(unit(a)) x stream(unit(a)) --> stream(ubool)
+
+     intersection: unit(a) x unit(a) --> stream(unit(a))
+     intersection: stream(unit(a)) x stream(unit(a)) --> stream(unit(a))
+
+     atmax, atmin: unit(a) x unit(a) --> stream(unit(a))
+     atmax, atmin: stream(unit(a)) x stream(unit(a)) --> stream(unit(a))
+
+     mdirection: upoint --> ureal
+     mdirection: stream(upoint) --> stream(ureal)
+
+     no_components: unit(a) --> uint
+     no_components: stream(unit(a)) --> stream(uint)
+
+     area: uregion --> ureal
+     area: stream(uregion) --> stream(ureal)
 
 
+     distance: T in {real, int, point}
+              uT x uT -> ureal,
+              uT x  T -> ureal, 
+               T x uT -> ureal
 
+     distance: T in {real, int, region, point}
+              uT x uT -> stream(ureal),
+              uT x  T -> stream(ureal), 
+               T x uT -> stream(ureal)
+
+     distance: T in {real, int, region, point}
+              stream(uT) x stream(uT) -> stream(ureal),
+              stream(uT) x T          -> stream(ureal), 
+              T          x stream(uT) -> stream(ureal)
+
+     and, or: ubool x ubool --> stream(ubool)
+               bool x ubool --> stream(ubool)
+              ubool x  bool --> stream(ubool)
+
+     and, or: stream(ubool) x stream(ubool) --> stream(ubool)
+              stream(ubool) x         bool  --> stream(ubool)
+                      bool  x stream(ubool) --> stream(ubool)
+     
+     =, #: uT x uT --> stream(ubool)
+            T x uT --> stream(ubool)
+           uT x  T --> stream(ubool)
+
+     =, #: stream (uT) x stream(uT) --> stream(ubool)
+                    T  x stream(uT) --> stream(ubool)
+           stream (uT) x         T  --> stream(ubool)
+
+     trajectory: stream(upoint) --> line
+     trajectory: stream(upoints) --> points
+
+     deftime: stream(uT) --> periods
+     rangevalues: stream(uT) --> range(T)
+
+     traversed: stream(uline) --> region
+     traverse: stream(uregion) --> region
+
+     atinstant: stream(uT) x instant --> íntime(T)
+ERR  atperiods: stream(uT) x periods --> stream(uT)
+
+     initial, final: stream(uT) --> intime(T)
+
+     present: stream(uT) x instant --> bool
+     present: stream(uT) x periods --> bool
+
+     at: stream(uT) x T --> stream(uT)
+         stream(ut) x range(T) --> stream(uT)
+         stream(uT) x point --> stream(upoint)
+         stream(uT) x T' --> stream(uT)
+
+----
+
+*/
+
+/*
 
 [TOC]
 
@@ -697,13 +786,36 @@ It is for the operator ~atperiods~.
 ListExpr
 UnitPeriodsTypeMap( ListExpr args )
 {
-  if ( nl->ListLength( args ) == 2 )
-  {
-    ListExpr arg1 = nl->First( args ),
-             arg2 = nl->Second( args );
+  ListExpr arg1, arg2;
+  string argstr;
 
-   if( nl->IsEqual( arg2, "periods" ) )
+  cout << "t0 ";
+
+  if ( nl->ListLength( args ) != 2 )
     {
+      cout << "t0a ";
+      ErrorReporter::ReportError("Operator atperiods expects "
+				 "a list of length 2.");
+      return nl->SymbolAtom( "typeerror" );
+    }
+
+  arg1 = nl->First( args );
+  arg2 = nl->Second( args );
+  
+  nl->WriteToString(argstr, arg2);
+  cout << "t1 ";
+  if ( !( nl->IsEqual( arg2, "periods" ) ) )
+    {
+      cout << "t1a " << argstr << "\n";
+      ErrorReporter::ReportError("Operator atperiods expects a second argument"
+			     " of type 'periods' but gets '" + argstr + "'.");
+      return nl->SymbolAtom( "typeerror" );
+    }
+
+  cout << "t2 ";
+  if( nl->IsAtom( arg1 ) )
+    {
+      cout << "t2a ";
 
       if( nl->IsEqual( arg1, "ubool" ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -719,10 +831,72 @@ UnitPeriodsTypeMap( ListExpr args )
 
       if( nl->IsEqual( arg1, "upoint" ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
-               nl->SymbolAtom("upoint"));
+			       nl->SymbolAtom("upoint"));
 
+      cout << "t2b ";
+      nl->WriteToString(argstr, arg1);
+      ErrorReporter::ReportError("Operator atperiods expect a first argument "
+                                 "of type T in {ubool, uint, ureal, upoint} "
+				 "but gets a '" + argstr + "'.");
+      return nl->SymbolAtom( "typeerror" );
     }
-  }
+
+  cout << "t3 ";
+
+  if( !( nl->IsAtom( arg1 ) ) && ( nl->ListLength( arg1 ) == 2) ) 
+    {
+      cout << "t3a ";
+      nl->WriteToString(argstr, arg1);
+      if ( !( TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) )
+	{
+	  ErrorReporter::ReportError("Operator atperiods expects as first "
+				     "argument a list with structure 'T' or "
+				     "'stream(T)', T in {ubool, uint, ureal, "
+				     "upoint} but gets a list with structure '" 
+				     + argstr + "'.");
+	  return nl->SymbolAtom( "typeerror" );
+	}
+      
+      cout << "t3b ";
+                    
+      if( nl->IsEqual( nl->Second(arg1), "ubool" ) )
+        return nl->TwoElemList(nl->SymbolAtom("stream"),
+			       nl->SymbolAtom("ubool"));
+      cout << "t3b1 ";
+
+      if( nl->IsEqual( nl->Second(arg1), "uint" ) )
+        return nl->TwoElemList(nl->SymbolAtom("stream"),
+			       nl->SymbolAtom("uint"));
+      cout << "t3b2 ";
+
+      if( nl->IsEqual( nl->Second(arg1), "ureal" ) )
+         return nl->TwoElemList(nl->SymbolAtom("stream"),
+				nl->SymbolAtom("ureal"));
+      cout << "t3b3 ";
+
+      if( nl->IsEqual( nl->Second(arg1), "upoint" ) )
+	{
+	  cout << "t3b3xxx ";
+
+	  return nl->TwoElemList(nl->SymbolAtom("stream"),
+				 nl->SymbolAtom("upoint"));
+	}
+      cout << "t3b4 ";
+
+      nl->WriteToString(argstr, nl->Second(arg1));
+      cout << "t3c " << argstr;
+      ErrorReporter::ReportError("Operator atperiods expects a type "
+                              "(stream T); T in {ubool, uint, ureal, upoint} "
+			      "but gets '(stream " + argstr + ")'.");
+      return nl->SymbolAtom( "typeerror" );
+    };
+  cout << "t4 ";
+
+  nl->WriteToString( argstr, args );
+  cout << argstr ;
+  ErrorReporter::ReportError("Operator atperiods encountered an "
+			     "unmatched typerror for arguments '"
+			     + argstr + "'.");
   return nl->SymbolAtom( "typeerror" );
 }
 /*
@@ -936,7 +1110,7 @@ Type mapping for ~derivative~ is
 
 
 */
-ListExpr
+ListExpr 
 TypeMapDerivative( ListExpr args )
 {
   ListExpr arg1;
@@ -951,6 +1125,48 @@ TypeMapDerivative( ListExpr args )
   }
   return nl->SymbolAtom( "typeerror" );
 }
+
+
+/*
+10.10 Type mapping function for operator ~ufeed~
+
+The operator is used to cast a single unit(T) to a stream(unit(T)).
+
+*/
+
+ListExpr 
+TypeMapUfeed( ListExpr args )
+{
+  ListExpr arg1;
+
+  if ( ( nl->ListLength(args) == 1 ) && ( nl->IsAtom(nl->First(args) ) ) )
+    {
+      arg1 = nl->First(args);
+      
+      if( nl->IsEqual( arg1, "ubool" ) )
+	return nl->TwoElemList(nl->SymbolAtom("stream"),
+			       nl->SymbolAtom("ubool"));
+      
+      if( nl->IsEqual( arg1, "uint" ) )
+	return nl->TwoElemList(nl->SymbolAtom("stream"),
+			       nl->SymbolAtom("uint"));
+      
+      if( nl->IsEqual( arg1, "ureal" ) )
+	return nl->TwoElemList(nl->SymbolAtom("stream"),
+			       nl->SymbolAtom("ureal"));
+      
+      if( nl->IsEqual( arg1, "upoint" ) )
+	return nl->TwoElemList(nl->SymbolAtom("stream"),
+			       nl->SymbolAtom("upoint"));
+    }
+  ErrorReporter::ReportError("Operator ufeed  expects a list of length one, "
+			     "containing a value of one type of {uint, ubool, "
+			     "ureal, upoint}.");
+  return nl->SymbolAtom( "typeerror" );
+}
+
+
+
 /*
 16 Selection function
 
@@ -1048,7 +1264,8 @@ while (!(nl->IsEmpty(rest)))
 /*
 16.1.3 Selection function ~UnitSimpleSelect~
 
-Is used for the ~deftime~,~atinstant~,~atperiods~, ~initial~, ~final~  operations.
+Is used for the ~deftime~,~atinstant~,~atperiods~, ~initial~, ~final~  
+operations.
 
 */
 int
@@ -1056,21 +1273,52 @@ UnitSimpleSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
+  if( nl->SymbolValue( arg1 ) == "ubool" )
+    return 0;
+  if( nl->SymbolValue( arg1 ) == "uint" )
+    return 1;
+  if( nl->SymbolValue( arg1 ) == "ureal" )
+    return 2;
+  if( nl->SymbolValue( arg1 ) == "upoint" )
+    return 3;
+  
+  return -1; // This point should never be reached
+}
+
+/*
+An extended version can units and also map streams of units:
+
+*/
+
+int
+UnitCombinedUnitStreamSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
 
   if( nl->SymbolValue( arg1 ) == "ubool" )
     return 0;
-
   if( nl->SymbolValue( arg1 ) == "uint" )
     return 1;
-
   if( nl->SymbolValue( arg1 ) == "ureal" )
     return 2;
-
   if( nl->SymbolValue( arg1 ) == "upoint" )
     return 3;
-
+  if(    nl->ListLength(arg1) == 2 
+      && TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) 
+    { if( nl->IsEqual( nl->Second(arg1), "ubool" ) )
+	return 4;
+      if( nl->IsEqual( nl->Second(arg1), "uint" ) )
+	return 5;
+      if( nl->IsEqual( nl->Second(arg1), "ureal" ) )
+	return 6;
+      if( nl->IsEqual( nl->Second(arg1), "upoint" ) )
+	return 7;
+    }
+  
   return -1; // This point should never be reached
 }
+
+
 /*
 16.1.4 Selection function ~UnitInstantPeriodsSelect~
 
@@ -1352,41 +1600,42 @@ Checking if the periods value is valid and defined.
 
 */
 
-if( !range->IsEmpty()  )
-  {
-    const Interval<Instant> *intv1, *intv2;
-    duration = 0;
-
-  for( int i = 0; i < range->GetNoComponents(); i++ )
-  {
-    range->Get( i, intv1 );
-    range->Get( i, intv2 );
-
-    Interval<Instant> timeInterval(intv1->start,intv2->end,intv1->lc,intv2->rc);
-
-    sup = timeInterval.end;
+  if( !range->IsEmpty()  )
+    {
+      const Interval<Instant> *intv1, *intv2;
+      duration = 0;
+      
+      for( int i = 0; i < range->GetNoComponents(); i++ )
+	{
+	  range->Get( i, intv1 );
+	  range->Get( i, intv2 );
+	  
+	  Interval<Instant> timeInterval(intv1->start,intv2->end,
+					 intv1->lc, intv2->rc);
+	  
+	  sup = timeInterval.end;
     inf = timeInterval.start;
-
-
+    
+    
     intervalue_sup = sup.GetAllMilliSeconds();
     intervalue_inf = inf.GetAllMilliSeconds();
 /*
-Summarizing of all time intervals.
-
+  Summarizing of all time intervals.
+      
 */
     duration += (intervalue_sup - intervalue_inf)/1000;    // value in second
-
-   }
-
+    
+	}
+      
     res = duration;
-  }
+    }
 /*
-Returns the result in the storage.
-
+  Returns the result in the storage.
+    
 */
-
+  
   ((CcReal*)result.addr)->Set(true, res);
-
+  
   return 0;
 }
 /*
@@ -1432,7 +1681,7 @@ The unit class can cast  unit datatypes.
 
 */
 
-m = (Mapping*) result.addr;
+  m = (Mapping*) result.addr;
 
 /*
 For the first use the storage must be cleared.
@@ -1567,12 +1816,18 @@ int MappingUnitAtInstant( Word* args, Word& result, int message,
 16.2.9 Value mapping functions of operator ~atperiods~
 
 */
+
 struct AtPeriodsLocalInfo
 {
   Word uWord;     // the address of the unit point/int/real value
   Word pWord;    //  the adress of the period value
   int  j;       //   save the number of the interval
 };
+
+/*
+Variant 1: first argument is a scalar value
+
+*/
 
 template <class Mapping>
 int MappingUnitAtPeriods( Word* args, Word& result, int message,
@@ -1658,6 +1913,97 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
   return -1;
 
 }
+
+/*
+Variant 2: first argument is a stream
+Implemented on 07/17/2006 by Christian D[ue]ntgen
+
+*/
+
+struct AtPeriodsLocalInfoUS
+{
+  Word uWord;  // address of the input stream
+  Word pWord;  // address of the input periods value
+  int j;       // interval counter for within periods
+};
+
+
+template <class Mapping>
+int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
+                                Word& local, Supplier s )
+{
+  AtPeriodsLocalInfoUS *localinfo;
+  Mapping *unit, *aux;
+  Mapping resultUnit;
+  Periods *periods;
+  const Interval<Instant> *interval;
+
+  switch( message )
+  { 
+  case OPEN:
+    localinfo = new AtPeriodsLocalInfoUS;
+    qp->Request(args[1].addr, localinfo->pWord);   // get address of periods
+    localinfo->j = 0;                              // init interval counter
+    qp->Open( args[0].addr );                      // open stream of units
+    qp->Request( args[0].addr, localinfo->uWord ); // request first unit
+    if ( !( qp->Received( args[0].addr) ) )
+      {result.addr = 0; return CANCEL; }
+    local = SetWord(localinfo);                    // pass up link to localinfo
+    return 0;
+
+  case REQUEST:
+    if ( local.addr == 0 )
+      return CANCEL;
+    localinfo = (AtPeriodsLocalInfoUS *) local.addr; // restore local data
+    if ( localinfo->uWord.addr == 0 )
+      { result.addr = 0; return CANCEL; }
+    unit = (Mapping *) localinfo->uWord.addr;
+    if ( localinfo->pWord.addr == 0 )
+      { result.addr = 0; return CANCEL; }
+    periods = (Periods *) localinfo->pWord.addr;
+    
+    // search for a pair of overlapping unit/interval:
+    
+    while (1)
+      {
+	if ( localinfo->j == periods->GetNoComponents() ) // redo first interval
+	  { localinfo->j = 0;
+	    unit->DeleteIfAllowed();                // delete original unit?
+	    qp->Request(args[0].addr, localinfo->uWord);  // get new unit
+	    if( qp->Received( args[0].addr ) )
+	      unit = (Mapping *) localinfo->uWord.addr;
+	    else 
+	      { result.addr = 0; return CANCEL; }   // end of unit stream
+	  }
+	periods->Get(localinfo->j, interval);       // get an interval
+	if (    !( interval->Before( unit->timeInterval ) )
+		&& !( unit->timeInterval.Before( *interval) ) )
+	  break;                           // found candidate, break while
+	localinfo->j++;                             // next interval, loop
+      }
+    
+    // We have an interval possibly overlapping the unit's interval now
+    // Return unit restricted to overlapping part of both intervals
+    
+    unit->AtInterval( *interval, resultUnit); // intersect unit and interval
+    aux = new Mapping( resultUnit );
+    result = SetWord( aux );
+    localinfo->j++;                           // increase interval counter
+    unit->DeleteIfAllowed();                  // delete original unit?
+    return YIELD;
+    
+  case CLOSE:
+    if ( local.addr != 0 )
+      delete (AtPeriodsLocalInfoUS *)localinfo;
+    return 0;
+    
+  } // end switch
+  
+  return -1; // should never be reached
+  
+} // end MappingUnitStreamAtPeriods
+
+
 /*
 16.2.10 Value mapping functions of operator ~initial~
 
@@ -2080,26 +2426,26 @@ The derivative of this polynom is 2at + b.
 
 */   
  if (Unit->r == false)
-     {
-      uReal.timeInterval = Unit->timeInterval;
-      uReal.a = 0;
-      uReal.b = 2 * Unit->a;
-      uReal.c = Unit->b;
-      uReal.r = Unit->r;
-     }
-    else
-     {
+   {
+     uReal.timeInterval = Unit->timeInterval;
+     uReal.a = 0;
+     uReal.b = 2 * Unit->a;
+     uReal.c = Unit->b;
+     uReal.r = Unit->r;
+   }
+ else
+   {
 /*
 A derivation of a real unit is not possible.
 
 */
-       uReal.SetDefined(false);
-      }
-
-   res->Add( uReal );
+     uReal.SetDefined(false);
+   }
+ 
+ res->Add( uReal );
   }
   res->EndBulkLoad( false );
-
+  
   return 0;
 }
 int UnitPointDerivative( Word* args, Word& result, int message,
@@ -2131,6 +2477,59 @@ int UnitPointDerivative( Word* args, Word& result, int message,
 
   return 0;
 }
+
+/*
+16.2. Value mapping function for operator ~ufeed~
+
+The operator is used to cast a single unit(T) to a stream(unit(T))
+having a single element unit(T).
+
+*/
+
+struct UnitFeedLocalInfo
+{
+  Word uWord;
+  bool finished;
+};
+
+template <class Mapping>
+int MappingUnitFeed( Word* args, Word& result, int message,
+		     Word& local, Supplier s )
+{
+  UnitFeedLocalInfo *localinfo;
+  Mapping *unit;
+
+  switch( message )
+    {
+    case OPEN:
+      localinfo = new UnitFeedLocalInfo;
+      localinfo->finished = false;
+      qp->Request(args[0].addr, localinfo->uWord);
+      local = SetWord(localinfo);
+      return 0;
+
+    case REQUEST:
+      if ( local.addr == 0 ) 
+	return CANCEL;
+      localinfo = ( UnitFeedLocalInfo *)local.addr;
+      if ( localinfo->finished )
+	return CANCEL;
+      unit = (Mapping *)localinfo->uWord.addr;
+      result = SetWord( unit );
+      localinfo->finished = true;
+      return YIELD;
+	
+    case CLOSE:
+      if ( local.addr == 0 ) 
+	{ 
+	  localinfo = ( UnitFeedLocalInfo*) local.addr;
+	  delete localinfo;
+	}
+      return 0;     
+    }
+  return -1; // should not be reached
+}
+
 /*
 17 Definition of operators
 
@@ -2166,7 +2565,12 @@ ValueMapping temporalunitatinstantmap[] ={MappingUnitAtInstant<UBool, CcBool>,
 ValueMapping temporalunitatperiodsmap[] = { MappingUnitAtPeriods<UBool>,
                                             MappingUnitAtPeriods<UInt>,
                                             MappingUnitAtPeriods<UReal>,
-                                            MappingUnitAtPeriods<UPoint> };
+                                            MappingUnitAtPeriods<UPoint>,
+                                            MappingUnitStreamAtPeriods<UBool>,
+                                            MappingUnitStreamAtPeriods<UInt>,
+                                            MappingUnitStreamAtPeriods<UReal>,
+                                            MappingUnitStreamAtPeriods<UPoint>  
+                                          };
 
 ValueMapping temporalunitinitialmap[] = { MappingUnitInitial<UBool, CcBool>,
                                           MappingUnitInitial<UInt, CcInt>,
@@ -2205,6 +2609,11 @@ ValueMapping temporalderivablemap[] = { MPointDerivable,
 
 ValueMapping temporalderivativemap[] = { MPointDerivative,
                                        UnitPointDerivative };
+
+ValueMapping temporalunitfeedmap[] = { MappingUnitFeed<UBool>,
+				       MappingUnitFeed<UInt>,
+				       MappingUnitFeed<UReal>,
+				       MappingUnitFeed<UPoint>};
 
 /*
 17.2 Specification strings
@@ -2316,7 +2725,9 @@ TemporalSpecAtInstant  =
 const string
 TemporalSpecAtPeriods  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>(unit(x) periods) -> stream(unit(x))</text--->"
+"( <text>T in {int, bool, real, point},\n"
+"(unit(T) periods) -> stream uT\n"
+"((stream uT) periods) -> stream uT</text--->"
 "<text>_ atperiods _ </text--->"
 "<text>restrict the movement to the given"
 " periods.</text--->"
@@ -2455,6 +2866,22 @@ TemporalSpecDerivative=
 "<text>determination the derivative"
 " of a mreal/ureal.</text--->"
 "<text>derivable (mreal)</text---> ) )";
+
+/*
+17.2.20 Specification string of operator ~ufeed~
+
+*/
+const string
+TemporalSpecUfeed=
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>For T in {bool, int, real point} \n"
+"uT -> stream uT</text--->"
+"<text>ufeed ( _ ) </text--->"
+"<text>create a single-unit stream from "
+"a single unit.</text--->"
+"<text>ufeed (ureal)</text---> ) )";
+
+
 /*
 17.3 Operators
 
@@ -2514,9 +2941,9 @@ Operator temporalunitatinstant( "atinstant",
 
 Operator temporalunitatperiods( "atperiods",
                             TemporalSpecAtPeriods,
-                            4,
+                            8,
                             temporalunitatperiodsmap,
-                            UnitSimpleSelect,
+                            UnitCombinedUnitStreamSelect,
                             UnitPeriodsTypeMap );
 
 Operator temporalunitinitial( "initial",
@@ -2586,6 +3013,15 @@ Operator temporalderivative( "derivative",
                       temporalderivativemap,
                       DerivableSelect,
                       TypeMapDerivative);
+
+Operator temporalufeed( "ufeed",
+                      TemporalSpecUfeed,
+                      4,
+                      temporalunitfeedmap,
+                      UnitSimpleSelect,
+                      TypeMapUfeed);
+
+
 /*
 18 Creating the Algebra
 
@@ -2615,6 +3051,7 @@ class TemporalUnitAlgebra : public Algebra
    AddOperator( &temporalvelocity );
    AddOperator( &temporalderivable );
    AddOperator( &temporalderivative );
+   AddOperator( &temporalufeed );
 
   }
   ~TemporalUnitAlgebra() {};

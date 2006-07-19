@@ -27,3 +27,5 @@ operator makepoint alias MAKEPOINT pattern op ( _ )
 operator velocity alias VELOCITY pattern op ( _ )
 operator derivable alias DERIVABLE pattern op ( _ )
 operator derivative alias DERIVATIVE pattern op ( _ )
+operator atperiods alias ATPERIODS pattern _ infixop _
+operator ufeed alias UFEED pattern op ( _ )
