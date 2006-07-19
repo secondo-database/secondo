@@ -789,11 +789,8 @@ UnitPeriodsTypeMap( ListExpr args )
   ListExpr arg1, arg2;
   string argstr;
 
-  cout << "t0 ";
-
   if ( nl->ListLength( args ) != 2 )
     {
-      cout << "t0a ";
       ErrorReporter::ReportError("Operator atperiods expects "
 				 "a list of length 2.");
       return nl->SymbolAtom( "typeerror" );
@@ -803,45 +800,34 @@ UnitPeriodsTypeMap( ListExpr args )
   arg2 = nl->Second( args );
   
   nl->WriteToString(argstr, arg2);
-  cout << "t1 ";
   if ( !( nl->IsEqual( arg2, "periods" ) ) )
     {
-      cout << "t1a " << argstr << "\n";
       ErrorReporter::ReportError("Operator atperiods expects a second argument"
 			     " of type 'periods' but gets '" + argstr + "'.");
       return nl->SymbolAtom( "typeerror" );
     }
 
-  cout << "t2 ";
   if( nl->IsAtom( arg1 ) )
     {
-      cout << "t2a ";
-
       if( nl->IsEqual( arg1, "ubool" ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
                nl->SymbolAtom("ubool"));
-
       if( nl->IsEqual( arg1, "uint" ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
                nl->SymbolAtom("uint"));
-
       if( nl->IsEqual( arg1, "ureal" ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
                nl->SymbolAtom("ureal"));
-
       if( nl->IsEqual( arg1, "upoint" ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
 			       nl->SymbolAtom("upoint"));
 
-      cout << "t2b ";
       nl->WriteToString(argstr, arg1);
       ErrorReporter::ReportError("Operator atperiods expect a first argument "
                                  "of type T in {ubool, uint, ureal, upoint} "
 				 "but gets a '" + argstr + "'.");
       return nl->SymbolAtom( "typeerror" );
     }
-
-  cout << "t3 ";
 
   if( !( nl->IsAtom( arg1 ) ) && ( nl->ListLength( arg1 ) == 2) ) 
     {
@@ -857,31 +843,18 @@ UnitPeriodsTypeMap( ListExpr args )
 	  return nl->SymbolAtom( "typeerror" );
 	}
       
-      cout << "t3b ";
-                    
       if( nl->IsEqual( nl->Second(arg1), "ubool" ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
 			       nl->SymbolAtom("ubool"));
-      cout << "t3b1 ";
-
       if( nl->IsEqual( nl->Second(arg1), "uint" ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
 			       nl->SymbolAtom("uint"));
-      cout << "t3b2 ";
-
       if( nl->IsEqual( nl->Second(arg1), "ureal" ) )
          return nl->TwoElemList(nl->SymbolAtom("stream"),
 				nl->SymbolAtom("ureal"));
-      cout << "t3b3 ";
-
       if( nl->IsEqual( nl->Second(arg1), "upoint" ) )
-	{
-	  cout << "t3b3xxx ";
-
-	  return nl->TwoElemList(nl->SymbolAtom("stream"),
+	 return nl->TwoElemList(nl->SymbolAtom("stream"),
 				 nl->SymbolAtom("upoint"));
-	}
-      cout << "t3b4 ";
 
       nl->WriteToString(argstr, nl->Second(arg1));
       cout << "t3c " << argstr;
@@ -890,10 +863,8 @@ UnitPeriodsTypeMap( ListExpr args )
 			      "but gets '(stream " + argstr + ")'.");
       return nl->SymbolAtom( "typeerror" );
     };
-  cout << "t4 ";
 
   nl->WriteToString( argstr, args );
-  cout << argstr ;
   ErrorReporter::ReportError("Operator atperiods encountered an "
 			     "unmatched typerror for arguments '"
 			     + argstr + "'.");
@@ -1286,7 +1257,7 @@ UnitSimpleSelect( ListExpr args )
 }
 
 /*
-An extended version can units and also map streams of units:
+An extended version can map (unit) as well as (stream unit):
 
 */
 
@@ -1295,16 +1266,21 @@ UnitCombinedUnitStreamSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "ubool" )
-    return 0;
-  if( nl->SymbolValue( arg1 ) == "uint" )
-    return 1;
-  if( nl->SymbolValue( arg1 ) == "ureal" )
-    return 2;
-  if( nl->SymbolValue( arg1 ) == "upoint" )
-    return 3;
-  if(    nl->ListLength(arg1) == 2 
-      && TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) 
+  if (nl->IsAtom( arg1 ) )
+    {
+      if( nl->SymbolValue( arg1 ) == "ubool" )
+        return 0;
+      if( nl->SymbolValue( arg1 ) == "uint" )
+        return 1;
+      if( nl->SymbolValue( arg1 ) == "ureal" )
+        return 2;
+      if( nl->SymbolValue( arg1 ) == "upoint" )
+        return 3;
+    }
+
+  if(   !( nl->IsAtom( arg1 ) )
+      && ( nl->ListLength(arg1) == 2 )
+      && ( TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) )
     { if( nl->IsEqual( nl->Second(arg1), "ubool" ) )
 	return 4;
       if( nl->IsEqual( nl->Second(arg1), "uint" ) )
@@ -1989,12 +1965,19 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
     aux = new Mapping( resultUnit );
     result = SetWord( aux );
     localinfo->j++;                           // increase interval counter
-    unit->DeleteIfAllowed();                  // delete original unit?
     return YIELD;
     
   case CLOSE:
     if ( local.addr != 0 )
-      delete (AtPeriodsLocalInfoUS *)localinfo;
+      {
+	localinfo = (AtPeriodsLocalInfoUS *) local.addr;
+	if ( localinfo->uWord.addr != 0 )
+	  {
+	    unit = (Mapping *) localinfo->uWord.addr;
+	    unit->DeleteIfAllowed();   // delete remaining original unit
+	  }
+	delete (AtPeriodsLocalInfoUS *)localinfo;
+      }
     return 0;
     
   } // end switch
