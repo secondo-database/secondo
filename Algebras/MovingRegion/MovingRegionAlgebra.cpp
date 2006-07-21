@@ -3869,13 +3869,17 @@ void URegionEmb::GetSegment(
 void URegionEmb::PutSegment(
     DBArray<MSegmentData>* segments,
     int pos, 
-    const MSegmentData& dms) {
+    const MSegmentData& dms,
+    const bool isNew) {
 
     if (MRA_DEBUG)
         cerr << "URegionEmb::PutSegment() called, pos=" << pos
              << endl;
 
     segments->Put(segmentsStartPos+pos, dms);
+    if(isNew){
+        segmentsNum++;
+    }
 }
 
 /*

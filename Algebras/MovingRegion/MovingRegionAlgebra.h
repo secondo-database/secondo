@@ -648,7 +648,8 @@ Get number of segments, get specified segment, write specified segment.
     void PutSegment(
         DBArray<MSegmentData>* segments,
         int pos, 
-        const MSegmentData& dms);
+        const MSegmentData& dms,
+        const bool isNew = false);
 
 /*
 Adds a segment to this ~URegionEmb~ instance.
