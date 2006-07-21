@@ -980,6 +980,16 @@ accordingly.
 */
     void Inside(MPoint& mp, MBool& res);
 
+
+/*
+Reduces this Moving Region to the time given by the periods value.
+
+Note: The implementation is done in the TemporalExtAlgebra.
+
+*/
+void AtPeriods(Periods* per, MRegion* mregparam );
+
+
 /*
 Calculate region traversed by ~MRegion~ instant in ~res~.
 
