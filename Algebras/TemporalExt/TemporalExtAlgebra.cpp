@@ -66,7 +66,8 @@ float FactorForUnitOfDistance = 1.;
 
 struct USegments
 {
-    int unitnr;
+    int unit_nr;
+    Interval<Instant> unit_interval;
     vector<MSegmentData> sgms;
 };
 
@@ -76,88 +77,117 @@ struct GroupOfIntervals
     Interval<Instant> str_inst;
 };
 
-void MinMaxValueFunction(const UReal* utemp, double& minimum, double& maximum)
+/*
+Function: MinMaxValueFunction
+
+Parameters:
+    utemp:
+    minimum:
+    maximum:
+
+Result:
+    return 0
+
+*/
+void MinMaxValueFunction(const UReal* utemp, float& minimum, float& maximum)
 {
-    double t0, t1, t0_value, t1_value, a, b, c;
+    float ts, te, ts_value, te_value, a, b, c;
     double t_extrem, t_extrem_value;
     bool lh = utemp->timeInterval.lc;
     bool rh = utemp->timeInterval.rc;
     bool conv_conc = true;
 
 
-    t0 = utemp->timeInterval.start.ToDouble();
-    t1 = utemp->timeInterval.end.ToDouble();
-
-    if(0)
-    {
-        cout << "Range: " << endl;
-        cout << "t0: " << t0 << endl;
-        cout << "t1: " << t1 << endl << endl;
-    }
+    ts = 0;
+    te = utemp->timeInterval.end.ToDouble()
+        - utemp->timeInterval.start.ToDouble();
 
     a = utemp->a;
     b = utemp->b;
     c = utemp->c;
 
-    t0_value = a * pow( t0, 2 ) + b * t0 + c;
-    t1_value = a * pow( t1, 2 ) + b * t1 + c;
+    ts_value = c;
+    te_value = a * pow( te-ts, 2 ) + b * (te-ts) + c;
+
+    if(0)
+    {
+        cout << endl << "Range: " << endl;
+        cout << "ts: " << ts << endl;
+        cout << "te: " << te << endl << endl;
+        cout << "ts_value: " << ts_value << endl;
+        cout << "te_value: " << te_value << endl << endl;
+    }
+
 
     if( utemp->a != 0 )
     {
         t_extrem = - b / ( 2 * a );
-        if( (!lh && !rh && ( t_extrem <= t0 || t_extrem >= t1 ) ) ||
-            (lh && rh && ( t_extrem < t0 || t_extrem > t1) ) ||
-            (!lh && rh && ( t_extrem <= t0 || t_extrem > t1 ) ) ||
-            (lh && !rh && ( t_extrem < t0 && t_extrem >= t1 ) )
+        if(0)
+        {
+            cout << endl << "t_extrem = " << t_extrem << endl;
+        }
+        if( (!lh && !rh && ( t_extrem <= ts || t_extrem >= te ) ) ||
+            (lh && rh && ( t_extrem < ts || t_extrem > te) ) ||
+            (!lh && rh && ( t_extrem <= ts || t_extrem > te ) ) ||
+            (lh && !rh && ( t_extrem < ts || t_extrem >= te ) )
         )
-        conv_conc = false;
+        {
+            conv_conc = false;
+        }
     }
     else
         conv_conc = false;
 
     if(conv_conc)
     {
-
-        t_extrem_value = a * pow( t_extrem, 2 ) + b * t_extrem + c;
-        if(t0_value < t_extrem_value)
+        t_extrem_value = a * pow( t_extrem-ts, 2 ) + b * (t_extrem-ts) + c;
+        if(0)
         {
+            cout << "t_extrem_value = " << t_extrem_value << endl;
+        }
         /*
-        The parabola is concave
+        Find maximum
 
         */
-        maximum = t_extrem;
-        if(t0_value < t1_value)
-            minimum = t0;
-        else
-            minimum = t1;
-        }
-        else
-        {
+        maximum = ts_value;
+        if(t_extrem_value > maximum)
+            maximum = t_extrem_value;
+        if(te_value > maximum)
+            maximum = te_value;
+
         /*
-        The parabola is convex
+        Find minimum
 
         */
-        minimum = t_extrem;
-        if(t0_value < t1_value)
-            maximum = t1;
-        else
-            maximum = t0;
-        }
+        minimum = ts_value;
+        if(t_extrem_value < minimum)
+            minimum = t_extrem_value;
+        if(te_value < minimum)
+            minimum = te_value;
     }
     else
     {
-        if(t0_value < t1_value)
+        if(0)
         {
-        maximum = t1;
-        minimum = t0;
+            cout << endl << "Ist NICHT conv_conc" << endl;
+        }
+        if(ts_value < te_value)
+        {
+            maximum = te_value;
+            minimum = ts_value;
         }
         else
         {
-        maximum = t0;
-        minimum = t1;
+            maximum = ts_value;
+            minimum = te_value;
         }
     }
-
+    if(0)
+    {
+        cout << endl << "RETURN:" << endl;
+        cout << "minimum = " << minimum << endl;
+        cout << "maximum = " << maximum << endl << endl;
+    }
 }
 
 /*
@@ -390,13 +420,27 @@ void MappingExt<Unit, Alpha>::AtMax( Mapping<Unit, Alpha> &result ) const
     result.EndBulkLoad( false );
 }
 
+template <class Unit, class Alpha>
+void MappingExt<Unit, Alpha>::At(
+    Range<Alpha>* inv,
+    Mapping<Unit, Alpha> &result ) const
+{
+    const Unit* utemp;
+
+    for(int i=0;i<GetNoComponents();i++)
+    {
+        Get(i, utemp);
+    }
+}
+
+
 void MRealExt::AtMin( MReal &result ) const
 {
     const UReal* utemp;
     const UReal* uresult;
-    double min;
+    float min;
     int unit_num;
-    double unit_min, unit_max;
+    float unit_min, unit_max;
 
     Get(0, utemp);
     MinMaxValueFunction(utemp, unit_min, unit_max);
@@ -437,9 +481,9 @@ void MRealExt::AtMax( MReal &result ) const
 {
     const UReal* utemp;
     const UReal* uresult;
-    double max;
+    float max;
     int unit_num;
-    double unit_min, unit_max;
+    float unit_min, unit_max;
 
     Get(0, utemp);
     MinMaxValueFunction(utemp, unit_min, unit_max);
@@ -476,8 +520,422 @@ void MRealExt::AtMax( MReal &result ) const
     result.EndBulkLoad( false );
 }
 
+void MRealExt::At( CcReal val, MReal &result ) const
+{
+    const UReal* utemp;
+    UReal uresult;
+    float unit_min, unit_max, ts, te, t_value, time1, time2;
+    bool lh, rh;
+    float value = val.GetRealval();
+    Interval<Instant> temp_interval;
+    clock_t clock1, clock2, clock3, clock4, clock_ges;
+
+    result.Clear();
+    result.StartBulkLoad();
+    clock1 = clock();
+    clock_ges = 0;
+    for(int i=0;i<GetNoComponents();i++)
+    {
+        clock3 = clock();
+        Get(i, utemp);
+        MinMaxValueFunction(utemp, unit_min, unit_max);
+        ((URealExt*)utemp)->SetUnitMin( unit_min );
+        ((URealExt*)utemp)->SetUnitMax( unit_max );
+        unit_min = ((URealExt*)utemp)->GetUnitMin();
+        unit_max = ((URealExt*)utemp)->GetUnitMax();
+        lh = utemp->timeInterval.lc;
+        rh = utemp->timeInterval.rc;
+        ts = (utemp->timeInterval.start).ToDouble();
+        te = (utemp->timeInterval.end).ToDouble();
+        temp_interval = utemp->timeInterval;
+        if(0)
+        {
+            cout << endl << "GetUnitMin(): " << unit_min << endl;
+            cout << "GetUnitMax(): " << unit_max << endl;
+            cout << "Value: " << val.GetRealval() << endl;
+            cout << "ts: " << ts << endl;
+            cout << "te: " << te << endl;
+        }
+        if( (!lh && !rh && ( value <= unit_min || value >= unit_max ) ) ||
+            (lh && rh && ( value < unit_min || value > unit_max) ) ||
+            (!lh && rh && ( value <= unit_min || value > unit_max ) ) ||
+            (lh && !rh && ( value < unit_min || value >= unit_max ) )
+        )
+        {
+            if(0)
+            {
+                cout << "Value outside of the unit range!!!!" << endl;
+            }
+        }
+        else
+        {
+            if(utemp->a == 0 && utemp->b != 0)
+            {
+                /*
+                Find value in a linear function
+
+                */
+                t_value = ((value - utemp->c) / utemp->b) + ts;
+                temp_interval.start.ReadFrom((const double)
+                    (t_value - 0.0000001));
+                temp_interval.end.ReadFrom((const double)
+                    (t_value + 0.0000001));
+                if(0)
+                {
+                    cout << "---> value in a linear function" << endl;
+                }
+            }
+            else
+            {
+                if(utemp->a == 0 && utemp->b == 0)
+                {
+                    /*
+                    Find value in a constant function
+
+                    */
+                    t_value = utemp->c;
+                    temp_interval = utemp->timeInterval;
+                    if(0)
+                    {
+                        cout << "---> value in a constant function" << endl;
+                    }
+                }
+                else
+                {
+                    /*
+                    Find value in a quadratic function with Newton's Method
+
+                    */
+                    if(0)
+                    {
+                        cout << "---> value in a quadratic function" << endl;
+                    }
+
+                    float t_newton = te;
+                    float t_newton_old;
+                    float t, dt, t_newton_diff, t_var;
+                    if(0)
+                    {
+                        cout << "t_newton(Start) = " << t_newton << endl;
+                        cout << "a = " << utemp->a << endl;
+                        cout << "b = " << utemp->b << endl;
+                        cout << "c = " << utemp->c << endl;
+                    }
+                    do
+                    {
+                        t_newton_old = t_newton;
+                        t_var = t_newton - ts;
+                        if(utemp->r)
+                        {
+                            t = sqrt(pow(t_var, 2)*utemp->a
+                                + t_var*utemp->b
+                                + utemp->c
+                                - value);
+                            dt = (1/2)*(1/sqrt(t))
+                                + (2*utemp->a*t_var + utemp->b);
+                            if(0)
+                            {
+                                cout << "t = " << t << endl;
+                                cout << "dt = " << dt << endl;
+                            }
+                        }
+                        else
+                        {
+                            t = pow(t_var, 2)*utemp->a
+                                + t_var*utemp->b
+                                + utemp->c
+                                - value;
+                            dt = 2*utemp->a*t_var + utemp->b;
+                            if(0)
+                            {
+                                cout << "t = " << t << endl;
+                                cout << "dt = " << dt << endl;
+                            }
+                        }
+                        t_newton = t_newton - (t/dt);
+                        t_newton_diff = abs(t_newton_old) - abs(t_newton);
+                        if(0)
+                        {
+                            cout << "t_newton = "
+                                << t_newton << endl;
+                            cout << "t_newton_old = "
+                                << t_newton_old << endl;
+                            cout << "t_newton_diff = "
+                                << t_newton_diff << endl;
+                        }
+                    }while(abs(t_newton_diff) > 0.0000001);
+                    t_value = t_newton;
+                    temp_interval.start.ReadFrom((const double)
+                        (t_value - 0.0000001));
+                    temp_interval.end.ReadFrom((const double)
+                        (t_value + 0.0000001));
+                }
+            }
+            if(0)
+            {
+                cout << endl << "x-Value = " << t_value << endl;
+            }
+            uresult.a = utemp->a;
+            uresult.b = utemp->b;
+            uresult.c = utemp->c;
+            uresult.r = utemp->r;
+            uresult.timeInterval = temp_interval;
+            result.Add( uresult );
+        }
+        clock4 = clock();
+        clock_ges = clock_ges + (clock4 - clock3);
+    }
+    clock2 = clock();
+    time2 = ((float)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
+    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
+    cout << "Total computing time : " << time1 << " ms" << endl;
+    result.EndBulkLoad( false );
+}
+
+
+void MRegion::AtPeriods(Periods* per, MRegion* mregparam)
+{
+    const URegionEmb* utemp;
+    const Interval<Instant>* temp2;
+    Interval<Instant> temp3;
+    const MSegmentData* oldsmg;
+    MSegmentData newsmg;
+    vector<GroupOfIntervals> temp_intervals;
+    GroupOfIntervals inter_temp;
+    vector<USegments> tempsgms;
+    USegments usegtemp;
+    const DBArray<MSegmentData>* oldsgms;
+    unsigned int starting_segments_pos;
+    URegionEmb* out_ureg;
+
+    for(int i=0;i<mregparam->GetNoComponents();i++)
+    {
+        mregparam->Get(i, utemp);
+        for(int j=0;j<per->GetNoComponents();j++)
+        {
+            per->Get(j, temp2);
+            if((utemp->timeInterval).Intersects(*temp2))
+            {
+                (utemp->timeInterval).Intersection(*temp2, temp3);
+                inter_temp.unit_nr = i;
+                (inter_temp.str_inst).CopyFrom(temp3);
+                temp_intervals.push_back(inter_temp);
+            }
+        }
+    }
+    if(0)
+    {
+        for(unsigned int i=0;i<temp_intervals.size();i++)
+        {
+            cout << endl << "Interval:" << endl;
+            cout << "unit nr.: " << temp_intervals[i].unit_nr << endl;
+            cout << "interval start: "
+                << ((temp_intervals[i].str_inst).start).ToString()
+                << endl;
+            cout << "interval end: "
+                << ((temp_intervals[i].str_inst).end).ToString()
+                << endl;
+        }
+    }
+
+    oldsgms = mregparam->GetMSegmentData();
+    for(unsigned int i=0;i<temp_intervals.size();i++)
+    {
+        mregparam->Get(temp_intervals[i].unit_nr, utemp);
+        usegtemp.unit_nr = i;
+        for(int k=0;k<utemp->GetSegmentsNum();k++)
+        {
+            utemp->GetSegment(oldsgms, utemp->GetStartPos() + k, oldsmg);
+            oldsmg->restrictToInterval(
+                utemp->timeInterval,
+                temp_intervals[i].str_inst,
+                newsmg
+            );
+            if(0)
+            {
+                cout << endl << "Old Segments: Unit "
+                    << temp_intervals[i].unit_nr
+                    << ", Segmentnr. " << k << ": ["
+                    << oldsmg->GetInitialStartX() << " , "
+                    << oldsmg->GetInitialStartY() << " ; "
+                    << oldsmg->GetInitialEndX() << " , "
+                    << oldsmg->GetInitialEndY() << " ; "
+                    << oldsmg->GetFinalStartX() << " , "
+                    << oldsmg->GetFinalStartY() << " ; "
+                    << oldsmg->GetFinalEndX() << " , "
+                    << oldsmg->GetFinalEndY()
+                    << "]" << endl;
+            }
+            (usegtemp.unit_interval).start =
+                (temp_intervals[i].str_inst).start;
+            (usegtemp.unit_interval).end = (temp_intervals[i].str_inst).end;
+            (usegtemp.unit_interval).lc = (temp_intervals[i].str_inst).lc;
+            (usegtemp.unit_interval).rc = (temp_intervals[i].str_inst).rc;
+            (usegtemp.sgms).push_back(newsmg);
+        }
+        tempsgms.push_back(usegtemp);
+        usegtemp.unit_nr = 0;
+        (usegtemp.sgms).clear();
+    }
+
+    if(0)
+    {
+        starting_segments_pos = 0;
+        for(unsigned int i=0;i<tempsgms.size();i++)
+        {
+            cout << endl << "Unit Nr.: " << tempsgms[i].unit_nr << endl;
+            cout << endl << "starting_segments_pos: ";
+            cout << starting_segments_pos << endl;
+            cout << "interval start: ";
+            cout << ((tempsgms[i].unit_interval).start).ToString() << endl;
+            cout << "interval end: ";
+            cout << ((tempsgms[i].unit_interval).end).ToString() << endl;
+            for(unsigned int j=0;j<(tempsgms[i].sgms).size();j++)
+            {
+                cout << endl << j << ": ["
+                    << (tempsgms[i].sgms)[j].GetInitialStartX() << " , "
+                    << (tempsgms[i].sgms)[j].GetInitialStartY() << " ; "
+                    << (tempsgms[i].sgms)[j].GetInitialEndX() << " , "
+                    << (tempsgms[i].sgms)[j].GetInitialEndY() << " ; "
+                    << (tempsgms[i].sgms)[j].GetFinalStartX() << " , "
+                    << (tempsgms[i].sgms)[j].GetFinalStartY() << " ; "
+                    << (tempsgms[i].sgms)[j].GetFinalEndX() << " , "
+                    << (tempsgms[i].sgms)[j].GetFinalEndY()
+                    << "]" << endl;
+                cout << "GetFaceNo: "
+                    << (tempsgms[i].sgms)[j].GetFaceNo()
+                    << endl;
+                cout << "GetCycleNo: "
+                    << (tempsgms[i].sgms)[j].GetCycleNo()
+                    << endl;
+                cout << "GetSegmentNo: "
+                    << (tempsgms[i].sgms)[j].GetSegmentNo()
+                    << endl;
+                starting_segments_pos++;
+            }
+        }
+    }
+
+    starting_segments_pos = 0;
+    Clear();
+    StartBulkLoad();
+    for(unsigned int i=0;i<tempsgms.size();i++)
+    {
+        out_ureg = new URegionEmb(
+            tempsgms[i].unit_interval,
+            starting_segments_pos
+        );
+        for(unsigned int j=0;j<(tempsgms[i].sgms).size();j++)
+        {
+            MSegmentData dms = (tempsgms[i].sgms)[j];
+            Rectangle<3> bbox = (Rectangle<3>)out_ureg->BoundingBox();
+            if (bbox.IsDefined())
+            {
+                double min[3] = { bbox.MinD(0), bbox.MinD(1), bbox.MinD(2) };
+                double max[3] = { bbox.MaxD(0), bbox.MaxD(1), bbox.MaxD(2) };
+                if (dms.GetInitialStartX() < min[0])
+                    min[0] = dms.GetInitialStartX();
+                if (dms.GetFinalStartX() < min[0])
+                    min[0] = dms.GetFinalStartX();
+                if (dms.GetInitialStartY() < min[1])
+                    min[1] = dms.GetInitialStartY();
+                if (dms.GetFinalStartY() < min[1])
+                    min[1] = dms.GetFinalStartY();
+                if (dms.GetInitialStartX() > max[0])
+                    max[0] = dms.GetInitialStartX();
+                if (dms.GetFinalStartX() > max[0])
+                    max[0] = dms.GetFinalStartX();
+                if (dms.GetInitialStartY() > max[1])
+                    max[1] = dms.GetInitialStartY();
+                if (dms.GetFinalStartY() > max[1])
+                    max[1] = dms.GetFinalStartY();
+                bbox.Set(true, min, max);
+                if(0)
+                {
+                    cout << "bbox was defined, just update it!!" << endl;
+                    cout << "bbox.MinD0 : " << min[0] << endl;
+                    cout << "bbox.MinD1 : " << min[1] << endl;
+                    cout << "bbox.MinD2 : " << min[2] << endl;
+                    cout << "bbox.MaxD0 : " << max[0] << endl;
+                    cout << "bbox.MaxD1 : " << max[1] << endl;
+                    cout << "bbox.MaxD2 : " << max[2] << endl;
+                }
+            }
+            else
+            {
+                double min[3] = { dms.GetInitialStartX() < dms.GetFinalStartX()
+                    ? dms.GetInitialStartX() : dms.GetFinalStartX(),
+                    dms.GetInitialStartY() < dms.GetFinalStartY()
+                    ? dms.GetInitialStartY() : dms.GetFinalStartY(),
+                    out_ureg->timeInterval.start.ToDouble() };
+                double max[3] = { dms.GetInitialStartX() > dms.GetFinalStartX()
+                    ? dms.GetInitialStartX() : dms.GetFinalStartX(),
+                    dms.GetInitialStartY() > dms.GetFinalStartY()
+                    ? dms.GetInitialStartY() : dms.GetFinalStartY(),
+                    out_ureg->timeInterval.end.ToDouble() };
+                bbox.Set(true, min, max);
+                if(0)
+                {
+                    cout << "bbox was not defined!!" << endl;
+                    cout << "bbox.MinD0 : " << min[0] << endl;
+                    cout << "bbox.MinD1 : " << min[1] << endl;
+                    cout << "bbox.MinD2 : " << min[2] << endl;
+                    cout << "bbox.MaxD0 : " << max[0] << endl;
+                    cout << "bbox.MaxD1 : " << max[1] << endl;
+                    cout << "bbox.MaxD2 : " << max[2] << endl;
+                }
+            }
+            out_ureg->PutSegment(
+                &msegmentdata,
+                j,
+                dms,
+                true
+            );
+            out_ureg->SetBBox(bbox);
+            starting_segments_pos++;
+        }
+        if(0)
+        {
+            cout << endl << "GetSegmentsNum(): "
+                << out_ureg->GetSegmentsNum()
+                << endl;
+            cout << "GetStartPos(): "
+                << out_ureg->GetStartPos()
+                << endl << endl;
+        }
+
+        Add(*out_ureg);
+    }
+    EndBulkLoad( false );
+
+    const MSegmentData* tmp_dms;
+    if(0)
+    {
+        cout << "Size of DBArray: " << msegmentdata.Size() << endl;
+        for(int i=0;i<msegmentdata.Size();i++)
+        {
+            msegmentdata.Get(i, tmp_dms);
+            cout << endl << i << ": ["
+                << tmp_dms->GetInitialStartX() << " , "
+                << tmp_dms->GetInitialStartY() << " ; "
+                << tmp_dms->GetInitialEndX() << " , "
+                << tmp_dms->GetInitialEndY() << " ; "
+                << tmp_dms->GetFinalStartX() << " , "
+                << tmp_dms->GetFinalStartY() << " ; "
+                << tmp_dms->GetFinalEndX() << " , "
+                << tmp_dms->GetFinalEndY()
+                << "]" << endl;
+            cout << "GetFaceNo: " << tmp_dms->GetFaceNo() << endl;
+            cout << "GetCycleNo: " << tmp_dms->GetCycleNo() << endl;
+            cout << "GetSegmentNo: " << tmp_dms->GetSegmentNo() << endl;
+        }
+    }
+}
+
+
 /*
-2.1 Auxiliary Funcions
+2.1 Auxiliary Functions
 
 2.1.1 Aux. Function ~CheckURealDerivable~
 
@@ -960,13 +1418,13 @@ MovingBaseExtTypeMapMoving( ListExpr args )
         arg1 = nl->First( args );
         arg2 = nl->Second( args );
 
-        if( nl->IsEqual( arg1, "mbool" ) && nl->IsEqual( arg2, "bool" ) )
+/*        if( nl->IsEqual( arg1, "mbool" ) && nl->IsEqual( arg2, "bool" ) )
             return nl->SymbolAtom( "mbool" );
 
         if( nl->IsEqual( arg1, "mint" ) &&
             ( nl->IsEqual( arg2, "int" ) ||
             nl->IsEqual( arg2, "rint" ) ) )
-            return nl->SymbolAtom( "mint" );
+        return nl->SymbolAtom( "mint" );*/
 
 // VTA - This operator is not yet implemented for the type of ~mreal~
         if( nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" ) )
@@ -995,13 +1453,23 @@ MovingBaseExtTypeMapBool( ListExpr args )
         arg1 = nl->First( args );
         arg2 = nl->Second( args );
 
-        if( (nl->IsEqual( arg1, "mbool" ) && nl->IsEqual( arg2, "bool" )) ||
-            (nl->IsEqual( arg1, "mint" ) && nl->IsEqual( arg2, "int" )) ||
+        if( (nl->IsEqual( arg1, "mbool" )
+                && nl->IsEqual( arg2, "bool" ))
+             ||
+            (nl->IsEqual( arg1, "mint" )
+                && nl->IsEqual( arg2, "int" ))
+             ||
 // VTA - This operator is not yet implemented for the type of ~mreal~
-            (nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" )) ||
-            (nl->IsEqual( arg1, "mstring" ) && nl->IsEqual( arg2, "string" )) ||
-            (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "region" )))
-          return nl->SymbolAtom( "bool" );
+            (nl->IsEqual( arg1, "mreal" )
+                && nl->IsEqual( arg2, "real" ))
+             ||
+            (nl->IsEqual( arg1, "mstring" )
+                && nl->IsEqual( arg2, "string" ))
+             ||
+            (nl->IsEqual( arg1, "mpoint" )
+                && nl->IsEqual( arg2, "region" ))
+          )
+            return nl->SymbolAtom( "bool" );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -1322,25 +1790,25 @@ MovingExtBaseRangeSelect( ListExpr args )
     ListExpr arg1 = nl->First( args ),
     arg2 = nl->Second( args );
 
-    if( nl->SymbolValue( arg1 ) == "mbool" &&
+/*    if( nl->SymbolValue( arg1 ) == "mbool" &&
         nl->SymbolValue( arg2 ) == "bool" )
         return 0;
 
     if( nl->SymbolValue( arg1 ) == "mint" &&
         nl->SymbolValue( arg2 ) == "int" )
-        return 1;
+    return 1;*/
 
     if( nl->SymbolValue( arg1 ) == "mreal" &&
         nl->SymbolValue( arg2 ) == "real" )
-        return 2;
+        return 0;
 
     if( nl->SymbolValue( arg1 ) == "mstring" &&
         nl->SymbolValue( arg2 ) == "string" )
-        return 3;
+        return 1;
 
-    if( nl->SymbolValue( arg1 ) == "mint" &&
+/*    if( nl->SymbolValue( arg1 ) == "mint" &&
         nl->SymbolValue( arg2 ) == "rint" )
-        return 4;
+    return 4;*/
 
   /*if( nl->SymbolValue( arg1 ) == "mreal" &&
     nl->SymbolValue( arg2 ) == "rreal"
@@ -1522,77 +1990,20 @@ int MappingAtPeriodsExt( Word* args,
     return 0;
 }
 
-int MappingAtPeriodsExtMRegion( Word* args,
-                         Word& result,
-                         int message,
-                         Word& local,
-                         Supplier s )
+int MappingAtPeriodsExtMRegion(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
 {
     result = qp->ResultStorage( s );
     MRegion* mr = (MRegion*)args[0].addr;
     Periods* per = (Periods*)args[1].addr;
     MRegion* pResult = (MRegion*)result.addr;
 
-    /*const URegionEmb* utemp;
-    const Interval<Instant>* temp2;
-    Interval<Instant> temp3;
-    const MSegmentData* oldsmg;
-    const MSegmentData* temp_smg;
-    MSegmentData newsmg;
-    vector<GroupOfIntervals> temp_intervals;
-    GroupOfIntervals inter_temp;
-    DBArray<MSegmentData>* tempsgms;
-    URegion* out_ureg;
-
-    for(int i=0;i<mr->GetNoComponents();i++)
-    {
-        mr->Get(i, utemp);
-        for(int j=0;j<per->GetNoComponents();j++)
-        {
-            per->Get(j, temp2);
-            if((utemp->timeInterval).Intersects(*temp2))
-            {
-                (utemp->timeInterval).Intersection(*temp2, temp3);
-                inter_temp.unit_nr = i;
-                (inter_temp.str_inst).CopyFrom(temp3);
-                temp_intervals.push_back(inter_temp);
-            }
-        }
-    }
-    pResult->Clear();
-    pResult->StartBulkLoad();
-    for(int i=0;i<mr->GetNoComponents();i++)
-    {
-        mr->Get(i, utemp);
-        tempsgms = new DBArray<MSegmentData>( utemp->GetSegmentsNum() );
-        for(int k=0;k<utemp->GetSegmentsNum();k++)
-        {
-            utemp->GetSegment(k, oldsmg);
-            oldsmg->restrictToInterval(utemp->timeInterval,
-            temp3,
-            newsmg);
-            tempsgms->Append(newsmg);
-        }
-        out_ureg = new URegion(temp_intervals[i].str_inst);
-        out_ureg->SetMSegmentData(tempsgms);
-        for(int t=0;t<tempsgms->Size();t++)
-        {
-            tempsgms->Get(t, temp_smg);
-            cout << endl << i << ": [";
-            cout << temp_smg->GetInitialStartX() << " , ";
-            cout << temp_smg->GetInitialStartY() << endl;
-            cout << temp_smg->GetInitialEndX() << " , ";
-            cout << temp_smg->GetInitialEndY() << endl;
-            cout << temp_smg->GetFinalStartX() << " , ";
-            cout << temp_smg->GetFinalStartY() << endl;
-            cout << temp_smg->GetFinalEndX() << " , ";
-            cout << temp_smg->GetFinalEndY() << endl;
-            cout << "]" << endl;
-        }
-        pResult->Add(*out_ureg);
-    }
-    pResult->EndBulkLoad( false );*/
-
+    //mr->AtPeriods(per, *pResult);
+    pResult->AtPeriods(per, mr);
 
     return 0;
 }
@@ -1681,22 +2092,39 @@ int MappingPresentExt_p( Word* args,
 4.3.6 Value mapping functions of operator ~at~
 
 */
-template <class Mapping, class Unit, class Alpha>
-int MappingAtExt( Word* args,
-                  Word& result,
-                  int message,
-                  Word& local,
-                  Supplier s )
+
+int MappingStringAtExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
 {
   result = qp->ResultStorage( s );
-
-  Mapping *m = ((Mapping*)args[0].addr);
-  Alpha* val = ((Alpha*)args[1].addr);
-  Mapping* pResult = ((Mapping*)result.addr);
+  MString *m = ((MString*)args[0].addr);
+  CcString* val = ((CcString*)args[1].addr);
+  MString* pResult = ((MString*)result.addr);
   pResult->Clear();
   m->At( *val, *pResult );
 
   return 0;
+}
+
+int MappingRealAtExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+    MRealExt *m = ((MRealExt*)args[0].addr);
+    CcReal* val = ((CcReal*)args[1].addr);
+    MReal* pResult = ((MReal*)result.addr);
+    pResult->Clear();
+    m->At( *val, *pResult );
+
+    return 0;
 }
 
 /*
@@ -2184,10 +2612,10 @@ int RangeRangevaluesRealExt(
     float time1, time2;
 
     const UReal* utemp;
-    double min=0.,max=0.;
+    float min=0.,max=0.;
     CcReal mincc, maxcc;
     Interval<CcReal> inter;
-    multimap< double,const Interval<CcReal> > intermap;
+    multimap< float,const Interval<CcReal> > intermap;
 
     clock1 = clock();
     for(int i=0;i<m->GetNoComponents();i++)
@@ -2200,37 +2628,57 @@ int RangeRangevaluesRealExt(
         inter.end = maxcc;
         inter.lc = true;
         inter.rc = true;
-        intermap.insert(pair< double,const Interval<CcReal> >(max, inter));
+        intermap.insert(pair< float,const Interval<CcReal> >(max, inter));
     }
     clock2 = clock();
     time1 = ((clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
     cout << endl << "Time to insert values: "
           << time1 << " milliseconds" << endl;
 
-    multimap< double,const Interval<CcReal> >::iterator iter = intermap.end();
+    multimap< float,const Interval<CcReal> >::iterator iter = intermap.end();
     pResult->Clear();
     pResult->StartBulkLoad();
     --iter;
     bool start=true;
     clock3 = clock();
-    while(iter != intermap.begin())
+    inter = (*iter).second;
+    while(iter != intermap.end())
     {
-        //cout << "[" << (((*iter).second).start).GetValue();
-        //cout << "," << (((*iter).second).end).GetValue() << "]" << endl;
         if(start)
         {
-            inter = (*iter).second;
             start = false;
-        }
-        if(inter.Intersects((*iter).second))
-        {
-            if(inter.start.GetValue() > ((*iter).second).start.GetValue())
-                inter.start = ((*iter).second).start;
         }
         else
         {
-            pResult->Add(inter);
-            inter = (*iter).second;
+            if(1)
+            {
+                cout << "[" << (((*iter).second).start).GetValue();
+                cout << "," << (((*iter).second).end).GetValue() << "]";
+                cout << " intersects ";
+                cout << "[" << (inter.start).GetValue();
+                cout << "," << (inter.end).GetValue() << "]?" << endl;
+            }
+            if(inter.Intersects((*iter).second))
+            {
+                cout << "Yes" << endl;
+                if(inter.start.GetValue() > ((*iter).second).start.GetValue())
+                {
+                    inter.start = ((*iter).second).start;
+                    if(1)
+                    {
+                        cout << endl << "... expanding interval" << endl;
+                    }
+                }
+            }
+            else
+            {
+                pResult->Add(inter);
+                inter = (*iter).second;
+                if(1)
+                {
+                    cout << endl << "... creating new interval" << endl;
+                }
+            }
         }
         --iter;
     }
@@ -2595,11 +3043,8 @@ ValueMapping temporalpresentextmap[] = {
     MappingPresentExt_p<MString>, };
 
 ValueMapping temporalatextmap[] = {
-    MappingAtExt<MBool, UBool, CcBool>,
-    MappingAtExt<MInt, UInt, CcInt>,
-    MappingAtExt<MReal, UReal, CcReal>,
-    MappingAtExt<MString, UString, CcString>
-    /*,MappingAt_r<MInt, UInt, RInt>*/ };
+    MappingRealAtExt,
+    MappingStringAtExt};
 
 ValueMapping temporalpassesextmap[] = {
     MappingPassesExt<MBool, CcBool>,
@@ -2675,20 +3120,22 @@ ValueMapping temporalatmaxextmap[] = {
 
 */
 const string TemporalSpecAtInstantExt  =
-    "( ( \"Signature\" \" \" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>T in {int, bool, real, string, point, region},</text--->"
-    "<text>mT x instant  -> intime(T)</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>T in {int, bool, real, string, point, region},</text--->"
+    "<text>moving(T) x instant  -> intime(T)</text--->"
     "<text>_ atinstant _ </text--->"
     "<text>get the Intime value corresponding to the instant.</text--->"
     "<text>mpoint1 atinstant instant1</text--->"
     ") )";
 
 const string TemporalSpecAtPeriodsExt  =
-    "( ( \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>T in {int, bool, real, string, point, region*},</text--->"
-    "<text>mT x periods -> moving(T)</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>T in {int, bool, real, string, point, region*},</text--->"
+    "<text>moving(T) x periods -> moving(T)</text--->"
     "<text>(*) Not yet implemented for this type constructor.</text--->"
     "<text>_ atperiods _ </text--->"
     "<text>restrict the movement to the given periods.</text--->"
@@ -2696,20 +3143,22 @@ const string TemporalSpecAtPeriodsExt  =
     ") )";
 
 const string TemporalSpecInitialExt  =
-    "( ( \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>T in {int, bool, real, string, point, region*},</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>T in {int, bool, real, string, point, region*},</text--->"
     "<text>(*) Not yet implemented for this type constructor.</text--->"
     "<text>moving(T) -> intime(T)</text--->"
     "<text> initial( _ )</text--->"
-    "<text>get the intime value corresponding to the initial instant.</text--->"
+    "<text>Get intime value corresponding to the initial instant.</text--->"
     "<text>initial( mpoint1 )</text--->"
     ") )";
 
 const string TemporalSpecFinalExt  =
-    "( ( \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>T in {int, bool, real, string, point, region*},</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>T in {int, bool, real, string, point, region*},</text--->"
     "<text>(*) Not yet implemented for this type constructor.</text--->"
     "<text>moving(T) -> intime(T)</text--->"
     "<text> final( _ )</text--->"
@@ -2718,22 +3167,23 @@ const string TemporalSpecFinalExt  =
     ") )";
 
 const string TemporalSpecPresentExt  =
-    "( ( \"Signature\" \" \" \" \" \" \" \"Syntax\" \"Meaning\" \" \""
+    "( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" \" \""
     "\"Example\" ) "
-    "( <text>T in {int, bool, real, string, point, region*},</text--->"
-    "<text>moving(T) x instant -> bool,</text--->"
-    "<text>moving(T) x periods -> bool</text--->"
-    "<text>(*) Not yet implemented for this type constructor.</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>moving(string) x instant -> bool,</text--->"
+    "<text>moving(string) x periods -> bool</text--->"
     "<text>_ present _ </text--->"
     "<text>whether the object is present at the given instant</text--->"
     "<text>or period.</text--->"
-    "<text>mpoint1 present instant1</text--->"
+    "<text>ms1 present instant1</text--->"
     ") )";
 
 const string TemporalSpecAtExt =
-    "( ( \"Signature\" \" \" \" \" \" \" \" \" \" \" \" \" \"Syntax\" "
+    "( ( \"Algebra\" \"Signature\" \" \" \" \" \" \" \" \""
+    "\" \" \" \" \"Syntax\" "
     "\"Meaning\" \" \" \"Example\" ) "
-    "( <text>T in {int, bool, real, string},</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>T in {real, string},</text--->"
     "<text>moving(T) x T -> moving(T);</text--->"
     "<text>T in {point, points*, line*, region*},</text--->"
     "<text>moving(T) x range(T) -> moving(T);</text--->"
@@ -2747,9 +3197,11 @@ const string TemporalSpecAtExt =
     ") )";
 
 const string TemporalSpecPassesExt =
-    "( ( \"Signature\" \" \" \" \" \" \" \" \" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \" \" \" \" \" \""
+    "\" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>T in {int, bool, real, string},</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>T in {int, bool, real, string},</text--->"
     "<text>moving(T) x T -> bool;</text--->"
     "<text>T in {point, points*, line*, region*},</text--->"
     "<text>moving(point) x T -> bool</text--->"
@@ -2760,9 +3212,10 @@ const string TemporalSpecPassesExt =
     ") )";
 
 const string TemporalSpecDefTimeExt  =
-    "( ( \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>T in {int, bool, real, string, point, region*},</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>T in {int, bool, real, string, point, region*},</text--->"
     "<text>moving(T) -> periods</text--->"
     "<text>(*) Not yet implemented for this type constructor.</text--->"
     "<text> deftime( _ )</text--->"
@@ -2772,9 +3225,10 @@ const string TemporalSpecDefTimeExt  =
     ") )";
 
 const string TemporalSpecInstExt  =
-    "( ( \"Signature\" \" \" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>T in {int, bool, real, string, point, region},</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>T in {int, bool, real, string, point, region},</text--->"
     "<text>intime(T) -> instant</text--->"
     "<text>inst ( _ )</text--->"
     "<text>Intime time instant.</text--->"
@@ -2782,9 +3236,10 @@ const string TemporalSpecInstExt  =
     ") )";
 
 const string TemporalSpecValExt  =
-    "( ( \"Signature\" \" \" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>T in {int, bool, real, string, point, region},</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>T in {int, bool, real, string, point, region},</text--->"
     "<text>intime(T) -> T</text--->"
     "<text>val ( _ )</text--->"
     "<text>Intime value.</text--->"
@@ -2792,36 +3247,40 @@ const string TemporalSpecValExt  =
     ") )";
 
 const string TemporalSpecDerivativeExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>moving(real) -> moving(real)</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>moving(real) -> moving(real)</text--->"
     "<text>derivative_new ( _ )</text--->"
     "<text>Derivative of a mreal.</text--->"
     "<text>derivative_new ( mr1 )</text--->"
     ") )";
 
 const string TemporalSpecDerivableExt =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>moving(mreal) -> moving(bool)</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>moving(mreal) -> moving(bool)</text--->"
     "<text>derivable_new ( _ )</text--->"
     "<text>Checking if mreal is derivable.</text--->"
     "<text>derivable_new ( mr1 )</text--->"
     ") )";
 
 const string TemporalSpecSpeedExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>moving(point) -> moving(real)</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>moving(point) -> moving(real)</text--->"
     "<text>speed_new ( _ )</text--->"
     "<text>Velocity of a mpoint given as mreal.</text--->"
     "<text>speed_new ( mp1 )</text--->"
     ") )";
 
 const string RangeSpecRangevaluesExt  =
-    "( ( \"Signature\" \" \" \"Syntax\" \"Meaning\" \" \" "
+    "( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" \" \" "
     "\"Example\" ) "
-    "( <text>T in {int, bool, real, string},</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>T in {int, bool, real, string},</text--->"
     "<text>moving(T) -> range(T)</text--->"
     "<text>rangevalues ( _ )</text--->"
     "<text>Returns all the values assumed by the argument over time,</text--->"
@@ -2830,81 +3289,90 @@ const string RangeSpecRangevaluesExt  =
     ") )";
 
 const string BoolSpecSometimesExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "(<text>moving(bool) -> bool</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>moving(bool) -> bool</text--->"
     "<text>sometimes ( _ )</text--->"
     "<text>Returns true if a unit at least is TRUE.</text--->"
     "<text>sometimes ( mb1 )</text--->"
     ") )";
 
 const string BoolSpecAlwaysExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "(<text>moving(bool) -> bool</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>moving(bool) -> bool</text--->"
     "<text>always ( _ )</text--->"
     "<text>Returns true if all units are TRUE.</text--->"
     "<text>always ( mb1 )</text--->"
     ") )";
 
 const string BoolSpecNeverExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "(<text>moving(bool) -> bool</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>moving(bool) -> bool</text--->"
     "<text>never ( _ )</text--->"
     "<text>Returns true if all units are FALSE.</text--->"
     "<text>never ( mb1 )</text--->"
     ") )";
 
 const string TemporalSpecVelocityExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>moving(point) -> moving(point)</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>moving(point) -> moving(point)</text--->"
     "<text>velocity_new ( _ )</text--->"
     "<text>Velocity of a mpoint given as mpoint(a vector function).</text--->"
     "<text>velocity_new ( mp1 )</text--->"
     ") )";
 
 const string GlobalSpecUnitOfTimeExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>real -> real</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>real -> real</text--->"
     "<text>setunitoftime ( _ )</text--->"
     "<text>Set factor for unit of time: ms * real.</text--->"
-    "<text>velocsetunitoftime ( 0.001 )</text--->"
+    "<text>setunitoftime ( 0.001 )</text--->"
     ") )";
 
 const string GlobalSpecUnitOfDistanceExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>real -> real</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>real -> real</text--->"
     "<text>setunitofdistance ( _ )</text--->"
     "<text>Set factor for unit of distance: m * real.</text--->"
     "<text>setunitofdistance ( 1000. )</text--->"
     ") )";
 
 const string TemporalSpecMDirectionExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>mpoint -> mreal</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>mpoint -> mreal</text--->"
     "<text>mdirection ( _ )</text--->"
     "<text>Compute the angle between X-axis and the mpoints tangent.</text--->"
     "<text>mdirection ( mp1 )</text--->"
     ") )";
 
 const string TemporalSpecLocationsExt  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>mpoint -> points</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>mpoint -> points</text--->"
     "<text>locations ( _ )</text--->"
-    "<text>Get projection of mpoints which are immobile and isolated.</text--->"
+    "<text>Get projection of immobile and isolated mpoints.</text--->"
     "<text>locations ( mp1 )</text--->"
     ") )";
 
 const string TemporalSpecAtminExt  =
-    "( ( \"Signature\" \"\" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \"\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>T in {int, bool, real, string},</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>T in {int, bool, real, string},</text--->"
     "<text>moving(T) -> moving(T)</text--->"
     "<text>atmin ( _ )</text--->"
     "<text>Get moving(T) restricted to the least value.</text--->"
@@ -2912,9 +3380,10 @@ const string TemporalSpecAtminExt  =
     ") )";
 
 const string TemporalSpecAtmaxExt  =
-    "( ( \"Signature\" \"\" \"Syntax\" \"Meaning\" "
+    "( ( \"Algebra\" \"Signature\" \"\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>T in {int, bool, real, string},</text--->"
+    "( <text>TemporalExtAlgebra</text--->"
+    "<text>T in {int, bool, real, string},</text--->"
     "<text>moving(T) -> moving(T)</text--->"
     "<text>atmax ( _ )</text--->"
     "<text>Get moving(T) restricted to the largest value.</text--->"
@@ -2943,7 +3412,6 @@ Operator temporalatperiodsext(
 
 Operator temporalinitialext(
     "initial",
-
     TemporalSpecInitialExt,
     5,
     temporalinitialextmap,
@@ -2969,7 +3437,7 @@ Operator temporalpresentext(
 Operator temporalatext(
     "at",
     TemporalSpecAtExt,
-    5,
+    2,
     temporalatextmap,
     MovingExtBaseRangeSelect,
     MovingBaseExtTypeMapMoving );
@@ -3194,8 +3662,3 @@ InitializeTemporalExtAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
   qp = qpRef;
   return (&tempExtAlgebra);
 }
-
-
-
-
-

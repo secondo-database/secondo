@@ -82,6 +82,8 @@ public:
     void AtMin( Mapping<Unit, Alpha> &result ) const;
 
     void AtMax( Mapping<Unit, Alpha> &result ) const;
+
+    void At( Range<Alpha>* inv, Mapping<Unit, Alpha> &result ) const;
 };
 
 class URealExt : public UReal
@@ -89,16 +91,16 @@ class URealExt : public UReal
 public:
     URealExt() : UReal() {}
 
-    double GetUnitMin() const { return unit_min; }
+    float GetUnitMin() const { return unit_min; }
 
-    double GetUnitMax() const { return unit_max; }
+    float GetUnitMax() const { return unit_max; }
 
-    void SetUnitMin( double min ) { unit_min = min; }
+    void SetUnitMin( float min ) { unit_min = min; }
 
-    void SetUnitMax( double max) { unit_max = max; }
+    void SetUnitMax( float max) { unit_max = max; }
 
 private:
-    double unit_min, unit_max;
+    float unit_min, unit_max;
 };
 
 class MRealExt : public MReal
@@ -106,12 +108,11 @@ class MRealExt : public MReal
 public:
     MRealExt() : MReal() {}
 
+    void At( CcReal val, MReal &result ) const;
+
     void AtMin( MReal &result ) const;
 
     void AtMax( MReal &result ) const;
 };
 
 #endif // _TEMPORALEXT_ALGEBRA_H_
-
-
-
