@@ -90,7 +90,17 @@ mstring x rstring -> mstring
 mreal x rreal -> mreal
 
 mpoint x points -> mpoint
+-------------------------
+query train5 at UBahnhoefe
+query Trains feed filter[ .Id <= 10 ] extend[Halt: .Trip at UBahnhoefe ] remove[Trip] consume
+
 mpoint x line -> mpoint
+-----------------------
+query U6Hin feed extract[zug] at T7
+query U6Hin feed extract[zug] at UBahn feed extract[geoData]
+query U6Rueck feed extract[zug] at WStrassen feed filter[.Name = "Spree"]
+ extract[geoData]
+query WStrassen feed extend[InterU6: (U6Rueck feed extract[zug]) at .geoData] consume
 
 mregion x point -> mpoint
 
@@ -98,6 +108,9 @@ mregion x point -> mpoint
 Operators: atmin, atmax
 ***********************
 mint -> mint
+------------
+query atmin(Trains feed filter[.Line = 7] extend[Time: periods2mint(deftime(.Trip))] remove[Trip] aggregateB[Time; fun(m1: mint, m2: mint) m1 + m2; zero()])
+
 mbool -> mbool
 mstring -> mstring
 mreal -> mreal
@@ -110,7 +123,14 @@ mstring x string -> bool
 mreal x real -> bool
 
 mpoint x points -> bool
+-----------------------
+query Trains feed filter[ (.Trip passes UBahnhoefe) and (.Id <= 10) ] consume
+(Welche Zuege halten wirklich an?)
+
 mpoint x line -> bool
+---------------------
+query WStrassen feed filter[ (U6Rueck feed extract[zug]) passes .geoData ] count
+(Wieviele Fluesse werden von der U6 ueberquert?)
 
 mregion x point -> bool
 mregion x points -> bool
@@ -142,6 +162,7 @@ Operation: mdirection
 *********************
 mpoint -> mreal
 query mdirection(train5)
-Hier werden die Winkel in Radian ausgegeben.
+query Trains feed filter[.Id = 1] extend[Dir: mdirection(.Trip)] consume
+Hier werden die Winkel in Grad ausgegeben.
 
 
