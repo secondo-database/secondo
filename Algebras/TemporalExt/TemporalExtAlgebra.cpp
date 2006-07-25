@@ -51,15 +51,15 @@ extern QueryProcessor *qp;
 
 2 Type definitions, Auxiliary Functions, Implementations
 
-Global variable for unit of time: milliseconds * FactorForUnitOfTime
-    FactorForUnitOfTime = 1. (default)
+Global variable for unit of time: milliseconds [*] FactorForUnitOfTime
+  FactorForUnitOfTime = 1. (default)
 
 */
 float FactorForUnitOfTime = 1.;
 
 /*
-Global variable for unit of distance: meter * FactorForUnitOfDistance
-    FactorForUnitOfDistance = 1. (default)
+Global variable for unit of distance: meter [*] FactorForUnitOfDistance
+  FactorForUnitOfDistance = 1. (default)
 
 */
 float FactorForUnitOfDistance = 1.;
@@ -81,12 +81,12 @@ struct GroupOfIntervals
 Function: MinMaxValueFunction
 
 Parameters:
-    utemp:
-    minimum:
-    maximum:
+  utemp:
+  minimum:
+  maximum:
 
 Result:
-    return 0
+  return 0
 
 */
 void MinMaxValueFunction(const UReal* utemp, float& minimum, float& maximum)
@@ -145,20 +145,20 @@ void MinMaxValueFunction(const UReal* utemp, float& minimum, float& maximum)
         {
             cout << "t_extrem_value = " << t_extrem_value << endl;
         }
-        /*
-        Find maximum
+/*
+Find maximum
 
-        */
+*/
         maximum = ts_value;
         if(t_extrem_value > maximum)
             maximum = t_extrem_value;
         if(te_value > maximum)
             maximum = te_value;
 
-        /*
-        Find minimum
+/*
+Find minimum
 
-        */
+*/
         minimum = ts_value;
         if(t_extrem_value < minimum)
             minimum = t_extrem_value;
@@ -191,6 +191,155 @@ void MinMaxValueFunction(const UReal* utemp, float& minimum, float& maximum)
 }
 
 /*
+Function timeIntervalOfRealInUReal
+
+Parameters:
+
+  value: real value
+  ur: the real unit
+  t\_value: time as double value to return
+
+Result:
+
+  bool: returns true, if val is contained in the ureal,
+  otherwise false.
+
+*/
+
+bool timeIntervalOfRealInUReal(
+    float value,
+    const UReal* ur,
+    float& t_value
+)
+{
+    float unit_min, unit_max, ts, te;
+    bool lh, rh;
+
+    unit_min = ((URealExt*)ur)->GetUnitMin();
+    unit_max = ((URealExt*)ur)->GetUnitMax();
+    lh = ur->timeInterval.lc;
+    rh = ur->timeInterval.rc;
+    ts = (ur->timeInterval.start).ToDouble();
+    te = (ur->timeInterval.end).ToDouble();
+    if(0)
+    {
+        cout << endl << "GetUnitMin(): " << unit_min << endl;
+        cout << "GetUnitMax(): " << unit_max << endl;
+        cout << "Value: " << value << endl;
+        cout << "ts: " << ts << endl;
+        cout << "te: " << te << endl;
+    }
+    if( (!lh && !rh && ( value <= unit_min || value >= unit_max ) ) ||
+         (lh && rh && ( value < unit_min || value > unit_max) ) ||
+         (!lh && rh && ( value <= unit_min || value > unit_max ) ) ||
+         (lh && !rh && ( value < unit_min || value >= unit_max ) )
+      )
+    {
+        if(0)
+        {
+            cout << "Value outside of the unit range!!!!" << endl;
+        }
+        return false;
+    }
+    else
+    {
+        if(ur->a == 0 && ur->b != 0)
+        {
+/*
+Find value in a linear function
+
+*/
+            t_value = ((value - ur->c) / ur->b) + ts;
+            if(0)
+            {
+                cout << "---> value in a linear function" << endl;
+            }
+        }
+        else
+        {
+            if(ur->a == 0 && ur->b == 0)
+            {
+/*
+Find value in a constant function
+
+*/
+                t_value = ur->c;
+                if(0)
+                {
+                    cout << "---> value in a constant function" << endl;
+                }
+            }
+            else
+            {
+/*
+Find value in a quadratic function with Newtons Method
+
+*/
+                if(0)
+                {
+                    cout << "---> value in a quadratic function" << endl;
+                }
+
+                float t_newton = te;
+                float t_newton_old;
+                float t, dt, t_newton_diff, t_var;
+                if(0)
+                {
+                    cout << "t_newton(Start) = " << t_newton << endl;
+                    cout << "a = " << ur->a << endl;
+                    cout << "b = " << ur->b << endl;
+                    cout << "c = " << ur->c << endl;
+                }
+                do
+                {
+                    t_newton_old = t_newton;
+                    t_var = t_newton - ts;
+                    if(ur->r)
+                    {
+                        t = sqrt(pow(t_var, 2)*ur->a + t_var*ur->b
+                            + ur->c - value);
+                        dt = (1/2)*(1/sqrt(t)) + (2*ur->a*t_var + ur->b);
+                        if(0)
+                        {
+                            cout << "t = " << t << endl;
+                            cout << "dt = " << dt << endl;
+                        }
+                    }
+                    else
+                    {
+                        t = pow(t_var, 2)*ur->a + t_var*ur->b + ur->c - value;
+                        dt = 2*ur->a*t_var + ur->b;
+                        if(0)
+                        {
+                            cout << "t = " << t << endl;
+                            cout << "dt = " << dt << endl;
+                        }
+                    }
+                    t_newton = t_newton - (t/dt);
+                    t_newton_diff = abs(t_newton_old) - abs(t_newton);
+                    if(0)
+                    {
+                        cout << "t_newton = "
+                                << t_newton << endl;
+                        cout << "t_newton_old = "
+                                << t_newton_old << endl;
+                        cout << "t_newton_diff = "
+                                << t_newton_diff << endl;
+                    }
+                }while(abs(t_newton_diff) > 0.0000001);
+                t_value = t_newton;
+            }
+        }
+        if(0)
+        {
+            cout << endl << "x-Value = " << t_value << endl;
+        }
+        return true;
+    }
+
+}
+
+/*
 Function AngleToXAxis
 
 Parameters:
@@ -203,14 +352,14 @@ Result:
   Float res: the angle of the line between both points to the X-axis
 
 This function was copied from the SpatialAlgebra, from the
-Value Mapping Function direction_pp
+Value Mapping Function direction\_pp
 
 */
 double AngleToXAxis(const Point* p1, const Point* p2, bool &defined)
 {
     double res;
     double k;
-    double direction; //from p1 to p2
+    double direction;
 
     if (( p1->IsDefined())&&(p2->IsDefined())&&(*p1!=*p2))
     {
@@ -289,6 +438,65 @@ double AngleToXAxis(const Point* p1, const Point* p2, bool &defined)
     return res;
 }
 
+void IntersectionRPExt(
+    MRegion* mreg,
+    MPoint& mp,
+    MPoint& res,
+    RefinementPartitionOrig<
+        MRegion,
+        MPoint,
+        URegionEmb,
+        UPoint>& rp,
+    bool merge)
+{
+
+    res = 0;
+
+    UPoint* pending = 0;
+
+/*
+
+For each interval in the refinement partition, we have to check whether
+it maps to a region and point unit. If not, there is obviously no intersection
+during this interval and we can skip if. Otherwise, we check if the region
+and point unit, both restricted to this interval, intersect.
+
+*/
+    for (unsigned int i = 0; i < rp.Size(); i++)
+    {
+        Interval<Instant>* iv;
+        int urPos;
+        int upPos;
+
+        rp.Get(i, iv, urPos, upPos);
+
+        if (urPos == -1 || upPos == -1) continue;
+
+        const URegionEmb* ur;
+        const UPoint* up;
+
+        mreg->Get(urPos, ur);
+        mp.Get(upPos, up);
+
+        ur->RestrictedIntersection(
+            mreg->GetMSegmentData(), *up, *iv, res, pending, merge);
+    }
+
+    if (pending)
+    {
+        if (!((abs(pending->timeInterval.start.ToDouble()-
+                pending->timeInterval.end.ToDouble()) <= 0.00001)
+                && (!pending->timeInterval.lc
+                || !pending->timeInterval.rc)))
+        {
+            res.Add(*pending);
+        }
+
+        delete pending;
+    }
+}
+
+
 
 void MPointExt::MDirection( MReal* result) const
 {
@@ -301,7 +509,6 @@ void MPointExt::MDirection( MReal* result) const
     for(int i=0;i<GetNoComponents();i++)
     {
         Get(i, unitin);
-        // Initializing uresult
         uresult.a = 0.;
         uresult.b = 0.;
         uresult.c = 0.;
@@ -370,6 +577,431 @@ void MPointExt::Locations( Points* result ) const
 
 }
 
+void MPointExt::At( Points* pts, MPoint &result ) const
+{
+    const UPoint* unitin;
+    clock_t clock1, clock2, clock3, clock4, clock_ges;
+    float time1, time2;
+
+    result.Clear();
+    result.StartBulkLoad();
+    clock1 = clock();
+    clock_ges = 0;
+    for(int i=0;i<GetNoComponents();i++)
+    {
+        clock3 = clock();
+        Get(i, unitin);
+        const Rectangle<3> temp_pbb = (Rectangle<3>)unitin->BoundingBox();
+        Rectangle<2> unit_pbb;
+        const Rectangle<2> obj_pbb = (Rectangle<2>)pts->BoundingBox();
+        if(0)
+        {
+            cout << "Boundingbox of points: "
+                << "MinD(0): " << obj_pbb.MinD(0)
+                << ", MinD(1): " << obj_pbb.MinD(1)
+                << ", MaxD(0): " << obj_pbb.MaxD(0)
+                << ", MaxD(1): " << obj_pbb.MaxD(1) << endl;
+
+        }
+        double min[2] = { temp_pbb.MinD(0), temp_pbb.MinD(1) };
+        double max[2] = { temp_pbb.MaxD(0), temp_pbb.MaxD(1) };
+
+        unit_pbb.Set(true, min, max);
+        if(unit_pbb.Intersects( obj_pbb ))
+        {
+            for(int j=0;j<pts->Size();j++)
+            {
+                const Point* tmp_pt;
+                pts->Get( j, tmp_pt );
+                if( unitin->Passes( *tmp_pt ) )
+                {
+                    if(0)
+                    {
+                        cout << "( " <<  tmp_pt->GetX()
+                            << ", " << tmp_pt->GetY() << " ) ";
+                    }
+                    UPoint uresult;
+                    if(unitin->At( *tmp_pt, uresult ))
+                        result.Add( uresult );
+                }
+            }
+        }
+        clock4 = clock();
+        clock_ges = clock_ges + (clock4 - clock3);
+    }
+    clock2 = clock();
+    time2 = ((float)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
+    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
+    cout << "Total computing time : " << time1 << " ms" << endl;
+    result.EndBulkLoad( false );
+
+}
+
+/*
+Method ~MPointExt::At( CLine ln, MPoint result ) const~
+
+It returns a projection of ln on the moving point. The
+method seeks for intersections between a unit point
+and each CHalfSegment in ln. Actually intersections in a point
+are supported.
+
+*/
+void MPointExt::At( CLine* ln, MPoint &result ) const
+{
+    const UPoint* unitin;
+    clock_t clock1, clock2, clock3, clock4, clock_ges;
+    float time1, time2;
+
+    result.Clear();
+    result.StartBulkLoad();
+    clock1 = clock();
+    clock_ges = 0;
+    for(int i=0;i<GetNoComponents();i++)
+    {
+        clock3 = clock();
+        Get(i, unitin);
+        const Rectangle<3> temp_pbb = (Rectangle<3>)unitin->BoundingBox();
+        Rectangle<2> unit_pbb;
+        const Rectangle<2> obj_pbb = (Rectangle<2>)ln->BoundingBox();
+        if(0)
+        {
+            cout << "Boundingbox of points: "
+                    << "MinD(0): " << obj_pbb.MinD(0)
+                    << ", MinD(1): " << obj_pbb.MinD(1)
+                    << ", MaxD(0): " << obj_pbb.MaxD(0)
+                    << ", MaxD(1): " << obj_pbb.MaxD(1) << endl;
+
+        }
+        double min[2] = { temp_pbb.MinD(0), temp_pbb.MinD(1) };
+        double max[2] = { temp_pbb.MaxD(0), temp_pbb.MaxD(1) };
+
+        unit_pbb.Set(true, min, max);
+/*
+Raw intersection with Bounding Boxes
+
+*/
+        if(unit_pbb.Intersects( obj_pbb ))
+        {
+            CHalfSegment up_chs;
+            up_chs.Set( false, unitin->p0, unitin->p1 );
+            if(0)
+            {
+                cout << "No of HS: " << ln->Size() << endl;
+            }
+            for(int j=0;j<ln->Size();j++)
+            {
+                const CHalfSegment* ln_chs;
+                ln->Get( j, ln_chs );
+/*
+Scanning of one 1 of 2 CHalfSegment
+
+*/
+                if( ln_chs->GetRP() == ln_chs->GetDPoint() )
+                {
+                    if(0)
+                    {
+                        cout << "P0.X = " << ln_chs->GetLP().GetX()
+                            << " P0.Y = " << ln_chs->GetLP().GetY()
+                            << " P1.X = " << ln_chs->GetRP().GetX()
+                            << " P1.Y = " << ln_chs->GetRP().GetY()
+                            << " D0.X = " << ln_chs->GetDPoint().GetX()
+                            << " D0.Y = " << ln_chs->GetDPoint().GetY()
+                            << " S1.X = " << ln_chs->GetSPoint().GetX()
+                            << " S1.Y = " << ln_chs->GetSPoint().GetY() << endl;
+                    }
+/*
+For unit points which do not have any motion
+
+*/
+                    if( unitin->p0 == unitin->p1 )
+                    {
+                        if( ln_chs->Contains( unitin->p0 ) )
+                        {
+                            if(0)
+                            {
+                                cout << "Intersects up " << i
+                                    << " as a point at " << j << "!!" << endl;
+                                cout << "HS: ( " << ln_chs->GetLP().GetX()
+                                    << ", " << ln_chs->GetLP().GetY()
+                                        << " ; " << ln_chs->GetRP().GetX()
+                                        << ", " << ln_chs->GetRP().GetY()
+                                        << " )" << endl;
+                            }
+                            UPoint res;
+                            const UPoint* uttmp;
+                            res.CopyFrom( unitin );
+                            bool unit_present = false;
+                            for(int z=0;z<result.GetNoComponents();z++)
+                            {
+                                result.Get( z, uttmp );
+                                if( res == *uttmp )
+                                    unit_present = true;
+                            }
+                            if( !unit_present )
+                                result.Add( res );
+                        }
+                    }
+                    else
+                    {
+                        if( up_chs.Intersects( *ln_chs ) )
+                        {
+                            if(0)
+                            {
+                                cout << "In unit " << i << " ..." << endl;
+                                cout << "( " << up_chs.GetLP().GetX()
+                                        << ", "
+                                        << up_chs.GetLP().GetY()
+                                        << "; "
+                                        << up_chs.GetRP().GetX()
+                                        << ", "
+                                        << up_chs.GetRP().GetY()
+                                        << " )" << endl;
+                                cout << "intersects ( "
+                                        << ln_chs->GetLP().GetX()
+                                        << ", "
+                                        << ln_chs->GetLP().GetY()
+                                        << "; "
+                                        << ln_chs->GetRP().GetX()
+                                        << ", "
+                                        << ln_chs->GetRP().GetY()
+                                        << " ) at " << j << endl;
+                            }
+                            Point inter_p;
+                            CHalfSegment inter_chs;
+/*
+Looks for intersections in a point
+
+*/
+                            if( up_chs.spintersect( *ln_chs, inter_p ) )
+                            {
+                                if(0)
+                                {
+                                    cout << "Intersects a point!!" << endl;
+                                }
+                                UPoint res;
+                                unitin->At( inter_p, res );
+                                result.Add( res );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        clock4 = clock();
+        clock_ges = clock_ges + (clock4 - clock3);
+    }
+    clock2 = clock();
+    time2 = ((float)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
+    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
+    cout << "Total computing time : " << time1 << " ms" << endl;
+    result.EndBulkLoad( false );
+}
+
+bool MPointExt::Passes( Points* pts ) const
+{
+    const UPoint* unitin;
+    clock_t clock1, clock2, clock3, clock4, clock_ges;
+    float time1, time2;
+    bool result = false;
+
+    clock1 = clock();
+    clock_ges = 0;
+    int i = 0;
+    while( !result && i<GetNoComponents() )
+    {
+        clock3 = clock();
+        Get(i, unitin);
+        const Rectangle<3> temp_pbb = (Rectangle<3>)unitin->BoundingBox();
+        Rectangle<2> unit_pbb;
+        const Rectangle<2> obj_pbb = (Rectangle<2>)pts->BoundingBox();
+        if(0)
+        {
+            cout << "Boundingbox of points: "
+                    << "MinD(0): " << obj_pbb.MinD(0)
+                    << ", MinD(1): " << obj_pbb.MinD(1)
+                    << ", MaxD(0): " << obj_pbb.MaxD(0)
+                    << ", MaxD(1): " << obj_pbb.MaxD(1) << endl;
+
+        }
+        double min[2] = { temp_pbb.MinD(0), temp_pbb.MinD(1) };
+        double max[2] = { temp_pbb.MaxD(0), temp_pbb.MaxD(1) };
+
+        unit_pbb.Set(true, min, max);
+        if(unit_pbb.Intersects( obj_pbb ))
+        {
+            int j = 0;
+            while( !result && j<pts->Size() )
+            {
+                const Point* tmp_pt;
+                pts->Get( j, tmp_pt );
+                if( unitin->Passes( *tmp_pt ) )
+                {
+                    if(0)
+                    {
+                        cout << "( " <<  tmp_pt->GetX()
+                                << ", " << tmp_pt->GetY() << " ) ";
+                    }
+                    result = true;
+                }
+                j++;
+            }
+        }
+
+        clock4 = clock();
+        clock_ges = clock_ges + (clock4 - clock3);
+        i++;
+    }
+    clock2 = clock();
+    time2 = ((float)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
+    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
+    cout << "Total computing time : " << time1 << " ms" << endl;
+
+    return result;
+}
+
+bool MPointExt::Passes( CLine* ln ) const
+{
+    const UPoint* unitin;
+    clock_t clock1, clock2, clock3, clock4, clock_ges;
+    float time1, time2;
+    bool result = false;
+
+    clock1 = clock();
+    clock_ges = 0;
+    int i = 0;
+    while( !result && i<GetNoComponents() )
+    {
+        clock3 = clock();
+        Get(i, unitin);
+        const Rectangle<3> temp_pbb = (Rectangle<3>)unitin->BoundingBox();
+        Rectangle<2> unit_pbb;
+        const Rectangle<2> obj_pbb = (Rectangle<2>)ln->BoundingBox();
+        if(0)
+        {
+            cout << "Boundingbox of points: "
+                    << "MinD(0): " << obj_pbb.MinD(0)
+                    << ", MinD(1): " << obj_pbb.MinD(1)
+                    << ", MaxD(0): " << obj_pbb.MaxD(0)
+                    << ", MaxD(1): " << obj_pbb.MaxD(1) << endl;
+
+        }
+        double min[2] = { temp_pbb.MinD(0), temp_pbb.MinD(1) };
+        double max[2] = { temp_pbb.MaxD(0), temp_pbb.MaxD(1) };
+
+        unit_pbb.Set(true, min, max);
+/*
+Raw intersection with Bounding Boxes ...
+
+*/
+        if(unit_pbb.Intersects( obj_pbb ))
+        {
+            CHalfSegment up_chs;
+            up_chs.Set( false, unitin->p0, unitin->p1 );
+            if(0)
+            {
+                cout << "No of HS: " << ln->Size() << endl;
+            }
+
+            int j = 0;
+            while( !result && j<ln->Size() )
+            {
+                const CHalfSegment* ln_chs;
+                ln->Get( j, ln_chs );
+/*
+Scanning of one 1 of 2 CHalfSegment
+
+*/
+                if( ln_chs->GetRP() == ln_chs->GetDPoint() )
+                {
+                    if(0)
+                    {
+                        cout << "P0.X = " << ln_chs->GetLP().GetX()
+                                << " P0.Y = " << ln_chs->GetLP().GetY()
+                                << " P1.X = " << ln_chs->GetRP().GetX()
+                                << " P1.Y = " << ln_chs->GetRP().GetY()
+                                << " D0.X = " << ln_chs->GetDPoint().GetX()
+                                << " D0.Y = " << ln_chs->GetDPoint().GetY()
+                                << " S1.X = " << ln_chs->GetSPoint().GetX()
+                                << " S1.Y = " << ln_chs->GetSPoint().GetY()
+                                << endl;
+                    }
+/*
+For unit points which do not have any motion
+
+*/
+                    if( unitin->p0 == unitin->p1 )
+                    {
+                        if( ln_chs->Contains( unitin->p0 ) )
+                        {
+                            if(0)
+                            {
+                                cout << "Intersects up " << i
+                                     << " as a point at " << j << "!!" << endl;
+                                cout << "HS: ( " << ln_chs->GetLP().GetX()
+                                        << ", " << ln_chs->GetLP().GetY()
+                                        << " ; " << ln_chs->GetRP().GetX()
+                                        << ", " << ln_chs->GetRP().GetY()
+                                        << " )" << endl;
+                            }
+                            result = true;
+                        }
+                    }
+                    else
+                    {
+                        Point inter_p;
+                        CHalfSegment inter_chs;
+/*
+Looks for intersections in a point inter\_p
+
+*/
+                        if( up_chs.spintersect( *ln_chs, inter_p ) )
+                        {
+                            if(0)
+                            {
+                                cout << "In unit " << i << " ..." << endl;
+                                cout << "( " << up_chs.GetLP().GetX()
+                                        << ", "
+                                        << up_chs.GetLP().GetY()
+                                        << "; "
+                                        << up_chs.GetRP().GetX()
+                                        << ", "
+                                        << up_chs.GetRP().GetY()
+                                        << " )" << endl;
+                                cout << "intersects ( "
+                                        << ln_chs->GetLP().GetX()
+                                        << ", "
+                                        << ln_chs->GetLP().GetY()
+                                        << "; "
+                                        << ln_chs->GetRP().GetX()
+                                        << ", "
+                                        << ln_chs->GetRP().GetY()
+                                        << " ) at " << j << endl;
+                            }
+                            result = true;
+                        }
+                    }
+                }
+                j++;
+            }
+        }
+        clock4 = clock();
+        clock_ges = clock_ges + (clock4 - clock3);
+        i++;
+    }
+    clock2 = clock();
+    time2 = ((float)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
+    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
+    cout << "Total computing time : " << time1 << " ms" << endl;
+
+    return result;
+}
+
+
+
 template <class Unit, class Alpha>
 void MappingExt<Unit, Alpha>::AtMin( Mapping<Unit, Alpha> &result ) const
 {
@@ -418,19 +1050,6 @@ void MappingExt<Unit, Alpha>::AtMax( Mapping<Unit, Alpha> &result ) const
     result.StartBulkLoad();
     result.Add( *umax );
     result.EndBulkLoad( false );
-}
-
-template <class Unit, class Alpha>
-void MappingExt<Unit, Alpha>::At(
-    Range<Alpha>* inv,
-    Mapping<Unit, Alpha> &result ) const
-{
-    const Unit* utemp;
-
-    for(int i=0;i<GetNoComponents();i++)
-    {
-        Get(i, utemp);
-    }
 }
 
 
@@ -524,10 +1143,8 @@ void MRealExt::At( CcReal val, MReal &result ) const
 {
     const UReal* utemp;
     UReal uresult;
-    float unit_min, unit_max, ts, te, t_value, time1, time2;
-    bool lh, rh;
+    float unit_min, unit_max, time1, time2;
     float value = val.GetRealval();
-    Interval<Instant> temp_interval;
     clock_t clock1, clock2, clock3, clock4, clock_ges;
 
     result.Clear();
@@ -541,145 +1158,25 @@ void MRealExt::At( CcReal val, MReal &result ) const
         MinMaxValueFunction(utemp, unit_min, unit_max);
         ((URealExt*)utemp)->SetUnitMin( unit_min );
         ((URealExt*)utemp)->SetUnitMax( unit_max );
-        unit_min = ((URealExt*)utemp)->GetUnitMin();
-        unit_max = ((URealExt*)utemp)->GetUnitMax();
-        lh = utemp->timeInterval.lc;
-        rh = utemp->timeInterval.rc;
-        ts = (utemp->timeInterval.start).ToDouble();
-        te = (utemp->timeInterval.end).ToDouble();
-        temp_interval = utemp->timeInterval;
-        if(0)
+        float t_value;
+        if(timeIntervalOfRealInUReal(value, utemp, t_value))
         {
-            cout << endl << "GetUnitMin(): " << unit_min << endl;
-            cout << "GetUnitMax(): " << unit_max << endl;
-            cout << "Value: " << val.GetRealval() << endl;
-            cout << "ts: " << ts << endl;
-            cout << "te: " << te << endl;
-        }
-        if( (!lh && !rh && ( value <= unit_min || value >= unit_max ) ) ||
-            (lh && rh && ( value < unit_min || value > unit_max) ) ||
-            (!lh && rh && ( value <= unit_min || value > unit_max ) ) ||
-            (lh && !rh && ( value < unit_min || value >= unit_max ) )
-        )
-        {
-            if(0)
-            {
-                cout << "Value outside of the unit range!!!!" << endl;
-            }
-        }
-        else
-        {
-            if(utemp->a == 0 && utemp->b != 0)
-            {
-                /*
-                Find value in a linear function
-
-                */
-                t_value = ((value - utemp->c) / utemp->b) + ts;
-                temp_interval.start.ReadFrom((const double)
-                    (t_value - 0.0000001));
-                temp_interval.end.ReadFrom((const double)
-                    (t_value + 0.0000001));
-                if(0)
-                {
-                    cout << "---> value in a linear function" << endl;
-                }
-            }
-            else
-            {
-                if(utemp->a == 0 && utemp->b == 0)
-                {
-                    /*
-                    Find value in a constant function
-
-                    */
-                    t_value = utemp->c;
-                    temp_interval = utemp->timeInterval;
-                    if(0)
-                    {
-                        cout << "---> value in a constant function" << endl;
-                    }
-                }
-                else
-                {
-                    /*
-                    Find value in a quadratic function with Newton's Method
-
-                    */
-                    if(0)
-                    {
-                        cout << "---> value in a quadratic function" << endl;
-                    }
-
-                    float t_newton = te;
-                    float t_newton_old;
-                    float t, dt, t_newton_diff, t_var;
-                    if(0)
-                    {
-                        cout << "t_newton(Start) = " << t_newton << endl;
-                        cout << "a = " << utemp->a << endl;
-                        cout << "b = " << utemp->b << endl;
-                        cout << "c = " << utemp->c << endl;
-                    }
-                    do
-                    {
-                        t_newton_old = t_newton;
-                        t_var = t_newton - ts;
-                        if(utemp->r)
-                        {
-                            t = sqrt(pow(t_var, 2)*utemp->a
-                                + t_var*utemp->b
-                                + utemp->c
-                                - value);
-                            dt = (1/2)*(1/sqrt(t))
-                                + (2*utemp->a*t_var + utemp->b);
-                            if(0)
-                            {
-                                cout << "t = " << t << endl;
-                                cout << "dt = " << dt << endl;
-                            }
-                        }
-                        else
-                        {
-                            t = pow(t_var, 2)*utemp->a
-                                + t_var*utemp->b
-                                + utemp->c
-                                - value;
-                            dt = 2*utemp->a*t_var + utemp->b;
-                            if(0)
-                            {
-                                cout << "t = " << t << endl;
-                                cout << "dt = " << dt << endl;
-                            }
-                        }
-                        t_newton = t_newton - (t/dt);
-                        t_newton_diff = abs(t_newton_old) - abs(t_newton);
-                        if(0)
-                        {
-                            cout << "t_newton = "
-                                << t_newton << endl;
-                            cout << "t_newton_old = "
-                                << t_newton_old << endl;
-                            cout << "t_newton_diff = "
-                                << t_newton_diff << endl;
-                        }
-                    }while(abs(t_newton_diff) > 0.0000001);
-                    t_value = t_newton;
-                    temp_interval.start.ReadFrom((const double)
-                        (t_value - 0.0000001));
-                    temp_interval.end.ReadFrom((const double)
-                        (t_value + 0.0000001));
-                }
-            }
-            if(0)
-            {
-                cout << endl << "x-Value = " << t_value << endl;
-            }
             uresult.a = utemp->a;
             uresult.b = utemp->b;
             uresult.c = utemp->c;
             uresult.r = utemp->r;
-            uresult.timeInterval = temp_interval;
+            if(utemp->a == 0 && utemp->b == 0)
+            {
+                uresult.timeInterval = utemp->timeInterval;
+            }
+            else
+            {
+                uresult.timeInterval = utemp->timeInterval;
+                uresult.timeInterval.start.ReadFrom(
+                        (const double)(t_value - 0.0000001) );
+                uresult.timeInterval.end.ReadFrom(
+                        (const double)(t_value + 0.0000001) );
+            }
             result.Add( uresult );
         }
         clock4 = clock();
@@ -690,6 +1187,195 @@ void MRealExt::At( CcReal val, MReal &result ) const
     time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
     cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
     cout << "Total computing time : " << time1 << " ms" << endl;
+    result.EndBulkLoad( false );
+}
+
+bool MRealExt::Passes( CcReal val ) const
+{
+    const UReal* utemp;
+    UReal uresult;
+    float unit_min, unit_max, time1, time2;
+    float value = val.GetRealval();
+    clock_t clock1, clock2, clock3, clock4, clock_ges;
+    bool result = false;
+
+    clock1 = clock();
+    clock_ges = 0;
+    for(int i=0;i<GetNoComponents();i++)
+    {
+        clock3 = clock();
+        Get(i, utemp);
+        MinMaxValueFunction(utemp, unit_min, unit_max);
+        ((URealExt*)utemp)->SetUnitMin( unit_min );
+        ((URealExt*)utemp)->SetUnitMax( unit_max );
+        bool lh = utemp->timeInterval.lc;
+        bool rh = utemp->timeInterval.rc;
+        if( !((!lh && !rh && ( value <= unit_min || value >= unit_max ) ) ||
+            (lh && rh && ( value < unit_min || value > unit_max) ) ||
+            (!lh && rh && ( value <= unit_min || value > unit_max ) ) ||
+            (lh && !rh && ( value < unit_min || value >= unit_max ) )
+            ) )
+        {
+            result = true;
+            break;
+        }
+        clock4 = clock();
+        clock_ges = clock_ges + (clock4 - clock3);
+    }
+    clock2 = clock();
+    time2 = ((float)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
+    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
+    cout << "Total computing time : " << time1 << " ms" << endl;
+
+    return result;
+}
+
+template <class Unit, class Alpha>
+void MappingExt<Unit, Alpha>::At(
+    Range<Alpha>* inv,
+    Mapping<Unit, Alpha> &result
+) const
+{
+    const Unit* utemp;
+    bool is_valid = true;
+    const Interval<Alpha> *lastInterval, *interval;
+
+    if( inv->GetNoComponents() == 1 )
+    {
+        inv->Get( 0, interval );
+        is_valid = false;
+    }
+
+    if(is_valid)
+    {
+/*
+This implementation was token from method Range::IsValid() which is
+private. The method Range::Contains() has an assert(!IsValid()) what
+causes a unesthetic termination of DB-UI.
+
+*/
+        for( int i = 1; i < inv->GetNoComponents(); i++ )
+        {
+            inv->Get( i-1, lastInterval );
+            if( !lastInterval->IsValid() )
+            {
+                is_valid = false;
+                break;
+            }
+            inv->Get( i, interval );
+            if( !interval->IsValid() )
+            {
+                is_valid = false;
+                break;
+            }
+            if( (!lastInterval->Disjoint( *interval )) &&
+                (!lastInterval->Adjacent( *interval )) )
+            {
+                is_valid = false;
+                break;
+            }
+        }
+    }
+
+    if(inv->IsOrdered() && is_valid)
+    {
+        result.Clear();
+        result.StartBulkLoad();
+        for(int i=0;i<GetNoComponents();i++)
+        {
+            Get(i, utemp);
+            if(inv->Contains(utemp->constValue))
+                result.Add( *utemp );
+        }
+        result.EndBulkLoad( false );
+    }
+    else
+        cout << "Invalid Range!!" << endl;
+
+}
+
+void MRealExt::At( RReal* inv, MReal &result ) const
+{
+    const UReal* utemp;
+    UReal uresult;
+    float unit_min, unit_max;
+
+    result.Clear();
+    result.StartBulkLoad();
+    for( int i=0; i<GetNoComponents(); i++ )
+    {
+        Get( i, utemp );
+        MinMaxValueFunction( utemp, unit_min, unit_max );
+        ((URealExt*)utemp)->SetUnitMin( unit_min );
+        ((URealExt*)utemp)->SetUnitMax( unit_max );
+        Interval<CcReal> minmax;
+        minmax.start.Set( unit_min );
+        minmax.end.Set( unit_max );
+        minmax.lc = true;
+        minmax.rc = true;
+        for(int j=0;j<inv->GetNoComponents();j++)
+        {
+            const Interval<CcReal>* inv_tmp;
+            Interval<CcReal> inv_result;
+            inv->Get( j, inv_tmp);
+            if(minmax.Intersects( *inv_tmp ))
+            {
+                minmax.Intersection( *inv_tmp, inv_result );
+                if(1)
+                {
+                    cout << "(min max)[ " << minmax.start.GetValue()
+                        << ", " << minmax.end.GetValue() << " ] "
+                        << " intersects "
+                        << "[ " << inv_tmp->start.GetValue()
+                        << ", " << inv_tmp->end.GetValue() << " ]";
+                    cout << " = [ " << inv_result.start.GetValue()
+                        << ", " << inv_result.end.GetValue() << " ] " << endl;
+                }
+                float t_value, t_value2;
+                uresult.a = utemp->a;
+                uresult.b = utemp->b;
+                uresult.c = utemp->c;
+                uresult.r = utemp->r;
+                if(utemp->a == 0 && utemp->b == 0)
+                {
+                    uresult.timeInterval = utemp->timeInterval;
+                    result.Add( uresult );
+                }
+                else
+                {
+                    if( timeIntervalOfRealInUReal(
+                        inv_result.start.GetValue(),
+                        utemp,
+                        t_value) )
+                    {
+                        if( timeIntervalOfRealInUReal(
+                            inv_result.end.GetValue(),
+                            utemp,
+                            t_value2) )
+                        {
+                            uresult.timeInterval = utemp->timeInterval;
+                            if( t_value < t_value2 )
+                            {
+                                uresult.timeInterval.start.ReadFrom(
+                                    (const double)t_value );
+                                uresult.timeInterval.end.ReadFrom(
+                                    (const double)t_value2 );
+                            }
+                            else
+                            {
+                                uresult.timeInterval.start.ReadFrom(
+                                    (const double)t_value2 );
+                                uresult.timeInterval.end.ReadFrom(
+                                    (const double)t_value );
+                            }
+                            result.Add( uresult );
+                        }
+                    }
+                }
+            }
+        }
+    }
     result.EndBulkLoad( false );
 }
 
@@ -933,7 +1619,6 @@ void MRegion::AtPeriods(Periods* per, MRegion* mregparam)
     }
 }
 
-
 /*
 2.1 Auxiliary Functions
 
@@ -1028,7 +1713,7 @@ The list representation of an ~ustring~ is
 
 For example:
 
-----    ( ( (instant 6.37)  (instant 9.9)   TRUE FALSE)   "My String" )
+----    ( ( (instant 6.37)  (instant 9.9)   TRUE FALSE)   ["]My String["] )
 ----
 
 3.2.2 function Describing the Signature of the Type Constructor
@@ -1097,8 +1782,8 @@ The list representation of a ~mstring~ is
 For example:
 
 ----    (
-          ( (instant 6.37)  (instant 9.9)   TRUE FALSE) "String 1" )
-          ( (instant 11.4)  (instant 13.9)  FALSE FALSE) "String 2" )
+          ( (instant 6.37)  (instant 9.9)   TRUE FALSE) ["]String 1["] )
+          ( (instant 11.4)  (instant 13.9)  FALSE FALSE) ["]String 2["] )
         )
 ----
 
@@ -1244,8 +1929,8 @@ The list representation of a ~rstring~ is
 For example:
 
 ----    (
-          ( ("First string" "Second string" TRUE FALSE)
-          ("New York" "Washington" TRUE TRUE) )
+          ( (["]First string["] ["]Second string["] TRUE FALSE)
+          (["]New York["] ["]Washington["] TRUE TRUE) )
         )
 ----
 
@@ -1411,30 +2096,49 @@ It is for the operator ~at~.
 ListExpr
 MovingBaseExtTypeMapMoving( ListExpr args )
 {
-    cout << "----->Type Mapping Function: MovingBaseTypeMapMoving" << endl;
     ListExpr arg1, arg2;
     if( nl->ListLength( args ) == 2 )
     {
         arg1 = nl->First( args );
         arg2 = nl->Second( args );
 
-/*        if( nl->IsEqual( arg1, "mbool" ) && nl->IsEqual( arg2, "bool" ) )
-            return nl->SymbolAtom( "mbool" );
-
-        if( nl->IsEqual( arg1, "mint" ) &&
-            ( nl->IsEqual( arg2, "int" ) ||
-            nl->IsEqual( arg2, "rint" ) ) )
-        return nl->SymbolAtom( "mint" );*/
-
-// VTA - This operator is not yet implemented for the type of ~mreal~
-        if( nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" ) )
+        if( nl->IsEqual( arg1, "mreal" )
+            && nl->IsEqual( arg2, "real" ) )
             return nl->SymbolAtom( "mreal" );
 
-        if( nl->IsEqual( arg1, "mstring" ) && nl->IsEqual( arg2, "string" ) )
+        if( nl->IsEqual( arg1, "mstring" )
+            && nl->IsEqual( arg2, "string" ) )
             return nl->SymbolAtom( "mstring" );
 
+        if( nl->IsEqual( arg1, "mbool" )
+            && nl->IsEqual( arg2, "rbool" ) )
+            return nl->SymbolAtom( "mbool" );
+
+        if( nl->IsEqual( arg1, "mint" )
+            && nl->IsEqual( arg2, "rint" ) )
+            return nl->SymbolAtom( "mint" );
+
+        if( nl->IsEqual( arg1, "mstring" )
+            && nl->IsEqual( arg2, "rstring" ) )
+            return nl->SymbolAtom( "mstring" );
+
+        if( nl->IsEqual( arg1, "mreal" )
+            && nl->IsEqual( arg2, "rreal" ) )
+            return nl->SymbolAtom( "mreal" );
+
+        if( nl->IsEqual( arg1, "mpoint" )
+            && nl->IsEqual( arg2, "points" ) )
+            return nl->SymbolAtom( "mpoint" );
+
+        if( nl->IsEqual( arg1, "mpoint" )
+            && nl->IsEqual( arg2, "line" ) )
+            return nl->SymbolAtom( "mpoint" );
+
+        if( nl->IsEqual( arg1, "movingregion" )
+            && nl->IsEqual( arg2, "point" ) )
+            return nl->SymbolAtom( "mpoint" );
     }
-    cout << "---------->Return NICHT OK!!" << endl;
+
     return nl->SymbolAtom( "typeerror" );
 }
 
@@ -1453,21 +2157,23 @@ MovingBaseExtTypeMapBool( ListExpr args )
         arg1 = nl->First( args );
         arg2 = nl->Second( args );
 
-        if( (nl->IsEqual( arg1, "mbool" )
-                && nl->IsEqual( arg2, "bool" ))
-             ||
-            (nl->IsEqual( arg1, "mint" )
-                && nl->IsEqual( arg2, "int" ))
-             ||
-// VTA - This operator is not yet implemented for the type of ~mreal~
-            (nl->IsEqual( arg1, "mreal" )
+        if( (nl->IsEqual( arg1, "mreal" )
                 && nl->IsEqual( arg2, "real" ))
              ||
             (nl->IsEqual( arg1, "mstring" )
                 && nl->IsEqual( arg2, "string" ))
              ||
-            (nl->IsEqual( arg1, "mpoint" )
-                && nl->IsEqual( arg2, "region" ))
+             (nl->IsEqual( arg1, "mpoint" )
+                && nl->IsEqual( arg2, "points" ))
+             ||
+             (nl->IsEqual( arg1, "mpoint" )
+                && nl->IsEqual( arg2, "line" ))
+             ||
+            (nl->IsEqual( arg1, "movingregion" )
+                && nl->IsEqual( arg2, "point" ))
+             ||
+            (nl->IsEqual( arg1, "movingregion" )
+                && nl->IsEqual( arg2, "points" ))
           )
             return nl->SymbolAtom( "bool" );
     }
@@ -1790,14 +2496,6 @@ MovingExtBaseRangeSelect( ListExpr args )
     ListExpr arg1 = nl->First( args ),
     arg2 = nl->Second( args );
 
-/*    if( nl->SymbolValue( arg1 ) == "mbool" &&
-        nl->SymbolValue( arg2 ) == "bool" )
-        return 0;
-
-    if( nl->SymbolValue( arg1 ) == "mint" &&
-        nl->SymbolValue( arg2 ) == "int" )
-    return 1;*/
-
     if( nl->SymbolValue( arg1 ) == "mreal" &&
         nl->SymbolValue( arg2 ) == "real" )
         return 0;
@@ -1806,14 +2504,33 @@ MovingExtBaseRangeSelect( ListExpr args )
         nl->SymbolValue( arg2 ) == "string" )
         return 1;
 
-/*    if( nl->SymbolValue( arg1 ) == "mint" &&
-        nl->SymbolValue( arg2 ) == "rint" )
-    return 4;*/
+    if( nl->SymbolValue( arg1 ) == "mbool" &&
+        nl->SymbolValue( arg2 ) == "rbool" )
+        return 2;
 
-  /*if( nl->SymbolValue( arg1 ) == "mreal" &&
-    nl->SymbolValue( arg2 ) == "rreal"
-)
-    return 6;*/
+    if( nl->SymbolValue( arg1 ) == "mint" &&
+        nl->SymbolValue( arg2 ) == "rint" )
+        return 3;
+
+    if( nl->SymbolValue( arg1 ) == "mstring" &&
+        nl->SymbolValue( arg2 ) == "rstring" )
+        return 4;
+
+    if( nl->SymbolValue( arg1 ) == "mreal" &&
+        nl->SymbolValue( arg2 ) == "rreal")
+        return 5;
+
+    if( nl->SymbolValue( arg1 ) == "mpoint" &&
+        nl->SymbolValue( arg2 ) == "points")
+        return 6;
+
+    if( nl->SymbolValue( arg1 ) == "mpoint" &&
+        nl->SymbolValue( arg2 ) == "line")
+        return 7;
+
+    if( nl->SymbolValue( arg1 ) == "movingregion" &&
+        nl->SymbolValue( arg2 ) == "point")
+        return 8;
 
     return -1; // This point should never be reached
 }
@@ -1830,25 +2547,29 @@ MovingExtBaseSelect( ListExpr args )
     ListExpr arg1 = nl->First( args ),
     arg2 = nl->Second( args );
 
-    if( nl->SymbolValue( arg1 ) == "mbool" &&
-        nl->SymbolValue( arg2 ) == "bool" )
-        return 0;
-
-    if( nl->SymbolValue( arg1 ) == "mint" &&
-        nl->SymbolValue( arg2 ) == "int" )
-        return 1;
-
     if( nl->SymbolValue( arg1 ) == "mreal" &&
         nl->SymbolValue( arg2 ) == "real" )
-        return 2;
+        return 0;
 
     if( nl->SymbolValue( arg1 ) == "mstring" &&
         nl->SymbolValue( arg2 ) == "string" )
-        return 3;
+        return 1;
 
     if( nl->SymbolValue( arg1 ) == "mpoint" &&
-        nl->SymbolValue( arg2 ) == "region" )
+        nl->SymbolValue( arg2 ) == "points")
+        return 2;
+
+    if( nl->SymbolValue( arg1 ) == "mpoint" &&
+        nl->SymbolValue( arg2 ) == "line")
+        return 3;
+
+    if( nl->SymbolValue( arg1 ) == "movingregion" &&
+        nl->SymbolValue( arg2 ) == "point" )
         return 4;
+
+    if( nl->SymbolValue( arg1 ) == "movingregion" &&
+           nl->SymbolValue( arg2 ) == "points" )
+        return 5;
 
     return -1; // This point should never be reached
 }
@@ -2002,7 +2723,6 @@ int MappingAtPeriodsExtMRegion(
     Periods* per = (Periods*)args[1].addr;
     MRegion* pResult = (MRegion*)result.addr;
 
-    //mr->AtPeriods(per, *pResult);
     pResult->AtPeriods(per, mr);
 
     return 0;
@@ -2020,7 +2740,18 @@ int MappingInitialExt( Word* args,
                        Supplier s )
 {
     result = qp->ResultStorage( s );
-    ((Mapping*)args[0].addr)->Initial( *((Intime<Alpha>*)result.addr) );
+
+    Mapping *m = ((Mapping*)args[0].addr);
+    Intime<Alpha>* pResult = ((Intime<Alpha>*)result.addr);
+
+    const Unit *unit;
+    m->Get( 0, unit );
+
+    if( m->IsDefined() && unit->timeInterval.lc )
+        m->Initial( *pResult );
+    else
+        pResult->SetDefined(false);
+
     return 0;
 }
 
@@ -2036,7 +2767,18 @@ int MappingFinalExt( Word* args,
                      Supplier s )
 {
     result = qp->ResultStorage( s );
-    ((Mapping*)args[0].addr)->Final( *((Intime<Alpha>*)result.addr) );
+
+    Mapping *m = ((Mapping*)args[0].addr);
+    Intime<Alpha>* pResult = ((Intime<Alpha>*)result.addr);
+
+    const Unit *unit;
+    m->Get( m->GetNoComponents()-1, unit );
+
+    if( m->IsDefined() && unit->timeInterval.rc )
+        m->Final( *pResult );
+    else
+        pResult->SetDefined(false);
+
     return 0;
 }
 
@@ -2127,6 +2869,124 @@ int MappingRealAtExt(
     return 0;
 }
 
+template <class Mapping, class Unit, class Alpha, class Range>
+int MappingAtExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+    MappingExt<Unit, Alpha> *m = ((MappingExt<Unit, Alpha>*)args[0].addr);
+    Range* rng = ((Range*)args[1].addr);
+    Mapping* pResult = ((Mapping*)result.addr);
+    pResult->Clear();
+    m->At( rng, *pResult );
+
+    return 0;
+}
+
+int MappingRRealAtExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+    MRealExt *m = ((MRealExt*)args[0].addr);
+    RReal* rng = ((RReal*)args[1].addr);
+    MReal* pResult = ((MReal*)result.addr);
+    pResult->Clear();
+    m->At( rng, *pResult );
+
+    return 0;
+}
+
+int MappingMPointPointsAtExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+    MPointExt *m = ((MPointExt*)args[0].addr);
+    Points* pts = ((Points*)args[1].addr);
+    MPoint* pResult = ((MPoint*)result.addr);
+    pResult->Clear();
+    m->At( pts, *pResult );
+
+    return 0;
+}
+
+
+int MappingMPointLineAtExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+    MPointExt *m = ((MPointExt*)args[0].addr);
+    CLine* ln = ((CLine*)args[1].addr);
+    MPoint* pResult = ((MPoint*)result.addr);
+    pResult->Clear();
+    m->At( ln, *pResult );
+
+    return 0;
+}
+
+int MRegionPointAtExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+    MRegion *m = ((MRegion*)args[0].addr);
+    Point* pt = ((Point*)args[1].addr);
+    MPoint* pResult = ((MPoint*)result.addr);
+    clock_t clock1, clock2;
+    double time1 = 0.;
+
+    pResult->Clear();
+
+    clock1 = clock();
+    MPoint* tmp = new MPoint(1);
+    const URegionEmb* urtmp1;
+    const URegionEmb* urtmp2;
+    m->Get( 0, urtmp1 );
+    m->Get( m->GetNoComponents()-1, urtmp2 );
+
+    Interval<Instant> inv_tmp;
+    inv_tmp.start = urtmp1->timeInterval.start;
+    inv_tmp.end = urtmp2->timeInterval.end;
+    inv_tmp.lc = true;
+    inv_tmp.rc = true;
+
+    UPoint* utmp = new UPoint(
+        inv_tmp,
+        pt->GetX(),
+        pt->GetY(),
+        pt->GetX(),
+        pt->GetY());
+
+    tmp->Add( *utmp );
+
+    m->Intersection( *tmp, *pResult );
+    clock1 = clock();
+    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    cout << "Total computing time : " << time1 << " ms" << endl;
+
+
+    return 0;
+}
+
+
 /*
 4.3.7 Value mapping functions of operator ~passes~
 
@@ -2140,6 +3000,11 @@ int MappingPassesExt( Word* args,
 {
     result = qp->ResultStorage( s );
 
+    if(1)
+    {
+        cout << "TemporalExtAlgebra: passes" << endl;
+    }
+
     Mapping *m = ((Mapping*)args[0].addr);
     Alpha* val = ((Alpha*)args[1].addr);
 
@@ -2149,6 +3014,385 @@ int MappingPassesExt( Word* args,
         ((CcBool *)result.addr)->Set( true, true );
     else
         ((CcBool *)result.addr)->Set( true, false );
+
+    return 0;
+}
+
+int MRealRealPassesExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MRealExt *m = ((MRealExt*)args[0].addr);
+    CcReal* v = ((CcReal*)args[1].addr);
+
+    if( !v->IsDefined() )
+        ((CcBool *)result.addr)->Set( false, false );
+    else if( m->Passes( *v ) )
+        ((CcBool *)result.addr)->Set( true, true );
+    else
+        ((CcBool *)result.addr)->Set( true, false );
+
+    return 0;
+}
+
+int MPointPointsPassesExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MPointExt *m = ((MPointExt*)args[0].addr);
+    Points* pts = ((Points*)args[1].addr);
+
+    if( !pts->IsDefined() )
+        ((CcBool *)result.addr)->Set( false, false );
+    else if( m->Passes( pts ) )
+        ((CcBool *)result.addr)->Set( true, true );
+    else
+        ((CcBool *)result.addr)->Set( true, false );
+
+    return 0;
+}
+
+int MPointLinePassesExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    MPointExt *m = ((MPointExt*)args[0].addr);
+    CLine* ln = ((CLine*)args[1].addr);
+
+    if( !ln->IsDefined() )
+        ((CcBool *)result.addr)->Set( false, false );
+    else if( m->Passes( ln ) )
+        ((CcBool *)result.addr)->Set( true, true );
+    else
+        ((CcBool *)result.addr)->Set( true, false );
+
+    return 0;
+}
+
+int MRegionPointPassesExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+    MRegion *m = ((MRegion*)args[0].addr);
+    Point* pt = ((Point*)args[1].addr);
+    CcBool* pResult = ((CcBool*)result.addr);
+    clock_t clock1, clock2;
+    double time1 = 0.;
+
+    clock1 = clock();
+
+    if( !pt->IsDefined() )
+        pResult->Set( false, false );
+    else
+    {
+        MPoint* mp = new MPoint(1);
+        const URegionEmb* urtmp1;
+        const URegionEmb* urtmp2;
+        m->Get( 0, urtmp1 );
+        m->Get( m->GetNoComponents()-1, urtmp2 );
+
+        Interval<Instant> inv_tmp;
+        inv_tmp.start = urtmp1->timeInterval.start;
+        inv_tmp.end = urtmp2->timeInterval.end;
+        inv_tmp.lc = true;
+        inv_tmp.rc = true;
+
+        UPoint* utmp = new UPoint(
+            inv_tmp,
+            pt->GetX(),
+            pt->GetY(),
+            pt->GetX(),
+            pt->GetY());
+
+        mp->Add( *utmp );
+
+        if(0)
+        {
+            cout << "timeInterval of utmp: "
+                << utmp->timeInterval.start.ToString()
+                << " " << utmp->timeInterval.end.ToString()
+                << endl;
+        }
+
+        bool result = false;
+
+        RefinementPartitionOrig<
+            MRegion,
+            MPoint,
+            URegionEmb,
+            UPoint> rp(*m, *mp);
+
+        MPoint resMp;
+        IntersectionRPExt( m, *mp, resMp, rp, false);
+
+        int mpPos = 0;
+
+        if(0)
+        {
+            cout << "Data for resMp ..." << endl;
+            for(int i=0;i<resMp.GetNoComponents();i++)
+            {
+                const UPoint* utemp;
+                resMp.Get( i, utemp );
+                cout << "timeInterval of up of resMp: "
+                        << utemp->timeInterval.start.ToString()
+                        << " " << utemp->timeInterval.end.ToString()
+                        << endl;
+                cout << "p0.x: " << utemp->p0.GetX()
+                    << "  p0.y: " << utemp->p0.GetY()
+                    << "  p1.x: " << utemp->p1.GetX()
+                    << "  p1.y: " << utemp->p1.GetY() << endl;
+            }
+        }
+
+        for (unsigned int rpPos = 0; rpPos < rp.Size(); rpPos++)
+        {
+            if (0)
+                cerr << "MRegion::Inside() rpPos=" << rpPos
+                        << " mpPos=" << mpPos
+                        << endl;
+
+            Interval<Instant>* iv;
+            int urPos;
+            int upPos;
+
+            rp.Get(rpPos, iv, urPos, upPos);
+
+            if (upPos < 0) continue;
+
+            double prevtime = iv->start.ToDouble();
+            Instant prev(instanttype);
+            prev.ReadFrom(prevtime);
+
+            for (; mpPos < resMp.GetNoComponents(); mpPos++)
+            {
+                if (0)
+                    cerr << "MRegion::Inside()   mpPos=" << mpPos
+                            << endl;
+
+                const UPoint *up;
+                resMp.Get(mpPos, up);
+
+                if(0)
+                {
+                    cout << "timeInterval of up: "
+                            << up->timeInterval.start.ToString()
+                            << " " << up->timeInterval.end.ToString()
+                            << endl;
+                    cout << "timeInterval of iv: "
+                            << iv->end.ToString()
+                            << endl;
+                    cout << "up->timeInterval.start.Compare(&iv->end) > 0"
+                        <<  "|| (up->timeInterval.start.Compare(&iv->end) == 0"
+                        << "&& up->timeInterval.lc"
+                        << "&& !iv->rc))" << endl;
+                }
+
+                if ( !(up->timeInterval.start.Compare(&iv->end) > 0
+                    || (up->timeInterval.start.Compare(&iv->end) == 0
+                    && up->timeInterval.lc
+                     && !iv->rc)) )
+                {
+                    result = true;
+                    break;
+                }
+            }
+
+            if(result)
+                break;
+            if (mpPos == resMp.GetNoComponents())
+                mpPos = 0;
+        }
+
+        pResult->Set( true, result );
+    }
+
+    clock2 = clock();
+    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    cout << "Total computing time : " << time1 << " ms" << endl;
+
+
+    return 0;
+}
+
+
+int MRegionPointsPassesExt(
+    Word* args,
+    Word& result,
+    int message,
+    Word& local,
+    Supplier s )
+{
+    result = qp->ResultStorage( s );
+    MRegion *m = ((MRegion*)args[0].addr);
+    Points* pts = ((Points*)args[1].addr);
+    CcBool* pResult = ((CcBool*)result.addr);
+    clock_t clock1, clock2, clock3, clock4;
+    double time1 = 0., time2 = 0., clock_ges = 0.;
+
+    clock1 = clock();
+
+    if( !pts->IsDefined() )
+        pResult->Set( false, false );
+    else
+    {
+        MPoint* mp = new MPoint(1);
+        const URegionEmb* urtmp1;
+        const URegionEmb* urtmp2;
+        m->Get( 0, urtmp1 );
+        m->Get( m->GetNoComponents()-1, urtmp2 );
+        Interval<Instant> inv_tmp;
+        inv_tmp.start = urtmp1->timeInterval.start;
+        inv_tmp.end = urtmp2->timeInterval.end;
+        inv_tmp.lc = true;
+        inv_tmp.rc = true;
+        bool result = false;
+
+        clock3 = clock();
+
+        for(int i=0;i<pts->Size();i++)
+        {
+            const Point* pt;
+            pts->Get( i, pt );
+
+            UPoint* utmp = new UPoint(
+                inv_tmp,
+                pt->GetX(),
+                pt->GetY(),
+                pt->GetX(),
+                pt->GetY());
+
+            mp->Clear();
+            mp->Add( *utmp );
+
+            if(0)
+            {
+                cout << "timeInterval of utmp: "
+                        << utmp->timeInterval.start.ToString()
+                        << " " << utmp->timeInterval.end.ToString()
+                        << endl;
+            }
+
+            RefinementPartitionOrig<
+                    MRegion,
+            MPoint,
+            URegionEmb,
+            UPoint> rp(*m, *mp);
+
+            MPoint resMp;
+            IntersectionRPExt( m, *mp, resMp, rp, false);
+
+            int mpPos = 0;
+
+            if(0)
+            {
+                cout << "Data for resMp ..." << endl;
+                for(int i=0;i<resMp.GetNoComponents();i++)
+                {
+                    const UPoint* utemp;
+                    resMp.Get( i, utemp );
+                    cout << "timeInterval of up of resMp: "
+                            << utemp->timeInterval.start.ToString()
+                            << " " << utemp->timeInterval.end.ToString()
+                            << endl;
+                    cout << "p0.x: " << utemp->p0.GetX()
+                            << "  p0.y: " << utemp->p0.GetY()
+                            << "  p1.x: " << utemp->p1.GetX()
+                            << "  p1.y: " << utemp->p1.GetY() << endl;
+                }
+            }
+
+            for (unsigned int rpPos = 0; rpPos < rp.Size(); rpPos++)
+            {
+                if (0)
+                    cerr << "MRegion::Inside() rpPos=" << rpPos
+                            << " mpPos=" << mpPos
+                            << endl;
+
+                Interval<Instant>* iv;
+                int urPos;
+                int upPos;
+
+                rp.Get(rpPos, iv, urPos, upPos);
+
+                if (upPos < 0) continue;
+
+                double prevtime = iv->start.ToDouble();
+                Instant prev(instanttype);
+                prev.ReadFrom(prevtime);
+
+                for (; mpPos < resMp.GetNoComponents(); mpPos++)
+                {
+                    if (0)
+                        cerr << "MRegion::Inside()   mpPos=" << mpPos
+                                << endl;
+
+                    const UPoint *up;
+                    resMp.Get(mpPos, up);
+
+                    if(0)
+                    {
+                        cout << "timeInterval of up: "
+                                << up->timeInterval.start.ToString()
+                                << " " << up->timeInterval.end.ToString()
+                                << endl;
+                        cout << "timeInterval of iv: "
+                                << iv->end.ToString()
+                                << endl;
+                        cout << "up->timeInterval.start.Compare(&iv->end) > 0"
+                             <<  "|| (up->timeInterval.start.Compare(&iv->end)"
+                                << " == 0 && up->timeInterval.lc"
+                             << "&& !iv->rc))" << endl;
+                    }
+
+                    if ( !(up->timeInterval.start.Compare(&iv->end) > 0
+                           || (up->timeInterval.start.Compare(&iv->end) == 0
+                           && up->timeInterval.lc
+                           && !iv->rc)) )
+                    {
+                        result = true;
+                        break;
+                    }
+                }
+
+                if(result)
+                    break;
+                if (mpPos == resMp.GetNoComponents())
+                    mpPos = 0;
+            }
+            clock4 = clock();
+            clock_ges = clock_ges + (clock4 - clock3);
+            if(result)
+                break;
+        }
+        pResult->Set( true, result );
+    }
+
+    clock2 = clock();
+    time2 = ((float)(clock_ges / pts->Size())/CLOCKS_PER_SEC) * 1000.;
+    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    cout << "Average computing time per elemtn of Points: "
+            << time2 << " ms/unit" << endl;
+    cout << "Total computing time : " << time1 << " ms" << endl;
 
     return 0;
 }
@@ -2281,28 +3525,28 @@ int MovingDerivableExt(
         m->Get(i, unitin);
         if(i==0)
         {
-            /*
-            Steps for the first Unit
+/*
+Steps for the first Unit
 
-            */
+*/
             myValue.Set(true, !unitin->r);
             unitout.constValue.CopyFrom(&myValue);
 
             if(m->GetNoComponents()==1)
             {
-                /*
-                Only one Unit available
+/*
+Only one Unit available
 
-                */
+*/
                 unitout.timeInterval = unitin->timeInterval;
                 pResult->Add(unitout);
             }
             else
             {
-                /*
-                Just the first Unit ...
+/*
+Just the first Unit ...
 
-                */
+*/
                 unitout.timeInterval.start = unitin->timeInterval.start;
                 unitout.timeInterval.end = unitin->timeInterval.end;
                 unitout.timeInterval.lc = unitin->timeInterval.lc;
@@ -2313,23 +3557,23 @@ int MovingDerivableExt(
         {
             if(!unitin->r == unitout.constValue.GetBoolval())
             {
-                /*
-                The Unit has the same Bool value as the
-                previous. So, the time interval of the previous
-                Unit will be extended.
+/*
+The Unit has the same Bool value as the
+previous. So, the time interval of the previous
+Unit will be extended.
 
-                */
+*/
                 unitout.timeInterval.end = unitin->timeInterval.end;
                 unitout.timeInterval.rc = unitin->timeInterval.rc;
             }
             else
             {
-                /*
-                The current Unit has another Bool value as the
-                previous. The previous Unit must be created. New
-                values must be assumed from the current Unit.
+/*
+The current Unit has another Bool value as the
+previous. The previous Unit must be created. New
+values must be assumed from the current Unit.
 
-                */
+*/
                 pResult->Add(unitout);
                 myValue.Set(true, !unitin->r);
                 unitout.constValue.CopyFrom(&myValue);
@@ -2340,10 +3584,10 @@ int MovingDerivableExt(
             }
             if(i==m->GetNoComponents()-1)
             {
-                /*
-                Last Unit must be created.
+/*
+Last Unit must be created.
 
-                */
+*/
                 pResult->Add(unitout);
             }
         }
@@ -2392,7 +3636,7 @@ int MovingSpeedExt(
         unitout.timeInterval = unitin->timeInterval;
         pResult->Add(unitout);
     }
-    /* Units */
+
     cout << endl << endl;
     cout << "Unit of speed: " << FactorForUnitOfDistance;
     cout << " * m / " << FactorForUnitOfTime;
@@ -2953,7 +4197,6 @@ int MappingAtminExt(
 
     MappingExt<Unit, Alpha>* m = ((MappingExt<Unit, Alpha>*)args[0].addr);
     Mapping* pResult = ((Mapping*)result.addr);
-    //pResult->Clear();
     m->AtMin( *pResult );
 
     return 0;
@@ -3044,13 +4287,22 @@ ValueMapping temporalpresentextmap[] = {
 
 ValueMapping temporalatextmap[] = {
     MappingRealAtExt,
-    MappingStringAtExt};
+    MappingStringAtExt,
+    MappingAtExt<MBool, UBool, CcBool, RBool>,
+    MappingAtExt<MInt, UInt, CcInt, RInt>,
+    MappingAtExt<MString, UString, CcString, RString>,
+    MappingRRealAtExt,
+    MappingMPointPointsAtExt,
+    MRegionPointAtExt,
+    };
 
 ValueMapping temporalpassesextmap[] = {
-    MappingPassesExt<MBool, CcBool>,
-    MappingPassesExt<MInt, CcInt>,
-    MappingPassesExt<MReal, CcReal>,
-    MappingPassesExt<MString, CcString>};
+    MRealRealPassesExt,
+    MappingPassesExt<MString, CcString>,
+    MPointPointsPassesExt,
+    MPointLinePassesExt,
+    MRegionPointPassesExt,
+    MRegionPointsPassesExt};
 
 ValueMapping temporaldeftimeextmap[] = {
     MappingDefTimeExt<MString> };
@@ -3180,16 +4432,18 @@ const string TemporalSpecPresentExt  =
 
 const string TemporalSpecAtExt =
     "( ( \"Algebra\" \"Signature\" \" \" \" \" \" \" \" \""
-    "\" \" \" \" \"Syntax\" "
+    "\" \" \" \" \" \" \" \" \"Syntax\" "
     "\"Meaning\" \" \" \"Example\" ) "
     "( <text>TemporalExtAlgebra</text--->"
     "<text>T in {real, string},</text--->"
     "<text>moving(T) x T -> moving(T);</text--->"
-    "<text>T in {point, points*, line*, region*},</text--->"
+    "<text>T in {int, bool, real, string},</text--->"
     "<text>moving(T) x range(T) -> moving(T);</text--->"
-    "<text>moving(region) x point -> mpoint**</text--->"
+    "<text>T in {points, line},</text--->"
+    "<text>moving(point) x T -> moving(point)</text--->"
+    "<text>moving(region) x point -> moving(point)**</text--->"
     "<text>(*) Not yet implemented for this type constructor.</text--->"
-    "<text>(**) Operator combination is not implemented yet.</text--->"
+    "<text>(**) Operator signature is not implemented yet.</text--->"
     "<text> _ at _ </text--->"
     "<text>restrict the movement at the times where the equality </text--->"
     "<text>occurs.</text--->"
@@ -3198,14 +4452,15 @@ const string TemporalSpecAtExt =
 
 const string TemporalSpecPassesExt =
     "( ( \"Algebra\" \"Signature\" \" \" \" \" \" \""
-    "\" \" \"Syntax\" \"Meaning\" "
+    "\" \" \" \" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>TemporalExtAlgebra</text--->"
     "<text>T in {int, bool, real, string},</text--->"
     "<text>moving(T) x T -> bool;</text--->"
-    "<text>T in {point, points*, line*, region*},</text--->"
+    "<text>T in {points, line},</text--->"
     "<text>moving(point) x T -> bool</text--->"
-    "<text>(*) Not yet implemented for this type constructor.</text--->"
+    "<text>T in {point, points},</text--->"
+    "<text>moving(region) x T -> bool</text--->"
     "<text>_ passes _ </text--->"
     "<text>whether the object passes the given value.</text--->"
     "<text>mpoint1 passes point1</text--->"
@@ -3437,7 +4692,7 @@ Operator temporalpresentext(
 Operator temporalatext(
     "at",
     TemporalSpecAtExt,
-    2,
+    9,
     temporalatextmap,
     MovingExtBaseRangeSelect,
     MovingBaseExtTypeMapMoving );
@@ -3445,7 +4700,7 @@ Operator temporalatext(
 Operator temporalpassesext(
     "passes",
     TemporalSpecPassesExt,
-    5,
+    6,
     temporalpassesextmap,
     MovingExtBaseSelect,
     MovingBaseExtTypeMapBool);

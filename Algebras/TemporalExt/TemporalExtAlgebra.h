@@ -70,7 +70,16 @@ public:
     MPointExt() : MPoint() {}
 
     void MDirection( MReal* result ) const;
+
     void Locations( Points* result ) const;
+
+    void At( Points* pts, MPoint &result ) const;
+
+    void At( CLine* ln, MPoint &result ) const;
+
+    bool Passes( Points* pts ) const;
+
+    bool Passes( CLine* ln ) const;
 };
 
 template<class Unit, class Alpha>
@@ -110,9 +119,13 @@ public:
 
     void At( CcReal val, MReal &result ) const;
 
+    void At( RReal* inv, MReal &result ) const;
+
     void AtMin( MReal &result ) const;
 
     void AtMax( MReal &result ) const;
+
+    bool Passes( CcReal val ) const;
 };
 
 #endif // _TEMPORALEXT_ALGEBRA_H_
