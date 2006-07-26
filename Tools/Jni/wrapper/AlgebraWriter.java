@@ -443,6 +443,7 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("   obj = jobj; // create the corresponding FLOB ");
    out.println("   RestoreFLOBFromJavaObject(); ");
    out.println("   defined = true; ");
+   out.println("   ComputeHashValue();");
    out.println("}\n\n");
 
    out.println("/*\n");
@@ -469,7 +470,7 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("/*\n");
    out.println("1.2.6 Clone function \n");
    out.println("*/");
-   out.println(Name+"* "+Name+"::Clone(){");
+   out.println(Name+"* "+Name+"::Clone() const{");
    out.println("   __TRACE__");
    out.println("   "+Name+"* res = new "+Name+"(objectData.Size());");
    out.println("   res->CopyFrom(this); ");
@@ -479,25 +480,22 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("/*\n");
    out.println("1.2.7 The ~HashValue~ Function \n");
    out.println("*/");
-   out.println("size_t "+Name+"::HashValue(){ ");
+   out.println("size_t "+Name+"::HashValue() const{ ");
    out.println("   __TRACE__");
-   out.println("   if(!obj)");
-   out.println("       RestoreJavaObjectFromFLOB();");
-   out.println("   jmethodID mid = "+getShortString(cls)+"_getHashValue_ID;");
-   out.println("   return (size_t) env->CallIntMethod(obj,mid);");
+   out.println("   return hashValue;");
    out.println("}\n\n");
 
    out.println("/*\n");
    out.println("1.2.8 The ~CopyFrom~ function \n");
    out.println("*/");
-   out.println("void "+Name+"::CopyFrom(StandardAttribute* right){");
+   out.println("void "+Name+"::CopyFrom(const StandardAttribute* right){");
    out.println("   __TRACE__");
    out.println("   "+Name +"* R = ("+Name+"*) right;");
    out.println("   objectData.Resize(R->objectData.Size());");
-   out.println("   char* data = new char[R->objectData.Size()];");
-   out.println("   R->objectData.Get(0,R->objectData.Size(),data);");
+   out.println("   const char* data;");
+   out.println("   R->objectData.Get(0,&data);");
    out.println("   objectData.Put(0,R->objectData.Size(),data);");
-   out.println("   delete [] data;");
+//   out.println("   delete [] data;");
    out.println("   if(obj)");
    out.println("      env->DeleteLocalRef(obj);"); 
    out.println("   obj=0;");
@@ -506,21 +504,30 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("/*\n");
    out.println("1.2.9 The ~Compare~ function \n");
    out.println("*/");
-   out.println("int "+Name+"::Compare(Attribute* arg){");
+   out.println("int "+Name+"::Compare(const Attribute* arg) const{");
    out.println("   __TRACE__");
    out.println("   jmethodID mid; ");
    out.println("   mid = "+getShortString(cls)+"_compareTo_ID;");
    out.println("   if(mid==0) error(__LINE__);");
-   out.println("   if(!obj)");
-   out.println("     RestoreJavaObjectFromFLOB();");
+   out.println("   bool mustBeDeleted; ");
+   out.println("   bool mustBeDeleted2;");
+   out.println("   jobject ob = GetTmpObject(mustBeDeleted);");
    out.println("   "+Name+" *C = ("+Name+" *)arg;");
-   out.println("   return env->CallIntMethod(obj,mid,C->GetObject());  ");
+   out.println("   jobject ob2 = C->GetTmpObject(mustBeDeleted2);");
+   out.println("   int res =  env->CallIntMethod(ob,mid,ob2);  ");
+   out.println("   if(mustBeDeleted){");
+   out.println("     env->DeleteLocalRef(ob);");
+   out.println("   }"); 
+   out.println("   if(mustBeDeleted2){");
+   out.println("     env->DeleteLocalRef(ob2);");
+   out.println("   }"); 
+   out.println("   return res; ");
    out.println("}\n\n");
 
    out.println("/*\n");
    out.println("1.2.10 The ~Adjacent~ function \n");
    out.println("*/");
-   out.println("bool "+Name+"::Adjacent(Attribute* arg){");
+   out.println("bool "+Name+"::Adjacent(const Attribute* arg) const{");
    out.println("   __TRACE__");
    out.println("   return  false; ");
    out.println("}\n\n");
@@ -529,9 +536,21 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("/*\n");
    out.println("1.2.10 The ~NumOfFLOBs~ function \n");
    out.println("*/");
-   out.println("int "+Name+"::NumOfFLOBs(){");
+   out.println("int "+Name+"::NumOfFLOBs() const{");
    out.println("   __TRACE__");
    out.println("   return  1; ");
+   out.println("}\n\n");
+   
+   out.println("/*\n");
+   out.println("1.2.10 The ~ComputeHashValue~ function \n");
+   out.println("*/");
+   out.println("void "+Name+"::ComputeHashValue() {");
+   out.println("   __TRACE__");
+   out.println("   if(!obj){ //only recompute if object is present");
+   out.println("      return;  ");
+   out.println("   }");
+   out.println("   jmethodID mid = "+getShortString(cls)+"_getHashValue_ID;");
+   out.println("   hashValue = (size_t) env->CallIntMethod(obj,mid);");
    out.println("}\n\n");
 
 
@@ -575,8 +594,8 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("   if(&objectData == 0) error(__LINE__); ");
    out.println("   int size = objectData.Size(); ");
    out.println("   if(size==0) error(__LINE__);");
-   out.println("   char *bytes = new char[size]; ");
-   out.println("   objectData.Get(0,size,bytes);" );
+   out.println("   const char* bytes; ");
+   out.println("   objectData.Get(0, &bytes);" );
    out.println("   // copy the data into a java array ");
    out.println("   jbyteArray jbytes = env->NewByteArray(size);");
    out.println("   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);");
@@ -585,10 +604,38 @@ private static  void printDefinitions(PrintStream out,Class cls,Vector Ms){
    out.println("   if(obj==0) error(__LINE__); ");
    out.println("   jbyte* elems = env->GetByteArrayElements(jbytes,0);");
    out.println("   env->ReleaseByteArrayElements(jbytes,elems,0);");
-   out.println("   delete [] bytes; ");
-   out.println("   bytes=0; ");
    out.println("   env->DeleteLocalRef(jbytes); ");
    out.println("}\n\n");
+
+   out.println("/*\n");
+   out.println("1.2.13 The ~GetTmpObject~ function \n");
+   out.println("This functions takes the content of the FLOB and ");
+   out.println("creates the Java object from it. \n");
+   out.println("*/");
+   out.println("jobject "+Name+"::GetTmpObject(bool& actualTemp) const{");
+   out.println("   __TRACE__");
+   out.println("   if(obj){");
+   out.println("      actualTemp=false;");
+   out.println("      return obj;");
+   out.println("   }");
+   out.println("   if(&objectData == 0) error(__LINE__); ");
+   out.println("   int size = objectData.Size(); ");
+   out.println("   if(size==0) error(__LINE__);");
+   out.println("   const char* bytes; ");
+   out.println("   objectData.Get(0,&bytes);" );
+   out.println("   // copy the data into a java array ");
+   out.println("   jbyteArray jbytes = env->NewByteArray(size);");
+   out.println("   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);");
+   out.println("   jobject mobj = env->CallStaticObjectMethod(Serializer_class,");
+   out.println("               Serializer_readFrom_ID ,jbytes);");
+   out.println("   if(mobj==0) error(__LINE__); ");
+   out.println("   jbyte* elems = env->GetByteArrayElements(jbytes,0);");
+   out.println("   env->ReleaseByteArrayElements(jbytes,elems,0);");
+   out.println("   env->DeleteLocalRef(jbytes); ");
+   out.println("   actualTemp=true;");
+   out.println("   return mobj; "); 
+   out.println("}\n\n");
+
 
 
    out.println("/*\n");
@@ -898,20 +945,22 @@ private static void printClassDeclaration(PrintStream out, Class C, Vector metho
    out.println("     ~"+Name+"();");
    // some functions required for the use as an attribute type
    out.println("     void Destroy();");
-   out.println("     "+Name+"* Clone();");
+   out.println("     "+Name+"* Clone() const;");
    out.println("     bool IsDefined() const{ __TRACE__ return defined;}");
    out.println("     void SetDefined(bool b){__TRACE__ defined =b;}");
-   out.println("     size_t HashValue();");
-   out.println("     void CopyFrom(StandardAttribute* right);");
-   out.println("     int Compare(Attribute* arg);");
-   out.println("     bool Adjacent(Attribute* arg);");
-   out.println("     int NumOfFLOBs();");
+   out.println("     size_t HashValue() const;");
+   out.println("     void CopyFrom(const StandardAttribute* right);");
+   out.println("     int Compare(const Attribute* arg) const;");
+   out.println("     bool Adjacent(const Attribute* arg) const;");
+   out.println("     int NumOfFLOBs() const;");
    out.println("     FLOB* GetFLOB(const int i);");
    out.println("     jobject GetObject(){if(!obj)");
    out.println("                            RestoreJavaObjectFromFLOB();");
    out.println("                         return obj;}");
    out.println("     void SetObject(jobject obj){ __TRACE__ ");
-   out.println("                                  this->obj=obj;}");
+   out.println("                                  this->obj=obj;");
+   out.println("                                  ComputeHashValue();");
+   out.println("                                 }");
    out.println("     // functions required for persistent storing");
    out.println("     void RestoreJavaObjectFromFLOB();");
    out.println("     void RestoreFLOBFromJavaObject();");
@@ -921,6 +970,8 @@ private static void printClassDeclaration(PrintStream out, Class C, Vector metho
    out.println("                       env->DeleteLocalRef(obj);");
    out.println("                     obj=0;};");
    out.println("     ListExpr ToListExpr(ListExpr typeInfo);");
+   out.println("     jobject GetTmpObject( bool& actualTemp) const;");
+
    out.println("     // the next functions are the algebra operators");
 
    for(int i=0;i<methods.size();i++){
@@ -935,6 +986,8 @@ private static void printClassDeclaration(PrintStream out, Class C, Vector metho
    out.println("     FLOB objectData;");
    out.println("     bool canDelete;");
    out.println("     bool defined;");
+   out.println("     size_t hashValue;");
+   out.println("     void ComputeHashValue();");
    out.println("};\n"); // end of the declaration
 }
 
@@ -1066,7 +1119,7 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println("                  const ListExpr typeInfo,");
    out.println("                  Word& value){");
    out.println("   __TRACE__");
-   out.println("   "+Name+"* P = ("+Name+"*) TupleElement::Open(valueRecord,offset,typeInfo);");
+   out.println("   "+Name+"* P = ("+Name+"*) Attribute::Open(valueRecord,offset,typeInfo);");
    out.println("   P->SetObject(0); ");
    out.println("   value = SetWord(P); ");
    out.println("   return true; ");
@@ -1082,7 +1135,7 @@ private static void printStandardFunctions(PrintStream out,Class cls){
    out.println("                  Word& value){");
    out.println("   __TRACE__");
    out.println("   "+Name+"* P = ("+Name+"*) value.addr;");
-   out.println("   TupleElement::Save(valueRecord,offset,typeInfo,P);");
+   out.println("   Attribute::Save(valueRecord,offset,typeInfo,P);");
    out.println("   return true; ");
    out.println("}\n\n");
 
