@@ -4236,7 +4236,7 @@ const string TemporalSpecDistance =
 const string TemporalSpecUnits  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text>moving(x) -> stream(unit(x))</text--->"
+  "( <text>mT -> (stream uT)</text--->"
   "<text> units( _ )</text--->"
   "<text>get the stream of units of the moving value.</text--->"
   "<text>units( mpoint1 )</text--->"
