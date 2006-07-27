@@ -33,7 +33,8 @@ import tools.Reporter;
 /**
  * A displayclass for the movingint-type (spatiotemp algebra), alphanumeric with TimePanel
  */
-public class Dsplmovingint extends DsplGeneric implements LabelAttribute, Timed, RenderAttribute{
+public class Dsplmovingint extends DsplGeneric implements LabelAttribute, Timed, 
+                                   Function, ExternDisplay, RenderAttribute{
 
   /** the interval covering only the bounded intervals of this moving int **/
   protected Interval TimeBounds; 
@@ -45,8 +46,38 @@ public class Dsplmovingint extends DsplGeneric implements LabelAttribute, Timed,
   protected Vector Ints = new Vector(10, 5);
   protected int min;
   protected int max;
+  private static  FunctionFrame functionframe = new FunctionFrame();
   
   
+  public    Double getValueAt(double time){
+    int index = IntervalSearch.getTimeIndex(time,Intervals);
+    if(index<0) return null;
+    return new Double(((Integer)Ints.get(index)).doubleValue()); 
+  }
+
+
+  public boolean isExternDisplayed(){
+      return(functionframe.isVisible() && this.equals(functionframe.getSource()));
+  }
+
+  public void  displayExtern(){
+      if(!defined){
+          Reporter.showInfo("not defined");
+          return;
+      }
+      if(TimeBounds!=null){
+         functionframe.setSource(this);
+         functionframe.setVisible(true);
+         functionframe.toFront();
+      } else{
+         Reporter.showInfo("The moving int is empty");
+      }
+  }
+  
+  public Interval getInterval(){
+     return  TimeBounds;
+  }
+
   /** returns the value of this moving integer at the given time as string */
 public String getLabel(double time){
     if(!defined | err){
@@ -145,6 +176,10 @@ public String getLabel(double time){
     }
     return  jp;
   }
+
+  
+
+
 
   /**
    * Scans the representation of a movingint datatype
@@ -256,6 +291,8 @@ public String getLabel(double time){
   public Vector getIntervals(){
     return Intervals;
     } 
+
+
 }
 
 
