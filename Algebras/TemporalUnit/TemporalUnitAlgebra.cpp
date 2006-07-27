@@ -240,8 +240,8 @@ The real unit gets the time interval from the point unit.
 convert to milliseconds
 
 */
-     t0 = inf.GetAllMilliSeconds();
-     t1 = sup.GetAllMilliSeconds();
+     t0 = inf.ToDouble();
+     t1 = sup.ToDouble();
 
 /*
 The duration within a time interval converted in seconds. 
@@ -294,8 +294,8 @@ void UPoint::USpeed( UReal& result ) const
      inf = result.timeInterval.start,
      sup = result.timeInterval.end;
 
-     t0 = inf.GetAllMilliSeconds();
-     t1 = sup.GetAllMilliSeconds();
+     t0 = inf.ToDouble();
+     t1 = sup.ToDouble();
 
      duration = (t1 - t0)/1000;   // value in second
 
@@ -349,8 +349,8 @@ The final coordinate of the point unit.
      inf = uPoint->timeInterval.start,
      sup = uPoint->timeInterval.end;
 
-     t0 = inf.GetAllMilliSeconds();
-     t1 = sup.GetAllMilliSeconds();
+     t0 = inf.ToDouble();
+     t1 = sup.ToDouble();
 
      duration = (t1 - t0)/1000;    // value in second
 
@@ -400,8 +400,8 @@ void UPoint::UVelocity( UPoint& result ) const
      inf = result.timeInterval.start,
      sup = result.timeInterval.end;
 
-     t0 = inf.GetAllMilliSeconds();
-     t1 = sup.GetAllMilliSeconds();
+     t0 = inf.ToDouble();
+     t1 = sup.ToDouble();
 
      duration = (t1 - t0)/1000;   // value in second
 
@@ -1469,7 +1469,7 @@ int Queryrect2d(Word* args, Word& result, int message, Word& local, Supplier s)
 
   if (Inv->IsDefined())
    {
-    timevalue = Inv->GetAllMilliSeconds();
+    timevalue = Inv->ToDouble();
 
     x1 = 0;
     x2 = timevalue;
@@ -1543,12 +1543,12 @@ if( !range->IsEmpty()  )
 Derives the maximum of all intervals.
 
 */
-    Y = sup.GetAllMilliSeconds();
+    Y = sup.ToDouble();
 /*
 Derives the minimum of all intervals.
 
 */
-    X = inf.GetAllMilliSeconds();
+    X = inf.ToDouble();
 
   }
 /*
@@ -1591,10 +1591,9 @@ Checking if the periods value is valid and defined.
 	  
 	  sup = timeInterval.end;
     inf = timeInterval.start;
-    
-    
-    intervalue_sup = sup.GetAllMilliSeconds();
-    intervalue_inf = inf.GetAllMilliSeconds();
+
+    intervalue_sup = sup.ToDouble();
+    intervalue_inf = inf.ToDouble();
 /*
   Summarizing of all time intervals.
       
