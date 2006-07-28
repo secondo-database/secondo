@@ -1456,40 +1456,38 @@ int Queryrect2d(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   const unsigned dim = 2;
   double min[dim], max[dim];
-  double x1,y1,x2,y2;
   double timevalue;
+  double mininst, maxinst;
+
+  Instant*      Inv = (Instant*)args[0].addr;
+  DateTime* tmpinst = new DateTime();
+
+  tmpinst->ToMinimum(); 
+  mininst = tmpinst->ToDouble();
+
+  tmpinst->ToMaximum();
+  maxinst = tmpinst->ToDouble();
 
   result = qp->ResultStorage( s );
-  Instant* Inv = (Instant*)args[0].addr;
-
-  x1 = 0;
-  x2 = 0;
-  y1 = 0;
-  y2 = 0;
 
   if (Inv->IsDefined())
    {
     timevalue = Inv->ToDouble();
 
-    x1 = 0;
-    x2 = timevalue;
-    y1 = timevalue;
-    y2 = MAXDOUBLE;
-
 /*
 Definition of a rectangle with the dimension 2.
 
 */
-    min[0] = x1;
-    min[1] = x2;
-    max[0] = y1;
-    max[1] = y2;
+    min[0] = mininst;  // x1
+    min[1] = timevalue; // x2
+    max[0] = timevalue; // y1
+    max[1] = maxinst;  // y2
 
     Rectangle<dim>* rect = new Rectangle<dim>(true, min, max);
     ((Rectangle<dim>*)result.addr)->CopyFrom(rect);
     delete rect;
    }
-  else
+  else // Inv is undefined
    {
 /*
 Definition of a rectangle with the dimension 2.
@@ -1498,16 +1496,18 @@ with zero values.
 
 */
 
-    min[0] = x1;
-    min[1] = x2;
-    max[0] = y1;
-    max[1] = y2;
+    min[0] = mininst;
+    min[1] = mininst;
+    max[0] = mininst;
+    max[1] = mininst;
 
     Rectangle<dim>* rect = new Rectangle<dim>(false, min, max);
     ((Rectangle<dim>*)result.addr)->CopyFrom(rect);
     delete rect;
 
     }
+
+  delete tmpinst;
 
   return 0;
 }
