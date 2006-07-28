@@ -443,7 +443,7 @@ If not, the result will conatain an undefined value.
     }
     // copy the value of the lowest part into a result
     unsigned long v = value[0];
-    long r;
+    long r = 0L;
     unsigned long pos = 1L << (numberOfBitsM1);
     for(unsigned int i=0;i<numberOfBits;i++){
        if( (v&pos)>0)
