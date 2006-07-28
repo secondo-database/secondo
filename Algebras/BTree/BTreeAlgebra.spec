@@ -25,6 +25,7 @@ operator insertbtree alias INSERTBTREE pattern _ _ op [ _ ]
 operator deletebtree alias DELETEBTREE pattern _ _ op [ _ ]
 operator updatebtree alias UPDATEBTREE pattern _ _ op [ _ ]
 operator exactmatch alias EXACTMATCH pattern _ _ op [ _ ]
-
-
-
+operator exactmatchS alias EXACTMATCHS pattern _ op [ _ ]
+operator leftrangeS alias LEFTRANGES pattern _ op [ _ ]
+operator rightrangeS alias RIGHTRANGES pattern _ op [ _ ]
+operator rangeS alias RANGES pattern _ op [ _, _ ]
