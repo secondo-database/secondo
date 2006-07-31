@@ -53,6 +53,7 @@ that process streams of units.
 So we are to implement:
 
 ----
+State Operator
 
 OK   ufeed: unit(a) --> stream(unit(a))                                   
 
@@ -194,85 +195,53 @@ void MPoint::MSpeed( MReal& result ) const
   double t0, t1;
   double duration;
 
-/*
-The result storage are cleared before use.
-
-*/
-
   result.Clear();
 
-/*
-Start the collection of real units.
+  if ( ! IsDefined() )
+    result.SetDefined( false );
 
-*/
-  result.StartBulkLoad();
+  else
+    {
+      result.StartBulkLoad();
 
-  for( int i = 0; i < GetNoComponents(); i++ )
-  {
-/*
-first I load the unit i of the moving point
-
-*/
-
-    Get( i, uPoint );
-/*
-The initial coordinate of the point unit.
-
-*/
-     x0 = uPoint->p0.GetX();
-     y0 = uPoint->p0.GetY();
-
-/*
-The final coordinate of the point unit.
-
-*/
-     x1 = uPoint->p1.GetX();
-     y1 = uPoint->p1.GetY();
-
-/*
-The real unit gets the time interval from the point unit.
-
-*/
-     uReal.timeInterval = uPoint->timeInterval;
-     inf = uReal.timeInterval.start,
-     sup = uReal.timeInterval.end;
-/*
-convert to milliseconds
-
-*/
-     t0 = inf.ToDouble();
-     t1 = sup.ToDouble();
-
-/*
-The duration within a time interval converted in seconds. 
-
-*/
-
-     duration = (t1 - t0)/1000;
-
-/*
-The point unit can be represented as a function of
-f(t)= (x0 + x1 * t, y0 + y1 * t).
-The result of the derivation is the constant (x1,y1).
-Concerning of this the speed is constant in this time interval.
-The value are represented in the variable c. The variables a and b
-are set to zero.
-
-*/
-     uReal.a = 0;
-     uReal.b = 0;
-     uReal.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
-     uReal.r = false;
-
-/*
-The real unit are added to the moving real.
-
-*/
-    result.Add( uReal );
-  }
-  result.EndBulkLoad( false );
+      for( int i = 0; i < GetNoComponents(); i++ )
+	{
+	  Get( i, uPoint );
+	  
+	  x0 = uPoint->p0.GetX(); // initial pos
+	  y0 = uPoint->p0.GetY();
+	  
+	  x1 = uPoint->p1.GetX(); // final pos
+	  y1 = uPoint->p1.GetY();
+	  
+	  uReal.timeInterval = uPoint->timeInterval; // copy interval 
+	  inf = uReal.timeInterval.start;            // for result 
+	  sup = uReal.timeInterval.end;              // from argument
+	  
+	  t0 = inf.ToDouble(); // convert to milliseconds
+	  t1 = sup.ToDouble();
+	  
+	  duration = (t1 - t0)/1000; // interval duration to seconds
+	  
+	  /*
+	    The point unit can be represented as a function of
+	    f(t)= (x0 + x1 * t, y0 + y1 * t).
+	    The result of the derivation is the constant (x1,y1).
+	    Concerning of this the speed is constant in this time interval.
+	    The value are represented in the variable c. The variables a and b
+	    are set to zero.
+	    
+	  */
+	  uReal.a = 0;
+	  uReal.b = 0;
+	  uReal.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
+	  uReal.r = false;
+	  
+	  result.Add( uReal ); // append ureal to mreal
+	}
+      result.EndBulkLoad( false );
+    }
 }
-
 void UPoint::USpeed( UReal& result ) const
 {
 
@@ -281,30 +250,37 @@ void UPoint::USpeed( UReal& result ) const
   double t0, t1;
   double duration;
 
-     x0 = p0.GetX();
-     y0 = p0.GetY();
-
-     x1 = p1.GetX();
-     y1 = p1.GetY();
-
-     result.timeInterval = timeInterval;
-
-  if (result.IsDefined() )
-   {
-     inf = result.timeInterval.start,
-     sup = result.timeInterval.end;
-
-     t0 = inf.ToDouble();
-     t1 = sup.ToDouble();
-
-     duration = (t1 - t0)/1000;   // value in second
-
-     result.a = 0;                // speed is constant in the interval
-     result.b = 0;
-     result.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
-     result.r = false;
-   }
+  if ( ! IsDefined() )
+    result.SetDefined( false );
+  else
+    {
+      
+      x0 = p0.GetX();
+      y0 = p0.GetY();
+      
+      x1 = p1.GetX();
+      y1 = p1.GetY();
+      
+      result.timeInterval = timeInterval;
+      
+      if (result.IsDefined() )
+	{
+	  inf = result.timeInterval.start;
+	  sup = result.timeInterval.end;
+	  
+	  t0 = inf.ToDouble();
+	  t1 = sup.ToDouble();
+	  
+	  duration = (t1 - t0)/1000;   // value in second
+	  
+	  result.a = 0;                // speed is constant in the interval
+	  result.b = 0;
+	  result.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
+	  result.r = false;
+	}
+    }
 }
+
 /*
 3.2 Operator ~Velocity~
 
@@ -318,65 +294,52 @@ void MPoint::MVelocity( MPoint& result ) const
   double t0, t1;
   double duration;
 
-/*
-The result storage is cleared before use.
-
-*/
-
   result.Clear();
-  result.StartBulkLoad();
 
-  for( int i = 0; i < GetNoComponents(); i++ )
-  {
-    Get( i, uPoint );
+  if ( ! IsDefined() )
+    result.SetDefined( false );
+  else
+    {
+      result.StartBulkLoad();
 
-/*
-The initial coordinate of the point unit.
-
-*/
-
-     x0 = uPoint->p0.GetX();
-     y0 = uPoint->p0.GetY();
-
-/*
-The final coordinate of the point unit.
-
-*/
-
-     x1 = uPoint->p1.GetX();
-     y1 = uPoint->p1.GetY();
-
-     inf = uPoint->timeInterval.start,
-     sup = uPoint->timeInterval.end;
-
-     t0 = inf.ToDouble();
-     t1 = sup.ToDouble();
-
-     duration = (t1 - t0)/1000;    // value in second
-
-/*
-The time interval iv of the point unit.
-
-*/
-
-     Interval<Instant> iv(uPoint->timeInterval.start,
-                          uPoint->timeInterval.end,
-                          uPoint->timeInterval.lc,
-                          uPoint->timeInterval.rc);
-
-/*
-Definition of a new point unit p. The velocity is constant
-at all times of the interval of the unit. This is exactly
-the same as at the operator speed. The result is a vector
-and can be represented as a upoint.
-
-*/
-
-     UPoint p(iv,(x1-x0)/duration,0,(y1- y0)/duration,0);
-
-    result.Add( p );
-  }
-  result.EndBulkLoad( false );
+      for( int i = 0; i < GetNoComponents(); i++ )
+	{
+	  Get( i, uPoint );
+	  
+	  x0 = uPoint->p0.GetX(); // initial coordinates
+	  y0 = uPoint->p0.GetY();
+	  
+	  x1 = uPoint->p1.GetX(); // final coordinates
+	  y1 = uPoint->p1.GetY();
+	  
+	  inf = uPoint->timeInterval.start;
+	  sup = uPoint->timeInterval.end;
+	  
+	  t0 = inf.ToDouble();
+	  t1 = sup.ToDouble();
+	  
+	  duration = (t1 - t0)/1000;    // value in second
+	  
+	  //  create an interval:
+	  Interval<Instant> iv(uPoint->timeInterval.start,
+			       uPoint->timeInterval.end,
+			       uPoint->timeInterval.lc,
+			       uPoint->timeInterval.rc);
+	  
+	  /*
+	    Definition of a new point unit p. The velocity is constant
+	    at all times of the interval of the unit. This is exactly
+	    the same as within operator ~speed~. The result is a vector
+	    and can be represented as a upoint.
+	    
+	  */
+	  
+	  UPoint p(iv,(x1-x0)/duration,0,(y1- y0)/duration,0);
+	  
+	  result.Add( p );
+	}
+      result.EndBulkLoad( false );
+    }
 }
 
 void UPoint::UVelocity( UPoint& result ) const
@@ -387,63 +350,75 @@ void UPoint::UVelocity( UPoint& result ) const
   double t0, t1;
   double duration;
 
-     x0 = p0.GetX();
-     y0 = p0.GetY();
+  if ( ! IsDefined() )
+    result.SetDefined( false );
+  else
+    {
+      x0 = p0.GetX();
+      y0 = p0.GetY();
+  
+      x1 = p1.GetX();
+      y1 = p1.GetY();
+  
+      result.timeInterval = timeInterval;
+      
+      if (result.IsDefined() )
+	{
+	  inf = result.timeInterval.start;
+	  sup = result.timeInterval.end;
+	  
+	  t0 = inf.ToDouble();
+	  t1 = sup.ToDouble();
 
-     x1 = p1.GetX();
-     y1 = p1.GetY();
+	  duration = (t1 - t0)/1000;   // value in second
 
-     result.timeInterval = timeInterval;
+	  Interval<Instant> iv(result.timeInterval.start,
+			       result.timeInterval.end,
+			       result.timeInterval.lc,
+			       result.timeInterval.rc);
 
-  if (result.IsDefined() )
-   {
-     inf = result.timeInterval.start,
-     sup = result.timeInterval.end;
-
-     t0 = inf.ToDouble();
-     t1 = sup.ToDouble();
-
-     duration = (t1 - t0)/1000;   // value in second
-
-     Interval<Instant> iv(result.timeInterval.start,
-                          result.timeInterval.end,
-                          result.timeInterval.lc,
-                          result.timeInterval.rc);
-
-     UPoint p(iv,(x1-x0)/duration,0,(y1- y0)/duration,0);
-
-/*
-The new point unit p copied to the result storage.
-
-*/
-
-    result.CopyFrom( &p );
-
-   }
+	  UPoint p(iv,(x1-x0)/duration,0,(y1-y0)/duration,0);
+	  
+	  result.CopyFrom( &p );
+	  
+	}
+    }
 }
+
 /*
 3.6 Operator ~Trajectory~
 
+This function is introduced as an additional memberfunction of class
+~UPoint~:
+
 */
-void UPoint::UTrajectory( UPoint& unit,CLine& line ) const
+
+void UPoint::UTrajectory( CLine& line ) const
 {
+
   line.Clear();
-  line.StartBulkLoad();
 
-
-  CHalfSegment chs( false );
-
-    if( !AlmostEqual( unit.p0, unit.p1 ) )
+  if ( ! IsDefined() )
+    line.SetDefined( false );
+  else 
     {
-
-      chs.Set( true, unit.p0, unit.p1 );
-
-      line += chs;
-      chs.SetLDP( false );
-      line += chs;
+      
+      line.StartBulkLoad();
+      
+      CHalfSegment chs( false );
+      
+      if( !AlmostEqual( p0, p1 ) )
+	{
+	  
+	  chs.Set( true, p0, p1 );
+	  
+	  line += chs;
+	  chs.SetLDP( false );
+	  line += chs;
+	}
+      
+      line.EndBulkLoad();
     }
-
-  line.EndBulkLoad();
 }
 
 
@@ -1708,25 +1683,15 @@ int UnitPointTrajectory(Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
 
-/*
-The result is of the datatype line.
-
-*/
   CLine *line = ((CLine*)result.addr);
-/*
-The input parameter if from type upoint.
-
-*/
   UPoint *upoint = ((UPoint*)args[0].addr);
-/*
-Call of the Memberfunction UTrajectory.
 
-*/
-  upoint->UTrajectory( *upoint, *line );
-
+  upoint->UTrajectory( *line );   // call memberfunction
 
   return 0;
 }
+
+
 /*
 16.2.7 Value mapping functions of operator ~deftime~
 
@@ -1814,74 +1779,68 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
 
   switch( message )
   {
-    case OPEN:
+  case OPEN:
 
-      localinfo = new AtPeriodsLocalInfo;
-      qp->Request(args[0].addr, localinfo->uWord);
-      qp->Request(args[1].addr, localinfo->pWord);
-      localinfo->j = 0;
-      local = SetWord(localinfo);
-      return 0;
+    localinfo = new AtPeriodsLocalInfo;
+    qp->Request(args[0].addr, localinfo->uWord);
+    qp->Request(args[1].addr, localinfo->pWord);
+    localinfo->j = 0;
+    local = SetWord(localinfo);
+    return 0;
 
-    case REQUEST:
-
-      if( local.addr == 0 )
-        return CANCEL;
-      localinfo = (AtPeriodsLocalInfo *)local.addr;
-      unit = (Mapping*)localinfo->uWord.addr;
-      periods = (Periods*)localinfo->pWord.addr;
-
-      if( localinfo->j == periods->GetNoComponents() )
-         return CANCEL;
-      periods->Get( localinfo->j, interval );
-
+  case REQUEST:
+    
+    if( local.addr == 0 )
+      return CANCEL;
+    localinfo = (AtPeriodsLocalInfo *)local.addr;
+    unit = (Mapping*)localinfo->uWord.addr;
+    periods = (Periods*)localinfo->pWord.addr;
+    
+    if( localinfo->j == periods->GetNoComponents() )
+      return CANCEL;
+    periods->Get( localinfo->j, interval );
+    
     if( interval->Before( unit->timeInterval ) )
-    {
-    while (1)
-     {
-      if( ++localinfo->j == periods->GetNoComponents() )
-         break;
-       periods->Get(localinfo->j, interval);
-       if (!( interval->Before( unit->timeInterval )))
-          break;
+      {
+	while (1)
+	  {
+	    if( ++localinfo->j == periods->GetNoComponents() )
+	      break;
+	    periods->Get(localinfo->j, interval);
+	    if (!( interval->Before( unit->timeInterval )))
+	      break;
+	  }
       }
-     }
 
-     if( localinfo->j >= periods->GetNoComponents() ) {
-         result.addr = 0;
-         return CANCEL;
-       }
-
-   if( unit->timeInterval.Before( *interval ) )
-    {
-         result.addr = 0;
-         return CANCEL;
+    if( localinfo->j >= periods->GetNoComponents() ) {
+      result.addr = 0;
+      return CANCEL;
     }
+    
+    if( unit->timeInterval.Before( *interval ) )
+      {
+	result.addr = 0;
+	return CANCEL;
+      }
     else
-    {
-
-      unit->AtInterval( *interval, r );
-      Mapping* aux = new Mapping( r );
-      result = SetWord( aux );
-
-      localinfo->j++;
-
-      return YIELD;
-
-    }
-
+      {
+	unit->AtInterval( *interval, r );
+	Mapping* aux = new Mapping( r );
+	result = SetWord( aux );
+	localinfo->j++;
+	return YIELD;
+      }
+    
     return CANCEL; // should not happen
-
-
-    case CLOSE:
-
-      if( local.addr != 0 )
-        delete (AtPeriodsLocalInfo *)local.addr;
-      return 0;
+    
+  case CLOSE:
+    
+    if( local.addr != 0 )
+      delete (AtPeriodsLocalInfo *)local.addr;
+    return 0;
   }
   /* should not happen */
   return -1;
-
 }
 
 /*
@@ -1933,7 +1892,6 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
     periods = (Periods *) localinfo->pWord.addr;
     
     // search for a pair of overlapping unit/interval:
-    
     while (1)
       {
 	if ( localinfo->j == periods->GetNoComponents() ) // redo first interval
@@ -1954,7 +1912,6 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
     
     // We have an interval possibly overlapping the unit's interval now
     // Return unit restricted to overlapping part of both intervals
-    
     unit->AtInterval( *interval, resultUnit); // intersect unit and interval
     aux = new Mapping( resultUnit );
     result = SetWord( aux );
