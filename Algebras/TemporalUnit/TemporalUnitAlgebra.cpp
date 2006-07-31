@@ -116,7 +116,7 @@ OK   ufeed: unit(a) --> stream(unit(a))
      traverse: stream(uregion) --> region
 
      atinstant: stream(uT) x instant --> íntime(T)
-ERR  atperiods: stream(uT) x periods --> stream(uT)
+OK   atperiods: stream(uT) x periods --> stream(uT)
 
      initial, final: stream(uT) --> intime(T)
 
@@ -319,7 +319,7 @@ void MPoint::MVelocity( MPoint& result ) const
   double duration;
 
 /*
-The result storage are cleared before use.
+The result storage is cleared before use.
 
 */
 
@@ -831,7 +831,6 @@ UnitPeriodsTypeMap( ListExpr args )
 
   if( !( nl->IsAtom( arg1 ) ) && ( nl->ListLength( arg1 ) == 2) ) 
     {
-      cout << "t3a ";
       nl->WriteToString(argstr, arg1);
       if ( !( TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) )
 	{
@@ -857,7 +856,6 @@ UnitPeriodsTypeMap( ListExpr args )
 				 nl->SymbolAtom("upoint"));
 
       nl->WriteToString(argstr, nl->Second(arg1));
-      cout << "t3c " << argstr;
       ErrorReporter::ReportError("Operator atperiods expects a type "
                               "(stream T); T in {ubool, uint, ureal, upoint} "
 			      "but gets '(stream " + argstr + ")'.");
@@ -1458,15 +1456,13 @@ int Queryrect2d(Word* args, Word& result, int message, Word& local, Supplier s)
   double min[dim], max[dim];
   double timevalue;
   double mininst, maxinst;
+  Instant* Inv = (Instant*)args[0].addr;
+  DateTime tmpinst;
 
-  Instant*      Inv = (Instant*)args[0].addr;
-  DateTime* tmpinst = new DateTime();
-
-  tmpinst->ToMinimum(); 
-  mininst = tmpinst->ToDouble();
-
-  tmpinst->ToMaximum();
-  maxinst = tmpinst->ToDouble();
+  tmpinst.ToMinimum(); 
+  mininst = tmpinst.ToDouble();
+  tmpinst.ToMaximum();
+  maxinst = tmpinst.ToDouble();
 
   result = qp->ResultStorage( s );
 
@@ -1476,12 +1472,13 @@ int Queryrect2d(Word* args, Word& result, int message, Word& local, Supplier s)
 
 /*
 Definition of a rectangle with the dimension 2.
+Case: The interval is defined.
 
 */
-    min[0] = mininst;  // x1
+    min[0] = mininst;   // x1
     min[1] = timevalue; // x2
     max[0] = timevalue; // y1
-    max[1] = maxinst;  // y2
+    max[1] = maxinst;   // y2
 
     Rectangle<dim>* rect = new Rectangle<dim>(true, min, max);
     ((Rectangle<dim>*)result.addr)->CopyFrom(rect);
@@ -1491,8 +1488,8 @@ Definition of a rectangle with the dimension 2.
    {
 /*
 Definition of a rectangle with the dimension 2.
-The instant are not defined. The rectangle filled
-with zero values.
+Case: The interval is not defined.
+The rectangle is filled with minimum instant values.
 
 */
 
@@ -1506,8 +1503,6 @@ with zero values.
     delete rect;
 
     }
-
-  delete tmpinst;
 
   return 0;
 }
