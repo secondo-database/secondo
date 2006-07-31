@@ -340,6 +340,38 @@ void UPoint::Distance( const Point& p, UReal& result ) const
   result.r = true;
 }
 
+
+/*
+3.2 Class ~MInt~
+
+*/
+void MInt::ReadFrom(const MBool& arg){
+  // remove all units
+  Clear();
+  if(!arg.IsDefined()){
+    SetDefined(false);
+    return; 
+  }
+  SetDefined(true);
+  int size = arg.GetNoComponents();
+  if(size>0){
+     Resize(size);
+  }
+  const UBool* ubool;
+  StartBulkLoad();
+  CcInt currentValue;
+  for(int i=0;i<size;i++){
+    arg.Get(i,ubool);
+    bool v;
+    v = ubool->constValue.GetBoolval();
+    currentValue.Set(true,v?1:0);
+    UInt unit(ubool->timeInterval,currentValue);
+    Add(unit); 
+  } 
+  EndBulkLoad(false);
+} 
+
+
 /*
 3.2 Class ~MPoint~
 
@@ -1794,6 +1826,48 @@ TemporalTemporalTypeMapBool2( ListExpr args )
 }
 
 /*
+Type Mapping for the mbool2mint function
+
+*/
+ListExpr TemporalMBool2MInt(ListExpr args){
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("Single argument expected");
+    return nl->SymbolAtom( "typeerror" );
+  }
+  if(nl->IsEqual(nl->First(args),"mbool")){
+    return   nl->SymbolAtom("mint");
+  }
+  ErrorReporter::ReportError("mint expected");
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+16.1.1 Type Mapping for the ~ExtendDeftime~ function
+
+*/
+ListExpr ExtDeftimeTypeMap(ListExpr args){
+  if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("two argument expected");
+     return nl->SymbolAtom( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->AtomType(arg1)!=SymbolType || nl->AtomType(arg2)!=SymbolType){
+     ErrorReporter::ReportError("simple types required");
+     return nl->SymbolAtom( "typeerror" );
+  }
+  string sarg1 = nl->SymbolValue(arg1);
+  string sarg2 = nl->SymbolValue(arg2);
+  if( (sarg1=="mint" && sarg2=="uint" ) ||
+      (sarg1=="mbool" && sarg2=="ubool") ){
+     return nl->SymbolAtom(sarg1);
+  }
+  ErrorReporter::ReportError("(mint x uint)  or (mbool x ubool) needed");
+  return nl->SymbolAtom( "typeerror" );
+}
+
+
+/*
 16.1.1 Type mapping function ~InstantInstantTypeMapBool~
 
 Is used for the ~<~, ~<=~, ~>~, and ~>=~ operators.
@@ -2895,6 +2969,21 @@ int TemporalBBoxSelect( ListExpr args )
 
 
 /*
+16.2.31 Selection function for extdeftime
+
+*/
+int ExtDeftimeSelect(ListExpr args){
+   // the selection is only dependend on the type of the
+   // first argument
+   ListExpr arg = nl->First(args);
+   if(nl->IsEqual(arg,"mbool"))
+      return 0;
+   if(nl->IsEqual(arg,"mint"))
+      return 1;
+   return -1;
+}
+
+/*
 16.3 Value mapping functions
 
 A value mapping function implements an operator's main functionality: it takes
@@ -3136,14 +3225,6 @@ int RangeInside_ar( Word* args, Word& result, int message, Word& local,
   return 0;
 }
 
-
-
-
-
-
-
-
-
 /*
 16.3.10 Value mapping functions of operator ~before~
 
@@ -3308,6 +3389,13 @@ int MPointTrajectory( Word* args, Word& result, int message,
   return 0;
 }
 
+int MBool2MInt( Word* args, Word& result, int message, Word&
+ local, Supplier s ){
+ result = qp->ResultStorage(s);
+ ((MInt*)result.addr)->ReadFrom(*((MBool*) args[0].addr));
+ return 0;
+
+}
 /*
 16.3.29 Value mapping functions of operator ~distance~
 
@@ -3762,6 +3850,22 @@ int TemporalBox2d( Word* args, Word& result, int message,
 }
 
 /*
+16.3.40 Value Mapping function for ExtDefTime
+
+*/
+template <class Unit,class Alpha>
+int TemporalExtDeftime( Word* args, Word& result, int message,
+                   Word& local, Supplier s )
+{
+  result = qp->ResultStorage(s);
+  Mapping<Unit,Alpha>* arg1 = (Mapping<Unit,Alpha>*) args[0].addr;
+  Unit* arg2 = (Unit*) args[1].addr;
+  Mapping<Unit,Alpha>* res = (Mapping<Unit,Alpha>*) result.addr;
+  arg1->ExtendDefTime(*arg2,*res);
+  return 0;
+}
+
+/*
 16.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -3934,6 +4038,10 @@ ValueMapping temporalbox3dmap[] = { Box3d_rect,
                                     Box3d_rect_instant,
                                     Box3d_periods,
                                     Box3d_rect_periods};
+
+ValueMapping extdeftimemap[] = { TemporalExtDeftime<UBool, CcBool>,
+                                 TemporalExtDeftime<UInt, CcInt> 
+                               };
 
 
 /*
@@ -4347,6 +4455,26 @@ const string TemporalBox2dSpec =
   "<text>box2d(r3)</text--->"
   ") )";
 
+const string TemporalMBool2MIntSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>mbool -> mint </text--->"
+  "<text> mbool2mint( _ ) </text--->"
+  "<text>converts the mbool value into a mint value"
+  "</text--->"
+  "<text>mbool2mint(mb1)</text--->"
+  ") )";
+
+const string TemporalExtDeftimeSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>moving(x) x unit(x) -> moving(x) with x in {bool, int}  </text--->"
+  "<text> extenddeftime( _ _) </text--->"
+  "<text>extends the deftime from themoving(x) to the deftime of the unit(x)"
+  " filling all gap with the value taken from the unit(x).</text--->"
+  "<text>query extdeftime(mb ub)</text--->"
+  ") )";
+
 /*
 16.4.3 Operators
 
@@ -4649,6 +4777,19 @@ Operator temporalbox2d( "box2d",
                          Operator::SimpleSelect,
                          Box2dTypeMap );
 
+Operator mbool2mint( "mbool2mint",
+                       TemporalMBool2MIntSpec,
+                       MBool2MInt,
+                       Operator::SimpleSelect,
+                       TemporalMBool2MInt );
+
+Operator extdeftime( "extdeftime",
+                      TemporalExtDeftimeSpec,
+                      2,
+                      extdeftimemap,
+                      ExtDeftimeSelect,
+                      ExtDeftimeTypeMap );
+
 /*
 6 Creating the Algebra
 
@@ -4759,6 +4900,9 @@ class TemporalAlgebra : public Algebra
 
     AddOperator(&temporalbox3d);
     AddOperator(&temporalbox2d);
+    AddOperator(&mbool2mint);
+    AddOperator(&extdeftime);
+
   }
   ~TemporalAlgebra() {};
 };

@@ -1895,6 +1895,28 @@ and ~m~ is the number of intervals of the periods ~Y~
 */
     void Final( Intime<Alpha>& result ) const;
 
+
+/*
+3.10.5.3 ~Resize~
+
+Changes the unit's array to have space for ~n~ entries.
+
+*/
+    void Resize(const size_t n);
+
+
+/*
+3.10.4.4 ~ExtendDefTime~
+
+The result takes all units from this Mapping. Additionally the deftime
+is extended to the union with the interval of the given unit. Missing parts
+in the definition time of this Mapping are filled with the value given by the 
+unit.  Note that this implementation works only for instances of
+ConstTempralUnit - Mappings. 
+
+*/
+    void ExtendDefTime(Unit u, Mapping<Unit, Alpha>& result);
+
 /*
 3.10.7 Attributes
 
@@ -1933,7 +1955,39 @@ typedef Mapping< UBool, CcBool > MBool;
 3.10 Class ~MInt~
 
 */
-typedef Mapping< UInt, CcInt > MInt;
+class MInt : public  Mapping< UInt, CcInt > {
+public:
+/*
+~Simple Constructor~
+
+*/
+   MInt(){}
+   
+/*
+~Constructor~
+
+Initializes the size of the array of units
+
+*/
+   MInt(const int n):
+     Mapping<UInt, CcInt>(n){}
+
+/*
+~ReadFrom~
+
+Reads the value of this moving(int) from the value 
+of the given moving(bool). The temporal structure
+is equal to the temporal structure of the moving(bool).
+A unit holding the value false is converted to a unit with
+value zero. Units with value true are converted into units 
+representing the  value 1 over their interval.
+
+*/
+   void ReadFrom(const MBool& arg);
+
+
+
+};
 
 /*
 3.11 Class ~MReal~
@@ -4331,6 +4385,71 @@ void Mapping<Unit, Alpha>::Final( Intime<Alpha>& result ) const
     result.instant.CopyFrom( &unit->timeInterval.end );
   }
 }
+
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::Resize(size_t n){
+   units.Resize(n);
+}
+
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::ExtendDefTime(Unit u, 
+                                         Mapping<Unit,Alpha>& result){
+
+   // special case undefined unit -> donst make any changes
+   if(!u.IsDefined()){
+      result.CopyFrom(this);
+      return;
+   } 
+
+   // make an empty result
+   result.Clear();
+   if(!IsDefined()){
+     result.SetDefined(false);
+     return;
+   }
+   // resize for two additional units (estimated a good choice)
+   result.Resize(units.Size()+2);
+
+   Instant CI(u.timeInterval.start); // current instant
+   bool    Cc = u.timeInterval.lc;   // current closed
+   const Unit* unit;
+   result.canDestroy=false;
+   int size = units.Size();
+
+   // we have to connect units holding the same value, so 
+   // we hold a unit and extend it if it is possible
+
+   result.StartBulkLoad();
+
+   for(int i=0; i<size;i++){
+      units.Get(i,unit);
+      // check whether a gap exits between the currect position in time
+      // and this unit
+      if(CI<unit->timeInterval.start || // time is before
+         (( CI==unit->timeInterval.start && !Cc && !unit->timeInterval.lc))){
+         // create a Unit filling the gap
+         Interval<Instant> interval(CI,unit->timeInterval.start,
+                                    !Cc,!unit->timeInterval.lc); 
+         Unit gap(interval,u.constValue);
+         result.MergeAdd(gap); // append the gap filling unit 
+      }
+      Unit st(*unit);
+      result.MergeAdd(st);
+      // change the current instant and closed information
+      CI = unit->timeInterval.end;
+      Cc = unit->timeInterval.rc;
+   }
+   // fill the gap between the last inserted unit and the end of the given one
+   // if one exists 
+   if( CI<u.timeInterval.end ||
+       ((CI==u.timeInterval.end && !Cc && u.timeInterval.rc))){
+       Interval<Instant> interval(CI,u.timeInterval.end,!Cc,u.timeInterval.rc);
+       Unit gap(interval,u.constValue);
+       result.MergeAdd(gap);
+   }
+   result.EndBulkLoad(false);
+}
+
 
 /*
 5 Type Constructor template functions
