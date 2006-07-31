@@ -1512,7 +1512,8 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   virtual void AtInterval( const Interval<Instant>& i, 
                            TemporalUnit<Point>& result ) const;
   void Distance( const Point& p, UReal& result ) const;
-  void UTrajectory( UPoint& unit,CLine& line ) const;
+  //  void UTrajectory( UPoint& unit,CLine& line ) const;
+  void UTrajectory( CLine& line ) const;
   void USpeed( UReal& result ) const;
   void UVelocity( UPoint& result ) const;
   virtual bool EqualValue( UPoint& i )
