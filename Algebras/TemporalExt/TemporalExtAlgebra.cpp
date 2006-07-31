@@ -649,6 +649,7 @@ are supported.
 */
 void MPointExt::At( CLine* ln, MPoint &result ) const
 {
+    cout << "MPointExt::At called" << endl;
     const UPoint* unitin;
     clock_t clock1, clock2, clock3, clock4, clock_ges;
     float time1, time2;
@@ -664,7 +665,7 @@ void MPointExt::At( CLine* ln, MPoint &result ) const
         const Rectangle<3> temp_pbb = (Rectangle<3>)unitin->BoundingBox();
         Rectangle<2> unit_pbb;
         const Rectangle<2> obj_pbb = (Rectangle<2>)ln->BoundingBox();
-        if(0)
+        if(1)
         {
             cout << "Boundingbox of points: "
                     << "MinD(0): " << obj_pbb.MinD(0)
@@ -685,7 +686,7 @@ Raw intersection with Bounding Boxes
         {
             CHalfSegment up_chs;
             up_chs.Set( false, unitin->p0, unitin->p1 );
-            if(0)
+            if(1)
             {
                 cout << "No of HS: " << ln->Size() << endl;
             }
@@ -699,7 +700,7 @@ Scanning of one 1 of 2 CHalfSegment
 */
                 if( ln_chs->GetRP() == ln_chs->GetDPoint() )
                 {
-                    if(0)
+                    if(1)
                     {
                         cout << "P0.X = " << ln_chs->GetLP().GetX()
                             << " P0.Y = " << ln_chs->GetLP().GetY()
@@ -708,7 +709,8 @@ Scanning of one 1 of 2 CHalfSegment
                             << " D0.X = " << ln_chs->GetDPoint().GetX()
                             << " D0.Y = " << ln_chs->GetDPoint().GetY()
                             << " S1.X = " << ln_chs->GetSPoint().GetX()
-                            << " S1.Y = " << ln_chs->GetSPoint().GetY() << endl;
+                            << " S1.Y = " << ln_chs->GetSPoint().GetY()
+                            << endl;
                     }
 /*
 For unit points which do not have any motion
@@ -718,7 +720,7 @@ For unit points which do not have any motion
                     {
                         if( ln_chs->Contains( unitin->p0 ) )
                         {
-                            if(0)
+                            if(1)
                             {
                                 cout << "Intersects up " << i
                                     << " as a point at " << j << "!!" << endl;
@@ -746,7 +748,7 @@ For unit points which do not have any motion
                     {
                         if( up_chs.Intersects( *ln_chs ) )
                         {
-                            if(0)
+                            if(1)
                             {
                                 cout << "In unit " << i << " ..." << endl;
                                 cout << "( " << up_chs.GetLP().GetX()
@@ -767,21 +769,100 @@ For unit points which do not have any motion
                                         << ln_chs->GetRP().GetY()
                                         << " ) at " << j << endl;
                             }
+
                             Point inter_p;
                             CHalfSegment inter_chs;
+
+                            if( up_chs.overlapintersect( *ln_chs, inter_chs ) )
+                            {
+                                if(1)
+                                {
+                                    cout << "Intersection is a line!!" << endl
+                                    << "inter_chs: ( "
+                                            << ln_chs->GetLP().GetX()
+                                            << ", "
+                                            << ln_chs->GetLP().GetY()
+                                            << "; "
+                                            << ln_chs->GetRP().GetX()
+                                            << ", "
+                                            << ln_chs->GetRP().GetY()
+                                            << " )" << endl;
+                                }
+                                UPoint trash1;
+                                UPoint trash2;
+//Instant ins1( instanttype ), ins2( instanttype );
+                                unitin->At( ln_chs->GetLP(), trash1 );
+                                unitin->At( ln_chs->GetRP(), trash2 );
+                                bool inv_def = true, ls = true, rs = true;
+
+                                if(!trash1.timeInterval.lc
+                                    && !trash1.timeInterval.rc)
+                                    inv_def = false;
+
+                                if(!trash2.timeInterval.rc
+                                    && trash2.timeInterval.lc)
+                                    inv_def = false;
+
+
+                                if(inv_def
+                                   && trash1.timeInterval.lc
+                                   && trash2.timeInterval.rc)
+                                {
+
+                                    if(!trash1.timeInterval.lc)
+                                        ls = false;
+
+                                    if(!trash2.timeInterval.rc)
+                                        rs = false;
+                                    Interval<Instant>* ii =
+                                        new Interval<Instant>(
+                                        !ls
+                                        ? trash1.timeInterval.end
+                                        : trash1.timeInterval.start,
+                                        !rs
+                                        ? trash2.timeInterval.start
+                                        : trash2.timeInterval.end,
+                                        true, true
+                                    );
+
+                                    UPoint* res = new UPoint(
+                                        *ii,
+                                        ln_chs->GetLP(),
+                                        ln_chs->GetRP()
+                                    );
+                                    if(1)
+                                    {
+                                        cout << "UPoint created!" << endl
+                                        << "P0.X: " << res->p0.GetX() << endl
+                                        << "P0.Y: " << res->p0.GetY() << endl
+                                        << "P1.X: " << res->p1.GetX() << endl
+                                        << "P1.Y: " << res->p1.GetY() << endl;
+                                        cout << "( "
+                                        << res->timeInterval.start.ToString()
+                                        << " "
+                                        << res->timeInterval.end.ToString()
+                                        << " )" << endl;
+                                    }
+                                    result.Add( *res );
+                                }
+                            }
+                            else
+                            {
 /*
 Looks for intersections in a point
 
 */
-                            if( up_chs.spintersect( *ln_chs, inter_p ) )
-                            {
-                                if(0)
+                                if( up_chs.spintersect( *ln_chs, inter_p ) )
                                 {
-                                    cout << "Intersects a point!!" << endl;
+                                    if(1)
+                                    {
+                                        cout << "Intersection is a point!!"
+                                        << endl;
+                                    }
+                                    UPoint res;
+                                    unitin->At( inter_p, res );
+                                    result.Add( res );
                                 }
-                                UPoint res;
-                                unitin->At( inter_p, res );
-                                result.Add( res );
                             }
                         }
                     }
@@ -1241,44 +1322,50 @@ void MappingExt<Unit, Alpha>::At(
     bool is_valid = true;
     const Interval<Alpha> *lastInterval, *interval;
 
-    if( inv->GetNoComponents() == 1 )
+    if( !inv->IsOrdered() )
+        is_valid = false;
+
+    if( inv->GetNoComponents() == 1 && is_valid)
     {
         inv->Get( 0, interval );
-        is_valid = false;
+        is_valid = interval->IsValid();
     }
-
-    if(is_valid)
+    else
     {
+
+        if(is_valid)
+        {
 /*
 This implementation was token from method Range::IsValid() which is
 private. The method Range::Contains() has an assert(!IsValid()) what
 causes a unesthetic termination of DB-UI.
 
 */
-        for( int i = 1; i < inv->GetNoComponents(); i++ )
-        {
-            inv->Get( i-1, lastInterval );
-            if( !lastInterval->IsValid() )
+            for( int i = 1; i < inv->GetNoComponents(); i++ )
             {
-                is_valid = false;
-                break;
-            }
-            inv->Get( i, interval );
-            if( !interval->IsValid() )
-            {
-                is_valid = false;
-                break;
-            }
-            if( (!lastInterval->Disjoint( *interval )) &&
-                (!lastInterval->Adjacent( *interval )) )
-            {
-                is_valid = false;
-                break;
+                inv->Get( i-1, lastInterval );
+                if( !lastInterval->IsValid() )
+                {
+                    is_valid = false;
+                    break;
+                }
+                inv->Get( i, interval );
+                if( !interval->IsValid() )
+                {
+                    is_valid = false;
+                    break;
+                }
+                if( (!lastInterval->Disjoint( *interval )) &&
+                    (!lastInterval->Adjacent( *interval )) )
+                {
+                    is_valid = false;
+                    break;
+                }
             }
         }
     }
 
-    if(inv->IsOrdered() && is_valid)
+    if(is_valid)
     {
         result.Clear();
         result.StartBulkLoad();
@@ -4293,6 +4380,7 @@ ValueMapping temporalatextmap[] = {
     MappingAtExt<MString, UString, CcString, RString>,
     MappingRRealAtExt,
     MappingMPointPointsAtExt,
+    MappingMPointLineAtExt,
     MRegionPointAtExt,
     };
 
@@ -4684,7 +4772,7 @@ Operator temporalfinalext(
 Operator temporalpresentext(
     "present",
     TemporalSpecPresentExt,
-    10,
+    2,
     temporalpresentextmap,
     MovingExtInstantPeriodsSelect,
     MovingInstantPeriodsExtTypeMapBool);
