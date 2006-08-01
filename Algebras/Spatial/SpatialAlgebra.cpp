@@ -9753,48 +9753,60 @@ int
 SpatialIntersects_lr( Word* args, Word& result, int message, 
                       Word& local, Supplier s )
 {
-    //to judge whether line intersects with region.
-    result = qp->ResultStorage( s );
-    CLine *cl;
-    CRegion *cr;
-    const CHalfSegment *chsl, *chsr;
-
-    cl=((CLine*)args[0].addr);
-    cr=((CRegion*)args[1].addr);
-
-    if(! cl->BoundingBox().Intersects( cr->BoundingBox() ) )
+  //to judge whether line intersects with region.
+  result = qp->ResultStorage( s );
+  CLine *cl;
+  CRegion *cr;
+  const CHalfSegment *chsl, *chsr;
+  
+  cl=((CLine*)args[0].addr);
+  cr=((CRegion*)args[1].addr);
+  
+  if ( (! cl->IsDefined() ) || (! cr->IsDefined() ) )
     {
+      ((CcBool *)result.addr)->Set( false, false );
+      return (0);
+    }
+
+  if ( cl->IsEmpty() || cr->IsEmpty() )
+    {
+      ((CcBool *)result.addr)->Set( true, false );
+      return (0);
+    } 
+
+  if(! cl->BoundingBox().Intersects( cr->BoundingBox() ) )
+    {
+      ((CcBool *)result.addr)->Set( true, false );
+      return (0);
+    }
+  
+  for (int i=0; i<cl->Size(); i++)
+    {
+      cl->Get(i, chsl);
+      if (chsl->GetLDP())
+	{
+	  for (int j=0; j<cr->Size(); j++)
+	    {
+	      cr->Get(j, chsr);
+	      if (chsr->GetLDP())
+		{
+		  if (chsl->Intersects(*chsr))
+		    {
+		      ((CcBool *)result.addr)->Set( true, true );
+		      return (0);
+		    }
+		}
+	    }
+	  
+	  if ((cr->contain(chsl->GetLP()))|| (cr->contain(chsl->GetRP())))
+	    {
+	      ((CcBool *)result.addr)->Set( true, true);
+	      return (0);
+	    }
+	}
+    }
   ((CcBool *)result.addr)->Set( true, false);
   return (0);
-    }
-
-    for (int i=0; i<cl->Size(); i++)
-    {
-  cl->Get(i, chsl);
-  if (chsl->GetLDP())
-  {
-      for (int j=0; j<cr->Size(); j++)
-      {
-    cr->Get(j, chsr);
-    if (chsr->GetLDP())
-    {
-        if (chsl->Intersects(*chsr))
-        {
-      ((CcBool *)result.addr)->Set( true, true );
-      return (0);
-        }
-    }
-      }
-
-      if ((cr->contain(chsl->GetLP()))|| (cr->contain(chsl->GetRP())))
-      {
-    ((CcBool *)result.addr)->Set( true, true);
-    return (0);
-      }
-  }
-    }
-    ((CcBool *)result.addr)->Set( true, false);
-    return (0);
 }
 
 int

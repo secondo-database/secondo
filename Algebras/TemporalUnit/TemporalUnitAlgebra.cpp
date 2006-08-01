@@ -2658,14 +2658,16 @@ TemporalSpecAtInstant  =
 */
 const string
 TemporalSpecAtPeriods  =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>T in {int, bool, real, point},\n"
-"(unit(T) periods) -> stream uT\n"
-"((stream uT) periods) -> stream uT</text--->"
+"( ( \"Signature\" \"Signature (1)\" \"Signature (2)\" \"Syntax\""
+" \"Meaning\" \"Example (1)\" \"Example (2)\") "
+"( <text>For T in {int, bool, real, point}:</text--->"
+"<text>(unit(T) periods) -> stream uT\n</text--->"
+"<text>((stream uT) periods) -> stream uT</text--->"
 "<text>_ atperiods _ </text--->"
 "<text>restrict the movement to the given"
 " periods.</text--->"
-"<text>upoint1 atperiods periods1</text---> ) )";
+"<text>upoint1 atperiods thehour(2003,11,11,8)</text--->"
+"<text>ufeed(upoint1) atperiods thehour(2003,11,11,8)</text--->) )";
 
 
 /*
@@ -2807,9 +2809,9 @@ TemporalSpecDerivative=
 */
 const string
 TemporalSpecUfeed=
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>For T in {bool, int, real point} \n"
-"uT -> stream uT</text--->"
+"( ( \"Signature\" \" \" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>For T in {bool, int, real point} </text--->"
+"<text>uT -> stream uT</text--->"
 "<text>ufeed ( _ ) </text--->"
 "<text>create a single-unit stream from "
 "a single unit.</text--->"
