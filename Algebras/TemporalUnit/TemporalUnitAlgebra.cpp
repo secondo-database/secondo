@@ -2560,8 +2560,9 @@ ValueMapping temporalunitfeedmap[] = { MappingUnitFeed<UBool>,
 */
 const string
 TemporalSpecSpeed  =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>(mpoint/upoint) -> mreal/ureal</text--->"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>(mpoint/upoint) -> mreal/ureal</text--->"
 "<text>speed( _ )</text--->"
 "<text>return the speed of a spatial object.</text--->"
 "<text>query speed(mp1)</text---> ) )";
@@ -2573,8 +2574,9 @@ TemporalSpecSpeed  =
 */
 const string
 TemporalSpecQueryrect2d  =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>(instant) -> rect</text--->"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>(instant) -> rect</text--->"
 "<text>queryrect2d( _ )</text--->"
 "<text>return the rect of an instant object for a time interval.</text--->"
 "<text>query queryrect2d(instant)</text---> ) )";
@@ -2585,8 +2587,9 @@ TemporalSpecQueryrect2d  =
 */
 const string
 TemporalSpecPoint2d  =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>(periods) -> point</text--->"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>(periods) -> point</text--->"
 "<text>point2d( _ )</text--->"
 "<text>return the point of a given interval.</text--->"
 "<text>query point2d(periods)</text---> ) )";
@@ -2597,8 +2600,9 @@ TemporalSpecPoint2d  =
 */
 const string
 TemporalSpecSize  =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>(periods) -> real</text--->"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>(periods) -> real</text--->"
 "<text>size( _ )</text--->"
 "<text>return the duration of a moving object.</text--->"
 "<text>query size(periods)</text---> ) )";
@@ -2609,8 +2613,9 @@ TemporalSpecSize  =
 */
 const string
 TemporalSpecMakemvalue  =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>((stream (tuple ((x1 t1)...(xn tn)))"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>((stream (tuple ((x1 t1)...(xn tn)))"
 " (unit(xi))))-> moving(x)</text--->"
 "<text> makemvalue[ _ ]</text--->"
 "<text>get the moving value of the stream of units.</text--->"
@@ -2622,8 +2627,9 @@ TemporalSpecMakemvalue  =
 */
 const string
 TemporalSpecTrajectory  =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>upoint -> line</text--->"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>upoint -> line</text--->"
 "<text> trajectory( _ )</text--->"
 "<text>get the trajectory of the corresponding"
 "unit point object.</text--->"
@@ -2635,8 +2641,9 @@ TemporalSpecTrajectory  =
 */
 const string
 TemporalSpecDefTime  =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>unit(x) -> periods</text--->"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>unit(x) -> periods</text--->"
 "<text> deftime( _ )</text--->"
 "<text>get the defined time of the corresponding"
 " unit data objects.</text--->"
@@ -2648,8 +2655,9 @@ TemporalSpecDefTime  =
 */
 const string
 TemporalSpecAtInstant  =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>(unit(x) instant) -> intime(x)</text--->"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>(unit(x) instant) -> intime(x)</text--->"
 "<text>_ atinstant _ </text--->"
 "<text>get the Intime value corresponding to the "
 "instant.</text--->"
@@ -2661,9 +2669,10 @@ TemporalSpecAtInstant  =
 */
 const string
 TemporalSpecAtPeriods  =
-"( ( \"Signature\" \"Signature (1)\" \"Signature (2)\" \"Syntax\""
+"( ( \"Algebra\" \"Signature\" \"Signature (1)\" \"Signature (2)\" \"Syntax\""
 " \"Meaning\" \"Example (1)\" \"Example (2)\") "
-"( <text>For T in {int, bool, real, point}:</text--->"
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>For T in {int, bool, real, point}:</text--->"
 "<text>(unit(T) periods) -> stream uT\n</text--->"
 "<text>((stream uT) periods) -> stream uT</text--->"
 "<text>_ atperiods _ </text--->"
@@ -2679,8 +2688,9 @@ TemporalSpecAtPeriods  =
 */
 const string
 TemporalSpecInitial  =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>unit(x) -> intime(x)</text--->"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>unit(x) -> intime(x)</text--->"
 "<text> initial( _ )</text--->"
 "<text>get the intime value corresponding"
 " to the initial instant.</text--->"
@@ -2693,8 +2703,9 @@ TemporalSpecInitial  =
 */
 const string
 TemporalSpecFinal  =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>unit(x) -> intime(x)</text--->"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>unit(x) -> intime(x)</text--->"
 "<text> final( _ )</text--->"
 "<text>get the intime value corresponding"
 " to the final instant.</text--->"
@@ -2706,8 +2717,9 @@ TemporalSpecFinal  =
 */
 const string
 TemporalSpecPresent  =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>(moving/unit(x) instant) -> bool,"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>(moving/unit(x) instant) -> bool,"
 " (moving/unit(x) periods) -> bool</text--->"
 "<text>_ present _ </text--->"
 "<text>whether the object is present at the"
@@ -2720,8 +2732,9 @@ TemporalSpecPresent  =
 */
 const string
 TemporalSpecPasses =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>(unit(x) x) -> bool</text--->"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>(unit(x) x) -> bool</text--->"
 "<text>_ passes _ </text--->"
 "<text>whether the object passes the given"
 " value.</text--->"
@@ -2734,8 +2747,9 @@ TemporalSpecPasses =
 */
 const string
 TemporalSpecAt =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>(unit(x) x) -> unit(x)</text--->"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>(unit(x) x) -> unit(x)</text--->"
 "<text> _ at _ </text--->"
 "<text>restrict the movement at the times"
 " where the equality occurs.</text--->"
@@ -2747,8 +2761,9 @@ TemporalSpecAt =
 */
 const string
 TemporalSpecCircle =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>point x real x int -> region</text--->"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>point x real x int -> region</text--->"
 "<text> circle ( _ ) </text--->"
 "<text>defines a circle with a given radius"
 " and n calculated points.</text--->"
@@ -2760,8 +2775,9 @@ TemporalSpecCircle =
 */
 const string
 TemporalSpecMakePoint =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>int x int -> point</text--->"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>int x int -> point</text--->"
 "<text> makepoint ( _ ) </text--->"
 "<text>create a point with two"
 " given values.</text--->"
@@ -2773,8 +2789,9 @@ TemporalSpecMakePoint =
 */
 const string
 TemporalSpecVelocity=
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>mpoint/upoint -> mpoint/upoint</text--->"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>mpoint/upoint -> mpoint/upoint</text--->"
 "<text> velocity ( _ ) </text--->"
 "<text>describes the vector of the speed"
 " to the given object.</text--->"
@@ -2786,8 +2803,9 @@ TemporalSpecVelocity=
 */
 const string
 TemporalSpecDerivable=
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>mreal/ureal -> mbool/ubool</text--->"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>mreal/ureal -> mbool/ubool</text--->"
 "<text> derivable ( _ ) </text--->"
 "<text>get the hint"
 " for a mreal/ureal which part is derivable.</text--->"
@@ -2799,8 +2817,9 @@ TemporalSpecDerivable=
 */
 const string
 TemporalSpecDerivative=
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>mreal/ureal -> mreal/ureal</text--->"
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>mreal/ureal -> mreal/ureal</text--->"
 "<text> derivative ( _ ) </text--->"
 "<text>determination the derivative"
 " of a mreal/ureal.</text--->"
@@ -2812,8 +2831,9 @@ TemporalSpecDerivative=
 */
 const string
 TemporalSpecUfeed=
-"( ( \"Signature\" \" \" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>For T in {bool, int, real point} </text--->"
+"( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>TemporalUnitAlgebra</text--->"
+"<text>For T in {bool, int, real point} </text--->"
 "<text>uT -> stream uT</text--->"
 "<text>ufeed ( _ ) </text--->"
 "<text>create a single-unit stream from "
