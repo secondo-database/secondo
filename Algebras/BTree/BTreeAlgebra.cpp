@@ -1630,9 +1630,10 @@ IndexQueryS(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string ExactMatchSSpec  = 	
-  "( ( \"Signature\" \"Syntax\" \"Meaning\""
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\""
   " \"Example\" )"
-  "( <text>(btree( (tuple(X))) ti) ti->)"
+  "( <text>BTreeAlgebra</text--->"
+  "<text>(btree( (tuple(X))) ti) ti->)"
   "(stream((id tid)))</text--->"
   "<text> _ exactmatchS [ _ ]</text--->"
   "<text>Uses the given btree to find all tuple "
@@ -1663,9 +1664,10 @@ Operator exactmatchs (
 
 */
 const string RangeSSpec  = 	
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" "
+	"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
         "\"Example\" )"
-        "( <text>((btree (tuple (X)) ti) ti ti)"
+        "( <text>BTreeAlgebra</text--->"
+        "<text>((btree (tuple (X)) ti) ti ti)"
 	" -> (stream (tuple ((ti tid))))"
 	"</text--->"
 	"<text> _ rangeS [ _ , _ ]</text--->"
@@ -1696,9 +1698,10 @@ Operator cppranges (
 
 */
 const string LeftRangeSSpec  = 	
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" "
+	"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
 	"\"Example\" ) "
-        "( <text>((btree (tuple (X)) ti) ti)"
+        "( <text>BTreeAlgebra</text--->"
+        "<text>((btree (tuple (X)) ti) ti)"
         " -> (stream (tuple ((ti tid))))</text--->"
 	"<text>_ leftrangeS [ _ ]</text--->"
 	"<text>Uses the given btree to find all tuple "
@@ -1730,9 +1733,10 @@ Operator leftranges (
 
 */
 const string RightRangeSSpec  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" "
+	"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
         "\"Example\" ) "
-        "( <text>((btree (tuple (X))"
+        "( <text>BTreeAlgebra</text--->"
+        "<text>((btree (tuple (X))"
 	" ti) ti) -> (stream"
 	" (tuple ((id tid))))</text--->"
 	"<text>_ rightrangeS [ _ ]</text--->"
