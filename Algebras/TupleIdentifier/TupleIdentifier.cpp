@@ -70,15 +70,18 @@ bool TupleIdentifier::Adjacent( const Attribute* arg ) const
   return( tid == argTid -1 || tid == argTid + 1 );
 }
 
-TupleIdentifier::TupleIdentifier(bool DEFINED, TupleId TID) {defined = DEFINED, tid = TID;}
+TupleIdentifier::TupleIdentifier(bool DEFINED, TupleId TID) 
+{defined = DEFINED, tid = TID;}
 
 TupleIdentifier::~TupleIdentifier() {}
 
 TupleId TupleIdentifier::GetTid() const {return tid;}
 
-void TupleIdentifier::SetTid(TupleId TID) {tid = TID; defined = true;}
+void TupleIdentifier::SetTid(TupleId TID) 
+{tid = TID; defined = true;}
 
-TupleIdentifier* TupleIdentifier::Clone() const { return new TupleIdentifier( *this ); }
+TupleIdentifier* TupleIdentifier::Clone() const 
+{ return new TupleIdentifier( *this ); }
 
 /*
 2.2 List Representation
@@ -191,16 +194,17 @@ void* CastTupleIdentifier( void* addr )
 2.6 Creation of the Type Constructor Instance
 
 */
-TypeConstructor tupleIdentifier(
-	"tid",			//name
-	TupleIdentifierProperty, 	        //property function describing signature
-    OutTupleIdentifier, InTupleIdentifier,            //Out and In functions
-    0, 0,	                        //SaveToList and RestoreFromList functions
-	CreateTupleIdentifier, DeleteTupleIdentifier,	//object creation and deletion
-    0, 0, CloseTupleIdentifier, CloneTupleIdentifier, //object open, save, close, and clone
-	CastTupleIdentifier,			//cast function
-    SizeOfTupleIdentifier, 			//sizeof function
-	CheckTupleIdentifier );                //kind checking function
+TypeConstructor tupleIdentifier
+(
+ "tid",			//name
+ TupleIdentifierProperty, 	//property function describing signature
+ OutTupleIdentifier, InTupleIdentifier,//Out and In functions
+ 0, 0,	                        //SaveToList and RestoreFromList functions
+ CreateTupleIdentifier, DeleteTupleIdentifier,//object creation and deletion
+ 0, 0, CloseTupleIdentifier, CloneTupleIdentifier,//object open,save,close,clone
+ CastTupleIdentifier,			//cast function
+ SizeOfTupleIdentifier, 			//sizeof function
+ CheckTupleIdentifier );                //kind checking function
 
 /*
 3 Operators
@@ -256,13 +260,18 @@ TIDTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
 3.1.3 Specification of operator ~tupleid~
 
 */
-const string TupleIdSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>(tuple x) -> int</text--->"
-                            "<text>tupleid( _ )</text--->"
-                            "<text>Returns the identification of the tuple.</text--->"
-                            "<text>query cities feed filter[ tupleid(.) < 100 ]"
-                            " consume</text--->) )";
+const string TupleIdSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" \"Comment\" \" \" \" \" ) "
+  "( <text>(tuple x) -> int</text--->"
+  "<text>tupleid( _ )</text--->"
+  "<text>Returns the identification of the tuple.</text--->"
+  "<text>query cities feed filter[ tupleid(.) < 100 ]"
+  " consume</text--->"
+  "<text>Apply tupleid(_) directly after a feed, because </text--->"
+  "<text>other operators my corrupt the tid </text--->"
+  "<text>(in-memory tuples all have tid=0).</text--->"
+  ") )";
 
 /*
 3.1.4 Definition of operator ~tupleid~
@@ -354,34 +363,35 @@ TIDAddTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
   TupleType *resultTupleType;
   ListExpr resultType;
   Word t;
-
+  
   switch (message)
-  {
+    {
     case OPEN :
-
+      
       qp->Open(args[0].addr);
       resultType = GetTupleResultType( s );
       resultTupleType = new TupleType( nl->Second( resultType ) );
       local = SetWord( resultTupleType );
       return 0;
-
+      
     case REQUEST :
-
+      
       resultTupleType = (TupleType *)local.addr;
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
-      {
-        Tuple *tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( resultTupleType );
-        assert( newTuple->GetNoAttributes() == tup->GetNoAttributes() + 1 );
-        for( int i = 0; i < tup->GetNoAttributes(); i++ )
-          newTuple->PutAttribute( i, tup->GetAttribute( i )->Clone() );
-        newTuple->PutAttribute( newTuple->GetNoAttributes() - 1, new TupleIdentifier( true, tup->GetTupleId() ) );
-
-        tup->DeleteIfAllowed();
-        result = SetWord(newTuple);
-        return YIELD;
-      }
+	{
+	  Tuple *tup = (Tuple*)t.addr;
+	  Tuple *newTuple = new Tuple( resultTupleType );
+	  assert( newTuple->GetNoAttributes() == tup->GetNoAttributes() + 1 );
+	  for( int i = 0; i < tup->GetNoAttributes(); i++ )
+	    newTuple->PutAttribute( i, tup->GetAttribute( i )->Clone() );
+	  newTuple->PutAttribute( newTuple->GetNoAttributes() - 1, 
+				  new TupleIdentifier(true,tup->GetTupleId()));
+	  
+	  tup->DeleteIfAllowed();
+	  result = SetWord(newTuple);
+	  return YIELD;
+	}
       else
         return CANCEL;
 
@@ -398,13 +408,18 @@ TIDAddTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
 3.1.3 Specification of operator ~addtupleid~
 
 */
-const string AddTupleIdSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                               "\"Example\" ) "
-                               "( <text>(stream (tuple ((x1 t1) ... (xn tn)))) ->"
-                               "(stream (tuple ((x1 t1) ... (xn tn) (id tid))))</text--->"
-                               "<text>_ addtupleid</text--->"
-                               "<text>Appends the tuple identifier in the tuple type</text--->"
-                               "<text>query cities feed addtupleid consume</text--->) )";
+const string AddTupleIdSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" \"Comment\" \" \" \" \" ) "
+  "( <text>(stream (tuple ((x1 t1) ... (xn tn)))) ->"
+  "(stream (tuple ((x1 t1) ... (xn tn) (id tid))))</text--->"
+  "<text>_ addtupleid</text--->"
+  "<text>Appends the tuple identifier in the tuple type</text--->"
+  "<text>query cities feed addtupleid consume</text--->"
+  "<text>Apply addtupleid directly after a feed, because other </text--->"
+  "<text>operators my corrupt the tid </text--->"
+  "<text>(in-memory tuples all have tid=0).</text--->"
+  ") )";
 
 /*
 3.1.4 Definition of operator ~addtupleid~

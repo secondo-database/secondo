@@ -66,6 +66,9 @@ OK   ufeed: unit(a) --> stream(unit(a))
      atmax, atmin: unit(a) x unit(a) --> stream(unit(a))
      atmax, atmin: stream(unit(a)) x stream(unit(a)) --> stream(unit(a))
 
+     at:        unit(a)  x a --> stream(unit(a))
+     at: strema(unit(a)) x a --> stream(unit(a))
+
      mdirection: upoint --> ureal
      mdirection: stream(upoint) --> stream(ureal)
 

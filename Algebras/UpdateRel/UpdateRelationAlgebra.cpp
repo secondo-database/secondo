@@ -3231,7 +3231,7 @@ int appendIdentifierValueMap(Word* args, Word& result, int message,
 */
 const string appendIdentifierSpec  = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
+  "\"Example\" \"Comment\" \" \" \" \") "
   "( <text>stream(tuple(x)) "
   " -> stream(tuple(x@[TID:tid]))] "
   "</text--->"
@@ -3240,6 +3240,9 @@ const string appendIdentifierSpec  =
   " tuple-id of the tuple to each tuple.</text--->"
   "<text>query staedte feed addid consume"
   "</text--->"
+  "<text>Apply addid directly after a feed, because other </text--->"
+  "<text>operators my corrupt the tid </text--->"
+  "<text>(in-memory tuples all have tid=0).</text--->"
   ") )";
 
 /*
