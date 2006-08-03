@@ -39,6 +39,7 @@ subdirs:
 	(make -C dbfreader all)
 	(make -C shapedbf  all)
 	(make -C binarylist all)
+	(make -C psexport all)
 
 %.class:%.java
 	$(JAVAC) -classpath $(CLASSPATH) $<
@@ -50,4 +51,5 @@ clean:
 	(make -C dbfreader clean)
 	(make -C shapedbf clean)
 	(make -C binarylist clean)
+	(make -C psexport clean)
 	rm -f *.class
