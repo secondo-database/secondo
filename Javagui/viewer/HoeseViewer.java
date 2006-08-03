@@ -886,9 +886,30 @@ public class HoeseViewer extends SecondoViewer {
            System.runFinalization();
         }
     });
+    JMenuItem exportGraph = new JMenuItem("Export Graphic as PS");
+    exportGraph.addActionListener(new ActionListener(){
+        public void actionPerformed(ActionEvent evt){
+           Rectangle2D R = GraphDisplay.getBounds();
+           if(FC_Images.showSaveDialog(HoeseViewer.this)==JFileChooser.APPROVE_OPTION){
+             try{
+                File F = FC_Images.getSelectedFile();
+                PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(F)));
+                extern.psexport.PSCreator psc = new extern.psexport.PSCreator(out);
+                psc.writeHeader(R);
+                GraphDisplay.printAll(psc);
+                psc.showPage(); 
+                out.close();
+             }catch(Exception e){
+               Reporter.debug(e);
+               Reporter.showError("Error in exporting image");
+             }
+           }
+        }
+    });
 
    jMenu1.addSeparator();
    jMenu1.add(SaveGraph);
+   jMenu1.add(exportGraph);
 
     MenuExtension.addMenu(jMenu1);
 
