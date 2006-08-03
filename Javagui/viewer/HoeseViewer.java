@@ -890,6 +890,7 @@ public class HoeseViewer extends SecondoViewer {
     exportGraph.addActionListener(new ActionListener(){
         public void actionPerformed(ActionEvent evt){
            Rectangle2D R = GraphDisplay.getBounds();
+           R.setRect(0,0,R.getWidth(), R.getHeight());
            if(FC_Images.showSaveDialog(HoeseViewer.this)==JFileChooser.APPROVE_OPTION){
              try{
                 File F = FC_Images.getSelectedFile();

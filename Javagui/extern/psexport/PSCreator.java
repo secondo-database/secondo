@@ -14,16 +14,19 @@ import java.awt.image.renderable.*;
 public class PSCreator extends Graphics2D implements Cloneable{
 
 private PrintStream out = null;
+// use white background
 private Color background = new Color(1,1,1);
+// the current color
+private Color color = new Color(1,1,1);
+// the last assigned paint
+private Paint paint = new Color(0,0,0);
 private Composite composite;
 private GraphicsConfiguration deviceConfiguration;
 private FontRenderContext fontRenderContext;
-private Paint paint = new Color(0,0,0);
 private Map renderingHints;
 private Stroke stroke;
 private AffineTransform affineTransform = new AffineTransform();
 private Shape clip;
-private Color color = new Color(1,1,1);
 private Font font;
 
 
@@ -397,14 +400,15 @@ public void setClip(Shape s){
 }
 
 public void setColor(Color C){
-   this.color=C;
-   writeColor(C);
+   setPaint(C);
 }
 
 
 public void setComposite(Composite comp){
    composite = comp;
-   Reporter.writeWarning("PSCreator.setComposite not completely implemented");
+   if(comp==null) return;
+   if(comp.equals(composite)) return;
+   Reporter.writeWarning("PSCreator.setComposite has no effect");
 }
 
 public void setFont(Font f){
@@ -422,11 +426,18 @@ public void setXORMode(Color C){
 
 
 public void setPaint(Paint paint){
+  // no paint is not accepted
   if(paint==null) return;
+
+  // paint already used
   if(paint.equals(this.paint)) return;
+  
+  // assign this paint
+  this.paint = paint;
+
   if(paint instanceof Color){
-     this.paint = paint;
-     writeColor((Color) paint);
+     this.color = (Color) paint;
+     writeColor(this.color);
   } else{
      Reporter.writeWarning("PSCreator.setPaint supports only colors ");
   }
