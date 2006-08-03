@@ -28,6 +28,8 @@ private Stroke stroke;
 private AffineTransform affineTransform = new AffineTransform();
 private Shape clip;
 private Font font;
+// stored the maximum y value for flip the picture
+private double maxy = 1000;
 
 
 public PSCreator(PrintStream out){
@@ -108,7 +110,7 @@ public void drawBytes(byte[] data, int offset, int length, int x, int y){
 
 public void drawChars(char[] data, int offset, int length, int x, int y) {
    out.println("newpath");
-   out.println(x + " " + y + "  moveto");
+   out.println(x + " " + (maxy-y) + "  moveto");
    for(int i=offset; i < length; i++){
      out.println("("+data[i]+") show");
    }
@@ -169,8 +171,8 @@ public boolean 	drawImage(Image img, int dx1, int dy1, int dx2, int dy2,
 
 public void drawLine(int x1, int y1, int x2, int y2) {
    out.println("newpath");
-   out.println(x1 + " " + y1 + " moveto");
-   out.println(x2 + " " + y2 + " lineto");
+   out.println(x1 + " " + (maxy-y1) + " moveto");
+   out.println(x2 + " " + (maxy-y2) + " lineto");
    out.println("stroke");
 }
 
@@ -181,11 +183,11 @@ public void drawOval(int x, int y, int width, int height){
 public void drawPolygon(int[] xPoints, int[] yPoints, int nPoints){
   out.println("newpath");
   if(nPoints<3) return;
-  out.println(xPoints[0]+ " " + yPoints[0]+ " moveto");
+  out.println(xPoints[0]+ " " + (maxy-yPoints[0])+ " moveto");
   for(int i=1;i<nPoints; i++){
-     out.println(xPoints[i]+ " " + yPoints[i]+ " lineto");
+     out.println(xPoints[i]+ " " + (maxy-yPoints[i])+ " lineto");
   }
-  out.println(xPoints[0]+ " " + yPoints[0]+ " lineto");
+  out.println(xPoints[0]+ " " + (maxy-yPoints[0])+ " lineto");
   out.println("stroke");
 }
 
@@ -196,9 +198,9 @@ public void drawPolygon(Polygon p){
 public void drawPolyline(int[] xPoints, int[] yPoints, int nPoints) {
   out.println("newpath");
   if(nPoints<3) return;
-  out.println(xPoints[0]+ " " + yPoints[0]+ " moveto");
+  out.println(xPoints[0]+ " " + (maxy-yPoints[0])+ " moveto");
   for(int i=1;i<nPoints; i++){
-     out.println(xPoints[i]+ " " + yPoints[i]+ " lineto");
+     out.println(xPoints[i]+ " " + (maxy-yPoints[i])+ " lineto");
   }
   out.println("stroke");
 }
@@ -232,13 +234,13 @@ public void drawString(AttributedCharacterIterator iterator, int x, int y) {
 
 public void drawString(String s, float x, float y){
   out.println("newpath");
-  out.println(x + " " + y + " moveto");
+  out.println(x + " " + (maxy-y) + " moveto");
   out.println("("+s+")  show");
 }
 
 public void drawString(String str, int x, int y) {
   out.println("newpath");
-  out.println(x + " " + y + " moveto");
+  out.println(x + " " + (maxy-y) + " moveto");
   out.println("("+str+")  show");
 }
 
@@ -269,9 +271,9 @@ public void fillOval(int x, int y, int width, int height){
 public void fillPolygon(int[] xPoints, int[] yPoints, int nPoints){
   out.println("newpath");
   if(nPoints<3) return;
-  out.println(xPoints[0]+ " " + yPoints[0]+ " moveto");
+  out.println(xPoints[0]+ " " + (maxy-yPoints[0])+ " moveto");
   for(int i=1;i<nPoints; i++){
-     out.println(xPoints[i]+ " " + yPoints[i]+ " lineto");
+     out.println(xPoints[i]+ " " + (maxy-yPoints[i])+ " lineto");
   }
   out.println("fill");
 }
@@ -281,7 +283,7 @@ public void fillPolygon(Polygon p){
 }
 
 public void fillRect(int x, int y, int width, int height){
-   out.println(x + " " + y  + " " + width + " " + height + " rectfill");
+   out.println(x + " " + (maxy-y)  + " " + width + " " + height + " rectfill");
 }
 
 public void fillRoundRect(int x, int y, int width, int height, 
@@ -392,7 +394,8 @@ public void setBackground(Color C){
 }
 
 public void setClip(int x, int y, int width, int height){
-  out.println(x + " " + y + " " + width + " " + height + " rectclip");
+  
+  out.println(x + " " + (maxy-height) + " " + width + " " + (height-y) + " rectclip");
 }
 
 public void setClip(Shape s){
@@ -482,6 +485,7 @@ public void setStroke(Stroke s){
       case BasicStroke.JOIN_BEVEL: psjoin=2; break;
       default: Reporter.writeError("unknown join style found in PSCreator.setStroke");
    }
+   out.println(psjoin+" setlinejoin");
    
    // set dash
    float[] dash = bs.getDashArray();
@@ -545,7 +549,7 @@ public void writeHeader(Rectangle2D bounds){
                                 (bounds.getHeight()-bounds.getY()));
   out.println("%%EndComments");
   out.println("/Helvetica 12 selectfont");
-
+  maxy = bounds.getHeight()-bounds.getY();
 
 }
 
@@ -568,17 +572,19 @@ private void writePath(Shape s){
       int c = it.currentSegment(points);
       switch(c){
         case PathIterator.SEG_MOVETO:
-                out.println(points[0] + " " + points[1] + " moveto");
+                out.println(points[0] + " " + (maxy-points[1]) + " moveto");
                 break;
         case  PathIterator.SEG_LINETO:
-                 out.println(points[0] + " " + points[1] + " lineto");
+                 out.println(points[0] + " " + (maxy-points[1]) + " lineto");
                  break;
         case PathIterator.SEG_QUADTO:
                  Reporter.writeWarning("PSCreator SEG_QUADTO not supported");
-                 out.println(points[2] + " " + points[3] + " lineto");
+                 out.println(points[2] + " " + (maxy-points[3]) + " lineto");
                  break;
         case PathIterator.SEG_CUBICTO:
-                 out.println(points[0] +" " +  points[1]+" " + points[2]+" "+ points[3]+" "+ points[4] + " " + points[5] + " curveto");
+                 out.println(points[0] +" " +  (maxy-points[1])
+                             +" " + points[2]+" "+ (maxy-points[3])+" "+ 
+                             points[4] + " " + (maxy-points[5]) + " curveto");
                  break;
         case PathIterator.SEG_CLOSE:
                  out.println("closepath");
