@@ -42,17 +42,24 @@ public void addRenderingHints(Map hints){
 }
 
 public void 	clearRect(int x, int y, int width, int height){
-   Reporter.writeWarning("PSCreator.ClearRect not implemented");
+   if(background==null) return;
+   writeColor(background);  
+   fillRect(x,y,width,height); 
+   writeColor(color);
 }
 
 public void clipRect(int x, int y, int width, int height) {
-   Reporter.writeWarning("PSCreator.ClipRect not implemented");
+   clip(new Rectangle(x,y,width,height)); 
 }
 
 public void clip(Shape s){
    clip = s;
+   out.println("initclip");
    if(clip==null){
-     out.println("initclip");
+     return;
+   }
+   if(true){ // disbale compiler checking for unreachable code
+     Reporter.writeWarning("Clipping disabled");
      return;
    }
    writePath(s);
@@ -206,7 +213,8 @@ public void drawPolyline(int[] xPoints, int[] yPoints, int nPoints) {
 }
 
 public void drawRect(int x, int y, int width, int height){
-   Reporter.writeError("PSCreator.drawRect not implemented");
+   writePath(new Rectangle(x,y,width,height));
+   out.println("stroke");
 }
 
 public void drawRoundRect(int x, int y, int width, int height, 
@@ -283,7 +291,9 @@ public void fillPolygon(Polygon p){
 }
 
 public void fillRect(int x, int y, int width, int height){
-   out.println(x + " " + (maxy-y)  + " " + width + " " + height + " rectfill");
+    Rectangle R = new Rectangle(x,y,width,height);
+    writePath(R);
+    out.println("fill newpath");
 }
 
 public void fillRoundRect(int x, int y, int width, int height, 
@@ -326,7 +336,7 @@ public FontMetrics getFontMetrics(Font f){
 }
 
 public  boolean hitClip(int x, int y, int width, int height) {
-   Reporter.writeWarning("PSCreator.hitClip not implemented");
+   if(clip==null) return true; // no clipping -> all hit
    return true;
 }
 
@@ -394,8 +404,7 @@ public void setBackground(Color C){
 }
 
 public void setClip(int x, int y, int width, int height){
-  
-  out.println(x + " " + (maxy-height) + " " + width + " " + (height-y) + " rectclip");
+    clipRect(x,y,width,height);  
 }
 
 public void setClip(Shape s){
