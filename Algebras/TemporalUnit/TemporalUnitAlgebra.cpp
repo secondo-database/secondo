@@ -117,7 +117,7 @@ OK   ufeed: unit(a) --> stream(unit(a))
      rangevalues: stream(uT) --> range(T)
 
      traversed: stream(uline) --> region
-     traverse: stream(uregion) --> region
+     traversed: stream(uregion) --> region
 
      atinstant: stream(uT) x instant --> íntime(T)
 OK   atperiods: stream(uT) x periods --> stream(uT)
@@ -128,7 +128,7 @@ OK   atperiods: stream(uT) x periods --> stream(uT)
      present: stream(uT) x periods --> bool
 
      at: stream(uT) x T --> stream(uT)
-         stream(ut) x range(T) --> stream(uT)
+         stream(uT) x range(T) --> stream(uT)
          stream(uT) x point --> stream(upoint)
          stream(uT) x T' --> stream(uT)
 
@@ -231,7 +231,7 @@ void MPoint::MSpeed( MReal& result ) const
 	    f(t)= (x0 + x1 * t, y0 + y1 * t).
 	    The result of the derivation is the constant (x1,y1).
 	    Concerning of this the speed is constant in this time interval.
-	    The value are represented in the variable c. The variables a and b
+	    The value are represented in the variable c. The variables a and b  
 	    are set to zero.
 	    
 	  */
@@ -1401,27 +1401,28 @@ parameter types.
 */
 int MPointSpeed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-
   result = qp->ResultStorage( s );
-/*
-The call of the member function MSpeed.
-
-*/
- ((MPoint*)args[0].addr)->MSpeed(  *((MReal*)result.addr) );
+  MPoint* input = (MPoint*)result.addr;
+  
+  if ( input->IsDefined() )
+    // call member function:
+    ((MPoint*)args[0].addr)->MSpeed( *((MReal*)result.addr) ); 
+  else
+    ((MPoint*)args[0].addr)->SetDefined(false);
 
   return 0;
 }
+
 int UnitPointSpeed(Word* args,Word& result,int message,Word& local,Supplier s)
 {
-
   result = qp->ResultStorage( s );
-/*
-The call of the member function USpeed.
-
-*/
-
- ((UPoint*)args[0].addr)->USpeed(  *((UReal*)result.addr) );
-
+  UPoint* input = (UPoint*)result.addr;
+  
+  if ( input->IsDefined() )
+    // call member function:
+    ((UPoint*)args[0].addr)->USpeed(  *((UReal*)result.addr) );
+  else
+     ((UPoint*)args[0].addr)->SetDefined(false);
   return 0;
 }
 /*
@@ -1443,45 +1444,32 @@ int Queryrect2d(Word* args, Word& result, int message, Word& local, Supplier s)
   maxinst = tmpinst.ToDouble();
 
   result = qp->ResultStorage( s );
-
-  if (Inv->IsDefined())
-   {
-    timevalue = Inv->ToDouble();
-
-/*
-Definition of a rectangle with the dimension 2.
-Case: The interval is defined.
-
-*/
-    min[0] = mininst;   // x1
-    min[1] = timevalue; // x2
-    max[0] = timevalue; // y1
-    max[1] = maxinst;   // y2
-
-    Rectangle<dim>* rect = new Rectangle<dim>(true, min, max);
-    ((Rectangle<dim>*)result.addr)->CopyFrom(rect);
-    delete rect;
-   }
-  else // Inv is undefined
-   {
-/*
-Definition of a rectangle with the dimension 2.
-Case: The interval is not defined.
-The rectangle is filled with minimum instant values.
-
-*/
-
-    min[0] = mininst;
-    min[1] = mininst;
-    max[0] = mininst;
-    max[1] = mininst;
-
-    Rectangle<dim>* rect = new Rectangle<dim>(false, min, max);
-    ((Rectangle<dim>*)result.addr)->CopyFrom(rect);
-    delete rect;
-
+  
+  if (Inv->IsDefined()) // Inv is defined: create rect2
+    {
+      timevalue = Inv->ToDouble();
+      
+      min[0] = mininst;   // x1
+      min[1] = timevalue; // x2
+      max[0] = timevalue; // y1
+      max[1] = maxinst;   // y2
+     
+      Rectangle<dim>* rect = new Rectangle<dim>(true, min, max);
+      ((Rectangle<dim>*)result.addr)->CopyFrom(rect);
+      delete rect;
     }
-
+  else // Inv is undefined: return mininst^4
+    {
+      min[0] = mininst;
+      min[1] = mininst;
+      max[0] = mininst;
+      max[1] = mininst;
+    
+      Rectangle<dim>* rect = new Rectangle<dim>(false, min, max);
+      ((Rectangle<dim>*)result.addr)->CopyFrom(rect);
+      delete rect;
+    }
+  
   return 0;
 }
 /*
@@ -1495,43 +1483,35 @@ int Point2d( Word* args, Word& result, int message, Word& local, Supplier s )
 
   result = qp->ResultStorage( s );
   Periods* range = (Periods*)args[0].addr;
-/*
-Checking if the periods value is valid and defined.
 
-*/
-if( !range->IsEmpty()  )
-  {
-    const Interval<Instant> *intv1, *intv2;
-    X = 0;
-    Y = 0;
+  if ( !range->IsDefined() )
+    ((Point*)result.addr)->SetDefined( false );
 
-    range->Get( 0, intv1 );
-    range->Get( range->GetNoComponents()-1, intv2 );
-
-    Interval<Instant> timeInterval(intv1->start,intv2->end,intv1->lc,intv2->rc);
-
-    sup = timeInterval.end;
-    inf = timeInterval.start;
-/*
-Derives the maximum of all intervals.
-
-*/
-    Y = sup.ToDouble();
-/*
-Derives the minimum of all intervals.
-
-*/
-    X = inf.ToDouble();
-
-  }
-/*
-Returns the calculated point.
-
-*/ 
-  ((Point*)result.addr)->Set(X,Y );
-
+  else 
+    {
+      X = 0; 
+      Y = 0;
+      if( !range->IsEmpty()  )
+	{
+	  const Interval<Instant> *intv1, *intv2;
+	  
+	  range->Get( 0, intv1 );
+	  range->Get( range->GetNoComponents()-1, intv2 );
+	  
+	  Interval<Instant> timeInterval(intv1->start,intv2->end,
+					 intv1->lc,intv2->rc);
+	  
+	  sup = timeInterval.end;
+	  inf = timeInterval.start;
+	  Y = sup.ToDouble(); // Derives the maximum of all intervals.
+	  X = inf.ToDouble(); // Derives the minimum of all intervals.
+	}
+      ((Point*)result.addr)->Set(X,Y ); // Returns the calculated point.
+    }
+  
   return 0;
 }
+
 /*
 16.2.4 Value mapping functions of operator ~size~
 
@@ -1544,46 +1524,35 @@ int Size( Word* args, Word& result, int message, Word& local, Supplier s )
   result = qp->ResultStorage( s );
   Periods* range = (Periods*)args[0].addr;
 
-/*
-Checking if the periods value is valid and defined.
-
-*/
-
-  if( !range->IsEmpty()  )
+  if ( !range->IsDefined() )
+    ((CcReal*)result.addr)->SetDefined( false );
+  else 
     {
-      const Interval<Instant> *intv1, *intv2;
-      duration = 0;
-      
-      for( int i = 0; i < range->GetNoComponents(); i++ )
+      if( !range->IsEmpty()  )
 	{
-	  range->Get( i, intv1 );
-	  range->Get( i, intv2 );
-	  
-	  Interval<Instant> timeInterval(intv1->start,intv2->end,
-					 intv1->lc, intv2->rc);
-	  
-	  sup = timeInterval.end;
-    inf = timeInterval.start;
-
-    intervalue_sup = sup.ToDouble();
-    intervalue_inf = inf.ToDouble();
-/*
-  Summarizing of all time intervals.
+	  const Interval<Instant> *intv1, *intv2;
+	  duration = 0;
       
-*/
-    duration += (intervalue_sup - intervalue_inf)/1000;    // value in second
-    
+	  for( int i = 0; i < range->GetNoComponents(); i++ )
+	    {
+	      range->Get( i, intv1 );
+	      range->Get( i, intv2 );
+	      
+	      Interval<Instant> timeInterval(intv1->start,intv2->end,
+					     intv1->lc, intv2->rc);
+	  
+	      sup = timeInterval.end;
+	      inf = timeInterval.start;
+	      
+	      intervalue_sup = sup.ToDouble();
+	      intervalue_inf = inf.ToDouble();
+	      // summarize all time intervals in seconds:
+	      duration += (intervalue_sup - intervalue_inf)/1000;
+	    }
+	  res = duration;
 	}
-      
-    res = duration;
+      ((CcReal*)result.addr)->Set(true, res);  // return the resulT
     }
-/*
-  Returns the result in the storage.
-    
-*/
-  
-  ((CcReal*)result.addr)->Set(true, res);
-  
   return 0;
 }
 /*
@@ -1600,22 +1569,10 @@ int MappingMakemvalue(Word* args,Word& result,int message,
 
   Word currentTupleWord;
 
-/*
-Assertion if not two input values are available.
-
-*/
-
-  assert(args[2].addr != 0);
-  assert(args[3].addr != 0);
+  assert(args[2].addr != 0); // assert existence of input
+  assert(args[3].addr != 0); // assert existence of input
 
   int attributeIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
-
-/*
-In the first input channel is the index of the attribute. The stream
-processing opens in the first step the queryprocessor. In the next steps
-tuple for tuple will be requested. 
-
-*/
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, currentTupleWord);
@@ -1623,60 +1580,38 @@ tuple for tuple will be requested.
   result = qp->ResultStorage(s);
 
 /*
-This is a template function for many datatypes.
-The mapping class can cast moving datatypes.
-The unit class can cast  unit datatypes.
+  ~Mapping~ is a template function for many datatypes.
+  The mapping class can cast moving datatypes.
+  The unit class can cast  unit datatypes.
 
 */
-
+  
   m = (Mapping*) result.addr;
-
-/*
-For the first use the storage must be cleared.
-
-*/
-
   m->Clear();
   m->StartBulkLoad();
 
-/*
-The loop runs until the last tuple is received.
-
-*/
-
-  while ( qp->Received(args[0].addr) )
-  {
-
-    Tuple* currentTuple = (Tuple*)currentTupleWord.addr;
-    Attribute* currentAttr = (Attribute*)currentTuple->
-                              GetAttribute(attributeIndex);
-
-    if(currentAttr->IsDefined())
+  while ( qp->Received(args[0].addr) ) // get all tuples
     {
-
-     unit = (Unit*) currentAttr;
-
-     m->Add( *unit );
-/*
-Consume the stream object, if the deletion is possible.
-
-*/
-     currentTuple->DeleteIfAllowed();
-     }
-    qp->Request(args[0].addr, currentTupleWord);
-  }
-   m->EndBulkLoad( false );
-
-/*
-The queryprocessor are closed. The stream processing is finished.
-
-*/
-
+      Tuple* currentTuple = (Tuple*)currentTupleWord.addr;
+      Attribute* currentAttr = (Attribute*)currentTuple->
+	GetAttribute(attributeIndex);
+      
+      if(currentAttr->IsDefined())
+	{
+	  unit = (Unit*) currentAttr;
+	  m->Add( *unit );
+	  currentTuple->DeleteIfAllowed();
+	}
+      qp->Request(args[0].addr, currentTupleWord);
+    }
+  m->EndBulkLoad( false );
+  
   qp->Close(args[0].addr);
 
   return 0;
 
 }
+
 /*
 16.2.6 Value mapping functions of operator ~trajectory~
 
@@ -1689,8 +1624,11 @@ int UnitPointTrajectory(Word* args, Word& result, int message,
   CLine *line = ((CLine*)result.addr);
   UPoint *upoint = ((UPoint*)args[0].addr);
 
-  upoint->UTrajectory( *line );   // call memberfunction
-
+  if ( !upoint->IsDefined() )
+    line->SetDefined( false );
+  else 
+    upoint->UTrajectory( *line );   // call memberfunction
+  
   return 0;
 }
 
@@ -1707,13 +1645,17 @@ int MappingUnitDefTime( Word* args, Word& result, int message,
   Periods* r = ((Periods*)result.addr);
   Mapping* m = ((Mapping*)args[0].addr);
 
-  assert( r->IsOrdered() );
-
-  r->Clear();
-  r->StartBulkLoad();
-  r->Add( m->timeInterval );
-  r->EndBulkLoad( false );
-
+  if ( !m->IsDefined() )
+    r->SetDefined( false );
+  else
+    {
+      assert( r->IsOrdered() );
+  
+      r->Clear();
+      r->StartBulkLoad();
+      r->Add( m->timeInterval );
+      r->EndBulkLoad( false );
+    }
   return 0;
 }
 /*
@@ -1725,29 +1667,23 @@ int MappingUnitAtInstant( Word* args, Word& result, int message,
                           Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
+
   Intime<Alpha>* pResult = (Intime<Alpha>*)result.addr;
   Mapping* posUnit = ((Mapping*)args[0].addr);
   Instant* t = ((Instant*)args[1].addr);
   Instant t1 = *t;
 
-  assert( t->IsDefined() );
-
-  int pos;
-
-  if( posUnit->timeInterval.Contains(t1) )
-      pos = 1;
-  else    //not contained
-      pos = -1;
-
-
-  if( pos == -1 )  // not contained in the unit
+  if ( !t->IsDefined() || !posUnit->IsDefined() ) 
     pResult->SetDefined( false );
-  else
-  {
-    pResult->SetDefined( true );
-    posUnit->TemporalFunction( *t, pResult->value );
-  }
 
+  else if( posUnit->timeInterval.Contains(t1) )
+    {
+      pResult->SetDefined( true );
+      posUnit->TemporalFunction( *t, pResult->value );
+    }
+  else    // instant not contained by deftime interval
+    pResult->SetDefined( false );
+  
   return 0;
 }
 /*
@@ -1771,7 +1707,6 @@ template <class Mapping>
 int MappingUnitAtPeriods( Word* args, Word& result, int message,
                           Word& local, Supplier s )
 {
-
   AtPeriodsLocalInfo *localinfo;
   const Interval<Instant> *interval;
 
@@ -1842,7 +1777,7 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
       delete (AtPeriodsLocalInfo *)local.addr;
     return 0;
   }
-  /* should not happen */
+  // should not happen:
   return -1;
 }
 
@@ -1950,11 +1885,12 @@ int MappingUnitInitial( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
+
   Unit* unit = ((Unit*)args[0].addr);
   Intime<Alpha>* res = ((Intime<Alpha>*)result.addr);
 
 
-  if( !(unit->timeInterval.start.IsDefined()) )
+  if( !unit->IsDefined() || !(unit->timeInterval.start.IsDefined()) )
      res->SetDefined( false );
   else
    {
@@ -1973,10 +1909,11 @@ int MappingUnitFinal( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
+
   Unit* unit = ((Unit*)args[0].addr);
   Intime<Alpha>* res = ((Intime<Alpha>*)result.addr);
 
-  if( !(unit->timeInterval.end.IsDefined()) )
+  if( !unit->IsDefined() || !(unit->timeInterval.end.IsDefined()) )
      res->SetDefined( false );
   else
    {
@@ -2000,22 +1937,13 @@ int MappingUnitPresent_i( Word* args, Word& result, int message,
   Instant* inst = ((Instant*)args[1].addr);
   Instant t1 = *inst;
 
-  assert( inst->IsDefined() );
-
-  bool pos;
-
-  if( m->timeInterval.Contains(t1) )
-      pos = true;
-  else                               //not contained
-      pos = false;
-
-  if( !inst->IsDefined() )
+  if ( !inst->IsDefined() || !m->IsDefined() )
     ((CcBool *)result.addr)->Set( false, false );
-  else if( pos )
+
+  else if( m->timeInterval.Contains(t1) )
     ((CcBool *)result.addr)->Set( true, true );
   else
     ((CcBool *)result.addr)->Set( true, false );
-
   return 0;
 }
 template <class Mapping>
@@ -2060,13 +1988,13 @@ int MappingUnitPasses( Word* args, Word& result, int message,
   Mapping *m = ((Mapping*)args[0].addr);
   Alpha* val = ((Alpha*)args[1].addr);
 
-  if( !val->IsDefined() )
+  if( !val->IsDefined() || !m->IsDefined() )
     ((CcBool *)result.addr)->Set( false, false );
-   else if( m->Passes( *val ) )
-      ((CcBool *)result.addr)->Set( true, true );
+  else if( m->Passes( *val ) )
+    ((CcBool *)result.addr)->Set( true, true );
   else
     ((CcBool *)result.addr)->Set( true, false );
-
+  
   return 0;
 }
 
@@ -2085,21 +2013,21 @@ int MappingUnitAt( Word* args, Word& result, int message,
 
   Unit* pResult = ((Unit*)result.addr);
 
-
-  if (unit->At( *val, *pResult ))
-   {
-     pResult->SetDefined(true);
-     pResult->timeInterval.start.SetDefined(true);
-     pResult->timeInterval.end.SetDefined(true);
+  if ( !unit->IsDefined() || !val->IsDefined() )
+    pResult->SetDefined(false);
+  else if (unit->At( *val, *pResult ))
+    {
+      pResult->SetDefined(true);
+      pResult->timeInterval.start.SetDefined(true);
+      pResult->timeInterval.end.SetDefined(true);
     }
   else
-   {
-     pResult->SetDefined(false);
-     pResult->timeInterval.start.SetDefined(false);
-     pResult->timeInterval.end.SetDefined(true);
-   }
-
-
+    {
+      pResult->SetDefined(false);
+      pResult->timeInterval.start.SetDefined(false);
+      pResult->timeInterval.end.SetDefined(true);
+    }
+  
   return 0;
 }
 /*
@@ -2109,26 +2037,10 @@ int MappingUnitAt( Word* args, Word& result, int message,
 int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-/*
-Centre of the circle.
-
-*/
-  Point* p = (Point*)args[0].addr;
-/*
-Radius of the circle.
-
-*/
-  CcReal* r = (CcReal*)args[1].addr;
-/*
-The amount of edges for the polygon.
-Increasing the amount come a polygon closer to a circle.
-
-*/
-  CcInt* narg = (CcInt*)args[2].addr;
-
+  Point* p = (Point*)args[0].addr; // Centre of the circle
+  CcReal* r = (CcReal*)args[1].addr; // Radius of the circle.
+  CcInt* narg = (CcInt*)args[2].addr; // number of edges
   CRegion *res = (CRegion*)result.addr;
-
-
   double x, y;
   int n;
   double radius;
@@ -2136,81 +2048,72 @@ Increasing the amount come a polygon closer to a circle.
   double angle;
   int partnerno = 0;
 
-
-  x = p->GetX();
-  y = p->GetY();
-
-  n = narg->GetIntval();
-  radius = r->GetRealval();
-
   res->Clear();
-  res->StartBulkLoad();
 
-/*
-Definition of a empty region.
-
-*/
-  CRegion rg;
-  CHalfSegment chs(false);
-
-
-  if (( p->IsDefined())&&(n>3)&&(n<100)&&(radius >0.0))
+  if (!p->IsDefined() || !r->IsDefined() || !narg->IsDefined() )
     {
-
-/*
-Determination of a n polygon.
-Division of 360 degree in n parts with the help of
-a standardised circle and the circumference. U = 2 * PI
-
-*/
-     for( int i = 0; i < n; i++ )
-        {
-        angle = i * 2 * PI/n;
-        valueX = x + radius * cos(angle);
-        valueY = y + radius * sin(angle);
-/*
-The first point of the segment of a region.
-The x-value can be defined with the cosine and
-the y-value with the sine.
-
-*/
-        Point edge1(true, valueX ,valueY);
-
-        chs.attr.faceno = 0;
-        chs.attr.cycleno = 0;
-        chs.attr.edgeno = partnerno;
-        chs.attr.partnerno = partnerno++;
-
-        if ((i+1) >= n)
-          angle = 0 * 2 * PI/n;
-       else
-          angle = (i+1) * 2 * PI/n;
-
-        valueX = x + radius * cos(angle);
-        valueY = y + radius * sin(angle);
-/*
-The second point of the segment of a region.
-
-*/
-        Point edge2(true, valueX ,valueY);
-
-/*
-Definition of the halfsegments.
-
-*/
-         chs.Set(true, edge1, edge2);
-         *res += chs;
-          chs.SetLDP( false );
-         *res += chs;
-
-        }
-
+      res->SetDefined( false );
     }
-   res->EndBulkLoad(true);
-   res->SetPartnerNo();
-   res->ComputeRegion();
-
-
+  else
+    {
+      x = p->GetX();
+      y = p->GetY();
+      
+      n = narg->GetIntval();
+      radius = r->GetRealval();
+      
+      res->StartBulkLoad();
+      
+      // Definition of an empty region:
+      CRegion rg;
+      CHalfSegment chs(false);
+      
+      
+      if (( p->IsDefined())&&(n>3)&&(n<100)&&(radius >0.0))
+	{
+	  
+	  //  Determination of a n polygon.
+	  //  Division of 360 degree in n parts with the help of
+	  //  a standardised circle and the circumference. U = 2 * PI
+	  
+	  for( int i = 0; i < n; i++ )
+	    {
+	      angle = i * 2 * PI/n;
+	      valueX = x + radius * cos(angle);
+	      valueY = y + radius * sin(angle);
+	      
+	      //  The first point of the segment of a region.
+	      //  The x-value can be defined with the cosine and
+	      //  the y-value with the sine.
+	      
+	      Point edge1(true, valueX ,valueY);
+	      
+	      chs.attr.faceno = 0;
+	      chs.attr.cycleno = 0;
+	      chs.attr.edgeno = partnerno;
+	      chs.attr.partnerno = partnerno++;
+	      
+	      if ((i+1) >= n)
+		angle = 0 * 2 * PI/n;
+	      else
+		angle = (i+1) * 2 * PI/n;
+	      
+	      valueX = x + radius * cos(angle);
+	      valueY = y + radius * sin(angle);
+	      // The second point of the segment of a region.
+	      Point edge2(true, valueX ,valueY);
+	      
+	      // Definition of the halfsegments.
+	      chs.Set(true, edge1, edge2);
+	      *res += chs;
+          chs.SetLDP( false );
+	  *res += chs;	  
+	    }      
+	}
+      res->EndBulkLoad(true);
+      res->SetPartnerNo();
+      res->ComputeRegion();
+    }
   return 0;
 }
 
@@ -2225,7 +2128,10 @@ int MakePoint( Word* args, Word& result, int message, Word& local, Supplier s )
   CcInt* value1 = (CcInt*)args[0].addr;
   CcInt* value2 = (CcInt*)args[1].addr;
 
-  ((Point*)result.addr)->Set(value1->GetIntval(),value2->GetIntval() );
+  if ( !value1->IsDefined() || !value2->IsDefined() )
+    ((Point*)result.addr)->SetDefined( false );
+  else
+    ((Point*)result.addr)->Set(value1->GetIntval(),value2->GetIntval() );
 
   return 0;
 }
@@ -2236,18 +2142,27 @@ int MakePoint( Word* args, Word& result, int message, Word& local, Supplier s )
 int MPointVelocity(Word* args, Word& result, int message,
                    Word& local, Supplier s)
 {
-
   result = qp->ResultStorage( s );
- ((MPoint*)args[0].addr)->MVelocity(  *((MPoint*)result.addr) );
+  MPoint* input = (MPoint*)args[0].addr;
+  
+  if ( !input->IsDefined() )
+    ((MPoint*)args[0].addr)->SetDefined( false );
+  else 
+    ((MPoint*)args[0].addr)->MVelocity(  *((MPoint*)result.addr) );
 
   return 0;
 }
+
 int UnitPointVelocity(Word* args, Word& result, int message,
                       Word& local, Supplier s)
 {
-
   result = qp->ResultStorage( s );
- ((UPoint*)args[0].addr)->UVelocity(  *((UPoint*)result.addr) );
+  UPoint* input = (UPoint*)args[0].addr;
+
+  if ( !input->IsDefined() )
+    ((UPoint*)args[0].addr)->SetDefined( false );
+  else
+    ((UPoint*)args[0].addr)->UVelocity(  *((UPoint*)result.addr) );
 
   return 0;
 }
@@ -2269,36 +2184,31 @@ int MPointDerivable( Word* args, Word& result, int message,
   CcBool b;
 
   res->Clear();
-  res->StartBulkLoad();
 
-  for( int i = 0; i < value->GetNoComponents(); i++ )
-  {
-/*
-Load of a real unit.
+  if ( !value->IsDefined() )
+    res->SetDefined(false);
+  else
+    {
+      res->StartBulkLoad();
+      for( int i = 0; i < value->GetNoComponents(); i++ )
+	{	  
+	  value->Get( i, uReal ); // Load a real unit.
 
-*/
-    value->Get( i, uReal );
-/*
-FALSE means in this case that a real unit describes a quadratic
-polynomial. A derivation is possible and the operator returns TRUE.
-
-*/
-    if (uReal->r == false)
-     {
-       b.Set(true,true);
-     }
-    else
-     {
-       b.Set(true,false);
-      }
-
-    UBool boolvalue (uReal->timeInterval,b);
-    res->Add( boolvalue );
-  }
-  res->EndBulkLoad( false );
-
+	  // FALSE means in this case that a real unit describes a quadratic
+	  // polynomial. A derivation is possible and the operator returns TRUE.
+	  if (uReal->r == false)
+	    b.Set(true,true);
+	  else
+	    b.Set(true,false);
+	  
+	  UBool boolvalue (uReal->timeInterval,b);
+	  res->Add( boolvalue );
+	}
+      res->EndBulkLoad( false );
+    }
   return 0;
 }
+
 int UnitPointDerivable( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
@@ -2309,24 +2219,21 @@ int UnitPointDerivable( Word* args, Word& result, int message,
   CcBool b;
 
  if (uReal->IsDefined())
-  {
-
-   res->timeInterval = uReal->timeInterval;
-
-   if (uReal->r == false)
-     {
-        b.Set(true,true);
-     }
-    else
-     {
-        b.Set(true,false);
-      }
-
+   {     
+     res->timeInterval = uReal->timeInterval;
+     
+     if (uReal->r == false)
+       b.Set(true,true);
+     else
+       b.Set(true,false);
+     
      UBool boolvalue (uReal->timeInterval,b);
      res->CopyFrom(&boolvalue);
-  }
+   }
+ else
+   res->SetDefined( false );
 
-  return 0;
+ return 0;
 }
 /*
 16.2.20 Value mapping functions of operator ~derivative~
@@ -2344,47 +2251,41 @@ int MPointDerivative( Word* args, Word& result, int message,
   UReal uReal;
 
   res->Clear();
-  res->StartBulkLoad();
-
-  for( int i = 0; i < value->GetNoComponents(); i++ )
-  {
-/*
-Load of a real unit.
-
-*/
- 
-   value->Get( i, Unit );
-
-/*
-FALSE means in this case that a real unit describes a quadratic
-polynomial. A derivation is possible. 
-The polynom looks like at$^2$ + bt + c.
-The derivative of this polynom is 2at + b.
-
-*/   
- if (Unit->r == false)
-   {
-     uReal.timeInterval = Unit->timeInterval;
-     uReal.a = 0;
-     uReal.b = 2 * Unit->a;
-     uReal.c = Unit->b;
-     uReal.r = Unit->r;
-   }
- else
-   {
-/*
-A derivation of a real unit is not possible.
-
-*/
-     uReal.SetDefined(false);
-   }
- 
- res->Add( uReal );
-  }
-  res->EndBulkLoad( false );
-  
+  if ( value->IsDefined() )
+    {
+      res->StartBulkLoad();
+      
+      for( int i = 0; i < value->GetNoComponents(); i++ )
+	{ // load a real unit
+	  value->Get( i, Unit );
+	  
+	  // FALSE means in this case that a real unit describes a quadratic
+	  // polynomial. A derivation is possible. 
+	  // The polynom looks like at^2 + bt + c.
+	  // The derivative of this polynom is 2at + b.
+	  if (Unit->r == false)
+	    {
+	      uReal.timeInterval = Unit->timeInterval;
+	      uReal.a = 0;
+	      uReal.b = 2 * Unit->a;
+	      uReal.c = Unit->b;
+	  uReal.r = Unit->r;
+	    }
+	  else
+	    {
+	      // derivation of the real unit is not possible
+	      uReal.SetDefined(false);
+	    }
+	  
+	  res->Add( uReal );
+	}
+      res->EndBulkLoad( false );
+    }
+  else // value is undefined
+    res->SetDefined( false );
   return 0;
 }
+
 int UnitPointDerivative( Word* args, Word& result, int message,
                          Word& local, Supplier s )
 {
@@ -2393,25 +2294,24 @@ int UnitPointDerivative( Word* args, Word& result, int message,
   UReal* res = ((UReal*)result.addr);
 
 
- if (Unit->IsDefined())
-  {
-
-
-    if (Unit->r == false)
-     {
-      res->timeInterval = Unit->timeInterval;
-      res->a = 0;
-      res->b = 2 * Unit->a;
-      res->c = Unit->b;
-      res->r = Unit->r;
-     }
-    else
-     {
-       res->SetDefined(false);
-      }
-
-   }
-
+  if (Unit->IsDefined())
+    {
+      if (Unit->r == false)
+	{
+	  res->timeInterval = Unit->timeInterval;
+	  res->a = 0;
+	  res->b = 2 * Unit->a;
+	  res->c = Unit->b;
+	  res->r = Unit->r;
+	}
+      else
+	{
+	  res->SetDefined(false);
+	}
+      
+    }
+  else // Unit is undefines
+    res->SetDefined(false);
   return 0;
 }
 
@@ -2732,11 +2632,12 @@ TemporalSpecPresent  =
 */
 const string
 TemporalSpecPasses =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>(unit(x) x) -> bool</text--->"
+"<text>(unit(T) T) -> bool</text--->"
+"<text>for T in {bool, int, real, point} </text--->"
 "<text>_ passes _ </text--->"
-"<text>whether the object passes the given"
+"<text>whether the object unit passes the given"
 " value.</text--->"
 "<text>upoint1 passes point1</text---> ) )";
 
