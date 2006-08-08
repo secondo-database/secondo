@@ -28,9 +28,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [TOC]
 
-1 Overview
+1 Overview and introduction
 
-The type system of the TemporalExt Algebra can be seen below.
+The type system of the TemporalExt Algebra can be seen below. All here declared
+methods prototypes of the defined classes are implemented in file
+TemporalExtAlgebra.cpp. All here declared classes are inherited from classes of
+the TemporalAlgebra in order to avoid conflicts with other similar
+named implementations.
 
 
 2 Defines, includes, and constants
@@ -55,13 +59,52 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 /*
-3 C++ Classes (Definition)
+3 Type definitions
+
+The types UString and MString was defined to implement the data types
+~ustring~ and ~mapping(string)~ according to the declared defintions in the
+signature for moving objects. The types RBool and RString was declared in order
+to implement the data types ~range(bool)~ and ~range(string)~. They are
+also part of the signature for moving objects.
 
 */
 typedef ConstTemporalUnit<CcString> UString;
 typedef Mapping< UString, CcString > MString;
 typedef Range<CcBool> RBool;
 typedef Range<CcString> RString;
+
+/*
+4 Declaration of classes
+
+4.1 Class ~MPointExt~
+
+This class is an extension of the class MPoint declared in the
+TemporalAlgebra.h . It is adding following methods:
+
+~MDirection~, ~Locations~, ~At~ and ~Passes~
+
+in order to implement the operations:
+
+mdirection:mapping(point) -> mapping(real)
+
+locations:mapping(point) -> points
+
+at:
+mapping(point) x V -> mapping(point)
+
+where
+V in {points, line}
+
+passes:
+mapping(point) x C -> bool
+
+where
+C in {points, line}
+
+for supporting the value mapping functions for a part of the signature
+belonging these operations.
+
+*/
 
 class MPointExt : public MPoint
 {
@@ -82,6 +125,30 @@ public:
     bool Passes( CLine* ln ) const;
 };
 
+/*
+4.2 Class MappingExt
+
+This is an extension of the class Mapping declared and implemented in
+TemporalAlgebra.h and TemporalAlgebra.cpp respectively. It is adding the
+followings methods:
+
+~AtMin~, ~AtMax~, ~At~
+
+in order to implement the operations:
+
+atmin, atmax:mapping(T) -> mapping(T)
+
+where T in {int, bool, string, real}
+
+at:mapping(U) x range(U) -> mapping(U)
+
+where U in {int, bool, string, real}
+
+for supporting the value mapping functions for a part of the signature
+belonging these operations.
+
+*/
+
 template<class Unit, class Alpha>
 class MappingExt : public Mapping<Unit, Alpha>
 {
@@ -94,6 +161,16 @@ public:
 
     void At( Range<Alpha>* inv, Mapping<Unit, Alpha> &result ) const;
 };
+
+/*
+4.2 Class URealExt
+
+This is an extension of the class UReal declared and implemented in
+TemporalAlgebra.h. It is adding the followings methods:
+
+~GetUnitMin~, ~GetUnitMax~, ~SetUnitMin~, ~SetUnitMax~
+
+*/
 
 class URealExt : public UReal
 {
@@ -112,6 +189,28 @@ private:
     float unit_min, unit_max;
 };
 
+/*
+4.2 Class MRealExt
+
+This is an extension of the class MReal declared and implemented in
+TemporalAlgebra.h and TemporalAlgebra.cpp respectively. It is adding the
+followings methods:
+
+~AtMin~, ~AtMax~, ~At~ and ~Passes~
+
+in order to implement the operations:
+
+atmin, atmax:mapping(real) -> mapping(real)
+
+at:mapping(real) x range(real) -> mapping(real)
+
+passes:mapping(real) x real -> bool
+
+for supporting the value mapping functions for a part of the signature
+belonging these operations.
+
+*/
+
 class MRealExt : public MReal
 {
 public:
@@ -129,3 +228,4 @@ public:
 };
 
 #endif // _TEMPORALEXT_ALGEBRA_H_
+
