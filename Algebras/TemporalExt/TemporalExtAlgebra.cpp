@@ -49,16 +49,16 @@ extern QueryProcessor *qp;
 
 /*
 
-2 Type definitions, Auxiliary Functions, Implementations
+2 Type definitions, Auxiliary Functions
 
-Global variable for unit of time: milliseconds [*] FactorForUnitOfTime
+2.1 Global variable for unit of time: milliseconds [*] FactorForUnitOfTime
   FactorForUnitOfTime = 1. (default)
 
 */
 float FactorForUnitOfTime = 1.;
 
 /*
-Global variable for unit of distance: meter [*] FactorForUnitOfDistance
+2.2 Global variable for unit of distance: meter [*] FactorForUnitOfDistance
   FactorForUnitOfDistance = 1. (default)
 
 */
@@ -78,17 +78,17 @@ struct GroupOfIntervals
 };
 
 /*
-Function: MinMaxValueFunction
+2.3 Function: MinMaxValueFunction
 
 Parameters:
-  utemp:
-  minimum:
-  maximum:
+  utemp: pointer to UReal
+  minimum: a float (by reference)
+  maximum: a float (by reference)
 
-Result:
-  return 0
+Return: nothing
 
 */
+
 void MinMaxValueFunction(const UReal* utemp, float& minimum, float& maximum)
 {
     float ts, te, ts_value, te_value, a, b, c;
@@ -191,15 +191,15 @@ Find minimum
 }
 
 /*
-Function timeIntervalOfRealInUReal
+2.4 Function timeIntervalOfRealInUReal
 
 Parameters:
 
   value: real value
-  ur: the real unit
-  t\_value: time as double value to return
+  ur: a pointer to the real unit
+  t\_value: time as double value to return (by reference)
 
-Result:
+Return:
 
   bool: returns true, if val is contained in the ureal,
   otherwise false.
@@ -340,19 +340,19 @@ Find value in a quadratic function with Newtons Method
 }
 
 /*
-Function AngleToXAxis
+2.5 Function AngleToXAxis
 
 Parameters:
 
   p1: a pointer to start point
   p2: a pointer to end point
 
-Result:
+Return:
 
-  Float res: the angle of the line between both points to the X-axis
+  res: a double. The angle of the line between both points to the X-axis.
 
-This function was copied from the SpatialAlgebra, from the
-Value Mapping Function direction\_pp
+NOTE: This function was copied from the SpatialAlgebra, from the
+Value Mapping Function direction\_pp (LFRG)
 
 */
 double AngleToXAxis(const Point* p1, const Point* p2, bool &defined)
@@ -438,6 +438,21 @@ double AngleToXAxis(const Point* p1, const Point* p2, bool &defined)
     return res;
 }
 
+/*
+2.6 Function ~IntersectionRPExt~
+
+Parameters:
+    mreg: a pointer to a MRegion
+    mp: a MPoint (by reference)
+    res: a MPoint for result (by reference)
+    rp: a reference to an object
+      RefinementPartitionOrig<MRegion, MPoint, URegionEmb, UPoint>
+    merge: a boolean
+
+Return: nothing
+
+*/
+
 void IntersectionRPExt(
     MRegion* mreg,
     MPoint& mp,
@@ -496,7 +511,18 @@ and point unit, both restricted to this interval, intersect.
     }
 }
 
+/*
+3 Implementation for methods of classes declared in header file
 
+3.1 Method MDirection of class MPointExt
+
+Parameters:
+
+  result: a pointer to a MReal object
+
+Return: nothing
+
+*/
 
 void MPointExt::MDirection( MReal* result) const
 {
@@ -521,8 +547,23 @@ void MPointExt::MDirection( MReal* result) const
     result->EndBulkLoad( false );
 }
 
+/*
+3.2 Method Locations of class MPointExt
+
+Parameters:
+
+  result: a pointer to a Points object
+
+Return: nothing
+
+*/
+
 void MPointExt::Locations( Points* result ) const
 {
+    if(0)
+    {
+        cout << "MPointExt::Locations called!" << endl;
+    }
     const UPoint* unitin;
     vector<Point> points;
     vector<CHalfSegment> hsegments;
@@ -560,8 +601,8 @@ void MPointExt::Locations( Points* result ) const
                 cout << endl << "NOT CONTAINED!!!!!!!!!!!!!!!" << endl;
                 cout << "x=" << points[i].GetX() << endl;
                 cout << "y=" << points[i].GetY() << endl;
-                result->InsertPt(points[i]);
             }
+            result->InsertPt(points[i]);
         }
         else
         {
@@ -576,6 +617,18 @@ void MPointExt::Locations( Points* result ) const
     result->EndBulkLoad( false );
 
 }
+
+/*
+3.3 Method At of class MPointExt
+
+Parameters:
+
+  pts: a pointer to a Points object
+  result: a reference to a MPoint object
+
+Return: nothing
+
+*/
 
 void MPointExt::At( Points* pts, MPoint &result ) const
 {
@@ -639,7 +692,14 @@ void MPointExt::At( Points* pts, MPoint &result ) const
 }
 
 /*
-Method ~MPointExt::At( CLine ln, MPoint result ) const~
+3.4 Method At of class MPointExt
+
+Parameter:
+
+  ln: a pointer to a CLine object
+  result: a reference to a MPoint object
+
+Return: nothing
 
 It returns a projection of ln on the moving point. The
 method seeks for intersections between a unit point
@@ -790,7 +850,7 @@ For unit points which do not have any motion
                                 }
                                 UPoint trash1;
                                 UPoint trash2;
-//Instant ins1( instanttype ), ins2( instanttype );
+
                                 unitin->At( ln_chs->GetLP(), trash1 );
                                 unitin->At( ln_chs->GetRP(), trash2 );
                                 bool inv_def = true, ls = true, rs = true;
@@ -880,6 +940,17 @@ Looks for intersections in a point
     result.EndBulkLoad( false );
 }
 
+/*
+3.5 Method Passes of class MPointExt
+
+Parameters:
+
+  pts: a pointer to a Points object
+
+Return: a boolean
+
+*/
+
 bool MPointExt::Passes( Points* pts ) const
 {
     const UPoint* unitin;
@@ -942,6 +1013,17 @@ bool MPointExt::Passes( Points* pts ) const
 
     return result;
 }
+
+/*
+3.6 Method Passes of class MPointExt
+
+Parameters:
+
+  ln: a pointer to a CLine object
+
+Return: a boolean
+
+*/
 
 bool MPointExt::Passes( CLine* ln ) const
 {
@@ -1081,7 +1163,16 @@ Looks for intersections in a point inter\_p
     return result;
 }
 
+/*
+3.7 Method AtMin of class MappingExt
 
+Parameters:
+
+  result: a reference to a Mapping<Unit, Alpha> object
+
+Return: nothing
+
+*/
 
 template <class Unit, class Alpha>
 void MappingExt<Unit, Alpha>::AtMin( Mapping<Unit, Alpha> &result ) const
@@ -1108,6 +1199,17 @@ void MappingExt<Unit, Alpha>::AtMin( Mapping<Unit, Alpha> &result ) const
     result.EndBulkLoad( false );
 }
 
+/*
+3.7 Method AtMin of class MappingExt
+
+Parameters:
+
+  result: a reference to a Mapping<Unit, Alpha> object
+
+Return: nothing
+
+*/
+
 template <class Unit, class Alpha>
 void MappingExt<Unit, Alpha>::AtMax( Mapping<Unit, Alpha> &result ) const
 {
@@ -1133,6 +1235,16 @@ void MappingExt<Unit, Alpha>::AtMax( Mapping<Unit, Alpha> &result ) const
     result.EndBulkLoad( false );
 }
 
+/*
+3.8 Method AtMin of class MRealExt
+
+Parameters:
+
+  result: a reference to a MReal object
+
+Return: nothing
+
+*/
 
 void MRealExt::AtMin( MReal &result ) const
 {
@@ -1177,6 +1289,17 @@ void MRealExt::AtMin( MReal &result ) const
     result.EndBulkLoad( false );
 }
 
+/*
+3.9 Method AtMax of class MRealExt
+
+Parameters:
+
+  result: a reference to a MReal object
+
+Return: nothing
+
+*/
+
 void MRealExt::AtMax( MReal &result ) const
 {
     const UReal* utemp;
@@ -1219,6 +1342,18 @@ void MRealExt::AtMax( MReal &result ) const
     result.Add( *uresult );
     result.EndBulkLoad( false );
 }
+
+/*
+3.10 Method AtMin of class MRealExt
+
+Parameters:
+
+  val: a CcReal object
+  result: a reference to a MReal object
+
+Return: nothing
+
+*/
 
 void MRealExt::At( CcReal val, MReal &result ) const
 {
@@ -1271,6 +1406,17 @@ void MRealExt::At( CcReal val, MReal &result ) const
     result.EndBulkLoad( false );
 }
 
+/*
+3.11 Method Passes of class MRealExt
+
+Parameters:
+
+  val: a CcReal object
+
+Return: a boolean
+
+*/
+
 bool MRealExt::Passes( CcReal val ) const
 {
     const UReal* utemp;
@@ -1311,6 +1457,18 @@ bool MRealExt::Passes( CcReal val ) const
 
     return result;
 }
+
+/*
+3.12 Method At of class MappingExt
+
+Parameters:
+
+  inv: a pointer to a Range<Alpha> object
+  result: a reference to a Mapping<Unit, Alpha> object
+
+Return: nothing
+
+*/
 
 template <class Unit, class Alpha>
 void MappingExt<Unit, Alpha>::At(
@@ -1381,6 +1539,18 @@ causes a unesthetic termination of DB-UI.
         cout << "Invalid Range!!" << endl;
 
 }
+
+/*
+3.13 Method At of class MappingExt
+
+Parameters:
+
+  inv: a pointer to a RReal object
+  result: a reference to a Mapping<Unit, Alpha> object
+
+Return: nothing
+
+*/
 
 void MRealExt::At( RReal* inv, MReal &result ) const
 {
@@ -1466,6 +1636,19 @@ void MRealExt::At( RReal* inv, MReal &result ) const
     result.EndBulkLoad( false );
 }
 
+/*
+3.14 Method AtPeriods of class MRegion
+
+Parameters:
+
+  per: a pointer to a Periods object
+  mregparam: a pointer to a Mapping<Unit, Alpha> object
+
+Return: nothing
+
+NOTE: The declaration of this method is placed on MovingRegion.h
+
+*/
 
 void MRegion::AtPeriods(Periods* per, MRegion* mregparam)
 {
@@ -1707,10 +1890,14 @@ void MRegion::AtPeriods(Periods* per, MRegion* mregparam)
 }
 
 /*
-2.1 Auxiliary Functions
+4 Auxiliary Functions
 
-2.1.1 Aux. Function ~CheckURealDerivable~
+4.1 Aux. Function ~CheckURealDerivable~
 
+  Parameter:
+    unit: a pointer t a UReal object
+
+  Return: a boolean
 
 */
 bool CheckURealDerivable(const UReal* unit)
@@ -1721,7 +1908,8 @@ bool CheckURealDerivable(const UReal* unit)
 
 
 /*
-3.1 Type Constructor ~istring~
+
+4 Type Constructor ~istring~
 
 Type ~istring~ represents an (instant, value)-pair of strings.
 
@@ -1735,7 +1923,7 @@ For example:
 ----    ( (instant 1.0) "My String" )
 ----
 
-3.1.1 function Describing the Signature of the Type Constructor
+4.1 function Describing the Signature of the Type Constructor
 
 */
 ListExpr
@@ -1753,7 +1941,7 @@ IntimeStringProperty()
 }
 
 /*
-3.1.2 Kind Checking Function
+4.2 Kind Checking Function
 
 This function checks whether the type constructor is applied correctly.
 
@@ -1765,7 +1953,7 @@ CheckIntimeString( ListExpr type, ListExpr& errorInfo )
 }
 
 /*
-3.1.3 Creation of the type constructor ~istring~
+4.3 Creation of the type constructor ~istring~
 
 */
 TypeConstructor intimestring(
@@ -1787,11 +1975,11 @@ TypeConstructor intimestring(
 );
 
 /*
-3.2 Type Constructor ~ustring~
+5 Type Constructor ~ustring~
 
 Type ~ustring~ represents an (tinterval, stringvalue)-pair.
 
-3.2.1 List Representation
+5.1 List Representation
 
 The list representation of an ~ustring~ is
 
@@ -1803,7 +1991,7 @@ For example:
 ----    ( ( (instant 6.37)  (instant 9.9)   TRUE FALSE)   ["]My String["] )
 ----
 
-3.2.2 function Describing the Signature of the Type Constructor
+5.2 function Describing the Signature of the Type Constructor
 
 */
 ListExpr
@@ -1821,7 +2009,7 @@ UStringProperty()
 }
 
 /*
-3.2.3 Kind Checking Function
+5.3 Kind Checking Function
 
 */
 bool
@@ -1831,7 +2019,7 @@ CheckUString( ListExpr type, ListExpr& errorInfo )
 }
 
 /*
-3.2.4 Creation of the type constructor ~uint~
+5.4 Creation of the type constructor ~uint~
 
 */
 TypeConstructor unitstring(
@@ -1853,11 +2041,11 @@ TypeConstructor unitstring(
 );
 
 /*
-3.3 Type Constructor ~mstring~
+6 Type Constructor ~mstring~
 
 Type ~mstring~ represents a moving string.
 
-3.3.1 List Representation
+6.1 List Representation
 
 The list representation of a ~mstring~ is
 
@@ -1874,7 +2062,7 @@ For example:
         )
 ----
 
-3.3.2 function Describing the Signature of the Type Constructor
+6.2 function Describing the Signature of the Type Constructor
 
 */
 ListExpr
@@ -1892,7 +2080,7 @@ MStringProperty()
 }
 
 /*
-3.3.3 Kind Checking Function
+6.3 Kind Checking Function
 
 This function checks whether the type constructor is applied correctly.
 
@@ -1904,7 +2092,7 @@ CheckMString( ListExpr type, ListExpr& errorInfo )
 }
 
 /*
-3.3.4 Creation of the type constructor ~mstring~
+6.4 Creation of the type constructor ~mstring~
 
 */
 TypeConstructor movingstring(
@@ -1927,11 +2115,11 @@ TypeConstructor movingstring(
 );
 
 /*
-3.4 Type Constructor ~rbool~
+7 Type Constructor ~rbool~
 
 Type ~rbool~ represents a range bool.
 
-3.4.1 List Representation
+7.1 List Representation
 
 The list representation of a ~rbool~ is
 
@@ -1946,7 +2134,7 @@ For example:
         )
 ----
 
-3.4.2 function Describing the Signature of the Type Constructor
+7.2 function Describing the Signature of the Type Constructor
 
 */
 ListExpr
@@ -1971,7 +2159,7 @@ RangeBoolProperty()
 }
 
 /*
-3.3.3 Kind Checking Function
+7.3 Kind Checking Function
 
 This function checks whether the type constructor is applied correctly.
 
@@ -1983,7 +2171,7 @@ CheckRBool( ListExpr type, ListExpr& errorInfo )
 }
 
 /*
-3.3.4 Creation of the type constructor ~rbool~
+7.4 Creation of the type constructor ~rbool~
 
 */
 TypeConstructor rangebool(
@@ -2001,11 +2189,11 @@ TypeConstructor rangebool(
 );
 
 /*
-3.5 Type Constructor ~rstring~
+8 Type Constructor ~rstring~
 
 Type ~rstring~ represents a range string.
 
-3.5.1 List Representation
+8.1 List Representation
 
 The list representation of a ~rstring~ is
 
@@ -2021,7 +2209,7 @@ For example:
         )
 ----
 
-3.5.2 function Describing the Signature of the Type Constructor
+8.2 function Describing the Signature of the Type Constructor
 
 */
 ListExpr
@@ -2045,7 +2233,7 @@ RangeStringProperty()
 }
 
 /*
-3.3.3 Kind Checking Function
+8.3 Kind Checking Function
 
 This function checks whether the type constructor is applied correctly.
 
@@ -2057,7 +2245,7 @@ CheckRString( ListExpr type, ListExpr& errorInfo )
 }
 
 /*
-3.3.4 Creation of the type constructor ~rstring~
+8.4 Creation of the type constructor ~rstring~
 
 */
 TypeConstructor rangestring(
@@ -2075,15 +2263,15 @@ TypeConstructor rangestring(
 );
 
 /*
-4 Operators
+9 Operators
 
-4.1 Type mapping function
+9.1 Type mapping function
 
 A type mapping function takes a nested list as argument. Its contents are
 type descriptions of an operator's input parameters. A nested list describing
 the output type of the operator is returned.
 
-4.1.1 Type mapping function ~MovingInstantTypeMapIntime~
+9.1.1 Type mapping function ~MovingInstantTypeMapIntime~
 
 It is for the operator ~atinstant~.
 
@@ -2106,7 +2294,7 @@ MovingInstantExtTypeMapIntime( ListExpr args )
 }
 
 /*
-4.1.2 Type mapping function ~MovingPeriodsTypeMapMoving~
+9.1.2 Type mapping function ~MovingPeriodsTypeMapMoving~
 
 It is for the operator ~atperiods~.
 
@@ -2132,7 +2320,7 @@ MovingPeriodsExtTypeMapMoving( ListExpr args )
 }
 
 /*
-4.1.3 Type mapping function ~MovingTypeMapeIntime~
+9.1.3 Type mapping function ~MovingTypeMapeIntime~
 
 It is for the operators ~initial~ and ~final~.
 
@@ -2151,7 +2339,7 @@ MovingExtTypeMapIntime( ListExpr args )
 }
 
 /*
-4.1.4 Type mapping function ~MovingInstantPeriodsTypeMapBool~
+9.1.4 Type mapping function ~MovingInstantPeriodsTypeMapBool~
 
 It is for the operator ~present~.
 
@@ -2175,7 +2363,7 @@ MovingInstantPeriodsExtTypeMapBool( ListExpr args )
 }
 
 /*
-4.1.5 Type mapping function ~MovingBaseTypeMapBool~
+9.1.5 Type mapping function ~MovingBaseTypeMapBool~
 
 It is for the operator ~at~.
 
@@ -2230,7 +2418,7 @@ MovingBaseExtTypeMapMoving( ListExpr args )
 }
 
 /*
-4.1.6 Type mapping function ~MovingBaseTypeMapBool~
+9.1.6 Type mapping function ~MovingBaseTypeMapBool~
 
 It is for the operator ~passes~.
 
@@ -2268,7 +2456,7 @@ MovingBaseExtTypeMapBool( ListExpr args )
 }
 
 /*
-4.1.7 Type mapping function ~MovingTypeMapRange~
+9.1.7 Type mapping function ~MovingTypeMapRange~
 
 It is for the operator ~deftime~.
 
@@ -2288,7 +2476,7 @@ MovingExtTypeMapPeriods( ListExpr args )
 }
 
 /*
-4.1.8 Type mapping function ~IntimeTypeMapInstant~
+9.1.8 Type mapping function ~IntimeTypeMapInstant~
 
 It is for the operator ~inst~.
 
@@ -2310,7 +2498,7 @@ IntimeExtTypeMapInstant( ListExpr args )
 }
 
 /*
-4.1.9 Type mapping function ~IntimeTypeMapBase~
+9.1.9 Type mapping function ~IntimeTypeMapBase~
 
 It is for the operator ~val~.
 
@@ -2332,7 +2520,7 @@ IntimeExtTypeMapBase( ListExpr args )
 }
 
 /*
-4.1.10 Type mapping function ~MovingRExtTypeMapMovingR~
+9.1.10 Type mapping function ~MovingRExtTypeMapMovingR~
 
 It is for the operator ~derivative~.
 
@@ -2351,7 +2539,7 @@ MovingRExtTypeMapMovingR( ListExpr args )
 }
 
 /*
-4.1.11 Type mapping function ~MovingRExtTypeMapBool~
+9.1.11 Type mapping function ~MovingRExtTypeMapBool~
 
 It is for the operator ~derivable~.
 
@@ -2370,7 +2558,7 @@ MovingRExtTypeMapBool( ListExpr args )
 }
 
 /*
-4.1.12 Type mapping function ~MovingPointExtTypeMapMReal~
+9.1.12 Type mapping function ~MovingPointExtTypeMapMReal~
 
 It is for the operators ~speed~ ans ~mdirection~.
 
@@ -2389,7 +2577,7 @@ MovingPointExtTypeMapMReal( ListExpr args )
 }
 
 /*
-4.1.13 Type mapping function RangeRangevaluesExtTypeMapRange
+9.1.13 Type mapping function RangeRangevaluesExtTypeMapRange
 
 It is for the operator ~rangevalues~.
 
@@ -2417,7 +2605,7 @@ RangeRangevaluesExtTypeMapRange( ListExpr args )
 }
 
 /*
-4.1.14 Type mapping function MovingSANExtTypeMap
+9.1.14 Type mapping function MovingSANExtTypeMap
 
 It is for the operators ~sometimes~, ~always~ and ~never~.
 
@@ -2436,7 +2624,7 @@ MovingSANExtTypeMap( ListExpr args )
 }
 
 /*
-4.1.15 Type mapping function ~MPointExtTypeMapMPoint~
+9.1.15 Type mapping function ~MPointExtTypeMapMPoint~
 
 It is for the operator ~velocity~.
 
@@ -2455,7 +2643,7 @@ MPointExtTypeMapMPoint( ListExpr args )
 }
 
 /*
-4.1.16 Type mapping function RealPhysicalUnitsExtTypeMap
+9.1.16 Type mapping function RealPhysicalUnitsExtTypeMap
 
 It is for the operators ~setunitoftime~ and ~setunitofdistance~.
 
@@ -2474,7 +2662,7 @@ RealPhysicalUnitsExtTypeMap( ListExpr args )
 }
 
 /*
-4.1.17 Type mapping function MovingPointExtTypeMapPoints
+9.1.17 Type mapping function MovingPointExtTypeMapPoints
 
 It is for the operator ~locations~.
 
@@ -2493,7 +2681,7 @@ MovingPointExtTypeMapPoints( ListExpr args )
 }
 
 /*
-4.1.18 Type mapping function MovingExtTypeMapMoving
+9.1.18 Type mapping function MovingExtTypeMapMoving
 
 It is for the operators ~atmin~ and ~atmax~.
 
@@ -2519,7 +2707,7 @@ MovingExtTypeMapMoving( ListExpr args )
 }
 
 /*
-4.2 Selection function
+9.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
 difference is that it doesn't return a type but the index of a value
@@ -2530,7 +2718,7 @@ Note that a selection function does not need to check the correctness of
 argument types; it has already been checked by the type mapping function that it
 is applied to correct arguments.
 
-4.2.1 Selection function ~MovingSimpleSelect~
+9.2.1 Selection function ~MovingSimpleSelect~
 
 Is used for the ~deftime~, ~initial~, ~final~, ~inst~, ~val~,
 ~atinstant~,
@@ -2549,7 +2737,7 @@ MovingExtSimpleSelect( ListExpr args )
 }
 
 /*
-4.2.2 Selection function ~MovingInstantPeriodsSelect~
+9.2.2 Selection function ~MovingInstantPeriodsSelect~
 
 Is used for the ~present~ operations.
 
@@ -2572,7 +2760,7 @@ MovingExtInstantPeriodsSelect( ListExpr args )
 }
 
 /*
-4.2.3 Selection function MovingBaseRangeSelect
+9.2.3 Selection function MovingBaseRangeSelect
 
 Is used for the ~at~ operations.
 
@@ -2623,7 +2811,7 @@ MovingExtBaseRangeSelect( ListExpr args )
 }
 
 /*
-4.2.4 Selection function ~MovingBaseSelect~
+9.2.4 Selection function ~MovingBaseSelect~
 
 Is used for the ~passes~ operations.
 
@@ -2662,7 +2850,7 @@ MovingExtBaseSelect( ListExpr args )
 }
 
 /*
-4.2.5 Selection function ~IntimeSimpleSelect~
+9.2.5 Selection function ~IntimeSimpleSelect~
 
 Is used for the ~inst~ and ~val~ operations.
 
@@ -2682,7 +2870,7 @@ IntimeExtSimpleSelect( ListExpr args )
 }
 
 /*
-4.2.6 Selection function RangeRangevaluesExtBaseSelect
+9.2.6 Selection function RangeRangevaluesExtBaseSelect
 
 Is used for the ~rangevalues~ operations.
 
@@ -2708,7 +2896,7 @@ RangeRangevaluesExtBaseSelect( ListExpr args )
 }
 
 /*
-4.2.7 Selection function ~MovingPeriodsSelect~
+9.2.7 Selection function ~MovingPeriodsSelect~
 
 Is used for the ~atperiods~  operation.
 
@@ -2728,7 +2916,7 @@ MovingPeriodsSelect( ListExpr args )
 }
 
 /*
-4.2.8 Selection function ~MovingAtMinMaxSelect~
+9.2.8 Selection function ~MovingAtMinMaxSelect~
 
 Is used for the operators ~atmin~ and ~atmax~.
 
@@ -2754,7 +2942,7 @@ MovingAtMinMaxSelect( ListExpr args )
 }
 
 /*
-4.3 Value mapping functions
+9.3 Value mapping functions
 
 A value mapping function implements an operator's main functionality: it takes
 input arguments and computes the result. Each operator consists of at least
@@ -2762,7 +2950,7 @@ one value mapping function. In the case of overloaded operators there are
 several value mapping functions, one for each possible combination of input
 parameter types.
 
-4.3.1 Value mapping functions of operator ~atinstant~
+9.3.1 Value mapping functions of operator ~atinstant~
 
 */
 template <class Mapping, class Alpha>
@@ -2782,7 +2970,7 @@ int MappingAtInstantExt(
 }
 
 /*
-4.3.2 Value mapping functions of operator ~atperiods~
+9.3.2 Value mapping functions of operator ~atperiods~
 
 */
 template <class Mapping>
@@ -2816,7 +3004,7 @@ int MappingAtPeriodsExtMRegion(
 }
 
 /*
-4.3.3 Value mapping functions of operator ~initial~
+9.3.3 Value mapping functions of operator ~initial~
 
 */
 template <class Mapping, class Unit, class Alpha>
@@ -2843,7 +3031,7 @@ int MappingInitialExt( Word* args,
 }
 
 /*
-4.3.4 Value mapping functions of operator ~final~
+9.3.4 Value mapping functions of operator ~final~
 
 */
 template <class Mapping, class Unit, class Alpha>
@@ -2870,7 +3058,7 @@ int MappingFinalExt( Word* args,
 }
 
 /*
-4.3.5 Value mapping functions of operator ~present~
+9.3.5 Value mapping functions of operator ~present~
 
 */
 template <class Mapping>
@@ -2918,7 +3106,7 @@ int MappingPresentExt_p( Word* args,
 }
 
 /*
-4.3.6 Value mapping functions of operator ~at~
+9.3.6 Value mapping functions of operator ~at~
 
 */
 
@@ -3075,7 +3263,7 @@ int MRegionPointAtExt(
 
 
 /*
-4.3.7 Value mapping functions of operator ~passes~
+9.3.7 Value mapping functions of operator ~passes~
 
 */
 template <class Mapping, class Alpha>
@@ -3485,7 +3673,7 @@ int MRegionPointsPassesExt(
 }
 
 /*
-4.3.8 Value mapping functions of operator ~deftime~
+9.3.8 Value mapping functions of operator ~deftime~
 
 */
 template <class Mapping>
@@ -3501,7 +3689,7 @@ int MappingDefTimeExt( Word* args,
 }
 
 /*
-4.3.9 Value mapping functions of operator ~inst~
+9.3.9 Value mapping functions of operator ~inst~
 
 */
 template <class Alpha>
@@ -3524,7 +3712,7 @@ int IntimeInstExt( Word* args,
 }
 
 /*
-4.3.10 Value mapping functions of operator ~val~
+9.3.10 Value mapping functions of operator ~val~
 
 */
 template <class Alpha>
@@ -3547,7 +3735,7 @@ int IntimeValExt( Word* args,
 }
 
 /*
-4.3.11 Value mapping functions of operator ~derivativeext~
+9.3.11 Value mapping functions of operator ~derivativeext~
 
 */
 template <class Mapping>
@@ -3586,7 +3774,7 @@ int MovingDerivativeExt(
 }
 
 /*
-4.3.12 Value mapping functions of operator ~derivableext~
+9.3.12 Value mapping functions of operator ~derivableext~
 
 */
 template <class Mapping>
@@ -3685,7 +3873,7 @@ Last Unit must be created.
 }
 
 /*
-4.3.12 Value mapping functions of operator ~speedext~
+9.3.12 Value mapping functions of operator ~speedext~
 
 */
 template <class Mapping>
@@ -3734,7 +3922,7 @@ int MovingSpeedExt(
 }
 
 /*
-4.3.13 Value mapping functions of operator ~rangevalues~
+9.3.13 Value mapping functions of operator ~rangevalues~
 
 */
 int RangeRangevaluesBoolExt(
@@ -4030,7 +4218,7 @@ int RangeRangevaluesRealExt(
 }
 
 /*
-4.3.14 Value mapping functions of operator ~sometimes~
+9.3.14 Value mapping functions of operator ~sometimes~
 
 */
 int MovingSometimesExt(
@@ -4063,7 +4251,7 @@ int MovingSometimesExt(
 }
 
 /*
-4.3.15 Value mapping functions of operator ~always~
+9.3.15 Value mapping functions of operator ~always~
 
 */
 int MovingAlwaysExt(
@@ -4096,7 +4284,7 @@ int MovingAlwaysExt(
 }
 
 /*
-4.3.16 Value mapping functions of operator ~never~
+9.3.16 Value mapping functions of operator ~never~
 
 */
 int MovingNeverExt(
@@ -4129,7 +4317,7 @@ int MovingNeverExt(
 }
 
 /*
-4.3.17 Value mapping functions of operator ~velocity~
+9.3.17 Value mapping functions of operator ~velocity~
 
 */
 int MovingVelocityExt(
@@ -4169,7 +4357,7 @@ int MovingVelocityExt(
 }
 
 /*
-4.3.18 Value mapping function of operator ~setunitoftime~
+9.3.18 Value mapping function of operator ~setunitoftime~
 
 */
 int GlobalUnitOfTimeExt(
@@ -4197,7 +4385,7 @@ int GlobalUnitOfTimeExt(
 }
 
 /*
-4.3.19 Value mapping function of operator ~setunitofdistance~
+9.3.19 Value mapping function of operator ~setunitofdistance~
 
 */
 int GlobalUnitOfDistanceExt(
@@ -4226,7 +4414,7 @@ int GlobalUnitOfDistanceExt(
 
 
 /*
-4.3.20 Value mapping function of operator ~mdirection~
+9.3.20 Value mapping function of operator ~mdirection~
 
 */
 int MovingMDirectionExt(
@@ -4247,7 +4435,7 @@ int MovingMDirectionExt(
 }
 
 /*
-4.3.21 Value mapping function of operator ~locations~
+9.3.21 Value mapping function of operator ~locations~
 
 */
 int MovingLocationsExt(
@@ -4269,7 +4457,7 @@ int MovingLocationsExt(
 
 
 /*
-4.3.22 Value mapping functions of operator ~atmin~
+9.3.22 Value mapping functions of operator ~atmin~
 
 */
 template <class Mapping, class Unit, class Alpha>
@@ -4342,7 +4530,7 @@ int MappingAtmaxExt_r(
 }
 
 /*
-4.4 Definition of operators
+9.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
 type constructors: an instance of class ~Operator~ is defined.
@@ -4456,7 +4644,7 @@ ValueMapping temporalatmaxextmap[] = {
     MappingAtmaxExt_r,};
 
 /*
-4.5 Specification strings
+9.5 Specification strings
 
 */
 const string TemporalSpecAtInstantExt  =
@@ -4734,7 +4922,7 @@ const string TemporalSpecAtmaxExt  =
     ") )";
 
 /*
-4.6 Operators
+9.6 Operators
 
 */
 Operator temporalatinstantext(
@@ -4993,7 +5181,7 @@ TemporalExtAlgebra tempExtAlgebra;
 
 /*
 
-5 Initialization
+10 Initialization
 
 */
 
@@ -5005,3 +5193,4 @@ InitializeTemporalExtAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
   qp = qpRef;
   return (&tempExtAlgebra);
 }
+
