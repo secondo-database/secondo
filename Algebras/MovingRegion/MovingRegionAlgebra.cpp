@@ -8386,7 +8386,7 @@ static ListExpr BboxTypeMap(ListExpr args) {
 }
 
 /*
-Type mapping of the ~verttrajectory~ operator:
+Type mapping of the ~vertextrajectory~ operator:
 
 */
 
@@ -8964,7 +8964,7 @@ static int VertTrajectory_ValueMap(Word* args,
         Point P1(true,mseg->GetInitialStartX(),mseg->GetInitialStartY());
         Point P2(true,mseg->GetFinalStartX(),mseg->GetFinalStartY());
         chs.Set(true,P1,P2);
-        cout << "insert " << chs << "to the line" << endl;
+        //cout << "insert " << chs << "to the line" << endl;
         (*L)+=chs;
         chs.SetLDP(false);
         (*L)+=chs; 
@@ -9099,7 +9099,7 @@ static const string insidespec =
 
 static const string atspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>(mpoint region) -> mregion, "
+    "  ( <text>(mpoint region) -> mpoint, "
     "(mregion point) -> mpoint</text--->"
     "    <text>_ at _</text--->"
     "    <text>Restrict moving point to region or restrict moving region "
@@ -9150,9 +9150,9 @@ static const string bboxspec =
 static const string verttrajectoryspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>(uregion || mregion) -> line</text--->"
-    "    <text>verttrajectory( _ )</text--->"
+    "    <text>vertextrajectory( _ )</text--->"
     "    <text>Computes the trajectory of the vertices </text--->"
-    "    <text>verttrajectory(mregion1)</text---> ) )";
+    "    <text>vertextrajectory(mregion1)</text---> ) )";
 
 /*
 Used for unit testing only.
@@ -9272,7 +9272,7 @@ static Operator move("move",
                      simpleSelect,
                      MoveTypeMap);
 
-static Operator verttrajectory("verttrajectory",
+static Operator vertextrajectory("vertextrajectory",
                    verttrajectoryspec,
                    2,
                    verttrajectoryvaluemap,
@@ -9335,7 +9335,7 @@ public:
         AddOperator(&at);
         AddOperator(&bbox);
         AddOperator(&move);
-        AddOperator(&verttrajectory);
+        AddOperator(&vertextrajectory);
 
 #ifdef MRA_TRAVERSED
         AddOperator(&traversed);
