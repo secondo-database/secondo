@@ -1,0 +1,3146 @@
+#This file is part of SECONDO.
+#
+#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Database Systems for New Applications.
+#
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+#
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+# A test for the MovingRegionAlgebra
+# July 2006 Frank Hoffmann
+# Run with : Go to directory $(SECONODO_BUILD_DIR)/bin and type
+# SecondoBDB -test -i $SECONDO_BUILD_DIR/Tests/Testspecs/movingregionalgebra/movingregion.test
+# Duration: about X minutes (Microsoft Windows Platform)
+
+# clean up what may be left over from e.g. a segfault
+delete database movingregtest;
+
+#setup
+create database movingregtest;
+open database movingregtest;
+
+let uregtest1 = [const uregion value(("2006-06-10" "2006-06-20" TRUE TRUE)((((1.0 1.0 5.0 1.0)(1.0 2.0 5.0 2.0)(2.0 2.0 6.0 2.0)(2.0 1.0 6.0 1.0)))))];
+let uregtest1b = [const uregion value(("2006-06-10" "2006-06-20" TRUE FALSE)((((1.0 1.0 5.0 1.0)(1.0 2.0 5.0 2.0)(2.0 2.0 6.0 2.0)(2.0 1.0 6.0 1.0)))))];
+let uregtest1c = [const uregion value(("2006-06-10" "2006-06-20" FALSE TRUE)((((1.0 1.0 5.0 1.0)(1.0 2.0 5.0 2.0)(2.0 2.0 6.0 2.0)(2.0 1.0 6.0 1.0)))))];
+let uregtest1d = [const uregion value(("2006-06-10" "2006-06-20" FALSE FALSE)((((1.0 1.0 5.0 1.0)(1.0 2.0 5.0 2.0)(2.0 2.0 6.0 2.0)(2.0 1.0 6.0 1.0)))))];
+let uregtest2 = [const uregion value(("2006-06-10" "2006-06-20" TRUE TRUE)((((1 1 5 1)(1 2 5 2)(2 2 6 2)(2 1 6 1)))(((3 1 7 1)(3 2 7 2)(4 2 8 2)(4 1 8 1)))))];
+let uregtest2b = [const uregion value(("2006-06-10" "2006-06-20" TRUE FALSE)((((1 1 5 1)(1 2 5 2)(2 2 6 2)(2 1 6 1)))(((3 1 7 1)(3 2 7 2)(4 2 8 2)(4 1 8 1)))))];
+let uregtest2c = [const uregion value(("2006-06-10" "2006-06-20" FALSE TRUE)((((1 1 5 1)(1 2 5 2)(2 2 6 2)(2 1 6 1)))(((3 1 7 1)(3 2 7 2)(4 2 8 2)(4 1 8 1)))))];
+let uregtest2d = [const uregion value(("2006-06-10" "2006-06-20" FALSE FALSE)((((1 1 5 1)(1 2 5 2)(2 2 6 2)(2 1 6 1)))(((3 1 7 1)(3 2 7 2)(4 2 8 2)(4 1 8 1)))))];
+let uregtest3 = [const uregion value(("2006-06-10" "2006-06-20" TRUE TRUE) ((((0.5 0.5 4.5 0.5)(0.5 2.5 4.5 2.5)(2.5 2.5 6.5 2.5)(2.5 0.5 6.5 0.5))((1 1 5 1)(1 2 5 2)(2 2 6 2)(2 1 6 1)))))];
+let uregtest3b = [const uregion value(("2006-06-10" "2006-06-20" TRUE FALSE) ((((0.5 0.5 4.5 0.5)(0.5 2.5 4.5 2.5)(2.5 2.5 6.5 2.5)(2.5 0.5 6.5 0.5))((1 1 5 1)(1 2 5 2)(2 2 6 2)(2 1 6 1)))))];
+let uregtest3c = [const uregion value(("2006-06-10" "2006-06-20" FALSE TRUE) ((((0.5 0.5 4.5 0.5)(0.5 2.5 4.5 2.5)(2.5 2.5 6.5 2.5)(2.5 0.5 6.5 0.5))((1 1 5 1)(1 2 5 2)(2 2 6 2)(2 1 6 1)))))];
+let uregtest3d = [const uregion value(("2006-06-10" "2006-06-20" FALSE FALSE) ((((0.5 0.5 4.5 0.5)(0.5 2.5 4.5 2.5)(2.5 2.5 6.5 2.5)(2.5 0.5 6.5 0.5))((1 1 5 1)(1 2 5 2)(2 2 6 2)(2 1 6 1)))))];
+let uregtest5 = [const uregion value(("2006-06-10" "2006-06-20" TRUE TRUE)((((1 3 5 6)(3 3 5 6)(3 3 7 6)(3 1 7 6)(3 1 7 4)(1 1 7 4)(1 1 5 4)(1 3 5 4)))))];
+let uregtest6 = [const uregion value(("2006-06-10" "2006-06-20" TRUE TRUE)((((1 1 1 1)(1 1 3 3)(1 1 5 1)))))];
+let uregtest7 = [const uregion value(("2006-06-10" "2006-06-20" TRUE TRUE)((((4 3 6 4)(4 3 5 2)(4 3 2 1)(4 3 1 3)(4 3 3 5)))))];
+let reg1 = [const region value((((1 1)(1 2)(2 2)(2 1))))];
+let reg2 = [const region value((((1 1)(1 2)(2 2)(2 1)))(((3 1)(3 2)(4 2)(4 1))))];
+let reg3 = [const region value((((0.5 0.5)(0.5 2.5)(2.5 2.5)(2.5 0.5))((1 1)(1 2)(2 2)(2 1))))];
+let mpoint1 = [const mpoint value( (("2006-06-10" "2006-06-12" TRUE FALSE)(1.0 1.0 3.0 1.0))(("2006-06-12" "2006-06-14" TRUE FALSE)(3.0 1.0 5.0 1.0))(("2006-06-14" "2006-06-16" TRUE FALSE)(5.0 1.0 7.0 1.0))(("2006-06-16" "2006-06-18" TRUE FALSE)(7.0 1.0 9.0 1.0))(("2006-06-18" "2006-06-20" TRUE TRUE)(9.0 1.0 11.0 1.0)) )];
+let mpoint2 = [const mpoint value( (("2006-06-10" "2006-06-12" TRUE FALSE)(1.0 1.0 3.0 1.0))(("2006-06-12" "2006-06-14" FALSE FALSE)(3.0 1.0 5.0 1.0))(("2006-06-14" "2006-06-16" FALSE FALSE)(5.0 1.0 7.0 1.0))(("2006-06-16" "2006-06-18" FALSE FALSE)(7.0 1.0 9.0 1.0))(("2006-06-18" "2006-06-20" FALSE TRUE)(9.0 1.0 11.0 1.0)) )];
+let mpoint3 = [const mpoint value( (("2006-06-10" "2006-06-12" TRUE TRUE)(1.0 1.0 3.0 1.0))(("2006-06-12" "2006-06-14" FALSE TRUE)(3.0 1.0 5.0 1.0))(("2006-06-14" "2006-06-16" FALSE TRUE)(5.0 1.0 7.0 1.0))(("2006-06-16" "2006-06-18" FALSE TRUE)(7.0 1.0 9.0 1.0))(("2006-06-18" "2006-06-20" FALSE TRUE)(9.0 1.0 11.0 1.0)) )];
+let mpoint4 = [const mpoint value((("2006-06-14" "2006-06-16" TRUE TRUE)(11.0 54.0 15.0 54.5)))];
+let mpointinterstest1 = [const mpoint value( (("2006-06-10" "2006-06-12-22:37" TRUE FALSE)(3.5 0.5 3.5 3.0))(("2006-06-12-22:37" "2006-06-16" TRUE FALSE)(3.5 3.0 3.5 4.0)) )];
+let mpointinterstest2 = [const mpoint value((("2006-06-10" "2006-06-12-22:37" TRUE FALSE)(0.5 1.0 0.5 2.0))(("2006-06-12-22:37" "2006-06-16" TRUE FALSE)(0.5 2.0 0.5 4.0)) )];
+let mregtest1 = move(mpoint1, reg1);
+let mregtest1b = move(mpoint2, reg1);
+let mregtest1c = move(mpoint3, reg1);
+let mregtest2 = move(mpoint1, reg2);
+let mregtest2b = move(mpoint2, reg2);
+let mregtest2c = move(mpoint3, reg2);
+let mregtest3 = move(mpoint1, reg3);
+let mregtest3b = move(mpoint2, reg3);
+let mregtest3c = move(mpoint3, reg3);
+let mregtest4 = [const movingregion value((("2006-06-10" "2006-06-20" TRUE TRUE)((((4 3 6 4)(4 3 5 2)(4 3 2 1)(4 3 1 3)(4 3 3 5))))))];
+let mregtest5 = [const movingregion value((("2006-06-10" "2006-06-20" TRUE TRUE)((((108 -159 229 -393)(108 -159 172 -409)(108 -159 110 -392)(57 -131 110 -392)(57 -131 148 -359)(57 -131 92 -339)(69 -85 92 -339)(69 -85 110 -310)(139 -46 110 -310)(139 -46 202 -260)(202 -97 202 -260)(202 -97 182 -306)(202 -97 234 -313)(202 -97 197 -342)(202 -97 250 -360)(182 -132 250 -360)(182 -132 229 -393))))))];
+let mregtest6 = [const movingregion value((("2006-06-12" "2006-06-14" TRUE TRUE)((((1.0 3.0 5.0 6.0)(3.0 3.0 5.0 6.0)(3.0 3.0 7.0 6.0)(3.0 1.0 7.0 6.0)(3.0 1.0 7.0 4.0)(1.0 1.0 7.0 4.0)(1.0 1.0 5.0 4.0))))))];
+let mregtest20 = [const movingregion value((("2006-06-12" "2006-06-14" TRUE TRUE)((((1.0 1.0 4.0 3.5)(1.0 3.0 4.0 4.5)(3.0 3.0 6.0 4.5)(3.0 1.0 6.0 3.5))))))];
+let poi2triangle = [const movingregion value ((("2006-06-10" "2006-06-20" TRUE TRUE)((((1.0 1.0 1.0 1.0)(1.0 1.0 3.0 3.0)(1.0 1.0 5.0 1.0))))))];
+let point2polygon = [const movingregion value ((("2006-06-10" "2006-06-20" TRUE TRUE)((((4.0 3.0 6.0 4.0)(4.0 3.0 5.0 2.0)(4.0 3.0 2.0 1.0)(4.0 3.0 1.0 3.0)(4.0 3.0 3.0 5.0))))))];
+let testinst1 = [const instant value "2006-06-5"];
+let testinst2 = [const instant value "2006-06-10"];
+let testinst2b = [const instant value "2006-06-10-0:01:0.0"];
+let testinst3 = [const instant value "2006-06-15"];
+let testinst4 = [const instant value "2006-06-20"];
+let testinst5 = [const instant value "2006-06-25"];
+let testinst6 = [const instant value "2006-06-12"];
+let testinst7 = [const instant value "2006-06-14"];
+let testinst8 = [const instant value "2006-06-16"];
+let testinst9 = [const instant value "2006-06-18"];
+let testinst10 = [const instant value "2006-06-12-23:59"];
+let testinst11 = [const instant value "2006-06-11"];
+let testinst12 = [const instant value "2006-06-13"];
+let testinst13 = [const instant value "2006-06-17"];
+let testinst14 = [const instant value "2006-06-19"];
+let periodstest1 = deftime(mregtest1b);
+let periodstest2 = [const periods value(("2006-06-10" "2006-06-12" TRUE FALSE)("2006-06-12" "2006-06-14" FALSE FALSE))];
+let periodstest3 = [const periods value(("2006-06-10" "2006-06-12" TRUE FALSE)("2006-06-12" "2006-06-13" FALSE FALSE))];
+let periodstest4 = [const periods value(("2006-06-10" "2006-06-12" TRUE FALSE)("2006-06-12" "2006-06-13" FALSE TRUE))];
+let periodstest5 = [const periods value(("2006-06-08" "2006-06-10" FALSE FALSE))];
+let reg20at20060912 = val(mregtest20 atinstant [const instant value "2006-06-12-13:25"]);
+let pointforattest = [const point value(3.45 3.08)];
+restore SH from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/SH';
+let SHMove = move(mpoint1, SH);
+let SHMoveat20060616 = val(SHMove atinstant [const instant value "2006-06-16-16:45:53.058"]);
+let mpoint54 = [const mpoint value((("2006-06-11" "2006-06-20" TRUE TRUE)(12.0 54.7 18.0 55.4)))];
+restore ships from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/ships';
+restore goodspots from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/goodspots';
+restore shoals from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shoals';
+let ship1 = ships feed filter[.shipid = 1] extract[ship];
+let ship2 = ships feed filter[.shipid = 2] extract[ship];
+let ship3 = ships feed filter[.shipid = 3] extract[ship];
+let ship4 = ships feed filter[.shipid = 4] extract[ship];
+let ship5 = ships feed filter[.shipid = 5] extract[ship];
+let ship6 = ships feed filter[.shipid = 6] extract[ship];
+let ship7 = ships feed filter[.shipid = 7] extract[ship];
+let ship8 = ships feed filter[.shipid = 8] extract[ship];
+let ship9 = ships feed filter[.shipid = 9] extract[ship];
+let ship10 = ships feed filter[.shipid = 10] extract[ship];
+let ship11 = ships feed filter[.shipid = 11] extract[ship];
+let ship12 = ships feed filter[.shipid = 12] extract[ship];
+let gsws = goodspots feed extend[s1: ship1, s2: ship2, s3: ship3, s4: ship4, s5: ship5, s6: ship6, s7: ship7, s8: ship8, s9:ship9, s10: ship10, s11: ship11, s12: ship12] consume;
+let shws = shoals feed extend[s1: ship1, s2: ship2, s3: ship3, s4: ship4, s5: ship5, s6: ship6, s7: ship7, s8: ship8, s9:ship9, s10: ship10, s11: ship11, s12: ship12] consume;
+
+#testcase Type Constructor URegion 1
+#yields (uregion (("2006-06-10" "2006-06-20" TRUE TRUE) ((((1.0 1.0 5.0 1.0) (1.0 2.0 5.0 2.0) (2.0 2.0 6.0 2.0) (2.0 1.0 6.0 1.0))))))
+query uregtest1;
+
+#testcase Type Constructor URegion 2
+#yields (uregion (("2006-06-10" "2006-06-20" TRUE FALSE) ((((1.0 1.0 5.0 1.0)(1.0 2.0 5.0 2.0)(2.0 2.0 6.0 2.0)(2.0 1.0 6.0 1.0))))))
+query uregtest1b;
+
+#testcase Type Constructor URegion 3
+#yields (uregion (("2006-06-10" "2006-06-20" FALSE TRUE) ((((1.0 1.0 5.0 1.0)(1.0 2.0 5.0 2.0)(2.0 2.0 6.0 2.0)(2.0 1.0 6.0 1.0))))))
+query uregtest1c;
+
+#testcase Type Constructor URegion 4
+#yields (uregion (("2006-06-10" "2006-06-20" FALSE FALSE) ((((1.0 1.0 5.0 1.0)(1.0 2.0 5.0 2.0)(2.0 2.0 6.0 2.0)(2.0 1.0 6.0 1.0))))))
+query uregtest1d;
+
+#testcase Type Constructor URegion 5
+#yields (uregion (("2006-06-10" "2006-06-20" TRUE TRUE)((((1.0 1.0 5.0 1.0)(1.0 2.0 5.0 2.0)(2.0 2.0 6.0 2.0)(2.0 1.0 6.0 1.0)))(((3.0 1.0 7.0 1.0)(3.0 2.0 7.0 2.0)(4.0 2.0 8.0 2.0)(4.0 1.0 8.0 1.0))))))
+query uregtest2;
+
+#testcase Type Constructor URegion 6
+#yields (uregion (("2006-06-10" "2006-06-20" TRUE FALSE)((((1.0 1.0 5.0 1.0)(1.0 2.0 5.0 2.0)(2.0 2.0 6.0 2.0)(2.0 1.0 6.0 1.0)))(((3.0 1.0 7.0 1.0)(3.0 2.0 7.0 2.0)(4.0 2.0 8.0 2.0)(4.0 1.0 8.0 1.0))))))
+query uregtest2b;
+
+#testcase Type Constructor URegion 7
+#yields (uregion (("2006-06-10" "2006-06-20" FALSE TRUE)((((1.0 1.0 5.0 1.0)(1.0 2.0 5.0 2.0)(2.0 2.0 6.0 2.0)(2.0 1.0 6.0 1.0)))(((3.0 1.0 7.0 1.0)(3.0 2.0 7.0 2.0)(4.0 2.0 8.0 2.0)(4.0 1.0 8.0 1.0))))))
+query uregtest2c;
+
+#testcase Type Constructor URegion 8
+#yields (uregion (("2006-06-10" "2006-06-20" FALSE FALSE)((((1.0 1.0 5.0 1.0)(1.0 2.0 5.0 2.0)(2.0 2.0 6.0 2.0)(2.0 1.0 6.0 1.0)))(((3.0 1.0 7.0 1.0)(3.0 2.0 7.0 2.0)(4.0 2.0 8.0 2.0)(4.0 1.0 8.0 1.0))))))
+query uregtest2d;
+
+#testcase Type Constructor URegion 9
+#yields (uregion (("2006-06-10" "2006-06-20" TRUE TRUE) ((((0.5 0.5 4.5 0.5)(0.5 2.5 4.5 2.5)(2.5 2.5 6.5 2.5)(2.5 0.5 6.5 0.5))((1.0 1.0 5.0 1.0)(1.0 2.0 5.0 2.0)(2.0 2.0 6.0 2.0)(2.0 1.0 6.0 1.0))))))
+query uregtest3;
+
+#testcase Type Constructor URegion 10
+#yields (uregion (("2006-06-10" "2006-06-20" TRUE FALSE) ((((0.5 0.5 4.5 0.5)(0.5 2.5 4.5 2.5)(2.5 2.5 6.5 2.5)(2.5 0.5 6.5 0.5))((1.0 1.0 5.0 1.0)(1.0 2.0 5.0 2.0)(2.0 2.0 6.0 2.0)(2.0 1.0 6.0 1.0))))))
+query uregtest3b;
+
+#testcase Type Constructor URegion 11
+#yields (uregion (("2006-06-10" "2006-06-20" FALSE TRUE) ((((0.5 0.5 4.5 0.5)(0.5 2.5 4.5 2.5)(2.5 2.5 6.5 2.5)(2.5 0.5 6.5 0.5))((1.0 1.0 5.0 1.0)(1.0 2.0 5.0 2.0)(2.0 2.0 6.0 2.0)(2.0 1.0 6.0 1.0))))))
+query uregtest3c;
+
+#testcase Type Constructor URegion 12
+#yields (uregion (("2006-06-10" "2006-06-20" FALSE FALSE) ((((0.5 0.5 4.5 0.5)(0.5 2.5 4.5 2.5)(2.5 2.5 6.5 2.5)(2.5 0.5 6.5 0.5))((1.0 1.0 5.0 1.0)(1.0 2.0 5.0 2.0)(2.0 2.0 6.0 2.0)(2.0 1.0 6.0 1.0))))))
+query uregtest3d;
+
+#testcase Type Constructor URegion 13
+#yields (uregion(("2006-06-10" "2006-06-20" TRUE TRUE)((((1.0 3.0 5.0 6.0)(3.0 3.0 5.0 6.0)(3.0 3.0 7.0 6.0)(3.0 1.0 7.0 6.0)(3.0 1.0 7.0 4.0)(1.0 1.0 7.0 4.0)(1.0 1.0 5.0 4.0)(1.0 3.0 5.0 4.0))))))
+query uregtest5;
+
+#testcase Type Constructor URegion 14
+#yields (uregion(("2006-06-10" "2006-06-20" TRUE TRUE)((((1.0 1.0 1.0 1.0)(1.0 1.0 3.0 3.0)(1.0 1.0 5.0 1.0))))))
+query uregtest6;
+
+#testcase Type Constructor URegion 15
+#yields (uregion(("2006-06-10" "2006-06-20" TRUE TRUE)((((4.0 3.0 6.0 4.0)(4.0 3.0 5.0 2.0)(4.0 3.0 2.0 1.0)(4.0 3.0 1.0 3.0)(4.0 3.0 3.0 5.0))))))
+query uregtest7;
+
+#testcase Type Constructor MRegion 1
+#yields (movingregion((("2006-06-10" "2006-06-12" TRUE FALSE)((((1.0 1.0 3.0 1.0)(1.0 2.0 3.0 2.0)(2.0 2.0 4.0 2.0)(2.0 1.0 4.0 1.0)))))(("2006-06-12" "2006-06-14" TRUE FALSE)((((3.0 1.0 5.0 1.0)(3.0 2.0 5.0 2.0)(4.0 2.0 6.0 2.0)(4.0 1.0 6.0 1.0)))))(("2006-06-14" "2006-06-16" TRUE FALSE)((((5.0 1.0 7.0 1.0)(5.0 2.0 7.0 2.0)(6.0 2.0 8.0 2.0)(6.0 1.0 8.0 1.0)))))(("2006-06-16" "2006-06-18" TRUE FALSE)((((7.0 1.0 9.0 1.0)(7.0 2.0 9.0 2.0)(8.0 2.0 10.0 2.0)(8.0 1.0 10.0 1.0)))))(("2006-06-18" "2006-06-20" TRUE TRUE)((((9.0 1.0 11.0 1.0)(9.0 2.0 11.0 2.0)(10.0 2.0 12.0 2.0)(10.0 1.0 12.0 1.0)))))))
+query mregtest1;
+
+#testcase Type Constructor MRegion 2
+#yields (movingregion((("2006-06-10" "2006-06-12" TRUE FALSE)((((1.0 1.0 3.0 1.0)(1.0 2.0 3.0 2.0)(2.0 2.0 4.0 2.0)(2.0 1.0 4.0 1.0)))))(("2006-06-12" "2006-06-14" FALSE FALSE)((((3.0 1.0 5.0 1.0)(3.0 2.0 5.0 2.0)(4.0 2.0 6.0 2.0)(4.0 1.0 6.0 1.0)))))(("2006-06-14" "2006-06-16" FALSE FALSE)((((5.0 1.0 7.0 1.0)(5.0 2.0 7.0 2.0)(6.0 2.0 8.0 2.0)(6.0 1.0 8.0 1.0)))))(("2006-06-16" "2006-06-18" FALSE FALSE)((((7.0 1.0 9.0 1.0)(7.0 2.0 9.0 2.0)(8.0 2.0 10.0 2.0)(8.0 1.0 10.0 1.0)))))(("2006-06-18" "2006-06-20" FALSE TRUE)((((9.0 1.0 11.0 1.0)(9.0 2.0 11.0 2.0)(10.0 2.0 12.0 2.0)(10.0 1.0 12.0 1.0)))))))
+query mregtest1b;
+
+#testcase Type Constructor MRegion 3
+#yields (movingregion((("2006-06-10" "2006-06-12" TRUE TRUE)((((1.0 1.0 3.0 1.0)(1.0 2.0 3.0 2.0)(2.0 2.0 4.0 2.0)(2.0 1.0 4.0 1.0)))))(("2006-06-12" "2006-06-14" FALSE TRUE)((((3.0 1.0 5.0 1.0)(3.0 2.0 5.0 2.0)(4.0 2.0 6.0 2.0)(4.0 1.0 6.0 1.0)))))(("2006-06-14" "2006-06-16" FALSE TRUE)((((5.0 1.0 7.0 1.0)(5.0 2.0 7.0 2.0)(6.0 2.0 8.0 2.0)(6.0 1.0 8.0 1.0)))))(("2006-06-16" "2006-06-18" FALSE TRUE)((((7.0 1.0 9.0 1.0)(7.0 2.0 9.0 2.0)(8.0 2.0 10.0 2.0)(8.0 1.0 10.0 1.0)))))(("2006-06-18" "2006-06-20" FALSE TRUE)((((9.0 1.0 11.0 1.0)(9.0 2.0 11.0 2.0)(10.0 2.0 12.0 2.0)(10.0 1.0 12.0 1.0)))))))
+query mregtest1c;
+
+#testcase Type Constructor MRegion 4
+# yields (movingregion((("2006-06-10" "2006-06-12" TRUE FALSE)((((1.0 1.0 3.0 1.0)(1.0 2.0 3.0 2.0)(2.0 2.0 4.0 2.0)(2.0 1.0 4.0 1.0)))(((3.0 1.0 5.0 1.0)(3.0 2.0 5.0 2.0)(4.0 2.0 6.0 2.0)(4.0 1.0 6.0 1.0)))))(("2006-06-12" "2006-06-14" TRUE FALSE) ((((3.0 1.0 5.0 1.0) (3.0 2.0 5.0 2.0) (4.0 2.0 6.0 2.0) (4.0 1.0 6.0 1.0))) (((5.0 1.0 7.0 1.0) (5.0 2.0 7.0 2.0) (6.0 2.0 8.0 2.0) (6.0 1.0 8.0 1.0))))) (("2006-06-14" "2006-06-16" TRUE FALSE) ((((5.0 1.0 7.0 1.0) (5.0 2.0 7.0 2.0) (6.0 2.0 8.0 2.0) (6.0 1.0 8.0 1.0))) (((7.0 1.0 9.0 1.0) (7.0 2.0 9.0 2.0) (8.0 2.0 10.0 2.0) (8.0 1.0 10.0 1.0))))) (("2006-06-16" "2006-06-18" TRUE FALSE) ((((7.0 1.0 9.0 1.0) (7.0 2.0 9.0 2.0) (8.0 2.0 10.0 2.0) (8.0 1.0 10.0 1.0))) (((9.0 1.0 11.0 1.0) (9.0 2.0 11.0 2.0) (10.0 2.0 12.0 2.0) (10.0 1.0 12.0 1.0)))))(("2006-06-18" "2006-06-20" TRUE TRUE) ((((9.0 1.0 11.0 1.0) (9.0 2.0 11.0 2.0) (10.0 2.0 12.0 2.0) (10.0 1.0 12.0 1.0))) (((11.0 1.0 13.0 1.0) (11.0 2.0 13.0 2.0) (12.0 2.0 14.0 2.0) (12.0 1.0 14.0 1.0)))))))
+query mregtest2;
+
+#testcase Type Constructor MRegion 5
+# yields (movingregion((("2006-06-10" "2006-06-12" TRUE FALSE)((((1.0 1.0 3.0 1.0)(1.0 2.0 3.0 2.0)(2.0 2.0 4.0 2.0)(2.0 1.0 4.0 1.0)))(((3.0 1.0 5.0 1.0)(3.0 2.0 5.0 2.0)(4.0 2.0 6.0 2.0)(4.0 1.0 6.0 1.0)))))(("2006-06-12" "2006-06-14" FALSE FALSE) ((((3.0 1.0 5.0 1.0) (3.0 2.0 5.0 2.0) (4.0 2.0 6.0 2.0) (4.0 1.0 6.0 1.0))) (((5.0 1.0 7.0 1.0) (5.0 2.0 7.0 2.0) (6.0 2.0 8.0 2.0) (6.0 1.0 8.0 1.0))))) (("2006-06-14" "2006-06-16" FALSE FALSE) ((((5.0 1.0 7.0 1.0) (5.0 2.0 7.0 2.0) (6.0 2.0 8.0 2.0) (6.0 1.0 8.0 1.0))) (((7.0 1.0 9.0 1.0) (7.0 2.0 9.0 2.0) (8.0 2.0 10.0 2.0) (8.0 1.0 10.0 1.0))))) (("2006-06-16" "2006-06-18" FALSE FALSE) ((((7.0 1.0 9.0 1.0) (7.0 2.0 9.0 2.0) (8.0 2.0 10.0 2.0) (8.0 1.0 10.0 1.0))) (((9.0 1.0 11.0 1.0) (9.0 2.0 11.0 2.0) (10.0 2.0 12.0 2.0) (10.0 1.0 12.0 1.0)))))(("2006-06-18" "2006-06-20" FALSE TRUE) ((((9.0 1.0 11.0 1.0) (9.0 2.0 11.0 2.0) (10.0 2.0 12.0 2.0) (10.0 1.0 12.0 1.0))) (((11.0 1.0 13.0 1.0) (11.0 2.0 13.0 2.0) (12.0 2.0 14.0 2.0) (12.0 1.0 14.0 1.0)))))))
+query mregtest2b;
+
+#testcase Type Constructor MRegion 6
+# yields (movingregion((("2006-06-10" "2006-06-12" TRUE TRUE)((((1.0 1.0 3.0 1.0)(1.0 2.0 3.0 2.0)(2.0 2.0 4.0 2.0)(2.0 1.0 4.0 1.0)))(((3.0 1.0 5.0 1.0)(3.0 2.0 5.0 2.0)(4.0 2.0 6.0 2.0)(4.0 1.0 6.0 1.0)))))(("2006-06-12" "2006-06-14" FALSE TRUE) ((((3.0 1.0 5.0 1.0) (3.0 2.0 5.0 2.0) (4.0 2.0 6.0 2.0) (4.0 1.0 6.0 1.0))) (((5.0 1.0 7.0 1.0) (5.0 2.0 7.0 2.0) (6.0 2.0 8.0 2.0) (6.0 1.0 8.0 1.0))))) (("2006-06-14" "2006-06-16" FALSE TRUE) ((((5.0 1.0 7.0 1.0) (5.0 2.0 7.0 2.0) (6.0 2.0 8.0 2.0) (6.0 1.0 8.0 1.0))) (((7.0 1.0 9.0 1.0) (7.0 2.0 9.0 2.0) (8.0 2.0 10.0 2.0) (8.0 1.0 10.0 1.0))))) (("2006-06-16" "2006-06-18" FALSE TRUE) ((((7.0 1.0 9.0 1.0) (7.0 2.0 9.0 2.0) (8.0 2.0 10.0 2.0) (8.0 1.0 10.0 1.0))) (((9.0 1.0 11.0 1.0) (9.0 2.0 11.0 2.0) (10.0 2.0 12.0 2.0) (10.0 1.0 12.0 1.0)))))(("2006-06-18" "2006-06-20" FALSE TRUE) ((((9.0 1.0 11.0 1.0) (9.0 2.0 11.0 2.0) (10.0 2.0 12.0 2.0) (10.0 1.0 12.0 1.0))) (((11.0 1.0 13.0 1.0) (11.0 2.0 13.0 2.0) (12.0 2.0 14.0 2.0) (12.0 1.0 14.0 1.0)))))))
+query mregtest2c;
+
+#testcase Type Constructor MRegion 7
+#yields (movingregion((("2006-06-10" "2006-06-12" TRUE FALSE) ((((0.5 0.5 2.5 0.5) (0.5 2.5 2.5 2.5) (2.5 2.5 4.5 2.5) (2.5 0.5 4.5 0.5)) ((1.0 1.0 3.0 1.0) (1.0 2.0 3.0 2.0) (2.0 2.0 4.0 2.0) (2.0 1.0 4.0 1.0))))) (("2006-06-12" "2006-06-14" TRUE FALSE) ((((2.5 0.5 4.5 0.5) (2.5 2.5 4.5 2.5) (4.5 2.5 6.5 2.5) (4.5 0.5 6.5 0.5)) ((3.0 1.0 5.0 1.0) (3.0 2.0 5.0 2.0) (4.0 2.0 6.0 2.0) (4.0 1.0 6.0 1.0))))) (("2006-06-14" "2006-06-16" TRUE FALSE) ((((4.5 0.5 6.5 0.5) (4.5 2.5 6.5 2.5) (6.5 2.5 8.5 2.5) (6.5 0.5 8.5 0.5)) ((5.0 1.0 7.0 1.0) (5.0 2.0 7.0 2.0) (6.0 2.0 8.0 2.0) (6.0 1.0 8.0 1.0))))) (("2006-06-16" "2006-06-18" TRUE FALSE) ((((6.5 0.5 8.5 0.5) (6.5 2.5 8.5 2.5) (8.5 2.5 10.5 2.5) (8.5 0.5 10.5 0.5)) ((7.0 1.0 9.0 1.0) (7.0 2.0 9.0 2.0) (8.0 2.0 10.0 2.0) (8.0 1.0 10.0 1.0))))) (("2006-06-18" "2006-06-20" TRUE TRUE) ((((8.5 0.5 10.5 0.5) (8.5 2.5 10.5 2.5) (10.5 2.5 12.5 2.5) (10.5 0.5 12.5 0.5)) ((9.0 1.0 11.0 1.0) (9.0 2.0 11.0 2.0) (10.0 2.0 12.0 2.0) (10.0 1.0 12.0 1.0)))))))
+query mregtest3;
+
+#testcase Type Constructor MRegion 8
+#yields (movingregion((("2006-06-10" "2006-06-12" TRUE FALSE) ((((0.5 0.5 2.5 0.5) (0.5 2.5 2.5 2.5) (2.5 2.5 4.5 2.5) (2.5 0.5 4.5 0.5)) ((1.0 1.0 3.0 1.0) (1.0 2.0 3.0 2.0) (2.0 2.0 4.0 2.0) (2.0 1.0 4.0 1.0))))) (("2006-06-12" "2006-06-14" FALSE FALSE) ((((2.5 0.5 4.5 0.5) (2.5 2.5 4.5 2.5) (4.5 2.5 6.5 2.5) (4.5 0.5 6.5 0.5)) ((3.0 1.0 5.0 1.0) (3.0 2.0 5.0 2.0) (4.0 2.0 6.0 2.0) (4.0 1.0 6.0 1.0))))) (("2006-06-14" "2006-06-16" FALSE FALSE) ((((4.5 0.5 6.5 0.5) (4.5 2.5 6.5 2.5) (6.5 2.5 8.5 2.5) (6.5 0.5 8.5 0.5)) ((5.0 1.0 7.0 1.0) (5.0 2.0 7.0 2.0) (6.0 2.0 8.0 2.0) (6.0 1.0 8.0 1.0))))) (("2006-06-16" "2006-06-18" FALSE FALSE) ((((6.5 0.5 8.5 0.5) (6.5 2.5 8.5 2.5) (8.5 2.5 10.5 2.5) (8.5 0.5 10.5 0.5)) ((7.0 1.0 9.0 1.0) (7.0 2.0 9.0 2.0) (8.0 2.0 10.0 2.0) (8.0 1.0 10.0 1.0))))) (("2006-06-18" "2006-06-20" FALSE TRUE) ((((8.5 0.5 10.5 0.5) (8.5 2.5 10.5 2.5) (10.5 2.5 12.5 2.5) (10.5 0.5 12.5 0.5)) ((9.0 1.0 11.0 1.0) (9.0 2.0 11.0 2.0) (10.0 2.0 12.0 2.0) (10.0 1.0 12.0 1.0)))))))
+query mregtest3b;
+
+#testcase Type Constructor MRegion 9
+#yields (movingregion((("2006-06-10" "2006-06-12" TRUE TRUE) ((((0.5 0.5 2.5 0.5) (0.5 2.5 2.5 2.5) (2.5 2.5 4.5 2.5) (2.5 0.5 4.5 0.5)) ((1.0 1.0 3.0 1.0) (1.0 2.0 3.0 2.0) (2.0 2.0 4.0 2.0) (2.0 1.0 4.0 1.0))))) (("2006-06-12" "2006-06-14" FALSE TRUE) ((((2.5 0.5 4.5 0.5) (2.5 2.5 4.5 2.5) (4.5 2.5 6.5 2.5) (4.5 0.5 6.5 0.5)) ((3.0 1.0 5.0 1.0) (3.0 2.0 5.0 2.0) (4.0 2.0 6.0 2.0) (4.0 1.0 6.0 1.0))))) (("2006-06-14" "2006-06-16" FALSE TRUE) ((((4.5 0.5 6.5 0.5) (4.5 2.5 6.5 2.5) (6.5 2.5 8.5 2.5) (6.5 0.5 8.5 0.5)) ((5.0 1.0 7.0 1.0) (5.0 2.0 7.0 2.0) (6.0 2.0 8.0 2.0) (6.0 1.0 8.0 1.0))))) (("2006-06-16" "2006-06-18" FALSE TRUE) ((((6.5 0.5 8.5 0.5) (6.5 2.5 8.5 2.5) (8.5 2.5 10.5 2.5) (8.5 0.5 10.5 0.5)) ((7.0 1.0 9.0 1.0) (7.0 2.0 9.0 2.0) (8.0 2.0 10.0 2.0) (8.0 1.0 10.0 1.0))))) (("2006-06-18" "2006-06-20" FALSE TRUE) ((((8.5 0.5 10.5 0.5) (8.5 2.5 10.5 2.5) (10.5 2.5 12.5 2.5) (10.5 0.5 12.5 0.5)) ((9.0 1.0 11.0 1.0) (9.0 2.0 11.0 2.0) (10.0 2.0 12.0 2.0) (10.0 1.0 12.0 1.0)))))))
+query mregtest3c;
+
+#testcase Operator atinstant URegion 1
+#yields (intimeregion undef)
+query uregtest1 atinstant testinst1;
+
+#testcase Operator atinstant URegion 2
+#yields (intimeregion("2006-06-10"((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0))))))
+query uregtest1 atinstant testinst2;
+
+#testcase Operator atinstant URegion 3
+#yields (intimeregion("2006-06-15"((((4.0 1.0)(3.0 1.0) (3.0 2.0)(4.0 2.0))))))
+query uregtest1 atinstant testinst3;
+
+#testcase Operator atinstant URegion 4
+#yields (intimeregion("2006-06-20"((((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0))))))
+query uregtest1 atinstant testinst4;
+
+#testcase Operator atinstant URegion 5
+#yields (intimeregion undef)
+query uregtest1 atinstant testinst5;
+
+#testcase Operator atinstant URegion 6
+#yields (intimeregion undef)
+query uregtest1b atinstant testinst1;
+
+#testcase Operator atinstant URegion 7
+#yields (intimeregion("2006-06-10"((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0))))))
+query uregtest1b atinstant testinst2;
+
+#testcase Operator atinstant URegion 8
+#yields (intimeregion("2006-06-15"((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query uregtest1b atinstant testinst3;
+
+#testcase Operator atinstant URegion 9
+#yields (intimeregion("2006-06-15"((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query uregtest1b atinstant testinst3;
+
+#testcase Operator atinstant URegion 10
+#yields (intimeregion undef)
+query uregtest1b atinstant testinst4;
+
+#testcase Operator atinstant URegion 11
+#yields (intimeregion undef)
+query uregtest1b atinstant testinst5;
+
+#testcase Operator atinstant URegion 12
+#yields (intimeregion undef)
+query uregtest1c atinstant testinst1;
+
+#testcase Operator atinstant URegion 13
+#yields (intimeregion undef)
+query uregtest1c atinstant testinst2;
+
+#testcase Operator atinstant URegion 14
+#yields (intimeregion("2006-06-15"((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query uregtest1c atinstant testinst3;
+
+#testcase Operator atinstant URegion 15
+#yields (intimeregion("2006-06-20"((((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0))))))
+query uregtest1c atinstant testinst4;
+
+#testcase Operator atinstant URegion 16
+#yields (intimeregion undef)
+query uregtest1c atinstant testinst5;
+
+#testcase Operator atinstant URegion 17
+#yields (intimeregion undef)
+query uregtest1d atinstant testinst1;
+
+#testcase Operator atinstant URegion 18
+#yields (intimeregion undef)
+query uregtest1d atinstant testinst2;
+
+#testcase Operator atinstant URegion 19
+#yields (intimeregion("2006-06-15"((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query uregtest1d atinstant testinst3;
+
+#testcase Operator atinstant URegion 20
+#yields (intimeregion undef)
+query uregtest1d atinstant testinst4;
+
+#testcase Operator atinstant URegion 21
+#yields (intimeregion undef)
+query uregtest1d atinstant testinst5;
+
+#testcase Operator atinstant URegion 22
+#yields (intimeregion undef)
+query uregtest2 atinstant testinst1;
+
+#testcase Operator atinstant URegion 23
+#yields (intimeregion("2006-06-10"((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))(((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query uregtest2 atinstant testinst2;
+
+#testcase Operator atinstant URegion 24
+#yields (intimeregion("2006-06-15"((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))(((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0))))))
+query uregtest2 atinstant testinst3;
+
+#testcase Operator atinstant URegion 25
+#yields (intimeregion("2006-06-20"((((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))(((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0))))))
+query uregtest2 atinstant testinst4;
+
+#testcase Operator atinstant URegion 26
+#yields (intimeregion undef)
+query uregtest2 atinstant testinst5;
+
+#testcase Operator atinstant URegion 27
+#yields (intimeregion undef)
+query uregtest2b atinstant testinst1;
+
+#testcase Operator atinstant URegion 28
+#yields (intimeregion("2006-06-10"((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))(((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query uregtest2b atinstant testinst2;
+
+#testcase Operator atinstant URegion 29
+#yields (intimeregion("2006-06-15"((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))(((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0))))))
+query uregtest2b atinstant testinst3;
+
+#testcase Operator atinstant URegion 30
+#yields (intimeregion undef)
+query uregtest2b atinstant testinst4;
+
+#testcase Operator atinstant URegion 31
+#yields (intimeregion undef)
+query uregtest2b atinstant testinst5;
+
+#testcase Operator atinstant URegion 32
+#yields (intimeregion undef)
+query uregtest2c atinstant testinst1;
+
+#testcase Operator atinstant URegion 33
+#yields (intimeregion undef)
+query uregtest2c atinstant testinst2;
+
+#testcase Operator atinstant URegion 34
+#yields (intimeregion("2006-06-15"((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))(((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0))))))
+query uregtest2c atinstant testinst3;
+
+#testcase Operator atinstant URegion 35
+#yields (intimeregion("2006-06-20"((((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))(((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0))))))
+query uregtest2c atinstant testinst4;
+
+#testcase Operator atinstant URegion 36
+#yields (intimeregion undef)
+query uregtest2c atinstant testinst5;
+
+#testcase Operator atinstant URegion 37
+#yields (intimeregion undef)
+query uregtest2d atinstant testinst1;
+
+#testcase Operator atinstant URegion 38
+#yields (intimeregion undef)
+query uregtest2d atinstant testinst2;
+
+#testcase Operator atinstant URegion 39
+#yields (intimeregion("2006-06-15"((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))(((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0))))))
+query uregtest2d atinstant testinst3;
+
+#testcase Operator atinstant URegion 40
+#yields (intimeregion undef)
+query uregtest2d atinstant testinst4;
+
+#testcase Operator atinstant URegion 41
+#yields (intimeregion undef)
+query uregtest2c atinstant testinst5;
+
+#testcase Operator atinstant URegion 42
+#yields (intimeregion undef)
+query uregtest3 atinstant testinst1;
+
+#testcase Operator atinstant URegion 43
+#yields (intimeregion("2006-06-10"((((2.5 0.5)(0.5 0.5)(0.5 2.5)(2.5 2.5))((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0))))))
+query uregtest3 atinstant testinst2;
+
+#testcase Operator atinstant URegion 44
+#yields (intimeregion("2006-06-15"((((4.5 0.5)(2.5 0.5)(2.5 2.5)(4.5 2.5))((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query uregtest3 atinstant testinst3;
+
+#testcase Operator atinstant URegion 45
+#yields (intimeregion("2006-06-20"((((6.5 0.5)(4.5 0.5)(4.5 2.5)(6.5 2.5))((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0))))))
+query uregtest3 atinstant testinst4;
+
+#testcase Operator atinstant URegion 46
+#yields (intimeregion undef)
+query uregtest3 atinstant testinst5;
+
+#testcase Operator atinstant URegion 47
+#yields (intimeregion undef)
+query uregtest3b atinstant testinst1;
+
+#testcase Operator atinstant URegion 48
+#yields (intimeregion("2006-06-10"((((2.5 0.5)(0.5 0.5)(0.5 2.5)(2.5 2.5))((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0))))))
+query uregtest3b atinstant testinst2;
+
+#testcase Operator atinstant URegion 49
+#yields (intimeregion("2006-06-15"((((4.5 0.5)(2.5 0.5)(2.5 2.5)(4.5 2.5))((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query uregtest3b atinstant testinst3;
+
+#testcase Operator atinstant URegion 50
+#yields (intimeregion undef)
+query uregtest3b atinstant testinst4;
+
+#testcase Operator atinstant URegion 51
+#yields (intimeregion undef)
+query uregtest3b atinstant testinst5;
+
+#testcase Operator atinstant URegion 52
+#yields (intimeregion undef)
+query uregtest3c atinstant testinst1;
+
+#testcase Operator atinstant URegion 53
+#yields (intimeregion undef)
+query uregtest3c atinstant testinst2;
+
+#testcase Operator atinstant URegion 54
+#yields (intimeregion("2006-06-15"((((4.5 0.5)(2.5 0.5)(2.5 2.5)(4.5 2.5))((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query uregtest3c atinstant testinst3;
+
+#testcase Operator atinstant URegion 55
+#yields (intimeregion("2006-06-20"((((6.5 0.5)(4.5 0.5)(4.5 2.5)(6.5 2.5))((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0))))))
+query uregtest3c atinstant testinst4;
+
+#testcase Operator atinstant URegion 56
+#yields (intimeregion undef)
+query uregtest3c atinstant testinst5;
+
+#testcase Operator atinstant URegion 57
+#yields (intimeregion undef)
+query uregtest3d atinstant testinst1;
+
+#testcase Operator atinstant URegion 58
+#yields (intimeregion undef)
+query uregtest3d atinstant testinst2;
+
+#testcase Operator atinstant URegion 59
+#yields (intimeregion("2006-06-15"((((4.5 0.5)(2.5 0.5)(2.5 2.5)(4.5 2.5))((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query uregtest3d atinstant testinst3;
+
+#testcase Operator atinstant URegion 60
+#yields (intimeregion undef)
+query uregtest3d atinstant testinst4;
+
+#testcase Operator atinstant URegion 61
+#yields (intimeregion undef)
+query uregtest5 atinstant testinst1
+
+#testcase Operator atinstant URegion 62
+#yields (intimeregion("2006-06-10"((((3.0 1.0)(1.0 1.0)(1.0 3.0)(3.0 3.0))))))
+query uregtest5 atinstant testinst2;
+
+#testcase Operator atinstant URegion 63
+#yields (intimeregion("2006-06-15"((((4.0 2.5)(3.0 2.5)(3.0 3.5)(3.0 4.5)(4.0 4.5)(5.0 4.5)(5.0 3.5)(5.0 2.5))))))
+query uregtest5 atinstant testinst3;
+
+#testcase Operator atinstant URegion 64
+#yields (intimeregion("2006-06-20"((((7.0 4.0)(5.0 4.0)(5.0 6.0)(7.0 6.0))))))
+query uregtest5 atinstant testinst4;
+
+#testcase Operator atinstant URegion 65
+#yields (intimeregion undef)
+query uregtest5 atinstant testinst5;
+
+#testcase Operator atinstant URegion 66
+#yields (intimeregion undef)
+query uregtest6 atinstant testinst1;
+
+#testcase Operator atinstant URegion 67
+#yields (intimeregion("2006-06-10" ()))
+query uregtest6 atinstant testinst2;
+
+#testcase Operator atinstant URegion 68
+#yields (intimeregion("2006-06-15"((((3.0 1.0)(1.0 1.0)(2.0 2.0))))))
+query uregtest6 atinstant testinst3;
+
+#testcase Operator atinstant URegion 69
+#yields (intimeregion("2006-06-20"((((5.0 1.0)(1.0 1.0)(3.0 3.0))))))
+query uregtest6 atinstant testinst4;
+
+#testcase Operator atinstant URegion 70
+#yields (intimeregion undef)
+query uregtest6 atinstant testinst5;
+
+#testcase Operator atinstant MRegion 1
+#yields (intimeregion undef)
+query mregtest1 atinstant testinst1;
+
+#testcase Operator atinstant MRegion 2
+#yields (intimeregion("2006-06-10"((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0))))))
+query mregtest1 atinstant testinst2;
+
+#testcase Operator atinstant MRegion 3
+#yields (intimeregion("2006-06-15"((((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0))))))
+query mregtest1 atinstant testinst3;
+
+#testcase Operator atinstant MRegion 4
+#yields (intimeregion("2006-06-20"((((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0))))))
+query mregtest1 atinstant testinst4;
+
+#testcase Operator atinstant MRegion 5
+#yields (intimeregion undef)
+query mregtest1 atinstant testinst5;
+
+#testcase Operator atinstant MRegion 6
+#yields (intimeregion("2006-06-12"((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query mregtest1 atinstant testinst6;
+
+#testcase Operator atinstant MRegion 7
+#yields (intimeregion("2006-06-14"((((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0))))))
+query mregtest1 atinstant testinst7;
+
+#testcase Operator atinstant MRegion 8
+#yields (intimeregion("2006-06-16"((((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0))))))
+query mregtest1 atinstant testinst8;
+
+#testcase Operator atinstant MRegion 9
+#yields (intimeregion("2006-06-18"((((10.0 1.0)(9.0 1.0)(9.0 2.0)(10.0 2.0))))))
+query mregtest1 atinstant testinst9;
+
+#testcase Operator atinstant MRegion 10
+#tolerance_real 0.0001
+#yields (intimeregion("2006-06-12-23:59"((((4.999305555555556 1.0)(3.999305555555555 1.0)(3.999305555555555 2.0)(4.999305555555556 2.0))))))
+query mregtest1 atinstant testinst10;
+
+#testcase Operator atinstant MRegion 11
+#yields (intimeregion("2006-06-11"((((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0))))))
+query mregtest1 atinstant testinst11;
+
+#testcase Operator atinstant MRegion 12
+#yields (intimeregion("2006-06-13"((((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0))))))
+query mregtest1 atinstant testinst12;
+
+#testcase Operator atinstant MRegion 13
+#yields (intimeregion("2006-06-17"((((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0))))))
+query mregtest1 atinstant testinst13;
+
+#testcase Operator atinstant MRegion 14
+#yields (intimeregion("2006-06-19"((((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0))))))
+query mregtest1 atinstant testinst14;
+
+#testcase Operator atinstant MRegion 15
+#yields (intimeregion undef)
+query mregtest1b atinstant testinst1;
+
+#testcase Operator atinstant MRegion 16
+#yields (intimeregion("2006-06-10"((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0))))))
+query mregtest1b atinstant testinst2;
+
+#testcase Operator atinstant MRegion 17
+#yields (intimeregion("2006-06-15"((((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0))))))
+query mregtest1b atinstant testinst3;
+
+#testcase Operator atinstant MRegion 18
+#yields (intimeregion("2006-06-20"((((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0))))))
+query mregtest1b atinstant testinst4;
+
+#testcase Operator atinstant MRegion 19
+#yields (intimeregion undef)
+query mregtest1b atinstant testinst5;
+
+#testcase Operator atinstant MRegion 20
+#yields (intimeregion undef)
+query mregtest1b atinstant testinst6;
+
+#testcase Operator atinstant MRegion 21
+#yields (intimeregion undef)
+query mregtest1b atinstant testinst7;
+
+#testcase Operator atinstant MRegion 22
+#yields (intimeregion undef)
+query mregtest1b atinstant testinst8;
+
+#testcase Operator atinstant MRegion 23
+#yields (intimeregion undef)
+query mregtest1b atinstant testinst9;
+
+#testcase Operator atinstant MRegion 24
+#tolerance_real 0.0001
+#yields (intimeregion("2006-06-12-23:59"((((4.999305555555556 1.0)(3.999305555555555 1.0)(3.999305555555555 2.0)(4.999305555555556 2.0))))))
+query mregtest1b atinstant testinst10;
+
+#testcase Operator atinstant MRegion 25
+#yields (intimeregion("2006-06-11"((((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0))))))
+query mregtest1b atinstant testinst11;
+
+#testcase Operator atinstant MRegion 26
+#yields (intimeregion("2006-06-13"((((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0))))))
+query mregtest1b atinstant testinst12;
+
+#testcase Operator atinstant MRegion 27
+#yields (intimeregion("2006-06-17"((((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0))))))
+query mregtest1b atinstant testinst13;
+
+#testcase Operator atinstant MRegion 28
+#yields (intimeregion("2006-06-19"((((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0))))))
+query mregtest1b atinstant testinst14;
+
+#testcase Operator atinstant MRegion 29
+#yields (intimeregion undef)
+query mregtest1c atinstant testinst1;
+
+#testcase Operator atinstant MRegion 30
+#yields (intimeregion("2006-06-10"((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0))))))
+query mregtest1c atinstant testinst2;
+
+#testcase Operator atinstant MRegion 31
+#yields (intimeregion("2006-06-15"((((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0))))))
+query mregtest1c atinstant testinst3;
+
+#testcase Operator atinstant MRegion 32
+#yields (intimeregion("2006-06-20"((((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0))))))
+query mregtest1c atinstant testinst4;
+
+#testcase Operator atinstant MRegion 33
+#yields (intimeregion undef)
+query mregtest1c atinstant testinst5;
+
+#testcase Operator atinstant MRegion 34
+#yields (intimeregion("2006-06-12"((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query mregtest1c atinstant testinst6;
+
+#testcase Operator atinstant MRegion 35
+#yields (intimeregion("2006-06-14"((((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0))))))
+query mregtest1c atinstant testinst7;
+
+#testcase Operator atinstant MRegion 36
+#yields (intimeregion("2006-06-16"((((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0))))))
+query mregtest1c atinstant testinst8;
+
+#testcase Operator atinstant MRegion 37
+#yields (intimeregion("2006-06-18"((((10.0 1.0)(9.0 1.0)(9.0 2.0)(10.0 2.0))))))
+query mregtest1c atinstant testinst9;
+
+#testcase Operator atinstant MRegion 38
+#tolerance_real 0.0001
+#yields (intimeregion("2006-06-12-23:59"((((4.999305555555556 1.0)(3.99930555555555 1.0)(3.999305555555555 2.0)(4.999305555555556 2.0))))))
+query mregtest1c atinstant testinst10;
+
+#testcase Operator atinstant MRegion 39
+#yields (intimeregion("2006-06-11"((((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0))))))
+query mregtest1c atinstant testinst11;
+
+#testcase Operator atinstant MRegion 40
+#yields (intimeregion("2006-06-13"((((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0))))))
+query mregtest1c atinstant testinst12;
+
+#testcase Operator atinstant MRegion 41
+#yields (intimeregion("2006-06-17"((((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0))))))
+query mregtest1c atinstant testinst13;
+
+#testcase Operator atinstant MRegion 42
+#yields (intimeregion("2006-06-19"((((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0))))))
+query mregtest1c atinstant testinst14;
+
+#testcase Operator atinstant MRegion 43
+#yields (intimeregion undef)
+query mregtest2 atinstant testinst1;
+
+#testcase Operator atinstant MRegion 44
+#yields (intimeregion("2006-06-10"((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))(((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query mregtest2 atinstant testinst2
+
+#testcase Operator atinstant MRegion 45
+#yields (intimeregion("2006-06-15"((((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0)))(((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0))))))
+query mregtest2 atinstant testinst3;
+
+#testcase Operator atinstant MRegion 46
+#yields (intimeregion("2006-06-20"((((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0)))(((14.0 1.0)(13.0 1.0)(13.0 2.0)(14.0 2.0))))))
+query mregtest2 atinstant testinst4
+
+#testcase Operator atinstant MRegion 47
+#yields (intimeregion undef)
+query mregtest2 atinstant testinst5
+
+#testcase Operator atinstant MRegion 48
+#yields (intimeregion("2006-06-12"((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))(((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0))))))
+query mregtest2 atinstant testinst6
+
+#testcase Operator atinstant MRegion 49
+#yields (intimeregion("2006-06-14"((((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))(((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0))))))
+query mregtest2 atinstant testinst7;
+
+#testcase Operator atinstant MRegion 50
+#yields (intimeregion("2006-06-16"((((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0)))(((10.0 1.0)(9.0 1.0)(9.0 2.0)(10.0 2.0))))))
+query mregtest2 atinstant testinst8;
+
+#testcase Operator atinstant MRegion 51
+#yields (intimeregion("2006-06-18"((((10.0 1.0)(9.0 1.0)(9.0 2.0)(10.0 2.0)))(((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0))))))
+query mregtest2 atinstant testinst9;
+
+#testcase Operator atinstant MRegion 52
+#yields (intimeregion("2006-06-11"((((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0)))(((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0))))))
+query mregtest2 atinstant testinst11;
+
+#testcase Operator atinstant MRegion 53
+#yields (intimeregion("2006-06-13"((((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0)))(((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0))))))
+query mregtest2 atinstant testinst12;
+
+#testcase Operator atinstant MRegion 54
+#yields (intimeregion("2006-06-17"((((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0)))(((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0))))))
+query mregtest2 atinstant testinst13;
+
+#testcase Operator atinstant MRegion 55
+#yields (intimeregion("2006-06-19"((((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0)))(((13.0 1.0)(12.0 1.0)(12.0 2.0)(13.0 2.0))))))
+query mregtest2 atinstant testinst14;
+
+#testcase Operator atinstant MRegion 56
+#yields (intimeregion undef)
+query mregtest2b atinstant testinst1;
+
+#testcase Operator atinstant MRegion 57
+#yields (intimeregion("2006-06-10"((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))(((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query mregtest2b atinstant testinst2
+
+#testcase Operator atinstant MRegion 58
+#yields (intimeregion("2006-06-15"((((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0)))(((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0))))))
+query mregtest2b atinstant testinst3
+
+#testcase Operator atinstant MRegion 59
+#yields (intimeregion("2006-06-20"((((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0)))(((14.0 1.0)(13.0 1.0)(13.0 2.0)(14.0 2.0))))))
+query mregtest2b atinstant testinst4
+
+#testcase Operator atinstant MRegion 60
+#yields (intimeregion undef)
+query mregtest2b atinstant testinst5
+
+#testcase Operator atinstant MRegion 61
+#yields (intimeregion undef)
+query mregtest2b atinstant testinst6
+
+#testcase Operator atinstant MRegion 62
+#yields (intimeregion undef)
+query mregtest2b atinstant testinst7
+
+#testcase Operator atinstant MRegion 63
+#yields (intimeregion undef)
+query mregtest2b atinstant testinst8
+
+#testcase Operator atinstant MRegion 64
+#yields (intimeregion undef)
+query mregtest2b atinstant testinst9
+
+#testcase Operator atinstant MRegion 65
+#yields (intimeregion("2006-06-11"((((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0)))(((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0))))))
+query mregtest2b atinstant testinst11
+
+#testcase Operator atinstant MRegion 66
+#yields (intimeregion("2006-06-13"((((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0)))(((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0))))))
+query mregtest2b atinstant testinst12
+
+#testcase Operator atinstant MRegion 67
+#yields (intimeregion("2006-06-17"((((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0)))(((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0))))))
+query mregtest2b atinstant testinst13
+
+#testcase Operator atinstant MRegion 68
+#yields (intimeregion("2006-06-19"((((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0)))(((13.0 1.0)(12.0 1.0)(12.0 2.0)(13.0 2.0))))))
+query mregtest2b atinstant testinst14
+
+#testcase Operator atinstant MRegion 69
+#yields (intimeregion undef)
+query mregtest2c atinstant testinst1
+
+#testcase Operator atinstant MRegion 70
+#yields (intimeregion("2006-06-10"((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))(((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query mregtest2c atinstant testinst2
+
+#testcase Operator atinstant MRegion 71
+#yields (intimeregion("2006-06-15"((((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0)))(((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0))))))
+query mregtest2c atinstant testinst3
+
+#testcase Operator atinstant MRegion 72
+#yields (intimeregion("2006-06-20"((((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0)))(((14.0 1.0)(13.0 1.0)(13.0 2.0)(14.0 2.0))))))
+query mregtest2c atinstant testinst4
+
+#testcase Operator atinstant MRegion 73
+#yields (intimeregion undef)
+query mregtest2c atinstant testinst5
+
+#testcase Operator atinstant MRegion 74
+#yields (intimeregion("2006-06-12"((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))(((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0))))))
+query mregtest2c atinstant testinst6
+
+#testcase Operator atinstant MRegion 75
+#yields (intimeregion("2006-06-14"((((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))(((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0))))))
+query mregtest2c atinstant testinst7
+
+#testcase Operator atinstant MRegion 76
+#yields (intimeregion("2006-06-16"((((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0)))(((10.0 1.0)(9.0 1.0)(9.0 2.0)(10.0 2.0))))))
+query mregtest2c atinstant testinst8
+
+#testcase Operator atinstant MRegion 77
+#yields (intimeregion("2006-06-18"((((10.0 1.0)(9.0 1.0)(9.0 2.0)(10.0 2.0)))(((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0))))))
+query mregtest2c atinstant testinst9
+
+#testcase Operator atinstant MRegion 78
+#yields (intimeregion("2006-06-11"((((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0)))(((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0))))))
+query mregtest2c atinstant testinst11
+
+#testcase Operator atinstant MRegion 79
+#yields (intimeregion("2006-06-13"((((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0)))(((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0))))))
+query mregtest2c atinstant testinst12
+
+#testcase Operator atinstant MRegion 80
+#yields (intimeregion("2006-06-17"((((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0)))(((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0))))))
+query mregtest2c atinstant testinst13
+
+#testcase Operator atinstant MRegion 81
+#yields (intimeregion("2006-06-19"((((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0)))(((13.0 1.0)(12.0 1.0)(12.0 2.0)(13.0 2.0))))))
+query mregtest2c atinstant testinst14
+
+#testcase Operator atinstant MRegion 81
+#yields (intimeregion undef)
+query mregtest3 atinstant testinst1
+
+#testcase Operator atinstant MRegion 82
+#yields (intimeregion("2006-06-10"((((2.5 0.5)(0.5 0.5)(0.5 2.5)(2.5 2.5))((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0))))))
+query mregtest3 atinstant testinst2
+
+#testcase Operator atinstant MRegion 83
+#yields (intimeregion("2006-06-15"((((7.5 0.5)(5.5 0.5)(5.5 2.5)(7.5 2.5))((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0))))))
+query mregtest3 atinstant testinst3
+
+#testcase Operator atinstant MRegion 84
+#yields (intimeregion("2006-06-20"((((12.5 0.5)(10.5 0.5)(10.5 2.5)(12.5 2.5))((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0))))))
+query mregtest3 atinstant testinst4
+
+#testcase Operator atinstant MRegion 85
+#yields (intimeregion undef) 
+query mregtest3 atinstant testinst5
+
+#testcase Operator atinstant MRegion 86
+#yields (intimeregion("2006-06-12"((((4.5 0.5)(2.5 0.5)(2.5 2.5)(4.5 2.5))((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query mregtest3 atinstant testinst6
+
+#testcase Operator atinstant MRegion 87
+#yields (intimeregion("2006-06-14"((((6.5 0.5)(4.5 0.5)(4.5 2.5)(6.5 2.5))((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0))))))
+query mregtest3 atinstant testinst7
+
+#testcase Operator atinstant MRegion 88
+#yields (intimeregion("2006-06-16"((((8.5 0.5)(6.5 0.5)(6.5 2.5)(8.5 2.5))((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0))))))
+query mregtest3 atinstant testinst8
+
+#testcase Operator atinstant MRegion 89
+#yields (intimeregion("2006-06-18"((((10.5 0.5)(8.5 0.5)(8.5 2.5)(10.5 2.5))((10.0 1.0)(9.0 1.0)(9.0 2.0)(10.0 2.0))))))
+query mregtest3 atinstant testinst9
+
+#testcase Operator atinstant MRegion 90
+#yields (intimeregion("2006-06-11"((((3.5 0.5)(1.5 0.5)(1.5 2.5)(3.5 2.5))((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0))))))
+query mregtest3 atinstant testinst11
+
+#testcase Operator atinstant MRegion 91
+#yields (intimeregion("2006-06-13"((((5.5 0.5)(3.5 0.5)(3.5 2.5)(5.5 2.5))((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0))))))
+query mregtest3 atinstant testinst12
+
+#testcase Operator atinstant MRegion 92
+#yields (intimeregion("2006-06-17"((((9.5 0.5)(7.5 0.5)(7.5 2.5)(9.5 2.5))((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0))))))
+query mregtest3 atinstant testinst13
+
+#testcase Operator atinstant MRegion 93
+#yields (intimeregion("2006-06-19"((((11.5 0.5)(9.5 0.5)(9.5 2.5)(11.5 2.5))((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0))))))
+query mregtest3 atinstant testinst14
+
+#testcase Operator atinstant MRegion 94
+#yields (intimeregion undef)
+query mregtest3b atinstant testinst1
+
+#testcase Operator atinstant MRegion 95
+#yields (intimeregion("2006-06-10"((((2.5 0.5)(0.5 0.5)(0.5 2.5)(2.5 2.5))((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0))))))
+query mregtest3b atinstant testinst2
+
+#testcase Operator atinstant MRegion 96
+#yields (intimeregion("2006-06-15"((((7.5 0.5)(5.5 0.5)(5.5 2.5)(7.5 2.5))((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0))))))
+query mregtest3b atinstant testinst3
+
+#testcase Operator atinstant MRegion 97
+#yields (intimeregion("2006-06-20"((((12.5 0.5)(10.5 0.5)(10.5 2.5)(12.5 2.5))((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0))))))
+query mregtest3b atinstant testinst4
+
+#testcase Operator atinstant MRegion 98
+#yields (intimeregion undef)
+query mregtest3b atinstant testinst5
+
+#testcase Operator atinstant MRegion 99
+#yields (intimeregion undef)
+query mregtest3b atinstant testinst6
+
+#testcase Operator atinstant MRegion 100
+#yields (intimeregion undef)
+query mregtest3b atinstant testinst7
+
+#testcase Operator atinstant MRegion 101
+#yields (intimeregion undef)
+query mregtest3b atinstant testinst8
+
+#testcase Operator atinstant MRegion 102
+#yields (intimeregion undef)
+query mregtest3b atinstant testinst9
+
+#testcase Operator atinstant MRegion 103
+#yields (intimeregion("2006-06-11"((((3.5 0.5)(1.5 0.5)(1.5 2.5)(3.5 2.5))((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0))))))
+query mregtest3b atinstant testinst11
+
+#testcase Operator atinstant MRegion 104
+#yields (intimeregion("2006-06-13"((((5.5 0.5)(3.5 0.5)(3.5 2.5)(5.5 2.5))((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0))))))
+query mregtest3b atinstant testinst12
+
+#testcase Operator atinstant MRegion 105
+#yields (intimeregion("2006-06-17"((((9.5 0.5)(7.5 0.5)(7.5 2.5)(9.5 2.5))((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0))))))
+query mregtest3b atinstant testinst13
+
+#testcase Operator atinstant MRegion 106
+#yields (intimeregion("2006-06-19"((((11.5 0.5)(9.5 0.5)(9.5 2.5)(11.5 2.5))((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0))))))
+query mregtest3b atinstant testinst14
+
+#testcase Operator atinstant MRegion 107
+#yields (intimeregion undef)
+query mregtest3c atinstant testinst1
+
+#testcase Operator atinstant MRegion 108
+#yields (intimeregion("2006-06-10"((((2.5 0.5)(0.5 0.5)(0.5 2.5)(2.5 2.5))((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0))))))
+query mregtest3c atinstant testinst2
+
+#testcase Operator atinstant MRegion 109
+#yields (intimeregion("2006-06-15"((((7.5 0.5)(5.5 0.5)(5.5 2.5)(7.5 2.5))((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0))))))
+query mregtest3c atinstant testinst3
+
+#testcase Operator atinstant MRegion 110
+#yields (intimeregion("2006-06-20"((((12.5 0.5)(10.5 0.5)(10.5 2.5)(12.5 2.5))((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0))))))
+query mregtest3c atinstant testinst4
+
+#testcase Operator atinstant MRegion 111
+#yields (intimeregion undef)
+query mregtest3c atinstant testinst5
+
+#testcase Operator atinstant MRegion 112
+#yields (intimeregion("2006-06-12"((((4.5 0.5)(2.5 0.5)(2.5 2.5)(4.5 2.5))((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query mregtest3c atinstant testinst6
+
+#testcase Operator atinstant MRegion 113
+#yields (intimeregion("2006-06-14"((((6.5 0.5)(4.5 0.5)(4.5 2.5)(6.5 2.5))((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0))))))
+query mregtest3c atinstant testinst7
+
+#testcase Operator atinstant MRegion 114
+#yields (intimeregion("2006-06-16"((((8.5 0.5)(6.5 0.5)(6.5 2.5)(8.5 2.5))((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0))))))
+query mregtest3c atinstant testinst8
+
+#testcase Operator atinstant MRegion 115
+#yields (intimeregion("2006-06-18"((((10.5 0.5)(8.5 0.5)(8.5 2.5)(10.5 2.5))((10.0 1.0)(9.0 1.0)(9.0 2.0)(10.0 2.0))))))
+query mregtest3c atinstant testinst9
+
+#testcase Operator atinstant MRegion 116
+#yields (intimeregion("2006-06-11"((((3.5 0.5)(1.5 0.5)(1.5 2.5)(3.5 2.5))((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0))))))
+query mregtest3c atinstant testinst11
+
+#testcase Operator atinstant MRegion 117
+#yields (intimeregion("2006-06-13"((((5.5 0.5)(3.5 0.5)(3.5 2.5)(5.5 2.5))((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0))))))
+query mregtest3c atinstant testinst12
+
+#testcase Operator atinstant MRegion 118
+#yields (intimeregion("2006-06-17"((((9.5 0.5)(7.5 0.5)(7.5 2.5)(9.5 2.5))((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0))))))
+query mregtest3c atinstant testinst13
+
+#testcase Operator atinstant MRegion 119
+#yields (intimeregion("2006-06-19"((((11.5 0.5)(9.5 0.5)(9.5 2.5)(11.5 2.5))((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0))))))
+query mregtest3c atinstant testinst14
+
+#testcase Operator initial 1
+#yields (intimeregion("2006-06-10"((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0))))))
+query initial(mregtest1)
+
+#testcase Operator initial 2
+#yields (intimeregion("2006-06-10" ((((2.0 1.0) (1.0 1.0) (1.0 2.0) (2.0 2.0))))))
+query initial(mregtest1b);
+
+#testcase Operator initial 3
+#yields (intimeregion("2006-06-10" ((((2.0 1.0) (1.0 1.0) (1.0 2.0) (2.0 2.0))))))
+query initial(mregtest1c);
+
+#testcase Operator initial 4						
+#yields (intimeregion("2006-06-10"((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))(((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0))))))
+query initial(mregtest2)
+
+#testcase Operator initial 5
+#yields (intimeregion("2006-06-10" ((((2.0 1.0) (1.0 1.0) (1.0 2.0) (2.0 2.0))) (((4.0 1.0) (3.0 1.0) (3.0 2.0) (4.0 2.0))))))
+query initial(mregtest2b);
+
+#testcase Operator initial 6
+#yields (intimeregion("2006-06-10" ((((2.0 1.0) (1.0 1.0) (1.0 2.0) (2.0 2.0))) (((4.0 1.0) (3.0 1.0) (3.0 2.0) (4.0 2.0))))))
+query initial(mregtest2c);
+
+#testcase Operator initial 7
+#yields (intimeregion("2006-06-10"((((2.5 0.5)(0.5 0.5)(0.5 2.5)(2.5 2.5))((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0))))))
+query initial(mregtest3)
+
+#testcase Operator initial 8
+#yields (intimeregion("2006-06-10" ((((2.5 0.5) (0.5 0.5) (0.5 2.5) (2.5 2.5)) ((2.0 1.0) (1.0 1.0) (1.0 2.0) (2.0 2.0))))))
+query initial(mregtest3b);
+
+#testcase Operator initial 9
+#yields (intimeregion("2006-06-10" ((((2.5 0.5) (0.5 0.5) (0.5 2.5) (2.5 2.5)) ((2.0 1.0) (1.0 1.0) (1.0 2.0) (2.0 2.0))))))
+query initial(mregtest3c);
+
+#testcase Operator final 1
+#yields (intimeregion("2006-06-20" ((((12.0 1.0) (11.0 1.0) (11.0 2.0) (12.0 2.0))))))
+query final(mregtest1);
+
+#testcase Operator final 2
+#yields (intimeregion("2006-06-20" ((((12.0 1.0) (11.0 1.0) (11.0 2.0) (12.0 2.0))))))
+query final(mregtest1b);
+
+#testcase Operator final 3
+#yields (intimeregion("2006-06-20" ((((12.0 1.0) (11.0 1.0) (11.0 2.0) (12.0 2.0))))))
+query final(mregtest1c);
+
+#testcase Operator final 4
+#yields (intimeregion("2006-06-20" ((((12.0 1.0) (11.0 1.0) (11.0 2.0) (12.0 2.0))) (((14.0 1.0) (13.0 1.0) (13.0 2.0) (14.0 2.0))))))
+query final(mregtest2); 
+
+#testcase Operator final 5
+#yields (intimeregion("2006-06-20" ((((12.0 1.0) (11.0 1.0) (11.0 2.0) (12.0 2.0))) (((14.0 1.0) (13.0 1.0) (13.0 2.0) (14.0 2.0))))))
+query final(mregtest2b); 
+
+#testcase Operator final 6
+#yields (intimeregion("2006-06-20" ((((12.0 1.0) (11.0 1.0) (11.0 2.0) (12.0 2.0))) (((14.0 1.0) (13.0 1.0) (13.0 2.0) (14.0 2.0))))))
+query final(mregtest2c);
+
+#testcase Operator final 7
+#yields (intimeregion("2006-06-20" ((((12.5 0.5) (10.5 0.5) (10.5 2.5) (12.5 2.5)) ((12.0 1.0) (11.0 1.0) (11.0 2.0) (12.0 2.0))))))
+query final(mregtest3); 
+
+#testcase Operator final 8
+#yields (intimeregion("2006-06-20" ((((12.5 0.5) (10.5 0.5) (10.5 2.5) (12.5 2.5)) ((12.0 1.0) (11.0 1.0) (11.0 2.0) (12.0 2.0))))))
+query final(mregtest3b);
+
+#testcase Operator final 9
+#yields (intimeregion("2006-06-20" ((((12.5 0.5) (10.5 0.5) (10.5 2.5) (12.5 2.5)) ((12.0 1.0) (11.0 1.0) (11.0 2.0) (12.0 2.0))))))
+query final(mregtest3c); 
+
+#testcase Operator inst URegion 1
+#yields (instant undef)
+query inst(uregtest1 atinstant testinst1);
+
+#testcase Operator inst URegion 2
+#yields (instant "2006-06-10")
+query inst(uregtest1 atinstant testinst2);
+
+#testcase Operator inst URegion 3
+#yields (instant "2006-06-15")
+query inst(uregtest1 atinstant testinst3);
+
+#testcase Operator inst URegion 4
+#yields (instant "2006-06-20")
+query inst(uregtest1 atinstant testinst4);
+
+#testcase Operator inst URegion 5
+#yields (instant undef)
+query inst(uregtest1 atinstant testinst5);
+
+#testcase Operator inst URegion 6
+#yields (instant undef)
+query inst(uregtest1b atinstant testinst1);
+
+#testcase Operator inst URegion 7
+#yields (instant "2006-06-10")
+query inst(uregtest1b atinstant testinst2);
+
+#testcase Operator inst URegion 8
+#yields (instant "2006-06-15")
+query inst(uregtest1b atinstant testinst3);
+
+#testcase Operator inst URegion 9
+#yields (instant "2006-06-15")
+query inst(uregtest1b atinstant testinst3);
+
+#testcase Operator inst URegion 10
+#yields (instant undef)
+query inst(uregtest1b atinstant testinst4);
+
+#testcase Operator inst URegion 11
+#yields (instant undef)
+query inst(uregtest1b atinstant testinst5);
+
+#testcase Operator inst URegion 12
+#yields (instant undef)
+query inst(uregtest1c atinstant testinst1);
+
+#testcase Operator inst URegion 13
+#yields (instant undef)
+query inst(uregtest1c atinstant testinst2);
+
+#testcase Operator inst URegion 14
+#yields (instant "2006-06-15")
+query inst(uregtest1c atinstant testinst3);
+
+#testcase Operator inst URegion 15
+#yields (instant "2006-06-20")
+query inst(uregtest1c atinstant testinst4);
+
+#testcase Operator inst URegion 16
+#yields (instant undef)
+query inst(uregtest1c atinstant testinst5);
+
+#testcase Operator inst URegion 17
+#yields (instant undef)
+query inst(uregtest1d atinstant testinst1);
+
+#testcase Operator inst URegion 18
+#yields (instant undef)
+query inst(uregtest1d atinstant testinst2);
+
+#testcase Operator inst URegion 19
+#yields (instant "2006-06-15")
+query inst(uregtest1d atinstant testinst3);
+
+#testcase Operator inst URegion 20
+#yields (instant undef)
+query inst(uregtest1d atinstant testinst4);
+
+#testcase Operator inst URegion 21
+#yields (instant undef)
+query inst(uregtest1d atinstant testinst5);
+
+#testcase Operator inst URegion 22
+#yields (instant undef)
+query inst(uregtest2 atinstant testinst1);
+
+#testcase Operator inst URegion 23
+#yields (instant "2006-06-10")
+query inst(uregtest2 atinstant testinst2);
+
+#testcase Operator inst URegion 24
+#yields (instant "2006-06-15")
+query inst(uregtest2 atinstant testinst3);
+
+#testcase Operator inst URegion 25
+#yields (instant "2006-06-20")
+query inst(uregtest2 atinstant testinst4);
+
+#testcase Operator inst URegion 26
+#yields (instant undef)
+query inst(uregtest2 atinstant testinst5);
+
+#testcase Operator inst URegion 27
+#yields (instant undef)
+query inst(uregtest2b atinstant testinst1);
+
+#testcase Operator inst URegion 28
+#yields (instant "2006-06-10")
+query inst(uregtest2b atinstant testinst2);
+
+#testcase Operator inst URegion 29
+#yields (instant "2006-06-15")
+query inst(uregtest2b atinstant testinst3);
+
+#testcase Operator inst URegion 30
+#yields (instant undef)
+query inst(uregtest2b atinstant testinst4);
+
+#testcase Operator inst URegion 31
+#yields (instant undef)
+query inst(uregtest2b atinstant testinst5);
+
+#testcase Operator inst URegion 32
+#yields (instant undef)
+query inst(uregtest2c atinstant testinst1);
+
+#testcase Operator inst URegion 33
+#yields (instant undef)
+query inst(uregtest2c atinstant testinst2);
+
+#testcase Operator inst URegion 34
+#yields (instant "2006-06-15")
+query inst(uregtest2c atinstant testinst3);
+
+#testcase Operator inst URegion 35
+#yields (instant "2006-06-20")
+query inst(uregtest2c atinstant testinst4);
+
+#testcase Operator inst URegion 36
+#yields (instant undef)
+query inst(uregtest2c atinstant testinst5);
+
+#testcase Operator inst URegion 37
+#yields (instant undef)
+query inst(uregtest2d atinstant testinst1);
+
+#testcase Operator inst URegion 38
+#yields (instant undef)
+query inst(uregtest2d atinstant testinst2);
+
+#testcase Operator inst URegion 39
+#yields (instant "2006-06-15")
+query inst(uregtest2d atinstant testinst3);
+
+#testcase Operator inst URegion 40
+#yields (instant undef)
+query inst(uregtest2d atinstant testinst4);
+
+#testcase Operator inst URegion 41
+#yields (instant undef)
+query inst(uregtest2c atinstant testinst5);
+
+#testcase Operator inst URegion 42
+#yields (instant undef)
+query inst(uregtest3 atinstant testinst1);
+
+#testcase Operator inst URegion 43
+#yields (instant "2006-06-10")
+query inst(uregtest3 atinstant testinst2);
+
+#testcase Operator inst URegion 44
+#yields (instant "2006-06-15")
+query inst(uregtest3 atinstant testinst3);
+
+#testcase Operator inst URegion 45
+#yields (instant "2006-06-20")
+query inst(uregtest3 atinstant testinst4);
+
+#testcase Operator inst URegion 46
+#yields (instant undef)
+query inst(uregtest3 atinstant testinst5);
+
+#testcase Operator inst URegion 47
+#yields (instant undef)
+query inst(uregtest3b atinstant testinst1);
+
+#testcase Operator inst URegion 48
+#yields (instant "2006-06-10")
+query inst(uregtest3b atinstant testinst2);
+
+#testcase Operator inst URegion 49
+#yields (instant "2006-06-15")
+query inst(uregtest3b atinstant testinst3);
+
+#testcase Operator inst URegion 50
+#yields (instant undef)
+query inst(uregtest3b atinstant testinst4);
+
+#testcase Operator inst URegion 51
+#yields (instant undef)
+query inst(uregtest3b atinstant testinst5);
+
+#testcase Operator inst URegion 52
+#yields (instant undef)
+query inst(uregtest3c atinstant testinst1);
+
+#testcase Operator inst URegion 53
+#yields (instant undef)
+query inst(uregtest3c atinstant testinst2);
+
+#testcase Operator inst URegion 54
+#yields (instant "2006-06-15")
+query inst(uregtest3c atinstant testinst3);
+
+#testcase Operator inst URegion 55
+#yields (instant "2006-06-20")
+query inst(uregtest3c atinstant testinst4);
+
+#testcase Operator inst URegion 56
+#yields (instant undef)
+query inst(uregtest3c atinstant testinst5);
+
+#testcase Operator inst URegion 57
+#yields (instant undef)
+query inst(uregtest3d atinstant testinst1);
+
+#testcase Operator inst URegion 58
+#yields (instant undef)
+query inst(uregtest3d atinstant testinst2);
+
+#testcase Operator inst URegion 59
+#yields (instant "2006-06-15")
+query inst(uregtest3d atinstant testinst3);
+
+#testcase Operator inst URegion 60
+#yields (instant undef)
+query inst(uregtest3d atinstant testinst4);
+
+#testcase Operator inst URegion 61
+#yields (instant undef)
+query inst(uregtest5 atinstant testinst1);
+
+#testcase Operator inst URegion 62
+#yields (instant "2006-06-10")
+query inst(uregtest5 atinstant testinst2);
+
+#testcase Operator inst URegion 63
+#yields (instant "2006-06-15")
+query inst(uregtest5 atinstant testinst3);
+
+#testcase Operator inst URegion 64
+#yields (instant "2006-06-20")
+query inst(uregtest5 atinstant testinst4);
+
+#testcase Operator inst URegion 65
+#yields (instant undef)
+query inst(uregtest5 atinstant testinst5);
+
+#testcase Operator inst URegion 66
+#yields (instant undef)
+query inst(uregtest6 atinstant testinst1);
+
+#testcase Operator inst URegion 67
+#yields (instant "2006-06-10")
+query inst(uregtest6 atinstant testinst2);
+
+#testcase Operator inst URegion 68
+#yields (instant "2006-06-15")
+query inst(uregtest6 atinstant testinst3);
+
+#testcase Operator inst URegion 69
+#yields (instant "2006-06-20")
+query inst(uregtest6 atinstant testinst4);
+
+#testcase Operator inst URegion 70
+#yields (instant undef)
+query inst(uregtest6 atinstant testinst5);
+
+#testcase Operator inst MRegion 1
+#yields (instant undef)
+query inst(mregtest1 atinstant testinst1);
+
+#testcase Operator inst MRegion 2
+#yields (instant "2006-06-10")
+query inst(mregtest1 atinstant testinst2);
+
+#testcase Operator inst MRegion 3
+#yields (instant "2006-06-15")
+query inst(mregtest1 atinstant testinst3);
+
+#testcase Operator inst MRegion 4
+#yields (instant "2006-06-20")
+query inst(mregtest1 atinstant testinst4);
+
+#testcase Operator inst MRegion 5
+#yields (instant undef)
+query inst(mregtest1 atinstant testinst5);
+
+#testcase Operator inst MRegion 6
+#yields (instant "2006-06-12")
+query inst(mregtest1 atinstant testinst6);
+
+#testcase Operator inst MRegion 7
+#yields (instant "2006-06-14")
+query inst(mregtest1 atinstant testinst7);
+
+#testcase Operator inst MRegion 8
+#yields (instant "2006-06-16")
+query inst(mregtest1 atinstant testinst8);
+
+#testcase Operator inst MRegion 9
+#yields (instant "2006-06-18")
+query inst(mregtest1 atinstant testinst9);
+
+#testcase Operator inst MRegion 10
+#tolerance_real 0.0001
+#yields (instant "2006-06-12-23:59")
+query inst(mregtest1 atinstant testinst10);
+
+#testcase Operator inst MRegion 11
+#yields (instant "2006-06-11")
+query inst(mregtest1 atinstant testinst11);
+
+#testcase Operator inst MRegion 12
+#yields (instant "2006-06-13")
+query inst(mregtest1 atinstant testinst12);
+
+#testcase Operator inst MRegion 13
+#yields (instant "2006-06-17")
+query inst(mregtest1 atinstant testinst13);
+
+#testcase Operator inst MRegion 14
+#yields (instant "2006-06-19")
+query inst(mregtest1 atinstant testinst14);
+
+#testcase Operator inst MRegion 15
+#yields (instant undef)
+query inst(mregtest1b atinstant testinst1);
+
+#testcase Operator inst MRegion 16
+#yields (instant "2006-06-10")
+query inst(mregtest1b atinstant testinst2);
+
+#testcase Operator inst MRegion 17
+#yields (instant "2006-06-15")
+query inst(mregtest1b atinstant testinst3);
+
+#testcase Operator inst MRegion 18
+#yields (instant "2006-06-20")
+query inst(mregtest1b atinstant testinst4);
+
+#testcase Operator inst MRegion 19
+#yields (instant undef)
+query inst(mregtest1b atinstant testinst5);
+
+#testcase Operator inst MRegion 20
+#yields (instant undef)
+query inst(mregtest1b atinstant testinst6);
+
+#testcase Operator inst MRegion 21
+#yields (instant undef)
+query inst(mregtest1b atinstant testinst7);
+
+#testcase Operator inst MRegion 22
+#yields (instant undef)
+query inst(mregtest1b atinstant testinst8);
+
+#testcase Operator inst MRegion 23
+#yields (instant undef)
+query inst(mregtest1b atinstant testinst9);
+
+#testcase Operator inst MRegion 24
+#tolerance_real 0.0001
+#yields (instant "2006-06-12-23:59")
+query inst(mregtest1b atinstant testinst10);
+
+#testcase Operator inst MRegion 25
+#yields (instant "2006-06-11")
+query inst(mregtest1b atinstant testinst11);
+
+#testcase Operator inst MRegion 26
+#yields (instant "2006-06-13")
+query inst(mregtest1b atinstant testinst12);
+
+#testcase Operator inst MRegion 27
+#yields (instant "2006-06-17")
+query inst(mregtest1b atinstant testinst13);
+
+#testcase Operator inst MRegion 28
+#yields (instant "2006-06-19")
+query inst(mregtest1b atinstant testinst14);
+
+#testcase Operator inst MRegion 29
+#yields (instant undef)
+query inst(mregtest1c atinstant testinst1);
+
+#testcase Operator inst MRegion 30
+#yields (instant "2006-06-10")
+query inst(mregtest1c atinstant testinst2);
+
+#testcase Operator inst MRegion 31
+#yields (instant "2006-06-15")
+query inst(mregtest1c atinstant testinst3);
+
+#testcase Operator inst MRegion 32
+#yields (instant "2006-06-20")
+query inst(mregtest1c atinstant testinst4);
+
+#testcase Operator inst MRegion 33
+#yields (instant undef)
+query inst(mregtest1c atinstant testinst5);
+
+#testcase Operator inst MRegion 34
+#yields (instant "2006-06-12")
+query inst(mregtest1c atinstant testinst6);
+
+#testcase Operator inst MRegion 35
+#yields (instant "2006-06-14")
+query inst(mregtest1c atinstant testinst7);
+
+#testcase Operator inst MRegion 36
+#yields (instant "2006-06-16")
+query inst(mregtest1c atinstant testinst8);
+
+#testcase Operator inst MRegion 37
+#yields (instant "2006-06-18")
+query inst(mregtest1c atinstant testinst9);
+
+#testcase Operator inst MRegion 38
+#tolerance_real 0.0001
+#yields (instant "2006-06-12-23:59")
+query inst(mregtest1c atinstant testinst10);
+
+#testcase Operator inst MRegion 39
+#yields (instant "2006-06-11")
+query inst(mregtest1c atinstant testinst11);
+
+#testcase Operator inst MRegion 40
+#yields (instant "2006-06-13")
+query inst(mregtest1c atinstant testinst12);
+
+#testcase Operator inst MRegion 41
+#yields (instant "2006-06-17")
+query inst(mregtest1c atinstant testinst13);
+
+#testcase Operator inst MRegion 42
+#yields (instant "2006-06-19")
+query inst(mregtest1c atinstant testinst14);
+
+#testcase Operator inst MRegion 43
+#yields (instant undef)
+query inst(mregtest2 atinstant testinst1);
+
+#testcase Operator inst MRegion 44
+#yields (instant "2006-06-10")
+query inst(mregtest2 atinstant testinst2);
+
+#testcase Operator inst MRegion 45
+#yields (instant "2006-06-15")
+query inst(mregtest2 atinstant testinst3);
+
+#testcase Operator inst MRegion 46
+#yields (instant "2006-06-20")
+query inst(mregtest2 atinstant testinst4);
+
+#testcase Operator inst MRegion 47
+#yields (instant undef)
+query inst(mregtest2 atinstant testinst5);
+
+#testcase Operator inst MRegion 48
+#yields (instant "2006-06-12")
+query inst(mregtest2 atinstant testinst6);
+
+#testcase Operator inst MRegion 49
+#yields (instant "2006-06-14")
+query inst(mregtest2 atinstant testinst7);
+
+#testcase Operator inst MRegion 50
+#yields (instant "2006-06-16")
+query inst(mregtest2 atinstant testinst8);
+
+#testcase Operator inst MRegion 51
+#yields (instant "2006-06-18")
+query inst(mregtest2 atinstant testinst9);
+
+#testcase Operator inst MRegion 52
+#yields (instant "2006-06-11")
+query inst(mregtest2 atinstant testinst11);
+
+#testcase Operator inst MRegion 53
+#yields (instant "2006-06-13")
+query inst(mregtest2 atinstant testinst12);
+
+#testcase Operator inst MRegion 54
+#yields (instant "2006-06-17")
+query inst(mregtest2 atinstant testinst13);
+
+#testcase Operator inst MRegion 55
+#yields (instant "2006-06-19")
+query inst(mregtest2 atinstant testinst14);
+
+#testcase Operator inst MRegion 56
+#yields (instant undef)
+query inst(mregtest2b atinstant testinst1);
+
+#testcase Operator inst MRegion 57
+#yields (instant "2006-06-10")
+query inst(mregtest2b atinstant testinst2);
+
+#testcase Operator inst MRegion 58
+#yields (instant "2006-06-15")
+query inst(mregtest2b atinstant testinst3);
+
+#testcase Operator inst MRegion 59
+#yields (instant "2006-06-20")
+query inst(mregtest2b atinstant testinst4);
+
+#testcase Operator inst MRegion 60
+#yields (instant undef)
+query inst(mregtest2b atinstant testinst5);
+
+#testcase Operator inst MRegion 61
+#yields (instant undef)
+query inst(mregtest2b atinstant testinst6);
+
+#testcase Operator inst MRegion 62
+#yields (instant undef)
+query inst(mregtest2b atinstant testinst7);
+
+#testcase Operator inst MRegion 63
+#yields (instant undef)
+query inst(mregtest2b atinstant testinst8);
+
+#testcase Operator inst MRegion 64
+#yields (instant undef)
+query inst(mregtest2b atinstant testinst9);
+
+#testcase Operator inst MRegion 65
+#yields (instant "2006-06-11")
+query inst(mregtest2b atinstant testinst11);
+
+#testcase Operator inst MRegion 66
+#yields (instant "2006-06-13")
+query inst(mregtest2b atinstant testinst12);
+
+#testcase Operator inst MRegion 67
+#yields (instant "2006-06-17")
+query inst(mregtest2b atinstant testinst13);
+
+#testcase Operator inst MRegion 68
+#yields (instant "2006-06-19")
+query inst(mregtest2b atinstant testinst14);
+
+#testcase Operator inst MRegion 69
+#yields (instant undef)
+query inst(mregtest2c atinstant testinst1);
+
+#testcase Operator inst MRegion 70
+#yields (instant "2006-06-10")
+query inst(mregtest2c atinstant testinst2);
+
+#testcase Operator inst MRegion 71
+#yields (instant "2006-06-15")
+query inst(mregtest2c atinstant testinst3);
+
+#testcase Operator inst MRegion 72
+#yields (instant "2006-06-20")
+query inst(mregtest2c atinstant testinst4);
+
+#testcase Operator inst MRegion 73
+#yields (instant undef)
+query inst(mregtest2c atinstant testinst5);
+
+#testcase Operator inst MRegion 74
+#yields (instant "2006-06-12")
+query inst(mregtest2c atinstant testinst6);
+
+#testcase Operator inst MRegion 75
+#yields (instant "2006-06-14")
+query inst(mregtest2c atinstant testinst7);
+
+#testcase Operator inst MRegion 76
+#yields (instant "2006-06-16")
+query inst(mregtest2c atinstant testinst8);
+
+#testcase Operator inst MRegion 77
+#yields (instant "2006-06-18")
+query inst(mregtest2c atinstant testinst9);
+
+#testcase Operator inst MRegion 78
+#yields (instant "2006-06-11")
+query inst(mregtest2c atinstant testinst11);
+
+#testcase Operator inst MRegion 79
+#yields (instant "2006-06-13")
+query inst(mregtest2c atinstant testinst12);
+
+#testcase Operator inst MRegion 80
+#yields (instant "2006-06-17")
+query inst(mregtest2c atinstant testinst13);
+
+#testcase Operator inst MRegion 81
+#yields (instant "2006-06-19")
+query inst(mregtest2c atinstant testinst14);
+
+#testcase Operator inst MRegion 81
+#yields (instant undef)
+query inst(mregtest3 atinstant testinst1);
+
+#testcase Operator inst MRegion 82
+#yields (instant "2006-06-10")
+query inst(mregtest3 atinstant testinst2);
+
+#testcase Operator inst MRegion 83
+#yields (instant "2006-06-15")
+query inst(mregtest3 atinstant testinst3);
+
+#testcase Operator inst MRegion 84
+#yields (instant "2006-06-20")
+query inst(mregtest3 atinstant testinst4);
+
+#testcase Operator inst MRegion 85
+#yields (instant undef) 
+query inst(mregtest3 atinstant testinst5);
+
+#testcase Operator inst MRegion 86
+#yields (instant "2006-06-12")
+query inst(mregtest3 atinstant testinst6);
+
+#testcase Operator inst MRegion 87
+#yields (instant "2006-06-14")
+query inst(mregtest3 atinstant testinst7);
+
+#testcase Operator inst MRegion 88
+#yields (instant "2006-06-16")
+query inst(mregtest3 atinstant testinst8);
+
+#testcase Operator inst MRegion 89
+#yields (instant "2006-06-18")
+query inst(mregtest3 atinstant testinst9);
+
+#testcase Operator inst MRegion 90
+#yields (instant "2006-06-11")
+query inst(mregtest3 atinstant testinst11);
+
+#testcase Operator inst MRegion 91
+#yields (instant "2006-06-13")
+query inst(mregtest3 atinstant testinst12);
+
+#testcase Operator inst MRegion 92
+#yields (instant "2006-06-17")
+query inst(mregtest3 atinstant testinst13);
+
+#testcase Operator inst MRegion 93
+#yields (instant "2006-06-19")
+query inst(mregtest3 atinstant testinst14);
+
+#testcase Operator inst MRegion 94
+#yields (instant undef)
+query inst(mregtest3b atinstant testinst1);
+
+#testcase Operator inst MRegion 95
+#yields (instant "2006-06-10")
+query inst(mregtest3b atinstant testinst2);
+
+#testcase Operator inst MRegion 96
+#yields (instant "2006-06-15")
+query inst(mregtest3b atinstant testinst3);
+
+#testcase Operator inst MRegion 97
+#yields (instant "2006-06-20")
+query inst(mregtest3b atinstant testinst4);
+
+#testcase Operator inst MRegion 98
+#yields (instant undef)
+query inst(mregtest3b atinstant testinst5);
+
+#testcase Operator inst MRegion 99
+#yields (instant undef)
+query inst(mregtest3b atinstant testinst6);
+
+#testcase Operator inst MRegion 100
+#yields (instant undef)
+query inst(mregtest3b atinstant testinst7);
+
+#testcase Operator inst MRegion 101
+#yields (instant undef)
+query inst(mregtest3b atinstant testinst8);
+
+#testcase Operator inst MRegion 102
+#yields (instant undef)
+query inst(mregtest3b atinstant testinst9);
+
+#testcase Operator inst MRegion 103
+#yields (instant "2006-06-11")
+query inst(mregtest3b atinstant testinst11);
+
+#testcase Operator inst MRegion 104
+#yields (instant "2006-06-13")
+query inst(mregtest3b atinstant testinst12);
+
+#testcase Operator inst MRegion 105
+#yields (instant "2006-06-17")
+query inst(mregtest3b atinstant testinst13);
+
+#testcase Operator inst MRegion 106
+#yields (instant "2006-06-19")
+query inst(mregtest3b atinstant testinst14);
+
+#testcase Operator inst MRegion 107
+#yields (instant undef)
+query inst(mregtest3c atinstant testinst1);
+
+#testcase Operator inst MRegion 108
+#yields (instant "2006-06-10")
+query inst(mregtest3c atinstant testinst2);
+
+#testcase Operator inst MRegion 109
+#yields (instant "2006-06-15")
+query inst(mregtest3c atinstant testinst3);
+
+#testcase Operator inst MRegion 110
+#yields (instant "2006-06-20")
+query inst(mregtest3c atinstant testinst4);
+
+#testcase Operator inst MRegion 111
+#yields (instant undef)
+query inst(mregtest3c atinstant testinst5);
+
+#testcase Operator inst MRegion 112
+#yields (instant "2006-06-12")
+query inst(mregtest3c atinstant testinst6);
+
+#testcase Operator inst MRegion 113
+#yields (instant "2006-06-14")
+query inst(mregtest3c atinstant testinst7);
+
+#testcase Operator inst MRegion 114
+#yields (instant "2006-06-16")
+query inst(mregtest3c atinstant testinst8);
+
+#testcase Operator inst MRegion 115
+#yields (instant "2006-06-18")
+query inst(mregtest3c atinstant testinst9);
+
+#testcase Operator inst MRegion 116
+#yields (instant "2006-06-11")
+query inst(mregtest3c atinstant testinst11);
+
+#testcase Operator inst MRegion 117
+#yields (instant "2006-06-13")
+query inst(mregtest3c atinstant testinst12);
+
+#testcase Operator inst MRegion 118
+#yields (instant "2006-06-17")
+query inst(mregtest3c atinstant testinst13);
+
+#testcase Operator inst MRegion 119
+#yields (instant "2006-06-19")
+query inst(mregtest3c atinstant testinst14);
+
+#testcase Operator val URegion 1
+#yields (region ())
+query val(uregtest1 atinstant testinst1);
+
+#testcase Operator val URegion 2
+#yields (region((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))))
+query val(uregtest1 atinstant testinst2);
+
+#testcase Operator val URegion 3
+#yields (region((((4.0 1.0)(3.0 1.0) (3.0 2.0)(4.0 2.0)))))
+query val(uregtest1 atinstant testinst3);
+
+#testcase Operator val URegion 4
+#yields (region((((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))))
+query val(uregtest1 atinstant testinst4);
+
+#testcase Operator val URegion 5
+#yields (region ())
+query val(uregtest1 atinstant testinst5);
+
+#testcase Operator val URegion 6
+#yields (region ())
+query val(uregtest1b atinstant testinst1);
+
+#testcase Operator val URegion 7
+#yields (region((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))))
+query val(uregtest1b atinstant testinst2);
+
+#testcase Operator val URegion 9
+#yields (region((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))))
+query val(uregtest1b atinstant testinst3);
+
+#testcase Operator val URegion 10
+#yields (region ())
+query val(uregtest1b atinstant testinst4);
+
+#testcase Operator val URegion 11
+#yields (region ())
+query val(uregtest1b atinstant testinst5);
+
+#testcase Operator val URegion 12
+#yields (region ())
+query val(uregtest1c atinstant testinst1);
+
+#testcase Operator val URegion 13
+#yields (region ())
+query val(uregtest1c atinstant testinst2);
+
+#testcase Operator val URegion 14
+#yields (region((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))))
+query val(uregtest1c atinstant testinst3);
+
+#testcase Operator val URegion 15
+#yields (region((((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))))
+query val(uregtest1c atinstant testinst4);
+
+#testcase Operator val URegion 16
+#yields (region ())
+query val(uregtest1c atinstant testinst5);
+
+#testcase Operator val URegion 17
+#yields (region ())
+query val(uregtest1d atinstant testinst1);
+
+#testcase Operator val URegion 18
+#yields (region ())
+query val(uregtest1d atinstant testinst2);
+
+#testcase Operator val URegion 19
+#yields (region((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))))
+query val(uregtest1d atinstant testinst3);
+
+#testcase Operator val URegion 20
+#yields (region ())
+query val(uregtest1d atinstant testinst4);
+
+#testcase Operator val URegion 21
+#yields (region ())
+query val(uregtest1d atinstant testinst5);
+
+#testcase Operator val URegion 22
+#yields (region ())
+query val(uregtest2 atinstant testinst1);
+
+#testcase Operator val URegion 23
+#yields (region((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))(((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))))
+query val(uregtest2 atinstant testinst2);
+
+#testcase Operator val URegion 24
+#yields (region((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))(((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))))
+query val(uregtest2 atinstant testinst3);
+
+#testcase Operator val URegion 25
+#yields (region((((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))(((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0)))))
+query val(uregtest2 atinstant testinst4);
+
+#testcase Operator val URegion 26
+#yields (region ())
+query val(uregtest2 atinstant testinst5);
+
+#testcase Operator val URegion 27
+#yields (region ())
+query val(uregtest2b atinstant testinst1);
+
+#testcase Operator val URegion 28
+#yields (region((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))(((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))))
+query val(uregtest2b atinstant testinst2);
+
+#testcase Operator val URegion 29
+#yields (region((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))(((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))))
+query val(uregtest2b atinstant testinst3);
+
+#testcase Operator val URegion 30
+#yields (region ())
+query val(uregtest2b atinstant testinst4);
+
+#testcase Operator val URegion 31
+#yields (region ())
+query val(uregtest2b atinstant testinst5);
+
+#testcase Operator val URegion 32
+#yields (region ())
+query val(uregtest2c atinstant testinst1);
+
+#testcase Operator val URegion 33
+#yields (region ())
+query val(uregtest2c atinstant testinst2);
+
+#testcase Operator val URegion 34
+#yields (region((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))(((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))))
+query val(uregtest2c atinstant testinst3);
+
+#testcase Operator val URegion 35
+#yields (region((((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))(((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0)))))
+query val(uregtest2c atinstant testinst4);
+
+#testcase Operator val URegion 36
+#yields (region ())
+query val(uregtest2c atinstant testinst5);
+
+#testcase Operator val URegion 37
+#yields (region ())
+query val(uregtest2d atinstant testinst1);
+
+#testcase Operator val URegion 38
+#yields (region ())
+query val(uregtest2d atinstant testinst2);
+
+#testcase Operator val URegion 39
+#yields (region((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))(((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))))
+query val(uregtest2d atinstant testinst3);
+
+#testcase Operator val URegion 40
+#yields (region ())
+query val(uregtest2d atinstant testinst4);
+
+#testcase Operator val URegion 41
+#yields (region ())
+query val(uregtest2c atinstant testinst5);
+
+#testcase Operator val URegion 42
+#yields (region ())
+query val(uregtest3 atinstant testinst1);
+
+#testcase Operator val URegion 43
+#yields (region((((2.5 0.5)(0.5 0.5)(0.5 2.5)(2.5 2.5))((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))))
+query val(uregtest3 atinstant testinst2);
+
+#testcase Operator val URegion 44
+#yields (region((((4.5 0.5)(2.5 0.5)(2.5 2.5)(4.5 2.5))((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))))
+query val(uregtest3 atinstant testinst3);
+
+#testcase Operator val URegion 45
+#yields (region((((6.5 0.5)(4.5 0.5)(4.5 2.5)(6.5 2.5))((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))))
+query val(uregtest3 atinstant testinst4);
+
+#testcase Operator val URegion 46
+#yields (region ())
+query val(uregtest3 atinstant testinst5);
+
+#testcase Operator val URegion 47
+#yields (region ())
+query val(uregtest3b atinstant testinst1);
+
+#testcase Operator val URegion 48
+#yields (region((((2.5 0.5)(0.5 0.5)(0.5 2.5)(2.5 2.5))((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))))
+query val(uregtest3b atinstant testinst2);
+
+#testcase Operator val URegion 49
+#yields (region((((4.5 0.5)(2.5 0.5)(2.5 2.5)(4.5 2.5))((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))))
+query val(uregtest3b atinstant testinst3);
+
+#testcase Operator val URegion 50
+#yields (region ())
+query val(uregtest3b atinstant testinst4);
+
+#testcase Operator val URegion 51
+#yields (region ())
+query val(uregtest3b atinstant testinst5);
+
+#testcase Operator val URegion 52
+#yields (region ())
+query val(uregtest3c atinstant testinst1);
+
+#testcase Operator val URegion 53
+#yields (region ())
+query val(uregtest3c atinstant testinst2);
+
+#testcase Operator val URegion 54
+#yields (region((((4.5 0.5)(2.5 0.5)(2.5 2.5)(4.5 2.5))((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))))
+query val(uregtest3c atinstant testinst3);
+
+#testcase Operator val URegion 55
+#yields (region((((6.5 0.5)(4.5 0.5)(4.5 2.5)(6.5 2.5))((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))))
+query val(uregtest3c atinstant testinst4);
+
+#testcase Operator val URegion 56
+#yields (region ())
+query val(uregtest3c atinstant testinst5);
+
+#testcase Operator val URegion 57
+#yields (region ())
+query val(uregtest3d atinstant testinst1);
+
+#testcase Operator val URegion 58
+#yields (region ())
+query val(uregtest3d atinstant testinst2);
+
+#testcase Operator val URegion 59
+#yields (region((((4.5 0.5)(2.5 0.5)(2.5 2.5)(4.5 2.5))((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))))
+query val(uregtest3d atinstant testinst3);
+
+#testcase Operator val URegion 60
+#yields (region ())
+query val(uregtest3d atinstant testinst4);
+
+#testcase Operator val URegion 61
+#yields (region ())
+query val(uregtest5 atinstant testinst1);
+
+#testcase Operator val URegion 62
+#yields (region((((3.0 1.0)(1.0 1.0)(1.0 3.0)(3.0 3.0)))))
+query val(uregtest5 atinstant testinst2);
+
+#testcase Operator val URegion 63
+#yields (region((((4.0 2.5)(3.0 2.5)(3.0 3.5)(3.0 4.5)(4.0 4.5)(5.0 4.5)(5.0 3.5)(5.0 2.5)))))
+query val(uregtest5 atinstant testinst3);
+
+#testcase Operator val URegion 64
+#yields (region((((7.0 4.0)(5.0 4.0)(5.0 6.0)(7.0 6.0)))))
+query val(uregtest5 atinstant testinst4);
+
+#testcase Operator val URegion 65
+#yields (region ())
+query val(uregtest5 atinstant testinst5);
+
+#testcase Operator val URegion 66
+#yields (region ())
+query val(uregtest6 atinstant testinst1);
+
+#testcase Operator val URegion 67
+#yields (region ())
+query val(uregtest6 atinstant testinst2);
+
+#testcase Operator val URegion 68
+#yields (region((((3.0 1.0)(1.0 1.0)(2.0 2.0)))))
+query val(uregtest6 atinstant testinst3);
+
+#testcase Operator val URegion 69
+#yields (region((((5.0 1.0)(1.0 1.0)(3.0 3.0)))))
+query val(uregtest6 atinstant testinst4);
+
+#testcase Operator val URegion 70
+#yields (region ())
+query val(uregtest6 atinstant testinst5);
+
+#testcase Operator val MRegion 1
+#yields (region ())
+query val(mregtest1 atinstant testinst1);
+
+#testcase Operator val MRegion 2
+#yields (region((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))))
+query val(mregtest1 atinstant testinst2);
+
+#testcase Operator val MRegion 3
+#yields (region((((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0)))))
+query val(mregtest1 atinstant testinst3);
+
+#testcase Operator val MRegion 4
+#yields (region((((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0)))))
+query val(mregtest1 atinstant testinst4);
+
+#testcase Operator val MRegion 5
+#yields (region ())
+query val(mregtest1 atinstant testinst5);
+
+#testcase Operator val MRegion 6
+#yields (region((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))))
+query val(mregtest1 atinstant testinst6);
+
+#testcase Operator val MRegion 7
+#yields (region((((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))))
+query val(mregtest1 atinstant testinst7);
+
+#testcase Operator val MRegion 8
+#yields (region((((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0)))))
+query val(mregtest1 atinstant testinst8);
+
+#testcase Operator val MRegion 9
+#yields (region((((10.0 1.0)(9.0 1.0)(9.0 2.0)(10.0 2.0)))))
+query val(mregtest1 atinstant testinst9);
+
+#testcase Operator val MRegion 10
+#tolerance_real 0.0001
+#yields (region((((4.999305555555556 1.0)(3.999305555555555 1.0)(3.999305555555555 2.0)(4.999305555555556 2.0)))))
+query val(mregtest1 atinstant testinst10);
+
+#testcase Operator val MRegion 11
+#yields (region((((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0)))))
+query val(mregtest1 atinstant testinst11);
+
+#testcase Operator val MRegion 12
+#yields (region((((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0)))))
+query val(mregtest1 atinstant testinst12);
+
+#testcase Operator val MRegion 13
+#yields (region((((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0)))))
+query val(mregtest1 atinstant testinst13);
+
+#testcase Operator val MRegion 14
+#yields (region((((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0)))))
+query val(mregtest1 atinstant testinst14);
+
+#testcase Operator val MRegion 15
+#yields (region ())
+query val(mregtest1b atinstant testinst1);
+
+#testcase Operator val MRegion 16
+#yields (region((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))))
+query val(mregtest1b atinstant testinst2);
+
+#testcase Operator val MRegion 17
+#yields (region((((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0)))))
+query val(mregtest1b atinstant testinst3);
+
+#testcase Operator val MRegion 18
+#yields (region((((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0)))))
+query val(mregtest1b atinstant testinst4);
+
+#testcase Operator val MRegion 19
+#yields (region ())
+query val(mregtest1b atinstant testinst5);
+
+#testcase Operator val MRegion 20
+#yields (region ())
+query val(mregtest1b atinstant testinst6);
+
+#testcase Operator val MRegion 21
+#yields (region ())
+query val(mregtest1b atinstant testinst7);
+
+#testcase Operator val MRegion 22
+#yields (region ())
+query val(mregtest1b atinstant testinst8);
+
+#testcase Operator val MRegion 23
+#yields (region ())
+query val(mregtest1b atinstant testinst9);
+
+#testcase Operator val MRegion 24
+#tolerance_real 0.0001
+#yields (region((((4.999305555555556 1.0)(3.999305555555555 1.0)(3.999305555555555 2.0)(4.999305555555556 2.0)))))
+query val(mregtest1b atinstant testinst10);
+
+#testcase Operator val MRegion 25
+#yields (region((((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0)))))
+query val(mregtest1b atinstant testinst11);
+
+#testcase Operator val MRegion 26
+#yields (region((((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0)))))
+query val(mregtest1b atinstant testinst12);
+
+#testcase Operator val MRegion 27
+#yields (region((((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0)))))
+query val(mregtest1b atinstant testinst13);
+
+#testcase Operator val MRegion 28
+#yields (region((((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0)))))
+query val(mregtest1b atinstant testinst14);
+
+#testcase Operator val MRegion 29
+#yields (region ())
+query val(mregtest1c atinstant testinst1);
+
+#testcase Operator val MRegion 30
+#yields (region((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))))
+query val(mregtest1c atinstant testinst2);
+
+#testcase Operator val MRegion 31
+#yields (region((((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0)))))
+query val(mregtest1c atinstant testinst3);
+
+#testcase Operator val MRegion 32
+#yields (region((((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0)))))
+query val(mregtest1c atinstant testinst4);
+
+#testcase Operator val MRegion 33
+#yields (region ())
+query val(mregtest1c atinstant testinst5);
+
+#testcase Operator val MRegion 34
+#yields (region((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))))
+query val(mregtest1c atinstant testinst6);
+
+#testcase Operator val MRegion 35
+#yields (region((((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))))
+query val(mregtest1c atinstant testinst7);
+
+#testcase Operator val MRegion 36
+#yields (region((((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0)))))
+query val(mregtest1c atinstant testinst8);
+
+#testcase Operator val MRegion 37
+#yields (region((((10.0 1.0)(9.0 1.0)(9.0 2.0)(10.0 2.0)))))
+query val(mregtest1c atinstant testinst9);
+
+#testcase Operator val MRegion 38
+#tolerance_real 0.0001
+#yields (region((((4.999305555555556 1.0)(3.99930555555555 1.0)(3.999305555555555 2.0)(4.999305555555556 2.0)))))
+query val(mregtest1c atinstant testinst10);
+
+#testcase Operator val MRegion 39
+#yields (region((((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0)))))
+query val(mregtest1c atinstant testinst11);
+
+#testcase Operator val MRegion 40
+#yields (region((((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0)))))
+query val(mregtest1c atinstant testinst12);
+
+#testcase Operator val MRegion 41
+#yields (region((((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0)))))
+query val(mregtest1c atinstant testinst13);
+
+#testcase Operator val MRegion 42
+#yields (region((((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0)))))
+query val(mregtest1c atinstant testinst14);
+
+#testcase Operator val MRegion 43
+#yields (region ())
+query val(mregtest2 atinstant testinst1);
+
+#testcase Operator val MRegion 44
+#yields (region((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))(((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))))
+query val(mregtest2 atinstant testinst2);
+
+#testcase Operator val MRegion 45
+#yields (region((((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0)))(((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0)))))
+query val(mregtest2 atinstant testinst3);
+
+#testcase Operator val MRegion 46
+#yields (region((((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0)))(((14.0 1.0)(13.0 1.0)(13.0 2.0)(14.0 2.0)))))
+query val(mregtest2 atinstant testinst4);
+
+#testcase Operator val MRegion 47
+#yields (region ())
+query val(mregtest2 atinstant testinst5);
+
+#testcase Operator val MRegion 48
+#yields (region((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))(((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))))
+query val(mregtest2 atinstant testinst6);
+
+#testcase Operator val MRegion 49
+#yields (region((((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))(((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0)))))
+query val(mregtest2 atinstant testinst7);
+
+#testcase Operator val MRegion 50
+#yields (region((((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0)))(((10.0 1.0)(9.0 1.0)(9.0 2.0)(10.0 2.0)))))
+query val(mregtest2 atinstant testinst8);
+
+#testcase Operator val MRegion 51
+#yields (region((((10.0 1.0)(9.0 1.0)(9.0 2.0)(10.0 2.0)))(((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0)))))
+query val(mregtest2 atinstant testinst9);
+
+#testcase Operator val MRegion 52
+#yields (region((((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0)))(((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0)))))
+query val(mregtest2 atinstant testinst11);
+
+#testcase Operator val MRegion 53
+#yields (region((((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0)))(((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0)))))
+query val(mregtest2 atinstant testinst12);
+
+#testcase Operator val MRegion 54
+#yields (region((((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0)))(((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0)))))
+query val(mregtest2 atinstant testinst13);
+
+#testcase Operator val MRegion 55
+#yields (region((((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0)))(((13.0 1.0)(12.0 1.0)(12.0 2.0)(13.0 2.0)))))
+query val(mregtest2 atinstant testinst14);
+
+#testcase Operator val MRegion 56
+#yields (region ())
+query val(mregtest2b atinstant testinst1);
+
+#testcase Operator val MRegion 57
+#yields (region((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))(((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))))
+query val(mregtest2b atinstant testinst2);
+
+#testcase Operator val MRegion 58
+#yields (region((((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0)))(((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0)))))
+query val(mregtest2b atinstant testinst3);
+
+#testcase Operator val MRegion 59
+#yields (region((((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0)))(((14.0 1.0)(13.0 1.0)(13.0 2.0)(14.0 2.0)))))
+query val(mregtest2b atinstant testinst4);
+
+#testcase Operator val MRegion 60
+#yields (region ())
+query val(mregtest2b atinstant testinst5);
+
+#testcase Operator val MRegion 61
+#yields (region ())
+query val(mregtest2b atinstant testinst6);
+
+#testcase Operator val MRegion 62
+#yields (region ())
+query val(mregtest2b atinstant testinst7);
+
+#testcase Operator val MRegion 63
+#yields (region ())
+query val(mregtest2b atinstant testinst8);
+
+#testcase Operator val MRegion 64
+#yields (region ())
+query val(mregtest2b atinstant testinst9);
+
+#testcase Operator val MRegion 65
+#yields (region((((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0)))(((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0)))))
+query val(mregtest2b atinstant testinst11);
+
+#testcase Operator val MRegion 66
+#yields (region((((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0)))(((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0)))))
+query val(mregtest2b atinstant testinst12);
+
+#testcase Operator val MRegion 67
+#yields (region((((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0)))(((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0)))))
+query val(mregtest2b atinstant testinst13);
+
+#testcase Operator val MRegion 68
+#yields (region((((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0)))(((13.0 1.0)(12.0 1.0)(12.0 2.0)(13.0 2.0)))))
+query val(mregtest2b atinstant testinst14);
+
+#testcase Operator val MRegion 69
+#yields (region ())
+query val(mregtest2c atinstant testinst1);
+
+#testcase Operator val MRegion 70
+#yields (region((((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))(((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))))
+query val(mregtest2c atinstant testinst2);
+
+#testcase Operator val MRegion 71
+#yields (region((((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0)))(((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0)))))
+query val(mregtest2c atinstant testinst3);
+
+#testcase Operator val MRegion 72
+#yields (region((((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0)))(((14.0 1.0)(13.0 1.0)(13.0 2.0)(14.0 2.0)))))
+query val(mregtest2c atinstant testinst4);
+
+#testcase Operator val MRegion 73
+#yields (region ())
+query val(mregtest2c atinstant testinst5);
+
+#testcase Operator val MRegion 74
+#yields (region((((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))(((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))))
+query val(mregtest2c atinstant testinst6);
+
+#testcase Operator val MRegion 75
+#yields (region((((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))(((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0)))))
+query val(mregtest2c atinstant testinst7);
+
+#testcase Operator val MRegion 76
+#yields (region((((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0)))(((10.0 1.0)(9.0 1.0)(9.0 2.0)(10.0 2.0)))))
+query val(mregtest2c atinstant testinst8);
+
+#testcase Operator val MRegion 77
+#yields (region((((10.0 1.0)(9.0 1.0)(9.0 2.0)(10.0 2.0)))(((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0)))))
+query val(mregtest2c atinstant testinst9);
+
+#testcase Operator val MRegion 78
+#yields (region((((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0)))(((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0)))))
+query val(mregtest2c atinstant testinst11);
+
+#testcase Operator val MRegion 79
+#yields (region((((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0)))(((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0)))))
+query val(mregtest2c atinstant testinst12);
+
+#testcase Operator val MRegion 80
+#yields (region((((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0)))(((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0)))))
+query val(mregtest2c atinstant testinst13);
+
+#testcase Operator val MRegion 81
+#yields (region((((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0)))(((13.0 1.0)(12.0 1.0)(12.0 2.0)(13.0 2.0)))))
+query val(mregtest2c atinstant testinst14);
+
+#testcase Operator val MRegion 81
+#yields (region ())
+query val(mregtest3 atinstant testinst1);
+
+#testcase Operator val MRegion 82
+#yields (region((((2.5 0.5)(0.5 0.5)(0.5 2.5)(2.5 2.5))((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))))
+query val(mregtest3 atinstant testinst2);
+
+#testcase Operator val MRegion 83
+#yields (region((((7.5 0.5)(5.5 0.5)(5.5 2.5)(7.5 2.5))((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0)))))
+query val(mregtest3 atinstant testinst3);
+
+#testcase Operator val MRegion 84
+#yields (region((((12.5 0.5)(10.5 0.5)(10.5 2.5)(12.5 2.5))((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0)))))
+query val(mregtest3 atinstant testinst4);
+
+#testcase Operator val MRegion 85
+#yields (region ()) 
+query val(mregtest3 atinstant testinst5);
+
+#testcase Operator val MRegion 86
+#yields (region((((4.5 0.5)(2.5 0.5)(2.5 2.5)(4.5 2.5))((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))))
+query val(mregtest3 atinstant testinst6);
+
+#testcase Operator val MRegion 87
+#yields (region((((6.5 0.5)(4.5 0.5)(4.5 2.5)(6.5 2.5))((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))))
+query val(mregtest3 atinstant testinst7);
+
+#testcase Operator val MRegion 88
+#yields (region((((8.5 0.5)(6.5 0.5)(6.5 2.5)(8.5 2.5))((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0)))))
+query val(mregtest3 atinstant testinst8);
+
+#testcase Operator val MRegion 89
+#yields (region((((10.5 0.5)(8.5 0.5)(8.5 2.5)(10.5 2.5))((10.0 1.0)(9.0 1.0)(9.0 2.0)(10.0 2.0)))))
+query val(mregtest3 atinstant testinst9);
+
+#testcase Operator val MRegion 90
+#yields (region((((3.5 0.5)(1.5 0.5)(1.5 2.5)(3.5 2.5))((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0)))))
+query val(mregtest3 atinstant testinst11);
+
+#testcase Operator val MRegion 91
+#yields (region((((5.5 0.5)(3.5 0.5)(3.5 2.5)(5.5 2.5))((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0)))))
+query val(mregtest3 atinstant testinst12);
+
+#testcase Operator val MRegion 92
+#yields (region((((9.5 0.5)(7.5 0.5)(7.5 2.5)(9.5 2.5))((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0)))))
+query val(mregtest3 atinstant testinst13);
+
+#testcase Operator val MRegion 93
+#yields (region((((11.5 0.5)(9.5 0.5)(9.5 2.5)(11.5 2.5))((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0)))))
+query val(mregtest3 atinstant testinst14);
+
+#testcase Operator val MRegion 94
+#yields (region ())
+query val(mregtest3b atinstant testinst1);
+
+#testcase Operator val MRegion 95
+#yields (region((((2.5 0.5)(0.5 0.5)(0.5 2.5)(2.5 2.5))((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))))
+query val(mregtest3b atinstant testinst2);
+
+#testcase Operator val MRegion 96
+#yields (region((((7.5 0.5)(5.5 0.5)(5.5 2.5)(7.5 2.5))((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0)))))
+query val(mregtest3b atinstant testinst3);
+
+#testcase Operator val MRegion 97
+#yields (region((((12.5 0.5)(10.5 0.5)(10.5 2.5)(12.5 2.5))((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0)))))
+query val(mregtest3b atinstant testinst4);
+
+#testcase Operator val MRegion 98
+#yields (region ())
+query val(mregtest3b atinstant testinst5);
+
+#testcase Operator val MRegion 99
+#yields (region ())
+query val(mregtest3b atinstant testinst6);
+
+#testcase Operator val MRegion 100
+#yields (region ())
+query val(mregtest3b atinstant testinst7);
+
+#testcase Operator val MRegion 101
+#yields (region ())
+query val(mregtest3b atinstant testinst8);
+
+#testcase Operator val MRegion 102
+#yields (region ())
+query val(mregtest3b atinstant testinst9);
+
+#testcase Operator val MRegion 103
+#yields (region((((3.5 0.5)(1.5 0.5)(1.5 2.5)(3.5 2.5))((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0)))))
+query val(mregtest3b atinstant testinst11);
+
+#testcase Operator val MRegion 104
+#yields (region((((5.5 0.5)(3.5 0.5)(3.5 2.5)(5.5 2.5))((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0)))))
+query val(mregtest3b atinstant testinst12);
+
+#testcase Operator val MRegion 105
+#yields (region((((9.5 0.5)(7.5 0.5)(7.5 2.5)(9.5 2.5))((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0)))))
+query val(mregtest3b atinstant testinst13);
+
+#testcase Operator val MRegion 106
+#yields (region((((11.5 0.5)(9.5 0.5)(9.5 2.5)(11.5 2.5))((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0)))))
+query val(mregtest3b atinstant testinst14);
+
+#testcase Operator val MRegion 107
+#yields (region ())
+query val(mregtest3c atinstant testinst1);
+
+#testcase Operator val MRegion 108
+#yields (region((((2.5 0.5)(0.5 0.5)(0.5 2.5)(2.5 2.5))((2.0 1.0)(1.0 1.0)(1.0 2.0)(2.0 2.0)))))
+query val(mregtest3c atinstant testinst2);
+
+#testcase Operator val MRegion 109
+#yields (region((((7.5 0.5)(5.5 0.5)(5.5 2.5)(7.5 2.5))((7.0 1.0)(6.0 1.0)(6.0 2.0)(7.0 2.0)))))
+query val(mregtest3c atinstant testinst3);
+
+#testcase Operator val MRegion 110
+#yields (region((((12.5 0.5)(10.5 0.5)(10.5 2.5)(12.5 2.5))((12.0 1.0)(11.0 1.0)(11.0 2.0)(12.0 2.0)))))
+query val(mregtest3c atinstant testinst4);
+
+#testcase Operator val MRegion 111
+#yields (region ())
+query val(mregtest3c atinstant testinst5);
+
+#testcase Operator val MRegion 112
+#yields (region((((4.5 0.5)(2.5 0.5)(2.5 2.5)(4.5 2.5))((4.0 1.0)(3.0 1.0)(3.0 2.0)(4.0 2.0)))))
+query val(mregtest3c atinstant testinst6);
+
+#testcase Operator val MRegion 113
+#yields (region((((6.5 0.5)(4.5 0.5)(4.5 2.5)(6.5 2.5))((6.0 1.0)(5.0 1.0)(5.0 2.0)(6.0 2.0)))))
+query val(mregtest3c atinstant testinst7);
+
+#testcase Operator val MRegion 114
+#yields (region((((8.5 0.5)(6.5 0.5)(6.5 2.5)(8.5 2.5))((8.0 1.0)(7.0 1.0)(7.0 2.0)(8.0 2.0)))))
+query val(mregtest3c atinstant testinst8);
+
+#testcase Operator val MRegion 115
+#yields (region((((10.5 0.5)(8.5 0.5)(8.5 2.5)(10.5 2.5))((10.0 1.0)(9.0 1.0)(9.0 2.0)(10.0 2.0)))))
+query val(mregtest3c atinstant testinst9);
+
+#testcase Operator val MRegion 116
+#yields (region((((3.5 0.5)(1.5 0.5)(1.5 2.5)(3.5 2.5))((3.0 1.0)(2.0 1.0)(2.0 2.0)(3.0 2.0)))))
+query val(mregtest3c atinstant testinst11);
+
+#testcase Operator val MRegion 117
+#yields (region((((5.5 0.5)(3.5 0.5)(3.5 2.5)(5.5 2.5))((5.0 1.0)(4.0 1.0)(4.0 2.0)(5.0 2.0)))))
+query val(mregtest3c atinstant testinst12);
+
+#testcase Operator val MRegion 118
+#yields (region((((9.5 0.5)(7.5 0.5)(7.5 2.5)(9.5 2.5))((9.0 1.0)(8.0 1.0)(8.0 2.0)(9.0 2.0)))))
+query val(mregtest3c atinstant testinst13);
+
+#testcase Operator val MRegion 119
+#yields (region((((11.5 0.5)(9.5 0.5)(9.5 2.5)(11.5 2.5))((11.0 1.0)(10.0 1.0)(10.0 2.0)(11.0 2.0)))))
+query val(mregtest3c atinstant testinst14);
+
+#testcase Operator deftime 1
+#yields (periods(("2006-06-10" "2006-06-20" TRUE TRUE)))
+query deftime(mregtest1);
+
+#testcase Operator deftime 2
+#yields (periods(("2006-06-10" "2006-06-12" TRUE FALSE) ("2006-06-12" "2006-06-14" FALSE FALSE) ("2006-06-14" "2006-06-16" FALSE FALSE) ("2006-06-16" "2006-06-18" FALSE FALSE) ("2006-06-18" "2006-06-20" FALSE TRUE)))
+query deftime(mregtest1b); 
+
+#testcase Operator deftime 3
+#yields (periods(("2006-06-10" "2006-06-20" TRUE TRUE)))
+query deftime(mregtest1c);
+
+#testcase Operator deftime 4
+#yields (periods(("2006-06-10" "2006-06-20" TRUE TRUE)))
+query deftime(mregtest2); 
+
+#testcase Operator deftime 5
+#yields (periods(("2006-06-10" "2006-06-12" TRUE FALSE) ("2006-06-12" "2006-06-14" FALSE FALSE) ("2006-06-14" "2006-06-16" FALSE FALSE) ("2006-06-16" "2006-06-18" FALSE FALSE) ("2006-06-18" "2006-06-20" FALSE TRUE)))
+query deftime(mregtest2b); 
+
+#testcase Operator deftime 6
+#yields (periods(("2006-06-10" "2006-06-20" TRUE TRUE)))
+query deftime(mregtest2c); 
+
+#testcase Operator deftime 7
+#yields (periods(("2006-06-10" "2006-06-20" TRUE TRUE)))
+query deftime(mregtest3); 
+
+#testcase Operator deftime 8
+#yields (periods(("2006-06-10" "2006-06-12" TRUE FALSE) ("2006-06-12" "2006-06-14" FALSE FALSE) ("2006-06-14" "2006-06-16" FALSE FALSE) ("2006-06-16" "2006-06-18" FALSE FALSE) ("2006-06-18" "2006-06-20" FALSE TRUE)))
+query deftime(mregtest3b);
+
+#testcase Operator deftime 9
+#yields (periods(("2006-06-10" "2006-06-20" TRUE TRUE)))
+query deftime(mregtest3c);
+
+#testcase Operator deftime 10
+#yields (periods(("2006-06-10" "2006-06-20" TRUE TRUE)))
+query deftime(mregtest4);
+
+#testcase Operator deftime 11
+#yields (periods(("2006-06-10" "2006-06-20" TRUE TRUE)))
+query deftime(mregtest5);
+
+#testcase Operator present 1
+#yields (bool TRUE)
+query mregtest1 present periodstest1;
+
+#testcase Operator present 2
+#yields (bool TRUE)
+query mregtest1 present periodstest2;
+
+#testcase Operator present 3
+#yields (bool TRUE)
+query mregtest1 present periodstest3;
+
+#testcase Operator present 4
+#yields (bool TRUE)
+query mregtest1 present periodstest4;
+
+#testcase Operator present 5
+#yields (bool FALSE)
+query mregtest1 present periodstest5;
+
+#testcase Operator present 6
+#yields (bool TRUE)
+query mregtest1b present periodstest1;
+
+#testcase Operator present 7
+#yields (bool TRUE)
+query mregtest1b present periodstest2;
+
+#testcase Operator present 8
+#yields (bool TRUE)
+query mregtest1b present periodstest3;
+
+#testcase Operator present 9
+#yields (bool TRUE)
+query mregtest1b present periodstest4;
+
+#testcase Operator present 10
+#yields (bool FALSE)
+query mregtest1b present periodstest5;
+
+#testcase Operator present 11
+#yields (bool TRUE)
+query mregtest1c present periodstest1;
+
+#testcase Operator present 12
+#yields (bool TRUE)
+query mregtest1c present periodstest2;
+
+#testcase Operator present 13
+#yields (bool TRUE)
+query mregtest1c present periodstest3;
+
+#testcase Operator present 14
+#yields (bool TRUE)
+query mregtest1c present periodstest4;
+
+#testcase Operator present 15
+#yields (bool FALSE)
+query mregtest1c present periodstest5;
+
+#testcase Operator present 16
+#yields (bool TRUE)
+query mregtest2 present periodstest1;
+
+#testcase Operator present 17
+#yields (bool TRUE)
+query mregtest2 present periodstest2;
+
+#testcase Operator present 18
+#yields (bool TRUE)
+query mregtest2 present periodstest3;
+
+#testcase Operator present 19
+#yields (bool TRUE)
+query mregtest2 present periodstest4;
+
+#testcase Operator present 20
+#yields (bool FALSE)
+query mregtest2 present periodstest5;
+
+#testcase Operator present 21
+#yields (bool TRUE)
+query mregtest2b present periodstest1;
+
+#testcase Operator present 22
+#yields (bool TRUE)
+query mregtest2b present periodstest2;
+
+#testcase Operator present 23
+#yields (bool TRUE)
+query mregtest2b present periodstest3;
+
+#testcase Operator present 24
+#yields (bool TRUE)
+query mregtest2b present periodstest4;
+
+#testcase Operator present 25
+#yields (bool FALSE)
+query mregtest2b present periodstest5;
+
+#testcase Operator present 26
+#yields (bool TRUE)
+query mregtest2c present periodstest1;
+
+#testcase Operator present 27
+#yields (bool TRUE)
+query mregtest2c present periodstest2;
+
+#testcase Operator present 28
+#yields (bool TRUE)
+query mregtest2c present periodstest3;
+
+#testcase Operator present 29
+#yields (bool TRUE)
+query mregtest2c present periodstest4;
+
+#testcase Operator present 30
+#yields (bool FALSE)
+query mregtest2c present periodstest5;
+
+#testcase Operator present 31
+#yields (bool TRUE)
+query mregtest2 present periodstest1;
+
+#testcase Operator present 32
+#yields (bool TRUE)
+query mregtest2 present periodstest2;
+
+#testcase Operator present 33
+#yields (bool TRUE)
+query mregtest2 present periodstest3;
+
+#testcase Operator present 34
+#yields (bool TRUE)
+query mregtest2 present periodstest4;
+
+#testcase Operator present 35
+#yields (bool FALSE)
+query mregtest2 present periodstest5;
+
+#testcase Operator present 36
+#yields (bool TRUE)
+query mregtest2b present periodstest1;
+
+#testcase Operator present 37
+#yields (bool TRUE)
+query mregtest2b present periodstest2;
+
+#testcase Operator present 38
+#yields (bool TRUE)
+query mregtest2b present periodstest3;
+
+#testcase Operator present 39
+#yields (bool TRUE)
+query mregtest2b present periodstest4;
+
+#testcase Operator present 40
+#yields (bool FALSE)
+query mregtest2b present periodstest5;
+
+#testcase Operator present 41
+#yields (bool TRUE)
+query mregtest2c present periodstest1;
+
+#testcase Operator present 42
+#yields (bool TRUE)
+query mregtest2c present periodstest2;
+
+#testcase Operator present 43
+#yields (bool TRUE)
+query mregtest2c present periodstest3;
+
+#testcase Operator present 44
+#yields (bool TRUE)
+query mregtest2c present periodstest4;
+
+#testcase Operator present 45
+#yields (bool FALSE)
+query mregtest2c present periodstest5;
+
+#testcase Operator intersection 1
+#yields (mpoint((("2006-06-12-08:00" "2006-06-12-22:37" TRUE FALSE)(3.5 2.482534812367289 3.5 3.0))(("2006-06-12-22:37" "2006-06-13-16:00" TRUE TRUE)(3.5 2.999999999999977 3.5 3.236883942766296))))
+query intersection(mpointinterstest1, mregtest20);
+
+#testcase Operator intersection 2
+#yields (mpoint ())
+query intersection(mpointinterstest2, mregtest20);
+
+#testcase Operator inside 1
+#yields (mbool((("2006-06-10" "2006-06-12-08:00" TRUE FALSE)FALSE)(("2006-06-12-08:00" "2006-06-13-16:00" TRUE TRUE)TRUE)(("2006-06-13-16:00" "2006-06-16" FALSE FALSE)FALSE)))
+query mpointinterstest1 inside mregtest20;
+
+#testcase Operator at 1
+#yields (mpoint((("2006-06-11-09:51:42.021" "2006-06-12-22:37" TRUE FALSE)(3.5 1.698784722222222 3.5 3.0))(("2006-06-12-22:37" "2006-06-14-05:23:02.969" TRUE TRUE)(3.5 2.999999999999977 3.5 3.419270833333333))))
+query mpointinterstest1 at reg20at20060912;
+
+#testcase Operator at 2
+#yields (mpoint())
+query mpointinterstest2 at reg20at20060912;
+
+#testcase Operator at 3
+#yields (mpoint((("2006-06-12-07:12" "2006-06-13-15:12" TRUE TRUE)(3.45 3.08 3.45 3.08))))
+query mregtest20 at pointforattest;
+
+#testcase Operator bbox 1
+#yields (rect3 (1.0 6.0 1.0 2.0 2350.0 2360.0))
+query bbox(uregtest1);
+
+#testcase Operator bbox 2
+#yields (rect3 (1.0 8.0 1.0 2.0 2350.0 2360.0))
+query bbox(uregtest2);
+
+#testcase Operator bbox 3
+#yields (rect3(0.5 6.5 0.5 2.5 2350.0 2360.0))
+query bbox(uregtest3);
+
+#testcase Special Cases SHMove 1
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/SHMoveReg1
+query val(SHMove atinstant testinst3);
+
+#testcase Special Cases SHMove 2
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/SHMoveReg2
+query val(initial(SHMove));
+
+#testcase Special Cases SHMove 3
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/SHMoveReg3
+query val(final(SHMove));
+
+#testcase Special Cases SHMove 4
+#yields (instant "2006-06-15")
+query inst(SHMove atinstant testinst3);
+
+#testcase Special Cases SHMove 5
+#yields (instant "2006-06-10")
+query inst(initial(SHMove));
+
+#testcase Special Cases SHMove 6
+#yields (instant "2006-06-20")
+query inst(final(SHMove));
+
+#testcase Special Cases SHMove 6
+#yields (instant "2006-06-20")
+query inst(final(SHMove));
+
+#testcase Special Cases SHMove 7
+#yields (periods(("2006-06-10" "2006-06-20" TRUE TRUE)))
+query deftime(SHMove);
+
+#testcase Special Cases SHMove 8
+#yields (bool TRUE)
+query SHMove present testinst3;
+
+#testcase Special Cases SHMove 9
+#yields (bool TRUE)
+query SHMove present periodstest4;
+
+#testcase Special Cases SHMove 10
+#yields (mpoint((("2006-06-15-20:21:18.195" "2006-06-15-22:19:16.427" TRUE TRUE)(14.69625452281995 54.4620318153525 14.8601024794621 54.48251280993276))))
+query intersection(mpoint4, SHMove);
+
+#testcase Special Cases SHMove 11
+#yields (mpoint((("2006-06-15-14:50:11.515" "2006-06-15-16:28:06.395" TRUE TRUE)(15.07879255267292 55.05919246447851 15.12412341574598 55.06448106517036))))
+query mpoint54 at SHMoveat20060616;
+
+#testcase Special Cases Oporto 1
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsws1ints
+query gsws feed extend[gssh: intersection(.s1, .goodspot)] project[gssh] consume;
+
+#testcase Special Cases Oporto 2
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsws2ints
+query gsws feed extend[gssh: intersection(.s2, .goodspot)] project[gssh] consume;
+
+#testcase Special Cases Oporto 3
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsws3ints
+query gsws feed extend[gssh: intersection(.s3, .goodspot)] project[gssh] consume;
+
+#testcase Special Cases Oporto 4
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsws4ints
+query gsws feed extend[gssh: intersection(.s4, .goodspot)] project[gssh] consume;
+
+#testcase Special Cases Oporto 5
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsws5ints
+query gsws feed extend[gssh: intersection(.s5, .goodspot)] project[gssh] consume;
+
+#testcase Special Cases Oporto 6
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsws6ints
+query gsws feed extend[gssh: intersection(.s6, .goodspot)] project[gssh] consume;
+
+#testcase Special Cases Oporto 7
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsws7ints
+query gsws feed extend[gssh: intersection(.s7, .goodspot)] project[gssh] consume;
+
+#testcase Special Cases Oporto 8
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsws8ints
+query gsws feed extend[gssh: intersection(.s8, .goodspot)] project[gssh] consume;
+
+#testcase Special Cases Oporto 9
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsws9ints
+query gsws feed extend[gssh: intersection(.s9, .goodspot)] project[gssh] consume;
+
+#testcase Special Cases Oporto 10
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsws10ints
+query gsws feed extend[gssh: intersection(.s10, .goodspot)] project[gssh] consume;
+
+#testcase Special Cases Oporto 11
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsws11ints
+query gsws feed extend[gssh: intersection(.s11, .goodspot)] project[gssh] consume;
+
+#testcase Special Cases Oporto 12
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsws12ints
+query gsws feed extend[gssh: intersection(.s12, .goodspot)] project[gssh] consume;
+
+#testcase Special Cases Oporto 13
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws1ints
+query shws feed extend[shsh: intersection(.s1, .shoal)] project[shsh] consume;
+
+#testcase Special Cases Oporto 14
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws2ints
+query shws feed extend[shsh: intersection(.s2, .shoal)] project[shsh] consume;
+
+#testcase Special Cases Oporto 15
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws3ints
+query shws feed extend[shsh: intersection(.s3, .shoal)] project[shsh] consume;
+
+#testcase Special Cases Oporto 16
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws4ints
+query shws feed extend[shsh: intersection(.s4, .shoal)] project[shsh] consume;
+
+#testcase Special Cases Oporto 17
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws5ints
+query shws feed extend[shsh: intersection(.s5, .shoal)] project[shsh] consume;
+
+#testcase Special Cases Oporto 18
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws6ints
+query shws feed extend[shsh: intersection(.s6, .shoal)] project[shsh] consume;
+
+#testcase Special Cases Oporto 19
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws7ints
+query shws feed extend[shsh: intersection(.s7, .shoal)] project[shsh] consume;
+
+#testcase Special Cases Oporto 20
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws8ints
+query shws feed extend[shsh: intersection(.s8, .shoal)] project[shsh] consume;
+
+#testcase Special Cases Oporto 21
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws9ints
+query shws feed extend[shsh: intersection(.s9, .shoal)] project[shsh] consume;
+
+#testcase Special Cases Oporto 22
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws10ints
+query shws feed extend[shsh: intersection(.s10, .shoal)] project[shsh] consume;
+
+#testcase Special Cases Oporto 23
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws11ints
+query shws feed extend[shsh: intersection(.s11, .shoal)] project[shsh] consume;
+
+#testcase Special Cases Oporto 24
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws12ints
+query shws feed extend[shsh: intersection(.s12, .shoal)] project[shsh] consume;
+
+#testcase Special Cases Oporto 25
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shwsinside
+query shws feed extend[shins1:.s1 inside .shoal, shins2:.s2 inside .shoal, shins3:.s3 inside .shoal, shins4:.s4 inside .shoal, shins5:.s5 inside .shoal, shins6:.s6 inside .shoal, shins7:.s7 inside .shoal, shins8:.s8 inside .shoal, shins9:.s9 inside .shoal, shins10:.s10 inside .shoal, shins11:.s11 inside .shoal, shins12:.s12 inside .shoal] consume;
+
+#testcase Special Cases Oporto 26
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti1
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 1.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 27
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti2
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 2.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 28
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti3
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 3.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 29
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti4
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 4.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 30
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti5
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 5.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 31
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti6
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 6.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 32
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti7
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 7.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 33
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti8
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 8.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 34
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti9
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 9.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 35
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti10
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 10.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 36
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti11
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 11.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 37
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti12
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 12.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 38
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti13
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 13.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 39
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti14
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 14.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 40
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti15
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 15.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 41
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti16
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 16.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 42
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti17
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 17.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 43
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti18
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 18.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 44
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti19
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 19.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 45
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti20
+query goodspots feed extend[gsaiv:val(.goodspot atinstant [const instant value 20.0])]project[goodspotid,gsaiv] consume;
+
+#testcase Special Cases Oporto 46
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv1
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 1.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 47
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv2
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 2.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 48
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv3
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 3.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 49
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv4
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 4.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 50
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv5
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 5.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 51
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv6
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 6.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 52
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv7
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 7.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 53
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv8
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 8.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 54
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv9
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 9.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 55
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv10
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 10.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 56
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv11
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 11.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 57
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv12
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 12.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 58
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv13
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 13.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 59
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv14
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 14.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 60
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv15
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 15.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 61
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv16
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 16.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 62
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv17
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 17.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 63
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv18
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 18.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 64
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv19
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 19.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 65
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinstv20
+query goodspots feed extend[gsaii:inst(.goodspot atinstant [const instant value 20.0])]project[goodspotid,gsaii] consume;
+
+#testcase Special Cases Oporto 66
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsdeft
+query goodspots feed extend[deft: deftime(.goodspot)] project[goodspotid, deft] consume;
+
+#testcase Special Cases Oporto 67
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gspres
+query goodspots feed extend[pres: .goodspot present [const instant value 1.0]] project[goodspotid, pres] consume;
+#teardown
+close database;
+
