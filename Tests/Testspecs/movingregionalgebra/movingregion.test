@@ -3141,6 +3141,8 @@ query goodspots feed extend[deft: deftime(.goodspot)] project[goodspotid, deft] 
 #testcase Special Cases Oporto 67
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gspres
 query goodspots feed extend[pres: .goodspot present [const instant value 1.0]] project[goodspotid, pres] consume;
+
 #teardown
 close database;
+delete database movingregtest;
 
