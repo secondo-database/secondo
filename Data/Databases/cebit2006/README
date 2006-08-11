@@ -45,6 +45,7 @@ How to work with the database:
 
 3. Copy the file 'cebit2006.ses' to $SECONDO_BUILD_DIR\Data\GuiData\hoese\sessions
 
+Take a look, if the last two files are not already present in the appropriate directories.
 
 Example Query:
 =============
