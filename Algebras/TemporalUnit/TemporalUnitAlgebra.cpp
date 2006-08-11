@@ -138,6 +138,14 @@ OK   atperiods: stream(uT) x periods --> stream(uT)
 
 /*
 
+August 2006, Christian D[ue]ntgen: Added missing checks for ~undefined~ 
+argument values to all value mapping functions. The functions will now
+return ~undefined~ result values for these cases.
+
+*/
+
+/*
+
 [TOC]
 
 1 Overview
@@ -228,10 +236,10 @@ void MPoint::MSpeed( MReal& result ) const
 	  
 	  /*
 	    The point unit can be represented as a function of
-	    f(t)= (x0 + x1 * t, y0 + y1 * t).
+	    f(t) = (x0 + x1 * t, y0 + y1 * t).
 	    The result of the derivation is the constant (x1,y1).
-	    Concerning of this the speed is constant in this time interval.
-	    The value are represented in the variable c. The variables a and b  
+	    The speed is constant in each time interval.
+	    Its value is represented by variable c. The variables a and b  
 	    are set to zero.
 	    
 	  */
@@ -274,7 +282,7 @@ void UPoint::USpeed( UReal& result ) const
 	  t0 = inf.ToDouble();
 	  t1 = sup.ToDouble();
 	  
-	  duration = (t1 - t0)/1000;   // value in second
+	  duration = (t1 - t0)/1000;   // value in seconds
 	  
 	  result.a = 0;                // speed is constant in the interval
 	  result.b = 0;
