@@ -2,38 +2,48 @@ This folder contains the following files:
 ========================================
 
 1. Database 'cebit2006' with objects:
- 
-   aussteller:  ((Name text)(Ort string)(Halle string)(geoData region)(Stand string))
 
-   aussteller2: ((Name text)(Ort string)(Stand string))
+   Name:        aussteller
+   Schema:      ((Name text)(Ort string)(Halle string)(geoData region)(Stand string))
+   Cardinality: 6402
 
-   hallen:      ((Name string)(geoData region))
+   Name:        aussteller2
+   Schema:      ((Name text)(Ort string)(Stand string))
+   Cardinality: 6416
 
-   eingaenge:   ((Name string)(geoData region))
+   Name:        hallen
+   Schema:      ((Name string)(geoData region))
+   Cardinality: 33
 
-   andereobj:   ((Name string)(geoData region))
+   Name:        eingaenge
+   Schema:      ((Name string)(geoData region))
+   Cardinality: 12
 
-2. Categories file: cebit2006.cat
+   Name:        andereobj
+   Schema:      ((Name string)(geoData region))
+   Cardinality: 13
 
-3. Session file: cebit2006.ses
+2. Categories file: 'cebit2006.cat'
+
+3. Session file: 'cebit2006.ses'
 
 
 How to work with the database:
 =============================
 
-1.   * Restore the database with the commands
-   
-     * copy the file secondo2006 to your SECONDO 'bin'-directory
+1.   * copy the file 'secondo2006' to your SECONDO 'bin'-directory
 
-     * start SecondoTTYBDB and type
+     * start SecondoTTYBDB
+
+     * Restore the database with the commands
 
        - create database cebit2006; 
 
        - restore database cebit2006 from cebit2006;
 
-2. Copy the file cebit2006.cat to $SECONDO_BUILD_DIR\Data\GuiData\hoese\categories 
+2. Copy the file 'cebit2006.cat' to $SECONDO_BUILD_DIR\Data\GuiData\hoese\categories 
 
-3. Copy the file cebit2006.ses to $SECONDO_BUILD_DIR\Data\GuiData\hoese\sessions
+3. Copy the file 'cebit2006.ses' to $SECONDO_BUILD_DIR\Data\GuiData\hoese\sessions
 
 
 Example Query:
@@ -41,9 +51,9 @@ Example Query:
 
   1.  List all halls where you can find exhibitors from Brazil. 
 
-  2.  How many brazilian exhibitors are in each of the halls, that were found.
+  2.  How many brazilian exhibitors are in each of the halls, that were found ?
 
-  3.  Show the halls graphically in the cebit map.
+  3.  Show these halls graphically in the cebit map.
 
 Hence the result should be a relation with schema:
 
@@ -53,4 +63,4 @@ Possible Query:
 
 query aussteller feed filter [.Ort contains "BR-"] sortby[Halle asc] groupby[Halle; geoData: group feed extract[geoData], anz: group feed count] consume
 
-The file queryresult.png shows the graphical result of this query.
+The file 'queryresult.png' shows the graphical result of this query.
