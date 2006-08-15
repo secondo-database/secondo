@@ -11,6 +11,10 @@ This folder contains the following files:
    Schema:      ((Name text)(Ort string)(Stand string))
    Cardinality: 6416
 
+   Name:        aussteller3
+   Schema:      ((Name text)(Land string(Ort string)(Halle int)(Stand string)(geoData region))
+   Cardinality: 6373
+
    Name:        hallen
    Schema:      ((Name string)(geoData region))
    Cardinality: 33
