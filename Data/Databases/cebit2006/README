@@ -64,8 +64,12 @@ Hence the result should be a relation with schema:
 
 ((Halle string)(anz int)(geoData region))
 
-Possible Query:
+Possible query (Executable Level):
 
-query aussteller feed filter [.Ort contains "BR-"] sortby[Halle asc] groupby[Halle; geoData: group feed extract[geoData], anz: group feed count] consume
+query aussteller3 feed filter [.Land = "BR"] sortby[Halle asc] groupby[Halle; geoData: group feed extract[geoData], anz: group feed count] consume
+
+Possible query ignoring condition 3 (SQL):
+
+sql select [halle, count(*) as anz] from aussteller3 where land = "BR" groupby halle.
 
 The file 'queryresult.png' shows the graphical result of this query.
