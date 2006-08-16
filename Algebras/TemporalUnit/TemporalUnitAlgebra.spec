@@ -29,3 +29,6 @@ operator derivable alias DERIVABLE pattern op ( _ )
 operator derivative alias DERIVATIVE pattern op ( _ )
 operator atperiods alias ATPERIODS pattern _ infixop _
 operator ufeed alias UFEED pattern op ( _ )
+operator suse alias SUSE pattern _ op [ _ ]
+operator suse2 alias SUSE2 pattern _ _ op [ _ ]
+
