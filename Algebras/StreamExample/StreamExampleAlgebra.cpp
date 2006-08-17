@@ -33,9 +33,13 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
+August 2006, Christian Duentgen changed explicit allowed types for 
+streams in operators ~count~ and ~filter~ to all datatypes in kind DATA.
+
 This little algebra demonstrates the use of streams and parameter functions
 in algebra operators. It does not introduce any type constructors, but has
 several operators to manipulate streams.
+
 
 1 Preliminaries
 
@@ -48,12 +52,15 @@ using namespace std;
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
+#include "AlgebraManager.h"
 #include "StandardTypes.h"	//We need integers, for example
 #include <string>
 #include <iostream>		//for testing
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
+extern AlgebraManager* am;
+
 
 /*
 
@@ -120,20 +127,36 @@ ListExpr
 countType( ListExpr args )
 {
   ListExpr arg1;
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  string outstr;
+
   if ( nl->ListLength(args) == 1 )
   {
     arg1 = nl->First(args);
 
     if ( nl->ListLength(arg1) == 2 )
-      if ( nl->IsEqual(nl->First(arg1), "stream")
-	   //&& nl->IsEqual(nl->Second(arg1), "int") )
-	  && ((nl->IsEqual(nl->Second(arg1), "int") )||
-	          (nl->IsEqual(nl->Second(arg1), "upoint") )||
-	          (nl->IsEqual(nl->Second(arg1), "ureal") )||
-	          (nl->IsEqual(nl->Second(arg1), "constint") ))
-	  )
-      return nl->SymbolAtom("int");
+      {
+	if (    nl->IsEqual(nl->First(arg1), "stream")
+	     && ( nl->IsAtom(nl->Second(arg1) ) )
+	     && am->CheckKind("DATA", nl->Second(arg1), errorInfo) )
+	  return nl->SymbolAtom("int");
+	else
+	  {
+	    nl->WriteToString(outstr, arg1);
+	    ErrorReporter::ReportError("Operator count expects a (stream T), "
+				       "in kind DATA. The argument profided "
+				       "has type '" + outstr + "' instead.");
+	  }
+      }
   }
+  else
+    {
+      nl->WriteToString(outstr, args);
+      ErrorReporter::ReportError("Operator count expects only a single "
+				 " argument of type (stream T), T "
+				 "in kind DATA. The argument provided "
+				 "has type '" + outstr + "' instead.");	
+    }
   return nl->SymbolAtom("typeerror");
 }
 
@@ -169,21 +192,63 @@ Type mapping for ~sfilter~ is
 ListExpr
 filterType( ListExpr args )
 {
-  ListExpr arg1, arg2;
+  ListExpr stream, map, errorInfo;
+  string out, out2;
+
+  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+
   if ( nl->ListLength(args) == 2 )
   {
-    arg1 = nl->First(args);
-    arg2 = nl->Second(args);
+    stream = nl->First(args);
+    map = nl->Second(args);
 
-    if ( nl->ListLength(arg1) == 2 && nl->ListLength(arg2) == 3
-      && nl->IsEqual(nl->First(arg1), "stream")
-      && nl->IsEqual(nl->Second(arg1), "int")
-      && nl->IsEqual(nl->First(arg2), "map")
-      && nl->IsEqual(nl->Second(arg2), "int")
-      && nl->IsEqual(nl->Third(arg2), "bool") )
-    return arg1;
+    // test first argument for stream(T), T in kind DATA
+    if (     nl->IsAtom(stream)
+	 || !(nl->ListLength(stream) == 2)
+	 || !nl->IsEqual(nl->First(stream), "stream")
+	 || !am->CheckKind("DATA", nl->Second(stream), errorInfo) )
+      {
+	nl->WriteToString(out, stream);
+	ErrorReporter::ReportError("Operator filter expects a (stream T), "
+				   "T in kind DATA as its first argument. "
+				   "The argument provided "
+				   "has type '" + out + "' instead.");
+	return nl->SymbolAtom("typeerror");
+      }
+
+    // test second argument for map T' bool. T = T'
+    if (     nl->IsAtom(map)
+	 || !nl->ListLength(map) == 3
+         || !nl->IsEqual(nl->First(map), "map")
+         || !nl->IsEqual(nl->Third(map), "bool") )
+      {
+	nl->WriteToString(out, map);
+	ErrorReporter::ReportError("Operator filter expects a "
+				   "(map T bool), T in kind DATA, "
+				   "as its second argument. "
+				   "The second argument provided "
+				   "has type '" + out + "' instead.");
+	return nl->SymbolAtom("typeerror");
+      }
+    
+    if ( !( nl->Equal( nl->Second(stream), nl->Second(map) ) ) )
+      {
+	nl->WriteToString(out, nl->Second(stream));
+	nl->WriteToString(out2, nl->Second(map));
+	ErrorReporter::ReportError("Operator filter: the stream base type "
+				   "T must match the map's argument type, "
+				   "e.g. 1st: (stream T), 2nd: (map T bool). "
+				   "The actual types are 1st: '" + out +
+				   "', 2nd: '" + out2 + "'.");
+	return nl->SymbolAtom("typeerror");
+      }
   }
-  return nl->SymbolAtom("typeerror");
+  else 
+    { // wrong number of arguments
+      ErrorReporter::ReportError("Operator filter expects two arguments.");
+      return nl->SymbolAtom("typeerror");      
+    }
+  return stream; // return type of first argument
 }
 
 /*
@@ -278,7 +343,7 @@ Count the number of elements in a stream. An example for consuming a stream.
   while ( qp->Received(args[0].addr) )
   {
     count++;
-    delete((CcInt*) elem.addr);			//consume the stream objects
+    ((Attribute*) elem.addr)->DeleteIfAllowed();// consume the stream objects
     qp->Request(args[0].addr, elem);
   }
   result = qp->ResultStorage(s);
@@ -290,7 +355,8 @@ Count the number of elements in a stream. An example for consuming a stream.
 }
 
 int
-printintstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
+printintstreamFun (Word* args, Word& result, 
+		   int message, Word& local, Supplier s)
 /*
 Print the elements of an integer stream. An example for a pure stream operator
 (input and output are streams).
@@ -346,21 +412,23 @@ operator and also for one calling a parameter function.
 
     case REQUEST:
 
-      funargs = qp->Argument(args[1].addr);	//Get the argument vector for
-						//the parameter function.
+      funargs = qp->Argument(args[1].addr);  //Get the argument vector for
+					     //the parameter function.
       qp->Request(args[0].addr, elem);
       while ( qp->Received(args[0].addr) )
       {
-	(*funargs)[0] = elem;			//Supply the argument for the
-						//parameter function.
-        qp->Request(args[1].addr, funresult);	//Ask the parameter function
-						//to be evaluated.
+	(*funargs)[0] = elem;		     //Supply the argument for the
+					     //parameter function.
+        qp->Request(args[1].addr, funresult);//Ask the parameter function
+					     //to be evaluated.
 	if ( ((CcBool*) funresult.addr)->GetBoolval() )
 	{
 	  result = elem;
 	  return YIELD;
         }
-      qp->Request(args[0].addr, elem);
+	//consume the stream object:
+	((Attribute*) elem.addr)->DeleteIfAllowed(); 
+	qp->Request(args[0].addr, elem); // get next element
       }
       return CANCEL;
 
@@ -378,46 +446,43 @@ operator and also for one calling a parameter function.
 
 */
 
-const string intstreamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                              "\"Example\" ) "
-                             "( <text>(int int) -> (stream int)</text--->"
-			    "<text>intstream ( _ , _ )</text--->"
-			    "<text>Creates a stream of integers containing "
-			    "the numbers between the first and the second "
-			    "argument.</text--->"
-			    "<text>query intstream (1,10) printintstream "
-			    "count</text--->"
-			      ") )";
+const string intstreamSpec  = 
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>StreamExampleAlgebra</text--->"
+  "<text>(int int) -> (stream int)</text--->"
+  "<text>intstream ( _ , _ )</text--->"
+  "<text>Creates a stream of integers containing the numbers "
+  "between the first and the second argument.</text--->"
+  "<text>query intstream (1,10) printintstream count</text--->"
+  ") )";
 
-const string countSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" ) "
-                             "( <text>((stream x)) -> int</text--->"
-			     "<text>_ count</text--->"
-			     "<text>Counts the number of elements of a "
-			     "stream.</text--->"
-			     "<text>query intstream (1,10) count</text--->"
-			     ") )";
+const string countSpec  = 
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>StreamExampleAlgebra</text--->"
+  "<text>((stream T)) -> int, \nfor T in kind DATA.</text--->"
+  "<text>_ count</text--->"
+  "<text>Counts the number of elements of a stream.</text--->"
+  "<text>query intstream (1,10) count</text--->"
+  ") )";
 
-const string printintstreamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                   "\"Example\" ) "
-                            "( <text>((stream x)) -> (stream x)</text--->"
-			    "<text>_ printintstream</text--->"
-			    "<text>Prints the elements of an integer "
-			    "stream.</text--->"
-			    "<text>query intstream (1,10) printintstream "
-			    "count</text--->"
-			    ") )";
+const string printintstreamSpec  = 
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>StreamExampleAlgebra</text--->"
+  "<text>((stream int)) -> (stream int)</text--->"
+  "<text>_ printintstream</text--->"
+  "<text>Prints the elements of an integer stream.</text--->"
+  "<text>query intstream (1,10) printintstream count</text--->"
+  ") )";
 
-const string filterSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>((stream x) (map x bool)) -> (stream x)"
-			   "</text--->"
-			   "<text>_ filter [ fun ]</text--->"
-			   "<text>Filters the elements of a stream by a "
-			   "predicate.</text--->"
-			   "<text>query intstream (1,10) filter[. > 7] "
-			   "printintstream count</text--->"
-			      ") )";
+const string filterSpec  = 
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>StreamExampleAlgebra</text--->"
+  "<text>((stream T) (map T bool)) -> (stream T), \n"
+  "for T in kind DATA.</text--->"
+  "<text>_ filter [ fun ]</text--->"
+  "<text>Filters the elements of a stream by a predicate.</text--->"
+  "<text>query intstream (1,10) filter[. > 7] printintstream count</text--->"
+  ") )";
 /*
 Used to explain the signature and the meaning of operators.
 
