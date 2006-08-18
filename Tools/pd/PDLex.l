@@ -28,7 +28,7 @@ GNU General Public License for more details.
 lbracket	("(*"|"/*")
 rbracket	("*)"|"*/")
 star		[*]
-other		[-;,?!\`\'()/@#$%_\^{}+=|<>\n&]
+other		[-;,?!\`\'()/@#$%_\^{}+=|<>\n&üÜäÄöÖßµ¤]
 open		{lbracket}{star}*(" "*[\n])+
 open2		([\n]" "*)*[\n]{lbracket}{star}*(" "*[\n])+
 close		{star}*{rbracket}(" "*[\n])+
