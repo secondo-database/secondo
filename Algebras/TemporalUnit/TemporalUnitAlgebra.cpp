@@ -3245,8 +3245,8 @@ int Suse_SN( Word* args, Word& result, int message,
 	  return CANCEL;
 	}
       
-      funResult = SetWord(Address(0));
-      argValue  = SetWord(Address(0));
+      funResult.addr = 0;
+      argValue.addr  = 0;
       qp->Request(instream.addr, argValue); // get one arg value from stream
       if(qp->Received(instream.addr))       
 	{
@@ -3255,12 +3255,12 @@ int Suse_SN( Word* args, Word& result, int message,
 	  qp->Request(fun.addr, funResult); // call parameter function
 	  result = funResult;               // forward result
 	  // delete argument value:
-	  cout << "Suse_SN REQUEST: deleting *(argValue.addr)..." << endl;
-	  cout << "                 argValue->del.ref before delete = " 
-	       <<  (int) ((Attribute*) argValue.addr)->GetDelRefs() << endl;
+      	  cout << "Suse_SN REQUEST: deleting *(argValue.addr)..." << endl;
+	  // cout << "                 argValue->del.ref before delete = " 
+	  //      <<  ((Attribute*) argValue.addr)->GetDelRefs() << endl;
 	  ((Attribute*) argValue.addr)->DeleteIfAllowed();
-	  cout << "                 argValue->del.ref after  delete = " 
-	       <<  (int) ((Attribute*) argValue.addr)->GetDelRefs() << endl;
+	  // cout << "                 argValue->del.ref after  delete = " 
+	  //      <<  ((Attribute*) argValue.addr)->GetDelRefs() << endl;
 	  argValue.addr = 0;
 	  cout << "Suse_SN finished REQUEST: YIELD" << endl;
 	  return YIELD;
