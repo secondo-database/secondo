@@ -35,6 +35,7 @@ level remains. Models are also removed from type constructors.
 
 August 2006, Christian Duentgen changed explicit allowed types for 
 streams in operators ~count~ and ~filter~ to all datatypes in kind DATA.
+Added operator ~printstream~.
 
 This little algebra demonstrates the use of streams and parameter functions
 in algebra operators. It does not introduce any type constructors, but has
@@ -76,18 +77,21 @@ This algebra provides the following operators:
 the second argument. If the second argument is smaller than the first, the
 stream will be empty.
 
-  * stream(int) [->] int	count
+  * stream(T) [->] int	count
 
-    Returns the number of elements in an integer stream.
-
+    Returns the number of elements in an arbitrary stream.
 
   * stream(int) [->] stream(int)		printintstream
 
     Prints out all elements of the stream
 
-  * stream(int) x (int [->] bool) [->] stream(int)	filter
+  * stream(T) [->] stream(T)		printstream
 
-    Filters the elements of an integer stream by a predicate.
+    Prints out all elements of the stream
+
+  * stream(T) x (T [->] bool) [->] stream(T)	filter
+
+    Filters the elements of an arbitrary stream by a predicate.
 
 
 2.2 Type Mapping Function
@@ -180,6 +184,48 @@ printintstreamType( ListExpr args )
       return nl->First(args);
   }
   return nl->SymbolAtom("typeerror");
+}
+
+/*
+Type mapping for ~printstream~ is
+
+----	((stream T)) -> (stream T)
+        T in kind DATA
+----
+
+*/
+ListExpr
+printstreamType( ListExpr args )
+{
+  ListExpr stream, errorInfo;
+  string out;
+
+  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  stream = nl->First(args);
+
+  if ( nl->ListLength(args) != 1 )
+    {
+      ErrorReporter::ReportError("Operator filter expects only a single "
+				 "argument.");
+      return nl->SymbolAtom("typeerror");
+    }
+
+  // test first argument for stream(T), T in kind DATA
+  if (     nl->IsAtom(stream)
+	   || !(nl->ListLength(stream) == 2)
+	   || !nl->IsEqual(nl->First(stream), "stream")
+	   || !am->CheckKind("DATA", nl->Second(stream), errorInfo) )
+    {
+      nl->WriteToString(out, stream);
+      ErrorReporter::ReportError("Operator filter expects a (stream T), "
+				 "T in kind DATA as its first argument. "
+				 "The argument provided "
+				 "has type '" + out + "' instead.");
+      return nl->SymbolAtom("typeerror");
+    }
+
+  // return the input type as result
+  return stream; 
 }
 
 /*
@@ -358,8 +404,8 @@ int
 printintstreamFun (Word* args, Word& result, 
 		   int message, Word& local, Supplier s)
 /*
-Print the elements of an integer stream. An example for a pure stream operator
-(input and output are streams).
+Print the elements of an Attribute-type stream. 
+An example for a pure stream operator (input and output are streams).
 
 */
 {
@@ -378,6 +424,44 @@ Print the elements of an integer stream. An example for a pure stream operator
       if ( qp->Received(args[0].addr) )
       {
         cout << ((CcInt*) elem.addr)->GetIntval() << endl;
+	result = elem;
+	return YIELD;
+      }
+      else return CANCEL;
+
+    case CLOSE:
+
+      qp->Close(args[0].addr);
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
+
+int
+printstreamFun (Word* args, Word& result, 
+		   int message, Word& local, Supplier s)
+/*
+Print the elements of an Attribute-type stream. 
+An example for a pure stream operator (input and output are streams).
+
+*/
+{
+  Word elem;
+
+  switch( message )
+  {
+    case OPEN:
+
+      qp->Open(args[0].addr);
+      return 0;
+
+    case REQUEST:
+
+      qp->Request(args[0].addr, elem);
+      if ( qp->Received(args[0].addr) )
+      {
+        ((Attribute*) elem.addr)->Print(cout); cout << endl;
 	result = elem;
 	return YIELD;
       }
@@ -459,7 +543,8 @@ const string intstreamSpec  =
 const string countSpec  = 
   "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>StreamExampleAlgebra</text--->"
-  "<text>((stream T)) -> int, \nfor T in kind DATA.</text--->"
+  "<text>For T in kind DATA:\n"
+  "((stream T)) -> int</text--->"
   "<text>_ count</text--->"
   "<text>Counts the number of elements of a stream.</text--->"
   "<text>query intstream (1,10) count</text--->"
@@ -474,11 +559,21 @@ const string printintstreamSpec  =
   "<text>query intstream (1,10) printintstream count</text--->"
   ") )";
 
+const string printstreamSpec  = 
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>StreamExampleAlgebra</text--->"
+  "<text>For T in kind DATA:\n"
+  "((stream T)) -> (stream T)</text--->"
+  "<text>_ printstream</text--->"
+  "<text>Prints the elements of an arbitrary stream.</text--->"
+  "<text>query intstream (1,10) printstream count</text--->"
+  ") )";
+
 const string filterSpec  = 
   "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>StreamExampleAlgebra</text--->"
-  "<text>((stream T) (map T bool)) -> (stream T), \n"
-  "for T in kind DATA.</text--->"
+  "<text>For T in kind DATA:\n"
+  "((stream T) (map T bool)) -> (stream T)</text--->"
   "<text>_ filter [ fun ]</text--->"
   "<text>Filters the elements of a stream by a predicate.</text--->"
   "<text>query intstream (1,10) filter[. > 7] printintstream count</text--->"
@@ -512,6 +607,14 @@ Operator printintstream (
 	printintstreamType	//type mapping
 );
 
+Operator printstream (
+	"printstream", 	        //name
+	printstreamSpec,	//specification
+	printstreamFun,	        //value mapping
+	simpleSelect,		//trivial selection function
+	printstreamType	        //type mapping
+);
+
 Operator sfilter (
 	"filter", 		//name
 	filterSpec,		//specification
@@ -535,6 +638,7 @@ class StreamExampleAlgebra : public Algebra
     AddOperator( &intstream );
     AddOperator( &cppcount );
     AddOperator( &printintstream );
+    AddOperator( &printstream );
     AddOperator( &sfilter );
   }
   ~StreamExampleAlgebra() {};
