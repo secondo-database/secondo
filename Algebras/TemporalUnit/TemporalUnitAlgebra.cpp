@@ -959,44 +959,35 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
 
   int j;
   string argstr, argstr2, attrname, inputtype, inputname, fulllist;
-/*
-The task of the Type Mapping are checking of the nested list.
-First check of the list length.
 
-*/
+
+  //check the list length.
   CHECK_COND(nl->ListLength(args) == 2,
-    "Operator makemvalue expects a list of length two.");
-
+	     "Operator makemvalue expects a list of length two.");
+  
   first = nl->First(args);
   nl->WriteToString(argstr, first);
 
-/*
-The second one checks the structure of the list.
 
-*/
-
+  // check the structure of the list.
   CHECK_COND(nl->ListLength(first) == 2  &&
-        (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-        (nl->ListLength(nl->Second(first)) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-        (nl->ListLength(nl->Second(first)) == 2) &&
-        (IsTupleDescription(nl->Second(nl->Second(first)))),
+	     (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+	     (nl->ListLength(nl->Second(first)) == 2) &&
+	     (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
+	     (nl->ListLength(nl->Second(first)) == 2) &&
+	     (IsTupleDescription(nl->Second(nl->Second(first)))),
   "Operator makemvalue expects as first argument a list with structure "
   "(stream (tuple ((a1 t1)...(an tn))))\n"
   "Operator makemvalue gets as first argument '" + argstr + "'." );
 
-/*
-The third one checks the given parameter in the operator.
 
-*/ 
+  // check the given parameter
   second  = nl->Second(args);
   nl->WriteToString(argstr, second);
   CHECK_COND(argstr != "typeerror",
   "Operator makemvalue expects a name of a attribute and not a type.");
-/*
-inputname represented the name of the given attribute
 
-*/
+  // inputname represented the name of the given attribute
   nl->WriteToString(inputname, second);
 
   rest = nl->Second(nl->Second(first));
@@ -1008,78 +999,64 @@ inputname represented the name of the given attribute
   second2 = nl->Second(firstr);
   nl->WriteToString(attrname, first2);
   nl->WriteToString(argstr2, second2);
-/*
-comparison with the attributes in the relation
 
-*/
+  // compare with the attributes in the relation
   if (attrname == inputname)
      inputtype = argstr2;
-/*
-now I save from the detected attribute the type
 
-*/
-while (!(nl->IsEmpty(rest)))
-  {
-     lastlistn = nl->Append(lastlistn,nl->First(rest));
-     firstr = nl->First(rest);
-     rest = nl->Rest(rest);
-     first2 = nl->First(firstr);
-     second2 = nl->Second(firstr);
-     nl->WriteToString(attrname, first2);
-     nl->WriteToString(argstr2, second2);
-/*
-comparison with the attributes in the relation
+  // save from the detected attribute the type
+  while (!(nl->IsEmpty(rest)))
+    {
+      lastlistn = nl->Append(lastlistn,nl->First(rest));
+      firstr = nl->First(rest);
+      rest = nl->Rest(rest);
+      first2 = nl->First(firstr);
+      second2 = nl->Second(firstr);
+      nl->WriteToString(attrname, first2);
+      nl->WriteToString(argstr2, second2);
 
-*/
-     if (attrname == inputname)
-         inputtype = argstr2;
-/*
-now I save from the detected attribute the type
+      // compare with the attributes in the relation
+      if (attrname == inputname)
+	inputtype = argstr2;
 
-*/
-  }
+      // save from the detected attribute the type
+    }
   rest = second;
   listfull = listn;
   nl->WriteToString(fulllist, listfull);
+  
 
-
-CHECK_COND(!(inputtype == "") ,
-    "Operator makemvalue: Attribute name '"+ inputname+
-    "' is not known.\n"+
-    "Known Attribute(s): " + fulllist);
-
-
-    CHECK_COND( (inputtype == "ubool"
-          || inputtype == "uint"
-          || inputtype == "ureal"
-          || inputtype == "upoint" ),
-          "Attribute type is not of type ubool, uint, ureal or upoint.");
-
+  CHECK_COND(!(inputtype == "") ,
+	     "Operator makemvalue: Attribute name '"+ inputname+
+	     "' is not known.\n"+
+	     "Known Attribute(s): " + fulllist);
+  
+  CHECK_COND( (inputtype == "ubool"
+	       || inputtype == "uint"
+	       || inputtype == "ureal"
+	       || inputtype == "upoint" ),
+	      "Attribute type is not of type ubool, uint, ureal or upoint.");
+  
   attrname = nl->SymbolValue(second);
   j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
-
+  
   assert( j !=0 );
-
+  
   if( inputtype == "upoint" )
-      attrtype = nl->SymbolAtom( "mpoint" ) ;
+    attrtype = nl->SymbolAtom( "mpoint" ) ;
   if( inputtype == "ubool" )
-      attrtype = nl->SymbolAtom( "mbool" );
+    attrtype = nl->SymbolAtom( "mbool" );
   if( inputtype == "ureal" )
-      attrtype = nl->SymbolAtom( "mreal" );
+    attrtype = nl->SymbolAtom( "mreal" );
   if( inputtype == "uint" )
-      attrtype = nl->SymbolAtom( "mint" );
-
+    attrtype = nl->SymbolAtom( "mint" );
+  
   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-         nl->TwoElemList(nl->IntAtom(j),
-         nl->StringAtom(nl->SymbolValue(attrtype))), attrtype);
-
- /*
-
- Append and the number of the attribute in the relation is very important,
- because in the other case we can't work with it in the value function.
-
- */
-
+	   nl->TwoElemList(nl->IntAtom(j),
+	   nl->StringAtom(nl->SymbolValue(attrtype))), attrtype);
+  
+  // Appending the number of the attribute in the relation is very important,
+  // because in the other case we can't work with it in the value function.
 }
 
 /*
@@ -3195,20 +3172,286 @@ TypeMapSuse( ListExpr args )
   return nl->SymbolAtom( "typeerror" );
 }
 
+
+ListExpr 
+TypeMapSuse2( ListExpr args )
+{
+  string   outstr1, outstr2;               // output strings
+  ListExpr errorInfo;
+  ListExpr sarg1, sarg2, map;              // arguments to suse
+  ListExpr marg1, marg2, mres;             // argument to mapping
+  ListExpr sarg1Type, sarg2Type, sresType; // 'flat' arg type 
+  ListExpr argConfDescriptor;
+  bool 
+    sarg1isstream = false, 
+    sarg2isstream = false,
+    resisstream   = false;
+  int argConfCode = 0;
+
+
+  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+
+  // 0. Check number of arguments
+  cout << "\n0 " << endl;
+
+  if ( (nl->ListLength( args ) != 3) )
+    {
+      ErrorReporter::ReportError("Operator suse2 expects a list of "
+				 "length three ");
+      return nl->SymbolAtom( "typeerror" );
+    }
+  
+  // 1. get suse arguments
+  cout << "\n1 " << endl;
+  sarg1 = nl->First( args );
+  sarg2 = nl->Second( args );
+  map   = nl->Third( args ); 
+  
+  // 2. First argument
+  cout << "\n2 " << endl;
+  // check sarg1 for being a stream
+  if( nl->IsAtom( sarg1 )
+      || !(TypeOfRelAlgSymbol(nl->First(sarg1) == stream )) )
+    { // non-stream datatype
+      sarg1Type = sarg1;
+      sarg1isstream = false;
+    }
+  else if ( !nl->IsAtom( sarg1 )
+	    && ( nl->ListLength( sarg1 ) == 2) 
+	    && (TypeOfRelAlgSymbol(nl->First(sarg1) == stream )) )
+    { // (stream datatype)
+      sarg1Type = nl->Second(sarg1);
+      sarg1isstream = true;
+    }
+  else // wrong type for sarg1
+    {
+      ErrorReporter::ReportError(
+	"Operator suse2 expects its first Argument to "
+	"be of type 'T' or '(stream T).");
+      return nl->SymbolAtom( "typeerror" );	      
+    }
+     
+  // check sarg1 to be a (stream T) for T in kind DATA 
+  // or T of type tuple(X)
+  if(    !nl->IsAtom( sarg1Type ) 
+      && !am->CheckKind("DATA", nl->Second( sarg1Type ), errorInfo) )
+    { // T is not of kind DATA
+      nl->WriteToString(outstr1, sarg1Type);      
+      ErrorReporter::ReportError("Operator suse2 expects its 1st argument "
+				 "to be '(stream T)', T of kind DATA, but"
+				 "receives '" + outstr1 + "' as T.");
+
+      return nl->SymbolAtom( "typeerror" );      
+    }
+  else if ( !nl->IsAtom( sarg1Type ) &&
+	    ( (nl->ListLength( sarg1Type ) != 2) ||
+	      !nl->IsEqual( nl->First(sarg1Type), "tuple") ||
+	      !IsTupleDescription(nl->Second(sarg1Type))
+	      ) 
+	    )
+    { // neither T is tuple(X)
+      nl->WriteToString(outstr1, sarg1Type);
+      ErrorReporter::ReportError("Operator suse2 expects its 1st argument "
+				 "to be 'T' or '(stream T), T of kind DATA "
+				 "or of type 'tuple(X))', but"
+				 "receives '" + outstr1 + "' for T.");
+      return nl->SymbolAtom( "typeerror" );      
+    }
+  
+  // 3. Second Argument
+  cout << "\n3 " << endl;
+  // check sarg2 for being a stream
+  if( nl->IsAtom( sarg2 )
+      || !(TypeOfRelAlgSymbol(nl->First(sarg2) == stream )) )
+    { // non-stream datatype
+      sarg2Type = sarg2;
+      sarg2isstream = false;
+    }
+  else if ( !nl->IsAtom( sarg2 )
+	    && ( nl->ListLength( sarg2 ) == 2) 
+	    && (TypeOfRelAlgSymbol(nl->First(sarg2) == stream )) )
+    { // (stream datatype)
+      sarg2Type = nl->Second(sarg2);
+      sarg2isstream = true;
+    }
+  else // wrong type for sarg2
+    {
+      ErrorReporter::ReportError(
+	"Operator suse2 expects its second Argument to "
+	"be of type 'T' or '(stream T), for T in kind DATA)'.");
+      return nl->SymbolAtom( "typeerror" );	      
+    }
+     
+  // check sarg2 to be a (stream T) for T in kind DATA 
+  // or T of type tuple(X)
+  if(    !nl->IsAtom( sarg2Type ) 
+      && !am->CheckKind("DATA", nl->Second( sarg2Type ), errorInfo) )
+    { // T is not of kind DATA
+      nl->WriteToString(outstr2, sarg2Type);      
+      ErrorReporter::ReportError("Operator suse2 expects its 2nd argument "
+				 "to be '(stream T)', T of kind DATA, but"
+				 "receives '" + outstr1 + "' as T.");
+
+      return nl->SymbolAtom( "typeerror" );      
+    }
+  else if ( !nl->IsAtom( sarg2Type ) &&
+	    ( (nl->ListLength( sarg2Type ) != 2) ||
+	      !nl->IsEqual( nl->First(sarg2Type), "tuple") ||
+	      !IsTupleDescription(nl->Second(sarg2Type))
+	      ) 
+	    )
+    { // neither T is tuple(X)
+      nl->WriteToString(outstr1, sarg2Type);
+      ErrorReporter::ReportError("Operator suse2 expects its 2nd argument "
+				 "to be 'T' or '(stream T), T of kind DATA "
+				 "or of type 'tuple(X))', but"
+				 "receives '" + outstr1 + "' for T.");
+      return nl->SymbolAtom( "typeerror" );      
+    }
+  
+  // 4. First and Second argument
+  cout << "\n4 " << endl;
+  // check whether at least one stream argument is present
+  if ( !sarg1isstream && !sarg2isstream )
+    {
+      ErrorReporter::ReportError(
+	"Operator suse2 expects at least one of its both first "
+	"argument to be of type '(stream T), for T in kind DATA)'.");
+      return nl->SymbolAtom( "typeerror" );	      
+    }
+
+  // 5. Third argument
+  cout << "\n5 " << endl;
+  // check third for being a map
+  if (  nl->IsAtom( map ) || !( nl->IsEqual(nl->First(map), "map") ) )
+    {
+      nl->WriteToString(outstr1, map);
+      ErrorReporter::ReportError("Operator suse2 expects a map as "
+				 "3rd argument, but gets '" + outstr1 +
+				 "' instead.");
+      return nl->SymbolAtom( "typeerror" );
+    }    
+
+  if ( nl->ListLength(map) != 4 )       
+    {
+      ErrorReporter::ReportError("Number of map arguments must be 2 "
+				 "for operator suse2.");
+      return nl->SymbolAtom( "typeerror" );
+    }
+
+  // get map arguments
+  marg1 = nl->Second(map);
+  marg2 = nl->Third(map);
+  mres  = nl->Fourth(map);
+
+  // check marg1
+
+  if ( !( nl->Equal(marg1, sarg1Type) ) )
+    {
+      nl->WriteToString(outstr1, sarg1Type);
+      nl->WriteToString(outstr2, marg1);
+      ErrorReporter::ReportError("Operator suse2: 1st argument's stream"
+				 "type does not match the type of the "
+				 "mapping's 1st argument. If e.g. the first "
+				 "is 'stream X', then the latter must be 'X'."
+				 "The types passed are '" + outstr1 + 
+				 "' and '" + outstr2 + "'.");
+      return nl->SymbolAtom( "typeerror" );
+    }
+
+  // check marg2
+  if ( !( nl->Equal(marg2, sarg2Type) ) )
+    {
+      nl->WriteToString(outstr1, sarg2Type);
+      nl->WriteToString(outstr2, marg2);
+      ErrorReporter::ReportError("Operator suse2: 2nd argument's stream"
+				 "type does not match the type of the "
+				 "mapping's 2nd argument. If e.g. the second"
+				 " is 'stream X', then the latter must be 'X'."
+				 "The types passed are '" + outstr1 + 
+				 "' and '" + outstr2 + "'.");
+      return nl->SymbolAtom( "typeerror" );
+    }
+
+  // 6. Determine result type
+  cout << "\n6 " << endl;
+  // get map result type 'sresType'
+  if( !( nl->IsAtom( mres ) ) && ( nl->ListLength( mres ) == 2) ) 
+    {
+      if (  TypeOfRelAlgSymbol(nl->First(mres) == stream ) )
+	{
+	  if ( !am->CheckKind("DATA", nl->Second(mres), errorInfo) &&
+	       !( !nl->IsAtom(nl->Second(mres)) &&
+		  nl->ListLength(nl->Second(mres)) == 2 &&
+		  TypeOfRelAlgSymbol(nl->First(nl->Second(mres)) == tuple) &&
+		  IsTupleDescription(nl->Second(nl->Second(mres)))
+		) 
+	     )
+	    {
+	      ErrorReporter::ReportError(
+		"Operator suse2 expects its 3rd Argument to "
+		"return a '(stream T)', T of kind DATA or T = 'tuple(X)'.");
+	      return nl->SymbolAtom( "typeerror" );	      
+	    }
+	  
+	  sresType = mres; // map result type is already a stream
+	}
+    }
+  else // map result type is not a stream, so encapsulate it
+    {
+      if ( !am->CheckKind("DATA", mres, errorInfo)  &&
+	   !( !nl->IsAtom(nl->Second(mres)) &&
+	      nl->ListLength(nl->Second(mres)) == 2 &&
+	      TypeOfRelAlgSymbol(nl->First(nl->Second(mres)) == tuple) &&
+	      IsTupleDescription(nl->Second(nl->Second(mres)))
+	    )
+	 ) 
+	{
+	  ErrorReporter::ReportError(
+	    "Operator suse2 expects its 3rd Argument to "
+	    "return a type of kind DATA or T = 'tuple(X)'.");
+	  return nl->SymbolAtom( "typeerror" );	      
+	}
+      sresType = nl->TwoElemList(nl->SymbolAtom("stream"), mres);  
+    }
+
+  // 7. Append flags describing argument configuration for value mapping:
+  //     0: no stream
+  //     1: sarg1 is a stream
+  //     2: sarg2 is a stream
+  //     4: map result is a stream
+  //
+  //    e.g. 7=4+2+1: both arguments are streams and the 
+  //                  map result is a stream
+  cout << "\n7 " << endl;
+
+  if(sarg1isstream) argConfCode += 1;
+  if(sarg2isstream) argConfCode += 2;
+  if(resisstream)   argConfCode += 4;
+
+  argConfDescriptor = nl->OneElemList(nl->IntAtom(argConfCode));
+
+  cout << "\n8 Type = " << argConfCode << endl;
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+              argConfDescriptor, sresType);  
+}
+
 /*
 5.20.2 Value Mapping for ~suse~
 
 */
 
-struct SuseLocalInfo_SN{
-  bool finished_instream;
+struct SuseLocalInfo{
+  bool Xfinished, Yfinished;
+  Word X, Y;
+  int  argConfDescriptor;
 };
 
 // (stream X) (map X Y) -> (stream Y)
 int Suse_SN( Word* args, Word& result, int message,
 		     Word& local, Supplier s )
 {
-  SuseLocalInfo_SN  *sli;
+  SuseLocalInfo     *sli;
   Word              instream = args[0], fun = args[1]; 
   Word              funResult, argValue;
   ArgVectorPointer  funArgs;
@@ -3218,8 +3461,8 @@ int Suse_SN( Word* args, Word& result, int message,
     case OPEN :
       
       cout << "Suse_SN received OPEN" << endl;
-      sli = new SuseLocalInfo_SN;
-      sli->finished_instream = false;
+      sli = new SuseLocalInfo;
+      sli->Xfinished = false;
       qp->Open(instream.addr);
       local = SetWord(sli);
       cout << "Suse_SN finished OPEN" << endl;
@@ -3237,9 +3480,9 @@ int Suse_SN( Word* args, Word& result, int message,
 	  cout << "Suse_SN finished REQUEST: CANCEL (1)" << endl;  
 	  return CANCEL;
 	}
-      sli = (SuseLocalInfo_SN*)local.addr;
+      sli = (SuseLocalInfo*)local.addr;
       
-      if (sli->finished_instream)
+      if (sli->Xfinished)
 	{
 	  cout << "Suse_SN finished REQUEST: CANCEL (2)" << endl;  
 	  return CANCEL;
@@ -3267,7 +3510,7 @@ int Suse_SN( Word* args, Word& result, int message,
 	}
       else // (input stream consumed completely)
 	{
-	  sli->finished_instream = true;
+	  sli->Xfinished = true;
 	  result.addr = 0;
 	  cout << "Suse_SN finished REQUEST: CANCEL (3)" << endl;  
 	  return CANCEL;
@@ -3278,7 +3521,7 @@ int Suse_SN( Word* args, Word& result, int message,
       cout << "Suse_SN received CLOSE" << endl;
       if( local.addr != 0 )
 	{
-	  sli = (SuseLocalInfo_SN*)local.addr;
+	  sli = (SuseLocalInfo*)local.addr;
 	  cout << "\tSuse_SN CLOSE: dereferenced sli" << endl;    
 	  delete sli;
 	  cout << "\tSuse_SN CLOSE: deleted sli" << endl;
@@ -3294,17 +3537,13 @@ int Suse_SN( Word* args, Word& result, int message,
 }  
   
 
-struct SuseLocalInfo_SS{
-  Word innerStream, outerValue;
-};
-
 // (stream X) (map X (stream Y)) -> (stream Y)
 int Suse_SS( Word* args, Word& result, int message,
 		     Word& local, Supplier s )
 {
-  SuseLocalInfo_SS *sli;
-  Word             funResult, outerValue;
+  SuseLocalInfo    *sli;
   Word             instream = args[0], fun = args[1]; 
+  Word             X, funResult;  
   ArgVectorPointer funargs;
   Supplier         supplier;
 
@@ -3312,31 +3551,31 @@ int Suse_SS( Word* args, Word& result, int message,
   {
   case OPEN :
     //cout << "\nSuse_SS: Received OPEN";
-    sli = new SuseLocalInfo_SS;
+    sli = new SuseLocalInfo;
     //1. open the ("outer") input stream and
-    //   initialize sli->outerValue and sli->innerStream
+    //   initialize sli->X and sli->Y
     qp->Open( instream.addr );
-    qp->Request( instream.addr, outerValue );
+    qp->Request( instream.addr, X );
     if(qp->Received( instream.addr ))	
       {
-	//cout << "\n         Received outerValue";
-	//2. compute the first result "outerValue" from outer stream
+	//cout << "\n         Received X";
+	//2. compute the first result X from outer stream
 	supplier = fun.addr;
 	//cout << "\n         supplier";
 	funargs = qp->Argument( supplier );
 	//cout << "\n         funargs";
-	(*funargs)[0] = outerValue;
+	(*funargs)[0] = X;
 	qp->Open( supplier );
 	
 	//3. save the local information
-	sli = new SuseLocalInfo_SS;
-	sli->outerValue = outerValue;
-	sli->innerStream = SetWord( supplier );
+	sli = new SuseLocalInfo;
+	sli->X = X;
+	sli->Y = SetWord( supplier );
 	local = SetWord(sli);
       }
     else
       {
-	//cout << "\n         No outerValue";
+	//cout << "\n         No X";
 	local = SetWord(Address(0));
       }
     //cout << "\nSuse_SS: Finished OPEN";
@@ -3360,39 +3599,39 @@ int Suse_SS( Word* args, Word& result, int message,
       }
     
     //1. recover local information
-    sli = (SuseLocalInfo_SS*)local.addr;
+    sli = (SuseLocalInfo*)local.addr;
     
-    //2. prepare outerValue and innerStream. 
-    //If innerStream is empty, then get next outerValue
+    //2. prepare X and Y. 
+    //If Y is empty, then get next X
     funResult = SetWord(Address(0));
     while( funResult.addr == 0 )
       {
-        qp->Request( sli->innerStream.addr, funResult );
-	if(!qp->Received( sli->innerStream.addr ))
-	  { // end of inner stream reached -> get next outerValue
-	    qp->Close( sli->innerStream.addr );
-	    if (sli->outerValue.addr != 0)
-	      { // delete outerValue
-		((Attribute*)(sli->outerValue.addr))->DeleteIfAllowed(); 
-		sli->outerValue.addr = 0;
+        qp->Request( sli->Y.addr, funResult );
+	if(!qp->Received( sli->Y.addr ))
+	  { // end of inner stream reached -> get next X
+	    qp->Close( sli->Y.addr );
+	    if (sli->X.addr != 0)
+	      { // delete X
+		((Attribute*)(sli->X.addr))->DeleteIfAllowed(); 
+		sli->X.addr = 0;
 	      }
-	    qp->Request( instream.addr, outerValue );
+	    qp->Request( instream.addr, X );
 	    if(qp->Received( instream.addr ))
 	      {
 		supplier = fun.addr;
 		//cout << "\n         supplier";
 		funargs = qp->Argument( supplier );
 		//		cout << "\n         funargs";
-		(*funargs)[0] = outerValue;
+		(*funargs)[0] = X;
 		qp->Open( supplier );
 		//cout << "\n         open";
-		sli->outerValue = outerValue;
-		sli->innerStream = SetWord( supplier );
+		sli->X = X;
+		sli->Y = SetWord( supplier );
 		funResult = SetWord(Address(0));       // loop
 	      }
 	    else  // outer stream is exausted
 	      {
-		sli->innerStream = SetWord(0);
+		sli->Y = SetWord(0);
 		//cout << "\nSuse_SS: Finished REQUEST with CANCEL (2).";
 		
 		return CANCEL;
@@ -3410,12 +3649,12 @@ int Suse_SS( Word* args, Word& result, int message,
     //cout << "\nSuse_SS: Received CLOSE";
     if( local.addr != 0 )
       {
-	sli = (SuseLocalInfo_SS*)local.addr;     	  
-	if( sli->innerStream.addr != 0 )
-	  qp->Close( sli->innerStream.addr );
-	if (sli->outerValue.addr != 0)
-	  // delete outerValue      
-	  ((Attribute*)(sli->outerValue.addr))->DeleteIfAllowed(); 
+	sli = (SuseLocalInfo*)local.addr;     	  
+	if( sli->Y.addr != 0 )
+	  qp->Close( sli->Y.addr );
+	if (sli->X.addr != 0)
+	  // delete X      
+	  ((Attribute*)(sli->X.addr))->DeleteIfAllowed(); 
 	delete sli;
       }
     qp->Close( instream.addr );
@@ -3427,32 +3666,141 @@ int Suse_SS( Word* args, Word& result, int message,
 }  
 
 
-// (stream X) Y (map X Y Z) -> (stream Z)
+// (stream X) Y          (map X Y Z) -> (stream Z)
+// X          (stream Y) (map X y Z) -> (stream Z)
 int Suse_SNN( Word* args, Word& result, int message,
 		     Word& local, Supplier s )
 {
-  return 0;
+  SuseLocalInfo     *sli;
+  Word              instream, invalue;
+  Word              fun      = args[2]; 
+  Word              xval, yval, funresult;
+  Word              argConfDescriptor;  
+  ArgVectorPointer  funargs;
+
+  switch (message)
+    {
+    case OPEN :
+      
+      cout << "\nSuse_SNN received OPEN" << endl;
+      sli = new SuseLocalInfo ;
+      sli->Xfinished = false;
+      sli->Yfinished = false;
+      sli->X.addr = 0;
+      sli->Y.addr = 0;      
+      cout << "   created sli" << endl;
+      // get argument configuration info
+      qp->Request(args[3].addr, argConfDescriptor);      
+      sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
+      cout << "   requested args[3]=" << sli->argConfDescriptor << endl;
+      local = SetWord(sli);
+      
+      if(sli->argConfDescriptor & 1)
+	{ // the first arg is the stream
+	  cout << "   the first arg is the stream" << endl;
+	  instream = args[0];
+	  invalue  = args[1];
+	}
+      else
+	{ // the second arg is the stream
+	  cout << "   the second arg is the stream" << endl;
+	  instream = args[1];
+	  invalue  = args[0];
+	}
+
+      qp->Open(instream.addr);
+      cout << "Suse_SNN finished OPEN" << endl;
+      return 0;
+      
+    case REQUEST :
+      
+      // For each REQUEST, we get one value from the stream,
+      // pass it (and the constant invalue) to the parameter function 
+      // and evalute the latter. The result is simply passed on.
+
+      cout << "Suse_SNN received REQUEST" << endl;
+
+      // 1. get local data object
+      if (local.addr == 0)
+	{
+	  result.addr = 0;
+	  cout << "Suse_SNN finished REQUEST: CLOSE (1)" << endl;
+	  return CANCEL;
+	}
+      sli = (SuseLocalInfo*) local.addr;
+
+      if (sli->Xfinished)
+	{
+	  result.addr = 0;
+	  cout << "Suse_SNN finished REQUEST: CLOSE (2)" << endl;
+	  return CANCEL;
+	}
+      
+      if(sli->argConfDescriptor & 1)
+	{ // the first arg is the stream
+	  instream = args[0];
+	  invalue  = args[1];
+	}
+      else
+	{ // the second arg is the stream
+	  instream = args[1];
+	  invalue  = args[0];
+	}
+
+      // 2. request values from instream and invalue
+      qp->Request( instream.addr, xval );
+      if(!qp->Received( instream.addr ))
+	{ // stream exhausted 
+	  sli->Xfinished = true;
+	  cout << "Suse_SNN finished REQUEST: CLOSE (3)" << endl;
+	  return CANCEL;
+	}
+      qp->Request( invalue.addr, yval );
+      
+      // 3. call parameter function, delete args and return result
+      funargs = qp->Argument( fun.addr );
+      (*funargs)[0] = xval;
+      (*funargs)[1] = yval;
+      cout << "         Set arguments" << endl;
+      qp->Request( fun.addr, funresult );     
+      cout << "         Requested mapping" << endl;
+      ((Attribute*)(xval.addr))->DeleteIfAllowed(); 
+      cout << "         Deleted xval" << endl;
+      ((Attribute*)(yval.addr))->DeleteIfAllowed(); 
+      cout << "         Deleted yval" << endl;
+      result = funresult;
+      cout << "         Passed result" << endl;
+      cout << "Suse_SNN finished REQUEST: YIELD" << endl;
+      return YIELD;
+
+    case CLOSE :
+      
+      cout << "Suse_SNN received CLOSE" << endl;
+      if( local.addr != 0 )
+	{
+	  sli = (SuseLocalInfo*)local.addr;
+	  cout << "\tSuse_SNN CLOSE: dereferenced sli" << endl;    
+	  if(sli->argConfDescriptor & 1) 
+	    instream = args[0];
+	  else
+	    instream = args[1];
+	  qp->Close( instream.addr ); // close input
+	  cout << "\tSuse_SNN CLOSE: closed instream" << endl;
+	  delete sli;
+	  cout << "\tSuse_SNN CLOSE: deleted sli" << endl;
+	}
+      cout << "Suse_SNN finished CLOSE" << endl;
+      return 0;
+      
+    }  // end switch
+  cout << "Suse_SNN received UNKNOWN COMMAND" << endl;
+  return -1; // should not be reached
 }
 
 
-// (stream X) Y (map X Y stream(Z)) -> (stream Z)
+// (stream X) Y          (map X Y (stream Z)) -> (stream Z)
+// X          (stream Y) (map X y (stream Z)) -> (stream Z)
 int Suse_SNS( Word* args, Word& result, int message,
-		     Word& local, Supplier s )
-{
-  return 0;
-}
-
-
-// X (stream Y) (map X y Z) -> (stream Z)
-int Suse_NSN( Word* args, Word& result, int message,
-		     Word& local, Supplier s )
-{
-  return 0;
-}
-
-
-// X (stream Y) (map X y (stream Z)) -> (stream Z)
-int Suse_NSS( Word* args, Word& result, int message,
 		     Word& local, Supplier s )
 {
   return 0;
@@ -3531,7 +3879,7 @@ ValueMapping temporalunitsusemap[] =
 
 int
 temporalunitSuseSelect( ListExpr args )
-{ // extract type of first argument
+{ 
   ListExpr sarg1     = nl->First( args );
   ListExpr mapresult = nl->Third(nl->Second(args));
   bool     isStream  = false;
@@ -3567,18 +3915,107 @@ temporalunitSuseSelect( ListExpr args )
   return -1;
 }
 
-/*
 
 ValueMapping temporalunitsuse2map[] =
   { Suse_SNN,
     Suse_SNS,
-    Suse_NSN,
-    Suse_NSS,
     Suse_SSN,
     Suse_SSS
+    //     ,
+    //    Suse_TsNN,
+    //    Suse_TsNS,
+    //    Suse_TsTsN,
+    //    Suse_TsTsS
   };
 
-*/
+int
+temporalunitSuse2Select( ListExpr args )
+{ 
+  ListExpr 
+    X = nl->First(args), 
+    Y = nl->Second(args),
+    M = nl->Third(args);
+  bool 
+    xIsStream = false, 
+    yIsStream = false, 
+    resIsStream = false;
+  bool 
+    xIsTuple = false,
+    yIsTuple = false, 
+    resIsTuple = false;
+  int index = 0;
+    
+  // examine first arg
+  // check type of sarg1
+  if( nl->IsAtom(X) )
+    { xIsTuple = false; xIsStream = false;}
+  if( !nl->IsAtom(X) &&
+      TypeOfRelAlgSymbol(nl->First(X)) == tuple )
+    { xIsTuple = true; xIsStream = false; }
+  if( !nl->IsAtom(X) &&
+      TypeOfRelAlgSymbol(nl->First(X)) == stream )
+    {
+      xIsStream = true;
+      if(!nl->IsAtom(nl->Second(X)) &&
+	 (nl->ListLength(nl->Second(X)) == 2) &&
+	 TypeOfRelAlgSymbol(nl->First(X)) == tuple )
+	xIsTuple = true;
+      else
+	xIsTuple = false;
+    }
+ 
+  // examine second argument
+  if( nl->IsAtom(Y) )
+    { yIsTuple = false; yIsStream = false;}
+  if( !nl->IsAtom(Y) &&
+      TypeOfRelAlgSymbol(nl->First(Y)) == tuple )
+    { yIsTuple = true; yIsStream = false; }
+  if( !nl->IsAtom(Y) &&
+      TypeOfRelAlgSymbol(nl->First(Y)) == stream )
+    {
+      yIsStream = true;
+      if(!nl->IsAtom(nl->Second(Y)) &&
+	 (nl->ListLength(nl->Second(Y)) == 2) &&
+	 TypeOfRelAlgSymbol(nl->First(Y)) == tuple )
+	yIsTuple = true;
+      else
+	yIsTuple = false;
+    }
+
+  // examine mapping result type
+  if( nl->IsAtom(nl->Fourth(M)) )
+    { resIsTuple = false; resIsStream = false;}
+  if( !nl->IsAtom(nl->Fourth(M)) &&
+      TypeOfRelAlgSymbol(nl->First(nl->Fourth(M))) == tuple )
+    { resIsTuple = true; resIsStream = false; }
+  if( !nl->IsAtom(nl->Fourth(M)) &&
+      TypeOfRelAlgSymbol(nl->First(nl->Fourth(M))) == stream )
+    {
+      resIsStream = true;
+      if(!nl->IsAtom(nl->Second(nl->Fourth(M))) &&
+	 (nl->ListLength(nl->Second(nl->Fourth(M))) == 2) &&
+	 TypeOfRelAlgSymbol(nl->First(nl->Fourth(M))) == tuple )
+	resIsTuple = true;
+      else
+	resIsTuple = false;
+    }
+
+  // calculate appropriate index value
+  
+  // tuple variants offest    : +4
+  // both args streams        : +2
+  // mapping result is stream : +1
+  index = 0;
+  if ( xIsTuple || yIsTuple )   index += 4;
+  if ( xIsStream && yIsStream ) index += 2;
+  if ( resIsStream )            index += 1;
+    
+  if (index > 3)
+    cout << "\nWARNING: index =" << index 
+	 << ">3 in temporalunitSuse2Select!" << endl;
+
+  return index;
+}
 
 /*
 5.20.5  Definition of operator ~suse~
@@ -3593,15 +4030,13 @@ Operator temporalsuse( "suse",
                       temporalunitSuseSelect,
                       TypeMapSuse);
 
-/*
+
 Operator temporalsuse2( "suse2",
                       TemporalSpecSuse2,
-                      6,
+                      4,
                       temporalunitsuse2map,
                       temporalunitSuse2Select,
-                      TypeMapSuse);
-
-*/
+                      TypeMapSuse2);
 
 
 
@@ -3636,7 +4071,7 @@ class TemporalUnitAlgebra : public Algebra
    AddOperator( &temporalderivative );
    AddOperator( &temporalufeed );
    AddOperator( &temporalsuse );
-   //   AddOperator( &temporalsuse2 );
+   AddOperator( &temporalsuse2 );
   }
   ~TemporalUnitAlgebra() {};
 };
