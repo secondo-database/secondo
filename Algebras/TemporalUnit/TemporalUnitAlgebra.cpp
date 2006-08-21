@@ -3442,9 +3442,10 @@ TypeMapSuse2( ListExpr args )
 */
 
 struct SuseLocalInfo{
-  bool Xfinished, Yfinished;
-  Word X, Y;
-  int  argConfDescriptor;
+  bool Xfinished, Yfinished, funfinished; // whether we have finished
+  Word X, Y, fun;                  // pointers to the arguments
+  Attribute *XVal, *YVal, *funVal; // the last arg values
+  int  argConfDescriptor;          // type of argument configuration
 };
 
 // (stream X) (map X Y) -> (stream Y)
@@ -3460,12 +3461,12 @@ int Suse_SN( Word* args, Word& result, int message,
     {
     case OPEN :
       
-      cout << "Suse_SN received OPEN" << endl;
+      // cout << "Suse_SN received OPEN" << endl;
       sli = new SuseLocalInfo;
       sli->Xfinished = false;
       qp->Open(instream.addr);
       local = SetWord(sli);
-      cout << "Suse_SN finished OPEN" << endl;
+      // cout << "Suse_SN finished OPEN" << endl;
       return 0;
       
     case REQUEST :
@@ -3474,17 +3475,17 @@ int Suse_SN( Word* args, Word& result, int message,
       // pass it to the parameter function and evalute the latter.
       // The result is simply passed on.
 
-      cout << "Suse_SN received REQUEST" << endl;
+      // cout << "Suse_SN received REQUEST" << endl;
       if( local.addr == 0 )
 	{
-	  cout << "Suse_SN finished REQUEST: CANCEL (1)" << endl;  
+	  // cout << "Suse_SN finished REQUEST: CANCEL (1)" << endl;  
 	  return CANCEL;
 	}
       sli = (SuseLocalInfo*)local.addr;
       
       if (sli->Xfinished)
 	{
-	  cout << "Suse_SN finished REQUEST: CANCEL (2)" << endl;  
+	  // cout << "Suse_SN finished REQUEST: CANCEL (2)" << endl;  
 	  return CANCEL;
 	}
       
@@ -3496,43 +3497,39 @@ int Suse_SN( Word* args, Word& result, int message,
 	  funArgs = qp->Argument(fun.addr); // set argument for the
 	  (*funArgs)[0] = argValue;         //   parameter function
 	  qp->Request(fun.addr, funResult); // call parameter function
-	  result = funResult;               // forward result
-	  // delete argument value:
-      	  cout << "Suse_SN REQUEST: deleting *(argValue.addr)..." << endl;
-	  // cout << "                 argValue->del.ref before delete = " 
-	  //      <<  ((Attribute*) argValue.addr)->GetDelRefs() << endl;
-	  ((Attribute*) argValue.addr)->DeleteIfAllowed();
-	  // cout << "                 argValue->del.ref after  delete = " 
-	  //      <<  ((Attribute*) argValue.addr)->GetDelRefs() << endl;
+	  sli->funVal = ((Attribute*) (funResult.addr))->Clone(); // copy Result
+	  result = SetWord(sli->funVal);    // forward result
+	  // cout << "        funResult.addr =" << funResult.addr << endl;
+	  // cout << "        result.addr    =" << result.addr << endl;
 	  argValue.addr = 0;
-	  cout << "Suse_SN finished REQUEST: YIELD" << endl;
+	  // cout << "Suse_SN finished REQUEST: YIELD" << endl;
 	  return YIELD;
 	}
       else // (input stream consumed completely)
 	{
 	  sli->Xfinished = true;
 	  result.addr = 0;
-	  cout << "Suse_SN finished REQUEST: CANCEL (3)" << endl;  
+	  // cout << "Suse_SN finished REQUEST: CANCEL (3)" << endl;  
 	  return CANCEL;
 	}
       
     case CLOSE :
       
-      cout << "Suse_SN received CLOSE" << endl;
+      // cout << "Suse_SN received CLOSE" << endl;
       if( local.addr != 0 )
 	{
 	  sli = (SuseLocalInfo*)local.addr;
-	  cout << "\tSuse_SN CLOSE: dereferenced sli" << endl;    
+	  // cout << "\tSuse_SN CLOSE: dereferenced sli" << endl;    
 	  delete sli;
-	  cout << "\tSuse_SN CLOSE: deleted sli" << endl;
+	  // cout << "\tSuse_SN CLOSE: deleted sli" << endl;
 	}
       qp->Close( instream.addr ); // close input
-      cout << "\tSuse_SN CLOSE: closed instream" << endl;
-      cout << "Suse_SN finished CLOSE" << endl;
+      // cout << "\tSuse_SN CLOSE: closed instream" << endl;
+      // cout << "Suse_SN finished CLOSE" << endl;
       return 0;
       
     }  // end switch
-  cout << "Suse_SN received UNKNOWN COMMAND" << endl;
+  // cout << "Suse_SN received UNKNOWN COMMAND" << endl;
   return -1; // should not be reached
 }  
   
@@ -3550,7 +3547,7 @@ int Suse_SS( Word* args, Word& result, int message,
   switch (message)
   {
   case OPEN :
-    //cout << "\nSuse_SS: Received OPEN";
+    // cout << "\nSuse_SS: Received OPEN";
     sli = new SuseLocalInfo;
     //1. open the ("outer") input stream and
     //   initialize sli->X and sli->Y
@@ -3558,12 +3555,12 @@ int Suse_SS( Word* args, Word& result, int message,
     qp->Request( instream.addr, X );
     if(qp->Received( instream.addr ))	
       {
-	//cout << "\n         Received X";
+	// cout << "\n         Received X";
 	//2. compute the first result X from outer stream
 	supplier = fun.addr;
 	//cout << "\n         supplier";
 	funargs = qp->Argument( supplier );
-	//cout << "\n         funargs";
+	// cout << "\n         funargs";
 	(*funargs)[0] = X;
 	qp->Open( supplier );
 	
@@ -3578,7 +3575,7 @@ int Suse_SS( Word* args, Word& result, int message,
 	//cout << "\n         No X";
 	local = SetWord(Address(0));
       }
-    //cout << "\nSuse_SS: Finished OPEN";
+    // cout << "\nSuse_SS: Finished OPEN";
     
     return 0;
 
@@ -3591,10 +3588,10 @@ int Suse_SS( Word* args, Word& result, int message,
     // If the inner stream is consumed, we try to get a new value
     // from the 'outer' stream and re-open the inner stream 
     
-    //      cout << "\nSuse_SS: Received REQUEST";
+    // cout << "\nSuse_SS: Received REQUEST";
     if( local.addr == 0 )
       { 
-	//	  cout << "\nSuse_SS: Finished REQUEST with CANCEL (1).";
+	// cout << "\nSuse_SS: Finished REQUEST with CANCEL (1).";
 	return CANCEL;
       }
     
@@ -3612,19 +3609,19 @@ int Suse_SS( Word* args, Word& result, int message,
 	    qp->Close( sli->Y.addr );
 	    if (sli->X.addr != 0)
 	      { // delete X
-		((Attribute*)(sli->X.addr))->DeleteIfAllowed(); 
+		((Attribute*) (sli->X.addr))->DeleteIfAllowed(); 
 		sli->X.addr = 0;
 	      }
 	    qp->Request( instream.addr, X );
 	    if(qp->Received( instream.addr ))
 	      {
 		supplier = fun.addr;
-		//cout << "\n         supplier";
+		// cout << "\n         supplier";
 		funargs = qp->Argument( supplier );
-		//		cout << "\n         funargs";
+		// cout << "\n         funargs";
 		(*funargs)[0] = X;
 		qp->Open( supplier );
-		//cout << "\n         open";
+		// cout << "\n         open";
 		sli->X = X;
 		sli->Y = SetWord( supplier );
 		funResult = SetWord(Address(0));       // loop
@@ -3632,7 +3629,7 @@ int Suse_SS( Word* args, Word& result, int message,
 	    else  // outer stream is exausted
 	      {
 		sli->Y = SetWord(0);
-		//cout << "\nSuse_SS: Finished REQUEST with CANCEL (2).";
+		// cout << "\nSuse_SS: Finished REQUEST with CANCEL (2).";
 		
 		return CANCEL;
 	      }
@@ -3640,13 +3637,18 @@ int Suse_SS( Word* args, Word& result, int message,
       }
     
     // 3. setting the result
-    result = funResult;
-    //cout << "\nSuse_SS: Received REQUEST (YIELD)";
+    sli->funVal = ((Attribute*) (funResult.addr))->Clone(); // copy Result
+    result = SetWord(sli->funVal);    // forward result    
+    // cout << "                 funResult.addr =" 
+    // 	 << funResult.addr << endl
+    // 	 << "                 result.addr    ="
+    // 	 << result.addr << endl;
+    // cout << "\nSuse_SS: Received REQUEST (YIELD)";
     return YIELD;      
   
   case CLOSE :
 
-    //cout << "\nSuse_SS: Received CLOSE";
+    // cout << "\nSuse_SS: Received CLOSE";
     if( local.addr != 0 )
       {
 	sli = (SuseLocalInfo*)local.addr;     	  
@@ -3658,7 +3660,7 @@ int Suse_SS( Word* args, Word& result, int message,
 	delete sli;
       }
     qp->Close( instream.addr );
-    //cout << "\nSuse_SS: Finished CLOSE";
+    // cout << "\nSuse_SS: Finished CLOSE";
     return 0;
   }  // end switch
 
@@ -3672,8 +3674,7 @@ int Suse_SNN( Word* args, Word& result, int message,
 		     Word& local, Supplier s )
 {
   SuseLocalInfo     *sli;
-  Word              instream, invalue;
-  Word              fun      = args[2]; 
+  Word              fun = args[2]; 
   Word              xval, yval, funresult;
   Word              argConfDescriptor;  
   ArgVectorPointer  funargs;
@@ -3682,34 +3683,34 @@ int Suse_SNN( Word* args, Word& result, int message,
     {
     case OPEN :
       
-      cout << "\nSuse_SNN received OPEN" << endl;
+      // cout << "\nSuse_SNN received OPEN" << endl;
       sli = new SuseLocalInfo ;
       sli->Xfinished = false;
       sli->Yfinished = false;
       sli->X.addr = 0;
       sli->Y.addr = 0;      
-      cout << "   created sli" << endl;
+      // cout << "   created sli" << endl;
       // get argument configuration info
       qp->Request(args[3].addr, argConfDescriptor);      
       sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
-      cout << "   requested args[3]=" << sli->argConfDescriptor << endl;
+      // cout << "   requested args[3]=" << sli->argConfDescriptor << endl;
       local = SetWord(sli);
       
       if(sli->argConfDescriptor & 1)
 	{ // the first arg is the stream
-	  cout << "   the first arg is the stream" << endl;
-	  instream = args[0];
-	  invalue  = args[1];
+	  // cout << "   the first arg is the stream" << endl;
+	  sli->X = SetWord(args[0].addr); // X is the stream
+	  sli->Y = SetWord(args[1].addr); // Y is the constant value
 	}
       else
 	{ // the second arg is the stream
-	  cout << "   the second arg is the stream" << endl;
-	  instream = args[1];
-	  invalue  = args[0];
+	  // cout << "   the second arg is the stream" << endl;
+	  sli->X = SetWord(args[1].addr); // X is the stream
+	  sli->Y = SetWord(args[0].addr); // Y is the constant value
 	}
-
-      qp->Open(instream.addr);
-      cout << "Suse_SNN finished OPEN" << endl;
+      qp->Open(sli->X.addr);
+      qp->Request(sli->Y.addr, sli->Y);
+      // cout << "Suse_SNN finished OPEN" << endl;
       return 0;
       
     case REQUEST :
@@ -3717,6 +3718,136 @@ int Suse_SNN( Word* args, Word& result, int message,
       // For each REQUEST, we get one value from the stream,
       // pass it (and the constant invalue) to the parameter function 
       // and evalute the latter. The result is simply passed on.
+      // sli->X is the stream, sli->Y the constant argument.
+
+      // cout << "Suse_SNN received REQUEST" << endl;
+
+      // 1. get local data object
+      if (local.addr == 0)
+	{
+	  result.addr = 0;
+	  // cout << "Suse_SNN finished REQUEST: CLOSE (1)" << endl;
+	  return CANCEL;
+	}
+      sli = (SuseLocalInfo*) local.addr;
+
+      if (sli->Xfinished)
+	{
+	  result.addr = 0;
+	  // cout << "Suse_SNN finished REQUEST: CLOSE (2)" << endl;
+	  return CANCEL;
+	}
+      
+      // 2. request values from instream and invalue
+      qp->Request( sli->X.addr, xval );
+      if(!qp->Received( sli->X.addr ))
+	{ // stream exhausted 
+	  sli->Xfinished = true;
+	  // cout << "Suse_SNN finished REQUEST: CLOSE (3)" << endl;
+	  return CANCEL;
+	}
+      
+      // 3. call parameter function, delete args and return result
+      funargs = qp->Argument( fun.addr );
+      (*funargs)[0] = xval;
+      (*funargs)[1] = sli->Y;
+      // cout << "         Set arguments" << endl;
+      qp->Request( fun.addr, funresult );     
+      // cout << "         Requested mapping" << endl;
+      ((Attribute*)(xval.addr))->DeleteIfAllowed(); 
+      // cout << "         Deleted xval" << endl;
+
+      sli->funVal = ((Attribute*) (funresult.addr))->Clone(); // copy Result
+      result = SetWord(sli->funVal);    // forward result    
+
+      //      result = funresult;
+      // cout << "         Passed result" << endl;
+      // cout << "Suse_SNN finished REQUEST: YIELD" << endl;
+
+      return YIELD;
+
+    case CLOSE :
+      
+      // cout << "Suse_SNN received CLOSE" << endl;
+      if( local.addr != 0 )
+	{
+	  sli = (SuseLocalInfo*)local.addr;
+	  // cout << "\tSuse_SNN CLOSE: dereferenced sli" << endl;    
+	  qp->Close( sli->X.addr ); // close input
+	  // cout << "\tSuse_SNN CLOSE: closed instream" << endl;
+	  delete sli;
+	  // cout << "\tSuse_SNN CLOSE: deleted sli" << endl;
+	}
+      // cout << "Suse_SNN finished CLOSE" << endl;
+      return 0;
+      
+    }  // end switch
+  // cout << "Suse_SNN received UNKNOWN COMMAND" << endl;
+  return -1; // should not be reached
+}
+
+
+// (stream X) Y          (map X Y (stream Z)) -> (stream Z)
+// X          (stream Y) (map X y (stream Z)) -> (stream Z)
+int Suse_SNS( Word* args, Word& result, int message,
+		     Word& local, Supplier s )
+{
+
+  SuseLocalInfo     *sli;
+  Word              fun = args[2]; 
+  Word              xval, yval, funresult;
+  Word              argConfDescriptor;  
+  ArgVectorPointer  funargs;
+  Supplier          supplier;
+
+  switch (message)
+    {
+    case OPEN :
+      
+      cout << "\nSuse_SNS received OPEN" << endl;
+      sli = new SuseLocalInfo ;
+      sli->Xfinished   = false;
+      sli->Yfinished   = false;
+      sli->funfinished = true;
+      sli->X.addr = 0;
+      sli->Y.addr = 0;  
+      sli->fun.addr = 0;
+      sli->XVal = 0;
+      sli->YVal = 0;
+      cout << "   created sli" << endl;
+      // get argument configuration info
+      qp->Request(args[3].addr, argConfDescriptor);      
+      sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
+      cout << "   requested args[3]=" << sli->argConfDescriptor << endl;
+      
+      if(sli->argConfDescriptor & 1)
+	{ // the first arg is the stream
+	  cout << "   the first arg is the stream" << endl;
+	  sli->X = SetWord(args[0].addr); // X is the stream
+	  sli->Y = SetWord(args[1].addr); // Y is the constant value
+	}
+      else
+	{ // the second arg is the stream
+	  cout << "   the second arg is the stream" << endl;
+	  sli->X = SetWord(args[1].addr); // X is the stream
+	  sli->Y = SetWord(args[0].addr); // Y is the constant value
+	}     
+      qp->Request(sli->Y.addr, yval); // get the constant argument
+      sli->YVal = ((Attribute*) (yval.addr))->Clone() ;
+      cout << "   got sli->YVal" << endl;
+      qp->Open(sli->X.addr);               // open the ("outer") input stream
+      cout << "   opened sli->X" << endl;
+      local = SetWord(sli);
+      cout << "Suse_SNN finished OPEN" << endl;
+      return 0;
+      
+    case REQUEST :
+      
+      // First, we check whether an inner stream is finished 
+      // (sli->funfinished). If so, we try to get a value from 
+      // the outer stream
+      // and try to re-open the inner stream.
+      // sli->X is the OUTER stream, sli->Y the constant argument.
 
       cout << "Suse_SNN received REQUEST" << endl;
 
@@ -3728,50 +3859,57 @@ int Suse_SNN( Word* args, Word& result, int message,
 	  return CANCEL;
 	}
       sli = (SuseLocalInfo*) local.addr;
-
-      if (sli->Xfinished)
+      
+      // 2. request values from inner stream
+      while (!sli->Xfinished)
 	{
-	  result.addr = 0;
-	  cout << "Suse_SNN finished REQUEST: CLOSE (2)" << endl;
-	  return CANCEL;
-	}
-      
-      if(sli->argConfDescriptor & 1)
-	{ // the first arg is the stream
-	  instream = args[0];
-	  invalue  = args[1];
-	}
-      else
-	{ // the second arg is the stream
-	  instream = args[1];
-	  invalue  = args[0];
-	}
-
-      // 2. request values from instream and invalue
-      qp->Request( instream.addr, xval );
-      if(!qp->Received( instream.addr ))
-	{ // stream exhausted 
-	  sli->Xfinished = true;
-	  cout << "Suse_SNN finished REQUEST: CLOSE (3)" << endl;
-	  return CANCEL;
-	}
-      qp->Request( invalue.addr, yval );
-      
-      // 3. call parameter function, delete args and return result
-      funargs = qp->Argument( fun.addr );
-      (*funargs)[0] = xval;
-      (*funargs)[1] = yval;
-      cout << "         Set arguments" << endl;
-      qp->Request( fun.addr, funresult );     
-      cout << "         Requested mapping" << endl;
-      ((Attribute*)(xval.addr))->DeleteIfAllowed(); 
-      cout << "         Deleted xval" << endl;
-      ((Attribute*)(yval.addr))->DeleteIfAllowed(); 
-      cout << "         Deleted yval" << endl;
-      result = funresult;
-      cout << "         Passed result" << endl;
-      cout << "Suse_SNN finished REQUEST: YIELD" << endl;
-      return YIELD;
+	  if (sli->fun.addr == 0)
+	    { // the inner stream is closed, try to (re-)open it
+	      // try to get the next X-value from outer stream
+	      qp->Request(sli->X.addr, xval);
+	      if (!qp->Received(sli->X.addr))
+		{ // stream X exhaused. CANCEL
+		  sli->Xfinished = true;
+		  cout << "Suse_SNN finished REQUEST: CLOSE (3)" << endl;
+		  return CANCEL;
+		}
+	      qp->Request(sli->Y.addr, yval);
+	      supplier = fun.addr;
+	      //cout << "\n         supplier";
+	      funargs = qp->Argument( supplier );
+	      //		cout << "\n         funargs";
+	      if (sli->argConfDescriptor & 1)
+		{
+		  (*funargs)[0] = xval;
+		  (*funargs)[1] = yval;	  
+		}
+	      else
+		{
+		  (*funargs)[0] = yval;
+		  (*funargs)[1] = xval;	  
+		}
+	      qp->Open( supplier );
+	      //cout << "\n         open";
+	      sli->fun = SetWord( supplier );
+	      funresult = SetWord(Address(0));
+	    } // Now, the inner stream is open again
+	  qp->Request(sli->fun.addr, funresult);
+	  if (qp->Received(sli->fun.addr))
+	    { // inner stream returned a result
+	      result = funresult;
+	      cout << "Suse_SNN finished REQUEST: YIELD" << endl;	  
+	      return YIELD;
+		}
+	  else{ // inner stream exhausted
+	    qp->Close(sli->fun.addr);
+	    sli->XVal->DeleteIfAllowed();
+	    sli->XVal = 0;
+	    sli->fun.addr = 0;
+	  }
+	} // end while
+      result.addr = 0;
+      cout << "Suse_SNN finished REQUEST: CLOSE (4)" << endl;      
+      return CANCEL;
 
     case CLOSE :
       
@@ -3780,12 +3918,10 @@ int Suse_SNN( Word* args, Word& result, int message,
 	{
 	  sli = (SuseLocalInfo*)local.addr;
 	  cout << "\tSuse_SNN CLOSE: dereferenced sli" << endl;    
-	  if(sli->argConfDescriptor & 1) 
-	    instream = args[0];
-	  else
-	    instream = args[1];
-	  qp->Close( instream.addr ); // close input
+	  qp->Close( sli->X.addr ); // close outer stream
 	  cout << "\tSuse_SNN CLOSE: closed instream" << endl;
+ 	  sli->YVal->DeleteIfAllowed(); // delete const par
+	  cout << "\tSuse_SNN CLOSE: deleted constant parameter" << endl;
 	  delete sli;
 	  cout << "\tSuse_SNN CLOSE: deleted sli" << endl;
 	}
@@ -3795,15 +3931,7 @@ int Suse_SNN( Word* args, Word& result, int message,
     }  // end switch
   cout << "Suse_SNN received UNKNOWN COMMAND" << endl;
   return -1; // should not be reached
-}
 
-
-// (stream X) Y          (map X Y (stream Z)) -> (stream Z)
-// X          (stream Y) (map X y (stream Z)) -> (stream Z)
-int Suse_SNS( Word* args, Word& result, int message,
-		     Word& local, Supplier s )
-{
-  return 0;
 }
 
 
