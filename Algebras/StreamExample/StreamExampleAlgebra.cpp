@@ -155,7 +155,7 @@ countType( ListExpr args )
   }
   else
     {
-      nl->WriteToString(outstr, args);
+      nl->WriteToString(outstr, nl->First(args));
       ErrorReporter::ReportError("Operator count expects only a single "
 				 " argument of type (stream T), T "
 				 "in kind DATA. The argument provided "
@@ -175,6 +175,8 @@ ListExpr
 printintstreamType( ListExpr args )
 {
   ListExpr arg11, arg12;
+  string out;
+
   if ( nl->ListLength(args) == 1 )
   {
     arg11 = nl->First(nl->First(args));
@@ -183,6 +185,11 @@ printintstreamType( ListExpr args )
     if ( nl->IsEqual(arg11, "stream") && nl->IsEqual(arg12, "int") )
       return nl->First(args);
   }
+  nl->WriteToString(out, nl->First(args));
+  ErrorReporter::ReportError("Operator printintstream expects a "
+			     "(stream int) as its first argument. "
+			     "The argument provided "
+			     "has type '" + out + "' instead.");  
   return nl->SymbolAtom("typeerror");
 }
 
@@ -205,7 +212,7 @@ printstreamType( ListExpr args )
 
   if ( nl->ListLength(args) != 1 )
     {
-      ErrorReporter::ReportError("Operator filter expects only a single "
+      ErrorReporter::ReportError("Operator printstream expects only a single "
 				 "argument.");
       return nl->SymbolAtom("typeerror");
     }
@@ -217,8 +224,8 @@ printstreamType( ListExpr args )
 	   || !am->CheckKind("DATA", nl->Second(stream), errorInfo) )
     {
       nl->WriteToString(out, stream);
-      ErrorReporter::ReportError("Operator filter expects a (stream T), "
-				 "T in kind DATA as its first argument. "
+      ErrorReporter::ReportError("Operator printstream expects a (stream T), "
+				 "T in kind DATA, as its first argument. "
 				 "The argument provided "
 				 "has type '" + out + "' instead.");
       return nl->SymbolAtom("typeerror");
