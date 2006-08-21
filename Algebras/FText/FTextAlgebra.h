@@ -68,6 +68,7 @@ public:
 
   inline bool IsDefined() const;
   inline void SetDefined(bool newDefined);
+  inline size_t Sizeof() const;
   size_t HashValue() const;
   void CopyFrom(const StandardAttribute* right);
   int Compare(const Attribute * arg) const;
@@ -182,6 +183,13 @@ inline void FText::SetDefined( bool newDefined )
   if(traces)
     cout << '\n' << "Start SetDefined" << '\n';
   defined = newDefined;
+}
+
+inline size_t FText::Sizeof() const
+{
+  if(traces)
+    cout << '\n' << "Start Sizeof" << '\n';
+  return sizeof( *this );
 }
 
 inline FText* FText::Clone() const

@@ -945,7 +945,7 @@ int deleteDirectRelValueMap(Word* args, Word& result, int message,
         tup = (Tuple*)t.addr;
         Tuple *newTuple = new Tuple( resultTupleType );
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
-          newTuple->CopyAttribute(i, tup, i);
+          newTuple->PutAttribute( i, tup->GetAttribute( i )->Clone() );
         const TupleId& tid = tup->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
         newTuple->PutAttribute(tup->GetNoAttributes(), tidAttr);
@@ -1404,7 +1404,7 @@ int deleteDirectSaveRelValueMap(Word* args, Word& result,
         assert( newTuple->GetNoAttributes() == 
                 tup->GetNoAttributes() +1 );
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
-          newTuple->CopyAttribute( i, tup, i );
+          newTuple->PutAttribute( i, tup->GetAttribute( i )->Clone() );
         const TupleId& tid = tup->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
         newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr);
@@ -3205,6 +3205,7 @@ int appendIdentifierValueMap(Word* args, Word& result, int message,
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
           newTuple->CopyAttribute( i, tup, i );
         const TupleId& tid = tup->GetTupleId();
+        cout << "TID: " << tid << endl;
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
         newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr);
         result = SetWord(newTuple);

@@ -647,6 +647,17 @@ FLOB* Midi::GetFLOB(const int i)
 }
 
 /*
+2.1.1 Sizeof
+
+Returns the size of a class instance.
+
+*/
+size_t Midi::Sizeof() const
+{
+  return sizeof(*this);
+}
+
+/*
 2.2 Destroy
 
 Sets the attribute ~isDeletable~ to true for further destroying by SECONDO
@@ -1925,7 +1936,7 @@ void Track::Transpose( bool inPerc, int hfTnSt, int& errorval )
             {
               errorval = 1;
               cout << "note " << note << " step " << hfTnSt;
-	      return;
+              return;
             }
           }
         }
@@ -1948,7 +1959,7 @@ void Track::Transpose( bool inPerc, int hfTnSt, int& errorval )
           else
           {
             errorval = 1;
-	    return;
+            return;
           }
         }
       }
@@ -3507,7 +3518,7 @@ int transposeTrackFun(Word* args, Word& result, int message, Word& local,
         cout << endl << "crossing range of playable values";
         cout << endl << "in Track " << k-1 << " !!";
         cout << endl<< "  nothing done ";
-	return 0;
+        return 0;
       }
     }
     else

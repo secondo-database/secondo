@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] title: [{\Large \bf ]	[}]
+//paragraph [1] title: [{\Large \bf ] [}]
 
 
 [1] Binary File Algebra
@@ -77,6 +77,7 @@ This constructor should not be used.
 
     inline bool IsDefined() const;
     inline void SetDefined( bool Defined);
+    inline size_t Sizeof() const;
     inline size_t HashValue() const;
     void CopyFrom(const StandardAttribute* right);
     inline int Compare(const Attribute * arg) const;
@@ -120,6 +121,11 @@ inline bool BinaryFile::IsDefined() const
 
 inline void BinaryFile::SetDefined( bool Defined)
 {
+}
+
+inline size_t BinaryFile::Sizeof() const
+{
+  return sizeof( *this );
 }
 
 inline size_t BinaryFile::HashValue() const
@@ -213,12 +219,12 @@ bool BinaryFile::SaveToFile( const char *fileName ) const
 
 The list representation of a ~binfile~ are
 
-----	( <file>filename</file---> )
+----    ( <file>filename</file---> )
 ----
 
 and
 
-----	( <text>filename</text---> )
+----    ( <text>filename</text---> )
 ----
 
 If first representation is used, then the contents of a file is read
@@ -275,15 +281,15 @@ BinaryFileProperty()
 {
   return (nl->TwoElemList(
             nl->FiveElemList(nl->StringAtom("Signature"),
-	                     nl->StringAtom("Example Type List"),
-			     nl->StringAtom("List Rep"),
-			     nl->StringAtom("Example List"),
-			     nl->StringAtom("Remarks")),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List"),
+                             nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-	                     nl->StringAtom("binfile"),
-			     nl->StringAtom("<file>filename</file--->"),
-			     nl->StringAtom("<file>Document.pdf</file--->"),
-			     nl->StringAtom(""))));
+                             nl->StringAtom("binfile"),
+                             nl->StringAtom("<file>filename</file--->"),
+                             nl->StringAtom("<file>Document.pdf</file--->"),
+                             nl->StringAtom(""))));
 }
 
 /*
@@ -403,16 +409,16 @@ CheckBinaryFile( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor binfile(
-	"binfile",				      //name
-  BinaryFileProperty,     //property function describing signature
-  OutBinaryFile,     InBinaryFile,	   //Out and In functions
-  0,                 0,	  //SaveToList and RestoreFromList functions
+  "binfile",                           //name
+  BinaryFileProperty,                  //property function describing signature
+  OutBinaryFile,     InBinaryFile,     //Out and In functions
+  0,                 0,                //SaveTo and RestoreFrom List functions
   CreateBinaryFile,  DeleteBinaryFile, //object creation and deletion
-  OpenBinaryFile,    SaveBinaryFile, 	 //object open and save
+  OpenBinaryFile,    SaveBinaryFile,   //object open and save
   CloseBinaryFile,   CloneBinaryFile,  //object close and clone
-  CastBinaryFile,				               //cast function
-  SizeOfBinaryFile, 			             //sizeof function
-	CheckBinaryFile );	                 //kind checking function
+  CastBinaryFile,                      //cast function
+  SizeOfBinaryFile,                    //sizeof function
+CheckBinaryFile );                     //kind checking function
 
 /*
 4 Operators

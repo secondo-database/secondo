@@ -375,17 +375,18 @@ Remove all intervals in the range.
 3.3.4 Functions to be part of relations
 
 */
-    bool IsDefined() const;
-    void SetDefined( bool Defined );
-    int Compare( const Attribute* arg ) const;
-    bool Adjacent( const Attribute* arg ) const;
-    Range<Alpha>* Clone() const;
-    ostream& Print( ostream &os ) const;
-    size_t HashValue() const;
-    void CopyFrom( const StandardAttribute* right );
+    inline bool IsDefined() const;
+    inline void SetDefined( bool Defined );
+    inline size_t Sizeof() const;
+    inline int Compare( const Attribute* arg ) const;
+    inline bool Adjacent( const Attribute* arg ) const;
+    inline Range<Alpha>* Clone() const;
+    inline ostream& Print( ostream &os ) const;
+    inline size_t HashValue() const;
+    inline void CopyFrom( const StandardAttribute* right );
 
-    int NumOfFLOBs() const;
-    FLOB *GetFLOB(const int i);
+    inline int NumOfFLOBs() const;
+    inline FLOB *GetFLOB(const int i);
 
 /*
 3.3.5 Operations
@@ -670,6 +671,11 @@ The second constructor.
   void SetDefined( bool defined )
   {
     this->defined = defined;
+  }
+
+  size_t Sizeof() const
+  {
+    return sizeof( *this );
   }
 
   int Compare( const Attribute* arg ) const
@@ -980,6 +986,7 @@ The destructor.
 
     virtual StandardTemporalUnit<Alpha>* Clone() const = 0;
     virtual void CopyFrom( const StandardAttribute* right ) = 0;
+    virtual size_t Sizeof() const = 0;
 
 };
 
@@ -1053,6 +1060,7 @@ The destructor.
 
     virtual SpatialTemporalUnit<Alpha, dim>* Clone() const = 0;
     virtual void CopyFrom( const StandardAttribute* right ) = 0;
+    virtual size_t Sizeof() const = 0;
     virtual const Rectangle<dim> BoundingBox() const = 0;
 };
 
@@ -1198,6 +1206,11 @@ Returns ~true~ if the value of this temporal unit is equal to the value of the t
 
   virtual void SetDefined( bool Defined )
   {
+  }
+
+  virtual size_t Sizeof() const
+  {
+    return sizeof( *this );
   }
 
   virtual int Compare( const Attribute* arg ) const
@@ -1373,6 +1386,11 @@ Equality is calculated with respect to temporal evolution.
   {
   }
 
+  virtual size_t Sizeof() const
+  {
+    return sizeof( *this );
+  }
+
   virtual int Compare( const Attribute* arg ) const
   {
     UReal* mr2 = (UReal*) arg;
@@ -1512,8 +1530,8 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   virtual void AtInterval( const Interval<Instant>& i, 
                            TemporalUnit<Point>& result ) const;
   void Distance( const Point& p, UReal& result ) const;
-  //  void UTrajectory( UPoint& unit,CLine& line ) const;
-  void UTrajectory( CLine& line ) const;
+  //  void UTrajectory( UPoint& unit,Line& line ) const;
+  void UTrajectory( Line& line ) const;
   void USpeed( UReal& result ) const;
   void UVelocity( UPoint& result ) const;
   virtual bool EqualValue( UPoint& i )
@@ -1533,6 +1551,11 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 
   inline virtual void SetDefined( bool Defined )
   {
+  }
+
+  inline virtual size_t Sizeof() const
+  {
+    return sizeof( *this );
   }
 
   inline virtual int Compare( const Attribute* arg ) const
@@ -1733,17 +1756,19 @@ purposes only. The ~mapping~ is valid, if the following conditions are true:
 3.10.4 Functions to be part of relations
 
 */
-    bool IsDefined() const;
-    void SetDefined( bool Defined );
-    int Compare( const Attribute* arg ) const;
-    bool Adjacent( const Attribute* arg ) const;
-    Mapping<Unit, Alpha>* Clone() const;
-    ostream& Print( ostream &os ) const;
-    size_t HashValue() const;
-    void CopyFrom( const StandardAttribute* right );
+    inline bool IsDefined() const;
+    inline void SetDefined( bool Defined );
+    inline virtual size_t Sizeof() const;
+    inline int Compare( const Attribute* arg ) const;
+    inline bool Adjacent( const Attribute* arg ) const;
+    inline Mapping<Unit, Alpha>* Clone() const;
+    inline ostream& Print( ostream &os ) const;
+    inline size_t HashValue() const;
+    inline void CopyFrom( const StandardAttribute* right );
+    inline void Restrict( const vector< pair<int, int> >& intervals );
 
-    int NumOfFLOBs() const;
-    FLOB *GetFLOB(const int i);
+    inline int NumOfFLOBs() const;
+    inline FLOB *GetFLOB(const int i);
 
 /*
 3.10.5 Operations
@@ -1939,7 +1964,6 @@ A flag indicating whether the unit set is ordered or not.
 */
 
     DBArray< Unit > units;
-
 /*
 The database array of temporal units.
 
@@ -2031,7 +2055,7 @@ The constructor. Initializes space for ~n~ elements.
 *Complexity:* $O( n )$, where ~n~ is the number of units of this ~MPoint~
 
 */
-  void Trajectory( CLine& line ) const;
+  void Trajectory( Line& line ) const;
   void MSpeed(  MReal& result ) const;
   void MVelocity( MPoint& result ) const;
 /*
@@ -2437,30 +2461,36 @@ void Range<Alpha>::Clear()
 
 */
 template <class Alpha>
-bool Range<Alpha>::IsDefined() const
+inline bool Range<Alpha>::IsDefined() const
 {
   return true;
 }
 
 template <class Alpha>
-void Range<Alpha>::SetDefined( bool Defined )
+inline void Range<Alpha>::SetDefined( bool Defined )
 {
 }
 
 template <class Alpha>
-int Range<Alpha>::Compare( const Attribute* arg ) const
+inline size_t Range<Alpha>::Sizeof() const
+{
+  return sizeof( *this );
+}
+
+template <class Alpha>
+inline int Range<Alpha>::Compare( const Attribute* arg ) const
 {
   return 0;
 }
 
 template <class Alpha>
-bool Range<Alpha>::Adjacent( const Attribute* arg ) const
+inline bool Range<Alpha>::Adjacent( const Attribute* arg ) const
 {
   return false;
 }
 
 template <class Alpha>
-Range<Alpha>* Range<Alpha>::Clone() const
+inline Range<Alpha>* Range<Alpha>::Clone() const
 {
   assert( IsOrdered() );
 
@@ -2479,19 +2509,19 @@ Range<Alpha>* Range<Alpha>::Clone() const
 }
 
 template <class Alpha>
-ostream& Range<Alpha>::Print( ostream &os ) const
+inline ostream& Range<Alpha>::Print( ostream &os ) const
 {
   return os << "Range Algebra" << endl;
 }
 
 template <class Alpha>
-size_t Range<Alpha>::HashValue() const
+inline size_t Range<Alpha>::HashValue() const
 {
   return 0;
 }
 
 template <class Alpha>
-void Range<Alpha>::CopyFrom( const StandardAttribute* right )
+inline void Range<Alpha>::CopyFrom( const StandardAttribute* right )
 {
   const Range<Alpha> *r = (const Range<Alpha>*)right;
   assert( r->IsOrdered() );
@@ -2509,13 +2539,13 @@ void Range<Alpha>::CopyFrom( const StandardAttribute* right )
 }
 
 template <class Alpha>
-int Range<Alpha>::NumOfFLOBs() const
+inline int Range<Alpha>::NumOfFLOBs() const
 {
   return 1;
 }
 
 template <class Alpha>
-FLOB *Range<Alpha>::GetFLOB(const int i)
+inline FLOB *Range<Alpha>::GetFLOB(const int i)
 {
   assert( i == 0 );
   return &intervals;
@@ -2903,13 +2933,15 @@ void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
           {
             if( start != NULL && end != NULL )
             {
-              delete end;
+              delete end; end = NULL;
             }
             else
             {
+              assert( start == NULL );
               start = thisInterval->start.Clone();
               lc = thisInterval->lc;
             }
+            assert( end == NULL );
             end = interval->end.Clone();
             rc = interval->rc;
           }
@@ -2943,9 +2975,11 @@ void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
             }
             else
             {
+              assert( start == NULL );
               start = interval->start.Clone();
               lc = interval->lc;
             }
+            assert( end == NULL );
             end = thisInterval->end.Clone();
             rc = thisInterval->rc;
           }
@@ -3004,8 +3038,10 @@ void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
             }
             else
             {
+              assert( start == NULL );
               start = interval->start.Clone();
               lc = interval->lc;
+              assert( end == NULL );
               end = thisInterval->end.Clone();
               rc = thisInterval->rc;
             }
@@ -3049,8 +3085,10 @@ void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
             }
             else
             {
+              assert( start == NULL );
               start = thisInterval->start.Clone();
               lc = thisInterval->lc;
+              assert( end == NULL );
               end = interval->end.Clone();
               rc = interval->rc;
             }
@@ -3073,6 +3111,7 @@ void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
         {
           if( end->Compare( &interval->end ) < 0 )
           {
+            assert( end == NULL );
             end = interval->end.Clone();
             rc = interval->rc;
           }
@@ -3098,6 +3137,7 @@ void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
         {
           if( end->Compare( &thisInterval->end ) < 0 )
           {
+            assert( end == NULL );
             end = thisInterval->end.Clone();
             rc = thisInterval->rc;
           }
@@ -3170,6 +3210,7 @@ void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
           r.Get( j, interval );
       }
     }
+    assert( start == NULL && end == NULL );
   }
 
   while( i < GetNoComponents() )
@@ -3593,9 +3634,8 @@ void Range<Alpha>::RBBox( Range<Alpha>& result ) const
 {
   assert( IsValid() );
   
-  if( IsEmpty() )
-    result.SetDefined( false );
-  else
+  result.Clear();
+  if( !IsEmpty() )
   {
     Alpha minIntervalMin;
     Alpha maxIntervalMax;
@@ -3604,7 +3644,6 @@ void Range<Alpha>::RBBox( Range<Alpha>& result ) const
     Maximum( maxIntervalMax );
 
     Interval<Alpha> interval( minIntervalMin, maxIntervalMax, true, true);
-    result.Clear();
     result.Add(interval);
   }
 }
@@ -3939,18 +3978,24 @@ void Mapping<Unit, Alpha>::Clear()
 
 */
 template <class Unit, class Alpha>
-bool Mapping<Unit, Alpha>::IsDefined() const
+inline bool Mapping<Unit, Alpha>::IsDefined() const
 {
   return true;
 }
 
 template <class Unit, class Alpha>
-void Mapping<Unit, Alpha>::SetDefined( bool Defined )
+inline void Mapping<Unit, Alpha>::SetDefined( bool Defined )
 {
 }
 
 template <class Unit, class Alpha>
-int Mapping<Unit, Alpha>::Compare( const Attribute *arg ) const
+inline size_t Mapping<Unit, Alpha>::Sizeof() const
+{
+  return sizeof( *this );
+}
+
+template <class Unit, class Alpha>
+inline int Mapping<Unit, Alpha>::Compare( const Attribute *arg ) const
 {
    Mapping<Unit,Alpha>* map2 = (Mapping<Unit,Alpha>*) arg; 
    size_t size1 = units.Size();
@@ -3980,13 +4025,13 @@ int Mapping<Unit, Alpha>::Compare( const Attribute *arg ) const
 }
 
 template <class Unit, class Alpha>
-bool Mapping<Unit, Alpha>::Adjacent( const Attribute *arg ) const
+inline bool Mapping<Unit, Alpha>::Adjacent( const Attribute *arg ) const
 {
   return false;
 }
 
 template <class Unit, class Alpha>
-Mapping<Unit, Alpha>* Mapping<Unit, Alpha>::Clone() const
+inline Mapping<Unit, Alpha>* Mapping<Unit, Alpha>::Clone() const
 {
   assert( IsOrdered() );
 
@@ -4004,19 +4049,19 @@ Mapping<Unit, Alpha>* Mapping<Unit, Alpha>::Clone() const
 }
 
 template <class Unit, class Alpha>
-ostream& Mapping<Unit, Alpha>::Print( ostream &os ) const
+inline ostream& Mapping<Unit, Alpha>::Print( ostream &os ) const
 {
   return os << "Temporal Algebra---Mapping" << endl;
 }
 
 template <class Unit, class Alpha>
-size_t Mapping<Unit, Alpha>::HashValue() const
+inline size_t Mapping<Unit, Alpha>::HashValue() const
 {
   return 0;
 }
 
 template <class Unit, class Alpha>
-void Mapping<Unit, Alpha>::CopyFrom( const StandardAttribute* right )
+inline void Mapping<Unit, Alpha>::CopyFrom( const StandardAttribute* right )
 {
   const Mapping<Unit, Alpha> *r = (const Mapping<Unit, Alpha>*)right;
   assert( r->IsOrdered() );
@@ -4034,13 +4079,20 @@ void Mapping<Unit, Alpha>::CopyFrom( const StandardAttribute* right )
 }
 
 template <class Unit, class Alpha>
-int Mapping<Unit, Alpha>::NumOfFLOBs() const
+inline void 
+Mapping<Unit, Alpha>::Restrict( const vector< pair<int, int> >& intervals )
+{
+  units.Restrict( intervals );
+}
+
+template <class Unit, class Alpha>
+inline int Mapping<Unit, Alpha>::NumOfFLOBs() const
 {
   return 1;
 }
 
 template <class Unit, class Alpha>
-FLOB *Mapping<Unit, Alpha>::GetFLOB(const int i)
+inline FLOB *Mapping<Unit, Alpha>::GetFLOB(const int i)
 {
   assert( i == 0 );
   return &units;

@@ -64,7 +64,7 @@ query Kreis2 count;
 
 #testcase insert3
 #yields (int 5)
-query Kreis2 feed {a} filter[.Gebiet_a touches magdeburg] Kreis feed {b} symmjoin[.KName_a = ..KName_b] count;
+query Kreis2 feed {a} filter[.Gebiet_a intersects magdeburg] Kreis feed {b} symmjoin[.KName_a = ..KName_b] count;
 
 #testcase insertsave1
 #yields (int 439)
@@ -72,15 +72,15 @@ query Kreis feed Kreis3 Kreis3I insertsave count;
 
 #testcase insertsave2
 #yields (int 5)
-query Kreis3 feed {a} filter[.Gebiet_a touches magdeburg] Kreis feed {b} symmjoin[.KName_a = ..KName_b] count;
+query Kreis3 feed {a} filter[.Gebiet_a intersects magdeburg] Kreis feed {b} symmjoin[.KName_a = ..KName_b] count;
 
 #testcase insertsave3
 #yields ((rel (tuple ((TID_b tid)))) ((407) (409) (411) (412) (415)))
-query Kreis3 feed {a} filter[.Gebiet_a touches magdeburg] Kreis3I feed {b} symmjoin[.KName_a = ..KName_b] project[TID_b] consume;
+query Kreis3 feed {a} filter[.Gebiet_a intersects magdeburg] Kreis3I feed {b} symmjoin[.KName_a = ..KName_b] project[TID_b] consume;
 
 #testcase deletesearch1
 #yields (int 5)
-query Kreis feed filter[.Gebiet touches magdeburg] Kreis2 deletesearch count;
+query Kreis feed filter[.Gebiet intersects magdeburg] Kreis2 deletesearch count;
 
 #testcase deletesearch2
 #yields (int 434)
@@ -88,7 +88,7 @@ query Kreis2 count;
 
 #testcase deletesearch3
 #yields (int 0)
-query Kreis2 feed filter[.Gebiet touches magdeburg] count;
+query Kreis2 feed filter[.Gebiet intersects magdeburg] count;
 
 #testcase deletedirect1
 #yields (int 5)
@@ -104,7 +104,7 @@ query Kreis2 feed filter[.Gebiet intersects hagen] count;
 
 #testcase deletesearchsave1
 #yields (int 5)
-query Kreis feed filter[.Gebiet touches magdeburg] Kreis3 Kreis3I deletesearchsave count;
+query Kreis feed filter[.Gebiet intersects magdeburg] Kreis3 Kreis3I deletesearchsave count;
 
 #testcase deletesearchsave2
 #yields (int 434)
@@ -112,7 +112,7 @@ query Kreis3 count;
 
 #testcase deletesearchsave3
 #yields (int 0)
-query Kreis3 feed filter[.Gebiet touches magdeburg] count;
+query Kreis3 feed filter[.Gebiet intersects magdeburg] count;
 
 #testcase deletesearchsave4
 #yields (int 444)
@@ -120,7 +120,7 @@ query Kreis3I count;
 
 #testcase deletesearchsave5
 #yields (int 10)
-query Kreis3I feed filter[.Gebiet touches magdeburg] count;
+query Kreis3I feed filter[.Gebiet intersects magdeburg] count;
 
 #testcase deletedirectsave1
 #yields (int 5)
@@ -148,7 +148,7 @@ query Kreis2 inserttuple["Magdeburg", 0.0, 0.0, 0.0, magdeburg] count;
 
 #testcase inserttuple2
 #yields (int 1)
-query Kreis feed {a} filter[.Gebiet_a touches magdeburg] Kreis2 feed {b} filter[.Gebiet_b touches magdeburg] 
+query Kreis feed {a} filter[.Gebiet_a intersects magdeburg] Kreis2 feed {b} filter[.Gebiet_b intersects magdeburg] 
   symmjoin[.Gebiet_a = ..Gebiet_b] filter[.KName_b contains "Magdeburg"] count;
 
 #testcase inserttuplesave1
@@ -157,21 +157,21 @@ query Kreis3 Kreis3I inserttuplesave["Magdeburg", 0.0, 0.0, 0.0, magdeburg] coun
 
 #testcase inserttuplesave2
 #yields (int 1)
-query Kreis feed {a} filter[.Gebiet_a touches magdeburg] Kreis3 feed {b} filter[.Gebiet_b touches magdeburg] 
+query Kreis feed {a} filter[.Gebiet_a intersects magdeburg] Kreis3 feed {b} filter[.Gebiet_b intersects magdeburg] 
   symmjoin[.Gebiet_a = ..Gebiet_b] filter[.KName_b contains "Magdeburg"] count;
 
 #testcase inserttuplesave3
 #yields (int 3)
-query Kreis feed {a} filter[.Gebiet_a touches magdeburg] Kreis3I feed {b} filter[.Gebiet_b touches magdeburg] 
+query Kreis feed {a} filter[.Gebiet_a intersects magdeburg] Kreis3I feed {b} filter[.Gebiet_b intersects magdeburg] 
   symmjoin[.Gebiet_a = ..Gebiet_b] filter[.KName_b contains "Magdeburg"] count;
 
 #testcase updatedirect1
 #yields (int 1)
-query Kreis2 feed filter[.Gebiet touches magdeburg] Kreis2 updatedirect[Gebiet: .Gebiet translate[1000000.0, 1000000.0]] count; 
+query Kreis2 feed filter[.Gebiet intersects magdeburg] Kreis2 updatedirect[Gebiet: .Gebiet translate[1000000.0, 1000000.0]] count; 
 
 #testcase updatedirect2
 #yields (int 1)
-query Kreis feed {a} filter[.Gebiet_a touches magdeburg] Kreis2 feed {b} 
+query Kreis feed {a} filter[.Gebiet_a intersects magdeburg] Kreis2 feed {b} 
   symmjoin[.Gebiet_a translate[1000000.0, 1000000.0] = ..Gebiet_b] count;
 
 #testcase updatesearch1
@@ -181,21 +181,21 @@ query Kreis2 feed filter[.KName contains "Magdeburg"] Kreis2
 
 #testcase updatesearch2
 #yields (int 1)
-query Kreis2 feed filter[(.KName = "NewMagdeburg") and (.Gebiet touches magdeburg)] count; 
+query Kreis2 feed filter[(.KName = "NewMagdeburg") and (.Gebiet intersects magdeburg)] count; 
 
 #testcase updatedirectsave1
 #yields (int 1)
-query Kreis3 feed filter[.Gebiet touches magdeburg] Kreis3 Kreis3I
+query Kreis3 feed filter[.Gebiet intersects magdeburg] Kreis3 Kreis3I
   updatedirectsave[Gebiet: .Gebiet translate[1000000.0, 1000000.0]] count;
 
 #testcase updatedirectsave2
 #yields (int 1)
-query Kreis feed {a} filter[.Gebiet_a touches magdeburg] Kreis3 feed {b}
+query Kreis feed {a} filter[.Gebiet_a intersects magdeburg] Kreis3 feed {b}
   symmjoin[.Gebiet_a translate[1000000.0, 1000000.0] = ..Gebiet_b] count;
 
 #testcase updatedirectsave2
 #yields (int 1)
-query Kreis feed {a} filter[.Gebiet_a touches magdeburg] Kreis3I feed {b}
+query Kreis feed {a} filter[.Gebiet_a intersects magdeburg] Kreis3I feed {b}
   symmjoin[.Gebiet_a translate[1000000.0, 1000000.0] = ..Gebiet_b] count;
 
 #testcase updatesearchsave1
@@ -205,11 +205,11 @@ query Kreis3 feed filter[.KName contains "Magdeburg"] Kreis3 Kreis3I
 
 #testcase updatesearchsave2
 #yields (int 1)
-query Kreis3 feed filter[(.KName = "NewMagdeburg") and (.Gebiet touches magdeburg)] count;
+query Kreis3 feed filter[(.KName = "NewMagdeburg") and (.Gebiet intersects magdeburg)] count;
 
 #testcase updatesearchsave3
 #yields (int 1)
-query Kreis3I feed filter[(.KName = "NewMagdeburg") and (.Gebiet touches magdeburg)] count;
+query Kreis3I feed filter[(.KName = "NewMagdeburg") and (.Gebiet intersects magdeburg)] count;
 
 #testcase addid1
 #yields ((rel (tuple ((TID tid)))) ((328) (332) (333) (334) (336) (337) (338) (340) (342) (345)))

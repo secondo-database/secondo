@@ -55,7 +55,7 @@ were removed, since the code is stable.
 #include "QueryProcessor.h"
 
 enum FLOB_Type {Destroyed, InMemory, InMemoryCached, 
-                InDiskSmall, InDiskLarge};
+                InMemoryPagedCached, InDiskSmall, InDiskLarge};
 
 extern QueryProcessor *qp;
 
@@ -86,6 +86,12 @@ file for LOBs.
 
 */
 
+    static const size_t PAGE_SIZE;
+/*
+The page size for paged access.
+
+*/
+
     inline FLOB() {}
 /*
 This constructor should not be used.
@@ -112,11 +118,21 @@ Create a new FLOB from scratch.
 Deletes the FLOB instance.
 
 */
-    inline ~FLOB()
+    virtual inline ~FLOB()
     {
       if( type == InMemoryCached )
         qp->GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
                                      fd.inMemoryCached.lobId );
+      else if( type == InMemoryPagedCached )
+      {
+        assert( fd.inMemoryPagedCached.buffer != 0 );
+        if( fd.inMemoryPagedCached.cached )
+          qp->GetFLOBCache()->Release( fd.inMemoryPagedCached.lobFileId,
+                                       fd.inMemoryPagedCached.lobId,
+                                       fd.inMemoryPagedCached.pageno );
+        else
+          free( fd.inMemoryPagedCached.buffer );
+      }
       else if( type == InMemory && 
                fd.inMemory.canDelete && 
                fd.inMemory.buffer != 0 )
@@ -131,16 +147,35 @@ Re-initializes the FLOB.
 */
     inline void ReInit()
     {
+      assert( IsLob() );
+      SmiFileId lobFileId;
+      SmiRecordId lobId;
+
       if( type == InMemoryCached )
       {
-        assert( IsLob() );
-        SmiFileId lobFileId = fd.inMemoryCached.lobFileId;
-        SmiRecordId lobId = fd.inMemoryCached.lobId;    
-        type = InDiskLarge;
-        fd.inDiskLarge.lobFileId = lobFileId;
-        fd.inDiskLarge.lobId = lobId;
+        lobFileId = fd.inMemoryCached.lobFileId;
+        lobId = fd.inMemoryCached.lobId;   
+        qp->GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
+                                     fd.inMemoryCached.lobId ); 
       }
+      else if( type == InMemoryPagedCached )
+      {
+        lobFileId = fd.inMemoryPagedCached.lobFileId;
+        lobId = fd.inMemoryPagedCached.lobId;
+        assert( fd.inMemoryPagedCached.buffer != 0 );
+        if( fd.inMemoryPagedCached.cached )
+          qp->GetFLOBCache()->Release( fd.inMemoryPagedCached.lobFileId,
+                                       fd.inMemoryPagedCached.lobId,
+                                       fd.inMemoryPagedCached.pageno );
+        else
+          free( fd.inMemoryPagedCached.buffer );
+      }
+
+      type = InDiskLarge;
+      fd.inDiskLarge.lobFileId = lobFileId;
+      fd.inDiskLarge.lobId = lobId;
     }
+
 /*
 3.4 BringToMemory
 
@@ -148,7 +183,52 @@ Brings a disk lob to memory, i.e., converts a flob in ~InDiskLarge~
 state to a ~InMemory~ state.
 
 */
-    const char *BringToMemory() const;
+    virtual const char *BringToMemory() const;
+
+/*
+3.5 GetPage
+
+*/
+    inline void GetPage( size_t page ) const
+    {
+      assert( type == InDiskLarge ||
+              type == InMemoryPagedCached );
+
+      if( type == InDiskLarge )
+      {
+        SmiFileId lobFileId = fd.inDiskLarge.lobFileId;
+        SmiRecordId lobId = fd.inDiskLarge.lobId;
+        type = InMemoryPagedCached;
+        fd.inMemoryPagedCached.lobFileId = lobFileId;
+        fd.inMemoryPagedCached.lobId = lobId;
+      }
+      else if( type == InMemoryPagedCached )
+      {
+        if( fd.inMemoryPagedCached.pageno == page )
+          return;
+
+        if( fd.inMemoryPagedCached.buffer != 0 )
+        {
+          if( fd.inMemoryPagedCached.cached )
+            qp->GetFLOBCache()->Release( fd.inMemoryPagedCached.lobFileId,
+                                         fd.inMemoryPagedCached.lobId,
+                                         fd.inMemoryPagedCached.pageno );
+          else
+            free( fd.inMemoryPagedCached.buffer );
+        }
+      }  
+      
+      const char *buffer;
+      bool cached =
+        qp->GetFLOBCache()->GetFLOB( fd.inMemoryPagedCached.lobFileId,
+                                     fd.inMemoryPagedCached.lobId,
+                                     page,
+                                     PAGE_SIZE, false, buffer );
+
+      fd.inMemoryPagedCached.buffer = const_cast<char*>(buffer);
+      fd.inMemoryPagedCached.pageno = page;
+      fd.inMemoryPagedCached.cached = cached;
+    }
 
 /*
 3.5 Get
@@ -156,19 +236,46 @@ state to a ~InMemory~ state.
 Read 
 
 */
-    inline void Get( size_t offset, const char **target ) const
+    inline void Get( size_t offset, const char **target, 
+                     const bool paged = false ) const
     {
+      assert( type != Destroyed );
+
       if( type == InMemory )
         *target = fd.inMemory.buffer + offset;
       else if( type == InMemoryCached )
+      {
+        assert( paged == false );
         *target = fd.inMemoryCached.buffer + offset;
-      else if( type == InDiskLarge || type == InDiskSmall )
+      }
+      else if( type == InMemoryPagedCached )
+      {
+        assert( paged == true );
+        if( offset >= fd.inMemoryPagedCached.pageno * PAGE_SIZE &&
+            offset < fd.inMemoryPagedCached.pageno * PAGE_SIZE + PAGE_SIZE ) 
+        {
+          *target = fd.inMemoryPagedCached.buffer + (offset % PAGE_SIZE);
+        }
+        else
+        {
+          GetPage( offset / PAGE_SIZE );
+          Get( offset, target, true );
+        }
+      }
+      else if( type == InDiskLarge )
+      {
+        if( paged )
+          GetPage( offset / PAGE_SIZE );
+        else
+          BringToMemory();
+
+        Get( offset, target, paged );
+      }
+      else if( type == InDiskSmall )
       {
         BringToMemory();
-        Get( offset, target );
+        Get( offset, target, false );
       }
-      else 
-        assert( false );
     }
 
 /*
@@ -179,10 +286,8 @@ Write Flob data into source.
 */
     inline void Put( size_t offset, size_t length, const void *source )
     {
-      if( type == InMemory )
-        memcpy( fd.inMemory.buffer + offset, source, length );
-      else
-        assert( false );
+      assert( type == InMemory );
+      memcpy( fd.inMemory.buffer + offset, source, length );
     }
 
 /*
@@ -205,24 +310,6 @@ Resizes the FLOB.
     void Resize( size_t size );
 
 /*
-3.8 Clear
-
-Clears the FLOB.
-
-*/
-    inline void Clear()
-    {
-      assert( type != Destroyed );
-      if( type == InMemory && fd.inMemory.canDelete && size > 0 )
-        free( fd.inMemory.buffer );
-
-      type = InMemory;
-      fd.inMemory.buffer = 0;
-      fd.inMemory.canDelete = true;
-      size = 0;
-    }
-
-/*
 3.8 Clean
 
 Cleans the FLOB, removing it from memory. If it is cached, then a
@@ -237,6 +324,16 @@ reference in the cache is removed.
       else if( type == InMemoryCached )
         qp->GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
                                      fd.inMemoryCached.lobId );
+      else if( type == InMemoryPagedCached )
+      {
+        assert( fd.inMemoryPagedCached.buffer != 0 );
+        if( fd.inMemoryPagedCached.cached )
+          qp->GetFLOBCache()->Release( fd.inMemoryPagedCached.lobFileId,
+                                       fd.inMemoryPagedCached.lobId,
+                                       fd.inMemoryPagedCached.pageno );
+        else
+          free( fd.inMemoryPagedCached.buffer );
+      }
 
       type = InMemory;
       fd.inMemory.buffer = 0;
@@ -253,13 +350,25 @@ Destroys the physical representation of the FLOB.
     void Destroy();
 
 /*
+3.9 Restrict
+
+Restricts the FLOB to the interval set passed as argument.
+
+*/
+    virtual void Restrict( const vector< pair<int, int> >& intervals )
+    {
+
+    }
+
+/*
 3.10 SaveToLob
 
 Saves the FLOB to the LOB file. The FLOB must be a LOB. The type is 
 set to ~InDiskLarge~.
 
 */
-    void SaveToLob( SmiRecordId& lobFileId, SmiRecordId lobId = 0 ) const;
+    virtual void SaveToLob( SmiRecordId& lobFileId, 
+                            SmiRecordId lobId = 0 ) const;
 
 /*
 3.10 SetLobFile
@@ -339,9 +448,12 @@ Returns true, if value stored in underlying LOB, otherwise false.
     inline bool IsLob() const
     {
       assert( type != Destroyed );
-      if( type == InDiskLarge || type == InMemoryCached )
+      if( type == InDiskLarge || 
+          type == InMemoryCached || 
+          type == InMemoryPagedCached )
         return true;
-      else if( type == InMemory && size > SWITCH_THRESHOLD )
+      else if( type == InMemory && 
+               size > SWITCH_THRESHOLD )
         return true;
       return false;
     }
@@ -381,6 +493,15 @@ Returns true, if value stored in underlying LOB, otherwise false.
         SmiFileId lobFileId;
         SmiRecordId lobId;
       } inMemoryCached;
+
+      struct InMemoryPagedCached
+      {
+        char *buffer;
+        bool cached;
+        size_t pageno;
+        SmiFileId lobFileId;
+        SmiRecordId lobId;
+      } inMemoryPagedCached;
 
       struct InDiskSmall
       { 

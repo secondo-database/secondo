@@ -65,7 +65,7 @@ The Algebra provides the following operators.
                     & possible change of the type \\\cline{2-2}
                     & duration [times] duration [->] duration
                     & \\\hline
-    *                & duration [times] int [->] duration
+    *                & duration [times] real [->] duration
                     & the multiple of a duration \\\hline
    =, $<$, $>$      & instant [times] instant [->] bool
                     & the familiar comparisons \\\cline{2-2}
@@ -1095,6 +1095,17 @@ void DateTime::SetDefined( bool defined ){
 }
 
 /*
+~Sizeof~
+
+The function ~Sizeof~ returns the ~sizeof~ of and instance 
+of the ~DateTime~ class.
+
+*/
+size_t DateTime::Sizeof() const{
+   return sizeof(*this);
+}
+
+/*
 ~HashValue~
 
 This function return the HashValue for this DateTime instance.
@@ -1831,6 +1842,18 @@ ListExpr DurationIntDuration(ListExpr args){
   return nl->SymbolAtom("typeerror");
 }
 
+ListExpr DurationRealDuration(ListExpr args){
+  if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("Two arguments required\n");
+     return nl->SymbolAtom("typeerror");
+  }
+  if(nl->IsEqual(nl->First(args),"duration") &&
+     nl->IsEqual(nl->Second(args),"real"))
+     return nl->SymbolAtom("duration");
+  ErrorReporter::ReportError("duration x real expected\n" );
+  return nl->SymbolAtom("typeerror");
+}
+
 ListExpr InstantString(ListExpr args){
   if(nl->ListLength(args)!=1){
      ErrorReporter::ReportError("one argument expected\n");
@@ -2111,9 +2134,9 @@ int AfterFun(Word* args, Word& result, int message, Word& local, Supplier s){
 int MulFun(Word* args, Word& result, int message, Word& local, Supplier s){
   result = qp->ResultStorage(s);
   DateTime* T1 = (DateTime*) args[0].addr;
-  CcInt* Fact = (CcInt*) args[1].addr;
+  CcReal* Fact = (CcReal*) args[1].addr;
   DateTime* TRes = T1->Clone();
-  TRes->Mul((long)Fact->GetIntval());
+  TRes->Mul(Fact->GetRealval());
   ((DateTime*) result.addr)->Equalize(TRes);
   delete TRes;
   return 0;
@@ -2294,10 +2317,10 @@ const string GreaterSpec =
 
 const string MulSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"duration x int -> duration\""
+   " ( \"duration x real -> duration\""
    " \" _ * _ \" "
    "   \"computes the multiple of a duration\" "
-   "   \" query D * 7\" ))";
+   "   \" query D * 7.0\" ))";
 
 const string WeekdaySpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -2513,7 +2536,7 @@ Operator dt_mul(
        MulSpec, // specification
        MulFun,
        Operator::SimpleSelect,
-       DurationIntDuration);
+       DurationRealDuration);
 
 Operator dt_weekday(
        "weekday_of", // name

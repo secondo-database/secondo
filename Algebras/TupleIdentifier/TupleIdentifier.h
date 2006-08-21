@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] title: [{\Large \bf ]	[}]
+//paragraph [1] title: [{\Large \bf ]  [}]
 
 
 [1] TupleIdentifier Algebra
@@ -42,7 +42,7 @@ using namespace std;
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "StandardTypes.h"	
+#include "StandardTypes.h"
 #include <string>
 
 extern NestedList* nl;
@@ -60,9 +60,10 @@ class TupleIdentifier: public StandardAttribute
 {
  public:
   inline TupleIdentifier() {};
-	/*
-	This constructor should not be used.
-	*/
+/*
+This constructor should not be used.
+
+*/
   TupleIdentifier( bool DEFINED, TupleId TID );
   ~TupleIdentifier();
   TupleId      GetTid() const;
@@ -76,6 +77,11 @@ class TupleIdentifier: public StandardAttribute
   inline void SetDefined(bool DEFINED) 
   { 
     this->defined = DEFINED;
+  }
+
+  inline size_t Sizeof() const
+  {
+    return sizeof( *this );
   }
     
   inline size_t HashValue() const

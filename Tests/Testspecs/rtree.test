@@ -100,27 +100,27 @@ query Kreis feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_2 windowintersectsS[att
 #testcase test16
 #yields (int 2707) 
 query Kreis feed {X} loopjoin[fun(t: TUPLE) Kreis feed filter[bbox(.Gebiet) intersects bbox(attr(t, Gebiet_X))] 
-  filter[.Gebiet touches attr(t, Gebiet_X)]] count;
+  filter[.Gebiet intersects attr(t, Gebiet_X)]] count;
 
 #testcase test16
 #yields (int 2707) 
 query Kreis feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_1 Kreis windowintersects[attr(t, Gebiet_X)] 
-  filter[.Gebiet touches attr(t, Gebiet_X)]] count;
+  filter[.Gebiet intersects attr(t, Gebiet_X)]] count;
 
 #testcase test16
 #yields (int 2707) 
 query Kreis feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_2 Kreis windowintersects[attr(t, Gebiet_X)] 
-  filter[.Gebiet touches attr(t, Gebiet_X)]] count;
+  filter[.Gebiet intersects attr(t, Gebiet_X)]] count;
 
 #testcase test16
 #yields (int 2707) 
 query Kreis feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_1 windowintersectsS[attr(t, Gebiet_X)] 
-  Kreis gettuples filter[.Gebiet touches attr(t, Gebiet_X)]] count;
+  Kreis gettuples filter[.Gebiet intersects attr(t, Gebiet_X)]] count;
 
 #testcase test16
 #yields (int 2707) 
 query Kreis feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_2 windowintersectsS[attr(t, Gebiet_X)] 
-  Kreis gettuples filter[.Gebiet touches attr(t, Gebiet_X)]] count;
+  Kreis gettuples filter[.Gebiet intersects attr(t, Gebiet_X)]] count;
 
 #teardown
 delete autobahn_AVerlauf_1;

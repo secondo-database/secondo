@@ -4725,7 +4725,8 @@ int AggregateB(Word* args, Word& result, int message,
       while( qp->Received( args[0].addr ) )
       {
         long level = 0;
-        iterWord = SetWord( ((Tuple*)t1.addr)->GetAttribute( index-1 ) );
+        iterWord = 
+          SetWord( ((Tuple*)t1.addr)->GetAttribute( index-1 )->Copy() );
         while( !aggrStack.empty() && aggrStack.top().level == level )
         {
           (*vector)[0] = aggrStack.top().level == 0 ? 
@@ -4733,7 +4734,9 @@ int AggregateB(Word* args, Word& result, int message,
               GetAttribute(index-1)):
             aggrStack.top().value;
           (*vector)[1] = iterWord;
-          qp->Request(args[2].addr, iterWord);
+          qp->Request(args[2].addr, resultWord);
+          ((Attribute*)iterWord.addr)->DeleteIfAllowed();
+          iterWord = resultWord;
           qp->ReInitResultStorage( args[2].addr );
           if( aggrStack.top().level == 0 )
             ((Tuple*)aggrStack.top().value.addr)->DeleteIfAllowed();
@@ -4747,7 +4750,6 @@ int AggregateB(Word* args, Word& result, int message,
         else
         {
           aggrStack.push( AggrStruct( level, iterWord ) );
-          qp->ReInitResultStorage( args[2].addr );
           ((Tuple*)t1.addr)->DeleteIfAllowed();
         }
         qp->Request( args[0].addr, t1 );
@@ -4756,9 +4758,8 @@ int AggregateB(Word* args, Word& result, int message,
       // if the stack contains only one entry, then we are done
       if( aggrStack.size() == 1 )
       {
-        ((StandardAttribute*)result.addr)->
-          CopyFrom( (const StandardAttribute*)aggrStack.top().value.addr );
-        delete (StandardAttribute*)aggrStack.top().value.addr;
+        result.addr = ((Attribute*)aggrStack.top().value.addr)->Copy();
+        ((Attribute*)aggrStack.top().value.addr)->DeleteIfAllowed();
       }
       else
         // the stack must contain more elements and we call the 
@@ -4779,20 +4780,19 @@ int AggregateB(Word* args, Word& result, int message,
           if( level == 0 )
             ((Tuple*)iterWord.addr)->DeleteIfAllowed();
           else
-            delete (StandardAttribute*)iterWord.addr;
+            ((Attribute*)iterWord.addr)->DeleteIfAllowed();
   
-          delete (StandardAttribute*)aggrStack.top().value.addr;
+          ((Attribute*)aggrStack.top().value.addr)->DeleteIfAllowed();
   
           iterWord = resultWord;
-          level++;
           qp->ReInitResultStorage( args[2].addr );
+          level++;
   
           aggrStack.pop();
         }
   
-        ((StandardAttribute*)result.addr)->
-          CopyFrom( (const StandardAttribute*)iterWord.addr );
-        delete (StandardAttribute*)iterWord.addr;
+        result.addr = ((Attribute*)iterWord.addr)->Copy();
+        ((Attribute*)iterWord.addr)->DeleteIfAllowed();
       }
     }
   }
@@ -5510,7 +5510,7 @@ SymmProductExtend(Word* args, Word& result,
             supplier = args[2].addr;           // get list of ext-functions
             nooffun = qp->GetNoSons(supplier); // get num of ext-functions
             for(i = 0; i< nooffun; i++)
-	    {
+            {
               supplier2 = qp->GetSupplier(supplier, i); // get an ext-function
               noofsons = qp->GetNoSons(supplier2);
               supplier3 = qp->GetSupplier(supplier2, 1);
@@ -5518,10 +5518,11 @@ SymmProductExtend(Word* args, Word& result,
               (*extFunArgs)[0] = SetWord(leftTuple);     // pass first argument
               (*extFunArgs)[1] = SetWord(pli->currTuple);// pass second argument
               qp->Request(supplier3,value);              // call extattr mapping
-              resultTuple->PutAttribute(   leftTuple->GetNoAttributes()
-                                         + pli->currTuple->GetNoAttributes()
-                                         + i,
-				   ((StandardAttribute*)value.addr)->Clone() );
+              resultTuple->PutAttribute( 
+                leftTuple->GetNoAttributes()
+                + pli->currTuple->GetNoAttributes()
+                + i,
+                ((StandardAttribute*)value.addr)->Clone() );
               qp->ReInitResultStorage( supplier3 );
             }
             leftTuple->DeleteIfAllowed();
@@ -5590,7 +5591,7 @@ SymmProductExtend(Word* args, Word& result,
             supplier = args[2].addr;           // get list of ext-functions
             nooffun = qp->GetNoSons(supplier); // get num of ext-functions
             for(i = 0; i< nooffun; i++)
-	    {
+            {
               supplier2 = qp->GetSupplier(supplier, i); // get an ext-function
               noofsons = qp->GetNoSons(supplier2);
               supplier3 = qp->GetSupplier(supplier2, 1);
@@ -5598,11 +5599,12 @@ SymmProductExtend(Word* args, Word& result,
               (*extFunArgs)[0] = SetWord(pli->currTuple);// pass 1st argument
               (*extFunArgs)[1] = SetWord(rightTuple);    // pass 2nd argument
               qp->Request(supplier3,value);              // call extattr mapping
-              resultTuple->PutAttribute(   pli->currTuple->GetNoAttributes()
-                                         + rightTuple->GetNoAttributes()
-                                         + i,
-				   ((StandardAttribute*)value.addr)->Clone() );
-	                             // extend effective left tuple
+              resultTuple->PutAttribute( 
+                pli->currTuple->GetNoAttributes()
+                + rightTuple->GetNoAttributes()
+                + i,
+                ((StandardAttribute*)value.addr)->Clone() );
+              // extend effective left tuple
               qp->ReInitResultStorage( supplier3 );
             }
             rightTuple->DeleteIfAllowed();

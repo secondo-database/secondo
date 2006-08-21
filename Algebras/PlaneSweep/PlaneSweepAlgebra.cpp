@@ -58,65 +58,65 @@ class Segment
 public:
    Segment() {};
    ~Segment() {};
-   Segment(bool reg, const CHalfSegment& inchs);
+   Segment(bool reg, const HalfSegment& inhs);
    Segment(const Segment& s);
-   const Point& GetLP();
-   const Point& GetRP();
-   void SetLP(const Point& p);
-   void SetRP(const Point& p);
+   const Point& GetLeftPoint();
+   const Point& GetRightPoint();
+   void SetLeftPoint(const Point& p);
+   void SetRightPoint(const Point& p);
    bool GetIn1() const;
-   const CHalfSegment& GetCHS();
-   void CHSInsert(list<CHalfSegment>& r1, list<CHalfSegment>& r2);
+   const HalfSegment& GetCHS();
+   void CHSInsert(list<HalfSegment>& r1, list<HalfSegment>& r2);
 
    inline Segment& operator=( const Segment& s );
 
 private:
    bool in1;
-   CHalfSegment chs;
+   HalfSegment hs;
 };
 /*
 konstruktor to biuld up a new segment-object
 
 */
-Segment::Segment(bool in, const CHalfSegment& inchs)
+Segment::Segment(bool in, const HalfSegment& inhs)
 {
    in1 = in;
-   chs = inchs;
-   chs.SetLDP(true);
+   hs = inhs;
+   hs.SetLeftDomPoint(true);
 }
 
 Segment::Segment(const Segment& s)
 {
   in1 = s.in1;
-  chs = s.chs;
+  hs = s.hs;
 }
 
 /*
 functions to read and set property values of a segment-object
 
 */
-const Point& Segment::GetLP()   {  return chs.GetLP(); }
-const Point& Segment::GetRP()   {  return chs.GetRP();}
+const Point& Segment::GetLeftPoint()   {  return hs.GetLeftPoint(); }
+const Point& Segment::GetRightPoint()   {  return hs.GetRightPoint();}
 bool Segment::GetIn1() const    { return in1; }
 
-void Segment::SetLP(const Point& p)   {
-   if  ( p != chs.GetRP() && p != chs.GetLP() )
-      chs.Set(true,p,chs.GetRP());
+void Segment::SetLeftPoint(const Point& p)   {
+   if  ( p != hs.GetRightPoint() && p != hs.GetLeftPoint() )
+      hs.Set(true,p,hs.GetRightPoint());
 }
 
-void Segment::SetRP(const Point& p)   {
-   if  ( p != chs.GetLP() && p != chs.GetRP() )
-      chs.Set(true,chs.GetLP(),p);
+void Segment::SetRightPoint(const Point& p)   {
+   if  ( p != hs.GetLeftPoint() && p != hs.GetRightPoint() )
+      hs.Set(true,hs.GetLeftPoint(),p);
 }
 
-const CHalfSegment& Segment::GetCHS() { return chs;}
+const HalfSegment& Segment::GetCHS() { return hs;}
 
 /*
-Inserts a CHalfSegment in right list of CHalfSegments
+Inserts a HalfSegment in right list of HalfSegments
 
 */
-void Segment::CHSInsert(list<CHalfSegment>& r1,
-   list<CHalfSegment>& r2)
+void Segment::CHSInsert(list<HalfSegment>& r1,
+   list<HalfSegment>& r2)
 {
    if (GetIn1())   r1.push_front(GetCHS());
    else  r2.push_front(GetCHS() );
@@ -125,7 +125,7 @@ void Segment::CHSInsert(list<CHalfSegment>& r1,
 Segment& Segment::operator=( const Segment& s )
 { 
   in1 = s.in1; 
-  chs = s.chs; 
+  hs = s.hs; 
   return *this; 
 }
 
@@ -671,7 +671,7 @@ node)
 
 /*
 2.2.7 Functions to execute the inserting an new entry
-First searchs the right place, then inserts the entry and then calls the balance-function
+First searhs the right place, then inserts the entry and then calls the balance-function
 
 */
 template<class E> void BinTree<E>::MakeInsert (BinTreeNode<E>* node,
@@ -784,7 +784,7 @@ template<class E> void BinTree<E>::MakeInsert (BinTreeNode<E>* node,
 
 /*
 2.2.7 Functions to execute the deleting an entry
-First searchs the right entry, then delete the entry and then calls the balance-function
+First searhs the right entry, then delete the entry and then calls the balance-function
 
 */
 template<class E> void BinTree<E>::MakeDelete(BinTreeNode<E>* node) {
@@ -1314,14 +1314,14 @@ ostream& operator<<(ostream &os, const PQueue& pq) {
 /*
 3.4 class SSSEntry
 
-This class implements a entry for the Sweepline-Status-Structure (class ~StatusLine~). Each entry has three attributes: the CHalfSegment coded as a integer and two double-values to calculate the y-value for a given x-Coordinate
+This class implements a entry for the Sweepline-Status-Structure (class ~StatusLine~). Each entry has three attributes: the HalfSegment coded as a integer and two double-values to calculate the y-value for a given x-Coordinate
 
 */
 
 class SSSEntry
 {
 public:
-   SSSEntry() { chs = -1;};
+   SSSEntry() { hs = -1;};
    ~SSSEntry() {};
    SSSEntry(int inseg, Segment segs[] );
    SSSEntry(int inseg, double ink, double ina);
@@ -1336,7 +1336,7 @@ public:
    int Less (const SSSEntry& in2, const Coord x, Segment segs[]) const;
 
 private:
-   int chs;
+   int hs;
    double k;
    double a;
 };
@@ -1347,14 +1347,14 @@ private:
 */
 SSSEntry:: SSSEntry(int inseg, double ink, double ina)
 {
-   chs = inseg;
+   hs = inseg;
    k = ink;
    a = ina;
 }
 
 SSSEntry:: SSSEntry(const SSSEntry& s)
 {
-   chs = s.chs;
+   hs = s.hs;
    k = s.k;
    a = s.a;
 }
@@ -1365,24 +1365,14 @@ creates a new entry-object from a given CHalfsegments and calculates slope and a
 */
 SSSEntry:: SSSEntry (int inseg, Segment segs[])
 {
-   chs = inseg;
+   hs = inseg;
    Coord xl, xr, yl, yr;
-   xl = segs[inseg].GetCHS().GetLP().GetX();
-   xr = segs[inseg].GetCHS().GetRP().GetX();
-   yl = segs[inseg].GetCHS().GetLP().GetY();
-   yr = segs[inseg].GetCHS().GetRP().GetY();
-  #ifdef RATIONAL_COORDINATES
-      k= ((yr.IsInteger()? yr.IntValue():yr.Value()) -
-                 (yl.IsInteger()? yl.IntValue():yl.Value())) /
-                ((xr.IsInteger()? xr.IntValue():xr.Value()) -
-                 (xl.IsInteger()? xl.IntValue():xl.Value())) ;
-      a = (yl.IsInteger()? yl.IntValue():yl.Value()) -
-                  k* (xl.IsInteger()? xl.IntValue():xl.Value());
-  #else
-      k = (yr - yl) / (xr - xl) ;
-      a = yl - k*xl;
-  #endif
-
+   xl = segs[inseg].GetCHS().GetLeftPoint().GetX();
+   xr = segs[inseg].GetCHS().GetRightPoint().GetX();
+   yl = segs[inseg].GetCHS().GetLeftPoint().GetY();
+   yr = segs[inseg].GetCHS().GetRightPoint().GetY();
+   k = (yr - yl) / (xr - xl) ;
+   a = yl - k*xl;
 }
 
 
@@ -1392,14 +1382,14 @@ SSSEntry:: SSSEntry (int inseg, Segment segs[])
 */
 void SSSEntry:: Set(const SSSEntry& in)
 {
-   chs = in.chs;
+   hs = in.hs;
    k = in.k;
    a = in.a;
 }
 
 double SSSEntry::Getk() const                   {return k; }
 double SSSEntry::Geta() const                   {return a; }
-int SSSEntry::GetSeg() const                    {return chs; }
+int SSSEntry::GetSeg() const                    {return hs; }
 
 /*
 3.4.3 Functions for comparisation
@@ -1420,28 +1410,20 @@ These two function are need to calculate the y-value and for the comparisation o
 const double SSSEntry::GetY(Coord x, Segment segs[]) const  {
    Coord res;
    bool end = false;
-   if (segs[GetSeg()].GetCHS().GetLP().GetX() == x) {
+   if (segs[GetSeg()].GetCHS().GetLeftPoint().GetX() == x) {
       end = true;
-      res = segs[GetSeg()].GetCHS().GetLP().GetY();
+      res = segs[GetSeg()].GetCHS().GetLeftPoint().GetY();
    }
-   else if (segs[GetSeg()].GetCHS().GetRP().GetX() == x) {
+   else if (segs[GetSeg()].GetCHS().GetRightPoint().GetX() == x) {
       end = true;
-      res = segs[GetSeg()].GetCHS().GetRP().GetY();
+      res = segs[GetSeg()].GetCHS().GetRightPoint().GetY();
    }
    if ( end) {
-      #ifdef RATIONAL_COORDINATES
-      double y = (res.IsInteger()? res.IntValue(): res.Value()) ;
-      #else
       double y = res ;
-      #endif
       return y;
    }
    else {
-      #ifdef RATIONAL_COORDINATES
-      double xv = (x.IsInteger()? x.IntValue(): x.Value()) ;
-      #else
       double xv = x ;
-      #endif
       return ( k*xv + a);
    }
 }
@@ -1497,15 +1479,15 @@ private:
 
    bool IsEmpty();
    int Size();
-   bool InsertIntersection(const CHalfSegment& chs1,
-      const CHalfSegment& chs2,int s1,int s2, PQueue& pq );
+   bool InsertIntersection(const HalfSegment& hs1,
+      const HalfSegment& hs2,int s1,int s2, PQueue& pq );
    void erase(SSSEntry* entry);
    BinTreeNode<SSSEntry>* GetGreater(Coord xvalue, Coord y,
      Segment segs[]);
    BinTreeNode<SSSEntry>* GetNext(BinTreeNode<SSSEntry>* ent);
    BinTreeNode<SSSEntry>* GetPred(BinTreeNode<SSSEntry>* ent);
-   bool innerInter( const CHalfSegment& chs1, const CHalfSegment&
-      chs2,  Point& resp, CHalfSegment& rchs, bool& first,
+   bool innerInter( const HalfSegment& hs1, const HalfSegment&
+      hs2,  Point& resp, HalfSegment& rhs, bool& first,
       bool& second ) const;
 };
 
@@ -1542,7 +1524,7 @@ BinTreeNode<SSSEntry>* StatusLine::GetPred
 */
 
 /*
-This function is used to find the right position to insert a new entry. It searchs that node in the statusline, which will be the next in the order. (Used in the insert-function)
+This function is used to find the right position to insert a new entry. It searhs that node in the statusline, which will be the next in the order. (Used in the insert-function)
 
 */
 BinTreeNode<SSSEntry>* StatusLine::GetGreater(Coord x, Coord y,
@@ -1652,7 +1634,7 @@ void StatusLine::Delete(Coord x, Coord oldx, SSSEntry& entry,
       {
          int s1 = pred->GetEntry().GetSeg();
          int s2 = succ->GetEntry().GetSeg();
-         // test for intersection with pred- and succ-CHalfSegment
+         // test for intersection with pred- and succ-HalfSegment
          if (sgs[s1].GetIn1() != sgs[s2].GetIn1() )
             InsertIntersection (sgs[s1].GetCHS(), sgs[s2].GetCHS(),
             s1, s2, pq);
@@ -1666,54 +1648,35 @@ const double DIST = 1* exp(-20.0);
 /*
 This new Functions is needed for testing, if two CHalfsegments
 intersects with inner points and if this is true,
-as result the single point of intersection or the Segments which overlap are given as result in resp or rchs
+as result the single point of intersection or the Segments which overlap are given as result in resp or rhs
 If the intersetion points are very close to the endpoint (Distance is
 less than DIST), it is assumed, that the intersection is only a problem of rounding double values
 
 */
 
-bool StatusLine::innerInter( const CHalfSegment& chs1,
-   const CHalfSegment& chs2, Point& resp, CHalfSegment& rchs,
+bool StatusLine::innerInter( const HalfSegment& hs1,
+   const HalfSegment& hs2, Point& resp, HalfSegment& rhs,
    bool& first, bool& second ) const
 {
-   resp.SetDefined(false);      rchs.SetDefined(false);
    first = false;               second = false;
    Coord xl,yl,xr,yr ,  Xl,Yl,Xr,Yr;
    double k, a, K, A;
-   xl=chs1.GetLP().GetX();  yl=chs1.GetLP().GetY();
-   xr=chs1.GetRP().GetX();  yr=chs1.GetRP().GetY();
-   if (xl!=xr)  // chs1 not vertical
+   xl=hs1.GetLeftPoint().GetX();  yl=hs1.GetLeftPoint().GetY();
+   xr=hs1.GetRightPoint().GetX();  yr=hs1.GetRightPoint().GetY();
+   if (xl!=xr)  // hs1 not vertical
    {     //k=(yr-yl) / (xr-xl);  a=yl - k*yl;
-    #ifdef RATIONAL_COORDINATES
-      k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
-         (yl.IsInteger()? yl.IntValue():yl.Value())) /
-        ((xr.IsInteger()? xr.IntValue():xr.Value()) -
-         (xl.IsInteger()? xl.IntValue():xl.Value()));
-      a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
-         k*(xl.IsInteger()? xl.IntValue():xl.Value());
-    #else
       k=(yr - yl) / (xr - xl);
       a=yl - k*xl;
-    #endif
    }
-   Xl=chs2.GetLP().GetX();  Yl=chs2.GetLP().GetY();
-   Xr=chs2.GetRP().GetX();  Yr=chs2.GetRP().GetY();
-   if (Xl!=Xr)  // chs2 not vertical
+   Xl=hs2.GetLeftPoint().GetX();  Yl=hs2.GetLeftPoint().GetY();
+   Xr=hs2.GetRightPoint().GetX();  Yr=hs2.GetRightPoint().GetY();
+   if (Xl!=Xr)  // hs2 not vertical
    {     //K=(Yr-Yl) / (Xr-Xl);  A=Yl - K*Xl;
-    #ifdef RATIONAL_COORDINATES
-      K=  ((Yr.IsInteger()? Yr.IntValue():Yr.Value()) -
-          (Yl.IsInteger()? Yl.IntValue():Yl.Value())) /
-         ((Xr.IsInteger()? Xr.IntValue():Xr.Value()) -
-          (Xl.IsInteger()? Xl.IntValue():Xl.Value()));
-      A = (Yl.IsInteger()? Yl.IntValue():Yl.Value()) -
-         K*(Xl.IsInteger()? Xl.IntValue():Xl.Value());
-    #else
       K=  (Yr - Yl) / (Xr - Xl);
       A = Yl - K*Xl;
-    #endif
    }
    if ((xl==xr) && (Xl==Xr))  {
-      //both chs1 and chs2 are vertical lines
+      //both hs1 and hs2 are vertical lines
       if (xl!=Xl) return false;
       else  {
          Coord ylow, yup, Ylow, Yup;
@@ -1730,7 +1693,7 @@ bool StatusLine::innerInter( const CHalfSegment& chs1,
             else                p1.Set(xl, Ylow);
             if (yup<Yup)        p2.Set(xl, yup);
             else                p2.Set(xl, Yup);
-            rchs.Set(true, p1, p2);
+            rhs.Set(true, p1, p2);
             first = true;       second = true;
             return true;
          }
@@ -1743,13 +1706,8 @@ bool StatusLine::innerInter( const CHalfSegment& chs1,
       if ( xr==Xl && yr>Yl && yr<Yr )
          {resp.Set(xr,yr); second = true; return true;}
       else  {
-        #ifdef RATIONAL_COORDINATES
-         double y0=k*(Xl.IsInteger()? Xl.IntValue():Xl.Value())+a;
-         Coord yy(y0);
-       #else
          double y0=k*Xl+a;
          Coord yy=y0;
-      #endif
          //(Xl, y0) is the intersection of l and L
          if ((Xl>xl) &&( Xl<xr))  {
             if ( (yy>=Yl) && (yy <= Yr) ) {
@@ -1774,13 +1732,8 @@ bool StatusLine::innerInter( const CHalfSegment& chs1,
       if ( Xr==xl && Yr>yl && Yr<yr )
          {resp.Set(Xr,Yr); first = true; return true;}
       else  {
-        #ifdef RATIONAL_COORDINATES
-         double y0=K*(xl.IsInteger()? xl.IntValue():xl.Value())+A;
-         Coord yy(y0);
-       #else
          double y0=K*xl+A;
          Coord yy=y0;
-      #endif
          //(Xl, y0) is the intersection of l and L
          if ((xl>Xl) && (xl<Xr))  {
             if ( (yy>=yl) && (yy <= yr) ) {
@@ -1808,7 +1761,7 @@ bool StatusLine::innerInter( const CHalfSegment& chs1,
          else           p1.Set(Xl, Yl);
          if (xr<Xr)     p2.Set(xr, yr);
          else           p2.Set(Xr, Yr);
-         rchs.Set(true, p1, p2);
+         rhs.Set(true, p1, p2);
          first = true; second = true;
          return true;
       }
@@ -1817,13 +1770,9 @@ bool StatusLine::innerInter( const CHalfSegment& chs1,
    else  {
       double x0 = (A-a) / (k-K);  // y0=x0*k+a;
       double y0 = x0*k+a;
-     #ifdef RATIONAL_COORDINATES
-        Coord xx(x0);   Coord yy(y0);
-     #else
         Coord xx = x0; Coord yy=y0;
-     #endif
-     if (chs1.GetLP() == chs2.GetLP() ||
-         chs1.GetRP() == chs2.GetRP() ) return false;
+     if (hs1.GetLeftPoint() == hs2.GetLeftPoint() ||
+         hs1.GetRightPoint() == hs2.GetRightPoint() ) return false;
      // test if rounding problem, then no intersection
      resp.Set(xx,yy);
      if ( (abs(Xl-xx) < DIST && abs(Yl-yy) < DIST) ||
@@ -1850,18 +1799,18 @@ Second:
 - they overlap, XEvent split is inserted in the ~PQueue~
 
 */
-bool StatusLine::InsertIntersection(const CHalfSegment& chs1,const
-   CHalfSegment& chs2,int s1, int s2, PQueue& pq)
+bool StatusLine::InsertIntersection(const HalfSegment& hs1,const
+   HalfSegment& hs2,int s1, int s2, PQueue& pq)
 {
    bool result = false;
    Point point;
    Coord xp, yp;
-   CHalfSegment res;
+   HalfSegment res;
    bool one, two;
-   // test if two CHalfSegments intersects
+   // test if two HalfSegments intersects
    // if intersection in one point -> point isDefined
-   // if they overlap -> CHalfSegment res is the result-segment
-   bool innerinter = innerInter(chs1, chs2, point, res, one, two);
+   // if they overlap -> HalfSegment res is the result-segment
+   bool innerinter = innerInter(hs1, hs2, point, res, one, two);
    if (innerinter)  {
       result = true;
       if (point.IsDefined() ) { // intersection in one point
@@ -1875,59 +1824,83 @@ bool StatusLine::InsertIntersection(const CHalfSegment& chs1,const
          else if (two)
              {XEvent ev1(xp, yp, s2, split); pq.insert(ev1);}
       }
-      else if (res.IsDefined() ) {  // overlap-intersection
+      else {
          // both segments are the same
-         if (chs1 == chs2) { return true;}
+         if (hs1 == hs2) { return true;}
          // both segments starts with same point
-         else if (chs1.GetLP() == chs2.GetLP() ) {
-            if (chs1.Inside(chs2) ) {
-               xp = chs1.GetRP().GetX();  yp = chs1.GetRP().GetY();
-               XEvent ev1( xp, yp, s2, split);  pq.insert(ev1);
+         else if (hs1.GetLeftPoint() == hs2.GetLeftPoint() ) {
+            if (hs1.Inside(hs2) ) {
+               xp = hs1.GetRightPoint().GetX();  
+               yp = hs1.GetRightPoint().GetY();
+               XEvent ev1( xp, yp, s2, split);  
+               pq.insert(ev1);
             }
             else {
-               xp = chs2.GetRP().GetX();  yp = chs2.GetRP().GetY();
-               XEvent ev1(xp, yp, s1, split);   pq.insert(ev1);
+               xp = hs2.GetRightPoint().GetX();  
+               yp = hs2.GetRightPoint().GetY();
+               XEvent ev1(xp, yp, s1, split);   
+               pq.insert(ev1);
             }
          }
          // both segments ends in same point
-         else if (chs1.GetRP() == chs2.GetRP() )  {
-            if (chs1.Inside(chs2) ) {
-               xp = chs1.GetLP().GetX();  yp = chs1.GetLP().GetY();
-               XEvent ev1(xp, yp, s2, split);   pq.insert(ev1);
+         else if (hs1.GetRightPoint() == hs2.GetRightPoint() )  {
+            if (hs1.Inside(hs2) ) {
+               xp = hs1.GetLeftPoint().GetX();  
+               yp = hs1.GetLeftPoint().GetY();
+               XEvent ev1(xp, yp, s2, split);   
+               pq.insert(ev1);
             }
             else {
-               xp = chs2.GetLP().GetX();  yp = chs2.GetLP().GetY();
-               XEvent ev1(xp, yp, s1, split);   pq.insert(ev1);
+               xp = hs2.GetLeftPoint().GetX();  
+               yp = hs2.GetLeftPoint().GetY();
+               XEvent ev1(xp, yp, s1, split);   
+               pq.insert(ev1);
             }
          }
          // one segement inside the other
-         else if (chs1.Inside(chs2)) {
-            xp = chs1.GetLP().GetX();   yp = chs1.GetLP().GetY();
-            XEvent ev1(xp, yp, s2, split);      pq.insert(ev1);
-            xp = chs1.GetRP().GetX();   yp = chs1.GetRP().GetY();
-            XEvent ev2(xp, yp, s2, split);      pq.insert(ev2);
+         else if (hs1.Inside(hs2)) {
+            xp = hs1.GetLeftPoint().GetX();   
+            yp = hs1.GetLeftPoint().GetY();
+            XEvent ev1(xp, yp, s2, split);      
+            pq.insert(ev1);
+            xp = hs1.GetRightPoint().GetX();   
+            yp = hs1.GetRightPoint().GetY();
+            XEvent ev2(xp, yp, s2, split);      
+            pq.insert(ev2);
          }
-         else if (chs2.Inside(chs1)) {
-            xp = chs2.GetLP().GetX();  yp = chs2.GetLP().GetY();
-            XEvent ev1 (xp, yp, s1, split);     pq.insert(ev1);
-            xp = chs2.GetRP().GetX();   yp = chs2.GetRP().GetY();
-            XEvent ev2 (xp, yp, s1, split);     pq.insert(ev2);
+         else if (hs2.Inside(hs1)) {
+            xp = hs2.GetLeftPoint().GetX();  
+            yp = hs2.GetLeftPoint().GetY();
+            XEvent ev1 (xp, yp, s1, split);     
+            pq.insert(ev1);
+            xp = hs2.GetRightPoint().GetX();   
+            yp = hs2.GetRightPoint().GetY();
+            XEvent ev2 (xp, yp, s1, split);     
+            pq.insert(ev2);
          }
          else  { // overlap without Inside
-            if (chs1.GetRP() > chs2.GetRP() )   {
-               xp = chs1.GetLP().GetX();  yp = chs1.GetLP().GetY();
-               XEvent ev1(xp, yp, s2, split);   pq.insert(ev1);
-               xp = chs2.GetRP().GetX();  yp = chs2.GetRP().GetY();
-               XEvent ev2(xp, yp, s1, split);   pq.insert(ev2);
+            if (hs1.GetRightPoint() > hs2.GetRightPoint() )   {
+               xp = hs1.GetLeftPoint().GetX();  
+               yp = hs1.GetLeftPoint().GetY();
+               XEvent ev1(xp, yp, s2, split);   
+               pq.insert(ev1);
+               xp = hs2.GetRightPoint().GetX();  
+               yp = hs2.GetRightPoint().GetY();
+               XEvent ev2(xp, yp, s1, split);   
+               pq.insert(ev2);
             }
             else {
-               xp = chs1.GetRP().GetX();   yp = chs1.GetRP().GetY();
-               XEvent ev1(xp, yp, s2, split);    pq.insert(ev1);
-               xp = chs2.GetLP().GetX();   yp = chs2.GetLP().GetY();
-               XEvent ev2(xp, yp, s1, split);    pq.insert(ev2);
+               xp = hs1.GetRightPoint().GetX();   
+               yp = hs1.GetRightPoint().GetY();
+               XEvent ev1(xp, yp, s2, split);    
+               pq.insert(ev1);
+               xp = hs2.GetLeftPoint().GetX();   
+               yp = hs2.GetLeftPoint().GetY();
+               XEvent ev2(xp, yp, s1, split);    
+               pq.insert(ev2);
             }
          } // overlap without Inside
-      }  // res.Defined()
+      }  
    } // innerinter
    return result;
 }
@@ -2096,7 +2069,7 @@ void VList::output()
    {
       Segment s = *p;
       cout << "   Segment = " << s.GetIn1() << " "
-           <<s.GetCHS().GetLP()<<" "<<s.GetCHS().GetRP()<<endl;
+           <<s.GetCHS().GetLeftPoint()<<" "<<s.GetCHS().GetRightPoint()<<endl;
       ++p;
    }
    cout << " in output fertig " << endl;
@@ -2128,15 +2101,15 @@ void VList::testOverlaps(Coord& sweepline, VStructure& vs,
    while ( !IsEmpty() )  {
       bool deleted = false;
       Segment first = First();
-      CHalfSegment chs = first.GetCHS();
+      HalfSegment hs = first.GetCHS();
       DeleteFirst();
       list<Segment>::iterator p = vlist.begin();
-      // test first Segment for overlaps with other CHalfSegments
+      // test first Segment for overlaps with other HalfSegments
       while ( (p != vlist.end()) &&  (deleted == false)  )  {
          Segment ref = *p;
-         CHalfSegment test = ref.GetCHS();
-         CHalfSegment res;
-         bool overlap = chs.overlapintersect(test,res);
+         HalfSegment test = ref.GetCHS();
+         HalfSegment res;
+         bool overlap = hs.Intersection(test,res);
          //if (overlap) cout << "overlap is true" << endl;
          //cout << first << endl;
          //cout << ref << endl;
@@ -2144,82 +2117,82 @@ void VList::testOverlaps(Coord& sweepline, VStructure& vs,
          if (overlap  && ( first.GetIn1() != ref.GetIn1()) ) {
             // only different regions are tested
             // first segment inside the other Segment
-            if (chs.Inside(test) ) {
-               if (chs.GetLP()==test.GetLP()&&chs.GetRP()==
-                  test.GetRP()) { }
-               else if (chs.GetLP() == test.GetLP() ) {
+            if (hs.Inside(test) ) {
+               if (hs.GetLeftPoint()==test.GetLeftPoint()&&hs.GetRightPoint()==
+                  test.GetRightPoint()) { }
+               else if (hs.GetLeftPoint() == test.GetLeftPoint() ) {
                   Segment newseg(ref.GetIn1(),test);
-                  newseg.SetRP(res.GetRP());
+                  newseg.SetRightPoint(res.GetRightPoint());
                   vlist.insert(p,newseg);
-                  ref.SetLP(res.GetRP());
+                  ref.SetLeftPoint(res.GetRightPoint());
                   vlist.erase(p);  vlist.push_back(ref);
                }
-               else if (chs.GetRP() == test.GetRP()) {
+               else if (hs.GetRightPoint() == test.GetRightPoint()) {
                   Segment newseg(ref.GetIn1(),test);
-                  newseg.SetRP(res.GetLP());
+                  newseg.SetRightPoint(res.GetLeftPoint());
                   vlist.insert(p,newseg);
-                  ref.SetLP(res.GetLP());
+                  ref.SetLeftPoint(res.GetLeftPoint());
                   vlist.erase(p); vlist.push_back(ref);
                }
                else  {
                   Segment newseg1(ref.GetIn1(),test);
-                  newseg1.SetRP(res.GetLP());
+                  newseg1.SetRightPoint(res.GetLeftPoint());
                   vlist.insert(p,newseg1);
                   Segment newseg2(ref.GetIn1(), test);
-                  newseg2.SetLP(res.GetLP());
-                  newseg2.SetRP(res.GetRP());
+                  newseg2.SetLeftPoint(res.GetLeftPoint());
+                  newseg2.SetRightPoint(res.GetRightPoint());
                   vlist.insert(p,newseg2);
-                  ref.SetLP(res.GetRP());
+                  ref.SetLeftPoint(res.GetRightPoint());
                   vlist.erase(p);
                   vlist.push_back(ref);
                }
             }
             // second segment inside the other
-            else if (test.Inside(chs))  {
-               if (chs.GetLP() == test.GetLP() ) {
-                  Segment newseg(first.GetIn1(),chs);
-                  newseg.SetRP(res.GetRP());
+            else if (test.Inside(hs))  {
+               if (hs.GetLeftPoint() == test.GetLeftPoint() ) {
+                  Segment newseg(first.GetIn1(),hs);
+                  newseg.SetRightPoint(res.GetRightPoint());
                   vlist.insert(p,newseg);
-                  first.SetLP(res.GetRP());
+                  first.SetLeftPoint(res.GetRightPoint());
                }
-               else if (chs.GetRP() == test.GetRP()) {
-                  Segment newseg(first.GetIn1(),chs);
-                  newseg.SetRP(res.GetLP());
+               else if (hs.GetRightPoint() == test.GetRightPoint()) {
+                  Segment newseg(first.GetIn1(),hs);
+                  newseg.SetRightPoint(res.GetLeftPoint());
                   vlist.insert(p,newseg);
-                  first.SetLP(res.GetLP());
+                  first.SetLeftPoint(res.GetLeftPoint());
                }
                else  {
-                  Segment newseg1(first.GetIn1(),chs);
-                  newseg1.SetRP(res.GetLP());
+                  Segment newseg1(first.GetIn1(),hs);
+                  newseg1.SetRightPoint(res.GetLeftPoint());
                   vlist.insert(p,newseg1);
-                  Segment newseg2(first.GetIn1(),chs);
-                  newseg2.SetLP(res.GetLP());
-                  newseg2.SetRP(res.GetRP());
+                  Segment newseg2(first.GetIn1(),hs);
+                  newseg2.SetLeftPoint(res.GetLeftPoint());
+                  newseg2.SetRightPoint(res.GetRightPoint());
                   vlist.insert(p,newseg2);
-                  first.SetLP(res.GetRP());
+                  first.SetLeftPoint(res.GetRightPoint());
                }
             }
             // overlap but not inside
-            else if (res.GetLP() > chs.GetLP())  {
-               Segment newseg1(first.GetIn1(),chs);
-               newseg1.SetRP(res.GetLP());
+            else if (res.GetLeftPoint() > hs.GetLeftPoint())  {
+               Segment newseg1(first.GetIn1(),hs);
+               newseg1.SetRightPoint(res.GetLeftPoint());
                vlist.insert(p,newseg1);
-               first.SetLP(res.GetLP());
+               first.SetLeftPoint(res.GetLeftPoint());
                Segment newseg2(ref.GetIn1(),test);
-               newseg2.SetRP(res.GetRP());
+               newseg2.SetRightPoint(res.GetRightPoint());
                vlist.insert(p,newseg2);
-               ref.SetLP(res.GetRP());
+               ref.SetLeftPoint(res.GetRightPoint());
                vlist.erase(p); vlist.push_back(ref);
             }
             else   {
-               Segment newseg1(first.GetIn1(),chs);
-               newseg1.SetRP(res.GetRP());
+               Segment newseg1(first.GetIn1(),hs);
+               newseg1.SetRightPoint(res.GetRightPoint());
                vlist.insert(p,newseg1);
-               first.SetLP(res.GetRP());
+               first.SetLeftPoint(res.GetRightPoint());
                Segment newseg2(ref.GetIn1(),test);
-               newseg2.SetRP(res.GetLP());
+               newseg2.SetRightPoint(res.GetLeftPoint());
                vlist.insert(p,newseg2);
-               ref.SetLP(res.GetLP());
+               ref.SetLeftPoint(res.GetLeftPoint());
                vlist.erase(p); vlist.push_back(ref);
             }
          } // end overlap
@@ -2228,20 +2201,23 @@ void VList::testOverlaps(Coord& sweepline, VStructure& vs,
       // tests if there are endpoints of other segments inside verticals
       Coord min = vs.GetMin();
       Coord max =  vs.GetMax();
-      chs = first.GetCHS();
-      if (!((chs.GetLP().GetY()<=min && chs.GetRP().GetY()<= min)
-         ||(chs.GetLP().GetY()>=max && chs.GetRP().GetY()>= max))) {
+      hs = first.GetCHS();
+      if (!((hs.GetLeftPoint().GetY()<=min && 
+             hs.GetRightPoint().GetY()<= min)
+         ||(hs.GetLeftPoint().GetY()>=max && 
+            hs.GetRightPoint().GetY()>= max))) {
          list<Coord>::iterator ps = vs.vstruct.begin();
          bool ready = false;
          while (ps != vs.vstruct.end() && ready != true) {
             Coord y = *ps;
-            if (y >= chs.GetRP().GetY())   ready = true;
-            else if (y > chs.GetLP().GetY()) {// split CHalfsegment
+            if (y >= hs.GetRightPoint().GetY())   ready = true;
+            else if (y > hs.GetLeftPoint().GetY()) {
+               // split CHalfsegment
                Point newp = Point(true, sweepline,y);
                Segment newseg(first.GetIn1(),first.GetCHS());
-               newseg.SetRP(newp);
+               newseg.SetRightPoint(newp);
                newlist.push_back(newseg);
-               first.SetLP(newp);
+               first.SetLeftPoint(newp);
             }
             ps++;
          }
@@ -2265,10 +2241,10 @@ void  VList::testStatusLine(StatusLine& sline, Segment segs[])
    //sline.output(1,segs); cout << endl;
    while ( ! IsEmpty() )  {
       Segment vertref = First();
-      CHalfSegment vert = vertref.GetCHS();
+      HalfSegment vert = vertref.GetCHS();
       DeleteFirst();
-      Coord x = vert.GetLP().GetX();
-      Coord y = vert.GetLP().GetY();
+      Coord x = vert.GetLeftPoint().GetX();
+      Coord y = vert.GetLeftPoint().GetY();
       // searches the next segment to the bottom of vertical segment
       BinTreeNode<SSSEntry>* node = sline.GetGreater(x,y,segs);
       while (node != 0)  {
@@ -2276,26 +2252,26 @@ void  VList::testStatusLine(StatusLine& sline, Segment segs[])
          SSSEntry  ent = node -> GetEntry();
          Segment testref = segs[ent.GetSeg()];
          //cout << testref << endl;
-         CHalfSegment test = testref.GetCHS() ;
+         HalfSegment test = testref.GetCHS() ;
          Point res;
          // tests if a segments intersects the vertical
-         bool inter = vert.spintersect (test, res);
-         if (inter) { // intersection occurs
+         if( vert.Crosses(test) ) { // intersection occurs
+            vert.Intersection(test, res);
             //cout << "inter is true" << endl;
             Segment newseg1(vertref.GetIn1(), vert);
-            newseg1.SetLP(res);
+            newseg1.SetLeftPoint(res);
             vlist.push_front (newseg1);
-            vertref.SetRP(res);
+            vertref.SetRightPoint(res);
             Segment newseg2(testref.GetIn1(), test);
-            newseg2.SetRP(res);
+            newseg2.SetRightPoint(res);
             newlist.push_back(newseg2);
-            testref.SetLP(res);
+            testref.SetLeftPoint(res);
             //cout << "Testref: " << testref << endl;
             segs[ent.GetSeg()] = testref;
          } // end inter
          node = node->GetNext();
          if (node!=0 && node->GetEntry().GetY(x,segs)
-            >vert.GetRP().GetY())  {node = 0;}
+            >vert.GetRightPoint().GetY())  {node = 0;}
       } // all entries in statusline tested
 //      p++; // next vertical Segment
       newlist.push_back(vertref);
@@ -2316,27 +2292,27 @@ public:
    MakeRealm() {};
    ~MakeRealm() {};
    void PQueueOutput(PQueue& pq);
-   void  REALM (const CRegion* reg1, const CRegion* reg2, CRegion* result1,
-      CRegion* result2);
-   void  REALM (const CRegion* reg1, const CRegion* reg2, CLine* result1,
-   CLine* result2);
-   void  REALM (const CLine* reg1, const CRegion* reg2, CLine* result1,
-      CRegion* result2);
-   void  REALM (const CLine* reg1, const CLine* reg2, CLine* result1,
-      CLine* result2);
+   void  REALM (const Region* reg1, const Region* reg2, Region* result1,
+      Region* result2);
+   void  REALM (const Region* reg1, const Region* reg2, Line* result1,
+   Line* result2);
+   void  REALM (const Line* reg1, const Region* reg2, Line* result1,
+      Region* result2);
+   void  REALM (const Line* reg1, const Line* reg2, Line* result1,
+      Line* result2);
 
 private:
    void PerformPlaneSweep(PQueue& pq,Segment segs[],
-      list<CHalfSegment>& res1,list<CHalfSegment>& res2,
+      list<HalfSegment>& res1,list<HalfSegment>& res2,
       const int counter);
-   void PrepareCHS (bool No1, const CHalfSegment& chs, PQueue& pqu,
+   void PrepareCHS (bool No1, const HalfSegment& hs, PQueue& pqu,
       Segment segs[], int counter);
 };
 
-void MakeRealm::REALM( const CRegion* reg1, 
-                       const CRegion* reg2, 
-                       CRegion* result1,
-                       CRegion* result2      )
+void MakeRealm::REALM( const Region* reg1, 
+                       const Region* reg2, 
+                       Region* result1,
+                       Region* result2      )
 {
    PQueue pqueue ;  // priority Queue for XEvents
    // Prepare the first region for PlanSweep
@@ -2344,24 +2320,24 @@ void MakeRealm::REALM( const CRegion* reg1,
    int count = 0;
    // insert all segments of region1 into priority queue
    for (int i=0; i<reg1->Size(); i++)   {
-      const CHalfSegment *chs;
-      reg1->Get(i,chs);
-      if (chs->GetLDP() == true && chs->IsDefined() ) {
-         PrepareCHS(true, *chs, pqueue, segs, count);
+      const HalfSegment *hs;
+      reg1->Get(i,hs);
+      if (hs->IsLeftDomPoint() == true) {
+         PrepareCHS(true, *hs, pqueue, segs, count);
          count ++;
       }
    }
    // Prepare the second region for PlaneSweep
    for (int i=0; i<reg2->Size(); i++)   {
-      const CHalfSegment *chs;
-      reg2->Get(i,chs);
-      if (chs->GetLDP() == true && chs->IsDefined() ) {
-         PrepareCHS(false, *chs, pqueue, segs, count);
+      const HalfSegment *hs;
+      reg2->Get(i,hs);
+      if (hs->IsLeftDomPoint() == true) {
+         PrepareCHS(false, *hs, pqueue, segs, count);
          count ++;
       }
    }
    //cout << pqueue << endl;
-   list<CHalfSegment> res1, res2;
+   list<HalfSegment> res1, res2;
       //cout << "hier ok1" << endl;
    PerformPlaneSweep(pqueue, segs, res1, res2, count);
    //pqueue.Clear();
@@ -2371,45 +2347,37 @@ void MakeRealm::REALM( const CRegion* reg1,
    int counter = 0;
               //cout << "hier ok2" << endl;
    while (! res1.empty() )  {
-      CHalfSegment chs = res1.back();
-      //if ( ((abs(chs.GetLP().GetX() - chs.GetRP().GetX())) < 0.0000000001)) 
-      //{res1.pop_back(); continue;}
-      //cout << chs.GetLP().GetX() << " " << chs.GetRP().GetX() 
-      //<< " " << chs.GetLP().GetX() - chs.GetRP().GetX() << endl;
-      chs.attr.partnerno = counter;
-      chs.SetLDP(true);       result1->InsertHs(chs);
-      chs.SetLDP(false);      result1->InsertHs(chs);
+      HalfSegment hs = res1.back();
+      hs.attr.edgeno = counter;
+      hs.SetLeftDomPoint(true);       *result1 += hs;
+      hs.SetLeftDomPoint(false);      *result1 += hs;
       counter ++;
       res1.pop_back();
    }
-   result1 -> EndBulkLoad(true);
-   result1->SetPartnerNo();
-   result1->ComputeRegion();
+   result1->EndBulkLoad();
    
    //  reconstruction of second region
    result2->Clear();
    result2->StartBulkLoad();
    counter = 0;
    while (! res2.empty() )    {
-      CHalfSegment chs = res2.front();
-      //cout << chs << endl;
-      chs.attr.partnerno = counter;
-      chs.SetLDP(true);       result2->InsertHs(chs);
-      chs.SetLDP(false);      result2->InsertHs(chs);
+      HalfSegment hs = res2.front();
+      //cout << hs << endl;
+      hs.attr.edgeno = counter;
+      hs.SetLeftDomPoint(true);       *result2 += hs;
+      hs.SetLeftDomPoint(false);      *result2 += hs;
       res1.erase(res2.begin());
       counter++;
    }
-   result2 -> EndBulkLoad(true);
-   result2->SetPartnerNo();
-   result2->ComputeRegion();
+   result2->EndBulkLoad();
    //cout << "REALM1" << endl;
    //cout << *result1 << endl;
    //cout << "REALM2" << endl;
    //cout << *result2 << endl;
 }
 
-void MakeRealm::REALM(const CRegion* reg1, const CRegion* reg2, 
-                      CLine* result1, CLine* result2)
+void MakeRealm::REALM(const Region* reg1, const Region* reg2, 
+                      Line* result1, Line* result2)
 {
    PQueue pqueue ;  // priority Queue for XEvents
    // Prepare the region for PlanSweep
@@ -2417,54 +2385,56 @@ void MakeRealm::REALM(const CRegion* reg1, const CRegion* reg2,
    int count = 0;
    // insert all segments of region1 into priority queue
    for (int i=0; i<reg1->Size(); i++)   {
-      const CHalfSegment *chs;
-      reg1->Get(i,chs);
-      if (chs->GetLDP() == true && chs->IsDefined() ) {
-         PrepareCHS(true, *chs, pqueue, segs, count);
+      const HalfSegment *hs;
+      reg1->Get(i,hs);
+      if (hs->IsLeftDomPoint() == true) {
+         PrepareCHS(true, *hs, pqueue, segs, count);
          count ++;
       }
    }
    // Prepare the line for PlaneSweep
    for (int i=0; i<reg2->Size(); i++)   {
-      const CHalfSegment *chs;
-      reg2->Get(i,chs);
-      if (chs->GetLDP() == true && chs->IsDefined() ) {
-         PrepareCHS(false, *chs, pqueue, segs, count);
+      const HalfSegment *hs;
+      reg2->Get(i,hs);
+      if (hs->IsLeftDomPoint() == true) {
+         PrepareCHS(false, *hs, pqueue, segs, count);
          count ++;
       }
    }
-   list<CHalfSegment> res1, res2;
+   list<HalfSegment> res1, res2;
    PerformPlaneSweep(pqueue, segs, res1, res2, count);
    //  reconstruction of region
    result1->Clear();
    result1->StartBulkLoad();
    int counter = 0;
    while (! res1.empty() )  {
-      CHalfSegment chs = res1.back();
-      chs.attr.partnerno = counter;
-      chs.SetLDP(true);       result1->InsertHs(chs);
-      chs.SetLDP(false);      result1->InsertHs(chs);
+      HalfSegment hs = res1.back();
+      hs.attr.edgeno = counter;
+      hs.SetLeftDomPoint(true);       *result1 += hs;
+      hs.SetLeftDomPoint(false);      *result1 += hs;
       res1.pop_back();
       counter ++;
    }
-   result1 -> EndBulkLoad(true);
+   // VTA - I need to come back here
+   result1->EndBulkLoad(true, true, false, false);
    //  reconstruction of line
    result2->Clear();
    result2->StartBulkLoad();
    counter = 0;
    while (! res2.empty() )    {
-      CHalfSegment chs = res2.front();
-      chs.attr.partnerno = counter;
-      chs.SetLDP(true);       result2->InsertHs(chs);
-      chs.SetLDP(false);      result2->InsertHs(chs);
+      HalfSegment hs = res2.front();
+      hs.attr.edgeno = counter;
+      hs.SetLeftDomPoint(true);       *result2 += hs;
+      hs.SetLeftDomPoint(false);      *result2 += hs;
       res1.erase(res2.begin());
       counter++;
    }
-   result2 -> EndBulkLoad(true);
+   // VTA - I need to come back here
+   result2->EndBulkLoad(true, true, false, false);
 }
 
-void MakeRealm::REALM(const CLine* line1, const CRegion* reg2, 
-                      CLine* result1, CRegion* result2)
+void MakeRealm::REALM(const Line* line1, const Region* reg2, 
+                      Line* result1, Region* result2)
 {
    PQueue pqueue ;  // priority Queue for XEvents
    // Prepare the line for PlanSweep
@@ -2472,53 +2442,52 @@ void MakeRealm::REALM(const CLine* line1, const CRegion* reg2,
    int count = 0;
    // insert all segments of region1 into priority queue
    for (int i=0; i<line1->Size(); i++)   {
-      const CHalfSegment *chs;
-      line1->Get(i,chs);
-      if (chs->GetLDP() == true && chs->IsDefined() ) {
-         PrepareCHS(true, *chs, pqueue, segs, count);
+      const HalfSegment *hs;
+      line1->Get(i,hs);
+      if (hs->IsLeftDomPoint() == true) {
+         PrepareCHS(true, *hs, pqueue, segs, count);
          count ++;
       }
    }
    // Prepare the region for PlaneSweep
    for (int i=0; i<reg2->Size(); i++)   {
-      const CHalfSegment *chs;
-      reg2->Get(i,chs);
-      if (chs->GetLDP() == true && chs->IsDefined() ) {
-         PrepareCHS(false, *chs, pqueue, segs, count);
+      const HalfSegment *hs;
+      reg2->Get(i,hs);
+      if (hs->IsLeftDomPoint() == true) {
+         PrepareCHS(false, *hs, pqueue, segs, count);
          count ++;
       }
    }
-   list<CHalfSegment> res1, res2;
+   list<HalfSegment> res1, res2;
    PerformPlaneSweep(pqueue, segs, res1, res2, count);
    //  reconstruction of region
    result1->Clear();
    result1->StartBulkLoad();
    while (! res1.empty() )  {
-      CHalfSegment chs = res1.back();
-      chs.SetLDP(true);       result1->InsertHs(chs);
-      chs.SetLDP(false);      result1->InsertHs(chs);
+      HalfSegment hs = res1.back();
+      hs.SetLeftDomPoint(true);       *result1 += hs;
+      hs.SetLeftDomPoint(false);      *result1 += hs;
       res1.pop_back();
    }
-   result1 -> EndBulkLoad(true);
+   // VTA - I need to come back here
+   result1->EndBulkLoad(true, true, false, false);
    //  reconstruction of line
    result2->Clear();
    result2->StartBulkLoad();
    int counter = 0;
    while (! res2.empty() )    {
-      CHalfSegment chs = res2.front();
-      chs.attr.partnerno = counter;
-      chs.SetLDP(true);       result2->InsertHs(chs);
-      chs.SetLDP(false);      result2->InsertHs(chs);
+      HalfSegment hs = res2.front();
+      hs.attr.edgeno = counter;
+      hs.SetLeftDomPoint(true);       *result2 += hs;
+      hs.SetLeftDomPoint(false);      *result2 += hs;
       res1.erase(res2.begin());
       counter++;
    }
-   result2 -> EndBulkLoad(true);
-   result2->SetPartnerNo();
-   result2->ComputeRegion();
+   result2->EndBulkLoad();
 }
 
-void MakeRealm::REALM(const CLine* line1, const CLine* line2,  
-                      CLine* result1, CLine* result2)
+void MakeRealm::REALM(const Line* line1, const Line* line2,  
+                      Line* result1, Line* result2)
 {
    PQueue pqueue ;  // priority Queue for XEvents
    // Prepare the first line for PlanSweep
@@ -2526,92 +2495,85 @@ void MakeRealm::REALM(const CLine* line1, const CLine* line2,
    int count = 0;
    // insert all segments of line into priority queue
    for (int i=0; i<line1->Size(); i++)   {
-      const CHalfSegment *chs;
-      line1->Get(i,chs);
-      if (chs->GetLDP() == true && chs->IsDefined() ) {
-         PrepareCHS(true, *chs, pqueue, segs, count);
+      const HalfSegment *hs;
+      line1->Get(i,hs);
+      if (hs->IsLeftDomPoint() == true) {
+         PrepareCHS(true, *hs, pqueue, segs, count);
          count ++;
       }
    }
    // Prepare the second line for PlaneSweep
    for (int i=0; i< line2->Size(); i++)   {
-      const CHalfSegment *chs;
-      line2->Get(i,chs);
-      if (chs->GetLDP() == true && chs->IsDefined() ) {
-         PrepareCHS(false, *chs, pqueue, segs, count);
+      const HalfSegment *hs;
+      line2->Get(i,hs);
+      if (hs->IsLeftDomPoint() == true) {
+         PrepareCHS(false, *hs, pqueue, segs, count);
          count ++;
       }
    }
-   list<CHalfSegment> res1, res2;
+   list<HalfSegment> res1, res2;
    PerformPlaneSweep(pqueue, segs, res1, res2, count);
    //  reconstruction of first line
    result1->Clear();
    result1->StartBulkLoad();
    while (! res1.empty() )  {
-      CHalfSegment chs = res1.back();
-      chs.SetLDP(true);       result1->InsertHs(chs);
-      chs.SetLDP(false);      result1->InsertHs(chs);
+      HalfSegment hs = res1.back();
+      hs.SetLeftDomPoint(true);       *result1 += hs;
+      hs.SetLeftDomPoint(false);      *result1 += hs;
       res1.pop_back();
    }
-   result1 -> EndBulkLoad(true);
+   // VTA - I need to come back here
+   result1->EndBulkLoad(true, true, false, false);
    //  reconstruction of second line
    result2->Clear();
    result2->StartBulkLoad();
    while (! res2.empty() )    {
-      CHalfSegment chs = res2.back();
-      chs.SetLDP(true);       result2->InsertHs(chs);
-      chs.SetLDP(false);      result2->InsertHs(chs);
+      HalfSegment hs = res2.back();
+      hs.SetLeftDomPoint(true);       *result2 += hs;
+      hs.SetLeftDomPoint(false);      *result2 += hs;
       res2.pop_back();
    }
-   result2 -> EndBulkLoad(true);
+   // VTA - I need to come back here
+   result2->EndBulkLoad(true, true, false, false);
    //cout << result1 << endl;
    //cout << result2 << endl;
 }
 
 /*
-function gets a CHalfSegment, creates two XEvents ( both endpoints) and inserts them into priority queue. An ~-Segment~-objects was created and inserted in the array with all segments.
+function gets a HalfSegment, creates two XEvents ( both endpoints) and inserts them into priority queue. An ~-Segment~-objects was created and inserted in the array with all segments.
 
 */
 
-void MakeRealm::PrepareCHS ( bool No1, const CHalfSegment& chs,
+void MakeRealm::PrepareCHS ( bool No1, const HalfSegment& hs,
    PQueue& pqu, Segment segs[], int counter)
 {
    Coord xl, xr, yl, yr;
-   xl=chs.GetLP().GetX();
-   yl=chs.GetLP().GetY();
-   xr=chs.GetRP().GetX();
-   yr=chs.GetRP().GetY();
-   // only left CHalfSegments are used
-   // build up array with all CHalfSegments of Region
-   Segment se (No1,chs);
+   xl=hs.GetLeftPoint().GetX();
+   yl=hs.GetLeftPoint().GetY();
+   xr=hs.GetRightPoint().GetX();
+   yr=hs.GetRightPoint().GetY();
+   // only left HalfSegments are used
+   // build up array with all HalfSegments of Region
+   Segment se (No1,hs);
    segs[counter] = se;
    // insert XEvents in PQueue
    // insert a vertical Segment
    if ( xl==xr)
    {
-      // insert bottom of vertical chs
+      // insert bottom of vertical hs
       XEvent ev1(xl, yl ,counter, 0.0, 0.0, verticalSegment);
       pqu.insert(ev1);
    }
-   // insert a non-vertical chs
+   // insert a non-vertical hs
    else
    { // calculate k and a
-#ifdef RATIONAL_COORDINATES
-      double k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
-                (yl.IsInteger()? yl.IntValue():yl.Value())) /
-               ((xr.IsInteger()? xr.IntValue():xr.Value()) -
-                (xl.IsInteger()? xl.IntValue():xl.Value())) ;
-      double a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
-                k* (xl.IsInteger()? xl.IntValue():xl.Value());
-#else
       double k = (yr - yl) / (xr - xl) ;
       double a = yl - k*xl;
-#endif
-      // insert left end of chs
+      // insert left end of hs
       XEvent ev2(xl, yl, counter, k, a, leftSegment);
       //cout << "left" << ev2 << endl;
       pqu.insert(ev2);
-       // insert right end of chs
+       // insert right end of hs
       XEvent ev3(xr, yr, counter, k, a, rightSegment);
       //cout << "right" << ev3 << endl;
       pqu.insert(ev3);
@@ -2627,7 +2589,7 @@ This function performs plane-sweep of realmisation process. The priority queue (
 
 */
 void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
-   list<CHalfSegment>& list1, list<CHalfSegment>& list2,
+   list<HalfSegment>& list1, list<HalfSegment>& list2,
    const int counter)
 {
    // initalisations
@@ -2659,7 +2621,7 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
                       ( (pq.isEmpty()) && (vlist.Size() == 1) ) 
                           && insertedCurrentSegment  )  { // new sweepline
          oldsweep = sweepline;
-         // handle all vertical CHalfSegments at old sweepline
+         // handle all vertical HalfSegments at old sweepline
          if ( !vlist.IsEmpty() ) {
                  //cout << "Size VList: " <<  vlist.Size() << endl;
             list<Segment> newlist = vlist.processAll(sweepline,vs,
@@ -2668,12 +2630,6 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
             while (iter != newlist.end()) {
                Segment segment = *iter;
                //cout << "Segment: " << segment << endl;
-               if ( (abs(segment.GetLP().GetX() - 
-                         segment.GetRP().GetX()) < 0.000001) &&
-                    (abs(segment.GetLP().GetY() - 
-                         segment.GetRP().GetY()) < 0.000001) ){
-                   cout << "XEvent Right Segment1: ";
-                   cout << " Equal: "  << segment << endl;}
                segment.CHSInsert(list1,list2);
                ++iter;
             }
@@ -2684,25 +2640,18 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
          sweepline = event.GetX();
       }
       Segment seg = segs[event.GetFirst()]; // get segment - entry
-      // XEvent for left end of CHalfSegment
+      // XEvent for left end of HalfSegment
       SSSEntry entry (event.GetFirst(),event.GetSlope(), event.GetA());
       if (event.GetKind() == leftSegment)   {
          sl.Insert(event.GetX(),entry, segs, pq);
          if ( vs.IsDefined())   vs.Insert(event.GetY());
       }
-      // XEvent for right end of CHalfSegment
+      // XEvent for right end of HalfSegment
       else if (event.GetKind() == rightSegment) {
          sl.Delete(event.GetX(), oldsweep, entry, segs, pq);
          if ( vs.IsDefined())   vs.Insert(event.GetY());
-         if ( (abs(segs[event.GetFirst()].GetLP().GetX() - 
-                   segs[event.GetFirst()].GetRP().GetX()) < 0.000001) && 
-              (abs(segs[event.GetFirst()].GetLP().GetY() - 
-                   segs[event.GetFirst()].GetRP().GetY()) < 0.000001) ){
-           //cout << "XEvent Right Segment2: ";
-           //cout << " Equal: "  << segs[event.GetFirst()] << endl;
-         }
          segs[event.GetFirst()].CHSInsert(list1,list2);
-         /*list<CHalfSegment>::iterator it;
+         /*list<HalfSegment>::iterator it;
          it = list1.begin();
          while(it != list1.end()) cout << *it++ << endl;
          cout << endl;
@@ -2711,18 +2660,16 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
          cout << endl;*/
          insertedCurrentSegment = true;
       }
-      // XEvent for split one CHalfSegment
+      // XEvent for split one HalfSegment
       else if (event.GetKind() == split) {
          Point point (true, event.GetX(), event.GetY() );
          Segment new1 ( seg.GetIn1(), seg.GetCHS());
-         if ( (point != new1.GetLP()) && (point != new1.GetRP() ) ) {
-            new1.SetRP(point);
-            if ( (abs(new1.GetLP().GetX() - new1.GetRP().GetX()) < 0.000001) &&
-                 (abs(new1.GetLP().GetY() - new1.GetRP().GetY()) < 0.000001) ){
-              cout << "XEvent Right Segment3: ";
-              cout << " Equal: "  << new1 << endl;}       
+         if ( (point != new1.GetLeftPoint()) && 
+              (point != new1.GetRightPoint() ) ) {
+            new1.SetRightPoint(point);
             new1.CHSInsert(list1,list2);
-            seg.SetLP(point);      segs[event.GetFirst()] = seg;
+            seg.SetLeftPoint(point);      
+            segs[event.GetFirst()] = seg;
          }
       }
       // XEvent intersection
@@ -2737,15 +2684,9 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
                SSSEntry entry1 (event.GetFirst(), segs);
                sl.Delete(event.GetX(), oldsweep, entry1, segs, pq);
                Segment new1 ( seg.GetIn1(), seg.GetCHS());
-               new1.SetRP(p);
-               if ( (abs(new1.GetLP().GetX() - 
-                         new1.GetRP().GetX()) < 0.000001) &&
-                    (abs(new1.GetLP().GetY() - 
-                         new1.GetRP().GetY()) < 0.000001) ){
-                 cout << "XEvent Right Segment4: ";
-                 cout << " Equal: "  << new1 << endl;}  
+               new1.SetRightPoint(p);
                new1.CHSInsert(list1,list2);
-               seg.SetLP(p);    segs[event.GetFirst()] = seg;
+               seg.SetLeftPoint(p);    segs[event.GetFirst()] = seg;
                mi.insert (event.GetFirst() );
                SSSEntry entry2(event.GetFirst(), segs);
                sl.Insert(event.GetX(), entry2, segs, pq);
@@ -2755,15 +2696,9 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
                SSSEntry entry1 (event.GetSecond(), segs);
                sl.Delete(event.GetX(), oldsweep, entry1, segs, pq);
                Segment new2 (seg2.GetIn1(),seg2.GetCHS());
-               new2.SetRP(p);
-               if ( (abs(new2.GetLP().GetX() - 
-                         new2.GetRP().GetX()) < 0.000001) && 
-                    (abs(new2.GetLP().GetY() - 
-                         new2.GetRP().GetY()) < 0.000001) ){
-                cout << "XEvent Right Segment5: ";
-                cout << " Equal: "  << new2 << endl;}  
+               new2.SetRightPoint(p);
                new2.CHSInsert(list1,list2);
-               seg2.SetLP(p);   segs[event.GetSecond()] = seg2;
+               seg2.SetLeftPoint(p);   segs[event.GetSecond()] = seg2;
                mi.insert (event.GetSecond());
                SSSEntry entry2(event.GetSecond(),segs);
                sl.Insert(event.GetX(),entry2, segs, pq);
@@ -2772,24 +2707,18 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
          else {  // first intersection-event in this point
             Segment seg2 = segs[event.GetSecond()];
             Segment new1 ( seg.GetIn1(), seg.GetCHS());
-            new1.SetRP(p);
+            if(AlmostEqual(new1.GetLeftPoint(), p))
+              continue;
+            new1.SetRightPoint(p);
             Segment new2 (seg2.GetIn1(),seg2.GetCHS());
-            new2.SetRP(p);
-            if ( (abs(new1.GetLP().GetX() - new1.GetRP().GetX()) < 0.000001) &&
-                 (abs(new1.GetLP().GetY() - new1.GetRP().GetY()) < 0.000001) ){
-              //cout << "XEvent Right Segment6a: ";
-              //cout << " Equal: "  << new1 << endl;
-              continue;} 
-            if ( (abs(new2.GetLP().GetX() - new2.GetRP().GetX()) < 0.000001) &&
-                 (abs(new2.GetLP().GetY() - new2.GetRP().GetY()) < 0.000001) ){
-              //cout << "XEvent Right Segment6b: ";
-              //cout << " Equal: "  << new2 << endl;
-              continue;}  
+            if(AlmostEqual(new2.GetLeftPoint(), p))
+              continue;
+            new2.SetRightPoint(p);
             new1.CHSInsert(list1,list2);
             new2.CHSInsert(list1,list2);
-            CHalfSegment chstest(seg.GetCHS());
-            seg.SetLP(p);       segs[event.GetFirst()] = seg;
-            seg2.SetLP(p);      segs[event.GetSecond()] = seg2;
+            HalfSegment hstest(seg.GetCHS());
+            seg.SetLeftPoint(p);       segs[event.GetFirst()] = seg;
+            seg2.SetLeftPoint(p);      segs[event.GetSecond()] = seg2;
             // first Intersection in this event-point
             oldP = p;
             mi.clear();
@@ -2835,14 +2764,14 @@ class SEntry {
 public:
    SEntry() {};
    ~SEntry() {};
-   SEntry(CHalfSegment& inch);
+   SEntry(HalfSegment& inch);
    SEntry(SEntry* in);
    SEntry(const SEntry& s);
    void Set(const SEntry& in);
    const double GetY(Coord x) const;
    int GetU() const;
    int GetO() const;
-   CHalfSegment GetCHS() const;
+   HalfSegment GetCHS() const;
    void SetU(int newU);
    void SetO(int newO);
    int Less (const SEntry &ev2, const Coord x, const SEntry& oldev,
@@ -2855,7 +2784,7 @@ public:  // eigentlich private
    double GetA() const;
 
 private:
-   CHalfSegment ch;
+   HalfSegment ch;
    double slope;
    double a;
    int u;
@@ -2867,9 +2796,9 @@ private:
 
 ostream& operator<<(ostream &os, const SEntry& en)
 {
-  return (os   <<" CHS("<<en.GetCHS().GetLDP()
-               <<") ("<< en.GetCHS().GetLP() << " "
-               << en.GetCHS().GetRP() <<")  u=" << en.GetU()
+  return (os   <<" CHS("<<en.GetCHS().IsLeftDomPoint()
+               <<") ("<< en.GetCHS().GetLeftPoint() << " "
+               << en.GetCHS().GetRightPoint() <<")  u=" << en.GetU()
                << "  o=" <<en.GetO() );
 }
 
@@ -2895,25 +2824,16 @@ SEntry::SEntry(const SEntry& in)
    u = in.u;
 }
 
-SEntry::SEntry(CHalfSegment& inch)
+SEntry::SEntry(HalfSegment& inch)
 {
    ch = inch;
    Coord xl, xr, yl, yr;
-   xl = ch.GetLP().GetX();
-   xr = ch.GetRP().GetX();
-   yl = ch.GetLP().GetY();
-   yr = ch.GetRP().GetY();
-#ifdef RATIONAL_COORDINATES
-   double ink= ((yr.IsInteger()? yr.IntValue():yr.Value()) -
-                (yl.IsInteger()? yl.IntValue():yl.Value())) /
-               ((xr.IsInteger()? xr.IntValue():xr.Value()) -
-               (xl.IsInteger()? xl.IntValue():xl.Value())) ;
-   double ina = (yl.IsInteger()? yl.IntValue():yl.Value()) -
-               ink* (xl.IsInteger()? xl.IntValue():xl.Value());
-#else
+   xl = ch.GetLeftPoint().GetX();
+   xr = ch.GetRightPoint().GetX();
+   yl = ch.GetLeftPoint().GetY();
+   yr = ch.GetRightPoint().GetY();
    double ink = (yr - yl) / (xr - xl) ;
    double ina = yl - ink*xl;
-#endif
    slope = ink ;
    a = ina;
    u=0;
@@ -2941,7 +2861,7 @@ void SEntry::SetO (int newO)            { o = newO; }
 4.2.3 Functions for reading property values
 
 */
-CHalfSegment SEntry::GetCHS() const     {return ch;}
+HalfSegment SEntry::GetCHS() const     {return ch;}
 int SEntry::GetU() const                {return u;}
 int SEntry::GetO() const                {return o;}
 double SEntry::GetSlope() const         {return slope;}
@@ -2958,24 +2878,16 @@ calculate the y-value at the sweep  line, to insert at the right order
 const double SEntry::GetY(Coord x) const  {
    Coord res;
    bool end = false;
-   if (ch.GetLP().GetX() == x)
-      { end = true; res = ch.GetLP().GetY(); }
-   else if (ch.GetRP().GetX() == x)
-      { end = true; res = ch.GetRP().GetY(); }
+   if (ch.GetLeftPoint().GetX() == x)
+      { end = true; res = ch.GetLeftPoint().GetY(); }
+   else if (ch.GetRightPoint().GetX() == x)
+      { end = true; res = ch.GetRightPoint().GetY(); }
    if ( end) {
-     #ifdef RATIONAL_COORDINATES
-      double y = (res.IsInteger()? res.IntValue(): res.Value()) ;
-     #else
       double y = res ;
-     #endif
       return y;
    }
      else {
-    #ifdef RATIONAL_COORDINATES
-      double xv = (x.IsInteger()? x.IntValue(): x.Value()) ;
-      #else
       double xv = x ;
-      #endif
       return ( slope*xv + a);
    }
 }
@@ -3000,11 +2912,11 @@ int SEntry::Less (const SEntry& in2, const Coord x, const
    //cout << " test Sentry in Less   1. CHS:" << endl;
  //       << GetCHS() << "     2.CHS: " << in2.GetCHS() << endl; ;
    if ( Equal(in2) )     return 0;
-   if (GetCHS().GetLP().GetX() == x &&
-      in2.GetCHS().GetLP().GetX() == x) {
+   if (GetCHS().GetLeftPoint().GetX() == x &&
+      in2.GetCHS().GetLeftPoint().GetX() == x) {
    //   cout << " beide starten am gleichen punkt " << endl;
-      double y1 = GetCHS().GetLP().GetY();
-      double y2 = in2.GetCHS().GetLP().GetY();
+      double y1 = GetCHS().GetLeftPoint().GetY();
+      double y2 = in2.GetCHS().GetLeftPoint().GetY();
       // left point of both segments start at same x-value
       if ( y1 == y2 ) { // they start at same point
          if (GetSlope() < in2.GetSlope())        return -1;
@@ -3036,9 +2948,9 @@ int SEntry::Less (const SEntry& in2, const Coord x, const
          } // else test < 0.00001
        } // else kommt vor
    } // if starts same koordinate
-   else if (GetCHS().GetLP().GetX() == x) {
+   else if (GetCHS().GetLeftPoint().GetX() == x) {
  //     cout << " einzufuegendes startet an x-Koordinate " ;
-      double test = GetCHS().GetLP().GetY() - in2.GetY(x);
+      double test = GetCHS().GetLeftPoint().GetY() - in2.GetY(x);
       if ( test > 0.000001 || test < -0.000001) {
    //      cout << " testet y-Vergleich" << endl;
          if (test < 0)           return -1;
@@ -3070,8 +2982,8 @@ int SEntry::Less (const SEntry& in2, const Coord x, const
          else  return 1;
       } // |test|  < 0.0001
    }  // else
-   else if ( GetCHS().GetRP().GetX()==x &&
-      in2.GetCHS().GetRP().GetX() ==x ){
+   else if ( GetCHS().GetRightPoint().GetX()==x &&
+      in2.GetCHS().GetRightPoint().GetX() ==x ){
 //      cout << " beide enden an x-koordinate " << endl;
       if (GetY(x) < in2.GetY(x))      return -1;
       else if (GetY(x) > in2.GetY(x))  return 1;
@@ -3197,11 +3109,12 @@ void SLine::SLineOutput(const Coord x)
    if ( !qu.IsEmpty() ) {
       while (node != 0 )  {
          SEntry ev = node->GetEntry();
-         CHalfSegment chs = ev.GetCHS();
-         double abstand = ((chs.GetLP().GetX() - chs.GetRP().GetX())*
-             (chs.GetLP().GetX() - chs.GetRP().GetX()) ) +
-             ((chs.GetLP().GetY() - chs.GetRP().GetY()) *
-             (chs.GetLP().GetY() - chs.GetRP().GetY())) ;
+         HalfSegment hs = ev.GetCHS();
+         double abstand = 
+             ((hs.GetLeftPoint().GetX() - hs.GetRightPoint().GetX())*
+              (hs.GetLeftPoint().GetX() - hs.GetRightPoint().GetX()) ) +
+             ((hs.GetLeftPoint().GetY() - hs.GetRightPoint().GetY()) *
+              (hs.GetLeftPoint().GetY() - hs.GetRightPoint().GetY())) ;
          cout <<" y:" << ev.GetY(x)
          << "  SEntry: " << ev.GetCHS()
               << "  U:" << ev.GetU() << "   o:" << ev.GetO()
@@ -3230,20 +3143,20 @@ class MakeOp
 public:
    MakeOp() {};
    ~MakeOp() {};
-   CRegion* Intersection(const CRegion* reg1, const CRegion* reg2);
-   CLine* Intersection(const CRegion* reg, const CLine* line);
-   CLine* Intersection(const CLine* reg1, const CLine* reg2);
-   CRegion* Union(const CRegion* reg1, const CRegion* reg2);
-   CLine* Union(const CLine* line1, const CLine* line2);
-   CRegion* Minus(const CRegion* reg1, const CRegion* reg2);
-   CLine* Minus(const CLine* line, const CRegion* reg);
-   CLine* Minus(const CLine* line1, const CLine* line2);
-   bool Intersects(const CRegion* reg1, const CRegion* reg2);
-   bool Intersects(const CLine* line1, const CLine* line2);
-   bool Intersects (const CRegion* reg, const CLine* line);
-   bool P_Intersects(const CRegion* reg1, const CRegion* reg2);
-   bool P_Intersects(const CRegion* reg, const CLine* line);
-   bool P_Intersects(const CLine* line1, const CLine* line2);
+   Region* Intersection(const Region* reg1, const Region* reg2);
+   Line* Intersection(const Region* reg, const Line* line);
+   Line* Intersection(const Line* reg1, const Line* reg2);
+   Region* Union(const Region* reg1, const Region* reg2);
+   Line* Union(const Line* line1, const Line* line2);
+   Region* Minus(const Region* reg1, const Region* reg2);
+   Line* Minus(const Line* line, const Region* reg);
+   Line* Minus(const Line* line1, const Line* line2);
+   bool Intersects(const Region* reg1, const Region* reg2);
+   bool Intersects(const Line* line1, const Line* line2);
+   bool Intersects (const Region* reg, const Line* line);
+   bool P_Intersects(const Region* reg1, const Region* reg2);
+   bool P_Intersects(const Region* reg, const Line* line);
+   bool P_Intersects(const Line* line1, const Line* line2);
 };
 
 /*
@@ -3256,11 +3169,11 @@ If the segment classifikation contains the number 2, the segment is added to res
 intersection-operator for two region-objects
 
 */
-CRegion* MakeOp::Intersection(const CRegion* reg1, const CRegion* reg2)
+Region* MakeOp::Intersection(const Region* reg1, const Region* reg2)
 {
   // first Realmisation of both regions
-   CRegion* res1  = new CRegion(0);
-   CRegion* res2 = new CRegion(0);
+   Region* res1  = new Region(0);
+   Region* res2 = new Region(0);
    MakeRealm mr;
    mr.REALM( reg1, reg2, res1 , res2 );
    // initialisations
@@ -3269,9 +3182,9 @@ CRegion* MakeOp::Intersection(const CRegion* reg1, const CRegion* reg2)
    SEntry oldEntry1, oldEntry2;
    BinTreeNode<SEntry>* oldnode1;
    BinTreeNode<SEntry>* oldnode2;
-   CHalfSegment chsAkt;
-   const CHalfSegment *chs1, *chs2;
-   CRegion* result = new CRegion(0);
+   HalfSegment hsAkt;
+   const HalfSegment *hs1, *hs2;
+   Region* result = new Region(0);
    result ->Clear();
    result->StartBulkLoad();
    State status;
@@ -3280,20 +3193,21 @@ CRegion* MakeOp::Intersection(const CRegion* reg1, const CRegion* reg2)
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size() ) {
      // select the first segment
-      res1->Get(i,chs1);
-      res2->Get(j,chs2);
-      if (chs1->GetLP()==chs2->GetLP() && chs1->GetRP()==chs2->GetRP()){
-         i ++;   j ++;   chsAkt = *chs1;    status = BOTH;
+      res1->Get(i,hs1);
+      res2->Get(j,hs2);
+      if (hs1->GetLeftPoint()==hs2->GetLeftPoint() && 
+          hs1->GetRightPoint()==hs2->GetRightPoint()){
+         i ++;   j ++;   hsAkt = *hs1;    status = BOTH;
       }
-      else if ( *chs1 < *chs2) {i ++; chsAkt = *chs1; status = FIRST;}
-      else if ( *chs1 > *chs2) {j ++; chsAkt = *chs2; status = SECOND;}
- if (chsAkt.GetDPoint().GetX() != aktSweep)
+      else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
+      else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2; status = SECOND;}
+ if (hsAkt.GetDomPoint().GetX() != aktSweep)
 // cout << " ======== neue Sweep ====== " << endl;
 // cout << " status = " << status << endl;
-      aktSweep = chsAkt.GetDPoint().GetX();
-      if (chsAkt.GetLDP() == false) {  // right end of segment
-         chsAkt.SetLDP(true);
-         SEntry ent (chsAkt);
+      aktSweep = hsAkt.GetDomPoint().GetX();
+      if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
+         hsAkt.SetLeftDomPoint(true);
+         SEntry ent (hsAkt);
          SEntry en;
          // delete segment from sweep line
          if (status == FIRST)  {
@@ -3308,15 +3222,15 @@ CRegion* MakeOp::Intersection(const CRegion* reg1, const CRegion* reg2)
          }
          if (en.GetO() == 2 || en.GetU() == 2) {
             // add segment to result?
-//  cout << " Ausgabe nr. " << counter << " chs " << chsAkt;
-            chsAkt.attr.partnerno = counter;
-      chsAkt.SetLDP(false);     (*result) += chsAkt;
-            chsAkt.SetLDP(true);        (*result) += chsAkt;
+//  cout << " Ausgabe nr. " << counter << " hs " << hsAkt;
+            hsAkt.attr.edgeno = counter;
+            hsAkt.SetLeftDomPoint(false);     (*result) += hsAkt;
+            hsAkt.SetLeftDomPoint(true);        (*result) += hsAkt;
             counter++;
          }
       }
       else { // left end of segment
-         SEntry ent (chsAkt);
+         SEntry ent (hsAkt);
          BinTreeNode<SEntry>* node;
          // add segment into sweepline-Status-Structure
          if (status == FIRST)
@@ -3331,11 +3245,11 @@ CRegion* MakeOp::Intersection(const CRegion* reg1, const CRegion* reg2)
          // calculate new segmentclass of new ChalfSegment
          ms = np;    ns = np;
          if (status == FIRST || status == BOTH) {
-            if (chs1->attr.insideAbove == true) ns = ns+1;
+            if (hs1->attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
          }
          if (status == SECOND || status == BOTH) {
-            if (chs2->attr.insideAbove == true) ns = ns+1;
+            if (hs2->attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
          }  // set new segmentclasses in SEntry
          ent.SetU(ms);
@@ -3348,27 +3262,23 @@ CRegion* MakeOp::Intersection(const CRegion* reg1, const CRegion* reg2)
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
    result->EndBulkLoad();
-
-
-   result->SetPartnerNo();
-   result->ComputeRegion();
    return result;
 }
 
- CLine* MakeOp::Intersection(const CRegion* reg, const CLine* line)
+ Line* MakeOp::Intersection(const Region* reg, const Line* line)
  {
   // first Realmisation of both arguments
-   CLine* resline  = new CLine(0);
-   CRegion* resregion = new CRegion(0);
+   Line* resline  = new Line(0);
+   Region* resregion = new Region(0);
    MakeRealm mr;
    mr.REALM( line, reg, resline , resregion );
    // initialisations
    SLine sweepline;
    int i = 0;
    int j = 0;
-   CHalfSegment chsAkt;
-   const CHalfSegment *chs1, *chs2;
-   CLine* result = new CLine(0);
+   HalfSegment hsAkt;
+   const HalfSegment *hs1, *hs2;
+   Line* result = new Line(0);
    result ->Clear();
    result->StartBulkLoad();
    State status;
@@ -3379,24 +3289,25 @@ CRegion* MakeOp::Intersection(const CRegion* reg1, const CRegion* reg2)
    // execute until one argument is empty
    while ( i < resline->Size() && j < resregion->Size() ) {
       // select the first segment
-      resline->Get(i,chs1);
-      resregion->Get(j,chs2);
-      if (chs1->GetLP()==chs2->GetLP() && chs1->GetRP()==chs2->GetRP()){
-         i ++;   j ++;   chsAkt = *chs2;    status = BOTH; }
-      else if ( *chs1 < *chs2) {i ++; chsAkt = *chs1; status = FIRST;}
-      else if ( *chs1 > *chs2) {j ++; chsAkt = *chs2; status = SECOND;}
-      aktSweep = chsAkt.GetDPoint().GetX();
-      if (chsAkt.GetLDP() == false) {  // right end of segment
+      resline->Get(i,hs1);
+      resregion->Get(j,hs2);
+      if (hs1->GetLeftPoint()==hs2->GetLeftPoint() && 
+          hs1->GetRightPoint()==hs2->GetRightPoint()){
+         i ++;   j ++;   hsAkt = *hs2;    status = BOTH; }
+      else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
+      else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2; status = SECOND;}
+      aktSweep = hsAkt.GetDomPoint().GetX();
+      if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
          if (status == SECOND || status == BOTH) {
-            chsAkt.SetLDP(true);
-            SEntry ent (chsAkt);
+            hsAkt.SetLeftDomPoint(true);
+            SEntry ent (hsAkt);
             // delete segment from sweep line
             SEntry en = sweepline.FindAndDelete(ent,aktSweep,
                oldSweep, oldEntry1, oldnode1);
          }
       }
       else { // left end of segment
-         SEntry ent (chsAkt);
+         SEntry ent (hsAkt);
          // add segment into sweepline-Status-Structure
          BinTreeNode<SEntry>* node = sweepline.Insert(ent,
             aktSweep, oldEntry1, oldnode1);
@@ -3408,7 +3319,7 @@ CRegion* MakeOp::Intersection(const CRegion* reg1, const CRegion* reg2)
          ms = np;
          ns = np;
          if (status == SECOND || status == BOTH) {
-            if (chs2->attr.insideAbove == true) ns = ns+1;
+            if (hs2->attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
             ent.SetU(ms);
             ent.SetO(ns);
@@ -3416,7 +3327,7 @@ CRegion* MakeOp::Intersection(const CRegion* reg1, const CRegion* reg2)
          }
          if (status == FIRST || status == BOTH) {
             if (pred != 0 && pred->GetEntry().GetO() > 0)
-               (*result) += chsAkt;
+               (*result) += hsAkt;
             // segments from line are deleted at once
             if (status == FIRST) sweepline.Delete(node);
          }
@@ -3425,57 +3336,60 @@ CRegion* MakeOp::Intersection(const CRegion* reg1, const CRegion* reg2)
    } // end while
    resline->Destroy(); delete resline;
    resregion->Destroy(); delete resregion;
-   result->EndBulkLoad();
+   // VTA - I need to come back here
+   result->EndBulkLoad(true, true, false, false);
   // cout << " ===========================result fertig ========" << endl;
    return result;
 }
 
 
-CLine* MakeOp::Intersection(const CLine* line1, const CLine* line2)
+Line* MakeOp::Intersection(const Line* line1, const Line* line2)
 {
   // first Realmisation of both lines
-   CLine* res1 = new CLine(0);
-   CLine* res2 = new CLine(0);
+   Line* res1 = new Line(0);
+   Line* res2 = new Line(0);
    MakeRealm mr;
    mr.REALM( line1, line2, res1 , res2 );
    // initialisations
    int i = 0;
    int j = 0;
-   const CHalfSegment *chs1, *chs2;
-   CLine* result = new CLine(0);
+   const HalfSegment *hs1, *hs2;
+   Line* result = new Line(0);
    result ->Clear();
    result->StartBulkLoad();
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size()) {
      // select_ first
-      res1->Get(i,chs1);
-      res2->Get(j,chs2);
+      res1->Get(i,hs1);
+      res2->Get(j,hs2);
       // segments, which are the same in both arguments are added
       // in result
-      if (chs1->GetLP()==chs2->GetLP() && chs1->GetRP()==chs2->GetRP())
-         {  i ++;   j ++;   (*result) += *chs1; }
-      else if ( *chs1 < *chs2)  i ++;
-      else if ( *chs1 > *chs2)  j ++;
+      if (hs1->GetLeftPoint()==hs2->GetLeftPoint() && 
+          hs1->GetRightPoint()==hs2->GetRightPoint())
+         {  i ++;   j ++;   (*result) += *hs1; }
+      else if ( *hs1 < *hs2)  i ++;
+      else if ( *hs1 > *hs2)  j ++;
    } // end while
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
-   result->EndBulkLoad();
+   // VTA - I need to come back here
+   result->EndBulkLoad(true, true, false, false);
    return result;
 }
 
-bool MakeOp::P_Intersects(const CRegion* reg1, const CRegion* reg2)
+bool MakeOp::P_Intersects(const Region* reg1, const Region* reg2)
 {
   // first Realmisation of both regions
-   CRegion* res1  = new CRegion(0);
-   CRegion* res2 = new CRegion(0);
+   Region* res1  = new Region(0);
+   Region* res2 = new Region(0);
    MakeRealm mr;
    mr.REALM( reg1, reg2, res1 , res2 );
    // initialisations
    SLine sweepline;
    int i = 0;
    int j = 0;
-   CHalfSegment chsAkt;
-   const CHalfSegment *chs1, *chs2;
+   HalfSegment hsAkt;
+   const HalfSegment *hs1, *hs2;
    State status;
    Coord aktSweep;
    Coord oldSweep;
@@ -3485,16 +3399,17 @@ bool MakeOp::P_Intersects(const CRegion* reg1, const CRegion* reg2)
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size() ) {
      // select_ first
-      res1->Get(i,chs1);
-      res2->Get(j,chs2);
-      if (chs1->GetLP()==chs2->GetLP() && chs1->GetRP()==chs2->GetRP()){
-         i ++;   j ++;   chsAkt = *chs1;    status = BOTH;      }
-      else if ( *chs1 < *chs2) {i ++; chsAkt = *chs1; status = FIRST;}
-      else if ( *chs1 > *chs2) {j ++; chsAkt = *chs2; status = SECOND;}
-      aktSweep = chsAkt.GetDPoint().GetX();
-      if (chsAkt.GetLDP() == false) {  // right end of segment
-         chsAkt.SetLDP(true);
-         SEntry ent (chsAkt);
+      res1->Get(i,hs1);
+      res2->Get(j,hs2);
+      if (hs1->GetLeftPoint()==hs2->GetLeftPoint() && 
+          hs1->GetRightPoint()==hs2->GetRightPoint()){
+         i ++;   j ++;   hsAkt = *hs1;    status = BOTH;      }
+      else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
+      else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2; status = SECOND;}
+      aktSweep = hsAkt.GetDomPoint().GetX();
+      if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
+         hsAkt.SetLeftDomPoint(true);
+         SEntry ent (hsAkt);
          // delete segment from sweep line
          if (status == FIRST)
             SEntry en = sweepline.FindAndDelete(ent,aktSweep,oldSweep,
@@ -3503,7 +3418,7 @@ bool MakeOp::P_Intersects(const CRegion* reg1, const CRegion* reg2)
              oldSweep, oldEntry2, oldnode2);
       }
       else { // left end of segment
-         SEntry ent (chsAkt);
+         SEntry ent (hsAkt);
          BinTreeNode<SEntry>* node;
          // add segment into sweepline-Status-Structure
          if (status == FIRST)
@@ -3518,11 +3433,11 @@ bool MakeOp::P_Intersects(const CRegion* reg1, const CRegion* reg2)
          ms = np;
          ns = np;
          if (status == FIRST || status == BOTH) {
-            if (chs1->attr.insideAbove == true) ns = ns+1;
+            if (hs1->attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
          }
          if (status == SECOND || status == BOTH) {
-            if (chs2->attr.insideAbove == true) ns = ns+1;
+            if (hs2->attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
          }
          // if one intersection is found, break and return true
@@ -3539,19 +3454,19 @@ bool MakeOp::P_Intersects(const CRegion* reg1, const CRegion* reg2)
    return false;
 }
 
-bool MakeOp::P_Intersects(const CRegion* reg, const CLine* line)
+bool MakeOp::P_Intersects(const Region* reg, const Line* line)
 {
   // first Realmisation of both arguments
-   CLine* resline  = new CLine(0);
-   CRegion* resregion = new CRegion(0);
+   Line* resline  = new Line(0);
+   Region* resregion = new Region(0);
    MakeRealm mr;
    mr.REALM( line, reg, resline , resregion );
    // initialisations
    SLine sweepline;
    int i = 0;
    int j = 0;
-   CHalfSegment chsAkt;
-   const CHalfSegment *chs1, *chs2;
+   HalfSegment hsAkt;
+   const HalfSegment *hs1, *hs2;
    State status;
    Coord aktSweep;
    Coord oldSweep;
@@ -3560,25 +3475,26 @@ bool MakeOp::P_Intersects(const CRegion* reg, const CLine* line)
    // execute until one argument is empty
    while ( i < resline->Size() && j < resregion->Size() ) {
      // select_ first
-      resline->Get(i,chs1);
-      resregion->Get(j,chs2);
-      if (chs1->GetLP()==chs2->GetLP()&&chs1->GetRP()==chs2->GetRP()){
-         i ++; j ++; chsAkt = *chs2; status = BOTH;
+      resline->Get(i,hs1);
+      resregion->Get(j,hs2);
+      if (hs1->GetLeftPoint()==hs2->GetLeftPoint() &&
+          hs1->GetRightPoint()==hs2->GetRightPoint()){
+         i ++; j ++; hsAkt = *hs2; status = BOTH;
       }
-      else if ( *chs1 < *chs2) {i ++; chsAkt = *chs1; status = FIRST;}
-      else if ( *chs1 > *chs2) {j ++; chsAkt = *chs2; status = SECOND;}
-      aktSweep = chsAkt.GetDPoint().GetX();
-      if (chsAkt.GetLDP() == false) {  // right end of segment
+      else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
+      else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2; status = SECOND;}
+      aktSweep = hsAkt.GetDomPoint().GetX();
+      if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
          if (status == SECOND || status == BOTH) {
-            chsAkt.SetLDP(true);
-            SEntry ent (chsAkt);
+            hsAkt.SetLeftDomPoint(true);
+            SEntry ent (hsAkt);
             // delete segment from sweep line
             SEntry en = sweepline.FindAndDelete(ent,aktSweep,
                oldSweep, oldEntry1, oldnode1);
          }
       }
       else { // left end of segment
-         SEntry ent (chsAkt);
+         SEntry ent (hsAkt);
          // add segment into sweepline-Status-Structure
          BinTreeNode<SEntry>* node = sweepline.Insert(ent,aktSweep,
             oldEntry1, oldnode1);
@@ -3590,7 +3506,7 @@ bool MakeOp::P_Intersects(const CRegion* reg, const CLine* line)
          ms = np;
          ns = np;
          if (status == SECOND || status == BOTH) {
-            if (chs2->attr.insideAbove == true) ns = ns+1;
+            if (hs2->attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
             ent.SetU(ms);
             ent.SetO(ns);
@@ -3610,27 +3526,28 @@ bool MakeOp::P_Intersects(const CRegion* reg, const CLine* line)
    return false;
 }
 
-bool MakeOp::P_Intersects(const CLine* line1, const CLine* line2)
+bool MakeOp::P_Intersects(const Line* line1, const Line* line2)
 {
      // first Realmisation of both lines
-   CLine* res1 = new CLine(0);
-   CLine* res2 = new CLine(0);
+   Line* res1 = new Line(0);
+   Line* res2 = new Line(0);
    MakeRealm mr;
    mr.REALM( line1, line2, res1 , res2 );
    // initialisations
    int i = 0;
    int j = 0;
-   const CHalfSegment *chs1, *chs2;
+   const HalfSegment *hs1, *hs2;
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size()) {
      // select_ first
-      res1->Get(i,chs1);
-      res2->Get(j,chs2);
+      res1->Get(i,hs1);
+      res2->Get(j,hs2);
       // if two segments are the same -> return true
-      if (chs1->GetLP()== chs2->GetLP() && chs1->GetRP()== chs2->GetRP() )
+      if (hs1->GetLeftPoint()== hs2->GetLeftPoint() && 
+          hs1->GetRightPoint()== hs2->GetRightPoint() )
          { return true; }
-      else if ( *chs1 < *chs2)  i ++;
-      else if ( *chs1 > *chs2)   j ++;
+      else if ( *hs1 < *hs2)  i ++;
+      else if ( *hs1 > *hs2)   j ++;
    } // end while
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
@@ -3638,19 +3555,19 @@ bool MakeOp::P_Intersects(const CLine* line1, const CLine* line2)
 }
 
 
-bool MakeOp::Intersects(const CRegion* reg1, const CRegion* reg2)
+bool MakeOp::Intersects(const Region* reg1, const Region* reg2)
 {
   // first Realmisation of both regions
-   CRegion* res1  = new CRegion(0);
-   CRegion* res2 = new CRegion(0);
+   Region* res1  = new Region(0);
+   Region* res2 = new Region(0);
    MakeRealm mr;
    mr.REALM( reg1, reg2, res1 , res2 );
    // initialisations
    SLine sweepline;
    int i = 0;
    int j = 0;
-   CHalfSegment chsAkt;
-   const CHalfSegment *chs1, *chs2;
+   HalfSegment hsAkt;
+   const HalfSegment *hs1, *hs2;
    State status;
    Coord aktSweep;
    Coord oldSweep;
@@ -3660,17 +3577,19 @@ bool MakeOp::Intersects(const CRegion* reg1, const CRegion* reg2)
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size() ) {
      // select_ first
-      res1->Get(i,chs1);
-      res2->Get(j,chs2);
-      if (chs1->GetLP()==chs2->GetLP()||chs1->GetLP()==chs2->GetRP()
-       || chs1->GetRP()==chs2->GetLP()||chs1->GetRP()==chs2->GetRP() )
+      res1->Get(i,hs1);
+      res2->Get(j,hs2);
+      if (hs1->GetLeftPoint()==hs2->GetLeftPoint()||
+          hs1->GetLeftPoint()==hs2->GetRightPoint()
+       || hs1->GetRightPoint()==hs2->GetLeftPoint()||
+          hs1->GetRightPoint()==hs2->GetRightPoint() )
          return true;
-      else if ( *chs1 < *chs2) {i ++; chsAkt = *chs1; status = FIRST;}
-      else if ( *chs1 > *chs2) {j ++; chsAkt = *chs2;  status = SECOND;}
-      aktSweep = chsAkt.GetDPoint().GetX();
-      if (chsAkt.GetLDP() == false) {  // right end of segment
-         chsAkt.SetLDP(true);
-         SEntry ent (chsAkt);
+      else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
+      else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2;  status = SECOND;}
+      aktSweep = hsAkt.GetDomPoint().GetX();
+      if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
+         hsAkt.SetLeftDomPoint(true);
+         SEntry ent (hsAkt);
          // delete segment from sweep line
          if (status == FIRST)
             SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
@@ -3679,7 +3598,7 @@ bool MakeOp::Intersects(const CRegion* reg1, const CRegion* reg2)
                oldEntry2, oldnode2);
       }
       else { // left end of segment
-         SEntry ent (chsAkt);
+         SEntry ent (hsAkt);
          BinTreeNode<SEntry>* node;
          // add segment into sweepline-Status-Structure
          if (status == FIRST)
@@ -3693,7 +3612,7 @@ bool MakeOp::Intersects(const CRegion* reg1, const CRegion* reg2)
          // calculate new segmentclass of new ChalfSegment
          ms = np;
          ns = np;
-         if (chsAkt.attr.insideAbove == true)   ns = ns+1;
+         if (hsAkt.attr.insideAbove == true)   ns = ns+1;
          else                                   ns = ns-1;
          // set segmentclasses in SEntry
          if (ms == 2 || ns == 2) return true;
@@ -3708,18 +3627,18 @@ bool MakeOp::Intersects(const CRegion* reg1, const CRegion* reg2)
    return false;
 }
 
-bool MakeOp::Intersects (const CRegion* reg, const CLine* line) {
+bool MakeOp::Intersects (const Region* reg, const Line* line) {
   // first Realmisation of both arguments
-   CRegion* res1  = new CRegion(0);
-   CLine* res2 = new CLine(0);
+   Region* res1  = new Region(0);
+   Line* res2 = new Line(0);
    MakeRealm mr;
    mr.REALM( line, reg, res2 , res1 );
    // initialisations
    SLine sweepline;
    int i = 0;
    int j = 0;
-   CHalfSegment chsAkt;
-   const CHalfSegment *chs1, *chs2;
+   HalfSegment hsAkt;
+   const HalfSegment *hs1, *hs2;
    State status;
    Coord aktSweep;
    Coord oldSweep;
@@ -3728,38 +3647,40 @@ bool MakeOp::Intersects (const CRegion* reg, const CLine* line) {
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size() ) {
      // select_ first
-      res1->Get(i,chs1);
-      res2->Get(j,chs2);
-      if (chs1->GetLP()==chs2->GetLP()||chs1->GetLP()==chs2->GetRP()||
-          chs1->GetRP()==chs2->GetLP()||chs1->GetRP()==chs2->GetRP() )
+      res1->Get(i,hs1);
+      res2->Get(j,hs2);
+      if (hs1->GetLeftPoint()==hs2->GetLeftPoint()||
+          hs1->GetLeftPoint()==hs2->GetRightPoint()||
+          hs1->GetRightPoint()==hs2->GetLeftPoint()||
+          hs1->GetRightPoint()==hs2->GetRightPoint() )
           return true;
-      else if ( *chs1 < *chs2) {i ++; chsAkt = *chs1; status = FIRST;}
-      else if ( *chs1 > *chs2) {j ++; chsAkt = *chs2; status = SECOND;}
-      aktSweep = chsAkt.GetDPoint().GetX();
-      if ( chsAkt.GetLDP() == false) {
+      else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
+      else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2; status = SECOND;}
+      aktSweep = hsAkt.GetDomPoint().GetX();
+      if ( hsAkt.IsLeftDomPoint() == false) {
          if (status == FIRST) {  // right end of segment of region
-            chsAkt.SetLDP(true);
-            SEntry ent (chsAkt);
+            hsAkt.SetLeftDomPoint(true);
+            SEntry ent (hsAkt);
             // delete segment from sweep line
             SEntry en = sweepline.FindAndDelete(ent,aktSweep,
                oldSweep, oldEntry1, oldnode1);
          }
       }
       else { // left end of segment
-         SEntry ent (chsAkt);
+         SEntry ent (hsAkt);
          // add segment into sweepline-Status-Structure
          BinTreeNode<SEntry>* node = sweepline.Insert(ent,
             aktSweep, oldEntry1, oldnode1);
          BinTreeNode<SEntry>* pred = node->GetPred() ;
          if (status == FIRST ) {
-            // insert CHalfSegment from region into sweepline
+            // insert HalfSegment from region into sweepline
             int np = 0;
             int ms, ns;
             if (pred != 0) np = pred->GetEntry().GetO();
             // calculate new segmentclass of new ChalfSegment
             ms = np;
             ns = np;
-            if (chs1->attr.insideAbove == true)
+            if (hs1->attr.insideAbove == true)
                { ent.SetU(0); ent.SetO(1); }
             else
                { ent.SetU(1); ent.SetO(0); }
@@ -3778,57 +3699,57 @@ bool MakeOp::Intersects (const CRegion* reg, const CLine* line) {
    return false;
 }
 
-bool MakeOp::Intersects (const CLine* line1, const CLine* line2)
+bool MakeOp::Intersects (const Line* line1, const Line* line2)
 {
   // first Realmisation of both lines
-   CLine* res1 = new CLine(0);
-   CLine* res2 = new CLine(0);
+   Line* res1 = new Line(0);
+   Line* res2 = new Line(0);
    MakeRealm mr;
    mr.REALM( line1, line2, res1 , res2 );
    // initialisations
    int i = 0;
    int j = 0;
-   const CHalfSegment *chs1, *chs2;
+   const HalfSegment *hs1, *hs2;
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size()) {
      // select_ first
-      res1->Get(i,chs1);
-      res2->Get(j,chs2);
-      if (chs1->GetLP()==chs2->GetLP() ||
-          chs1->GetLP()==chs2->GetRP() ||
-          chs1->GetRP()==chs2->GetLP() ||
-          chs1->GetRP() == chs2->GetRP() ) return true;
-      if ( *chs1 < *chs2)       i ++;
-      else if ( *chs1 > *chs2)  j ++;
+      res1->Get(i,hs1);
+      res2->Get(j,hs2);
+      if (hs1->GetLeftPoint()==hs2->GetLeftPoint() ||
+          hs1->GetLeftPoint()==hs2->GetRightPoint() ||
+          hs1->GetRightPoint()==hs2->GetLeftPoint() ||
+          hs1->GetRightPoint() == hs2->GetRightPoint() ) return true;
+      if ( *hs1 < *hs2)       i ++;
+      else if ( *hs1 > *hs2)  j ++;
    } // end while
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
    return false;
 }
 
-CRegion* MakeOp::Union(const CRegion* reg1, const CRegion* reg2)
+Region* MakeOp::Union(const Region* reg1, const Region* reg2)
 {
    SLine sweepline;
    int i = 0;   
    int j = 0; 
    int counter = 0;
-   CHalfSegment chsAkt;
-   const CHalfSegment *chs1, *chs2;
+   HalfSegment hsAkt;
+   const HalfSegment *hs1, *hs2;
    State status;
    Coord aktSweep, oldSweep ;
    SEntry oldEntry1, oldEntry2;
    BinTreeNode<SEntry>* oldnode1;
    BinTreeNode<SEntry>* oldnode2;
-   CRegion* res1, *res2, *result;
+   Region* res1, *res2, *result;
    MakeRealm mr;
    
    // first Realmisation of both regions
-   res1 = new CRegion(0);
-   res2 = new CRegion(0);
+   res1 = new Region(0);
+   res2 = new Region(0);
    mr.REALM( reg1, reg2, res1 , res2 );
    //cout << "realm ok" << endl;
    // initialisations
-   result = new CRegion(0);
+   result = new Region(0);
    result ->Clear();
    result->StartBulkLoad();
    // while there are segments in the realm-based arguments
@@ -3839,26 +3760,27 @@ CRegion* MakeOp::Union(const CRegion* reg1, const CRegion* reg2)
       //cout << "while start" << endl;
       if (i < res1->Size() && j < res2->Size() ) {
          //cout << "if1" << endl;
-         res1->Get(i,chs1);
-         res2->Get(j,chs2);
-         if (chs1->GetLP()==chs2->GetLP() && chs1->GetRP()==chs2->GetRP() ){
-            i ++;   j ++;   chsAkt = *chs1;    status = BOTH; }
-         else if ( *chs1 < *chs2) {i ++; chsAkt = *chs1; status = FIRST;}
-         else if ( *chs1 > *chs2) {j ++; chsAkt = *chs2; status = SECOND;}
+         res1->Get(i,hs1);
+         res2->Get(j,hs2);
+         if (hs1->GetLeftPoint()==hs2->GetLeftPoint() && 
+             hs1->GetRightPoint()==hs2->GetRightPoint() ){
+            i ++;   j ++;   hsAkt = *hs1;    status = BOTH; }
+         else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
+         else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2; status = SECOND;}
       }
       else if (i < res1->Size() ) {
          //cout << "if2" << endl;
-         res1->Get(i,chs1);  i ++;   chsAkt = *chs1;  status = FIRST;
+         res1->Get(i,hs1);  i ++;   hsAkt = *hs1;  status = FIRST;
       }
       else if ( j < res2->Size() ) {
          //cout << "if3" << endl;
-         res2->Get(j,chs2);  j ++;   chsAkt = *chs2;  status = SECOND;
+         res2->Get(j,hs2);  j ++;   hsAkt = *hs2;  status = SECOND;
       }
-      aktSweep = chsAkt.GetDPoint().GetX();
-      if (chsAkt.GetLDP() == false) { // right sement choosen
+      aktSweep = hsAkt.GetDomPoint().GetX();
+      if (hsAkt.IsLeftDomPoint() == false) { // right sement choosen
          //cout << "if4" << endl;
-         chsAkt.SetLDP(true);
-         SEntry ent (chsAkt);
+         hsAkt.SetLeftDomPoint(true);
+         SEntry ent (hsAkt);
          SEntry en;
          // delete segment from sweep line
          if (status == FIRST) {
@@ -3873,11 +3795,11 @@ CRegion* MakeOp::Union(const CRegion* reg1, const CRegion* reg2)
             oldEntry2, oldnode2);
             en.Set(in);
          }
-         if (en.GetO() == 0 || en.GetU() == 0) {  // CHalfSegment in result
+         if (en.GetO() == 0 || en.GetU() == 0) {  // HalfSegment in result
                //cout << "if7" << endl;
-               chsAkt.attr.partnerno = counter;
-               chsAkt.SetLDP(false);    (*result) += chsAkt;
-               chsAkt.SetLDP(true);     (*result) += chsAkt;
+               hsAkt.attr.edgeno = counter;
+               hsAkt.SetLeftDomPoint(false);    (*result) += hsAkt;
+               hsAkt.SetLeftDomPoint(true);     (*result) += hsAkt;
                counter++;
          }
          if (status == BOTH) {oldEntry1=oldEntry2; oldnode1=oldnode2;}
@@ -3887,7 +3809,7 @@ CRegion* MakeOp::Union(const CRegion* reg1, const CRegion* reg2)
       }
       else { // left end of segment
          //cout << "if9" << endl;
-         SEntry ent (chsAkt);
+         SEntry ent (hsAkt);
          BinTreeNode<SEntry>* node;
          // add segment into sweepline-Status-Structure
          if (status == FIRST)  node = sweepline.Insert(ent,aktSweep,
@@ -3902,12 +3824,12 @@ CRegion* MakeOp::Union(const CRegion* reg1, const CRegion* reg2)
          ns = np;
          if (status == FIRST || status == BOTH) {
             //cout << "if10" << endl;
-            if (chs1->attr.insideAbove == true) ns = ns+1;
+            if (hs1->attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
          }
          if (status == SECOND || status == BOTH) {
         //cout << "if11" << endl;
-            if (chs2->attr.insideAbove == true) ns = ns+1;
+            if (hs2->attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
          }
          // set new segmentclasses in SEntry
@@ -3922,68 +3844,64 @@ CRegion* MakeOp::Union(const CRegion* reg1, const CRegion* reg2)
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
    result->EndBulkLoad();
-   result->SetPartnerNo();
-   for (int i=0; i < result->Size(); i++) {
-      const CHalfSegment *chx;
-      result -> Get(i, chx);
-   }
-   result->ComputeRegion();
    return result;
 }
 
 
-CLine* MakeOp::Union(const CLine* line1, const CLine* line2)
+Line* MakeOp::Union(const Line* line1, const Line* line2)
 {
   // first Realmisation of both lines
-   CLine* res1 = new CLine(0);
-   CLine* res2 = new CLine(0);
+   Line* res1 = new Line(0);
+   Line* res2 = new Line(0);
    MakeRealm mr;
    mr.REALM( line1, line2, res1 , res2 );
    // initialisations
    int i = 0;
    int j = 0;
-   const CHalfSegment *chs1, *chs2;
-   CLine* result = new CLine(0);
+   const HalfSegment *hs1, *hs2;
+   Line* result = new Line(0);
    result ->Clear();
    result->StartBulkLoad();
    // while there are segments in the realm-based arguments
    while ( i < res1->Size() || j < res2->Size()) {
      // select_ first
       if (i < res1->Size() && j < res2->Size() ) {
-         res1->Get(i,chs1);
-         res2->Get(j,chs2);
+         res1->Get(i,hs1);
+         res2->Get(j,hs2);
          // add same segments only once
-         if (chs1->GetLP()== chs2->GetLP() && chs1->GetRP()== chs2->GetRP() )
-            {  i ++;   j ++;   (*result) += *chs1; }
-         else if ( *chs1 < *chs2) { i ++;  (*result) += *chs1; }
-         else if ( *chs1 > *chs2)  { j ++;  (*result) += *chs2; }
+         if (hs1->GetLeftPoint()== hs2->GetLeftPoint() && 
+             hs1->GetRightPoint()== hs2->GetRightPoint() )
+            {  i ++;   j ++;   (*result) += *hs1; }
+         else if ( *hs1 < *hs2) { i ++;  (*result) += *hs1; }
+         else if ( *hs1 > *hs2)  { j ++;  (*result) += *hs2; }
       }
       else if (i<res1->Size() )
-         { res1->Get(i,chs1);  i ++;  (*result) += *chs1; }
+         { res1->Get(i,hs1);  i ++;  (*result) += *hs1; }
       else if ( j < res2->Size() )
-         { res2->Get(j,chs2);  j ++;  (*result) += *chs2; }
+         { res2->Get(j,hs2);  j ++;  (*result) += *hs2; }
    } // end while
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
-   result->EndBulkLoad();
+   // VTA - I need to come back here
+   result->EndBulkLoad(true, true, false, false);
    return result;
 }
 
 
 
-CRegion* MakeOp::Minus(const CRegion* reg1, const CRegion* reg2)
+Region* MakeOp::Minus(const Region* reg1, const Region* reg2)
 {
   // first Realmisation of both regions
-   CRegion* res1 = new CRegion(0);
-   CRegion* res2 = new CRegion(0);
+   Region* res1 = new Region(0);
+   Region* res2 = new Region(0);
    MakeRealm mr;
    mr.REALM( reg1, reg2, res1 , res2 );
    // initialisations
    SLine sweepline;
    int i = 0;   int j = 0;  int counter = 0;
-   CHalfSegment chsAkt;
-   const CHalfSegment *chs1, *chs2;
-   CRegion* result = new CRegion(0);
+   HalfSegment hsAkt;
+   const HalfSegment *hs1, *hs2;
+   Region* result = new Region(0);
    result ->Clear();
    result->StartBulkLoad();
    State status;
@@ -3995,22 +3913,23 @@ CRegion* MakeOp::Minus(const CRegion* reg1, const CRegion* reg2)
    while ( i < res1->Size() ) {
      // select_ first
       if (i < res1->Size() && j < res2->Size() ) {
-         res1->Get(i,chs1);
-         res2->Get(j,chs2);
-         if (chs1->GetLP()==chs2->GetLP() && chs1->GetRP()==chs2->GetRP() )
-            {i ++; j ++; chsAkt = *chs1;  status = BOTH;    }
-         else if ( *chs1 < *chs2) { i ++; chsAkt = *chs1; status = FIRST; }
-         else if ( *chs1 > *chs2) { j ++; chsAkt = *chs2; status = SECOND; }
+         res1->Get(i,hs1);
+         res2->Get(j,hs2);
+         if (hs1->GetLeftPoint()==hs2->GetLeftPoint() && 
+             hs1->GetRightPoint()==hs2->GetRightPoint() )
+            {i ++; j ++; hsAkt = *hs1;  status = BOTH;    }
+         else if ( *hs1 < *hs2) { i ++; hsAkt = *hs1; status = FIRST; }
+         else if ( *hs1 > *hs2) { j ++; hsAkt = *hs2; status = SECOND; }
       }
       else if (i < res1->Size() ) {
-         res1->Get(i,chs1);  i ++;   chsAkt = *chs1;  status = FIRST;
+         res1->Get(i,hs1);  i ++;   hsAkt = *hs1;  status = FIRST;
       }
       else if ( j < res2->Size() ) {
-         res2->Get(j,chs2);  j ++;   chsAkt = *chs2;  status = SECOND; }
-      aktSweep = chsAkt.GetDPoint().GetX();
-      if (chsAkt.GetLDP() == false) {  // right end of segment
-         chsAkt.SetLDP(true);
-         SEntry ent (chsAkt);
+         res2->Get(j,hs2);  j ++;   hsAkt = *hs2;  status = SECOND; }
+      aktSweep = hsAkt.GetDomPoint().GetX();
+      if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
+         hsAkt.SetLeftDomPoint(true);
+         SEntry ent (hsAkt);
          SEntry en;
          // delete segment from sweep line
          if (status == FIRST) {
@@ -4028,23 +3947,23 @@ CRegion* MakeOp::Minus(const CRegion* reg1, const CRegion* reg2)
          if ( (status == FIRST && en.GetU() == 0 && en.GetO() == 1) ||
             (status == FIRST && en.GetU() == 1 && en.GetO() == 0) ||
             (status == BOTH && en.GetU() == 1 && en.GetO() == 1)) {
-            chsAkt.attr.partnerno = counter;
-            chsAkt.SetLDP(false);       (*result) += chsAkt;
-            chsAkt.SetLDP(true);        (*result) += chsAkt;
+            hsAkt.attr.edgeno = counter;
+            hsAkt.SetLeftDomPoint(false);       (*result) += hsAkt;
+            hsAkt.SetLeftDomPoint(true);        (*result) += hsAkt;
             counter++;
          }
          else if ( (status == SECOND && en.GetU()==1 && en.GetO()==2)||
          (status == SECOND && en.GetU() == 2 && en.GetO() == 1) ) {
             // attr insideABove must be changed for segments from 2nd
-            chsAkt.attr.insideAbove = ! chsAkt.attr.insideAbove ;
-            chsAkt.attr.partnerno = counter;
-            chsAkt.SetLDP(false);       (*result) += chsAkt;
-            chsAkt.SetLDP(true);        (*result) += chsAkt;
+            hsAkt.attr.insideAbove = ! hsAkt.attr.insideAbove ;
+            hsAkt.attr.edgeno = counter;
+            hsAkt.SetLeftDomPoint(false);       (*result) += hsAkt;
+            hsAkt.SetLeftDomPoint(true);        (*result) += hsAkt;
             counter++;
          }
       }
       else { // left end of segment
-         SEntry ent (chsAkt);
+         SEntry ent (hsAkt);
          BinTreeNode<SEntry>* node;
          // add segment into sweepline-Status-Structure
          if (status == FIRST)
@@ -4059,11 +3978,11 @@ CRegion* MakeOp::Minus(const CRegion* reg1, const CRegion* reg2)
          // calculate new segmentclass of new ChalfSegment
          ms = np;        ns = np;
          if (status == FIRST || status == BOTH) {
-            if (chs1->attr.insideAbove == true) ns = ns+1;
+            if (hs1->attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
          }
          if (status == SECOND || status == BOTH) {
-            if (chs2->attr.insideAbove == true) ns = ns+1;
+            if (hs2->attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
          }
          // set new segmentclasses in SEntry
@@ -4076,24 +3995,22 @@ CRegion* MakeOp::Minus(const CRegion* reg1, const CRegion* reg2)
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
    result->EndBulkLoad();
-   result->SetPartnerNo();
-   result->ComputeRegion();
    return result;
 }
 
-CLine* MakeOp::Minus(const CLine* line, const CRegion* reg)
+Line* MakeOp::Minus(const Line* line, const Region* reg)
 {   // first Realmisation of both arguments
-   CLine* resLine = new CLine(0);
-   CRegion* resReg = new CRegion(0);
+   Line* resLine = new Line(0);
+   Region* resReg = new Region(0);
    MakeRealm mr;
    mr.REALM( line, reg, resLine , resReg );
    // initialisations
    SLine sweepline;
    int i = 0;
    int j = 0;
-   CHalfSegment chsAkt;
-   const CHalfSegment *chs1, *chs2;
-   CLine* result = new CLine(0);
+   HalfSegment hsAkt;
+   const HalfSegment *hs1, *hs2;
+   Line* result = new Line(0);
    result ->Clear();
    result->StartBulkLoad();
    State status;
@@ -4104,41 +4021,42 @@ CLine* MakeOp::Minus(const CLine* line, const CRegion* reg)
    while ( i < resLine -> Size() ) {
      // select_ first
       if (i < resLine -> Size() && j < resReg -> Size() ) {
-         resLine -> Get(i,chs1);
-         resReg -> Get(j,chs2);
-         if (chs1->GetLP()==chs2->GetLP() && chs1->GetRP()==chs2->GetRP()){
-            i ++;   j ++;   chsAkt = *chs2;    status = BOTH;  }
-         else if ( *chs1 < *chs2) { i ++; chsAkt = *chs1; status = FIRST;}
-         else if ( *chs1 > *chs2) { j ++; chsAkt = *chs2; status = SECOND;}
+         resLine -> Get(i,hs1);
+         resReg -> Get(j,hs2);
+         if (hs1->GetLeftPoint()==hs2->GetLeftPoint() && 
+             hs1->GetRightPoint()==hs2->GetRightPoint()){
+            i ++;   j ++;   hsAkt = *hs2;    status = BOTH;  }
+         else if ( *hs1 < *hs2) { i ++; hsAkt = *hs1; status = FIRST;}
+         else if ( *hs1 > *hs2) { j ++; hsAkt = *hs2; status = SECOND;}
       }
       else if (i < resLine ->Size() ) {
-         resLine -> Get(i,chs1); i ++; chsAkt = *chs1; status = FIRST;}
-      aktSweep = chsAkt.GetDPoint().GetX();
-      if (chsAkt.GetLDP() == false) {  // delete right end
+         resLine -> Get(i,hs1); i ++; hsAkt = *hs1; status = FIRST;}
+      aktSweep = hsAkt.GetDomPoint().GetX();
+      if (hsAkt.IsLeftDomPoint() == false) {  // delete right end
          if ( status == SECOND || status == BOTH ) {
-            chsAkt.SetLDP(true);
-            SEntry ent (chsAkt);
+            hsAkt.SetLeftDomPoint(true);
+            SEntry ent (hsAkt);
             // delete segment from sweep line
             SEntry en = sweepline.FindAndDelete(ent,aktSweep, oldSweep,
                oldEntry1, oldnode1);
          }
       }
-      else { // chsAkt.GetLDP() == true
-         SEntry ent (chsAkt);
+      else { // hsAkt.IsLeftDomPoint() == true
+         SEntry ent (hsAkt);
          BinTreeNode<SEntry>* en = sweepline.Insert(ent,aktSweep,
             oldEntry1, oldnode1);
          BinTreeNode<SEntry>* pred = en->GetPred() ;
          if (status == FIRST ) {
             if (pred == 0 || (pred!=0 && pred->GetEntry().GetO()==0) )
             {
-         CHalfSegment auxChs1( *chs1 );
-               (*result) += auxChs1;    auxChs1.SetLDP(false);
-               (*result) += auxChs1;
+         HalfSegment auxHs1( *hs1 );
+               (*result) += auxHs1;    auxHs1.SetLeftDomPoint(false);
+               (*result) += auxHs1;
             }
             sweepline.Delete (en) ;
          }
          else {  // status == SECOND or BOTH
-            if (chsAkt.attr.insideAbove == true)
+            if (hsAkt.attr.insideAbove == true)
                { ent.SetU(0); ent.SetO(1); }
             else
                { ent.SetU(1); ent.SetO(0); }
@@ -4149,45 +4067,48 @@ CLine* MakeOp::Minus(const CLine* line, const CRegion* reg)
    } // end while
    resLine->Destroy(); delete resLine;
    resReg->Destroy(); delete resReg;
-   result->EndBulkLoad();
+   // VTA - I need to come back here
+   result->EndBulkLoad(true, true, false, false);
    return result;
 
 }
 
-CLine* MakeOp::Minus(const CLine* line1, const CLine* line2)
+Line* MakeOp::Minus(const Line* line1, const Line* line2)
 {
   // first Realmisation of both lines
-   CLine* res1 = new CLine(0);
-   CLine* res2 = new CLine(0);
+   Line* res1 = new Line(0);
+   Line* res2 = new Line(0);
    MakeRealm mr;
    mr.REALM( line1, line2, res1 , res2 );
    // initialisations
    int i = 0;
    int j = 0;
-   const CHalfSegment *chs1, *chs2;
-   CLine* result = new CLine(0);
+   const HalfSegment *hs1, *hs2;
+   Line* result = new Line(0);
    result ->Clear();
    result->StartBulkLoad();
     // while there are segments in the first arguments
    while ( i < res1->Size() ) {
      // select_ first
       if (i < res1->Size() && j < res2->Size() ) {
-         res1->Get(i,chs1);
-         res2->Get(j,chs2);
-         if (chs1->GetLP()==chs2->GetLP() && chs1->GetRP()==chs2->GetRP() )
+         res1->Get(i,hs1);
+         res2->Get(j,hs2);
+         if (hs1->GetLeftPoint()==hs2->GetLeftPoint() && 
+             hs1->GetRightPoint()==hs2->GetRightPoint() )
             { i ++;  j ++; }
-         else if ( *chs1 < *chs2) { i ++;  (*result) += *chs1;  }
-         else if ( *chs1 > *chs2)  j ++;
+         else if ( *hs1 < *hs2) { i ++;  (*result) += *hs1;  }
+         else if ( *hs1 > *hs2)  j ++;
       }
       else if (i < res1->Size() ) {
-         res1->Get(i,chs1);
+         res1->Get(i,hs1);
          i ++;
-         (*result) += *chs1;
+         (*result) += *hs1;
       }
    }
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
-   result -> EndBulkLoad() ;
+   // VTA - I need to come back here
+   result->EndBulkLoad(true, true, false, false);
    return result;
 }
 
@@ -4261,19 +4182,19 @@ static int realm_lr( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *l1 = ((CLine*)args[0].addr);
-   CRegion *r2 = ((CRegion*)args[1].addr);
+   Line *l1 = ((Line*)args[0].addr);
+   Region *r2 = ((Region*)args[1].addr);
    if (l1->IsDefined() && r2->IsDefined())
    {
-      CLine* test1 = new CLine(0);
-      CRegion* test2 = new CRegion(0);
+      Line* test1 = new Line(0);
+      Region* test2 = new Region(0);
       MakeRealm mr;
       mr.REALM( l1, r2, test1 , test2 );
       result.addr = test1;
       return(0);
    }
    else  {
-       ((CLine *)result.addr)->SetDefined( false );
+       ((Line *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4287,19 +4208,19 @@ static int realm_rl( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *l1 = ((CLine*)args[1].addr);
-   CRegion *r2 = ((CRegion*)args[0].addr);
+   Line *l1 = ((Line*)args[1].addr);
+   Region *r2 = ((Region*)args[0].addr);
    if (l1->IsDefined() && r2->IsDefined())
    {
-      CLine* test1 = new CLine(0);
-      CRegion* test2 = new CRegion(0);
+      Line* test1 = new Line(0);
+      Region* test2 = new Region(0);
       MakeRealm mr;
       mr.REALM( l1, r2, test1 , test2 );
       result.addr = test2;
       return(0);
    }
    else  {
-       ((CRegion *)result.addr)->SetDefined( false );
+       ((Region *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4312,12 +4233,12 @@ static int realm_ll( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *l1 = ((CLine*)args[0].addr);
-   CLine *l2 = ((CLine*)args[1].addr);
+   Line *l1 = ((Line*)args[0].addr);
+   Line *l2 = ((Line*)args[1].addr);
    if (l1->IsDefined() && l2->IsDefined())
    {
-      CLine* test1 = new CLine(0);
-      CLine* test2 = new CLine(0);
+      Line* test1 = new Line(0);
+      Line* test2 = new Line(0);
       MakeRealm mr;
       mr.REALM( l1, l2, test1 , test2 );
       result.addr = test1;
@@ -4325,7 +4246,7 @@ static int realm_ll( Word* args, Word& result, int message,
    }
    else
    {
-       ((CLine *)result.addr)->SetDefined( false );
+       ((Line *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4338,12 +4259,12 @@ static int realm_rr( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CRegion *r1 = ((CRegion*)args[0].addr);
-   CRegion *r2 = ((CRegion*)args[1].addr);
+   Region *r1 = ((Region*)args[0].addr);
+   Region *r2 = ((Region*)args[1].addr);
    if (r1->IsDefined() && r2->IsDefined())
    {
-      CRegion* test1 = new CRegion(0);
-      CRegion* test2 = new CRegion(0);
+      Region* test1 = new Region(0);
+      Region* test2 = new Region(0);
       MakeRealm mr;
       mr.REALM( r1, r2, test1 , test2 );
       result.addr = test1;
@@ -4351,7 +4272,7 @@ static int realm_rr( Word* args, Word& result, int message,
    }
    else
    {
-       ((CRegion *)result.addr)->SetDefined( false );
+       ((Region *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4413,43 +4334,43 @@ static int Inter_ll( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *line1 = ((CLine*)args[0].addr);
-   CLine *line2 = ((CLine*)args[1].addr);
+   Line *line1 = ((Line*)args[0].addr);
+   Line *line2 = ((Line*)args[1].addr);
    if (line1->IsDefined() && line2->IsDefined() ) {
       if (line1->IsEmpty() || line2->IsEmpty() ) {
-          ((CLine *)result.addr)->SetDefined( false );
+          ((Line *)result.addr)->SetDefined( false );
          return (0);
       }
       else if (line1->BoundingBox().IsDefined() &&
          line2->BoundingBox().IsDefined() ) {
          if (line1->BoundingBox().Intersects(line2->BoundingBox())) {
-            CLine* res = new CLine(0);
+            Line* res = new Line(0);
             MakeOp mo;
             res = mo.Intersection( line1, line2 );
             if ( res->IsEmpty() )
-               ((CLine *)result.addr)->SetDefined( false );
+               ((Line *)result.addr)->SetDefined( false );
             else
                result.addr = res;
             return(0);
          }
          else   {
-            ((CLine *)result.addr)->SetDefined( false );
+            ((Line *)result.addr)->SetDefined( false );
             return (0);
          }
       }
       else  {
-         CLine* res = new CLine(0);
+         Line* res = new Line(0);
          MakeOp mo;
          res = mo.Intersection( line1, line2 );
          if ( res->IsEmpty() )
-            ((CLine *)result.addr)->SetDefined( false );
+            ((Line *)result.addr)->SetDefined( false );
          else
             result.addr = res;
          return(0);
       }
    }
    else  {
-       ((CLine *)result.addr)->SetDefined( false );
+       ((Line *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4462,43 +4383,43 @@ static int Inter_lr( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *l1 = ((CLine*)args[0].addr);
-   CRegion *r2 = ((CRegion*)args[1].addr);
+   Line *l1 = ((Line*)args[0].addr);
+   Region *r2 = ((Region*)args[1].addr);
    if (l1->IsDefined() && r2->IsDefined() ) {
       if (l1->IsEmpty() || r2->IsEmpty() ) {
-         ((CLine *)result.addr)->SetDefined( false );
+         ((Line *)result.addr)->SetDefined( false );
          return (0);
       }
       if (l1->BoundingBox().IsDefined() &&
          r2->BoundingBox().IsDefined() ) {
          if ( l1->BoundingBox().Intersects( r2->BoundingBox())) {
-            CLine* res = new CLine(0);
+            Line* res = new Line(0);
             MakeOp mo;
             res = mo.Intersection( r2, l1 );
             if (res->IsEmpty() )
-              ((CLine *)result.addr)->SetDefined( false );
+              ((Line *)result.addr)->SetDefined( false );
             else
               result.addr = res ;
             return(0);
          }
          else   {
-            ((CLine *)result.addr)->SetDefined( false );
+            ((Line *)result.addr)->SetDefined( false );
             return (0);
          }
       }
       else  {
-         CLine* res = new CLine(0);
+         Line* res = new Line(0);
          MakeOp mo;
          res = mo.Intersection( r2, l1  );
          if (res->IsEmpty() )
-            ((CLine *)result.addr)->SetDefined( false );
+            ((Line *)result.addr)->SetDefined( false );
          else
             result.addr = res;
          return(0);
       }
    }
    else  {
-       ((CLine *)result.addr)->SetDefined( false );
+       ((Line *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4511,43 +4432,43 @@ static int Inter_rl ( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *l1 = ((CLine*)args[1].addr);
-   CRegion *r2 = ((CRegion*)args[0].addr);
+   Line *l1 = ((Line*)args[1].addr);
+   Region *r2 = ((Region*)args[0].addr);
    if (l1->IsDefined() && r2->IsDefined() ) {
       if (l1->IsEmpty() || r2->IsEmpty() ) {
-         ((CLine *)result.addr)->SetDefined( false );
+         ((Line *)result.addr)->SetDefined( false );
          return (0);
       }
       if (l1->BoundingBox().IsDefined() &&
          r2->BoundingBox().IsDefined() ) {
          if ( l1->BoundingBox().Intersects( r2->BoundingBox() ) )  {
-            CLine* res = new CLine(0);
+            Line* res = new Line(0);
             MakeOp mo;
             res = mo.Intersection( r2, l1 );
             if (res->IsEmpty() )
-               ((CLine *)result.addr)->SetDefined( false );
+               ((Line *)result.addr)->SetDefined( false );
             else
                result.addr = res;
             return(0);
          }
          else   {
-            ((CLine *)result.addr)->SetDefined( false );
+            ((Line *)result.addr)->SetDefined( false );
             return (0);
          }
       }
       else  {
-         CLine* res = new CLine(0);
+         Line* res = new Line(0);
          MakeOp mo;
          res = mo.Intersection( r2, l1  );
          if (res->IsEmpty() )
-            ((CLine *)result.addr)->SetDefined( false );
+            ((Line *)result.addr)->SetDefined( false );
          else
             result.addr = res;
          return(0);
       }
    }
    else  {
-       ((CLine *)result.addr)->SetDefined( false );
+       ((Line *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4560,43 +4481,43 @@ static int Inter_rr( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CRegion *r1 = ((CRegion*)args[0].addr);
-   CRegion *r2 = ((CRegion*)args[1].addr);
+   Region *r1 = ((Region*)args[0].addr);
+   Region *r2 = ((Region*)args[1].addr);
    if (r1->IsDefined() && r2->IsDefined() ) {
       if (r1->IsEmpty() || r2->IsEmpty() ) {
-         ((CRegion *)result.addr)->SetDefined( false );
+         ((Region *)result.addr)->SetDefined( false );
           return (0);
       }
       if (r1->BoundingBox().IsDefined() &&
          r2->BoundingBox().IsDefined() ) {
          if ( r1->BoundingBox().Intersects( r2->BoundingBox())) {
-            CRegion* res = new CRegion(0);
+            Region* res = new Region(0);
             MakeOp mo;
             res = mo.Intersection( r1, r2 );
             if ( res->IsEmpty() )
-               ((CRegion *)result.addr)->SetDefined( false );
+               ((Region *)result.addr)->SetDefined( false );
             else
                result.addr = res;
             return(0);
          }
          else   { // no intersection possible
-            ((CRegion *)result.addr)->SetDefined( false );
+            ((Region *)result.addr)->SetDefined( false );
             return (0);
          }
       }
       else  {
-         CRegion* res = new CRegion(0);
+         Region* res = new Region(0);
          MakeOp mo;
          res = mo.Intersection( r1, r2 );
          if ( res->IsEmpty() )
-            ((CRegion *)result.addr)->SetDefined( false );
+            ((Region *)result.addr)->SetDefined( false );
          else
             result.addr = res;
          return(0);
       }
    }
    else  {
-       ((CRegion *)result.addr)->SetDefined( false );
+       ((Region *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4669,8 +4590,8 @@ static int Intersects_ll( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *line1 = ((CLine*)args[0].addr);
-   CLine *line2 = ((CLine*)args[1].addr);
+   Line *line1 = ((Line*)args[0].addr);
+   Line *line2 = ((Line*)args[1].addr);
    if (line1->IsDefined() && line2->IsDefined() ) {
        if (line1->IsEmpty() || line2->IsEmpty() ) {
          ((CcBool*) result.addr) ->Set ( true, false);
@@ -4710,8 +4631,8 @@ static int Intersects_lr( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *l1 = ((CLine*)args[0].addr);
-   CRegion *r2 = ((CRegion*)args[1].addr);
+   Line *l1 = ((Line*)args[0].addr);
+   Region *r2 = ((Region*)args[1].addr);
    if (l1->IsDefined() && r2->IsDefined() ) {
        if (l1->IsEmpty() || r2->IsEmpty() ) {
           ((CcBool*) result.addr) ->Set( true, false);
@@ -4751,8 +4672,8 @@ static int Intersects_rl( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *l1 = ((CLine*)args[1].addr);
-   CRegion *r2 = ((CRegion*)args[0].addr);
+   Line *l1 = ((Line*)args[1].addr);
+   Region *r2 = ((Region*)args[0].addr);
    if (l1->IsDefined() && r2->IsDefined() ) {
        if (l1->IsEmpty() || r2->IsEmpty() ) {
           ((CcBool*) result.addr) ->Set ( true, false);
@@ -4792,8 +4713,8 @@ static int Intersects_rr( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CRegion *r1 = ((CRegion*)args[0].addr);
-   CRegion *r2 = ((CRegion*)args[1].addr);
+   Region *r1 = ((Region*)args[0].addr);
+   Region *r2 = ((Region*)args[1].addr);
    if (r1->IsDefined() && r2->IsDefined() ) {
       if (r1->IsEmpty() || r2->IsEmpty() ) {
          ((CcBool*) result.addr) ->Set ( true, false);
@@ -4893,11 +4814,11 @@ static int Union_rr( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CRegion *r1 = ((CRegion*)args[0].addr);
-   CRegion *r2 = ((CRegion*)args[1].addr);
+   Region *r1 = ((Region*)args[0].addr);
+   Region *r2 = ((Region*)args[1].addr);
    if (r1->IsDefined() && r2->IsDefined() )    {
       if ( r1->IsEmpty() && r2 -> IsEmpty() ) {
-         ((CRegion *)result.addr)->SetDefined( false );
+         ((Region *)result.addr)->SetDefined( false );
          return (0);
       }
       else if (r1->IsEmpty() ) {
@@ -4909,7 +4830,7 @@ Word& local, Supplier s )
          return(0);
       }
       else {
-         CRegion* res = new CRegion(0);
+         Region* res = new Region(0);
          MakeOp mo;
          res = mo.Union( r1, r2 );
          result.addr = res;
@@ -4917,7 +4838,7 @@ Word& local, Supplier s )
       }
    }
    else  {
-       ((CRegion *)result.addr)->SetDefined( false );
+       ((Region *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4931,14 +4852,14 @@ static int Union_lr( Word* args, Word& result, int message,
 {
 
    result = qp->ResultStorage( s );
-   CLine *line = ((CLine*)args[0].addr);
-   CRegion *reg = ((CRegion*)args[1].addr);
+   Line *line = ((Line*)args[0].addr);
+   Region *reg = ((Region*)args[1].addr);
    if ( !reg->IsEmpty()&&line->IsDefined()&&reg->IsDefined()) {
       result.addr = reg;
       return(0);
    }
    else  {
-      ((CRegion *)result.addr)->SetDefined( false );
+      ((Region *)result.addr)->SetDefined( false );
       return (0);
    }
 }
@@ -4951,15 +4872,15 @@ static int Union_rl( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *line = ((CLine*)args[1].addr);
-   CRegion *reg = ((CRegion*)args[0].addr);
+   Line *line = ((Line*)args[1].addr);
+   Region *reg = ((Region*)args[0].addr);
    if ( ! reg -> IsEmpty() && line->IsDefined() &&
    reg->IsDefined() )    {
       result.addr = reg;
       return(0);
    }
    else  {
-      ((CRegion *)result.addr)->SetDefined( false );
+      ((Region *)result.addr)->SetDefined( false );
       return (0);
    }
 }
@@ -4972,11 +4893,11 @@ static int Union_ll( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *line1 = ((CLine*)args[0].addr);
-   CLine *line2 = ((CLine*)args[1].addr);
+   Line *line1 = ((Line*)args[0].addr);
+   Line *line2 = ((Line*)args[1].addr);
    if (line1->IsDefined() && line2->IsDefined() )    {
       if (line1->IsEmpty() ) {
-         ((CLine *)result.addr)->SetDefined( false );
+         ((Line *)result.addr)->SetDefined( false );
          return(0);
       }
       else if (line2->IsEmpty() ) {
@@ -4984,7 +4905,7 @@ Word& local, Supplier s )
          return(0);
       }
       else {
-         CLine* res = new CLine(0);
+         Line* res = new Line(0);
          MakeOp mo;
          res = mo.Union( line1, line2 );
          result.addr = res;
@@ -4992,7 +4913,7 @@ Word& local, Supplier s )
       }
    }
    else  {
-       ((CLine *)result.addr)->SetDefined( false );
+       ((Line *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -5065,11 +4986,11 @@ static int Minus_rr( Word* args, Word& result, int message,
    Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CRegion *r1 = ((CRegion*)args[0].addr);
-   CRegion *r2 = ((CRegion*)args[1].addr);
+   Region *r1 = ((Region*)args[0].addr);
+   Region *r2 = ((Region*)args[1].addr);
    if (r1->IsDefined() && r2->IsDefined() ) {
       if ( r1 -> IsEmpty() ) {
-         ((CRegion *)result.addr)->SetDefined( false );
+         ((Region *)result.addr)->SetDefined( false );
          return(0);
       }
       else if ( r2->IsEmpty() ) {
@@ -5079,11 +5000,11 @@ static int Minus_rr( Word* args, Word& result, int message,
       else if (r1->BoundingBox().IsDefined() &&
       r2->BoundingBox().IsDefined() ) {
          if ((r1->BoundingBox().Intersects(r2->BoundingBox()))) {
-            CRegion* res = new CRegion(0);
+            Region* res = new Region(0);
             MakeOp mo;
             res = mo.Minus( r1, r2 );
             if (res->IsEmpty() )
-               ((CRegion *)result.addr)->SetDefined( false );
+               ((Region *)result.addr)->SetDefined( false );
             else
                result.addr = res;
             return(0);
@@ -5094,18 +5015,18 @@ static int Minus_rr( Word* args, Word& result, int message,
          }
       }
       else    {
-         CRegion* res = new CRegion(0);
+         Region* res = new Region(0);
          MakeOp mo;
          res = mo.Minus( r1, r2 );
          if (res->IsEmpty() )
-            ((CRegion *)result.addr)->SetDefined( false );
+            ((Region *)result.addr)->SetDefined( false );
          else
             result.addr = res;
          return(0);
       }
    }
    else   {
-       ((CRegion *)result.addr)->SetDefined( false );
+       ((Region *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -5118,21 +5039,21 @@ static int Minus_lr( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *line = ((CLine*)args[0].addr);
-   CRegion *reg = ((CRegion*)args[1].addr);
+   Line *line = ((Line*)args[0].addr);
+   Region *reg = ((Region*)args[1].addr);
    if (line->IsDefined() && reg->IsDefined() )    {
       if ( line-> IsEmpty()|| reg->IsEmpty() ) {
-         ((CLine *)result.addr)->SetDefined( false );
+         ((Line *)result.addr)->SetDefined( false );
          return(0);
       }
       else if (line->BoundingBox().IsDefined() &&
       reg->BoundingBox().IsDefined() ) {
          if (line->BoundingBox().Intersects(reg->BoundingBox())) {
-            CLine* res = new CLine(0);
+            Line* res = new Line(0);
             MakeOp mo;
             res = mo.Minus( line,reg );
             if ( res -> IsEmpty() )
-               ((CLine *)result.addr)->SetDefined( false );
+               ((Line *)result.addr)->SetDefined( false );
             else
                result.addr = res;
             return(0);
@@ -5143,18 +5064,18 @@ Word& local, Supplier s )
          }
       }
       else    {
-         CLine* res = new CLine(0);
+         Line* res = new Line(0);
          MakeOp mo;
          res = mo.Minus( line, reg );
          if ( res -> IsEmpty() )
-            ((CLine *)result.addr)->SetDefined( false );
+            ((Line *)result.addr)->SetDefined( false );
          else
             result.addr = res;
          return(0);
       }
    } // if IsDefined()
    else   {
-      ((CLine *)result.addr)->SetDefined( false );
+      ((Line *)result.addr)->SetDefined( false );
       return (0);
    }
 }
@@ -5167,15 +5088,15 @@ static int Minus_rl( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *line = ((CLine*)args[1].addr);
-   CRegion *reg = ((CRegion*)args[0].addr);
+   Line *line = ((Line*)args[1].addr);
+   Region *reg = ((Region*)args[0].addr);
    if ( ! line->IsEmpty() && line->IsDefined() &&
    reg->IsDefined() )    {
       result.addr = reg ;
       return(0);
    }
    else  {
-      ((CRegion *)result.addr)->SetDefined( false );
+      ((Region *)result.addr)->SetDefined( false );
       return (0);
    }
  }
@@ -5188,11 +5109,11 @@ static int Minus_ll( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *line1 = ((CLine*)args[0].addr);
-   CLine *line2 = ((CLine*)args[1].addr);
+   Line *line1 = ((Line*)args[0].addr);
+   Line *line2 = ((Line*)args[1].addr);
    if (line1->IsDefined() && line2->IsDefined() )    {
       if (line1->IsEmpty() ) {
-         ((CLine *) result.addr) -> SetDefined(false);
+         ((Line *) result.addr) -> SetDefined(false);
          return (0);
       }
       else if (line2->IsEmpty() ) {
@@ -5203,11 +5124,11 @@ Word& local, Supplier s )
       line2->BoundingBox().IsDefined() ) {
          if ((line1->BoundingBox().Intersects
          (line2->BoundingBox() ) ) ) {
-            CLine* res = new CLine(0);
+            Line* res = new Line(0);
             MakeOp mo;
             res = mo.Minus( line1, line2 );
             if (res->IsEmpty() )
-               ((CLine *)result.addr)->SetDefined( false );
+               ((Line *)result.addr)->SetDefined( false );
             else
                result.addr = res;
             return(0);
@@ -5218,18 +5139,18 @@ Word& local, Supplier s )
          }
       }
       else {
-         CLine* res = new CLine(0);
+         Line* res = new Line(0);
          MakeOp mo;
          res = mo.Minus( line1, line2 );
          if (res ->IsEmpty() )
-            ((CLine *)result.addr)->SetDefined( false );
+            ((Line *)result.addr)->SetDefined( false );
          else
             result.addr = res;
          return(0);
       }
    }
    else  {
-       ((CLine *)result.addr)->SetDefined( false );
+       ((Line *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -5281,8 +5202,8 @@ static int p_inter_ll( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *line1 = ((CLine*)args[0].addr);
-   CLine *line2 = ((CLine*)args[1].addr);
+   Line *line1 = ((Line*)args[0].addr);
+   Line *line2 = ((Line*)args[1].addr);
    if (line1->IsDefined() && line2->IsDefined() ) {
        if (line1->IsEmpty() || line2->IsEmpty() ) {
          ((CcBool*) result.addr) ->Set ( true, false);
@@ -5323,8 +5244,8 @@ static int p_inter_lr( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *l1 = ((CLine*)args[0].addr);
-   CRegion *r2 = ((CRegion*)args[1].addr);
+   Line *l1 = ((Line*)args[0].addr);
+   Region *r2 = ((Region*)args[1].addr);
    if (l1->IsDefined() && r2->IsDefined() ) {
        if (l1->IsEmpty() || r2->IsEmpty() ) {
           ((CcBool*) result.addr) ->Set( true, false);
@@ -5364,8 +5285,8 @@ static int p_inter_rl( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CLine *l1 = ((CLine*)args[1].addr);
-   CRegion *r2 = ((CRegion*)args[0].addr);
+   Line *l1 = ((Line*)args[1].addr);
+   Region *r2 = ((Region*)args[0].addr);
    if (l1->IsDefined() && r2->IsDefined() ) {
        if (l1->IsEmpty() || r2->IsEmpty() ) {
           ((CcBool*) result.addr) ->Set ( true, false);
@@ -5405,8 +5326,8 @@ static int p_inter_rr( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
    result = qp->ResultStorage( s );
-   CRegion *r1 = ((CRegion*)args[0].addr);
-   CRegion *r2 = ((CRegion*)args[1].addr);
+   Region *r1 = ((Region*)args[0].addr);
+   Region *r2 = ((Region*)args[1].addr);
    if (r1->IsDefined() && r2->IsDefined() ) {
        if (r1->IsEmpty() || r2->IsEmpty() ) {
           ((CcBool*) result.addr) ->Set ( true, false);

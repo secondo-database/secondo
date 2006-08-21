@@ -152,8 +152,8 @@ size ~size~ for the specified ~channel~ (see the description of
 
 */
     Histogram(unsigned char* imgdata, 
-	      unsigned long size, 
-	      HistogramChannel channel);
+        unsigned long size, 
+        HistogramChannel channel);
 
 /*
 
@@ -233,7 +233,8 @@ See the description of ~StandardAttribute~ and the SECONDO Programmer's
 Guide for details.
 
 */
-    void SetDefined(const bool d) { isDefined = d; };
+    void SetDefined(const bool d) { isDefined = d; }
+    size_t Sizeof() const { return sizeof(*this); }
     size_t HashValue(void) const;
     void CopyFrom(const StandardAttribute*);
     int Compare(const Attribute* a) const;
@@ -329,10 +330,10 @@ the respective private attributes.
 
 */
     Picture(string imgdataB64,
-	    string fn,
-	    string cat,
-	    bool isp,
-	    string dt);
+      string fn,
+      string cat,
+      bool isp,
+      string dt);
 
 /*
 
@@ -343,11 +344,11 @@ respective private attributes.
 
 */
     Picture(char* imgdata,
-	    unsigned long size,
-	    string fn,
-	    string cat,
-	    bool isp,
-	    string dt);
+      unsigned long size,
+      string fn,
+      string cat,
+      bool isp,
+      string dt);
 
 /*
 
@@ -364,11 +365,11 @@ value mapping functions of the picture operators to fill the result picture.
 
 */
     void Set(char* imgdata,
-	    unsigned long size,
-	    string fn,
-	    string cat,
-	    bool isp,
-	    string dt);
+      unsigned long size,
+      string fn,
+      string cat,
+      bool isp,
+      string dt);
 
 /*
 
@@ -413,6 +414,13 @@ Sets the ~isDefined~ private attribute to the value of the paramter.
 
 */
     void SetDefined(const bool d) { isDefined = d; }
+
+/*
+
+Returns the ~sizeof~ of a ~Picture~ instance.
+
+*/
+    size_t Sizeof() const { return sizeof(*this); }
 
 /*
 

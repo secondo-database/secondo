@@ -64,6 +64,7 @@ using namespace std;
 
 #include "SpatialAlgebra.h"
 #include "RelationAlgebra.h"
+#include "TemporalAlgebra.h"
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -1830,6 +1831,344 @@ Operator gettuples (
 );
 
 /*
+7.2 Operator ~gettuplesdbl~
+
+7.2.1 Type mapping function of operator ~gettuplesdbl~
+
+*/
+ListExpr GetTuplesDblTypeMap(ListExpr args)
+{
+  string errmsg = "Incorrect input for operator gettuplesdbl.";
+  AlgebraManager *algMgr;
+  algMgr = SecondoSystem::GetAlgebraManager();
+
+  string argStr;
+  nl->WriteToString(argStr, args);
+
+  CHECK_COND(!nl->IsEmpty(args) &&
+             !nl->IsAtom(args) &&
+             nl->ListLength(args) == 3,
+    errmsg +
+    "\nOperator gettuplesdbl expects three arguments, but gets '" +
+    argStr + "'.");
+
+  // Split arguments into three parts
+  ListExpr streamDescription = nl->First(args),
+           relDescription = nl->Second(args),
+           attrnameDescription = nl->Third(args);
+  string streamDescriptionStr, relDescriptionStr, attrnameDescriptionStr;
+
+  // Handle the stream part of arguments
+  nl->WriteToString (streamDescriptionStr, streamDescription);
+
+  CHECK_COND(IsStreamDescription(streamDescription),
+    errmsg +
+    "\nOperator gettuplesdbl expects a first argument with structure "
+    "(stream (tuple ((id tid) (a1 t1)...(an tn))))\n"
+    "but gets it with structure '" + streamDescriptionStr + "'.");
+
+  // Handle the rel part of arguments
+  nl->WriteToString (relDescriptionStr, relDescription);
+
+  CHECK_COND(IsRelDescription(relDescription),
+    errmsg +
+    "\nOperator gettuplesdbl expects a second argument with structure "
+    "(rel (tuple ((a1 t1)...(an tn))))\n"
+    "but gets it with structure '" + relDescriptionStr + "'.");
+
+  ListExpr sTupleDescription = nl->Second(streamDescription),
+           sAttrList = nl->Second(sTupleDescription),
+           rTupleDescription = nl->Second(relDescription),
+           rAttrList = nl->Second(rTupleDescription);
+
+  nl->WriteToString (attrnameDescriptionStr, attrnameDescription);
+
+  CHECK_COND(nl->IsAtom(attrnameDescription) &&
+    nl->AtomType(attrnameDescription) == SymbolType,
+    errmsg + "\nOperator gettuplesdbl expects as third argument the name "
+    "of the indexed attribute but gets '" + attrnameDescriptionStr + "'" );
+
+  string attrName = nl->SymbolValue(attrnameDescription);
+
+  int attrIndex;
+  ListExpr attrType;
+
+  CHECK_COND(
+    (attrIndex = FindAttribute(rAttrList, attrName, attrType)) > 0,
+    errmsg +
+    "\nOperator gettuplesdbl expects that the attribute " +
+    attrName + "\npassed as third argument to be part of "
+    "the relation passed as second\n'" +
+    relDescriptionStr + "'.");
+
+  // Find the attribute with type tid
+  ListExpr first, rest, newAttrList, lastNewAttrList;
+  int j, tidIndex = 0;
+  string type;
+  bool firstcall = true,
+       dblIdxFirst = false,
+       dblIndex = false;
+
+  rest = sAttrList;
+  j = 1;
+  while (!nl->IsEmpty(rest))
+  {
+    first = nl->First(rest);
+    rest = nl->Rest(rest);
+
+    type = nl->SymbolValue(nl->Second(first));
+    if (type == "tid")
+    {
+      CHECK_COND(tidIndex == 0,
+       "Operator gettuplesdbl expects as first argument a stream with\n"
+       "one and only one attribute of type tid but gets\n'" +
+       streamDescriptionStr + "'.");
+      tidIndex = j;
+    }
+    else if( type == "int" &&
+             tidIndex == j-1 )
+    {
+      dblIdxFirst = true;
+    }
+    else if( type == "int" &&
+             dblIdxFirst &&
+             tidIndex == j-2 )
+    {
+      dblIndex = true;
+    }
+    else
+    {
+      if (firstcall)
+      {
+        firstcall = false;
+        newAttrList = nl->OneElemList(first);
+        lastNewAttrList = newAttrList;
+      }
+      else
+        lastNewAttrList = nl->Append(lastNewAttrList, first);
+    }
+    j++;
+  }
+
+  rest = rAttrList;
+  while(!nl->IsEmpty(rest))
+  {
+    first = nl->First(rest);
+    rest = nl->Rest(rest);
+
+    if (firstcall)
+    {
+      firstcall = false;
+      newAttrList = nl->OneElemList(first);
+      lastNewAttrList = newAttrList;
+    }
+    else
+      lastNewAttrList = nl->Append(lastNewAttrList, first);
+  }
+
+  CHECK_COND( tidIndex != 0,
+    "Operator gettuplesdbl expects as first argument a stream with\n"
+    "one and only one attribute of type tid but gets\n'" +
+    streamDescriptionStr + "'.");
+
+  return
+    nl->ThreeElemList(
+      nl->SymbolAtom("APPEND"),
+      nl->TwoElemList(
+        nl->IntAtom(attrIndex),
+        nl->IntAtom(tidIndex)),
+      nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          newAttrList)));
+}
+                                                       
+/*
+5.1.3 Value mapping functions of operator ~gettuplesdbl~
+
+*/
+struct GetTuplesDblLocalInfo
+{
+  Relation *relation;
+  int attrIndex;
+  int tidIndex;
+  Tuple *lastTuple;
+  vector< pair<int, int> > intervals;
+  TupleType *resultTupleType;
+};
+
+int GetTuplesDbl( Word* args, Word& result, int message,
+                  Word& local, Supplier s )
+{
+  GetTuplesDblLocalInfo *localInfo;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      Word relWord, attrWord, tidWord;
+      qp->Open(args[0].addr);
+      qp->Request(args[1].addr, relWord);
+      // We jump argument 2 which is the name of the attribute
+      qp->Request(args[3].addr, attrWord);
+      qp->Request(args[4].addr, tidWord);
+
+      localInfo = new GetTuplesDblLocalInfo();
+      localInfo->relation = (Relation*)relWord.addr;
+      localInfo->resultTupleType =
+        new TupleType(nl->Second(GetTupleResultType(s)));
+      localInfo->attrIndex = ((CcInt*)attrWord.addr)->GetIntval() - 1;
+      localInfo->tidIndex = ((CcInt*)tidWord.addr)->GetIntval() - 1;
+      localInfo->lastTuple = 0;
+      local = SetWord(localInfo);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      localInfo = (GetTuplesDblLocalInfo*)local.addr;
+
+      Word wTuple;
+      qp->Request(args[0].addr, wTuple);
+      while( qp->Received(args[0].addr) )
+      {
+        Tuple *sTuple = (Tuple*)wTuple.addr;
+
+        if( localInfo->lastTuple == 0 )
+        {
+          localInfo->lastTuple = sTuple;
+          localInfo->intervals.push_back( make_pair( 
+            ((CcInt*)sTuple->GetAttribute( localInfo->tidIndex+1 ))->
+              GetIntval(),
+            ((CcInt*)sTuple->GetAttribute( localInfo->tidIndex+2 ))->
+              GetIntval() ) );
+        }
+        else if( sTuple->GetAttribute( localInfo->tidIndex )->
+                   Compare( localInfo->lastTuple->
+                     GetAttribute( localInfo->tidIndex ) ) == 0 )
+        {
+          localInfo->intervals.push_back( make_pair( 
+            ((CcInt*)sTuple->GetAttribute( localInfo->tidIndex+1 ))->
+              GetIntval(),
+            ((CcInt*)sTuple->GetAttribute( localInfo->tidIndex+2 ))->
+              GetIntval() ) );
+          sTuple->DeleteIfAllowed();
+        }
+        else
+        {
+          Tuple *resultTuple = new Tuple( localInfo->resultTupleType ),
+                *relTuple = localInfo->relation->
+                  GetTuple( ((TupleIdentifier *)localInfo->lastTuple->
+                              GetAttribute(localInfo->tidIndex))->GetTid(),
+                            localInfo->attrIndex,
+                            localInfo->intervals );
+          localInfo->intervals.clear();
+          localInfo->intervals.push_back( make_pair( 
+            ((CcInt*)sTuple->GetAttribute( localInfo->tidIndex+1 ))->
+              GetIntval(),
+            ((CcInt*)sTuple->GetAttribute( localInfo->tidIndex+2 ))->
+              GetIntval() ) );
+
+          // Copy the attributes from the stream tuple
+          int j = 0;
+          for( int i = 0; i < localInfo->lastTuple->GetNoAttributes(); i++ )
+          {
+            if( i < localInfo->tidIndex &&
+                i > localInfo->tidIndex + 2 )
+              resultTuple->CopyAttribute( j++, localInfo->lastTuple, i );
+          }
+          localInfo->lastTuple->DeleteIfAllowed();
+          localInfo->lastTuple = sTuple;
+
+          for( int i = 0; i < relTuple->GetNoAttributes(); i++ )
+            resultTuple->CopyAttribute( j++, relTuple, i );
+          relTuple->DeleteIfAllowed();
+
+          result = SetWord( resultTuple );
+          return YIELD;
+        }
+        qp->Request(args[0].addr, wTuple);
+      }
+
+      if( localInfo->lastTuple != 0 )
+      {
+        Tuple *resultTuple = new Tuple( localInfo->resultTupleType ),
+              *relTuple = localInfo->relation->
+                GetTuple(((TupleIdentifier *)localInfo->lastTuple->
+                  GetAttribute(localInfo->tidIndex))->GetTid(),
+                localInfo->attrIndex,
+                localInfo->intervals );
+
+        // Copy the attributes from the stream tuple
+        int j = 0;
+        for( int i = 0; i < localInfo->lastTuple->GetNoAttributes(); i++ )
+        {
+          if( i < localInfo->tidIndex &&
+              i > localInfo->tidIndex + 2 )
+            resultTuple->CopyAttribute( j++, localInfo->lastTuple, i );
+        }
+        localInfo->lastTuple->DeleteIfAllowed();
+        localInfo->lastTuple = 0;
+
+        for( int i = 0; i < relTuple->GetNoAttributes(); i++ )
+          resultTuple->CopyAttribute( j++, relTuple, i );
+        relTuple->DeleteIfAllowed();
+
+        result = SetWord( resultTuple );
+        return YIELD;
+      }
+      else
+        return CANCEL;
+    }
+
+    case CLOSE :
+    {
+      qp->Close(args[0].addr);
+      localInfo = (GetTuplesDblLocalInfo*)local.addr;
+      localInfo->resultTupleType->DeleteIfAllowed();
+      delete localInfo;
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+5.1.5 Specification of operator ~gettuplesdbl~
+
+*/
+const string GetTuplesDblSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>(stream (tuple ((id tid) (x1 t1)...(xn tn)))) x"
+      " (rel (tuple ((y1 t1)...(yn tn)))) ->"
+      " (stream (tuple ((x1 t1)...(xn tn) (y1 t1)...(yn tn))))"
+      "</text--->"
+      "<text>_ _ gettuplesdbl</text--->"
+      "<text>Retrieves the tuples in the relation in the second "
+      "argument given by the tuple id in first argument stream. "
+      "The result tuple type is a concatenation of both types "
+      "without the tid attribute.</text--->"
+      "<text>query citiesInd windowintersectsS[r] cities gettuplesdbl; "
+      "where citiesInd is e.g. created with 'let citiesInd = "
+      "cities creatertree [pos]'</text--->"
+      ") )";
+
+/*
+5.1.6 Definition of operator ~gettuplesdbl~
+
+*/
+Operator gettuplesdbl (
+         "gettuplesdbl",            // name
+         GetTuplesDblSpec,          // specification
+         GetTuplesDbl,              // value mapping
+         Operator::SimpleSelect,    // selection function
+         GetTuplesDblTypeMap        // type mapping
+);
+
+
+
+/*
 6 Definition and initialization of RTree Algebra
 
 */
@@ -1846,6 +2185,7 @@ class RTreeAlgebra : public Algebra
     AddOperator( &windowintersects );
     AddOperator( &windowintersectsS );
     AddOperator( &gettuples );
+    AddOperator( &gettuplesdbl );
   }
   ~RTreeAlgebra() {};
 };

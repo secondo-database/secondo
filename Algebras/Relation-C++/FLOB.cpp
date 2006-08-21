@@ -57,6 +57,7 @@ were removed, since the code is stable.
 
 */
 const size_t FLOB::SWITCH_THRESHOLD = 1024;
+const size_t FLOB::PAGE_SIZE = 4050;
 
 /*
 2.4 BringToMemory
@@ -67,13 +68,15 @@ state to a ~InMemory~ state.
 */
 const char *FLOB::BringToMemory() const
 {
+  assert( type != Destroyed );
+
   if( type == InDiskLarge )
   {
-    char *buffer;
+    const char *buffer;
     bool cached =  
       qp->GetFLOBCache()->GetFLOB( fd.inDiskLarge.lobFileId, 
                                    fd.inDiskLarge.lobId, 
-                                   size, false, buffer );
+                                   -1, size, false, buffer );
 
     SmiFileId fileId = fd.inDiskLarge.lobFileId;
     SmiRecordId lobId = fd.inDiskLarge.lobId;
@@ -88,7 +91,7 @@ const char *FLOB::BringToMemory() const
     else
     {
       type = InMemory;
-      fd.inMemory.buffer = buffer;
+      fd.inMemory.buffer = (char*)buffer;
       fd.inMemory.canDelete = true;
     }
     return buffer;
@@ -109,8 +112,23 @@ const char *FLOB::BringToMemory() const
     return fd.inMemory.buffer;
   else if( type == InMemoryCached )
     return fd.inMemoryCached.buffer;
-  else
-    assert( false );
+  else if( type == InMemoryPagedCached )
+  {
+    assert( fd.inMemoryPagedCached.buffer != 0 );
+    if( fd.inMemoryPagedCached.cached )
+      qp->GetFLOBCache()->Release( fd.inMemoryPagedCached.lobFileId,
+                                   fd.inMemoryPagedCached.lobId,
+                                   fd.inMemoryPagedCached.pageno );
+    else
+      free( fd.inMemoryPagedCached.buffer );
+
+    SmiFileId lobFileId = fd.inMemoryPagedCached.lobFileId;
+    SmiRecordId lobId = fd.inMemoryPagedCached.lobId;
+    type = InDiskLarge;
+    fd.inDiskLarge.lobFileId = lobFileId;
+    fd.inDiskLarge.lobId = lobId;
+    return BringToMemory();
+  }
   
   return 0;
 }
@@ -145,7 +163,22 @@ void FLOB::Destroy()
                                  fd.inDiskLarge.lobId );
   }
   else if( type == InDiskSmall )
+  {
     fd.inDiskSmall.buffer = 0;
+  }
+  else if( type == InMemoryPagedCached )
+  {
+    assert( fd.inMemoryPagedCached.buffer != 0 );
+    if( fd.inMemoryPagedCached.cached )
+      qp->GetFLOBCache()->Release( fd.inMemoryPagedCached.lobFileId,
+                                   fd.inMemoryPagedCached.lobId,
+                                   fd.inMemoryPagedCached.pageno );
+    else
+      free( fd.inMemoryPagedCached.buffer );
+
+    qp->GetFLOBCache()->Destroy( fd.inMemoryPagedCached.lobFileId, 
+                                 fd.inMemoryPagedCached.lobId );
+  }
 
   size = 0;
   type = Destroyed;
@@ -160,7 +193,7 @@ Resizes the FLOB.
 void FLOB::Resize( size_t newSize )
 {
   assert( type != Destroyed );
-  assert( newSize > 0 ); // Use Clear
+  assert( newSize > 0 ); // Use Clean
 
   if( type == InMemory )
   {
@@ -168,7 +201,7 @@ void FLOB::Resize( size_t newSize )
 
     if( size == 0 )
       fd.inMemory.buffer = (char *) malloc( newSize );
-    else
+    else if( newSize != size )
       fd.inMemory.buffer = 
         (char *)realloc( fd.inMemory.buffer, newSize );
   }
@@ -186,13 +219,19 @@ void FLOB::Resize( size_t newSize )
 */
 void FLOB::SaveToLob( SmiFileId& lobFileId, SmiRecordId lobId ) const
 {
-  assert( (type == InMemory || type == InMemoryCached) && 
-          size > SWITCH_THRESHOLD );
+  assert( (type == InMemory || type == InMemoryCached ) && 
+           size > SWITCH_THRESHOLD ||
+          type == InDiskLarge );
 
-  if( type == InMemory ) 
+  if( type == InDiskLarge )
+  {
+    BringToMemory();
+    SaveToLob( lobFileId, lobId );
+  }
+  else if( type == InMemory ) 
   {
     qp->GetFLOBCache()->PutFLOB( lobFileId, lobId, 
-                                 size, false, 
+                                 -1, size, false, 
                                  fd.inMemory.buffer );
     assert( fd.inMemory.canDelete );
     free( fd.inMemory.buffer );
@@ -202,17 +241,18 @@ void FLOB::SaveToLob( SmiFileId& lobFileId, SmiRecordId lobId ) const
     fd.inDiskLarge.lobFileId = lobFileId;
     fd.inDiskLarge.lobId = lobId;
   }
-  else // type == InMemoryCached
+  else if( type == InMemoryCached )
   {
+    qp->GetFLOBCache()->PutFLOB( lobFileId, lobId, 
+                                 -1, size, false, 
+                                 fd.inMemoryCached.buffer );
     qp->GetFLOBCache()->Release( fd.inMemoryCached.lobFileId, 
                                  fd.inMemoryCached.lobId ); 
-    qp->GetFLOBCache()->PutFLOB( lobFileId, lobId, 
-                                 size, false, 
-                                 fd.inMemoryCached.buffer );
     fd.inMemoryCached.buffer = 0;
     type = InDiskLarge;
     fd.inDiskLarge.lobFileId = lobFileId;
     fd.inDiskLarge.lobId = lobId;
   }
 }
+
 

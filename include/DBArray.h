@@ -20,18 +20,18 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph	[10]	title:		[{\Large \bf ] [}]
-//paragraph	[11]	title:		[{\large \bf ] [}]
-//paragraph	[12]	title:		[{\normalsize \bf ] [}]
-//paragraph	[21]	table1column:	[\begin{quote}\begin{tabular}{l}]	[\end{tabular}\end{quote}]
-//paragraph	[22]	table2columns:	[\begin{quote}\begin{tabular}{ll}]	[\end{tabular}\end{quote}]
-//paragraph	[23]	table3columns:	[\begin{quote}\begin{tabular}{lll}]	[\end{tabular}\end{quote}]
-//paragraph	[24]	table4columns:	[\begin{quote}\begin{tabular}{llll}]	[\end{tabular}\end{quote}]
-//[--------]	[\hline]
-//characters	[1]	verbatim:	[$]	[$]
-//characters	[2]	formula:	[$]	[$]
-//characters    [3]    capital:    [\textsc{]    [}]
-//characters    [4]    teletype:   [\texttt{]    [}]
+//paragraph [10]  title:            [{\Large \bf ] [}]
+//paragraph [11]  title:            [{\large \bf ] [}]
+//paragraph [12]  title:            [{\normalsize \bf ] [}]
+//paragraph [21]  table1column:     [\begin{quote}\begin{tabular}{l}]   [\end{tabular}\end{quote}]
+//paragraph [22]  table2columns:    [\begin{quote}\begin{tabular}{ll}]  [\end{tabular}\end{quote}]
+//paragraph [23]  table3columns:    [\begin{quote}\begin{tabular}{lll}] [\end{tabular}\end{quote}]
+//paragraph [24]  table4columns:    [\begin{quote}\begin{tabular}{llll}][\end{tabular}\end{quote}]
+//[--------]      [\hline]
+//characters      [1]   verbatim:   [$]   [$]
+//characters      [2]   formula:    [$]   [$]
+//characters      [3]   capital:    [\textsc{]    [}]
+//characters      [4]   teletype:   [\texttt{]    [}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -57,15 +57,15 @@ FLOB interface.
 
 This module offers the following methods:
 
-[23]	Creation/Removal 	& Access   	& Inquiries	\\
-	[--------]
-	DBArray        		& Get 		& NoComponents	\\
-	[tilde]DBArray		& Put		  & Id		        \\
-	MarkDelete		    &		      & 		          \\
+[23]  Creation/Removal  & Access    & Inquiries \\
+      [--------]
+      DBArray           & Get       & NoComponents \\
+      [tilde]DBArray    & Put       & Id           \\
+      MarkDelete        &           &              \\
 
 Operations have to follow the protocol shown below:
 
-		Figure 1: Protocol [Protocol.eps]
+        Figure 1: Protocol [Protocol.eps]
 
 1.3 Class ~DBArray~
 
@@ -81,6 +81,8 @@ An instance of the class is a handle to a persistent array of fixed size.
 #include "FLOB.h"
 
 using namespace std;
+
+#define _PAGED_DBARRAY_
 
 template<class DBArrayElement>
 class DBArray : public FLOB
@@ -111,6 +113,7 @@ The destructor.
 */
     void Resize( const int newSize )
     {
+      assert( type == InMemory );
       assert( nElements <= maxElements );
       assert( newSize > 0 );
 
@@ -125,7 +128,7 @@ The destructor.
     {
       nElements = 0;
       maxElements = 0;
-      FLOB::Clear();
+      FLOB::Clean();
     }
 
     inline void Destroy()
@@ -142,6 +145,7 @@ The destructor.
 
     void Put( int index, const DBArrayElement& elem )
     {
+      assert( type == InMemory );
       assert( index >= 0 );
       assert( nElements <= maxElements );
 
@@ -172,13 +176,33 @@ Copies element ~elem~ into the persistent array at index ~index~.
 *Precondition:* 0 [<=] ~index~.
 
 */
+#ifdef _PAGED_DBARRAY_
+    inline void Get( int index, DBArrayElement const*& elem ) const
+    {
+      assert( type != InMemoryCached );
+
+      const char *buf;
+      if( type == InMemoryPagedCached ||
+          type == InDiskLarge ) 
+      {
+        size_t pos = ((index % ElemsPerPage()) * sizeof( DBArrayElement )) +
+                     ((index / ElemsPerPage()) * PAGE_SIZE);
+        FLOB::Get( pos, &buf, true );
+      }
+      else
+      {
+        FLOB::Get( index * sizeof( DBArrayElement ), &buf, true );
+      }
+      elem = (new ((void*)buf) DBArrayElement);
+    }
+#else
     inline void Get( int index, DBArrayElement const*& elem ) const
     {
       const char *buf;
-      FLOB::Get( index * sizeof( DBArrayElement ),
-                 &buf );
+      FLOB::Get( index * sizeof( DBArrayElement ), &buf );
       elem = (new ((void*)buf) DBArrayElement);
     }
+#endif
 
 /*
 Returns the element ~index~ of the array.
@@ -209,6 +233,242 @@ Sorts the database array given the ~cmp~ comparison criteria. The
 sort is done in memory using an STL vector.
 
 */
+
+    bool Find( const void *key, 
+               int (*cmp)( const void *a, const void *b), 
+               int& result ) const
+    {
+      const DBArrayElement *elem;
+
+      Get( 0, elem );
+      if( nElements == 0 ||
+          cmp( key, elem ) < 0 )
+      {
+        result = 0;
+        return false;
+      }
+
+      Get( nElements - 1, elem );
+      if( cmp( key, elem ) > 0 )
+      {
+        result = nElements;
+        return false;
+      }
+
+      int first = 0, last = nElements - 1, mid;
+
+      while (first <= last)
+      {
+        mid = ( first + last ) / 2;
+        Get( mid, elem );
+        if( cmp( key, elem ) > 0 )
+          first = mid + 1;
+        else if( cmp( key, elem ) < 0 )
+          last = mid - 1;
+        else
+        {
+          result = mid;
+          return true;
+        }
+      }
+      result = first < last ? first + 1 : last + 1;
+      return false;
+    }
+/*
+Searches (binary search) for a given key in the database array given the ~cmp~
+comparison criteria. It is assumed that the array is sorted. The function returns
+true if the ~key~ is in the array and false otherwise. The position is returned in
+the ~result~ argument. If ~key~ is not in the array, then ~result~ contains the
+position where it should be.
+
+*/
+
+    inline size_t NoPages() const
+    {
+      assert( type == InMemoryPagedCached ||
+              type == InMemory );
+      if( nElements % ElemsPerPage() == 0 )
+        return nElements / ElemsPerPage();
+      return nElements / ElemsPerPage() + 1;
+    }
+/*
+Returns how many pages are necessary to store the whole DBArray.
+
+*/
+
+    inline size_t ElemsPerPage() const
+    {
+      return PAGE_SIZE / sizeof( DBArrayElement );
+    }
+
+#ifdef _PAGED_DBARRAY_
+    void SaveToLob( SmiRecordId& lobFileId, SmiRecordId lobId = 0 ) const
+    {
+      if( type == InDiskLarge )
+      {
+        SmiFileId auxLobFileId = fd.inDiskLarge.lobFileId;
+        SmiRecordId auxLobId = fd.inDiskLarge.lobId;
+        type = InMemoryPagedCached;
+        fd.inMemoryPagedCached.lobFileId = auxLobFileId;
+        fd.inMemoryPagedCached.lobId = auxLobId;
+        fd.inMemoryPagedCached.buffer = 0;
+        fd.inMemoryPagedCached.pageno = -1;
+
+        SaveToLob( lobFileId, lobId );
+      }
+      else 
+      {
+        SmiRecordId auxLobId = lobId;
+        if( type == InMemoryPagedCached )
+        {
+          // write all pages
+          for( size_t pageno = 0; pageno < NoPages(); pageno++ )
+          {
+            GetPage( pageno );
+            qp->GetFLOBCache()->PutFLOB( lobFileId, auxLobId,
+                                         pageno, PAGE_SIZE, false,
+                                         fd.inMemoryPagedCached.buffer );
+          }
+
+          // clear the buffer
+          assert( fd.inMemoryPagedCached.buffer != 0 );
+          if( fd.inMemoryPagedCached.cached )
+            qp->GetFLOBCache()->Release( fd.inMemoryPagedCached.lobFileId,
+                                         fd.inMemoryPagedCached.lobId,
+                                         fd.inMemoryPagedCached.pageno );
+          else
+            free( fd.inMemoryPagedCached.buffer );
+        }
+        else if( type == InMemory )
+        {
+          // write all pages except the last one
+          char *pageBuf = (char*)malloc( FLOB::PAGE_SIZE );
+
+          size_t pageno;
+          for( pageno = 0; pageno < NoPages() - 1; pageno++ )
+          {
+            assert( pageno * ElemsPerPage() < size );
+            assert( pageno * ElemsPerPage() + 
+                    ElemsPerPage() * sizeof( DBArrayElement ) <= size );
+            size_t pos = pageno * ElemsPerPage() * sizeof( DBArrayElement ),
+                   count = ElemsPerPage() * sizeof( DBArrayElement );
+            memset( pageBuf, 0, FLOB::PAGE_SIZE );
+            memcpy( pageBuf, fd.inMemory.buffer + pos, count );
+            qp->GetFLOBCache()->PutFLOB( lobFileId, auxLobId, pageno, 
+                                         FLOB::PAGE_SIZE, false, pageBuf );
+          }
+  
+          // write the last page
+          assert( nElements - pageno * ElemsPerPage() != 0 ); 
+          assert( pageno * ElemsPerPage() < size );
+          assert( pageno * ElemsPerPage() + 
+                  (nElements - pageno * ElemsPerPage()) * 
+                  sizeof( DBArrayElement ) <= size );
+          size_t pos = pageno * ElemsPerPage() * sizeof( DBArrayElement ),
+                 count = (nElements - pageno * ElemsPerPage()) * 
+                         sizeof( DBArrayElement );
+          memset( pageBuf, 0, FLOB::PAGE_SIZE );
+          memcpy( pageBuf, fd.inMemory.buffer + pos, count );
+          qp->GetFLOBCache()->PutFLOB( lobFileId, auxLobId, pageno, 
+                                       FLOB::PAGE_SIZE, false, pageBuf );
+
+          // clear the buffer
+          if( fd.inMemory.canDelete )
+            free( fd.inMemory.buffer );
+          free( pageBuf );
+        }
+        else 
+          assert( false );
+
+        // change the type to InDiskLarge
+        type = InDiskLarge;
+        fd.inDiskLarge.lobFileId = lobFileId;
+        fd.inDiskLarge.lobId = auxLobId;
+      }
+    }
+/*
+Saves the DBArray to the LOB file in paged format. 
+
+*/
+#endif
+
+#ifdef _PAGED_DBARRAY_
+    const char *BringToMemory() const
+    {
+      assert( type != InDiskLarge && 
+              type != InMemoryPagedCached );
+      return FLOB::BringToMemory(); 
+    }
+/*
+Brings a disk DBArray to memory. We do not allow this to be done because a DBArray
+is divided into several pages with padding.
+
+*/
+    virtual void Restrict( const vector< pair<int, int> >& intervals )
+    {
+      size_t newSize = 0;
+      for( vector< pair<int, int> >::const_iterator i = intervals.begin();
+           i < intervals.end();
+           i++ )
+      {
+        assert( i->first <= i->second );
+        newSize += ( ( i->second - i->first ) + 1 ) * sizeof( DBArrayElement );
+      }
+      assert( newSize <= size );
+      if( newSize < size );
+      {
+        if( newSize > 0 )
+        {
+          char *buffer = (char*)malloc( newSize );
+          size_t offset = 0;
+          const DBArrayElement *e;
+    
+          for( vector< pair<int, int> >::const_iterator i = intervals.begin();
+               i < intervals.end();
+               i++ )
+          {    
+            for( int j = i->first; j <= i->second; j++ )
+            {
+              Get( j, e );
+              assert( offset + sizeof( DBArrayElement ) <= newSize );
+              memcpy( buffer + offset, e, sizeof( DBArrayElement ) );
+              offset += sizeof( DBArrayElement );
+            }  
+          }
+          if( FLOB::type == InMemoryPagedCached ) 
+          {
+            assert( fd.inMemoryPagedCached.buffer != 0 );
+            if( fd.inMemoryPagedCached.cached )
+              qp->GetFLOBCache()->
+                Release( FLOB::fd.inMemoryPagedCached.lobFileId,
+                         FLOB::fd.inMemoryPagedCached.lobId,
+                         FLOB::fd.inMemoryPagedCached.pageno );
+            else
+              free( fd.inMemoryPagedCached.buffer );
+          }
+
+          type = InMemory;
+          fd.inMemory.buffer = buffer;
+          fd.inMemory.canDelete = true;
+        }
+        else
+        {
+          type = InMemory;
+          fd.inMemory.buffer = 0;
+          fd.inMemory.canDelete = false;
+        }
+        assert( newSize % sizeof( DBArrayElement ) == 0 );
+        nElements = newSize / sizeof( DBArrayElement );
+        maxElements = nElements;
+        size = newSize;
+      }
+    }
+/*
+Restricts the DBArray to the interval set of indices passed as argument.
+
+*/
+#endif
+    
   private:
 
     int nElements;
@@ -222,7 +482,6 @@ Store the total number of elements that can be added to the array.
 
 */
 };
-
 
 #endif //DBARRAY_H
 

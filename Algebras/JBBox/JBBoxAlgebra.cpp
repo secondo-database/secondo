@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] title: [{\Large \bf ]	[}]
+//paragraph [1] title: [{\Large \bf ]        [}]
 
 
 [1] JBBox Algebra
@@ -57,7 +57,7 @@ Furthermore the class should provide the following methods:
                of this object.
    \item[readFrom(byte[])] This is a static methods reading the object from
               the argument. Examples can be found in the Java-classes of this
-	      algebra (see appendix).
+              algebra (see appendix).
    \item[writeToByteArray] The is the counterpart of the previous method.
    \item[getHashValue] Returns a HashValue for the instance
 \end{description}
@@ -79,13 +79,13 @@ The call of a Java method follows the schema:
    \item Depending on the result value the following steps are to do
          \begin{itemize}
            \item if the result type is primitive (bool, int, double ...) \\
-	         just return the result
-	   \item if the result type is a non-array object\\
-	         create a C++ instance from the result and return it
+                 just return the result
+           \item if the result type is a non-array object\\
+                 create a C++ instance from the result and return it
            \item if the result is an array (also an object) \\
-	         create a C++ array of the corresponding C++ class and
-		 fill it with the converted objects.
-	 \end{itemize}
+                 create a C++ array of the corresponding C++ class and
+                 fill it with the converted objects.
+         \end{itemize}
 \end{enumerate}
 
 
@@ -195,6 +195,7 @@ class JPoint: public StandardAttribute{
       bool Adjacent(const Attribute *arg) const;
       int NumOfFLOBs() const;
       FLOB *GetFLOB(const int i);
+      size_t Sizeof() const;
       // will be invoked if the Java object must
       // be reconstructed from a FLOB
       void Initialize();
@@ -237,6 +238,7 @@ class JBox: public StandardAttribute{
       bool Adjacent(const Attribute *arg) const;
       int NumOfFLOBs() const;
       FLOB *GetFLOB(const int i);
+      size_t Sizeof() const;
       // will be invoked if the Java object must be
       // reconstructed from a FLOB
       void Initialize();
@@ -295,8 +297,8 @@ class JBox: public StandardAttribute{
   JPoint::JPoint(const int size):
              objectData(size),
              canDelete(false),
-	     defined(true)
-	     {}
+             defined(true)
+             {}
 
 /*
 
@@ -509,6 +511,17 @@ contained FLOB is returned.
 
 /*
 
+~Sizeof~
+
+Returns the size of a class instance.
+
+*/
+size_t JPoint::Sizeof() const {
+    return sizeof(*this);
+}
+
+/*
+
 ~Initialize~
 
 This function is invoked when the object is readed from disk.
@@ -617,9 +630,9 @@ No Java object should be constructed here.
 */
   JBox::JBox(const int size):
         objectData(size),
-	canDelete(false),
-	defined(true)
-	{}
+        canDelete(false),
+        defined(true)
+        {}
 
 /*
 
@@ -827,6 +840,17 @@ contained FLOB is returned.
      assert(i==0);
      return &objectData;
  }
+
+/*
+
+~Sizeof~
+
+Returns the size of a class instance.
+
+*/
+size_t JBox::Sizeof() const {
+    return sizeof(*this);
+}
 
 /*
 
@@ -1072,10 +1096,10 @@ static ListExpr OutJPoint(ListExpr typeInfo, Word value){
 
 */
 static Word InJPoint(const ListExpr typeInfo,
-		     const ListExpr instance,
-		     const int errorPos,
-		     ListExpr& errorInfo,
-		     bool& correct ) {
+                     const ListExpr instance,
+                     const int errorPos,
+                     ListExpr& errorInfo,
+                     bool& correct ) {
 
   if(nl->ListLength(instance)!=2){ // error
      correct=false;
@@ -1139,10 +1163,10 @@ static ListExpr OutJBox(ListExpr typeInfo, Word value){
 
 */
 static Word InJBox(const ListExpr typeInfo,
-		   const ListExpr instance,
-		   const int errorPos,
-		   ListExpr& errorInfo,
-		   bool& correct ) {
+                   const ListExpr instance,
+                   const int errorPos,
+                   ListExpr& errorInfo,
+                   bool& correct ) {
   jmethodID mid;
   jobject obj;
   jclass cls = env->FindClass("bbox/BBox");
@@ -1174,7 +1198,7 @@ static Word InJBox(const ListExpr typeInfo,
   if(mid==0) error(__LINE__);
   obj = env->NewObject(cls,mid,nl->RealValue(e1),
                        nl->RealValue(e2), nl->RealValue(e3),
-		       nl->RealValue(e4));
+                       nl->RealValue(e4));
 
   if(obj==0) error(__LINE__);
   correct=true;
@@ -1258,7 +1282,7 @@ static Word CloneJBox(const ListExpr typeInfo, const Word &w) {
 bool OpenJPoint(SmiRecord& valueRecord,
                 size_t& offset,
                 const ListExpr typeInfo,
-		Word& value){
+                Word& value){
    JPoint* P = (JPoint*)Attribute::Open(valueRecord,offset, typeInfo);
    P->RestoreJavaObjectFromFLOB();
    value = SetWord(P);
@@ -1268,7 +1292,7 @@ bool OpenJPoint(SmiRecord& valueRecord,
 bool OpenJBox(SmiRecord& valueRecord,
                 size_t& offset,
                 const ListExpr typeInfo,
-		Word& value){
+                Word& value){
    JBox* B = (JBox*) Attribute::Open(valueRecord,offset, typeInfo);
    B->RestoreJavaObjectFromFLOB();
    value = SetWord(B);
@@ -1283,7 +1307,7 @@ bool OpenJBox(SmiRecord& valueRecord,
 bool SaveJPoint( SmiRecord& valueRecord,
                  size_t& offset,
                  const ListExpr typeInfo,
-		 Word& value)
+                 Word& value)
 { JPoint* P = (JPoint*) value.addr;
   Attribute::Save(valueRecord,offset,typeInfo,P);
   return true;
@@ -1292,7 +1316,7 @@ bool SaveJPoint( SmiRecord& valueRecord,
 bool SaveJBox( SmiRecord& valueRecord,
                  size_t& offset,
                  const ListExpr typeInfo,
-		 Word& value)
+                 Word& value)
 { JBox* B = (JBox*) value.addr;
   Attribute::Save(valueRecord,offset,typeInfo,B);
   return true;
@@ -1329,30 +1353,30 @@ static void* CastJBox( void* addr ) {
 static ListExpr JPointProperty(){
    return (nl->TwoElemList(
               nl->FourElemList(
-	        nl->StringAtom("Signature"),
-	        nl->StringAtom("Example Type List"),
-	        nl->StringAtom("List Representation"),
-	        nl->StringAtom("Example List")),
-	      nl->FourElemList(
-	        nl->StringAtom("->DATA"),
-	        nl->StringAtom("jpoint"),
-		nl->StringAtom("(real real)"),
-		nl->StringAtom("(1.0 2.7)"))));
+                nl->StringAtom("Signature"),
+                nl->StringAtom("Example Type List"),
+                nl->StringAtom("List Representation"),
+                nl->StringAtom("Example List")),
+              nl->FourElemList(
+                nl->StringAtom("->DATA"),
+                nl->StringAtom("jpoint"),
+                nl->StringAtom("(real real)"),
+                nl->StringAtom("(1.0 2.7)"))));
 }
 
 
 static ListExpr JBoxProperty(){
    return (nl->TwoElemList(
               nl->FourElemList(
-	        nl->StringAtom("Signature"),
-	        nl->StringAtom("Example Type List"),
-	        nl->StringAtom("List Representation"),
-	        nl->StringAtom("Example List")),
-	      nl->FourElemList(
-	        nl->StringAtom("->DATA"),
-	        nl->StringAtom("jbox"),
-		nl->StringAtom("(minX maxX minY maxY)"),
-		nl->StringAtom("(1.0 2.7 37.9 90.8)"))));
+                nl->StringAtom("Signature"),
+                nl->StringAtom("Example Type List"),
+                nl->StringAtom("List Representation"),
+                nl->StringAtom("Example List")),
+              nl->FourElemList(
+                nl->StringAtom("->DATA"),
+                nl->StringAtom("jbox"),
+                nl->StringAtom("(minX maxX minY maxY)"),
+                nl->StringAtom("(1.0 2.7 37.9 90.8)"))));
 }
 
 /*
@@ -1362,10 +1386,10 @@ static ListExpr JBoxProperty(){
 */
 
 static bool CheckJPoint( ListExpr type, ListExpr& errorInfo ) {
-	return (nl->IsEqual(type, "jpoint"));
+        return (nl->IsEqual(type, "jpoint"));
 }
 static bool CheckJBox( ListExpr type, ListExpr& errorInfo ) {
-	return (nl->IsEqual(type, "jbox"));
+        return (nl->IsEqual(type, "jbox"));
 }
 
 /*
@@ -1657,52 +1681,52 @@ ValueMapping JUnionMap[] = {Union_BP,Union_PB,Union_BB};
 const string equals_spec=
             "( (\"Signature\" \"Syntax\" \"Example\")"
             "  ( \" object_i x object_i -> bool \" "
-	    "    \" _ = _ \" "
-	    "    \" P1 equals P2\"))";
+            "    \" _ = _ \" "
+            "    \" P1 equals P2\"))";
 
 
 const string contains_spec=
             "( (\"Signature\" \"Syntax\" \"Example\")"
             "  ( \" jbox x jpoint -> bool \" "
-	    "    \" _ contains _ \" "
-	    "    \" B contains P\"))";
+            "    \" _ contains _ \" "
+            "    \" B contains P\"))";
 
 const string inside_spec=
             "( (\"Signature\" \"Syntax\" \"Example\")"
             "  ( \" jpoint x jbox -> bool \" "
-	    "    \" _ inside _\" "
+            "    \" _ inside _\" "
             "    \" P inside  B\"))";
 
 const string union_spec=
             "( (\"Signature\" \"Syntax\" \"Example\")"
             "  ( \" object x object -> jbox \" "
-	    "    \" _ union _\" "
-	    "    \" B1 union B2\"))";
+            "    \" _ union _\" "
+            "    \" B1 union B2\"))";
 
 const string intersection_spec=
             "( (\"Signature\" \"Syntax\" \"Example\")"
             "  ( \" jbox x jbox -> jbox \" "
-	    "    \" intersection (_, _) \" "
-	    "    \" B1 intersection B2\"))";
+            "    \" intersection (_, _) \" "
+            "    \" B1 intersection B2\"))";
 
 const string intersects_spec=
             "( (\"Signature\" \"Syntax\" \"Example\")"
             "  ( \" jbox x jbox -> bool \" "
- 	    "    \" _ intersects _ \" "
-	    "    \" query B1 intersects B2\"))";
+             "    \" _ intersects _ \" "
+            "    \" query B1 intersects B2\"))";
 
 
 const string size_spec=
             "( (\"Signature\" \"Syntax\" \"Example\")"
             "  ( \" jbox -> real \" "
-	    "    \" _ size\" "
-	    "    \" B size\"))";
+            "    \" _ size\" "
+            "    \" B size\"))";
 
 const string isempty_spec=
             "( (\"Signature\" \"Syntax\" \"Example\")"
             "  ( \" _ -> bool \" "
-	    "    \" jb isempty\" "
-	    "    \"query  B isempty\"))";
+            "    \" jb isempty\" "
+            "    \"query  B isempty\"))";
 
 /*
 
@@ -1712,79 +1736,77 @@ const string isempty_spec=
 
 Operator op_equals
 (
- "=", 			//name
- equals_spec,  		//specification ....
- 2,                     // number of functions
- EqualsMap,			//value mapping
- EqualsSelect,		//selection function
- OiOiBool		//type mapping
+ "=",                      //name
+ equals_spec,              //specification ....
+ 2,                        // number of functions
+ EqualsMap,                //value mapping
+ EqualsSelect,             //selection function
+ OiOiBool                  //type mapping
 );
 
 Operator op_contains
 (
- "contains", 			//name
- contains_spec,  		//specification ....
- Contains_BP,			//value mapping
- Operator::SimpleSelect,			//trivial selection function
- BoxPointBool			//type mapping
+ "contains",               //name
+ contains_spec,            //specification ....
+ Contains_BP,              //value mapping
+ Operator::SimpleSelect,   //trivial selection function
+ BoxPointBool              //type mapping
 );
 
 Operator op_inside
 (
- "inside", 			//name
- inside_spec,  		//specification ....
- Inside_PB,			//value mapping
- Operator::SimpleSelect,			//trivial selection function
- PointBoxBool			//type mapping
+ "inside",                 //name
+ inside_spec,              //specification ....
+ Inside_PB,                //value mapping
+ Operator::SimpleSelect,   //trivial selection function
+ PointBoxBool              //type mapping
 );
 
 Operator op_intersects
 (
- "intersects", 			//name
- intersects_spec,  		//specification ....
- Intersects_BB,			//value mapping
- Operator::SimpleSelect,			//trivial selection function
- BoxBoxBool			//type mapping
+ "intersects",             //name
+ intersects_spec,          //specification ....
+ Intersects_BB,            //value mapping
+ Operator::SimpleSelect,   //trivial selection function
+ BoxBoxBool                //type mapping
 );
-
-
 Operator op_junion
 (
- "union", 		//name
- union_spec,  		//specification ....
- 3,                     // number of functions
- JUnionMap,		//value mapping
- UnionSelect,		//selection function
- UnionTypeMap		//type mapping
+ "union",                  //name
+ union_spec,               //specification ....
+ 3,                        // number of functions
+ JUnionMap,                //value mapping
+ UnionSelect,              //selection function
+ UnionTypeMap              //type mapping
 );
 
 
 
 Operator op_jintersection
 (
- "intersection",		//name
- intersection_spec,  		//specification ....
- Intersection_BB,		//value mapping
- Operator::SimpleSelect,			//trivial selection function
- BoxBoxBox			//type mapping
+ "intersection",           //name
+ intersection_spec,        //specification ....
+ Intersection_BB,          //value mapping
+ Operator::SimpleSelect,   //trivial selection function
+ BoxBoxBox                 //type mapping
 );
 
 Operator op_size
 (
- "size", 			//name
- size_spec,  			//specification
- Size_B,			//value mapping
- Operator::SimpleSelect,			//trivial selection function
- BoxReal			//type mapping
+ "size",                   //name
+ size_spec,                //specification
+ Size_B,                   //value mapping
+ Operator::SimpleSelect,   //trivial selection function
+ BoxReal                   //type mapping
 );
 
 Operator op_isempty
 (
- "isempty", 			//name
- isempty_spec,  		//specification ....
- IsEmpty_B,			//value mapping
- Operator::SimpleSelect,			//trivial selection function
- BoxBool			//type mapping
+ "isempty",                //name
+ isempty_spec,             //specification ....
+ IsEmpty_B,                //value mapping
+ Operator::SimpleSelect,   //trivial selection function
+ BoxBool                   //type mapping
 );
 
 /*

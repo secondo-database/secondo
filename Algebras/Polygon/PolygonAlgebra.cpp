@@ -143,6 +143,7 @@ This constructor should not be used.
     Polygon *Clone() const;
     bool IsDefined() const;
     void SetDefined( bool defined );
+    size_t Sizeof() const;
     ostream& Print( ostream& os ) const;
 
     void Append( const Vertex &v );
@@ -294,6 +295,15 @@ bool Polygon::IsDefined() const
 */
 void Polygon::SetDefined( bool defined )
 {
+}
+
+/*
+2.3.8 Sizeof 
+
+*/
+size_t Polygon::Sizeof() const
+{
+  return sizeof( *this );
 }
 
 /*
@@ -501,10 +511,13 @@ InPolygon( const ListExpr typeInfo, const ListExpr instance,
     rest = nl->Rest( rest );
 
     if( nl->ListLength( first ) == 2 &&
-        nl->IsAtom( nl->First( first ) ) && nl->AtomType( nl->First( first ) ) == IntType &&
-        nl->IsAtom( nl->Second( first ) ) && nl->AtomType( nl->Second( first ) ) == IntType )
+        nl->IsAtom( nl->First( first ) ) && 
+        nl->AtomType( nl->First( first ) ) == IntType &&
+        nl->IsAtom( nl->Second( first ) ) && 
+        nl->AtomType( nl->Second( first ) ) == IntType )
     {
-      Vertex v( nl->IntValue( nl->First( first ) ), nl->IntValue( nl->Second( first ) ) );
+      Vertex v( nl->IntValue( nl->First( first ) ), 
+                nl->IntValue( nl->Second( first ) ) );
       polygon->Append( v );
     }
     else
@@ -528,18 +541,18 @@ PolygonProperty()
 {
   return (nl->TwoElemList(
          nl->FiveElemList(nl->StringAtom("Signature"),
-	                  nl->StringAtom("Example Type List"),
-			  nl->StringAtom("List Rep"),
-			  nl->StringAtom("Example List"),
-			  nl->StringAtom("Remarks")),
+                          nl->StringAtom("Example Type List"),
+                          nl->StringAtom("List Rep"),
+                          nl->StringAtom("Example List"),
+                          nl->StringAtom("Remarks")),
          nl->FiveElemList(nl->StringAtom("-> DATA"),
-	                  nl->StringAtom("polygon"),
-			  nl->StringAtom("(<point>*) where <point> is "
-			  "(<x> <y>)"),
-			  nl->StringAtom("( (3 4) (10 10) (8 2) (6 4) "
-			  "(3 4) )"),
-			  nl->StringAtom("x- and y-coordinates must be of "
-			  "type int."))));
+                          nl->StringAtom("polygon"),
+                          nl->StringAtom("(<point>*) where <point> is "
+                          "(<x> <y>)"),
+                          nl->StringAtom("( (3 4) (10 10) (8 2) (6 4) "
+                          "(3 4) )"),
+                          nl->StringAtom("x- and y-coordinates must be of "
+                          "type int."))));
 }
 
 /*
@@ -662,28 +675,28 @@ constructors are implemented and used.
 
 #ifdef RELALG_PERSISTENT
 TypeConstructor polygon(
-        "polygon",						//name
-        PolygonProperty,				//property function describing signature
-        OutPolygon,	InPolygon,			//Out and In functions
-        0,              0,              //SaveToList and RestoreFromList functions
-        CreatePolygon,  DeletePolygon,	//object creation and deletion
+        "polygon",                      //name
+        PolygonProperty,                //property function describing signature
+        OutPolygon,     InPolygon,      //Out and In functions
+        0,              0,              //SaveTo and RestoreFrom List functions
+        CreatePolygon,  DeletePolygon,  //object creation and deletion
         OpenPolygon,    SavePolygon,    //object open and save
-        ClosePolygon,   ClonePolygon,	//object close and clone
-        CastPolygon,                   	//cast function
-        SizeOfPolygon,                          //sizeof function
-        CheckPolygon );					//kind checking function
+        ClosePolygon,   ClonePolygon,   //object close and clone
+        CastPolygon,                    //cast function
+        SizeOfPolygon,                  //sizeof function
+        CheckPolygon );                 //kind checking function
 #else
 TypeConstructor polygon(
-        "polygon",			            	//name
-        PolygonProperty,		         	//property function describing signature
-        OutPolygon,	InPolygon,	         	//Out and In functions
-        0,              0,                  //SaveToList and RestoreFromList functions
-        CreatePolygon,  DeletePolygon,		//object creation and deletion
-        0,    			0,                  //object open and save
-        ClosePolygon,   ClonePolygon,		//object close and clone
-        CastPolygon,                    	//cast function
-        SizeOfPolygon,                          //sizeof function
-        CheckPolygon );              		//kind checking function
+        "polygon",                      //name
+        PolygonProperty,                //property function describing signature
+        OutPolygon,     InPolygon,      //Out and In functions
+        0,              0,              //SaveTo and RestoreFrom List functions
+        CreatePolygon,  DeletePolygon,  //object creation and deletion
+        0,              0,              //object open and save
+        ClosePolygon,   ClonePolygon,   //object close and clone
+        CastPolygon,                    //cast function
+        SizeOfPolygon,                  //sizeof function
+        CheckPolygon );                 //kind checking function
 #endif //RELALG_PERSISTENT
 
 /*

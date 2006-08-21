@@ -187,7 +187,6 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
       }
       else
       {
-        tmpFLOB->BringToMemory();
         tmpFLOB->SaveToLob( lobFileId );
       }
     }
@@ -780,7 +779,7 @@ Tuple *TupleBuffer::GetTuple( const TupleId& id ) const
 {
   if( privateTupleBuffer->inMemory )
   {
-	  if( id >= 0 && 
+    if( id >= 0 && 
         id < (TupleId)privateTupleBuffer->memoryBuffer.size() &&
         privateTupleBuffer->memoryBuffer[id] != 0 )
       return privateTupleBuffer->memoryBuffer[id];
@@ -788,6 +787,16 @@ Tuple *TupleBuffer::GetTuple( const TupleId& id ) const
   }
   else
     return privateTupleBuffer->diskBuffer->GetTuple( id );
+}
+
+Tuple *TupleBuffer::GetTuple( const TupleId& id,
+                              const int attrIndex,
+                              const vector< pair<int, int> >& intervals ) const
+{
+  Tuple *t = 0;
+  if( (t = GetTuple( id )) != 0 )
+    t->GetAttribute( attrIndex )->Restrict( intervals );
+  return t;
 }
 
 TupleBufferIterator *TupleBuffer::MakeScan() const
@@ -1150,6 +1159,16 @@ Tuple *Relation::GetTuple( const TupleId& id ) const
   return 0;
 }
 
+Tuple *Relation::GetTuple( const TupleId& id,
+                           const int attrIndex,
+                           const vector< pair<int, int> >& intervals ) const
+{
+  Tuple *t = 0;
+  if( (t = GetTuple( id )) != 0 )
+    t->GetAttribute( attrIndex )->Restrict( intervals );
+  return t;
+}
+
 int Relation::GetNoTuples() const
 {
   return privateRelation->relDesc.noTuples;
@@ -1363,8 +1382,9 @@ Tuple* RelationIterator::GetNextTuple()
   SmiRecord *record = new SmiRecord();
   privateRelationIterator->iterator.Next( *record );
 
-  if( EndOfScan() ){
-  	privateRelationIterator->currentTupleId = -1;
+  if( EndOfScan() )
+  {
+    privateRelationIterator->currentTupleId = -1;
     return 0;
   }
 

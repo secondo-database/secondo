@@ -476,7 +476,7 @@ part, i.e. the small FLOBs.
 */
     inline int GetExtSize( int i ) const
     {
-      tupleExtSize = GetRootSize( i );
+      int tupleExtSize = GetRootSize( i );
       for( int j = 0;
            j < privateTuple->attributes[i]->NumOfFLOBs(); j++)
       {
@@ -515,7 +515,7 @@ the FLOBs.
 */
     inline int GetSize( int i ) const
     {
-      tupleSize = GetRootSize(i);
+      int tupleSize = GetRootSize(i);
       for( int j = 0;
            j < privateTuple->attributes[i]->NumOfFLOBs(); j++)
         tupleSize +=
@@ -602,8 +602,10 @@ Function to give outside access to the private part of the tuple
 class.
 
 */
-
-    int GetNumOfRefs() { return refs; }
+    int GetNumOfRefs() const
+    { 
+      return refs; 
+    }
 /*
 Returns the number of references
 
@@ -788,10 +790,10 @@ class TupleCompareBy
         const int cmpValue = aAttr->Compare( bAttr );
 
         if( cmpValue !=  0 ) 
-	{
+        {
           // aAttr < bAttr ?
-	  return (cmpValue < 0) ? iter->second : !(iter->second);
-	}	
+          return (cmpValue < 0) ? iter->second : !(iter->second);
+        }        
         // the current attribute is equal
         iter++;
       }
@@ -895,6 +897,19 @@ The function to append a tuple into the set.
     virtual Tuple *GetTuple( const TupleId& id ) const = 0;
 /*
 The function that retrieves a tuple given its ~id~.
+
+*/
+    virtual 
+    Tuple *GetTuple( const TupleId& id, 
+                     const int attrIndex,
+                     const vector< pair<int, int> >& intervals ) 
+      const = 0;
+/*
+The function is similar to the last one, but instead of only
+retrieving the tuple, it restricts the first FLOB (or DBArray)
+of the attribute indexed by ~attrIndex~ to the positions given 
+by ~intervals~. This function is used in Double Indexing
+(operator ~gettuplesdbl~).
 
 */
     virtual GenericRelationIterator *MakeScan() const = 0;
@@ -1037,6 +1052,17 @@ by the tuple.
     Tuple* GetTuple( const TupleId& tupleId ) const;
 /*
 Returns the tuple identified by ~tupleId~.
+
+*/
+    Tuple *GetTuple( const TupleId& id,
+                     const int attrIndex,
+                     const vector< pair<int, int> >& intervals ) const;
+/*
+The function is similar to the last one, but instead of only
+retrieving the tuple, it restricts the first FLOB (or DBArray)
+of the attribute indexed by ~attrIndex~ to the positions given
+by ~intervals~. This function is used in Double Indexing
+(operator ~gettuplesdbl~).
 
 */
     TupleBufferIterator *MakeScan() const;
@@ -1273,6 +1299,17 @@ Relational Algebra.
     Tuple* GetTuple( const TupleId& tupleId ) const;
 /*
 Returns the tuple identified by ~tupleId~.
+
+*/
+    Tuple *GetTuple( const TupleId& id,
+                     const int attrIndex,
+                     const vector< pair<int, int> >& intervals ) const;
+/*
+The function is similar to the last one, but instead of only
+retrieving the tuple, it restricts the first FLOB (or DBArray)
+of the attribute indexed by ~attrIndex~ to the positions given
+by ~intervals~. This function is used in Double Indexing
+(operator ~gettuplesdbl~).
 
 */
     TupleType *GetTupleType() const;

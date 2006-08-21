@@ -245,9 +245,11 @@ each node, and returns the result in ~result~. The ~message~ is "OPEN"[4],
 "REQUEST"[4], or "CLOSE"[4] and is used only if the root node produces a stream.
 
 */
-  void Destroy( OpTree& node, const bool destroyRootValue );
+  void Destroy( OpTree& node, bool destroyRootValue );
+  void Destroy( void*& node, bool destroyRootValue );  
+  
 /*
-Deletes an operator tree object. If ~DestroyRootValue~ is "false"[4], the
+Delete an operator tree object. If ~DestroyRootValue~ is "false"[4], the
 result value stored in the root node is not deleted.
 
 */
@@ -594,8 +596,8 @@ function body.
                                     int& alId, 
                                     int& opId, 
                                     int& opFunId, 
-                                    const bool checkFunId, 
-                                    const bool traceMode     );
+                                    bool checkFunId, 
+                                    bool traceMode );
 /*
 Test all possible type mappings for overloaded operators. The output of the
 first successfully applied type mapping will be returned.
@@ -620,8 +622,6 @@ Construct operator tree recursively for a given annotated ~expr~. See
     return (SecondoSystem::GetCatalog());
   };
 
-  void Destroy( void*& node, const bool destroyRootValue );  
-  
   NestedList*     nl;
   AlgebraManager* algebraManager;
   
@@ -659,7 +659,7 @@ of the type constructor associated with the ~value~.
   vector<ArgVectorPointer> argVectors; // MAXFUNCTIONS = 30
 
   static const int NO_COUNTERS = 16;
-  int counter[NO_COUNTERS];	
+  int counter[NO_COUNTERS];
   
   StopWatch evalRunTime;
   

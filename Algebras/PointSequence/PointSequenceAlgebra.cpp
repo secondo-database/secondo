@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] title: [{\Large \bf ]	[}]
+//paragraph [1] title: [{\Large \bf ]  [}]
 //[<] [$ < $]
 
 [1] PointSequence Algebra
@@ -96,6 +96,7 @@ This constructor should not be used.
    bool Adjacent(const Attribute*) const;
    bool IsDefined() const;
    void SetDefined( bool defined );
+   size_t Sizeof() const;
    ostream& Print( ostream& os ) const;
     
    int GetNoPSPoints() const;
@@ -221,6 +222,15 @@ void PointSequence::SetDefined( bool defined )
 }
 
 /*
+2.3.8 Sizeof
+
+*/
+size_t PointSequence::Sizeof() const
+{
+  return sizeof( *this );
+}
+
+/*
 2.3.8 Print
 
 */
@@ -298,7 +308,7 @@ PointSequence *PointSequence::Clone() const
 
 The list representation of a point sequence list is
 
-----	((x1 y1)...(xn yn))
+----    ((x1 y1)...(xn yn))
 ----
 
 2.3 ~In~ and ~Out~ Functions
@@ -308,7 +318,7 @@ The list representation of a point sequence list is
 ListExpr
 OutPointSequence( ListExpr typeInfo, Word value )
 {
-  //cout << "OutPointSequence" << endl;	
+  //cout << "OutPointSequence" << endl;
   PointSequence* ps = (PointSequence*)(value.addr);
 
   if( ps->IsEmpty() )
@@ -320,14 +330,14 @@ OutPointSequence( ListExpr typeInfo, Word value )
     ListExpr result = nl->OneElemList( 
                         nl->TwoElemList( 
                         nl->RealAtom( ps->GetPSPoint(0).x ), 
-		        nl->RealAtom( ps->GetPSPoint(0).y ) ) );
+                        nl->RealAtom( ps->GetPSPoint(0).y ) ) );
     ListExpr last = result;
     for( int i = 1; i < ps->GetNoPSPoints(); i++ )
     {
       last = nl->Append( last,
                          nl->TwoElemList( 
-			 nl->RealAtom( ps->GetPSPoint(i).x ), 
-			 nl->RealAtom( ps->GetPSPoint(i).y ) ) );
+                         nl->RealAtom( ps->GetPSPoint(i).x ), 
+                         nl->RealAtom( ps->GetPSPoint(i).y ) ) );
     }
     return result;
   }
@@ -351,9 +361,9 @@ InPointSequence( const ListExpr typeInfo, const ListExpr instance,
 
     if( nl->ListLength( first ) == 2 &&
         nl->IsAtom( nl->First( first ) ) && 
-	nl->AtomType( nl->First( first ) ) == RealType &&
+        nl->AtomType( nl->First( first ) ) == RealType &&
         nl->IsAtom( nl->Second( first ) ) && 
-	nl->AtomType( nl->Second( first ) ) == RealType )
+        nl->AtomType( nl->Second( first ) ) == RealType )
     {
       PSPoint p( nl->RealValue( nl->First( first ) ),
                  nl->RealValue( nl->Second( first ) ) );
@@ -380,16 +390,16 @@ PointSequenceProperty()
 {
   return (nl->TwoElemList(
             nl->FiveElemList(nl->StringAtom("Signature"),
-	                     nl->StringAtom("Example Type List"),
-			     nl->StringAtom("List Rep"),
-			     nl->StringAtom("Example List"),
-			     nl->StringAtom("Remarks")),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List"),
+                             nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-	                     nl->StringAtom("pointsequence"),
-			     nl->StringAtom("((<x1> <y1>)...(<xn> <yn>))"),
-			     nl->StringAtom("((3.2 15.4)(6.34 20.8))"),
-			     nl->StringAtom("x- and y-coordinates must be "
-			     "of type real."))));
+                             nl->StringAtom("pointsequence"),
+                             nl->StringAtom("((<x1> <y1>)...(<xn> <yn>))"),
+                             nl->StringAtom("((3.2 15.4)(6.34 20.8))"),
+                             nl->StringAtom("x- and y-coordinates must be "
+                             "of type real."))));
 }
 
 /*
@@ -501,19 +511,19 @@ void* CastPointSequence(void* addr)
 
 */
 TypeConstructor pointsequence(
-  "pointsequence",			                     //name
-  PointSequenceProperty,		                 //property function describing 
+  "pointsequence",                           //name
+  PointSequenceProperty,                     //property function describing 
                                              //signature
-  OutPointSequence,InPointSequence,	         //Out and In functions
+  OutPointSequence,InPointSequence,          //Out and In functions
   0, 0,                                      //SaveToList and RestoreFromList
                                              //functions
   CreatePointSequence,  DeletePointSequence, //object creation and deletion
   OpenPointSequence,    SavePointSequence,   //object open and save
   ClosePointSequence,   ClonePointSequence,  //object close and clone
-  CastPointSequence,                   	     //cast function
+  CastPointSequence,                         //cast function
   SizeOfPointSequence,                       //sizeof function
-  CheckPointSequence );	            		     //kind checking function
-	
+  CheckPointSequence );                      //kind checking function
+
 /*
 4 Creating Operators
 
@@ -610,7 +620,7 @@ Converts ~pointsequence~ to ~point~.
 {
   PointSequence *ps = ((PointSequence*)args[0].addr);
   result = qp->ResultStorage(s);   //query processor has provided
-  				   //a Point instance to take the result
+                                     //a Point instance to take the result
   
   if ( ps->GetNoPSPoints() >= 1 ) {
     ((Point*)result.addr)->Set( ps->GetPSPoint(0).x, ps->GetPSPoint(0).y );
@@ -628,7 +638,7 @@ Converts ~pointsequence~ to ~points~.
 {  
   PointSequence *ps = ((PointSequence*)args[0].addr);
   result = qp->ResultStorage(s);   //query processor has provided
-  				   //a Points instance to take the result
+                                     //a Points instance to take the result
 
   if ( ps->GetNoPSPoints() >= 1 ) {
     
@@ -638,7 +648,7 @@ Converts ~pointsequence~ to ~points~.
     for( int i = 0; i < ps->GetNoPSPoints(); i++ )
     {
       Point p(true, ps->GetPSPoint(i).x, ps->GetPSPoint(i).y);      
-      pts->InsertPt( p );
+      *pts += p;
     }
     pts->EndBulkLoad();
   }
@@ -655,9 +665,9 @@ Converts ~pointsequence~ to ~line~.
 {
   PointSequence *ps = ((PointSequence*)args[0].addr);
   result = qp->ResultStorage(s);   //query processor has provided
-  				   //a Line instance to take the result
+                                     //a Line instance to take the result
 
-  CLine *l = (CLine*)result.addr; 
+  Line *l = (Line*)result.addr; 
   if ( ps->GetNoPSPoints() >= 2 ) {
     l->Clear();
     l->StartBulkLoad();
@@ -665,9 +675,9 @@ Converts ~pointsequence~ to ~line~.
     {
       Point p1(true, ps->GetPSPoint(i).x, ps->GetPSPoint(i).y);
       Point p2(true, ps->GetPSPoint(i+1).x, ps->GetPSPoint(i+1).y);
-      CHalfSegment seg(true, true,  p1, p2);      
+      HalfSegment seg(true,  p1, p2);      
       *l += seg;
-      seg.SetLDP(false);
+      seg.SetLeftDomPoint(false);
       *l += seg;
     }
     l->EndBulkLoad();
@@ -688,7 +698,7 @@ Converts ~pointsequence~ to ~region~.
 
   PointSequence *ps = ((PointSequence*)args[0].addr);
   result = qp->ResultStorage(s);   //query processor has provided
-  				   //a Region instance to take the result  
+                                     //a Region instance to take the result  
   for( int i = 0; i < ps->GetNoPSPoints(); i++ )
   {
     Point p(true, ps->GetPSPoint(i).x, ps->GetPSPoint(i).y);
@@ -702,10 +712,10 @@ Converts ~pointsequence~ to ~region~.
     }
   }
   instance = nl->OneElemList(nl->OneElemList(instance));
-  CRegion* reg = (CRegion*)InRegion( nl->TheEmptyList(), 
+  Region* reg = (Region*)InRegion( nl->TheEmptyList(), 
                                  instance, 0, errorInfo, correct ).addr;
-  if ( correct ) ((CRegion*)result.addr)->CopyFrom(reg);  
-  else ((CRegion*)result.addr)->SetDefined(false);
+  if ( correct ) ((Region*)result.addr)->CopyFrom(reg);  
+  else ((Region*)result.addr)->SetDefined(false);
   return 0;
 }
 
@@ -722,7 +732,7 @@ Converts ~pointsequence~ to ~rectangle~.
   
   PointSequence *ps = ((PointSequence*)args[0].addr);
   result = qp->ResultStorage(s);   //query processor has provided
-  				   //a Rectangle instance to take the result
+                                     //a Rectangle instance to take the result
   x0 = ps->GetPSPoint(0).x;
   y0 = ps->GetPSPoint(0).y;
   x1 = ps->GetPSPoint(1).x;
@@ -778,56 +788,56 @@ Converts ~rectangle~ to ~pointsequence~.
 const string C2PointSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                       "\"Example\" ) "
                       "( <text>(pointsequence) -> point</text--->"
-		      "<text>c2point( _ )</text--->"
-		      "<text>Converts a point sequence list"
+                      "<text>c2point( _ )</text--->"
+                      "<text>Converts a point sequence list"
                       " to point.</text--->"
                       "<text>let mypoint = c2point(mypointsequence)</text--->"
-		      ") )";
+                      ") )";
 
 const string C2PointsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                       "\"Example\" ) "
                       "( <text>(pointsequence) -> points</text--->"
-		      "<text>c2points( _ )</text--->"
-		      "<text>Converts a point sequence list"
+                      "<text>c2points( _ )</text--->"
+                      "<text>Converts a point sequence list"
                       " to points.</text--->"
                       "<text>let mypoints = c2points(mypointsequence)</text--->"
-		      ") )";
+                      ") )";
 
 const string C2LineSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                       "\"Example\" ) "
                       "( <text>(pointsequence) -> line</text--->"
-		      "<text>c2line( _ )</text--->"
-		      "<text>Converts a point sequence list"
+                      "<text>c2line( _ )</text--->"
+                      "<text>Converts a point sequence list"
                       " to line.</text--->"
-		      "<text>let myline = c2line(mypointsequence)</text--->"
-		      ") )";
+                      "<text>let myline = c2line(mypointsequence)</text--->"
+                      ") )";
 
 const string C2RegionSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                       "\"Example\" ) "
                       "( <text>(pointsequence) -> region</text--->"
-		      "<text>c2reg( _ )</text--->"
-		      "<text>Converts a point sequence list"
+                      "<text>c2reg( _ )</text--->"
+                      "<text>Converts a point sequence list"
                       " to region.</text--->"
-		      "<text>let myregion = c2reg(mypointsequence)</text--->"
-		      ") )";
-		      
+                      "<text>let myregion = c2reg(mypointsequence)</text--->"
+                      ") )";
+                      
 const string C2RectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                       "\"Example\" ) "
                       "( <text>(pointsequence) -> rect</text--->"
-		      "<text>c2rect( _ )</text--->"
-		      "<text>Converts a point sequence list"
+                      "<text>c2rect( _ )</text--->"
+                      "<text>Converts a point sequence list"
                       " to rectangle.</text--->"
-		      "<text>let myrect = c2rect(mypointsequence)</text--->"
-		      ") )";
-		      
+                      "<text>let myrect = c2rect(mypointsequence)</text--->"
+                      ") )";
+                      
 const string Rect2PSSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                       "\"Example\" ) "
                       "( <text>(rect) -> pointsequence</text--->"
-		      "<text>rect2ps( _ )</text--->"
-		      "<text>Converts a rect"
+                      "<text>rect2ps( _ )</text--->"
+                      "<text>Converts a rect"
                       " to point sequence list.</text--->"
-		      "<text>let mypointsequence = rect2ps(mrect)</text--->"
-		      ") )";
+                      "<text>let mypointsequence = rect2ps(mrect)</text--->"
+                      ") )";
 
 /*
 4.5 Definition of Operators
@@ -835,51 +845,51 @@ const string Rect2PSSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 */
 
 Operator c2point (
-	"c2point", 		//name
-	C2PointSpec,            //specification
-	C2PointFun,		//value mapping
-	Operator::SimpleSelect,	//trivial selection function
-	C2PointTypeMap		//type mapping
+        "c2point",               //name
+        C2PointSpec,             //specification
+        C2PointFun,              //value mapping
+        Operator::SimpleSelect,  //trivial selection function
+        C2PointTypeMap           //type mapping
 );
 
 Operator c2points (
-	"c2points", 		//name
-	C2PointsSpec,           //specification
-	C2PointsFun,		//value mapping
-	Operator::SimpleSelect,	//trivial selection function
-	C2PointsTypeMap		//type mapping
+        "c2points",              //name
+        C2PointsSpec,            //specification
+        C2PointsFun,             //value mapping
+        Operator::SimpleSelect,  //trivial selection function
+        C2PointsTypeMap          //type mapping
 );
 
 Operator c2line (
-	"c2line", 		//name
-	C2LineSpec,             //specification
-	C2LineFun,		//value mapping
-	Operator::SimpleSelect,	//trivial selection function
-	C2LineTypeMap		//type mapping
+        "c2line",                //name
+        C2LineSpec,              //specification
+        C2LineFun,               //value mapping
+        Operator::SimpleSelect,  //trivial selection function
+        C2LineTypeMap            //type mapping
 );
 
 Operator c2region (
-	"c2reg", 		//name
-	C2RegionSpec,           //specification
-	C2RegionFun,		//value mapping
-	Operator::SimpleSelect,	//trivial selection function
-	C2RegionTypeMap		//type mapping
+        "c2reg",                 //name
+        C2RegionSpec,            //specification
+        C2RegionFun,             //value mapping
+        Operator::SimpleSelect,  //trivial selection function
+        C2RegionTypeMap          //type mapping
 );
 
 Operator c2rect (
-	"c2rect", 		//name
-	C2RectSpec,             //specification
-	C2RectFun,		//value mapping
-	Operator::SimpleSelect,	//trivial selection function
-	C2RectTypeMap		//type mapping
+        "c2rect",                //name
+        C2RectSpec,              //specification
+        C2RectFun,               //value mapping
+        Operator::SimpleSelect,  //trivial selection function
+        C2RectTypeMap            //type mapping
 );
 
 Operator rect2ps (
-	"rect2ps", 		//name
-	Rect2PSSpec,            //specification
-	Rect2PSFun,		//value mapping
-	Operator::SimpleSelect,	//trivial selection function
-	Rect2PSTypeMap		//type mapping
+        "rect2ps",               //name
+        Rect2PSSpec,             //specification
+        Rect2PSFun,              //value mapping
+        Operator::SimpleSelect,  //trivial selection function
+        Rect2PSTypeMap           //type mapping
 );
 
 /*
@@ -898,11 +908,11 @@ class PointSequenceAlgebra : public Algebra
     //can be used in places where types of kind DATA are expected
     pointsequence.AssociateKind("DATA");
     
-    AddOperator ( &c2point );   	     
+    AddOperator ( &c2point );                
     AddOperator ( &c2points );  
     AddOperator ( &c2line ); 
     AddOperator ( &c2region ); 
-    AddOperator ( &c2rect );					  
+    AddOperator ( &c2rect );                                                 
     AddOperator ( &rect2ps ); 
   }
   ~PointSequenceAlgebra() {};

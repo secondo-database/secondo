@@ -165,6 +165,7 @@ class Date: public StandardAttribute
 
   bool     IsDefined() const;
   void     SetDefined(bool Defined);
+  size_t   Sizeof() const;
   size_t   HashValue() const;
   void     CopyFrom(const StandardAttribute* right);
   int      Compare(const Attribute * arg) const;
@@ -222,6 +223,11 @@ void Date::Set(bool Defined, int Day, int Month, int Year)
 bool Date::IsDefined() const {return (defined); }
 
 void Date::SetDefined(bool Defined) {defined = Defined; }
+
+size_t Date::Sizeof() const
+{
+  return sizeof( *this );
+}
 
 size_t Date::HashValue() const
 {
@@ -437,7 +443,7 @@ InDate( const ListExpr typeInfo, const ListExpr instance,
     }
 
 
-    if ((hyphen == 2) && (dot == 0)) 	//format is "1998-02-01"
+    if ((hyphen == 2) && (dot == 0)) //format is "1998-02-01"
     {
       //extract the year, month, day information from the date
       i=buf; j=i;
@@ -456,7 +462,7 @@ InDate( const ListExpr typeInfo, const ListExpr instance,
       Day=atoi(i);
     }
     else 
-      if ((hyphen == 0) && (dot == 2))	//format is "1.2.1998"
+      if ((hyphen == 0) && (dot == 2)) //format is "1.2.1998"
       {
         //extract the year, month, day information from the date
         i=buf; j=i;
@@ -554,8 +560,11 @@ DateProperty()
 {
   ListExpr listreplist = nl->TextAtom();
   ListExpr examplelist = nl->TextAtom();
-  nl->AppendText(listreplist, "Either \"<day>.<month>.<year>\" or \"<year>-<month>-<day>\"");
-  nl->AppendText(examplelist, "\"9.5.1955\" or \"09.05.1955\" or \"1955-5-9\" or \"1955-05-09\"");
+  nl->AppendText(listreplist, 
+    "Either \"<day>.<month>.<year>\" or \"<year>-<month>-<day>\"");
+  nl->AppendText(examplelist, 
+    "\"9.5.1955\" or \"09.05.1955\" or \"1955-5-9\" or \"1955-05-09\"");
+
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
                              nl->StringAtom("Example Type List"),

@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] title: [{\Large \bf ]	[}]
+//paragraph [1] title: [{\Large \bf ]  [}]
 
 
 [1] TupleIdentifier Algebra
@@ -88,7 +88,7 @@ TupleIdentifier* TupleIdentifier::Clone() const
 
 The list representation of a TupleIdentifier is
 
-----	(tid)
+----    (tid)
 ----
 
 2.3 ~In~ and ~Out~ Functions
@@ -127,15 +127,15 @@ TupleIdentifierProperty()
 {
   return (nl->TwoElemList(
             nl->FiveElemList(nl->StringAtom("Signature"),
-	        nl->StringAtom("Example Type List"),
-			nl->StringAtom("List Rep"),
-			nl->StringAtom("Example List"),
-			nl->StringAtom("Remarks")),
+              nl->StringAtom("Example Type List"),
+                  nl->StringAtom("List Rep"),
+                  nl->StringAtom("Example List"),
+                  nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-	        nl->StringAtom("tid"),
-			nl->StringAtom("(<tid>)"),
-			nl->StringAtom("(50060)"),
-			nl->StringAtom("The tupleidentifier is a long."))));
+              nl->StringAtom("tid"),
+                  nl->StringAtom("(<tid>)"),
+                  nl->StringAtom("(50060)"),
+                  nl->StringAtom("The tupleidentifier is a long."))));
 }
 Word
 CreateTupleIdentifier( const ListExpr typeInfo )
@@ -196,15 +196,24 @@ void* CastTupleIdentifier( void* addr )
 */
 TypeConstructor tupleIdentifier
 (
- "tid",			//name
- TupleIdentifierProperty, 	//property function describing signature
- OutTupleIdentifier, InTupleIdentifier,//Out and In functions
- 0, 0,	                        //SaveToList and RestoreFromList functions
- CreateTupleIdentifier, DeleteTupleIdentifier,//object creation and deletion
- 0, 0, CloseTupleIdentifier, CloneTupleIdentifier,//object open,save,close,clone
- CastTupleIdentifier,			//cast function
- SizeOfTupleIdentifier, 			//sizeof function
- CheckTupleIdentifier );                //kind checking function
+ "tid",                                            
+   //name
+ TupleIdentifierProperty,               
+   //property function describing signature
+ OutTupleIdentifier, InTupleIdentifier,            
+   //Out and In functions
+ 0, 0,                                  
+   //SaveToList and RestoreFromList functions
+ CreateTupleIdentifier, DeleteTupleIdentifier,     
+   //object creation and deletion
+ 0, 0, CloseTupleIdentifier, CloneTupleIdentifier, 
+   //object open,save,close,clone
+ CastTupleIdentifier,                              
+   //cast function
+ SizeOfTupleIdentifier,                            
+   //sizeof function
+ CheckTupleIdentifier );                           
+   //kind checking function
 
 /*
 3 Operators
@@ -379,19 +388,19 @@ TIDAddTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
       resultTupleType = (TupleType *)local.addr;
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
-	{
-	  Tuple *tup = (Tuple*)t.addr;
-	  Tuple *newTuple = new Tuple( resultTupleType );
-	  assert( newTuple->GetNoAttributes() == tup->GetNoAttributes() + 1 );
-	  for( int i = 0; i < tup->GetNoAttributes(); i++ )
-	    newTuple->PutAttribute( i, tup->GetAttribute( i )->Clone() );
-	  newTuple->PutAttribute( newTuple->GetNoAttributes() - 1, 
-				  new TupleIdentifier(true,tup->GetTupleId()));
-	  
-	  tup->DeleteIfAllowed();
-	  result = SetWord(newTuple);
-	  return YIELD;
-	}
+      {
+        Tuple *tup = (Tuple*)t.addr;
+        Tuple *newTuple = new Tuple( resultTupleType );
+        assert( newTuple->GetNoAttributes() == tup->GetNoAttributes() + 1 );
+        for( int i = 0; i < tup->GetNoAttributes(); i++ )
+          newTuple->PutAttribute( i, tup->GetAttribute( i )->Clone() );
+        newTuple->PutAttribute( newTuple->GetNoAttributes() - 1, 
+                          new TupleIdentifier(true,tup->GetTupleId()));
+        
+        tup->DeleteIfAllowed();
+        result = SetWord(newTuple);
+        return YIELD;
+      }
       else
         return CANCEL;
 

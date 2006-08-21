@@ -20,16 +20,16 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph	[10]	title:		[{\Large \bf ] [}]
-//paragraph	[21]	table1column:	[\begin{quote}\begin{tabular}{l}]	[\end{tabular}\end{quote}]
-//paragraph	[22]	table2columns:	[\begin{quote}\begin{tabular}{ll}]	[\end{tabular}\end{quote}]
-//paragraph	[23]	table3columns:	[\begin{quote}\begin{tabular}{lll}]	[\end{tabular}\end{quote}]
-//paragraph	[24]	table4columns:	[\begin{quote}\begin{tabular}{llll}]	[\end{tabular}\end{quote}]
-//[--------]	[\hline]
-//characters	[1]	verbatim:	[$]	[$]
-//characters	[2]	formula:	[$]	[$]
-//characters	[3]	capital:	[\textsc{]	[}]
-//characters	[4]	teletype:	[\texttt{]	[}]
+//paragraph [10]  title:            [{\Large \bf ] [}]
+//paragraph [21]  table1column:     [\begin{quote}\begin{tabular}{l}]   [\end{tabular}\end{quote}]
+//paragraph [22]  table2columns:    [\begin{quote}\begin{tabular}{ll}]  [\end{tabular}\end{quote}]
+//paragraph [23]  table3columns:    [\begin{quote}\begin{tabular}{lll}] [\end{tabular}\end{quote}]
+//paragraph [24]  table4columns:    [\begin{quote}\begin{tabular}{llll}][\end{tabular}\end{quote}]
+//[--------]      [\hline]
+//characters      [1]   verbatim:   [$]   [$]
+//characters      [2]   formula:    [$]   [$]
+//characters      [3]   capital:    [\textsc{]  [}]
+//characters      [4]   teletype:   [\texttt{]  [}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -168,7 +168,7 @@ from their base class ~SmiFile~:
 
 [23]    Creation/Removal & Open/Close & Information \\
         [--------]
-	Create           & Open        & GetContext \\
+  Create           & Open        & GetContext \\
   Drop             & Close       & GetName    \\
   Truncate         &             & GetFileId  \\
                    &             & IsOpen     \\
@@ -194,7 +194,7 @@ The class ~SmiRecord~ provides the following methods:
 
 [23]    Creation/Removal & Persistence & Querying \\
         [--------]
-	SmiRecord        & Read        & Size \\
+        SmiRecord        & Read        & Size \\
         [tilde]SmiRecord & Write       &      \\
         Finish           & Truncate    &      \\
 
@@ -203,16 +203,16 @@ following methods:
 
 [23]    Creation/Removal             & Access        & Querying \\
         [--------]
-	SmiRecordFileIterator        & Next          & EndOfScan \\
+        SmiRecordFileIterator        & Next          & EndOfScan \\
         [tilde]SmiRecordFileIterator & DeleteCurrent &  \\
-	SmiKeyedFileIterator         & Restart       &  \\
+        SmiKeyedFileIterator         & Restart       &  \\
         [tilde]SmiKeyedFileIterator  & Finish        &  \\
 
 The class ~SmiKey~ provides the following methods:
 
 [23]    Creation/Removal & Access      & Key mapping   \\
         [--------]
-	SmiKey           & GetKey      & Map           \\
+        SmiKey           & GetKey      & Map           \\
         [tilde]SmiKey    & KeyDataType & Unmap         \\
 
 1.4 Imports, Constants, Types
@@ -797,7 +797,7 @@ The function returns "true"[4], if the lock could be released successfully
 or if the application runs in single user mode.
 
 */
-  static const string SmiEnvironment::Err2Msg( SmiError code );
+  static const string Err2Msg( SmiError code );
 /*
 Translate an SMI error code into a message!
 
@@ -1174,7 +1174,8 @@ The function returns "true"[4] when the record was created successfully.
 
 */
   bool DeleteRecord( const SmiKey& key, 
-		     const bool all = true, const SmiRecordId = 0 );
+                     const bool all = true, 
+                     const SmiRecordId = 0 );
 /*
 Deletes all records having the given key.
 

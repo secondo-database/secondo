@@ -116,6 +116,11 @@ class CcInt : public StandardAttribute
   { 
     this->defined = defined;
   }
+
+  inline size_t Sizeof() const
+  {
+    return sizeof( *this );
+  }
     
   inline int GetIntval() const
   { 
@@ -283,6 +288,11 @@ class CcReal : public StandardAttribute
     this->defined = defined; 
   }
 
+  inline size_t Sizeof() const
+  {
+    return sizeof( *this );
+  }
+
   inline float GetRealval() const
   { 
     return realval;
@@ -417,6 +427,11 @@ class CcBool : public StandardAttribute
     this->defined = defined; 
   }
 
+  inline size_t Sizeof() const
+  {
+    return sizeof( *this );
+  }
+
   inline bool GetBoolval() const
   { 
     return boolval; 
@@ -523,6 +538,11 @@ class CcString : public StandardAttribute
   inline void SetDefined(bool defined) 
   { 
     this->defined = defined; 
+  }
+
+  inline size_t Sizeof() const
+  {
+    return sizeof( *this );
   }
 
   inline const STRING* GetStringval() const

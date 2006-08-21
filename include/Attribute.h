@@ -20,26 +20,6 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph	[10]	title:		[{\Large \bf ] [}]
-//paragraph	[11]	title:		[{\large \bf ] [}]
-//paragraph	[12]	title:		[{\normalsize \bf ] [}]
-//paragraph	[21]	table1column:	[\begin{quote}\begin{tabular}{l}]	[\end{tabular}\end{quote}]
-//paragraph	[22]	table2columns:	[\begin{quote}\begin{tabular}{ll}]	[\end{tabular}\end{quote}]
-//paragraph	[23]	table3columns:	[\begin{quote}\begin{tabular}{lll}]	[\end{tabular}\end{quote}]
-//paragraph	[24]	table4columns:	[\begin{quote}\begin{tabular}{llll}]	[\end{tabular}\end{quote}]
-//[--------]	[\hline]
-//characters	[1]	verbatim:	[$]	[$]
-//characters	[2]	formula:	[$]	[$]
-//characters    [3]    capital:    [\textsc{]    [}]
-//characters	[4]	teletype:	[\texttt{]	[}]
-//[ae] [\"a]
-//[oe] [\"o]
-//[ue] [\"u]
-//[ss] [{\ss}]
-//[<=] [\leq]
-//[#]  [\neq]
-//[tilde] [\verb|~|]
-
 1 Header File: Attribute
 
 May 1998 Stefan Dieker
@@ -136,6 +116,11 @@ Sets the ~defined~ flag of the attribute.
 
 */
 
+    virtual size_t Sizeof() const = 0;
+/*
+Returns the ~sizeof~ of the attribute class.
+
+*/
     virtual int Compare( const Attribute *rhs ) const = 0;
 /*
 This function should define an order on the attribute values. 
@@ -250,23 +235,6 @@ This function checks if two attributes are adjacent. As an example,
 are adjacent for string attributes.
 
 */
-    virtual Attribute* Clone() const = 0;
-/*
-Warning: The obvious simple implementation
-
----- Attribute* X::Clone() const { return new X(*this); }
-----
-
-does only work correctly if the copy constructor 
-
----- X::X(const X&) { // do a deep copy here }
-----
-
-is implemented otherwise the compiler will not complain but it replaces 
-the call by a default implementation returning just a copy of all member variables.
-But in some cases this may be not correct. 
-
-*/
     inline virtual int NumOfFLOBs() const
     {
       return 0;
@@ -289,8 +257,16 @@ does not contain any FLOBs (the default), this function should not
 be called.
 
 */
+    inline virtual 
+    void Restrict( const vector< pair<int, int> >& interval )
+    {}
+/*
+This function is called to restrict a current attribute to a
+set of intervals. This function is used in double indexing.
+
+*/
     inline virtual void Initialize() {}
-    inline virtual void Finalize()   {}
+    inline virtual void Finalize() {}
 /*
 These two functions are used to initialize and finalize values of
 attributes. In some cases, the constructor and destructor are
@@ -414,6 +390,11 @@ Deletes an attribute if allowed, i.e. if ~refs~ = 0.
 /*
 Copies this element if it is possible, otherwise
 clones it.
+
+*/
+    virtual Attribute *Clone() const = 0;
+/*
+Clones this attribute. This function is implemented in the son classes.
 
 */
     inline void SetFreeAttr()

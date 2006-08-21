@@ -118,11 +118,11 @@ public:
 
     void At( Points* pts, MPoint &result ) const;
 
-    void At( CLine* ln, MPoint &result ) const;
+    void At( Line* ln, MPoint &result ) const;
 
     bool Passes( Points* pts ) const;
 
-    bool Passes( CLine* ln ) const;
+    bool Passes( Line* ln ) const;
 };
 
 /*

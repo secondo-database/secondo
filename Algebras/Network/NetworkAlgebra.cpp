@@ -60,19 +60,25 @@ extern QueryProcessor* qp;
 
 */
 string Network::routesTypeInfo =
-      "(rel (tuple ((id int) (length real) (curve line) (dual bool) (startsSmaller bool))))";
+      "(rel (tuple ((id int) (length real) (curve line) "
+      "(dual bool) (startsSmaller bool))))";
 string Network::routesBTreeTypeInfo =
-      "(btree (tuple ((id int) (length real) (curve line) (dual bool) (startsSmaller bool))) int)";
+      "(btree (tuple ((id int) (length real) (curve line) "
+      "(dual bool) (startsSmaller bool))) int)";
 string Network::junctionsTypeInfo =
-      "(rel (tuple ((r1id int) (meas1 real) (r2id int) (meas2 int) (cc int))))";
+      "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
+      "(meas2 int) (cc int))))";
 string Network::junctionsInternalTypeInfo =
-      "(rel (tuple ((r1id int) (meas1 real) (r2id int) (meas2 real) (cc int) (pos point) (r1rc int) (r2rc int))))";
+      "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
+      "(meas2 real) (cc int) (pos point) (r1rc int) (r2rc int))))";
 string Network::junctionsAppendTypeInfo =
       "(rel (tuple ((pos point) (r1rc int) (r2rc int))))";
 string Network::sectionsTypeInfo =
-      "(rel (tuple ((rid int) (meas1 real) (meas2 int) (dual bool) (curve line))))";
+      "(rel (tuple ((rid int) (meas1 real) (meas2 int) "
+      "(dual bool) (curve line))))";
 string Network::sectionsInternalTypeInfo =
-      "(rel (tuple ((rid int) (meas1 real) (meas2 int) (dual bool) (curve line) (rrc int))))";
+      "(rel (tuple ((rid int) (meas1 real) (meas2 int) "
+      "(dual bool) (curve line) (rrc int))))";
 string Network::sectionsAppendTypeInfo =
       "(rel (tuple ((rrc int))))";
 
@@ -83,7 +89,8 @@ sections( 0 ),
 routesBTree( 0 )
 {}
 
-Network::Network( Relation *routes, Relation *junctions, Relation *sections, BTree *routesBTree ):
+Network::Network( Relation *routes, Relation *junctions, 
+                  Relation *sections, BTree *routesBTree ):
 routes( routes ),
 junctions( junctions ),
 sections( sections ),
@@ -129,7 +136,8 @@ void Network::FillRoutes( const Relation *routes )
   ostringstream strThisRoutesPtr;
   strThisRoutesPtr << (int)this->routes;
 
-  querystring = "(createbtree (" + routesTypeInfo + " (ptr " + strThisRoutesPtr.str() + "))" + " id)";
+  querystring = "(createbtree (" + routesTypeInfo + 
+                " (ptr " + strThisRoutesPtr.str() + "))" + " id)";
 
   assert( QueryProcessor::ExecuteQuery( querystring, resultWord ) );
   this->routesBTree = (BTree*)resultWord.addr;
@@ -147,8 +155,11 @@ Relation *Network::GetRoutesInternal()
 
 void Network::FillJunctions( const Relation *junctions )
 {
-  ListExpr junctionsNumInt = SecondoSystem::GetCatalog()->NumericType( GetJunctionsInternalTypeInfo() ),
-           junctionsNumApp = SecondoSystem::GetCatalog()->NumericType( GetJunctionsAppendTypeInfo() );
+  ListExpr 
+    junctionsNumInt = 
+      SecondoSystem::GetCatalog()->NumericType( GetJunctionsIntTypeInfo() ),
+    junctionsNumApp = 
+      SecondoSystem::GetCatalog()->NumericType( GetJunctionsAppTypeInfo() );
 
   Relation *unJunctions = new Relation( junctionsNumInt, false );
 
@@ -183,11 +194,13 @@ void Network::FillJunctions( const Relation *junctions )
     Tuple *intJDup = intJ->Clone();
 
     CcInt *aux = (CcInt*)intJ->GetAttribute( POS_JR1ID )->Clone();
-    intJDup->PutAttribute( POS_JR1ID, intJ->GetAttribute( POS_JR2ID )->Clone() );
+    intJDup->PutAttribute( POS_JR1ID, 
+                           intJ->GetAttribute( POS_JR2ID )->Clone() );
     intJDup->PutAttribute( POS_JR2ID, aux );
 
     aux = (CcInt*)intJ->GetAttribute( POS_JMEAS1 )->Clone();
-    intJDup->PutAttribute( POS_JMEAS1, intJ->GetAttribute( POS_JMEAS2 )->Clone() );
+    intJDup->PutAttribute( POS_JMEAS1, 
+                           intJ->GetAttribute( POS_JMEAS2 )->Clone() );
     intJDup->PutAttribute( POS_JMEAS2, aux );
 
     unJunctions->AppendTuple( intJDup );
@@ -202,7 +215,8 @@ void Network::FillJunctions( const Relation *junctions )
   strJunctionsPtr << (int)unJunctions;
 
   string querystring = "(consume (sortby (feed (" + junctionsTypeInfo +
-                       " (ptr " + strJunctionsPtr.str() + "))) ((r1id asc)(r2id asc))))";
+                       " (ptr " + strJunctionsPtr.str() + 
+                       "))) ((r1id asc)(r2id asc))))";
 
   Word resultWord;
   assert( QueryProcessor::ExecuteQuery( querystring, resultWord ) );
@@ -236,7 +250,8 @@ void Network::FillSections()
                    *junctionsIter = junctions->MakeScan();
   Tuple *rTuple, *jTuple = junctionsIter->GetNextTuple();
 
-  ListExpr sectionsNumInt = SecondoSystem::GetCatalog()->NumericType( GetSectionsInternalTypeInfo() );
+  ListExpr sectionsNumInt = 
+    SecondoSystem::GetCatalog()->NumericType( GetSectionsInternalTypeInfo() );
   this->sections = new Relation( sectionsNumInt );
 
   while( (rTuple = routesIter->GetNextTuple()) != 0 )
@@ -244,18 +259,24 @@ void Network::FillSections()
     CcReal *meas1 = new CcReal( true, 0 );
     
     while( jTuple != 0 &&
-           ((CcInt*)jTuple->GetAttribute( POS_JR1ID ))->GetIntval() == ((CcInt*)rTuple->GetAttribute( POS_RID ))->GetIntval() )
+           ((CcInt*)jTuple->GetAttribute( POS_JR1ID ))->GetIntval() == 
+           ((CcInt*)rTuple->GetAttribute( POS_RID ))->GetIntval() )
     {
-      if( ((CcReal*)jTuple->GetAttribute( POS_JMEAS1 ))->GetRealval() > meas1->GetRealval() )
+      if( ((CcReal*)jTuple->GetAttribute( POS_JMEAS1 ))->GetRealval() > 
+          meas1->GetRealval() )
       // Create a section from meas1 to the actual junction.
       {
         Tuple *sTuple = new Tuple( nl->Second( sectionsNumInt ) );
-        sTuple->PutAttribute( POS_SRID, rTuple->GetAttribute( POS_RID )->Clone() );
-        sTuple->PutAttribute( POS_SDUAL, rTuple->GetAttribute( POS_RDUAL )->Clone() );
+        sTuple->PutAttribute( POS_SRID, 
+                              rTuple->GetAttribute( POS_RID )->Clone() );
+        sTuple->PutAttribute( POS_SDUAL, 
+                              rTuple->GetAttribute( POS_RDUAL )->Clone() );
         sTuple->PutAttribute( POS_SMEAS1, meas1 );
-        sTuple->PutAttribute( POS_SMEAS2, jTuple->GetAttribute( POS_JMEAS2 )->Clone() );
-        sTuple->PutAttribute( POS_SRRC, new CcInt( true, rTuple->GetTupleId() ) );
-        sTuple->PutAttribute( POS_SCURVE, new CLine( 0 ) );
+        sTuple->PutAttribute( POS_SMEAS2, 
+                              jTuple->GetAttribute( POS_JMEAS2 )->Clone() );
+        sTuple->PutAttribute( POS_SRRC, 
+                              new CcInt( true, rTuple->GetTupleId() ) );
+        sTuple->PutAttribute( POS_SCURVE, new Line( 0 ) );
 
         this->sections->AppendTuple( sTuple );
         sTuple->DeleteIfAllowed();
@@ -265,15 +286,20 @@ void Network::FillSections()
       jTuple = junctionsIter->GetNextTuple();
     }
 
-    if( meas1->GetRealval() < ((CcReal*)rTuple->GetAttribute( POS_RLENGTH ))->GetRealval() )
+    if( meas1->GetRealval() < 
+        ((CcReal*)rTuple->GetAttribute( POS_RLENGTH ))->GetRealval() )
     {
       Tuple *sTuple = new Tuple( nl->Second( sectionsNumInt ) );
-      sTuple->PutAttribute( POS_SRID, rTuple->GetAttribute( POS_RID )->Clone() );
-      sTuple->PutAttribute( POS_SDUAL, rTuple->GetAttribute( POS_RDUAL )->Clone() );
+      sTuple->PutAttribute( POS_SRID, 
+                            rTuple->GetAttribute( POS_RID )->Clone() );
+      sTuple->PutAttribute( POS_SDUAL, 
+                            rTuple->GetAttribute( POS_RDUAL )->Clone() );
       sTuple->PutAttribute( POS_SMEAS1, meas1 );
-      sTuple->PutAttribute( POS_SMEAS2, rTuple->GetAttribute( POS_RLENGTH )->Clone() );
-      sTuple->PutAttribute( POS_SRRC, new CcInt( true, rTuple->GetTupleId() ) );
-      sTuple->PutAttribute( POS_SCURVE, new CLine( 0 ) );
+      sTuple->PutAttribute( POS_SMEAS2, 
+                            rTuple->GetAttribute( POS_RLENGTH )->Clone() );
+      sTuple->PutAttribute( POS_SRRC, 
+                            new CcInt( true, rTuple->GetTupleId() ) );
+      sTuple->PutAttribute( POS_SCURVE, new Line( 0 ) );
 
       this->sections->AppendTuple( sTuple );
       sTuple->DeleteIfAllowed();
@@ -331,7 +357,7 @@ ListExpr Network::GetJunctionsTypeInfo()
   return 0;
 }
 
-ListExpr Network::GetJunctionsInternalTypeInfo()
+ListExpr Network::GetJunctionsIntTypeInfo()
 {
   ListExpr result;
 
@@ -341,7 +367,7 @@ ListExpr Network::GetJunctionsInternalTypeInfo()
   return 0;
 }
 
-ListExpr Network::GetJunctionsAppendTypeInfo()
+ListExpr Network::GetJunctionsAppTypeInfo()
 {
   ListExpr result;
 
@@ -388,7 +414,8 @@ ListExpr Network::GetSectionsAppendTypeInfo()
 ListExpr NetworkProp()
 {
   ListExpr examplelist = nl->TextAtom();
-  nl->AppendText(examplelist,"thenetwork( <routes-relation>, <junctions-relation> )");
+  nl->AppendText(examplelist,
+                 "thenetwork( <routes-relation>, <junctions-relation> )");
 
   return (nl->TwoElemList(
             nl->TwoElemList(nl->StringAtom("Creation"),
@@ -403,12 +430,16 @@ ListExpr NetworkProp()
 */
 ListExpr Network::Out( ListExpr typeInfo )
 {
-  return nl->ThreeElemList( nl->TwoElemList( nl->StringAtom( "Routes: " ),
-                                             nl->IntAtom( routes->GetNoTuples() ) ),
-                            nl->TwoElemList( nl->StringAtom( "Junctions: " ),
-                                             nl->IntAtom( junctions->GetNoTuples() ) ),
-                            nl->TwoElemList( nl->StringAtom( "Sections: " ),
-                                             nl->IntAtom( sections->GetNoTuples() ) ) );
+  return nl->ThreeElemList( 
+    nl->TwoElemList( 
+      nl->StringAtom( "Routes: " ),
+      nl->IntAtom( routes->GetNoTuples() ) ),
+    nl->TwoElemList( 
+      nl->StringAtom( "Junctions: " ),
+      nl->IntAtom( junctions->GetNoTuples() ) ),
+    nl->TwoElemList( 
+      nl->StringAtom( "Sections: " ),
+      nl->IntAtom( sections->GetNoTuples() ) ) );
 }
 
 ListExpr OutNetwork(ListExpr typeInfo, Word value)
@@ -494,19 +525,23 @@ ListExpr Network::Save( SmiRecord& valueRecord,
                         const ListExpr typeInfo )
 {
   if( !routes->Save( valueRecord, offset, 
-                     SecondoSystem::GetCatalog()->NumericType( GetRoutesTypeInfo() ) ) )
+                     SecondoSystem::GetCatalog()->
+                       NumericType( GetRoutesTypeInfo() ) ) )
     return false;
 
   if( !junctions->Save( valueRecord, offset, 
-                        SecondoSystem::GetCatalog()->NumericType( GetJunctionsInternalTypeInfo() ) ) )
+                        SecondoSystem::GetCatalog()->
+                          NumericType( GetJunctionsIntTypeInfo() ) ) )
     return false;
  
   if( !sections->Save( valueRecord, offset, 
-                       SecondoSystem::GetCatalog()->NumericType( GetSectionsInternalTypeInfo() ) ) )
+                       SecondoSystem::GetCatalog()->
+                         NumericType( GetSectionsInternalTypeInfo() ) ) )
     return false;
 
   if( !routesBTree->Save( valueRecord, offset,
-                          SecondoSystem::GetCatalog()->NumericType( GetRoutesBTreeTypeInfo() ) ) )
+                          SecondoSystem::GetCatalog()->
+                            NumericType( GetRoutesBTreeTypeInfo() ) ) )
     return false;
 
   return true; 
@@ -525,32 +560,41 @@ bool SaveNetwork( SmiRecord& valueRecord,
 3.12 ~Open~-function of type constructor ~network~
 
 */
-Network *Network::Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo )
+Network *Network::Open( SmiRecord& valueRecord, size_t& offset, 
+                        const ListExpr typeInfo )
 {
   Relation *routes, *junctions, *sections;
   BTree *routesBTree;
 
-  if( !( routes = Relation::Open( valueRecord, offset, 
-                                  SecondoSystem::GetCatalog()->NumericType( GetRoutesTypeInfo() ) ) ) ) 
+  if( !( routes = 
+         Relation::Open( valueRecord, offset, 
+                         SecondoSystem::GetCatalog()->
+                           NumericType( GetRoutesTypeInfo() ) ) ) ) 
     return 0;
 
-  if( !( junctions = Relation::Open( valueRecord, offset, 
-                                     SecondoSystem::GetCatalog()->NumericType( GetJunctionsInternalTypeInfo() ) ) ) ) 
+  if( !( junctions = 
+         Relation::Open( valueRecord, offset, 
+                         SecondoSystem::GetCatalog()->
+                           NumericType( GetJunctionsIntTypeInfo() ) ) ) ) 
   {  
     routes->Delete(); 
     return 0;
   }
 
-  if( !( sections = Relation::Open( valueRecord, offset, 
-                                    SecondoSystem::GetCatalog()->NumericType( GetSectionsInternalTypeInfo() ) ) ) ) 
+  if( !( sections = 
+           Relation::Open( valueRecord, offset, 
+                           SecondoSystem::GetCatalog()->
+                             NumericType( GetSectionsInternalTypeInfo() ) ) ) ) 
   {
     routes->Delete(); 
     junctions->Delete(); 
     return 0;
   }
 
-  if( !( routesBTree = BTree::Open( valueRecord, offset, 
-                                    SecondoSystem::GetCatalog()->NumericType( GetRoutesBTreeTypeInfo() ) ) ) ) 
+  if( !( routesBTree = 
+           BTree::Open( valueRecord, offset, 
+                        SecondoSystem::GetCatalog()->
+                          NumericType( GetRoutesBTreeTypeInfo() ) ) ) ) 
   {
     routes->Delete(); 
     junctions->Delete(); 
@@ -561,7 +605,8 @@ Network *Network::Open( SmiRecord& valueRecord, size_t& offset, const ListExpr t
   return new Network( routes, junctions, sections, routesBTree );
 }
 
-bool OpenNetwork( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo, Word& value )
+bool OpenNetwork( SmiRecord& valueRecord, size_t& offset, 
+                  const ListExpr typeInfo, Word& value )
 {
   value.addr = Network::Open( valueRecord, offset, typeInfo );
   return value.addr != 0;
@@ -628,7 +673,8 @@ ListExpr NetworkTheNetworkTypeMap(ListExpr args)
 
 */
 int
-NetworkTheNetworkValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
+NetworkTheNetworkValueMapping( Word* args, Word& result, 
+                               int message, Word& local, Supplier s )
 {
   Network *network = (Network*)qp->ResultStorage(s).addr;
 
@@ -645,13 +691,14 @@ NetworkTheNetworkValueMapping(Word* args, Word& result, int message, Word& local
 4.1.3 Specification of operator ~thenetwork~
 
 */
-const string NetworkTheNetworkSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                      "\"Example\" ) "
-                                      "( <text>rel x rel -> network" "</text--->"
-                                      "<text>thenetwork(_, _)</text--->"
-                                      "<text>Creates a network.</text--->"
-                                      "<text>let n = thenetwork(r, j)</text--->"
-                                      ") )";
+const string NetworkTheNetworkSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>rel x rel -> network" "</text--->"
+  "<text>thenetwork(_, _)</text--->"
+  "<text>Creates a network.</text--->"
+  "<text>let n = thenetwork(r, j)</text--->"
+  ") )";
 
 /*
 4.1.4 Definition of operator ~thenetwork~
@@ -690,7 +737,8 @@ ListExpr NetworkRoutesTypeMap(ListExpr args)
 
 */
 int
-NetworkRoutesValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
+NetworkRoutesValueMapping( Word* args, Word& result, int message, 
+                           Word& local, Supplier s )
 {
   Network *network = (Network*)args[0].addr;
   result = SetWord( network->GetRoutes() );
@@ -706,13 +754,14 @@ NetworkRoutesValueMapping(Word* args, Word& result, int message, Word& local, Su
 4.2.3 Specification of operator ~routes~
 
 */
-const string NetworkRoutesSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                  "\"Example\" ) "
-                                  "( <text>network -> rel" "</text--->"
-                                  "<text>routes(_)</text--->"
-                                  "<text>Return the routes of a network.</text--->"
-                                  "<text>let r = routes(n)</text--->"
-                                  ") )";
+const string NetworkRoutesSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>network -> rel" "</text--->"
+  "<text>routes(_)</text--->"
+  "<text>Return the routes of a network.</text--->"
+  "<text>let r = routes(n)</text--->"
+  ") )";
 
 /*
 4.2.4 Definition of operator ~routes~
@@ -741,7 +790,7 @@ ListExpr NetworkJunctionsTypeMap(ListExpr args)
     if( nl->IsAtom( arg1 ) &&
         nl->AtomType( arg1 ) == SymbolType &&
         nl->SymbolValue( arg1 ) == "network" )
-      return Network::GetJunctionsInternalTypeInfo();
+      return Network::GetJunctionsIntTypeInfo();
   }
   return (nl->SymbolAtom( "typeerror" ));
 }
@@ -751,7 +800,8 @@ ListExpr NetworkJunctionsTypeMap(ListExpr args)
 
 */
 int
-NetworkJunctionsValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
+NetworkJunctionsValueMapping( Word* args, Word& result, int message, 
+                              Word& local, Supplier s )
 {
   Network *network = (Network*)args[0].addr;
   result = SetWord( network->GetJunctions() );
@@ -767,13 +817,14 @@ NetworkJunctionsValueMapping(Word* args, Word& result, int message, Word& local,
 4.3.3 Specification of operator ~junctions~
 
 */
-const string NetworkJunctionsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                  "\"Example\" ) "
-                                  "( <text>network -> rel" "</text--->"
-                                  "<text>junctions(_)</text--->"
-                                  "<text>Return the junctions of a network.</text--->"
-                                  "<text>let j = junctions(n)</text--->"
-                                  ") )";
+const string NetworkJunctionsSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>network -> rel" "</text--->"
+  "<text>junctions(_)</text--->"
+  "<text>Return the junctions of a network.</text--->"
+  "<text>let j = junctions(n)</text--->"
+  ") )";
 
 /*
 4.3.4 Definition of operator ~junctions~
@@ -812,7 +863,8 @@ ListExpr NetworkSectionsTypeMap(ListExpr args)
 
 */
 int
-NetworkSectionsValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
+NetworkSectionsValueMapping( Word* args, Word& result, int message, 
+                             Word& local, Supplier s )
 {
   Network *network = (Network*)args[0].addr;
   result = SetWord( network->GetSections() );
@@ -828,13 +880,14 @@ NetworkSectionsValueMapping(Word* args, Word& result, int message, Word& local, 
 4.4.3 Specification of operator ~sections~
 
 */
-const string NetworkSectionsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                  "\"Example\" ) "
-                                  "( <text>network -> rel" "</text--->"
-                                  "<text>sections(_)</text--->"
-                                  "<text>Return the sections of a network.</text--->"
-                                  "<text>let j = sections(n)</text--->"
-                                  ") )";
+const string NetworkSectionsSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>network -> rel" "</text--->"
+  "<text>sections(_)</text--->"
+  "<text>Return the sections of a network.</text--->"
+  "<text>let j = sections(n)</text--->"
+  ") )";
 
 /*
 4.4.4 Definition of operator ~sections~

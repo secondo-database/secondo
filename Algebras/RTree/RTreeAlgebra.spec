@@ -21,6 +21,5 @@ operator creatertree alias CREATERTREE pattern _ op [ _ ]
 operator windowintersects alias WINDOWINTERSECTS pattern _ _ op [ _ ]
 operator windowintersectsS alias WINDOWINTERSECTSS pattern _ op [ _ ]
 operator gettuples alias GETTUPLES pattern _ _ op
-
-operator creatertree2L alias CREATERTREE2L pattern _ op [ _, _, _ ]
+operator gettuplesdbl alias GETTUPLESDBL pattern _ _ op[ _ ]
 

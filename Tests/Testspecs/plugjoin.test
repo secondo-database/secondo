@@ -49,13 +49,13 @@ query Kreis feed {X} loopjoin[fun(t: TUPLE) Kreis feed filter[bbox(.Gebiet) inte
 #testcase test16
 #yields (int 2707) 
 query Kreis feed {X} loopjoin[fun(t: TUPLE) Kreis feed filter[bbox(.Gebiet) intersects bbox(attr(t, Gebiet_X))] 
-  filter[.Gebiet touches attr(t, Gebiet_X)]] count;
+  filter[.Gebiet intersects attr(t, Gebiet_X)]] count;
 
 #testcase test17
 #yields (bool TRUE)
-query Kreis feed {X} Kreis feed spatialjoin[Gebiet_X, Gebiet] filter[.Gebiet_X touches .Gebiet] count =
+query Kreis feed {X} Kreis feed spatialjoin[Gebiet_X, Gebiet] filter[.Gebiet_X intersects .Gebiet] count =
       Kreis feed {X} loopjoin[fun(t: TUPLE) Kreis feed filter[bbox(.Gebiet) intersects bbox(attr(t, Gebiet_X))]
-        filter[.Gebiet touches attr(t, Gebiet_X)]] count;
+        filter[.Gebiet intersects attr(t, Gebiet_X)]] count;
 
 #teardown
 close database;

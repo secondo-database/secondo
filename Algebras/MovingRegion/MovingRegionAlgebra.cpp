@@ -88,7 +88,7 @@ Closed:
     fixed the issue.
 
   * Bug: The ~URegion~ constructor, which constructs the instance from a 
-    ~CRegion~ instance, does not work properly if the region contains half
+    ~Region~ instance, does not work properly if the region contains half
     segments, where the two end points have been swapped during half segment
     created. J[ue]rgen Schmidt spotted this problem.
 
@@ -2197,7 +2197,7 @@ Segment not parallel to trapezium.
 
 Returns ~true~ if point $(x, y)$ is located left or above or on segment 
 spanned by the points $(p1x, p1y)$ and $(p2x, p2y)$. This matches the
-definition of the ~insideAbove~ attribute in ~CRegion~ and ~URegion~
+definition of the ~insideAbove~ attribute in ~Region~ and ~URegion~
 instances.
 
 */
@@ -3499,11 +3499,11 @@ IRegion::IRegion(bool dummy) {
 /*
 This is quite ugly and may not work with other compilers than gcc.
 Since the ~Intime<Alpha>()~ constructors do not properly initialise their
-~value~ attribute (which if of type ~CRegion~ in this case), there is
+~value~ attribute (which if of type ~Region~ in this case), there is
 no better solution right now to assure that ~value~ has a valid DBArray.
 
 */
-    CRegion* tmp = new CRegion(0);
+    Region* tmp = new Region(0);
     memcpy(&value, tmp, sizeof(*tmp));
     free(tmp);
 }
@@ -3517,11 +3517,11 @@ IRegion::IRegion(const IRegion& ir) {
 /*
 This is quite ugly and may not work with other compilers than gcc.
 Since the ~Intime<Alpha>()~ constructors do not properly initialise their
-~value~ attribute (which if of type ~CRegion~ in this case), there is
+~value~ attribute (which if of type ~Region~ in this case), there is
 no better solution right now to assure that ~value~ has a valid DBArray.
 
 */
-    CRegion* tmp = new CRegion(0);
+    Region* tmp = new Region(0);
     memcpy(&value, tmp, sizeof(*tmp));
     free(tmp);
     if (ir.defined) value.CopyFrom(&ir.value);
@@ -3611,16 +3611,16 @@ static Word CreateIRegion(const ListExpr typeInfo) {
 static TypeConstructor iregion(
     "intimeregion",
     IRegionProperty,
-    OutIntime<CRegion, OutRegion>,
-    InIntime<CRegion, InRegion>,
+    OutIntime<Region, OutRegion>,
+    InIntime<Region, InRegion>,
     0, 0, // SaveToList, RestoreFromList
     CreateIRegion,
-    DeleteIntime<CRegion>,
+    DeleteIntime<Region>,
     0, 0, // open, save
-    CloseIntime<CRegion>,
-    CloneIntime<CRegion>,
-    CastIntime<CRegion>,
-    SizeOfIntime<CRegion>,
+    CloseIntime<Region>,
+    CloneIntime<Region>,
+    CastIntime<Region>,
+    SizeOfIntime<Region>,
     CheckIRegion );
 
 /*
@@ -3649,7 +3649,7 @@ URegionEmb::URegionEmb(const Interval<Instant>& tiv,
 URegionEmb::URegionEmb(
     DBArray<MSegmentData>* segments,
     const Interval<Instant>& tiv,
-    const CRegion& region,
+    const Region& region,
     unsigned int pos) :
     segmentsStartPos(pos),
     segmentsNum(0),
@@ -3670,14 +3670,14 @@ or counter-clockwise order is maintained within the region unit.
     int cycleStart = 0;
 
     for (int i = 0; i < region.Size(); i += 2) {
-        const CHalfSegment *thisChs;
-        region.Get(i, thisChs);
+        const HalfSegment *thisHs;
+        region.Get(i, thisHs);
 
-        const CHalfSegment *nextChs;
-        region.Get(i+2 == region.Size() ? 0 : i+2, nextChs);
+        const HalfSegment *nextHs;
+        region.Get(i+2 == region.Size() ? 0 : i+2, nextHs);
 
-        if (thisChs->GetAttr().cycleno != nextChs->GetAttr().cycleno) {
-            region.Get(cycleStart, nextChs);
+        if (thisHs->GetAttr().cycleno != nextHs->GetAttr().cycleno) {
+            region.Get(cycleStart, nextHs);
             cycleStart = i+2;
         }
 
@@ -3686,27 +3686,27 @@ or counter-clockwise order is maintained within the region unit.
             cerr << "URegionEmb::URegionEmb() cycleStart=" 
                  << cycleStart 
                  << endl; 
-            cerr << "URegionEmb::URegionEmb() thisChs=" << *thisChs << endl;
-            cerr << "URegionEmb::URegionEmb() nextChs=" << *nextChs << endl;
+            cerr << "URegionEmb::URegionEmb() thisHs=" << *thisHs << endl;
+            cerr << "URegionEmb::URegionEmb() nextHs=" << *nextHs << endl;
         }
 
-        if (thisChs->GetRP() == nextChs->GetLP()
-            || thisChs->GetRP() == nextChs->GetRP()) {
+        if (thisHs->GetRightPoint() == nextHs->GetLeftPoint()
+            || thisHs->GetRightPoint() == nextHs->GetRightPoint()) {
             if (MRA_DEBUG) 
                 cerr << "URegionEmb::URegionEmb() not swapping" << endl; 
 
-            MSegmentData dms(thisChs->GetAttr().faceno,
-                             thisChs->GetAttr().cycleno,
-                             thisChs->GetAttr().edgeno,
-                             thisChs->GetAttr().insideAbove,
-                             thisChs->GetLP().GetX(),
-                             thisChs->GetLP().GetY(),
-                             thisChs->GetRP().GetX(),
-                             thisChs->GetRP().GetY(),
-                             thisChs->GetLP().GetX(),
-                             thisChs->GetLP().GetY(),
-                             thisChs->GetRP().GetX(),
-                             thisChs->GetRP().GetY());
+            MSegmentData dms(thisHs->GetAttr().faceno,
+                             thisHs->GetAttr().cycleno,
+                             thisHs->GetAttr().edgeno,
+                             thisHs->GetAttr().insideAbove,
+                             thisHs->GetLeftPoint().GetX(),
+                             thisHs->GetLeftPoint().GetY(),
+                             thisHs->GetRightPoint().GetX(),
+                             thisHs->GetRightPoint().GetY(),
+                             thisHs->GetLeftPoint().GetX(),
+                             thisHs->GetLeftPoint().GetY(),
+                             thisHs->GetRightPoint().GetX(),
+                             thisHs->GetRightPoint().GetY());
 
             dms.SetDegeneratedInitial(DGM_NONE);
             dms.SetDegeneratedFinal(DGM_NONE);
@@ -3721,18 +3721,18 @@ or counter-clockwise order is maintained within the region unit.
             if (MRA_DEBUG) 
                 cerr << "URegionEmb::URegionEmb() swapping" << endl; 
 
-            MSegmentData dms(thisChs->GetAttr().faceno,
-                             thisChs->GetAttr().cycleno,
-                             thisChs->GetAttr().edgeno,
-                             thisChs->GetAttr().insideAbove,
-                             thisChs->GetRP().GetX(),
-                             thisChs->GetRP().GetY(),
-                             thisChs->GetLP().GetX(),
-                             thisChs->GetLP().GetY(),
-                             thisChs->GetRP().GetX(),
-                             thisChs->GetRP().GetY(),
-                             thisChs->GetLP().GetX(),
-                             thisChs->GetLP().GetY());
+            MSegmentData dms(thisHs->GetAttr().faceno,
+                             thisHs->GetAttr().cycleno,
+                             thisHs->GetAttr().edgeno,
+                             thisHs->GetAttr().insideAbove,
+                             thisHs->GetRightPoint().GetX(),
+                             thisHs->GetRightPoint().GetY(),
+                             thisHs->GetLeftPoint().GetX(),
+                             thisHs->GetLeftPoint().GetY(),
+                             thisHs->GetRightPoint().GetX(),
+                             thisHs->GetRightPoint().GetY(),
+                             thisHs->GetLeftPoint().GetX(),
+                             thisHs->GetLeftPoint().GetY());
 
             dms.SetDegeneratedInitial(DGM_NONE);
             dms.SetDegeneratedFinal(DGM_NONE);
@@ -3769,7 +3769,21 @@ bool URegionEmb::IsValid(void) const {
 }
 
 /*
+<<<<<<< MovingRegionAlgebra.cpp
+1.1 Method ~Sizeof()~
+
+*/
+size_t URegion::Sizeof() const {
+    if (MRA_DEBUG) cerr << "URegion::Sizeof() called" << endl;
+
+    return sizeof(*this);
+}
+
+/*
+1.1 Method ~Clone()~
+=======
 1.1.1 Method ~Disjoint()~
+>>>>>>> 1.97
 
 */
 bool URegionEmb::Disjoint(const URegionEmb& ur) const {
@@ -3909,8 +3923,8 @@ void URegionEmb::SetSegmentInsideAbove(
 */
 bool URegionEmb::AddSegment(
     DBArray<MSegmentData>* segments,
-    CRegion& cr,
-    CRegion& rDir,
+    Region& cr,
+    Region& rDir,
     unsigned int faceno,
     unsigned int cycleno,
     unsigned int segmentno,
@@ -4125,7 +4139,7 @@ If we have a point time interval, degeneration is not allowed.
                 && (dms.GetDegeneratedInitialNext() >= 0
                     || dms.GetDegeneratedFinalNext() >= 0)) {
                 stringstream msg;
-                msg << "  Units with zero length time interval must not" 
+                msg << "  Units with zero length time interval must not"
                     << " be degenerated." << endl
                     << "    New segment:" << endl
                     << "      Initial: ("
@@ -4150,7 +4164,7 @@ If we have a point time interval, degeneration is not allowed.
                      && dms.GetDegeneratedInitialNext() >= 0
                      && dms.GetDegeneratedFinalNext() >= 0) {
                 stringstream msg;
-                msg << "  Units must not degenerate both in initial and" 
+                msg << "  Units must not degenerate both in initial and"
                     << " final instant." << endl
                     << "    New segment:" << endl
                     << "      Initial: ("
@@ -4266,14 +4280,14 @@ computation.
 
         Point s(true, xs, ys);
         Point e(true, xe, ye);
-        CHalfSegment chs(true, true, s, e);
+        HalfSegment hs(true, s, e);
 
-        chs.attr.faceno = faceno;
-        chs.attr.cycleno = cycleno;
-        chs.attr.partnerno = partnerno;
-        chs.attr.edgeno = segmentno;
+        hs.attr.faceno = faceno;
+        hs.attr.cycleno = cycleno;
+        hs.attr.partnerno = partnerno;
+        hs.attr.edgeno = segmentno;
 
-        chs.attr.insideAbove = chs.GetLP() == s;
+        hs.attr.insideAbove = hs.GetLeftPoint() == s;
 
         if (MRA_DEBUG)
             cerr << "URegionEmb::AddSegment() "
@@ -4296,12 +4310,12 @@ computation.
                  << ", "
                  << ye
                  << ") ia="
-                 << chs.attr.insideAbove
+                 << hs.attr.insideAbove
                  << endl;
 
-        if (!cr.insertOK(chs)) {
+        if (!cr.InsertOk(hs)) {
             stringstream msg;
-            msg << "  CRegion checks for segment failed." << endl
+            msg << "  Region checks for segment failed." << endl
                 << "    New segment:" << endl
                 << "      Initial: ("
                 << dms.GetInitialStartX()
@@ -4323,11 +4337,18 @@ computation.
             throw invalid_argument(msg.str());
         }
 
-        cr += chs;
-        rDir += chs;
-
-        chs.SetLDP(false);
-        cr += chs;
+        cr += hs;
+        if( hs.IsLeftDomPoint() )
+        {
+          rDir += hs;
+          hs.SetLeftDomPoint( false );
+        }
+        else
+        {
+          hs.SetLeftDomPoint( true );
+          rDir += hs;
+        }
+        cr += hs;
 
         segments->Resize(segmentsStartPos+segmentsNum+1);
         segments->Put(segmentsStartPos+segmentsNum, dms);
@@ -4336,35 +4357,35 @@ computation.
         if (bbox.IsDefined()) {
             double min[3] = { bbox.MinD(0), bbox.MinD(1), bbox.MinD(2) };
             double max[3] = { bbox.MaxD(0), bbox.MaxD(1), bbox.MaxD(2) };
-            if (dms.GetInitialStartX() < min[0]) 
+            if (dms.GetInitialStartX() < min[0])
                 min[0] = dms.GetInitialStartX();
-            if (dms.GetFinalStartX() < min[0]) 
+            if (dms.GetFinalStartX() < min[0])
                 min[0] = dms.GetFinalStartX();
-            if (dms.GetInitialStartY() < min[1]) 
+            if (dms.GetInitialStartY() < min[1])
                 min[1] = dms.GetInitialStartY();
-            if (dms.GetFinalStartY() < min[1]) 
+            if (dms.GetFinalStartY() < min[1])
                 min[1] = dms.GetFinalStartY();
-            if (dms.GetInitialStartX() > max[0]) 
+            if (dms.GetInitialStartX() > max[0])
                 max[0] = dms.GetInitialStartX();
-            if (dms.GetFinalStartX() > max[0]) 
+            if (dms.GetFinalStartX() > max[0])
                 max[0] = dms.GetFinalStartX();
-            if (dms.GetInitialStartY() > max[1]) 
+            if (dms.GetInitialStartY() > max[1])
                 max[1] = dms.GetInitialStartY();
-            if (dms.GetFinalStartY() > max[1]) 
+            if (dms.GetFinalStartY() > max[1])
                 max[1] = dms.GetFinalStartY();
             bbox.Set(true, min, max);
 
         } else {
-            double min[3] = 
+            double min[3] =
                 { dms.GetInitialStartX() < dms.GetFinalStartX()
                   ? dms.GetInitialStartX() : dms.GetFinalStartX(),
-                  dms.GetInitialStartY() < dms.GetFinalStartY() 
+                  dms.GetInitialStartY() < dms.GetFinalStartY()
                   ? dms.GetInitialStartY() : dms.GetFinalStartY(),
                   timeInterval.start.ToDouble() };
-            double max[3] = 
-                { dms.GetInitialStartX() > dms.GetFinalStartX() 
+            double max[3] =
+                { dms.GetInitialStartX() > dms.GetFinalStartX()
                   ? dms.GetInitialStartX() : dms.GetFinalStartX(),
-                  dms.GetInitialStartY() > dms.GetFinalStartY() 
+                  dms.GetInitialStartY() > dms.GetFinalStartY()
                   ? dms.GetInitialStartY() : dms.GetFinalStartY(),
                   timeInterval.end.ToDouble() };
             bbox.Set(true, min, max);
@@ -5831,7 +5852,7 @@ void URegionEmb::RestrictedIntersection(const DBArray<MSegmentData>* segments,
 void URegionEmb::TemporalFunction(
     const DBArray<MSegmentData>* segments,
     const Instant& t, 
-    CRegion& res) const {
+    Region& res) const {
 
     if (MRA_DEBUG)
         cerr << "URegionEmb::TemporalFunction() called" << endl;
@@ -5916,99 +5937,62 @@ are not border of any region, and create region.
 
             Point s(true, xs, ys);
             Point e(true, xe, ye);
-            CHalfSegment chs(true, true, s, e);
+            HalfSegment hs(true, s, e);
 
-            chs.attr.faceno = 0;
-            chs.attr.cycleno = 0;
-            chs.attr.edgeno = partnerno;
-            chs.attr.partnerno = partnerno++;
+            hs.attr.faceno = 0;
+            hs.attr.cycleno = 0;
+            hs.attr.edgeno = partnerno;
+            hs.attr.partnerno = partnerno++;
 
             if (initialInstant
                  && dms->GetDegeneratedInitial() == DGM_INSIDEABOVE)
-                chs.attr.insideAbove = true;
+                hs.attr.insideAbove = true;
             else if (initialInstant
                  && dms->GetDegeneratedInitial() == DGM_NOTINSIDEABOVE)
-                chs.attr.insideAbove = false;
+                hs.attr.insideAbove = false;
             else if (finalInstant
                  && dms->GetDegeneratedFinal() == DGM_INSIDEABOVE)
-                chs.attr.insideAbove = true;
+                hs.attr.insideAbove = true;
             else if (finalInstant
                  && dms->GetDegeneratedFinal() == DGM_NOTINSIDEABOVE)
-                chs.attr.insideAbove = false;
+                hs.attr.insideAbove = false;
             else
-                chs.attr.insideAbove = dms->GetInsideAbove();
+                hs.attr.insideAbove = dms->GetInsideAbove();
 
-            res += chs;
-
-            chs.SetLDP(false);
-
-            res += chs;
+            res += hs;
+            hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+            res += hs;
     }
 
     res.EndBulkLoad();
 
-//    res.Sort();
-    res.SetPartnerNo();
-
     if (MRA_DEBUG)
         for (int i = 0; i < res.Size(); i++) {
-            const CHalfSegment *chs;
-            res.Get(i, chs);
+            const HalfSegment *hs;
+            res.Get(i, hs);
 
             cerr << "URegionEmb::TemporalFunction() segment #"
                  << i
                  << " lp=("
-                 << chs->GetLP().GetX()
+                 << hs->GetLeftPoint().GetX()
                  << ", "
-                 << chs->GetLP().GetY()
+                 << hs->GetLeftPoint().GetY()
                  << ") rp=("
-                 << chs->GetRP().GetX()
+                 << hs->GetRightPoint().GetX()
                  << ", "
-                 << chs->GetRP().GetY()
+                 << hs->GetRightPoint().GetY()
                  << ") ldp="
-                 << chs->GetLDP()
+                 << hs->IsLeftDomPoint()
                  << " attr="
-                 << chs->attr.faceno
+                 << hs->attr.faceno
                  << " "
-                 << chs->attr.cycleno
+                 << hs->attr.cycleno
                  << " "
-                 << chs->attr.edgeno
+                 << hs->attr.edgeno
                  << " "
-                 << chs->attr.partnerno
+                 << hs->attr.partnerno
                  << " "
-                 << chs->attr.insideAbove
-                 << endl;
-        }
-
-    res.ComputeRegion();
-
-    if (MRA_DEBUG)
-        for (int i = 0; i < res.Size(); i++) {
-            const CHalfSegment *chs;
-            res.Get(i, chs);
-
-            cerr << "URegionEmb::TemporalFunction() segment #"
-                 << i
-                 << " lp=("
-                 << chs->GetLP().GetX()
-                 << ", "
-                 << chs->GetLP().GetY()
-                 << ") rp=("
-                 << chs->GetRP().GetX()
-                 << ", "
-                 << chs->GetRP().GetY()
-                 << ") ldp="
-                 << chs->GetLDP()
-                 << " attr="
-                 << chs->attr.faceno
-                 << " "
-                 << chs->attr.cycleno
-                 << " "
-                 << chs->attr.edgeno
-                 << " "
-                 << chs->attr.partnerno
-                 << " "
-                 << chs->attr.insideAbove
+                 << hs->attr.insideAbove
                  << endl;
         }
 }
@@ -6042,7 +6026,7 @@ static URegionEmb* InURegionEmbedded(
              << endl;
 
 /*
-Please that ~CRegion~ creation is done as shown in ~SpatialAlgebra~.
+Please that ~Region~ creation is done as shown in ~SpatialAlgebra~.
 See there for more details.
 
 */
@@ -6129,7 +6113,7 @@ any.
     unsigned int partnerno = 0;
     ListExpr faces = nl->Second(instance);
 
-    CRegion cr(0);
+    Region cr(0);
     cr.StartBulkLoad();
 
     if (nl->ListLength(faces) == 0) {
@@ -6139,7 +6123,7 @@ any.
     }
 
 /*
-... all this is similar to ~CRegion~ creation in ~SpatialAlgebra~...
+... all this is similar to ~Region~ creation in ~SpatialAlgebra~...
 
 */
     while (!nl->IsEmpty(faces)) {
@@ -6156,15 +6140,13 @@ any.
         }
 
         unsigned int cycleno = 0;
-        unsigned int pointno;
+        unsigned int pointno = 0;
 
         while (!nl->IsEmpty(cycles)) {
             if (MRA_DEBUG)
                 cerr << "InURegionEmbedded()   cycle #" << cycleno << endl;
 
-            pointno = 0;
-
-            CRegion rDir(0);
+            Region rDir(0);
             rDir.StartBulkLoad();
 
             ListExpr cyclepoints = nl->First(cycles);
@@ -6232,37 +6214,38 @@ any.
 
             partnerno++;
 
-            rDir.EndBulkLoad();
+            rDir.EndBulkLoad(true, true, false, false);
 
             bool direction = rDir.GetCycleDirection();
 
             int h = cr.Size()-(rDir.Size()*2);
             int i = initialSegmentsNum;
             while (h < cr.Size()) {
-                const CHalfSegment *chsInsideAbove;
+                const HalfSegment *hsInsideAbove;
                 bool insideAbove;
 
-                cr.Get(h, chsInsideAbove);
+                cr.Get(h, hsInsideAbove);
 
                 if (MRA_DEBUG)
                     cerr << "InURegionEmbedded() i="
                          << i
                          << " insideAbove="
-                         << chsInsideAbove->attr.insideAbove
+                         << hsInsideAbove->attr.insideAbove
                          << endl;
 
-                if (direction == chsInsideAbove->attr.insideAbove)
+                if (direction == hsInsideAbove->attr.insideAbove)
                     insideAbove = false;
                 else
                     insideAbove = true;
                 if (cycleno > 0) insideAbove = !insideAbove;
 
-                //chsInsideAbove.attr.insideAbove = insideAbove;
-                //cr.UpdateAttr(h, chsInsideAbove.attr);
 
-                //cr.Get(h+1, chsInsideAbove);
-                //chsInsideAbove.attr.insideAbove = insideAbove;
-                //cr.UpdateAttr(h+1, chsInsideAbove.attr);
+                //hsInsideAbove.attr.insideAbove = insideAbove;
+                //cr.UpdateAttr(h, hsInsideAbove.attr);
+
+                //cr.Get(h+1, hsInsideAbove);
+                //hsInsideAbove.attr.insideAbove = insideAbove;
+                //cr.UpdateAttr(h+1, hsInsideAbove.attr);
 
                 uregion->SetSegmentInsideAbove(segments, i, insideAbove);
 
@@ -6280,6 +6263,7 @@ any.
 
     cr.EndBulkLoad();
 
+
     bool nonTrivialInitial = false;
     bool nonTrivialFinal = false;
 
@@ -6296,7 +6280,7 @@ any.
         }
 
 /*
-This is different from ~CRegion~ handling in ~SpatialAlgebra~. We have
+This is different from ~Region~ handling in ~SpatialAlgebra~. We have
 to go through the lists of degenerated segments and count how often
 a region is inside above in each list. If there are more inside above
 segments than others, we need one inside above segment for the
@@ -6621,7 +6605,7 @@ This method is not part of the bachelor thesis but a stub is required to make
 recognized, its body contains a failed assertion.
 
 */
-bool URegion::At(const CRegion& val, TemporalUnit<CRegion>& result) const {
+bool URegion::At(const Region& val, TemporalUnit<Region>& result) const {
     if (MRA_DEBUG) cerr << "URegion::At() called" << endl;
 
     assert(false);
@@ -6635,7 +6619,7 @@ This method is not part of the bachelor thesis but a stub is required to make
 recognized, its body contains a failed assertion.
 
 */
-bool URegion::Passes(const CRegion& val) const {
+bool URegion::Passes(const Region& val) const {
     if (MRA_DEBUG) cerr << "URegion::At() called" << endl;
 
     assert(false);
@@ -6645,7 +6629,7 @@ bool URegion::Passes(const CRegion& val) const {
 1.1.1.1 Method ~TemporalFunction()~
 
 */
-void URegion::TemporalFunction(const Instant& t, CRegion& res) const {
+void URegion::TemporalFunction(const Instant& t, Region& res) const {
     if (MRA_DEBUG)
         cerr << "URegion::TemporalFunction() called" << endl;
 
@@ -7194,22 +7178,22 @@ void MRegion::InsideAddUBool(MBool& res,
 */
 
 MRegion::MRegion(const int n) :
-    Mapping<URegionEmb, CRegion>(n),
+    Mapping<URegionEmb, Region>(n),
     msegmentdata(n) {
 
     if (MRA_DEBUG)
         cerr << "MRegion::MRegion(int) called" << endl;
 }
 
-MRegion::MRegion(MPoint& mp, CRegion& r) :
-    Mapping<URegionEmb, CRegion>(0),
+MRegion::MRegion(MPoint& mp, Region& r) :
+    Mapping<URegionEmb, Region>(0),
     msegmentdata(0) {
 
     if (MRA_DEBUG)
-        cerr << "MRegion::MRegion(MPoint, CRegion) called"
+        cerr << "MRegion::MRegion(MPoint, Region) called"
              << endl;
 
-    r.logicsort();
+    r.LogicSort();
 
     for (int i = 0; i < mp.GetNoComponents(); i++) {
         const UPoint *up;
@@ -7217,7 +7201,7 @@ MRegion::MRegion(MPoint& mp, CRegion& r) :
         mp.Get(i, up);
             
         if (MRA_DEBUG)
-            cerr << "MRegion::MRegion(MPoint, CRegion) i="
+            cerr << "MRegion::MRegion(MPoint, Region) i="
                  << i
                  << " interval=["
                  << up->timeInterval.start.ToString()
@@ -7243,14 +7227,14 @@ MRegion::MRegion(MPoint& mp, CRegion& r) :
     }
 }
 
-MRegion::MRegion(MPoint& mp, CRegion& r,int dummy) :
-    Mapping<URegionEmb, CRegion>(0),
+MRegion::MRegion(MPoint& mp, Region& r,int dummy) :
+    Mapping<URegionEmb, Region>(0),
     msegmentdata(0) {
 
     if (MRA_DEBUG)
-        cerr << "MRegion::MRegion(MPoint, CRegion,int) called"
+        cerr << "MRegion::MRegion(MPoint, Region,int) called"
              << endl;
-    r.logicsort();
+    r.LogicSort();
     bool isFirst = true;
     Coord lastX, lastY;
     Coord firstX, firstY;
@@ -7320,7 +7304,7 @@ void MRegion::Get(const int i, const URegionEmb*& ur) const {
              << ")"
              << endl;
     
-    Mapping<URegionEmb, CRegion>::Get(i, ur);
+    Mapping<URegionEmb, Region>::Get(i, ur);
 }
 
 /*
@@ -7646,7 +7630,7 @@ does not deal with setting the unit's segment data DBArray.
 
 */
 
-void MRegion::AtInstant(Instant& t, Intime<CRegion>& result) {
+void MRegion::AtInstant(Instant& t, Intime<Region>& result) {
     if (MRA_DEBUG) cerr << "MRegion::AtInstant() called" << endl;
 
     assert(IsOrdered() && t.IsDefined());
@@ -7673,7 +7657,7 @@ does not deal with setting the unit's segment data DBArray.
 
 */
 
-void MRegion::Initial(Intime<CRegion>& result) {
+void MRegion::Initial(Intime<Region>& result) {
     if (MRA_DEBUG) cerr << "MRegion::Initial() called" << endl;
 
     assert(IsOrdered());
@@ -7708,7 +7692,7 @@ does not deal with setting the unit's segment data DBArray.
 
 */
 
-void MRegion::Final(Intime<CRegion>& result) {
+void MRegion::Final(Intime<Region>& result) {
     if (MRA_DEBUG) cerr << "MRegion::Final() called" << endl;
 
     assert(IsOrdered());
@@ -7741,7 +7725,7 @@ void MRegion::Final(Intime<CRegion>& result) {
 */
 
 #ifdef MRA_TRAVERSED
-void MRegion::Traversed(CRegion& res) {
+void MRegion::Traversed(Region& res) {
     if (MRA_DEBUG) cerr << "MRegion::Traversed() called" << endl;
 
 /*
@@ -7859,7 +7843,7 @@ FLOB* MRegion::GetFLOB(const int i) {
 
     return
         i == 0
-        ? Mapping<URegionEmb, CRegion>::GetFLOB(0)
+        ? Mapping<URegionEmb, Region>::GetFLOB(0)
         : &msegmentdata;
 }
 
@@ -8123,8 +8107,8 @@ Create ~MPoint~ instance from intervals in units in ~MRegion~ instance
 
 */
 
-static MPoint CreateMPointFromCPoint(MRegion* mr, CPoint* p) {
-    if (MRA_DEBUG) cerr << "CreateMPointFromCPoint() called" << endl;
+static MPoint CreateMPointFromPoint(MRegion* mr, Point* p) {
+    if (MRA_DEBUG) cerr << "CreateMPointFromPoint() called" << endl;
 
     MPoint mp(0);
 
@@ -8672,7 +8656,7 @@ static int AtValueMap_MPoint(Word* args,
 
     try {
         MPoint* mp = (MPoint*) args[0].addr;
-        CRegion* r = (CRegion*) args[1].addr;
+        Region* r = (Region*) args[1].addr;
         
         if (!mp->IsDefined() || !r->IsDefined())
             res->SetDefined(false);
@@ -8708,12 +8692,12 @@ static int AtValueMap_MRegion(Word* args,
 
     try {
         MRegion* mr = (MRegion*) args[0].addr;
-        CPoint* p = (CPoint*) args[1].addr;
+        Point* p = (Point*) args[1].addr;
 
         if (!mr->IsDefined() || !p->IsDefined()) 
             res->SetDefined(false);
         else {
-            MPoint mp = CreateMPointFromCPoint(mr, p);
+            MPoint mp = CreateMPointFromPoint(mr, p);
 
             mr->Intersection(mp, *res);
         }
@@ -8744,7 +8728,7 @@ static int AtInstantValueMap_URegion(Word* args,
     URegion* ur = (URegion*) args[0].addr;
     Instant* inst = (Instant*) args[1].addr;
 
-    Intime<CRegion>* res = (Intime<CRegion>*) result.addr;
+    Intime<Region>* res = (Intime<Region>*) result.addr;
 
     if (ur->timeInterval.Contains(*inst)) {
         ur->TemporalFunction(*inst, res->value);
@@ -8765,7 +8749,7 @@ static int TraversedValueMap(Word* args,
     if (MRA_DEBUG) cerr << "TraversedValueMap() called" << endl;
 
     result = qp->ResultStorage(s);
-    CRegion* res = (CRegion*) result.addr;
+    Region* res = (Region*) result.addr;
 
     MRegion* mr = (MRegion*) args[0].addr;
 
@@ -8833,7 +8817,7 @@ static int MoveValueMap(Word* args,
     result = qp->ResultStorage(s);
     cout << "Step one ok "<< endl;
     MPoint* mp = (MPoint* ) args[0].addr;
-    CRegion* reg = (CRegion*) args[1].addr;
+    Region* reg = (Region*) args[1].addr;
     MRegion res(*mp,*reg,0);
     ((MRegion*)result.addr)->CopyFrom(&res);
     res.Destroy();
@@ -8953,21 +8937,23 @@ static int VertTrajectory_ValueMap(Word* args,
     T* ur = (T*) args[0].addr;
     const DBArray<MSegmentData>* segments = ur->GetMSegmentData();
     int size = segments->Size();
-    CLine* L = (CLine*) result.addr;
+    Line* L = (Line*) result.addr;
     L->Clear();
     L->StartBulkLoad();
     const MSegmentData* mseg;
     cout << " insert " << size << " segments" << endl;
-    CHalfSegment chs(false);
+    HalfSegment hs;
+    int edgeno = 0;
     for(int i=0;i<size;i++){
         segments->Get(i,mseg);
         Point P1(true,mseg->GetInitialStartX(),mseg->GetInitialStartY());
         Point P2(true,mseg->GetFinalStartX(),mseg->GetFinalStartY());
-        chs.Set(true,P1,P2);
-        //cout << "insert " << chs << "to the line" << endl;
-        (*L)+=chs;
-        chs.SetLDP(false);
-        (*L)+=chs; 
+        hs.Set(true,P1,P2);
+        hs.attr.edgeno = edgeno++;
+        //cout << "insert " << hs << "to the line" << endl;
+        (*L)+=hs;
+        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+        (*L)+=hs; 
     } 
     L->EndBulkLoad();
     return 0;
@@ -8979,20 +8965,20 @@ static int VertTrajectory_ValueMap(Word* args,
 */
 
 static ValueMapping atinstantvaluemap[] =
-    { MappingAtInstant<MRegion, CRegion>,
+    { MappingAtInstant<MRegion, Region>,
       AtInstantValueMap_URegion };
 
 static ValueMapping initialvaluemap[] =
-    { MappingInitial<MRegion, URegionEmb, CRegion> };
+    { MappingInitial<MRegion, URegionEmb, Region> };
 
 static ValueMapping finalvaluemap[] =
-    { MappingFinal<MRegion, URegionEmb, CRegion> };
+    { MappingFinal<MRegion, URegionEmb, Region> };
 
 static ValueMapping instvaluemap[] =
-    { IntimeInst<CRegion> };
+    { IntimeInst<Region> };
 
 static ValueMapping valvaluemap[] =
-    { IntimeVal<CRegion> };
+    { IntimeVal<Region> };
 
 static ValueMapping deftimevaluemap[] =
     { MappingDefTime<MRegion> };

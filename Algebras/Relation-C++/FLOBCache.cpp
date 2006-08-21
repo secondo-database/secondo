@@ -70,7 +70,8 @@ void LRUTable::Promote( FLOBCacheElement *e, bool inc )
 {
   Remove( e );
   e->next = e->prev = NULL;
-  e->refs++;
+  if( inc ) 
+    e->refs++;
   Insert( e );
 }
 
@@ -113,8 +114,14 @@ void LRUTable::Clear()
   {
     FLOBCacheElement *aux = e;
     e = e->next;
-// VTA - I will come back here
-//    assert( aux->refs == 0 );
+    if( aux->refs > 0 )
+      cout << "FLOBCache ERROR: Key (" 
+           << aux->key.fileId << ", " 
+           << aux->key.recordId << ", "  
+           << aux->key.pageno << ") still has " 
+           << aux->refs << " references while cleaning the cache." 
+           << endl;
+    assert( aux->refs == 0 );
     free( aux->flob );
     delete aux;
   }
@@ -132,19 +139,33 @@ FLOBCache::~FLOBCache()
 
 char *FLOBCache::Lookup( const FLOBKey key, bool inc )
 {
+//  cout << "Lookup" << endl;
+
   map< FLOBKey, FLOBCacheElement* >::iterator iter = 
     mapTable.find( key );
 
   if( iter == mapTable.end() )
+  {
+//    cout << "Entry (" << key.fileId << ", " 
+//         << key.recordId << ", " << key.pageno << ") not found" << endl;
     return NULL;
+  }
 
   FLOBCacheElement *e = iter->second;
   lruTable.Promote( e, inc );
+
+//  cout << "Entry (" << key.fileId << ", "
+//       << key.recordId << ", " << key.pageno << ") found, now with " 
+//       << e->refs << " references" << endl;
+
   return e->flob;
 }
 
 bool FLOBCache::Insert( const FLOBKey key, char *flob )
 {
+//  cout << "FLOBCache::Insert (" << key.fileId << ", "
+//       << key.recordId << ", " << key.pageno << ")" << endl;
+
   assert( mapTable.find( key ) == mapTable.end() );
 
   FLOBKey key2;
@@ -158,10 +179,17 @@ bool FLOBCache::Insert( const FLOBKey key, char *flob )
     sizeLeft -= key.size;
     mapTable[key] = e;
     lruTable.Insert( e );
+
+//    cout << "Entry inserted into the cache with " 
+//         << e->refs << " references" << endl;
+
     return true;
   }
 
   Counter::getRef("RA:FLOBCacheFull")++;
+
+//  cout << "Cache full of entries with at least 1 reference" << endl;
+
   return false;
 }
 
@@ -196,15 +224,17 @@ bool FLOBCache::RemoveLast( FLOBKey& key )
 }
 
 bool FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId, 
-                         int size, bool isTempFile, char *&flob )
+                         long pageno, size_t size, bool isTempFile, 
+                         const char *&flob )
 {
   assert( fileId != 0 && lobId != 0 );
 
-  FLOBKey key( fileId, lobId, size, isTempFile );
+  FLOBKey key( fileId, lobId, pageno, size, isTempFile );
   if( (flob = Lookup( key, true )) == NULL )
     // We need to read
   {
-    flob = (char*) malloc( key.size );
+    char *buf = (char*) malloc( key.size );
+    flob = buf;
 
     map< SmiFileId, SmiRecordFile* >::iterator iter = 
       files.find( key.fileId );
@@ -212,11 +242,7 @@ bool FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId,
     SmiRecordFile *file;
     if( iter == files.end() )
     {
-#ifndef __NEW_FLOB__
       file = new SmiRecordFile( false, 0, isTempFile );
-#else
-      file = new SmiRecordFile( true, 4050, isTempFile );
-#endif
       file->Open( key.fileId );
       files.insert( make_pair( key.fileId, file ) );
     }
@@ -226,20 +252,14 @@ bool FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId,
     SmiRecord record;
     file->SelectRecord( key.recordId, record );
 
-#ifndef __NEW_FLOB__
-    record.Read( flob, key.size, 0 );
-#else
-    int i, j;
-    for( i = 0, j = 1; i+4050 < key.size; i += 4050, j++ )
-    {
-      record.Read( flob+i, 4050, 0 );
-      record.Finish();
-      file->SelectRecord( key.recordId+j, record );
-    }
-    record.Read( flob+i, key.size - i, 0 );
-#endif
+    if( pageno == -1 )
+      assert( record.Read( buf, key.size, 0 ) == key.size );
+    else
+      assert( record.Read( buf, 
+                           FLOB::PAGE_SIZE, 
+                           pageno * FLOB::PAGE_SIZE ) == FLOB::PAGE_SIZE );
 
-    if( !Insert( key, flob ) )
+    if( !Insert( key, buf ) )
       return false;
 
     Counter::getRef("RA:FLOBCacheMisses")++;
@@ -251,18 +271,15 @@ bool FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId,
 }
 
 void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId, 
-                         int size, bool isTempFile, 
+                         long pageno, size_t size, bool isTempFile, 
                          const char *flob )
 {
   SmiRecordFile *file;
   if( fileId == 0 )
   {
     assert( lobId == 0 );
-#ifndef __NEW_FLOB__
     file = new SmiRecordFile( false, 0, isTempFile );
-#else
-    file = new SmiRecordFile( true, 4050, isTempFile );
-#endif
+
     if( !file->Create() )
     {
       string error;
@@ -280,11 +297,7 @@ void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
 
     if( iter == files.end() )
     {
-#ifndef __NEW_FLOB__
       file = new SmiRecordFile( false, 0, isTempFile );
-#else
-      file = new SmiRecordFile( true, 4050, isTempFile );
-#endif
       file->Open( fileId );
       files.insert( make_pair( fileId, file ) );
     }
@@ -294,30 +307,29 @@ void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
 
   SmiRecord record;
   bool append = lobId == 0;
-  if( append )
-    assert( file->AppendRecord( lobId, record ) );
-  else
-    assert( file->SelectRecord( lobId, record ) );
 
-#ifndef __NEW_FLOB__
-  record.Write( flob, size, 0 );
-#else
-  SmiRecordId newLobId;
-  int i, j;
-  for( i = 0, j = 0; i+4050 < size; i += 4050, j++ )
+  if( pageno == -1 )
   {
-    record.Write( flob+i, 4050, 0 );
-    record.Finish();
     if( append )
-      assert( file->AppendRecord( newLobId, record ) );
+      assert( file->AppendRecord( lobId, record ) );
     else
-    {
-      newLobId = lobId + j;
-      assert( file->SelectRecord( lobId, record ) );
-    }
+      assert( file->SelectRecord( lobId, record, SmiFile::Update ) );
+
+    record.Write( flob, size, 0 );
   }
-  record.Write( flob+i, size - i, 0 );
-#endif
+  else
+  {
+    if( append )
+    {
+      assert( pageno == 0 );
+      assert( file->AppendRecord( lobId, record ) );
+    }
+    else
+      assert( file->SelectRecord( lobId, record, SmiFile::Update ) );
+
+    assert( size <= FLOB::PAGE_SIZE );
+    record.Write( flob, size, pageno * FLOB::PAGE_SIZE );
+  }
 }
 
 void FLOBCache::Clear()
@@ -336,15 +348,16 @@ void FLOBCache::Clear()
   lruTable.Clear();
 }
 
-void FLOBCache::Release( SmiFileId fileId, SmiRecordId lobId )
+void FLOBCache::Release( SmiFileId fileId, SmiRecordId lobId, long pageno )
 {
-  FLOBKey key( fileId, lobId, 0 );
+//  cout << "FLOBCache::Release" << endl;
+  FLOBKey key( fileId, lobId, pageno, 0 );
   DecReference( key );
 }
 
 void FLOBCache::Destroy( SmiFileId fileId, SmiRecordId lobId )
 {
-  FLOBKey key( fileId, lobId, 0 );
+  FLOBKey key( fileId, lobId, -1, 0 );
   map< FLOBKey, FLOBCacheElement* >::iterator iter = 
     mapTable.find( key );
 
@@ -360,7 +373,7 @@ void FLOBCache::Destroy( SmiFileId fileId, SmiRecordId lobId )
   files[fileId]->DeleteRecord( lobId );
 }
 
-void FLOBCache::Truncate( SmiFileId fileId, bool isTemp )
+void FLOBCache::Truncate( SmiFileId fileId, bool isTemp, bool paged )
 {
   if( fileId != 0 )
   {
@@ -370,11 +383,7 @@ void FLOBCache::Truncate( SmiFileId fileId, bool isTemp )
 
     if( iter == files.end() )
     {
-#ifndef __NEW_FLOB__
       file = new SmiRecordFile( false, 0, isTemp );
-#else
-      file = new SmiRecordFile( true, 4050, isTemp );
-#endif
       file->Open( fileId );
     }
     else
@@ -383,7 +392,7 @@ void FLOBCache::Truncate( SmiFileId fileId, bool isTemp )
   }
 }
 
-void FLOBCache::Drop( SmiFileId fileId, bool isTemp )
+void FLOBCache::Drop( SmiFileId fileId, bool isTemp, bool paged )
 {
   if( fileId != 0 )
   {
@@ -393,11 +402,7 @@ void FLOBCache::Drop( SmiFileId fileId, bool isTemp )
 
     if( iter == files.end() )
     {
-#ifndef __NEW_FLOB__
       file = new SmiRecordFile( false, 0, isTemp );
-#else
-      file = new SmiRecordFile( true, 4050, isTemp );
-#endif
       assert( file->Open( fileId ) );
     }
     else
@@ -417,10 +422,12 @@ void FLOBCache::DecReference( const FLOBKey key )
   map< FLOBKey, FLOBCacheElement* >::iterator iter = 
     mapTable.find( key );
 
-  if( iter != mapTable.end() )
-  {
-    assert( iter->second->refs > 0 );
-    iter->second->refs--;
-  }
+  assert( iter != mapTable.end() );
+  assert( iter->second->refs > 0 );
+  iter->second->refs--;
+
+//  cout << "Reference decreased (" << key.fileId << ", "
+//       << key.recordId << ", " << key.pageno << ") to " 
+//       << iter->second->refs << endl;
 }
 

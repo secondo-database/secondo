@@ -1690,15 +1690,15 @@ static void MovingRealCompareMS(MReal& op1,CcReal& op2, MBool&
 1.1 Method ~MPointInsideLine~ 
 
 calcultates the periods where the given MPoint lies
-inside the given CLine. It return the existing intervals in a Periods-Object. 
+inside the given Line. It return the existing intervals in a Periods-Object. 
 
 */
-static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
+static void MPointInsideLine(MPoint& mp, Line& ln, Periods& pResult)
 {
   if(TLA_DEBUG)
     cout<<"MPointLineInside called"<<endl;
   const UPoint *up;
-  const CHalfSegment *l;
+  const HalfSegment *l;
 
   Periods* period = new Periods(0);
   Periods* between = new Periods(0);
@@ -1725,37 +1725,39 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
         <<" "<<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc
         <<" "<<up->timeInterval.rc<<"] ("<<up->p0.GetX()<<" "<<up->p0.GetY()
         <<")->("<<up->p1.GetX()<<" "<<up->p1.GetY()<<")"<<endl;
-        cout<<"l      # "<<n<<" ("<<l->GetLP().GetX()<<" "<<l->GetLP().GetY()
-        <<" "<<l->GetRP().GetX()<<" "<<l->GetRP().GetY()<<") "<<endl;}
-      if (l->GetRP().GetX() == l->GetDPoint().GetX() 
-       && l->GetRP().GetY() == l->GetDPoint().GetY()) {
+        cout<<"l      # "<<n<<" ("<<l->GetLeftPoint().GetX()
+        <<" "<<l->GetLeftPoint().GetY()
+        <<" "<<l->GetRightPoint().GetX()<<" "
+        <<l->GetRightPoint().GetY()<<") "<<endl;}
+      if (l->GetRightPoint().GetX() == l->GetDomPoint().GetX() 
+       && l->GetRightPoint().GetY() == l->GetDomPoint().GetY()) {
         if(TLA_DEBUG)
           cout<<"right point is dominating -> continue"<<endl;
         continue;
       }
-      if(( l->GetRP().GetX() < up->p0.GetX() 
-       &&  l->GetRP().GetX() < up->p1.GetX()) 
-       || (l->GetLP().GetX() > up->p0.GetX() 
-       &&  l->GetLP().GetX() > up->p1.GetX()) 
-       || (l->GetRP().GetY() < up->p0.GetY() 
-       &&  l->GetRP().GetY() < up->p1.GetY() 
-       && (l->GetLP().GetY() < up->p0.GetY() 
-       &&  l->GetLP().GetY() < up->p1.GetY())) 
-       || (l->GetRP().GetY() > up->p0.GetY() 
-       &&  l->GetRP().GetY() > up->p1.GetY() 
-       && (l->GetLP().GetY() > up->p0.GetY() 
-       &&  l->GetLP().GetY() > up->p1.GetY()))) {
+      if(( l->GetRightPoint().GetX() < up->p0.GetX() 
+       &&  l->GetRightPoint().GetX() < up->p1.GetX()) 
+       || (l->GetLeftPoint().GetX() > up->p0.GetX() 
+       &&  l->GetLeftPoint().GetX() > up->p1.GetX()) 
+       || (l->GetRightPoint().GetY() < up->p0.GetY() 
+       &&  l->GetRightPoint().GetY() < up->p1.GetY() 
+       && (l->GetLeftPoint().GetY() < up->p0.GetY() 
+       &&  l->GetLeftPoint().GetY() < up->p1.GetY())) 
+       || (l->GetRightPoint().GetY() > up->p0.GetY() 
+       &&  l->GetRightPoint().GetY() > up->p1.GetY() 
+       && (l->GetLeftPoint().GetY() > up->p0.GetY() 
+       &&  l->GetLeftPoint().GetY() > up->p1.GetY()))) {
         if(TLA_DEBUG)
           cout<<"Bounding Boxes not crossing!"<<endl;
         continue;
       }
       double al, bl, aup, bup;
       bool vl, vup;
-      vl = l->GetRP().GetX() == l->GetLP().GetX();
+      vl = l->GetRightPoint().GetX() == l->GetLeftPoint().GetX();
       if(!vl){
-        al = (l->GetRP().GetY() - l->GetLP().GetY()) 
-           / (l->GetRP().GetX() - l->GetLP().GetX());
-        bl =  l->GetLP().GetY() - l->GetLP().GetX() * al;
+        al = (l->GetRightPoint().GetY() - l->GetLeftPoint().GetY()) 
+           / (l->GetRightPoint().GetX() - l->GetLeftPoint().GetX());
+        bl =  l->GetLeftPoint().GetY() - l->GetLeftPoint().GetX() * al;
           if(TLA_DEBUG)
             cout<<"al: "<<al<<" bl: "<<bl<<endl;
       }
@@ -1776,7 +1778,7 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
       if(vl && vup){
         if(TLA_DEBUG)
           cout<<"both elements are vertical!"<<endl;
-        if(up->p1.GetX() != l->GetLP().GetX()){
+        if(up->p1.GetX() != l->GetLeftPoint().GetX()){
         if(TLA_DEBUG)
           cout<<"elements are vertical but not at same line"<<endl;
           continue;
@@ -1784,14 +1786,14 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
         else {
           if(TLA_DEBUG)
             cout<<"elements on same line"<<endl;
-          if(up->p1.GetY() < l->GetLP().GetY() 
-           && up->p0.GetY() < l->GetLP().GetY()){
+          if(up->p1.GetY() < l->GetLeftPoint().GetY() 
+           && up->p0.GetY() < l->GetLeftPoint().GetY()){
             if(TLA_DEBUG)
               cout<<"uPoint lower as linesegment"<<endl;
             continue;
           }
-          else if(up->p1.GetY() > l->GetRP().GetY() 
-           && up->p0.GetY() > l->GetRP().GetY()){
+          else if(up->p1.GetY() > l->GetRightPoint().GetY() 
+           && up->p0.GetY() > l->GetRightPoint().GetY()){
             if(TLA_DEBUG)
               cout<<"uPoint higher as linesegment"<<endl;
             continue;
@@ -1799,11 +1801,11 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
           else{
             if(TLA_DEBUG)
               cout<<"uPoint and linesegment partequal"<<endl;
-            if (up->p0.GetY() <= l->GetLP().GetY() 
-             && up->p1.GetY() >= l->GetLP().GetY()){
+            if (up->p0.GetY() <= l->GetLeftPoint().GetY() 
+             && up->p1.GetY() >= l->GetLeftPoint().GetY()){
               if(TLA_DEBUG)
                 cout<<"uPoint starts below linesegemet"<<endl;
-              t.ReadFrom((l->GetLP().GetY() - up->p0.GetY()) 
+              t.ReadFrom((l->GetLeftPoint().GetY() - up->p0.GetY()) 
                      / (up->p1.GetY() - up->p0.GetY()) 
                      * (up->timeInterval.end.ToDouble() 
                      -  up->timeInterval.start.ToDouble()) 
@@ -1815,11 +1817,11 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
               newper.lc = (up->timeInterval.start == t) 
                          ? up->timeInterval.lc : true;
             }
-            if(up->p1.GetY() <= l->GetLP().GetY() 
-             && up->p0.GetY() >= l->GetLP().GetY()){
+            if(up->p1.GetY() <= l->GetLeftPoint().GetY() 
+             && up->p0.GetY() >= l->GetLeftPoint().GetY()){
               if(TLA_DEBUG)
                 cout<<"uPoint ends below linesegemet"<<endl;
-              t.ReadFrom((l->GetLP().GetY() - up->p0.GetY()) 
+              t.ReadFrom((l->GetLeftPoint().GetY() - up->p0.GetY()) 
                       / (up->p1.GetY() - up->p0.GetY()) 
                       * (up->timeInterval.end.ToDouble() 
                       -  up->timeInterval.start.ToDouble()) 
@@ -1831,11 +1833,11 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
               newper.rc = (up->timeInterval.end == t) 
                          ? up->timeInterval.rc : true;
             }
-            if(up->p0.GetY() <= l->GetRP().GetY() 
-             && up->p1.GetY() >= l->GetRP().GetY()){
+            if(up->p0.GetY() <= l->GetRightPoint().GetY() 
+             && up->p1.GetY() >= l->GetRightPoint().GetY()){
               if(TLA_DEBUG)
                 cout<<"uPoint ends above linesegemet"<<endl;
-              t.ReadFrom((l->GetRP().GetY() - up->p0.GetY()) 
+              t.ReadFrom((l->GetRightPoint().GetY() - up->p0.GetY()) 
                       / (up->p1.GetY() - up->p0.GetY()) 
                       * (up->timeInterval.end.ToDouble() 
                       -  up->timeInterval.start.ToDouble()) 
@@ -1847,11 +1849,11 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
               newper.rc = (up->timeInterval.end == t) 
                          ? up->timeInterval.rc : true;
             }
-            if(up->p1.GetY() <= l->GetRP().GetY() 
-             && up->p0.GetY() >= l->GetRP().GetY()){
+            if(up->p1.GetY() <= l->GetRightPoint().GetY() 
+             && up->p0.GetY() >= l->GetRightPoint().GetY()){
               if(TLA_DEBUG)
                 cout<<"uPoint starts above linesegemet"<<endl;
-              t.ReadFrom((l->GetRP().GetY() - up->p0.GetY()) 
+              t.ReadFrom((l->GetRightPoint().GetY() - up->p0.GetY()) 
                       / (up->p1.GetY() - up->p0.GetY()) 
                       * (up->timeInterval.end.ToDouble() 
                       - up->timeInterval.start.ToDouble()) 
@@ -1863,15 +1865,15 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
               newper.lc = (up->timeInterval.start == t) 
                          ? up->timeInterval.lc : true;
             }
-            if (up->p0.GetY() <= l->GetRP().GetY() 
-             && up->p0.GetY() >= l->GetLP().GetY()){
+            if (up->p0.GetY() <= l->GetRightPoint().GetY() 
+             && up->p0.GetY() >= l->GetLeftPoint().GetY()){
               if(TLA_DEBUG)
                 cout<<"uPoint starts inside linesegemet"<<endl;
               newper.start = up->timeInterval.start;
               newper.lc =    up->timeInterval.lc;
             }
-            if( up->p1.GetY() <= l->GetRP().GetY() 
-             && up->p1.GetY() >= l->GetLP().GetY()){
+            if( up->p1.GetY() <= l->GetRightPoint().GetY() 
+             && up->p1.GetY() >= l->GetLeftPoint().GetY()){
               if(TLA_DEBUG)
                 cout<<"uPoint ends inside linesegemet"<<endl;
               newper.end = up->timeInterval.end;
@@ -1889,7 +1891,7 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
       else if(vl){
         if(TLA_DEBUG)
           cout<<"vl is vertical vup not"<<endl;
-        t.ReadFrom((l->GetRP().GetX() - up->p0.GetX()) 
+        t.ReadFrom((l->GetRightPoint().GetX() - up->p0.GetX()) 
                 / (up->p1.GetX() - up->p0.GetX()) 
                 * (up->timeInterval.end.ToDouble() 
                 -  up->timeInterval.start.ToDouble()) 
@@ -1907,9 +1909,12 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
           continue;
         }
         up->TemporalFunction(t, pt);
-        if(  pt.GetX() < l->GetLP().GetX() || pt.GetX() > l->GetRP().GetX()
-         || (pt.GetY() < l->GetLP().GetY() && pt.GetY() < l->GetRP().GetY())
-         || (pt.GetY() > l->GetLP().GetY() && pt.GetY() > l->GetRP().GetY())){
+        if(  pt.GetX() < l->GetLeftPoint().GetX() || 
+             pt.GetX() > l->GetRightPoint().GetX()
+         || (pt.GetY() < l->GetLeftPoint().GetY() && 
+             pt.GetY() < l->GetRightPoint().GetY())
+         || (pt.GetY() > l->GetLeftPoint().GetY() && 
+             pt.GetY() > l->GetRightPoint().GetY())){
           if(TLA_DEBUG)
             cout<<"pt outside up!"<<endl;
           continue;
@@ -1945,9 +1950,12 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
             continue;
           }
           up->TemporalFunction(t, pt);
-          if(  pt.GetX() < l->GetLP().GetX() ||  pt.GetX() > l->GetRP().GetX()
-           || (pt.GetY() < l->GetLP().GetY() && pt.GetY() < l->GetRP().GetY())
-           || (pt.GetY() > l->GetLP().GetY() && pt.GetY() > l->GetRP().GetY())){
+          if(  pt.GetX() < l->GetLeftPoint().GetX() ||  
+               pt.GetX() > l->GetRightPoint().GetX()
+           || (pt.GetY() < l->GetLeftPoint().GetY() && 
+               pt.GetY() < l->GetRightPoint().GetY())
+           || (pt.GetY() > l->GetLeftPoint().GetY() && 
+               pt.GetY() > l->GetRightPoint().GetY())){
             if(TLA_DEBUG)
               cout<<"pt outside up!"<<endl;
             continue;
@@ -1981,11 +1989,11 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
             cout<<"colinear but not equal"<<endl;
           continue;
         }
-         if(up->p0.GetX() <= l->GetLP().GetX() 
-         && up->p1.GetX() >= l->GetLP().GetX()){
+         if(up->p0.GetX() <= l->GetLeftPoint().GetX() 
+         && up->p1.GetX() >= l->GetLeftPoint().GetX()){
            if(TLA_DEBUG)
              cout<<"uPoint starts left of linesegemet"<<endl;
-           t.ReadFrom((l->GetLP().GetX() - up->p0.GetX()) 
+           t.ReadFrom((l->GetLeftPoint().GetX() - up->p0.GetX()) 
                    / (up->p1.GetX() - up->p0.GetX()) 
                    * (up->timeInterval.end.ToDouble() 
                    -  up->timeInterval.start.ToDouble()) 
@@ -1997,11 +2005,11 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
            newper.lc = (up->timeInterval.start == t) 
                       ? up->timeInterval.lc : true;
         }
-        if(up->p1.GetX() <= l->GetLP().GetX() 
-        && up->p0.GetX() >= l->GetLP().GetX()){
+        if(up->p1.GetX() <= l->GetLeftPoint().GetX() 
+        && up->p0.GetX() >= l->GetLeftPoint().GetX()){
            if(TLA_DEBUG)
              cout<<"uPoint ends left of linesegemet"<<endl;
-           t.ReadFrom((l->GetLP().GetX() - up->p0.GetX()) 
+           t.ReadFrom((l->GetLeftPoint().GetX() - up->p0.GetX()) 
                    / (up->p1.GetX() - up->p0.GetX()) 
                    * (up->timeInterval.end.ToDouble() 
                    -  up->timeInterval.start.ToDouble()) 
@@ -2013,11 +2021,11 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
            newper.rc = (up->timeInterval.end == t) 
                       ? up->timeInterval.rc : true;
         }
-        if(up->p0.GetX() <= l->GetRP().GetX() 
-        && up->p1.GetX() >= l->GetRP().GetX()){
+        if(up->p0.GetX() <= l->GetRightPoint().GetX() 
+        && up->p1.GetX() >= l->GetRightPoint().GetX()){
            if(TLA_DEBUG)
              cout<<"uPoint ends right of linesegemet"<<endl;
-           t.ReadFrom((l->GetRP().GetX() - up->p0.GetX()) 
+           t.ReadFrom((l->GetRightPoint().GetX() - up->p0.GetX()) 
                    / (up->p1.GetX() - up->p0.GetX()) 
                    * (up->timeInterval.end.ToDouble() 
                    -  up->timeInterval.start.ToDouble()) 
@@ -2029,11 +2037,11 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
            newper.rc = (up->timeInterval.end == t) 
                       ? up->timeInterval.rc : true;
         }
-        if(up->p1.GetX() <= l->GetRP().GetX() 
-        && up->p0.GetX() >= l->GetRP().GetX()){
+        if(up->p1.GetX() <= l->GetRightPoint().GetX() 
+        && up->p0.GetX() >= l->GetRightPoint().GetX()){
            if(TLA_DEBUG)
              cout<<"uPoint starts right of linesegemet"<<endl;
-           t.ReadFrom((l->GetRP().GetX() - up->p0.GetX()) 
+           t.ReadFrom((l->GetRightPoint().GetX() - up->p0.GetX()) 
                    / (up->p1.GetX() - up->p0.GetX()) 
                    * (up->timeInterval.end.ToDouble() 
                    -  up->timeInterval.start.ToDouble()) 
@@ -2045,15 +2053,15 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
            newper.lc = (up->timeInterval.start == t) 
                       ? up->timeInterval.lc : true;
         }
-        if(up->p0.GetX() <= l->GetRP().GetX() 
-        && up->p0.GetX() >= l->GetLP().GetX()){
+        if(up->p0.GetX() <= l->GetRightPoint().GetX() 
+        && up->p0.GetX() >= l->GetLeftPoint().GetX()){
            if(TLA_DEBUG)
              cout<<"uPoint starts inside linesegemet"<<endl;
            newper.start = up->timeInterval.start;
            newper.lc =    up->timeInterval.lc;
         }
-        if(up->p1.GetX() <= l->GetRP().GetX() 
-        && up->p1.GetX() >= l->GetLP().GetX()){
+        if(up->p1.GetX() <= l->GetRightPoint().GetX() 
+        && up->p1.GetX() >= l->GetLeftPoint().GetX()){
            if(TLA_DEBUG)
              cout<<"uPoint ends inside linesegemet"<<endl;
            newper.end = up->timeInterval.end;
@@ -2088,9 +2096,12 @@ static void MPointInsideLine(MPoint& mp, CLine& ln, Periods& pResult)
           continue;
         }
         up->TemporalFunction(t, pt);
-        if(  pt.GetX() < l->GetLP().GetX() ||  pt.GetX() > l->GetRP().GetX()
-         || (pt.GetY() < l->GetLP().GetY() && pt.GetY() < l->GetRP().GetY())
-         || (pt.GetY() > l->GetLP().GetY() && pt.GetY() > l->GetRP().GetY())){
+        if(  pt.GetX() < l->GetLeftPoint().GetX() ||  
+             pt.GetX() > l->GetRightPoint().GetX()
+         || (pt.GetY() < l->GetLeftPoint().GetY() && 
+             pt.GetY() < l->GetRightPoint().GetY())
+         || (pt.GetY() > l->GetLeftPoint().GetY() && 
+             pt.GetY() > l->GetRightPoint().GetY())){
           if(TLA_DEBUG)
             cout<<"pt outside up!"<<endl;
           continue;
@@ -2432,7 +2443,7 @@ void MovingPointCompareMS( MPoint& p1, Point& p2, MBool& result,
 For Operators ~=~, ~\#~ and ~minus~ forMovingRegion/Region
 
 */
-void MovingRegionCompareMS( MRegion *mr, CRegion *r, MBool *result,
+void MovingRegionCompareMS( MRegion *mr, Region *r, MBool *result,
  int op) 
 {
   const URegionEmb *ur;
@@ -2469,10 +2480,10 @@ void MovingRegionCompareMS( MRegion *mr, CRegion *r, MBool *result,
                     dms->GetFinalStartX(), dms->GetFinalStartY());
         Point *p2 = new Point(true, 
                     dms->GetFinalEndX(), dms->GetFinalEndY());
-        CHalfSegment *nHS = new CHalfSegment(true, true, *p1, *p2);
+        HalfSegment *nHS = new HalfSegment(true, *p1, *p2);
         delete p1;
         delete p2;
-        const CHalfSegment *mid;
+        const HalfSegment *mid;
         bool found = false;
         int left = 0;
         int right = r->Size();
@@ -2528,7 +2539,7 @@ void MovingRegionCompareMS( MRegion *mr, CRegion *r, MBool *result,
       result->MergeAdd(uBool);
     }
     else{ //the complicate way with not static mregions
-      const CHalfSegment *chs;
+      const HalfSegment *chs;
       Periods* period  = new Periods(0);
       Periods* between = new Periods(0);
       Periods* pResult = new Periods(0);
@@ -2539,24 +2550,24 @@ void MovingRegionCompareMS( MRegion *mr, CRegion *r, MBool *result,
    
         double tsd = MPointInMPoint(dms->GetInitialStartX(),
           dms->GetInitialStartY(), dms->GetFinalStartX(),
-          dms->GetFinalStartY(), chs->GetDPoint().GetX(),
-          chs->GetDPoint().GetY(), chs->GetDPoint().GetX(),
-          chs->GetDPoint().GetY());
+          dms->GetFinalStartY(), chs->GetDomPoint().GetX(),
+          chs->GetDomPoint().GetY(), chs->GetDomPoint().GetX(),
+          chs->GetDomPoint().GetY());
         double ted = MPointInMPoint(dms->GetInitialEndX(),
           dms->GetInitialEndY(), dms->GetFinalEndX(),
-          dms->GetFinalEndY(), chs->GetDPoint().GetX(),
-          chs->GetDPoint().GetY(), chs->GetDPoint().GetX(),
-          chs->GetDPoint().GetY());
+          dms->GetFinalEndY(), chs->GetDomPoint().GetX(),
+          chs->GetDomPoint().GetY(), chs->GetDomPoint().GetX(),
+          chs->GetDomPoint().GetY());
         double tss = MPointInMPoint(dms->GetInitialStartX(),
           dms->GetInitialStartY(), dms->GetFinalStartX(),
-          dms->GetFinalStartY(), chs->GetSPoint().GetX(),
-          chs->GetSPoint().GetY(), chs->GetSPoint().GetX(),
-          chs->GetSPoint().GetY());
+          dms->GetFinalStartY(), chs->GetSecPoint().GetX(),
+          chs->GetSecPoint().GetY(), chs->GetSecPoint().GetX(),
+          chs->GetSecPoint().GetY());
         double tes = MPointInMPoint(dms->GetInitialEndX(),
           dms->GetInitialEndY(), dms->GetFinalEndX(),
-          dms->GetFinalEndY(), chs->GetSPoint().GetX(),
-          chs->GetSPoint().GetY(), chs->GetSPoint().GetX(),
-          chs->GetSPoint().GetY());
+          dms->GetFinalEndY(), chs->GetSecPoint().GetX(),
+          chs->GetSecPoint().GetY(), chs->GetSecPoint().GetX(),
+          chs->GetSecPoint().GetY());
            
         double tpoint = -1.0;
         if(tsd >= 0.0 && tes >= 0.0){
@@ -2613,7 +2624,7 @@ void MovingRegionCompareMS( MRegion *mr, CRegion *r, MBool *result,
       delete between;
       const Interval<Instant> *per;
       for(int i = 0; i < pResult->GetNoComponents(); i++){
-        CRegion snapshot;
+        Region snapshot;
         if(TLA_DEBUG)
           cout<<"add interval # "<<i<<endl;
         pResult->Get(i, per);
@@ -2808,8 +2819,8 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
       So it is used the 10 and 90 percent time of the uregion.
     
       */
-      CRegion snapshot1;
-      CRegion snapshot2;
+      Region snapshot1;
+      Region snapshot2;
       if(TLA_DEBUG)
         cout<<"uregions are possibly equal. Create snapshots"<<endl;
       Instant time;
@@ -2852,8 +2863,8 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
     const Interval<Instant> *per;
     bool finished = false;
     for(int i = 0; i < pResult->GetNoComponents(); i++){
-      CRegion snapshot1;
-      CRegion snapshot2;
+      Region snapshot1;
+      Region snapshot2;
       pResult->Get(i, per);
       if(TLA_DEBUG)
         cout<<"test time # "<<i<<" "<<per->start.ToString()<<endl;
@@ -3939,7 +3950,7 @@ Transform the region to a mregion and restrics it to deftime(mpoint).
 
 */
 
-void copyRegionMPoint(CRegion& reg, MPoint& pt, MRegion& result) {
+void copyRegionMPoint(Region& reg, MPoint& pt, MRegion& result) {
    MRegion* res = new MRegion(pt, reg);
    result.Clear();
    result.CopyFrom(res);
@@ -5094,7 +5105,7 @@ int TemporalMSRegionCompare( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   
   MovingRegionCompareMS((MRegion*)args[0].addr,
-   (CRegion*)args[1].addr, (MBool*)result.addr, op); 
+   (Region*)args[1].addr, (MBool*)result.addr, op); 
  
   return 0;
 }
@@ -5110,7 +5121,7 @@ int TemporalSMRegionCompare( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   
   MovingRegionCompareMS((MRegion*)args[1].addr,
-   (CRegion*)args[0].addr, (MBool*)result.addr, op); 
+   (Region*)args[0].addr, (MBool*)result.addr, op); 
  
   return 0;
 }
@@ -5282,7 +5293,7 @@ int MPointLineInside( Word* args, Word& result, int message,
   pResult->Clear();
   
   MPointInsideLine( *((MPoint*)args[0].addr),
-    *((CLine*)args[1].addr), *pResult);
+    *((Line*)args[1].addr), *pResult);
   
   if(op == 1) { //create a MBool (inside)
     MBool* endResult = (MBool*)result.addr;
@@ -5366,7 +5377,7 @@ int LineMPointIntersection( Word* args, Word& result, int message,
   pResult->Clear();
   
   MPointInsideLine( *((MPoint*)args[1].addr),
-    *((CLine*)args[0].addr), *pResult);
+    *((Line*)args[0].addr), *pResult);
   
   //create a MPoint (intersection)
   MPoint* endResult = (MPoint*)result.addr;
@@ -5386,7 +5397,7 @@ int MPRUnionValueMap(Word* args, Word& result, int message,
 
     result = qp->ResultStorage(s);
 
-    copyRegionMPoint(*((CRegion*)args[1].addr) ,
+    copyRegionMPoint(*((Region*)args[1].addr) ,
     *((MPoint*)args[0].addr), *((MRegion*)result.addr) );
     
     return 0;
@@ -5713,7 +5724,7 @@ int RMPMinusValueMap(Word* args, Word& result, int message,
 
     result = qp->ResultStorage(s);
 
-    copyRegionMPoint(*((CRegion*)args[0].addr) ,
+    copyRegionMPoint(*((Region*)args[0].addr) ,
     *((MPoint*)args[1].addr), *((MRegion*)result.addr) );
    
     return 0;

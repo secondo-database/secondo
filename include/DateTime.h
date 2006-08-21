@@ -514,6 +514,7 @@ an attribute of a relation.
      bool Adjacent(const Attribute *arg) const;
      bool IsDefined() const;
      void SetDefined( bool defined );
+     size_t Sizeof() const;
      size_t HashValue() const;
      void CopyFrom(const StandardAttribute* arg);
      DateTime* Clone() const;

@@ -199,6 +199,11 @@ of the rectangle.
     inline void SetDefined( bool Defined )
       {}
 
+    inline size_t Sizeof() const
+    {
+      return sizeof( *this );
+    }
+
     inline size_t HashValue() const
     { 
       size_t h = 0;

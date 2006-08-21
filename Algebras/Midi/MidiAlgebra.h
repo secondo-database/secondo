@@ -322,6 +322,7 @@ There are totally 10 functions which are defined as virtual functions. They need
     ostream& Print( ostream &os ) const;
     int      NumOfFLOBs() const;
     FLOB*    GetFLOB(const int);
+    size_t   Sizeof() const;
 
   private:
 /*

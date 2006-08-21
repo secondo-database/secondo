@@ -39,7 +39,7 @@ else
 endif
 
 ifndef PL_LIB
-  PL_LIB = pl
+   PL_LIB = pl
 endif
 
 export PL_LIB_DIR PL_INCLUDE_DIR PL_LIB optimizer

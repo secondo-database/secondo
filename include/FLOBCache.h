@@ -50,26 +50,36 @@ Victor Almeida, 08/12/2005.
 struct FLOBKey
 {
   inline FLOBKey():
-  fileId( 0 ), recordId( 0 ), size( 0 ), isTempFile( true )
+  fileId( 0 ), recordId( 0 ), pageno( -1 ),
+  size( 0 ), isTempFile( true )
   {}
   
-  inline FLOBKey( SmiFileId fileId, SmiRecordId recordId, int size, bool isTempFile = false ):
-  fileId( fileId ), recordId( recordId ), size( size ), isTempFile( isTempFile )
+  inline FLOBKey( SmiFileId fileId, SmiRecordId recordId, long pageno,
+                  int size, bool isTempFile = false ):
+  fileId( fileId ), recordId( recordId ), pageno( pageno ),
+  size( size ), isTempFile( isTempFile )
   {}
 
   inline FLOBKey& operator=( const FLOBKey fk )
   {
-    fileId = fk.fileId; recordId = fk.recordId; size = fk.size; return *this;
+    fileId = fk.fileId; 
+    recordId = fk.recordId;
+    pageno = fk.pageno;
+    size = fk.size; 
+    return *this;
   }
 
   inline bool operator<( const FLOBKey key ) const
   {
     return fileId < key.fileId ||
-           ( fileId == key.fileId && recordId < key.recordId );
+           ( fileId == key.fileId && 
+             ( recordId < key.recordId ||
+               recordId == key.recordId && pageno < key.pageno ) );
   }
     
   SmiFileId fileId;
   SmiRecordId recordId;
+  long pageno;
   int size;
   bool isTempFile;
 };
@@ -133,13 +143,18 @@ class FLOBCache
 
     ~FLOBCache();
 
-    bool GetFLOB( SmiFileId fileId, SmiRecordId lobId, int size, bool isTempFile, char *&flob );
-    void PutFLOB( SmiFileId& fileId, SmiRecordId& lobId, int size, bool isTempFile, const char *flob );
+    bool GetFLOB( SmiFileId fileId, SmiRecordId lobId, long pageno, 
+                  size_t size, bool isTempFile, const char *&flob );
+    void PutFLOB( SmiFileId& fileId, SmiRecordId& lobId, long pageno,
+                  size_t size, bool isTempFile, const char *flob );
     void Clear();
-    void Release( SmiFileId fileId, SmiRecordId lobId );
+    void Release( SmiFileId fileId, SmiRecordId lobId, 
+                  long pageno = -1 );
     void Destroy( SmiFileId fileId, SmiRecordId lobId );
-    void Truncate( SmiFileId fileId, bool isTemp );
-    void Drop( SmiFileId fileId, bool isTemp );
+    void Truncate( SmiFileId fileId, bool isTemp, 
+                   bool paged = false );
+    void Drop( SmiFileId fileId, bool isTemp,
+               bool paged = false );
 
   private:
     char *Lookup( const FLOBKey key, bool inc = false );

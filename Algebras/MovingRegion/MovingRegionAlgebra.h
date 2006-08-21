@@ -205,6 +205,8 @@ and an exception is thrown otherwise.
         return degeneratedInitialNext; }
     int GetDegeneratedFinalNext(void) const { 
         return degeneratedFinalNext; }
+    bool IsValid() const {
+        return true; }
 
 /*
 1.1.1 Attribute write access methods
@@ -386,15 +388,15 @@ Runtime is $O(1)$.
 1 Class ~IRegion~
 
 The code for this data type is fairly simple because it can mostly rely on the
-instantiation of the class template ~Intime~ with class ~CRegion~. Just a 
+instantiation of the class template ~Intime~ with class ~Region~. Just a 
 number of specialized constructors and methods must be overwritten to assure
-that the ~DBArray~ in ~CRegion~ is properly handled. ~Intime~ itself does
+that the ~DBArray~ in ~Region~ is properly handled. ~Intime~ itself does
 not care about whether its ~value~ attribute is of a class with ~DBArray~
 attributes or not.
 
 */
 
-class IRegion : public Intime<CRegion> {
+class IRegion : public Intime<Region> {
 public:
 /*
 1.1 Constructors
@@ -622,14 +624,14 @@ in the moving segments array.
 
 /*
 Constructor, which creates a constant unit for the specified interval from the
-provided ~CRegion~ instance. The ~URegionEmb~ instance will store it segments
+provided ~Region~ instance. The ~URegionEmb~ instance will store it segments
 starting at ~pos~ in ~segments~.
 
 */
     URegionEmb(
         DBArray<MSegmentData>* segments,
         const Interval<Instant>& iv,
-        const CRegion& region,
+        const Region& region,
         unsigned int pos);
 
 /*
@@ -654,7 +656,7 @@ Get number of segments, get specified segment, write specified segment.
 /*
 Adds a segment to this ~URegionEmb~ instance.
 
-~cr~ is a ~CRegion~ instance, which is used to check whether the ~URegion~
+~cr~ is a ~Region~ instance, which is used to check whether the ~URegion~
 instance represents a valid region in the middle of its interval, when no
 degeneration can occur. All segments added to the ~URegion~ instance are
 added as non-moving segments to ~cr~ too.
@@ -680,8 +682,8 @@ description below for details.
 */
     bool AddSegment(
         DBArray<MSegmentData>* segments,
-        CRegion& cr,
-        CRegion& rDir,
+        Region& cr,
+        Region& rDir,
         unsigned int faceno,
         unsigned int cycleno,
         unsigned int segmentno,
@@ -718,14 +720,14 @@ units but only if ~merge~ is ~true~.
         bool merge) const;
 
 /*
-Returns the ~CRegion~ value of this ~URegionEmb~ unit at instant ~t~
+Returns the ~Region~ value of this ~URegionEmb~ unit at instant ~t~
 in ~result~.
 
 */
     void TemporalFunction(
         const DBArray<MSegmentData>* segments,
         const Instant& t, 
-        CRegion& result) const;
+        Region& result) const;
 
 /*
 Return the bounding box of the region unit. This is an $O(1)$ operation
@@ -769,7 +771,7 @@ Instances of class ~URegion~ represent SECONDO ~uregion~ objects.
 
 */
 
-class URegion : public SpatialTemporalUnit<CRegion, 3> {
+class URegion : public SpatialTemporalUnit<Region, 3> {
 private:
 /*
 1.1 Private attributes
@@ -813,21 +815,21 @@ Set and get the ~uremb~ attribute. Required for function ~InURegion()~.
 /*
 1.1 Methods for database operators
 
-Returns the ~CRegion~ value of this ~URegion~ unit at instant ~t~
+Returns the ~Region~ value of this ~URegion~ unit at instant ~t~
 in ~result~.
 
 */
     virtual void TemporalFunction(const Instant& t, 
-                                  CRegion& result) const;
+                                  Region& result) const;
 
 /*
 ~At()~ and ~Passes()~ are not yet implemented. Stubs
 required to make this class non-abstract.
 
 */
-    virtual bool At(const CRegion& val, 
-                    TemporalUnit<CRegion>& result) const;
-    virtual bool Passes(const CRegion& val) const;
+    virtual bool At(const Region& val, 
+                    TemporalUnit<Region>& result) const;
+    virtual bool Passes(const Region& val) const;
 /* 
 Return the interal array containing the moving segments for read-only access.
 
@@ -853,6 +855,12 @@ storage only, and will run into failed assertions for other instances.
     FLOB *GetFLOB(const int i);
 
 /*
+Returns the ~sizeof~ of a ~URegion~ instance.
+
+*/
+    virtual size_t Sizeof() const;
+
+/*
 Clone ~URegion~ instance. Please note that resulting instance will have
 its own moving segments storage, even if the cloned instance has not.
 
@@ -876,7 +884,7 @@ segments.
 
 */
 
-class MRegion : public Mapping<URegionEmb, CRegion> {
+class MRegion : public Mapping<URegionEmb, Region> {
 private:
 /*
 1.1 Private attributes
@@ -941,14 +949,14 @@ Create ~MRegion()~ instance, determine its units by the units in ~mp~ and
 set each unit to the constant value of ~r~.
 
 */
-    MRegion(MPoint& mp, CRegion& r);
+    MRegion(MPoint& mp, Region& r);
 
 /*
 Constructs a contiunues moving region from the parameters. ~dummy~ is not
 used.
 
 */
-    MRegion(MPoint& mp, CRegion& r,int dummy);
+    MRegion(MPoint& mp, Region& r,int dummy);
 
 /*
 1.1 Attribute access methods
@@ -995,21 +1003,21 @@ Calculate region traversed by ~MRegion~ instant in ~res~.
 
 */
 #ifdef MRA_TRAVERSED
-    void Traversed(CRegion& res);
+    void Traversed(Region& res);
 #endif // MRA_TRAVERSED
 
 /*
-Get ~CRegion~ value ~result~ at instant ~t~.
+Get ~Region~ value ~result~ at instant ~t~.
 
 */
-    void AtInstant(Instant& t, Intime<CRegion>& result);
+    void AtInstant(Instant& t, Intime<Region>& result);
 
 /*
-Get ~CRegion~ value ~result~ at initial and final instants.
+Get ~Region~ value ~result~ at initial and final instants.
 
 */
-    void Initial(Intime<CRegion>& result);
-    void Final(Intime<CRegion>& result);
+    void Initial(Intime<Region>& result);
+    void Final(Intime<Region>& result);
 
 /*
 1.1 Methods for algebra integration

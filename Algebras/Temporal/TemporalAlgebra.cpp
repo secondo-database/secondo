@@ -161,9 +161,9 @@ bool UPoint::Passes( const Point& p ) const
 /*
 VTA - I could use the spatial algebra like this
 
-----    CHalfSegment chs;
-        chs.Set( true, p0, p1 );
-        return chs.Contains( p );
+----    HalfSegment hs;
+        hs.Set( true, p0, p1 );
+        return hs.Contains( p );
 ----
 but the Spatial Algebra admit rounding errors (floating point operations). It
 would then be very hard to return a true for this function.
@@ -376,12 +376,12 @@ void MInt::ReadFrom(const MBool& arg){
 3.2 Class ~MPoint~
 
 */
-void MPoint::Trajectory( CLine& line ) const
+void MPoint::Trajectory( Line& line ) const
 {
   line.Clear();
   line.StartBulkLoad();
 
-  CHalfSegment chs( false );
+  HalfSegment hs;
   const UPoint *unit;
 
   for( int i = 0; i < GetNoComponents(); i++ )
@@ -390,11 +390,11 @@ void MPoint::Trajectory( CLine& line ) const
 
     if( !AlmostEqual( unit->p0, unit->p1 ) )
     {
-      chs.Set( true, unit->p0, unit->p1 );
+      hs.Set( true, unit->p0, unit->p1 );
 
-      line += chs;
-      chs.SetLDP( false );
-      line += chs;
+      line += hs;
+      hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+      line += hs;
     }
   }
 
@@ -2451,25 +2451,6 @@ PeriodsPeriodsTypeMapPeriods( ListExpr args )
 }
 
 /*
-16.1.14 Type mapping function "UPointTypeMapRect3"
-
-This type mapping function is used for the ~bbox~ operator.
-
-*/
-ListExpr UPointTypeMapRect3( ListExpr args )
-{
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-
-    if( nl->IsEqual( arg1, "upoint" ) )
-      return (nl->SymbolAtom( "rect3" ));
-  }
-  return nl->SymbolAtom( "typeerror" );
-}
-
-/*
 16.1.15 Type mapping function "MPointTypeMapTranslate"
 
 This type mapping function is used for the ~translate~ operator.
@@ -3356,24 +3337,6 @@ int RangeNoComponents( Word* args, Word& result, int message,
 }
 
 /*
-16.3.17 Value mapping functions of operator ~rbbox~
-
-*/
-template <class Range>
-int RangeBBox( Word* args, Word& result, int message, Word&
- local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  if( ((Range*)args[0].addr)->IsEmpty() )
-    ((Range*)result.addr)->SetDefined( false );
-  else
-    ((Range*)args[0].addr)->RBBox( *(Range*)result.addr);
-  return 0;
-}
-
-
-/*
 16.3.23 Value mapping functions of operator ~trajectory~
 
 */
@@ -3382,7 +3345,7 @@ int MPointTrajectory( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
 
-  CLine *line = ((CLine*)result.addr);
+  Line *line = ((Line*)result.addr);
   MPoint *mpoint = ((MPoint*)args[0].addr);
   mpoint->Trajectory( *line );
 
@@ -3420,6 +3383,19 @@ UPointBBox( Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage( s );
   *((Rectangle<3>*)result.addr) = ((UPoint*)args[0].addr)->BoundingBox();
   return (0);
+}
+
+template <class Range>
+int RangeBBox( Word* args, Word& result, int message, Word&
+ local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  if( ((Range*)args[0].addr)->IsEmpty() )
+    ((Range*)result.addr)->SetDefined( false );
+  else
+    ((Range*)args[0].addr)->RBBox( *(Range*)result.addr);
+  return 0;
 }
 
 /*
@@ -3961,13 +3937,6 @@ ValueMapping temporalnocomponentsmap[] = { RangeNoComponents<RInt>,
                                            MappingNoComponents<MReal, CcReal>,
                                            MappingNoComponents<MPoint, Point>};
 
-/*
-ValueMapping temporalrbboxmap[] = { RangeBBox<RInt>,
-                                    RangeBBox<RReal>,
-                                    RangeBBox<Periods> };
-
-*/
-
 ValueMapping temporalbboxmap[] = { UPointBBox,
                                    RangeBBox<RInt>,
                                    RangeBBox<RReal>,
@@ -4217,17 +4186,6 @@ const string TemporalSpecNoComponents =
   "<text>Number of components.</text--->"
   "<text>no_components ( mpoint1 )</text--->"
   ") )";
-
-const string TemporalSpecRBBox  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>range(x) -> range(x)</text--->"
-  "<text>bbox ( _ )</text--->"
-  "<text>Range with the smallest closed interval"
-  "\ncontaining all the argument's intervals.</text--->"
-  "<text>bbox ( range1 )</text--->"
-  ") )";
-
 
 const string TemporalSpecInst  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -4601,16 +4559,6 @@ Operator temporalnocomponents( "no_components",
                                TemporalSetValueSelect,
                                TemporalSetValueTypeMapInt );
 
-/*
-operator temporalrbbox( "bbox",
-                        TemporalSpecRBBox,
-                        3,
-                        temporalrbboxmap,
-                        RangeSimpleSelect,
-                        RangeTypeMapRange );
-
-*/
-
 Operator temporalinst( "inst",
                        TemporalSpecInst,
                        4,
@@ -4706,15 +4654,6 @@ Operator temporalunits( "units",
                         temporalunitsmap,
                         MovingSimpleSelect,
                         MovingTypeMapUnits );
-
-/*
-Operator temporalbbox( "bbox",
-                       TemporalSpecBBox,
-                       UPointBBox,
-                       Operator::SimpleSelect,
-                       UPointTypeMapRect3 );
-
-*/
 
 Operator temporalbbox( "bbox",
                        TemporalSpecBBox,
@@ -4871,7 +4810,6 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalmin );
     AddOperator( &temporalmax );
     AddOperator( &temporalnocomponents );
-    //    AddOperator( &temporalrbbox );
 
     AddOperator( &temporalinst );
     AddOperator( &temporalval );

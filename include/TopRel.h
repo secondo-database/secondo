@@ -453,6 +453,7 @@ an attribute type within secondo relations.
        size_t HashValue() const;
        void CopyFrom(const StandardAttribute* arg);
        Int9M* Clone() const;
+       size_t Sizeof() const { return sizeof(*this); }
 
 /*
 2.1.20 Print function
@@ -832,6 +833,7 @@ cluster acts as an attribute type within relations.
       void CopyFrom(const StandardAttribute* arg);
       /* returns a copy of this cluster */
       Cluster* Clone() const;
+      size_t Sizeof() const { return sizeof(*this); }
      
 
 /*
@@ -1007,6 +1009,10 @@ predicate cluster will be the same like this one of the argument.
        PredicateGroup* res = new PredicateGroup(1);
        res->Equalize(this);
        return res;
+    }
+
+    size_t Sizeof() const{
+       return sizeof(*this);
     }
 
     int NumOfFLOBs() const{

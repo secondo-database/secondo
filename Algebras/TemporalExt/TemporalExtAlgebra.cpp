@@ -566,8 +566,8 @@ void MPointExt::Locations( Points* result ) const
     }
     const UPoint* unitin;
     vector<Point> points;
-    vector<CHalfSegment> hsegments;
-    CHalfSegment* temp_hs;
+    vector<HalfSegment> hsegments;
+    HalfSegment* temp_hs;
     bool contained;
 
     for(int i=0;i<GetNoComponents();i++)
@@ -579,7 +579,7 @@ void MPointExt::Locations( Points* result ) const
         }
         else
         {
-            temp_hs = new CHalfSegment( true, false, unitin->p0, unitin->p1);
+            temp_hs = new HalfSegment( false, unitin->p0, unitin->p1);
             hsegments.push_back(*temp_hs);
         }
     }
@@ -602,7 +602,7 @@ void MPointExt::Locations( Points* result ) const
                 cout << "x=" << points[i].GetX() << endl;
                 cout << "y=" << points[i].GetY() << endl;
             }
-            result->InsertPt(points[i]);
+            *result += points[i];
         }
         else
         {
@@ -696,18 +696,18 @@ void MPointExt::At( Points* pts, MPoint &result ) const
 
 Parameter:
 
-  ln: a pointer to a CLine object
+  ln: a pointer to a Line object
   result: a reference to a MPoint object
 
 Return: nothing
 
 It returns a projection of ln on the moving point. The
 method seeks for intersections between a unit point
-and each CHalfSegment in ln. Actually intersections in a point
+and each HalfSegment in ln. Actually intersections in a point
 are supported.
 
 */
-void MPointExt::At( CLine* ln, MPoint &result ) const
+void MPointExt::At( Line* ln, MPoint &result ) const
 {
     cout << "MPointExt::At called" << endl;
     const UPoint* unitin;
@@ -744,7 +744,7 @@ Raw intersection with Bounding Boxes
 */
         if(unit_pbb.Intersects( obj_pbb ))
         {
-            CHalfSegment up_chs;
+            HalfSegment up_chs;
             up_chs.Set( false, unitin->p0, unitin->p1 );
             if(1)
             {
@@ -752,24 +752,24 @@ Raw intersection with Bounding Boxes
             }
             for(int j=0;j<ln->Size();j++)
             {
-                const CHalfSegment* ln_chs;
+                const HalfSegment* ln_chs;
                 ln->Get( j, ln_chs );
 /*
-Scanning of one 1 of 2 CHalfSegment
+Scanning of one 1 of 2 HalfSegment
 
 */
-                if( ln_chs->GetRP() == ln_chs->GetDPoint() )
+                if( ln_chs->GetRightPoint() == ln_chs->GetDomPoint() )
                 {
                     if(1)
                     {
-                        cout << "P0.X = " << ln_chs->GetLP().GetX()
-                            << " P0.Y = " << ln_chs->GetLP().GetY()
-                            << " P1.X = " << ln_chs->GetRP().GetX()
-                            << " P1.Y = " << ln_chs->GetRP().GetY()
-                            << " D0.X = " << ln_chs->GetDPoint().GetX()
-                            << " D0.Y = " << ln_chs->GetDPoint().GetY()
-                            << " S1.X = " << ln_chs->GetSPoint().GetX()
-                            << " S1.Y = " << ln_chs->GetSPoint().GetY()
+                        cout << "P0.X = " << ln_chs->GetLeftPoint().GetX()
+                            << " P0.Y = " << ln_chs->GetLeftPoint().GetY()
+                            << " P1.X = " << ln_chs->GetRightPoint().GetX()
+                            << " P1.Y = " << ln_chs->GetRightPoint().GetY()
+                            << " D0.X = " << ln_chs->GetDomPoint().GetX()
+                            << " D0.Y = " << ln_chs->GetDomPoint().GetY()
+                            << " S1.X = " << ln_chs->GetSecPoint().GetX()
+                            << " S1.Y = " << ln_chs->GetSecPoint().GetY()
                             << endl;
                     }
 /*
@@ -783,12 +783,12 @@ For unit points which do not have any motion
                             if(1)
                             {
                                 cout << "Intersects up " << i
-                                    << " as a point at " << j << "!!" << endl;
-                                cout << "HS: ( " << ln_chs->GetLP().GetX()
-                                    << ", " << ln_chs->GetLP().GetY()
-                                        << " ; " << ln_chs->GetRP().GetX()
-                                        << ", " << ln_chs->GetRP().GetY()
-                                        << " )" << endl;
+                                    << " as a point at " << j << "!!" << endl
+                                    << "HS: ( " << ln_chs->GetLeftPoint().GetX()
+                                    << ", " << ln_chs->GetLeftPoint().GetY()
+                                    << " ; " << ln_chs->GetRightPoint().GetX()
+                                    << ", " << ln_chs->GetRightPoint().GetY()
+                                    << " )" << endl;
                             }
                             UPoint res;
                             const UPoint* uttmp;
@@ -811,48 +811,48 @@ For unit points which do not have any motion
                             if(1)
                             {
                                 cout << "In unit " << i << " ..." << endl;
-                                cout << "( " << up_chs.GetLP().GetX()
+                                cout << "( " << up_chs.GetLeftPoint().GetX()
                                         << ", "
-                                        << up_chs.GetLP().GetY()
+                                        << up_chs.GetLeftPoint().GetY()
                                         << "; "
-                                        << up_chs.GetRP().GetX()
+                                        << up_chs.GetRightPoint().GetX()
                                         << ", "
-                                        << up_chs.GetRP().GetY()
+                                        << up_chs.GetRightPoint().GetY()
                                         << " )" << endl;
                                 cout << "intersects ( "
-                                        << ln_chs->GetLP().GetX()
+                                        << ln_chs->GetLeftPoint().GetX()
                                         << ", "
-                                        << ln_chs->GetLP().GetY()
+                                        << ln_chs->GetLeftPoint().GetY()
                                         << "; "
-                                        << ln_chs->GetRP().GetX()
+                                        << ln_chs->GetRightPoint().GetX()
                                         << ", "
-                                        << ln_chs->GetRP().GetY()
+                                        << ln_chs->GetRightPoint().GetY()
                                         << " ) at " << j << endl;
                             }
 
                             Point inter_p;
-                            CHalfSegment inter_chs;
+                            HalfSegment inter_chs;
 
-                            if( up_chs.overlapintersect( *ln_chs, inter_chs ) )
+                            if( up_chs.Intersection( *ln_chs, inter_chs ) )
                             {
                                 if(1)
                                 {
                                     cout << "Intersection is a line!!" << endl
                                     << "inter_chs: ( "
-                                            << ln_chs->GetLP().GetX()
+                                            << ln_chs->GetLeftPoint().GetX()
                                             << ", "
-                                            << ln_chs->GetLP().GetY()
+                                            << ln_chs->GetLeftPoint().GetY()
                                             << "; "
-                                            << ln_chs->GetRP().GetX()
+                                            << ln_chs->GetRightPoint().GetX()
                                             << ", "
-                                            << ln_chs->GetRP().GetY()
+                                            << ln_chs->GetRightPoint().GetY()
                                             << " )" << endl;
                                 }
                                 UPoint trash1;
                                 UPoint trash2;
 
-                                unitin->At( ln_chs->GetLP(), trash1 );
-                                unitin->At( ln_chs->GetRP(), trash2 );
+                                unitin->At( ln_chs->GetLeftPoint(), trash1 );
+                                unitin->At( ln_chs->GetRightPoint(), trash2 );
                                 bool inv_def = true, ls = true, rs = true;
 
                                 if(!trash1.timeInterval.lc
@@ -887,8 +887,8 @@ For unit points which do not have any motion
 
                                     UPoint* res = new UPoint(
                                         *ii,
-                                        ln_chs->GetLP(),
-                                        ln_chs->GetRP()
+                                        ln_chs->GetLeftPoint(),
+                                        ln_chs->GetRightPoint()
                                     );
                                     if(1)
                                     {
@@ -912,7 +912,7 @@ For unit points which do not have any motion
 Looks for intersections in a point
 
 */
-                                if( up_chs.spintersect( *ln_chs, inter_p ) )
+                                if( up_chs.Intersection( *ln_chs, inter_p ) )
                                 {
                                     if(1)
                                     {
@@ -1019,13 +1019,13 @@ bool MPointExt::Passes( Points* pts ) const
 
 Parameters:
 
-  ln: a pointer to a CLine object
+  ln: a pointer to a Line object
 
 Return: a boolean
 
 */
 
-bool MPointExt::Passes( CLine* ln ) const
+bool MPointExt::Passes( Line* ln ) const
 {
     const UPoint* unitin;
     clock_t clock1, clock2, clock3, clock4, clock_ges;
@@ -1061,7 +1061,7 @@ Raw intersection with Bounding Boxes ...
 */
         if(unit_pbb.Intersects( obj_pbb ))
         {
-            CHalfSegment up_chs;
+            HalfSegment up_chs;
             up_chs.Set( false, unitin->p0, unitin->p1 );
             if(0)
             {
@@ -1071,24 +1071,24 @@ Raw intersection with Bounding Boxes ...
             int j = 0;
             while( !result && j<ln->Size() )
             {
-                const CHalfSegment* ln_chs;
+                const HalfSegment* ln_chs;
                 ln->Get( j, ln_chs );
 /*
-Scanning of one 1 of 2 CHalfSegment
+Scanning of one 1 of 2 HalfSegment
 
 */
-                if( ln_chs->GetRP() == ln_chs->GetDPoint() )
+                if( ln_chs->GetRightPoint() == ln_chs->GetDomPoint() )
                 {
                     if(0)
                     {
-                        cout << "P0.X = " << ln_chs->GetLP().GetX()
-                                << " P0.Y = " << ln_chs->GetLP().GetY()
-                                << " P1.X = " << ln_chs->GetRP().GetX()
-                                << " P1.Y = " << ln_chs->GetRP().GetY()
-                                << " D0.X = " << ln_chs->GetDPoint().GetX()
-                                << " D0.Y = " << ln_chs->GetDPoint().GetY()
-                                << " S1.X = " << ln_chs->GetSPoint().GetX()
-                                << " S1.Y = " << ln_chs->GetSPoint().GetY()
+                        cout << "P0.X = " << ln_chs->GetLeftPoint().GetX()
+                                << " P0.Y = " << ln_chs->GetLeftPoint().GetY()
+                                << " P1.X = " << ln_chs->GetRightPoint().GetX()
+                                << " P1.Y = " << ln_chs->GetRightPoint().GetY()
+                                << " D0.X = " << ln_chs->GetDomPoint().GetX()
+                                << " D0.Y = " << ln_chs->GetDomPoint().GetY()
+                                << " S1.X = " << ln_chs->GetSecPoint().GetX()
+                                << " S1.Y = " << ln_chs->GetSecPoint().GetY()
                                 << endl;
                     }
 /*
@@ -1102,12 +1102,13 @@ For unit points which do not have any motion
                             if(0)
                             {
                                 cout << "Intersects up " << i
-                                     << " as a point at " << j << "!!" << endl;
-                                cout << "HS: ( " << ln_chs->GetLP().GetX()
-                                        << ", " << ln_chs->GetLP().GetY()
-                                        << " ; " << ln_chs->GetRP().GetX()
-                                        << ", " << ln_chs->GetRP().GetY()
-                                        << " )" << endl;
+                                     << " as a point at " << j << "!!" << endl
+                                     << "HS: ( " 
+                                     << ln_chs->GetLeftPoint().GetX()
+                                     << ", " << ln_chs->GetLeftPoint().GetY()
+                                     << " ; " << ln_chs->GetRightPoint().GetX()
+                                     << ", " << ln_chs->GetRightPoint().GetY()
+                                     << " )" << endl;
                             }
                             result = true;
                         }
@@ -1115,32 +1116,32 @@ For unit points which do not have any motion
                     else
                     {
                         Point inter_p;
-                        CHalfSegment inter_chs;
+                        HalfSegment inter_chs;
 /*
 Looks for intersections in a point inter\_p
 
 */
-                        if( up_chs.spintersect( *ln_chs, inter_p ) )
+                        if( up_chs.Intersection( *ln_chs, inter_p ) )
                         {
                             if(0)
                             {
                                 cout << "In unit " << i << " ..." << endl;
-                                cout << "( " << up_chs.GetLP().GetX()
+                                cout << "( " << up_chs.GetLeftPoint().GetX()
                                         << ", "
-                                        << up_chs.GetLP().GetY()
+                                        << up_chs.GetLeftPoint().GetY()
                                         << "; "
-                                        << up_chs.GetRP().GetX()
+                                        << up_chs.GetRightPoint().GetX()
                                         << ", "
-                                        << up_chs.GetRP().GetY()
+                                        << up_chs.GetRightPoint().GetY()
                                         << " )" << endl;
                                 cout << "intersects ( "
-                                        << ln_chs->GetLP().GetX()
+                                        << ln_chs->GetLeftPoint().GetX()
                                         << ", "
-                                        << ln_chs->GetLP().GetY()
+                                        << ln_chs->GetLeftPoint().GetY()
                                         << "; "
-                                        << ln_chs->GetRP().GetX()
+                                        << ln_chs->GetRightPoint().GetX()
                                         << ", "
-                                        << ln_chs->GetRP().GetY()
+                                        << ln_chs->GetRightPoint().GetY()
                                         << " ) at " << j << endl;
                             }
                             result = true;
@@ -1181,7 +1182,7 @@ void MappingExt<Unit, Alpha>::AtMin( Mapping<Unit, Alpha> &result ) const
     const Unit* umin;
 
     Get(0, umin);
-    for(int i=1;i<GetNoComponents();i++)
+    for(int i=1;i<Mapping<Unit, Alpha>::GetNoComponents();i++)
     {
         Get(i, utemp);
         if(0)
@@ -1217,7 +1218,7 @@ void MappingExt<Unit, Alpha>::AtMax( Mapping<Unit, Alpha> &result ) const
     const Unit* umax;
 
     Get(0, umax);
-    for(int i=1;i<GetNoComponents();i++)
+    for(int i=1;i<Mapping<Unit, Alpha>::GetNoComponents();i++)
     {
         Get(i, utemp);
         if(0)
@@ -1527,7 +1528,7 @@ causes a unesthetic termination of DB-UI.
     {
         result.Clear();
         result.StartBulkLoad();
-        for(int i=0;i<GetNoComponents();i++)
+        for(int i=0;i<Mapping<Unit, Alpha>::GetNoComponents();i++)
         {
             Get(i, utemp);
             if(inv->Contains(utemp->constValue))
@@ -3206,7 +3207,7 @@ int MappingMPointLineAtExt(
 {
     result = qp->ResultStorage( s );
     MPointExt *m = ((MPointExt*)args[0].addr);
-    CLine* ln = ((CLine*)args[1].addr);
+    Line* ln = ((Line*)args[1].addr);
     MPoint* pResult = ((MPoint*)result.addr);
     pResult->Clear();
     m->At( ln, *pResult );
@@ -3347,7 +3348,7 @@ int MPointLinePassesExt(
     result = qp->ResultStorage( s );
 
     MPointExt *m = ((MPointExt*)args[0].addr);
-    CLine* ln = ((CLine*)args[1].addr);
+    Line* ln = ((Line*)args[1].addr);
 
     if( !ln->IsDefined() )
         ((CcBool *)result.addr)->Set( false, false );
@@ -4585,12 +4586,12 @@ ValueMapping temporaldeftimeextmap[] = {
 
 ValueMapping temporalinstextmap[] = {
     IntimeInstExt<CcString>,
-    IntimeInstExt<CRegion> };
+    IntimeInstExt<Region> };
 
 
 ValueMapping temporalvalextmap[] = {
     IntimeValExt<CcString>,
-    IntimeValExt<CRegion> };
+    IntimeValExt<Region> };
 
 ValueMapping temporalderivativeextmap[] = {
     MovingDerivativeExt<MReal> };

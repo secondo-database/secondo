@@ -88,7 +88,8 @@ The simple constructor.
 
 */
 
-    Network( Relation *routes, Relation *junctions, Relation *sections, BTree *routesBTree );
+    Network( Relation *routes, Relation *junctions, 
+             Relation *sections, BTree *routesBTree );
 /*
 The constructor that receives all information to create a network.
 
@@ -115,8 +116,10 @@ to the operator ~thenetwork~.
 */
 
     ListExpr Out( ListExpr typeInfo );
-    ListExpr Save( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo );
-    static Network *Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo );
+    ListExpr Save( SmiRecord& valueRecord, size_t& offset, 
+                   const ListExpr typeInfo );
+    static Network *Open( SmiRecord& valueRecord, size_t& offset, 
+                          const ListExpr typeInfo );
 /*
 The ~Out~, ~Save~, and ~Open~ functions of the type constructor ~network~. The ~In~ function is not
 provided, given that the creation of the network is only done via the ~thenetwork~ operator.
@@ -180,13 +183,13 @@ Returns the external ~junctions~ relation type info.
 
 */
 
-    static ListExpr GetJunctionsInternalTypeInfo();
+    static ListExpr GetJunctionsIntTypeInfo();
 /*
 Returns the internal ~junctions~ relation type info.
 
 */
 
-    static ListExpr GetJunctionsAppendTypeInfo();
+    static ListExpr GetJunctionsAppTypeInfo();
 /*
 Returns the appended part of the ~junctions~ relation type info. The appended part corresponds 
 to the difference between the external and the internal representations.
@@ -214,10 +217,15 @@ to the difference between the external and the internal representations.
 
   private:
 
-    enum PositionRoutesRelation { POS_RID = 0, POS_RLENGTH, POS_RCURVE, POS_RDUAL, POS_RSTARTSSMALLER };
-    enum PositionJunctionsRelation { POS_JR1ID = 0, POS_JMEAS1, POS_JR2ID, POS_JMEAS2, POS_JCC, POS_JPOS, POS_JR1RC, POS_JR2RC };
-    enum PositionSectionsRelation { POS_SRID = 0, POS_SMEAS1, POS_SMEAS2, POS_SDUAL, POS_SCURVE, POS_SRRC };
-    enum PositionAppendJunctionsRelation { POS_APPJPOS = 0, POS_APPJR1RC, POS_APPJR2RC };
+    enum PositionRoutesRelation { POS_RID = 0, POS_RLENGTH, POS_RCURVE, 
+                                  POS_RDUAL, POS_RSTARTSSMALLER };
+    enum PositionJunctionsRelation { POS_JR1ID = 0, POS_JMEAS1, POS_JR2ID, 
+                                     POS_JMEAS2, POS_JCC, POS_JPOS, 
+                                     POS_JR1RC, POS_JR2RC };
+    enum PositionSectionsRelation { POS_SRID = 0, POS_SMEAS1, POS_SMEAS2, 
+                                    POS_SDUAL, POS_SCURVE, POS_SRRC };
+    enum PositionAppendJunctionsRelation { POS_APPJPOS = 0, POS_APPJR1RC, 
+                                           POS_APPJR2RC };
     enum PositionAppendSectionsRelation { POS_APPSRRC = 0 };
 /*
 These enumerators are used to store the positions of each attribute in the relations to avoid
