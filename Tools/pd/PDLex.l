@@ -69,7 +69,7 @@ figure		"                "
                                   BEGIN(VERB); 
                                   return(VERBATIM);
                                 }
-<VERB>.			        {
+<VERB>.|\n			{
                                   const char* v1="\\verb!{!";
                                   const char* v2="\\verb!}!";
                                   const char* v3="\\verb!\\!";
