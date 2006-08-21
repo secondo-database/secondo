@@ -750,11 +750,14 @@ SmiEnvironment::SetError( const SmiError smiErr, const int sysErr /* = 0 */ )
     {
       instance.impl->txnMustAbort = true;
     }
-    lastMessage = string("SecondoSMI: ") + DbEnv::strerror( sysErr );
+    lastMessage = string("Berkeley-DB: ") + DbEnv::strerror( sysErr );
   }
-  else
-  {
-    lastMessage = "";
+  if (sysErr != 0 && smiErr != E_SMI_OK)
+    lastMessage += "\n";
+  
+  if ( smiErr != E_SMI_OK )
+  { 
+    lastMessage += string("SecondoSMI: ") + Err2Msg(smiErr);
   }
 }
 

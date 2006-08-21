@@ -89,6 +89,10 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
+August 2006, M. Spiekermann. Translation of error codes into messages has been
+moved to the file SecondoInterfaceGenerla.cpp.  Documentation about error codes
+and messages revised.
+
 1.1 Overview
 
 This module defines the procedure ~Secondo~ as defined in ``The Secondo
@@ -120,7 +124,6 @@ in the treatment of the database state in database commands.
 #define SECONDO_INTERFACE_H
 
 #include <string>
-#include <map>
 #include <list>
 
 #include "NestedList.h"
@@ -215,17 +218,7 @@ are defined as follows:
 
   * 1 -- "Secondo"[3] executable command in SOS syntax (~text~)
 
-  * 2 -- "Secondo"[3] descriptive command after, or without, algebraic optimization (~list~)
-
-  * 3 -- "Secondo"[3] descriptive command after, or without, algebraic optimization (~text~)
-
-  * 4 -- "Secondo"[3] descriptive command before algebraic optimization (~list~)
-
-  * 5 -- "Secondo"[3] descriptive command before algebraic optimization (~text~)
-
-  * 7 -- Command in some specific query language (e.g. SQL, GraphDB, etc.)
-
-If the command is given in ~text~ syntax (command levels 1, 3, or 5),
+If the command is given in ~text~ syntax (command level 1),
 then the text string must be placed in ~commandText~. If the command is
 given in ~list~ syntax, it can be passed either as a text string in
 ~commandText~, in which case ~commandAsText~ must be "true"[4], or as a list
@@ -238,26 +231,13 @@ requested to be returned either as a list expression (~resultAsText~ is
 text file whose name is set to *SecondoResult* by default, but may be
 overwritten. 
 
-Finally, the procedure returns an ~errorCode~. There are four general
-error code numbers: 
+Finally, the procedure returns an ~errorCode~ and error message. All error codes
+are defined in file ~ErrorCodes.h~. They are explained below together with the
+commands that may produce them. If an error occurred (~errorCode~ different from
+0), then the complete error message will be given in parameter ~errorMessage~.
+Possibly additional information about the error is given in the ~resultList~
+which is then a list of errors in the form explained below. 
 
-  * 0: no error
-
-  * 1: command not recognized
-
-  * 9: syntax error in command or expression  (detected by the parser)
-	
-  * 30: command not yet implemented
-
-  * 31: command level not yet implemented
-
-The other error codes are explained below together with the commands
-that may produce them. If an error occurred (~errorCode~ different from
-0), then the application can print the error message given in
-~errors[errorcode]~. Possibly additional information about the error is
-given in parameter ~errorMessage~ (e.g. messages by "Secondo"[3] Parser) and
-in the ~resultList~ which is then a list of errors in the form explained
-below. 
 
 Furthermore, ~errorPos~ contains a position within the ~commandBuffer~
 where the error was detected (only when the command was given in the
@@ -277,6 +257,9 @@ text buffer, of course). - not yet implemented. -
       persistent <identifier>
 ----
 
+*/
+
+/*  
 All basic commands are only valid, if currently a database is open.
 
 ----  type <identifier> = <type expression>
@@ -284,11 +267,11 @@ All basic commands are only valid, if currently a database is open.
 
 Define a type name ~identifier~ for the type expression. Possible errors:
 
-  * 10: ~identifier~ already used
+  * ~identifier~ already used
 
-  * 5: error in type expression
+  * error in type expression
 
-  * 6: no database open
+  * no database open
 
 In case of error 5, an error list with further information is returned
 in ~resultList~.
@@ -298,11 +281,11 @@ in ~resultList~.
 
 Delete the type name ~identifier~. Possible errors:
 
-  * 11: ~identifier~ is not a known type name
+  * ~identifier~ is not a known type name
 
-  * 14: type name is used by an object
+  * type name is used by an object
 
-  * 6: no database open
+  * no database open
 
 ----  create <identifier> : <type expression>
 ----
@@ -310,13 +293,13 @@ Delete the type name ~identifier~. Possible errors:
 Create an object called ~identifier~ of the type given by ~type
 expression~. The value is still undefined. Possible errors: 
 
-  * 10: ~identifier~ already used
+  * ~identifier~ already used
 
-  * 4: error in ~type expression~
+  * error in ~type expression~
 
-  * 6: no database open
+  * no database open
 
-In case of error 4, an error list with further information is returned
+In case of the second error, an error list with further information is returned
 in ~resultList~.
 
 
@@ -326,26 +309,26 @@ in ~resultList~.
 Assign the value computed by ~value expression~ to the object
 ~identifier~. Possible errors: 
 
-  * 12: ~identifier~ is not a known object name
+  * ~identifier~ is not a known object name
 
-  * 2: error in ~value expression~
+  * error in ~value expression~
 
-  * 3: ~value expression~ is correct, but not evaluable (e.g. a stream)
+  * ~value expression~ is correct, but not evaluable (e.g. a stream)
 
-  * 8: undefined object value in ~value expression~
+  * undefined object value in ~value expression~
 
-  * 13: type of value is different from type of object
+  * type of value is different from type of object
 
-  * 6: no database open
+  * no database open
 
 ----  delete <identifier>
 ----
 
 Destroy the object ~identifier~. Possible errors:
 
-  * 12: ~identifier~ is not a known object name
+  * ~identifier~ is not a known object name
 
-  * 6: no database open
+  * no database open
 
 ----  query <value expression>
 ----
@@ -353,13 +336,13 @@ Destroy the object ~identifier~. Possible errors:
 Evaluate the value expression and return the result as a nested list.
 Possible errors: 
 
-  * 2: error in ~value expression~
+  * error in ~value expression~
 
-  * 3: ~value expression~ is correct, but not evaluable (e.g. a stream)
+  * ~value expression~ is correct, but not evaluable (e.g. a stream)
 
-  * 8: undefined object value in ~value expression~
+  * undefined object value in ~value expression~
 
-  * 6: no database open
+  * no database open
 
 ----  let <identifier> = <value expression>
 ----
@@ -370,13 +353,13 @@ this command and its type is by definition the one of the value
 expression. This object is temporary so far; it will be automatically
 destroyed at the end of a session. Possible errors: 
 
-  * 10: ~identifier~ already used
+  * ~identifier~ already used
 
-  * 2: error in ~value expression~
+  * error in ~value expression~
 
-  * 3: ~value expression~ is correct, but not evaluable (e.g. a stream)
+  * ~value expression~ is correct, but not evaluable (e.g. a stream)
 
-  * 6: no database open
+  * no database open
 
 ----  persistent <identifier>
 ----
@@ -386,13 +369,16 @@ of a session. Presumably this object was created by a ~let~ command
 earlier. If it is not a temporary object, this command is not an error,
 but has no effect. Possible errors: 
 
-  * 12: ~identifier~ is not a known object name
+  * ~identifier~ is not a known object name
 
-  * 6: no database open
+  * no database open
 
 *NOTE*: Beginning with version 2 of the "Secondo"[3] system all objects are
 persistent by default. That is the ~persistent~ command is obsolete.
 
+*/
+
+/*
 2.1.2 Transaction Commands
 
 ----  begin transaction
@@ -409,9 +395,9 @@ single transaction can be active for this particular client at any time.
 
 Start a transaction. Possible errors:
 
-  * 20: a transaction is already active.
+  * a transaction is already active.
 
-  * 6: no database open
+  * no database open
 
 ----  commit transaction
 ----
@@ -419,9 +405,9 @@ Start a transaction. Possible errors:
 Commit a running transaction; all changes to the database will be
 effective. Possible errors: 
 
-  * 21: no transaction is active.
+  * no transaction is active.
 
-  * 6: no database open
+  * no database open
 
 ----  abort transaction
 ----
@@ -429,9 +415,9 @@ effective. Possible errors:
 Abort a running transaction; all changes to the database will be
 revoked. Possible errors: 
 
-  * 21: no transaction is active.
+  * no transaction is active.
 
-  * 6: no database open
+  * no database open
 
 *NOTE*: All commands not enclosed in a ~begin transaction~ ...
 ~commit/abort transaction~ block are implicitly surrounded by a
@@ -470,38 +456,41 @@ it leaves the state of the database unchanged.
 
 Create a new database. Possible errors:
 
-  * 10: ~identifier~ already used
+  * ~identifier~ already used
 
-  * 7: a database is open
+  * a database is open
 
 ----  delete database <identifier>
 ----
 
 Destroy the database ~identifier~. Possible errors:
 
-  * 25: ~identifier~ is not a known database name.
+  * ~identifier~ is not a known database name.
 
-  * 7: a database is open
+  * a database is open
 
 ----  open database <identifier>
 ----
 
 Open the database ~identifier~. Possible errors:
 
-  * 25: ~identifier~ is not a known database name.
+  * ~identifier~ is not a known database name.
 
-  * 7: a database is open
+  * a database is open
 
 ----  close database
 ----
 
 Close the currently open database. Possible errors:
 
-  * 6: no database open
+  * no database open
 
 ----  save database to <filename>
 ----
 
+*/
+
+/*
 Write the entire contents of the database ~identifier~ in nested list
 format to the file ~filename~. The structure of the file is the
 following: 
@@ -529,9 +518,9 @@ following:
 If the file exists, it will be overwritten, otherwise created.
 Possible errors: 
 
-  * 6: no database open
+  * no database open
 
-  * 26: a problem occurred in writing the file (no permission, file system full, etc.)
+  * a problem occurred in writing the file (no permission, file system full, etc.)
   
 ----  save <objectname> to <filename>
 ----
@@ -547,11 +536,11 @@ following:
 If the file exists, it will be overwritten, otherwise be created.
 Possible errors: 
 
-  * 6 : database not open
+  * database not open
 
-  * 26: a problem occurred in writing the file (no permission, file system full, etc.)
+  * a problem occurred in writing the file (no permission, file system full, etc.)
   
-  * 82: identifier of object is not known in the currently opened database
+  * identifier of object is not known in the currently opened database
 	
 ----  restore database <identifier> from <filename>
 ----
@@ -561,19 +550,19 @@ The database is in open state after successful completion.
 Previous contents of the database are lost.
 Possible errors: 
 
-  * 25: ~identifier~ is not a known database name
+  * ~identifier~ is not a known database name
 
-  * 27: the database name in the file is different from ~identifier~
+  * the database name in the file is different from ~identifier~
 
-  * 7: a database is open
+  * a database is open
 
-  * 28: a problem occurred in reading the file (syntax error, no permission, file system full, etc.)
+  * a problem occurred in reading the file (syntax error, no permission, file system full, etc.)
 
-  * 29: the overall list structure of the file is not correct
+  * the overall list structure of the file is not correct
 
-  * 24: there are errors in type or object definitions in the file
+  * there are errors in type or object definitions in the file
 
-In case of error 24, an error list with further information is returned
+In case of the last error 24, an error list with further information is returned
 in ~resultList~.
 
 ----  restore <objectname> from <filename>
@@ -587,20 +576,24 @@ The database must be in open state and the object is not known in the currently 
 
 Possible errors: 
 
-  * 84: the object name is not known in the database
+  * the object name is not known in the database
 
-  * 83: the object name in the file is different from ~identifier~
+  * the object name in the file is different from ~identifier~
 
-  * 6: a database is not open
+  * a database is not open
 
-  * 28: a problem occurred in reading the file (syntax error, no permission, file system full, etc.)
+  * a problem occurred in reading the file (syntax error, no permission, file system full, etc.)
 
-  * 29: the overall list structure of the file is not correct
+  * the overall list structure of the file is not correct
 
-  * 24: there are errors in the object definition in the file
+  * there are errors in the object definition in the file
 
-In case of error 24, an error list with further information is returned
+In case of the last error, an error list with further information is returned
 in ~resultList~.
+
+*/
+
+/*
 
 2.1.4 Inquiries
 
@@ -644,6 +637,10 @@ Returns a list of names of existing databases. Possible errors: none.
 Return a nested list of type constructors (and their specifications).
 For the precise format see [G[ue]95]. Possible errors: none. 
 
+*/
+
+/*
+
 ----  list operators
       ( inquiry ( operators <valuelist> ) )
       E.G.: (inquiry (operators 
@@ -661,6 +658,12 @@ precise format see [G[ue]95]. Possible errors: none.
       ( inquiry ( types <valuelist> ) )
 ----
 
+
+
+*/
+
+/*
+
 Return a nested list of type names defined in the currently open
 database. The format is: 
 
@@ -671,7 +674,7 @@ database. The format is:
 
 Possible errors: 
 
-  * 6: no database open
+  * no database open
 
 ----  list objects
       ( inquiry ( objects <valuelist> ) )
@@ -690,7 +693,7 @@ database except that the ~value~ component is missing. The type name is
 written within a sublist since an object need not have a type name.
 Possible errors: 
 
-  * 6: no database open
+  * no database open
 
 ----	list counters
 ----
@@ -700,7 +703,7 @@ value>). Counters can be associated with operators within a query. The list
 contains the counter values from the last query.
 Possible errors:
 
-  * 6: no database open
+  * no database open
   
 ----    list algebras
         ( inquiry ( algebras <valuelist> ) )
@@ -783,25 +786,13 @@ the second initializes the RTFlags found in the configuration file.
 
 2.2 Error Messages
 
+The function below returns a message string for a specific error message.
+
 */
   static string GetErrorMessage( const int errorCode );
 /*
-Error messages 1 through 30 are generated within ~SecondoInterface~ and
-directly returned in procedure ~Secondo~. Error messages larger than 40
-belong to four groups: 
 
-  * 4x -- errors in type definitions in database files
-
-  * 5x -- errors in object definitions in database files
-
-  * 6x -- errors found by kind checking procedures
-
-  * 7x -- errors found by ~In~ procedures of algebras in the list representations for values
-
-  * 8x -- errors found by type checking procedures in algebras (this group does not yet exist at the moment)
-
-All such error messages (larger than 40) are appended to a list
-~errorList~. Each procedure generating error messages has a
+Some procedures which generate their own error messages have a
 parameter ~errorInfo~ containing a pointer to the current last element
 of ~errorList~. It appends the error message as a list with a command of
 the form 
@@ -842,162 +833,6 @@ after the error number have the following meaning:
 
 */
 
-  static void InitErrorMessages() {
-
-	errors[ERR_NO_ERROR]            
-	 = "No Error!";
-				 
-	errors[ERR_CMD_NOT_RECOGNIZED]  
-	 = "Command not recognized.";
-				 
-	errors[ERR_IN_QUERY_EXPR]      
-	 = "Error in (query) expression.";
-				 
-	errors[ERR_EXPR_NOT_EVALUABLE]  
-	 = "Expression not evaluable. (Operator not recognized or stream?)";
-
-	errors[ERR_NO_OBJ_CREATED]   
-	 = "Error in type expression. No object created.";
-				 
-	errors[ERR_NO_TYPE_DEFINED]  
-	 = "Error in type expression. No type defined.";
-				 
-	errors[ERR_NO_DATABASE_OPEN] 
-	 = "No database open.";
-				 
-	errors[ERR_DATABASE_OPEN]    
-	 = "A database is open.";
-				 
-	errors[ERR_UNDEF_OBJ_VALUE]  
-	 = "Undefined object value in (query) expression";
-				 
-	errors[ERR_SYNTAX_ERROR]     
-	 = "Syntax error in command/expression";
-				 
-	errors[ERR_IDENT_RESERVED]   
-	 = "Identifier reserved for system use. ";
-	
-	errors[ERR_UPDATE_FOR_DERIVED_OBJ_UNSUPPORTED] 
-	 = "Update of derived objects not supported. ";
-
-	errors[ERR_IDENT_USED]             
-	 = "Identifier already used.";
-				 
-	errors[ERR_IDENT_UNKNOWN_TYPE]     
-	 = "Identifier is not a known type name.";
-				 
-	errors[ERR_IDENT_UNKNOWN_OBJ]      
-	 = "Identifier is not a known object name.";
-				 
-	errors[ERR_EXPR_TYPE_NEQ_OBJ_TYPE]
-	 = "Type of expression is different from type of object.";
-				 
-	errors[ERR_TYPE_NAME_USED_BY_OBJ]  
-	 = "Type name is used by an object. Type not deleted.";
-
-	errors[ERR_TRANSACTION_ACTIVE]       
-	 = "Transaction already active.";
-				 
-	errors[ERR_NO_TRANSACTION_ACTIVE]    
-	 = "No transaction active.";
-				 
-	errors[ERR_BEGIN_TRANSACTION_FAILED] 
-	 = "Begin transaction failed.";
-				 
-	errors[ERR_COMMIT_OR_ABORT_FAILED]   
-	 = "Commit/Abort transaction failed.";
-
-	errors[ERR_IN_DEFINITIONS_FILE]     
-	 = "Error in type or object definitions in file.";
-				 
-	errors[ERR_IDENT_UNKNOWN_DB_NAME]   
-	 = "Identifier is not a known database name.";
-				 
-	errors[ERR_PROBLEM_IN_WRITING_TO_FILE] 
-	 = "Problem in writing to file.";
-				 
-	errors[ERR_DB_NAME_NEQ_IDENT]       
-	 = "Database name in file different from identifier.";
-				 
-	errors[ERR_PROBLEM_IN_READING_FILE] 
-	 = "Problem in reading from file.";
-				 
-	errors[ERR_IN_LIST_STRUCTURE_IN_FILE] 
-	 = "Error in the list structure in the file.";
-
-        errors[ERR_CMD_NOT_YET_IMPL] 
-	 = "Command not yet implemented.";
-				 
-        errors[ERR_CMD_LEVEL_NOT_YET_IMPL] 
-	 = "Command level not yet implemented.";
-				 
-        errors[ERR_CMD_NOT_IMPL_AT_THIS_LEVEL] 
-	 = "Command not yet implemented at this level.";
-
-        errors[ERR_IN_TYPE_DEFINITION] 
-	 = "Error in type definition. ";   // (40 i)
-				 
-        errors[ERR_NAME_DOUBLY_DEFINED] 
-	 = "Type name doubly defined. ";  // (41 i n)
-				 
-        errors[ERR_IN_TYPE_EXPRESSION] 
-	 = "Error in type expression. ";   // (42 i n)
-
-	errors[ERR_IN_OBJ_DEFINITION] 
-	 = "Error in object definition.";  // (50 i)
-				 
-	errors[ERR_OBJ_NAME_DOUBLY_DEFINED] 
-	 = "Object name doubly defined.";  // (51 i n)
-				 
-	errors[ERR_WRONG_TYPE_EXPR_FOR_OBJ] 
-	 = "Wrong type expression for object.";  // (52 i n)
-				 
-	errors[ERR_WRONG_LIST_REP_FOR_OBJ] 
-	 = "Wrong list representation for object."; // (53 i n)
-
-	errors[ERR_KIND_DOES_NOT_MATCH_TYPE_EXPR] 
-	 = "Kind does not match type expression.";  // (60 k t)
-				 
-	errors[ERR_SPECIFIC_KIND_CHECKING_ERROR] 
-	 = "Specific kind checking error for kind."; 
-        // (61 k j ...)
-
-	errors[ERR_IN_VALUELIST_TC_V] 
-	 = "Value list is not a representation for type constructor."; 
-        // (70 tc v)
-				 
-	errors[ERR_SPECIFIC_FOR_TYPE_CONSTRUCTOR] 
-	 = "Specific error for type constructor in value list.";  
-        // (71 tc j ...)
-				 
-	errors[ERR_IN_VALUELIST_TC] 
-	 = "Value list is not a representation for type constructor.";
-				 
-	errors[ERR_AT_POS_IN_VALUELIST] 
-	 = "Error at a position within value list for type constructor.";
-
-	errors[ERR_IN_SECONDO_PROTOCOL] 
-	 = "Secondo protocol error.";
-				 
-	errors[ERR_CONNECTION_TO_SERVER_LOST] 
-	 = "Connection to Secondo server lost.";
-	
-	errors[ERR_IDENT_UNKNOWN_DB_OBJECT] 
-	 = "Identifier of object is not a known database object. ";
-				 
-	errors[ERR_OBJ_NAME_IN_FILE_NEQ_IDENT] 
-	 = "Object name in file different from indentifier for object. ";
-				 
-	errors[ERR_IDENT_ALREADY_KNOWN_IN_DB] 
-	 = "Identifier of object already known in the database. ";
-				 
-	errors[ERR_ALGEBRA_UNKNOWN] 
-	 = "Algebra not known or currently not included.";
-				 
-	errors[ERR_UNKNOWN_RETURN_CODE]
-	 = "A function call returned with an unknown message. ";
-
-}
 
 /*
 The next function writes an ~error list~ as returned by 
@@ -1008,7 +843,8 @@ a call to ~Secondo()~ into an ostream.
 
 /*
 
-The error messages 61 and 71 allow a kind checking procedure or an ~In~
+The error code  ERR\_SPECIFIC\_KIND\_CHECKING\_ERROR and 
+ERR\_SPECIFIC\_FOR\_TYPE\_CONSTRUCTOR allow a kind checking procedure or an ~In~
 procedure to introduce its own specific error codes (just numbered 1, 2,
 3, ...). These error messages may then have further parameters. To
 interpret such error messages (and return information to the user) one
@@ -1028,8 +864,6 @@ Needed to support ~derived~ Objects
 Sets the debug level of the query processor.
 
 */
-
-  //bool IsCSImplementation() const { return isCSImpl; }
 
  protected:
  private:
@@ -1063,7 +897,6 @@ Sets the debug level of the query processor.
   Socket*     server;            // used in C/S version only
 
   static bool errMsgInitialized;
-  static map<int,string> errors;
 
   DerivedObj* derivedObjPtr;
 

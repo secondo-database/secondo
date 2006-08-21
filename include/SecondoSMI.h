@@ -721,29 +721,13 @@ error code while the other functions reset the internal error code.
 Optionally the accompanying error message is returned.
 
 */
-
-  inline static void SetError( const SmiError smiErr ) {
-    lastMessage = "";
-  }
-
-  static void SetError( const SmiError smiErr,
-                        const int sysErr ); 
-                        
-  inline static void SetError( const SmiError smiErr,
-                               const string& errMsg ) {
-    lastError   = smiErr;
-    lastMessage = "SecondoSMI: " + errMsg;
-               
-  }                      
-  inline static void SetError( const SmiError smiErr,
-                               const char* errMsg ) {
-     lastError   = smiErr;
-     lastMessage = string("SecondoSMI: ") + errMsg;                       
-  }                      
+  static void SetError( const SmiError smiErr ); 
+  static void SetError( const SmiError smiErr, const int sysErr ); 
+  static void SetError( const SmiError smiErr, const string& errMsg );
 /*
 Allows to set an SmiError code and a system error code or an error message.
 (maybe these functions should not be public. Currently messages are
-generated only for errors occuring in the "Berkeley DB"[3] or in "Oracle"[3].)
+generated only for errors occuring in the "Berkeley DB"[3].) 
 
 */
  private:
@@ -813,7 +797,12 @@ The function returns "true"[4], if the lock could be released successfully
 or if the application runs in single user mode.
 
 */
+  static const string SmiEnvironment::Err2Msg( SmiError code );
+/*
+Translate an SMI error code into a message!
 
+*/
+  
   static SmiEnvironment instance;    // Instance of environment
   static SmiError       lastError;   // Last error code
   static string         lastMessage; // Last error message

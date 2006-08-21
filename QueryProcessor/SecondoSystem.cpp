@@ -329,7 +329,8 @@ Precondition: dbState = dbOpen.
 }
 
 bool
-SecondoSystem::SaveDatabase ( const string& filename, const DerivedObj& derivedObjs )
+SecondoSystem::SaveDatabase ( const string& filename, 
+                              const DerivedObj& derivedObjs )
 {
 /*
 Writes the currently open database called ~dbname~ to a file with name
@@ -414,8 +415,9 @@ Precondition: dbState = dbOpen.
     {
       rc = 3; // List structure invalid
     }
-    else if ( RestoreObjects( nl->TwoElemList( nl-> SymbolAtom("OBJECTS"), list ), 
-                              errorInfo ) )
+    else if ( RestoreObjects( 
+                 nl->TwoElemList( nl->SymbolAtom("OBJECTS"), list ), 
+                 errorInfo ) )
     {
       rc = 0; // object successfully restored
     }
@@ -464,13 +466,15 @@ Precondition: dbState = dbClosed.
     assert( false );
   }
 
-  if ( !OpenDatabase( dbname ) )
+  cout << endl << "Opening database " << dbname << " ... " << endl;
+  bool open = OpenDatabase( dbname );
+  if ( !open )
   {
     rc = ERR_IDENT_UNKNOWN_DB_NAME; // Database unknown
   }
   else 
   {
-    cout << "Reading file ..." << endl;
+    cout << "Reading file " << filename << " ... " << endl;
     if ( !nl->ReadFromFile( filename, list ) )
     {
       rc = ERR_PROBLEM_IN_READING_FILE; // Error reading file
@@ -536,17 +540,20 @@ Load database types and objects from file named ~filename~.
           }
           else
           {
-            rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid (Types or objects missing)
+            // List structure invalid (Types or objects missing)
+            rc = ERR_IN_LIST_STRUCTURE_IN_FILE; 
           }
         }
         else
         {
-          rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid (Database info missing)
+          // List structure invalid (Database info missing)
+          rc = ERR_IN_LIST_STRUCTURE_IN_FILE; 
         }
       }
       else
       {
-        rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid (List too short)
+        // List structure invalid (List too short)
+        rc = ERR_IN_LIST_STRUCTURE_IN_FILE; 
       }
       nl->Destroy( listFile );
     }
@@ -680,7 +687,8 @@ SecondoSystem::RestoreObjects( ListExpr objects,
 
       if ( catalog->KindCorrect( typeExpr, errorInfo ) )
       {
-        value = catalog->InObject( typeExpr, valueList, objno, errorInfo, correctObj );
+        value = catalog->InObject( typeExpr, valueList, 
+                                   objno, errorInfo, correctObj );
         if ( correctObj )
         {
           if ( !catalog->InsertObject( objectName, typeName, typeExpr,

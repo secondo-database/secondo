@@ -84,12 +84,18 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
-February 2006, M. Spiekermann. A proper handling of errors when commit or abort transaction 
-fails after command execution was implemented. Further, the scope of variables in function
-Secondo was limited to a minimum, e.g. the declarations were moved nearer to the usage. This
-gives more encapsulation and is easier to understand and maintain.
+February 2006, M. Spiekermann. A proper handling of errors when commit or abort
+transaction fails after command execution was implemented. Further, the scope of
+variables in function Secondo was limited to a minimum, e.g. the declarations
+were moved nearer to the usage. This gives more encapsulation and is easier to
+understand and maintain.
 
 April 2006, M. Spiekermann. Implementation of system tables SEC\_COUNTERS and SEC\_COMMANDS.
+
+August 2006, M. Spiekermann. Bug fix for error messages of create or delete
+database.  The error codes of the SMI module are now integrated into the error
+reporting of the secondo interface. However, currently only a few SMI error
+codes are mapped to strings. 
 
 \tableofcontents
 
@@ -803,7 +809,7 @@ separate functions which should be named Command\_<name>.
           }
           else
           {
-            errorCode = ERR_IDENT_USED;   // identifier already used
+            errorCode = ERR_CREATE_DATABASE;   // create db failed
           }
         }
       }
@@ -821,7 +827,7 @@ separate functions which should be named Command\_<name>.
           if ( !sys.DestroyDatabase( dbName ) )
           {
             // identifier not a known database name
-            errorCode = ERR_IDENT_UNKNOWN_DB_NAME; 
+            errorCode = ERR_DELETE_DATABASE; 
           }
         }
       }
@@ -911,6 +917,7 @@ separate functions which should be named Command\_<name>.
         switch ( errorCode ) // error handling
         {
           case ERR_NO_ERROR:
+          case ERR_DATABASE_OPEN:
           case ERR_IDENT_UNKNOWN_DB_NAME: 
           {
             break;
@@ -925,9 +932,9 @@ separate functions which should be named Command\_<name>.
 
           default: 
           {       
-            cmsg.info() << endl 
-                         << "Error during restore detected. Closing database " 
-                         << dbName;
+            cmsg.info()  
+              << "Error during restore detected. Closing database " 
+              << dbName << " ... ";
             cmsg.send();
         
             if ( !sys.CloseDatabase() ) 
@@ -938,6 +945,7 @@ separate functions which should be named Command\_<name>.
             {
               cmsg.info() << " finished!" << endl;
             }
+            cmsg.info() << endl;
             cmsg.send();
             break;
           }
@@ -1453,10 +1461,19 @@ SecondoInterface::constructErrMsg(int errorCode, string& errorMessage)
     ErrorReporter::Reset();
     errorMessage += repMsg + "\n";
 
+    // Check if there were SMI errors
+    SmiError smiErr = SmiEnvironment::CheckLastErrorCode();
+    if ( smiErr != E_SMI_OK) { 
+      string err;
+      SmiEnvironment::GetLastErrorCode(err);
+      errorMessage += err + "\n"; 
+    }  
+
     cmsg.send(); // flush cmsg buffer
     if ( isCSImpl ) {
       errorMessage += cmsg.getErrorMsg();
     }
+
     errorMessage += GetErrorMessage(errorCode);
   }  
 }

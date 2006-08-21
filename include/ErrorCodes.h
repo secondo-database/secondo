@@ -20,7 +20,10 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-15.09.2004, M. Spiekermann. Creation 
+September 2004, M. Spiekermann. Creation 
+
+August 2006, M. Spiekermann. Some new error codes introduced and documentation
+moved from SecondoInterface.h into this file. 
 
 This file was created to start with a better handling of error codes.
 Functions returning just an integer which is interpreted as an special
@@ -38,10 +41,25 @@ which defines all error codes.
 /*
 1 SecondoInterface Error Codes
 
-The following codes reflect error condition which can occur
-during a call of the SecondoInterface.
+The following codes reflect error conditions which can occur during a call of the
+SecondoInterface. There are five general error codes: 
 
+  * ERR\_NO_ERR: no error
+
+  * ERR\_CMD\_NOT\_RECOGNIZED: command not recognized
+
+  * ERR\_SYNTAX\_ERROR: syntax error in command or expression  (detected by the parser)
+	
+  * ERR\_CMD\_NOT\_YET\_IMPL: command not yet implemented
+
+  * ERR\_CMD\_LEVEL\_NOT\_YET\_IMPL: command level not yet implemented
+
+
+The codes will be mapped to a message string by function 
+~GetErrorMessage~ implemented in file SecondoInterfaceGeneral.cpp
+  
 */
+
 typedef int SI_Error;
 
 const SI_Error ERR_NO_ERROR = 0;
@@ -52,6 +70,8 @@ const SI_Error ERR_NO_OBJ_CREATED = 4;
 const SI_Error ERR_NO_TYPE_DEFINED = 5;
 const SI_Error ERR_NO_DATABASE_OPEN = 6;
 const SI_Error ERR_DATABASE_OPEN = 7;
+const SI_Error ERR_CREATE_DATABASE = 701;
+const SI_Error ERR_DELETE_DATABASE = 702;
 const SI_Error ERR_UNDEF_OBJ_VALUE = 8;
 const SI_Error ERR_SYNTAX_ERROR = 9;
 
@@ -77,6 +97,21 @@ const SI_Error ERR_IN_LIST_STRUCTURE_IN_FILE = 29;
 const SI_Error ERR_CMD_NOT_YET_IMPL = 30;
 const SI_Error ERR_CMD_LEVEL_NOT_YET_IMPL = 31;
 const SI_Error ERR_CMD_NOT_IMPL_AT_THIS_LEVEL = 32;
+
+/*
+The next error messages belong to five groups: 
+
+  1 errors in type definitions in database files
+
+  2 errors in object definitions in database files
+
+  3 errors found by kind checking procedures
+
+  4 errors found by ~In~ procedures of algebras in the list representations for values
+
+  5 errors found by type checking procedures in algebras (this group does not yet exist at the moment)
+
+*/
 
 const SI_Error ERR_IN_TYPE_DEFINITION = 40;  
 const SI_Error ERR_NAME_DOUBLY_DEFINED = 41;
@@ -107,6 +142,9 @@ const SI_Error ERR_UNKNOWN_RETURN_CODE = -1;
 
 /*
 2 SMI Error Codes
+
+The codes will be mapped to a message string by function 
+~Err2Msg~ implemented in file smiEnvironment.cpp
 
 */
 
