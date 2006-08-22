@@ -217,40 +217,40 @@ void MPoint::MSpeed( MReal& result ) const
       result.StartBulkLoad();
 
       for( int i = 0; i < GetNoComponents(); i++ )
-        {
-          Get( i, uPoint );
-          
-          x0 = uPoint->p0.GetX(); // initial pos
-          y0 = uPoint->p0.GetY();
-          
-          x1 = uPoint->p1.GetX(); // final pos
-          y1 = uPoint->p1.GetY();
-          
-          uReal.timeInterval = uPoint->timeInterval; // copy interval 
-          inf = uReal.timeInterval.start;            // for result 
-          sup = uReal.timeInterval.end;              // from argument
-          
-          t0 = inf.ToDouble(); // convert to milliseconds
-          t1 = sup.ToDouble();
-          
-          duration = (t1 - t0)/1000; // interval duration to seconds
-          
-          /*
-            The point unit can be represented as a function of
-            f(t) = (x0 + x1 * t, y0 + y1 * t).
-            The result of the derivation is the constant (x1,y1).
-            The speed is constant in each time interval.
-            Its value is represented by variable c. The variables a and b  
-            are set to zero.
-            
-          */
-          uReal.a = 0;
-          uReal.b = 0;
-          uReal.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
-          uReal.r = false;
-          
-          result.Add( uReal ); // append ureal to mreal
-        }
+	{
+	  Get( i, uPoint );
+	  
+	  x0 = uPoint->p0.GetX(); // initial pos
+	  y0 = uPoint->p0.GetY();
+	  
+	  x1 = uPoint->p1.GetX(); // final pos
+	  y1 = uPoint->p1.GetY();
+	  
+	  uReal.timeInterval = uPoint->timeInterval; // copy interval 
+	  inf = uReal.timeInterval.start;            // for result 
+	  sup = uReal.timeInterval.end;              // from argument
+	  
+	  t0 = inf.ToDouble(); // convert to milliseconds
+	  t1 = sup.ToDouble();
+	  
+	  duration = (t1 - t0)/1000; // interval duration to seconds
+	  
+	  /*
+	    The point unit can be represented as a function of
+	    f(t) = (x0 + x1 * t, y0 + y1 * t).
+	    The result of the derivation is the constant (x1,y1).
+	    The speed is constant in each time interval.
+	    Its value is represented by variable c. The variables a and b  
+	    are set to zero.
+	    
+	  */
+	  uReal.a = 0;
+	  uReal.b = 0;
+	  uReal.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
+	  uReal.r = false;
+	  
+	  result.Add( uReal ); // append ureal to mreal
+	}
       result.EndBulkLoad( false );
     }
 }
@@ -276,20 +276,20 @@ void UPoint::USpeed( UReal& result ) const
       result.timeInterval = timeInterval;
       
       if (result.IsDefined() )
-        {
-          inf = result.timeInterval.start;
-          sup = result.timeInterval.end;
-          
-          t0 = inf.ToDouble();
-          t1 = sup.ToDouble();
-          
-          duration = (t1 - t0)/1000;   // value in seconds
-          
-          result.a = 0;                // speed is constant in the interval
-          result.b = 0;
-          result.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
-          result.r = false;
-        }
+	{
+	  inf = result.timeInterval.start;
+	  sup = result.timeInterval.end;
+	  
+	  t0 = inf.ToDouble();
+	  t1 = sup.ToDouble();
+	  
+	  duration = (t1 - t0)/1000;   // value in seconds
+	  
+	  result.a = 0;                // speed is constant in the interval
+	  result.b = 0;
+	  result.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
+	  result.r = false;
+	}
     }
 }
 
@@ -315,41 +315,41 @@ void MPoint::MVelocity( MPoint& result ) const
       result.StartBulkLoad();
 
       for( int i = 0; i < GetNoComponents(); i++ )
-        {
-          Get( i, uPoint );
-          
-          x0 = uPoint->p0.GetX(); // initial coordinates
-          y0 = uPoint->p0.GetY();
-          
-          x1 = uPoint->p1.GetX(); // final coordinates
-          y1 = uPoint->p1.GetY();
-          
-          inf = uPoint->timeInterval.start;
-          sup = uPoint->timeInterval.end;
-          
-          t0 = inf.ToDouble();
-          t1 = sup.ToDouble();
-          
-          duration = (t1 - t0)/1000;    // value in second
-          
-          //  create an interval:
-          Interval<Instant> iv(uPoint->timeInterval.start,
-                               uPoint->timeInterval.end,
-                               uPoint->timeInterval.lc,
-                               uPoint->timeInterval.rc);
-          
-          /*
-            Definition of a new point unit p. The velocity is constant
-            at all times of the interval of the unit. This is exactly
-            the same as within operator ~speed~. The result is a vector
-            and can be represented as a upoint.
-            
-          */
-          
-          UPoint p(iv,(x1-x0)/duration,0,(y1- y0)/duration,0);
-          
-          result.Add( p );
-        }
+	{
+	  Get( i, uPoint );
+	  
+	  x0 = uPoint->p0.GetX(); // initial coordinates
+	  y0 = uPoint->p0.GetY();
+	  
+	  x1 = uPoint->p1.GetX(); // final coordinates
+	  y1 = uPoint->p1.GetY();
+	  
+	  inf = uPoint->timeInterval.start;
+	  sup = uPoint->timeInterval.end;
+	  
+	  t0 = inf.ToDouble();
+	  t1 = sup.ToDouble();
+	  
+	  duration = (t1 - t0)/1000;    // value in second
+	  
+	  //  create an interval:
+	  Interval<Instant> iv(uPoint->timeInterval.start,
+			       uPoint->timeInterval.end,
+			       uPoint->timeInterval.lc,
+			       uPoint->timeInterval.rc);
+	  
+	  /*
+	    Definition of a new point unit p. The velocity is constant
+	    at all times of the interval of the unit. This is exactly
+	    the same as within operator ~speed~. The result is a vector
+	    and can be represented as a upoint.
+	    
+	  */
+	  
+	  UPoint p(iv,(x1-x0)/duration,0,(y1- y0)/duration,0);
+	  
+	  result.Add( p );
+	}
       result.EndBulkLoad( false );
     }
 }
@@ -375,25 +375,25 @@ void UPoint::UVelocity( UPoint& result ) const
       result.timeInterval = timeInterval;
       
       if (result.IsDefined() )
-        {
-          inf = result.timeInterval.start;
-          sup = result.timeInterval.end;
-          
-          t0 = inf.ToDouble();
-          t1 = sup.ToDouble();
+	{
+	  inf = result.timeInterval.start;
+	  sup = result.timeInterval.end;
+	  
+	  t0 = inf.ToDouble();
+	  t1 = sup.ToDouble();
 
-          duration = (t1 - t0)/1000;   // value in second
+	  duration = (t1 - t0)/1000;   // value in second
 
-          Interval<Instant> iv(result.timeInterval.start,
-                               result.timeInterval.end,
-                               result.timeInterval.lc,
-                               result.timeInterval.rc);
+	  Interval<Instant> iv(result.timeInterval.start,
+			       result.timeInterval.end,
+			       result.timeInterval.lc,
+			       result.timeInterval.rc);
 
-          UPoint p(iv,(x1-x0)/duration,0,(y1-y0)/duration,0);
-          
-          result.CopyFrom( &p );
-          
-        }
+	  UPoint p(iv,(x1-x0)/duration,0,(y1-y0)/duration,0);
+	  
+	  result.CopyFrom( &p );
+	  
+	}
     }
 }
 
@@ -413,20 +413,24 @@ void UPoint::UTrajectory( Line& line ) const
   if ( ! IsDefined() )
     line.SetDefined( false );
   else 
-  {
-    line.StartBulkLoad();
-      
-    if( !AlmostEqual( p0, p1 ) )
     {
-      HalfSegment hs( true, p0, p1 );
-          
-            line += hs;
-            hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
-            line += hs;
-    }
       
-    line.EndBulkLoad();
-  }
+      line.StartBulkLoad();
+      
+      HalfSegment hs;
+      
+      if( !AlmostEqual( p0, p1 ) )
+	{
+	  
+	  hs.Set( true, p0, p1 );
+
+	  line += hs;
+	  hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+	  line += hs;
+	}
+      
+      line.EndBulkLoad();
+    }
 }
 
 
@@ -502,13 +506,13 @@ UnitCombinedUnitStreamSelect( ListExpr args )
       && ( nl->ListLength(arg1) == 2 )
       && ( TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) )
     { if( nl->IsEqual( nl->Second(arg1), "ubool" ) )
-        return 4;
+	return 4;
       if( nl->IsEqual( nl->Second(arg1), "uint" ) )
-        return 5;
+	return 5;
       if( nl->IsEqual( nl->Second(arg1), "ureal" ) )
-        return 6;
+	return 6;
       if( nl->IsEqual( nl->Second(arg1), "upoint" ) )
-        return 7;
+	return 7;
     }
   
   return -1; // This point should never be reached
@@ -776,20 +780,20 @@ int Point2d( Word* args, Word& result, int message, Word& local, Supplier s )
       X = 0; 
       Y = 0;
       if( !range->IsEmpty()  )
-        {
-          const Interval<Instant> *intv1, *intv2;
-          
-          range->Get( 0, intv1 );
-          range->Get( range->GetNoComponents()-1, intv2 );
-          
-          Interval<Instant> timeInterval(intv1->start,intv2->end,
-                                         intv1->lc,intv2->rc);
-          
-          sup = timeInterval.end;
-          inf = timeInterval.start;
-          Y = sup.ToDouble(); // Derives the maximum of all intervals.
-          X = inf.ToDouble(); // Derives the minimum of all intervals.
-        }
+	{
+	  const Interval<Instant> *intv1, *intv2;
+	  
+	  range->Get( 0, intv1 );
+	  range->Get( range->GetNoComponents()-1, intv2 );
+	  
+	  Interval<Instant> timeInterval(intv1->start,intv2->end,
+					 intv1->lc,intv2->rc);
+	  
+	  sup = timeInterval.end;
+	  inf = timeInterval.start;
+	  Y = sup.ToDouble(); // Derives the maximum of all intervals.
+	  X = inf.ToDouble(); // Derives the minimum of all intervals.
+	}
       ((Point*)result.addr)->Set(X,Y ); // Returns the calculated point.
     }
   
@@ -870,28 +874,28 @@ int Size( Word* args, Word& result, int message, Word& local, Supplier s )
   else 
     {
       if( !range->IsEmpty()  )
-        {
-          const Interval<Instant> *intv1, *intv2;
-          duration = 0;
+	{
+	  const Interval<Instant> *intv1, *intv2;
+	  duration = 0;
       
-          for( int i = 0; i < range->GetNoComponents(); i++ )
-            {
-              range->Get( i, intv1 );
-              range->Get( i, intv2 );
-              
-              Interval<Instant> timeInterval(intv1->start,intv2->end,
-                                             intv1->lc, intv2->rc);
-          
-              sup = timeInterval.end;
-              inf = timeInterval.start;
-              
-              intervalue_sup = sup.ToDouble();
-              intervalue_inf = inf.ToDouble();
-              // summarize all time intervals in seconds:
-              duration += (intervalue_sup - intervalue_inf)/1000;
-            }
-          res = duration;
-        }
+	  for( int i = 0; i < range->GetNoComponents(); i++ )
+	    {
+	      range->Get( i, intv1 );
+	      range->Get( i, intv2 );
+	      
+	      Interval<Instant> timeInterval(intv1->start,intv2->end,
+					     intv1->lc, intv2->rc);
+	  
+	      sup = timeInterval.end;
+	      inf = timeInterval.start;
+	      
+	      intervalue_sup = sup.ToDouble();
+	      intervalue_inf = inf.ToDouble();
+	      // summarize all time intervals in seconds:
+	      duration += (intervalue_sup - intervalue_inf)/1000;
+	    }
+	  res = duration;
+	}
       ((CcReal*)result.addr)->Set(true, res);  // return the resulT
     }
   return 0;
@@ -959,7 +963,7 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
 
   //check the list length.
   CHECK_COND(nl->ListLength(args) == 2,
-             "Operator makemvalue expects a list of length two.");
+	     "Operator makemvalue expects a list of length two.");
   
   first = nl->First(args);
   nl->WriteToString(argstr, first);
@@ -967,11 +971,11 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
 
   // check the structure of the list.
   CHECK_COND(nl->ListLength(first) == 2  &&
-             (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-             (nl->ListLength(nl->Second(first)) == 2) &&
-             (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-             (nl->ListLength(nl->Second(first)) == 2) &&
-             (IsTupleDescription(nl->Second(nl->Second(first)))),
+	     (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+	     (nl->ListLength(nl->Second(first)) == 2) &&
+	     (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
+	     (nl->ListLength(nl->Second(first)) == 2) &&
+	     (IsTupleDescription(nl->Second(nl->Second(first)))),
   "Operator makemvalue expects as first argument a list with structure "
   "(stream (tuple ((a1 t1)...(an tn))))\n"
   "Operator makemvalue gets as first argument '" + argstr + "'." );
@@ -1013,7 +1017,7 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
 
       // compare with the attributes in the relation
       if (attrname == inputname)
-        inputtype = argstr2;
+	inputtype = argstr2;
 
       // save from the detected attribute the type
     }
@@ -1023,15 +1027,15 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
   
 
   CHECK_COND(!(inputtype == "") ,
-             "Operator makemvalue: Attribute name '"+ inputname+
-             "' is not known.\n"+
-             "Known Attribute(s): " + fulllist);
+	     "Operator makemvalue: Attribute name '"+ inputname+
+	     "' is not known.\n"+
+	     "Known Attribute(s): " + fulllist);
   
   CHECK_COND( (inputtype == "ubool"
-               || inputtype == "uint"
-               || inputtype == "ureal"
-               || inputtype == "upoint" ),
-              "Attribute type is not of type ubool, uint, ureal or upoint.");
+	       || inputtype == "uint"
+	       || inputtype == "ureal"
+	       || inputtype == "upoint" ),
+	      "Attribute type is not of type ubool, uint, ureal or upoint.");
   
   attrname = nl->SymbolValue(second);
   j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
@@ -1048,8 +1052,8 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
     attrtype = nl->SymbolAtom( "mint" );
   
   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-           nl->TwoElemList(nl->IntAtom(j),
-           nl->StringAtom(nl->SymbolValue(attrtype))), attrtype);
+	   nl->TwoElemList(nl->IntAtom(j),
+	   nl->StringAtom(nl->SymbolValue(attrtype))), attrtype);
   
   // Appending the number of the attribute in the relation is very important,
   // because in the other case we can't work with it in the value function.
@@ -1094,14 +1098,14 @@ int MappingMakemvalue(Word* args,Word& result,int message,
     {
       Tuple* currentTuple = (Tuple*)currentTupleWord.addr;
       Attribute* currentAttr = (Attribute*)currentTuple->
-        GetAttribute(attributeIndex);
+	GetAttribute(attributeIndex);
       
       if(currentAttr->IsDefined())
-        {
-          unit = (Unit*) currentAttr;
-          m->Add( *unit );
-          currentTuple->DeleteIfAllowed();
-        }
+	{
+	  unit = (Unit*) currentAttr;
+	  m->Add( *unit );
+	  currentTuple->DeleteIfAllowed();
+	}
       qp->Request(args[0].addr, currentTupleWord);
     }
   m->EndBulkLoad( false );
@@ -1478,7 +1482,7 @@ UnitPeriodsTypeMap( ListExpr args )
   if ( nl->ListLength( args ) != 2 )
     {
       ErrorReporter::ReportError("Operator atperiods expects "
-                                        "a list of length 2.");
+				 "a list of length 2.");
       return nl->SymbolAtom( "typeerror" );
     }
 
@@ -1489,7 +1493,7 @@ UnitPeriodsTypeMap( ListExpr args )
   if ( !( nl->IsEqual( arg2, "periods" ) ) )
     {
       ErrorReporter::ReportError("Operator atperiods expects a second argument"
-                             " of type 'periods' but gets '" + argstr + "'.");
+			     " of type 'periods' but gets '" + argstr + "'.");
       return nl->SymbolAtom( "typeerror" );
     }
 
@@ -1506,12 +1510,12 @@ UnitPeriodsTypeMap( ListExpr args )
                nl->SymbolAtom("ureal"));
       if( nl->IsEqual( arg1, "upoint" ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
-                               nl->SymbolAtom("upoint"));
+			       nl->SymbolAtom("upoint"));
 
       nl->WriteToString(argstr, arg1);
       ErrorReporter::ReportError("Operator atperiods expect a first argument "
                                  "of type T in {ubool, uint, ureal, upoint} "
-                                 "but gets a '" + argstr + "'.");
+				 "but gets a '" + argstr + "'.");
       return nl->SymbolAtom( "typeerror" );
     }
 
@@ -1519,39 +1523,39 @@ UnitPeriodsTypeMap( ListExpr args )
     {
       nl->WriteToString(argstr, arg1);
       if ( !( TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) )
-        {
-          ErrorReporter::ReportError("Operator atperiods expects as first "
-                                     "argument a list with structure 'T' or "
-                                     "'stream(T)', T in {ubool, uint, ureal, "
-                                     "upoint} but gets a list with structure '" 
-                                     + argstr + "'.");
-          return nl->SymbolAtom( "typeerror" );
-        }
+	{
+	  ErrorReporter::ReportError("Operator atperiods expects as first "
+				     "argument a list with structure 'T' or "
+				     "'stream(T)', T in {ubool, uint, ureal, "
+				     "upoint} but gets a list with structure '" 
+				     + argstr + "'.");
+	  return nl->SymbolAtom( "typeerror" );
+	}
       
       if( nl->IsEqual( nl->Second(arg1), "ubool" ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
-                               nl->SymbolAtom("ubool"));
+			       nl->SymbolAtom("ubool"));
       if( nl->IsEqual( nl->Second(arg1), "uint" ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
-                               nl->SymbolAtom("uint"));
+			       nl->SymbolAtom("uint"));
       if( nl->IsEqual( nl->Second(arg1), "ureal" ) )
          return nl->TwoElemList(nl->SymbolAtom("stream"),
-                                nl->SymbolAtom("ureal"));
+				nl->SymbolAtom("ureal"));
       if( nl->IsEqual( nl->Second(arg1), "upoint" ) )
-         return nl->TwoElemList(nl->SymbolAtom("stream"),
-                                 nl->SymbolAtom("upoint"));
+	 return nl->TwoElemList(nl->SymbolAtom("stream"),
+				 nl->SymbolAtom("upoint"));
 
       nl->WriteToString(argstr, nl->Second(arg1));
       ErrorReporter::ReportError("Operator atperiods expects a type "
                               "(stream T); T in {ubool, uint, ureal, upoint} "
-                              "but gets '(stream " + argstr + ")'.");
+			      "but gets '(stream " + argstr + ")'.");
       return nl->SymbolAtom( "typeerror" );
     };
 
   nl->WriteToString( argstr, args );
   ErrorReporter::ReportError("Operator atperiods encountered an "
-                             "unmatched typerror for arguments '"
-                             + argstr + "'.");
+			     "unmatched typerror for arguments '"
+			     + argstr + "'.");
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -1608,14 +1612,14 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
     
     if( interval->Before( unit->timeInterval ) )
       {
-        while (1)
-          {
-            if( ++localinfo->j == periods->GetNoComponents() )
-              break;
-            periods->Get(localinfo->j, interval);
-            if (!( interval->Before( unit->timeInterval )))
-              break;
-          }
+	while (1)
+	  {
+	    if( ++localinfo->j == periods->GetNoComponents() )
+	      break;
+	    periods->Get(localinfo->j, interval);
+	    if (!( interval->Before( unit->timeInterval )))
+	      break;
+	  }
       }
 
     if( localinfo->j >= periods->GetNoComponents() ) {
@@ -1625,16 +1629,16 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
     
     if( unit->timeInterval.Before( *interval ) )
       {
-        result.addr = 0;
-        return CANCEL;
+	result.addr = 0;
+	return CANCEL;
       }
     else
       {
-        unit->AtInterval( *interval, r );
-        Mapping* aux = new Mapping( r );
-        result = SetWord( aux );
-        localinfo->j++;
-        return YIELD;
+	unit->AtInterval( *interval, r );
+	Mapping* aux = new Mapping( r );
+	result = SetWord( aux );
+	localinfo->j++;
+	return YIELD;
       }
     
     return CANCEL; // should not happen
@@ -1700,20 +1704,20 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
     // search for a pair of overlapping unit/interval:
     while (1)
       {
-        if ( localinfo->j == periods->GetNoComponents() ) // redo first interval
-          { localinfo->j = 0;
-            unit->DeleteIfAllowed();                // delete original unit?
-            qp->Request(args[0].addr, localinfo->uWord);  // get new unit
-            if( qp->Received( args[0].addr ) )
-              unit = (Mapping *) localinfo->uWord.addr;
-            else 
-              { result.addr = 0; return CANCEL; }   // end of unit stream
-          }
-        periods->Get(localinfo->j, interval);       // get an interval
-        if (    !( interval->Before( unit->timeInterval ) )
-                && !( unit->timeInterval.Before( *interval) ) )
-          break;                           // found candidate, break while
-        localinfo->j++;                             // next interval, loop
+	if ( localinfo->j == periods->GetNoComponents() ) // redo first interval
+	  { localinfo->j = 0;
+	    unit->DeleteIfAllowed();                // delete original unit?
+	    qp->Request(args[0].addr, localinfo->uWord);  // get new unit
+	    if( qp->Received( args[0].addr ) )
+	      unit = (Mapping *) localinfo->uWord.addr;
+	    else 
+	      { result.addr = 0; return CANCEL; }   // end of unit stream
+	  }
+	periods->Get(localinfo->j, interval);       // get an interval
+	if (    !( interval->Before( unit->timeInterval ) )
+		&& !( unit->timeInterval.Before( *interval) ) )
+	  break;                           // found candidate, break while
+	localinfo->j++;                             // next interval, loop
       }
     
     // We have an interval possibly overlapping the unit's interval now
@@ -1727,13 +1731,13 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
   case CLOSE:
     if ( local.addr != 0 )
       {
-        localinfo = (AtPeriodsLocalInfoUS *) local.addr;
-        if ( localinfo->uWord.addr != 0 )
-          {
-            unit = (Mapping *) localinfo->uWord.addr;
-            unit->DeleteIfAllowed();   // delete remaining original unit
-          }
-        delete (AtPeriodsLocalInfoUS *)localinfo;
+	localinfo = (AtPeriodsLocalInfoUS *) local.addr;
+	if ( localinfo->uWord.addr != 0 )
+	  {
+	    unit = (Mapping *) localinfo->uWord.addr;
+	    unit->DeleteIfAllowed();   // delete remaining original unit
+	  }
+	delete (AtPeriodsLocalInfoUS *)localinfo;
       }
     return 0;
     
@@ -2337,51 +2341,55 @@ int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
       
       res->StartBulkLoad();
       
+      // Definition of an empty region:
+      Region rg;
       HalfSegment hs;
       
       
       if (( p->IsDefined())&&(n>3)&&(n<100)&&(radius >0.0))
-        {
-          
-          //  Determination of a n polygon.
-          //  Division of 360 degree in n parts with the help of
-          //  a standardised circle and the circumference. U = 2 * PI
-          
-          for( int i = 0; i < n; i++ )
-            {
-              angle = i * 2 * PI/n;
-              valueX = x + radius * cos(angle);
-              valueY = y + radius * sin(angle);
-              
-              //  The first point of the segment of a region.
-              //  The x-value can be defined with the cosine and
-              //  the y-value with the sine.
-              
-              Point edge1(true, valueX ,valueY);
-              
-              hs.attr.faceno = 0;
-              hs.attr.cycleno = 0;
-              hs.attr.edgeno = partnerno;
-              hs.attr.partnerno = partnerno++;
-              
-              if ((i+1) >= n)
-                angle = 0 * 2 * PI/n;
-              else
-                angle = (i+1) * 2 * PI/n;
-              
-              valueX = x + radius * cos(angle);
-              valueY = y + radius * sin(angle);
-              // The second point of the segment of a region.
-              Point edge2(true, valueX ,valueY);
-              
-              // Definition of the halfsegments.
-              hs.Set(true, edge1, edge2);
-              *res += hs;
-          hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
-          *res += hs;          
-            }      
-        }
-      res->EndBulkLoad();
+	{
+	  
+	  //  Determination of a n polygon.
+	  //  Division of 360 degree in n parts with the help of
+	  //  a standardised circle and the circumference. U = 2 * PI
+	  
+	  for( int i = 0; i < n; i++ )
+	    {
+	      angle = i * 2 * PI/n;
+	      valueX = x + radius * cos(angle);
+	      valueY = y + radius * sin(angle);
+	      
+	      //  The first point of the segment of a region.
+	      //  The x-value can be defined with the cosine and
+	      //  the y-value with the sine.
+	      
+	      Point edge1(true, valueX ,valueY);
+	      
+	      hs.attr.faceno = 0;
+	      hs.attr.cycleno = 0;
+	      hs.attr.edgeno = partnerno;
+	      hs.attr.partnerno = partnerno++;
+	      
+	      if ((i+1) >= n)
+		angle = 0 * 2 * PI/n;
+	      else
+		angle = (i+1) * 2 * PI/n;
+	      
+	      valueX = x + radius * cos(angle);
+	      valueY = y + radius * sin(angle);
+	      // The second point of the segment of a region.
+	      Point edge2(true, valueX ,valueY);
+	      
+	      // Definition of the halfsegments.
+	      hs.Set(true, edge1, edge2);
+	      *res += hs;
+	      hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+	      *res += hs;	  
+	    }      
+	}
+      res->EndBulkLoad(true);
+      res->SetPartnerNo();
+      res->ComputeRegion();
     }
   return 0;
 }
@@ -2645,19 +2653,19 @@ int MPointDerivable( Word* args, Word& result, int message,
     {
       res->StartBulkLoad();
       for( int i = 0; i < value->GetNoComponents(); i++ )
-        {          
-          value->Get( i, uReal ); // Load a real unit.
+	{	  
+	  value->Get( i, uReal ); // Load a real unit.
 
-          // FALSE means in this case that a real unit describes a quadratic
-          // polynomial. A derivation is possible and the operator returns TRUE.
-          if (uReal->r == false)
-            b.Set(true,true);
-          else
-            b.Set(true,false);
-          
-          UBool boolvalue (uReal->timeInterval,b);
-          res->Add( boolvalue );
-        }
+	  // FALSE means in this case that a real unit describes a quadratic
+	  // polynomial. A derivation is possible and the operator returns TRUE.
+	  if (uReal->r == false)
+	    b.Set(true,true);
+	  else
+	    b.Set(true,false);
+	  
+	  UBool boolvalue (uReal->timeInterval,b);
+	  res->Add( boolvalue );
+	}
       res->EndBulkLoad( false );
     }
   return 0;
@@ -2788,29 +2796,29 @@ int MPointDerivative( Word* args, Word& result, int message,
       res->StartBulkLoad();
       
       for( int i = 0; i < value->GetNoComponents(); i++ )
-        { // load a real unit
-          value->Get( i, Unit );
-          
-          // FALSE means in this case that a real unit describes a quadratic
-          // polynomial. A derivation is possible. 
-          // The polynom looks like at^2 + bt + c.
-          // The derivative of this polynom is 2at + b.
-          if (Unit->r == false)
-            {
-              uReal.timeInterval = Unit->timeInterval;
-              uReal.a = 0;
-              uReal.b = 2 * Unit->a;
-              uReal.c = Unit->b;
-          uReal.r = Unit->r;
-            }
-          else
-            {
-              // derivation of the real unit is not possible
-              uReal.SetDefined(false);
-            }
-          
-          res->Add( uReal );
-        }
+	{ // load a real unit
+	  value->Get( i, Unit );
+	  
+	  // FALSE means in this case that a real unit describes a quadratic
+	  // polynomial. A derivation is possible. 
+	  // The polynom looks like at^2 + bt + c.
+	  // The derivative of this polynom is 2at + b.
+	  if (Unit->r == false)
+	    {
+	      uReal.timeInterval = Unit->timeInterval;
+	      uReal.a = 0;
+	      uReal.b = 2 * Unit->a;
+	      uReal.c = Unit->b;
+	  uReal.r = Unit->r;
+	    }
+	  else
+	    {
+	      // derivation of the real unit is not possible
+	      uReal.SetDefined(false);
+	    }
+	  
+	  res->Add( uReal );
+	}
       res->EndBulkLoad( false );
     }
   else // value is undefined
@@ -2829,17 +2837,17 @@ int UnitPointDerivative( Word* args, Word& result, int message,
   if (Unit->IsDefined())
     {
       if (Unit->r == false)
-        {
-          res->timeInterval = Unit->timeInterval;
-          res->a = 0;
-          res->b = 2 * Unit->a;
-          res->c = Unit->b;
-          res->r = Unit->r;
-        }
+	{
+	  res->timeInterval = Unit->timeInterval;
+	  res->a = 0;
+	  res->b = 2 * Unit->a;
+	  res->c = Unit->b;
+	  res->r = Unit->r;
+	}
       else
-        {
-          res->SetDefined(false);
-        }
+	{
+	  res->SetDefined(false);
+	}
       
     }
   else // Unit is undefines
@@ -2901,24 +2909,24 @@ TypeMapUfeed( ListExpr args )
       arg1 = nl->First(args);
       
       if( nl->IsEqual( arg1, "ubool" ) )
-        return nl->TwoElemList(nl->SymbolAtom("stream"),
-                               nl->SymbolAtom("ubool"));
+	return nl->TwoElemList(nl->SymbolAtom("stream"),
+			       nl->SymbolAtom("ubool"));
       
       if( nl->IsEqual( arg1, "uint" ) )
-        return nl->TwoElemList(nl->SymbolAtom("stream"),
-                               nl->SymbolAtom("uint"));
+	return nl->TwoElemList(nl->SymbolAtom("stream"),
+			       nl->SymbolAtom("uint"));
       
       if( nl->IsEqual( arg1, "ureal" ) )
-        return nl->TwoElemList(nl->SymbolAtom("stream"),
-                               nl->SymbolAtom("ureal"));
+	return nl->TwoElemList(nl->SymbolAtom("stream"),
+			       nl->SymbolAtom("ureal"));
       
       if( nl->IsEqual( arg1, "upoint" ) )
-        return nl->TwoElemList(nl->SymbolAtom("stream"),
-                               nl->SymbolAtom("upoint"));
+	return nl->TwoElemList(nl->SymbolAtom("stream"),
+			       nl->SymbolAtom("upoint"));
     }
   ErrorReporter::ReportError("Operator ufeed  expects a list of length one, "
-                             "containing a value of one type of {uint, ubool, "
-                             "ureal, upoint}.");
+			     "containing a value of one type of {uint, ubool, "
+			     "ureal, upoint}.");
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -2934,7 +2942,7 @@ struct UnitFeedLocalInfo
 
 template <class Mapping>
 int MappingUnitFeed( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
+		     Word& local, Supplier s )
 {
   UnitFeedLocalInfo *localinfo;
   Mapping *unit;
@@ -2950,21 +2958,21 @@ int MappingUnitFeed( Word* args, Word& result, int message,
 
     case REQUEST:
       if ( local.addr == 0 ) 
-        return CANCEL;
+	return CANCEL;
       localinfo = ( UnitFeedLocalInfo *)local.addr;
       if ( localinfo->finished )
-        return CANCEL;
+	return CANCEL;
       unit = (Mapping *)localinfo->uWord.addr;
       result = SetWord( unit );
       localinfo->finished = true;
       return YIELD;
-        
+	
     case CLOSE:
       if ( local.addr == 0 ) 
-        { 
-          localinfo = ( UnitFeedLocalInfo*) local.addr;
-          delete localinfo;
-        }
+	{ 
+	  localinfo = ( UnitFeedLocalInfo*) local.addr;
+	  delete localinfo;
+	}
       return 0;     
     }
   return -1; // should not be reached
@@ -2993,9 +3001,9 @@ Uses ~UnitSimpleSelect~.
 */
 
 ValueMapping temporalunitfeedmap[] = { MappingUnitFeed<UBool>,
-                                       MappingUnitFeed<UInt>,
-                                       MappingUnitFeed<UReal>,
-                                       MappingUnitFeed<UPoint>};
+				       MappingUnitFeed<UInt>,
+				       MappingUnitFeed<UReal>,
+				       MappingUnitFeed<UPoint>};
 
 /*
 5.19.5  Definition of operator ~ufeed~
@@ -3061,9 +3069,9 @@ TypeMapSuse( ListExpr args )
        || !(TypeOfRelAlgSymbol(nl->First(sarg1) == stream )) )
     {
       ErrorReporter::ReportError(
-        "Operator suse expects its first Argument to "
-        "be of type '(stream T), for T in kind DATA)'.");
-      return nl->SymbolAtom( "typeerror" );              
+	"Operator suse expects its first Argument to "
+	"be of type '(stream T), for T in kind DATA)'.");
+      return nl->SymbolAtom( "typeerror" );	      
     }
   sarg1Type = nl->Second(sarg1);
   
@@ -3074,17 +3082,17 @@ TypeMapSuse( ListExpr args )
     {
       nl->WriteToString(outstr1, sarg1Type);      
       ErrorReporter::ReportError("Operator suse expects its 1st argument "
-                                 "to be '(stream T)', T of kind DATA, but"
-                                 "receives '" + outstr1 + "' as T.");
+				 "to be '(stream T)', T of kind DATA, but"
+				 "receives '" + outstr1 + "' as T.");
 
       return nl->SymbolAtom( "typeerror" );      
     }
   
   if ( !nl->IsAtom( sarg1Type ) &&
        ( (nl->ListLength( sarg1Type ) != 2) ||
-         !nl->IsEqual( nl->First(sarg1Type), "tuple") ||
-         !IsTupleDescription(nl->Second(sarg1Type))
-         ) 
+	 !nl->IsEqual( nl->First(sarg1Type), "tuple") ||
+	 !IsTupleDescription(nl->Second(sarg1Type))
+	 ) 
        )
     {
       nl->WriteToString(outstr1, sarg1);
@@ -3096,15 +3104,15 @@ TypeMapSuse( ListExpr args )
     {
       nl->WriteToString(outstr1, map);
       ErrorReporter::ReportError("Operator suse expects a map as "
-                                 "2nd argument, but gets '" + outstr1 +
-                                 "' instead.");
+				 "2nd argument, but gets '" + outstr1 +
+				 "' instead.");
       return nl->SymbolAtom( "typeerror" );
     }    
 
   if ( nl->ListLength(map) != 3 )       
     {
       ErrorReporter::ReportError("Number of map arguments must be 1 "
-                                 "for operator suse.");
+				 "for operator suse.");
       return nl->SymbolAtom( "typeerror" );
     }
 
@@ -3119,11 +3127,11 @@ TypeMapSuse( ListExpr args )
       nl->WriteToString(outstr1, sarg1Type);
       nl->WriteToString(outstr2, marg1);
       ErrorReporter::ReportError("Operator suse: 1st argument's stream"
-                                 "type does not match the type of the "
-                                 "mapping's 1st argument. If e.g. the first "
-                                 "is 'stream X', then the latter must be 'X'."
-                                 "The types passed are '" + outstr1 + 
-                                 "' and '" + outstr2 + "'.");
+				 "type does not match the type of the "
+				 "mapping's 1st argument. If e.g. the first "
+				 "is 'stream X', then the latter must be 'X'."
+				 "The types passed are '" + outstr1 + 
+				 "' and '" + outstr2 + "'.");
       return nl->SymbolAtom( "typeerror" );
     }
 
@@ -3131,29 +3139,29 @@ TypeMapSuse( ListExpr args )
   if( !( nl->IsAtom( mres ) ) && ( nl->ListLength( mres ) == 2) ) 
     {
       if (  TypeOfRelAlgSymbol(nl->First(mres) == stream ) )
-        {
-          if ( !am->CheckKind("DATA", nl->Second(mres), errorInfo) )
-            {
-              ErrorReporter::ReportError(
-                "Operator suse expects its 2nd Argument to "
-                "return a '(stream T)', T of kind DATA'.");
-              return nl->SymbolAtom( "typeerror" );              
-            }
-          sresType = mres; // map result type is already a stream
-          nl->WriteToString(outstr1, sresType);
-          cout << "\nTypeMapSuse Resulttype (1): " << outstr1 << "\n";
-          return sresType;
-        }
+	{
+	  if ( !am->CheckKind("DATA", nl->Second(mres), errorInfo) )
+	    {
+	      ErrorReporter::ReportError(
+		"Operator suse expects its 2nd Argument to "
+		"return a '(stream T)', T of kind DATA'.");
+	      return nl->SymbolAtom( "typeerror" );	      
+	    }
+	  sresType = mres; // map result type is already a stream
+	  nl->WriteToString(outstr1, sresType);
+	  cout << "\nTypeMapSuse Resulttype (1): " << outstr1 << "\n";
+	  return sresType;
+	}
     }
   else // map result type is not a stream, so encapsulate it
     {
       if ( !am->CheckKind("DATA", mres, errorInfo) )
-        {
-          ErrorReporter::ReportError(
-            "Operator suse expects its 2nd Argument to "
-            "return a type of kind DATA.");
-          return nl->SymbolAtom( "typeerror" );              
-        }
+	{
+	  ErrorReporter::ReportError(
+	    "Operator suse expects its 2nd Argument to "
+	    "return a type of kind DATA.");
+	  return nl->SymbolAtom( "typeerror" );	      
+	}
       sresType = nl->TwoElemList(nl->SymbolAtom("stream"), mres);  
       nl->WriteToString(outstr1, sresType);
       cout << "\nTypeMapSuse Resulttype (2): " << outstr1 << "\n";
@@ -3184,23 +3192,23 @@ TypeMapSuse2( ListExpr args )
   errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
   // 0. Check number of arguments
-  cout << "\n0 " << endl;
+  cout << "\nTypeMapSuse2: 0 " << endl;
 
   if ( (nl->ListLength( args ) != 3) )
     {
       ErrorReporter::ReportError("Operator suse2 expects a list of "
-                                 "length three ");
+				 "length three ");
       return nl->SymbolAtom( "typeerror" );
     }
   
   // 1. get suse arguments
-  cout << "\n1 " << endl;
+  cout << "\nTypeMapSuse2: 1 " << endl;
   sarg1 = nl->First( args );
   sarg2 = nl->Second( args );
   map   = nl->Third( args ); 
   
   // 2. First argument
-  cout << "\n2 " << endl;
+  cout << "\nTypeMapSuse2: 2 " << endl;
   // check sarg1 for being a stream
   if( nl->IsAtom( sarg1 )
       || !(TypeOfRelAlgSymbol(nl->First(sarg1) == stream )) )
@@ -3209,8 +3217,8 @@ TypeMapSuse2( ListExpr args )
       sarg1isstream = false;
     }
   else if ( !nl->IsAtom( sarg1 )
-            && ( nl->ListLength( sarg1 ) == 2) 
-            && (TypeOfRelAlgSymbol(nl->First(sarg1) == stream )) )
+	    && ( nl->ListLength( sarg1 ) == 2) 
+	    && (TypeOfRelAlgSymbol(nl->First(sarg1) == stream )) )
     { // (stream datatype)
       sarg1Type = nl->Second(sarg1);
       sarg1isstream = true;
@@ -3218,9 +3226,9 @@ TypeMapSuse2( ListExpr args )
   else // wrong type for sarg1
     {
       ErrorReporter::ReportError(
-        "Operator suse2 expects its first Argument to "
-        "be of type 'T' or '(stream T).");
-      return nl->SymbolAtom( "typeerror" );              
+	"Operator suse2 expects its first Argument to "
+	"be of type 'T' or '(stream T).");
+      return nl->SymbolAtom( "typeerror" );	      
     }
      
   // check sarg1 to be a (stream T) for T in kind DATA 
@@ -3230,28 +3238,28 @@ TypeMapSuse2( ListExpr args )
     { // T is not of kind DATA
       nl->WriteToString(outstr1, sarg1Type);      
       ErrorReporter::ReportError("Operator suse2 expects its 1st argument "
-                                 "to be '(stream T)', T of kind DATA, but"
-                                 "receives '" + outstr1 + "' as T.");
+				 "to be '(stream T)', T of kind DATA, but"
+				 "receives '" + outstr1 + "' as T.");
 
       return nl->SymbolAtom( "typeerror" );      
     }
   else if ( !nl->IsAtom( sarg1Type ) &&
-            ( (nl->ListLength( sarg1Type ) != 2) ||
-              !nl->IsEqual( nl->First(sarg1Type), "tuple") ||
-              !IsTupleDescription(nl->Second(sarg1Type))
-              ) 
-            )
+	    ( (nl->ListLength( sarg1Type ) != 2) ||
+	      !nl->IsEqual( nl->First(sarg1Type), "tuple") ||
+	      !IsTupleDescription(nl->Second(sarg1Type))
+	      ) 
+	    )
     { // neither T is tuple(X)
       nl->WriteToString(outstr1, sarg1Type);
       ErrorReporter::ReportError("Operator suse2 expects its 1st argument "
-                                 "to be 'T' or '(stream T), T of kind DATA "
-                                 "or of type 'tuple(X))', but"
-                                 "receives '" + outstr1 + "' for T.");
+				 "to be 'T' or '(stream T), T of kind DATA "
+				 "or of type 'tuple(X))', but"
+				 "receives '" + outstr1 + "' for T.");
       return nl->SymbolAtom( "typeerror" );      
     }
   
   // 3. Second Argument
-  cout << "\n3 " << endl;
+  cout << "\nTypeMapSuse2: 3 " << endl;
   // check sarg2 for being a stream
   if( nl->IsAtom( sarg2 )
       || !(TypeOfRelAlgSymbol(nl->First(sarg2) == stream )) )
@@ -3260,8 +3268,8 @@ TypeMapSuse2( ListExpr args )
       sarg2isstream = false;
     }
   else if ( !nl->IsAtom( sarg2 )
-            && ( nl->ListLength( sarg2 ) == 2) 
-            && (TypeOfRelAlgSymbol(nl->First(sarg2) == stream )) )
+	    && ( nl->ListLength( sarg2 ) == 2) 
+	    && (TypeOfRelAlgSymbol(nl->First(sarg2) == stream )) )
     { // (stream datatype)
       sarg2Type = nl->Second(sarg2);
       sarg2isstream = true;
@@ -3269,9 +3277,9 @@ TypeMapSuse2( ListExpr args )
   else // wrong type for sarg2
     {
       ErrorReporter::ReportError(
-        "Operator suse2 expects its second Argument to "
-        "be of type 'T' or '(stream T), for T in kind DATA)'.");
-      return nl->SymbolAtom( "typeerror" );              
+	"Operator suse2 expects its second Argument to "
+	"be of type 'T' or '(stream T), for T in kind DATA)'.");
+      return nl->SymbolAtom( "typeerror" );	      
     }
      
   // check sarg2 to be a (stream T) for T in kind DATA 
@@ -3281,53 +3289,53 @@ TypeMapSuse2( ListExpr args )
     { // T is not of kind DATA
       nl->WriteToString(outstr2, sarg2Type);      
       ErrorReporter::ReportError("Operator suse2 expects its 2nd argument "
-                                 "to be '(stream T)', T of kind DATA, but"
-                                 "receives '" + outstr1 + "' as T.");
+				 "to be '(stream T)', T of kind DATA, but"
+				 "receives '" + outstr1 + "' as T.");
 
       return nl->SymbolAtom( "typeerror" );      
     }
   else if ( !nl->IsAtom( sarg2Type ) &&
-            ( (nl->ListLength( sarg2Type ) != 2) ||
-              !nl->IsEqual( nl->First(sarg2Type), "tuple") ||
-              !IsTupleDescription(nl->Second(sarg2Type))
-              ) 
-            )
+	    ( (nl->ListLength( sarg2Type ) != 2) ||
+	      !nl->IsEqual( nl->First(sarg2Type), "tuple") ||
+	      !IsTupleDescription(nl->Second(sarg2Type))
+	      ) 
+	    )
     { // neither T is tuple(X)
       nl->WriteToString(outstr1, sarg2Type);
       ErrorReporter::ReportError("Operator suse2 expects its 2nd argument "
-                                 "to be 'T' or '(stream T), T of kind DATA "
-                                 "or of type 'tuple(X))', but"
-                                 "receives '" + outstr1 + "' for T.");
+				 "to be 'T' or '(stream T), T of kind DATA "
+				 "or of type 'tuple(X))', but"
+				 "receives '" + outstr1 + "' for T.");
       return nl->SymbolAtom( "typeerror" );      
     }
   
   // 4. First and Second argument
-  cout << "\n4 " << endl;
+  cout << "\nTypeMapSuse2: 4 " << endl;
   // check whether at least one stream argument is present
   if ( !sarg1isstream && !sarg2isstream )
     {
       ErrorReporter::ReportError(
-        "Operator suse2 expects at least one of its both first "
-        "argument to be of type '(stream T), for T in kind DATA)'.");
-      return nl->SymbolAtom( "typeerror" );              
+	"Operator suse2 expects at least one of its both first "
+	"argument to be of type '(stream T), for T in kind DATA)'.");
+      return nl->SymbolAtom( "typeerror" );	      
     }
 
   // 5. Third argument
-  cout << "\n5 " << endl;
+  cout << "\nTypeMapSuse2: 5 " << endl;
   // check third for being a map
   if (  nl->IsAtom( map ) || !( nl->IsEqual(nl->First(map), "map") ) )
     {
       nl->WriteToString(outstr1, map);
       ErrorReporter::ReportError("Operator suse2 expects a map as "
-                                 "3rd argument, but gets '" + outstr1 +
-                                 "' instead.");
+				 "3rd argument, but gets '" + outstr1 +
+				 "' instead.");
       return nl->SymbolAtom( "typeerror" );
     }    
 
   if ( nl->ListLength(map) != 4 )       
     {
       ErrorReporter::ReportError("Number of map arguments must be 2 "
-                                 "for operator suse2.");
+				 "for operator suse2.");
       return nl->SymbolAtom( "typeerror" );
     }
 
@@ -3343,11 +3351,11 @@ TypeMapSuse2( ListExpr args )
       nl->WriteToString(outstr1, sarg1Type);
       nl->WriteToString(outstr2, marg1);
       ErrorReporter::ReportError("Operator suse2: 1st argument's stream"
-                                 "type does not match the type of the "
-                                 "mapping's 1st argument. If e.g. the first "
-                                 "is 'stream X', then the latter must be 'X'."
-                                 "The types passed are '" + outstr1 + 
-                                 "' and '" + outstr2 + "'.");
+				 "type does not match the type of the "
+				 "mapping's 1st argument. If e.g. the first "
+				 "is 'stream X', then the latter must be 'X'."
+				 "The types passed are '" + outstr1 + 
+				 "' and '" + outstr2 + "'.");
       return nl->SymbolAtom( "typeerror" );
     }
 
@@ -3357,53 +3365,53 @@ TypeMapSuse2( ListExpr args )
       nl->WriteToString(outstr1, sarg2Type);
       nl->WriteToString(outstr2, marg2);
       ErrorReporter::ReportError("Operator suse2: 2nd argument's stream"
-                                 "type does not match the type of the "
-                                 "mapping's 2nd argument. If e.g. the second"
-                                 " is 'stream X', then the latter must be 'X'."
-                                 "The types passed are '" + outstr1 + 
-                                 "' and '" + outstr2 + "'.");
+				 "type does not match the type of the "
+				 "mapping's 2nd argument. If e.g. the second"
+				 " is 'stream X', then the latter must be 'X'."
+				 "The types passed are '" + outstr1 + 
+				 "' and '" + outstr2 + "'.");
       return nl->SymbolAtom( "typeerror" );
     }
 
   // 6. Determine result type
-  cout << "\n6 " << endl;
+  cout << "\nTypeMapSuse2: 6 " << endl;
   // get map result type 'sresType'
   if( !( nl->IsAtom( mres ) ) && ( nl->ListLength( mres ) == 2) ) 
     {
       if (  TypeOfRelAlgSymbol(nl->First(mres) == stream ) )
-        {
-          if ( !am->CheckKind("DATA", nl->Second(mres), errorInfo) &&
-               !( !nl->IsAtom(nl->Second(mres)) &&
-                  nl->ListLength(nl->Second(mres)) == 2 &&
-                  TypeOfRelAlgSymbol(nl->First(nl->Second(mres)) == tuple) &&
-                  IsTupleDescription(nl->Second(nl->Second(mres)))
-                ) 
-             )
-            {
-              ErrorReporter::ReportError(
-                "Operator suse2 expects its 3rd Argument to "
-                "return a '(stream T)', T of kind DATA or T = 'tuple(X)'.");
-              return nl->SymbolAtom( "typeerror" );              
-            }
-          
-          sresType = mres; // map result type is already a stream
-        }
+	{
+	  if ( !am->CheckKind("DATA", nl->Second(mres), errorInfo) &&
+	       !( !nl->IsAtom(nl->Second(mres)) &&
+		  nl->ListLength(nl->Second(mres)) == 2 &&
+		  TypeOfRelAlgSymbol(nl->First(nl->Second(mres)) == tuple) &&
+		  IsTupleDescription(nl->Second(nl->Second(mres)))
+		) 
+	     )
+	    {
+	      ErrorReporter::ReportError(
+		"Operator suse2 expects its 3rd Argument to "
+		"return a '(stream T)', T of kind DATA or T = 'tuple(X)'.");
+	      return nl->SymbolAtom( "typeerror" );	      
+	    }
+	  
+	  sresType = mres; // map result type is already a stream
+	}
     }
   else // map result type is not a stream, so encapsulate it
     {
       if ( !am->CheckKind("DATA", mres, errorInfo)  &&
-           !( !nl->IsAtom(nl->Second(mres)) &&
-              nl->ListLength(nl->Second(mres)) == 2 &&
-              TypeOfRelAlgSymbol(nl->First(nl->Second(mres)) == tuple) &&
-              IsTupleDescription(nl->Second(nl->Second(mres)))
-            )
-         ) 
-        {
-          ErrorReporter::ReportError(
-            "Operator suse2 expects its 3rd Argument to "
-            "return a type of kind DATA or T = 'tuple(X)'.");
-          return nl->SymbolAtom( "typeerror" );              
-        }
+	   !( !nl->IsAtom(nl->Second(mres)) &&
+	      nl->ListLength(nl->Second(mres)) == 2 &&
+	      TypeOfRelAlgSymbol(nl->First(nl->Second(mres)) == tuple) &&
+	      IsTupleDescription(nl->Second(nl->Second(mres)))
+	    )
+	 ) 
+	{
+	  ErrorReporter::ReportError(
+	    "Operator suse2 expects its 3rd Argument to "
+	    "return a type of kind DATA or T = 'tuple(X)'.");
+	  return nl->SymbolAtom( "typeerror" );	      
+	}
       sresType = nl->TwoElemList(nl->SymbolAtom("stream"), mres);  
     }
 
@@ -3415,7 +3423,7 @@ TypeMapSuse2( ListExpr args )
   //
   //    e.g. 7=4+2+1: both arguments are streams and the 
   //                  map result is a stream
-  cout << "\n7 " << endl;
+  cout << "\nTypeMapSuse2: 7 " << endl;
 
   if(sarg1isstream) argConfCode += 1;
   if(sarg2isstream) argConfCode += 2;
@@ -3423,7 +3431,7 @@ TypeMapSuse2( ListExpr args )
 
   argConfDescriptor = nl->OneElemList(nl->IntAtom(argConfCode));
 
-  cout << "\n8 Type = " << argConfCode << endl;
+  cout << "\nTypeMapSuse2: 8 Type = " << argConfCode << endl;
   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
               argConfDescriptor, sresType);  
 }
@@ -3442,7 +3450,7 @@ struct SuseLocalInfo{
 
 // (stream X) (map X Y) -> (stream Y)
 int Suse_SN( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
+		     Word& local, Supplier s )
 {
   SuseLocalInfo     *sli;
   Word              instream = args[0], fun = args[1]; 
@@ -3469,66 +3477,63 @@ int Suse_SN( Word* args, Word& result, int message,
 
       // cout << "Suse_SN received REQUEST" << endl;
       if( local.addr == 0 )
-        {
-          // cout << "Suse_SN finished REQUEST: CANCEL (1)" << endl;  
-          return CANCEL;
-        }
+	{
+	  // cout << "Suse_SN finished REQUEST: CANCEL (1)" << endl;  
+	  return CANCEL;
+	}
       sli = (SuseLocalInfo*)local.addr;
       
       if (sli->Xfinished)
-        {
-          // cout << "Suse_SN finished REQUEST: CANCEL (2)" << endl;  
-          return CANCEL;
-        }
+	{
+	  // cout << "Suse_SN finished REQUEST: CANCEL (2)" << endl;  
+	  return CANCEL;
+	}
       
       funResult.addr = 0;
       argValue.addr  = 0;
       qp->Request(instream.addr, argValue); // get one arg value from stream
       if(qp->Received(instream.addr))       
-        {
-          funArgs = qp->Argument(fun.addr); // set argument for the
-          (*funArgs)[0] = argValue;         //   parameter function
-          qp->Request(fun.addr, funResult); // call parameter function
-          sli->funVal = ((Attribute*) (funResult.addr))->Clone(); // copy Result
-          result = SetWord(sli->funVal);    // forward result
-          // cout << "        funResult.addr =" << funResult.addr << endl;
-          // cout << "        result.addr    =" << result.addr << endl;
-          argValue.addr = 0;
-          // cout << "Suse_SN finished REQUEST: YIELD" << endl;
-          return YIELD;
-        }
+	{
+	  funArgs = qp->Argument(fun.addr); // set argument for the
+	  (*funArgs)[0] = argValue;         //   parameter function
+	  qp->Request(fun.addr, funResult); // call parameter function
+	  // copy result:
+	  result = SetWord(((Attribute*) (funResult.addr))->Clone());
+	  ((Attribute*) (argValue.addr))->DeleteIfAllowed(); // delete argument
+	  //cout << "        result.addr    =" << result.addr << endl;
+	  argValue.addr = 0;
+	  // cout << "Suse_SN finished REQUEST: YIELD" << endl;
+	  return YIELD;
+	}
       else // (input stream consumed completely)
-        {
-          sli->Xfinished = true;
-          result.addr = 0;
-          // cout << "Suse_SN finished REQUEST: CANCEL (3)" << endl;  
-          return CANCEL;
-        }
+	{
+	  sli->Xfinished = true;
+	  result.addr = 0;
+	  // cout << "Suse_SN finished REQUEST: CANCEL (3)" << endl;  
+	  return CANCEL;
+	}
       
     case CLOSE :
       
       // cout << "Suse_SN received CLOSE" << endl;
       if( local.addr != 0 )
-        {
-          sli = (SuseLocalInfo*)local.addr;
-          // cout << "\tSuse_SN CLOSE: dereferenced sli" << endl;    
-          delete sli;
-          // cout << "\tSuse_SN CLOSE: deleted sli" << endl;
-        }
+	{
+	  sli = (SuseLocalInfo*)local.addr;
+	  delete sli;
+	}
       qp->Close( instream.addr ); // close input
-      // cout << "\tSuse_SN CLOSE: closed instream" << endl;
       // cout << "Suse_SN finished CLOSE" << endl;
       return 0;
       
     }  // end switch
-  // cout << "Suse_SN received UNKNOWN COMMAND" << endl;
+  cout << "Suse_SN received UNKNOWN COMMAND" << endl;
   return -1; // should not be reached
 }  
   
 
 // (stream X) (map X (stream Y)) -> (stream Y)
 int Suse_SS( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
+		     Word& local, Supplier s )
 {
   SuseLocalInfo    *sli;
   Word             instream = args[0], fun = args[1]; 
@@ -3539,35 +3544,28 @@ int Suse_SS( Word* args, Word& result, int message,
   switch (message)
   {
   case OPEN :
-    // cout << "\nSuse_SS: Received OPEN";
+
     sli = new SuseLocalInfo;
     //1. open the ("outer") input stream and
     //   initialize sli->X and sli->Y
     qp->Open( instream.addr );
     qp->Request( instream.addr, X );
-    if(qp->Received( instream.addr ))        
+    if(qp->Received( instream.addr ))	
       {
-        // cout << "\n         Received X";
-        //2. compute the first result X from outer stream
-        supplier = fun.addr;
-        //cout << "\n         supplier";
-        funargs = qp->Argument( supplier );
-        // cout << "\n         funargs";
-        (*funargs)[0] = X;
-        qp->Open( supplier );
-        
-        //3. save the local information
-        sli = new SuseLocalInfo;
-        sli->X = X;
-        sli->Y = SetWord( supplier );
-        local = SetWord(sli);
+	//2. get first value from the inner stream 
+	supplier = fun.addr;
+	funargs = qp->Argument( supplier );
+	(*funargs)[0] = X;
+	qp->Open( supplier );
+	
+	//3. save the local information
+	sli = new SuseLocalInfo;
+	sli->X = X;
+	sli->fun = SetWord( supplier );
+	local = SetWord(sli);
       }
     else
-      {
-        //cout << "\n         No X";
-        local = SetWord(Address(0));
-      }
-    // cout << "\nSuse_SS: Finished OPEN";
+      local.addr = 0;
     
     return 0;
 
@@ -3583,8 +3581,7 @@ int Suse_SS( Word* args, Word& result, int message,
     // cout << "\nSuse_SS: Received REQUEST";
     if( local.addr == 0 )
       { 
-        // cout << "\nSuse_SS: Finished REQUEST with CANCEL (1).";
-        return CANCEL;
+	return CANCEL;
       }
     
     //1. recover local information
@@ -3595,67 +3592,56 @@ int Suse_SS( Word* args, Word& result, int message,
     funResult = SetWord(Address(0));
     while( funResult.addr == 0 )
       {
-        qp->Request( sli->Y.addr, funResult );
-        if(!qp->Received( sli->Y.addr ))
-          { // end of inner stream reached -> get next X
-            qp->Close( sli->Y.addr );
-            if (sli->X.addr != 0)
-              { // delete X
-                ((Attribute*) (sli->X.addr))->DeleteIfAllowed(); 
-                sli->X.addr = 0;
-              }
-            qp->Request( instream.addr, X );
-            if(qp->Received( instream.addr ))
-              {
-                supplier = fun.addr;
-                // cout << "\n         supplier";
-                funargs = qp->Argument( supplier );
-                // cout << "\n         funargs";
-                (*funargs)[0] = X;
-                qp->Open( supplier );
-                // cout << "\n         open";
-                sli->X = X;
-                sli->Y = SetWord( supplier );
-                funResult = SetWord(Address(0));       // loop
-              }
-            else  // outer stream is exausted
-              {
-                sli->Y = SetWord(0);
-                // cout << "\nSuse_SS: Finished REQUEST with CANCEL (2).";
-                
-                return CANCEL;
-              }
-          }
+        qp->Request( sli->fun.addr, funResult );
+	if(!qp->Received( sli->fun.addr ))
+	  { // end of inner stream reached -> get next X
+	    qp->Close( sli->fun.addr );
+	    if (sli->X.addr != 0)
+	      { // delete X
+		((Attribute*) (sli->X.addr))->DeleteIfAllowed(); 
+		sli->X.addr = 0;
+	      }
+	    qp->Request( instream.addr, X );
+	    if(qp->Received( instream.addr ))
+	      {
+		sli->fun = fun;
+		funargs = qp->Argument( sli->fun.addr );
+		(*funargs)[0] = X;
+		qp->Open( sli->fun.addr );
+		sli->X = X;
+		funResult = SetWord(Address(0));       // loop
+	      }
+	    else  // outer stream is exhausted
+	      {
+		sli->fun = SetWord(0);
+		return CANCEL;
+	      }
+	  }
       }
     
-    // 3. setting the result
-    sli->funVal = ((Attribute*) (funResult.addr))->Clone(); // copy Result
-    result = SetWord(sli->funVal);    // forward result    
-    // cout << "                 funResult.addr =" 
-    //          << funResult.addr << endl
-    //          << "                 result.addr    ="
-    //          << result.addr << endl;
-    // cout << "\nSuse_SS: Received REQUEST (YIELD)";
+    // 3. copying and passing the result
+    result = SetWord(((Attribute*) (funResult.addr))->Clone());
+    ((Attribute*) (funResult.addr))->DeleteIfAllowed(); 
+    //    result = funResult;
+    // cout << "     result.addr=" << result.addr << endl;
     return YIELD;      
   
   case CLOSE :
 
-    // cout << "\nSuse_SS: Received CLOSE";
     if( local.addr != 0 )
       {
-        sli = (SuseLocalInfo*)local.addr;               
-        if( sli->Y.addr != 0 )
-          qp->Close( sli->Y.addr );
-        if (sli->X.addr != 0)
-          // delete X      
-          ((Attribute*)(sli->X.addr))->DeleteIfAllowed(); 
-        delete sli;
+	sli = (SuseLocalInfo*)local.addr;     	  
+	if( sli->fun.addr != 0 )
+	  qp->Close( sli->fun.addr );
+	if (sli->X.addr != 0)
+	  // delete X      
+	  ((Attribute*)(sli->X.addr))->DeleteIfAllowed(); 
+	delete sli;
       }
     qp->Close( instream.addr );
-    // cout << "\nSuse_SS: Finished CLOSE";
     return 0;
   }  // end switch
-
+  cout << "\nSuse_SS received UNKNOWN COMMAND" << endl;
   return -1; // should not be reached
 }  
 
@@ -3663,7 +3649,7 @@ int Suse_SS( Word* args, Word& result, int message,
 // (stream X) Y          (map X Y Z) -> (stream Z)
 // X          (stream Y) (map X y Z) -> (stream Z)
 int Suse_SNN( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
+		     Word& local, Supplier s )
 {
   SuseLocalInfo     *sli;
   Word              fun = args[2]; 
@@ -3681,25 +3667,21 @@ int Suse_SNN( Word* args, Word& result, int message,
       sli->Yfinished = false;
       sli->X.addr = 0;
       sli->Y.addr = 0;      
-      // cout << "   created sli" << endl;
       // get argument configuration info
       qp->Request(args[3].addr, argConfDescriptor);      
       sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
-      // cout << "   requested args[3]=" << sli->argConfDescriptor << endl;
       local = SetWord(sli);
       
       if(sli->argConfDescriptor & 1)
-        { // the first arg is the stream
-          // cout << "   the first arg is the stream" << endl;
-          sli->X = SetWord(args[0].addr); // X is the stream
-          sli->Y = SetWord(args[1].addr); // Y is the constant value
-        }
+	{ // the first arg is the stream
+	  sli->X = SetWord(args[0].addr); // X is the stream
+	  sli->Y = SetWord(args[1].addr); // Y is the constant value
+	}
       else
-        { // the second arg is the stream
-          // cout << "   the second arg is the stream" << endl;
-          sli->X = SetWord(args[1].addr); // X is the stream
-          sli->Y = SetWord(args[0].addr); // Y is the constant value
-        }
+	{ // the second arg is the stream
+	  sli->X = SetWord(args[1].addr); // X is the stream
+	  sli->Y = SetWord(args[0].addr); // Y is the constant value
+	}
       qp->Open(sli->X.addr);
       qp->Request(sli->Y.addr, sli->Y);
       // cout << "Suse_SNN finished OPEN" << endl;
@@ -3716,44 +3698,39 @@ int Suse_SNN( Word* args, Word& result, int message,
 
       // 1. get local data object
       if (local.addr == 0)
-        {
-          result.addr = 0;
-          // cout << "Suse_SNN finished REQUEST: CLOSE (1)" << endl;
-          return CANCEL;
-        }
+	{
+	  result.addr = 0;
+	  // cout << "Suse_SNN finished REQUEST: CLOSE (1)" << endl;
+	  return CANCEL;
+	}
       sli = (SuseLocalInfo*) local.addr;
 
       if (sli->Xfinished)
-        {
-          result.addr = 0;
-          // cout << "Suse_SNN finished REQUEST: CLOSE (2)" << endl;
-          return CANCEL;
-        }
+	{
+	  result.addr = 0;
+	  // cout << "Suse_SNN finished REQUEST: CLOSE (2)" << endl;
+	  return CANCEL;
+	}
       
       // 2. request values from instream and invalue
       qp->Request( sli->X.addr, xval );
       if(!qp->Received( sli->X.addr ))
-        { // stream exhausted 
-          sli->Xfinished = true;
-          // cout << "Suse_SNN finished REQUEST: CLOSE (3)" << endl;
-          return CANCEL;
-        }
+	{ // stream exhausted 
+	  sli->Xfinished = true;
+	  // cout << "Suse_SNN finished REQUEST: CLOSE (3)" << endl;
+	  return CANCEL;
+	}
       
       // 3. call parameter function, delete args and return result
       funargs = qp->Argument( fun.addr );
       (*funargs)[0] = xval;
       (*funargs)[1] = sli->Y;
-      // cout << "         Set arguments" << endl;
       qp->Request( fun.addr, funresult );     
-      // cout << "         Requested mapping" << endl;
       ((Attribute*)(xval.addr))->DeleteIfAllowed(); 
-      // cout << "         Deleted xval" << endl;
 
-      sli->funVal = ((Attribute*) (funresult.addr))->Clone(); // copy Result
-      result = SetWord(sli->funVal);    // forward result    
-
-      //      result = funresult;
-      // cout << "         Passed result" << endl;
+      result = SetWord(((Attribute*) (funresult.addr))->Clone());
+      ((Attribute*) (funresult.addr))->DeleteIfAllowed(); 
+      cout << "     result.addr=" << result.addr << endl;
       // cout << "Suse_SNN finished REQUEST: YIELD" << endl;
 
       return YIELD;
@@ -3762,19 +3739,16 @@ int Suse_SNN( Word* args, Word& result, int message,
       
       // cout << "Suse_SNN received CLOSE" << endl;
       if( local.addr != 0 )
-        {
-          sli = (SuseLocalInfo*)local.addr;
-          // cout << "\tSuse_SNN CLOSE: dereferenced sli" << endl;    
-          qp->Close( sli->X.addr ); // close input
-          // cout << "\tSuse_SNN CLOSE: closed instream" << endl;
-          delete sli;
-          // cout << "\tSuse_SNN CLOSE: deleted sli" << endl;
-        }
+	{
+	  sli = (SuseLocalInfo*)local.addr;
+	  qp->Close( sli->X.addr ); // close input
+	  delete sli;
+	}
       // cout << "Suse_SNN finished CLOSE" << endl;
       return 0;
       
     }  // end switch
-  // cout << "Suse_SNN received UNKNOWN COMMAND" << endl;
+  cout << "\nSuse_SNN received UNKNOWN COMMAND" << endl;
   return -1; // should not be reached
 }
 
@@ -3782,7 +3756,7 @@ int Suse_SNN( Word* args, Word& result, int message,
 // (stream X) Y          (map X Y (stream Z)) -> (stream Z)
 // X          (stream Y) (map X y (stream Z)) -> (stream Z)
 int Suse_SNS( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
+		     Word& local, Supplier s )
 {
 
   SuseLocalInfo     *sli;
@@ -3813,17 +3787,17 @@ int Suse_SNS( Word* args, Word& result, int message,
       cout << "   requested args[3]=" << sli->argConfDescriptor << endl;
       
       if(sli->argConfDescriptor & 1)
-        { // the first arg is the stream
-          cout << "   the first arg is the stream" << endl;
-          sli->X = SetWord(args[0].addr); // X is the stream
-          sli->Y = SetWord(args[1].addr); // Y is the constant value
-        }
+	{ // the first arg is the stream
+	  cout << "   the first arg is the stream" << endl;
+	  sli->X = SetWord(args[0].addr); // X is the stream
+	  sli->Y = SetWord(args[1].addr); // Y is the constant value
+	}
       else
-        { // the second arg is the stream
-          cout << "   the second arg is the stream" << endl;
-          sli->X = SetWord(args[1].addr); // X is the stream
-          sli->Y = SetWord(args[0].addr); // Y is the constant value
-        }     
+	{ // the second arg is the stream
+	  cout << "   the second arg is the stream" << endl;
+	  sli->X = SetWord(args[1].addr); // X is the stream
+	  sli->Y = SetWord(args[0].addr); // Y is the constant value
+	}     
       qp->Request(sli->Y.addr, yval); // get the constant argument
       sli->YVal = ((Attribute*) (yval.addr))->Clone() ;
       cout << "   got sli->YVal" << endl;
@@ -3845,60 +3819,60 @@ int Suse_SNS( Word* args, Word& result, int message,
 
       // 1. get local data object
       if (local.addr == 0)
-        {
-          result.addr = 0;
-          cout << "Suse_SNN finished REQUEST: CLOSE (1)" << endl;
-          return CANCEL;
-        }
+	{
+	  result.addr = 0;
+	  cout << "Suse_SNN finished REQUEST: CLOSE (1)" << endl;
+	  return CANCEL;
+	}
       sli = (SuseLocalInfo*) local.addr;
       
       // 2. request values from inner stream
       while (!sli->Xfinished)
-        {
-          if (sli->fun.addr == 0)
-            { // the inner stream is closed, try to (re-)open it
-              // try to get the next X-value from outer stream
-              qp->Request(sli->X.addr, xval);
-              if (!qp->Received(sli->X.addr))
-                { // stream X exhaused. CANCEL
-                  sli->Xfinished = true;
-                  cout << "Suse_SNN finished REQUEST: CLOSE (3)" << endl;
-                  return CANCEL;
-                }
-              qp->Request(sli->Y.addr, yval);
-              supplier = fun.addr;
-              //cout << "\n         supplier";
-              funargs = qp->Argument( supplier );
-              //                cout << "\n         funargs";
-              if (sli->argConfDescriptor & 1)
-                {
-                  (*funargs)[0] = xval;
-                  (*funargs)[1] = yval;          
-                }
-              else
-                {
-                  (*funargs)[0] = yval;
-                  (*funargs)[1] = xval;          
-                }
-              qp->Open( supplier );
-              //cout << "\n         open";
-              sli->fun = SetWord( supplier );
-              funresult = SetWord(Address(0));
-            } // Now, the inner stream is open again
-          qp->Request(sli->fun.addr, funresult);
-          if (qp->Received(sli->fun.addr))
-            { // inner stream returned a result
-              result = funresult;
-              cout << "Suse_SNN finished REQUEST: YIELD" << endl;          
-              return YIELD;
-                }
-          else{ // inner stream exhausted
-            qp->Close(sli->fun.addr);
-            sli->XVal->DeleteIfAllowed();
-            sli->XVal = 0;
-            sli->fun.addr = 0;
-          }
-        } // end while
+	{
+	  if (sli->fun.addr == 0)
+	    { // the inner stream is closed, try to (re-)open it
+	      // try to get the next X-value from outer stream
+	      qp->Request(sli->X.addr, xval);
+	      if (!qp->Received(sli->X.addr))
+		{ // stream X exhaused. CANCEL
+		  sli->Xfinished = true;
+		  cout << "Suse_SNN finished REQUEST: CLOSE (3)" << endl;
+		  return CANCEL;
+		}
+	      qp->Request(sli->Y.addr, yval);
+	      supplier = fun.addr;
+	      //cout << "\n         supplier";
+	      funargs = qp->Argument( supplier );
+	      //		cout << "\n         funargs";
+	      if (sli->argConfDescriptor & 1)
+		{
+		  (*funargs)[0] = xval;
+		  (*funargs)[1] = yval;	  
+		}
+	      else
+		{
+		  (*funargs)[0] = yval;
+		  (*funargs)[1] = xval;	  
+		}
+	      qp->Open( supplier );
+	      //cout << "\n         open";
+	      sli->fun = SetWord( supplier );
+	      funresult = SetWord(Address(0));
+	    } // Now, the inner stream is open again
+	  qp->Request(sli->fun.addr, funresult);
+	  if (qp->Received(sli->fun.addr))
+	    { // inner stream returned a result
+	      result = funresult;
+	      cout << "Suse_SNN finished REQUEST: YIELD" << endl;	  
+	      return YIELD;
+		}
+	  else{ // inner stream exhausted
+	    qp->Close(sli->fun.addr);
+	    sli->XVal->DeleteIfAllowed();
+	    sli->XVal = 0;
+	    sli->fun.addr = 0;
+	  }
+	} // end while
       result.addr = 0;
       cout << "Suse_SNN finished REQUEST: CLOSE (4)" << endl;      
       return CANCEL;
@@ -3907,16 +3881,16 @@ int Suse_SNS( Word* args, Word& result, int message,
       
       cout << "Suse_SNN received CLOSE" << endl;
       if( local.addr != 0 )
-        {
-          sli = (SuseLocalInfo*)local.addr;
-          cout << "\tSuse_SNN CLOSE: dereferenced sli" << endl;    
-          qp->Close( sli->X.addr ); // close outer stream
-          cout << "\tSuse_SNN CLOSE: closed instream" << endl;
-           sli->YVal->DeleteIfAllowed(); // delete const par
-          cout << "\tSuse_SNN CLOSE: deleted constant parameter" << endl;
-          delete sli;
-          cout << "\tSuse_SNN CLOSE: deleted sli" << endl;
-        }
+	{
+	  sli = (SuseLocalInfo*)local.addr;
+	  cout << "\tSuse_SNN CLOSE: dereferenced sli" << endl;    
+	  qp->Close( sli->X.addr ); // close outer stream
+	  cout << "\tSuse_SNN CLOSE: closed instream" << endl;
+ 	  sli->YVal->DeleteIfAllowed(); // delete const par
+	  cout << "\tSuse_SNN CLOSE: deleted constant parameter" << endl;
+	  delete sli;
+	  cout << "\tSuse_SNN CLOSE: deleted sli" << endl;
+	}
       cout << "Suse_SNN finished CLOSE" << endl;
       return 0;
       
@@ -3929,7 +3903,7 @@ int Suse_SNS( Word* args, Word& result, int message,
 
 // (stream X) (stream Y) (map X Y Z) -> (stream Z)
 int Suse_SSN( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
+		     Word& local, Supplier s )
 {
   return 0;
 }
@@ -3937,7 +3911,7 @@ int Suse_SSN( Word* args, Word& result, int message,
 
 // (stream X) (stream Y) (map X Y (stream Z)) -> (stream Z)
 int Suse_SSS( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
+		     Word& local, Supplier s )
 {
   return 0;
 }
@@ -4077,11 +4051,11 @@ temporalunitSuse2Select( ListExpr args )
     {
       xIsStream = true;
       if(!nl->IsAtom(nl->Second(X)) &&
-         (nl->ListLength(nl->Second(X)) == 2) &&
-         TypeOfRelAlgSymbol(nl->First(X)) == tuple )
-        xIsTuple = true;
+	 (nl->ListLength(nl->Second(X)) == 2) &&
+	 TypeOfRelAlgSymbol(nl->First(X)) == tuple )
+	xIsTuple = true;
       else
-        xIsTuple = false;
+	xIsTuple = false;
     }
  
   // examine second argument
@@ -4095,11 +4069,11 @@ temporalunitSuse2Select( ListExpr args )
     {
       yIsStream = true;
       if(!nl->IsAtom(nl->Second(Y)) &&
-         (nl->ListLength(nl->Second(Y)) == 2) &&
-         TypeOfRelAlgSymbol(nl->First(Y)) == tuple )
-        yIsTuple = true;
+	 (nl->ListLength(nl->Second(Y)) == 2) &&
+	 TypeOfRelAlgSymbol(nl->First(Y)) == tuple )
+	yIsTuple = true;
       else
-        yIsTuple = false;
+	yIsTuple = false;
     }
 
   // examine mapping result type
@@ -4113,11 +4087,11 @@ temporalunitSuse2Select( ListExpr args )
     {
       resIsStream = true;
       if(!nl->IsAtom(nl->Second(nl->Fourth(M))) &&
-         (nl->ListLength(nl->Second(nl->Fourth(M))) == 2) &&
-         TypeOfRelAlgSymbol(nl->First(nl->Fourth(M))) == tuple )
-        resIsTuple = true;
+	 (nl->ListLength(nl->Second(nl->Fourth(M))) == 2) &&
+	 TypeOfRelAlgSymbol(nl->First(nl->Fourth(M))) == tuple )
+	resIsTuple = true;
       else
-        resIsTuple = false;
+	resIsTuple = false;
     }
 
   // calculate appropriate index value
@@ -4132,7 +4106,7 @@ temporalunitSuse2Select( ListExpr args )
     
   if (index > 3)
     cout << "\nWARNING: index =" << index 
-         << ">3 in temporalunitSuse2Select!" << endl;
+	 << ">3 in temporalunitSuse2Select!" << endl;
 
   return index;
 }
