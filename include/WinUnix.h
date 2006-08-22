@@ -42,6 +42,10 @@ public:
    static int getPageSize( void );
  
    static inline bool isLittleEndian() { return *(char *)&endian_detect == 1;}
+
+   static int rand(void) { return rand(); }
+
+   static void srand(unsigned int seed) { return srand(seed); }
    
 private:
    static const int endian_detect;
