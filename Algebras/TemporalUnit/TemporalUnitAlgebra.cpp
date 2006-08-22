@@ -3622,7 +3622,6 @@ int Suse_SS( Word* args, Word& result, int message,
     // 3. copying and passing the result
     result = SetWord(((Attribute*) (funResult.addr))->Clone());
     ((Attribute*) (funResult.addr))->DeleteIfAllowed(); 
-    //    result = funResult;
     // cout << "     result.addr=" << result.addr << endl;
     return YIELD;      
   
@@ -3653,7 +3652,7 @@ int Suse_SNN( Word* args, Word& result, int message,
 {
   SuseLocalInfo     *sli;
   Word              fun = args[2]; 
-  Word              xval, yval, funresult;
+  Word              xval, funresult;
   Word              argConfDescriptor;  
   ArgVectorPointer  funargs;
 
@@ -3664,37 +3663,37 @@ int Suse_SNN( Word* args, Word& result, int message,
       // cout << "\nSuse_SNN received OPEN" << endl;
       sli = new SuseLocalInfo ;
       sli->Xfinished = false;
-      sli->Yfinished = false;
       sli->X.addr = 0;
       sli->Y.addr = 0;      
       // get argument configuration info
       qp->Request(args[3].addr, argConfDescriptor);      
       sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
-      local = SetWord(sli);
-      
       if(sli->argConfDescriptor & 1)
 	{ // the first arg is the stream
 	  sli->X = SetWord(args[0].addr); // X is the stream
 	  sli->Y = SetWord(args[1].addr); // Y is the constant value
-	}
+	} 
       else
 	{ // the second arg is the stream
 	  sli->X = SetWord(args[1].addr); // X is the stream
 	  sli->Y = SetWord(args[0].addr); // Y is the constant value
 	}
-      qp->Open(sli->X.addr);
-      qp->Request(sli->Y.addr, sli->Y);
+      
+      qp->Open(sli->X.addr);              // open outer stream argument
+      qp->Request(sli->Y.addr, sli->Y);   // save value of constant argument
+
+      local = SetWord(sli);
       // cout << "Suse_SNN finished OPEN" << endl;
       return 0;
       
     case REQUEST :
       
       // For each REQUEST, we get one value from the stream,
-      // pass it (and the constant invalue) to the parameter function 
-      // and evalute the latter. The result is simply passed on.
+      // pass it (and the remaining constant argument) to the parameter 
+      // function and evalute the latter. The result is simply passed on.
       // sli->X is the stream, sli->Y the constant argument.
 
-      // cout << "Suse_SNN received REQUEST" << endl;
+      //cout << "Suse_SNN received REQUEST" << endl;
 
       // 1. get local data object
       if (local.addr == 0)
@@ -3704,18 +3703,17 @@ int Suse_SNN( Word* args, Word& result, int message,
 	  return CANCEL;
 	}
       sli = (SuseLocalInfo*) local.addr;
-
       if (sli->Xfinished)
-	{
+	{ // stream already exhausted earlier
 	  result.addr = 0;
 	  // cout << "Suse_SNN finished REQUEST: CLOSE (2)" << endl;
 	  return CANCEL;
 	}
       
-      // 2. request values from instream and invalue
+      // 2. request value from outer stream
       qp->Request( sli->X.addr, xval );
       if(!qp->Received( sli->X.addr ))
-	{ // stream exhausted 
+	{ // stream exhausted now
 	  sli->Xfinished = true;
 	  // cout << "Suse_SNN finished REQUEST: CLOSE (3)" << endl;
 	  return CANCEL;
@@ -3723,28 +3721,33 @@ int Suse_SNN( Word* args, Word& result, int message,
       
       // 3. call parameter function, delete args and return result
       funargs = qp->Argument( fun.addr );
-      (*funargs)[0] = xval;
-      (*funargs)[1] = sli->Y;
+      if (sli->argConfDescriptor & 1)
+	{
+	  (*funargs)[0] = xval;
+	  (*funargs)[1] = sli->Y;
+	}
+      else
+	{
+	  (*funargs)[0] = sli->Y;
+	  (*funargs)[1] = xval;
+	}
       qp->Request( fun.addr, funresult );     
-      ((Attribute*)(xval.addr))->DeleteIfAllowed(); 
-
       result = SetWord(((Attribute*) (funresult.addr))->Clone());
-      ((Attribute*) (funresult.addr))->DeleteIfAllowed(); 
-      cout << "     result.addr=" << result.addr << endl;
-      // cout << "Suse_SNN finished REQUEST: YIELD" << endl;
-
+      //cout << "     result.addr=" << result.addr << endl;
+      ((Attribute*) (xval.addr))->DeleteIfAllowed(); 
+      //cout << "Suse_SNN finished REQUEST: YIELD" << endl;
       return YIELD;
 
     case CLOSE :
       
-      // cout << "Suse_SNN received CLOSE" << endl;
+      //cout << "Suse_SNN received CLOSE" << endl;
       if( local.addr != 0 )
 	{
 	  sli = (SuseLocalInfo*)local.addr;
 	  qp->Close( sli->X.addr ); // close input
 	  delete sli;
 	}
-      // cout << "Suse_SNN finished CLOSE" << endl;
+      //cout << "Suse_SNN finished CLOSE" << endl;
       return 0;
       
     }  // end switch
@@ -3761,7 +3764,7 @@ int Suse_SNS( Word* args, Word& result, int message,
 
   SuseLocalInfo     *sli;
   Word              fun = args[2]; 
-  Word              xval, yval, funresult;
+  Word              xval, funresult;
   Word              argConfDescriptor;  
   ArgVectorPointer  funargs;
   Supplier          supplier;
@@ -3783,24 +3786,23 @@ int Suse_SNS( Word* args, Word& result, int message,
       cout << "   created sli" << endl;
       // get argument configuration info
       qp->Request(args[3].addr, argConfDescriptor);      
-      sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
       cout << "   requested args[3]=" << sli->argConfDescriptor << endl;
-      
+      sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
       if(sli->argConfDescriptor & 1)
 	{ // the first arg is the stream
 	  cout << "   the first arg is the stream" << endl;
 	  sli->X = SetWord(args[0].addr); // X is the stream
 	  sli->Y = SetWord(args[1].addr); // Y is the constant value
-	}
+	} 
       else
 	{ // the second arg is the stream
 	  cout << "   the second arg is the stream" << endl;
 	  sli->X = SetWord(args[1].addr); // X is the stream
 	  sli->Y = SetWord(args[0].addr); // Y is the constant value
-	}     
-      qp->Request(sli->Y.addr, yval); // get the constant argument
-      sli->YVal = ((Attribute*) (yval.addr))->Clone() ;
-      cout << "   got sli->YVal" << endl;
+	}
+
+      qp->Request(sli->Y.addr, sli->Y);   // save value of constant argument
+      cout << "   got sli->Y" << endl;
       qp->Open(sli->X.addr);               // open the ("outer") input stream
       cout << "   opened sli->X" << endl;
       local = SetWord(sli);
@@ -3825,11 +3827,11 @@ int Suse_SNS( Word* args, Word& result, int message,
 	  return CANCEL;
 	}
       sli = (SuseLocalInfo*) local.addr;
-      
+      cout << "         dereferenced sli" << endl;
       // 2. request values from inner stream
       while (!sli->Xfinished)
 	{
-	  if (sli->fun.addr == 0)
+	  while (sli->funfinished)
 	    { // the inner stream is closed, try to (re-)open it
 	      // try to get the next X-value from outer stream
 	      qp->Request(sli->X.addr, xval);
@@ -3839,35 +3841,40 @@ int Suse_SNS( Word* args, Word& result, int message,
 		  cout << "Suse_SNN finished REQUEST: CLOSE (3)" << endl;
 		  return CANCEL;
 		}
-	      qp->Request(sli->Y.addr, yval);
 	      supplier = fun.addr;
-	      //cout << "\n         supplier";
+	      cout << "         supplier" << endl;
 	      funargs = qp->Argument( supplier );
-	      //		cout << "\n         funargs";
+	      cout << "         funargs" << endl;
 	      if (sli->argConfDescriptor & 1)
 		{
 		  (*funargs)[0] = xval;
-		  (*funargs)[1] = yval;	  
+		  (*funargs)[1] = sli->Y;	  
 		}
 	      else
 		{
-		  (*funargs)[0] = yval;
+		  (*funargs)[0] = sli->Y;
 		  (*funargs)[1] = xval;	  
 		}
 	      qp->Open( supplier );
-	      //cout << "\n         open";
+	      cout << "\n         open";
 	      sli->fun = SetWord( supplier );
 	      funresult = SetWord(Address(0));
-	    } // Now, the inner stream is open again
+	      sli->funfinished = false;
+	    } // end while - Now, the inner stream is open again
 	  qp->Request(sli->fun.addr, funresult);
+	  cout << "         requested sli->fun.addr" << endl;
 	  if (qp->Received(sli->fun.addr))
 	    { // inner stream returned a result
-	      result = funresult;
+	      result = SetWord(((Attribute*) (funresult.addr))->Clone());
+	      ((Attribute*) (funresult.addr))->DeleteIfAllowed(); 
+	      cout << "     result.addr=" << result.addr << endl;
 	      cout << "Suse_SNN finished REQUEST: YIELD" << endl;	  
 	      return YIELD;
-		}
+	    }
 	  else{ // inner stream exhausted
 	    qp->Close(sli->fun.addr);
+	    sli->funfinished = true;
+	    cout << "         closed sli->fun.addr" << endl;
 	    sli->XVal->DeleteIfAllowed();
 	    sli->XVal = 0;
 	    sli->fun.addr = 0;
@@ -3886,8 +3893,6 @@ int Suse_SNS( Word* args, Word& result, int message,
 	  cout << "\tSuse_SNN CLOSE: dereferenced sli" << endl;    
 	  qp->Close( sli->X.addr ); // close outer stream
 	  cout << "\tSuse_SNN CLOSE: closed instream" << endl;
- 	  sli->YVal->DeleteIfAllowed(); // delete const par
-	  cout << "\tSuse_SNN CLOSE: deleted constant parameter" << endl;
 	  delete sli;
 	  cout << "\tSuse_SNN CLOSE: deleted sli" << endl;
 	}
