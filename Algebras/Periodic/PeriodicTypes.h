@@ -1132,7 +1132,6 @@ class PMSimple : public StandardAttribute {
      int NumberOfCompositeSubMoves();
      int NumberOfPeriodicMoves();
 
-     void SetRightClosed(SubMove submove, bool value);
      void Split(const DateTime instant,const bool toLeft, 
            PMSimple<T,Unit>& leftPart, PMSimple<T,Unit>& rightPart);
 

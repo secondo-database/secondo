@@ -4342,43 +4342,6 @@ int PMSimple<T,Unit>::NumberOfPeriodicMoves(){
 }
 
 
-/* 
-~SetRightClosed~
-
-This function sets the property of the right closeness 
-to the given value. 
-
-*/
-template <class T, class Unit>
-void PMSimple<T, Unit>::SetRightClosed(SubMove submove, bool value){
-  if(submove.arrayNumber == LINEAR){
-      Unit u;
-      linearMoves.Get(submove.arrayIndex,u);
-      RelInterval i;
-      u.GetInterval(i);
-      if(i.IsRightClosed()==value) // no change required
-          return;
-      i.SetRightClosed(value);
-      u.SetInterval(i);
-      linearMoves.Out(submove.arrayIndex,u);
-      return; 
-  }
-  if(submove.arrayNumber == COMPOSITE){
-      const CompositeMove *CM;
-      compositeMoves.Get(submove.arrayIndex,CM);
-      const CSubMove *auxSubmove;
-      compositeSubMoves.Get(CM->maxIndex,auxSubmove);
-      submove = auxSubmove;
-      SetRightClosed(submove,value);
-      return;
-  }
-  if(submove.arrayNumber == PERIOD){
-      const PeriodicMove *PM;
-      periodicMoves.Get(submove.arrayIndex,PM);
-             
-  }
-}
-
 /*
 ~Split~
 
@@ -4806,12 +4769,10 @@ void PMSimple<T, Unit>::TakeValuesFrom( DBArray<Unit>& linearMoves,
    this->compositeSubMoves.Destroy();
    this->periodicMoves.Clear();
    this->periodicMoves.Destroy();
-   this->linearMoves = linearMoves();
-// VTA - I think that one should copy all the entries of the arrays
+   this->linearMoves = linearMoves;
    this->compositeMoves = compositeMoves;
    this->compositeSubMoves = compositeSubMoves;
    this->periodicMoves = periodicMoves;
-
    this->defined = defined;
    this.interval = interval;
    this.startTimes = startTime;
