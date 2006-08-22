@@ -371,24 +371,19 @@ this node.
 */
 
   void ResetCounters();
-
-/*
-Set all counters to 0.
-
-*/
-
+  int GetCounter(const int index);
   ListExpr GetCounters();
 
+
 /*
-Get the values of all counters in the form of a nested list containing pairs of
+Set all counters to 0, get a specific counter or
+get the values of all counters as nested list containing pairs of
 the form (counterno, value).
 
 */
 
   void ResetTimer();
   StopWatch& GetTimer();
-
-
 
   
 /*

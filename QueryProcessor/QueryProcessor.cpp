@@ -3509,6 +3509,14 @@ QueryProcessor::ResetCounters()
     counter[i] = 0;
 }
 
+int
+QueryProcessor::GetCounter(const int index) 
+{
+  assert( (index > 0) && (index < NO_COUNTERS) ); 
+  return counter[index];
+}
+
+
 ListExpr
 QueryProcessor::GetCounters()
 {
