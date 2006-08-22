@@ -226,10 +226,11 @@ using namespace std;
 
 
 #include <string>
+#include <vector>
 
 #include "ErrorCodes.h"
 #include "SecondoConfig.h"
-
+#include "CacheInfo.h"
 
 class IndexableStandardAttribute;
 
@@ -730,6 +731,9 @@ Allows to set an SmiError code and a system error code or an error message.
 generated only for errors occuring in the "Berkeley DB"[3].) 
 
 */
+  static bool GetCacheStatistics(CacheInfo& ci, vector<FileInfo*>& fi);
+
+  
  private:
   SmiEnvironment();
 /*

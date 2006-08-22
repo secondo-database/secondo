@@ -7,6 +7,18 @@
  Just add new messages directly below this text with a new header.
 
 
+2006-08-22 New System Tables
+===============================================================================
+
+I have implemented two new system tables called
+
+  SEC_CACHEINFO
+  SEC_FILEINFO
+
+They provide information about Berkeley-DB's internal cache usage. For detailed
+information please refer to the file "CacheInfo.h".
+
+
 2006-05-08 New Sample and Small Relations
 ===============================================================================
 

@@ -69,6 +69,7 @@ using namespace std;
 #include "FileSystem.h"
 #include "LogMsg.h"
 #include "StopWatch.h"
+#include "CacheInfo.h"
 
 #ifndef SECONDO_WIN32
 #include <libgen.h>
@@ -1548,6 +1549,50 @@ SmiEnvironment::InitializeDatabase()
 
   return (rc == 0);
 }
+
+bool
+SmiEnvironment::GetCacheStatistics(CacheInfo& ci, vector<FileInfo*>& fi)
+{
+
+  DbEnv* dbenv = instance.impl->bdbEnv;
+  
+  DB_MPOOL_STAT* gsp;
+  DB_MPOOL_FSTAT** fsp; 
+  int rc = dbenv->memp_stat( &gsp, &fsp, DB_STAT_CLEAR);
+  
+  ci.bytes = gsp->st_bytes;
+  ci.regsize = gsp->st_regsize;
+  ci.cache_hit = gsp->st_cache_hit;
+  ci.cache_miss = gsp->st_cache_miss;
+  ci.page_create = gsp->st_page_create;
+  ci.page_in = gsp->st_page_in;
+  ci.page_out = gsp->st_page_out;
+  ci.pages = gsp->st_pages;
+
+  // copy the number of file statistics
+  if (fsp != 0) 
+  {
+     while (*fsp != 0) 
+     {
+       FileInfo* fstat = new FileInfo;
+       DB_MPOOL_FSTAT& fs = **fsp; 
+       
+       fstat->file_name = fs.file_name;
+       fstat->pagesize = fs.st_pagesize;
+       fstat->cache_hit = fs.st_cache_hit;
+       fstat->cache_miss = fs.st_cache_miss;
+       fstat->page_create = fs.st_page_create;
+       fstat->page_in = fs.st_page_in;
+       fstat->page_out = fs.st_page_out;
+      
+       fi.push_back( fstat );
+       fsp++;
+     }  
+  }
+  
+  return (rc == 0);
+}
+
 
 /* --- Definition of internal procedures --- */
 

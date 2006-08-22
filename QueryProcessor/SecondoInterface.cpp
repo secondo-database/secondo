@@ -326,17 +326,147 @@ class DerivedObjRel : public SystemInfoRel
 }; 
 
 
+class CacheInfoTuple : public InfoTuple, public CacheInfo
+{
+   public:
+   CacheInfoTuple() {}
+   virtual ~CacheInfoTuple() {} 
 
-  
+   virtual NList valueList() const
+   {
+     NList value;
+     value.makeHead( NList(cstatNr) );
+     value.append( NList((int)bytes) );
+     value.append( NList((int)regsize) );
+     value.append( NList((int)cache_hit) );
+     value.append( NList((int)cache_miss) );
+     value.append( NList((int)page_create) );
+     value.append( NList((int)page_in) );
+     value.append( NList((int)page_out) );
+     value.append( NList((int)pages) );
+     return value;
+   } 
+   
+   virtual ostream& print(ostream& os) const
+   {
+      os << cstatNr << sep
+         << bytes << sep 
+         << regsize << sep 
+         << cache_hit << sep 
+         << cache_miss << sep
+         << page_create << sep
+         << page_in << sep
+         << page_out << sep
+         << pages << endl; 
+      return os;
+   } 
+};
+
+class CacheInfoRel : public SystemInfoRel 
+{
+   public:
+   CacheInfoRel(const string& name) : SystemInfoRel(name, initSchema()) 
+   {}
+   virtual ~CacheInfoRel() {}
+   
+   private:
+   RelSchema* initSchema()
+   { 
+     RelSchema* attrList = new RelSchema();
+     attrList->push_back( make_pair("CStatNr", "int") );
+     attrList->push_back( make_pair("Bytes", "int") );
+     attrList->push_back( make_pair("RegSize", "int") );
+     attrList->push_back( make_pair("Hits", "int") );
+     attrList->push_back( make_pair("Misses", "int") );
+     attrList->push_back( make_pair("Pages_New", "int") );
+     attrList->push_back( make_pair("Pages_In", "int") );
+     attrList->push_back( make_pair("Pages_Out", "int") );
+     attrList->push_back( make_pair("Pages_All", "int") );
+     return attrList;
+   } 
+}; 
+
+class FileInfoTuple : public InfoTuple, public FileInfo
+{
+   public:
+   FileInfoTuple(FileInfo* fstat) 
+   {
+     fstatNr = fstat->fstatNr;
+     file_name = fstat->file_name;
+     pagesize = fstat->pagesize;
+     cache_hit = fstat->cache_hit;
+     cache_miss = fstat->cache_miss;
+     page_create = fstat->page_create;
+     page_in = fstat->page_in;
+     page_out = fstat->page_out;
+   }
+   virtual ~FileInfoTuple() {} 
+
+   virtual NList valueList() const
+   {
+     NList value;
+     value.makeHead( NList(fstatNr) );
+     value.append( NList().textAtom(file_name) );
+     value.append( NList((int)pagesize) );
+     value.append( NList((int)cache_hit) );
+     value.append( NList((int)cache_miss) );
+     value.append( NList((int)page_create) );
+     value.append( NList((int)page_in) );
+     value.append( NList((int)page_out) );
+     return value;
+   } 
+   
+   virtual ostream& print(ostream& os) const
+   {
+      os << fstatNr << sep
+         << file_name << sep 
+         << pagesize << sep 
+         << cache_hit << sep 
+         << cache_miss << sep
+         << page_create << sep
+         << page_in << sep
+         << page_out << endl; 
+      return os;
+   } 
+};
+
+
+class FileInfoRel : public SystemInfoRel
+{
+   public:
+   FileInfoRel(const string& name) : SystemInfoRel(name, initSchema()) 
+   {}
+   virtual ~FileInfoRel() {}
+   
+   private:
+   RelSchema* initSchema()
+   { 
+     RelSchema* attrList = new RelSchema();
+     attrList->push_back( make_pair("FStatNr", "int") );
+     attrList->push_back( make_pair("File", "text") );
+     attrList->push_back( make_pair("PageSize", "int") );
+     attrList->push_back( make_pair("Hits", "int") );
+     attrList->push_back( make_pair("Misses", "int") );
+     attrList->push_back( make_pair("Pages_New", "int") );
+     attrList->push_back( make_pair("Pages_In", "int") );
+     attrList->push_back( make_pair("Pages_Out", "int") );
+     return attrList;
+   } 
+}; 
+
+
+// generic implementation of the << operator
 ostream& operator<<(ostream& os, const InfoTuple& si) 
 {
   return si.print(os);
 } 
 
-// currently we will have 3 tables 
+// currently we will have 4 tables 
 
 CmdTimesRel cmdTimesRel("SEC_COMMANDS");
 CmdCtrRel cmdCtrRel("SEC_COUNTERS");
+CacheInfoRel cacheInfoRel("SEC_CACHEINFO");
+FileInfoRel fileInfoRel("SEC_FILEINFO");
 
 // The next table is currently only a dummy. This is necessary
 // that the catalog recognizes it as a system table. In the future
@@ -492,6 +622,8 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   SystemTables& st = SystemTables::getInstance();
   st.insert(&cmdCtrRel);
   st.insert(&cmdTimesRel);
+  st.insert(&cacheInfoRel);
+  st.insert(&fileInfoRel);
   st.insert(&devObjRel);
   
   initialized = ok;
@@ -1424,7 +1556,7 @@ separate functions which should be named Command\_<name>.
     cmsg.info() << padStr("Total runtime ...",20) 
                 << cmdTime.diffTimes() << endl;
     cmsg.send();
-  } 
+  }
     
   // handle counters
   bool printCtrs = RTFlag::isActive("SI:PrintCounters");
@@ -1443,7 +1575,31 @@ separate functions which should be named Command\_<name>.
     Counter::reportValues(CmdNr);
   }  
   Counter::resetAll();
-   
+  
+  // handle cache and file info 
+  CacheInfoTuple* ci = new CacheInfoTuple();
+  typedef vector<FileInfo*> FStatVec;
+  FStatVec* fi = new FStatVec;
+
+  // retriev statistics
+  SmiEnvironment::GetCacheStatistics(*ci, *fi);
+  
+  ci->cstatNr = CmdNr;
+  cacheInfoRel.append(ci, true);
+
+  FStatVec::iterator fit = fi->begin();
+  while (fit != fi->end())
+  {
+    (*fit)->fstatNr = CmdNr;
+    FileInfoTuple* pfi = new FileInfoTuple(*fit);
+    //SHOW(*pfi)
+    fileInfoRel.append(pfi, true);
+    delete *fit;
+    fit++;
+  }
+  delete fi; 
+  
+  
   constructErrMsg(errorCode, errorMessage);
   
   return;
