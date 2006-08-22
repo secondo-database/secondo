@@ -1015,23 +1015,30 @@ predCost(X inside Y, PredCost, ArgTypeX, ArgSize, predArg(PA)) :- !,
   predCost(Y, PredCostY, ArgTypeY, ArgSizeY, predArg(PA)),
   biggerArg(ArgSizeX, ArgSizeY, ArgSize),
   insideTCnew(ArgTypeX, ArgTypeY, OperatorTC, S),
-  PredCost is PredCostX + PredCostY + (ArgSizeX ** S)*(ArgSizeY * OperatorTC ) / 100000.
+  sTTS(ArgSizeX,ArgSizeXT),
+  sTTS(ArgSizeY,ArgSizeYT),
+  PredCost is PredCostX + PredCostY 
+            + (ArgSizeXT ** S)*(ArgSizeYT * OperatorTC ) / 100000.
 
 predCost(X touches Y, PredCost, ArgTypeX, ArgSize, predArg(PA)) :- !,
   predCost(X, PredCostX, ArgTypeX, ArgSizeX, predArg(PA)),
   predCost(Y, PredCostY, ArgTypeY, ArgSizeY, predArg(PA)),
   biggerArg(ArgSizeX, ArgSizeY, ArgSize),
   touchesTCnew(ArgTypeX,  ArgTypeY, OperatorTC, S),
+  sTTS(ArgSizeX,ArgSizeXT),
+  sTTS(ArgSizeY,ArgSizeYT),
   PredCost is PredCostX + PredCostY
-              + (ArgSizeX * OperatorTC)*(ArgSizeY ** S) / 100000.
+              + (ArgSizeXT * OperatorTC)*(ArgSizeYT ** S) / 100000.
 
 predCost(X intersects Y, PredCost, ArgTypeX, ArgSize, predArg(PA)) :- !,
   predCost(X, PredCostX, ArgTypeX, ArgSizeX, predArg(PA)),
   predCost(Y, PredCostY, ArgTypeY, ArgSizeY, predArg(PA)),
   biggerArg(ArgSizeX, ArgSizeY, ArgSize),
   intersectsTCnew(ArgTypeX,  ArgTypeY, OperatorTC, S),
+  sTTS(ArgSizeX,ArgSizeXT),
+  sTTS(ArgSizeY,ArgSizeYT),
   PredCost is PredCostX + PredCostY
-              + (ArgSizeX * OperatorTC)*(ArgSizeY ** S) / 100000.
+              + (ArgSizeXT * OperatorTC)*(ArgSizeYT ** S) / 100000.
 
 predCost(X contains Y, PredCost, ArgTypeX, ArgSize, predArg(PA)) :- !,
   predCost(X, PredCostX, ArgTypeX, ArgSizeX, predArg(PA)),
@@ -1077,12 +1084,22 @@ predCost(Rel:Attr, 0,  ArgType, ArgSize, _) :- !,
 
 predCost(_, 0, notype, 1, _) :- !.
 
-
-
 biggerArg(sizeTerm(X1,X2,X3), sizeTerm(Y1,Y2,Y3), sizeTerm(X1,X2,X3)) :- 
   X1+X2+X3 >= Y1+Y2+Y3, !.
 
 biggerArg(_, Arg2, Arg2).
+
+/*
+~sTTS~ meams sizeTerm to Total Size.
+
+Maps a sizeTerm to a single value, equal to the sum of the term's components.
+
+*/
+sTTS(sizeTerm(X,Y,Z),T) :-
+  T is X + Y + Z.
+
+sTTS(T,T).
+
 
 /*
 Different operators can occur within a predicate. Cost factors for certain predicates and different combinations of argument types are stored in the following Prolog facts:
