@@ -342,26 +342,26 @@ Returns true if the dom,inating point of the halfsegment at
 position __pos__ of line is an endpoint of this line.
 
 */
-bool HasEndpointAt(CLine const* line, const int pos){
+bool HasEndpointAt(Line const* line, const int pos){
   int size = line->Size();
   if((pos<0) || (pos>=size)){
      return false;
   }
-  CHalfSegment const* chs;
+  HalfSegment const* chs;
   line->Get(pos,chs);
-  Point p0 = chs->GetDPoint();
+  Point p0 = chs->GetDomPoint();
   
   Point p1(.0,.0);
   if(pos>0){
      line->Get(pos-1,chs); 
-     p1 = chs->GetDPoint();
+     p1 = chs->GetDomPoint();
      if(p0==p1){
         return false;
      } 
   }
   if(pos<size-1){
     line->Get(pos+1,chs);
-    p1 = chs->GetDPoint();
+    p1 = chs->GetDomPoint();
     if(p0==p1){
        return false;
     }
@@ -383,7 +383,7 @@ from this index within the halfsegments.
 Complexity: O(n)
 
 */
-int  NumberOfEndpoints(CLine const* const line, 
+int  NumberOfEndpoints(Line const* const line, 
                        const int stop=-1, 
                        int first=0){
   if(line->IsEmpty()){ // an empty line has no endpoints
@@ -401,23 +401,23 @@ int  NumberOfEndpoints(CLine const* const line,
   // because the first sort criteria of halfsegments is the 
   // dominating point, we have just to check whether a halfsegment
   // at index+1 or index-1 has the same dominating point
-  CHalfSegment const* chs1=NULL;  
-  CHalfSegment const* chs2=NULL;
+  HalfSegment const* chs1=NULL;  
+  HalfSegment const* chs2=NULL;
   Point p1;
   Point p2;
   line->Get(first,chs1);
-  p1 = chs1->GetDPoint();
+  p1 = chs1->GetDomPoint();
   int pos=first+1;
   int num=0; // no endpoint up to now
   while(pos<size){
     line->Get(pos,chs2);
-    p2 = chs2->GetDPoint();
+    p2 = chs2->GetDomPoint();
     if(p1!=p2){ // found an endpoint
       if( (pos==first+1) && first>0){
          // check if the former dp is equals
-         CHalfSegment const* chs3;
+         HalfSegment const* chs3;
          line->Get(first-1,chs3);
-         Point p3 = chs3->GetDPoint();
+         Point p3 = chs3->GetDomPoint();
          if(p3==p1){
              num--; 
          }
@@ -432,7 +432,7 @@ int  NumberOfEndpoints(CLine const* const line,
     bool found = false;
     while( (pos<size) && !found){
       line->Get(pos,chs1);
-      p1 = chs1->GetDPoint();
+      p1 = chs1->GetDomPoint();
       if(p1!=p2){
         found = true;
       }
@@ -450,11 +450,11 @@ This fucntion checks if the halfsegment contains the point.
 
 */
 
-inline bool Contains(CHalfSegment const* const chs, const Point& point){
+inline bool Contains(HalfSegment const* const chs, const Point& point){
    Coord x = point.GetX();
    Coord y = point.GetY();
-   Point p1 = chs->GetLP();
-   Point p2 = chs->GetRP();
+   Point p1 = chs->GetLeftPoint();
+   Point p2 = chs->GetRightPoint();
    Coord x1 = p1.GetX();
    Coord x2 = p2.GetX();
    Coord y1 = p1.GetY();
@@ -482,11 +482,11 @@ endpoints of the segments is equals to the sum of the distances between
 the endpoints to the point to check.
 
 */
-bool InnerContains(CHalfSegment const* const chs, const Point& point){
+bool InnerContains(HalfSegment const* const chs, const Point& point){
   Coord x = point.GetX();
   Coord y = point.GetY();
-  Point p1 = chs->GetLP();
-  Point p2 = chs->GetRP();
+  Point p1 = chs->GetLeftPoint();
+  Point p2 = chs->GetRightPoint();
   Coord x1 = p1.GetX();
   Coord x2 = p2.GetX();
   Coord y1 = p1.GetY();
@@ -710,7 +710,7 @@ This function computes the 9-intersection matrix for a line and a single point.
 Complexity: O(n)
 
 */
-void GetInt9M(CLine const* const line, Point const* const point,Int9M& res){
+void GetInt9M(Line const* const line, Point const* const point,Int9M& res){
 #ifdef TOPOPS_USE_STATISTIC
    GetCalls_l_p++;
 #endif
@@ -747,17 +747,17 @@ void GetInt9M(CLine const* const line, Point const* const point,Int9M& res){
    int size = line->Size(); 
    bool done = false;
    Point thePoint = (*point);
-   CHalfSegment const* chs;
+   HalfSegment const* chs;
    Point p;
    int endpoints = NumberOfEndpoints(line,2);
    for(int i=0;(i<size) && !done; i++){
        line->Get(i,chs);
-       p = chs->GetDPoint();
+       p = chs->GetDomPoint();
        if(p==thePoint){ // point on endpoint of chs
          done = true;
          if(i+1<size){
             line->Get(i+1,chs);
-            p=chs->GetDPoint();
+            p=chs->GetDomPoint();
             if(p==thePoint){ // an inner point of the line
                res.SetII(true);
                if(endpoints>0){
@@ -806,7 +806,7 @@ __line__ and a pointset as 9-intersection matrix.
 ~complexity~ O(n * (m+1))
 
 */
-void GetInt9M(CLine const* const line, Points const* const ps, Int9M& res){
+void GetInt9M(Line const* const line, Points const* const ps, Int9M& res){
 
 #ifdef TOPOPS_USE_STATISTIC
    GetCalls_l_ps++;
@@ -859,7 +859,7 @@ void GetInt9M(CLine const* const line, Points const* const ps, Int9M& res){
    }
 
    // we have to scan the objects
-   CHalfSegment const* chs=NULL; // current halfsegment
+   HalfSegment const* chs=NULL; // current halfsegment
    Point dp;                     // dominating point of chs
    Point ndp;                    // non-dominating point of chs  
    Coord dpx;                   // x coordinate of dp
@@ -867,7 +867,7 @@ void GetInt9M(CLine const* const line, Points const* const ps, Int9M& res){
    Coord ndpx;
 
    line->Get(0,chs);
-   dp = chs->GetDPoint();
+   dp = chs->GetDomPoint();
    dpx = dp.GetX();
 
    int ps_size = ps->Size();
@@ -910,7 +910,7 @@ void GetInt9M(CLine const* const line, Points const* const ps, Int9M& res){
    // check all interesting halfsegments
    while(pos<line_size && !done){
      line->Get(pos,chs);
-     dp = chs->GetDPoint();
+     dp = chs->GetDomPoint();
      dpx = dp.GetX();
      // jump overal all points left to dp
      ps->Get(min,psp);
@@ -933,7 +933,7 @@ void GetInt9M(CLine const* const line, Points const* const ps, Int9M& res){
        }
      }else{ // further points exist
        bool isEP = HasEndpointAt(line,pos);
-       ndp = chs->GetSPoint();
+       ndp = chs->GetSecPoint();
        ndpx = ndp.GetX();
        dpy = dp.GetY();
        int pointpos=min;
@@ -976,7 +976,7 @@ This function computes the 9-intesection matrix for two line objects.
 ~Complexity~ $O(n^2)$
 
 */
-void GetInt9M(CLine const* const line1, CLine const* const line2, Int9M& res){
+void GetInt9M(Line const* const line1, Line const* const line2, Int9M& res){
 #ifdef TOPOPS_USE_STATISTIC
   GetCalls_l_l++;
 #endif
@@ -1029,8 +1029,8 @@ void GetInt9M(CLine const* const line1, CLine const* const line2, Int9M& res){
      return;
   }
 
-   CHalfSegment const* chs1;
-   //CHalfSegment const* chs2;
+   HalfSegment const* chs1;
+   //HalfSegment const* chs2;
    
    int size1 = line1->Size();
    //int size2 = line2->Size();
@@ -1040,7 +1040,7 @@ void GetInt9M(CLine const* const line1, CLine const* const line2, Int9M& res){
 
    for(int i=0;i<size1;i++){
       line1->Get(i,chs1);
-      Point dp1 = chs1->GetDPoint();
+      Point dp1 = chs1->GetDomPoint();
       // process endpoint if present 
       if(HasEndpointAt(line1,i)){
          
@@ -1262,13 +1262,13 @@ operations.
 
 ValueMapping TopRelMap[] = {
        TopRel<Point,Point> , TopRel<Points,Point>,
-       TopRelSym<Point,Points>, TopRel<Points,Points>, TopRel<CLine,Point>,
-       TopRelSym<Point,CLine>,TopRel<CLine,Points>,TopRelSym<Points,CLine>  };
+       TopRelSym<Point,Points>, TopRel<Points,Points>, TopRel<Line,Point>,
+       TopRelSym<Point,Line>,TopRel<Line,Points>,TopRelSym<Points,Line>  };
 
 ValueMapping TopPredMap[] = {
        TopPred<Point,Point> , TopPred<Points,Point>,
-       TopPredSym<Point,Points>, TopPred<Points,Points>, TopPred<CLine,Point>,
-       TopPredSym<Point,CLine>,TopPred<CLine,Points>,TopPredSym<Points,CLine> };
+       TopPredSym<Point,Points>, TopPred<Points,Points>, TopPred<Line,Point>,
+       TopPredSym<Point,Line>,TopPred<Line,Points>,TopPredSym<Points,Line> };
 
 
 

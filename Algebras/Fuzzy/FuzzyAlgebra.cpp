@@ -117,6 +117,7 @@ public:
    bool Adjacent(const Attribute * arg) const;
    int NumOfFLOBs() const;
    FLOB *GetFLOB(const int i);
+   size_t Sizeof() const;
    void Initialize();
    jobject GetObject() const;
     // the methods for operators
@@ -173,6 +174,7 @@ class CcFLine : public StandardAttribute{
      bool Adjacent(const Attribute * arg) const;
      int NumOfFLOBs() const;
      FLOB *GetFLOB(const int i);
+     size_t Sizeof() const;
      void Initialize();
      jobject GetObject() const;
      ListExpr toListExpr() const;
@@ -232,6 +234,7 @@ public:
    bool Adjacent(const Attribute* arg) const;
    int NumOfFLOBs() const;
    FLOB *GetFLOB(const int i);
+   size_t Sizeof() const;
    void Initialize();
    jobject GetObject() const;
    ListExpr toListExpr() const;
@@ -491,6 +494,14 @@ int CcFPoint::NumOfFLOBs() const {
 FLOB *CcFPoint::GetFLOB(const int i){
    assert(i==0);
       return &objectData;
+}
+
+/*
+~Sizeof~
+
+*/
+size_t CcFPoint::Sizeof() const{
+  return sizeof(*this); 
 }
 
 /*
@@ -872,6 +883,10 @@ int CcFLine::NumOfFLOBs() const{
 FLOB* CcFLine::GetFLOB(const int i){
     assert(i==0);
     return &objectData;
+}
+
+size_t CcFLine::Sizeof() const{
+  return sizeof(*this);
 }
 
 void CcFLine::Initialize(){
@@ -1448,6 +1463,10 @@ int CcFRegion::NumOfFLOBs() const {
 FLOB* CcFRegion::GetFLOB(const int i){
    assert(i==0);
    return &objectData;
+}
+
+size_t CcFRegion::Sizeof() const{
+  return sizeof(*this);
 }
 
 void CcFRegion::Initialize(){

@@ -130,7 +130,7 @@ class PBBox: public StandardAttribute {
     FLOB* GetFLOB(int i);
     int Compare(const Attribute* arg)const;
     bool Adjacent(const Attribute*) const;
-    int Sizeof()const;
+    size_t Sizeof() const;
     bool IsDefined() const;
     bool IsEmpty() const;
     void SetDefined( const bool defined );
@@ -300,7 +300,7 @@ an algebra type.
     void SetDefined(bool defined);
     size_t HashValue() const;
     void CopyFrom(const StandardAttribute* arg);
-
+    size_t Sizeof() const;
 
 /*
 ~Mul~
@@ -492,6 +492,7 @@ class PInterval : public StandardAttribute{
     bool IsDefined() const;
     void SetDefined( bool defined);
     size_t HashValue()const;
+    size_t Sizeof() const;
     void CopyFrom(const StandardAttribute* arg);
     void Equalize(const PInterval* D2);
     DateTime* GetLength()const;
@@ -900,7 +901,8 @@ class LinearPointMove{
    bool ReadFrom(const ListExpr value);
    Point* At(const DateTime* duration)const;
    bool IsDefinedAt(const DateTime* duration)const;
-   CHalfSegment GetHalfSegment(const bool LeftDominatingPoint)const;
+   bool GetHalfSegment(const bool LeftDominatingPoint,
+                       HalfSegment& seg)const;
    bool Intersects(const PBBox* window)const;
    inline bool IsDefined()const; 
    bool IsStatic()const;
@@ -1110,7 +1112,7 @@ class PMSimple : public StandardAttribute {
      bool Adjacent(const Attribute*)const;
      PMSimple<T,Unit>* Clone() const;
 
-     int Sizeof()const;
+     size_t Sizeof()const;
      bool IsDefined() const;
      void SetDefined( bool defined );
      size_t HashValue() const;
@@ -1308,7 +1310,7 @@ class PMPoint : public StandardAttribute {
      int Compare(const Attribute* arg) const;
      bool Adjacent(const Attribute*)const;
      PMPoint* Clone() const;
-     int Sizeof()const;
+     size_t Sizeof()const;
      bool IsDefined() const;
      void SetDefined( bool defined );
      size_t HashValue() const;
@@ -1323,7 +1325,7 @@ class PMPoint : public StandardAttribute {
      void Translate(const DateTime& duration);
      inline Points* Breakpoints();
      Points* Breakpoints(const DateTime* minDuration,const bool inclusive);
-     CLine*  Trajectory();
+     Line*  Trajectory();
      DateTime GetStart()const;
      DateTime GetEnd()const;
      PInterval GetInterval()const;
@@ -1415,7 +1417,7 @@ class PMPoints : public StandardAttribute {
      int Compare(const Attribute* arg) const;
      bool Adjacent(const Attribute*)const;
      PMPoints* Clone() const;
-     int Sizeof()const;
+     size_t Sizeof()const;
      bool IsDefined() const;
      void SetDefined( bool defined );
      size_t HashValue() const;

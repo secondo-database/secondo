@@ -15,6 +15,7 @@ repetitions.
 
 #include <iostream>
 #include <string>
+#include <cassert>
 #include "RepTree.h"
 #include "List2.h"
 
@@ -88,7 +89,7 @@ RepTree::RepTree(int *content,const int count){
     this->type = COMPOSITION;
     this->content = count;
     this->id = lastid++;
-    sons = new (RepTree*)[count];
+    sons = new RepTree*[count];
     for(int i=0;i<count;i++)
        sons[i] = new RepTree(content[i]);
     DetectRepetitions();
@@ -106,7 +107,7 @@ RepTree::RepTree(RepTree* node,const int repetitions){
     this->type = REPETITION;
     this->content = repetitions;
     this->id = lastid++;
-    sons = new (RepTree*)[1];
+    sons = new RepTree*[1];
     sons[0] = node;
 }
 
@@ -122,7 +123,7 @@ RepTree::RepTree(RepTree** nodes,const int startindex,const int endindex){
      this->type = COMPOSITION;
      this->content = endindex-startindex+1;
      this->id = lastid++;
-     sons = new (RepTree*)[content];
+     sons = new RepTree*[content];
      for(int i=startindex;i<=endindex;i++)
          sons[i-startindex]=nodes[i]; 
 }
@@ -140,7 +141,7 @@ RepTree::RepTree(RepTree** nodes,const int startindex,
      this->type = REPETITION;
      this->content=repcount;
      this->id = lastid++;
-     sons = new (RepTree*)[1];
+     sons = new RepTree*[1];
      sons[0] = new RepTree(nodes,startindex,endindex);
 }
 
@@ -521,7 +522,7 @@ void RepTree::DetectRepetitions(){
          // now we replace the sons in fact
          int newsize = content-noElements+noReplacements;
          RepTree** newsons; 
-         newsons = new (RepTree*)[newsize]; 
+         newsons = new RepTree*[newsize]; 
          It->Reset();
          // we know that It has a element because the list is not empty
          replacement r=It->Next();

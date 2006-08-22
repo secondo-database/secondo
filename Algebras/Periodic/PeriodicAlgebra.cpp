@@ -393,7 +393,7 @@ This function returns the size of the PBBox class.
 [3] O[1]
 
 */
-int PBBox::Sizeof()const{
+size_t PBBox::Sizeof()const{
     __TRACE__
   return sizeof(PBBox);
 }
@@ -1114,7 +1114,16 @@ size_t RelInterval::HashValue() const{
   return lhv;
 }
 
+/*
+~Sizeof~
 
+[3] O(1)
+
+*/
+size_t RelInterval::Sizeof() const{
+    __TRACE__
+  return sizeof(*this);
+}
 /*
 ~Split~
 
@@ -1844,6 +1853,17 @@ Computes a HashValue for this.
 size_t PInterval::HashValue() const{
    __TRACE__
   return startTime.HashValue()+relinterval.HashValue();
+}
+
+/*
+~Sizeof~
+
+[3] O(1)
+
+*/
+size_t PInterval::Sizeof() const{
+   __TRACE__
+  return sizeof(*this);
 }
 
 /*
@@ -3834,7 +3854,7 @@ Returns the size of the class PMSimple.
 
 */
 template <class T, class Unit>
-int PMSimple<T, Unit>::Sizeof()const{
+size_t PMSimple<T, Unit>::Sizeof()const{
     __TRACE__
    return sizeof(PMSimple<T,Unit>);
 }
@@ -4344,14 +4364,16 @@ void PMSimple<T, Unit>::SetRightClosed(SubMove submove, bool value){
       return; 
   }
   if(submove.arrayNumber == COMPOSITE){
-      CompositeMove CM;
+      const CompositeMove *CM;
       compositeMoves.Get(submove.arrayIndex,CM);
-      compositeSubMoves.Get(CM.maxIndex,submove);
+      const CSubMove *auxSubmove;
+      compositeSubMoves.Get(CM->maxIndex,auxSubmove);
+      submove = auxSubmove;
       SetRightClosed(submove,value);
       return;
   }
   if(submove.arrayNumber == PERIOD){
-      PeriodicMove PM;
+      const PeriodicMove *PM;
       periodicMoves.Get(submove.arrayIndex,PM);
              
   }
@@ -4727,26 +4749,26 @@ void PMSimple<T, Unit>::CopyValuesFrom( DBArray<Unit>& linearMoves,
   }
   if((size=compositeMoves.Size())>0){
       this->compositeMoves.Resize(size);
-      CompositeMove CM;
+      const CompositeMove *CM;
       for(int i=0;i<size;i++){
          compositeMoves.Get(i,CM);
-         this->compositeMoves.Put(i,CM);
+         this->compositeMoves.Put(i,*CM);
       } 
   }
   if((size=compositeSubMoves.Size())>0){
      this->compositeSubMoves.Resize(size);
-     SubMove SM;
+     const SubMove *SM;
      for(int i=0;i<size;i++){
         compositeSubMoves.Get(i,SM);
-        this->compositeSubMoves.Put(i,SM);
+        this->compositeSubMoves.Put(i,*SM);
      } 
   }
   if((size=periodicMoves.Size())>0){
       this->periodicMoves.Resize(size);
-      PeriodicMove PM;
+      const PeriodicMove *PM;
       for(int i=0;i<size;i++){
          periodicMoves.Get(i,PM);
-         this->periodicMoves.Put(PM);
+         this->periodicMoves.Put(*PM);
       }
   }
   this.defined=defined;
@@ -4785,9 +4807,11 @@ void PMSimple<T, Unit>::TakeValuesFrom( DBArray<Unit>& linearMoves,
    this->periodicMoves.Clear();
    this->periodicMoves.Destroy();
    this->linearMoves = linearMoves();
-   this->compositeMoves = compositeMoves();
-   this->compositeSubMoves = compositeSubMoves();
-   this->periodicMoves = periodicMoves();
+// VTA - I think that one should copy all the entries of the arrays
+   this->compositeMoves = compositeMoves;
+   this->compositeSubMoves = compositeSubMoves;
+   this->periodicMoves = periodicMoves;
+
    this->defined = defined;
    this.interval = interval;
    this.startTimes = startTime;
@@ -6208,9 +6232,10 @@ int find(const int size,const T field[],const T elem){
    __TRACE__
   int min=0;
    int max=size;
+   int mid=0;
    bool found = false;
    while(min<max && !found){
-     int mid = (min+max)/2;
+     mid = (min+max)/2;
      if(field[mid]>elem)
          max=mid-1;
      else if(field[mid]<elem)
@@ -6704,21 +6729,23 @@ bool LinearPointMove::IsDefinedAt(const DateTime* duration)const{
 ~GetHalfSegment~
 
 This function returns the trajectory of this LinearPointMove as an
-CHalfSegment.  If the LinearPointMove is not defined or static,
+HalfSegment.  If the LinearPointMove is not defined or static,
 an undefined HalfSegment is returned.
 
 [3] O(1)
 
 */
-CHalfSegment LinearPointMove::GetHalfSegment(
-                       const bool LeftDominatingPoint)const{
+bool LinearPointMove::GetHalfSegment(
+                       const bool LeftDominatingPoint,
+                       HalfSegment& seg)const{
    __TRACE__
   if(defined && !isStatic){
       Point P1(true,startX,startY);
       Point P2(true,endX,endY);
-      return CHalfSegment(true,LeftDominatingPoint,P1,P2);
+      seg.Set(LeftDominatingPoint,P1,P2);
+      return true;
    } else{
-      return CHalfSegment(false);
+      return false;
    }
 }
 
@@ -7625,7 +7652,7 @@ Points* LinearPointsMove::At(const DateTime* duration,
       x = Element->startX + w * (Element->endX - Element->startX);
       y = Element->startY + w * (Element->endY - Element->startY); 
       aPoint = Point(x,y);
-      Result->InsertPt(aPoint); 
+      *Result += aPoint; 
    }  
    Result->EndBulkLoad();
    return  Result;
@@ -8114,7 +8141,7 @@ This function returns the size of the PMPoint-class
 [3] O(1)
 
 */
-int PMPoint::Sizeof() const{
+size_t PMPoint::Sizeof() const{
     __TRACE__
   return sizeof(PMPoint);
 }
@@ -9337,7 +9364,7 @@ Points* PMPoint::Breakpoints(const DateTime* duration,const bool inclusive){
          delete L;
          if(cmp>0 || (cmp==0 && inclusive)){
             Point P(true,LM->startX,LM->startY);
-            Res->InsertPt(P);
+            *Res += P;
          }
       }
   }
@@ -9355,22 +9382,22 @@ This function computes the trajectory of a single periodic moving point.
 [3] O(L), where L is the number of contained linear moves
 
 */
-CLine*  PMPoint::Trajectory(){
+Line*  PMPoint::Trajectory(){
     __TRACE__
   const LinearPointMove* LM;
   // each linear moves needs 2 halfsegments
-  CLine* Res = new CLine(linearMoves.Size()*2);  
+  Line* Res = new Line(linearMoves.Size()*2);  
   Res->Clear();
   Res->StartBulkLoad();
-  CHalfSegment HS1;
-  CHalfSegment HS2;
+  HalfSegment HS1;
+  HalfSegment HS2;
 
   for(int i=0;i<linearMoves.Size();i++){
      linearMoves.Get(i,LM);
      if(LM->IsDefined() && !LM->IsStatic() ){
-        HS1=LM->GetHalfSegment(true);
-        HS2=LM->GetHalfSegment(false);
-        if(HS1.IsDefined() && HS2.IsDefined()){
+        bool hasHS1=LM->GetHalfSegment(true, HS1),
+             hasHS2=LM->GetHalfSegment(false, HS2);
+        if(hasHS1 && hasHS2){
           *Res+=HS1;
           *Res+=HS2;
         }
@@ -10367,7 +10394,7 @@ This function returns the size of the PMPoints-class
 [3] O(1)
 
 */
-int PMPoints::Sizeof()const{
+size_t PMPoints::Sizeof()const{
     __TRACE__
   return sizeof(PMPoints);
 }
@@ -11136,7 +11163,7 @@ Points* PMPoints::Breakpoints(const DateTime* duration, const bool inclusive){
               thePoints.Get(j,TP);
               if(TP->IsStatic()){
                 Point P(true,TP->GetStartX(),TP->GetStartY());
-                Res->InsertPt(P);
+                *Res += P;
               }
 
           }
@@ -13114,7 +13141,7 @@ int TrajectoryFun(Word* args, Word& result,
                    int message, Word& local, Supplier s){
    __TRACE__
    PMPoint* P = (PMPoint*) args[0].addr;
-   CLine* L = P->Trajectory();
+   Line* L = P->Trajectory();
    result.addr = L;
    return 0;
 }
