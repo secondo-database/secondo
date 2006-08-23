@@ -3192,8 +3192,6 @@ TypeMapSuse2( ListExpr args )
   errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
   // 0. Check number of arguments
-  cout << "\nTypeMapSuse2: 0 " << endl;
-
   if ( (nl->ListLength( args ) != 3) )
     {
       ErrorReporter::ReportError("Operator suse2 expects a list of "
@@ -3202,13 +3200,11 @@ TypeMapSuse2( ListExpr args )
     }
   
   // 1. get suse arguments
-  cout << "\nTypeMapSuse2: 1 " << endl;
   sarg1 = nl->First( args );
   sarg2 = nl->Second( args );
   map   = nl->Third( args ); 
   
   // 2. First argument
-  cout << "\nTypeMapSuse2: 2 " << endl;
   // check sarg1 for being a stream
   if( nl->IsAtom( sarg1 )
       || !(TypeOfRelAlgSymbol(nl->First(sarg1) == stream )) )
@@ -3259,7 +3255,6 @@ TypeMapSuse2( ListExpr args )
     }
   
   // 3. Second Argument
-  cout << "\nTypeMapSuse2: 3 " << endl;
   // check sarg2 for being a stream
   if( nl->IsAtom( sarg2 )
       || !(TypeOfRelAlgSymbol(nl->First(sarg2) == stream )) )
@@ -3310,7 +3305,6 @@ TypeMapSuse2( ListExpr args )
     }
   
   // 4. First and Second argument
-  cout << "\nTypeMapSuse2: 4 " << endl;
   // check whether at least one stream argument is present
   if ( !sarg1isstream && !sarg2isstream )
     {
@@ -3321,7 +3315,6 @@ TypeMapSuse2( ListExpr args )
     }
 
   // 5. Third argument
-  cout << "\nTypeMapSuse2: 5 " << endl;
   // check third for being a map
   if (  nl->IsAtom( map ) || !( nl->IsEqual(nl->First(map), "map") ) )
     {
@@ -3374,7 +3367,6 @@ TypeMapSuse2( ListExpr args )
     }
 
   // 6. Determine result type
-  cout << "\nTypeMapSuse2: 6 " << endl;
   // get map result type 'sresType'
   if( !( nl->IsAtom( mres ) ) && ( nl->ListLength( mres ) == 2) ) 
     {
@@ -3424,15 +3416,12 @@ TypeMapSuse2( ListExpr args )
   //
   //    e.g. 7=4+2+1: both arguments are streams and the 
   //                  map result is a stream
-  cout << "\nTypeMapSuse2: 7 " << endl;
 
   if(sarg1isstream) argConfCode += 1;
   if(sarg2isstream) argConfCode += 2;
   if(resisstream)   argConfCode += 4;
 
   argConfDescriptor = nl->OneElemList(nl->IntAtom(argConfCode));
-
-  cout << "\nTypeMapSuse2: 8 Type = " << argConfCode << endl;
   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
               argConfDescriptor, sresType);  
 }
@@ -3540,7 +3529,6 @@ int Suse_SS( Word* args, Word& result, int message,
   Word             instream = args[0], fun = args[1]; 
   Word             X, funResult;  
   ArgVectorPointer funargs;
-  Supplier         supplier;
 
   switch (message)
   {
@@ -3548,21 +3536,20 @@ int Suse_SS( Word* args, Word& result, int message,
 
     sli = new SuseLocalInfo;
     //1. open the ("outer") input stream and
-    //   initialize sli->X and sli->Y
+    //   initialize sli->X and sli->Y    
     qp->Open( instream.addr );
     qp->Request( instream.addr, X );
     if(qp->Received( instream.addr ))	
       {
 	//2. get first value from the inner stream 
-	supplier = fun.addr;
-	funargs = qp->Argument( supplier );
+	funargs = qp->Argument( fun.addr );
 	(*funargs)[0] = X;
-	qp->Open( supplier );
+	qp->Open( fun.addr );
 	
 	//3. save the local information
 	sli = new SuseLocalInfo;
 	sli->X = X;
-	sli->fun = SetWord( supplier );
+	sli->fun = SetWord( fun.addr );
 	local = SetWord(sli);
       }
     else
@@ -3772,7 +3759,7 @@ int Suse_SNS( Word* args, Word& result, int message,
 {
 
   SuseLocalInfo     *sli;
-  Word              xval, funresult;
+  Word              funresult;
   Word              argConfDescriptor;  
   ArgVectorPointer  funargs;
 
