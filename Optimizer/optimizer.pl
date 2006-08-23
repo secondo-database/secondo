@@ -289,6 +289,7 @@ nextCounter(Name, Result) :-
   retract(nCounter(Name, Value)),
   assert(nCounter(Name, Result)).
 
+% create a new counter if necessary 
 nextCounter(Name, 1) :-
   assert(nCounter(Name, 1)).
 
@@ -1113,11 +1114,12 @@ plan_to_atom(pjoin2(X, Y, Fields), Result) :-
   concat_atom([XAtom, YAtom, 'pjoin2[', FAtom, '] '], '', Result),
   !.
 
-plan_to_atom(pjoin1(X, Y, Fields), Result) :-
+plan_to_atom(pjoin1(X, Y, Ctr, Fields), Result) :-
   plan_to_atom(X, XAtom),
   plan_to_atom(Y, YAtom),
+  plan_to_atom(Ctr, CtrAtom),
   plan_to_atom(Fields, FAtom),
-  concat_atom([XAtom, YAtom, 'pjoin1[', FAtom, '] '], '', Result),
+  concat_atom([XAtom, YAtom, 'pjoin1[', CtrAtom, '; ', FAtom, '] '], '', Result),
   !.
 
 
@@ -1920,19 +1922,19 @@ operators for joins on "<=", ">=", "<" and ">" here.
 The rules below will be used only if option ~adaptiveJoin~ is set. For
 details refer to ~adaptiveJoin.pl~.
 
-*/ 
 
-join(Arg1, arg(N), pr(X=Y, _, _)) => pjoin1( Stream, Rel, Fields ) :-
+join(Arg1, arg(N), pr(X=Y, _, _)) => pjoin1( Stream, Rel, Ctr, Fields ) :-
   optimizerOption(adaptiveJoin),   
-  try_pjoin1SR(N, X, Y, Rel, Fields),
+  try_pjoin1SR(N, X, Y, Rel, Ctr, Fields),
   Arg1 => Stream.
 
-join(arg(N), Arg2, pr(X=Y, _, _)) => pjoin1( Stream, Rel, Fields ) :-
+join(arg(N), Arg2, pr(X=Y, _, _)) => pjoin1( Stream, Rel, Ctr, Fields ) :-
   optimizerOption(adaptiveJoin),   
-  try_pjoin1RS(N, X, Y, Rel, Fields),
+  try_pjoin1RS(N, X, Y, Rel, Ctr, Fields),
   Arg2 => Stream.
 
 
+*/ 
 
 
 
@@ -2051,10 +2053,8 @@ details refer to ~adaptiveJoin.pl~.
 
 */ 
 
-join00(Arg1S, Arg2S, Pred) => pjoin2(Arg1S, Arg2S, Fields) :-
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2(Arg1S, Arg2S, Fields) :-
   optimizerOption(adaptiveJoin),
-  not( possibleIndexJoin(Pred) ),
-  Pred = pr(X = Y, _, _),
   try_pjoin2(X, Y, Fields).
 
 
@@ -2092,11 +2092,18 @@ createPlanEdge :-
   assert(planEdge(Source, Target, Plan, Result)),
   fail.
 
-createPlanEdges :- not(createPlanEdge).
+createPlanEdges :- 
+  not(createPlanEdge),
+  modifyPlanEdges.
 
 deletePlanEdges :- retractall(planEdge(_, _, _, _)).
 
-
+modifyPlanEdges :-
+  optimizerOption(adaptiveJoin),
+  deleteRegularJoinEdges.
+  
+modifyPlanEdges.
+ 
 planEdgeInfoAll(Source, Target) :-
   write('Source: '), write(Source), nl,
   write('Target: '), write(Target), nl.
@@ -2587,7 +2594,7 @@ cost(spatialjoin(X, Y, _, _), Sel, S, C) :-
   
 
 /*
-costs for pjoin1 and pjoin2. Will only be used if option 
+costs for pjoin2 will only be used if option 
 ~adpativeJoin~ is enabled.
 
 */
@@ -2596,16 +2603,15 @@ cost(pjoin2(X, Y, [ _ | _ ]), Sel, Size, C) :-
   cost(X, 1, SizeX, _),
   cost(Y, 1, SizeY, _),
   Size is Sel * SizeX * SizeY,
-  %cost(sortmergejoin(X, Y, _, _), Sel, S1, C1),
-  %cost(hashjoin(X, Y, _, _, 997), Sel, S1, _),
-  %C is min(C1, C2) - 1.
-  C is 100.0.
+  cost(sortmergejoin(X, Y, _, _), Sel, S1, C1),
+  cost(hashjoin(X, Y, _, _, 997), Sel, S1, C2),
+  C is min(C1, C2).
 
-cost(pjoin1(X, Y, [ _ | _ ]), Sel, Size, C) :-
-  cost(X, 1, SizeX, _),
-  cost(Y, 1, SizeY, _),
-  Size is Sel * SizeX * SizeY,
-  C is 10.0.
+ %cost(pjoin1(X, Y, _, [ _ | _ ]), Sel, Size, C) :-
+ %cost(X, 1, SizeX, _),
+ % cost(Y, 1, SizeY, _),
+ % Size is Sel * SizeX * SizeY,
+ % C is 10.0.
 
 cost(extend(X, _), Sel, S, C) :-
   cost(X, Sel, S, C1),

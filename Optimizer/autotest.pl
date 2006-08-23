@@ -15,7 +15,7 @@ Therefore you will need database opt.
   * ~runTPCExamples/0~ which runs some queries of the TPC-H benchmark. The
 queries need the database ~tpc~.
 
-  * ~runGenExamples~. This is a stress test for the optimizer since it generates
+  * ~runGenExamples/0~. This is a stress test for the optimizer since it generates
 many variants of possible queries on data of database opt.
 
 Some of the queries need more than the default global and local stack sizes of
