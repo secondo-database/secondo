@@ -3924,19 +3924,19 @@ int Suse_SSN( Word* args, Word& result, int message,
       qp->Open(sli->X.addr);            // open outer stream argument
       sli->Xfinished = false;
       local = SetWord(sli);
-      //cout << "Suse_SNN finished OPEN" << endl;
+      //cout << "Suse_SSN finished OPEN" << endl;
       return 0;
       
     case REQUEST :
       
-      // We do a nested loop to join the elemetns of the outer (sli->X)
+      // We do a nested loop to join the elements of the outer (sli->X)
       // and inner (sli->Y) stream. For each pairing, we evaluate the
       // parameter function (sli->fun), which return a single result.
       // A clone of the result is passed as the result.
       // We also need to delete each element, when it is not required
       // anymore.
 
-      //cout << "Suse_SNN received REQUEST" << endl;
+      //cout << "Suse_SSN received REQUEST" << endl;
 
       // get local data object
       if (local.addr == 0)
@@ -3956,6 +3956,7 @@ int Suse_SSN( Word* args, Word& result, int message,
 		{ // outer instream exhaused
 		  qp->Close(sli->X.addr);
 		  sli->Xfinished = true;
+		  result.addr = 0;
 		  //cout << "Suse_SSN finished REQUEST: CANCEL (2)" << endl;
 		  return CANCEL;
 		} 
@@ -4004,11 +4005,13 @@ int Suse_SSN( Word* args, Word& result, int message,
 	    qp->Close( sli->X.addr ); // close outer instream
 	  delete sli;
 	}
+      result.addr = 0;
       //cout << "Suse_SSN finished CLOSE" << endl;
       return 0;
       
     }  // end switch
-  cout << "\nSuse_SNN received UNKNOWN COMMAND" << endl;
+  result.addr = 0;
+  cout << "\nSuse_SSN received UNKNOWN COMMAND" << endl;
   return -1; // should not be reached
 }
 
@@ -4018,7 +4021,161 @@ int Suse_SSN( Word* args, Word& result, int message,
 int Suse_SSS( Word* args, Word& result, int message,
 		     Word& local, Supplier s )
 {
-  return 0;
+  SuseLocalInfo     *sli;
+  Word              funresult;
+  Word              argConfDescriptor;  
+  ArgVectorPointer  funargs;
+
+  switch (message)
+    {
+    case OPEN :
+      
+      //cout << "\nSuse_SSS received OPEN" << endl;
+      sli = new SuseLocalInfo ;
+      sli->Xfinished   = true;
+      sli->Yfinished   = true;
+      sli->funfinished = true;
+      // get argument configuration info
+      qp->Request(args[3].addr, argConfDescriptor);      
+      sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
+      if(!(sli->argConfDescriptor & 4) )
+	{ 
+	  delete( sli );
+	  local.addr = 0;
+	  cout << "\nSuse_SSS was called with non-stream result mapping!" 
+	       <<  endl;
+	  return 0;
+	}
+      if(!(sli->argConfDescriptor & 3))
+	{ 
+	  delete( sli );
+	  local.addr = 0;
+	  cout << "\nSuse_SSS was called with non-stream arguments!" 
+	       <<  endl;
+	  return 0;
+	}
+      sli->X   = SetWord(args[0].addr); // X is the stream
+      sli->Y   = SetWord(args[1].addr); // Y is the constant value
+      sli->fun = SetWord(args[2].addr); // fun is the mapping function
+      qp->Open(sli->X.addr);            // open X stream argument      
+      sli->Xfinished = false;
+      local = SetWord(sli);
+      //cout << "Suse_SSS finished OPEN" << endl;
+      return 0;
+      
+    case REQUEST :
+      
+      // We do a nested loop to join the elements of the outer (sli->X)
+      // and inner (sli->Y) stream. For each pairing, we open the
+      // parameter function (sli->fun), which returns a stream result.
+      // We consume this map result stream one-by-one.
+      // When it is finally consumed, we try to restart it with the next 
+      // X/Y value pair.
+      // A clone of the result is passed as the result.
+      // We also need to delete each X/Y element, when it is not required
+      // any more.
+
+      //cout << "Suse_SSS received REQUEST" << endl;
+
+      // get local data object
+      if (local.addr == 0)
+	{
+	  result.addr = 0;
+	  //cout << "Suse_SSS finished REQUEST: CLOSE (1)" << endl;
+	  return CANCEL;
+	}
+      sli = (SuseLocalInfo*) local.addr;
+
+      while(!sli->Xfinished)
+	{
+	  if (sli->Yfinished)
+	    { // get next X-value from outer instream
+	      // and restart inner (Y-) instream
+	      qp->Request(sli->X.addr, sli->XVal);
+	      if (!qp->Received(sli->X.addr))
+		{ // X-instream exhaused
+		  qp->Close(sli->X.addr);
+		  sli->Xfinished = true;
+		  //cout << "Suse_SSS finished REQUEST: CANCEL (2)" << endl;
+		  result.addr = 0;
+		  return CANCEL;
+		} 
+	      // Got next X-elem. (Re-)Start inner Y-instream:
+	      qp->Open(sli->Y.addr);
+	      sli->Yfinished = false;
+	    } // Now, we have open X- and Y- streams
+	  if (sli->funfinished)
+	    { // get next Y-value from inner instream
+	      // and open new map result stream
+	      qp->Request(sli->Y.addr, sli->YVal);
+	      if (!qp->Received(sli->Y.addr))
+		{
+		  qp->Close(sli->Y.addr);
+		  ((Attribute*) (sli->XVal.addr))->DeleteIfAllowed();
+		  sli->Yfinished = true;		  
+		}
+	      else
+		{
+		  funargs = qp->Argument( sli->fun.addr );
+		  (*funargs)[0] = sli->XVal;
+		  (*funargs)[1] = sli->YVal;		  
+		  qp->Open( sli->fun.addr );
+		  sli->funfinished = false;
+		}
+	    }
+	  // Now, we have an open map result streams
+	  if (!sli->Xfinished && !sli->Yfinished && !sli->funfinished)
+	    { // pass parameters and call mapping, clone result
+	      funargs = qp->Argument( sli->fun.addr );
+	      (*funargs)[0] = sli->XVal;
+	      (*funargs)[1] = sli->YVal;
+	      qp->Request( sli->fun.addr, funresult );
+	      if ( qp->Received(sli->fun.addr) )
+		{ // got a value from map result stream
+		  result = SetWord(((Attribute*) (funresult.addr))->Clone());
+		  //cout << "Suse_SSS finished REQUEST: YIELD" << endl;
+		  return YIELD;
+		}
+	      else
+		{ // map result stream exhausted
+		  qp->Close( sli->fun.addr) ;
+		  ((Attribute*) (sli->YVal.addr))->DeleteIfAllowed();
+		  sli->funfinished = true;
+		} // try to restart with new X/Y pairing
+	    }
+	} // end while
+      result.addr = 0;
+      //cout << "Suse_SSS finished REQUEST: CANCEL (3)" << endl;
+      return CANCEL;
+      
+    case CLOSE :
+      
+      //cout << "Suse_SSS received CLOSE" << endl;
+      if( local.addr != 0 )
+	{
+	  sli = (SuseLocalInfo*)local.addr;
+	  if (!sli->funfinished)
+	    {
+	      qp->Close( sli->fun.addr ); // close map result stream
+	      // Delete current Y-elem:
+	      ((Attribute*) (sli->YVal.addr))->DeleteIfAllowed();
+	    }
+	  if (!sli->Yfinished)
+	    {
+	      qp->Close( sli->Y.addr ); // close inner instream
+	      // Delete current X-elem:
+	      ((Attribute*) (sli->XVal.addr))->DeleteIfAllowed();
+	    }
+	  if (!sli->Xfinished)
+	    qp->Close( sli->X.addr ); // close outer instream
+	  delete sli;
+	}
+      //cout << "Suse_SSS finished CLOSE" << endl;
+      return 0;
+      
+    }  // end switch
+  cout << "\nSuse_SSS received UNKNOWN COMMAND" << endl;
+  return -1; // should not be reached
 }
 
 
