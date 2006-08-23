@@ -33,7 +33,7 @@ operator puse alias PUSE pattern _ op [ fun ]
 operator pjoin2 alias PJOIN2 pattern _ _ op [ funlist ]
          implicit parameters left, right types PSTREAM1, PSTREAM2
 
-operator pjoin1 alias PJOIN1 pattern _ _ op [ funlist ]
+operator pjoin1 alias PJOIN1 pattern _ _ op [ _; funlist ]
          implicit parameters left, right types PSTREAM1, ANY2
 
 

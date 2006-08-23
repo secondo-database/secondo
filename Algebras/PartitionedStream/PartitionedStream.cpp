@@ -1370,8 +1370,10 @@ struct PTupleBuffer
        return buf;
     }
     
-    int getNoTuples() { 
-      return buf->GetNoTuples(); 
+    int getNoTuples(bool useCtrs = false, int ctrNum = 0) {
+      if (!useCtrs) 
+        return buf->GetNoTuples();
+      return qp->GetCounter(ctrNum+1); 
     }
     
     int getNoTuplesOfCompleteParts() { 
@@ -1382,11 +1384,21 @@ struct PTupleBuffer
        return tuplesCurrentPart + tuplesCompleteParts;
     }   
 
+    // used by pjoin1 to correct the number of received tuples
     void setRequestedTuples(const int num) {
        tuplesCurrentPart = 0;
        tuplesCompleteParts = num;
     }   
 
+    double getTotalSize(bool useCtrs=false, int ctrNum = 0)
+    {
+      if (!useCtrs)
+        return buf->GetTotalSize();
+
+      double f = (1.0 * qp->GetCounter(ctrNum+1)) / qp->GetCounter(ctrNum);
+      return f * buf->GetTotalSize(); 
+    } 
+    
     inline bool end() const { 
       return endReached;
     }
@@ -1503,7 +1515,7 @@ to estimate the cardinality of the input stream
     inline int readPartitions() { return lastMarker.num; }
     inline int partSize() { return lastMarker.tuples; }
     
-    int estimateInputCard() 
+    int estimateInputCard(const bool useCtrs = false, int ctrNum = 0) 
     {
       TRACE("Input cardinality estimation")
       SHOW(lastMarker.num)
@@ -1514,6 +1526,18 @@ to estimate the cardinality of the input stream
       
       // received tuples
       double received = getTuplesOfCompleteParts();
+
+      if (useCtrs)
+      {
+        // determine input selectivity by counters used in the
+        // plan of the probe join.
+        double Ctr1 = qp->GetCounter(ctrNum);
+        double Ctr2 = qp->GetCounter(ctrNum+1);
+        SHOW(Ctr1) 
+        SHOW(Ctr2) 
+        expected = Ctr1;
+        received = Ctr2;
+      } 
 
       SHOW(expected)
       SHOW(received) 
@@ -1529,6 +1553,10 @@ to estimate the cardinality of the input stream
                   * max(lastMarker.parts,1) 
                       * (received / expected);
       }
+      else
+      {
+        card = received;
+      }   
       SHOW(card)
       
       return static_cast<int>( ceil(card) );
@@ -1544,10 +1572,6 @@ to estimate the cardinality of the input stream
     
     inline bool overFlow() { 
        return getTotalSize() > maxSize; 
-    }
-
-    inline double getTotalSize() { 
-      return buf->GetTotalSize(); 
     }
 
 }; 
@@ -1594,9 +1618,11 @@ template<class StreamType>
     
     float joinSel;
     bool isSelfJoin;
+    bool useCtrs;
     
     long probeJoinCPU;
     int& instanceNum;
+    int ctrNum;
     
     bool bufReset[2];
 
@@ -1605,7 +1631,7 @@ template<class StreamType>
     PJoinInfo( StreamOpAddr left, 
                StreamType right, 
                int& instanceCtr, 
-               bool selfJoinFlag = false, 
+               int num = 0,
                int mem = 1024*1024         ) : 
       evalFuns(0), 
       leftIs(left),
@@ -1620,9 +1646,11 @@ template<class StreamType>
       rightAvgTupSize(0),
       resultTuples(0),
       joinSel(0.0),
-      isSelfJoin(selfJoinFlag),
+      isSelfJoin(false),
+      useCtrs(false),
       probeJoinCPU(0),
-      instanceNum(instanceCtr)
+      instanceNum(instanceCtr),
+      ctrNum(num)
     {
       instanceNum++;
       TRACE_FILE("pjoin.traces")
@@ -1669,6 +1697,7 @@ template<class StreamType>
       // reset instance counter for next query
       instanceNum=0;
            
+      
       delete leftBuf;
       delete rightBuf;
       delete evalFuns;
@@ -1682,7 +1711,11 @@ template<class StreamType>
         c = 1;
       return static_cast<int>( ceil(((abs(a - b) * 1.0) / c) * 100) );
     } 
-    
+
+    void setRequestedTuples() {
+      rightBuf->setRequestedTuples( qp->GetCounter(ctrNum+2) );
+    }  
+       
     
 /*
 Function ~computeCards~ will compute estimated cardinalities for the
@@ -1691,18 +1724,21 @@ input, output, and result stream.
 */     
     void computeCards(const int resultTuples)
     {
+       SHOW(resultTuples)
+       SHOW(ctrNum)
        leftCard = leftBuf->estimateInputCard();
-       rightCard = rightBuf->estimateInputCard();
+       rightCard = rightBuf->estimateInputCard(useCtrs, ctrNum);
        //SHOW(leftCard)
        //SHOW(rightCard)
 
        int leftRead = max( leftBuf->getNoTuples(), 1 );
-       int rightRead = max( rightBuf->getNoTuples(), 1);
+       int rightRead = max( rightBuf->getNoTuples(useCtrs, ctrNum), 1);
       
        //avg tuple size
        leftAvgTupSize = static_cast<int>( leftBuf->getTotalSize() / leftRead );
        rightAvgTupSize = 
-          static_cast<int>( rightBuf->getTotalSize() / rightRead );
+          static_cast<int>( 
+             rightBuf->getTotalSize(useCtrs, ctrNum) / rightRead );
        
        // join selectivity
        if (resultTuples == 0)
@@ -1832,7 +1868,6 @@ The probe join will be stopped if
         probeReceived++;
         t = nextTuple(first);
       } 
-      SHOW(probeReceived);
       qp->Close(first);
       TRACE( "\n*** Probe join finished! ***\n" )
 
@@ -2088,9 +2123,9 @@ static ListExpr pjoin1_tm(ListExpr args)
 
   static string err1 = "Expecting input (" 
                        + e1 + " " + e2
-                       + " (list of join-expressions) ";
+                       + " int (<list of functions>) ";
   
-  if ( !checkLength( l, 3, err1 ) )
+  if ( !checkLength( l, 4, err1 ) )
     return l.typeError( err1 );
   
   NList attrs1;
@@ -2101,13 +2136,16 @@ static ListExpr pjoin1_tm(ListExpr args)
   if ( !checkRelTuple( l.second(), attrs2) )
     return l.typeError( argNotCorrect(2) + err1);
 
+  if ( !l.third().isSymbol( Symbols::INT() ) )
+    return l.typeError( argNotCorrect(3) + err1);
+   
   
   // Test the parameter function's signature 
   static const string 
   err2 = "Expecting as third argument a list of functions of type "
          "(map (stream(tuple(y1))) (rel(tuple(y1))) (stream(tuple(z))))";
   
-  NList joinMaps = l.third();
+  NList joinMaps = l.fourth();
   NList lastResultAttrs;
   NList fNames;
   
@@ -2184,9 +2222,10 @@ static int pjoin1_vm( Word* args, Word& result, int message,
 {
   // args[0]: Input stream(ptuple(y1))) 
   // args[1]: Input rel(tuple(y2))) 
-  // args[2]: A list of map stream(tuple(y1)))x rel(tuple(y2)) 
+  // args[2]: Ctr number 
+  // args[3]: A list of map stream(tuple(y1)))x rel(tuple(y2)) 
   //          -> stream(tuple(z))
-  // args[3]: A list of symbols for evaluation function names
+  // args[4]: A list of symbols for evaluation function names
 
   static const string pre("pjoin1: ");
   static int instanceCtr = 0;
@@ -2208,13 +2247,13 @@ static int pjoin1_vm( Word* args, Word& result, int message,
       RelationAddr right(r);
       right.open();
       
-      
-      pj = new PJoin1_Info(left, right, instanceCtr); 
+      int ctrNum = StdTypes::RequestInt(args[2]);  
+      pj = new PJoin1_Info(left, right, instanceCtr, ctrNum); 
       local.addr = pj;
     
       FunVector& evalFuns = *(pj->evalFuns); 
       // load functions into funvector 
-      evalFuns.load(args[2], &args[3], true);
+      evalFuns.load(args[3], &args[4], true);
 
       // save caller node in argument vectors 
       // and store the relation as second argument for
@@ -2234,12 +2273,9 @@ static int pjoin1_vm( Word* args, Word& result, int message,
 
       // open the output stream of the first function
       // and do the probe join
+      pj->useCtrs = true;
       pj->runProbeJoin();
 
-      // correct the right PTupleBuffer's information about requested
-      // tuples. Since we do not request the Buffer will have only the
-      // number of probe tuples.
-      pj->rightBuf->setRequestedTuples( r->GetNoTuples() );
 
       return 0;
     }
@@ -2298,6 +2334,12 @@ to be evaluated by the parameter function. If a marker is
     case CLOSE: {
 
       TRACE(pre << "Message CLOSE received")
+       
+      // correct the right PTupleBuffer's information about requested
+      // tuples. Since the embedded executions plans will not request the 
+      // buffer (argument .. is a base relation) it will contain only the
+      // number of probe tuples.
+      pj->setRequestedTuples();
 
       // closing streams is done in the destructor of the JoinInfo instance 
       delete pj;

@@ -18,7 +18,6 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-#stop
 
 # A fresh restored opt database needs to be present for
 # this test
@@ -127,10 +126,37 @@ query
 query 
   Staedte pfeed[100] puse[. {arg1}] 
   plz 
-  pjoin1[ symj: . .. feed symmjoin[.SName_arg1 = ..Ort],
-           smj: . .. feed sortmergejoin[SName_arg1, Ort], 
-            hj: . .. feed hashjoin[SName_arg1, Ort, 997],
-           ilj: . loopjoin[fun(t1: TUPLE) plz_Ort .. exactmatch[attr(t1, SName_arg1)]] 
+  pjoin1[ 1; symj: . .. feed head[1000] {1} filter[.PLZ < 50000] head[500] {2} symmjoin[.SName_arg1 = ..Ort],
+           smj: . .. feed filter[.PLZ < 50000] {3} sortmergejoin[SName_arg1, Ort], 
+            hj: . .. feed filter[.PLZ < 50000] {3} hashjoin[SName_arg1, Ort, 997],
+           ilj: . loopjoin[fun(t1: TUPLE) plz_Ort .. exactmatch[attr(t1, SName_arg1)] filter[.PLZ < 50000] {3} ] 
+  ] 
+  pdelete 
+  count;
+
+#testcase pjoin1-2
+#yields success 
+query 
+  Staedte pfeed[100] puse[. {arg1}] 
+  plz 
+  pjoin1[ 4; symj: . .. feed head[1000] {4} head[500] {5} symmjoin[.SName_arg1 = ..Ort],
+           smj: . .. feed {6} sortmergejoin[SName_arg1, Ort], 
+            hj: . .. feed {6} hashjoin[SName_arg1, Ort, 997],
+           ilj: . loopjoin[fun(t1: TUPLE) plz_Ort .. exactmatch[attr(t1, SName_arg1)] {6} ] 
+  ] 
+  pdelete 
+  count;
+
+
+#testcase pjoin1-3
+#yields success 
+query 
+  Staedte pfeed[100] puse[. {arg1}] 
+  plz 
+  pjoin1[ 1; symj: . .. feed head[1000] {1} head[500] {2} symmjoin[.SName_arg1 = ..Ort],
+           smj: . .. feed {3} sortmergejoin[SName_arg1, Ort], 
+            hj: . .. feed {3} hashjoin[SName_arg1, Ort, 997],
+           ilj: . loopjoin[plz_Ort .. exactmatch[.SName_arg1] {3} ] 
   ] 
   pdelete 
   count;
@@ -140,7 +166,7 @@ query
 #testcase pcreate-1
 #yields success 
 query
-  plz_Ort plz exactmatch["Dortmund"] pcreate[100] pdelete count;
+  plz_Ort plz exactmatch["Dortmund"] pcreate[100] pdelete count; 
 
 
 #testcase pshow-1
