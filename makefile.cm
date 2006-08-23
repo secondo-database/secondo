@@ -332,32 +332,25 @@ $(net)/installsdk: install.bash
 
 # store modified files in a tar archive
 
-.PHONY: changes
-changes: /tmp/modfiles.list
-	sort -u $<
+.PHONY: showdiff 
+showdiff: 
+	cvs -nq update | grep "^. "
 
-.PHONY: /tmp/cvslist
-/tmp/cvslist:	
-	cvs -nq update | grep "^[MAC] " | sed -e "s#[M,A,C] #./#g" > $@
+/tmp/cvs.list:
+	cvs -nq update | grep "^. " > $@
 
+/tmp/tar.list: /tmp/cvs.list
+	cat $< | sed 's/. //' | CM-Scripts/removedirs.sh > $@
+
+# you may need to setup ~/.cvsignore in order 
+# to prevent storing generated stuff
 .PHONY: backup 
 backup: backup.tgz
-	rm -f /tmp/modfiles.list
+	rm -f /tmp/tar.list
 
-ifndef days
-days:=7
-endif
-ifndef hours 
-hours:=1
-endif
-/tmp/modfiles.list: /tmp/cvslist
+backup.tgz: /tmp/tar.list
 	rm -f $@
-	find . -cmin -$$[($(days)*24+$(hours))*60] -size -1024k -a -type f ! -ipath "*/pd*/*" ! -iregex ".*\.\(\(tab\|yy\)\..*\|log\|a\|o\|class\|dep\)" >> $@
-	cat $< >> $@
-
-backup.tgz: /tmp/modfiles.list
-	rm -f $@
-	tar -cvzf $@ $$(sort -u $<)
+	tar -cvzf $@ -T $< 
 
 .PHONY: cscope
 cscope: cscope.files
