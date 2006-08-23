@@ -20,18 +20,18 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [10]  title:            [{\Large \bf ] [}]
-//paragraph [11]  title:            [{\large \bf ] [}]
-//paragraph [12]  title:            [{\normalsize \bf ] [}]
-//paragraph [21]  table1column:     [\begin{quote}\begin{tabular}{l}]   [\end{tabular}\end{quote}]
-//paragraph [22]  table2columns:    [\begin{quote}\begin{tabular}{ll}]  [\end{tabular}\end{quote}]
-//paragraph [23]  table3columns:    [\begin{quote}\begin{tabular}{lll}] [\end{tabular}\end{quote}]
-//paragraph [24]  table4columns:    [\begin{quote}\begin{tabular}{llll}][\end{tabular}\end{quote}]
-//[--------]      [\hline]
-//characters      [1]   verbatim:   [$]   [$]
-//characters      [2]   formula:    [$]   [$]
-//characters      [3]   capital:    [\textsc{]    [}]
-//characters      [4]   teletype:   [\texttt{]    [}]
+//paragraph	[10]	title:		[{\Large \bf ] [}]
+//paragraph	[11]	title:		[{\large \bf ] [}]
+//paragraph	[12]	title:		[{\normalsize \bf ] [}]
+//paragraph	[21]	table1column:	[\begin{quote}\begin{tabular}{l}]	[\end{tabular}\end{quote}]
+//paragraph	[22]	table2columns:	[\begin{quote}\begin{tabular}{ll}]	[\end{tabular}\end{quote}]
+//paragraph	[23]	table3columns:	[\begin{quote}\begin{tabular}{lll}]	[\end{tabular}\end{quote}]
+//paragraph	[24]	table4columns:	[\begin{quote}\begin{tabular}{llll}]	[\end{tabular}\end{quote}]
+//[--------]	[\hline]
+//characters	[1]	verbatim:	[$]	[$]
+//characters	[2]	formula:	[$]	[$]
+//characters    [3]    capital:    [\textsc{]    [}]
+//characters    [4]    teletype:   [\texttt{]    [}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -57,15 +57,15 @@ FLOB interface.
 
 This module offers the following methods:
 
-[23]  Creation/Removal  & Access    & Inquiries \\
-      [--------]
-      DBArray           & Get       & NoComponents \\
-      [tilde]DBArray    & Put       & Id           \\
-      MarkDelete        &           &              \\
+[23]	Creation/Removal 	& Access   	& Inquiries	\\
+	[--------]
+	DBArray        		& Get 		& NoComponents	\\
+	[tilde]DBArray		& Put		  & Id		        \\
+	MarkDelete		    &		      & 		          \\
 
 Operations have to follow the protocol shown below:
 
-        Figure 1: Protocol [Protocol.eps]
+		Figure 1: Protocol [Protocol.eps]
 
 1.3 Class ~DBArray~
 
@@ -186,7 +186,7 @@ Copies element ~elem~ into the persistent array at index ~index~.
           type == InDiskLarge ) 
       {
         size_t pos = ((index % ElemsPerPage()) * sizeof( DBArrayElement )) +
-                     ((index / ElemsPerPage()) * PAGE_SIZE);
+                     ((index / ElemsPerPage()) * FLOB::PAGE_SIZE);
         FLOB::Get( pos, &buf, true );
       }
       else
@@ -226,7 +226,8 @@ Returns the number of components of this array.
       assert( type == InMemory );
       if( nElements <= 1 )
         return;
-      qsort( fd.inMemory.buffer, nElements, sizeof( DBArrayElement ), cmp );
+      qsort( FLOB::fd.inMemory.buffer, nElements, 
+             sizeof( DBArrayElement ), cmp );
     }
 /*
 Sorts the database array given the ~cmp~ comparison criteria. The
@@ -234,8 +235,8 @@ sort is done in memory using an STL vector.
 
 */
 
-    bool Find( const void *key, 
-               int (*cmp)( const void *a, const void *b), 
+    bool Find( const void *key,
+               int (*cmp)( const void *a, const void *b),
                int& result ) const
     {
       const DBArrayElement *elem;
@@ -298,7 +299,7 @@ Returns how many pages are necessary to store the whole DBArray.
 
     inline size_t ElemsPerPage() const
     {
-      return PAGE_SIZE / sizeof( DBArrayElement );
+      return FLOB::PAGE_SIZE / sizeof( DBArrayElement );
     }
 
 #ifdef _PAGED_DBARRAY_
@@ -306,13 +307,13 @@ Returns how many pages are necessary to store the whole DBArray.
     {
       if( type == InDiskLarge )
       {
-        SmiFileId auxLobFileId = fd.inDiskLarge.lobFileId;
-        SmiRecordId auxLobId = fd.inDiskLarge.lobId;
+        SmiFileId auxLobFileId = FLOB::fd.inDiskLarge.lobFileId;
+        SmiRecordId auxLobId = FLOB::fd.inDiskLarge.lobId;
         type = InMemoryPagedCached;
-        fd.inMemoryPagedCached.lobFileId = auxLobFileId;
-        fd.inMemoryPagedCached.lobId = auxLobId;
-        fd.inMemoryPagedCached.buffer = 0;
-        fd.inMemoryPagedCached.pageno = -1;
+        FLOB::fd.inMemoryPagedCached.lobFileId = auxLobFileId;
+        FLOB::fd.inMemoryPagedCached.lobId = auxLobId;
+        FLOB::fd.inMemoryPagedCached.buffer = 0;
+        FLOB::fd.inMemoryPagedCached.pageno = -1;
 
         SaveToLob( lobFileId, lobId );
       }
@@ -326,18 +327,18 @@ Returns how many pages are necessary to store the whole DBArray.
           {
             GetPage( pageno );
             qp->GetFLOBCache()->PutFLOB( lobFileId, auxLobId,
-                                         pageno, PAGE_SIZE, false,
-                                         fd.inMemoryPagedCached.buffer );
+                                         pageno, FLOB::PAGE_SIZE, false,
+                                         FLOB::fd.inMemoryPagedCached.buffer );
           }
 
           // clear the buffer
-          assert( fd.inMemoryPagedCached.buffer != 0 );
-          if( fd.inMemoryPagedCached.cached )
-            qp->GetFLOBCache()->Release( fd.inMemoryPagedCached.lobFileId,
-                                         fd.inMemoryPagedCached.lobId,
-                                         fd.inMemoryPagedCached.pageno );
+          assert( FLOB::fd.inMemoryPagedCached.buffer != 0 );
+          if( FLOB::fd.inMemoryPagedCached.cached )
+            qp->GetFLOBCache()->Release( FLOB::fd.inMemoryPagedCached.lobFileId,
+                                         FLOB::fd.inMemoryPagedCached.lobId,
+                                         FLOB::fd.inMemoryPagedCached.pageno );
           else
-            free( fd.inMemoryPagedCached.buffer );
+            free( FLOB::fd.inMemoryPagedCached.buffer );
         }
         else if( type == InMemory )
         {
@@ -353,7 +354,7 @@ Returns how many pages are necessary to store the whole DBArray.
             size_t pos = pageno * ElemsPerPage() * sizeof( DBArrayElement ),
                    count = ElemsPerPage() * sizeof( DBArrayElement );
             memset( pageBuf, 0, FLOB::PAGE_SIZE );
-            memcpy( pageBuf, fd.inMemory.buffer + pos, count );
+            memcpy( pageBuf, FLOB::fd.inMemory.buffer + pos, count );
             qp->GetFLOBCache()->PutFLOB( lobFileId, auxLobId, pageno, 
                                          FLOB::PAGE_SIZE, false, pageBuf );
           }
@@ -368,13 +369,13 @@ Returns how many pages are necessary to store the whole DBArray.
                  count = (nElements - pageno * ElemsPerPage()) * 
                          sizeof( DBArrayElement );
           memset( pageBuf, 0, FLOB::PAGE_SIZE );
-          memcpy( pageBuf, fd.inMemory.buffer + pos, count );
+          memcpy( pageBuf, FLOB::fd.inMemory.buffer + pos, count );
           qp->GetFLOBCache()->PutFLOB( lobFileId, auxLobId, pageno, 
                                        FLOB::PAGE_SIZE, false, pageBuf );
 
           // clear the buffer
-          if( fd.inMemory.canDelete )
-            free( fd.inMemory.buffer );
+          if( FLOB::fd.inMemory.canDelete )
+            free( FLOB::fd.inMemory.buffer );
           free( pageBuf );
         }
         else 
@@ -382,8 +383,8 @@ Returns how many pages are necessary to store the whole DBArray.
 
         // change the type to InDiskLarge
         type = InDiskLarge;
-        fd.inDiskLarge.lobFileId = lobFileId;
-        fd.inDiskLarge.lobId = auxLobId;
+        FLOB::fd.inDiskLarge.lobFileId = lobFileId;
+        FLOB::fd.inDiskLarge.lobId = auxLobId;
       }
     }
 /*
@@ -437,25 +438,25 @@ is divided into several pages with padding.
           }
           if( FLOB::type == InMemoryPagedCached ) 
           {
-            assert( fd.inMemoryPagedCached.buffer != 0 );
-            if( fd.inMemoryPagedCached.cached )
+            assert( FLOB::fd.inMemoryPagedCached.buffer != 0 );
+            if( FLOB::fd.inMemoryPagedCached.cached )
               qp->GetFLOBCache()->
                 Release( FLOB::fd.inMemoryPagedCached.lobFileId,
                          FLOB::fd.inMemoryPagedCached.lobId,
                          FLOB::fd.inMemoryPagedCached.pageno );
             else
-              free( fd.inMemoryPagedCached.buffer );
+              free( FLOB::fd.inMemoryPagedCached.buffer );
           }
 
           type = InMemory;
-          fd.inMemory.buffer = buffer;
-          fd.inMemory.canDelete = true;
+          FLOB::fd.inMemory.buffer = buffer;
+          FLOB::fd.inMemory.canDelete = true;
         }
         else
         {
           type = InMemory;
-          fd.inMemory.buffer = 0;
-          fd.inMemory.canDelete = false;
+          FLOB::fd.inMemory.buffer = 0;
+          FLOB::fd.inMemory.canDelete = false;
         }
         assert( newSize % sizeof( DBArrayElement ) == 0 );
         nElements = newSize / sizeof( DBArrayElement );

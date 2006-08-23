@@ -220,7 +220,7 @@ void FLOB::Resize( size_t newSize )
 void FLOB::SaveToLob( SmiFileId& lobFileId, SmiRecordId lobId ) const
 {
   assert( (type == InMemory || type == InMemoryCached ) && 
-           size > SWITCH_THRESHOLD ||
+            size > SWITCH_THRESHOLD ||
           type == InDiskLarge );
 
   if( type == InDiskLarge )
