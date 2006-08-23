@@ -3393,7 +3393,7 @@ TypeMapSuse2( ListExpr args )
 		"return a '(stream T)', T of kind DATA or T = 'tuple(X)'.");
 	      return nl->SymbolAtom( "typeerror" );	      
 	    }
-	  
+	  resisstream = true;
 	  sresType = mres; // map result type is already a stream
 	}
     }
@@ -3412,6 +3412,7 @@ TypeMapSuse2( ListExpr args )
 	    "return a type of kind DATA or T = 'tuple(X)'.");
 	  return nl->SymbolAtom( "typeerror" );	      
 	}
+      resisstream = false;
       sresType = nl->TwoElemList(nl->SymbolAtom("stream"), mres);  
     }
 
@@ -3443,8 +3444,8 @@ TypeMapSuse2( ListExpr args )
 
 struct SuseLocalInfo{
   bool Xfinished, Yfinished, funfinished; // whether we have finished
-  Word X, Y, fun;                  // pointers to the arguments
-  Attribute *XVal, *YVal, *funVal; // the last arg values
+  Word X, Y, fun;                         // pointers to the argument nodes
+  Word XVal, YVal, funVal;                // the last arg values
   int  argConfDescriptor;          // type of argument configuration
 };
 
@@ -3668,6 +3669,14 @@ int Suse_SNN( Word* args, Word& result, int message,
       // get argument configuration info
       qp->Request(args[3].addr, argConfDescriptor);      
       sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
+      if(sli->argConfDescriptor & 4)
+	{ 
+	  delete( sli );
+	  local.addr = 0;
+	  cout << "\nSuse_SNN was called with stream result mapping!" 
+	       <<  endl;
+	  return 0;
+	}
       if(sli->argConfDescriptor & 1)
 	{ // the first arg is the stream
 	  sli->X = SetWord(args[0].addr); // X is the stream
@@ -3763,140 +3772,126 @@ int Suse_SNS( Word* args, Word& result, int message,
 {
 
   SuseLocalInfo     *sli;
-  Word              fun = args[2]; 
   Word              xval, funresult;
   Word              argConfDescriptor;  
   ArgVectorPointer  funargs;
-  Supplier          supplier;
 
   switch (message)
     {
     case OPEN :
       
-      cout << "\nSuse_SNS received OPEN" << endl;
+      // cout << "\nSuse_SNS received OPEN" << endl;
       sli = new SuseLocalInfo ;
       sli->Xfinished   = false;
-      sli->Yfinished   = false;
       sli->funfinished = true;
       sli->X.addr = 0;
       sli->Y.addr = 0;  
       sli->fun.addr = 0;
-      sli->XVal = 0;
-      sli->YVal = 0;
-      cout << "   created sli" << endl;
+      sli->XVal.addr = 0;
+      sli->YVal.addr = 0;
       // get argument configuration info
       qp->Request(args[3].addr, argConfDescriptor);      
-      cout << "   requested args[3]=" << sli->argConfDescriptor << endl;
       sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
+      if(! (sli->argConfDescriptor & 4))
+	{ 
+	  delete( sli );
+	  local.addr = 0;
+	  cout << "\nSuse_SNS was called with non-stream result mapping!" 
+	       <<  endl;	  
+	  return 0;
+	}
       if(sli->argConfDescriptor & 1)
 	{ // the first arg is the stream
-	  cout << "   the first arg is the stream" << endl;
 	  sli->X = SetWord(args[0].addr); // X is the stream
 	  sli->Y = SetWord(args[1].addr); // Y is the constant value
 	} 
       else
 	{ // the second arg is the stream
-	  cout << "   the second arg is the stream" << endl;
 	  sli->X = SetWord(args[1].addr); // X is the stream
 	  sli->Y = SetWord(args[0].addr); // Y is the constant value
 	}
-
-      qp->Request(sli->Y.addr, sli->Y);   // save value of constant argument
-      cout << "   got sli->Y" << endl;
+      qp->Request(sli->Y.addr, sli->YVal); // save value of constant argument
       qp->Open(sli->X.addr);               // open the ("outer") input stream
-      cout << "   opened sli->X" << endl;
+      sli->fun = SetWord(args[2].addr);
       local = SetWord(sli);
-      cout << "Suse_SNN finished OPEN" << endl;
+      // cout << "Suse_SNN finished OPEN" << endl;
       return 0;
       
     case REQUEST :
       
       // First, we check whether an inner stream is finished 
       // (sli->funfinished). If so, we try to get a value from 
-      // the outer stream
-      // and try to re-open the inner stream.
-      // sli->X is the OUTER stream, sli->Y the constant argument.
+      // the outer stream and try to re-open the inner stream.
+      // sli->X is a pointer to the OUTER stream, 
+      // sli->Y is a pointer to the constant argument.
 
-      cout << "Suse_SNN received REQUEST" << endl;
+      // cout << "Suse_SNN received REQUEST" << endl;
 
       // 1. get local data object
       if (local.addr == 0)
 	{
 	  result.addr = 0;
-	  cout << "Suse_SNN finished REQUEST: CLOSE (1)" << endl;
+	  // cout << "Suse_SNN finished REQUEST: CLOSE (1)" << endl;
 	  return CANCEL;
 	}
       sli = (SuseLocalInfo*) local.addr;
-      cout << "         dereferenced sli" << endl;
       // 2. request values from inner stream
       while (!sli->Xfinished)
 	{
 	  while (sli->funfinished)
 	    { // the inner stream is closed, try to (re-)open it
 	      // try to get the next X-value from outer stream
-	      qp->Request(sli->X.addr, xval);
+	      qp->Request(sli->X.addr, sli->XVal);
 	      if (!qp->Received(sli->X.addr))
 		{ // stream X exhaused. CANCEL
 		  sli->Xfinished = true;
-		  cout << "Suse_SNN finished REQUEST: CLOSE (3)" << endl;
+		  // cout << "Suse_SNN finished REQUEST: CLOSE (3)" << endl;
 		  return CANCEL;
 		}
-	      supplier = fun.addr;
-	      cout << "         supplier" << endl;
-	      funargs = qp->Argument( supplier );
-	      cout << "         funargs" << endl;
+	      funargs = qp->Argument( sli->fun.addr );
 	      if (sli->argConfDescriptor & 1)
 		{
-		  (*funargs)[0] = xval;
-		  (*funargs)[1] = sli->Y;	  
+		  (*funargs)[0] = sli->XVal;
+		  (*funargs)[1] = sli->YVal;	  
 		}
 	      else
 		{
-		  (*funargs)[0] = sli->Y;
-		  (*funargs)[1] = xval;	  
+		  (*funargs)[0] = sli->YVal;
+		  (*funargs)[1] = sli->XVal;	  
 		}
-	      qp->Open( supplier );
-	      cout << "\n         open";
-	      sli->fun = SetWord( supplier );
-	      funresult = SetWord(Address(0));
+	      qp->Open( sli->fun.addr );
 	      sli->funfinished = false;
 	    } // end while - Now, the inner stream is open again
 	  qp->Request(sli->fun.addr, funresult);
-	  cout << "         requested sli->fun.addr" << endl;
 	  if (qp->Received(sli->fun.addr))
 	    { // inner stream returned a result
 	      result = SetWord(((Attribute*) (funresult.addr))->Clone());
 	      ((Attribute*) (funresult.addr))->DeleteIfAllowed(); 
-	      cout << "     result.addr=" << result.addr << endl;
-	      cout << "Suse_SNN finished REQUEST: YIELD" << endl;	  
+	      // cout << "     result.addr=" << result.addr << endl;
+	      // cout << "Suse_SNN finished REQUEST: YIELD" << endl;	  
 	      return YIELD;
 	    }
 	  else{ // inner stream exhausted
 	    qp->Close(sli->fun.addr);
 	    sli->funfinished = true;
-	    cout << "         closed sli->fun.addr" << endl;
-	    sli->XVal->DeleteIfAllowed();
-	    sli->XVal = 0;
-	    sli->fun.addr = 0;
+	    ((Attribute*)(sli->XVal.addr))->DeleteIfAllowed();
+	    sli->XVal.addr = 0;
 	  }
 	} // end while
       result.addr = 0;
-      cout << "Suse_SNN finished REQUEST: CLOSE (4)" << endl;      
+      // cout << "Suse_SNN finished REQUEST: CLOSE (4)" << endl;      
       return CANCEL;
 
     case CLOSE :
       
-      cout << "Suse_SNN received CLOSE" << endl;
+      // cout << "Suse_SNN received CLOSE" << endl;
       if( local.addr != 0 )
 	{
 	  sli = (SuseLocalInfo*)local.addr;
-	  cout << "\tSuse_SNN CLOSE: dereferenced sli" << endl;    
 	  qp->Close( sli->X.addr ); // close outer stream
-	  cout << "\tSuse_SNN CLOSE: closed instream" << endl;
 	  delete sli;
-	  cout << "\tSuse_SNN CLOSE: deleted sli" << endl;
 	}
-      cout << "Suse_SNN finished CLOSE" << endl;
+      // cout << "Suse_SNN finished CLOSE" << endl;
       return 0;
       
     }  // end switch
