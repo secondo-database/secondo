@@ -1605,7 +1605,7 @@ is the ~points~ result size.
 *Complexity:* $O(log n)$, where ~n~ is the size of ~U~
 
 */
-    Point AtPosition( double pos ) const;
+    bool AtPosition( double pos, Point& p ) const;
 /*
 6.4.6 Operation ~atpoint~
 
@@ -3252,16 +3252,16 @@ length( cl.length )
 {
   assert( cl.IsOrdered());
 
+  const HalfSegment *hs;
   for( int i = 0; i < cl.Size(); i++ )
   {
-    const HalfSegment *hs;
     cl.Get( i, hs );
     line.Put( i, *hs );
   }
 
+  const LRS *lrs;
   for( int i = 0; i < cl.Size() / 2; i++ )
   {
-    const LRS *lrs;
     cl.lrsArray.Get( i, lrs );
     lrsArray.Put( i, *lrs ); 
   }

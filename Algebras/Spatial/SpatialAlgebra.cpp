@@ -3281,7 +3281,7 @@ Line& Line::operator=( const Line& l )
   assert( l.ordered );
 
   line.Clear();
-
+  lrsArray.Clear();
   if( !l.IsEmpty() )
   {
     line.Resize( l.Size() );
@@ -3291,8 +3291,20 @@ Line& Line::operator=( const Line& l )
       l.Get( i, hs );
       line.Put( i, *hs );
     }
+
+    lrsArray.Resize( l.Size()/2 );
+    const LRS *lrs;
+    for( int i = 0; i < l.Size()/2; i++ )
+    {
+      l.Get( i, lrs );
+      lrsArray.Put( i, *lrs );
+    }
   }
+
   bbox = l.bbox;
+  length = l.length;
+  noComponents = l.noComponents;
+
   ordered = true;
   return *this;
 }
@@ -3746,13 +3758,18 @@ void Line::Translate( const Coord& x, const Coord& y, Line& result ) const
   result.EndBulkLoad( false, false, false, false );
 }
 
-Point Line::AtPosition( double pos ) const
+bool Line::AtPosition( double pos, Point& p ) const
 {
-  assert( pos >= 0 && pos <= Length() );
+  if( IsEmpty() )
+    return false;
+
+  if( pos < 0 && !AlmostEqual( pos, 0 ) &&
+      pos > Length() && !AlmostEqual( pos, Length() ) )
+    return false;
 
   LRS lrs( pos, 0 );
   int lrsPos;
-  assert( Find( lrs, lrsPos ) );
+  Find( lrs, lrsPos );
 
   const LRS *lrs2;
   Get( lrsPos, lrs2 );
@@ -3760,7 +3777,8 @@ Point Line::AtPosition( double pos ) const
   const HalfSegment *hs;
   Get( lrs2->hsPos, hs );
   
-  return hs->AtPosition( pos - lrs2->lrsPos ); 
+  p = hs->AtPosition( pos - lrs2->lrsPos ); 
+  return true;
 }
 
 bool Line::AtPoint( const Point& p, double& result ) const
@@ -3982,9 +4000,9 @@ void Line::VisitHalfSegments( int poshs, const HalfSegment& hs, double& lrspos,
   visited[hs.attr.partnerno] = true;
 
   if( hs.IsLeftDomPoint() )
-    lrsArray.Append( LRS( pos, poshs ) );
+    lrsArray.Append( LRS( lrspos, poshs ) );
   else
-    lrsArray.Append( LRS( pos, hs.attr.partnerno ) );
+    lrsArray.Append( LRS( lrspos, hs.attr.partnerno ) );
   lrspos += hs.Length();
 
   HalfSegment auxhs( hs );
@@ -4023,9 +4041,9 @@ void Line::VisitHalfSegments( int poshs, const HalfSegment& hs, double& lrspos,
     line.Put( poshs, auxhs );
 
     if( currhs->IsLeftDomPoint() )
-      lrsArray.Append( LRS( pos, poshs ) );
+      lrsArray.Append( LRS( lrspos, poshs ) );
     else 
-      lrsArray.Append( LRS( pos, posnexths ) );
+      lrsArray.Append( LRS( lrspos, posnexths ) );
     lrspos += currhs->Length();
  
     visited[posnexths] = true;
@@ -4037,34 +4055,41 @@ void Line::SetNoComponents()
 {
   // First we go to the beginning
   const HalfSegment *hs, *nexths;
-  int poshs = 0, posnexths;
-  Get( poshs, hs );
-
-  while( GetNextSegment( poshs, *hs, posnexths, nexths ) )
-  {
-    poshs = nexths->attr.partnerno;
-    Get( poshs, hs );
-  }
 
   // hs contains the beginning half segment 
   double lrspos = 0.0;
   int edgeno = 0, cycleno = 0, faceno = 0;
-  vector<bool> visited( Size() );
-  for( int i = 0; i < Size(); i++ )
-    visited[i] = false;
+  vector<bool> visited( Size(), false );
   stack< pair<int, const HalfSegment*> > nexthss;
 
+  int poshs = 0, posnexths;
   while( poshs < Size() )
   { 
     Get( poshs, hs );
 
+    vector<bool> visited2( Size(), false );
+    visited2[poshs] = true;
+    while( GetNextSegment( poshs, *hs, posnexths, nexths ) )
+    {
+      if( visited2[posnexths] )
+        break;
+      visited2[posnexths] = true;
+      poshs = nexths->attr.partnerno;
+      Get( poshs, hs );
+      if( visited2[poshs] )
+        break;
+      visited2[poshs] = true;
+    }
+
     VisitHalfSegments( poshs, *hs, lrspos, edgeno, cycleno++, 
                        faceno, nexthss, visited );
+
     while( !nexthss.empty() )    
     {
       poshs = nexthss.top().first;
       hs = nexthss.top().second;
       nexthss.pop();
+
       VisitHalfSegments( poshs, *hs, lrspos, edgeno, cycleno++, 
                          faceno, nexthss, visited );
     }
@@ -5361,7 +5386,6 @@ Region& Region::operator=( const Region& r )
   assert( r.IsOrdered() );
 
   region.Clear();
-  StartBulkLoad();
   if( !r.IsEmpty() )
   {
     region.Resize( r.Size() );
@@ -5372,9 +5396,10 @@ Region& Region::operator=( const Region& r )
       region.Put( i, *hs );
     }
   }
+
   bbox = r.bbox;
   noComponents = r.noComponents;
-  EndBulkLoad( false, false, false, false );
+
   return *this;
 }
 
@@ -8497,6 +8522,53 @@ ListExpr SpatialScaleMap(ListExpr args)
 }
 
 /*
+10.1.6 Type mapping function for operator ~atpoint~
+
+This type mapping function is the one for ~atpoint~ operator. This operator
+receives a line and a point and returns the relative position of the point
+in the line as a real.
+
+*/
+ListExpr
+SpatialAtPointMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+
+    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
+         SpatialTypeOfSymbol( arg2 ) == stpoint )
+      return (nl->SymbolAtom( "real" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+10.1.6 Type mapping function for operator ~atposition~
+
+This type mapping function is the one for ~atposition~ operator. This operator
+receives a line and a relative position and returns the corresponding point.
+
+*/
+ListExpr
+SpatialAtPositionMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+
+    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
+         nl->IsEqual( arg2, "real" ) )
+      return (nl->SymbolAtom( "point" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
 10.3 Selection functions
 
 A selection function is quite similar to a type mapping function. The only
@@ -10865,6 +10937,44 @@ int SpatialVertices_l(Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+10.4.23 Value mapping functions of operator ~atpoint~
+
+*/
+int
+SpatialAtPoint( Word* args, Word& result, int message,
+                Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Line *l = (Line*)args[0].addr;
+  Point *p = (Point*)args[1].addr;
+  double res;
+  
+  if( l->AtPoint( p, res ) )
+    ((CcReal *)result.addr)->Set( true, res );
+  else
+    ((CcReal *)result.addr)->SetDefined( false );
+  return 0;
+}
+
+/*
+10.4.23 Value mapping functions of operator ~atposition~
+
+*/
+int
+SpatialAtPosition( Word* args, Word& result, int message,
+                   Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Line *l = (Line*)args[0].addr;
+  double pos = ((CcReal*)args[1].addr)->GetRealval();
+  Point *p = (Point*)result.addr;
+
+  if( !l->AtPosition( pos, *p ) )
+    p->SetDefined( false );
+
+  return 0;
+}
 
 
 /*
@@ -11264,6 +11374,22 @@ const string SpatialSpecVertices  =
   "<text>query vertices(r1)</text--->"
   ") )";
 
+const string SpatialSpecAtPoint  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+  "( <text>line x point -> real</text--->"
+  "<text>_ atpoint[_]</text--->"
+  "<text>Returns the relative position of the point in the line.</text--->"
+  "<text>query l atpoint[p]</text--->"
+  ") )";
+
+const string SpatialSpecAtPosition  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+  "( <text>line x real -> point</text--->"
+  "<text>_ atposition[_]</text--->"
+  "<text>Returns the point at a relative position in the line.</text--->"
+  "<text>query l atposition[0.0]</text--->"
+  ") )";
+
 /*
 10.5.3 Definition of the operators
 
@@ -11484,6 +11610,20 @@ Operator spatialvertices (
   SpatialVerticesSelect,  
   SpatialVerticesMap);
 
+Operator spatialatpoint (
+  "atpoint",
+  SpatialSpecAtPoint,
+  SpatialAtPoint,
+  Operator::SimpleSelect,
+  SpatialAtPointMap );
+
+Operator spatialatposition (
+  "atposition",
+  SpatialSpecAtPosition,
+  SpatialAtPosition,
+  Operator::SimpleSelect,
+  SpatialAtPositionMap );
+
 /*
 11 Creating the Algebra
 
@@ -11537,6 +11677,8 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialcomponents );
     AddOperator( &spatialvertices );
     AddOperator( &spatialscale );
+    AddOperator( &spatialatpoint );
+    AddOperator( &spatialatposition );
   }
   ~SpatialAlgebra() {};
 };
