@@ -15,15 +15,15 @@ Feruniversit[ae]t Hagen.
 
 ----
                             Signatur
-  Trajectory           upoint    -> line
-  Makemvalue           stream (tuple ([x1:t1,xi:uType,..,xn:tn]))  ->  mType
-  Size                 periods  -> real
-  Deftime              unit(a)  -> periods
-  Atinstant            unit(a) x instant  -> ix
-  Atperiods            unit(a) x periods  -> stream(ua)
+  trajectory           upoint    -> line
+  makemvalue           stream (tuple ([x1:t1,xi:uType,..,xn:tn]))  ->  mType
+  size                 periods  -> real
+  deftime              unit(a)  -> periods
+  atinstant            unit(a) x instant  -> ix
+  atperiods            unit(a) x periods  -> stream(ua)
   Initial              unit(a)  -> ia
   final                unit(a)  -> ia
-  Present              unit(a) x instant  -> bool
+  present              unit(a) x instant  -> bool
                        unit(a) x periods  -> bool
   point2d              periods  -> point
   queryrect2d          instant  -> rect
@@ -67,64 +67,56 @@ So we are to implement:
 
 State Operator/Signatures
 
-ERR  suse: (stream X)            (map X Y)            -> (stream Y)
-OK         (stream X)            (map X (stream Y))   -> (stream Y)
-           (stream X) Y          (map X Y Z)          -> (stream Z)
-           (stream X) Y          (map X Y stream(Z))  -> (stream Z)
-           X          (stream Y) (map X y Z)          -> (stream Z)
-           X          (stream Y) (map X y (stream Z)) -> (stream Z)
-           (stream X) (stream Y) (map X Y Z)          -> (stream Z)
-           (stream X) (stream Y) (map X Y (stream Z)) -> (stream Z)
-           for X,Y,Z of kind DATA
+OK   suse:  (stream X)            (map X Y)            --> (stream Y)
+OK          (stream X)            (map X (stream Y))   --> (stream Y)
 
+OK   suse2: (stream X) Y          (map X Y Z)          --> (stream Z)
+OK          (stream X) Y          (map X Y stream(Z))  --> (stream Z)
+OK          X          (stream Y) (map X y Z)          --> (stream Z)
+OK          X          (stream Y) (map X y (stream Z)) --> (stream Z)
+OK          (stream X) (stream Y) (map X Y Z)          --> (stream Z)
+OK          (stream X) (stream Y) (map X Y (stream Z)) --> (stream Z)
+            for X,Y,Z of kind DATA
 
+OK   sfeed: T --> (stream T)                                   
 
+     saggregate: (stream T) x (T x T --> U) x U --> U
 
-OK   ufeed: unit(a) --> stream(unit(a))                                   
+     intersects: uT x uT --> (stream ubool)
 
+     intersection: uT x uT --> (stream uT)
 
+     atmax, atmin: uT --> (stream uT)
 
-     intersects: unit(a) x unit(a) --> stream(ubool)
-
-     intersection: unit(a) x unit(a) --> stream(unit(a))
-
-     atmax, atmin: unit(a) x unit(a) --> stream(unit(a))
-
-     at:        unit(a)  x a --> stream(unit(a))
+     at:        uT x T --> (stream uT)
 
      mdirection: upoint --> ureal
 
-     no_components: unit(a) --> uint
+     no_components: uT --> uint
 
      area: uregion --> ureal
 
-     distance: T in {real, int, point}
-              uT x uT -> ureal,
-              uT x  T -> ureal, 
-               T x uT -> ureal
-
      distance: T in {real, int, region, point}
-              uT x uT -> stream(ureal),
-              uT x  T -> stream(ureal), 
-               T x uT -> stream(ureal)
+              uT x uT -> (stream ureal),
+              uT x  T -> (stream ureal), 
+               T x uT -> (stream ureal)
 
-     and, or: ubool x ubool --> stream(ubool)
-               bool x ubool --> stream(ubool)
-              ubool x  bool --> stream(ubool)
+[]   and, or: ubool x ubool --> (stream ubool)
+[]             bool x ubool --> (stream ubool)
+[]            ubool x  bool --> (stream ubool)
 
-     =, #: uT x uT --> stream(ubool)
-            T x uT --> stream(ubool)
-           uT x  T --> stream(ubool)
+[]   =, #: uT x uT --> (stream ubool)
+[]	    T x uT --> (stream ubool)
+[]         uT x  T --> (stream ubool)
+
+     initial, final: (stream uT) --> iT
+[]   present: (stream uT) x instant --> bool
+[]   present: (stream uT) x periods --> bool
+     never:   (stream ubool) --> bool
+     always:  (stream ubool) --> bool
 
 
-
-
-     initial, final: stream(uT) --> intime(T)
-     present: stream(uT) x instant --> bool
-     present: stream(uT) x periods --> bool
-     never:   stream(uBbool) --> bool
-     always:  stream(uBbool) --> bool
-
+     []: this operator can be simulated using saggregate
 ----
 
 */
@@ -1765,7 +1757,7 @@ TemporalSpecAtPeriods  =
 "<text>restrict the movement to the given"
 " periods.</text--->"
 "<text>upoint1 atperiods thehour(2003,11,11,8)</text--->"
-"<text>ufeed(upoint1) atperiods thehour(2003,11,11,8)</text--->) )";
+"<text>sfeed(upoint1) atperiods thehour(2003,11,11,8)</text--->) )";
 
 /* 
 5.9.4 Selection Function of operator ~atperiods~
@@ -2899,87 +2891,71 @@ Operator temporalderivative( "derivative",
                       TypeMapDerivative);
 
 /*
-5.19 Operator ~ufeed~
+5.19 Operator ~sfeed~
 
-The operator is used to cast a single unit(T) to a stream(unit(T))
-having a single element unit(T).
+The operator is used to cast a single value T to a (stream T)
+having a single element of type T.
 
-5.19.1 Type Mapping for ~ufeed~
+5.19.1 Type Mapping for ~sfeed~
 
 */
 ListExpr 
-TypeMapUfeed( ListExpr args )
+TypeMapSfeed( ListExpr args )
 {
   ListExpr arg1;
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
   if ( ( nl->ListLength(args) == 1 ) && ( nl->IsAtom(nl->First(args) ) ) )
     {
       arg1 = nl->First(args);
-      
-      if( nl->IsEqual( arg1, "ubool" ) )
-	return nl->TwoElemList(nl->SymbolAtom("stream"),
-			       nl->SymbolAtom("ubool"));
-      
-      if( nl->IsEqual( arg1, "uint" ) )
-	return nl->TwoElemList(nl->SymbolAtom("stream"),
-			       nl->SymbolAtom("uint"));
-      
-      if( nl->IsEqual( arg1, "ureal" ) )
-	return nl->TwoElemList(nl->SymbolAtom("stream"),
-			       nl->SymbolAtom("ureal"));
-      
-      if( nl->IsEqual( arg1, "upoint" ) )
-	return nl->TwoElemList(nl->SymbolAtom("stream"),
-			       nl->SymbolAtom("upoint"));
+      if( am->CheckKind("DATA", arg1, errorInfo) ) 
+	return nl->TwoElemList(nl->SymbolAtom("stream"), arg1);
     }
-  ErrorReporter::ReportError("Operator ufeed  expects a list of length one, "
-			     "containing a value of one type of {uint, ubool, "
-			     "ureal, upoint}.");
+  ErrorReporter::ReportError("Operator sfeed  expects a list of length one, "
+			     "containing a value of one type 'T' with T in "
+			     "kind DATA.");
   return nl->SymbolAtom( "typeerror" );
 }
 
 /*
-5.19.2 Value Mapping for ~ufeed~
+5.19.2 Value Mapping for ~sfeed~
 
 */
-struct UnitFeedLocalInfo
+struct SFeedLocalInfo
 {
-  Word uWord;
   bool finished;
 };
 
-template <class Mapping>
-int MappingUnitFeed( Word* args, Word& result, int message,
-		     Word& local, Supplier s )
+int MappingSFeed( Word* args, Word& result, int message,
+		  Word& local, Supplier s )
 {
-  UnitFeedLocalInfo *localinfo;
-  Mapping *unit;
+  SFeedLocalInfo *linfo;
+  Word argValue;
 
   switch( message )
     {
     case OPEN:
-      localinfo = new UnitFeedLocalInfo;
-      localinfo->finished = false;
-      qp->Request(args[0].addr, localinfo->uWord);
-      local = SetWord(localinfo);
+      linfo = new SFeedLocalInfo;
+      linfo->finished = false;
+      local = SetWord(linfo);
       return 0;
 
     case REQUEST:
       if ( local.addr == 0 ) 
 	return CANCEL;
-      localinfo = ( UnitFeedLocalInfo *)local.addr;
-      if ( localinfo->finished )
+      linfo = ( SFeedLocalInfo *)local.addr;
+      if ( linfo->finished )
 	return CANCEL;
-      unit = (Mapping *)localinfo->uWord.addr;
-      result = SetWord( unit );
-      localinfo->finished = true;
+      qp->Request(args[0].addr, argValue);
+      result = SetWord(((Attribute*) (argValue.addr))->Clone());
+      linfo->finished = true;
       return YIELD;
 	
     case CLOSE:
       if ( local.addr == 0 ) 
 	{ 
-	  localinfo = ( UnitFeedLocalInfo*) local.addr;
-	  delete localinfo;
+	  linfo = ( SFeedLocalInfo*) local.addr;
+	  delete linfo;
 	}
       return 0;     
     }
@@ -2987,42 +2963,42 @@ int MappingUnitFeed( Word* args, Word& result, int message,
 }
 
 /*
-5.19.3 Specification for operator ~ufeed~
+5.19.3 Specification for operator ~sfeed~
 
 */
 const string
-TemporalSpecUfeed=
+TemporalSpecSfeed=
 "( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>For T in {bool, int, real point} </text--->"
-"<text>uT -> stream uT</text--->"
-"<text>ufeed ( _ ) </text--->"
-"<text>create a single-unit stream from "
-"a single unit.</text--->"
-"<text>ufeed (ureal)</text---> ) )";
+"<text>For T in kind DATA </text--->"
+"<text>T -> (stream T)</text--->"
+"<text>sfeed ( _ ) </text--->"
+"<text>create a single-value stream from "
+"a single value.</text--->"
+"<text>query sfeed ([const int value 5]) count;</text---> ) )";
 
 /* 
-5.19.4 Selection Function of operator ~ufeed~
-
-Uses ~UnitSimpleSelect~.
+5.19.4 Selection Function of operator ~sfeed~
 
 */
 
-ValueMapping temporalunitfeedmap[] = { MappingUnitFeed<UBool>,
-				       MappingUnitFeed<UInt>,
-				       MappingUnitFeed<UReal>,
-				       MappingUnitFeed<UPoint>};
+ValueMapping temporalunitsfeedmap[] = { MappingSFeed };
+
+int SfeedSelect( ListExpr args )
+{
+  return 0;
+}
 
 /*
-5.19.5  Definition of operator ~ufeed~
+5.19.5  Definition of operator ~sfeed~
 
 */
-Operator temporalufeed( "ufeed",
-                      TemporalSpecUfeed,
-                      4,
-                      temporalunitfeedmap,
-                      UnitSimpleSelect,
-                      TypeMapUfeed);
+Operator temporalsfeed( "sfeed",
+                      TemporalSpecSfeed,
+                      1,
+                      temporalunitsfeedmap,
+                      SfeedSelect,
+                      TypeMapSfeed);
 
 
 /*
@@ -4443,6 +4419,124 @@ Operator temporalsuse2( "suse2",
                       temporalunitSuse2Select,
                       TypeMapSuse2);
 
+/*
+5.21 Operator ~distance~
+
+The operator calculates the minimum distance between two units of base
+types real, int or point. The distance is always a stream of non-negative 
+ureal values.
+
+----
+    For T in {real, point} 
+    distance: uT x uT -> stream(ureal),
+              uT x  T -> stream(ureal), 
+               T x uT -> stream(ureal)
+----
+
+
+5.21.1 Type mapping function for ~distance~
+
+5.21.2 Value mapping for operator ~distance~
+
+5.21.3 Specification for operator ~distance~
+
+5.21.4 Selection Function of operator ~distance~
+
+5.21.5 Definition of operator ~distance~
+
+*/
+
+/*
+5.22 Operator ~atmin~
+
+From a given unit ~u~, the operator creates a stream of units that
+are restrictions of ~u~ to the periods where it reaches its minimum
+value.
+
+----   
+       For T in {int, real}
+       atmin: uT --> (stream uT)
+----
+
+5.22.1 Type mapping function for ~atmin~
+
+5.22.2 Value mapping for operator ~atmin~
+
+5.22.3 Specification for operator ~atmin~
+
+5.22.4 Selection Function of operator ~atmin~
+
+5.22.5 Definition of operator ~atmin~
+
+*/
+
+
+/*
+5.23 Operator ~atmax~
+
+From a given unit ~u~, the operator creates a stream of units that
+are restrictions of ~u~ to the periods where it reaches its maximum
+value.
+
+----   
+       For T in {int, real}
+       atmax: uT --> (stream uT)
+----
+
+5.23.1 Type mapping function for ~atmax~
+
+5.23.2 Value mapping for operator ~atmax~
+
+5.23.3 Specification for operator ~atmax~
+
+5.23.4 Selection Function of operator ~atmax~
+
+5.23.5 Definition of operator ~atmax~
+
+*/
+
+/*
+5.24 Operator ~saggregate~
+
+Stream aggregation operator
+
+This operator applies an aggregation function to a stream of data
+using a given initial (null) value. The result a single value of 
+kind DATA.
+
+----   
+       For T,U in kind DATA:
+       saggregate: (stream T) x (T x T --> U) x U --> U
+
+----
+
+5.24.1 Type mapping function for ~saggregate~
+
+*/
+
+
+/*
+5.24.2 Value mapping for operator ~saggregate~
+
+*/
+
+/*
+5.24.3 Specification for operator ~saggregate~
+
+
+*/
+
+/*
+5.24.4 Selection Function of operator ~saggregate~
+
+*/
+
+/*
+5.24.5 Definition of operator ~saggregate~
+
+*/
+
+
 
 
 /*
@@ -4474,7 +4568,7 @@ class TemporalUnitAlgebra : public Algebra
    AddOperator( &temporalvelocity );
    AddOperator( &temporalderivable );
    AddOperator( &temporalderivative );
-   AddOperator( &temporalufeed );
+   AddOperator( &temporalsfeed );
    AddOperator( &temporalsuse );
    AddOperator( &temporalsuse2 );
   }

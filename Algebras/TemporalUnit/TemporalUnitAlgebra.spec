@@ -28,7 +28,7 @@ operator velocity alias VELOCITY pattern op ( _ )
 operator derivable alias DERIVABLE pattern op ( _ )
 operator derivative alias DERIVATIVE pattern op ( _ )
 operator atperiods alias ATPERIODS pattern _ infixop _
-operator ufeed alias UFEED pattern op ( _ )
+operator sfeed alias SFEED pattern op ( _ )
 operator suse alias SUSE pattern _ op [ _ ] implicit parameter uple type TUPLE
 operator suse2 alias SUSE2 pattern _ _ op [ _ ] implicit parameters lefttuple, righttuple types TUPLE, TUPLE2
 
