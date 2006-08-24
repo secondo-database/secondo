@@ -589,9 +589,10 @@ const string
 TemporalSpecSpeed  =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>(mpoint/upoint) -> mreal/ureal</text--->"
+"<text>mpoint -> mreal\n"
+"upoint -> ureal</text--->"
 "<text>speed( _ )</text--->"
-"<text>return the speed of a spatial object.</text--->"
+"<text>return the speed of a temporal spatial object.</text--->"
 "<text>query speed(mp1)</text---> ) )";
 
 /* 
@@ -619,7 +620,6 @@ ValueMapping temporalspeedmap[] = { MPointSpeed,
 5.1.5 Definition of operator ~speed~
 
 */
-
 Operator temporalspeed( "speed",
                       TemporalSpecSpeed,
                       2,
@@ -1126,8 +1126,8 @@ TemporalSpecMakemvalue  =
 "( <text>TemporalUnitAlgebra</text--->"
 "<text>((stream (tuple ((x1 t1)...(xn tn)))"
 " (unit(xi))))-> moving(x)</text--->"
-"<text> makemvalue[ _ ]</text--->"
-"<text>get the moving value of the stream of units.</text--->"
+"<text>makemvalue[ _ ]</text--->"
+"<text>Create a moving object from a stream of units.</text--->"
 "<text>makemvalue[ u1 ]</text---> ) )";
 
 /* 
@@ -1258,7 +1258,7 @@ TemporalSpecTrajectory  =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
 "<text>upoint -> line</text--->"
-"<text> trajectory( _ )</text--->"
+"<text>trajectory( _ )</text--->"
 "<text>get the trajectory of the corresponding"
 "unit point object.</text--->"
 "<text>trajectory( up1 )</text---> ) )";
@@ -1336,9 +1336,10 @@ const string
 TemporalSpecDefTime  =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>unit(x) -> periods</text--->"
-"<text> deftime( _ )</text--->"
-"<text>get the defined time of the corresponding"
+"<text>uT -> periods \n"
+"(for T in {bool, int, real, point})</text--->"
+"<text>deftime( _ )</text--->"
+"<text>get the definition time for the "
 " unit data objects.</text--->"
 "<text>deftime( up1 )</text---> ) )";
 
@@ -1435,10 +1436,11 @@ const string
 TemporalSpecAtInstant  =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>(unit(x) instant) -> intime(x)</text--->"
+"<text>(uT instant) -> iT\n"
+"(T in {bool, int, real, point})</text--->"
 "<text>_ atinstant _ </text--->"
-"<text>get the Intime value corresponding to the "
-"instant.</text--->"
+"<text>From a unit type, get the Intime value corresponding to "
+"the given instant.</text--->"
 "<text>upoint1 atinstant instant1</text---> ) )";
 
 /* 
@@ -1757,7 +1759,7 @@ TemporalSpecAtPeriods  =
 " \"Meaning\" \"Example (1)\" \"Example (2)\") "
 "( <text>TemporalUnitAlgebra</text--->"
 "<text>For T in {int, bool, real, point}:</text--->"
-"<text>(unit(T) periods) -> stream uT\n</text--->"
+"<text>(uT periods) -> stream uT\n</text--->"
 "<text>((stream uT) periods) -> stream uT</text--->"
 "<text>_ atperiods _ </text--->"
 "<text>restrict the movement to the given"
@@ -1875,9 +1877,10 @@ const string
 TemporalSpecInitial  =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>unit(x) -> intime(x)</text--->"
-"<text> initial( _ )</text--->"
-"<text>get the intime value corresponding"
+"<text>uT -> iT\n"
+"(T in {bool, int, real, point})</text--->"
+"<text>initial( _ )</text--->"
+"<text>From a unit type, get the intime value corresponding"
 " to the initial instant.</text--->"
 "<text>initial( upoint1 )</text---> ) )";
 
@@ -1885,8 +1888,9 @@ const string
 TemporalSpecFinal  =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>unit(x) -> intime(x)</text--->"
-"<text> final( _ )</text--->"
+"<text>uT -> iT\n"
+"(T in {bool, int, real, point})</text--->"
+"<text>final( _ )</text--->"
 "<text>get the intime value corresponding"
 " to the final instant.</text--->"
 "<text>final( upoint1 )</text---> ) )";
@@ -2014,10 +2018,11 @@ const string
 TemporalSpecPresent  =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>(moving/unit(x) instant) -> bool,"
-" (moving/unit(x) periods) -> bool</text--->"
+"<text>({m|u}T instant) -> bool\n"
+"({m|u}T periods) -> bool\n"
+"(T in {bool, int, real, point)</text--->"
 "<text>_ present _ </text--->"
-"<text>whether the object is present at the"
+"<text>whether the moving/unit object is present at the"
 " given instant or period.</text--->"
 "<text>mpoint1 present instant1</text---> ) )";
 
@@ -2140,7 +2145,7 @@ const string
 TemporalSpecPasses =
 "( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>(unit(T) T) -> bool</text--->"
+"<text>(uT T) -> bool\n</text--->"
 "<text>for T in {bool, int, real, point} </text--->"
 "<text>_ passes _ </text--->"
 "<text>whether the object unit passes the given"
@@ -2254,10 +2259,11 @@ const string
 TemporalSpecAt =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>(unit(x) x) -> unit(x)</text--->"
+"<text>(uT T) -> uT\n"
+"(T in {bool, int, real, point})</text--->"
 "<text> _ at _ </text--->"
-"<text>restrict the movement at the times"
-" where the equality occurs.</text--->"
+"<text>restrict the movement to the times "
+"where the equality occurs.</text--->"
 "<text>upoint1 at point1</text---> ) )";
 
 /* 
@@ -2402,8 +2408,8 @@ const string
 TemporalSpecCircle =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>point x real x int -> region</text--->"
-"<text> circle ( _ ) </text--->"
+"<text>(point real int) -> region</text--->"
+"<text>circle ( _ ) </text--->"
 "<text>defines a circle with a given radius"
 " and n calculated points.</text--->"
 "<text>circle (p,10.0,10)</text---> ) )";
@@ -2475,9 +2481,9 @@ TemporalSpecMakePoint =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
 "<text>int x int -> point</text--->"
-"<text> makepoint ( _ ) </text--->"
-"<text>create a point with two"
-" given values.</text--->"
+"<text>makepoint ( _ ) </text--->"
+"<text>create a point from two "
+"given coordinates.</text--->"
 "<text>makepoint (5,5)</text---> ) )";
 
 /* 
@@ -2563,10 +2569,11 @@ const string
 TemporalSpecVelocity=
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>mpoint/upoint -> mpoint/upoint</text--->"
-"<text> velocity ( _ ) </text--->"
+"<text>mpoint -> mpoint\n"
+"upoint -> upoint</text--->"
+"<text>velocity ( _ ) </text--->"
 "<text>describes the vector of the speed"
-" to the given object.</text--->"
+" to the given temporal spatial object.</text--->"
 "<text>velocity (mpoint)</text---> ) )";
 
 /* 
@@ -2706,10 +2713,11 @@ const string
 TemporalSpecDerivable=
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>mreal/ureal -> mbool/ubool</text--->"
-"<text> derivable ( _ ) </text--->"
-"<text>get the hint"
-" for a mreal/ureal which part is derivable.</text--->"
+"<text>mreal -> mbool\n"
+"ureal -> ubool</text--->"
+"<text>derivable ( _ ) </text--->"
+"<text>Returns a moving/unit bool decribing the "
+"derivability of the moving/unit real over time.</text--->"
 "<text>derivable (mreal)</text---> ) )";
 
 /* 
@@ -2863,10 +2871,10 @@ const string
 TemporalSpecDerivative=
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>mreal/ureal -> mreal/ureal</text--->"
-"<text> derivative ( _ ) </text--->"
-"<text>determination the derivative"
-" of a mreal/ureal.</text--->"
+"<text>{m|u}real -> {m|u}real</text--->"
+"<text>derivative ( _ ) </text--->"
+"<text>Determine the derivative"
+" of a mreal/ureal value.</text--->"
 "<text>derivable (mreal)</text---> ) )";
 
 /* 
@@ -4216,15 +4224,17 @@ TemporalSpecSuse=
   "( <text>TemporalUnitAlgebra</text--->"
   "<text>For X in kind DATA or X = tuple(Z)*, Y in kind DATA:\n"
   "(*: not yet implemented)\n"
-  "(stream X) (map X Y)          -> (stream Y) \n"
-  "(stream X) (map X (stream Y)) -> (stream Y)</text--->"
+  "((stream X) (map X Y)         ) -> (stream Y) \n"
+  "((stream X) (map X (stream Y))) -> (stream Y)</text--->"
   "<text>_ suse [ _ ]</text--->"
   "<text>The suse class of operators implements "
   "a set of functors, that derive stream-valued "
   "operators from operators taking scalar "
   "arguments and returning scalar values or "
   "streams of values.</text--->"
-  "<text>atmax(runitvalue) suse[(fun(x:runit) initial(x))]</text---> ) )";
+  "<text>query intstream(1,5) suse[ fun(i:int) i*i ] printstream count;\n"
+  "query intstream(1,5) suse[ fun(i:int) intstream(i,5) ] printstream count;"
+  "</text---> ) )";
 
 const string
 TemporalSpecSuse2=
@@ -4232,12 +4242,12 @@ TemporalSpecSuse2=
   "( <text>TemporalUnitAlgebra</text--->"
   "<text>For X in kind DATA or X = tuple(W)*, Y,Z in kind DATA:\n"
   "(*: not yet implemented)\n"
-  "(stream X) Y          (map X Y Z)          -> (stream Z) \n"
-  "(stream X) Y          (map X Y stream(Z))  -> (stream Z) \n"
-  "X          (stream Y) (map X y Z)          -> (stream Z) \n"
-  "X          (stream Y) (map X y (stream Z)) -> (stream Z) \n"
-  "(stream X) (stream Y) (map X Y Z)          -> (stream Z) \n"
-  "(stream X) (stream Y) (map X Y (stream Z)) -> (stream Z)</text--->"
+  "((stream X) Y          (map X Y Z)         ) -> (stream Z) \n"
+  "((stream X) Y          (map X Y stream(Z)) ) -> (stream Z) \n"
+  "(X          (stream Y) (map X y Z)         ) -> (stream Z) \n"
+  "(X          (stream Y) (map X y (stream Z))) -> (stream Z) \n"
+  "((stream X) (stream Y) (map X Y Z)         ) -> (stream Z) \n"
+  "((stream X) (stream Y) (map X Y (stream Z))) -> (stream Z)</text--->"
   "<text>_ _ suse2 [ _ ]</text--->"
   "<text>The suse2 class of operators implements "
   "a set of functors, that derive stream-valued "
@@ -4246,7 +4256,18 @@ TemporalSpecSuse2=
   "streams of values. suse2 performs a product "
   "between the two first of its arguments, passing each "
   "combination to the mapped function once.</text--->"
-  "<text> Still missing.</text---> ) )";
+  "<text>query intstream(1,5) [const int value 5] suse2[ fun(i:int, j:int) "
+  "intstream(i,j) ] printstream count;\n"
+  "query [const int value 3] intstream(1,5) suse2[ fun(i:int, j:int) i+j ] "
+  "printstream count;\n"
+  "query intstream(1,5) [const int value 3] suse2[ fun(i:int, j:int) i+j ] "
+  "printstream count;\n"
+  "query [const int value 2] intstream(1,5) suse2[ fun(i:int, j:int) "
+  "intstream(i,j) ] printstream count;\n"
+  "query [const int value 3] intstream(1,5) suse2[ fun(i:int, j:int) "
+  "intstream(i,j) ] printstream count;\n"
+  "query intstream(1,2) intstream(1,3) suse2[ fun(i:int, j:int) "
+  "intstream(i,j) ] printstream count;</text---> ) )";
 
 /* 
 5.20.4 Selection Function of operator ~suse~
