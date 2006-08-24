@@ -9230,7 +9230,7 @@ int SpatialVerticesSelect( ListExpr args )
     return 0;
   
   if( nl->IsEqual(nl->First(args), "region") )
-    return 0;
+    return 1;
   
   return -1; // This point should never be reached
 }
