@@ -3084,10 +3084,21 @@ TypeMapSuse( ListExpr args )
       ErrorReporter::ReportError("Operator suse expects its 1st argument "
 				 "to be '(stream T)', T of kind DATA, but"
 				 "receives '" + outstr1 + "' as T.");
-
       return nl->SymbolAtom( "typeerror" );      
     }
   
+  // This check can be removed when operators working on tuplestreams have
+  // been implemented:
+  if ( !nl->IsAtom( sarg1Type ) &&
+       (nl->ListLength( sarg1Type ) == 2) &&
+       nl->IsEqual( nl->First(sarg1Type), "tuple") )      
+    {
+      ErrorReporter::ReportError("Operator suse still not implemented for "
+				 "arguments of type 'tuple(X)' or "
+				 "'(stream tuple(X))'.");
+      return nl->SymbolAtom( "typeerror" );      
+    }
+
   if ( !nl->IsAtom( sarg1Type ) &&
        ( (nl->ListLength( sarg1Type ) != 2) ||
 	 !nl->IsEqual( nl->First(sarg1Type), "tuple") ||
@@ -3098,7 +3109,7 @@ TypeMapSuse( ListExpr args )
       nl->WriteToString(outstr1, sarg1);
       return nl->SymbolAtom( "typeerror" );      
     }
-  
+
   // check for map
   if (  nl->IsAtom( map ) || !( nl->IsEqual(nl->First(map), "map") ) )
     {
@@ -3408,7 +3419,21 @@ TypeMapSuse2( ListExpr args )
       sresType = nl->TwoElemList(nl->SymbolAtom("stream"), mres);  
     }
 
-  // 7. Append flags describing argument configuration for value mapping:
+  // 7. This check can be removed when operators working on tuplestreams have
+  //    been implemented:
+  if (   (!nl->IsAtom(sarg1Type) && 
+	  TypeOfRelAlgSymbol(nl->First(sarg1Type)) == tuple )
+      || (!nl->IsAtom(sarg1Type) && 
+	  TypeOfRelAlgSymbol(nl->First(sarg1Type)) == tuple ) )
+    {
+      ErrorReporter::ReportError("Operator suse2 still not implemented for "
+				 "arguments of type 'tuple(X)' or "
+				 "'(stream tuple(X))'.");
+      return nl->SymbolAtom( "typeerror" );      
+    }
+
+
+  // 8. Append flags describing argument configuration for value mapping:
   //     0: no stream
   //     1: sarg1 is a stream
   //     2: sarg2 is a stream
@@ -4132,7 +4157,8 @@ int Suse_SSS( Word* args, Word& result, int message,
 	      qp->Request( sli->fun.addr, funresult );
 	      if ( qp->Received(sli->fun.addr) )
 		{ // got a value from map result stream
-		  result = SetWord(((Attribute*) (funresult.addr))->Clone());
+		  result=SetWord(((Attribute*)(funresult.addr))->Clone());
+		  ((Attribute*) (funresult.addr))->DeleteIfAllowed();
 		  //cout << "Suse_SSS finished REQUEST: YIELD" << endl;
 		  return YIELD;
 		}
@@ -4188,7 +4214,8 @@ const string
 TemporalSpecSuse=
   "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>TemporalUnitAlgebra</text--->"
-  "<text>For X in kind DATA or X = tuple(Z), Y in kind DATA:\n"
+  "<text>For X in kind DATA or X = tuple(Z)*, Y in kind DATA:\n"
+  "(*: not yet implemented)\n"
   "(stream X) (map X Y)          -> (stream Y) \n"
   "(stream X) (map X (stream Y)) -> (stream Y)</text--->"
   "<text>_ suse [ _ ]</text--->"
@@ -4203,7 +4230,8 @@ const string
 TemporalSpecSuse2=
   "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>TemporalUnitAlgebra</text--->"
-  "<text>For X in kind DATA or X = tuple(W), Y,Z in kind DATA:\n"
+  "<text>For X in kind DATA or X = tuple(W)*, Y,Z in kind DATA:\n"
+  "(*: not yet implemented)\n"
   "(stream X) Y          (map X Y Z)          -> (stream Z) \n"
   "(stream X) Y          (map X Y stream(Z))  -> (stream Z) \n"
   "X          (stream Y) (map X y Z)          -> (stream Z) \n"
@@ -4262,8 +4290,8 @@ temporalunitSuseSelect( ListExpr args )
   // compute index without offset
   if      (!isTuple && !isStream) return 0;
   else if (!isTuple &&  isStream) return 1;
-    //  else if ( isTuple && !isStream) return 2;
-    //  else if ( isTuple &&  isStream) return 3;
+  else if ( isTuple && !isStream) return 2;
+  else if ( isTuple &&  isStream) return 3;
   else
     {
       cout << "\ntemporalunitSuseSelect: Something's wrong!\n";
