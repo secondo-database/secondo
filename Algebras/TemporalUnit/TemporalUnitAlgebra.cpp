@@ -80,7 +80,7 @@ OK          (stream X) (stream Y) (map X Y (stream Z)) --> (stream Z)
 
 OK   sfeed: T --> (stream T)                                   
 
-     saggregate: (stream T) x (T x T --> U) x U --> U
+     saggregate: (stream T) x (T x T --> U) x U x (T --> U) --> U
 
      intersects: uT x uT --> (stream ubool)
 
@@ -144,7 +144,12 @@ helping operators for indexing instant values in R-trees.
 2 Defines, includes, and constants
 
 */
+
+
 #include <cmath>
+#include <stack>
+#include <limits>
+
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
@@ -154,8 +159,6 @@ helping operators for indexing instant values in R-trees.
 #include "RelationAlgebra.h"
 #include "TemporalAlgebra.h"
 #include "MovingRegionAlgebra.h"
-
-#include <limits>
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -4220,8 +4223,8 @@ TemporalSpecSuse2=
   "(*: not yet implemented)\n"
   "((stream X) Y          (map X Y Z)         ) -> (stream Z) \n"
   "((stream X) Y          (map X Y stream(Z)) ) -> (stream Z) \n"
-  "(X          (stream Y) (map X y Z)         ) -> (stream Z) \n"
-  "(X          (stream Y) (map X y (stream Z))) -> (stream Z) \n"
+  "(X          (stream Y) (map X Y Z)         ) -> (stream Z) \n"
+  "(X          (stream Y) (map X Y (stream Z))) -> (stream Z) \n"
   "((stream X) (stream Y) (map X Y Z)         ) -> (stream Z) \n"
   "((stream X) (stream Y) (map X Y (stream Z))) -> (stream Z)</text--->"
   "<text>_ _ suse2 [ _ ]</text--->"
@@ -4500,43 +4503,277 @@ value.
 
 Stream aggregation operator
 
-This operator applies an aggregation function to a stream of data
-using a given initial (null) value. The result a single value of 
-kind DATA.
+This operator applies an aggregation function (which must be binary, 
+associative and commutative) to a stream of data using a given neutral (initial) 
+value (which is also returned if the stream is empty). If the stream contains 
+only one single element, this element is returned as the result. 
+The result a single value of the same kind.
 
 ----   
-       For T,U in kind DATA:
-       saggregate: (stream T) x (T x T --> U) x U --> U
-
+       For T in kind DATA:
+       saggregate: (stream T) x (T x T --> T) x T --> T
 ----
+
+The first argument is the input stream.
+The second argument is the function used in the aggregation.
+The third value is used to initialize the mapping (for the first elem) 
+and will also be return if the input stream is empty.
 
 5.24.1 Type mapping function for ~saggregate~
 
 */
+ListExpr TypeMapSaggregate( ListExpr args )
+{
+  string outstr1, outstr2;
+  ListExpr TypeT;
 
+  // check for correct length
+  if (nl->ListLength(args) != 3)
+    {
+      ErrorReporter::ReportError("Operator saggregate expects a list of length "
+				 "three.");
+      return nl->SymbolAtom( "typeerror" );
+    }
+
+  // get single arguments
+  ListExpr instream   = nl->First(args),
+           map        = nl->Second(args),
+           zerovalue  = nl->Third(args),
+           errorInfo  = nl->OneElemList(nl->SymbolAtom("ERROR"));
+
+  // check for first arg to be atomic and of kind DATA
+  if ( nl->IsAtom(instream) || 
+       ( nl->ListLength( instream ) != 2) ||
+       !(TypeOfRelAlgSymbol(nl->First(instream) == stream )) ||
+       !am->CheckKind("DATA", nl->Second(instream), errorInfo) )
+    {
+      ErrorReporter::ReportError("Operator saggregate expects a list of length"
+				 "two as first argument, having structure "
+				 "'(stream T)', for T in kind DATA.");
+      return nl->SymbolAtom( "typeerror" );
+    }
+  else 
+    TypeT = nl->Second(instream);
+
+  // check for second to be of length 4, (map T T T)
+  // T of same type as first
+  if ( nl->IsAtom(map) ||
+       !(nl->ListLength(map) == 4) ||
+       !( nl->IsEqual(nl->First(map), "map") ) ||
+       !( nl->Equal(nl->Fourth(map), nl->Second(map)) ) ||
+       !( nl->Equal(nl->Third(map), nl->Second(map)) ) ||
+       !( nl->Equal(nl->Third(map), TypeT) ) )
+    {
+      ErrorReporter::ReportError("Operator saggregate expects a list of length"
+				 "four as second argument, having structure "
+				 "'(map T T T)', where T has the base type of "
+				 "the first argument.");
+      return nl->SymbolAtom( "typeerror" );
+    }
+  
+  // check for third to be atomic and of the same type T 
+  if ( !nl->IsAtom(zerovalue) ||
+       !nl->Equal(TypeT, zerovalue) )
+    {
+      ErrorReporter::ReportError("Operator saggregate expects a list of length"
+				 "one as third argument (neutral elem), having "
+				 "structure 'T', where T is also the type of "
+				 "the mapping's arguments and result. Also, "
+				 "T must be of kind DATA.");
+      return nl->SymbolAtom( "typeerror" );
+    }
+
+  // return T as the result type.
+  return TypeT;
+}
 
 /*
 5.24.2 Value mapping for operator ~saggregate~
 
 */
 
+struct AggregStruct
+{
+  inline AggregStruct( long level, Word value ):
+  level( level ), value( value )
+  {}
+
+  inline AggregStruct( const AggregStruct& a ):
+  level( a.level ), value( a.value )
+  {}
+
+  inline AggregStruct& operator=( const AggregStruct& a )
+  { level = a.level; value = a.value; return *this; }
+
+  long level;
+  Word value;
+    // if the level is 0 then value contains an element pointer, 
+    // otherwise it contains a previous result of the aggregate operator
+};
+
+int Saggregate( Word* args, Word& result, int message,
+		     Word& local, Supplier s )
+{
+  // The argument vector contains the following values:
+  Word 
+    stream  = args[0], // stream of elements T
+    aggrmap = args[1], // mapping function T x T --> T
+    nval    = args[2]; // zero value/neutral element T
+
+  Word t1, t2, iterWord, resultWord;
+  ArgVectorPointer vector = qp->Argument(aggrmap.addr);
+
+  qp->Open(stream.addr);
+  result = qp->ResultStorage(s);
+
+  // read the first tuple
+  qp->Request( stream.addr, t1 );
+  if( !qp->Received( stream.addr ) )
+    { // Case 1: empty stream
+      result.addr = ((Attribute*) nval.addr)->Copy();
+    }
+  else
+  {
+    stack<AggregStruct> aggrStack;
+
+    // read the second tuple
+    qp->Request( stream.addr, t2 );
+    if( !qp->Received( stream.addr ) )
+      { // Case 2: only one single elem in stream
+        result.addr = ((Attribute*)t1.addr)->Copy();
+      }
+    else
+    { // there are at least two stream elements
+      // match both elements and put the result into the stack
+      (*vector)[0] = SetWord(t1.addr);
+      (*vector)[1] = SetWord(t2.addr);
+      qp->Request( aggrmap.addr, resultWord );
+      aggrStack.push( AggregStruct( 1, resultWord ) ); 
+        // level 1 because we matched a level 0 elem
+      qp->ReInitResultStorage( aggrmap.addr );
+      ((Attribute*)t1.addr)->DeleteIfAllowed();
+      ((Attribute*)t2.addr)->DeleteIfAllowed();
+
+      // process the rest of the stream
+      qp->Request( stream.addr, t1 );
+      while( qp->Received( stream.addr ) )
+      {
+        long level = 0;
+        iterWord = SetWord( ((Attribute*)t1.addr)->Copy() );
+        while( !aggrStack.empty() && aggrStack.top().level == level )
+        {
+          (*vector)[0] = aggrStack.top().value;
+          (*vector)[1] = iterWord;
+          qp->Request(aggrmap.addr, resultWord);
+          ((Attribute*)iterWord.addr)->DeleteIfAllowed();
+          iterWord = resultWord;
+          qp->ReInitResultStorage( aggrmap.addr );
+          if( aggrStack.top().level == 0 )
+	    ((Attribute*)aggrStack.top().value.addr)->DeleteIfAllowed();
+          else
+	    delete (Attribute*)aggrStack.top().value.addr;
+          aggrStack.pop();
+          level++;
+        }
+        if( level == 0 )
+	  aggrStack.push( AggregStruct( level, t1 ) );
+        else
+        {
+          aggrStack.push( AggregStruct( level, iterWord ) );
+          ((Attribute*)t1.addr)->DeleteIfAllowed();
+        }
+        qp->Request( stream.addr, t1 );
+      }
+  
+      // if the stack contains only one entry, then we are done
+      if( aggrStack.size() == 1 )
+      {
+	result.addr = ((Attribute*)aggrStack.top().value.addr)->Copy();
+        ((Attribute*)aggrStack.top().value.addr)->DeleteIfAllowed();
+      }
+      else
+        // the stack must contain more elements and we call the 
+        // aggregate function for them
+      {
+        iterWord = aggrStack.top().value;
+        int level = aggrStack.top().level;
+        aggrStack.pop();
+        while( !aggrStack.empty() )
+        {
+          (*vector)[0] = level == 0 ? 
+            SetWord( ((Attribute*)iterWord.addr) ) :
+            iterWord;
+          (*vector)[1] = aggrStack.top().value;
+          qp->Request( aggrmap.addr, resultWord );
+	  ((Attribute*)iterWord.addr)->DeleteIfAllowed();
+	  ((Attribute*)aggrStack.top().value.addr)->DeleteIfAllowed();
+          iterWord = resultWord;
+          qp->ReInitResultStorage( aggrmap.addr );
+          level++;	  
+          aggrStack.pop();
+        }
+        result.addr = ((Attribute*)iterWord.addr)->Copy();
+        ((Attribute*)iterWord.addr)->DeleteIfAllowed();
+      }
+    }
+  }
+
+  qp->Close(stream.addr);
+
+  return 0;
+}
+
+
 /*
 5.24.3 Specification for operator ~saggregate~
 
-
 */
+
+const string TemporalSpecSaggregate = 
+  "( ( \"Algbra\" \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "(<text>TemporalUnitAlgebra</text--->" 
+  "<text>((stream T) ((T T) -> T) T ) -> T\n"
+  "for T in kind DATA</text--->"
+  "<text>_ saggregate [ fun ; _ ]</text--->"
+  "<text>Aggregates the values from the stream (1st arg) "
+  "using a binary associative and commutative "
+  "aggregation function (2nd arg), "
+  "and a 'neutral value' (3rd arg, also passed as the "
+  "result if the stream is empty). If the stream contains"
+  "only one single element, that element will be returned"
+  "as the result.</text--->"
+  "<text>query intstream(1,5) saggregate[ "
+  "fun(i1:int, i2:int) i1+i2 ; 0]</text--->"
+  ") )";
 
 /*
 5.24.4 Selection Function of operator ~saggregate~
 
 */
 
+ValueMapping temporalunitsaggregatemap[] = 
+  {
+    Saggregate
+  };
+
+
+int temporalunitSaggregateSelect( ListExpr args )
+{
+  return 0;
+}
+
 /*
 5.24.5 Definition of operator ~saggregate~
 
 */
 
-
+Operator temporalsaggregate( "saggregate",
+                      TemporalSpecSaggregate,
+                      1,
+                      temporalunitsaggregatemap,
+                      temporalunitSaggregateSelect,
+                      TypeMapSaggregate);
 
 
 /*
@@ -4571,6 +4808,7 @@ class TemporalUnitAlgebra : public Algebra
    AddOperator( &temporalsfeed );
    AddOperator( &temporalsuse );
    AddOperator( &temporalsuse2 );
+   AddOperator( &temporalsaggregate );
   }
   ~TemporalUnitAlgebra() {};
 };
