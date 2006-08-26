@@ -41,7 +41,7 @@ endif
 
 
 ifeq ($(readline),true)
-RL_COMPILE_FLAG = -DREADLINE
+CCFLAGS += -DREADLINE
 RL_LD_FLAG = -lreadline -lncurses
 endif
 
@@ -111,7 +111,7 @@ MainTTYCS.$(OBJEXT): MainTTY.cpp
 
 SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
 %.$(OBJEXT): %.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(RL_COMPILE_FLAG) 
+	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) 
 
 
 #  Rules for linkage
