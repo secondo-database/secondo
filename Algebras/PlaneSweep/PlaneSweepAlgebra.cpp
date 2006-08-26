@@ -481,7 +481,7 @@ template<class E> int BinTree<E>::GetCount () { return mCount; }
 /*
 2.2.5 functions to compare entries
 
-There are different functions to compare two entries. One for each class in this algebra, which uses this template. First used from class ~PQueue~ with entry ~XEvent~. Second used in class ~StatusLine~ entry ~SSSEntry~ and third used from class ~SLine~ entry ~SEntry~.
+There are different functions to compare two entries. One for each class in this algebra, which uses this template. First used from class ~Queue~ with entry ~XEvent~. Second used in class ~StatusLine~ entry ~SSSEntry~ and third used from class ~SLine~ entry ~SEntry~.
 
 */
 
@@ -1189,121 +1189,48 @@ This class is implementing the priority of XEvents used in the realmisation proz
 The priority queue based on a binary tree (template ~BinTree~) and uses the class ~XEvent~ as entries.
 
 */
-
 class PQueue
 {
 public:
-   PQueue();
-   //void Clear() { qu.Clear(); };
-   //~PQueue() { qu.Clear(); };
-    ~PQueue() {};
-   void insert (XEvent& event);
-   XEvent getFirstAndDelete();
-   bool isEmpty();
-
-   //void PQueueOutput();
+   inline PQueue() {};
+   inline ~PQueue() {};
+   inline void insert (const XEvent& event);
+   inline XEvent getFirstAndDelete();
+   inline bool isEmpty();
+   inline int size();
 
 private:
-   //BinTree<XEvent> qu;
    priority_queue<XEvent> qu2;
-   set<XEvent> s;
-   int size();
-   //XEvent first();
-   //int cmp (const XEvent* ev1, const XEvent* ev2) const;
-   //bool eventEqual  (const XEvent* ev1, const XEvent* ev2) const;
-
 };
 
 /*
 functions for initialising a tree and reading property values for a PQueue-Object
 
 */
-//PQueue::PQueue()              {BinTree<XEvent> qu; }
-PQueue::PQueue()                {priority_queue<XEvent> qu2; set<XEvent> s;}
-
-//bool PQueue::isEmpty()                { return (qu.IsEmpty() ); }
-bool PQueue::isEmpty()          { return (qu2.empty() ); }
-
-//int PQueue::size()            { return (qu.GetCount()) ; }
-int PQueue::size()              { return (qu2.size()) ; }
-
-/*
-implements the push-function
-
-*/
-/*void PQueue::insert (XEvent& event)   {
-   Coord y;
-   qu.Insert(event, y);
-}*/
-
-void PQueue::insert (XEvent& event)   {
-   //set<XEvent>::iterator pos;
-   
-   //cout << "startinsert: " << event << endl;
-   qu2.push(event);
-   
-   /*if (s.empty()) {
-     s.insert(event);
-     //cout << "insert in empty multimap" << endl;
-     qu2.push(event);
-   }
-   else {
-     if ( s.find(event) == s.end() ) {
-       s.insert(event);
-       qu2.push(event);
-       //cout << "eingefügt" << endl;
-     }
-     else cout << "nicht eingefügt" << endl;
-   }*/
+inline bool PQueue::isEmpty()
+{ 
+  return qu2.empty(); 
 }
 
-
-     /*for (pos = mm.lower_bound(event.GetX());
-       pos != mm.upper_bound(event.GetX()); pos++) {
-       //cout << "suche nach doppelten: " << event << endl;
-     if ( pos->second.Equal(event) ) {cout << "found doubles" << endl; return;}
-     }
-     //cout << "eingefügt: " << event << endl;
-     mm.insert(pair<const double, XEvent>(event.GetX(),event));     
-     qu2.push(event);
-     //cout << "insert in multimap and priority_queue" << endl;
-   }
-}*/
-         
-/*
-implements the functions top and pop of a priority queue in one function
-
-*/
-/*XEvent PQueue::getFirstAndDelete()  {
-   XEvent event =  qu.GetFirstAndDelete();
-   return (event);
-}*/
-
-XEvent PQueue::getFirstAndDelete()  {
-   XEvent event =  qu2.top();
-   qu2.pop();
-   return (event);
+inline int PQueue::size()
+{ 
+  return qu2.size(); 
 }
 
-
-/*void PQueue::PQueueOutput()
+inline void PQueue::insert (const XEvent& event)   
 {
-   cout << " in output " << endl;
-   BinTreeNode<XEvent>* node = qu.GetFirst();
-   // BinTreeNode<XEvent>* ev = First();
-   if (size() > 0 ) {
-      while ( node != 0 )  {
-         XEvent ev = node->GetEntry();
-         cout << "XEvent: "<< ev.GetX()<< " "<< ev.GetY()<< " "
-         << ev.GetKind()<< " " << ev.GetFirst()<<" "<<ev.GetSecond()
-         <<" "<<ev.GetSlope()<< " "<< ev.GetA()<< endl;
-         node = node->GetNext();
-      }
-   }
-   cout << " in output fertig " << endl;
-}*/
+  qu2.push(event);
+}
 
-ostream& operator<<(ostream &os, const PQueue& pq) {
+inline XEvent PQueue::getFirstAndDelete()  
+{
+   XEvent event = qu2.top();
+   qu2.pop();
+   return event;
+}
+
+ostream& operator<<(ostream &os, const PQueue& pq) 
+{
   PQueue pq2;
   pq2 = pq;
   while ( !pq2.isEmpty() ) {
@@ -1311,6 +1238,7 @@ ostream& operator<<(ostream &os, const PQueue& pq) {
   }
   return (os);
 }
+
 /*
 3.4 class SSSEntry
 
@@ -2502,6 +2430,7 @@ void MakeRealm::REALM(const Line* line1, const Line* line2,
          count ++;
       }
    }
+
    // Prepare the second line for PlaneSweep
    for (int i=0; i< line2->Size(); i++)   {
       const HalfSegment *hs;
@@ -2511,6 +2440,7 @@ void MakeRealm::REALM(const Line* line1, const Line* line2,
          count ++;
       }
    }
+
    list<HalfSegment> res1, res2;
    PerformPlaneSweep(pqueue, segs, res1, res2, count);
    //  reconstruction of first line
