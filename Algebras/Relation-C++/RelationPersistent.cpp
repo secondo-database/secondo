@@ -213,19 +213,6 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
     // Create a structure to store the old attributes
     Attribute **oldAttributes = new Attribute*[tupleType->GetNoAttributes()];
 
-    // Move external attributes to memory tuple
-    assert( memoryTuple == 0 );
-    memoryTuple = (char*)malloc( tupleType->GetTotalSize() );
-    int offset = 0;
-    for( int i = 0; i < tupleType->GetNoAttributes(); i++)
-    {
-      memcpy( &memoryTuple[offset], attributes[i], 
-              tupleType->GetAttributeType(i).size );
-      oldAttributes[i] = attributes[i];
-      attributes[i] = (Attribute*) &memoryTuple[offset];
-      offset += tupleType->GetAttributeType(i).size;
-    }
-
     // Move FLOB data to extension tuple.
     if( hasFLOBs )
     {
@@ -245,6 +232,19 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
           }
         }
       } 
+    }
+
+    // Move external attributes to memory tuple
+    assert( memoryTuple == 0 );
+    memoryTuple = (char*)malloc( tupleType->GetTotalSize() );
+    int offset = 0;
+    for( int i = 0; i < tupleType->GetNoAttributes(); i++)
+    {
+      memcpy( &memoryTuple[offset], attributes[i], 
+              tupleType->GetAttributeType(i).size );
+      oldAttributes[i] = attributes[i];
+      attributes[i] = (Attribute*) &memoryTuple[offset];
+      offset += tupleType->GetAttributeType(i).size;
     }
 
     // Delete (if allowed) the old attributes.
