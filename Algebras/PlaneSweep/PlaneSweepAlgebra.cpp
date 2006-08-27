@@ -1586,6 +1586,7 @@ bool StatusLine::innerInter( const HalfSegment& hs1,
    const HalfSegment& hs2, Point& resp, HalfSegment& rhs,
    bool& first, bool& second ) const
 {
+   resp.SetDefined(false);
    first = false;               second = false;
    Coord xl,yl,xr,yr ,  Xl,Yl,Xr,Yr;
    double k, a, K, A;
