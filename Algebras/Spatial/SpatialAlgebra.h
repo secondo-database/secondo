@@ -354,7 +354,7 @@ as an attribute.
       return false;
     }
 
-    inline Point* Clone() const
+    virtual inline Point* Clone() const
     {
       return new Point( *this );
     }
@@ -842,7 +842,7 @@ as an attribute.
     void CopyFrom( const StandardAttribute* right );
     int Compare( const Attribute *arg ) const;
     bool Adjacent( const Attribute *arg ) const;
-    Points* Clone() const;
+    virtual Points* Clone() const;
     ostream& Print( ostream &os ) const;
 
   private:
@@ -1738,7 +1738,7 @@ as an attribute.
     size_t HashValue() const;
     void CopyFrom( const StandardAttribute* right );
     int Compare( const Attribute *arg ) const;
-    Line *Clone() const;
+    virtual Line *Clone() const;
     ostream& Print( ostream &os ) const;
     void Clear();
 
@@ -2363,7 +2363,7 @@ as an attribute.
     void CopyFrom( const StandardAttribute* right );
     int Compare( const Attribute *arg ) const;
     ostream& Print( ostream &os ) const;
-    Region *Clone() const;
+    virtual Region *Clone() const;
     void Clear();
 
 /*
