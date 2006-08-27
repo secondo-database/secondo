@@ -1075,35 +1075,6 @@ A ~points~ value is a finite set of points.
 5.1 Implementation of the class ~Points~
 
 */
-void Points::SelectFirst() const
-{
-  if( IsEmpty() ) 
-    pos = -1;
-  else pos = 0;
-}
-
-void Points::SelectNext() const
-{
-  if( pos >= 0 && pos < Size() - 1 ) 
-    pos++;
-  else pos = -1;
-}
-
-bool Points::EndOfPt() const
-{
-  return pos == -1;
-}
-
-bool Points::GetPt( const Point*& p ) const
-{
-  if( pos >= 0 && pos <= Size()-1 ) 
-  {
-    points.Get( pos, p );
-    return true;
-  }
-  return false;
-}
-
 bool Points::Find( const Point& p, int& pos ) const
 {
   assert( IsOrdered() );
@@ -3840,21 +3811,6 @@ void Line::Vertices( Points& result ) const
       result += hs->GetLeftPoint();
   }
   result.EndBulkLoad( false, true );
-}
-
-bool Line::EndOfHs() const
-{
-  return pos == -1;
-}
-
-bool Line::GetHs( const HalfSegment*& hs ) const
-{
-  if( pos >= 0 && pos <= Size() - 1 )
-  {
-    line.Get( pos, hs );
-    return true;
-  }
-  return false;
 }
 
 bool Line::Find( const HalfSegment& hs, int& pos ) const

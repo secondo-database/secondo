@@ -806,23 +806,23 @@ using ROSE algebra algorithms.
 *Complexity:* All these functions have a complexity of $O( 1 )$ .
 
 */
-    void SelectFirst() const;
+    inline void SelectFirst() const;
 /*
 Puts the pointer ~pos~ to the first point in the ~points~ value.
 
 */
-    void SelectNext() const;
+    inline void SelectNext() const;
 /*
 Moves the pointer ~pos~ to the next point in the ~points~ value.
 
 */
-    bool EndOfPt() const;
+    inline bool EndOfPt() const;
 /*
 Decides whether ~pos~ is -1, which indicates that no more points in the ~points~ value
 need to be processed.
 
 */
-    bool GetPt( const Point*& p ) const;
+    inline bool GetPt( const Point*& p ) const;
 /*
 Gets the current point from the ~points~ value according to the ~pos~ pointer.
 
@@ -1652,20 +1652,12 @@ using ROSE algebra algorithms.
 *Complexity:* All these functions have a complexity of $O( 1 )$ .
 
 */
-    inline void SelectFirst() const
-    {
-      if (IsEmpty()) pos=-1;
-      else pos=0;
-    }
+    inline void SelectFirst() const;
 /*
 Puts the pointer ~pos~ to the first half segment in the ~line~ value.
 
 */
-    inline void SelectNext() const
-    {
-      if ((pos>=0) && (pos<Size()-1)) pos++;
-      else pos=-1;
-    }
+    inline void SelectNext() const;
 /*
 Moves the pointer ~pos~ to the next half segment in the ~line~ value.
 
@@ -2262,31 +2254,23 @@ using ROSE algebra algorithms.
 *Complexity:* All these functions have a complexity of $O( 1 )$ .
 
 */
-    inline void SelectFirst() const
-    {
-      if (IsEmpty()) pos=-1;
-      else pos=0;
-    }
+    inline void SelectFirst() const;
 /*
 Puts the pointer ~pos~ to the first half segment in the ~region~ value.
 
 */
-    inline void SelectNext() const
-    {
-      if ((pos>=0) && (pos<Size()-1)) pos++;
-      else pos=-1;
-    }
+    inline void SelectNext() const;
 /*
 Moves the pointer ~pos~ to the next half segment in the ~region~ value.
 
 */
-    bool EndOfHs() const;
+    inline bool EndOfHs() const;
 /*
 Decides whether ~pos~ is -1, which indicates that no more half segments in the ~region~
 value need to be processed.
 
 */
-    bool GetHs( const HalfSegment*& hs ) const;
+    inline bool GetHs( const HalfSegment*& hs ) const;
 /*
 Gets the current half segment from the ~region~ value according to the ~pos~ pointer.
 
@@ -3112,6 +3096,35 @@ inline size_t Points::Sizeof() const
   return sizeof( *this );
 }
 
+inline void Points::SelectFirst() const
+{
+  if( IsEmpty() )
+    pos = -1;
+  else pos = 0;
+}
+
+inline void Points::SelectNext() const
+{
+  if( pos >= 0 && pos < Size() - 1 )
+    pos++;
+  else pos = -1;
+}
+
+inline bool Points::EndOfPt() const
+{
+  return pos == -1;
+}
+
+inline bool Points::GetPt( const Point*& p ) const
+{
+  if( pos >= 0 && pos <= Size()-1 )
+  {
+    points.Get( pos, p );
+    return true;
+  }
+  return false;
+}
+
 /*
 11.3 Class ~HalfSegment~
 
@@ -3333,6 +3346,35 @@ inline void Line::Put( const int i, const LRS& lrs )
   lrsArray.Put( i, lrs );
 }
 
+inline void Line::SelectFirst() const
+{
+  if( IsEmpty() )
+    pos = -1;
+  else pos = 0;
+}
+
+inline void Line::SelectNext() const
+{
+  if( pos >= 0 && pos < Size() - 1 )
+    pos++;
+  else pos = -1;
+}
+
+inline bool Line::EndOfHs() const
+{
+  return pos == -1;
+}
+
+inline bool Line::GetHs( const HalfSegment*& hs ) const
+{
+  if( pos >= 0 && pos <= Size()-1 )
+  {
+    line.Get( pos, hs );
+    return true;
+  }
+  return false;
+}
+
 /*
 11.4 Class ~Region~
 
@@ -3389,6 +3431,20 @@ inline void Region::UpdateAttr( int position, AttrType& attr )
     auxhs.SetAttr( attr );
     region.Put( position, auxhs );
   }
+}
+
+inline void Region::SelectFirst() const
+{
+  if( IsEmpty() )
+    pos = -1;
+  else pos = 0;
+}
+
+inline void Region::SelectNext() const
+{
+  if( pos >= 0 && pos < Size() - 1 )
+    pos++;
+  else pos = -1;
 }
 
 inline bool Region::EndOfHs() const
