@@ -2515,6 +2515,43 @@ public boolean canDisplay(SecondoObject o){
     if(AutoCat!=null && AutoCat.trim().toUpperCase().equals("TRUE")){
       isAutoCatMI.setSelected(true);
     }
+
+
+    String WorldBB = configuration.getProperty("WORLD_BOUNDING_BOX");
+    if(WorldBB==null){
+        Reporter.writeWarning("no bounding box of the world found in configuration");
+    }else{
+       WorldBB = WorldBB.trim();
+       StringTokenizer st = new StringTokenizer(WorldBB);
+       double[] box = new double[4];
+       boolean error = false;
+       for(int i=0;i<4 && !error ;i++){
+          if(!st.hasMoreElements()){
+             Reporter.showError("unsufficient values given for bounding box");
+             error = true;
+          } else{
+            String n = st.nextToken();
+            try{
+              box[i] = Double.parseDouble(n);
+            }catch(Exception e){
+               Reporter.showError("invalid value in bounding box definition found");
+               error=true;
+            }
+          }
+       } 
+       if(!error){ // 4 values read
+          if(box[2]<=0 || box[3] <=0){
+             Reporter.showError("width or height of the bounding box "+
+                                "smaller than zero in configuiration file");
+          } else{
+             Rectangle2D.Double wbox = new Rectangle2D.Double(box[0],box[1],box[2],box[3]); 
+             Reporter.writeInfo("set bounding box to "+wbox);
+             CurrentState.setWorldBB(wbox); 
+          }
+       }
+
+
+    }
  }
 
 

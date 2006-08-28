@@ -76,3 +76,7 @@ MAXPIXELS 8000000
 AUTOCAT false
 
 
+# set the bounding box required by unbounded spatial objects
+# the format is:  left bottom width height
+WORLD_BOUNDING_BOX -50000 -50000 100000 100000
+
