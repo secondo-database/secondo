@@ -71,5 +71,5 @@ DEFAULTCCFLAGS += -DNL_PERSISTENT
 # Flag to compile SecondoPL with the maximize_entropy predicate
 # For details refer to directory Optimizer/Entropy. 
 # Uncomment next line to use it.
-#ENTROPY := true
+ENTROPY := true
 
