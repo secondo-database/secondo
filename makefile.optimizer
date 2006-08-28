@@ -53,7 +53,11 @@ OPTIMIZER_SERVER = optserver
 ifeq ($(platform),win32)
 PLLDFLAGS := $(PL_LIB_DIR)/libpl.lib -lm
 else
+ifdef GMP_LIB
+PLLDFLAGS := -L$(PL_LIB_DIR) -l$(PL_LIB) -lreadline -lncurses -lm -l$(GMP_LIB)
+else
 PLLDFLAGS := -L$(PL_LIB_DIR) -l$(PL_LIB) -lreadline -lncurses -lm 
+endif
 endif
 
 
