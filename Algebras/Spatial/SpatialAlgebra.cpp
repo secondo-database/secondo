@@ -3731,16 +3731,10 @@ void Line::Translate( const Coord& x, const Coord& y, Line& result ) const
 
 bool Line::AtPosition( double pos, Point& p ) const
 {
-  if( IsEmpty() )
-    return false;
-
-  if( pos < 0 && !AlmostEqual( pos, 0 ) &&
-      pos > Length() && !AlmostEqual( pos, Length() ) )
-    return false;
-
   LRS lrs( pos, 0 );
   int lrsPos;
-  Find( lrs, lrsPos );
+  if( !Find( lrs, lrsPos ) )
+    return false;
 
   const LRS *lrs2;
   Get( lrsPos, lrs2 );
@@ -3754,45 +3748,46 @@ bool Line::AtPosition( double pos, Point& p ) const
 
 bool Line::AtPoint( const Point& p, double& result ) const
 {
-  const LRS *lrs;
+  if( IsEmpty() )
+    return false;
+
+  bool found = false;
   const HalfSegment *hs;
   int pos;
   if( Find( p, pos ) )
   {
+    found = true;
     Get( pos, hs );
-    while( !hs->IsLeftDomPoint() )
-    {
-      pos++;
-      assert( pos < Size() );
-      Get( pos, hs );
-    }
-    Get( hs->attr.edgeno, lrs );
-    assert( pos == lrs->hsPos );
-    result = lrs->lrsPos;
-    return true;
   }
-
-  for( ; pos < Size(); pos++ )
+  else if( pos < Size() )
   {
-    const HalfSegment *hs;
-    Get( pos, hs );
-
-    if( hs->IsLeftDomPoint() )
+    for( ; pos >= 0; pos-- )
     {
-      if( !AlmostEqual( hs->GetDomPoint(), p ) &&
-          hs->GetDomPoint() > p )
-        return false;
-
-      if( hs->Contains( p ) )
+      Get( pos, hs );
+      if( hs->IsLeftDomPoint() && hs->Contains( p ) )
       {
-        Get( hs->attr.edgeno, lrs );
-        assert( pos == lrs->hsPos );
-        result = lrs->lrsPos + hs->AtPoint( p );
-        return true;
+        found = true;
+        break;
       }
     }
   }
-  return false;
+
+  if( found )
+  {
+    const LRS *lrs;
+    Get( hs->attr.edgeno, lrs );
+    Get( lrs->hsPos, hs );
+    double d;
+    if( AlmostEqual( p, hs->GetDomPoint() ) )
+      d = 0.0;
+    else if( AlmostEqual( p, hs->GetSecPoint() ) )
+      d = hs->Length();
+    else
+      d = p.Distance( hs->GetDomPoint() );
+    result = lrs->lrsPos + d;
+  }
+
+  return result;
 }
 
 void Line::Vertices( Points& result ) const
@@ -3832,7 +3827,9 @@ bool Line::Find( const Point& p, int& pos ) const
       Get( pos, hs );
       if( !AlmostEqual( hs->GetDomPoint(), p ) )
         break;
-    }  
+    }
+    if( pos == -1 )
+      pos = 0;  
     return true;
   }
   return false;
@@ -3841,7 +3838,19 @@ bool Line::Find( const Point& p, int& pos ) const
 bool Line::Find( const LRS& lrs, int& pos ) const
 {
   assert( IsOrdered() );
-  return lrsArray.Find( &lrs, LRSCompare, pos );
+
+  if( IsEmpty() )
+    return false;
+
+  if( lrs.lrsPos < 0 && !AlmostEqual( lrs.lrsPos, 0 ) &&
+      lrs.lrsPos > Length() && !AlmostEqual( lrs.lrsPos, Length() ) )
+    return false;
+
+  lrsArray.Find( &lrs, LRSCompare, pos );
+  if( pos > 0 )
+    pos--;
+
+  return true;
 }
 
 void Line::SetPartnerNo()
@@ -3955,10 +3964,7 @@ void Line::VisitHalfSegments( int poshs, const HalfSegment& hs, double& lrspos,
   visited[poshs] = true;
   visited[hs.attr.partnerno] = true;
 
-  if( hs.IsLeftDomPoint() )
-    lrsArray.Append( LRS( lrspos, poshs ) );
-  else
-    lrsArray.Append( LRS( lrspos, hs.attr.partnerno ) );
+  lrsArray.Append( LRS( lrspos, poshs ) );
   lrspos += hs.Length();
 
   HalfSegment auxhs( hs );
@@ -3987,6 +3993,9 @@ void Line::VisitHalfSegments( int poshs, const HalfSegment& hs, double& lrspos,
     auxhs.attr.faceno = faceno;
     line.Put( posnexths, auxhs );
 
+    lrsArray.Append( LRS( lrspos, posnexths ) );
+    lrspos += nexths->Length();
+ 
     poshs = nexths->attr.partnerno;
     Get( poshs, currhs );
 
@@ -3996,12 +4005,6 @@ void Line::VisitHalfSegments( int poshs, const HalfSegment& hs, double& lrspos,
     auxhs.attr.faceno = faceno;
     line.Put( poshs, auxhs );
 
-    if( currhs->IsLeftDomPoint() )
-      lrsArray.Append( LRS( lrspos, poshs ) );
-    else 
-      lrsArray.Append( LRS( lrspos, posnexths ) );
-    lrspos += currhs->Length();
- 
     visited[posnexths] = true;
     visited[poshs] = true;
   }
@@ -10906,7 +10909,7 @@ SpatialAtPoint( Word* args, Word& result, int message,
   Point *p = (Point*)args[1].addr;
   double res;
   
-  if( l->AtPoint( p, res ) )
+  if( l->AtPoint( *p, res ) )
     ((CcReal *)result.addr)->Set( true, res );
   else
     ((CcReal *)result.addr)->SetDefined( false );
