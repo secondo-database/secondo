@@ -190,7 +190,7 @@ time(Clause) :-
   (call(Clause) ; true),
   get_time(Time2),
   Time is Time2 - Time1,
-  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  my_convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
   MSs is Minute *60000 + Sec*1000 + MilliSec,
   write('Elapsed Time: '),
   write(MSs),

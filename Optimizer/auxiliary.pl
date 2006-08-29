@@ -985,3 +985,4 @@ portray(Term) :-
 
 portray(Term) :-
   write(Term).
+

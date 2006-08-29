@@ -330,7 +330,7 @@ getTime(Goal, TimeMS) :-
   call(Goal),
   get_time(Time2),
   Time3 is Time2 - Time1,
-  convert_time(Time3, _, _, _, _, Minute, Sec, MilliSec),
+  my_convert_time(Time3, _, _, _, _, Minute, Sec, MilliSec),
   TimeMS is Minute *60000 + Sec*1000 + MilliSec, !.
 
 
