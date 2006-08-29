@@ -32,6 +32,13 @@ The optimizer is started by loading this file.
 
 */
 
+/*
+1.1 Coping with Version-dependant Problems 
+
+1.1.2 SWI-Prolog 5.4.7 for Windows
+
+*/
+
 % Prolog 5.4.7. does not show a prompt when started in rxvt on
 % windows using SecondoPL. The predicate below will solve this.
 % The solution was found in the SWI-Prolog mailing list.
@@ -41,8 +48,8 @@ The optimizer is started by loading this file.
 % have been replaced by newer ones for more recent polog versions.                          
 getprompt :-
   current_prolog_flag(version,Version),
-  ( Version >=50407 
-    -> ( Version >= 50600 % test for version of SWI-Prolog later than 5.6
+  ( (Version >=50407) 
+    -> ( (Version >= 50600) % test for version of SWI-Prolog later than 5.6
           -> (  % using ISO stream predicates for recent versions
                stream_property(ConIn,  file_no(0)), 
                stream_property(ConIn,  mode(read)),  
