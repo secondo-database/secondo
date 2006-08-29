@@ -32,6 +32,9 @@ operator sfeed alias SFEED pattern op ( _ )
 operator suse alias SUSE pattern _ op [ _ ] implicit parameter uple type TUPLE
 operator suse2 alias SUSE2 pattern _ _ op [ _ ] implicit parameters lefttuple, righttuple types TUPLE, TUPLE2
 operator saggregate alias SAGGREGATE pattern _ op [ _ ; _ ]
+operator at alias AT pattern _ infixop _ 
+operator atmax alias ATMAX pattern op ( _ )
+
 
 
 

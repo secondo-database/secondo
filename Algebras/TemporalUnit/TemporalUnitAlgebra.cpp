@@ -18,13 +18,13 @@ Feruniversit[ae]t Hagen.
   trajectory           upoint    -> line
   makemvalue           stream (tuple ([x1:t1,xi:uType,..,xn:tn]))  ->  mType
   size                 periods  -> real
-  deftime              unit(a)  -> periods
-  atinstant            unit(a) x instant  -> ix
-  atperiods            unit(a) x periods  -> stream(ua)
-  Initial              unit(a)  -> ia
-  final                unit(a)  -> ia
-  present              unit(a) x instant  -> bool
-                       unit(a) x periods  -> bool
+  deftime              uT  -> periods
+  atinstant            uT x instant  -> iT
+  atperiods            uT x periods  -> (stream uT)
+  Initial              uT -> iT
+  final                uT  -> iT
+  present              uT x instant  -> bool
+                       uT x periods  -> bool
   point2d              periods  -> point
   queryrect2d          instant  -> rect
   speed                mpoint   -> mreal
@@ -80,15 +80,20 @@ OK          (stream X) (stream Y) (map X Y (stream Z)) --> (stream Z)
 
 OK   sfeed: T --> (stream T)                                   
 
-     saggregate: (stream T) x (T x T --> U) x U x (T --> U) --> U
-
-     intersects: uT x uT --> (stream ubool)
+OK   saggregate: (stream T) x (T x T --> T) x T  --> T
 
      intersection: uT x uT --> (stream uT)
 
      atmax, atmin: uT --> (stream uT)
 
-     at:        uT x T --> (stream uT)
+     at:           ureal x real --> (stream ureal)
+
+     distance: T in {real, int, region, point}
+              uT x uT -> (stream ureal),
+              uT x  T -> (stream ureal), 
+               T x uT -> (stream ureal)
+
+     intersects: uT x uT --> (stream ubool)
 
      mdirection: upoint --> ureal
 
@@ -96,27 +101,20 @@ OK   sfeed: T --> (stream T)
 
      area: uregion --> ureal
 
-     distance: T in {real, int, region, point}
-              uT x uT -> (stream ureal),
-              uT x  T -> (stream ureal), 
-               T x uT -> (stream ureal)
+     and, or: ubool x ubool --> (stream ubool)
+               bool x ubool --> (stream ubool)
+              ubool x  bool --> (stream ubool)
 
-[]   and, or: ubool x ubool --> (stream ubool)
-[]             bool x ubool --> (stream ubool)
-[]            ubool x  bool --> (stream ubool)
-
-[]   =, #: uT x uT --> (stream ubool)
-[]	    T x uT --> (stream ubool)
-[]         uT x  T --> (stream ubool)
+     =, #: uT x uT --> (stream ubool)
+  	    T x uT --> (stream ubool)
+           uT x  T --> (stream ubool)
 
      initial, final: (stream uT) --> iT
-[]   present: (stream uT) x instant --> bool
-[]   present: (stream uT) x periods --> bool
-     never:   (stream ubool) --> bool
-     always:  (stream ubool) --> bool
+     present: (stream uT) x instant --> bool
+     present: (stream uT) x periods --> bool
+     never:   ubool --> bool
+     always:  ubool --> bool
 
-
-     []: this operator can be simulated using saggregate
 ----
 
 */
@@ -2195,6 +2193,12 @@ Operator temporalunitpasses( "passes",
 /*
 5.13 Operator ~at~
 
+The operator restrict a unit type to interval, where it's value
+is equal to a given value. For base types ~bool~, ~int~ and ~point~,
+the result will be only a single unit, but for base type ~real~, there
+may be two units, as ~ureal~ is represented by a quadratic polynomial
+function (or it's radical).
+
 5.13.1 Type Mapping for ~at~
 
 */
@@ -2207,8 +2211,16 @@ UnitBaseTypeMapUnit( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
+    if( nl->IsEqual( arg1, "ubool" ) && nl->IsEqual( arg2, "bool" ) )
+      return nl->SymbolAtom( "ubool" );
+    if( nl->IsEqual( arg1, "uint" ) && nl->IsEqual( arg2, "int" ) )
+      return nl->SymbolAtom( "uint" );
     if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "point" ) )
       return nl->SymbolAtom( "upoint" );
+    // for ureal, at will return a stream of ureals!
+    if( nl->IsEqual( arg1, "ureal" ) && nl->IsEqual( arg2, "real" ) )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			     nl->SymbolAtom( "ureal" ));    
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -2216,7 +2228,11 @@ UnitBaseTypeMapUnit( ListExpr args )
 /*
 5.13.2 Value Mapping for ~at~
 
+We implement two variants, the first for unit types using ~ConstTemporalUnits~ and ~SpatialUnits~, and a second one for ~ureal~
+
 */
+
+// first valuemapping, for all but ureal:
 template <class Unit, class Alpha>
 int MappingUnitAt( Word* args, Word& result, int message,
                    Word& local, Supplier s )
@@ -2246,6 +2262,163 @@ int MappingUnitAt( Word* args, Word& result, int message,
   return 0;
 }
 
+struct MappingUnitAt_rLocalInfo {
+  bool finished;
+  int  NoOfResults;  // the number of remaining results
+  Word runits[2];    // the results
+};
+
+// second value mapping: for ureal
+int MappingUnitAt_r( Word* args, Word& result, int message,
+                   Word& local, Supplier s )
+{
+  MappingUnitAt_rLocalInfo *localinfo;
+  UReal *uinput = ((UReal*)args[0].addr);
+  double y = ((CcReal*)(args[1].addr))->GetRealval();
+  double radicand, a, b, c, r;
+  UReal *uresult = (UReal*)(result.addr);
+  DateTime t1, t2;
+  Interval<Instant> rdeftime, deftime;
+  
+  
+  switch (message)
+    {
+    case OPEN :
+      
+      localinfo = new MappingUnitAt_rLocalInfo;
+      localinfo->finished = true;
+      localinfo->NoOfResults = 0;
+      
+      if ( !((UReal*)args[0].addr)->IsDefined() ||
+	   !((CcReal*)(args[1].addr))->IsDefined() )
+	{ // some input is undefined -> return empty stream
+	  localinfo->NoOfResults = 0;
+	  localinfo->finished = true;
+	  local = SetWord(localinfo);
+	  return 0;
+	}
+      
+      a = uinput->a;
+      b = uinput->b;
+      c = uinput->c;
+      r = uinput->r;
+      deftime = uinput->timeInterval;
+
+      if ( (a == 0) && (b == 0) )
+	{ // constant function. Possibly return input unit
+	  if (c != y)
+	    { // There will be no result, just an empty stream
+	      localinfo->NoOfResults = 0;
+	      localinfo->finished = true;
+	    }
+	  else
+		{ // Return the complete unit
+		  (UReal*)(localinfo->runits[localinfo->NoOfResults].addr)
+		    = uinput->Copy();
+		  localinfo->NoOfResults++;
+		  localinfo->finished = false;
+		}
+	  local = SetWord(localinfo);
+	  return 0;
+	}
+
+      if ( (a == 0) && (b != 0) )
+	{ // linear function. Possibly return input unit restricted 
+	  // to single value
+	  t1.ReadFrom( (y - c)/b );
+	  if (deftime.Contains(t1))
+	    { // value is contained by deftime
+	      (UReal*)(localinfo->runits[localinfo->NoOfResults].addr) = 
+		uinput->Copy();
+	      ((UReal*)(localinfo
+			->runits[localinfo->NoOfResults].addr))
+		->timeInterval = Interval<Instant>(t1, t1, true, true);
+	      localinfo->NoOfResults++;
+	      localinfo->finished = false;		  
+	    }
+	  else
+	    { // value is not contained by deftime -> no result
+	      localinfo->NoOfResults = 0;
+	      localinfo->finished = true;
+	    }
+	  local = SetWord(localinfo);
+	  return 0;
+	}
+      
+      radicand = ((y - c) / a) + ((b * b) / (4 * a * a));
+      if ( (a != 0) && (radicand <= 0) )
+	{ // quadratic function. There are possibly two result units
+	  // calculate the possible t-values t1, t2
+	  
+	  t1.ReadFrom( sqrt(radicand) );
+	  t2.ReadFrom( -sqrt(radicand) );
+	  
+	  // check, whether t1 contained by deftime
+	  if (deftime.Contains(Instant(t1)))
+	    {
+	      rdeftime.start = t1;
+	      rdeftime.end = t1;
+	      localinfo->runits[localinfo->NoOfResults].addr = 
+		new UReal( rdeftime,a,b,c,r );
+	      localinfo->NoOfResults++;
+	      localinfo->finished = false;
+	    }
+	  // check, whether t2 contained by deftime
+	  if (deftime.Contains( t2 ))
+	    {
+	      rdeftime.start = t2;
+	      rdeftime.end = t2;
+	      localinfo->runits[localinfo->NoOfResults].addr = 
+		new UReal( rdeftime,a,b,c,r );
+	      localinfo->NoOfResults++;
+	      localinfo->finished = false;
+	    }
+	}
+      else // there is no result unit
+	{
+	  localinfo->NoOfResults = 0;
+	  localinfo->finished = true;
+	}
+      local = SetWord(localinfo);
+      return 0;
+      
+    case REQUEST :
+      
+      if (local.addr == 0)
+	return CANCEL;
+      localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
+      if (localinfo->finished)
+	return CANCEL;
+      if ( localinfo->NoOfResults <= 0 )
+	{ localinfo->finished = true;
+	  return CANCEL;
+	}
+      localinfo->NoOfResults--;
+      result = SetWord( ((UReal*)(localinfo
+				  ->runits[localinfo->NoOfResults].addr))
+			->Clone() );
+      ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
+	->DeleteIfAllowed();
+      return YIELD;
+      
+    case CLOSE :
+
+      if (local.addr != 0)
+	{
+	  localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
+	  for (;localinfo->NoOfResults>0;localinfo->NoOfResults--)
+	    ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
+	      ->DeleteIfAllowed();
+	  delete localinfo;
+	}
+      return 0;
+    } // end switch
+  
+      // should not be reached
+  return 0;
+}
+
+
 /*
 5.13.3 Specification for operator ~at~
 
@@ -2255,10 +2428,13 @@ TemporalSpecAt =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
 "<text>(uT T) -> uT\n"
-"(T in {bool, int, real, point})</text--->"
+"   (T in {bool, int, point})\n"
+"(ureal real) -> (stream ureal)</text--->"
 "<text> _ at _ </text--->"
 "<text>restrict the movement to the times "
-"where the equality occurs.</text--->"
+"where the equality occurs.\n"
+"Observe, that for type 'ureal', the result is a "
+"'(stream ureal)' rather than a 'ureal'!</text--->"
 "<text>upoint1 at point1</text---> ) )";
 
 /* 
@@ -2270,7 +2446,7 @@ Uses ~unitBaseSelect~.
 
 ValueMapping temporalunitatmap[] = {  MappingUnitAt< UBool, CcBool>,
                                       MappingUnitAt< UInt, CcInt>,
-                                      MappingUnitAt< UReal, CcReal>,
+                                      MappingUnitAt_r,
                                       MappingUnitAt< UPoint, Point> };
 
 /*
@@ -2996,12 +3172,12 @@ int SfeedSelect( ListExpr args )
 5.19.5  Definition of operator ~sfeed~
 
 */
-Operator temporalsfeed( "sfeed",
-                      TemporalSpecSfeed,
-                      1,
-                      temporalunitsfeedmap,
-                      SfeedSelect,
-                      TypeMapSfeed);
+Operator temporalunitsfeed( "sfeed",
+			    TemporalSpecSfeed,
+			    1,
+			    temporalunitsfeedmap,
+			    SfeedSelect,
+			    TypeMapSfeed);
 
 
 /*
@@ -4407,20 +4583,20 @@ temporalunitSuse2Select( ListExpr args )
 */
 
 
-Operator temporalsuse( "suse",
-                      TemporalSpecSuse,
-                      2,
-                      temporalunitsusemap,
-                      temporalunitSuseSelect,
-                      TypeMapSuse);
+Operator temporalunitsuse( "suse",
+			   TemporalSpecSuse,
+			   2,
+			   temporalunitsusemap,
+			   temporalunitSuseSelect,
+			   TypeMapSuse);
 
 
-Operator temporalsuse2( "suse2",
-                      TemporalSpecSuse2,
-                      4,
-                      temporalunitsuse2map,
-                      temporalunitSuse2Select,
-                      TypeMapSuse2);
+Operator temporalunitsuse2( "suse2",
+			    TemporalSpecSuse2,
+			    4,
+			    temporalunitsuse2map,
+			    temporalunitSuse2Select,
+			    TypeMapSuse2);
 
 /*
 5.21 Operator ~distance~
@@ -4488,15 +4664,297 @@ value.
 
 5.23.1 Type mapping function for ~atmax~
 
+*/
+ListExpr
+UnitBaseTypeMapAtmax( ListExpr args )
+{
+  ListExpr arg1;
+  if( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+
+    if( nl->IsEqual( arg1, "ubool" ) )
+      return nl->SymbolAtom( "ubool" );
+    if( nl->IsEqual( arg1, "uint" ) )
+      return nl->SymbolAtom( "uint" );
+    if( nl->IsEqual( arg1, "ustring" ) )
+      return nl->SymbolAtom( "ustring" );
+    // for ureal, atmax/atmin will return a stream of ureals!
+    if( nl->IsEqual( arg1, "ureal" ) )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			     nl->SymbolAtom( "ureal" ));    
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+/*
 5.23.2 Value mapping for operator ~atmax~
+
+*/
+
+struct AtExtrURealLocalInfo 
+{
+  int NoOfResults;
+  int ResultsDelivered;
+  UReal t_res[3];
+};
+
+int getMaxValIndex( double& first, double& second, double& third)
+{ // returns a 3-bit field indicating smallest values
+
+  if ( (first > second) && (first > third) )
+    return 1;
+  if ( (second > first) && (second > third) )
+    return 2;
+  if ( (first == second) && (second > third) )
+    return 3;
+  if ( (third > first) && (third > second) )
+    return 4;
+  if ( (first == third) && (first > second) )
+    return 5;
+  if ( (second == third) && (second > first) )
+    return 6;
+  return 7; // they are all equal
+}
+
+double getValUreal(const double& t,
+		   const double& a, 
+		   const double& b, 
+		   const double& c, const bool r)
+{
+  double tmp;
+  tmp = a*pow(t,2) + b*t + c;
+  if (r)
+    return sqrt(tmp);
+  else 
+    return tmp;      
+}
+
+
+int atmaxUReal( Word* args, Word& result, int message,
+		     Word& local, Supplier s )
+{
+  AtExtrURealLocalInfo *sli;
+  UReal                *ureal = (UReal*)(args[0].addr);
+  double t_start, t_end, t_extr; // instants of interest
+  double v_start, v_end, v_extr; // values at resp. instants
+  double a, b, c, r;
+  int maxValIndex;
+  Instant t;
+
+
+  switch (message)
+    {
+    case OPEN :
+
+      sli = new AtExtrURealLocalInfo;
+      sli->NoOfResults = 0;
+      sli->ResultsDelivered = 0;
+      local = SetWord(sli);
+
+      if ( !ureal->IsDefined() )
+	{ // ureal undefined
+	  // -> return empty stream
+	  sli->NoOfResults = 0;
+	  return 0;
+	}
+
+      if ( (ureal->timeInterval.start).ToDouble() == 
+	   (ureal->timeInterval.start).ToDouble() )
+	{ // ureal contains only a single point.
+	  // -> return a copy of the ureal	  
+	  sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+	  sli->NoOfResults++;
+	  return 0;
+	}
+
+      if (ureal->a == 0)
+	{ 
+	  if ( ureal->b == 0 )
+	    { //  constant function
+	      // the only result is a copy of the argument ureal
+	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+	      sli->NoOfResults++;
+	      return 0;
+	    }
+	  if ( ureal->b < 0 )
+	    { // linear fuction
+	      // the result is a copy of the argument, restricted to
+	      // its ending instant
+	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+	      sli->t_res[sli->NoOfResults].timeInterval.end =
+		sli->t_res[sli->NoOfResults].timeInterval.start;
+	      sli->NoOfResults++;
+	      return 0;
+	    }
+	  if ( ureal->b > 0 )
+	    { // linear fuction
+	      // the result is a copy of the argument, restricted to
+	      // its starting instant
+	    }
+	}
+
+      if (ureal->a !=0) 
+	{ // quadratic function
+	  // we have to additionally ckeck for the extremum 
+	  
+	  // get the times of interest
+	  a = ureal->a;
+	  b = ureal->b;
+	  c = ureal->c;
+	  r = ureal->r;
+	  t_extr  = -b/a; 
+	  t_start = (ureal->timeInterval.start).ToDouble();
+	  t_end   = (ureal->timeInterval.end).ToDouble();
+	  // get the values of interest
+	  v_extr  = getValUreal(t_extr, a,b,c,r);
+	  v_start = getValUreal(t_start,a,b,c,r);
+	  v_end   = getValUreal(t_end,  a,b,c,r);
+	  // compute, which values are maximal
+	  maxValIndex = getMaxValIndex(v_extr,v_start,v_end);
+
+	  if (maxValIndex & 1)
+	    {
+	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+	      t.ReadFrom(t_extr);
+	      Interval<Instant> i( t, t, true, true );
+	      sli->t_res[sli->NoOfResults].timeInterval = i;
+	      sli->NoOfResults++;
+	    }
+	  if (maxValIndex & 2)
+	    {
+	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+	      t.ReadFrom(t_start);
+	      Interval<Instant> i( t, t, true, true );
+	      sli->t_res[sli->NoOfResults].timeInterval = i;
+	      sli->NoOfResults++;
+	    }
+	  if (maxValIndex & 4)
+	    {
+	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+	      t.ReadFrom(t_end);
+	      Interval<Instant> i( t, t, true, true );
+	      sli->t_res[sli->NoOfResults].timeInterval = i;
+	      sli->NoOfResults++;
+	    }
+	  sli->NoOfResults++;
+	  return 0;
+	}
+      cout << "\natmaxUReal (OPEN): This should not happen!" << endl;
+      sli->NoOfResults++;
+      return 0;
+
+    case REQUEST :
+
+      if (local.addr == 0)
+	return CANCEL;
+      sli = (AtExtrURealLocalInfo*) local.addr;
+      
+      if (sli->NoOfResults <= sli->ResultsDelivered)
+	return CANCEL;
+
+      result = SetWord( sli->t_res[sli->ResultsDelivered].Clone() );
+      sli->t_res[sli->ResultsDelivered].DeleteIfAllowed();
+      sli->ResultsDelivered++;
+      return YIELD;
+      
+    case CLOSE :
+
+      if (local.addr != 0)
+	{
+	  sli = (AtExtrURealLocalInfo*) local.addr;
+	  while (sli->NoOfResults > sli->ResultsDelivered)
+	    {
+	      sli->t_res[sli->ResultsDelivered].DeleteIfAllowed();
+	      sli->ResultsDelivered++;
+	    }
+	  delete sli;
+	}
+      return 0;
+
+    } // end switch
+  cout << "\natmaxUReal (UNKNOWN COMMAND): This should not happen!" << endl;
+  return 0;   // should not be reached
+}
+
+template<class T>
+int atmaxUConst( Word* args, Word& result, int message,
+		 Word& local, Supplier s )
+{
+  // This operator is not very interesting. It implements
+  // the atmax operator for constant unit types, like uint, ustring or ubool.
+  // In fact, it returns just a copy of the argument.
+
+  result = SetWord(((ConstTemporalUnit<T>*)(args[0].addr))->Clone());
+  return 0;
+}
+
+/*
 
 5.23.3 Specification for operator ~atmax~
 
+*/
+
+const string TemporalSpecAtmax = 
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "(<text>TemporalUnitAlgebra</text--->" 
+  "<text>For T in {int, bool, string}:\n"
+  "uT -> uT\n"
+  "ureal -> (stream ureal)</text--->"
+  "<text> atmax( _ )</text--->"
+  "<text>Restricts a the unittype value to the time where "
+  "it takes it's maximum value.\n"
+  "Observe, that for type 'ureal', the result is a '(stream ureal)'"
+  "rather than a 'ureal'!</text--->"
+  "<text>atmax( ureal1 )</text--->"
+  ") )";
+
+
+/*
 5.23.4 Selection Function of operator ~atmax~
 
+*/
+
+ValueMapping temporalunitatmaxmap[] = 
+  {
+    atmaxUConst<CcBool>,
+    atmaxUConst<CcInt>,
+    atmaxUConst<CcString>,
+    atmaxUReal
+  };
+
+int temporalunitAtmaxSelect( ListExpr args )
+{
+  ListExpr arg1;
+  if( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+
+    if( nl->IsEqual( arg1, "ubool" ) )
+      return 0;
+    if( nl->IsEqual( arg1, "uint" ) )
+      return 1;
+    if( nl->IsEqual( arg1, "ustring" ) )
+      return 2;
+    if( nl->IsEqual( arg1, "ureal" ) )
+      return 3;    
+  }
+  cout << "\ntemporalunitAtmaxSelect: Wrong type!" << endl;
+  return -1;
+}
+
+/*
 5.23.5 Definition of operator ~atmax~
 
 */
+
+Operator temporalunitatmax( "atmax",
+			    TemporalSpecAtmax,
+			    4,
+			    temporalunitatmaxmap,
+			    temporalunitAtmaxSelect,
+			    UnitBaseTypeMapAtmax);
+
 
 /*
 5.24 Operator ~saggregate~
@@ -4667,7 +5125,7 @@ int Saggregate( Word* args, Word& result, int message,
           qp->Request(aggrmap.addr, resultWord);
           ((Attribute*)iterWord.addr)->DeleteIfAllowed();
           iterWord = resultWord;
-          qp->ReInitResultStorage( aggrmap.addr );
+	  qp->ReInitResultStorage( aggrmap.addr );
           if( aggrStack.top().level == 0 )
 	    ((Attribute*)aggrStack.top().value.addr)->DeleteIfAllowed();
           else
@@ -4730,7 +5188,7 @@ int Saggregate( Word* args, Word& result, int message,
 */
 
 const string TemporalSpecSaggregate = 
-  "( ( \"Algbra\" \"Signature\" \"Syntax\" \"Meaning\" "
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "(<text>TemporalUnitAlgebra</text--->" 
   "<text>((stream T) ((T T) -> T) T ) -> T\n"
@@ -4768,7 +5226,7 @@ int temporalunitSaggregateSelect( ListExpr args )
 
 */
 
-Operator temporalsaggregate( "saggregate",
+Operator temporalunitsaggregate( "saggregate",
                       TemporalSpecSaggregate,
                       1,
                       temporalunitsaggregatemap,
@@ -4805,10 +5263,12 @@ class TemporalUnitAlgebra : public Algebra
    AddOperator( &temporalvelocity );
    AddOperator( &temporalderivable );
    AddOperator( &temporalderivative );
-   AddOperator( &temporalsfeed );
-   AddOperator( &temporalsuse );
-   AddOperator( &temporalsuse2 );
-   AddOperator( &temporalsaggregate );
+   AddOperator( &temporalunitsfeed );
+   AddOperator( &temporalunitsuse );
+   AddOperator( &temporalunitsuse2 );
+   AddOperator( &temporalunitsaggregate );
+   AddOperator( &temporalunitatmax );
+   AddOperator( &temporalunitat );
   }
   ~TemporalUnitAlgebra() {};
 };
