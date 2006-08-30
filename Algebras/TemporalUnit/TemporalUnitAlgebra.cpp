@@ -84,14 +84,16 @@ OK   saggregate: (stream T) x (T x T --> T) x T  --> T
 
      intersection: uT x uT --> (stream uT)
 
-     atmax, atmin: uT --> (stream uT)
+Test atmax: uT --> (stream uT)
 
-     at:           ureal x real --> (stream ureal)
+     atmin: uT --> (stream uT)
 
-     distance: T in {real, int, region, point}
-              uT x uT -> (stream ureal),
-              uT x  T -> (stream ureal), 
-               T x uT -> (stream ureal)
+Test at:    ureal x real --> (stream ureal)
+
+     distance: T in {int, point}
+Test          uT x uT -> ureal
+Test          uT x  T -> ureal 
+Test           T x uT -> ureal
 
      intersects: uT x uT --> (stream ubool)
 
@@ -2239,8 +2241,13 @@ int MappingUnitAt( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
 
-  Unit* unit = ((Unit*)args[0].addr);
-  Alpha* val = ((Alpha*)args[1].addr);
+  Word a0, a1;
+
+  qp->Request(args[0].addr, a0);
+  qp->Request(args[1].addr, a1);
+
+  Unit* unit = ((Unit*)a0.addr);
+  Alpha* val = ((Alpha*)a1.addr);
 
   Unit* pResult = ((Unit*)result.addr);
 
@@ -2273,14 +2280,13 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
                    Word& local, Supplier s )
 {
   MappingUnitAt_rLocalInfo *localinfo;
-  UReal *uinput = ((UReal*)args[0].addr);
-  double y = ((CcReal*)(args[1].addr))->GetRealval();
-  double radicand, a, b, c, r;
-  UReal *uresult = (UReal*)(result.addr);
+  double radicand, a, b, c, r, y;
   DateTime t1, t2;
   Interval<Instant> rdeftime, deftime;
+  Word a0, a1;
+  UReal *uinput;
   
-  
+
   switch (message)
     {
     case OPEN :
@@ -2289,8 +2295,13 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
       
-      if ( !((UReal*)args[0].addr)->IsDefined() ||
-	   !((CcReal*)(args[1].addr))->IsDefined() )
+      qp->Request(args[0].addr, a0);
+      qp->Request(args[1].addr, a1);
+      uinput = ((UReal*)(a0.addr));
+      y = ((CcReal*)(a1.addr))->GetRealval();
+
+      if ( !uinput->IsDefined() ||
+	   !((CcReal*)(a1.addr))->IsDefined() )
 	{ // some input is undefined -> return empty stream
 	  localinfo->NoOfResults = 0;
 	  localinfo->finished = true;
@@ -2321,7 +2332,6 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 	  local = SetWord(localinfo);
 	  return 0;
 	}
-
       if ( (a == 0) && (b != 0) )
 	{ // linear function. Possibly return input unit restricted 
 	  // to single value
@@ -2427,8 +2437,8 @@ const string
 TemporalSpecAt =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>(uT T) -> uT\n"
-"   (T in {bool, int, point})\n"
+"<text>For T in {bool, int, point}:\n"
+"(uT    T   ) -> uT\n"
 "(ureal real) -> (stream ureal)</text--->"
 "<text> _ at _ </text--->"
 "<text>restrict the movement to the times "
@@ -4602,28 +4612,343 @@ Operator temporalunitsuse2( "suse2",
 5.21 Operator ~distance~
 
 The operator calculates the minimum distance between two units of base
-types real, int or point. The distance is always a stream of non-negative 
-ureal values.
+types int or point. The distance is always a non-negative ureal value.
 
 ----
-    For T in {real, point} 
-    distance: uT x uT -> stream(ureal),
-              uT x  T -> stream(ureal), 
-               T x uT -> stream(ureal)
+    For T in {int, point} 
+    distance: uT x uT -> ureal
+              uT x  T -> ureal 
+               T x uT -> ureal
+
 ----
 
 
 5.21.1 Type mapping function for ~distance~
 
-5.21.2 Value mapping for operator ~distance~
+The for signatures 
 
+----               
+              uT x  T -> ureal 
+               T x uT -> ureal
+
+----
+
+typemapping appends the argument number of the argument containing
+the unitvalue (either 0 or 1).
+
+*/
+
+ListExpr 
+TypeMapTemporalUnitDistance( ListExpr args )
+{
+  ListExpr first, second;
+  string outstr1, outstr2;
+
+  if ( nl->ListLength( args ) != 2 )
+    {
+      nl->WriteToString(outstr1, args);
+      ErrorReporter::ReportError("Operator distance expects a list of "
+				 "length two, but gets '" + outstr1 + 
+				 "'.");
+      return nl->SymbolAtom( "typeerror" );
+    }
+
+  first = nl->First(args);
+  second = nl->Second(args);
+
+  // check for compatibility of arguments
+  if( !nl->IsAtom(first) || !nl->IsAtom(second) )
+    {
+      nl->WriteToString(outstr1, first);
+      nl->WriteToString(outstr2, second);
+      ErrorReporter::ReportError("Operator distance expects as arguments "
+				 "lists of length one, but gets '" + outstr1 + 
+				 "' and '" + outstr2 + "'.");
+      return nl->SymbolAtom( "typeerror" );
+    }
+    
+  if( nl->IsEqual(first, "upoint") && nl->IsEqual(second, "upoint") )
+    { 
+      return nl->OneElemList(nl->SymbolAtom("ureal"));
+    }
+    
+  if( nl->IsEqual(first, "upoint") && nl->IsEqual(second, "point") )
+    { 
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+			       nl->OneElemList(nl->IntAtom(0)), 
+			       nl->OneElemList(nl->SymbolAtom( "ureal" )));  
+    }
+
+  if( nl->IsEqual(first, "point") && nl->IsEqual(second, "upoint") )
+    { 
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+			       nl->OneElemList(nl->IntAtom(1)), 
+			       nl->OneElemList(nl->SymbolAtom( "ureal" )));  
+    }
+  
+  if( nl->IsEqual(first, "uint") && nl->IsEqual(second, "uint") )
+    { 
+      return nl->OneElemList(nl->SymbolAtom("ureal"));
+    }
+    
+  if( nl->IsEqual(first, "uint") && nl->IsEqual(second, "int") )
+    { 
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+			       nl->OneElemList(nl->IntAtom(0)), 
+			       nl->OneElemList(nl->SymbolAtom( "ureal" )));  
+    }
+
+  if( nl->IsEqual(first, "int") && nl->IsEqual(second, "uint") )
+    { 
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+			       nl->OneElemList(nl->IntAtom(1)), 
+			       nl->OneElemList(nl->SymbolAtom( "ureal" )));  
+    }
+  
+  nl->WriteToString(outstr1, first);
+  nl->WriteToString(outstr2, second);
+  ErrorReporter::ReportError("Operator distance found wrong argument "
+			     "configuration '" + outstr1 + 
+			     "' and '" + outstr2 + "'.");
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+5.21.2 Value mapping for operator ~distance~
+*/
+
+
+/*
+(a1) Value mapping for 
+
+---- (upoint upoint) -> ureal
+
+----
+
+Method ~UPointDistance~
+
+Returns the distance between two UPoints in the given interval as UReal 
+
+*/
+void UPointDistance( const UPoint& p1, const UPoint& p2, 
+		     UReal& result, Interval<Instant> iv)
+{
+  result.timeInterval = iv;
+  
+  Point rp0, rp1, rp2, rp3;
+  double x0, x1, x2, x3, y0, y1, y2, y3, dx1, dy1, dx2, dy2, dt;
+  
+  p1.TemporalFunction(iv.start, rp0);
+  p1.TemporalFunction(iv.end, rp1);
+  p2.TemporalFunction(iv.start, rp2);
+  p2.TemporalFunction(iv.end, rp3);
+  
+  dt = iv.end.ToDouble() - iv.start.ToDouble();
+  x0 = rp0.GetX(); y0 = rp0.GetY();
+  x1 = rp1.GetX(); y1 = rp1.GetY();
+  x2 = rp2.GetX(); y2 = rp2.GetY();
+  x3 = rp3.GetX(); y3 = rp3.GetY();
+  dx1 = (x1 - x0) / dt;
+  dy1 = (y1 - y0) / dt;
+  dx2 = (x3 - x2) / dt;
+  dy2 = (y3 - y2) / dt;
+
+  result.a = pow( (dx1 - dx2), 2 ) + pow( (dy1 - dy2), 2 );
+  result.b = 2 * ( (x0 - x2) * (dx1 - dx2) + (y0 - y2) * (dy1 - dy2) );
+  result.c = pow( x0 - x2, 2 ) + pow( y0 - y2, 2 );
+  result.r = true;
+}
+
+
+int TUDistance_UPoint_UPoint( Word* args, Word& result, int message,
+                              Word& local, Supplier s )
+{
+  Interval<Instant> iv;
+
+  Word a1, a2;
+  UPoint *u1, *u2;
+  
+  result = qp->ResultStorage( s );
+
+  qp->Request(args[0].addr, a1);
+  qp->Request(args[1].addr, a2);
+
+  u1 = (UPoint*)(a1.addr);
+  u2 = (UPoint*)(a2.addr);
+
+  if (!u1->IsDefined() || 
+      !u2->IsDefined() || 
+      !u1->timeInterval.Intersects( u2->timeInterval ) )
+    { // return undefined ureal
+      ((UReal*)(result.addr))->SetDefined( false );
+    }
+  else
+    { // get intersection of deftime intervals
+      u1->timeInterval.Intersection( u2->timeInterval, iv );  
+      
+      // calculate u1, u2, result
+      UPointDistance( *u1, *u2,  *((UReal*)(result.addr)), iv);
+    }
+  // pass on result
+  return 0;
+}
+
+
+
+/*
+(a2) value mapping for 
+
+---- (upoint point) -> ureal  and  (point upoint) -> ureal
+
+----
+
+*/
+
+int TUDistance_UPoint_Point( Word* args, Word& result, int message,
+                             Word& local, Supplier s )
+{
+  Word  argConfDescriptor, thePoint, theUPoint;
+  int   argConfDescriptor2;
+
+  // get argument configuration
+  qp->Request(args[3].addr, argConfDescriptor);      
+  argConfDescriptor2 = ((CcInt*)argConfDescriptor.addr)->GetIntval();
+  if (argConfDescriptor2 == 0) 
+    {
+      qp->Request(args[0].addr, theUPoint);
+      qp->Request(args[1].addr, thePoint);
+    }
+  else if (argConfDescriptor2 == 1)
+    {
+      qp->Request(args[1].addr, theUPoint);
+      qp->Request(args[0].addr, thePoint);
+    }
+  else
+    {
+      cout << "\nWrong argument configuration in "
+	   << "'TUDistance_UPoint_Point'" << endl;
+      return 0;
+    }
+  qp->Request(args[3].addr, argConfDescriptor);      
+
+  result = qp->ResultStorage( s );
+
+  if ( !((Point*)(thePoint.addr))->IsDefined() || 
+       !((UPoint*)(theUPoint.addr))->IsDefined() )
+    {
+      ((UPoint*)(result.addr))->SetDefined ( false );
+    }
+  else
+    ((UPoint*)(theUPoint.addr))->Distance( *((Point*)(thePoint.addr)), 
+					   *((UReal*)(result.addr)));
+  return 0;
+}
+
+
+/*
+(b1) value mapping for 
+
+---- (uint uint) -> ureal
+
+----
+
+*/
+int TUDistance_UInt_UInt( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  cout << "\nERROR: 'TUDistance_UInt_UInt' not yet implemented!" << endl;
+  return 0;
+}
+
+/*
+(b2) value mapping for 
+
+---- ((uint int) -> ureal) and ((int uint) -> ureal)
+
+----
+
+*/
+int TUDistance_UInt_Int( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  cout << "\nERROR: 'TUDistance_UInt_Int' not yet implemented!" << endl;
+  return 0;
+}
+
+
+
+/*
 5.21.3 Specification for operator ~distance~
 
+*/
+
+const string TemporalSpecDistance = 
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "(<text>TemporalUnitAlgebra</text--->" 
+  "<text>For T in {point, int}:\n"
+  "(uT uT) -> ureal\n"
+  "(uT  T) -> ureal\n"
+  "( T uT) -> ureal</text--->"
+  "<text>distance( _, _)</text--->"
+  "<text>Calculates the distance of both arguments, "
+  "whereof at least one is a unittype, "
+  "as a 'ureal' value. </text--->"
+  "<text>distance(upoint1,point1)</text--->"
+  ") )";
+
+/*
 5.21.4 Selection Function of operator ~distance~
 
+*/
+
+ValueMapping temporalunitdistancemap[] =
+{ TUDistance_UPoint_UPoint,
+  TUDistance_UPoint_Point,
+  TUDistance_UInt_UInt,
+  TUDistance_UInt_Int
+};
+
+int temporalunitDistanceSelect( ListExpr args )
+{
+  ListExpr first = nl->First(args),
+    second = nl->Second(args);
+  
+  if( nl->IsEqual(first, "upoint") && nl->IsEqual(second, "upoint") )
+    return 0;
+    
+  else if( nl->IsEqual(first, "upoint") && nl->IsEqual(second, "point") )
+    return 1;
+
+  else if( nl->IsEqual(first, "point") && nl->IsEqual(second, "upoint") )
+    return 1;
+  
+  else if( nl->IsEqual(first, "uint") && nl->IsEqual(second, "uint") )
+    return 2;
+    
+  else if( nl->IsEqual(first, "uint") && nl->IsEqual(second, "int") )
+    return 3;
+
+  else if( nl->IsEqual(first, "int") && nl->IsEqual(second, "uint") )
+    return 3;
+
+  else 
+    cout << "\nERROR in temporalunitDistanceSelect!" << endl;
+
+  return -1;
+}
+
+/*
 5.21.5 Definition of operator ~distance~
 
 */
+
+Operator temporalunitdistance( "distance",
+			       TemporalSpecDistance,
+			       4,
+			       temporalunitdistancemap,
+			       temporalunitDistanceSelect,
+			       TypeMapTemporalUnitDistance);
 
 /*
 5.22 Operator ~atmin~
@@ -4635,6 +4960,7 @@ value.
 ----   
        For T in {int, real}
        atmin: uT --> (stream uT)
+
 ----
 
 5.22.1 Type mapping function for ~atmin~
@@ -4660,6 +4986,7 @@ value.
 ----   
        For T in {int, real}
        atmax: uT --> (stream uT)
+
 ----
 
 5.23.1 Type mapping function for ~atmax~
@@ -4734,17 +5061,22 @@ int atmaxUReal( Word* args, Word& result, int message,
 		     Word& local, Supplier s )
 {
   AtExtrURealLocalInfo *sli;
-  UReal                *ureal = (UReal*)(args[0].addr);
-  double t_start, t_end, t_extr; // instants of interest
-  double v_start, v_end, v_extr; // values at resp. instants
-  double a, b, c, r;
-  int maxValIndex;
+  UReal                *ureal;
+  double  t_start, t_end, t_extr; // instants of interest
+  double  v_start, v_end, v_extr; // values at resp. instants
+  double  a, b, c, r;
+  int     maxValIndex;
   Instant t;
+  Word    a0;
 
+  result = qp->ResultStorage( s );
 
   switch (message)
     {
     case OPEN :
+
+      qp->Request(args[0].addr, a0);
+      ureal = (UReal*)(a0.addr);
 
       sli = new AtExtrURealLocalInfo;
       sli->NoOfResults = 0;
@@ -4899,7 +5231,7 @@ const string TemporalSpecAtmax =
   "\"Example\" ) "
   "(<text>TemporalUnitAlgebra</text--->" 
   "<text>For T in {int, bool, string}:\n"
-  "uT -> uT\n"
+  "uT    -> uT\n"
   "ureal -> (stream ureal)</text--->"
   "<text> atmax( _ )</text--->"
   "<text>Restricts a the unittype value to the time where "
@@ -4970,6 +5302,7 @@ The result a single value of the same kind.
 ----   
        For T in kind DATA:
        saggregate: (stream T) x (T x T --> T) x T --> T
+
 ----
 
 The first argument is the input stream.
@@ -5191,8 +5524,8 @@ const string TemporalSpecSaggregate =
   "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "(<text>TemporalUnitAlgebra</text--->" 
-  "<text>((stream T) ((T T) -> T) T ) -> T\n"
-  "for T in kind DATA</text--->"
+  "<text>For T in kind DATA:\n"
+  "((stream T) ((T T) -> T) T ) -> T\n</text--->"
   "<text>_ saggregate [ fun ; _ ]</text--->"
   "<text>Aggregates the values from the stream (1st arg) "
   "using a binary associative and commutative "
@@ -5269,6 +5602,7 @@ class TemporalUnitAlgebra : public Algebra
    AddOperator( &temporalunitsaggregate );
    AddOperator( &temporalunitatmax );
    AddOperator( &temporalunitat );
+   AddOperator( &temporalunitdistance );
   }
   ~TemporalUnitAlgebra() {};
 };
