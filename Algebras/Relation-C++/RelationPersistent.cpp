@@ -1093,6 +1093,9 @@ Relation::Save( SmiRecord& valueRecord, size_t& offset,
 
 void Relation::Close()
 {
+  if( pointerTable.find( privateRelation->relDesc ) !=
+                         pointerTable.end() )
+    pointerTable.erase( privateRelation->relDesc );  
   delete this;
 }
 
@@ -1100,9 +1103,15 @@ void Relation::Delete()
 {
   privateRelation->tupleFile.Close();
   privateRelation->tupleFile.Drop();
+
   qp->GetFLOBCache()->Drop( 
     privateRelation->relDesc.lobFileId, 
     privateRelation->isTemp );
+
+  if( pointerTable.find( privateRelation->relDesc ) !=
+                         pointerTable.end() )
+    pointerTable.erase( privateRelation->relDesc );  
+
   delete this;
 }
 

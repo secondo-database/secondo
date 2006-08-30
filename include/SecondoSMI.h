@@ -227,6 +227,7 @@ using namespace std;
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include "ErrorCodes.h"
 #include "SecondoConfig.h"
@@ -599,6 +600,17 @@ initialization.
 *NOTE*: In any multi user mode the "Secondo"[3] registrar must be running.
 The behaviour of the storage management system in single user mode is
 implementation dependent.
+
+*/
+  static map<SmiError, string> errorMap;
+/*
+A table containing the error map strings indexed by error numbers (~SmiError~).
+The function ~Err2Msg~ retrieves the strings from this table.
+
+*/
+  static bool errorMapInitialized;
+/*
+A flag that indicates whether the error map table is already initialized.
 
 */
   static SmiType GetImplementationType();

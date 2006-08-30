@@ -49,6 +49,13 @@ using namespace std;
 #include "Messenger.h"
 #include "CharTransform.h"
 
+map<SmiError, string> SmiEnvironment::errorMap;
+bool SmiEnvironment::errorMapInitialized = false;
+/*
+Initialization of the ~erroMap~ table
+
+*/
+
 SmiEnvironment::SmiType
 SmiEnvironment::GetImplementationType()
 {
@@ -110,7 +117,8 @@ void
 SmiEnvironment::SetError( const SmiError smiErr )
 { 
   lastError   = smiErr;
-  lastMessage = "SecondoSMI: " + Err2Msg(smiErr);
+  lastMessage = "SecondoSMI: ";
+//  lastMessage = "SecondoSMI: " + Err2Msg(smiErr);
 }
                         
 void 
@@ -281,87 +289,85 @@ SmiEnvironment::UnlockDatabase( const string& dbname )
 Translate SMI error codes into message strings
 
 */
-
 const string 
 SmiEnvironment::Err2Msg( SmiError code)
 {
-
-  typedef map<SmiError, string> ErrorMap;
-  static ErrorMap smiErr;
-
-  smiErr[E_SMI_OK] = "Ok!";
-  smiErr[E_SMI_STARTUP] = "E_SMI_STARTUP";
-  smiErr[E_SMI_SHUTDOWN] = "E_SMI_SHUTDOWN";
-  smiErr[E_SMI_DB_CREATE] = "[E_SMI_DB_CREATE";
-  smiErr[E_SMI_DB_OPEN] = "E_SMI_DB_OPEN";
-  smiErr[E_SMI_DB_CLOSE] = "E_SMI_DB_CLOSE";
-  smiErr[E_SMI_DB_ERASE] = "E_SMI_DB_ERASE";
-  smiErr[E_SMI_DB_NOTOPEN] = "E_SMI_DB_NOTOPEN";
-  smiErr[E_SMI_DB_NOTCLOSED] = "E_SMI_DB_NOTCLOSED";
-  smiErr[E_SMI_DB_INVALIDNAME] = 
-     "A database name must have less than 16 characters.";
-  smiErr[E_SMI_DB_EXISTING] = "The database is already known.";
-  smiErr[E_SMI_DB_NOTEXISTING] = "The database is unknown.";
-  smiErr[E_SMI_DB_LOOKUP] = "E_SMI_DB_LOOKUP";
-  smiErr[E_SMI_DB_INSERT_CATALOG] = "E_SMI_DB_INSERT_CATALOG";
-  smiErr[E_SMI_DB_DELETE_CATALOG] = "E_SMI_DB_DELETE_CATALOG";
-  smiErr[E_SMI_DB_UPDATE_CATALOG] = "E_SMI_DB_UPDATE_CATALOG";
-  smiErr[E_SMI_DB_NOTFOUND] = "E_SMI_DB_NOTFOUND";
-  smiErr[E_SMI_DB_NOTLOCKED] = "E_SMI_DB_NOTLOCKED";
-  smiErr[E_SMI_DB_REGISTER] = "E_SMI_DB_REGISTER";
-  smiErr[E_SMI_DB_UNREGISTER] = "E_SMI_DB_UNREGISTER";
-  smiErr[E_SMI_DB_LOCK] = "E_SMI_DB_LOCK";
-  smiErr[E_SMI_DB_UNLOCK] = "E_SMI_DB_UNLOCK";
-
-  smiErr[E_SMI_TXN_BEGIN] = "E_SMI_TXN_BEGIN";
-  smiErr[E_SMI_TXN_COMMIT] = "E_SMI_TXN_COMMIT";
-  smiErr[E_SMI_TXN_ABORT] = "E_SMI_TXN_ABORT";
-  smiErr[E_SMI_TXN_RUNNING] = "E_SMI_TXN_RUNNING";
-  smiErr[E_SMI_TXN_NOTRUNNING] = "E_SMI_TXN_NOTRUNNING";
-
-  smiErr[E_SMI_CATALOG_LOOKUP] = "E_SMI_CATALOG_LOOKUP";
-  smiErr[E_SMI_CATALOG_INSERT] = "E_SMI_CATALOG_INSERT";
-  smiErr[E_SMI_CATALOG_DELETE] = "E_SMI_CATALOG_DELETE";
-  smiErr[E_SMI_CATALOG_KEYEXIST] = "E_SMI_CATALOG_KEYEXIST";
-  smiErr[E_SMI_CATALOG_NOTFOUND] = "E_SMI_CATALOG_NOTFOUND";
-
-  smiErr[E_SMI_FILE_INVALIDNAME] = "E_SMI_FILE_INVALIDNAME";
-  smiErr[E_SMI_FILE_NOFILEID] = "E_SMI_FILE_NOFILEID";
-  smiErr[E_SMI_FILE_BADCONTEXT] = "E_SMI_FILE_BADCONTEXT";
-  smiErr[E_SMI_FILE_CREATE] = "E_SMI_FILE_CREATE";
-  smiErr[E_SMI_FILE_OPEN] = "E_SMI_FILE_OPEN";
-  smiErr[E_SMI_FILE_CLOSE] = "E_SMI_FILE_CLOSE";
-  smiErr[E_SMI_FILE_KEYEXIST] = "E_SMI_FILE_KEYEXIST";
-  smiErr[E_SMI_FILE_ISTEMP] = "E_SMI_FILE_ISTEMP";
-
-  smiErr[E_SMI_RECORD_NOTINIT] = "E_SMI_RECORD_NOTINIT";
-  smiErr[E_SMI_RECORD_READ] = "E_SMI_RECORD_READ";
-  smiErr[E_SMI_RECORD_WRITE] = "E_SMI_RECORD_WRITE";
-  smiErr[E_SMI_RECORD_SELECT] = "E_SMI_RECORD_SELECT";
-  smiErr[E_SMI_RECORD_APPEND] = "E_SMI_RECORD_APPEND";
-  smiErr[E_SMI_RECORD_DELETE] = "E_SMI_RECORD_DELETE";
-  smiErr[E_SMI_RECORD_SELECTALL] = "E_SMI_RECORD_SELECTALL";
-  smiErr[E_SMI_RECORD_INSERT] = "E_SMI_RECORD_INSERT";
-  smiErr[E_SMI_RECORD_TRUNCATE] = "E_SMI_RECORD_TRUNCATE";
-  smiErr[E_SMI_RECORD_READONLY] = "E_SMI_RECORD_READONLY";
-  smiErr[E_SMI_RECORD_FINISH] = "E_SMI_RECORD_FINISH";
-
-  smiErr[E_SMI_CURSOR_NOTOPEN] = "E_SMI_CURSOR_NOTOPEN";
-  smiErr[E_SMI_CURSOR_NEXT] = "E_SMI_CURSOR_NEXT";
-  smiErr[E_SMI_CURSOR_ENDOFSCAN] = "E_SMI_CURSOR_ENDOFSCAN";
-  smiErr[E_SMI_CURSOR_DELETE] = "E_SMI_CURSOR_DELETE";
-  smiErr[E_SMI_CURSOR_FINISH] = "E_SMI_CURSOR_FINISH";
-
-  smiErr[E_SMI_CURSOR_NOTOPEN] = "E_SMI_CURSOR_NOTOPEN";
-  smiErr[E_SMI_CURSOR_NEXT] = "E_SMI_CURSOR_NEXT";
-  smiErr[E_SMI_CURSOR_ENDOFSCAN] = "E_SMI_CURSOR_ENDOFSCAN";
-  smiErr[E_SMI_CURSOR_DELETE] = "E_SMI_CURSOR_DELETE";
-  smiErr[E_SMI_CURSOR_FINISH] = "E_SMI_CURSOR_FINISH";
-
-  ErrorMap::const_iterator it = smiErr.find(code);
-  if (it != smiErr.end() )
+  if( !errorMapInitialized )
   {
-     return  it->second;
+    errorMap[E_SMI_OK] = "Ok!";
+    errorMap[E_SMI_STARTUP] = "E_SMI_STARTUP";
+    errorMap[E_SMI_SHUTDOWN] = "E_SMI_SHUTDOWN";
+    errorMap[E_SMI_DB_CREATE] = "[E_SMI_DB_CREATE";
+    errorMap[E_SMI_DB_OPEN] = "E_SMI_DB_OPEN";
+    errorMap[E_SMI_DB_CLOSE] = "E_SMI_DB_CLOSE";
+    errorMap[E_SMI_DB_ERASE] = "E_SMI_DB_ERASE";
+    errorMap[E_SMI_DB_NOTOPEN] = "E_SMI_DB_NOTOPEN";
+    errorMap[E_SMI_DB_NOTCLOSED] = "E_SMI_DB_NOTCLOSED";
+    errorMap[E_SMI_DB_INVALIDNAME] = 
+     "A database name must have less than 16 characters.";
+    errorMap[E_SMI_DB_EXISTING] = "The database is already known.";
+    errorMap[E_SMI_DB_NOTEXISTING] = "The database is unknown.";
+    errorMap[E_SMI_DB_LOOKUP] = "E_SMI_DB_LOOKUP";
+    errorMap[E_SMI_DB_INSERT_CATALOG] = "E_SMI_DB_INSERT_CATALOG";
+    errorMap[E_SMI_DB_DELETE_CATALOG] = "E_SMI_DB_DELETE_CATALOG";
+    errorMap[E_SMI_DB_UPDATE_CATALOG] = "E_SMI_DB_UPDATE_CATALOG";
+    errorMap[E_SMI_DB_NOTFOUND] = "E_SMI_DB_NOTFOUND";
+    errorMap[E_SMI_DB_NOTLOCKED] = "E_SMI_DB_NOTLOCKED";
+    errorMap[E_SMI_DB_REGISTER] = "E_SMI_DB_REGISTER";
+    errorMap[E_SMI_DB_UNREGISTER] = "E_SMI_DB_UNREGISTER";
+    errorMap[E_SMI_DB_LOCK] = "E_SMI_DB_LOCK";
+    errorMap[E_SMI_DB_UNLOCK] = "E_SMI_DB_UNLOCK";
+
+    errorMap[E_SMI_TXN_BEGIN] = "E_SMI_TXN_BEGIN";
+    errorMap[E_SMI_TXN_COMMIT] = "E_SMI_TXN_COMMIT";
+    errorMap[E_SMI_TXN_ABORT] = "E_SMI_TXN_ABORT";
+    errorMap[E_SMI_TXN_RUNNING] = "E_SMI_TXN_RUNNING";
+    errorMap[E_SMI_TXN_NOTRUNNING] = "E_SMI_TXN_NOTRUNNING";
+
+    errorMap[E_SMI_CATALOG_LOOKUP] = "E_SMI_CATALOG_LOOKUP";
+    errorMap[E_SMI_CATALOG_INSERT] = "E_SMI_CATALOG_INSERT";
+    errorMap[E_SMI_CATALOG_DELETE] = "E_SMI_CATALOG_DELETE";
+    errorMap[E_SMI_CATALOG_KEYEXIST] = "E_SMI_CATALOG_KEYEXIST";
+    errorMap[E_SMI_CATALOG_NOTFOUND] = "E_SMI_CATALOG_NOTFOUND";
+
+    errorMap[E_SMI_FILE_INVALIDNAME] = "E_SMI_FILE_INVALIDNAME";
+    errorMap[E_SMI_FILE_NOFILEID] = "E_SMI_FILE_NOFILEID";
+    errorMap[E_SMI_FILE_BADCONTEXT] = "E_SMI_FILE_BADCONTEXT";
+    errorMap[E_SMI_FILE_CREATE] = "E_SMI_FILE_CREATE";
+    errorMap[E_SMI_FILE_OPEN] = "E_SMI_FILE_OPEN";
+    errorMap[E_SMI_FILE_CLOSE] = "E_SMI_FILE_CLOSE";
+    errorMap[E_SMI_FILE_KEYEXIST] = "E_SMI_FILE_KEYEXIST";
+    errorMap[E_SMI_FILE_ISTEMP] = "E_SMI_FILE_ISTEMP";
+
+    errorMap[E_SMI_RECORD_NOTINIT] = "E_SMI_RECORD_NOTINIT";
+    errorMap[E_SMI_RECORD_READ] = "E_SMI_RECORD_READ";
+    errorMap[E_SMI_RECORD_WRITE] = "E_SMI_RECORD_WRITE";
+    errorMap[E_SMI_RECORD_SELECT] = "E_SMI_RECORD_SELECT";
+    errorMap[E_SMI_RECORD_APPEND] = "E_SMI_RECORD_APPEND";
+    errorMap[E_SMI_RECORD_DELETE] = "E_SMI_RECORD_DELETE";
+    errorMap[E_SMI_RECORD_SELECTALL] = "E_SMI_RECORD_SELECTALL";
+    errorMap[E_SMI_RECORD_INSERT] = "E_SMI_RECORD_INSERT";
+    errorMap[E_SMI_RECORD_TRUNCATE] = "E_SMI_RECORD_TRUNCATE";
+    errorMap[E_SMI_RECORD_READONLY] = "E_SMI_RECORD_READONLY";
+    errorMap[E_SMI_RECORD_FINISH] = "E_SMI_RECORD_FINISH";
+
+    errorMap[E_SMI_CURSOR_NOTOPEN] = "E_SMI_CURSOR_NOTOPEN";
+    errorMap[E_SMI_CURSOR_NEXT] = "E_SMI_CURSOR_NEXT";
+    errorMap[E_SMI_CURSOR_ENDOFSCAN] = "E_SMI_CURSOR_ENDOFSCAN";
+    errorMap[E_SMI_CURSOR_DELETE] = "E_SMI_CURSOR_DELETE";
+    errorMap[E_SMI_CURSOR_FINISH] = "E_SMI_CURSOR_FINISH";
+
+    errorMap[E_SMI_CURSOR_NOTOPEN] = "E_SMI_CURSOR_NOTOPEN";
+    errorMap[E_SMI_CURSOR_NEXT] = "E_SMI_CURSOR_NEXT";
+    errorMap[E_SMI_CURSOR_ENDOFSCAN] = "E_SMI_CURSOR_ENDOFSCAN";
+    errorMap[E_SMI_CURSOR_DELETE] = "E_SMI_CURSOR_DELETE";
+    errorMap[E_SMI_CURSOR_FINISH] = "E_SMI_CURSOR_FINISH";
+  }
+
+  map<SmiError, string>::const_iterator it = errorMap.find(code);
+  if (it != errorMap.end() )
+  {
+     return it->second;
   } 
   cerr  << " Unknown Error! No message for error code No. "
         << code << "found.";

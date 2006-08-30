@@ -759,6 +759,7 @@ SmiEnvironment::SetError( const SmiError smiErr, const int sysErr /* = 0 */ )
   if ( smiErr != E_SMI_OK )
   { 
     lastMessage += string("SecondoSMI: ") + Err2Msg(smiErr);
+//    lastMessage += string("SecondoSMI: ");
   }
 }
 
