@@ -55,6 +55,8 @@ operator ~mergesec~.
 
 June 2006, Christian D[ue]ntgen added operators ~symmproduct~ and ~symmproductextend~.
 
+August 2006, Christian D[ue]ntgen added signature ((stream T) int) -> (stream T) to operator ~head~.
+
 [TOC]
 
 1 Includes and defines
@@ -976,7 +978,7 @@ Operator extrelextract (
 /*
 2.8 Operator ~head~
 
-This operator fetches the first n tuples from a stream.
+This operator fetches the first n elements (e.g. tuples) from a stream.
 
 2.8.1 Type mapping function of operator ~head~
 
@@ -984,13 +986,17 @@ Type mapping for ~head~ is
 
 ----  ((stream (tuple ((x1 t1)...(xn tn))) int)   ->
               ((stream (tuple ((x1 t1)...(xn tn))))
+
+  or ((stream T) int) -> (stream T)  for T in kind DATA 
 ----
 
 */
 ListExpr HeadTypeMap( ListExpr args )
 {
-  ListExpr first, second;
+  ListExpr first, second, errorInfo;
   string argstr;
+
+  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
   CHECK_COND(nl->ListLength(args) == 2,
   "Operator head expects a list of length two.");
@@ -998,21 +1004,36 @@ ListExpr HeadTypeMap( ListExpr args )
   first = nl->First(args);
   second = nl->Second(args);
 
+  // check for first arg == stream of something
   nl->WriteToString(argstr, first);
   CHECK_COND( ( nl->ListLength(first) == 2 ) &&
-              ( TypeOfRelAlgSymbol( nl->First(first) ) == stream ) &&
-              ( nl->ListLength( nl->Second(first) ) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple),
+              ( TypeOfRelAlgSymbol( nl->First(first) ) == stream ), 
     "Operator head expects as first argument a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "(stream (tuple ((a1 t1)...(an tn)))) or "
+    "(stream T), where T in kind DATA.\n"
     "Operator head gets as first argument '" + argstr + "'." );
 
+  // check for second argument type == int
   nl->WriteToString(argstr, second);
   CHECK_COND((nl->IsAtom(second)) &&
              (nl->AtomType(second) == SymbolType) &&
        (nl->SymbolValue(second) == "int"),
     "Operator head expects a second argument of type integer.\n"
     "Operator head gets '" + argstr + "'.");
+
+
+  // check for correct stream input type
+  nl->WriteToString(argstr, first);
+  CHECK_COND( ( ( nl->ListLength( nl->Second(first) ) == 2) &&
+                ( TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
+	      ) ||
+              ( (nl->IsAtom(nl->Second(first))) &&
+		(am->CheckKind("DATA", nl->Second(first), errorInfo))
+              ),
+    "Operator head expects as first argument a list with structure "
+    "(stream (tuple ((a1 t1)...(an tn)))) or "
+    "(stream T), where T in kind DATA.\n"
+    "Operator head gets as first argument '" + argstr + "'." );
 
   return first;
 }
@@ -1080,15 +1101,19 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
 2.8.4 Specification of operator ~head~
 
 */
-const string HeadSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string HeadSpec  = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
-                         "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
+                         "( <text>ExtRelationAlgebra</text--->"
+                         "<text>((stream (tuple([a1:d1, ... ,an:dn]"
                          "))) x int) -> (stream (tuple([a1:d1, ... ,"
-                         "an:dn])))</text--->"
+                         "an:dn]))) or \n"
+                         "((stream T) int) -> (stream T), "
+                         "for T in kind DATA.</text--->"
                          "<text>_ head [ _ ]</text--->"
-                         "<text>Returns the first n tuples in the input "
+                         "<text>Returns the first n elements of the input "
                          "stream.</text--->"
-                         "<text>query cities feed head[10] consume"
+                         "<text>query cities feed head[10] consume\n"
+                         "query intstream(1,1000) head[10] printstream count"
                          "</text--->"
                               ") )";
 
