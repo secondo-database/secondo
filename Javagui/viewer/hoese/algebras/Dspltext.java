@@ -31,6 +31,7 @@ import javax.swing.text.Document;
 import tools.Base64Decoder;
 import org.jpedal.*;
 import tools.Reporter;
+import java.io.*;
 
 
 /**
@@ -205,6 +206,7 @@ private ListExpr theList;
 
 private int Type; // contains the type which is the text (probably)
 
+
 private static final int PLAIN_TYPE=0;
 private static final int HTML_TYPE=1;
 private static final int RTF_TYPE=2;
@@ -257,6 +259,29 @@ public TextViewerFrame(){
             TextViewerFrame.this.setVisible(false);
        }
   } );
+
+  fileChooser = new JFileChooser();
+  SaveBtn = new JButton("Save");
+  SaveBtn.addActionListener(new ActionListener(){
+     public void actionPerformed(ActionEvent evt){
+        if(fileChooser.showSaveDialog(TextViewerFrame.this)==JFileChooser.APPROVE_OPTION){
+             File F = TextViewerFrame.this.fileChooser.getSelectedFile();
+             try{
+                 BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(F));
+                 if(TextViewerFrame.this.Source.Type!=PDF_TYPE){
+                     out.write(TheText.getBytes());
+                 } else{
+                     out.write(Base64Decoder.decode(TheText));
+                 }
+                 out.flush();
+                 out.close();
+               }catch(Exception e){
+                  Reporter.debug(e);
+                  Reporter.showError("Error in saving file ");
+               }
+        }
+     }
+  });
   
 
   // create the pdf viewer
@@ -385,6 +410,7 @@ public TextViewerFrame(){
   FormatPanel.add(PdfBtn);
   ControlPanel.add(FormatPanel);
   ControlPanel.add(CloseBtn);
+  ControlPanel.add(SaveBtn);
 
   getContentPane().add(ControlPanel,BorderLayout.SOUTH);
   setSize(640,480); 
@@ -645,6 +671,8 @@ static final float SCALEFACTOR=1.2F;
 
 private JEditorPane Display;
 private JButton CloseBtn;
+private JButton SaveBtn;
+private JFileChooser fileChooser;
 private Dspltext Source;
 private JButton PlainBtn;
 private JButton HtmlBtn;
