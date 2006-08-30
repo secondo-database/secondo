@@ -89,5 +89,37 @@ use
 instead of
   find -name "*.jpg" | createTextRelation MyPictures > MyPicturesObj
 
-Whith the variable CONTENTNAME you can control the attributename of the  filecontent.
+With the variable CONTENTNAME you can control the attributename of the  filecontent.
+
+
+
+4. Creating a single page Relations
+
+You can also create a relation containing each page as well as each double page as 
+a single tuple within a relation. For this purpose, the tool pdf2SecondoPages can be used.
+The tool is called as follow:
+
+pdf2SecondoPages <relname> [pdffiles] [>outfile]
+
+It creates a single relation with attributes:
+   FileName      (string) : The file name
+   IsDoublePage  (bool)   : represents this tupe a single or a double page
+   FirstPage     (int)    : the number of the first page
+   ThePdf        (text)   : the content as pdf
+   Content       (text)   : the content as plain text
+
+If no pdf files are given, the script reads the filename from the stdin.
+This is required when a lot of pdf files (std-bash more than 1000) should be
+converted. In this case, the tool is called:
+
+find -type f -name "*.pdf" | pdf2SecondoPages <relname>
+
+The script creates for each pdf file a subdirectory containing the splitted pdf files.
+Remember to copy these subdirectories when moving the relation.
+
+
+
+
+
+
 
