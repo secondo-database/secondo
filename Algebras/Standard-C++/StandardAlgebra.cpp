@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] Title:	[{\Large \bf ]	[}]
+//paragraph [1] Title:  [{\Large \bf ]  [}]
 //[->] [\ensuremath{\rightarrow}]
 
 [1] Secondo Standardalgebra
@@ -83,7 +83,7 @@ Following operators are defined:
         int x real --> real
         real x int --> real
         real x real --> real
-	string x string --> string
+        string x string --> string
 ----
 
   * - (subtract)
@@ -117,13 +117,13 @@ Following operators are defined:
 
   * div (integer division)
 
-----	int x int --> int
+----    int x int --> int
 ----
 
   * randint
   * randmax
 
-----	int -> int
+----    int -> int
             -> int
 ----
 
@@ -133,7 +133,7 @@ greater than 0. Otherwise it is set to 2.
   * seqinit
   * seqnext
 
-----	int -> bool 
+----    int -> bool 
             -> int
 ----
 The seqinit operator can be used to create
@@ -141,7 +141,7 @@ sequences of numbers starting by arg. The n-th call of seqnext will return arg+n
 
   * log
 
-----	int -> int
+----    int -> int
 ----
 
 Computes the base 2 logarithm of the first argument (i.e., the integer part of
@@ -200,7 +200,7 @@ using namespace std;
 #include <cstdlib>
 #include <unistd.h>
 #include <errno.h>
-#include <time.h> 	//needed for random number generator
+#include <time.h>       //needed for random number generator
 
 #include <NList.h>
 
@@ -276,13 +276,13 @@ CcIntProperty()
 {
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
-	                     nl->StringAtom("Example Type List"),
-			     nl->StringAtom("List Rep"),
-			     nl->StringAtom("Example List")),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-	                     nl->StringAtom("int"),
-			     nl->StringAtom("(<intvalue>)"),
-			     nl->StringAtom("12 or -32 or 0"))));
+                             nl->StringAtom("int"),
+                             nl->StringAtom("(<intvalue>)"),
+                             nl->StringAtom("12 or -32 or 0"))));
 }
 
 /*
@@ -329,7 +329,7 @@ InCcInt( ListExpr typeInfo, ListExpr value,
     return (SetWord( new CcInt( true, nl->IntValue( value ) ) ));
   }
   else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType 
-	&& nl->SymbolValue( value ) == "undef" )
+        && nl->SymbolValue( value ) == "undef" )
   {
     correct = true;
     return (SetWord( new CcInt( false, 0) ));
@@ -432,14 +432,14 @@ CcRealProperty()
 {
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
-	                     nl->StringAtom("Example Type List"),
-			     nl->StringAtom("List Rep"),
-			     nl->StringAtom("Example List")),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-	                     nl->StringAtom("real"),
-			     nl->StringAtom("(<realvalue>)"),
-			     nl->StringAtom("12.0 or -1.342 or 14e-3 "
-			     "or .23"))));
+                             nl->StringAtom("real"),
+                             nl->StringAtom("(<realvalue>)"),
+                             nl->StringAtom("12.0 or -1.342 or 14e-3 "
+                             "or .23"))));
 }
 
 ListExpr
@@ -468,7 +468,7 @@ InCcReal( ListExpr typeInfo, ListExpr value,
     return (SetWord( new CcReal( true, nl->RealValue( value ) )));
   }
   else if ( isAtom && nodeType == SymbolType 
-	&& nl->SymbolValue( value ) == "undef" )
+        && nl->SymbolValue( value ) == "undef" )
   {
     correct = true;
     return (SetWord( new CcReal( false, 0.0) ));
@@ -575,13 +575,13 @@ CcBoolProperty()
 {
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
-	                     nl->StringAtom("Example Type List"),
-			     nl->StringAtom("List Rep"),
-			     nl->StringAtom("Example List")),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-	                     nl->StringAtom("bool"),
-			     nl->StringAtom("(<boolvalue>)"),
-			     nl->StringAtom("TRUE or FALSE"))));
+                             nl->StringAtom("bool"),
+                             nl->StringAtom("(<boolvalue>)"),
+                             nl->StringAtom("TRUE or FALSE"))));
 }
 
 /*
@@ -625,7 +625,7 @@ InCcBool( ListExpr typeInfo, ListExpr value,
     return (SetWord( new CcBool( true, nl->BoolValue( value ) ) ));
   }
   else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType 
-	&& nl->SymbolValue( value ) == "undef" )
+        && nl->SymbolValue( value ) == "undef" )
   {
     correct = true;
     return (SetWord( new CcBool( false, false) ));
@@ -747,16 +747,16 @@ CcStringProperty()
 {
   ListExpr examplelist = nl->TextAtom();
   nl->AppendText(examplelist, "\"A piece of text up to 48 "
-		 "characters\"");
+                 "characters\"");
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
-	                     nl->StringAtom("Example Type List"),
-			     nl->StringAtom("List Rep"),
-			     nl->StringAtom("Example List")),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-	                     nl->StringAtom("string"),
-			     nl->StringAtom("(<stringvalue>)"),
-			     examplelist)));
+                             nl->StringAtom("string"),
+                             nl->StringAtom("(<stringvalue>)"),
+                             examplelist)));
 }
 
 /*
@@ -791,7 +791,7 @@ InCcString( ListExpr typeInfo, ListExpr value,
     return (SetWord( new CcString( true, (STRING*)s.c_str() ) ));
   }
   else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType 
-	&& nl->SymbolValue( value ) == "undef" )
+        && nl->SymbolValue( value ) == "undef" )
   {
     correct = true;
     return (SetWord( new CcString( false, (STRING*)"" ) ));
@@ -1208,7 +1208,7 @@ SubStrTypeMap( ListExpr args )
     }
   }
   ErrorReporter::ReportError(
-	"Expecting an argument list of type (string int int).");
+        "Expecting an argument list of type (string int int).");
   return (nl->SymbolAtom( "typeerror" ));
 
 }
@@ -1239,7 +1239,7 @@ CcStringMapCcInt( ListExpr args )
 
 Type mapping for ~keywords~ is
 
-----	(string) -> (stream string)
+----    (string) -> (stream string)
 ----
 
 */
@@ -1252,7 +1252,7 @@ keywordsType( ListExpr args ){
     arg = nl->First(args);
     if ( nl->IsEqual(arg, "string") )
       return nl->TwoElemList(nl->SymbolAtom("stream"), 
-	nl->SymbolAtom("string"));
+        nl->SymbolAtom("string"));
   }
   return nl->SymbolAtom("typeerror");
 }
@@ -1262,7 +1262,7 @@ keywordsType( ListExpr args ){
 
 Type mapping for ~ifthenelse~ is
 
-----	(bool x T x T)) -> T
+----    (bool x T x T)) -> T
 ----
 
 */
@@ -1280,9 +1280,9 @@ ListExpr ifthenelseType(ListExpr args)
 
     if (nl->Equal(arg2, arg3) && nl->SymbolValue(arg1) == "bool" &&
         SecondoSystem::GetAlgebraManager()
-		->CheckKind("DATA", arg2, errorInfo) &&
+                ->CheckKind("DATA", arg2, errorInfo) &&
         SecondoSystem::GetAlgebraManager()
-		->CheckKind("DATA", arg3, errorInfo) )
+                ->CheckKind("DATA", arg3, errorInfo) )
     {    
       return arg2;
     }  
@@ -1296,7 +1296,7 @@ ListExpr ifthenelseType(ListExpr args)
 
 Type mapping for ~between~ is
 
-----	(T x T x T) -> bool
+----    (T x T x T) -> bool
 ----
 
 */
@@ -1330,7 +1330,7 @@ CcBetweenTypeMap( ListExpr args )
 
 Type mapping for ~hashvalue~ is
 
-----	T in kind DATA, T x int -> int
+----    T in kind DATA, T x int -> int
 ----
 
 */
@@ -1948,11 +1948,11 @@ CcDiv( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-int randint(int u)    	//Computes a random integer in the range 0..u-1,
-			//for u >= 2
+int randint(int u)      //Computes a random integer in the range 0..u-1,
+                        //for u >= 2
 {
   if ( u < 2 ) {u=2; srand ( time(NULL) );} 
-	// For u < 2 also initialize the random number generator
+        // For u < 2 also initialize the random number generator
   // rand creates a value between [0,RAND_MAX]. The calculation procedure 
   // below is recommended in the manpage of the rand() function. 
   // Using rand() % u will yield poor results.
@@ -2195,7 +2195,7 @@ CcGreaterEqual( Word* args, Word& result, int message, Word& local, Supplier s )
 template<class S, class T>
 int
 CcGreaterEqual2( Word* args, Word& result, int message, Word& local, 
-	         Supplier s )
+                 Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((S*)args[0].addr)->IsDefined() &&
@@ -2361,7 +2361,7 @@ SubStrFun( Word* args, Word& result, int message, Word& local, Supplier s )
        && (p2 >= p1) && (p1 >= 1) )
   {
     int n = min( static_cast<long unsigned int>(p2-p1), 
-	static_cast<long unsigned int>(str1.length()-p1) );
+        static_cast<long unsigned int>(str1.length()-p1) );
     wres->Set( true, (STRING*)(str1.substr(p1-1, n+1).c_str()) );
   }
   else
@@ -2386,7 +2386,7 @@ NotFun( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( ((CcBool*)args[0].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)
-	->Set( true, !((CcBool*)args[0].addr)->GetBoolval() );
+        ->Set( true, !((CcBool*)args[0].addr)->GetBoolval() );
   }
   else
   {
@@ -2408,7 +2408,7 @@ AndFun( Word* args, Word& result, int message, Word& local, Supplier s )
         ((CcBool*)args[1].addr)->IsDefined()) )
   {
     ((CcBool*)result.addr)->Set( true, 
-	((CcBool*)args[0].addr)->GetBoolval() &&
+        ((CcBool*)args[0].addr)->GetBoolval() &&
                        ((CcBool*)args[1].addr)->GetBoolval() );
   }
   else
@@ -2431,7 +2431,7 @@ OrFun( Word* args, Word& result, int message, Word& local, Supplier s )
       ((CcBool*)args[1].addr)->IsDefined() )
   {
     ((CcBool*)result.addr)->Set( true, 
-	((CcBool*)args[0].addr)->GetBoolval() ||
+        ((CcBool*)args[0].addr)->GetBoolval() ||
                   ((CcBool*)args[1].addr)->GetBoolval() );
   }
   else
@@ -2490,7 +2490,7 @@ UpperFun( Word* args, Word& result, int message, Word& local, Supplier s )
   else
   {
       ((CcString *)result.addr)->Set( false, 
-	((CcString*)args[0].addr)->GetStringval());
+        ((CcString*)args[0].addr)->GetStringval());
   }
   return (0);
 }
@@ -2502,17 +2502,17 @@ UpperFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
 int
 CcSetIntersection_ii( Word* args, Word& result, int message, Word& local, 
-	Supplier s )
+        Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((CcInt*)args[0].addr)->IsDefined() &&
        ((CcInt*)args[1].addr)->IsDefined() )
   {
     if( ((CcInt*)args[0].addr)->GetIntval() 
-	== ((CcInt*)args[1].addr)->GetIntval() )
+        == ((CcInt*)args[1].addr)->GetIntval() )
     {
       ((CcInt *)result.addr)->Set( true, 
-	((CcInt*)args[0].addr)->GetIntval() );
+        ((CcInt*)args[0].addr)->GetIntval() );
       return (0);
     }
   }
@@ -2522,17 +2522,17 @@ CcSetIntersection_ii( Word* args, Word& result, int message, Word& local,
 
 int
 CcSetIntersection_rr( Word* args, Word& result, int message, Word& local, 
-	Supplier s )
+        Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((CcReal*)args[0].addr)->IsDefined() &&
        ((CcReal*)args[1].addr)->IsDefined() )
   {
     if( ((CcReal*)args[0].addr)->GetRealval() 
-	== ((CcReal*)args[1].addr)->GetRealval() )
+        == ((CcReal*)args[1].addr)->GetRealval() )
     {
       ((CcReal *)result.addr)->Set( true, 
-	((CcReal*)args[0].addr)->GetRealval() );
+        ((CcReal*)args[0].addr)->GetRealval() );
       return (0);
     }
   }
@@ -2542,17 +2542,17 @@ CcSetIntersection_rr( Word* args, Word& result, int message, Word& local,
 
 int
 CcSetIntersection_bb( Word* args, Word& result, int message, Word& local, 
-	Supplier s )
+        Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((CcBool*)args[0].addr)->IsDefined() &&
        ((CcBool*)args[1].addr)->IsDefined() )
   {
     if( ((CcBool*)args[0].addr)->GetBoolval() 
-	== ((CcBool*)args[1].addr)->GetBoolval() )
+        == ((CcBool*)args[1].addr)->GetBoolval() )
     {
       ((CcBool*)result.addr)->Set( true, 
-	((CcBool*)args[0].addr)->GetBoolval() );
+        ((CcBool*)args[0].addr)->GetBoolval() );
       return (0);
     }
   }
@@ -2562,17 +2562,17 @@ CcSetIntersection_bb( Word* args, Word& result, int message, Word& local,
 
 int
 CcSetIntersection_ss( Word* args, Word& result, int message, Word& local, 
-	Supplier s )
+        Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((CcString*)args[0].addr)->IsDefined() &&
        ((CcString*)args[1].addr)->IsDefined() )
   {
     if( strcmp( *((CcString*)args[0].addr)->GetStringval(), 
-	*((CcString*)args[1].addr)->GetStringval() ) == 0 )
+        *((CcString*)args[1].addr)->GetStringval() ) == 0 )
     {
       ((CcString*)result.addr)->Set( true, 
-	((CcString*)args[0].addr)->GetStringval() );
+        ((CcString*)args[0].addr)->GetStringval() );
       return (0);
     }
   }
@@ -2594,7 +2594,7 @@ CcSetMinus_ii( Word* args, Word& result, int message, Word& local, Supplier s )
        ((CcInt*)args[1].addr)->IsDefined() )
   {
     if( ((CcInt*)args[0].addr)->GetIntval() 
-	== ((CcInt*)args[1].addr)->GetIntval() )
+        == ((CcInt*)args[1].addr)->GetIntval() )
     {
       ((CcInt *)result.addr)->Set( false, 0 );
       return (0);
@@ -2612,7 +2612,7 @@ CcSetMinus_rr( Word* args, Word& result, int message, Word& local, Supplier s )
        ((CcReal*)args[1].addr)->IsDefined() )
   {
     if( ((CcReal*)args[0].addr)->GetRealval() 
-	== ((CcReal*)args[1].addr)->GetRealval() )
+        == ((CcReal*)args[1].addr)->GetRealval() )
     {
       ((CcReal *)result.addr)->Set( false, 0.0 );
       return (0);
@@ -2630,7 +2630,7 @@ CcSetMinus_bb( Word* args, Word& result, int message, Word& local, Supplier s )
        ((CcBool*)args[1].addr)->IsDefined() )
   {
     if( ((CcBool*)args[0].addr)->GetBoolval() 
-	== ((CcBool*)args[1].addr)->GetBoolval() )
+        == ((CcBool*)args[1].addr)->GetBoolval() )
     {
       ((CcBool *)result.addr)->Set( false, false );
       return (0);
@@ -2648,7 +2648,7 @@ CcSetMinus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
        ((CcString*)args[1].addr)->IsDefined() )
   {
     if( strcmp( *((CcString*)args[0].addr)->GetStringval(), 
-	*((CcString*)args[1].addr)->GetStringval() ) == 0 )
+        *((CcString*)args[1].addr)->GetStringval() ) == 0 )
     {
       STRING nullStr = "";
       ((CcString*)result.addr)->Set( false, &nullStr );
@@ -2656,7 +2656,7 @@ CcSetMinus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
     }
   }
   ((CcString*)result.addr)->Set( true, 
-	((CcString*)args[0].addr)->GetStringval() );
+        ((CcString*)args[0].addr)->GetStringval() );
   return (0);
 }
 
@@ -2699,18 +2699,18 @@ RelcountFun( Word* args, Word& result, int message, Word& local, Supplier s )
     {
       if ( evaluable )
       {
-	// evaluate the operator tree
+        // evaluate the operator tree
         qpp->Eval( tree, result, 1 );
 
-	// create the result list ( type, value )
+        // create the result list ( type, value )
         valueList = SecondoSystem::GetCatalog()->
           OutObject( resultType, result );
         resultList = nl->TwoElemList( resultType, valueList );
 
-	// set the result value and destroy the operator tree
+        // set the result value and destroy the operator tree
         ((CcInt *)result.addr)->Set ( true, 
-	  nl->IntValue(nl->Second(resultList)) );
-	qpp->Destroy( tree, false );
+          nl->IntValue(nl->Second(resultList)) );
+        qpp->Destroy( tree, false );
       }
       else cout << "Operator query not evaluable" << endl;
     }
@@ -2824,7 +2824,7 @@ are separated by a space character.
       
         i=subword->start;
         while ( (!(isspace(((*subword->subw)[i]))) && 
-	        ((*subword->subw)[i]) != '\0') ) i++;
+                ((*subword->subw)[i]) != '\0') ) i++;
         subword->nochr = i - subword->start;
       }
       local.addr = subword;
@@ -2837,38 +2837,38 @@ are separated by a space character.
       if ( (subword->strlength > 0) && (subword->start < subword->strlength) )
       { 
         tmpstr = (((string)(*subword->subw)).substr(subword->start,
-		subword->nochr));
-	strcpy(outstr, (char*)tmpstr.c_str());
+                subword->nochr));
+        strcpy(outstr, (char*)tmpstr.c_str());
         elem = new CcString(true, &outstr);
-	result.addr = elem;
+        result.addr = elem;
         // determine the necessary values to get the next word in the string,
-	// if there is any.
-	subword->start += subword->nochr;
+        // if there is any.
+        subword->start += subword->nochr;
         i = subword->start;
-	if (i < subword->strlength ) {
+        if (i < subword->strlength ) {
           while ( isspace((*subword->subw)[i]) ) i++; 
 
-          subword->start = i;	
+          subword->start = i;   
           while ( (!isspace((*subword->subw)[i])) && 
-	          (((*subword->subw)[i]) != '\0') )  i++;
+                  (((*subword->subw)[i]) != '\0') )  i++;
           subword->nochr = i - subword->start + 1;
-	}		
-	local.addr = subword;
+        }               
+        local.addr = subword;
 
-	return YIELD;
+        return YIELD;
       }
       // no more single words in the string
       else
       {
         // string is empty or contains only space characters
         if ( subword->strlength == 0 ) {
-	  outstr[0] = '\0';
+          outstr[0] = '\0';
           elem = new CcString(true, &outstr);
-	  result.addr = elem;
-	  subword->start = subword->strlength = 1;
-	  local.addr = subword;
-	  return YIELD;
-        }	  
+          result.addr = elem;
+          subword->start = subword->strlength = 1;
+          local.addr = subword;
+          return YIELD;
+        }         
       return CANCEL;
       }
        
@@ -2895,12 +2895,12 @@ ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
     else if(((CcBool*)args[0].addr)->GetBoolval())
     {
         ((StandardAttribute*)result.addr)->CopyFrom( 
-		(StandardAttribute*)args[1].addr );   
+                (StandardAttribute*)args[1].addr );   
     }
     else    
     {
         ((StandardAttribute*)result.addr)->CopyFrom( 
-		(StandardAttribute*)args[2].addr );   
+                (StandardAttribute*)args[2].addr );   
     }
     
     return 0;
@@ -2914,15 +2914,15 @@ ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
 template<class T>
 int 
 CcBetween( Word* args, Word& result, int message, Word& local, 
-	   Supplier s)
+           Supplier s)
 {
   result = qp->ResultStorage( s );
   if ( ((T*)args[0].addr)->IsDefined() &&
        ((T*)args[1].addr)->IsDefined() && 
-	((T*)args[2].addr)->IsDefined() )
+        ((T*)args[2].addr)->IsDefined() )
   {
     if ( ((T*)args[1].addr)->GetValue() 
-	<= ((T*)args[2].addr)->GetValue() )
+        <= ((T*)args[2].addr)->GetValue() )
     {
       ((CcBool *)result.addr)->Set( true, (
         ((T*)args[0].addr)->GetValue() >= 
@@ -2948,7 +2948,7 @@ CcBetween( Word* args, Word& result, int message, Word& local,
 
 int 
 CcHashValue( Word* args, Word& result, int message, Word& local, 
-	   Supplier s)
+           Supplier s)
 {
   result = qp->ResultStorage( s );
   if ( ((StandardAttribute*)args[0].addr)->IsDefined() &&
@@ -2957,7 +2957,7 @@ CcHashValue( Word* args, Word& result, int message, Word& local,
   {
     ((CcInt *)result.addr)->Set( true, 
                                 ((StandardAttribute*)args[0].addr)->HashValue() 
-				 % ((CcInt*)args[1].addr)->GetValue() );
+                                 % ((CcInt*)args[1].addr)->GetValue() );
   }
   else
   {
@@ -3168,13 +3168,13 @@ such and array defined, so it easier to make them overloaded.
 */
 
 ValueMapping ccplusmap[] = 
-	{ CcPlus_ii, CcPlus_ir, CcPlus_ri, CcPlus_rr, CcPlus_ss };
+        { CcPlus_ii, CcPlus_ir, CcPlus_ri, CcPlus_rr, CcPlus_ss };
 ValueMapping ccminusmap[] = 
-	{ CcMinus_ii, CcMinus_ir, CcMinus_ri, CcMinus_rr };
+        { CcMinus_ii, CcMinus_ir, CcMinus_ri, CcMinus_rr };
 ValueMapping ccproductmap[] = 
-	{ CcProduct_ii, CcProduct_ir, CcProduct_ri, CcProduct_rr };
+        { CcProduct_ii, CcProduct_ir, CcProduct_ri, CcProduct_rr };
 ValueMapping ccdivisionmap[] = 
-	{ CcDivision_ii, CcDivision_ir, CcDivision_ri, CcDivision_rr };
+        { CcDivision_ii, CcDivision_ir, CcDivision_ri, CcDivision_rr };
 
 ValueMapping ccmodmap[] = { CcMod };
 ValueMapping ccdivmap[] = { CcDiv };
@@ -3235,11 +3235,11 @@ ValueMapping ccisemptymap[] = { IsEmpty<CcBool>,
                                 IsEmpty<CcString> };
 
 ValueMapping ccsetintersectionmap[] = 
-	{ CcSetIntersection_ii, CcSetIntersection_rr, CcSetIntersection_bb, 
-	CcSetIntersection_ss };
+        { CcSetIntersection_ii, CcSetIntersection_rr, CcSetIntersection_bb, 
+        CcSetIntersection_ss };
 
 ValueMapping ccsetminusmap[] = 
-	{ CcSetMinus_ii, CcSetMinus_rr, CcSetMinus_bb, CcSetMinus_ss };
+        { CcSetMinus_ii, CcSetMinus_rr, CcSetMinus_bb, CcSetMinus_ss };
 
 ValueMapping ccoprelcountmap[] = { RelcountFun };
 ValueMapping ccoprelcountmap2[] = { RelcountFun2 };
@@ -3248,7 +3248,7 @@ ValueMapping ccifthenelsemap[] = { ifthenelseFun };
 
 ValueMapping ccbetweenmap[] = { CcBetween<CcInt>, CcBetween<CcReal>, 
                                 CcBetween<CcString>, CcBetween<CcBool> };
-				
+                                
 //ValueMapping cchashvaluemap[] = { CcHashValue<CcInt>, CcHashValue<CcReal>, 
                                 //CcHashValue<CcString>, CcHashValue<CcBool> };
 
@@ -3257,251 +3257,251 @@ ValueMapping cchashvaluemap[] = { CcHashValue };
 const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                           "( <text>(int int) -> int, (int real) -> real, "
-			  "(real int)"
-			  " -> real, (real real) -> real " 
-				"(string string) -> string</text--->"
-			   "<text>_ + _</text--->"
-			   "<text>Addition. Strings are concatenated.</text--->"
-			   "<text>query -1.2 + 7</text--->"
-			      ") )";
+                          "(real int)"
+                          " -> real, (real real) -> real " 
+                                "(string string) -> string</text--->"
+                           "<text>_ + _</text--->"
+                           "<text>Addition. Strings are concatenated.</text--->"
+                           "<text>query -1.2 + 7</text--->"
+                              ") )";
 
 const string CCSpecSub  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                           "( <text>(int int) -> int, (int real) -> real, "
-			  "(real int) -> real, (real real) -> real</text--->"
-			       "<text>_ - _</text--->"
-			       "<text>Subtraction</text--->"
-			       "<text>query -.2 - 4</text--->"
-			      ") )";
+                          "(real int) -> real, (real real) -> real</text--->"
+                               "<text>_ - _</text--->"
+                               "<text>Subtraction</text--->"
+                               "<text>query -.2 - 4</text--->"
+                              ") )";
 
 const string CCSpecMul  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                           "( <text>(int int) -> int, (int real) -> real, "
-			  "(real int) -> real, (real real) -> real</text--->"
-			       "<text>_ * _</text--->"
-			       "<text>Multiplication.</text--->"
-			       "<text>query 5 * 1.4 </text--->"
-			      ") )";
+                          "(real int) -> real, (real real) -> real</text--->"
+                               "<text>_ * _</text--->"
+                               "<text>Multiplication.</text--->"
+                               "<text>query 5 * 1.4 </text--->"
+                              ") )";
 
 const string CCSpecDiv  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                           "( <text>(int int) -> real, (int real) -> real, "
-			  "(real int) -> real, (real real) -> real</text--->"
-			       "<text>_ / _</text--->"
-			       "<text>Division.</text--->"
-			       "<text>query 5 / 2 </text--->"
-			      ") )";
+                          "(real int) -> real, (real real) -> real</text--->"
+                               "<text>_ / _</text--->"
+                               "<text>Division.</text--->"
+                               "<text>query 5 / 2 </text--->"
+                              ") )";
 
 const string CCSpecMod  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                              "( <text>(int int) -> int</text--->"
-			       "<text>_ mod _</text--->"
-			       "<text>Modulo.</text--->"
-			       "<text>query 8 mod 3 </text--->"
-			      ") )";
+                               "<text>_ mod _</text--->"
+                               "<text>Modulo.</text--->"
+                               "<text>query 8 mod 3 </text--->"
+                              ") )";
 
 const string CCSpecDiv2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                            "\"Example\" )"
                              "( <text>(int int) -> int</text--->"
-			       "<text>_ div _</text--->"
-			       "<text>Integer Division.</text--->"
-			       "<text>query 5 div 2 </text--->"
-			      ") )";
+                               "<text>_ div _</text--->"
+                               "<text>Integer Division.</text--->"
+                               "<text>query 5 div 2 </text--->"
+                              ") )";
 
 const string CCSpecRandInt  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               "\"Example\" )"
                              "( <text>int -> int </text--->"
-			   "<text>randint ( _ )</text--->"
-			   "<text>Returns a random integer between 0 and "
-			"arg - 1, the argument must be at least 2 otherwise "
-			"it is set to 2. Calling randint(n) for "
-			"n < 2 initializes the "
-			"random number generator with a seed value depending "
-			"on the current time. </text--->"
-			       "<text>query randint (9)</text--->"
-			      ") )";
+                           "<text>randint ( _ )</text--->"
+                           "<text>Returns a random integer between 0 and "
+                        "arg - 1, the argument must be at least 2 otherwise "
+                        "it is set to 2. Calling randint(n) for "
+                        "n < 2 initializes the "
+                        "random number generator with a seed value depending "
+                        "on the current time. </text--->"
+                               "<text>query randint (9)</text--->"
+                              ") )";
 
 const string CCSpecMaxRand  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               "\"Example\" )"
                              "( <text> -> int </text--->"
-			       "<text>randmax()</text--->"
-			       "<text>Returns the value of MAX_RAND </text--->"
-			       "<text>query randmax()</text--->"
-			      ") )";
+                               "<text>randmax()</text--->"
+                               "<text>Returns the value of MAX_RAND </text--->"
+                               "<text>query randmax()</text--->"
+                              ") )";
 
 
 const string CCSpecInitSeq  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               "\"Example\" )"
                              "( <text>int -> bool </text--->"
-			"<text>seqinit ( _ ) </text--->"
-			"<text>Returns true and sets the start value "
-                     	" of the sequence to the argument value</text--->"
-			"<text>query seqinit(100)</text--->"
-			      ") )";
+                        "<text>seqinit ( _ ) </text--->"
+                        "<text>Returns true and sets the start value "
+                        " of the sequence to the argument value</text--->"
+                        "<text>query seqinit(100)</text--->"
+                              ") )";
 
 const string CCSpecNextSeq  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               "\"Example\" )"
                              "( <text> -> int </text--->"
-		"<text>seqnext ()</text--->"
-		"<text>Returns s+n-1 at the n-th call when the sequence"
-           	" was initialized with initseq (s) "
-		"otherwise s defaults to 0.</text--->"
-			 "<text>query seqnext ()</text--->"
-			      ") )";
+                "<text>seqnext ()</text--->"
+                "<text>Returns s+n-1 at the n-th call when the sequence"
+                " was initialized with initseq (s) "
+                "otherwise s defaults to 0.</text--->"
+                         "<text>query seqnext ()</text--->"
+                              ") )";
 
 const string CCSpecLog  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                              "( <text>int -> int </text--->"
-			       "<text>log ( _ )</text--->"
-			       "<text>Computes the logarithmus of base 2."
-			       " The argument must be greater"
-			       "than 0.</text--->"
-			       "<text>query log (256)</text--->"
-			      ") )";
+                               "<text>log ( _ )</text--->"
+                               "<text>Computes the logarithmus of base 2."
+                               " The argument must be greater"
+                               "than 0.</text--->"
+                               "<text>query log (256)</text--->"
+                              ") )";
 
 const string CCSpecLT  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" )"
                          "( <text>(int int) -> bool, (int real) -> bool, "
-			 "(real int) -> bool, (real real) -> bool, (bool bool)"
-			 " -> bool, (string string) -> bool</text--->"
-			       "<text>_ < _</text--->"
-			       "<text>Less.</text--->"
-			       "<text>query \"house\" < \"hotel\"</text--->"
-			      ") )";
+                         "(real int) -> bool, (real real) -> bool, (bool bool)"
+                         " -> bool, (string string) -> bool</text--->"
+                               "<text>_ < _</text--->"
+                               "<text>Less.</text--->"
+                               "<text>query \"house\" < \"hotel\"</text--->"
+                              ") )";
 
 const string CCSpecLE  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" )"
                          "( <text>(int int) -> bool, (int real) -> bool, "
-			 "(real int) -> bool, (real real) -> bool, (bool bool)"
-			 " -> bool, (string string) -> bool</text--->"
-			       "<text>_ <= _</text--->"
-			       "<text>Less or equal.</text--->"
-			       "<text>query 8.2 <= 8.2</text--->"
-			      ") )";
+                         "(real int) -> bool, (real real) -> bool, (bool bool)"
+                         " -> bool, (string string) -> bool</text--->"
+                               "<text>_ <= _</text--->"
+                               "<text>Less or equal.</text--->"
+                               "<text>query 8.2 <= 8.2</text--->"
+                              ") )";
 
 const string CCSpecGT  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" )"
                          "( <text>(int int) -> bool, (int real) -> bool, "
-			 "(real int) -> bool, (real real) -> bool, (bool bool)"
-			 " -> bool, (string string) -> bool</text--->"
-			       "<text>_ > _</text--->"
-			       "<text>Greater.</text--->"
-			       "<text>query 3 > 4.1</text--->"
-			      ") )";
+                         "(real int) -> bool, (real real) -> bool, (bool bool)"
+                         " -> bool, (string string) -> bool</text--->"
+                               "<text>_ > _</text--->"
+                               "<text>Greater.</text--->"
+                               "<text>query 3 > 4.1</text--->"
+                              ") )";
 
 const string CCSpecGE  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" )"
                          "( <text>(int int) -> bool, (int real) -> bool, "
-			 "(real int) -> bool, (real real) -> bool, (bool bool)"
-			 " -> bool, (string string) -> bool</text--->"
-			       "<text>_ >= _</text--->"
-			       "<text>Greater or equal.</text--->"
-			       "<text>query 3 >= 5</text--->"
-			      ") )";
+                         "(real int) -> bool, (real real) -> bool, (bool bool)"
+                         " -> bool, (string string) -> bool</text--->"
+                               "<text>_ >= _</text--->"
+                               "<text>Greater or equal.</text--->"
+                               "<text>query 3 >= 5</text--->"
+                              ") )";
 
 const string CCSpecEQ  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" )"
                          "( <text>(int int) -> bool, (int real) -> bool, "
-			 "(real int) -> bool, (real real) -> bool, (bool bool)"
-			 " -> bool, (string string) -> bool</text--->"
-			       "<text>_ = _</text--->"
-			       "<text>Equal.</text--->"
-			       "<text>query 2.1 = 2.01</text--->"
-			      ") )";
+                         "(real int) -> bool, (real real) -> bool, (bool bool)"
+                         " -> bool, (string string) -> bool</text--->"
+                               "<text>_ = _</text--->"
+                               "<text>Equal.</text--->"
+                               "<text>query 2.1 = 2.01</text--->"
+                              ") )";
 
 const string CCSpecNE  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" )"
                          "( <text>(int int) -> bool, (int real) -> bool, "
-			 "(real int) -> bool, (real real) -> bool, (bool bool)"
-			 " -> bool, (string string) -> bool</text--->"
-			       "<text>_ # _</text--->"
-			       "<text>Not equal.</text--->"
-			       "<text>query 2.1 # 2.01</text--->"
-			      ") )";
+                         "(real int) -> bool, (real real) -> bool, (bool bool)"
+                         " -> bool, (string string) -> bool</text--->"
+                               "<text>_ # _</text--->"
+                               "<text>Not equal.</text--->"
+                               "<text>query 2.1 # 2.01</text--->"
+                              ") )";
 
 const string CCSpecBeg  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                              "( <text>(string string) -> bool</text--->"
-			       "<text>_ starts _</text--->"
-			       "<text>Starts.</text--->"
-			       "<text>query \"starts\" starts \"st\"</text--->"
-			      ") )";
+                               "<text>_ starts _</text--->"
+                               "<text>Starts.</text--->"
+                               "<text>query \"starts\" starts \"st\"</text--->"
+                              ") )";
 
 const string CCSpecCon  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                              "( <text>(string string) -> bool</text--->"
-			       "<text>_ contains _</text--->"
-			       "<text>Contains.</text--->"
-			    "<text>query \"contains\" contains \"tai\""
-			    "</text--->"
-			      ") )";
+                               "<text>_ contains _</text--->"
+                               "<text>Contains.</text--->"
+                            "<text>query \"contains\" contains \"tai\""
+                            "</text--->"
+                              ") )";
 
 const string CCSpecNot  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                              "( <text>bool -> bool</text--->"
-			       "<text>not ( _ )</text--->"
-			       "<text>Logical Not.</text--->"
-			       "<text>query not ( 4=4 )</text--->"
-			     " ) )";
+                               "<text>not ( _ )</text--->"
+                               "<text>Logical Not.</text--->"
+                               "<text>query not ( 4=4 )</text--->"
+                             " ) )";
 
 const string CCSpecAnd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                           "( <text>(bool bool) -> bool</text--->"
-			       "<text>_ and _</text--->"
-			       "<text>Logical And.</text--->"
-			       "<text>query (8 = 8) and (3 < 4)</text--->"
-			      ") )";
+                               "<text>_ and _</text--->"
+                               "<text>Logical And.</text--->"
+                               "<text>query (8 = 8) and (3 < 4)</text--->"
+                              ") )";
 
 const string CCSpecOr  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" )"
                              "( <text>(bool bool) -> bool</text--->"
-			       "<text>_ or _</text--->"
-			       "<text>Logical Or.</text--->"
-			       "<text>query (3 <= 4) or (\"hotel\" > "
-			       "\"house\")"
-			       "</text--->"
-			       ") )";
+                               "<text>_ or _</text--->"
+                               "<text>Logical Or.</text--->"
+                               "<text>query (3 <= 4) or (\"hotel\" > "
+                               "\"house\")"
+                               "</text--->"
+                               ") )";
 
 const string CCSpecIsEmpty  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               "\"Example\" )"
                              "( <text>bool -> bool, int -> bool, real -> bool,"
-			     " string -> bool</text--->"
-			     "<text>isempty ( _ )</text--->"
-			     "<text>Returns whether the value is defined or "
-			     "not.</text--->"
-			       "<text>query isempty ( 8 )</text--->"
-			      ") )";
+                             " string -> bool</text--->"
+                             "<text>isempty ( _ )</text--->"
+                             "<text>Returns whether the value is defined or "
+                             "not.</text--->"
+                               "<text>query isempty ( 8 )</text--->"
+                              ") )";
 
 const string CCSpecUpper  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
                              "( <text>string -> string</text--->"
-			       "<text>upper ( _ )</text--->"
-			       "<text>Returns a string immediately upper to"
-			       " the original one.</text--->"
-			       "<text>query upper ( \"hello\" )</text--->"
-			       ") )";
+                               "<text>upper ( _ )</text--->"
+                               "<text>Returns a string immediately upper to"
+                               " the original one.</text--->"
+                               "<text>query upper ( \"hello\" )</text--->"
+                               ") )";
 
 const string CCSpecSetIntersection  = "( ( \"Signature\" \"Meaning\" )"
-		"( <text> (int int) -> int, (real real) -> real,"
-		"(bool bool) -> bool, (string string) -> string</text--->"
-		"<text> Set intersection. </text--->"
-			") )";
+                "( <text> (int int) -> int, (real real) -> real,"
+                "(bool bool) -> bool, (string string) -> string</text--->"
+                "<text> Set intersection. </text--->"
+                        ") )";
 
 const string CCSpecSetMinus  = "( ( \"Signature\" \"Meaning\" )"
-		"( <text> (int int) -> int, (real real) -> real, "
-		"(bool bool) -> bool, (string string) -> string</text--->"
-		"<text> Set minus. </text--->"
-		") )";
+                "( <text> (int int) -> int, (real real) -> real, "
+                "(bool bool) -> bool, (string string) -> string</text--->"
+                "<text> Set minus. </text--->"
+                ") )";
                         
 const string CCSpecRelcount  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-			"\"Example\" )"
-			"( <text>string -> int</text--->"
-			"<text>_ relcount</text--->"
-			"<text>Counts the number of tuples of a relation, "
-			"which is specified by its objectname"
-			" of type string.</text--->"
-			"<text>query \"Staedte\" relcount</text--->"
-			") )";
+                        "\"Example\" )"
+                        "( <text>string -> int</text--->"
+                        "<text>_ relcount</text--->"
+                        "<text>Counts the number of tuples of a relation, "
+                        "which is specified by its objectname"
+                        " of type string.</text--->"
+                        "<text>query \"Staedte\" relcount</text--->"
+                        ") )";
 
 const string CCSpecRelcount2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
@@ -3513,7 +3513,7 @@ const string CCSpecRelcount2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              " from class QueryProcessor.</text--->"
              "<text>query \"Orte\" relcount2</text--->"
              ") )";
-	                            
+                                    
 const string CCSpecKeywords  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
                              "( <text>(string) -> (stream string)</text--->"
@@ -3522,7 +3522,7 @@ const string CCSpecKeywords  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              " of the origin string, on the assumption, that words in a string"
              " are separated by a space character.</text--->"
              "<text>query ten feed extendstream(name: mystring keywords) "
-		"consume</text--->"
+                "consume</text--->"
              ") )";
 
 const string CCSpecIfthenelse  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -3530,35 +3530,35 @@ const string CCSpecIfthenelse  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                              "( <text>(bool x T x T) ->  T</text--->"
              "<text>ifthenelse(_, _, _)</text--->"
              "<text>Returns the second argument, if the boolean value "
-	     "expression, given"
+             "expression, given"
              " as a first argument, can be evaluated to true."
              " If not, the operator returns the third argument."
-	     " NOTE: The second and the third argument must be of the "
-		"same type T"
+             " NOTE: The second and the third argument must be of the "
+                "same type T"
              " of kind DATA.</text--->"
              "<text>query ifthenelse(3 < 5,[const string value \"less\"],"
-		"[const string value \"greater\"])</text--->"
+                "[const string value \"greater\"])</text--->"
              ") )";
-	     
+             
 const string CCSpecBetween  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
                              "( <text>(T x T x T) ->  bool</text--->"
              "<text>_ between[_, _]</text--->"
              "<text>Returns true, if the first argument is in the range "
-		"of the second"
+                "of the second"
              " and third argument, otherwise false. "
-		"T can be of type int, real, "
-		"string or bool."
-	     " NOTE: The second argument must be less or equal than the "
-		"third argument.</text--->"
+                "T can be of type int, real, "
+                "string or bool."
+             " NOTE: The second argument must be less or equal than the "
+                "third argument.</text--->"
              "<text>query 5 between [3, 8], query \"house\" "
-		"between [\"ha\", \"hu\"]</text--->"
+                "between [\"ha\", \"hu\"]</text--->"
              ") )";
 
 
 
 const string specListHeader = 
-	"( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )";
+        "( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )";
 const string ST = "<text>";
 const string ET = "</text--->";
 
@@ -3573,7 +3573,7 @@ CCSpecSubStr = "(" + specListHeader + "("
 const string 
 CCSpecElapsed = "(" + specListHeader + "("
                     + "'(any type) ->  string.'"
-		    + "'_ elapsedtime'"
+                    + "'_ elapsedtime'"
                     + "'Returns the elpased time and the " 
                       + "cpu time in seconds encoded in a string'"
                     + "'query plz feed elapsedtime'))";
@@ -3584,16 +3584,16 @@ const string CCLDistSpec  =
                "<text>ldistance ( _ _ )</text--->"
                "<text>compute the distance between two strings </text--->"
                "<text>query ldistance( \"hello\" \"world\" )</text--->"
-			       ") )";
-			       
+                               ") )";
+                               
 const string CCHashValueSpec  = 
             "( ( \"Signature\" \"Syntax\" \"Meaning\" " "\"Example\" )"
             "( <text>T in DATA, y in int, T x y -> int</text--->"
                "<text>hashvalue ( _, _ )</text--->"
                "<text>computes the hashvalue from object of type T, "
-	       "assuming that hashtable has size y.</text--->"
+               "assuming that hashtable has size y.</text--->"
                "<text>query hashvalue( \"Test\", 9997 )</text--->"
-			       ") )";
+                               ") )";
    
 Operator ccplus( "+", CCSpecAdd, 5, ccplusmap,  
                  CcMathSelectCompute, CcMathTypeMap );
@@ -3687,7 +3687,7 @@ Operator ccopkeywords( "keywords", CCSpecKeywords, 1, cckeywordsmap,
 
 Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, 1, ccifthenelsemap, 
                          Operator::SimpleSelect, ifthenelseType );
-			 
+                         
 Operator ccbetween( "between", CCSpecBetween, 4, ccbetweenmap, 
                     CcBetweenSelect, CcBetweenTypeMap );
 
@@ -3696,10 +3696,10 @@ Operator ccelapsedtime( "elapsedtime", CCSpecElapsed, ccelapsedfun,
 
 Operator ccldistance( "ldistance", CCLDistSpec, DistanceStrStrFun,  
                  Operator::SimpleSelect, CcLDistTypeMap);
-		 
+                 
 //Operator cchashvalue( "hashvalue", CCHashValueSpec, 4, cchashvaluemap,  
                  //CcHashValueSelect, CcHashValueTypeMap);
-		 
+                 
 Operator cchashvalue( "hashvalue", CCHashValueSpec, 1, cchashvaluemap,  
                  Operator::SimpleSelect, CcHashValueTypeMap);
 
