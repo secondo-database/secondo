@@ -59,5 +59,7 @@ operator between alias BETWEEN pattern _ op [ _, _]
 
 operator ldistance alias LDISTANCE pattern op (_ , _)
 
+operator hashvalue alias HASHVALUE pattern op ( _ , _)
+
 
 
