@@ -206,6 +206,7 @@ using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
+extern AlgebraManager *am;
 
 /*
 4.1 Type investigation auxiliaries
@@ -1267,7 +1268,9 @@ Type mapping for ~ifthenelse~ is
 */
 ListExpr ifthenelseType(ListExpr args)
 {
-  ListExpr arg1, arg2, arg3, errorInfo;
+  ListExpr arg1, arg2, arg3, 
+           errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+
   if ( nl->ListLength( args ) == 3 )
   {
     arg1 = nl->First( args );
@@ -1322,6 +1325,35 @@ CcBetweenTypeMap( ListExpr args )
   return (nl->SymbolAtom( "typeerror" ));
 }
 
+/*
+4.2.14 Type mapping function for the ~hashvalue~ operator:
+
+Type mapping for ~hashvalue~ is
+
+----	T in kind DATA, T x int -> int
+----
+
+*/
+ListExpr
+CcHashValueTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2,
+           errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  
+  CHECK_COND(nl->ListLength(args) == 2,
+  "Operator hasvalue expects a list of length two.");
+  
+  arg1 = nl->First( args );
+  arg2 = nl->Second( args );
+  
+  CHECK_COND(am->CheckKind("DATA", arg1, errorInfo),
+  "Object type of first argument does not belong to kind DATA!");
+  
+  CHECK_COND(TypeOfSymbol( arg2 ) == ccint,
+  "Object type of second argument must be int!");
+
+  return (nl->SymbolAtom( "int" ));
+}
 
 /*
 4.2.15 Type mapping function for the ~ldistance~ operator:
@@ -1346,6 +1378,26 @@ ListExpr CcLDistTypeMap(ListExpr args){
    return nl->SymbolAtom("int");
 }
 
+/*
+4.2.16 Type mapping function CcRoundTypeMap
+
+It is for the  operators ~round~, which has ~real~ and ~int~ as input and ~real~ resulttype.
+
+*/
+
+ListExpr
+CcRoundTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccint )
+      return (nl->SymbolAtom( "real" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
 
 /*
 4.3 Selection function
@@ -1488,7 +1540,6 @@ CcBetweenSelect( ListExpr args )
   }
   return ( -1 );
 }
-
 
 /*
 4.4 Value mapping functions of operator ~+~
@@ -2890,6 +2941,31 @@ CcBetween( Word* args, Word& result, int message, Word& local,
   return (0);
 }
 
+/*
+4.21 Value mapping function of operator ~hashvalue~
+
+*/
+
+int 
+CcHashValue( Word* args, Word& result, int message, Word& local, 
+	   Supplier s)
+{
+  result = qp->ResultStorage( s );
+  if ( ((StandardAttribute*)args[0].addr)->IsDefined() &&
+       ((CcInt*)args[1].addr)->IsDefined() &&
+       (((CcInt*)args[1].addr)->GetValue() > -1) )
+  {
+    ((CcInt *)result.addr)->Set( true, 
+                                ((StandardAttribute*)args[0].addr)->HashValue() 
+				 % ((CcInt*)args[1].addr)->GetValue() );
+  }
+  else
+  {
+    ((CcInt *)result.addr)->Set( false, 0 );
+  }
+  return (0);
+}
+
 /* 
 4.15 Computes the Levenshtein distance between two strings.
 
@@ -3086,8 +3162,8 @@ Definition of operators is done in a way similar to definition of
 type constructors: an instance of class ~Operator~ is defined.
 
 Because almost all operators are overloaded, we have first do define an array of value
-mapping functions for each operator. For nonoverloaded operators there is also such and array
-defined, so it easier to make them overloaded.
+mapping functions for each operator. For nonoverloaded operators there is also
+such and array defined, so it easier to make them overloaded.
 
 */
 
@@ -3172,6 +3248,11 @@ ValueMapping ccifthenelsemap[] = { ifthenelseFun };
 
 ValueMapping ccbetweenmap[] = { CcBetween<CcInt>, CcBetween<CcReal>, 
                                 CcBetween<CcString>, CcBetween<CcBool> };
+				
+//ValueMapping cchashvaluemap[] = { CcHashValue<CcInt>, CcHashValue<CcReal>, 
+                                //CcHashValue<CcString>, CcHashValue<CcBool> };
+
+ValueMapping cchashvaluemap[] = { CcHashValue };
 
 const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
@@ -3504,7 +3585,15 @@ const string CCLDistSpec  =
                "<text>compute the distance between two strings </text--->"
                "<text>query ldistance( \"hello\" \"world\" )</text--->"
 			       ") )";
-
+			       
+const string CCHashValueSpec  = 
+            "( ( \"Signature\" \"Syntax\" \"Meaning\" " "\"Example\" )"
+            "( <text>T in DATA, y in int, T x y -> int</text--->"
+               "<text>hashvalue ( _, _ )</text--->"
+               "<text>computes the hashvalue from object of type T, "
+	       "assuming that hashtable has size y.</text--->"
+               "<text>query hashvalue( \"Test\", 9997 )</text--->"
+			       ") )";
    
 Operator ccplus( "+", CCSpecAdd, 5, ccplusmap,  
                  CcMathSelectCompute, CcMathTypeMap );
@@ -3607,6 +3696,12 @@ Operator ccelapsedtime( "elapsedtime", CCSpecElapsed, ccelapsedfun,
 
 Operator ccldistance( "ldistance", CCLDistSpec, DistanceStrStrFun,  
                  Operator::SimpleSelect, CcLDistTypeMap);
+		 
+//Operator cchashvalue( "hashvalue", CCHashValueSpec, 4, cchashvaluemap,  
+                 //CcHashValueSelect, CcHashValueTypeMap);
+		 
+Operator cchashvalue( "hashvalue", CCHashValueSpec, 1, cchashvaluemap,  
+                 Operator::SimpleSelect, CcHashValueTypeMap);
 
 /*
 6 Class ~CcAlgebra~
@@ -3680,6 +3775,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccbetween );
     AddOperator( &ccelapsedtime );
     AddOperator( &ccldistance);
+    AddOperator( &cchashvalue);
 
     static SetOptionInfo setoption_oi;
     static Operator setoption_op( setoption_oi, 
