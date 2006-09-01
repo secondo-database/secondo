@@ -80,22 +80,25 @@ OK          (stream X) (stream Y) (map X Y (stream Z)) --> (stream Z)
 
 OK   sfeed: T --> (stream T)                                   
 
-OK   saggregate: (stream T) x (T x T --> T) x T  --> T
+OK   transformstream: (stream T) -> stream(tuple((element T)))
+                      stream(tuple((id T))) -> (stream T)
 
-     intersection: uT x uT --> (stream uT)
+OK   saggregate: (stream T) x (T x T --> T) x T  --> T
 
 Test atmax: uT --> (stream uT)
 
-     atmin: uT --> (stream uT)
+pre  atmin: uT --> (stream uT)
 
 Test at:    ureal x real --> (stream ureal)
 
-     distance: T in {int, point}
-Test          uT x uT -> ureal
-Test          uT x  T -> ureal 
-Test           T x uT -> ureal
+     distance:  T in {int, point}
+Test           uT x uT -> ureal
+Test           uT x  T -> ureal 
+Test            T x uT -> ureal
 
-     intersects: uT x uT --> (stream ubool)
+pre  intersects: uT x uT --> (stream ubool)
+
+pre  intersection: uT x uT --> (stream uT)
 
      mdirection: upoint --> ureal
 
@@ -168,7 +171,7 @@ extern AlgebraManager* am;
 #include "DateTime.h"
 using namespace datetime;
 
-
+bool TUA_DEBUG = true; // Set to true to activate debugging code
 
 /*
 2.1 Definition of some constants
@@ -1119,10 +1122,12 @@ const string
 TemporalSpecMakemvalue  =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>((stream (tuple ((x1 t1)...(xn tn)))"
-" (unit(xi))))-> moving(x)</text--->"
+"<text>Fot T in {bool, int, real, point}:"
+"((stream (tuple ((x1 t1)...(xn tn)))"
+" (uT)))-> mT</text--->"
 "<text>makemvalue[ _ ]</text--->"
-"<text>Create a moving object from a stream of units.</text--->"
+"<text>Create a moving object from a tuple stream containing "
+"units.</text--->"
 "<text>makemvalue[ u1 ]</text---> ) )";
 
 /* 
@@ -2205,7 +2210,7 @@ function (or it's radical).
 
 */
 ListExpr
-UnitBaseTypeMapUnit( ListExpr args )
+TemporalUnitAtTypeMapUnit( ListExpr args )
 {
   ListExpr arg1, arg2;
   if( nl->ListLength( args ) == 2 )
@@ -2213,17 +2218,20 @@ UnitBaseTypeMapUnit( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
+    if (TUA_DEBUG) cout << "\nTemporalUnitAtTypeMapUnit: 0" << endl;
+
     if( nl->IsEqual( arg1, "ubool" ) && nl->IsEqual( arg2, "bool" ) )
       return nl->SymbolAtom( "ubool" );
     if( nl->IsEqual( arg1, "uint" ) && nl->IsEqual( arg2, "int" ) )
       return nl->SymbolAtom( "uint" );
     if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "point" ) )
       return nl->SymbolAtom( "upoint" );
-    // for ureal, at will return a stream of ureals!
+    // for ureal, _ at _ will return a stream of ureals!
     if( nl->IsEqual( arg1, "ureal" ) && nl->IsEqual( arg2, "real" ) )
       return nl->TwoElemList(nl->SymbolAtom( "stream" ),
 			     nl->SymbolAtom( "ureal" ));    
   }
+  if (TUA_DEBUG) cout << "\nTemporalUnitAtTypeMapUnit: 1" << endl;
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -2243,8 +2251,10 @@ int MappingUnitAt( Word* args, Word& result, int message,
 
   Word a0, a1;
 
-  qp->Request(args[0].addr, a0);
-  qp->Request(args[1].addr, a1);
+  //  qp->Request(args[0].addr, a0);
+  //  qp->Request(args[1].addr, a1);
+  a0 = args[0];
+  a1 = args[1];
 
   Unit* unit = ((Unit*)a0.addr);
   Alpha* val = ((Alpha*)a1.addr);
@@ -2295,8 +2305,11 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
       
-      qp->Request(args[0].addr, a0);
-      qp->Request(args[1].addr, a1);
+      //      qp->Request(args[0].addr, a0);
+      //      qp->Request(args[1].addr, a1);
+      a0 = args[0];
+      a1 = args[1];
+
       uinput = ((UReal*)(a0.addr));
       y = ((CcReal*)(a1.addr))->GetRealval();
 
@@ -2468,7 +2481,7 @@ Operator temporalunitat( "at",
                      4,
                      temporalunitatmap,
                      UnitBaseSelect,
-                     UnitBaseTypeMapUnit );
+                     TemporalUnitAtTypeMapUnit );
 
 /*
 5.14 Operator ~circle~
@@ -3226,11 +3239,16 @@ TypeMapSuse( ListExpr args )
 
   errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
+  if (TUA_DEBUG) cout << "\nTypeMapSuse: 0" << endl;
+
   if ( (nl->ListLength( args ) != 2) )
     {
+      if (TUA_DEBUG) cout << "TypeMapSuse: 1" << endl;
+
       ErrorReporter::ReportError("Operator suse expects a list of length two ");
       return nl->SymbolAtom( "typeerror" );
     }
+  if (TUA_DEBUG) cout << "TypeMapSuse: 2" << endl;
   
   // get suse arguments
   sarg1 = nl->First( args );
@@ -3241,37 +3259,44 @@ TypeMapSuse( ListExpr args )
        || ( nl->ListLength( sarg1 ) != 2) 
        || !(TypeOfRelAlgSymbol(nl->First(sarg1) == stream )) )
     {
+      if (TUA_DEBUG) cout << "TypeMapSuse: 3" << endl;
+
       ErrorReporter::ReportError(
 	"Operator suse expects its first Argument to "
 	"be of type '(stream T), for T in kind DATA)'.");
       return nl->SymbolAtom( "typeerror" );	      
     }
   sarg1Type = nl->Second(sarg1);
-  
+  if (TUA_DEBUG) cout << "TypeMapSuse: 4" << endl;
+
   // check sarg1 to be a (stream T) for T in kind DATA 
   // or T of type tuple(X)
   if(    !nl->IsAtom( sarg1Type ) 
       && !am->CheckKind("DATA", nl->Second( sarg1Type ), errorInfo) )
     {
+      if (TUA_DEBUG) cout << "TypeMapSuse: 5" << endl;
       nl->WriteToString(outstr1, sarg1Type);      
       ErrorReporter::ReportError("Operator suse expects its 1st argument "
 				 "to be '(stream T)', T of kind DATA, but"
 				 "receives '" + outstr1 + "' as T.");
       return nl->SymbolAtom( "typeerror" );      
     }
-  
+  if (TUA_DEBUG) cout << "TypeMapSuse: 6" << endl;
+
   // This check can be removed when operators working on tuplestreams have
   // been implemented:
   if ( !nl->IsAtom( sarg1Type ) &&
        (nl->ListLength( sarg1Type ) == 2) &&
        nl->IsEqual( nl->First(sarg1Type), "tuple") )      
     {
+      if (TUA_DEBUG) cout << "TypeMapSuse: 7" << endl;
       ErrorReporter::ReportError("Operator suse still not implemented for "
 				 "arguments of type 'tuple(X)' or "
 				 "'(stream tuple(X))'.");
       return nl->SymbolAtom( "typeerror" );      
     }
 
+  if (TUA_DEBUG) cout << "TypeMapSuse: 8" << endl;
   if ( !nl->IsAtom( sarg1Type ) &&
        ( (nl->ListLength( sarg1Type ) != 2) ||
 	 !nl->IsEqual( nl->First(sarg1Type), "tuple") ||
@@ -3279,27 +3304,33 @@ TypeMapSuse( ListExpr args )
 	 ) 
        )
     {
+      if (TUA_DEBUG) cout << "TypeMapSuse: 9" << endl;
       nl->WriteToString(outstr1, sarg1);
       return nl->SymbolAtom( "typeerror" );      
     }
+  if (TUA_DEBUG) cout << "TypeMapSuse: 10" << endl;
 
   // check for map
   if (  nl->IsAtom( map ) || !( nl->IsEqual(nl->First(map), "map") ) )
     {
+      if (TUA_DEBUG) cout << "TypeMapSuse: 11" << endl;
       nl->WriteToString(outstr1, map);
       ErrorReporter::ReportError("Operator suse expects a map as "
 				 "2nd argument, but gets '" + outstr1 +
 				 "' instead.");
       return nl->SymbolAtom( "typeerror" );
     }    
+  if (TUA_DEBUG) cout << "TypeMapSuse: 12" << endl;
 
   if ( nl->ListLength(map) != 3 )       
     {
+      if (TUA_DEBUG) cout << "TypeMapSuse: 13" << endl;
       ErrorReporter::ReportError("Number of map arguments must be 1 "
 				 "for operator suse.");
       return nl->SymbolAtom( "typeerror" );
     }
 
+  if (TUA_DEBUG) cout << "TypeMapSuse: 14" << endl;
   // get map arguments
   marg1 = nl->Second(map);
   mres  = nl->Third(map);
@@ -3308,6 +3339,7 @@ TypeMapSuse( ListExpr args )
 
   if ( !( nl->Equal(marg1, sarg1Type) ) )
     {
+      if (TUA_DEBUG) cout << "TypeMapSuse: 15" << endl;
       nl->WriteToString(outstr1, sarg1Type);
       nl->WriteToString(outstr2, marg1);
       ErrorReporter::ReportError("Operator suse: 1st argument's stream"
@@ -3318,40 +3350,59 @@ TypeMapSuse( ListExpr args )
 				 "' and '" + outstr2 + "'.");
       return nl->SymbolAtom( "typeerror" );
     }
+  if (TUA_DEBUG) cout << "TypeMapSuse: 16" << endl;
 
   // get map result type 'sresType'
   if( !( nl->IsAtom( mres ) ) && ( nl->ListLength( mres ) == 2) ) 
     {
+      if (TUA_DEBUG) cout << "TypeMapSuse: 17" << endl;
+
       if (  TypeOfRelAlgSymbol(nl->First(mres) == stream ) )
 	{
+	  if (TUA_DEBUG) cout << "TypeMapSuse: 18" << endl;
 	  if ( !am->CheckKind("DATA", nl->Second(mres), errorInfo) )
 	    {
+	      if (TUA_DEBUG) cout << "TypeMapSuse: 19" << endl;
+
 	      ErrorReporter::ReportError(
 		"Operator suse expects its 2nd Argument to "
 		"return a '(stream T)', T of kind DATA'.");
 	      return nl->SymbolAtom( "typeerror" );	      
 	    }
+	  if (TUA_DEBUG) cout << "TypeMapSuse: 20" << endl;
+	    
 	  sresType = mres; // map result type is already a stream
 	  nl->WriteToString(outstr1, sresType);
-	  cout << "\nTypeMapSuse Resulttype (1): " << outstr1 << "\n";
+	  if (TUA_DEBUG) cout << "\nTypeMapSuse Resulttype (1): " 
+			      << outstr1 << "\n";
 	  return sresType;
 	}
+      if (TUA_DEBUG) cout << "TypeMapSuse: 21" << endl;
+
     }
   else // map result type is not a stream, so encapsulate it
     {
+      if (TUA_DEBUG) cout << "TypeMapSuse: 22" << endl;
+
       if ( !am->CheckKind("DATA", mres, errorInfo) )
 	{
+	  if (TUA_DEBUG) cout << "TypeMapSuse: 23" << endl;
+
 	  ErrorReporter::ReportError(
 	    "Operator suse expects its 2nd Argument to "
 	    "return a type of kind DATA.");
 	  return nl->SymbolAtom( "typeerror" );	      
 	}
+      if (TUA_DEBUG) cout << "TypeMapSuse: 24" << endl;
+
       sresType = nl->TwoElemList(nl->SymbolAtom("stream"), mres);  
       nl->WriteToString(outstr1, sresType);
-      cout << "\nTypeMapSuse Resulttype (2): " << outstr1 << "\n";
+      if (TUA_DEBUG) cout << "\nTypeMapSuse Resulttype (2): " 
+			  << outstr1 << "\n";
       return sresType;
     }
-  
+  if (TUA_DEBUG) cout << "TypeMapSuse: 25" << endl;
+
   // otherwise (some unmatched error)
   return nl->SymbolAtom( "typeerror" );
 }
@@ -3372,6 +3423,7 @@ TypeMapSuse2( ListExpr args )
     resisstream   = false;
   int argConfCode = 0;
 
+  if (TUA_DEBUG) cout << "\nTypeMapSuse2: 0" << endl;
 
   errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
@@ -3382,12 +3434,16 @@ TypeMapSuse2( ListExpr args )
 				 "length three ");
       return nl->SymbolAtom( "typeerror" );
     }
+
+  if (TUA_DEBUG) cout << "TypeMapSuse2: 1" << endl;
   
   // 1. get suse arguments
   sarg1 = nl->First( args );
   sarg2 = nl->Second( args );
   map   = nl->Third( args ); 
   
+  if (TUA_DEBUG) cout << "TypeMapSuse2: 2" << endl;
+
   // 2. First argument
   // check sarg1 for being a stream
   if( nl->IsAtom( sarg1 )
@@ -3438,6 +3494,8 @@ TypeMapSuse2( ListExpr args )
       return nl->SymbolAtom( "typeerror" );      
     }
   
+  if (TUA_DEBUG) cout << "TypeMapSuse2: 3" << endl;
+
   // 3. Second Argument
   // check sarg2 for being a stream
   if( nl->IsAtom( sarg2 )
@@ -3487,6 +3545,8 @@ TypeMapSuse2( ListExpr args )
 				 "receives '" + outstr1 + "' for T.");
       return nl->SymbolAtom( "typeerror" );      
     }
+
+  if (TUA_DEBUG) cout << "TypeMapSuse2: 4" << endl;
   
   // 4. First and Second argument
   // check whether at least one stream argument is present
@@ -3497,6 +3557,8 @@ TypeMapSuse2( ListExpr args )
 	"argument to be of type '(stream T), for T in kind DATA)'.");
       return nl->SymbolAtom( "typeerror" );	      
     }
+
+  if (TUA_DEBUG) cout << "TypeMapSuse2: 5" << endl;
 
   // 5. Third argument
   // check third for being a map
@@ -3550,12 +3612,18 @@ TypeMapSuse2( ListExpr args )
       return nl->SymbolAtom( "typeerror" );
     }
 
+  if (TUA_DEBUG) cout << "TypeMapSuse2: 6" << endl;
+
   // 6. Determine result type
   // get map result type 'sresType'
-  if( !( nl->IsAtom( mres ) ) && ( nl->ListLength( mres ) == 2) ) 
-    {
+  if( !nl->IsAtom( mres )  && ( nl->ListLength( mres ) == 2) ) 
+    { 
+      if (TUA_DEBUG) cout << "TypeMapSuse2: 6.1" << endl;
+
       if (  TypeOfRelAlgSymbol(nl->First(mres) == stream ) )
 	{
+	  if (TUA_DEBUG) cout << "TypeMapSuse2: 6.2" << endl;
+	  
 	  if ( !am->CheckKind("DATA", nl->Second(mres), errorInfo) &&
 	       !( !nl->IsAtom(nl->Second(mres)) &&
 		  nl->ListLength(nl->Second(mres)) == 2 &&
@@ -3564,33 +3632,46 @@ TypeMapSuse2( ListExpr args )
 		) 
 	     )
 	    {
+	      if (TUA_DEBUG) cout << "TypeMapSuse2: 6.3" << endl;
+
 	      ErrorReporter::ReportError(
 		"Operator suse2 expects its 3rd Argument to "
 		"return a '(stream T)', T of kind DATA or T = 'tuple(X)'.");
 	      return nl->SymbolAtom( "typeerror" );	      
 	    }
+	  if (TUA_DEBUG) cout << "TypeMapSuse2: 6.4" << endl;
+
 	  resisstream = true;
 	  sresType = mres; // map result type is already a stream
 	}
     }
   else // map result type is not a stream, so encapsulate it
     {
-      if ( !am->CheckKind("DATA", mres, errorInfo)  &&
-	   !( !nl->IsAtom(nl->Second(mres)) &&
-	      nl->ListLength(nl->Second(mres)) == 2 &&
-	      TypeOfRelAlgSymbol(nl->First(nl->Second(mres)) == tuple) &&
-	      IsTupleDescription(nl->Second(nl->Second(mres)))
-	    )
+      if (TUA_DEBUG) cout << "TypeMapSuse2: 6.5" << endl;
+
+      if (    !( nl->IsAtom(mres) && am->CheckKind("DATA", mres, errorInfo))  
+	   && !( !nl->IsAtom(mres) && 
+		 nl->ListLength(mres) == 2 &&
+		 !nl->IsAtom(nl->Second(mres)) &&
+		 TypeOfRelAlgSymbol(nl->First(mres)  == tuple) &&
+		 IsTupleDescription(nl->Second(mres))
+	       )
 	 ) 
 	{
+	  if (TUA_DEBUG) cout << "TypeMapSuse2: 6.6" << endl;
+
 	  ErrorReporter::ReportError(
 	    "Operator suse2 expects its 3rd Argument to "
-	    "return a type of kind DATA or T = 'tuple(X)'.");
+	    "return a type T of kind DATA or T = 'tuple(X)'.");
 	  return nl->SymbolAtom( "typeerror" );	      
 	}
+      if (TUA_DEBUG) cout << "TypeMapSuse2: 6.7" << endl;
+
       resisstream = false;
       sresType = nl->TwoElemList(nl->SymbolAtom("stream"), mres);  
     }
+
+  cout << "TypeMapSuse2: 7" << endl;
 
   // 7. This check can be removed when operators working on tuplestreams have
   //    been implemented:
@@ -3605,6 +3686,8 @@ TypeMapSuse2( ListExpr args )
       return nl->SymbolAtom( "typeerror" );      
     }
 
+
+  if (TUA_DEBUG) cout << "TypeMapSuse2: 8" << endl;
 
   // 8. Append flags describing argument configuration for value mapping:
   //     0: no stream
@@ -4644,7 +4727,7 @@ TypeMapTemporalUnitDistance( ListExpr args )
   ListExpr first, second;
   string outstr1, outstr2;
 
-  if ( nl->ListLength( args ) != 2 )
+  if ( nl->IsAtom( args ) || nl->ListLength( args ) != 2 )
     {
       nl->WriteToString(outstr1, args);
       ErrorReporter::ReportError("Operator distance expects a list of "
@@ -4669,40 +4752,40 @@ TypeMapTemporalUnitDistance( ListExpr args )
     
   if( nl->IsEqual(first, "upoint") && nl->IsEqual(second, "upoint") )
     { 
-      return nl->OneElemList(nl->SymbolAtom("ureal"));
+      return nl->SymbolAtom("ureal");
     }
     
   if( nl->IsEqual(first, "upoint") && nl->IsEqual(second, "point") )
     { 
       return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
 			       nl->OneElemList(nl->IntAtom(0)), 
-			       nl->OneElemList(nl->SymbolAtom( "ureal" )));  
+			       nl->SymbolAtom( "ureal" ));  
     }
 
   if( nl->IsEqual(first, "point") && nl->IsEqual(second, "upoint") )
     { 
       return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
 			       nl->OneElemList(nl->IntAtom(1)), 
-			       nl->OneElemList(nl->SymbolAtom( "ureal" )));  
+			       nl->SymbolAtom( "ureal" ));  
     }
   
   if( nl->IsEqual(first, "uint") && nl->IsEqual(second, "uint") )
     { 
-      return nl->OneElemList(nl->SymbolAtom("ureal"));
+      return nl->SymbolAtom("ureal");
     }
     
   if( nl->IsEqual(first, "uint") && nl->IsEqual(second, "int") )
     { 
       return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
 			       nl->OneElemList(nl->IntAtom(0)), 
-			       nl->OneElemList(nl->SymbolAtom( "ureal" )));  
+			       nl->SymbolAtom( "ureal" ));  
     }
 
   if( nl->IsEqual(first, "int") && nl->IsEqual(second, "uint") )
     { 
       return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
 			       nl->OneElemList(nl->IntAtom(1)), 
-			       nl->OneElemList(nl->SymbolAtom( "ureal" )));  
+			       nl->SymbolAtom( "ureal" ));  
     }
   
   nl->WriteToString(outstr1, first);
@@ -4765,31 +4848,42 @@ int TUDistance_UPoint_UPoint( Word* args, Word& result, int message,
 {
   Interval<Instant> iv;
 
-  Word a1, a2;
+  //  Word a1, a2;
   UPoint *u1, *u2;
-  
+
+  if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 0" << endl;
   result = qp->ResultStorage( s );
+  if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 1" << endl;
 
-  qp->Request(args[0].addr, a1);
-  qp->Request(args[1].addr, a2);
+  //  qp->Request(args[0].addr, a1);
+  //  qp->Request(args[1].addr, a2);
+  //  u1 = (UPoint*)(a1.addr);
+  //  u2 = (UPoint*)(a2.addr);
 
-  u1 = (UPoint*)(a1.addr);
-  u2 = (UPoint*)(a2.addr);
+  u1 = (UPoint*)(args[0].addr);
+  u2 = (UPoint*)(args[1].addr);
 
   if (!u1->IsDefined() || 
       !u2->IsDefined() || 
       !u1->timeInterval.Intersects( u2->timeInterval ) )
     { // return undefined ureal
       ((UReal*)(result.addr))->SetDefined( false );
+      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 7" << endl;
     }
   else
     { // get intersection of deftime intervals
+      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 8" << endl;
       u1->timeInterval.Intersection( u2->timeInterval, iv );  
+      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 9" << endl;
       
       // calculate u1, u2, result
+      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 10" << endl;
       UPointDistance( *u1, *u2,  *((UReal*)(result.addr)), iv);
+      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 11" << endl;
+
     }
   // pass on result
+  if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 12" << endl;
   return 0;
 }
 
@@ -4811,25 +4905,30 @@ int TUDistance_UPoint_Point( Word* args, Word& result, int message,
   int   argConfDescriptor2;
 
   // get argument configuration
-  qp->Request(args[3].addr, argConfDescriptor);      
+  //  qp->Request(args[2].addr, argConfDescriptor);      
+  argConfDescriptor = args[2];
   argConfDescriptor2 = ((CcInt*)argConfDescriptor.addr)->GetIntval();
   if (argConfDescriptor2 == 0) 
     {
-      qp->Request(args[0].addr, theUPoint);
-      qp->Request(args[1].addr, thePoint);
+      theUPoint = args[0];
+      thePoint  = args[1];
+      //      qp->Request(args[0].addr, theUPoint);
+      //      qp->Request(args[1].addr, thePoint);
     }
   else if (argConfDescriptor2 == 1)
     {
-      qp->Request(args[1].addr, theUPoint);
-      qp->Request(args[0].addr, thePoint);
+      theUPoint = args[1];
+      thePoint  = args[0];
+      //      qp->Request(args[1].addr, theUPoint);
+      //      qp->Request(args[0].addr, thePoint);
     }
   else
     {
       cout << "\nWrong argument configuration in "
-	   << "'TUDistance_UPoint_Point'" << endl;
+	   << "'TUDistance_UPoint_Point'. argConfDescriptor2=" 
+	   << argConfDescriptor2 << endl;
       return 0;
     }
-  qp->Request(args[3].addr, argConfDescriptor);      
 
   result = qp->ResultStorage( s );
 
@@ -4856,7 +4955,40 @@ int TUDistance_UPoint_Point( Word* args, Word& result, int message,
 int TUDistance_UInt_UInt( Word* args, Word& result, int message,
                           Word& local, Supplier s )
 {
-  cout << "\nERROR: 'TUDistance_UInt_UInt' not yet implemented!" << endl;
+  Interval<Instant> iv;
+
+  Word a1, a2;
+  UInt *u1, *u2;
+  double c1, c2, c;
+  
+  result = qp->ResultStorage( s );
+
+  //  qp->Request(args[0].addr, a1);
+  //  qp->Request(args[1].addr, a2);
+  a1 = args[0];
+  a2 = args[1];
+  
+  u1 = (UInt*)(a1.addr);
+  u2 = (UInt*)(a2.addr);
+
+  if (!u1->IsDefined() || 
+      !u2->IsDefined() || 
+      !u1->timeInterval.Intersects( u2->timeInterval ) )
+    { // return undefined ureal
+      ((UReal*)(result.addr))->SetDefined( false );
+    }
+  else
+    { // get intersection of deftime intervals
+      u1->timeInterval.Intersection( u2->timeInterval, iv );  
+      
+      // calculate  result
+      
+      c1 = (double) u2->constValue.GetIntval();
+      c2 = (double) u2->constValue.GetIntval();
+      c = fabs(c1 - c2);
+      *((UReal*)(result.addr)) = UReal(iv, 0, 0, c, false);
+    }
+  // pass on result
   return 0;
 }
 
@@ -4871,7 +5003,57 @@ int TUDistance_UInt_UInt( Word* args, Word& result, int message,
 int TUDistance_UInt_Int( Word* args, Word& result, int message,
                           Word& local, Supplier s )
 {
-  cout << "\nERROR: 'TUDistance_UInt_Int' not yet implemented!" << endl;
+  Word  argConfDescriptor, ii, ui;
+  int   argConfDescriptor2;
+  UInt  *u;
+  CcInt *i;
+  double c1, c2, c;
+
+  // get argument configuration
+  //qp->Request(args[2].addr, argConfDescriptor);      
+  argConfDescriptor = args[2];
+  argConfDescriptor2 = ((CcInt*)argConfDescriptor.addr)->GetIntval();
+  if (argConfDescriptor2 == 0) 
+    {
+      //    qp->Request(args[0].addr, ui);
+      //    qp->Request(args[1].addr, ii);
+      ui = args[0];
+      ii = args[1];
+    }
+  else if (argConfDescriptor2 == 1)
+    {
+      //    qp->Request(args[1].addr, ii);
+      //    qp->Request(args[0].addr, ui);
+      ui = args[1];
+      ii = args[0];
+    }
+  else
+    {
+      cout << "\nWrong argument configuration in "
+	   << "'TUDistance_UInt_Int'. argConfDescriptor2=" 
+	   << argConfDescriptor2 << endl;
+      return 0;
+    }
+
+  result = qp->ResultStorage( s );
+
+  u = (UInt*)(ui.addr);
+  i = (CcInt*)(ii.addr);
+
+  if (!u->IsDefined() || 
+      !i->IsDefined() )
+    { // return undefined ureal
+      ((UReal*)(result.addr))->SetDefined( false );
+    }
+  else
+    { // calculate  result
+      
+      c1 = (double) u->constValue.GetIntval();
+      c2 = (double) i->GetIntval();
+      c = fabs(c1 - c2);
+      *((UReal*)(result.addr)) = UReal(u->timeInterval, 0, 0, c, false);
+    }
+  // pass on result
   return 0;
 }
 
@@ -4911,8 +5093,8 @@ ValueMapping temporalunitdistancemap[] =
 
 int temporalunitDistanceSelect( ListExpr args )
 {
-  ListExpr first = nl->First(args),
-    second = nl->Second(args);
+  ListExpr first  = nl->First(args);
+  ListExpr second = nl->Second(args);
   
   if( nl->IsEqual(first, "upoint") && nl->IsEqual(second, "upoint") )
     return 0;
@@ -5567,6 +5749,369 @@ Operator temporalunitsaggregate( "saggregate",
                       TypeMapSaggregate);
 
 
+
+/*
+5.25 Operator ~intersects~
+
+*/
+
+/*
+5.25.1 Type mapping function for ~intersects~
+
+*/
+
+/*
+5.25.2 Value mapping for operator ~intersects~
+
+*/
+
+/*
+5.24.3 Specification for operator ~intersects~
+
+*/
+
+/*
+5.25.4 Selection Function of operator ~intersects~
+
+*/
+
+/*
+5.25.5 Definition of operator ~intersects~
+
+*/
+
+
+/*
+5.26 Operator ~intersection~
+
+*/
+
+/*
+5.26.1 Type mapping function for ~intersection~
+
+*/
+
+/*
+5.26.2 Value mapping for operator ~intersection~
+
+*/
+
+/*
+5.24.3 Specification for operator ~intersection~
+
+*/
+
+/*
+5.26.4 Selection Function of operator ~intersection~
+
+*/
+
+/*
+5.26.5 Definition of operator ~intersection~
+
+*/
+
+/*
+5.26 Operator ~transformstream~
+
+----
+  transformstream: (stream T) -> stream(tuple((element T)))
+                   stream(tuple((id T))) -> (stream T)
+
+  for T in kind DATA, id some arbitrary identifier
+
+----
+
+Operator ~transformstream~ transforms a (stream DATA) into a 
+(stream(tuple((element DATA)))) and vice versa. ~element~ is the name for the 
+attribute created. 
+
+The result of the first variant can e.g. be consumed to form a relation
+or be processed using ordinary tuplestream operators.
+
+*/
+
+/*
+5.27.1 Type mapping function for ~transformstream~
+
+*/
+
+ListExpr TemporalUnitTransformstreamTypeMap(ListExpr args)
+{
+  ListExpr first ;
+  string argstr;
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  ListExpr TupleDescr, T;
+  
+  if (nl->ListLength(args) != 1)
+    {
+      ErrorReporter::ReportError("Operator transformstream expects a list of "
+				 "length one.");
+      return nl->SymbolAtom("typeerror");
+    }
+     
+  first = nl->First(args);
+  nl->WriteToString(argstr, first);
+
+  // check for variant 1: (stream T)
+  if ( !nl->IsAtom(first) && 
+       (nl->ListLength(first) == 2) && 
+       (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+       nl->IsAtom(nl->Second(first)) &&
+       am->CheckKind("DATA", nl->Second(first), errorInfo) )
+    {
+      T = nl->Second(first);
+      return nl->TwoElemList( 
+		 nl->SymbolAtom("stream"),
+	         nl->TwoElemList( 
+                     nl->SymbolAtom("tuple"), 
+                     nl->OneElemList( 
+                         nl->TwoElemList( 
+                             nl->SymbolAtom("elem"),
+                             T))));
+    }
+  // check for variant 2: stream(tuple((id T)))
+  if ( !nl->IsAtom(first) && 
+       (nl->ListLength(first) == 2) && 
+       (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+       !nl->IsAtom(nl->Second(first)) &&
+       (nl->ListLength(nl->Second(first)) == 2) && 
+       (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) )
+    {
+      TupleDescr = nl->Second(nl->Second(first));
+      nl->WriteToString(argstr, TupleDescr);
+      cout << "\n In tupledescr = " << argstr << endl;      
+      if ( !nl->IsAtom(TupleDescr) &&
+           (nl->ListLength(TupleDescr) == 1) &&
+	   !nl->IsAtom(nl->First(TupleDescr)) &&
+	   (nl->ListLength(nl->First(TupleDescr)) == 2) &&
+	   (nl->IsAtom(nl->First(nl->First(TupleDescr)))) &&
+	   (nl->IsAtom(nl->Second(nl->First(TupleDescr)))) &&
+	   am->CheckKind("DATA", nl->Second(nl->First(TupleDescr)), errorInfo))
+	{
+	  T = nl->Second(nl->First(TupleDescr));
+	  return nl->TwoElemList(
+		     nl->SymbolAtom("stream"),
+		     T);
+	}
+    }
+  
+  // Wrong argument format!
+  ErrorReporter::ReportError(
+      "Operator transformstream expects exactly one argument. either "
+      "of type '(stream T)',or 'stream(tuple((id T))))', where T is of "
+      "kind DATA.\n"
+      "The passed argument has type '"+ argstr +"'.");
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+5.27.2 Value mapping for operator ~transformstream~
+
+*/
+
+struct TransformstreamLocalInfo 
+{
+  bool     finished;
+  TupleType *resultTupleType;
+};
+
+// The first variant creates a tuplestream from a stream:
+int Transformstream_S_TS(Word* args, Word& result, int message, 
+        Word& local, Supplier s)
+{
+  TransformstreamLocalInfo *sli;
+  Word      value;
+  ListExpr  resultType;
+  Tuple     *newTuple;
+
+
+  switch ( message )
+    {
+    case OPEN:
+
+      qp->Open( args[0].addr );
+      sli = new TransformstreamLocalInfo;
+
+      resultType = GetTupleResultType( s );
+      sli->resultTupleType = new TupleType( nl->Second( resultType ) );
+      sli->finished = false;
+      local = SetWord(sli);
+      return 0;
+
+    case REQUEST:
+
+      if (local.addr == 0)
+	return CANCEL;
+      
+      sli = (TransformstreamLocalInfo*) (local.addr);
+      if (sli->finished)
+	return CANCEL;
+
+      result = SetWord((Attribute*)((qp->ResultStorage(s)).addr));
+
+      qp->Request( args[0].addr, value );
+      if (!qp->Received( args[0].addr ))
+	{ // input stream consumed
+	  qp->Close( args[0].addr );
+	  sli->finished = true;
+	  result.addr = 0;
+	  return CANCEL;
+	}
+      // create tuple, copy and pass result, delete value
+      newTuple = new Tuple( sli->resultTupleType );
+      newTuple->PutAttribute( 0, ((Attribute*)value.addr)->Clone() );
+      ((Attribute*)(value.addr))->DeleteIfAllowed();
+      result = SetWord(newTuple);
+      return YIELD;	  
+
+    case CLOSE:
+
+      if (local.addr != 0)
+	{
+	  sli = (TransformstreamLocalInfo*) (local.addr);
+	  if (!sli->finished)
+	    qp->Close( args[0].addr );
+	  sli->resultTupleType->DeleteIfAllowed();
+	  delete sli;
+	}
+      return 0;
+    }
+  cout << "Transformstream_S_TS: UNKNOWN MESSAGE!" << endl;
+  return 0;
+}
+
+// The second variant creates a stream from a tuplestream:
+int Transformstream_TS_S(Word* args, Word& result, int message, 
+        Word& local, Supplier s)
+{
+  TransformstreamLocalInfo *sli;
+  Word   tuple;
+  Tuple* tupleptr;
+
+  switch ( message )
+    {
+    case OPEN:
+      qp->Open( args[0].addr );
+      sli = new TransformstreamLocalInfo;
+      sli->finished = false;
+      local = SetWord(sli);
+      return 0;
+
+    case REQUEST:
+      if (local.addr == 0)
+	return CANCEL;
+      
+      sli = (TransformstreamLocalInfo*) (local.addr);
+      if (sli->finished)
+	return CANCEL;
+
+      result = SetWord((StandardAttribute*)((qp->ResultStorage(s)).addr));
+
+      cout << "cp 0" << endl;
+      qp->Request( args[0].addr, tuple );
+      if (!qp->Received( args[0].addr ))
+	{ // input stream consumed
+	  qp->Close( args[0].addr );
+	  sli->finished = true;
+	  result.addr = 0;
+	  return CANCEL;
+	}
+      // extract, copy and pass value, delete tuple
+      cout << "cp 1" << endl;
+      tupleptr = (Tuple*)tuple.addr;
+      cout << "cp 2 result.addr=" << result.addr << endl;
+      ((StandardAttribute*)(result.addr))
+         ->CopyFrom((const StandardAttribute*)tupleptr->GetAttribute(0));
+      cout << "cp 3" << endl;
+      tupleptr->DeleteIfAllowed();
+      cout << "cp 4" << endl;
+
+      return YIELD;	  
+
+    case CLOSE:
+      if (local.addr != 0)
+	{
+	  sli = (TransformstreamLocalInfo*) (local.addr);
+	  if (!sli->finished)
+	    qp->Close( args[0].addr );
+	  delete sli;
+	}
+      return 0;
+
+    }
+  cout << "Transformstream_TS_S: UNKNOWN MESSAGE!" << endl;
+  return 0;
+}
+
+/*
+5.27.3 Specification for operator ~transformstream~
+
+*/
+const string TemporalUnitTransformstreamSpec = 
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "(<text>TemporalUnitAlgebra</text--->" 
+  "<text>For T in kind DATA:\n"
+  "(stream T) -> stream(tuple((elem T)))\n"
+  "stream(tuple(attrname T)) -> (stream T)</text--->"
+  "<text>_ transformstream</text--->"
+  "<text>Transforms a 'stream T' into a tuplestream "
+  "with a single attribute 'elem' containing the "
+  "values coming from the input stream and vice "
+  "versa. The identifier 'elem' is fixed, the "
+  "attribute name 'attrname' may be arbitrary "
+  "chosen, but the tuplestream's tupletype may "
+  "have only a single attribute.</text--->"
+  "<text>query intstream(1,5) transformstream consume\n "
+  "query ten feed transformstream printstream count</text--->"
+  ") )";
+
+/*
+5.27.4 Selection Function of operator ~transformstream~
+
+*/
+
+ValueMapping temporalunittransformstreammap[] = 
+  {
+    Transformstream_S_TS,
+    Transformstream_TS_S
+  };
+
+int temporalunitTransformstreamSelect( ListExpr args )
+{
+  ListExpr first = nl->First( args );
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+
+  if ( !nl->IsAtom(first) && 
+       (nl->ListLength(first) == 2) && 
+       (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+       nl->IsAtom(nl->Second(first)) &&
+       am->CheckKind("DATA", nl->Second(first), errorInfo) )
+    return 0;
+  if ( !nl->IsAtom(first) && 
+       (nl->ListLength(first) == 2) && 
+       (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+       !nl->IsAtom(nl->Second(first)) &&
+       (nl->ListLength(nl->Second(first)) == 2) && 
+       (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple))
+    return 1;
+  cout << "\ntemporalunitTransformstreamSelect: Wrong type!" << endl;
+  return -1;  
+}
+
+/*
+5.27.5 Definition of operator ~transformstream~
+
+*/
+
+Operator temporalunittransformstream( "transformstream",
+                      TemporalUnitTransformstreamSpec,
+                      2,
+                      temporalunittransformstreammap,
+                      temporalunitTransformstreamSelect,
+                      TemporalUnitTransformstreamTypeMap);
+
 /*
 6 Creating the Algebra
 
@@ -5577,11 +6122,18 @@ class TemporalUnitAlgebra : public Algebra
  public:
   TemporalUnitAlgebra() : Algebra()
   {
-   AddOperator( &temporalspeed );
+   AddOperator( &temporalunitmakemvalue );
+   AddOperator( &temporalunittransformstream );
+   AddOperator( &temporalunitsfeed );
+   AddOperator( &temporalunitsuse );
+   AddOperator( &temporalunitsuse2 );
+   AddOperator( &temporalunitsaggregate );
    AddOperator( &temporalunitqueryrect2d );
    AddOperator( &temporalunitpoint2d );
+   AddOperator( &temporalcircle );
+   AddOperator( &temporalmakepoint );
+   AddOperator( &temporalspeed );
    AddOperator( &temporalunitsize );
-   AddOperator( &temporalunitmakemvalue );
    AddOperator( &temporalunittrajectory );
    AddOperator( &temporalunitdeftime );
    AddOperator( &temporalunitatinstant );
@@ -5591,15 +6143,9 @@ class TemporalUnitAlgebra : public Algebra
    AddOperator( &temporalunitpresent );
    AddOperator( &temporalunitpasses );
    AddOperator( &temporalunitat );
-   AddOperator( &temporalcircle );
-   AddOperator( &temporalmakepoint );
    AddOperator( &temporalvelocity );
    AddOperator( &temporalderivable );
    AddOperator( &temporalderivative );
-   AddOperator( &temporalunitsfeed );
-   AddOperator( &temporalunitsuse );
-   AddOperator( &temporalunitsuse2 );
-   AddOperator( &temporalunitsaggregate );
    AddOperator( &temporalunitatmax );
    AddOperator( &temporalunitat );
    AddOperator( &temporalunitdistance );

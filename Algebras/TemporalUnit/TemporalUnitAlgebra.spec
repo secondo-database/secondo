@@ -35,6 +35,8 @@ operator saggregate alias SAGGREGATE pattern _ op [ _ ; _ ]
 operator at alias AT pattern _ infixop _ 
 operator atmax alias ATMAX pattern op ( _ )
 operator distance alias DISTANCE pattern op ( _ , _ )
+operator transformstream alias TRANSFORMSTREAM pattern _ op
+
 
 
 
