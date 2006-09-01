@@ -23,6 +23,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 December 2004, M. Spiekermann. A debug mode, and variables for the position were 
 introduced.
 
+
+We generate a C++ scanner since we want to use C++ ~ostream~ references instead of
+files for the input sequences.
+
 */
 
 #ifndef NL_SCANNER_H
@@ -50,12 +54,6 @@ class NLScanner: public yyFlexLexer
              std::istream* yyin = 0, std::ostream* yyout = 0 );
 
   int yylex();  // overruling yyFlexLexer's yylex()
-
-  int lines;    // position in the input
-  int cols;
-
-  // toggle debug mode
-  void SetDebug(const int value);
 
  private:
   // no Scanner copy-initialization

@@ -38,20 +38,44 @@ structure avoids to create nodes which were only used in the construction proces
 
 Dec 2004, M. Spiekermann. Macro YYERROR\_VERBOSE defined.
 
+Sept 2006, M. Spiekermann. Code of the classes NLScanner and NLParser was
+revised. Refer to NLParser.cpp.
+
 */
 %{
 #include <stdio.h>
+#include <stack>
+#include <vector>
+
 #include "NestedList.h"
-#include "NLParser.h"
- 
+#include "LogMsg.h"
+
+using namespace std;
+
+extern CMsg cmsg;
+extern NestedList* nl;
+
+
+static stack<ListExpr> lists;
+
+extern NestedList* parseNL_nl;
+ListExpr parseNL_list;
+
 // Stack Size for the Parser - by default 200.
 //#define YYINITDEPTH 10000
 #define YYERROR_VERBOSE
 #define YYDEBUG 1
 
+// interaction with flex
+extern int yylex();
+#define YYSTYPE ListExpr
+
+extern void yyerror(char* s);
+
 %}
 
 %verbose
+%token_table
 
 %token ZZINTEGER ZZREAL ZZBOOLEAN ZZSYMBOL ZZSTRING ZZTEXT ZZOPEN ZZCLOSE ZZERROR
 
@@ -60,7 +84,7 @@ Dec 2004, M. Spiekermann. Macro YYERROR\_VERBOSE defined.
 
 ok : list { 
             /* printf("Parser: list ok."); */
-            listExpression = $1;
+            parseNL_list = $1;
           }
    ;
 
@@ -68,16 +92,16 @@ ok : list {
 list	: ZZOPEN rest 	{$$ = $2;}
 	;
 
-rest	: ZZCLOSE	{$$ = nl->TheEmptyList();}
+rest	: ZZCLOSE	{$$ = parseNL_nl->TheEmptyList();}
 	| seq ZZCLOSE	{$$ = lists.top(); lists.pop();}
 	;
 
 seq	: first		{$$ = $1; lists.push($1);}
-	| seq elem	{$$ = nl->Append($1, $2);}
+	| seq elem	{$$ = parseNL_nl->Append($1, $2);}
 	;
 
-first	: atom		{$$ = nl->OneElemList($1);}
-	| list		{$$ = nl->OneElemList($1);}
+first	: atom		{$$ = parseNL_nl->OneElemList($1);}
+	| list		{$$ = parseNL_nl->OneElemList($1);}
 	; 
 
 elem	: atom		{$$ = $1;}

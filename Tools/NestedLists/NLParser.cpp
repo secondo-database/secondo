@@ -23,61 +23,102 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 December 2004, M. Spiekermann. A debug mode for the scanner and parser have been
 introduced. The error message will now help much better to locate errors.
 
+September 2006, M. Spiekermann. The Parser and Scanner have been revised in
+order to avoid that the generated bison file needs to be modified. The old
+version altered the generated code by sed scripts into a C++ class (which was
+incompatible with newer bison versions). Now we have still a class NLParser but
+it calls the external function ~yyparse~ provided by bison. 
+
 */
 
 using namespace std;
 
 #include "LogMsg.h"
-#include "NLParser.h"
 #include "NLScanner.h"
-#include <iomanip>
-
+#include "NLParser.h"
 
 extern NestedList* nl;
 extern CMsg cmsg;
 
-NLParser::NLParser( NestedList* nestedList, istream* ip, ostream* op )
-  : isp( ip ), osp( op ), nl( nestedList )
-{
-  listExpression = 0;
-  nlScanner = new NLScanner( nestedList, isp, osp );
-}
 
-NLParser::~NLParser()
-{
-  delete nlScanner;
-}
+/*
+Below we declare some external variables for data exchange between class
+NLParser and the bison and flex generated code. 
+
+*/
+
+NestedList* parseNL_nl = 0;
+extern ListExpr parseNL_list;
+
+extern int scanNL_lines;
+extern int scanNL_cols;
+extern int yydebug;
+extern int yyparse();
+
+
+/*
+Before we can call yyparse we need to construct a new scanner instance.
+
+*/
+
+static NLScanner* nlScanner = 0;
 
 int
-NLParser::lex()
-{
+NLParser::parse() 
+{ 
+  nlScanner = new NLScanner( nl, isp, osp );
   if ( RTFlag::isActive("NLParser:Debug") ) {
-    debug = 1;
+    yydebug = 1;
   } else {
-    debug = 0;
+    yydebug = 0;
   }
   
   if ( RTFlag::isActive("NLScanner:Debug") ) {
-    nlScanner->SetDebug(1);
+    nlScanner->set_debug(1);
   } else {
-    nlScanner->SetDebug(0);
+    nlScanner->set_debug(0);
   }
-
-
-  return (nlScanner->yylex());
+ 
+  scanNL_lines = 1;
+  scanNL_cols = 0;
+  parseNL_nl = nl;
+  parseNL_list = nl->Empty();  
+  int rc = yyparse();
+  list = parseNL_list;
+  
+  delete nlScanner;
+  nlScanner = 0;
+  return rc;
 }
 
+/*
+Providing function ~yyerror~
+
+*/
+
 void
-NLParser::error( char* s )
+yyerror( char* s )
 {
-  cmsg.error() << "Nested-List Parser: " << endl << "  " << s 
-       << " processing character '" << nlScanner->YYText() 
-       << "' (= " 
-       << setiosflags(ios::hex|ios::showbase) 
-       << static_cast<unsigned short>( *(nlScanner->YYText()) ) 
-       << resetiosflags(ios::hex|ios::showbase) 
-       << ") at line " << nlScanner->lines 
-       << " and col " << nlScanner->cols << "!"
-       << endl;
+  cmsg.error() 
+    << "Nested-List Parser: " << endl << "  " << s
+    << " processing token ~" << nlScanner->YYText() << "~"
+    //<< setiosflags(ios::hex|ios::showbase)
+    //<< static_cast<unsigned short>( yychar )
+    //<< resetiosflags(ios::hex|ios::showbase)
+    << " at line " << scanNL_lines
+    << " and col " << scanNL_cols << "!"
+    << endl;
   cmsg.send();
+}
+
+/*
+Since function ~yylex()~ is a member function of class NLScanner we need to
+wrap the call into another function which has global scope.
+
+*/
+
+int
+yylex()
+{
+  return nlScanner->yylex();
 }

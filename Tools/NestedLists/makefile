@@ -25,48 +25,33 @@
 
 include ../../makefile.env
 
+CC := g++
+
+TOKENDEF := NLParser.tab.hpp
+SCANNER := NLLex.cpp 
+PARSER := NLParser.tab.cpp
+
+DEP_FILES += NLParser.tab.dep
+
 ifeq ($(NL_PERSISTENT),"true")
 DEFAULTCCFLAGS += -DNL_PERSISTENT
 endif
 
-DEP_FILES += NLParser.tab.dep
+GENSRC := $(TOKENDEF) $(PARSER) $(SCANNER)
+OBJECTS += NLLex.$(OBJEXT) NLParser.tab.o NLParser.o
 
-OBJECTS += NLLex.$(OBJEXT) NLParser.tab.cpp NLParser.tab.hpp
 
 .PHONY: all
-all: $(DEP_FILES) $(OBJECTS)
+all: $(GENSRC) $(OBJECTS)
 
-NLParser.tab.cpp NLParser.tab.hpp: NLParser.y
-	$(YACC) -d -p __NLParser__ -o NLParser.tab.c NLParser.y
-# The RECODE macro is only used for platform wine
-ifeq ($(WINE),true)
-	recode cp1252..lat1 NLParser.tab.c 
-endif
-	sed \
-	   -e "/^int yyparse (void[ *]*);$$/d" \
-	   -e "/^YYSTYPE yylval;/d" \
-	   -e "/^YYPARSE_RETURN_TYPE yyparse (void[ *]*);$$/d" \
-	   -e s/__NLParser__parse/NLParser::parse/g \
-	   -e s/__NLParser__lex/NLParser::lex/g \
-	   -e s/__NLParser__error/NLParser::error/g \
-	   -e s/__NLParser__lval/NLParser::lval/g \
-	   -e s/__NLParser__char/NLParser::ychar/g \
-	   -e s/__NLParser__debug/NLParser::debug/g \
-	   -e s/__NLParser__nerrs/NLParser::nerrs/g \
-		   < NLParser.tab.c > NLParser.tab.cpp
-	$(RM) NLParser.tab.c
-	sed \
-	   -e s/__NLParser__lval/NLParser::lval/g \
-	   < NLParser.tab.h > NLParser.tab.hpp
-	$(RM) NLParser.tab.h
+NLParser.tab.cpp $(TOKENDEF): NLParser.y
+	$(YACC) -d -o $@ $<
 
-
-NLLex.cpp: NLLex.l
-	$(LEX) -d -+ -Pnl -oNLLex.cpp NLLex.l
-
+NLLex.cpp: NLLex.l $(TOKENDEF)
+	$(LEX) -d -+ -Pnl -o$@ $<
 
 include $(DEP_FILES)
 
 .PHONY: clean
 clean:
-	$(RM) $(OBJECTS) $(DEP_FILES)
+	$(RM) NLParser.tab.* $(GENSRC) $(OBJECTS) $(DEP_FILES)

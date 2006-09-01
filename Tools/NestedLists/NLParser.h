@@ -25,40 +25,33 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define NL_PARSER_H
 
 #include "NestedList.h"
-#include <stack>
-#include <vector>
-
-#define YYSTYPE ListExpr
-
-class NLScanner;
 
 class NLParser
 {
  public:
   NLParser( NestedList* nestedList, 
             std::istream* ip = 0, 
-            std::ostream* op = 0 );
-  virtual ~NLParser();
+            std::ostream* op = 0 ) 
+  : 
+  list(0), 
+  isp( ip ), 
+  osp( op ), 
+  nl( nestedList )
+  {}
+
+  virtual ~NLParser() {};
+  
   int         parse();
-  ListExpr    GetNestedList() { return listExpression; }
-  static int         debug;
- protected:
-  ListExpr    listExpression;
-  stack<ListExpr> lists;
-  int         lex(); 
-  //inline int NLParser::yylex() { return (GetLexer()->yylex()); }
-  void        error( char* );
-  std::istream*    isp;  // istream being parsed
-  std::ostream*    osp;  // ostream being output to
-  NLScanner*  nlScanner;  // Lexical analyzer to use;
-  NestedList* nl;
+  ListExpr    GetNestedList() { return list; }
 
-  static ListExpr    lval;
-  static int         ychar;
-  static int         nerrs;
+ private:
+  ListExpr       list; // the constructed memory structure 
+                       // of a nested list
+  std::istream*  isp;  // istream being parsed
+  std::ostream*  osp;  // ostream being output to
+  
+  NestedList*    nl;  // reference to the global NestedList instance
 
-  friend class NLScanner;
 };
 
 #endif
-

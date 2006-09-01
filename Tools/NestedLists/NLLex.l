@@ -41,10 +41,8 @@ into a format called base64 which maps 24 bits of input to 4 letters into an alp
 
 */
 
-%option noyywrap
 
 %{
-#include <malloc.h>
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
@@ -61,13 +59,19 @@ using namespace std;
 #include "CharTransform.h"
 #include "LogMsg.h"
 
-#define yylval NLParser::lval
 
-char buffer[MAX_STRINGSIZE+1];
-char *s = buffer;
-ostringstream* text = 0;
+// variables only visible for this
+// compilation unit
+static char buffer[MAX_STRINGSIZE+1];
+static char *s = buffer;
+static ostringstream* text = 0;
+static double f;
 
-double f;
+// global variables
+int scanNL_lines;
+int scanNL_cols;
+
+#define UPDATE_COLS scanNL_cols += yyleng;
 
 // the yylex() function that's actually used
 #define YY_DECL int NLScanner::yylex()
@@ -103,31 +107,34 @@ simpletext	"'"[^']*"'"
 
 file		"<file>"[^<]+"</file--->"
 
+
+%option noyywrap
+
 %x TEXT
 %x COMMENT
 %%
 
-<INITIAL>\n|\r            { lines++; cols=0; }
+<INITIAL>\n|\r            { scanNL_lines++; scanNL_cols=0; }
 
-<INITIAL>[ \a\b\f\t\v]+   { cols += yyleng; }
+<INITIAL>[ \a\b\f\t\v]+   { UPDATE_COLS }
 
-<INITIAL>-?[0-9]+       { cols += yyleng; 
+<INITIAL>-?[0-9]+       { scanNL_cols += yyleng; 
                         yylval = nl->IntAtom( atoi( yytext ) );
                         return (ZZINTEGER);
                         }
 
-<INITIAL>{number}       { cols += yyleng; 
+<INITIAL>{number}       { scanNL_cols += yyleng; 
                         f = atof( yytext );
                         yylval = nl->RealAtom( f );
 			return (ZZREAL);
 		        }
 
-<INITIAL>"TRUE"         { cols += yyleng; 
+<INITIAL>"TRUE"         { scanNL_cols += yyleng; 
 			yylval = nl->BoolAtom( true );
 			return (ZZBOOLEAN);
 		        }
 
-<INITIAL>"FALSE"        { cols += yyleng; 
+<INITIAL>"FALSE"        { scanNL_cols += yyleng; 
 			yylval = nl->BoolAtom( false );
 			return (ZZBOOLEAN);
 		        }
@@ -140,7 +147,7 @@ file		"<file>"[^<]+"</file--->"
 			  return (ZZTEXT);
                         }
 
-<INITIAL>"<text>"       { cols += yyleng;
+<INITIAL>"<text>"       { scanNL_cols += yyleng;
                         // change to state TEXT
                         BEGIN(TEXT);
                         text = new ostringstream();
@@ -152,30 +159,30 @@ file		"<file>"[^<]+"</file--->"
                         text->write(yytext, yyleng);
                         }
  */
-<INITIAL>{commentstart} { cols += yyleng;
+<INITIAL>{commentstart} { scanNL_cols += yyleng;
                           BEGIN(COMMENT);
                         }
-<COMMENT>{commentend}   { cols += yyleng;
+<COMMENT>{commentend}   { scanNL_cols += yyleng;
                           BEGIN(INITIAL);
                         }
-<COMMENT>\n             { cols=0;
-                          lines++;
+<COMMENT>\n             { scanNL_cols=0;
+                          scanNL_lines++;
                         }
 
-<COMMENT>.              { cols++;
+<COMMENT>.              { scanNL_cols++;
                         }
 
 
-<TEXT>.|\n              { cols += yyleng;
+<TEXT>.|\n              { scanNL_cols += yyleng;
                           if(yytext[0]=='\n'){
-                             lines++;
-                             cols = 0;
+                             scanNL_lines++;
+                             scanNL_cols = 0;
                           } 
                           text->put( yytext[0] );
                         }
 
 
-<TEXT>"</text--->"      { cols += yyleng;  
+<TEXT>"</text--->"      { scanNL_cols += yyleng;  
                         BEGIN(INITIAL);
                         ListExpr newText = nl->TextAtom();
                         nl->AppendText( newText, text->str() );
@@ -186,7 +193,7 @@ file		"<file>"[^<]+"</file--->"
                         }
 
 
-<INITIAL>{string}       { cols += yyleng;
+<INITIAL>{string}       { scanNL_cols += yyleng;
 			if ( yyleng - 2 > MAX_STRINGSIZE )
 			{
 			  yyleng = MAX_STRINGSIZE + 2;
@@ -200,7 +207,7 @@ file		"<file>"[^<]+"</file--->"
 			return (ZZSTRING);
 		        }
 
-<INITIAL>{symbol}  { cols += yyleng;
+<INITIAL>{symbol}  { scanNL_cols += yyleng;
 		     if ( yyleng > MAX_STRINGSIZE )
 	             {
 	               cmsg.error() << "Symbol " << yytext << " too long!" << endl;
@@ -212,7 +219,7 @@ file		"<file>"[^<]+"</file--->"
                    }
 
 <INITIAL>{file}  { /* files are expanded to base64 encoded text atoms */
-                 cols += yyleng;
+                 scanNL_cols += yyleng;
                  ListExpr newText = nl->TextAtom();
 
                  string fileNameStr(yytext);
@@ -248,15 +255,15 @@ file		"<file>"[^<]+"</file--->"
 		 }
 
 
-<INITIAL>"("   { cols += yyleng;
+<INITIAL>"("   { scanNL_cols += yyleng;
                  return (ZZOPEN);
                }
 
-<INITIAL>")"   { cols += yyleng;
+<INITIAL>")"   { scanNL_cols += yyleng;
                  return (ZZCLOSE);
                }
 
-.              { cols += yyleng;
+.              { scanNL_cols += yyleng;
                  return (ZZERROR); 
                }
 %%
