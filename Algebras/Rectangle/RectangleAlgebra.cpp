@@ -418,12 +418,141 @@ ListExpr Rectangle2TypeMap( ListExpr args )
           if( nl->IsEqual( arg4, "real" ) ) fourthval = nl->IntAtom(1);
           
           typelist = nl->FourElemList(firstval, secondval, thirdval, fourthval);
-          nl->WriteListExpr(typelist);
           
           outlist = nl->ThreeElemList(
                          nl->SymbolAtom("APPEND"), 
                          typelist, 
                          nl->SymbolAtom( "rect" ) );
+          return outlist;
+    }
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+4.1.4 Type mapping function ~rectangle3~
+
+It is used for the ~rectangle3~ operator.
+
+*/
+ListExpr Rectangle3TypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2, arg3, arg4, arg5, arg6, firstval,
+           secondval, thirdval, fourthval, fifthval, sixthval,
+	   outlist, typelist;
+  
+  if( nl->ListLength( args ) == 6 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    arg3 = nl->Third( args );
+    arg4 = nl->Fourth( args );
+    arg5 = nl->Fifth( args );
+    arg6 = nl->Sixth( args );
+  
+    if( (nl->IsEqual( arg1, "real" ) || nl->IsEqual( arg1, "int" )) && 
+        (nl->IsEqual( arg2, "real" ) || nl->IsEqual( arg2, "int" )) &&
+        (nl->IsEqual( arg3, "real" ) || nl->IsEqual( arg3, "int" )) &&
+        (nl->IsEqual( arg4, "real" ) || nl->IsEqual( arg4, "int" )) &&
+	(nl->IsEqual( arg5, "real" ) || nl->IsEqual( arg5, "int" )) &&
+	(nl->IsEqual( arg6, "real" ) || nl->IsEqual( arg6, "int" )) ) {
+        
+          if( nl->IsEqual( arg1, "int" ) ) firstval = nl->IntAtom(0);
+          if( nl->IsEqual( arg1, "real" ) ) firstval = nl->IntAtom(1); 
+          if( nl->IsEqual( arg2, "int" ) ) secondval = nl->IntAtom(0); 
+          if( nl->IsEqual( arg2, "real" ) ) secondval = nl->IntAtom(1); 
+          if( nl->IsEqual( arg3, "int" ) ) thirdval = nl->IntAtom(0); 
+          if( nl->IsEqual( arg3, "real" ) ) thirdval = nl->IntAtom(1); 
+          if( nl->IsEqual( arg4, "int" ) ) fourthval = nl->IntAtom(0); 
+          if( nl->IsEqual( arg4, "real" ) ) fourthval = nl->IntAtom(1);
+          if( nl->IsEqual( arg5, "int" ) ) fifthval = nl->IntAtom(0); 
+          if( nl->IsEqual( arg5, "real" ) ) fifthval = nl->IntAtom(1);
+          if( nl->IsEqual( arg6, "int" ) ) sixthval = nl->IntAtom(0); 
+          if( nl->IsEqual( arg6, "real" ) ) sixthval = nl->IntAtom(1);
+          
+          typelist = nl->SixElemList(firstval, secondval, thirdval, fourthval,
+	                             fifthval, sixthval);
+          
+          outlist = nl->ThreeElemList(
+                         nl->SymbolAtom("APPEND"), 
+                         typelist, 
+                         nl->SymbolAtom( "rect3" ) );
+          return outlist;
+    }
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+4.1.5 Type mapping function ~point2~
+
+It is used for the ~point2~ operator.
+
+*/
+ListExpr Point2TypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2, firstval,
+           secondval, outlist, typelist;
+  
+  if( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+   
+    if( (nl->IsEqual( arg1, "real" ) || nl->IsEqual( arg1, "int" )) && 
+        (nl->IsEqual( arg2, "real" ) || nl->IsEqual( arg2, "int" )) ) {
+        
+          if( nl->IsEqual( arg1, "int" ) ) firstval = nl->IntAtom(0);
+          if( nl->IsEqual( arg1, "real" ) ) firstval = nl->IntAtom(1); 
+          if( nl->IsEqual( arg2, "int" ) ) secondval = nl->IntAtom(0); 
+          if( nl->IsEqual( arg2, "real" ) ) secondval = nl->IntAtom(1); 
+          
+          typelist = nl->TwoElemList(firstval, secondval);
+          
+          outlist = nl->ThreeElemList(
+                         nl->SymbolAtom("APPEND"), 
+                         typelist, 
+                         nl->SymbolAtom( "rect" ) );
+          return outlist;
+    }
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+4.1.5 Type mapping function ~point3~
+
+It is used for the ~point3~ operator.
+
+*/
+ListExpr Point3TypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2, arg3, firstval,
+           secondval, thirdval, outlist, typelist;
+  
+  if( nl->ListLength( args ) == 3 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    arg3 = nl->Third( args );
+   
+    if( (nl->IsEqual( arg1, "real" ) || nl->IsEqual( arg1, "int" )) && 
+        (nl->IsEqual( arg2, "real" ) || nl->IsEqual( arg2, "int" )) &&
+	(nl->IsEqual( arg3, "real" ) || nl->IsEqual( arg3, "int" )) ) {
+        
+          if( nl->IsEqual( arg1, "int" ) ) firstval = nl->IntAtom(0);
+          if( nl->IsEqual( arg1, "real" ) ) firstval = nl->IntAtom(1); 
+          if( nl->IsEqual( arg2, "int" ) ) secondval = nl->IntAtom(0); 
+          if( nl->IsEqual( arg2, "real" ) ) secondval = nl->IntAtom(1);
+          if( nl->IsEqual( arg3, "int" ) ) thirdval = nl->IntAtom(0); 
+          if( nl->IsEqual( arg3, "real" ) ) thirdval = nl->IntAtom(1);  
+          
+          typelist = nl->ThreeElemList(firstval, secondval, thirdval);
+          
+          outlist = nl->ThreeElemList(
+                         nl->SymbolAtom("APPEND"), 
+                         typelist, 
+                         nl->SymbolAtom( "rect3" ) );
           return outlist;
     }
   }
@@ -729,6 +858,208 @@ int Rectangle2ValueMap( Word* args, Word& result, int message,
 }
 
 /*
+4.4.5 Value mapping functions of operator ~rectangle3~
+
+*/
+int Rectangle3ValueMap( Word* args, Word& result, int message, 
+                        Word& local, Supplier s )
+{
+  double min[3];
+  double max[3];
+  int typelist[6];
+  bool args0def, args1def, args2def, args3def, args4def, args5def;
+  
+  result = qp->ResultStorage( s );
+
+  for (int i=0; i <= 5; i++) {      
+    typelist[i] = ((CcInt*)args[6+i].addr)->GetIntval();  
+  }
+  
+  if (typelist[0]==0) args0def = ((CcInt*)args[0].addr)->IsDefined();
+  else args0def = ((CcReal*)args[0].addr)->IsDefined();
+  if (typelist[1]==0) args1def = ((CcInt*)args[1].addr)->IsDefined();
+  else args1def = ((CcReal*)args[1].addr)->IsDefined();
+  if (typelist[2]==0) args2def = ((CcInt*)args[2].addr)->IsDefined();
+  else args2def = ((CcReal*)args[2].addr)->IsDefined();
+  if (typelist[3]==0) args3def = ((CcInt*)args[3].addr)->IsDefined();
+  else args3def = ((CcReal*)args[3].addr)->IsDefined();
+  if (typelist[4]==0) args4def = ((CcInt*)args[4].addr)->IsDefined();
+  else args4def = ((CcReal*)args[4].addr)->IsDefined();
+  if (typelist[5]==0) args5def = ((CcInt*)args[5].addr)->IsDefined();
+  else args5def = ((CcReal*)args[5].addr)->IsDefined();
+  
+  if ( args0def && args1def && args2def && args3def && args4def && args5def)
+  {  
+    if (typelist[0]==0) min[0] = (double)(((CcInt*)args[0].addr)->GetValue());
+    else min[0] = ((CcReal*)args[0].addr)->GetValue();
+    if (typelist[2]==0) min[1] = (double)(((CcInt*)args[2].addr)->GetValue());
+    else min[1] = ((CcReal*)args[2].addr)->GetValue();
+    if (typelist[4]==0) min[2] = (double)(((CcInt*)args[4].addr)->GetValue());
+    else min[2] = ((CcReal*)args[4].addr)->GetValue();
+    if (typelist[1]==0) max[0] = (double)(((CcInt*)args[1].addr)->GetValue());
+    else max[0] = ((CcReal*)args[1].addr)->GetValue();
+    if (typelist[3]==0) max[1] = (double)(((CcInt*)args[3].addr)->GetValue());
+    else max[1] = ((CcReal*)args[3].addr)->GetValue();
+    if (typelist[5]==0) max[2] = (double)(((CcInt*)args[5].addr)->GetValue());
+    else max[2] = ((CcReal*)args[5].addr)->GetValue();
+    
+    if ( (min[0] <= max[0]) && (min[1] <= max[1]) && (min[2] <= max[2]))
+      ((Rectangle<3> *)result.addr)->Set( true, min, max );
+    else
+    {
+      cerr << "Value list must be of kind (minx, maxx, miny, maxy, "
+              "minz, maxz)!\nValue list is: (" << min[0] << ", " << max[0] 
+              << ", " << min[1] << ", " << max[1] << ", " 
+	      << min[2] << ", " << max[2] <<")" << endl;
+      assert(false);
+    }
+  }
+  else
+  {
+    ((Rectangle<3> *)result.addr)->Set( false, min, max );
+  }
+  return (0);
+}
+
+/*
+4.4.6 Value mapping functions of operator ~point2~
+
+*/
+int Point2ValueMap( Word* args, Word& result, int message, 
+                    Word& local, Supplier s )
+{
+  double min[2];
+  double max[2];
+  int typelist[2];
+  bool args0def, args1def;
+  
+  result = qp->ResultStorage( s );
+
+  for (int i=0; i <= 1; i++) {      
+    typelist[i] = ((CcInt*)args[2+i].addr)->GetIntval();  
+  }
+  
+  if (typelist[0]==0) args0def = ((CcInt*)args[0].addr)->IsDefined();
+  else args0def = ((CcReal*)args[0].addr)->IsDefined();
+  if (typelist[1]==0) args1def = ((CcInt*)args[1].addr)->IsDefined();
+  else args1def = ((CcReal*)args[1].addr)->IsDefined();
+  
+  if ( args0def && args1def )
+  {  
+    if (typelist[0]==0) {
+      min[0] = (double)(((CcInt*)args[0].addr)->GetValue());
+      max[0] = (double)(((CcInt*)args[0].addr)->GetValue());
+    }
+    else 
+    {
+      min[0] = ((CcReal*)args[0].addr)->GetValue();
+      max[0] = ((CcReal*)args[0].addr)->GetValue();
+    }
+    
+    if (typelist[1]==0) {
+      min[1] = (double)(((CcInt*)args[1].addr)->GetValue());
+      max[1] = (double)(((CcInt*)args[1].addr)->GetValue());
+    }
+    else 
+    {
+      min[1] = ((CcReal*)args[1].addr)->GetValue();
+      max[1] = ((CcReal*)args[1].addr)->GetValue();
+    }
+    
+    if ( (min[0] <= max[0]) && (min[1] <= max[1]) )
+      ((Rectangle<2> *)result.addr)->Set( true, min, max );
+    else
+    {
+      cerr << "Value list must be of kind (x, y)!\n" 
+              "Value list is: (" << min[0] << ", " << max[0] 
+              << ", " << min[1] << ", " << max[1] << ")" << endl;
+      assert(false);
+    }
+  }
+  else
+  {
+    ((Rectangle<2> *)result.addr)->Set( false, min, max );
+  }
+  return (0);
+}
+
+/*
+4.4.6 Value mapping functions of operator ~point3~
+
+*/
+int Point3ValueMap( Word* args, Word& result, int message, 
+                    Word& local, Supplier s )
+{
+  double min[3];
+  double max[3];
+  int typelist[3];
+  bool args0def, args1def, args2def;
+  
+  result = qp->ResultStorage( s );
+
+  for (int i=0; i <= 2; i++) {      
+    typelist[i] = ((CcInt*)args[3+i].addr)->GetIntval();  
+  }
+  
+  if (typelist[0]==0) args0def = ((CcInt*)args[0].addr)->IsDefined();
+  else args0def = ((CcReal*)args[0].addr)->IsDefined();
+  if (typelist[1]==0) args1def = ((CcInt*)args[1].addr)->IsDefined();
+  else args1def = ((CcReal*)args[1].addr)->IsDefined();
+  if (typelist[2]==0) args2def = ((CcInt*)args[2].addr)->IsDefined();
+  else args2def = ((CcReal*)args[2].addr)->IsDefined();
+  
+  if ( args0def && args1def && args2def )
+  {  
+    if (typelist[0]==0) {
+      min[0] = (double)(((CcInt*)args[0].addr)->GetValue());
+      max[0] = (double)(((CcInt*)args[0].addr)->GetValue());
+    }
+    else 
+    {
+      min[0] = ((CcReal*)args[0].addr)->GetValue();
+      max[0] = ((CcReal*)args[0].addr)->GetValue();
+    }
+    
+    if (typelist[1]==0) {
+      min[1] = (double)(((CcInt*)args[1].addr)->GetValue());
+      max[1] = (double)(((CcInt*)args[1].addr)->GetValue());
+    }
+    else 
+    {
+      min[1] = ((CcReal*)args[1].addr)->GetValue();
+      max[1] = ((CcReal*)args[1].addr)->GetValue();
+    }
+
+    if (typelist[2]==0) {
+      min[2] = (double)(((CcInt*)args[2].addr)->GetValue());
+      max[2] = (double)(((CcInt*)args[2].addr)->GetValue());
+    }
+    else 
+    {
+      min[2] = ((CcReal*)args[2].addr)->GetValue();
+      max[2] = ((CcReal*)args[2].addr)->GetValue();
+    }
+    
+    if ( (min[0] <= max[0]) && (min[1] <= max[1]) && (min[2] <= max[2]))
+      ((Rectangle<3> *)result.addr)->Set( true, min, max );
+    else
+    {
+      cerr << "Value list must be of kind (x, y)!\n" 
+              "Value list is: (" << min[0] << ", " << max[0] 
+              << ", " << min[1] << ", " << max[1] << ", " 
+	      << min[2] << ", " << max[2] <<")" << endl;
+      assert(false);
+    }
+  }
+  else
+  {
+    ((Rectangle<3> *)result.addr)->Set( false, min, max );
+  }
+  return (0);
+}
+
+
+/*
 4.5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -774,6 +1105,12 @@ ValueMapping rectangleintersectionmap[] = { RectangleIntersection<2>,
                                             RectangleIntersection<4> };
                                             
 ValueMapping rectanglerectangle2map[] = { Rectangle2ValueMap };
+
+ValueMapping rectanglerectangle3map[] = { Rectangle3ValueMap };
+
+ValueMapping rectanglepoint2map[] = { Point2ValueMap };
+
+ValueMapping rectanglepoint3map[] = { Point3ValueMap };
 
 /*
 4.5.2 Definition of specification strings
@@ -855,6 +1192,38 @@ const string RectangleSpecRectangle2  =
         "(minx, maxx, miny, maxy).</text--->"
         ") )";
 
+const string RectangleSpecPoint2  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+        "( <text>(int||real) x (int||real) -> rect</text--->"
+        "<text>point2( _, _)</text--->"
+        "<text>creates a rect from the given parameters.</text--->"
+        "<text>query point2(17, 24.3)</text--->"
+        "<text>The sequence of parameters must be "
+        "(x, y).</text--->"
+        ") )";
+
+const string RectangleSpecPoint3  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+        "( <text>(int||real) x (int||real) x (int||real) -> rect</text--->"
+        "<text>point3( _, _, _)</text--->"
+        "<text>creates a rect3 from the given parameters.</text--->"
+        "<text>query point3(17, 24.3, 6.72)</text--->"
+        "<text>The sequence of parameters must be "
+        "(x, y, z).</text--->"
+        ") )";
+	
+const string RectangleSpecRectangle3  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+        "( <text>(int||real) x (int||real) x (int||real) x"
+        " (int||real)  x (int||real) x (int||real) -> rect3</text--->"
+        "<text>rectangle3( _, _, _, _, _, _)</text--->"
+        "<text>creates a rect3 from the given parameters.</text--->"
+        "<text>query rectangle3(17, 24, 12.0, 13.1, 4.41, 6.18)</text--->"
+        "<text>The sequence of parameters must be "
+        "(minx, maxx, miny, maxy, minz, maxz).</text--->"
+        ") )";
+
+
 /*
 4.5.3 Definition of the operators
 
@@ -921,6 +1290,27 @@ Operator rectanglerectangle2( "rectangle2",
                              rectanglerectangle2map,
                              Operator::SimpleSelect,
                              Rectangle2TypeMap );
+			     
+Operator rectanglerectangle3( "rectangle3",
+                             RectangleSpecRectangle3,
+                             1,
+                             rectanglerectangle3map,
+                             Operator::SimpleSelect,
+                             Rectangle3TypeMap );
+
+Operator rectanglepoint2( "point2",
+                          RectangleSpecPoint2,
+                          1,
+                          rectanglepoint2map,
+                          Operator::SimpleSelect,
+                          Point2TypeMap );
+
+Operator rectanglepoint3( "point3",
+                          RectangleSpecPoint3,
+                          1,
+                          rectanglepoint3map,
+                          Operator::SimpleSelect,
+                          Point3TypeMap );
 
 /*
 5 Creating the Algebra
@@ -949,6 +1339,9 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectangleintersection );
     AddOperator( &rectangletranslate );
     AddOperator( &rectanglerectangle2 );
+    AddOperator( &rectanglerectangle3 );
+    AddOperator( &rectanglepoint2 );
+    AddOperator( &rectanglepoint3 );
   }
   ~RectangleAlgebra() {};
 };
