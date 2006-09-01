@@ -33,6 +33,8 @@ For a description of the public interface see the ~SocketIO~ header file.
 
 */
 
+#include "SecondoConfig.h"
+
 #if defined(__svr4__)
 #define mutex system_mutex
 #define socklen_t int
@@ -41,7 +43,7 @@ For a description of the public interface see the ~SocketIO~ header file.
 #endif
 #endif 
 
-#ifdef SECONDO_LINUX
+#ifdef SECONDO_UNIX
 #include <sys/ioctl.h>
 #else
 #include <stropts.h>
@@ -104,7 +106,8 @@ Socket::IsLibraryInitialized()
 1.1 Global and Local Unix Sockets
 
 */
-UnixSocket::UnixSocket( const string& addr, const string& port, const SocketDomain domain )
+UnixSocket::UnixSocket( const string& addr, 
+                        const string& port, const SocketDomain domain )
 { 
   hostAddress    = addr;
   hostPort       = port;
@@ -156,7 +159,8 @@ UnixSocket::~UnixSocket()
 }
 
 bool
-UnixSocket::Open( const int listenQueueSize, const int sockType, const int flags )
+UnixSocket::Open( const int listenQueueSize, 
+                  const int sockType, const int flags )
 {
   union
   {
@@ -231,7 +235,8 @@ UnixSocket::Open( const int listenQueueSize, const int sockType, const int flags
   else if ( flags & ENABLE_BROADCAST )
   {
     int enabled = 1;
-    setsockopt( fd, SOL_SOCKET, SO_BROADCAST, (char*) &enabled, sizeof(enabled) );
+    setsockopt( fd, SOL_SOCKET, SO_BROADCAST, 
+                (char*) &enabled, sizeof(enabled) );
   }    
   lastError = EC_OK;
   state = SS_OPEN;
@@ -634,7 +639,8 @@ UnixSocket::Write( void const* buf, size_t size )
   do
   {
     ssize_t rc; 
-    while ( (rc = ::write( fd, buf, size )) < 0 && errno == EINTR ) { usleep(100); sleepCtr++; };
+    while ( (rc = ::write( fd, buf, size )) < 0 && errno == EINTR ) 
+    { usleep(100); sleepCtr++; };
     if ( rc < 0 )
     {
       cerr << "Lasterror = " << errno << endl;
@@ -661,7 +667,8 @@ UnixSocket::Write( void const* buf, size_t size )
 
   LOGMSG( "Socket:SendStat",
     if ( writeAttempts || sleepCtr ) {
-      cerr << "Write Attempts: " << writeAttempts << ", " << "Sleep calls (100ms): " << sleepCtr << endl;
+      cerr << "Write Attempts: " << writeAttempts 
+           << ", " << "Sleep calls (100ms): " << sleepCtr << endl;
     } 
   )
   return (true);
@@ -726,7 +733,8 @@ Socket::CreateLocal( const string& address, const int listenQueueSize )
 }
 
 Socket*
-Socket::CreateGlobal( const string& address, const string& port, const int listenQueueSize )
+Socket::CreateGlobal( const string& address, 
+                      const string& port, const int listenQueueSize )
 {
   UnixSocket* sock = new UnixSocket( address, port, SockGlobalDomain );
   sock->Open( listenQueueSize, SOCK_STREAM );

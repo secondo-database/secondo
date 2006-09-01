@@ -136,10 +136,23 @@ used.
 #    define SMI_EXPORT
 #  endif
 /*
-1.1.1 Linux
+1.1.1 Unix 
 
 */
-#elif defined(__linux__)
+#elif defined(__unix__)
+#  define SECONDO_UNIX
+/*
+Creating shared libraries requires no special measures.
+
+*/
+#  define SDB_EXPORT
+#  define SMI_EXPORT
+/*
+
+1.1.2 Linux 
+
+*/
+#if defined(__linux__)
 #  define SECONDO_LINUX
 /*
 Creating shared libraries requires no special measures.
@@ -147,11 +160,13 @@ Creating shared libraries requires no special measures.
 */
 #  define SDB_EXPORT
 #  define SMI_EXPORT
+#endif 
 /*
-1.1.1 Solaris
+
+1.1.3 Solaris
 
 */
-#elif defined(unix) && defined(sun)
+#if defined(unix) && defined(sun)
 #  define SECONDO_SOLARIS
 /*
 Creating shared libraries requires no special measures.
@@ -159,6 +174,22 @@ Creating shared libraries requires no special measures.
 */
 #  define SDB_EXPORT
 #  define SMI_EXPORT
+#endif
+/*
+
+1.1.4 Mac OS X 
+
+*/
+#if defined(__apple__)
+#  define SECONDO_MAC_OSX
+/*
+Creating shared libraries requires no special measures.
+
+*/
+#  define SDB_EXPORT
+#  define SMI_EXPORT
+#endif
+ 
 #else
 #  error Could not identify the operating system
 #endif
@@ -206,8 +237,6 @@ Default includes:
   * stdint.h -- defines standard integer types
 (alternatively ~inttypes.h~ could be used where ~stdint.h~ is not available).
 
-  * string -- defines the C++ string data type.
-
 */
 
 #ifndef SECONDO_SOLARIS
@@ -215,7 +244,6 @@ Default includes:
 #else
 #include <inttypes.h>
 #endif
-#include <string>
 
 #endif // SECONDO_CONFIG_H
 
