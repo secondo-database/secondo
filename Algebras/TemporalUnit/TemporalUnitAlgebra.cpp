@@ -171,7 +171,8 @@ extern AlgebraManager* am;
 #include "DateTime.h"
 using namespace datetime;
 
-bool TUA_DEBUG = true; // Set to true to activate debugging code
+bool TUA_DEBUG = false; // Set to true to activate debugging code
+//bool TUA_DEBUG = true; // Set to true to activate debugging code
 
 /*
 2.1 Definition of some constants
@@ -5418,7 +5419,7 @@ const string TemporalSpecAtmax =
   "<text> atmax( _ )</text--->"
   "<text>Restricts a the unittype value to the time where "
   "it takes it's maximum value.\n"
-  "Observe, that for type 'ureal', the result is a '(stream ureal)'"
+  "Observe, that for type 'ureal', the result is a '(stream ureal)' "
   "rather than a 'ureal'!</text--->"
   "<text>atmax( ureal1 )</text--->"
   ") )";
@@ -5992,44 +5993,52 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
   switch ( message )
     {
     case OPEN:
+      if (TUA_DEBUG) cout << "Transformstream_TS_S: OPEN called" << endl;
       qp->Open( args[0].addr );
       sli = new TransformstreamLocalInfo;
       sli->finished = false;
       local = SetWord(sli);
+      if (TUA_DEBUG) cout << "Transformstream_TS_S: OPEN finished" << endl;
       return 0;
 
     case REQUEST:
+      if (TUA_DEBUG) cout << "Transformstream_TS_S: REQUEST called" << endl;
       if (local.addr == 0)
-	return CANCEL;
+	{
+	  if (TUA_DEBUG) cout 
+	    << "Transformstream_TS_S: REQUEST return CANCEL (1)" << endl;
+	  return CANCEL;
+	}
       
       sli = (TransformstreamLocalInfo*) (local.addr);
       if (sli->finished)
-	return CANCEL;
+	{
+	  if (TUA_DEBUG) cout 
+	    << "Transformstream_TS_S: REQUEST return CANCEL (2)" << endl;
+	  return CANCEL;
+	}
 
-      result = SetWord((StandardAttribute*)((qp->ResultStorage(s)).addr));
-
-      cout << "cp 0" << endl;
       qp->Request( args[0].addr, tuple );
       if (!qp->Received( args[0].addr ))
 	{ // input stream consumed
 	  qp->Close( args[0].addr );
 	  sli->finished = true;
 	  result.addr = 0;
+	  if (TUA_DEBUG) cout 
+	    << "Transformstream_TS_S: REQUEST return CANCEL (3)" << endl;
 	  return CANCEL;
 	}
       // extract, copy and pass value, delete tuple
-      cout << "cp 1" << endl;
       tupleptr = (Tuple*)tuple.addr;
-      cout << "cp 2 result.addr=" << result.addr << endl;
-      ((StandardAttribute*)(result.addr))
-         ->CopyFrom((const StandardAttribute*)tupleptr->GetAttribute(0));
-      cout << "cp 3" << endl;
+      (Attribute*)(result.addr) = tupleptr->GetAttribute(0)->Clone();
       tupleptr->DeleteIfAllowed();
-      cout << "cp 4" << endl;
-
+      if (TUA_DEBUG) cout 
+	    << "Transformstream_TS_S: REQUEST return YIELD" << endl;
       return YIELD;	  
 
     case CLOSE:
+
+      if (TUA_DEBUG) cout << "Transformstream_TS_S: CLOSE called" << endl;
       if (local.addr != 0)
 	{
 	  sli = (TransformstreamLocalInfo*) (local.addr);
@@ -6037,6 +6046,7 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
 	    qp->Close( args[0].addr );
 	  delete sli;
 	}
+      if (TUA_DEBUG) cout << "Transformstream_TS_S: CLOSE finished" << endl;
       return 0;
 
     }
@@ -6132,23 +6142,23 @@ class TemporalUnitAlgebra : public Algebra
    AddOperator( &temporalunitpoint2d );
    AddOperator( &temporalcircle );
    AddOperator( &temporalmakepoint );
-   AddOperator( &temporalspeed );
-   AddOperator( &temporalunitsize );
-   AddOperator( &temporalunittrajectory );
    AddOperator( &temporalunitdeftime );
-   AddOperator( &temporalunitatinstant );
-   AddOperator( &temporalunitatperiods );
+   AddOperator( &temporalunitpresent );
    AddOperator( &temporalunitinitial );
    AddOperator( &temporalunitfinal );
-   AddOperator( &temporalunitpresent );
-   AddOperator( &temporalunitpasses );
+   AddOperator( &temporalunitatinstant );
+   AddOperator( &temporalunitatperiods );
    AddOperator( &temporalunitat );
+   AddOperator( &temporalunitatmax );
+   AddOperator( &temporalunitpasses );
+   AddOperator( &temporalunitsize );
+   AddOperator( &temporalunittrajectory );
+   AddOperator( &temporalunitdistance );
+   AddOperator( &temporalspeed );
    AddOperator( &temporalvelocity );
    AddOperator( &temporalderivable );
    AddOperator( &temporalderivative );
-   AddOperator( &temporalunitatmax );
-   AddOperator( &temporalunitat );
-   AddOperator( &temporalunitdistance );
+
   }
   ~TemporalUnitAlgebra() {};
 };
