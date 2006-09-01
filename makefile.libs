@@ -34,7 +34,7 @@ LIB_SDBTOOL_BASENAMES:=\
 	Tools/Parser/SecLex \
 	Tools/Parser/SecParser \
 	Tools/Parser/SecParser.tab \
-	Tools/Parser/NestedText
+	Tools/Parser/SpecParser/NestedText
 
 #libsdbutils
 LIB_SDBUTILS_BASENAMES:=\

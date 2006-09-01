@@ -192,11 +192,13 @@ NestedText::CopyList( Cardinal list, string& target )
     Cardinal firstBlock  = nodeSpace[list].atom / TEXTNODE_SIZE + 1;
     Cardinal startOffset = nodeSpace[list].atom % TEXTNODE_SIZE;
     Cardinal totalLength = nodeSpace[list].length;
-    Cardinal lastBlock   = (nodeSpace[list].atom+totalLength) / TEXTNODE_SIZE + 1;
+    Cardinal lastBlock = 
+                  (nodeSpace[list].atom+totalLength) / TEXTNODE_SIZE + 1;
     Cardinal endOffset   = (nodeSpace[list].atom+totalLength) % TEXTNODE_SIZE;
     for ( i = firstBlock; i < lastBlock; i++ )
     {
-      target.append( &textSpace[i].text[startOffset], TEXTNODE_SIZE-startOffset );
+      target.append( &textSpace[i].text[startOffset], 
+                     TEXTNODE_SIZE-startOffset        );
       totalLength -= (TEXTNODE_SIZE-startOffset);
       startOffset = 0;
     }

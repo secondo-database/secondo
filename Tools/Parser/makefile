@@ -54,13 +54,20 @@ GENFILES := $(SCANNER_DEF) $(PARSER_DEF) $(TOKEN_DEF) $(SCANNER) $(PARSER) \
 CC := g++
 CCFLAGS = $(DEFAULTCCFLAGS)
 
-all: $(GENFILES) $(OBJECTS) 
+all: subdir1 subdir2 $(GENFILES) $(OBJECTS)
 
-SpecParser/Parser$(PARSEREXT):
+.PHONY: subdir1
+subdir1:
 	$(MAKE) -C SpecParser
 
-../../Algebras/specs:
+.PHONY: subdir2
+subdir2:
 	$(MAKE) -C ../../Algebras specs
+
+
+SpecParser/Parser$(PARSEREXT): subdir1
+
+../../Algebras/specs: subdir2
 
 SecLex.cpp: SecLex.l
 	$(LEX) -d -+ -o$@ -Pxx $<
