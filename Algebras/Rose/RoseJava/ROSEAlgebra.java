@@ -18,15 +18,15 @@ import java.io.*;
 
 
 /**
- * The ROSEAlgebra class implements a lot of static operations for the ROSE's data types Points, Lines and Regions.
+ * The ROSEAlgebra class implements the operations for the ROSE's data types Points, Lines and Regions.
  * The algebra itself was invented and described in two papers <p><ul>
  * <li>R.H. Güting and M. Schneider, Realm-Based Spatial Data Types: The ROSE Algebra. VLDB Journal 4 (1995), 100-143.
  * <li>R.H. Güting, Th. de Ridder, and M. Schneider, Implementation of the ROSE Algebra: Efficient Algorithms for Realm-Based Spatial Data Types. Proc. of the 4th Intl. Symposium on Large Spatial Databases (Portland, August 1995), 216-239
  * </ul><p>
- * This implementation of the ROSE algebra and its data types uses the 2D-SACK approach. That appraoch was evented by Dirk Ansorge
- * and R.H. Güting. It shows how simplices and operations on them together with some tricky set operations can be used
- * to re-implement the hole ROSE algebra which usually is implemented using plane-sweep algorithms. Those algorithms generally are
- * very complex and hard to implement. Mostly, extension cannot be made or are very difficult to implement.
+ * This implementation of the ROSE algebra and its data types (presented in the classes Points, Lines, Regions)
+ * uses the 2D-SACK approach. That approach was invented by Dirk Ansorge
+ * and R.H. Güting. It shows how simplices and operations on them together with some generic set operations can be used
+ * to reimplement the ROSE algebra.
  * <p>
  * This work is part of the Ph.D. thesis of Dirk Ansorge.
  * <p>
@@ -93,7 +93,7 @@ public class ROSEAlgebra {
      * methods
      */
     /**
-     * This is a supportive method for ll_intersects and rr_intersects.
+     * A supportive method - not part of the ROSE algebra.
      * It returns <tt>true</tt> if elements of both sets intersect. The <tt>pintersects</tt> method of the elements is used for this
      * predicate.
      *
@@ -123,9 +123,9 @@ public class ROSEAlgebra {
     }//end method intersects
 
 
-    /*************************************************************
-     * the following operations are the original ROSE operations *
-     ************************************************************/
+    /******************************************************************
+     * the following operations are part of the original ROSE algebra *
+     ******************************************************************/
 
     /**
      * Returns <tt>true</tt> if both Points values are equal.
@@ -175,7 +175,8 @@ public class ROSEAlgebra {
     public static boolean rr_equal (Regions r1, Regions r2) {
 	if (!r1.rect().hasCommonPoints(r2.rect())) return false;
 	try {
-	    return ll_equal(new Lines(SupportOps.contour(r1.triset,true,false)),new Lines(SupportOps.contour(r2.triset,true,false)));
+	    return ll_equal(r1.border(),r2.border());
+	    //return ll_equal(new Lines(SupportOps.contour(r1.triset,true,false)),new Lines(SupportOps.contour(r2.triset,true,false)));
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_equal. Returning false by default.");
@@ -535,17 +536,6 @@ public class ROSEAlgebra {
 	    e.printStackTrace();
 	    throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
 	}//catch
-
-	/* OLD IMPLEMENTATION
-	   if (!l1.rect().hasCommonPoints(l2.rect())) return false;
-	   try {
-	   return intersects(l1.segset,l2.segset);
-	   } catch (Exception e) {
-	   e.printStackTrace();
-	   System.out.println("There was an error when trying to execute ROSEAlgebra.ll_intersects. Returning false by default.");
-	   throw new RoseAlgebraError("An error occurred during the execution of the RoseAlgebra operation.");
-	   }//catch
-	*/
     }//end method ll_intersects
   
 
@@ -566,7 +556,7 @@ public class ROSEAlgebra {
 	    //In that case, the result would be FALSE, even if the lines object overlaps the inner
 	    //borders and the correct answer would we TRUE. Therefore, first all segments which
 	    //overlap the border are removed from the set. Afterwards, all segments, that
-	    //are covered by triangles are truely intersecting.
+	    //are covered by triangles are truely intersecting. This is described in the old implementation.
 	    /* OLD IMPLEMENTATION
 	       Method mPINTERSECTS = ST_OPS_CLASS.getMethod("pintersects",PARAMLIST_ST);
 	       retSet = SetOps.overlapJoin(l.segset,r.triset,mPINTERSECTS,false,true,false,0);
@@ -735,7 +725,6 @@ public class ROSEAlgebra {
 	    
 	    return (retSet.size()) == 0 && ll_meets(new Lines(SupportOps.contour(r1.triset,false,false)),
 						    new Lines(SupportOps.contour(r2.triset,false,false)));
-	    //return (retSet.size()) == 0 && ll_meets(r_contour(r1),r_contour(r2));
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.rr_meets. Returning false by default.");
@@ -994,13 +983,11 @@ public class ROSEAlgebra {
      * @return the intersection of <tt>p1,p2</tt>
      */
     public static Points pp_intersection (Points p1, Points p2) {
-	System.out.println("java: p1("+p1.pointset.size()+", "+p2.pointset.size()+")");
 	if (!p1.rect().hasCommonPoints(p2.rect())) return new Points();
 	try {
 	    PointMultiSet retSet = null;
 	    
 	    retSet = PointMultiSet.convert(SetOps.intersection(p1.pointset,p2.pointset));
-	    System.out.println("retsize: "+retSet.size());
 	    return new Points(retSet);
 	} catch (Exception e) {
 	    e.printStackTrace();
@@ -1113,7 +1100,7 @@ public class ROSEAlgebra {
      * @return the union of <tt>l1,l2</tt>
      */
     public static Lines ll_plus (Lines l1, Lines l2) {
-	//Explanations for ll_plus: This operation cannot be implemented similar to ll_minus.
+	//Explanation for ll_plus: This operation cannot be implemented similar to ll_minus.
 	//The reason is that a segment l1 of L can overlap two segments m1,m2 of M. When
 	//using the same mechanism, we would get two overlapping segments in the returned set
 	//from Segment.plus. Therefore, we choose another algorithm:
@@ -1363,7 +1350,8 @@ public class ROSEAlgebra {
      */
     public static Points r_vertices (Regions r) {
 	try {
-	    return l_vertices(new Lines(SupportOps.contour(r.triset,true,true)));
+	    //return l_vertices(new Lines(SupportOps.contour(r.triset,true,true)));
+	    return l_vertices(r.border());
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("There was an error when trying to execute ROSEAlgebra.r_vertices. Returning empty Points value.");

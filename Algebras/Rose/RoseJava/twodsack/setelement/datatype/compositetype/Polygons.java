@@ -2532,6 +2532,7 @@ public class Polygons extends Element implements Serializable {
 	TriMultiSet resultSet = new TriMultiSet(new TriangleComparator());
 	Iterator it = polCLL.iterator();
 	CycleList actCycleList;
+
 	MeshGenerator myMG = new MeshGenerator();
 
 	while (it.hasNext()) {
@@ -2548,7 +2549,17 @@ public class Polygons extends Element implements Serializable {
 	    }//else
 
 	}//while
-	
+
+	/* Un-comment this to view the result of the triangulation algorithm!	
+	  DisplayGFX gfx = new DisplayGFX();	      
+	  gfx.initWindow();
+	  gfx.addSet(resultSet);
+	  gfx.showIt(false);
+	  try { int data = System.in.read(); }
+	  catch (Exception f) { System.exit(0); }
+	  gfx.kill();
+	*/
+
 	return resultSet;
     }//end method computeMesh
 

@@ -77,7 +77,7 @@ public class SetOps {
     
     /**
      * Separates the passed PairMultiSet and returns the elements in the two passed ElemMultiSet(s).
-     * Both passed sets <tt>ems1,ems2<tt> are cleared before adding new elements.
+     * Both passed sets <tt>ems1,ems2</tt> are cleared before adding new elements.
      *
      * @param pms the set that is separated
      * @param ems1 all first elements are stored in this set
@@ -731,10 +731,10 @@ public class SetOps {
     
     
     /**
-     * Invokes the passed method on every pairs of elements in every entry of <tt>ljpl</tt>.
-     * An entry the passed <tt>ljpl</tt> has the form <tt>(Element x ElemMultiSet)</tt>. Now, let the ElemMultiSet be <tt>(l1, l2 ... ln)</tt>.
+     * Invokes the passed method on each pair of elements in every entry of <tt>ljpl</tt>.
+     * An entry of the passed <tt>ljpl</tt> has the form <tt>(Element x ElemMultiSet)</tt>. Now, let the ElemMultiSet be <tt>(l1, l2 ... ln)</tt>.
      * Then, using the passed method <tt>subtractSets</tt> computes from such a pair <tt>(Element x (l1, l2 ... ln))</tt> a new pair
-     * <tt>(method(Element,l1), method(Element,l2) ... method(Element,ln))</tt>.<p>
+     * <tt>(element x (method(Element,l1), method(Element,l2) ... method(Element,ln)))</tt>.<p>
      * The method must have the signature <code>Element x Element -> Element</code> or
      * <code>Element x Element -> ElemMultiSet</code>.
      *
@@ -1183,7 +1183,7 @@ public class SetOps {
     
     /**
      * This map method invokes the <tt>secMethod</tt> on pairs of elements of <tt>ljpl</tt> for which the <tt>predicate</tt> holds.<p>
-     * The <tt>mainMethod</tt> itself must be a set operation with the signature <code>Element x ElemMultiSet x predicate
+     * The <tt>mainMethod</tt> itself must be a set operation with the signature <code>ElemMultiSet x ElemMultiSet x predicate
      * x secMethod -> ElemMultiSet</code>. Such a method can be found in this class.
      * Then, this map operation only splits every entry of <tt>ljpl</tt> and calls
      * <tt>mainMethod</tt> with the two objects of the entry and the parameters <tt>predicate</tt> and <tt>secMethod</tt>.<p>
@@ -1201,8 +1201,6 @@ public class SetOps {
 	Object[] paramListMM = new Object[4];
 
 	ElemMultiSet paramList1 = new ElemMultiSet(ELEM_COMPARATOR);
-
-	int count = 0;
 
 	Iterator lit = ljpl.iterator();
 	LeftJoinPair actLjp;
@@ -1407,7 +1405,7 @@ public class SetOps {
      * For every pair <tt>(Element x ElemMultiSet)</tt> of <tt>ljpMS</tt> the method is invoked on that pair if the predicate holds.
      * The predicate may be <tt>NULL</tt>. If so, it is assumed, that the predicate holds for all pairs of <tt>ljpMS</tt>. Then, the
      * method is invoked on all entries with no further checks.<p>
-     * For every {@link LeftJoinPair}, the <tt>methody</tt> is invoked on that pair, if the <tt>predicate</tt> holds (if not <tt>NULL</tt>). Then, the
+     * For every {@link LeftJoinPair}, the <tt>method</tt> is invoked on that pair, if the <tt>predicate</tt> holds (if not <tt>NULL</tt>). Then, the
      * result of the method invocation is stored in <tt>LeftJoinPair.elemSet</tt>, i.e. it replaces the original
      * <tt>ElemMultiSet</tt>. The first argument of the method (the <tt>Element</tt>) remains unchanged.<p>
      * The allowed signature for predicate is <code>Element x ElemMultiSet -> boolean</code>. The method must have
@@ -2141,7 +2139,7 @@ public class SetOps {
 	    }//if
 	} catch (Exception e) {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
-	    System.out.println("Error in SetOps.subtractSets: can't examine method.");
+	    System.out.println("Error in SetOps.map: can't examine method.");
 	    e.printStackTrace();
 	    throw new RuntimeException("An error occurred in the ROSEAlgebra.");
 	}//catch
@@ -2451,6 +2449,7 @@ public class SetOps {
      * @throws NoOverlappingBoxFoundException
      */
     public static PairMultiSet overlappingPairs(ElemMultiSet el1, ElemMultiSet el2, boolean sameSet, boolean meet, boolean bboxFilter, boolean earlyExit, int setNumber) throws NoOverlappingBoxFoundException {
+
 	PairMultiSet pairs = new PairMultiSet(new ElemPairComparator());
 		
 	if (el1.isEmpty() || el2.isEmpty()) return pairs;
@@ -2488,7 +2487,7 @@ public class SetOps {
 	int idx1 = 0;
 	int idx2 = ivlArr.length-1;
 	ResultList rl = computeOverlaps(intStore,inlist,sameSet,el1.size(),pairList,ivlArr,idx1,idx2);
-	
+
 	return pairList;
     }//end method overlappingPairs
     

@@ -366,6 +366,8 @@ public class Regions implements Serializable{
     
     /**
      * Returns the Regions' border as a Lines object.
+     * Note, that the border is computed using the SupportOps.contour operations with <tt>minimal = true</tt>
+     * and <tt>handleCycles = true</tt>.
      *
      * @return the border
      */

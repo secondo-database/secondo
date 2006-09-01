@@ -499,11 +499,33 @@ public class SupportOps {
 	    boolean earlyExit = false;
 	    int setNumber = 0;
 
+	    double mill1 = System.currentTimeMillis();
+
 	    LeftJoinPairMultiSet ljpMS = SetOps.overlapLeftOuterJoin(tl1,tl2,m1,meet,bboxFilter,earlyExit,setNumber);
+
+	    double mill2 = System.currentTimeMillis();
+
 	    ljpMS = SetOps.map(ljpMS,null,m4);
+
+	    double mill3 = System.currentTimeMillis();
+
 	    SegMultiSet retSetS = SegMultiSet.convert(SetOps.rdup2(SetOps.collect(ljpMS)));
+
+	    double mill4 = System.currentTimeMillis();
+
 	    retSetS = minimal(retSetS,true,false,true);
+
+	    double mill5 = System.currentTimeMillis();
+
 	    retSet = Polygons.computeMesh(retSetS,true);
+
+	    double mill6 = System.currentTimeMillis();
+	    System.out.println("SupportOps.minus: ");
+	    System.out.println("time for overlapLeftOuterJoin: "+((mill2-mill1)/1000)+" s");
+	    System.out.println("time for map: "+((mill3-mill2)/1000)+" s");
+	    System.out.println("time for convert/rdup2/collect: "+((mill4-mill3)/1000)+" s");
+	    System.out.println("time for minimal: "+((mill5-mill3)/1000)+" s");
+	    System.out.println("time for computMesh: "+((mill6-mill5)/1000)+" s");
 	}//try
 	catch (Exception e) {
 	    System.out.println("Exception was thrown in ROSEAlgebra.minus(TriMultiSet,TriMultiSet):");
@@ -588,7 +610,7 @@ public class SupportOps {
 
 	/**
 	 * The following implementation can be used to apply some kind of filtering mechanism on the triangle sets.
-	 * If used, both sets are traversed first to find the faces of the regions. After that, those faces are
+	 * If used, both sets are traversed first to find the faces of the regions. After having done that, these faces are
 	 * checked for overlapping pairs (with one face element of first set and the other set element of the other set).
 	 * Then, the PLUS operation is computed only for those pairs, while the triangulation of the other faces remains
 	 * unchanged.
@@ -787,7 +809,7 @@ public class SupportOps {
 	    System.out.println("Returning empty value.");
 	    return new TriMultiSet(TRIANGLE_COMPARATOR);
 	}//catch
-	
+
 	ljpMS = SetOps.map(ljpMS,null,methodMINUS);
 	SegMultiSet retSetS = SegMultiSet.convert(SetOps.collect(ljpMS));
 	retSetS.addAll(contour(ts1,false,false));
@@ -1053,7 +1075,7 @@ public class SupportOps {
      * Then, these vertex arrays are traversed in parallel. For every pair of equal vertices, we have to 
      * examine, whether any of the both predicates holds. Consider the vertex we are currently examining as the
      * middle point M. Then, all outgoing edges end up in other points V1 and V2, depending on the graph they
-     * belong to. We start now at any point and define the degree D at this point as 0°. All other points Vx
+     * belong to. We start now at an arbitrary point and define the degree D at this point as 0°. All other points Vx
      * are sorted. Then, these vertices are traversed in ascending D-order. We count the number of changes
      * from vertices of V1 to V2 and vice versa. If the number gets higher than 2, the intersects predicate holds.
      * in all other cases, the meets predicate holds.<p>
@@ -1251,7 +1273,7 @@ public class SupportOps {
 	//after both sets were traversed:
 	//   - intersects must be false, otherwise this point would never have been reached;
 	//     if meets=true, return meets=true,intersects=false;
-	//     if meets=false, return meets=false,inersects=false
+	//     if meets=false, return meets=false,intersects=false
 	Boolean[] retArr = { Boolean.FALSE, Boolean.FALSE };
 	Iterator it = ljp1.iterator();
 	LeftJoinPair actLjp;

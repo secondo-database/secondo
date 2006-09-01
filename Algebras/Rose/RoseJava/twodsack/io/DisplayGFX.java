@@ -144,7 +144,8 @@ class ShapeBuilder extends JPanel {
     /*
      * fields
      */
-    final double pointSize = 0.00005; //size for points in point sets
+    //final double pointSize = 0.00005; //size for points in point sets
+    final double pointSize = 2; //size for points in point sets
     final Color bg = Color.white;
     final Color fg = Color.black;
     LinkedList emsList;
