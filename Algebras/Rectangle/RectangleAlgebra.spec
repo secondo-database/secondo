@@ -18,4 +18,7 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator rectangle2 alias RECTANGLE2 pattern op ( _ , _, _, _)
+operator rectangle3 alias RECTANGLE3 pattern op ( _ , _, _, _, _, _)
+operator point2 alias POINT2 pattern op ( _ , _)
+operator point3 alias POINT3 pattern op ( _ , _, _)
 
