@@ -110,9 +110,11 @@ CheckRectangle2( ListExpr type, ListExpr& errorInfo )
 */
 TypeConstructor rect(
         "rect",                                  //name
-        Rectangle2Property,                      //property function describing signature
+        Rectangle2Property,                      //property function 
+                                                 //describing signature
         OutRectangle<2>,     InRectangle<2>,     //Out and In functions
-        0,                   0,                  //SaveToList and RestoreFromList functions
+        0,                   0,                  //SaveToList and 
+                                                 //RestoreFromList functions
         CreateRectangle<2>,  DeleteRectangle<2>, //object creation and deletion
         0,               0,                      //open and save functions
         CloseRectangle<2>,   CloneRectangle<2>,  //object close, and clone
@@ -155,7 +157,8 @@ Rectangle3Property()
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA, RECT34"),
                              nl->StringAtom("rect3"),
-                             nl->StringAtom("(list of six <value>). l/r for 3 dimensions."),
+                             nl->StringAtom(
+                             "(list of six <value>). l/r for 3 dimensions."),
                              nl->StringAtom("(0.0 1.0 10.0 11.0 20.0 21.0)"))));
 }
 
@@ -178,9 +181,11 @@ CheckRectangle3( ListExpr type, ListExpr& errorInfo )
 */
 TypeConstructor rect3(
         "rect3",                                 //name
-        Rectangle3Property,                      //property function describing signature
+        Rectangle3Property,                      //property function 
+                                                 //describing signature
         OutRectangle<3>,     InRectangle<3>,     //Out and In functions
-        0,                   0,                  //SaveToList and RestoreFromList functions
+        0,                   0,                  //SaveToList and 
+                                                 //RestoreFromList functions
         CreateRectangle<3>,  DeleteRectangle<3>, //object creation and deletion
         0,                   0,                  //open and save functions
         CloseRectangle<3>,   CloneRectangle<3>,  //object close, and clone
@@ -223,8 +228,10 @@ Rectangle4Property()
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
                              nl->StringAtom("rect4"),
-                             nl->StringAtom("(list of eight <value>). l/r for 4 dimensions."),
-                             nl->StringAtom("(0.0 1.0 10.0 11.0 20.0 21.0 0.0 0.4)"))));
+                             nl->StringAtom(
+                             "(list of eight <value>). l/r for 4 dimensions."),
+                             nl->StringAtom(
+                             "(0.0 1.0 10.0 11.0 20.0 21.0 0.0 0.4)"))));
 }
 
 /*
@@ -246,9 +253,11 @@ CheckRectangle4( ListExpr type, ListExpr& errorInfo )
 */
 TypeConstructor rect4(
         "rect4",                                 //name
-        Rectangle4Property,                      //property function describing signature
+        Rectangle4Property,                      //property function 
+                                                 //describing signature
         OutRectangle<4>,     InRectangle<4>,     //Out and In functions
-        0,                   0,                  //SaveToList and RestoreFromList functions
+        0,                   0,                  //SaveToList and 
+                                                 //RestoreFromList functions
         CreateRectangle<4>,  DeleteRectangle<4>, //object creation and deletion
         0,                   0,                  //open and save functions
         CloseRectangle<4>,   CloneRectangle<4>,  //object close, and clone
@@ -377,6 +386,51 @@ ListExpr TranslateTypeMap( ListExpr args )
 }
 
 /*
+4.1.4 Type mapping function ~rectangle2~
+
+It is used for the ~rectangle2~ operator.
+
+*/
+ListExpr Rectangle2TypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2, arg3, arg4, firstval,
+           secondval, thirdval, fourthval, outlist, typelist;
+  
+  if( nl->ListLength( args ) == 4 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    arg3 = nl->Third( args );
+    arg4 = nl->Fourth( args );
+   
+    if( (nl->IsEqual( arg1, "real" ) || nl->IsEqual( arg1, "int" )) && 
+        (nl->IsEqual( arg2, "real" ) || nl->IsEqual( arg2, "int" )) &&
+        (nl->IsEqual( arg3, "real" ) || nl->IsEqual( arg3, "int" )) &&
+        (nl->IsEqual( arg4, "real" ) || nl->IsEqual( arg4, "int" )) ) {
+        
+          if( nl->IsEqual( arg1, "int" ) ) firstval = nl->IntAtom(0);
+          if( nl->IsEqual( arg1, "real" ) ) firstval = nl->IntAtom(1); 
+          if( nl->IsEqual( arg2, "int" ) ) secondval = nl->IntAtom(0); 
+          if( nl->IsEqual( arg2, "real" ) ) secondval = nl->IntAtom(1); 
+          if( nl->IsEqual( arg3, "int" ) ) thirdval = nl->IntAtom(0); 
+          if( nl->IsEqual( arg3, "real" ) ) thirdval = nl->IntAtom(1); 
+          if( nl->IsEqual( arg4, "int" ) ) fourthval = nl->IntAtom(0); 
+          if( nl->IsEqual( arg4, "real" ) ) fourthval = nl->IntAtom(1);
+          
+          typelist = nl->FourElemList(firstval, secondval, thirdval, fourthval);
+          nl->WriteListExpr(typelist);
+          
+          outlist = nl->ThreeElemList(
+                         nl->SymbolAtom("APPEND"), 
+                         typelist, 
+                         nl->SymbolAtom( "rect" ) );
+          return outlist;
+    }
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
 4.2 Selection functions
 
 A selection function is quite similar to a type mapping function. The only
@@ -446,7 +500,8 @@ parameter types.
 
 */
 template <unsigned dim>
-int RectangleIsEmpty( Word* args, Word& result, int message, Word& local, Supplier s )
+int RectangleIsEmpty( Word* args, Word& result, int message, 
+                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Rectangle<dim>*)args[0].addr)->IsDefined() )
@@ -465,14 +520,16 @@ int RectangleIsEmpty( Word* args, Word& result, int message, Word& local, Suppli
 
 */
 template <unsigned dim>
-int RectangleEqual( Word* args, Word& result, int message, Word& local, Supplier s )
+int RectangleEqual( Word* args, Word& result, int message, 
+                    Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((Rectangle<dim>*)args[0].addr)->IsDefined() &&
        ((Rectangle<dim>*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, *((Rectangle<dim>*)args[0].addr) == *((Rectangle<dim>*)args[1].addr) );
+      Set( true, *((Rectangle<dim>*)args[0].addr) == 
+      *((Rectangle<dim>*)args[1].addr) );
   }
   else
   {
@@ -486,14 +543,16 @@ int RectangleEqual( Word* args, Word& result, int message, Word& local, Supplier
 
 */
 template <unsigned dim>
-int RectangleNotEqual( Word* args, Word& result, int message, Word& local, Supplier s )
+int RectangleNotEqual( Word* args, Word& result, int message, 
+                       Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((Rectangle<dim>*)args[0].addr)->IsDefined() &&
        ((Rectangle<dim>*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, *((Rectangle<dim>*)args[0].addr) != *((Rectangle<dim>*)args[1].addr) );
+      Set( true, *((Rectangle<dim>*)args[0].addr) != 
+      *((Rectangle<dim>*)args[1].addr) );
   }
   else
   {
@@ -507,7 +566,8 @@ int RectangleNotEqual( Word* args, Word& result, int message, Word& local, Suppl
 
 */
 template <unsigned dim>
-int RectangleIntersects( Word* args, Word& result, int message, Word& local, Supplier s )
+int RectangleIntersects( Word* args, Word& result, int message, 
+                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -515,7 +575,8 @@ int RectangleIntersects( Word* args, Word& result, int message, Word& local, Sup
        ((Rectangle<dim>*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, ((Rectangle<dim>*)args[0].addr)->Intersects( *((Rectangle<dim>*)args[1].addr) ) );
+      Set( true, ((Rectangle<dim>*)args[0].addr)->
+      Intersects( *((Rectangle<dim>*)args[1].addr) ) );
   }
   else
   {
@@ -529,14 +590,16 @@ int RectangleIntersects( Word* args, Word& result, int message, Word& local, Sup
 
 */
 template <unsigned dim>
-int RectangleInside( Word* args, Word& result, int message, Word& local, Supplier s )
+int RectangleInside( Word* args, Word& result, int message, 
+                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((Rectangle<dim>*)args[0].addr)->IsDefined() &&
        ((Rectangle<dim>*)args[0].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, ((Rectangle<dim>*)args[1].addr)->Contains( *((Rectangle<dim>*)args[0].addr) ) );
+      Set( true, ((Rectangle<dim>*)args[1].addr)->
+      Contains( *((Rectangle<dim>*)args[0].addr) ) );
   }
   else
   {
@@ -550,11 +613,13 @@ int RectangleInside( Word* args, Word& result, int message, Word& local, Supplie
 
 */
 template <unsigned dim>
-int RectangleUnion( Word* args, Word& result, int message, Word& local, Supplier s )
+int RectangleUnion( Word* args, Word& result, int message, 
+                    Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   *((Rectangle<dim> *)result.addr) = 
-      ((Rectangle<dim>*)args[1].addr)->Union( *((Rectangle<dim>*)args[0].addr) );
+      ((Rectangle<dim>*)args[1].addr)->
+      Union( *((Rectangle<dim>*)args[0].addr) );
   return (0);
 }
 
@@ -563,11 +628,13 @@ int RectangleUnion( Word* args, Word& result, int message, Word& local, Supplier
 
 */
 template <unsigned dim>
-int RectangleIntersection( Word* args, Word& result, int message, Word& local, Supplier s )
+int RectangleIntersection( Word* args, Word& result, int message, 
+                           Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   *((Rectangle<dim> *)result.addr) =
-      ((Rectangle<dim>*)args[1].addr)->Intersection( *((Rectangle<dim>*)args[0].addr) );
+      ((Rectangle<dim>*)args[1].addr)->
+      Intersection( *((Rectangle<dim>*)args[0].addr) );
   return (0);
 }
 
@@ -576,7 +643,8 @@ int RectangleIntersection( Word* args, Word& result, int message, Word& local, S
 
 */
 template <unsigned dim>
-int RectangleTranslate( Word* args, Word& result, int message, Word& local, Supplier s )
+int RectangleTranslate( Word* args, Word& result, int message, 
+                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   Rectangle<dim> *pResult = (Rectangle<dim> *)result.addr;
@@ -603,6 +671,61 @@ int RectangleTranslate( Word* args, Word& result, int message, Word& local, Supp
     pResult->SetDefined( false );
     return (0);
   }
+}
+
+/*
+4.4.5 Value mapping functions of operator ~rectangle2~
+
+*/
+int Rectangle2ValueMap( Word* args, Word& result, int message, 
+                        Word& local, Supplier s )
+{
+  double min[2];
+  double max[2];
+  int typelist[4];
+  bool args0def, args1def, args2def, args3def;
+  
+  result = qp->ResultStorage( s );
+
+  for (int i=0; i <= 3; i++) {      
+    typelist[i] = ((CcInt*)args[4+i].addr)->GetIntval();  
+  }
+  
+  if (typelist[0]==0) args0def = ((CcInt*)args[0].addr)->IsDefined();
+  else args0def = ((CcReal*)args[0].addr)->IsDefined();
+  if (typelist[1]==0) args1def = ((CcInt*)args[1].addr)->IsDefined();
+  else args1def = ((CcReal*)args[1].addr)->IsDefined();
+  if (typelist[2]==0) args2def = ((CcInt*)args[2].addr)->IsDefined();
+  else args2def = ((CcReal*)args[2].addr)->IsDefined();
+  if (typelist[3]==0) args3def = ((CcInt*)args[3].addr)->IsDefined();
+  else args3def = ((CcReal*)args[3].addr)->IsDefined();
+  
+  if ( args0def && args1def && args2def && args3def )
+  {  
+    if (typelist[0]==0) min[0] = (double)(((CcInt*)args[0].addr)->GetValue());
+    else min[0] = ((CcReal*)args[0].addr)->GetValue();
+    if (typelist[2]==0) min[1] = (double)(((CcInt*)args[2].addr)->GetValue());
+    else min[1] = ((CcReal*)args[2].addr)->GetValue();
+    if (typelist[1]==0) max[0] = (double)(((CcInt*)args[1].addr)->GetValue());
+    else max[0] = ((CcReal*)args[1].addr)->GetValue();
+    if (typelist[3]==0) max[1] = (double)(((CcInt*)args[3].addr)->GetValue());
+    else max[1] = ((CcReal*)args[3].addr)->GetValue();
+    
+    if ( (min[0] <= max[0]) && (min[1] <= max[1]) )
+      ((Rectangle<2> *)result.addr)->Set( true, min, max );
+    else
+    {
+      cerr << "Value list must be of kind (minx, maxx, miny, maxy)!\n" 
+              "Value list is: (" << min[0] << ", " << max[0] 
+              << ", " << min[1] << ", " << max[1] << ")" << endl;
+      assert(false);
+    }
+  }
+  else
+  {
+    ((Rectangle<2> *)result.addr)->Set( false, min, max );
+  }
+  return (0);
 }
 
 /*
@@ -649,6 +772,8 @@ ValueMapping rectangleunionmap[] = { RectangleUnion<2>,
 ValueMapping rectangleintersectionmap[] = { RectangleIntersection<2>,
                                             RectangleIntersection<3>,
                                             RectangleIntersection<4> };
+                                            
+ValueMapping rectanglerectangle2map[] = { Rectangle2ValueMap };
 
 /*
 4.5.2 Definition of specification strings
@@ -718,6 +843,17 @@ const string RectangleSpecTranslate  =
   "<text> move the rectangle parallely for some distance.</text--->"
   "<text> query translate[rect1; 3.5, 15.1]</text--->"
   ") )";
+  
+const string RectangleSpecRectangle2  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+        "( <text>(int||real) x (int||real) x (int||real) x"
+        " (int||real) -> rect</text--->"
+        "<text>rectangle2( _, _, _, _)</text--->"
+        "<text>creates a rect from the given parameters.</text--->"
+        "<text>query rectangle2(17, 24, 12.0, 13.1)</text--->"
+        "<text>The sequence of parameters must be "
+        "(minx, maxx, miny, maxy).</text--->"
+        ") )";
 
 /*
 4.5.3 Definition of the operators
@@ -778,6 +914,13 @@ Operator rectangletranslate( "translate",
                              rectangletranslatemap,
                              RectangleUnarySelect,
                              TranslateTypeMap );
+                             
+Operator rectanglerectangle2( "rectangle2",
+                             RectangleSpecRectangle2,
+                             1,
+                             rectanglerectangle2map,
+                             Operator::SimpleSelect,
+                             Rectangle2TypeMap );
 
 /*
 5 Creating the Algebra
@@ -805,6 +948,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectangleunion );
     AddOperator( &rectangleintersection );
     AddOperator( &rectangletranslate );
+    AddOperator( &rectanglerectangle2 );
   }
   ~RectangleAlgebra() {};
 };
