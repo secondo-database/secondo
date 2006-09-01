@@ -67,7 +67,7 @@ subdir2:
 
 SpecParser/Parser$(PARSEREXT): subdir1
 
-../../Algebras/specs: subdir2
+../../Algebras/specs: subdir1 subdir2
 
 SecLex.cpp: SecLex.l
 	$(LEX) -d -+ -o$@ -Pxx $<

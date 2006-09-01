@@ -139,7 +139,7 @@ used.
 1.1.1 Unix 
 
 */
-#elif defined(__unix__)
+#elif defined(__unix__) || defined(__APPLE__) || defined(sun)
 #  define SECONDO_UNIX
 /*
 Creating shared libraries requires no special measures.
@@ -180,7 +180,7 @@ Creating shared libraries requires no special measures.
 1.1.4 Mac OS X 
 
 */
-#if defined(__apple__)
+#if defined(__APPLE__)
 #  define SECONDO_MAC_OSX
 /*
 Creating shared libraries requires no special measures.

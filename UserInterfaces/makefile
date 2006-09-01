@@ -25,6 +25,9 @@
 
 include ../makefile.env
 
+CC := g++
+LD := g++
+
 APPLOBJECTS := \
 	SecondoTTY.$(OBJEXT) \
 	DisplayTTY.$(OBJEXT) \
@@ -59,7 +62,7 @@ ifeq ($(optimizer),"true")
 PLOBJ := SecondoPL.$(OBJEXT)
 PL_OBJECTS := $(PLOBJ) $(ENTROPY_OBJ)
 APPLOBJECTS += $(PLOBJ)
-CCFLAGS += $(PLINCLUDEFLAGS)
+CCFLAGS += $(PLINCLUDEFLAGS) -DSECONDO_PL
 endif
 
 
