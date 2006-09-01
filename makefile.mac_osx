@@ -26,11 +26,11 @@
 # Note: Currently we don't support MAC OSX. However, we
 # invested some time to change the source code and makefiles
 # in some places in order to make it happen that SECONDO can be
-# compiled with MAC OSX using gcc 4.0. Unfortunatley the built
-# executable chrashes after startup with a bus error :-<
+# compiled with MAC OSX using gcc 4.0. Unfortunately the built
+# executable crashes after startup with a bus error :-<
 #
 # Currently we don't want to spend more time to fix the problem.
-# If you managed to build and run it. Please report it to
+# If you managed to build and run it, please report it to
 # secondo@fernuni-hagen.de
 #
 # Best Regards
@@ -41,7 +41,7 @@
 DEFAULTLIB = -lpthread -lm -ldl -lstdc++
 
 # NOTE: -lpthread is neccessary on SuSe Linux 9.1. But there are two versions, one is 
-# in the /lib directory and another in the /lib/tls directory. The same yields for
+# in the /lib directory and another in the /lib/tls directory. The same holds for
 # other libraries. The berkeley db libraries use libraries in the /lib/tls directory.  
 # and there is a dependency to the pthread library which doesn't appear on older
 # Linux Systems. Maybe the reason is the change from Linux Kernel 2.4 to 2.6. 
