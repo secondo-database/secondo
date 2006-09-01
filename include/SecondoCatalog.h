@@ -640,30 +640,31 @@ an error it should always be reported to the client.
 */
   
   // check if name is a sytem table 
-  inline const SystemInfoRel* systemTable(const string& name) const {
-     const SystemInfoRel* r = SystemTables::getInstance().getInfoRel(name);
-     if (r && !r->isPersistent)
-       return r;
-     else
-       return 0;
+  inline const SystemInfoRel* systemTable(const string& name) const 
+  {
+    const SystemInfoRel* r = SystemTables::getInstance().getInfoRel(name);
+    if (r && !r->isPersistent)
+      return r;
+    else
+      return 0;
   } 
 
   Word createRelation(const string& name)
   {  
-      // create a relation object for the system table
-      const SystemInfoRel* table = systemTable(name);
-      if (table == 0)
-         return SetWord(0);
-      
-      ListExpr typeInfo = table->relSchema().listExpr();
-      ListExpr value = table->relValues().listExpr();
-      ListExpr errorInfo = nl->Empty();
-      int errorPos = 0;
-      bool ok = false;
-      
-      Word w = InObject(typeInfo, value, errorPos, errorInfo, ok);
-      assert(ok);
-      return w;
+    // create a relation object for the system table
+    const SystemInfoRel* table = systemTable(name);
+    if (table == 0)
+       return SetWord(0);
+    
+    ListExpr typeInfo = table->relSchema().listExpr();
+    ListExpr value = table->relValues().listExpr();
+    ListExpr errorInfo = nl->Empty();
+    int errorPos = 0;
+    bool ok = false;
+    
+    Word w = InObject(typeInfo, value, errorPos, errorInfo, ok);
+    assert(ok);
+    return w;
   }    
 
   friend class SecondoSystem;

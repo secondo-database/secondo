@@ -223,17 +223,11 @@ class SystemInfoRel
 
 class SystemTables {
 
+   public:
    typedef map<string, const SystemInfoRel*> Str2TableMap;
    typedef Str2TableMap::const_iterator iterator;
    
-   private:
    
-   Str2TableMap tables;
-   static SystemTables* instance;
-   
-   SystemTables() {}
-   
-   public:
    ~SystemTables() 
    { 
      iterator it = tables.begin();
@@ -278,7 +272,17 @@ class SystemTables {
      else
        return it->second;
   } 
+ 
+  iterator begin() const { return tables.begin(); }
+  iterator end()   const { return tables.end(); }
+   
+  private:
   
+  Str2TableMap tables;
+  static SystemTables* instance;
+  
+  SystemTables() {}
+
 }; 
 
 #endif

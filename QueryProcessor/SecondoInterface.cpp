@@ -463,10 +463,10 @@ ostream& operator<<(ostream& os, const InfoTuple& si)
 
 // currently we will have 4 tables 
 
-CmdTimesRel cmdTimesRel("SEC_COMMANDS");
-CmdCtrRel cmdCtrRel("SEC_COUNTERS");
-CacheInfoRel cacheInfoRel("SEC_CACHEINFO");
-FileInfoRel fileInfoRel("SEC_FILEINFO");
+CmdTimesRel cmdTimesRel("SEC2COMMANDS");
+CmdCtrRel cmdCtrRel("SEC2COUNTERS");
+CacheInfoRel cacheInfoRel("SEC2CACHEINFO");
+FileInfoRel fileInfoRel("SEC2FILEINFO");
 
 // The next table is currently only a dummy. This is necessary
 // that the catalog recognizes it as a system table. In the future

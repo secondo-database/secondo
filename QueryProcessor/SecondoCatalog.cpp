@@ -88,6 +88,7 @@ The names of existing databases are stored in a list ~DBTable~.
 
 */
 
+#include <string>
 
 #include "SecondoSystem.h"
 #include "DerivedObj.h"
@@ -688,7 +689,21 @@ says that kind ~DATA~ does not match the type expression ~(hello world)~. This i
 /************************************************************************
 3.1.2 Database Objects
 
+The function below creates a four element list which is used as object
+description.
+
 */
+
+static ListExpr objEntry( const string& name, 
+                          const string& type, ListExpr typeExpr ) 
+{   
+  return nl->FourElemList(
+               nl->SymbolAtom( "OBJECT" ),
+               nl->SymbolAtom( name ),
+               nl->OneElemList( nl->SymbolAtom( type ) ),
+               typeExpr );
+} 
+
 
 ListExpr
 SecondoCatalog::ListObjects()
@@ -706,9 +721,14 @@ For each object the *value* component is missing, otherwise the whole database w
 Precondition: dbState = dbOpen.
 
 */
-  ListExpr objectsList, typeExpr, lastElem = 0;
-  string objectName, typeName, typeExprString;
-  char*  oBuffer;
+
+
+  ListExpr objectsList = nl->Empty(); 
+  ListExpr typeExpr = nl->Empty(); 
+  ListExpr lastElem = nl->Empty();
+    
+  string objectName="", typeName="", typeExprString="";
+  char*  oBuffer=0;
   SmiKeyedFileIterator oIterator;
   SmiKey oKey;
   SmiRecord oRec;
@@ -757,23 +777,14 @@ Precondition: dbState = dbOpen.
 //      typeExpr = nl->First( typeExpr );
       if ( objectsList == nl->TheEmptyList() )
       {
-        objectsList = nl->Cons( nl->FourElemList(
-                                  nl->SymbolAtom( "OBJECT" ),
-                                  nl->SymbolAtom( objectName ),
-                                  nl->OneElemList( 
-				        nl->SymbolAtom( typeName ) ),
-                                  typeExpr ),
-                                nl->TheEmptyList() );
+        objectsList = nl->Cons( objEntry(objectName, typeName, typeExpr), 
+                                nl->Empty() ); 
         lastElem = objectsList;
       }
       else
       {
         lastElem = nl->Append( lastElem,
-                     nl->FourElemList(
-                       nl->SymbolAtom( "OBJECT" ),
-                       nl->SymbolAtom( objectName ),
-                       nl->OneElemList( nl->SymbolAtom( typeName ) ),
-                       typeExpr ) );
+                               objEntry(objectName, typeName, typeExpr) );
       }
     }
   }
@@ -783,32 +794,38 @@ Precondition: dbState = dbOpen.
     if ( oPos->second.state == EntryInsert ||
          oPos->second.state == EntryUpdate )
     {
+      objectName = oPos->first;
+      typeName = oPos->second.typeName;
       nl->ReadFromString( oPos->second.typeExpr, typeExpr );
 //VTA - This line must be added
 //      typeExpr = nl->First( typeExpr );
       if ( objectsList == nl->TheEmptyList() )
       {
-        objectsList = nl->Cons( nl->FourElemList(
-                                  nl->SymbolAtom( "OBJECT" ),
-                                  nl->SymbolAtom( oPos->first ),
-                                  nl->OneElemList( 
-				    nl->SymbolAtom( oPos->second.typeName ) ),
-                                  typeExpr ),
-                                nl->TheEmptyList() );
+        objectsList = nl->Cons( objEntry(objectName, typeName, typeExpr), 
+                                nl->Empty() ); 
         lastElem = objectsList;
       }
       else
       {
         lastElem = nl->Append( lastElem,
-                     nl->FourElemList(
-                       nl->SymbolAtom( "OBJECT" ),
-                       nl->SymbolAtom( oPos->first ),
-                       nl->OneElemList( 
-			     nl->SymbolAtom( oPos->second.typeName ) ),
-                       typeExpr ) );
+                               objEntry(objectName, typeName, typeExpr) );
       }
     }
   }
+  // Append system tables
+  SystemTables& st = SystemTables::getInstance();
+  SystemTables::iterator it = st.begin();
+  while ( it != st.end() )
+  {
+    objectName = it->first;
+    typeName = nl->Empty();
+    typeExpr = it->second->relSchema().enclose().listExpr();
+    lastElem = nl->Append( lastElem,
+                           objEntry(objectName, typeName, typeExpr) );
+    it++;
+  } 
+
+  
   objectsList = nl->Cons( nl->SymbolAtom( "OBJECTS" ), objectsList );
   return (objectsList);
 }
@@ -957,6 +974,7 @@ Precondition: dbState = dbOpen.
     cout << msgSaved << endl;
     }
   }
+
   objectsList = nl->Cons( nl->SymbolAtom( "OBJECTS" ), objectsList );
   return (objectsList);
 }
