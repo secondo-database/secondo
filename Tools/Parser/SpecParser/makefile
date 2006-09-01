@@ -25,23 +25,29 @@
 
 include ../../../makefile.env
 
-all: Parser$(EXEEXT) Parser2$(EXEEXT)
+DEP_FILES += SpecParser.tab.dep
+
+CC := g++
+
+OBJECTS := NestedText.o lex.yy.o lex2.yy.o Parser$(EXEEXT) Parser2$(EXEEXT)
+GENFILES := lex.yy.cpp lex2.yy.cpp SpecParser.tab.cpp SpecParser.tab.hpp
+
+all: $(GENFILES) $(OBJECTS)
 
 lex.yy.cpp lex2.yy.cpp: SpecLex.l
-	$(LEX) -olex.yy.cpp SpecLex.l
-	$(LEX) -d -olex2.yy.cpp SpecLex.l
+	$(LEX) -o$@ $<
+	$(LEX) -d -olex2.yy.cpp $<
 
-SpecParser.tab.hpp SpecParser.tab.cpp: SpecParser.y
-	$(YACC) -d -o SpecParser.tab.cpp SpecParser.y
+SpecParser.tab.cpp SpecParser.tab.hpp: SpecParser.y
+	$(YACC) -d -o $@ $<
 
+Parser$(EXEEXT): SpecParser.tab.o lex.yy.o NestedText.o
+	$(CC) -o Parser$(EXEEXT) $^ $(DEFAULTCCFLAGS)
 
-Parser$(EXEEXT): SpecParser.tab.cpp lex.yy.cpp NestedText.h ../NestedText.o
-	$(CC) -o Parser$(EXEEXT) SpecParser.tab.cpp lex.yy.cpp ../NestedText.o -I.. $(DEFAULTCCFLAGS) -lstdc++
+Parser2$(EXEEXT): SpecParser.tab.o lex2.yy.o NestedText.o
+	$(CC) -o Parser2$(EXEEXT) $^ $(DEFAULTCCFLAGS)
 
-Parser2$(EXEEXT): SpecParser.tab.cpp lex2.yy.cpp NestedText.h ../NestedText.o
-	$(CC) -o Parser2$(EXEEXT) SpecParser.tab.cpp lex2.yy.cpp ../NestedText.o -I.. $(DEFAULTCCFLAGS) -lstdc++
-../NestedText.o: ../NestedText.cpp NestedText.h
-	$(CC) -c -o ../NestedText.o ../NestedText.cpp -I.. $(DEFAULTCCFLAGS)
+include $(DEP_FILES)
 
 clean:
-	$(RM) *.o *.lo SpecParser.tab.hpp SpecParser.tab.cpp lex2.yy.cpp lex.yy.cpp Lexer$(EXEEXT) Parser2$(EXEEXT) Parser$(EXEEXT) ../NestedText.o
+	$(RM) $(GENFILES) $(OBJECTS)

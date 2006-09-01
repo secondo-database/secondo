@@ -23,41 +23,50 @@
 #
 ########################################################################
 
+# Remark: Sept. 2006, M. Spiekermann
+#
+# Here we build first a parser called spec parser which translates the
+# algebra's spec-files int flex and bison specifications which are needed
+# to define and build the secondo parser. This is the parser which translates
+# secondo commands of the executable level into nested list syntax which will
+# then be processed by the SecondoInterface::Secondo(). 
+#
+
+
 include ../../makefile.env
 
 OBJECTS =\
 	SecLex.$(OBJEXT) \
 	SecParser.tab.$(OBJEXT) \
-	NestedText.$(OBJEXT) \
 	SecParser.$(OBJEXT)
 
+SCANNER_DEF := SecLex.l
+PARSER_DEF := SecParser.y
+TOKEN_DEF := SecParser.tab.hpp
+SCANNER := SecLex.cpp
+PARSER := SecParser.tab.cpp
+
+DEP_FILES += SecParser.tab.dep
+
+GENFILES := $(SCANNER_DEF) $(PARSER_DEF) $(TOKEN_DEF) $(SCANNER) $(PARSER) \
+	    lexrules tokens yaccrules1 yaccrules2 
+
+CC := g++
 CCFLAGS = $(DEFAULTCCFLAGS)
 
-all: useddirectories $(OBJECTS) 
+all: $(GENFILES) $(OBJECTS) 
 
-useddirectories: 
+SpecParser/Parser$(PARSEREXT):
 	$(MAKE) -C SpecParser
-	$(MAKE) -C ../../Algebras specs
 
-SecLex.$(OBJEXT): SecLex.cpp SecParser.tab.hpp NestedText.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
+../../Algebras/specs:
+	$(MAKE) -C ../../Algebras specs
 
 SecLex.cpp: SecLex.l
 	$(LEX) -d -+ -o$@ -Pxx $<
 
-SecParser.tab.$(OBJEXT): SecParser.tab.cpp NestedText.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
-SecParser.tab.hpp SecParser.tab.cpp: SecParser.y
-	$(YACC) -d -p xx -o SecParser.tab.cpp $<
-
-NestedText.$(OBJEXT): NestedText.cpp NestedText.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
-NestedText.h: CTable.h
-
-SecParser.$(OBJEXT): SecParser.cpp NestedText.h SecParser.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
+SecParser.tab.cpp SecParser.tab.hpp: SecParser.y
+	$(YACC) -d -p xx -o $@ $<
 
 SecLex.l: SecLex.l.1 lexrules SecLex.l.2
 	cat $^ > $@
@@ -75,15 +84,15 @@ else
 PARSEREXT := $(EXEEXT) 
 endif
 
+include $(DEP_FILES)
+
 lexrules tokens yaccrules1 yaccrules2: ../../Algebras/specs SpecParser/Parser$(PARSEREXT)
 	SpecParser/Parser$(PARSEREXT) < $< 
 
 .PHONY: clean
 clean:
 	$(MAKE) -C SpecParser clean
-	$(RM) *.o
-	$(RM) *.lo
 	$(RM) *.output
-	$(RM) $(OBJECTS) SecLex.cpp SecParser.tab.cpp SecParser.tab.hpp
-	$(RM) lexrules tokens yaccrules1 yaccrules2 SecLex.l SecParser.y
+	$(RM) $(GENFILES) $(OBJECTS) $(DEPFILES)
+	$(RM) lexrules tokens yaccrules1 yaccrules2 
 
