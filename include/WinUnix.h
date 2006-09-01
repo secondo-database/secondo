@@ -32,6 +32,7 @@ dependent code should be isolated in this class.
 #ifndef CLASS_WINUNIX_H
 #define CLASS_WINUNIX_H
 
+#include <string>
 
 class WinUnix {
 
@@ -46,6 +47,8 @@ public:
    static int rand(void) { return rand(); }
 
    static void srand(unsigned int seed) { return srand(seed); }
+  
+   static void stacktrace(const std::string& fullAppName="");
    
 private:
    static const int endian_detect;

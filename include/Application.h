@@ -600,12 +600,6 @@ Is the default signal handler for handling user signals (SIGUSR1 and SIGUSR2).
 
 */
 
- static void PrintStacktrace(void);
-/*
-Print out a stack trace in case of abnormal program termination.
-
-*/
-
 #else
   Socket* rshSocket;
   DWORD WINAPI RemoteSignalHandler();
@@ -619,6 +613,12 @@ These methods emulate the signal mechanism for the ~Microsoft Windows~ platform.
 
 */
 #endif
+
+  static void PrintStacktrace(void);
+/*
+Print out a stack trace in case of abnormal program termination.
+
+*/
 
   static Application* appPointer;
   static map<int, std::string> signalStr;
