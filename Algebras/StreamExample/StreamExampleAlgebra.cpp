@@ -138,7 +138,7 @@ countType( ListExpr args )
   {
     arg1 = nl->First(args);
 
-    if ( nl->ListLength(arg1) == 2 )
+    if ( !nl->IsAtom(arg1) && nl->ListLength(arg1) == 2 )
       {
 	if (    nl->IsEqual(nl->First(arg1), "stream")
 	     && ( nl->IsAtom(nl->Second(arg1) ) )
@@ -148,19 +148,16 @@ countType( ListExpr args )
 	  {
 	    nl->WriteToString(outstr, arg1);
 	    ErrorReporter::ReportError("Operator count expects a (stream T), "
-				       "in kind DATA. The argument profided "
+				       "T in kind DATA. The argument profided "
 				       "has type '" + outstr + "' instead.");
 	  }
       }
   }
-  else
-    {
-      nl->WriteToString(outstr, nl->First(args));
-      ErrorReporter::ReportError("Operator count expects only a single "
-				 " argument of type (stream T), T "
-				 "in kind DATA. The argument provided "
-				 "has type '" + outstr + "' instead.");	
-    }
+  nl->WriteToString(outstr, nl->First(args));
+  ErrorReporter::ReportError("Operator count expects only a single "
+			     "argument of type (stream T), T "
+			     "in kind DATA. The argument provided "
+			     "has type '" + outstr + "' instead.");	
   return nl->SymbolAtom("typeerror");
 }
 
