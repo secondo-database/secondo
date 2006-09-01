@@ -25,8 +25,7 @@
 
 # The first line is used when compiling with FLEX (2.5.4a) and BISON (1.35)
 # The second line when compiling with LEX and YACC
-LINKLIBS = -L /usr/local/lib  -lfl
-#LINKLIBS = -ll -ly
+LINKLIBS = -L$(SECONDO_SDK)/lib  -lfl
 
 # The first line is used when compiling with FLEX and BISON
 # The second line when compiling with LEX and YACC
@@ -39,7 +38,7 @@ YACC = bison --yacc
 #YACC = yacc
 
 # specify your C-compiler
-CC = gcc
+CC := gcc
 
 DOCU_FILES = PD1 PDNestedText.h PDNestedText.c \
 	     PD3 PDLex.l PDTokens.h PDLexTest.c PDParserDS.c PDParser.y \
