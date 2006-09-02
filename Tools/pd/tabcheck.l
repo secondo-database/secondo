@@ -52,8 +52,15 @@ int ignoretabs;
       }
       errors++;
      }
-^"/*"  {BEGIN(comment);}
-<comment>"*/" {BEGIN(INITIAL);}
+^"/*"  {  BEGIN(comment);
+          ignoretabs = 1;
+       }
+
+<comment>"*/" {
+                BEGIN(INITIAL);
+                ignoretabs = 0; 
+              }
+
 <comment>.  ;
 <comment>\n { line++; }
 
