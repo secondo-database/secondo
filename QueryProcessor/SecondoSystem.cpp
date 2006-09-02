@@ -364,8 +364,10 @@ Precondition: dbState = dbOpen.
 
   ListExpr list;
   list = nl->TwoElemList( typeExpr, objExpr );
-  list = nl->Cons( nl->SymbolAtom("DATABASE"),
-	           nl->Cons( nl->SymbolAtom( GetDatabaseName() ), list ) );
+  list = nl->Cons( 
+           nl->SymbolAtom("DATABASE"),
+           nl->Cons( nl->SymbolAtom( GetDatabaseName() ), 
+                     list ) );
   return (nl->WriteToFile( filename, list ));
 }
 
@@ -764,6 +766,7 @@ SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
   initialized    = false;
   testMode       = false; // Todo: Should be configurable in SecondoConfig.ini
   secondoSystem  = this;
+  flobCache      = 0;
 }
 
 SecondoSystem::~SecondoSystem()
@@ -777,6 +780,7 @@ SecondoSystem::~SecondoSystem()
   delete algebraManager;
   delete nl;
   delete al;
+  delete flobCache;
   secondoSystem = 0;
 }
 
@@ -859,5 +863,18 @@ SecondoSystem::AbortTransaction()
 {
   secondoSystem->catalog->CleanUp( true );
   return (SmiEnvironment::AbortTransaction());
+}
+
+void 
+SecondoSystem::InitializeFLOBCache( size_t size )
+{
+  secondoSystem->flobCache = 
+    new FLOBCache( size );
+}
+
+FLOBCache*
+SecondoSystem::GetFLOBCache()
+{
+  return secondoSystem->flobCache;
 }
 

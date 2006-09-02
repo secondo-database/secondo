@@ -54,10 +54,12 @@ derived attribute class must implement.
 
 #include "SecondoSystem.h"
 #include "NestedList.h"
+#include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "FLOB.h"
 
 extern NestedList *nl;
+extern QueryProcessor *qp;
 
 /*
 3.5 Struct ~AttrDelete~

@@ -421,11 +421,11 @@ query Staedte sample[0, 1.0] count
 # check if the virtual system tables work
 #testcase virt1
 #yields success
-query SEC_COUNTERS feed count;
+query SEC2COUNTERS feed count;
 
 #testcase virt1
 #yields success
-query SEC_COMMANDS feed count;
+query SEC2COMMANDS feed count;
 
 
 #teardown

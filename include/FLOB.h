@@ -57,8 +57,6 @@ were removed, since the code is stable.
 enum FLOB_Type {Destroyed, InMemory, InMemoryCached, 
                 InMemoryPagedCached, InDiskSmall, InDiskLarge};
 
-extern QueryProcessor *qp;
-
 /*
 3 class FLOB
 
@@ -121,15 +119,16 @@ Deletes the FLOB instance.
     virtual inline ~FLOB()
     {
       if( type == InMemoryCached )
-        qp->GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
-                                     fd.inMemoryCached.lobId );
+        SecondoSystem::GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
+                                                fd.inMemoryCached.lobId );
       else if( type == InMemoryPagedCached )
       {
         assert( fd.inMemoryPagedCached.buffer != 0 );
         if( fd.inMemoryPagedCached.cached )
-          qp->GetFLOBCache()->Release( fd.inMemoryPagedCached.lobFileId,
-                                       fd.inMemoryPagedCached.lobId,
-                                       fd.inMemoryPagedCached.pageno );
+          SecondoSystem::GetFLOBCache()->
+            Release( fd.inMemoryPagedCached.lobFileId,
+                     fd.inMemoryPagedCached.lobId,
+                     fd.inMemoryPagedCached.pageno );
         else
           free( fd.inMemoryPagedCached.buffer );
       }
@@ -155,8 +154,8 @@ Re-initializes the FLOB.
       {
         lobFileId = fd.inMemoryCached.lobFileId;
         lobId = fd.inMemoryCached.lobId;   
-        qp->GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
-                                     fd.inMemoryCached.lobId ); 
+        SecondoSystem::GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
+                                                fd.inMemoryCached.lobId ); 
       }
       else if( type == InMemoryPagedCached )
       {
@@ -164,9 +163,10 @@ Re-initializes the FLOB.
         lobId = fd.inMemoryPagedCached.lobId;
         assert( fd.inMemoryPagedCached.buffer != 0 );
         if( fd.inMemoryPagedCached.cached )
-          qp->GetFLOBCache()->Release( fd.inMemoryPagedCached.lobFileId,
-                                       fd.inMemoryPagedCached.lobId,
-                                       fd.inMemoryPagedCached.pageno );
+          SecondoSystem::GetFLOBCache()->
+            Release( fd.inMemoryPagedCached.lobFileId,
+                     fd.inMemoryPagedCached.lobId,
+                     fd.inMemoryPagedCached.pageno );
         else
           free( fd.inMemoryPagedCached.buffer );
       }
@@ -210,9 +210,10 @@ state to a ~InMemory~ state.
         if( fd.inMemoryPagedCached.buffer != 0 )
         {
           if( fd.inMemoryPagedCached.cached )
-            qp->GetFLOBCache()->Release( fd.inMemoryPagedCached.lobFileId,
-                                         fd.inMemoryPagedCached.lobId,
-                                         fd.inMemoryPagedCached.pageno );
+            SecondoSystem::GetFLOBCache()->
+              Release( fd.inMemoryPagedCached.lobFileId,
+                       fd.inMemoryPagedCached.lobId,
+                       fd.inMemoryPagedCached.pageno );
           else
             free( fd.inMemoryPagedCached.buffer );
         }
@@ -220,10 +221,11 @@ state to a ~InMemory~ state.
       
       const char *buffer;
       bool cached =
-        qp->GetFLOBCache()->GetFLOB( fd.inMemoryPagedCached.lobFileId,
-                                     fd.inMemoryPagedCached.lobId,
-                                     page,
-                                     PAGE_SIZE, false, buffer );
+        SecondoSystem::GetFLOBCache()->
+          GetFLOB( fd.inMemoryPagedCached.lobFileId,
+                   fd.inMemoryPagedCached.lobId,
+                   page,
+                   PAGE_SIZE, false, buffer );
 
       fd.inMemoryPagedCached.buffer = const_cast<char*>(buffer);
       fd.inMemoryPagedCached.pageno = page;
@@ -322,15 +324,16 @@ reference in the cache is removed.
       if( type == InMemory && fd.inMemory.canDelete && size > 0 )
         free( fd.inMemory.buffer );
       else if( type == InMemoryCached )
-        qp->GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
-                                     fd.inMemoryCached.lobId );
+        SecondoSystem::GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
+                                                fd.inMemoryCached.lobId );
       else if( type == InMemoryPagedCached )
       {
         assert( fd.inMemoryPagedCached.buffer != 0 );
         if( fd.inMemoryPagedCached.cached )
-          qp->GetFLOBCache()->Release( fd.inMemoryPagedCached.lobFileId,
-                                       fd.inMemoryPagedCached.lobId,
-                                       fd.inMemoryPagedCached.pageno );
+          SecondoSystem::GetFLOBCache()->
+            Release( fd.inMemoryPagedCached.lobFileId,
+                     fd.inMemoryPagedCached.lobId,
+                     fd.inMemoryPagedCached.pageno );
         else
           free( fd.inMemoryPagedCached.buffer );
       }

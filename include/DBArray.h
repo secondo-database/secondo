@@ -78,6 +78,7 @@ An instance of the class is a handle to a persistent array of fixed size.
 
 #include <vector>
 #include <algorithm>
+#include "SecondoSystem.h"
 #include "FLOB.h"
 
 using namespace std;
@@ -326,17 +327,19 @@ Returns how many pages are necessary to store the whole DBArray.
           for( size_t pageno = 0; pageno < NoPages(); pageno++ )
           {
             GetPage( pageno );
-            qp->GetFLOBCache()->PutFLOB( lobFileId, auxLobId,
-                                         pageno, FLOB::PAGE_SIZE, false,
-                                         FLOB::fd.inMemoryPagedCached.buffer );
+            SecondoSystem::GetFLOBCache()->
+              PutFLOB( lobFileId, auxLobId,
+                       pageno, FLOB::PAGE_SIZE, false,
+                       FLOB::fd.inMemoryPagedCached.buffer );
           }
 
           // clear the buffer
           assert( FLOB::fd.inMemoryPagedCached.buffer != 0 );
           if( FLOB::fd.inMemoryPagedCached.cached )
-            qp->GetFLOBCache()->Release( FLOB::fd.inMemoryPagedCached.lobFileId,
-                                         FLOB::fd.inMemoryPagedCached.lobId,
-                                         FLOB::fd.inMemoryPagedCached.pageno );
+            SecondoSystem::GetFLOBCache()->
+              Release( FLOB::fd.inMemoryPagedCached.lobFileId,
+                       FLOB::fd.inMemoryPagedCached.lobId,
+                       FLOB::fd.inMemoryPagedCached.pageno );
           else
             free( FLOB::fd.inMemoryPagedCached.buffer );
         }
@@ -355,10 +358,10 @@ Returns how many pages are necessary to store the whole DBArray.
                    count = ElemsPerPage() * sizeof( DBArrayElement );
             memset( pageBuf, 0, FLOB::PAGE_SIZE );
             memcpy( pageBuf, FLOB::fd.inMemory.buffer + pos, count );
-            qp->GetFLOBCache()->PutFLOB( lobFileId, auxLobId, pageno, 
-                                         FLOB::PAGE_SIZE, false, pageBuf );
-          }
-  
+            SecondoSystem::GetFLOBCache()->
+              PutFLOB( lobFileId, auxLobId, pageno, 
+                       FLOB::PAGE_SIZE, false, pageBuf );
+          } 
           // write the last page
           assert( nElements - pageno * ElemsPerPage() != 0 ); 
           assert( pageno * ElemsPerPage() < size );
@@ -370,8 +373,9 @@ Returns how many pages are necessary to store the whole DBArray.
                          sizeof( DBArrayElement );
           memset( pageBuf, 0, FLOB::PAGE_SIZE );
           memcpy( pageBuf, FLOB::fd.inMemory.buffer + pos, count );
-          qp->GetFLOBCache()->PutFLOB( lobFileId, auxLobId, pageno, 
-                                       FLOB::PAGE_SIZE, false, pageBuf );
+          SecondoSystem::GetFLOBCache()->
+            PutFLOB( lobFileId, auxLobId, pageno, 
+                     FLOB::PAGE_SIZE, false, pageBuf );
 
           // clear the buffer
           if( FLOB::fd.inMemory.canDelete )
@@ -440,7 +444,7 @@ is divided into several pages with padding.
           {
             assert( FLOB::fd.inMemoryPagedCached.buffer != 0 );
             if( FLOB::fd.inMemoryPagedCached.cached )
-              qp->GetFLOBCache()->
+              SecondoSystem::GetFLOBCache()->
                 Release( FLOB::fd.inMemoryPagedCached.lobFileId,
                          FLOB::fd.inMemoryPagedCached.lobId,
                          FLOB::fd.inMemoryPagedCached.pageno );

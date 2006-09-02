@@ -1104,7 +1104,7 @@ void Relation::Delete()
   privateRelation->tupleFile.Close();
   privateRelation->tupleFile.Drop();
 
-  qp->GetFLOBCache()->Drop( 
+  SecondoSystem::GetFLOBCache()->Drop( 
     privateRelation->relDesc.lobFileId, 
     privateRelation->isTemp );
 
@@ -1150,7 +1150,7 @@ void Relation::Clear()
   privateRelation->relDesc.totalExtSize = 0;
   privateRelation->relDesc.totalSize = 0;
   privateRelation->tupleFile.Truncate();
-  qp->GetFLOBCache()->Truncate( 
+  SecondoSystem::GetFLOBCache()->Truncate( 
     privateRelation->relDesc.lobFileId, 
     privateRelation->isTemp );
 }

@@ -213,6 +213,7 @@ using namespace std;
 #include "LogMsg.h"
 #include "CharTransform.h"
 #include "NList.h"
+#include "Profiles.h"
 #include "FLOBCache.h"
 
 /************************************************************************** 
@@ -268,11 +269,10 @@ variables is described in the introduction of procedure ~annotate~.
 
 
 QueryProcessor::QueryProcessor( NestedList* newNestedList,
-	AlgebraManager* newAlgebraManager )
+  AlgebraManager* newAlgebraManager )
   : nl( newNestedList ), algebraManager( newAlgebraManager ),
     testMode( false ), debugMode( false ), traceMode( false ), 
-    traceNodes( false ),
-    flobCache( 0 )
+    traceNodes( false )
 {
   values.resize( MAXVALUES );
   argVectors.resize( MAXFUNCTIONS );
@@ -287,7 +287,6 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
 
 QueryProcessor::~QueryProcessor()
 {
-  delete flobCache;
 }
 
 void
@@ -496,23 +495,23 @@ arguments. In this case the operator must
     } iobj;
     struct OpNodeOperator
     {
-      ListExpr          symbol;	
-      int		algebraId;
-      int		opFunId;
-      int		noSons;
-      ArgVector		sons;
-      bool		isFun;
-      ArgVectorPointer	funArgs;
-      int		funNo; // needed for testing only 
-      bool		isStream;
-      Word		local;
-      bool		received;
-      int		resultAlgId;
-      int		resultTypeId;
-      Word		resultWord;
+      ListExpr symbol;
+      int algebraId;
+      int opFunId;
+      int noSons;
+      ArgVector sons;
+      bool isFun;
+      ArgVectorPointer funArgs;
+      int funNo; // needed for testing only 
+      bool isStream;
+      Word local;
+      bool received;
+      int resultAlgId;
+      int resultTypeId;
+      Word resultWord;
       ObjectDeletion deleteFun; // substitute for the algebras 
                                 // delete function   
-      int		counterNo;
+      int counterNo;
     } op;
   } u;
 
@@ -569,7 +568,7 @@ OpNode(OpNodeType type = Operator) :
       u.op.resultWord = SetWord(Address(0));
       u.op.deleteFun = 0;
       u.op.counterNo = 0;
-      break;	
+      break;
     }
     default :
     { assert( false ); }
@@ -628,7 +627,7 @@ ostream& operator<<(ostream& os, const OpNode& node) {
            << "  vector = " << node.u.iobj.vector << endl
            << "  funNumber = " << node.u.iobj.funNumber << endl   
            << "  argIndex = " << node.u.iobj.argIndex << endl
-	 //<< "  isStream = " << node.u.iobj.isStream << endl
+         //<< "  isStream = " << node.u.iobj.isStream << endl
            << "  received = " << node.u.iobj.received << endl;
         break;
       }
@@ -694,7 +693,7 @@ ostream& operator<<(ostream& os, const OpNode& node) {
            << tab(f) << "counterNo = " 
            << node.u.op.counterNo << endl;
 
-        break;	
+        break;
       }
       default :
         assert( false ); 
@@ -886,7 +885,7 @@ Additonally more detailed information is printed int ~os~
           for ( i = 1; i < tree->u.op.noSons; i++ )
           {
             last = nl->Append( last, 
-	          ListOfTree( tree->u.op.sons[i].addr, os ) );
+            ListOfTree( tree->u.op.sons[i].addr, os ) );
           }
         }
         else
@@ -1550,7 +1549,7 @@ function index.
               }  
               values[valueno-1].isList = true;
               return Annotate( functionList, newvarnames, 
-		               newvartable, defined, 
+                               newvartable, defined, 
                                nl->TheEmptyList() );
             }
             else
@@ -1671,6 +1670,7 @@ function index.
         value = SetWord(
           (void*)nl->IntValue(nl->Second(nl->Second(expr))));
         isPointer = true;
+        correct = true;
       }
       else
       { 
@@ -1693,20 +1693,17 @@ function index.
         values[valueno].value = value;
         valueno++;
 
-        if( isPointer ) {
-        // spm: in the case "isPointer" we have variable "correct=false"
-        // this sould not work since this code will never be reached
-        // the nesting seems to be false.
-
-          assert(false);
-           
+        if( isPointer ) 
+        {
           return (nl->TwoElemList(
                     nl->ThreeElemList(
                       expr,
                       nl->SymbolAtom( "pointer" ),
                       nl->IntAtom( valueno-1 ) ),
                     nl->First( expr ) ));
-        } else {
+        } 
+        else 
+        {
           return (nl->TwoElemList(
                     nl->ThreeElemList(
                       expr,
@@ -1826,20 +1823,20 @@ will be processed.
 
               rest = nl->Rest( list );
               typeList = nl->Rest( typeList );
-							
+
               resultType = 
                 TestOverloadedOperators( operatorStr, opList, 
                                          typeList, alId, opId, 
                                          opFunId, true, traceMode ); 
-		
+
               /* check whether the type mapping has requested to 
                  append further arguments: */
               if ( (nl->ListLength(resultType) == 3) &&
                    (TypeOfSymbol(nl->First(resultType))==QP_APPEND) )
               {
                 lastElem = last;
-                rest = nl->Second( resultType );		
-		
+                rest = nl->Second( resultType );
+
                 while (!nl->IsEmpty( rest ))
                 {
                   lastElem = 
@@ -1869,7 +1866,7 @@ will be processed.
                                          newList),
                                        resultType,
                                        nl->IntAtom(opFunId));
-				       
+       
               return (applyopList);
             }
             case QP_FUNCTION:
@@ -2023,12 +2020,12 @@ will be processed.
             {
               if (traceMode)
                 cout << "Case 4: A counter definition." << endl;        
-	      int counterNo = 
-              nl->IntValue(nl->First(nl->First(nl->Second(list))));
+              int counterNo = 
+                nl->IntValue(nl->First(nl->First(nl->Second(list))));
 
               if ( counterNo > 0 && counterNo <= NO_COUNTERS )
               {
-	              return nl->TwoElemList(
+                return nl->TwoElemList(
                          nl->FourElemList(
                            nl->SymbolAtom("none"),
                            nl->SymbolAtom("counterdef"),
@@ -2046,7 +2043,7 @@ will be processed.
                            nl->SymbolAtom("counterdef"),
                            nl->First(nl->First(nl->Second(list))), 
                            nl->Third(list)),
-                         nl->SymbolAtom("typeerror"));		 
+                         nl->SymbolAtom("typeerror")); 
               }
             }
 
@@ -2102,15 +2099,15 @@ QueryProcessor::TestOverloadedOperators( const string&
   static const string sepLine = "\n" + string(width,'-') + "\n";
   
   if ( traceMode )
-  {	  
+  {  
     cout << sepLine 
-	 << "Type mapping for operator " << operatorSymbolStr << ":" << endl; 
+         << "Type mapping for operator " << operatorSymbolStr << ":" << endl; 
   }  
 
   string typeErrorMsg = 
-	   "Type map error for operator " + operatorSymbolStr + "!" + sepLine
-	   + wordWrap("Input: ", width, NList(typeList).convertToString())
-           + sepLine + "Error Message(s):" + sepLine; 
+   "Type map error for operator " + operatorSymbolStr + "!" + sepLine
+   + wordWrap("Input: ", width, NList(typeList).convertToString())
+   + sepLine + "Error Message(s):" + sepLine; 
 
   do // Overloading: test operator candidates 
   {
@@ -2120,7 +2117,7 @@ QueryProcessor::TestOverloadedOperators( const string&
     /* apply the operator's type mapping: */
     resultType = 
       algebraManager->TransformType( alId, opId, typeList );
-    string algName = algebraManager->GetAlgebraName(alId);	
+    string algName = algebraManager->GetAlgebraName(alId);
 
     if( traceMode ) 
     {
@@ -2129,7 +2126,7 @@ QueryProcessor::TestOverloadedOperators( const string&
                << alId << ", opId=" << opId << ") "<< ends;
 
       if( nl->IsEqual( resultType, "typeerror" ) )
-        cout  << traceMsg.str() << "rejected!" << endl;			 
+        cout  << traceMsg.str() << "rejected!" << endl;
       else 
         cout << traceMsg.str() << "accepted!" << endl;
     } 
@@ -2137,7 +2134,7 @@ QueryProcessor::TestOverloadedOperators( const string&
     if ( !ErrorReporter::TypeMapError ) 
     {
       string msg = "";
-      ErrorReporter::GetErrorMessage(msg); 	
+      ErrorReporter::GetErrorMessage(msg);
       // remove errors produced by 
       // testing operators
       if ( msg == "" ) 
@@ -2162,7 +2159,7 @@ QueryProcessor::TestOverloadedOperators( const string&
     ErrorReporter::TypeMapError = true; 
   }
   else
-  {	
+  {
     /*   use the operator's selection function to get the index 
      *  (opFunId) of the evaluation function for this operator: 
      */
@@ -2206,12 +2203,12 @@ QueryProcessor::AnnotateFunction( const ListExpr expr,
 /*
 Annotate an abstraction ~expr~ which has the form:
 
-----	(fun (x1 t1) ... (xn tn) e)
+----    (fun (x1 t1) ... (xn tn) e)
 ----
 
 and return the annotated version:
 
-----	-> ((none abstraction annotate(expr) <functionno>) <type>)
+----    -> ((none abstraction annotate(expr) <functionno>) <type>)
 ----
 
 where ~type~ is a functional type of the form (map ...). ~Functionno~ is
@@ -2230,7 +2227,7 @@ the abstraction in ~typeList~, always appending the next type to
 arguments preceding this function argument in an operator application. 
 
 */
-  static const string fn("AnnotateFunction");	
+  static const string fn("AnnotateFunction");
   string name = "", name2 = "", xxx = "";
   ListExpr annexpr = nl->TheEmptyList();
   ListExpr list = nl->TheEmptyList();
@@ -2251,7 +2248,7 @@ arguments preceding this function argument in an operator application.
               nl->SymbolAtom( "functionerror" ),
               nl->SymbolAtom( "typeerror" ) ));
   }
-  else if ( nl->ListLength(expr) == 1 )		/* e reached */
+  else if ( nl->ListLength(expr) == 1 ) /* e reached */
   {
     annexpr = Annotate( nl->First( expr ), varnames, vartable, 
                         defined, fatherargtypes );
@@ -2289,8 +2286,8 @@ arguments preceding this function argument in an operator application.
         else if ( GetCatalog()->IsOperatorName( name2 ) )
         { /* name2 is a type operator */
           ListExpr opList = GetCatalog()->GetOperatorIds( name2 );
- 	  ListExpr typeList = nl->Rest( fatherargtypes );
-					
+          ListExpr typeList = nl->Rest( fatherargtypes );
+
           int alId = 0;
           int opId = 0;
           int opFunId = 0;
@@ -2462,7 +2459,7 @@ QueryProcessor::Subtree( const ListExpr expr,
   if (!cls)     
   {
     cerr << "subtree: error in annotated expression \"" 
-	       << nl->ToString(expr) << "\"" << endl;
+         << nl->ToString(expr) << "\"" << endl;
     cerr << "subtree: list structure incorrect!" << endl;
     exit(1);
   }
@@ -2478,11 +2475,11 @@ QueryProcessor::Subtree( const ListExpr expr,
 
   switch (TypeOfSymbol( nl->Second( nl->First( expr ) ) ))
   {
-    /* possible is:
-         constant	object		operator
-         variable	applyop		abstraction
-         identifier	arglist		function
-         applyabs	applyfun	counterdef	
+    /* possibilities are:
+         constant    object     operator
+          variable   applyop    abstraction
+         identifier  arglist    function
+         applyabs    applyfun   counterdef
          pointer
     */
 
@@ -2724,7 +2721,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->isRoot = oldfirst;  
       node->u.op.algebraId = 0;   
         /* special operator [0, 0] means 
-			     application of an abstraction */
+           application of an abstraction */
       node->u.op.opFunId = 0;
       node->u.op.noSons = 1;
       node->u.op.sons[0].addr = 
@@ -2835,7 +2832,7 @@ the function in a database object.
     
       for ( vector<ListExpr>::const_iterator it = allAtoms.begin();
             it != allAtoms.end();
-	          it++ )
+            it++ )
       {
         if ( nl->AtomType(*it) == SymbolType && 
              TypeOfSymbol(*it) == QP_TYPEERROR ) 
@@ -2851,7 +2848,7 @@ the function in a database object.
         }
       }
     }
-	      
+      
     if ( !listOk )
     {
       correct = false;
@@ -2979,7 +2976,7 @@ Deletes an operator tree object.
     // Close the files in the FLOB cache to avoid
     // lots of opened files.
     if( tree->isRoot )
-      flobCache->Clear();
+      SecondoSystem::GetFLOBCache()->Clear();
 
     delete tree;
     tree = 0;
@@ -3104,11 +3101,11 @@ request the next element.
                  << caller->id << endl;
           }
           status = algebraManager->Execute( caller->u.op.algebraId, 
-			                    caller->u.op.opFunId,
+                                            caller->u.op.opFunId,
                                             caller->u.op.sons, result, 
-					    (argIndex*FUNMSG)+message, 
-					    caller->u.op.local, 
-					    caller );
+                                            (argIndex*FUNMSG)+message, 
+                                            caller->u.op.local, 
+                                            caller );
         
           tree->u.iobj.received = (status == YIELD); 
         } 
@@ -3270,7 +3267,7 @@ QueryProcessor::Request( const Supplier s, Word& result )
 {
   OpTree tree = (OpTree) s;
   Eval( tree, result, REQUEST );
-	
+
   // increment counter
   int counterIndex = tree->u.op.counterNo;
   if ( (tree->nodetype == Operator) && counterIndex ) 
@@ -3278,7 +3275,7 @@ QueryProcessor::Request( const Supplier s, Word& result )
     assert ( (counterIndex > 0) || (counterIndex < NO_COUNTERS) );
     counter[counterIndex]++;
   }
-		
+
 }
 
 /*
@@ -3396,7 +3393,7 @@ QueryProcessor::ChangeResultStorage( const Supplier s, const Word w )
 
 void
 QueryProcessor::SetDeleteFunction( const Supplier s, 
-	const ObjectDeletion f )
+                                   const ObjectDeletion f )
 {
   OpTree tree = (OpTree) s;
   tree->u.op.deleteFun = f;
@@ -3469,7 +3466,7 @@ QueryProcessor::GetType( const Supplier s )
     // R is needed. Example:  
     //
     //    plz  staedte loopz[f1: . feed .. feed hashjoin, 
-    //    	f2: . feed .. feed sortmergejoin] count
+    //      f2: . feed .. feed sortmergejoin] count
     //
     // Since the join implementations define the result tuple type by 
     // calling this method and
@@ -3524,14 +3521,14 @@ QueryProcessor::GetCounters()
   ListExpr last = nl->TheEmptyList();
 
   list = nl->OneElemList( 
-	         nl->TwoElemList( 
+           nl->TwoElemList( 
              nl->IntAtom(1), 
              nl->IntAtom(counter[1]-1) ));
   last = list;
 
   for (int i = 2; i < NO_COUNTERS; i++) 
   {
-    last = nl->Append( last, 	  
+    last = nl->Append( last,   
                        nl->TwoElemList( 
                          nl->IntAtom(i), 
                          nl->IntAtom(counter[i]-1)));
@@ -3602,9 +3599,10 @@ QueryProcessor::ExecuteQuery( const string& queryListStr,
 
   nli->ReadFromString( queryListStr, queryList );
 
-  QueryProcessor* qpp = new QueryProcessor( nli, 
-	SecondoSystem::GetAlgebraManager() );
-    
+  QueryProcessor* qpp = 
+    new QueryProcessor( nli, 
+                        SecondoSystem::GetAlgebraManager() );
+   
   qpp->Construct( queryList, correct, 
                   evaluable, defined, isFunction, tree, resultType );
   if ( !defined )
@@ -3667,7 +3665,7 @@ void ErrorReporter::GetErrorMessage(string& msg)
 {
   receivedMessage = false;
   msg = message;
-  message = "";		
+  message = "";
 };
 
 

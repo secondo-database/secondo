@@ -445,24 +445,6 @@ Returns the maximum memory available per operator.
 
 */
 
-  void InitializeFLOBCache( long size )
-  {
-    flobCache = new FLOBCache( size );
-  }
-/*
-Initializes the flob cache.
-
-*/
-
-  FLOBCache *GetFLOBCache()
-  {
-    return flobCache;
-  }
-/*
-Returns the FLOB cache.
-
-*/
-
   static bool ExecuteQuery( const string& queryListStr,
                             Word& queryResult);
 /*
@@ -664,11 +646,6 @@ The maximum memory available per operator.
 
 */
 
-  FLOBCache *flobCache;
-/*
-A cache for FLOBs. It is initialized for every query.
-
-*/
 };
 
 ostream& operator<<(ostream& os, const OpNode& node);
