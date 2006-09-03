@@ -127,7 +127,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
         nSortAttrs = ((CcInt*)intWord.addr)->GetIntval();
         for(i = 1; i <= nSortAttrs; i++)
         {
-	  if(requestArgs)
+          if(requestArgs)
           {
             qp->Request(args[2 * i + 1].addr, intWord);
           }
