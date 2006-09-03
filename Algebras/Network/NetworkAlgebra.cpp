@@ -161,6 +161,8 @@ void Network::FillJunctions( const Relation *junctions )
     junctionsNumApp = 
       SecondoSystem::GetCatalog()->NumericType( GetJunctionsAppTypeInfo() );
 
+
+
   Relation *unJunctions = new Relation( junctionsNumInt, false );
 
   RelationIterator *junctionsIter = junctions->MakeScan();
@@ -214,7 +216,7 @@ void Network::FillJunctions( const Relation *junctions )
   ostringstream strJunctionsPtr;
   strJunctionsPtr << (int)unJunctions;
 
-  string querystring = "(consume (sortby (feed (" + junctionsTypeInfo +
+  string querystring = "(consume (sortby (feed (" + junctionsInternalTypeInfo +
                        " (ptr " + strJunctionsPtr.str() + 
                        "))) ((r1id asc)(r2id asc))))";
 

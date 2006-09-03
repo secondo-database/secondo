@@ -21,8 +21,6 @@
 # run with : Runner -c MyConfig.config < montest
 # (Runner can be found in directory UserInterfaces)
 
-#stop The test causes a SIGSEGV victor may have a look at it!
-
 # clean up what may be left over from e.g. a segfault
 delete database networktest;
 
