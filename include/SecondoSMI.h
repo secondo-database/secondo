@@ -349,6 +349,7 @@ Destroys a key.
 
 */
   SmiKey& operator=( const SmiKey& other );
+  const bool operator==( const SmiKey& other ) const;
   const bool operator>( const SmiKey& other ) const;
   const KeyDataType GetType() const;
 /*

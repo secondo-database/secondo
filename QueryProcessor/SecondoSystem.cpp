@@ -84,6 +84,7 @@ using namespace std;
 #include "SecondoSystem.h"
 #include "QueryProcessor.h"
 #include "Profiles.h"
+#include "RelationAlgebra.h"
 
 SecondoSystem* SecondoSystem::secondoSystem = 0;
 
@@ -247,6 +248,13 @@ Precondition: dbState = dbOpen.
     assert( false );
   }
   catalog->Close();
+
+#ifndef RELALG_PERSISTENT
+  // clears the cache of relations
+  extern RelationCache cache;
+  cache.Clear();
+#endif
+
   return (SmiEnvironment::CloseDatabase());
 }
 
@@ -468,97 +476,87 @@ Precondition: dbState = dbClosed.
     assert( false );
   }
 
-  cout << endl << "Opening database " << dbname << " ... " << endl;
-  bool open = OpenDatabase( dbname );
-  if ( !open )
+  cout << "Reading file " << filename << " ... " << endl;
+  if ( !nl->ReadFromFile( filename, list ) )
   {
-    rc = ERR_IDENT_UNKNOWN_DB_NAME; // Database unknown
+    rc = ERR_PROBLEM_IN_READING_FILE; // Error reading file
   }
-  else 
+  else
   {
-    cout << "Reading file " << filename << " ... " << endl;
-    if ( !nl->ReadFromFile( filename, list ) )
-    {
-      rc = ERR_PROBLEM_IN_READING_FILE; // Error reading file
-    }
-    else
-    {
-      listFile = list;
+    listFile = list;
 /*
 Tests the syntax of the database file named ~filename~.
 
 */
-      if ( nl->ExprLength( list ) == 4 || 
-           nl->ExprLength( list ) == 8 /* Keep compatibility with old files */)
+    if ( nl->ExprLength( list ) == 4 || 
+         nl->ExprLength( list ) == 8 /* Keep compatibility with old files */)
+    {
+      if ( !nl->IsEqual( nl->Second( list ), dbname, false ) )
       {
-        if ( !nl->IsEqual( nl->Second( list ), dbname, false ) )
+        rc = ERR_DB_NAME_NEQ_IDENT; // Database name in file different
+      }
+      else if ( nl->IsEqual( nl->First( list ), "DATABASE" ) )
+      {
+        list = nl->Rest( nl->Rest( list ) ); 
+
+        if( nl->ExprLength( list ) == 2 )
         {
-          rc = ERR_DB_NAME_NEQ_IDENT; // Database name in file different
+          types   = nl->First( list );
+          objects = nl->Second( list );
         }
-        else if ( nl->IsEqual( nl->First( list ), "DATABASE" ) )
+        else
         {
-          list = nl->Rest( nl->Rest( list ) ); 
-  
-          if( nl->ExprLength( list ) == 2 )
-          {
-            types   = nl->First( list );
-            objects = nl->Second( list );
-          }
-          else
-          {
-            types   = nl->Fifth( list );
-            objects = nl->Sixth( list );
-          }
-  
-          if ( nl->IsEmpty( types ) ||
-               nl->IsEmpty( objects ) )
-          {
-            rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid
-          }
-          else if ( nl->IsEqual( nl->First( types ), "TYPES" ) &&
-                    nl->IsEqual( nl->First( objects ), "OBJECTS" ) )
-          {
+          types   = nl->Fifth( list );
+          objects = nl->Sixth( list );
+        }
+
+        if ( nl->IsEmpty( types ) ||
+             nl->IsEmpty( objects ) )
+        {
+          rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid
+        }
+        else if ( nl->IsEqual( nl->First( types ), "TYPES" ) &&
+                  nl->IsEqual( nl->First( objects ), "OBJECTS" ) )
+        {
 /*
 Before restoring the database we need to get a completely empty database.
 This is done by closing, destroying and recreating the database.
 
 */
-            CloseDatabase();
-            DestroyDatabase ( dbname );
-            CreateDatabase( dbname );
+          DestroyDatabase ( dbname );
+          CreateDatabase( dbname );
 
 /*
 Load database types and objects from file named ~filename~.
 
 */
-            if ( RestoreCatalog( types, objects, errorInfo ) )
-            {
-              rc = ERR_NO_ERROR; // Database successfully restored
-            }
-            else
-            {
-              rc = ERR_IN_DEFINITIONS_FILE; // Error in types or objects
-            }
+          if ( RestoreCatalog( types, objects, errorInfo ) )
+          {
+            rc = ERR_NO_ERROR; // Database successfully restored
           }
           else
           {
-            // List structure invalid (Types or objects missing)
-            rc = ERR_IN_LIST_STRUCTURE_IN_FILE; 
+            rc = ERR_IN_DEFINITIONS_FILE; // Error in types or objects
           }
         }
         else
         {
-          // List structure invalid (Database info missing)
+          // List structure invalid (Types or objects missing)
           rc = ERR_IN_LIST_STRUCTURE_IN_FILE; 
         }
       }
       else
       {
-        // List structure invalid (List too short)
+        // List structure invalid (Database info missing)
         rc = ERR_IN_LIST_STRUCTURE_IN_FILE; 
       }
-      nl->Destroy( listFile );
     }
+    else
+    {
+      // List structure invalid (List too short)
+      rc = ERR_IN_LIST_STRUCTURE_IN_FILE; 
+    }
+    nl->Destroy( listFile );
   }
   return (rc);
 }

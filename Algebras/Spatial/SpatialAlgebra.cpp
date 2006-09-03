@@ -972,7 +972,7 @@ void
 DeletePoint( const ListExpr typeInfo,
              Word& w )
 {
-  delete (Point *)w.addr;
+  ((Point *)w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
 
@@ -984,7 +984,7 @@ void
 ClosePoint( const ListExpr typeInfo,
             Word& w )
 {
-  delete (Point *)w.addr;
+  ((Point *)w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
 
@@ -1934,7 +1934,7 @@ DeletePoints( const ListExpr typeInfo, Word& w )
 {
   Points *ps = (Points *)w.addr;
   ps->Destroy();
-  delete ps;
+  ps->DeleteIfAllowed();
   w.addr = 0;
 }
 
@@ -1945,7 +1945,7 @@ DeletePoints( const ListExpr typeInfo, Word& w )
 void
 ClosePoints( const ListExpr typeInfo, Word& w )
 {
-  delete (Points *)w.addr;
+  ((Points *)w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
 
@@ -4405,7 +4405,7 @@ DeleteLine( const ListExpr typeInfo, Word& w )
 {
   Line *l = (Line *)w.addr;
   l->Destroy();
-  delete l;
+  l->DeleteIfAllowed();
   w.addr = 0;
 }
 
@@ -4416,7 +4416,7 @@ DeleteLine( const ListExpr typeInfo, Word& w )
 void
 CloseLine( const ListExpr typeInfo, Word& w )
 {
-  delete (Line *)w.addr;
+  ((Line *)w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
 
@@ -7597,7 +7597,7 @@ DeleteRegion( const ListExpr typeInfo, Word& w )
 
   Region *cr = (Region *)w.addr;
   cr->Destroy();
-  delete cr;
+  cr->DeleteIfAllowed();
   w.addr = 0;
 }
 
@@ -7610,7 +7610,7 @@ CloseRegion( const ListExpr typeInfo, Word& w )
 {
   //cout << "CloseRegion" << endl;
 
-  delete (Region *)w.addr;
+  ((Region *)w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
 

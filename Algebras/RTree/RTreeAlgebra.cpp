@@ -597,11 +597,11 @@ int CreateRTreeRelSpatial(Word* args, Word& result, int message,
   iter = relation->MakeScan();
   while( (tuple = iter->GetNextTuple()) != 0 )
   {
-    if( ((StandardSpatialAttribute<dim>*)tuple->
-          GetAttribute(attrIndex))->IsDefined() )
+    if( ((StandardSpatialAttribute<dim>*)(tuple->
+          GetAttribute(attrIndex)))->IsDefined() )
     {
-      BBox<dim> box = ((StandardSpatialAttribute<dim>*)tuple->
-                        GetAttribute(attrIndex))->BoundingBox();
+      BBox<dim> box = ((StandardSpatialAttribute<dim>*)(tuple->
+                        GetAttribute(attrIndex)))->BoundingBox();
       R_TreeLeafEntry<dim, TupleId> e( box, tuple->GetTupleId() );
       rtree->Insert( e );
     }

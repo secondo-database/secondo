@@ -42,11 +42,12 @@ This struct contains the private attributes of the class ~Tuple~.
 */
 struct PrivateTuple
 {
-  PrivateTuple( const TupleType& tupleType ):
+  PrivateTuple( TupleType *tupleType ):
     tupleId( 0 ),
     tupleType( tupleType ),
     attributes( 0 )
     {
+      tupleType->IncReference();
     }
 /*
 The first constructor.
@@ -54,7 +55,7 @@ The first constructor.
 */
   PrivateTuple( const ListExpr typeInfo ):
     tupleId( 0 ),
-    tupleType( typeInfo ),
+    tupleType( new TupleType( typeInfo ) ),
     attributes( 0 )
     {
     }
@@ -64,18 +65,22 @@ The second constructor.
 */
   ~PrivateTuple()
   {
-    for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+    for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
       if( attributes[i] != 0 )
         attributes[i]->DeleteIfAllowed();
+    tupleType->DeleteIfAllowed();
   }
 /*
 The destructor.
 
 */
-  inline void CopyAttribute( const int sourceIndex, PrivateTuple *source, const int destIndex )
+  inline void CopyAttribute( const int sourceIndex, 
+                             PrivateTuple *source, 
+                             const int destIndex )
   {
-    attributes[destIndex] = source->attributes[sourceIndex];
-    attributes[destIndex]->IncReference();
+    if( attributes[destIndex] != 0 )
+      attributes[destIndex]->DeleteIfAllowed();
+    attributes[destIndex] = source->attributes[sourceIndex]->Copy();
   }
 /*
 This function is used to copy attributes from tuples to tuples without
@@ -88,16 +93,37 @@ cloning attributes.
 The unique identification of the tuple inside a relation.
 
 */
-  TupleType tupleType;
+  TupleType *tupleType;
 /*
 Stores the tuple type.
 
 */
-  TupleElement** attributes;
+  Attribute** attributes;
 /*
 The array of attribute pointers.
 
 */
+};
+
+/*
+1 Struct ~RelationCache~
+
+*/
+class Relation;
+
+struct RelationCache
+{
+  RelationCache( const size_t size );
+  ~RelationCache();
+  void Insert( const SmiKey& key, Relation *rel );
+  void Remove( Relation *rel );
+  Relation *GetRelation( const SmiKey& key );
+  void Clear();
+  
+  size_t size; 
+  size_t current;
+  SmiKey *key;
+  Relation **cache;
 };
 
 #endif

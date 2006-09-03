@@ -789,16 +789,6 @@ Tuple *TupleBuffer::GetTuple( const TupleId& id ) const
     return privateTupleBuffer->diskBuffer->GetTuple( id );
 }
 
-Tuple *TupleBuffer::GetTuple( const TupleId& id,
-                              const int attrIndex,
-                              const vector< pair<int, int> >& intervals ) const
-{
-  Tuple *t = 0;
-  if( (t = GetTuple( id )) != 0 )
-    t->GetAttribute( attrIndex )->Restrict( intervals );
-  return t;
-}
-
 TupleBufferIterator *TupleBuffer::MakeScan() const
 {
   return new TupleBufferIterator( *this );
@@ -1166,16 +1156,6 @@ Tuple *Relation::GetTuple( const TupleId& id ) const
 
   delete result;
   return 0;
-}
-
-Tuple *Relation::GetTuple( const TupleId& id,
-                           const int attrIndex,
-                           const vector< pair<int, int> >& intervals ) const
-{
-  Tuple *t = 0;
-  if( (t = GetTuple( id )) != 0 )
-    t->GetAttribute( attrIndex )->Restrict( intervals );
-  return t;
 }
 
 int Relation::GetNoTuples() const

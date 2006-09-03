@@ -237,7 +237,7 @@ of Secondo objects. They may have been created in two ways:
 */
 void DeleteTuple(const ListExpr typeInfo, Word& w)
 {
-  delete (Tuple *)w.addr;
+  ((Tuple *)w.addr)->DeleteIfAllowed();
 }
 
 /*
@@ -414,7 +414,7 @@ This function is used to destroy the memory allocated by a ~tuple~.
 */
 void CloseTuple(const ListExpr typeInfo, Word& w)
 {
-  delete (Tuple *)w.addr;
+  ((Tuple *)w.addr)->DeleteIfAllowed();
 }
 
 /*
@@ -3606,6 +3606,7 @@ InitializeRelationAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
+  am = SecondoSystem::GetAlgebraManager();
   return (&relationalgebra);
 }
 

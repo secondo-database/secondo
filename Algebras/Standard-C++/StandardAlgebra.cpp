@@ -354,14 +354,14 @@ CreateCcInt( const ListExpr typeInfo )
 void
 DeleteCcInt( const ListExpr typeInfo, Word& w )
 {
-  delete (CcInt*) w.addr;
+  ((CcInt*) w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
 
 void
 CloseCcInt( const ListExpr typeInfo, Word& w )
 {
-  delete (CcInt*) w.addr;
+  ((CcInt*) w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
 
@@ -494,14 +494,14 @@ CreateCcReal( const ListExpr typeInfo )
 void
 DeleteCcReal( const ListExpr typeInfo, Word& w )
 {
-  delete (CcReal*)w.addr;
+  ((CcReal*)w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
 
 void
 CloseCcReal( const ListExpr typeInfo, Word& w )
 {
-  delete (CcReal*)w.addr;
+  ((CcReal*)w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
 
@@ -646,14 +646,14 @@ CreateCcBool( const ListExpr typeInfo )
 void
 DeleteCcBool( const ListExpr typeInfo, Word& w )
 {
-  delete (CcBool*)w.addr;
+  ((CcBool*)w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
 
 void
 CloseCcBool( const ListExpr typeInfo, Word& w )
 {
-  delete (CcBool*)w.addr;
+  ((CcBool*)w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
 
@@ -817,14 +817,14 @@ CreateCcString( const ListExpr typeInfo )
 void
 DeleteCcString( const ListExpr typeInfo, Word& w )
 {
-  delete (CcString*)w.addr;
+  ((CcString*)w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
 
 void
 CloseCcString( const ListExpr typeInfo, Word& w )
 {
-  delete (CcString*)w.addr;
+  ((CcString*)w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
 

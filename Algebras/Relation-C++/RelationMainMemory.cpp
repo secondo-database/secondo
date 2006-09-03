@@ -80,11 +80,8 @@ using namespace std;
 extern NestedList *nl;
 extern AlgebraManager* am;
 
-bool firsttime = true;
-const int cachesize = 20;
-int current = 0;
-SmiRecordId key[cachesize];
-Word cache[cachesize];
+RelationCache cache( 20 );
+
 /*
 These global variables are used for caching relations.
 
@@ -96,7 +93,8 @@ This class implements the memory representation of the type constructor ~tuple~.
 an array of attributes, as it can be seen in the definition of the ~PrivateTuple~ class.
 
 */
-Tuple *Tuple::RestoreFromList( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct )
+Tuple *Tuple::RestoreFromList( ListExpr typeInfo, ListExpr value, int errorPos, 
+                               ListExpr& errorInfo, bool& correct )
 {
   int  attrno, algebraId, typeId, noOfAttrs;
   Word attr;
@@ -123,7 +121,7 @@ Tuple *Tuple::RestoreFromList( ListExpr typeInfo, ListExpr value, int errorPos, 
     firstvalue = nl->First(valuelist);
     valuelist = nl->Rest(valuelist);
 
-    attr = (algM->RestoreFromListObj(algebraId, typeId))(nl->Rest(first),
+    attr = (am->RestoreFromListObj(algebraId, typeId))(nl->Rest(first),
             firstvalue, attrno, errorInfo, valueCorrect);
 
     tupleaddr->PutAttribute(attrno - 1, (Attribute *)attr.addr);
@@ -149,7 +147,8 @@ ListExpr Tuple::SaveToList( ListExpr typeInfo )
     typeId = nl->IntValue(nl->Second(nl->Second(first)));
 
     Attribute *attr = GetAttribute( attrno );
-    valuelist = (algM->SaveToListObj(algebraId, typeId))(nl->Rest(first), SetWord(attr));
+    valuelist = 
+      (am->SaveToListObj(algebraId, typeId))(nl->Rest(first), SetWord(attr));
     attrno++;
     if (l == nl->TheEmptyList())
     {
@@ -164,7 +163,7 @@ ListExpr Tuple::SaveToList( ListExpr typeInfo )
 
 const TupleId& Tuple::GetTupleId() const
 {
-  return (TupleId&)privateTuple->tupleId;
+  return privateTuple->tupleId;
 }
 
 void Tuple::SetTupleId( const TupleId& tupleId )
@@ -178,14 +177,8 @@ void Tuple::PutAttribute( const int index, Attribute* attr )
     privateTuple->attributes[index]->DeleteIfAllowed();
   privateTuple->attributes[index] = attr;
 
-  recomputeMemSize = true;
-  recomputeTotalSize = true;
-}
-
-void Tuple::UpdateAttributes(const vector<int>& changedIndices, const vector<Attribute*>& newAttrs){
-	cout << "This functionality is not yet implemented for the RelationMainMemoryAlgebra" << endl;
-	assert(false);
-
+  recomputeExtSize = true;
+  recomputeSize = true;
 }
 
 /*
@@ -201,6 +194,7 @@ will be in memory, i.e., the buffer will be an array of tuples.
 struct PrivateTupleBuffer
 {
   PrivateTupleBuffer() :
+    totalExtSize( 0 ),
     totalSize( 0 )
     {
     }
@@ -230,10 +224,16 @@ The destructor.
 The buffer which is a ~vector~ from STL.
 
 */
+  double totalExtSize;
+/*
+The total size occupied by the tuples in the buffer,
+taking into account the small FLOBs.
 
+*/
   double totalSize;
 /*
-The total size of the buffer in bytes.
+The total size occupied by the tuples in the buffer,
+taking into account the FLOBs.
 
 */
 };
@@ -252,17 +252,31 @@ TupleBuffer::~TupleBuffer()
   delete privateTupleBuffer;
 }
 
-const int TupleBuffer::GetNoTuples() const
+int TupleBuffer::GetNoTuples() const
 {
   return privateTupleBuffer->buffer.size();
 }
 
-const double TupleBuffer::GetTotalSize() const
+double TupleBuffer::GetTotalRootSize() const
+{
+  if( IsEmpty() )
+    return 0;
+
+  return GetNoTuples() *
+         privateTupleBuffer->buffer[0]->GetRootSize();
+}
+
+double TupleBuffer::GetTotalExtSize() const
+{
+  return privateTupleBuffer->totalExtSize;
+}
+
+double TupleBuffer::GetTotalSize() const
 {
   return privateTupleBuffer->totalSize;
 }
 
-const bool TupleBuffer::IsEmpty() const
+bool TupleBuffer::IsEmpty() const
 {
   return privateTupleBuffer->buffer.empty();
 }
@@ -282,7 +296,9 @@ void TupleBuffer::AppendTuple( Tuple *t )
 {
   t->IncReference();
   privateTupleBuffer->buffer.push_back( t );
-  privateTupleBuffer->totalSize += t->GetTotalSize();
+  t->SetTupleId( privateTupleBuffer->buffer.size()-1 );
+  privateTupleBuffer->totalExtSize += t->GetExtSize();
+  privateTupleBuffer->totalSize += t->GetSize();
 }
 
 Tuple* TupleBuffer::GetTuple( const TupleId& tupleId ) const
@@ -337,10 +353,14 @@ TupleBufferIterator::~TupleBufferIterator()
 
 Tuple *TupleBufferIterator::GetNextTuple()
 {
-  if( privateTupleBufferIterator->currentTuple == privateTupleBufferIterator->tupleBuffer.privateTupleBuffer->buffer.size() )
+  if( privateTupleBufferIterator->currentTuple == 
+      privateTupleBufferIterator->
+        tupleBuffer.privateTupleBuffer->buffer.size() )
     return 0;
 
-  Tuple *result = privateTupleBufferIterator->tupleBuffer.privateTupleBuffer->buffer[privateTupleBufferIterator->currentTuple];
+  Tuple *result = 
+    privateTupleBufferIterator->tupleBuffer.privateTupleBuffer->
+      buffer[privateTupleBufferIterator->currentTuple];
   privateTupleBufferIterator->currentTuple++;
 
   return result;
@@ -363,21 +383,38 @@ struct PrivateRelation
 {
   PrivateRelation( const ListExpr typeInfo ):
     noTuples( 0 ),
+    totalExtSize( 0 ),
     totalSize( 0 ),
-    tupleType( nl->Second( typeInfo ) ),
-    currentId( 1 )
+    attrExtSize( 0 ),
+    attrSize( 0 ),
+    tupleType( new TupleType( nl->Second( typeInfo ) ) )
     {
+      attrExtSize.resize( tupleType->GetNoAttributes() );
+      attrSize.resize( tupleType->GetNoAttributes() );
+
+      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+      {
+        attrExtSize[i] = 0;
+        attrSize[i] = 0;
+      }
     }
 /*
 The first constructor. Creates an empty relation from a ~typeInfo~.
 
 */
-  PrivateRelation( const TupleType& tupleType ):
+  PrivateRelation( TupleType *tupleType ):
     noTuples( 0 ),
+    totalExtSize( 0 ),
     totalSize( 0 ),
-    tupleType( tupleType ),
-    currentId( 1 )
+    attrExtSize( tupleType->GetNoAttributes() ),
+    attrSize( tupleType->GetNoAttributes() ),
+    tupleType( tupleType )
     {
+      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+      {
+        attrExtSize[i] = 0;
+        attrSize[i] = 0;
+      }
     }
 /*
 The second constructor. Creates an empty relation from a ~tupleType~.
@@ -393,19 +430,46 @@ The second constructor. Creates an empty relation from a ~tupleType~.
       t->DeleteIfAllowed();
     }
     tuples.clear();
+    tupleType->DeleteIfAllowed();
   }
 
+/*
+Attributes
+
+*/
   int noTuples;
 /*
-Contains the number of tuples in the relation.
+The quantity of tuples inside the relation.
+
+*/
+  double totalExtSize;
+/*
+The total size occupied by the tuples in the relation taking
+into account the small FLOBs, i.e. the extension part of
+the tuples.
 
 */
   double totalSize;
 /*
-Contains the total size of the relation.
+The total size occupied by the tuples in the relation taking
+into account all parts of the tuples, including the FLOBs.
 
 */
-  TupleType tupleType;
+  vector<double> attrExtSize;
+/*
+The total size occupied by the attributes in the relation
+taking into account the small FLOBs, i.e. the extension part
+of the tuples.
+
+*/
+  vector<double> attrSize;
+/*
+The total size occupied by the attributes in the relation
+taking into account all parts of the tuples, including the
+FLOBs.
+
+*/
+  TupleType *tupleType;
 /*
 Contains the tuple type.
 
@@ -413,12 +477,6 @@ Contains the tuple type.
   vector<Tuple*> tuples;
 /*
 The array of tuples.
-
-*/
-  TupleId currentId;
-/*
-Keeps the ~id~ to be given to the next tuple appended in the relation. This
-value is auto-incremented at each append of a new tuple.
 
 */
 };
@@ -435,7 +493,8 @@ struct RelationDescriptor
 class RelationDescriptorCompare
 {
   public:
-    bool operator()( const RelationDescriptor&, const RelationDescriptor& ) const
+    bool operator()( const RelationDescriptor&, 
+                     const RelationDescriptor& ) const
     { return false; }
 };
 
@@ -446,26 +505,19 @@ This class implements the memory representation of the type constructor ~rel~.
 It is simply an array of tuples.
 
 */
-map<RelationDescriptor, Relation*, RelationDescriptorCompare> Relation::pointerTable;
+map<RelationDescriptor, Relation*, RelationDescriptorCompare> 
+Relation::pointerTable;
 
 Relation::Relation( const ListExpr typeInfo, const bool isTemporary ):
 privateRelation( new PrivateRelation( typeInfo ) )
 {}
 
-Relation::Relation( const TupleType& tupleType, const bool isTemporary ):
+Relation::Relation( TupleType *tupleType, const bool isTemporary ):
 privateRelation( new PrivateRelation( tupleType ) )
-{}
-
-Relation::Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc, const bool isTemporary ):
-privateRelation( new PrivateRelation( typeInfo ) )
 {
-  // This main memory version of the relational algebra does not need to open
-  // relations, they are always created from the scratch.
-  assert( 0 );
 }
 
-Relation::Relation( const TupleType& tupleType, const RelationDescriptor& relDesc, const bool isTemporary ):
-privateRelation( new PrivateRelation( tupleType ) )
+Relation::Relation( const RelationDescriptor& relDesc, const bool isTemporary )
 {
   // This main memory version of the relational algebra does not need to open
   // relations, they are always created from the scratch.
@@ -474,31 +526,20 @@ privateRelation( new PrivateRelation( tupleType ) )
 
 Relation::~Relation()
 {
-  // First delete the relation from the cache ...
-  if( !firsttime )
-  {
-    for( int i = 0; i < cachesize; i++ )
-    {
-      if( key[i] != 0 && cache[i].addr == this )
-      {
-        key[i] = 0;
-        break;
-      }
-    }
-  }
-
-  // then delete the relation itself.
   delete privateRelation;
 }
 
-Relation *Relation::GetRelation( const RelationDescriptor& d )
+Relation*
+Relation::GetRelation( const RelationDescriptor& d )
 {
   // This main memory version of the relational algebra does not open relations.
   // Thus, this function always return a null pointer.
   return 0;
 }
 
-Relation *Relation::RestoreFromList( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct )
+Relation*
+Relation::RestoreFromList( ListExpr typeInfo, ListExpr value, int errorPos, 
+                                     ListExpr& errorInfo, bool& correct )
 {
   ListExpr tuplelist, TupleTypeInfo, first;
   Relation* rel;
@@ -520,7 +561,8 @@ Relation *Relation::RestoreFromList( ListExpr typeInfo, ListExpr value, int erro
     first = nl->First(tuplelist);
     tuplelist = nl->Rest(tuplelist);
     tupleno++;
-    tupleaddr = Tuple::RestoreFromList(TupleTypeInfo, first, tupleno, errorInfo, tupleCorrect);
+    tupleaddr = Tuple::RestoreFromList(TupleTypeInfo, first, tupleno, 
+                                       errorInfo, tupleCorrect);
 
     rel->AppendTuple(tupleaddr);
     tupleaddr->DeleteIfAllowed();
@@ -557,7 +599,8 @@ ListExpr Relation::SaveToList( ListExpr typeInfo )
   return l;
 }
 
-Relation *Relation::Open( SmiRecord& valueRecord, size_t& offset, 
+Relation *Relation::Open( SmiRecord& valueRecord, 
+                          size_t& offset, 
                           const ListExpr typeInfo )
 {
   ListExpr valueList;
@@ -565,51 +608,34 @@ Relation *Relation::Open( SmiRecord& valueRecord, size_t& offset,
   int valueLength;
 
   SmiKey mykey;
-  SmiRecordId recId;
   mykey = valueRecord.GetKey();
 
-  // initialize
-  if ( firsttime ) 
+  Relation *result = cache.GetRelation( mykey );
+  if( result == 0 )
   {
-    for ( int i = 0; i < cachesize; i++ ) { key[i] = 0; }
-    firsttime = false;
+    ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+    bool correct;
+    valueRecord.Read( &valueLength, sizeof( valueLength ), offset );
+    offset += sizeof( valueLength );
+    char* buffer = new char[valueLength];
+    valueRecord.Read( buffer, valueLength, offset );
+    offset += valueLength;
+    valueString.assign( buffer, valueLength );
+    delete []buffer;
+    nl->ReadFromString( valueString, valueList );
+    result = Relation::In( typeInfo, nl->First(valueList), 1, 
+                           errorInfo, correct );
+    if ( errorInfo != 0 )     
+      nl->Destroy( errorInfo );
+    nl->Destroy( valueList );
+    cache.Insert( mykey, result );
   }
-
-  // check whether value was cached
-  for ( int j = 0; j < cachesize; j++ )
-    if ( key[j]  == recId )
-    {
-      return (Relation *)cache[j].addr;
-    }
-
-  // prepare to cache the value constructed from the list
-  if ( key[current] != 0 ) 
-    delete (Relation *)cache[current].addr;
-  key[current] = recId;
-
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-  bool correct;
-  valueRecord.Read( &valueLength, sizeof( valueLength ), offset );
-  offset += sizeof( valueLength );
-  char* buffer = new char[valueLength];
-  valueRecord.Read( buffer, valueLength, offset );
-  offset += valueLength;
-  valueString.assign( buffer, valueLength );
-  delete []buffer;
-  nl->ReadFromString( valueString, valueList );
-  Relation *result = Relation::In( typeInfo, nl->First(valueList), 1, errorInfo, correct );
-
-  cache[current++] = SetWord(result);
-  if ( current == cachesize ) current = 0;
-
-  if ( errorInfo != 0 )     
-    nl->Destroy( errorInfo );
-  nl->Destroy( valueList );
-
   return result;
 }
 
-bool Relation::Save( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo )
+bool Relation::Save( SmiRecord& valueRecord, 
+                     size_t& offset, 
+                     const ListExpr typeInfo )
 {
   ListExpr valueList;
   string valueString;
@@ -634,6 +660,7 @@ void Relation::Close()
 
 void Relation::Delete()
 {
+  cache.Remove( this );
   delete this;
 }
 
@@ -655,28 +682,46 @@ Relation *Relation::Clone()
 void Relation::AppendTuple( Tuple *tuple )
 {
   tuple->IncReference();
-  tuple->SetTupleId( privateRelation->currentId++ );
   privateRelation->tuples.push_back( tuple );
+  tuple->SetTupleId( privateRelation->tuples.size() );
   privateRelation->noTuples += 1;
-  privateRelation->totalSize += tuple->GetTotalSize();
+  privateRelation->totalExtSize += tuple->GetExtSize();
+  privateRelation->totalSize += tuple->GetSize();
+
+  for( int i = 0; i < tuple->GetNoAttributes(); i++ )
+  {
+    privateRelation->attrExtSize[i] += 
+      privateRelation->tupleType->GetAttributeType(i).size;
+    privateRelation->attrSize[i] += 
+      privateRelation->tupleType->GetAttributeType(i).size;
+    for( int j = 0; j < tuple->GetAttribute(i)->NumOfFLOBs(); j++ )
+    {
+      FLOB *flob = tuple->GetAttribute(i)->GetFLOB(j);
+      privateRelation->attrExtSize[i] += flob->IsLob() ? 0 : flob->Size();
+      privateRelation->attrSize[i] += flob->Size();
+    }
+  }
 }
 
 bool Relation::DeleteTuple( Tuple *tuple )
 {
-  cout << "This functionality is not yet implemented for the RelationMainMemoryAlgebra" << endl;
+  cout << "This functionality is not yet implemented for the "
+          "RelationMainMemoryAlgebra" << endl;
   assert(false);
-  	
 }
 
-void Relation::UpdateTuple( Tuple *tuple, const vector<int>& changedIndices,const vector<Attribute *>& newAttrs ){
-	cout << "This functionality is not yet implemented for the RelationMainMemoryAlgebra" << endl;
-	assert(false);
-	
+void Relation::UpdateTuple( Tuple *tuple, 
+                            const vector<int>& changedIndices,
+                            const vector<Attribute *>& newAttrs )
+{
+  cout << "This functionality is not yet implemented for the "
+          "RelationMainMemoryAlgebra" << endl;
+  assert(false);
 }
 
 Tuple* Relation::GetTuple( const TupleId& tupleId ) const
 {
-  return privateRelation->tuples[tupleId];
+  return privateRelation->tuples[tupleId-1];
 }
 
 void Relation::Clear()
@@ -691,24 +736,54 @@ void Relation::Clear()
     iter++;
   }
   privateRelation->tuples.clear();
-  privateRelation->currentId = 1;
   privateRelation->noTuples = 0;
   privateRelation->totalSize = 0;
 }
 
-const int Relation::GetNoTuples() const
+int Relation::GetNoTuples() const
 {
   return privateRelation->noTuples;
 }
 
-const TupleType& Relation::GetTupleType() const
+TupleType *Relation::GetTupleType() const
 {
   return privateRelation->tupleType;
 }
 
-const double Relation::GetTotalSize() const
+double Relation::GetTotalRootSize() const
+{
+  return privateRelation->noTuples *
+         privateRelation->tupleType->GetTotalSize();
+}
+
+double Relation::GetTotalRootSize( int i ) const
+{
+  return privateRelation->noTuples *
+         privateRelation->tupleType->GetAttributeType(i).size;
+}
+
+double Relation::GetTotalExtSize() const
+{
+  return privateRelation->totalExtSize;
+}
+
+double Relation::GetTotalExtSize( int i ) const
+{
+  assert( i >= 0 &&
+          (size_t)i < privateRelation->attrExtSize.size() );
+  return privateRelation->attrExtSize[i];
+}
+
+double Relation::GetTotalSize() const
 {
   return privateRelation->totalSize;
+}
+
+double Relation::GetTotalSize( int i ) const
+{
+  assert( i >= 0 &&
+          (size_t)i < privateRelation->attrSize.size() );
+  return privateRelation->attrSize[i];
 }
 
 RelationIterator *Relation::MakeScan() const
@@ -782,10 +857,99 @@ TupleId RelationIterator::GetTupleId() const
   return privateRelationIterator->currentTupleId;
 }
 
-const bool RelationIterator::EndOfScan()
+bool RelationIterator::EndOfScan()
 {
   return privateRelationIterator->iterator == 
          privateRelationIterator->relation.privateRelation->tuples.end();
+}
+
+/*
+5 Implementation of the class ~RelationCache~
+
+*/
+RelationCache::RelationCache( const size_t size ):
+size( size ),
+current( 0 ),
+key( new SmiKey[size] ),
+cache( new Relation*[size] )
+{
+  for( size_t i = 0; i < size; i++ )
+  {
+    key[i] = SmiRecordId(0);
+    cache[i] = 0;
+  }
+}
+
+RelationCache::~RelationCache()
+{
+  delete []key;
+  delete []cache;
+}
+
+void RelationCache::Insert( const SmiKey& ikey, Relation *rel )
+{
+// VTA - I commented out this piece of code so that the
+// cache is not used. There is a bug with the Spatial
+// Algebra if the cache of relation is used.
+//  if( current == size )
+//    delete cache[current-1];
+//  if( current > 0 )
+//    for( size_t i = current - 1; i > 0; i-- )
+//    {
+//      key[i] = key[i-1];
+//      cache[i] = cache[i-1];
+//    }
+//  key[0] = ikey;
+//  cache[0] = rel;
+//
+//  if( current < size )
+//    current++;
+}
+
+void RelationCache::Remove( Relation *rel )
+{
+  for( size_t i = 0; i < current; i++ )
+  {
+    if ( cache[i] == rel )
+    {
+      for( size_t j = i; j < current - 1; j++ )
+      {
+        key[j] = key[j+1];
+        cache[j] = cache[j+1];
+      }
+      current--;
+    }
+  }
+}
+
+Relation *RelationCache::GetRelation( const SmiKey& skey )
+{
+  Relation *result = 0;
+  for( size_t i = 0; i < current; i++ )
+  {
+    if ( key[i] == skey )
+    {
+      result = cache[i];
+      for( int j = i-1; j >= 0; j-- )
+      {
+        key[j+1] = key[j];
+        cache[j+1] = cache[j];
+      }
+      key[0] = skey;
+      cache[0] = result;
+    }
+  }
+  return result;
+}
+
+void RelationCache::Clear()
+{
+  for( size_t i = 0; i < current; i++ )
+  {
+    key[i] = SmiRecordId(0);
+    cache[i] = 0;
+  }
+  current = 0;
 }
 
 /*

@@ -122,7 +122,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
         nSortAttrs = ((CcInt*)intWord.addr)->GetIntval();
         for(i = 1; i <= nSortAttrs; i++)
         {
-	  if(requestArgs)
+          if(requestArgs)
           {
             qp->Request(args[2 * i + 1].addr, intWord);
           }
@@ -241,7 +241,9 @@ private:
       return 1;
     }
 
-    return ((Attribute*)a->GetAttribute(attrIndexA))->Compare((Attribute*)b->GetAttribute(attrIndexB));
+    return 
+      ((Attribute*)a->GetAttribute(attrIndexA))->
+        Compare((Attribute*)b->GetAttribute(attrIndexB));
   }
 
   void SetArgs(ArgVector& args, Word stream, Word attrIndex)
@@ -262,7 +264,8 @@ private:
     }
     else
     {
-      int errorCode = SortBy<false, false>(aArgs, aResult, REQUEST, streamALocalInfo, 0);
+      int errorCode = 
+        SortBy<false, false>(aArgs, aResult, REQUEST, streamALocalInfo, 0);
       yield = (errorCode == YIELD);
     }
 
@@ -287,7 +290,8 @@ private:
     }
     else
     {
-      int errorCode = SortBy<false, false>(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
+      int errorCode = 
+        SortBy<false, false>(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
       yield = (errorCode == YIELD);
     }
 
@@ -355,7 +359,7 @@ private:
     {
       for(iterB = bucketB.begin(); iterB != bucketB.end(); iterB++)
       {
-        Tuple* resultTuple = new Tuple( *resultTupleType );
+        Tuple* resultTuple = new Tuple( resultTupleType );
         Concat(*iterA, *iterB, resultTuple);
         resultBucket.push_back(resultTuple);
       }
@@ -443,8 +447,10 @@ public:
       SortBy<false, false>(bArgs, bResult, OPEN, streamBLocalInfo, 0);
     }
 
-    ListExpr resultType = SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
-    resultTupleType = new TupleType( nl->Second( resultType ) );
+    ListExpr resultType = 
+      SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
+    resultTupleType = 
+      new TupleType( nl->Second( resultType ) );
 
     nextATuple();
     nextBTuple();
@@ -462,7 +468,7 @@ public:
       SortBy<false, false>(aArgs, aResult, CLOSE, streamALocalInfo, 0);
       SortBy<false, false>(bArgs, bResult, CLOSE, streamBLocalInfo, 0);
     }
-    delete resultTupleType;
+    resultTupleType->DeleteIfAllowed();
   }
 
   Tuple* NextResultTuple()
@@ -578,7 +584,9 @@ private:
 
   size_t HashTuple(Tuple* tuple, int attrIndex)
   {
-    return (((StandardAttribute*)tuple->GetAttribute(attrIndex))->HashValue() % nBuckets);
+    return 
+      (((StandardAttribute*)tuple->GetAttribute(attrIndex))->HashValue() % 
+      nBuckets);
   }
 
   void FillHashBucketsB()
@@ -625,7 +633,8 @@ public:
     this->streamA = streamA;
     this->streamB = streamB;
 
-    ListExpr resultType = SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
+    ListExpr resultType = 
+      SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
     resultTupleType = new TupleType( nl->Second( resultType ) );
 
     attrIndexA = ((CcInt*)attrIndexAWord.addr)->GetIntval() - 1;
@@ -664,7 +673,7 @@ public:
   {
     ClearBucketsB();
     qp->Close(streamA.addr);
-    delete resultTupleType;
+    resultTupleType->DeleteIfAllowed();
   }
 
   Tuple* NextResultTuple()
@@ -678,7 +687,7 @@ public:
       {
         if( CompareTuples( (Tuple *)tupleA.addr, *iterTuplesBucketB ) == 0 )
         {
-          result = new Tuple( *resultTupleType );
+          result = new Tuple( resultTupleType );
           Concat( (Tuple *)tupleA.addr, *iterTuplesBucketB, result );
           iterTuplesBucketB++;
           return result;
@@ -780,12 +789,16 @@ The compiler cannot expand these template functions.
 
 */
 template int
-SortBy<false, true>(Word* args, Word& result, int message, Word& local, Supplier s);
+SortBy<false, true>(Word* args, Word& result, int message, 
+                    Word& local, Supplier s);
 template int
-SortBy<true, true>(Word* args, Word& result, int message, Word& local, Supplier s);
+SortBy<true, true>(Word* args, Word& result, int message, 
+                   Word& local, Supplier s);
 template int
-MergeJoin<true>(Word* args, Word& result, int message, Word& local, Supplier s);
+MergeJoin<true>(Word* args, Word& result, int message, 
+                Word& local, Supplier s);
 template int
-MergeJoin<false>(Word* args, Word& result, int message, Word& local, Supplier s);
+MergeJoin<false>(Word* args, Word& result, int message, 
+                 Word& local, Supplier s);
 
 #endif // RELALG_PERSISTENT

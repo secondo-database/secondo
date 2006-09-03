@@ -431,7 +431,7 @@ value like int, float, etc.
       return ptr->GetValue(); 
     } 
 
-  private:
+  protected:
 
     AttrDelete del;
 /*

@@ -90,6 +90,43 @@ SmiKey::operator=( const SmiKey& other )
 }
 
 const bool
+SmiKey::operator==( const SmiKey& other ) const
+{
+  if( keyType != other.GetType() )
+    return false;
+
+  bool ok = false;
+  switch (keyType)
+  {
+    case SmiKey::RecNo:
+      ok = (recnoKey == other.recnoKey);
+      break;
+    case SmiKey::Integer:
+      ok = (integerKey == other.integerKey);
+      break;
+    case SmiKey::Float:
+      ok = (floatKey == other.floatKey);
+      break;
+    case SmiKey::String:
+    case SmiKey::Composite:
+      {
+        const void* key1 = ( keyLength > SMI_MAX_KEYLEN_LOCAL ) ?
+                             longKeyData : shortKeyData;
+        const void* key2 = ( other.keyLength > SMI_MAX_KEYLEN_LOCAL ) ?
+                             other.longKeyData : other.shortKeyData;
+        if ( keyLength == other.keyLength )
+        {
+          ok = (memcmp( key1, key2, other.keyLength ) == 0);
+        }
+      }
+      break;
+    default:
+      break;
+  }
+  return (ok);
+}
+
+const bool
 SmiKey::operator>( const SmiKey& other ) const
 {
   assert( keyType == other.GetType() );

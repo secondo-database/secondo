@@ -1489,7 +1489,7 @@ AvgSumValueMapping(Word* args, Word& result, int message,
         CcInt* accumulatedInt = (CcInt*)accumulated;
         resultAttr->Set(((float)accumulatedInt->GetIntval()) / nItems);
       }
-      delete accumulated;
+      accumulated->DeleteIfAllowed();
       result = SetWord(resultAttr);
     }
     else
@@ -1508,7 +1508,7 @@ AvgSumValueMapping(Word* args, Word& result, int message,
         resultAttr->Set(accumulatedInt->GetIntval());
         result = SetWord(resultAttr);
       }
-      delete accumulated;
+      accumulated->DeleteIfAllowed();
     }
     return 0;
   }
@@ -3258,7 +3258,8 @@ Loopselect(Word* args, Word& result, int message,
         if( localinfo->tuplex.addr != 0 )
           ((Tuple*)localinfo->tuplex.addr)->DeleteIfAllowed();
 
-        delete localinfo->resultTupleType;
+        if( localinfo->resultTupleType != 0 ) 
+          localinfo->resultTupleType->DeleteIfAllowed();
         delete localinfo;
       }
       qp->Close(args[0].addr);
@@ -4059,7 +4060,8 @@ int Concat(Word* args, Word& result, int message, Word& local, Supplier s)
 
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
-      delete (CcInt*)local.addr;
+      if( local.addr != 0 )
+        ((CcInt*)local.addr)->DeleteIfAllowed();
       return 0;
   }
   return 0;
@@ -4478,7 +4480,8 @@ int GroupByValueMapping
       if( local.addr != 0 )
       {
         gbli = (GroupByLocalInfo *)local.addr;
-        gbli->resultTupleType->DeleteIfAllowed();
+        if( gbli->resultTupleType != 0 )
+          gbli->resultTupleType->DeleteIfAllowed();
         delete gbli;
       }
       qp->Close(args[0].addr);
@@ -4766,7 +4769,7 @@ int AggregateB(Word* args, Word& result, int message,
           if( aggrStack.top().level == 0 )
             ((Tuple*)aggrStack.top().value.addr)->DeleteIfAllowed();
           else
-            delete (StandardAttribute*)aggrStack.top().value.addr;
+            ((StandardAttribute*)aggrStack.top().value.addr)->DeleteIfAllowed();
           aggrStack.pop();
           level++;
         }

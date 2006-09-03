@@ -346,6 +346,16 @@ ListExpr Tuple::Out( ListExpr typeInfo )
 5 Implementation of the class ~Relation~
 
 */
+Tuple *Relation::GetTuple( const TupleId& id,
+                           const int attrIndex,
+                           const vector< pair<int, int> >& intervals ) const
+{
+  Tuple *t = 0;
+  if( (t = GetTuple( id )) != 0 )
+    t->GetAttribute( attrIndex )->Restrict( intervals );
+  return t;
+}
+
 Relation *Relation::In( ListExpr typeInfo, ListExpr value, 
                         int errorPos, ListExpr& errorInfo, 
                         bool& correct )
@@ -439,6 +449,20 @@ ListExpr Relation::Out( ListExpr typeInfo )
   }
   delete rit;
   return l;
+}
+
+/*
+6 Implementation of class ~TupleBuffer~
+
+*/
+Tuple *TupleBuffer::GetTuple( const TupleId& id,
+                              const int attrIndex,
+                              const vector< pair<int, int> >& intervals ) const
+{
+  Tuple *t = 0;
+  if( (t = GetTuple( id )) != 0 )
+    t->GetAttribute( attrIndex )->Restrict( intervals );
+  return t;
 }
 
 /*
