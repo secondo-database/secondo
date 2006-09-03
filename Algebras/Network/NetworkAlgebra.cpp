@@ -163,7 +163,7 @@ void Network::FillJunctions( const Relation *junctions )
 
 
 
-  Relation *unJunctions = new Relation( junctionsNumInt, false );
+  Relation *unJunctions = new Relation( junctionsNumInt, true );
 
   RelationIterator *junctionsIter = junctions->MakeScan();
   Tuple *j;
@@ -172,16 +172,28 @@ void Network::FillJunctions( const Relation *junctions )
   {
     Tuple *intJ = new Tuple( nl->Second( junctionsNumInt ) ),
           *appJ = new Tuple( nl->Second( junctionsNumApp ) );
+
+    for( int i = 0; i < j->GetNoAttributes(); i++ )
+      intJ->CopyAttribute( i, j, i );
     
     CcInt *r1id = (CcInt*)j->GetAttribute( POS_JR1ID ),
           *r2id = (CcInt*)j->GetAttribute( POS_JR2ID );
-
-    appJ->PutAttribute( POS_APPJPOS, new Point( false ) );
 
     BTreeIterator *routesIter = routesBTree->ExactMatch( r1id );
     assert( routesIter->Next() );
     CcInt *r1rc = new CcInt( true, routesIter->GetId() );
     appJ->PutAttribute( POS_APPJR1RC, r1rc );
+
+    Tuple *r = this->routes->GetTuple( routesIter->GetId() );
+    assert( r != 0 );
+    Line *l = (Line*)r->GetAttribute( POS_RCURVE );
+    assert( l != 0 );
+    CcReal *meas = (CcReal*)j->GetAttribute( POS_JMEAS1 );
+    Point *p = new Point( false );
+    l->AtPosition( meas->GetRealval(), *p );
+    appJ->PutAttribute( POS_APPJPOS, p );
+
+    r->DeleteIfAllowed();
     delete routesIter;
  
     routesIter = routesBTree->ExactMatch( r2id );
