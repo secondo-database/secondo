@@ -219,21 +219,10 @@ of the rectangle.
 
 
 
-
-
-
-
-
-
-
-
-
-
     inline int Compare( const Attribute *arg ) const
     {
 
       unsigned thispos, rpos;
-      unsigned positive;
       unsigned thismin[dim], rmin[dim];
 
       const Rectangle<dim>* r = (const Rectangle<dim>*)arg;
@@ -246,29 +235,23 @@ of the rectangle.
 
       //order on rectangles is z-order (bit interleaving)
 
-      // check whether any coordinate is negative and treat positive /negative
-      // quadrants
+      // treat positive/negative quadrants
 
-      positive = 1;
-      for (unsigned j = 0; j < dim; j++) positive &= (min[j] >= 0);
 
       thispos = 0;
       rpos = 0;
 
-      if (!positive)
+      for (unsigned j = 0; j < dim; j++)
       {
-	for (unsigned j = 0; j < dim; j++)
-	{
-	  thispos <<= 1;
-	  thispos &= (min[j] >= 0);
-	  rpos <<= 1;
-	  rpos &= (r->min[j] >= 0);
-	}
-	if (thispos < rpos)
-	  return -1;
-	if (thispos > rpos)
-	  return 1;
+	thispos <<= 1;
+	thispos |= (min[j] >= 0);
+	rpos <<= 1;
+	rpos |= (r->min[j] >= 0);
       }
+      if (thispos < rpos)
+	return -1;
+      if (thispos > rpos)
+        return 1;
 
 
       // now treat z-order based on positive integer coordinates
@@ -276,9 +259,7 @@ of the rectangle.
       for (unsigned j = 0; j < dim; j++)
       {
 	thismin[j] = (unsigned) fabs(min[j]);  
-		//printf("thismin[%d] = %d\n", j, thismin[j]);
 	rmin[j] = (unsigned) fabs(r->min[j]);
-		//printf("rmin[%d] = %d\n\n", j, rmin[j]);
       }
 
       for (int j = 31; j >= 0; j--)
@@ -293,10 +274,6 @@ of the rectangle.
 	  rpos <<= 1;
 	  rpos |= ((rmin[k] >> j) & 1);
 	}
-
-		//printf("thispos = %d\n", thispos);
-		//printf("rpos = %d\n\n", rpos);
-
 
 	if (thispos < rpos)
 	  return -1;
@@ -323,21 +300,6 @@ of the rectangle.
       }
       return 0;  
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
