@@ -391,9 +391,10 @@ Acts as the ~Out~ function, but uses internal representation for
 the objects.
 
 */
-    static void SetCounterReport( bool val );
+    static void InitCounters(bool visible);
+    static void SetCounterValues();
 /*
-Shows tuple statistics if invoekd with ~true~ 
+Initialize tuple counters and assign values.
 
 */
     const TupleId& GetTupleId() const;
@@ -614,10 +615,10 @@ Returns the number of references
     
   private:
 
-    static long& tuplesCreated;
-    static long& tuplesDeleted;
-    static long& tuplesInMemory;
-    static long& maximumTuples;
+    static long tuplesCreated;
+    static long tuplesDeleted;
+    static long tuplesInMemory;
+    static long maximumTuples;
 /*
 Some statistics about tuples.
 

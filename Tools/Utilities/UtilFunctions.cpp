@@ -176,7 +176,8 @@ StopWatch::diffTimes() {
    }
 
    buffer << sCPU << "sec = " << sReal/sCPU;
-   //buffer << " / ticks = " << (stopCPU - startCPU) << "[" << stopCPU << " - " << startCPU << "]";
+   //buffer << " / ticks = " << (stopCPU - startCPU) 
+   //<< "[" << stopCPU << " - " << startCPU << "]";
 	  
    return buffer.str();  
 }
@@ -280,4 +281,21 @@ ostream& operator<<(ostream& os, const NList& n) {
   os << n.convertToString(); 
   return os;
 }
+
+
+/*
+Static members of class ~CMsg~.
+
+*/
+
+bool CMsg::initialized = false;
+int CMsg::stdOutput = 0;
+ofstream* CMsg::fp = 0;
+stringstream CMsg::buffer;
+stringstream CMsg::allErrors;
+stringstream CMsg::devnull;
+string CMsg::logFileStr = "";
+string CMsg::prefix = "";
+map<string,ofstream*> CMsg::files;
+  
 

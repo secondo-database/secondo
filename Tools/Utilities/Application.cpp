@@ -74,6 +74,7 @@ Application::appPointer = 0;
 map<int, string>
 Application::signalStr;
 
+
 Application* Application::Instance()
 {
   return (appPointer);
@@ -87,6 +88,7 @@ Class constructors/destructors
 Application::Application( int argc, const char** argv, 
                           bool showCounters /*=true*/ )
 {
+  cmsg.init();
   this->showCounters = showCounters;
   if ( appPointer )
   {

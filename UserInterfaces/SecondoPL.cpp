@@ -768,7 +768,7 @@ int registerSecondo(){
 int
 SecondoPLMode(int argc, char **argv)
 {
-
+  cmsg.init();
   char* configFile;
 
   atexit(handle_exit);

@@ -68,9 +68,11 @@ main( const int argc, char* argv[] )
   if ( tp.isServerMode() )
     return SecondoServerMode(tp.numArgs, (const char**)tp.argValues);
 #endif
- 
+
+#ifdef SECONDO_PL 
   if ( tp.isPLMode() )
     return SecondoPLMode(tp.numArgs,tp.argValues);
+#endif
 
   cout << License::getStr() << endl;
   

@@ -821,11 +821,10 @@ separate functions which should be named Command\_<name>.
   }
 
   // Initialize Counters for the creation and deletion of objects
-  LOGMSG( "SI:RelStatistics", 
-    Tuple::SetCounterReport( true ); 
-    ShowStandardTypesStatistics( true ); 
-  ) 
-
+  bool objStatistics = RTFlag::isActive("SI:RelStatistics");
+  Tuple::InitCounters( objStatistics );
+  ShowStandardTypesStatistics( objStatistics );
+  
 
   //*** START COMMAND RECOGNITION ***//
   
@@ -1559,6 +1558,9 @@ separate functions which should be named Command\_<name>.
   }
     
   // handle counters
+  if (objStatistics) 
+    Tuple::SetCounterValues();
+
   bool printCtrs = RTFlag::isActive("SI:PrintCounters");
   bool dumpCtrs = RTFlag::isActive("SI:DumpCounters");
   Counter::Str2ValueMap cm = Counter::usedCounters();
@@ -1581,7 +1583,7 @@ separate functions which should be named Command\_<name>.
   typedef vector<FileInfo*> FStatVec;
   FStatVec* fi = new FStatVec;
 
-  // retriev statistics
+  // retrieve statistics
   SmiEnvironment::GetCacheStatistics(*ci, *fi);
   
   ci->cstatNr = CmdNr;

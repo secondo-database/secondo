@@ -201,29 +201,6 @@ class CMsg {
 
 public:
   
-  CMsg() : 
-    stdOutput(1), 
-    fp(new ofstream()),
-    logFileStr("secondo.log"),
-    prefix("tmp/")
-  {
-    files[logFileStr] = fp;
-    fp->open((prefix + logFileStr).c_str()); 
-    buffer.str("");
-    allErrors.str("");
-    devnull.str("");
-  }
-  ~CMsg() // close open files
-  {
-    for ( map<string,ofstream*>::iterator it = files.begin();
-          it != files.end();
-          it++ )
-    {
-       it->second->close();
-       delete it->second;
-    }     
-  }
-
   inline ostream& file() 
   {
     fp = files[logFileStr]; 
@@ -318,18 +295,60 @@ public:
     return result;
   }
 
+/*
+We will use a global instance named ~cmsg~. Unfortunately, it is not
+clear when the constructor will be called (We had problems on Mac OSX witg gcc 4.0). 
+In order to ensure that the instance works we will call the initialize function at startup
+of the applications.
+
+*/
+  static void init()
+  {
+    if (!initialized) 
+    { 
+      stdOutput = 1; 
+      fp = new ofstream();
+      logFileStr = "secondo.log";
+      prefix = "tmp/";
+      files[logFileStr] = fp;
+      fp->open((prefix + logFileStr).c_str()); 
+      buffer.str("");
+      allErrors.str("");
+      devnull.str("");
+      initialized = true;
+    }
+  }
+ 
+  CMsg()
+  {
+    init(); 
+  }
+  
+  ~CMsg() // close open files
+  {
+    for ( map<string,ofstream*>::iterator it = files.begin();
+          it != files.end();
+          it++ )
+    {
+       it->second->close();
+       delete it->second;
+    }
+  }
+  
 private:
 
-  int stdOutput;
-  ofstream* fp;
-  stringstream buffer;
-  stringstream allErrors;
-  stringstream devnull;
-  const string logFileStr;
-  const string prefix;
-  map<string,ofstream*> files;
+  static bool initialized;
+  static int stdOutput;
+  static ofstream* fp;
+  static stringstream buffer;
+  static stringstream allErrors;
+  static stringstream devnull;
+  static string logFileStr;
+  static string prefix;
+  static map<string,ofstream*> files;
   
 };
+
 
 // defined in Application.cpp
 extern CMsg cmsg;

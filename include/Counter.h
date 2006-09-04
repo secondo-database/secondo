@@ -105,9 +105,9 @@ Simple constructor and destructor.
     else 
     { 
       // initialize new Counter;
+      CounterMap[identifier] = make_pair(0, true);
       long& CounterRef = CounterMap[identifier].first;
       CounterMap[identifier].second = reportVal;
-      CounterRef = 0;
       return CounterRef;
     }
   };

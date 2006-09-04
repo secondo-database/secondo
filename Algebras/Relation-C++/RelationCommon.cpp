@@ -74,14 +74,10 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
-long& 
-Tuple::tuplesCreated = Counter::getRef("RA:CreatedTuples", false); 
-long& 
-Tuple::tuplesDeleted = Counter::getRef("RA:DeletedTuples", false); 
-long& 
-Tuple::maximumTuples = Counter::getRef("RA:MaxTuplesInMem", false); 
-long& 
-Tuple::tuplesInMemory = Counter::getRef("RA:TuplesInMem", false);
+long Tuple::tuplesCreated = 0; 
+long Tuple::tuplesDeleted = 0; 
+long Tuple::maximumTuples = 0; 
+long Tuple::tuplesInMemory = 0;
 
 /*
 These variables are used for tuple statistics.
@@ -156,13 +152,33 @@ CcTuple *Tuple::CloneToMemoryTuple() const
   return result;
 }
 
-void Tuple::SetCounterReport(const bool val)
+void Tuple::InitCounters(const bool val)
 {
+  tuplesCreated = 0;
+  tuplesDeleted = 0;
+  maximumTuples = 0;
+  tuplesInMemory = 0;
+  
+  Counter::getRef("RA:CreateTuples") = 0;
+  Counter::getRef("RA:DeletedTuples") = 0;
+  Counter::getRef("RA:MaxTuplesInMem") = 0;
+  Counter::getRef("RA:TuplesInMem") = 0;
+
   Counter::reportValue("RA:CreatedTuples", val );
   Counter::reportValue("RA:DeletedTuples", val);
   Counter::reportValue("RA:MaxTuplesInMem", val);
   Counter::reportValue("RA:TuplesInMem", val);
 }
+
+void Tuple::SetCounterValues()
+{
+  Counter::getRef("RA:CreateTuples") = tuplesCreated;
+  Counter::getRef("RA:DeletedTuples") = tuplesDeleted;
+  Counter::getRef("RA:MaxTuplesInMem") = maximumTuples;
+  Counter::getRef("RA:TuplesInMem") = tuplesInMemory;
+}
+
+
 
 ostream &operator<< (ostream &os, Attribute &attrib)
 {
