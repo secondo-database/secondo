@@ -53,6 +53,8 @@ using namespace std;
 #include <cmath>
 #include "stdarg.h"
 
+#include <stdio.h>
+
 #ifdef SECONDO_WIN32
 #define Rectangle SecondoRectangle
 #endif
@@ -215,34 +217,129 @@ of the rectangle.
     inline void CopyFrom( const StandardAttribute* right )
       { *this = *(const Rectangle<dim>*)right; }
 
+
+
+
+
+
+
+
+
+
+
+
+
     inline int Compare( const Attribute *arg ) const
     {
-      if(!defined)
-        return -1;
+
+      unsigned thispos, rpos;
+      unsigned positive;
+      unsigned thismin[dim], rmin[dim];
+
       const Rectangle<dim>* r = (const Rectangle<dim>*)arg;
       if(!defined && !r->defined)
         return 0;
+      if(!defined)
+        return -1;
       if(!r->defined)
         return 1;
-      if( !r )
-        return -2;
+
+      //order on rectangles is z-order (bit interleaving)
+
+      // check whether any coordinate is negative and treat positive /negative
+      // quadrants
+
+      positive = 1;
+      for (unsigned j = 0; j < dim; j++) positive &= (min[j] >= 0);
+
+      thispos = 0;
+      rpos = 0;
+
+      if (!positive)
+      {
+	for (unsigned j = 0; j < dim; j++)
+	{
+	  thispos <<= 1;
+	  thispos &= (min[j] >= 0);
+	  rpos <<= 1;
+	  rpos &= (r->min[j] >= 0);
+	}
+	if (thispos < rpos)
+	  return -1;
+	if (thispos > rpos)
+	  return 1;
+      }
+
+
+      // now treat z-order based on positive integer coordinates
+
+      for (unsigned j = 0; j < dim; j++)
+      {
+	thismin[j] = (unsigned) fabs(min[j]);  
+		//printf("thismin[%d] = %d\n", j, thismin[j]);
+	rmin[j] = (unsigned) fabs(r->min[j]);
+		//printf("rmin[%d] = %d\n\n", j, rmin[j]);
+      }
+
+      for (int j = 31; j >= 0; j--)
+      {
+	thispos = 0;
+	rpos = 0;
+
+	for (unsigned k = 0; k < dim; k++)
+	{
+	  thispos <<= 1;
+	  thispos |= ((thismin[k] >> j) & 1);
+	  rpos <<= 1;
+	  rpos |= ((rmin[k] >> j) & 1);
+	}
+
+		//printf("thispos = %d\n", thispos);
+		//printf("rpos = %d\n\n", rpos);
+
+
+	if (thispos < rpos)
+	  return -1;
+	if (thispos > rpos)
+	  return 1;
+      }
+
+      // if no conclusion on z-order (based on integer coordinates) can be
+      // reached, we fall back to the standard comparison
  
       for( unsigned i = 0; i < dim; i++ )
       {
-        if( this->min[dim] < r->min[dim] )
+        if( this->min[i] < r->min[i] )
           return -1;
-        if( this->min[dim] > r->min[dim] )
+        if( this->min[i] > r->min[i] )
           return 1;
       }
       for( unsigned i = 0; i < dim; i++ )
       {
-        if( this->max[dim] < r->max[dim] )
+        if( this->max[i] < r->max[i] )
           return -1;
-        if( this->max[dim] > r->max[dim] )
+        if( this->max[i] > r->max[i] )
           return 1;
       }
       return 0;  
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     inline bool Adjacent( const Attribute *arg ) const
       { return false; }
