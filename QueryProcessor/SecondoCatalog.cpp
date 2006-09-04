@@ -705,6 +705,22 @@ static ListExpr objEntry( const string& name,
 } 
 
 
+static void appendEntry( ListExpr& start, 
+                         ListExpr& last, const ListExpr elem )
+{ 
+  if ( start == nl->Empty() )
+  {
+    start = nl->Cons( elem, nl->Empty() ); 
+    last = start;
+  }
+  else
+  {
+    last = nl->Append( last, elem );
+  }
+}
+
+
+
 ListExpr
 SecondoCatalog::ListObjects()
 {
@@ -775,17 +791,8 @@ Precondition: dbState = dbOpen.
       nl->ReadFromString( typeExprString, typeExpr );
 //VTA - This line must be added
 //      typeExpr = nl->First( typeExpr );
-      if ( objectsList == nl->TheEmptyList() )
-      {
-        objectsList = nl->Cons( objEntry(objectName, typeName, typeExpr), 
-                                nl->Empty() ); 
-        lastElem = objectsList;
-      }
-      else
-      {
-        lastElem = nl->Append( lastElem,
-                               objEntry(objectName, typeName, typeExpr) );
-      }
+      appendEntry( objectsList, lastElem, 
+                   objEntry(objectName, typeName, typeExpr) );
     }
   }
   oIterator.Finish();
@@ -799,17 +806,8 @@ Precondition: dbState = dbOpen.
       nl->ReadFromString( oPos->second.typeExpr, typeExpr );
 //VTA - This line must be added
 //      typeExpr = nl->First( typeExpr );
-      if ( objectsList == nl->TheEmptyList() )
-      {
-        objectsList = nl->Cons( objEntry(objectName, typeName, typeExpr), 
-                                nl->Empty() ); 
-        lastElem = objectsList;
-      }
-      else
-      {
-        lastElem = nl->Append( lastElem,
-                               objEntry(objectName, typeName, typeExpr) );
-      }
+      appendEntry( objectsList, lastElem, 
+                   objEntry(objectName, typeName, typeExpr) );
     }
   }
   // Append system tables
@@ -820,12 +818,11 @@ Precondition: dbState = dbOpen.
     objectName = it->first;
     typeName = nl->Empty();
     typeExpr = it->second->relSchema().enclose().listExpr();
-    lastElem = nl->Append( lastElem,
-                           objEntry(objectName, typeName, typeExpr) );
+    appendEntry( objectsList, lastElem, 
+                 objEntry(objectName, typeName, typeExpr) );
     it++;
   } 
 
-  
   objectsList = nl->Cons( nl->SymbolAtom( "OBJECTS" ), objectsList );
   return (objectsList);
 }
