@@ -18,12 +18,12 @@ Feruniversit[ae]t Hagen.
   trajectory           upoint    -> line
   makemvalue           stream (tuple ([x1:t1,xi:uType,..,xn:tn]))  ->  mType
   size                 periods  -> real
-  deftime              uT  -> periods
-  atinstant            uT x instant  -> iT
-  atperiods            uT x periods  -> (stream uT)
-  Initial              uT -> iT
-  final                uT  -> iT
-  present              uT x instant  -> bool
+  deftime      (*)     uT  -> periods
+  atinstant    (*)     uT x instant  -> iT
+  atperiods    (*)     uT x periods  -> (stream uT)
+  Initial      (*)     uT -> iT
+  final        (*)     uT  -> iT
+  present      (*)     uT x instant  -> bool
                        uT x periods  -> bool
   point2d              periods  -> point
   queryrect2d          instant  -> rect
@@ -38,6 +38,8 @@ Feruniversit[ae]t Hagen.
                        ureal   -> ubool
   derivative           mreal   -> mreal
                        ureal   -> ureal
+
+(*): These operators have been implemented for T in {bool, int, real, point}
 
 ----
 
@@ -81,13 +83,13 @@ OK          (stream X) (stream Y) (map X Y (stream Z)) --> (stream Z)
 OK   sfeed: T --> (stream T)                                   
 
 OK   transformstream: (stream T) -> stream(tuple((element T)))
-                      stream(tuple((id T))) -> (stream T)
+OK                    stream(tuple((id T))) -> (stream T)
 
 OK   saggregate: (stream T) x (T x T --> T) x T  --> T
 
 Test atmax: uT --> (stream uT)
 
-pre  atmin: uT --> (stream uT)
+Test atmin: uT --> (stream uT)
 
 Test at:    ureal x real --> (stream ureal)
 
@@ -96,11 +98,12 @@ Test           uT x uT -> ureal
 Test           uT x  T -> ureal 
 Test            T x uT -> ureal
 
-pre  intersects: uT x uT --> (stream ubool)
+pre  intersects: For T in {bool, int, string, real, point}:
+                 uT x uT --> (stream ubool)
 
 pre  intersection: uT x uT --> (stream uT)
 
-     mdirection: upoint --> ureal
+     udirection: upoint --> ureal
 
      no_components: uT --> uint
 
@@ -117,8 +120,11 @@ pre  intersection: uT x uT --> (stream uT)
      initial, final: (stream uT) --> iT
      present: (stream uT) x instant --> bool
      present: (stream uT) x periods --> bool
-     never:   ubool --> bool
-     always:  ubool --> bool
+     soemtimes: ubool --> bool
+     never:     ubool --> bool
+     always:    ubool --> bool
+
+
 
 ----
 
@@ -161,8 +167,9 @@ helping operators for indexing instant values in R-trees.
 #include "SpatialAlgebra.h"
 #include "RelationAlgebra.h"
 #include "TemporalAlgebra.h"
-#include "MovingRegionAlgebra.h"
 #include "TemporalExtAlgebra.h"
+#include "MovingRegionAlgebra.h"
+
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -472,6 +479,10 @@ UnitSimpleSelect( ListExpr args )
     return 2;
   if( nl->SymbolValue( arg1 ) == "upoint" )
     return 3;
+  if( nl->SymbolValue( arg1 ) == "ustring" )
+    return 4;
+  if( nl->SymbolValue( arg1 ) == "uregion" )
+    return 5;
   
   return -1; // This point should never be reached
 }
@@ -500,6 +511,10 @@ UnitCombinedUnitStreamSelect( ListExpr args )
         return 2;
       if( nl->SymbolValue( arg1 ) == "upoint" )
         return 3;
+      if( nl->SymbolValue( arg1 ) == "ustring" )
+	return 4;
+      if( nl->SymbolValue( arg1 ) == "uregion" )
+	return 5;
     }
 
   if(   !( nl->IsAtom( arg1 ) )
@@ -513,6 +528,10 @@ UnitCombinedUnitStreamSelect( ListExpr args )
 	return 6;
       if( nl->IsEqual( nl->Second(arg1), "upoint" ) )
 	return 7;
+      if( nl->IsEqual( nl->Second(arg1), "ustring" ) )
+	return 8;
+      if( nl->IsEqual( nl->Second(arg1), "uregion" ) )
+	return 9;
     }
   
   return -1; // This point should never be reached
@@ -1295,10 +1314,12 @@ UnitTypeMapPeriods( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-   if(  nl->IsEqual( arg1, "ubool" ) ||
-        nl->IsEqual( arg1, "uint" ) ||
-        nl->IsEqual( arg1, "ureal" ) ||
-        nl->IsEqual( arg1, "upoint" ) )
+   if(  nl->IsEqual( arg1, "ubool" )  ||
+        nl->IsEqual( arg1, "uint" )   ||
+        nl->IsEqual( arg1, "ureal" )  ||
+        nl->IsEqual( arg1, "upoint" ) ||
+        nl->IsEqual( arg1, "ustring" ) ||
+        nl->IsEqual( arg1, "uregion" ) )
    return nl->SymbolAtom( "periods" );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -1339,7 +1360,7 @@ TemporalSpecDefTime  =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
 "<text>uT -> periods \n"
-"(for T in {bool, int, real, point})</text--->"
+"(for T in {bool, int, real, string, point, region})</text--->"
 "<text>deftime( _ )</text--->"
 "<text>get the definition time for the "
 " unit data objects.</text--->"
@@ -1355,7 +1376,9 @@ Uses ~UnitSimpleSelect~.
 ValueMapping temporalunitdeftimemap[] = { MappingUnitDefTime<UBool>,
                                           MappingUnitDefTime<UInt>,
                                           MappingUnitDefTime<UReal>,
-                                          MappingUnitDefTime<UPoint> };
+                                          MappingUnitDefTime<UPoint>,
+                                          MappingUnitDefTime<UString>,
+                                          MappingUnitDefTime<URegion>};
 
 
 /*
@@ -1365,7 +1388,7 @@ ValueMapping temporalunitdeftimemap[] = { MappingUnitDefTime<UBool>,
 
 Operator temporalunitdeftime( "deftime",
                           TemporalSpecDefTime,
-                          4,
+                          6,
                           temporalunitdeftimemap,
                           UnitSimpleSelect,
                           UnitTypeMapPeriods );
@@ -1396,6 +1419,12 @@ UnitInstantTypeMapIntime( ListExpr args )
 
       if( nl->IsEqual( arg1, "upoint" ) )
         return nl->SymbolAtom( "ipoint" );
+
+      if( nl->IsEqual( arg1, "ustring" ) )
+        return nl->SymbolAtom( "istring" );
+
+      if( nl->IsEqual( arg1, "uregion" ) )
+        return nl->SymbolAtom( "iregion" );
     }
   }
   return nl->SymbolAtom( "typeerror" );
@@ -1439,7 +1468,7 @@ TemporalSpecAtInstant  =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
 "<text>(uT instant) -> iT\n"
-"(T in {bool, int, real, point})</text--->"
+"(T in {bool, int, real, string, point, region})</text--->"
 "<text>_ atinstant _ </text--->"
 "<text>From a unit type, get the Intime value corresponding to "
 "the given instant.</text--->"
@@ -1454,10 +1483,13 @@ Uses ~UnitSimpleSelect~.
 
 
 
-ValueMapping temporalunitatinstantmap[] ={MappingUnitAtInstant<UBool, CcBool>,
-                                          MappingUnitAtInstant<UInt, CcInt>,
-                                          MappingUnitAtInstant<UReal, CcReal>,
-                                          MappingUnitAtInstant<UPoint, Point>,};
+ValueMapping temporalunitatinstantmap[] =
+  {MappingUnitAtInstant<UBool, CcBool>,
+   MappingUnitAtInstant<UInt, CcInt>,
+   MappingUnitAtInstant<UReal, CcReal>,
+   MappingUnitAtInstant<UPoint, Point>,
+   MappingUnitAtInstant<UString, CcString>,
+   MappingUnitAtInstant<URegion, Region>};
 
 
 /*
@@ -1466,7 +1498,7 @@ ValueMapping temporalunitatinstantmap[] ={MappingUnitAtInstant<UBool, CcBool>,
 */
 Operator temporalunitatinstant( "atinstant",
                             TemporalSpecAtInstant,
-                            4,
+                            6,
                             temporalunitatinstantmap,
                             UnitSimpleSelect,
                             UnitInstantTypeMapIntime );
@@ -1515,11 +1547,18 @@ UnitPeriodsTypeMap( ListExpr args )
       if( nl->IsEqual( arg1, "upoint" ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
 			       nl->SymbolAtom("upoint"));
+      if( nl->IsEqual( arg1, "ustring" ) )
+        return nl->TwoElemList(nl->SymbolAtom("stream"),
+               nl->SymbolAtom("ustring"));
+      if( nl->IsEqual( arg1, "uregion" ) )
+        return nl->TwoElemList(nl->SymbolAtom("stream"),
+               nl->SymbolAtom("uregion"));
 
       nl->WriteToString(argstr, arg1);
       ErrorReporter::ReportError("Operator atperiods expect a first argument "
-                                 "of type T in {ubool, uint, ureal, upoint} "
-				 "but gets a '" + argstr + "'.");
+                                 "of type T in {ubool, uint, ureal, upoint, "
+				 "ustring, uregion} but gets a '" 
+				 + argstr + "'.");
       return nl->SymbolAtom( "typeerror" );
     }
 
@@ -1531,8 +1570,8 @@ UnitPeriodsTypeMap( ListExpr args )
 	  ErrorReporter::ReportError("Operator atperiods expects as first "
 				     "argument a list with structure 'T' or "
 				     "'stream(T)', T in {ubool, uint, ureal, "
-				     "upoint} but gets a list with structure '" 
-				     + argstr + "'.");
+				     "upoint, ustring, ureagion} but gets a "
+				     "list with structure '" + argstr + "'.");
 	  return nl->SymbolAtom( "typeerror" );
 	}
       
@@ -1548,11 +1587,18 @@ UnitPeriodsTypeMap( ListExpr args )
       if( nl->IsEqual( nl->Second(arg1), "upoint" ) )
 	 return nl->TwoElemList(nl->SymbolAtom("stream"),
 				 nl->SymbolAtom("upoint"));
+      if( nl->IsEqual( nl->Second(arg1), "ustring" ) )
+	 return nl->TwoElemList(nl->SymbolAtom("stream"),
+				 nl->SymbolAtom("ustring"));
+      if( nl->IsEqual( nl->Second(arg1), "uregion" ) )
+	 return nl->TwoElemList(nl->SymbolAtom("stream"),
+				 nl->SymbolAtom("uregion"));
 
       nl->WriteToString(argstr, nl->Second(arg1));
       ErrorReporter::ReportError("Operator atperiods expects a type "
-                              "(stream T); T in {ubool, uint, ureal, upoint} "
-			      "but gets '(stream " + argstr + ")'.");
+                              "(stream T); T in {ubool, uint, ureal, upoint, "
+			      "ustring, uregion} but gets '(stream " 
+			      + argstr + ")'.");
       return nl->SymbolAtom( "typeerror" );
     };
 
@@ -1569,7 +1615,7 @@ UnitPeriodsTypeMap( ListExpr args )
 */
 struct AtPeriodsLocalInfo
 {
-  Word uWord;     // the address of the unit point/int/real value
+  Word uWord;     // the address of the unit point/int/real/string value
   Word pWord;    //  the adress of the period value
   int  j;       //   save the number of the interval
 };
@@ -1760,7 +1806,7 @@ TemporalSpecAtPeriods  =
 "( ( \"Algebra\" \"Signature\" \"Signature (1)\" \"Signature (2)\" \"Syntax\""
 " \"Meaning\" \"Example (1)\" \"Example (2)\") "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>For T in {int, bool, real, point}:</text--->"
+"<text>For T in {int, bool, real, string, point, region}:</text--->"
 "<text>(uT periods) -> stream uT\n</text--->"
 "<text>((stream uT) periods) -> stream uT</text--->"
 "<text>_ atperiods _ </text--->"
@@ -1776,15 +1822,20 @@ Uses ~UnitCombinedUnitStreamSelect~.
 
 */
 
-ValueMapping temporalunitatperiodsmap[] = { MappingUnitAtPeriods<UBool>,
-                                            MappingUnitAtPeriods<UInt>,
-                                            MappingUnitAtPeriods<UReal>,
-                                            MappingUnitAtPeriods<UPoint>,
-                                            MappingUnitStreamAtPeriods<UBool>,
-                                            MappingUnitStreamAtPeriods<UInt>,
-                                            MappingUnitStreamAtPeriods<UReal>,
-                                            MappingUnitStreamAtPeriods<UPoint>  
-                                          };
+ValueMapping temporalunitatperiodsmap[] = 
+  { MappingUnitAtPeriods<UBool>,
+    MappingUnitAtPeriods<UInt>,
+    MappingUnitAtPeriods<UReal>,
+    MappingUnitAtPeriods<UPoint>,
+    MappingUnitAtPeriods<UString>,
+    MappingUnitAtPeriods<URegion>,
+    MappingUnitStreamAtPeriods<UBool>,
+    MappingUnitStreamAtPeriods<UInt>,
+    MappingUnitStreamAtPeriods<UReal>,
+    MappingUnitStreamAtPeriods<UPoint>,  
+    MappingUnitStreamAtPeriods<UString>,  
+    MappingUnitStreamAtPeriods<URegion>  
+  };
 
 /*
 5.9.5  Definition of operator ~atperiods~
@@ -1792,7 +1843,7 @@ ValueMapping temporalunitatperiodsmap[] = { MappingUnitAtPeriods<UBool>,
 */
 Operator temporalunitatperiods( "atperiods",
                             TemporalSpecAtPeriods,
-                            8,
+                            12,
                             temporalunitatperiodsmap,
                             UnitCombinedUnitStreamSelect,
                             UnitPeriodsTypeMap );
@@ -1821,6 +1872,12 @@ UnitTypeMapIntime( ListExpr args )
 
     if( nl->IsEqual( arg1, "upoint" ) )
       return nl->SymbolAtom( "ipoint" );
+
+    if( nl->IsEqual( arg1, "ustring" ) )
+      return nl->SymbolAtom( "istring" );
+
+    if( nl->IsEqual( arg1, "uregion" ) )
+      return nl->SymbolAtom( "iregion" );
 
   }
   return nl->SymbolAtom( "typeerror" );
@@ -1880,7 +1937,7 @@ TemporalSpecInitial  =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
 "<text>uT -> iT\n"
-"(T in {bool, int, real, point})</text--->"
+"(T in {bool, int, real, string, point, region})</text--->"
 "<text>initial( _ )</text--->"
 "<text>From a unit type, get the intime value corresponding"
 " to the initial instant.</text--->"
@@ -1891,7 +1948,7 @@ TemporalSpecFinal  =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
 "<text>uT -> iT\n"
-"(T in {bool, int, real, point})</text--->"
+"(T in {bool, int, real, string, point, region})</text--->"
 "<text>final( _ )</text--->"
 "<text>get the intime value corresponding"
 " to the final instant.</text--->"
@@ -1907,12 +1964,16 @@ Use ~UnitSimpleSelect~ / ~UnitCombinedUnitStreamSelect~.
 ValueMapping temporalunitinitialmap[] = { MappingUnitInitial<UBool, CcBool>,
                                           MappingUnitInitial<UInt, CcInt>,
                                           MappingUnitInitial<UReal, CcReal>,
-                                          MappingUnitInitial<UPoint, Point> };
+                                          MappingUnitInitial<UPoint, Point>, 
+                                          MappingUnitInitial<UString, CcString>,
+                                          MappingUnitInitial<URegion, Region>};
 
 ValueMapping temporalunitfinalmap[] = {  MappingUnitFinal<UBool, CcBool>,
                                          MappingUnitFinal<UInt, CcInt>,
                                          MappingUnitFinal<UReal, CcReal>,
-                                         MappingUnitFinal<UPoint, Point> };
+                                         MappingUnitFinal<UPoint, Point>, 
+                                         MappingUnitFinal<UString, CcString>,
+                                         MappingUnitFinal<URegion, Region>};
 
 /*
 5.10.5  Definition of operator ~initial~ and ~final~
@@ -1920,14 +1981,14 @@ ValueMapping temporalunitfinalmap[] = {  MappingUnitFinal<UBool, CcBool>,
 */
 Operator temporalunitinitial( "initial",
                           TemporalSpecInitial,
-                          4,
+                          6,
                           temporalunitinitialmap,
                           UnitSimpleSelect,
                           UnitTypeMapIntime );
 
 Operator temporalunitfinal( "final",
                         TemporalSpecFinal,
-                        4,
+                        6,
                         temporalunitfinalmap,
                         UnitSimpleSelect,
                         UnitTypeMapIntime );
@@ -1949,10 +2010,12 @@ UnitInstantPeriodsTypeMapBool( ListExpr args )
     if( nl->IsEqual( arg2, "instant" ) ||
         nl->IsEqual( arg2, "periods" ) )
     {
-      if( nl->IsEqual( arg1, "ubool" )||
-          nl->IsEqual( arg1, "uint" ) ||
-          nl->IsEqual( arg1, "ureal" ) ||
-          nl->IsEqual( arg1, "upoint" ) )
+      if( nl->IsEqual( arg1, "ubool" )  ||
+          nl->IsEqual( arg1, "uint" )   ||
+          nl->IsEqual( arg1, "ureal" )  ||
+          nl->IsEqual( arg1, "upoint")  || 
+          nl->IsEqual( arg1, "ustring") ||
+          nl->IsEqual( arg1, "uregion")    )
 
         return nl->SymbolAtom( "bool" );
     }
@@ -2022,7 +2085,7 @@ TemporalSpecPresent  =
 "( <text>TemporalUnitAlgebra</text--->"
 "<text>({m|u}T instant) -> bool\n"
 "({m|u}T periods) -> bool\n"
-"(T in {bool, int, real, point)</text--->"
+"(T in {bool, int, real, string, point, region)</text--->"
 "<text>_ present _ </text--->"
 "<text>whether the moving/unit object is present at the"
 " given instant or period.</text--->"
@@ -2056,21 +2119,40 @@ UnitInstantPeriodsSelect( ListExpr args )
       nl->SymbolValue( arg2 ) == "instant" )
     return 3;
 
-  if( nl->SymbolValue( arg1 ) == "ubool" &&
-      nl->SymbolValue( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == "ustring" &&
+      nl->SymbolValue( arg2 ) == "instant" )
     return 4;
 
-  if( nl->SymbolValue( arg1 ) == "uint" &&
-      nl->SymbolValue( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == "uregion" &&
+      nl->SymbolValue( arg2 ) == "instant" )
     return 5;
 
-  if( nl->SymbolValue( arg1 ) == "ureal" &&
+
+
+  if( nl->SymbolValue( arg1 ) == "ubool" &&
       nl->SymbolValue( arg2 ) == "periods" )
     return 6;
 
-  if( nl->SymbolValue( arg1 ) == "upoint" &&
+  if( nl->SymbolValue( arg1 ) == "uint" &&
       nl->SymbolValue( arg2 ) == "periods" )
     return 7;
+
+  if( nl->SymbolValue( arg1 ) == "ureal" &&
+      nl->SymbolValue( arg2 ) == "periods" )
+    return 8;
+
+  if( nl->SymbolValue( arg1 ) == "upoint" &&
+      nl->SymbolValue( arg2 ) == "periods" )
+    return 9;
+
+  if( nl->SymbolValue( arg1 ) == "ustring" &&
+      nl->SymbolValue( arg2 ) == "periods" )
+    return 10;
+
+  if( nl->SymbolValue( arg1 ) == "uregion" &&
+      nl->SymbolValue( arg2 ) == "periods" )
+    return 11;
+
 
   return -1; // This point should never be reached
 }
@@ -2079,10 +2161,14 @@ ValueMapping temporalunitpresentmap[] = { MappingUnitPresent_i<UBool>,
                                           MappingUnitPresent_i<UInt>,
                                           MappingUnitPresent_i<UReal>,
                                           MappingUnitPresent_i<UPoint>,
+					  MappingUnitPresent_i<UString>,
+					  MappingUnitPresent_i<URegion>,
                                           MappingUnitPresent_p<UBool>,
                                           MappingUnitPresent_p<UInt>,
                                           MappingUnitPresent_p<UReal>,
-                                          MappingUnitPresent_p<UPoint> };
+                                          MappingUnitPresent_p<UPoint>,
+                                          MappingUnitPresent_p<UString>,
+                                          MappingUnitPresent_p<URegion> };
 
 /*
 5.11.5  Definition of operator ~present~
@@ -2090,7 +2176,7 @@ ValueMapping temporalunitpresentmap[] = { MappingUnitPresent_i<UBool>,
 */
 Operator temporalunitpresent( "present",
                           TemporalSpecPresent,
-                          8,
+                          12,
                           temporalunitpresentmap,
                           UnitInstantPeriodsSelect,
                           UnitInstantPeriodsTypeMapBool);
@@ -2111,6 +2197,16 @@ UnitBaseTypeMapBool( ListExpr args )
     arg2 = nl->Second( args );
 
     if( ((nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "point" ))) )
+      return nl->SymbolAtom( "bool" );
+    if( ((nl->IsEqual( arg1, "uint" ) && nl->IsEqual( arg2, "int" ))) )
+      return nl->SymbolAtom( "bool" );
+    if( ((nl->IsEqual( arg1, "ubool" ) && nl->IsEqual( arg2, "bool" ))) )
+      return nl->SymbolAtom( "bool" );
+    if( ((nl->IsEqual( arg1, "ureal" ) && nl->IsEqual( arg2, "real" ))) )
+      return nl->SymbolAtom( "bool" );
+    if( ((nl->IsEqual( arg1, "ustring" ) && nl->IsEqual( arg2, "string" ))) )
+      return nl->SymbolAtom( "bool" );
+    if( ((nl->IsEqual( arg1, "uregion" ) && nl->IsEqual( arg2, "point" ))) )
       return nl->SymbolAtom( "bool" );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -2148,7 +2244,8 @@ TemporalSpecPasses =
 "( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
 "<text>(uT T) -> bool\n</text--->"
-"<text>for T in {bool, int, real, point} </text--->"
+"<text>for T in {bool, int, real*, string, point, region*}\n"
+"(*): Not yet implemented</text--->"
 "<text>_ passes _ </text--->"
 "<text>whether the object unit passes the given"
 " value.</text--->"
@@ -2180,13 +2277,23 @@ UnitBaseSelect( ListExpr args )
       nl->SymbolValue( arg2 ) == "point" )
     return 3;
 
+  if( nl->SymbolValue( arg1 ) == "ustring" &&
+      nl->SymbolValue( arg2 ) == "string" )
+    return 2;
+
+  if( nl->SymbolValue( arg1 ) == "uregion" &&
+      nl->SymbolValue( arg2 ) == "region" )
+    return 3;
+
   return -1; // This point should never be reached
 }
 
 ValueMapping temporalunitpassesmap[] = { MappingUnitPasses<UBool, CcBool>,
                                          MappingUnitPasses<UInt, CcInt>,
                                          MappingUnitPasses<UReal, CcReal>,
-                                         MappingUnitPasses<UPoint, Point> };
+                                         MappingUnitPasses<UPoint, Point>, 
+                                         MappingUnitPasses<UString, CcString>,
+                                         MappingUnitPasses<URegion, Region> };
 
 /*
 5.12.5  Definition of operator ~passes~
@@ -2194,7 +2301,7 @@ ValueMapping temporalunitpassesmap[] = { MappingUnitPasses<UBool, CcBool>,
 */
 Operator temporalunitpasses( "passes",
                          TemporalSpecPasses,
-                         4,
+                         6,
                          temporalunitpassesmap,
                          UnitBaseSelect,
                          UnitBaseTypeMapBool);
@@ -2231,7 +2338,12 @@ TemporalUnitAtTypeMapUnit( ListExpr args )
     // for ureal, _ at _ will return a stream of ureals!
     if( nl->IsEqual( arg1, "ureal" ) && nl->IsEqual( arg2, "real" ) )
       return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-			     nl->SymbolAtom( "ureal" ));    
+			     nl->SymbolAtom( "ureal" ));  
+    if( nl->IsEqual( arg1, "ustring" ) && nl->IsEqual( arg2, "string" ) )
+      return nl->SymbolAtom( "ustring" );
+    if( nl->IsEqual( arg1, "uregion" ) && nl->IsEqual( arg2, "region" ) )
+      return nl->SymbolAtom( "uregion" );
+  
   }
   if (TUA_DEBUG) cout << "\nTemporalUnitAtTypeMapUnit: 1" << endl;
   return nl->SymbolAtom( "typeerror" );
@@ -2240,7 +2352,8 @@ TemporalUnitAtTypeMapUnit( ListExpr args )
 /*
 5.13.2 Value Mapping for ~at~
 
-We implement two variants, the first for unit types using ~ConstTemporalUnits~ and ~SpatialUnits~, and a second one for ~ureal~
+We implement two variants, the first for unit types using ~ConstTemporalUnits~ 
+and ~SpatialUnits~, and a second one for ~ureal~
 
 */
 
@@ -2452,9 +2565,10 @@ const string
 TemporalSpecAt =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>For T in {bool, int, point}:\n"
+"<text>For T in {bool, int, string, point, region*}:\n"
 "(uT    T   ) -> uT\n"
-"(ureal real) -> (stream ureal)</text--->"
+"(ureal real) -> (stream ureal)\n"
+"(*): Not yet implemented</text--->"
 "<text> _ at _ </text--->"
 "<text>restrict the movement to the times "
 "where the equality occurs.\n"
@@ -2472,7 +2586,9 @@ Uses ~unitBaseSelect~.
 ValueMapping temporalunitatmap[] = {  MappingUnitAt< UBool, CcBool>,
                                       MappingUnitAt< UInt, CcInt>,
                                       MappingUnitAt_r,
-                                      MappingUnitAt< UPoint, Point> };
+                                      MappingUnitAt< UPoint, Point>, 
+                                      MappingUnitAt< UString, CcString>, 
+                                      MappingUnitAt< URegion, Region> };
 
 /*
 5.13.5  Definition of operator ~at~
@@ -2480,7 +2596,7 @@ ValueMapping temporalunitatmap[] = {  MappingUnitAt< UBool, CcBool>,
 */
 Operator temporalunitat( "at",
                      TemporalSpecAt,
-                     4,
+                     6,
                      temporalunitatmap,
                      UnitBaseSelect,
                      TemporalUnitAtTypeMapUnit );
@@ -5135,33 +5251,7 @@ Operator temporalunitdistance( "distance",
 			       TypeMapTemporalUnitDistance);
 
 /*
-5.22 Operator ~atmin~
-
-From a given unit ~u~, the operator creates a stream of units that
-are restrictions of ~u~ to the periods where it reaches its minimum
-value.
-
-----   
-       For T in {int, real}
-       atmin: uT --> (stream uT)
-
-----
-
-5.22.1 Type mapping function for ~atmin~
-
-5.22.2 Value mapping for operator ~atmin~
-
-5.22.3 Specification for operator ~atmin~
-
-5.22.4 Selection Function of operator ~atmin~
-
-5.22.5 Definition of operator ~atmin~
-
-*/
-
-
-/*
-5.23 Operator ~atmax~
+5.22 Operator ~atmax~
 
 From a given unit ~u~, the operator creates a stream of units that
 are restrictions of ~u~ to the periods where it reaches its maximum
@@ -5173,7 +5263,7 @@ value.
 
 ----
 
-5.23.1 Type mapping function for ~atmax~
+5.22.1 Type mapping function for ~atmax~
 
 */
 ListExpr
@@ -5198,7 +5288,7 @@ UnitBaseTypeMapAtmax( ListExpr args )
   return nl->SymbolAtom( "typeerror" );
 }
 /*
-5.23.2 Value mapping for operator ~atmax~
+5.22.2 Value mapping for operator ~atmax~
 
 */
 
@@ -5295,7 +5385,7 @@ int atmaxUReal( Word* args, Word& result, int message,
 	  if ( ureal->b < 0 )
 	    { // linear fuction
 	      // the result is a copy of the argument, restricted to
-	      // its ending instant
+	      // its starting instant
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	      sli->t_res[sli->NoOfResults].timeInterval.end =
 		sli->t_res[sli->NoOfResults].timeInterval.start;
@@ -5306,6 +5396,11 @@ int atmaxUReal( Word* args, Word& result, int message,
 	    { // linear fuction
 	      // the result is a copy of the argument, restricted to
 	      // its starting instant
+	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+	      sli->t_res[sli->NoOfResults].timeInterval.start =
+		sli->t_res[sli->NoOfResults].timeInterval.end;
+	      sli->NoOfResults++;
+	      return 0;
 	    }
 	}
 
@@ -5405,8 +5500,7 @@ int atmaxUConst( Word* args, Word& result, int message,
 }
 
 /*
-
-5.23.3 Specification for operator ~atmax~
+5.22.3 Specification for operator ~atmax~
 
 */
 
@@ -5427,7 +5521,7 @@ const string TemporalSpecAtmax =
 
 
 /*
-5.23.4 Selection Function of operator ~atmax~
+5.22.4 Selection Function of operator ~atmax~
 
 */
 
@@ -5460,7 +5554,7 @@ int temporalunitAtmaxSelect( ListExpr args )
 }
 
 /*
-5.23.5 Definition of operator ~atmax~
+5.22.5 Definition of operator ~atmax~
 
 */
 
@@ -5468,6 +5562,263 @@ Operator temporalunitatmax( "atmax",
 			    TemporalSpecAtmax,
 			    4,
 			    temporalunitatmaxmap,
+			    temporalunitAtmaxSelect,
+			    UnitBaseTypeMapAtmax);
+
+
+/*
+5.23 Operator ~atmin~
+
+From a given unit ~u~, the operator creates a stream of units that
+are restrictions of ~u~ to the periods where it reaches its minimum
+value.
+
+----   
+       For T in {int, real}
+       atmin: uT --> (stream uT)
+
+----
+
+5.23.1 Type mapping function for ~atmin~
+
+Uses typemapping ~UnitBaseTypeMapAtmax~ intended for related operator ~atmax~
+
+*/
+
+/*
+5.23.2 Value mapping for operator ~atmin~
+
+*/
+
+int getMinValIndex( double& first, double& second, double& third)
+{ // returns a 3-bit field indicating smallest values
+
+  if ( (first < second) && (first < third) )
+    return 1;
+  if ( (second < first) && (second < third) )
+    return 2;
+  if ( (first == second) && (second < third) )
+    return 3;
+  if ( (third < first) && (third < second) )
+    return 4;
+  if ( (first == third) && (first < second) )
+    return 5;
+  if ( (second == third) && (second < first) )
+    return 6;
+  return 7; // they are all equal
+}
+
+int atminUReal( Word* args, Word& result, int message,
+		Word& local, Supplier s )
+{
+  AtExtrURealLocalInfo *sli;
+  UReal                *ureal;
+  double  t_start, t_end, t_extr; // instants of interest
+  double  v_start, v_end, v_extr; // values at resp. instants
+  double  a, b, c, r;
+  int     minValIndex;
+  Instant t;
+  Word    a0;
+
+  result = qp->ResultStorage( s );
+
+  switch (message)
+    {
+    case OPEN :
+
+      qp->Request(args[0].addr, a0);
+      ureal = (UReal*)(a0.addr);
+
+      sli = new AtExtrURealLocalInfo;
+      sli->NoOfResults = 0;
+      sli->ResultsDelivered = 0;
+      local = SetWord(sli);
+
+      if ( !ureal->IsDefined() )
+	{ // ureal undefined
+	  // -> return empty stream
+	  sli->NoOfResults = 0;
+	  return 0;
+	}
+
+      if ( (ureal->timeInterval.start).ToDouble() == 
+	   (ureal->timeInterval.start).ToDouble() )
+	{ // ureal contains only a single point.
+	  // -> return a copy of the ureal	  
+	  sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+	  sli->NoOfResults++;
+	  return 0;
+	}
+
+      if (ureal->a == 0)
+	{ 
+	  if ( ureal->b == 0 )
+	    { //  constant function
+	      // the only result is a copy of the argument ureal
+	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+	      sli->NoOfResults++;
+	      return 0;
+	    }
+	  if ( ureal->b < 0 )
+	    { // linear fuction
+	      // the result is a copy of the argument, restricted to
+	      // its ending instant
+	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+	      sli->t_res[sli->NoOfResults].timeInterval.end =
+		sli->t_res[sli->NoOfResults].timeInterval.start;
+	      sli->NoOfResults++;
+	      return 0;
+	    }
+	  if ( ureal->b > 0 )
+	    { // linear fuction
+	      // the result is a copy of the argument, restricted to
+	      // its starting instant
+	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+	      sli->t_res[sli->NoOfResults].timeInterval.start =
+		sli->t_res[sli->NoOfResults].timeInterval.end;
+	      sli->NoOfResults++;
+	      return 0;
+	    }
+	}
+
+      if (ureal->a !=0) 
+	{ // quadratic function
+	  // we have to additionally ckeck for the extremum 
+	  
+	  // get the times of interest
+	  a = ureal->a;
+	  b = ureal->b;
+	  c = ureal->c;
+	  r = ureal->r;
+	  t_extr  = -b/a; 
+	  t_start = (ureal->timeInterval.start).ToDouble();
+	  t_end   = (ureal->timeInterval.end).ToDouble();
+	  // get the values of interest
+	  v_extr  = getValUreal(t_extr, a,b,c,r);
+	  v_start = getValUreal(t_start,a,b,c,r);
+	  v_end   = getValUreal(t_end,  a,b,c,r);
+	  // compute, which values are minimal
+	  minValIndex = getMinValIndex(v_extr,v_start,v_end);
+
+	  if (minValIndex & 1)
+	    {
+	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+	      t.ReadFrom(t_extr);
+	      Interval<Instant> i( t, t, true, true );
+	      sli->t_res[sli->NoOfResults].timeInterval = i;
+	      sli->NoOfResults++;
+	    }
+	  if (minValIndex & 2)
+	    {
+	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+	      t.ReadFrom(t_start);
+	      Interval<Instant> i( t, t, true, true );
+	      sli->t_res[sli->NoOfResults].timeInterval = i;
+	      sli->NoOfResults++;
+	    }
+	  if (minValIndex & 4)
+	    {
+	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+	      t.ReadFrom(t_end);
+	      Interval<Instant> i( t, t, true, true );
+	      sli->t_res[sli->NoOfResults].timeInterval = i;
+	      sli->NoOfResults++;
+	    }
+	  sli->NoOfResults++;
+	  return 0;
+	}
+      cout << "\natminUReal (OPEN): This should not happen!" << endl;
+      sli->NoOfResults++;
+      return 0;
+
+    case REQUEST :
+
+      if (local.addr == 0)
+	return CANCEL;
+      sli = (AtExtrURealLocalInfo*) local.addr;
+      
+      if (sli->NoOfResults <= sli->ResultsDelivered)
+	return CANCEL;
+
+      result = SetWord( sli->t_res[sli->ResultsDelivered].Clone() );
+      sli->t_res[sli->ResultsDelivered].DeleteIfAllowed();
+      sli->ResultsDelivered++;
+      return YIELD;
+      
+    case CLOSE :
+
+      if (local.addr != 0)
+	{
+	  sli = (AtExtrURealLocalInfo*) local.addr;
+	  while (sli->NoOfResults > sli->ResultsDelivered)
+	    {
+	      sli->t_res[sli->ResultsDelivered].DeleteIfAllowed();
+	      sli->ResultsDelivered++;
+	    }
+	  delete sli;
+	}
+      return 0;
+
+    } // end switch
+  return 0;   // should not be reached
+}
+
+template<class T>
+int atminUConst( Word* args, Word& result, int message,
+		 Word& local, Supplier s )
+{
+  // This operator is not very interesting. It implements
+  // the atmin operator for constant unit types, like uint, ustring or ubool.
+  // In fact, it returns just a copy of the argument.
+
+  result = SetWord(((ConstTemporalUnit<T>*)(args[0].addr))->Clone());
+  return 0;
+}
+
+/*
+5.23.3 Specification for operator ~atmin~
+
+*/
+
+const string TemporalSpecAtmin = 
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "(<text>TemporalUnitAlgebra</text--->" 
+  "<text>For T in {int, bool, string}:\n"
+  "uT    -> uT\n"
+  "ureal -> (stream ureal)</text--->"
+  "<text> atmin( _ )</text--->"
+  "<text>Restricts a the unittype value to the time where "
+  "it takes it's minimum value.\n"
+  "Observe, that for type 'ureal', the result is a '(stream ureal)' "
+  "rather than a 'ureal'!</text--->"
+  "<text>atmin( ureal1 )</text--->"
+  ") )";
+
+
+/*
+5.23.4 Selection Function of operator ~atmin~
+
+Uses selection function ~temporalunitAtmaxSelect~.
+
+*/
+
+ValueMapping temporalunitatminmap[] = 
+  {
+    atminUConst<CcBool>,
+    atminUConst<CcInt>,
+    atminUConst<CcString>,
+    atminUReal
+  };
+
+/*
+5.23.5 Definition of operator ~atmin~
+
+*/
+Operator temporalunitatmin( "atmin",
+			    TemporalSpecAtmin,
+			    4,
+			    temporalunitatminmap,
 			    temporalunitAtmaxSelect,
 			    UnitBaseTypeMapAtmax);
 
@@ -5497,7 +5848,7 @@ and will also be return if the input stream is empty.
 5.24.1 Type mapping function for ~saggregate~
 
 */
-ListExpr TypeMapSaggregate( ListExpr args )
+ListExpr TemporalUnitSaggregateTypeMap( ListExpr args )
 {
   string outstr1, outstr2;
   ListExpr TypeT;
@@ -5704,7 +6055,7 @@ int Saggregate( Word* args, Word& result, int message,
 
 */
 
-const string TemporalSpecSaggregate = 
+const string TemporalUnitSaggregateSpec = 
   "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "(<text>TemporalUnitAlgebra</text--->" 
@@ -5744,11 +6095,11 @@ int temporalunitSaggregateSelect( ListExpr args )
 */
 
 Operator temporalunitsaggregate( "saggregate",
-                      TemporalSpecSaggregate,
+                      TemporalUnitSaggregateSpec,
                       1,
                       temporalunitsaggregatemap,
                       temporalunitSaggregateSelect,
-                      TypeMapSaggregate);
+                      TemporalUnitSaggregateTypeMap);
 
 
 
@@ -5786,6 +6137,52 @@ Operator temporalunitsaggregate( "saggregate",
 /*
 5.26 Operator ~intersection~
 
+----  
+
+    intersection: uT x uT --> (stream uT)
+                  uT x  T --> (stream uT)
+                   T x uT --> (stream uT)
+                  upoint x line --> (stream upoint)
+		  line x upoint --> (stream upoint)
+
+----
+
+A. (T mT) [->] mT   and   (mT T) -> mT
+
+B. (mT mT) [->] mT 
+
+The operator always returns a stream of units (to handle both, empty and set 
+valued results).
+
+  1. For all types of arguments, we return an empty stream, if both timeIntervals 
+don't overlap.
+
+  2. Now, the algorithms depends on the actual dataype:
+
+Then, for ~constant temporal units~ (ubool, uint, ustring), the operator 
+restricts two unit values with equal values to the intersection of both time 
+intervals, or otherwise (if the const values are nit equal) returns an empty 
+stream.
+
+For ~ureal~, we test whether the functions of both units are equal, for we
+can pass its restriction to the intersection of deftimes then (resp. create an 
+empty stream). Otherwise, we restrict both arguments' deftimes to their
+intersection. Then we calculate the minimum and maximum value for both
+arguments with respect to the restricted deftime. If both ranges don't 
+overlap, we return an empty stream. Otherwise, we compute the intersection 
+points (1 or 2) and return them as the result - or
+an UNDEFINED value, if the result is not represeantable as a ureal value.
+
+For ~upoint~, we interpret the units as straight lines. If both are parallel,
+return the empty stream. If both are identical, 
+
+Otherwise calculate the intersection point ~S~. From ~S~, calculate the 
+instants $t_{u1}$ and $t_{u2}$. If both coincide, return that point if within 
+the common timeInterval, otherwise the empty stream.
+
+C. (upoint line) [->] (stream upoint)  and  (line upoint) [->] (stream upoint)
+
+
 */
 
 /*
@@ -5793,25 +6190,333 @@ Operator temporalunitsaggregate( "saggregate",
 
 */
 
+ListExpr TemporalUnitIntersectionTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  string argstr1, argstr2;
+
+  // First case: mT mT -> mT
+  if( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+
+    if (nl->Equal( arg1, arg2 ))
+      {
+	if( nl->IsEqual( arg1, "ubool" ) )
+	  return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			      nl->SymbolAtom( "ubool" ));    
+        if( nl->IsEqual( arg1, "uint" ) )
+	  return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			      nl->SymbolAtom( "uint" ));    
+	if( nl->IsEqual( arg1, "ureal" ) )
+	  return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			      nl->SymbolAtom( "ureal" ));    
+	if( nl->IsEqual( arg1, "upoint" ) )
+	  return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			      nl->SymbolAtom( "upoint" ));  
+	if( nl->IsEqual( arg1, "ustring" ) )
+	  return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			      nl->SymbolAtom( "ustring" ));  
+      }
+  }
+
+  // Second case: mT T -> mT
+
+  // Third case: T mT -> mT
+
+  // Fourth case: upoint line -> upoint
+
+  // Fifth case: line upoint -> upoint
+
+  // Error case:
+  nl->WriteToString(argstr1, arg1); 
+  nl->WriteToString(argstr2, arg2); 
+  ErrorReporter::ReportError(
+	  "Operator intersection expects two arguments of the same type T, "
+	  "where T in {ubool, uint, ureal, ustring, upoint}"
+	  "The passed arguments have types '"+ argstr1 +"' and '"
+	  + argstr2 + "'.");
+  return nl->SymbolAtom("typeerror");	
+}
+
 /*
 5.26.2 Value mapping for operator ~intersection~
 
 */
+
+struct TUIntersectionLocalInfo 
+  {
+    bool finished;
+    Word resultValues[2];
+    int  NoOfResults;
+    int  NoOfResultsDelivered;
+  };
+
+// value mapping for constant units
+template<class T>
+int temporalUnitIntersection_CU( Word* args, Word& result, int message,
+				 Word& local, Supplier s )
+{
+  TUIntersectionLocalInfo *sli;
+  Word u1, u2;
+  T    *uv1, *uv2;
+  Interval<Instant> iv;
+  
+  // test for overlapping intervals
+  switch( message )
+    {
+    case OPEN:
+      
+      sli = new TUIntersectionLocalInfo;
+      sli->finished = true;
+      sli->NoOfResults = 0;
+      sli->NoOfResultsDelivered = 0;
+
+      u1 = args[0];
+      u2 = args[1];
+
+      uv1 = (T*) (u1.addr);
+      uv2 = (T*) (u2.addr);
+	
+
+      if ( uv1->IsDefined() && 
+	   uv2->IsDefined() && 
+	   uv1->timeInterval.Intersects( uv2->timeInterval ) &&
+	   uv1->EqualValue(*uv2) )	   
+	{ // get intersection of deftime intervals
+	  uv1->timeInterval.Intersection( uv2->timeInterval, iv );  
+	  // store result
+	  sli->resultValues[sli->NoOfResults] = SetWord( uv1->Clone() );
+	  ((T*)(result.addr))->timeInterval = iv;
+	  sli->NoOfResults++;	  
+	}// else: no result
+      local = SetWord(sli);
+      return 0;
+
+    case REQUEST:
+      
+      if(local.addr == 0)
+	return CANCEL;
+      sli = (TUIntersectionLocalInfo*) local.addr;
+      if(sli->finished)
+	return CANCEL;
+      if(sli->NoOfResultsDelivered < sli->NoOfResults)
+	{
+	  result = SetWord( ((T*)
+	     (sli->resultValues[sli->NoOfResultsDelivered].addr))->Clone() );   
+	  ((T*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
+               ->DeleteIfAllowed();
+	  sli->NoOfResultsDelivered++;
+	  return YIELD;
+	}
+      sli->finished = true;
+      return CANCEL;
+
+    case CLOSE:
+      
+      if (local.addr != 0)
+	{
+	  sli = (TUIntersectionLocalInfo*) local.addr;
+	  while(sli->NoOfResultsDelivered < sli->NoOfResults)
+	    {
+	      ((T*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
+		->DeleteIfAllowed();
+	      sli->NoOfResultsDelivered++;
+	    }
+	  delete sli;
+	}
+      return 0;
+    } // end switch
+
+  return 0;
+}
+
+/* 
+
+Value mapping for ureal
+
+We will calculate the intersection points (time instants) of both ureal 
+functions. Therefore, we need to distinguish 2 different cases:
+
+ 1. $ureal1.r = ureal2.r$
+
+  Then, we have to solve the equation
+ \[ a_1 t^2 + b_1 t + c_1 = a_2 t^2 + b_2 t + c_2 \]
+which computes to 
+\[ t = \pm \sqrt{\frac{t - (c_1 - c_2)}{a_1 - a_2}-\frac{(b_1 - b_2)^2}
+{4 (a_1 - a_2)^2}} \]
+
+ 2. $ureal1.r \neq ureal2.r$
+
+Then we have to solve the quadratic equation
+\[ {a_1}^2 t^4 + 2 a_1 b_1 t^3 + (2 a_1 c_1 + {b_1}^2 - a_2) 
+t^2 + (2 b_1 c_1 - b_2) t - c_2 = 0 \]
+
+where $x_1$ stands for parameters from the 
+~ureal~ value that does have $r = false$, $x_2$ for the parameters of the 
+~ureal~ value with $r = true$.
+
+*/
+
+int temporalUnitIntersection_ureal( Word* args, Word& result, int message,
+				    Word& local, Supplier s )
+{
+  return 0;
+}
+
+
+/*
+
+value mapping for upoint
+
+Test, whether both upoints have identical direction vectors. If so,
+return one argument restricted to the intersection of timeintervals.
+
+Otherwise there will be at most one possible point of intersection.
+
+
+*/
+int temporalUnitIntersection_upoint( Word* args, Word& result, int message,
+				     Word& local, Supplier s )
+{
+  TUIntersectionLocalInfo *sli;
+  Word u1, u2;
+  UPoint *uv1, *uv2;
+  Interval<Instant> iv;
+  
+  // test for overlapping intervals
+  switch( message )
+    {
+    case OPEN:
+      
+      sli = new TUIntersectionLocalInfo;
+      sli->finished = true;
+      sli->NoOfResults = 0;
+      sli->NoOfResultsDelivered = 0;
+
+      u1 = args[0];
+      u2 = args[1];
+
+      uv1 = (UPoint*) (u1.addr);
+      uv2 = (UPoint*) (u2.addr);
+	
+
+      if ( uv1->IsDefined() && 
+	   uv2->IsDefined() && 
+	   uv1->timeInterval.Intersects( uv2->timeInterval ) )
+	if ( uv1->EqualValue(*uv2) )	   
+
+	  { // add a result
+	    uv1->timeInterval.Intersection( uv2->timeInterval, iv );  
+	    sli->resultValues[sli->NoOfResults] = SetWord( uv1->Clone() );
+	    ((UPoint*)(result.addr))->timeInterval = iv;
+	    sli->NoOfResults++;	  
+	  }
+	else
+	  {
+	    
+	  }
+      // else: no result
+      local = SetWord(sli);
+      return 0;
+
+    case REQUEST:
+      
+      if(local.addr == 0)
+	return CANCEL;
+      sli = (TUIntersectionLocalInfo*) local.addr;
+      if(sli->finished)
+	return CANCEL;
+      if(sli->NoOfResultsDelivered < sli->NoOfResults)
+	{
+	  result = SetWord( ((UPoint*)
+	     (sli->resultValues[sli->NoOfResultsDelivered].addr))->Clone() );
+	  ((UPoint*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
+               ->DeleteIfAllowed();
+	  sli->NoOfResultsDelivered++;
+	  return YIELD;
+	}
+      sli->finished = true;
+      return CANCEL;
+
+    case CLOSE:
+      
+      if (local.addr != 0)
+	{
+	  sli = (TUIntersectionLocalInfo*) local.addr;
+	  while(sli->NoOfResultsDelivered < sli->NoOfResults)
+	    {
+	      ((UPoint*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
+		->DeleteIfAllowed();
+	      sli->NoOfResultsDelivered++;
+	    }
+	  delete sli;
+	}
+      return 0;
+    } // end switch
+
+  return 0;
+}
 
 /*
 5.24.3 Specification for operator ~intersection~
 
 */
 
+const string  TemporalUnitIntersectionSpec  =
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "(<text>TemporalUnitAlgebra</text--->" 
+  "<text>For T in {bool, int, real, string, point}:\n"
+  "(uT uT) -> ((stream T)</text--->"
+  "<text>intersection(_, _)</text--->"
+  "<text>Returns the intersection of to unit datatype values "
+  "as a stream of that unit datatype.</text--->"
+  "<text>query intersection(upoint1, upoint2) count</text--->"
+  ") )";
+
+
 /*
 5.26.4 Selection Function of operator ~intersection~
 
 */
 
+ValueMapping temporalunitintersectionmap[] =
+  {
+    temporalUnitIntersection_CU<UBool>,
+    temporalUnitIntersection_CU<UInt>,
+    temporalUnitIntersection_ureal,
+    temporalUnitIntersection_upoint,
+    temporalUnitIntersection_CU<UString>
+  };
+
+int temporalunitIntersectionSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First(args);
+  if( nl->IsEqual( arg1, "ubool" ) )   return 0;
+  if( nl->IsEqual( arg1, "uint" ) )    return 1;
+  if( nl->IsEqual( arg1, "ureal" ) )   return 2;
+  if( nl->IsEqual( arg1, "upoint" ) )  return 3;
+  if( nl->IsEqual( arg1, "ustring" ) ) return 4;
+  cout << "\ntemporalunitIntersectionSelect: Unsupported datatype." << endl;
+  return -1;
+}
+
+
 /*
 5.26.5 Definition of operator ~intersection~
 
 */
+
+Operator temporalunitintersection( "intersection",
+                      TemporalUnitIntersectionSpec,
+                      5,
+                      temporalunitintersectionmap,
+                      temporalunitIntersectionSelect,
+                      TemporalUnitIntersectionTypeMap);
+
+
 
 /*
 5.26 Operator ~transformstream~
@@ -6136,7 +6841,6 @@ class TemporalUnitAlgebra : public Algebra
    AddOperator( &temporalunitmakemvalue );
    AddOperator( &temporalunittransformstream );
    AddOperator( &temporalunitsfeed );
-   AddOperator( &temporalunitsuse );
    AddOperator( &temporalunitsuse2 );
    AddOperator( &temporalunitsaggregate );
    AddOperator( &temporalunitqueryrect2d );
@@ -6151,6 +6855,8 @@ class TemporalUnitAlgebra : public Algebra
    AddOperator( &temporalunitatperiods );
    AddOperator( &temporalunitat );
    AddOperator( &temporalunitatmax );
+   AddOperator( &temporalunitatmin );
+   AddOperator( &temporalunitintersection );
    AddOperator( &temporalunitpasses );
    AddOperator( &temporalunitsize );
    AddOperator( &temporalunittrajectory );

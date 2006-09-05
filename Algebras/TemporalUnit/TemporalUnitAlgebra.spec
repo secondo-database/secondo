@@ -34,6 +34,8 @@ operator suse2 alias SUSE2 pattern _ _ op [ _ ] implicit parameters lefttuple, r
 operator saggregate alias SAGGREGATE pattern _ op [ _ ; _ ]
 operator at alias AT pattern _ infixop _ 
 operator atmax alias ATMAX pattern op ( _ )
+operator atmin alias ATMIN pattern op ( _ )
+operator intersection alias INTERSECTION pattern op ( _ , _ )
 operator distance alias DISTANCE pattern op ( _ , _ )
 operator transformstream alias TRANSFORMSTREAM pattern _ op
 
