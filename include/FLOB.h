@@ -20,47 +20,91 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//paragraph [10] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[ae] [\"a]
 //[ue] [\"u]
 //[oe] [\"o]
 
-[1] Header File of Module FLOB
+[10] Header File of Module FLOB
 
-Stefan Dieker, 03/05/98
+Stefan Dieker, 03/05/98. FLOB implementation in Secondo with the Shore based SMI.
 
-Markus Spiekermann, 14/05/02. Begin of porting to the new SecondoSMI.
+Markus Spiekermann, 14/05/02. Starting to port the ~TupleManager~ to the Berkeley-DB based SMI.
 
-Mirco G[ue]nster, 31/09/02 End of porting to the new SecondoSMI.
+Mirco G[ue]nster, 31/09/02. First stable version.
 
 Victor Almeida, 24/04/03. Adapting the class to accept standalone 
 objects and objects inside tuples transparently.
 
-January 2006 Victor Almeida created the FLOB cache. Some assertions
+January 2006, Victor Almeida created the FLOB cache. Some assertions
 were removed, since the code is stable.
 
-1 Defines
+August 2006, M. Spiekermann. Adding more comprehensive documentation (state-transitions) 
+and some auxiliary debugging functions.
+
+1  Overview
+
+FLOB is a shortcut for ~faked larged object~ which is a concept for implementing
+datatypes such as regions which may vary strongly in size. The idea of FLOBs has
+been studied in [1] (The current implementation differs in some aspects). The
+basic idea is to store data of an attribute value depending on a threshold size
+either inside the tuple representation or in a separate storage location.  
 
 */
 
 #ifndef FLOB_H
 #define FLOB_H
 
-/*
-
-2 Includes
-
-*/
 #include "SecondoSMI.h"
 #include "QueryProcessor.h"
 
-enum FLOB_Type {Destroyed, InMemory, InMemoryCached, 
-                InMemoryPagedCached, InDiskSmall, InDiskLarge};
+/*
+A FLOB has one of the following states
+   
+*/
+
+enum FLOB_Type { Destroyed, InMemory, InMemoryCached, 
+                 InMemoryPagedCached, InDiskSmall, InDiskLarge };
 
 /*
-3 class FLOB
+The possible state transitions are presented below (Any denotes the set of all possible states and S is a state variable):
 
-This class implements a FLOB which define a new large object 
+-----
+ ReInit: S in Any -> InDiskLarge
+
+ GetPage: InDiskLarge -> InMemoryPagedCached 
+          InMemoryPagedCached -> InMemoryPagedCached
+ 
+ Get: InDiskLarge -> InMemory, InMemoryCached, InMemoryPagedCached
+      InDiskSmall -> InMemory
+      InMemory -> InMemory
+      InMemoryCached -> InMemoryCached 
+      InMemoryPagedCached -> InMemoryPagedCached
+ 
+ Put: InMemory -> InMemory
+      
+ BringToMemory: InDiskLarge -> InMemory, InMemoryCached
+                InDiskSmall -> InMemory
+                InMemoryPagedCached -> InDiskLarge -> InMemory, InMemoryCached
+                InMemory -> InMemory
+                InMemoryCached -> InMemoryCached                
+
+ SaveToExtensionTuple: InMemory -> InDiskSmall
+ ReadFromExtensionTuple: InDiskSmall -> InMemory
+
+ SaveToLob: InMemory, InMemoryCached, InDiskLarge -> InDiskLarge
+ 
+ Resize: InMemory -> InMemory 
+ 
+ Clean: S in Any \ {Destroyed} -> InMemory 
+
+ Destroy: S in Any \ {Destroyed} -> Destroyed
+----
+
+   
+3 Class ~FLOB~
+
+This class implements a FLOB which defines a new large object 
 abstraction that offers most access methods of the original one.
 
 It defines a threshold size namely SWITCH\_THRESHOLD as a static 
@@ -79,7 +123,7 @@ class FLOB
     static const size_t SWITCH_THRESHOLD;
 /*
 This is the treshold size for a FLOB. Whenever the size of this 
-FLOB exceeds the threshold size the data will stored in a separate 
+FLOB exceeds the threshold size the data will be stored in a separate 
 file for LOBs.
 
 */
@@ -141,7 +185,7 @@ Deletes the FLOB instance.
 /*
 3.4 ReInit
 
-Re-initializes the FLOB.
+Re-initializes the FLOB and changes its state to ~InDiskLarge~.
 
 */
     inline void ReInit()
@@ -179,7 +223,7 @@ Re-initializes the FLOB.
 /*
 3.4 BringToMemory
 
-Brings a disk lob to memory, i.e., converts a flob in ~InDiskLarge~
+Reads a disk LOB to memory, i.e., converts a FLOB in ~InDiskLarge~
 state to a ~InMemory~ state.
 
 */
@@ -235,7 +279,8 @@ state to a ~InMemory~ state.
 /*
 3.5 Get
 
-Read 
+Returns a pointer to a memory block of the FLOB data with
+offset ~offset~.
 
 */
     inline void Get( size_t offset, const char **target, 
@@ -283,7 +328,7 @@ Read
 /*
 3.6 Put
 
-Write Flob data into source.
+Write data from ~source~ into the FLOBs memory.
 
 */
     inline void Put( size_t offset, size_t length, const void *source )
@@ -315,7 +360,7 @@ Resizes the FLOB.
 3.8 Clean
 
 Cleans the FLOB, removing it from memory. If it is cached, then a
-reference in the cache is removed.
+reference in the cache is removed. Afterwards the state will be ~InMemory~.
 
 */
     inline void Clean()
@@ -359,9 +404,7 @@ Restricts the FLOB to the interval set passed as argument.
 
 */
     virtual void Restrict( const vector< pair<int, int> >& intervals )
-    {
-
-    }
+    {}
 
 /*
 3.10 SaveToLob
@@ -395,7 +438,7 @@ to ~InDiskSmall~.
 */
     inline void SaveToExtensionTuple( void *extensionTuple ) const
     {
-      assert( type == InMemory );
+      assert( checkState( InMemory ) );
       if( type == InMemory && size > 0 )
       {
         if( extensionTuple != 0 )
@@ -413,7 +456,7 @@ to ~InDiskSmall~.
       else
         fd.inDiskSmall.buffer = 0;
 
-      type = InDiskSmall;
+      changeState( type, InDiskSmall );
     }
 
 /*
@@ -465,13 +508,16 @@ Returns true, if value stored in underlying LOB, otherwise false.
 /*
 3.11 GetType
 
+return the FLOB's internal state.
+
 */
     inline FLOB_Type GetType() const
     {
       return type;
     }
 
-
+    static void SetDebug(bool value) { debug = value; }
+    
   protected:
 
 /*
@@ -518,6 +564,40 @@ Returns true, if value stored in underlying LOB, otherwise false.
       } inDiskLarge;
 
     } fd;
+
+  
+    private:
+
+/*
+Auxiliary functions for checking and changing states
+   
+*/    
+    inline bool checkState(const FLOB_Type f) const
+    {
+      if (type != f)
+      { 
+        cerr << "Flob " << (const void*)this << ": "
+             << "Assuming state " << stateStr(f) 
+             << " but flob has state " << stateStr(type) << endl;
+        return false;
+      }
+      return true;  
+    }  
+
+    void changeState(FLOB_Type& from, const FLOB_Type to) const;
+    
+    const string stateStr(const FLOB_Type& f) const;
+    
+    static bool debug; 
 };
 
+
 #endif
+
+/*
+7 References
+
+ [1] S. Dieker, R.H. G[ue]ting, and M. Rodriguez-Luaces, A Tool for Nesting and Clustering Large Objects. Proc. of the 12th Int. Conf. on Scientific and Statistical Database Management (SSDBM 2000), 169-181, July 2000.
+
+*/
+

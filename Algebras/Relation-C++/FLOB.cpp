@@ -27,18 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Implementation File of Module FLOB
 
-Stefan Dieker, 03/05/98
-
-Markus Spiekermann, 14/05/02. Begin of porting to the new 
-SecondoSMI.
-
-Mirco G[ue]nster, 31/09/02 End of porting to the new SecondoSMI.
-
-Victor Almeida, 24/04/03. Adapting the class to accept standalone 
-objects and objects inside tuples transparently.
-
-January 2006 Victor Almeida created the FLOB cache. Some assertions 
-were removed, since the code is stable.
 
 1 Includes
 
@@ -59,11 +47,10 @@ were removed, since the code is stable.
 const size_t FLOB::SWITCH_THRESHOLD = 1024;
 const size_t FLOB::PAGE_SIZE = 4050;
 
+
+
 /*
 2.4 BringToMemory
-
-Brings a disk lob to memory, i.e., converts a flob in ~InDiskLarge~
-state to a ~InMemory~ state.
 
 */
 const char *FLOB::BringToMemory() const
@@ -136,8 +123,6 @@ const char *FLOB::BringToMemory() const
 /*
 2.10 Destroy
 
-Destroys the physical representation of the FLOB.
-
 */
 void FLOB::Destroy()
 {
@@ -186,8 +171,6 @@ void FLOB::Destroy()
 
 /*
 2.10 Resize
-
-Resizes the FLOB.
 
 */
 void FLOB::Resize( size_t newSize )
@@ -255,4 +238,29 @@ void FLOB::SaveToLob( SmiFileId& lobFileId, SmiRecordId lobId ) const
   }
 }
 
+void FLOB::changeState(FLOB_Type& from, const FLOB_Type to) const
+{
+   if (debug)
+   { 
+     cerr << "Flob " << (const void*)this << ": " 
+          << stateStr(from) << " -> " << stateStr(to) << endl;
+   }  
+   from = to;
+   //assert( false );
+} 
 
+const string FLOB::stateStr(const FLOB_Type& f) const
+{ 
+  switch (f)
+  { 
+   case Destroyed: return "Destroyed"; break;  
+   case InMemory: return "InMemory"; break;  
+   case InMemoryCached: return "InMemoryCached"; break;  
+   case InMemoryPagedCached: return "InMemoryPageCached"; break;  
+   case InDiskSmall: return "InDiskSmall"; break;  
+   case InDiskLarge: return "InDiskLarge"; break;  
+   default: return "Unknown state!";
+  }    
+}
+
+bool FLOB::debug = false;
