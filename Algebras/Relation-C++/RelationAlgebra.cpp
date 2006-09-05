@@ -3604,6 +3604,9 @@ extern "C"
 Algebra*
 InitializeRelationAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
+  if ( RTFlag::isActive("RA:ShowFLOBstates") )
+    FLOB::SetDebug(true);
+ 
   nl = nlRef;
   qp = qpRef;
   am = SecondoSystem::GetAlgebraManager();
