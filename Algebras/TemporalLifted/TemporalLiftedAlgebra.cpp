@@ -6398,8 +6398,10 @@ static ValueMapping temporalormap[] = {
                 
                 
 const string TemporalLiftSpecMEqual  
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>T in {bool, int, string, real, point, region}"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	     "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>T in {bool, int, string, real, point, region}"
              ", mT X mT -> mbool,"
              " mT x T -> mbool, T x mT -> mbool</text--->"
              "<text> _ = _ </text--->"
@@ -6409,7 +6411,8 @@ const string TemporalLiftSpecMEqual
 
 const string TemporalLiftSpecMNotEqual  
            = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>T in {bool, int, string, real, point, region}"
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>T in {bool, int, string, real, point, region}"
              ", mT X mT -> mbool,"
              " mT x T -> mbool, T x mT -> mbool</text--->"
              "<text> _ # _ </text--->"
@@ -6418,8 +6421,10 @@ const string TemporalLiftSpecMNotEqual
              ") )";
 
 const string TemporalLiftSpecLT  
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-             "( <text>T in {bool, int, real, string},  mT x T ->  mbool,"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+             "\"Example\" )"
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>T in {bool, int, real, string},  mT x T ->  mbool,"
              " (mT x mT) -> mbool, (T x mT) -> mbool</text--->"
              "<text>_ < _</text--->"
              "<text>Less than.</text--->"
@@ -6427,8 +6432,10 @@ const string TemporalLiftSpecLT
              ") )";
 
 const string TemporalLiftSpecLE  
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-             "( <text>T in {bool, int, real, string}, mT x T -> mbool,"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+             "\"Example\" )"
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>T in {bool, int, real, string}, mT x T -> mbool,"
              " (mT x mT) -> mbool, (T x mT) -> mbool</text--->"
              "<text>_ <= _</text--->"
              "<text>Less or equal than.</text--->"
@@ -6436,8 +6443,10 @@ const string TemporalLiftSpecLE
              ") )";
 
 const string TemporalLiftSpecGT 
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-            "( <text>T in {bool, int, real, string},  mT x T -> mbool,"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+             "\"Example\" )"
+            "( <text>TemporalLiftedAlgebra</text--->"
+	    "<text>T in {bool, int, real, string},  mT x T -> mbool,"
             " (mT x mT) -> mbool, (T x mT) -> mbool</text--->"
             "<text>_ > _</text--->"
             "<text>Greater than.</text--->"
@@ -6445,8 +6454,10 @@ const string TemporalLiftSpecGT
             ") )";
 
 const string TemporalLiftSpecGE  
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-            "( <text>T in {bool, int, real, string},  mT x T -> mbool,"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	    "\"Example\" )"
+            "( <text>TemporalLiftedAlgebra</text--->"
+	    "<text>T in {bool, int, real, string},  mT x T -> mbool,"
             " (mT x mT) -> mbool, (T x mT) -> mbool</text--->"
             "<text>_ >= _</text--->"
             "<text>Greater or equal than.</text--->"
@@ -6454,16 +6465,20 @@ const string TemporalLiftSpecGE
             ") )";
 
 const string temporalliftisemptyspec 
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>T in {bool, int, string, real, point, region}"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	    "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>T in {bool, int, string, real, point, region}"
              " mT -> mbool</text--->"
              "<text>isempty( _ )</text--->"
              "<text>Checks if the m. object is not defined .</text--->"
              "<text>isempty(mrg1)</text---> ) )";
 
 const string TemporalLiftSpecInside 
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>mpoint x points -> mbool,"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	    "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>mpoint x points -> mbool,"
              " mpoint x line -> mbool, mregion x points ->"
              " mbool, mregion x line -> mbool</text--->"
              "<text>_ inside _</text--->"
@@ -6472,8 +6487,10 @@ const string TemporalLiftSpecInside
              ") )";
 
 const string TemporalLiftSpecIntersection  
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>S in {bool, int, string, real}, T in {line, points),"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	    "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>S in {bool, int, string, real}, T in {line, points),"
              " mS x mS -> mS, mS x S -> mS, S x mS -> mS, "
              "mpoint x T -> mpoint, T x mpoint -> mpoint</text--->"
              "<text>intersection( _, _ )</text--->"
@@ -6482,16 +6499,20 @@ const string TemporalLiftSpecIntersection
              ") )";    
 
 const string unionspec 
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>R in {region}, P in {point}, mP x R-> mR,"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+             "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>R in {region}, P in {point}, mP x R-> mR,"
              " mP x mR -> mR, P x mR -> mR</text--->"
              "<text>_ union _</text--->"
              "<text>Calculates union between the given objects.</text--->"
              "<text>rg1 union mp1</text---> ) )";
              
 const string TemporalLiftSpecMinus 
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>S in {bool, int, string, real}, mS x mS -> mS,"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	     "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>S in {bool, int, string, real}, mS x mS -> mS,"
              " mS x S -> mS, S x mS -> mS, "
              "R in {region}, P in {point}, R x mP -> mR, "
              "mR x P -> mR, mR x mP -> mR, mR x points -> mR, "
@@ -6502,38 +6523,48 @@ const string TemporalLiftSpecMinus
              ") )";      
                     
 const string rcenterspec 
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>movingregion -> mpoint</text--->"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	     "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>movingregion -> mpoint</text--->"
              "<text>rough_center ( _ )</text--->"
              "<text>Calculates an approach to the"
              "center of gravity of a moving Region.</text--->"
              "<text>rough_center(mrg1)</text---> ) )";
              
 const string ncomponentsspec 
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>movingregion -> mint</text--->"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	     "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>movingregion -> mint</text--->"
              "<text>no_components ( _ )</text--->"
              "<text>Calculates the number of faces of "
              "a moving Region.</text--->"
              "<text>no_components(mrg1)</text---> ) )"; 
 
 const string perimeterspec
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>movingregion -> mreal</text--->"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	     "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+             "<text>movingregion -> mreal</text--->"
              "<text>perimeter ( _ )</text--->"
              "<text>Calculates the perimeter of a moving Region.</text--->"
              "<text>mraperimeter(mrg1)</text---> ) )";
 
 const string areaspec 
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>movingregion -> mreal</text--->"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	     "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>movingregion -> mreal</text--->"
              "<text>area ( _ )</text--->"
              "<text>Calculates the area of a moving Region.</text--->"
              "<text>area(mrg1)</text---> ) )";
     
 const string TemporalLiftSpecDistance 
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>T in {real), mpoint x mpoint -> mreal, mT x mT"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	     "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>T in {real), mpoint x mpoint -> mreal, mT x mT"
              " -> mreal, mT x T -> mreal, T x mT -> mreal</text--->"
              "<text> distance( _, _ ) </text--->"
              "<text>returns the moving distance</text--->"
@@ -6541,8 +6572,10 @@ const string TemporalLiftSpecDistance
              ") )";
 
 const string TemporalLiftSpecAnd  
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>bool x mbool -> mbool, mbool x mbool ->"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	     "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>bool x mbool -> mbool, mbool x mbool ->"
              " mbool, mbool x bool -> mbool</text--->"
              "<text> _ and _ </text--->"
              "<text>Logical AND for Bool and MBool.</text--->"
@@ -6550,8 +6583,10 @@ const string TemporalLiftSpecAnd
              ") )";
 
 const string TemporalLiftSpecOr  
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>bool x mbool -> mbool, mbool x mbool ->"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	     "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>bool x mbool -> mbool, mbool x mbool ->"
              " mbool, mbool x bool -> mbool</text--->"
              "<text> _ or _ </text--->"
              "<text>Logical OR for Bool and MBool.</text--->"
@@ -6559,48 +6594,59 @@ const string TemporalLiftSpecOr
              ") )";     
                      
 const string TemporalLiftSpecNot 
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>mbool -> mbool</text--->"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	     "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>mbool -> mbool</text--->"
              "<text> not( _ )</text--->"
              "<text>Negates a MovingBool.</text--->"
              "<text>not(mb1)</text--->"
              ") )";    
                               
 const string temporalzerospec
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>      -> mint</text--->"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	     "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>      -> mint</text--->"
              "<text>zero()</text--->"
              "<text>Creates an mint-Object with value 0 from minInstant"
              " to maxInstant</text--->"
              "<text>zero()</text---> ) )";
              
 const string temporalmintspec 
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>periods -> mint</text--->"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	     "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>periods -> mint</text--->"
              "<text>mmint( _ )</text--->"
              "<text>Creats a MInt from a periods-object with value 1"
              " for each existing period and 0 for every hole.</text--->"
              "<text>mmint(per1)</text---> ) )";
 
 const string temporalplusspec
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>mint x mint -> mint</text--->"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	     "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>mint x mint -> mint</text--->"
              "<text>_ + _</text--->"
              "<text>Adds two mint-obects when both are existant</text--->"
              "<text>mi1 + mi2</text---> ) )";
 
 const string temporalconcatspec
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>mpoint x mpoint -> mpoint</text--->"
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+	     "\"Example\" ) "
+             "( <text>TemporalLiftedAlgebra</text--->"
+	     "<text>mpoint x mpoint -> mpoint</text--->"
              "<text>_ _ concat</text--->"
              "<text>Concats two MPoints. DefTime of the first mpoint must"
              " end before deftime of second point!</text--->"
              "<text>mp1 mp2 concat</text---> ) )";
 
 const string TemporalLiftSpecABS  
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
             "\"Example\" ) "
-            "( <text>mreal -> mreal</text--->"
+            "( <text>TemporalLiftedAlgebra</text--->"
+	    "<text>mreal -> mreal</text--->"
             "<text>abs( _ )</text--->"
             "<text>abs</text--->"
             "<text>query abs(mr1)</text--->"
