@@ -162,6 +162,7 @@ helping operators for indexing instant values in R-trees.
 #include "RelationAlgebra.h"
 #include "TemporalAlgebra.h"
 #include "MovingRegionAlgebra.h"
+#include "TemporalExtAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
