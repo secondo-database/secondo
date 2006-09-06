@@ -1488,7 +1488,7 @@ static ListExpr PointsProperty() {
        nl->StringAtom("Remarks")),
       nl->FiveElemList
       (nl->StringAtom("-> DATA"),
-       nl->StringAtom("ccpoints"),
+       nl->StringAtom("rpoints"),
        nl->StringAtom("(<p1> <p2> ... <pN>)"),
        nl->StringAtom("..."),
        nl->StringAtom("a set of points "))));
@@ -1504,7 +1504,7 @@ type constructor ~ccpoints~ does not have arguments, this is trivial.
 
 static bool CheckCcPoints( ListExpr type, ListExpr& errorInfo ) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  bool res = (nl->IsEqual(type, "points"));
+  bool res = (nl->IsEqual(type, "rpoints"));
   return res;
 }
 
@@ -1523,7 +1523,7 @@ SizeOfCcPoints()
 
 TypeConstructor ccpoints
 (
- "points",
+ "rpoints",
  // name
  PointsProperty,
  // property function describing the signature
@@ -2057,7 +2057,7 @@ static ListExpr LinesProperty() {
        nl->StringAtom("Remarks")),
       nl->FiveElemList
       (nl->StringAtom("-> DATA"),
-       nl->StringAtom("cclines"),
+       nl->StringAtom("rline"),
        nl->StringAtom("(<seg1> <seg2> ... <segN>)"),
        nl->StringAtom("..."),
        nl->StringAtom("missing."))));
@@ -2073,7 +2073,7 @@ type constructor ~cclines~ does not have arguments, this is trivial.
 
 static bool CheckCcLines(ListExpr type, ListExpr& errorInfo ) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return (nl->IsEqual(type, "line"));
+  return (nl->IsEqual(type, "rline"));
 }
 
 int
@@ -2090,7 +2090,7 @@ SizeOfCcLines()
 */
 
 TypeConstructor cclines (
- "line",
+ "rline",
  // name
  LinesProperty,
  // property function describing the signature
@@ -2623,7 +2623,7 @@ static ListExpr RegionsProperty() {
        nl->StringAtom("Remarks")),
       nl->FiveElemList
       (nl->StringAtom("-> DATA"),
-       nl->StringAtom("ccregions"),
+       nl->StringAtom("rregion"),
        nl->StringAtom("(<outer_cycle> <hole_cycle1>... <hole cycleN>)"),
        nl->StringAtom("..."),
        nl->StringAtom("missing."))));
@@ -2640,7 +2640,7 @@ type constructor ~cclines~ does not have arguments, this is trivial.
 
 static bool CheckCcRegions(ListExpr type, ListExpr& errorInfo ) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return (nl->IsEqual(type, "region"));
+  return (nl->IsEqual(type, "rregion"));
 }
 
 int
@@ -2657,7 +2657,7 @@ SizeOfCcRegions()
 */
 
 TypeConstructor ccregions (
- "region",
+ "rregion",
  // name
  RegionsProperty,
  // property function describing the signature
@@ -2704,11 +2704,11 @@ static ListExpr equalTypeMap (ListExpr args) {
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+    if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
       return nl->SymbolAtom("bool");
     if ((nl->AtomType(arg1) == SymbolType) && 
         (nl->AtomType(arg2) == SymbolType)) 
@@ -2729,11 +2729,11 @@ static ListExpr unequalTypeMap (ListExpr args) {
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+    if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
       return nl->SymbolAtom("bool");
     if ((nl->AtomType(arg1) == SymbolType) && 
         (nl->AtomType(arg2) == SymbolType)) 
@@ -2754,11 +2754,11 @@ static ListExpr disjointTypeMap (ListExpr args) {
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+    if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
       return nl->SymbolAtom("bool");
     if ((nl->AtomType(arg1) == SymbolType) && 
         (nl->AtomType(arg2) == SymbolType)) 
@@ -2779,11 +2779,11 @@ static ListExpr insideTypeMap (ListExpr args) {
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"region"))
+    if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rregion"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
       return nl->SymbolAtom("bool");
     if ((nl->AtomType(arg1) == SymbolType) && 
         (nl->AtomType(arg2) == SymbolType)) 
@@ -2804,13 +2804,13 @@ static ListExpr intersectsTypeMap (ListExpr args) {
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rline"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
       return nl->SymbolAtom("bool");
     if ((nl->AtomType(arg1) == SymbolType) && 
         (nl->AtomType(arg2) == SymbolType)) 
@@ -2831,13 +2831,13 @@ static ListExpr meetsTypeMap (ListExpr args) {
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rline"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
       return nl->SymbolAtom("bool");
     if ((nl->AtomType(arg1) == SymbolType) && 
         (nl->AtomType(arg2) == SymbolType)) 
@@ -2858,13 +2858,13 @@ static ListExpr borderInCommonTypeMap (ListExpr args) {
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rline"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
       return nl->SymbolAtom("bool");
     if ((nl->AtomType(arg1) == SymbolType) && 
         (nl->AtomType(arg2) == SymbolType)) 
@@ -2885,9 +2885,9 @@ static ListExpr onBorderOfTypeMap (ListExpr args) {
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"line"))
+    if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rline"))
       return nl->SymbolAtom("bool");
-    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"region"))
+    if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rregion"))
       return nl->SymbolAtom("bool");
     if ((nl->AtomType(arg1) == SymbolType) &&
         (nl->AtomType(arg2) == SymbolType))
@@ -2908,14 +2908,14 @@ static ListExpr intersectionTypeMap (ListExpr args) {
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
-      return nl->SymbolAtom("points");
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
-      return nl->SymbolAtom("points");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
-      return nl->SymbolAtom("region");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
-      return nl->SymbolAtom("line");
+    if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
+      return nl->SymbolAtom("rpoints");
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
+      return nl->SymbolAtom("rpoints");
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
+      return nl->SymbolAtom("rregion");
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rline"))
+      return nl->SymbolAtom("rline");
     if ((nl->AtomType(arg1) == SymbolType) &&
         (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of type "
@@ -2935,12 +2935,12 @@ static ListExpr plusTypeMap (ListExpr args) {
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
-      return nl->SymbolAtom("points");
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
-      return nl->SymbolAtom("line");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
-      return nl->SymbolAtom("region");
+    if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
+      return nl->SymbolAtom("rpoints");
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
+      return nl->SymbolAtom("rline");
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
+      return nl->SymbolAtom("rregion");
     if ((nl->AtomType(arg1) == SymbolType) &&
         (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of type "
@@ -2960,12 +2960,12 @@ static ListExpr minusTypeMap (ListExpr args) {
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
-      return nl->SymbolAtom("points");
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
-      return nl->SymbolAtom("line");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
-      return nl->SymbolAtom("region");
+    if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
+      return nl->SymbolAtom("rpoints");
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
+      return nl->SymbolAtom("rline");
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
+      return nl->SymbolAtom("rregion");
     if ((nl->AtomType(arg1) == SymbolType) &&
         (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of type "
@@ -2985,14 +2985,14 @@ static ListExpr commonBorderTypeMap (ListExpr args) {
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
-      return nl->SymbolAtom("line");
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
-      return nl->SymbolAtom("line");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
-      return nl->SymbolAtom("line");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
-      return nl->SymbolAtom("line");
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
+      return nl->SymbolAtom("rline");
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
+      return nl->SymbolAtom("rline");
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rline"))
+      return nl->SymbolAtom("rline");
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
+      return nl->SymbolAtom("rline");
     if ((nl->AtomType(arg1) == SymbolType) &&
         (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of type "
@@ -3011,10 +3011,10 @@ static ListExpr verticesTypeMap (ListExpr args) {
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 1) {
     arg1 = nl->First(args);
-    if (nl->IsEqual(arg1,"line"))
-      return nl->SymbolAtom("points");
-    if (nl->IsEqual(arg1,"region"))
-      return nl->SymbolAtom("points");
+    if (nl->IsEqual(arg1,"rline"))
+      return nl->SymbolAtom("rpoints");
+    if (nl->IsEqual(arg1,"rregion"))
+      return nl->SymbolAtom("rpoints");
     if ((nl->AtomType(arg1) == SymbolType) && 
         (nl->AtomType(arg2) == SymbolType)) 
       ErrorReporter::ReportError("Type mapping function got parameter of type "
@@ -3033,11 +3033,11 @@ static ListExpr noOfComponentsTypeMap (ListExpr args) {
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 1) {
     arg1 = nl->First(args);
-    if (nl->IsEqual(arg1,"points"))
+    if (nl->IsEqual(arg1,"rpoints"))
       return nl->SymbolAtom("int");
-    if (nl->IsEqual(arg1,"line"))
+    if (nl->IsEqual(arg1,"rline"))
       return nl->SymbolAtom("int");
-    if (nl->IsEqual(arg1,"region"))
+    if (nl->IsEqual(arg1,"rregion"))
       return nl->SymbolAtom("int");
     if ((nl->AtomType(arg1) == SymbolType) &&
         (nl->AtomType(arg2) == SymbolType))
@@ -3058,23 +3058,23 @@ static ListExpr distTypeMap (ListExpr args) {
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+    if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
       return nl->SymbolAtom("real");
-    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"line"))
+    if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rline"))
       return nl->SymbolAtom("real");
-    if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"region"))
+    if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rregion"))
       return nl->SymbolAtom("real");
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"points"))
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rpoints"))
       return nl->SymbolAtom("real");
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
       return nl->SymbolAtom("real");
-    if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+    if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
       return nl->SymbolAtom("real");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"points"))
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rpoints"))
       return nl->SymbolAtom("real");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rline"))
       return nl->SymbolAtom("real");
-    if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+    if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
       return nl->SymbolAtom("real");
     if ((nl->AtomType(arg1) == SymbolType) &&
         (nl->AtomType(arg2) == SymbolType))
@@ -3094,11 +3094,11 @@ static ListExpr diameterTypeMap (ListExpr args) {
   ListExpr arg1,arg2;
   if (nl->ListLength(args) == 1) {
     arg1 = nl->First(args);
-    if (nl->IsEqual(arg1,"points"))
+    if (nl->IsEqual(arg1,"rpoints"))
       return nl->SymbolAtom("real");
-    if (nl->IsEqual(arg1,"line"))
+    if (nl->IsEqual(arg1,"rline"))
       return nl->SymbolAtom("real");
-    if (nl->IsEqual(arg1,"region"))
+    if (nl->IsEqual(arg1,"rregion"))
       return nl->SymbolAtom("real");
     if ((nl->AtomType(arg1) == SymbolType) &&
         (nl->AtomType(arg2) == SymbolType))
@@ -3160,7 +3160,7 @@ static ListExpr typeMappingRose (ListExpr args, char *type1,
 
 static ListExpr ccregionsccregionsBool(ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return typeMappingRose(args, "region", "region", "bool");
+  return typeMappingRose(args, "rregion", "rregion", "bool");
 }
 
 
@@ -3171,7 +3171,7 @@ static ListExpr ccregionsccregionsBool(ListExpr args) {
 
 static ListExpr cclinesccregions(ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return typeMappingRose(args, "line", "region");
+  return typeMappingRose(args, "rline", "rregion");
 }
 
 
@@ -3182,7 +3182,7 @@ static ListExpr cclinesccregions(ListExpr args) {
 
 static ListExpr ccregionscclines(ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return typeMappingRose(args, "region", "line");
+  return typeMappingRose(args, "rregion", "rline");
 }
 
 
@@ -3193,7 +3193,7 @@ static ListExpr ccregionscclines(ListExpr args) {
 
 static ListExpr ccregionsDouble(ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return typeMappingRose(args, "region", "real");
+  return typeMappingRose(args, "rregion", "real");
 }
 
 /* 
@@ -3203,7 +3203,7 @@ static ListExpr ccregionsDouble(ListExpr args) {
 
 static ListExpr cclinesDouble(ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return typeMappingRose(args, "line", "real");
+  return typeMappingRose(args, "rline", "real");
 }
 
 /*
@@ -3256,11 +3256,11 @@ static int equalSelect (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
-  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+  if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
     return 0;
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
     return 1;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
     return 2;
   return -1;
 }
@@ -3269,11 +3269,11 @@ static int unequalSelect (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
-  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+  if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
     return 0;
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
     return 1;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
     return 2;
   return -1;
 }
@@ -3282,11 +3282,11 @@ static int disjointSelect (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
-  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+  if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
     return 0;
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
     return 1;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
     return 2;
   return -1;
 }
@@ -3295,11 +3295,11 @@ static int insideSelect (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
-  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rregion"))
     return 0;
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
     return 1;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
     return 2;
   return -1;
 }
@@ -3308,13 +3308,13 @@ static int intersectsSelect (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
     return 0;
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
     return 1;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rline"))
     return 2;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
     return 3;
   return -1;
 }
@@ -3323,13 +3323,13 @@ static int meetsSelect (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
     return 0;
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
     return 1;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rline"))
     return 2;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
     return 3;
   return -1;
 }
@@ -3338,13 +3338,13 @@ static int borderInCommonSelect (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
     return 0;
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
     return 1;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rline"))
     return 2;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
     return 3;
   return -1;
 }
@@ -3353,9 +3353,9 @@ static int onBorderOfSelect (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
-  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rline"))
     return 0;
-  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rregion"))
     return 1;
   return -1;
 }
@@ -3364,13 +3364,13 @@ static int intersectionSelect (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
-  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+  if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
     return 0;
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
     return 1;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
     return 2;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rline"))
     return 3;
   return -1;
 }
@@ -3379,11 +3379,11 @@ static int plusSelect (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
-  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+  if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
     return 0;
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
     return 1;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
     return 2;
   return -1;
 }
@@ -3392,11 +3392,11 @@ static int minusSelect (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
-  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+  if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
     return 0;
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
     return 1;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
     return 2;
   return -1;
 }
@@ -3405,13 +3405,13 @@ static int commonBorderSelect (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
     return 0;
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
     return 1;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rline"))
     return 2;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
     return 3;
   return -1;
 }
@@ -3419,9 +3419,9 @@ static int commonBorderSelect (ListExpr args) {
 static int verticesSelect (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
-  if (nl->IsEqual(arg1,"line"))
+  if (nl->IsEqual(arg1,"rline"))
     return 0;
-  if (nl->IsEqual(arg1,"region"))
+  if (nl->IsEqual(arg1,"rregion"))
     return 1;
   return -1;
 }
@@ -3429,11 +3429,11 @@ static int verticesSelect (ListExpr args) {
 static int noOfComponentsSelect (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
-  if (nl->IsEqual(arg1,"points"))
+  if (nl->IsEqual(arg1,"rpoints"))
     return 0;
-  if (nl->IsEqual(arg1,"line"))
+  if (nl->IsEqual(arg1,"rline"))
     return 1;
-  if (nl->IsEqual(arg1,"region"))
+  if (nl->IsEqual(arg1,"rregion"))
     return 2;
   return -1;
 }
@@ -3442,23 +3442,23 @@ static int distSelect (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
-  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"points"))
+  if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
     return 0;
-  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rline"))
     return 1;
-  if (nl->IsEqual(arg1,"points") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rregion"))
     return 2;
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"points"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rpoints"))
     return 3;
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
     return 4;
-  if (nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
     return 5;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"points"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rpoints"))
     return 6;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rline"))
     return 7;
-  if (nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region"))
+  if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
     return 8;
   return -1;
 }
@@ -3466,11 +3466,11 @@ static int distSelect (ListExpr args) {
 static int diameterSelect (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1 = nl->First(args);
-  if (nl->IsEqual(arg1,"points"))
+  if (nl->IsEqual(arg1,"rpoints"))
     return 0;
-  if (nl->IsEqual(arg1,"line"))
+  if (nl->IsEqual(arg1,"rline"))
     return 1;
-  if (nl->IsEqual(arg1,"region"))
+  if (nl->IsEqual(arg1,"rregion"))
     return 2;
   return -1;
 }
@@ -6436,9 +6436,9 @@ ValueMapping diameterMap[] = { p_diameterFun,
 const string equalSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>({points,line,region} x {points,line,region} -> bool</text--->"
+"( <text>({rpoints,rline,rregion} x {rpoints,rline,rregion} -> bool</text--->"
 "<text>o1 equal o2, where o1,o2 are objects of type "
-"{points,line,region}</text--->"
+"{rpoints,rline,rregion}</text--->"
 "<text>The equal predicate returns true, if both objects "
 "are equal.</text--->"
 "<text>query Rhein equal Weser</text--->"
@@ -6447,9 +6447,9 @@ const string equalSpec =
 const string unequalSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>({points,line,region} x {points,line,region} -> bool</text--->"
+"( <text>({rpoints,rline,rregion} x {rpoints,rline,rregion} -> bool</text--->"
 "<text>o1 unequal o2, where o1,o2 are objects of type "
-"{points,line,region}</text--->"
+"{rpoints,rline,rregion}</text--->"
 "<text>The unequal predicate returns true, if both objects "
 "are not equal.</text--->"
 "<text>query Rhein unequal Weser</text--->"
@@ -6458,9 +6458,9 @@ const string unequalSpec =
 const string disjointSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>({points,line,region} x {points,line,region} -> bool</text--->"
+"( <text>({rpoints,rline,rregion} x {rpoints,rline,rregion} -> bool</text--->"
 "<text>o1 disjoint o2, where o1,o2 are objects of type "
-"{points,line,region}</text--->"
+"{rpoints,rline,rregion}</text--->"
 "<text>The disjoint predicate returns true, if both objects "
 "have no common points.</text--->"
 "<text>query Rhein disjoint Weser</text--->"
@@ -6469,9 +6469,9 @@ const string disjointSpec =
 const string insideSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>({points,line,region} x region -> bool</text--->"
+"( <text>({rpoints,rline,rregion} x rregion -> bool</text--->"
 "<text>o inside r, where o is an object of type "
-"{points,line,region} and r is a region.</text--->"
+"{rpoints,rline,rregion} and r is a rregion.</text--->"
 "<text>The inside predicate returns true, if o lies inside of r</text--->"
 "<text>query Rhein inside LKMagdeburg</text--->"
 ") )";
@@ -6479,8 +6479,8 @@ const string insideSpec =
 const string areaDisjointSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>region x egion -> bool</text--->"
-"<text>r1 area_disjoint r2, where r1,r2 are of type region</text--->"
+"( <text>rregion x egion -> bool</text--->"
+"<text>r1 area_disjoint r2, where r1,r2 are of type rregion</text--->"
 "<text>The area_disjoint predicate returns true, if "
 "r1,r2 have no common area.</text--->"
 "<text>query LKMagdeburg area_disjoint SKKiel</text--->"
@@ -6489,8 +6489,8 @@ const string areaDisjointSpec =
 const string edgeDisjointSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>egion x region -> bool</text--->"
-"<text>r1 edge_disjoint r2, where r1,r2 are of type region</text--->"
+"( <text>egion x rregion -> bool</text--->"
+"<text>r1 edge_disjoint r2, where r1,r2 are of type rregion</text--->"
 "<text>The edge_disjoint predicate returns true, if "
 "r1,r2 have no common edges.</text--->"
 "<text>query LKMagdeburg edge_disjoint SKKiel</text--->"
@@ -6499,8 +6499,8 @@ const string edgeDisjointSpec =
 const string edgeInsideSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>region x region -> bool</text--->"
-"<text>r1 edge_inside r2, where r1,r2 are of type region</text--->"
+"( <text>rregion x rregion -> bool</text--->"
+"<text>r1 edge_inside r2, where r1,r2 are of type rregion</text--->"
 "<text>The edge_inside predicate returns true, if no "
 "edges of r1 are inside of r2.</text--->"
 "<text>query LKMagdeburg edge_inside SKKiel</text--->"
@@ -6509,8 +6509,8 @@ const string edgeInsideSpec =
 const string vertexInsideSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>region x region -> bool</text--->"
-"<text>r1 vertex_inside r2, where r1,r2 are of type region</text--->"
+"( <text>rregion x rregion -> bool</text--->"
+"<text>r1 vertex_inside r2, where r1,r2 are of type rregion</text--->"
 "<text>The vertex_inside predicate returns true, if no "
 "vertex of r1 is inside of r2.</text--->"
 "<text>query LKMagdeburg vertex_inside SKKiel</text--->"
@@ -6519,8 +6519,8 @@ const string vertexInsideSpec =
 const string intersectsSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
-"( <text>{line,region} x {line,region} -> bool</text--->"
-"<text>o1 intersects o2, where o1,o2 are of type {line,region}</text--->"
+"( <text>{rline,rregion} x {rline,rregion} -> bool</text--->"
+"<text>o1 intersects o2, where o1,o2 are of type {rline,rregion}</text--->"
 "<text>The intersects predicate returns true, if o1,o2 intersect</text--->"
 "<text>query Rhein intersects Main</text--->"
 ") )";
@@ -6528,8 +6528,8 @@ const string intersectsSpec =
 const string meetsSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>{line,region} x {line,region} -> bool</text--->"
-"<text>o1 meets o2, where o1,o2 are of type {line,region}</text--->"
+"( <text>{rline,rregion} x {rline,rregion} -> bool</text--->"
+"<text>o1 meets o2, where o1,o2 are of type {rline,rregion}</text--->"
 "<text>The meets predicate returns true, if o1,o2 meet in one point</text--->"
 "<text>query Rhein meets Weser</text--->"
 ") )";
@@ -6537,8 +6537,9 @@ const string meetsSpec =
 const string borderInCommonSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>{line,region} x {line,region} -> bool</text--->"
-"<text>o1 border_in_common o2, where o1,o2 are of type {line,region}</text--->"
+"( <text>{rline,rregion} x {rline,rregion} -> bool</text--->"
+"<text>o1 border_in_common o2, where o1,o2 are"
+" of type {rline,rregion}</text--->"
 "<text>The border_in_common predicate returns true, if "
 "o1,o2 have a common border.</text--->"
 "<text>query LKSteinfurt border_in_common LKMagdeburg</text--->"
@@ -6547,8 +6548,8 @@ const string borderInCommonSpec =
 const string adjacentSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>region x region -> bool</text--->"
-"<text>r1 adjacent r2, where r1,r2 are of type region</text--->"
+"( <text>rregion x rregion -> bool</text--->"
+"<text>r1 adjacent r2, where r1,r2 are of type rregion</text--->"
 "<text>The adjacent predicate returns true, if r1,r2 have a "
 "common border, but don't have a common area</text--->"
 "<text>query LKSteinfurt adjacent LKMagdeburg</text--->"
@@ -6557,8 +6558,8 @@ const string adjacentSpec =
 const string enclosesSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>region x region -> bool</text--->"
-"<text>r1 encloses r2, where r1,r2 are of type region</text--->"
+"( <text>rregion x rregion -> bool</text--->"
+"<text>r1 encloses r2, where r1,r2 are of type rregion</text--->"
 "<text>The encloses predicate returns true, if r2 "
 "completely lies in holes of r1</text--->"
 "<text>query LKOsnabrueck encloses SKOsnabrueck</text--->"
@@ -6567,11 +6568,13 @@ const string enclosesSpec =
 const string intersectionSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>{points,line,region} x {points,line,region} -> "
-"{points,line,region}</text--->"
-"<text>intersection(o1,o2), where both objects have to be of the same type. "
-"The result type of points x points is points, the result type of line x line "
-"is points and the result type of region x region is region.</text--->"
+"( <text>{rpoints,rline,rregion} x {rpoints,rline,rregion} -> "
+"{rpoints,rline,rregion}</text--->"
+"<text>intersection(o1,o2), where both objects "
+"have to be of the same type. "
+"The result type of rpoints x rpoints is rpoints, "
+"the result type of rline x rline "
+"is rpoints and the result type of rregion x rregion is rregion.</text--->"
 "<text>The intersection operation returns the geometric intersection "
 "of two objects.</text--->"
 "<text>query intersection(Rhein,Weser)(</text--->"
@@ -6580,10 +6583,10 @@ const string intersectionSpec =
 const string plusSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>{points,line,region} x {points,line,region} -> "
-"{points,line,region}</text--->"
+"( <text>{rpoints,rline,rregion} x {rpoints,rline,rregion} -> "
+"{rpoints,rline,rregion}</text--->"
 "<text>o1 plus o2, where o1,o2 and the result are of the same type "
-"{points,line,region}</text--->"
+"{rpoints,rline,rregion}</text--->"
 "<text>The plus operation returns the geometric sum of two objects</text--->"
 "<text>query LKOsnabrueck plus SKOsnabrueck</text--->"
 ") )";
@@ -6591,10 +6594,10 @@ const string plusSpec =
 const string minusSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>{points,line,region} x {points,line,region} -> "
-"{points,line,regin}</text--->"
+"( <text>{rpoints,rline,rregion} x {rpoints,rline,rregion} -> "
+"{rpoints,rline,regin}</text--->"
 "<text>o1 minus o2, where o1,o2 and the result are of the same type "
-"{points,line,region}</text--->"
+"{rpoints,rline,rregion}</text--->"
 "<text>The minus operation returns the geometric difference of "
 "two objects</text--->"
 "<text>query LKSteinfurt minus LKOsnabrueck</text--->"
@@ -6603,19 +6606,19 @@ const string minusSpec =
 const string commonBorderSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>{line,region} x {line,region} -> line</text--->"
-"<text>common_border(o1,o2), where o1,o2 are of type {line,region}</text--->"
+"( <text>{rline,rregion} x {rline,rregion} -> rline</text--->"
+"<text>common_border(o1,o2), where o1,o2 are of type {rline,rregion}</text--->"
 "<text>The common_border operation returns the common part of the "
-"borders or line objects, resp.</text--->"
+"borders or rline objects, resp.</text--->"
 "<text>query common_border(LKSteinfurt,SKOsnabrueck)</text--->"
 ") )";
 
 const string onBorderOfSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>points x {line,region} -> bool</text--->"
-"<text>p on_border_of o, where p is a points value and o is of type "
-"{line,region}</text--->"
+"( <text>rpoints x {rline,rregion} -> bool</text--->"
+"<text>p on_border_of o, where p is a rpoints value and o is of type "
+"{rline,rregion}</text--->"
 "<text>The on_border_of predicate returns true, if p completely "
 "lies on o</text--->"
 "<text>query Koeln on_border_of autobahn3</text--->"
@@ -6624,8 +6627,8 @@ const string onBorderOfSpec =
 const string verticesSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>{line,region} -> points</text--->"
-"<text>vertices (o), where o is of type {line,region}</text--->"
+"( <text>{rline,rregion} -> rpoints</text--->"
+"<text>vertices (o), where o is of type {rline,rregion}</text--->"
 "<text>The vertices operation return the vertices of the o value</text--->"
 "<text>query vertices (magdeburg)</text--->"
 ") )";
@@ -6633,9 +6636,9 @@ const string verticesSpec =
 const string interiorSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>line -> region</text--->"
-"<text>interior(l), where l has type line</text--->"
-"<text>The interior operation returns the region that is "
+"( <text>rline -> rregion</text--->"
+"<text>interior(l), where l has type rline</text--->"
+"<text>The interior operation returns the rregion that is "
 "enclosed by l.</text--->"
 "<text>qeury interior(borderOfLKMagdeburg)</text--->"
 ") )";
@@ -6643,8 +6646,8 @@ const string interiorSpec =
 const string contourSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>region -> line</text--->"
-"<text>contour (r), where r has type region</text--->"
+"( <text>rregion -> rline</text--->"
+"<text>contour (r), where r has type rregion</text--->"
 "<text>The contour operation returns the border or r without holes.</text--->"
 "<text>query contour (magdeburg)</text--->"
 ") )";
@@ -6652,8 +6655,9 @@ const string contourSpec =
 const string noOfComponentsSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>{points,line,region} -> int</text--->"
-"<text>no_of_components (o), where o is of type {points,line,region}</text--->"
+"( <text>{rpoints,rline,rregion} -> int</text--->"
+"<text>no_of_components (o), where o is of "
+"type {rpoints,rline,rregion}</text--->"
 "<text>The no_of_components operation counts the number of connected "
 "components and returns that number.</text--->"
 "<text>query no_of_components (Rhein)</text--->"
@@ -6662,8 +6666,8 @@ const string noOfComponentsSpec =
 const string distSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>{points,line,region} -> real</text--->"
-"<text>dist(o1,o2), where o1,o2 are of type {points,line,region}</text--->"
+"( <text>{rpoints,rline,rregion} -> real</text--->"
+"<text>dist(o1,o2), where o1,o2 are of type {rpoints,rline,rregion}</text--->"
 "<text>The dist operation returns the Eucledian distance "
 "between o1,o2.</text--->"
 "<text>query dist(LKSteinfurt,Rhein)</text--->"
@@ -6672,8 +6676,8 @@ const string distSpec =
 const string diameterSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>{points,line,region} -> real</text--->"
-"<text>diameter (o), where o is of type {points,line,region}</text--->"
+"( <text>{rpoints,rline,rregion} -> real</text--->"
+"<text>diameter (o), where o is of type {rpoints,rline,rregion}</text--->"
 "<text>The diameter operation returns the diameter of o.</text--->"
 "<text>query diameter (Rhein)</text--->"
 ") )";
@@ -6681,17 +6685,17 @@ const string diameterSpec =
 const string lengthSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>line -> real</text--->"
-"<text>length (l), where l is of type line</text--->"
-"<text>The length operation return the lenght of a line object.</text--->"
+"( <text>rline -> real</text--->"
+"<text>length (l), where l is of type rline</text--->"
+"<text>The length operation return the lenght of a rline object.</text--->"
 "<text>query length (Rhein)</text--->"
 ") )";
 
 const string areaSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>region -> real</text--->"
-"<text>area (r), where r is of type region</text--->"
+"( <text>rregion -> real</text--->"
+"<text>area (r), where r is of type rregion</text--->"
 "<text>The area operation returns a real value for the area of r.</text--->"
 "<text>query area (magdeburg)</text--->"
 ") )";
@@ -6699,8 +6703,8 @@ const string areaSpec =
 const string perimeterSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
 "\"Example\" )"
-"( <text>region -> real</text--->"
-"<text>perimeter (r), where r is of type region</text--->"
+"( <text>rregion -> real</text--->"
+"<text>perimeter (r), where r is of type rregion</text--->"
 "<text>The perimeter operation returns a real value for the "
 "perimeter of r.</text--->"
 "<text>query perimeter (magdeburg)</text--->"
