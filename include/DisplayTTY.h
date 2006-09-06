@@ -214,6 +214,10 @@ Are display functions for tuples.
   static void DisplayRect4( ListExpr type,
                             ListExpr numType,
                             ListExpr value );
+                            
+  static void DisplayRect8( ListExpr type,
+                            ListExpr numType,
+                            ListExpr value );
 
   static void DisplayBinfile( ListExpr type,
                               ListExpr numType,

@@ -675,6 +675,61 @@ void DisplayTTY::DisplayRect4( ListExpr type, ListExpr numType, ListExpr value)
   }
 }
 
+void DisplayTTY::DisplayRect8( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
+  {
+    cout << "UNDEFINED";
+  }
+  else if( nl->ListLength(value) != 16 )
+    cout << "Incorrect Data Format";
+  else
+  {
+    bool realValue;
+    double coordValue[16];
+    unsigned i = 0;
+    ListExpr restList, firstVal;
+
+    restList = value;
+    do
+    {
+      firstVal = nl->First(restList);
+      realValue = nl->AtomType( firstVal ) == RealType;
+      if (realValue)
+      {
+        restList = nl->Rest(restList);
+        coordValue[i] = nl->RealValue(firstVal);
+        i++;
+      }
+    } while (i < 16 && realValue);
+
+    if (realValue)
+    {
+      cout << "rect: ( (";
+      for( unsigned i = 0; i < 8; i++ )
+      {
+        cout << coordValue[2*i];
+        if( i < 8 - 1 )
+          cout << ",";
+      }
+      cout << ") - (";
+      for( unsigned i = 0; i < 8; i++ )
+      {
+        cout << coordValue[2*i+1];
+        if( i < 8 - 1 )
+          cout << ",";
+      }
+      cout << ") )";
+    }
+    else
+    {
+      cout << "Incorrect Data Format";
+      return;
+    }
+  }
+}
+
 void
 DisplayTTY::DisplayMP3( ListExpr type, ListExpr numType, ListExpr value)
 {
@@ -1117,6 +1172,7 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "rect",    &DisplayRect);
   InsertDisplayFunction( "rect3",   &DisplayRect3);
   InsertDisplayFunction( "rect4",   &DisplayRect4);
+  InsertDisplayFunction( "rect8",   &DisplayRect8);
   InsertDisplayFunction( "array",   &DisplayArray);
   InsertDisplayFunction( "point",   &DisplayPoint);
   InsertDisplayFunction( "binfile", &DisplayBinfile);
