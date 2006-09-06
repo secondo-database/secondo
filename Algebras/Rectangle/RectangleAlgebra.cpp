@@ -266,6 +266,80 @@ TypeConstructor rect4(
         CheckRectangle4 );                       //kind checking function
 
 /*
+3 Type Constructor ~rect8~
+
+A value of type ~rect8~ represents a 8-dimensional rectangle alligned with
+the axes. A rectangle in such a way can be represented by sixteen
+numbers, the upper and lower values for the eight dimensions.
+
+3.1 List Representation
+
+The list representation of a 8D rectangle is
+
+----    (x1 x2 ... x15 x16)
+----
+
+3.3 ~Out~-function
+
+See RectangleAlgebra.h
+
+3.4 ~In~-function
+
+See RectangleAlgebra.h
+
+3.9 Function describing the signature of the type constructor
+
+*/
+ListExpr
+Rectangle8Property()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                             nl->StringAtom("rect8"),
+                             nl->StringAtom(
+                             "(list of sixteen <value>). l/r for "
+                             "8 dimensions."),
+                             nl->StringAtom(
+                             "(0 1 10 11 20 21 0 4 4"
+                             " 5 6 7 1 3 4 6)"))));
+}
+
+/*
+3.10 Kind Checking Function
+
+This function checks whether the type constructor is applied correctly. Since
+type constructor ~rect4~ does not have arguments, this is trivial.
+
+*/
+bool
+CheckRectangle8( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "rect8" ));
+}
+
+/*
+3.12 Creation of the type constructor instance
+
+*/
+TypeConstructor rect8(
+        "rect8",                                 //name
+        Rectangle8Property,                      //property function 
+                                                 //describing signature
+        OutRectangle<8>,     InRectangle<8>,     //Out and In functions
+        0,                   0,                  //SaveToList and 
+                                                 //RestoreFromList functions
+        CreateRectangle<8>,  DeleteRectangle<8>, //object creation and deletion
+        0,                   0,                  //open and save functions
+        CloseRectangle<8>,   CloneRectangle<8>,  //object close, and clone
+        CastRectangle<8>,                        //cast function
+        SizeOfRectangle<8>,                      //sizeof function
+        CheckRectangle8 );                       //kind checking function
+
+/*
 4 Operators
 
 Definition of operators is similar to definition of type constructors. An
@@ -425,6 +499,40 @@ ListExpr RectangleTypeMap( ListExpr args )
 }
 
 /*
+4.1.4 Type mapping function ~rectangle8size~
+
+It is used for the ~rectangle8size~ operator.
+
+*/
+template< int dim>
+ListExpr Rectangle8TypeMap( ListExpr args )
+{
+  ListExpr arg[dim+1];
+  bool checkint = true, checkreal = true;
+    
+  if( (nl->ListLength( args ) == dim+1) )
+  {
+    for(unsigned int i = 1; i <= dim+1; i++) {
+      arg[i-1] = nl->Nth(i,args);
+    }
+
+    for(int j = 0; j < dim; j++) {
+      if( !(nl->IsEqual( arg[j], "int" )) ) { checkint = false; break; }
+    }
+
+    for(int k = 0; k < dim; k++) { 
+     if( !(nl->IsEqual( arg[k], "real" )) ) { checkreal = false; break; }
+   }
+   
+   if ( (checkint ||  checkreal) && nl->IsEqual( arg[dim], "real" ) ) 
+     return nl->SymbolAtom( "rect8" );
+   else ErrorReporter::ReportError("All argument types must be either"
+                                    " int or real!");
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
 4.2 Selection functions
 
 A selection function is quite similar to a type mapping function. The only
@@ -505,6 +613,41 @@ int RectangleSelect( ListExpr args )
   }
 
    for(int k = 0; k < 2*dim; k++)
+  { 
+    if( !(nl->IsEqual( arg[k], "real" )) ) { checkreal = false; break; }
+  }
+                     
+  if( checkint ) return 0;
+
+  if( checkreal ) return 1;
+
+  return -1; // should never occur 
+}
+
+/*
+
+4.3.2 Selection function ~Rectangle8Select~
+
+Is used for the ~rectangle8size~ operator.
+
+*/
+template< int dim>
+int Rectangle8Select( ListExpr args )
+{
+  ListExpr arg[dim];
+  bool checkint = true, checkreal = true;
+  
+  for(unsigned int i = 1; i <= dim; i++)
+  {
+    arg[i-1] = nl->Nth(i,args);
+  }
+
+  for(int j = 0; j < dim; j++)
+  { 
+    if( !(nl->IsEqual( arg[j], "int" )) ) { checkint = false; break; }
+  }
+
+   for(int k = 0; k < dim; k++)
   { 
     if( !(nl->IsEqual( arg[k], "real" )) ) { checkreal = false; break; }
   }
@@ -743,6 +886,39 @@ int RectangleValueMap( Word* args, Word& result, int message,
 }
 
 /*
+4.4.5 Value mapping functions of operator ~rectangle8size~
+
+*/
+template<class T, unsigned int dim>
+int Rectangle8ValueMap( Word* args, Word& result, int message, 
+                        Word& local, Supplier s )
+{
+  double min[dim+1];
+  double max[dim+1];
+  bool alldefined = true;
+  
+  result = qp->ResultStorage( s );
+  for(unsigned int i=0; i <= dim; i++) {
+    if ( !(((T*)(args[i].addr))->IsDefined()) ) alldefined = false;
+  }
+    
+  if ( alldefined )
+  {
+    for(unsigned int j=0; j < dim; j++) {
+      min[j] = (double)(((T*)args[j].addr)->GetValue());
+      max[j] = ((double)(((T*)args[j].addr)->GetValue())) +
+               ((double)(((CcReal*)args[dim].addr)->GetValue()));
+    }
+    ((Rectangle<dim> *)result.addr)->Set( true, min, max );       
+  }
+  else
+  {
+    ((Rectangle<dim> *)result.addr)->Set( false, min, max );
+  }
+  return (0);
+}
+
+/*
 4.5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -796,6 +972,9 @@ ValueMapping rectanglerectangle3map[] = { RectangleValueMap<CcInt, 3>,
 ValueMapping rectanglerectangle4map[] = { RectangleValueMap<CcInt, 4>,
                                           RectangleValueMap<CcReal, 4> };
                                           
+ValueMapping rectanglerectangle8map[] = { Rectangle8ValueMap<CcInt, 8>,
+                                          Rectangle8ValueMap<CcReal, 8> };
+
 /*
 4.5.2 Definition of specification strings
 
@@ -904,6 +1083,20 @@ const string RectangleSpecRectangle4  =
         " and (min4d < max4d).</text--->"
         ") )";
 
+const string RectangleSpecRectangle8  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+        "( <text>(int x int x int x int x int x int x int x int x real -> "
+        "rect8) or (real x real x real x real x real x real x real x "
+        "real x real -> rect8)</text--->"
+        "<text>rectangle8( _, _, _, _, _, _, _, _, _)</text--->"
+        "<text>creates a rect8 from the given parameters.</text--->"
+        "<text>query rectangle8(1,2,3,4,5,6,7,8, 1.2)</text--->"
+        "<text>The sequence of parameters must be "
+        "(min1d, min2d, min3d, min4d, min5d, min6d, min7d, min8d, size)"
+        " with minxd as lower bound and size computing the upper bound "
+        "(minxd+size) of the respective axis intervals.</text--->"
+        ") )";
+
 /*
 4.5.3 Definition of the operators
 
@@ -984,6 +1177,13 @@ Operator rectanglerectangle4( "rectangle4",
                              rectanglerectangle4map,
                              RectangleSelect<4>,
                              RectangleTypeMap<4> );
+                             
+Operator rectanglerectangle8( "rectangle8",
+                             RectangleSpecRectangle8,
+                             2,
+                             rectanglerectangle8map,
+                             Rectangle8Select<8>,
+                             Rectangle8TypeMap<8> );
 
 /*
 5 Creating the Algebra
@@ -998,10 +1198,12 @@ class RectangleAlgebra : public Algebra
     AddTypeConstructor( &rect );
     AddTypeConstructor( &rect3 );
     AddTypeConstructor( &rect4 );
-
+    AddTypeConstructor( &rect8 );
+    
     rect.AssociateKind("DATA");
     rect3.AssociateKind("DATA");
     rect4.AssociateKind("DATA");
+    rect8.AssociateKind("DATA");
 
     AddOperator( &rectangleisempty );
     AddOperator( &rectangleequal );
@@ -1014,6 +1216,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectanglerectangle2 );
     AddOperator( &rectanglerectangle3 );
     AddOperator( &rectanglerectangle4 );
+    AddOperator( &rectanglerectangle8 );
   }
   ~RectangleAlgebra() {};
 };
