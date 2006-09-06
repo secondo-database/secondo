@@ -23,4 +23,5 @@ operator windowclippingout alias WINDOWCLIPPINGOUT pattern op ( _ , _)
 operator vertices alias VERTICES pattern op ( _ )
 operator atpoint alias ATPOINT pattern _ op[ _ ]
 operator atposition alias ATPOSITION pattern _ op[ _ ]
+operator subline alias SUBLINE pattern _ op[ _, _ ]
 

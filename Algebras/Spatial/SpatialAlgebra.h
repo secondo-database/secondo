@@ -90,9 +90,12 @@ Forward declarations.
 const double FACTOR = 0.00000001;
 
 inline double ApplyFactor( const double d );
-inline bool AlmostEqual( const double d1, const double d2 );
-inline bool AlmostEqual( const Point& p1, const Point& p2 );
-inline bool AlmostEqual( const HalfSegment& hs1, const HalfSegment& hs2 );
+inline bool AlmostEqual( const double d1, 
+                         const double d2 );
+inline bool AlmostEqual( const Point& p1, 
+                         const Point& p2 );
+inline bool AlmostEqual( const HalfSegment& hs1, 
+                         const HalfSegment& hs2 );
 
 /*
 4 Struct Point
@@ -1066,7 +1069,8 @@ Returns the point at relative position ~pos~.
 Returns the relative position of the point ~p~.
 
 */
-    inline HalfSegment SubHalfSegment( double pos1, double pos2 ) const;
+    inline bool SubHalfSegment( double pos1, double pos2, 
+                                HalfSegment& result ) const;
 /*
 Returns the sub half segment trimmed by ~pos1~ and ~pos2~.
 
@@ -3129,6 +3133,7 @@ inline bool Points::GetPt( const Point*& p ) const
 11.3 Class ~HalfSegment~
 
 */
+inline 
 HalfSegment::HalfSegment( bool ldp, 
                           const Point& lp, 
                           const Point& rp ):
@@ -3145,6 +3150,7 @@ rp( rp )
   }
 }
 
+inline
 HalfSegment::HalfSegment( const HalfSegment& hs ):
 ldp( hs.ldp ),
 lp( hs.lp ),
@@ -3153,41 +3159,48 @@ attr( hs.attr )
 {
 }
 
-inline const Point& HalfSegment::GetLeftPoint() const
+inline const Point& 
+HalfSegment::GetLeftPoint() const
 {
   return lp;
 }
 
-inline const Point& HalfSegment::GetRightPoint() const
+inline const Point& 
+HalfSegment::GetRightPoint() const
 {
   return rp;
 }
 
-inline const Point& HalfSegment::GetDomPoint() const
+inline const Point& 
+HalfSegment::GetDomPoint() const
 {
   if( ldp ) 
     return lp;
   return rp;
 }
 
-inline const Point& HalfSegment::GetSecPoint() const
+inline const Point& 
+HalfSegment::GetSecPoint() const
 {
   if( ldp ) 
     return rp;
   return lp;
 }
 
-inline bool HalfSegment::IsLeftDomPoint() const
+inline bool 
+HalfSegment::IsLeftDomPoint() const
 {
   return ldp;
 }
 
-inline void HalfSegment::SetLeftDomPoint( bool ldp )
+inline void 
+HalfSegment::SetLeftDomPoint( bool ldp )
 {
   this->ldp = ldp;
 }
 
-inline const Rectangle<2> HalfSegment::BoundingBox() const
+inline const Rectangle<2> 
+HalfSegment::BoundingBox() const
 {
   double minx = MIN( GetLeftPoint().GetX(), GetRightPoint().GetX() ),
          maxx = MAX( GetLeftPoint().GetX(), GetRightPoint().GetX() ),
@@ -3201,45 +3214,64 @@ inline const Rectangle<2> HalfSegment::BoundingBox() const
                        maxy + ApplyFactor(maxy) );
 }
 
-inline const AttrType& HalfSegment::GetAttr() const
+inline const AttrType& 
+HalfSegment::GetAttr() const
 {
   return attr;
 }
 
-inline void HalfSegment::SetAttr( AttrType& attr )
+inline void 
+HalfSegment::SetAttr( AttrType& attr )
 {
   this->attr = attr;
 }
 
-inline double HalfSegment::Length() const
+inline double 
+HalfSegment::Length() const
 {
   return rp.Distance( lp );
 }
 
-inline Point HalfSegment::AtPosition( double pos ) const
+inline Point 
+HalfSegment::AtPosition( double pos ) const
 {
-  assert( IsLeftDomPoint() );
-  assert( pos >= 0 && pos <= Length() );
+  if( pos < 0 ||
+      AlmostEqual( pos, 0 ) )
+    return GetDomPoint();
+
+  if( pos > Length() ||
+      AlmostEqual( pos, Length() ) )
+    return GetSecPoint();
+
   return Point( true, 
-                lp.GetX() + pos * (rp.GetX() - lp.GetX()) / Length(),
-                lp.GetY() + pos * (rp.GetY() - lp.GetY()) / Length() ); 
+                GetDomPoint().GetX() + pos * 
+                  (GetSecPoint().GetX() - GetDomPoint().GetX()) / Length(),
+                GetDomPoint().GetY() + pos * 
+                  (GetSecPoint().GetY() - GetDomPoint().GetY()) / Length() ); 
 }
 
-inline double HalfSegment::AtPoint( const Point& p ) const
+inline double 
+HalfSegment::AtPoint( const Point& p ) const
 {
-  assert( IsLeftDomPoint() );
   assert( Contains( p ) );
   if( AlmostEqual( rp.GetX(), lp.GetX() ) && 
       AlmostEqual( p.GetX(), rp.GetX() ) )
     // the segment is vertical
-    return Length() * (p.GetY() - lp.GetY()) / (rp.GetY() - lp.GetY());
-  return Length() * (p.GetX() - lp.GetX()) / (rp.GetX() - lp.GetX());
+    return Length() * (p.GetY() - GetDomPoint().GetY()) / 
+                      (GetSecPoint().GetY() - GetDomPoint().GetY());
+  return Length() * (p.GetX() - GetDomPoint().GetX()) / 
+                    (GetSecPoint().GetX() - GetDomPoint().GetX());
 }
 
-inline HalfSegment HalfSegment::SubHalfSegment( double pos1, double pos2 ) const
+inline bool 
+HalfSegment::SubHalfSegment( double pos1, double pos2, 
+                                         HalfSegment& result ) const
 {
-  assert( IsLeftDomPoint() );
-  return HalfSegment( true, AtPosition( pos1 ), AtPosition( pos2 ) );
+  if( AlmostEqual( AtPosition( pos1 ), AtPosition( pos2 ) ) )
+    return false;
+
+  result.Set( true, AtPosition( pos1 ), AtPosition( pos2 ) );
+  return true;
 }
 
 /*

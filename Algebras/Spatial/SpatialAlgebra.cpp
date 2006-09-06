@@ -3790,6 +3790,54 @@ bool Line::AtPoint( const Point& p, double& result ) const
   return result;
 }
 
+void Line::SubLine( double pos1, double pos2, Line& l ) const
+{
+  if( pos1 < 0 && !AlmostEqual( pos1, 0 ) ||
+      pos2 > Length() && !AlmostEqual( pos2, Length() ) )
+    return;
+
+  // First search for the first half segment
+  LRS lrs( pos, 0 );
+  int lrsPos;
+  Find( lrs, lrsPos );
+
+  const LRS *lrs2;
+  Get( lrsPos, lrs2 );
+
+  const HalfSegment *hs;
+  Get( lrs2->hsPos, hs );
+
+  l.StartBulkLoad();
+  int edgeno = 0;
+
+  HalfSegment auxHs;
+  if( hs->SubHalfSegment( pos1 - lrs2->lrsPos, pos2 - lrs2->lrsPos, auxHs ) )
+  {
+    auxHs.attr.edgeno = ++edgeno;
+    l += auxHs;
+    auxHs.SetLeftDomPoint( !auxHs.IsLeftDomPoint() );
+    l += auxHs;
+  }
+
+  while( lrs2->lrsPos + hs->Length() < pos2 ||
+         AlmostEqual( lrs2->lrsPos + hs->Length(), pos2 ) )
+  {  
+    // Get the next half segment in the sequence
+    Get( ++lrsPos, lrs2 );
+    Get( lrs2->hsPos, hs );
+ 
+    if( hs->SubHalfSegment( pos1 - lrs2->lrsPos, pos2 - lrs2->lrsPos, auxHs ) )
+    {
+      auxHs.attr.edgeno = ++edgeno;
+      l += auxHs;
+      auxHs.SetLeftDomPoint( !auxHs.IsLeftDomPoint() );
+      l += auxHs;
+    }
+  }
+
+  l.EndBulkLoad();     
+}
+
 void Line::Vertices( Points& result ) const
 {
   assert( IsOrdered() );
@@ -8528,6 +8576,33 @@ SpatialAtPositionMap( ListExpr args )
 }
 
 /*
+10.1.6 Type mapping function for operator ~subline~
+
+This type mapping function is the one for ~subline~ operator. This operator
+receives a line and two relative positions and returns the corresponding
+sub-line.
+
+*/
+ListExpr
+SpatialSubLineMap( ListExpr args )
+{
+  ListExpr arg1, arg2, arg3;
+  if ( nl->ListLength( args ) == 3 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    arg3 = nl->Third( args );
+
+    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
+         nl->IsEqual( arg2, "real" ) &&
+         nl->IsEqual( arg3, "real" ) )
+      return (nl->SymbolAtom( "line" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+
+/*
 10.3 Selection functions
 
 A selection function is quite similar to a type mapping function. The only
@@ -10935,6 +11010,21 @@ SpatialAtPosition( Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+10.4.23 Value mapping functions of operator ~atposition~
+
+*/
+int
+SpatialSubLine( Word* args, Word& result, int message,
+                Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Line *l = (Line*)args[0].addr;
+  double pos1 = ((CcReal*)args[1].addr)->GetRealval(),
+         pos2 = ((CcReal*)args[2].addr)->GetRealval();
+  l->SubLine( pos1, pos2, *(Line*)result.addr );
+  return 0;
+}
 
 /*
 10.5 Definition of operators
@@ -11349,6 +11439,14 @@ const string SpatialSpecAtPosition  =
   "<text>query l atposition[0.0]</text--->"
   ") )";
 
+const string SpatialSpecSubLine  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+  "( <text>line x real x real -> line</text--->"
+  "<text>_ subline[_, _]</text--->"
+  "<text>Returns the sub-line inside the two relative positions.</text--->"
+  "<text>query l subline[0.0, length(l)]</text--->"
+  ") )";
+
 /*
 10.5.3 Definition of the operators
 
@@ -11583,6 +11681,13 @@ Operator spatialatposition (
   Operator::SimpleSelect,
   SpatialAtPositionMap );
 
+Operator spatialsubline (
+  "subline",
+  SpatialSpecSubLine,
+  SpatialSubLine,
+  Operator::SimpleSelect,
+  SpatialSubLineMap );
+
 /*
 11 Creating the Algebra
 
@@ -11638,6 +11743,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialscale );
     AddOperator( &spatialatpoint );
     AddOperator( &spatialatposition );
+    AddOperator( &spatialsubline );
   }
   ~SpatialAlgebra() {};
 };
