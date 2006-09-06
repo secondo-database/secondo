@@ -74,10 +74,10 @@ string Network::junctionsInternalTypeInfo =
 string Network::junctionsAppendTypeInfo =
       "(rel (tuple ((pos point) (r1rc int) (r2rc int))))";
 string Network::sectionsTypeInfo =
-      "(rel (tuple ((rid int) (meas1 real) (meas2 int) "
+      "(rel (tuple ((rid int) (meas1 real) (meas2 real) "
       "(dual bool) (curve line))))";
 string Network::sectionsInternalTypeInfo =
-      "(rel (tuple ((rid int) (meas1 real) (meas2 int) "
+      "(rel (tuple ((rid int) (meas1 real) (meas2 real) "
       "(dual bool) (curve line) (rrc int))))";
 string Network::sectionsAppendTypeInfo =
       "(rel (tuple ((rrc int))))";
@@ -287,16 +287,24 @@ void Network::FillSections()
                               rTuple->GetAttribute( POS_RDUAL )->Clone() );
         sTuple->PutAttribute( POS_SMEAS1, meas1 );
         sTuple->PutAttribute( POS_SMEAS2, 
-                              jTuple->GetAttribute( POS_JMEAS2 )->Clone() );
+                              jTuple->GetAttribute( POS_JMEAS1 )->Clone() );
         sTuple->PutAttribute( POS_SRRC, 
                               new CcInt( true, rTuple->GetTupleId() ) );
-        sTuple->PutAttribute( POS_SCURVE, new Line( 0 ) );
+
+        Line *l = new Line( 0 ),
+             *curve = (Line*)rTuple->GetAttribute( POS_RCURVE );
+        curve->SubLine( meas1->GetRealval(),
+                        ((CcReal*)jTuple->GetAttribute( POS_JMEAS1 ))->
+                          GetRealval(),
+                        *l );
+        sTuple->PutAttribute( POS_SCURVE, l );
 
         this->sections->AppendTuple( sTuple );
         sTuple->DeleteIfAllowed();
 
         meas1 = (CcReal*)jTuple->GetAttribute( POS_JMEAS1 )->Clone();
       }
+      jTuple->DeleteIfAllowed();
       jTuple = junctionsIter->GetNextTuple();
     }
 
@@ -313,11 +321,18 @@ void Network::FillSections()
                             rTuple->GetAttribute( POS_RLENGTH )->Clone() );
       sTuple->PutAttribute( POS_SRRC, 
                             new CcInt( true, rTuple->GetTupleId() ) );
-      sTuple->PutAttribute( POS_SCURVE, new Line( 0 ) );
+      Line *l = new Line( 0 ),
+           *curve = (Line*)rTuple->GetAttribute( POS_RCURVE );
+      curve->SubLine( meas1->GetRealval(),
+                      ((CcReal*)rTuple->GetAttribute( POS_RLENGTH ))->
+                        GetRealval(),
+                      *l );
+      sTuple->PutAttribute( POS_SCURVE, l );
 
       this->sections->AppendTuple( sTuple );
       sTuple->DeleteIfAllowed();
     }
+    rTuple->DeleteIfAllowed();
   }
   delete routesIter;
   delete junctionsIter;
