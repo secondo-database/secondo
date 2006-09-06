@@ -383,6 +383,7 @@ void MPoint::Trajectory( Line& line ) const
 
   HalfSegment hs;
   const UPoint *unit;
+  int edgeno = 0;
 
   for( int i = 0; i < GetNoComponents(); i++ )
   {
@@ -391,7 +392,7 @@ void MPoint::Trajectory( Line& line ) const
     if( !AlmostEqual( unit->p0, unit->p1 ) )
     {
       hs.Set( true, unit->p0, unit->p1 );
-
+      hs.attr.edgeno = ++edgeno;
       line += hs;
       hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
       line += hs;
