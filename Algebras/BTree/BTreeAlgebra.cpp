@@ -807,10 +807,20 @@ ListExpr CreateBTreeTypeMap(ListExpr args)
   ListExpr first = nl->First(args);
 
   nl->WriteToString(argstr, first);
-  CHECK_COND((nl->IsEqual(nl->First(first), "rel") && 
-	      IsRelDescription(first)) ||
-             (nl->IsEqual(nl->First(first), "stream") && 
-	      IsTupleDescription(nl->Second(nl->Second(first)))),
+  CHECK_COND( (   (!nl->IsAtom(first) &&
+	           nl->IsEqual(nl->First(first), "rel") && 
+	           IsRelDescription(first)
+                  ) 
+                ||
+		  (!nl->IsAtom(first) &&
+	           nl->IsEqual(nl->First(first), "stream") &&
+	           (nl->ListLength(first) == 2) && 
+                   !nl->IsAtom(nl->Second(first)) &&
+		   (nl->ListLength(nl->Second(first)) == 2) &&
+		   nl->IsEqual(nl->First(nl->Second(first)), "tuple") &&
+	           IsTupleDescription(nl->Second(nl->Second(first)))
+                  ) 
+              ),
     "Operator createbtree expects as first argument a list with structure\n"
     "rel(tuple ((a1 t1)...(an tn))) or stream (tuple ((a1 t1)...(an tn)))\n"
     "Operator createbtree gets a list with structure '" + argstr + "'."); 
