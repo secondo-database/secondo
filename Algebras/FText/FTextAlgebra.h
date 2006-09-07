@@ -114,7 +114,9 @@ inline FText::FText( const FText& f ) :
 theText( 0 )
 {
   LOGMSG( "FText:Trace", cout << '\n' <<"Start FText(FText& f)"<<'\n'; )
-  Set( f.defined, f.theText.BringToMemory() );
+  const char *s;
+  f.theText.Get(0, &s);
+  Set( f.defined, s);
   LOGMSG( "FText:Trace",  cout <<"End FText(FText& f)"<<'\n'; )
 }
 
@@ -132,7 +134,8 @@ inline void FText::Destroy()
 
 inline bool FText::SearchString( const char* subString )
 {
-  const char *text = theText.BringToMemory();
+  const char *text = 0;
+  theText.Get(0, &text);
   return strstr( text, subString ) != NULL;
 }
 
@@ -170,7 +173,9 @@ inline int FText::TextLength() const
 
 inline const char *FText::Get() const
 {
-  return theText.BringToMemory();
+  const char* s = 0;
+  theText.Get(0, &s);
+  return s;
 }
 
 inline bool FText::IsDefined() const
