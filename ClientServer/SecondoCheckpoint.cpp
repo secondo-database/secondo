@@ -57,7 +57,7 @@ class SecondoCheckpoint : public Application
 {
  public:
   SecondoCheckpoint( const int argc, const char** argv ) : 
-    Application( argc, argv, false ) 
+    Application( argc, argv ) 
   {};
   virtual ~SecondoCheckpoint() {};
   int  Execute();

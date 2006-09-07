@@ -85,11 +85,9 @@ Class constructors/destructors
 
 */
 
-Application::Application( int argc, const char** argv, 
-                          bool showCounters /*=true*/ )
+Application::Application( int argc, const char** argv )
 {
   cmsg.init();
-  this->showCounters = showCounters;
   if ( appPointer )
   {
     cerr << "Fatal error: Only one *Application* instance allowed!" << endl;
@@ -221,8 +219,6 @@ Application::~Application()
     rshSocket = 0;
   }
 #endif
-  if (showCounters)
-    Counter::reportValues();
 }
 
 void
@@ -251,7 +247,6 @@ abort the process if not handled otherwise.
     {
       if ( sig == SIGABRT || sig == SIGSEGV || sig == SIGFPE )
       { 
-        Counter::reportValues();
         cout << endl << " ********************************************";
         cout << endl << " **";
         cout << endl << " ** Signal #" << signalStr[sig] 

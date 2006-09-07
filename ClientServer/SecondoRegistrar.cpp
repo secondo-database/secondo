@@ -45,7 +45,7 @@ class SecondoRegistrar : public Application
 {
  public:
   SecondoRegistrar( const int argc, const char** argv ) : 
-    Application( argc, argv, false ) 
+    Application( argc, argv ) 
   {};
   virtual ~SecondoRegistrar() {};
   int Execute();

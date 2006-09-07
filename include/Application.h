@@ -436,7 +436,7 @@ This class provides an application framework.
 class SDB_EXPORT Application
 {
  public:
-  Application( int argc, const char **argv, const bool showLicense = true );
+  Application( int argc, const char **argv );
 /*
 Creates and initializes the ~Application~ object.
 
@@ -623,7 +623,6 @@ Print out a stack trace in case of abnormal program termination.
   static Application* appPointer;
   static map<int, std::string> signalStr;
 
-  bool showCounters;
 };
 
 #endif // APPLICATION_H

@@ -72,7 +72,7 @@ class SecondoServer : public Application
 {
  public:
   SecondoServer( const int argc, const char** argv ) : 
-     Application( argc, argv, false ) 
+     Application( argc, argv ) 
   {};
   virtual ~SecondoServer() {};
   int Execute();

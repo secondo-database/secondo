@@ -43,7 +43,7 @@ class SecondoListener : public Application
 {
  public:
   SecondoListener( const int argc, const char** argv ) : 
-    Application( argc, argv, false ) 
+    Application( argc, argv ) 
   {};
   virtual ~SecondoListener() {};
   int  Execute();
