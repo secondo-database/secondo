@@ -8138,7 +8138,8 @@ Used by ~intersection~:
 
 */
 
-static ListExpr MPointMRegionToMPointTypeMap(ListExpr args) {
+static ListExpr MPointMRegionToMPointTypeMap(ListExpr args) 
+{
     if (MRA_DEBUG)
         cerr << "MPointMRegionToMPointTypeMap() called" << endl;
 
@@ -8386,6 +8387,26 @@ static ListExpr VertTrajectoryTypeMap(ListExpr args){
    ErrorReporter::ReportError("uregion or movingregion"
                               " expected but got ");
    return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+Type mapping for the ~units~ operator:
+
+*/
+
+ListExpr MRAUnitsTypeMap( ListExpr args )
+{
+  if ( nl->ListLength(args) == 1 )
+  {
+    ListExpr arg1 = nl->First(args);
+
+    if( nl->IsEqual( arg1, "mregion" ) )
+      return nl->TwoElemList(nl->SymbolAtom("stream"),
+       nl->SymbolAtom("uregion"));
+    
+  }
+  return nl->SymbolAtom("typeerror");
 }
 
 /*
@@ -8825,6 +8846,66 @@ static int MoveValueMap(Word* args,
 }
 
 /*
+Value mapping functions of operator ~units~
+
+Commented out due to problems with class URegion:
+
+----
+
+struct MRAUnitsLocalInfo
+{
+  Word mWord;     // the address of the moving point/int/real value
+  int unitIndex;  // current item index
+};
+
+int mraunitsvalmap(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  MRegion* m;
+  const URegion* unit;
+  MRAUnitsLocalInfo *localinfo;
+
+  switch( message )
+  {
+    case OPEN:
+
+      localinfo = new MRAUnitsLocalInfo;
+      qp->Request(args[0].addr, localinfo->mWord);
+      localinfo->unitIndex = 0;
+      local = SetWord(localinfo);
+      return 0;
+
+    case REQUEST:
+
+      if( local.addr == 0 )
+        return CANCEL;
+      localinfo = (MRAUnitsLocalInfo *) local.addr;
+      m = (MRegion*)localinfo->mWord.addr;
+      if( (0 <= localinfo->unitIndex) 
+          && (localinfo->unitIndex < m->GetNoComponents()) )
+      {
+        m->Get( localinfo->unitIndex++, unit );
+        URegion *aux = new URegion( *unit );
+        result = SetWord( aux );
+        return YIELD;
+      }
+      return CANCEL;
+
+    case CLOSE:
+
+      if( local.addr != 0 )
+        delete (MRAUnitsLocalInfo *)local.addr;
+      return 0;
+  }
+
+  // should not happen 
+  return -1;
+}
+
+----
+
+*/
+
+/*
 1.1.1 For unit testing operators
 
 */
@@ -9091,6 +9172,7 @@ static const string atspec =
     "    <text>Restrict moving point to region or restrict moving region "
     "to point.</text--->"
     "    <text>mpoint1 at region1</text---> ) )";
+
 static const string movespec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>mpoint x region -> mregion</text--->"
@@ -9139,6 +9221,16 @@ static const string verttrajectoryspec =
     "    <text>vertextrajectory( _ )</text--->"
     "    <text>Computes the trajectory of the vertices </text--->"
     "    <text>vertextrajectory(mregion1)</text---> ) )";
+
+const string mraunitsspec  =
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>MovingRegionAlgebra</text--->"
+  "<text>mregion -> (stream uregion)</text--->"
+  "<text> units( _ )</text--->"
+  "<text>get the stream of units of the moving value.</text--->"
+  "<text>units( mregion1 )</text--->"
+  ") )";
 
 /*
 Used for unit testing only.
@@ -9266,8 +9358,21 @@ static Operator vertextrajectory("vertextrajectory",
                    VertTrajectoryTypeMap);
 
 /*
-Used for unit testing only.
 
+----
+static Operator mraunits("units",
+			mraunitsspec,
+			mraunitsvalmap,
+			Operator::SimpleSelect,
+			MRAUnitsTypeMap);
+
+----
+
+*/
+
+/*
+Used for unit testing only.
+  
 */
 
 #ifdef MRA_UNITTEST
@@ -9295,52 +9400,56 @@ static Operator unittest3("unittest3",
 
 class MovingRegionAlgebra : public Algebra {
 public:
-    MovingRegionAlgebra() : Algebra() {
-        AddTypeConstructor(&iregion);
-        AddTypeConstructor(&uregion);
-        AddTypeConstructor(&mregion);
-
-        iregion.AssociateKind("TEMPORAL");
-        iregion.AssociateKind("DATA");
-
-        uregion.AssociateKind("TEMPORAL");
-        uregion.AssociateKind("DATA");
-
-        mregion.AssociateKind("TEMPORAL");
-        mregion.AssociateKind("DATA");
-
-        AddOperator(&atinstant);
-        AddOperator(&initial);
-        AddOperator(&final);
-        AddOperator(&inst);
-        AddOperator(&val);
-        AddOperator(&deftime);
-        AddOperator(&present);
-        AddOperator(&intersection);
-        AddOperator(&inside);
-        AddOperator(&at);
-        AddOperator(&bbox);
-        AddOperator(&move);
-        AddOperator(&vertextrajectory);
+  MovingRegionAlgebra() : Algebra() {
+    AddTypeConstructor(&iregion);
+    AddTypeConstructor(&uregion);
+    AddTypeConstructor(&mregion);
+    
+    iregion.AssociateKind("TEMPORAL");
+    iregion.AssociateKind("DATA");
+    
+    uregion.AssociateKind("TEMPORAL");
+    uregion.AssociateKind("DATA");
+    
+    mregion.AssociateKind("TEMPORAL");
+    mregion.AssociateKind("DATA");
+    
+    AddOperator(&atinstant);
+    AddOperator(&initial);
+    AddOperator(&final);
+    AddOperator(&inst);
+    AddOperator(&val);
+    AddOperator(&deftime);
+    AddOperator(&present);
+    AddOperator(&intersection);
+    AddOperator(&inside);
+    AddOperator(&at);
+    AddOperator(&bbox);
+    AddOperator(&move);
+    AddOperator(&vertextrajectory);
+    // Commented out due to problems with URegion
+    //    AddOperator(&mraunits);
 
 #ifdef MRA_TRAVERSED
-        AddOperator(&traversed);
+    AddOperator(&traversed);
 #endif // MRA_TRAVERSED
-
+    
 #ifdef MRA_PREC
-        AddOperator(&mraprec);
+    AddOperator(&mraprec);
 #endif // MRA_PREC
 
-/*
-Used for unit testing only.
 
+
+/*    
+ Used for unit testing only.
+	  
 */
 #ifdef MRA_UNITTEST
-        AddOperator(&unittest1);
-        AddOperator(&unittest2);
-        AddOperator(&unittest3);
+    AddOperator(&unittest1);
+    AddOperator(&unittest2);
+    AddOperator(&unittest3);
 #endif // MRA_UNITTEST
-    }
+  }
     ~MovingRegionAlgebra() {}
 };
 
