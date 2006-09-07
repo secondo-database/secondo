@@ -559,11 +559,11 @@ private:
   vector<Tuple*> bucketB;
   size_t indexB;
 
-  Relation *relationA;
-  RelationIterator *iterRelationA;
+  TupleBuffer *relationA;
+  TupleBufferIterator *iterRelationA;
 
-  Relation *relationB;
-  RelationIterator *iterRelationB;
+  TupleBuffer *relationB;
+  TupleBufferIterator *iterRelationB;
 
   Word streamALocalInfo;
   Word streamBLocalInfo;
@@ -584,7 +584,7 @@ private:
 
   TupleType *resultTupleType;
 
-  const string traceFlag; 
+  const bool traceFlag; 
 
   int CompareTuples(Tuple* a, Tuple* b)
   {
@@ -665,7 +665,7 @@ private:
     }
   }
 
-  void SaveTo( vector<Tuple*>& bucket, Relation *rel )
+  void SaveTo( vector<Tuple*>& bucket, TupleBuffer *rel )
   {
     vector<Tuple*>::iterator iter = bucket.begin();
     while( iter != bucket.end() )
@@ -678,7 +678,7 @@ private:
     bucket.clear();
   }
 
-  void ReadFrom( RelationIterator *iter, vector<Tuple*>& bucket )
+  void ReadFrom( TupleBufferIterator *iter, vector<Tuple*>& bucket )
   {
     size_t memory = 0;
     Tuple *t = 0;
@@ -715,7 +715,7 @@ public:
   MergeJoinLocalInfo( Word streamA, Word attrIndexA,
                       Word streamB, Word attrIndexB, 
                       bool expectSorted, Supplier s  ) :
-    traceFlag("ERA:TraceMergeJoin")
+    traceFlag( RTFlag::isActive("ERA:TraceMergeJoin") )
   {
     this->expectSorted = expectSorted;
     this->streamA = streamA;
@@ -807,9 +807,9 @@ public:
               if( bucketA.empty() )
               {
                 delete iterRelationA;
-                relationA->Delete(); relationA = 0;
+                delete relationA; relationA = 0;
                 delete iterRelationB;
-                relationB->Delete(); relationB = 0;
+                delete relationB; relationB = 0;
               }
               else
               {
@@ -824,7 +824,7 @@ public:
             else
             {
               delete iterRelationB;
-              relationB->Delete(); relationB = 0;
+              delete relationB; relationB = 0;
               resultTuple = NextResultTuple();
             }
           }
@@ -842,7 +842,7 @@ public:
           {
             ClearBucket( bucketB ); indexB = 0;
             delete iterRelationA;
-            relationA->Delete(); relationA = 0;
+            delete relationA; relationA = 0;
           }
           else
           {
@@ -883,10 +883,14 @@ public:
 
       int cmp = CompareTuples( tupleA, tupleB );
      
-      if (RTFlag::isActive(traceFlag)) { 
-      cmsg.info() << "Comp A: " << *tupleA << " - B: " << *tupleB 
-                  << " = " << cmp << endl; 
-      cmsg.send(); 
+      if (traceFlag) 
+      { 
+        cmsg.info() 
+          << "CompareTuples:" << endl
+          << "  tupA = " << *tupleA << endl
+          << "  tupB = " << *tupleB << endl 
+          << "  cmp  = " << cmp << endl; 
+        cmsg.send(); 
       }
 
       if( cmp == 0 )
@@ -905,19 +909,25 @@ public:
                bucketBSize = tupleB->GetExtSize();
 
         tupleA = NextATuple();
-        if ( tupleA && RTFlag::isActive(traceFlag) ) 
+        if ( tupleA && traceFlag ) 
         {
-          cmsg.info() << "    A: " << *(tupleA) << endl
-                      << "  eqB: " << *(equalTupleB ) << endl;
+          cmsg.info() 
+            << "Store tuples from A which are equal to tupB:" << endl;
           cmsg.send();
         }
 
         while( tupleA != 0 && CompareTuples( tupleA, equalTupleB ) == 0 )
         {
+          if (traceFlag) { 
+            cmsg.info() << "  nextA: " << *(tupleA) << endl;
+                        //<< "   cmpB: " << *(equalTupleB ) << endl;
+            cmsg.send();
+          }  
+
           bucketASize += tupleA->GetExtSize();
           if( bucketASize > MAX_MEMORY / 2 )
           {
-            relationA = new Relation( tupleA->GetTupleType(), true );
+            relationA = new TupleBuffer( /*tupleA->GetTupleType(), true*/ );
             SaveTo( bucketA, relationA );
             ClearBucket( bucketA );
           }
@@ -932,8 +942,6 @@ public:
             tupleA->DeleteIfAllowed();
           }
           tupleA = NextATuple();
-          if ( tupleA && RTFlag::isActive( traceFlag ) )
-            cout << "    joined A: " << *(tupleA) << endl;
         }
         indexA = 0;
 
@@ -944,18 +952,25 @@ public:
         }
 
         tupleB = NextBTuple();
-        if ( tupleB && RTFlag::isActive( traceFlag ) )
+        if ( tupleB && traceFlag )
         {
-          cout << "    B: " << *(tupleB) << endl;
-          cout << "  eqA: " << *(equalTupleA) << endl;
+          cmsg.info() 
+            << "Store tuples from B which are equal to tupA:" << endl;
+          cmsg.send();
         }
 
         while( tupleB != 0 && CompareTuples( equalTupleA, tupleB ) == 0 )
         {
+         if (traceFlag) { 
+            cmsg.info() << "  nextB: " << *(tupleB) << endl;
+                        //<< "   cmpB: " << *(equalTupleB ) << endl;
+            cmsg.send();
+          }  
+
           bucketBSize += tupleB->GetExtSize();
           if( bucketBSize > MAX_MEMORY / 2 )
           {
-            relationB = new Relation( tupleB->GetTupleType(), true );
+            relationB = new TupleBuffer( /*tupleB->GetTupleType(), true*/ );
             SaveTo( bucketB, relationB );
             ClearBucket( bucketB );
           }
@@ -970,8 +985,6 @@ public:
             tupleB->DeleteIfAllowed();
           }
           tupleB = NextBTuple();
-          if ( tupleB && RTFlag::isActive( traceFlag )) 
-            cout << "    joined B: " << *(tupleB) << endl;
         }
         indexB = 0;
 
