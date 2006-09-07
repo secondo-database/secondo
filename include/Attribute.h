@@ -377,6 +377,14 @@ Default open function.
         else
           free( this );
       }
+      else
+      {
+        int n = NumOfFLOBs();
+        for (int i = 0; i < n; i++ )
+        {
+          GetFLOB(i)->ReuseMemBuffer();
+        } 
+      } 
     }
 /*
 Deletes an attribute if allowed, i.e. if ~refs~ = 0.

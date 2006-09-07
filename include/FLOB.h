@@ -99,6 +99,8 @@ The possible state transitions are presented below (Any denotes the set of all p
  Clean: S in Any \ {Destroyed} -> InMemory 
 
  Destroy: S in Any \ {Destroyed} -> Destroyed
+
+ ReuseMemBuffer: S in {InDiskSmall} -> InMemory
 ----
 
    
@@ -152,6 +154,11 @@ Create a new FLOB from scratch.
       else
         fd.inMemory.buffer = 0;
       fd.inMemory.canDelete = true;
+      fd.inMemory.freezed = false;
+      
+      if (debug)
+	cerr << "FLOB " << (void*)this << ": Contructed. size = " << size
+	     << " inMemory.buffer = " << (void*)fd.inMemory.buffer << endl;
     }
 
 /*
@@ -162,6 +169,10 @@ Deletes the FLOB instance.
 */
     virtual inline ~FLOB()
     {
+      if (debug)
+	cerr << "FLOB " << (void*)this 
+	     << ": About to destruct. type = " << stateStr(type)
+	     << " inMemory.buffer = " << (void*)fd.inMemory.buffer << endl;
       if( type == InMemoryCached )
         SecondoSystem::GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
                                                 fd.inMemoryCached.lobId );
@@ -178,6 +189,7 @@ Deletes the FLOB instance.
       }
       else if( type == InMemory && 
                fd.inMemory.canDelete && 
+	       !fd.inMemory.freezed &&
                fd.inMemory.buffer != 0 )
         free( fd.inMemory.buffer );
     }
@@ -334,6 +346,7 @@ Write data from ~source~ into the FLOBs memory.
     inline void Put( size_t offset, size_t length, const void *source )
     {
       assert( type == InMemory );
+      assert( fd.inMemory.freezed == false );
       memcpy( fd.inMemory.buffer + offset, source, length );
     }
 
@@ -365,6 +378,10 @@ reference in the cache is removed. Afterwards the state will be ~InMemory~.
 */
     inline void Clean()
     {
+      if (debug)
+	cerr << "FLOB " << (void*)this 
+	     << ": About to clean. type = " << stateStr(type)
+	     << " inMemory.buffer = " << (void*)fd.inMemory.buffer << endl;
       assert( type != Destroyed );
       if( type == InMemory && fd.inMemory.canDelete && size > 0 )
         free( fd.inMemory.buffer );
@@ -453,12 +470,26 @@ to ~InDiskSmall~.
           fd.inDiskSmall.buffer = buffer;
         }
       }
-      else
+      else {
         fd.inDiskSmall.buffer = 0;
+      }
+      //Avoid that the inMemory buffer will be deleted.
+      fd.inMemory.freezed = true;
 
       changeState( type, InDiskSmall );
     }
 
+/*
+Flobs of type InDiskSmall will be copied into the extension tuple before the tuple is
+written to disk. 
+The function below will be called by Attribute::DeleteIfAllowed. It puts flobs which are part
+of an attribute instance which could not be deleted since they are still used by other tuples back
+from state ~InDiskSmall~ to ~InMemory~. For other states the function will have no effect.
+
+*/
+    
+   void ReuseMemBuffer();
+    
 /*
 3.12 ReadFromExtensionTuple
 
@@ -516,7 +547,11 @@ return the FLOB's internal state.
       return type;
     }
 
-    static void SetDebug(bool value) { debug = value; }
+/*
+Declariont of a flag for debugging
+
+*/
+    static bool debug; 
     
   protected:
 
@@ -533,6 +568,7 @@ return the FLOB's internal state.
       struct InMemory
       {
         char *buffer;
+	bool freezed;
         bool canDelete;
       } inMemory;
 
@@ -572,23 +608,14 @@ return the FLOB's internal state.
 Auxiliary functions for checking and changing states
    
 */    
-    inline bool checkState(const FLOB_Type f) const
-    {
-      if (type != f)
-      { 
-        cerr << "Flob " << (const void*)this << ": "
-             << "Assuming state " << stateStr(f) 
-             << " but flob has state " << stateStr(type) << endl;
-        return false;
-      }
-      return true;  
-    }  
+    bool checkState(const FLOB_Type f) const;
+	    
+    bool checkState(const FLOB_Type f[], const int n) const;
 
     void changeState(FLOB_Type& from, const FLOB_Type to) const;
     
     const string stateStr(const FLOB_Type& f) const;
     
-    static bool debug; 
 };
 
 
