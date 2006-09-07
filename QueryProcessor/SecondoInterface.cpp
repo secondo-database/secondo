@@ -830,7 +830,7 @@ separate functions which should be named Command\_<name>.
   
   // measure the time used for executing the command.
   
-  showCmdTimes = !RTFlag::isActive("SI:NoQueryTimers");
+  printQueryAnalysis = RTFlag::isActive("SI:PrintQueryAnalysis");
    
   cmdTime.start();
   cmdReal = 0;
@@ -1517,7 +1517,7 @@ separate functions which should be named Command\_<name>.
   StopWatch copyTime;
   if (resultList) {
      resultList = nl->CopyList(resultList, al);
-     if (showCmdTimes) 
+     if (printQueryAnalysis) 
      {
         cmsg.info() << padStr("Copying result ...",20) 
                     << copyTime.diffTimes() << endl;
@@ -1676,7 +1676,7 @@ SecondoInterface::Command_Query( const ListExpr list,
                 isFunction, tree, resultType );
 
 
-  if (showCmdTimes) {
+  if (printQueryAnalysis) {
     cmsg.info() << padStr("Analyze ...",20) << queryTime.diffTimes() << endl;
     cmsg.send();
     queryTime.start();
@@ -1694,7 +1694,7 @@ SecondoInterface::Command_Query( const ListExpr list,
 
   if ( evaluable )
   {
-     if (showCmdTimes) {
+     if (printQueryAnalysis) {
        cmsg.info() << padStr("Execute ...",20);
        cmsg.send();
      }  
@@ -1704,7 +1704,7 @@ SecondoInterface::Command_Query( const ListExpr list,
      
      queryReal = queryTime.diffSecondsReal();
      queryCPU = queryTime.diffSecondsCPU();
-     if (showCmdTimes) 
+     if (printQueryAnalysis) 
      {
        showTimes(queryReal, queryCPU);
      }
@@ -1712,7 +1712,7 @@ SecondoInterface::Command_Query( const ListExpr list,
      StopWatch outObj; 
      ListExpr valueList = ctlg.OutObject( resultType, result );
 
-     if (showCmdTimes) 
+     if (printQueryAnalysis) 
      {
        cmsg.info() << padStr("OutObject ...",20) << outObj.diffTimes() << endl;
        cmsg.send();
@@ -2203,7 +2203,7 @@ SecondoInterface::FinishCommand( SI_Error& errorCode, string& errMsg )
         return false;
       }
     }
-    if (showCmdTimes) 
+    if (printQueryAnalysis) 
     {
       cmsg.info() << padStr("Committing ...", 20) 
                   << commitTime.diffTimes() << endl;

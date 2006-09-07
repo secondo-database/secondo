@@ -903,7 +903,7 @@ Sets the debug level of the query processor.
   CSProtocol* csp;
 
   // members for tracking query times
-  bool showCmdTimes;
+  bool printQueryAnalysis;
   
   StopWatch cmdTime;
   double cmdReal;
