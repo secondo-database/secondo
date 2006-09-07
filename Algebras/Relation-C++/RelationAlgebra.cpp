@@ -3229,6 +3229,7 @@ static int dumpstream_vm( Word* args, Word& result, int message,
       {
         Tuple* t = static_cast<Tuple*>(elem.addr);
         pi->appendTuple(*t);
+	cerr << *t << endl;
         result = elem; 
         return YIELD;
       }
@@ -3605,7 +3606,9 @@ Algebra*
 InitializeRelationAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   if ( RTFlag::isActive("RA:ShowFLOBstates") )
-    FLOB::SetDebug(true);
+    FLOB::debug = true;
+  if ( RTFlag::isActive("RA:ShowTUPLEstates") )
+    PrivateTuple::debug = true;
  
   nl = nlRef;
   qp = qpRef;

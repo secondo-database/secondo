@@ -56,6 +56,10 @@ const size_t FLOB::PAGE_SIZE = 4050;
 const char *FLOB::BringToMemory() const
 {
   assert( type != Destroyed );
+  if (debug)
+    cerr << "FLOB " << (void*)this 
+	 << ": BringToMemory(). type = " << stateStr(type)
+	 << " inMemory.buffer = " << (void*)fd.inMemory.buffer << endl;	
 
   if( type == InDiskLarge )
   {
@@ -92,6 +96,7 @@ const char *FLOB::BringToMemory() const
     else
     {
       char *buffer = fd.inDiskSmall.buffer;
+      //free (fd.inMemory.buffer);
       fd.inMemory.buffer = buffer;
     }
   }
@@ -177,10 +182,11 @@ void FLOB::Resize( size_t newSize )
 {
   assert( type != Destroyed );
   assert( newSize > 0 ); // Use Clean
-
+ 
   if( type == InMemory )
   {
     assert( fd.inMemory.canDelete );
+    assert( fd.inMemory.freezed == false );
 
     if( size == 0 )
       fd.inMemory.buffer = (char *) malloc( newSize );
@@ -194,6 +200,9 @@ void FLOB::Resize( size_t newSize )
     assert( false );
 
   size = newSize;
+  if (debug)
+    cerr << "FLOB " << (void*)this << ": resized. size = " << size 
+	 << " inMemory.buffer = " << (void*)fd.inMemory.buffer << endl;	
 }
 
 /*
@@ -248,6 +257,42 @@ void FLOB::changeState(FLOB_Type& from, const FLOB_Type to) const
    from = to;
    //assert( false );
 } 
+
+
+void FLOB::ReuseMemBuffer()
+{
+  if (debug)
+    cerr << "Reuse type =" << stateStr(type) << endl;
+  if (type == InDiskSmall)
+    changeState(type, InMemory); 
+}    
+
+bool FLOB::checkState(const FLOB_Type f) const
+{
+  FLOB_Type states[] = { f };
+  return checkState(states, 1);
+}	    
+
+bool FLOB::checkState(const FLOB_Type f[], const int n) const
+{
+  int m = n;	    
+  while (m > 0 && (type != f[m-1])) {;      	      
+    m--;      
+  }       
+  if (m == 0)
+  { 
+    string states = "";
+    for (int i=0; i < n; i++)
+    {
+      states += stateStr(f[i]) + " ";	
+    }
+    cerr << "Flob " << (const void*)this << ": "
+	 << "Assuming one of the states {" << states << "}" 
+	 << " but flob has state " << stateStr(type) << endl;
+    return false;
+  }
+  return true;  
+}  
 
 const string FLOB::stateStr(const FLOB_Type& f) const
 { 

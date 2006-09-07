@@ -141,6 +141,8 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
+bool PrivateTuple::debug = false;
+
 /*
 3 Type constructor ~tuple~
 
@@ -246,12 +248,17 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
       attributes[i] = (Attribute*) &memoryTuple[offset];
       offset += tupleType->GetAttributeType(i).size;
     }
+    if (debug)
+      std::cerr 
+	 << "Tuple " << (void*)this 
+  	 << " : fresh tuple ready for writing! Deleting old attributes ..." 
+	 << endl;
 
     // Delete (if allowed) the old attributes.
     for( int i = 0; i < tupleType->GetNoAttributes(); i++)
       oldAttributes[i]->DeleteIfAllowed();
 
-    delete []oldAttributes;
+    delete [] oldAttributes;
   }
 
   // Write the tuple

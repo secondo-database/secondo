@@ -77,6 +77,9 @@ struct PrivateTuple
     extensionTuple( 0 ),
     state( Fresh )
     {
+      if (debug)	    
+        cerr << "Tuple " << (void*)this 
+             << ": Constructed by 1st function."  << endl;
       tupleType->IncReference();
     }
 /*
@@ -92,15 +95,25 @@ The first constructor. It creates a fresh tuple from a ~tupleType~.
     memoryTuple( 0 ),
     extensionTuple( 0 ),
     state( Fresh )
-    {}
+    {
+      if (debug)	    
+        cerr << "Tuple " << (void*)this 
+             << ": Constructed by 2nd function."  << endl;
+    }
 /*
 The second constructor. It creates a fresh tuple from a ~typeInfo~.
 
 */
   ~PrivateTuple()
   {
+    if (debug)	   
+      cerr << "Tuple " << (void*)this 
+	   << ": about to destruct. state = " << state 
+           << " mem = " << (void*)memoryTuple 
+           << " ext = " << (void*)extensionTuple << endl;   
     if( state == Solid )
     {
+    	    
       assert( memoryTuple != 0 );
       for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
       {
@@ -224,7 +237,13 @@ The representation of the small flobs in the solid tuple.
 /*
 State of the tuple (Fresh, Solid).
 
+The members below are useful for debugging:
+
 */
+#ifdef MALLOC_CHECK_  
+  void free (void* ptr) { cerr << "freeing ptr " << ptr << endl; ::free(ptr); }
+#endif
+  static bool debug;
 };
 
 /*
