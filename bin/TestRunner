@@ -10,6 +10,7 @@ dateStr=$(date +%Y_%m%d_%H%M%S)
 tempDir="/tmp/$USER/TestRunner_$dateStr"
 mkdir -p $tempDir
 export SECONDO_PARAM_SecondoHome="$tempDir"
+export SECONDO_PARAM_RTFlags=""
 
 else
  shift
