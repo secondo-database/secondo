@@ -101,7 +101,11 @@ Test            T x uT -> ureal
 pre  intersects: For T in {bool, int, string, real, point}:
                  uT x uT --> (stream ubool)
 
-pre  intersection: uT x uT --> (stream uT)
+Test intersection:     uT x      uT --> (stream uT)
+Test                   uT x       T --> (stream uT)
+Test                    T x      uT --> (stream uT)
+Pre                 ureal x   ureal --> (stream ureal)
+Pre                upoint x uregion --> (stream upoint)
 
      udirection: upoint --> ureal
 
@@ -169,6 +173,7 @@ helping operators for indexing instant values in R-trees.
 #include "TemporalAlgebra.h"
 #include "TemporalExtAlgebra.h"
 #include "MovingRegionAlgebra.h"
+#include "RectangleAlgebra.h"
 
 
 extern NestedList* nl;
@@ -4826,9 +4831,10 @@ types int or point. The distance is always a non-negative ureal value.
 
 5.21.1 Type mapping function for ~distance~
 
-The for signatures 
+For signatures 
 
-----               
+----       
+           For T in {int, point}:
               uT x  T -> ureal 
                T x uT -> ureal
 
@@ -5301,7 +5307,7 @@ struct AtExtrURealLocalInfo
 
 int getMaxValIndex( double& first, double& second, double& third)
 { // returns a 3-bit field indicating smallest values
-
+  
   if ( (first > second) && (first > third) )
     return 1;
   if ( (second > first) && (second > third) )
@@ -5389,16 +5395,18 @@ int atmaxUReal( Word* args, Word& result, int message,
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	      sli->t_res[sli->NoOfResults].timeInterval.end =
 		sli->t_res[sli->NoOfResults].timeInterval.start;
+	      sli->t_res[sli->NoOfResults].timeInterval.rc = true;
 	      sli->NoOfResults++;
 	      return 0;
 	    }
 	  if ( ureal->b > 0 )
 	    { // linear fuction
 	      // the result is a copy of the argument, restricted to
-	      // its starting instant
+	      // its final instant
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	      sli->t_res[sli->NoOfResults].timeInterval.start =
 		sli->t_res[sli->NoOfResults].timeInterval.end;
+	      sli->t_res[sli->NoOfResults].timeInterval.lc = true;	      
 	      sli->NoOfResults++;
 	      return 0;
 	    }
@@ -5406,7 +5414,7 @@ int atmaxUReal( Word* args, Word& result, int message,
 
       if (ureal->a !=0) 
 	{ // quadratic function
-	  // we have to additionally ckeck for the extremum 
+	  // we have to additionally check for the extremum 
 	  
 	  // get the times of interest
 	  a = ureal->a;
@@ -5423,16 +5431,8 @@ int atmaxUReal( Word* args, Word& result, int message,
 	  // compute, which values are maximal
 	  maxValIndex = getMaxValIndex(v_extr,v_start,v_end);
 
-	  if (maxValIndex & 1)
-	    {
-	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-	      t.ReadFrom(t_extr);
-	      Interval<Instant> i( t, t, true, true );
-	      sli->t_res[sli->NoOfResults].timeInterval = i;
-	      sli->NoOfResults++;
-	    }
 	  if (maxValIndex & 2)
-	    {
+	    { // start value
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	      t.ReadFrom(t_start);
 	      Interval<Instant> i( t, t, true, true );
@@ -5440,13 +5440,25 @@ int atmaxUReal( Word* args, Word& result, int message,
 	      sli->NoOfResults++;
 	    }
 	  if (maxValIndex & 4)
-	    {
+	    { // end value
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	      t.ReadFrom(t_end);
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
 	    }
+	  
+	  if ( (maxValIndex & 1)   && 
+               (t_extr != t_start) && 
+               (t_extr != t_end)      )
+	    {
+	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+	      t.ReadFrom(t_extr);
+	      Interval<Instant> i( t, t, true, true );
+	      sli->t_res[sli->NoOfResults].timeInterval = i;
+	      sli->NoOfResults++;
+	    }
+	  
 	  sli->NoOfResults++;
 	  return 0;
 	}
@@ -5666,6 +5678,7 @@ int atminUReal( Word* args, Word& result, int message,
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	      sli->t_res[sli->NoOfResults].timeInterval.end =
 		sli->t_res[sli->NoOfResults].timeInterval.start;
+	      sli->t_res[sli->NoOfResults].timeInterval.lc = true;
 	      sli->NoOfResults++;
 	      return 0;
 	    }
@@ -5676,6 +5689,7 @@ int atminUReal( Word* args, Word& result, int message,
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	      sli->t_res[sli->NoOfResults].timeInterval.start =
 		sli->t_res[sli->NoOfResults].timeInterval.end;
+	      sli->t_res[sli->NoOfResults].timeInterval.rc = true;
 	      sli->NoOfResults++;
 	      return 0;
 	    }
@@ -5700,14 +5714,6 @@ int atminUReal( Word* args, Word& result, int message,
 	  // compute, which values are minimal
 	  minValIndex = getMinValIndex(v_extr,v_start,v_end);
 
-	  if (minValIndex & 1)
-	    {
-	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-	      t.ReadFrom(t_extr);
-	      Interval<Instant> i( t, t, true, true );
-	      sli->t_res[sli->NoOfResults].timeInterval = i;
-	      sli->NoOfResults++;
-	    }
 	  if (minValIndex & 2)
 	    {
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
@@ -5720,6 +5726,16 @@ int atminUReal( Word* args, Word& result, int message,
 	    {
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	      t.ReadFrom(t_end);
+	      Interval<Instant> i( t, t, true, true );
+	      sli->t_res[sli->NoOfResults].timeInterval = i;
+	      sli->NoOfResults++;
+	    }
+	  if ( (minValIndex & 1)   &&
+	       (t_extr != t_start) &&
+	       (t_extr != t_end)      )
+	    {
+	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+	      t.ReadFrom(t_extr);
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
@@ -6070,7 +6086,9 @@ const string TemporalUnitSaggregateSpec =
   "only one single element, that element will be returned"
   "as the result.</text--->"
   "<text>query intstream(1,5) saggregate[ "
-  "fun(i1:int, i2:int) i1+i2 ; 0]</text--->"
+  "fun(i1:int, i2:int) i1+i2 ; 0]\n"
+  "query intstream(1,5) saggregate[ "
+  "fun(i1:int, i2:int) ifthenelse(i1>i2,i1,i2) ; 0]</text--->"
   ") )";
 
 /*
@@ -6139,11 +6157,12 @@ Operator temporalunitsaggregate( "saggregate",
 
 ----  
 
-    intersection: uT x uT --> (stream uT)
-                  uT x  T --> (stream uT)
-                   T x uT --> (stream uT)
-                  upoint x line --> (stream upoint)
-		  line x upoint --> (stream upoint)
+    intersection: uT x uT --> (stream uT)         (all but T in {point, real})
+                  uT x  T --> (stream uT)               Test
+                   T x uT --> (stream uT)               Test
+                  upoint x line --> (stream upoint)      --
+		  line x upoint --> (stream upoint)      --
+                  upoint x uregion (stream upoint)       --
 
 ----
 
@@ -6195,12 +6214,12 @@ ListExpr TemporalUnitIntersectionTypeMap( ListExpr args )
   ListExpr arg1, arg2;
   string argstr1, argstr2;
 
-  // First case: mT mT -> mT
   if( nl->ListLength( args ) == 2 )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
+    // First case: uT uT -> stream uT
     if (nl->Equal( arg1, arg2 ))
       {
 	if( nl->IsEqual( arg1, "ubool" ) )
@@ -6219,15 +6238,56 @@ ListExpr TemporalUnitIntersectionTypeMap( ListExpr args )
 	  return nl->TwoElemList(nl->SymbolAtom( "stream" ),
 			      nl->SymbolAtom( "ustring" ));  
       }
+
+    // Second case: uT T -> stream uT
+    if( nl->IsEqual( arg1, "ubool" ) && nl->IsEqual( arg2, "bool") )
+      return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			      nl->SymbolAtom( "ubool" ));    
+    if( nl->IsEqual( arg1, "uint" ) && nl->IsEqual( arg2, "int") )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			     nl->SymbolAtom( "uint" ));    
+    if( nl->IsEqual( arg1, "ureal" ) && nl->IsEqual( arg2, "real") )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			     nl->SymbolAtom( "ureal" ));    
+    if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "point") )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			     nl->SymbolAtom( "upoint" ));  
+    if( nl->IsEqual( arg1, "ustring" ) && nl->IsEqual( arg2, "string") )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			     nl->SymbolAtom( "ustring" ));  
+
+    // Third case: T uT -> stream uT
+    if( nl->IsEqual( arg1, "bool" ) && nl->IsEqual( arg2, "ubool") )
+      return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			      nl->SymbolAtom( "ubool" ));    
+    if( nl->IsEqual( arg1, "int" ) && nl->IsEqual( arg2, "uint") )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			     nl->SymbolAtom( "uint" ));    
+    if( nl->IsEqual( arg1, "real" ) && nl->IsEqual( arg2, "ureal") )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			     nl->SymbolAtom( "ureal" ));    
+    if( nl->IsEqual( arg1, "point" ) && nl->IsEqual( arg2, "upoint") )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			     nl->SymbolAtom( "upoint" ));  
+    if( nl->IsEqual( arg1, "string" ) && nl->IsEqual( arg2, "ustring") )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			     nl->SymbolAtom( "ustring" ));  
+
+    // Fourth case: upoint line -> stream upoint
+    if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "line") )
+      return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			      nl->SymbolAtom( "upoint" ));    
+
+    // Fifth case: line upoint -> stream upoint
+    if( nl->IsEqual( arg1, "line" ) && nl->IsEqual( arg2, "upoint") )
+      return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			      nl->SymbolAtom( "upoint" ));  
+
+    // Sixth case: upoint uregion -> stream upoint
+    if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "uregion") )
+      return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+			      nl->SymbolAtom( "upoint" ));  
   }
-
-  // Second case: mT T -> mT
-
-  // Third case: T mT -> mT
-
-  // Fourth case: upoint line -> upoint
-
-  // Fifth case: line upoint -> upoint
 
   // Error case:
   nl->WriteToString(argstr1, arg1); 
@@ -6253,10 +6313,10 @@ struct TUIntersectionLocalInfo
     int  NoOfResultsDelivered;
   };
 
-// value mapping for constant units
+// value mapping for constant units (uT uT) -> (stream uT)
 template<class T>
-int temporalUnitIntersection_CU( Word* args, Word& result, int message,
-				 Word& local, Supplier s )
+int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
+				    Word& local, Supplier s )
 {
   TUIntersectionLocalInfo *sli;
   Word u1, u2;
@@ -6332,57 +6392,16 @@ int temporalUnitIntersection_CU( Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
-
-Value mapping for ureal
-
-We will calculate the intersection points (time instants) of both ureal 
-functions. Therefore, we need to distinguish 2 different cases:
-
- 1. $ureal1.r = ureal2.r$
-
-  Then, we have to solve the equation
- \[ a_1 t^2 + b_1 t + c_1 = a_2 t^2 + b_2 t + c_2 \]
-which computes to 
-\[ t = \pm \sqrt{\frac{t - (c_1 - c_2)}{a_1 - a_2}-\frac{(b_1 - b_2)^2}
-{4 (a_1 - a_2)^2}} \]
-
- 2. $ureal1.r \neq ureal2.r$
-
-Then we have to solve the quadratic equation
-\[ {a_1}^2 t^4 + 2 a_1 b_1 t^3 + (2 a_1 c_1 + {b_1}^2 - a_2) 
-t^2 + (2 b_1 c_1 - b_2) t - c_2 = 0 \]
-
-where $x_1$ stands for parameters from the 
-~ureal~ value that does have $r = false$, $x_2$ for the parameters of the 
-~ureal~ value with $r = true$.
-
-*/
-
-int temporalUnitIntersection_ureal( Word* args, Word& result, int message,
-				    Word& local, Supplier s )
-{
-  return 0;
-}
-
-
-/*
-
-value mapping for upoint
-
-Test, whether both upoints have identical direction vectors. If so,
-return one argument restricted to the intersection of timeintervals.
-
-Otherwise there will be at most one possible point of intersection.
-
-
-*/
-int temporalUnitIntersection_upoint( Word* args, Word& result, int message,
-				     Word& local, Supplier s )
+// value mapping for constant units (uT  T) -> (stream uT)
+//                            and   ( T uT) -> (stream uT)
+template<class UT, class T, int uargindex>
+int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
+                                   Word& local, Supplier s )
 {
   TUIntersectionLocalInfo *sli;
   Word u1, u2;
-  UPoint *uv1, *uv2;
+  UT    *uv1;
+  T     *uv2;
   Interval<Instant> iv;
   
   // test for overlapping intervals
@@ -6395,31 +6414,611 @@ int temporalUnitIntersection_upoint( Word* args, Word& result, int message,
       sli->NoOfResults = 0;
       sli->NoOfResultsDelivered = 0;
 
-      u1 = args[0];
-      u2 = args[1];
+      // get arguments, such that u1 is the unit type
+      //                and u2 is the simple type
+      if (uargindex == 0)
+	{ u1 = args[0]; u2 = args[1]; }
+      else
+	{ u1 = args[1]; u2 = args[0];}
 
-      uv1 = (UPoint*) (u1.addr);
-      uv2 = (UPoint*) (u2.addr);
+      uv1 = (UT*) (u1.addr);
+      uv2 = (T*) (u2.addr);
 	
 
       if ( uv1->IsDefined() && 
 	   uv2->IsDefined() && 
-	   uv1->timeInterval.Intersects( uv2->timeInterval ) )
-	if ( uv1->EqualValue(*uv2) )	   
-
-	  { // add a result
-	    uv1->timeInterval.Intersection( uv2->timeInterval, iv );  
-	    sli->resultValues[sli->NoOfResults] = SetWord( uv1->Clone() );
-	    ((UPoint*)(result.addr))->timeInterval = iv;
-	    sli->NoOfResults++;	  
-	  }
-	else
-	  {
-	    
-	  }
-      // else: no result
+	   (uv1->constValue.Compare( uv2 ) == 0 ) )	   
+	{ // store result
+	  sli->resultValues[sli->NoOfResults] = SetWord( uv1->Clone() );
+	  sli->NoOfResults++;	  
+	}// else: no result
       local = SetWord(sli);
       return 0;
+
+    case REQUEST:
+      
+      if(local.addr == 0)
+	return CANCEL;
+      sli = (TUIntersectionLocalInfo*) local.addr;
+      if(sli->finished)
+	return CANCEL;
+      if(sli->NoOfResultsDelivered < sli->NoOfResults)
+	{
+	  result = SetWord( ((UT*)
+	     (sli->resultValues[sli->NoOfResultsDelivered].addr))->Clone() );   
+	  ((UT*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
+               ->DeleteIfAllowed();
+	  sli->NoOfResultsDelivered++;
+	  return YIELD;
+	}
+      sli->finished = true;
+      return CANCEL;
+
+    case CLOSE:
+      
+      if (local.addr != 0)
+	{
+	  sli = (TUIntersectionLocalInfo*) local.addr;
+	  while(sli->NoOfResultsDelivered < sli->NoOfResults)
+	    {
+	      ((UT*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
+		->DeleteIfAllowed();
+	      sli->NoOfResultsDelivered++;
+	    }
+	  delete sli;
+	}
+      return 0;
+    } // end switch
+
+  return 0;
+
+}
+
+
+/* 
+
+Value mapping for ureal
+
+We will calculate the intersection points (time instants) of both ureal 
+functions. Therefore, we need to distinguish 2 different cases:
+
+ 1. $ureal_1.r = ureal_2.r$
+
+  Then, we have to solve the equation
+ \[ (a_1-a_2)t^2 + (b_1-b_2)t + (c_1-c_2) = 0 \]
+With $a\neq 0$, this computes to 
+\[ t_{1,2} = \frac{-(b_1-b_2) \pm \sqrt{(b_1-b_2)^2 - 4(a_1-a_2)(c_1-c_2)}}
+{2(a_1-a_2)} \]
+
+And depending on the value of $D = (b_1-b_2)^2 - 4(a_1-a_2)(c_1-c_2)$, we will 
+have 0 ($D<0$), 1 ($D=0$) or 2 ($D>0$) solutions.
+
+
+ 2. $ureal_1.r \neq ureal2_.r$
+
+Then we have to solve the equation
+\[ {a_1}^2 t^4 + 2 a_1 b_1 t^3 + (2 a_1 c_1 + {b_1}^2 - a_2) 
+t^2 + (2 b_1 c_1 - b_2) t - c_2 = 0 \]
+
+  where $x_1$ stands for parameters from the 
+~ureal~ value that does have $r = false$, $x_2$ for the parameters of the 
+~ureal~ value with $r = true$.
+
+*/
+
+int temporalUnitIntersection_ureal_ureal( Word* args, Word& result, int message,
+				          Word& local, Supplier s )
+{
+  cout << "\nATTENTION: temporalUnitIntersection_ureal_ureal "
+       << "not yet implemented!" << endl;  
+  return 0;
+}
+	       
+	       
+// value mapping for constant units (uT  T) -> (stream uT)
+//                            and   ( T uT) -> (stream uT)
+// The method is almost identical to that used for operator  
+//                            at: (ureal real) -> (stream ureal)
+template<int uargindex>
+int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
+				         Word& local, Supplier s )
+{
+  MappingUnitAt_rLocalInfo *localinfo;
+  double radicand, a, b, c, r, y;
+  DateTime t1, t2;
+  Interval<Instant> rdeftime, deftime;
+  Word a0, a1;
+  UReal *uinput;
+  
+
+  switch (message)
+    {
+    case OPEN :
+      
+      localinfo = new MappingUnitAt_rLocalInfo;
+      localinfo->finished = true;
+      localinfo->NoOfResults = 0;
+      
+      //      qp->Request(args[0].addr, a0);
+      //      qp->Request(args[1].addr, a1);
+
+      // initialize arguments, such that a0 always contains the ureal
+      //                       and a1 the real 
+      if (uargindex == 0)
+	{ a0 = args[0]; a1 = args[1]; }
+      else
+	{ a0 = args[1]; a1 = args[0]; }
+
+      uinput = ((UReal*)(a0.addr));
+      y = ((CcReal*)(a1.addr))->GetRealval();
+
+      if ( !uinput->IsDefined() ||
+	   !((CcReal*)(a1.addr))->IsDefined() )
+	{ // some input is undefined -> return empty stream
+	  localinfo->NoOfResults = 0;
+	  localinfo->finished = true;
+	  local = SetWord(localinfo);
+	  return 0;
+	}
+      
+      a = uinput->a;
+      b = uinput->b;
+      c = uinput->c;
+      r = uinput->r;
+      deftime = uinput->timeInterval;
+
+      if ( (a == 0) && (b == 0) )
+	{ // constant function. Possibly return input unit
+	  if (c != y)
+	    { // There will be no result, just an empty stream
+	      localinfo->NoOfResults = 0;
+	      localinfo->finished = true;
+	    }
+	  else
+		{ // Return the complete unit
+		  (UReal*)(localinfo->runits[localinfo->NoOfResults].addr)
+		    = uinput->Copy();
+		  localinfo->NoOfResults++;
+		  localinfo->finished = false;
+		}
+	  local = SetWord(localinfo);
+	  return 0;
+	}
+      if ( (a == 0) && (b != 0) )
+	{ // linear function. Possibly return input unit restricted 
+	  // to single value
+	  t1.ReadFrom( (y - c)/b );
+	  if (deftime.Contains(t1))
+	    { // value is contained by deftime
+	      (UReal*)(localinfo->runits[localinfo->NoOfResults].addr) = 
+		uinput->Copy();
+	      ((UReal*)(localinfo
+			->runits[localinfo->NoOfResults].addr))
+		->timeInterval = Interval<Instant>(t1, t1, true, true);
+	      localinfo->NoOfResults++;
+	      localinfo->finished = false;		  
+	    }
+	  else
+	    { // value is not contained by deftime -> no result
+	      localinfo->NoOfResults = 0;
+	      localinfo->finished = true;
+	    }
+	  local = SetWord(localinfo);
+	  return 0;
+	}
+      
+      radicand = ((y - c) / a) + ((b * b) / (4 * a * a));
+      if ( (a != 0) && (radicand <= 0) )
+	{ // quadratic function. There are possibly two result units
+	  // calculate the possible t-values t1, t2
+	  
+	  t1.ReadFrom( sqrt(radicand) );
+	  t2.ReadFrom( -sqrt(radicand) );
+	  
+	  // check, whether t1 contained by deftime
+	  if (deftime.Contains(Instant(t1)))
+	    {
+	      rdeftime.start = t1;
+	      rdeftime.end = t1;
+	      localinfo->runits[localinfo->NoOfResults].addr = 
+		new UReal( rdeftime,a,b,c,r );
+	      localinfo->NoOfResults++;
+	      localinfo->finished = false;
+	    }
+	  // check, whether t2 contained by deftime
+	  if (deftime.Contains( t2 ))
+	    {
+	      rdeftime.start = t2;
+	      rdeftime.end = t2;
+	      localinfo->runits[localinfo->NoOfResults].addr = 
+		new UReal( rdeftime,a,b,c,r );
+	      localinfo->NoOfResults++;
+	      localinfo->finished = false;
+	    }
+	}
+      else // there is no result unit
+	{
+	  localinfo->NoOfResults = 0;
+	  localinfo->finished = true;
+	}
+      local = SetWord(localinfo);
+      return 0;
+      
+    case REQUEST :
+      
+      if (local.addr == 0)
+	return CANCEL;
+      localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
+      if (localinfo->finished)
+	return CANCEL;
+      if ( localinfo->NoOfResults <= 0 )
+	{ localinfo->finished = true;
+	  return CANCEL;
+	}
+      localinfo->NoOfResults--;
+      result = SetWord( ((UReal*)(localinfo
+				  ->runits[localinfo->NoOfResults].addr))
+			->Clone() );
+      ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
+	->DeleteIfAllowed();
+      return YIELD;
+      
+    case CLOSE :
+
+      if (local.addr != 0)
+	{
+	  localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
+	  for (;localinfo->NoOfResults>0;localinfo->NoOfResults--)
+	    ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
+	      ->DeleteIfAllowed();
+	  delete localinfo;
+	}
+      return 0;
+    } // end switch
+  
+  // should not be reached
+  return 0;
+}
+
+
+
+/*
+
+value mapping for 
+
+----
+     (upoint upoint) -> (stream upoint)
+
+----
+
+Test, whether both upoints have identical direction vectors. If so,
+return one argument restricted to the intersection of timeintervals.
+
+Otherwise there will be at most one possible point of intersection.
+
+
+*/
+int 
+temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
+					Word& local, Supplier s )
+{
+  TUIntersectionLocalInfo *sli;
+  Word u1, u2;
+  UPoint *uv1, *uv2;
+  Interval<Instant> iv;
+  Instant t;
+  Point p1n_start, p1n_end, p2n_start, p2n_end, p_intersect;
+  UPoint p1norm, p2norm;
+  double t_x, t_y, t1, t2, dxp1, dxp2, dyp1, dyp2;
+  Coord px11, px12, px21, px22, py11, py12, py21, py22;
+  double p1max[2], p1min[2], p2max[2], p2min[2];
+  Rectangle<2> mbb1, mbb2;
+  
+  // test for overlapping intervals
+  switch( message )
+    {
+    case OPEN:
+      
+      sli = new TUIntersectionLocalInfo;
+      sli->finished = true;
+      sli->NoOfResults = 0;
+      sli->NoOfResultsDelivered = 0;
+      local = SetWord(sli);
+      u1 = args[0];
+      u2 = args[1];
+      uv1 = (UPoint*) (u1.addr);
+      uv2 = (UPoint*) (u2.addr);
+	
+      if ( !uv1->IsDefined() ||
+	   !uv2->IsDefined() ||
+	   !uv1->timeInterval.Intersects( uv2->timeInterval ) )
+	return 0; // nothing to do
+
+      // get common time interval
+      uv1->timeInterval.Intersection(uv2->timeInterval, iv);
+
+      // normalize both starting and ending points to interval
+      uv1->TemporalFunction( iv.start, p1n_start);
+      uv1->TemporalFunction( iv.end, p1n_end);
+      p1norm = UPoint( iv, p1n_start, p1n_end );
+
+      uv2->TemporalFunction( iv.start, p2n_start);
+      uv2->TemporalFunction( iv.end, p2n_end);
+      p2norm = UPoint( iv, p2n_start, p2n_end );
+
+      // test MBBs:
+      px11 = p1n_start.GetX(); py11 = p1n_start.GetY();
+      px12 = p1n_end.GetX();   py12 = p1n_end.GetY();
+      px21 = p2n_start.GetX(); py21 = p2n_start.GetY();
+      px22 = p2n_end.GetX();   py22 = p2n_end.GetY();
+
+      p1min[0] = min(px11,px12); p1max[0] = max(px11,px12);
+      p1min[1] = min(py11,py12); p1max[1] = max(py11,py12);
+      p2min[0] = min(px21,px22); p2max[0] = max(px21,px22);
+      p2min[1] = min(py21,py22); p2max[1] = max(py21,py22);
+      
+      mbb1 = Rectangle<2>(true, p1min, p1max);
+      mbb2 = Rectangle<2>(true, p2min, p2max);
+      
+      if (!mbb1.Intersects(mbb2))
+	return 0; // no intersection
+
+      // test for identity:
+      if ( p1norm.EqualValue( p2norm ))
+	{ // both upoints have the same linear function
+	  sli->resultValues[sli->NoOfResults] = SetWord( p1norm.Clone() );
+	  sli->NoOfResults++;	  	  
+	  return 0;
+	}
+
+      // test for parallelity: they are parallel,
+      // if dx1 = dx2 and dy1 = dy2 and they don't have a common 
+      // starting od ending point
+      dxp1 = ((double) px12) - ((double) px11);
+      dyp1 = ((double) py12) - ((double) py11);
+      dxp2 = ((double) px22) - ((double) px21);
+      dyp2 = ((double) py22) - ((double) py21);
+      
+      if ( AlmostEqual(dxp1, dxp2) &&  
+	   AlmostEqual(dyp1, dyp2) &&
+	   ( !AlmostEqual(px11,px21) ||
+	     !AlmostEqual(py11,py21) ||
+	     !AlmostEqual(px12,px22) ||
+	     !AlmostEqual(py12,py22)    ) )
+	return 0; // they are parallel -> no intersection
+
+/*     
+Trying to find an intersection point $t$ with $A_1t + B_1 = A_2t + B_2$ 
+we get:
+    
+\[ t_x = \frac{px_{21} - px_{11}}{dxp_1 - dxp_2} \quad
+t_y = \frac{py_{21} - py_{11}}{dyp_1 - pyp_2} \]
+     
+where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
+
+*/
+
+      if ( ( (dxp1-dxp2) == 0 ) || ( (dyp1-dyp2) == 0 ) )
+	{
+	  cout << "\nWARNING: in temporalUnitIntersection_upoint_upoint:" 
+	       << "Trajectories seem to be parallel, though that has not been"
+	       << "been detected before." << endl;
+	  return 0;
+	}
+
+      t_x = (px21-px11) / (dxp1-dxp2);
+      t_y = (py21-py11) / (dyp1-dyp2);      
+
+      t1 = iv.start.ToDouble();
+      t2 = iv.end.ToDouble();
+	
+      if ( AlmostEqual(t_x, t_y) &&
+	   ( t_x >= t1) &&
+	   ( t_x <= t2) )
+	{ // We found an intersection
+	  t.ReadFrom(t1); // create Instant
+	  iv = Interval<Instant>( t, t, true, true ); // create Interval
+	  sli->resultValues[sli->NoOfResults] = SetWord( p1norm.Clone() );
+	  ((UPoint*)(sli->resultValues[sli->NoOfResults].addr))
+            ->timeInterval=iv;
+	  sli->NoOfResults++;	  	  	  
+	}
+      
+      // else: no result
+      return 0;
+
+    case REQUEST:
+      
+      if(local.addr == 0)
+	return CANCEL;
+      sli = (TUIntersectionLocalInfo*) local.addr;
+      if(sli->finished)
+	return CANCEL;
+      if(sli->NoOfResultsDelivered < sli->NoOfResults)
+	{
+	  result = SetWord( ((UPoint*)
+	     (sli->resultValues[sli->NoOfResultsDelivered].addr))->Clone() );
+	  ((UPoint*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
+               ->DeleteIfAllowed();
+	  sli->NoOfResultsDelivered++;
+	  return YIELD;
+	}
+      sli->finished = true;
+      return CANCEL;
+
+    case CLOSE:
+      
+      if (local.addr != 0)
+	{
+	  sli = (TUIntersectionLocalInfo*) local.addr;
+	  while(sli->NoOfResultsDelivered < sli->NoOfResults)
+	    {
+	      ((UPoint*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
+		->DeleteIfAllowed();
+	      sli->NoOfResultsDelivered++;
+	    }
+	  delete sli;
+	}
+      return 0;
+    } // end switch
+
+  return 0;
+}
+
+// value mapping for (upoint point) -> (stream upoint)
+//               and (upoint point) -> (stream upoint)
+// is identical with at: (upoint point) -> (stream upoint).
+// We just add switches for both signatures and the stream framework
+template<int uargindex>
+int 
+temporalUnitIntersection_upoint_point( Word* args, Word& result, int message,
+		                       Word& local, Supplier s )
+{
+  TUIntersectionLocalInfo *sli;
+  Word a0, a1;
+  UPoint *unit, pResult;
+  Point *val;
+
+
+  switch( message )
+    {
+    case OPEN:
+      
+      sli = new TUIntersectionLocalInfo;
+      sli->finished = true;
+      sli->NoOfResults = 0;
+      sli->NoOfResultsDelivered = 0;
+      local = SetWord(sli);
+
+      if (uargindex == 0)
+	{ a0 = args[0]; a1 = args[1]; }
+      else
+	{ a0 = args[1]; a1 = args[0]; }
+      
+      unit = ((UPoint*)a0.addr);
+      val  = ((Point*) a1.addr);
+      
+      if ( !unit->IsDefined() || !val->IsDefined() )
+	return 0;
+
+      if (unit->At( *val, pResult ))
+	{
+	  pResult.SetDefined(true);
+	  pResult.timeInterval.start.SetDefined(true);
+	  pResult.timeInterval.end.SetDefined(true);
+	  sli->resultValues[sli->NoOfResults] = SetWord( pResult.Clone() );
+	  sli->NoOfResults++;	  
+	}
+
+      return 0;
+
+    case REQUEST:
+      
+      if(local.addr == 0)
+	return CANCEL;
+      sli = (TUIntersectionLocalInfo*) local.addr;
+      if(sli->finished)
+	return CANCEL;
+      if(sli->NoOfResultsDelivered < sli->NoOfResults)
+	{
+	  result = SetWord( ((UPoint*)
+	     (sli->resultValues[sli->NoOfResultsDelivered].addr))->Clone() );
+	  ((UPoint*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
+               ->DeleteIfAllowed();
+	  sli->NoOfResultsDelivered++;
+	  return YIELD;
+	}
+      sli->finished = true;
+      return CANCEL;
+
+    case CLOSE:
+      
+      if (local.addr != 0)
+	{
+	  sli = (TUIntersectionLocalInfo*) local.addr;
+	  while(sli->NoOfResultsDelivered < sli->NoOfResults)
+	    {
+	      ((UPoint*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
+		->DeleteIfAllowed();
+	      sli->NoOfResultsDelivered++;
+	    }
+	  delete sli;
+	}
+      return 0;
+    } // end switch
+
+  return 0;
+}
+
+// for (upoint line) -> (stream upoint)
+template<int uargindex>
+int
+temporalUnitIntersection_upoint_line( Word* args, Word& result, int message,
+		                      Word& local, Supplier s )
+{
+  cout << "\nATTENTION: temporalUnitIntersection_upoint_line "
+       << "not yet implemented!" << endl;  
+  return 0;
+}
+
+// for (upoint uregion) -> (stream upoint)
+int
+temporalUnitIntersection_upoint_uregion( Word* args, Word& result, int message,
+		                         Word& local, Supplier s )
+{
+  TUIntersectionLocalInfo *sli;
+  Word a0, a1;
+  UPoint  *upoint, pResult;
+  URegion *uregion;
+  Point *val;
+  Interval<Instant> iv;
+
+  cout << "\nATTENTION: temporalUnitIntersection_upoint_uregion "
+       << "not yet implemented!" << endl;  
+  return 0;
+
+  ////////////////////////////////////////////////////////////////////////
+  // Only a framework...
+
+  switch( message )
+    {
+    case OPEN:
+      
+      sli = new TUIntersectionLocalInfo;
+      sli->finished = true;
+      sli->NoOfResults = 0;
+      sli->NoOfResultsDelivered = 0;
+      local = SetWord(sli);
+
+      upoint = (UPoint*)(args[0].addr);
+      uregion = (URegion*)(args[1].addr);
+
+      // test for definedness and intersection of deftimes
+      if ( !upoint->IsDefined() ||
+	   !uregion->IsDefined() ||
+	   !upoint->timeInterval.Intersects( uregion->timeInterval ) )
+	return 0; // nothing to do
+
+      // get common time interval
+      upoint->timeInterval.Intersection(uregion->timeInterval, iv);
+      
+      //////////////////////////////////////////////
+      // extend this section to implement creation 
+      // of result stream elements:
+
+      if ( false )
+	{
+	  pResult.SetDefined(true);
+	  pResult.timeInterval.start.SetDefined(true);
+	  pResult.timeInterval.end.SetDefined(true);
+	  sli->resultValues[sli->NoOfResults] = SetWord( pResult.Clone() );
+	  sli->NoOfResults++;	  
+	}
+
+      return 0;
+
+      //////////////////////////////////////////////
+      // Nothing do do from here on:
 
     case REQUEST:
       
@@ -6469,9 +7068,17 @@ const string  TemporalUnitIntersectionSpec  =
   "\"Example\" ) "
   "(<text>TemporalUnitAlgebra</text--->" 
   "<text>For T in {bool, int, real, string, point}:\n"
-  "(uT uT) -> ((stream T)</text--->"
+  "(uT uT) -> (stream uT)**\n"
+  "(uT  T) -> (stream uT)\n"
+  "( T uT) -> (stream uT)\n"
+  "(line upoint) -> (stream upoint)*\n"
+  "(upoint line) -> (stream upoint)*\n"
+  "(upoint uregion) -> (stream upoint)*\n"
+  "(*):  Not yet implemented\n"
+  "(**): Not yet implemented for T = real</text--->"
   "<text>intersection(_, _)</text--->"
-  "<text>Returns the intersection of to unit datatype values "
+  "<text>Returns the intersection of two unit datatype values "
+  "or of a unit datatype and its corrosponding simple datatype "
   "as a stream of that unit datatype.</text--->"
   "<text>query intersection(upoint1, upoint2) count</text--->"
   ") )";
@@ -6484,21 +7091,58 @@ const string  TemporalUnitIntersectionSpec  =
 
 ValueMapping temporalunitintersectionmap[] =
   {
-    temporalUnitIntersection_CU<UBool>,
-    temporalUnitIntersection_CU<UInt>,
-    temporalUnitIntersection_ureal,
-    temporalUnitIntersection_upoint,
-    temporalUnitIntersection_CU<UString>
+    temporalUnitIntersection_CU_CU<UBool>,
+    temporalUnitIntersection_CU_CU<UInt>,
+    temporalUnitIntersection_ureal_ureal,
+    temporalUnitIntersection_upoint_upoint,
+    temporalUnitIntersection_CU_CU<UString>,
+
+    temporalUnitIntersection_CU_C<UBool, CcBool, 0>,
+    temporalUnitIntersection_CU_C<UInt, CcInt, 0>,
+    temporalUnitIntersection_ureal_real<0>,
+    temporalUnitIntersection_upoint_point<0>,
+    temporalUnitIntersection_CU_C<UString, CcString, 0>,
+
+    temporalUnitIntersection_CU_C<UBool, CcBool, 1>,
+    temporalUnitIntersection_CU_C<UInt, CcInt, 1>,
+    temporalUnitIntersection_ureal_real<1>,
+    temporalUnitIntersection_upoint_point<1>,
+    temporalUnitIntersection_CU_C<UString, CcString, 1>,
+
+    temporalUnitIntersection_upoint_line<0>,
+    temporalUnitIntersection_upoint_line<1>,
+
+    temporalUnitIntersection_upoint_uregion
   };
 
 int temporalunitIntersectionSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
   if( nl->IsEqual( arg1, "ubool" ) )   return 0;
   if( nl->IsEqual( arg1, "uint" ) )    return 1;
   if( nl->IsEqual( arg1, "ureal" ) )   return 2;
   if( nl->IsEqual( arg1, "upoint" ) )  return 3;
   if( nl->IsEqual( arg1, "ustring" ) ) return 4;
+
+  if( nl->IsEqual( arg1, "ubool" ) )   return 5;
+  if( nl->IsEqual( arg1, "uint" ) )    return 6;
+  if( nl->IsEqual( arg1, "ureal" ) )   return 7;
+  if( nl->IsEqual( arg1, "upoint" ) &&
+      nl->IsEqual( arg2, "point"  ) )  return 8;
+  if( nl->IsEqual( arg1, "ustring" ) ) return 9;
+
+  if( nl->IsEqual( arg1, "ubool" ) )   return 10;
+  if( nl->IsEqual( arg1, "uint" ) )    return 11;
+  if( nl->IsEqual( arg1, "ureal" ) )   return 12;
+  if( nl->IsEqual( arg1, "upoint" ) )  return 13;
+  if( nl->IsEqual( arg1, "ustring" ) ) return 14;
+
+  if( nl->IsEqual( arg1, "line" ) )    return 15;
+  if( nl->IsEqual( arg1, "upoint" ) &&
+      nl->IsEqual( arg2, "line" ) )    return 16;
+  if( nl->IsEqual( arg1, "upoint" ) &&
+      nl->IsEqual( arg2, "uregion" ) ) return 17;
   cout << "\ntemporalunitIntersectionSelect: Unsupported datatype." << endl;
   return -1;
 }
@@ -6511,7 +7155,7 @@ int temporalunitIntersectionSelect( ListExpr args )
 
 Operator temporalunitintersection( "intersection",
                       TemporalUnitIntersectionSpec,
-                      5,
+                      18,
                       temporalunitintersectionmap,
                       temporalunitIntersectionSelect,
                       TemporalUnitIntersectionTypeMap);
@@ -6827,6 +7471,7 @@ Operator temporalunittransformstream( "transformstream",
                       temporalunittransformstreammap,
                       temporalunitTransformstreamSelect,
                       TemporalUnitTransformstreamTypeMap);
+
 
 /*
 6 Creating the Algebra
