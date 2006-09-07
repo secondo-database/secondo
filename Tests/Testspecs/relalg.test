@@ -105,7 +105,7 @@ open database relalgtest;
                         (SName string)
                         (Bev int)
                         (PLZ int)
-                        (Vorwahl string)
+                        (Vorwahl text)
                         (Kennzeichen string)))));
 
 
@@ -116,67 +116,67 @@ open database relalgtest;
                         (SName string)
                         (Bev int)
                         (PLZ int)
-                        (Vorwahl string)
+                        (Vorwahl text)
                         (Kennzeichen string))))
             (
-                ("Aachen" 239000 5100 "0241" "AC")
-                ("Berlin" 1859000 1000 "030" "B")
-                ("Bielefeld" 300000 4800 "0521" "BI")
-                ("Bochum" 382000 4630 "0234" "BO")
-                ("Bonn" 291000 5300 "0228" "BN")
-                ("Braunschweig" 248000 3300 "0531" "BS")
-                ("Bremen" 526000 2800 "0421" "HB")
-                ("Bremerhaven" 134000 2850 "0471" "HB")
-                ("Darmstadt" 134000 6100 "06151" "DA")
-                ("Dortmund" 572000 4600 "0231" "DO")
-                ("Duesseldorf" 562000 4000 "0211" "D")
-                ("Duisburg" 518000 4100 "0203" "DU")
-                ("Erlangen" 100000 8520 "09131" "ER")
-                ("Essen" 620000 4300 "0201" "E")
-                ("Frankfurt(Main)" 595000 6000 "069" "F")
-                ("Freiburg" 184000 7800 "0761" "FR")
-                ("Gelsenkirchen" 285000 4650 "0209" "GE")
-                ("Goettingen" 133000 3400 "0551" "GOE")
-                ("Hagen" 206000 5800 "02331" "HA")
-                ("Hamburg" 1580000 2000 "040" "HH")
-                ("Hamm" 166000 4700 "02381" "HAM")
-                ("Hannover" 508000 3000 "0511" "H")
-                ("Heidelberg" 135000 6900 "06221" "HD")
-                ("Heilbronn" 111000 7100 "07131" "HN")
-                ("Hildesheim" 101000 3200 "05121" "HI")
-                ("Karlsruhe" 268000 7500 "0721" "KA")
-                ("Kassel" 184000 3500 "0561" "KS")
-                ("Kiel" 246000 2300 "0431" "KI")
-                ("Koblenz" 111000 5400 "0261" "KO")
-                ("Koeln" 916000 5000 "0221" "K")
-                ("Krefeld" 217000 4150 "02151" "KR")
-                ("Leverkusen" 155000 5090 "0214" "LEV")
-                ("Ludwigshafen" 154000 6700 "0621" "LU")
-                ("Luebeck" 210000 2400 "0451" "HL")
-                ("Mainz" 189000 6500 "06131" "MZ")
-                ("Mannheim" 295000 6800 "0621" "MA")
-                ("Moenchengladbach" 254000 4050 "02161" "MG")
-                ("Muehlheim(Ruhr)" 172000 4330 "0208" "MH")
-                ("Muenchen" 1267000 8000 "089" "M")
-                ("Muenster" 270000 4400 "0251" "MS")
-                ("Nuernberg" 465000 8500 "0911" "N")
-                ("Offenbach(Main)" 107000 6050 "069" "OF")
-                ("Oldenburg" 138000 2900 "0441" "OL")
-                ("Osnabrueck" 153000 4500 "0541" "OS")
-                ("Paderborn" 110000 4790 "05251" "PB")
-                ("Pforzheim" 104000 7530 "07231" "PF")
-                ("Recklinghausen" 118000 4350 "02361" "RE")
-                ("Regensburg" 124000 8400 "0941" "R")
-                ("Remscheid" 121000 5630 "02191" "RS")
-                ("Saarbruecken" 187000 6600 "0681" "SB")
-                ("Salzgitter" 106000 3320 "05341" "SZ")
-                ("Siegen" 107000 5900 "0271" "SI")
-                ("Solingen" 158000 5650 "0212" "SG")
-                ("Stuttgart" 562000 7000 "0711" "S")
-                ("Wiesbaden" 267000 6200 "06121" "WI")
-                ("Wolfsburg" 122000 3180 "05361" "WOB")
-                ("Wuerzburg" 128000 8700 "0931" "WUE")
-                ("Wuppertal" 377000 5600 "0202" "W"))));
+                ("Aachen" 239000 5100 '242387399811123125657234' "AC")
+                ("Berlin" 1859000 1000 '300023486212512398734' "B")
+                ("Bielefeld" 300000 4800 '522387399811123125657234' "BI")
+                ("Bochum" 382000 4630 '2343948729384787' "BO")
+                ("Bonn" 291000 5300 '2282938742983472387878' "BN")
+                ("Braunschweig" 248000 3300 '532387399811123125657234' "BS")
+                ("Bremen" 526000 2800 '422387399811123125657234' "HB")
+                ("Bremerhaven" 134000 2850 '472387399811123125657234' "HB")
+                ("Darmstadt" 134000 6100 '6152387399811123125657234' "DA")
+                ("Dortmund" 572000 4600 '232387399811123125657234' "DO")
+                ("Duesseldorf" 562000 4000 '212387399811123125657234' "D")
+                ("Duisburg" 518000 4100 '20323746283746' "DU")
+                ("Erlangen" 100000 8520 '9132387399811123125657234' "ER")
+                ("Essen" 620000 4300 '202387399811123125657234' "E")
+                ("Frankfurt(Main)" 595000 6000 '6298347402394810489134' "F")
+                ("Freiburg" 184000 7800 '762387399811123125657234' "FR")
+                ("Gelsenkirchen" 285000 4650 '20298347402394810489134' "GE")
+                ("Goettingen" 133000 3400 '552387399811123125657234' "GOE")
+                ("Hagen" 206000 5800 '2332387399811123125657234' "HA")
+                ("Hamburg" 1580000 2000 '400023486212512398734' "HH")
+                ("Hamm" 166000 4700 '2382387399811123125657234' "HAM")
+                ("Hannover" 508000 3000 '512387399811123125657234' "H")
+                ("Heidelberg" 135000 6900 '6222387399811123125657234' "HD")
+                ("Heilbronn" 111000 7100 '7132387399811123125657234' "HN")
+                ("Hildesheim" 101000 3200 '5122387399811123125657234' "HI")
+                ("Karlsruhe" 268000 7500 '722387399811123125657234' "KA")
+                ("Kassel" 184000 3500 '562387399811123125657234' "KS")
+                ("Kiel" 246000 2300 '432387399811123125657234' "KI")
+                ("Koblenz" 111000 5400 '262387399811123125657234' "KO")
+                ("Koeln" 916000 5000 '222387399811123125657234' "K")
+                ("Krefeld" 217000 4150 '2152387399811123125657234' "KR")
+                ("Leverkusen" 155000 5090 '21423984723847' "LEV")
+                ("Ludwigshafen" 154000 6700 '622387399811123125657234' "LU")
+                ("Luebeck" 210000 2400 '452387399811123125657234' "HL")
+                ("Mainz" 189000 6500 '6132387399811123125657234' "MZ")
+                ("Mannheim" 295000 6800 '622387399811123125657234' "MA")
+                ("Moenchengladbach" 254000 4050 '2162387399811123125657234' "MG")
+                ("Muehlheim(Ruhr)" 172000 4330 '2082934872938472837' "MH")
+                ("Muenchen" 1267000 8000 '8298347402394810489134' "M")
+                ("Muenster" 270000 4400 '252387399811123125657234' "MS")
+                ("Nuernberg" 465000 8500 '912387399811123125657234' "N")
+                ("Offenbach(Main)" 107000 6050 '6298347402394810489134' "OF")
+                ("Oldenburg" 138000 2900 '442387399811123125657234' "OL")
+                ("Osnabrueck" 153000 4500 '542387399811123125657234' "OS")
+                ("Paderborn" 110000 4790 '5252387399811123125657234' "PB")
+                ("Pforzheim" 104000 7530 '7232387399811123125657234' "PF")
+                ("Recklinghausen" 118000 4350 '2362387399811123125657234' "RE")
+                ("Regensburg" 124000 8400 '942387399811123125657234' "R")
+                ("Remscheid" 121000 5630 '2192387399811123125657234' "RS")
+                ("Saarbruecken" 187000 6600 '682387399811123125657234' "SB")
+                ("Salzgitter" 106000 3320 '5342387399811123125657234' "SZ")
+                ("Siegen" 107000 5900 '272387399811123125657234' "SI")
+                ("Solingen" 158000 5650 '2109809328735423498' "SG")
+                ("Stuttgart" 562000 7000 '712387399811123125657234' "S")
+                ("Wiesbaden" 267000 6200 '6122387399811123125657234' "WI")
+                ("Wolfsburg" 122000 3180 '5362387399811123125657234' "WOB")
+                ("Wuerzburg" 128000 8700 '932387399811123125657234' "WUE")
+                ("Wuppertal" 377000 5600 '2009809328735423498' "W"))));
 
 #testcase Filter1
 #yields (int 5)
@@ -419,14 +419,21 @@ query Staedte sample[10, 0.0] count
 query Staedte sample[0, 1.0] count
 
 # check if the virtual system tables work
-#testcase virt1
+#testcase Virt1
 #yields success
 query SEC2COUNTERS feed count;
 
-#testcase virt1
+#testcase Virt1
 #yields success
 query SEC2COMMANDS feed count;
 
+#testcase FLOB1
+#yields success
+let Staedte_2 = Staedte feed project[Vorwahl] extend[Seq: seqnext()] consume;
+
+#testcase FLOB2
+#yields success
+query Staedte feed Staedte_2 feed project[Vorwahl] {arg2} product consume count; 
 
 #teardown
 close database;
