@@ -318,6 +318,77 @@ TypeConstructor rtree4( "rtree4",
                         SizeOfRTree<4>,
                         CheckRTree4 );
 
+/*
+3 Type constructor ~rtree8~
+
+3.1 Type property of type constructor ~rtree8~
+
+*/
+ListExpr RTree8Prop()
+{
+  ListExpr examplelist = nl->TextAtom();
+  nl->AppendText(examplelist,
+    "<relation> creatertree [<attrname>]"
+    " where <attrname> is the key of type rect8");
+
+  return (nl->TwoElemList(
+            nl->TwoElemList(
+              nl->StringAtom("Creation"),
+              nl->StringAtom("Example Creation")),
+            nl->TwoElemList(
+              examplelist,
+              nl->StringAtom("(let myrtree = countries"
+                             " creatertree [boundary])"))));
+}
+
+/*
+3.8 ~Check~-function of type constructor ~rtree8~
+
+*/
+bool CheckRTree8(ListExpr type, ListExpr& errorInfo)
+{
+  AlgebraManager* algMgr;
+
+  if((!nl->IsAtom(type))
+    && (nl->ListLength(type) == 3)
+    && nl->Equal(nl->First(type), nl->SymbolAtom("rtree8")))
+  {
+    algMgr = SecondoSystem::GetAlgebraManager();
+    return
+      algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo)
+      &&nl->Equal(nl->Third(type), nl->SymbolAtom("rect8"));
+  }
+  else
+  {
+    errorInfo = nl->Append(errorInfo,
+      nl->ThreeElemList(
+        nl->IntAtom(60), 
+        nl->SymbolAtom("RTREE8"), 
+        type));
+    return false;
+  }
+  return true;
+}
+
+/*
+3.12 Type Constructor object for type constructor ~rtree8~
+
+*/
+TypeConstructor rtree8( "rtree8",
+                        RTree8Prop,
+                        OutRTree<8>,
+                        InRTree<8>,
+                        0,
+                        0,
+                        CreateRTree<8>,
+                        DeleteRTree<8>,
+                        OpenRTree<8>,
+                        SaveRTree<8>,
+                        CloseRTree<8>,
+                        CloneRTree<8>,
+                        CastRTree<8>,
+                        SizeOfRTree<8>,
+                        CheckRTree8 );
 
 /*
 7 Operators of the RTree Algebra
@@ -398,13 +469,15 @@ ListExpr CreateRTreeTypeMap(ListExpr args)
   CHECK_COND(algMgr->CheckKind("SPATIAL2D", attrType, errorInfo)||
     algMgr->CheckKind("SPATIAL3D", attrType, errorInfo)||
     algMgr->CheckKind("SPATIAL4D", attrType, errorInfo)||
+    algMgr->CheckKind("SPATIAL8D", attrType, errorInfo)||
     nl->IsEqual(attrType, "rect")||
     nl->IsEqual(attrType, "rect3")||
-    nl->IsEqual(attrType, "rect4"),
+    nl->IsEqual(attrType, "rect4")||
+    nl->IsEqual(attrType, "rect8"),
     errmsg + 
     "\nOperator creatertree expects that attribute "+attrName+"\n"
-    "belongs to kinds SPATIAL2D, SPATIAL3D, or SPATIAL4D\n"
-    "or rect, rect3, and rect4.");
+    "belongs to kinds SPATIAL2D, SPATIAL3D, Spatial4D or SPATIAL8D\n"
+    "or rect, rect3, rect4 and rect8.");
 
   string rtreetype;
 
@@ -417,7 +490,9 @@ ListExpr CreateRTreeTypeMap(ListExpr args)
   else if ( algMgr->CheckKind("SPATIAL4D", attrType, errorInfo) ||
        nl->IsEqual( attrType, "rect4" ) )
     rtreetype = "rtree4";
-
+  else if ( algMgr->CheckKind("SPATIAL8D", attrType, errorInfo) ||
+       nl->IsEqual( attrType, "rect8" ) )
+    rtreetype = "rtree8";
   if( nl->IsEqual(nl->First(relDescription), "rel") )
   {
     return
@@ -543,12 +618,16 @@ CreateRTreeSelect (ListExpr args)
     result = 1;
   else if ( algMgr->CheckKind("SPATIAL4D", attrType, errorInfo) )
     result = 2;
-  else if( nl->SymbolValue(attrType) == "rect" )
+  else if ( algMgr->CheckKind("SPATIAL8D", attrType, errorInfo) )
     result = 3;
-  else if( nl->SymbolValue(attrType) == "rect3" )
+  else if( nl->SymbolValue(attrType) == "rect" )
     result = 4;
-  else if( nl->SymbolValue(attrType) == "rect4" )
+  else if( nl->SymbolValue(attrType) == "rect3" )
     result = 5;
+  else if( nl->SymbolValue(attrType) == "rect4" )
+    result = 6;
+  else if( nl->SymbolValue(attrType) == "rect8" )
+    result = 7;
   else
     return -1; /* should not happen */
 
@@ -565,10 +644,10 @@ CreateRTreeSelect (ListExpr args)
     }
     if( nl->IsEqual( nl->Second( first ), "int" ) )
       // Double indexing
-      return result + 12;
+      return result + 16;
     else 
       // Multi-entry indexing
-      return result + 6;
+      return result + 8;
   }
 
   return -1;
@@ -663,7 +742,6 @@ int CreateRTreeRelRect(Word* args, Word& result, int message,
   R_Tree<dim, TupleId> *rtree = 
     (R_Tree<dim, TupleId>*)qp->ResultStorage(s).addr;
   result = SetWord( rtree );
-
   relation = (Relation*)args[0].addr;
   attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
 
@@ -830,21 +908,27 @@ int CreateRTree2LRect(Word* args, Word& result, int message,
 ValueMapping rtreecreatertreemap [] = { CreateRTreeRelSpatial<2>,
                                         CreateRTreeRelSpatial<3>,
                                         CreateRTreeRelSpatial<4>,
+                                        CreateRTreeRelSpatial<8>,
                                         CreateRTreeRelRect<2>,
                                         CreateRTreeRelRect<3>,
                                         CreateRTreeRelRect<4>,
+                                        CreateRTreeRelRect<8>,
                                         CreateRTreeStreamSpatial<2>,
                                         CreateRTreeStreamSpatial<3>,
                                         CreateRTreeStreamSpatial<4>,
+                                        CreateRTreeStreamSpatial<8>,
                                         CreateRTreeStreamRect<2>,
                                         CreateRTreeStreamRect<3>,
                                         CreateRTreeStreamRect<4>,
+                                        CreateRTreeStreamRect<8>,
                                         CreateRTree2LSpatial<2>,
                                         CreateRTree2LSpatial<3>,
                                         CreateRTree2LSpatial<4>,
+                                        CreateRTree2LSpatial<8>,
                                         CreateRTree2LRect<2>,
                                         CreateRTree2LRect<3>,
-                                        CreateRTree2LRect<4> };
+                                        CreateRTree2LRect<4>,
+                                        CreateRTree2LRect<8> };
 
 /*
 4.1.6 Specification of operator ~creatertree~
@@ -865,7 +949,7 @@ const string CreateRTreeSpec  =
   " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti true)</text--->"
   "<text>_ creatertree [ _ ]</text--->"
   "<text>Creates an rtree<d>. The key type ti must"
-  " be of kind SPATIAL2D, SPATIAL3D or SPATIAL4D.</text--->"
+  " be of kind SPATIAL2D, SPATIAL3D, SPATIAL4D or Spatial8D.</text--->"
   "<text>let myrtree = Kreis creatertree [Gebiet]</text--->"
   "<text>let myrtree = Kreis feed extend[id: tupleid(.)] "
   "creatertree[Gebiet]</text--->"
@@ -880,7 +964,7 @@ const string CreateRTreeSpec  =
 Operator creatertree (
           "creatertree",       // name
           CreateRTreeSpec,     // specification
-          18,                  //Number of overloaded functions
+          24,                  //Number of overloaded functions
           rtreecreatertreemap, // value mapping
           CreateRTreeSelect,   // trivial selection function
           CreateRTreeTypeMap   // type mapping
@@ -2180,7 +2264,8 @@ class RTreeAlgebra : public Algebra
     AddTypeConstructor( &rtree );
     AddTypeConstructor( &rtree3 );
     AddTypeConstructor( &rtree4 );
-
+    AddTypeConstructor( &rtree8 );
+    
     AddOperator( &creatertree );
     AddOperator( &windowintersects );
     AddOperator( &windowintersectsS );
