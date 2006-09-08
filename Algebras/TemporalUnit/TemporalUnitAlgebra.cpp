@@ -7529,6 +7529,7 @@ class TemporalUnitAlgebra : public Algebra
    AddOperator( &temporalunitmakemvalue );
    AddOperator( &temporalunittransformstream );
    AddOperator( &temporalunitsfeed );
+   AddOperator( &temporalunitsuse );
    AddOperator( &temporalunitsuse2 );
    AddOperator( &temporalunitsaggregate );
    AddOperator( &temporalunitqueryrect2d );
