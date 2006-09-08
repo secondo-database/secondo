@@ -749,6 +749,9 @@ inside the temporal unit given a time instant (also inside the temporal unit).
 template <class Alpha>
 struct TemporalUnit
 {
+
+  public:
+
 /*
 3.5.1 Constructors and Destructor
 
@@ -760,7 +763,8 @@ The simple constructor. This constructor should not be used.
 */
 
   TemporalUnit( const Interval<Instant>& interval ):
-    timeInterval( interval )
+    timeInterval( interval ), 
+    defined( true )
     {}
 /*
 This constructor sets the time interval of the temporal unit.
@@ -914,6 +918,15 @@ The time interval of the temporal unit.
 
 */
 
+  protected: 
+
+  bool defined;
+
+/*
+A Flag indicating whether the unit is defined or not.
+
+*/
+
 };
 
 /*
@@ -955,13 +968,14 @@ The destructor.
 3.6.4.1 Functions to be part of relations
 
 */
-    virtual bool IsDefined() const
+    bool IsDefined() const
     {
-      return true;
+      return defined;
     }
 
-    virtual void SetDefined( bool Defined )
+    void SetDefined( bool Defined )
     {
+      defined = Defined;
     }
 
     virtual int Compare( const Attribute* arg ) const
@@ -1029,13 +1043,14 @@ The destructor.
 3.6.4.1 Functions to be part of relations
 
 */
-    virtual bool IsDefined() const
+    bool IsDefined() const
     {
-      return true;
+      return defined;
     }
 
-    virtual void SetDefined( bool Defined )
+    void SetDefined( bool Defined )
     {
+      defined = Defined;
     }
 
     virtual int Compare( const Attribute* arg ) const
@@ -1199,14 +1214,6 @@ Returns ~true~ if the value of this temporal unit is equal to the value of the t
 3.6.3 Functions to be part of relations
 
 */
-  virtual bool IsDefined() const
-  {
-    return true;
-  }
-
-  virtual void SetDefined( bool Defined )
-  {
-  }
 
   virtual size_t Sizeof() const
   {
@@ -4853,14 +4860,18 @@ ListExpr OutConstTemporalUnit( ListExpr typeInfo, Word value )
   //1.get the address of the object and have a class object
   ConstTemporalUnit<Alpha>* constunit = (ConstTemporalUnit<Alpha>*)(value.addr);
 
-  //2.get the time interval NL
+  //2.test for undefined value
+  if ( !constunit->IsDefined() )
+    return (nl->SymbolAtom("undef"));
+
+  //3.get the time interval NL
   ListExpr intervalList = nl->FourElemList(
     OutDateTime( nl->TheEmptyList(), SetWord(&constunit->timeInterval.start) ),
     OutDateTime( nl->TheEmptyList(), SetWord(&constunit->timeInterval.end) ),
     nl->BoolAtom( constunit->timeInterval.lc ),
     nl->BoolAtom( constunit->timeInterval.rc));
 
-  //3. return the final result
+  //4. return the final result
   return nl->TwoElemList( intervalList,
                           OutFun( nl->TheEmptyList(), 
                                   SetWord( &constunit->constValue ) ) );
@@ -4936,6 +4947,16 @@ Word InConstTemporalUnit( const ListExpr typeInfo,
       delete value;
     }
   }
+  else if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType 
+	    && nl->SymbolValue( instance ) == "undef" )
+    {
+      ConstTemporalUnit<Alpha> *constunit =
+	new ConstTemporalUnit<Alpha>();
+      constunit->SetDefined(false);
+      correct = true;
+      return (SetWord( constunit ));
+    }
+
   correct = false;
   return SetWord( Address(0) );
 }

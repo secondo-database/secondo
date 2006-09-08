@@ -6030,6 +6030,7 @@ Please that ~Region~ creation is done as shown in ~SpatialAlgebra~.
 See there for more details.
 
 */
+
     if (nl->ListLength(instance) == 0) {
         cerr << "uregion not in format (<interval> <face>*)" << endl;
         return 0;
@@ -6694,6 +6695,10 @@ static ListExpr OutURegion(ListExpr typeInfo, Word value) {
 
     URegion* ur = (URegion*) value.addr;
 
+    // check for undefined value
+    if( !ur->IsDefined() )
+      return (nl->SymbolAtom("undef"));
+
     return
         OutURegionEmbedded(
             ur->GetEmbedded(),
@@ -6712,7 +6717,17 @@ static Word InURegion(const ListExpr typeInfo,
                       bool& correct) {
     if (MRA_DEBUG) cerr << "InURegion() called" << endl;
 
+
     URegion* ur = new URegion(0);
+
+    // Check for indefined value
+    if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType 
+	 && nl->SymbolValue( instance ) == "undef" )
+      {
+	ur->SetDefined(false);
+	correct = true;
+        return SetWord ( ur );
+      }
 
     URegionEmb* uremb = 
         InURegionEmbedded(

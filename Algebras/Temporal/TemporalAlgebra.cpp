@@ -1070,20 +1070,27 @@ ListExpr OutUReal( ListExpr typeInfo, Word value )
 {
   UReal* ureal = (UReal*)(value.addr);
 
-  ListExpr timeintervalList = nl->FourElemList(
-          OutDateTime( nl->TheEmptyList(),
-          SetWord(&ureal->timeInterval.start) ),
-          OutDateTime( nl->TheEmptyList(), SetWord(&ureal->timeInterval.end) ),
-          nl->BoolAtom( ureal->timeInterval.lc ),
-          nl->BoolAtom( ureal->timeInterval.rc));
+  if ( !ureal->IsDefined() )
+    return (nl->SymbolAtom("undef"));
+  else
+    {
 
-  ListExpr realfunList = nl->FourElemList(
-          nl->RealAtom( ureal->a),
-          nl->RealAtom( ureal->b),
-          nl->RealAtom( ureal->c ),
-          nl->BoolAtom( ureal->r));
+      ListExpr timeintervalList = nl->FourElemList(
+             OutDateTime( nl->TheEmptyList(),
+             SetWord(&ureal->timeInterval.start) ),
+             OutDateTime( nl->TheEmptyList(), 
+			  SetWord(&ureal->timeInterval.end) ),
+             nl->BoolAtom( ureal->timeInterval.lc ),
+             nl->BoolAtom( ureal->timeInterval.rc));
 
-  return nl->TwoElemList(timeintervalList, realfunList );
+      ListExpr realfunList = nl->FourElemList(
+             nl->RealAtom( ureal->a),
+             nl->RealAtom( ureal->b),
+             nl->RealAtom( ureal->c ),
+             nl->BoolAtom( ureal->r));
+
+      return nl->TwoElemList(timeintervalList, realfunList );
+    }
 }
 
 /*
@@ -1091,7 +1098,10 @@ ListExpr OutUReal( ListExpr typeInfo, Word value )
 
 The Nested list form is like this:
 
-----    ( ( 6.37 9.9 TRUE FALSE)   (1.0 2.3 4.1 TRUE) )
+----    
+       ( ( 6.37 9.9 TRUE FALSE)   (1.0 2.3 4.1 TRUE) )
+or:    undef
+
 ----
 
 */
@@ -1159,6 +1169,14 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
         delete ureal;
       }
     }
+    else if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType 
+	      && nl->SymbolValue( instance ) == "undef" )
+      {
+	UReal *ureal = new UReal();
+	ureal->SetDefined(false);
+	correct = true;
+	return (SetWord( ureal ));
+      }
   }
   correct = false;
   return SetWord( Address(0) );
@@ -1290,20 +1308,25 @@ ListExpr OutUPoint( ListExpr typeInfo, Word value )
 {
   UPoint* upoint = (UPoint*)(value.addr);
 
-  ListExpr timeintervalList = nl->FourElemList(
-          OutDateTime( nl->TheEmptyList(),
+  if( !(((UPoint*)value.addr)->IsDefined()) )
+    return (nl->SymbolAtom("undef"));
+  else
+    {
+      ListExpr timeintervalList = nl->FourElemList(
+	  OutDateTime( nl->TheEmptyList(),
           SetWord(&upoint->timeInterval.start) ),
           OutDateTime( nl->TheEmptyList(), SetWord(&upoint->timeInterval.end) ),
           nl->BoolAtom( upoint->timeInterval.lc ),
           nl->BoolAtom( upoint->timeInterval.rc));
 
-  ListExpr pointsList = nl->FourElemList(
+      ListExpr pointsList = nl->FourElemList(
           nl->RealAtom( upoint->p0.GetX() ),
           nl->RealAtom( upoint->p0.GetY() ),
           nl->RealAtom( upoint->p1.GetX() ),
           nl->RealAtom( upoint->p1.GetY() ));
 
-  return nl->TwoElemList( timeintervalList, pointsList );
+      return nl->TwoElemList( timeintervalList, pointsList );
+    }
 }
 
 /*
@@ -1380,6 +1403,14 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
       }
     }
   }
+  else if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType 
+	    && nl->SymbolValue( instance ) == "undef" )
+    {
+      UPoint *upoint = new UPoint();
+      upoint->SetDefined(false);
+      correct = true;
+      return (SetWord( upoint ));
+    }
   correct = false;
   return SetWord( Address(0) );
 }
