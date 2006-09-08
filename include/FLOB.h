@@ -346,7 +346,6 @@ Write data from ~source~ into the FLOBs memory.
     inline void Put( size_t offset, size_t length, const void *source )
     {
       assert( type == InMemory );
-      assert( fd.inMemory.freezed == false );
       memcpy( fd.inMemory.buffer + offset, source, length );
     }
 
