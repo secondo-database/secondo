@@ -1384,6 +1384,9 @@ Equality is calculated with respect to temporal evolution.
 3.7.3 Functions to be part of relations
 
 */
+/*
+
+----
   virtual bool IsDefined() const
   {
     return true;
@@ -1392,6 +1395,10 @@ Equality is calculated with respect to temporal evolution.
   virtual void SetDefined( bool Defined )
   {
   }
+
+----
+
+*/
 
   virtual size_t Sizeof() const
   {
@@ -1551,6 +1558,11 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 3.8.3 Functions to be part of relations
 
 */
+
+/*
+
+----
+
   inline virtual bool IsDefined() const
   {
     return true;
@@ -1559,6 +1571,10 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   inline virtual void SetDefined( bool Defined )
   {
   }
+
+----
+
+*/
 
   inline virtual size_t Sizeof() const
   {

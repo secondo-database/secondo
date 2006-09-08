@@ -2405,7 +2405,7 @@ struct MappingUnitAt_rLocalInfo {
   Word runits[2];    // the results
 };
 
-// second value mapping: for ureal
+// second value mapping: (ureal real) -> (stream ureal)
 int MappingUnitAt_r( Word* args, Word& result, int message,
                    Word& local, Supplier s )
 {
@@ -2413,34 +2413,44 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
   double radicand, a, b, c, r, y;
   DateTime t1, t2;
   Interval<Instant> rdeftime, deftime;
-  Word a0, a1;
   UReal *uinput;
+  CcReal *value;
   
 
   switch (message)
     {
     case OPEN :
       
+      cout << "\nMappingUnitAt_r: OPEN" << endl;
       localinfo = new MappingUnitAt_rLocalInfo;
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
+      cout << "  1" << endl;
       
-      //      qp->Request(args[0].addr, a0);
-      //      qp->Request(args[1].addr, a1);
-      a0 = args[0];
-      a1 = args[1];
+      value = (CcReal*)(args[1].addr);
+      cout << "  1.1" << endl;
 
-      uinput = ((UReal*)(a0.addr));
-      y = ((CcReal*)(a1.addr))->GetRealval();
+      uinput = (UReal*)(args[0].addr);
+      cout << "  1.2" << endl;
+
+
+      cout << "  2" << endl;
+
+      cout << "  2.1: " << uinput->IsDefined() << endl;
+      cout << "  2.2: " << value->IsDefined() << endl;
 
       if ( !uinput->IsDefined() ||
-	   !((CcReal*)(a1.addr))->IsDefined() )
+	   !value->IsDefined() )
 	{ // some input is undefined -> return empty stream
+	  cout << "  3" << endl;
 	  localinfo->NoOfResults = 0;
 	  localinfo->finished = true;
 	  local = SetWord(localinfo);
+	  cout << "\nMappingUnitAt_r: finished OPEN (1)" << endl;
 	  return 0;
 	}
+      cout << "  4" << endl;
+      y = value->GetRealval();
       
       a = uinput->a;
       b = uinput->b;
@@ -2448,29 +2458,39 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
       r = uinput->r;
       deftime = uinput->timeInterval;
 
+      cout << "  5" << endl;
+	    
       if ( (a == 0) && (b == 0) )
 	{ // constant function. Possibly return input unit
+	  cout << "  6" << endl;
 	  if (c != y)
 	    { // There will be no result, just an empty stream
+	      cout << "  7" << endl;
 	      localinfo->NoOfResults = 0;
 	      localinfo->finished = true;
 	    }
 	  else
 		{ // Return the complete unit
+		  cout << "  8" << endl;
 		  (UReal*)(localinfo->runits[localinfo->NoOfResults].addr)
 		    = uinput->Copy();
 		  localinfo->NoOfResults++;
 		  localinfo->finished = false;
+		  cout << "  9" << endl;
 		}
+	  cout << "  10" << endl;
 	  local = SetWord(localinfo);
+	  cout << "\nMappingUnitAt_r: finished OPEN (2)" << endl;
 	  return 0;
 	}
       if ( (a == 0) && (b != 0) )
 	{ // linear function. Possibly return input unit restricted 
 	  // to single value
+	  cout << "  11" << endl;
 	  t1.ReadFrom( (y - c)/b );
 	  if (deftime.Contains(t1))
 	    { // value is contained by deftime
+	      cout << "  12" << endl;
 	      (UReal*)(localinfo->runits[localinfo->NoOfResults].addr) = 
 		uinput->Copy();
 	      ((UReal*)(localinfo
@@ -2478,62 +2498,85 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 		->timeInterval = Interval<Instant>(t1, t1, true, true);
 	      localinfo->NoOfResults++;
 	      localinfo->finished = false;		  
+	      cout << "  13" << endl;
 	    }
 	  else
 	    { // value is not contained by deftime -> no result
+	      cout << "  14" << endl;
 	      localinfo->NoOfResults = 0;
 	      localinfo->finished = true;
+	      cout << "  15" << endl;
 	    }
+	  cout << "  16" << endl;
 	  local = SetWord(localinfo);
+	  cout << "\nMappingUnitAt_r: finished OPEN (3)" << endl;
 	  return 0;
 	}
       
+      cout << "  17" << endl;
       radicand = ((y - c) / a) + ((b * b) / (4 * a * a));
       if ( (a != 0) && (radicand <= 0) )
 	{ // quadratic function. There are possibly two result units
 	  // calculate the possible t-values t1, t2
 	  
+	  cout << "  18" << endl;
 	  t1.ReadFrom( sqrt(radicand) );
 	  t2.ReadFrom( -sqrt(radicand) );
 	  
 	  // check, whether t1 contained by deftime
 	  if (deftime.Contains(Instant(t1)))
 	    {
+	      cout << "  19" << endl;
 	      rdeftime.start = t1;
 	      rdeftime.end = t1;
 	      localinfo->runits[localinfo->NoOfResults].addr = 
 		new UReal( rdeftime,a,b,c,r );
 	      localinfo->NoOfResults++;
 	      localinfo->finished = false;
+	      cout << "  20" << endl;
 	    }
 	  // check, whether t2 contained by deftime
 	  if (deftime.Contains( t2 ))
 	    {
+	      cout << "  21" << endl;
 	      rdeftime.start = t2;
 	      rdeftime.end = t2;
 	      localinfo->runits[localinfo->NoOfResults].addr = 
 		new UReal( rdeftime,a,b,c,r );
 	      localinfo->NoOfResults++;
 	      localinfo->finished = false;
+	      cout << "  22" << endl;
 	    }
 	}
       else // there is no result unit
 	{
+	  cout << "  23" << endl;
 	  localinfo->NoOfResults = 0;
 	  localinfo->finished = true;
+	  cout << "  24" << endl;
 	}
+      cout << "  25" << endl;
       local = SetWord(localinfo);
+      cout << "\nMappingUnitAt_r: finished OPEN (4)" << endl;
       return 0;
       
     case REQUEST :
       
+      cout << "\nMappingUnitAt_r: REQUEST" << endl;
       if (local.addr == 0)
-	return CANCEL;
+	{
+	  cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (1)" << endl;
+	  return CANCEL;
+	}
       localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
       if (localinfo->finished)
-	return CANCEL;
+	{
+	  cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (2)" << endl;
+	  return CANCEL;
+	}
       if ( localinfo->NoOfResults <= 0 )
 	{ localinfo->finished = true;
+	  cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (3)" << endl;
 	  return CANCEL;
 	}
       localinfo->NoOfResults--;
@@ -2542,10 +2585,12 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 			->Clone() );
       ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
 	->DeleteIfAllowed();
+      cout << "\nMappingUnitAt_r: finished REQUEST YIELD" << endl;
       return YIELD;
       
     case CLOSE :
 
+      cout << "\nMappingUnitAt_r: CLOSE" << endl;
       if (local.addr != 0)
 	{
 	  localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
@@ -2554,6 +2599,7 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 	      ->DeleteIfAllowed();
 	  delete localinfo;
 	}
+      cout << "\nMappingUnitAt_r: finished CLOSE" << endl;
       return 0;
     } // end switch
   
@@ -6773,18 +6819,15 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
 
       // test for parallelity: they are parallel,
       // if dx1 = dx2 and dy1 = dy2 and they don't have a common 
-      // starting od ending point
+      // starting or ending point
       dxp1 = ((double) px12) - ((double) px11);
       dyp1 = ((double) py12) - ((double) py11);
       dxp2 = ((double) px22) - ((double) px21);
       dyp2 = ((double) py22) - ((double) py21);
       
-      if ( AlmostEqual(dxp1, dxp2) &&  
-	   AlmostEqual(dyp1, dyp2) &&
-	   ( !AlmostEqual(px11,px21) ||
-	     !AlmostEqual(py11,py21) ||
-	     !AlmostEqual(px12,px22) ||
-	     !AlmostEqual(py12,py22)    ) )
+      if ( AlmostEqual(dxp1, dxp2) && AlmostEqual(dyp1, dyp2)      &&
+	   ( !AlmostEqual(px11,px21) || !AlmostEqual(py11,py21) )  &&
+	   ( !AlmostEqual(px12,px22) || !AlmostEqual(py12,py22) )   )
 	return 0; // they are parallel -> no intersection
 
 /*     
