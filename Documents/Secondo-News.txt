@@ -7,6 +7,18 @@
  Just add new messages directly below this text with a new header.
 
 
+2006-09-11 Support for MAC OSX  
+===============================================================================
+
+I have changed a lot of makefiles and cpp-files in order to make the 
+build process also possible on Mac OSX. It may happen, that now the system
+does not compile on Windows since I haven't it tested for this platform yet.
+
+In case of trouble please send a mail to markus.spiekermann(at)fernuni-hagen.de
+
+Regards 
+  Markus
+
 2006-08-22 New System Tables
 ===============================================================================
 
