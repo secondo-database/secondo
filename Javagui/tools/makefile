@@ -22,24 +22,16 @@
 # last changed : 11-2003
 
 include ../makefile.inc
+include ../../makefile.$(platform)
+include ../../makefile.jni
 
-platform := $(SECONDO_PLATFORM)
-ifeq ($(platform),win32)
-   GetEnvSO := ../lib/GetEnv.dll
-   JNI_MD := win32
-else
-   GetEnvSO := ../lib/libGetEnv.so
-   JNI_MD = linux
-endif
+GetEnvDLL := ../lib/libGetEnv.$(JNI_DLLEXT)
 
-ifndef GCC
-  GCC := gcc
-endif
+GCC := gcc
 
 
 CLASSFILES:= $(shell ls *.java | sed -e "s/java/class/")
-CLASSFILES+=GetEnv.h $(GetEnvSO)
-
+CLASSFILES+=GetEnv.h GetEnv.o $(GetEnvDLL)
 
 .PHONY: all 
 all: ../sj/lang/ListExpr.class $(CLASSFILES)
@@ -53,26 +45,29 @@ all: ../sj/lang/ListExpr.class $(CLASSFILES)
 
 
 GetEnv.h: GetEnv.java
-	$(JAVAH) -classpath .. -o GetEnv.h tools.GetEnv
+	$(JAVAH) -classpath .. -o $@ tools.GetEnv
 
 GetEnv.o: GetEnv.c
-	$(GCC) -fPIC -D_REENTRANT -Wall -I$(J2SDK_ROOT)/include -I$(J2SDK_ROOT)/include/$(JNI_MD) -I. -c GetEnv.c -o GetEnv.o
+	$(GCC) -fPIC -D_REENTRANT -Wall $(JNIINCLUDE) -I. -c $< -o $@ 
 
-../lib/libGetEnv.so: GetEnv.o
-	$(GCC) -shared -o $(GetEnvSO) GetEnv.o
-
-../lib/GetEnv.dll: GetEnv.o GetEnv.def
-	gcc -shared -Wl,-soname,GetEnv.dll -o $(GetEnvSO) GetEnv.o GetEnv.def
+ifeq ($(platform),win32)
+$(GetEnvDLL): GetEnv.o GetEnv.def
+	$(GCC) $(DLLFLAGS) -Wl,-soname,GetEnv.$(JNI_DLLEXT) -o $< $^
 
 GetEnv.def: GetEnv.o
-	dlltool -z GetEnv.def.tmp  GetEnv.o
-	sed -e "s#\(.*\)@\(.*\)@.*;#\1 = \1@\2;#g" GetEnv.def.tmp >GetEnv.def
-	rm GetEnv.def.tmp
+	dlltool -z $@.tmp $< 
+	sed -e "s#\(.*\)@\(.*\)@.*;#\1 = \1@\2;#g" $@.tmp > $@
+	rm $@.tmp
 
+else
+$(GetEnvDLL): GetEnv.o
+	$(GCC) $(DLLFLAGS) -o $@ $< $(JNI_CCFLAGS)
+
+endif
 
 .PHONY: clean
 clean:
 	rm -f *.class
-	rm -f GetEnv.o GetEnv.h $(GETENVSO) GetEnv.def
+	rm -f GetEnv.o GetEnv.h $(GetEnvDLL) GetEnv.def
 
 

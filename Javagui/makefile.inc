@@ -51,6 +51,12 @@ ifndef SECONDO_BUILD_DIR
 $(error Variable SECONDO_BUILD_DIR is not defined. This variable must hold the directory of Secondo)
 endif
 
+ifndef SECONDO_PLATFORM
+$(error Variable SECONDO_PLATFORM is not defined. This variable must hold the directory of Secondo)
+endif
+
+platform := $(SECONDO_PLATFORM)
+
 SECONDOPATH := $(SECONDO_BUILD_DIR)
 
 GUIPATH := $(SECONDOPATH)/Javagui
