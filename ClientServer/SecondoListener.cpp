@@ -39,6 +39,9 @@ const int EXIT_LISTENER_NOSERVER = 3;
 const int EXIT_LISTENER_NOSOCKET = 4;
 const int EXIT_LISTENER_FAIL     = 5;
 
+#include "LogMsg.h""
+CMsg cmsg;
+
 class SecondoListener : public Application
 {
  public:

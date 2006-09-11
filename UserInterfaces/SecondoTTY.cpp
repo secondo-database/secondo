@@ -95,7 +95,6 @@ using namespace std;
 #include "LogMsg.h"
 
 
-
 class SecondoTTY : public Application 
 {
  public:

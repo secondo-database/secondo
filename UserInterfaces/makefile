@@ -32,6 +32,7 @@ APPLOBJECTS := \
 	SecondoTTY.$(OBJEXT) \
 	DisplayTTY.$(OBJEXT) \
 	MainTTY.$(OBJEXT) \
+	cmsg.$(OBJEXT) \
 	MainTTYCS.$(OBJEXT)
 
 APPLICATIONS := $(BINDIR)/Secondo$(SMIUP) \
@@ -106,8 +107,8 @@ CCFLAGS += $(DEFAULTCCFLAGS)
 MainTTYCS.cpp: MainTTY.cpp
 	$(CP) $< $@ 
 
-%.dep: %.cpp
-	$(CC) -MM $(CCFLAGS) $< > $@
+#%.dep: %.cpp
+#	$(CC) -MM $(CCFLAGS) $< > $@
 
 MainTTYCS.$(OBJEXT): MainTTY.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS 
@@ -119,7 +120,7 @@ SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
 
 #  Rules for linkage
 
-APP_OBJECTS :=  SecondoTTY.o MainTTY.o TestRunner.o $(PL_OBJECTS) \
+APP_OBJECTS :=  SecondoTTY.o cmsg.o MainTTY.o TestRunner.o $(PL_OBJECTS) \
 		../ClientServer/SecondoServer.o \
 		SecondoInterface.o \
 		DisplayTTY.o \
@@ -136,7 +137,7 @@ $(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(APP_OBJECTS) $(PL_OBJECTS)
 	strip $@
 
 $(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES)
-$(BINDIR)/SecondoCS$(EXEEXT): SecondoTTY.o MainTTYCS.o TestRunner.o $(PL_OBJECTS) DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o
+$(BINDIR)/SecondoCS$(EXEEXT): cmsg.o SecondoTTY.o MainTTYCS.o TestRunner.o $(PL_OBJECTS) DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS)
 
 include $(CODE_DEPENDENCIES:.cpp=.dep)

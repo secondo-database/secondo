@@ -47,6 +47,7 @@ TestRunnerCS
 
 #include "License.h"
 #include "Application.h"
+#include "LogMsg.h"
 
 using namespace std;
 

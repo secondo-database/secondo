@@ -65,6 +65,7 @@ using namespace std;
 
 #include "CSProtocol.h"
 
+
 class SecondoServer;
 typedef void (SecondoServer::*ExecCommand)();
 

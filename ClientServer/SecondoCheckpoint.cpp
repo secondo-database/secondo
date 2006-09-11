@@ -53,6 +53,9 @@ const int EXIT_CHECKPOINT_NOENV = 1;
 const int EXIT_CHECKPOINT_NOPGF = 2;
 const int EXIT_CHECKPOINT_FAIL  = 3;
 
+#include "LogMsg.h""
+CMsg cmsg;
+
 class SecondoCheckpoint : public Application
 {
  public:

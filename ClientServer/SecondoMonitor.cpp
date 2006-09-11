@@ -37,6 +37,9 @@ using namespace std;
 #include "FileSystem.h"
 #include "CharTransform.h"
 
+#include "LogMsg.h""
+CMsg cmsg;
+
 class SecondoMonitor;
 typedef void (SecondoMonitor::*ExecCommand)();
 

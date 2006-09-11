@@ -68,6 +68,7 @@ This is the test enviroment for Secondo. The code is derived from SecondoTTY.
 #include "CharTransform.h"
 #include "LogMsg.h"
 
+
 using namespace std;
 
 class TestRunner : public Application
@@ -496,7 +497,8 @@ TestRunner::GetCommand()
               realValTolerance.isRelative = false;
               cout << "Absolute";
             }               
-            realValTolerance.value = parse<double>( toleranceStr.substr(offset) );
+            realValTolerance.value = 
+                        parse<double>( toleranceStr.substr(offset) );
             cout << " tolerance set to " 
                  << realValTolerance.value << suffix << endl;
           }

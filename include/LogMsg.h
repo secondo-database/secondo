@@ -302,22 +302,6 @@ In order to ensure that the instance works we will call the initialize function 
 of the applications.
 
 */
-  static void init()
-  {
-    if (!initialized) 
-    { 
-      stdOutput = 1; 
-      fp = new ofstream();
-      logFileStr = "secondo.log";
-      prefix = "tmp/";
-      files[logFileStr] = fp;
-      fp->open((prefix + logFileStr).c_str()); 
-      buffer.str("");
-      allErrors.str("");
-      devnull.str("");
-      initialized = true;
-    }
-  }
  
   CMsg()
   {
@@ -337,15 +321,15 @@ of the applications.
   
 private:
 
-  static bool initialized;
-  static int stdOutput;
-  static ofstream* fp;
-  static stringstream buffer;
-  static stringstream allErrors;
-  static stringstream devnull;
-  static string logFileStr;
-  static string prefix;
-  static map<string,ofstream*> files;
+  void init();
+  int stdOutput;
+  ofstream* fp;
+  stringstream buffer;
+  stringstream allErrors;
+  stringstream devnull;
+  string logFileStr;
+  string prefix;
+  map<string,ofstream*> files;
   
 };
 

@@ -288,14 +288,18 @@ Static members of class ~CMsg~.
 
 */
 
-bool CMsg::initialized = false;
-int CMsg::stdOutput = 0;
-ofstream* CMsg::fp = 0;
-stringstream CMsg::buffer;
-stringstream CMsg::allErrors;
-stringstream CMsg::devnull;
-string CMsg::logFileStr = "";
-string CMsg::prefix = "";
-map<string,ofstream*> CMsg::files;
-  
+void CMsg::init()
+{
+  { 
+    stdOutput = 1; 
+    fp = new ofstream();
+    logFileStr = "secondo.log";
+    prefix = "tmp/";
+    files[logFileStr] = fp;
+    fp->open((prefix + logFileStr).c_str()); 
+    buffer.str("");
+    allErrors.str("");
+    devnull.str("");
+  }
+}
 

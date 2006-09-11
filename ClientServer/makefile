@@ -25,6 +25,8 @@
 
 include ../makefile.env
 
+LD := g++
+
 LIBDIROBJECTS := $(LIBDIR)/SecondoInterfaceCS.$(OBJEXT)
 
 APPLICATIONS =\
