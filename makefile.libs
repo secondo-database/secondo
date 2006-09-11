@@ -74,6 +74,8 @@ ALL_LIB_OBJS := $(LIBDIR)/libsdbtool.$(LIBEXT) \
 		$(LIBDIR)/libsdbsys.$(LIBEXT) \
 		$(LIBDIR)/libsdbsocket.$(LIBEXT)
 
+LD := libtool -shared
+AR := ar 
 
 .PHONY: all
 all: $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbutils.$(LIBEXT) buildsmilibs $(LIBDIR)/libsdbsys.$(LIBEXT) $(LIBDIR)/libsdbsocket.$(LIBEXT)
@@ -98,7 +100,8 @@ ifeq ($(shared),yes)
 	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LDOPT) $(LIB_SDBTOOL_OBJECTS) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $(LIBDIR)/libsdbtool.$(LIBEXT) $^ 
+	$(AR) -r $@ $^
+	ranlib $@
 endif
 
 # --- Secondo Database Utilities Library ---
@@ -110,7 +113,8 @@ ifeq ($(shared),yes)
 	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbutils.$(LIBEXT) $(LDOPTTOOL) $(LIB_SDBUTILS_OBJECTS) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $(LIBDIR)/libsdbutils.$(LIBEXT) $^
+	$(AR) -r $@ $^
+	ranlib $@
 endif
 
 # --- Secondo Database System Library ---
@@ -122,7 +126,8 @@ ifeq ($(shared),yes)
 	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbsys.$(LIBEXT) $(LDOPT) $(LIB_SDBSYS_OBJECTS) -L$(LIBDIR) $(BDBSMILIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $(LIBDIR)/libsdbsys.$(LIBEXT) $^ 
+	$(AR) -r $@ $^
+	ranlib $@
 endif
 
 
@@ -135,7 +140,8 @@ ifeq ($(shared),yes)
 	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $^ -L$(LIBDIR) $(BDBSMILIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $(LIBDIR)/$(LIBNAME).$(LIBEXT) $^
+	$(AR) -r $@ $^
+	ranlib $@
 endif
 
 .PHONY: clean

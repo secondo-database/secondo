@@ -32,6 +32,9 @@ LIBNAME = libsmi$(SMILOW)
 .PHONY: buildlibs
 buildlibs: $(LIBNAME).$(LIBEXT)
 
+AR := ar 
+LD := libtool -shared
+
 # --- Storage Management Interface library ---
 
 $(LIBDIR)/libsmibdb.$(LIBEXT): $(OBJECTS)
@@ -40,7 +43,8 @@ ifeq ($(shared),yes)
 	$(LD) $(LDFLAGS) -o $@ $(LDOPT) $(BDBOBJECTS) -L$(BDBDIR)/lib $(BDBLIB) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $@ $(OBJECTS)
+	$(AR) -r $@ $<
+	ranlib $@
 endif
 
 include $(DEP_FILES)
