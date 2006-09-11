@@ -18,40 +18,59 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 include ../../makefile.env
+include ../../makefile.jni
 
-INCLUDEFLAGS = -I. -I$(JNI_INCLUDE) -I$(JNI_MD_INCLUDE) $(PLINCLUDEFLAGS) -I$(INCLUDEDIR)
+INCLUDEFLAGS := -I. $(JNIINCLUDE) $(PLINCLUDEFLAGS) -I$(INCLUDEDIR)
 
-LINKFILES = $(JPL_LIB)/jpl.o $(SECONDOPL_DIR)/SecondoPL.o $(LIBDIR)/SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceGeneral.o
+CCOBJECTS := $(JPL_LIB)/jpl.o
+OBJECTS := $(CCOBJECTS)
+ifeq ($(platform),win32)
+  DEF += jpl.def
+  OBJECTS += $(DEF)
+endif
+
+JNIDLL := $(OPTDIR)/$(SHARED_PREF)jpl.$(JNI_DLLEXT)
+
+LD := g++
+
+LINKFILES := $(SECONDO_BUILD_DIR)/UserInterfaces/cmsg.o $(SECONDOPL_DIR)/SecondoPL.o $(LIBDIR)/SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceGeneral.o
 
 # Some optional switches used for providing a prolog
 # predicate which maximizes the entropy. For details
 # refer to "SecondoPL.cpp" and the subdirectory "Optimizer/Entropy"
 
 ifdef ENTROPY
-
-LINKFILES += $(OPTDIR)/Entropy/Iterative_scaling.o
-
+  LINKFILES += $(OPTDIR)/Entropy/Iterative_scaling.o
 endif
-
 
 .PHONY: all
 all: compile build
 
 .PHONY:compile
-compile: $(JPL_LIB)/jpl.o
+compile: $(OBJECTS)
 
 .PHONY:build
-build: $(OPTDIR)/$(SHARED_PREF)jpl.$(SHARED_EXT)
+build: $(JNIDLL)
 
+$(JPL_LIB)/jpl.o: jpl_fli_Prolog.c
+	$(CC) -c -fPIC -g -o $@ $(INCLUDEFLAGS) $<
 
-$(JPL_LIB)/jpl.o:
-	$(CC) -c -fPIC -g -o $(JPL_LIB)/jpl.o $(INCLUDEFLAGS) jpl_fli_Prolog.c
+ifeq ($(platform),win32)
+$(JNIDLL): $(CCOBJECTS) $(LINKFILES) jpl.def
+	$(GCC) $(DLLFLAGS) -Wl,-soname,jpl.$(JNI_DLLEXT) -o $@ $^
 
-$(OPTDIR)/$(SHARED_PREF)jpl.$(SHARED_EXT):
-	$(CC) -shared $(EXEFLAGS) $(LDFLAGS) -Wl,-soname,$(SHARED_PREF)jpl.$(SHARED_EXT)\
-              -o $(OPTDIR)/$(SHARED_PREF)jpl.$(SHARED_EXT) $(LINKFILES) $(ENT_LINK_LIBS) $(LD_LINK_LIBS) $(PLLDFLAGS) $(JPLDEF)
+jpl.def: jpl.o
+	dlltool -z $@.tmp $< 
+	sed -e "s#\(.*\)@\(.*\)@.*;#\1 = \1@\2;#g" $@.tmp > $@
+	rm $@.tmp
+
+else
+$(JNIDLL): $(CCOBJECTS) $(LINKFILES) $(DEF) 
+	$(LD) $(DLLFLAGS) $(EXEFLAGS) $(LDFLAGS) \
+              -o $@ $(CCOBJECTS) $(LINKFILES) \
+		$(ENT_LINK_LIBS) $(LD_LINK_LIBS) $(JNI_CCFLAGS) $(PLLDFLAGS) $(JPLDEF)
+endif
 
 .PHONY:clean
 clean:
-	rm -f jpl_fli_Prolog.h
-	rm -f $(OPTDIR)/$(SHARED_PREF)jpl.$(SHARED_EXT)
+	rm -f $(OBJECTS) $(JNIDLL)
