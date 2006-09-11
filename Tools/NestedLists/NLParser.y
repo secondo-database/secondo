@@ -52,8 +52,8 @@ revised. Refer to NLParser.cpp.
 
 using namespace std;
 
-extern CMsg cmsg;
-extern NestedList* nl;
+//extern CMsg cmsg;
+//extern NestedList* nl;
 
 
 static stack<ListExpr> lists;
