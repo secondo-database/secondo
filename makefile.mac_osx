@@ -26,11 +26,10 @@
 # Note: Currently we don't support MAC OSX. However, we
 # invested some time to change the source code and makefiles
 # in some places in order to make it happen that SECONDO can be
-# compiled with MAC OSX using gcc 4.0. Unfortunately the built
-# executable crashes after startup with a bus error :-<
+# compiled with MAC OSX using gcc 4.0. But the installation of all
+# desired 3rd party tools may be complicated.
 #
-# Currently we don't want to spend more time to fix the problem.
-# If you managed to build and run it, please report it to
+# If you also managed to build and run it on MAC OSX, please report it to
 # secondo@fernuni-hagen.de
 #
 # Best Regards
@@ -50,8 +49,8 @@ DEFAULTLIB = -lpthread -lm -ldl -lstdc++
 ifeq ($(shared),yes)
 PICFLAG := -fPIC
 OBJEXT := lo
-LIBEXT := so
-LDFLAGS := -s -shared
+LIBEXT := dynlib 
+LDFLAGS := -bundle -flatnamespace
 else
 OBJEXT := o
 LIBEXT := a
@@ -61,5 +60,5 @@ endif
 
 DLLPICFLAG := -fPIC
 DLLOBJEXT := lo
-DLLEXT := so
-DLLFLAGS := -s -shared
+DLLEXT := dylib 
+DLLFLAGS := -dynamiclib
