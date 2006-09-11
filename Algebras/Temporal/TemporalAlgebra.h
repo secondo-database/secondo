@@ -1045,12 +1045,12 @@ The destructor.
 */
     bool IsDefined() const
     {
-      return defined;
+      return TemporalUnit<Alpha>::defined;
     }
 
     void SetDefined( bool Defined )
     {
-      defined = Defined;
+      TemporalUnit<Alpha>::defined = Defined;
     }
 
     virtual int Compare( const Attribute* arg ) const
