@@ -22,50 +22,99 @@ JNITool_O_FILE = $(SECONDO_BUILD_DIR)/Tools/Jni/JNITool.o
 
 JNILIBFILES = $(JVMINIT_O_FILE) $(JNITool_O_FILE)
 
-
 ifeq ($(platform),win32)
 # MinGW definitions.
-MINGW_EXTRA = C:/msys/1.0/mingw
-JAVACLASSPATHS = -classpath .:$(JARDIR)/sj.jar
-JAVAC = $(J2SDK_ROOT)/bin/javac $(JAVACLASSPATHS) -verbose
-JAR = $(J2SDK_ROOT)/bin/jar
-JVMINIT_H_DIR = $(SECONDO_BUILD_DIR)/include
-JNIINCLUDE = -I$(J2SDK_ROOT)/include -I$(J2SDK_ROOT)/include/win32  -I$(JVMINIT_H_DIR)
-LDJNIFLAGS = -mno-cygwin -L$(MINGW_EXTRA)/lib
-JARDIR = .
-DLLTOOL = dlltool
-JNILINKOPTS = $(JNIINCLUDE) $(LDFLAGS) -L. -L$(J2SDK_ROOT)/jre/bin/client -ljvm
+#JAVACLASSPATHS = -classpath .:$(JARDIR)/sj.jar
+#JAVAC = $(J2SDK_ROOT)/bin/javac $(JAVACLASSPATHS) -verbose
+#JAR = $(J2SDK_ROOT)/bin/jar
+JNI_H_DIR := -I$(JSDK_ROOT)/include 
 
-else
-# Linux definitions
-#CC= g++
-
-# directory where i can find the jni.h
-JNI_H_DIR =$(J2SDK_ROOT)/include
-
-# directory where i can find the libjava.so
-LIBJAVA_DIR =$(J2SDK_ROOT)/jre/lib/i386
+LIBJAVA_DIR := $(J2SDK_ROOT)/jre/bin
 
 # directory of libjvm.so
-LIBJVM_DIR =$(LIBJAVA_DIR)/client
+LIBJVM_DIR := $(LIBJAVA_DIR)/client
+
+#MINGW_EXTRA := C:/msys/1.0/mingw
+#LDJNIFLAGS := -mno-cygwin -L$(MINGW_EXTRA)/lib
+#JARDIR := .
+DLLTOOL := dlltool
+#JNILINKOPTS := $(JNIINCLUDE) $(LDFLAGS) -L. -L$(J2SDK_ROOT)/jre/bin/client -ljvm
+
+OS_DIR := win32
+
+endif
+
+ifeq ($(platform),linux)
+
+# directory where i can find the jni.h
+JNI_H_DIR := $(J2SDK_ROOT)/include
+
+# directory where i can find the libjava.so
+LIBJAVA_DIR := $(J2SDK_ROOT)/jre/lib/i386
+
+# directory of libjvm.so
+LIBJVM_DIR := $(LIBJAVA_DIR)/client
 
 # directotry of libverify.so
-LIBVERIFY_DIR = $(LIBJAVA_DIR)
-
-# position of JVMInit.
-JVMINIT_DIR = $(SECONDO_BUILD_DIR)/Tools/Jni
+LIBVERIFY_DIR := $(LIBJAVA_DIR)
 
 # position of jni_md.h relativly to jni.h-dir
 OS_DIR=linux
 
+endif
+
+ifeq ($(platform),mac_osx)
+
+# directory where i can find the jni.h
+JNI_H_DIR := $(J2SDK_ROOT)/Headers
+
+# directory of libjvm.so
+#LIBJVM_DIR := $(J2SDK_ROOT)/Libraries
+
+# directory where i can find the libjava.so
+#LIBJAVA_DIR := $(J2SDK_ROOT)/jre/lib/i386
+
+# directotry of libverify.so
+#LIBVERIFY_DIR := $(LIBJVM_DIR)
+
+#linkflags
+JNI_CCFLAGS := -framework JavaVM
+
+endif
 
 ############# end of configuration part #############################
 
-JNIINCLUDE =  -I$(JNI_H_DIR) -I$(JNI_H_DIR)/$(OS_DIR)  -I$(INCLUDEDIR)
-
-JNILINKOPTS = -L$(LIBJVM_DIR) -I$(LIBVERIFY_DIR) -L$(LIBJAVA_DIR)  -ljava -ljvm -lverify  
-
+ifeq ($(platform),mac_osx)
+  JNI_DLLEXT := jnilib
+else
+  JNI_DLLEXT := DLLEXT
 endif
+
+# position of JVMInit.
+JVMINIT_DIR := $(SECONDO_BUILD_DIR)/Tools/Jni
+
+JNIINCLUDE := -I$(JNI_H_DIR) 
+
+ifdef OS_DIR
+JNIINCLUDE += -I$(JNI_H_DIR)/$(OS_DIR) 
+endif
+
+JNIINCLUDE += -I$(INCLUDEDIR)
+
+JNILINKOPTS := $(JNI_CCFLAGS) 
+
+ifdef LIBJAVA_DIR
+JNILINKOPTS += -L$(LIBJAVA_DIR) -ljvm
+endif
+
+ifdef LIBJAVA_DIR
+JNILINKOPTS += -L$(LIBJAVA_DIR) -ljava
+endif
+
+ifdef LIBVERIFY_DIR
+JNILINKOPTS += -L$(LIBVERIFY_DIR) -lverify
+endif
+
 
 JNITEXT= "\n* You try to use algebras using JNI! Please check the settings" \
 	 "\n* in bin/JNI.ini. If you are working under linux ensure " \
