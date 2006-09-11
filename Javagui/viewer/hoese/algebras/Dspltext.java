@@ -401,7 +401,7 @@ public TextViewerFrame(){
   RtfBtn.addActionListener(FormatSwitcher);
   PdfBtn.addActionListener(FormatSwitcher);
 
-  JPanel ControlPanel = new JPanel(new GridLayout(2,1));
+  JPanel ControlPanel = new JPanel(new GridLayout(3,1));
   JPanel FormatPanel = new JPanel();
   FormatPanel.add(new JLabel("show as : "));
   FormatPanel.add(PlainBtn);
