@@ -62,10 +62,6 @@ using namespace std;
 #define _POSIX_OPEN_MAX 256
 #endif
 
-// global instance of a Message object. All messages should be reported
-// using this object to have a flexible mechanism for message handling.
-// The class is dclared in the file LogMsg.h.
-CMsg cmsg;
 
 
 Application* 
@@ -87,7 +83,6 @@ Class constructors/destructors
 
 Application::Application( int argc, const char** argv )
 {
-  cmsg.init();
   if ( appPointer )
   {
     cerr << "Fatal error: Only one *Application* instance allowed!" << endl;
