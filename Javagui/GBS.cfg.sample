@@ -72,9 +72,10 @@ MAXCAPTUREPIXELS 15000000
 # maxsize for  complete background image
 MAXPIXELS 8000000
 
-# enable automatic computation of categories by default
-AUTOCAT false
 
+# set the category selection mode
+# valid values are MANUAL , AUTO, BY_NAME
+CATEGORY_SELECTION MANUAL
 
 # set the bounding box required by unbounded spatial objects
 # the format is:  left bottom width height

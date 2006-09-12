@@ -148,27 +148,78 @@ public class GraphWindow extends JLayeredPane
    */
   public JToggleButton addLayerObjects (Vector grob) {
     Category acat;
-    if (mw.isAutoCatMI.isSelected()) {
-      acat = createAutoCat();
-      ListIterator li = grob.listIterator();
-      while (li.hasNext()) {
-        DsplGraph dg = ((DsplGraph)li.next());
-    if(dg==null)
-       Reporter.writeError("viewer.hoese.GraphWindow .addLayerObjects has received a null object");
-    else
-           dg.setCategory(acat);
-        //dg.LabelText=dg.getAttrName();
-      }
+    int catSelMode = CurrentState.getCatSelectionMode();
+
+    switch(catSelMode){
+       case CurrentState.CATEGORY_AUTO: {
+                acat = createAutoCat();
+                ListIterator li = grob.listIterator();
+                while (li.hasNext()) {
+                   DsplGraph dg = ((DsplGraph)li.next());
+                   if(dg==null){
+                        Reporter.writeError("viewer.hoese.GraphWindow .addLayerObjects"+
+                                            " has received a null object");
+                   } else {
+                      dg.setCategory(acat);
+                   }
+                }
+                break;
+            }
+      case CurrentState.CATEGORY_MANUAL: {
+               newQueryRepresentation(grob);          
+               break;
+           }
+      case CurrentState.CATEGORY_BY_NAME: {
+              int size = grob.size();
+              Vector remaining = new Vector(size); // objects which have no category with
+                                                   // the same name
+              for(int i=0;i<size;i++){
+                 DsplGraph dg = (DsplGraph)grob.get(i);
+                 if(dg==null){
+                    Reporter.writeError("GraphWindow.addLayerObjects received a NULL object");
+                 } else{
+                    String attrName = dg.getAttrName();
+                    Category cat = getCategory(attrName);
+                    if(cat==null){
+                       remaining.add(dg);
+                    } else {
+                        dg.setCategory(cat);
+                    }
+                 } 
+              }
+              // process remaining objects
+              if(remaining.size()>0){
+               newQueryRepresentation(remaining);
+              }
+              break;
+           }
+      default : {
+                  Reporter.writeError("GraphWindow.addLayerObjects: unknown category selection mode");
+                  newQueryRepresentation(grob);
+                }
     }
-    else
-      newQueryRepresentation(grob);             // spaeter werden hier aus Viewconfig den GOs die Cats,Labels zugeordnet
     Layer lay = new Layer(grob, this);
-    //    add (lay,new Integer(highestLayer()+1));
     int Laynr = ++highest;
     add(lay, new Integer(Laynr));
     mw.updateViewParameter();
     return  lay.CreateLayerButton(LayerButtonListener, Laynr);
   }
+
+  /** Computes the category with the given name.
+    * If not such category is found, NULL is returned.
+    */
+  Category getCategory(String name){
+     Vector cats = mw.Cats;
+     int size = cats.size();
+     for(int i=0;i<size;i++){
+        Category Cat = (Category)cats.get(i);
+        if(Cat.getName().equals(name))
+            return Cat;
+     }
+     // nothing found
+     return null;
+  }  
+
 
   /**
    * Adds the Layer l to the top of layerstack

@@ -144,8 +144,10 @@ public class HoeseViewer extends SecondoViewer {
   private JMenuItem MI_PrjSettings;
   private ProjectionSelector PrjSelector;
 
-  /** True if menu-entry 'automatic category' is selected */
-  public javax.swing.JCheckBoxMenuItem isAutoCatMI;
+  private JRadioButtonMenuItem catManual;
+  private JRadioButtonMenuItem catAuto;
+  private JRadioButtonMenuItem catByName;
+
   private JMenuItem selectSequenceCat;
   private JRadioButtonMenuItem create_Rectangle_MI;
   private JRadioButtonMenuItem create_PointSequence_MI;
@@ -721,7 +723,38 @@ public class HoeseViewer extends SecondoViewer {
     });
 
     MINewCat = new javax.swing.JMenuItem();
-    isAutoCatMI = new javax.swing.JCheckBoxMenuItem();
+    
+    catManual = new JRadioButtonMenuItem("Category manual");
+    catAuto   = new JRadioButtonMenuItem("Category auto");
+    catByName = new JRadioButtonMenuItem("Category by name");
+
+    ButtonGroup catSelGroup = new ButtonGroup(); 
+    catSelGroup.add(catManual);
+    catSelGroup.add(catAuto);
+    catSelGroup.add(catByName);
+
+    ItemListener catSelChangeList = new ItemListener(){
+       public void itemStateChanged(ItemEvent evt){
+           if(evt.getStateChange()==ItemEvent.SELECTED){
+               Object i = evt.getItem();
+               if(i==catManual){
+                 CurrentState.setCatSelectionMode(CurrentState.CATEGORY_MANUAL);
+               } else if(i==catAuto){
+                 CurrentState.setCatSelectionMode(CurrentState.CATEGORY_AUTO);
+               } else if(i==catByName){
+                 CurrentState.setCatSelectionMode(CurrentState.CATEGORY_BY_NAME);
+               } else {
+                  Reporter.writeError("unknown item detected for changing cat selection mode");
+               }
+           }
+       }
+    };
+    catManual.addItemListener(catSelChangeList);
+    catAuto.addItemListener(catSelChangeList);
+    catByName.addItemListener(catSelChangeList);
+
+
+
     jSeparator5 = new javax.swing.JSeparator();
     MILayerMgmt = new javax.swing.JMenuItem();
     Menu_Prj = new JMenu("Projections");
@@ -923,8 +956,12 @@ public class HoeseViewer extends SecondoViewer {
        }});
 
 
-    isAutoCatMI.setText("Auto category");
-    jMenuGui.add(isAutoCatMI);
+    jMenuGui.add(new JSeparator());
+    jMenuGui.add(catManual);
+    jMenuGui.add(catAuto);
+    jMenuGui.add(catByName);
+    jMenuGui.add(new JSeparator());
+    
     JMenu createMenu = new JMenu("Object Creation");
    // jMenuGui.add(createMenu); // moved into the main menu
     selectSequenceCat = new JMenuItem("Select Category");
@@ -1726,9 +1763,35 @@ public boolean canDisplay(SecondoObject o){
 
   /** switchs to the testmode **/
   public void enableTestmode(boolean on){
-     isAutoCatMI.setSelected(on);
+     if(on){
+        setCatSelectionMode(CurrentState.CATEGORY_AUTO);
+     }
   }
 
+
+  /** sets the mode for selection categories **/
+  private void setCatSelectionMode(int mode){
+     switch(mode){
+       case CurrentState.CATEGORY_MANUAL: {
+               CurrentState.setCatSelectionMode(mode);
+               catManual.setSelected(true);
+               break;
+            }
+       case CurrentState.CATEGORY_AUTO: {
+               CurrentState.setCatSelectionMode(mode);
+               catAuto.setSelected(true);
+               break;
+            }
+       case CurrentState.CATEGORY_BY_NAME: {
+               CurrentState.setCatSelectionMode(mode);
+               catByName.setSelected(true);
+               break;
+            }
+       default: Reporter.writeError("invalid value for category selection mode");
+     }
+   }
+
+   
 
 
   /**
@@ -2511,11 +2574,44 @@ public boolean canDisplay(SecondoObject o){
 
 
        }
-    String AutoCat = configuration.getProperty("AUTOCAT");
-    if(AutoCat!=null && AutoCat.trim().toUpperCase().equals("TRUE")){
-      isAutoCatMI.setSelected(true);
-    }
 
+    // category selection mode
+    boolean catSelDone = false;
+    String catSel = configuration.getProperty("CATEGORY_SELECTION");
+    if(catSel!=null){
+       catSel = catSel.trim().toUpperCase();
+       if(catSel.equals("MANUAL")){
+            setCatSelectionMode(CurrentState.CATEGORY_MANUAL);
+            catSelDone=true;
+       } else if(catSel.equals("AUTO")){
+            setCatSelectionMode(CurrentState.CATEGORY_AUTO);
+            catSelDone=true;
+       } else if(catSel.equals("BY_NAME")){
+            setCatSelectionMode(CurrentState.CATEGORY_BY_NAME);
+            catSelDone=true;
+       } else {
+            Reporter.writeError("invalid value for category selection mode \n"+
+                                " valid are MANUAL, AUTO , and BY_NAME");
+            setCatSelectionMode(CurrentState.CATEGORY_MANUAL);
+            catSelDone=true;
+       }
+    }
+   
+    String autocat = configuration.getProperty("AUTOCAT");
+    if(!catSelDone && autocat!=null){
+      Reporter.writeWarning("using deprecated AUTOCAT in configuration file \n"+
+                            "use CATEGORY_SELECTION instead");
+      if(autocat.trim().toUpperCase().equals("TRUE")){
+           setCatSelectionMode(CurrentState.CATEGORY_AUTO);
+      } else{
+           setCatSelectionMode(CurrentState.CATEGORY_MANUAL);
+      }
+      catSelDone=true;
+    }
+    if(!catSelDone){
+        Reporter.writeInfo("using default category selection mode");
+        setCatSelectionMode(CurrentState.CATEGORY_MANUAL);
+    }
 
     String WorldBB = configuration.getProperty("WORLD_BOUNDING_BOX");
     if(WorldBB==null){
