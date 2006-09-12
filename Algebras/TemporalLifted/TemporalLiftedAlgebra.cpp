@@ -2624,7 +2624,7 @@ void MovingRegionCompareMS( MRegion *mr, Region *r, MBool *result,
       delete between;
       const Interval<Instant> *per;
       for(int i = 0; i < pResult->GetNoComponents(); i++){
-        Region snapshot;
+        Region snapshot(0);
         if(TLA_DEBUG)
           cout<<"add interval # "<<i<<endl;
         pResult->Get(i, per);
@@ -2819,8 +2819,8 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
       So it is used the 10 and 90 percent time of the uregion.
     
       */
-      Region snapshot1;
-      Region snapshot2;
+      Region snapshot1(0);
+      Region snapshot2(0);
       if(TLA_DEBUG)
         cout<<"uregions are possibly equal. Create snapshots"<<endl;
       Instant time;
@@ -2863,8 +2863,8 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
     const Interval<Instant> *per;
     bool finished = false;
     for(int i = 0; i < pResult->GetNoComponents(); i++){
-      Region snapshot1;
-      Region snapshot2;
+      Region snapshot1(0);
+      Region snapshot2(0);
       pResult->Get(i, per);
       if(TLA_DEBUG)
         cout<<"test time # "<<i<<" "<<per->start.ToString()<<endl;

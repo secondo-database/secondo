@@ -2740,7 +2740,7 @@ int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
       res->StartBulkLoad();
       
       // Definition of an empty region:
-      Region rg;
+      Region rg(0);
       HalfSegment hs;
       
       
