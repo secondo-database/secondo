@@ -31,7 +31,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SocketIO.h"
 #include "Profiles.h"
 #include "CharTransform.h"
-#include "LogMsg.h"
 
 using namespace std;
 
@@ -39,9 +38,6 @@ const int EXIT_REGISTRAR_OK       = 0;
 const int EXIT_REGISTRAR_NOQUEUE  = 1;
 const int EXIT_REGISTRAR_ABORT    = 2;
 
-// define some variables which are declared as external
-// in the above header files
-CMsg cmsg;
 
 class SecondoRegistrar;
 typedef void (SecondoRegistrar::*ExecCommand)();
