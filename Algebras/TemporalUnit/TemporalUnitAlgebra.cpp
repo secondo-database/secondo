@@ -2411,10 +2411,12 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 {
   MappingUnitAt_rLocalInfo *localinfo;
   double radicand, a, b, c, r, y;
-  DateTime t1, t2;
+  DateTime t1 = DateTime(instanttype);
+  DateTime t2 = DateTime(instanttype);
   Interval<Instant> rdeftime, deftime;
   UReal *uinput;
   CcReal *value;
+  Word a0, a1;
   
 
   switch (message)
@@ -2426,13 +2428,14 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
       cout << "  1" << endl;
-      
-      value = (CcReal*)(args[1].addr);
+
+      qp->Request(args[0].addr, a0);
+      uinput = (UReal*)(a0.addr);
       cout << "  1.1" << endl;
 
-      uinput = (UReal*)(args[0].addr);
+      qp->Request(args[1].addr, a1);
+      value = (CcReal*)(a1.addr);
       cout << "  1.2" << endl;
-
 
       cout << "  2" << endl;
 
@@ -2442,7 +2445,7 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
       if ( !uinput->IsDefined() ||
 	   !value->IsDefined() )
 	{ // some input is undefined -> return empty stream
-	  cout << "  3" << endl;
+	  cout << "  3: Some input is undefined. No result." << endl;
 	  localinfo->NoOfResults = 0;
 	  localinfo->finished = true;
 	  local = SetWord(localinfo);
@@ -2450,19 +2453,22 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 	  return 0;
 	}
       cout << "  4" << endl;
+
       y = value->GetRealval();
-      
       a = uinput->a;
       b = uinput->b;
       c = uinput->c;
       r = uinput->r;
       deftime = uinput->timeInterval;
 
+      cout << "    The UReal is" << " a= " << a << " b= " 
+	   << b << " c= " << c << " r= " << r << endl;
+      cout << "    The Real is y=" << y << endl;
       cout << "  5" << endl;
 	    
       if ( (a == 0) && (b == 0) )
 	{ // constant function. Possibly return input unit
-	  cout << "  6" << endl;
+	  cout << "  6: 1st arg is a constant value" << endl;
 	  if (c != y)
 	    { // There will be no result, just an empty stream
 	      cout << "  7" << endl;
@@ -2471,7 +2477,10 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 	    }
 	  else
 		{ // Return the complete unit
-		  cout << "  8" << endl;
+		  cout << "  8: Found constant solution" << endl;
+		  cout << "    T1=" << c << endl;
+		  cout << "    Tstart=" << deftime.start.ToDouble() << endl;
+		  cout << "    Tend  =" << deftime.end.ToDouble() << endl;
 		  (UReal*)(localinfo->runits[localinfo->NoOfResults].addr)
 		    = uinput->Copy();
 		  localinfo->NoOfResults++;
@@ -2486,11 +2495,15 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
       if ( (a == 0) && (b != 0) )
 	{ // linear function. Possibly return input unit restricted 
 	  // to single value
-	  cout << "  11" << endl;
-	  t1.ReadFrom( (y - c)/b );
+	  cout << "  11: 1st arg is a linear function" << endl;
+	  double T1 = (y - c)/b;
+	  cout << "    T1=" << T1 << endl;	  
+	  cout << "    Tstart=" << deftime.start.ToDouble() << endl;
+	  cout << "    Tend  =" << deftime.end.ToDouble() << endl;	  
+	  t1.ReadFrom( T1 + deftime.start.ToDouble() );
 	  if (deftime.Contains(t1))
 	    { // value is contained by deftime
-	      cout << "  12" << endl;
+	      cout << "  12: Found valid linear solution." << endl;
 	      (UReal*)(localinfo->runits[localinfo->NoOfResults].addr) = 
 		uinput->Copy();
 	      ((UReal*)(localinfo
@@ -2502,7 +2515,7 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 	    }
 	  else
 	    { // value is not contained by deftime -> no result
-	      cout << "  14" << endl;
+	      cout << "  14: Found invalid linear solution." << endl;
 	      localinfo->NoOfResults = 0;
 	      localinfo->finished = true;
 	      cout << "  15" << endl;
@@ -2514,19 +2527,31 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 	}
       
       cout << "  17" << endl;
-      radicand = ((y - c) / a) + ((b * b) / (4 * a * a));
-      if ( (a != 0) && (radicand <= 0) )
+      radicand = (b*b + 4*a*(y-c));
+      if ( (a != 0) && (radicand >= 0) )
 	{ // quadratic function. There are possibly two result units
 	  // calculate the possible t-values t1, t2
 	  
-	  cout << "  18" << endl;
-	  t1.ReadFrom( sqrt(radicand) );
-	  t2.ReadFrom( -sqrt(radicand) );
+/*
+The solution to the equation $at^2 + bt + c = y$ is 
+\[t_{1,2} = \frac{-b \pm \sqrt{b^2-4a(c-y)}}{2a},\] for $b^2-4a(c-y) = b^2+4a(y-c) \geq 0$.
+
+
+*/
+	  cout << "  18: 1st arg is a quadratic function" << endl;
+	  double T1 = (-b + sqrt(radicand)) / (2*a);
+	  double T2 = (-b - sqrt(radicand)) / (2*a);
+	  cout << "    T1=" << T1 << endl;
+	  cout << "    T2=" << T2 << endl;
+	  cout << "    Tstart=" << deftime.start.ToDouble() << endl;
+	  cout << "    Tend  =" << deftime.end.ToDouble() << endl;	  
+	  t1.ReadFrom( T1 + deftime.start.ToDouble() );
+	  t2.ReadFrom( T2 + deftime.start.ToDouble() );
 	  
 	  // check, whether t1 contained by deftime
-	  if (deftime.Contains(Instant(t1)))
+	  if (deftime.Contains( t1 ))
 	    {
-	      cout << "  19" << endl;
+	      cout << "  19: Found first quadratic solution" << endl;
 	      rdeftime.start = t1;
 	      rdeftime.end = t1;
 	      localinfo->runits[localinfo->NoOfResults].addr = 
@@ -2536,9 +2561,9 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 	      cout << "  20" << endl;
 	    }
 	  // check, whether t2 contained by deftime
-	  if (deftime.Contains( t2 ))
+	  if ( !(t1 == t2) && (deftime.Contains( t2 )) )
 	    {
-	      cout << "  21" << endl;
+	      cout << "  21: Found second quadratic solution" << endl;
 	      rdeftime.start = t2;
 	      rdeftime.end = t2;
 	      localinfo->runits[localinfo->NoOfResults].addr = 
@@ -2548,9 +2573,10 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 	      cout << "  22" << endl;
 	    }
 	}
-      else // there is no result unit
+      else // negative discreminant -> there is no real solution 
+	   //                          and no result unit
 	{
-	  cout << "  23" << endl;
+	  cout << "  23: No real-valued solution" << endl;
 	  localinfo->NoOfResults = 0;
 	  localinfo->finished = true;
 	  cout << "  24" << endl;
@@ -2569,6 +2595,9 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 	  return CANCEL;
 	}
       localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
+      cout << "\n   localinfo: finished=" << localinfo->finished 
+	   << " NoOfResults==" << localinfo->NoOfResults << endl;
+
       if (localinfo->finished)
 	{
 	  cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (2)" << endl;
@@ -5392,7 +5421,7 @@ int atmaxUReal( Word* args, Word& result, int message,
   double  v_start, v_end, v_extr; // values at resp. instants
   double  a, b, c, r;
   int     maxValIndex;
-  Instant t;
+  Instant t = DateTime(instanttype);
   Word    a0;
 
   result = qp->ResultStorage( s );
@@ -5401,20 +5430,26 @@ int atmaxUReal( Word* args, Word& result, int message,
     {
     case OPEN :
 
+      cout << "\nAtExtrURealLocalInfo: OPEN " << endl;
       qp->Request(args[0].addr, a0);
       ureal = (UReal*)(a0.addr);
+      cout << "  1" << endl;
 
       sli = new AtExtrURealLocalInfo;
       sli->NoOfResults = 0;
       sli->ResultsDelivered = 0;
       local = SetWord(sli);
+      cout << "  2" << endl;
 
-      if ( !ureal->IsDefined() )
+      if ( !(ureal->IsDefined()) )
 	{ // ureal undefined
 	  // -> return empty stream
+	  cout << "  2.1" << endl;
 	  sli->NoOfResults = 0;
+	  cout << "AtExtrURealLocalInfo: OPEN  finished (1)" << endl;
 	  return 0;
 	}
+      cout << "  3" << endl;
 
       if ( (ureal->timeInterval.start).ToDouble() == 
 	   (ureal->timeInterval.start).ToDouble() )
@@ -5422,8 +5457,10 @@ int atmaxUReal( Word* args, Word& result, int message,
 	  // -> return a copy of the ureal	  
 	  sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	  sli->NoOfResults++;
+	  cout << "AtExtrURealLocalInfo: OPEN  finished (2)" << endl;
 	  return 0;
 	}
+      cout << "  4" << endl;
 
       if (ureal->a == 0)
 	{ 
@@ -5432,6 +5469,7 @@ int atmaxUReal( Word* args, Word& result, int message,
 	      // the only result is a copy of the argument ureal
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	      sli->NoOfResults++;
+	      cout << "AtExtrURealLocalInfo: OPEN  finished (3)" << endl;
 	      return 0;
 	    }
 	  if ( ureal->b < 0 )
@@ -5443,6 +5481,7 @@ int atmaxUReal( Word* args, Word& result, int message,
 		sli->t_res[sli->NoOfResults].timeInterval.start;
 	      sli->t_res[sli->NoOfResults].timeInterval.rc = true;
 	      sli->NoOfResults++;
+	      cout << "AtExtrURealLocalInfo: OPEN  finished (4)" << endl;
 	      return 0;
 	    }
 	  if ( ureal->b > 0 )
@@ -5454,13 +5493,16 @@ int atmaxUReal( Word* args, Word& result, int message,
 		sli->t_res[sli->NoOfResults].timeInterval.end;
 	      sli->t_res[sli->NoOfResults].timeInterval.lc = true;	      
 	      sli->NoOfResults++;
+	      cout << "AtExtrURealLocalInfo: OPEN  finished (5)" << endl;
 	      return 0;
 	    }
 	}
+      cout << "  5" << endl;
 
       if (ureal->a !=0) 
 	{ // quadratic function
 	  // we have to additionally check for the extremum 
+	  cout << "  5.1" << endl;
 	  
 	  // get the times of interest
 	  a = ureal->a;
@@ -5468,27 +5510,45 @@ int atmaxUReal( Word* args, Word& result, int message,
 	  c = ureal->c;
 	  r = ureal->r;
 	  t_extr  = -b/a; 
-	  t_start = (ureal->timeInterval.start).ToDouble();
-	  t_end   = (ureal->timeInterval.end).ToDouble();
+	  t_start =   0.0;
+	  t_end   =   (ureal->timeInterval.end).ToDouble() 
+	            - (ureal->timeInterval.start).ToDouble();
 	  // get the values of interest
 	  v_extr  = getValUreal(t_extr, a,b,c,r);
 	  v_start = getValUreal(t_start,a,b,c,r);
 	  v_end   = getValUreal(t_end,  a,b,c,r);
-	  // compute, which values are maximal
-	  maxValIndex = getMaxValIndex(v_extr,v_start,v_end);
+	  cout << "  5.2" << endl;
 
+	  // compute, which values are maximal
+	  if ( (t_start <= t_extr) && (t_end   >= t_extr) )
+	    {
+	      cout << "  5.3" << endl;
+	      maxValIndex = getMaxValIndex(v_extr,v_start,v_end);
+	    }
+	  else 
+	    { 
+	      cout << "  5.4" << endl;
+	      maxValIndex = 0;
+	      if (v_start >= v_end) 
+		maxValIndex += 2;
+	      if (v_end >= v_start) 
+		maxValIndex += 4;
+	    }
+	  cout << "  5.5" << endl;
 	  if (maxValIndex & 2)
 	    { // start value
+	      cout << "  5.6" << endl;
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-	      t.ReadFrom(t_start);
+	      t.ReadFrom(t_start + (ureal->timeInterval.start).ToDouble());
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
 	    }
-	  if (maxValIndex & 4)
+	  if ( ( maxValIndex & 4 ) && ( t_end != t_start ) )
 	    { // end value
+	      cout << "  5.7" << endl;
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-	      t.ReadFrom(t_end);
+	      t.ReadFrom(t_end + (ureal->timeInterval.start).ToDouble());
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
@@ -5496,38 +5556,47 @@ int atmaxUReal( Word* args, Word& result, int message,
 	  
 	  if ( (maxValIndex & 1)   && 
                (t_extr != t_start) && 
-               (t_extr != t_end)      )
+               (t_extr != t_end)      )	    
 	    {
+	      cout << "  5.8" << endl;
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-	      t.ReadFrom(t_extr);
+	      t.ReadFrom(t_extr + (ureal->timeInterval.start).ToDouble());
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
 	    }
-	  
-	  sli->NoOfResults++;
+	  cout << "  5.9" << endl;
 	  return 0;
 	}
+      cout << "  6" << endl;
       cout << "\natmaxUReal (OPEN): This should not happen!" << endl;
-      sli->NoOfResults++;
+      cout << "AtExtrURealLocalInfo: OPEN  finished (6)" << endl;
       return 0;
 
     case REQUEST :
 
+      cout << "\nAtExtrURealLocalInfo: REQUEST" << endl;
       if (local.addr == 0)
-	return CANCEL;
+	{
+	  cout << "AtExtrURealLocalInfo: REQUEST CANCEL(1)" << endl;
+	  return CANCEL;
+	}
       sli = (AtExtrURealLocalInfo*) local.addr;
       
       if (sli->NoOfResults <= sli->ResultsDelivered)
-	return CANCEL;
-
+	{
+	  cout << "AtExtrURealLocalInfo: REQUEST CANCEL (2)" << endl;
+	  return CANCEL;
+	}
       result = SetWord( sli->t_res[sli->ResultsDelivered].Clone() );
       sli->t_res[sli->ResultsDelivered].DeleteIfAllowed();
       sli->ResultsDelivered++;
+      cout << "AtExtrURealLocalInfo: REQUEST YIELD" << endl;
       return YIELD;
       
     case CLOSE :
 
+      cout << "\nAtExtrURealLocalInfo: CLOSE" << endl;
       if (local.addr != 0)
 	{
 	  sli = (AtExtrURealLocalInfo*) local.addr;
@@ -5538,6 +5607,7 @@ int atmaxUReal( Word* args, Word& result, int message,
 	    }
 	  delete sli;
 	}
+      cout << "AtExtrURealLocalInfo: CLOSE finished" << endl;
       return 0;
 
     } // end switch
@@ -5751,27 +5821,38 @@ int atminUReal( Word* args, Word& result, int message,
 	  c = ureal->c;
 	  r = ureal->r;
 	  t_extr  = -b/a; 
-	  t_start = (ureal->timeInterval.start).ToDouble();
-	  t_end   = (ureal->timeInterval.end).ToDouble();
+	  t_start = 0.0;
+	  t_end   =   (ureal->timeInterval.end).ToDouble()
+	            - (ureal->timeInterval.start).ToDouble();
 	  // get the values of interest
 	  v_extr  = getValUreal(t_extr, a,b,c,r);
 	  v_start = getValUreal(t_start,a,b,c,r);
 	  v_end   = getValUreal(t_end,  a,b,c,r);
 	  // compute, which values are minimal
-	  minValIndex = getMinValIndex(v_extr,v_start,v_end);
+
+	  if ( (t_start <= t_extr) && (t_end   >= t_extr) )
+	    minValIndex = getMinValIndex(v_extr,v_start,v_end);
+	  else 
+	    { 
+	      minValIndex = 0;
+	      if (v_start <= v_end) 
+		minValIndex += 2;
+	      if (v_end <= v_start) 
+		minValIndex += 4;
+	    }
 
 	  if (minValIndex & 2)
 	    {
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-	      t.ReadFrom(t_start);
+	      t.ReadFrom(t_start + (ureal->timeInterval.start).ToDouble());
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
 	    }
-	  if (minValIndex & 4)
+	  if ( (minValIndex & 4) && (t_start != t_end) )
 	    {
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-	      t.ReadFrom(t_end);
+	      t.ReadFrom(t_end + (ureal->timeInterval.start).ToDouble());
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
@@ -5781,7 +5862,7 @@ int atminUReal( Word* args, Word& result, int message,
 	       (t_extr != t_end)      )
 	    {
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-	      t.ReadFrom(t_extr);
+	      t.ReadFrom(t_extr + (ureal->timeInterval.start).ToDouble());
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
