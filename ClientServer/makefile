@@ -54,21 +54,27 @@ $(LIBDIR)/%.$(OBJEXT): %.$(OBJEXT)
 
 # --- Link applications
 
+CMSG := ../UserInterfaces/cmsg.o
+
+define link-app
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $^ $(LD_LINK_LIBS)
+endef
+
 $(BINDIR)/SecondoMonitor$(EXEEXT): $(SECLIBFILES)
-$(BINDIR)/SecondoMonitor$(EXEEXT): SecondoMonitor.o
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $< $(LD_LINK_LIBS)
+$(BINDIR)/SecondoMonitor$(EXEEXT): $(CMSG) SecondoMonitor.o
+	$(link-app)
 
 $(BINDIR)/SecondoRegistrar$(EXEEXT): $(SECLIBFILES)
-$(BINDIR)/SecondoRegistrar$(EXEEXT): SecondoRegistrar.o
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $< $(LD_LINK_LIBS)
+$(BINDIR)/SecondoRegistrar$(EXEEXT): $(CMSG) SecondoRegistrar.o
+	$(link-app)
 
 $(BINDIR)/SecondoCheckpoint$(EXEEXT): $(SECLIBFILES)
-$(BINDIR)/SecondoCheckpoint$(EXEEXT): SecondoCheckpoint.o
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $< $(LD_LINK_LIBS)
+$(BINDIR)/SecondoCheckpoint$(EXEEXT): $(CMSG) SecondoCheckpoint.o
+	$(link-app)
 
 $(BINDIR)/SecondoListener$(EXEEXT): $(SECLIBFILES)
-$(BINDIR)/SecondoListener$(EXEEXT): SecondoListener.o
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $< $(LD_LINK_LIBS)
+$(BINDIR)/SecondoListener$(EXEEXT): $(CMSG) SecondoListener.o
+	$(link-app)
 
 include $(DEP_FILES)
 

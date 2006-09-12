@@ -74,8 +74,6 @@ ALL_LIB_OBJS := $(LIBDIR)/libsdbtool.$(LIBEXT) \
 		$(LIBDIR)/libsdbsys.$(LIBEXT) \
 		$(LIBDIR)/libsdbsocket.$(LIBEXT)
 
-LD := libtool -shared
-AR := ar 
 
 .PHONY: all
 all: $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbutils.$(LIBEXT) buildsmilibs $(LIBDIR)/libsdbsys.$(LIBEXT) $(LIBDIR)/libsdbsocket.$(LIBEXT)
@@ -86,7 +84,6 @@ buildsmilibs:
 	$(MAKE) -C StorageManager buildlibs
 
 
-
 # --- Secondo Database Tools library ---
 
 # Windows needs special treatment for dynamic libraries!
@@ -95,54 +92,26 @@ buildsmilibs:
 
 $(LIBDIR)/libsdbtool.$(LIBEXT): LIBNAME=libsdbtool
 $(LIBDIR)/libsdbtool.$(LIBEXT): $(LIB_SDBTOOL_OBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LDOPT) $(LIB_SDBTOOL_OBJECTS) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $@ $^
-	ranlib $@
-endif
+	$(create-lib)
 
 # --- Secondo Database Utilities Library ---
 
 LIBNAME=libsdbutils
 $(LIBDIR)/libsdbutils.$(LIBEXT): $(LIB_SDBUTILS_OBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbutils.$(LIBEXT) $(LDOPTTOOL) $(LIB_SDBUTILS_OBJECTS) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $@ $^
-	ranlib $@
-endif
+	$(create-lib)
 
 # --- Secondo Database System Library ---
 
 $(LIBDIR)/libsdbsys.$(LIBEXT): LIBNAME=libsdbsys
 $(LIBDIR)/libsdbsys.$(LIBEXT): $(LIB_SDBSYS_OBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbsys.$(LIBEXT) $(LDOPT) $(LIB_SDBSYS_OBJECTS) -L$(LIBDIR) $(BDBSMILIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $@ $^
-	ranlib $@
-endif
+	$(create-lib)
 
 
 # --- Secondo Database Socket Library ---
 
 $(LIBDIR)/libsdbsocket.$(LIBEXT): LIBNAME=libsdbsocket
 $(LIBDIR)/libsdbsocket.$(LIBEXT): $(LIB_SDBSOCKET_OBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $^ -L$(LIBDIR) $(BDBSMILIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $@ $^
-	ranlib $@
-endif
+	$(create-lib)
 
 .PHONY: clean
 clean:

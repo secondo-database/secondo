@@ -66,6 +66,19 @@ APPLOBJECTS += $(PLOBJ)
 CCFLAGS += $(PLINCLUDEFLAGS) -DSECONDO_PL
 endif
 
+BDB_OBJECTS :=  TestRunner.o \
+		../ClientServer/SecondoServer.o \
+		SecondoInterface.o \
+		AlgebraList.o
+
+TTY_OBJECTS :=  cmsg.o MainTTY.o \
+		SecondoInterfaceGeneral.o \
+	        SecondoTTY.o \
+		DisplayTTY.o
+
+CS_OBJECTS :=   SecondoInterfaceCS.o
+
+APP_LIB := ../lib/libapp.$(LIBEXT)
 
 
 CODE_DEPENDENCIES := $(patsubst %.$(OBJEXT), %.dep, $(APPLOBJECTS))
@@ -118,26 +131,25 @@ SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
 	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) 
 
 
-#  Rules for linkage
+# Rules for linkage
+#
+# Note: Currently, the SecondoInterface depends on a static function of the relation
+# algebra which returns tuple statistics. We should change this in the future.
+$(APP_LIB): $(TTY_OBJECTS) $(BDB_OBJECTS) $(CS_OBJECTS) ../lib/libRelation-C++Algebra.a
+	$(create-lib)
 
-APP_OBJECTS :=  SecondoTTY.o cmsg.o MainTTY.o TestRunner.o $(PL_OBJECTS) \
-		../ClientServer/SecondoServer.o \
-		SecondoInterface.o \
-		DisplayTTY.o \
-		SecondoInterfaceGeneral.o \
-		AlgebraList.o
 
 $(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES)
-$(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(APP_OBJECTS) $(PL_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
+$(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(APP_LIB) $(PL_OBJECTS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lapp $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
 
 ../$(SECONDO_DEMO)/Secondo$(SMIUP)$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES) 
-../$(SECONDO_DEMO)/Secondo$(SMIUP)$(EXEEXT): $(APP_OBJECTS)
-	$(LD) $(EXEFLAGS) -static $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG)
+../$(SECONDO_DEMO)/Secondo$(SMIUP)$(EXEEXT): $(APP_LIB)
+	$(LD) $(EXEFLAGS) -static $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lapp $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG)
 	strip $@
 
 $(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES)
-$(BINDIR)/SecondoCS$(EXEEXT): cmsg.o SecondoTTY.o MainTTYCS.o TestRunner.o $(PL_OBJECTS) DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS)
+$(BINDIR)/SecondoCS$(EXEEXT): MainTTYCS.o $(APP_LIB) $(CS_OBJECTS) $(PL_OBJECTS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lapp $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS)
 
 include $(CODE_DEPENDENCIES:.cpp=.dep)

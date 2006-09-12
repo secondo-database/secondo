@@ -38,14 +38,7 @@ LD := libtool -shared
 # --- Storage Management Interface library ---
 
 $(LIBDIR)/libsmibdb.$(LIBEXT): $(OBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) -o $@ $(LDOPT) $(BDBOBJECTS) -L$(BDBDIR)/lib $(BDBLIB) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $@ $<
-	ranlib $@
-endif
+	$(create-lib)
 
 include $(DEP_FILES)
 
