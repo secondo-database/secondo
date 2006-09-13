@@ -49,4 +49,5 @@ endif
 DLLPICFLAG := -fPIC
 DLLOBJEXT := lo
 DLLEXT := so
+DLLPREF := lib
 DLLFLAGS := -s -shared
