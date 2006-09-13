@@ -42,7 +42,6 @@
 
 #include <jni.h>
 #include <SWI-Prolog.h>
-#include <SecondoPL.h>
 
 typedef long pointer;
 
@@ -1884,15 +1883,6 @@ Java_jpl_fli_Prolog_halt(
 	PL_halt( (int) jstatus );
 }
 
-
-/*
- * Class:     jpl_fli_Prolog
- * Method:    registerSecondo
- * Signature: ()I
- */
-JNIEXPORT jint JNICALL Java_jpl_fli_Prolog_registerSecondo(JNIEnv * end , jclass cl){
-   return registerSecondo();
-}
 
 
 

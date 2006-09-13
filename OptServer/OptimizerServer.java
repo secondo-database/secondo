@@ -32,9 +32,14 @@ import jpl.Compound;
 
 public class OptimizerServer extends Thread{
 
-   private  int registerSecondo(){
-      return jpl.fli.Prolog.registerSecondo();
-   }
+static {
+    System.loadLibrary( "jpl" );
+  }
+
+
+  public static native int registerSecondo();
+   
+
 
    /** shows a prompt at the console
      */
@@ -598,7 +603,7 @@ public class OptimizerServer extends Thread{
                 System.out.println("trace-on  : prints out messages about command, optimized command, open database");
                 System.out.println("trace-off : disable messages");
            } else if(command.startsWith("exec")){
-             String cmdline = command.substring(5,command.length());
+             String cmdline = command.substring(4,command.length()).trim();
              execute(cmdline,ResVector);
            }else{
               System.out.println("unknow command, try help show a list of valid commands");

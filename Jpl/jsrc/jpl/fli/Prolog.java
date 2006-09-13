@@ -225,10 +225,6 @@ public final class Prolog
 	public synchronized static native int  initialise( int argc, String argv[] );
 	public synchronized static native void halt( int status );
 
-        // change for using secondo optimizer
-	public static native int registerSecondo();
-
-
 	/* a simple test; write a test.pl file and run!! */
 	public static void
 	main( String argv[] )

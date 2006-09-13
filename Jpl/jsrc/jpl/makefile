@@ -38,12 +38,13 @@ fli:
 	make -C fli all
 
 
-$(JPL_CLASS_TARGET)/jpl/Query.class:
+$(JPL_CLASS_TARGET)/jpl/Query.class: $(JAVAFILES)
 	$(JAVAC) -classpath $(CLASSPATH):$(JPL_CLASSPATH) -d $(JPL_CLASS_TARGET) $(JAVAFILES)
 
 .PHONY: clean
 clean:
 	make -C fli clean
+	rm -f $(JPL_CLASS_TARGET)/jpl/*.class
 
 
 

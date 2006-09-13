@@ -22,14 +22,14 @@ include ../../makefile.jni
 
 INCLUDEFLAGS := -I. $(JNIINCLUDE) $(PLINCLUDEFLAGS) -I$(INCLUDEDIR)
 
-CCOBJECTS := $(JPL_LIB)/jpl.o
+CCOBJECTS := $(JPL_LIB)/jpl.o $(JPL_LIB)/regSecondo.o
 OBJECTS := $(CCOBJECTS)
 ifeq ($(platform),win32)
   DEF += jpl.def
   OBJECTS += $(DEF)
 endif
 
-JNIDLL := $(OPTDIR)/$(SHARED_PREF)jpl.$(JNI_DLLEXT)
+JNIDLL := $(OPTDIR)/$(DLLPREF)jpl.$(JNI_DLLEXT)
 
 LD := g++
 
@@ -53,6 +53,9 @@ compile: $(OBJECTS)
 build: $(JNIDLL)
 
 $(JPL_LIB)/jpl.o: jpl_fli_Prolog.c
+	$(CC) -c -fPIC -g -o $@ $(INCLUDEFLAGS) $<
+
+$(JPL_LIB)/regSecondo.o: regSecondo.c
 	$(CC) -c -fPIC -g -o $@ $(INCLUDEFLAGS) $<
 
 ifeq ($(platform),win32)

@@ -23,10 +23,11 @@ include ../../../makefile.env
 all:  $(JPL_SRC)/jpl_fli_Prolog.h
 
 $(JPL_SRC)/jpl_fli_Prolog.h:
-	javah -classpath $(CLASSPATH) -jni -d $(JPL_SRC) jpl.fli.Prolog
+	$(JAVA_H) -classpath $(CLASSPATH) -jni -d $(JPL_SRC) jpl.fli.Prolog
 
 
 .PHONY: clean
 clean:
 	make -C jpl clean
+	rm $(JPL_SRC)/jpl_fli_Prolog.h
 
