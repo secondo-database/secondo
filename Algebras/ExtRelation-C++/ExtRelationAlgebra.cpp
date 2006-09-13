@@ -384,13 +384,12 @@ int Sample(Word* args, Word& result, int message, Word& local, Supplier s)
       localInfo = new SampleLocalInfo();
       local.addr = localInfo;
 
-      qp->Request(args[0].addr, argRelation);
-      rel = (Relation*)argRelation.addr;
+      rel = (Relation*)args[0].addr;
       relSize = rel->GetNoTuples();
       localInfo->relIter = rel->MakeScan();
       
-      sampleSize = StdTypes::RequestInt(args[1]);
-      sampleRate = StdTypes::RequestReal(args[2]);
+      sampleSize = StdTypes::GetInt(args[1]);
+      sampleRate = StdTypes::GetReal(args[2]);
 
       if(sampleSize < 1)
       {
@@ -658,7 +657,7 @@ int Remove(Word* args, Word& result, int message,
     }
     case REQUEST :
     {
-      Word elem1, elem2, arg2;
+      Word elem1, elem2;
       int noOfAttrs, index;
       Supplier son;
 
@@ -668,8 +667,7 @@ int Remove(Word* args, Word& result, int message,
         TupleType *tupleType = (TupleType *)local.addr;
         Tuple *t = new Tuple( tupleType );
 
-        qp->Request(args[2].addr, arg2);
-        noOfAttrs = ((CcInt*)arg2.addr)->GetIntval();
+        noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
         for (int i=1; i <= noOfAttrs; i++)
         {
           son = qp->GetSupplier(args[3].addr, i-1);
@@ -1024,12 +1022,11 @@ ListExpr HeadTypeMap( ListExpr args )
 
   // check for correct stream input type
   nl->WriteToString(argstr, first);
-  CHECK_COND( ( ( nl->ListLength( nl->Second(first) ) == 2) &&
-                ( TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-	      ) ||
-              ( (nl->IsAtom(nl->Second(first))) &&
-		(am->CheckKind("DATA", nl->Second(first), errorInfo))
-              ),
+  CHECK_COND( 
+    ( ( nl->ListLength( nl->Second(first) ) == 2) &&
+      ( TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)) ||
+    ( (nl->IsAtom(nl->Second(first))) &&
+      (am->CheckKind("DATA", nl->Second(first), errorInfo))),
     "Operator head expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn)))) or "
     "(stream T), where T in kind DATA.\n"
@@ -1055,7 +1052,6 @@ struct HeadLocalInfo
 int Head(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   HeadLocalInfo *localInfo;
-  Word maxTuplesWord;
   Word tupleWord;
 
   switch(message)
@@ -1063,9 +1059,8 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN:
 
       qp->Open(args[0].addr);
-      qp->Request(args[1].addr, maxTuplesWord);
       localInfo = 
-        new HeadLocalInfo( ((CcInt*)maxTuplesWord.addr)->GetIntval() );
+        new HeadLocalInfo( ((CcInt*)args[1].addr)->GetIntval() );
       local = SetWord( localInfo );
       return 0;
 
@@ -1685,7 +1680,7 @@ to the sort first attribute. ~args[5]~ and ~args[6]~ contain these
 values for the second sort attribute  and so on.
 
 */
-template<bool lexicographically, bool requestArgs> int
+template<bool lexicographically> int
 SortBy(Word* args, Word& result, int message, Word& local, Supplier s);
 /*
 This function will be implemented differently for the persistent and for
@@ -1713,11 +1708,11 @@ const string SortBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
 */
 Operator extrelsortby (
-         "sortby",              // name
-         SortBySpec,            // specification
-         SortBy<false, true>,   // value mapping
-         Operator::SimpleSelect,          // trivial selection function
-         SortByTypeMap          // type mapping
+         "sortby",               // name
+         SortBySpec,             // specification
+         SortBy<false>,          // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         SortByTypeMap           // type mapping
 );
 
 /*
@@ -1791,7 +1786,7 @@ const string SortSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 Operator extrelsort (
          "sort",             // name
          SortSpec,           // specification
-         SortBy<true, true>,               // value mapping
+         SortBy<true>,               // value mapping
          Operator::SimpleSelect,          // trivial selection function
          IdenticalTypeMap<true>         // type mapping
 );
@@ -2784,7 +2779,6 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           qp->Request(supplier3,value);
           newTuple->PutAttribute( tup->GetNoAttributes()+i, 
                                   ((StandardAttribute*)value.addr)->Clone() );
-//          qp->ReInitResultStorage( supplier3 );
         }
         tup->DeleteIfAllowed();
         result = SetWord(newTuple);
@@ -3802,9 +3796,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
         localinfo->streamY = SetWord( supplier3 );
 
         //4. get the attribute numbers
-        Word arg2;
-        qp->Request(args[3].addr, arg2);
-        int noOfAttrs = ((CcInt*)arg2.addr)->GetIntval();
+        int noOfAttrs = ((CcInt*)args[3].addr)->GetIntval();
         for( int i = 0; i < noOfAttrs; i++)
         {
           Supplier son = qp->GetSupplier(args[4].addr, i);
@@ -4400,8 +4392,7 @@ int GroupByValueMapping
       }
 
       // get number of attributes
-      qp->Request(args[indexOfCountArgument].addr, nAttributesWord);
-      numberatt = ((CcInt*)nAttributesWord.addr)->GetIntval();
+      numberatt = ((CcInt*)args[indexOfCountArgument].addr)->GetIntval();
 
       ifequal = true;
       // Get next tuple
@@ -4412,8 +4403,8 @@ int GroupByValueMapping
         for (k = 0; k < numberatt; k++) // check if  tuples t = s
         {
           // loop over all grouping attributes
-          qp->Request(args[startIndexOfExtraArguments+k].addr, attribIdxWord);
-          attribIdx = ((CcInt*)attribIdxWord.addr)->GetIntval();
+          attribIdx = 
+            ((CcInt*)args[startIndexOfExtraArguments+k].addr)->GetIntval();
           j = attribIdx - 1;
           if (((Attribute*)gbli->t->GetAttribute(j))->
                Compare((Attribute *)s->GetAttribute(j)))
@@ -4447,8 +4438,8 @@ int GroupByValueMapping
       // copy in grouping attributes
       for(i = 0; i < numberatt; i++)
       {
-        qp->Request(args[startIndexOfExtraArguments+i].addr, attribIdxWord);
-        attribIdx = ((CcInt*)attribIdxWord.addr)->GetIntval();
+        attribIdx = 
+          ((CcInt*)args[startIndexOfExtraArguments+i].addr)->GetIntval();
         t->CopyAttribute(attribIdx - 1, s, i);
       }
       value2 = (Supplier)args[2].addr; // list of functions

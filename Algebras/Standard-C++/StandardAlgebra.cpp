@@ -3874,43 +3874,23 @@ ShowStandardTypesStatistics( const bool reset )
 
 
 int 
-StdTypes::RequestInt(const Word& w) {
-   return Attribute::GetValue<CcInt, int>(w, true);
-} 
-
-int 
 StdTypes::GetInt(const Word& w) {
-   return Attribute::GetValue<CcInt, int>(w, false);
+   return Attribute::GetValue<CcInt, int>(w);
 } 
 
-
-float
-StdTypes::RequestReal(const Word& w) {
-   return Attribute::GetValue<CcReal, float>(w, true);
-} 
 
 float
 StdTypes::GetReal(const Word& w) {
-   return Attribute::GetValue<CcReal, float>(w, false);
+   return Attribute::GetValue<CcReal, float>(w);
 } 
 
-
-bool
-StdTypes::RequestBool(const Word& w) {
-   return Attribute::GetValue<CcBool, bool>(w, true);
-} 
 
 bool
 StdTypes::GetBool(const Word& w) {
-   return Attribute::GetValue<CcBool, bool>(w, false);
+   return Attribute::GetValue<CcBool, bool>(w);
 } 
 
 string 
-StdTypes::RequestString(const Word& w) {
-   return Attribute::GetValue<CcString, string>(w, true);
-}
-
-string 
 StdTypes::GetString(const Word& w) {
-   return Attribute::GetValue<CcString, string>(w, false);
+   return Attribute::GetValue<CcString, string>(w);
 } 

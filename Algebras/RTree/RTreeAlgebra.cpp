@@ -1188,18 +1188,13 @@ int WindowIntersects( Word* args, Word& result,
   {
     case OPEN :
     {
-      Word rtreeWord, relWord, boxWord;
-      qp->Request(args[0].addr, rtreeWord);
-      qp->Request(args[1].addr, relWord);
-      qp->Request(args[2].addr, boxWord);
-
       localInfo = new WindowIntersectsLocalInfo<dim>;
-      localInfo->rtree = (R_Tree<dim, TupleId>*)rtreeWord.addr;
-      localInfo->relation = (Relation*)relWord.addr;
+      localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
+      localInfo->relation = (Relation*)args[1].addr;
       localInfo->first = true;
       localInfo->searchBox = 
         new BBox<dim> ( 
-          (((StandardSpatialAttribute<dim> *)boxWord.addr)->
+          (((StandardSpatialAttribute<dim> *)args[2].addr)->
             BoundingBox()) );
 
       assert(localInfo->rtree != 0);
@@ -1493,17 +1488,13 @@ int WindowIntersectsSStandard( Word* args, Word& result,
   {
     case OPEN :
     {
-      Word rtreeWord, boxWord;
-      qp->Request(args[0].addr, rtreeWord);
-      qp->Request(args[1].addr, boxWord);
-
       WindowIntersectsSLocalInfo<dim, TupleId> *localInfo = 
         new WindowIntersectsSLocalInfo<dim, TupleId>();
-      localInfo->rtree = (R_Tree<dim, TupleId>*)rtreeWord.addr;
+      localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
       localInfo->first = true;
       localInfo->searchBox = 
         new BBox<dim> ( 
-          (((StandardSpatialAttribute<dim> *)boxWord.addr)->
+          (((StandardSpatialAttribute<dim> *)args[1].addr)->
             BoundingBox()) );
       localInfo->resultTupleType = 
         new TupleType(nl->Second(GetTupleResultType(s)));
@@ -1566,18 +1557,14 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
   {
     case OPEN :
     {
-      Word rtreeWord, boxWord;
-      qp->Request(args[0].addr, rtreeWord);
-      qp->Request(args[1].addr, boxWord);
-
       WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo> *localInfo = 
         new WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo>();
       localInfo->rtree = 
-        (R_Tree<dim, TwoLayerLeafInfo>*)rtreeWord.addr;
+        (R_Tree<dim, TwoLayerLeafInfo>*)args[0].addr;
       localInfo->first = true;
       localInfo->searchBox = 
         new BBox<dim> ( 
-          (((StandardSpatialAttribute<dim> *)boxWord.addr)->
+          (((StandardSpatialAttribute<dim> *)args[1].addr)->
             BoundingBox()) );
       localInfo->resultTupleType = 
         new TupleType(nl->Second(GetTupleResultType(s)));
@@ -1821,16 +1808,12 @@ int GetTuples( Word* args, Word& result, int message,
   {
     case OPEN :
     {
-      Word relWord, tidWord;
       qp->Open(args[0].addr);
-      qp->Request(args[1].addr, relWord);
-      qp->Request(args[2].addr, tidWord);
-
       localInfo = new GetTuplesLocalInfo();
-      localInfo->relation = (Relation*)relWord.addr;
+      localInfo->relation = (Relation*)args[1].addr;
       localInfo->resultTupleType = 
         new TupleType(nl->Second(GetTupleResultType(s)));
-      localInfo->tidIndex = ((CcInt*)tidWord.addr)->GetIntval() - 1;
+      localInfo->tidIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
       local = SetWord(localInfo);
       return 0;
     }
@@ -2091,19 +2074,13 @@ int GetTuplesDbl( Word* args, Word& result, int message,
   {
     case OPEN :
     {
-      Word relWord, attrWord, tidWord;
       qp->Open(args[0].addr);
-      qp->Request(args[1].addr, relWord);
-      // We jump argument 2 which is the name of the attribute
-      qp->Request(args[3].addr, attrWord);
-      qp->Request(args[4].addr, tidWord);
-
       localInfo = new GetTuplesDblLocalInfo();
-      localInfo->relation = (Relation*)relWord.addr;
+      localInfo->relation = (Relation*)args[1].addr;
       localInfo->resultTupleType =
         new TupleType(nl->Second(GetTupleResultType(s)));
-      localInfo->attrIndex = ((CcInt*)attrWord.addr)->GetIntval() - 1;
-      localInfo->tidIndex = ((CcInt*)tidWord.addr)->GetIntval() - 1;
+      localInfo->attrIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
+      localInfo->tidIndex = ((CcInt*)args[4].addr)->GetIntval() - 1;
       localInfo->lastTuple = 0;
       local = SetWord(localInfo);
       return 0;

@@ -827,7 +827,7 @@ int RectangleTranslate( Word* args, Word& result, int message,
 
   for( unsigned d = 0; d < dim; d++ )
   {
-    son = qp->GetSupplier( args[1].addr, d );
+    son = qp->GetSon( args[1].addr, d );
     qp->Request( son, arg );
     t[d] = ((CcReal *)arg.addr)->GetRealval();
   }

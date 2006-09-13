@@ -431,10 +431,8 @@ value like int, float, etc.
 */
 
     template<class S, class T>
-    static T GetValue(Word w, const bool doRequest) 
+    static T GetValue(Word w) 
     {
-      if (doRequest)
-        qp->Request(w.addr, w);
       S* ptr = static_cast<S*>(w.addr);
       return ptr->GetValue(); 
     } 

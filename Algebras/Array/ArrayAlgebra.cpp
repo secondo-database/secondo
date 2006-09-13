@@ -1543,7 +1543,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
   int pkgAttr = (indexAttrCcInt->GetIntval()) - 1;
 
   vector<Relation*> relPkg;
-	
+
   ListExpr relType = nl->Second(qp->GetType(s));
   relType = sc->NumericType(relType);
 
@@ -1554,15 +1554,15 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
   CcInt* pkgNrCcInt = 0;
   int pkgNr = 0;
-	int outOfRangePkgNr = 0;
-	
+  int outOfRangePkgNr = 0;
+  
   Word actual = SetWord( Address(0) );
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
 
   bool msgPrinted = false;
-	
+  
   while(qp->Received(args[0].addr))
   {
     Tuple* tuple = (Tuple*)actual.addr;
@@ -1580,7 +1580,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
     pkgNr = pkgNrCcInt->GetIntval();
 
     tuple->DeleteIfAllowed();
-	 
+   
     if ( pkgNr > (MAX_OPEN_RELATIONS - 1) ) { // check if pckNr is valid
 
       if ( !msgPrinted ) 
@@ -1590,8 +1590,8 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
               << "Since every open relation needs to open files "
               << "it is only possible to create at most an array "
               << "with " << MAX_OPEN_RELATIONS << " relations." << endl;
-               msgPrinted = true;	
-      }	 
+               msgPrinted = true;  
+      }   
            
       pkgNr = outOfRangePkgNr % MAX_OPEN_RELATIONS;
       outOfRangePkgNr++;
@@ -1600,13 +1600,13 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
     while ( n < pkgNr ) { // enlarge the array if necessary
       
       relPkg.push_back( new Relation(relType) );
-			n++;	
+      n++;  
     } 
-		
+    
     relPkg[pkgNr]->AppendTuple(tuple2);
-		
+    
     tuple2->DeleteIfAllowed(); // free memory
-	
+  
     qp->Request(args[0].addr, actual);
   }
   qp->Close(args[0].addr);
@@ -1616,7 +1616,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
   Word a[++n];
 
   for (int i=0; i<n; i++) {
-	
+  
     a[i] = SetWord(relPkg[i]);
   }
 
@@ -1624,12 +1624,12 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
   int typeId = 0;
 
   if (sc->GetTypeId("rel", algebraId, typeId)) {
-	
+  
     ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
     return 0;
-		
+    
   } else {
-	
+  
     return 1;
   }
 }
@@ -1764,9 +1764,7 @@ summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
   switch (message) {
     case OPEN : {
-      Word argArray;
-      qp->Request(args[0].addr, argArray);
-      ait = new ArrayIterator( (Array*)argArray.addr );
+      ait = new ArrayIterator( (Array*)args[0].addr );
       local.addr = ait;
       return 0;
     }

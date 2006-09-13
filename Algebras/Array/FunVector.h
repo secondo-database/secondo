@@ -89,7 +89,7 @@ switch- and the select algorithm.
 class FunVector {
  
   public:
-    void load(Word, Word*, const bool doRequest=false);
+    void load(Word, Word*);
     
     void requestFun(int, Word, Word&, string);
     void requestFun(int, Word, Word, Word&, string);

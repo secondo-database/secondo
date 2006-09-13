@@ -465,7 +465,7 @@ contain these values for the second sort attribute  and so on.
 
 */
 
-template<bool lexicographically, bool requestArgs> int
+template<bool lexicographically> int
 SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   switch(message)
@@ -474,37 +474,19 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       void *tupleCmp;
       SortOrderSpecification spec;
-      Word intWord;
-      Word boolWord;
       bool sortOrderIsAscending;
       int nSortAttrs;
       int sortAttrIndex;
 
       if(lexicographically)
-	      tupleCmp = new LexicographicalTupleCompare();
+        tupleCmp = new LexicographicalTupleCompare();
       else
       {
-        if(requestArgs)
-          qp->Request(args[2].addr, intWord);
-        else
-          intWord = SetWord(args[2].addr);
-
-        nSortAttrs = ((CcInt*)intWord.addr)->GetIntval();
+        nSortAttrs = ((CcInt*)args[2].addr)->GetIntval();
         for(int i = 1; i <= nSortAttrs; i++)
         {
-          if(requestArgs)
-            qp->Request(args[2 * i + 1].addr, intWord);
-          else
-            intWord = SetWord(args[2 * i + 1].addr);
-
-          sortAttrIndex = ((CcInt*)intWord.addr)->GetIntval();
-
-          if(requestArgs)
-            qp->Request(args[2 * i + 2].addr, boolWord);
-          else
-            boolWord = SetWord(args[2 * i + 2].addr);
-
-          sortOrderIsAscending = ((CcBool*)boolWord.addr)->GetBoolval();
+          sortAttrIndex = ((CcInt*)args[2 * i + 1].addr)->GetIntval();
+          sortOrderIsAscending = ((CcBool*)args[2 * i + 2].addr)->GetBoolval();
           spec.push_back(pair<int, bool>(sortAttrIndex, 
                                          sortOrderIsAscending));
         };
@@ -623,7 +605,7 @@ private:
     else
     {
       int errorCode = 
-        SortBy<false, false>(aArgs, aResult, REQUEST, streamALocalInfo, 0);
+        SortBy<false>(aArgs, aResult, REQUEST, streamALocalInfo, 0);
       yield = (errorCode == YIELD);
     }
 
@@ -650,7 +632,7 @@ private:
     else
     {
       int errorCode = 
-        SortBy<false, false>(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
+        SortBy<false>(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
       yield = (errorCode == YIELD);
     }
 
@@ -737,8 +719,8 @@ public:
     {
       SetArgs(aArgs, streamA, attrIndexA);
       SetArgs(bArgs, streamB, attrIndexB);
-      SortBy<false, false>(aArgs, aResult, OPEN, streamALocalInfo, 0);
-      SortBy<false, false>(bArgs, bResult, OPEN, streamBLocalInfo, 0);
+      SortBy<false>(aArgs, aResult, OPEN, streamALocalInfo, 0);
+      SortBy<false>(bArgs, bResult, OPEN, streamBLocalInfo, 0);
     }
 
     ListExpr resultType =
@@ -770,8 +752,8 @@ public:
     }
     else
     {
-      SortBy<false, false>(aArgs, aResult, CLOSE, streamALocalInfo, 0);
-      SortBy<false, false>(bArgs, bResult, CLOSE, streamBLocalInfo, 0);
+      SortBy<false>(aArgs, aResult, CLOSE, streamALocalInfo, 0);
+      SortBy<false>(bArgs, bResult, CLOSE, streamBLocalInfo, 0);
     }
     resultTupleType->DeleteIfAllowed();
   }
@@ -1043,16 +1025,12 @@ template<bool expectSorted> int
 MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   MergeJoinLocalInfo* localInfo;
-  Word attrIndexA;
-  Word attrIndexB;
 
   switch(message)
   {
     case OPEN:
-      qp->Request(args[4].addr, attrIndexA);
-      qp->Request(args[5].addr, attrIndexB);
       localInfo = new MergeJoinLocalInfo
-        (args[0], attrIndexA, args[1], attrIndexB, expectSorted, s);
+        (args[0], args[4], args[1], args[5], expectSorted, s);
       local = SetWord(localInfo);
       return 0;
     case REQUEST:
@@ -1332,7 +1310,7 @@ bucket that the tuple coming from A hashes is also initialized.
       {
         delete iterTuplesRelA;
         iterTuplesRelA = 0;
-    	  return false;
+        return false;
       }
     }
 
@@ -1381,18 +1359,12 @@ bucket that the tuple coming from A hashes is also initialized.
 int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   HashJoinLocalInfo* localInfo;
-  Word attrIndexA;
-  Word attrIndexB;
-  Word nHashBuckets;
 
   switch(message)
   {
     case OPEN:
-      qp->Request(args[5].addr, attrIndexA);
-      qp->Request(args[6].addr, attrIndexB);
-      qp->Request(args[4].addr, nHashBuckets);
-      localInfo = new HashJoinLocalInfo(args[0], attrIndexA,
-        args[1], attrIndexB, nHashBuckets, s);
+      localInfo = 
+        new HashJoinLocalInfo(args[0], args[5], args[1], args[6], args[4], s);
       local = SetWord(localInfo);
       return 0;
     case REQUEST:
@@ -1415,11 +1387,11 @@ The compiler cannot expand these template functions.
 
 */
 template int
-SortBy<false, true>(Word* args, Word& result, int message, 
-                    Word& local, Supplier s);
+SortBy<false>(Word* args, Word& result, int message, 
+              Word& local, Supplier s);
 template int
-SortBy<true, true>(Word* args, Word& result, int message, 
-                   Word& local, Supplier s);
+SortBy<true>(Word* args, Word& result, int message, 
+             Word& local, Supplier s);
 template int
 MergeJoin<true>(Word* args, Word& result, int message, 
                 Word& local, Supplier s);

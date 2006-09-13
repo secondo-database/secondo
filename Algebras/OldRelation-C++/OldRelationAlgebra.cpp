@@ -113,7 +113,8 @@ is returned and the corresponding datatype is returned in ~attrtype~.
 Otherwise 0 is returned. Used in operator ~attr~.
 
 */
-int CcFindAttribute( ListExpr list, string attrname, ListExpr& attrtype, NestedList* nl)
+int CcFindAttribute( ListExpr list, string attrname, 
+                     ListExpr& attrtype, NestedList* nl)
 {
   ListExpr first, rest;
   int j;
@@ -302,16 +303,17 @@ ListExpr CcTUPLETypeMap(ListExpr args)
 4.1.3 Specification of operator ~TUPLE~
 
 */
-const string CcTUPLESpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Remarks\" ) "
-                          "( <text>((stream x)...) -> x, ((mrel x)...) -> "
-		  	  "x</text--->"
-			  "<text>type operator</text--->"
-			  "<text>Extract tuple type from a stream or "
-			  "relation type given as the first argument."
-			  "</text--->"
-			  "<text>not for use with sos-syntax</text--->"
-			  "  ) )";
+const string CcTUPLESpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Remarks\" ) "
+  "( <text>((stream x)...) -> x, ((mrel x)...) -> "
+  "x</text--->"
+  "<text>type operator</text--->"
+  "<text>Extract tuple type from a stream or "
+  "relation type given as the first argument."
+  "</text--->"
+  "<text>not for use with sos-syntax</text--->"
+  "  ) )";
 /*
 
 4.1.3 Definition of operator ~TUPLE~
@@ -357,16 +359,17 @@ ListExpr CcTUPLE2TypeMap(ListExpr args)
 4.1.3 Specification of operator ~TUPLE2~
 
 */
-const string CcTUPLE2Spec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Remarks\" ) "
-                           "( <text><text>((stream x) (stream y) ...) -> y, "
-			   "((mrel x) (mrel y) ...) -> y</text--->"
-			   "<text>type operator</text--->"
-			   "<text>Extract tuple type from a stream or "
-			   "relation"
-			   " type given as the second argument.</text--->"
-			   "<text>not for use with sos-syntax</text--->"
-			   ") )";
+const string CcTUPLE2Spec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Remarks\" ) "
+  "( <text><text>((stream x) (stream y) ...) -> y, "
+   "((mrel x) (mrel y) ...) -> y</text--->"
+   "<text>type operator</text--->"
+   "<text>Extract tuple type from a stream or "
+   "relation"
+   " type given as the second argument.</text--->"
+   "<text>not for use with sos-syntax</text--->"
+   ") )";
 /*
 
 4.1.3 Definition of operator ~TUPLE2~
@@ -422,13 +425,14 @@ ListExpr CcGroupTypeMap(ListExpr args)
 4.1.3 Specification of operator ~Group~
 
 */
-const string CcGroupSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Remarks\" ) "
-                          "( <text>((stream x)) -> (mrel x)</text--->"
-			  "<text>type operator</text--->"
-			  "<text>Maps stream type to a relation.</text--->"
-			  "<text>not for use with sos-syntax</text--->"
-			  ") )";
+const string CcGroupSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Remarks\" ) "
+  "( <text>((stream x)) -> (mrel x)</text--->"
+  "<text>type operator</text--->"
+  "<text>Maps stream type to a relation.</text--->"
+  "<text>not for use with sos-syntax</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~group~
@@ -483,14 +487,11 @@ CcFeed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   CcRel* r;
   CcRelIT* rit;
-  Word argRelation;
-
 
   switch (message)
   {
     case OPEN :
-      qp->Request(args[0].addr, argRelation);
-      r = ((CcRel*)argRelation.addr);
+      r = ((CcRel*)args[0].addr);
       rit = r->MakeNewScan();
 
       local.addr = rit;
@@ -521,14 +522,15 @@ CcFeed(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~feed~
 
 */
-const string CcFeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                         "\"Example\" ) "
-                         "( <text>(mrel x) -> (stream x)</text--->"
-			 "<text>_ feed</text--->"
-			 "<text>Produces a stream from a relation by "
-			 "scanning the relation tuple by tuple.</text--->"
-			 "<text>query cities feed consume</text--->"
-			 ") )";
+const string CcFeedSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(mrel x) -> (stream x)</text--->"
+  "<text>_ feed</text--->"
+  "<text>Produces a stream from a relation by "
+  "scanning the relation tuple by tuple.</text--->"
+  "<text>query cities feed consume</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~feed~
@@ -700,10 +702,6 @@ static int
 CcSample(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   CcSampleLocalInfo* localInfo;
-  Word argRelation;
-  Word sampleSizeWord;
-  Word sampleRateWord;
-
   CcRel* rel;
   CcTuple* tuple;
 
@@ -719,15 +717,11 @@ CcSample(Word* args, Word& result, int message, Word& local, Supplier s)
       localInfo = new CcSampleLocalInfo();
       local = SetWord(localInfo);
 
-      qp->Request(args[0].addr, argRelation);
-      qp->Request(args[1].addr, sampleSizeWord);
-      qp->Request(args[2].addr, sampleRateWord);
-
-      rel = (CcRel*)argRelation.addr;
+      rel = (CcRel*)args[0].addr;
       relSize = rel->GetNoTuples();
       localInfo->relIT = rel->MakeNewScan();
-      sampleSize = ((CcInt*)sampleSizeWord.addr)->GetIntval();
-      sampleRate = ((CcReal*)sampleRateWord.addr)->GetRealval();
+      sampleSize = ((CcInt*)args[1].addr)->GetIntval();
+      sampleRate = ((CcReal*)args[2].addr)->GetRealval();
 
       if(sampleSize < 1)
       {
@@ -815,18 +809,19 @@ CcSample(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~sample~
 
 */
-const string CcSampleSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>(mrel x) int real -> (stream x)"
-			   "</text--->"
-			   "<text>_ sample [ _  , _ ]</text--->"
-			   "<text>Produces a random sample of a relation."
-			   " The sample size is min(relSize, "
-			   "max(s, t * relSize)), where relSize is the size"
-			   " of the argument relation, s is the second "
-			   "argument, and t the third.</text--->"
-			  "<text>query cities sample[0, 0.45] count</text--->"
-			   ") )";
+const string CcSampleSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(mrel x) int real -> (stream x)"
+  "</text--->"
+  "<text>_ sample [ _  , _ ]</text--->"
+  "<text>Produces a random sample of a relation."
+  " The sample size is min(relSize, "
+  "max(s, t * relSize)), where relSize is the size"
+  " of the argument relation, s is the second "
+  "argument, and t the third.</text--->"
+  "<text>query cities sample[0, 0.45] count</text--->"
+  ") )";
 
 /*
 
@@ -911,25 +906,26 @@ CcConsume(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~consume~
 
 */
-const string CcConsumeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>(stream x) -> (mrel x)</text--->"
-			    "<text>_ consume</text--->"
-			    "<text>Collects objects from a stream."
-			    "</text--->"
-			    "<text>query cities feed consume</text--->"
-			    ") )";
+const string CcConsumeSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(stream x) -> (mrel x)</text--->"
+  "<text>_ consume</text--->"
+  "<text>Collects objects from a stream."
+  "</text--->"
+  "<text>query cities feed consume</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~consume~
 
 */
 Operator ccrelconsume (
-         "consume",            // name
-	 CcConsumeSpec,          // specification
-	 CcConsume,              // value mapping
-	 Operator::SimpleSelect,         // trivial selection function
-	 CcConsumeTypeMap        // type mapping
+ "consume",            // name
+ CcConsumeSpec,          // specification
+ CcConsume,              // value mapping
+ Operator::SimpleSelect,         // trivial selection function
+ CcConsumeTypeMap        // type mapping
 );
 /*
 
@@ -1020,15 +1016,16 @@ CcAttr(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~attr~
 
 */
-const string CcAttrSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                         "\"Remarks\" ) "
-                         "( <text>((tuple ((x1 t1)...(xn tn))) xi)  -> "
-			 "ti)</text--->"
-			 "<text>attr ( _ , _ )</text--->"
-			 "<text>Returns the value of an attribute at a "
-			 "given position.</text--->"
-			 "<text>not for use with sos-syntax</text--->"
-			 ") )";
+const string CcAttrSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Remarks\" ) "
+  "( <text>((tuple ((x1 t1)...(xn tn))) xi)  -> "
+  "ti)</text--->"
+  "<text>attr ( _ , _ )</text--->"
+  "<text>Returns the value of an attribute at a "
+  "given position.</text--->"
+  "<text>not for use with sos-syntax</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~attr~
@@ -1066,13 +1063,13 @@ CcFilterTypeMap(ListExpr args)
     second  = nl->Second(args);
 
     if ( (nl->ListLength(first) == 2)
-	&& (nl->ListLength(second) == 3)
-	&& (nl->ListLength(nl->Second(first)) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
-	&& (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
-	&& (CcTypeOfRelAlgSymbol(nl->First(second)) == mmap)
-	&& (CcTypeOfRelAlgSymbol(nl->Third(second)) == mbool)
-	&& (nl->Equal(nl->Second(first),nl->Second(second)))	)
+         && (nl->ListLength(second) == 3)
+         && (nl->ListLength(nl->Second(first)) == 2)
+         && (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
+         && (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
+         && (CcTypeOfRelAlgSymbol(nl->First(second)) == mmap)
+         && (CcTypeOfRelAlgSymbol(nl->Third(second)) == mbool)
+         && (nl->Equal(nl->Second(first),nl->Second(second))))
     return first;
   }
 
@@ -1104,14 +1101,14 @@ CcFilter(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case OPEN:
 
-	//cout << "tfilter OPEN " << endl;
+      //cout << "tfilter OPEN " << endl;
 
       qp->Open (args[0].addr);
       return 0;
 
     case REQUEST:
 
-	//cout << "tfilter REQUEST " << endl;
+      //cout << "tfilter REQUEST " << endl;
 
       funargs = qp->Argument(args[1].addr);
       qp->Request(args[0].addr, elem);
@@ -1141,7 +1138,7 @@ CcFilter(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE:
 
-	//cout << "tfilter CLOSE " << endl;
+      //cout << "tfilter CLOSE " << endl;
 
       qp->Close(args[0].addr);
       return 0;
@@ -1153,17 +1150,18 @@ CcFilter(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~filter~
 
 */
-const string CcFilterSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>((stream x) (map x bool)) -> "
-			   "(stream x)</text--->"
-			   "<text>_ filter [ fun ]</text--->"
-			   "<text>Only tuples, fulfilling a certain "
-	                   "condition are passed on to the output "
-			   "stream.</text--->"
-                           "<text>query cities feed filter "
-			   "[.population > 500000] consume</text--->"
-			      ") )";
+const string CcFilterSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream x) (map x bool)) -> "
+  "(stream x)</text--->"
+  "<text>_ filter [ fun ]</text--->"
+  "<text>Only tuples, fulfilling a certain "
+  "condition are passed on to the output "
+  "stream.</text--->"
+  "<text>query cities feed filter "
+  "[.population > 500000] consume</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~filter~
@@ -1221,17 +1219,17 @@ CcProjectTypeMap(ListExpr args)
 
     if ((nl->ListLength(first) == 2) &&
         (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream) &&
-	(nl->ListLength(nl->Second(first)) == 2) &&
-	(CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple) &&
-	(!nl->IsAtom(second)) &&
-	(nl->ListLength(second) > 0))
+        (nl->ListLength(nl->Second(first)) == 2) &&
+        (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple) &&
+        (!nl->IsAtom(second)) &&
+        (nl->ListLength(second) > 0))
     {
       noAttrs = nl->ListLength(second);
       while (!(nl->IsEmpty(second)))
       {
         first2 = nl->First(second);
-	    second = nl->Rest(second);
-	    if (nl->AtomType(first2) == SymbolType)
+        second = nl->Rest(second);
+        if (nl->AtomType(first2) == SymbolType)
         {
           attrname = nl->SymbolValue(first2);
         }
@@ -1240,26 +1238,29 @@ CcProjectTypeMap(ListExpr args)
           ErrorReporter::ReportError("Incorrect input for operator project.");
           return nl->SymbolAtom("typeerror");
         }
-        j = CcFindAttribute(nl->Second(nl->Second(first)), attrname, attrtype, nl);
-	    if (j)
-	    {
-	      if (firstcall)
-	      {
-	        firstcall = false;
-	        newAttrList = nl->OneElemList(nl->TwoElemList(first2, attrtype));
-	        lastNewAttrList = newAttrList;
-	        numberList = nl->OneElemList(nl->IntAtom(j));
-	       lastNumberList = numberList;
-	      }
-	      else
-	      {
-	        lastNewAttrList =
-	          nl->Append(lastNewAttrList, nl->TwoElemList(first2, attrtype));
-	        lastNumberList =
-	          nl->Append(lastNumberList, nl->IntAtom(j));
-	      }
-	    }
-	    else
+        j = CcFindAttribute(nl->Second(nl->Second(first)), 
+                            attrname, 
+                            attrtype, 
+                            nl);
+        if (j)
+        {
+          if (firstcall)
+          {
+            firstcall = false;
+            newAttrList = nl->OneElemList(nl->TwoElemList(first2, attrtype));
+            lastNewAttrList = newAttrList;
+            numberList = nl->OneElemList(nl->IntAtom(j));
+           lastNumberList = numberList;
+          }
+          else
+          {
+            lastNewAttrList =
+              nl->Append(lastNewAttrList, nl->TwoElemList(first2, attrtype));
+            lastNumberList =
+              nl->Append(lastNumberList, nl->IntAtom(j));
+          }
+        }
+        else
         {
           ErrorReporter::ReportError("Incorrect input for operator project.");
           return nl->SymbolAtom("typeerror");
@@ -1269,10 +1270,10 @@ CcProjectTypeMap(ListExpr args)
       // - not yet implemented
       outlist = nl->ThreeElemList(
                  nl->SymbolAtom("APPEND"),
-		 nl->TwoElemList(nl->IntAtom(noAttrs), numberList),
-		 nl->TwoElemList(nl->SymbolAtom("stream"),
-		               nl->TwoElemList(nl->SymbolAtom("mtuple"),
-			                     newAttrList)));
+                 nl->TwoElemList(nl->IntAtom(noAttrs), numberList),
+                 nl->TwoElemList(nl->SymbolAtom("stream"),
+                                 nl->TwoElemList(nl->SymbolAtom("mtuple"),
+                                                 newAttrList)));
       // cout << nl->WriteToFile("/dev/tty",outlist) << endl;
       return outlist;
     }
@@ -1288,7 +1289,7 @@ CcProjectTypeMap(ListExpr args)
 static int
 CcProject(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word elem1, elem2, arg2;
+  Word elem1, elem2;
   int noOfAttrs, index;
   Supplier son;
   Attribute* attr;
@@ -1299,15 +1300,15 @@ CcProject(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN :
 
-	//cout << "project OPEN" << endl;
-
+    //cout << "project OPEN" << endl;
+ 
 
       qp->Open(args[0].addr);
       return 0;
 
     case REQUEST :
 
-	//cout << "project REQUEST" << endl;
+      //cout << "project REQUEST" << endl;
 
       qp->Request(args[0].addr, elem1);
       if (qp->Received(args[0].addr))
@@ -1315,8 +1316,7 @@ CcProject(Word* args, Word& result, int message, Word& local, Supplier s)
         t = new CcTuple();
         t->SetFree(true);
 
-	qp->Request(args[2].addr, arg2);
-        noOfAttrs = ((CcInt*)arg2.addr)->GetIntval();
+        noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
         t->SetNoAttrs(noOfAttrs);
         for (int i=1; i <= noOfAttrs; i++)
         {
@@ -1334,7 +1334,7 @@ CcProject(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE :
 
-	//cout << "project CLOSE" << endl;
+      //cout << "project CLOSE" << endl;
 
       qp->Close(args[0].addr);
       return 0;
@@ -1346,17 +1346,18 @@ CcProject(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~project~
 
 */
-const string CcProjectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>((stream (mtuple ((x1 T1) ... "
-			    "(xn Tn)))) (ai1 ... aik)) -> (stream (mtuple"
-			    " ((ai1 Ti1) ... (aik Tik))))</text--->"
-			    "<text>_ project [ list ]</text--->"
-			    "<text>Produces a projection tuple for each "
-			    "tuple of its input stream.</text--->"
-			    "<text>query cities feed project[cityname, "
-			    "population] consume</text--->"
-			      ") )";
+const string CcProjectSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple ((x1 T1) ... "
+  "(xn Tn)))) (ai1 ... aik)) -> (stream (mtuple"
+  " ((ai1 Ti1) ... (aik Tik))))</text--->"
+  "<text>_ project [ list ]</text--->"
+  "<text>Produces a projection tuple for each "
+  "tuple of its input stream.</text--->"
+  "<text>query cities feed project[cityname, "
+  "population] consume</text--->"
+  ") )";
 
 /*
 
@@ -1418,33 +1419,34 @@ CcRemoveTypeMap(ListExpr args)
 
     if ((nl->ListLength(first) == 2) &&
         (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream) &&
-	(nl->ListLength(nl->Second(first)) == 2) &&
-	(CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple) &&
-	(!nl->IsAtom(second)) &&
-	(nl->ListLength(second) > 0))
+        (nl->ListLength(nl->Second(first)) == 2) &&
+        (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple) &&
+        (!nl->IsAtom(second)) &&
+        (nl->ListLength(second) > 0))
     {
       while (!(nl->IsEmpty(second)))
       {
-	first2 = nl->First(second);
-	second = nl->Rest(second);
+        first2 = nl->First(second);
+        second = nl->Rest(second);
 
-	if (nl->AtomType(first2) == SymbolType)
-	{
-	  attrname = nl->SymbolValue(first2);
-	}
-	else
-	{
-	  ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
-	  return nl->SymbolAtom("typeerror");
-	}
+        if (nl->AtomType(first2) == SymbolType)
+        {
+          attrname = nl->SymbolValue(first2);
+        }
+        else
+        {
+          ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
+          return nl->SymbolAtom("typeerror");
+        }
 
-	j = CcFindAttribute(nl->Second(nl->Second(first)), attrname, attrtype, nl);
-	if (j)  removeSet.insert(j);
-	else
-	{
-	  ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
-	  return nl->SymbolAtom("typeerror");
-	}
+        j = CcFindAttribute(nl->Second(nl->Second(first)), attrname, 
+                            attrtype, nl);
+        if (j)  removeSet.insert(j);
+        else
+        {
+          ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
+          return nl->SymbolAtom("typeerror");
+        }
       }
       /* here we need to generate new attr list according to removeSet */
       ListExpr oldAttrList;
@@ -1457,27 +1459,28 @@ CcRemoveTypeMap(ListExpr args)
       noAttrs =0;
       while (!(nl->IsEmpty(oldAttrList)))
       {
-	i++;
-	first2 = nl->First(oldAttrList);
-	oldAttrList = nl->Rest(oldAttrList);
+        i++;
+        first2 = nl->First(oldAttrList);
+        oldAttrList = nl->Rest(oldAttrList);
 
-	if (removeSet.find(i)==removeSet.end())  //the attribute is not in the removal list
-	{
-	  noAttrs++;
-	  if (firstcall)
-	  {
-	    firstcall = false;
-	    newAttrList = nl->OneElemList(first2);
-	    lastNewAttrList = newAttrList;
-	    numberList = nl->OneElemList(nl->IntAtom(i));
-	    lastNumberList = numberList;
-	  }
-	  else
-	  {
-	    lastNewAttrList = nl->Append(lastNewAttrList, first2);
-	    lastNumberList = nl->Append(lastNumberList, nl->IntAtom(i));
-	  }
-	}
+        if (removeSet.find(i)==removeSet.end())  
+          //the attribute is not in the removal list
+        {
+          noAttrs++;
+          if (firstcall)
+          {
+            firstcall = false;
+            newAttrList = nl->OneElemList(first2);
+            lastNewAttrList = newAttrList;
+            numberList = nl->OneElemList(nl->IntAtom(i));
+            lastNumberList = numberList;
+          }
+          else
+          {
+            lastNewAttrList = nl->Append(lastNewAttrList, first2);
+            lastNumberList = nl->Append(lastNumberList, nl->IntAtom(i));
+          }
+        }
       }
 
       // Check whether all new attribute names are distinct
@@ -1486,16 +1489,17 @@ CcRemoveTypeMap(ListExpr args)
       if (noAttrs>0)
       {outlist = nl->ThreeElemList(
                  nl->SymbolAtom("APPEND"),
-		 nl->TwoElemList(nl->IntAtom(noAttrs), numberList),
-		 nl->TwoElemList(nl->SymbolAtom("stream"),
-		               nl->TwoElemList(nl->SymbolAtom("mtuple"),
-			                     newAttrList)));
+                 nl->TwoElemList(nl->IntAtom(noAttrs), numberList),
+                 nl->TwoElemList(nl->SymbolAtom("stream"),
+                               nl->TwoElemList(nl->SymbolAtom("mtuple"),
+                                             newAttrList)));
       return outlist;
       }
       else
       {
       ErrorReporter::ReportError(
-	"Incorrect input for operator ~remove~ - trying to remove all attributes.");
+        "Incorrect input for operator ~remove~ - "
+        "trying to remove all attributes.");
       return nl->SymbolAtom("typeerror");
       }
     }
@@ -1512,7 +1516,7 @@ CcRemoveTypeMap(ListExpr args)
 static int
 CcRemove(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word elem1, elem2, arg2;
+  Word elem1, elem2;
   int noOfAttrs, index;
   Supplier son;
   Attribute* attr;
@@ -1532,8 +1536,7 @@ CcRemove(Word* args, Word& result, int message, Word& local, Supplier s)
         t = new CcTuple();
         t->SetFree(true);
 
-	qp->Request(args[2].addr, arg2);
-        noOfAttrs = ((CcInt*)arg2.addr)->GetIntval();
+        noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
         t->SetNoAttrs(noOfAttrs);
         for (int i=1; i <= noOfAttrs; i++)
         {
@@ -1560,18 +1563,19 @@ CcRemove(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~remove~
 
 */
-const string CcRemoveSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>((stream (mtuple ((x1 T1) ... "
-			   "(xn Tn)))) (ai1 ... aik)) -> (stream "
-			   "(mtuple ((aj1 Tj1) ... (ajn-k Tjn-k))))"
-			   "</text--->"
-			   "<text>_ remove [list]</text--->"
-			   "<text>Produces a removal tuple for each "
-			   "tuple of its input stream.</text--->"
-			   "<text>query cities feed remove[zipcode] "
-			   "consume</text--->"
-			      ") )";
+const string CcRemoveSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple ((x1 T1) ... "
+  "(xn Tn)))) (ai1 ... aik)) -> (stream "
+  "(mtuple ((aj1 Tj1) ... (ajn-k Tjn-k))))"
+  "</text--->"
+  "<text>_ remove [list]</text--->"
+  "<text>Produces a removal tuple for each "
+  "tuple of its input stream.</text--->"
+  "<text>query cities feed remove[zipcode] "
+  "consume</text--->"
+  ") )";
 
 /*
 
@@ -1579,11 +1583,11 @@ const string CcRemoveSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
 */
 Operator ccrelremove (
-         "remove",                             // name
-         CcRemoveSpec,                        // specification
-         CcRemove,                               // value mapping
-         Operator::SimpleSelect,                       // trivial selection function
-         CcRemoveTypeMap               // type mapping
+         "remove",               // name
+         CcRemoveSpec,           // specification
+         CcRemove,               // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         CcRemoveTypeMap         // type mapping
 );
 /*
 
@@ -1651,8 +1655,9 @@ bool CcCompareNames(ListExpr list)
   {
     attrname = nl->SymbolValue(nl->First(nl->First(attrnamelist)));
     attrnamelist = nl->Rest(attrnamelist);
-    unique = std::count(attrnamestrlist.begin(), attrnamestrlist.end(),
-	                       attrname);
+    unique = std::count(attrnamestrlist.begin(), 
+                        attrnamestrlist.end(),
+                        attrname);
     *it =  attrname;
     if (unique) return false;
     it++;
@@ -1858,17 +1863,18 @@ CcProduct(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~product~
 
 */
-const string CcProductSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>((stream (mtuple (x1 ... xn))) (stream "
-			    "(mtuple (y1 ... ym)))) -> (stream (mtuple (x1 "
-			    "... xn y1 ... ym)))</text--->"
-			    "<text>_ _ product</text--->"
-			    "<text>Computes a Cartesian product stream from "
-			    "its two argument streams.</text--->"
-			    "<text>query ten feed twenty feed product count"
-			    "</text--->"
-			     " ) )";
+const string CcProductSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple (x1 ... xn))) (stream "
+  "(mtuple (y1 ... ym)))) -> (stream (mtuple (x1 "
+  "... xn y1 ... ym)))</text--->"
+  "<text>_ _ product</text--->"
+  "<text>Computes a Cartesian product stream from "
+  "its two argument streams.</text--->"
+  "<text>query ten feed twenty feed product count"
+  "</text--->"
+  " ) )";
 /*
 
 4.1.3 Definition of operator ~product~
@@ -1952,17 +1958,18 @@ CcCancel(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~cancel~
 
 */
-const string CcCancelSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>((stream x) (map x bool)) -> "
-			   "(stream x)</text--->"
-			   "<text>_ cancel [ fun ]</text--->"
-			   "<text>Transmits tuple from its input stream "
-			   "to its output stream until a tuple arrives "
-			   "fulfilling some condition.</text--->"
-			   "<text>query cities feed cancel [.cityname = "
-			   "\"Dortmund\"] consume</text--->"
-			      ") )";
+const string CcCancelSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream x) (map x bool)) -> "
+  "(stream x)</text--->"
+  "<text>_ cancel [ fun ]</text--->"
+  "<text>Transmits tuple from its input stream "
+  "to its output stream until a tuple arrives "
+  "fulfilling some condition.</text--->"
+  "<text>query cities feed cancel [.cityname = "
+  "\"Dortmund\"] consume</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~cancel~
@@ -1998,11 +2005,12 @@ CcCountTypeMap(ListExpr args)
   if( nl->ListLength(args) == 1 )
   {
     first = nl->First(args);
-    if ( (nl->ListLength(first) == 2) && nl->ListLength(nl->Second(first)) == 2  )
+    if ( (nl->ListLength(first) == 2) && 
+         nl->ListLength(nl->Second(first)) == 2  )
     {
       if ( ( CcTypeOfRelAlgSymbol(nl->First(first)) == mstream
              || CcTypeOfRelAlgSymbol(nl->First(first)) == mrel )
-	   && CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple )
+           && CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple )
       return nl->SymbolAtom("int");
     }
   }
@@ -2022,7 +2030,7 @@ CcCountStream(Word* args, Word& result, int message, Word& local, Supplier s)
   Word elem;
   int count = 0;
 
-	//cout << "tcount" << endl;
+  //cout << "tcount" << endl;
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, elem);
@@ -2053,16 +2061,17 @@ CcCountRel(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~count~
 
 */
-const string CcCountSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>((stream/mrel (mtuple x))) -> int"
-			   "</text--->"
-			   "<text>_ count</text--->"
-			   "<text>Count number of tuples within a stream "
-			   "or a relation of tuples.</text--->"
-			   "<text>query cities count or query cities "
-			   "feed count</text--->"
-			      ") )";
+const string CcCountSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream/mrel (mtuple x))) -> int"
+  "</text--->"
+  "<text>_ count</text--->"
+  "<text>Count number of tuples within a stream "
+  "or a relation of tuples.</text--->"
+  "<text>query cities count or query cities "
+  "feed count</text--->"
+  ") )";
 /*
 
 4.3.1 Selection function of operator ~tcount~
@@ -2142,40 +2151,41 @@ CcRenameTypeMap( ListExpr args )
     second  = nl->Second(args);
 
     if((nl->ListLength(first) == 2  ) &&
-    	(CcTypeOfRelAlgSymbol(nl->First(first)) == mstream) &&
-	(CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple) &&
-       	nl->IsAtom(second) &&
-	(nl->AtomType(second) == SymbolType))
+       (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream) &&
+       (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple) &&
+       nl->IsAtom(second) &&
+       (nl->AtomType(second) == SymbolType))
     {
       rest = nl->Second(nl->Second(first));
       while (!(nl->IsEmpty(rest)))
       {
-	first2 = nl->First(rest);
-	rest = nl->Rest(rest);
-	nl->SymbolValue(nl->First(first));
-	attrname = nl->SymbolValue(nl->First(first2));
-	attrnamen = nl->SymbolValue(second);
-	attrname.append("_");
-	attrname.append(attrnamen);
+        first2 = nl->First(rest);
+        rest = nl->Rest(rest);
+        nl->SymbolValue(nl->First(first));
+        attrname = nl->SymbolValue(nl->First(first2));
+        attrnamen = nl->SymbolValue(second);
+        attrname.append("_");
+        attrname.append(attrnamen);
 
-	if (!firstcall)
-	{
-	  lastlistn  =
-	    nl->Append(lastlistn,
-        nl->TwoElemList(nl->SymbolAtom(attrname), nl->Second(first2)));
-	}
-	else
-	{
-	  firstcall = false;
- 	  listn = nl->OneElemList(nl->TwoElemList(nl->SymbolAtom(attrname),
-        nl->Second(first2)));
-	  lastlistn = listn;
-	}
+        if (!firstcall)
+        {
+          lastlistn  =
+            nl->Append(lastlistn,
+              nl->TwoElemList(nl->SymbolAtom(attrname), 
+                              nl->Second(first2)));
+        }
+        else
+        {
+          firstcall = false;
+          listn = nl->OneElemList(nl->TwoElemList(nl->SymbolAtom(attrname),
+                                                  nl->Second(first2)));
+          lastlistn = listn;
+        }
       }
       return
         nl->TwoElemList(nl->SymbolAtom("stream"),
-		nl->TwoElemList(nl->SymbolAtom("mtuple"),
-		listn));
+                        nl->TwoElemList(nl->SymbolAtom("mtuple"),
+                                        listn));
     }
     ErrorReporter::ReportError("Incorrect input for operator rename.");
     return nl->SymbolAtom("typeerror");
@@ -2224,21 +2234,22 @@ CcRename(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~rename~
 
 */
-const string CcRenameSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>((stream (mtuple([a1:d1, ... ,"
-			   "an:dn)))ar) -> (stream (mtuple([a1ar:d1, "
-			   "... ,anar:dn)))</text--->"
-			   "<text>_ rename [ _ ] or just _ { _ }"
-			   "</text--->"
-			   "<text>Renames all attribute names by adding"
-			   " them with the postfix passed as parameter. "
-			   "NOTE: parameter must be of symbol type."
-			   "</text--->"
-			   "<text>query ten feed rename [ r1 ] consume "
-			   "or query ten feed {r1} consume, the result "
-			   "has format e.g. n_r1</text--->"
-			      ") )";
+const string CcRenameSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple([a1:d1, ... ,"
+  "an:dn)))ar) -> (stream (mtuple([a1ar:d1, "
+  "... ,anar:dn)))</text--->"
+  "<text>_ rename [ _ ] or just _ { _ }"
+  "</text--->"
+  "<text>Renames all attribute names by adding"
+  " them with the postfix passed as parameter. "
+  "NOTE: parameter must be of symbol type."
+  "</text--->"
+  "<text>query ten feed rename [ r1 ] consume "
+  "or query ten feed {r1} consume, the result "
+  "has format e.g. n_r1</text--->"
+  ") )";
 
 /*
 
@@ -2289,7 +2300,8 @@ CcExtractTypeMap( ListExpr args )
        (nl->AtomType(second) == SymbolType))
     {
       attrname = nl->SymbolValue(second);
-      j = CcFindAttribute(nl->Second(nl->Second(first)), attrname, attrtype, nl);
+      j = CcFindAttribute(nl->Second(nl->Second(first)), attrname, 
+                          attrtype, nl);
       if (j)
         return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
           nl->OneElemList(nl->IntAtom(j)), attrtype);
@@ -2343,17 +2355,18 @@ CcExtract(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~extract~
 
 */
-const string CcExtractSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>((stream (mtuple([a1:d1, ... ,an:dn]"
-			    "))) x ai) -> di</text--->"
-			    "<text>_ extract [ _ ]</text--->"
-			    "<text>Returns the value of attribute ai of "
-			    "the first tuple in the input stream."
-			    "</text--->"
-			    "<text>query cities feed extract [population]"
-			    "</text--->"
-			      ") )";
+const string CcExtractSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple([a1:d1, ... ,an:dn]"
+  "))) x ai) -> di</text--->"
+  "<text>_ extract [ _ ]</text--->"
+  "<text>Returns the value of attribute ai of "
+  "the first tuple in the input stream."
+  "</text--->"
+  "<text>query cities feed extract [population]"
+  "</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~extract~
@@ -2417,7 +2430,6 @@ static int
 CcHead(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   int maxTuples;
-  Word maxTuplesWord;
   Word tupleWord;
   CcTuple* tuple;
 
@@ -2425,7 +2437,7 @@ CcHead(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN:
 
-	//cout << "head OPEN" << endl;
+      //cout << "head OPEN" << endl;
 
       qp->Open(args[0].addr);
       local.ival = 0;
@@ -2433,10 +2445,9 @@ CcHead(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case REQUEST:
 
-	//cout << "head REQUEST" << endl;
+      //cout << "head REQUEST" << endl;
 
-      qp->Request(args[1].addr, maxTuplesWord);
-      maxTuples = ((CcInt*)maxTuplesWord.addr)->GetIntval();
+      maxTuples = ((CcInt*)args[1].addr)->GetIntval();
       if(local.ival >= maxTuples)
       {
         return CANCEL;
@@ -2456,7 +2467,7 @@ CcHead(Word* args, Word& result, int message, Word& local, Supplier s)
       }
     case CLOSE:
 
-	//cout << "head CLOSE" << endl;
+      //cout << "head CLOSE" << endl;
 
       qp->Close(args[0].addr);
       return 0;
@@ -2468,17 +2479,18 @@ CcHead(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~head~
 
 */
-const string CcHeadSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                         "\"Example\" ) "
-                         "( <text>((stream (mtuple([a1:d1, ... ,an:dn]"
-			 "))) x int) -> (stream (mtuple([a1:d1, ... ,"
-			 "an:dn])))</text--->"
-			 "<text>_ head [ _ ]</text--->"
-			 "<text>Returns the first n tuples in the input "
-			 "stream.</text--->"
-			 "<text>query cities feed head[10] consume"
-			 "</text--->"
-			      ") )";
+const string CcHeadSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple([a1:d1, ... ,an:dn]"
+  "))) x int) -> (stream (mtuple([a1:d1, ... ,"
+  "an:dn])))</text--->"
+  "<text>_ head [ _ ]</text--->"
+  "<text>Returns the first n tuples in the input "
+  "stream.</text--->"
+  "<text>query cities feed head[10] consume"
+  "</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~head~
@@ -2530,7 +2542,8 @@ CcMaxMinTypeMap( ListExpr args )
       && (nl->AtomType(second) == SymbolType))
     {
       attrname = nl->SymbolValue(second);
-      j = CcFindAttribute(nl->Second(nl->Second(first)), attrname, attrtype, nl);
+      j = CcFindAttribute(nl->Second(nl->Second(first)), attrname, 
+                          attrtype, nl);
 
       if (j > 0
         && (nl->SymbolValue(attrtype) == "real"
@@ -2555,7 +2568,8 @@ CcMaxMinTypeMap( ListExpr args )
 */
 
 template<bool isMax> int
-CcMaxMinValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
+CcMaxMinValueMapping(Word* args, Word& result, int message, 
+                     Word& local, Supplier s)
 {
   bool definedValueFound = false;
   Word currentTupleWord;
@@ -2610,16 +2624,17 @@ CcMaxMinValueMapping(Word* args, Word& result, int message, Word& local, Supplie
 4.1.3 Specification of operator ~max~
 
 */
-const string CcMaxOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" ) "
-                          "( <text>((stream (mtuple([a1:d1, ... ,an:dn]"
-			  "))) x ai) -> di</text--->"
-			  "<text>_ _ mergesec</text--->"
-			  "<text>Returns the maximum value of attribute "
-			  "ai over the input stream.</text--->"
-			  "<text>query cities feed max [ cityname ]"
-			  "</text--->"
-			      ") )";
+const string CcMaxOpSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple([a1:d1, ... ,an:dn]"
+  "))) x ai) -> di</text--->"
+  "<text>_ _ mergesec</text--->"
+  "<text>Returns the maximum value of attribute "
+  "ai over the input stream.</text--->"
+  "<text>query cities feed max [ cityname ]"
+  "</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~max~
@@ -2638,16 +2653,17 @@ Operator ccrelmax (
 4.1.3 Specification of operator ~min~
 
 */
-const string CcMinOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" ) "
-                          "( <text>((stream (mtuple([a1:d1, ... ,an:dn])))"
-			  " x ai) -> di</text--->"
-			  "<text>_ min [ _ ]</text--->"
-			  "<text>Returns the minimum value of attribute ai "
-			  "over the input stream.</text--->"
-			  "<text>query cities feed min [ cityname ]"
-			  "</text--->"
-			      ") )";
+const string CcMinOpSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple([a1:d1, ... ,an:dn])))"
+  " x ai) -> di</text--->"
+  "<text>_ min [ _ ]</text--->"
+  "<text>Returns the minimum value of attribute ai "
+  "over the input stream.</text--->"
+  "<text>query cities feed min [ cityname ]"
+  "</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~min~
@@ -2707,7 +2723,8 @@ CcAvgSumTypeMap( ListExpr args )
       && (nl->AtomType(second) == SymbolType))
     {
       attrname = nl->SymbolValue(second);
-      j = CcFindAttribute(nl->Second(nl->Second(first)), attrname, attrtype, nl);
+      j = CcFindAttribute(nl->Second(nl->Second(first)), attrname, 
+                          attrtype, nl);
 
       if (j > 0
         && (nl->SymbolValue(attrtype) == "real"
@@ -2732,7 +2749,8 @@ CcAvgSumTypeMap( ListExpr args )
 
 */
 template<bool isAvg> int
-CcAvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
+CcAvgSumValueMapping(Word* args, Word& result, int message, 
+                     Word& local, Supplier s)
 {
   bool definedValueFound = false;
   Word currentTupleWord;
@@ -2836,16 +2854,17 @@ CcAvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplie
 4.1.3 Specification of operator ~avg~
 
 */
-const string CcAvgOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" ) "
-                          "( <text>((stream (mtuple([a1:d1, ... ,an:dn]"
-			  "))) x ai) -> real</text--->"
-			  "<text>_ avg [ _ ]</text--->"
-			  "<text>Returns the average value of attribute "
-			  "ai over the input stream.</text--->"
-			  "<text>query cities feed avg [population]"
-			  "</text--->"
-			      ") )";
+const string CcAvgOpSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple([a1:d1, ... ,an:dn]"
+  "))) x ai) -> real</text--->"
+  "<text>_ avg [ _ ]</text--->"
+  "<text>Returns the average value of attribute "
+  "ai over the input stream.</text--->"
+  "<text>query cities feed avg [population]"
+  "</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~avg~
@@ -2864,16 +2883,17 @@ Operator ccrelavg (
 4.1.3 Specification of operator ~sum~
 
 */
-const string CcSumOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" ) "
-                          "( <text>((stream (mtuple([a1:d1, ... ,an:dn]"
-			  "))) x ai) -> di</text--->"
-			  "<text>_ sum [ _ ]</text--->"
-			  "<text>Returns the sum of the values of attribute"
-			  " ai over the input stream.</text--->"
-			  "<text>query cities feed sum[population]"
-			  "</text--->"
-			      ") )";
+const string CcSumOpSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple([a1:d1, ... ,an:dn]"
+  "))) x ai) -> di</text--->"
+  "<text>_ sum [ _ ]</text--->"
+  "<text>Returns the sum of the values of attribute"
+  " ai over the input stream.</text--->"
+  "<text>query cities feed sum[population]"
+  "</text--->"
+  ") )";
 
 /*
 
@@ -2918,46 +2938,49 @@ CcSortByTypeMap( ListExpr args )
 
   if(nl->ListLength(args) == 2)
   {
-    ListExpr streamDescription = nl->First(args);
-    ListExpr sortSpecification  = nl->Second(args);
+    ListExpr streamDesc = nl->First(args);
+    ListExpr sortSpec  = nl->Second(args);
 
-    if((nl->ListLength(streamDescription) == 2  ) &&
-      (CcTypeOfRelAlgSymbol(nl->First(streamDescription)) == mstream)  &&
-      (CcTypeOfRelAlgSymbol(nl->First(nl->Second(streamDescription))) == mtuple))
+    if((nl->ListLength(streamDesc) == 2  ) &&
+      (CcTypeOfRelAlgSymbol(nl->First(streamDesc)) == mstream)  &&
+      (CcTypeOfRelAlgSymbol(nl->First(nl->Second(streamDesc))) == mtuple))
     {
-      int numberOfSortAttrs = nl->ListLength(sortSpecification);
+      int numberOfSortAttrs = nl->ListLength(sortSpec);
       if(numberOfSortAttrs > 0)
       {
-        ListExpr sortOrderDescription = nl->OneElemList(nl->IntAtom(numberOfSortAttrs));
-        ListExpr sortOrderDescriptionLastElement = sortOrderDescription;
-        ListExpr rest = sortSpecification;
+        ListExpr sortOrderDesc = 
+          nl->OneElemList(nl->IntAtom(numberOfSortAttrs));
+        ListExpr sortOrderDescLast = sortOrderDesc;
+        ListExpr rest = sortSpec;
         while(!nl->IsEmpty(rest))
         {
-          ListExpr attributeSpecification = nl->First(rest);
+          ListExpr attrSpec = nl->First(rest);
           rest = nl->Rest(rest);
-          if((nl->ListLength(attributeSpecification) == 2)
-            && (nl->IsAtom(nl->First(attributeSpecification)))
-            && (nl->AtomType(nl->First(attributeSpecification)) == SymbolType)
-            && (nl->IsAtom(nl->Second(attributeSpecification)))
-            && (nl->AtomType(nl->Second(attributeSpecification)) == SymbolType))
+          if((nl->ListLength(attrSpec) == 2)
+            && (nl->IsAtom(nl->First(attrSpec)))
+            && (nl->AtomType(nl->First(attrSpec)) == SymbolType)
+            && (nl->IsAtom(nl->Second(attrSpec)))
+            && (nl->AtomType(nl->Second(attrSpec)) == SymbolType))
           {
-            attrname = nl->SymbolValue(nl->First(attributeSpecification));
-            int j = CcFindAttribute(nl->Second(nl->Second(streamDescription)), attrname, attrtype, nl);
+            attrname = nl->SymbolValue(nl->First(attrSpec));
+            int j = CcFindAttribute(nl->Second(nl->Second(streamDesc)), 
+                                    attrname, attrtype, nl);
             if ((j > 0)
-              && ((nl->SymbolValue(nl->Second(attributeSpecification)) == sortAscending)
-                  || (nl->SymbolValue(nl->Second(attributeSpecification)) == sortDescending)))
+              && ((nl->SymbolValue(nl->Second(attrSpec)) == sortAscending)
+                  || (nl->SymbolValue(nl->Second(attrSpec)) == sortDescending)))
             {
-              sortOrderDescriptionLastElement =
-                nl->Append(sortOrderDescriptionLastElement, nl->IntAtom(j));
+              sortOrderDescLast =
+                nl->Append(sortOrderDescLast, nl->IntAtom(j));
               bool isAscending =
-                nl->SymbolValue(nl->Second(attributeSpecification)) == sortAscending;
-              sortOrderDescriptionLastElement =
-                nl->Append(sortOrderDescriptionLastElement,
+                nl->SymbolValue(nl->Second(attrSpec)) == sortAscending;
+              sortOrderDescLast =
+                nl->Append(sortOrderDescLast,
                   nl->BoolAtom(isAscending));
             }
             else
             {
-              ErrorReporter::ReportError("Incorrect input for operator sortby.");
+              ErrorReporter::ReportError(
+                "Incorrect input for operator sortby.");
               return nl->SymbolAtom("typeerror");
             }
           }
@@ -2968,7 +2991,7 @@ CcSortByTypeMap( ListExpr args )
           }
         }
         return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-              sortOrderDescription, streamDescription);
+              sortOrderDesc, streamDesc);
       };
       ErrorReporter::ReportError("Incorrect input for operator sortby.");
       return nl->SymbolAtom("typeerror");
@@ -3033,7 +3056,7 @@ struct CcSortByLocalInfo
 
 CPUTimeMeasurer ccSortMeasurer;
 
-template<bool lexicographically, bool requestArgs> int
+template<bool lexicographically> int
 CcSortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word tuple;
@@ -3041,8 +3064,6 @@ CcSortBy(Word* args, Word& result, int message, Word& local, Supplier s)
   CcSortByLocalInfo* localInfo;
   CcSortOrderSpecification spec;
   int i;
-  Word intWord;
-  Word boolWord;
   size_t j;
   int sortAttrIndex;
   int nSortAttrs;
@@ -3073,36 +3094,11 @@ CcSortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       }
       else
       {
-	if(requestArgs)
-        {
-          qp->Request(args[2].addr, intWord);
-        }
-        else
-        {
-          intWord = SetWord(args[2].addr);
-        }
-        nSortAttrs = ((CcInt*)intWord.addr)->GetIntval();
+        nSortAttrs = ((CcInt*)args[2].addr)->GetIntval();
         for(i = 1; i <= nSortAttrs; i++)
         {
-	  if(requestArgs)
-          {
-            qp->Request(args[2 * i + 1].addr, intWord);
-          }
-          else
-          {
-            intWord = SetWord(args[2 * i + 1].addr);
-          }
-          sortAttrIndex = ((CcInt*)intWord.addr)->GetIntval();
-
-          if(requestArgs)
-          {
-            qp->Request(args[2 * i + 2].addr, boolWord);
-          }
-          else
-          {
-            boolWord = SetWord(args[2 * i + 2].addr);
-          }
-          sortOrderIsAscending = ((CcBool*)boolWord.addr)->GetBoolval();
+          sortAttrIndex = ((CcInt*)args[2 * i + 1].addr)->GetIntval();
+          sortOrderIsAscending = ((CcBool*)args[2 * i + 2].addr)->GetBoolval();
           spec.push_back(pair<int, bool>(sortAttrIndex, sortOrderIsAscending));
         };
         ccCmp.spec = spec;
@@ -3152,17 +3148,18 @@ CcSortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~sortBy~
 
 */
-const string CcSortBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>((stream (mtuple([a1:d1, ... ,an:dn])))"
-			   " ((xi1 asc/desc) ... (xij asc/desc))) -> "
-			   "(stream (mtuple([a1:d1, ... ,an:dn])))</text--->"
-			   "<text>_ sortby [list]</text--->"
-			   "<text>Sorts input stream according to a list "
-			   "of attributes ai1 ... aij.</text--->"
-			   "<text>query employee feed sortby[DeptNo asc] "
-			   "consume</text--->"
-			      ") )";
+const string CcSortBySpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple([a1:d1, ... ,an:dn])))"
+  " ((xi1 asc/desc) ... (xij asc/desc))) -> "
+  "(stream (mtuple([a1:d1, ... ,an:dn])))</text--->"
+  "<text>_ sortby [list]</text--->"
+  "<text>Sorts input stream according to a list "
+  "of attributes ai1 ... aij.</text--->"
+  "<text>query employee feed sortby[DeptNo asc] "
+  "consume</text--->"
+  ") )";
 
 /*
 
@@ -3172,7 +3169,7 @@ const string CcSortBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 Operator ccrelsortby (
          "sortby",              // name
          CcSortBySpec,            // specification
-         CcSortBy<false, true>,   // value mapping
+         CcSortBy<false>,   // value mapping
          Operator::SimpleSelect,          // trivial selection function
          CcSortByTypeMap          // type mapping
 );
@@ -3223,16 +3220,17 @@ CcIdenticalTypeMap( ListExpr args )
 4.1.3 Specification of operator ~sort~
 
 */
-const string CcSortSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                         "\"Example\" ) "
-                         "( <text>((stream (mtuple([a1:d1, ... ,an:dn]"
-			 ")))) -> (stream (mtuple([a1:d1, ... ,an:dn])))"
-			 "</text--->"
-			 "<text>_ sort</text--->"
-			 "<text>Sorts input stream lexicographically."
-			 "</text--->"
-		    "<text>query cities feed sort consume</text--->"
-			      ") )";
+const string CcSortSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple([a1:d1, ... ,an:dn]"
+  ")))) -> (stream (mtuple([a1:d1, ... ,an:dn])))"
+  "</text--->"
+  "<text>_ sort</text--->"
+  "<text>Sorts input stream lexicographically."
+  "</text--->"
+  "<text>query cities feed sort consume</text--->"
+  ") )";
 
 /*
 
@@ -3242,7 +3240,7 @@ const string CcSortSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 Operator ccrelsort (
          "sort",             // name
          CcSortSpec,           // specification
-         CcSortBy<true, true>,               // value mapping
+         CcSortBy<true>,               // value mapping
          Operator::SimpleSelect,          // trivial selection function
          CcIdenticalTypeMap<true>         // type mapping
 );
@@ -3258,7 +3256,8 @@ This operator removes duplicates from a sorted stream.
 */
 
 static int
-CcRdupValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
+CcRdupValueMapping(Word* args, Word& result, int message, 
+                   Word& local, Supplier s)
 {
   Word tuple;
   LexicographicalCcTupleCmp cmp;
@@ -3304,7 +3303,7 @@ CcRdupValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
         }
         else
         {
-	  lastOutputTuple = (CcTuple*)local.addr;
+          lastOutputTuple = (CcTuple*)local.addr;
           if(lastOutputTuple != 0)
           {
            lastOutputTuple->DeleteIfAllowed();
@@ -3323,17 +3322,19 @@ CcRdupValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
 4.1.3 Specification of operator ~rdup~
 
 */
-const string CcRdupSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                         "\"Example\" ) "
-                         "( <text>((stream (mtuple([a1:d1, ... ,an:dn]))))"
-			 " -> (stream (mtuple([a1:d1, ... ,an:dn])))"
-			 "</text--->"
-			 "<text>_ rdup</text--->"
-			 "<text>Removes duplicates from a sorted "
-			 "stream.</text--->"
-			 "<text>query twenty feed ten feed concat sort "
-			 "rdup consume</text--->"
-			      ") )";
+const string CcRdupSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple([a1:d1, ... ,an:dn]))))"
+  " -> (stream (mtuple([a1:d1, ... ,an:dn])))"
+  "</text--->"
+  "<text>_ rdup</text--->"
+  "<text>Removes duplicates from a sorted "
+  "stream.</text--->"
+  "<text>query twenty feed ten feed concat sort "
+  "rdup consume</text--->"
+  ") )";
+
 /*
 
 4.1.3 Definition of operator ~rdup~
@@ -3604,8 +3605,10 @@ public:
 
 */
 
-template<bool outputAWithoutB, bool outputBWithoutA, bool outputMatches> int
-CcSetOpValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
+template<bool outputAWithoutB, bool outputBWithoutA, bool outputMatches> 
+int
+CcSetOpValueMapping(Word* args, Word& result, int message, 
+                    Word& local, Supplier s)
 {
   CcSetOperation* localInfo;
 
@@ -3636,18 +3639,19 @@ CcSetOpValueMapping(Word* args, Word& result, int message, Word& local, Supplier
 4.1.3 Specification of Operator ~mergesec~
 
 */
-const string CcMergeSecSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                         "\"Example\" ) "
-                         "( <text>((stream (mtuple ((x1 t1) ... "
-			 "(xn tn)))) stream (mtuple ((x1 t1) ... (xn tn)"
-			 ")))) -> (stream (mtuple ((x1 t1) ... (xn tn))))"
-			 "</text--->"
-			 "<text>_ _ mergesec</text--->"
-			 "<text>Computes the intersection of two sorted "
-			 "streams.</text--->"
-			 "<text>query twenty feed oddtwenty feed mergesec"
-			 " consume</text--->"
-			 ") )";
+const string CcMergeSecSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple ((x1 t1) ... "
+  "(xn tn)))) stream (mtuple ((x1 t1) ... (xn tn)"
+  ")))) -> (stream (mtuple ((x1 t1) ... (xn tn))))"
+  "</text--->"
+  "<text>_ _ mergesec</text--->"
+  "<text>Computes the intersection of two sorted "
+  "streams.</text--->"
+  "<text>query twenty feed oddtwenty feed mergesec"
+  " consume</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of Operator ~mergesec~
@@ -3666,18 +3670,19 @@ Operator ccrelmergesec(
 4.1.3 Specification of Operator ~mergediff~
 
 */
-const string CcMergeDiffSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                              "\"Example\" ) "
-                             "( <text>((stream (mtuple ((x1 t1) ... (xn tn)"
-			     "))) stream (mtuple ((x1 t1) ... (xn tn))))) ->"
-			     " (stream (mtuple ((x1 t1) ... (xn tn))))"
-			     "</text--->"
-			     "<text>_ _ mergediff</text--->"
-			     "<text>Computes the difference of two sorted "
-			     "streams.</text--->"
-			     "<text>query twenty feed oddtwenty feed"
-			     " mergediff consume</text--->"
-			      ") )";
+const string CcMergeDiffSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple ((x1 t1) ... (xn tn)"
+  "))) stream (mtuple ((x1 t1) ... (xn tn))))) ->"
+  " (stream (mtuple ((x1 t1) ... (xn tn))))"
+  "</text--->"
+  "<text>_ _ mergediff</text--->"
+  "<text>Computes the difference of two sorted "
+  "streams.</text--->"
+  "<text>query twenty feed oddtwenty feed"
+  " mergediff consume</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of Operator ~mergediff~
@@ -3696,17 +3701,18 @@ Operator ccrelmergediff(
 4.1.3 Specification of Operator ~mergeunion~
 
 */
-const string CcMergeUnionSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                               "\"Example\" ) "
-                         "( <text>((stream (mtuple ((x1 t1) ... (xn tn))))"
-			 "stream (mtuple ((x1 t1) ... (xn tn))))) -> (stream"
-			 " (mtuple ((x1 t1) ... (xn tn))))</text--->"
-			 "<text>_ _ mergeunion</text--->"
-			 "<text>Computes the union of two sorted streams."
-			 "</text--->"
-			 "<text>query twenty feed oddtwenty feed "
-			 "mergeunion consume</text--->"
-			      ") )";
+const string CcMergeUnionSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple ((x1 t1) ... (xn tn))))"
+  "stream (mtuple ((x1 t1) ... (xn tn))))) -> (stream"
+  " (mtuple ((x1 t1) ... (xn tn))))</text--->"
+  "<text>_ _ mergeunion</text--->"
+  "<text>Computes the union of two sorted streams."
+  "</text--->"
+  "<text>query twenty feed oddtwenty feed "
+  "mergeunion consume</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of Operator ~mergeunion~
@@ -3815,9 +3821,12 @@ CcJoinTypeMap(ListExpr args)
 
     string attrAName = nl->SymbolValue(nl->Third(args));
     string attrBName = nl->SymbolValue(nl->Fourth(args));
-    int attrAIndex = CcFindAttribute(nl->Second(nl->Second(streamA)), attrAName, attrTypeA, nl);
-    int attrBIndex = CcFindAttribute(nl->Second(nl->Second(streamB)), attrBName, attrTypeB, nl);
-    if(attrAIndex <= 0 || attrBIndex <= 0 || !nl->Equal(attrTypeA, attrTypeB))
+    int attrAIndex = CcFindAttribute(nl->Second(nl->Second(streamA)), 
+                                     attrAName, attrTypeA, nl);
+    int attrBIndex = CcFindAttribute(nl->Second(nl->Second(streamB)), 
+                                     attrBName, attrTypeB, nl);
+    if(attrAIndex <= 0 || attrBIndex <= 0 || 
+       !nl->Equal(attrTypeA, attrTypeB))
     {
       goto typeerror;
     }
@@ -3828,7 +3837,8 @@ CcJoinTypeMap(ListExpr args)
     }
 
     joinAttrDescription =
-      nl->TwoElemList(nl->IntAtom(attrAIndex), nl->IntAtom(attrBIndex));
+      nl->TwoElemList(nl->IntAtom(attrAIndex),  
+                      nl->IntAtom(attrBIndex));
     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
               joinAttrDescription, outlist);
   }
@@ -3887,7 +3897,8 @@ private:
       return 1;
     }
 
-    return ((Attribute*)a->Get(attrIndexA))->Compare((Attribute*)b->Get(attrIndexB));
+    return ((Attribute*)a->Get(attrIndexA))->
+             Compare((Attribute*)b->Get(attrIndexB));
   }
 
   void SetArgs(ArgVector& args, Word stream, Word attrIndex)
@@ -3908,7 +3919,8 @@ private:
     }
     else
     {
-      int errorCode = CcSortBy<false, false>(aArgs, aResult, REQUEST, streamALocalInfo, 0);
+      int errorCode = 
+        CcSortBy<false>(aArgs, aResult, REQUEST, streamALocalInfo, 0);
       yield = (errorCode == YIELD);
     }
 
@@ -3933,7 +3945,8 @@ private:
     }
     else
     {
-      int errorCode = CcSortBy<false, false>(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
+      int errorCode = 
+        CcSortBy<false>(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
       yield = (errorCode == YIELD);
     }
 
@@ -3963,7 +3976,8 @@ private:
     }
     else
     {
-      int cmpResult = CompareCcTuples((CcTuple*)aResult.addr, (CcTuple*)bResult.addr);
+      int cmpResult = 
+        CompareCcTuples((CcTuple*)aResult.addr, (CcTuple*)bResult.addr);
       while(cmpResult != 0)
       {
         if(cmpResult < 0)
@@ -3984,7 +3998,8 @@ private:
             return false;
           }
         }
-        cmpResult = CompareCcTuples((CcTuple*)aResult.addr, (CcTuple*)bResult.addr);
+        cmpResult = 
+          CompareCcTuples((CcTuple*)aResult.addr, (CcTuple*)bResult.addr);
       }
       return true;
     }
@@ -4088,8 +4103,8 @@ public:
     {
       SetArgs(aArgs, streamA, attrIndexA);
       SetArgs(bArgs, streamB, attrIndexB);
-      CcSortBy<false, false>(aArgs, aResult, OPEN, streamALocalInfo, 0);
-      CcSortBy<false, false>(bArgs, bResult, OPEN, streamBLocalInfo, 0);
+      CcSortBy<false>(aArgs, aResult, OPEN, streamALocalInfo, 0);
+      CcSortBy<false>(bArgs, bResult, OPEN, streamBLocalInfo, 0);
     }
 
     nextATuple();
@@ -4105,8 +4120,8 @@ public:
     }
     else
     {
-      CcSortBy<false, false>(aArgs, aResult, CLOSE, streamALocalInfo, 0);
-      CcSortBy<false, false>(bArgs, bResult, CLOSE, streamBLocalInfo, 0);
+      CcSortBy<false>(aArgs, aResult, CLOSE, streamALocalInfo, 0);
+      CcSortBy<false>(bArgs, bResult, CLOSE, streamBLocalInfo, 0);
     };
   }
 
@@ -4139,16 +4154,12 @@ template<bool expectSorted> int
 CcMergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   CcMergeJoinLocalInfo* localInfo;
-  Word attrIndexA;
-  Word attrIndexB;
 
   switch(message)
   {
     case OPEN:
-      qp->Request(args[4].addr, attrIndexA);
-      qp->Request(args[5].addr, attrIndexB);
       localInfo = new CcMergeJoinLocalInfo
-        (args[0], attrIndexA, args[1], attrIndexB, expectSorted);
+        (args[0], args[4], args[1], args[5], expectSorted);
       local = SetWord(localInfo);
       return 0;
     case REQUEST:
@@ -4172,21 +4183,22 @@ CcMergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~mergejoin~
 
 */
-const string CcMergeJoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                              "\"Example\" ) "
-                             "( <text>((stream (mtuple ((x1 t1) ... "
-			     "(xn tn)))) (stream (mtuple ((y1 d1) ... "
-			     "(ym dm)))) xi yj) -> (stream (mtuple ((x1 t1)"
-			     " ... (xn tn) (y1 d1) ... (ym dm))))"
-			     "</text--->"
-			     "<text>_ _ mergejoin [_, _]</text--->"
-			     "<text>Computes the equijoin two streams. "
-			     "Expects that input streams are sorted."
-			     "</text--->"
-			     "<text>query duplicates feed ten feed "
-			     "rename[A] mergejoin[no, no_A] sort rdup "
-			     "consume</text--->"
-			      ") )";
+const string CcMergeJoinSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple ((x1 t1) ... "
+  "(xn tn)))) (stream (mtuple ((y1 d1) ... "
+  "(ym dm)))) xi yj) -> (stream (mtuple ((x1 t1)"
+  " ... (xn tn) (y1 d1) ... (ym dm))))"
+  "</text--->"
+  "<text>_ _ mergejoin [_, _]</text--->"
+  "<text>Computes the equijoin two streams. "
+  "Expects that input streams are sorted."
+  "</text--->"
+  "<text>query duplicates feed ten feed "
+  "rename[A] mergejoin[no, no_A] sort rdup "
+  "consume</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~mergejoin~
@@ -4209,20 +4221,21 @@ This operator sorts two input streams and computes their equijoin.
 4.1.3 Specification of operator ~sortmergejoin~
 
 */
-const string CcSortMergeJoinSpec  = "( ( \"Signature\" \"Syntax\" "
-                                  "\"Meaning\" \"Example\" ) "
-                             "( <text>((stream (mtuple ((x1 t1) ... "
-			     "(xn tn)))) (stream (mtuple ((y1 d1) ..."
-			     " (ym dm)))) xi yj) -> (stream (mtuple "
-			     "((x1 t1) ... (xn tn) (y1 d1) ... (ym dm)"
-			     ")))</text--->"
-			     "<text>_ _ sortmergejoin [ _ , _ ]"
-			     "</text--->"
-			     "<text>Computes the equijoin two streams."
-			     "</text--->"
-			     "<text>query duplicates feed ten feed "
-			     "mergejoin[no, nr] consume</text--->"
-			      ") )";
+const string CcSortMergeJoinSpec  = 
+  "( ( \"Signature\" \"Syntax\" "
+  "\"Meaning\" \"Example\" ) "
+  "( <text>((stream (mtuple ((x1 t1) ... "
+  "(xn tn)))) (stream (mtuple ((y1 d1) ..."
+  " (ym dm)))) xi yj) -> (stream (mtuple "
+  "((x1 t1) ... (xn tn) (y1 d1) ... (ym dm)"
+  ")))</text--->"
+  "<text>_ _ sortmergejoin [ _ , _ ]"
+  "</text--->"
+  "<text>Computes the equijoin two streams."
+  "</text--->"
+  "<text>query duplicates feed ten feed "
+  "mergejoin[no, nr] consume</text--->"
+  ") )";
 
 /*
 
@@ -4249,10 +4262,12 @@ The user can specify the number of hash buckets.
 
 */
 
-CPUTimeMeasurer ccHashMeasurer;  // measures cost of distributing into buckets and
-                               // of computing products of buckets
-CPUTimeMeasurer ccBucketMeasurer;// measures the cost of producing the tuples in
-                               // the result set
+CPUTimeMeasurer ccHashMeasurer;  
+  // measures cost of distributing into buckets and
+  // of computing products of buckets
+CPUTimeMeasurer ccBucketMeasurer;
+  // measures the cost of producing the tuples in
+  // the result set
 
 class CcHashJoinLocalInfo
 {
@@ -4292,7 +4307,8 @@ private:
 
   size_t HashTuple(CcTuple* tuple, int attrIndex)
   {
-    return (((StandardAttribute*)tuple->Get(attrIndex))->HashValue() % nBuckets);
+    return (((StandardAttribute*)tuple->Get(attrIndex))->
+      HashValue() % nBuckets);
   }
 
   void FillHashBuckets(Word stream, int attrIndex,
@@ -4428,18 +4444,12 @@ static int
 CcHashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   CcHashJoinLocalInfo* localInfo;
-  Word attrIndexA;
-  Word attrIndexB;
-  Word nHashBuckets;
 
   switch(message)
   {
     case OPEN:
-      qp->Request(args[5].addr, attrIndexA);
-      qp->Request(args[6].addr, attrIndexB);
-      qp->Request(args[4].addr, nHashBuckets);
-      localInfo = new CcHashJoinLocalInfo(args[0], attrIndexA,
-        args[1], attrIndexB, nHashBuckets);
+      localInfo = 
+        new CcHashJoinLocalInfo(args[0], args[5], args[1], args[6], args[4]);
       local = SetWord(localInfo);
       return 0;
     case REQUEST:
@@ -4463,23 +4473,24 @@ CcHashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of Operator ~hashjoin~
 
 */
-const string CcHashJoinSpec  = "( ( \"Signature\" \"Syntax\" "
-                             "\"Meaning\" \"Example\" ) "
-                          "( <text>((stream (mtuple ((x1 t1) ... "
-			  "(xn tn)))) (stream (mtuple ((y1 d1) ... "
-			  "(ym dm)))) xi yj nbuckets) -> (stream "
-			  "(mtuple ((x1 t1) ... (xn tn) (y1 d1) ..."
-			  " (ym dm))))</text--->"
-			  "<text> _ _ hashjoin [ _ , _ , _ ]"
-			  "</text--->"
-			  "<text>Computes the equijoin two streams "
-			  "via a hash join. The number of hash buckets"
-			  " is given by the parameter nBuckets."
-			  "</text--->"
-			  "<text>query Employee feed Dept feed "
-			  "rename[A] hashjoin[DeptNr, DeptNr_A, 17] "
-			  "sort consume</text--->"
-			      ") )";
+const string CcHashJoinSpec  = 
+  "( ( \"Signature\" \"Syntax\" "
+  "\"Meaning\" \"Example\" ) "
+  "( <text>((stream (mtuple ((x1 t1) ... "
+  "(xn tn)))) (stream (mtuple ((y1 d1) ... "
+  "(ym dm)))) xi yj nbuckets) -> (stream "
+  "(mtuple ((x1 t1) ... (xn tn) (y1 d1) ..."
+  " (ym dm))))</text--->"
+  "<text> _ _ hashjoin [ _ , _ , _ ]"
+  "</text--->"
+  "<text>Computes the equijoin two streams "
+  "via a hash join. The number of hash buckets"
+  " is given by the parameter nBuckets."
+  "</text--->"
+  "<text>query Employee feed Dept feed "
+  "rename[A] hashjoin[DeptNr, DeptNr_A, 17] "
+  "sort consume</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of Operator ~hashjoin~
@@ -4646,20 +4657,21 @@ CcExtend(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~extend~
 
 */
-const string CcExtendSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>(stream(mtuple(x)) x [(a1, (mtuple(x)"
-			   " -> d1)) ... (an, (mtuple(x) -> dn))] -> "
-			   "stream(mtuple(x@[a1:d1, ... , an:dn])))"
-			   "</text--->"
-			   "<text>_ extend [funlist]</text--->"
-			   "<text>Extends each input tuple by new "
-			   "attributes as specified in the parameter"
-			   " list.</text--->"
-			   "<text>query ten feed extend [mult5 : "
-			   ".nr * 5, mod2 : .nr mod 2] consume"
-			   "</text--->"
-			      ") )";
+const string CcExtendSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(stream(mtuple(x)) x [(a1, (mtuple(x)"
+  " -> d1)) ... (an, (mtuple(x) -> dn))] -> "
+  "stream(mtuple(x@[a1:d1, ... , an:dn])))"
+  "</text--->"
+  "<text>_ extend [funlist]</text--->"
+  "<text>Extends each input tuple by new "
+  "attributes as specified in the parameter"
+  " list.</text--->"
+  "<text>query ten feed extend [mult5 : "
+  ".nr * 5, mod2 : .nr mod 2] consume"
+  "</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~extend~
@@ -4708,29 +4720,30 @@ CcLoopjoinTypeMap(ListExpr args)
     first = nl->First(args);
     second  = nl->Second(args);
 
-    if 	    ( (nl->ListLength(first) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
-	&& (nl->ListLength(nl->Second(first)) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
-	&& (nl->ListLength(second) == 3)
-	&& (CcTypeOfRelAlgSymbol(nl->First(second)) == mmap)
-	&& (nl->Equal(nl->Second(first), nl->Second(second)))
-	&& (nl->ListLength(nl->Third(second)) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Third(second))) == mstream)
-	&& (nl->ListLength(nl->Second(nl->Third(second))) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) == mtuple) )
-	{
-                   list1 = nl->Second(nl->Second(first));
-                   list2 = nl->Second(nl->Second(nl->Third(second)));
-	   if(!CcAttributesAreDisjoint(list1, list2))
-	   {
-	       goto typeerror;
-	   }
-	   list = CcConcatLists(list1, list2);
-	   outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-		nl->TwoElemList(nl->SymbolAtom("mtuple"), list));
-  	   return outlist;
-	}
+    if( (nl->ListLength(first) == 2)
+        && (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
+        && (nl->ListLength(nl->Second(first)) == 2)
+        && (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
+        && (nl->ListLength(second) == 3)
+        && (CcTypeOfRelAlgSymbol(nl->First(second)) == mmap)
+        && (nl->Equal(nl->Second(first), nl->Second(second)))
+        && (nl->ListLength(nl->Third(second)) == 2)
+        && (CcTypeOfRelAlgSymbol(nl->First(nl->Third(second))) == mstream)
+        && (nl->ListLength(nl->Second(nl->Third(second))) == 2)
+        && (CcTypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) 
+              == mtuple) )
+    {
+      list1 = nl->Second(nl->Second(first));
+      list2 = nl->Second(nl->Second(nl->Third(second)));
+      if(!CcAttributesAreDisjoint(list1, list2))
+      {
+        goto typeerror;
+      }
+      list = CcConcatLists(list1, list2);
+      outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
+                  nl->TwoElemList(nl->SymbolAtom("mtuple"), list));
+      return outlist;
+    }
     else goto typeerror;
   }
  else goto typeerror;
@@ -4794,35 +4807,36 @@ CcLoopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
       tuplex=localinfo->tuplex;
       ctuplex=(CcTuple*)tuplex.addr;
       streamy=localinfo->streamy;
-      //2>>>>>> prepare tuplex and tupley for processing. if rely is exausted: fetch next tuplex.
+      //2>>>>>> prepare tuplex and tupley for processing. 
+      //if rely is exausted: fetch next tuplex.
       tupley=SetWord(Address(0));
       while (tupley.addr==0)
       {
            qp->Request(streamy.addr, tupley);
            if (!(qp->Received(streamy.addr)))
+           {
+             qp->Close(streamy.addr);
+             ((CcTuple*)tuplex.addr)->DeleteIfAllowed();
+             qp->Request(args[0].addr, tuplex);
+             if (qp->Received(args[0].addr))
              {
-	    qp->Close(streamy.addr);
-	    ((CcTuple*)tuplex.addr)->DeleteIfAllowed();
-	    qp->Request(args[0].addr, tuplex);
-	    if (qp->Received(args[0].addr))
-	    {
                funargs = qp->Argument(args[1].addr);
-	       ctuplex=(CcTuple*)tuplex.addr;
-	       (*funargs)[0] = tuplex;
+               ctuplex=(CcTuple*)tuplex.addr;
+               (*funargs)[0] = tuplex;
                streamy=args[1];
                qp->Open (streamy.addr);
-	       tupley=SetWord(Address(0));
+               tupley=SetWord(Address(0));
 
- 	       localinfo->tuplex=tuplex;
- 	       localinfo->streamy=streamy;
-	       local =  SetWord(localinfo);
-	   }
-	   else return CANCEL;
+               localinfo->tuplex=tuplex;
+               localinfo->streamy=streamy;
+               local =  SetWord(localinfo);
+             }
+             else return CANCEL;
            }
           else
-           {
-	    ctupley=(CcTuple*)tupley.addr;
-            }
+          {
+            ctupley=(CcTuple*)tupley.addr;
+          }
       }
       //3>>>>>> compute tuplexy.
       ctuplexy = new CcTuple();
@@ -4847,29 +4861,30 @@ CcLoopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~loopjoin~
 
 */
-const string CcLoopjoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                             "\"Example\" ) "
-                        "( <text>((stream mtuple1) (map mtuple1 "
-			"mrel(mtuple2))) -> (stream mtuple1*mtuple2)"
-			"</text--->"
-			"<text>_ loopjoin [ fun ]</text--->"
-			"<text>Only tuples in the cartesian product "
-			"which satisfy certain conditions are passed on"
-			" to the output stream.</text--->"
-			"<text>query cities feed loopjoin [five feed "
-			"filter [.no > 2]] consume</text--->"
-			      ") )";
+const string CcLoopjoinSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream mtuple1) (map mtuple1 "
+  "mrel(mtuple2))) -> (stream mtuple1*mtuple2)"
+  "</text--->"
+  "<text>_ loopjoin [ fun ]</text--->"
+  "<text>Only tuples in the cartesian product "
+  "which satisfy certain conditions are passed on"
+  " to the output stream.</text--->"
+  "<text>query cities feed loopjoin [five feed "
+  "filter [.no > 2]] consume</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~loopjoin~
 
 */
 Operator ccrelloopjoin (
-         "loopjoin",	           		// name
-         CcLoopjoinSpec,          		// specification
-         CcLoopjoin,               		// value mapping
-         Operator::SimpleSelect,         		// trivial selection function
-         CcLoopjoinTypeMap	         	// type mapping
+         "loopjoin",             // name
+         CcLoopjoinSpec,         // specification
+         CcLoopjoin,             // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         CcLoopjoinTypeMap       // type mapping
 );
 
 /*
@@ -4908,32 +4923,33 @@ CcLoopselectTypeMap(ListExpr args)
     first = nl->First(args);
     second  = nl->Second(args);
 
-    if 	    ( (nl->ListLength(first) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
-	&& (nl->ListLength(nl->Second(first)) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
-	&& (nl->ListLength(second) == 3)
-	&& (CcTypeOfRelAlgSymbol(nl->First(second)) == mmap)
-	&& (nl->Equal(nl->Second(first), nl->Second(second)))
-	&& (nl->ListLength(nl->Third(second)) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Third(second))) == mstream)
-	&& (nl->ListLength(nl->Second(nl->Third(second))) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) == mtuple) )
-	{
-                   list1 = nl->Second(nl->Second(first));
-                   list2 = nl->Second(nl->Second(nl->Third(second)));
-	   //if(!CcAttributesAreDisjoint(list1, list2))
-	   //{
-	   //    goto typeerror;
-	   //}
-	   //list = CcConcatLists(list1, list2);
-	   outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-		nl->TwoElemList(nl->SymbolAtom("mtuple"), list2));
-  	   return outlist;
-	}
+    if( (nl->ListLength(first) == 2)
+        && (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
+        && (nl->ListLength(nl->Second(first)) == 2)
+        && (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
+        && (nl->ListLength(second) == 3)
+        && (CcTypeOfRelAlgSymbol(nl->First(second)) == mmap)
+        && (nl->Equal(nl->Second(first), nl->Second(second)))
+        && (nl->ListLength(nl->Third(second)) == 2)
+        && (CcTypeOfRelAlgSymbol(nl->First(nl->Third(second))) == mstream)
+        && (nl->ListLength(nl->Second(nl->Third(second))) == 2)
+        && (CcTypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) 
+              == mtuple) )
+    {
+       list1 = nl->Second(nl->Second(first));
+       list2 = nl->Second(nl->Second(nl->Third(second)));
+       //if(!CcAttributesAreDisjoint(list1, list2))
+       //{
+       //    goto typeerror;
+       //}
+       //list = CcConcatLists(list1, list2);
+       outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
+       nl->TwoElemList(nl->SymbolAtom("mtuple"), list2));
+       return outlist;
+    }
     else goto typeerror;
   }
- else goto typeerror;
+  else goto typeerror;
 
 typeerror:
   ErrorReporter::ReportError("Incorrect input for operator loopselect.");
@@ -4994,35 +5010,36 @@ CcLoopselect(Word* args, Word& result, int message, Word& local, Supplier s)
       tuplex=localinfo->tuplex;
       ctuplex=(CcTuple*)tuplex.addr;
       streamy=localinfo->streamy;
-      //2>>>>>> prepare tuplex and tupley for processing. if rely is exausted: fetch next tuplex.
+      //2>>>>>> prepare tuplex and tupley for processing. 
+      //if rely is exausted: fetch next tuplex.
       tupley=SetWord(Address(0));
       while (tupley.addr==0)
       {
-           qp->Request(streamy.addr, tupley);
-           if (!(qp->Received(streamy.addr)))
-             {
-	    qp->Close(streamy.addr);
-	    ((CcTuple*)tuplex.addr)->DeleteIfAllowed();
-	    qp->Request(args[0].addr, tuplex);
-	    if (qp->Received(args[0].addr))
-	    {
-                       funargs = qp->Argument(args[1].addr);
-	       ctuplex=(CcTuple*)tuplex.addr;
-	       (*funargs)[0] = tuplex;
-                       streamy=args[1];
-                       qp->Open (streamy.addr);
-	       tupley=SetWord(Address(0));
+        qp->Request(streamy.addr, tupley);
+        if (!(qp->Received(streamy.addr)))
+        {
+          qp->Close(streamy.addr);
+          ((CcTuple*)tuplex.addr)->DeleteIfAllowed();
+          qp->Request(args[0].addr, tuplex);
+          if (qp->Received(args[0].addr))
+          {
+            funargs = qp->Argument(args[1].addr);
+            ctuplex=(CcTuple*)tuplex.addr;
+            (*funargs)[0] = tuplex;
+            streamy=args[1];
+            qp->Open (streamy.addr);
+            tupley=SetWord(Address(0));
 
- 	       localinfo->tuplex=tuplex;
- 	       localinfo->streamy=streamy;
-	       local =  SetWord(localinfo);
-	   }
-	   else return CANCEL;
-           }
-          else
-           {
-	    ctupley=(CcTuple*)tupley.addr;
-            }
+            localinfo->tuplex=tuplex;
+            localinfo->streamy=streamy;
+            local =  SetWord(localinfo);
+          }
+          else return CANCEL;
+        }
+        else
+        {
+          ctupley=(CcTuple*)tupley.addr;
+        }
       }
       //3>>>>>> compute tuplexy.
       //ctuplexy = new CcTuple();
@@ -5047,29 +5064,30 @@ CcLoopselect(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~loopjoin~
 
 */
-const string CcLoopselectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                             "\"Example\" ) "
-                        "( <text>((stream mtuple1) (map mtuple1 "
-			"mrel(mtuple2))) -> (stream mtuple2)"
-			"</text--->"
-			"<text>_ loopselect [ fun ]</text--->"
-			"<text>Only tuples in the cartesian product "
-			"which satisfy certain conditions are passed on"
-			" to the output stream.</text--->"
-			"<text>query cities feed loopselect [five feed "
-			"filter [.no > 2]] consume</text--->"
-			      ") )";
+const string CcLoopselectSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream mtuple1) (map mtuple1 "
+  "mrel(mtuple2))) -> (stream mtuple2)"
+  "</text--->"
+  "<text>_ loopselect [ fun ]</text--->"
+  "<text>Only tuples in the cartesian product "
+  "which satisfy certain conditions are passed on"
+  " to the output stream.</text--->"
+  "<text>query cities feed loopselect [five feed "
+  "filter [.no > 2]] consume</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~loopjoin~
 
 */
 Operator ccrelloopselect (
-         "loopsel",	           		// name
-         CcLoopselectSpec,         		// specification
-         CcLoopselect,               		// value mapping
-         Operator::SimpleSelect,         		// trivial selection function
-         CcLoopselectTypeMap	         	// type mapping
+         "loopsel",              // name
+         CcLoopselectSpec,       // specification
+         CcLoopselect,           // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         CcLoopselectTypeMap     // type mapping
 );
 
 
@@ -5108,29 +5126,30 @@ CcLoopjoinrelTypeMap(ListExpr args)
     first = nl->First(args);
     second  = nl->Second(args);
 
-    if 	    ( (nl->ListLength(first) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
-	&& (nl->ListLength(nl->Second(first)) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
-	&& (nl->ListLength(second) == 3)
-	&& (CcTypeOfRelAlgSymbol(nl->First(second)) == mmap)
-	&& (nl->Equal(nl->Second(first), nl->Second(second)))
-	&& (nl->ListLength(nl->Third(second)) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Third(second))) == mrel)
-	&& (nl->ListLength(nl->Second(nl->Third(second))) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) == mtuple) )
-	{
-                   list1 = nl->Second(nl->Second(first));
-                   list2 = nl->Second(nl->Second(nl->Third(second)));
-	   if(!CcAttributesAreDisjoint(list1, list2))
-	   {
-	       goto typeerror;
-	   }
-	   list = CcConcatLists(list1, list2);
-	   outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-		nl->TwoElemList(nl->SymbolAtom("mtuple"), list));
-  	   return outlist;
-	}
+    if( (nl->ListLength(first) == 2)
+        && (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
+        && (nl->ListLength(nl->Second(first)) == 2)
+        && (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
+        && (nl->ListLength(second) == 3)
+        && (CcTypeOfRelAlgSymbol(nl->First(second)) == mmap)
+        && (nl->Equal(nl->Second(first), nl->Second(second)))
+        && (nl->ListLength(nl->Third(second)) == 2)
+        && (CcTypeOfRelAlgSymbol(nl->First(nl->Third(second))) == mrel)
+        && (nl->ListLength(nl->Second(nl->Third(second))) == 2)
+        && (CcTypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) 
+              == mtuple) )
+    {
+      list1 = nl->Second(nl->Second(first));
+      list2 = nl->Second(nl->Second(nl->Third(second)));
+      if(!CcAttributesAreDisjoint(list1, list2))
+      {
+        goto typeerror;
+      }
+      list = CcConcatLists(list1, list2);
+      outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
+      nl->TwoElemList(nl->SymbolAtom("mtuple"), list));
+      return outlist;
+    }
     else goto typeerror;
   }
  else goto typeerror;
@@ -5203,42 +5222,44 @@ CcLoopjoinrel(Word* args, Word& result, int message, Word& local, Supplier s)
       rely=localinfo->rely;
       crely=((CcRel*)rely.addr);
       crelyit=(CcRelIT*)((localinfo->relyit).addr);
-      //2>>>>>> prepare tuplex and tupley for processing. if rely is exausted: fetch next tuplex.
+      //2>>>>>> prepare tuplex and tupley for processing. 
+      //if rely is exausted: fetch next tuplex.
       tupley=SetWord(Address(0));
       while (tupley.addr==0)
       {
-           crely=((CcRel*)rely.addr);
-           if (crelyit->EndOfScan())
-           {
-	    ((CcTuple*)tuplex.addr)->DeleteIfAllowed();
-	    qp->Request(args[0].addr, tuplex);
-	    if (qp->Received(args[0].addr))
-	    {
-                       funargs = qp->Argument(args[1].addr);
-	       ctuplex=(CcTuple*)tuplex.addr;
-	       (*funargs)[0] = tuplex;
-	       qp->Request(args[1].addr, funresult);
-	       rely=SetWord(funresult.addr);
-	       crely = (CcRel*)(funresult.addr);
-                       crelyit=crely->MakeNewScan();
-	       tupley=SetWord(Address(0));
-	       //cout<<"number of tuples in rel y:"<<((CcRel*)rely.addr)->GetNoTuples()<<endl;
+        crely=((CcRel*)rely.addr);
+        if (crelyit->EndOfScan())
+        {
+          ((CcTuple*)tuplex.addr)->DeleteIfAllowed();
+          qp->Request(args[0].addr, tuplex);
+          if (qp->Received(args[0].addr))
+          {
+            funargs = qp->Argument(args[1].addr);
+            ctuplex=(CcTuple*)tuplex.addr;
+            (*funargs)[0] = tuplex;
+            qp->Request(args[1].addr, funresult);
+            rely=SetWord(funresult.addr);
+            crely = (CcRel*)(funresult.addr);
+            crelyit=crely->MakeNewScan();
+            tupley=SetWord(Address(0));
+            //cout<<"number of tuples in rel y:"
+            //    <<((CcRel*)rely.addr)->GetNoTuples()<<endl;
 
- 	       localinfo->tuplex=tuplex;
- 	       localinfo->rely=rely;
-	       localinfo->relyit=SetWord(crelyit);
-	       local =  SetWord(localinfo);
-	   }
-	   else return CANCEL;
-           }
-          else
-           {
-	    tupley=SetWord(crelyit->GetTuple());
-	    ctupley=(CcTuple*)tupley.addr;
-	    crelyit->Next();
-	    localinfo->relyit=SetWord(crelyit);
-	    local =  SetWord(localinfo);
-            }
+            localinfo->tuplex=tuplex;
+            localinfo->rely=rely;
+            localinfo->relyit=SetWord(crelyit);
+            local =  SetWord(localinfo);
+          }
+          else return CANCEL;
+        }
+        else
+        {
+          tupley=SetWord(crelyit->GetTuple());
+          ctupley=(CcTuple*)tupley.addr;
+          crelyit->Next();
+          localinfo->relyit=SetWord(crelyit);
+          local =  SetWord(localinfo);
+        }
       }
       //3>>>>>> compute tuplexy.
       ctuplexy = new CcTuple();
@@ -5263,28 +5284,29 @@ CcLoopjoinrel(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~loopjoinrel~
 
 */
-const string CcLoopjoinrelSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-                      "( <text>((stream mtuple1) (map mtuple1 mrel(mtuple2))) "
-		      "-> (stream mtuple1*mtuple2)</text--->"
-		      "<text>_ loopjoin [ fun ]</text--->"
-		      "<text>Only tuples in the cartesian product which "
-		      "satisfy certain conditions are passed on to the "
-		      "output stream.</text--->"
-		      "<text>query cities feed loopjoin [ five ] consume"
-		      "</text--->"
-			     " ) )";
+const string CcLoopjoinrelSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream mtuple1) (map mtuple1 mrel(mtuple2))) "
+  "-> (stream mtuple1*mtuple2)</text--->"
+  "<text>_ loopjoin [ fun ]</text--->"
+  "<text>Only tuples in the cartesian product which "
+  "satisfy certain conditions are passed on to the "
+  "output stream.</text--->"
+  "<text>query cities feed loopjoin [ five ] consume"
+  "</text--->"
+  " ) )";
 /*
 
 4.1.3 Definition of operator ~loopjoinrel~
 
 */
 Operator ccrelloopjoinrel (
-         "loopjoinrel",	           		// name
-         CcLoopjoinrelSpec,        		// specification
-         CcLoopjoinrel,               		// value mapping
-         Operator::SimpleSelect,         		// trivial selection function
-         CcLoopjoinrelTypeMap	         	// type mapping
+         "loopjoinrel",           // name
+         CcLoopjoinrelSpec,       // specification
+         CcLoopjoinrel,           // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         CcLoopjoinrelTypeMap     // type mapping
 );
 
 /*
@@ -5412,16 +5434,17 @@ CcConcat(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~concat~
 
 */
-const string CcConcatSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                     "( <text>((stream (mtuple (a1:d1 ... an:dn))) "
-		     "(stream (mtuple (b1:d1 ... bn:dn)))) -> (stream"
-		     " (mtuple (a1:d1 ... an:dn)))</text--->"
-		     "<text>_ _ concat</text--->"
-		     "<text>Union.</text--->"
-		     "<text>query ten feed five feed concat consume"
-		     "</text--->"
-			      ") )";
+const string CcConcatSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple (a1:d1 ... an:dn))) "
+  "(stream (mtuple (b1:d1 ... bn:dn)))) -> (stream"
+  " (mtuple (a1:d1 ... an:dn)))</text--->"
+  "<text>_ _ concat</text--->"
+  "<text>Union.</text--->"
+  "<text>query ten feed five feed concat consume"
+  "</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~concat~
@@ -5466,7 +5489,8 @@ Remark this implementation causes a SIGSEGV - to be fixed!
 
 
 int 
-CcGroupByValueMapping(Word* args, Word& result, int message, Word& local, Supplier supplier)
+CcGroupByValueMapping(Word* args, Word& result, int message, 
+                      Word& local, Supplier supplier)
 {
   CcTuple *t = 0;
   CcTuple *s = 0;
@@ -5522,8 +5546,7 @@ CcGroupByValueMapping(Word* args, Word& result, int message, Word& local, Suppli
         SHOW(*t)
         tp->AppendTuple(t);
       }
-      qp->Request(args[indexOfCountArgument].addr, nAttributesWord);
-      numberatt = ((CcInt*)nAttributesWord.addr)->GetIntval();
+      numberatt = ((CcInt*)args[indexOfCountArgument].addr)->GetIntval();
 
       ifequal = true;
       qp->Request(args[0].addr, sWord);
@@ -5532,8 +5555,8 @@ CcGroupByValueMapping(Word* args, Word& result, int message, Word& local, Suppli
         s = (CcTuple*)sWord.addr;
         for (k = 0; k < numberatt; k++)
         {
-          qp->Request(args[startIndexOfExtraArguments+k].addr, attribIdxWord);
-          attribIdx = ((CcInt*)attribIdxWord.addr)->GetIntval();
+          attribIdx = 
+            ((CcInt*)args[startIndexOfExtraArguments+k].addr)->GetIntval();
           j = attribIdx - 1;
           if (((Attribute*)t->Get(j))->Compare((Attribute *)s->Get(j)))
             ifequal = false;
@@ -5566,8 +5589,8 @@ CcGroupByValueMapping(Word* args, Word& result, int message, Word& local, Suppli
       SHOW(*s)
       for(i = 0; i < numberatt; i++)
       {
-        qp->Request(args[startIndexOfExtraArguments+i].addr, attribIdxWord);
-        attribIdx = ((CcInt*)attribIdxWord.addr)->GetIntval();
+        attribIdx = 
+          ((CcInt*)args[startIndexOfExtraArguments+i].addr)->GetIntval();
         t->Put(i, ((Attribute*)s->Get(attribIdx - 1))->Clone());
       }
       value2 = (Supplier)args[2].addr;
@@ -5603,22 +5626,23 @@ CcGroupByValueMapping(Word* args, Word& result, int message, Word& local, Suppli
 4.1.3 Specification of operator ~groupby~
 
 */
-const string CcGroupBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                      "( <text>((stream (mtuple (a1:d1 ... an:dn))) "
-		      "(ai1 ... aik) ((bj1 (fun (mrel (mtuple (a1:d1"
-		      " ... an:dn))) (_))) ... (bjl (fun (mrel (mtuple"
-		      " (a1:d1 ... an:dn))) (_))))) -> (stream (mtuple"
-		      " (ai1:di1 ... aik:dik bj1 ... bjl)))</text--->"
-		      "<text>_ groupby [list; funlist]</text--->"
-		      "<text>Groups a relation according to attributes "
-		      "ai1, ..., aik and feeds the groups to other "
-		      "functions. The results of those functions are "
-		      "appended to the grouping attributes.</text--->"
-		      "<text>query Employee feed sortby[DeptNr asc] "
-		      "groupby[DeptNr; anz : group feed count] consume"
-		      "</text--->"
-			      ") )";
+const string CcGroupBySpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>((stream (mtuple (a1:d1 ... an:dn))) "
+  "(ai1 ... aik) ((bj1 (fun (mrel (mtuple (a1:d1"
+  " ... an:dn))) (_))) ... (bjl (fun (mrel (mtuple"
+  " (a1:d1 ... an:dn))) (_))))) -> (stream (mtuple"
+  " (ai1:di1 ... aik:dik bj1 ... bjl)))</text--->"
+  "<text>_ groupby [list; funlist]</text--->"
+  "<text>Groups a relation according to attributes "
+  "ai1, ..., aik and feeds the groups to other "
+  "functions. The results of those functions are "
+  "appended to the grouping attributes.</text--->"
+  "<text>query Employee feed sortby[DeptNr asc] "
+  "groupby[DeptNr; anz : group feed count] consume"
+  "</text--->"
+  ") )";
 /*
 
 4.1.3 Definition of operator ~groupby~
@@ -5643,7 +5667,8 @@ name and the eleven functions previously defined.
 */
 void DummyDelete(const ListExpr, Word& w) {};
 void DummyClose(const ListExpr, Word& w) {};
-Word DummyClone(const ListExpr, const Word& w) { return SetWord( Address(0) ); };
+Word DummyClone(const ListExpr, const Word& w) 
+{ return SetWord( Address(0) ); };
 int DummySizeOf() { return 0; }
 
 TypeConstructor ccreltuple( "mtuple",             CcTupleProp,
@@ -5663,11 +5688,11 @@ class ~TypeConstructor~. Constructor's arguments are the type constructor's
 name and the eleven functions previously defined.
 
 */
-TypeConstructor ccrelrel( "mrel",            CcRelProp,
+TypeConstructor ccrelrel( "mrel",         CcRelProp,
                        OutCcRel,          InCcRel,
                        0,                 0,
-                       CreateCcRel, 	   DummyDelete,
-		       OpenCcRel, 	   SaveCcRel,
+                       CreateCcRel,       DummyDelete,
+                       OpenCcRel,         SaveCcRel,
                        DummyClose,        DummyClone,
                        CastCcRel,         DummySizeOf,
                        CheckCcRel );

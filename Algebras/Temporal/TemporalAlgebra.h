@@ -4963,11 +4963,12 @@ Word InConstTemporalUnit( const ListExpr typeInfo,
       delete value;
     }
   }
-  else if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType 
-	    && nl->SymbolValue( instance ) == "undef" )
+  else if ( nl->IsAtom( instance ) && 
+            nl->AtomType( instance ) == SymbolType && 
+            nl->SymbolValue( instance ) == "undef" )
     {
       ConstTemporalUnit<Alpha> *constunit =
-	new ConstTemporalUnit<Alpha>();
+        new ConstTemporalUnit<Alpha>();
       constunit->SetDefined(false);
       correct = true;
       return (SetWord( constunit ));
@@ -5504,7 +5505,7 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN:
 
       localinfo = new UnitsLocalInfo;
-      qp->Request(args[0].addr, localinfo->mWord);
+      localinfo->mWord = args[0];
       localinfo->unitIndex = 0;
       local = SetWord(localinfo);
       return 0;

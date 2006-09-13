@@ -54,9 +54,9 @@ using namespace std;
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
-#include "StandardTypes.h"	//We need integers, for example
+#include "StandardTypes.h"  //We need integers, for example
 #include <string>
-#include <iostream>		//for testing
+#include <iostream>    //for testing
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -139,25 +139,25 @@ countType( ListExpr args )
     arg1 = nl->First(args);
 
     if ( !nl->IsAtom(arg1) && nl->ListLength(arg1) == 2 )
+    {
+      if ( nl->IsEqual(nl->First(arg1), "stream")
+           && ( nl->IsAtom(nl->Second(arg1) ) )
+           && am->CheckKind("DATA", nl->Second(arg1), errorInfo) )
+       return nl->SymbolAtom("int");
+      else
       {
-	if (    nl->IsEqual(nl->First(arg1), "stream")
-	     && ( nl->IsAtom(nl->Second(arg1) ) )
-	     && am->CheckKind("DATA", nl->Second(arg1), errorInfo) )
-	  return nl->SymbolAtom("int");
-	else
-	  {
-	    nl->WriteToString(outstr, arg1);
-	    ErrorReporter::ReportError("Operator count expects a (stream T), "
-				       "T in kind DATA. The argument profided "
-				       "has type '" + outstr + "' instead.");
-	  }
+        nl->WriteToString(outstr, arg1);
+        ErrorReporter::ReportError("Operator count expects a (stream T), "
+          "T in kind DATA. The argument profided "
+          "has type '" + outstr + "' instead.");
       }
+    }
   }
   nl->WriteToString(outstr, nl->First(args));
   ErrorReporter::ReportError("Operator count expects only a single "
-			     "argument of type (stream T), T "
-			     "in kind DATA. The argument provided "
-			     "has type '" + outstr + "' instead.");	
+     "argument of type (stream T), T "
+     "in kind DATA. The argument provided "
+     "has type '" + outstr + "' instead.");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -184,9 +184,9 @@ printintstreamType( ListExpr args )
   }
   nl->WriteToString(out, nl->First(args));
   ErrorReporter::ReportError("Operator printintstream expects a "
-			     "(stream int) as its first argument. "
-			     "The argument provided "
-			     "has type '" + out + "' instead.");  
+     "(stream int) as its first argument. "
+     "The argument provided "
+     "has type '" + out + "' instead.");  
   return nl->SymbolAtom("typeerror");
 }
 
@@ -210,21 +210,21 @@ printstreamType( ListExpr args )
   if ( nl->ListLength(args) != 1 )
     {
       ErrorReporter::ReportError("Operator printstream expects only a single "
-				 "argument.");
+        "argument.");
       return nl->SymbolAtom("typeerror");
     }
 
   // test first argument for stream(T), T in kind DATA
   if (     nl->IsAtom(stream)
-	   || !(nl->ListLength(stream) == 2)
-	   || !nl->IsEqual(nl->First(stream), "stream")
-	   || !am->CheckKind("DATA", nl->Second(stream), errorInfo) )
+     || !(nl->ListLength(stream) == 2)
+     || !nl->IsEqual(nl->First(stream), "stream")
+     || !am->CheckKind("DATA", nl->Second(stream), errorInfo) )
     {
       nl->WriteToString(out, stream);
       ErrorReporter::ReportError("Operator printstream expects a (stream T), "
-				 "T in kind DATA, as its first argument. "
-				 "The argument provided "
-				 "has type '" + out + "' instead.");
+         "T in kind DATA, as its first argument. "
+         "The argument provided "
+         "has type '" + out + "' instead.");
       return nl->SymbolAtom("typeerror");
     }
 
@@ -253,51 +253,51 @@ filterType( ListExpr args )
     map = nl->Second(args);
 
     // test first argument for stream(T), T in kind DATA
-    if (     nl->IsAtom(stream)
-	 || !(nl->ListLength(stream) == 2)
-	 || !nl->IsEqual(nl->First(stream), "stream")
-	 || !am->CheckKind("DATA", nl->Second(stream), errorInfo) )
-      {
-	nl->WriteToString(out, stream);
-	ErrorReporter::ReportError("Operator filter expects a (stream T), "
-				   "T in kind DATA as its first argument. "
-				   "The argument provided "
-				   "has type '" + out + "' instead.");
-	return nl->SymbolAtom("typeerror");
-      }
+    if ( nl->IsAtom(stream)
+         || !(nl->ListLength(stream) == 2)
+         || !nl->IsEqual(nl->First(stream), "stream")
+         || !am->CheckKind("DATA", nl->Second(stream), errorInfo) )
+    {
+      nl->WriteToString(out, stream);
+      ErrorReporter::ReportError("Operator filter expects a (stream T), "
+           "T in kind DATA as its first argument. "
+           "The argument provided "
+           "has type '" + out + "' instead.");
+      return nl->SymbolAtom("typeerror");
+    }
 
     // test second argument for map T' bool. T = T'
-    if (     nl->IsAtom(map)
-	 || !nl->ListLength(map) == 3
+    if ( nl->IsAtom(map)
+         || !nl->ListLength(map) == 3
          || !nl->IsEqual(nl->First(map), "map")
          || !nl->IsEqual(nl->Third(map), "bool") )
-      {
-	nl->WriteToString(out, map);
-	ErrorReporter::ReportError("Operator filter expects a "
-				   "(map T bool), T in kind DATA, "
-				   "as its second argument. "
-				   "The second argument provided "
-				   "has type '" + out + "' instead.");
-	return nl->SymbolAtom("typeerror");
-      }
+    {
+      nl->WriteToString(out, map);
+      ErrorReporter::ReportError("Operator filter expects a "
+           "(map T bool), T in kind DATA, "
+           "as its second argument. "
+           "The second argument provided "
+           "has type '" + out + "' instead.");
+      return nl->SymbolAtom("typeerror");
+    }
     
     if ( !( nl->Equal( nl->Second(stream), nl->Second(map) ) ) )
-      {
-	nl->WriteToString(out, nl->Second(stream));
-	nl->WriteToString(out2, nl->Second(map));
-	ErrorReporter::ReportError("Operator filter: the stream base type "
-				   "T must match the map's argument type, "
-				   "e.g. 1st: (stream T), 2nd: (map T bool). "
-				   "The actual types are 1st: '" + out +
-				   "', 2nd: '" + out2 + "'.");
-	return nl->SymbolAtom("typeerror");
-      }
+    {
+      nl->WriteToString(out, nl->Second(stream));
+      nl->WriteToString(out2, nl->Second(map));
+      ErrorReporter::ReportError("Operator filter: the stream base type "
+            "T must match the map's argument type, "
+            "e.g. 1st: (stream T), 2nd: (map T bool). "
+            "The actual types are 1st: '" + out +
+            "', 2nd: '" + out2 + "'.");
+      return nl->SymbolAtom("typeerror");
+    }
   }
   else 
-    { // wrong number of arguments
-      ErrorReporter::ReportError("Operator filter expects two arguments.");
-      return nl->SymbolAtom("typeerror");      
-    }
+  { // wrong number of arguments
+    ErrorReporter::ReportError("Operator filter expects two arguments.");
+    return nl->SymbolAtom("typeerror");      
+  }
   return stream; // return type of first argument
 }
 
@@ -335,17 +335,12 @@ This is illustrated in the value mapping functions below.
   CcInt* i2;
   CcInt* elem;
 
-  Word arg0, arg1;
-
   switch( message )
   {
     case OPEN:
 
-      qp->Request(args[0].addr, arg0);
-      qp->Request(args[1].addr, arg1);
-
-      i1 = ((CcInt*)arg0.addr);
-      i2 = ((CcInt*)arg1.addr);
+      i1 = ((CcInt*)args[0].addr);
+      i2 = ((CcInt*)args[1].addr);
 
       range = new Range;
       range->current = i1->GetIntval();
@@ -362,7 +357,7 @@ This is illustrated in the value mapping functions below.
       if ( range->current <= range->last )
       {
         elem = new CcInt(true, range->current++);
-	result.addr = elem;
+        result.addr = elem;
         return YIELD;
       }
       else return CANCEL;
@@ -406,7 +401,7 @@ Count the number of elements in a stream. An example for consuming a stream.
 
 int
 printintstreamFun (Word* args, Word& result, 
-		   int message, Word& local, Supplier s)
+                   int message, Word& local, Supplier s)
 /*
 Print the elements of an Attribute-type stream. 
 An example for a pure stream operator (input and output are streams).
@@ -428,8 +423,8 @@ An example for a pure stream operator (input and output are streams).
       if ( qp->Received(args[0].addr) )
       {
         cout << ((CcInt*) elem.addr)->GetIntval() << endl;
-	result = elem;
-	return YIELD;
+        result = elem;
+        return YIELD;
       }
       else return CANCEL;
 
@@ -444,7 +439,7 @@ An example for a pure stream operator (input and output are streams).
 
 int
 printstreamFun (Word* args, Word& result, 
-		   int message, Word& local, Supplier s)
+                int message, Word& local, Supplier s)
 /*
 Print the elements of an Attribute-type stream. 
 An example for a pure stream operator (input and output are streams).
@@ -466,8 +461,8 @@ An example for a pure stream operator (input and output are streams).
       if ( qp->Received(args[0].addr) )
       {
         ((Attribute*) elem.addr)->Print(cout); cout << endl;
-	result = elem;
-	return YIELD;
+        result = elem;
+        return YIELD;
       }
       else return CANCEL;
 
@@ -501,22 +496,24 @@ operator and also for one calling a parameter function.
     case REQUEST:
 
       funargs = qp->Argument(args[1].addr);  //Get the argument vector for
-					     //the parameter function.
+       //the parameter function.
       qp->Request(args[0].addr, elem);
       while ( qp->Received(args[0].addr) )
       {
-	(*funargs)[0] = elem;		     //Supply the argument for the
-					     //parameter function.
-        qp->Request(args[1].addr, funresult);//Ask the parameter function
-					     //to be evaluated.
-	if ( ((CcBool*) funresult.addr)->GetBoolval() )
-	{
-	  result = elem;
-	  return YIELD;
+        (*funargs)[0] = elem;     
+          //Supply the argument for the
+          //parameter function.
+        qp->Request(args[1].addr, funresult);
+          //Ask the parameter function
+          //to be evaluated.
+        if ( ((CcBool*) funresult.addr)->GetBoolval() )
+        {
+          result = elem;
+          return YIELD;
         }
-	//consume the stream object:
-	((Attribute*) elem.addr)->DeleteIfAllowed(); 
-	qp->Request(args[0].addr, elem); // get next element
+        //consume the stream object:
+        ((Attribute*) elem.addr)->DeleteIfAllowed(); 
+        qp->Request(args[0].addr, elem); // get next element
       }
       return CANCEL;
 
@@ -588,43 +585,43 @@ Used to explain the signature and the meaning of operators.
 */
 
 Operator intstream (
-	"intstream", 		//name
-	intstreamSpec,         //specification
-	intstreamFun,		//value mapping
-	simpleSelect,		//trivial selection function
-	intstreamType		//type mapping
+  "intstream",     //name
+  intstreamSpec,         //specification
+  intstreamFun,    //value mapping
+  simpleSelect,    //trivial selection function
+  intstreamType    //type mapping
 );
 
 Operator cppcount (
-	"count", 		//name
-	countSpec,         	//specification
-	countFun,		//value mapping
-	simpleSelect,		//trivial selection function
-	countType		//type mapping
+  "count",     //name
+  countSpec,           //specification
+  countFun,    //value mapping
+  simpleSelect,    //trivial selection function
+  countType    //type mapping
 );
 
 Operator printintstream (
-	"printintstream", 	//name
-	printintstreamSpec,	//specification
-	printintstreamFun,	//value mapping
-	simpleSelect,		//trivial selection function
-	printintstreamType	//type mapping
+  "printintstream",   //name
+  printintstreamSpec,  //specification
+  printintstreamFun,  //value mapping
+  simpleSelect,    //trivial selection function
+  printintstreamType  //type mapping
 );
 
 Operator printstream (
-	"printstream", 	        //name
-	printstreamSpec,	//specification
-	printstreamFun,	        //value mapping
-	simpleSelect,		//trivial selection function
-	printstreamType	        //type mapping
+  "printstream",           //name
+  printstreamSpec,  //specification
+  printstreamFun,          //value mapping
+  simpleSelect,    //trivial selection function
+  printstreamType          //type mapping
 );
 
 Operator sfilter (
-	"filter", 		//name
-	filterSpec,		//specification
-	filterFun,		//value mapping
-	simpleSelect,		//trivial selection function
-	filterType		//type mapping
+  "filter",     //name
+  filterSpec,    //specification
+  filterFun,    //value mapping
+  simpleSelect,    //trivial selection function
+  filterType    //type mapping
 );
 
 

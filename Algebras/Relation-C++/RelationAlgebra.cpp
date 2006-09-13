@@ -933,13 +933,11 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   GenericRelation* r;
   GenericRelationIterator* rit;
-  Word argRelation;
 
   switch (message)
   {
     case OPEN :
-      qp->Request(args[0].addr, argRelation);
-      r = ((GenericRelation*)argRelation.addr);
+      r = (GenericRelation*)args[0].addr;
       rit = r->MakeScan();
 
       local = SetWord(rit);
@@ -1473,7 +1471,7 @@ reduce_vm( Word* args, Word& result, int message,
     case OPEN:
 
       qp->Open (args[0].addr);
-      local.addr = new ReduceInfo(StdTypes::RequestInt(args[2]));
+      local.addr = new ReduceInfo(StdTypes::GetInt(args[2]));
       return 0;
 
     case REQUEST: {
@@ -1678,7 +1676,7 @@ Project(Word* args, Word& result, int message,
     }
     case REQUEST :
     {
-      Word elem1, elem2, arg2;
+      Word elem1, elem2;
       int noOfAttrs, index;
       Supplier son;
 
@@ -1688,8 +1686,7 @@ Project(Word* args, Word& result, int message,
         TupleType *tupleType = (TupleType *)local.addr;
         Tuple *t = new Tuple( tupleType );
 
-        qp->Request(args[2].addr, arg2);
-        noOfAttrs = ((CcInt*)arg2.addr)->GetIntval();
+        noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
         assert( t->GetNoAttributes() == noOfAttrs );
 
         for( int i = 0; i < noOfAttrs; i++)
@@ -3063,7 +3060,7 @@ static int sizecounters_vm( Word* args, Word& result, int message,
     case OPEN: {
       
       qp->Open(stream); 
-      local.addr = new Info( StdTypes::RequestString(args[1]) );
+      local.addr = new Info( StdTypes::GetString(args[1]) );
       return 0;
     }
                
@@ -3214,8 +3211,8 @@ static int dumpstream_vm( Word* args, Word& result, int message,
       
       qp->Open(stream); 
                 
-       string name = StdTypes::RequestString(args[1]);          
-       string colsep = StdTypes::RequestString(args[2]);
+       string name = StdTypes::GetString(args[1]);          
+       string colsep = StdTypes::GetString(args[2]);
       
        local.addr = new Info(name, colsep);
        return 0;
@@ -3229,7 +3226,7 @@ static int dumpstream_vm( Word* args, Word& result, int message,
       {
         Tuple* t = static_cast<Tuple*>(elem.addr);
         pi->appendTuple(*t);
-	cerr << *t << endl;
+        cerr << *t << endl;
         result = elem; 
         return YIELD;
       }

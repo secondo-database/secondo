@@ -6722,10 +6722,10 @@ static Word InURegion(const ListExpr typeInfo,
 
     // Check for indefined value
     if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType 
-	 && nl->SymbolValue( instance ) == "undef" )
+         && nl->SymbolValue( instance ) == "undef" )
       {
-	ur->SetDefined(false);
-	correct = true;
+        ur->SetDefined(false);
+        correct = true;
         return SetWord ( ur );
       }
 
@@ -8884,7 +8884,7 @@ int mraunitsvalmap(Word* args, Word& result, int message, Word& local, Supplier 
     case OPEN:
 
       localinfo = new MRAUnitsLocalInfo;
-      qp->Request(args[0].addr, localinfo->mWord);
+      localinfo->mWord = args[0];
       localinfo->unitIndex = 0;
       local = SetWord(localinfo);
       return 0;
@@ -9376,10 +9376,10 @@ static Operator vertextrajectory("vertextrajectory",
 
 ----
 static Operator mraunits("units",
-			mraunitsspec,
-			mraunitsvalmap,
-			Operator::SimpleSelect,
-			MRAUnitsTypeMap);
+                         mraunitsspec,
+                         mraunitsvalmap,
+                         Operator::SimpleSelect,
+                         MRAUnitsTypeMap);
 
 ----
 
@@ -9457,7 +9457,7 @@ public:
 
 /*    
  Used for unit testing only.
-	  
+  
 */
 #ifdef MRA_UNITTEST
     AddOperator(&unittest1);

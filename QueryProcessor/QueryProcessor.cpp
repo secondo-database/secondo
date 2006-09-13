@@ -2575,6 +2575,20 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->u.iobj.vector = argVectors[node->u.iobj.funNumber-1]; 
       node->u.iobj.argIndex = 
         nl->IntValue(nl->Third(nl->First(expr)));
+      if( !nl->IsAtom(nl->Second(expr)) &&
+          TypeOfSymbol(nl->First(nl->Second(expr))) == QP_STREAM )
+      {
+        node->u.op.isStream = true;
+        node->evaluable = false;
+      }
+      if( !nl->IsAtom(nl->Second(expr)) &&
+          TypeOfSymbol(nl->First(nl->Second(expr))) == QP_MAP )
+      {
+        cerr << "The system does not support functions as arguments "
+                "of functions." << endl;
+        exit(0);
+      }
+
       if (traceNodes) 
       {
         cout << "QP_VARIABLE:" << endl;
@@ -3066,10 +3080,9 @@ must be handled.
       case Pointer:
       {
         result = tree->u.dobj.value;
-        if (traceNodes) { 
+        if (traceNodes)  
           cerr << fn << "{Object | Pointer} return [" 
                << (void*)result.addr << "]" << endl;
-        }
         return;
       }
 /* 
@@ -3088,18 +3101,14 @@ request the next element.
         const int argIndex = tree->u.iobj.argIndex;
         
         if ( (*tree->u.iobj.vector)[MAXARG-argIndex].addr == 0 )
-        { 
-          // Not a stream! Return object
           result = (*tree->u.iobj.vector)[argIndex-1];
-        }
         else 
         {
           // A stream! Request next element 
           OpTree caller = (OpTree) (*tree->u.iobj.vector)[MAXARG-argIndex].addr;
-          if (traceNodes) {
+          if (traceNodes) 
             cerr << fn << "Parameter function's caller node = " 
                  << caller->id << endl;
-          }
           status = algebraManager->Execute( caller->u.op.algebraId, 
                                             caller->u.op.opFunId,
                                             caller->u.op.sons, result, 
@@ -3110,10 +3119,8 @@ request the next element.
           tree->u.iobj.received = (status == YIELD); 
         } 
         if (traceNodes) 
-        { 
          cerr << fn << "{IndirectObject with Argindex = " << argIndex 
                     << "} return [" << (void*)result.addr << "]" << endl;
-        } 
         return; 
       }
 /* 
@@ -3129,33 +3136,22 @@ operator's value mapping function.
       {
         for ( i = 0; i < tree->u.op.noSons; i++ )
         {
-          if ( ((OpNode*)(tree->u.op.sons[i].addr))->evaluable && 
-               !tree->u.op.isStream )
+          if ( ((OpNode*)(tree->u.op.sons[i].addr))->evaluable ) 
           {
-            // Not a stream operator! Compute result values
-            // for all evaluable sons
             if ( traceNodes ) 
-            {
               cerr << fn << "Compute result for son[" << i << "]" << endl;
-            }
             Eval( tree->u.op.sons[i].addr, arg[i], message );
           }
           else
           {
-            // A stream operator! Copy the sons into the local
-            // argument vector
             arg[i].addr = tree->u.op.sons[i].addr;
             if ( traceNodes ) 
-            {
               cerr << fn << "Argument son[" << i << "] is a stream" << endl;
-            }
           }
         }
 
         if ( tree->u.op.algebraId == 0 && tree->u.op.opFunId == 0 )
         { 
-          // These algebra und function ID's are used to 
-          // indicate an abstraction application 
           ArgVectorPointer absArgs;
           if ( traceNodes )
           {
@@ -3168,16 +3164,13 @@ operator's value mapping function.
           {
             (*absArgs)[i-1] = arg[i];
             if ( traceNodes )
-            {
               cerr << fn << "absArgs[" << i-1 << "] = " 
                    << (void*)arg[i].addr << endl;
-            }
           }
           Eval( tree->u.op.sons[0].addr, result, message );
         }
         else 
         { 
-          // A ~normal~ operator! 
           if ( traceNodes ) 
           { 
             it = argsPrinted.find(tree->id);
@@ -3202,10 +3195,7 @@ operator's value mapping function.
                                      tree->u.op.local, tree );
 
           if ( tree->u.op.isStream )
-          {
-            // check return status of a stream operator
             tree->u.op.received = (status == YIELD);
-          }
           else if ( status != 0 )
           {
             cerr << fn << "Evaluation of operator failed." << endl;
@@ -3214,9 +3204,7 @@ operator's value mapping function.
         }
         return;
         if (traceNodes) 
-        { 
           cerr << fn << "Operator return status =" << status << endl;
-        }
       }
     }
   }
@@ -3446,7 +3434,28 @@ QueryProcessor::GetNoSons( const Supplier s )
   }
   else
   {
-    cerr << "Error - getNoSons: not an operator node. " << endl;
+    cerr << "Error - GetNoSons: not an operator node. " << endl;
+    exit ( 0 );
+  }
+}
+
+/*
+~GetSon~ returns the ~i~-th son of the operator node ~s~ of the operator
+tree.
+
+*/
+Supplier
+QueryProcessor::GetSon( const Supplier s, int i )
+{
+  OpTree tree = (OpTree) s;
+  if ( tree->nodetype == Operator )
+  {
+    assert( i >= 0 && i < tree->u.op.noSons );
+    return tree->u.op.sons[i].addr;
+  }
+  else
+  {
+    cerr << "Error - GetSon: not an operator node. " << endl;
     exit ( 0 );
   }
 }

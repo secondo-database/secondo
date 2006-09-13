@@ -148,7 +148,8 @@ The class ~QueryProcessor~ provides the following methods:
         AnnotateX               &           & ResultStorage \\
         SubtreeX                &           & DeleteResultStorage \\
         ListOfTree              &           & GetNoSons \\
-        SetDebugLevel           &           & GetType \\
+        SetDebugLevel           &           & GetSon \\
+                                &           & GetType \\
 
 1.2 Imports and Types
 
@@ -285,7 +286,12 @@ Returns the number of sons of the operator node ~s~ of the operator
 tree. 
 
 */
+  Supplier GetSon( const Supplier s, int i );
+/*
+Returns the ~i~-th son of the operator node ~s~ of the operator
+tree.
 
+*/
   void SetupStreamArg( const Supplier funNode, const int num, Supplier opNode );
   
   bool Received( const Supplier s );

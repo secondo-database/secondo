@@ -113,7 +113,8 @@ TSendTypeMap(ListExpr args)
   second = nl->Second(args);
 
   CHECK_COND( nl->IsAtom(second) && nl->AtomType(second) == SymbolType,
-    "Operator send expects as second argument a symbol atom (port number p9999)." );
+    "Operator send expects as second argument a "
+    "symbol atom (port number p9999)." );
 
   string port = nl->SymbolValue(second).substr(1, 4),
          streamType = nl->ToString(first),
@@ -152,13 +153,15 @@ TReceiveTypeMap(ListExpr args)
 
   first = nl->First(args);
   CHECK_COND( nl->IsAtom(first) && nl->AtomType(first) == SymbolType,
-    "Operator receive expects as first argument a symbol atom (host name, p.e. localhost)." );
+    "Operator receive expects as first argument a symbol "
+    "atom (host name, p.e. localhost)." );
 
   // by now accepts only hostnames without dots in the name.
 
   second = nl->Second(args);
   CHECK_COND( nl->IsAtom(second) && nl->AtomType(second) == SymbolType,
-    "Operator send expects as second argument a symbol atom (port number, p.e. p9999)." );
+    "Operator send expects as second argument a symbol "
+    "atom (port number, p.e. p9999)." );
 
   string host = nl->SymbolValue(first),
          port = nl->SymbolValue(second).substr(1, 4),
@@ -254,11 +257,8 @@ TReceiveStream(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN:
     {
-      Word arg2, arg3;
-
       // Getting tuple type
-      qp->Request(args[2].addr, arg2);
-      string tupleTypeStr = ((FText *) arg2.addr)->Get();
+      string tupleTypeStr = ((FText *) args[2].addr)->Get();
       ListExpr tupleTypeList, tupleType;
 
       nl->ReadFromString(tupleTypeStr, tupleTypeList);
@@ -268,8 +268,7 @@ TReceiveStream(Word* args, Word& result, int message, Word& local, Supplier s)
                       nl->IntAtom(nl->ListLength(nl->Second(tupleTypeList)))) );
 
       // Getting socket descriptor
-      qp->Request(args[3].addr, arg3);
-      SocketDescriptor sd = ((CcInt*) arg3.addr)->GetIntval();
+      SocketDescriptor sd = ((CcInt*) args[3].addr)->GetIntval();
       Socket *client = Socket::CreateClient( sd );
       iostream& ss = client->GetSocketStream();
 
@@ -298,7 +297,7 @@ TReceiveStream(Word* args, Word& result, int message, Word& local, Supplier s)
         Tuple *tuple = Tuple::In( remoteStreamInfo->tupleType, tupleList,
                                   errorPos, errorInfo, correct );
 
-	result = SetWord( tuple );
+        result = SetWord( tuple );
         return YIELD;
       }
       else
@@ -336,7 +335,8 @@ const string receiveSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "<text>receive [ _ ]</text--->"
                             "<text>Read the tuples of "
                             "a stream.</text--->"
-                            "<text>query receive(hostname,p1032) consume</text--->"
+                            "<text>query receive(hostname,p1032) "
+                            "consume</text--->"
                             ") )";
 
 

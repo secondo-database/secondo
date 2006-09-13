@@ -618,7 +618,6 @@ The length of a string is three characters or more.
   int textcursor, stringcursor, state;
   string tmpstr;
   STRING outstr;
-  Word arg0;
   char c;
   CcString* mystring;
 
@@ -626,12 +625,11 @@ The length of a string is three characters or more.
   {
     case OPEN:
       //cout << "open ValMapkeywords" << endl;     
-      qp->Request(args[0].addr, arg0);     
       thetext = new TheText;
       thetext->start = 0;
       thetext->nochr = 0;
-      thetext->subw = ((FText*)arg0.addr)->Get();
-      thetext->strlength = ((FText*)arg0.addr)->TextLength();
+      thetext->subw = ((FText*)args[0].addr)->Get();
+      thetext->strlength = ((FText*)args[0].addr)->TextLength();
       local.addr = thetext;
       return 0;
 
@@ -778,7 +776,6 @@ ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
 */
 {
   struct TheText {int start, strlength; const char* subw;}* thetext;
-  Word arg0 = SetWord(0);
   int textcursor = 0, state = 0;
   string tmpstr = "";
   char c = 0;
@@ -788,11 +785,10 @@ ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN:
       //cout << "open ValMapsentences" << endl; 
-      qp->Request(args[0].addr, arg0);     
       thetext = new TheText;
       thetext->start = 0;
-      thetext->strlength = ((FText*)arg0.addr)->TextLength();
-      thetext->subw = ((FText*)arg0.addr)->Get();
+      thetext->strlength = ((FText*)args[0].addr)->TextLength();
+      thetext->subw = ((FText*)args[0].addr)->Get();
       local.addr = thetext;
       return 0;
 

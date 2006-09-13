@@ -660,17 +660,9 @@ into the corresponding C++ type
 struct StdTypes
 {
   static int GetInt(const Word& w); 
-  static int RequestInt(const Word& w); 
-
   static float GetReal(const Word& w); 
-  static float RequestReal(const Word& w); 
-  
   static bool GetBool(const Word& w); 
-  static bool RequestBool(const Word& w); 
-  
   static string GetString(const Word& w); 
-  static string RequestString(const Word& w); 
-
 };
 
 #endif

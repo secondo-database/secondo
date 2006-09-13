@@ -10894,10 +10894,8 @@ SpatialComponents_r( Word* args, Word& result, int message,
   switch( message )
   {
     case OPEN:
-      Word wRegion;
-      qp->Request(args[0].addr, wRegion);
       localInfo = new ComponentsLocalInfo();
-      ((Region*)wRegion.addr)->Components( localInfo->components );
+      ((Region*)args[0].addr)->Components( localInfo->components );
       localInfo->iter = localInfo->components.begin();
       local = SetWord( localInfo );
       return 0;

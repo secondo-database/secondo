@@ -118,7 +118,7 @@ struct Marker
   {
     os << "(" << num << ", " << parts << ", [" << tuples << "])"; 
   } 
-};	
+};
 
 ostream& operator<<(ostream& os, const Marker& m)
 {
@@ -353,7 +353,7 @@ struct RelationAddr : public StreamBase<RelationAddr>
        }  
      }
     return 0;      
-  }	 
+  } 
   
 };
 
@@ -451,15 +451,6 @@ struct PartStreamMappings {
     return static_cast<T*>( w.addr );
   } 
 
-  template<class T>
-  inline static T* requestArg(const Word& w) 
-  {
-    static Word wArgVal;
-    qp->Request(w.addr, wArgVal);
-    return static_cast<T*>( wArgVal.addr );
-  } 
-
-
   inline static string expects( const string& s1, 
                                 const string& s2, 
                                 const string attr="..." ) 
@@ -476,7 +467,7 @@ integrity checks for the arguments and result type.
 */
   static bool checkMap(const NList& l, Cardinal n, vector<NList>& sig)
   { 
-    Cardinal len = l.length();	  
+    Cardinal len = l.length();  
     if ( len != (n+2) )
       return false;
 
@@ -489,7 +480,7 @@ integrity checks for the arguments and result type.
       sig[i] = l.elem(2+i);
     }
     return true;    
-  }	  
+  }  
   
   static bool checkRelTuple(const NList& l, NList& attrs)
   {
@@ -507,13 +498,13 @@ integrity checks for the arguments and result type.
   }
   
   static NList makeStreamTuple(const NList& attrs)
-  {	  
+  {  
     NList tup( NList(sym.tuple), attrs );
     return NList( NList(sym.stream), tup );
   }
   
   static NList makeStreamPTuple(const NList& attrs)
-  {	  
+  {  
     NList tup( NList(sym.ptuple), attrs );
     return NList( NList(sym.stream), tup );
   }
@@ -540,7 +531,7 @@ integrity checks for the arguments and result type.
   static bool checkDepth3( const NList& l, const string& s1, 
                            const string& s2, NList& attrs    )
   {
-	
+
   if ( !l.hasLength(2) )
     return false;
    
@@ -656,8 +647,8 @@ pfeed_vm(Word* args, Word& result, int message,
   {
     case OPEN :
     { 
-      GenericRelation* r = requestArg<GenericRelation>( args[0] );
-      int partSize = StdTypes::RequestInt( args[1] );
+      GenericRelation* r = getArg<GenericRelation>( args[0] );
+      int partSize = StdTypes::GetInt( args[1] );
 
       //SHOW(partSize)
       //SHOW(parts) 
@@ -751,23 +742,23 @@ static int pdelete_vm( Word* args, Word& result, int message,
         if (pt) 
         {
            if (pt->marker) // marker tuple detected
-	   { 
-	     //TRACE( pre << "Marker: " << *(pt->marker) )
+           { 
+             //TRACE( pre << "Marker: " << *(pt->marker) )
              delete pt;
-	   }  
-	   else // a normal tuple 
-	   {
-	     //TRACE( pre << "Tuple: " << *(pt->tuple) )
+           }  
+           else // a normal tuple 
+           {
+             //TRACE( pre << "Tuple: " << *(pt->tuple) )
              result.addr = pt->tuple;
              delete pt;
-	     return YIELD;
-	   } 
-	}
+             return YIELD;
+           } 
+        }
         else
         {
           endOfStream = true;
-        }	 
-	
+        }         
+        
       } while ( !endOfStream );
       return CANCEL;
     }     
@@ -846,7 +837,7 @@ static int pshow_vm( Word* args, Word& result, int message,
       {
         result.addr = 0;
         return CANCEL;
-      }	 
+      }         
     }     
       
     case CLOSE :
@@ -950,7 +941,7 @@ static ListExpr puse_tm(ListExpr args)
   
   // Test the parameter function's signature 
   static const string err2 = "Expecting as second argument a function "
-	                     "(map (stream(tuple(y))) (stream(tuple(z))))";
+                             "(map (stream(tuple(y))) (stream(tuple(z))))";
   vector<NList> sig;
   if ( !checkMap( l.second(), 1, sig ) )
     return l.typeError( argNotCorrect(2) + err2);
@@ -958,15 +949,15 @@ static ListExpr puse_tm(ListExpr args)
   NList attrs2;
   if ( !checkStreamTuple(sig[0], attrs2) )
     return l.typeError( "First argument of parameter function not correct!\n" 
-		        "Received " + sig[0].convertToString() + "." );
+                        "Received " + sig[0].convertToString() + "." );
   
   if ( !(attrs == attrs2) )
     return l.typeError( "Tuple types do not match!\n" 
-		        "Received " + attrs2.convertToString() + "." );
-    	  
+                        "Received " + attrs2.convertToString() + "." );
+              
   if ( !checkStreamTuple(sig[1], attrs2) )
     return l.typeError( "Result type of parameter function not correct!\n"
-		        "Received " + sig[1].convertToString() + "." );
+                        "Received " + sig[1].convertToString() + "." );
   
   return makeStreamPTuple(attrs2).listExpr();
 }
@@ -1166,7 +1157,7 @@ to be evaluated by the parameter function. If a marker is
     }
     default: {
    
-       cerr << pre << "Cannot handle message " << message << endl;	
+       cerr << pre << "Cannot handle message " << message << endl;        
     }    
   }
   return 0;
@@ -1966,7 +1957,7 @@ static int pjoin2_vm( Word* args, Word& result, int message,
       StreamOpAddr right(args[1].addr);
       
       // A possible interface for triggering self join correction.
-      //string joinType = StdTypes::RequestString(args[2]);
+      //string joinType = StdTypes::GetString(args[2]);
       //SHOW(joinType)
       //bool isSelfJoin = joinType == "selfjoin"; 
       
@@ -1975,7 +1966,7 @@ static int pjoin2_vm( Word* args, Word& result, int message,
     
       FunVector& evalFuns = *(pj->evalFuns); 
       // load functions into funvector 
-      evalFuns.load(args[2], &args[3], true);
+      evalFuns.load(args[2], &args[3]);
 
       // save caller node in argument vectors 
       for (size_t i=0; i < evalFuns.size(); i++ )
@@ -2084,7 +2075,7 @@ to be evaluated by the parameter function. If a marker is
     }
     default: {
    
-       cerr << pre << "Cannot handle message " << message << endl;	
+       cerr << pre << "Cannot handle message " << message << endl;        
     }    
   }
   return 0;
@@ -2243,17 +2234,17 @@ static int pjoin1_vm( Word* args, Word& result, int message,
 
       // initialze local storage
       StreamOpAddr left(args[0].addr);
-      GenericRelation* r = requestArg<GenericRelation>( args[1] );
+      GenericRelation* r = getArg<GenericRelation>( args[1] );
       RelationAddr right(r);
       right.open();
       
-      int ctrNum = StdTypes::RequestInt(args[2]);  
+      int ctrNum = StdTypes::GetInt(args[2]);  
       pj = new PJoin1_Info(left, right, instanceCtr, ctrNum); 
       local.addr = pj;
     
       FunVector& evalFuns = *(pj->evalFuns); 
       // load functions into funvector 
-      evalFuns.load(args[3], &args[4], true);
+      evalFuns.load(args[3], &args[4]);
 
       // save caller node in argument vectors 
       // and store the relation as second argument for
@@ -2347,7 +2338,7 @@ to be evaluated by the parameter function. If a marker is
     }
     default: {
    
-       cerr << pre << "Cannot handle message " << message << endl;	
+       cerr << pre << "Cannot handle message " << message << endl;        
     }    
   }
   return 0;
@@ -2390,7 +2381,7 @@ static int pcreate_vm( Word* args, Word& result, int message,
     case OPEN :
     { 
       TRACE(pre << "OPEN")
-      int partSize = StdTypes::RequestInt(args[1]);  
+      int partSize = StdTypes::GetInt(args[1]);  
       info = new BufferedStreamInfo( args[0], partSize );
       local.addr = info;
       return 0;
@@ -2663,7 +2654,7 @@ Symbols PartStreamMappings::sym;
 class PartStreamAlgebra : public Algebra
 {
   typedef PartStreamMappings psm;
-	
+        
   public:
     PartStreamAlgebra() : Algebra()
     {
@@ -2694,14 +2685,14 @@ class PartStreamAlgebra : public Algebra
         oi.signature = "rel(tuple(y) -> stream(ptuple(y))";
         oi.syntax =    "_ pfeed[int k]";
         oi.meaning =   "Creates a stream containing marker tuples. "
-	               "Every max(|k|,2) tuples a new marker tuple will "
+                       "Every max(|k|,2) tuples a new marker tuple will "
                        "be inserted.";
         oi.example =   "plz pfeed[500] pdelete count"; 
       
       op = new Operator(
         oi,  
-	psm::pfeed_vm,    
-	psm::pfeed_tm     
+        psm::pfeed_vm,    
+        psm::pfeed_tm     
       );
 
       AddOperator( op );
@@ -2714,8 +2705,8 @@ class PartStreamAlgebra : public Algebra
       
       op = new Operator(
         oi,  
-	psm::pdelete_vm,    
-	psm::pdelete_tm     
+        psm::pdelete_vm,    
+        psm::pdelete_tm     
       );
 
       AddOperator( op );
@@ -2729,7 +2720,7 @@ class PartStreamAlgebra : public Algebra
       
       op = new Operator(
         oi,  
-	0,    
+        0,    
         psm::PSTREAM1_tm     
       );
 
@@ -2744,15 +2735,15 @@ class PartStreamAlgebra : public Algebra
       
       op = new Operator(
         oi,  
-	0,    
-	psm::PSTREAM2_tm     
+        0,    
+        psm::PSTREAM2_tm     
       );
 
       AddOperator( op );
 
         oi.name =      "puse";
         oi.signature = "stream(ptuple(y) x ( stream(tuple(y)) "
-	               "->  stream(tuple(y)) ) -> stream(tuple(y))";
+                       "->  stream(tuple(y)) ) -> stream(tuple(y))";
         oi.syntax =    "_ puse[ _ ]";
         oi.meaning =   "Hides the marker tuples for the parameter function "
                        "and inserts them again into the result stream";
@@ -2761,8 +2752,8 @@ class PartStreamAlgebra : public Algebra
       
       op = new Operator(
         oi,  
-	psm::puse_vm,    
-	psm::puse_tm     
+        psm::puse_vm,    
+        psm::puse_tm     
       );
       
       AddOperator( op );
@@ -2787,8 +2778,8 @@ class PartStreamAlgebra : public Algebra
       
       op = new Operator(
         oi,  
-	psm::pjoin1_vm,    
-	psm::pjoin1_tm     
+        psm::pjoin1_vm,    
+        psm::pjoin1_tm     
       );
 
       AddOperator( op );
@@ -2809,8 +2800,8 @@ class PartStreamAlgebra : public Algebra
       
       op = new Operator(
         oi,  
-	psm::pjoin2_vm,    
-	psm::pjoin2_tm     
+        psm::pjoin2_vm,    
+        psm::pjoin2_tm     
       );
 
       
@@ -2825,8 +2816,8 @@ class PartStreamAlgebra : public Algebra
       
       op = new Operator(
         oi,  
-	psm::pcreate_vm,    
-	psm::pcreate_tm     
+        psm::pcreate_vm,    
+        psm::pcreate_tm     
       );
       
       AddOperator( op );
@@ -2843,8 +2834,8 @@ class PartStreamAlgebra : public Algebra
       
       op = new Operator(
         oi,  
-	psm::pcreate2_vm,    
-	psm::pcreate2_tm     
+        psm::pcreate2_vm,    
+        psm::pcreate2_tm     
       );
       
       AddOperator( op );
@@ -2859,8 +2850,8 @@ class PartStreamAlgebra : public Algebra
       
       op = new Operator(
         oi,  
-	psm::shuffle_vm,    
-	psm::shuffle_tm     
+        psm::shuffle_vm,    
+        psm::shuffle_tm     
       );
       
       AddOperator( op );
@@ -2877,8 +2868,8 @@ class PartStreamAlgebra : public Algebra
       
       op = new Operator(
         oi,  
-	psm::memshuffle_vm,    
-	psm::memshuffle_tm     
+        psm::memshuffle_vm,    
+        psm::memshuffle_tm     
       );
       
       AddOperator( op );
@@ -2891,8 +2882,8 @@ class PartStreamAlgebra : public Algebra
       
       op = new Operator(
         oi,  
-	psm::pshow_vm,    
-	psm::pshow_tm
+        psm::pshow_vm,    
+        psm::pshow_tm
       );
       
       AddOperator( op );

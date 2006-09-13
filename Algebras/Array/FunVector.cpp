@@ -161,7 +161,7 @@ FunVector::addFunction( string name, Supplier s )
 }
 
 void
-FunVector::load( Word suppl, Word* funNames, const bool doRequest /*= false*/ )
+FunVector::load( Word suppl, Word* funNames )
 {
   Supplier funSupplier = (Supplier)suppl.addr;
   Supplier supplier1;
@@ -170,18 +170,10 @@ FunVector::load( Word suppl, Word* funNames, const bool doRequest /*= false*/ )
   int noOfFuns = qp->GetNoSons(funSupplier);
 
   for (int i=0; i<noOfFuns; i++) {
-
-    Word wfunName = funNames[i];
-    if (doRequest)
-    {
-  qp->Request(funNames[i].addr, wfunName);
-    }
-    const STRING* name = ((CcString*)wfunName.addr)->GetStringval();
-
+    const STRING* name = ((CcString*)funNames[i].addr)->GetStringval();
     //cerr << "Function " << i << "/" << noOfFuns << *name << endl;
     supplier1 = qp->GetSupplier(funSupplier, i);
     supplier2 = qp->GetSupplier(supplier1, 1);
-
     addFunction(*name, supplier2);
   }
 }
