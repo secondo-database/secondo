@@ -29,5 +29,5 @@ $(JPL_SRC)/jpl_fli_Prolog.h:
 .PHONY: clean
 clean:
 	make -C jpl clean
-	rm $(JPL_SRC)/jpl_fli_Prolog.h
+	rm -f $(JPL_SRC)/jpl_fli_Prolog.h
 
