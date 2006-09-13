@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
-void pause()
+void Pause()
 {
   char buf[80];
   cout << "<<< Press return to continue >>>" << endl;
@@ -90,7 +90,7 @@ int main()
   }
   else
     cout << "CreateFolder xyz failed" << endl;
-  pause();
+  Pause();
   if ( FileSystem::CopyFile( "xyz", "uvw" ) )
     cout << "Copy xyz -> uvw ok" << endl;
   else
@@ -133,7 +133,7 @@ int main()
     cout << "Delete File test2.dat ok" << endl;
   else
     cout << "Delete File test2.dat failed" << endl;
-  pause();
+  Pause();
   if ( FileSystem::RenameFileOrFolder( string("xyz")+PATH_SLASH+"abc", string("xyz")+PATH_SLASH+"def" ) )
     cout << "Rename Folder xyz/abc -> xyz/def ok" << endl;
   else

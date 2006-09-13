@@ -27,7 +27,7 @@ using namespace std;
 #include "SecondoSMI.h"
 #include "SmiBDB.h"
 
-void pause()
+void Pause()
 {
   char buf[80];
   cout << "<<< Press return to continue >>>" << endl;
@@ -120,7 +120,7 @@ void TestKeyedFiles()
 
     cout << "Close: " << kf.Close() << endl;
     cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
-    pause();
+    Pause();
     cout << "Begin: " << SmiEnvironment::BeginTransaction() << endl;
   }
   else
@@ -155,13 +155,13 @@ int main( int argc, char* argv[] )
       else
         cout << "CreateDatabase test failed." << endl;
     }
-    pause();
+    Pause();
     if ( ok )
     {
       if (argc > 1) Initialize();
       cout << "*** Test String Keyed Files ***" << endl;
       TestKeyedFiles();
-      pause();
+      Pause();
       cout << "*** Closing Database ***" << endl;
       if ( SmiEnvironment::CloseDatabase() )
         cout << "CloseDatabase test ok." << endl;

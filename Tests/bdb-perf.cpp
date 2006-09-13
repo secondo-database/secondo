@@ -15,6 +15,7 @@ does call the same bulk-retrieval APIs as in this code.
 
 #include <sys/types.h>
 #include <stdio.h>
+#include <errno.h>
 #include <db_cxx.h>
 #include <assert.h>
 #include <iostream>
@@ -75,8 +76,6 @@ main( int argc, char** argv )
 
   try {
 
-  bdb.set_verbose()
-  
   bdb.set_error_stream(&bdbErrOs);
   bdb.set_cachesize( 0, CACHE_SIZE, 0 );
   bdb.open( 0, DB_CREATE | DB_INIT_MPOOL, 0);

@@ -139,8 +139,8 @@ TestNLCopy()
 
    TestCase("Copy Lists between NL-Instances nA, nB");
 
-   cout  << " listA: " << endl << nA.ReportTableSizes() << endl
-         << " listB: " << endl << nB.ReportTableSizes() << endl;
+   cout  << " listA: " << endl << nA.ReportTableSizes(true,true) << endl
+         << " listB: " << endl << nB.ReportTableSizes(true,true) << endl;
 
    vector<string> listStr(4);
 
@@ -170,9 +170,9 @@ TestNLCopy()
 
   }
 
-     cout << " ReportTableSizes(): " << endl
-	  << " listA: " << endl << nA.ReportTableSizes() << endl
-	  << " listB: " << endl << nB.ReportTableSizes() << endl;
+     cout << " ReportTableSizes(true,true): " << endl
+	  << " listA: " << endl << nA.ReportTableSizes(true,true) << endl
+	  << " listB: " << endl << nB.ReportTableSizes(true,true) << endl;
 
   return 0;
 }
@@ -498,7 +498,7 @@ ste
    CheckResult("EndOfText", nl.EndOfText(TextScan1), true);
    nl.DestroyTextScan(TextScan1);
 
-   cout << "After Text with one fragment: Memory-Usage: " << nl.ReportTableSizes() << endl;
+   cout << "After Text with one fragment: Memory-Usage: " << nl.ReportTableSizes(true,true) << endl;
 
    cout << endl << "Text in several fragments!" << endl; 
    TextAtomVar2 = nl.TextAtom();
@@ -529,7 +529,7 @@ ste
    cout << "After While" << endl;
    nl.DestroyTextScan (TextScan1);
 
-   cout << "After Text with more than one fragment, Memory-Usage: " << nl.ReportTableSizes() << endl;
+   cout << "After Text with more than one fragment, Memory-Usage: " << nl.ReportTableSizes(true,true) << endl;
    
    ListExpr15 = nl.TwoElemList (TextAtomVar, TextAtomVar2);
    cout << "ListExpr15" << nl.ToString(ListExpr15) << endl;
@@ -604,7 +604,7 @@ The following steps are executed with a small list expression.
    ErrorVar = nl.WriteToFile ("testout_FirstExpr5", nl.First(ListExpr5));
    cout << endl;
 
-   cout << "After String <-> List Conversions, Memory-Usage: " << nl.ReportTableSizes() << endl;
+   cout << "After String <-> List Conversions, Memory-Usage: " << nl.ReportTableSizes(true,true) << endl;
    
   
 /*
@@ -630,7 +630,7 @@ The following steps are executed with a small list expression.
    cout << String2 << endl;
    cout << String3 << endl;
 
-   cout << "After Destruction, Memory-Usage: " << nl.ReportTableSizes() << endl;
+   cout << "After Destruction, Memory-Usage: " << nl.ReportTableSizes(true,true) << endl;
 
    ok = ok && CheckResult("Equal(text1, text1)", nl.Equal(ListExpr1, ListExpr1), true);
    ok = ok && CheckResult("Equal(text1, text3)", nl.Equal(ListExpr1, ListExpr3), false);
@@ -661,10 +661,10 @@ TestFile(const string& fileBaseName, NestedList& nl) {
    ListExpr list = nl.TheEmptyList();
 
 
-   cout << nl.ReportTableSizes() << endl;
+   cout << nl.ReportTableSizes(true,true) << endl;
    cout << endl << "Reading " << fileIn << " ..." << endl;
    nl.ReadFromFile( fileIn, list );
-   cout << nl.ReportTableSizes() << endl;
+   cout << nl.ReportTableSizes(true,true) << endl;
    cout << endl << "Writing " << fileOut << " ..." << endl;
    nl.WriteToFile( fileOut, list );
 

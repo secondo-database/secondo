@@ -61,10 +61,8 @@ TESTNAMES += nlchecker
 
 ifdef file
 TESTFILES := $(file)
-LIBS := $(LD_LINK_LIBS)
 else
 TESTFILES := $(TESTNAMES)
-LIBS := $(LD_LINK_LIBS_ALG)
 endif
 
 CODE_FILES := $(addsuffix .cpp, $(TESTFILES))
@@ -75,25 +73,21 @@ ifndef file
 OBJECTS += libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT)
 endif
 
-
+CC := g++
 CCFLAGS := -I../StorageManager $(DEFAULTCCFLAGS) $(myflags)
+LIBS := ../UserInterfaces/cmsg.o $(LD_LINK_LIBS)
 
 .PHONY: all 
 all:  $(OBJECTS)
+
 
 # create dependencies from include directives
 %.dep: %.cpp
 	$(CC) -MM $(CCFLAGS) $< > $@
 
-# some default rules
-%$(EXEEXT): %.cpp libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) libsmibdb.$(LIBEXT) libsdbutils.$(LIBEXT)
-	g++ -o $@ $< $(CCFLAGS) $(LIBS) 
-
-%$(EXEEXT): %.o libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) libsmibdb.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< $(LD_LINK_LIBS)
-
-%.$(OBJEXT): %.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS)
+# default rule for linking
+%$(EXEEXT): %.o
+	$(CC) $(EXEFLAGS) -o $@ $< $(LIBS)
 
 
 # Test Dynamic Library module

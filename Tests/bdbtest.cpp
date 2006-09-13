@@ -14,6 +14,7 @@ does call the same bulk-retrieval APIs as in this code.
 
 
 #include <sys/types.h>
+#include <errno.h>
 #include <stdio.h>
 #include <db_cxx.h>
 #include <assert.h>

@@ -37,7 +37,7 @@ using namespace std;
 int REC_SIZE = 200;
 int MAX_RECORDS = 1000000;
 
-void pause()
+void Pause()
 {
   char buf[80];
   cout << "<<< Press return to continue >>>" << endl;
@@ -114,11 +114,11 @@ void TestRecordFiles( bool makeFixed )
     cout << "Finish cursor it: " << it.Finish() << endl;
     cout << "Close: " << rf.Close() << endl;
     cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
-    pause();
+    Pause();
     cout << "Begin: " << SmiEnvironment::BeginTransaction() << endl;
     cout << "Drop: " << rf.Drop() << endl;
     cout << "Abort: " << SmiEnvironment::AbortTransaction() << endl;
-    pause();
+    Pause();
     cout << "Begin: " << SmiEnvironment::BeginTransaction() << endl;
   }
   else
@@ -379,11 +379,11 @@ void TestKeyedFiles( bool makeUnique )
 
     cout << "Close: " << kf.Close() << endl;
     cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
-    pause();
+    Pause();
     cout << "Begin: " << SmiEnvironment::BeginTransaction() << endl;
     cout << "Drop: " << kf.Drop() << endl;
     cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
-    pause();
+    Pause();
     cout << "Begin: " << SmiEnvironment::BeginTransaction() << endl;
   }
   else
@@ -516,11 +516,11 @@ void TestIntegerKeyedFiles( bool makeUnique )
 
     cout << "Close: " << kf.Close() << endl;
     cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
-    pause();
+    Pause();
     cout << "Begin: " << SmiEnvironment::BeginTransaction() << endl;
     cout << "Drop: " << kf.Drop() << endl;
     cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
-    pause();
+    Pause();
     cout << "Begin: " << SmiEnvironment::BeginTransaction() << endl;
   }
   else
@@ -539,7 +539,7 @@ void TestFloatKeyedFiles( bool makeUnique )
     cout << "Float KeyedFile created FileId=" << kf.GetFileId() << endl;
     cout << "KeyedFile name   =" << kf.GetName() << endl;
     cout << "KeyedFile context=" << kf.GetContext() << endl;
-    pause();
+    Pause();
     SmiKeyedFileIterator it;
     SmiRecord r;
     SmiKey key;
@@ -652,11 +652,11 @@ void TestFloatKeyedFiles( bool makeUnique )
 
     cout << "Close: " << kf.Close() << endl;
     cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
-    pause();
+    Pause();
     cout << "Begin: " << SmiEnvironment::BeginTransaction() << endl;
     cout << "Drop: " << kf.Drop() << endl;
     cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
-    pause();
+    Pause();
     cout << "Begin: " << SmiEnvironment::BeginTransaction() << endl;
   }
   else
@@ -845,11 +845,11 @@ void TestCompKeyedFiles( bool makeUnique )
 
     cout << "Close: " << kf.Close() << endl;
     cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
-    pause();
+    Pause();
     cout << "Begin: " << SmiEnvironment::BeginTransaction() << endl;
     cout << "Drop: " << kf.Drop() << endl;
     cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
-    pause();
+    Pause();
     cout << "Begin: " << SmiEnvironment::BeginTransaction() << endl;
   }
   else
@@ -942,7 +942,7 @@ int main( int argc, char* argv[] )
       else
         cout << "OpenDatabase test failed." << endl;
     }
-    pause();
+    Pause();
     if ( ok )
     {
       cout << "Begin Transaction: " 
@@ -1001,7 +1001,7 @@ int main( int argc, char* argv[] )
         cout << "CloseDatabase test ok." << endl;
       else
         cout << "CloseDatabase test failed." << endl;
-      pause();
+      Pause();
       if ( SmiEnvironment::EraseDatabase( "test" ) )
         cout << "EraseDatabase test ok." << endl;
       else

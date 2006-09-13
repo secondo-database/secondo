@@ -43,7 +43,8 @@ SmiRecordFile* rf = 0;
 
 using namespace std;
 
-void pause()
+
+void Pause()
 {
   char buf[80];
   cout << "<<< Press return to continue >>>" << endl;
@@ -205,7 +206,6 @@ PCTableTest() {
   return true;
 }
 
-
 int
 main() {
 
@@ -247,16 +247,16 @@ main() {
       else
         cout << "OpenDatabase PARRAY failed." << endl;
     }
-    pause();
+    Pause();
     if ( ok )
     {
       //cout << "Begin Transaction: " << SmiEnvironment::BeginTransaction() << endl;
     
-      pause();
+      Pause();
       RecordBufferTest(); 
-      pause();
+      Pause();
       PArrayTest();
-      pause();
+      Pause();
       PCTableTest();
       
       //cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
@@ -265,7 +265,7 @@ main() {
         cout << "CloseDatabase ok." << endl;
       else
         cout << "CloseDatabase failed." << endl;
-      pause();
+      Pause();
     }
   }
   rc = SmiEnvironment::ShutDown();
