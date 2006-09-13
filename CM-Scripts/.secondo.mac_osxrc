@@ -1,0 +1,18 @@
+# SECONDO ENVIRONMENT SETUP FOR Mac OSX 
+#
+# Sept. 2006, M. Spiekermann
+
+#SWI Prolog
+export SWI_HOME_DIR="/opt/local/lib/swipl-5.6.18"
+export PL_INCLUDE_DIR="/opt/local/lib/swipl-5.6.18/include"
+export PL_LIB_DIR="/opt/local/lib/swipl-5.6.18/lib/powerpc-darwin8.6.0"
+
+#JAVA
+export J2SDK_ROOT="/System/Library/Frameworks/JavaVM.framework"
+
+#PD System
+export PD_DVI_VIEWER=xdvi
+export PD_PS_VIEWER=gv
+
+#Readline support
+#export readline=true

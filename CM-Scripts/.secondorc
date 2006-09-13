@@ -69,7 +69,7 @@ source ${sdkDir}/bin/setvar.bash ${buildDir}
 # configure option was not present in version 4.1.25.
 BERKELEY_DB_LIB="db_cxx"
 
-if [ $SECONDO_PLATFORM == "win32" ]; then
+if [ "$SECONDO_PLATFORM" == "win32" ]; then
   if [ -f ${BERKELEY_DB_DIR}/lib/libdb32.dll ]; then
      BERKELEY_DB_LIB="db32"
   fi

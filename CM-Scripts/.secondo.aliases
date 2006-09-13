@@ -2,6 +2,7 @@
 #
 # Feb 2005, M. Spiekermann
 
+if [ "$SECONDO_PLATFORM" == "" ]; then
 if [ "$OSTYPE" == "msys" ]; then
    prefix=/c
    platform="win32"
@@ -9,11 +10,14 @@ else
    prefix=$HOME
    platform="linux"
 fi
+export SECONDO_PLATFORM=$platform
+else
+platform=$SECONDO_PLATFORM
+fi
 
 # set default values and export variables used by make
 export SECONDO_SDK=${SECONDO_SDK:=$prefix/secondo-sdk}
 export SECONDO_BUILD_DIR=${SECONDO_BUILD_DIR:=$prefix/secondo}
-export SECONDO_PLATFORM=$platform
 
 # function newAlias
 #
@@ -59,3 +63,4 @@ alias secenv="${SECONDO_SDK}/bin/catvar.sh"
 alias jcvs='java -jar ${SECONDO_SDK}/jCVS-5.2.2/jars/jcvsii.jar'
 alias cvs-info='cvs -nq update | grep "^[A-Z]"'
 alias cvs-mod='cvs -nq update | grep "^[MAC]"'
+
