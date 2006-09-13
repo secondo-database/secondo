@@ -52,11 +52,11 @@ GetEnv.o: GetEnv.c
 
 ifeq ($(platform),win32)
 $(GetEnvDLL): GetEnv.o GetEnv.def
-	$(GCC) $(DLLFLAGS) -Wl,-soname,GetEnv.$(JNI_DLLEXT) -o $< $^
+	$(GCC) $(DLLFLAGS) -Wl,-soname,GetEnv.$(JNI_DLLEXT) -o $@ $^
 
 GetEnv.def: GetEnv.o
 	dlltool -z $@.tmp $< 
-	sed -e "s#\(.*\)@\(.*\)@.*;#\1 = \1@\2;#g" $@.tmp > $@
+	sed -e "s#\(.*\)@\(.*\)@.*#\1 = \1@\2#g" $@.tmp > $@
 	rm $@.tmp
 
 else

@@ -29,7 +29,7 @@ MeshGenerator.o: MeshGenerator.c
 
 MeshGenerator.def:
 	dlltool -z MeshGenerator.def.tmp  MeshGenerator.o
-	sed -e "s#\(.*\)@\(.*\)@.*;#\1 = \1@\2;#g" MeshGenerator.def.tmp >MeshGenerator.def
+	sed -e "s#\(.*\)@\(.*\)@.*#\1 = \1@\2#g" MeshGenerator.def.tmp >MeshGenerator.def
 	rm MeshGenerator.def.tmp
 
 

@@ -58,20 +58,22 @@ $(JPL_LIB)/jpl.o: jpl_fli_Prolog.c
 $(JPL_LIB)/regSecondo.o: regSecondo.c
 	$(CC) -c -fPIC -g -o $@ $(INCLUDEFLAGS) $<
 
+LINK_FLAGS := $(ENT_LINK_LIBS) $(LD_LINK_LIBS) \
+              $(JNI_CCFLAGS) $(PLLDFLAGS) $(JPLDEF)
 ifeq ($(platform),win32)
-$(JNIDLL): $(CCOBJECTS) $(LINKFILES) jpl.def
-	$(GCC) $(DLLFLAGS) -Wl,-soname,jpl.$(JNI_DLLEXT) -o $@ $^
+$(JNIDLL): $(CCOBJECTS) $(LINKFILES)
+	$(CC) $(DLLFLAGS) -Wl,-soname,jpl.$(JNI_DLLEXT) -o $@  \
+	$^ $(LINK_FLAGS) jpl.def
 
-jpl.def: jpl.o
-	dlltool -z $@.tmp $< 
-	sed -e "s#\(.*\)@\(.*\)@.*;#\1 = \1@\2;#g" $@.tmp > $@
+jpl.def: $(JPL_LIB)/jpl.o $(JPL_LIB)/regSecondo.o
+	dlltool -z $@.tmp $^
+	sed -e "s#\(.*\)@\(.*\)@.*#\1 = \1@\2#g" $@.tmp > $@
 	rm $@.tmp
 
 else
-$(JNIDLL): $(CCOBJECTS) $(LINKFILES) $(DEF) 
-	$(LD) $(DLLFLAGS) $(EXEFLAGS) $(LDFLAGS) \
-              -o $@ $(CCOBJECTS) $(LINKFILES) \
-		$(ENT_LINK_LIBS) $(LD_LINK_LIBS) $(JNI_CCFLAGS) $(PLLDFLAGS) $(JPLDEF)
+$(JNIDLL): $(CCOBJECTS) $(LINKFILES)
+	$(LD) $(DLLFLAGS) $(EXEFLAGS) $(LDFLAGS) -o $@ $^ $(LINK_FLAGS)
+		
 endif
 
 .PHONY:clean

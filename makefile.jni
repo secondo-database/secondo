@@ -23,22 +23,19 @@ JNITool_O_FILE = $(SECONDO_BUILD_DIR)/Tools/Jni/JNITool.o
 JNILIBFILES = $(JVMINIT_O_FILE) $(JNITool_O_FILE)
 
 ifeq ($(platform),win32)
-# MinGW definitions.
-#JAVACLASSPATHS = -classpath .:$(JARDIR)/sj.jar
-#JAVAC = $(J2SDK_ROOT)/bin/javac $(JAVACLASSPATHS) -verbose
-#JAR = $(J2SDK_ROOT)/bin/jar
-JNI_H_DIR := -I$(JSDK_ROOT)/include 
 
+# directory where i can find the jni.h
+JNI_H_DIR := $(J2SDK_ROOT)/include
+
+# directory where i can find the libjava.dll
 LIBJAVA_DIR := $(J2SDK_ROOT)/jre/bin
 
-# directory of libjvm.so
+# directory of libjvm.dll
 LIBJVM_DIR := $(LIBJAVA_DIR)/client
 
 #MINGW_EXTRA := C:/msys/1.0/mingw
 #LDJNIFLAGS := -mno-cygwin -L$(MINGW_EXTRA)/lib
-#JARDIR := .
 DLLTOOL := dlltool
-#JNILINKOPTS := $(JNIINCLUDE) $(LDFLAGS) -L. -L$(J2SDK_ROOT)/jre/bin/client -ljvm
 
 OS_DIR := win32
 
@@ -46,16 +43,12 @@ endif
 
 ifeq ($(platform),linux)
 
-# directory where i can find the jni.h
 JNI_H_DIR := $(J2SDK_ROOT)/include
 
-# directory where i can find the libjava.so
 LIBJAVA_DIR := $(J2SDK_ROOT)/jre/lib/i386
 
-# directory of libjvm.so
 LIBJVM_DIR := $(LIBJAVA_DIR)/client
 
-# directotry of libverify.so
 LIBVERIFY_DIR := $(LIBJAVA_DIR)
 
 # position of jni_md.h relativly to jni.h-dir
@@ -68,13 +61,8 @@ ifeq ($(platform),mac_osx)
 # directory where i can find the jni.h
 JNI_H_DIR := $(J2SDK_ROOT)/Headers
 
-# directory of libjvm.so
 #LIBJVM_DIR := $(J2SDK_ROOT)/Libraries
-
-# directory where i can find the libjava.so
 #LIBJAVA_DIR := $(J2SDK_ROOT)/jre/lib/i386
-
-# directotry of libverify.so
 #LIBVERIFY_DIR := $(LIBJVM_DIR)
 
 #linkflags
@@ -93,15 +81,15 @@ endif
 # position of JVMInit.
 JVMINIT_DIR := $(SECONDO_BUILD_DIR)/Tools/Jni
 
-JNIINCLUDE := -I$(JNI_H_DIR) 
+JNIINCLUDE := -I$(JNI_H_DIR)
 
 ifdef OS_DIR
-JNIINCLUDE += -I$(JNI_H_DIR)/$(OS_DIR) 
+JNIINCLUDE += -I$(JNI_H_DIR)/$(OS_DIR)
 endif
 
 JNIINCLUDE += -I$(INCLUDEDIR)
 
-JNILINKOPTS := $(JNI_CCFLAGS) 
+JNILINKOPTS := $(JNI_CCFLAGS)
 
 ifdef LIBJVM_DIR
 JNILINKOPTS += -L$(LIBJVM_DIR) -ljvm
