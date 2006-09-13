@@ -87,7 +87,7 @@ endif
 ifeq ($(platform),mac_osx)
   JNI_DLLEXT := jnilib
 else
-  JNI_DLLEXT := DLLEXT
+  JNI_DLLEXT := $(DLLEXT)
 endif
 
 # position of JVMInit.
