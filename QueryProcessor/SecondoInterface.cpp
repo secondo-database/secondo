@@ -461,18 +461,11 @@ ostream& operator<<(ostream& os, const InfoTuple& si)
   return si.print(os);
 } 
 
-// currently we will have 4 tables 
-
-CmdTimesRel cmdTimesRel("SEC2COMMANDS");
-CmdCtrRel cmdCtrRel("SEC2COUNTERS");
-CacheInfoRel cacheInfoRel("SEC2CACHEINFO");
-FileInfoRel fileInfoRel("SEC2FILEINFO");
-
-// The next table is currently only a dummy. This is necessary
-// that the catalog recognizes it as a system table. In the future
-// I try to change the implementation of class ~DerivedObj~ in order
-// to make it to a subclass of SystemInfoRel
-DerivedObjRel devObjRel("SEC_DERIVED_OBJ");
+CmdTimesRel* cmdTimesRel = 0;
+CmdCtrRel* cmdCtrRel = 0;
+CacheInfoRel* cacheInfoRel = 0;
+FileInfoRel* fileInfoRel = 0;
+DerivedObjRel* devObjRel = 0;
 
 
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
@@ -620,11 +613,24 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   cmsg.send();
 
   SystemTables& st = SystemTables::getInstance();
-  st.insert(&cmdCtrRel);
-  st.insert(&cmdTimesRel);
-  st.insert(&cacheInfoRel);
-  st.insert(&fileInfoRel);
-  st.insert(&devObjRel);
+
+  // create sytem tables
+  cmdTimesRel = new CmdTimesRel("SEC2COMMANDS");
+  cmdCtrRel = new CmdCtrRel("SEC2COUNTERS");
+  cacheInfoRel = new CacheInfoRel("SEC2CACHEINFO");
+  fileInfoRel = new FileInfoRel("SEC2FILEINFO");
+
+  // The next table is currently only a dummy. This is necessary
+  // that the catalog recognizes it as a system table. In the future
+  // I try to change the implementation of class ~DerivedObj~ in order
+  // to make it to a subclass of SystemInfoRel
+  devObjRel = new DerivedObjRel("SEC_DERIVED_OBJ");
+
+  st.insert(cmdCtrRel);
+  st.insert(cmdTimesRel);
+  st.insert(cacheInfoRel);
+  st.insert(fileInfoRel);
+  st.insert(devObjRel);
   
   initialized = ok;
   return (ok);
@@ -1548,7 +1554,7 @@ separate functions which should be named Command\_<name>.
                                 cmdReal, cmdCPU, commitReal, 
                                 queryReal, queryCPU, outObjReal, copyReal );
 
-  cmdTimesRel.append(ctp, dumpCmdTimes);
+  cmdTimesRel->append(ctp, dumpCmdTimes);
   
   if (printCmdTimes) 
   {
@@ -1568,7 +1574,7 @@ separate functions which should be named Command\_<name>.
   while ( it != cm.end() )
   {
     CmdCtr* cp = new CmdCtr(CmdNr, it->first, it->second);
-    cmdCtrRel.append(cp, dumpCtrs);
+    cmdCtrRel->append(cp, dumpCtrs);
     it++;
   }
 
@@ -1587,7 +1593,7 @@ separate functions which should be named Command\_<name>.
   SmiEnvironment::GetCacheStatistics(*ci, *fi);
   
   ci->cstatNr = CmdNr;
-  cacheInfoRel.append(ci, true);
+  cacheInfoRel->append(ci, true);
 
   FStatVec::iterator fit = fi->begin();
   while (fit != fi->end())
@@ -1595,7 +1601,7 @@ separate functions which should be named Command\_<name>.
     (*fit)->fstatNr = CmdNr;
     FileInfoTuple* pfi = new FileInfoTuple(*fit);
     //SHOW(*pfi)
-    fileInfoRel.append(pfi, true);
+    fileInfoRel->append(pfi, true);
     delete *fit;
     fit++;
   }
