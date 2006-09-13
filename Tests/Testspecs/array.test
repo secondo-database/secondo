@@ -215,7 +215,6 @@ query size(Plz_a20 Staedte_a20 loopb[. count * .. count]);
 delete Plz_a20;
 delete Orte_a5;
 delete Staedte_a20;
-delete Intset_a4;
 delete Intset_a10;
 delete Stringset_a4;
 

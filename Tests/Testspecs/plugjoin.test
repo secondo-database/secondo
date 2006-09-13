@@ -46,16 +46,18 @@ query Autobahn feed loopjoin[fun(t:TUPLE) Fluss feed filter[.FVerlauf intersects
 #yields (int 3303)
 query Kreis feed {X} loopjoin[fun(t: TUPLE) Kreis feed filter[bbox(.Gebiet) intersects bbox(attr(t, Gebiet_X))]] count;
 
-#testcase test16
-#yields (int 2707) 
-query Kreis feed {X} loopjoin[fun(t: TUPLE) Kreis feed filter[bbox(.Gebiet) intersects bbox(attr(t, Gebiet_X))] 
-  filter[.Gebiet intersects attr(t, Gebiet_X)]] count;
+#testcase test7
+#yields (bool TRUE)
+query Kreis feed {X} loopjoin[fun(t: TUPLE) Kreis feed filter[bbox(.Gebiet) intersects bbox(attr(t, Gebiet_X))]] count =
+      Kreis feed {X} Kreis feed spatialjoin[Gebiet_X, Gebiet] count;
 
 #testcase test17
 #yields (bool TRUE)
-query Kreis feed {X} Kreis feed spatialjoin[Gebiet_X, Gebiet] filter[.Gebiet_X intersects .Gebiet] count =
-      Kreis feed {X} loopjoin[fun(t: TUPLE) Kreis feed filter[bbox(.Gebiet) intersects bbox(attr(t, Gebiet_X))]
-        filter[.Gebiet intersects attr(t, Gebiet_X)]] count;
+query (Kreis feed {X} filter[.Gebiet_X intersects magdeburg]
+       Kreis feed spatialjoin[Gebiet_X, Gebiet] filter[.Gebiet_X intersects .Gebiet] count) =
+      (Kreis feed {X} filter[.Gebiet_X intersects magdeburg]
+       loopjoin[fun(t: TUPLE) Kreis feed filter[bbox(.Gebiet) intersects bbox(attr(t, Gebiet_X))]
+         filter[.Gebiet intersects attr(t, Gebiet_X)]] count);
 
 #teardown
 close database;

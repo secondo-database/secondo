@@ -37,89 +37,94 @@ let kreis_Gebiet_2 = Kreis feed extend[id: tupleid(.)] creatertree[Gebiet];
 #yields (int 674)
 query Autobahn feed loopjoin[fun(t:TUPLE) Fluss feed filter[bbox(.FVerlauf) intersects bbox(attr(t, AVerlauf))]] count;
 
-#testcase test1
+#testcase test2
 #yields (int 674)
 query Autobahn feed loopjoin[fun(t:TUPLE) fluss_FVerlauf_1 Fluss windowintersects[attr(t, AVerlauf)]] count;
 
-#testcase test1
+#testcase test3
 #yields (int 674)
 query Autobahn feed loopjoin[fun(t:TUPLE) fluss_FVerlauf_2 Fluss windowintersects[attr(t, AVerlauf)]] count;
 
-#testcase test1
+#testcase test4
 #yields (int 674)
 query Autobahn feed loopjoin[fun(t:TUPLE) fluss_FVerlauf_1 windowintersectsS[attr(t, AVerlauf)]] count;
 
-#testcase test1
+#testcase test5
 #yields (int 674)
 query Autobahn feed loopjoin[fun(t:TUPLE) fluss_FVerlauf_2 windowintersectsS[attr(t, AVerlauf)]] count;
 
-#testcase test3
+#testcase test6
 #yields (int 235)
 query Autobahn feed loopjoin[fun(t:TUPLE) Fluss feed filter[.FVerlauf intersects attr(t, AVerlauf)]] count;
 
-#testcase test3
+#testcase test7
 #yields (int 235)
 query Autobahn feed loopjoin[fun(t:TUPLE) fluss_FVerlauf_1 Fluss windowintersects[attr(t, AVerlauf)]
   filter[.FVerlauf intersects attr(t, AVerlauf)]] count;
 
-#testcase test3
+#testcase test8
 #yields (int 235)
 query Autobahn feed loopjoin[fun(t:TUPLE) fluss_FVerlauf_2 Fluss windowintersects[attr(t, AVerlauf)]
   filter[.FVerlauf intersects attr(t, AVerlauf)]] count;
 
-#testcase test3
+#testcase test9
 #yields (int 235)
 query Autobahn feed loopjoin[fun(t:TUPLE) fluss_FVerlauf_1 windowintersectsS[attr(t, AVerlauf)]
   Fluss gettuples filter[.FVerlauf intersects attr(t, AVerlauf)]] count;
 
-#testcase test3
+#testcase test10
 #yields (int 235)
 query Autobahn feed loopjoin[fun(t:TUPLE) fluss_FVerlauf_2 windowintersectsS[attr(t, AVerlauf)]
   Fluss gettuples filter[.FVerlauf intersects attr(t, AVerlauf)]] count;
 
-#testcase test7
+#testcase test11
 #yields (int 3303)
 query Kreis feed {X} loopjoin[fun(t: TUPLE) Kreis feed filter[bbox(.Gebiet) intersects bbox(attr(t, Gebiet_X))]] count;
 
-#testcase test7
+#testcase test12
 #yields (int 3303)
 query Kreis feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_1 Kreis windowintersects[attr(t, Gebiet_X)]] count;
 
-#testcase test7
+#testcase test13
 #yields (int 3303)
 query Kreis feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_2 Kreis windowintersects[attr(t, Gebiet_X)]] count;
 
-#testcase test7
+#testcase test14
 #yields (int 3303)
 query Kreis feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_1 windowintersectsS[attr(t, Gebiet_X)]] count;
 
-#testcase test7
+#testcase test15
 #yields (int 3303)
 query Kreis feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_2 windowintersectsS[attr(t, Gebiet_X)]] count;
 
 #testcase test16
-#yields (int 2707) 
-query Kreis feed {X} loopjoin[fun(t: TUPLE) Kreis feed filter[bbox(.Gebiet) intersects bbox(attr(t, Gebiet_X))] 
+#yields (int 37) 
+query Kreis feed {X} filter[.Gebiet_X intersects magdeburg]
+  loopjoin[fun(t: TUPLE) Kreis feed filter[bbox(.Gebiet) intersects bbox(attr(t, Gebiet_X))] 
   filter[.Gebiet intersects attr(t, Gebiet_X)]] count;
 
-#testcase test16
-#yields (int 2707) 
-query Kreis feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_1 Kreis windowintersects[attr(t, Gebiet_X)] 
+#testcase test17
+#yields (int 37) 
+query Kreis feed {X} filter[.Gebiet_X intersects magdeburg]
+  loopjoin[fun(t: TUPLE) kreis_Gebiet_1 Kreis windowintersects[attr(t, Gebiet_X)] 
   filter[.Gebiet intersects attr(t, Gebiet_X)]] count;
 
-#testcase test16
-#yields (int 2707) 
-query Kreis feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_2 Kreis windowintersects[attr(t, Gebiet_X)] 
+#testcase test18
+#yields (int 37) 
+query Kreis feed {X} filter[.Gebiet_X intersects magdeburg]
+  loopjoin[fun(t: TUPLE) kreis_Gebiet_2 Kreis windowintersects[attr(t, Gebiet_X)] 
   filter[.Gebiet intersects attr(t, Gebiet_X)]] count;
 
-#testcase test16
-#yields (int 2707) 
-query Kreis feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_1 windowintersectsS[attr(t, Gebiet_X)] 
+#testcase test19
+#yields (int 37) 
+query Kreis feed {X} filter[.Gebiet_X intersects magdeburg]
+  loopjoin[fun(t: TUPLE) kreis_Gebiet_1 windowintersectsS[attr(t, Gebiet_X)] 
   Kreis gettuples filter[.Gebiet intersects attr(t, Gebiet_X)]] count;
 
-#testcase test16
-#yields (int 2707) 
-query Kreis feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_2 windowintersectsS[attr(t, Gebiet_X)] 
+#testcase test20
+#yields (int 37) 
+query Kreis feed {X} filter[.Gebiet_X intersects magdeburg]
+  loopjoin[fun(t: TUPLE) kreis_Gebiet_2 windowintersectsS[attr(t, Gebiet_X)] 
   Kreis gettuples filter[.Gebiet intersects attr(t, Gebiet_X)]] count;
 
 #teardown

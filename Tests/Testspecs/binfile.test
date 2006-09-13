@@ -64,15 +64,15 @@ open database binfiletest;
 
 #testcase binfile1
 #yields (bool TRUE)
-query a saveto "/tmp/$(USER)a.tmp";
+query a saveto "/tmp/a.tmp";
 
 #testcase binfile1
 #yields (bool TRUE)
-query b saveto "/tmp/$(USER)b.tmp";
+query b saveto "/tmp/b.tmp";
 
 #testcase binfile2
 #yields (int 2)
-query relFile feed filter[.file saveto ("/tmp/$(USER)" + .name)] count;
+query relFile feed filter[.file saveto ("/tmp/" + .name)] count;
 
 #teardown
 close database;
