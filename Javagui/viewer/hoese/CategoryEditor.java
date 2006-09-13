@@ -116,6 +116,8 @@ public class CategoryEditor extends javax.swing.JDialog {
     TransparencyL = new javax.swing.JLabel();
     TextureRB = new javax.swing.JRadioButton();
     TextureIconB = new javax.swing.JButton();
+    IconRB = new JRadioButton();
+    ResizeIconCB = new JCheckBox();
     SolidRB = new javax.swing.JRadioButton();
     SolidColorB = new javax.swing.JButton();
     GradientRB = new javax.swing.JRadioButton();
@@ -238,6 +240,7 @@ public class CategoryEditor extends javax.swing.JDialog {
 
     getContentPane().add(LineP, gridBagConstraints1);
     FillStyleP.setLayout(new java.awt.GridBagLayout());
+    
     java.awt.GridBagConstraints gridBagConstraints3;
     FillStyleP.setBorder(new javax.swing.border.TitledBorder("Fill Style"));
     TransparencyT.setColumns(6);
@@ -249,6 +252,9 @@ public class CategoryEditor extends javax.swing.JDialog {
     gridBagConstraints3 = new java.awt.GridBagConstraints();
     gridBagConstraints3.anchor = java.awt.GridBagConstraints.WEST;
     FillStyleP.add(TransparencyL, gridBagConstraints3);
+
+    // texture
+
     TextureRB.setText("Texture");
     gridBagConstraints3 = new java.awt.GridBagConstraints();
     gridBagConstraints3.gridx = 0;
@@ -285,10 +291,28 @@ public class CategoryEditor extends javax.swing.JDialog {
     gridBagConstraints3.gridy = 1;
     gridBagConstraints3.anchor = java.awt.GridBagConstraints.WEST;
     FillStyleP.add(TextureIconB, gridBagConstraints3);
+
+    // iconFill
+    IconRB.setText("Icon");
+    gridBagConstraints3 = new GridBagConstraints();
+    gridBagConstraints3.gridx = 0;
+    gridBagConstraints3.gridy = 2;
+    gridBagConstraints3.anchor = GridBagConstraints.WEST;
+    FillStyleP.add(IconRB,gridBagConstraints3);
+    ResizeIconCB.setText("resize");
+    ResizeIconCB.setSelected(false);
+    gridBagConstraints3 = new GridBagConstraints();
+    gridBagConstraints3.gridx = 1;
+    gridBagConstraints3.gridy = 2;
+    gridBagConstraints3.anchor = GridBagConstraints.WEST;
+    FillStyleP.add(ResizeIconCB,gridBagConstraints3);
+     
+    // solid fill
+
     SolidRB.setText("Solid");
     gridBagConstraints3 = new java.awt.GridBagConstraints();
     gridBagConstraints3.gridx = 0;
-    gridBagConstraints3.gridy = 2;
+    gridBagConstraints3.gridy = 3;
     gridBagConstraints3.anchor = java.awt.GridBagConstraints.WEST;
     FillStyleP.add(SolidRB, gridBagConstraints3);
     SolidColorB.setPreferredSize(new java.awt.Dimension(20, 20));
@@ -301,13 +325,15 @@ public class CategoryEditor extends javax.swing.JDialog {
     });
     gridBagConstraints3 = new java.awt.GridBagConstraints();
     gridBagConstraints3.gridx = 1;
-    gridBagConstraints3.gridy = 2;
+    gridBagConstraints3.gridy = 3;
     gridBagConstraints3.anchor = java.awt.GridBagConstraints.WEST;
     FillStyleP.add(SolidColorB, gridBagConstraints3);
+
+    // gradient fill
     GradientRB.setText("Gradient");
     gridBagConstraints3 = new java.awt.GridBagConstraints();
     gridBagConstraints3.gridx = 0;
-    gridBagConstraints3.gridy = 3;
+    gridBagConstraints3.gridy = 4;
     gridBagConstraints3.anchor = java.awt.GridBagConstraints.WEST;
     FillStyleP.add(GradientRB, gridBagConstraints3);
     GradientColorB.setPreferredSize(new java.awt.Dimension(20, 20));
@@ -320,18 +346,21 @@ public class CategoryEditor extends javax.swing.JDialog {
     });
     gridBagConstraints3 = new java.awt.GridBagConstraints();
     gridBagConstraints3.gridx = 1;
-    gridBagConstraints3.gridy = 3;
+    gridBagConstraints3.gridy = 4;
     gridBagConstraints3.anchor = java.awt.GridBagConstraints.WEST;
     FillStyleP.add(GradientColorB, gridBagConstraints3);
+    
+    // No Filling
+
     NoFillRB.setText("No Filling");
     gridBagConstraints3 = new java.awt.GridBagConstraints();
     gridBagConstraints3.gridx = 0;
-    gridBagConstraints3.gridy = 4;
+    gridBagConstraints3.gridy = 5;
     gridBagConstraints3.anchor = java.awt.GridBagConstraints.WEST;
     FillStyleP.add(NoFillRB, gridBagConstraints3);
     gridBagConstraints1 = new java.awt.GridBagConstraints();
     gridBagConstraints1.gridx = 0;
-    gridBagConstraints1.gridy = 3;
+    gridBagConstraints1.gridy = 5;
     gridBagConstraints1.gridwidth = 2;
     gridBagConstraints1.anchor = java.awt.GridBagConstraints.NORTHWEST;
     getContentPane().add(FillStyleP, gridBagConstraints1);
@@ -395,6 +424,7 @@ public class CategoryEditor extends javax.swing.JDialog {
     group = new ButtonGroup();
     group.add(TextureRB);
     group.add(SolidRB);
+    group.add(IconRB);
     group.add(GradientRB);
     group.add(NoFillRB);
     getContentPane().add(ComP, gridBagConstraints1);
@@ -601,7 +631,14 @@ public class CategoryEditor extends javax.swing.JDialog {
     else {
       SolidRB.setSelected(true);
       SolidColorB.setBackground((Color)fillStyle);
+    } 
+    if(cat.getIconFill()){
+       IconRB.setSelected(true);
+       IconFileName=(new File(cat.getIconPath())).getName();
+       TextureIconB.setIcon(new ImageIcon(cat.getTextureImage()));
     }
+    ResizeIconCB.setSelected(cat.getIconResizeToBox());
+    
   }
 
   /**
@@ -649,14 +686,15 @@ public class CategoryEditor extends javax.swing.JDialog {
     if (f < 0.0f)
       f = 0.0f;
     cat.setAlphaStyle(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, f));
-    if (NoFillRB.isSelected())
+    cat.setIconFill(false); // default
+    if (NoFillRB.isSelected()){
       cat.setFillStyle(null); 
-    else if (SolidRB.isSelected())
+    }  else if (SolidRB.isSelected()) {
       cat.setFillStyle(SolidColorB.getBackground());
-    else if (GradientRB.isSelected())
+    }  else if (GradientRB.isSelected()) {
       cat.setFillStyle(new GradientPaint(0.0f, 0.0f, SolidColorB.getBackground(),
           20.0f, 20.0f, GradientColorB.getBackground(), true));
-    else if (TextureRB.isSelected()) {
+    } else if (TextureRB.isSelected()) {
       cat.setIconName(IconFileName);
       ImageIcon ii = (ImageIcon)TextureIconB.getIcon();
       BufferedImage bi = new BufferedImage(ii.getIconWidth(), ii.getIconHeight(),
@@ -665,6 +703,27 @@ public class CategoryEditor extends javax.swing.JDialog {
       big.drawImage(ii.getImage(), 0, 0, null);
       Rectangle r = new Rectangle(0, 0, ii.getIconWidth(), ii.getIconHeight());
       cat.setFillStyle(new TexturePaint(bi, r));
+    } else if(IconRB.isSelected()){
+      cat.setIconFill(true);
+      cat.setIconResizeToBox(ResizeIconCB.isSelected());
+      cat.setIconName(IconFileName);
+      ImageIcon ii = (ImageIcon)TextureIconB.getIcon();
+      BufferedImage bi = new BufferedImage(ii.getIconWidth(), ii.getIconHeight(),
+          BufferedImage.TYPE_INT_ARGB);
+      Graphics2D big = bi.createGraphics();
+      big.drawImage(ii.getImage(), 0, 0, null);
+      big.dispose();
+      cat.TextureImage = bi;
+      // create a resized version
+      cat.resizedImage=null;
+      int ps = (int) cat.getPointSize(null,0);
+      if(ps>0){
+        cat.resizedImage= new BufferedImage(ps,ps,BufferedImage.TYPE_INT_ARGB);
+        big = cat.resizedImage.createGraphics();
+        big.drawImage(ii.getImage().getScaledInstance(ps,ps,Image.SCALE_DEFAULT),0,0,null);
+        big.dispose();
+      }
+
     }
     //		return cat;
   }
@@ -687,6 +746,8 @@ public class CategoryEditor extends javax.swing.JDialog {
   private javax.swing.JLabel TransparencyL;
   private javax.swing.JRadioButton TextureRB;
   private javax.swing.JButton TextureIconB;
+  private JRadioButton IconRB;
+	private JCheckBox ResizeIconCB;
   private javax.swing.JRadioButton SolidRB;
   private javax.swing.JButton SolidColorB;
   private javax.swing.JRadioButton GradientRB;

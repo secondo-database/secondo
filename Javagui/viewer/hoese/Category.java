@@ -76,6 +76,15 @@ public class Category
 /** the path for all Textures */
   static String TexturePath;
 
+/** Flag for filling as Icon.*/
+  private boolean iconFill=false;
+/**  Flag whether the icon should be sized to the bounding box */
+  private boolean iconResizeToBox=false;
+/** resized copy of the TextureImage.
+  * The image will have the size given by PointSize
+  */
+  BufferedImage resizedImage=null;
+
 /** Default-Category */
   private static Category defCat;
 
@@ -281,6 +290,28 @@ public class Category
       return maxValue;
   } 
 
+  /** gets whether a single icon is to paint */
+ public   boolean getIconFill(){
+      return iconFill;
+   }
+
+  /** gets whether the icons should be resized to the bounding box
+    * of the current object.
+    */
+ public   boolean getIconResizeToBox(){
+      return iconResizeToBox;
+   }
+
+  /** Returns the image representing the icon to paint*/
+ public  BufferedImage getTextureImage(){
+     return TextureImage;
+  }
+
+ public  BufferedImage getResizedImage(){
+     return resizedImage;
+  }
+
+
   /** sets the  valid range for changing color **/
   void setValueRange(double min, double max){
      if(min<=max){
@@ -424,6 +455,16 @@ public class Category
   public void setPointasRect (boolean b) {
     PointasRect = b;
   }
+
+  public void setIconFill(boolean on){
+       iconFill=on;
+  }
+
+  public void setIconResizeToBox(boolean on){
+       iconResizeToBox=on;
+  }
+
+
   /** Static constructor create Default-category and Selection-Stroke
    * @see <a href="Categorysrc.html#static">Source</a>
    */
@@ -538,26 +579,31 @@ public class Category
     double f = 100.0 - ((AlphaComposite)cat.getAlphaStyle()).getAlpha()*100;
     le = ListExpr.append(le, ListExpr.realAtom(f));
     Paint fillStyle = cat.getFillStyle(null,0); // render attributes not supported
-    if (fillStyle instanceof Color) {
-      le = ListExpr.append(le, ListExpr.symbolAtom("solid"));
-      c1 = (Color)fillStyle;
-      c2 = Color.black;
-    }
-    else if (fillStyle instanceof TexturePaint) {
-      le = ListExpr.append(le, ListExpr.symbolAtom("texture"));
-      c1 = Color.black;
-      c2 = Color.black;
-      Name = cat.getIconName();
-    }
-    else if (fillStyle instanceof GradientPaint) {
-      le = ListExpr.append(le, ListExpr.symbolAtom("gradient"));
-      c1 = ((GradientPaint)fillStyle).getColor1();
-      c2 = ((GradientPaint)fillStyle).getColor2();
-    }
-    else {
-      le = ListExpr.append(le, ListExpr.symbolAtom("nofill"));
-      c1 = Color.black;
-      c2 = Color.black;
+    if(!cat.iconFill){
+       if (fillStyle instanceof Color) {
+          le = ListExpr.append(le, ListExpr.symbolAtom("solid"));
+          c1 = (Color)fillStyle;
+          c2 = Color.black;
+       } else if (fillStyle instanceof TexturePaint) {
+					le = ListExpr.append(le, ListExpr.symbolAtom("texture"));
+					c1 = Color.black;
+					c2 = Color.black;
+					Name = cat.getIconName();
+			} else if (fillStyle instanceof GradientPaint) {
+					le = ListExpr.append(le, ListExpr.symbolAtom("gradient"));
+					c1 = ((GradientPaint)fillStyle).getColor1();
+					c2 = ((GradientPaint)fillStyle).getColor2();
+			} else {
+					le = ListExpr.append(le, ListExpr.symbolAtom("nofill"));
+					c1 = Color.black;
+					c2 = Color.black;
+				}
+    } else{   // fill with a single icon
+          c1 = Color.black;
+          c2 = Color.black;
+          Name = cat.getIconName();
+          String style = cat.iconResizeToBox?"resizedIcon":"simpleIcon";
+          le = ListExpr.append(le,ListExpr.symbolAtom(style));
     }
     le = ListExpr.append(le, color2list(c1));
     le = ListExpr.append(le, color2list(c2));
@@ -686,10 +732,10 @@ public class Category
     else if (style.equals("gradient"))
       cat.setFillStyle(new GradientPaint(0.0f, 0.0f, Color1, 20.0f, 20.0f,
           Color2, true));
-    else if (style.equals("texture")) {
+    else if (style.equals("texture") || style.equals("resizedIcon") || style.equals("simpleIcon")) {
       if (ii.getImageLoadStatus()==MediaTracker.ABORTED ||  ii.getImageLoadStatus()==MediaTracker.ERRORED){
          style="solid";
-	 cat.setFillStyle(Color1);
+         cat.setFillStyle(Color1);
       } else{
         BufferedImage bi = new BufferedImage(ii.getIconWidth(), ii.getIconHeight(),
             BufferedImage.TYPE_INT_ARGB);
@@ -697,11 +743,16 @@ public class Category
         big.drawImage(ii.getImage(), 0, 0, null);
         Rectangle r = new Rectangle(0, 0, ii.getIconWidth(), ii.getIconHeight());
         cat.setFillStyle(new TexturePaint(bi, r));
+        if(style.equals("resizedIcon")){
+          cat.iconFill=true;
+          cat.iconResizeToBox = true;
+        }
+        if(style.equals("simpleIcon")){
+           cat.iconFill=true;
+           cat.iconResizeToBox =false;
+        }
      }
-     
-
-    }
-    else{ // invalid style 
+    } else{ // invalid style 
       return  null;
     }
     return  cat;

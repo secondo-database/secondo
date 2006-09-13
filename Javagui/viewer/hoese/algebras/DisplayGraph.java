@@ -25,6 +25,7 @@ import  viewer.*;
 import viewer.hoese.*;
 import  sj.lang.ListExpr;
 import tools.Reporter;
+import java.awt.image.BufferedImage;
 
 
 /**
@@ -171,6 +172,31 @@ public class DisplayGraph extends DsplGeneric
   }
 
 
+  /** paint one of teh given icons to g2 */
+  private void drawIcon(BufferedImage original, BufferedImage scaled,
+                        Rectangle2D box, boolean resize, Graphics2D g,
+                        AffineTransform at){
+     double x = box.getX();
+     double y = box.getY();
+     double w = box.getWidth();
+     double h = box.getHeight();
+     if(w<=0 || h<=0){
+       Reporter.debug("invalid value for iconbox ");
+       return;
+     }
+     // the current implementation ignores the scaled image
+     if(resize){
+        g.drawImage(original,(int)x,(int)y,(int)w,(int)h,null);
+     } else {
+        double dx = (w-original.getWidth())/2;
+        double dy = (h-original.getHeight())/2;
+        g.drawImage(original,(int)(x+dx),(int)(y+dy),null);
+     }
+     
+  }
+
+
+
   /**
    * This method draws the RenderObject with ist viewattributes collected in the category
    * @param g The graphic context to draw in.
@@ -213,17 +239,35 @@ public class DisplayGraph extends DsplGeneric
     Paint fillStyle = Cat.getFillStyle(renderAttribute,time);
 
     // paint the interior
-    if (fillStyle != null && !isLineType()){
+    if (fillStyle != null && !isLineType() && !Cat.getIconFill()){
       g2.setPaint(fillStyle);
-      if(sh!=null){
-         g2.fill(sh);
+			if(sh!=null){
+			   g2.fill(sh);
       }
-      if(shs!=null){
-        for(int i=0;i<shs.length;i++){
-           g2.fill(shs[i]);
-        }
-      }
+			if(shs!=null){
+				for(int i=0;i<shs.length;i++){
+					 g2.fill(shs[i]);
+				}
+			}
     }
+
+    if(Cat.getIconFill()){
+       boolean resize = Cat.getIconResizeToBox();
+       if(Cat.getTextureImage()!=null){
+          if(sh!=null){
+             drawIcon(Cat.getTextureImage(), Cat.getResizedImage(),sh.getBounds(),resize,g2,af2);
+          }
+          if(shs!=null){
+            for(int i=0;i<shs.length;i++){
+               drawIcon(Cat.getTextureImage(), Cat.getResizedImage(),shs[i].getBounds(),resize,g2,af2);
+            }
+          }
+
+       } else {
+         Reporter.writeError("no Icon found but iconFill is choosen");
+       }
+    }
+
   
     g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
     Color aktLineColor = Cat.getLineColor();

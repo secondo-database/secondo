@@ -248,34 +248,38 @@ public class Layer extends JComponent {
   }
 
 
+  /** Paints the object to the graphics
+    */
+   public void paintObject(DsplGraph dg, Graphics2D g){
+      setCategory(dg,g);
+      dg.draw(g,CurrentState.ActualTime);
+   } 
+
+
   /**
    * Paints the layer with its graph. object. The selected object is not drawn here.
    * @param g The graphic context
    * @see <a href="Layersrc.html#paintComponent">Source</a>
    */
   public void paintComponent (Graphics g) {
-    //ListIterator li = GeoObjects.listIterator();
     Graphics2D g2 = (Graphics2D)g;
-    //g2.transform(owner.getProjection());
-    //g2.setFont (font.deriveFont((float)(12.0/owner.getProjection().getScaleX())));
     try{
       LastDisplayGraph = null;
-      if (Selected)
+      if (Selected){
         for(int i=0;i<GeoObjects.size();i++){
-      DsplGraph dg = (DsplGraph)GeoObjects.get(i);
-          if ((dg.getVisible()) && (!dg.getSelected())){
-        setCategory(dg,g2);
-            dg.draw(g2,CurrentState.ActualTime);
-      }
+           DsplGraph dg = (DsplGraph)GeoObjects.get(i);
+           if ((dg.getVisible()) && (!dg.getSelected())){
+              paintObject(dg,g2);
+           }
         }
-      else
+      } else {
         for(int i=0;i<GeoObjects.size();i++){
           DsplGraph dg = (DsplGraph)GeoObjects.get(i);
           if (dg.getVisible()){
-            setCategory(dg,g2);
-            dg.draw(g2,CurrentState.ActualTime);
+              paintObject(dg,g2);
           }
         }
+      }
      } catch(Exception e){
        Reporter.writeError("Exception "+e);
        Reporter.debug(e);
