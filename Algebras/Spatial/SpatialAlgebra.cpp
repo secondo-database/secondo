@@ -59,7 +59,7 @@ using namespace std;
 #include <string>
 #include <cmath>
 
-#ifdef SECONDO_WIN32
+#ifndef M_PI 
 const double M_PI = acos( -1.0 );
 #endif
 
