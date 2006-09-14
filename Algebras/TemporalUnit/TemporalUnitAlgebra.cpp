@@ -146,6 +146,25 @@ typemapping, valuemapping etc. This makes the file easier to extend.
 */
 
 /*
+0. Bug-List
+
+----
+
+(C)     at: (ureal real) -> ureal
+???     trajectory: (upoint) -> line
+(C)     atmin: (ureal real) -> (stream ureal)
+(C)     atmax: (ureal real) -> (stream ureal)
+
+
+Key:
+ (C): system crash
+ (R): Wrong result
+
+----
+
+*/
+
+/*
 
 [TOC]
 
@@ -1647,8 +1666,8 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
   case OPEN:
 
     localinfo = new AtPeriodsLocalInfo;
-    qp->Request(args[0].addr, localinfo->uWord);
-    qp->Request(args[1].addr, localinfo->pWord);
+    localinfo->uWord = args[0]; // qp->Request(args[0].addr, localinfo->uWord);
+    localinfo->pWord = args[1]; // qp->Request(args[1].addr, localinfo->pWord);
     localinfo->j = 0;
     local = SetWord(localinfo);
     return 0;
@@ -1736,7 +1755,8 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
   { 
   case OPEN:
     localinfo = new AtPeriodsLocalInfoUS;
-    qp->Request(args[1].addr, localinfo->pWord);   // get address of periods
+    localinfo->pWord = args[1]; 
+    // qp->Request(args[1].addr, localinfo->pWord);   // get address of periods
     localinfo->j = 0;                              // init interval counter
     qp->Open( args[0].addr );                      // open stream of units
     qp->Request( args[0].addr, localinfo->uWord ); // request first unit
@@ -2371,8 +2391,6 @@ int MappingUnitAt( Word* args, Word& result, int message,
 
   Word a0, a1;
 
-  //  qp->Request(args[0].addr, a0);
-  //  qp->Request(args[1].addr, a1);
   a0 = args[0];
   a1 = args[1];
 
@@ -2429,11 +2447,11 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
       localinfo->NoOfResults = 0;
       cout << "  1" << endl;
 
-      qp->Request(args[0].addr, a0);
+      a0 = args[0]; // qp->Request(args[0].addr, a0);
       uinput = (UReal*)(a0.addr);
       cout << "  1.1" << endl;
 
-      qp->Request(args[1].addr, a1);
+      a1 = args[1]; // qp->Request(args[1].addr, a1);
       value = (CcReal*)(a1.addr);
       cout << "  1.2" << endl;
 
@@ -3346,7 +3364,7 @@ int MappingSFeed( Word* args, Word& result, int message,
       linfo = ( SFeedLocalInfo *)local.addr;
       if ( linfo->finished )
 	return CANCEL;
-      qp->Request(args[0].addr, argValue);
+      argValue = args[0]; // qp->Request(args[0].addr, argValue);
       result = SetWord(((Attribute*) (argValue.addr))->Clone());
       linfo->finished = true;
       return YIELD;
@@ -4120,7 +4138,8 @@ int Suse_SNN( Word* args, Word& result, int message,
       sli->Y.addr = 0;  
       sli->fun = SetWord(args[2].addr); 
       // get argument configuration info
-      qp->Request(args[3].addr, argConfDescriptor);      
+      argConfDescriptor = args[3]; 
+           //qp->Request(args[3].addr, argConfDescriptor);
       sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
       if(sli->argConfDescriptor & 4)
 	{ 
@@ -4143,7 +4162,7 @@ int Suse_SNN( Word* args, Word& result, int message,
       
       qp->Open(sli->X.addr);              // open outer stream argument
       sli->Xfinished = false;
-      qp->Request(sli->Y.addr, sli->Y);   // save value of constant argument
+      // qp->Request(sli->Y.addr, sli->Y);   // save value of constant argument
 
       local = SetWord(sli);
       // cout << "Suse_SNN finished OPEN" << endl;
@@ -4246,7 +4265,8 @@ int Suse_SNS( Word* args, Word& result, int message,
       sli->XVal.addr = 0;
       sli->YVal.addr = 0;
       // get argument configuration info
-      qp->Request(args[3].addr, argConfDescriptor);      
+      argConfDescriptor = args[3]; 
+           //qp->Request(args[3].addr, argConfDescriptor);      
       sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
       if(! (sli->argConfDescriptor & 4))
 	{ 
@@ -4266,7 +4286,8 @@ int Suse_SNS( Word* args, Word& result, int message,
 	  sli->X = SetWord(args[1].addr); // X is the stream
 	  sli->Y = SetWord(args[0].addr); // Y is the constant value
 	}
-      qp->Request(sli->Y.addr, sli->YVal); // save value of constant argument
+      sli->YVal = sli->Y; // save value of constant argument
+        //qp->Request(sli->Y.addr, sli->YVal); 
       qp->Open(sli->X.addr);               // open the ("outer") input stream
       sli->Xfinished = false;
       sli->fun = SetWord(args[2].addr);
@@ -4378,7 +4399,8 @@ int Suse_SSN( Word* args, Word& result, int message,
       sli->Xfinished = true;
       sli->Yfinished = true;
       // get argument configuration info
-      qp->Request(args[3].addr, argConfDescriptor);      
+      argConfDescriptor = args[3]; 
+            //qp->Request(args[3].addr, argConfDescriptor);      
       sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
       if(sli->argConfDescriptor & 4)
 	{ 
@@ -4533,9 +4555,9 @@ int Suse_SSS( Word* args, Word& result, int message,
 	       <<  endl;
 	  return 0;
 	}
-      sli->X   = SetWord(args[0].addr); // X is the stream
-      sli->Y   = SetWord(args[1].addr); // Y is the constant value
-      sli->fun = SetWord(args[2].addr); // fun is the mapping function
+      sli->X   = args[0]; // X is the stream
+      sli->Y   = args[1]; // Y is the constant value
+      sli->fun = args[2]; // fun is the mapping function
       qp->Open(sli->X.addr);            // open X stream argument      
       sli->Xfinished = false;
       local = SetWord(sli);
@@ -5054,11 +5076,6 @@ int TUDistance_UPoint_UPoint( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 1" << endl;
 
-  //  qp->Request(args[0].addr, a1);
-  //  qp->Request(args[1].addr, a2);
-  //  u1 = (UPoint*)(a1.addr);
-  //  u2 = (UPoint*)(a2.addr);
-
   u1 = (UPoint*)(args[0].addr);
   u2 = (UPoint*)(args[1].addr);
 
@@ -5104,22 +5121,17 @@ int TUDistance_UPoint_Point( Word* args, Word& result, int message,
   int   argConfDescriptor2;
 
   // get argument configuration
-  //  qp->Request(args[2].addr, argConfDescriptor);      
   argConfDescriptor = args[2];
   argConfDescriptor2 = ((CcInt*)argConfDescriptor.addr)->GetIntval();
   if (argConfDescriptor2 == 0) 
     {
       theUPoint = args[0];
       thePoint  = args[1];
-      //      qp->Request(args[0].addr, theUPoint);
-      //      qp->Request(args[1].addr, thePoint);
     }
   else if (argConfDescriptor2 == 1)
     {
       theUPoint = args[1];
       thePoint  = args[0];
-      //      qp->Request(args[1].addr, theUPoint);
-      //      qp->Request(args[0].addr, thePoint);
     }
   else
     {
@@ -5162,8 +5174,6 @@ int TUDistance_UInt_UInt( Word* args, Word& result, int message,
   
   result = qp->ResultStorage( s );
 
-  //  qp->Request(args[0].addr, a1);
-  //  qp->Request(args[1].addr, a2);
   a1 = args[0];
   a2 = args[1];
   
@@ -5209,20 +5219,15 @@ int TUDistance_UInt_Int( Word* args, Word& result, int message,
   double c1, c2, c;
 
   // get argument configuration
-  //qp->Request(args[2].addr, argConfDescriptor);      
   argConfDescriptor = args[2];
   argConfDescriptor2 = ((CcInt*)argConfDescriptor.addr)->GetIntval();
   if (argConfDescriptor2 == 0) 
     {
-      //    qp->Request(args[0].addr, ui);
-      //    qp->Request(args[1].addr, ii);
       ui = args[0];
       ii = args[1];
     }
   else if (argConfDescriptor2 == 1)
     {
-      //    qp->Request(args[1].addr, ii);
-      //    qp->Request(args[0].addr, ui);
       ui = args[1];
       ii = args[0];
     }
@@ -5431,7 +5436,7 @@ int atmaxUReal( Word* args, Word& result, int message,
     case OPEN :
 
       cout << "\nAtExtrURealLocalInfo: OPEN " << endl;
-      qp->Request(args[0].addr, a0);
+      a0 = args[0]; //qp->Request(args[0].addr, a0);
       ureal = (UReal*)(a0.addr);
       cout << "  1" << endl;
 
@@ -5754,7 +5759,7 @@ int atminUReal( Word* args, Word& result, int message,
     {
     case OPEN :
 
-      qp->Request(args[0].addr, a0);
+      a0 = args[0]; //qp->Request(args[0].addr, a0);
       ureal = (UReal*)(a0.addr);
 
       sli = new AtExtrURealLocalInfo;
@@ -6666,9 +6671,6 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
       
-      //      qp->Request(args[0].addr, a0);
-      //      qp->Request(args[1].addr, a1);
-
       // initialize arguments, such that a0 always contains the ureal
       //                       and a1 the real 
       if (uargindex == 0)
@@ -7091,7 +7093,6 @@ temporalUnitIntersection_upoint_uregion( Word* args, Word& result, int message,
 		                         Word& local, Supplier s )
 {
   TUIntersectionLocalInfo *sli;
-  Word a0, a1;
   UPoint  *upoint, pResult;
   URegion *uregion;
   Point *val;
