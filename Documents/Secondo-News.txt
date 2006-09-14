@@ -6,6 +6,17 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+2006-09-13 Correction in the QueryProcessor::Eval function
+===============================================================================
+
+I have corrected the query processor's Eval function. The error was that
+we needed to call the Request for "simple" objects in stream operators 
+(operators that do return streams). Now we only call Request when it is
+really necessary, i.e. for nodes that cannot be previously evaluated by
+the query processor, e.g. streams and functions.
+ 
+Best regards,
+Victor
 
 2006-09-11 Support for MAC OSX  
 ===============================================================================
