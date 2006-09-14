@@ -29,13 +29,15 @@ if [ "$SECONDO_PLATFORM" != win32 ]; then
    unset SWI_HOME_DIR
 fi
 
-if [ "$SECONDO_JAVA" != "" ]; then
-    JAVA=$SECONDO_JAVA
-    CLASSPATH=$SECONDO_JAVART
-else
+#if [ "$SECONDO_JAVA" != "" ]; then
+#    JAVA=$SECONDO_JAVA
+#    CLASSPATH=$SECONDO_JAVART
+#else
     JAVA=java
-fi
+#fi
+
 
 cmd="$JAVA -Djava.library.path=. -classpath ../Jpl/lib/classes/:.:$CLASSPATH OptimizerServer $PORT"
+
 echo $cmd
 $cmd

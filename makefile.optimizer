@@ -62,10 +62,23 @@ endif
 
 
 # define directories for using jpl
+
+ifndef PL_VERSION
+JPLVER=10
+else
+JPLVER=$(shell if [ $(PL_VERSION) -lt 50200 ]; then  echo "10"; else echo "30"; fi)
+endif 
+
+ifeq ($(JPLVER),10)
+JPL_HEADER=jpl_fli_Prolog.h
+else
+JPL_HEADER=jpl.h
+endif
+
 JPL_ROOT := $(BUILDDIR)/Jpl
 JPL_LIB  := $(JPL_ROOT)/lib
 JPL_CLASS_TARGET := $(JPL_LIB)/classes
-JPL_JAVA_SOURCES := $(JPL_ROOT)/jsrc
+JPL_JAVA_SOURCES := $(JPL_ROOT)/jsrc/$(JPLVER)
 JPL_DOC_TARGET := $(JPL_ROOT)/doc
 JPL_CLASSPATH := .:$(JPL_CLASS_TARGET)
 ifdef SECONDO_JAVART
