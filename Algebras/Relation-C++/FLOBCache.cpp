@@ -134,7 +134,7 @@ void LRUTable::Clear()
 */
 FLOBCache::~FLOBCache()
 {
-  Clear();
+  Clean();
 }
 
 char *FLOBCache::Lookup( const FLOBKey key, bool inc )
@@ -335,6 +335,13 @@ void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
 void FLOBCache::Clear()
 {
   sizeLeft = maxSize;
+  mapTable.clear();
+  lruTable.Clear();
+}
+
+void FLOBCache::Clean()
+{
+  Clear();
   for( map< SmiFileId, SmiRecordFile* >::iterator i = files.begin();
        i != files.end();
        i++ )
@@ -343,9 +350,6 @@ void FLOBCache::Clear()
     delete i->second;
   }
   files.clear();
-
-  mapTable.clear();
-  lruTable.Clear();
 }
 
 void FLOBCache::Release( SmiFileId fileId, SmiRecordId lobId, long pageno )

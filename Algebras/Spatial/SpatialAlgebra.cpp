@@ -3263,9 +3263,10 @@ Line& Line::operator=( const Line& l )
       line.Put( i, *hs );
     }
 
-    lrsArray.Resize( l.Size()/2 );
+    if( l.lrsArray.Size() > 0 )
+      lrsArray.Resize( l.lrsArray.Size() );
     const LRS *lrs;
-    for( int i = 0; i < l.Size()/2; i++ )
+    for( int i = 0; i < l.lrsArray.Size(); i++ )
     {
       l.Get( i, lrs );
       lrsArray.Put( i, *lrs );
@@ -3275,7 +3276,9 @@ Line& Line::operator=( const Line& l )
   bbox = l.bbox;
   length = l.length;
   noComponents = l.noComponents;
-
+  simple = l.simple;
+  cycle = l.cycle;
+  startsSmaller = l.startsSmaller;
   ordered = true;
   return *this;
 }
@@ -3625,7 +3628,7 @@ void Line::Crossings( const Line& l, Points& result ) const
       }
     }
   }
-  result.EndBulkLoad( true, true );
+  result.EndBulkLoad();
 }
 
 double Line::Distance( const Point& p ) const
@@ -3726,11 +3729,15 @@ void Line::Translate( const Coord& x, const Coord& y, Line& result ) const
     result += auxhs;
   }
   result.SetNoComponents( NoComponents() );
+  result.SetLineType( simple, cycle, startsSmaller );
   result.EndBulkLoad( false, false, false, false );
 }
 
-bool Line::AtPosition( double pos, Point& p ) const
+bool Line::AtPosition( double pos, bool startsSmaller, Point& p ) const
 {
+  if( startsSmaller != this->startsSmaller )
+    pos = length - pos;
+    
   LRS lrs( pos, 0 );
   int lrsPos;
   if( !Find( lrs, lrsPos ) )
@@ -3746,9 +3753,11 @@ bool Line::AtPosition( double pos, Point& p ) const
   return true;
 }
 
-bool Line::AtPoint( const Point& p, double& result ) const
+bool Line::AtPoint( const Point& p, 
+                    bool startsSmaller, 
+                    double& result ) const
 {
-  if( IsEmpty() )
+  if( IsEmpty() || !simple )
     return false;
 
   bool found = false;
@@ -3777,27 +3786,40 @@ bool Line::AtPoint( const Point& p, double& result ) const
     const LRS *lrs;
     Get( hs->attr.edgeno, lrs );
     Get( lrs->hsPos, hs );
-    double d;
-    if( AlmostEqual( p, hs->GetDomPoint() ) )
-      d = 0.0;
-    else if( AlmostEqual( p, hs->GetSecPoint() ) )
-      d = hs->Length();
-    else
-      d = p.Distance( hs->GetDomPoint() );
-    result = lrs->lrsPos + d;
-  }
+    result = lrs->lrsPos + p.Distance( hs->GetDomPoint() );
 
-  return result;
+    if( startsSmaller != this->startsSmaller )
+      result = length - result;
+
+    if( AlmostEqual( result, 0.0 ) )
+      result = 0;
+    else if( AlmostEqual( result, length ) )
+      result = length;
+
+    assert( result >= 0.0 && result <= length );
+
+    return true;
+  }
+  return false;
 }
 
-void Line::SubLine( double pos1, double pos2, Line& l ) const
+void Line::SubLine( double pos1, double pos2, 
+                    bool startsSmaller, Line& l ) const
 {
-  if( pos1 < 0 && !AlmostEqual( pos1, 0 ) ||
+  if( IsEmpty() ||
+      !simple ||
+      pos1 < 0 && !AlmostEqual( pos1, 0 ) ||
       pos2 > Length() && !AlmostEqual( pos2, Length() ) )
     return;
 
+  if( startsSmaller != this->startsSmaller )
+  {
+    pos1 = length - pos1;
+    pos2 = length - pos2;
+  }
+
   // First search for the first half segment
-  LRS lrs( pos, 0 );
+  LRS lrs( pos1, 0 );
   int lrsPos;
   Find( lrs, lrsPos );
 
@@ -3888,6 +3910,9 @@ bool Line::Find( const LRS& lrs, int& pos ) const
   assert( IsOrdered() );
 
   if( IsEmpty() )
+    return false;
+
+  if( !simple )
     return false;
 
   if( lrs.lrsPos < 0 && !AlmostEqual( lrs.lrsPos, 0 ) &&
@@ -4004,35 +4029,37 @@ bool Line::GetNextSegments( const int poshs, const HalfSegment& hs,
   return !first;
 }
  
-void Line::VisitHalfSegments( int poshs, const HalfSegment& hs, double& lrspos,
-                              int& edgeno, int cycleno, int faceno, 
-                              stack< pair<int, const HalfSegment*> >& nexthss,
-                              vector<bool>& visited )
+void 
+Line::VisitHalfSegments( int& poshs, const HalfSegment*& hs, 
+                         double& lrspos,
+                         int& edgeno, int cycleno, int faceno, 
+                         stack< pair<int, const HalfSegment*> >& nexthss,
+                         vector<bool>& visited )
 {
   visited[poshs] = true;
-  visited[hs.attr.partnerno] = true;
+  visited[hs->attr.partnerno] = true;
 
   lrsArray.Append( LRS( lrspos, poshs ) );
-  lrspos += hs.Length();
+  lrspos += hs->Length();
 
-  HalfSegment auxhs( hs );
+  HalfSegment auxhs( *hs );
   auxhs.attr.edgeno = edgeno;
   auxhs.attr.cycleno = cycleno;
   auxhs.attr.faceno = faceno;
   line.Put( poshs, auxhs );
 
-  const HalfSegment *currhs, *nexths;
+  const HalfSegment *nexths;
   int posnexths;
 
-  poshs = hs.attr.partnerno;
-  Get( poshs, currhs );
-  auxhs = *currhs;
+  poshs = hs->attr.partnerno;
+  Get( poshs, hs );
+  auxhs = *hs;
   auxhs.attr.edgeno = edgeno++;
   auxhs.attr.cycleno = cycleno;
   auxhs.attr.faceno = faceno;
   line.Put( poshs, auxhs );
 
-  while( GetNextSegments( poshs, *currhs, visited, 
+  while( GetNextSegments( poshs, *hs, visited, 
                           posnexths, nexths, nexthss ) )
   {
     auxhs = *nexths;
@@ -4045,9 +4072,9 @@ void Line::VisitHalfSegments( int poshs, const HalfSegment& hs, double& lrspos,
     lrspos += nexths->Length();
  
     poshs = nexths->attr.partnerno;
-    Get( poshs, currhs );
+    Get( poshs, hs );
 
-    auxhs = *currhs;
+    auxhs = *hs;
     auxhs.attr.edgeno = edgeno++;
     auxhs.attr.cycleno = cycleno;
     auxhs.attr.faceno = faceno;
@@ -4068,6 +4095,7 @@ void Line::SetNoComponents()
   int edgeno = 0, cycleno = 0, faceno = 0;
   vector<bool> visited( Size(), false );
   stack< pair<int, const HalfSegment*> > nexthss;
+  Point start(false), end(false);
 
   int poshs = 0, posnexths;
   while( poshs < Size() )
@@ -4087,8 +4115,10 @@ void Line::SetNoComponents()
         break;
       visited2[poshs] = true;
     }
+    start = hs->GetDomPoint();
 
-    VisitHalfSegments( poshs, *hs, lrspos, edgeno, cycleno++, 
+    cycleno = 0;
+    VisitHalfSegments( poshs, hs, lrspos, edgeno, cycleno++, 
                        faceno, nexthss, visited );
 
     while( !nexthss.empty() )    
@@ -4097,16 +4127,30 @@ void Line::SetNoComponents()
       hs = nexthss.top().second;
       nexthss.pop();
 
-      VisitHalfSegments( poshs, *hs, lrspos, edgeno, cycleno++, 
+      VisitHalfSegments( poshs, hs, lrspos, edgeno, cycleno++, 
                          faceno, nexthss, visited );
     }
     for( poshs = 0; poshs < Size() && visited[poshs]; poshs++ );
+
+    end = hs->GetDomPoint();
     faceno++;
-    cycleno = 0;
   }
 
   this->noComponents = faceno;    
   this->length = lrspos;
+  this->simple = faceno == 0 && cycleno == 0 || 
+                 faceno == 1 && cycleno == 1;
+  this->cycle = this->simple && 
+                start.IsDefined() && 
+                end.IsDefined() &&
+                AlmostEqual( start, end );
+  this->startsSmaller = this->simple && 
+                        !this->cycle && 
+                        start.IsDefined() &&
+                        end.IsDefined() &&
+                        start < end;
+  if( !simple )
+    lrsArray.Clear();
 }
 
 void Line::Sort()
@@ -8539,14 +8583,16 @@ in the line as a real.
 ListExpr
 SpatialAtPointMap( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
+  ListExpr arg1, arg2, arg3;
+  if ( nl->ListLength( args ) == 3 )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
+    arg3 = nl->Third( args );
 
     if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-         SpatialTypeOfSymbol( arg2 ) == stpoint )
+         SpatialTypeOfSymbol( arg2 ) == stpoint &&
+         nl->IsEqual( arg3, "bool" ) )
       return (nl->SymbolAtom( "real" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
@@ -8562,14 +8608,16 @@ receives a line and a relative position and returns the corresponding point.
 ListExpr
 SpatialAtPositionMap( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
+  ListExpr arg1, arg2, arg3;
+  if ( nl->ListLength( args ) == 3 )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
+    arg3 = nl->Third( args );
 
     if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-         nl->IsEqual( arg2, "real" ) )
+         nl->IsEqual( arg2, "real" ) &&
+         nl->IsEqual( arg3, "bool" ) )
       return (nl->SymbolAtom( "point" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
@@ -8586,16 +8634,18 @@ sub-line.
 ListExpr
 SpatialSubLineMap( ListExpr args )
 {
-  ListExpr arg1, arg2, arg3;
-  if ( nl->ListLength( args ) == 3 )
+  ListExpr arg1, arg2, arg3, arg4;
+  if ( nl->ListLength( args ) == 4 )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
     arg3 = nl->Third( args );
+    arg4 = nl->Fourth( args );
 
     if ( SpatialTypeOfSymbol( arg1 ) == stline &&
          nl->IsEqual( arg2, "real" ) &&
-         nl->IsEqual( arg3, "real" ) )
+         nl->IsEqual( arg3, "real" ) && 
+         nl->IsEqual( arg4, "bool" ) )
       return (nl->SymbolAtom( "line" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
@@ -10980,12 +11030,15 @@ SpatialAtPoint( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   Line *l = (Line*)args[0].addr;
   Point *p = (Point*)args[1].addr;
+  CcBool *startsSmaller = (CcBool*)args[2].addr;
   double res;
   
-  if( l->AtPoint( *p, res ) )
-    ((CcReal *)result.addr)->Set( true, res );
+  if( p->IsDefined() && 
+      startsSmaller->IsDefined() &&
+      l->AtPoint( *p, startsSmaller->GetBoolval(), res ) )
+    ((CcReal*)result.addr)->Set( true, res );
   else
-    ((CcReal *)result.addr)->SetDefined( false );
+    ((CcReal*)result.addr)->SetDefined( false );
   return 0;
 }
 
@@ -10999,10 +11052,15 @@ SpatialAtPosition( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
   Line *l = (Line*)args[0].addr;
-  double pos = ((CcReal*)args[1].addr)->GetRealval();
+  CcReal *pos = (CcReal*)args[1].addr;
+  CcBool *startsSmaller = (CcBool*)args[2].addr;
   Point *p = (Point*)result.addr;
 
-  if( !l->AtPosition( pos, *p ) )
+  if( !pos->IsDefined() ||
+      !startsSmaller->IsDefined() ||
+      !l->AtPosition( pos->GetRealval(), 
+                      startsSmaller->GetBoolval(), 
+                      *p ) )
     p->SetDefined( false );
 
   return 0;
@@ -11018,9 +11076,18 @@ SpatialSubLine( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
   Line *l = (Line*)args[0].addr;
-  double pos1 = ((CcReal*)args[1].addr)->GetRealval(),
-         pos2 = ((CcReal*)args[2].addr)->GetRealval();
-  l->SubLine( pos1, pos2, *(Line*)result.addr );
+  CcReal *pos1 = (CcReal*)args[1].addr,
+         *pos2 = (CcReal*)args[2].addr;
+  CcBool *startsSmaller = (CcBool*)args[3].addr;
+
+  if( pos1->IsDefined() &&
+      pos2->IsDefined() &&
+      startsSmaller->IsDefined() )
+    l->SubLine( pos1->GetRealval(), 
+                pos2->GetRealval(), 
+                startsSmaller->GetBoolval(),
+                *(Line*)result.addr );
+
   return 0;
 }
 
@@ -11423,26 +11490,32 @@ const string SpatialSpecVertices  =
 
 const string SpatialSpecAtPoint  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>line x point -> real</text--->"
-  "<text>_ atpoint[_]</text--->"
-  "<text>Returns the relative position of the point in the line.</text--->"
-  "<text>query l atpoint[p]</text--->"
+  "( <text>line x point x bool -> real</text--->"
+  "<text>atpoint(_, _, _)</text--->"
+  "<text>Returns the relative position of the point in the line."
+  "The boolean flag indicates where the positions start, i.e. "
+  "from the smaller point (TRUE) or from the bigger one (FALSE)."
+  "</text---><text>query atpoint(l, p, TRUE)</text--->"
   ") )";
 
 const string SpatialSpecAtPosition  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>line x real -> point</text--->"
-  "<text>_ atposition[_]</text--->"
-  "<text>Returns the point at a relative position in the line.</text--->"
-  "<text>query l atposition[0.0]</text--->"
+  "( <text>line x real x bool -> point</text--->"
+  "<text>atposition(_, _, _)</text--->"
+  "<text>Returns the point at a relative position in the line."
+  "The boolean flag indicates where the positions start, i.e. "
+  "from the smaller point (TRUE) or from the bigger one (FALSE)."
+  "</text---><text>query atposition(l, 0.0, TRUE)</text--->"
   ") )";
 
 const string SpatialSpecSubLine  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>line x real x real -> line</text--->"
-  "<text>_ subline[_, _]</text--->"
-  "<text>Returns the sub-line inside the two relative positions.</text--->"
-  "<text>query l subline[0.0, length(l)]</text--->"
+  "( <text>line x real x real x bool -> line</text--->"
+  "<text>subline(_, _, _, _)</text--->"
+  "<text>Returns the sub-line inside the two relative positions."
+  "The boolean flag indicates where the positions start, i.e. "
+  "from the smaller point (TRUE) or from the bigger one (FALSE)."
+  "</text---><text>query subline(l, 0.0, size(.l), TRUE)</text--->"
   ") )";
 
 /*

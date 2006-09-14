@@ -107,9 +107,13 @@ Network::~Network()
 
 void Network::Destroy()
 {
+  assert( routes != 0 );
   routes->Delete(); routes = 0;
+  assert( junctions != 0 );
   junctions->Delete(); junctions = 0;
+  assert( sections != 0 );
   sections->Delete(); sections = 0;
+  assert( routesBTree != 0 );
   routesBTree->DeleteFile(); 
   delete routesBTree; routesBTree = 0;
 }
@@ -157,11 +161,7 @@ void Network::FillJunctions( const Relation *junctions )
 {
   ListExpr 
     junctionsNumInt = 
-      SecondoSystem::GetCatalog()->NumericType( GetJunctionsIntTypeInfo() ),
-    junctionsNumApp = 
-      SecondoSystem::GetCatalog()->NumericType( GetJunctionsAppTypeInfo() );
-
-
+      SecondoSystem::GetCatalog()->NumericType( GetJunctionsIntTypeInfo() );
 
   Relation *unJunctions = new Relation( junctionsNumInt, true );
 
@@ -170,8 +170,7 @@ void Network::FillJunctions( const Relation *junctions )
 
   while( (j = junctionsIter->GetNextTuple()) != 0)
   {
-    Tuple *intJ = new Tuple( nl->Second( junctionsNumInt ) ),
-          *appJ = new Tuple( nl->Second( junctionsNumApp ) );
+    Tuple *intJ = new Tuple( nl->Second( junctionsNumInt ) );
 
     for( int i = 0; i < j->GetNoAttributes(); i++ )
       intJ->CopyAttribute( i, j, i );
@@ -181,47 +180,46 @@ void Network::FillJunctions( const Relation *junctions )
 
     BTreeIterator *routesIter = routesBTree->ExactMatch( r1id );
     assert( routesIter->Next() );
-    CcInt *r1rc = new CcInt( true, routesIter->GetId() );
-    appJ->PutAttribute( POS_APPJR1RC, r1rc );
 
+    CcInt *r1rc = new CcInt( true, routesIter->GetId() );
+    intJ->PutAttribute( POS_JR1RC, r1rc );
+    
     Tuple *r = this->routes->GetTuple( routesIter->GetId() );
     assert( r != 0 );
+
     Line *l = (Line*)r->GetAttribute( POS_RCURVE );
     assert( l != 0 );
     CcReal *meas = (CcReal*)j->GetAttribute( POS_JMEAS1 );
     Point *p = new Point( false );
-    l->AtPosition( meas->GetRealval(), *p );
-    appJ->PutAttribute( POS_APPJPOS, p );
+    l->AtPosition( meas->GetRealval(), true, *p );
+    intJ->PutAttribute( POS_JPOS, p );
 
     r->DeleteIfAllowed();
     delete routesIter;
- 
+
+
     routesIter = routesBTree->ExactMatch( r2id );
     assert( routesIter->Next() );
     CcInt *r2rc = new CcInt( true, routesIter->GetId() );
-    appJ->PutAttribute( POS_APPJR2RC, r2rc );
+    intJ->PutAttribute( POS_JR2RC, r2rc );
     delete routesIter;
 
-    Concat( j, appJ, intJ );
+
     unJunctions->AppendTuple( intJ );
   
-    Tuple *intJDup = intJ->Clone();
+    CcInt *aux = (CcInt*)intJ->GetAttribute( POS_JR1ID )->Copy();
+    intJ->PutAttribute( POS_JR1ID, 
+                           intJ->GetAttribute( POS_JR2ID )->Copy() );
+    intJ->PutAttribute( POS_JR2ID, aux );
 
-    CcInt *aux = (CcInt*)intJ->GetAttribute( POS_JR1ID )->Clone();
-    intJDup->PutAttribute( POS_JR1ID, 
-                           intJ->GetAttribute( POS_JR2ID )->Clone() );
-    intJDup->PutAttribute( POS_JR2ID, aux );
+    aux = (CcInt*)intJ->GetAttribute( POS_JMEAS1 )->Copy();
+    intJ->PutAttribute( POS_JMEAS1, 
+                           intJ->GetAttribute( POS_JMEAS2 )->Copy() );
+    intJ->PutAttribute( POS_JMEAS2, aux );
 
-    aux = (CcInt*)intJ->GetAttribute( POS_JMEAS1 )->Clone();
-    intJDup->PutAttribute( POS_JMEAS1, 
-                           intJ->GetAttribute( POS_JMEAS2 )->Clone() );
-    intJDup->PutAttribute( POS_JMEAS2, aux );
+    unJunctions->AppendTuple( intJ );
 
-    unJunctions->AppendTuple( intJDup );
-
-    appJ->DeleteIfAllowed();
     intJ->DeleteIfAllowed();
-    intJDup->DeleteIfAllowed();
     j->DeleteIfAllowed();
   }
 
@@ -296,6 +294,7 @@ void Network::FillSections()
         curve->SubLine( meas1->GetRealval(),
                         ((CcReal*)jTuple->GetAttribute( POS_JMEAS1 ))->
                           GetRealval(),
+                        true,
                         *l );
         sTuple->PutAttribute( POS_SCURVE, l );
 
@@ -326,6 +325,7 @@ void Network::FillSections()
       curve->SubLine( meas1->GetRealval(),
                       ((CcReal*)rTuple->GetAttribute( POS_RLENGTH ))->
                         GetRealval(),
+                      true,
                       *l );
       sTuple->PutAttribute( POS_SCURVE, l );
 
@@ -562,7 +562,7 @@ ListExpr Network::Save( SmiRecord& valueRecord,
                         SecondoSystem::GetCatalog()->
                           NumericType( GetJunctionsIntTypeInfo() ) ) )
     return false;
- 
+
   if( !sections->Save( valueRecord, offset, 
                        SecondoSystem::GetCatalog()->
                          NumericType( GetSectionsInternalTypeInfo() ) ) )
@@ -592,8 +592,10 @@ bool SaveNetwork( SmiRecord& valueRecord,
 Network *Network::Open( SmiRecord& valueRecord, size_t& offset, 
                         const ListExpr typeInfo )
 {
-  Relation *routes, *junctions, *sections;
-  BTree *routesBTree;
+  Relation *routes = 0, 
+           *junctions = 0,  
+           *sections = 0;
+  BTree *routesBTree = 0;
 
   if( !( routes = 
          Relation::Open( valueRecord, offset, 
@@ -630,7 +632,6 @@ Network *Network::Open( SmiRecord& valueRecord, size_t& offset,
     sections->Delete();
     return 0;
   }
-
   return new Network( routes, junctions, sections, routesBTree );
 }
 

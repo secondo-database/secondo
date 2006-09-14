@@ -148,6 +148,7 @@ class FLOBCache
     void PutFLOB( SmiFileId& fileId, SmiRecordId& lobId, long pageno,
                   size_t size, bool isTempFile, const char *flob );
     void Clear();
+    void Clean();
     void Release( SmiFileId fileId, SmiRecordId lobId, 
                   long pageno = -1 );
     void Destroy( SmiFileId fileId, SmiRecordId lobId );

@@ -1362,6 +1362,11 @@ Returns the length of the line, i.e. the sum of the lengths of all segments.
 Sets the length of the line.
 
 */
+    inline void SetLineType( bool simple, bool cycle, bool startsSmaller );
+/*
+Sets the flags that indicate the line type.
+
+*/
     inline const Rectangle<2> BoundingBox() const;
 /*
 Returns the bounding box of the line.
@@ -1606,10 +1611,11 @@ is the ~points~ result size.
 
 *Semantics:* $$
 
-*Complexity:* $O(log n)$, where ~n~ is the size of ~U~
+*Complexity:* $O(n)$, where ~n~ is the size of ~U~
 
 */
-    bool AtPosition( double pos, Point& p ) const;
+    bool 
+    AtPosition( double pos, bool startsSmaller, Point& p ) const;
 /*
 6.4.6 Operation ~atpoint~
 
@@ -1617,10 +1623,11 @@ is the ~points~ result size.
 
 *Semantics:* $$
 
-*Complexity:* $O(log(n)+n)$, where ~n~ is the size of ~U~
+*Complexity:* $O(n)$, where ~n~ is the size of ~U~
 
 */
-    bool AtPoint( const Point& p, double& result ) const;
+    bool 
+    AtPoint( const Point& p, bool startsSmaller, double& result ) const;
 /*
 6.4.6 Operation ~subline~
 
@@ -1628,11 +1635,11 @@ is the ~points~ result size.
 
 *Semantics:* $$
 
-*Complexity:* $O(log(n)+k)$, where ~n~ is the size of ~U~, and ~k~ is the size of the 
-resulting line
+*Complexity:* $O(n)$, where ~n~ is the size of ~U~
 
 */
-    void SubLine( double pos1, double pos2, Line& l ) const;
+    void SubLine( double pos1, double pos2, 
+                  bool startsSmaller, Line& l ) const;
 /*
 6.4.6 Operation ~vertices~
 
@@ -1799,7 +1806,7 @@ to the left one.
                      const HalfSegment*& nexths,
                      stack< pair<int, const HalfSegment*> >& nexthss );
     void 
-    VisitHalfSegments( int poshs, const HalfSegment& hs, double& lrspos,
+    VisitHalfSegments( int& poshs, const HalfSegment*& hs, double& lrspos,
                        int& edgeno, int cycleno, int faceno,
                        stack< pair<int, const HalfSegment*> >& nexthss,
                        vector<bool>& visited );
@@ -1848,6 +1855,24 @@ The number of components for the line.
     double length;
 /*
 The length of the line.
+
+*/
+    bool simple;
+/*
+Tells whether this is a simple line, which means it has only one components and no branches.
+This is sometimes called a ~line string~. We only have the linear referencing system
+for simple lines, it makes no sense for the other cases.
+
+*/
+    bool cycle;
+/*
+Tells whether this is a simple line and a cycle.
+
+*/
+    bool startsSmaller;
+/*
+For simple lines without cycles, tells whether the starting point of the linear
+referencing system is smaller (lexicographic order) than the end point.
 
 */
 };
@@ -3284,16 +3309,22 @@ lrsArray( n / 2 ),
 bbox( false ),
 ordered( true ),
 noComponents( 0 ),
-length( 0.0 )
+length( 0.0 ),
+simple( true ),
+cycle( false ),
+startsSmaller( false )
 {}
 
 inline Line::Line( const Line& cl ) :
 line( cl.Size() ),
-lrsArray( cl.Size() / 2 ),
+lrsArray( cl.lrsArray.Size() ),
 bbox( cl.bbox ),
 ordered( true ),
 noComponents( cl.noComponents ),
-length( cl.length )
+length( cl.length ),
+simple( cl.simple ),
+cycle( cl.cycle ),
+startsSmaller( cl.startsSmaller )
 {
   assert( cl.IsOrdered());
 
@@ -3305,7 +3336,7 @@ length( cl.length )
   }
 
   const LRS *lrs;
-  for( int i = 0; i < cl.Size() / 2; i++ )
+  for( int i = 0; i < cl.lrsArray.Size(); i++ )
   {
     cl.lrsArray.Get( i, lrs );
     lrsArray.Put( i, *lrs ); 
@@ -3331,6 +3362,14 @@ inline void Line::SetLength( double length )
 inline double Line::Length() const
 {
   return length;
+}
+
+inline void 
+Line::SetLineType( bool simple, bool cycle, bool startsSmaller )
+{
+  this->simple = simple;
+  this->cycle = cycle;
+  this->startsSmaller = startsSmaller;
 }
 
 inline const Rectangle<2> Line::BoundingBox() const

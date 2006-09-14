@@ -54,7 +54,7 @@ query routes(n) count;
 query junctions(n) count;
 
 #testcase Sections 
-#yields (int 8)
+#yields (int 7)
 query sections(n) count;
 
 #teardown

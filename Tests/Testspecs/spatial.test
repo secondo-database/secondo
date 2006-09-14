@@ -699,9 +699,47 @@ query linerel feed extend[n: no_segments(.l)] sum[n];
 #yields (int 77)
 query regionrel feed extend[n: no_segments(.r)] sum[n];
 
+#testcase atposition_l
+#yields ((rel (tuple ((p point)))) ((undef) ((0.0 0.0)) ((0.0 1.0)) ((0.0 0.25)) ((1.0 0.25)) (undef) (undef)))
+query linerel feed extend[p: atposition(.l, 0.0, TRUE)] project[p] consume;
 
+#testcase atposition_l
+#yields ((rel (tuple ((p point)))) ((undef) ((0.0 0.0)) ((0.0 1.0)) ((0.0 0.25)) ((1.0 0.25)) (undef) (undef)))
+query linerel feed extend[p: atposition(.l, size(.l), FALSE)] project[p] consume;
+
+#testcase atposition_l
+#yields ((rel (tuple ((p point)))) ((undef) ((1.0 1.0)) ((1.0 0.0)) ((0.25 1.0)) ((1.0 1.0)) (undef) (undef)))
+query linerel feed extend[p: atposition(.l, 0.0, FALSE)] project[p] consume;
+
+#testcase atposition_l
+#yields ((rel (tuple ((p point)))) ((undef) ((1.0 1.0)) ((1.0 0.0)) ((0.25 1.0)) ((1.0 1.0)) (undef) (undef)))
+query linerel feed extend[p: atposition(.l, size(.l), TRUE)] project[p] consume;
+
+#testcase atposition_l
+#yields ((rel (tuple ((p point)))) ((undef) ((0.5732233 0.3232233)) ((0.4309017 0.207295)) ((0.0 0.75)) ((0.75 0.625)) (undef) (undef))) 
+query linerel feed extend[p: atposition(.l, (size(.l)/2), TRUE)] project[p] consume;
+
+#testcase atposition_l
+#yields ((rel (tuple ((p point)))) ((undef) ((0.5732233 0.3232233)) ((0.4309017 0.207295)) ((0.0 0.75)) ((0.75 0.625)) (undef) (undef))) 
+query linerel feed extend[p: atposition(.l, (size(.l)/2), FALSE)] project[p] consume;
+
+#testcase atpoint_l
+#yields ((rel (tuple ((r real)))) ((undef) (0.0) (undef) (undef) (undef) (undef) (undef))) 
+query linerel feed extend[r: atpoint(.l, [const point value (0.0 0.0)], TRUE)] project[r] consume;
+
+#testcase atpoint_l
+#yields ((rel (tuple ((r real)))) ((undef) (2.32514) (undef) (undef) (undef) (undef) (undef))) 
+query linerel feed extend[r: atpoint(.l, [const point value (0.0 0.0)], FALSE)] project[r] consume;
+
+#testcase atpoint_l
+#yields ((rel (tuple ((p point)))) ((undef) ((0.3333333333333333 0.5)) ((0.3333333333333333 0.5)) (undef) (undef) (undef) (undef))) 
+query linerel feed extend[p: atposition(.l, atpoint(.l, [const point value (0.3333333333333333 0.5)], TRUE), TRUE)] project[p] consume;
+
+#testcase atpoint_l
+#yields ((rel (tuple ((p point)))) ((undef) ((0.3333333333333333 0.5)) ((0.3333333333333333 0.5)) (undef) (undef) (undef) (undef))) 
+query linerel feed extend[p: atposition(.l, atpoint(.l, [const point value (0.3333333333333333 0.5)], FALSE), FALSE)] project[p] consume;
 
 #teardown
 close database;
-#delete database spatialtest;
+delete database spatialtest;
 

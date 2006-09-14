@@ -853,6 +853,7 @@ bool
 SecondoSystem::CommitTransaction()
 {
   secondoSystem->catalog->CleanUp( false );
+  secondoSystem->flobCache->Clean();
   return (SmiEnvironment::CommitTransaction());
 }
 
