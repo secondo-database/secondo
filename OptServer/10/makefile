@@ -17,14 +17,21 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-include ../makefile.env
-include ../makefile.optimizer
+include ../../makefile.env
 
 .PHONY:all
-all:
-	make -C $(JPLVER) all
+all: $(OPTDIR)/OptimizerServer.class $(OPTDIR)/NamedVariable.class $(OPTDIR)/PrologParser.class
+
+$(OPTDIR)/OptimizerServer.class: OptimizerServer.java 
+	$(JAVAC) -classpath $(JPL_CLASSPATH) -d $(OPTDIR) OptimizerServer.java
+
+$(OPTDIR)/PrologParser.class: PrologParser.java
+	$(JAVAC) -classpath $(JPL_CLASSPATH) -d $(OPTDIR) PrologParser.java
+
+$(OPTDIR)/NamedVariable.class: NamedVariable.java
+	$(JAVAC) -classpath $(JPL_CLASSPATH) -d $(OPTDIR) NamedVariable.java
+
 
 .PHONY:clean
 clean:
-	make -C 10 clean
-	make -C 30 clean 
+	rm -f $(OPTDIR)/*.class
