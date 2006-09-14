@@ -1168,16 +1168,16 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
         }
         delete ureal;
       }
-    }
-    else if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType 
-	      && nl->SymbolValue( instance ) == "undef" )
-      {
-	UReal *ureal = new UReal();
-	ureal->SetDefined(false);
-	correct = true;
-	return (SetWord( ureal ));
-      }
+    }    
   }
+  else if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType 
+            && nl->SymbolValue( instance ) == "undef" )
+    {
+      UReal *ureal = new UReal();
+      ureal->SetDefined(false);
+      correct = true;
+      return (SetWord( ureal ));
+    }
   correct = false;
   return SetWord( Address(0) );
 }
