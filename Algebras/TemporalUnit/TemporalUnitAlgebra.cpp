@@ -2499,7 +2499,7 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 		  cout << "    T1=" << c << endl;
 		  cout << "    Tstart=" << deftime.start.ToDouble() << endl;
 		  cout << "    Tend  =" << deftime.end.ToDouble() << endl;
-		  (UReal*)(localinfo->runits[localinfo->NoOfResults].addr)
+		  localinfo->runits[localinfo->NoOfResults].addr
 		    = uinput->Copy();
 		  localinfo->NoOfResults++;
 		  localinfo->finished = false;
@@ -2522,7 +2522,7 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 	  if (deftime.Contains(t1))
 	    { // value is contained by deftime
 	      cout << "  12: Found valid linear solution." << endl;
-	      (UReal*)(localinfo->runits[localinfo->NoOfResults].addr) = 
+	      localinfo->runits[localinfo->NoOfResults].addr = 
 		uinput->Copy();
 	      ((UReal*)(localinfo
 			->runits[localinfo->NoOfResults].addr))
@@ -4124,7 +4124,6 @@ int Suse_SNN( Word* args, Word& result, int message,
 {
   SuseLocalInfo     *sli;
   Word              xval, funresult;
-  Word              argConfDescriptor;  
   ArgVectorPointer  funargs;
 
   switch (message)
@@ -4138,9 +4137,7 @@ int Suse_SNN( Word* args, Word& result, int message,
       sli->Y.addr = 0;  
       sli->fun = SetWord(args[2].addr); 
       // get argument configuration info
-      argConfDescriptor = args[3]; 
-           //qp->Request(args[3].addr, argConfDescriptor);
-      sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
+      sli->argConfDescriptor = ((CcInt*)args[3].addr)->GetIntval();
       if(sli->argConfDescriptor & 4)
 	{ 
 	  delete( sli );
@@ -4248,7 +4245,6 @@ int Suse_SNS( Word* args, Word& result, int message,
 
   SuseLocalInfo     *sli;
   Word              funresult;
-  Word              argConfDescriptor;  
   ArgVectorPointer  funargs;
 
   switch (message)
@@ -4265,9 +4261,7 @@ int Suse_SNS( Word* args, Word& result, int message,
       sli->XVal.addr = 0;
       sli->YVal.addr = 0;
       // get argument configuration info
-      argConfDescriptor = args[3]; 
-           //qp->Request(args[3].addr, argConfDescriptor);      
-      sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
+      sli->argConfDescriptor = ((CcInt*)args[3].addr)->GetIntval();
       if(! (sli->argConfDescriptor & 4))
 	{ 
 	  delete( sli );
@@ -4387,7 +4381,6 @@ int Suse_SSN( Word* args, Word& result, int message,
 {
   SuseLocalInfo     *sli;
   Word              funresult;
-  Word              argConfDescriptor;  
   ArgVectorPointer  funargs;
 
   switch (message)
@@ -4399,9 +4392,7 @@ int Suse_SSN( Word* args, Word& result, int message,
       sli->Xfinished = true;
       sli->Yfinished = true;
       // get argument configuration info
-      argConfDescriptor = args[3]; 
-            //qp->Request(args[3].addr, argConfDescriptor);      
-      sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
+      sli->argConfDescriptor = ((CcInt*)args[3].addr)->GetIntval();
       if(sli->argConfDescriptor & 4)
 	{ 
 	  delete( sli );
@@ -4524,7 +4515,6 @@ int Suse_SSS( Word* args, Word& result, int message,
 {
   SuseLocalInfo     *sli;
   Word              funresult;
-  Word              argConfDescriptor;  
   ArgVectorPointer  funargs;
 
   switch (message)
@@ -4537,8 +4527,7 @@ int Suse_SSS( Word* args, Word& result, int message,
       sli->Yfinished   = true;
       sli->funfinished = true;
       // get argument configuration info
-      qp->Request(args[3].addr, argConfDescriptor);      
-      sli->argConfDescriptor = ((CcInt*)argConfDescriptor.addr)->GetIntval();
+      sli->argConfDescriptor = ((CcInt*)args[3].addr)->GetIntval();
       if(!(sli->argConfDescriptor & 4) )
 	{ 
 	  delete( sli );
@@ -5117,12 +5106,11 @@ int TUDistance_UPoint_UPoint( Word* args, Word& result, int message,
 int TUDistance_UPoint_Point( Word* args, Word& result, int message,
                              Word& local, Supplier s )
 {
-  Word  argConfDescriptor, thePoint, theUPoint;
+  Word  thePoint, theUPoint;
   int   argConfDescriptor2;
 
   // get argument configuration
-  argConfDescriptor = args[2];
-  argConfDescriptor2 = ((CcInt*)argConfDescriptor.addr)->GetIntval();
+  argConfDescriptor2 = ((CcInt*)args[2].addr)->GetIntval();
   if (argConfDescriptor2 == 0) 
     {
       theUPoint = args[0];
@@ -5212,15 +5200,14 @@ int TUDistance_UInt_UInt( Word* args, Word& result, int message,
 int TUDistance_UInt_Int( Word* args, Word& result, int message,
                           Word& local, Supplier s )
 {
-  Word  argConfDescriptor, ii, ui;
+  Word  ii, ui;
   int   argConfDescriptor2;
   UInt  *u;
   CcInt *i;
   double c1, c2, c;
 
   // get argument configuration
-  argConfDescriptor = args[2];
-  argConfDescriptor2 = ((CcInt*)argConfDescriptor.addr)->GetIntval();
+  argConfDescriptor2 = ((CcInt*)args[2].addr)->GetIntval();
   if (argConfDescriptor2 == 0) 
     {
       ui = args[0];
@@ -6705,7 +6692,7 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
 	    }
 	  else
 		{ // Return the complete unit
-		  (UReal*)(localinfo->runits[localinfo->NoOfResults].addr)
+		  localinfo->runits[localinfo->NoOfResults].addr
 		    = uinput->Copy();
 		  localinfo->NoOfResults++;
 		  localinfo->finished = false;
@@ -6719,7 +6706,7 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
 	  t1.ReadFrom( (y - c)/b );
 	  if (deftime.Contains(t1))
 	    { // value is contained by deftime
-	      (UReal*)(localinfo->runits[localinfo->NoOfResults].addr) = 
+	      localinfo->runits[localinfo->NoOfResults].addr = 
 		uinput->Copy();
 	      ((UReal*)(localinfo
 			->runits[localinfo->NoOfResults].addr))
@@ -7095,7 +7082,6 @@ temporalUnitIntersection_upoint_uregion( Word* args, Word& result, int message,
   TUIntersectionLocalInfo *sli;
   UPoint  *upoint, pResult;
   URegion *uregion;
-  Point *val;
   Interval<Instant> iv;
 
   cout << "\nATTENTION: temporalUnitIntersection_upoint_uregion "
@@ -7505,7 +7491,7 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
 	}
       // extract, copy and pass value, delete tuple
       tupleptr = (Tuple*)tuple.addr;
-      (Attribute*)(result.addr) = tupleptr->GetAttribute(0)->Clone();
+      result.addr = tupleptr->GetAttribute(0)->Clone();
       tupleptr->DeleteIfAllowed();
       if (TUA_DEBUG) cout 
 	    << "Transformstream_TS_S: REQUEST return YIELD" << endl;
