@@ -19,8 +19,11 @@
 
 include ../../makefile.env
 include ../../makefile.jni
+include ../../makefile.optimizer
 
 INCLUDEFLAGS := -I. $(JNIINCLUDE) $(PLINCLUDEFLAGS) -I$(INCLUDEDIR)
+
+
 
 CCOBJECTS := $(JPL_LIB)/jpl.o $(JPL_LIB)/regSecondo.o
 OBJECTS := $(CCOBJECTS)
@@ -52,7 +55,7 @@ compile: $(OBJECTS)
 .PHONY:build
 build: $(JNIDLL)
 
-$(JPL_LIB)/jpl.o: jpl_fli_Prolog.c
+$(JPL_LIB)/jpl.o: $(JPLVER)/jpl.c
 	$(CC) -c -fPIC -g -o $@ $(INCLUDEFLAGS) $<
 
 $(JPL_LIB)/regSecondo.o: regSecondo.c
@@ -73,6 +76,7 @@ jpl.def: $(JPL_LIB)/jpl.o $(JPL_LIB)/regSecondo.o
 else
 $(JNIDLL): $(CCOBJECTS) $(LINKFILES)
 	$(LD) $(DLLFLAGS) $(EXEFLAGS) $(LDFLAGS) -o $@ $^ $(LINK_FLAGS)
+
 		
 endif
 

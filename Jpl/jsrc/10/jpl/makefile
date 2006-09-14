@@ -17,17 +17,34 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-include ../../../makefile.env
+include ../../../../makefile.env
+include ../../../../Javagui/makefile.inc
+
+# get all class files in this directory
+TMPFILES =$(shell find -maxdepth 1 -name "*.java")
+JAVAFILES = $(subst ./,,$(TMPFILES))
+
+
 
 .PHONY: all
-all:  $(JPL_SRC)/$(JPL_HEADER)
+all: check fli $(JPL_CLASS_TARGET)/jpl/Query.class
 
-$(JPL_SRC)/$(JPL_HEADER):
-	$(JAVAH) -classpath $(CLASSPATH) -jni -o $(JPL_SRC)/$(JPL_HEADER) jpl.fli.Prolog
+.PHONY: check
+check:
+	$(checkjavac)
 
+.PHONY: fli
+fli:
+	make -C fli all
+
+
+$(JPL_CLASS_TARGET)/jpl/Query.class: $(JAVAFILES)
+	$(JAVAC) -classpath $(CLASSPATH):$(JPL_CLASSPATH) -d $(JPL_CLASS_TARGET) $(JAVAFILES)
 
 .PHONY: clean
 clean:
-	make -C jpl clean
-	rm -f $(JPL_SRC)/$(JPL_HEADER)
+	make -C fli clean
+	rm -f $(JPL_CLASS_TARGET)/jpl/*.class
+
+
 

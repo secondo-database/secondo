@@ -17,10 +17,14 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+include ../../makefile.optimizer 
+
 .PHONY: all
 all:
-	make -C jpl all
+	echo $(PL_VERSION)
+	make -C $(JPLVER) all
 
 .PHONY: clean
 clean:
-	make -C jpl clean
+	make -C 10 clean
+	make -C 30 clean
