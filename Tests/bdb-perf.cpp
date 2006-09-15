@@ -159,6 +159,7 @@ main( int argc, char** argv )
     
     cout << "Bulk retrieval of " << DATABASE << "..." << endl;
 
+#if (DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 2)
     int rc=0;    
     for ( dit=dbHandles.begin(); dit != dbHandles.end(); dit++ ) {
 
@@ -188,6 +189,9 @@ main( int argc, char** argv )
       //db.close(DB_NOSYNC);
       //cout << "Time for closing: " << close.diffTimes() << endl;
     }
+#else
+    cout << "Not supported below version 4.2!" << endl;
+#endif	
   }
 
   // close databases

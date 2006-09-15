@@ -248,6 +248,7 @@ main( int argc, char** argv )
 
     cout << "Bulk retrieval of " << DATABASE2 << "..." << endl;
 
+#if (DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 2)
     for (;;) {
      //cerr << "Getting next bulk of data ..." << endl;
      
@@ -265,8 +266,10 @@ main( int argc, char** argv )
      }
 
     cursor->close();
+#else
+    cout << "Not supported below version 4.2!" << endl;
+#endif	
   }
-
   
 
 
