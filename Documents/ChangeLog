@@ -1,0 +1,1630 @@
+2006-09-15 10:46  valmeida
+
+	* nonpublic.filelist: Changes in the visibility of files.
+
+2006-09-14 16:23  behr
+
+	* makefile.optimizer, Optimizer/StartOptServer: Some changes
+	  related to the two JPL versions
+
+2006-09-14 16:22  behr
+
+	* OptServer/: NamedVariable.java, OptimizerServer.java,
+	  PrologParser.java, makefile, 10/NamedVariable.java,
+	  10/OptimizerServer.java, 10/PrologParser.java, 10/makefile,
+	  30/OptimizerServer.java, 30/makefile: Separated code for the
+	  different JPL versions
+
+2006-09-14 16:20  behr
+
+	* Jpl/: jsrc/makefile, jsrc/10/makefile, jsrc/10/jpl/Atom.java,
+	  jsrc/10/jpl/Compound.java, jsrc/10/jpl/Float.java,
+	  jsrc/10/jpl/Integer.java, jsrc/10/jpl/JPL.java,
+	  jsrc/10/jpl/JPLException.java, jsrc/10/jpl/List.java,
+	  jsrc/10/jpl/Long.java, jsrc/10/jpl/PrologException.java,
+	  jsrc/10/jpl/Query.java,
+	  jsrc/10/jpl/QueryInProgressException.java,
+	  jsrc/10/jpl/String.java, jsrc/10/jpl/Term.java,
+	  jsrc/10/jpl/Tuple.java, jsrc/10/jpl/Util.java,
+	  jsrc/10/jpl/Variable.java, jsrc/10/jpl/Version.java,
+	  jsrc/10/jpl/makefile, jsrc/10/jpl/fli/DoubleHolder.java,
+	  jsrc/10/jpl/fli/IntHolder.java, jsrc/10/jpl/fli/LongHolder.java,
+	  jsrc/10/jpl/fli/PointerHolder.java, jsrc/10/jpl/fli/Prolog.java,
+	  jsrc/10/jpl/fli/StringHolder.java, jsrc/10/jpl/fli/atom_t.java,
+	  jsrc/10/jpl/fli/fid_t.java, jsrc/10/jpl/fli/functor_t.java,
+	  jsrc/10/jpl/fli/makefile, jsrc/10/jpl/fli/module_t.java,
+	  jsrc/10/jpl/fli/predicate_t.java, jsrc/10/jpl/fli/qid_t.java,
+	  jsrc/10/jpl/fli/term_t.java, jsrc/30/makefile,
+	  jsrc/30/jpl/Atom.java, jsrc/30/jpl/Compound.java,
+	  jsrc/30/jpl/Float.java, jsrc/30/jpl/Integer.java,
+	  jsrc/30/jpl/JBoolean.java, jsrc/30/jpl/JPL.java,
+	  jsrc/30/jpl/JPLException.java, jsrc/30/jpl/JRef.java,
+	  jsrc/30/jpl/JVoid.java, jsrc/30/jpl/PrologException.java,
+	  jsrc/30/jpl/Query.java, jsrc/30/jpl/Term.java,
+	  jsrc/30/jpl/Util.java, jsrc/30/jpl/Variable.java,
+	  jsrc/30/jpl/Version.java, jsrc/30/jpl/makefile,
+	  jsrc/30/jpl/fli/BooleanHolder.java,
+	  jsrc/30/jpl/fli/DoubleHolder.java,
+	  jsrc/30/jpl/fli/IntHolder.java, jsrc/30/jpl/fli/LongHolder.java,
+	  jsrc/30/jpl/fli/ObjectHolder.java,
+	  jsrc/30/jpl/fli/PointerHolder.java, jsrc/30/jpl/fli/Prolog.java,
+	  jsrc/30/jpl/fli/StringHolder.java, jsrc/30/jpl/fli/atom_t.java,
+	  jsrc/30/jpl/fli/engine_t.java, jsrc/30/jpl/fli/fid_t.java,
+	  jsrc/30/jpl/fli/functor_t.java, jsrc/30/jpl/fli/makefile,
+	  jsrc/30/jpl/fli/module_t.java, jsrc/30/jpl/fli/predicate_t.java,
+	  jsrc/30/jpl/fli/qid_t.java, jsrc/30/jpl/fli/term_t.java,
+	  lib/classes/makefile, src/jpl_fli_Prolog.c, src/makefile,
+	  src/10/jpl.c, src/30/jpl.c: separated two versions of the cvs ,
+	  version 1.0 works only with prolog version <5.2 the other version
+	  works only with prolog versions >= 5.2
+
+2006-09-14 15:37  duentgen
+
+	* Algebras/Temporal/TemporalAlgebra.cpp: Corrected In-function for
+	  ureal
+
+2006-09-14 14:57  valmeida
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Removing some more
+	  Request functions
+
+2006-09-14 10:56  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Adopted algebra to
+	  chamges in QueryProcessor
+
+2006-09-14 09:43  valmeida
+
+	* Algebras/Network/NetworkAlgebra.cpp,
+	  Algebras/Relation-C++/FLOBCache.cpp,
+	  Algebras/Spatial/SpatialAlgebra.cpp,
+	  Algebras/Spatial/SpatialAlgebra.h,
+	  Algebras/Spatial/SpatialAlgebra.spec,
+	  QueryProcessor/SecondoSystem.cpp, Tests/Testspecs/network.test,
+	  Tests/Testspecs/spatial.test, include/FLOBCache.h: I fixed a
+	  problem with the network algebra. In fact I did not fix the
+	  problem, but I bypassed it. The problem was that in the same
+	  transaction some FLOB files were closed and when opened we had a
+	  deadlock situation.  I exaustively tried to fix this problem, but
+	  unfortunately I do not have time to keep trying. I bypassed the
+	  problem by putting the close of all files in the FLOB cache in
+	  the end of the transaction.
+
+2006-09-14 09:27  valmeida
+
+	* Documents/Secondo-News.txt: Just adding news.
+
+2006-09-13 23:46  valmeida
+
+	* Algebras/Array/ArrayAlgebra.cpp, Algebras/Array/FunVector.cpp,
+	  Algebras/Array/FunVector.h, Algebras/BTree/BTreeAlgebra.cpp,
+	  Algebras/ExtRelation-C++/ExtRelAlgPersistent.cpp,
+	  Algebras/ExtRelation-C++/ExtRelationAlgebra.cpp,
+	  Algebras/FText/FTextAlgebra.cpp,
+	  Algebras/MovingRegion/MovingRegionAlgebra.cpp,
+	  Algebras/OldRelation-C++/OldRelationAlgebra.cpp,
+	  Algebras/PlugJoin/PlugJoinAlgebra.cpp,
+	  Algebras/RTree/RTreeAlgebra.cpp,
+	  Algebras/Rectangle/RectangleAlgebra.cpp,
+	  Algebras/Relation-C++/RelationAlgebra.cpp,
+	  Algebras/Spatial/SpatialAlgebra.cpp,
+	  Algebras/Standard-C++/StandardAlgebra.cpp,
+	  Algebras/StreamExample/StreamExampleAlgebra.cpp,
+	  Algebras/Temporal/TemporalAlgebra.h,
+	  Algebras/UpdateRel/UpdateRelationAlgebra.cpp,
+	  QueryProcessor/QueryProcessor.cpp, include/Attribute.h,
+	  include/QueryProcessor.h, include/StandardTypes.h: The Eval
+	  function of the query processor is fixed. It war wrongly
+	  implemented and the operators that return streams needed to call
+	  the Request function to retrieve simple objects, which is not
+	  necessary. Request must be called only when the evaluation is
+	  necessary, e.g. for streams and functions.  All algebras were
+	  changed supporting this modification.
+
+2006-09-13 22:30  valmeida
+
+	* Tests/Testspecs/: array.test, binfile.test, plugjoin.test,
+	  rtree.test: Some fixes in some of the tests and for some others
+	  were shortened.
+
+2006-09-13 16:34  behr
+
+	* Jpl/lib/classes/makefile: Removing header file corrected
+
+2006-09-13 15:30  spieker
+
+	* CM-Scripts/: .secondo.mac_osxrc, .secondorc, .secondo.aliases:
+	  Changes for Mac OSX
+
+2006-09-13 15:14  spieker
+
+	* Jpl/lib/jpl.def: The file jpl.def will now be computed at compile
+	  time
+
+2006-09-13 15:13  spieker
+
+	* makefile.jni,
+	  Algebras/Rose/RoseJava/twodsack/util/meshgenerator/makefile.windows,
+	  Javagui/tools/makefile, Jpl/src/makefile: Changes for dll
+	  creation. The sed command which operates on the output of dlltool
+	  must be modified
+
+2006-09-13 12:48  spieker
+
+	* Tests/tcmsg.cpp: Example for usage of cmsg
+
+2006-09-13 12:26  spieker
+
+	* QueryProcessor/SecondoInterface.cpp: The system relations are now
+	  pointer variables with global scope, otherwise we cannot be sure
+	  when the instances will be created. Since the sytem table
+	  instances use the global defined object cmsg we must be sure that
+	  cmsg is constructed before any other code calls member functions
+	  of it.
+
+2006-09-13 11:59  behr
+
+	* Javagui/viewer/hoese/: Category.java, CategoryEditor.java,
+	  Layer.java, algebras/DisplayGraph.java: New Fillstyle 'icon'
+	  implemented
+
+2006-09-13 11:38  spieker
+
+	* Tests/: bdb-perf.cpp, bdbtest.cpp, makefile, tfilesystem.cpp,
+	  tnestedlist.cpp, tpctable.cpp, tsmi.cpp, tsmi3.cpp: Correction
+	  for compiling and building the test programs
+
+2006-09-13 10:37  spieker
+
+	* Algebras/Spatial/SpatialAlgebra.cpp: Problems on windows using
+	  gcc 3.4. M_PI is already defined. Now it will be only defined if
+	  it is unknown.
+
+2006-09-13 09:00  behr
+
+	* Jpl/lib/classes/makefile, Jpl/src/jpl_fli_Prolog.c,
+	  Jpl/src/makefile, Jpl/src/regSecondo.c,
+	  OptServer/OptimizerServer.java: Function registerSecondo
+	  separated from the original JPL code
+
+2006-09-13 08:33  behr
+
+	* makefile.linux: Prefix for shared objects added
+
+2006-09-13 08:33  behr
+
+	* makefile.jni: Setting of JNI_DLLEXT corrected
+
+2006-09-12 15:53  spieker
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Auxiliary Region
+	  variables will now be initialized calling the Region(int)
+	  constructor instead of the default constructor which is only
+	  useful for the cast function
+
+2006-09-12 15:49  spieker
+
+	* Algebras/TemporalLifted/TemporalLiftedAlgebra.cpp: Auxiliary
+	  Region variables will now be initialized calling the Region(int)
+	  constructor instead of the default constructor which is only
+	  useful for the cast function
+
+2006-09-12 15:00  spieker
+
+	* UserInterfaces/makefile, makefile.env, makefile.jni,
+	  makefile.libs, ClientServer/makefile, StorageManager/makefile:
+	  Makefile adjustments and corrections
+
+2006-09-12 14:56  spieker
+
+	* ClientServer/: SecondoCheckpoint.cpp, SecondoListener.cpp,
+	  SecondoMonitor.cpp, SecondoRegistrar.cpp: CMsg instance removed
+
+2006-09-12 14:26  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Added debugging
+	  code
+
+2006-09-12 11:06  behr
+
+	* Javagui/: GBS.cfg.sample, viewer/HoeseViewer.java,
+	  viewer/hoese/CurrentState.java, viewer/hoese/GraphWindow.java:
+	  Category selection by name enabled
+
+2006-09-11 21:30  spieker
+
+	* Documents/Secondo-News.txt: Notice for the MAC OSX changes
+
+2006-09-11 21:24  spieker
+
+	* makefile.env, Jpl/src/makefile: Changes for Mac OSX
+
+2006-09-11 21:18  spieker
+
+	* makefile.mac_osx: Compiler and linker flags for dynamic libraries
+	  added
+
+2006-09-11 21:17  spieker
+
+	* makefile.optimizer: Redundant definitions removed
+
+2006-09-11 21:16  spieker
+
+	* Tools/NestedLists/NLParser.y: Redundant extern declarations
+	  removed
+
+2006-09-11 21:15  spieker
+
+	* Tools/Utilities/Application.cpp: CMsg instantiation removed
+
+2006-09-11 21:02  spieker
+
+	* makefile.jni: JNI definitions improved and adapted for MAC OSX
+
+2006-09-11 20:59  spieker
+
+	* makefile.libs, StorageManager/makefile: Creation of static
+	  libraries will now be postprocessed by ranlib
+
+2006-09-11 20:51  spieker
+
+	* Tools/Utilities/UtilFunctions.cpp, include/LogMsg.h,
+	  ClientServer/SecondoCheckpoint.cpp,
+	  ClientServer/SecondoListener.cpp,
+	  ClientServer/SecondoMonitor.cpp,
+	  ClientServer/SecondoRegistrar.cpp,
+	  ClientServer/SecondoServer.cpp, ClientServer/makefile: Changes
+	  due to problems creating a CMsg instance
+
+2006-09-11 20:48  spieker
+
+	* UserInterfaces/MainTTY.cpp, UserInterfaces/SecondoPL.cpp,
+	  UserInterfaces/SecondoTTY.cpp, UserInterfaces/TestRunner.cpp,
+	  UserInterfaces/makefile, bin/rmlogs, UserInterfaces/cmsg.cpp:
+	  Changes due to problems creating a CMsg instance
+
+2006-09-11 20:45  spieker
+
+	* Javagui/: makefile.inc, tools/makefile: Changes for dynamic
+	  library generation for using JNI
+
+2006-09-11 12:25  valmeida
+
+	* Algebras/Temporal/TemporalAlgebra.h: Fixing a compile error under
+	  gcc 4.1.1
+
+2006-09-11 12:21  valmeida
+
+	* Algebras/Temporal/TemporalAlgebra.h: Fixing a compile error under
+	  gcc 4.1.1
+
+2006-09-11 12:20  valmeida
+
+	* Tests/Testspecs/binfile.test: The $(USER) is added to file names
+	  so that the tests can be run by any user without impact on other
+	  ones.
+
+2006-09-11 09:56  behr
+
+	* Javagui/viewer/hoese/algebras/Dspltext.java: Layout improved
+
+2006-09-08 16:48  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Readded operator
+	  'suse'
+
+2006-09-08 15:29  duentgen
+
+	* Algebras/: Temporal/TemporalAlgebra.h,
+	  TemporalUnit/TemporalUnitAlgebra.cpp:  Removed finalized
+	  functions IsDefined and SetDefined from UReal
+
+2006-09-08 14:23  duentgen
+
+	* Algebras/: MovingRegion/MovingRegionAlgebra.cpp,
+	  Temporal/TemporalAlgebra.cpp, Temporal/TemporalAlgebra.h: Added
+	  'defined'-flag for unit datatypes
+
+2006-09-08 12:51  spieker
+
+	* include/FLOB.h: Removed an extra assertion. After a tuple or an
+	  attribute was saved to disk. It is possible that the Flob
+	  instance will be reused. First I thought after calls of
+	  SavetoExtensionTuple no call to Put should be allowed
+
+2006-09-07 19:25  spieker
+
+	* Algebras/Relation-C++/: RelationAlgebra.cpp,
+	  RelationPersistent.cpp, RelationPersistent.h, FLOB.cpp: Changes
+	  in the Flob implementation to solve a problem of multiply freeing
+	  the same pointer
+
+2006-09-07 19:19  spieker
+
+	* include/: Attribute.h, FLOB.h: Changes in the Flob implementation
+	  to solve a problem of multiply freeing the same pointer
+
+2006-09-07 19:11  spieker
+
+	* Algebras/ExtRelation-C++/ExtRelAlgPersistent.cpp: Mergejoin trace
+	  information corrected
+
+2006-09-07 18:51  spieker
+
+	* bin/TestRunner: Default flags for TestRunner changed
+
+2006-09-07 18:44  spieker
+
+	* Tests/Testspecs/relalg.test: Relation Steadte contains now a text
+	  attrribute which guarantees that flobs are used
+
+2006-09-07 18:43  spieker
+
+	* QueryProcessor/SecondoInterface.cpp, include/SecondoInterface.h:
+	  RTFlag renamed
+
+2006-09-07 18:39  spieker
+
+	* Tools/Utilities/Application.cpp, include/Application.h,
+	  ClientServer/SecondoCheckpoint.cpp,
+	  ClientServer/SecondoListener.cpp,
+	  ClientServer/SecondoRegistrar.cpp,
+	  ClientServer/SecondoServer.cpp: Printing counters at exit removed
+
+2006-09-07 18:38  spieker
+
+	* Algebras/FText/: FTextAlgebra.cpp, FTextAlgebra.h: Function
+	  FLOB::BringToMemory replaced by FLOB::Get
+
+2006-09-07 15:58  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Added signatures
+	  to 'intersection'
+
+2006-09-07 15:57  duentgen
+
+	* Algebras/Temporal/TemporalAlgebra.cpp: Added Algebra field to
+	  specifications
+
+2006-09-07 15:46  duentgen
+
+	* Algebras/Temporal/makefile: Changed to use the generic makefile.
+
+2006-09-07 15:42  duentgen
+
+	* Algebras/MovingRegion/: MovingRegionAlgebra.cpp,
+	  MovingRegionAlgebra.spec: Prepared implemtation of operator
+	  'units'
+
+2006-09-07 15:41  hoffman
+
+	* Algebras/RTree/RTreeAlgebra.cpp: Added typeconstructor rtree8,
+	  changes in creatertree
+
+2006-09-06 19:22  hoffman
+
+	* include/DisplayTTY.h, UserInterfaces/DisplayTTY.cpp: Added
+	  display function for type rect8
+
+2006-09-06 19:19  hoffman
+
+	* Algebras/Rectangle/RectangleAlgebra.cpp: Added operator
+	  rectangle8 and type constructor rect8
+
+2006-09-06 19:12  hoffman
+
+	* Algebras/Rectangle/RectangleAlgebra.spec: Added specification for
+	  operator rectangle8
+
+2006-09-06 16:14  dansorge
+
+	* Algebras/Rose/RoseAlgebra.cpp: Changed spatial type names from
+	  points/line/region to rpoints/rline/rregion.
+
+2006-09-06 14:44  valmeida
+
+	* Algebras/Network/NetworkAlgebra.cpp: Bugs removed.
+
+2006-09-06 14:43  valmeida
+
+	* Algebras/Spatial/: SpatialAlgebra.cpp, SpatialAlgebra.h,
+	  SpatialAlgebra.spec: The operator subline is implemented.
+
+2006-09-06 12:47  valmeida
+
+	* Algebras/Temporal/TemporalAlgebra.cpp: A but in the trajectory
+	  operator is fixed.
+
+2006-09-06 12:16  hoffman
+
+	* Algebras/Rectangle/RectangleAlgebra.spec: Removed specification
+	  for operators point2 and point3, added specification for operator
+	  rectangle4
+
+2006-09-06 12:15  hoffman
+
+	* Algebras/Rectangle/RectangleAlgebra.cpp: Removed operators point2
+	  and point3, added operator rectangle4, changed operators
+	  rectangle2 and rectangle3
+
+2006-09-06 09:33  duentgen
+
+	* Algebras/BTree/BTreeAlgebra.cpp: Fixed error in
+	  CreateBTreeTypeMap
+
+2006-09-05 14:19  duentgen
+
+	* Algebras/TemporalUnit/: TemporalUnitAlgebra.cpp,
+	  TemporalUnitAlgebra.spec: added 'ustring' and 'uregion' to
+	  various operator signatures
+
+2006-09-05 14:16  duentgen
+
+	* Algebras/TemporalLifted/TemporalLiftedAlgebra.cpp: Added field
+	  'Algebra' to operator spec strings
+
+2006-09-05 12:26  spieker
+
+	* Algebras/Relation-C++/RelationAlgebra.cpp: Optional RTFlag
+	  RA:showFLOBstates will now be recognized during algebra
+	  initialization
+
+2006-09-05 12:24  spieker
+
+	* Algebras/Relation-C++/FLOB.cpp, include/FLOB.h: Documentation
+	  about state transitions added. Auxiliary debugging functions
+	  introduced
+
+2006-09-05 12:21  spieker
+
+	* Algebras/TemporalUnit/: TemporalUnitAlgebra.cpp, makefile:
+	  Makefile replaced by a more generic version
+
+2006-09-04 19:13  gueting
+
+	* Algebras/Rectangle/RectangleAlgebra.h: Corrections for z-order in
+	  Compare function.
+
+2006-09-04 17:31  gueting
+
+	* Algebras/Rectangle/RectangleAlgebra.h: Introduced z-order in the
+	  Compare function.
+
+2006-09-04 16:27  spieker
+
+	* Algebras/Relation-C++/RelationAlgebra.h,
+	  Algebras/Relation-C++/RelationCommon.cpp,
+	  QueryProcessor/SecondoInterface.cpp,
+	  Tools/Utilities/Application.cpp,
+	  Tools/Utilities/UtilFunctions.cpp, UserInterfaces/MainTTY.cpp,
+	  UserInterfaces/SecondoPL.cpp, include/Counter.h,
+	  include/LogMsg.h: Changes for Mac-OSX, GCC 4.0. Initialization of
+	  CMsg and Tuple members changed
+
+2006-09-04 15:19  spieker
+
+	* QueryProcessor/SecondoCatalog.cpp: Bug fix for empty object lists
+
+2006-09-03 18:33  valmeida
+
+	* Algebras/Network/NetworkAlgebra.cpp: The junctions relation
+	  inside the network data type is now correctly created.
+
+2006-09-03 17:56  valmeida
+
+	* Algebras/Network/NetworkAlgebra.cpp,
+	  Tests/Testspecs/network.test: The network algebra is working back
+	  again.
+
+2006-09-03 08:02  valmeida
+
+	* Algebras/ExtRelation-C++/ExtRelAlgMainMemory.cpp: Removing tabs
+
+2006-09-03 08:02  valmeida
+
+	* Algebras/ExtRelation-C++/ExtRelAlgMainMemory.cpp,
+	  Algebras/ExtRelation-C++/ExtRelationAlgebra.cpp,
+	  Algebras/RTree/RTreeAlgebra.cpp,
+	  Algebras/Relation-C++/RelationAlgebra.cpp,
+	  Algebras/Relation-C++/RelationCommon.cpp,
+	  Algebras/Relation-C++/RelationMainMemory.cpp,
+	  Algebras/Relation-C++/RelationMainMemory.h,
+	  Algebras/Relation-C++/RelationPersistent.cpp,
+	  Algebras/Spatial/SpatialAlgebra.cpp,
+	  Algebras/Standard-C++/StandardAlgebra.cpp,
+	  Algebras/UpdateRel/UpdateRelMainMemory.cpp,
+	  QueryProcessor/SecondoSystem.cpp, StorageManager/smiKey.cpp,
+	  include/Attribute.h, include/SecondoSMI.h: The Main Memory
+	  Relational Algebra is working back again.
+
+2006-09-02 10:10  valmeida
+
+	* Algebras/Relation-C++/FLOB.cpp,
+	  Algebras/Relation-C++/RelationPersistent.cpp,
+	  QueryProcessor/QueryProcessor.cpp,
+	  QueryProcessor/SecondoInterface.cpp,
+	  QueryProcessor/SecondoSystem.cpp, Tests/Testspecs/relalg.test,
+	  include/Attribute.h, include/DBArray.h, include/FLOB.h,
+	  include/QueryProcessor.h, include/SecondoSystem.h: The FLOB cache
+	  is moved to the SecondoSystem class.
+
+2006-09-02 10:04  valmeida
+
+	* Tools/pd/tabcheck.l: Tabulators are allowed inside comments
+	  inside /* ... */
+
+2006-09-01 21:05  spieker
+
+	* Tools/Parser/makefile, UserInterfaces/makefile,
+	  include/SecondoConfig.h: Some corrections for compiling on MAC
+	  OSX
+
+2006-09-01 18:06  gueting
+
+	* makefile.mac_osx: Minor corrections on grammar.
+
+2006-09-01 17:50  spieker
+
+	* makefile.env: Platform specific switches for Mac OSX
+
+2006-09-01 17:50  spieker
+
+	* makefile.mac_osx: Platform specific makefile for Mac OSX
+
+2006-09-01 17:32  spieker
+
+	* Tools/pd/makefile: Now we link the flex library from
+
+2006-09-01 17:28  spieker
+
+	* include/DynamicLibrary.h: The include of <string> in
+	  SecondoConfig.h has been removed. Source files should include it
+	  locally.
+
+2006-09-01 17:26  spieker
+
+	* include/Application.h: Printstacktrace moved to class WinUnix
+
+2006-09-01 17:25  spieker
+
+	* ClientServer/UnixSocket.cpp, include/SecondoConfig.h: Support for
+	  MAC_OSX added
+
+2006-09-01 17:23  spieker
+
+	* Tools/Utilities/Application.cpp, Tools/Utilities/WinUnix.cpp,
+	  include/WinUnix.h: Printstacktrace moved to class WinUnix
+
+2006-09-01 17:21  spieker
+
+	* Tools/Parser/NestedText.cpp, Tools/Parser/makefile,
+	  Tools/Parser/SpecParser/NestedText.cpp, makefile.libs: File
+	  NestedText.cpp removed to directory SpecParser
+
+2006-09-01 17:17  hoffman
+
+	* Algebras/Rectangle/RectangleAlgebra.spec: Added specification for
+	  operators rectangle3, point2, point3.
+
+2006-09-01 17:15  hoffman
+
+	* Algebras/Rectangle/RectangleAlgebra.cpp: Added operators
+	  rectangle3, point2, point3.
+
+2006-09-01 17:12  spieker
+
+	* Tools/Parser/: makefile, SpecParser/makefile: Rules simplified.
+	  Automatic calculation of dependencies
+
+2006-09-01 15:33  dansorge
+
+	* Algebras/Rose/RoseJava/: ROSEAlgebra.java, Regions.java,
+	  twodsack/io/DisplayGFX.java,
+	  twodsack/operation/setoperation/SetOps.java,
+	  twodsack/operation/setoperation/SupportOps.java,
+	  twodsack/setelement/datatype/compositetype/Polygons.java: Updated
+	  some documentation.
+
+2006-09-01 15:18  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp:
+	  Transformstream_TS_S works now, but still has a memory leak
+
+2006-09-01 14:43  hoffman
+
+	* Algebras/Rectangle/RectangleAlgebra.spec: Added specification for
+	  operator rectangle2
+
+2006-09-01 14:40  hoffman
+
+	* Algebras/Rectangle/RectangleAlgebra.cpp: Added operator
+	  rectangle2
+
+2006-09-01 14:32  duentgen
+
+	* Algebras/TemporalUnit/: TemporalUnitAlgebra.cpp,
+	  TemporalUnitAlgebra.spec: Added operator 'transformstream'
+
+2006-09-01 14:31  duentgen
+
+	* Algebras/StreamExample/StreamExampleAlgebra.cpp: Corrected
+	  typemapping for count
+
+2006-09-01 13:15  spieker
+
+	* Tools/NestedLists/: NLLex.l, NLParser.cpp, NLParser.h,
+	  NLParser.y, NLScanner.cpp, NLScanner.h, makefile: The class
+	  NLParser has beed revised. Now the generated bison code will not
+	  be changed by sed scripts anymore
+
+2006-09-01 09:51  spieker
+
+	* QueryProcessor/SecondoCatalog.cpp,
+	  QueryProcessor/SecondoInterface.cpp, include/SecondoCatalog.h,
+	  include/SystemInfoRel.h: Changes in order to make system tables
+	  visible in the catalog
+
+2006-08-31 16:36  hoffman
+
+	* Algebras/Standard-C++/StandardAlgebra.spec: Added specification
+	  for operator hashvalue
+
+2006-08-31 16:35  hoffman
+
+	* Algebras/Standard-C++/StandardAlgebra.cpp: Removed tabulators
+
+2006-08-31 16:30  hoffman
+
+	* Algebras/Standard-C++/StandardAlgebra.cpp: Added operator
+	  'hashvalue'
+
+2006-08-30 16:30  behr
+
+	* Tools/Generators/TextRelations/: extractPages, pdf2SecondoPages,
+	  readme: Files creating a relation containing single pages of pdf
+	  documents as tuples. Unfortunately, the quality of the resulting
+	  pdf files is very bad because in required conversion to pure
+	  postscript files some fonts are lost
+
+2006-08-30 15:58  behr
+
+	* Javagui/viewer/hoese/algebras/Dspltext.java: Saving currently
+	  viewed content enabled
+
+2006-08-30 15:36  duentgen
+
+	* Algebras/TemporalUnit/: TemporalUnitAlgebra.cpp,
+	  TemporalUnitAlgebra.spec: Added operator distance for
+	  upoint/upoint, upoint/point
+
+2006-08-30 15:27  valmeida
+
+	* Algebras/Relation-C++/RelationPersistent.cpp,
+	  StorageManager/bdbEnvironment.cpp,
+	  StorageManager/smiEnvironment.cpp, include/SecondoSMI.h: Fixing a
+	  problem that only appeared in the SecondoPL application. It
+	  crashed because we had static objects from the STL (map) inside
+	  functions. I think it is a bug of the C++ interface to prolog.
+	  But I changed the code in order to avoid doing this and it works
+	  now.
+
+2006-08-30 09:55  duentgen
+
+	* Algebras/ExtRelation-C++/ExtRelationAlgebra.cpp: Added signature
+	  ((stream T) int) -> (stream T) for operator head
+
+2006-08-29 17:09  duentgen
+
+	* Algebras/TemporalUnit/: TemporalUnitAlgebra.cpp,
+	  TemporalUnitAlgebra.spec: Added operator atmax
+
+2006-08-29 16:56  behr
+
+	* Tools/pd/pd_header_listing: Changed to be able to handle umlauts
+	  in program code
+
+2006-08-29 12:32  duentgen
+
+	* Optimizer/: calloptimizer.pl, database.pl, statistics.pl: removed
+	  my_convert_time again
+
+2006-08-29 12:15  duentgen
+
+	* Optimizer/: auxiliary.pl, database.pl, statistics.pl: Implemented
+	  wrapper for convert_time/8 to work with SWI-Prolog >5.6.14
+
+
+2006-08-28 12:16  valmeida
+
+	* makefile.optimizer: Adding support for the gmp library. The
+	  environment variable LIB_GMP must point to the gmp library name.
+
+2006-08-28 12:14  valmeida
+
+	* Algebras/Spatial/SpatialAlgebra.cpp: The operators atpoint and
+	  atposition were added for lines.
+
+2006-08-28 11:50  behr
+
+	* Javagui/: viewer/HoeseViewer.java,
+	  viewer/hoese/CurrentState.java, GBS.cfg.sample: Setting and
+	  getting the bounding box of the world added
+
+2006-08-28 00:45  valmeida
+
+	* Algebras/PlaneSweep/PlaneSweepAlgebra.cpp: Fixing a bug
+
+2006-08-27 21:17  valmeida
+
+	* Algebras/Spatial/SpatialAlgebra.h: Just adding virtual to the
+	  Clone functions.
+
+2006-08-27 21:12  valmeida
+
+	* Algebras/Relation-C++/RelationPersistent.cpp: Fixing a problem
+	  that was fixed before in the Save method of tuples.
+
+2006-08-27 11:36  valmeida
+
+	* Algebras/Spatial/: SpatialAlgebra.cpp, SpatialAlgebra.h: There
+	  were some functions not implemented, only the headers were
+	  available.
+
+2006-08-26 21:31  valmeida
+
+	* UserInterfaces/makefile: The readline library was not being
+	  included in some applications.
+
+2006-08-26 21:16  valmeida
+
+	* Algebras/PlaneSweep/PlaneSweepAlgebra.cpp: Fixing a bug that
+	  occurred only with older compilers.
+
+2006-08-25 16:07  duentgen
+
+	* Algebras/TemporalUnit/: TemporalUnitAlgebra.cpp,
+	  TemporalUnitAlgebra.spec: Added operator 'sagregate'
+
+2006-08-24 17:12  duentgen
+
+	* Algebras/ExtRelation-C++/ExtRelationAlgebra.cpp: Corrected
+	  signature for operators aggregate and aggregateB
+
+2006-08-24 15:38  behr
+
+	* Algebras/Spatial/SpatialAlgebra.cpp: Correction of the selection
+	  function of the vertices operator
+
+2006-08-24 15:29  duentgen
+
+	* Algebras/TemporalUnit/: TemporalUnitAlgebra.cpp,
+	  TemporalUnitAlgebra.spec: Changed 'ufeed' to 'sfeed'. The
+	  operator can now take any value of kind DATA.
+
+2006-08-24 11:42  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Corrected some
+	  signature strings
+
+2006-08-24 10:09  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: All versions of
+	  suse and suse2 now seem to work correct
+
+
+2006-08-23 18:37  spieker
+
+	* CM-Scripts/: diff2ps.sh, removedirs.sh: New helper scripts added
+
+
+2006-08-23 18:36  spieker
+
+	* Optimizer/database.old: Old file removed
+
+2006-08-23 18:24  valmeida
+
+	* Algebras/Spatial/: SpatialAlgebra.cpp, SpatialAlgebra.h,
+	  SpatialAlgebra.spec:
+	  Fixing a bug in the SetNoComponents method of class Line. It was
+	  not prepared for cycles.
+
+2006-08-23 17:13  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: suse_SSS working,
+	  but has major memory leak
+
+2006-08-23 16:04  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: suse_SSN works now
+
+2006-08-23 11:35  spieker
+
+	* makefile.cm: Target backup changed
+
+2006-08-23 11:16  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: suse_SNS working
+	  now, removed debugging output
+
+2006-08-23 10:45  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: suse_SNS working
+	  now
+
+2006-08-23 10:45  valmeida
+
+	* Algebras/Relation-C++/FLOB.cpp, include/DBArray.h: Fixing a
+	  problem in the last commit.
+
+2006-08-23 09:28  spieker
+
+	* include/CacheInfo.h: New file. Forgotten by my last commit
+
+2006-08-22 18:47  spieker
+
+	* QueryProcessor/QueryProcessor.cpp, include/QueryProcessor.h: New
+	  function GetCounter added
+
+2006-08-22 18:44  spieker
+
+	* include/WinUnix.h: Wrapping function calls for reand and srand
+
+2006-08-22 18:42  spieker
+
+	* Documents/Secondo-News.txt, QueryProcessor/SecondoInterface.cpp,
+	  StorageManager/bdbEnvironment.cpp, include/SecondoSMI.h: New
+	  System tables implemented
+
+2006-08-22 17:17  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: suse_SN suse_NS,
+	  suseSNN now OK
+
+2006-08-22 12:13  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Adopted algebra to
+	  changes in SpatialAlgebra
+
+2006-08-22 11:16  duentgen
+
+	* Optimizer/statistics.pl: fixed error in predicate predCost/5
+
+2006-08-22 10:54  behr
+
+	* Algebras/Periodic/: PeriodicAlgebra.cpp, PeriodicTypes.h: Some
+	  uncalled code removed.
+
+2006-08-22 08:54  valmeida
+
+	* Algebras/: Fuzzy/FuzzyAlgebra.cpp, Periodic/PeriodicAlgebra.cpp,
+	  Periodic/PeriodicTypes.h, Periodic/RepTree.cpp,
+	  TopOps/TopOpsAlgebra.cpp: In this version, two main changes were
+	  made: - Paged accesses for DBArrays.	- The Spatial algebra is
+	  restructured in order to improve readability and several bugs
+	  were fixed.
+
+2006-08-22 00:30  valmeida
+
+	* makefile.optimizer, makefile.options,
+	  Algebras/BinaryFile/BinaryFileAlgebra.cpp,
+	  Algebras/Date/DateAlgebra.cpp,
+	  Algebras/DateTime/DateTimeAlgebra.cpp,
+	  Algebras/ExtRelation-C++/ExtRelationAlgebra.cpp,
+	  Algebras/FText/FTextAlgebra.h, Algebras/JBBox/JBBoxAlgebra.cpp,
+	  Algebras/MP3/MP3Algebra.cpp, Algebras/Midi/MidiAlgebra.cpp,
+	  Algebras/Midi/MidiAlgebra.h,
+	  Algebras/MovingRegion/MovingRegionAlgebra.cpp,
+	  Algebras/MovingRegion/MovingRegionAlgebra.h,
+	  Algebras/Network/NetworkAlgebra.cpp,
+	  Algebras/Network/NetworkAlgebra.h,
+	  Algebras/Picture/PictureAlgebra.h,
+	  Algebras/PlaneSweep/PlaneSweepAlgebra.cpp,
+	  Algebras/PointSequence/PointSequenceAlgebra.cpp,
+	  Algebras/Polygon/PolygonAlgebra.cpp,
+	  Algebras/RTree/RTreeAlgebra.cpp,
+	  Algebras/RTree/RTreeAlgebra.spec,
+	  Algebras/Rectangle/RectangleAlgebra.h,
+	  Algebras/Relation-C++/FLOB.cpp,
+	  Algebras/Relation-C++/FLOBCache.cpp,
+	  Algebras/Relation-C++/RelationAlgebra.h,
+	  Algebras/Relation-C++/RelationPersistent.cpp,
+	  Algebras/Rose/RoseAlgebra.cpp,
+	  Algebras/Spatial/SpatialAlgebra.cpp,
+	  Algebras/Spatial/SpatialAlgebra.h,
+	  Algebras/Spatial/SpatialAlgebra.spec,
+	  Algebras/Temporal/TemporalAlgebra.cpp,
+	  Algebras/Temporal/TemporalAlgebra.h,
+	  Algebras/TemporalExt/TemporalExtAlgebra.cpp,
+	  Algebras/TemporalExt/TemporalExtAlgebra.h,
+	  Algebras/TemporalLifted/TemporalLiftedAlgebra.cpp,
+	  Algebras/TemporalUnit/TemporalUnitAlgebra.cpp,
+	  Algebras/TupleIdentifier/TupleIdentifier.cpp,
+	  Algebras/TupleIdentifier/TupleIdentifier.h,
+	  Algebras/UpdateRel/UpdateRelationAlgebra.cpp,
+	  CM-Scripts/run-tests.sh, Tests/Testspecs/array.test,
+	  Tests/Testspecs/polygon.test, Tests/Testspecs/rtree.test,
+	  Tests/Testspecs/spatial.test, Tests/Testspecs/update.test,
+	  include/Attribute.h, include/DBArray.h, include/DateTime.h,
+	  include/FLOB.h, include/FLOBCache.h, include/QueryProcessor.h,
+	  include/SecondoSMI.h, include/StandardTypes.h, include/TopRel.h:
+	  In this version, two main changes were made: - Paged accesses for
+	  DBArrays.  - The Spatial algebra is restructured in order to
+	  improve readability and several bugs were fixed.
+
+2006-08-21 16:18  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Operators suse
+	  seems OK now. suse2 works for map U V W, but not for map U V
+	  (stream W)
+
+2006-08-21 14:47  spieker
+
+	* Tools/pd/PDLex.l: Line counting corrected
+
+2006-08-21 14:46  spieker
+
+	* QueryProcessor/SecondoInterface.cpp,
+	  QueryProcessor/SecondoInterfaceGeneral.cpp,
+	  QueryProcessor/SecondoSystem.cpp,
+	  StorageManager/bdbEnvironment.cpp,
+	  StorageManager/smiEnvironment.cpp, include/ErrorCodes.h,
+	  include/SecondoInterface.h, include/SecondoSMI.h: Introduced a
+	  mapping for error codes to messages in the SecondoSmi. Currently
+	  only a few codes are translated into messages.
+
+2006-08-21 11:26  duentgen
+
+	* Algebras/TemporalUnit/: TemporalUnitAlgebra.cpp,
+	  TemporalUnitAlgebra.spec: Debugging output added to suse2
+
+2006-08-21 09:40  duentgen
+
+	* Algebras/StreamExample/StreamExampleAlgebra.cpp: Corrected
+	  tapemap error messabge for printstream
+
+2006-08-18 12:34  behr
+
+	* Tools/pd/PDLex.l: Umlauts added to the OTHER token.
+
+2006-08-18 10:32  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: suse: (stream T)
+	  (map T (stream T')) --> (stream T') works now.
+
+2006-08-18 10:21  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: suse: (stream T)
+	  (map T (stream T')) --> (stream T') works now.
+
+2006-08-18 10:19  duentgen
+
+	* Algebras/StreamExample/: StreamExampleAlgebra.cpp,
+	  StreamExampleAlgebra.spec: Added operator printstream
+
+2006-08-17 13:28  duentgen
+
+	* Algebras/StreamExample/StreamExampleAlgebra.cpp: Corrected
+	  operators filter and count. Made them more general (now handling
+	  (stream T), T in kind DATA. Corrected specifications
+
+2006-08-16 13:18  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Added operator
+	  suse. DO NOT USE
+
+2006-08-16 13:04  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.spec: Added operator
+	  suse. Do not use
+
+2006-08-15 17:38  hoffman
+
+	* Data/Databases/cebit2006/README: Added example query as a SQL
+	  statement
+
+2006-08-15 16:30  hoffman
+
+	* Data/Databases/cebit2006/: README, cebit2006: Added object
+	  aussteller3
+
+2006-08-11 15:08  hoffman
+
+	* Data/Databases/cebit2006/README: Added some information in the
+	  text
+
+2006-08-11 15:00  hoffman
+
+	* Data/Databases/cebit2006/README: Added some information in the
+	  text
+
+2006-08-11 10:14  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Corrected some
+	  comments
+
+2006-08-10 18:32  hoffman
+
+	* Data/: Databases/cebit2006/Cebit2006.cat,
+	  Databases/cebit2006/README, Databases/cebit2006/cebit2006,
+	  Databases/cebit2006/cebit2006.ses,
+	  Databases/cebit2006/queryresult.png,
+	  GuiData/hoese/categories/Cebit2006.cat,
+	  GuiData/hoese/sessions/cebit2006.ses: Data of CeBIT Fair 2006 in
+	  Hannover
+
+2006-08-09 21:15  hoffman
+
+	* Data/Objects/KreisLaender: Relation Kreis with additional
+	  attribute Bundesland.
+
+2006-08-09 20:20  hoffman
+
+	* Algebras/MovingRegion/MovingRegionAlgebra.cpp: Changed name for
+	  operator verttrajectory to vertextrajectory
+
+2006-08-09 17:45  hoffman
+
+	* Tests/Testspecs/movingregionalgebra/movingregion.test: added
+	  delete database in section teardown
+
+2006-08-09 17:22  hoffman
+
+	* Tests/Testspecs/movingregionalgebra/: SH, SHMoveReg1, SHMoveReg2,
+	  SHMoveReg3, goodspots, gsatinsti1, gsatinsti10, gsatinsti11,
+	  gsatinsti12, gsatinsti13, gsatinsti14, gsatinsti15, gsatinsti16,
+	  gsatinsti17, gsatinsti18, gsatinsti19, gsatinsti2, gsatinsti20,
+	  gsatinsti3, gsatinsti4, gsatinsti5, gsatinsti6, gsatinsti7,
+	  gsatinsti8, gsatinsti9, gsatinstv1, gsatinstv10, gsatinstv11,
+	  gsatinstv12, gsatinstv13, gsatinstv14, gsatinstv15, gsatinstv16,
+	  gsatinstv17, gsatinstv18, gsatinstv19, gsatinstv2, gsatinstv20,
+	  gsatinstv3, gsatinstv4, gsatinstv5, gsatinstv6, gsatinstv7,
+	  gsatinstv8, gsatinstv9, gsdeft, gspres, gsws10ints, gsws11ints,
+	  gsws12ints, gsws1ints, gsws2ints, gsws3ints, gsws4ints,
+	  gsws5ints, gsws6ints, gsws7ints, gsws8ints, gsws9ints,
+	  movingregion.test, ships, shoals, shws10ints, shws11ints,
+	  shws12ints, shws1ints, shws2ints, shws3ints, shws4ints,
+	  shws5ints, shws6ints, shws7ints, shws8ints, shws9ints,
+	  shwsinside: test for the movingregion algebra
+
+2006-08-08 11:48  lgalindo
+
+	* Algebras/TemporalExt/TemporalExtAlgebra.cpp: Adding some
+	  comments. Patch for operator locations
+
+2006-08-08 11:48  lgalindo
+
+	* Algebras/TemporalExt/TemporalExtAlgebra.h: Adding some comments
+
+2006-08-07 12:18  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Added checks for
+	  undefined to all operators
+
+2006-08-04 08:53  behr
+
+	* Javagui/extern/psexport/PSCreator.java: clipping disabled
+
+2006-08-03 16:05  behr
+
+	* Javagui/extern/psexport/PSCreator.java: Resulting picture is
+	  flipped now by 'inverting' y values
+
+2006-08-03 12:55  behr
+
+	* Javagui/: extern/psexport/PSCreator.java,
+	  viewer/HoeseViewer.java: Some error messages removed, white
+	  border in exporting ps file removed
+
+2006-08-03 12:14  behr
+
+	* Javagui/viewer/HoeseViewer.java: New menu item for exporting
+	  current graphic to an eps file
+
+2006-08-03 12:13  behr
+
+	* Javagui/extern/makefile: added new directory psexport
+
+2006-08-03 12:12  behr
+
+	* Javagui/extern/psexport/: PSCreator.java, makefile: start of the
+	  implementation of a mechanism exporting eps files
+
+2006-08-01 14:15  duentgen
+
+	* Algebras/BTree/BTreeAlgebra.cpp: Added Algebra field to
+	  specifications
+
+2006-08-01 14:03  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Added Algebra
+	  field to specifications
+
+2006-08-01 13:15  duentgen
+
+	* Algebras/: TemporalUnit/TemporalUnitAlgebra.cpp,
+	  UpdateRel/UpdateRelationAlgebra.cpp,
+	  TupleIdentifier/TupleIdentifier.cpp: Added comments to
+	  specifications for addid, addtupleid, tupleid
+
+2006-08-01 09:59  duentgen
+
+	* Algebras/: Spatial/SpatialAlgebra.cpp,
+	  TemporalUnit/TemporalUnitAlgebra.cpp: Added defined and empty
+	  checks in intersects_lr. Pretty printed some specifications.
+
+2006-07-31 15:32  duentgen
+
+	* Algebras/Temporal/TemporalAlgebra.h: Corrected signature of
+	  UPoint::UTrajectory
+
+2006-07-31 15:31  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Added code to
+	  handle undefined values to various operators
+
+2006-07-31 12:09  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Removed debugging
+	  outputs
+
+2006-07-31 11:22  lgalindo
+
+	* Algebras/TemporalExt/: test02, test01: db
+
+2006-07-31 08:48  behr
+
+	* Algebras/Temporal/: TemporalAlgebra.cpp, TemporalAlgebra.h: Two
+	  new operators implemented
+
+2006-07-31 06:44  lgalindo
+
+	* Algebras/TemporalExt/TemporalExtAlgebra.cpp: Some patches
+
+2006-07-28 16:43  behr
+
+	* include/BigInt.h: Added initialization of the result in the
+	  function ToLong
+
+2006-07-28 12:53  duentgen
+
+	* Algebras/BTree/: BTreeAlgebra.cpp, BTreeAlgebra.spec: Added
+	  operators exactmatchS, leftrangeS, rightrangeS and rangeS
+
+2006-07-28 12:12  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Corrected operator
+	  queryrect2d
+
+2006-07-27 10:49  behr
+
+	* Javagui/viewer/hoese/algebras/Dsplmovingint.java: Extern display
+	  of an moving int as a funtion implemented
+
+2006-07-27 10:25  valmeida
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp:
+	  Fixing an error in the point2d changing all calls to
+	  'GetAllMilliSeconds' to 'ToDouble'.
+
+2006-07-27 10:21  duentgen
+
+	* Algebras/Temporal/TemporalAlgebra.cpp: corrected signature for
+	  operator units
+
+2006-07-26 08:43  behr
+
+	* Tools/Jni/wrapper/AlgebraWriter.java: Changed to work with the
+	  'new' algebra interface.
+
+2006-07-25 18:34  lgalindo
+
+	* Algebras/TemporalExt/RBahnhoefe: Object contains all regional
+	  train stations from DB berlin as points type.
+
+2006-07-25 18:33  lgalindo
+
+	* Algebras/TemporalExt/UBahnhoefe: Object contains all metro
+	  stations from DB berlin as points type.
+
+2006-07-25 18:31  lgalindo
+
+	* Algebras/TemporalExt/Queries.txt: Neue Abfragen.
+
+2006-07-25 18:30  lgalindo
+
+	* Algebras/TemporalExt/: TemporalExtAlgebra.cpp,
+	  TemporalExtAlgebra.h: Implementation of at completed.
+	  Implementation of passes completed.
+
+2006-07-21 14:53  behr
+
+	* Algebras/MovingRegion/MovingRegionAlgebra.h: Declaration of
+	  AtPeriods required by the TemporalExtAlgebra added
+
+2006-07-21 12:47  lgalindo
+
+	* Algebras/TemporalExt/: TemporalExtAlgebra.cpp,
+	  TemporalExtAlgebra.h: Partial implementation of operator at.
+	  Implementation of operator atperiods completed.
+
+2006-07-21 10:19  behr
+
+	* Algebras/MovingRegion/: MovingRegionAlgebra.cpp,
+	  MovingRegionAlgebra.h: PutSegment has an additionally flag for
+	  increasing the segmentsnum.
+
+2006-07-19 16:28  duentgen
+
+	* Algebras/TemporalUnit/TemporalUnitAlgebra.cpp: Corrected errors
+	  in operator atperiods
+
+2006-07-19 10:50  duentgen
+
+	* Algebras/TemporalUnit/: TemporalUnitAlgebra.cpp,
+	  TemporalUnitAlgebra.spec: Added operator ufeed: uT -> (stream
+	  uT); atperiods: ((stream uT) periods) -> (stream uT)
+
+
+2006-07-17 09:49  behr
+
+	* Algebras/MovingRegion/: MovingRegionAlgebra.cpp,
+	  MovingRegionAlgebra.h: New function returning the startposition
+	  of the segments implemented
+
+2006-07-12 11:07  hoffman
+
+	* Algebras/MovingRegion/: MovingRegionAlgebra.h,
+	  MovingRegionAlgebra.cpp: Added operator 'verttrajectory',
+	  implemented by Thomas Behr
+
+2006-07-11 17:00  lgalindo
+
+	* Algebras/TemporalExt/TemporalExtAlgebra.h: New classes
+	  MappingExt, URealExt and MRealExt were inserted.
+
+2006-07-11 16:58  lgalindo
+
+	* Algebras/TemporalExt/: TemporalExtAlgebra.cpp,
+	  TemporalExtAlgebra.spec: Implementation of operators locations,
+	  atmin, atmax. Operator mdirection was rectified.
+
+2006-07-07 16:16  behr
+
+	* Javagui/viewer/hoese/algebras/: Dsplmovingregion.java,
+	  Dsplureal.java, Dspluregion.java: Displayclass for the uregion
+	  type
+
+2006-07-07 16:07  behr
+
+	* Javagui/viewer/hoese/algebras/: Dsplmovingreal.java,
+	  Dsplureal.java: Displayclass for ureal values
+
+2006-07-06 16:41  valmeida
+
+	* Algebras/PlaneSweep/PlaneSweepAlgebra.cpp,
+	  Tools/Parser/SecLex.l.1, Tools/Parser/SecLex.l.2:
+	  Fixing some problems with newest software (gcc 4.1.1, flex
+	  2.5.31)
+
+2006-07-06 12:33  valmeida
+
+	* makefile.optimizer, Algebras/Management/AlgebraList.i.cfg,
+	  QueryProcessor/QueryProcessor.cpp, Tools/NestedLists/NLLex.l: [no
+	  log message]
+
+2006-07-03 17:05  lgalindo
+
+	* Algebras/TemporalExt/: Bemerkungen.txt, Queries.txt: Nothing
+
+2006-07-03 17:01  lgalindo
+
+	* Algebras/TemporalExt/Queries.doc: [no log message]
+
+2006-07-03 16:58  lgalindo
+
+	* Algebras/TemporalExt/: TemporalExtAlgebra.cpp,
+	  TemporalExtAlgebra.h: Nothing
+
+2006-06-29 14:43  hoffman
+
+	* Tests/Testspecs/planesweepalgebra/planesweep.test: Removed last
+	  testcase
+
+2006-06-29 11:48  hoffman
+
+	* Tests/Testspecs/planesweepalgebra/: KreisU, deu: Added object for
+	  planesweep test
+
+2006-06-29 11:45  hoffman
+
+	* Tests/Testspecs/planesweepalgebra/: KreisI, KreisInt, KreisM,
+	  KreisM2, KreisR, KreisR2, KreisT: Added object for planesweep
+	  test
+
+2006-06-29 11:42  hoffman
+
+	* Tests/Testspecs/planesweepalgebra/planesweep.test: Added testfile
+	  for the PlaneSweepAlgebra
+
+2006-06-29 11:34  hoffman
+
+	* Algebras/PlaneSweep/PlaneSweepAlgebra.cpp: Removed tabulators
+
+2006-06-29 11:21  hoffman
+
+	* Algebras/PlaneSweep/PlaneSweepAlgebra.cpp: Changes in
+	  MakeRealm::PerformPlaneSweep and minor changes in
+	  StatusLine::Exchange
+
+2006-06-29 09:28  spieker
+
+	* include/Application.h: New startup parameter num added
+
+
+2006-06-28 18:28  spieker
+
+	* Optimizer/optimizer.pl: Now we apply projections to the result
+	  stream of the loopjoin parameter function. Which may increase
+	  effeciency for some queries. Clause writeSizes/0 now prints size
+	  information in tabular format
+
+2006-06-28 18:25  spieker
+
+	* Optimizer/: auxiliary.pl, calloptimizer.pl: Moved the
+	  initialization of some dynamic facts to calloptimizer this avoids
+	  that make/0 will reinitialize these values
+
+2006-06-28 18:05  spieker
+
+	* UserInterfaces/TestRunner.cpp, bin/TestRunner, bin/example.test:
+	  New features and bug fixes for the TestRunner
+
+2006-06-28 18:04  spieker
+
+	* Tools/ListsAndTables/: CTable.h, PCTable.cpp: Tried to fix a
+	  SIGSEGV in groupby (OldRelationAlgebra) but it still remains
+
+2006-06-28 17:58  spieker
+
+	* Algebras/OldRelation-C++/OldRelationAlgebra.cpp,
+	  Algebras/OldRelation-C++/OldRelationAlgebraMainMemory.cpp,
+	  Tests/Testspecs/oldrelalg.test: Tried to fix a SIGSEGV in groupby
+	  but it still remains
+
+2006-06-27 18:20  spieker
+
+	* makefile.cm: Target backup changed
+
+2006-06-27 18:19  spieker
+
+	* include/NList.h: New functions which may be useful in type
+	  mappings
+
+2006-06-27 18:18  spieker
+
+	* QueryProcessor/QueryProcessor.cpp, include/QueryProcessor.h: Type
+	  of sons changed. This saves some copying in the eval method
+
+
+2006-06-27 18:08  spieker
+
+	* Tests/: bdb-perf.cpp, bdbtest.cpp, makefile, tsmi.cpp: Tests for
+	  the Berkeley-DB API
+
+2006-06-27 13:00  spieker
+
+	* makefile.cm, CM-Scripts/mkpublic.sh: Changes for target
+	  src-archives
+
+2006-06-26 19:51  jschmidt
+
+	* Algebras/TemporalLifted/TemporalLiftedAlgebra.cpp: sollte sich
+	  jetzt wieder kompilieren lassen. NICHT getestet, da gesamtes
+	  Secondo momentan nicht kompilierbar ist (Tools/NestedLists
+
+
+2006-06-24 00:21  valmeida
+
+	* Algebras/Array/FunVector.cpp:
+	  I forgot to add this file on my last commit
+
+2006-06-23 23:28  valmeida
+
+	* makefile.algebras.sample, Algebras/Array/ArrayAlgebra.cpp,
+	  Algebras/Array/FunVector.h, Algebras/FText/DiceCoeff.h,
+	  Algebras/Midi/MidiAlgebra.cpp,
+	  Algebras/MovingRegion/MovingRegionAlgebra.cpp,
+	  Algebras/MovingRegion/MovingRegionAlgebra.h,
+	  Algebras/Picture/PictureAlgebra_pictimp.cpp,
+	  Algebras/PlaneSweep/PlaneSweepAlgebra.cpp,
+	  Algebras/Spatial/SpatialAlgebra.h,
+	  Algebras/Temporal/TemporalAlgebra.cpp,
+	  Algebras/Temporal/TemporalAlgebra.h,
+	  Algebras/TemporalExt/TemporalExtAlgebra.cpp,
+	  Tools/NestedLists/NLLex.l,
+	  Tools/NestedLists/NLParser.cpp, Tools/NestedLists/NLParser.h,
+	  Tools/NestedLists/NestedList.cpp, Tools/NestedLists/makefile,
+	  include/Application.h, include/CharTransform.h,
+	  include/DateTime.h, include/FileSystem.h, include/NestedList.h,
+	  include/StandardTypes.h:
+	  This version compiles with gcc 4.1.1
+
+
+2006-06-23 01:07  hmuenx
+
+	* Algebras/MovingRegion/: MovingRegionAlgebra.cpp, Tests/README:
+	  Changes: - Fixed a small bug in MRegion::InsideAddUBool().  -
+	  Added a hint to Tests/README.
+
+2006-06-22 17:24  lgalindo
+
+	* Algebras/TemporalExt/test01: Update database
+
+2006-06-22 17:23  lgalindo
+
+	* Algebras/TemporalExt/: TemporalExtAlgebra.cpp,
+	  TemporalExtAlgebra.h, TemporalExtAlgebra.spec: Implementation of
+	  operator mdirections, renaming of speed, derivative, derivable,
+	  velocity to speed_new, derivative_new, derivable_new and
+	  velocity_new. Implementation of operators setunitoftime and
+	  setunitofdistance.
+
+
+2006-06-20 15:10  hmuenx
+
+	* Algebras/MovingRegion/: MovingRegionAlgebra.cpp,
+	  MovingRegionAlgebra.h: Added MRegion::GetSegmentData().
+
+2006-06-20 11:52  lgalindo
+
+	* Algebras/TemporalExt/TemporalExtAlgebra.cpp: Nothing
+
+2006-06-20 09:27  valmeida
+
+	* Algebras/Temporal/TemporalAlgebra.h:
+	  Fixing a compiler error for gcc 4.0.3
+
+2006-06-18 18:39  hmuenx
+
+	* Algebras/MovingRegion/: MovingRegionAlgebra.cpp, makefile,
+	  Tests/Makefile: Corrected a number of smaller textual typos.
+
+2006-06-18 14:55  hmuenx
+
+	* Algebras/MovingRegion/: MovingRegionAlgebra.cpp,
+	  MovingRegionAlgebra.h, Intro/Intro.tex, Intro/Makefile,
+	  Intro/screenshot01.png, Intro/screenshot02.png,
+	  Intro/uregion-degenerated.eps, Intro/uregion-degenerated.vsd,
+	  Tests/Makefile, Tests/basic.tests, Tests/intersection.tests,
+	  Tests/relation.tests: Changes: - Added test cases for relations.
+	  - Added test cases for at operator.  - Added test cases for move
+	  operator.  - Bugfix: Added class IRegion because using
+	  Intime<CRegion> was not   sufficient to handle the DBArray of
+	  CRegion properly.  - Removed Intro document.
+
+2006-06-17 15:56  hmuenx
+
+	* Algebras/MovingRegion/: MovingRegionAlgebra.cpp,
+	  MovingRegionAlgebra.spec: Changes: - InMRegion() did not set
+	  correct to false in all cases when reading the   moving region
+	  data failed.	- Added epsRelaxFactor for checking if moving
+	  segments are collinear in   initial and final instant.  - mraprec
+	  has two parameters now, one for eps and one for epsRelaxFactor.
+
+2006-06-16 15:09  hoffman
+
+	* Algebras/Spatial/SpatialAlgebra.cpp: Deleted tab characters
+
+2006-06-16 15:04  hoffman
+
+	* Algebras/Spatial/SpatialAlgebra.cpp: Corrected uninitialized
+	  variables and memory mismatch found by valgrind, extended
+	  vertices operator for use with line objects
+
+2006-06-16 14:58  hoffman
+
+	* Algebras/PlaneSweep/PlaneSweepAlgebra.cpp: Deleted tab characters
+
+2006-06-16 14:49  hoffman
+
+	* Algebras/PlaneSweep/PlaneSweepAlgebra.cpp: Several bugs fixed,
+	  specially the treatment of vertical segments
+
+2006-06-15 23:15  hmuenx
+
+	* Algebras/MovingRegion/MovingRegionAlgebra.cpp:
+	  URegionEmb::URegionEmb(     DBArray<MSegmentData>* segments,
+	  const Interval<Instant>& tiv,     const CRegion& region,
+	  unsigned int pos)
+
+	  is now handling regions with more than one cycle properly!
+
+2006-06-15 20:22  hmuenx
+
+	* Algebras/MovingRegion/MovingRegionAlgebra.cpp: Fixed another bug
+	  in
+
+		URegion::URegionEmb(
+		  DBArray<MSegmentData>* segments,
+		  const Interval<Instant>& iv,
+		  const CRegion& region,
+		  unsigned int pos);
+
+	  to handle half segment orientation properly.
+
+2006-06-14 18:06  spieker
+
+	* Optimizer/optimizer.pl: The history predicate will now print the
+	  sql query, the best plan, the costs, the time for optimization,
+	  and the time for query execution
+
+2006-06-14 18:05  spieker
+
+	* Optimizer/auxiliary.pl: Predicates for printing a list of tuples
+	  as a table
+
+2006-06-14 18:03  spieker
+
+	* Optimizer/secondoplexamples.pl: Unused old file removed
+
+2006-06-14 16:22  duentgen
+
+	* Optimizer/rewriting.pl: symmproduct is used again
+
+2006-06-14 16:19  duentgen
+
+	* Algebras/ExtRelation-C++/ExtRelationAlgebra.cpp: Hopefully
+	  corrected an error in operator symmproduct
+
+2006-06-14 15:26  duentgen
+
+	* Optimizer/optimizer.pl: Fixed two warnings
+
+2006-06-14 15:04  duentgen
+
+	* Optimizer/: immediateplan.pl, optimizer.pl: Adopted optimizer to
+	  allow option 'nawracosts' together with 'immediatePlan'
+
+2006-06-14 13:10  duentgen
+
+	* Optimizer/: nawra.pl, calloptimizer.pl, database.pl,
+	  operators.pl, opsyntax.pl, optimizer.pl, rewriting.pl,
+	  statistics.pl:  Added cost function
+	  implementation of Artur Nawra
+
+2006-06-13 02:43  hmuenx
+
+	* Algebras/MovingRegion/MovingRegionAlgebra.cpp: Changes: - Bugfix:
+	  Clear resulting mapping objects before adding units to them	in
+	  MRegion::Intersection() and MRegion::Inside().  - Bugfix:
+	  Improved handling of instants when processing
+	  RefinementPartition in MRegion::Inside(). This avoids issues with
+	  rounding errors.  - Bugfix: Implemented more intelligent
+	  behaviour in	 URegionEmb::RestrictedIntersectionFind() to handle
+	  rounding errors.
+
+2006-06-12 15:53  hmuenx
+
+	* Algebras/MovingRegion/: MovingRegionAlgebra.cpp,
+	  MovingRegionAlgebra.h, makefile: Changes: - Added ToString()
+	  method to MSegmentData.  - Operator mraprec is only compiled in
+	  if symbol MRA_PREC is defined.
+
+2006-06-12 00:33  hmuenx
+
+	* Algebras/MovingRegion/: MovingRegionAlgebra.cpp,
+	  MovingRegionAlgebra.h, makefile, Tests/Makefile: WARNING #1: This
+	  version temporarily contains increased debug output, which cannot
+	  be switched off via MRA_DEBUG.
+
+	  WARNING #2: This version contains numerous changes, which have
+	  gone through limited testing only.
+
+	  Changes: - Fixed bugs in refinement partition creation and
+	  handling.  - Split URegion into URegionEmb and URegion classes to
+	  enable movingregion	objects to act as tupel attributes in
+	  relations.  - Merged code with Thomas Behr's changes to implement
+	  the move operator.  - Restructured documentation.  - Add deleting
+	  tmp subdirectory in Tests for 'make clean'.  - Removed
+	  requirement for public attributes in MSegmentData.
+
