@@ -9,7 +9,6 @@
 TopOpsAlgebra TopOps
 TopRelAlgebra TopRel
 PeriodicAlgebra Periodic
-NetworkAlgebra Network
 RoseAlgebra Rose
 RemoteStreamAlgebra RemoteStream
 PartitionedStreamAlgebra PartitionedStream
@@ -19,7 +18,8 @@ PartitionedStreamAlgebra PartitionedStream
 
 Optimizer/Entropy
 Tools/Generators/TPC-H
-Data
+Data/Databases/spatial
+Data/Objects/Distrikte
 
 # Files by Name
 
@@ -28,6 +28,7 @@ CM-Scripts/cvs-make.sh
 CM-Scripts/cvs-chgrp.sh
 CM-Scripts/cvspass.pl
 CM-Scripts/mkpublic.sh
+Data/Objects/KreisLaender
 Javagui/viewer/hoese/algebras/periodic/BBox.java
 Javagui/viewer/hoese/algebras/periodic/LinearMove.java
 Javagui/viewer/hoese/algebras/periodic/PMPLinear.java
@@ -52,7 +53,6 @@ Javagui/tools/PeriodicPointBuilder.java
 Documents/JavaWrapper.pdf
 Optimizer/adaptiveJoin.pl
 bin/geo
-Tests/Testspecs/network.test
 Tests/Testspecs/partstream.test
 
 # Files by Extension
