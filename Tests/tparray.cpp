@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <string>
 #include "SecondoSMI.h"
-#include "PArray.h"
+#include "PagedArray.h"
 using namespace std;
 
 void pause()
