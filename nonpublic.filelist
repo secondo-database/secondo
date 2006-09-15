@@ -28,6 +28,7 @@ CM-Scripts/cvs-make.sh
 CM-Scripts/cvs-chgrp.sh
 CM-Scripts/cvspass.pl
 CM-Scripts/mkpublic.sh
+CM-Scripts/public-version.pd
 Data/Objects/KreisLaender
 Javagui/viewer/hoese/algebras/periodic/BBox.java
 Javagui/viewer/hoese/algebras/periodic/LinearMove.java
