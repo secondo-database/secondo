@@ -1,0 +1,73 @@
+/*
+//characters [1] TextTT: [\texttt{ ] [}]
+//characters [2] Verbatim: [\verb#] [#]
+//characters [3] Display: [ \begin{center}\texttt{ ] [}\end{center} \\ ]
+
+" "[1]
+
+Sept. 2006, M. Spiekermann
+
+This file describes the actions needed to import the current secondo code into
+the public cvs repository.
+
+1 Overview
+
+The cvs server on zeppelin has two different modules called ~secondo~ and
+~secondo-src~. The first one contains the version which is private for the
+people of University in Hagen whereas the second is a special version which is
+reduced by some files which are not intended for public usage, e.g. unfinished
+or unstable work or parts which are used in unpublished papers. The files or
+directories which are not public can be configured in the file ~nonpublic.filelist~.
+
+extern users will have readonly access for this repository. Hence we can import updates
+there and offer them a convenient way to merge in our changes of the core system into
+their code. 
+
+
+2 Updating the Public Repository
+
+First checkout a copy of ~secondo~ with your cvs user.
+Checkout a copy of ~secondo-src~ (at the same level as secondo).
+Afterwards do the following steps:
+
+
+  1 run "make showpubversions". This will show you the last tags beginning
+    with "public-". In the following we assume the the last version was
+    "public-04".
+
+  2 run \\
+      "make changelog from=04 to=05" \\
+    This command will update your cvs copy, tag the versions and computes a
+    change log containg all commits between the two versions. 
+
+  3 run \\
+     "make src-archives tag=public-05 srcprefix=secondo-src" \\
+    This command will create a file "secondo-public-05-LAT1.tar.gz" somwhere 
+    below the "/tmp" directory.
+
+  4 Go into the parent directory and run \\
+     "tar -xzf/tmp/.../secondo-public-05-LAT1.tar.gz".
+
+  5 Compile the system and run the regression tests, e.g. "make runtests".
+
+  6 Edit "Document/ChangeLog" by hand in order to hide information about non-public files.
+
+  7 Do a cvs checkin with a useful comment for all files.
+
+  8 run "make realclean" and create with "make newfiles"
+    a list of possibly new files (and directories).
+ 
+  9 Edit the above file by hand in order to delete files which are just not deleted
+    by make clean.
+
+ 10 Create new directories with "cvs add <name>". Then run \\ "cvs add $(cat newfiles.txt)"[2]
+
+ 11 Goto step 8 until "newfiles.txt" is empty. 
+
+
+3 Automating the Procedure
+
+For automating the task above we need to be sure that "make realclean" really deletes all
+files which are not under CVS control. 
+
+*/
