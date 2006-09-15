@@ -68,13 +68,13 @@ static {
       Term[] args = new Term[1];
       args[0] = new Atom("auxiliary");
       Query q = new Query("consult",args);
-      if(!q.query()){
+      if(!q.hasSolution()){
          System.out.println("error in loading 'auxiliary.pl'");
          return false;
       }
       args[0] = new Atom("calloptimizer");
       q = new Query("consult",args);
-      if(!q.query()){
+      if(!q.hasSolution()){
          System.out.println("error in loading 'calloptimizer.pl'");
          return false;
        }
@@ -127,7 +127,7 @@ static {
          } else{
              // check if a new database is opened
              if(pl_query.goal().toString().equals("secondo") & pl_query.goal().arity()>0){
-                String first = pl_query.args()[0].toString().trim();
+                String first = pl_query.goal().arg(1).toString().trim();
                 if(first.startsWith("open ") && first.indexOf(" database ")>0){
                    int lastindex = first.lastIndexOf(" ");
                    openedDatabase = first.substring(lastindex).trim();
@@ -198,7 +198,7 @@ static {
           if(trace)
                System.out.println("\n optimization-input : "+query+"\n");
           Term[] args = new Term[2];
-          Variable X = new Variable();
+          Variable X = new Variable("X");
           args[0] = new Atom(query);
           args[1] = X;
           Query pl_query = new Query("sqlToPlan",args);
@@ -489,6 +489,7 @@ static {
         SS = new ServerSocket(PortNr);
      } catch(Exception e){
        System.out.println("unable to create a ServerSocket");
+       e.printStackTrace();
        return false;
      }
      return true;
@@ -622,7 +623,8 @@ static {
              e.printStackTrace();
        }
        try{
-          JPL.halt();
+          Query q = new Query("halt");
+          command(q,null); 
        } catch(Exception e){
           System.err.println(" error in shutting down the prolog engine");
        }

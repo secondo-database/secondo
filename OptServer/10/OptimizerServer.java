@@ -487,6 +487,7 @@ static {
         SS = new ServerSocket(PortNr);
      } catch(Exception e){
        System.out.println("unable to create a ServerSocket");
+       e.printStackTrace();
        return false;
      }
      return true;
