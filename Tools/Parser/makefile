@@ -91,7 +91,9 @@ else
 PARSEREXT := $(EXEEXT) 
 endif
 
+ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
+endif
 
 lexrules tokens yaccrules1 yaccrules2: ../../Algebras/specs SpecParser/Parser$(PARSEREXT)
 	SpecParser/Parser$(PARSEREXT) < $< 
@@ -100,6 +102,6 @@ lexrules tokens yaccrules1 yaccrules2: ../../Algebras/specs SpecParser/Parser$(P
 clean:
 	$(MAKE) -C SpecParser clean
 	$(RM) *.output
-	$(RM) $(GENFILES) $(OBJECTS) $(DEPFILES)
+	$(RM) $(GENFILES) $(OBJECTS) $(DEP_FILES)
 	$(RM) lexrules tokens yaccrules1 yaccrules2 
 

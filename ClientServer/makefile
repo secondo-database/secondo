@@ -76,7 +76,9 @@ $(BINDIR)/SecondoListener$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoListener$(EXEEXT): $(CMSG) SecondoListener.o
 	$(link-app)
 
+ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
+endif
 
 .PHONY: clean
 clean:

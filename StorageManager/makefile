@@ -40,7 +40,10 @@ LD := libtool -shared
 $(LIBDIR)/libsmibdb.$(LIBEXT): $(OBJECTS)
 	$(create-lib)
 
+
+ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
+endif
 
 .PHONY: clean
 clean:

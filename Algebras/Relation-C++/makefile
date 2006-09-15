@@ -39,7 +39,9 @@ CCFLAGS += -D_PREFETCHING_
 all: $(OBJECTS) $(LIBOBJ)
 
 # include pre-computed dependencies
+ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
+endif
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

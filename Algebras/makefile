@@ -38,6 +38,9 @@ endif
 .PHONY: all
 all: buildlibs
 
+../makefile.algebras: ../makefile.algebras.sample
+	$(cp-config-file)
+
 SPECFILES := $(wildcard $(addsuffix /*.spec, $(USED_ALGEBRA_DIRS) ))
 
 specs: specs.test

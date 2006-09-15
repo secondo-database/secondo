@@ -66,7 +66,7 @@ TESTFILES := $(TESTNAMES)
 endif
 
 CODE_FILES := $(addsuffix .cpp, $(TESTFILES))
-CODE_DEPENDENCIES := $(addsuffix .dep, $(TESTFILES))
+#CODE_DEPENDENCIES := $(addsuffix .dep, $(TESTFILES))
 
 OBJECTS := $(addsuffix $(EXEEXT), $(TESTFILES))
 ifndef file
@@ -109,9 +109,12 @@ tdynlib1.$(DLLOBJEXT): tdynlib1.cpp
 tdynlib2.$(DLLOBJEXT): tdynlib2.cpp
 	$(CC) -c $(DLLPICFLAG) -o tdynlib2.$(DLLOBJEXT) tdynlib2.cpp $(CCFLAGS)
 
-
-include $(CODE_DEPENDENCIES:.cpp=.dep)
+	
+ifneq ($(MAKECMDGOALS),clean)
+include $(DEP_FILES:.cpp=.dep)
+endif
 
 .PHONY: clean
 clean:
 	$(RM) *.dep *.$(OBJEXT) $(OBJECTS) $(addprefix $(BINDIR)/,$(OBJECTS))
+	$(RM) tdynlib1.$(DLLOBJEXT) tdynlib2.$(DLLOBJEXT)

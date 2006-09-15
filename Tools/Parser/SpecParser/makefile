@@ -47,7 +47,9 @@ Parser$(EXEEXT): SpecParser.tab.o lex.yy.o NestedText.o
 Parser2$(EXEEXT): SpecParser.tab.o lex2.yy.o NestedText.o
 	$(CC) -o Parser2$(EXEEXT) $^ $(DEFAULTCCFLAGS)
 
+ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
+endif
 
 clean:
-	$(RM) $(GENFILES) $(OBJECTS)
+	$(RM) $(GENFILES) $(DEP_FILES) $(OBJECTS)

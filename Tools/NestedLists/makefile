@@ -50,8 +50,10 @@ NLParser.tab.cpp $(TOKENDEF): NLParser.y
 NLLex.cpp: NLLex.l $(TOKENDEF)
 	$(LEX) -d -+ -Pnl -o$@ $<
 
+ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
+endif
 
 .PHONY: clean
 clean:
-	$(RM) NLParser.tab.* $(GENSRC) $(OBJECTS) $(DEP_FILES)
+	$(RM) NLParser.output NLParser.tab.* $(GENSRC) $(OBJECTS) $(DEP_FILES)

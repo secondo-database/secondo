@@ -68,6 +68,7 @@ clean:
 	$(RM) *.class
 	$(RM) *~
 	$(RM) *.tex *.aux *.toc *.pd *.dvi *.pdf *.log *.tmp
+	$(RM) $(DEP_FILES)
 
 
 .PHONY: pdf

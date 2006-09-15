@@ -80,9 +80,8 @@ CS_OBJECTS :=   SecondoInterfaceCS.o
 
 APP_LIB := ../lib/libapp.$(LIBEXT)
 
-
-CODE_DEPENDENCIES := $(patsubst %.$(OBJEXT), %.dep, $(APPLOBJECTS))
 APPLICATIONS := $(addsuffix $(EXEEXT), $(APPLICATIONS))
+
 #
 # TARGET SECTION
 #
@@ -106,7 +105,7 @@ entropy:
 
 .PHONY: clean
 clean:
-	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ)
+	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES)
 
 
 #
@@ -115,13 +114,6 @@ clean:
 # create dependencies from include directives
 
 CCFLAGS += $(DEFAULTCCFLAGS)
-
-
-MainTTYCS.cpp: MainTTY.cpp
-	$(CP) $< $@ 
-
-#%.dep: %.cpp
-#	$(CC) -MM $(CCFLAGS) $< > $@
 
 MainTTYCS.$(OBJEXT): MainTTY.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS 
@@ -152,4 +144,7 @@ $(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoCS$(EXEEXT): MainTTYCS.o $(APP_LIB) $(CS_OBJECTS) $(PL_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lapp $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS)
 
-include $(CODE_DEPENDENCIES:.cpp=.dep)
+
+ifneq ($(MAKECMDGOALS),clean)
+include $(DEP_FILES:.cpp=.dep)
+endif

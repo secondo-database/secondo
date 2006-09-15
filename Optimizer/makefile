@@ -17,11 +17,14 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-optimizer:	optimizer.pl calloptimizer.pl database.pl operators.pl boundary.pl searchtree.pl
-	cat optimizer.pl calloptimizer.pl database.pl operators.pl boundary.pl searchtree.pl > optimizer
+all: optimizer
+
+optimizer: optimizer.pl calloptimizer.pl database.pl operators.pl boundary.pl searchtree.pl
+	cat $^ > $@ 
 
 .PHONY: clean
 clean:
+	rm -f optimizer
 	if [ -d ./Entropy ]; then make -C ./Entropy clean; fi
 	rm -f SecondoConfig.ini
 

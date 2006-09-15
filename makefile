@@ -69,6 +69,7 @@ ALL_TARGETS = makedirs \
 	buildapps \
 	$(OPTIMIZER_SERVER) \
 	java2 \
+	tests \
 	update-config
 
 .PHONY: all
@@ -213,7 +214,8 @@ realclean: clean
 	$(MAKE) -C Javagui clean
 	$(MAKE) -C Tests clean
 	$(MAKE) -C Algebras realclean
-	rm -f $(CONFIG_FILES) 
+	rm -f $(CONFIG_FILES) makefile.algebras 
+	rm -f Documents/.Secondo-News.txt 
 
 
 .PHONY: runtests

@@ -30,7 +30,9 @@ CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS)
 .PHONY: all
 all:  $(OBJECTS)
 
+ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
+endif
 
 .PHONY: clean
 clean:
