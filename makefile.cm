@@ -358,3 +358,44 @@ cscope: cscope.files
 
 cscope.files:
 	find . -iname "*.cpp" -or -iname "*.h" > $@ 
+
+
+.PHONY: showtags
+showtags:
+	cvs log -h makefile 
+
+.PHONY: showpubtags
+showpubtags:
+	cvs log -h makefile | grep public
+
+.PHONY: changelog
+changelog: ChangeLog updateChgLog ../secondo-src/Documents/ChangeLog 
+
+ChangeLog: 
+ifdef to
+ifdef from
+	cvs -Q update -dP
+	cvs tag public-$(to)
+	cvs2cl.pl --delta public-$(from):public-$(to)
+endif
+endif
+
+.PHONY: updateChgLog
+updateChgLog: Documents/ChangeLog
+
+Documents/ChangeLog: ChangeLog
+	mv Documents/ChangeLog ChangeLog.old
+	cat ChangeLog ChangeLog.old > Documents/ChangeLog
+	
+../secondo-src/Documents/ChangeLog: Documents/ChangeLog
+	 cp $< ../secondo-src/Documents
+
+# todo: write a shell script which recurses into sub directories and builds
+# a complete list of new directories and new files.
+.PHONY: newfiles
+newfiles:
+	cvs -nq update | grep "^? " | sed 's#? ##'  > newfiles.txt
+
+.PHONY: addfiles
+addfiles:
+	cvs add $(cat newfiles.txt)
