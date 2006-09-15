@@ -235,6 +235,13 @@ $mailHeader
 You will find the log files of the failed tests in the attached file.
 $mailFooter"
 
+mailBody3="
+$mailHeader
+
+You will find the log file of make realclean in the attached file.
+$mailFooter"
+
+
 ## checkout work copy
 printSep "Checking out work copy"
 setvar $cbuildDir
@@ -313,7 +320,12 @@ else
   find ./bin ! -path "*CVS*"
 
   printf "\n%s\n" "files unkown to CVS:"
-  cvs -nQ update
+  leftFiles =$(cvs -nQ update | grep "^? ") 
+  if [ -z "$leftFiles" ]; then 
+    printf "\n make realclean has left some files: \n"
+    printf "\n $leftFiles"
+    sendMail "make realclean has left some files" "$mailRecipients" "$mailBody3 $leftFiles" "$cvsHistMailBackupDir" " make-realclean2.log"
+  fi
 
 
   # move label for stable version
