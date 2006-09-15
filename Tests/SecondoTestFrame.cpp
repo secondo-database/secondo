@@ -48,7 +48,7 @@ using namespace std;
 
 // for testing the Tuple Manager
 #include "StandardTypes.h"
-#include "Tuple.h"
+#include "../Algebras/Relation-C++/RelationAlgebra.h"
 #include "../Algebras/Polygon/PolygonAlgebra.cpp"
 
 
