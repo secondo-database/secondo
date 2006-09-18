@@ -28,6 +28,7 @@ import jpl.Term;
 import jpl.Variable;
 import jpl.fli.*;
 import jpl.Compound;
+import jpl.Util;
 
 
 public class OptimizerServer extends Thread{
@@ -60,14 +61,36 @@ static {
        return false;
     }
     try{
+      System.out.println("call JPL.init()");
       JPL.init();
-      Term[] args = new Term[1];
+      System.out.println("initialisation successful");
+
+      // VTA - 18.09.2006
+      // I added this piece of code in order to run with newer versions
+      // of prolog. Without this code, the libraries (e.g. lists.pl) are
+      // not automatically loaded. It seems that something in our code
+      // (auxiliary.pl and calloptimizer.pl) prevents them to be
+      // automatically loaded. In order to solve this problem I added
+      // a call to 'member(x, [x]).' so that the libraries are loaded
+      // before running our scripts.
+      Term[] args = new Term[2];
+      args[0] = new Atom("x");
+      args[1] = jpl.Util.termArrayToList( new Term[] { new Atom("x") } );
+      Query q = new Query("member",args);
+      if(!q.query()){
+         System.out.println("error in the member call'");
+         return false;
+      }
+
+      args = new Term[1];
       args[0] = new Atom("auxiliary");
-      Query q = new Query("consult",args);
+      q = new Query("consult",args);
       if(!q.query()){
          System.out.println("error in loading 'auxiliary.pl'");
          return false;
       }
+
+      args = new Term[1];
       args[0] = new Atom("calloptimizer");
       q = new Query("consult",args);
       if(!q.query()){
