@@ -1173,11 +1173,12 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
           nl->IsAtom( nl->Fourth( second ) ) &&
           nl->AtomType( nl->Fourth( second ) ) == BoolType )
       {
-        UReal *ureal = new UReal( tinterval,
-                                  nl->RealValue( nl->First( second ) ),
-                                  nl->RealValue( nl->Second( second ) ),
-                                  nl->RealValue( nl->Third( second ) ),
-                                  nl->BoolValue( nl->Fourth( second ) ) );
+        UReal *ureal = 
+          new UReal( tinterval,
+                     nl->RealValue( nl->First( second ) ),
+                     nl->RealValue( nl->Second( second ) ),
+                     nl->RealValue( nl->Third( second ) ),
+                     nl->BoolValue( nl->Fourth( second ) ) );
 
         if( ureal->IsValid() )
         {

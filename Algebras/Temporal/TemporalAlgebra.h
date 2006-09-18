@@ -1097,8 +1097,6 @@ typedef Range<CcReal> RReal;
 */
 typedef Range<Instant> Periods;
 
-
-
 /*
 3.6 ConstTemporalUnit
 
