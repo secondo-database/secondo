@@ -1173,8 +1173,17 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 */
   virtual void TemporalFunction( const Instant& t, Alpha& result ) const
   {
-    assert( t.IsDefined() && this->timeInterval.Contains( t ) );
-    result.CopyFrom( &constValue );
+    if ( !this->IsDefined() || 
+	 !t.IsDefined() || 
+	 !this->timeInterval.Contains( t ) )
+      {
+        result.SetDefined( false );
+      }
+    else
+      {
+	result.CopyFrom( &constValue );
+        result.SetDefined( true );	
+      }
   }
 
   virtual bool Passes( const Alpha& val ) const
@@ -4765,14 +4774,19 @@ template <class Alpha, Word (*InFun)( const ListExpr,
 Word InIntime( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  if( nl->IsEqual( instance, "undef" ) )
+
+  if ( nl->IsAtom( instance ) &&
+       nl->AtomType( instance ) == SymbolType &&
+       nl->SymbolValue( instance ) == "undef" )
   {
     Intime<Alpha> *intime = new Intime<Alpha>;
     intime->SetDefined( false );
+    correct = true;
     return SetWord( intime );
   }
 
-  if( nl->ListLength( instance ) == 2 )
+  if( !nl->IsAtom( instance ) && 
+      nl->ListLength( instance ) == 2 )
   {
     Instant *instant = (Instant *)InInstant( nl->TheEmptyList(),
                                              nl->First( instance ),

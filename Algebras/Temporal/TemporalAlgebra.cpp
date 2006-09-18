@@ -97,14 +97,22 @@ const double MINDOUBLE = numeric_limits<double>::min();
 */
 void UReal::TemporalFunction( const Instant& t, CcReal& result ) const
 {
-  assert( t.IsDefined() );
-
-  double res = a * pow( t.ToDouble() - timeInterval.start.ToDouble(), 2 ) +
-               b * ( t.ToDouble() - timeInterval.start.ToDouble() ) +
-               c;
-  if( r ) res = sqrt( res );
-
-  result.Set( true, res );
+  if ( !this->IsDefined() || 
+       !t.IsDefined() || 
+       !this->timeInterval.Contains( t ) )
+    {
+      result.SetDefined(false);
+    }
+  else
+    {
+      double res = a * pow( t.ToDouble() - timeInterval.start.ToDouble(), 2 ) +
+        b * ( t.ToDouble() - timeInterval.start.ToDouble() ) +
+        c;
+      if( r ) res = sqrt( res );
+      
+      result.Set( true, res );
+      result.SetDefined( true );
+    }
 }
 
 bool UReal::Passes( const CcReal& val ) const
@@ -139,23 +147,33 @@ void UReal::AtInterval( const Interval<Instant>& i,
 */
 void UPoint::TemporalFunction( const Instant& t, Point& result ) const
 {
-  assert( t.IsDefined() );
-
-  if( t == timeInterval.start )
-    result = p0;
+  if( !IsDefined() || !t.IsDefined() || !timeInterval.Contains( t ) )
+    {
+      result.SetDefined(false);
+    }
+  else if( t == timeInterval.start )
+    {
+      result = p0;
+      result.SetDefined(true);
+    }
   else if( t == timeInterval.end )
-    result = p1;
+    {
+      result = p1;
+      result.SetDefined(true);
+    }
   else
-  {
-    Instant t0 = timeInterval.start;
-    Instant t1 = timeInterval.end;
-
-    double x = (p1.GetX() - p0.GetX()) * ((t - t0) / (t1 - t0)) + p0.GetX();
-    double y = (p1.GetY() - p0.GetY()) * ((t - t0) / (t1 - t0)) + p0.GetY();
-
-    result.Set( x, y );
-  }
+    {
+      Instant t0 = timeInterval.start;
+      Instant t1 = timeInterval.end;
+      
+      double x = (p1.GetX() - p0.GetX()) * ((t - t0) / (t1 - t0)) + p0.GetX();
+      double y = (p1.GetY() - p0.GetY()) * ((t - t0) / (t1 - t0)) + p0.GetY();
+      
+      result.Set( x, y );
+      result.SetDefined(true);
+    }
 }
+
 
 bool UPoint::Passes( const Point& p ) const
 {
