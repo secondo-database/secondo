@@ -320,8 +320,8 @@ else
   find ./bin ! -path "*CVS*"
 
   printf "\n%s\n" "files unkown to CVS:"
-  leftFiles =$(cvs -nQ update | grep "^? ") 
-  if [ -z "$leftFiles" ]; then 
+  leftFiles=$(cvs -nQ update | grep "^? ") 
+  if [ "$leftFiles" != "" ]; then 
     printf "\n make realclean has left some files: \n"
     printf "\n $leftFiles"
     sendMail "make realclean has left some files" "$mailRecipients" "$mailBody3 $leftFiles" "$cvsHistMailBackupDir" " make-realclean2.log"
