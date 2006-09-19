@@ -95,11 +95,13 @@ const double MINDOUBLE = numeric_limits<double>::min();
 3.1 Class ~UReal~
 
 */
-void UReal::TemporalFunction( const Instant& t, CcReal& result ) const
+void UReal::TemporalFunction( const Instant& t, 
+                              CcReal& result, 
+                              bool ignoreLimits ) const
 {
   if ( !this->IsDefined() || 
        !t.IsDefined() || 
-       !this->timeInterval.Contains( t ) )
+       (!this->timeInterval.Contains( t ) && !ignoreLimits) )
     {
       result.SetDefined(false);
     }
@@ -145,9 +147,13 @@ void UReal::AtInterval( const Interval<Instant>& i,
 3.1 Class ~UPoint~
 
 */
-void UPoint::TemporalFunction( const Instant& t, Point& result ) const
+void UPoint::TemporalFunction( const Instant& t, 
+                               Point& result, 
+                               bool ignoreLimits ) const
 {
-  if( !IsDefined() || !t.IsDefined() || !timeInterval.Contains( t ) )
+  if( !IsDefined() || 
+      !t.IsDefined() || 
+      (!timeInterval.Contains( t ) && !ignoreLimits) )
     {
       result.SetDefined(false);
     }
@@ -189,6 +195,7 @@ would then be very hard to return a true for this function.
 
 */
   assert( p.IsDefined() );
+  assert( IsDefined() );
 
   if( timeInterval.lc && AlmostEqual( p, p0 ) ||
       timeInterval.rc && AlmostEqual( p, p1 ) )
@@ -230,6 +237,8 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
 
 */
   assert( p.IsDefined() );
+  assert( IsDefined() );
+
   UPoint *pResult = (UPoint*)&result;
 
   if( AlmostEqual( p0, p1 ) )
