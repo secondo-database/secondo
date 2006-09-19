@@ -154,7 +154,15 @@ typemapping, valuemapping etc. This makes the file easier to extend.
 ???     trajectory: (upoint) -> line
 (C)     atmin: (ureal real) -> (stream ureal)
 (C)     atmax: (ureal real) -> (stream ureal)
-
+(R)     speed: (upoint) -> (ureal)
+(R)     distance: (uint uint) -> (ureal)
+(R)     distance: (int uint) -> (ureal)
+(R)     distance: (upoint upoint) -> (ureal)
+(R)     distance: (upoint point) -> (ureal)
+(R)     distance: (point Upoint) -> (ureal)
+(C)     intersection(uint uint) -> (stream uint)
+(C)     intersection(uint int) -> (stream uint)
+(C)     intersection(int uint) -> (stream uint)
 
 Key:
  (C): system crash
@@ -207,12 +215,11 @@ bool TUA_DEBUG = false; // Set to true to activate debugging code
 //bool TUA_DEBUG = true; // Set to true to activate debugging code
 
 /*
-2.1 Definition of some constants
+2.1 Definition of some constants and auxiliary functions
 
 */
 const double MAXDOUBLE = numeric_limits<double>::max();
 const double MINDOUBLE = numeric_limits<double>::min();
-
 
 /*
 3 Implementation of the unit class method operators
@@ -264,7 +271,7 @@ void MPoint::MSpeed( MReal& result ) const
 	  t0 = inf.ToDouble(); // convert to milliseconds
 	  t1 = sup.ToDouble();
 	  
-	  duration = (t1 - t0)/1000; // interval duration to seconds
+	  duration = (t1 - t0) * 86400; // interval duration to seconds
 	  
 	  /*
 	    The point unit can be represented as a function of
@@ -314,7 +321,7 @@ void UPoint::USpeed( UReal& result ) const
 	  t0 = inf.ToDouble();
 	  t1 = sup.ToDouble();
 	  
-	  duration = (t1 - t0)/1000;   // value in seconds
+	  duration = (t1 - t0) * 86400;   // value in seconds
 	  
 	  result.a = 0;                // speed is constant in the interval
 	  result.b = 0;
@@ -339,7 +346,7 @@ void MPoint::MVelocity( MPoint& result ) const
 
   result.Clear();
 
-  if ( ! IsDefined() )
+  if ( !IsDefined() )
     result.SetDefined( false );
   else
     {
@@ -361,7 +368,7 @@ void MPoint::MVelocity( MPoint& result ) const
 	  t0 = inf.ToDouble();
 	  t1 = sup.ToDouble();
 	  
-	  duration = (t1 - t0)/1000;    // value in second
+	  duration = (t1 - t0) * 86400;  // value in seconds
 	  
 	  //  create an interval:
 	  Interval<Instant> iv(uPoint->timeInterval.start,
@@ -376,11 +383,13 @@ void MPoint::MVelocity( MPoint& result ) const
 	    and can be represented as a upoint.
 	    
 	  */
-	  
-	  UPoint p(iv,(x1-x0)/duration,0,(y1- y0)/duration,0);
-	  
-	  result.Add( p );
-	}
+          
+          if( !AlmostEqual(duration,0.0) )
+            {
+              UPoint p(iv,(x1-x0)/duration,0,(y1-y0)/duration,0);
+              result.Add( p );
+            }
+        }
       result.EndBulkLoad( false );
     }
 }
@@ -413,17 +422,25 @@ void UPoint::UVelocity( UPoint& result ) const
 	  t0 = inf.ToDouble();
 	  t1 = sup.ToDouble();
 
-	  duration = (t1 - t0)/1000;   // value in second
+	  duration = (t1 - t0) * 86400;   // value in seconds
 
 	  Interval<Instant> iv(result.timeInterval.start,
 			       result.timeInterval.end,
 			       result.timeInterval.lc,
 			       result.timeInterval.rc);
 
-	  UPoint p(iv,(x1-x0)/duration,0,(y1-y0)/duration,0);
-	  
-	  result.CopyFrom( &p );
-	  
+          if( !AlmostEqual(duration,0.0) )
+            {
+              UPoint p(iv,(x1-x0)/duration,0,(y1-y0)/duration,0);
+              result.CopyFrom( &p );
+              result.SetDefined( true );	  
+            }
+          else
+            {
+              UPoint p(iv,0,0,0,0);
+              result.CopyFrom( &p );
+              result.SetDefined( false );
+            }
 	}
     }
 }
@@ -441,7 +458,7 @@ void UPoint::UTrajectory( Line& line ) const
 
   line.Clear();
 
-  if ( ! IsDefined() )
+  if ( !IsDefined() )
     line.SetDefined( false );
   else 
     {
@@ -635,7 +652,8 @@ TemporalSpecSpeed  =
 "<text>mpoint -> mreal\n"
 "upoint -> ureal</text--->"
 "<text>speed( _ )</text--->"
-"<text>return the speed of a temporal spatial object.</text--->"
+"<text>return the speed of a temporal spatial object in "
+"unit/s.</text--->"
 "<text>query speed(mp1)</text---> ) )";
 
 /* 
@@ -1471,11 +1489,11 @@ int MappingUnitAtInstant( Word* args, Word& result, int message,
 
   if ( !t->IsDefined() || !posUnit->IsDefined() ) 
     pResult->SetDefined( false );
-
   else if( posUnit->timeInterval.Contains(t1) )
     {
-      pResult->SetDefined( true );
       posUnit->TemporalFunction( *t, pResult->value );
+      pResult->instant = *t;
+      pResult->SetDefined( true );
     }
   else    // instant not contained by deftime interval
     pResult->SetDefined( false );
@@ -1921,15 +1939,14 @@ int MappingUnitInitial( Word* args, Word& result, int message,
   Unit* unit = ((Unit*)args[0].addr);
   Intime<Alpha>* res = ((Intime<Alpha>*)result.addr);
 
-
   if( !unit->IsDefined() || !(unit->timeInterval.start.IsDefined()) )
      res->SetDefined( false );
   else
    {
-    res->SetDefined( true );
-    unit->TemporalFunction( unit->timeInterval.start, res->value );
-    res->instant.CopyFrom( &unit->timeInterval.start );
-    }
+     unit->TemporalFunction( unit->timeInterval.start, res->value, true );
+     res->instant.CopyFrom( &unit->timeInterval.start );
+     res->SetDefined( true );    
+   }
   return 0;
 }
 
@@ -1946,9 +1963,9 @@ int MappingUnitFinal( Word* args, Word& result, int message,
      res->SetDefined( false );
   else
    {
-    res->SetDefined( true );
-    unit->TemporalFunction( unit->timeInterval.end, res->value );
-    res->instant.CopyFrom( &unit->timeInterval.end );
+     unit->TemporalFunction( unit->timeInterval.end, res->value, true );
+     res->instant.CopyFrom( &unit->timeInterval.end );
+     res->SetDefined( true );
    }
   return 0;
 }
@@ -1964,8 +1981,8 @@ TemporalSpecInitial  =
 "<text>uT -> iT\n"
 "(T in {bool, int, real, string, point, region})</text--->"
 "<text>initial( _ )</text--->"
-"<text>From a unit type, get the intime value corresponding"
-" to the initial instant.</text--->"
+"<text>From a unit type, get the intime value corresponding "
+"to the initial instant.</text--->"
 "<text>initial( upoint1 )</text---> ) )";
 
 const string
@@ -1975,8 +1992,8 @@ TemporalSpecFinal  =
 "<text>uT -> iT\n"
 "(T in {bool, int, real, string, point, region})</text--->"
 "<text>final( _ )</text--->"
-"<text>get the intime value corresponding"
-" to the final instant.</text--->"
+"<text>get the intime value corresponding "
+"to the final instant.</text--->"
 "<text>final( upoint1 )</text---> ) )";
 
 /* 
@@ -2982,8 +2999,9 @@ TemporalSpecVelocity=
 "<text>mpoint -> mpoint\n"
 "upoint -> upoint</text--->"
 "<text>velocity ( _ ) </text--->"
-"<text>describes the vector of the speed"
-" to the given temporal spatial object.</text--->"
+"<text>describes the vector of the speed "
+"of the given temporal spatial object (i.e. the "
+"coponemtwise speed in unit/s).</text--->"
 "<text>velocity (mpoint)</text---> ) )";
 
 /* 

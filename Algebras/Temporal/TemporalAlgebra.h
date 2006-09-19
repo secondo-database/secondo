@@ -862,12 +862,19 @@ Returns ~true~ if this temporal unit is before/after the value ~a~ and ~false~ o
 
 */
 
-  virtual void TemporalFunction( const Instant& t, Alpha& result ) const = 0;
+  virtual void TemporalFunction( const Instant& t, 
+				 Alpha& result, 
+				 bool ignoreLimits = false ) const = 0;
 /*
 The temporal function that receives a time instant ~t~ and returns the value
 associated with time ~t~ in the output argument ~result~.
+If ~ignoreLimits = true~, the limits given by the ~timeinterval~ will be ignored.
+You can use this feature e.g. to calculate values for the ~initial~ and ~final~ 
+instants of left/right open intervals.
 
-*Precondition:* t must be inside the temporal unit time interval
+Otherwise (~ignoreLimits = false~, resp. unspecified) there will be following
+
+*Precondition:* t must be inside the temporal unit time interval.
 
 */
 
@@ -1169,11 +1176,13 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 3.6.2 The Temporal Functions
 
 */
-  virtual void TemporalFunction( const Instant& t, Alpha& result ) const
+  virtual void TemporalFunction( const Instant& t, 
+				 Alpha& result, 
+				 bool ignoreLimits = false ) const
   {
     if ( !this->IsDefined() || 
 	 !t.IsDefined() || 
-	 !this->timeInterval.Contains( t ) )
+	 (!this->timeInterval.Contains( t ) && !ignoreLimits))
       {
         result.SetDefined( false );
       }
@@ -1363,7 +1372,9 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 3.7.2 The Temporal Functions
 
 */
-  virtual void TemporalFunction( const Instant& t, CcReal& result ) const;
+  virtual void TemporalFunction( const Instant& t, 
+				 CcReal& result, 
+				 bool ignoreLimits = false ) const;
   virtual bool Passes( const CcReal& val ) const;
   virtual bool At( const CcReal& val, TemporalUnit<CcReal>& result ) const;
   virtual void AtInterval( const Interval<Instant>& i, 
@@ -1545,7 +1556,9 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 
 */
 
-  virtual void TemporalFunction( const Instant& t, Point& result ) const;
+  virtual void TemporalFunction( const Instant& t, 
+				 Point& result, 
+				 bool ignoreLimits = false ) const;
   virtual bool Passes( const Point& val ) const;
   virtual bool At( const Point& val, TemporalUnit<Point>& result ) const;
   virtual void AtInterval( const Interval<Instant>& i, 
