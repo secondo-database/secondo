@@ -1,0 +1,224 @@
+#This file is part of SECONDO.
+#
+#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Database Systems for New Applications.
+#
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+#
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+#########################################################################
+# Testing the TemporalUnitAlgebra
+#
+# Here: testing operators on unit datatypes
+#
+# Written Sept 2006 by Chrstian Duentgen
+#
+# run with : TestRunner -c SecondoConfig.ini < temporalunit.test
+#########################################################################
+
+
+########################
+# set up test database #
+########################
+# clean up what may be left over from e.g. a segfault
+delete database temporalunittest;
+
+#setup
+create database tempunittest;
+open database tempunittest;
+
+let up1 = [const upoint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (2000.0 2000.0 1000.0 1000.0))];
+let up2 = [const upoint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1000.0 1000.0 2000.0 2000.0))];
+let up3 = [const upoint value undef];
+let up4 = [const upoint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 0.0 0.0 1000.0))];
+let up5 = [const upoint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 0.0 0.0 -1000.0))];
+let up6 = [const upoint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1500.0 1500.0 1500.0 1500.0))];
+
+
+let mp1 = [const mpoint value ((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (-100.0 -100.0 100.0 100.0)))];
+let mp2 = [const mpoint value ((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (100.0 100.0 -100.0 -100.0)))];
+
+let p = [const point value (1500.0 1500.0)];
+
+let ui1 = [const uint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) 1500)];
+let ui2 = [const uint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) 1000)];
+let ui3 = [const uint value undef];
+let ui4 = [const uint value (("2003-11-20-06:30" "2003-11-20-07:30" TRUE FALSE) 1000)];
+
+let ci = [const int value 1000];
+let i1 = [const int value 100];
+
+let ur1 = [const ureal value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.01 0.0 -0.00001 FALSE))];
+let ur2 = [const ureal value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (-1.0 -1.0 -1.0 FALSE))];
+let ur3 = [const ureal value undef];
+let ur4 = [const ureal value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1.0 1.0 1.0 TRUE))];
+
+let r = [const real value 0.0];
+
+(create ten : (rel(tuple((no int)))));
+(update ten := ((rel(tuple((no int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10))));
+
+restore zug5 from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5';
+
+
+##################
+# unit operators #
+##################
+
+#testcase deftime
+#tolerance_real 0.001
+#yields (periods (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)))
+query deftime(up1)
+
+#testcase atinstant
+#tolerance_real 0.001
+#yields (ipoint ("2003-11-20-06:30" (1500.0 1500.0))) 
+query up1 atinstant [const instant value "2003-11-20-06:30"]
+
+#testcase atperiods
+#tolerance_real 0.001
+#yields ((rel (tuple ( (elem upoint)))) ( (   (   ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1916.666666666667 1916.666666666667 1833.333333333333 1833.333333333333))) (   (   ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE) (1166.666666666667 1166.666666666667 1083.333333333334 1083.333333333334))))) 
+query (up1 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) 
+("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ] ) transformstream consume
+
+#testcase initial_up
+#tolerance_real 0.001
+#yields (ipoint ("2003-11-20-06:00" (2000.0 2000.0)))
+query initial(up1)
+
+#testcase final_up
+#tolerance_real 0.001
+#yields (ipoint ("2003-11-20-07:00" (1000.0 1000.0)))
+query final(up1)
+
+#testcase present_I
+#tolerance_real 0.001
+#yields (bool TRUE)
+query (up1 present [const instant value "2003-11-20-06:33"])
+
+#testcase present_P
+#tolerance_real 0.001
+#yields (bool TRUE)
+query (up1 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) 
+("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ])
+
+#testcase at_up_p1
+#tolerance_real 0.001
+#yields (upoint ( ("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE) (1500.0 1500.0 1500.0 1500.0)))
+query (up2 at p) 
+
+#testcase at_up_p2
+#tolerance_real 0.001
+#yields (upoint ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1500.0 1500.0 1500.0 1500.0)))
+query (up6 at p)
+
+#testcase passes
+#yields (bool TRUE)
+query ( up2 passes p)
+
+##testcase velocity_up
+##tolerance_real 0.001
+##yields (upoint (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (-0.2777777777772725 0.0 -0.2777777777772725 0.0)))
+#query velocity(up1)
+
+#testcase derivable_ur4
+#tolerance_real 0.001
+#yields (ubool ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) FALSE))
+query derivable(ur4)
+
+#testcase derivable_ur2
+#tolerance_real 0.001
+#yields (ubool ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) TRUE))
+query derivable(ur2)
+
+#Testcase derivative_ur4
+#tolerance_real 0.001
+#yields (ureal undef)
+query derivative(ur4)
+
+#testcase derivative_ur2
+#tolerance_real 0.001
+#yields (ureal ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 -2.0 -1.0 FALSE)))
+query derivative(ur2)
+
+#testcase atmax_uconst
+#tolerance_real 0.001
+#yields (uint ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) 1500))
+query atmax(ui1)
+
+#testcase atmin_uconst
+#tolerance_real 0.001
+#yields (uint ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) 1000))
+query atmin(ui2)
+
+#testcase distance_ui3_i
+#tolerance_real 0.001
+#yields (ureal undef)
+query distance(ui3, i1)
+
+##testcase distance_ui1_i
+##tolerance_real 0.001
+##yields (ureal ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 0.0 1400.0 FALSE)))
+#query distance(ui1, i1)
+
+#testcase distance_i_ui3
+#tolerance_real 0.001
+#yields (ureal undef)
+query distance(i1, ui3)
+
+
+# trajectory_up
+# atinstant_uconst
+# atinstant_ureal
+# atperiods_uconst
+# atperiods_ureal
+# initial_uconst
+# initial_ureal
+# final_uconst
+# final_ureal
+# present_uconst_instant
+# present_ureal_instant
+# present_uconst_periods
+# present_ureal_periods
+# speed_upoint
+# atmax_ureal
+# atmin_ureal
+# at_ureal
+# distance_upoint_point
+# distance_point_upoint
+# distance_upoint_upoint
+# distance_ureal_real
+# distance_real_ureal
+# distance_ureal_ureal
+# intersects_uconst_uconst
+# intersects_upoint_upoint
+# intersects_ureal_ureal
+# intersection_uconst_const
+# intersection_const_uconst
+# intersection_uconst_uconst
+# intersection_ureal_real
+# intersection_real_ureal
+# intersection_ureal_ureal
+# intersection_upoint_point
+# intersection_point_upoint
+# intersection_upoint_upoint
+# intersection_upoint_uregion
+
+############################
+# mopping up test database #
+############################
+
+#teardown
+close database;
+delete database tempunittest
