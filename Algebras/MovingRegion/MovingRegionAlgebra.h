@@ -727,7 +727,8 @@ in ~result~.
     void TemporalFunction(
         const DBArray<MSegmentData>* segments,
         const Instant& t, 
-        Region& result) const;
+        Region& result, 
+	bool ignoreLimits = false) const;
 
 /*
 Return the bounding box of the region unit. This is an $O(1)$ operation
@@ -820,7 +821,8 @@ in ~result~.
 
 */
     virtual void TemporalFunction(const Instant& t, 
-                                  Region& result) const;
+                                  Region& result, 
+				  bool ignoreLimits = false) const;
 
 /*
 ~At()~ and ~Passes()~ are not yet implemented. Stubs

@@ -5852,7 +5852,8 @@ void URegionEmb::RestrictedIntersection(const DBArray<MSegmentData>* segments,
 void URegionEmb::TemporalFunction(
     const DBArray<MSegmentData>* segments,
     const Instant& t, 
-    Region& res) const {
+    Region& res, 
+    bool ignoreLimits ) const {
 
     if (MRA_DEBUG)
         cerr << "URegionEmb::TemporalFunction() called" << endl;
@@ -5864,7 +5865,7 @@ are not border of any region, and create region.
 
 */
     assert(t.IsDefined());
-    assert(timeInterval.Contains(t));
+    assert(timeInterval.Contains(t) || ignoreLimits);
 
     Instant t0 = timeInterval.start;
     Instant t1 = timeInterval.end;
@@ -6630,11 +6631,13 @@ bool URegion::Passes(const Region& val) const {
 1.1.1.1 Method ~TemporalFunction()~
 
 */
-void URegion::TemporalFunction(const Instant& t, Region& res) const {
+void URegion::TemporalFunction(const Instant& t, 
+                               Region& res, 
+                               bool ignoreLimits ) const {
     if (MRA_DEBUG)
         cerr << "URegion::TemporalFunction() called" << endl;
 
-    uremb.TemporalFunction(&segments, t, res);
+    uremb.TemporalFunction(&segments, t, res, ignoreLimits);
 }
 
 /*
