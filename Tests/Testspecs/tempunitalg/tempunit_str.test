@@ -30,7 +30,8 @@
 
 
 # clean up what may be left over from e.g. a segfault
-delete database temporalunittest;
+delete database tempunittest;
+
 
 ########################
 # set up test database #
@@ -49,10 +50,10 @@ let ui1 = [const uint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) 
 
 restore zug5 from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5';
 
+
 ####################
 # stream operators #
 ####################
-
 
 #testcase sfeed
 #yields (int 1)
@@ -171,6 +172,7 @@ query intstream(1,5) saggregate[ fun(i:int, j:int) i+j ; 15]
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5_res
 query units(zug5) transformstream makemvalue[elem]
 
+
 #######################
 # auxiliary operators #
 #######################
@@ -185,13 +187,10 @@ query size(deftime(zug5))
 #yields (point (1417.25 1417.27))
 query point2d(deftime(zug5))
 
-
 #testcase queryrect2d
 #tolerance_real 0.001
 #yields (rect (-2147483648.0 1417.273611111111 1417.273611111111 2147483648.0))
 query queryrect2d([const instant value "2003-11-20-06:34"])
-
-
 
 #testcase circle
 #tolerance_real 0.001

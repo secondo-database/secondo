@@ -32,7 +32,7 @@
 # set up test database #
 ########################
 # clean up what may be left over from e.g. a segfault
-delete database temporalunittest;
+delete database tempunittest;
 
 #setup
 create database tempunittest;
