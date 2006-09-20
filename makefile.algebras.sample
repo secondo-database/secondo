@@ -88,14 +88,14 @@ ALGEBRAS     += BinaryFileAlgebra
 ALGEBRA_DIRS += Temporal
 ALGEBRAS     += TemporalAlgebra
 
-#ALGEBRA_DIRS += TemporalExt
-#ALGEBRAS     += TemporalExtAlgebra
+ALGEBRA_DIRS += TemporalExt
+ALGEBRAS     += TemporalExtAlgebra
 
-#ALGEBRA_DIRS += TemporalLifted
-#ALGEBRAS     += TemporalLiftedAlgebra
+ALGEBRA_DIRS += TemporalLifted
+ALGEBRAS     += TemporalLiftedAlgebra
 
-#ALGEBRA_DIRS += TemporalUnit
-#ALGEBRAS     += TemporalUnitAlgebra
+ALGEBRA_DIRS += TemporalUnit
+ALGEBRAS     += TemporalUnitAlgebra
 
 ALGEBRA_DIRS += DateTime
 ALGEBRAS     += DateTimeAlgebra
