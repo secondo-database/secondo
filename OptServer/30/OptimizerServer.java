@@ -61,9 +61,8 @@ static {
        System.err.println("error in registering the secondo predicate ");
        return false;
     }
-    System.out.println("registerSecondo successful");
+    //System.out.println("registerSecondo successful");
     try{
-      System.out.println("call JPL.init()");
       JPL.init();
       System.out.println("initialisation successful");
 
@@ -146,18 +145,25 @@ static {
                System.out.println("no solution found for' "+pl_query.goal() +"/"+pl_query.goal().arity());
             return false;
          } else{
-             // check if a new database is opened
-             if(pl_query.goal().toString().equals("secondo") & pl_query.goal().arity()>0){
-                String first = pl_query.goal().arg(1).toString().trim();
-                if(first.startsWith("open ") && first.indexOf(" database ")>0){
-                   int lastindex = first.lastIndexOf(" ");
-                   openedDatabase = first.substring(lastindex).trim();
-                   if(trace){
-                      System.out.println("open database "+ openedDatabase);
-                      showPrompt();
-                   }
+             System.out.println("check whether a database was opened"); 
+ 
+             // check if the used database is changed
+             Query dbQuery = new Query("databaseName(X)");
+             if(dbQuery.hasMoreSolutions()){
+                Hashtable sol = dbQuery.nextSolution();
+                Object v = sol.keys().nextElement();
+                String name = ""+sol.get(v);
+                if(!name.equals(openedDatabase)){
+                  if(trace){
+                     System.out.println("use database "+  name);
+                  }
+                  openedDatabase=name;
                 }
+
+             } else{ // don't close the database
+
              }
+             
              return true;
         }
         } catch(Exception e){
@@ -215,31 +221,57 @@ static {
       * otherwise the result will be the best query plan
       */
     private synchronized String optimize(String query){
+      //System.out.println("optimize called with argument \""+query+"\"");
       try{
-          if(trace)
+          if(trace){
                System.out.println("\n optimization-input : "+query+"\n");
-          Term[] args = new Term[2];
-          Variable X = new Variable("X");
-          args[0] = new Atom(query);
-          args[1] = X;
-          Query pl_query = new Query("sqlToPlan",args);
+          }
+
+          Query pl_query = new Query("sqlToPlan('"+query+"', X )");
 
           String ret ="";
           int number =0;
+
           while(pl_query.hasMoreSolutions()){
                 number++;
                 Hashtable solution = pl_query.nextSolution();
-                // ret = ret+" "+solution.get(X);
-                ret = ""+solution.get(X);
+                if(solution.size()!=1){
+                   if(trace){
+                       System.out.println("Error: optimization returns more than a single binding");
+                   }   
+                   return query;
+                }
+                Enumeration e = solution.keys();
+                while(e.hasMoreElements()){
+                  ret = "" + solution.get(e.nextElement());
+                }
           }
+          if(number>1){
+             if(trace){
+                System.out.println("Error: optimization returns more than one solution");
+             }
+             return query;
+          }
+
           if(number==0){
              if(trace)
                  System.out.println("optimization failed - no solution found");
              return query;
           }
-          else{
+          else{ 
              if(trace)
                  System.out.println("\n optimization-result : "+ret+"\n");
+             
+             // free ret from enclosing ''
+             ret = ret.trim();
+             if(ret.startsWith("'")  && ret.endsWith("'")){
+                 if(ret.length()==2){
+                   ret = "";
+                 } else{
+                    ret = ret.substring(1,ret.length()-1);
+                 }
+             }
+
              return ret;
           }
          } catch(Exception e){
@@ -256,19 +288,18 @@ static {
       * Name is opened
       */
     private synchronized boolean useDatabase(String Name){
-       if(openedDatabase.equals(Name))
+       if(openedDatabase.equals(Name)){
           return true;
+       }
        Term[] arg = new Term[1];
        if(!openedDatabase.equals("")){
           if(trace)
              System.out.println("close the opened database");
-          arg[0] = new Atom("close database");
-          Query Q = new Query("secondo",arg);
+          Query Q = new Query("secondo('close database')");
           command(Q,null);
        }
        
-       arg[0] = new Atom("open database "+Name);
-       Query Q_open = new Query("secondo",arg);
+       Query Q_open = new Query("secondo('open database "+Name+"')");
        showPrompt();
        return command(Q_open,null);
    }
@@ -363,9 +394,14 @@ static {
                    disconnect();
                    return;
                }
+               //System.out.println("receive "+input+" from client");
+
                execFlag = input.equals("<execute>");
                // read the database name
                input = in.readLine();
+               
+                //System.out.println("receive "+input+" from client");
+
                if(input==null){
                   if(trace)
                      System.out.println("connection is broken");
@@ -379,6 +415,9 @@ static {
                   return;
                }
                String Database = in.readLine();
+
+               //System.out.println("receive "+Database+" from client");
+
                if(Database==null){
                   System.out.println("connection is broken");
                   disconnect();
@@ -387,6 +426,9 @@ static {
                  Database = Database.trim();
                }
                input = in.readLine();
+
+               //System.out.println("receive "+input+" from client");
+
                if(input==null){
                 if(trace)
                    System.out.println("connection is broken");
@@ -402,6 +444,9 @@ static {
                    return;
                }
                input = in.readLine();
+
+               //System.out.println("receive "+input+" from client");
+
                if(input==null){
                 if(trace)
                    System.out.println("connection is broken");
@@ -420,6 +465,9 @@ static {
                StringBuffer res = new StringBuffer();
                // build the query from the next lines
                input = in.readLine();
+               
+                //System.out.println("receive "+input+" from client");
+
                //System.out.println("receive"+input);
                if(input==null){
                 if(trace)
@@ -440,6 +488,9 @@ static {
                }
 
                input = in.readLine();
+                 
+               //System.out.println("receive "+input+" from client");
+          
                if(input==null){
                   System.out.println("connection is broken");
                   disconnect();
@@ -454,6 +505,9 @@ static {
                }
 
                String Request = res.toString().trim();
+
+               //System.out.println("Request is " + Request );
+
                Vector V = new Vector();
                synchronized(SyncObj){
                   useDatabase(Database);
@@ -477,6 +531,9 @@ static {
                out.write("</answer>\n",0,10);
                out.flush();
                input = in.readLine().trim();
+               
+               //System.out.println("receive "+input+" from client");
+
                if (input==null){
                     System.out.println("connection broken");
                   showPrompt();
@@ -508,6 +565,10 @@ static {
      SS=null;
      try{
         SS = new ServerSocket(PortNr);
+     } catch(java.net.BindException be){
+          System.out.println("BindException occured");
+          System.out.println("check if the port "+PortNr+" is already in use");
+          return false;
      } catch(Exception e){
        System.out.println("unable to create a ServerSocket");
        e.printStackTrace();
