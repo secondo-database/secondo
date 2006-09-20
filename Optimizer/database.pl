@@ -1195,7 +1195,7 @@ retractSels(_).
 
 retractPETs(Rel) :-
   databaseName(DB),
-  storedPET(DB, Term, _),
+  storedPET(DB, Term, _, _),
   arg(1, Term, Arg1),
   getRelAttrName(Rel, Arg1),
   retract(storedPET(DB, Term, _, _)),
@@ -1203,7 +1203,7 @@ retractPETs(Rel) :-
 
 retractPETs(Rel) :-
   databaseName(DB),
-  storedPET(DB, Term, _),
+  storedPET(DB, Term, _, _),
   arg(2, Term, Arg2),
   getRelAttrName(Rel, Arg2),
   retract(storedPET(DB, Term, _, _)),
