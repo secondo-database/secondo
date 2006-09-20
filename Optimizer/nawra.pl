@@ -1,17 +1,59 @@
 /*
-Master thesis (Diplomarbeit)
-"Praezise Kostenschaetzung im erweiterbaren Datenbanksystem SECONDO"
+---- 
 
-Author:   Artur Nawra, March 2006
-Modified: Christian Duentgen, June 2006
+This file is part of SECONDO.
 
-1.0 File ``DatabaseN.pl''
+Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Database Systems for New Applications.
 
-The file was merged with file ``database.pl''.
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [10] title: [{\Large \bf ]  [}]
+//characters [1] formula:       [$]     [$]
+//[ae] [\"{a}]
+//[oe] [\"{o}]
+//[ue] [\"{u}]
+//[ss] [{\ss}]
+//[Ae] [\"{A}]
+//[Oe] [\"{O}]
+//[Ue] [\"{U}]
+//[**] [$**$]
+//[star] [$*$]
+//[=>] [\verb+=>+]
+//[toc] [\tableofcontents]
+//[newpage] [\newpage]
+
+Diploma thesis
+
+[10] Precise Cost Estimation in the SECONDO extensible Database System
+
+Author:   Artur Nawra, March 2006 \newline
+Modified: Christian D[ue]ntgen, June 2006
+
+[toc]
+
+[newpage]
+
+1 File ~DatabaseN.pl~
+
+The file was merged with file ~database.pl~.
 
 
 
-2.0 File ``costnew.pl''
+2 File ~costnew.pl~
 
 */
 
@@ -303,6 +345,7 @@ costnew(rename(X, _), Sel, Source, Result, Size, TupleSize, Cost) :-
 
 /*
 Cost estimation for operator leftrange.
+
 */
 
 costnew(leftrange(_, X, _), Sel, Source, Result, Size, TupleSize, Cost) :-
@@ -546,10 +589,12 @@ costnew(sortmergejoin(X, Y, AX, AY), Sel, Source, Result, S, TS, C) :-
 
 % two rules used by the 'interesting orders extension':
 costnew(sortLeftThenMergejoin(X, Y, AX, AY), Sel, Source, Target, S, TS, C) :-
-  costnew(mergejoin(sortby(X, [AX]), Y, AX, AY), Sel, Source, Target, S, TS, C), !.
+  costnew(mergejoin(sortby(X, [AX]), Y, AX, AY), Sel, Source, Target, S, TS, C), 
+  !.
 
 costnew(sortRightThenMergejoin(X, Y, AX, AY), Sel, Source, Target, S, TS, C) :-
-  costnew(mergejoin(X, sortby(Y, [AY]), AX, AY), Sel, Source, Target, S, TS, C), !.
+  costnew(mergejoin(X, sortby(Y, [AY]), AX, AY), Sel, Source, Target, S, TS, C), 
+  !.
 
 
 /* 
@@ -696,7 +741,8 @@ notnegativ(Zahl, Zahl) :- Zahl >= 0, !.
 notnegativ(_, 0) :- !.
 
 /*
-Return the estimated cost of a single application of the predicate belonging to the POG-egde (Source Result). 
+Return the estimated cost of a single application of the predicate belonging 
+to the POG-egde (Source Result). 
 
 XRIS: The choosing of PET type should become more intelligent!
 
@@ -728,8 +774,8 @@ the extend operator as well as the costs, which are connected to the expansion.
 ---- attrlistExtend(+AttrList, -TupleSize, -Cost)
 ----
 
-The clauses use a dynamic predicate ~storedExtendAttrSize/2~ to store information on
-extension attributes.
+The clauses use a dynamic predicate ~storedExtendAttrSize/2~ to store 
+information on extension attributes.
 
 ---- attrlistRemove(+AttrList, Size)
 ----
@@ -788,8 +834,10 @@ attrlistRemove(X, sizeTerm(-12,0,0)) :-
   ( storedSpell(DB, DCRel, Rel) ; storedSpell(DB, DCRel, lc(Rel)) ),
   relation(DCRel,_), !.
 
-attrlistRemove(attrname(attr(Attr, _, _)), sizeTerm(CoreR, InFlobR, ExtFlobR)) :-
-  storedExtendAttrSize(attrname(attr(Attr, _, _)), sizeTerm(Core, InFlob, ExtFlob)),
+attrlistRemove(attrname(attr(Attr, _, _)), 
+               sizeTerm(CoreR, InFlobR, ExtFlobR)) :-
+  storedExtendAttrSize(attrname(attr(Attr, _, _)), 
+                       sizeTerm(Core, InFlob, ExtFlob)),
   CoreR    is -1 * Core,
   InFlobR  is -1 * InFlob,
   ExtFlobR is -1 * ExtFlob, !.
@@ -823,14 +871,18 @@ attrlistRemove(X, _) :-
 /*
 Calculation of Attribute/Projection List Sizes Terms
 
-The following Rules calculate the combined tuple sizes for a list of attributes, e.g. to use when applying a ~project~ operator.
+The following Rules calculate the combined tuple sizes for a list of attributes, 
+e.g. to use when applying a ~project~ operator.
 
 ---- attrlistSize(+AttrList, sizeTerm(-CoreSize, -InFlobSize, -ExtFlobSize))
 ----
 
-Returns a term ~sizeTerm(CoreSize, InFlobSize, ExtFlobSize)~ with the accumulated tuplesize fractions for all attributes found in ~AttrList~.
+Returns a term ~sizeTerm(CoreSize, InFlobSize, ExtFlobSize)~ with the 
+accumulated tuplesize fractions for all attributes found in ~AttrList~.
 
-The predicate can cope with list elements of different types: ~attrname(attr/3)~-terms, ~attr/3~-terms, and plain ~attribute names~ resp. ~var:attr-name~.
+The predicate can cope with list elements of different types: 
+~attrname(attr/3)~-terms, ~attr/3~-terms, and plain ~attribute names~ 
+resp. ~var:attr-name~.
 
 PRECONDITION: Can only be called during a query, when the query has been looked up!
 
@@ -896,7 +948,8 @@ attrlistSize2(X, AttrSize) :-
 ---- simpleTerm(+Term, -STerm, -Size)
 ----
 
-Simplify a ~Term~ representing extension mapping function, return the simplified term ~STerm~, and the corresponding sizeTerm ~Size~ (containing the componentwise maxima).
+Simplify a ~Term~ representing extension mapping function, return the simplified 
+term ~STerm~, and the corresponding sizeTerm ~Size~ (containing the componentwise maxima).
 
 */
 
@@ -938,8 +991,8 @@ simpleTerm(Term, Term, 0) :- !.
 
 
 /*
-Calculate the cost of an extend operator only once. Store the result a a dynamic fact
-and reuse the information.
+Calculate the cost of an extend operator only once. Store the result a a dynamic 
+fact and reuse the information.
 
 */
 
@@ -952,7 +1005,8 @@ extendSTermCost(STerm, Cost) :-
 
 setExtendSTermCost(STerm, _) :- storedExtendSTermCost(STerm, _), !.
 
-setExtendSTermCost(STerm, Cost) :- assert(storedExtendSTermCost(STerm, Cost)), !.
+setExtendSTermCost(STerm, Cost) :- 
+  assert(storedExtendSTermCost(STerm, Cost)), !.
 
 /*
 List with operators which not listing in the POG, are contained in the plan.
@@ -961,7 +1015,8 @@ shown on the display.
 
 */
 
-costnewPlan(_, 0) :- write('There isn\'t a POG. Costs aren\'t calculated '), nl, !.
+costnewPlan(_, 0) :- 
+  write('There isn\'t a POG. Costs aren\'t calculated '), nl, !.
 
 costnewPlan(Plan, _) :-
   write('Operators without POG :'),
@@ -976,10 +1031,12 @@ costnewPlan(Plan, _) :-
 
 /*
 Estimate costs for the non-conjunctive part of the query.
+
 */
 
 /*
 Estimate costs for operator consume.
+
 */
 
 endcostnew(consume(X), HighNode, Size, TupleSize) :-
@@ -1055,7 +1112,7 @@ endcostnew(_, HighNode, Size, TupleSize) :-
   nodeTupleSize(HighNode, TupleSize),
   write(' aren`t calculated),'), !.
 
-endcostnew( _, _, 0, 0) :- nl, write('Error at the determination of the operators without POG.'), nl.
-
-
-
+endcostnew( _, _, 0, 0) :- 
+  nl, 
+  write('Error at the determination of the operators without POG.'), 
+  nl.
