@@ -498,7 +498,7 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   tupleSizeSplit(BaseName,TupleSize),
   calcExpPET(MSs, SampleCard, TupleSize, MSsRes), % correct PET
   simplePred(pr(Pred, Rel), PSimple),
-  predSimple(PSimple,CalcPET), % calculated PET
+  predCost(PSimple,CalcPET), % calculated PET
   ExpPET is MSsRes / max(SampleCard,1),
   dm(selectivity,['Predicate Cost  : (', CalcPET, '/', ExpPET, 
                   ') ms\nSelectivity     : ', Sel,'\n']),
