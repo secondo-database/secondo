@@ -179,8 +179,7 @@ Renames (moves) a file or folder (directory) from ~currentName~ to ~newName~.
 The function returns "true"[4], if the copy operation succeeded.
 
 */
-  static bool CopyFile( const string& source,
-                                const string& dest );
+  static bool Copy_File( const string& source, const string& dest );
 /*
 Copies a file from ~source~ to ~dest~.
 The function returns "true"[4], if the copy operation succeeded.
@@ -195,14 +194,14 @@ Checks for the existence of the file indicated by ~fileName~.
 The function returns "true"[4], if the file exists.
 
 */
-  static FileAttributes GetFileAttributes( const string&
+  static FileAttributes Get_FileAttributes( const string&
                                              fileName );
 /*
 Returns the file attributes for the file ~fileName~.
 In case of an error the function returns 0.
 
 */
-  static bool SetFileAttributes( const string& fileName,
+  static bool Set_FileAttributes( const string& fileName,
                                  FileAttributes attribs );
 /*
 Sets the file attributes for a file to the values specified in ~attribs~ .

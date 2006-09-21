@@ -26,6 +26,9 @@ May 2002 Ulrich Telle
 
 Sept 2004 M. Spiekermann. Bugs in ~GetparentFolder~ and ~AppendSlash~ corrected.
 
+Sept 2006 M. Spiekermann. When windows.h is included many WIN-API functions like
+~CopyFile~ are defined as a macro and mapped to ~CopyFileA~ or ~CopyFileB~. This is very awful (stupid windows) since code parts using the same name like class member functions are also renamed which causes strange linker errors! 
+
 */
 
 
@@ -163,7 +166,7 @@ FileSystem::DeleteFileOrFolder( const string& fileName )
   if (fileName == "")
     throw FileErr(errMsg, rc);
    
-  FileAttributes fileAttribs = GetFileAttributes( fileName );
+  FileAttributes fileAttribs = Get_FileAttributes( fileName );
 #ifdef SECONDO_WIN32
   int isFolder = (fileAttribs & FILE_ATTRIBUTE_DIRECTORY);
 #else
@@ -209,7 +212,7 @@ FileSystem::EraseFolder( const string& folder, uint16_t maxLevels )
   assert( &folder );
 #ifdef SECONDO_WIN32
   // Determine file type
-  FileAttributes fileAttribs = GetFileAttributes( folder );
+  FileAttributes fileAttribs = Get_FileAttributes( folder );
   if ( fileAttribs & FILE_ATTRIBUTE_DIRECTORY )
   {
     // Remove the folder (directory):
@@ -255,7 +258,7 @@ FileSystem::RenameFileOrFolder( const string& currentName,
 }
 
 bool
-FileSystem::CopyFile( const string& source, const string& dest )
+FileSystem::Copy_File( const string& source, const string& dest )
 {
   assert( &source );
   assert( &dest );
@@ -276,7 +279,7 @@ FileSystem::FileOrFolderExists( const string& fileName )
 }
 
 FileAttributes
-FileSystem::GetFileAttributes( const string& fileName )
+FileSystem::Get_FileAttributes( const string& fileName )
 {
   assert( &fileName );
   FileAttributes attribs = 0;
@@ -296,7 +299,7 @@ FileSystem::GetFileAttributes( const string& fileName )
 }
 
 bool
-FileSystem::SetFileAttributes( const string& fileName, FileAttributes attribs )
+FileSystem::Set_FileAttributes( const string& fileName, FileAttributes attribs )
 {
   assert( &fileName );
   assert( &attribs );
@@ -566,12 +569,12 @@ void
 FileSystem::UnprotectFile( const string& fileName )
 {
   assert( &fileName );
-  FileAttributes fileAttribs = GetFileAttributes( fileName );
+  FileAttributes fileAttribs = Get_FileAttributes( fileName );
   if ( fileAttribs & attrMask )
   {
     // File has attributes that must be cleared before it may be deleted.
     fileAttribs &= ~attrMask;
-    SetFileAttributes( fileName, fileAttribs );
+    Set_FileAttributes( fileName, fileAttribs );
   }
 }
 #endif
