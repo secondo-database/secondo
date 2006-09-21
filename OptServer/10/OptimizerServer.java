@@ -143,17 +143,20 @@ static {
             return false;
          } else{
              // check if a new database is opened
-             if(pl_query.atom().toString().equals("secondo") & pl_query.args().length>0){
-                String first = pl_query.args()[0].toString().trim();
-                if(first.startsWith("open ") && first.indexOf(" database ")>0){
-                   int lastindex = first.lastIndexOf(" ");
-                   openedDatabase = first.substring(lastindex).trim();
+             Variable X = new Variable();
+             
+             Query dbQuery = new Query("databaseName",X);
+             if(dbQuery.hasMoreSolutions()){
+                String name = dbQuery.nextSolution().get(X).toString();
+                if(!name.equals(openedDatabase)){
                    if(trace){
-                      System.out.println("open database "+ openedDatabase);
-                      showPrompt();
+                     System.out.println("new database "+name);
                    }
+                   openedDatabase = name;
+
                 }
              }
+
              return true;
         }
         } catch(Exception e){
