@@ -40,7 +40,8 @@ void Pause()
 static string folder[4] = { "test", 
                             string("test") + PATH_SLASH + "a",
                             string("test") + PATH_SLASH + "b",
-                            string("test") + PATH_SLASH + "b" + PATH_SLASH + "c"
+                            string("test") + PATH_SLASH + "b" 
+			                   + PATH_SLASH + "c"
                           };
 
 bool initialize()
@@ -56,11 +57,12 @@ bool initialize()
     ofstream out( "test.dat" );
     out << "This is a test file" << endl;
     out.close();
-    FileSystem::CopyFile( "test.dat", string("a")+PATH_SLASH+"atest1.dat" ); 
-    FileSystem::CopyFile( "test.dat", string("a")+PATH_SLASH+"atest2.dat" ); 
-    FileSystem::CopyFile( "test.dat", string("a")+PATH_SLASH+"atest3.dat" ); 
-    FileSystem::CopyFile( "test.dat", string("b")+PATH_SLASH+"btest.dat" ); 
-    FileSystem::CopyFile( "test.dat", string("b")+PATH_SLASH+"c"+PATH_SLASH+"ctest.dat" ); 
+    FileSystem::Copy_File( "test.dat", string("a")+PATH_SLASH+"atest1.dat" ); 
+    FileSystem::Copy_File( "test.dat", string("a")+PATH_SLASH+"atest2.dat" ); 
+    FileSystem::Copy_File( "test.dat", string("a")+PATH_SLASH+"atest3.dat" ); 
+    FileSystem::Copy_File( "test.dat", string("b")+PATH_SLASH+"btest.dat" ); 
+    FileSystem::Copy_File( "test.dat", 
+                           string("b")+PATH_SLASH+"c"+PATH_SLASH+"ctest.dat" ); 
   }
   return ok;
 }
@@ -83,7 +85,8 @@ int main()
     cout << "CreateFolder xyz ok" << endl;
     if ( FileSystem::CreateFolder( string("xyz")+PATH_SLASH+"abc" ) )
       cout << "CreateFolder xyz/abc ok" << endl;
-    if ( FileSystem::CopyFile( "test.dat", string("xyz")+PATH_SLASH+"abc"+PATH_SLASH+"test.dat" ) )
+    if ( FileSystem::Copy_File( "test.dat", 
+                        string("xyz")+PATH_SLASH+"abc"+PATH_SLASH+"test.dat" ) )
       cout << "Copy test.dat -> xyz/abc/test.dat ok" << endl;
     else
       cout << "Copy test.dat -> xyz/abc/test.dat not ok" << endl;
@@ -91,26 +94,36 @@ int main()
   else
     cout << "CreateFolder xyz failed" << endl;
   Pause();
-  if ( FileSystem::CopyFile( "xyz", "uvw" ) )
+  if ( FileSystem::Copy_File( "xyz", "uvw" ) )
     cout << "Copy xyz -> uvw ok" << endl;
   else
     cout << "Copy xyz -> uvw not ok" << endl;
   
-  if ( FileSystem::RenameFileOrFolder( string("xyz")+PATH_SLASH+"abc"+PATH_SLASH+"test.dat",
-                                       string("xyz")+PATH_SLASH+"abc"+PATH_SLASH+"test2.dat" ) )
+  if ( FileSystem::RenameFileOrFolder( 
+                       string("xyz")+PATH_SLASH+"abc"+PATH_SLASH+"test.dat",
+                       string("xyz")+PATH_SLASH+"abc"+PATH_SLASH+"test2.dat" ) )
     cout << "Rename File test.dat -> test2.dat ok" << endl;
   else
     cout << "Rename File test.dat -> test2.dat not ok" << endl;
 
-  if ( FileSystem::FileOrFolderExists( string("xyz")+PATH_SLASH+"abc"+PATH_SLASH+"test2.dat" ) )
+  if ( FileSystem::FileOrFolderExists( 
+                     string("xyz")+PATH_SLASH+"abc"+PATH_SLASH+"test2.dat" ) )
     cout << "File xyz/abc/test2.dat exists" << endl;
   else
     cout << "File xyz/abc/test2.dat does not exist" << endl;
-  cout << "Attribs of b/btest.dat " << FileSystem::GetFileAttributes( string("b")+PATH_SLASH+"btest.dat" ) << endl;
-  FileAttributes attr = FileSystem::GetFileAttributes( string("a")+PATH_SLASH+"atest1.dat" );
+  cout << "Attribs of b/btest.dat " 
+       << FileSystem::Get_FileAttributes( string("b")+PATH_SLASH+"btest.dat" ) 
+       << endl;
+  FileAttributes attr = 
+       FileSystem::Get_FileAttributes( string("a")+PATH_SLASH+"atest1.dat" );
   cout << "Attribs of a/atest1.dat " << attr << endl;
-  cout << "Set Attrib attr & 2 " << FileSystem::SetFileAttributes( string("a")+PATH_SLASH+"atest1.dat", attr | 2 ) << endl;
-  cout << "Attribs of a\\atest1.dat " << FileSystem::GetFileAttributes( string("a")+PATH_SLASH+"atest1.dat" ) << endl;
+  cout << "Set Attrib attr & 2 " 
+       << FileSystem::Set_FileAttributes( 
+	                     string("a")+PATH_SLASH+"atest1.dat", attr | 2 ) 
+       << endl;
+  cout << "Attribs of a\\atest1.dat " 
+       << FileSystem::Get_FileAttributes( string("a")+PATH_SLASH+"atest1.dat" ) 
+       << endl;
 
   FilenameList fnl;
   if ( FileSystem::FileSearch( "b", fnl, 0, 3 ) )
@@ -129,12 +142,14 @@ int main()
   else
     cout << "Erase Folder b not ok" << endl;
 
-  if ( FileSystem::DeleteFileOrFolder( string("xyz")+PATH_SLASH+"abc"+PATH_SLASH+"test2.dat" ) )
+  if ( FileSystem::DeleteFileOrFolder( 
+                     string("xyz")+PATH_SLASH+"abc"+PATH_SLASH+"test2.dat" ) )
     cout << "Delete File test2.dat ok" << endl;
   else
     cout << "Delete File test2.dat failed" << endl;
   Pause();
-  if ( FileSystem::RenameFileOrFolder( string("xyz")+PATH_SLASH+"abc", string("xyz")+PATH_SLASH+"def" ) )
+  if ( FileSystem::RenameFileOrFolder( 
+            string("xyz")+PATH_SLASH+"abc", string("xyz")+PATH_SLASH+"def" ) )
     cout << "Rename Folder xyz/abc -> xyz/def ok" << endl;
   else
     cout << "Rename Folder xyz/abc -> xyz/def not ok" << endl;
