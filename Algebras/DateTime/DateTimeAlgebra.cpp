@@ -839,7 +839,7 @@ instance remains unchanged. Otherwise this instance will take the value
 represented by this list and the result will be true.
 
 */
-bool DateTime::ReadFrom(const ListExpr LE,const bool typeincluded){
+bool DateTime::ReadFrom(const ListExpr LE, const bool typeincluded){
   canDelete=false;
   ListExpr ValueList;
   if(typeincluded){
@@ -862,6 +862,10 @@ bool DateTime::ReadFrom(const ListExpr LE,const bool typeincluded){
 
   // Special Representation in this Algebra
   if(nl->AtomType(ValueList)==SymbolType){
+    if(nl->SymbolValue(ValueList) == "undef"){
+      SetDefined(false);
+      return true;
+    }
     if(nl->SymbolValue(ValueList)=="now"){
         if(type==instanttype){
            Now();
@@ -1533,20 +1537,17 @@ Word InInstant( const ListExpr typeInfo, const ListExpr instance,
 
   DateTime* T = new DateTime(instanttype);
 
-  if( nl->IsEqual(instance, "undef") ){
-     T->SetDefined( false );
-     return SetWord(T);
-  } else {
-    ListExpr value = instance;
-    if(nl->ListLength(instance)==2){
-      if(nl->IsEqual(nl->First(instance),"instant"))
-        value = nl->Second(instance);
-    }
-    if(T->ReadFrom(value,false)){
-      correct=true;
-      return SetWord(T);
-    }
+
+  ListExpr value = instance;
+  if( !nl->IsAtom(instance) && 
+      (nl->ListLength(instance)==2) ){
+    if(nl->IsEqual(nl->First(instance),"instant"))
+      value = nl->Second(instance);
   }
+  if(T->ReadFrom(value,false)){
+    correct=true;
+    return SetWord(T);
+  }   
   correct = false;
   delete(T);
   return SetWord(Address(0));
