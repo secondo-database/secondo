@@ -46,7 +46,7 @@ public class ViewConfig extends javax.swing.JDialog {
   /** Application's main window */
   HoeseViewer mw;
   /** Two lists storing possible reference-attr. and label-attr. */
-  Vector RefAList, LabelAList;
+  Vector RefAList, RefMList, LabelAList;
   /** The actual query result  */
   QueryResult Query;
   /** The no. of attributes in a tupel */
@@ -95,7 +95,10 @@ public class ViewConfig extends javax.swing.JDialog {
     AttrName = an;
     JComboBox cb = mw.TextDisplay.getQueryCombo();
     Query = (QueryResult)cb.getSelectedItem();
-    RefAList = getRefAttrList();
+    RefAList=new Vector();
+    RefMList = new Vector();
+    LabelAList = new Vector();
+    getRefAttrList(RefAList, RefMList, LabelAList);
     initComponents();
     pack();
     setSize(500,500);
@@ -113,21 +116,28 @@ public class ViewConfig extends javax.swing.JDialog {
 
 
   /**
-   * Searches the attributes for possible reference attributes (int,real,string,bool)
-   * @return A Vector with attributes been found
-   */
-  private Vector getRefAttrList () {
-    // v contains all attributes which can be used as render attribute
-    Vector v = new Vector(5, 1);
-    LabelAList = new Vector(10, 5);
+    * Fills the arguments with elements.
+    * @param RefAList: Attribute names implementing the RenderAttribute interface
+    * @param RefMList: all attribute names
+    * @param LabelAList: all LabelAttributes
+    */
+  private void getRefAttrList (Vector RefAList, Vector RefMList, Vector LabelAList) {
+    RefAList.clear();
+    RefMList.clear();
+    LabelAList.clear(); 
+
     ListExpr TypeList = Query.LEResult;
     while(TypeList.atomType()==ListExpr.NO_ATOM && !TypeList.isEmpty())
        TypeList = TypeList.first();
+    
     String MainType = TypeList.symbolValue();
-
+    // process relations
     if(MainType.equals("rel") ){
-				v.add("Tuple-No.");
+       // standard
+				RefAList.add("Tuple-No.");
+        RefMList.add("Tuple-No.");
 				LabelAList.add("no Label");
+         
 				TupelCount = Query.LEResult.second().listLength();
 				ListExpr attrlist = Query.LEResult.first().second().second();
         
@@ -136,8 +146,9 @@ public class ViewConfig extends javax.swing.JDialog {
           String attrName = attrlist.first().first().symbolValue();
 					LabelAList.add(attrName);
 					if(isRenderAttribute(type)){
-             v.add(new RenderAttr(attrName,AttrCount));
+             RefAList.add(new RenderAttr(attrName,AttrCount));
           }
+          RefMList.add(attrName);
           AttrCount++;
           attrlist = attrlist.rest();
 				}
@@ -152,15 +163,16 @@ public class ViewConfig extends javax.swing.JDialog {
          possible Label is 'name'.
        */
        LabelAList.add("name"); 
-       v.add("name");
+       RefAList.add("name");
+       RefMList.add("name");
     } else{ // no relation, no nmap
       if(isRenderAttribute(MainType)){
-           v.add(new RenderAttr(AttrName,0));
+           RefAList.add(new RenderAttr(AttrName,0));
       }
+      RefMList.add(MainType);
       LabelAList.add("no Label");
-      LabelAList.add(AttrName);  
+      LabelAList.add(MainType);  
     }
-    return  v;
   }
 
   /** This method is called from within the constructor to
@@ -469,17 +481,24 @@ public class ViewConfig extends javax.swing.JDialog {
        public void actionPerformed(ActionEvent evt){
           boolean s = LinkCheckBox.isSelected();
           if(s){
+            RefAttrCB.removeAllItems();
+            for(int i=0;i<RefMList.size();i++){
+               RefAttrCB.addItem(RefMList.get(i));
+            }
             LinkComboBox.setEnabled(true);
             MLChangeBtn.setEnabled(true);
-	    MLNewBtn.setEnabled(true);
-	    MLRemoveBtn.setEnabled(true);
+            MLNewBtn.setEnabled(true);
+            MLRemoveBtn.setEnabled(true);
             RendTypeCB.setEnabled(false);
-
           } else{
+            RefAttrCB.removeAllItems();
+            for(int i=0;i<RefAList.size();i++){
+               RefAttrCB.addItem(RefAList.get(i));
+            }
             LinkComboBox.setEnabled(false);
             MLChangeBtn.setEnabled(false);
-	    MLNewBtn.setEnabled(false);
-	    MLRemoveBtn.setEnabled(false);
+            MLNewBtn.setEnabled(false);
+            MLRemoveBtn.setEnabled(false);
             RendTypeCB.setEnabled(true);
           }
        }
