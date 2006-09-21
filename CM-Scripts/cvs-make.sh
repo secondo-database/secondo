@@ -264,11 +264,21 @@ printf "\n%s\n" "Entering directory $PWD"
 export SECONDO_ACTIVATE_ALL_ALGEBRAS="true"
 export SECONDO_YACC="/usr/bin/bison"
 
-makeSecondo "make-allalgebras.log" "Building SECONDO with all algebras failed!"
+makeSecondo "make-all-1.log" "Building SECONDO with all algebras failed!"
 
+printSep "Cleaning SECONDO"
 checkCmd "make realclean" > make-realclean.log 2>&1
-unset SECONDO_ACTIVATE_ALL_ALGEBRAS
-makeSecondo "make-nojni.log" "Building SECONDO failed!"
+
+printf "\n%s\n" "files unkown to CVS:"
+leftFiles=$(cvs -nQ update | grep "^? ") 
+if [ "$leftFiles" != "" ]; then 
+  printf "\n make realclean has left some files: \n"
+  printf "\n $leftFiles"
+  sendMail "make realclean has left some files" "$mailRecipients" "$mailBody3 $leftFiles" "$cvsHistMailBackupDir" " make-realclean2.log"
+  fi
+
+printSep "Compile Again"
+makeSecondo "make-all-2.log" "Building SECONDO failed!"
 
 
 ## run tests
@@ -308,26 +318,6 @@ if [ $[errors] != 0 ]; then
 else
 
   cd $cbuildDir
-  ## run make clean
-  printSep "Cleaning SECONDO"
-  checkCmd "make realclean" > make-realclean2.log 2>&1
-
-  printSep "Check for undeleted files ( *.{o,a,so,dll,class} )"
-  find . -iregex ".*\.\([oa]\|so\|dll\|class\)"
-
-  printf "\n%s\n" "files in SECONDO's /lib and /bin directory:"
-  find ./lib ! -path "*CVS*" 
-  find ./bin ! -path "*CVS*"
-
-  printf "\n%s\n" "files unkown to CVS:"
-  leftFiles=$(cvs -nQ update | grep "^? ") 
-  if [ "$leftFiles" != "" ]; then 
-    printf "\n make realclean has left some files: \n"
-    printf "\n $leftFiles"
-    sendMail "make realclean has left some files" "$mailRecipients" "$mailBody3 $leftFiles" "$cvsHistMailBackupDir" " make-realclean2.log"
-  fi
-
-
   # move label for stable version
   tagSym="LAST_STABLE"
   tagMsg="Moving CVS tag $tagSym"
@@ -336,7 +326,8 @@ else
   cvs -Q tag -d $tagSym 
   cvs -Q tag $tagSym
   make tag=$tagSym src-archives
-  cp /tmp/make-spieker/secondo-$tagSym* /www/secondo/internal
+  #Backup to /www switched of since the server has problems
+  #cp /tmp/make-spieker/secondo-$tagSym* /www/secondo/internal
   rm -rf ${cbuildDir}
 
 fi

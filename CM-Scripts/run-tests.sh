@@ -1,10 +1,12 @@
 #!/bin/sh
 #
-# run-tests.sh $1 $2
+# run-tests.sh $1 $2 $3
 #
-# $1 switch "-cs"  or "-tty" indicates if the tests should run in client server mode
-#    or not
-# $2 Root directory for keeping CVS-history and failed test
+# Options:
+# --------
+# $1: Mode [ -cs | -tty ] 
+# $2: Directory for backup copies of emails and log files
+# $3: timeout threshold in seconds for every single test.
 #
 # Jan 2005, M. Spiekermann
 #
@@ -13,10 +15,17 @@
 # failed test are stored in a tar file.
 #
 # Januar 2006, M. Spiekermann. Usage of the ~nice~ command added. 
-
+#
+# Sept 2006, M. Spiekermann. New parameter added
 
 # include function definitions
 # libutil.sh must be in the same directory as this file
+
+if [ $# -ne 3 ]; then
+  printf "\n%s\n" "Error: runTest needs 3 arguments."
+  exit 1;
+fi
+
 if ! source ./libutil.sh; then exit 1; fi
 
 printf "\n%s\n" "Running tests in ${buildDir}."
@@ -36,6 +45,11 @@ if [ ! -d $failedFileInfoDir ]; then
 fi
 failedTests=""
 
+timeOutMax=3600
+if [ "$3" != "" ]; then
+  timeOutMax=$3
+fi
+
 if ! isCmdPresent $runnerCmd; then
   printf "\n%s\n" "Sorry, command $runnerCmd not present."
   exit 1;
@@ -43,7 +57,7 @@ fi
 runnerCmd="$runnerCmd"
 
 
-# runTest $1 $2 $3 [$4]
+# runTest $1 $2 $3 $4
 #
 # $1 runDir
 # $2 testName
@@ -52,15 +66,16 @@ runnerCmd="$runnerCmd"
 
 function runTest() {
 
+  if [ $# -ne 4 ]; then
+    printf "\n%s\n" "Error: runTest needs 4 arguments."
+    exit 1;
+  fi
+
   local runDir=$1
   local testName=$2
   local runCmd=$3
   local logFile=$runDir/${testName}.log
-  local waitSeconds=7200
-
-  if [ "$4" != "" ]; then
-    waitSeconds=$4
-  fi
+  local waitSeconds=$4
 
   echo -e "\n Running $testName in $runDir"
   echo -e "\n $runCmd"
@@ -136,7 +151,7 @@ do
   if isCmdPresent "nice"; then
     niceOpt="nice -n 19"
   fi
-  runTest $runDir $testFile "$niceOpt time $runnerCmd -i  ${testFile}"
+  runTest $runDir $testFile "$niceOpt time $runnerCmd -i  ${testFile}" $timeOutMax
   wait $! 
 done
 
@@ -146,7 +161,7 @@ done
 #
 
 if [ "$1" == "-tty" ]; then
-  runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" 600
+  runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" $timeOutMax
 fi
 
 if [ "$failedTests" != "" ]; then
