@@ -81,16 +81,43 @@ restore zug5 from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5';
 #yields (periods (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)))
 query deftime(up1)
 
+#testcase deftime_undef
+#tolerance_real 0.001
+#yields (periods ( ) )
+query deftime(up3)
+
 #testcase atinstant
 #tolerance_real 0.001
 #yields (ipoint ("2003-11-20-06:30" (1500.0 1500.0))) 
 query up1 atinstant [const instant value "2003-11-20-06:30"]
+
+#testcase atinstant undef_unit
+#tolerance_real 0.001
+#yields (ipoint undef) 
+query up3 atinstant [const instant value "2003-11-20-06:30"]
+
+#testcase atinstant undef_instant
+#tolerance_real 0.001
+#yields (ipoint undef) 
+query up1 atinstant [const instant value undef]
 
 #testcase atperiods
 #tolerance_real 0.001
 #yields ((rel (tuple ( (elem upoint)))) ( (   (   ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1916.666666666667 1916.666666666667 1833.333333333333 1833.333333333333))) (   (   ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE) (1166.666666666667 1166.666666666667 1083.333333333334 1083.333333333334))))) 
 query (up1 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) 
 ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ] ) transformstream consume
+
+#testcase atperiods undef_unit
+#tolerance_real 0.001
+#yields ((rel (tuple ( (elem upoint)))) ( )) 
+query (up3 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ] ) transformstream consume
+
+
+# as there are no undef-periods values, we use empt-periods here:
+#testcase atperiods undef_periods
+#tolerance_real 0.001
+#yields ((rel (tuple ( (elem upoint)))) ( )) 
+query (up1 atperiods [const periods value ( ) ] ) transformstream consume
 
 #testcase initial_up
 #tolerance_real 0.001
@@ -127,10 +154,15 @@ query (up6 at p)
 #yields (bool TRUE)
 query ( up2 passes p)
 
-##testcase velocity_up
-##tolerance_real 0.001
-##yields (upoint (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (-0.2777777777772725 0.0 -0.2777777777772725 0.0)))
-#query velocity(up1)
+#testcase velocity_up
+#tolerance_real 0.001
+#yields (upoint (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (-0.2777777777772725 0.0 -0.2777777777772725 0.0)))
+query velocity(up1)
+
+#testcase velocity_up 2
+#tolerance_real 0.001
+#yields (upoint (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1000.0 0.0 1000.0 0.0)))
+query velocity([const upoint value(("2003-11-20-06:00" "2003-11-20-06:01" TRUE TRUE) (0.0 0.0 1000.0 0.0))])
 
 #testcase derivable_ur4
 #tolerance_real 0.001
