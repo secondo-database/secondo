@@ -291,7 +291,10 @@ showOptions :-
   findall(X,optimizerOptionInfo(X,_,_,_,_),Options),
   write('\n\nOptimizer options (and sub-options):\n'),
   showOption(Options), 
-  write('\nType \'setOption(X).\' to select option X.\n'), 
+  write('\nType \'loadOptions.\' to load the saved option configuration.\n'),
+  write('Type \'saveOptions.\' to save current option configuration to disk.\n'),
+  write('Type \'defaultOptions.\' to restore the default options.\n'),
+  write('Type \'setOption(X).\' to select option X.\n'), 
   write('Type \'delOption(X).\' to unselect option X.\n'),
   write('Type \'showOptions.\' to view this option list.\n\n').
 
@@ -538,31 +541,60 @@ dc(_,_) :- !.
   
 /*
 5.2 Setting Startup Options
-
-
-This are the optional standart settings for the optimizer when getting started. 
-Feel free to change.
  
+The option configuration is stored in a file ~config_optimizer.pl~ between two sessions. It will be loaded and restored on subsequent sessions. If this file does not exist, the following options will be set:
+ 
+~defaultOptions~ restores the built-in default option settings.
+
+~loadOptions~ restores the option config from disk.
+
+~saveOptions~ saves the current options to disk.
+
 */
- :- setOption(entropy).          % Using entropy extension?
-% :- setOption(immediatePlan).    % Don't create complete POG?
-% :- setOption(intOrders(on)).    % Consider interesting orders (on-variant)?
-% :- setOption(intOrders(quick)). % Consider interesting orders (path-variant)?
-% :- setOption(intOrders(path)).  % Consider interesting orders (path-variant)?
-% :- setOption(intOrders(test)).  % Consider interesting orders (test-variant)?
- :- setOption(pathTiming).       % Prompt time used to create immediate plan?
-% :- setOption(uniformSpeed).     % Using uniform machine speed factor?
-% :- setOption(costsConjunctive). % Applying costs only to conjunctive sub query?
-% :- setOption(dynamicSample).    % Using dynamic samples instead of static ones?
- :- setOption(rewriteMacros).    % Using macro expansion features?
- :- setOption(rewriteInference). % Using automatic inference of predicates?
- :- setOption(rtreeIndexRules).  % Use additional rules to exploit R-tree indices?
- :- setOption(rewriteNonempty).  % Handle 'nonempty' in select statements?
- :- setOption(rewriteCSE).       % Substitute common subexpressions in queries?
-% :- setOption(rewriteCSEall).    % Extend attributes for ALL CSEs?
-% :- setOption(rewriteRemove).    % Apply early removal of unused attributes?
-:- assert(optDebugLevel(selectivity)), setOption(debug). % Activating selectivity debugging code?
-% :- assert(optDebugLevel(all)), setOption(debug). % Activating all debugging code?
+
+defaultOptions :-
+  setOption(standard),
+  % setOption(entropy),
+  % setOption(immediatePlan),
+  % setOption(intOrders(on)),
+  % setOption(intOrders(quick)),
+  % setOption(intOrders(path)),
+  % setOption(intOrders(test)),
+  % setOption(pathTiming),
+  % setOption(uniformSpeed),
+  % setOption(costsConjunctive),
+  % setOption(dynamicSample),
+  % setOption(rewriteMacros),
+  % setOption(rewriteInference),
+  % setOption(rtreeIndexRules),
+  % setOption(rewriteNonempty),
+  % setOption(rewriteCSE),
+  % setOption(rewriteCSEall),
+  % setOption(rewriteRemove),
+  % assert(optDebugLevel(selectivity)), setOption(debug),
+  % assert(optDebugLevel(all)), setOption(debug),
+  true.
+
+loadOptions :- consult('config_optimizer.pl').
+
+saveSingleOption(Stream) :-
+  optimizerOption(X),
+  write(Stream, ':- '),
+  write(Stream, setOption(X)), 
+  write(Stream, '.\n').
+
+saveOptions :- 
+  open('config_optimizer.pl', write, FD),
+  write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
+  findall(_, saveSingleOption(FD), _),
+  close(FD).
+
+initializeOptions :-
+  setOption(standard),
+  (loadOptions ; defaultOptions).
+
+:- at_halt(saveOptions). % automatically safe option configuration on exit
+:- initializeOptions.
 
 /*
 5.3 Print Additional Information
