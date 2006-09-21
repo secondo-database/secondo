@@ -118,6 +118,7 @@ The class ~SecondoCatalog~ provides the following methods:
 #include "NameIndex.h"
 #include "SecondoSMI.h"
 #include "SystemInfoRel.h"
+#include "SystemTables.h"
 
 
 // forward declaration
@@ -461,6 +462,7 @@ algebras in the following format:
 */
 
   ListExpr ListTypeConstructors(int algebraId);
+  void Initialize(SizeInfoRel* r);
 /*
 Returns a list of type constructors of the algebra with Id algebraId
 in the following format: 

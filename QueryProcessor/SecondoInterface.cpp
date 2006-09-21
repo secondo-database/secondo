@@ -97,6 +97,9 @@ database.  The error codes of the SMI module are now integrated into the error
 reporting of the secondo interface. However, currently only a few SMI error
 codes are mapped to strings. 
 
+September 2006, M. Spiekermann. System tables excluded into a separate file
+called SystemTables.h.
+
 \tableofcontents
 
 */
@@ -136,323 +139,8 @@ about them can be found in SystemInfoRel.h
 
 */
 
-#include "SystemInfoRel.h"
+#include "SystemTables.h"
 SystemTables* SystemTables::instance = 0;
-
-class CmdTimes : public InfoTuple 
-{
-   int nr;
-   string cmdStr;
-   double elapsedTime;
-   double cpuTime;
-   double commitTime;
-   double queryReal;
-   double queryCPU;
-   double outObjReal;
-   double copyReal;
-
-   public: 
-   CmdTimes( int num, 
-             const string& cmd, 
-             double realT, 
-             double cpuT, 
-             double commitT, 
-             double qRT,
-             double qCT,
-             double outRT,
-             double cpRT ) :
-     nr(num),
-     cmdStr(cmd),
-     elapsedTime(realT),
-     cpuTime(cpuT),
-     commitTime(commitT),
-     queryReal(qRT),
-     queryCPU(qCT),
-     outObjReal(outRT),
-     copyReal(cpRT)
-   {
-   }
-   virtual ~CmdTimes() {}
-  
-   virtual NList valueList() const
-   {
-     NList value;
-     value.makeHead( NList(nr) );
-     value.append( NList().textAtom(cmdStr) );
-     value.append( NList(elapsedTime) );
-     value.append( NList(cpuTime) );
-     value.append( NList(commitTime) );
-     value.append( NList(queryReal) );
-     value.append( NList(queryCPU) );
-     value.append( NList(outObjReal) );
-     value.append( NList(copyReal) );
-     return value;
-   } 
-   
-   virtual ostream& print(ostream& os) const
-   {
-      os << nr << sep << cmdStr << sep << elapsedTime << sep << cpuTime;
-      return os;
-   } 
-
-}; 
-
-
-class CmdTimesRel : public SystemInfoRel 
-{
-   public:
-   CmdTimesRel(const string& name) : SystemInfoRel(name, initSchema()) 
-   {} 
-
-   ~CmdTimesRel() {}
-   
-   private:
-   RelSchema* initSchema()
-   { 
-     RelSchema*  attrList = new RelSchema();
-     attrList->push_back( make_pair("CmdNr", "int") );
-     attrList->push_back( make_pair("CmdStr", "text") );
-     attrList->push_back( make_pair("ElapsedTime", "real") );
-     attrList->push_back( make_pair("CpuTime", "real") );
-     attrList->push_back( make_pair("CommitTime", "real") );
-     attrList->push_back( make_pair("queryReal", "real") );
-     attrList->push_back( make_pair("queryCPU", "real") );
-     attrList->push_back( make_pair("outObjReal", "real") );
-     attrList->push_back( make_pair("copyReal", "real") );
-     return attrList;  
-   } 
-
-}; 
-
-class CmdCtr : public InfoTuple 
-{
-   int nr;
-   string ctrStr;
-   long value;
-
-   public: 
-   CmdCtr(int num, const string& cmd, long ctrVal) :
-     nr(num),
-     ctrStr(cmd),
-     value(ctrVal)
-   {}
-   virtual ~CmdCtr() {}
-   
-   virtual NList valueList() const
-   {
-     NList list;
-     list.makeHead( NList(nr) );
-     list.append( NList().stringAtom(ctrStr) );
-     list.append( NList((int) value) );
-     return list;
-   } 
-
-   
-   virtual ostream& print(ostream& os) const
-   {
-      os << nr << sep << ctrStr << sep << value;
-      return os;
-   } 
-}; 
-
-
-class CmdCtrRel : public SystemInfoRel 
-{
-   public:
-   CmdCtrRel(const string& name) : SystemInfoRel(name, initSchema()) 
-   {}
-   virtual ~CmdCtrRel() {}
-   
-   private:
-   RelSchema* initSchema()
-   { 
-     RelSchema* attrList = new RelSchema();
-     attrList->push_back( make_pair("CtrNr", "int") );
-     attrList->push_back( make_pair("CtrStr", "string") );
-     attrList->push_back( make_pair("Value", "int") );
-     return attrList;
-   } 
-}; 
-
-class DerivedObjInfo : public InfoTuple 
-{
-   string name;
-   string value;
-   string usedObjs;
-
-   public: 
-   DerivedObjInfo(const string& n, const string& v, const string&u) :
-     name(n),
-     value(v),
-     usedObjs(u)
-   {}
-   virtual ~DerivedObjInfo() {}
-   
-   virtual NList valueList() const
-   {
-     NList list;
-     list.makeHead( NList().stringAtom(name) );
-     list.append( NList().textAtom(value) );
-     list.append( NList().textAtom(usedObjs) );
-     return list;
-   } 
-
-   
-   virtual ostream& print(ostream& os) const
-   {
-      os << name << sep << value << sep << usedObjs;
-      return os;
-   } 
-}; 
-
-
-
-class DerivedObjRel : public SystemInfoRel 
-{
-   public:
-   DerivedObjRel(const string& name) : SystemInfoRel(name, initSchema(), true) 
-   {}
-   virtual ~DerivedObjRel() {}
-   
-   private:
-   RelSchema* initSchema()
-   { 
-     RelSchema* attrList = new RelSchema();
-     attrList->push_back( make_pair("name", "string") );
-     attrList->push_back( make_pair("value", "text") );
-     attrList->push_back( make_pair("usedObjs", "text") );
-     return attrList;
-   } 
-}; 
-
-
-class CacheInfoTuple : public InfoTuple, public CacheInfo
-{
-   public:
-   CacheInfoTuple() {}
-   virtual ~CacheInfoTuple() {} 
-
-   virtual NList valueList() const
-   {
-     NList value;
-     value.makeHead( NList(cstatNr) );
-     value.append( NList((int)bytes) );
-     value.append( NList((int)regsize) );
-     value.append( NList((int)cache_hit) );
-     value.append( NList((int)cache_miss) );
-     value.append( NList((int)page_create) );
-     value.append( NList((int)page_in) );
-     value.append( NList((int)page_out) );
-     value.append( NList((int)pages) );
-     return value;
-   } 
-   
-   virtual ostream& print(ostream& os) const
-   {
-      os << cstatNr << sep
-         << bytes << sep 
-         << regsize << sep 
-         << cache_hit << sep 
-         << cache_miss << sep
-         << page_create << sep
-         << page_in << sep
-         << page_out << sep
-         << pages << endl; 
-      return os;
-   } 
-};
-
-class CacheInfoRel : public SystemInfoRel 
-{
-   public:
-   CacheInfoRel(const string& name) : SystemInfoRel(name, initSchema()) 
-   {}
-   virtual ~CacheInfoRel() {}
-   
-   private:
-   RelSchema* initSchema()
-   { 
-     RelSchema* attrList = new RelSchema();
-     attrList->push_back( make_pair("CStatNr", "int") );
-     attrList->push_back( make_pair("Bytes", "int") );
-     attrList->push_back( make_pair("RegSize", "int") );
-     attrList->push_back( make_pair("Hits", "int") );
-     attrList->push_back( make_pair("Misses", "int") );
-     attrList->push_back( make_pair("Pages_New", "int") );
-     attrList->push_back( make_pair("Pages_In", "int") );
-     attrList->push_back( make_pair("Pages_Out", "int") );
-     attrList->push_back( make_pair("Pages_All", "int") );
-     return attrList;
-   } 
-}; 
-
-class FileInfoTuple : public InfoTuple, public FileInfo
-{
-   public:
-   FileInfoTuple(FileInfo* fstat) 
-   {
-     fstatNr = fstat->fstatNr;
-     file_name = fstat->file_name;
-     pagesize = fstat->pagesize;
-     cache_hit = fstat->cache_hit;
-     cache_miss = fstat->cache_miss;
-     page_create = fstat->page_create;
-     page_in = fstat->page_in;
-     page_out = fstat->page_out;
-   }
-   virtual ~FileInfoTuple() {} 
-
-   virtual NList valueList() const
-   {
-     NList value;
-     value.makeHead( NList(fstatNr) );
-     value.append( NList().textAtom(file_name) );
-     value.append( NList((int)pagesize) );
-     value.append( NList((int)cache_hit) );
-     value.append( NList((int)cache_miss) );
-     value.append( NList((int)page_create) );
-     value.append( NList((int)page_in) );
-     value.append( NList((int)page_out) );
-     return value;
-   } 
-   
-   virtual ostream& print(ostream& os) const
-   {
-      os << fstatNr << sep
-         << file_name << sep 
-         << pagesize << sep 
-         << cache_hit << sep 
-         << cache_miss << sep
-         << page_create << sep
-         << page_in << sep
-         << page_out << endl; 
-      return os;
-   } 
-};
-
-
-class FileInfoRel : public SystemInfoRel
-{
-   public:
-   FileInfoRel(const string& name) : SystemInfoRel(name, initSchema()) 
-   {}
-   virtual ~FileInfoRel() {}
-   
-   private:
-   RelSchema* initSchema()
-   { 
-     RelSchema* attrList = new RelSchema();
-     attrList->push_back( make_pair("FStatNr", "int") );
-     attrList->push_back( make_pair("File", "text") );
-     attrList->push_back( make_pair("PageSize", "int") );
-     attrList->push_back( make_pair("Hits", "int") );
-     attrList->push_back( make_pair("Misses", "int") );
-     attrList->push_back( make_pair("Pages_New", "int") );
-     attrList->push_back( make_pair("Pages_In", "int") );
-     attrList->push_back( make_pair("Pages_Out", "int") );
-     return attrList;
-   } 
-}; 
 
 
 // generic implementation of the << operator
@@ -466,6 +154,7 @@ CmdCtrRel* cmdCtrRel = 0;
 CacheInfoRel* cacheInfoRel = 0;
 FileInfoRel* fileInfoRel = 0;
 DerivedObjRel* devObjRel = 0;
+SizeInfoRel* sizeInfoRel = 0;
 
 
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
@@ -619,6 +308,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   cmdCtrRel = new CmdCtrRel("SEC2COUNTERS");
   cacheInfoRel = new CacheInfoRel("SEC2CACHEINFO");
   fileInfoRel = new FileInfoRel("SEC2FILEINFO");
+  sizeInfoRel = new SizeInfoRel("SEC2TYPEINFO");
 
   // The next table is currently only a dummy. This is necessary
   // that the catalog recognizes it as a system table. In the future
@@ -630,7 +320,12 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   st.insert(cmdTimesRel);
   st.insert(cacheInfoRel);
   st.insert(fileInfoRel);
+  st.insert(sizeInfoRel);
   st.insert(devObjRel);
+  
+  // add size information into sizeInfoRel
+  SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
+  ctlg.Initialize(sizeInfoRel);
   
   initialized = ok;
   return (ok);

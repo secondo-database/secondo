@@ -94,6 +94,7 @@ The names of existing databases are stored in a list ~DBTable~.
 #include "DerivedObj.h"
 #include "SecondoCatalog.h"
 #include "NList.h"
+#include "SystemTables.h"
 
 using namespace std;
 
@@ -1937,6 +1938,25 @@ Returns a list of type constructors ~typecons~ of the actually load algebras in 
   }
   return (tcList);
 }
+
+
+void
+SecondoCatalog::Initialize(SizeInfoRel* r)
+{
+  LocalConstructorCatalog::iterator pos = constructors.begin();
+  return;
+  
+  while ( pos != constructors.end() )
+  {
+    cout << pos->first << endl;
+    int algId = pos->second.algebraId;
+    int typeId = pos->second.entryId;
+    NList type( am->Props( algId, typeId ));
+    int size = (*(am->SizeOfObj( algId, typeId )))();
+    cout << "  " << type << " : " << size << endl;
+    pos++;
+  }
+} 
 
 ListExpr
 SecondoCatalog::ListTypeConstructors( int algebraId )

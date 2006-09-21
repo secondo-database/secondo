@@ -194,6 +194,9 @@ class SystemInfoRel
     //SHOW(tuples.size())
     iterator it = begin();
     NList values;
+    if (it == end()) 
+      return values;
+    
     values.makeHead( (*it)->valueList() );
     it++;
       
