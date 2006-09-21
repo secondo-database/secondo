@@ -276,6 +276,10 @@ optimizerOptionInfo(rewriteRemove, rewriteCSE,
 optimizerOptionInfo(debug,none,            
                     '\t\tExecute debugging code. Also use \'toggleDebug.\'.',
                     showDebugLevel,true).
+optimizerOptionInfo(autosave,none,            
+                    '\tAutosave option settings on \'halt.\'.',
+                    true, true).
+
 
 /*
 ---- showOptions
@@ -542,13 +546,16 @@ dc(_,_) :- !.
 /*
 5.2 Setting Startup Options
  
-The option configuration is stored in a file ~config_optimizer.pl~ between two sessions. It will be loaded and restored on subsequent sessions. If this file does not exist, the following options will be set:
+The option configuration is stored in a file ~config_optimizer.pl~ between two sessions. It will be loaded and restored on subsequent sessions. If this file does not exist, default options are used.
  
 ~defaultOptions~ restores the built-in default option settings.
 
 ~loadOptions~ restores the option config from disk.
 
 ~saveOptions~ saves the current options to disk.
+
+If ~optimizerOption(autosave)~ is defined, current option settings will be saved
+to disk automatically on system halt.
 
 */
 
@@ -573,6 +580,7 @@ defaultOptions :-
   % setOption(rewriteRemove),
   % assert(optDebugLevel(selectivity)), setOption(debug),
   % assert(optDebugLevel(all)), setOption(debug),
+  setOption(autosave),
   true.
 
 loadOptions :- consult('config_optimizer.pl').
@@ -593,7 +601,7 @@ initializeOptions :-
   setOption(standard),
   (loadOptions ; defaultOptions).
 
-:- at_halt(saveOptions). % automatically safe option configuration on exit
+:- at_halt((optimizerOption(autosave), saveOptions)). % automatically safe option configuration on exit
 :- initializeOptions.
 
 /*
