@@ -427,7 +427,7 @@ delete each file.
       string pathName = absoluteFolder;
       AppendSlash( pathName );
       pathName += dirEntry->d_name;
-      FileAttributes fileAttribs = GetFileAttributes( pathName );
+      FileAttributes fileAttribs = Get_FileAttributes( pathName );
 /*
 The names of files in subfolders are inserted into the list before
 the names of subfolders are added. This ensures that folders are empty
