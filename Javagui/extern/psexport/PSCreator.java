@@ -31,9 +31,12 @@ private Font font;
 // stored the maximum y value for flip the picture
 private double maxy = 1000;
 
+private Graphics2D original;
 
-public PSCreator(PrintStream out){
+
+public PSCreator(PrintStream out, Graphics2D original){
     this.out = out;
+    this.original = original;
 }
 
 
@@ -82,7 +85,14 @@ public Graphics create(){
 
 public Graphics create(int x, int y, int width, int height){
   Reporter.writeWarning("PSCreator.create not implemeneted");
-  return this;
+  try {
+     PSCreator res = (PSCreator) this.clone();
+     res.writeColor(Color.BLACK); 
+     return res;
+  } catch(Exception e){
+    e.printStackTrace();
+    return this;
+  }
 }
 
 
@@ -327,12 +337,12 @@ public Font getFont(){
 
 public FontMetrics getFontMetrics(){
    Reporter.writeWarning("PSCreator.getFontMetrics not implemented");
-   return null;
+   return original.getFontMetrics();
 }
 
 public FontMetrics getFontMetrics(Font f){
    Reporter.writeWarning("PSCreator.getFontMetrics not implemented");
-   return null;
+   return original.getFontMetrics(f);
 }
 
 public  boolean hitClip(int x, int y, int width, int height) {
@@ -425,6 +435,7 @@ public void setComposite(Composite comp){
 
 public void setFont(Font f){
    this.font = f;
+   original.setFont(f);
    Reporter.writeWarning("PSCreator.setFont not implemeted");
 }
 
@@ -442,7 +453,7 @@ public void setPaint(Paint paint){
   if(paint==null) return;
 
   // paint already used
-  if(paint.equals(this.paint)) return;
+  // if(paint.equals(this.paint)) return;
   
   // assign this paint
   this.paint = paint;
@@ -529,12 +540,13 @@ public void shear(double shx, double shy){
 }
 
 public void translate(double tx, double ty) {
-   out.println(tx + " " + ty + " translate");
+   out.println(tx + " " + ty + " translate  ");
    affineTransform.translate(tx, ty);
 }
 
-public void translate(int x, int y){
-   Reporter.writeWarning("PSCreator.translate not implemented");
+public void translate(int tx, int ty){
+   out.println(tx + " " + ty + " translate");
+   affineTransform.translate(tx, ty);
 }
 
 
