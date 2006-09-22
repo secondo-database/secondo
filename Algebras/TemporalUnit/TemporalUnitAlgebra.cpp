@@ -347,7 +347,10 @@ void MPoint::MVelocity( MPoint& result ) const
   result.Clear();
 
   if ( !IsDefined() )
-    result.SetDefined( false );
+    {
+      result.SetDefined( false );
+      if(TUA_DEBUG) cout << "\nMPoint::MVelocity: undef unit" << endl;
+    }
   else
     {
       result.StartBulkLoad();
@@ -1657,8 +1660,8 @@ UnitPeriodsTypeMap( ListExpr args )
 */
 struct AtPeriodsLocalInfo
 {
-  Word uWord;     // the address of the unit point/int/real/string value
-  Word pWord;    //  the adress of the period value
+  Word uWord;     // the address of the unit value
+  Word pWord;    //  the adress of the periods value
   int  j;       //   save the number of the interval
 };
 
@@ -1698,6 +1701,11 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
     unit = (Mapping*)localinfo->uWord.addr;
     periods = (Periods*)localinfo->pWord.addr;
     
+    if( !unit->IsDefined()    || 
+        !periods->IsDefined() ||   // by now, periods cannot be undefined
+        periods->IsEmpty()       ) // only empty
+      return CANCEL;
+
     if( localinfo->j == periods->GetNoComponents() )
       return CANCEL;
     periods->Get( localinfo->j, interval );
@@ -1768,6 +1776,7 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
   Mapping resultUnit;
   Periods *periods;
   const Interval<Instant> *interval;
+  bool foundUnit = false;
 
   switch( message )
   { 
@@ -1793,6 +1802,10 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
     if ( localinfo->pWord.addr == 0 )
       { result.addr = 0; return CANCEL; }
     periods = (Periods *) localinfo->pWord.addr;
+
+    if( !periods->IsDefined() ||   // by now, periods cannot be undefined
+        periods->IsEmpty()       ) // only empty
+      return CANCEL;
     
     // search for a pair of overlapping unit/interval:
     while (1)
@@ -1800,11 +1813,16 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
 	if ( localinfo->j == periods->GetNoComponents() ) // redo first interval
 	  { localinfo->j = 0;
 	    unit->DeleteIfAllowed();                // delete original unit?
-	    qp->Request(args[0].addr, localinfo->uWord);  // get new unit
-	    if( qp->Received( args[0].addr ) )
-	      unit = (Mapping *) localinfo->uWord.addr;
-	    else 
-	      { result.addr = 0; return CANCEL; }   // end of unit stream
+            foundUnit = false;
+            while(!foundUnit)
+              {
+                qp->Request(args[0].addr, localinfo->uWord);  // get new unit
+                if( qp->Received( args[0].addr ) )
+                  unit = (Mapping *) localinfo->uWord.addr;
+                else 
+                  { result.addr = 0; return CANCEL; }   // end of unit stream
+                foundUnit = unit->IsDefined();
+              }
 	  }
 	periods->Get(localinfo->j, interval);       // get an interval
 	if (    !( interval->Before( unit->timeInterval ) )
@@ -1846,17 +1864,16 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
 */
 const string
 TemporalSpecAtPeriods  =
-"( ( \"Algebra\" \"Signature\" \"Signature (1)\" \"Signature (2)\" \"Syntax\""
-" \"Meaning\" \"Example (1)\" \"Example (2)\") "
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\") "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>For T in {int, bool, real, string, point, region}:</text--->"
-"<text>(uT periods) -> stream uT\n</text--->"
-"<text>((stream uT) periods) -> stream uT</text--->"
+"<text>For T in {int, bool, real, string, point, region}:\n"
+"(uT periods) -> stream uT\n"
+"((stream uT) periods) -> stream uT</text--->"
 "<text>_ atperiods _ </text--->"
 "<text>restrict the movement to the given"
 " periods.</text--->"
-"<text>upoint1 atperiods thehour(2003,11,11,8)</text--->"
-"<text>sfeed(upoint1) atperiods thehour(2003,11,11,8)</text--->) )";
+"<text>upoint1 atperiods thehour(2003,11,11,8)\n"
+"sfeed(upoint1) atperiods thehour(2003,11,11,8)</text--->) )";
 
 /* 
 5.9.4 Selection Function of operator ~atperiods~
@@ -2283,10 +2300,10 @@ int MappingUnitPasses( Word* args, Word& result, int message,
 */
 const string
 TemporalSpecPasses =
-"( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>(uT T) -> bool\n</text--->"
-"<text>for T in {bool, int, real*, string, point, region*}\n"
+"<text>(uT T) -> bool\n"
+"for T in {bool, int, real*, string, point, region*}\n"
 "(*): Not yet implemented</text--->"
 "<text>_ passes _ </text--->"
 "<text>whether the object unit passes the given"
@@ -2458,36 +2475,38 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
     {
     case OPEN :
       
-      cout << "\nMappingUnitAt_r: OPEN" << endl;
+      if(TUA_DEBUG) cout << "\nMappingUnitAt_r: OPEN" << endl;
       localinfo = new MappingUnitAt_rLocalInfo;
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
-      cout << "  1" << endl;
+      if(TUA_DEBUG) cout << "  1" << endl;
 
       a0 = args[0]; // qp->Request(args[0].addr, a0);
       uinput = (UReal*)(a0.addr);
-      cout << "  1.1" << endl;
+      if(TUA_DEBUG) cout << "  1.1" << endl;
 
       a1 = args[1]; // qp->Request(args[1].addr, a1);
       value = (CcReal*)(a1.addr);
-      cout << "  1.2" << endl;
+      if(TUA_DEBUG) cout << "  1.2" << endl;
 
-      cout << "  2" << endl;
+      if(TUA_DEBUG) cout << "  2" << endl;
 
-      cout << "  2.1: " << uinput->IsDefined() << endl;
-      cout << "  2.2: " << value->IsDefined() << endl;
+      if(TUA_DEBUG) cout << "  2.1: " << uinput->IsDefined() << endl;
+      if(TUA_DEBUG) cout << "  2.2: " << value->IsDefined() << endl;
 
       if ( !uinput->IsDefined() ||
 	   !value->IsDefined() )
 	{ // some input is undefined -> return empty stream
-	  cout << "  3: Some input is undefined. No result." << endl;
+	  if(TUA_DEBUG) cout << "  3: Some input is undefined. No result." 
+                             << endl;
 	  localinfo->NoOfResults = 0;
 	  localinfo->finished = true;
 	  local = SetWord(localinfo);
-	  cout << "\nMappingUnitAt_r: finished OPEN (1)" << endl;
+	  if(TUA_DEBUG) cout << "\nMappingUnitAt_r: finished OPEN (1)" 
+                             << endl;
 	  return 0;
 	}
-      cout << "  4" << endl;
+      if(TUA_DEBUG) cout << "  4" << endl;
 
       y = value->GetRealval();
       a = uinput->a;
@@ -2496,33 +2515,38 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
       r = uinput->r;
       deftime = uinput->timeInterval;
 
-      cout << "    The UReal is" << " a= " << a << " b= " 
-	   << b << " c= " << c << " r= " << r << endl;
-      cout << "    The Real is y=" << y << endl;
-      cout << "  5" << endl;
+      if(TUA_DEBUG) 
+        {cout << "    The UReal is" << " a= " << a << " b= " 
+              << b << " c= " << c << " r= " << r << endl;
+          cout << "    The Real is y=" << y << endl;
+          cout << "  5" << endl;
+        }
 	    
       if ( (a == 0) && (b == 0) )
 	{ // constant function. Possibly return input unit
-	  cout << "  6: 1st arg is a constant value" << endl;
+	  if(TUA_DEBUG) cout << "  6: 1st arg is a constant value" << endl;
 	  if (c != y)
 	    { // There will be no result, just an empty stream
-	      cout << "  7" << endl;
+	      if(TUA_DEBUG) cout << "  7" << endl;
 	      localinfo->NoOfResults = 0;
 	      localinfo->finished = true;
 	    }
 	  else
 		{ // Return the complete unit
-		  cout << "  8: Found constant solution" << endl;
-		  cout << "    T1=" << c << endl;
-		  cout << "    Tstart=" << deftime.start.ToDouble() << endl;
-		  cout << "    Tend  =" << deftime.end.ToDouble() << endl;
+		  if(TUA_DEBUG) 
+                    {
+                      cout << "  8: Found constant solution" << endl;
+                      cout << "    T1=" << c << endl;
+                      cout << "    Tstart=" << deftime.start.ToDouble() << endl;
+                      cout << "    Tend  =" << deftime.end.ToDouble() << endl;
+                    }
 		  localinfo->runits[localinfo->NoOfResults].addr
 		    = uinput->Copy();
 		  localinfo->NoOfResults++;
 		  localinfo->finished = false;
-		  cout << "  9" << endl;
+		  if(TUA_DEBUG) cout << "  9" << endl;
 		}
-	  cout << "  10" << endl;
+	  if(TUA_DEBUG) cout << "  10" << endl;
 	  local = SetWord(localinfo);
 	  cout << "\nMappingUnitAt_r: finished OPEN (2)" << endl;
 	  return 0;
@@ -2530,15 +2554,19 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
       if ( (a == 0) && (b != 0) )
 	{ // linear function. Possibly return input unit restricted 
 	  // to single value
-	  cout << "  11: 1st arg is a linear function" << endl;
+	  if(TUA_DEBUG) cout << "  11: 1st arg is a linear function" << endl;
 	  double T1 = (y - c)/b;
-	  cout << "    T1=" << T1 << endl;	  
-	  cout << "    Tstart=" << deftime.start.ToDouble() << endl;
-	  cout << "    Tend  =" << deftime.end.ToDouble() << endl;	  
+	  if(TUA_DEBUG) 
+            {
+              cout << "    T1=" << T1 << endl;	  
+              cout << "    Tstart=" << deftime.start.ToDouble() << endl;
+              cout << "    Tend  =" << deftime.end.ToDouble() << endl;	  
+            }
 	  t1.ReadFrom( T1 + deftime.start.ToDouble() );
 	  if (deftime.Contains(t1))
 	    { // value is contained by deftime
-	      cout << "  12: Found valid linear solution." << endl;
+	      if(TUA_cout) 
+                DEBUG << "  12: Found valid linear solution." << endl;
 	      localinfo->runits[localinfo->NoOfResults].addr = 
 		uinput->Copy();
 	      ((UReal*)(localinfo
@@ -2546,16 +2574,17 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 		->timeInterval = Interval<Instant>(t1, t1, true, true);
 	      localinfo->NoOfResults++;
 	      localinfo->finished = false;		  
-	      cout << "  13" << endl;
+	      if(TUA_DEBUG) cout << "  13" << endl;
 	    }
 	  else
 	    { // value is not contained by deftime -> no result
-	      cout << "  14: Found invalid linear solution." << endl;
+	      if(TUA_DEBUG) 
+                cout << "  14: Found invalid linear solution." << endl;
 	      localinfo->NoOfResults = 0;
 	      localinfo->finished = true;
-	      cout << "  15" << endl;
+	      if(TUA_DEBUG) cout << "  15" << endl;
 	    }
-	  cout << "  16" << endl;
+	  if(TUA_DEBUG) cout << "  16" << endl;
 	  local = SetWord(localinfo);
 	  cout << "\nMappingUnitAt_r: finished OPEN (3)" << endl;
 	  return 0;
@@ -2573,74 +2602,81 @@ The solution to the equation $at^2 + bt + c = y$ is
 
 
 */
-	  cout << "  18: 1st arg is a quadratic function" << endl;
+	  if(TUA_DEBUG) cout << "  18: 1st arg is a quadratic function" << endl;
 	  double T1 = (-b + sqrt(radicand)) / (2*a);
 	  double T2 = (-b - sqrt(radicand)) / (2*a);
-	  cout << "    T1=" << T1 << endl;
-	  cout << "    T2=" << T2 << endl;
-	  cout << "    Tstart=" << deftime.start.ToDouble() << endl;
-	  cout << "    Tend  =" << deftime.end.ToDouble() << endl;	  
+	  if(TUA_DEBUG) 
+            {
+              cout << "    T1=" << T1 << endl;
+              cout << "    T2=" << T2 << endl;
+              cout << "    Tstart=" << deftime.start.ToDouble() << endl;
+              cout << "    Tend  =" << deftime.end.ToDouble() << endl;	  
+            }
 	  t1.ReadFrom( T1 + deftime.start.ToDouble() );
 	  t2.ReadFrom( T2 + deftime.start.ToDouble() );
 	  
 	  // check, whether t1 contained by deftime
 	  if (deftime.Contains( t1 ))
 	    {
-	      cout << "  19: Found first quadratic solution" << endl;
+	      if(TUA_DEBUG) 
+                cout << "  19: Found first quadratic solution" << endl;
 	      rdeftime.start = t1;
 	      rdeftime.end = t1;
 	      localinfo->runits[localinfo->NoOfResults].addr = 
 		new UReal( rdeftime,a,b,c,r );
 	      localinfo->NoOfResults++;
 	      localinfo->finished = false;
-	      cout << "  20" << endl;
+	      if(TUA_DEBUG) cout << "  20" << endl;
 	    }
 	  // check, whether t2 contained by deftime
 	  if ( !(t1 == t2) && (deftime.Contains( t2 )) )
 	    {
-	      cout << "  21: Found second quadratic solution" << endl;
+	      if(TUA_DEBUG) 
+                cout << "  21: Found second quadratic solution" << endl;
 	      rdeftime.start = t2;
 	      rdeftime.end = t2;
 	      localinfo->runits[localinfo->NoOfResults].addr = 
 		new UReal( rdeftime,a,b,c,r );
 	      localinfo->NoOfResults++;
 	      localinfo->finished = false;
-	      cout << "  22" << endl;
+	      if(TUA_DEBUG) cout << "  22" << endl;
 	    }
 	}
       else // negative discreminant -> there is no real solution 
 	   //                          and no result unit
 	{
-	  cout << "  23: No real-valued solution" << endl;
+	  if(TUA_DEBUG) cout << "  23: No real-valued solution" << endl;
 	  localinfo->NoOfResults = 0;
 	  localinfo->finished = true;
-	  cout << "  24" << endl;
+	  if(TUA_DEBUG) cout << "  24" << endl;
 	}
-      cout << "  25" << endl;
+      if(TUA_DEBUG) cout << "  25" << endl;
       local = SetWord(localinfo);
       cout << "\nMappingUnitAt_r: finished OPEN (4)" << endl;
       return 0;
       
     case REQUEST :
       
-      cout << "\nMappingUnitAt_r: REQUEST" << endl;
+      if(TUA_DEBUG) cout << "\nMappingUnitAt_r: REQUEST" << endl;
       if (local.addr == 0)
 	{
 	  cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (1)" << endl;
 	  return CANCEL;
 	}
       localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
-      cout << "\n   localinfo: finished=" << localinfo->finished 
-	   << " NoOfResults==" << localinfo->NoOfResults << endl;
+      if(TUA_DEBUG) cout << "\n   localinfo: finished=" << localinfo->finished 
+                         << " NoOfResults==" << localinfo->NoOfResults << endl;
 
       if (localinfo->finished)
 	{
-	  cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (2)" << endl;
+	  if(TUA_DEBUG) 
+            cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (2)" << endl;
 	  return CANCEL;
 	}
       if ( localinfo->NoOfResults <= 0 )
 	{ localinfo->finished = true;
-	  cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (3)" << endl;
+	  if(TUA_DEBUG) 
+            cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (3)" << endl;
 	  return CANCEL;
 	}
       localinfo->NoOfResults--;
@@ -2649,12 +2685,12 @@ The solution to the equation $at^2 + bt + c = y$ is
 			->Clone() );
       ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
 	->DeleteIfAllowed();
-      cout << "\nMappingUnitAt_r: finished REQUEST YIELD" << endl;
+      if(TUA_DEBUG) cout << "\nMappingUnitAt_r: finished REQUEST YIELD" << endl;
       return YIELD;
       
     case CLOSE :
 
-      cout << "\nMappingUnitAt_r: CLOSE" << endl;
+      if(TUA_DEBUG) cout << "\nMappingUnitAt_r: CLOSE" << endl;
       if (local.addr != 0)
 	{
 	  localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
@@ -2663,7 +2699,7 @@ The solution to the equation $at^2 + bt + c = y$ is
 	      ->DeleteIfAllowed();
 	  delete localinfo;
 	}
-      cout << "\nMappingUnitAt_r: finished CLOSE" << endl;
+      if(TUA_DEBUG) cout << "\nMappingUnitAt_r: finished CLOSE" << endl;
       return 0;
     } // end switch
   
@@ -3404,10 +3440,10 @@ int MappingSFeed( Word* args, Word& result, int message,
 */
 const string
 TemporalSpecSfeed=
-"( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>For T in kind DATA </text--->"
-"<text>T -> (stream T)</text--->"
+"<text>For T in kind DATA:\n"
+"T -> (stream T)</text--->"
 "<text>sfeed ( _ ) </text--->"
 "<text>create a single-value stream from "
 "a single value.</text--->"
@@ -3905,7 +3941,7 @@ TypeMapSuse2( ListExpr args )
       sresType = nl->TwoElemList(nl->SymbolAtom("stream"), mres);  
     }
 
-  cout << "TypeMapSuse2: 7" << endl;
+  if(TUA_DEBUG) cout << "TypeMapSuse2: 7" << endl;
 
   // 7. This check can be removed when operators working on tuplestreams have
   //    been implemented:
@@ -3966,13 +4002,13 @@ int Suse_SN( Word* args, Word& result, int message,
     {
     case OPEN :
       
-      // cout << "Suse_SN received OPEN" << endl;
+      if(TUA_DEBUG) cout << "Suse_SN received OPEN" << endl;
       sli = new SuseLocalInfo;
       sli->Xfinished = true;
       qp->Open(instream.addr);
       sli->Xfinished = false;
       local = SetWord(sli);
-      // cout << "Suse_SN finished OPEN" << endl;
+      if(TUA_DEBUG) cout << "Suse_SN finished OPEN" << endl;
       return 0;
       
     case REQUEST :
@@ -3981,17 +4017,17 @@ int Suse_SN( Word* args, Word& result, int message,
       // pass it to the parameter function and evalute the latter.
       // The result is simply passed on.
 
-      // cout << "Suse_SN received REQUEST" << endl;
+      if(TUA_DEBUG) cout << "Suse_SN received REQUEST" << endl;
       if( local.addr == 0 )
 	{
-	  // cout << "Suse_SN finished REQUEST: CANCEL (1)" << endl;  
+	  if(TUA_DEBUG) cout << "Suse_SN finished REQUEST: CANCEL (1)" << endl;
 	  return CANCEL;
 	}
       sli = (SuseLocalInfo*)local.addr;
       
       if (sli->Xfinished)
 	{
-	  // cout << "Suse_SN finished REQUEST: CANCEL (2)" << endl;  
+	  if(TUA_DEBUG) cout << "Suse_SN finished REQUEST: CANCEL (2)" << endl;
 	  return CANCEL;
 	}
       
@@ -4006,9 +4042,11 @@ int Suse_SN( Word* args, Word& result, int message,
 	  // copy result:
 	  result = SetWord(((Attribute*) (funResult.addr))->Clone());
 	  ((Attribute*) (argValue.addr))->DeleteIfAllowed(); // delete argument
-	  //cout << "        result.addr    =" << result.addr << endl;
+	  if(TUA_DEBUG) 
+            cout << "        result.addr    =" << result.addr << endl;
 	  argValue.addr = 0;
-	  // cout << "Suse_SN finished REQUEST: YIELD" << endl;
+	  if(TUA_DEBUG) 
+            cout << "Suse_SN finished REQUEST: YIELD" << endl;
 	  return YIELD;
 	}
       else // (input stream consumed completely)
@@ -4016,13 +4054,14 @@ int Suse_SN( Word* args, Word& result, int message,
 	  qp->Close(instream.addr);
 	  sli->Xfinished = true;
 	  result.addr = 0;
-	  // cout << "Suse_SN finished REQUEST: CANCEL (3)" << endl;  
+	  if(TUA_DEBUG) 
+            cout << "Suse_SN finished REQUEST: CANCEL (3)" << endl;  
 	  return CANCEL;
 	}
       
     case CLOSE :
       
-      // cout << "Suse_SN received CLOSE" << endl;
+      if(TUA_DEBUG) cout << "Suse_SN received CLOSE" << endl;
       if( local.addr != 0 )
 	{
 	  sli = (SuseLocalInfo*)local.addr;
@@ -4030,7 +4069,7 @@ int Suse_SN( Word* args, Word& result, int message,
 	    qp->Close( instream.addr );
 	  delete sli;
 	}
-      // cout << "Suse_SN finished CLOSE" << endl;
+      if(TUA_DEBUG) cout << "Suse_SN finished CLOSE" << endl;
       return 0;
       
     }  // end switch
@@ -4074,7 +4113,7 @@ int Suse_SS( Word* args, Word& result, int message,
     // If the inner stream is consumed, we try to get a new value
     // from the 'outer' stream and re-open the inner stream 
     
-    // cout << "\nSuse_SS: Received REQUEST";
+    if(TUA_DEBUG) cout << "\nSuse_SS: Received REQUEST";
     //1. recover local information
     if( local.addr == 0 )
       return CANCEL;
@@ -4103,7 +4142,7 @@ int Suse_SS( Word* args, Word& result, int message,
 	  { // cloning and passing the result
 	    result = SetWord(((Attribute*) (funResult.addr))->Clone());
 	    ((Attribute*) (funResult.addr))->DeleteIfAllowed(); 
-	    // cout << "     result.addr=" << result.addr << endl;
+	    if(TUA_DEBUG) cout << "     result.addr=" << result.addr << endl;
 	    return YIELD;      
 	  }
 	else 
@@ -4148,7 +4187,7 @@ int Suse_SNN( Word* args, Word& result, int message,
     {
     case OPEN :
       
-      // cout << "\nSuse_SNN received OPEN" << endl;
+      if(TUA_DEBUG) cout << "\nSuse_SNN received OPEN" << endl;
       sli = new SuseLocalInfo ;
       sli->Xfinished = true;
       sli->X.addr = 0;
@@ -4160,8 +4199,9 @@ int Suse_SNN( Word* args, Word& result, int message,
 	{ 
 	  delete( sli );
 	  local.addr = 0;
-	  cout << "\nSuse_SNN was called with stream result mapping!" 
-	       <<  endl;
+	  if(TUA_DEBUG) 
+            cout << "\nSuse_SNN was called with stream result mapping!" 
+                 <<  endl;
 	  return 0;
 	}
       if(sli->argConfDescriptor & 1)
@@ -4180,7 +4220,7 @@ int Suse_SNN( Word* args, Word& result, int message,
       // qp->Request(sli->Y.addr, sli->Y);   // save value of constant argument
 
       local = SetWord(sli);
-      // cout << "Suse_SNN finished OPEN" << endl;
+      if(TUA_DEBUG) cout << "Suse_SNN finished OPEN" << endl;
       return 0;
       
     case REQUEST :
@@ -4190,20 +4230,20 @@ int Suse_SNN( Word* args, Word& result, int message,
       // function and evalute the latter. The result is simply passed on.
       // sli->X is the stream, sli->Y the constant argument.
 
-      //cout << "Suse_SNN received REQUEST" << endl;
+      if(TUA_DEBUG) cout << "Suse_SNN received REQUEST" << endl;
 
       // 1. get local data object
       if (local.addr == 0)
 	{
 	  result.addr = 0;
-	  // cout << "Suse_SNN finished REQUEST: CLOSE (1)" << endl;
+	  if(TUA_DEBUG) cout << "Suse_SNN finished REQUEST: CLOSE (1)" << endl;
 	  return CANCEL;
 	}
       sli = (SuseLocalInfo*) local.addr;
       if (sli->Xfinished)
 	{ // stream already exhausted earlier
 	  result.addr = 0;
-	  // cout << "Suse_SNN finished REQUEST: CLOSE (2)" << endl;
+	  if(TUA_DEBUG) cout << "Suse_SNN finished REQUEST: CLOSE (2)" << endl;
 	  return CANCEL;
 	}
       
@@ -4213,7 +4253,7 @@ int Suse_SNN( Word* args, Word& result, int message,
 	{ // stream exhausted now
 	  qp->Close( sli->X.addr );
 	  sli->Xfinished = true;
-	  // cout << "Suse_SNN finished REQUEST: CLOSE (3)" << endl;
+	  if(TUA_DEBUG) cout << "Suse_SNN finished REQUEST: CLOSE (3)" << endl;
 	  return CANCEL;
 	}
       
@@ -4231,14 +4271,14 @@ int Suse_SNN( Word* args, Word& result, int message,
 	}
       qp->Request( sli->fun.addr, funresult );     
       result = SetWord(((Attribute*) (funresult.addr))->Clone());
-      //cout << "     result.addr=" << result.addr << endl;
+      if(TUA_DEBUG) cout << "     result.addr=" << result.addr << endl;
       ((Attribute*) (xval.addr))->DeleteIfAllowed(); 
-      //cout << "Suse_SNN finished REQUEST: YIELD" << endl;
+      if(TUA_DEBUG) cout << "Suse_SNN finished REQUEST: YIELD" << endl;
       return YIELD;
 
     case CLOSE :
       
-      //cout << "Suse_SNN received CLOSE" << endl;
+      if(TUA_DEBUG) cout << "Suse_SNN received CLOSE" << endl;
       if( local.addr != 0 )
 	{
 	  sli = (SuseLocalInfo*)local.addr;
@@ -4246,7 +4286,7 @@ int Suse_SNN( Word* args, Word& result, int message,
 	    qp->Close( sli->X.addr ); // close input
 	  delete sli;
 	}
-      //cout << "Suse_SNN finished CLOSE" << endl;
+      if(TUA_DEBUG) cout << "Suse_SNN finished CLOSE" << endl;
       return 0;
       
     }  // end switch
@@ -4269,7 +4309,7 @@ int Suse_SNS( Word* args, Word& result, int message,
     {
     case OPEN :
       
-      // cout << "\nSuse_SNS received OPEN" << endl;
+      if(TUA_DEBUG) cout << "\nSuse_SNS received OPEN" << endl;
       sli = new SuseLocalInfo ;
       sli->Xfinished   = true;
       sli->funfinished = true;
@@ -4304,7 +4344,7 @@ int Suse_SNS( Word* args, Word& result, int message,
       sli->Xfinished = false;
       sli->fun = SetWord(args[2].addr);
       local = SetWord(sli);
-      // cout << "Suse_SNN finished OPEN" << endl;
+      if(TUA_DEBUG) cout << "Suse_SNN finished OPEN" << endl;
       return 0;
       
     case REQUEST :
@@ -4315,7 +4355,7 @@ int Suse_SNS( Word* args, Word& result, int message,
       // sli->X is a pointer to the OUTER stream, 
       // sli->Y is a pointer to the constant argument.
 
-      // cout << "Suse_SNN received REQUEST" << endl;
+      if(TUA_DEBUG) cout << "Suse_SNN received REQUEST" << endl;
 
       // 1. get local data object
       if (local.addr == 0)
@@ -4335,7 +4375,8 @@ int Suse_SNS( Word* args, Word& result, int message,
 	      if (!qp->Received(sli->X.addr))
 		{ // stream X exhaused. CANCEL
 		  sli->Xfinished = true;
-		  // cout << "Suse_SNN finished REQUEST: CLOSE (3)" << endl;
+		  if(TUA_DEBUG) 
+                    cout << "Suse_SNN finished REQUEST: CLOSE (3)" << endl;
 		  return CANCEL;
 		}
 	      funargs = qp->Argument( sli->fun.addr );
@@ -4357,8 +4398,11 @@ int Suse_SNS( Word* args, Word& result, int message,
 	    { // inner stream returned a result
 	      result = SetWord(((Attribute*) (funresult.addr))->Clone());
 	      ((Attribute*) (funresult.addr))->DeleteIfAllowed(); 
-	      // cout << "     result.addr=" << result.addr << endl;
-	      // cout << "Suse_SNN finished REQUEST: YIELD" << endl;	  
+	      if(TUA_DEBUG) 
+                {
+                  cout << "     result.addr=" << result.addr << endl;
+                  cout << "Suse_SNN finished REQUEST: YIELD" << endl;
+                }
 	      return YIELD;
 	    }
 	  else{ // inner stream exhausted
@@ -4374,7 +4418,7 @@ int Suse_SNS( Word* args, Word& result, int message,
 
     case CLOSE :
       
-      // cout << "Suse_SNN received CLOSE" << endl;
+      if(TUA_DEBUG) cout << "Suse_SNN received CLOSE" << endl;
       if( local.addr != 0 )
 	{
 	  sli = (SuseLocalInfo*)local.addr;
@@ -4384,7 +4428,7 @@ int Suse_SNS( Word* args, Word& result, int message,
 	    qp->Close( sli->X.addr );   // close outer stream
 	  delete sli;
 	}
-      // cout << "Suse_SNN finished CLOSE" << endl;
+      if(TUA_DEBUG) cout << "Suse_SNN finished CLOSE" << endl;
       return 0;
       
     }  // end switch
@@ -4405,7 +4449,7 @@ int Suse_SSN( Word* args, Word& result, int message,
     {
     case OPEN :
       
-      //cout << "\nSuse_SSN received OPEN" << endl;
+      if(TUA_DEBUG) cout << "\nSuse_SSN received OPEN" << endl;
       sli = new SuseLocalInfo ;
       sli->Xfinished = true;
       sli->Yfinished = true;
@@ -4434,7 +4478,7 @@ int Suse_SSN( Word* args, Word& result, int message,
       qp->Open(sli->X.addr);            // open outer stream argument
       sli->Xfinished = false;
       local = SetWord(sli);
-      //cout << "Suse_SSN finished OPEN" << endl;
+      if(TUA_DEBUG) cout << "Suse_SSN finished OPEN" << endl;
       return 0;
       
     case REQUEST :
@@ -4446,13 +4490,13 @@ int Suse_SSN( Word* args, Word& result, int message,
       // We also need to delete each element, when it is not required
       // anymore.
 
-      //cout << "Suse_SSN received REQUEST" << endl;
+      if(TUA_DEBUG) cout << "Suse_SSN received REQUEST" << endl;
 
       // get local data object
       if (local.addr == 0)
 	{
 	  result.addr = 0;
-	  //cout << "Suse_SSN finished REQUEST: CLOSE (1)" << endl;
+	  if(TUA_DEBUG) cout << "Suse_SSN finished REQUEST: CLOSE (1)" << endl;
 	  return CANCEL;
 	}
       sli = (SuseLocalInfo*) local.addr;
@@ -4467,7 +4511,8 @@ int Suse_SSN( Word* args, Word& result, int message,
 		  qp->Close(sli->X.addr);
 		  sli->Xfinished = true;
 		  result.addr = 0;
-		  //cout << "Suse_SSN finished REQUEST: CANCEL (2)" << endl;
+		  if(TUA_DEBUG) 
+                    cout << "Suse_SSN finished REQUEST: CANCEL (2)" << endl;
 		  return CANCEL;
 		} 
 	      // Got next X-elem. (Re-)Start inner instream:
@@ -4492,16 +4537,16 @@ int Suse_SSN( Word* args, Word& result, int message,
 	      qp->Request( sli->fun.addr, funresult );
 	      result = SetWord(((Attribute*) (funresult.addr))->Clone());
 	      ((Attribute*) (sli->YVal.addr))->DeleteIfAllowed(); 
-	      //cout << "Suse_SSN finished REQUEST: YIELD" << endl;
+	      if(TUA_DEBUG) cout << "Suse_SSN finished REQUEST: YIELD" << endl;
 	      return YIELD;
 	    }
 	} // end while
-      //cout << "Suse_SSN finished REQUEST: CANCEL (3)" << endl;
+      if(TUA_DEBUG) cout << "Suse_SSN finished REQUEST: CANCEL (3)" << endl;
       return CANCEL;
       
     case CLOSE :
       
-      //cout << "Suse_SSN received CLOSE" << endl;
+      if(TUA_DEBUG) cout << "Suse_SSN received CLOSE" << endl;
       if( local.addr != 0 )
 	{
 	  sli = (SuseLocalInfo*)local.addr;
@@ -4516,7 +4561,7 @@ int Suse_SSN( Word* args, Word& result, int message,
 	  delete sli;
 	}
       result.addr = 0;
-      //cout << "Suse_SSN finished CLOSE" << endl;
+      if(TUA_DEBUG) cout << "Suse_SSN finished CLOSE" << endl;
       return 0;
       
     }  // end switch
@@ -4539,7 +4584,7 @@ int Suse_SSS( Word* args, Word& result, int message,
     {
     case OPEN :
       
-      //cout << "\nSuse_SSS received OPEN" << endl;
+      if(TUA_DEBUG) cout << "\nSuse_SSS received OPEN" << endl;
       sli = new SuseLocalInfo ;
       sli->Xfinished   = true;
       sli->Yfinished   = true;
@@ -4568,7 +4613,7 @@ int Suse_SSS( Word* args, Word& result, int message,
       qp->Open(sli->X.addr);            // open X stream argument      
       sli->Xfinished = false;
       local = SetWord(sli);
-      //cout << "Suse_SSS finished OPEN" << endl;
+      if(TUA_DEBUG) cout << "Suse_SSS finished OPEN" << endl;
       return 0;
       
     case REQUEST :
@@ -4589,7 +4634,7 @@ int Suse_SSS( Word* args, Word& result, int message,
       if (local.addr == 0)
 	{
 	  result.addr = 0;
-	  //cout << "Suse_SSS finished REQUEST: CLOSE (1)" << endl;
+	  if(TUA_DEBUG) cout << "Suse_SSS finished REQUEST: CLOSE (1)" << endl;
 	  return CANCEL;
 	}
       sli = (SuseLocalInfo*) local.addr;
@@ -4604,7 +4649,8 @@ int Suse_SSS( Word* args, Word& result, int message,
 		{ // X-instream exhaused
 		  qp->Close(sli->X.addr);
 		  sli->Xfinished = true;
-		  //cout << "Suse_SSS finished REQUEST: CANCEL (2)" << endl;
+		  if(TUA_DEBUG) 
+                    cout << "Suse_SSS finished REQUEST: CANCEL (2)" << endl;
 		  result.addr = 0;
 		  return CANCEL;
 		} 
@@ -4642,7 +4688,8 @@ int Suse_SSS( Word* args, Word& result, int message,
 		{ // got a value from map result stream
 		  result=SetWord(((Attribute*)(funresult.addr))->Clone());
 		  ((Attribute*) (funresult.addr))->DeleteIfAllowed();
-		  //cout << "Suse_SSS finished REQUEST: YIELD" << endl;
+		  if(TUA_DEBUG) 
+                    cout << "Suse_SSS finished REQUEST: YIELD" << endl;
 		  return YIELD;
 		}
 	      else
@@ -4654,12 +4701,12 @@ int Suse_SSS( Word* args, Word& result, int message,
 	    }
 	} // end while
       result.addr = 0;
-      //cout << "Suse_SSS finished REQUEST: CANCEL (3)" << endl;
+      if(TUA_DEBUG) cout << "Suse_SSS finished REQUEST: CANCEL (3)" << endl;
       return CANCEL;
       
     case CLOSE :
       
-      //cout << "Suse_SSS received CLOSE" << endl;
+      if(TUA_DEBUG) cout << "Suse_SSS received CLOSE" << endl;
       if( local.addr != 0 )
 	{
 	  sli = (SuseLocalInfo*)local.addr;
@@ -4679,7 +4726,7 @@ int Suse_SSS( Word* args, Word& result, int message,
 	    qp->Close( sli->X.addr ); // close outer instream
 	  delete sli;
 	}
-      //cout << "Suse_SSS finished CLOSE" << endl;
+      if(TUA_DEBUG) cout << "Suse_SSS finished CLOSE" << endl;
       return 0;
       
     }  // end switch
@@ -5274,8 +5321,7 @@ int TUDistance_UInt_Int( Word* args, Word& result, int message,
 */
 
 const string TemporalSpecDistance = 
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "(<text>TemporalUnitAlgebra</text--->" 
   "<text>For T in {point, int}:\n"
   "(uT uT) -> ureal\n"
