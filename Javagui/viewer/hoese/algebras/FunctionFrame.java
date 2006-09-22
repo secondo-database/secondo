@@ -24,6 +24,8 @@ import java.awt.event.*;
 import java.awt.geom.*;
 import java.awt.*;
 import viewer.hoese.DateTime;
+import java.io.*;
+import tools.Reporter;
 
 
 
@@ -60,8 +62,28 @@ public class FunctionFrame extends JFrame{
              }
       });
 
-      getContentPane().add(closeBtn,BorderLayout.SOUTH);
+      JPanel controlPanel = new JPanel();
+      controlPanel.add(saveBtn);
+      controlPanel.add(closeBtn);
+      getContentPane().add(controlPanel,BorderLayout.SOUTH);
       addMagnifier();
+      // initialize filechooser
+      javax.swing.filechooser.FileFilter ff = new javax.swing.filechooser.FileFilter(){
+            public String getDescription(){
+              return ("eps graphics");
+            }
+            public boolean accept(File f){
+              if(f==null) return false;
+              return f.getName().endsWith("eps");
+            }
+      };
+      fc.setFileFilter(ff);
+      saveBtn.addActionListener(new ActionListener(){
+          public void actionPerformed(ActionEvent evt){
+             exportToPS();
+          }
+      });
+
    }
     private void addMagnifier(){
       functionpanel.addMouseListener(new MouseAdapter(){
@@ -98,6 +120,28 @@ public class FunctionFrame extends JFrame{
       return function;
    }
 
+   private void exportToPS(){
+     if(fc.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
+        try{
+          PrintStream out = new PrintStream(new FileOutputStream(fc.getSelectedFile()));
+          extern.psexport.PSCreator psc = new extern.psexport.PSCreator(out,(Graphics2D)getGraphics());
+          FunctionPanel fp = functionpanel;
+          Rectangle2D.Double R = new Rectangle2D.Double(0,0,fp.getWidth(),fp.getHeight());
+          psc.writeHeader(R);
+          fp.showCross(false);
+          fp.showY(false);
+          fp.printAll(psc);
+          fp.showCross(true);
+          fp.showY(true);
+          psc.showPage();
+          out.close();
+        } catch(Exception e){
+           Reporter.showError("Error in exporting graphic");
+           Reporter.debug(e);
+        }
+     }
+   }
+
    FunctionPanel functionpanel = new FunctionPanel();
    Function function;
    JLabel TimeLabel = new JLabel(" ");
@@ -105,7 +149,10 @@ public class FunctionFrame extends JFrame{
    Point2D.Double P = new Point2D.Double();
    Point2D.Double MP = new Point2D.Double();
    JButton closeBtn = new JButton("close");
+   JButton saveBtn = new JButton("export to ps");
    JScrollPane functionSP;
+
+   static JFileChooser fc = new JFileChooser();
 
 }
 

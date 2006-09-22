@@ -17,7 +17,7 @@ private PrintStream out = null;
 // use white background
 private Color background = new Color(1,1,1);
 // the current color
-private Color color = new Color(1,1,1);
+private Color color = new Color(0,0,0);
 // the last assigned paint
 private Paint paint = new Color(0,0,0);
 private Composite composite;
@@ -84,7 +84,7 @@ public Graphics create(){
 }
 
 public Graphics create(int x, int y, int width, int height){
-  Reporter.writeWarning("PSCreator.create not implemeneted");
+  Reporter.writeWarning("PSCreator.create not implemented completely");
   try {
      PSCreator res = (PSCreator) this.clone();
      res.writeColor(Color.BLACK); 
@@ -109,16 +109,18 @@ public void dispose(){
 
 public void draw(Shape s){
    writePath(s);
-   out.println("stroke");
+   out.println("stroke newpath");
 }
 
 public void draw3DRect(int x, int y, int width, int height, boolean raised){
-   Reporter.writeWarning("PSCreator.draw3DRect not implemented");
+   Reporter.writeWarning("PSCreator.draw3DRect paints only a simple rectangle");
+   drawRect(x,y,width,height);
 }
 
 public void drawArc(int x, int y, int width, int height, 
                     int startAngle, int arcAngle) {
-   Reporter.writeWarning("PSCreator.drawArc not implemented");
+   out.println("newpath");
+   out.println(""+x+" "+y+" "+width+" "+height+" "+startAngle+" "+arcAngle+startAngle+" ellipse stroke newpath"); 
 }
 
 public void drawBytes(byte[] data, int offset, int length, int x, int y){
@@ -194,7 +196,8 @@ public void drawLine(int x1, int y1, int x2, int y2) {
 }
 
 public void drawOval(int x, int y, int width, int height){
-   Reporter.writeWarning("PSCreator.drawOval not implemented");
+   out.println("newpath");
+   out.println(""+x+" "+y+" "+width+" "+height+" 0 360 ellipse stroke newpath");
 }
 
 public void drawPolygon(int[] xPoints, int[] yPoints, int nPoints){
@@ -229,7 +232,8 @@ public void drawRect(int x, int y, int width, int height){
 
 public void drawRoundRect(int x, int y, int width, int height, 
                           int arcWidth, int arcHeight){
-    Reporter.writeError("PSCreator.drawRoundRect not implemented");
+    Reporter.writeError("PSCreator.drawRoundRect paints only a simple rectangle");
+    drawRect(x,y,width,height);
 }
 
 
@@ -251,12 +255,14 @@ public void drawString(AttributedCharacterIterator iterator, int x, int y) {
 }
 
 public void drawString(String s, float x, float y){
+  writeColor(color);
   out.println("newpath");
   out.println(x + " " + (maxy-y) + " moveto");
   out.println("("+s+")  show");
 }
 
 public void drawString(String str, int x, int y) {
+  writeColor(color);
   out.println("newpath");
   out.println(x + " " + (maxy-y) + " moveto");
   out.println("("+str+")  show");
@@ -274,16 +280,22 @@ public void fill(Shape s){
 }
 
 public void fill3DRect(int x, int y, int width, int height, boolean raised){
-   Reporter.writeWarning("PSCreator.fill3DRect not implemented");
+   Reporter.debug("PSCreator.fill3DRect paints only a simple rectangle");
+   fillRect(x,y,width,height);
+   writeColor(Color.BLACK);
+   drawRect(x,y,width,height);
+   writeColor(color);
 }
 
 public void fillArc(int x, int y, int width, int height, int startAngle,
                     int arcAngle){
-   Reporter.writeWarning("PSCreator.fillArc not implemented");
+   out.println("newpath");
+   out.println(""+x+" "+y+" "+width+" "+height+" "+startAngle+" "+arcAngle+startAngle+" ellipse fill newpath"); 
 }
 
 public void fillOval(int x, int y, int width, int height){
-    Reporter.writeWarning("PSCreator.fillOval not implemented");
+   out.println("newpath");
+   out.println(""+x+" "+y+" "+width+" "+height+" 0 360 ellipse fill newpath");
 }
 
 public void fillPolygon(int[] xPoints, int[] yPoints, int nPoints){
@@ -308,7 +320,8 @@ public void fillRect(int x, int y, int width, int height){
 
 public void fillRoundRect(int x, int y, int width, int height, 
                           int arcWidth, int arcHeight){
-   Reporter.writeWarning("PSCreator.fillRoundRect not implemented");
+   Reporter.writeWarning("PSCreator.fillRoundRect paints only a simple reactangle");
+   fillRect(x,y,width,height);
 }
 
 public Shape getClip(){
@@ -404,13 +417,12 @@ public  void rotate(double theta, double x, double y) {
 }
 
 public void scale(double sx, double sy) {
-  out.println(sx + " " + sy + "  scale");
+  out.println("matrix "+sx + " " + sy + "  scale setmatrix");
   affineTransform.scale(sx, sy);
 }
 
 public void setBackground(Color C){
    background = C;
-   Reporter.writeWarning("background not supported by PSCreator");
 }
 
 public void setClip(int x, int y, int width, int height){
@@ -437,6 +449,8 @@ public void setFont(Font f){
    this.font = f;
    original.setFont(f);
    Reporter.writeWarning("PSCreator.setFont not implemeted");
+//   out.println("/"+f.getFontName()+" "+f.getSize()+" selectfont");
+
 }
 
 public void setPaintMode() {
@@ -462,7 +476,7 @@ public void setPaint(Paint paint){
      this.color = (Color) paint;
      writeColor(this.color);
   } else{
-     Reporter.writeWarning("PSCreator.setPaint supports only colors ");
+     Reporter.writeError("PSCreator.setPaint supports only colors ");
   }
 }
 
@@ -540,13 +554,17 @@ public void shear(double shx, double shy){
 }
 
 public void translate(double tx, double ty) {
-   out.println(tx + " " + ty + " translate  ");
+   //out.println(tx + " " + (maxy-ty) + " matrix translate setmatrix 1 -1 scale");
+   //affineTransform.setToTranslation(tx, ty);
+   out.println(tx + " " + ty + " translate");
    affineTransform.translate(tx, ty);
+
+   
+
 }
 
 public void translate(int tx, int ty){
-   out.println(tx + " " + ty + " translate");
-   affineTransform.translate(tx, ty);
+   translate((double) tx, (double) ty);
 }
 
 
@@ -569,6 +587,20 @@ public void writeHeader(Rectangle2D bounds){
                                 (bounds.getWidth()-bounds.getX())+ " " +
                                 (bounds.getHeight()-bounds.getY()));
   out.println("%%EndComments");
+  out.println("/ellipse {");
+  out.println("/endangle exch def");
+  out.println("/startangle exch def");
+  out.println("/yrad exch def");
+  out.println("/xrad exch def");
+  out.println("/y exch def");
+  out.println("/x exch def");
+  out.println("/savematrix matrix currentmatrix def");
+  out.println("x y translate");
+  out.println("xrad yrad scale");
+  out.println("0 0 1 startangle endangle arc");
+  out.println("savematrix setmatrix");
+  out.println("} def" );
+
   out.println("/Helvetica 12 selectfont");
   maxy = bounds.getHeight()-bounds.getY();
 

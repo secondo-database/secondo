@@ -71,6 +71,7 @@ public void paint(Graphics g){
        return;
 
     width=getWidth()-2*borderSize;
+    g.setColor(Color.BLACK);
     int height=getHeight()-2*borderSize;
     if(!GPcomputed){
        if(!y_computed)
