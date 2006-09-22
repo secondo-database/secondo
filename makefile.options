@@ -27,13 +27,16 @@ DEBUG = -ggdb
 
 # The next flag instructs the preprocessor to report the hierachy
 # of include instructions. 
-# DEBUG += -Wp, -H
+#DEBUG += -Wp, -H
 
-# Uncomment next line to comile with code optimizations.
-# OPTIMIZE = -finline-functions -O2
+# Note: The flags below print out all defined symbols the preprocessor knows
+# gcc -dM -E <file>
 
-# Use special optimizations for a given cpu, e.g. 
-# OPTIMIZE += -mcpu=athlon-xp  
+# Uncomment one of the next lines to comile with code optimizations. 
+#OPTIMIZE = -O1 -finline-functions -Winline
+
+# Use more optimizations
+#OPTIMIZE += -O2 -finline-functions -mcpu=athlon-xp  
 
 # Do not use assertions. Currently, this does not work
 # since some code uses assertions to check if functions
@@ -68,8 +71,7 @@ DEFAULTCCFLAGS += -DRELALG_PERSISTENT
 # memory. This is needed if you want to restore large objects. 
 DEFAULTCCFLAGS += -DNL_PERSISTENT
 
-# Flag to compile SecondoPL with the maximize_entropy predicate
-# For details refer to directory Optimizer/Entropy. 
-# Uncomment next line to use it.
-ENTROPY := true
+#DEFAULTCCFLAGS += -DTRACE_ON
+
+include $(SECONDO_BUILD_DIR)/makefile.nonpublic
 

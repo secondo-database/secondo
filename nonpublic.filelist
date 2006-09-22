@@ -24,12 +24,16 @@ Data/Objects/Distrikte
 # Files by Name
 
 nonpublic.filelist
+makefile.nonpublic
+
 CM-Scripts/cvs-make.sh
 CM-Scripts/cvs-chgrp.sh
 CM-Scripts/cvspass.pl
 CM-Scripts/mkpublic.sh
 CM-Scripts/public-version.pd
+
 Data/Objects/KreisLaender
+
 Javagui/viewer/hoese/algebras/periodic/BBox.java
 Javagui/viewer/hoese/algebras/periodic/LinearMove.java
 Javagui/viewer/hoese/algebras/periodic/PMPLinear.java
@@ -51,9 +55,13 @@ Javagui/viewer/hoese/algebras/Dsplpmrect.java
 Javagui/viewer/hoese/algebras/Dsplpmregion.java
 Javagui/tools/MovingPointBuilder.java
 Javagui/tools/PeriodicPointBuilder.java
+
 Documents/JavaWrapper.pdf
+
 Optimizer/adaptiveJoin.pl
+
 bin/geo
+
 Tests/Testspecs/partstream.test
 
 # Files by Extension
