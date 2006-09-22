@@ -928,7 +928,7 @@ public class HoeseViewer extends SecondoViewer {
              try{
                 File F = FC_Images.getSelectedFile();
                 PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(F)));
-                extern.psexport.PSCreator psc = new extern.psexport.PSCreator(out);
+                extern.psexport.PSCreator psc = new extern.psexport.PSCreator(out,(Graphics2D)HoeseViewer.this.getGraphics());
                 psc.writeHeader(R);
                 GraphDisplay.printAll(psc);
                 psc.showPage(); 
