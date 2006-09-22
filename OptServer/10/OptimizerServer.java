@@ -146,17 +146,18 @@ static {
              Variable X = new Variable();
              
              Query dbQuery = new Query("databaseName",X);
-             if(dbQuery.hasMoreSolutions()){
-                String name = dbQuery.nextSolution().get(X).toString();
-                if(!name.equals(openedDatabase)){
-                   if(trace){
-                     System.out.println("new database "+name);
-                   }
-                   openedDatabase = name;
-
-                }
+             Hashtable sol = dbQuery.oneSolution();
+             if(sol==null){
+                System.out.println("Error in getting database name ");
+                return false;
              }
-
+             String name = sol.get(X).toString();  
+             if(!name.equals(openedDatabase)){
+                 if(trace){
+                   System.out.println("use database "+name);
+                 }
+                 openedDatabase = name;
+             }
              return true;
         }
         } catch(Exception e){
