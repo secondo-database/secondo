@@ -106,6 +106,16 @@ void UReal::TemporalFunction( const Instant& t,
       result.SetDefined(false);
     }
   else
+
+/*
+
+2006-Sep-22: C. Duentgen
+
+The following implemention was intended to minimize problems with 
+rounding errors. But all other operators to not respect this implementation,
+and so the original implementation was restored
+
+----
     {
       double res = a * pow( t.ToDouble() - timeInterval.start.ToDouble(), 2 ) +
         b * ( t.ToDouble() - timeInterval.start.ToDouble() ) +
@@ -115,6 +125,22 @@ void UReal::TemporalFunction( const Instant& t,
       result.Set( true, res );
       result.SetDefined( true );
     }
+
+----
+
+*/
+    {
+      double res = a * pow( t.ToDouble(), 2 ) +
+        b * ( t.ToDouble() ) +
+        c;
+      if( r ) res = sqrt( res );
+      
+      result.Set( true, res );
+      result.SetDefined( true );
+    }
+
+
+
 }
 
 bool UReal::Passes( const CcReal& val ) const
