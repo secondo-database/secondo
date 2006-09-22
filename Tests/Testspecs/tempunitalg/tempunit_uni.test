@@ -59,8 +59,8 @@ let ui4 = [const uint value (("2003-11-20-06:30" "2003-11-20-07:30" TRUE FALSE) 
 let ci = [const int value 1000];
 let i1 = [const int value 100];
 
-let ur1 = [const ureal value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.01 0.0 -0.00001 FALSE))];
-let ur2 = [const ureal value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (-1.0 -1.0 -1.0 FALSE))];
+let ur1 = [const ureal value (("2000-01-01-00:00:00.000" "2000-01-05-00:00:00.000" TRUE TRUE) (1.0 0.0 -1.0 FALSE))];
+let ur2 = [const ureal value (("2000-01-02-23:59:59.900" "2000-01-03-00:00:00.100" TRUE TRUE) (-1.0 -1.0 -1.0 FALSE))];
 let ur3 = [const ureal value undef];
 let ur4 = [const ureal value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1.0 1.0 1.0 TRUE))];
 
@@ -171,17 +171,22 @@ query derivable(ur4)
 
 #testcase derivable_ur2
 #tolerance_real 0.001
-#yields (ubool ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) TRUE))
+#yields (ubool ( ("2000-01-02-23:59:59.900" "2000-01-03-00:00:00.100" TRUE TRUE) TRUE))
 query derivable(ur2)
 
-#Testcase derivative_ur4
+#Testcase derivative_ur4 (radix)
 #tolerance_real 0.001
 #yields (ureal undef)
 query derivative(ur4)
 
-#testcase derivative_ur2
+#Testcase derivative_ur3 (undefined)
 #tolerance_real 0.001
-#yields (ureal ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 -2.0 -1.0 FALSE)))
+#yields (ureal undef)
+query derivative(ur3)
+
+#testcase derivative_ur2 (defined)
+#tolerance_real 0.001
+#yields (ureal ( ("2000-01-02-23:59:59.900" "2000-01-03-00:00:00.100" TRUE TRUE) (0.0 -2.0 -1.0 FALSE)))
 query derivative(ur2)
 
 #testcase atmax_uconst
@@ -209,6 +214,14 @@ query distance(ui3, i1)
 #yields (ureal undef)
 query distance(i1, ui3)
 
+#testcase atmax_ureal
+#yields ((rel (tuple ( (elem ureal)))) ( ((("2000-01-01" "2000-01-01" TRUE TRUE) (1.0 0.0 -1.0 FALSE)) (("2000-01-05" "2000-01-05" TRUE TRUE) (1.0 0.0 -1.0 FALSE)) )))
+query atmax(ur1) transformstream consume
+
+
+# atmin_ureal 
+
+
 
 # trajectory_up
 # atinstant_uconst
@@ -224,8 +237,6 @@ query distance(i1, ui3)
 # present_uconst_periods
 # present_ureal_periods
 # speed_upoint
-# atmax_ureal
-# atmin_ureal
 # at_ureal
 # distance_upoint_point
 # distance_point_upoint

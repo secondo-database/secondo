@@ -152,17 +152,19 @@ typemapping, valuemapping etc. This makes the file easier to extend.
 
 (C)     at: (ureal real) -> ureal
 ???     trajectory: (upoint) -> line
-(C)     atmin: (ureal real) -> (stream ureal)
-(C)     atmax: (ureal real) -> (stream ureal)
+(C)     atmin: (ureal) -> (stream ureal)
+(C)     atmax: (ureal) -> (stream ureal)
 (R)     speed: (upoint) -> (ureal)
+(R)     velocity: (upoint) -> (upoint)
 (R)     distance: (uint uint) -> (ureal)
 (R)     distance: (int uint) -> (ureal)
 (R)     distance: (upoint upoint) -> (ureal)
 (R)     distance: (upoint point) -> (ureal)
 (R)     distance: (point Upoint) -> (ureal)
-(C)     intersection(uint uint) -> (stream uint)
-(C)     intersection(uint int) -> (stream uint)
-(C)     intersection(int uint) -> (stream uint)
+(C)     intersection: (uint uint) -> (stream uint)
+(C)     intersection:(uint int) -> (stream uint)
+(C)     intersection: (int uint) -> (stream uint)
+
 
 Key:
  (C): system crash
@@ -211,8 +213,8 @@ extern AlgebraManager* am;
 #include "DateTime.h"
 using namespace datetime;
 
-bool TUA_DEBUG = false; // Set to true to activate debugging code
-//bool TUA_DEBUG = true; // Set to true to activate debugging code
+//bool TUA_DEBUG = false; // Set to true to activate debugging code
+bool TUA_DEBUG = true; // Set to true to activate debugging code
 
 /*
 2.1 Definition of some constants and auxiliary functions
@@ -5458,7 +5460,8 @@ int getMaxValIndex( double& first, double& second, double& third)
 double getValUreal(const double& t,
 		   const double& a, 
 		   const double& b, 
-		   const double& c, const bool r)
+		   const double& c, 
+                   const bool& r)
 {
   double tmp;
   tmp = a*pow(t,2) + b*t + c;
@@ -5510,7 +5513,7 @@ int atmaxUReal( Word* args, Word& result, int message,
       if(TUA_DEBUG) cout << "  3" << endl;
 
       if ( (ureal->timeInterval.start).ToDouble() == 
-	   (ureal->timeInterval.start).ToDouble() )
+	   (ureal->timeInterval.end).ToDouble() )
 	{ // ureal contains only a single point.
 	  // -> return a copy of the ureal	  
 	  sli->t_res[sli->NoOfResults] = *(ureal->Clone());
@@ -5561,7 +5564,7 @@ int atmaxUReal( Word* args, Word& result, int message,
 	}
       if(TUA_DEBUG) cout << "  5" << endl;
 
-      if (ureal->a !=0) 
+      if (ureal->a != 0) 
 	{ // quadratic function
 	  // we have to additionally check for the extremum 
 	  if(TUA_DEBUG) cout << "  5.1" << endl;
@@ -5571,30 +5574,37 @@ int atmaxUReal( Word* args, Word& result, int message,
 	  b = ureal->b;
 	  c = ureal->c;
 	  r = ureal->r;
-	  t_extr  = -b/a; 
-	  t_start =   0.0;
-	  t_end   =   (ureal->timeInterval.end).ToDouble() 
-	            - (ureal->timeInterval.start).ToDouble();
+	  t_start = (ureal->timeInterval.start).ToDouble();
+	  t_extr  = -b/(2*a); 
+	  t_end   = (ureal->timeInterval.end).ToDouble();
 	  // get the values of interest
-	  v_extr  = getValUreal(t_extr, a,b,c,r);
 	  v_start = getValUreal(t_start,a,b,c,r);
+	  v_extr  = getValUreal(t_extr, a,b,c,r);
 	  v_end   = getValUreal(t_end,  a,b,c,r);
-	  if(TUA_DEBUG) cout << "  5.2" << endl;
-
+	  if(TUA_DEBUG) 
+            cout << "  5.2" << endl 
+                 << "\tt_start=" << t_start << "\t v_start=" << v_start << endl
+                 << "\tt_extr =" << t_extr  << "\t v_extr =" << v_extr  << endl
+                 << "\tt_end  =" << t_end   << "\t v_end  =" << v_end   << endl;
+          
 	  // compute, which values are maximal
 	  if ( (t_start <= t_extr) && (t_end   >= t_extr) )
-	    {
+	    { // check all 3 candidates
 	      if(TUA_DEBUG) cout << "  5.3" << endl;
 	      maxValIndex = getMaxValIndex(v_extr,v_start,v_end);
+              if(TUA_DEBUG) 
+                cout << "  5.3  maxValIndex=" << maxValIndex << endl;
 	    }
 	  else 
-	    { 
+	    { // extremum equals at least on interval border, possibly 2 results
 	      if(TUA_DEBUG) cout << "  5.4" << endl;
 	      maxValIndex = 0;
-	      if (v_start >= v_end) 
+	      if (v_start >= v_end) // max at t_start
 		maxValIndex += 2;
-	      if (v_end >= v_start) 
+	      if (v_end >= v_start) // max at t_end
 		maxValIndex += 4;
+              if(TUA_DEBUG) 
+                cout << "  5.4  maxValIndex=" << maxValIndex << endl;
 	    }
 	  if(TUA_DEBUG) cout << "  5.5" << endl;
 	  if (maxValIndex & 2)
@@ -5835,7 +5845,7 @@ int atminUReal( Word* args, Word& result, int message,
 	}
 
       if ( (ureal->timeInterval.start).ToDouble() == 
-	   (ureal->timeInterval.start).ToDouble() )
+	   (ureal->timeInterval.end).ToDouble() )
 	{ // ureal contains only a single point.
 	  // -> return a copy of the ureal	  
 	  sli->t_res[sli->NoOfResults] = *(ureal->Clone());
@@ -5885,7 +5895,7 @@ int atminUReal( Word* args, Word& result, int message,
 	  b = ureal->b;
 	  c = ureal->c;
 	  r = ureal->r;
-	  t_extr  = -b/a; 
+	  t_extr  = -b/(2*a); 
 	  t_start = 0.0;
 	  t_end   =   (ureal->timeInterval.end).ToDouble()
 	            - (ureal->timeInterval.start).ToDouble();
