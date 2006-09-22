@@ -108,12 +108,11 @@ void UReal::TemporalFunction( const Instant& t,
   else
 
 /*
-
-2006-Sep-22: C. Duentgen
+2006-Sep-22, CD:
 
 The following implemention was intended to minimize problems with 
 rounding errors. But all other operators to not respect this implementation,
-and so the original implementation was restored
+and so the original implementation was restored.
 
 ----
     {
@@ -121,7 +120,6 @@ and so the original implementation was restored
         b * ( t.ToDouble() - timeInterval.start.ToDouble() ) +
         c;
       if( r ) res = sqrt( res );
-      
       result.Set( true, res );
       result.SetDefined( true );
     }
@@ -134,13 +132,9 @@ and so the original implementation was restored
         b * ( t.ToDouble() ) +
         c;
       if( r ) res = sqrt( res );
-      
       result.Set( true, res );
       result.SetDefined( true );
     }
-
-
-
 }
 
 bool UReal::Passes( const CcReal& val ) const
