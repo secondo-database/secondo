@@ -105,7 +105,7 @@ update-environment: show-separator remove-old-apps remove-old-config $(SDK_SCRIP
 UPDATE_MSG := "\n\
   Configuration Setup has been updated. If you have made changes\n\
   in one of the files above please transfer them into the new versions.\n\
-  A backup copy ending with ~ will be kept.\n\n\
+  A backup copy ending with .backup will be kept.\n\n\
   Afterwards please execute the command\n\
   source ~/.secondorc or close this shell \n\
   and start a new one.\n\n\
@@ -116,12 +116,14 @@ UPDATE_MSG := "\n\
 VPATH := $(SCRIPT_DIR)
 $(SECONDO_SDK)/bin/%: %
 	@touch $(tupd)
-	@cp --backup $< $@
+	@cp $@ $@.backup
+	@cp $< $@
 	@echo " updating" $@
 
 $(HOME)/.%: .%
 	@touch $(tupd)
-	@cp --backup $< $@
+	@cp $@ $@.backup
+	@cp $< $@
 	@echo " updating" $@
 
 $(netsc)/home/%: .%
@@ -280,13 +282,24 @@ tag-version:
 
 
 fileList := $(tempdir)/_SRC_FILE_LIST
+.PHONY: src-archive
+src-archive: rmList mkLat1
+	
 .PHONY: src-archives
-src-archives: rmList mkArchives
+src-archives: rmList mkLat1 mkcp1252
 
-.PHONY: mkArchives
-mkArchives: $(fileList) 
+.PHONY: src-tgz
+src-tgz: 
+	cvs -Q export -rHEAD -dsecondo secondo
+	tar -czf secondo.tgz secondo
+
+.PHONY: mkLat1
+mkLat1: $(fileList) 
 	rm -rf $(SRC_FILES)
 	tar -czf $(LIN_SRC) -T $<
+
+.PHONY: mkcp1252
+mkcp1252: $(fileList) 
 # a list of file endings which need not to be recoded
 	find $(srcprefix) ! \( \
           -type d \
@@ -340,13 +353,17 @@ showdiff:
 	cvs -nq update | grep "^. " > $@
 
 /tmp/tar.list: /tmp/cvs.list
-	cat $< | sed 's/. //' | CM-Scripts/removedirs.sh > $@
+	cat $< | sed 's/. //' > $@
 
 # you may need to setup ~/.cvsignore in order 
 # to prevent storing generated stuff
 .PHONY: backup 
-backup: backup.tgz
+backup: removeLists backup.tgz
+
+.PHONY: removeLists
+removeLists:
 	rm -f /tmp/tar.list
+	rm -f /tmp/cvs.list
 
 backup.tgz: /tmp/tar.list
 	rm -f $@
@@ -357,7 +374,11 @@ cscope: cscope.files
 	cscope -bq -i $<
 
 cscope.files:
-	find . -iname "*.cpp" -or -iname "*.h" > $@ 
+	find . -iname "*.cpp" -or -iname "*.c" \
+	                      -or -iname "*.y" \
+			      -or -iname "*.l" \
+			      -or -iname "*.h" \
+			      -or -iname "makefile*" > $@
 
 
 .PHONY: showtags
