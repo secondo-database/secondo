@@ -1944,16 +1944,17 @@ void
 SecondoCatalog::Initialize(SizeInfoRel* r)
 {
   LocalConstructorCatalog::iterator pos = constructors.begin();
-  return;
   
   while ( pos != constructors.end() )
   {
-    cout << pos->first << endl;
+    //cout << pos->first << endl;
     int algId = pos->second.algebraId;
     int typeId = pos->second.entryId;
-    NList type( am->Props( algId, typeId ));
+    NList typeInfo( am->Props( algId, typeId ));
     int size = (*(am->SizeOfObj( algId, typeId )))();
-    cout << "  " << type << " : " << size << endl;
+    //cout << "  " << typeInfo << " : " << size << endl;
+    SizeInfoTuple* t= new SizeInfoTuple(pos->first, size);
+    r->append(t, false);
     pos++;
   }
 } 
