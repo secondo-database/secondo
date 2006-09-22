@@ -274,10 +274,11 @@ leftFiles=$(cvs -nQ update | grep "^? ")
 if [ "$leftFiles" != "" ]; then 
   printf "\n make realclean has left some files: \n"
   printf "\n $leftFiles"
-  sendMail "make realclean has left some files" "$mailRecipients" "$mailBody3 $leftFiles" "$cvsHistMailBackupDir" " make-realclean2.log"
+  sendMail "make realclean has left some files" "$mailRecipients" "$mailBody3 $leftFiles" "$cvsHistMailBackupDir" " make-realclean.log"
   fi
 
 printSep "Compile Again"
+unset SECONDO_ACTIVATE_ALL_ALGEBRAS
 makeSecondo "make-all-2.log" "Building SECONDO failed!"
 
 
@@ -287,7 +288,7 @@ if [ $? == 0 ]; then
 
   printSep "Running automatic tests"
   cd $scriptDir
-  checkCmd "run-tests.sh -tty $cvsHistRootDir" 
+  checkCmd "run-tests.sh -tty $cvsHistRootDir 900" 
 
   if [ $? -ne 0 ]; then
     
