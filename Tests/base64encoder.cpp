@@ -38,7 +38,8 @@ usageMsg(char* progName) {
    cout << "Converts a file into base64 format and vice versa." << endl;
    cout << "Options   : " << endl;
    cout << "  -d      : decode" << endl;
-   cout << "  -n<size>: Don't use the stream based methods of class Base64. " << endl;
+   cout << "  -n<size>: Don't use the stream based methods "
+        <<              "of class Base64. " << endl;
    cout << "            Read the file into a buffer of size <size>" << endl; 
 }
 
@@ -57,6 +58,7 @@ main(int argc, char *argv[]) {
  opterr = 0;
  bool nostream=false, decode=false ;
 
+#ifdef _POSIX_OPT_H 
    while ((c = getopt(argc,argv, "dn:")) != -1) {
       switch (c) {
       case 'd':
@@ -73,6 +75,10 @@ main(int argc, char *argv[]) {
          abort();
       }  
    }
+#else
+  cerr << "You will need the posix getopt library!" << endl;
+  abort(1);
+#endif   
 
  string fileName(argv[optind]);
  string extension="";
