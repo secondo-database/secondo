@@ -2548,7 +2548,8 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 		}
 	  if(TUA_DEBUG) cout << "  10" << endl;
 	  local = SetWord(localinfo);
-	  cout << "\nMappingUnitAt_r: finished OPEN (2)" << endl;
+	  if(TUA_DEBUG) 
+            cout << "\nMappingUnitAt_r: finished OPEN (2)" << endl;
 	  return 0;
 	}
       if ( (a == 0) && (b != 0) )
@@ -2565,8 +2566,8 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 	  t1.ReadFrom( T1 + deftime.start.ToDouble() );
 	  if (deftime.Contains(t1))
 	    { // value is contained by deftime
-	      if(TUA_cout) 
-                DEBUG << "  12: Found valid linear solution." << endl;
+	      if(TUA_DEBUG) 
+                cout << "  12: Found valid linear solution." << endl;
 	      localinfo->runits[localinfo->NoOfResults].addr = 
 		uinput->Copy();
 	      ((UReal*)(localinfo
@@ -2590,7 +2591,7 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
 	  return 0;
 	}
       
-      cout << "  17" << endl;
+      if(TUA_DEBUG) cout << "  17" << endl;
       radicand = (b*b + 4*a*(y-c));
       if ( (a != 0) && (radicand >= 0) )
 	{ // quadratic function. There are possibly two result units
@@ -2652,7 +2653,8 @@ The solution to the equation $at^2 + bt + c = y$ is
 	}
       if(TUA_DEBUG) cout << "  25" << endl;
       local = SetWord(localinfo);
-      cout << "\nMappingUnitAt_r: finished OPEN (4)" << endl;
+      if(TUA_DEBUG) 
+        cout << "\nMappingUnitAt_r: finished OPEN (4)" << endl;
       return 0;
       
     case REQUEST :
@@ -3514,7 +3516,6 @@ TypeMapSuse( ListExpr args )
   if ( (nl->ListLength( args ) != 2) )
     {
       if (TUA_DEBUG) cout << "TypeMapSuse: 1" << endl;
-
       ErrorReporter::ReportError("Operator suse expects a list of length two ");
       return nl->SymbolAtom( "typeerror" );
     }
@@ -4361,7 +4362,7 @@ int Suse_SNS( Word* args, Word& result, int message,
       if (local.addr == 0)
 	{
 	  result.addr = 0;
-	  // cout << "Suse_SNN finished REQUEST: CLOSE (1)" << endl;
+	  if(TUA_DEBUG) cout << "Suse_SNN finished REQUEST: CLOSE (1)" << endl;
 	  return CANCEL;
 	}
       sli = (SuseLocalInfo*) local.addr;
@@ -4413,7 +4414,7 @@ int Suse_SNS( Word* args, Word& result, int message,
 	  }
 	} // end while
       result.addr = 0;
-      // cout << "Suse_SNN finished REQUEST: CLOSE (4)" << endl;      
+      if(TUA_DEBUG) cout << "Suse_SNN finished REQUEST: CLOSE (4)" << endl;
       return CANCEL;
 
     case CLOSE :
@@ -4628,7 +4629,7 @@ int Suse_SSS( Word* args, Word& result, int message,
       // We also need to delete each X/Y element, when it is not required
       // any more.
 
-      //cout << "Suse_SSS received REQUEST" << endl;
+      if(TUA_DEBUG) cout << "Suse_SSS received REQUEST" << endl;
 
       // get local data object
       if (local.addr == 0)
@@ -5486,26 +5487,27 @@ int atmaxUReal( Word* args, Word& result, int message,
     {
     case OPEN :
 
-      cout << "\nAtExtrURealLocalInfo: OPEN " << endl;
+      if(TUA_DEBUG) cout << "\nAtExtrURealLocalInfo: OPEN " << endl;
       a0 = args[0]; //qp->Request(args[0].addr, a0);
       ureal = (UReal*)(a0.addr);
-      cout << "  1" << endl;
+      if(TUA_DEBUG) cout << "  1" << endl;
 
       sli = new AtExtrURealLocalInfo;
       sli->NoOfResults = 0;
       sli->ResultsDelivered = 0;
       local = SetWord(sli);
-      cout << "  2" << endl;
+      if(TUA_DEBUG) cout << "  2" << endl;
 
       if ( !(ureal->IsDefined()) )
 	{ // ureal undefined
 	  // -> return empty stream
-	  cout << "  2.1" << endl;
+	  if(TUA_DEBUG) cout << "  2.1" << endl;
 	  sli->NoOfResults = 0;
-	  cout << "AtExtrURealLocalInfo: OPEN  finished (1)" << endl;
+	  if(TUA_DEBUG) 
+            cout << "AtExtrURealLocalInfo: OPEN  finished (1)" << endl;
 	  return 0;
 	}
-      cout << "  3" << endl;
+      if(TUA_DEBUG) cout << "  3" << endl;
 
       if ( (ureal->timeInterval.start).ToDouble() == 
 	   (ureal->timeInterval.start).ToDouble() )
@@ -5513,10 +5515,11 @@ int atmaxUReal( Word* args, Word& result, int message,
 	  // -> return a copy of the ureal	  
 	  sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	  sli->NoOfResults++;
-	  cout << "AtExtrURealLocalInfo: OPEN  finished (2)" << endl;
+	  if(TUA_DEBUG) 
+            cout << "AtExtrURealLocalInfo: OPEN  finished (2)" << endl;
 	  return 0;
 	}
-      cout << "  4" << endl;
+      if(TUA_DEBUG) cout << "  4" << endl;
 
       if (ureal->a == 0)
 	{ 
@@ -5525,7 +5528,8 @@ int atmaxUReal( Word* args, Word& result, int message,
 	      // the only result is a copy of the argument ureal
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	      sli->NoOfResults++;
-	      cout << "AtExtrURealLocalInfo: OPEN  finished (3)" << endl;
+	      if(TUA_DEBUG) 
+                cout << "AtExtrURealLocalInfo: OPEN  finished (3)" << endl;
 	      return 0;
 	    }
 	  if ( ureal->b < 0 )
@@ -5537,7 +5541,8 @@ int atmaxUReal( Word* args, Word& result, int message,
 		sli->t_res[sli->NoOfResults].timeInterval.start;
 	      sli->t_res[sli->NoOfResults].timeInterval.rc = true;
 	      sli->NoOfResults++;
-	      cout << "AtExtrURealLocalInfo: OPEN  finished (4)" << endl;
+	      if(TUA_DEBUG) 
+                cout << "AtExtrURealLocalInfo: OPEN  finished (4)" << endl;
 	      return 0;
 	    }
 	  if ( ureal->b > 0 )
@@ -5549,16 +5554,17 @@ int atmaxUReal( Word* args, Word& result, int message,
 		sli->t_res[sli->NoOfResults].timeInterval.end;
 	      sli->t_res[sli->NoOfResults].timeInterval.lc = true;	      
 	      sli->NoOfResults++;
-	      cout << "AtExtrURealLocalInfo: OPEN  finished (5)" << endl;
+	      if(TUA_DEBUG) 
+                cout << "AtExtrURealLocalInfo: OPEN  finished (5)" << endl;
 	      return 0;
 	    }
 	}
-      cout << "  5" << endl;
+      if(TUA_DEBUG) cout << "  5" << endl;
 
       if (ureal->a !=0) 
 	{ // quadratic function
 	  // we have to additionally check for the extremum 
-	  cout << "  5.1" << endl;
+	  if(TUA_DEBUG) cout << "  5.1" << endl;
 	  
 	  // get the times of interest
 	  a = ureal->a;
@@ -5573,27 +5579,27 @@ int atmaxUReal( Word* args, Word& result, int message,
 	  v_extr  = getValUreal(t_extr, a,b,c,r);
 	  v_start = getValUreal(t_start,a,b,c,r);
 	  v_end   = getValUreal(t_end,  a,b,c,r);
-	  cout << "  5.2" << endl;
+	  if(TUA_DEBUG) cout << "  5.2" << endl;
 
 	  // compute, which values are maximal
 	  if ( (t_start <= t_extr) && (t_end   >= t_extr) )
 	    {
-	      cout << "  5.3" << endl;
+	      if(TUA_DEBUG) cout << "  5.3" << endl;
 	      maxValIndex = getMaxValIndex(v_extr,v_start,v_end);
 	    }
 	  else 
 	    { 
-	      cout << "  5.4" << endl;
+	      if(TUA_DEBUG) cout << "  5.4" << endl;
 	      maxValIndex = 0;
 	      if (v_start >= v_end) 
 		maxValIndex += 2;
 	      if (v_end >= v_start) 
 		maxValIndex += 4;
 	    }
-	  cout << "  5.5" << endl;
+	  if(TUA_DEBUG) cout << "  5.5" << endl;
 	  if (maxValIndex & 2)
 	    { // start value
-	      cout << "  5.6" << endl;
+	      if(TUA_DEBUG) cout << "  5.6" << endl;
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	      t.ReadFrom(t_start + (ureal->timeInterval.start).ToDouble());
 	      Interval<Instant> i( t, t, true, true );
@@ -5602,7 +5608,7 @@ int atmaxUReal( Word* args, Word& result, int message,
 	    }
 	  if ( ( maxValIndex & 4 ) && ( t_end != t_start ) )
 	    { // end value
-	      cout << "  5.7" << endl;
+	      if(TUA_DEBUG) cout << "  5.7" << endl;
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	      t.ReadFrom(t_end + (ureal->timeInterval.start).ToDouble());
 	      Interval<Instant> i( t, t, true, true );
@@ -5614,45 +5620,48 @@ int atmaxUReal( Word* args, Word& result, int message,
                (t_extr != t_start) && 
                (t_extr != t_end)      )	    
 	    {
-	      cout << "  5.8" << endl;
+	      if(TUA_DEBUG) cout << "  5.8" << endl;
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	      t.ReadFrom(t_extr + (ureal->timeInterval.start).ToDouble());
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
 	    }
-	  cout << "  5.9" << endl;
+	  if(TUA_DEBUG) cout << "  5.9" << endl;
 	  return 0;
 	}
-      cout << "  6" << endl;
+      if(TUA_DEBUG) cout << "  6" << endl;
       cout << "\natmaxUReal (OPEN): This should not happen!" << endl;
-      cout << "AtExtrURealLocalInfo: OPEN  finished (6)" << endl;
+      if(TUA_DEBUG) cout << "AtExtrURealLocalInfo: OPEN  finished (6)" << endl;
       return 0;
 
     case REQUEST :
 
-      cout << "\nAtExtrURealLocalInfo: REQUEST" << endl;
+      if(TUA_DEBUG) cout << "\nAtExtrURealLocalInfo: REQUEST" << endl;
       if (local.addr == 0)
 	{
-	  cout << "AtExtrURealLocalInfo: REQUEST CANCEL(1)" << endl;
+	  if(TUA_DEBUG) 
+            cout << "AtExtrURealLocalInfo: REQUEST CANCEL(1)" << endl;
 	  return CANCEL;
 	}
       sli = (AtExtrURealLocalInfo*) local.addr;
       
       if (sli->NoOfResults <= sli->ResultsDelivered)
 	{
-	  cout << "AtExtrURealLocalInfo: REQUEST CANCEL (2)" << endl;
+	  if(TUA_DEBUG) 
+            cout << "AtExtrURealLocalInfo: REQUEST CANCEL (2)" << endl;
 	  return CANCEL;
 	}
       result = SetWord( sli->t_res[sli->ResultsDelivered].Clone() );
       sli->t_res[sli->ResultsDelivered].DeleteIfAllowed();
       sli->ResultsDelivered++;
-      cout << "AtExtrURealLocalInfo: REQUEST YIELD" << endl;
+      if(TUA_DEBUG) 
+        cout << "AtExtrURealLocalInfo: REQUEST YIELD" << endl;
       return YIELD;
       
     case CLOSE :
 
-      cout << "\nAtExtrURealLocalInfo: CLOSE" << endl;
+      if(TUA_DEBUG) cout << "\nAtExtrURealLocalInfo: CLOSE" << endl;
       if (local.addr != 0)
 	{
 	  sli = (AtExtrURealLocalInfo*) local.addr;
@@ -5663,7 +5672,7 @@ int atmaxUReal( Word* args, Word& result, int message,
 	    }
 	  delete sli;
 	}
-      cout << "AtExtrURealLocalInfo: CLOSE finished" << endl;
+      if(TUA_DEBUG) cout << "AtExtrURealLocalInfo: CLOSE finished" << endl;
       return 0;
 
     } // end switch
@@ -7406,7 +7415,8 @@ ListExpr TemporalUnitTransformstreamTypeMap(ListExpr args)
     {
       TupleDescr = nl->Second(nl->Second(first));
       nl->WriteToString(argstr, TupleDescr);
-      cout << "\n In tupledescr = " << argstr << endl;      
+      if(TUA_DEBUG) 
+        cout << "\n In tupledescr = " << argstr << endl;      
       if ( !nl->IsAtom(TupleDescr) &&
            (nl->ListLength(TupleDescr) == 1) &&
 	   !nl->IsAtom(nl->First(TupleDescr)) &&
