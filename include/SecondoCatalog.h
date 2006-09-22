@@ -462,7 +462,8 @@ algebras in the following format:
 */
 
   ListExpr ListTypeConstructors(int algebraId);
-  void Initialize(SizeInfoRel* r);
+  void Initialize(TypeInfoRel* r);
+  void Initialize(OperatorInfoRel* r);
 /*
 Returns a list of type constructors of the algebra with Id algebraId
 in the following format: 

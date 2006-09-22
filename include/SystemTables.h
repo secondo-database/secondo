@@ -20,7 +20,13 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-September 2006 Markus Spiekermann
+
+
+September 2006, M. Spiekermann. Class implementations moved from "SecondoInterface.cpp"
+into this file.
+
+
+An overview about System tables is given in the file "SystemInfoRel.cpp".
 
 */
 
@@ -345,23 +351,41 @@ class FileInfoRel : public SystemInfoRel
    } 
 }; 
 
-class SizeInfoTuple : public InfoTuple
+class TypeInfoTuple : public InfoTuple
 {
-   string type;
-   int size;
-   
    public:
-   SizeInfoTuple(const string& Type, int Size) 
-   {
-     type = Type;
-     size = Size;
-   }
-   virtual ~SizeInfoTuple() {} 
+   string type;
+   int size;  
+   string algebra;
+   string signature;
+   string typeListExample;
+   string listRep;
+   string valueListExample;
+   string remark;
+   
+   TypeInfoTuple() {}
+   virtual ~TypeInfoTuple() {
+
+     type = "";
+     size = 0;  
+     signature = "";
+     algebra = "";
+     typeListExample = "";
+     listRep = "";
+     valueListExample = "";
+     remark = "";
+   } 
 
    virtual NList valueList() const
    {
      NList list;
      list.makeHead( NList().stringAtom(type) );
+     list.append( NList().stringAtom(algebra) );
+     list.append( NList().textAtom(signature) );
+     list.append( NList().textAtom(typeListExample) );
+     list.append( NList().textAtom(listRep) );
+     list.append( NList().textAtom(valueListExample) );
+     list.append( NList().textAtom(remark) );
      list.append( NList((int) size) );
      return list;
    } 
@@ -375,21 +399,93 @@ class SizeInfoTuple : public InfoTuple
 };
 
 
-class SizeInfoRel : public SystemInfoRel
+class TypeInfoRel : public SystemInfoRel
 {
    public:
-   SizeInfoRel(const string& name) : SystemInfoRel(name, initSchema()) 
+   TypeInfoRel(const string& name) : SystemInfoRel(name, initSchema()) 
    {}
-   virtual ~SizeInfoRel() {}
+   virtual ~TypeInfoRel() {}
    
    private:
-   RelSchema* initSchema()
+   bool initSchema()
    { 
-     RelSchema* attrList = new RelSchema();
-     attrList->push_back( make_pair("Type", "string") );
-     attrList->push_back( make_pair("Size", "int") );
-     return attrList;
+     addAttribute("Type", "string");
+     addAttribute("Algebra", "string");
+     addAttribute("Signature", "text");
+     addAttribute("TypeListExample", "text");
+     addAttribute("ListRep", "text");
+     addAttribute("ValueListExample", "text");
+     addAttribute("Remark", "text");
+     addAttribute("Size", "int");
+     return true;
    } 
 }; 
+
+class OperatorInfoTuple : public InfoTuple
+{
+   public:
+   string name;
+   string algebra;
+   string signature;
+   string syntax;
+   string meaning;
+   string example;
+   string remark;
+   
+   OperatorInfoTuple() {}
+   virtual ~OperatorInfoTuple() {
+
+     name = "";
+     algebra = "";
+     signature = "";
+     syntax = "";
+     meaning = "";
+     example = "";
+     remark = "";
+   } 
+
+   virtual NList valueList() const
+   {
+     NList list;
+     list.makeHead( NList().stringAtom(name) );
+     list.append( NList().stringAtom(algebra) );
+     list.append( NList().textAtom(signature) );
+     list.append( NList().textAtom(syntax) );
+     list.append( NList().textAtom(meaning) );
+     list.append( NList().textAtom(example) );
+     list.append( NList().textAtom(remark) );
+     return list;
+   } 
+   
+   virtual ostream& print(ostream& os) const
+   {
+      os << name << sep
+         << algebra << endl; 
+      return os;
+   } 
+};
+
+
+class OperatorInfoRel : public SystemInfoRel
+{
+   public:
+   OperatorInfoRel(const string& name) : SystemInfoRel(name, initSchema()) 
+   {}
+   virtual ~OperatorInfoRel() {}
+   
+   private:
+   bool initSchema()
+   { 
+     addAttribute("Name", "string");
+     addAttribute("Algebra", "string");
+     addAttribute("Signature", "text");
+     addAttribute("Syntax", "text");
+     addAttribute("Meaning", "text");
+     addAttribute("Example", "text");
+     addAttribute("Remark", "text");
+     return true;
+   } 
+}; 
+
 
 #endif

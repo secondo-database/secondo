@@ -154,7 +154,8 @@ CmdCtrRel* cmdCtrRel = 0;
 CacheInfoRel* cacheInfoRel = 0;
 FileInfoRel* fileInfoRel = 0;
 DerivedObjRel* devObjRel = 0;
-SizeInfoRel* sizeInfoRel = 0;
+TypeInfoRel* typeInfoRel = 0;
+OperatorInfoRel* operatorInfoRel = 0;
 
 
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
@@ -308,7 +309,8 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   cmdCtrRel = new CmdCtrRel("SEC2COUNTERS");
   cacheInfoRel = new CacheInfoRel("SEC2CACHEINFO");
   fileInfoRel = new FileInfoRel("SEC2FILEINFO");
-  sizeInfoRel = new SizeInfoRel("SEC2TYPEINFO");
+  typeInfoRel = new TypeInfoRel("SEC2TYPEINFO");
+  operatorInfoRel = new OperatorInfoRel("SEC2OPERATORINFO");
 
   // The next table is currently only a dummy. This is necessary
   // that the catalog recognizes it as a system table. In the future
@@ -320,12 +322,14 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   st.insert(cmdTimesRel);
   st.insert(cacheInfoRel);
   st.insert(fileInfoRel);
-  st.insert(sizeInfoRel);
+  st.insert(typeInfoRel);
+  st.insert(operatorInfoRel);
   st.insert(devObjRel);
   
-  // add size information into sizeInfoRel
+  // add size information into typeInfoRel
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
-  ctlg.Initialize(sizeInfoRel);
+  ctlg.Initialize(typeInfoRel);
+  ctlg.Initialize(operatorInfoRel);
   
   initialized = ok;
   return (ok);

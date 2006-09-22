@@ -35,18 +35,18 @@ CSV format which can be read in by a spreadsheet program. Hence there will be no
 compile time or run time dependency to the relational algebra module.
 
 
-Currently there are two system relations (implemented in SecondoInterface.cpp):
+The system tables should be implemented in file SytemTables.h. Registration is done
+in SecondoInterface.cpp. After a table is registered it can be used in queries like 
+a ~normal~ relation, for example 
 
-  * SEC\_COMMANDS
-
-  * SEC\_COUNTERS
-
-For example the query
-
-----    query SEC_COMMANDS feed consume
+----    let session1 = SEC2COMMANDS feed consume;
 ----
 
-will show all queries and their command times.
+will show all queries and their command times. However the contents of the relations must
+be created by the ~append~ method during runtime. 
+
+*Note:* The contents of these relations will not be persistent, hence you need to save them
+into a file or a persistent relation for later use.
 
 */
 
@@ -154,6 +154,49 @@ class SystemInfoRel
       cfg << endl;
 
   }
+
+  SystemInfoRel( const string& inName, const bool hasSchema,
+                 const bool persistent=false ) :
+    name(inName),
+    logFile(name + ".csv"),
+    sep("|"),
+    isPersistent(persistent) 
+  {
+      assert(attrList != 0 && hasSchema == true);
+      // Write Headline
+      ostream& clog = cmsg.file(logFile);
+      RelSchema::iterator it = attrList->begin();
+      while ( it != attrList->end() )
+      { 
+        clog << it->first;
+        if (it+1 != attrList->end())
+           clog << sep;
+        it++;
+      } 
+      clog << endl;  
+      
+      // write configuration file
+      ostream& cfg = cmsg.file(name+".cfg");  
+      
+      cfg << "# Generated file: Can be used together with "
+          << "commands.csv by CVS2Secondo!" << endl
+          << "Separator  |" << endl
+          << "Object " << name << endl
+          << "Scheme ";
+     
+      it = attrList->begin();
+      while ( it != attrList->end() )
+      { 
+        cfg << it->first << " " << it->second;
+        if (it+1 != attrList->end())
+          cfg << " \\t ";
+        it++;
+      }   
+      cfg << endl;
+
+  }
+
+    
   ~SystemInfoRel() 
   {
     iterator it = tuples.begin();
@@ -217,7 +260,15 @@ class SystemInfoRel
       cmsg.file(logFile) << *t << endl; 
     tuples.push_back(t); 
   }
- 
+
+  void addAttribute(const string& name, const string& type)
+  {
+    if ( attrList == 0 )
+      attrList = new RelSchema();
+   
+    attrList->push_back( make_pair(name, type) );
+  } 
+  
   iterator begin() const { return tuples.begin(); } 
   iterator end()   const { return tuples.end(); } 
  

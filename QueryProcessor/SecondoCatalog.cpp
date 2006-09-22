@@ -1941,7 +1941,7 @@ Returns a list of type constructors ~typecons~ of the actually load algebras in 
 
 
 void
-SecondoCatalog::Initialize(SizeInfoRel* r)
+SecondoCatalog::Initialize(TypeInfoRel* r)
 {
   LocalConstructorCatalog::iterator pos = constructors.begin();
   
@@ -1951,13 +1951,70 @@ SecondoCatalog::Initialize(SizeInfoRel* r)
     int algId = pos->second.algebraId;
     int typeId = pos->second.entryId;
     NList typeInfo( am->Props( algId, typeId ));
+    typeInfo = typeInfo.second();
     int size = (*(am->SizeOfObj( algId, typeId )))();
     //cout << "  " << typeInfo << " : " << size << endl;
-    SizeInfoTuple* t= new SizeInfoTuple(pos->first, size);
-    r->append(t, false);
+    
+    TypeInfoTuple& t = *(new TypeInfoTuple());
+    t.type = pos->first;
+    t.size = size;
+    t.algebra = am->GetAlgebraName(algId);
+    if (typeInfo.length() >= 1)
+    t.signature = typeInfo.elem(1).str();
+    if (typeInfo.length() >= 2)
+    t.typeListExample = typeInfo.elem(2).str();
+    if (typeInfo.length() >= 3)
+    t.listRep = typeInfo.elem(3).str();
+    if (typeInfo.length() >= 4)
+    t.valueListExample = typeInfo.elem(4).str();
+    if (typeInfo.length() >= 5)
+      t.remark = typeInfo.elem(5).str();
+    r->append(&t, false);
     pos++;
   }
 } 
+
+void
+SecondoCatalog::Initialize(OperatorInfoRel* r)
+{
+  LocalOperatorCatalog::iterator pos = operators.begin();
+
+  while ( pos != operators.end())
+  {
+    CatalogEntrySet* entrySet = pos->second;
+    CatalogEntrySet::iterator i = entrySet->begin();
+    
+    while (  i != entrySet->end())
+    {
+      const int algId = i->algebraId;
+      const string algName =  am->GetAlgebraName(algId);
+      NList list( am->Specs( algId, i->entryId ));
+      assert( list.hasLength(2) );
+      list = list.second();
+      //cout << pos->first << ":  " << endl 
+      //     << list << endl << endl;
+      
+      OperatorInfoTuple& t = *(new OperatorInfoTuple());
+      t.name = pos->first;
+      t.algebra = algName;
+      if (list.length() >= 1)
+      t.signature = list.elem(1).str();
+      if (list.length() >= 2)
+      t.syntax = list.elem(2).str();
+      if (list.length() >= 3)
+      t.meaning = list.elem(3).str();
+      if (list.length() >= 4)
+      t.example = list.elem(4).str();
+      if (list.length() >= 5)
+        t.remark = list.elem(5).str();
+      r->append(&t, false);
+
+      i++;
+    }  
+    pos++;
+  }
+}
+
 
 ListExpr
 SecondoCatalog::ListTypeConstructors( int algebraId )
