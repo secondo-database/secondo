@@ -12,6 +12,11 @@ mkdir -p $tempDir
 export SECONDO_PARAM_SecondoHome="$tempDir"
 export SECONDO_PARAM_RTFlags=""
 
+# On linux the variable below will use a less efficient
+# malloc implementation which does error detection and aborts
+# the process as soon as an error is recognized.
+export MALLOC_CHECK_=2
+
 else
  shift
 fi
