@@ -818,9 +818,12 @@ Precondition: dbState = dbOpen.
   {
     objectName = it->first;
     typeName = nl->Empty();
-    typeExpr = it->second->relSchema().enclose().listExpr();
-    appendEntry( objectsList, lastElem, 
-                 objEntry(objectName, typeName, typeExpr) );
+    if (!it->second->isPersistent)
+    { 
+      typeExpr = it->second->relSchema().enclose().listExpr();
+      appendEntry( objectsList, lastElem, 
+                   objEntry(objectName, typeName, typeExpr) );
+    }  
     it++;
   } 
 
@@ -838,8 +841,6 @@ Returns a list of ~objects~ of the whole database in the following format:
        (OBJECT <object name>(<type name>) <type expression> <value>)*
      )
 ----
-
-For each object the *value* component is missing, otherwise the whole database will be returned.
 
 Precondition: dbState = dbOpen.
 
