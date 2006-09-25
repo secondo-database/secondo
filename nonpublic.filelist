@@ -25,6 +25,7 @@ Data/Objects/Distrikte
 
 nonpublic.filelist
 makefile.nonpublic
+Optimizer/calloptimizer_sec.pl
 
 CM-Scripts/cvs-make.sh
 CM-Scripts/cvs-chgrp.sh
