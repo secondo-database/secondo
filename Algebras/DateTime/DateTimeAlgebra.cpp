@@ -2334,7 +2334,7 @@ const string DivSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"duration x duration -> int\""
    " \"  _ / _  \" "
-   "   \"Computes how often the second argument is part of the first one\" "
+   " 'Computes how often the second argument is part of the first one' "
    "   \" query a / b \" ))";
 
 
@@ -2357,14 +2357,14 @@ const string MinDurationSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \" -> duration \""
    " \"  minDuration()  \" "
-   "   \"returns the minimum representable duration value \" "
+   "   'returns the minimum representable duration value ' "
    "   \" query minDuration() \" ))";
 
 const string MaxDurationSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \" -> duration \""
    " \"  maxDuration()  \" "
-   "   \"returns the maximum representable duration value \" "
+   "   'returns the maximum representable duration value'  "
    "   \" query maxDuration() \" ))";
 
 /*
