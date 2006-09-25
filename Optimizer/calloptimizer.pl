@@ -87,7 +87,8 @@ meaning when typing ~showOptions/0~. Predicates ~setOption/1~ and
 
 :- dynamic(optimizerOption/1),
    dynamic(optDebugLevel/1),
-   dynamic(loadedModule/1).
+   dynamic(loadedModule/1),
+   dynamic(optimizerOptionInfo/5).
 
 /*
 ---- optimizerOptionInfo(+Option,+SUperOption,-Meaning,-GoalOn,-GoalOff)
@@ -113,43 +114,13 @@ optimizerOptionInfo(nawracosts, none,
                     true 
                    ).
 
-optimizerOptionInfo(adaptiveJoin, none,   
-                     '\tAllow usage of adaptive join operators.',
-                     ( delOption(entropy), 
-                       delOption(intOrders(on)),
-                       delOption(intOrders(quick)),
-                       delOption(intOrders(path)),
-                       delOption(intOrders(test)),
-                       loadFiles(adaptiveJoin) 
-                     ), 
-                     true ).
-
-optimizerOptionInfo(entropy, none,
-                    '\tUse entropy to estimate selectivities.',
-                    ( delOption(intOrders(on)),
-                      delOption(intOrders(quick)),
-                      delOption(intOrders(path)),
-                      delOption(intOrders(test)),
-                      delOption(immediatePlan),
-                      loadFiles(entropy), 
-                      (   notIsDatabaseOpen
-                        ; ( retractall(storedSecondoList(_)),
-                            getSecondoList(ObjList),
-                            checkForAddedIndices(ObjList), 
-                            checkForRemovedIndices(ObjList),
-                            checkIfSmallRelationsExist(ObjList),
-                            retractall(storedSecondoList(_))
-                          )
-                      )
-                    ), 
-	            true ).
 
 /*
 ----
-optimizerOptionInfo(uniformSpeed,     
+optimizerOptionInfo(uniformSpeed, none,    
                     'Set machine speed factor to constant 1.0.',
                     true, true).
-optimizerOptionInfo(costsConjuctive,  
+optimizerOptionInfo(costsConjuctive, none,  
            'Apply costs only to operators directly considered by Dijkstra',
            true, true).
 ----
@@ -245,9 +216,6 @@ optimizerOptionInfo(rewriteMacros, none,
 optimizerOptionInfo(rewriteInference, none,
                     'Add inferred predicates to where clause.',
                     true, true).
-optimizerOptionInfo(rewriteNonempty, rewriteInference,
-                    'Handle \'nonempty\' in select statements.',
-                    true, true).
 optimizerOptionInfo(rtreeIndexRules, rewriteInference,  
                     'Infer predicates to exploit R-tree indices.',
                       (   setOption(rewriteInference), 
@@ -273,6 +241,7 @@ optimizerOptionInfo(rewriteCSEall, rewriteCSE,
 optimizerOptionInfo(rewriteRemove, rewriteCSE,     
                     '\tRemove attributes as early as possible.',
                     setOption(rewriteCSE), true).
+
 optimizerOptionInfo(debug,none,            
                     '\t\tExecute debugging code. Also use \'toggleDebug.\'.',
                     showDebugLevel,true).
@@ -280,6 +249,7 @@ optimizerOptionInfo(autosave,none,
                     '\tAutosave option settings on \'halt.\'.',
                     true, true).
 
+:- [calloptimizer_sec]. % include more options
 
 /*
 ---- showOptions
@@ -292,7 +262,7 @@ optimizer options.
 */
 
 showOptions :- 
-  findall(X,optimizerOptionInfo(X,_,_,_,_),Options),
+  findall(X,optimizerOptionInfo(X,none,_,_,_),Options),
   write('\n\nOptimizer options (and sub-options):\n'),
   showOption(Options), 
   write('\nType \'loadOptions.\' to load the saved option configuration.\n'),
@@ -304,15 +274,32 @@ showOptions :-
 
 showOption([]).
 showOption([Option|Y]) :-
-  optimizerOptionInfo(Option,Super,Text,_,_),
-  ( Super = none -> write(' [') ; write('    (') ),
+  optimizerOptionInfo(Option,none,Text,_,_),
+  write(' ['), 
   ( optimizerOption(Option) 
       -> write('x')
        ; write(' ')
   ),
-  ( Super = none -> write(']    ') ; write(') ') ),
+  write(']    '),
   write(Option), write(':\t'), write(Text), nl,
+  showSubOptions(Option),
   showOption(Y), !.
+
+showSubOption(_,[]).
+showSubOption(Super,[Option|Y]) :-
+  optimizerOptionInfo(Option,Super,Text,_,_),
+  write('    ('),
+  ( optimizerOption(Option) 
+      -> write('x')
+       ; write(' ')
+  ),
+  write(') '),
+  write(Option), write(':\t'), write(Text), nl,
+  showSubOption(Super,Y), !.	
+
+showSubOptions(Super) :-
+  findall(X,optimizerOptionInfo(X,Super,_,_,_),SubOptions),
+  showSubOption(Super, SubOptions), !.
 
 setOption(X) :-
   nonvar(X),
@@ -561,25 +548,6 @@ to disk automatically on system halt.
 
 defaultOptions :-
   setOption(standard),
-  % setOption(entropy),
-  % setOption(immediatePlan),
-  % setOption(intOrders(on)),
-  % setOption(intOrders(quick)),
-  % setOption(intOrders(path)),
-  % setOption(intOrders(test)),
-  % setOption(pathTiming),
-  % setOption(uniformSpeed),
-  % setOption(costsConjunctive),
-  % setOption(dynamicSample),
-  % setOption(rewriteMacros),
-  % setOption(rewriteInference),
-  % setOption(rtreeIndexRules),
-  % setOption(rewriteNonempty),
-  % setOption(rewriteCSE),
-  % setOption(rewriteCSEall),
-  % setOption(rewriteRemove),
-  % assert(optDebugLevel(selectivity)), setOption(debug),
-  % assert(optDebugLevel(all)), setOption(debug),
   setOption(autosave),
   true.
 
