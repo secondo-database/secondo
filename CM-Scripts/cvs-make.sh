@@ -73,10 +73,9 @@ fi
 
 #default options
 rootDir=$HOME
-coDir=tmp_secondo_${date_ymd}_${date_HMS}
+coModule="secondo"
 cvsDir=/home/cvsroot
 coTag="HEAD"
-coModule="secondo"
 LU_SENDMAIL="true"
 waitMax=900
 tmpDir=/tmp/cvs-make-$USER
@@ -90,7 +89,7 @@ let numOfArgs++
 
 while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
 
-  getopts "hmnrw:c:t:" optKey
+  getopts "hnm:r:w:c:t:" optKey
   if [ "$optKey" == "?" ]; then
     optKey="h"
   fi
@@ -118,15 +117,17 @@ while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
 
    t) coTag=$OPTARG;;
 
-   m) coModule=$(OPTARG);;
+   m) coModule=$OPTARG;;
 
-   w) waitMax=$(OPTARG);;
+   w) waitMax=$OPTARG;;
 
    n) LU_SENDMAIL="false";;
 
   esac
 
 done
+
+coDir=tmp_${coModule}_${date_ymd}_${date_HMS}
 
 # set up environment for secondo
 source ~/.bashrc # this is needed when started by cron
@@ -264,10 +265,10 @@ printSep "Alias definitions"
 alias
 
 cd $rootDir
-checkCmd "cvs -Q checkout -d $coDir -P secondo"
+checkCmd "cvs -Q checkout -d $coDir -P $coModule"
 
 ## run make
-printSep "Compiling SECONDO"
+printSep "Compiling $coModule"
 
 declare -i errors=0
 cd $cbuildDir
@@ -277,9 +278,9 @@ export SECONDO_ACTIVATE_ALL_ALGEBRAS="true"
 export SECONDO_YACC="/usr/bin/bison"
 
 logFile=$tmpDir/make-all-1.log
-makeSecondo "$logFile" "Building SECONDO with all algebras failed!"
+makeSecondo "$logFile" "Building $coModule with all algebras failed!"
 
-printSep "Cleaning SECONDO"
+printSep "Cleaning $coModule"
 logFile=$tmpDir/make-realclean.log
 checkCmd "make realclean" > $logFile 2>&1
 
@@ -294,7 +295,7 @@ if [ "$leftFiles" != "" ]; then
 printSep "Compile Again"
 logFile=$tmpDir/make-all-2.log
 unset SECONDO_ACTIVATE_ALL_ALGEBRAS
-makeSecondo "$logFile" "Building SECONDO failed!"
+makeSecondo "$logFile" "Building $coModule failed!"
 
 
 ## run tests
