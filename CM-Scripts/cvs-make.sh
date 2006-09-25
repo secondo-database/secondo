@@ -78,13 +78,19 @@ cvsDir=/home/cvsroot
 coTag="HEAD"
 coModule="secondo"
 LU_SENDMAIL="true"
+waitMax=900
+tmpDir=/tmp/cvs-make-$USER
+
+if [ ! -d $tmpDir ]; then
+  mkdir $tmpDir
+fi
 
 declare -i numOfArgs=$#
 let numOfArgs++
 
 while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
 
-  getopts "hnr:c:t:" optKey
+  getopts "hmnrw:c:t:" optKey
   if [ "$optKey" == "?" ]; then
     optKey="h"
   fi
@@ -99,6 +105,7 @@ while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
       printf "%s\n"   "  -n send no mails. Just print the message to stdout."
       printf "%s\n"   "  -t<version-tag> => \"${coTag}\" "
       printf "%s\n"   "  -m<cvs-module> => \"${coModule}\" "
+      printf "%s\n"   "  -w<seconds> (timeout for tests!) => \"${waitMax}\" "
       printf "%s\n\n" "  -c<checkout-dir> => \"tmp_secondo_<date>\""
       printf "%s\n"   "The script checks out a local copy of <cvs-module> into the directoy"
       printf "%s\n"   "into <root-dir>/<checkout-dir> and runs make, various tests, etc."
@@ -110,6 +117,10 @@ while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
    c) coDir=$OPTARG;;
 
    t) coTag=$OPTARG;;
+
+   m) coModule=$(OPTARG);;
+
+   w) waitMax=$(OPTARG);;
 
    n) LU_SENDMAIL="false";;
 
@@ -148,14 +159,17 @@ cvsHistMailBackupDir=$cvsHistRootDir/${date_ymd}_${date_HMS}
 
 # retrieve date of last run and store it in the first
 # line. This is more secure since time stamps of the file
-# may be corrupted by backup-script etc.
+# may be modified by backup-script etc.
 if [ -e $lastDateFile ]; then
   lastDate=$(tail -n1 $lastDateFile)
 else
   lastDate="1-day-ago"
 fi
 
-cvsHistory=$(cvs history -xMAR -a -D"$lastDate" -p secondo)
+# Note: The -p"prefix" option of the history commands selects files starting with the
+# given prefix. Since we have other repositories starting with "secondo" we need to filter 
+# the output using grep.
+cvsHistory=$(cvs history -xMAR -a -D"$lastDate" -p"$coModule" | grep "$coModule/\|$coModule ")
 
 # store current date in file
 currentDate=$(date +"%Y-%m-%d %H:%M")
@@ -198,8 +212,6 @@ else
   exit 1;
 
 fi
-
-
 
 ## report host status 
 printSep "host status"
@@ -264,22 +276,25 @@ printf "\n%s\n" "Entering directory $PWD"
 export SECONDO_ACTIVATE_ALL_ALGEBRAS="true"
 export SECONDO_YACC="/usr/bin/bison"
 
-makeSecondo "make-all-1.log" "Building SECONDO with all algebras failed!"
+logFile=$tmpDir/make-all-1.log
+makeSecondo "$logFile" "Building SECONDO with all algebras failed!"
 
 printSep "Cleaning SECONDO"
-checkCmd "make realclean" > make-realclean.log 2>&1
+logFile=$tmpDir/make-realclean.log
+checkCmd "make realclean" > $logFile 2>&1
 
 printf "\n%s\n" "files unkown to CVS:"
 leftFiles=$(cvs -nQ update | grep "^? ") 
 if [ "$leftFiles" != "" ]; then 
   printf "\n make realclean has left some files: \n"
   printf "\n $leftFiles"
-  sendMail "make realclean has left some files" "$mailRecipients" "$mailBody3 $leftFiles" "$cvsHistMailBackupDir" " make-realclean.log"
+  sendMail "make realclean has left some files" "$mailRecipients" "$mailBody3 $leftFiles" "$cvsHistMailBackupDir" "$logFile"
   fi
 
 printSep "Compile Again"
+logFile=$tmpDir/make-all-2.log
 unset SECONDO_ACTIVATE_ALL_ALGEBRAS
-makeSecondo "make-all-2.log" "Building SECONDO failed!"
+makeSecondo "$logFile" "Building SECONDO failed!"
 
 
 ## run tests
@@ -288,7 +303,7 @@ if [ $? == 0 ]; then
 
   printSep "Running automatic tests"
   cd $scriptDir
-  checkCmd "run-tests.sh -tty $cvsHistRootDir 900" 
+  checkCmd "run-tests.sh -tty $cvsHistRootDir $waitMax"
 
   if [ $? -ne 0 ]; then
     
@@ -318,8 +333,8 @@ if [ $[errors] != 0 ]; then
 
 else
 
+  # Move label for stable version
   cd $cbuildDir
-  # move label for stable version
   tagSym="LAST_STABLE"
   tagMsg="Moving CVS tag $tagSym"
   printSep $tagMsg
@@ -328,8 +343,12 @@ else
   cvs -Q tag $tagSym
   make tag=$tagSym src-archives
   #Backup to /www switched of since the server has problems
-  #cp /tmp/make-spieker/secondo-$tagSym* /www/secondo/internal
-  rm -rf ${cbuildDir}
+  cp /tmp/make-$USER/secondo-$tagSym* $HOME/Backup 
+
+  # clean up
+  rm -rf $cbuildDir
+  rm -rf $tmpDir
+  rm -rf /tmp/make-$USER
 
 fi
 
