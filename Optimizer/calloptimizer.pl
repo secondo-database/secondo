@@ -588,7 +588,10 @@ defaultOptions :-
   setOption(autosave).
 
 
-loadOptions :- consult('config_optimizer.pl').
+loadOptions :- 
+  delAllOptions,
+  retractall(optDebugLevel(_)),
+  consult('config_optimizer.pl').
 
 saveSingleOption(Stream) :-
   optimizerOption(X),
