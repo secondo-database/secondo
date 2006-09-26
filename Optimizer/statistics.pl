@@ -727,14 +727,10 @@ showSingleAttribute(Rel,Attr) :-
   databaseName(DB),
   storedAttrSize(DB, Rel, Attr, Type, CoreTupleSize, InFlobSize, ExtFlobSize),
   secAttr(Rel, Attr, AttrS),
-  write('\t'), write(AttrS), write('\t\t'), 
-  write(Type), write('\t'),
-  write(CoreTupleSize), write('\t'),
-  write(InFlobSize),  write('\t'),
-  write(ExtFlobSize), nl. 
+  format('\t~p~35|~p~49|~p~60|~p~69|~p~n',[AttrS,Type,CoreTupleSize,InFlobSize,ExtFlobSize]).
 
 showAllAttributes(Rel) :-
-  write('\tAttr\t\tType\tCoreSz\tIFlobSz\tExtFlobSz\n'),
+  format('\t~p~35|~p~49|~p~60|~p~69|~p~n',['AttributeName','Type','CoreSz','IFlobSz','ExtFlobSz']),
   findall(_, showSingleAttribute(Rel, _), _).
 
 showAllIndices(Rel) :-
