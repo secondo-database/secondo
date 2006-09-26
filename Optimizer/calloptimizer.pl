@@ -596,10 +596,17 @@ saveSingleOption(Stream) :-
   write(Stream, setOption(X)), 
   write(Stream, '.\n').
 
+saveSingleDebugLevel(Stream) :-
+  optDebugLevel(X),
+  write(Stream, ':- '),
+  write(Stream, debugLevel(X)), 
+  write(Stream, '.\n').
+
 saveOptions :- 
   open('config_optimizer.pl', write, FD),
   write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
   findall(_, saveSingleOption(FD), _),
+  findall(_, saveSingleDebugLevel(FD), _),
   close(FD).
 
 initializeOptions :-
