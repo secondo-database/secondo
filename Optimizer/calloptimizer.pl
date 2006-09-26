@@ -341,10 +341,20 @@ delOption(X) :-
          write(Text), write('\n')
        )
     ;  true
+  ),
+  ( not( ( optimizerOption(Z), 
+           optimizerOptionInfo(Z,_,yes,_,_,_)
+         ))
+    -> ( retractall(optimizerOption(standard)),
+         assert(optimizerOption(standard))
+       )
+     ; true
   ), 
-  ( not(optimizerOption(_))
-    -> assert(optimizerOption(standard))
-    ; true
+  ( not((optimizerOption(Z), Z \= standard))
+    -> ( retractall(optimizerOption(allOff)),
+         assert(optimizerOption(allOff))
+       )
+     ; true
   ), !.
 
 delOneOption(X) :-
