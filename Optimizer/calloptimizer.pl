@@ -547,9 +547,7 @@ to disk automatically on system halt.
 */
 
 defaultOptions :-
-  setOption(standard),
-  setOption(autosave),
-  true.
+  setOption(standard).
 
 loadOptions :- consult('config_optimizer.pl').
 
@@ -566,8 +564,16 @@ saveOptions :-
   close(FD).
 
 initializeOptions :-
-  setOption(standard),
-  (loadOptions ; defaultOptions).
+  catch(
+	 (loadOptions, 
+	  write('Loaded options\n')
+         ), 
+         _, % catch all exceptions
+         (defaultOptions,
+	  saveOptions, % save a blanc 'config_optimizer.pl'
+          write('Saved options\n')
+         )
+       ).
 
 :- at_halt((optimizerOption(autosave), saveOptions)). % automatically safe option configuration on exit
 :- initializeOptions.
