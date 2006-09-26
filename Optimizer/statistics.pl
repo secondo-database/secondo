@@ -597,16 +597,20 @@ writeStoredSel(Stream) :-
 
 showSel :- 
   storedSel(DB, X, Y),
-  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
+  replaceCharList(X, XRepl),
+  format('  ~p~16|~p.~p~n',[Y,DB,XRepl]).
+%  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
 
 showBBoxSel :- 
   storedBBoxSel(DB, X, Y),
-  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
+  replaceCharList(X, XRepl),
+  format('  ~p~16|~p.~p~n',[Y,DB,XRepl]).
+%  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
 
 showSels :-
-  write('Stored selectivities:\n'),
+  write('\nStored selectivities:\n'),
   findall(_, showSel, _),
-  write('Stored bbox-selectivities:\n'),
+  write('\nStored bbox-selectivities:\n'),
   findall(_, showBBoxSel, _) .
 
 :-
@@ -627,20 +631,19 @@ writeStoredPETs :-
 
 writeStoredPET(Stream) :-  
   storedPET(DB, X, Y, Z),
+
   replaceCharList(X, XReplaced),
   write(Stream, storedPET(DB, XReplaced, Y, Z)), write(Stream, '.\n').
 
 showPETs :-
   write('\nStored predicate costs:\n'),
-  write('Calculated/Measured Cost [ms] \t\t Predicate\n'),
+  format('  ~p~18|~p~34|~p~n',['Calculated [ms]', 'Measured [ms]','Predicate']),
   findall(_, showPET, _).
 
 showPET :-
   storedPET(DB, P, Calc, Exp),
-  replaceCharList(P, PReplaced),
-  write(' '), write(Calc), write('/'), write(Exp), write('\t\t'), write(DB), 
-  write('.'), write(PReplaced), nl.
-
+  replaceCharList(P, PRepl),
+  format('  ~p~18|~p~34|~p.~p~n',[Calc, Exp, DB, PRepl]).
 
 :-
   dynamic(storedPET/4),
