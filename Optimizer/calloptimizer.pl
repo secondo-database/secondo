@@ -547,7 +547,11 @@ to disk automatically on system halt.
 */
 
 defaultOptions :-
-  setOption(standard).
+  setOption(standard),
+  setOption(debug),
+  debugLevel(selectivity),
+  setOption(autosave).
+
 
 loadOptions :- consult('config_optimizer.pl').
 
