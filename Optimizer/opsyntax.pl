@@ -39,7 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, inside).
 :- op(800, xfx, insideold).
 :- op(800, xfx, intersects).
-:- op(800, xfx, touches).
+:- op(800, xfx, adjacent).
 :- op(800, xfx, attached).
 :- op(800, xfx, overlaps).
 :- op(800, xfx, onborder).
