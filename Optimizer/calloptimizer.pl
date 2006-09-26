@@ -88,10 +88,10 @@ meaning when typing ~showOptions/0~. Predicates ~setOption/1~ and
 :- dynamic(optimizerOption/1),
    dynamic(optDebugLevel/1),
    dynamic(loadedModule/1),
-   dynamic(optimizerOptionInfo/5).
+   dynamic(optimizerOptionInfo/6).
 
 /*
----- optimizerOptionInfo(+Option,+SUperOption,-Meaning,-GoalOn,-GoalOff)
+---- optimizerOptionInfo(+Option,+SuperOption,-NonStandard,-Meaning,-GoalOn,-GoalOff)
 ----
 Provides information on optimizer options. ~Option~ is the option in question,
 ~Meaning~ is a description of that option. When ~Option~ get activated, ~GoalOn~
@@ -100,15 +100,24 @@ should be called, is it is deactivated, ~GoalOff~ is called.
 ~SuperOption~ is the name of the option that ~Option~ is a suboption of. If ~none~,
 ~Option~ is a top-level option.
 
+If ~NonStandard = yes~ means this option somehow alters the optimization process.
+~NonStandard = no~ means, the option does not modify the optimization process.
+
 */
 
-optimizerOptionInfo(standard, none,
-                    'Turn off all options. Use standard optimizer.',
+optimizerOptionInfo(standard, none, no,
+                    'Adopt options for standard optimization process.',
+                    delAllNonstandardOptions,
+                    true
+                   ).
+
+optimizerOptionInfo(allOff, none, no,
+                    'Turn off really ALL options.',
                     delAllOptions,
                     true
                    ).
 
-optimizerOptionInfo(nawracosts, none,
+optimizerOptionInfo(nawracosts, none, yes,
                     'Use cost functions as implemented by A. Nawra.',
                     true,
                     true 
@@ -117,17 +126,17 @@ optimizerOptionInfo(nawracosts, none,
 
 /*
 ----
-optimizerOptionInfo(uniformSpeed, none,    
+optimizerOptionInfo(uniformSpeed, none, yes,    
                     'Set machine speed factor to constant 1.0.',
                     true, true).
-optimizerOptionInfo(costsConjuctive, none,  
+optimizerOptionInfo(costsConjuctive, none, yes,  
            'Apply costs only to operators directly considered by Dijkstra',
            true, true).
 ----
 
 */
 
-optimizerOptionInfo(immediatePlan, none,   
+optimizerOptionInfo(immediatePlan, none, yes,
                     'Immediately create a path rather than the POG.',
                     ( delOption(entropy), 
                       loadFiles(immediatePlan)
@@ -139,7 +148,7 @@ optimizerOptionInfo(immediatePlan, none,
                     ) 
                    ).
 
-optimizerOptionInfo(intOrders(on), immediatePlan,   
+optimizerOptionInfo(intOrders(on), immediatePlan, yes,
                     'Consider interesting orders (on-variant).',
                     ( delOption(entropy),
                       delOption(intOrders(quick)),
@@ -156,7 +165,7 @@ optimizerOptionInfo(intOrders(on), immediatePlan,
                     ), 
                     turnOffIntOrders
                    ).
-optimizerOptionInfo(intOrders(path), immediatePlan,   
+optimizerOptionInfo(intOrders(path), immediatePlan, yes,
                     'Consider interesting orders (path-variant).',
                     ( delOption(entropy),
                       delOption(intOrders(on)),
@@ -172,7 +181,7 @@ optimizerOptionInfo(intOrders(path), immediatePlan,
                     ), 
                     turnOffIntOrders
                    ).
-optimizerOptionInfo(intOrders(quick), immediatePlan,   
+optimizerOptionInfo(intOrders(quick), immediatePlan, yes,
                     'Consider interesting orders (quick-variant).',
                     ( delOption(entropy),
                       delOption(intOrders(on)),
@@ -187,7 +196,7 @@ optimizerOptionInfo(intOrders(quick), immediatePlan,
                     ), 
                     turnOffIntOrders
                    ).
-optimizerOptionInfo(intOrders(test), immediatePlan,   
+optimizerOptionInfo(intOrders(test), immediatePlan, yes,
                     'Consider interesting orders (test-variant).',
                     ( delOption(entropy),
                       delOption(intOrders(on)),
@@ -204,19 +213,19 @@ optimizerOptionInfo(intOrders(test), immediatePlan,
                     turnOffIntOrders
                    ).
 
-optimizerOptionInfo(pathTiming, none,   
+optimizerOptionInfo(pathTiming, none, no,
                     'Prompt time used to find a best path.',
                     true, true).
-optimizerOptionInfo(dynamicSample, none,   
+optimizerOptionInfo(dynamicSample, none, yes,
                     'Use dynamic instead of static (saved) samples.',
                     true, true).
-optimizerOptionInfo(rewriteMacros, none,   
+optimizerOptionInfo(rewriteMacros, none, no, 
                     'Allow for macros in queries.',
                     true, true).
-optimizerOptionInfo(rewriteInference, none,
+optimizerOptionInfo(rewriteInference, none, yes,
                     'Add inferred predicates to where clause.',
                     true, true).
-optimizerOptionInfo(rtreeIndexRules, rewriteInference,  
+optimizerOptionInfo(rtreeIndexRules, rewriteInference, yes,  
                     'Infer predicates to exploit R-tree indices.',
                       (   setOption(rewriteInference), 
                           (
@@ -232,20 +241,20 @@ optimizerOptionInfo(rtreeIndexRules, rewriteInference,
                           )
                       ), 
                       true).
-optimizerOptionInfo(rewriteCSE, none,      
+optimizerOptionInfo(rewriteCSE, none, yes,      
                     'Extend with attributes for CSE values.',
                     true, delOption(rewriteRemove)).
-optimizerOptionInfo(rewriteCSEall, rewriteCSE,     
+optimizerOptionInfo(rewriteCSEall, rewriteCSE, no,     
                     'Extend with attributes for _ALL_ CSEs.',
                     true, true).
-optimizerOptionInfo(rewriteRemove, rewriteCSE,     
+optimizerOptionInfo(rewriteRemove, rewriteCSE, no,     
                     'Remove attributes as early as possible.',
                     setOption(rewriteCSE), true).
 
-optimizerOptionInfo(debug,none,            
+optimizerOptionInfo(debug, none, no,            
                     'Execute debugging code. Also use \'toggleDebug.\'.',
                     showDebugLevel,true).
-optimizerOptionInfo(autosave,none,            
+optimizerOptionInfo(autosave, none, no,            
                     'Autosave option settings on \'halt.\'.',
                     true, true).
 
@@ -262,7 +271,7 @@ optimizer options.
 */
 
 showOptions :- 
-  findall(X,optimizerOptionInfo(X,none,_,_,_),Options),
+  findall(X,optimizerOptionInfo(X,none,_,_,_,_),Options),
   write('\n\nOptimizer options (and sub-options):\n'),
   showOption(Options), 
   write('\nType \'loadOptions.\' to load the saved option configuration.\n'),
@@ -274,7 +283,7 @@ showOptions :-
 
 showOption([]).
 showOption([Option|Y]) :-
-  optimizerOptionInfo(Option,none,Text,_,_),
+  optimizerOptionInfo(Option,none,_,Text,_,_),
   write(' ['), 
   ( optimizerOption(Option) 
       -> write('x')
@@ -282,13 +291,12 @@ showOption([Option|Y]) :-
   ),
   write(']    '),
   format('~p:~30|~p~n',[Option, Text]),
-%  write(Option), write(':\t'), write(Text), nl,
   showSubOptions(Option),
   showOption(Y), !.
 
 showSubOption(_,[]).
 showSubOption(Super,[Option|Y]) :-
-  optimizerOptionInfo(Option,Super,Text,_,_),
+  optimizerOptionInfo(Option,Super,_,Text,_,_),
   write('    ('),
   ( optimizerOption(Option) 
       -> write('x')
@@ -296,32 +304,36 @@ showSubOption(Super,[Option|Y]) :-
   ),
   write(') '),
   format('~p:~30|~p~n',[Option, Text]),
-%  write(Option), write(':\t'), write(Text), nl,
   showSubOption(Super,Y), !.	
 
 showSubOptions(Super) :-
-  findall(X,optimizerOptionInfo(X,Super,_,_,_),SubOptions),
+  findall(X,optimizerOptionInfo(X,Super,_,_,_,_),SubOptions),
   showSubOption(Super, SubOptions), !.
 
 setOption(X) :-
   nonvar(X),
-  optimizerOptionInfo(X,_,Text,GoalOn,_),
+  optimizerOptionInfo(X,_,NonStandard,Text,GoalOn,_),
   retractall(optimizerOption(X)),
   assert(optimizerOption(X)), 
   call(GoalOn),
   write('Switched ON option: \''), write(X), write('\' - '), 
   write(Text), write('\n'), 
-  ( X \= standard 
-    -> retractall(optimizerOption(standard))
-    ; true
-  ), !.
+  ( X \= allOff 
+       -> retractall(optimizerOption(allOff)) 
+        ; true
+  ),
+  ( (X \= standard, NonStandard = yes) 
+       -> retractall(optimizerOption(standard)) 
+        ; true
+  ),
+  !.
 
 setOption(X) :-
   write('Unknown option \''), write(X), write('\'.\n'), fail, !.
 
 delOption(X) :-
   nonvar(X),
-  optimizerOptionInfo(X,_,Text,_,GoalOff),
+  optimizerOptionInfo(X,_,_,Text,_,GoalOff),
   ( optimizerOption(X)
     -> ( retractall(optimizerOption(X)), 
          call(GoalOff),
@@ -341,15 +353,26 @@ delOneOption(X) :-
   fail, !.
 
 delOneOption :-
-  optimizerOptionInfo(X,_,_,_,_), 
-  X \= standard, 
+  optimizerOptionInfo(X,_,_,_,_,_), 
+  X \= none, 
   delOption(X),
   fail.
 
 delAllOptions :-
   not(delOneOption),
-  write('\nSwitched off all options. Optimizer now works in standard mode.\n').
+  write('\nSwitched off all options.\n').
   
+delOneNonstandardOption :-
+  optimizerOptionInfo(X,_,yes,_,_,_), 
+  X \= standard,
+  delOption(X),
+  fail.  
+
+delAllNonstandardOptions :-
+  not(delOneNonstandardOption),
+  write('\nSwitched off all nonstandard-options. '),
+  write('Optimizer now works in standard mode.\n').
+
 
 /*
 3 Code for certain optimizer options

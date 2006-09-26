@@ -1,5 +1,5 @@
 :- assert(
-optimizerOptionInfo(adaptiveJoin, none,   
+optimizerOptionInfo(adaptiveJoin, none, yes,   
                      'Allow usage of adaptive join operators.',
                      ( delOption(entropy), 
                        delOption(intOrders(on)),
@@ -11,7 +11,7 @@ optimizerOptionInfo(adaptiveJoin, none,
                      true )).
 
 :- assert(
-optimizerOptionInfo(entropy, none,
+optimizerOptionInfo(entropy, none, yes,
                     'Use entropy to estimate selectivities.',
                     ( delOption(intOrders(on)),
                       delOption(intOrders(quick)),
