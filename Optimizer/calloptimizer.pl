@@ -103,13 +103,13 @@ should be called, is it is deactivated, ~GoalOff~ is called.
 */
 
 optimizerOptionInfo(standard, none,
-                    '\tTurn off all options. Use standard optimizer.',
+                    'Turn off all options. Use standard optimizer.',
                     delAllOptions,
                     true
                    ).
 
 optimizerOptionInfo(nawracosts, none,
-                    '\tUse cost functions as implemented by A. Nawra.',
+                    'Use cost functions as implemented by A. Nawra.',
                     true,
                     true 
                    ).
@@ -128,7 +128,7 @@ optimizerOptionInfo(costsConjuctive, none,
 */
 
 optimizerOptionInfo(immediatePlan, none,   
-                    '\tImmediately create a path rather than the POG.',
+                    'Immediately create a path rather than the POG.',
                     ( delOption(entropy), 
                       loadFiles(immediatePlan)
                     ),
@@ -140,7 +140,7 @@ optimizerOptionInfo(immediatePlan, none,
                    ).
 
 optimizerOptionInfo(intOrders(on), immediatePlan,   
-                    '\tConsider interesting orders (on-variant).',
+                    'Consider interesting orders (on-variant).',
                     ( delOption(entropy),
                       delOption(intOrders(quick)),
                       delOption(intOrders(path)),
@@ -205,13 +205,13 @@ optimizerOptionInfo(intOrders(test), immediatePlan,
                    ).
 
 optimizerOptionInfo(pathTiming, none,   
-                    '\tPrompt time used to find a best path.',
+                    'Prompt time used to find a best path.',
                     true, true).
 optimizerOptionInfo(dynamicSample, none,   
-                    '\tUse dynamic instead of static (saved) samples.',
+                    'Use dynamic instead of static (saved) samples.',
                     true, true).
 optimizerOptionInfo(rewriteMacros, none,   
-                    '\tAllow for macros in queries.',
+                    'Allow for macros in queries.',
                     true, true).
 optimizerOptionInfo(rewriteInference, none,
                     'Add inferred predicates to where clause.',
@@ -233,20 +233,20 @@ optimizerOptionInfo(rtreeIndexRules, rewriteInference,
                       ), 
                       true).
 optimizerOptionInfo(rewriteCSE, none,      
-                    '\tExtended with attributes for CSE values.',
+                    'Extend with attributes for CSE values.',
                     true, delOption(rewriteRemove)).
 optimizerOptionInfo(rewriteCSEall, rewriteCSE,     
-                    '\tExtend with attributes for _ALL_ CSEs.',
+                    'Extend with attributes for _ALL_ CSEs.',
                     true, true).
 optimizerOptionInfo(rewriteRemove, rewriteCSE,     
-                    '\tRemove attributes as early as possible.',
+                    'Remove attributes as early as possible.',
                     setOption(rewriteCSE), true).
 
 optimizerOptionInfo(debug,none,            
-                    '\t\tExecute debugging code. Also use \'toggleDebug.\'.',
+                    'Execute debugging code. Also use \'toggleDebug.\'.',
                     showDebugLevel,true).
 optimizerOptionInfo(autosave,none,            
-                    '\tAutosave option settings on \'halt.\'.',
+                    'Autosave option settings on \'halt.\'.',
                     true, true).
 
 :- [calloptimizer_sec]. % include more options
@@ -281,7 +281,8 @@ showOption([Option|Y]) :-
        ; write(' ')
   ),
   write(']    '),
-  write(Option), write(':\t'), write(Text), nl,
+  format('~p:~30|~p~n',[Option, Text]),
+%  write(Option), write(':\t'), write(Text), nl,
   showSubOptions(Option),
   showOption(Y), !.
 
@@ -294,7 +295,8 @@ showSubOption(Super,[Option|Y]) :-
        ; write(' ')
   ),
   write(') '),
-  write(Option), write(':\t'), write(Text), nl,
+  format('~p:~30|~p~n',[Option, Text]),
+%  write(Option), write(':\t'), write(Text), nl,
   showSubOption(Super,Y), !.	
 
 showSubOptions(Super) :-
@@ -307,7 +309,7 @@ setOption(X) :-
   retractall(optimizerOption(X)),
   assert(optimizerOption(X)), 
   call(GoalOn),
-  write('Switched on option: \''), write(X), write('\' - '), 
+  write('Switched ON option: \''), write(X), write('\' - '), 
   write(Text), write('\n'), 
   ( X \= standard 
     -> retractall(optimizerOption(standard))
@@ -323,7 +325,7 @@ delOption(X) :-
   ( optimizerOption(X)
     -> ( retractall(optimizerOption(X)), 
          call(GoalOff),
-         write('Switched off option: \''), write(X), write('\' - '), 
+         write('Switched OFF option: \''), write(X), write('\' - '), 
          write(Text), write('\n')
        )
     ;  true
