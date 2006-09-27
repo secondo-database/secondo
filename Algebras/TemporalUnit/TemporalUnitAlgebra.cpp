@@ -3333,28 +3333,20 @@ int MPointDerivative( Word* args, Word& result, int message,
       for( int i = 0; i < value->GetNoComponents(); i++ )
 	{ // load a real unit
 	  value->Get( i, Unit );
-	  
-	  // FALSE means in this case that a real unit describes a quadratic
-	  // polynomial. A derivation is possible. 
-	  // The polynom looks like at^2 + bt + c.
-	  // The derivative of this polynom is 2at + b.
-	  if (Unit->r == false)
-	    {
+	  if (Unit->IsDefined() && !Unit->r)
+	    { // The derivative of this quadratic polynom is 2at + b + 0
 	      uReal.timeInterval = Unit->timeInterval;
 	      uReal.a = 0;
 	      uReal.b = 2 * Unit->a;
 	      uReal.c = Unit->b;
-	  uReal.r = Unit->r;
+              uReal.r = Unit->r;
+	      uReal.SetDefined(true);
+              res->Add( uReal );
 	    }
-	  else
-	    {
-	      // derivation of the real unit is not possible
-	      uReal.SetDefined(false);
-	    }
-	  
-	  res->Add( uReal );
+          // else: Do nothing. Do NOT add undefined units (would conflict 
+          //       e.g. with operator deftime()!
 	}
-      res->EndBulkLoad( false );
+      res->EndBulkLoad( false ); // no sorting, assuming the input was ordered
     }
   else // value is undefined
     res->SetDefined( false );
@@ -3365,28 +3357,27 @@ int UnitPointDerivative( Word* args, Word& result, int message,
                          Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  UReal* Unit = (UReal*)args[0].addr;
-  UReal* res = ((UReal*)result.addr);
+  UReal *Unit = (UReal*)args[0].addr;
+  UReal *res  = (UReal*)result.addr;
 
-
-  if (Unit->IsDefined())
+  if (Unit->IsDefined() && !Unit->r)
     {
-      if (Unit->r == false)
-	{
-	  res->timeInterval = Unit->timeInterval;
-	  res->a = 0;
-	  res->b = 2 * Unit->a;
-	  res->c = Unit->b;
-	  res->r = Unit->r;
-	}
-      else
-	{
-	  res->SetDefined(false);
-	}
-      
+      res->timeInterval = Unit->timeInterval;
+      res->a = 0;
+      res->b = 2 * Unit->a;
+      res->c = Unit->b;
+      res->r = Unit->r;
+      res->SetDefined(true);      
     }
-  else // Unit is undefines
-    res->SetDefined(false);
+  else // Unit is undefined
+    {
+      res->timeInterval = Unit->timeInterval;
+      res->a = 0;
+      res->b = 0;
+      res->c = 0;
+      res->r = TRUE;
+      res->SetDefined(false);
+    }
   return 0;
 }
 
