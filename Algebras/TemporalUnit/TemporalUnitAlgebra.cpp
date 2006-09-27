@@ -219,8 +219,8 @@ extern AlgebraManager* am;
 #include "DateTime.h"
 using namespace datetime;
 
-//bool TUA_DEBUG = false; // Set to true to activate debugging code
-bool TUA_DEBUG = true; // Set to true to activate debugging code
+bool TUA_DEBUG = false; // Set to true to activate debugging code
+//bool TUA_DEBUG = true; // Set to true to activate debugging code
 
 /*
 2.1 Definition of some constants and auxiliary functions
@@ -322,7 +322,7 @@ void UPoint::USpeed( UReal& result ) const
           DateTime dt = timeInterval.end - timeInterval.start;
           duration = dt.ToDouble() * 86400;   // value in seconds
 
-          if(TUA_DEBUG) cout << "\nUPoint::UVelocity duration=" 
+          if(TUA_DEBUG) cout << "\nUPoint::USpeed duration=" 
                              << duration << "s." << endl;
 
           if( duration > 0.0 )
@@ -632,16 +632,17 @@ TypeMapSpeed( ListExpr args )
 
 int MPointSpeed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  result = (MReal*) (qp->ResultStorage( s ));
+  result = (qp->ResultStorage( s ));
+  MReal *res = (MReal*) result.addr;
   MPoint* input = (MPoint*)args[0].addr;
   
-  result.Clear();
+  res->Clear();
 
   if ( input->IsDefined() )
     // call member function:
-    input->MSpeed( *result ); 
+    input->MSpeed( *res ); 
   else
-    result->SetDefined(false);
+    res->SetDefined(false);
 
   return 0;
 }
@@ -3050,16 +3051,17 @@ TypeMapVelocity( ListExpr args )
 int MPointVelocity(Word* args, Word& result, int message,
                    Word& local, Supplier s)
 {
+  result = (qp->ResultStorage( s ));
+  MPoint *res = (MPoint*) result.addr;
   MPoint* input = (MPoint*)args[0].addr;
-  MPoint resValue;
+  
+  res->Clear();
+  if ( input->IsDefined() )
+    // call member function:
+    input->MVelocity( *res ); 
+  else
+    res->SetDefined(false);
 
-  resValue.Clear();
-  result = qp->ResultStorage( s );
-   if ( !input->IsDefined() )
-    ((MPoint*)result.addr)->SetDefined( false );
-  else 
-    input->MVelocity( *((MPoint*)result.addr) );
-  ((MPoint*)result.addr)->CopyFrom(&resValue);
   return 0;
 }
 

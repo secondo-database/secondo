@@ -94,7 +94,7 @@ query derivable(speed(zug5))
 
 #testcase derivative_mr
 #tolerance_real 0.001
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5_derivative 
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5_derivative
 query derivative(speed(zug5))
 
 ############################
