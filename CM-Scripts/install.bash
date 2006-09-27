@@ -6,7 +6,9 @@
 # 04/22/09 M. Spiekermann, error handling for starting xterm &
 # 05/16/02 M. Spiekermann, MSYS-Mingw and Linux script merged into this version
 # 05/12/10 M. Spiekermann, Compilation of 3d party packages improved and uninstall function added  
-# 05/18/10 M. Spiekermann, Code structured into many new functions. Easier to test and maintain.   
+# 05/18/10 M. Spiekermann, Code restructured into many new functions. Easier to test and maintain.   
+# 06/27/09 M. Spiekermann, tools version check implemented and new packages
+#                          added in order to support Mac-OSX.   
 
 startDir=$PWD
 
@@ -240,30 +242,6 @@ delete it with a file manager."
 
 }
 
-
-
-# $1 command 
-# $2 minimal major number 
-# $3 minimal minor number
-function checkVersion {
-
-  checkCmd "$1 --version >> $logfile"
-
-  local version=$($1 --version | sed -nr '1s#.* ([0-9]+[.][0-9]+).*#\1#p')
-  local major=${version%.*}
-  local minor=${version#*.}
-  local ok="false"
-  if  let $[$major >= $2]; then
-    if  let $[$minor >= $3]; then
-      ok="true"
-    fi
-  fi
-     
-  if [ "$ok" != "false" ]; then
-    return 1
-  fi
-  return 0
-}
 
 function abort {
 
@@ -640,7 +618,7 @@ if win32Host; then
 fi
 
 ##
-## LINUX - INSTALLATION
+## LINUX / UNIX  - INSTALLATION
 ##
 
 if ! startupXterm "Messages from make" tail -f $logfile; then
@@ -652,13 +630,19 @@ fi
 #
 # GCC installation
 #
+gccVer="3.4"
 export PATH=".:$sdk/bin:$PATH"
 export LD_LIBRARY_PATH=".:$sdk/lib:$LD_LIBRARY_PATH"
 printSep "Installation of GCC $gccVer"
 echo "PATH: $PATH" >> $logfile
 echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH" >> $logfile
+checkCmd "gcc --version >> $logfile"
 checkCmd "gcc --print-search-dirs >> $logfile"
-if checkVersion "gcc" "3" "3"; then
+checkCmd "flex --version >> $logfile"
+checkCmd "bison --version >> $logfile"
+
+#install gcc if necessary
+if checkVersion "gcc --version" $gccVer; then
   showMsg "info" "Your system's GCC has already a suitable version \n\
 hence we will not install it again below $sdk"
 else
@@ -666,8 +650,8 @@ else
   gccfiles=$platformdir/gnu/gcc-*
   installPackage "GCC with C++ support" "$gccfiles"  $temp/gcc-* "bootstrap install"
   assert hash -r
-  if ! checkVersion "gcc" "3" "4"; then
-    showMsg "err" "Something went wrong! gcc --version does not report version $gccVer"
+  if ! checkVersion "gcc --version" $gccVer; then
+    showMsg "err" "Something went wrong! gcc --version does not report a version >= $gccVer"
     abort
   fi
 fi
@@ -676,18 +660,24 @@ configureFlags="CFLAGS=-I$sdk/include LDFLAGS=-L$sdk/lib"
 
 printSep "Compiling other packages ..."
 
+if [ "$platform" == "mac_osx" ]; then
+ installPackage "Findutils" $platformdir/gnu/findutils-* $temp/findutils-* install
+fi 
+
 installPackage "Berkeley-DB"  $platformdir/non-gnu/db-*      $temp/db-*/build_unix install --enable-cxx ../dist/configure
 installPackage "Lib curses"   $platformdir/gnu/ncurses-*     $temp/ncurses-*       install
 installPackage "Lib readline" $platformdir/gnu/readline-*    $temp/readline-*      install --with-curses
 installPackage "SWI-Prolog"   $platformdir/prolog/pl-*       $temp/pl-*            install
 installPackage "Lib jpeg"     $platformdir/non-gnu/jpeg*     $temp/jpeg*           "install install-lib" 
+installPackage "C-Scope"      $platformdir/non-gnu/cscope-*  $temp/cscope-*        install
 
-if ! checkVersion "bison" "1" "75"; then
-  installPackage "Bison, a parser generator" $platformdir/gnu/bison-*     $temp/bison-* install 
+if ! checkVersion "bison --version" "1.75"; then
+  installPackage "Bison, a parser generator" $platformdir/gnu/bison-* $temp/bison-* install 
 fi
 
-if ! checkVersion "flex" "2" "5"; then
-  installPackage "Flex, a scanner generator" $platformdir/non-gnu/flex-*  $temp/flex-* install
+if ! checkVersion "flex --version" "2.5"; then
+  installPackage "Flex, a scanner generator" $platformdir/non-gnu/flex-* $temp/flex-* install
 fi
+
 
 finish
