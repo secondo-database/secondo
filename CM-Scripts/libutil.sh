@@ -8,10 +8,12 @@
 # and killProcess were introduced. Moreover the timeOut function was 
 # revised to work without active waiting. 
 #
-# Jan 2006, M. Spiekermann. functin sendMail revised. Mails and theirs attachment
+# Jan 2006, M. Spiekermann. Function sendMail revised. Mails and theirs attachment
 # will now be backed up in a configurable directory. Moreover a new function 
 # ~isCmdPresent~ was added. 
-
+#
+# Sept 2006, M. Spiekermann. Function ~checkVersion~ introduced. The tests are
+# relocated into a new file called libutil-test.sh.
 
 
 # recognize aliases also in a non interactive shell
@@ -221,15 +223,17 @@ function initLogFile {
 }
 
 
-
 if [ "$OSTYPE" == "msys" ]; then
    prefix=/c
    platform="win32"
-else 
+elif [ "$OSTYPE" == "mac_osx" ]; then 
+   prefix=$HOME
+   platform="mac_osx"
+else
+   # assuming linux
    prefix=$HOME
    platform="linux"
 fi
-
 
 
 function win32Host {
@@ -290,7 +294,7 @@ function checkCmd {
 
 function findChilds {
 
-   if [ "$platform" != "linux" ]; then
+   if [ "$OSTYPE" != "msys" ]; then
      # the msys sed implementation has problems with \t.
      # the next variable holds a TAB value
      local t=" "
@@ -698,6 +702,33 @@ function startupXterm {
   return 0
 }
 
+
+# $1 command 
+# $2 version given as "x.y" 
+function checkVersion {
+
+  local version=$($1 | sed -nr '1s#.* ([0-9]+[.][0-9]+).*#\1#p')
+  local m=${version%.*}
+  local n=${version#*.}
+  local x=${2%.*}
+  local y=${2#*.}
+
+  #echo "$m $n >= $x $y ?"
+  local ok="false"
+  if  let $[$m >= $x]; then
+    if  let $[$n >= $y]; then
+      ok="true"
+    fi
+  fi
+     
+  if [ "$ok" == "false" ]; then
+    return 1
+  fi
+  return 0
+}
+
+
+
 # createSecondoDatabase $1 $2
 #
 # $1 database name
@@ -764,150 +795,3 @@ LD_LIBRARY_PATH="/lib:${LD_LIBRARY_PATH}"
 #initialize date_ variables
 getTimeStamp
 
-########################################################
-#
-# Tests 
-#
-########################################################
-
-if [ "$1" == "msgs" ]; then  
-
-for msg in "hallo" "dies" "ist" "ein" "test"
-do
-  printSep $msg
-done 
-
-checkCmd "echo 'hallo' > test.txt 2>&1"
-rc=$?
-lastRC
-x=$?
-echo "rc = $rc, lastRC=$x"
-
-checkCmd "dfhsjhdfg > test.txt 2>&1"
-rc=$?
-lastRC
-x=$?
-echo "rc = $rc, lastRC=$x"
-
-fi
-
-if [ "$1" == "timeOut" ]; then  
-
-printSep "Command is running longer than timeout"
-timeOut 2 sleep 4
-printSep "Command finishs before timeout"
-timeOut 4 sleep 2
-
-printSep "Checking return codes"
-timeOut 5 "sleep 3; [ 1 == 2 ]"
-echo "LU_RC, rc = $LU_RC, $?"
-timeOut 5 "sleep 3; [ 1 == 1 ]"
-echo "LU_RC, rc = $LU_RC, $?"
-timeOut 5 "sleep 6; [ 1 == 2 ]"
-echo "LU_RC, rc = $LU_RC, $?"
-timeOut 5 "sleep 6; [ 1 == 1 ]"
-echo "LU_RC, rc = $LU_RC, $?"
-
-fi
-
-if [ "$1" == "killProcess" ]; then  
-  killProcess $2 $3
-fi
-
-if [ "$1" == "findChilds" ]; then  
-  findChilds $2
-  echo $LU_CHILDS
-fi
-
-if [ "$1" == "isRunning" ]; then
-  if isRunning $2; then
-    echo "Yes"
-  else
-    echo "No"
-  fi
-  exit $?
-fi
-
-if [ "$1" == "sendMail" ]; then  
-
-LU_SENDMAIL="$2"
-XmailBody="This is a generated message!  
-
-  Users who comitted to CVS yesterday:
-
-  You will find the output of make in the attached file.
-  Please fix the problem as soon as possible."
-
-sendMail "Test Mail!" "spieker root" "$XmailBody" "$3" "$4"
-
-fi
-
-if [ "$1" == "mapStr" ]; then
-
-   cat $2
-   mapStr "$2" "$3" "$4"
-   echo $name1 $name2
-   printf "%s\n" "\"$3\" -> \"$LU_MAPSTR\""
-   
-fi
-
-if [ "$1" == "uncompress" ]; then
-  uncompress $2 $3
-fi
-
-if [ "$1" == "uncompressFolders" ]; then
-  shift
-  xdir="/tmp/libutil-tests"
-  assert rm -rf $xdir
-  assert mkdir $xdir
-  assert cd $xdir
-  if [ $? -ne 0 ]; then
-    exit $?
-  fi
-  uncompressFolders $*
-fi
-
-if [ "$1" == "uncompressFiles" ]; then
-  shift
-  xdir="/tmp/libutil-tests"
-  assert rm -rf $xdir
-  assert mkdir $xdir
-  assert cd $xdir
-  if [ $? -ne 0 ]; then
-    exit $?
-  fi
-  uncompressFiles $*
-fi
-
-if [ "$1" == "varValue" ]; then
-  varValue $2
-  echo -e "\n rc=$?"
-  echo -e "\n <$LU_VARVALUE> \n"
-  exit $?
-fi
-
-if [ "$1" == "initLogFile" ]; then
-  initLogFile
-  echo -e "\n rc=$?"
-  exit $?
-fi
-
-if [ "$1" == "startupXterm" ]; then
-  title="$2"
-  shift 2
-  startupXterm "$title" $*
-fi
-
-if [ "$1" == "createDB" ]; then
-  db="$2"
-  file="$3"
-  createSecondoDatabase "$db" "$file" 
-fi
-
-if [ "$1" == "isCmdPresent" ]; then
-
-  for cmd in "nice" "xkjfhd"; do
-    isCmdPresent "$cmd"
-    echo -e "$cmd: $?" 
-  done
-fi
