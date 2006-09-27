@@ -242,22 +242,23 @@ delete it with a file manager."
 
 
 
-# $1 requested version number
-function checkGCC {
+# $1 command 
+# $2 minimal major number 
+# $3 minimal minor number
+function checkVersion {
 
-  echo "PATH: $PATH" >> $logfile
-  echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH" >> $logfile
-  checkCmd "gcc --version >> $logfile"
-  checkCmd "gcc --print-search-dirs >> $logfile"
+  checkCmd "$1 --version >> $logfile"
 
-  local gccVersion=$(gcc --version | sed -ne '1 s#[^0-9]*\([\.0-9]*\)#\1#g p')
+  local version=$($1 --version | sed -nr '1s#.* ([0-9]+[.][0-9]+).*#\1#p')
+  local major=${version%.*}
+  local minor=${version#*.}
   local ok="false"
-  for version in $1; do
-    if [ "$gccVersion" == "$version" ]; then
+  if  let $[$major >= $2]; then
+    if  let $[$minor >= $3]; then
       ok="true"
     fi
-  done
- 
+  fi
+     
   if [ "$ok" != "false" ]; then
     return 1
   fi
@@ -649,13 +650,15 @@ else
 fi
 
 #
-# GCC 3.2.3 installation
+# GCC installation
 #
 export PATH=".:$sdk/bin:$PATH"
 export LD_LIBRARY_PATH=".:$sdk/lib:$LD_LIBRARY_PATH"
-gccVer="3.4.4"
 printSep "Installation of GCC $gccVer"
-if checkGCC "3.2.3 3.3.6 3.4.4 4.0.0"; then
+echo "PATH: $PATH" >> $logfile
+echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH" >> $logfile
+checkCmd "gcc --print-search-dirs >> $logfile"
+if checkVersion "gcc" "3" "3"; then
   showMsg "info" "Your system's GCC has already a suitable version \n\
 hence we will not install it again below $sdk"
 else
@@ -663,7 +666,7 @@ else
   gccfiles=$platformdir/gnu/gcc-*
   installPackage "GCC with C++ support" "$gccfiles"  $temp/gcc-* "bootstrap install"
   assert hash -r
-  if ! checkGCC "$gccVer"; then
+  if ! checkVersion "gcc" "3" "4"; then
     showMsg "err" "Something went wrong! gcc --version does not report version $gccVer"
     abort
   fi
@@ -679,7 +682,12 @@ installPackage "Lib readline" $platformdir/gnu/readline-*    $temp/readline-*   
 installPackage "SWI-Prolog"   $platformdir/prolog/pl-*       $temp/pl-*            install
 installPackage "Lib jpeg"     $platformdir/non-gnu/jpeg*     $temp/jpeg*           "install install-lib" 
 
-installPackage "Bison, a parser generator" $platformdir/gnu/bison-*     $temp/bison-* install 
-installPackage "Flex, a scanner generator" $platformdir/non-gnu/flex-*  $temp/flex-* install
+if ! checkVersion "bison" "1" "75"; then
+  installPackage "Bison, a parser generator" $platformdir/gnu/bison-*     $temp/bison-* install 
+fi
+
+if ! checkVersion "flex" "2" "5"; then
+  installPackage "Flex, a scanner generator" $platformdir/non-gnu/flex-*  $temp/flex-* install
+fi
 
 finish
