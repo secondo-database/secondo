@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 July 2002 RHG
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
-(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+(~executable~, ~descriptive~, and ~hybrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
 This little algebra demonstrates the use of streams and parameter functions
@@ -108,7 +108,17 @@ intstreamType( ListExpr args ){
     arg2 = nl->Second(args);
     if ( nl->IsEqual(arg1, "int") && nl->IsEqual(arg2, "int") )
       return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("int"));
+    if ((nl->AtomType(arg1) == SymbolType) &&
+	(nl->AtomType(arg2) == SymbolType))
+      ErrorReporter::ReportError("Type mapping function got parameters of type "
+				 +nl->SymbolValue(arg1)+" and "
+				 +nl->SymbolValue(arg2));
+    else
+      ErrorReporter::ReportError("Type mapping functions got wrong "
+				 "types as parameters.");
   }
+  ErrorReporter::ReportError("Type mapping function got a "
+			     "parameter of length != 2.");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -181,7 +191,7 @@ printintstreamType( ListExpr args )
 
 
 /*
-Type mapping for ~sfilter~ is
+Type mapping for ~filter~ is
 
 ----	((stream int) (map int bool)) -> (stream x)
 ----
@@ -253,17 +263,15 @@ filterType( ListExpr args )
 
 Is used to select one of several evaluation functions for an overloaded
 operator, based on the types of the arguments. In case of a non-overloaded
-operator, we just have to return 0.
+operator, we can use the simpleSelect function provided by the Operator class.
 
 */
-
-int
-simpleSelect (ListExpr args ) { return 0; }
 
 /*
 4.3 Value Mapping Function
 
 */
+
 int
 intstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
@@ -485,7 +493,7 @@ Operator intstream (
   "intstream",     //name
   intstreamSpec,   //specification
   intstreamFun,    //value mapping
-  simpleSelect,    //trivial selection function
+  Operator::SimpleSelect,    //trivial selection function
   intstreamType    //type mapping
 );
 
@@ -493,7 +501,7 @@ Operator cppcount (
   "count",     //name
   countSpec,   //specification
   countFun,    //value mapping
-  simpleSelect,//trivial selection function
+  Operator::SimpleSelect,//trivial selection function
   countType    //type mapping
 );
 
@@ -501,7 +509,7 @@ Operator printintstream (
   "printintstream",   //name
   printintstreamSpec, //specification
   printintstreamFun,  //value mapping
-  simpleSelect,       //trivial selection function
+  Operator::SimpleSelect,       //trivial selection function
   printintstreamType  //type mapping
 );
 
@@ -509,7 +517,7 @@ Operator sfilter (
   "filter",     //name
   filterSpec,   //specification
   filterFun,    //value mapping
-  simpleSelect, //trivial selection function
+  Operator::SimpleSelect, //trivial selection function
   filterType    //type mapping
 );
 
