@@ -42,6 +42,7 @@ Added ~ConstTemporalUnit:EqualValue~
 Adding ~Range<Alpha>::RBBox~ for constructing the range consisting 
 of only one minimal interval, that contains all intervals from a range type
 
+Sept 2006 Christian D[ue]ntgen implemented ~defined~ flag for unit types
 [TOC]
 
 1 Overview
@@ -1266,13 +1267,17 @@ Returns ~true~ if the value of this temporal unit is equal to the value of the t
 
   virtual ConstTemporalUnit<Alpha>* Clone() const
   {
-    return (new ConstTemporalUnit<Alpha>( this->timeInterval, constValue) );
+    ConstTemporalUnit<Alpha> *res;
+    res = new ConstTemporalUnit<Alpha>( this->timeInterval, constValue);
+    res->SetDefined(TemporalUnit<Alpha>::defined);
+    return res;
   }
 
   virtual void CopyFrom( const StandardAttribute* right )
   {
     const ConstTemporalUnit<Alpha>* i = (const ConstTemporalUnit<Alpha>*)right;
-
+    
+    TemporalUnit<Alpha>::defined = i->defined;
     this->timeInterval.CopyFrom( i->timeInterval );
     constValue.CopyFrom( &i->constValue );
   }
@@ -1460,19 +1465,33 @@ Equality is calculated with respect to temporal evolution.
 
   virtual UReal* Clone() const
   {
-    return (new UReal( timeInterval, a, b, c, r) );
+    UReal *res;
+    res = new UReal( timeInterval, a, b, c, r);
+    res->defined = TemporalUnit<CcReal>::defined;
+    return res;
   }
 
   virtual void CopyFrom( const StandardAttribute* right )
   {
     const UReal* i = (const UReal*)right;
 
-    timeInterval.CopyFrom(i->timeInterval);
-
-    a = i->a;
-    b = i->b;
-    c = i->c;
-    r = i->r;
+    TemporalUnit<CcReal>::defined = i->defined;
+    if(i->defined)
+      {
+	timeInterval.CopyFrom(i->timeInterval);
+	a = i->a;
+	b = i->b;
+	c = i->c;
+	r = i->r;
+      }
+    else
+      {
+	timeInterval = Interval<Instant>();
+	a = 0;
+	b = 0;
+	c = 0;
+	r = false;
+      }
   }
 
 /*
@@ -1640,16 +1659,29 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 
   inline virtual UPoint* Clone() const
   {
-    return (new UPoint( timeInterval, p0, p1 ) );
+    UPoint *res;
+    res = new UPoint( timeInterval, p0, p1 );
+    res->defined = TemporalUnit<Point>::defined;
+    return res;
   }
 
   inline virtual void CopyFrom( const StandardAttribute* right )
   {
     const UPoint* i = (const UPoint*)right;
 
-    timeInterval.CopyFrom( i->timeInterval );
-    p0 = i->p0;
-    p1 = i->p1;
+    TemporalUnit<Point>::defined = i->defined;
+    if(i->defined)
+      {
+	timeInterval.CopyFrom( i->timeInterval );
+	p0 = i->p0;
+	p1 = i->p1;
+      }
+    else
+      {
+	timeInterval = Interval<Instant>();
+	p0 = Point( false, 0.0, 0.0);
+	p1 = Point( false, 0.0, 0.0);
+      }
   }
 
   virtual const Rectangle<3> BoundingBox() const
@@ -3794,19 +3826,24 @@ template <class Alpha>
 TemporalUnit<Alpha>& 
 TemporalUnit<Alpha>::operator=( const TemporalUnit<Alpha>& i )
 {
-  assert( i.timeInterval.IsValid() );
-
-  timeInterval = i.timeInterval;
-
+  defined = i.defined;
+  if(defined)
+    {
+      assert( i.timeInterval.IsValid() );
+      timeInterval = i.timeInterval;
+    }
   return *this;
 }
 
 template <class Alpha>
 bool TemporalUnit<Alpha>::operator==( const TemporalUnit<Alpha>& i ) const
 {
-  assert( timeInterval.IsValid() && i.timeInterval.IsValid() );
-
-  return( timeInterval == i.timeInterval);
+  if(defined && i.defined)
+    {
+      assert( timeInterval.IsValid() && i.timeInterval.IsValid() );
+      return( timeInterval == i.timeInterval);
+    }
+  return (defined == i.defined);
 }
 
 template <class Alpha>
@@ -3938,7 +3975,7 @@ template <class Unit>
 int UnitCompare( const void *a, const void *b )
 {
   Unit *unita = new ((void*)a) Unit,
-        *unitb = new ((void*)b) Unit;
+       *unitb = new ((void*)b) Unit;
 
   if( *unita == *unitb )
     return 0;

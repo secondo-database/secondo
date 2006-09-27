@@ -6651,7 +6651,7 @@ URegion* URegion::Clone(void) const {
 
     URegion* res = new URegion(0);
     res->CopyFrom(this);
-
+    res->SetDefined( TemporalUnit<Region>::defined );
     return res;
 }
 
@@ -6665,6 +6665,7 @@ void URegion::CopyFrom(const StandardAttribute* right) {
     const URegion* ur = (const URegion*) right;
 
     *this = *ur;
+    this->SetDefined( ur->IsDefined() );
 }
 
 /*

@@ -54,6 +54,8 @@ TemporalLiftedAlgebra.
 
 01.06.2006 Christian D[ue]ntgen added operator ~bbox~ for ~range~-types.
 
+Sept 2006 Christian D[ue]ntgen implemented ~defined~ flag for unit types
+
 [TOC]
 
 1 Overview
