@@ -219,8 +219,8 @@ extern AlgebraManager* am;
 #include "DateTime.h"
 using namespace datetime;
 
-bool TUA_DEBUG = false; // Set to true to activate debugging code
-//bool TUA_DEBUG = true; // Set to true to activate debugging code
+//bool TUA_DEBUG = false; // Set to true to activate debugging code
+bool TUA_DEBUG = true; // Set to true to activate debugging code
 
 /*
 2.1 Definition of some constants and auxiliary functions
@@ -446,7 +446,10 @@ void UPoint::UVelocity( UPoint& result ) const
       if( duration > 0.0 )
         {
           if(TUA_DEBUG) cout << "\nUPoint::UVelocity result defined." << endl;
-          UPoint p(timeInterval,(x1-x0)/duration,0,(y1-y0)/duration,0);
+          UPoint p(timeInterval,
+                   (x1-x0)/duration,(y1-y0)/duration, // velocity is constant
+                   (x1-x0)/duration,(y1-y0)/duration  // throughout the unit
+                  );
           p.SetDefined( true );
           result.CopyFrom( &p );
           result.SetDefined( true );
@@ -5667,7 +5670,7 @@ int atmaxUReal( Word* args, Word& result, int message,
 	    { // start value
 	      if(TUA_DEBUG) cout << "  5.6" << endl;
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-	      t.ReadFrom(t_start + (ureal->timeInterval.start).ToDouble());
+	      t = ureal->timeInterval.start;
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
@@ -5676,7 +5679,7 @@ int atmaxUReal( Word* args, Word& result, int message,
 	    { // end value
 	      if(TUA_DEBUG) cout << "  5.7" << endl;
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-	      t.ReadFrom(t_end + (ureal->timeInterval.start).ToDouble());
+	      t = ureal->timeInterval.end;
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
@@ -5688,7 +5691,7 @@ int atmaxUReal( Word* args, Word& result, int message,
 	    {
 	      if(TUA_DEBUG) cout << "  5.8" << endl;
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-	      t.ReadFrom(t_extr + (ureal->timeInterval.start).ToDouble());
+	      t.ReadFrom(t_extr);
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
@@ -5952,9 +5955,8 @@ int atminUReal( Word* args, Word& result, int message,
 	  c = ureal->c;
 	  r = ureal->r;
 	  t_extr  = -b/(2*a); 
-	  t_start = 0.0;
-	  t_end   =   (ureal->timeInterval.end).ToDouble()
-	            - (ureal->timeInterval.start).ToDouble();
+	  t_start = (ureal->timeInterval.start).ToDouble();
+	  t_end   = (ureal->timeInterval.end).ToDouble();
 	  // get the values of interest
 	  v_extr  = getValUreal(t_extr, a,b,c,r);
 	  v_start = getValUreal(t_start,a,b,c,r);
@@ -5975,7 +5977,7 @@ int atminUReal( Word* args, Word& result, int message,
 	  if (minValIndex & 2)
 	    {
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-	      t.ReadFrom(t_start + (ureal->timeInterval.start).ToDouble());
+	      t = ureal->timeInterval.start;
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
@@ -5983,7 +5985,7 @@ int atminUReal( Word* args, Word& result, int message,
 	  if ( (minValIndex & 4) && (t_start != t_end) )
 	    {
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-	      t.ReadFrom(t_end + (ureal->timeInterval.start).ToDouble());
+	      t = ureal->timeInterval.end;
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
@@ -5993,7 +5995,7 @@ int atminUReal( Word* args, Word& result, int message,
 	       (t_extr != t_end)      )
 	    {
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-	      t.ReadFrom(t_extr + (ureal->timeInterval.start).ToDouble());
+	      t.ReadFrom(t_extr);
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;

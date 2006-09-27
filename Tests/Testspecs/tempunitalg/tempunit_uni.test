@@ -156,12 +156,12 @@ query ( up2 passes p)
 
 #testcase velocity_up
 #tolerance_real 0.001
-#yields (upoint (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (-0.2777777777772725 0.0 -0.2777777777772725 0.0)))
+#yields (upoint (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (-0.2777777777772725 -0.2777777777772725 -0.2777777777772725 -0.2777777777772725)))
 query velocity(up1)
 
 #testcase velocity_up 2
 #tolerance_real 0.001
-#yields (upoint (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1000.0 0.0 1000.0 0.0)))
+#yields (upoint (("2003-11-20-06:00" "2003-11-20-06:01" TRUE TRUE) (16.66667 0.0 16.66667 0.0)))
 query velocity([const upoint value(("2003-11-20-06:00" "2003-11-20-06:01" TRUE TRUE) (0.0 0.0 1000.0 0.0))])
 
 #testcase derivable_ur4
@@ -215,7 +215,7 @@ query distance(ui3, i1)
 query distance(i1, ui3)
 
 #testcase atmax_ureal
-#yields ((rel (tuple ( (elem ureal)))) ( ((("2000-01-01" "2000-01-01" TRUE TRUE) (1.0 0.0 -1.0 FALSE)) (("2000-01-05" "2000-01-05" TRUE TRUE) (1.0 0.0 -1.0 FALSE)) )))
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (1.0 0.0 -1.0 FALSE))) ((("2000-01-05" "2000-01-05" TRUE TRUE) (1.0 0.0 -1.0 FALSE)))))
 query atmax(ur1) transformstream consume
 
 
