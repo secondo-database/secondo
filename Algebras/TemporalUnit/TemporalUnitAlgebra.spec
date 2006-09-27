@@ -29,7 +29,7 @@ operator derivable alias DERIVABLE pattern op ( _ )
 operator derivative alias DERIVATIVE pattern op ( _ )
 operator atperiods alias ATPERIODS pattern _ infixop _
 operator sfeed alias SFEED pattern op ( _ )
-operator suse alias SUSE pattern _ op [ _ ] implicit parameter uple type TUPLE
+operator suse alias SUSE pattern _ op [ _ ] implicit parameter elem type TUPLE
 operator suse2 alias SUSE2 pattern _ _ op [ _ ] implicit parameters lefttuple, righttuple types TUPLE, TUPLE2
 operator saggregate alias SAGGREGATE pattern _ op [ _ ; _ ]
 operator at alias AT pattern _ infixop _ 
@@ -38,6 +38,12 @@ operator atmin alias ATMIN pattern op ( _ )
 operator intersection alias INTERSECTION pattern op ( _ , _ )
 operator distance alias DISTANCE pattern op ( _ , _ )
 operator transformstream alias TRANSFORMSTREAM pattern _ op
+operator printstream alias PRINTSTREAM pattern _ op
+
+# Operator signatures already defined elsewhere:
+#operator filter alias FILTER pattern _ op [ fun ] implicit parameter elem type TUPLE
+#operator count alias COUNT pattern _ op
+
 
 
 

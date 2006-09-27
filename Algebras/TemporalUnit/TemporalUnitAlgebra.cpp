@@ -87,6 +87,12 @@ OK                    stream(tuple((id T))) -> (stream T)
 
 OK   saggregate: (stream T) x (T x T --> T) x T  --> T
 
+Test count: (stream T) --> int
+
+Test filter: ((stream T) (map T bool)) --> int
+
+Test printstream: (stream T) --> (stream T)
+     
 Test atmax: uT --> (stream uT)
 
 Test atmin: uT --> (stream uT)
@@ -240,18 +246,15 @@ instance.
 void MPoint::MSpeed( MReal& result ) const
 {
   const UPoint *uPoint;
-
   UReal uReal;
-  double x0, y0, x1, y1;
-  Instant sup, inf;
-  double t0, t1;
-  double duration;
+  //  int counter = 0;
 
   result.Clear();
-
   if ( ! IsDefined() )
-    result.SetDefined( false );
-
+    {
+      // result.SetDefined( false ); // no undef Mappings by now
+      if(TUA_DEBUG) cout << "\nMPoint::MSpeed is undef (undef arg)." << endl;
+    }
   else
     {
       result.StartBulkLoad();
@@ -259,51 +262,50 @@ void MPoint::MSpeed( MReal& result ) const
       for( int i = 0; i < GetNoComponents(); i++ )
 	{
 	  Get( i, uPoint );
-	  
-	  x0 = uPoint->p0.GetX(); // initial pos
-	  y0 = uPoint->p0.GetY();
-	  
-	  x1 = uPoint->p1.GetX(); // final pos
-	  y1 = uPoint->p1.GetY();
-	  
-	  uReal.timeInterval = uPoint->timeInterval; // copy interval 
-	  inf = uReal.timeInterval.start;            // for result 
-	  sup = uReal.timeInterval.end;              // from argument
-	  
-	  t0 = inf.ToDouble(); // convert to milliseconds
-	  t1 = sup.ToDouble();
-	  
-	  duration = (t1 - t0) * 86400; // interval duration to seconds
-	  
-	  /*
-	    The point unit can be represented as a function of
-	    f(t) = (x0 + x1 * t, y0 + y1 * t).
-	    The result of the derivation is the constant (x1,y1).
-	    The speed is constant in each time interval.
-	    Its value is represented by variable c. The variables a and b  
-	    are set to zero.
-	    
-	  */
-	  uReal.a = 0;
-	  uReal.b = 0;
-	  uReal.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
-	  uReal.r = false;
-	  
-	  result.Add( uReal ); // append ureal to mreal
+
+          uPoint->USpeed( uReal );
+          if( uReal.IsDefined() )
+            {
+              result.Add( uReal ); // append ureal to mreal
+              //              counter++;
+            }
 	}
-      result.EndBulkLoad( false );
+      result.EndBulkLoad( true );
+/*
+Activating the following snippet would allow for creating undef objects
+instead of empty ones. Alas, the SetDefined() and IsDefined() methods do
+not have functional implementations by now...
+
+----
+      if(counter == 0)
+        {
+          result.SetDefined( false );
+          if(TUA_DEBUG) cout << "\nMPoint::MSpeed is undef (empty result)." << endl;
+        }
+      else
+        {        
+          result.SetDefined( true );
+          if(TUA_DEBUG) cout << "\nMPoint::MSpeed is defined." << endl;
+        }
+
+----
+
+*/
     }
+  if(TUA_DEBUG) cout << "MPoint::MSpeed() finished!" << endl;
 }
+
 void UPoint::USpeed( UReal& result ) const
 {
 
   double x0, y0, x1, y1;
-  Instant sup, inf;
-  double t0, t1;
   double duration;
 
-  if ( ! IsDefined() )
-    result.SetDefined( false );
+  if ( !IsDefined() )
+    {
+      result.SetDefined( false );
+      if(TUA_DEBUG) cout << "\nUPoint::USpeed: undef (undef arg)." << endl;
+    }
   else
     {
       
@@ -317,18 +319,36 @@ void UPoint::USpeed( UReal& result ) const
       
       if (result.IsDefined() )
 	{
-	  inf = result.timeInterval.start;
-	  sup = result.timeInterval.end;
-	  
-	  t0 = inf.ToDouble();
-	  t1 = sup.ToDouble();
-	  
-	  duration = (t1 - t0) * 86400;   // value in seconds
-	  
-	  result.a = 0;                // speed is constant in the interval
-	  result.b = 0;
-	  result.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
-	  result.r = false;
+          DateTime dt = timeInterval.end - timeInterval.start;
+          duration = dt.ToDouble() * 86400;   // value in seconds
+
+          if(TUA_DEBUG) cout << "\nUPoint::UVelocity duration=" 
+                             << duration << "s." << endl;
+
+          if( duration > 0.0 )
+            {	  
+              /*
+                The point unit can be represented as a function of
+                f(t) = (x0 + x1 * t, y0 + y1 * t).
+                The result of the derivation is the constant (x1,y1).
+                The speed is constant in each time interval.
+                Its value is represented by variable c. The variables a and b  
+                are set to zero.
+                
+              */
+              result.a = 0;                // speed is constant in the interval
+              result.b = 0;
+              result.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
+              result.r = false;
+              result.SetDefined( true );
+              if(TUA_DEBUG) cout << "\nUPoint::USpeed is defined." << endl;
+            }
+          else
+            {
+              result.SetDefined( false );
+              if(TUA_DEBUG) cout 
+                << "\nUPoint::USpeed is undef (empty result)." << endl;
+            }
 	}
     }
 }
@@ -340,48 +360,22 @@ void UPoint::USpeed( UReal& result ) const
 void MPoint::MVelocity( MPoint& result ) const
 {
   const UPoint *uPoint;
-
-  double x0, y0, x1, y1;
-  Instant sup, inf;
-  double t0, t1;
-  double duration;
+  UPoint p;
+  //  int counter = 0;
 
   result.Clear();
-
   if ( !IsDefined() )
     {
-      result.SetDefined( false );
+      // result.SetDefined( false ); // no undef Mappings by now
       if(TUA_DEBUG) cout << "\nMPoint::MVelocity: undef unit" << endl;
     }
   else
     {
       result.StartBulkLoad();
-
       for( int i = 0; i < GetNoComponents(); i++ )
 	{
 	  Get( i, uPoint );
-	  
-	  x0 = uPoint->p0.GetX(); // initial coordinates
-	  y0 = uPoint->p0.GetY();
-	  
-	  x1 = uPoint->p1.GetX(); // final coordinates
-	  y1 = uPoint->p1.GetY();
-	  
-	  inf = uPoint->timeInterval.start;
-	  sup = uPoint->timeInterval.end;
-	  
-	  t0 = inf.ToDouble();
-	  t1 = sup.ToDouble();
-	  
-	  duration = (t1 - t0) * 86400;  // value in seconds
-	  
-	  //  create an interval:
-	  Interval<Instant> iv(uPoint->timeInterval.start,
-			       uPoint->timeInterval.end,
-			       uPoint->timeInterval.lc,
-			       uPoint->timeInterval.rc);
-	  
-	  /*
+          /*
 	    Definition of a new point unit p. The velocity is constant
 	    at all times of the interval of the unit. This is exactly
 	    the same as within operator ~speed~. The result is a vector
@@ -389,26 +383,52 @@ void MPoint::MVelocity( MPoint& result ) const
 	    
 	  */
           
-          if( !AlmostEqual(duration,0.0) )
+          uPoint->UVelocity( p );
+          if( p.IsDefined() )
             {
-              UPoint p(iv,(x1-x0)/duration,0,(y1-y0)/duration,0);
               result.Add( p );
+              //              counter++;
             }
         }
-      result.EndBulkLoad( false );
+      result.EndBulkLoad( true );
+
+/*
+Activating the following snippet would allow for creating undef objects
+instead of empty ones. Alas, the SetDefined() and IsDefined() methods do
+not have functional implementations by now...
+
+----
+      if(counter>0)
+        {
+          result.SetDefined( true );
+          if(TUA_DEBUG) cout << "\nMPoint::MVelocity result defined." << endl;
+        }
+      else // counter == 0
+        {
+          result.SetDefined( false );
+          if(TUA_DEBUG) cout << "\nMPoint::MVelocity result empty." << endl;
+        }
+
+----
+
+*/
+
     }
+  if(TUA_DEBUG) cout << "MPoint::MVelocity() finished!" << endl;
 }
+
 
 void UPoint::UVelocity( UPoint& result ) const
 {
 
   double x0, y0, x1, y1;
-  Instant sup, inf;
-  double t0, t1;
   double duration;
 
-  if ( ! IsDefined() )
-    result.SetDefined( false );
+  if ( ! IsDefined() )    
+    {
+      result.SetDefined( false );
+      if(TUA_DEBUG) cout << "\nUPoint::UVelocity undef (undef arg)." << endl;
+    }
   else
     {
       x0 = p0.GetX();
@@ -417,36 +437,28 @@ void UPoint::UVelocity( UPoint& result ) const
       x1 = p1.GetX();
       y1 = p1.GetY();
   
-      result.timeInterval = timeInterval;
-      
-      if (result.IsDefined() )
-	{
-	  inf = result.timeInterval.start;
-	  sup = result.timeInterval.end;
-	  
-	  t0 = inf.ToDouble();
-	  t1 = sup.ToDouble();
+      DateTime dt = timeInterval.end - timeInterval.start;
+      duration = dt.ToDouble() * 86400;   // value in seconds
 
-	  duration = (t1 - t0) * 86400;   // value in seconds
+      if(TUA_DEBUG) cout << "\nUPoint::UVelocity duration=" 
+                         << duration << "s." << endl;
 
-	  Interval<Instant> iv(result.timeInterval.start,
-			       result.timeInterval.end,
-			       result.timeInterval.lc,
-			       result.timeInterval.rc);
-
-          if( !AlmostEqual(duration,0.0) )
-            {
-              UPoint p(iv,(x1-x0)/duration,0,(y1-y0)/duration,0);
-              result.CopyFrom( &p );
-              result.SetDefined( true );	  
-            }
-          else
-            {
-              UPoint p(iv,0,0,0,0);
-              result.CopyFrom( &p );
-              result.SetDefined( false );
-            }
-	}
+      if( duration > 0.0 )
+        {
+          if(TUA_DEBUG) cout << "\nUPoint::UVelocity result defined." << endl;
+          UPoint p(timeInterval,(x1-x0)/duration,0,(y1-y0)/duration,0);
+          p.SetDefined( true );
+          result.CopyFrom( &p );
+          result.SetDefined( true );
+        }
+      else
+        {
+          if(TUA_DEBUG) cout << "\nUPoint::UVelocity undef (no result)." 
+                             << endl;
+          UPoint p(timeInterval,0,0,0,0);
+          result.CopyFrom( &p );
+          result.SetDefined( false );
+        }
     }
 }
 
@@ -620,14 +632,16 @@ TypeMapSpeed( ListExpr args )
 
 int MPointSpeed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  result = qp->ResultStorage( s );
-  MPoint* input = (MPoint*)result.addr;
+  result = (MReal*) (qp->ResultStorage( s ));
+  MPoint* input = (MPoint*)args[0].addr;
   
+  result.Clear();
+
   if ( input->IsDefined() )
     // call member function:
-    ((MPoint*)args[0].addr)->MSpeed( *((MReal*)result.addr) ); 
+    input->MSpeed( *result ); 
   else
-    ((MPoint*)args[0].addr)->SetDefined(false);
+    result->SetDefined(false);
 
   return 0;
 }
@@ -1001,6 +1015,14 @@ Operator temporalunitsize( "size",
 /*
 5.5 Operator ~makemvalue~
 
+This operator creates a moving object type mT from a stream of unit type 
+objects uT. The operator does not expect the stream to be ordered by their
+timeintervals. Also, undefined units are allowed (but will be ignored).
+If the stream contains amindst 2 units with overlapping timeIntervals,
+the operator might crash. If the stream is empty, the result will be an 
+empty mT (It would be better to create an undef mT, but the needed methods
+have not been functionally implemented by now).
+
 5.5.1 Type Mapping for ~makemvalue~
 
 Type mapping for ~makemvalue~ is
@@ -1136,6 +1158,7 @@ int MappingMakemvalue(Word* args,Word& result,int message,
 {
   Mapping* m;
   Unit* unit;
+  //  int definedcounter = 0;
 
   Word currentTupleWord;
 
@@ -1168,14 +1191,34 @@ int MappingMakemvalue(Word* args,Word& result,int message,
       
       if(currentAttr->IsDefined())
 	{
+          //          definedcounter++;
 	  unit = (Unit*) currentAttr;
 	  m->Add( *unit );
 	  currentTuple->DeleteIfAllowed();
 	}
       qp->Request(args[0].addr, currentTupleWord);
     }
-  m->EndBulkLoad( false );
-  
+  m->EndBulkLoad( true ); // force Mapping to sort the units
+
+/*
+It would be better to use the following snippet, but the ~undefined~ flag
+and the SetDefined() and IsDefined() methods only have dummy implementations
+by now:
+ 
+----
+  if(definedcounter > 0 )
+    {
+      m->SetDefined( true );
+    }
+  else
+    {
+      m->SetDefined( false );
+    }
+
+----
+
+*/  
+
   qp->Close(args[0].addr);
 
   return 0;
@@ -1195,7 +1238,9 @@ TemporalSpecMakemvalue  =
 " (uT)))-> mT</text--->"
 "<text>makemvalue[ _ ]</text--->"
 "<text>Create a moving object from a tuple stream containing "
-"units.</text--->"
+"units. No two unit timeintervals may overlap. Undefined units are "
+"allowed and will be ignored. A stream with less than 1 defined "
+"unit will result in an 'empty' moving object, not in an 'undef'.</text--->"
 "<text>makemvalue[ u1 ]</text---> ) )";
 
 /* 
@@ -2975,7 +3020,9 @@ Operator temporalmakepoint( "makepoint",
 
 Type mapping for ~velocity~ is
 
-----  mpoint  ->  mpoint
+----  
+      mpoint  ->  mpoint
+      upoint  ->  upoint
 
 ----
 
@@ -2990,7 +3037,7 @@ TypeMapVelocity( ListExpr args )
 
     if( nl->IsEqual( arg1, "mpoint" ) )
       return nl->SymbolAtom( "mpoint" );
-   if( nl->IsEqual( arg1, "upoint" ) )
+    if( nl->IsEqual( arg1, "upoint" ) )
       return nl->SymbolAtom( "upoint" );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -3003,27 +3050,34 @@ TypeMapVelocity( ListExpr args )
 int MPointVelocity(Word* args, Word& result, int message,
                    Word& local, Supplier s)
 {
-  result = qp->ResultStorage( s );
   MPoint* input = (MPoint*)args[0].addr;
-  
-  if ( !input->IsDefined() )
-    ((MPoint*)args[0].addr)->SetDefined( false );
-  else 
-    ((MPoint*)args[0].addr)->MVelocity(  *((MPoint*)result.addr) );
+  MPoint resValue;
 
+  resValue.Clear();
+  result = qp->ResultStorage( s );
+   if ( !input->IsDefined() )
+    ((MPoint*)result.addr)->SetDefined( false );
+  else 
+    input->MVelocity( *((MPoint*)result.addr) );
+  ((MPoint*)result.addr)->CopyFrom(&resValue);
   return 0;
 }
 
 int UnitPointVelocity(Word* args, Word& result, int message,
                       Word& local, Supplier s)
 {
-  result = qp->ResultStorage( s );
   UPoint* input = (UPoint*)args[0].addr;
+  UPoint resValue;
 
+  result = qp->ResultStorage( s );
+  
   if ( !input->IsDefined() )
-    ((UPoint*)args[0].addr)->SetDefined( false );
+    ((UPoint*)result.addr)->SetDefined( false );
   else
-    ((UPoint*)args[0].addr)->UVelocity(  *((UPoint*)result.addr) );
+    {
+      input->UVelocity( resValue );
+      ((UPoint*)result.addr)->CopyFrom(&resValue);
+    }
 
   return 0;
 }
@@ -7253,7 +7307,7 @@ temporalUnitIntersection_upoint_uregion( Word* args, Word& result, int message,
 }
 
 /*
-5.24.3 Specification for operator ~intersection~
+5.26.3 Specification for operator ~intersection~
 
 */
 
@@ -7357,7 +7411,7 @@ Operator temporalunitintersection( "intersection",
 
 
 /*
-5.26 Operator ~transformstream~
+5.27 Operator ~transformstream~
 
 ----
   transformstream: (stream T) -> stream(tuple((element T)))
@@ -7655,6 +7709,7 @@ int temporalunitTransformstreamSelect( ListExpr args )
   return -1;  
 }
 
+
 /*
 5.27.5 Definition of operator ~transformstream~
 
@@ -7666,6 +7721,461 @@ Operator temporalunittransformstream( "transformstream",
                       temporalunittransformstreammap,
                       temporalunitTransformstreamSelect,
                       TemporalUnitTransformstreamTypeMap);
+
+
+/*
+5.28 Operator ~count~
+
+Signature:
+
+----
+     For T in kind DATA:
+     (stream T) -> int
+
+----
+
+The operator counts the number of stream elements.
+
+*/
+
+/*
+5.28.1 Type mapping function for ~count~
+
+*/
+
+ListExpr
+streamCountType( ListExpr args )
+{
+  ListExpr arg1;
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  string outstr;
+
+  if ( nl->ListLength(args) == 1 )
+  {
+    arg1 = nl->First(args);
+
+    if ( !nl->IsAtom(arg1) && nl->ListLength(arg1) == 2 )
+    {
+      if ( nl->IsEqual(nl->First(arg1), "stream")
+           && ( nl->IsAtom(nl->Second(arg1) ) )
+           && am->CheckKind("DATA", nl->Second(arg1), errorInfo) )
+       return nl->SymbolAtom("int");
+      else
+      {
+        nl->WriteToString(outstr, arg1);
+        ErrorReporter::ReportError("Operator count expects a (stream T), "
+          "T in kind DATA. The argument profided "
+          "has type '" + outstr + "' instead.");
+      }
+    }
+  }
+  nl->WriteToString(outstr, nl->First(args));
+  ErrorReporter::ReportError("Operator count expects only a single "
+     "argument of type (stream T), T "
+     "in kind DATA. The argument provided "
+     "has type '" + outstr + "' instead.");
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+5.28.2 Value mapping for operator ~count~
+
+*/
+
+int
+streamCountFun (Word* args, Word& result, int message, Word& local, Supplier s)
+/*
+Count the number of elements in a stream. An example for consuming a stream.
+
+*/
+{
+  Word elem;
+  int count = 0;
+
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, elem);
+
+  while ( qp->Received(args[0].addr) )
+  {
+    count++;
+    ((Attribute*) elem.addr)->DeleteIfAllowed();// consume the stream objects
+    qp->Request(args[0].addr, elem);
+  }
+  result = qp->ResultStorage(s);
+  ((CcInt*) result.addr)->Set(true, count);
+
+  qp->Close(args[0].addr);
+
+  return 0;
+}
+
+/*
+5.28.3 Specification for operator ~count~
+
+*/
+const string streamCountSpec  = 
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>TemporalUnitAlgebra</text--->"
+  "<text>For T in kind DATA:\n"
+  "((stream T)) -> int</text--->"
+  "<text>_ count</text--->"
+  "<text>Counts the number of elements of a stream.</text--->"
+  "<text>query intstream (1,10) count</text--->"
+  ") )";
+
+/*
+5.28.4 Selection Function of operator ~count~
+
+*/
+int
+streamCountSelect (ListExpr args ) { return 0; }
+
+/*
+5.28.5 Definition of operator ~count~
+
+*/
+Operator temporalunitcount (
+  "count",           //name
+  streamCountSpec,   //specification
+  streamCountFun,    //value mapping
+  streamCountSelect, //trivial selection function
+  streamCountType    //type mapping
+);
+
+
+/*
+5.29 Operator ~printstream~
+
+----
+    For T in kind DATA:
+    (stream T) -> (stream T)
+
+----
+
+For every stream element, the operator calls the ~print~ function  
+and passes on the element.
+
+*/
+
+/*
+5.29.1 Type mapping function for ~printstream~
+
+*/
+ListExpr
+streamPrintstreamType( ListExpr args )
+{
+  ListExpr stream, errorInfo;
+  string out;
+
+  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  stream = nl->First(args);
+
+  if ( nl->ListLength(args) != 1 )
+    {
+      ErrorReporter::ReportError("Operator printstream expects only a single "
+        "argument.");
+      return nl->SymbolAtom("typeerror");
+    }
+
+  // test first argument for stream(T), T in kind DATA
+  if (     nl->IsAtom(stream)
+     || !(nl->ListLength(stream) == 2)
+     || !nl->IsEqual(nl->First(stream), "stream")
+     || !am->CheckKind("DATA", nl->Second(stream), errorInfo) )
+    {
+      nl->WriteToString(out, stream);
+      ErrorReporter::ReportError("Operator printstream expects a (stream T), "
+         "T in kind DATA, as its first argument. "
+         "The argument provided "
+         "has type '" + out + "' instead.");
+      return nl->SymbolAtom("typeerror");
+    }
+
+  // return the input type as result
+  return stream; 
+}
+
+/*
+5.29.2 Value mapping for operator ~printstream~
+
+*/
+int
+streamPrintstreamFun (Word* args, Word& result, 
+                int message, Word& local, Supplier s)
+/*
+Print the elements of an Attribute-type stream. 
+An example for a pure stream operator (input and output are streams).
+
+*/
+{
+  Word elem;
+
+  switch( message )
+  {
+    case OPEN:
+
+      qp->Open(args[0].addr);
+      return 0;
+
+    case REQUEST:
+
+      qp->Request(args[0].addr, elem);
+      if ( qp->Received(args[0].addr) )
+      {
+        ((Attribute*) elem.addr)->Print(cout); cout << endl;
+        result = elem;
+        return YIELD;
+      }
+      else return CANCEL;
+
+    case CLOSE:
+
+      qp->Close(args[0].addr);
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
+
+/*
+5.29.3 Specification for operator ~printstream~
+
+*/
+const string streamPrintstreamSpec  = 
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>TemporalUnitAlgebra</text--->"
+  "<text>For T in kind DATA:\n"
+  "((stream T)) -> (stream T)</text--->"
+  "<text>_ printstream</text--->"
+  "<text>Prints the elements of an arbitrary stream.</text--->"
+  "<text>query intstream (1,10) printstream count</text--->"
+  ") )";
+
+
+/*
+5.29.4 Selection Function of operator ~printstream~
+
+Uses the same function as for ~count~.
+
+*/
+
+
+/*
+5.29.5 Definition of operator ~printstream~
+
+*/
+Operator temporalunitprintstream (
+  "printstream",         //name
+  streamPrintstreamSpec, //specification
+  streamPrintstreamFun,  //value mapping
+  streamCountSelect,     //trivial selection function
+  streamPrintstreamType  //type mapping
+);
+
+
+/*
+5.30 Operator ~sfilter~
+
+----
+    For T in kind DATA:
+    ((stream T) (map T bool)) -> (stream T)
+
+----
+
+The operator filters the elements of an arbitrary stream by a predicate.
+
+*/
+
+/*
+5.30.1 Type mapping function for ~sfilter~
+
+*/
+ListExpr
+streamFilterType( ListExpr args )
+{
+  ListExpr stream, map, errorInfo;
+  string out, out2;
+
+  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+
+  if ( nl->ListLength(args) == 2 )
+  {
+    stream = nl->First(args);
+    map = nl->Second(args);
+
+    // test first argument for stream(T), T in kind DATA
+    if ( nl->IsAtom(stream)
+         || !(nl->ListLength(stream) == 2)
+         || !nl->IsEqual(nl->First(stream), "stream")
+         || !am->CheckKind("DATA", nl->Second(stream), errorInfo) )
+    {
+      nl->WriteToString(out, stream);
+      ErrorReporter::ReportError("Operator filter expects a (stream T), "
+           "T in kind DATA as its first argument. "
+           "The argument provided "
+           "has type '" + out + "' instead.");
+      return nl->SymbolAtom("typeerror");
+    }
+
+    // test second argument for map T' bool. T = T'
+    if ( nl->IsAtom(map)
+         || !nl->ListLength(map) == 3
+         || !nl->IsEqual(nl->First(map), "map")
+         || !nl->IsEqual(nl->Third(map), "bool") )
+    {
+      nl->WriteToString(out, map);
+      ErrorReporter::ReportError("Operator filter expects a "
+           "(map T bool), T in kind DATA, "
+           "as its second argument. "
+           "The second argument provided "
+           "has type '" + out + "' instead.");
+      return nl->SymbolAtom("typeerror");
+    }
+    
+    if ( !( nl->Equal( nl->Second(stream), nl->Second(map) ) ) )
+    {
+      nl->WriteToString(out, nl->Second(stream));
+      nl->WriteToString(out2, nl->Second(map));
+      ErrorReporter::ReportError("Operator filter: the stream base type "
+            "T must match the map's argument type, "
+            "e.g. 1st: (stream T), 2nd: (map T bool). "
+            "The actual types are 1st: '" + out +
+            "', 2nd: '" + out2 + "'.");
+      return nl->SymbolAtom("typeerror");
+    }
+  }
+  else 
+  { // wrong number of arguments
+    ErrorReporter::ReportError("Operator filter expects two arguments.");
+    return nl->SymbolAtom("typeerror");      
+  }
+  return stream; // return type of first argument
+}
+
+/*
+5.30.2 Value mapping for operator ~sfilter~
+
+*/
+int
+streamFilterFun (Word* args, Word& result, int message, Word& local, Supplier s)
+/*
+Filter the elements of a stream by a predicate. An example for a stream
+operator and also for one calling a parameter function.
+
+*/
+{
+  Word elem, funresult;
+  ArgVectorPointer funargs;
+
+  switch( message )
+  {
+    case OPEN:
+
+      qp->Open(args[0].addr);
+      return 0;
+
+    case REQUEST:
+
+      funargs = qp->Argument(args[1].addr);  //Get the argument vector for
+       //the parameter function.
+      qp->Request(args[0].addr, elem);
+      while ( qp->Received(args[0].addr) )
+      {
+        (*funargs)[0] = elem;     
+          //Supply the argument for the
+          //parameter function.
+        qp->Request(args[1].addr, funresult);
+          //Ask the parameter function
+          //to be evaluated.
+        if ( ((CcBool*) funresult.addr)->GetBoolval() )
+        {
+          result = elem;
+          return YIELD;
+        }
+        //consume the stream object:
+        ((Attribute*) elem.addr)->DeleteIfAllowed(); 
+        qp->Request(args[0].addr, elem); // get next element
+      }
+      return CANCEL;
+
+    case CLOSE:
+
+      qp->Close(args[0].addr);
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
+
+/*
+5.30.3 Specification for operator ~sfilter~
+
+*/
+const string streamFilterSpec  = 
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>TemporalUnitAlgebra</text--->"
+  "<text>For T in kind DATA:\n"
+  "((stream T) (map T bool)) -> (stream T)</text--->"
+  "<text>_ filter [ fun ]</text--->"
+  "<text>Filters the elements of a stream by a predicate.</text--->"
+  "<text>query intstream (1,10) filter[. > 7] printintstream count</text--->"
+  ") )";
+
+/*
+5.30.4 Selection Function of operator ~sfilter~
+
+Uses the same function as for ~count~.
+
+*/
+
+/*
+5.30.5 Definition of operator ~sfilter~
+
+*/
+Operator streamFilter (
+  "filter",            //name
+  streamFilterSpec,   //specification
+  streamFilterFun,    //value mapping
+  streamCountSelect,  //trivial selection function
+  streamFilterType    //type mapping
+);
+
+
+/*
+5.31 Operator ~~
+
+----
+     (insert signature here)
+
+----
+
+*/
+
+/*
+5.31.1 Type mapping function for ~~
+
+*/
+
+/*
+5.31.2 Value mapping for operator ~~
+
+*/
+
+/*
+5.31.3 Specification for operator ~~
+
+*/
+
+/*
+5.31.4 Selection Function of operator ~~
+
+*/
+
+/*
+5.31.5 Definition of operator ~~
+
+*/
+
 
 
 /*
@@ -7706,7 +8216,9 @@ class TemporalUnitAlgebra : public Algebra
    AddOperator( &temporalvelocity );
    AddOperator( &temporalderivable );
    AddOperator( &temporalderivative );
-
+   AddOperator( &temporalunitcount );
+   AddOperator( &temporalunitprintstream );
+   AddOperator( &streamFilter );
   }
   ~TemporalUnitAlgebra() {};
 };
