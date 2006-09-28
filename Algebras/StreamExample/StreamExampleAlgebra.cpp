@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] title: [{\Large \bf ]	[}]
+//paragraph [1] title: [{\Large \bf ]   [}]
 //[->] [$\rightarrow$]
 
 
@@ -95,7 +95,7 @@ returns a list expression for the result type, otherwise the symbol
 
 Type mapping for ~intstream~ is
 
-----	(int int) -> (stream int)
+----    (int int) -> (stream int)
 ----
 
 */
@@ -109,23 +109,23 @@ intstreamType( ListExpr args ){
     if ( nl->IsEqual(arg1, "int") && nl->IsEqual(arg2, "int") )
       return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("int"));
     if ((nl->AtomType(arg1) == SymbolType) &&
-	(nl->AtomType(arg2) == SymbolType))
+        (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of type "
-				 +nl->SymbolValue(arg1)+" and "
-				 +nl->SymbolValue(arg2));
+                                 +nl->SymbolValue(arg1)+" and "
+                                 +nl->SymbolValue(arg2));
     else
       ErrorReporter::ReportError("Type mapping functions got wrong "
-				 "types as parameters.");
+                                 "types as parameters.");
   }
   ErrorReporter::ReportError("Type mapping function got a "
-			     "parameter of length != 2.");
+                             "parameter of length != 2.");
   return nl->SymbolAtom("typeerror");
 }
 
 /*
 Type mapping for ~count~ is
 
-----	((stream int)) -> int
+----    ((stream int)) -> int
 ----
 
 */
@@ -163,7 +163,7 @@ countType( ListExpr args )
 /*
 Type mapping for ~printintstream~ is
 
-----	((stream int)) -> (stream int)
+----    ((stream int)) -> (stream int)
 ----
 
 */
@@ -193,7 +193,7 @@ printintstreamType( ListExpr args )
 /*
 Type mapping for ~filter~ is
 
-----	((stream int) (map int bool)) -> (stream x)
+----    ((stream int) (map int bool)) -> (stream x)
 ----
 
 */
