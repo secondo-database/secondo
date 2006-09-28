@@ -82,6 +82,8 @@ TTY: kernel
 .PHONY: kernel
 kernel: makedirs buildlibs buildalg buildapps
 
+.PHONY: linkonly
+linkonly: buildapps
 
 .PHONY: jnicheck
 jnicheck:

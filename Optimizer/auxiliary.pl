@@ -904,7 +904,15 @@ restore(Query) :-
   op(800, fx, update),
   op(800, fx, restore).
  
+/*
+Useful for debugging
 
+*/
+ 
+showValue(Name, Var) :-
+  write(Name), write(': '), write(Var), nl, nl.
+
+ 
 /*
 2.1 Generic display for printing formatted tables 
 

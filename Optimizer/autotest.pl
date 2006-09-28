@@ -78,7 +78,7 @@ tpcExampleList(List) :-
   findall(X, tpcQuery(_,X), List).
 
 sqlExampleList(List) :-
-  findall(X, sqlExample(_,X), List).
+  findall(X, sqlQuery(_,X), List).
 
 genExampleList(L) :-
   findall(X, genQuery(X), L).
@@ -103,7 +103,7 @@ hasFirstOp(_ first _).
 
 
 showExamples :-
-  findall([Nr, Q], sqlExample(Nr, Q), List),
+  findall([Nr, Q], sqlQuery(Nr, Q), List),
   showQueries(List).
 
 showTPCExamples :-
@@ -131,12 +131,20 @@ bash shell script.
 */
 
 openOpt :-
-  open 'database opt'.
-openOpt.
+  openDB('opt').
 
 openTPC :-
-  open 'database tpc_h'.
-openTPC.
+  openDB('tpc_h').
+
+openTPC :-
+  openDB('adapOpt').
+ 
+openDB(Name) :-
+  atom_concat('database ', Name, Cmd),
+  open Cmd.
+ 
+openDB(_).
+
 
 runQueries(List, NumOfErrors, N) :-
   optimizeQueries(List, NumOfErrors, N, Plans),
@@ -243,3 +251,104 @@ genQuery(X groupby p:ort first 3) :-
 
 genQuery(X) :-
   query1(X).
+
+
+/*
+A set of hard coded examples
+
+*/
+
+sqlQuery( 14,
+
+  select count(*) from [staedte as s, plz as p] where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0]
+  ).
+
+sqlQuery( 15,
+
+  select count(*) from staedte where bev > 500000
+  ).
+
+
+sqlQuery( 16,
+
+  select count(*) from [staedte as s, plz as p] where [s:sname = p:ort, p:plz > 40000]
+  ).
+
+/*
+Example 17. This may need a larger local stack size. Start Prolog as
+
+----    pl -L4M
+----
+
+Example 17 is too complex for the interesting Orders extension (even with 64M stacks):
+----
+*/
+
+sqlQuery( 17,
+  select count(*)
+  from [staedte, plz as p1, plz2 as p2, plz3 as p3]
+  where [
+    sname = p1:ort,
+    p1:plz = p2:plz + 1,
+    p2:plz = p3:plz * 5,
+    bev > 300000,
+    bev < 500000,
+    p2:plz > 50000,
+    p2:plz < 60000,
+    kennzeichen starts "W",
+    p3:ort contains "burg",
+    p3:ort starts "M"]
+  ).
+
+
+sqlQuery( 18,
+  select count(*)
+  from [staedte, plz as p1]
+  where [
+    sname = p1:ort,
+    bev > 300000,
+    bev < 500000,
+    p1:plz > 50000,
+    p1:plz < 60000,
+    kennzeichen starts "W",
+    p1:ort contains "burg",
+    p1:ort starts "M"]
+  ).
+
+
+sqlQuery( 19, 
+  select count(*)
+  from [staedte, plz as p1, plz2 as p2]
+  where [
+    sname = p1:ort,
+    p1:plz = p2:plz + 1,
+    bev > 300000,
+    bev < 500000,
+    p1:plz > 50000,
+    p1:plz < 60000,
+    kennzeichen starts "W",
+    p1:ort contains "burg",
+    p1:ort starts "M"]
+  ).
+
+
+sqlQuery( 20,
+  select count(*)
+  from [staedte as s, plz as p]
+  where [
+    p:ort = s:sname,
+    p:plz > 40000,
+    s:bev > 300000]
+  ).
+
+
+sqlQuery( 21, 
+  select count(*)
+  from [staedte, plz as p1, plz2 as p2, plz3 as p3]
+  where [
+    sname = p1:ort,
+    p1:plz = p2:plz + 1,
+    p2:plz = p3:plz * 5]
+  ).
+
+

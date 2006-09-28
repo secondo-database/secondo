@@ -6,7 +6,10 @@ if [ "$SECONDO_PLATFORM" == "" ]; then
 if [ "$OSTYPE" == "msys" ]; then
    prefix=/c
    platform="win32"
-else 
+elif [ "$OSTYPE" == "mac_osx" ]; then
+   prefix=$HOME
+   platform="mac_osx"
+else
    prefix=$HOME
    platform="linux"
 fi

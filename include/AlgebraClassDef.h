@@ -33,6 +33,13 @@ AlgebraClassDef.h and AlgebraInit.h
 // forward declarations
 class Operator;
 class TypeConstructor;
+class QueryProcessor;
+class AlgebraManager;
+class NestedList;
+
+extern QueryProcessor* qp;
+extern AlgebraManager* am;
+extern NestedList* nl;
 
 using namespace std;
 
@@ -81,6 +88,14 @@ as subclasses of class ~Algebra~.
 Destroys an algebra instance.
 
 */
+  void Init( NestedList* nlRef, 
+             QueryProcessor* qpRef,
+             AlgebraManager* amRef ) 
+  {
+    nl = nlRef;
+    qp = qpRef;
+    am = amRef;    
+  }	  
   int GetNumTCs() { return (tcs.size()); }
 /*
 Returns the number of type constructors provided by the algebra module.

@@ -125,6 +125,28 @@ try_pjoin2(X, Y, [F1, F2, F3]) :-
                              attrname(Attr1), attrname(Attr2))).
 
 
+try_pjoin2_hj(X, Y, [F1, F3]) :- 
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  F1 = field( attr(symj, _, l), 
+              symmjoin(implicitArg(1), implicitArg(2), X = Y)),
+  F3 = field( attr(smj, _, l), 
+              sortmergejoin( implicitArg(1), implicitArg(2), 
+                             attrname(Attr1), attrname(Attr2))).
+
+
+try_pjoin2_smj(X, Y, [F1, F2]) :- 
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  F1 = field( attr(symj, _, l), 
+              symmjoin(implicitArg(1), implicitArg(2), X = Y)),
+  F2 = field( attr(hj, _, l), 
+              hashjoin( implicitArg(1), implicitArg(2), 
+                        attrname(Attr1), attrname(Attr2), 997)).
+
+
+
+                            
 
 /*
 
@@ -405,15 +427,23 @@ handleEdge(Src, Tgt, Plan) :-
   write(F1), write('('), write(F2), writeln(' ... )'), 
   retract( planEdge(Src, Tgt, Plan, _) ), !.
 
+ 
 handleEdge(_, _, _).
   
 allowedOp(Term) :-
   Term =.. [ remove | [ Arg1, _] ],
-  Arg1 =.. [pjoin2 | _ ].
+  Arg1 =.. [ F | _ ],
+  myOp(F).
  
 allowedOp(Term) :-
-  Term =.. [ pjoin2 | _ ].
+  Term =.. [ F | _ ],
+  myOp(F).
  
+myOp(pjoin2).
+myOp(pjoin2_hj).
+myOp(pjoin2_smj).
+
+
 delOp(Term, F1, F2) :-
   Term =.. [ F1 | [ Arg1, _] ],
   Arg1 =.. [ F2 | _ ].
@@ -421,8 +451,6 @@ delOp(Term, F1, F2) :-
 delOp(Term, F1, '') :-
   Term =.. [ F1 | _ ].
  
-showValue(Name, Var) :-
-  write(Name), write(': '), write(Var), nl, nl.
   
 /*
 The predicate ~makePStreamRec/3~ translates a plan starting with
@@ -461,6 +489,12 @@ makePStreamRec(pjoin2(Arg1, Arg2, Fields), Source, Source) :-
   constructPStream(Arg2S, Source2, implicitArg(1), PStream2),
   Source = pjoin2(PStream1, PStream2, Fields). 
 
+makePStreamRec(pjoin2_hj(Arg1, Arg2, Fields), Source, Source) :-
+  makePStreamRec(pjoin2(Arg1, Arg2, Fields), Source, Source).
+
+makePStreamRec(pjoin2_smj(Arg1, Arg2, Fields), Source, Source) :-
+  makePStreamRec(pjoin2(Arg1, Arg2, Fields), Source, Source).
+ 
 makePStreamRec(pjoin1(right, Pred, Arg1, Arg2, _), Source, Source) :-
   makePStreamRec(Arg1, Arg1S, Source1),
   makePStreamRec(Arg2, Arg2S, Source2),

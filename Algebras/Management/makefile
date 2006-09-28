@@ -25,20 +25,17 @@
 
 include ../../makefile.env
 
+#SECONDO_ACTIVATE_ALL_ALGEBRAS := true
+
 CCFLAGS = $(DEFAULTCCFLAGS)
 ALL_OBJS = AlgebraList.i $(DEP_FILES) \
 	   $(LIBDIR)/AlgebraList.$(OBJEXT) Algebra.$(OBJEXT) AlgebraManager.$(OBJEXT)
 
 .PHONY: all
-all:  first $(ALL_OBJS) 
+all: $(ALL_OBJS) 
 	rm -f AlgebraList.i
 
-.PHONY: first
-first: DEPS=true
-first:
-ifdef DEPS
 include $(DEP_FILES)
-endif	
 
 # After building AlgebraList.o the file AlgebraList.i will be deleted
 # this ensures that it will be rebuild for every call of make. This guarantees
@@ -47,12 +44,12 @@ endif
 
 AlgebraList.i: ../../makefile.algebras
 AlgebraList.i: AlgebraList.i.cfg 
-	rm -f $@
 ifndef SECONDO_ACTIVATE_ALL_ALGEBRAS
 	chmod 755 ./alg.bash && ./alg.bash $< $(ALGEBRAS) $(JNI_ALGEBRAS) > $@
 else
 	sed -e "s#ALGEBRA(#ALGEBRA_INCLUDE(#" $< > $@
 endif
+	cp $@ $@.last
 
 AlgebraList.cpp : AlgebraList.i
 	

@@ -1918,25 +1918,6 @@ operators for joins on "<=", ">=", "<" and ">" here.
 
 */
 
-/*
-The rules below will be used only if option ~adaptiveJoin~ is set. For
-details refer to ~adaptiveJoin.pl~.
-
-
-join(Arg1, arg(N), pr(X=Y, _, _)) => pjoin1( Stream, Rel, Ctr, Fields ) :-
-  optimizerOption(adaptiveJoin),   
-  try_pjoin1SR(N, X, Y, Rel, Ctr, Fields),
-  Arg1 => Stream.
-
-join(arg(N), Arg2, pr(X=Y, _, _)) => pjoin1( Stream, Rel, Ctr, Fields ) :-
-  optimizerOption(adaptiveJoin),   
-  try_pjoin1RS(N, X, Y, Rel, Ctr, Fields),
-  Arg2 => Stream.
-
-
-*/ 
-
-
 
 /*
 Rules to create mergejoins with interesting orders extension
@@ -2038,14 +2019,26 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => sortmergejoin(Arg1S, Arg2S,
         attrname(Attr1), attrname(Attr2))   :-
+  fail,       
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
         attrname(Attr1), attrname(Attr2), 997)   :-
+  fail,       
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
+
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_smj(Arg1S, Arg2S, Fields) :-
+  try_pjoin2_smj(X, Y, Fields).
+
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_hj(Arg1S, Arg2S, Fields) :-
+  try_pjoin2_hj(X, Y, Fields).
+
+ 
 
 /*
 The rules below will be used only if option ~adaptiveJoin~ is set. For
@@ -2054,6 +2047,7 @@ details refer to ~adaptiveJoin.pl~.
 */ 
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2(Arg1S, Arg2S, Fields) :-
+  fail,
   optimizerOption(adaptiveJoin),
   try_pjoin2(X, Y, Fields).
 
@@ -2607,11 +2601,11 @@ cost(pjoin2(X, Y, [ _ | _ ]), Sel, Size, C) :-
   cost(hashjoin(X, Y, _, _, 997), Sel, S1, C2),
   C is min(C1, C2).
 
- %cost(pjoin1(X, Y, _, [ _ | _ ]), Sel, Size, C) :-
- %cost(X, 1, SizeX, _),
- % cost(Y, 1, SizeY, _),
- % Size is Sel * SizeX * SizeY,
- % C is 10.0.
+cost(pjoin2_hj(X, Y, [ _ | _ ]), Sel, Size, C) :-
+  cost(hashjoin(X, Y, _, _, 997), Sel, Size, C).
+
+cost(pjoin2_smj(X, Y, [ _ | _ ]), Sel, Size, C) :-
+  cost(hashjoin(X, Y, _, _, 997), Sel, Size, C).
 
 cost(extend(X, _), Sel, S, C) :-
   cost(X, Sel, S, C1),
@@ -4497,30 +4491,16 @@ defaultExceptionHandler(G) :-
        ),
        true.
 
-% store all queries of a session in the dynamic predicate below      
-:- dynamic
-     queryText/2.
 
 history :-
-  findall([Nr, Sql, Plan, Costs, T1, T2], queryText(Nr, Sql, Plan, Costs, T1, T2), Tuples),
-  RelType = [rel, [tuple, [['QueryId', 'int'], 
-                           ['SqlText', 'text'], 
-                           ['BestPlan', 'text'],
-                           ['Costs', 'real'], 
-                           ['PlanBuild', 'int'],
-                           ['PlanExec', 'int']] ]],
-  display(RelType, Tuples).
+  showRel('SqlHistory').
 
 deleteHistory :-
- retractall(queryText(_, _, _, _, _)).
+  clearRel('SqlHistory').
 
-registerQuery(Term, Query, Cost, PlanBuild, PlanExec) :-
-  nextCounter(qid, Qid),
-  resetCounter(joinPred),
-  resetCounter(selectionPred),
-  swritef(S, '%t', [Term]),
-  string_to_atom(S, Sql),
-  assert( queryText(Qid, Sql, Query, Cost, PlanBuild, PlanExec) ).
+storeHistory :-
+  saveRel('SqlHistory').
+
 
 % Default handling
 sql Term :- defaultExceptionHandler((
@@ -4529,7 +4509,7 @@ sql Term :- defaultExceptionHandler((
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
   query(Query, PlanExec),
-  registerQuery(Term, Query, Cost, PlanBuild, PlanExec)
+  appendToRel('SqlHistory', Term, Query, Cost, PlanBuild, PlanExec)
  )).
 
 sql(Term, SecondoQueryRest) :- defaultExceptionHandler((

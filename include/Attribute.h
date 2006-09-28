@@ -58,9 +58,6 @@ derived attribute class must implement.
 #include "AlgebraManager.h"
 #include "FLOB.h"
 
-extern NestedList *nl;
-extern QueryProcessor *qp;
-
 /*
 3.5 Struct ~AttrDelete~
 

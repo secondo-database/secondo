@@ -62,9 +62,9 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 
 using namespace std;
 
-extern NestedList* nl;
-extern QueryProcessor* qp;
-extern AlgebraManager* am;
+//extern NestedList* nl;
+//extern QueryProcessor* qp;
+//extern AlgebraManager* am;
 
 /*
 2 Type Constructor ~text~
@@ -1072,7 +1072,6 @@ public:
   ~FTextAlgebra() {};
 };
 
-FTextAlgebra FTextAlgebra;
 
 /*
 6 Initialization
@@ -1096,9 +1095,8 @@ InitializeFTextAlgebra( NestedList* nlRef,
 {
   if(traces)
     cout << '\n' <<"InitializeFTextAlgebra"<<'\n';
-  nl = nlRef;
-  qp = qpRef;
-  am = amRef;
-  return (&FTextAlgebra);
+  FTextAlgebra* ptr = new FTextAlgebra;
+  ptr->Init(nl, qp, am); 
+  return ptr;
 }
 

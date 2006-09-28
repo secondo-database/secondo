@@ -40,11 +40,14 @@ $(error Could not create directory $(tempdir)!)
 endif
 
 
-# run some shell commands
+
+# files which are used to indicate
+# if some special targets need to be maked 
 tsdk := $(tempdir)/sdk_dist
 tnew := $(tempdir)/sdk_changed 
 tupd := $(tempdir)/show_update_msg
 
+# run some shell commands
 shrc := $(shell rm -f $(tupd))
 shrc := $(shell if [ ! -e $(tsdk) ]; then touch $(tsdk); fi)
 shrc := $(shell if [ ! -e $(tnew) ]; then touch $(tnew); fi)
@@ -62,6 +65,7 @@ RC_FILES_1 := secondorc \
 
 RC_FILES_2 := secondo.linuxrc \
               secondo.win32rc \
+              secondo.mac_osxrc \
 	      profile	
 
 RC_FILES_OS := $(RC_FILES_1) secondo.$(platform)rc 
@@ -143,8 +147,8 @@ show-separator:
 	@echo -e "\n *** Bash environment setup files *** \n"
 
 # update the installation kit 
-.PHONY: update-sdk 
-update-sdk: checkrootdir $(tnew) $(tsdk) 
+.PHONY: installsdk 
+installsdk: checkrootdir $(tnew) $(tsdk) 
 
 # special target which only updates script files
 .PHONY: sdk-scripts
@@ -288,8 +292,8 @@ src-archive: rmList mkLat1
 .PHONY: src-archives
 src-archives: rmList mkLat1 mkcp1252
 
-.PHONY: src-tgz
-src-tgz: 
+.PHONY: src-archive2
+src-archive2: 
 	cvs -Q export -rHEAD -dsecondo secondo
 	tar -czf secondo.tgz secondo
 
@@ -314,6 +318,7 @@ mkcp1252: $(fileList)
           -or -name "*.gif" \
           -or -name "*.tgz" \
           -or -name "*.jar" \
+          -or -name "*.zar" \
           -or -name "*.jpg" \
           -or -name "*.pdf" \
           -or -name "*.png" \
