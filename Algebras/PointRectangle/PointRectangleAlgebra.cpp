@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] title: [{\Large \bf ]	[}]
+//paragraph [1] title: [{\Large \bf ]   [}]
 
 
 [1] PointRectangle Algebra
@@ -47,7 +47,7 @@ using namespace std;
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "StandardTypes.h"	//needed because we return a CcBool in an op.
+#include "StandardTypes.h"      //needed because we return a CcBool in an op.
 #include <string>
 
 extern NestedList* nl;
@@ -66,7 +66,7 @@ class XPoint
   XPoint( int x, int y );
   ~XPoint();
   int      GetX();
-  int	   GetY();
+  int      GetY();
   void     SetX( int x );
   void     SetY( int y );
   XPoint*   Clone();
@@ -102,7 +102,7 @@ void* CastXPoint( void* addr ) {
 
 The list representation of an xpoint is
 
-----	(x y)
+----    (x y)
 ----
 
 2.3 ~In~ and ~Out~ Functions
@@ -114,7 +114,7 @@ OutXPoint( ListExpr typeInfo, Word value )
 {
   XPoint* point = (XPoint*)(value.addr);
   return nl->TwoElemList(nl->IntAtom(point->GetX()),
-			 nl->IntAtom(point->GetY()));
+                         nl->IntAtom(point->GetY()));
 }
 
 Word
@@ -182,16 +182,16 @@ XPointProperty()
 {
   return (nl->TwoElemList(
             nl->FiveElemList(nl->StringAtom("Signature"),
-	                     nl->StringAtom("Example Type List"),
-			     nl->StringAtom("List Rep"),
-			     nl->StringAtom("Example List"),
-			     nl->StringAtom("Remarks")),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List"),
+                             nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-	                     nl->StringAtom("xpoint"),
-			     nl->StringAtom("(<x> <y>)"),
-			     nl->StringAtom("(-3 15)"),
-			     nl->StringAtom("x- and y-coordinates must be "
-			     "of type int."))));
+                             nl->StringAtom("xpoint"),
+                             nl->StringAtom("(<x> <y>)"),
+                             nl->StringAtom("(-3 15)"),
+                             nl->StringAtom("x- and y-coordinates must be "
+                             "of type int."))));
 }
 
 
@@ -213,15 +213,15 @@ CheckXPoint( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor xpoint(
-	"xpoint",			//name
-	XPointProperty, 	        //property function describing signature
-        OutXPoint, InXPoint,            //Out and In functions
-	0, 0,                           //SaveToList, RestoreFromList functions
-	CreateXPoint, DeleteXPoint,	//object creation and deletion
-        0, 0, CloseXPoint, CloneXPoint, //object open, save, close, and clone
-	CastXPoint,			//cast function
-        SizeOfXPoint, 			//sizeof function
-	CheckXPoint	);                //kind checking function
+      "xpoint",                        //name
+       XPointProperty,                 //property function describing signature
+       OutXPoint, InXPoint,            //Out and In functions
+       0, 0,                           //SaveToList, RestoreFromList functions
+       CreateXPoint, DeleteXPoint,     //object creation and deletion
+       0, 0, CloseXPoint, CloneXPoint, //object open, save, close, and clone
+       CastXPoint,                     //cast function
+       SizeOfXPoint,                   //sizeof function
+       CheckXPoint );                  //kind checking function
 
 /*
 3 Class ~XRectangle~
@@ -242,7 +242,7 @@ class XRectangle
  public:
   XRectangle() {}
   XRectangle( int XLeft, int XRight, int YBottom, int YTop )
-	{xl = XLeft; xr = XRight; yb = YBottom; yt = YTop;}
+        {xl = XLeft; xr = XRight; yb = YBottom; yt = YTop;}
   ~XRectangle() {}
   int GetXLeft() {return xl;}
   int GetXRight() {return xr;}
@@ -286,7 +286,7 @@ XRectangle::intersects( XRectangle r )
 
 The list representation of an xrectangle is
 
-----	(XLeft XRight YBottom YTop)
+----    (XLeft XRight YBottom YTop)
 ----
 
 */
@@ -298,7 +298,7 @@ OutXRectangle( ListExpr typeInfo, Word value )
     nl->IntAtom(rectangle->GetXLeft()),
     nl->IntAtom(rectangle->GetXRight()),
     nl->IntAtom(rectangle->GetYBottom()),
-    nl->IntAtom(rectangle->GetYTop())		);
+    nl->IntAtom(rectangle->GetYTop())           );
 }
 
 Word
@@ -313,22 +313,22 @@ InXRectangle( const ListExpr typeInfo, const ListExpr instance,
       ListExpr Fourth = nl->Fourth(instance);
       
       if ( nl->IsAtom(First) && nl->AtomType(First) == IntType
-	   && nl->IsAtom(Second) && nl->AtomType(Second) == IntType
-	   && nl->IsAtom(Third) && nl->AtomType(Third) == IntType
-	   && nl->IsAtom(Fourth) && nl->AtomType(Fourth) == IntType )
-	{
-	  int xl = nl->IntValue(First);
-	  int xr = nl->IntValue(Second);
-	  int yb = nl->IntValue(Third);
-	  int yt = nl->IntValue(Fourth);
-	  
-	  if ( xl < xr && yb < yt )	
-	    {
-	      correct = true;
-	      XRectangle* newrectangle = new XRectangle(xl, xr, yb, yt);
-	      return SetWord(newrectangle);
-	    }
-	}
+           && nl->IsAtom(Second) && nl->AtomType(Second) == IntType
+           && nl->IsAtom(Third) && nl->AtomType(Third) == IntType
+           && nl->IsAtom(Fourth) && nl->AtomType(Fourth) == IntType )
+        {
+          int xl = nl->IntValue(First);
+          int xr = nl->IntValue(Second);
+          int yb = nl->IntValue(Third);
+          int yt = nl->IntValue(Fourth);
+          
+          if ( xl < xr && yb < yt )     
+            {
+              correct = true;
+              XRectangle* newrectangle = new XRectangle(xl, xr, yb, yt);
+              return SetWord(newrectangle);
+            }
+        }
     }
   correct = false;
   return SetWord(Address(0));
@@ -383,17 +383,17 @@ XRectangleProperty()
 {
   return (nl->TwoElemList(
             nl->FiveElemList(nl->StringAtom("Signature"),
-	                     nl->StringAtom("Example Type List"),
-			     nl->StringAtom("List Rep"),
-			     nl->StringAtom("Example List"),
-			     nl->StringAtom("Remarks")),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List"),
+                             nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-	                     nl->StringAtom("xrectangle"),
-			     nl->StringAtom("(<xleft> <xright> "
-					    "<ybottom> <ytop>)"),
-			     nl->StringAtom("(4 12 8 2)"),
-			     nl->StringAtom("all coordinates must be of "
-			     "type int."))));
+                             nl->StringAtom("xrectangle"),
+                             nl->StringAtom("(<xleft> <xright> "
+                                            "<ybottom> <ytop>)"),
+                             nl->StringAtom("(4 12 8 2)"),
+                             nl->StringAtom("all coordinates must be of "
+                             "type int."))));
 }
 
 /*
@@ -413,15 +413,15 @@ CheckXRectangle( ListExpr type, ListExpr& errorInfo )
 3.6 Creation of the Type Constructor Instance
 
 */
-TypeConstructor xrectangle( 	"xrectangle",
-				XRectangleProperty,
-                           	OutXRectangle, InXRectangle,
-                           	0, 0,
-			   	CreateXRectangle, DeleteXRectangle,
-        		   	0, 0,
-                           	CloseXRectangle, CloneXRectangle,
-                           	CastXRectangle, SizeOfXRectangle,
-                           	CheckXRectangle );
+TypeConstructor xrectangle(     "xrectangle",
+                                XRectangleProperty,
+                                OutXRectangle, InXRectangle,
+                                0, 0,
+                                CreateXRectangle, DeleteXRectangle,
+                                0, 0,
+                                CloseXRectangle, CloneXRectangle,
+                                CastXRectangle, SizeOfXRectangle,
+                                CheckXRectangle );
 /*
 4 Creating Operators
 
@@ -443,16 +443,16 @@ RectRectBool( ListExpr args )
     if ( nl->IsEqual(arg1, "xrectangle") && nl->IsEqual(arg2, "xrectangle") )
     return nl->SymbolAtom("bool");
     if ((nl->AtomType(arg1) == SymbolType) &&
-	(nl->AtomType(arg2) == SymbolType))
+        (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of type "
-				 +nl->SymbolValue(arg1)+" and "
-				 +nl->SymbolValue(arg2));
+                                 +nl->SymbolValue(arg1)+" and "
+                                 +nl->SymbolValue(arg2));
     else
       ErrorReporter::ReportError("Type mapping functions got wrong "
-				 "types as parameters.");
+                                 "types as parameters.");
   }
   ErrorReporter::ReportError("Type mapping function got a "
-			     "parameter of length != 2.");
+                             "parameter of length != 2.");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -466,17 +466,17 @@ XPointRectBool( ListExpr args )
     if ( nl->IsEqual(arg1, "xpoint") && nl->IsEqual(arg2, "xrectangle") )
     return nl->SymbolAtom("bool");
     if ((nl->AtomType(arg1) == SymbolType) &&
-	(nl->AtomType(arg2) == SymbolType))
+        (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of type "
-				 +nl->SymbolValue(arg1)+" and "
-				 +nl->SymbolValue(arg2));
+                                 +nl->SymbolValue(arg1)+" and "
+                                 +nl->SymbolValue(arg2));
     else
       ErrorReporter::ReportError("Type mapping function got wrong "
-				 "types as parameters.");
+                                 "types as parameters.");
   }
   else
     ErrorReporter::ReportError("Type mapping function got a "
-			       "parameter of length != 2.");
+                               "parameter of length != 2.");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -495,12 +495,12 @@ intersectsFun (Word* args, Word& result, int message, Word& local, Supplier s)
   XRectangle *r1 = ((XRectangle*)args[0].addr);
   XRectangle *r2 = ((XRectangle*)args[1].addr);
 
-  result = qp->ResultStorage(s);	//query processor has provided
-  					//a CcBool instance to take the result
+  result = qp->ResultStorage(s);        //query processor has provided
+                                        //a CcBool instance to take the result
   ((CcBool*)result.addr)->Set(true, r1->intersects(*r2));
-  					//the first argument says the boolean
-  					//value is defined, the second is the
-  					//real boolean value)
+                                        //the first argument says the boolean
+                                        //value is defined, the second is the
+                                        //real boolean value)
   return 0;
 }
 
@@ -514,16 +514,16 @@ insideFun (Word* args, Word& result, int message, Word& local, Supplier s)
   XPoint* p = ((XPoint*)args[0].addr);
   XRectangle* r = ((XRectangle*)args[1].addr);
 
-  result = qp->ResultStorage(s);	//query processor has provided
-  					//a CcBool instance to take the result
+  result = qp->ResultStorage(s);        //query processor has provided
+                                        //a CcBool instance to take the result
 
   bool res = ( p->GetX() >= r->GetXLeft() && p->GetX() <= r->GetXRight()
-	&& p->GetY() >= r->GetYBottom() && p->GetY() <= r->GetYTop() );
+        && p->GetY() >= r->GetYBottom() && p->GetY() <= r->GetYTop() );
 
   ((CcBool*)result.addr)->Set(true, res);
-  					//the first argument says the boolean
-  					//value is defined, the second is the
-  					//real boolean value)
+                                        //the first argument says the boolean
+                                        //value is defined, the second is the
+                                        //real boolean value)
   return 0;
 }
 
@@ -535,19 +535,19 @@ insideFun (Word* args, Word& result, int message, Word& local, Supplier s)
 const string intersectsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( <text>(xrectangle xrectangle) -> bool</text--->"
-			 "<text>_ intersects _</text--->"
-			 "<text>Intersection predicate for two"
+                         "<text>_ intersects _</text--->"
+                         "<text>Intersection predicate for two"
                          " xrectangles.</text--->"
-			 "<text>r1 intersects r2</text--->"
-			 ") )";
+                         "<text>r1 intersects r2</text--->"
+                         ") )";
 
 const string insideSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( <text>(xpoint xrectangle) -> bool</text--->"
-			 "<text>_ inside _</text--->"
-			 "<text>Inside predicate.</text--->"
-			 "<text>p inside r</text--->"
-			 ") )";
+                         "<text>_ inside _</text--->"
+                         "<text>Inside predicate.</text--->"
+                         "<text>p inside r</text--->"
+                         ") )";
 
 /*
 4.5 Definition of Operators
@@ -555,19 +555,19 @@ const string insideSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 */
 
 Operator intersects (
-	"intersects", 		//name
-	intersectsSpec,         //specification
-	intersectsFun,		//value mapping
-	Operator::SimpleSelect,	//trivial selection function
-	RectRectBool		//type mapping
+        "intersects",           //name
+        intersectsSpec,         //specification
+        intersectsFun,          //value mapping
+        Operator::SimpleSelect, //trivial selection function
+        RectRectBool            //type mapping
 );
 
 Operator inside (
-	"inside", 		//name
-	insideSpec,		//specification
-	insideFun,		//value mapping
-	Operator::SimpleSelect,	//trivial selection function
-	XPointRectBool          //type mapping
+        "inside",               //name
+        insideSpec,             //specification
+        insideFun,              //value mapping
+        Operator::SimpleSelect, //trivial selection function
+        XPointRectBool          //type mapping
 );
 
 /*
