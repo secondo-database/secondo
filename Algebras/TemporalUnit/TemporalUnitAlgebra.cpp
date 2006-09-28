@@ -3343,8 +3343,8 @@ int MPointDerivative( Word* args, Word& result, int message,
 	      uReal.SetDefined(true);
               res->Add( uReal );
 	    }
-          // else: Do nothing. Do NOT add undefined units (would conflict 
-          //       e.g. with operator deftime()!
+          // else: Do nothing. Do NOT add an undefined unit!
+          //       (That would conflict e.g. with operator deftime())
 	}
       res->EndBulkLoad( false ); // no sorting, assuming the input was ordered
     }
@@ -3375,7 +3375,7 @@ int UnitPointDerivative( Word* args, Word& result, int message,
       res->a = 0;
       res->b = 0;
       res->c = 0;
-      res->r = TRUE;
+      res->r = true;
       res->SetDefined(false);
     }
   return 0;
