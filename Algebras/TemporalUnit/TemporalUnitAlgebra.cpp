@@ -87,15 +87,15 @@ OK                    stream(tuple((id T))) -> (stream T)
 
 OK   saggregate: (stream T) x (T x T --> T) x T  --> T
 
-Test count: (stream T) --> int
+OK   count: (stream T) --> int
 
-Test filter: ((stream T) (map T bool)) --> int
+OK   filter: ((stream T) (map T bool)) --> int
 
-Test printstream: (stream T) --> (stream T)
+OK   printstream: (stream T) --> (stream T)
      
-Test atmax: uT --> (stream uT)
+OK   atmax: uT --> (stream uT)
 
-Test atmin: uT --> (stream uT)
+OK   atmin: uT --> (stream uT)
 
 Test at:    ureal x real --> (stream ureal)
 
@@ -2614,7 +2614,7 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
               cout << "    Tstart=" << deftime.start.ToDouble() << endl;
               cout << "    Tend  =" << deftime.end.ToDouble() << endl;	  
             }
-	  t1.ReadFrom( T1 + deftime.start.ToDouble() );
+	  t1.ReadFrom( T1 );
 	  if (deftime.Contains(t1))
 	    { // value is contained by deftime
 	      if(TUA_DEBUG) 
@@ -2644,6 +2644,7 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
       
       if(TUA_DEBUG) cout << "  17" << endl;
       radicand = (b*b + 4*a*(y-c));
+      if(TUA_DEBUG) cout << "    radicand =" << radicand << endl;
       if ( (a != 0) && (radicand >= 0) )
 	{ // quadratic function. There are possibly two result units
 	  // calculate the possible t-values t1, t2
@@ -2664,8 +2665,8 @@ The solution to the equation $at^2 + bt + c = y$ is
               cout << "    Tstart=" << deftime.start.ToDouble() << endl;
               cout << "    Tend  =" << deftime.end.ToDouble() << endl;	  
             }
-	  t1.ReadFrom( T1 + deftime.start.ToDouble() );
-	  t2.ReadFrom( T2 + deftime.start.ToDouble() );
+	  t1.ReadFrom( T1 );
+	  t2.ReadFrom( T2 );
 	  
 	  // check, whether t1 contained by deftime
 	  if (deftime.Contains( t1 ))
@@ -2674,8 +2675,12 @@ The solution to the equation $at^2 + bt + c = y$ is
                 cout << "  19: Found first quadratic solution" << endl;
 	      rdeftime.start = t1;
 	      rdeftime.end = t1;
+              rdeftime.lc = true;
+              rdeftime.rc = true;
 	      localinfo->runits[localinfo->NoOfResults].addr = 
 		new UReal( rdeftime,a,b,c,r );
+              ((UReal*) (localinfo->runits[localinfo->NoOfResults].addr))
+                ->SetDefined( true );
 	      localinfo->NoOfResults++;
 	      localinfo->finished = false;
 	      if(TUA_DEBUG) cout << "  20" << endl;
@@ -2687,8 +2692,12 @@ The solution to the equation $at^2 + bt + c = y$ is
                 cout << "  21: Found second quadratic solution" << endl;
 	      rdeftime.start = t2;
 	      rdeftime.end = t2;
+              rdeftime.lc = true;
+              rdeftime.rc = true;
 	      localinfo->runits[localinfo->NoOfResults].addr = 
 		new UReal( rdeftime,a,b,c,r );
+              ((UReal*) (localinfo->runits[localinfo->NoOfResults].addr))
+                ->SetDefined (true );
 	      localinfo->NoOfResults++;
 	      localinfo->finished = false;
 	      if(TUA_DEBUG) cout << "  22" << endl;
@@ -5638,7 +5647,7 @@ int atmaxUReal( Word* args, Word& result, int message,
                  << "\tt_end  =" << t_end   << "\t v_end  =" << v_end   << endl;
           
 	  // compute, which values are maximal
-	  if ( (t_start <= t_extr) && (t_end   >= t_extr) )
+	  if ( (t_start < t_extr) && (t_end   > t_extr) )
 	    { // check all 3 candidates
 	      if(TUA_DEBUG) cout << "  5.3" << endl;
 	      maxValIndex = getMaxValIndex(v_extr,v_start,v_end);
@@ -5646,7 +5655,7 @@ int atmaxUReal( Word* args, Word& result, int message,
                 cout << "  5.3  maxValIndex=" << maxValIndex << endl;
 	    }
 	  else 
-	    { // extremum equals at least on interval border, possibly 2 results
+	    { // extremum not within interval --> possibly 2 results
 	      if(TUA_DEBUG) cout << "  5.4" << endl;
 	      maxValIndex = 0;
 	      if (v_start >= v_end) // max at t_start
@@ -5891,6 +5900,7 @@ int atminUReal( Word* args, Word& result, int message,
 	{ // ureal undefined
 	  // -> return empty stream
 	  sli->NoOfResults = 0;
+          if(TUA_DEBUG) cout << "atminUReal: ureal undef " << endl;
 	  return 0;
 	}
 
@@ -5900,6 +5910,7 @@ int atminUReal( Word* args, Word& result, int message,
 	  // -> return a copy of the ureal	  
 	  sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	  sli->NoOfResults++;
+          if(TUA_DEBUG) cout << "atminUReal: single point" << endl;
 	  return 0;
 	}
 
@@ -5910,6 +5921,7 @@ int atminUReal( Word* args, Word& result, int message,
 	      // the only result is a copy of the argument ureal
 	      sli->t_res[sli->NoOfResults] = *(ureal->Clone());
 	      sli->NoOfResults++;
+              if(TUA_DEBUG) cout << "atminUReal: ureal const ureal " << endl;
 	      return 0;
 	    }
 	  if ( ureal->b < 0 )
@@ -5921,6 +5933,8 @@ int atminUReal( Word* args, Word& result, int message,
 		sli->t_res[sli->NoOfResults].timeInterval.start;
 	      sli->t_res[sli->NoOfResults].timeInterval.lc = true;
 	      sli->NoOfResults++;
+              if(TUA_DEBUG) 
+                cout << "atminUReal: ureal linear fun (end)" << endl;
 	      return 0;
 	    }
 	  if ( ureal->b > 0 )
@@ -5932,6 +5946,7 @@ int atminUReal( Word* args, Word& result, int message,
 		sli->t_res[sli->NoOfResults].timeInterval.end;
 	      sli->t_res[sli->NoOfResults].timeInterval.rc = true;
 	      sli->NoOfResults++;
+              if(TUA_DEBUG) cout << "atminUReal: ureal undef (start)" << endl;
 	      return 0;
 	    }
 	}
@@ -5952,9 +5967,14 @@ int atminUReal( Word* args, Word& result, int message,
 	  v_extr  = getValUreal(t_extr, a,b,c,r);
 	  v_start = getValUreal(t_start,a,b,c,r);
 	  v_end   = getValUreal(t_end,  a,b,c,r);
+	  if(TUA_DEBUG) 
+            cout << "\nOperator atminUReal: " << endl 
+                 << "\tt_start=" << t_start << "\t v_start=" << v_start << endl
+                 << "\tt_extr =" << t_extr  << "\t v_extr =" << v_extr  << endl
+                 << "\tt_end  =" << t_end   << "\t v_end  =" << v_end   << endl;
 	  // compute, which values are minimal
 
-	  if ( (t_start <= t_extr) && (t_end   >= t_extr) )
+	  if ( (t_start < t_extr) && (t_end > t_extr) )
 	    minValIndex = getMinValIndex(v_extr,v_start,v_end);
 	  else 
 	    { 
@@ -5964,6 +5984,7 @@ int atminUReal( Word* args, Word& result, int message,
 	      if (v_end <= v_start) 
 		minValIndex += 4;
 	    }
+	  if(TUA_DEBUG) cout << "\tminValIndex = " <<  minValIndex << endl;
 
 	  if (minValIndex & 2)
 	    {
@@ -5972,6 +5993,7 @@ int atminUReal( Word* args, Word& result, int message,
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
+              if(TUA_DEBUG) cout << " added start" << endl;
 	    }
 	  if ( (minValIndex & 4) && (t_start != t_end) )
 	    {
@@ -5980,6 +6002,7 @@ int atminUReal( Word* args, Word& result, int message,
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
+              if(TUA_DEBUG) cout << " added end" << endl;
 	    }
 	  if ( (minValIndex & 1)   &&
 	       (t_extr != t_start) &&
@@ -5990,12 +6013,11 @@ int atminUReal( Word* args, Word& result, int message,
 	      Interval<Instant> i( t, t, true, true );
 	      sli->t_res[sli->NoOfResults].timeInterval = i;
 	      sli->NoOfResults++;
+              if(TUA_DEBUG) cout << " added extr" << endl;
 	    }
-	  sli->NoOfResults++;
 	  return 0;
 	}
       cout << "\natminUReal (OPEN): This should not happen!" << endl;
-      sli->NoOfResults++;
       return 0;
 
     case REQUEST :
