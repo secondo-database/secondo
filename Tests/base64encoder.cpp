@@ -55,10 +55,11 @@ main(int argc, char *argv[]) {
 
 
  int c = 0, size=0;
- opterr = 0;
  bool nostream=false, decode=false ;
 
 #ifdef _POSIX_OPT_H 
+ opterr = 0;
+
    while ((c = getopt(argc,argv, "dn:")) != -1) {
       switch (c) {
       case 'd':
