@@ -72,8 +72,6 @@ let testreg8 = [const region value((((14 2)(14 5)(17 5)(17 2))))];
 let testreg9 = [const region value((((19 1)(19 3)(22 3)(22 1))))];
 let testreg10 = [const region value((((20 2)(20 4)(23 4)(23 2))))];
 
-restore KreisT from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/planesweepalgebra/KreisT';
-
 #testcase Realm Simple Regions 1
 #yields (region((( (6.0 1.0) (1.0 1.0) (3.0 3.0) (6.0 3.0) (8.0 3.0) (7.0 2.0) ))))
 query realm(testreg1, testreg2);
@@ -469,39 +467,6 @@ query testreg7 p_intersects testreg8;
 #testcase PIntersects Special Regions 4
 #yields (bool TRUE)
 query testreg9 p_intersects testreg10;
-
-#testcase Realm Real Data 1
-#tolerance_real 0.0001
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/planesweepalgebra/KreisR
-query KreisT feed extend[GebietR: realm(.Gebiet, .GebietT)] project[GebietR] consume;
-
-#testcase Realm Real Data 2
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/planesweepalgebra/KreisR2
-query KreisT feed extend[GebietR: realm(.GebietT, .Gebiet)] project[GebietR] consume;
-
-#testcase Union Real Data 1
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/planesweepalgebra/KreisU
-query KreisT feed extend[GebietU: union_new(.Gebiet, .GebietT)] project[GebietU] consume;
-
-#testcase Intersection Real Data 1
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/planesweepalgebra/KreisI
-query KreisT feed extend[GebietI: intersection_new(.Gebiet, .GebietT)] project[GebietI] consume;
-
-#testcase Minus Real Data 1
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/planesweepalgebra/KreisM
-query KreisT feed extend[GebietM: minus_new(.Gebiet, .GebietT)] project[GebietM] consume;
-
-#testcase Minus Real Data 2
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/planesweepalgebra/KreisM2
-query KreisT feed extend[GebietM: minus_new(.GebietT, .Gebiet)] project[GebietM] consume;
-
-#testcase Intersects Real Data 1
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/planesweepalgebra/KreisInt
-query KreisT feed extend[GebietInt: .Gebiet intersects_new .GebietT] project[GebietInt] consume;
-
-#testcase PIntersects Real Data 1
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/planesweepalgebra/KreisInt
-query KreisT feed extend[GebietInt: .Gebiet p_intersects .GebietT] project[GebietInt] consume;
 
 #teardown
 close database;
