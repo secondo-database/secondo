@@ -196,6 +196,11 @@ public class HoeseViewer extends SecondoViewer {
   private JFileChooser FC_References = new JFileChooser();
   /** a FileChooser for sving images as pong graphics */
   private JFileChooser FC_Images = new JFileChooser();
+  private final static String pngTitle = "Save PNG-Image";
+  private final static String psTitle = "Save Encapsulated PostScript file";
+  private javax.swing.filechooser.FileFilter pngFilter, psFilter;
+
+
   /** a dialog to input a time value */
   TimeInputDialog TimeInput = new TimeInputDialog(this.getMainFrame());
 
@@ -540,8 +545,8 @@ public class HoeseViewer extends SecondoViewer {
     bgImage = new BackGroundImage(null);
 
     /* initialize the file chooser for saving images */ 
-    FC_Images.setDialogTitle("Save PNG-Image");
-    javax.swing.filechooser.FileFilter filter = new javax.swing.filechooser.FileFilter(){
+    FC_Images.setDialogTitle(pngTitle);
+    pngFilter = new javax.swing.filechooser.FileFilter(){
         public boolean accept(File PathName){
            if(PathName==null) return false;
            if(PathName.isDirectory())
@@ -555,7 +560,21 @@ public class HoeseViewer extends SecondoViewer {
            return "PNG images";
          }
     };
-    FC_Images.setFileFilter(filter);           
+    psFilter = new javax.swing.filechooser.FileFilter(){
+        public boolean accept(File PathName){
+           if(PathName==null) return false;
+           if(PathName.isDirectory())
+              return true;
+           if(PathName.getName().endsWith(".eps"))
+               return true;
+           else 
+              return false;                
+         }
+         public String getDescription(){
+           return "eps images";
+         }
+    };
+    FC_Images.setFileFilter(pngFilter);           
     if(changeAllBackgrounds){
        setAllOpaque(this,false);
     }
@@ -924,15 +943,20 @@ public class HoeseViewer extends SecondoViewer {
         public void actionPerformed(ActionEvent evt){
            Rectangle2D R = GraphDisplay.getBounds();
            R.setRect(0,0,R.getWidth(), R.getHeight());
-           if(FC_Images.showSaveDialog(HoeseViewer.this)==JFileChooser.APPROVE_OPTION){
+           FC_Images.setDialogTitle(psTitle);
+           FC_Images.setFileFilter(psFilter);
+           int res = FC_Images.showSaveDialog(HoeseViewer.this);
+           File F = FC_Images.getSelectedFile();
+           FC_Images.setDialogTitle(pngTitle);
+           FC_Images.setFileFilter(pngFilter);
+           if(res==JFileChooser.APPROVE_OPTION){
              try{
-                File F = FC_Images.getSelectedFile();
-                PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(F)));
-                extern.psexport.PSCreator psc = new extern.psexport.PSCreator(out,(Graphics2D)HoeseViewer.this.getGraphics());
-                psc.writeHeader(R);
-                GraphDisplay.printAll(psc);
-                psc.showPage(); 
-                out.close();
+                if(F.exists() && Reporter.showQuestion("File already exits\n Overwrite it?")!=Reporter.YES){
+                    return;
+                }
+                if(!extern.psexport.PSCreator.export(GraphDisplay,F)){
+                   Reporter.showError("Error in exporting to file ");
+                }
              }catch(Exception e){
                Reporter.debug(e);
                Reporter.showError("Error in exporting image");

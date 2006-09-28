@@ -123,22 +123,26 @@ public class FunctionFrame extends JFrame{
    private void exportToPS(){
      if(fc.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
         try{
-          PrintStream out = new PrintStream(new FileOutputStream(fc.getSelectedFile()));
-          extern.psexport.PSCreator psc = new extern.psexport.PSCreator(out,(Graphics2D)getGraphics());
-          FunctionPanel fp = functionpanel;
-          Rectangle2D.Double R = new Rectangle2D.Double(0,0,fp.getWidth(),fp.getHeight());
-          psc.writeHeader(R);
-          fp.showCross(false);
-          fp.showY(false);
-          fp.printAll(psc);
-          fp.showCross(true);
-          fp.showY(true);
-          psc.showPage();
-          out.close();
+          File F = fc.getSelectedFile();
+          if(F.exists()){
+            if(Reporter.showQuestion("File already exits\n overwrite it?")!=Reporter.YES){
+              return;
+            }
+          }
+          functionpanel.showCross(false);
+          functionpanel.showY(false);
+          boolean res = extern.psexport.PSCreator.export(functionpanel,F);
+          if(!res){
+             Reporter.showError("Error in Exporting image");
+          }
         } catch(Exception e){
            Reporter.showError("Error in exporting graphic");
            Reporter.debug(e);
+        } finally {
+             functionpanel.showCross(true);
+             functionpanel.showY(true);
         }
+           
      }
    }
 

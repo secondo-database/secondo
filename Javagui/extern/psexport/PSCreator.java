@@ -1,7 +1,7 @@
 package extern.psexport;
 
 import java.awt.geom.*;
-import java.io.PrintStream;
+import java.io.*;
 import java.awt.*;
 import tools.Reporter;
 import java.awt.font.*;
@@ -11,7 +11,37 @@ import java.text.*;
 import java.awt.image.renderable.*;
 
 
-public class PSCreator extends Graphics2D implements Cloneable{
+public class PSCreator{
+
+
+/** Don't allow instaciating of this class **/
+private PSCreator(){}
+
+/** This function writes the given Component as 
+  * PostScrift into the given file.
+  */
+
+public static boolean export(Component c, File F){
+  try{
+     PrintStream out = new PrintStream(new FileOutputStream(F));
+     PSGraphics  psg = new PSGraphics(out,(Graphics2D)c.getGraphics());
+     Rectangle2D.Double R = new Rectangle2D.Double(0,0,c.getWidth(),c.getHeight());
+     psg.writeHeader(R);
+     c.printAll(psg);
+     psg.showPage();
+     out.close();
+     return true;
+  } catch(Exception e){
+     Reporter.debug(e);
+     return false;
+  }
+}
+
+
+
+
+
+private static class PSGraphics extends Graphics2D implements Cloneable{
 
 private PrintStream out = null;
 // use white background
@@ -40,7 +70,7 @@ private static Color lastColor = null;
 private Graphics2D original;
 
 
-public PSCreator(PrintStream out, Graphics2D original){
+private PSGraphics(PrintStream out, Graphics2D original){
     this.out = out;
     this.original = original;
     tx = 0;
@@ -49,7 +79,7 @@ public PSCreator(PrintStream out, Graphics2D original){
 
 
 public void addRenderingHints(Map hints){
-    Reporter.writeWarning("PsCreator.writeRenderingHints not implemented");
+    Reporter.writeWarning("PSGraphics.writeRenderingHints not implemented");
 }
 
 public void 	clearRect(int x, int y, int width, int height){
@@ -86,15 +116,15 @@ public Graphics create(){
    try{
       return (Graphics) this.clone();
    }catch(Exception e){
-     Reporter.writeError("Error in PSCreator.create()");
+     Reporter.writeError("Error in PSGraphics.create()");
      return null;
    }
 }
 
 public Graphics create(int x, int y, int width, int height){
-  Reporter.writeWarning("PSCreator.create not implemented completely");
+  Reporter.writeWarning("PSGraphics.create not implemented completely");
   try {
-     PSCreator res = (PSCreator) this.clone();
+     PSGraphics res = (PSGraphics) this.clone();
      res.writeColor(Color.BLACK); 
      res.tx -= x;
      res.ty += y;
@@ -109,7 +139,7 @@ public Graphics create(int x, int y, int width, int height){
 
 
 public void copyArea(int x, int y, int width, int height, int dx, int dy) {
-  Reporter.writeWarning("PSCreator.copyArea not implemented");
+  Reporter.writeWarning("PSGraphics.copyArea not implemented");
 }
 
 public void dispose(){
@@ -124,7 +154,7 @@ public void draw(Shape s){
 }
 
 public void draw3DRect(int x, int y, int width, int height, boolean raised){
-   Reporter.writeWarning("PSCreator.draw3DRect paints only a simple rectangle");
+   Reporter.writeWarning("PSGraphics.draw3DRect paints only a simple rectangle");
    drawRect(x,y,width,height);
 }
 
@@ -143,7 +173,7 @@ public void drawArc(int x, int y, int width, int height,
 }
 
 public void drawBytes(byte[] data, int offset, int length, int x, int y){
-   Reporter.writeWarning("PSCreator.drawBytes not implemented");
+   Reporter.writeWarning("PSGraphics.drawBytes not implemented");
 }
 
 public void drawChars(char[] data, int offset, int length, int x, int y) {
@@ -159,7 +189,7 @@ public void drawChars(char[] data, int offset, int length, int x, int y) {
 
 
 public void drawGlyphVector(GlyphVector g, float x, float y){
-   Reporter.writeWarning("PSCreator.drawGlyhVector not implemented");
+   Reporter.writeWarning("PSGraphics.drawGlyhVector not implemented");
 }
 
 public void  drawImage(BufferedImage img, BufferedImageOp op, int x, int y){
@@ -258,7 +288,7 @@ public void drawRect(int x, int y, int width, int height){
 
 public void drawRoundRect(int x, int y, int width, int height, 
                           int arcWidth, int arcHeight){
-    Reporter.writeError("PSCreator.drawRoundRect paints only a simple rectangle");
+    Reporter.writeError("PSGraphics.drawRoundRect paints only a simple rectangle");
     drawRect(x,y,width,height);
 }
 
@@ -273,11 +303,11 @@ public void drawRenderedImage(RenderedImage img, AffineTransform xform){
 }
 
 public void drawString(AttributedCharacterIterator iterator, float x, float y){
-   Reporter.writeWarning("PSCreator.drawString not implemented");
+   Reporter.writeWarning("PSGraphics.drawString not implemented");
 }
 
 public void drawString(AttributedCharacterIterator iterator, int x, int y) {
-   Reporter.writeWarning("PSCreator.drawString not implemented");
+   Reporter.writeWarning("PSGraphics.drawString not implemented");
 }
 
 public void drawString(String s, float x, float y){
@@ -307,7 +337,7 @@ public void fill(Shape s){
 }
 
 public void fill3DRect(int x, int y, int width, int height, boolean raised){
-   Reporter.debug("PSCreator.fill3DRect paints only a simple rectangle");
+   Reporter.debug("PSGraphics.fill3DRect paints only a simple rectangle");
    writeColor(color);
    fillRect(x,y,width,height);
    writeColor(Color.BLACK);
@@ -354,7 +384,7 @@ public void fillRect(int x, int y, int width, int height){
 
 public void fillRoundRect(int x, int y, int width, int height, 
                           int arcWidth, int arcHeight){
-   Reporter.writeWarning("PSCreator.fillRoundRect paints only a simple reactangle");
+   Reporter.writeWarning("PSGraphics.fillRoundRect paints only a simple reactangle");
    fillRect(x,y,width,height);
 }
 
@@ -383,12 +413,12 @@ public Font getFont(){
 }
 
 public FontMetrics getFontMetrics(){
-   Reporter.writeWarning("PSCreator.getFontMetrics not implemented");
+   Reporter.writeWarning("PSGraphics.getFontMetrics not implemented");
    return original.getFontMetrics();
 }
 
 public FontMetrics getFontMetrics(Font f){
-   Reporter.writeWarning("PSCreator.getFontMetrics not implemented");
+   Reporter.writeWarning("PSGraphics.getFontMetrics not implemented");
    return original.getFontMetrics(f);
 }
 
@@ -419,12 +449,12 @@ public Paint getPaint(){
 }
 
 public Object getRenderingHint(RenderingHints.Key hintKey){
-   Reporter.writeWarning("PSCreator.gerRenderingHint not implemeneted");
+   Reporter.writeWarning("PSGraphics.gerRenderingHint not implemeneted");
    return null;
 }
 
 public RenderingHints getRenderingHints(){
-    Reporter.writeWarning("PSCreator.writeRenderingHints not implemented");
+    Reporter.writeWarning("PSGraphics.writeRenderingHints not implemented");
     return null;
 }
 
@@ -438,16 +468,16 @@ public AffineTransform getTransform(){
 
 
 public boolean hit(Rectangle rect, Shape s, boolean onStroke){
-   Reporter.writeWarning("PSCreator.hit not implemented");
+   Reporter.writeWarning("PSGraphics.hit not implemented");
    return true;
 }
 
 public void rotate(double theta) {
-   Reporter.writeWarning("PSCreator.rotate no implemenetd");
+   Reporter.writeWarning("PSGraphics.rotate no implemenetd");
 }
 
 public  void rotate(double theta, double x, double y) {
-   Reporter.writeWarning("PSCreator.rotate no implemenetd");
+   Reporter.writeWarning("PSGraphics.rotate no implemenetd");
 }
 
 public void scale(double sx, double sy) {
@@ -476,21 +506,21 @@ public void setComposite(Composite comp){
    composite = comp;
    if(comp==null) return;
    if(comp.equals(composite)) return;
-   Reporter.writeWarning("PSCreator.setComposite has no effect");
+   Reporter.writeWarning("PSGraphics.setComposite has no effect");
 }
 
 public void setFont(Font f){
    this.font = f;
    original.setFont(f);
-   Reporter.writeWarning("PSCreator.setFont not implemeted");
+   Reporter.writeWarning("PSGraphics.setFont not implemeted");
 }
 
 public void setPaintMode() {
-   Reporter.writeWarning("PSCreator.setPaintMode not implemented");
+   Reporter.writeWarning("PSGraphics.setPaintMode not implemented");
 }
 
 public void setXORMode(Color C){
-    Reporter.writeWarning("PSCreator.writeXORmode not implemented");
+    Reporter.writeWarning("PSGraphics.writeXORmode not implemented");
 }
 
 
@@ -509,17 +539,17 @@ public void setPaint(Paint paint){
      writeColor(this.color);
   } else{
      if(paint.equals(this.paint)) return;
-     Reporter.writeError("PSCreator.setPaint supports only colors ");
+     Reporter.writeError("PSGraphics.setPaint supports only colors ");
   }
 }
 
 public void setRenderingHint(RenderingHints.Key hintKey, Object hintValue) {
-   Reporter.writeWarning("PSCreator.setRendingHints not implemeneted");
+   Reporter.writeWarning("PSGraphics.setRendingHints not implemeneted");
 }
 
 public void setRenderingHints(Map hints){
    this.renderingHints = hints;
-   Reporter.writeWarning("PSCreator.setRendeinghints not completely implemented");
+   Reporter.writeWarning("PSGraphics.setRendeinghints not completely implemented");
 }
 
 public void setStroke(Stroke s){
@@ -527,7 +557,7 @@ public void setStroke(Stroke s){
    if(s.equals(this.stroke)) return;
    this.stroke=s;
    if(!(s instanceof BasicStroke)){
-      Reporter.writeError("only BasicStrokes are supported by PSCreator");
+      Reporter.writeError("only BasicStrokes are supported by PSGraphics");
       return;
    }   
    BasicStroke bs = (BasicStroke)s;
@@ -540,7 +570,7 @@ public void setStroke(Stroke s){
       case BasicStroke.CAP_BUTT: pscap = 0;break;
       case BasicStroke.CAP_ROUND: pscap = 1; break;
       case BasicStroke.CAP_SQUARE: pscap = 2; break;
-      default: Reporter.writeError("unknown cap style found in PSCreator.setStroke");
+      default: Reporter.writeError("unknown cap style found in PSGraphics.setStroke");
    }
    out.println(pscap +" setlinecap");
    // set line join
@@ -550,7 +580,7 @@ public void setStroke(Stroke s){
       case BasicStroke.JOIN_MITER: psjoin=0; break;
       case BasicStroke.JOIN_ROUND: psjoin=1; break;
       case BasicStroke.JOIN_BEVEL: psjoin=2; break;
-      default: Reporter.writeError("unknown join style found in PSCreator.setStroke");
+      default: Reporter.writeError("unknown join style found in PSGraphics.setStroke");
    }
    out.println(psjoin+" setlinejoin");
    
@@ -573,11 +603,11 @@ public void setTransform(AffineTransform af){
   if(af==null) return;
   if(af.equals(affineTransform)) return;
   affineTransform = af;
-  Reporter.writeWarning("PSCreator.setTransform not implemented");
+  Reporter.writeWarning("PSGraphics.setTransform not implemented");
 }
 
 public void transform(AffineTransform af){
-   Reporter.writeWarning("PSCreator.transform not implemented");
+   Reporter.writeWarning("PSGraphics.transform not implemented");
 }
 
 
@@ -668,7 +698,7 @@ private void writePath(Shape s){
                  out.println((points[0]-tx) + " " + (maxy-points[1]-ty) + " lineto");
                  break;
         case PathIterator.SEG_QUADTO:
-                 Reporter.writeWarning("PSCreator SEG_QUADTO not supported");
+                 Reporter.writeWarning("PSGraphics SEG_QUADTO not supported");
                  out.println((points[2]-tx) + " " + (maxy-points[3]-ty) + " lineto");
                  break;
         case PathIterator.SEG_CUBICTO:
@@ -690,4 +720,5 @@ private void writePath(Shape s){
 
 
 
+}
 }
