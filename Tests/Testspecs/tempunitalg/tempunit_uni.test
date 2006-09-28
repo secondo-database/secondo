@@ -65,6 +65,7 @@ let ur3 = [const ureal value undef];
 let ur4 = [const ureal value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1.0 1.0 1.0 TRUE))];
 
 let r = [const real value 0.0];
+let rundef = [const real value undef];
 
 (create ten : (rel(tuple((no int)))));
 (update ten := ((rel(tuple((no int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10))));
@@ -214,13 +215,51 @@ query distance(ui3, i1)
 #yields (ureal undef)
 query distance(i1, ui3)
 
-#testcase atmax_ureal
+#testcase atmax_ureal ur1
+#tolerance_real 0.001
 #yields ((rel (tuple ( (elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (1.0 0.0 -1.0 FALSE))) ((("2000-01-05" "2000-01-05" TRUE TRUE) (1.0 0.0 -1.0 FALSE)))))
 query atmax(ur1) transformstream consume
 
+#testcase atmax_ureal ur2
+#tolerance_real 0.001
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-02-23:59:59.900" "2000-01-02-23:59:59.900" TRUE TRUE) (-1.0 -1.0 -1.0 FALSE)))))
+query atmax(ur2) transformstream consume
 
-# atmin_ureal 
+#testcase atmax_ureal ur3
+#tolerance_real 0.001
+#yields (int 0)
+query atmax(ur3) count
 
+#testcase atmin_ureal ur1
+#tolerance_real 0.001
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03" "2000-01-03" TRUE TRUE) (1.0 0.0 -1.0 FALSE)))))
+query atmin(ur1) transformstream consume
+
+#testcase atmin_ureal ur2
+#tolerance_real 0.001
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03-00:00:00.100" "2000-01-03-00:00:00.100" TRUE TRUE) (-1.0 -1.0 -1.0 FALSE)))))
+query atmin(ur2) transformstream consume
+
+#testcase atmin_ureal ur3
+#tolerance_real 0.001
+#yields (int 0)
+query atmin(ur3) count
+
+#testcase at_ureal ur1 def 1
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03" "2000-01-03" TRUE TRUE) (1.0 0.0 -1.0 FALSE)))))
+query (ur1 at [const real value -1.0]) transformstream consume
+
+#testcase at_ureal ur1 def 2
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (1.0 0.0 -1.0 FALSE))) ((("2000-01-05" "2000-01-05" TRUE TRUE) (1.0 0.0 -1.0 FALSE)))))
+query (ur1 at [const real value 3.0]) transformstream consume
+
+#testcase at_ureal ur3 def
+#yields (int 0)
+query (ur3 at [const real value 3.0]) count
+
+#testcase at_ureal ur1 rundef
+#yields (int 0)
+query (ur1 at rundef) count
 
 
 # trajectory_up
@@ -237,7 +276,6 @@ query atmax(ur1) transformstream consume
 # present_uconst_periods
 # present_ureal_periods
 # speed_upoint
-# at_ureal
 # distance_upoint_point
 # distance_point_upoint
 # distance_upoint_upoint
