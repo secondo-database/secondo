@@ -31,6 +31,7 @@ import gui.idmanager.*;
 import java.awt.image.BufferedImage;
 import java.awt.geom.*;
 import tools.Reporter;
+import javax.swing.filechooser.FileFilter;
 
 public class MainWindow extends JFrame implements ResultProcessor,ViewerControl,SecondoChangeListener{
 
@@ -179,6 +180,10 @@ private JFileChooser FC_History = new JFileChooser();
 private JFileChooser FC_ExecuteFile = new JFileChooser();
 private JFileChooser FC_Database = new JFileChooser();
 private JFileChooser FC_Snapshot = new JFileChooser();
+private FileFilter pngFilter;
+private FileFilter epsFilter;
+private static String pngTitle = "Save PNG image";
+private static String epsTitle = "Save EPS image";
 private PriorityDialog PriorityDlg;
 
 
@@ -574,7 +579,7 @@ public MainWindow(String Title){
    FC_History.setCurrentDirectory(new File(HistoryDirectory));
    FC_Database.setCurrentDirectory(new File(DatabaseDirectory));
    FC_Snapshot.setCurrentDirectory(new File(SnapshotDirectory));
-   javax.swing.filechooser.FileFilter filter = new javax.swing.filechooser.FileFilter(){
+   pngFilter = new FileFilter(){
         public boolean accept(File PathName){
              if(PathName==null) return false;
              if(PathName.isDirectory())
@@ -588,7 +593,21 @@ public MainWindow(String Title){
                return "PNG images";
              }
         };
-    FC_Snapshot.setFileFilter(filter);
+    FC_Snapshot.setFileFilter(pngFilter);
+    epsFilter = new javax.swing.filechooser.FileFilter(){
+        public boolean accept(File PathName){
+             if(PathName==null) return false;
+             if(PathName.isDirectory())
+                 return true;
+             if(PathName.getName().endsWith(".eps"))
+                  return true;
+             else
+                 return false;
+             }
+             public String getDescription(){
+               return "Eps images";
+             }
+        };
 
 
    StartScript = Config.getProperty("STARTSCRIPT");
@@ -694,17 +713,34 @@ public MainWindow(String Title){
           if(!evt.isAltDown())
               return;
           int c = evt.getKeyCode();
-          if(c==KeyEvent.VK_S){
-             if(saveSnapshot(true)){
-                Reporter.showInfo("Snapshot written");
+          if(!evt.isShiftDown()){
+             if(c==KeyEvent.VK_S){
+                if(saveSnapshot(true)){
+                   Reporter.showInfo("Snapshot written");
+                }
+                evt.consume();
              }
-             evt.consume();
-          }
-          if(c==KeyEvent.VK_C){
-             if(saveSnapshot(false)){
-                Reporter.showInfo("Snapshot written");
+             if(c==KeyEvent.VK_C){
+                if(saveSnapshot(false)){
+                   Reporter.showInfo("Snapshot written");
+                }
+                evt.consume();
+              }
+          } else{
+             if(c==KeyEvent.VK_F){
+               Object s = evt.getSource();
+               if(!(s instanceof Component)){
+                  Reporter.showError("source is not a component");
+                  return;
+               }
+               Component c1 = (Component) s;
+               Component c2 = c1.getParent();
+               while(c2!=null && !(c2 instanceof Window)){
+                  c1 = c2;
+                  c2 = c1.getParent();
+               } 
+               exportToPS(c1);;
              }
-             evt.consume();
           }
       } 
     };
@@ -799,6 +835,8 @@ private boolean saveSnapshot(boolean completeScreen){
       Reporter.showError("Error in creating snapshot");
       return false;
    }
+   FC_Snapshot.setDialogTitle(pngTitle);
+   FC_Snapshot.setFileFilter(pngFilter);
    if(FC_Snapshot.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
        try{
           return javax.imageio.ImageIO.write(snapshot,"png",FC_Snapshot.getSelectedFile());
@@ -811,6 +849,23 @@ private boolean saveSnapshot(boolean completeScreen){
    }else
       return false;
 }
+
+
+/** exports the given component into a  eps file **/
+private boolean exportToPS(Component c){
+   FC_Snapshot.setDialogTitle(epsTitle);
+   FC_Snapshot.setFileFilter(epsFilter);
+   if(FC_Snapshot.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
+       File F = FC_Snapshot.getSelectedFile();
+       if(F.exists() && Reporter.showQuestion("File exists \n overwrite it ?")!=Reporter.YES){
+          return true;
+       }
+       extern.psexport.PSCreator.export(c,F);
+   }
+   return true;
+}
+
+
 
 /** Function enabling or disabling the entropy function of the 
     Optimizer. **/

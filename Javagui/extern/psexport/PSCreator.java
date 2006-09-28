@@ -1,5 +1,6 @@
 package extern.psexport;
 
+
 import java.awt.geom.*;
 import java.io.*;
 import java.awt.*;
@@ -10,101 +11,309 @@ import java.awt.image.*;
 import java.text.*;
 import java.awt.image.renderable.*;
 
+public class PSCreator {
 
-public class PSCreator{
 
+/** Exports a Component to a file as eps graphic */
 
-/** Don't allow instaciating of this class **/
-private PSCreator(){}
-
-/** This function writes the given Component as 
-  * PostScrift into the given file.
-  */
-
-public static boolean export(Component c, File F){
-  try{
-     PrintStream out = new PrintStream(new FileOutputStream(F));
-     PSGraphics  psg = new PSGraphics(out,(Graphics2D)c.getGraphics());
-     Rectangle2D.Double R = new Rectangle2D.Double(0,0,c.getWidth(),c.getHeight());
-     psg.writeHeader(R);
-     c.printAll(psg);
-     psg.showPage();
+public static boolean export(Component c, File outFile){
+   if(outFile==null){
+      return false;
+   }
+  try{ 
+     PrintStream out = new PrintStream(new FileOutputStream(outFile));
+     Rectangle  r = c.getBounds(); 
+     PSGraphics psc = new PSGraphics(out,(Graphics2D)c.getGraphics(),r.getHeight());
+     psc.writeHeader(r); 
+     c.printAll(psc);
      out.close();
      return true;
-  } catch(Exception e){
-     Reporter.debug(e);
-     return false;
+  }catch(Exception e){
+      Reporter.debug(e);
+      return false;
   }
 }
 
+/** This class is a replacement for the Graphics2D implementation, meaning
+  *  all methods are overwritten
+  */
 
+private static class PSGraphics extends Graphics2D {
 
+/** Class holding the whole graphics context */
 
+private class PaintContext {
+  private Color background = null;
+  private Color color = null;
+  private Paint paint = null;
+  private Composite composite = null;
+  private GraphicsConfiguration  deviceConfiguration =  null;
+  private FontRenderContext fontRenderContext = null;
+  private RenderingHints renderingHints = null;
+  private Stroke stroke = null;
+  private AffineTransform affineTransform = null;
+  private Shape clip = null;
+  private Font font = null;
+}
 
-private static class PSGraphics extends Graphics2D implements Cloneable{
+private static AffineTransform at = new AffineTransform();
 
+// the last used context in Postscript
+private static PaintContext lastUsedContext;
+private static double maxy;
+// the used output stream
 private PrintStream out = null;
-// use white background
-private Color background = new Color(1,1,1);
-// the current color
-private Color color = new Color(0,0,0);
-// the last assigned paint
-private Paint paint = new Color(0,0,0);
-private Composite composite;
-private GraphicsConfiguration deviceConfiguration;
-private FontRenderContext fontRenderContext;
-private Map renderingHints;
-private Stroke stroke;
-private AffineTransform affineTransform = new AffineTransform();
-private Shape clip;
-private Font font;
-// stored the maximum y value for flip the picture
-private double maxy = 1000;
-
-private double tx = 0;
-private double ty = 0;
-
-
-private static Color lastColor = null;
-
 private Graphics2D original;
 
 
-private PSGraphics(PrintStream out, Graphics2D original){
-    this.out = out;
-    this.original = original;
-    tx = 0;
-    ty = 0;
-}
-
-
-public void addRenderingHints(Map hints){
-    Reporter.writeWarning("PSGraphics.writeRenderingHints not implemented");
-}
-
-public void 	clearRect(int x, int y, int width, int height){
-   if(background==null) return;
-   writeColor(background);  
-   fillRect(x,y,width,height); 
-   writeColor(color);
-}
-
-public void clipRect(int x, int y, int width, int height) {
-   clip(new Rectangle(x,y,width,height)); 
-}
-
-public void clip(Shape s){
-   clip = s;
-   out.println("initclip");
-   if(clip==null){
-     return;
+/** Checks whether the given objects are different.
+ * Both objects can be null.
+ **/
+private static boolean different(Object o1, Object o2){
+   if( (o1==null ) && (o2!=null)){
+      return true;
    }
-   if(true){ // disbale compiler checking for unreachable code
-     Reporter.writeWarning("Clipping disabled");
+   if( (o1!=null) && (o2==null)){
+        return true;
+   }
+   if( (o1==null) && (o2==null)){
+         return false;
+   }
+   // both objects are not null
+   return !o1.equals(o2);
+}
+
+
+/* This function compares the values of the last used 
+ * context with the context of the currently used class.
+ * If there is a difference, postscrip code is written to out,
+ * writing the current configuration.
+ */
+private void updateContext(){
+   // background
+   Color bg = original.getBackground();
+   if(different(bg, lastUsedContext.background)){
+      writeBackground(bg);
+      lastUsedContext.background = bg;
+   }
+
+   //paint
+   Paint paint = original.getPaint();
+   if(different(paint, lastUsedContext.paint)){
+      writePaint(paint);
+      lastUsedContext.paint = paint;
+   }
+  
+   // color
+   Color color = original.getColor();
+   if(different(color,lastUsedContext.color)){
+     writeColor(color);
+     lastUsedContext.color = color;
+   }   
+
+   // composite
+   Composite composite = original.getComposite();
+   if(different(composite, lastUsedContext.composite)){
+      writeComposite(composite);
+      lastUsedContext.composite = composite;
+   }
+
+   // graphgicsconfiguration
+   GraphicsConfiguration gc = original.getDeviceConfiguration();
+   if(different(gc, lastUsedContext.deviceConfiguration)){
+      writeDeviceConfiguration(gc);
+      lastUsedContext.deviceConfiguration = gc;
+   }
+   
+   // fontRenderContext  
+   FontRenderContext fontRenderContext = original.getFontRenderContext();
+   if(different(fontRenderContext, lastUsedContext.fontRenderContext)){
+       writeFontRenderContext(fontRenderContext);
+       lastUsedContext.fontRenderContext = fontRenderContext;
+   }
+  
+   // renderingHints
+   RenderingHints rh = original.getRenderingHints();
+   if(different(rh, lastUsedContext.renderingHints)){
+       writeRenderingHints(rh);
+       lastUsedContext.renderingHints = rh;
+   }
+   
+   // stroke
+   Stroke stroke = original.getStroke();
+   if(different(stroke, lastUsedContext.stroke)){
+       writeStroke(stroke);
+       lastUsedContext.stroke = stroke;
+   }
+   
+   // affineTransform
+   AffineTransform at = original.getTransform();
+   if(different(at, lastUsedContext.affineTransform)){
+       writeAffineTransform(at);
+       lastUsedContext.affineTransform = at;
+   }
+  
+   // clip
+   Shape clip = original.getClip();
+   if(different(clip, lastUsedContext.clip)){
+       writeClip(clip);
+       lastUsedContext.clip = clip;
+   }
+
+   // font 
+   Font font = original.getFont();
+   if(different(font,lastUsedContext.font)){
+       writeFont(font);
+       lastUsedContext.font = font;
+   }
+}
+
+
+
+
+
+
+/** Changes the backgound color of the postscript image to C.
+  * Because postscript does not support changing the background,
+  * this method does noting in fact.
+  **/
+private void writeBackground(Color C){
+  // nothing to do. 
+  // background handlung done in clear method
+}
+
+/** Write the postscript code to change the currently used color of C
+  * the the out object.
+  **/
+private void writeColor(Color C){
+  if(C==null){
+    Reporter.writeWarning("null color found");
+    out.println(" 0 0 0 setrgbcolor");
+  } else{
+    out.println((C.getRed()/255.0) + " "+ 
+              (C.getGreen()/255.0) + " " + 
+              (C.getBlue()/255.0)+ " setrgbcolor");
+  }
+}
+
+/** write the given paint as PostScript code.
+  * The current implementation only supports colors
+  **/
+private void writePaint(Paint paint){
+   lastUsedContext.paint = paint;
+   if(paint==null){
+      Reporter.writeError("null paint found");
+      return;
+   }
+   if(! (paint instanceof Color)){
+       Reporter.writeError("PSCreator.setPaint supports only colors ");
+       Reporter.writeError("the type is " + paint.getClass().getName());
+   }
+}
+
+/** Write the postscript code for comp.
+  * Not implemented yet. Writes only a warning.
+  **/
+private void writeComposite(Composite comp){
+    Reporter.writeWarning("PSCreator: composite not supported");
+}
+
+/** Write the DeviceConfiguration to out.
+  * Not implemented 
+  **/
+private void writeDeviceConfiguration(GraphicsConfiguration deviceConfiguration){
+    Reporter.writeWarning("PSCreator: deviceConfiguration not supported. ");
+}
+
+/** Write the givenm fontRenderContext.
+  * Not implemented yet
+  **/
+private void writeFontRenderContext(FontRenderContext frc){
+    Reporter.writeWarning("PSCreator: fontRenderContext not supported ");
+}
+
+/** Writes the rendeingHints.
+  * NOt implemented yet.
+  **/
+private void writeRenderingHints(RenderingHints rh){
+    Reporter.writeWarning("PSCreator: RenderingHints not supported ");
+}
+
+/** Write the given stroke.
+  * Only BasiStrokes are supported
+  */
+private void writeStroke(Stroke s){
+   if(s==null){ // set to default stroke
+      writeStroke(new BasicStroke());
+   }
+
+   if(!(s instanceof BasicStroke)){
+      Reporter.writeError("only BasicStrokes are supported by PSCreator");
+      return;
+   }   
+
+   BasicStroke bs = (BasicStroke)s;
+   // set linewidth
+   out.println(bs.getLineWidth() +" setlinewidth");
+   // set line cap
+   int cap = bs.getEndCap();
+   int pscap = 0;
+   switch(cap) {
+      case BasicStroke.CAP_BUTT: pscap = 0;break;
+      case BasicStroke.CAP_ROUND: pscap = 1; break;
+      case BasicStroke.CAP_SQUARE: pscap = 2; break;
+      default: Reporter.writeError("unknown cap style found in PSCreator.setStroke");
+   }
+   out.println(pscap +" setlinecap");
+   // set line join
+   int join = bs.getLineJoin();
+   int psjoin = 0;
+   switch(join){
+      case BasicStroke.JOIN_MITER: psjoin=0; break;
+      case BasicStroke.JOIN_ROUND: psjoin=1; break;
+      case BasicStroke.JOIN_BEVEL: psjoin=2; break;
+      default: Reporter.writeError("unknown join style found in PSCreator.setStroke");
+   }
+   out.println(psjoin+" setlinejoin");
+   
+   // set dash
+   float[] dash = bs.getDashArray();
+   float dashphase = bs.getDashPhase();
+   if(dash!=null){
+       out.print("[");
+       for(int i=0; i< dash.length; i++){
+          out.print(dash[i]+" ");
+       }
+       out.println("] " + dashphase + " setdash");
+   } else {
+       out.println(" [] 0 setdash");
+   }
+
+}
+
+private void writeAffineTransform(AffineTransform a){
+  if(a==null){
+     out.println("initgraphics");  
+  } else{
+      double[] m = new double[6];
+      a.getMatrix(m);
+      out.println("initmatrix [ "+ m[0] +" " + m[1] + " " + m[2] + " " +  (-m[3]) + " " +
+                                   m[4] + " " + (maxy-m[5]) + " ] concat ");
+
+   // this version does not allow zoom in and zoom out of graphics because the dafult matrix
+   // is not used
+    //  out.println(" [ "+ m[0] +" " + m[1] + " " + m[2] + " " +  m[3] + " " +
+    //                              m[4] + " " + m[5] + " ] setmatrix ");
+  }
+}
+
+private void writeClip(Shape s){
+   out.println("initclip");
+   if(s==null){
      return;
    }
    writePath(s);
-   PathIterator i = s.getPathIterator(affineTransform);
+   PathIterator i = s.getPathIterator(original.getTransform());
    if(i.getWindingRule()==PathIterator.WIND_EVEN_ODD){
        out.println("clip");
    } else{
@@ -112,34 +321,61 @@ public void clip(Shape s){
    }
 }
 
+private void writeFont(Font f){
+  out.println("/Helvetica "+ f.getSize2D()+ " selectfont");
+  Reporter.writeWarning(" PSCreator : fonts are not supported completely");  
+}
+
+
+private PSGraphics(PrintStream out, Graphics2D original, double maxy){
+    PSGraphics.maxy=maxy;
+    this.out = out;
+    this.original = original;
+    lastUsedContext = new PaintContext();
+}
+
+private PSGraphics(PrintStream out, Graphics2D original){
+    this.out = out;
+    this.original = original;
+    lastUsedContext = new PaintContext();
+}
+
+
+
 public Graphics create(){
    try{
-      return (Graphics) this.clone();
+     return new PSGraphics(out,(Graphics2D)original.create());
    }catch(Exception e){
-     Reporter.writeError("Error in PSGraphics.create()");
+     Reporter.writeError("Error in PSCreator.create()");
      return null;
    }
 }
 
 public Graphics create(int x, int y, int width, int height){
-  Reporter.writeWarning("PSGraphics.create not implemented completely");
   try {
-     PSGraphics res = (PSGraphics) this.clone();
-     res.writeColor(Color.BLACK); 
-     res.tx -= x;
-     res.ty += y;
-     return res;
+    return new PSGraphics(out,(Graphics2D) original.create(x,y,width,height));
   } catch(Exception e){
     e.printStackTrace();
     return this;
   }
 }
 
+public void addRenderingHints(Map hints){
+    original.addRenderingHints(hints);
+    Reporter.writeWarning("PSCreator: renderingHints not supported");
+}
 
+public void clipRect(int x, int y, int width, int height) {
+   original.clipRect(x,y,width,height); 
+}
+
+public void clip(Shape s){
+   original.clip(s);
+}
 
 
 public void copyArea(int x, int y, int width, int height, int dx, int dy) {
-  Reporter.writeWarning("PSGraphics.copyArea not implemented");
+  Reporter.writeWarning("PSCreator.copyArea not implemented");
 }
 
 public void dispose(){
@@ -147,49 +383,52 @@ public void dispose(){
 }
 
 
+
+
+public void 	clearRect(int x, int y, int width, int height){
+   updateContext();
+   Color bg = original.getBackground();
+   if(bg==null) return;
+   writeColor(bg);  
+   fillRect(x,y,width,height); 
+   lastUsedContext.color = bg;
+}
+
 public void draw(Shape s){
-   writeColor(color);
+   updateContext();
    writePath(s);
    out.println("stroke newpath");
 }
 
-public void draw3DRect(int x, int y, int width, int height, boolean raised){
-   Reporter.writeWarning("PSGraphics.draw3DRect paints only a simple rectangle");
-   drawRect(x,y,width,height);
-}
 
-private void writeArcPath(double x , double y, double width, double height, 
-                          double startAngle, double arcAngle){
-    out.println("newpath");
-    out.println(""+(x-tx)+" "+(y-ty)+" "+width+" "+height+
-                  " "+startAngle+" "+(arcAngle+startAngle)+" ellipse"); 
+public void draw3DRect(int x, int y, int width, int height, boolean raised){
+   Reporter.writeWarning("PSCreator.draw3DRect paints only a simple rectangle");
+   Stroke s = original.getStroke();
+   original.setStroke(new BasicStroke());
+   drawRect(x,y,width,height);
+   original.setStroke(s);
 }
 
 public void drawArc(int x, int y, int width, int height, 
                     int startAngle, int arcAngle) {
-    writeColor(color);
-    writeArcPath(x,y,width,height,startAngle,arcAngle);
-    out.println("stroke");
+   draw(new Arc2D.Double(x,y,width,height,startAngle,arcAngle,Arc2D.OPEN));
 }
 
 public void drawBytes(byte[] data, int offset, int length, int x, int y){
-   Reporter.writeWarning("PSGraphics.drawBytes not implemented");
+   Reporter.writeWarning("PSCreator.drawBytes not implemented");
 }
 
 public void drawChars(char[] data, int offset, int length, int x, int y) {
-   writeColor(color);
-   out.println("newpath");
-   out.println((x-tx) + " " + (maxy-y-ty) + "  moveto");
-   for(int i=offset; i < length; i++){
-     out.println("("+data[i]+") show");
+   String res = "";
+   for(int i = offset; i<offset+length;i++){
+      res+=data[i];
    }
+   drawString(res,x,y);
 }
 
 
-
-
 public void drawGlyphVector(GlyphVector g, float x, float y){
-   Reporter.writeWarning("PSGraphics.drawGlyhVector not implemented");
+   Reporter.writeWarning("PSCreator.drawGlyhVector not implemented");
 }
 
 public void  drawImage(BufferedImage img, BufferedImageOp op, int x, int y){
@@ -239,30 +478,24 @@ public boolean 	drawImage(Image img, int dx1, int dy1, int dx2, int dy2,
 }
 
 public void drawLine(int x1, int y1, int x2, int y2) {
-   writeColor(color);
-   out.println("newpath");
-   out.println((x1-tx) + " " + (maxy-y1-ty) + " moveto");
-   out.println((x2-tx) + " " + (maxy-y2-ty) + " lineto");
-   out.println("stroke");
+   draw(new Line2D.Double(x1,y1,x2,y2));
 }
 
 public void drawOval(int x, int y, int width, int height){
-   writeColor(color);
-   out.println("newpath");
-   writeArcPath(x,y,width,height,0,360);
-   out.println("stroke");
+   draw(new Ellipse2D.Double(x,y,width,height));
 }
 
 public void drawPolygon(int[] xPoints, int[] yPoints, int nPoints){
-  writeColor(color);
-  out.println("newpath");
-  if(nPoints<3) return;
-  out.println((xPoints[0]-tx)+ " " + (maxy-yPoints[0]-ty)+ " moveto");
-  for(int i=1;i<nPoints; i++){
-     out.println((xPoints[i]-tx)+ " " + (maxy-yPoints[i]-ty)+ " lineto");
+  if(nPoints<3){
+    return;
   }
-  out.println((xPoints[0]-tx)+ " " + (maxy-yPoints[0]-ty)+ " lineto");
-  out.println("stroke");
+  GeneralPath gp = new GeneralPath();
+  gp.moveTo(xPoints[0],yPoints[0]);
+  for(int i=1;i<nPoints; i++){
+     gp.lineTo(xPoints[i],yPoints[i]);
+  }
+  gp.closePath();
+  draw(gp); 
 }
 
 public void drawPolygon(Polygon p){
@@ -270,26 +503,24 @@ public void drawPolygon(Polygon p){
 }
 
 public void drawPolyline(int[] xPoints, int[] yPoints, int nPoints) {
-  writeColor(color);
-  out.println("newpath");
-  if(nPoints<3) return;
-  out.println((xPoints[0]-tx)+ " " + (maxy-yPoints[0]-ty)+ " moveto");
-  for(int i=1;i<nPoints; i++){
-     out.println(xPoints[i]-tx+ " " + (maxy-yPoints[i]-ty)+ " lineto");
+  if(nPoints<3){
+    return;
   }
-  out.println("stroke");
+  GeneralPath gp = new GeneralPath();
+  gp.moveTo(xPoints[0],yPoints[0]);
+  for(int i=1;i<nPoints; i++){
+     gp.lineTo(xPoints[i],yPoints[i]);
+  }
+  draw(gp); 
 }
 
 public void drawRect(int x, int y, int width, int height){
-   writeColor(color);
-   writePath(new Rectangle(x,y,width,height));
-   out.println("stroke");
+   draw(new Rectangle(x,y,width,height));
 }
 
 public void drawRoundRect(int x, int y, int width, int height, 
                           int arcWidth, int arcHeight){
-    Reporter.writeError("PSGraphics.drawRoundRect paints only a simple rectangle");
-    drawRect(x,y,width,height);
+  draw(new RoundRectangle2D.Double(x,y,width,height,arcWidth,arcHeight));
 }
 
 
@@ -303,32 +534,31 @@ public void drawRenderedImage(RenderedImage img, AffineTransform xform){
 }
 
 public void drawString(AttributedCharacterIterator iterator, float x, float y){
-   Reporter.writeWarning("PSGraphics.drawString not implemented");
+   Reporter.writeWarning("PSCreator.drawString not implemented");
 }
 
 public void drawString(AttributedCharacterIterator iterator, int x, int y) {
-   Reporter.writeWarning("PSGraphics.drawString not implemented");
+   Reporter.writeWarning("PSCreator.drawString not implemented");
 }
 
 public void drawString(String s, float x, float y){
-  writeColor(color);
+  updateContext();
+  lastUsedContext.affineTransform.scale(1,-1);
+  writeAffineTransform(lastUsedContext.affineTransform);
   out.println("newpath");
-  out.println((x-tx) + " " + (maxy-y-ty) + " moveto");
+  out.println((x) + " " + (-y) + " moveto");
   out.println("("+s+")  show");
 }
 
 public void drawString(String str, int x, int y) {
-  writeColor(color);
-  out.println("newpath");
-  out.println((x-tx) + " " + (maxy-y-ty) + " moveto");
-  out.println("("+str+")  show");
+   drawString(str,(float)x,(float)y);
 }
 
 
 public void fill(Shape s){
-  writeColor(color);
+  updateContext();
   writePath(s);
-  PathIterator i = s.getPathIterator(affineTransform);
+  PathIterator i = s.getPathIterator(original.getTransform());
   if(i.getWindingRule()==PathIterator.WIND_EVEN_ODD){
        out.println("fill");
   } else{
@@ -337,38 +567,39 @@ public void fill(Shape s){
 }
 
 public void fill3DRect(int x, int y, int width, int height, boolean raised){
-   Reporter.debug("PSGraphics.fill3DRect paints only a simple rectangle");
-   writeColor(color);
+   Reporter.debug("PSCreator.fill3DRect paints only a simple rectangle");
+   Color  orig = original.getColor();
+   Stroke s = original.getStroke();
+   original.setColor(new Color(200,200,255));
+   original.setStroke(new BasicStroke());
    fillRect(x,y,width,height);
+   original.setColor(Color.BLACK);
    writeColor(Color.BLACK);
    drawRect(x,y,width,height);
-   writeColor(color);
+    original.setColor(orig);
+    original.setStroke(s);
 }
 
 public void fillArc(int x, int y, int width, int height, int startAngle,
                     int arcAngle){
-   writeColor(color);
-   out.println("newpath");
-   writeArcPath(x,y,width,height,startAngle,arcAngle);
-   out.println("fill");
+   fill(new Arc2D.Double(x,y,width,height,startAngle,arcAngle,Arc2D.OPEN));
 }
 
 public void fillOval(int x, int y, int width, int height){
-   writeColor(color);
-   out.println("newpath");
-   writeArcPath(x,y,width,height,0,360);
-   out.println("fill");
+   fill(new Ellipse2D.Double(x,y,width,height));
 }
 
 public void fillPolygon(int[] xPoints, int[] yPoints, int nPoints){
-  writeColor(color);
-  out.println("newpath");
-  if(nPoints<3) return;
-  out.println((xPoints[0]-tx)+ " " + (maxy-yPoints[0]-ty)+ " moveto");
-  for(int i=1;i<nPoints; i++){
-     out.println((xPoints[i]-tx)+ " " + (maxy-yPoints[i]-ty)+ " lineto");
+  if(nPoints<3){
+    return;
   }
-  out.println("fill");
+  GeneralPath gp = new GeneralPath();
+  gp.moveTo(xPoints[0],yPoints[0]);
+  for(int i=1;i<nPoints; i++){
+     gp.lineTo(xPoints[i],yPoints[i]);
+  }
+  gp.closePath();
+  fill(gp); 
 }
 
 public void fillPolygon(Polygon p){
@@ -376,300 +607,182 @@ public void fillPolygon(Polygon p){
 }
 
 public void fillRect(int x, int y, int width, int height){
-    writeColor(color);
-    Rectangle R = new Rectangle(x,y,width,height);
-    writePath(R);
-    out.println("fill newpath");
+    fill(new Rectangle(x,y,width,height));
 }
 
 public void fillRoundRect(int x, int y, int width, int height, 
                           int arcWidth, int arcHeight){
-   Reporter.writeWarning("PSGraphics.fillRoundRect paints only a simple reactangle");
-   fillRect(x,y,width,height);
+   fill(new RoundRectangle2D.Double(x,y,width,height,arcWidth,arcHeight));
 }
 
 public Shape getClip(){
-   return clip;
+   return original.getClip();
 }
 
 public Rectangle getClipBounds(){
-    if(clip==null){
-      return null;
-    }else{
-       return  clip.getBounds();
-    }
+   return original.getClipBounds(); 
 }
 
 public Rectangle getClipBounds(Rectangle r){
-   return clip.getBounds();
+   return original.getClipBounds();
 }
 
 public Color getColor(){
-   return color;
+   return original.getColor();
 }
 
 public Font getFont(){
-   return font;
+   return original.getFont();
 }
 
 public FontMetrics getFontMetrics(){
-   Reporter.writeWarning("PSGraphics.getFontMetrics not implemented");
    return original.getFontMetrics();
 }
 
 public FontMetrics getFontMetrics(Font f){
-   Reporter.writeWarning("PSGraphics.getFontMetrics not implemented");
    return original.getFontMetrics(f);
 }
 
 public  boolean hitClip(int x, int y, int width, int height) {
-   if(clip==null) return true; // no clipping -> all hit
-   return true;
+   return original.hitClip(x,y,width,height);
 }
 
 
 public Color getBackground(){
-  return background;
+  return original.getBackground();
 }
 
 public Composite getComposite(){
-   return composite;
+   return original.getComposite();
 }
 
 public GraphicsConfiguration getDeviceConfiguration(){
-    return deviceConfiguration;
+    return original.getDeviceConfiguration();
 }
 
 public FontRenderContext getFontRenderContext(){
-   return  fontRenderContext;
+   return  original.getFontRenderContext();
 }
 
 public Paint getPaint(){
-  return paint;
+  return original.getPaint();
 }
 
 public Object getRenderingHint(RenderingHints.Key hintKey){
-   Reporter.writeWarning("PSGraphics.gerRenderingHint not implemeneted");
-   return null;
+    return original.getRenderingHint(hintKey);
 }
 
 public RenderingHints getRenderingHints(){
-    Reporter.writeWarning("PSGraphics.writeRenderingHints not implemented");
-    return null;
+    return original.getRenderingHints();
 }
 
 public Stroke getStroke(){
-   return stroke;
+   return original.getStroke();
 }
 
 public AffineTransform getTransform(){
-    return affineTransform;
+    return original.getTransform();
 }
 
 
 public boolean hit(Rectangle rect, Shape s, boolean onStroke){
-   Reporter.writeWarning("PSGraphics.hit not implemented");
-   return true;
+     return original.hit(rect,s,onStroke);
 }
 
 public void rotate(double theta) {
-   Reporter.writeWarning("PSGraphics.rotate no implemenetd");
+   original.rotate(theta);
 }
 
 public  void rotate(double theta, double x, double y) {
-   Reporter.writeWarning("PSGraphics.rotate no implemenetd");
+   original.rotate(theta,x,y);;
 }
 
 public void scale(double sx, double sy) {
-  out.println("matrix "+sx + " " + sy + "  scale setmatrix");
-  affineTransform.scale(sx, sy);
+     original.scale(sx,sy);
 }
 
 public void setBackground(Color C){
-   background = C;
+   original.setBackground(C);
 }
 
 public void setClip(int x, int y, int width, int height){
-    clipRect(x,y,width,height);  
+    original.setClip(x,y,width,height);  
 }
 
 public void setClip(Shape s){
-   clip(s);
+   original.setClip(s);
 }
 
 public void setColor(Color C){
-   setPaint(C);
+   original.setColor(C);
 }
 
 
 public void setComposite(Composite comp){
-   composite = comp;
-   if(comp==null) return;
-   if(comp.equals(composite)) return;
-   Reporter.writeWarning("PSGraphics.setComposite has no effect");
+   original.setComposite(comp);
 }
 
 public void setFont(Font f){
-   this.font = f;
    original.setFont(f);
-   Reporter.writeWarning("PSGraphics.setFont not implemeted");
 }
 
 public void setPaintMode() {
-   Reporter.writeWarning("PSGraphics.setPaintMode not implemented");
+   original.setPaintMode();
 }
 
 public void setXORMode(Color C){
-    Reporter.writeWarning("PSGraphics.writeXORmode not implemented");
+    original.setXORMode(C);
 }
 
 
 public void setPaint(Paint paint){
-  // no paint is not accepted
-  if(paint==null) return;
-
-  // paint already used
-  // if(paint.equals(this.paint)) return;
-  
-  // assign this paint
-  this.paint = paint;
-
-  if(paint instanceof Color){
-     this.color = (Color) paint;
-     writeColor(this.color);
-  } else{
-     if(paint.equals(this.paint)) return;
-     Reporter.writeError("PSGraphics.setPaint supports only colors ");
-  }
+   original.setPaint(paint);
 }
 
 public void setRenderingHint(RenderingHints.Key hintKey, Object hintValue) {
-   Reporter.writeWarning("PSGraphics.setRendingHints not implemeneted");
+   original.setRenderingHint(hintKey,hintValue);
 }
 
 public void setRenderingHints(Map hints){
-   this.renderingHints = hints;
-   Reporter.writeWarning("PSGraphics.setRendeinghints not completely implemented");
+   original.setRenderingHints(hints);
 }
 
 public void setStroke(Stroke s){
-   if(s==null) return;
-   if(s.equals(this.stroke)) return;
-   this.stroke=s;
-   if(!(s instanceof BasicStroke)){
-      Reporter.writeError("only BasicStrokes are supported by PSGraphics");
-      return;
-   }   
-   BasicStroke bs = (BasicStroke)s;
-   // set linewidth
-   out.println(bs.getLineWidth() +" setlinewidth");
-   // set line cap
-   int cap = bs.getEndCap();
-   int pscap = 0;
-   switch(cap) {
-      case BasicStroke.CAP_BUTT: pscap = 0;break;
-      case BasicStroke.CAP_ROUND: pscap = 1; break;
-      case BasicStroke.CAP_SQUARE: pscap = 2; break;
-      default: Reporter.writeError("unknown cap style found in PSGraphics.setStroke");
-   }
-   out.println(pscap +" setlinecap");
-   // set line join
-   int join = bs.getLineJoin();
-   int psjoin = 0;
-   switch(join){
-      case BasicStroke.JOIN_MITER: psjoin=0; break;
-      case BasicStroke.JOIN_ROUND: psjoin=1; break;
-      case BasicStroke.JOIN_BEVEL: psjoin=2; break;
-      default: Reporter.writeError("unknown join style found in PSGraphics.setStroke");
-   }
-   out.println(psjoin+" setlinejoin");
-   
-   // set dash
-   float[] dash = bs.getDashArray();
-   float dashphase = bs.getDashPhase();
-   if(dash!=null){
-       out.print("[");
-       for(int i=0; i< dash.length; i++){
-          out.print(dash[i]+" ");
-       }
-       out.println("] " + dashphase + " setdash");
-   }
-
-   
-
+  original.setStroke(s); 
 }
 
 public void setTransform(AffineTransform af){
-  if(af==null) return;
-  if(af.equals(affineTransform)) return;
-  affineTransform = af;
-  Reporter.writeWarning("PSGraphics.setTransform not implemented");
+    original.setTransform(af);
 }
 
 public void transform(AffineTransform af){
-   Reporter.writeWarning("PSGraphics.transform not implemented");
+   original.transform(af);
 }
 
 
 public void shear(double shx, double shy){
-   out.println(shx +" "+ shx + " scale " );
-   affineTransform.shear(shx, shy);
+   original.shear(shx,shy);
 }
 
 public void translate(double tx, double ty) {
-   //out.println(tx + " " + (maxy-ty) + " matrix translate setmatrix 1 -1 scale");
-   //affineTransform.setToTranslation(tx, ty);
-   out.println(tx + " " + ty + " translate");
-   affineTransform.translate(tx, ty);
-
-   
-
+   original.translate(tx,ty);
 }
 
 public void translate(int tx, int ty){
-   translate((double) tx, (double) ty);
+   original.translate(tx,ty);
 }
-
-
-
-private void writeColor(Color C){
-  if(C.equals(lastColor)){
-     return;
-  }
-  out.println((C.getRed()/255.0) + " "+ 
-              (C.getGreen()/255.0) + " " + 
-              (C.getBlue()/255.0)+ " setrgbcolor");
-  lastColor = C;
-
-}
-
-
 
 
 public void writeHeader(Rectangle2D bounds){
   out.println("%!PS-Adobe-2.0 EPSF-2.0");
   out.println("%%Creator: Secondo's Javagui");
   out.println("%%Title: Exported Graphic");
-  out.println("%%BoundingBox: "+ bounds.getX()+ " " + bounds.getY()+ " "+
-                                (bounds.getWidth()-bounds.getX())+ " " +
-                                (bounds.getHeight()-bounds.getY()));
+//  out.println("%%BoundingBox: "+ bounds.getX()+ " " + bounds.getY()+ " "+
+//                                (bounds.getWidth()+bounds.getX())+ " " +
+//                                (bounds.getHeight()+bounds.getY()));
+  out.println("%%BoundingBox: 0 0 "+ (bounds.getWidth()) + " " +bounds.getHeight());
   out.println("%%EndComments");
-  out.println("/ellipse {");
-  out.println("/endangle exch def");
-  out.println("/startangle exch def");
-  out.println("/yrad exch def");
-  out.println("/xrad exch def");
-  out.println("/y exch def");
-  out.println("/x exch def");
-  out.println("/savematrix matrix currentmatrix def");
-  out.println("x y translate");
-  out.println("xrad yrad scale");
-  out.println("0 0 1 startangle endangle arc");
-  out.println("savematrix setmatrix");
-  out.println("} def" );
-
   out.println("/Helvetica 12 selectfont");
-  maxy = bounds.getHeight()-bounds.getY();
 
 }
 
@@ -677,14 +790,12 @@ public void finalize(){
 }
 
 
-public void showPage(){
-   out.println("showpage");
-}
 
 private void writePath(Shape s){
   try{
    out.println("newpath");
-   PathIterator it = s.getPathIterator(affineTransform);
+   PathIterator it =  s.getPathIterator(new AffineTransform());
+ 
    boolean first = true;
    double[] points = new double[6];
    while(!it.isDone()){
@@ -692,19 +803,19 @@ private void writePath(Shape s){
       int c = it.currentSegment(points);
       switch(c){
         case PathIterator.SEG_MOVETO:
-                out.println((points[0]-tx) + " " + (maxy-points[1]-ty) + " moveto");
+                out.println((points[0]) + " " + (points[1]) + " moveto");
                 break;
         case  PathIterator.SEG_LINETO:
-                 out.println((points[0]-tx) + " " + (maxy-points[1]-ty) + " lineto");
+                 out.println((points[0]) + " " + (points[1]) + " lineto");
                  break;
         case PathIterator.SEG_QUADTO:
-                 Reporter.writeWarning("PSGraphics SEG_QUADTO not supported");
-                 out.println((points[2]-tx) + " " + (maxy-points[3]-ty) + " lineto");
+                 Reporter.writeWarning("PSCreator SEG_QUADTO not supported");
+                 out.println((points[2]) + " " + (points[3]) + " lineto");
                  break;
         case PathIterator.SEG_CUBICTO:
-                 out.println((points[0]-tx) +" " +  (maxy-points[1]-ty)
-                             +" " + (points[2]-tx)+" "+ (maxy-points[3]-ty)+" "+ 
-                             (points[4]-tx) + " " + (maxy-points[5]-ty) + " curveto");
+                 out.println((points[0]) +" " +  (points[1])
+                             +" " + (points[2])+" "+ (points[3])+" "+ 
+                             (points[4]) + " " + (points[5]) + " curveto");
                  break;
         case PathIterator.SEG_CLOSE:
                  out.println("closepath");
@@ -718,7 +829,6 @@ private void writePath(Shape s){
  }
 } 
 
-
-
 }
+
 }
