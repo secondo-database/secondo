@@ -682,6 +682,7 @@ public TreeViewer(){
   add(TPP,BorderLayout.CENTER);
   JPanel ControlPanel = new JPanel();
   ControlPanel.add(SaveBtn);
+  ControlPanel.add(EPSButton);
   ControlPanel.add(FitBtn);
   ControlPanel.add(ZoomInBtn);
   ControlPanel.add(ZoomOutBtn);
@@ -732,6 +733,22 @@ public TreeViewer(){
            }
         }
       }
+  });
+  EPSButton.addActionListener(new ActionListener(){
+     public void actionPerformed(ActionEvent evt){
+        JFileChooser FC = new JFileChooser();
+        if(FC.showSaveDialog(null)==JFileChooser.APPROVE_OPTION){
+            File f = FC.getSelectedFile();
+            if( f.exists() && 
+              (Reporter.showQuestion("File exists\n Overwrite it ?")!=Reporter.YES)){
+                return;
+            }
+            if(!extern.psexport.PSCreator.export(TPP,f)){
+                Reporter.showError("Error in eps export");
+            }
+        }  
+
+     }
   });
   UpBtn.addActionListener(AL);
   DownBtn.addActionListener(AL);
@@ -887,6 +904,7 @@ public double getDisplayQuality(SecondoObject o){
 
 private JComboBox ChoiceBox = new JComboBox();
 private JButton SaveBtn= new JButton("LaTeX");
+private JButton EPSButton = new JButton("EPS");
 private JButton UpBtn=new JButton("^");
 private JButton DownBtn = new JButton("v");
 private JButton LeftBtn = new JButton("<");;
