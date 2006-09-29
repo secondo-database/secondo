@@ -1,0 +1,487 @@
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
+//paragraph [10] Footnote: [{\footnote{] [}}]
+//[TOC] [\tableofcontents]
+
+[1] Secondo Linux Installation Guide
+
+September 2006, Victor Almeida
+
+[TOC]
+
+1 Introduction
+
+This guide explains the installation procedure for Secondo on computers running 
+the Linux operating system. Secondo depends on some software and therefore we provide 
+some insights on how to install them too. 
+
+We follow two approaches to install the packages. The first one is to use a linux 
+distribution package installer. Some people will prefer this approach because the package 
+installers normaly check dependencies between software. Given that we are experienced on 
+using SuSE and linux, we provide installation instructions for both using the
+package administration tools YaST. In fact we do not provide information 
+on how to use the YaST tool, but only the package names needed. 
+
+The second approach is to download the source code from their corresponding websites, 
+compile, and install them. With this approach, it is possible to perform the installation 
+steps as an ordinary user.
+
+Throughout this guide, we assume that the ~bash~ is used as shell and some base software 
+are already installed, e.g. tar, gcc, and make.
+
+2 Installing the packages with YaST under SuSE Linux
+
+Here is the list of all packages that must be installed. The search field inside YaST can 
+be used to filter packages by name. If a package is already installed, just leave it marked. 
+If YaST presents other dependencies that are not provided here, just let it installs them.
+
+Some packages, e.g. java and swi-prolog, are not provided in the standard instalation of
+SuSE, because they are not free software. One must use the additional installation CD 
+(or repository) in order to install such packages.
+
+2.1 Package ~make~
+
+*/
+make
+
+/*
+2.2 Package ~tar~
+
+*/
+tar
+
+/*
+2.3 Package ~binutils~
+
+*/
+binutils
+
+/*
+2.4 Package ~gcc~ with support to C++
+
+*/
+gcc
+libstdc++-devel
+gcc-c++
+
+/*
+2.5 Package ~bison~
+
+*/
+bison
+
+/*
+2.6 Package ~flex~
+
+*/
+flex
+
+/*
+2.7 Package ~java~
+
+*/
+java-<version>-sun
+jpackage-utils
+update-alternatives
+java-<version>-sun-devel
+
+/*
+2.8 Library ~jpeg~
+
+*/
+libjpeg
+libjpeg-devel
+
+/*
+2.9 Library ~readline~
+
+*/
+readline
+readline-devel
+
+/*
+2.10 Library ~ncurses~
+
+*/
+ncurses
+ncurses-devel
+
+/*
+2.11 Package ~swi-prolog~ 
+
+*/
+gmp
+gmp-devel
+swi-prolog
+
+/*
+2.12 Package ~Berkeley DB~
+
+*/
+db
+db-devel
+db-utils
+
+/*
+Now we are able to setup environment variables that are needed to compile and run Secondo. We suggest 
+that a file called .secondorc is created and all these commands are added in this file. One can then put 
+a call to this file in the .bashrc so that it will be called automatically after the user logs in. In the 
+.bashrc file one can add the following lines:
+
+*/
+test -s ~/.secondorc && . ~/.secondorc || true
+
+/*
+Here is an example of the .secondorc file for the SUSE Linux 10.1 instalation.
+
+*/
+# The platform
+export SECONDO_PLATFORM=linux 
+
+# The secondo base directory
+export SECONDO_HOME=$HOME/secondo
+export SECONDO_BUILD_DIR=$SECONDO_HOME 
+
+# The secondo configuration file
+export SECONDO_CONFIG=$SECONDO_BUILD_DIR/bin/SecondoConfig.ini 
+
+# The prolog 
+export PL_INCLUDE_DIR=/usr/lib/pl-5.6.4/include 
+export PL_LIB_DIR=/usr/lib/pl-5.6.4/lib/i686-linux
+export PROLOG_VERSION=
+
+# The J2SKD root diretory
+export J2SDK_ROOT=/usr/lib/java
+
+# The gmp library
+export GMP_LIB=gmp
+
+# To use up and down arrow to show previous commands in some user interfaces
+export readline=true
+
+# Setting the path
+export PATH=.:
+            $SECONDO_BUILD_DIR/bin:
+            $SECONDO_BUILD_DIR/Tools/pd:
+            $SECONDO_BUILD_DIR/Optimizer:
+            $PATH
+
+# Setting the library path
+export LD_LIBRARY_PATH=$J2SDK_ROOT/jre/lib/i386:
+                       $J2SDK_ROOT/jre/lib/i386/client:
+                       $LD_LIBRARY_PATH
+
+/*
+3 Compiling all the packages
+
+In this approach, all software will be compiled and installed in the system. For that, the 
+tools tar, make, and gcc must be previously installed. One can check if they are present 
+in the system running the following commands:
+
+*/
+tar --version
+make --version
+gcc --version
+
+/*
+If one of them is not present, please contact the system administrator to install them. In most linux 
+systems these applications are already available.
+
+Depending on the the system, some of the packages needed are already installed. One could first check 
+whether they are installed before really installing them. Skip the steps to install the packages that 
+already installed in your system.
+
+In order to compile and install all the packages, we suggest to create a directory in the user home 
+directory called secondo-sdk, so that it is possible to perform the installation steps as an ordinary 
+user. If one has superuser access and wants to put the software available for all users, another directory 
+can be used, e.g. /usr/local (see the --prefix argument in the configure step). We also suggest the 
+creation of a temporary installation directory called secondo-install, which can be removed after the 
+end of the process. We will also create environmental variables to point to these two directories, namely
+SECONDO\_SDK and SECONDO\_INSTALL, respectively. Enter the following commands:
+
+*/
+cd $HOME
+mkdir secondo-sdk
+export SECONDO_SDK=$HOME/secondo-sdk
+mkdir secondo-install
+export SECONDO_INSTALL=$HOME/secondo-install
+
+/*
+Let us also add the ~bin~ directory of the secondo sdk to the PATH and the ~lib~ directory 
+to the LD\_LIBRARY\_PATH
+
+*/
+mkdir $SECONDO_SDK/bin
+export PATH=$SECONDO_SDK/bin:$PATH
+mkdir $SECONDO_SDK/lib
+export LD_LIBRARY_PATH=$SECONDO_SDK/lib:$LD_LIBRARY_PATH
+
+/*
+Normally, compiling and installing software is done in four steps:
+downloading the source and decompressing it,
+calling the configure script to check system defaults and to set some options,
+running make, which compiles the sources, and
+running make install to copy the files to their destination.
+
+3.1 Building the C++ compiler
+
+In some linux systems, only the C compiler comes pre-installed but not the C++. As said before, 
+we are assuming that the C compiler is already installed. 
+
+First, it is good to check it the C++ compiler is already installed in the system. The following
+command will print information about it.
+
+*/
+g++ --version
+
+/*
+If the compiler is not installed, then we have to build it. Otherwise skip the next sub-sections.
+The only dependency for the C++ compiler is the ~texinfo~ package, which itself depends on the 
+~ncurses~ library.
+
+3.1.1 Building the library ~ncurses~ without C++ support
+
+At this point we do not have a C++ compiler, then we will build this package without support
+for C++.
+
+Download the file ncurses<version>.tar.gz from www.gnu.org/software/ncurses into the 
+secondo-install directory. Run the following set of commands.
+
+*/
+cd $SECONDO_INSTALL
+tar zxvf ncurses<version>.tar.gz
+cd ncurses<version>
+./configure --prefix=$SECONDO_SDK --disable-nls --without-cxx-binding
+make
+make install
+
+/*
+3.1.2 Building the package ~texinfo~
+
+We have found a problem while configuring the ~texinfo~ package that it seems not to
+regognize the ~ncurses~ library. We then run this command in order to tell it where is
+the ~ncurses~ library.
+
+*/
+export LDFLAGS="-L$SECONDO_SDK/lib -lncurses"
+
+/*
+Now we can build the ~texinfo~ package. Download it from XXX into the secondo-install
+directory and run the following commands.
+
+*/
+cd $SECONDO_INSTALL
+tar zxvf texinfo<version>.tar.gz
+cd texinfo<version>
+./configure --prefix=$SECONDO_SDK --disable-nls
+make
+make install
+
+/*
+3.1.3 Building the C++ compiler
+
+Download the ~gcc~ package from gcc.gnu.org into the secondo-install directory and execute
+the following commands
+
+*/
+cd $SECONDO_INSTALL
+tar zxvf gcc<version>.tar.gz
+mkdir gcc<version>.objs
+
+/*
+The ~gcc~ documentation strongly recomends that we create a directory for the object files
+outside the directory tree of the ~gcc~.
+
+*/
+cd gcc<version>.objs
+../gcc<version>/configure --prefix=$SECONDO_SDK --disable-nls --enable-bootstrap
+make bootstrap
+make install
+
+/*
+3.2 Building the library ~ncurses~
+
+Even if you followed the procedure in Section 3.1.1, you have only created the ~ncurses~ library
+without support for C++. 
+
+If you did not follow the procedure in Section 3.1.1, then download the library ~ncurses~ from
+www.gnu.org/software/ncurses into the secondo-install directory, and run the following set of 
+commands.
+
+*/
+cd $SECONDO_INSTALL
+tar zxvf ncurses<version>.tar.gz
+
+/*
+Now we can build the ~ncurses~ library with the commands:
+
+*/
+cd $SECONDO_INSTALL
+cd ncurses<version>
+./configure --prefix=$SECONDO_SDK --disable-nls --with-cxx-binding
+make
+make install
+
+/*
+3.3 Building the library ~readline~
+
+Download the library from www.cns.cwru.edu/chet/readline into the secondo-install directory
+and run the following commands:
+
+*/
+cd $SECONDO_INSTALL
+tar zxvf readline<version>.tar.gz
+cd readline<version>
+./configure --prefix=$SECONDO_SDK --with-curses
+make
+make install
+
+/*
+3.4 Building the ~bison~ package
+
+Download the package from www.gnu.org/software/bison into the secondo-install directory
+and run the following commands:
+
+*/
+cd $SECONDO_INSTALL
+tar zxvf bison<version>.tar.gz
+cd bison<version>
+./configure --prefix=$SECONDO_SDK 
+make
+make install
+
+/*
+3.4 Building the ~flex~ package
+
+Download the package from flex.sourceforge.net into the secondo-install directory
+and run the following commands:
+
+*/
+cd $SECONDO_INSTALL
+tar zxvf flex<version>.tar.gz
+cd flex<version>
+./configure --prefix=$SECONDO_SDK
+make
+make install
+
+/*
+3.4 Building the ~jpeg~ library
+
+One should note that the ~jpeg~ library is only necessary if the Picture Algebra is
+used. Otherwise this section can be skipped.
+
+Download the package from www.ijg.org into the secondo-install directory
+and run the following commands:
+
+*/
+cd $SECONDO_INSTALL
+tar zxvf jpegsrc<version>.tar.gz
+cd jpegsrc<version>
+./configure --prefix=$SECONDO_SDK
+make
+make install
+make install-lib
+
+/*
+3.5 Building the ~Berkeley DB~ package
+
+Download the package from www.sleepycat.com into the secondo-install directory. We
+suggest downloading the version without encription (the file name contains "NC"), since 
+Secondo does not use this feature.
+
+Run the following commands:
+
+*/
+cd $SECONDO_INSTALL
+tar zxvf db<version>.NC.tar.gz
+cd db<version>.NC/build_unix
+../dist/configure --prefix=$SECONDO_SDK --enable-cxx
+make
+make install
+
+/*
+3.6 Building the ~java~ package
+
+This package cannot be built by compiling it. One has to download an executable file 
+called jdk<version>.bin into the secondo-install directory and execute it from the
+secondo-sdk directory as follows:
+
+*/
+cd $SECONDO_SDK
+$SECONDO_INSTALL/jdk<version>.bin
+
+/*
+Now we are able to setup environment variables that are needed to compile and run Secondo. We suggest
+that a file called .secondorc is created and all these commands are added in this file. One can then put
+a call to this file in the .bashrc so that it will be called automatically after the user logs in. In the
+.bashrc file one can add the following lines:
+
+*/
+test -s ~/.secondorc && . ~/.secondorc || true
+
+/*
+Here is an example of the .secondorc file for this instalation.
+
+*/
+# The platform
+export SECONDO_PLATFORM=linux
+
+# The secondo base directory
+export SECONDO_HOME=$HOME/secondo
+export SECONDO_BUILD_DIR=$SECONDO_HOME
+export SECONDO_SDK=$HOME/secondo-sdk
+
+# The secondo configuration file
+export SECONDO_CONFIG=$SECONDO_BUILD_DIR/bin/SecondoConfig.ini
+
+# Berkeley DB
+export BDB_INCLUDE_DIR=$SECONDO_SDK/include
+export BDB_LIB_DIR=$SECONDO_SDK/lib
+
+# The prolog
+export PL_INCLUDE_DIR=$SECONDO_SDK/lib/pl-<version>/include
+export PL_LIB_DIR=$SECONDO_SDK/lib/pl-<version>/lib/i686-linux
+export PROLOG_VERSION=
+
+# The J2SKD root diretory
+export J2SDK_ROOT=
+
+# The gmp library
+export GMP_LIB=gmp
+
+# To use up and down arrow to show previous commands in some user interfaces
+export readline=true
+
+# Setting the path
+export PATH=.:
+            $SECONDO_BUILD_DIR/bin:
+            $SECONDO_BUILD_DIR/Tools/pd:
+            $SECONDO_BUILD_DIR/Optimizer:
+            $PATH
+
+# Setting the library path
+export LD_LIBRARY_PATH=$J2SDK_ROOT/jre/lib/i386:
+                       $J2SDK_ROOT/jre/lib/i386/client:
+                       $LD_LIBRARY_PATH
+
