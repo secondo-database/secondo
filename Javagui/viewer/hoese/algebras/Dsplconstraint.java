@@ -299,23 +299,7 @@ public class Dsplconstraint extends DisplayGraph {
     {
       qr.addEntry(this);   
       // folgende Zeilen sind nur ein workaround:
-      //RenderObject = new Rectangle2D.Double(-10000.0,-10000.0,20000.0,20000.0);                    
-      /*Rectangle2D.Double workaraoundBounds = null;      
-      if(geoShapes!=null){
-        for(int i=0;i<geoShapes.length;i++){
-            if(workaraoundBounds==null){
-               workaraoundBounds = (Rectangle2D.Double)(geoShapes[i].getBounds2D());
-            }else{
-               workaraoundBounds.add((Rectangle2D.Double)(geoShapes[i].getBounds2D()));
-            }
-        }
-      }
-      GeneralPath gp = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
-      gp.moveTo((float)workaraoundBounds.x, (float)workaraoundBounds.y);
-      gp.lineTo((float)workaraoundBounds.x, (float)(workaraoundBounds.y+workaraoundBounds.height));
-      gp.lineTo((float)(workaraoundBounds.x+workaraoundBounds.width), (float)(workaraoundBounds.y+workaraoundBounds.height));
-      gp.lineTo((float)(workaraoundBounds.x+workaraoundBounds.width), (float)workaraoundBounds.y);
-      */
+      // START WORKAROUND
       GeneralPath gp = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
       gp.moveTo((float)-10005.0, (float)-10005.0);
       gp.lineTo((float)-10005.0, (float)10005.0);
@@ -329,6 +313,7 @@ public class Dsplconstraint extends DisplayGraph {
       gp.lineTo((float)-10000.0, (float)10000.0);
       gp.lineTo((float)-10000.0, (float)-10000.0);
       RenderObject = gp;
+      // ENDE WORKAROUND
     }
   }
   
