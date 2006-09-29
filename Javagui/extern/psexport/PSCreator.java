@@ -575,9 +575,29 @@ private String encodeString(String source){
 
 
 public void drawString(String s, float x, float y){
-  updateContext();
-  lastUsedContext.affineTransform.scale(1,-1);
+  /* In Java Component display functions
+   * strings seems to have a special treatment to 
+   * avoid displaying strings mirrowdd at the y axis.
+   * Here, i try to simulate this treatment.
+   */
+
+  updateContext(); // switch to the currently used context
+
+  AffineTransform af = lastUsedContext.affineTransform; // get the transformation
+  double[] m = new double[6];
+  af.getMatrix(m);
+  // adjust the clipping path 
+  m[1] = -m[1];
+  lastUsedContext.affineTransform = new AffineTransform(m);
   writeAffineTransform(lastUsedContext.affineTransform);
+  writeClip(lastUsedContext.clip);
+
+  // and mirror the string itself
+  m[2] = -m[2];
+  m[3] = -m[3];
+  lastUsedContext.affineTransform= new AffineTransform(m);
+  writeAffineTransform(lastUsedContext.affineTransform);
+  // show the string itself
   out.println("newpath");
   out.println((x) + " " + (-y) + " moveto");
   out.println(encodeString(s)+"  show");
