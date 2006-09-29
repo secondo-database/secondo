@@ -114,90 +114,15 @@ class SystemInfoRel
   const bool isPersistent;
      
   SystemInfoRel( const string& inName, 
-                 RelSchema* attrs, 
                  const bool persistent=false ) :
-    attrList(attrs), 
+    attrList(0), 
     name(inName),
     logFile(name + ".csv"),
     sep("|"),
     isPersistent(persistent) 
-  {
-      // Write Headline
-      ostream& clog = cmsg.file(logFile);
-      RelSchema::iterator it = attrList->begin();
-      while ( it != attrList->end() )
-      { 
-        clog << it->first;
-        if (it+1 != attrList->end())
-           clog << sep;
-        it++;
-      } 
-      clog << endl;  
-      
-      // write configuration file
-      ostream& cfg = cmsg.file(name+".cfg");  
-      
-      cfg << "# Generated file: Can be used together with "
-          << "commands.csv by CVS2Secondo!" << endl
-          << "Separator  |" << endl
-          << "Object " << name << endl
-          << "Scheme ";
-     
-      it = attrList->begin();
-      while ( it != attrList->end() )
-      { 
-        cfg << it->first << " " << it->second;
-        if (it+1 != attrList->end())
-          cfg << " \\t ";
-        it++;
-      }   
-      cfg << endl;
+  {}
 
-  }
-
-  SystemInfoRel( const string& inName, const bool hasSchema,
-                 const bool persistent=false ) :
-    name(inName),
-    logFile(name + ".csv"),
-    sep("|"),
-    isPersistent(persistent) 
-  {
-      assert(attrList != 0 && hasSchema == true);
-      // Write Headline
-      ostream& clog = cmsg.file(logFile);
-      RelSchema::iterator it = attrList->begin();
-      while ( it != attrList->end() )
-      { 
-        clog << it->first;
-        if (it+1 != attrList->end())
-           clog << sep;
-        it++;
-      } 
-      clog << endl;  
-      
-      // write configuration file
-      ostream& cfg = cmsg.file(name+".cfg");  
-      
-      cfg << "# Generated file: Can be used together with "
-          << "commands.csv by CVS2Secondo!" << endl
-          << "Separator  |" << endl
-          << "Object " << name << endl
-          << "Scheme ";
-     
-      it = attrList->begin();
-      while ( it != attrList->end() )
-      { 
-        cfg << it->first << " " << it->second;
-        if (it+1 != attrList->end())
-          cfg << " \\t ";
-        it++;
-      }   
-      cfg << endl;
-
-  }
-
-    
-  ~SystemInfoRel() 
+  virtual ~SystemInfoRel() 
   {
     iterator it = tuples.begin();
     while( it != tuples.end() )
@@ -209,6 +134,40 @@ class SystemInfoRel
       delete attrList;
     attrList = 0;
   }  
+
+  void writeFiles()
+  {  
+      // Write Headline
+      ostream& clog = cmsg.file(logFile);
+      RelSchema::iterator it = attrList->begin();
+      while ( it != attrList->end() )
+      { 
+        clog << it->first;
+        if (it+1 != attrList->end())
+           clog << sep;
+        it++;
+      } 
+      clog << endl;  
+      
+      // write configuration file
+      ostream& cfg = cmsg.file(name+".cfg");  
+      
+      cfg << "# Generated file: Can be used together with "
+          << "commands.csv by CVS2Secondo!" << endl
+          << "Separator  |" << endl
+          << "Object " << name << endl
+          << "Scheme ";
+     
+      it = attrList->begin();
+      while ( it != attrList->end() )
+      { 
+        cfg << it->first << " " << it->second;
+        if (it+1 != attrList->end())
+          cfg << " \\t ";
+        it++;
+      }   
+      cfg << endl;
+  }
 
   NList relSchema() const
   { 
@@ -271,7 +230,9 @@ class SystemInfoRel
   
   iterator begin() const { return tuples.begin(); } 
   iterator end()   const { return tuples.end(); } 
- 
+
+  virtual void initSchema() = 0;
+  
 };
 
 
@@ -313,7 +274,8 @@ class SystemTables {
      if (rel->isPersistent)
        type="persistent";
      cout << "  registering " << type << " system table " << name << endl;
-     tables[name] = /*(const SystemInfoRel*)*/ rel;
+     tables[name] = rel;
+     rel->initSchema();
   }
    
   const SystemInfoRel* getInfoRel(const string& name) const
