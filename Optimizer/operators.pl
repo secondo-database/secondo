@@ -80,7 +80,7 @@ require them to be handled differently in some ways.
 isBBoxPredicate(intersects).
 isBBoxPredicate(inside).       % also on moving x moving -> movingbool
 isBBoxPredicate(insideold).
-isBBoxPredicate(touches).
+%isBBoxPredicate(adjacent). % would this be correct?
 isBBoxPredicate(attached).
 isBBoxPredicate(overlaps).
 isBBoxPredicate(onborder).
@@ -107,7 +107,7 @@ Commutative operators can be handled specially in some translation rules
 
 */
 isCommutativeOP(intersects).
-isCommutativeOP(touches).
+isCommutativeOP(adjacent).
 isCommutativeOP(attached).
 isCommutativeOP(overlaps).
 

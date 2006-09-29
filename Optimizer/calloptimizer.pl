@@ -581,27 +581,6 @@ If ~optimizerOption(autosave)~ is defined, current option settings will be saved
 to disk automatically on system halt.
 
 */
-<<<<<<< calloptimizer.pl
-% :- setOption(entropy).          % Using entropy extension?
-% :- setOption(immediatePlan).    % Don't create complete POG?
-% :- setOption(intOrders(on)).    % Consider interesting orders (on-variant)?
-% :- setOption(intOrders(quick)). % Consider interesting orders (path-variant)?
-% :- setOption(intOrders(path)).  % Consider interesting orders (path-variant)?
-% :- setOption(intOrders(test)).  % Consider interesting orders (test-variant)?
- :- setOption(pathTiming).       % Prompt time used to create immediate plan?
-% :- setOption(uniformSpeed).     % Using uniform machine speed factor?
-% :- setOption(costsConjunctive). % Applying costs only to conjunctive sub query?
-% :- setOption(dynamicSample).    % Using dynamic samples instead of static ones?
- :- setOption(rewriteMacros).    % Using macro expansion features?
- :- setOption(rewriteInference). % Using automatic inference of predicates?
- :- setOption(rtreeIndexRules).  % Use additional rules to exploit R-tree indices?
- :- setOption(rewriteNonempty).  % Handle 'nonempty' in select statements?
- :- setOption(rewriteCSE).       % Substitute common subexpressions in queries?
-% :- setOption(rewriteCSEall).    % Extend attributes for ALL CSEs?
-% :- setOption(rewriteRemove).    % Apply early removal of unused attributes?
-:- assert(optDebugLevel(selectivity)), setOption(debug). % Activating selectivity debugging code?
-% :- assert(optDebugLevel(all)), setOption(debug). % Activating all debugging code?
-=======
 
 defaultOptions :-
   setOption(standard),
@@ -648,7 +627,6 @@ initializeOptions :-
 
 :- at_halt((optimizerOption(autosave), saveOptions)). % automatically safe option configuration on exit
 :- initializeOptions.
->>>>>>> 1.47
 
 /*
 5.3 Print Additional Information

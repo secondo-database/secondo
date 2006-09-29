@@ -1018,17 +1018,17 @@ predCost(X inside Y, PredCost, ArgTypeX, ArgSize, predArg(PA)) :- !,
   sTTS(ArgSizeX,ArgSizeXT),
   sTTS(ArgSizeY,ArgSizeYT),
   PredCost is PredCostX + PredCostY 
-            + (ArgSizeXT ** S)*(ArgSizeYT * OperatorTC ) / 100000.
+            + (ArgSizeXT ** S) * (ArgSizeYT * OperatorTC ) / 100000.
 
-predCost(X touches Y, PredCost, ArgTypeX, ArgSize, predArg(PA)) :- !,
+predCost(X adjacent Y, PredCost, ArgTypeX, ArgSize, predArg(PA)) :- !,
   predCost(X, PredCostX, ArgTypeX, ArgSizeX, predArg(PA)),
   predCost(Y, PredCostY, ArgTypeY, ArgSizeY, predArg(PA)),
   biggerArg(ArgSizeX, ArgSizeY, ArgSize),
-  touchesTCnew(ArgTypeX,  ArgTypeY, OperatorTC, S),
+  adjacentTCnew(ArgTypeX,  ArgTypeY, OperatorTC, S),
   sTTS(ArgSizeX,ArgSizeXT),
   sTTS(ArgSizeY,ArgSizeYT),
   PredCost is PredCostX + PredCostY
-              + (ArgSizeXT * OperatorTC)*(ArgSizeYT ** S) / 100000.
+              + (ArgSizeXT * OperatorTC) * (ArgSizeYT ** S) / 100000.
 
 predCost(X intersects Y, PredCost, ArgTypeX, ArgSize, predArg(PA)) :- !,
   predCost(X, PredCostX, ArgTypeX, ArgSizeX, predArg(PA)),
@@ -1122,11 +1122,11 @@ insideTCnew(point, region, 0.04457463, 0).
 insideTCnew(line, region, 0.046230259, 0).
 insideTCnew(region, region, 0.00004444, 1).
 insideTCnew(_, _, 0.046230259, 0).
-touchesTCnew(line, region, 0.000004702, 1).
-touchesTCnew(region, line, 0.000004702, 1).
-touchesTCnew(region, region, 0.046612378, 0).
-touchesTCnew(line, line, 0.051482479, 0).
-touchesTCnew(_, _, 0.000040983, 0).
+adjacentTCnew(line, region, 0.000004702, 1).
+adjacentTCnew(region, line, 0.000004702, 1).
+adjacentTCnew(region, region, 0.046612378, 0).
+adjacentTCnew(line, line, 0.051482479, 0).
+adjacentTCnew(_, _, 0.000040983, 0).
 intersectsTCnew(line, line, 0.041509433, 0).
 intersectsTCnew(line, region, 0.000046277, 0).
 intersectsTCnew(region, line, 0.000046277, 0).

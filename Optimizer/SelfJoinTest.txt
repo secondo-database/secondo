@@ -24,4 +24,4 @@ secondo('close database')
 
 open 'database germany'
 
-sql select count(*) from [kreis as k1, kreis as k2] where [k1:gebiet touches k2:gebiet, k1:gebiet touches magdeburg]
+sql select count(*) from [kreis as k1, kreis as k2] where [k1:gebiet adjacent k2:gebiet, k1:gebiet touches magdeburg]

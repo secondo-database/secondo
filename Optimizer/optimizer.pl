@@ -1665,7 +1665,7 @@ indexselect(arg(N), pr(Pred, _)) =>
   :-
   Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y],
   isBBoxPredicate(OP), 
-  % alternatively: member(OP,[touches, intersects, inside, overlaps]),
+  % alternatively: member(OP,[adjacent, intersects, inside, overlaps]),
   argument(N, rel(Name, *, Case)),  
   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
 
@@ -1675,7 +1675,7 @@ indexselect(arg(N), pr(Pred, _)) =>
   :-
   Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y], 
   isBBoxPredicate(OP), 
-  % alternatively: member(OP,[touches, intersects, inside, overlaps]),
+  % alternatively: member(OP,[adjacent, intersects, inside, overlaps]),
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= *, 
   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
 
