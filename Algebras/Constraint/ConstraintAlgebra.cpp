@@ -232,7 +232,7 @@ Constraint2Property()
   nl->TextAtom("(<tuple>*) where tuple is"
   " (<lin_constraint_1>...<lin_constraint_n> with n>0 "
   "where lin_constraint_i is)"
-  " (<a1> <a2> <b> <OP>) where a1, a2, b are" "
+  " (<a1> <a2> <b> <OP>) where a1, a2, b are" 
   "real-values an OP is a symbol in the set {eq, leq}"),
   nl->TextAtom("(((0.0 1.0 2.1 leq)(1.0 1.0 -4.0 eq))"
   "((0.0 1.0 5.0 eq)(1.8 0.0 3.0 leq)))"),
