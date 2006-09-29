@@ -740,7 +740,10 @@ public MainWindow(String Title){
                   c2 = c1.getParent();
                } 
                exportToPS(c1);;
+             } else if(c==KeyEvent.VK_C){
+               exportToPS(MainWindow.this);
              }
+            
           }
       } 
     };
