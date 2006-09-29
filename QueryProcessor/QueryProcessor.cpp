@@ -2385,14 +2385,17 @@ QueryProcessor::DestroyValuesArray()
   {
     if( !values[i].isList )
     {
-      if( values[i].isConstant )
-        (algebraManager->DeleteObj
-          ( values[i].algId, values[i].typeId ))( values[i].typeInfo,
-                                                  values[i].value );
-      else    
-        (algebraManager->CloseObj
-          ( values[i].algId, values[i].typeId ))( values[i].typeInfo,
-                                                  values[i].value );
+      if(values[i].value.addr){
+         if( values[i].isConstant ){
+           (algebraManager->DeleteObj
+             ( values[i].algId, values[i].typeId ))( values[i].typeInfo,
+                                                     values[i].value );
+        } else  {  
+           (algebraManager->CloseObj
+             ( values[i].algId, values[i].typeId ))( values[i].typeInfo,
+                                                     values[i].value );
+        }
+      }
     }
   }
 }
