@@ -10,6 +10,7 @@ import java.util.*;
 import java.awt.image.*;
 import java.text.*;
 import java.awt.image.renderable.*;
+import java.util.Vector;
 
 public class PSCreator {
 
@@ -40,22 +41,6 @@ public static boolean export(Component c, File outFile){
 
 private static class PSGraphics extends Graphics2D {
 
-/** Class holding the whole graphics context */
-
-private class PaintContext {
-  private Color background = null;
-  private Color color = null;
-  private Paint paint = null;
-  private Composite composite = null;
-  private GraphicsConfiguration  deviceConfiguration =  null;
-  private FontRenderContext fontRenderContext = null;
-  private RenderingHints renderingHints = null;
-  private Stroke stroke = null;
-  private AffineTransform affineTransform = null;
-  private Shape clip = null;
-  private Font font = null;
-}
-
 private static AffineTransform at = new AffineTransform();
 
 // the last used context in Postscript
@@ -64,6 +49,42 @@ private static double maxy;
 // the used output stream
 private PrintStream out = null;
 private Graphics2D original;
+/** Vector containing PostScript code for some special characters **/
+private static Vector charCodes=null;
+
+/** initialize charCodes when class is loaded **/
+static{
+  charCodes = new Vector(10);
+  // the backslah has to be the first replacement
+  charCodes.add(new CharCode('\\',"\\134"));
+  charCodes.add(new CharCode('ß',"\\337"));
+  charCodes.add(new CharCode('ä',"\\344"));
+  charCodes.add(new CharCode('ö',"\\366"));
+  charCodes.add(new CharCode('ü',"\\374"));
+  charCodes.add(new CharCode('Ä',"\\304"));
+  charCodes.add(new CharCode('Ö',"\\326"));
+  charCodes.add(new CharCode('Ü',"\\334"));
+  charCodes.add(new CharCode('(',"\\050"));
+  charCodes.add(new CharCode(')',"\\051"));
+}
+
+/** replaces what in where by ByWhat */
+private static String replaceAll(String what, String where, String ByWhat){
+   StringBuffer res = new StringBuffer();
+   int lastpos = 0;
+   int len = what.length();
+   int index = where.indexOf(what,lastpos);
+   while(index>=0){
+      if(index>0){
+         res.append(where.substring(lastpos,index));
+      }
+      res.append(ByWhat);
+      lastpos = index+len;
+      index = where.indexOf(what,lastpos);
+   }
+   res.append(where.substring(lastpos));
+   return res.toString();
+}
 
 
 /** Checks whether the given objects are different.
@@ -541,13 +562,25 @@ public void drawString(AttributedCharacterIterator iterator, int x, int y) {
    Reporter.writeWarning("PSCreator.drawString not implemented");
 }
 
+/** Replaces s by a string which can used in a PostScript show command.
+  **/
+private String encodeString(String source){
+   String res = source;
+   for(int i=0;i<charCodes.size();i++){
+      CharCode cc = (CharCode) charCodes.get(i);
+      res = replaceAll(cc.getChar(),res,cc.getCode());
+   }    
+   return "("+res+")";
+}
+
+
 public void drawString(String s, float x, float y){
   updateContext();
   lastUsedContext.affineTransform.scale(1,-1);
   writeAffineTransform(lastUsedContext.affineTransform);
   out.println("newpath");
   out.println((x) + " " + (-y) + " moveto");
-  out.println("("+s+")  show");
+  out.println(encodeString(s)+"  show");
 }
 
 public void drawString(String str, int x, int y) {
@@ -782,6 +815,21 @@ public void writeHeader(Rectangle2D bounds){
 //                                (bounds.getHeight()+bounds.getY()));
   out.println("%%BoundingBox: 0 0 "+ (bounds.getWidth()) + " " +bounds.getHeight());
   out.println("%%EndComments");
+  out.println("% replace the standard Helvetica font by the ISO Latin 1 encoding ");
+  out.println("/Helvetica findfont");
+  out.println("dup length dict begin");
+  out.println(" { 1 index /FID ne");
+  out.println("          {def }");
+  out.println("          {pop pop}");
+  out.println("          ifelse");
+  out.println("  }forall");
+  out.println("/Encoding ISOLatin1Encoding def");
+  out.println("currentdict");
+  out.println("end");
+  out.println("/Helvetica exch definefont pop");
+
+
+
   out.println("/Helvetica 12 selectfont");
 
 }
@@ -828,6 +876,40 @@ private void writePath(Shape s){
     Reporter.debug(e);
  }
 } 
+
+
+/** class holding the PostScript code for a single special characters */
+
+private static class CharCode{
+  private CharCode(char c, String code){
+     this.c = ""+c;
+     this.code = code;
+  }
+  
+  private String getChar(){ return c;}
+  private String getCode(){ return code;}
+
+  String c;
+  String code;
+
+}
+
+/** Class holding the whole graphics context */
+
+private class PaintContext {
+  private Color background = null;
+  private Color color = null;
+  private Paint paint = null;
+  private Composite composite = null;
+  private GraphicsConfiguration  deviceConfiguration =  null;
+  private FontRenderContext fontRenderContext = null;
+  private RenderingHints renderingHints = null;
+  private Stroke stroke = null;
+  private AffineTransform affineTransform = null;
+  private Shape clip = null;
+  private Font font = null;
+}
+
 
 }
 
