@@ -1081,8 +1081,8 @@ predCost(Rel:Attr, 0,  ArgType, ArgSize, _) :- !,
   attrType(DCRel:DCAttr, ArgType),
   attrSize(DCRel:DCAttr, ArgSize), !.
 
-
-predCost(_, 0, notype, 1, _) :- !.
+% default value changed from 0 to 0.0000005
+predCost(_, 0.0000005, notype, 1, _) :- !.
 
 biggerArg(sizeTerm(X1,X2,X3), sizeTerm(Y1,Y2,Y3), sizeTerm(X1,X2,X3)) :- 
   X1+X2+X3 >= Y1+Y2+Y3, !.
