@@ -160,7 +160,7 @@ Word InConstraint( const ListExpr typeInfo, const ListExpr instance,
   
   if(!nl->IsAtom(instance))
   {  
-    SymbolicRelation* symbolicRelation = new SymbolicRelation();
+    SymbolicRelation* symbolicRelation = new SymbolicRelation(0, 0);
     while(!nl->IsEmpty(symbolicTuplesNL))
     {
       linConstraintsNL = nl->First(symbolicTuplesNL);
@@ -249,7 +249,7 @@ Constraint2Property()
 */
 Word CreateConstraint( const ListExpr typeInfo )
 {
-  SymbolicRelation* symbolicRelation = new SymbolicRelation();
+  SymbolicRelation* symbolicRelation = new SymbolicRelation(0, 0);
   vector<LinearConstraint> vLinConstraints;
   LinearConstraint linConstraint(0.0, 0.0, 0.0, OP_EQ);
   vLinConstraints.push_back(linConstraint);
@@ -300,7 +300,16 @@ int SizeOfConstraint()
 
 
 /*
-5.6 Kind Checking Function
+5.6 ~CastConstraint~-function
+
+*/
+void* CastConstraint(void* addr)
+{
+  return new (addr) SymbolicRelation;
+}
+
+/*
+5.7 Kind Checking Function
 
 This function checks whether the type constructor is applied correctly. Since
 type constructor ~constraint~ does not have arguments, this is trivial.
@@ -324,7 +333,7 @@ TypeConstructor constraint(
         CreateConstraint,  DeleteConstraint, //object creation and deletion
         0,               0, //open and save functions
         CloseConstraint,   CloneConstraint, //object close, and clone
-        DummyCast, //cast function
+        CastConstraint, //cast function
         SizeOfConstraint, //sizeof function
         CheckConstraint ); //kind checking function
 

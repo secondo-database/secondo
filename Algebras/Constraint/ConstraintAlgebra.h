@@ -64,9 +64,6 @@ const string OP_LEQ = "leq";
 const Rectangle<2> WORLD(true, -10000.0, 10000.0, -10000.0, 10000.0); 
 enum geotype {UNKNOWN, POINT, SEGMENT, POLYGON};
 
-// Hilfsfunktionen:
-void* DummyCast(void* addr) {return 0;}
-
 
 /*
 3 Usefull structs
@@ -560,7 +557,8 @@ void LinearConstraint::set_Op(string strOp)
 class SymbolicRelation : public StandardSpatialAttribute<2>
 {   
   public:
-    SymbolicRelation();
+    inline SymbolicRelation() {}
+    SymbolicRelation(const int nConstraints, const int nTuple);
     SymbolicRelation(const SymbolicRelation&);
     SymbolicRelation& operator=( const SymbolicRelation&);
     void Destroy();
@@ -591,9 +589,9 @@ class SymbolicRelation : public StandardSpatialAttribute<2>
     Rectangle<2> mbbox;
 };
 
-SymbolicRelation::SymbolicRelation() :
-      linConstraints(0), 
-      symbolicTuples(0),
+SymbolicRelation::SymbolicRelation(const int nConstraints, const int nTuple) :
+      linConstraints(nConstraints), 
+      symbolicTuples(nTuple),
       mbbox(false) 
 {
   // nichts zu machen!
