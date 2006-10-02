@@ -54,10 +54,11 @@ main(int argc, char *argv[]) {
    }
 
 
- int c = 0, size=0;
- bool nostream=false, decode=false ;
+ int size=0;
+ bool nostream=false, decode=false;
 
 #ifdef _POSIX_OPT_H 
+ int c = 0;
  opterr = 0;
 
    while ((c = getopt(argc,argv, "dn:")) != -1) {
@@ -73,12 +74,12 @@ main(int argc, char *argv[]) {
          cerr << "Unkown option " << (char) optopt << endl;
          usageMsg(argv[0]);
       default:
-         abort();
+         exit(1);
       }  
    }
 #else
   cerr << "You will need the posix getopt library!" << endl;
-  abort(1);
+  exit(1);
 #endif   
 
  string fileName(argv[optind]);
