@@ -97,8 +97,6 @@ SmiError
 SmiEnvironment::GetLastErrorCode()
 {
   SmiError smiErr = lastError;
-  lastError = 0;
-  lastMessage = "";
   return smiErr;
 }
 
@@ -107,8 +105,6 @@ SmiEnvironment::GetLastErrorCode( string& errorMessage )
 {
   SmiError smiErr = lastError;
   errorMessage = lastMessage;
-  lastError = 0;
-  lastMessage = "";
   return smiErr;
 }
 
@@ -117,8 +113,7 @@ void
 SmiEnvironment::SetError( const SmiError smiErr )
 { 
   lastError   = smiErr;
-  lastMessage = "SecondoSMI: ";
-//  lastMessage = "SecondoSMI: " + Err2Msg(smiErr);
+  lastMessage = "SecondoSMI: " + Err2Msg(smiErr);
 }
                         
 void 
@@ -297,7 +292,7 @@ SmiEnvironment::Err2Msg( SmiError code)
     errorMap[E_SMI_OK] = "Ok!";
     errorMap[E_SMI_STARTUP] = "E_SMI_STARTUP";
     errorMap[E_SMI_SHUTDOWN] = "E_SMI_SHUTDOWN";
-    errorMap[E_SMI_DB_CREATE] = "[E_SMI_DB_CREATE";
+    errorMap[E_SMI_DB_CREATE] = "E_SMI_DB_CREATE";
     errorMap[E_SMI_DB_OPEN] = "E_SMI_DB_OPEN";
     errorMap[E_SMI_DB_CLOSE] = "E_SMI_DB_CLOSE";
     errorMap[E_SMI_DB_ERASE] = "E_SMI_DB_ERASE";
@@ -362,6 +357,7 @@ SmiEnvironment::Err2Msg( SmiError code)
     errorMap[E_SMI_CURSOR_ENDOFSCAN] = "E_SMI_CURSOR_ENDOFSCAN";
     errorMap[E_SMI_CURSOR_DELETE] = "E_SMI_CURSOR_DELETE";
     errorMap[E_SMI_CURSOR_FINISH] = "E_SMI_CURSOR_FINISH";
+    errorMapInitialized = true;
   }
 
   map<SmiError, string>::const_iterator it = errorMap.find(code);
