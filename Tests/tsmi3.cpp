@@ -20,12 +20,18 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+Oct 2006, M. Spiekermann. Many changes in order to get it work again.
+
 */
+
+
 #include <iostream>
 #include <string>
-using namespace std;
+
 #include "SecondoSMI.h"
 #include "SmiBDB.h"
+
+using namespace std;
 
 void Pause()
 {
@@ -34,37 +40,140 @@ void Pause()
   cin.getline( buf, sizeof(buf) );
 }
 
+
+void ShowOptions(const string& prog)
+{
+  cout << "Usage: " << prog << " [-ch]" << endl;
+  cout << endl;
+  cout << "-c     Create some records" << endl;
+  cout << "-h     This help message" << endl;
+  cout << endl;
+} 
+
+void ShowSmiError()    
+{ 
+    string msg=""; 
+    SmiEnvironment::GetLastErrorCode(msg);
+    cerr << msg << endl;
+}   
+
+
+bool CheckSmiError()    
+{ 
+  SmiError err = SmiEnvironment::GetLastErrorCode();
+  
+  if (err != E_SMI_OK) {
+   
+    ShowSmiError();
+    return true;
+  }  
+  return false;
+}   
+
+
+
+typedef enum {begin, commit} TMode;
+
+void Transaction(TMode m)
+{   
+    bool rc=false;
+    string modeStr="Commit";
+    
+    if (m == begin) {
+      modeStr = "Begin";
+      rc = SmiEnvironment::BeginTransaction();
+    }  
+    else
+    {
+      rc = SmiEnvironment::CommitTransaction();
+    }    
+
+    if (rc == false)
+      ShowSmiError();
+}    
+
+
+void InsertRec(SmiKeyedFile& kf, const string& key, const string& val)
+{ 
+ 
+  cout << "Create new record for key " << key << endl;
+  SmiRecord r; 
+  bool rc = kf.InsertRecord( SmiKey( key ), r );
+
+  if (rc == false)
+  { 
+    ShowSmiError();
+    return;
+  }  
+  
+  cout << "Insert value " << val << endl;
+  rc = r.Write( val.c_str(), val.length()+1 );
+  
+  if (rc == false)
+    ShowSmiError();
+}
+
+
+void SelectRec(SmiKeyedFile& kf, SmiRecord& r, const string& key, bool update)
+{ 
+  cout << "Select Record with key = '" << key << "'" << endl;
+  bool rc = false;
+
+  if (update)
+  { 
+    // select for update
+    rc = kf.SelectRecord( SmiKey( key ), r, SmiFile::Update );
+  }  
+  else
+  { 
+    rc = kf.SelectRecord( SmiKey( key ), r );
+  }  
+   
+  if (rc == false)
+    ShowSmiError();
+}  
+
+
+void ReadRec(SmiRecord& r)
+{ 
+  cout << "Reading record [bytes = ";
+  char buffer [30];
+  
+  int bytes = r.Read( buffer, 20 );
+  cout << bytes << "]" << endl;
+  
+  if ( CheckSmiError() )
+    return;  
+  
+  cout << "buffer = " << buffer << endl;
+}
+
 void Initialize()
 {
   SmiKeyedFile kf( SmiKey::String, true );
   if ( kf.Open( "SecondoCatalog" ) )
   {
+    Transaction(begin);
     cout << "String KeyedFile created FileId=" << kf.GetFileId() << endl;
     cout << "KeyedFile name   =" << kf.GetName() << endl;
     cout << "KeyedFile context=" << kf.GetContext() << endl;
-    cout << "(Returncodes: 1 = ok, 0 = error )" << endl;
-    SmiKeyedFileIterator it;
-    SmiRecord r;
-    SmiKey key;
-    cout << "Insert: " << kf.InsertRecord( SmiKey( "Anton" ), r ) << endl;
-    cout << "Insert (Anton,Antonia): " << r.Write( "Antonia", 8 ) << endl;
-    cout << "Insert: " << kf.InsertRecord( SmiKey( "Berta" ), r ) << endl;
-    cout << "Insert (Berta,Bernhard): " << r.Write( "Bernhard", 9 ) << endl;
-    cout << "Insert: " << kf.InsertRecord( SmiKey( "Caesar" ), r ) << endl;
-    cout << "Insert (Caesar,Cecilie): " << r.Write( "Cecilie", 8 ) << endl;
-    cout << "Close: " << kf.Close() << endl;
-    cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
-    cout << "Begin: " << SmiEnvironment::BeginTransaction() << endl;
+    
+    InsertRec(kf, "Anton", "Antonia");
+    InsertRec(kf, "Berta", "Bernhard");
+    InsertRec(kf, "Ceasar", "Cecilie");
+    
+    Transaction(commit);
+    cout << "SmiKeyedFile:.Close: rc=" << kf.Close() << endl;
   }
   else
   {
-    cout << "KeyedFile open failed:" << SmiEnvironment::GetLastErrorCode() << endl;
+    cerr << "SmiKeyedFile::Open failed:" << endl;
+    CheckSmiError();
   }
 }
 
 void TestKeyedFiles()
 {
-  char buffer[30];
   SmiKeyedFile kf( SmiKey::String, true );
   if ( kf.Open( "SecondoCatalog" ) )
   {
@@ -72,60 +181,68 @@ void TestKeyedFiles()
     cout << "KeyedFile name   =" << kf.GetName() << endl;
     cout << "KeyedFile context=" << kf.GetContext() << endl;
     cout << "(Returncodes: 1 = ok, 0 = error )" << endl;
+    
     SmiKeyedFileIterator it;
     SmiRecord r;
     SmiKey key;
-    string cmd, ckey, cval;
-    bool swUpdate = false;
+    
+    string cmd="", ckey="", cval="";
+    
+    Transaction(begin);
     do
     {
-      cout << endl << "cmd key val > ";
-      cin >> cmd >> ckey >> cval;
+      cout << endl 
+           << "Cmd: [(s)elect, (i)nsert, (u)pdate, (c)ommit, (q)uit]: ";
+      cin >> cmd;
+
+      if ( cmd == "q" )
+      {
+        cout << "Stop reading commands." << endl; 
+      } 
+
+      if ( cmd == "s" || cmd == "i" || cmd == "u")
+      { 
+        cout << "Key  : "; 
+        cin >> ckey;
+      }  
+
+      if ( cmd == "i" || cmd == "u")
+      { 
+        cout << "Value: ";
+        cin >> cval;
+      }  
+
       if ( cmd == "s" )
       {
-        if ( swUpdate )
-          cout << "Select first '"<< ckey << "': " << kf.SelectRecord( SmiKey( ckey ), r, SmiFile::Update ) << endl;
-        else
-          cout << "Select first '"<< ckey << "': " << kf.SelectRecord( SmiKey( ckey ), r ) << endl;
-        cout << "RC=" << SmiEnvironment::GetLastErrorCode() << endl;
-        cout << "Read " << r.Read( buffer, 20 ) << endl;
-        cout << "buffer = " << buffer << endl;
-        cout << "RC=" << SmiEnvironment::GetLastErrorCode() << endl;
+        SelectRec( kf, r, ckey, false );
+        ReadRec(r);
       }
       else if ( cmd == "i" )
       {
-        cout << "Insert: " << kf.InsertRecord( SmiKey( ckey ), r ) << endl;
-        cout << "RC=" << SmiEnvironment::GetLastErrorCode() << endl;
-        cout << "Insert (" << ckey << "," << cval << "): " << r.Write( cval.c_str(), cval.length()+1 ) << endl;
-        cout << "RC=" << SmiEnvironment::GetLastErrorCode() << endl;
+        InsertRec(kf, ckey, cval);
       }
       else if ( cmd == "u" )
       {
-        cout << "Select first '" << ckey << "': " << kf.SelectRecord( SmiKey( ckey ), r, SmiFile::Update ) << endl;
-        cout << "RC=" << SmiEnvironment::GetLastErrorCode() << endl;
-        cout << "Write " << r.Write( cval.c_str(), cval.length()+1 ) << endl;
-        cout << "Read " << r.Read( buffer, 20 ) << endl;
-        cout << "buffer = " << buffer << endl;
-        cout << "RC=" << SmiEnvironment::GetLastErrorCode() << endl;
-//        swUpdate = true;
+        SelectRec( kf, r, ckey, true);
+        cout << "Write Record [bytes = " 
+             << r.Write( cval.c_str(), cval.length()+1 ) << "]";
+        CheckSmiError();
       }
       else if ( cmd == "c" )
       {
-        cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
-        cout << "Begin: " << SmiEnvironment::BeginTransaction() << endl;
-        swUpdate = false;
+        Transaction(commit);
+        Transaction(begin);
       }
     }
     while ( cmd != "q" );
 
     cout << "Close: " << kf.Close() << endl;
-    cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
-    Pause();
-    cout << "Begin: " << SmiEnvironment::BeginTransaction() << endl;
+    Transaction(commit);
   }
   else
   {
-    cout << "KeyedFile open failed:" << SmiEnvironment::GetLastErrorCode() << endl;
+    cout << "KeyedFile open failed:" << endl;
+    CheckSmiError();
   }
 }
 
@@ -133,32 +250,62 @@ void TestKeyedFiles()
 
 int main( int argc, char* argv[] )
 {
-  SmiError rc;
-  bool ok;
 
-  rc = SmiEnvironment::StartUp( SmiEnvironment::MultiUser,
-                                "SecondoConfig.ini", cerr );
+  bool createRecords = false; 
+   
+  if ( argc <= 2)
+  {
+   string opt(argv[1]);
+   if (opt == "-?" || opt == "-h") {
+     ShowOptions(argv[0]);
+     exit(0);
+   }  
+   if ( opt == "-c")
+     createRecords = true;
+   else
+   { 
+     cerr << "Unrecognized option!" << endl;
+     ShowOptions(argv[0]);
+     exit(1); 
+   }  
+  }  
+
+  if (argc > 2) {
+    ShowOptions(argv[0]);
+    exit(1);
+  }  
+   
+  cout << "(Returncodes: 1 = ok, 0 = error )" << endl;
+  
+  bool ok = false;
+  SmiError rc = SmiEnvironment::StartUp( SmiEnvironment::MultiUser,
+                                         "SecondoConfig.ini", cerr );
   cout << "StartUp rc=" << rc << endl;
   if ( rc == 1 )
   {
-    ok = SmiEnvironment::OpenDatabase( "test" );
+    string dbName="test";
+    ok = SmiEnvironment::OpenDatabase( dbName );
+    cout << "OpenDatabase " << dbName;
     if ( ok )
     {
-      cout << "OpenDatabase test ok." << endl;
+      cout << " ok." << endl;
     }
     else
     {
-      cout << "OpenDatabase test failed, try to create." << endl;
-      ok = SmiEnvironment::CreateDatabase( "test" );
+      cout << " failed, try to create." << endl;
+      ok = SmiEnvironment::CreateDatabase( dbName );
+      cout << "CreateDatabase " << dbName;
       if ( ok )
-        cout << "CreateDatabase test ok." << endl;
+        cout << " ok." << endl;
       else
-        cout << "CreateDatabase test failed." << endl;
+        cout << " failed." << endl;
     }
     Pause();
     if ( ok )
     {
-      if (argc > 1) Initialize();
+      if (createRecords) 
+        Initialize();
+
       cout << "*** Test String Keyed Files ***" << endl;
       TestKeyedFiles();
       Pause();
