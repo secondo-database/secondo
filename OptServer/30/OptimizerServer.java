@@ -146,8 +146,6 @@ static {
                System.out.println("no solution found for' "+pl_query.goal() +"/"+pl_query.goal().arity());
             return false;
          } else{
-             System.out.println("check whether a database was opened"); 
- 
              // check if the used database is changed
              Query dbQuery = new Query("databaseName(X)");
              if(dbQuery.hasMoreSolutions()){
@@ -691,7 +689,7 @@ static {
            } else if(command.startsWith("exec")){
              String cmdline = command.substring(4,command.length()).trim();
              execute(cmdline,ResVector);
-           }else{
+           }else if(!command.equals("")){
               System.out.println("unknow command, try help show a list of valid commands");
            }
            if(!command.equals("quit"))
@@ -717,8 +715,8 @@ static {
 
    /** Prints out the licence information of this software **/
    public static void printLicence(PrintStream out){
-       out.println(" Copyright (C) 2004, University in Hagen, ");
-       out.println(" Department of Computer Science,  ");
+       out.println(" Copyright (C) 2006, University in Hagen, ");
+       out.println(" Faculty of Mathematics and Computer Science,  ");
        out.println(" Database Systems for New Applications. \n");
 
        out.println(" This is free software; see the source for copying conditions.");
