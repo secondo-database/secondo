@@ -332,13 +332,14 @@ function finish {
 
 #default options
 testMode="false"
+sdkName="secondo-sdk"
 
 declare -i numOfArgs=$#
 let numOfArgs++
 
 while [ $numOfArgs -ne $OPTIND ]; do
 
-  getopts "hnt" optKey
+  getopts "d:hnt" optKey
   if [ "$optKey" == "?" ]; then
     optKey="h"
   fi
@@ -349,6 +350,7 @@ while [ $numOfArgs -ne $OPTIND ]; do
       printf "\n%s\n" "Usage of ${0##*/}:" 
       printf "%s\n"   "  -h print this message and exit."
       printf "%s\n"   "  -t test mode installing below directory /tmp"
+      printf "%s\n"   "  -n name of the the sdk root directory [$sdkName]"
       printf "%s\n"   "The script installs or compiles all 3rd party tools"
       printf "%s\n\n" "needed to compile SECONDO."
       exit 0;;
@@ -362,8 +364,17 @@ done
 printf "\n"
 showGPL
 
+
+if [ "$testMode" == "true" ]; then
+  printf "\n"
+  showMsg "info" "Running in test mode: \$HOME set to \"$HOME\""
+  mkdir -p $HOME
+  mkdir -p $instpath
+fi
+
+
 # init log file
-temp=$LU_TMP/secondo-tmp/$USER
+temp=$LU_TMP/secondo-tmp-$USER/$sdkName
 mkdir -p $temp
 logfile="$temp/installsdk.log"
 initLogFile $logfile
@@ -424,18 +435,9 @@ fi
 
 # set variables for important directories
 cdpath=$startDir
-sdk=$instpath/secondo-sdk
+sdk=$instpath/$sdkName
 build=$HOME/secondo
 prologdir=$sdk/pl
-
-
-
-if [ "$testMode" == "true" ]; then
-  printf "\n"
-  showMsg "info" "Running in test mode: \$HOME set to \"$HOME\""
-  mkdir -p $HOME
-  mkdir -p $instpath
-fi
 
 
 
