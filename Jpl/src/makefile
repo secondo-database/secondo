@@ -60,7 +60,7 @@ $(JPLDLL): $(CCOBJECTS)
 	$(CC) $(DLLFLAGS) -Wl,-soname,jpl.$(JNI_DLLEXT) -o $@  \
 	$^ $(LINK_FLAGS) jpl.def
 
-jpl.def: $(JPL_LIB)/jpl.o $(JPL_LIB)/regSecondo.o
+jpl.def: $(JPL_LIB)/jpl.o 
 	dlltool -z $@.tmp $^
 	sed -e "s#\(.*\)@\(.*\)@.*#\1 = \1@\2#g" $@.tmp > $@
 	rm $@.tmp

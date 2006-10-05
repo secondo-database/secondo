@@ -77,15 +77,12 @@ main(int argc, char *argv[]) {
          exit(1);
       }  
    }
-#else
-  cerr << "You will need the posix getopt library!" << endl;
-  exit(1);
-#endif   
 
  string fileName(argv[optind]);
  string extension="";
  cout << "file: " << fileName << ", size: " << size << endl;
  decode ?  extension=".bin" : extension=".base64"; 
+
 
  ifstream inFile(fileName.c_str(), ios::binary);
  ofstream outFile((fileName+extension).c_str(), ios::binary);
@@ -150,6 +147,10 @@ main(int argc, char *argv[]) {
 
  delete encoder; 
  
+#else
+  cerr << "You will need the posix getopt library!" << endl;
+  exit(1);
+#endif   
 
 }
 

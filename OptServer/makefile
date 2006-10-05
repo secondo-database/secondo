@@ -54,8 +54,9 @@ jsrc:
 regSecondo.o: regSecondo.c
 	$(CC) -c -fPIC -g -o $@ $(INCLUDEFLAGS) $<
 
-ifeq ($(platform),win32)
 LINKFILES += $(PL_DLL)
+
+ifeq ($(platform),win32)
 
 $(REG_SEC_DLL): regSecondo.o $(LINKFILES) regSeg.def
 	$(CC) $(DLLFLAGS) -Wl,-soname,jpl.$(JNI_DLLEXT) -o $@  \
