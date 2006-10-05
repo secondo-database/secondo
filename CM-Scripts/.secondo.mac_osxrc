@@ -7,6 +7,17 @@ export SWI_HOME_DIR="/opt/local/lib/swipl-5.6.18"
 export PL_INCLUDE_DIR="/opt/local/lib/swipl-5.6.18/include"
 export PL_LIB_DIR="/opt/local/lib/swipl-5.6.18/lib/powerpc-darwin8.6.0"
 
+
+export PL_VERSION=50618
+# If the OptimizerServer crashes at runtime try to use it
+# with the jpl libraries provided by SWI-Prolog instead of
+# compiling it (see also Jpl/readme.txt).
+
+#export PL_DLL_DIR=PL_LIB_DIR
+#export JPL_JAR=$SWI_HOME_DIR/lib/jpl.jar
+#export JPL_DLL=$PL_DLL_DIR/libjpl.dynlib
+
+
 #JAVA
 export J2SDK_ROOT="/System/Library/Frameworks/JavaVM.framework"
 
