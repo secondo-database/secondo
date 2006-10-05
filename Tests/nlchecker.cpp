@@ -46,16 +46,18 @@ static void
 usageMsg(char* progName) {
 
    cout << "Usage: " << progName << " [-b -2] filename" << endl;
-   cout << "Converts a nested list from text to binary format and vice versa." << endl;
+   cout << "Converts a nested list from text to binary format "
+        << "and vice versa." << endl;
    cout << "  -b: Input file is a binary encoded nested list" << endl;
    cout << "  -2: 2 output files, binary and text" << endl; 
-   cout << "  -k: keep format. Output format is the same as in the input file." << endl; 
+   cout << "  -k: keep format. Output format is the same as in "
+        << "the input file." << endl; 
 }
 
 
 int
 main(int argc, char *argv[]) {
-
+#ifdef _POSIX_OPT_H
    if (argc < 2 || argc > 5) {
       usageMsg(argv[0]);
       exit(1);
@@ -128,7 +130,10 @@ main(int argc, char *argv[]) {
       ofstream outFile(outFileStr.c_str(), ios::out|ios::trunc|ios::binary); 
       nl.WriteBinaryTo(list, outFile);   
    }
-
+#else
+  cerr << "You will need the posix getopt library!" << endl;
+  exit(1);
+#endif  
 }
 
 
