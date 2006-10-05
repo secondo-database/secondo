@@ -45,7 +45,7 @@ fi
 
 LIB_PATH=.
 if [ "$JPL_DLL" != "" ]; then
-LIB_PATH=$PL_LIB_DIR:$LIB_PATH
+LIB_PATH=$PL_DLL_DIR:$LIB_PATH
 fi
 
 

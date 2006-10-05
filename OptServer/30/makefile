@@ -19,7 +19,7 @@
 
 include ../../makefile.env
 
-ifdef $(JPL_JAR)
+ifdef JPL_JAR
 CLASSPATH=$(JPL_JAR)
 else
 CLASSPATH=$(JPL_CLASSPATH)

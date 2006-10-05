@@ -55,9 +55,11 @@ regSecondo.o: regSecondo.c
 	$(CC) -c -fPIC -g -o $@ $(INCLUDEFLAGS) $<
 
 ifeq ($(platform),win32)
-$(REG_SEG_DLL): regSecondo.o $(LINKFILES)
+LINKFILES += $(PL_DLL)
+
+$(REG_SEC_DLL): regSecondo.o $(LINKFILES) regSeg.def
 	$(CC) $(DLLFLAGS) -Wl,-soname,jpl.$(JNI_DLLEXT) -o $@  \
-	$^ $(LINK_FLAGS) regSeg.def
+	$^ $(LINK_FLAGS)  regSeg.def
 
 regSeg.def: regSecondo.o
 	dlltool -z $@.tmp $^
