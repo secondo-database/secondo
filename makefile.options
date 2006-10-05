@@ -73,5 +73,7 @@ DEFAULTCCFLAGS += -DNL_PERSISTENT
 
 #DEFAULTCCFLAGS += -DTRACE_ON
 
-include $(SECONDO_BUILD_DIR)/makefile.nonpublic
-
+INC_FILES := $(shell ls $(SECONDO_BUILD_DIR)/makefile.n*c 2>/dev/null)
+ifdef INC_FILES
+include $(INC_FILES)
+endif

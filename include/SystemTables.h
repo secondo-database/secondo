@@ -98,25 +98,22 @@ class CmdTimes : public InfoTuple
 class CmdTimesRel : public SystemInfoRel 
 {
    public:
-   CmdTimesRel(const string& name) : SystemInfoRel(name, initSchema()) 
+   CmdTimesRel(const string& name) : SystemInfoRel(name) 
    {} 
 
-   ~CmdTimesRel() {}
+   virtual ~CmdTimesRel() {}
    
-   private:
-   RelSchema* initSchema()
+   virtual void initSchema()
    { 
-     RelSchema*  attrList = new RelSchema();
-     attrList->push_back( make_pair("CmdNr", "int") );
-     attrList->push_back( make_pair("CmdStr", "text") );
-     attrList->push_back( make_pair("ElapsedTime", "real") );
-     attrList->push_back( make_pair("CpuTime", "real") );
-     attrList->push_back( make_pair("CommitTime", "real") );
-     attrList->push_back( make_pair("queryReal", "real") );
-     attrList->push_back( make_pair("queryCPU", "real") );
-     attrList->push_back( make_pair("outObjReal", "real") );
-     attrList->push_back( make_pair("copyReal", "real") );
-     return attrList;  
+     addAttribute("CmdNr", "int");
+     addAttribute("CmdStr", "text");
+     addAttribute("ElapsedTime", "real");
+     addAttribute("CpuTime", "real");
+     addAttribute("CommitTime", "real");
+     addAttribute("queryReal", "real");
+     addAttribute("queryCPU", "real");
+     addAttribute("outObjReal", "real");
+     addAttribute("copyReal", "real");
    } 
 
 }; 
@@ -156,18 +153,15 @@ class CmdCtr : public InfoTuple
 class CmdCtrRel : public SystemInfoRel 
 {
    public:
-   CmdCtrRel(const string& name) : SystemInfoRel(name, initSchema()) 
+   CmdCtrRel(const string& name) : SystemInfoRel(name) 
    {}
    virtual ~CmdCtrRel() {}
    
-   private:
-   RelSchema* initSchema()
+   virtual void initSchema()
    { 
-     RelSchema* attrList = new RelSchema();
-     attrList->push_back( make_pair("CtrNr", "int") );
-     attrList->push_back( make_pair("CtrStr", "string") );
-     attrList->push_back( make_pair("Value", "int") );
-     return attrList;
+     addAttribute("CtrNr", "int");
+     addAttribute("CtrStr", "string");
+     addAttribute("Value", "int");
    } 
 }; 
 
@@ -207,18 +201,15 @@ class DerivedObjInfo : public InfoTuple
 class DerivedObjRel : public SystemInfoRel 
 {
    public:
-   DerivedObjRel(const string& name) : SystemInfoRel(name, initSchema(), true) 
+   DerivedObjRel(const string& name) : SystemInfoRel(name, true) 
    {}
    virtual ~DerivedObjRel() {}
    
-   private:
-   RelSchema* initSchema()
+   virtual void initSchema()
    { 
-     RelSchema* attrList = new RelSchema();
-     attrList->push_back( make_pair("name", "string") );
-     attrList->push_back( make_pair("value", "text") );
-     attrList->push_back( make_pair("usedObjs", "text") );
-     return attrList;
+     addAttribute("name", "string");
+     addAttribute("value", "text");
+     addAttribute("usedObjs", "text");
    } 
 }; 
 
@@ -262,24 +253,21 @@ class CacheInfoTuple : public InfoTuple, public CacheInfo
 class CacheInfoRel : public SystemInfoRel 
 {
    public:
-   CacheInfoRel(const string& name) : SystemInfoRel(name, initSchema()) 
+   CacheInfoRel(const string& name) : SystemInfoRel(name) 
    {}
    virtual ~CacheInfoRel() {}
    
-   private:
-   RelSchema* initSchema()
+   virtual void initSchema()
    { 
-     RelSchema* attrList = new RelSchema();
-     attrList->push_back( make_pair("CStatNr", "int") );
-     attrList->push_back( make_pair("Bytes", "int") );
-     attrList->push_back( make_pair("RegSize", "int") );
-     attrList->push_back( make_pair("Hits", "int") );
-     attrList->push_back( make_pair("Misses", "int") );
-     attrList->push_back( make_pair("Pages_New", "int") );
-     attrList->push_back( make_pair("Pages_In", "int") );
-     attrList->push_back( make_pair("Pages_Out", "int") );
-     attrList->push_back( make_pair("Pages_All", "int") );
-     return attrList;
+     addAttribute("CStatNr", "int");
+     addAttribute("Bytes", "int");
+     addAttribute("RegSize", "int");
+     addAttribute("Hits", "int");
+     addAttribute("Misses", "int");
+     addAttribute("Pages_New", "int");
+     addAttribute("Pages_In", "int");
+     addAttribute("Pages_Out", "int");
+     addAttribute("Pages_All", "int");
    } 
 }; 
 
@@ -331,23 +319,20 @@ class FileInfoTuple : public InfoTuple, public FileInfo
 class FileInfoRel : public SystemInfoRel
 {
    public:
-   FileInfoRel(const string& name) : SystemInfoRel(name, initSchema()) 
+   FileInfoRel(const string& name) : SystemInfoRel(name) 
    {}
    virtual ~FileInfoRel() {}
    
-   private:
-   RelSchema* initSchema()
+   virtual void initSchema()
    { 
-     RelSchema* attrList = new RelSchema();
-     attrList->push_back( make_pair("FStatNr", "int") );
-     attrList->push_back( make_pair("File", "text") );
-     attrList->push_back( make_pair("PageSize", "int") );
-     attrList->push_back( make_pair("Hits", "int") );
-     attrList->push_back( make_pair("Misses", "int") );
-     attrList->push_back( make_pair("Pages_New", "int") );
-     attrList->push_back( make_pair("Pages_In", "int") );
-     attrList->push_back( make_pair("Pages_Out", "int") );
-     return attrList;
+     addAttribute("FStatNr", "int");
+     addAttribute("File", "text");
+     addAttribute("PageSize", "int");
+     addAttribute("Hits", "int");
+     addAttribute("Misses", "int");
+     addAttribute("Pages_New", "int");
+     addAttribute("Pages_In", "int");
+     addAttribute("Pages_Out", "int");
    } 
 }; 
 
@@ -402,12 +387,11 @@ class TypeInfoTuple : public InfoTuple
 class TypeInfoRel : public SystemInfoRel
 {
    public:
-   TypeInfoRel(const string& name) : SystemInfoRel(name, initSchema()) 
+   TypeInfoRel(const string& name) : SystemInfoRel(name) 
    {}
    virtual ~TypeInfoRel() {}
    
-   private:
-   bool initSchema()
+   virtual void initSchema()
    { 
      addAttribute("Type", "string");
      addAttribute("Algebra", "string");
@@ -417,7 +401,6 @@ class TypeInfoRel : public SystemInfoRel
      addAttribute("ValueListExample", "text");
      addAttribute("Remark", "text");
      addAttribute("Size", "int");
-     return true;
    } 
 }; 
 
@@ -469,12 +452,11 @@ class OperatorInfoTuple : public InfoTuple
 class OperatorInfoRel : public SystemInfoRel
 {
    public:
-   OperatorInfoRel(const string& name) : SystemInfoRel(name, initSchema()) 
+   OperatorInfoRel(const string& name) : SystemInfoRel(name) 
    {}
    virtual ~OperatorInfoRel() {}
    
-   private:
-   bool initSchema()
+   virtual void initSchema()
    { 
      addAttribute("Name", "string");
      addAttribute("Algebra", "string");
@@ -483,7 +465,6 @@ class OperatorInfoRel : public SystemInfoRel
      addAttribute("Meaning", "text");
      addAttribute("Example", "text");
      addAttribute("Remark", "text");
-     return true;
    } 
 }; 
 
