@@ -40,8 +40,7 @@ export PL_DLL_DIR=PL_LIB_DIR
 export JPL_JAR=$SWI_HOME_DIR/lib/jpl.jar
 export JPL_DLL=$PL_DLL_DIR/libjpl.so 
 
-# PL_DLL is not to set because libjpl.so contains the 
-# prolog engine already
+# PL_DLL is not used on linux platforms 
 
 ......
 
@@ -60,6 +59,8 @@ export JPL_JAR=$PL_LIB_DIR/jpl.jar
 ......
 
 
+On windows platforms the variable PL_DLL has to  be set 
+even if the jpl dll is build within the secondo system. 
 
 
 
