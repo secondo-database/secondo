@@ -40,6 +40,8 @@ testName[12]="startupXterm"
 testName[13]="createDB"
 testName[14]="isCmdPresent"
 testName[15]="checkVersion"
+testName[16]="createDir"
+testName[17]="showValue"
 
 
 # check test name 
@@ -214,4 +216,13 @@ if [ "$1" == "checkVersion" ]; then
   
 fi
 
+if [ "$1" == "createDir" ]; then
+ createDir $2
+fi
 
+if [ "$1" == "showValue" ]; then
+ xyz="hallo"
+ abc="test"
+ showValue xyz
+ showValue abc 
+fi

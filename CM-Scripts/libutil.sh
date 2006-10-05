@@ -64,6 +64,16 @@ function getTimeStamp {
   date_HMS=${date_TimeStamp#*-}
 }
 
+# show the value of a given variable name
+#
+# $1 variable name
+
+function showValue
+{
+  local var=$1
+  echo "$var = <"$(eval echo '$'$var)">"
+}
+
 # print to logfile
 #
 function printl {
@@ -184,6 +194,21 @@ function createTempDir {
 
   return 0
 }
+
+# create a given directory if it does not exist
+#
+# $1 dir
+
+function createDir {
+
+ local dir=$1
+
+ if [ ! -d $dir ]; then
+   assert mkdir -p $dir
+ fi 
+
+}
+
 
 # write startup information into logfile
 # $1 writable logfile
