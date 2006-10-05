@@ -6,6 +6,20 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+2006-10-05 Changes in building the OptServer
+===============================================================================
+
+The JPL library and the Secondo part of the OptServer are divided into different
+files now.  This enables the use of precompiled jpl libraries. For datails see 
+Jpl/readme.txt.
+On windows platforms this change requires a definition of the variable PL_DLL.
+Otherwise the OptServer  will not compile.
+It's recommended to define this variable within the ~/.secondo.<platform>rc file.
+
+Best regards,
+   Thomas
+
+
 2006-09-13 Correction in the QueryProcessor::Eval function
 ===============================================================================
 
