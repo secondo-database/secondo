@@ -770,8 +770,8 @@ example4 :- pog(
 
 example5 :- pog(
   [rel(staedte, s, u), rel(plz, p, l)],
-  [pr(attr(s:sName, 1, u) = attr(p:ort, 2, u), rel(staedte, s, u), rel(plz, p,
-l)),
+  [pr(attr(s:sName, 1, u) = attr(p:ort, 2, u), rel(staedte, s, u), 
+    rel(plz, p,l)),
    pr(attr(p:pLZ, 1, u) > 40000, rel(plz, p, l))],
   _, _).
 
@@ -789,7 +789,8 @@ In the target language, we use the following operators:
 
                                 where Tuple3 = Tuple1 o Tuple2
 
-        symmjoin:       stream(Tuple1) x stream(Tuple2) x (Tuple 1 x Tuple 2 -> bool) -> stream(Tuple3)
+        symmjoin:       stream(Tuple1) x stream(Tuple2) x 
+				(Tuple 1 x Tuple 2 -> bool) -> stream(Tuple3)
 
                                 where Tuple3 = Tuple1 o Tuple2
 
@@ -1162,7 +1163,8 @@ plan_to_atom(reduce(Stream, Pred, Factor), Result) :-
   plan_to_atom(Stream, StreamAtom),
   plan_to_atom(Pred, PredAtom),
   plan_to_atom(Factor, FactorAtom),
-  concat_atom([StreamAtom, 'reduce[', PredAtom, ', ', FactorAtom, '] '], '', Result),
+  concat_atom([StreamAtom, 'reduce[', PredAtom, ', ', FactorAtom, '] '], '', 
+    Result),
   !.
 
 plan_to_atom(reduce(Stream, _, _), StreamAtom) :-
@@ -1347,7 +1349,7 @@ plan_to_atom(true, Result) :-
   !.
 
 /*
-integrating counters into query plans
+Integrating counters into query plans
 
 */
  
@@ -1682,9 +1684,7 @@ indexselect(arg(N), pr(Pred, _)) =>
 
 /*
 C. D[ue]ntgen, Apr 2006: Added rules for specialized spatio-temporal R-Tree indices
-These indices are recognized by their index type, it is a combination of a ``granularity''
-(one of ~object~, ~unit~, ~group10~) and a ``bounding box type'' (one of ~time~, ~space~, ~d3~). 
-Even here, a possible ~rename~ must be done before ~filter~ can be applied.
+These indices are recognized by their index type, it is a combination of a ``granularity'' (one of ~object~, ~unit~, ~group10~) and a ``bounding box type'' (one of ~time~, ~space~, ~d3~). Even here, a possible ~rename~ must be done before ~filter~ can be applied.
 
 */
 
@@ -1813,42 +1813,6 @@ join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
   Arg1 => Arg1S,
   Arg2 => Arg2S.
 
-/*
-Joins with generic predicates using bbox checks, that can exploit 
-the spatialjoin to reduce the set of candidates. Predicates are chosen by
-their properties as defiend by predicates ~isBBoxPredicate/1~ and 
-~isCommutativeOP/1~ in file ``operators.pl''.
-
-*/
-
-join(Arg1, Arg2, pr(Pred, R1, R2)) => JoinPlan :-
-  Pred =.. [Op, X, Y],
-  isBBoxPredicate(Op),
-  X = attr(_, _, _),
-  Y = attr(_, _, _), !,
-  Arg1 => Arg1S,
-  Arg2 => Arg2S,
-  join00(Arg1S, Arg2S, pr(Pred, R1, R2)) => JoinPlan.
-
-
-% spatialjoin with generic BBoxPredicate:
-join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg1S, 
-  Arg2S, attrname(Attr1), attrname(Attr2)), Pred2) :-
-  Pred =.. [Op, X, Y],
-  isBBoxPredicate(Op),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y),
-  Pred2 =.. [Op, Attr1, Attr2].
-
-% spatialjoin with generic commutative BBoxPredicate (additional):
-join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg2S, 
-  Arg1S, attrname(Attr2), attrname(Attr1)), Pred2) :-
-  Pred =.. [Op, Y, X],
-  isCommutativeOP(Op),
-  isBBoxPredicate(Op),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, Y, X),
-  Pred2 =.. [Op, Attr1, Attr2].
 
 
 /*
@@ -1919,33 +1883,44 @@ operators for joins on "<=", ">=", "<" and ">" here.
 */
 
 
+
+
 /*
-Rules to create mergejoins with interesting orders extension
+Joins with generic predicates using bbox checks, that can exploit 
+the spatialjoin to reduce the set of candidates. Predicates are chosen by
+their properties as defiend by predicates ~isBBoxPredicate/1~ and 
+~isCommutativeOP/1~ in file ``operators.pl''.
 
 */
 
-join00(Arg1S, Arg2S, pr(X = Y, _, _))
-  => mergejoin(Arg1S, Arg2S, attrname(Attr1), attrname(Attr2)) :-
-  optimizerOption(intOrders(_)),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y),
-  orderTest(mergejoinPossible).	
+join(Arg1, Arg2, pr(Pred, R1, R2)) => JoinPlan :-
+  Pred =.. [Op, X, Y],
+  isBBoxPredicate(Op),
+  X = attr(_, _, _),
+  Y = attr(_, _, _), !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  join00(Arg1S, Arg2S, pr(Pred, R1, R2)) => JoinPlan.
 
-join00(Arg1S, Arg2S, pr(X = Y, _, _))
-  => sortLeftThenMergejoin(Arg1S, Arg2S, attrname(Attr1),
-                                         attrname(Attr2)) :-
-  optimizerOption(intOrders(_)),
-  isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y),
-  orderTest(sortLeftThenMergejoin).
 
-join00(Arg1S, Arg2S, pr(X = Y, _, _))
-  => sortRightThenMergejoin(Arg1S, Arg2S, attrname(Attr1),
-                                          attrname(Attr2)) :-
-  optimizerOption(intOrders(_)),
+% spatialjoin with generic BBoxPredicate:
+join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg1S, 
+  Arg2S, attrname(Attr1), attrname(Attr2)), Pred2) :-
+  Pred =.. [Op, X, Y],
+  isBBoxPredicate(Op),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y),
-  orderTest(sortRightThenMergejoin).
+  Pred2 =.. [Op, Attr1, Attr2].
+
+% spatialjoin with generic commutative BBoxPredicate (additional):
+join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg2S, 
+  Arg1S, attrname(Attr2), attrname(Attr1)), Pred2) :-
+  Pred =.. [Op, Y, X],
+  isCommutativeOP(Op),
+  isBBoxPredicate(Op),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, Y, X),
+  Pred2 =.. [Op, Attr1, Attr2].
 
 /*
 
@@ -1966,7 +1941,7 @@ example, the query
 can be translated to
 
 ----    plz feed {p1} plz feed {p2} extend[newPLZ: PLZ_p2 + 1]
-        hashjoin[PLZ_p1, newPLZ, 997]
+        hashjoin[PLZ_p1, newPLZ, 99997]
         remove[newPLZ]
         consume
 ----
@@ -2019,26 +1994,65 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => sortmergejoin(Arg1S, Arg2S,
         attrname(Attr1), attrname(Attr2))   :-
-  fail,       
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
-        attrname(Attr1), attrname(Attr2), 997)   :-
-  fail,       
+        attrname(Attr1), attrname(Attr2), 99997)   :-
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
 
+
+/*
+The following two rules are used for the ~adaptiveJoin~ extension. If used, the previous two rules must be deactivated, inserting fail, as shown below.
+
+*/
+
+
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_smj(Arg1S, Arg2S, Fields) :-
+  fail,
   try_pjoin2_smj(X, Y, Fields).
 
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_hj(Arg1S, Arg2S, Fields) :-
+  fail,
   try_pjoin2_hj(X, Y, Fields).
 
  
+
+
+
+/*
+Rules to create mergejoins with interesting orders extension
+
+*/
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _))
+  => mergejoin(Arg1S, Arg2S, attrname(Attr1), attrname(Attr2)) :-
+  optimizerOption(intOrders(_)),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  orderTest(mergejoinPossible).	
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _))
+  => sortLeftThenMergejoin(Arg1S, Arg2S, attrname(Attr1),
+                                         attrname(Attr2)) :-
+  optimizerOption(intOrders(_)),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  orderTest(sortLeftThenMergejoin).
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _))
+  => sortRightThenMergejoin(Arg1S, Arg2S, attrname(Attr1),
+                                          attrname(Attr2)) :-
+  optimizerOption(intOrders(_)),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  orderTest(sortRightThenMergejoin).
+
+
 
 /*
 The rules below will be used only if option ~adaptiveJoin~ is set. For
@@ -2222,6 +2236,8 @@ Set the size of node ~Node~ to ~Size~ if no size has been assigned before.
 
 */
 
+:- dynamic resultSize/2.
+
 setNodeSize(Node, _) :- resultSize(Node, _), !.
 setNodeSize(Node, Size) :- assert(resultSize(Node, Size)).
 
@@ -2392,7 +2408,7 @@ cost(feed(X), Sel, S, C) :-
 
 /*
 Here ~feedTC~ means ``feed tuple cost'', i.e., the cost per tuple, a constant to
-be determined in experiments. These constants are kept in file ``Operators.pl''.
+be determined in experiments. These constants are kept in file ``operators.pl''.
 
 */
 
@@ -2404,22 +2420,20 @@ cost(consume(X), Sel, S, C) :-
 /*
 For ~filter~, there are several special cases to distinguish:
  
-  1 ~filter(spatialjoin(...),P)~
+  1 ~filter(spatialjoin(...), P)~
 
-  2 ~filter(gettuples(...),P)~
+  2 ~filter(gettuples(...), P)~
 
-  3 ~filter(windowintersects(...),P)~
+  3 ~filter(windowintersects(...), P)~
 
   4 ``normal'' ~filter(...)~
 
 For the first three cases, the edge is the translation of a spatial predicate, that
 makes use of bounding box checks. The first argument of filter will already reduce
 the set of possible candidates, so that the cardinality of tuples processed by filter
-will be smaller than the cardinality passed down in the 3rd argument of ~cost~. Also, the
-selectivity passed with the second argument of ~cost~ if the ~total~ selectivity. To 
+will be smaller than the cardinality passed down in the 3rd argument of ~cost~. Also, the selectivity passed with the second argument of ~cost~ if the ~total~ selectivity. To 
 get the selectivity of the preselection, one can analyse the predicate and lookup
-the table ~storedBBoxSel/3~ for that selectivity, which should be passed to the recursive
-call of ~cost~.
+the table ~storedBBoxSel/3~ for that selectivity, which should be passed to the recursive call of ~cost~.
 
 PROBLEM: What happens with the entropy-optimizer? As for cases 2 + 3, there is no 
 problem, as the index is used to create a fresh tuple stream. But, as for case 1, we 
@@ -2442,7 +2456,7 @@ cost(filter(X, _), Sel, S, C) :-
   S is SizeX,
   C is CostX + A * SizeX, !.
 
-cost(filter(X, _), Sel, S, C) :- % 'normal' filter
+cost(filter(X, _), Sel, S, C) :- 	% 'normal' filter
   cost(X, 1, SizeX, CostX),
   filterTC(A),
   S is SizeX * Sel,
@@ -2562,7 +2576,7 @@ cost(sortRightThenMergejoin(X, Y, AX, AY), Sel, S, C) :-
 
 
 /* 
-   Simple costs estimation for ~symmjoin~
+   Simple cost estimation for ~symmjoin~
 
 */
 cost(symmjoin(X, Y, _), Sel, S, C) :-
@@ -2588,8 +2602,7 @@ cost(spatialjoin(X, Y, _, _), Sel, S, C) :-
   
 
 /*
-costs for pjoin2 will only be used if option 
-~adpativeJoin~ is enabled.
+costs for pjoin2 will only be used if option ~adpativeJoin~ is enabled.
 
 */
 
@@ -2598,14 +2611,14 @@ cost(pjoin2(X, Y, [ _ | _ ]), Sel, Size, C) :-
   cost(Y, 1, SizeY, _),
   Size is Sel * SizeX * SizeY,
   cost(sortmergejoin(X, Y, _, _), Sel, S1, C1),
-  cost(hashjoin(X, Y, _, _, 997), Sel, S1, C2),
+  cost(hashjoin(X, Y, _, _, 99997), Sel, S1, C2),
   C is min(C1, C2).
 
 cost(pjoin2_hj(X, Y, [ _ | _ ]), Sel, Size, C) :-
-  cost(hashjoin(X, Y, _, _, 997), Sel, Size, C).
+  cost(hashjoin(X, Y, _, _, 99997), Sel, Size, C).
 
 cost(pjoin2_smj(X, Y, [ _ | _ ]), Sel, Size, C) :-
-  cost(hashjoin(X, Y, _, _, 997), Sel, Size, C).
+  cost(hashjoin(X, Y, _, _, 99997), Sel, Size, C).
 
 cost(extend(X, _), Sel, S, C) :-
   cost(X, Sel, S, C1),
@@ -4333,7 +4346,9 @@ Examples 14 - 22:
 
 sqlExample( 14,
 
-  select * from [staedte as s, plz as p] where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0]
+  select * 
+  from [staedte as s, plz as p] 
+  where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0]
   ).
 
 sqlExample( 15,
@@ -4344,7 +4359,9 @@ sqlExample( 15,
 
 sqlExample( 16,
 
-  select * from [staedte as s, plz as p] where [s:sname = p:ort, p:plz > 40000]
+  select * 
+  from [staedte as s, plz as p] 
+  where [s:sname = p:ort, p:plz > 40000]
   ).
 
 /*
@@ -4358,7 +4375,9 @@ which initializes the local stack to 4 MB.
 */
 
 
-/* Example 17 is too complex for the interesting Orders extension (even with 64M stacks):
+/* 
+Example 17 is too complex for the interesting Orders extension (even with 64M stacks):
+
 ----
 sqlExample( 17,
   select *
@@ -4470,12 +4489,16 @@ Exception Handling
 If an error is encountered during the optimization process, an exception should be 
 thrown using the built-in Prolog predicate 
 
----- throw(sql_ERROR(X)),
----- where ~X~ is a term that represents a somehow meaningful error-message, e.g. 
+----    throw(sql_ERROR(X)),
+---- 
+
+where ~X~ is a term that represents a somehow meaningful error-message, e.g. 
 respecting the format 
 
----- <prolog-file>\<Predicate>(<Arguments>). 
----- A standard exception handler is implemented by
+----    <prolog-file>\<Predicate>(<Arguments>). 
+---- 
+
+A standard exception handler is implemented by
 the predicate ~defaultExceptionHandler(G)~ that will catch any exception respecting the
 exception-format described above, that is thrown within goal ~G~.
 
@@ -4694,7 +4717,7 @@ allCards :-
   writeRealSizes.
  
 /*
-17 Loading extensions for Nawra Cost Functions
+17 Loading Extensions for Nawra Cost Functions
 
 */
   
