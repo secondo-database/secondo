@@ -19,11 +19,19 @@
 
 include ../../makefile.env
 
+ifdef $(JPL_JAR)
+CLASSPATH=$(JPL_JAR)
+else
+CLASSPATH=$(JPL_CLASSPATH)
+endif
+
+
+
 .PHONY:all
 all: $(OPTDIR)/OptimizerServer.class
 
 $(OPTDIR)/OptimizerServer.class: OptimizerServer.java 
-	$(JAVAC) -classpath $(JPL_CLASSPATH) -d $(OPTDIR) OptimizerServer.java
+	$(JAVAC) -classpath $(CLASSPATH) -d $(OPTDIR) OptimizerServer.java
 
 .PHONY:clean
 clean:

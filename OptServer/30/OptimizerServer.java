@@ -35,6 +35,7 @@ public class OptimizerServer extends Thread{
 
 static {
     System.loadLibrary( "jpl" );
+    System.loadLibrary( "regSecondo" );
   }
 
 

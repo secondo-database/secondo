@@ -25,26 +25,20 @@ INCLUDEFLAGS := -I. $(JNIINCLUDE) $(PLINCLUDEFLAGS) -I$(INCLUDEDIR)
 
 
 
-CCOBJECTS := $(JPL_LIB)/jpl.o $(JPL_LIB)/regSecondo.o
+CCOBJECTS := $(JPL_LIB)/jpl.o 
 OBJECTS := $(CCOBJECTS)
 ifeq ($(platform),win32)
   DEF += jpl.def
   OBJECTS += $(DEF)
 endif
 
-JNIDLL := $(OPTDIR)/$(DLLPREF)jpl.$(JNI_DLLEXT)
+JPLDLL := $(OPTDIR)/$(DLLPREF)jpl.$(JNI_DLLEXT)
 
 LD := g++
-
-LINKFILES := $(SECONDO_BUILD_DIR)/UserInterfaces/cmsg.o $(SECONDOPL_DIR)/SecondoPL.o $(LIBDIR)/SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceGeneral.o
 
 # Some optional switches used for providing a prolog
 # predicate which maximizes the entropy. For details
 # refer to "SecondoPL.cpp" and the subdirectory "Optimizer/Entropy"
-
-ifdef ENTROPY
-  LINKFILES += $(OPTDIR)/Entropy/Iterative_scaling.o
-endif
 
 .PHONY: all
 all: compile build
@@ -53,18 +47,16 @@ all: compile build
 compile: $(OBJECTS)
 
 .PHONY:build
-build: $(JNIDLL)
+build: $(JPLDLL)
 
 $(JPL_LIB)/jpl.o: $(JPLVER)/jpl.c
 	$(CC) -c -fPIC -g -o $@ $(INCLUDEFLAGS) $<
 
-$(JPL_LIB)/regSecondo.o: regSecondo.c
-	$(CC) -c -fPIC -g -o $@ $(INCLUDEFLAGS) $<
 
-LINK_FLAGS := $(ENT_LINK_LIBS) $(LD_LINK_LIBS) \
-              $(JNI_CCFLAGS) $(PLLDFLAGS) $(JPLDEF)
+LINK_FLAGS := $(JNI_CCFLAGS) $(PLLDFLAGS) $(JPLDEF)
+
 ifeq ($(platform),win32)
-$(JNIDLL): $(CCOBJECTS) $(LINKFILES)
+$(JPLDLL): $(CCOBJECTS) 
 	$(CC) $(DLLFLAGS) -Wl,-soname,jpl.$(JNI_DLLEXT) -o $@  \
 	$^ $(LINK_FLAGS) jpl.def
 
@@ -74,7 +66,7 @@ jpl.def: $(JPL_LIB)/jpl.o $(JPL_LIB)/regSecondo.o
 	rm $@.tmp
 
 else
-$(JNIDLL): $(CCOBJECTS) $(LINKFILES)
+$(JPLDLL): $(CCOBJECTS) 
 	$(LD) $(DLLFLAGS) $(EXEFLAGS) $(LDFLAGS) -o $@ $^ $(LINK_FLAGS)
 
 		
@@ -82,4 +74,4 @@ endif
 
 .PHONY:clean
 clean:
-	rm -f $(OBJECTS) $(JNIDLL)
+	rm -f $(OBJECTS) $(JPLDLL)

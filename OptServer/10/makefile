@@ -19,6 +19,12 @@
 
 include ../../makefile.env
 
+ifdef JPL_JAR
+CLASSPATH=.:$(JPL_JAR)
+else
+CLASSPATH=$(JPL_CLASSPATH)
+endif
+
 .PHONY:all
 all: $(OPTDIR)/OptimizerServer.class $(OPTDIR)/NamedVariable.class $(OPTDIR)/PrologParser.class
 

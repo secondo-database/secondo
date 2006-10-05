@@ -19,12 +19,60 @@
 
 include ../makefile.env
 include ../makefile.optimizer
+include ../makefile.jni
+
+INCLUDEFLAGS := -I. $(JNIINCLUDE) $(PLINCLUDEFLAGS) -I$(INCLUDEDIR)
+
+REG_SEC_DLL=$(OPTDIR)/$(DLLPREF)regSecondo.$(JNI_DLLEXT)
+
+ifndef JPL_DLL
+JPL_DLL=$(OPTDIR)/$(DLLPREF)jpl.$(JNI_DLLEXT)
+endif
+
+
+LINKFILES := $(SECONDO_BUILD_DIR)/UserInterfaces/cmsg.o $(SECONDOPL_DIR)/SecondoPL.o $(LIBDIR)/SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceGeneral.o $(JPL_DLL)
+
+# Some optional switches used for providing a prolog
+# predicate which maximizes the entropy. For details
+# refer to "SecondoPL.cpp" and the subdirectory "Optimizer/Entropy"
+
+ifdef ENTROPY
+  LINKFILES += $(OPTDIR)/Entropy/Iterative_scaling.o
+endif
+
+LINK_FLAGS := $(ENT_LINK_LIBS) $(LD_LINK_LIBS) \
+              $(JNI_CCFLAGS) 
+
+
 
 .PHONY:all
-all:
+all: jsrc $(REG_SEC_DLL)
+
+jsrc:
 	make -C $(JPLVER) all
+
+regSecondo.o: regSecondo.c
+	$(CC) -c -fPIC -g -o $@ $(INCLUDEFLAGS) $<
+
+ifeq ($(platform),win32)
+$(REG_SEG_DLL): regSecondo.o $(LINKFILES)
+	$(CC) $(DLLFLAGS) -Wl,-soname,jpl.$(JNI_DLLEXT) -o $@  \
+	$^ $(LINK_FLAGS) regSeg.def
+
+regSeg.def: regSecondo.o
+	dlltool -z $@.tmp $^
+	sed -e "s#\(.*\)@\(.*\)@.*#\1 = \1@\2#g" $@.tmp > $@
+	rm $@.tmp
+
+else
+$(REG_SEC_DLL): regSecondo.o $(LINKFILES)
+	$(LD) $(DLLFLAGS) $(EXEFLAGS) $(LDFLAGS) -o $@ $^ $(LINK_FLAGS)
+endif
 
 .PHONY:clean
 clean:
 	make -C 10 clean
 	make -C 30 clean 
+	rm -f regSecondo.o
+	rm -f $(REG_SEC_DLL)
+

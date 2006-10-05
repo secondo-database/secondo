@@ -21,7 +21,6 @@ include ../../makefile.optimizer
 
 .PHONY: all
 all:
-	echo $(PL_VERSION)
 	make -C $(JPLVER) all
 
 .PHONY: clean

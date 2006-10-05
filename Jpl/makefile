@@ -21,9 +21,12 @@ include ../makefile.env
 
 .PHONY: all
 all:
+ifndef JPL_JAR
 	make -C jsrc all
-	make -C lib all
+endif
+ifndef JPL_DLL
 	make -C src all
+endif
 
 .PHONY:doc
 doc:

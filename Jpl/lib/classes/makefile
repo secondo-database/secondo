@@ -17,17 +17,8 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-include ../../../makefile.env
-
-.PHONY: all
-all:  $(JPL_SRC)/$(JPL_HEADER)
-
-$(JPL_SRC)/$(JPL_HEADER):
-	$(JAVAH) -classpath $(CLASSPATH) -jni -o $(JPL_SRC)/$(JPL_HEADER) jpl.fli.Prolog
-
 
 .PHONY: clean
 clean:
 	make -C jpl clean
-	rm -f $(JPL_SRC)/$(JPL_HEADER)
 
