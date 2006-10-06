@@ -2970,9 +2970,9 @@ query shws feed extend[shsh: intersection(.s11, .shoal)] project[shsh] consume;
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws12ints
 query shws feed extend[shsh: intersection(.s12, .shoal)] project[shsh] consume;
 
-#testcase Special Cases Oporto 25
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shwsinside
-query shws feed extend[shins1:.s1 inside .shoal, shins2:.s2 inside .shoal, shins3:.s3 inside .shoal, shins4:.s4 inside .shoal, shins5:.s5 inside .shoal, shins6:.s6 inside .shoal, shins7:.s7 inside .shoal, shins8:.s8 inside .shoal, shins9:.s9 inside .shoal, shins10:.s10 inside .shoal, shins11:.s11 inside .shoal, shins12:.s12 inside .shoal] consume;
+#  testcase Special Cases Oporto 25
+#  yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shwsinside
+#  query shws feed extend[shins1:.s1 inside .shoal, shins2:.s2 inside .shoal, shins3:.s3 inside .shoal, shins4:.s4 inside .shoal, shins5:.s5 inside .shoal, shins6:.s6 inside .shoal, shins7:.s7 inside .shoal, shins8:.s8 inside .shoal, shins9:.s9 inside .shoal, shins10:.s10 inside .shoal, shins11:.s11 inside .shoal, shins12:.s12 inside .shoal] consume;
 
 #testcase Special Cases Oporto 26
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsatinsti1
