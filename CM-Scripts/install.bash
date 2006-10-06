@@ -339,7 +339,7 @@ let numOfArgs++
 
 while [ $numOfArgs -ne $OPTIND ]; do
 
-  getopts "d:hnt" optKey
+  getopts "d:ht" optKey
   if [ "$optKey" == "?" ]; then
     optKey="h"
   fi
@@ -350,11 +350,14 @@ while [ $numOfArgs -ne $OPTIND ]; do
       printf "\n%s\n" "Usage of ${0##*/}:" 
       printf "%s\n"   "  -h print this message and exit."
       printf "%s\n"   "  -t test mode installing below directory /tmp"
-      printf "%s\n"   "  -n name of the the sdk root directory [$sdkName]"
+      printf "%s\n"   "  -d name of the the sdk root directory [$sdkName]"
       printf "%s\n"   "The script installs or compiles all 3rd party tools"
       printf "%s\n\n" "needed to compile SECONDO."
       exit 0;;
-   
+  
+   d) sdkName=$OPTARG;;
+      
+      
    t) testMode="true"
 
   esac
