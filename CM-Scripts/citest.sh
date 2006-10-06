@@ -7,15 +7,31 @@
 # configuration file.
 #
 # July 2004, M. Spiekermann
+#
+# cvs runs this script in /tmp/cvs-serv$PID below this directory
+# a subdirectory CVS will be created. All files passed by the cvs client
+# for a commit are copied (creating subdirectories if necessary). 
 
-prefix="/home/spieker/cvs-snapshot/Tools/pd"
+prefix="/home/spieker/cvs-snapshot"
 
-export PATH="$prefix:$PATH"
-export PD_HEADER="$prefix/pd.header"
+pdDir="$prefix/Tools/pd"
+scriptDir="$prefix/CM-Scripts"
 
+export PATH="$pdDir:$scriptDir:$PATH"
+export PD_HEADER="$pdDir/pd.header"
+
+files=$(find $PWD -path "*CVS" -prune -o -type f -print)
 # for test purposes
-#dirfiles=$(ls -l $PWD)
-#printf "$dirfiles \n"
+echo -e "cvs server: Running pre-commit check for \n"
+for f in $files; do
+  echo -e "  $f\n"
+done
+
+checksize.sh 512000 $files
+rc=$?
+if [ $rc -ne 0 ]; then
+  exit $rc;
+fi
 
 checkpd --strong
 
