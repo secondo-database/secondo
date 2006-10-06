@@ -35,15 +35,8 @@ This folder contains the following files:
 How to work with the database:
 =============================
 
-1.   * copy the file 'secondo2006' to your SECONDO 'bin'-directory
-
-     * start SecondoTTYBDB
-
-     * Restore the database with the commands
-
-       - create database cebit2006; 
-
-       - restore database cebit2006 from cebit2006;
+1. Get the database file 'cebit2006' (its in the secondo-data repository)
+   and create a database with the same name 
 
 2. Copy the file 'cebit2006.cat' to $SECONDO_BUILD_DIR\Data\GuiData\hoese\categories 
 
