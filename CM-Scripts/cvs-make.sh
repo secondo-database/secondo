@@ -23,15 +23,13 @@
 #
 # January 2006, M. Spiekermann: A backup dir for mails and test outputs
 #   was implemented. 
-
+#
+# October 2006, M. Spiekermann: Support for multiple SDKs and cvs modules added.
 
 # Configuration Options
 
 # root for created local directories and files
 rootDir=$HOME
-
-# SDK root
-sdkRootDir=$SECONDO_SDK
 
 # cvs configuration
 coModule="secondo"
@@ -80,9 +78,12 @@ $mailFooter"
 
 
 #############################################################
-#                IMPLEMENTATION PART                        #                               #############################################################
+#                IMPLEMENTATION PART                        #                               
+#############################################################
 
+sdkRootDir=""
 baseDir=$HOME/${0%/*}
+
 # include function definitions
 # libutil.sh must be in the search PATH 
 if [ -s $baseDir/libutil.sh ]; 
@@ -177,27 +178,10 @@ while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
 
 done
 
-coDir=tmp_${coModule}_${date_ymd}_${date_HMS}
-
-# set up environment for secondo
-source ~/.bashrc # this is needed when started by cron
-
-# overwrite SECONDO_SDK and set up
-# the compiler and other tools needed by secondo
-export SECONDO_SDK=$sdkRootDir
-if ! source ~/.secondorc ""; then exit 1; fi
-
-# derive some other important directories
-cbuildDir=${rootDir}/${coDir}
-scriptDir=${cbuildDir}/CM-Scripts
-startDate=$(date)
-scriptFile="${PWD}/$0"
-
-
 printSep "Variable values"
 
-showValue startDate
-showValue scriptFile
+coDir=tmp_${coModule}_${date_ymd}_${date_HMS}
+
 showValue rootDir
 showValue cvsDir
 showValue coDir
@@ -206,7 +190,29 @@ showValue coModule
 showValue LU_SENDMAIL
 showValue waitMax
 
+# set up environment for secondo
+source ~/.bashrc # this is needed when started by cron
 
+# overwrite SECONDO_SDK and set up
+# the compiler and other tools needed by secondo
+if [ "$sdkRootDir" != "" ]; then
+  export SECONDO_SDK=$sdkRootDir
+fi
+showValue SECONDO_SDK 
+
+if ! source ~/.secondorc ""; then exit 1; fi
+
+# derive some other important directories
+cbuildDir=${rootDir}/${coDir}
+scriptDir=${cbuildDir}/CM-Scripts
+startDate=$(date)
+scriptFile="${PWD}/$0"
+
+showValue startDate
+showValue scriptFile
+showValue scriptDir
+showValue cbuildDir
+ 
 ## check if files in the module secondo were changed
 ## since the last run
 lastDateFile="$HOME/.lastrun-$coModule"
