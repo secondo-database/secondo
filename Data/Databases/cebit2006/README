@@ -35,14 +35,8 @@ This folder contains the following files:
 How to work with the database:
 =============================
 
-1. Get the database file 'cebit2006' (its in the secondo-data repository)
-   and create a database with the same name 
-
-2. Copy the file 'cebit2006.cat' to $SECONDO_BUILD_DIR\Data\GuiData\hoese\categories 
-
-3. Copy the file 'cebit2006.ses' to $SECONDO_BUILD_DIR\Data\GuiData\hoese\sessions
-
-Take a look, if the last two files are not already present in the appropriate directories.
+Get the database file 'cebit2006' (its in the secondo-data repository)
+and create a database with the same name.
 
 Example Query:
 =============
