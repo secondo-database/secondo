@@ -2339,6 +2339,15 @@ Gets the current half segment from the ~region~ value according to the ~pos~ poi
 */
     bool InnerContains( const HalfSegment& hs ) const;
 /*
+7.10 intersects function (segment)
+
+*Semantics:* This function decides whether a half segment intersects the region.
+
+*Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
+
+*/
+    bool Intersects( const HalfSegment& hs ) const;
+/*
 7.11 holeedge-contain function
 
 *Semantics:* This function decides whether a half segment is inside a hole edge of the region.

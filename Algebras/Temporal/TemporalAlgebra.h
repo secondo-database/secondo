@@ -1579,6 +1579,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 				 Point& result, 
 				 bool ignoreLimits = false ) const;
   virtual bool Passes( const Point& val ) const;
+  bool Passes( const Region& val ) const;
   virtual bool At( const Point& val, TemporalUnit<Point>& result ) const;
   virtual void AtInterval( const Interval<Instant>& i, 
                            TemporalUnit<Point>& result ) const;
@@ -1946,7 +1947,8 @@ and ~m~ is the number of intervals of the periods ~Y~
 *Complexity:* $O( n )$, where ~n~ is the number of units of this mapping ~X~
 
 */
-    bool Passes( const Alpha& val ) const;
+    template <class Beta>
+    bool Passes( const Beta& val ) const;
 
 /*
 3.10.5.3 Operation ~deftime~
@@ -4445,7 +4447,8 @@ void Mapping<Unit, Alpha>::DefTime( Periods& r ) const
 }
 
 template <class Unit, class Alpha>
-bool Mapping<Unit, Alpha>::Passes( const Alpha& val ) const
+template <class Beta>
+bool Mapping<Unit, Alpha>::Passes( const Beta& val ) const
 {
   assert( IsOrdered() && val.IsDefined() );
 
@@ -5482,14 +5485,14 @@ int MappingPresent_p( Word* args, Word& result,
 6.11 Value mapping functions of operator ~passes~
 
 */
-template <class Mapping, class Alpha>
+template <class Mapping, class Alpha, class Beta>
 int MappingPasses( Word* args, Word& result, 
                    int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
   Mapping *m = ((Mapping*)args[0].addr);
-  Alpha* val = ((Alpha*)args[1].addr);
+  Beta* val = ((Beta*)args[1].addr);
 
   if( !val->IsDefined() )
     ((CcBool *)result.addr)->Set( false, false );

@@ -252,6 +252,15 @@ would then be very hard to return a true for this function.
   return false;
 }
 
+bool UPoint::Passes( const Region& r ) const
+{
+  if( AlmostEqual( p0, p1 ) )
+    return r.Contains( p0 );
+
+  HalfSegment hs( true, p0, p1 );
+  return r.Intersects( hs );
+}
+
 bool UPoint::At( const Point& p, TemporalUnit<Point>& result ) const
 {
 /*
@@ -2328,7 +2337,8 @@ MovingBaseTypeMapBool( ListExpr args )
         (nl->IsEqual( arg1, "mint" ) && nl->IsEqual( arg2, "int" )) ||
 // VTA - This operator is not yet implemented for the type of ~mreal~
 //        (nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" )) ||
-        (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "point" )) )
+        (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "point" )) ||
+        (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "region" )) ) 
       return nl->SymbolAtom( "bool" );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -2961,18 +2971,25 @@ MovingBaseSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "mbool" && nl->SymbolValue( arg2 ) == "bool" )
+  if( nl->SymbolValue( arg1 ) == "mbool" &&
+      nl->SymbolValue( arg2 ) == "bool" )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "mint" && nl->SymbolValue( arg2 ) == "int" )
+  if( nl->SymbolValue( arg1 ) == "mint" &&
+      nl->SymbolValue( arg2 ) == "int" )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "mreal" && nl->SymbolValue( arg2 ) == "real" )
+  if( nl->SymbolValue( arg1 ) == "mreal" && 
+      nl->SymbolValue( arg2 ) == "real" )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "mpoint" && nl->SymbolValue
-  ( arg2 ) == "point" )
+  if( nl->SymbolValue( arg1 ) == "mpoint" && 
+      nl->SymbolValue( arg2 ) == "point" )
     return 3;
+
+  if( nl->SymbolValue( arg1 ) == "mpoint" && 
+      nl->SymbolValue( arg2 ) == "region" )
+    return 4;
 
   return -1; // This point should never be reached
 }
@@ -4060,10 +4077,11 @@ ValueMapping temporalpresentmap[] = { MappingPresent_i<MBool>,
                                       MappingPresent_p<MReal>,
                                       MappingPresent_p<MPoint> };
 
-ValueMapping temporalpassesmap[] = { MappingPasses<MBool, CcBool>,
-                                     MappingPasses<MInt, CcInt>,
-                                     MappingPasses<MReal, CcReal>,
-                                     MappingPasses<MPoint, Point> };
+ValueMapping temporalpassesmap[] = { MappingPasses<MBool, CcBool, CcBool>,
+                                     MappingPasses<MInt, CcInt, CcInt>,
+                                     MappingPasses<MReal, CcReal, CcReal>,
+                                     MappingPasses<MPoint, Point, Point>, 
+                                     MappingPasses<MPoint, Point, Region> };
 
 ValueMapping temporalinitialmap[] = { MappingInitial<MBool, UBool, CcBool>,
                                       MappingInitial<MInt, UInt, CcInt>,
@@ -4737,7 +4755,7 @@ Operator temporalpresent( "present",
 
 Operator temporalpasses( "passes",
                          TemporalSpecPasses,
-                         4,
+                         5,
                          temporalpassesmap,
                          MovingBaseSelect,
                          MovingBaseTypeMapBool);

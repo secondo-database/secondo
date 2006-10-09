@@ -4876,6 +4876,25 @@ bool Region::InnerContains( const Point& p ) const
   return false;
 }
 
+bool Region::Intersects( const HalfSegment& inHs ) const
+{
+  if( bbox.Intersects( inHs.BoundingBox() ) )
+  {
+    if( Contains( inHs.GetLeftPoint() ) ||
+        Contains( inHs.GetRightPoint() ) )
+      return true;
+
+    const HalfSegment *hs;
+    for( int i = 0; i < Size(); i++ )
+    {
+      Get( i, hs );
+      if( hs->Intersects( inHs ) )
+        return true;
+    }
+  }
+  return false;
+}
+
 bool Region::Contains( const HalfSegment& hs ) const
 {
   if( IsEmpty() )
