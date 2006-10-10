@@ -5550,7 +5550,7 @@ int atmaxUReal( Word* args, Word& result, int message,
     {
     case OPEN :
       
-      if(TUA_DEBUG) cout << "\nAtExtrURealLocalInfo: OPEN " << endl;
+      if(TUA_DEBUG) cout << "\natmaxUReal: OPEN " << endl;
       a0 = args[0]; //qp->Request(args[0].addr, a0);
       ureal = (UReal*)(a0.addr);
       if(TUA_DEBUG) cout << "  1" << endl;
@@ -5567,7 +5567,7 @@ int atmaxUReal( Word* args, Word& result, int message,
           if(TUA_DEBUG) cout << "  2.1" << endl;
           sli->NoOfResults = 0;
           if(TUA_DEBUG) 
-            cout << "AtExtrURealLocalInfo: OPEN  finished (1)" << endl;
+            cout << "atmaxUReal: OPEN  finished (1)" << endl;
           return 0;
         }
       if(TUA_DEBUG) cout << "  3" << endl;
@@ -5579,7 +5579,7 @@ int atmaxUReal( Word* args, Word& result, int message,
           sli->t_res[sli->NoOfResults] = *(ureal->Clone());
           sli->NoOfResults++;
           if(TUA_DEBUG) 
-            cout << "AtExtrURealLocalInfo: OPEN  finished (2)" << endl;
+            cout << "atmaxUReal: OPEN  finished (2)" << endl;
           return 0;
         }
       if(TUA_DEBUG) cout << "  4" << endl;
@@ -5592,7 +5592,7 @@ int atmaxUReal( Word* args, Word& result, int message,
               sli->t_res[sli->NoOfResults] = *(ureal->Clone());
               sli->NoOfResults++;
               if(TUA_DEBUG) 
-                cout << "AtExtrURealLocalInfo: OPEN  finished (3)" << endl;
+                cout << "atmaxUReal: OPEN  finished (3)" << endl;
               return 0;
             }
           if ( ureal->b < 0 )
@@ -5605,7 +5605,7 @@ int atmaxUReal( Word* args, Word& result, int message,
               sli->t_res[sli->NoOfResults].timeInterval.rc = true;
               sli->NoOfResults++;
               if(TUA_DEBUG) 
-                cout << "AtExtrURealLocalInfo: OPEN  finished (4)" << endl;
+                cout << "atmaxUReal: OPEN  finished (4)" << endl;
               return 0;
             }
           if ( ureal->b > 0 )
@@ -5618,7 +5618,7 @@ int atmaxUReal( Word* args, Word& result, int message,
               sli->t_res[sli->NoOfResults].timeInterval.lc = true;            
               sli->NoOfResults++;
               if(TUA_DEBUG) 
-                cout << "AtExtrURealLocalInfo: OPEN  finished (5)" << endl;
+                cout << "atmaxUReal: OPEN  finished (5)" << endl;
               return 0;
             }
         }
@@ -5697,21 +5697,22 @@ int atmaxUReal( Word* args, Word& result, int message,
               sli->t_res[sli->NoOfResults].timeInterval = i;
               sli->NoOfResults++;
             }
-          if(TUA_DEBUG) cout << "  5.9" << endl;
+          if(TUA_DEBUG) 
+            cout << "atmaxUReal: OPEN  finished (6)" << endl;        
           return 0;
         }
       if(TUA_DEBUG) cout << "  6" << endl;
       cout << "\natmaxUReal (OPEN): This should not happen!" << endl;
-      if(TUA_DEBUG) cout << "AtExtrURealLocalInfo: OPEN  finished (6)" << endl;
+      if(TUA_DEBUG) cout << "atmaxUReal: OPEN  finished (7)" << endl;
       return 0;
       
     case REQUEST :
       
-      if(TUA_DEBUG) cout << "\nAtExtrURealLocalInfo: REQUEST" << endl;
+      if(TUA_DEBUG) cout << "\natmaxUReal: REQUEST" << endl;
       if (local.addr == 0)
         {
           if(TUA_DEBUG) 
-            cout << "AtExtrURealLocalInfo: REQUEST CANCEL(1)" << endl;
+            cout << "atmaxUReal: REQUEST CANCEL(1)" << endl;
           return CANCEL;
         }
       sli = (AtExtrURealLocalInfo*) local.addr;
@@ -5719,19 +5720,19 @@ int atmaxUReal( Word* args, Word& result, int message,
       if (sli->NoOfResults <= sli->ResultsDelivered)
         {
           if(TUA_DEBUG) 
-            cout << "AtExtrURealLocalInfo: REQUEST CANCEL (2)" << endl;
+            cout << "atmaxUReal: REQUEST CANCEL (2)" << endl;
           return CANCEL;
         }
       result = SetWord( sli->t_res[sli->ResultsDelivered].Clone() );
       sli->t_res[sli->ResultsDelivered].DeleteIfAllowed();
       sli->ResultsDelivered++;
       if(TUA_DEBUG) 
-        cout << "AtExtrURealLocalInfo: REQUEST YIELD" << endl;
+        cout << "atmaxUReal: REQUEST YIELD" << endl;
       return YIELD;
       
     case CLOSE :
       
-      if(TUA_DEBUG) cout << "\nAtExtrURealLocalInfo: CLOSE" << endl;
+      if(TUA_DEBUG) cout << "\natmaxUReal: CLOSE" << endl;
       if (local.addr != 0)
         {
           sli = (AtExtrURealLocalInfo*) local.addr;
@@ -5742,7 +5743,7 @@ int atmaxUReal( Word* args, Word& result, int message,
             }
           delete sli;
         }
-      if(TUA_DEBUG) cout << "AtExtrURealLocalInfo: CLOSE finished" << endl;
+      if(TUA_DEBUG) cout << "atmaxUReal: CLOSE finished" << endl;
       return 0;
       
     } // end switch
