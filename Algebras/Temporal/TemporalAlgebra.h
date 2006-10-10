@@ -5036,8 +5036,8 @@ Word InConstTemporalUnit( const ListExpr typeInfo,
         new ConstTemporalUnit<Alpha>();
       constunit->SetDefined(false);
       constunit->timeInterval=
-        Interval<DateTime>(DateTime(0,0,instanttype),
-                           DateTime(0,0,instanttype),TRUE,TRUE);
+        Interval<DateTime>(DateTime(instanttype),
+                           DateTime(instanttype),true,true);
       correct = true;
       return (SetWord( constunit ));
     }

@@ -1235,8 +1235,8 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
       UReal *ureal = new UReal();
       ureal->SetDefined(false);
       ureal->timeInterval=
-        Interval<DateTime>(DateTime(0,0,instanttype),
-                           DateTime(0,0,instanttype),TRUE,TRUE);
+        Interval<DateTime>(DateTime(instanttype),
+                           DateTime(instanttype),true,true);
       correct = true;
       return (SetWord( ureal ));
     }
@@ -1471,8 +1471,8 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
       UPoint *upoint = new UPoint();
       upoint->SetDefined(false);
       upoint->timeInterval=
-        Interval<DateTime>(DateTime(0,0,instanttype),
-                           DateTime(0,0,instanttype),TRUE,TRUE);
+        Interval<DateTime>(DateTime(instanttype),
+                           DateTime(instanttype),TRUE,TRUE);
       correct = true;
       return (SetWord( upoint ));
     }
@@ -3572,7 +3572,7 @@ int TheYear( Word* args, Word& result, int message, Word& local,
   int intyear = ((CcInt*)args[0].addr)->GetIntval();
 
   Instant inst1, inst2;
-  inst1.SetType( instanttype) ;
+  inst1.SetType( instanttype ) ;
   inst1.Set( intyear, 1, 1, 0, 0, 0, 0 );
 
   inst2.SetType( instanttype );
