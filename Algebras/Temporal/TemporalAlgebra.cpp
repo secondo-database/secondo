@@ -1472,7 +1472,7 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
       upoint->SetDefined(false);
       upoint->timeInterval=
         Interval<DateTime>(DateTime(instanttype),
-                           DateTime(instanttype),TRUE,TRUE);
+                           DateTime(instanttype),true,true);
       correct = true;
       return (SetWord( upoint ));
     }
