@@ -1234,6 +1234,9 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
     {
       UReal *ureal = new UReal();
       ureal->SetDefined(false);
+      ureal->timeInterval=
+        Interval<DateTime>(DateTime(0,0,instanttype),
+                           DateTime(0,0,instanttype),TRUE,TRUE);
       correct = true;
       return (SetWord( ureal ));
     }
@@ -1467,6 +1470,9 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
     {
       UPoint *upoint = new UPoint();
       upoint->SetDefined(false);
+      upoint->timeInterval=
+        Interval<DateTime>(DateTime(0,0,instanttype),
+                           DateTime(0,0,instanttype),TRUE,TRUE);
       correct = true;
       return (SetWord( upoint ));
     }
