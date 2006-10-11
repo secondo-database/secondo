@@ -282,7 +282,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
     double t2 = in.getEnd();
     double Delta = (time-t1)/(t2-t1);
     double x = pm.x1+Delta*(pm.x2-pm.x1);
-    return (int) x;
+    return  x;
   }
 
   public boolean mayBeDefined(){
