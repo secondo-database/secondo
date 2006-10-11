@@ -25,6 +25,7 @@ public static boolean export(Component c, File outFile){
      PrintStream out = new PrintStream(new FileOutputStream(outFile));
      Rectangle  r = c.getBounds(); 
      PSGraphics psc = new PSGraphics(out,(Graphics2D)c.getGraphics(),r.getHeight());
+     PSGraphics.lastUsedContext = new PSGraphics.PaintContext();
      psc.writeHeader(r); 
      c.printAll(psc);
      out.close();
@@ -52,8 +53,14 @@ private Graphics2D original;
 /** Vector containing PostScript code for some special characters **/
 private static Vector charCodes=null;
 
+/** formatting numbers */
+static NumberFormat nf;
+
 /** initialize charCodes when class is loaded **/
 static{
+  DecimalFormatSymbols dfs = new DecimalFormatSymbols() ;
+  dfs.setDecimalSeparator('.'); 
+  nf = new DecimalFormat("#######.####################",dfs);
   charCodes = new Vector(10);
   // the backslah has to be the first replacement
   charCodes.add(new CharCode('\\',"\\134"));
@@ -171,7 +178,6 @@ private void updateContext(){
    AffineTransform at = original.getTransform();
    if(different(at, lastUsedContext.affineTransform)){
        writeAffineTransform(at);
-       lastUsedContext.affineTransform = at;
    }
   
    // clip
@@ -211,9 +217,9 @@ private void writeColor(Color C){
     Reporter.writeWarning("null color found");
     out.println(" 0 0 0 setrgbcolor");
   } else{
-    out.println((C.getRed()/255.0) + " "+ 
-              (C.getGreen()/255.0) + " " + 
-              (C.getBlue()/255.0)+ " setrgbcolor");
+    out.println((nf.format(C.getRed()/255.0)) + " "+ 
+              (nf.format(C.getGreen()/255.0)) + " " + 
+              (nf.format(C.getBlue()/255.0))+ " setrgbcolor");
   }
 }
 
@@ -275,7 +281,7 @@ private void writeStroke(Stroke s){
 
    BasicStroke bs = (BasicStroke)s;
    // set linewidth
-   out.println(bs.getLineWidth() +" setlinewidth");
+   out.println(nf.format(bs.getLineWidth()) +" setlinewidth");
    // set line cap
    int cap = bs.getEndCap();
    int pscap = 0;
@@ -313,18 +319,45 @@ private void writeStroke(Stroke s){
 }
 
 private void writeAffineTransform(AffineTransform a){
-  if(a==null){
+   writeAffineTransform(a,true);
+}
+
+private void writeAffineTransform(AffineTransform a1,boolean writeClip){
+  if(a1==null){
+     Reporter.writeError("null Matrix found");
      out.println("initgraphics");  
   } else{
+     AffineTransform a = (AffineTransform) a1.clone();
+     if(lastUsedContext.affineTransform==null){
       double[] m = new double[6];
       a.getMatrix(m);
-      out.println("initmatrix [ "+ m[0] +" " + m[1] + " " + m[2] + " " +  (-m[3]) + " " +
-                                   m[4] + " " + (maxy-m[5]) + " ] concat ");
+      out.println(" [ "+ nf.format(m[0]) +" " + nf.format(-m[1]) + " " + nf.format(m[2]) + 
+                      " " +  nf.format(-m[3]) + " " +
+                                   nf.format(m[4]) + " " + nf.format((maxy-m[5])) + " ] concat ");
+      if(writeClip){
+          // adapt the clipping path to the new matrix
+          writeClip(lastUsedContext.clip);
+      }
+       
+    } else {
+      try{
+       AffineTransform a2 = lastUsedContext.affineTransform.createInverse(); 
+       a2.concatenate(a);
 
-   // this version does not allow zoom in and zoom out of graphics because the dafult matrix
-   // is not used
-    //  out.println(" [ "+ m[0] +" " + m[1] + " " + m[2] + " " +  m[3] + " " +
-    //                              m[4] + " " + m[5] + " ] setmatrix ");
+       double[] m = new double[6];
+       a2.getMatrix(m);
+       out.println(" [ "+ nf.format(m[0]) +" " + nf.format(m[1]) + " " + nf.format(m[2]) + " " +  nf.format(m[3]) + " " +
+                                   nf.format(m[4]) + " " + nf.format(m[5]) + " ] concat ");
+       if(writeClip){
+          // adapt the cliuppling path to the new matrix
+          writeClip(lastUsedContext.clip);
+       }
+     }catch(Exception e){
+        Reporter.debug(e);
+     }
+    }
+
+    lastUsedContext.affineTransform=(AffineTransform) a1.clone();
   }
 }
 
@@ -333,6 +366,7 @@ private void writeClip(Shape s){
    if(s==null){
      return;
    }
+   
    writePath(s);
    PathIterator i = s.getPathIterator(original.getTransform());
    if(i.getWindingRule()==PathIterator.WIND_EVEN_ODD){
@@ -340,6 +374,7 @@ private void writeClip(Shape s){
    } else{
        out.println("eoclip");
    }
+
 }
 
 private void writeFont(Font f){
@@ -352,13 +387,11 @@ private PSGraphics(PrintStream out, Graphics2D original, double maxy){
     PSGraphics.maxy=maxy;
     this.out = out;
     this.original = original;
-    lastUsedContext = new PaintContext();
 }
 
 private PSGraphics(PrintStream out, Graphics2D original){
     this.out = out;
     this.original = original;
-    lastUsedContext = new PaintContext();
 }
 
 
@@ -415,10 +448,40 @@ public void 	clearRect(int x, int y, int width, int height){
    lastUsedContext.color = bg;
 }
 
+
+private boolean mayBeVisible(Shape s){
+  if(lastUsedContext.clip==null){
+      return true;
+  } else{
+     Rectangle2D r1 = lastUsedContext.clip.getBounds2D();
+     Rectangle2D r2 = s.getBounds2D();
+     double x1 = r1.getX();
+     double w1 = r1.getWidth();
+     double x2 = r2.getX();
+     double w2 = r2.getWidth();
+     double y1 = r1.getY();
+     double y2 = r2.getY();
+     double h1 = r1.getHeight();
+     double h2 = r2.getHeight();
+     if(   (x1 > x2+w2+1)    || // r1 right from r2
+           (x2 > x1+w1+1)    || // r1 left of r2
+           (y1 > y2+h2+1)    || // r1 above r2
+           (y2 > y1+h1+1)    ){ // r2 above r1
+        return false;
+     } else {
+        return true; 
+     }
+  }
+}
+
 public void draw(Shape s){
+   if(s==null) return;
+
    updateContext();
-   writePath(s);
-   out.println("stroke newpath");
+   if(mayBeVisible(s)){
+      writePath(s);
+      out.println("stroke newpath");
+   }
 }
 
 
@@ -586,21 +649,21 @@ public void drawString(String s, float x, float y){
   AffineTransform af = lastUsedContext.affineTransform; // get the transformation
   double[] m = new double[6];
   af.getMatrix(m);
-  // adjust the clipping path 
-  m[1] = -m[1];
-  lastUsedContext.affineTransform = new AffineTransform(m);
-  writeAffineTransform(lastUsedContext.affineTransform);
-  writeClip(lastUsedContext.clip);
-
+  
   // and mirror the string itself
-  m[2] = -m[2];
+  m[2] = -m[2];  
   m[3] = -m[3];
-  lastUsedContext.affineTransform= new AffineTransform(m);
-  writeAffineTransform(lastUsedContext.affineTransform);
+  // mirrow in y direction
+  // set the used clip for the new matrix 
+  writeClip(lastUsedContext.clip);
+  writeAffineTransform(new AffineTransform(m),false);
   // show the string itself
   out.println("newpath");
-  out.println((x) + " " + (-y) + " moveto");
+  out.println(nf.format(x) + " " + nf.format(-y) + " moveto");
   out.println(encodeString(s)+"  show");
+  // return to the old clip
+  writeAffineTransform(af);
+
 }
 
 public void drawString(String str, int x, int y) {
@@ -610,12 +673,14 @@ public void drawString(String str, int x, int y) {
 
 public void fill(Shape s){
   updateContext();
-  writePath(s);
-  PathIterator i = s.getPathIterator(original.getTransform());
-  if(i.getWindingRule()==PathIterator.WIND_EVEN_ODD){
-       out.println("fill");
-  } else{
-       out.println("eofill");
+  if(mayBeVisible(s)){
+    writePath(s);
+    PathIterator i = s.getPathIterator(original.getTransform());
+    if(i.getWindingRule()==PathIterator.WIND_EVEN_ODD){
+         out.println("fill");
+    } else{
+         out.println("eofill");
+    }
   }
 }
 
@@ -833,7 +898,7 @@ public void writeHeader(Rectangle2D bounds){
 //  out.println("%%BoundingBox: "+ bounds.getX()+ " " + bounds.getY()+ " "+
 //                                (bounds.getWidth()+bounds.getX())+ " " +
 //                                (bounds.getHeight()+bounds.getY()));
-  out.println("%%BoundingBox: 0 0 "+ (bounds.getWidth()) + " " +bounds.getHeight());
+  out.println("%%BoundingBox: 0 0 "+ ((int)bounds.getWidth()) + " " + ((int)bounds.getHeight()));
   out.println("%%EndComments");
   out.println("% replace the standard Helvetica font by the ISO Latin 1 encoding ");
   out.println("/Helvetica findfont");
@@ -871,19 +936,19 @@ private void writePath(Shape s){
       int c = it.currentSegment(points);
       switch(c){
         case PathIterator.SEG_MOVETO:
-                out.println((points[0]) + " " + (points[1]) + " moveto");
+                out.println(nf.format((points[0])) + " " + nf.format((points[1])) + " moveto");
                 break;
         case  PathIterator.SEG_LINETO:
-                 out.println((points[0]) + " " + (points[1]) + " lineto");
+                 out.println((nf.format(points[0])) + " " + nf.format((points[1])) + " lineto");
                  break;
         case PathIterator.SEG_QUADTO:
                  Reporter.writeWarning("PSCreator SEG_QUADTO not supported");
-                 out.println((points[2]) + " " + (points[3]) + " lineto");
+                 out.println(nf.format(points[2]) + " " + nf.format(points[3]) + " lineto");
                  break;
         case PathIterator.SEG_CUBICTO:
-                 out.println((points[0]) +" " +  (points[1])
-                             +" " + (points[2])+" "+ (points[3])+" "+ 
-                             (points[4]) + " " + (points[5]) + " curveto");
+                 out.println(nf.format(points[0]) +" " +  nf.format(points[1])
+                             +" " + nf.format(points[2])+" "+ nf.format(points[3])+" "+ 
+                             nf.format(points[4]) + " " + nf.format(points[5]) + " curveto");
                  break;
         case PathIterator.SEG_CLOSE:
                  out.println("closepath");
@@ -916,7 +981,7 @@ private static class CharCode{
 
 /** Class holding the whole graphics context */
 
-private class PaintContext {
+private static class PaintContext {
   private Color background = null;
   private Color color = null;
   private Paint paint = null;
