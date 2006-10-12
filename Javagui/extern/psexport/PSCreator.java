@@ -178,6 +178,7 @@ private void updateContext(){
    AffineTransform at = original.getTransform();
    if(different(at, lastUsedContext.affineTransform)){
        writeAffineTransform(at);
+       lastUsedContext.clip = null;
    }
   
    // clip
@@ -334,10 +335,10 @@ private void writeAffineTransform(AffineTransform a1,boolean writeClip){
       out.println(" [ "+ nf.format(m[0]) +" " + nf.format(-m[1]) + " " + nf.format(m[2]) + 
                       " " +  nf.format(-m[3]) + " " +
                                    nf.format(m[4]) + " " + nf.format((maxy-m[5])) + " ] concat ");
-      if(writeClip){
+   //   if(writeClip){
           // adapt the clipping path to the new matrix
-          writeClip(lastUsedContext.clip);
-      }
+  //        writeClip(lastUsedContext.clip);
+  //    }
        
     } else {
       try{
@@ -348,10 +349,10 @@ private void writeAffineTransform(AffineTransform a1,boolean writeClip){
        a2.getMatrix(m);
        out.println(" [ "+ nf.format(m[0]) +" " + nf.format(m[1]) + " " + nf.format(m[2]) + " " +  nf.format(m[3]) + " " +
                                    nf.format(m[4]) + " " + nf.format(m[5]) + " ] concat ");
-       if(writeClip){
+  //     if(writeClip){
           // adapt the cliuppling path to the new matrix
-          writeClip(lastUsedContext.clip);
-       }
+  //        writeClip(lastUsedContext.clip);
+  //     }
      }catch(Exception e){
         Reporter.debug(e);
      }
@@ -477,8 +478,8 @@ private boolean mayBeVisible(Shape s){
 public void draw(Shape s){
    if(s==null) return;
 
-   updateContext();
    if(mayBeVisible(s)){
+      updateContext();
       writePath(s);
       out.println("stroke newpath");
    }
@@ -516,48 +517,62 @@ public void drawGlyphVector(GlyphVector g, float x, float y){
 }
 
 public void  drawImage(BufferedImage img, BufferedImageOp op, int x, int y){
-   Reporter.writeWarning("Reporter.drawImage not implemeneted");
+   writeImage(img,x,y);
+  
 }
 
+private BufferedImage convertImage(Image img){
+   int w = img.getWidth(null);
+   int h = img.getHeight(null);
+   BufferedImage bi = new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
+   Graphics g = bi.getGraphics();
+   g.drawImage(img,0,0,null);
+   return bi;
+}
+
+
 public boolean drawImage(Image img, AffineTransform xform, ImageObserver obs){
-   Reporter.writeWarning("Reporter.drawImage not implemeneted");
+   Reporter.writeWarning("Reporter.drawImage/3 not implemeneted");
+   //drawImage(convertImage(img),null,0,0);
    return false;
 }
 
 public boolean drawImage(Image img, int x, int y, Color bgcolor, 
                       ImageObserver observer) {
-   Reporter.writeWarning("Reporter.drawImage not implemeneted");
+   Reporter.writeWarning("Reporter.drawImage/5 not implemeneted");
+   //drawImage(convertImage(img),null,x,y);
    return false;
 }
 
 public boolean drawImage(Image img, int x, int y, ImageObserver observer) {
-   Reporter.writeWarning("Reporter.drawImage not implemeneted");
+   Reporter.writeWarning("Reporter.drawImage/3 not implemeneted");
+   drawImage(convertImage(img),null,x,y);
    return  false;
 }
 
 public boolean drawImage(Image img, int x, int y, int width, int height,
                          Color bgcolor, ImageObserver observer) {
-   Reporter.writeWarning("Reporter.drawImage not implemeneted");
+   Reporter.writeWarning("Reporter.drawImage/7 not implemeneted");
    return false;
 }
 
 public boolean drawImage(Image img, int x, int y, int width, int height, 
                ImageObserver observer){
-   Reporter.writeWarning("Reporter.drawImage not implemeneted");
+   Reporter.writeWarning("Reporter.drawImage/6 not implemeneted");
    return false;
 }
 
 public boolean drawImage(Image img, int dx1, int dy1, int dx2, 
                          int dy2, int sx1, int sy1, int sx2, int sy2, 
                          Color bgcolor, ImageObserver observer){
-   Reporter.writeWarning("Reporter.drawImage not implemeneted");
+   Reporter.writeWarning("Reporter.drawImage/11 not implemeneted");
    return false;
 }
 
 public boolean 	drawImage(Image img, int dx1, int dy1, int dx2, int dy2, 
                           int sx1, int sy1, int sx2, int sy2, 
                           ImageObserver observer) {
-   Reporter.writeWarning("Reporter.drawImage not implemeneted");
+   Reporter.writeWarning("Reporter.drawImage/10 not implemeneted");
    return false;
 }
 
@@ -962,6 +977,49 @@ private void writePath(Shape s){
  }
 } 
 
+private String getHexString(int i){
+  String res = Integer.toHexString(i);
+  if(res.length()<2){
+     res = "0"+res;
+  }
+  return res;
+   
+}
+
+private void writeImage(BufferedImage bi,int x , int y){
+   System.out.println("writeImage called");
+   // get the image data
+   int w = bi.getWidth();
+   int h = bi.getHeight();
+   int[] data = bi.getRGB(0,0,w,h,null,0,w);
+   // write the image code
+   out.println("/DeviceRGB setcolorspace");
+   out.println(x+" "+ y+" translate");
+   out.println(w+" "+h+"  scale");
+   out.println(w+" "+ h + " 8 ");
+   // print the matrix to use
+   out.println("["+w+" 0 0 "+h+" 0 0 ]");
+   // print the image data
+   out.println("{<");
+   for(int i=0;i<data.length;i++){
+      // build the PostScript String
+      Color C = new Color(data[i]);
+      String res = "";
+      res += getHexString(C.getRed());
+      res += getHexString(C.getGreen());
+      res += getHexString(C.getBlue());
+      if((i+1)%66==0){
+         out.println(res);
+      } else {
+         out.print(res); 
+      }
+   }
+   out.println("\n>} false 3 colorimage");
+   out.println(1.0/w+" "+1.0/h+" scale");
+   out.println((-x)+" "+ (-y)+" translate");
+}
+
+
 
 /** class holding the PostScript code for a single special characters */
 
@@ -993,6 +1051,7 @@ private static class PaintContext {
   private AffineTransform affineTransform = null;
   private Shape clip = null;
   private Font font = null;
+  private Vector images = new Vector();
 }
 
 
