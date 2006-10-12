@@ -197,7 +197,7 @@ removes the first argument if present.
     port          = "";
     iFileName     = "";
     oFileName     = "";
-    num           = "";
+    num           = "0";
 
     numArgs = argc;
     argValues = argv;
