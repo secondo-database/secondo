@@ -57,6 +57,7 @@ derived attribute class must implement.
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "FLOB.h"
+#include <sstream>
 
 /*
 3.5 Struct ~AttrDelete~
@@ -433,6 +434,27 @@ value like int, float, etc.
       S* ptr = static_cast<S*>(w.addr);
       return ptr->GetValue(); 
     } 
+
+    inline string AttrDelete2string()
+    {
+      std::string Result, str;
+      std::stringstream ss;
+      ss << ((int) del.refs);
+      ss >> str;
+
+      Result += " del.Refs=";
+      Result += str;
+      Result += ", del.IsDelete=";
+      if (del.isDelete)
+        Result += "true";
+      else 
+        Result +="false";
+      return Result;
+    }
+/*
+Print the delete reference info to a string (for debugging)
+
+*/
 
   protected:
 
