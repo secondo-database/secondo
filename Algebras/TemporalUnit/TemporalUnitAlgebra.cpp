@@ -220,8 +220,8 @@ extern AlgebraManager* am;
 #include "DateTime.h"
 using namespace datetime;
 
-//bool TUA_DEBUG = false; // Set to true to activate debugging code
-bool TUA_DEBUG = true; // Set to true to activate debugging code
+bool TUA_DEBUG = false; // Set to true to activate debugging code
+//bool TUA_DEBUG = true; // Set to true to activate debugging code
 
 /*
 2.1 Definition of some constants and auxiliary functions
@@ -256,7 +256,7 @@ string TUPrintTimeInterval( Interval<DateTime>& iv )
     Result += "]";
   Result += iv.start.ToString();
   Result += ", ";
-	Result += iv.end.ToString();
+  Result += iv.end.ToString();
   if (iv.rc)
     Result += "]";
   else 
@@ -284,6 +284,7 @@ string TUPrintUReal( UReal* ureal )
     Result += ", true )";
   else 
     Result +=", false )";
+  Result += ureal->AttrDelete2string();
   return Result;
 }
 
@@ -5554,7 +5555,7 @@ struct AtExtrURealLocalInfo
 {
   int NoOfResults;
   int ResultsDelivered;
-  UReal t_res[3];
+  UReal* t_res[3];
 };
 
 int getMaxValIndex( double& first, double& second, double& third)
@@ -5635,13 +5636,13 @@ int atmaxUReal( Word* args, Word& result, int message,
            (ureal->timeInterval.end).ToDouble() )
         { // ureal contains only a single point.
           // -> return a copy of the ureal        
-          // sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+          // sli->t_res[sli->NoOfResults] = ureal->Clone();
           if(TUA_DEBUG) 
             cout << "  3.1: ureal contains only a single point" << endl;
-          sli->t_res[sli->NoOfResults] = *((UReal*) (ureal->Copy()));
+          sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
           if(TUA_DEBUG) 
             cout << "       res=" 
-                 << TUPrintUReal(&(sli->t_res[sli->NoOfResults])) 
+                 << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
                  << endl;
           sli->NoOfResults++;
           if(TUA_DEBUG) 
@@ -5655,13 +5656,13 @@ int atmaxUReal( Word* args, Word& result, int message,
           if ( ureal->b == 0 )
             { //  constant function
               // the only result is a copy of the argument ureal
-              // sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+              // sli->t_res[sli->NoOfResults] = ureal->Clone();
               if(TUA_DEBUG) 
                 cout << "  4.1: constant function" << endl;
-              sli->t_res[sli->NoOfResults] = *((UReal*) (ureal->Copy()));
+              sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
               if(TUA_DEBUG) 
                 cout << "       res " << sli->NoOfResults+1 << "=" 
-                     << TUPrintUReal(&(sli->t_res[sli->NoOfResults])) 
+                     << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
                      << endl;
               sli->NoOfResults++;
               if(TUA_DEBUG) 
@@ -5670,18 +5671,17 @@ int atmaxUReal( Word* args, Word& result, int message,
             }
           if ( ureal->b < 0 )
             { // linear fuction
-              // the result is a copy of the argument, restricted to
+              // the result is a clone of the argument, restricted to
               // its starting instant
-              // sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+              sli->t_res[sli->NoOfResults] = ureal->Clone();
               if(TUA_DEBUG) 
                 cout << "  4.2: linear function/initial" << endl;
-              sli->t_res[sli->NoOfResults] = *((UReal*) (ureal->Copy()));
-              sli->t_res[sli->NoOfResults].timeInterval.end =
-                sli->t_res[sli->NoOfResults].timeInterval.start;
-              sli->t_res[sli->NoOfResults].timeInterval.rc = true;
+              sli->t_res[sli->NoOfResults]->timeInterval.end =
+                sli->t_res[sli->NoOfResults]->timeInterval.start;
+              sli->t_res[sli->NoOfResults]->timeInterval.rc = true;
               if(TUA_DEBUG) 
                 cout << "       res " << sli->NoOfResults+1 << "=" 
-                     << TUPrintUReal(&(sli->t_res[sli->NoOfResults])) 
+                     << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
                      << endl;
               sli->NoOfResults++;
               if(TUA_DEBUG) 
@@ -5690,18 +5690,17 @@ int atmaxUReal( Word* args, Word& result, int message,
             }
           if ( ureal->b > 0 )
             { // linear fuction
-              // the result is a copy of the argument, restricted to
+              // the result is a clone of the argument, restricted to
               // its final instant
-              // sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+              sli->t_res[sli->NoOfResults] = ureal->Clone();
               if(TUA_DEBUG) 
                 cout << "  4.3: linear function/final" << endl;
-              sli->t_res[sli->NoOfResults] = *((UReal*) (ureal->Copy()));
-              sli->t_res[sli->NoOfResults].timeInterval.start =
-                sli->t_res[sli->NoOfResults].timeInterval.end;
-              sli->t_res[sli->NoOfResults].timeInterval.lc = true;            
+              sli->t_res[sli->NoOfResults]->timeInterval.start =
+                sli->t_res[sli->NoOfResults]->timeInterval.end;
+              sli->t_res[sli->NoOfResults]->timeInterval.lc = true;            
               if(TUA_DEBUG) 
                 cout << "       res " << sli->NoOfResults+1 << "=" 
-                     << TUPrintUReal(&(sli->t_res[sli->NoOfResults])) 
+                     << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
                      << endl;
               sli->NoOfResults++;
               if(TUA_DEBUG) 
@@ -5758,28 +5757,26 @@ int atmaxUReal( Word* args, Word& result, int message,
           if (maxValIndex & 2)
             { // start value
               if(TUA_DEBUG) cout << "  5.6: added start value" << endl;
-              // sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-              sli->t_res[sli->NoOfResults] = *((UReal*) (ureal->Copy()));
+              sli->t_res[sli->NoOfResults] = ureal->Clone();
               t = ureal->timeInterval.start;
               Interval<Instant> i( t, t, true, true );
-              sli->t_res[sli->NoOfResults].timeInterval = i;
+              sli->t_res[sli->NoOfResults]->timeInterval = i;
               if(TUA_DEBUG) 
                 cout << "       res " << sli->NoOfResults+1 << "=" 
-                     << TUPrintUReal(&(sli->t_res[sli->NoOfResults])) 
+                     << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
                      << endl;
               sli->NoOfResults++;
             }
           if ( ( maxValIndex & 4 ) && ( t_end != t_start ) )
             { // end value
               if(TUA_DEBUG) cout << "  5.7: added end value" << endl;
-              // sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-              sli->t_res[sli->NoOfResults] = *((UReal*) (ureal->Copy()));
+              sli->t_res[sli->NoOfResults] = ureal->Clone();
               t = ureal->timeInterval.end;
               Interval<Instant> i( t, t, true, true );
-              sli->t_res[sli->NoOfResults].timeInterval = i;
+              sli->t_res[sli->NoOfResults]->timeInterval = i;
               if(TUA_DEBUG) 
                 cout << "       res " << sli->NoOfResults+1 << "=" 
-                     << TUPrintUReal(&(sli->t_res[sli->NoOfResults])) 
+                     << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
                      << endl;
               sli->NoOfResults++;
             }
@@ -5789,14 +5786,13 @@ int atmaxUReal( Word* args, Word& result, int message,
                (t_extr != t_end)      )     
             {
               if(TUA_DEBUG) cout << "  5.8: added extremum" << endl;
-              // sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-              sli->t_res[sli->NoOfResults] = *((UReal*) (ureal->Copy()));
+              sli->t_res[sli->NoOfResults] = ureal->Clone();
               t.ReadFrom(t_extr);
               Interval<Instant> i( t, t, true, true );
-              sli->t_res[sli->NoOfResults].timeInterval = i;
+              sli->t_res[sli->NoOfResults]->timeInterval = i;
               if(TUA_DEBUG) 
                 cout << "       res " << sli->NoOfResults+1 << "=" 
-                     << TUPrintUReal(&(sli->t_res[sli->NoOfResults])) 
+                     << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
                      << endl;
               sli->NoOfResults++;
             }
@@ -5829,11 +5825,10 @@ int atmaxUReal( Word* args, Word& result, int message,
         }
       if(TUA_DEBUG) 
         cout << " 2" << endl;
-      //result = SetWord( sli->t_res[sli->ResultsDelivered].Clone() );
-      result = SetWord( sli->t_res[sli->ResultsDelivered].Copy() );
+      result = SetWord( sli->t_res[sli->ResultsDelivered]->Copy() );
       if(TUA_DEBUG) 
         cout << " 3" << endl;
-      sli->t_res[sli->ResultsDelivered].DeleteIfAllowed();
+      sli->t_res[sli->ResultsDelivered]->DeleteIfAllowed();
       if(TUA_DEBUG) 
         cout << " 4: delivered result[" << sli->ResultsDelivered+1 
              << "/" << sli->NoOfResults<< "]=" 
@@ -5852,7 +5847,7 @@ int atmaxUReal( Word* args, Word& result, int message,
           sli = (AtExtrURealLocalInfo*) local.addr;
           while (sli->NoOfResults > sli->ResultsDelivered)
             {
-              sli->t_res[sli->ResultsDelivered].DeleteIfAllowed();
+              sli->t_res[sli->ResultsDelivered]->DeleteIfAllowed();
               sli->ResultsDelivered++;
             }
           delete sli;
@@ -6024,7 +6019,7 @@ int atminUReal( Word* args, Word& result, int message,
            (ureal->timeInterval.end).ToDouble() )
         { // ureal contains only a single point.
           // -> return a copy of the ureal        
-          sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+          sli->t_res[sli->NoOfResults] = ureal->Clone();
           sli->NoOfResults++;
           if(TUA_DEBUG) cout << "atminUReal: single point" << endl;
           return 0;
@@ -6035,7 +6030,7 @@ int atminUReal( Word* args, Word& result, int message,
           if ( ureal->b == 0 )
             { //  constant function
               // the only result is a copy of the argument ureal
-              sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+              sli->t_res[sli->NoOfResults] = ureal->Clone();
               sli->NoOfResults++;
               if(TUA_DEBUG) cout << "atminUReal: ureal const ureal " << endl;
               return 0;
@@ -6044,10 +6039,10 @@ int atminUReal( Word* args, Word& result, int message,
             { // linear fuction
               // the result is a copy of the argument, restricted to
               // its ending instant
-              sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-              sli->t_res[sli->NoOfResults].timeInterval.end =
-                sli->t_res[sli->NoOfResults].timeInterval.start;
-              sli->t_res[sli->NoOfResults].timeInterval.lc = true;
+              sli->t_res[sli->NoOfResults] = ureal->Clone();
+              sli->t_res[sli->NoOfResults]->timeInterval.end =
+                sli->t_res[sli->NoOfResults]->timeInterval.start;
+              sli->t_res[sli->NoOfResults]->timeInterval.lc = true;
               sli->NoOfResults++;
               if(TUA_DEBUG) 
                 cout << "atminUReal: ureal linear fun (end)" << endl;
@@ -6057,10 +6052,10 @@ int atminUReal( Word* args, Word& result, int message,
             { // linear fuction
               // the result is a copy of the argument, restricted to
               // its starting instant
-              sli->t_res[sli->NoOfResults] = *(ureal->Clone());
-              sli->t_res[sli->NoOfResults].timeInterval.start =
-                sli->t_res[sli->NoOfResults].timeInterval.end;
-              sli->t_res[sli->NoOfResults].timeInterval.rc = true;
+              sli->t_res[sli->NoOfResults] = ureal->Clone();
+              sli->t_res[sli->NoOfResults]->timeInterval.start =
+                sli->t_res[sli->NoOfResults]->timeInterval.end;
+              sli->t_res[sli->NoOfResults]->timeInterval.rc = true;
               sli->NoOfResults++;
               if(TUA_DEBUG) cout << "atminUReal: ureal undef (start)" << endl;
               return 0;
@@ -6104,19 +6099,19 @@ int atminUReal( Word* args, Word& result, int message,
           
           if (minValIndex & 2)
             {
-              sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+              sli->t_res[sli->NoOfResults] = ureal->Clone();
               t = ureal->timeInterval.start;
               Interval<Instant> i( t, t, true, true );
-              sli->t_res[sli->NoOfResults].timeInterval = i;
+              sli->t_res[sli->NoOfResults]->timeInterval = i;
               sli->NoOfResults++;
               if(TUA_DEBUG) cout << " added start" << endl;
             }
           if ( (minValIndex & 4) && (t_start != t_end) )
             {
-              sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+              sli->t_res[sli->NoOfResults] = ureal->Clone();
               t = ureal->timeInterval.end;
               Interval<Instant> i( t, t, true, true );
-              sli->t_res[sli->NoOfResults].timeInterval = i;
+              sli->t_res[sli->NoOfResults]->timeInterval = i;
               sli->NoOfResults++;
               if(TUA_DEBUG) cout << " added end" << endl;
             }
@@ -6124,10 +6119,10 @@ int atminUReal( Word* args, Word& result, int message,
                (t_extr != t_start) &&
                (t_extr != t_end)      )
             {
-              sli->t_res[sli->NoOfResults] = *(ureal->Clone());
+              sli->t_res[sli->NoOfResults] = ureal->Clone();
               t.ReadFrom(t_extr);
               Interval<Instant> i( t, t, true, true );
-              sli->t_res[sli->NoOfResults].timeInterval = i;
+              sli->t_res[sli->NoOfResults]->timeInterval = i;
               sli->NoOfResults++;
               if(TUA_DEBUG) cout << " added extr" << endl;
             }
@@ -6145,8 +6140,8 @@ int atminUReal( Word* args, Word& result, int message,
       if (sli->NoOfResults <= sli->ResultsDelivered)
         return CANCEL;
       
-      result = SetWord( sli->t_res[sli->ResultsDelivered].Clone() );
-      sli->t_res[sli->ResultsDelivered].DeleteIfAllowed();
+      result = SetWord( sli->t_res[sli->ResultsDelivered]->Clone() );
+      sli->t_res[sli->ResultsDelivered]->DeleteIfAllowed();
       sli->ResultsDelivered++;
       return YIELD;
       
@@ -6157,7 +6152,7 @@ int atminUReal( Word* args, Word& result, int message,
           sli = (AtExtrURealLocalInfo*) local.addr;
           while (sli->NoOfResults > sli->ResultsDelivered)
             {
-              sli->t_res[sli->ResultsDelivered].DeleteIfAllowed();
+              sli->t_res[sli->ResultsDelivered]->DeleteIfAllowed();
               sli->ResultsDelivered++;
             }
           delete sli;
