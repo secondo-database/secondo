@@ -559,6 +559,8 @@ public boolean drawImage(Image img, int x, int y, int width, int height,
 public boolean drawImage(Image img, int x, int y, int width, int height, 
                ImageObserver observer){
    Reporter.writeWarning("Reporter.drawImage/6 not implemeneted");
+   Image img2 = img.getScaledInstance(width,height,Image.SCALE_DEFAULT);
+   drawImage(convertImage(img),x,y,null);
    return false;
 }
 
