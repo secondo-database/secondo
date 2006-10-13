@@ -62,6 +62,7 @@ using namespace std;
 
 #include "DisplayTTY.h"
 #include "NestedList.h"
+#include "NList.h"
 #include "SecondoInterface.h"
 #include "AlgebraTypes.h"
 #include "Base64.h"
@@ -920,48 +921,60 @@ DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
 void
 DisplayTTY::DisplayDescriptionLines( ListExpr value, int  maxNameLen)
 {
-   string s="", blanks="", printstr="", line="", restline="", descrstr="";
+   NList list(value);
+   string errMsg = string("Error: Unknown List Format. ") + 
+                   "Expecting (name (labels) (entries)) but got \n" +
+                   list.convertToString() + "\n";
 
-   ListExpr valueheader = nl->Second(value);
-   ListExpr valuedescr  = nl->Third(value);
+   if ( !list.hasLength(3) ) {
+     cout << errMsg << endl;
+     return;
+   }
 
-   cout << endl;
+   NList nameSymbol = list.first();   
+   NList labels = list.second();
+   NList entries  = list.third();
 
-   blanks.assign( maxNameLen-4 , ' ' );
-   cout << blanks << "Name: " << nl->SymbolValue(nl->First(value)) << endl;
-
-   while (!nl->IsEmpty( valueheader ))
+   if ( ! (  nameSymbol.isSymbol() 
+             && labels.isList()
+             && entries.isList()   ) ) 
    {
-     s = nl->StringValue( nl->First( valueheader ));
-     blanks.assign( maxNameLen-s.length() , ' ' );
-     //cout << blanks << s << ": ";
-     printstr = blanks + s + ": ";
+     cout << errMsg;
+     return;
+   }  
+   
+   if ( !(labels.length() == entries.length()) )
+   {
+     cout << "Error: Length of the label list does not "
+          << "equal the length of the entries list." << endl;
+     cout << errMsg << endl;
+     return;
+   } 
+   
+   cout << endl;
+   string name = nameSymbol.str();
+   string blanks = "";
+   blanks.assign( maxNameLen-4 , ' ' );
+   cout << blanks << "Name: " << name << endl;
 
-     if( nl->IsAtom(nl->First( valuedescr ))) //&&
-       //nl->AtomType(nl->First(valuedescr))==StringType)
-     {
-       if ( nl->AtomType(nl->First(valuedescr))==StringType )
-       { 
-        printstr += nl->StringValue( nl->First(valuedescr) );
-      }  
-      else
-      {
-        if ( nl->AtomType(nl->First(valuedescr))==TextType )
-        {
-          TextScan txtscan = nl->CreateTextScan(nl->First(valuedescr));
-          descrstr = "";
-          nl->GetText(txtscan, nl->TextLength(nl->First(valuedescr)),descrstr);
-          printstr += descrstr;
-          nl->DestroyTextScan(txtscan);
-        }
-      }
-      cout << wordWrap(0, maxNameLen+2, LINELENGTH, printstr) << endl;
-    }
-    valueheader   = nl->Rest( valueheader );
-    valuedescr    = nl->Rest( valuedescr );
+   try {
+   while ( !labels.isEmpty() )
+   {
+     string s = labels.first().str();
+     blanks.assign( maxNameLen - s.length() , ' ' );
+     //cout << blanks << s << ": ";
+     string printstr = blanks + s + ": ";
+     printstr += entries.first().str();
+     cout << wordWrap(0, maxNameLen+2, LINELENGTH, printstr) << endl;
+     labels.rest();
+     entries.rest();
+   }
   }
-  nl->Destroy( valueheader );
-  nl->Destroy( valuedescr );
+  catch (NListErr err) {
+   cout << "The elements of the two sublists labels and entries"
+        << " need to be text or string atoms." << endl
+        << err.msg() << endl;
+  } 
 }
 
 

@@ -85,6 +85,8 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "Profiles.h"
 #include "RelationAlgebra.h"
+#include "NestedList.h"
+#include "NList.h"
 
 SecondoSystem* SecondoSystem::secondoSystem = 0;
 
@@ -757,6 +759,7 @@ SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
 {
   nl = new NestedList();
   al = new NestedList();
+  NList::setNLRef(nl);
 
   algebraManager = new AlgebraManager( *nl, getAlgebraEntryFunc );
   queryProcessor = new QueryProcessor( nl, algebraManager );

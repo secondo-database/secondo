@@ -457,7 +457,8 @@ separate functions which should be named Command\_<name>.
 
   NestedList* nl = SecondoSystem::GetNestedList();
   NestedList* al = SecondoSystem::GetAppNestedList();
-
+  NList::setNLRef(nl);
+  
   // copy command list to internal NL memory
   ListExpr commandLE2 = nl->TheEmptyList();
   if (commandLE) 

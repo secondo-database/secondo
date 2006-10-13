@@ -468,6 +468,7 @@ SecondoTTY::CallSecondo()
     {
       si->Secondo( cmd, cmdList, 0, false, false,
                    outList, errorCode, errorPos, errorMessage );
+      NList::setNLRef(nl);
     }
     else
     {
@@ -479,6 +480,7 @@ SecondoTTY::CallSecondo()
   {
     si->Secondo( cmd, cmdList, 1, false, false,
                  outList, errorCode, errorPos, errorMessage );
+    NList::setNLRef(nl);
   }
   
   if ( errorCode != 0 )
@@ -601,6 +603,7 @@ SecondoTTY::Execute()
         }
       }
       nl = si->GetNestedList();
+      NList::setNLRef(nl);
       DisplayTTY::Initialize( si );
       if ( isStdInput )
       {
