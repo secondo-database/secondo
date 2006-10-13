@@ -15,31 +15,32 @@ Feruniversit[ae]t Hagen.
 
 ----
                             Signatur
-  trajectory           upoint    -> line
-  makemvalue           stream (tuple ([x1:t1,xi:uType,..,xn:tn]))  ->  mType
-  size                 periods  -> real
-  deftime      (*)     uT  -> periods
-  atinstant    (*)     uT x instant  -> iT
-  atperiods    (*)     uT x periods  -> (stream uT)
-  Initial      (*)     uT -> iT
-  final        (*)     uT  -> iT
-  present      (*)     uT x instant  -> bool
-                       uT x periods  -> bool
-  point2d              periods  -> point
-  queryrect2d          instant  -> rect
-  speed                mpoint   -> mreal
-                       upoint   -> ureal
-  passes               upoint x point     -> bool
-  at                   upoint x point     -> upoint
-  circle               point x real x int -> region
-  velocity             mpoint  -> mpoint
-                       upoint  -> upoint
-  derivable            mreal   -> mbool
-                       ureal   -> ubool
-  derivative           mreal   -> mreal
-                       ureal   -> ureal
+     trajectory           upoint    -> line
+     makemvalue           stream (tuple ([x1:t1,xi:uType,..,xn:tn]))  ->  mType
+     size                 periods  -> real
+     deftime      (**)    uT -> periods
+     atinstant    (**)    uT x instant  -> iT
+     atperiods    (**     uT x periods  -> (stream uT)
+(OK) Initial      (**)    uT -> iT
+(OK) final        (**)    uT -> iT
+OK   present      (**)    uT x instant  -> bool
+                  (**)    uT x periods  -> bool
+     point2d              periods  -> point
+     queryrect2d          instant  -> rect
+     speed                mpoint   -> mreal
+                          upoint   -> ureal
+OK   passes               upoint x point     -> bool
+OK   at                   upoint x point     -> upoint
+     circle               point x real x int -> region
+     velocity             mpoint  -> mpoint
+OK                        upoint  -> upoint
+     derivable            mreal   -> mbool
+                          ureal   -> ubool
+     derivative           mreal   -> mreal
+                          ureal   -> ureal
 
 (*): These operators have been implemented for T in {bool, int, real, point}
+(**): These operators have been implemented for T in {bool, int, real, point, string, region}
 
 ----
 
@@ -93,11 +94,11 @@ OK   filter: ((stream T) (map T bool)) --> int
 
 OK   printstream: (stream T) --> (stream T)
      
-OK   atmax: uT --> (stream uT)
+(OK) atmax: uT --> (stream uT)
 
-OK   atmin: uT --> (stream uT)
+(OK) atmin: uT --> (stream uT)
 
-Test at:    ureal x real --> (stream ureal)
+(OK) at:    ureal x real --> (stream ureal)
 
      distance:  T in {int, point}
 Test           uT x uT -> ureal
@@ -113,26 +114,26 @@ Test                    T x      uT --> (stream uT)
 Pre                 ureal x   ureal --> (stream ureal)
 Pre                upoint x uregion --> (stream upoint)
 
-     udirection: upoint --> ureal
+n/a  udirection: upoint --> ureal
 
-     no_components: uT --> uint
+n/a  no_components: uT --> uint
 
-     area: uregion --> ureal
+n/a  area: uregion --> ureal
 
-     and, or: ubool x ubool --> (stream ubool)
-               bool x ubool --> (stream ubool)
-              ubool x  bool --> (stream ubool)
+n/a  and, or: ubool x ubool --> (stream ubool)
+n/a           bool x ubool --> (stream ubool)
+n/a           ubool x  bool --> (stream ubool)
 
-     =, #: uT x uT --> (stream ubool)
-            T x uT --> (stream ubool)
-           uT x  T --> (stream ubool)
+n/a  =, #: uT x uT --> (stream ubool)
+n/a         T x uT --> (stream ubool)
+n/a        uT x  T --> (stream ubool)
 
-     initial, final: (stream uT) --> iT
-     present: (stream uT) x instant --> bool
-     present: (stream uT) x periods --> bool
-     soemtimes: ubool --> bool
-     never:     ubool --> bool
-     always:    ubool --> bool
+n/a  initial, final: (stream uT) --> iT
+n/a  present: (stream uT) x instant --> bool
+n/a  present: (stream uT) x periods --> bool
+n/a  sometimes: ubool --> bool
+n/a  never:     ubool --> bool
+n/a  always:    ubool --> bool
 
 
 
@@ -309,7 +310,7 @@ void MPoint::MSpeed( MReal& result ) const
   //  int counter = 0;
 
   result.Clear();
-  if ( ! IsDefined() )
+  if ( !IsDefined() )
     {
       // result.SetDefined( false ); // no undef Mappings by now
       if(TUA_DEBUG) cout << "\nMPoint::MSpeed is undef (undef arg)." << endl;
@@ -333,7 +334,8 @@ void MPoint::MSpeed( MReal& result ) const
 /*
 Activating the following snippet would allow for creating undef objects
 instead of empty ones. Alas, the SetDefined() and IsDefined() methods do
-not have functional implementations by now...
+not have functional implementations by now. Instead, ~undef~ values are 
+substituted by ~empty~ mappings.
 
 ----
       if(counter == 0)
@@ -454,7 +456,8 @@ void MPoint::MVelocity( MPoint& result ) const
 /*
 Activating the following snippet would allow for creating undef objects
 instead of empty ones. Alas, the SetDefined() and IsDefined() methods do
-not have functional implementations by now...
+not have functional implementations by now. Instead, ~undef~ values are 
+substituted by ~empty~ mappings.
 
 ----
       if(counter>0)
@@ -695,24 +698,24 @@ TypeMapSpeed( ListExpr args )
 int MPointSpeed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   result = (qp->ResultStorage( s ));
-  MReal *res = (MReal*) result.addr;
-  MPoint* input = (MPoint*)args[0].addr;
+  MReal  *res   = (MReal*) result.addr;
+  MPoint *input = (MPoint*)args[0].addr;
   
-  res->Clear();
-
   if ( input->IsDefined() )
     // call member function:
     input->MSpeed( *res ); 
   else
-    res->SetDefined(false);
-
+    {
+      res->Clear();           // using empty mvalue instead
+      res->SetDefined(false); // of undef mvalue
+    }
   return 0;
 }
 
 int UnitPointSpeed(Word* args,Word& result,int message,Word& local,Supplier s)
 {
   result = qp->ResultStorage( s );
-  UPoint* input = (UPoint*)result.addr;
+  UPoint *input = (UPoint*)result.addr;
   
   if ( input->IsDefined() )
     // call member function:
@@ -1266,7 +1269,7 @@ int MappingMakemvalue(Word* args,Word& result,int message,
 /*
 It would be better to use the following snippet, but the ~undefined~ flag
 and the SetDefined() and IsDefined() methods only have dummy implementations
-by now:
+by now. Instead, ~undef~ values are substituted by ~empty~ mappings.
  
 ----
   if(definedcounter > 0 )
@@ -1710,7 +1713,7 @@ UnitPeriodsTypeMap( ListExpr args )
                nl->SymbolAtom("uregion"));
 
       nl->WriteToString(argstr, arg1);
-      ErrorReporter::ReportError("Operator atperiods expect a first argument "
+      ErrorReporter::ReportError("Operator atperiods expects a first argument "
                                  "of type T in {ubool, uint, ureal, upoint, "
                                  "ustring, uregion} but gets a '" 
                                  + argstr + "'.");
@@ -2226,15 +2229,18 @@ int MappingUnitPresent_p( Word* args, Word& result, int message,
 
   assert( periods->IsOrdered() );
 
-  Periods defTime( 0 );
+  // create a periods containing the smallest superinterval 
+  // of all intervals within the periods value.
+  Periods deftime( 0 ), defTime( 0 );
+  deftime.Clear();
+  deftime.StartBulkLoad();
+  deftime.Add( m->timeInterval );
+  deftime.EndBulkLoad( false );
+  deftime.Merge( defTime );
 
-  periods->Clear();
-  periods->StartBulkLoad();
-  periods->Add( m->timeInterval );
-  periods->EndBulkLoad( false );
-  periods->Merge( defTime );
-
-  if( periods->IsEmpty() )
+  if ( !m->IsDefined() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( periods->IsEmpty() ) // (undef periods are not defined)
     ((CcBool *)result.addr)->Set( false, false );
   else if( periods->Inside( defTime ) )
     ((CcBool *)result.addr)->Set( true, true );
@@ -2243,6 +2249,7 @@ int MappingUnitPresent_p( Word* args, Word& result, int message,
   
   return 0;
 }
+
 
 /*
 5.11.3 Specification for operator ~present~
@@ -2257,7 +2264,8 @@ TemporalSpecPresent  =
 "(T in {bool, int, real, string, point, region)</text--->"
 "<text>_ present _ </text--->"
 "<text>whether the moving/unit object is present at the"
-" given instant or period.</text--->"
+" given instant or period. For an empty periods value, "
+"the result is undefined.</text--->"
 "<text>mpoint1 present instant1</text---> ) )";
 
 /* 
@@ -3439,11 +3447,12 @@ int UnitPointDerivative( Word* args, Word& result, int message,
     }
   else // Unit is undefined
     {
-      res->timeInterval = Unit->timeInterval;
+      DateTime t = DateTime(instanttype);
+      res->timeInterval = Interval<Instant>(t,t,true,true);
       res->a = 0;
       res->b = 0;
       res->c = 0;
-      res->r = true;
+      res->r = false;
       res->SetDefined(false);
     }
   return 0;
