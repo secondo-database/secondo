@@ -10,11 +10,10 @@
 ===============================================================================
 
 The JPL library and the Secondo part of the OptServer are divided into different
-files now.  This enables the use of precompiled jpl libraries. For datails see 
-Jpl/readme.txt.
-On windows platforms this change requires a definition of the variable PL_DLL.
-Otherwise the OptServer  will not compile.
-It's recommended to define this variable within the ~/.secondo.<platform>rc file.
+files now. This enables the use of precompiled jpl libraries. For datails see
+Jpl/readme.txt. On windows platforms this change requires a definition of the
+variable PL_DLL. Otherwise the OptServer will not compile. It's recommended
+to define this variable within the ~/.secondo.<platform>rc file.
 
 Best regards,
    Thomas
@@ -59,12 +58,17 @@ information please refer to the file "CacheInfo.h".
 2006-05-08 New Sample and Small Relations
 ===============================================================================
 
-Due to changes for the entropy optimizer, the "_small" relations have a new 
-structure and need to be recreated (if you want to use the entropy optimizer). Probably the easiest way to do this is to restore databases and also to reinitialize the optimizer information ("rm stored*" in the optimizer directory).
+Due to changes for the entropy optimizer, the "_small" relations have a new
+structure and need to be recreated (if you want to use the entropy optimizer).
+Probably the easiest way to do this is to restore databases and also to
+reinitialize the optimizer information ("rm stored*" in the optimizer
+directory).
 
-Sample relations also have changed a week ago and need to be recreated as well. For standard databases this is done automatically.
+Sample relations also have changed a week ago and need to be recreated as well.
+For standard databases this is done automatically.
 
-For non-standard databases such as germany, samples and small relations should now be created manually from the optimizer, calling predicates
+For non-standard databases such as germany, samples and small relations should
+now be created manually from the optimizer, calling predicates
 
 	createSamples('Kreis', 100, 50)
 
@@ -90,7 +94,8 @@ Now also the times for
 2) for committing the transaction (which is reasonable!)
 3) for copying the result list (necessary in order to empty the list memory)
 
-are shown. If the output is too noisy, change the setting in SecondoConfig.ini in order to suppress them.
+are shown. If the output is too noisy, change the setting in SecondoConfig.ini
+in order to suppress them.
 
 Note: Some keywords in SecondoConfig.ini were changed. Please update your
 configuration file by replacing it with SecondoConfig.example.
@@ -105,7 +110,9 @@ counters for
 2) The number of transferred bytes
 3) The transferred data volume measured in pages
 
-Note: The last value is not identical to reading pages from disk. This information is only present in the Berkeley-DB cache. Currently, we have no interface to access the Berkeley-DB cache statistics.   
+Note: The last value is not identical to reading pages from disk. This
+information is only present in the Berkeley-DB cache. Currently, we have no
+interface to access the Berkeley-DB cache statistics.   
 
 Finally, all command times and counter values are stored in the system tables
 
@@ -132,12 +139,12 @@ documentation. The following features are new:
 2) Values of real atoms of the result and the expected result can be compared
 approximately either by a relative or by a fix tolerance parameter
 
-3) File names can be specified including environment variables of the shell, e.g.
-#yields @$(HOME)/data/query1.result
+3) File names can be specified including environment variables of the shell,
+e.g. #yields @$(HOME)/data/query1.result
 
 Moreover, the notation $(VARIABLE) can be used for SECONDO's restore and save
-commands, but then the file name needs to be a text atom which can easily specified
-by enclosing it in single quotes, e.g. 
+commands, but then the file name needs to be a text atom which can easily
+specified by enclosing it in single quotes, e.g. 
 
 restore database germany from '$(VARIABLE)/secondo-data/germany'; 
 
@@ -145,12 +152,12 @@ Note: On windows the path separator must be a backslash, for example
 
 restore database germany from 'C:\msys\1.0\home\myname\secondo-data\germany'
 
-There should be comprehensive test cases for every algebra. The automated test scripts
-will run all files below "Tests/Testspecs" which are ending with ".test". Moreover, you
-need not to set up your own data in a test. The databases defined in "bin/createdb.test"
-are restored before all other tests. Hence, if you need a specific database of the
-secondo-data repository, please add it there in the test file you must only open the 
-database. 
+There should be comprehensive test cases for every algebra. The automated test
+scripts will run all files below "Tests/Testspecs" which are ending with
+".test". Moreover, you need not to set up your own data in a test. The databases
+defined in "bin/createdb.test" are restored before all other tests. Hence, if
+you need a specific database of the secondo-data repository, please add it there
+in the test file you must only open the database. 
 
 Finally, you can run all tests locally by calling
 
