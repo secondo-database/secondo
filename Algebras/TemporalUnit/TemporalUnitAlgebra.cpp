@@ -5636,7 +5636,6 @@ int atmaxUReal( Word* args, Word& result, int message,
            (ureal->timeInterval.end).ToDouble() )
         { // ureal contains only a single point.
           // -> return a copy of the ureal        
-          // sli->t_res[sli->NoOfResults] = ureal->Clone();
           if(TUA_DEBUG) 
             cout << "  3.1: ureal contains only a single point" << endl;
           sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
@@ -5656,7 +5655,6 @@ int atmaxUReal( Word* args, Word& result, int message,
           if ( ureal->b == 0 )
             { //  constant function
               // the only result is a copy of the argument ureal
-              // sli->t_res[sli->NoOfResults] = ureal->Clone();
               if(TUA_DEBUG) 
                 cout << "  4.1: constant function" << endl;
               sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
@@ -5990,7 +5988,7 @@ int atminUReal( Word* args, Word& result, int message,
   double  v_start, v_end, v_extr; // values at resp. instants
   double  a, b, c, r;
   int     minValIndex;
-  Instant t;
+  Instant t = DateTime(instanttype);
   Word    a0;
   
   result = qp->ResultStorage( s );
@@ -6001,6 +5999,9 @@ int atminUReal( Word* args, Word& result, int message,
       
       a0 = args[0]; //qp->Request(args[0].addr, a0);
       ureal = (UReal*)(a0.addr);
+      if(TUA_DEBUG)
+        cout << "  Argument ureal value: " << TUPrintUReal(ureal) << endl
+             << "  1" << endl;      
       
       sli = new AtExtrURealLocalInfo;
       sli->NoOfResults = 0;
@@ -6011,7 +6012,7 @@ int atminUReal( Word* args, Word& result, int message,
         { // ureal undefined
           // -> return empty stream
           sli->NoOfResults = 0;
-          if(TUA_DEBUG) cout << "atminUReal: ureal undef " << endl;
+          if(TUA_DEBUG) cout << "       ureal undef: no solution" << endl;
           return 0;
         }
       
@@ -6019,9 +6020,13 @@ int atminUReal( Word* args, Word& result, int message,
            (ureal->timeInterval.end).ToDouble() )
         { // ureal contains only a single point.
           // -> return a copy of the ureal        
-          sli->t_res[sli->NoOfResults] = ureal->Clone();
+          sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
+          if(TUA_DEBUG) 
+            cout << "       single point" << endl
+                 << "       res " << sli->NoOfResults+1 << "=" 
+                 << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
+                 << endl;
           sli->NoOfResults++;
-          if(TUA_DEBUG) cout << "atminUReal: single point" << endl;
           return 0;
         }
       
@@ -6030,34 +6035,45 @@ int atminUReal( Word* args, Word& result, int message,
           if ( ureal->b == 0 )
             { //  constant function
               // the only result is a copy of the argument ureal
-              sli->t_res[sli->NoOfResults] = ureal->Clone();
+              sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
+              if(TUA_DEBUG) 
+                cout << "       constant function" << endl
+                     << "       res " << sli->NoOfResults+1 << "=" 
+                     << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
+                     << endl;
               sli->NoOfResults++;
-              if(TUA_DEBUG) cout << "atminUReal: ureal const ureal " << endl;
               return 0;
             }
           if ( ureal->b < 0 )
             { // linear fuction
-              // the result is a copy of the argument, restricted to
+              // the result is a clone of the argument, restricted to
               // its ending instant
               sli->t_res[sli->NoOfResults] = ureal->Clone();
               sli->t_res[sli->NoOfResults]->timeInterval.end =
                 sli->t_res[sli->NoOfResults]->timeInterval.start;
               sli->t_res[sli->NoOfResults]->timeInterval.lc = true;
-              sli->NoOfResults++;
               if(TUA_DEBUG) 
-                cout << "atminUReal: ureal linear fun (end)" << endl;
+                cout << "       linear function: final" << endl
+                     << "       res " << sli->NoOfResults+1 << "=" 
+                     << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
+                     << endl;
+              sli->NoOfResults++;
               return 0;
             }
           if ( ureal->b > 0 )
             { // linear fuction
-              // the result is a copy of the argument, restricted to
+              // the result is a clone of the argument, restricted to
               // its starting instant
               sli->t_res[sli->NoOfResults] = ureal->Clone();
               sli->t_res[sli->NoOfResults]->timeInterval.start =
                 sli->t_res[sli->NoOfResults]->timeInterval.end;
               sli->t_res[sli->NoOfResults]->timeInterval.rc = true;
+              if(TUA_DEBUG) 
+                cout << "       linear function: initial" << endl
+                     << "       res " << sli->NoOfResults+1 << "=" 
+                     << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
+                     << endl;
               sli->NoOfResults++;
-              if(TUA_DEBUG) cout << "atminUReal: ureal undef (start)" << endl;
               return 0;
             }
         }
@@ -6079,21 +6095,22 @@ int atminUReal( Word* args, Word& result, int message,
           v_start = getValUreal(t_start,a,b,c,r);
           v_end   = getValUreal(t_end,  a,b,c,r);
           if(TUA_DEBUG) 
-            cout << "\nOperator atminUReal: " << endl 
+            cout << "\nQuadratic function. Cadidates are: " << endl 
                  << "\tt_start=" << t_start << "\t v_start=" << v_start << endl
                  << "\tt_extr =" << t_extr  << "\t v_extr =" << v_extr  << endl
                  << "\tt_end  =" << t_end   << "\t v_end  =" << v_end   << endl;
           // compute, which values are minimal
           
           if ( (t_start < t_extr) && (t_end > t_extr) )
+            // 3 possible results
             minValIndex = getMinValIndex(v_extr,v_start,v_end);
           else 
-            { 
+            { // only 2 possible results
               minValIndex = 0;
-              if (v_start <= v_end) 
-                minValIndex += 2;
-              if (v_end <= v_start) 
-                minValIndex += 4;
+              if (v_start <= v_end) // min at start
+                minValIndex += 2; 
+              if (v_end <= v_start) // min at end
+                minValIndex += 4; 
             }
           if(TUA_DEBUG) cout << "\tminValIndex = " <<  minValIndex << endl;
           
@@ -6103,8 +6120,12 @@ int atminUReal( Word* args, Word& result, int message,
               t = ureal->timeInterval.start;
               Interval<Instant> i( t, t, true, true );
               sli->t_res[sli->NoOfResults]->timeInterval = i;
+              if(TUA_DEBUG) 
+                cout << "       added start" << endl
+                     << "       res " << sli->NoOfResults+1 << "=" 
+                     << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
+                     << endl;
               sli->NoOfResults++;
-              if(TUA_DEBUG) cout << " added start" << endl;
             }
           if ( (minValIndex & 4) && (t_start != t_end) )
             {
@@ -6112,8 +6133,12 @@ int atminUReal( Word* args, Word& result, int message,
               t = ureal->timeInterval.end;
               Interval<Instant> i( t, t, true, true );
               sli->t_res[sli->NoOfResults]->timeInterval = i;
+              if(TUA_DEBUG) 
+                cout << "       added end" << endl
+                     << "       res " << sli->NoOfResults+1 << "=" 
+                     << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
+                     << endl;
               sli->NoOfResults++;
-              if(TUA_DEBUG) cout << " added end" << endl;
             }
           if ( (minValIndex & 1)   &&
                (t_extr != t_start) &&
@@ -6123,8 +6148,12 @@ int atminUReal( Word* args, Word& result, int message,
               t.ReadFrom(t_extr);
               Interval<Instant> i( t, t, true, true );
               sli->t_res[sli->NoOfResults]->timeInterval = i;
+              if(TUA_DEBUG) 
+                cout << "       added extr" << endl
+                     << "       res " << sli->NoOfResults+1 << "=" 
+                     << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
+                     << endl;
               sli->NoOfResults++;
-              if(TUA_DEBUG) cout << " added extr" << endl;
             }
           return 0;
         }
@@ -6142,6 +6171,11 @@ int atminUReal( Word* args, Word& result, int message,
       
       result = SetWord( sli->t_res[sli->ResultsDelivered]->Clone() );
       sli->t_res[sli->ResultsDelivered]->DeleteIfAllowed();
+      if(TUA_DEBUG) 
+        cout << "    delivered result[" << sli->ResultsDelivered+1 
+             << "/" << sli->NoOfResults<< "]=" 
+             << TUPrintUReal((UReal*)(result.addr)) 
+             << endl;
       sli->ResultsDelivered++;
       return YIELD;
       
