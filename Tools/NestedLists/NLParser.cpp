@@ -52,6 +52,7 @@ extern ListExpr parseNL_list;
 
 extern int scanNL_lines;
 extern int scanNL_cols;
+extern string scanNL_str;
 extern int yydebug;
 extern int yyparse();
 
@@ -81,6 +82,7 @@ NLParser::parse()
  
   scanNL_lines = 1;
   scanNL_cols = 0;
+  scanNL_str = "";
   parseNL_nl = nl;
   parseNL_list = nl->Empty();  
   int rc = yyparse();
@@ -106,7 +108,8 @@ yyerror( char* s )
     //<< static_cast<unsigned short>( yychar )
     //<< resetiosflags(ios::hex|ios::showbase)
     << " at line " << scanNL_lines
-    << " and col " << scanNL_cols << "!"
+    << " and col " << scanNL_cols << "!" << endl
+    << "LINE: " << scanNL_str << "$" << endl
     << endl;
   cmsg.send();
 }

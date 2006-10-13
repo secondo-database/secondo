@@ -70,8 +70,10 @@ static double f;
 // global variables
 int scanNL_lines;
 int scanNL_cols;
+string scanNL_str;
 
-#define UPDATE_COLS scanNL_cols += yyleng;
+#define UPDATE_COL scanNL_cols += yyleng; scanNL_str += string(yytext);
+#define RESET_COL scanNL_cols = 0; scanNL_str = ""; scanNL_lines++;
 
 // the yylex() function that's actually used
 #define YY_DECL int NLScanner::yylex()
@@ -114,40 +116,41 @@ file		"<file>"[^<]+"</file--->"
 %x COMMENT
 %%
 
-<INITIAL>\n|\r            { scanNL_lines++; scanNL_cols=0; }
+<INITIAL>\n|\r            { scanNL_lines++; scanNL_cols=0; scanNL_str=""; }
 
-<INITIAL>[ \a\b\f\t\v]+   { UPDATE_COLS }
+<INITIAL>[ \a\b\f\t\v]+   { UPDATE_COL }
 
-<INITIAL>-?[0-9]+       { scanNL_cols += yyleng; 
+<INITIAL>-?[0-9]+       { UPDATE_COL 
                         yylval = nl->IntAtom( atoi( yytext ) );
                         return (ZZINTEGER);
                         }
 
-<INITIAL>{number}       { scanNL_cols += yyleng; 
+<INITIAL>{number}       { UPDATE_COL 
                         f = atof( yytext );
                         yylval = nl->RealAtom( f );
 			return (ZZREAL);
 		        }
 
-<INITIAL>"TRUE"         { scanNL_cols += yyleng; 
+<INITIAL>"TRUE"         { UPDATE_COL 
 			yylval = nl->BoolAtom( true );
 			return (ZZBOOLEAN);
 		        }
 
-<INITIAL>"FALSE"        { scanNL_cols += yyleng; 
+<INITIAL>"FALSE"        { UPDATE_COL
 			yylval = nl->BoolAtom( false );
 			return (ZZBOOLEAN);
 		        }
 
 
-<INITIAL>{simpletext}	{ string value(yytext);
+<INITIAL>{simpletext}	{ UPDATE_COL
+                          string value(yytext);
                           value = value.substr(1,value.length()-2);
                           ListExpr newText = nl->TextAtom(value);
                           yylval = newText;
 			  return (ZZTEXT);
                         }
 
-<INITIAL>"<text>"       { scanNL_cols += yyleng;
+<INITIAL>"<text>"       { UPDATE_COL 
                         // change to state TEXT
                         BEGIN(TEXT);
                         text = new ostringstream();
@@ -159,21 +162,21 @@ file		"<file>"[^<]+"</file--->"
                         text->write(yytext, yyleng);
                         }
  */
-<INITIAL>{commentstart} { scanNL_cols += yyleng;
+<INITIAL>{commentstart} { UPDATE_COL
                           BEGIN(COMMENT);
                         }
-<COMMENT>{commentend}   { scanNL_cols += yyleng;
+<COMMENT>{commentend}   { UPDATE_COL
                           BEGIN(INITIAL);
                         }
-<COMMENT>\n             { scanNL_cols=0;
+<COMMENT>\n             { RESET_COL 
                           scanNL_lines++;
                         }
 
-<COMMENT>.              { scanNL_cols++;
+<COMMENT>.              { UPDATE_COL
                         }
 
 
-<TEXT>.|\n              { scanNL_cols += yyleng;
+<TEXT>.|\n              { UPDATE_COL
                           if(yytext[0]=='\n'){
                              scanNL_lines++;
                              scanNL_cols = 0;
@@ -182,7 +185,7 @@ file		"<file>"[^<]+"</file--->"
                         }
 
 
-<TEXT>"</text--->"      { scanNL_cols += yyleng;  
+<TEXT>"</text--->"      { UPDATE_COL 
                         BEGIN(INITIAL);
                         ListExpr newText = nl->TextAtom();
                         nl->AppendText( newText, text->str() );
@@ -193,7 +196,7 @@ file		"<file>"[^<]+"</file--->"
                         }
 
 
-<INITIAL>{string}       { scanNL_cols += yyleng;
+<INITIAL>{string}       { UPDATE_COL
 			if ( yyleng - 2 > MAX_STRINGSIZE )
 			{
 			  yyleng = MAX_STRINGSIZE + 2;
@@ -207,7 +210,7 @@ file		"<file>"[^<]+"</file--->"
 			return (ZZSTRING);
 		        }
 
-<INITIAL>{symbol}  { scanNL_cols += yyleng;
+<INITIAL>{symbol}  { UPDATE_COL
 		     if ( yyleng > MAX_STRINGSIZE )
 	             {
 	               cmsg.error() << "Symbol " << yytext << " too long!" << endl;
@@ -219,7 +222,7 @@ file		"<file>"[^<]+"</file--->"
                    }
 
 <INITIAL>{file}  { /* files are expanded to base64 encoded text atoms */
-                 scanNL_cols += yyleng;
+                 UPDATE_COL
                  ListExpr newText = nl->TextAtom();
 
                  string fileNameStr(yytext);
@@ -255,15 +258,15 @@ file		"<file>"[^<]+"</file--->"
 		 }
 
 
-<INITIAL>"("   { scanNL_cols += yyleng;
+<INITIAL>"("   { UPDATE_COL
                  return (ZZOPEN);
                }
 
-<INITIAL>")"   { scanNL_cols += yyleng;
+<INITIAL>")"   { UPDATE_COL
                  return (ZZCLOSE);
                }
 
-.              { scanNL_cols += yyleng;
+.              { UPDATE_COL
                  return (ZZERROR); 
                }
 %%
