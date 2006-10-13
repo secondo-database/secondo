@@ -64,7 +64,7 @@ struct OperatorInfo {
   string syntax;
   string meaning;
   string example;
-  
+   
   OperatorInfo() :
     name(""),  
     signature(""),  
@@ -72,6 +72,34 @@ struct OperatorInfo {
     meaning(""),
     example("")
   {}
+
+  OperatorInfo( const string& _name,
+                const string& _signature, 
+                const string& _syntax, 
+                const string& _meaning, 
+                const string& _example )
+ { 
+   name = _name;
+   signature = _signature;
+   syntax = _syntax;
+   meaning = _meaning;
+   example = _example;
+ } 
+
+ const string str() const { 
+  
+   const string headStr = "(\"Signature\" \"Syntax\" \"Meaning\" \"Example\")";
+
+   string spec = "(" + headStr + "(" 
+              + "'" + signature + "'" 
+              + "'" + syntax + "'"
+              + "'" + meaning + "'"
+              + "'" + example + "'))";
+   
+   return spec; 
+ }
+
+    
 };
 
 

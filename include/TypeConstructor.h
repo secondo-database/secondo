@@ -89,6 +89,40 @@ struct ConstructorInfo {
     valueExample(""),
     remarks("")
   {}
+
+  ConstructorInfo( const string& _name,
+                   const string& _signature, 
+                   const string& _typeExample, 
+                   const string& _listRep, 
+                   const string& _valueExample,
+                   const string& _remarks       )
+  {
+    name = _name;
+    signature = _signature;
+    typeExample = _typeExample;
+    listRep = _listRep;
+    valueExample = _valueExample;
+    remarks = _remarks;
+  }  
+
+    
+  const ListExpr list() const { 
+   
+     ListExpr headList = 
+               nl->FiveElemList( nl->StringAtom("Signature"),
+                                 nl->StringAtom("Example Type List"),
+                                 nl->StringAtom("List Rep"),
+                                 nl->StringAtom("Example List"),
+                                 nl->StringAtom("Remarks") );
+     ListExpr specList = 
+               nl->FiveElemList( nl->StringAtom(signature),
+                                 nl->StringAtom(typeExample),
+                                 nl->StringAtom(listRep),
+                                 nl->StringAtom(valueExample),
+                                 nl->StringAtom(remarks) );
+
+    return nl->TwoElemList(headList, specList ); 
+  }
 };
 
 
