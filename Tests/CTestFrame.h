@@ -12,6 +12,9 @@ for your test cases.
 #include <string>
 #include <iostream>
 
+
+#define CHECK(a,b) CheckResult(#a, a, b)
+
 using namespace std;
 
 
@@ -92,7 +95,8 @@ public:
     const string white(60-4-(title.length()+caseNr.str().length()), ' ');
     cout << endl
 	 << sep << endl
-	 << fillChar << "  " << caseNr.str() << title << white << fillChar << endl
+	 << fillChar << "  " << caseNr.str() 
+         << title << white << fillChar << endl
 	 << sep << endl; 
   }
 
@@ -104,14 +108,15 @@ public:
 
   bool CheckResult(const string& operation, bool result, bool expected) {
 
-    cout << operation << " = " << CBool(result);
+    cout << "*** " << operation << "    [" << CBool(result);
     bool ok = (result == expected);
     if (ok)
     { 
-      cout << " as expected.";
+      cout << " -> OK ]";
     
     } else {
-      cout << " error! " << CBool(expected) << "is expected.";
+      cout << endl << " -> ERROR ] " 
+           << CBool(expected) << " expected!" << endl;
       errCtr++;
     }
     cout << endl;
