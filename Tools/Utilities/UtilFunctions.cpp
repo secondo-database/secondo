@@ -277,6 +277,13 @@ ostream& operator << (ostream& os, const color& c) {
 }
 
 
+/*
+6 Parts of class ~NList~
+
+*/
+
+NestedList* NList::nl = 0;
+
 ostream& operator<<(ostream& os, const NList& n) { 
   os << n.convertToString(); 
   return os;
