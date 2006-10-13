@@ -265,11 +265,11 @@ or ask your administrator.
 
 1) Installation problems:
 -------------------------
-Some new linux distributions (e.g. SuSe 9.2) are equipped with bash version 3.0. This causes
-problems in the installsdk script. For example the configure script of the
-gcc will break due to compatibility problems of the trap command when the bash is
-running in posix mode. At the secondo website you can download a newer version of
-installsdk which solves this problem. 
+Some new linux distributions (e.g. SuSe 9.2) are equipped with bash version 3.0.
+This causes problems in the installsdk script. For example the configure script
+of the gcc will break due to compatibility problems of the trap command when the
+bash is running in posix mode. At the secondo website you can download a newer
+version of installsdk which solves this problem. 
 
 2) Environment problems:
 ------------------------
