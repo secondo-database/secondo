@@ -82,20 +82,36 @@ restore zug5 from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5';
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5_speed
 query speed(zug5)
 
+#testcase speed_mp empty-mp
+#yields (mreal ( ) )
+query speed([const mpoint value ( ) ])
+
 #testcase velocity_mp
 #tolerance_real 0.001
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5_velocity
 query velocity(zug5)
+
+#testcase velocity_mp empty-mp
+#yields (mpoint ( ) )
+query velocity([const mpoint value ( ) ])
 
 #testcase derivable_mr
 #tolerance_real 0.001
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5_derivable
 query derivable(speed(zug5))
 
+#testcase derivable_mr empty-mr
+#yields (mbool ( ) )
+query derivable([const mreal value ( ) ])
+
 #testcase derivative_mr
 #tolerance_real 0.001
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5_derivative
 query derivative(speed(zug5))
+
+#testcase derivative_mr empty-mr
+#yields (mreal ( ) )
+query derivative([const mreal value ( ) ])
 
 ############################
 # mopping up test database #

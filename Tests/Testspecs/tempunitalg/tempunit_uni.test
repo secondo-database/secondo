@@ -87,35 +87,35 @@ query deftime(up1)
 #yields (periods ( ) )
 query deftime(up3)
 
-#testcase atinstant
+#testcase atinstant up1
 #tolerance_real 0.001
 #yields (ipoint ("2003-11-20-06:30" (1500.0 1500.0))) 
 query up1 atinstant [const instant value "2003-11-20-06:30"]
 
-#testcase atinstant undef_unit
+#testcase atinstant undef_upoint
 #tolerance_real 0.001
 #yields (ipoint undef) 
 query up3 atinstant [const instant value "2003-11-20-06:30"]
 
-#testcase atinstant undef_instant
+#testcase atinstant upoint undef_instant
 #tolerance_real 0.001
 #yields (ipoint undef) 
 query up1 atinstant [const instant value undef]
 
-#testcase atperiods
+#testcase atperiods upoint
 #tolerance_real 0.001
 #yields ((rel (tuple ( (elem upoint)))) ( (   (   ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1916.666666666667 1916.666666666667 1833.333333333333 1833.333333333333))) (   (   ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE) (1166.666666666667 1166.666666666667 1083.333333333334 1083.333333333334))))) 
 query (up1 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) 
 ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ] ) transformstream consume
 
-#testcase atperiods undef_unit
+#testcase atperiods undef_upoint
 #tolerance_real 0.001
 #yields ((rel (tuple ( (elem upoint)))) ( )) 
 query (up3 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ] ) transformstream consume
 
 
 # as there are no undef-periods values, we use empt-periods here:
-#testcase atperiods undef_periods
+#testcase atperiods upoint undef_periods
 #tolerance_real 0.001
 #yields ((rel (tuple ( (elem upoint)))) ( )) 
 query (up1 atperiods [const periods value ( ) ] ) transformstream consume
@@ -125,21 +125,40 @@ query (up1 atperiods [const periods value ( ) ] ) transformstream consume
 #yields (ipoint ("2003-11-20-06:00" (2000.0 2000.0)))
 query initial(up1)
 
+#testcase initial_up undef
+#tolerance_real 0.001
+#yields (ipoint undef)
+query initial(up3)
+
 #testcase final_up
 #tolerance_real 0.001
 #yields (ipoint ("2003-11-20-07:00" (1000.0 1000.0)))
 query final(up1)
+
+#testcase final_up undef
+#tolerance_real 0.001
+#yields (ipoint undef)
+query final(up3)
 
 #testcase present_I
 #tolerance_real 0.001
 #yields (bool TRUE)
 query (up1 present [const instant value "2003-11-20-06:33"])
 
+#testcase present_I instant-undef
+#tolerance_real 0.001
+#yields (bool undef)
+query (up1 present [const instant value undef])
+
+#testcase present_I upoint-undef
+#tolerance_real 0.001
+#yields (bool undef)
+query (up3 present [const instant value "2003-11-20-06:33"])
+
 #testcase present_P
 #tolerance_real 0.001
 #yields (bool TRUE)
-query (up1 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) 
-("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ])
+query (up1 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ])
 
 #testcase at_up_p1
 #tolerance_real 0.001
@@ -151,9 +170,31 @@ query (up2 at p)
 #yields (upoint ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1500.0 1500.0 1500.0 1500.0)))
 query (up6 at p)
 
-#testcase passes
+#testcase at_undef-upoint_p1
+#tolerance_real 0.001
+#yields (upoint undef)
+query (up3 at p) 
+
+#testcase at_up_undef-point
+#tolerance_real 0.001
+#yields (upoint undef)
+query (up2 at [const point value undef]) 
+
+#testcase passes TRUE
 #yields (bool TRUE)
 query ( up2 passes p)
+
+#testcase passes FALSE
+#yields (bool FALSE)
+query ( up4 passes p)
+
+#testcase passes undef-upoint p
+#yields (bool undef)
+query ( up3 passes p)
+
+#testcase passes up2 undef-point
+#yields (bool undef)
+query ( up2 passes [const point value undef])
 
 #testcase velocity_up
 #tolerance_real 0.001
@@ -164,6 +205,11 @@ query velocity(up1)
 #tolerance_real 0.001
 #yields (upoint (("2003-11-20-06:00" "2003-11-20-06:01" TRUE TRUE) (16.66667 0.0 16.66667 0.0)))
 query velocity([const upoint value(("2003-11-20-06:00" "2003-11-20-06:01" TRUE TRUE) (0.0 0.0 1000.0 0.0))])
+
+#testcase velocity undef-upoint
+#tolerance_real 0.001
+#yields (upoint undef)
+query velocity(up3)
 
 #testcase derivable_ur4
 #tolerance_real 0.001
@@ -253,28 +299,127 @@ query (ur1 at [const real value -1.0]) transformstream consume
 #yields ((rel (tuple ( (elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (1.0 0.0 -1.0 FALSE))) ((("2000-01-05" "2000-01-05" TRUE TRUE) (1.0 0.0 -1.0 FALSE)))))
 query (ur1 at [const real value 3.0]) transformstream consume
 
-#testcase at_ureal ur3 def
+#testcase at_ureal ureal-undef def
 #yields (int 0)
 query (ur3 at [const real value 3.0]) count
 
-#testcase at_ureal ur1 rundef
+#testcase at_ureal ur1 real-undef
 #yields (int 0)
 query (ur1 at rundef) count
 
 
-# trajectory_up
-# atinstant_uconst
-# atinstant_ureal
+#testcase present_uconst_instant positive
+#yields (bool TRUE)
+query ui1 present [const instant value "2003-11-20-06:33"]
+
+#testcase present_uconst_instant negative
+#yields (bool FALSE)
+query ui1 present [const instant value "2003-11-20-07:00"]
+
+#testcase present_uconst_instant inst-undef
+#yields (bool undef)
+query ui1 present [const instant value undef]
+
+#testcase present_uconst_instant unit-undef
+#yields (bool undef)
+query ui3 present [const instant value "2003-11-20-06:33"]
+
+
+#testcase present_ureal_instant positive
+#yields (bool TRUE)
+query ur4 present [const instant value "2003-11-20-06:33"]
+
+#testcase present_ureal_instant negative
+#yields (bool FALSE)
+query ur4 present [const instant value "2003-11-20-07:00"]
+
+#testcase present_ureal_instant inst-undef
+#yields (bool undef)
+query ur4 present [const instant value undef]
+
+#testcase present_ureal_instant unit-undef
+#yields (bool undef)
+query ur3 present [const instant value "2003-11-20-06:33"]
+
+
+#testcase present_uconst_periods TRUE
+#yields (bool TRUE)
+query (ui1 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ])
+
+#testcase present_uconst_periods FALSE
+#yields (bool FALSE)
+query (ui1 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-07:00" TRUE TRUE)) ])
+
+#testcase present_uconst_periods uconst-undef
+#yields (bool undef)
+query (ui3 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-07:00" TRUE TRUE)) ])
+
+#testcase present_uconst_periods periods-empty
+#yields (bool undef)
+query (ui3 present [const periods value ( ) ])
+
+
+
+#testcase present_ureal_periods TRUE
+#yields (bool TRUE)
+query (ur4 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ])
+
+#testcase present_ureal_periods FALSE
+#yields (bool FALSE)
+query (ur4 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-07:00" TRUE TRUE)) ])
+
+#testcase present_ureal_periods undef-ureal
+#yields (bool undef)
+query (ur3 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ])
+
+#testcase present_ureal_periods empty-periods
+#yields (bool undef)
+query (ur3 present [const periods value ( ) ])
+
+
+
+#testcase atinstant_uconst
+#yields (iint ("2003-11-20-06:33" 1500) )
+query ui1 atinstant [const instant value "2003-11-20-06:33"]
+
+#testcase atinstant_uconst uconst-undef
+#yields (iint undef)
+query ui3 atinstant [const instant value "2003-11-20-06:33"]
+
+#testcase atinstant_uconst instant-undef
+#yields (iint undef)
+query ui1 atinstant [const instant value undef]
+
+
+
+#testcase atinstant_ureal DEF
+#yields (ireal ("2000-01-03" -1.0) )
+query ur1 atinstant [const instant value "2000-01-03-00:00"]
+
+#testcase atinstant_ureal UNDEF
+#yields (ireal undef)
+query ur1 atinstant [const instant value "1999-01-03-00:00"]
+
+#testcase atinstant_ureal ureal-undef
+#yields (ireal undef)
+query ur3 atinstant [const instant value "2000-01-03-00:00"]
+
+#testcase atinstant_ureal instant-undef
+#yields (ireal undef)
+query ur1 atinstant [const instant value undef]
+
+
+
+
 # atperiods_uconst
 # atperiods_ureal
 # initial_uconst
 # initial_ureal
 # final_uconst
 # final_ureal
-# present_uconst_instant
-# present_ureal_instant
-# present_uconst_periods
-# present_ureal_periods
+
+# trajectory_up
+
 # speed_upoint
 # distance_upoint_point
 # distance_point_upoint
@@ -282,9 +427,11 @@ query (ur1 at rundef) count
 # distance_ureal_real
 # distance_real_ureal
 # distance_ureal_ureal
+
 # intersects_uconst_uconst
 # intersects_upoint_upoint
 # intersects_ureal_ureal
+
 # intersection_uconst_const
 # intersection_const_uconst
 # intersection_uconst_uconst
