@@ -43,6 +43,11 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
   static java.text.DecimalFormat format = new java.text.DecimalFormat("#.#####");
 
 
+  public int numberOfShapes(){
+     return 1;
+  }
+
+  
 
   /** Returns a short text usable as label **/
   public String getLabel(double time){
@@ -71,7 +76,10 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
    * @return Rectangle or Circle Shape if ActualTime is defined otherwise null.
    * @see <a href="Dsplmovingpointsrc.html#getRenderObject">Source</a>
    */
-  public Shape getRenderObject (AffineTransform at) {
+  public Shape getRenderObject (int num,AffineTransform at) {
+    if(num!=0){
+        return null;
+    }
     if(Intervals==null || PointMaps==null){
        return null;
     }
@@ -81,8 +89,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
     double t = RefLayer.getActualTime();
     int index = IntervalSearch.getTimeIndex(t,Intervals);
     if(index<0){
-      RenderObject = null;
-      return  RenderObject;
+       return null;
     }
 
     PointMap pm = (PointMap) PointMaps.get(index);
@@ -97,12 +104,13 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
     double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
     double pixy = Math.abs(ps/at.getScaleY());
     double pix = Math.abs(ps/at.getScaleX());
+    Shape shp;
     if (Cat.getPointasRect())
-      RenderObject = new Rectangle2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);
+      shp = new Rectangle2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);
     else {
-      RenderObject = new Ellipse2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);
+      shp = new Ellipse2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);
     }
-    return  RenderObject;
+    return  shp;
   }
 
   /**
@@ -207,6 +215,10 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
     defined = true;
   }
 
+  public boolean isPointType(int num){
+     return true;
+  }
+
   /**
    * Init. the Dsplmovingpoint instance and calculate the overall bounds and Timebounds
    * @param type The symbol movingpoint
@@ -218,7 +230,6 @@ public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute,
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
     AttrName = type.symbolValue();
-    ispointType = true;         //to create the desired form
     int length = value.listLength();
     Intervals = new Vector(length+2);
     PointMaps = new Vector(length+2);

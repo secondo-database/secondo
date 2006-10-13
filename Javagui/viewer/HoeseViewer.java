@@ -2115,9 +2115,21 @@ public boolean canDisplay(SecondoObject o){
   public void makeSelectionVisible () {
     if (selGraphObj == null)
       return;
-    if (selGraphObj.getRenderObject(allProjection) == null)
-      return;
-    Rectangle2D r = selGraphObj.getRenderObject(allProjection).getBounds2D();
+    Rectangle2D r = null;
+    int num = selGraphObj.numberOfShapes();
+    // compute the bounds of the selected object
+   
+    for(int i=0;i<num;i++){
+       Shape s = selGraphObj.getRenderObject(i,allProjection);
+       if(s!=null){
+           if(r==null){
+               r = s.getBounds2D();
+           } else{
+              r.add(s.getBounds2D());
+           }
+       }
+    } 
+    
     if (r == null)            // an emtpy spatial object or an undefined timed object
        return;
     //try{
@@ -2859,7 +2871,7 @@ public boolean canDisplay(SecondoObject o){
               GraphDisplay.repaint();
            points.add(thePoint);
            Graphics2D G = (Graphics2D)GraphDisplay.getGraphics();
-           ps.draw(G,allProjection,CurrentState.ActualTime);
+           Layer.draw(ps,G,CurrentState.ActualTime,allProjection);
 }
 
       /** This function computes the coordinates in the 'world' from the 

@@ -37,21 +37,25 @@ Class linearClass = (new PMRectLinear()).getClass();
 Time T = new Time();
 TotalMove Move=null;
 
-public Shape getRenderObject(AffineTransform at){
+public int numberOfShapes(){
+   return 1;
+}
+
+public Shape getRenderObject(int num,AffineTransform at){
+  if(num!=0){
+     return null;
+  }
   if(Move==null){
-     RenderObject = null;
      return null;
   }
   double t = RefLayer.getActualTime();
   T.readFrom(t);
   Rectangle2D.Double Rect =  (Rectangle2D.Double) Move.getObjectAt(T);
-  RenderObject= Rect;
-  return RenderObject;
+  return Rect;
 }
 
 public void init(ListExpr type,ListExpr value,QueryResult qr){
   AttrName = type.symbolValue();
-  ispointType = false;
   Move = new TotalMove();
   if(!Move.readFrom(value,linearClass)){
      qr.addEntry("("+AttrName +"WrongListFormat )");

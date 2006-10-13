@@ -723,6 +723,7 @@ public class Category
     }
 
     ImageIcon ii = new ImageIcon(TexturePath+cat.IconName);
+
     if (ii == null)
       style = "nofill";
     if (style.equals("nofill"))
@@ -734,6 +735,7 @@ public class Category
           Color2, true));
     else if (style.equals("texture") || style.equals("resizedIcon") || style.equals("simpleIcon")) {
       if (ii.getImageLoadStatus()==MediaTracker.ABORTED ||  ii.getImageLoadStatus()==MediaTracker.ERRORED){
+         Reporter.writeError("Error in loading image " + cat.IconName);
          style="solid";
          cat.setFillStyle(Color1);
       } else{
@@ -743,9 +745,11 @@ public class Category
         big.drawImage(ii.getImage(), 0, 0, null);
         Rectangle r = new Rectangle(0, 0, ii.getIconWidth(), ii.getIconHeight());
         cat.setFillStyle(new TexturePaint(bi, r));
+        cat.TextureImage=bi;
         if(style.equals("resizedIcon")){
           cat.iconFill=true;
           cat.iconResizeToBox = true;
+          
         }
         if(style.equals("simpleIcon")){
            cat.iconFill=true;

@@ -41,7 +41,10 @@ public class Dsplpointsequence extends DisplayGraph {
   /** The bounding-box rectangle */
   Rectangle2D.Double bounds;
   /** The shape representing this sequence */
-  GeneralPath GP = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
+  GeneralPath GP1 = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
+
+  private Shape shp;
+
   /** because of the reason of precision, we store the points also
       in a vector **/
   Vector points;
@@ -57,7 +60,7 @@ public class Dsplpointsequence extends DisplayGraph {
   
   /** returns true if this sequence
       should be drawn as line **/
-  public boolean isLineType(){
+  public boolean isLineType(int num){
     if(mode==POINTS_MODE)
        return false;
      if(points==null)
@@ -69,7 +72,7 @@ public class Dsplpointsequence extends DisplayGraph {
   }
 
   /** returns true if this seuqnces consist of a single point **/
-  public boolean isPointType(){
+  public boolean isPointType(int num){
      if(mode==POINTS_MODE)
         return true;
      if(points==null)
@@ -86,7 +89,7 @@ public class Dsplpointsequence extends DisplayGraph {
 
   /** sets this sequence to be empty **/
   public void reset(){
-    GP.reset();
+    GP1.reset();
     points = null; 
   }
 
@@ -105,13 +108,13 @@ public class Dsplpointsequence extends DisplayGraph {
      y = aPoint.y;
      if(isEmpty()){
        points.add(new Dsplpoint(new Point2D.Double(x,y),this));
-       GP.moveTo((float)x,(float)y);
+       GP1.moveTo((float)x,(float)y);
        bounds = new Rectangle2D.Double();
        bounds.setRect(x,y,0,0);
        return true; // changed from empty to point
      }else{
        points.add(new Dsplpoint(new Point2D.Double(x,y),this));
-       GP.lineTo((float)x,(float)y);
+       GP1.lineTo((float)x,(float)y);
        double x1 = bounds.getX();
        double y1 = bounds.getY();
        double x2 = x1+bounds.getWidth();
@@ -139,7 +142,7 @@ public class Dsplpointsequence extends DisplayGraph {
   */
   public void ScanValue (ListExpr value) {
       err = false;
-      GP.reset();
+      GP1.reset();
       points = new Vector(value.listLength()+2);
       while(!value.isEmpty()){
          ListExpr apoint = value.first();
@@ -193,7 +196,7 @@ public class Dsplpointsequence extends DisplayGraph {
     qr.addEntry(this);
     bounds = new Rectangle2D.Double();
     if(points.size()>1)
-       bounds.setRect(GP.getBounds2D());
+       bounds.setRect(GP1.getBounds2D());
      else{
        Point2D.Double point = ((Dsplpoint)points.get(0)).getPoint();
        bounds.setRect(point.getX(),point.getY(),0,0);
@@ -224,9 +227,9 @@ public class Dsplpointsequence extends DisplayGraph {
       return  false;
     Rectangle2D.Double r = new Rectangle2D.Double(xpos - 5.0*scalex, ypos - 5.0*scaley, 10.0*scalex, 10.0*scaley);
     if(mode==AREA_MODE)
-       return RenderObject.intersects(r);
+       return GP1.intersects(r);
     if(mode==LINE_MODE)
-       return stroke.createStrokedShape(RenderObject).intersects(r);
+       return stroke.createStrokedShape(GP1).intersects(r);
     // POINT_MODE
     if(points==null)
        return false;
@@ -239,14 +242,20 @@ public class Dsplpointsequence extends DisplayGraph {
     return false;
   }
 
+public int numberOfShapes(){
+   return 1;
+}
 
-public Shape getRenderObject (AffineTransform at) {
+public Shape getRenderObject (int num, AffineTransform at) {
+    if(num!=0){
+       return null;
+    }
     if(isEmpty())
       return null;
     if(mode==POINTS_MODE){
        GeneralPath rpoints = new GeneralPath();
        for(int i=0;i<points.size();i++){
-            rpoints.append( ((Dsplpoint)points.get(i)).getRenderObject(at),false);
+            rpoints.append( ((Dsplpoint)points.get(i)).getRenderObject(0,at),false);
        }
        return rpoints;
     }
@@ -256,14 +265,14 @@ public Shape getRenderObject (AffineTransform at) {
        double pixy = Math.abs(ps/at.getScaleY());
        double pix = Math.abs(ps/at.getScaleX());
        if (Cat.getPointasRect())
-          RenderObject = new Rectangle2D.Double(r.getX()- pix/2, r.getY() - pixy/2, pix, pixy);
+          shp = new Rectangle2D.Double(r.getX()- pix/2, r.getY() - pixy/2, pix, pixy);
        else {
-          RenderObject = new Ellipse2D.Double(r.getX()- pix/2, r.getY() - pixy/2, pix, pixy);
+          shp = new Ellipse2D.Double(r.getX()- pix/2, r.getY() - pixy/2, pix, pixy);
         }
     } else{
-     RenderObject = GP;
+     shp = GP1;
     }
-    return RenderObject;
+    return shp;
 }
 
 

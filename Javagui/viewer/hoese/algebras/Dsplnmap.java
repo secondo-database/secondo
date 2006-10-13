@@ -31,7 +31,18 @@ import tools.Reporter;
  * The displayclass of the NauticalMap algebras nmap datatype.
  */
 public class Dsplnmap extends DisplayGraph {
-/** The internal datatype representation */
+
+
+   public int numberOfShapes(){
+      return 0;
+   }
+
+   public Shape getRenderObject(int num,AffineTransform at){
+      return null;
+   }
+
+
+   /** The internal datatype representation */
 
 
   /**

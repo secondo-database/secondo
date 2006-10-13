@@ -39,9 +39,22 @@ public class Dsplupoint extends DisplayTimeGraph {
   private Rectangle2D.Double bounds=null;
   private Interval theInterval;
   private static JPanel EmptyPanel = new JPanel();
+  private RectangularShape shp;
+
+  public boolean isPointType(int num){
+     return true;
+  }
+
+
+  public int numberOfShapes(){
+      return 1;
+  }
 
   /** Computes the Renderobject at the given point in time */
-  public Shape getRenderObject (AffineTransform at) {
+  public Shape getRenderObject (int num,AffineTransform at) {
+    if(num!=0) {
+       return null;
+    }
     double t = RefLayer.getActualTime(); // get the current time
     if(!theInterval.isDefinedAt(t)){ // t is outside from the deftime
        point = null;
@@ -60,11 +73,11 @@ public class Dsplupoint extends DisplayTimeGraph {
     double pix = Math.abs(ps/at.getScaleX());
     //Point2D p=at.transform(point,p);
     if (Cat.getPointasRect())
-      RenderObject = new Rectangle2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);
+      shp = new Rectangle2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);
     else {
-      RenderObject = new Ellipse2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);
+      shp = new Ellipse2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);
     }
-    return  RenderObject;
+    return  shp;
   }
 
 
@@ -117,7 +130,6 @@ public class Dsplupoint extends DisplayTimeGraph {
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
     AttrName = type.symbolValue();
-    ispointType = true;         //to create the desired form
     ScanValue(value);
     if (err) {
       Reporter.writeError("Dsplmovingpoint Error in ListExpr :parsing aborted");

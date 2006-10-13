@@ -43,9 +43,22 @@ public class Dsplline extends DisplayGraph {
 
   
   /** returns true because this type is a line **/
-  public boolean isLineType(){
+  public boolean isLineType(int num){
     return true;
   }
+
+  public int numberOfShapes(){
+     return 1;
+  }
+
+  public Shape getRenderObject(int num, AffineTransform at){
+    if(num!=0){
+      return null;
+    } else{
+        return GP;
+    }
+  }
+
 
   /** returns the string for the textual representation of this **/
   public String toString(){
@@ -169,13 +182,12 @@ public class Dsplline extends DisplayGraph {
   public void init (ListExpr type,int typewidth, ListExpr value,int valueWidth, QueryResult qr) {
     AttrName = extendString(type.symbolValue(),typewidth);
     ScanValue(value);
-    RenderObject = GP;
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");
       entry = AttrName + " : <error>"; 
       qr.addEntry(entry);
       bounds =null;
-      RenderObject=null;
+      GP=null;
       return;
     }
     else if(!defined){

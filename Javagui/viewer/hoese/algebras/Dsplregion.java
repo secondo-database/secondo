@@ -36,6 +36,19 @@ public class Dsplregion extends DisplayGraph implements DsplSimple{
   Area areas;
   boolean defined;
 
+  public int numberOfShapes(){
+     return 1;
+  }
+
+  public Shape getRenderObject(int num,AffineTransform at){
+    if(num<1){
+       return areas;
+    } else{
+       return null;
+    }
+  }
+
+
   /** convert the Listrepresentation LE to a Area */
   public void ScanValue(ListExpr LE){
      if(isUndefined(LE)){
@@ -133,7 +146,6 @@ public class Dsplregion extends DisplayGraph implements DsplSimple{
        return;
     }
     qr.addEntry(this);
-    RenderObject = areas;
   }
 
 

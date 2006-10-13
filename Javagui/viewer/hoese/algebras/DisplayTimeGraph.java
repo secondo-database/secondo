@@ -33,7 +33,7 @@ import tools.Reporter;
 /**
  * The base class for moving 2d-Objects
  */
-public class DisplayTimeGraph extends DisplayGraph
+public abstract class DisplayTimeGraph extends DisplayGraph
     implements Timed {
   Interval TimeBounds;
   Vector Intervals;

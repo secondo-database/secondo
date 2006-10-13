@@ -37,6 +37,7 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute,DsplSimple
   Point2D.Double point;
   DecimalFormat format = new DecimalFormat("#.#####");
   String label = null;
+  private RectangularShape shp;
 
   /**
    * standard constructor.
@@ -61,11 +62,19 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute,DsplSimple
   public Dsplpoint (Point2D.Double p, DisplayGraph dg) {
     super();
     point = p;
-    ispointType = true;
     RefLayer = dg.RefLayer;
     selected = dg.getSelected();
     Cat = dg.getCategory();
   }
+
+  public boolean isPointType(int num){
+    return true;
+  }
+
+  public int numberOfShapes(){
+     return 1;
+  }
+
 
   /**
    * Creates the internal Object used to draw this point
@@ -73,7 +82,10 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute,DsplSimple
    * @return Rectangle or Circle Shape
    * @see <a href="Dsplpointsrc.html#getRenderObject">Source</a>
    */
-  public Shape getRenderObject (AffineTransform at) {
+  public Shape getRenderObject (int num,AffineTransform at) {
+    if(num!=0){
+       return null;
+    }
     if(point==null){
         return null;
     }
@@ -82,11 +94,11 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute,DsplSimple
     double pixy = Math.abs(ps/at.getScaleY());
     double pix = Math.abs(ps/at.getScaleX());
     if (Cat.getPointasRect())
-      RenderObject = new Rectangle2D.Double(r.getX()- pix/2, r.getY() - pixy/2, pix, pixy);
+      shp = new Rectangle2D.Double(r.getX()- pix/2, r.getY() - pixy/2, pix, pixy);
     else {
-      RenderObject = new Ellipse2D.Double(r.getX()- pix/2, r.getY() - pixy/2, pix, pixy);
+      shp = new Ellipse2D.Double(r.getX()- pix/2, r.getY() - pixy/2, pix, pixy);
     }
-    return  RenderObject;
+    return  shp;
   }
 
   /**
@@ -148,7 +160,6 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute,DsplSimple
                     ListExpr value, int valueWidth, 
                     QueryResult qr) {
     AttrName = extendString(type.symbolValue(),typewidth);
-    ispointType = true;         //to create the desired form
     if(isUndefined(value)){
        qr.addEntry(new String("" + AttrName + ": undefined"));
        return;

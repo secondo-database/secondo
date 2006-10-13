@@ -30,17 +30,20 @@ import viewer.HoeseViewer;
 public interface DsplGraph extends DsplBase
 {
 
+  /** Returns the number of contained shapes
+    */
+   public int numberOfShapes();
+
   /**
    * to determine, whether the type is displayed as point.
    * @return true if pointtype
    */
-  public boolean isPointType ();
-
+  public boolean isPointType (int num);
 
   /**
     *   determines whether the type is a line (no interior)
     **/
-  public boolean isLineType();   
+  public boolean isLineType(int num);   
 
 
   /**
@@ -97,35 +100,10 @@ public interface DsplGraph extends DsplBase
 
 
   /**
-   * The actual shape of the object. May be null if drawn by itself.
-   * @param af The transformation under which this shape will be drawn
-   * @return momentary shape object
+   *  Returns one of the current Shapes of this object. 
+   * @param num: the number of the requested shape
    */
-  public Shape getRenderObject (AffineTransform af);
-
-
-
-  /**
-   * This method is called to draw this object .
-   * @param g The graphic context to draw in.
-   */
-  public void draw (Graphics g,double time);
-
-
-  /**
-   * This method is called to draw this object .
-   * @param g The graphic context to draw in.
-   */
-   public void draw (Graphics g,AffineTransform at, double time);
-
-  
-  /**
-   * Drawing of labeltext.
-   * @param g graphics context
-   * @param ro the shape of the associated object.
-   */
-  public void drawLabel (Graphics g,Rectangle2D  bounds, double time);
-
+  public Shape getRenderObject (int num, AffineTransform af);
 
 
   /**

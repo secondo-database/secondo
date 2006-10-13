@@ -70,16 +70,6 @@ public class Dsplintimeline extends Dsplline
     return  jp;
   }
 
-  /**
-   * Draws the included line if ActualTime == defined time by calling its superclass draw-method.
-   * @param g The graphics context
-   * @see <a href="Dsplintimelinesrc.html#draw">Source</a>
-   */
-  public void draw (Graphics g, double time) {
-    double t = RefLayer.getActualTime();
-    if (Math.abs(t - TimeBounds.getStart()) < 0.000001)
-      super.draw(g,time);
-  }
 
   /**
    * Scans the representation of an instant datatype 

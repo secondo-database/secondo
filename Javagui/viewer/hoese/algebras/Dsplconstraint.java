@@ -34,6 +34,15 @@ import tools.Reporter;
 public class Dsplconstraint extends DisplayGraph {
 /** The internal datatype representation */
   Shape[] geoShapes;
+
+
+  public int numberOfShapes(){
+    if(geoShapes==null){
+      return 0;
+    }
+    return geoShapes.length;
+  }
+
   /**
    * Scans the numeric representation of a point datatype 
    * @param v the numeric value of the x- and y-coordinate
@@ -271,10 +280,14 @@ public class Dsplconstraint extends DisplayGraph {
     }        
   }
   
-  public Shape[] getRenderObjects (AffineTransform at) {
-    return geoShapes;
+  public Shape getRenderObject(int num,AffineTransform at) {
+    return geoShapes[num];
   }
-  
+ 
+  public boolean isPointType(int num){
+      return true;
+  }
+ 
 
   /**
    * Init. the Dsplrectangle instance.
@@ -288,7 +301,6 @@ public class Dsplconstraint extends DisplayGraph {
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
     Reporter.writeError("init gestartet!!");
     AttrName = type.symbolValue();
-    ispointType = true;
     ScanValue(value);
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");
@@ -300,7 +312,7 @@ public class Dsplconstraint extends DisplayGraph {
       qr.addEntry(this);   
       // folgende Zeilen sind nur ein workaround:
       // START WORKAROUND
-      GeneralPath gp = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
+/*      GeneralPath gp = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
       gp.moveTo((float)-10005.0, (float)-10005.0);
       gp.lineTo((float)-10005.0, (float)10005.0);
       gp.lineTo((float)10005.0, (float)10005.0);
@@ -314,6 +326,7 @@ public class Dsplconstraint extends DisplayGraph {
       gp.lineTo((float)-10000.0, (float)-10000.0);
       RenderObject = gp;
       // ENDE WORKAROUND
+*/
     }
   }
   

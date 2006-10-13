@@ -79,7 +79,17 @@ public class Dsplrectangle extends DisplayGraph {
     } 
     else 
       qr.addEntry(this);
-      RenderObject=rect;
+  }
+
+  public int numberOfShapes(){
+     return 1;
+  }
+ 
+  public Shape getRenderObject(int num, AffineTransform at){
+     if(num!=0){
+        return null;
+     }
+     return rect;
   }
 
 }

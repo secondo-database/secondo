@@ -37,7 +37,18 @@ Time T = new Time();
 TotalMove Move=null;
 boolean defined;
 
-public Shape getRenderObject(AffineTransform at){
+public boolean isPointType(int num){
+    return true;
+}
+
+public int numberOfShapes(){
+   return 1;
+}
+
+public Shape getRenderObject(int num,AffineTransform at){
+  if(num!=0){
+    return null;
+  }
   if(!defined){
      return null;
   }
@@ -45,8 +56,7 @@ public Shape getRenderObject(AffineTransform at){
   T.readFrom(t);
   Point2D.Double[] Pts = (Point2D.Double[]) Move.getObjectAt(T);
   if(Pts==null || Pts.length==0){
-    RenderObject=null;
-    return RenderObject;
+    return null;
   }
   Area res = new Area();
   double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
@@ -61,7 +71,6 @@ public Shape getRenderObject(AffineTransform at){
 	                                        Pts[i].getY()-pixy/2,pixx,pixy)));
      }
   }
-  RenderObject=res;
   return res;
   
 }
@@ -69,7 +78,6 @@ public Shape getRenderObject(AffineTransform at){
 
 public void init(ListExpr type,ListExpr value,QueryResult qr){
   AttrName = type.symbolValue();
-  ispointType = true;
    if(isUndefined(value)){
      defined=false;
      qr.addEntry(AttrName+"undefined");

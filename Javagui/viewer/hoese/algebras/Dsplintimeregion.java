@@ -94,10 +94,10 @@ public class Dsplintimeregion extends Dsplregion
    * @return Region Shape if ActualTime == defined time
    * @see <a href="Dsplintimeregionsrc.html#getRenderObject">Source</a>
    */
-  public Shape getRenderObject (AffineTransform at) {
+  public Shape getRenderObject (int num,AffineTransform at) {
     double t = RefLayer.getActualTime();
     if (Math.abs(t - TimeBounds.getStart()) < 0.000001)
-      return  super.getRenderObject(at); 
+      return  super.getRenderObject(num,at); 
     else 
       return  null;
   }
@@ -121,7 +121,6 @@ public class Dsplintimeregion extends Dsplregion
     } 
     else 
       qr.addEntry(this);
-    RenderObject = areas;
   }
 
   /** A method of the Timed-Interface

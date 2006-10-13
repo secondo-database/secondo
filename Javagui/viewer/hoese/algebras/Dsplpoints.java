@@ -35,6 +35,7 @@ import tools.Reporter;
 public class Dsplpoints extends DisplayGraph {
   Vector points;
   Rectangle2D.Double bounds;
+  private Shape shp;
   private boolean defined;
 
   /**
@@ -108,7 +109,7 @@ public class Dsplpoints extends DisplayGraph {
         bounds = (Rectangle2D.Double)bounds.createUnion(new Rectangle2D.Double(p.getX(),
             p.getY(), 0, 0));
     }
-    RenderObject = bounds;
+    shp = bounds;
   }
 
   /**
@@ -117,6 +118,28 @@ public class Dsplpoints extends DisplayGraph {
    */
   public Rectangle2D.Double getBounds () {
     return  bounds;
+  }
+  
+  public boolean isPointType(int num){
+    return true;
+  }
+
+  public int numberOfShapes(){
+     return points.size();
+  }
+
+  public Shape getRenderObject(int num, AffineTransform at){
+    Point2D.Double p = (Point2D.Double) points.get(num);
+    double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
+    double pixy = Math.abs(ps/at.getScaleY());
+    double pix = Math.abs(ps/at.getScaleX());
+    Shape shp;
+    if (Cat.getPointasRect())
+      shp = new Rectangle2D.Double(p.getX()- pix/2, p.getY() - pixy/2, pix, pixy);
+    else {
+      shp = new Ellipse2D.Double(p.getX()- pix/2, p.getY() - pixy/2, pix, pixy);
+    }
+    return  shp;
   }
 
   /**
@@ -140,23 +163,6 @@ public class Dsplpoints extends DisplayGraph {
     return  hit;
   }
 
-  /**
-   * Draws the included points by creating a Dsplpoint and calling its draw-method.
-   * @param g The graphics context
-   * @see <a href="Dsplpointssrc.html#draw">Source</a>
-   */
-  public void draw (Graphics g, double time) {
-    if(!defined){
-       return;
-    }
-    ListIterator li = points.listIterator();
-    while (li.hasNext()) {
-      Point2D.Double p = (Point2D.Double)li.next();
-      new Dsplpoint(p, this).draw(g,time);
-      //g2.fillOval((int)  p.getX()-3  ,(int) p.getY()-3,6,6);
-    }
-    drawLabel(g, bounds, time);
-  }
 }
 
 

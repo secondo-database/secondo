@@ -29,49 +29,62 @@ import java.awt.image.BufferedImage;
 
 
 /**
- * This class is the superclass of all grapical objects. Because it fully implements the DsplGraph
- * interface, the subclasses mustn´t do it.
+ * This class is the superclass of all grapical objects. 
  */
-public class DisplayGraph extends DsplGeneric
+
+public abstract class DisplayGraph extends DsplGeneric
     implements DsplGraph,DsplSimple {
+
 /** if an error occurs during creation this field will be true */
   protected boolean err = false;
+
 /** The layer in which this object is drawn */
   protected Layer RefLayer;
+
 /** The category of this object preset by the defaultcategory */
   protected Category Cat = Category.getDefaultCat();
-/** The shape that was drawn by this instance */
-  protected Shape RenderObject;
-/** Point datatayes e.g. point,points need special treatment,therefore this flag need to be set */
-  protected boolean ispointType = false;
+
 /** The Object labeling this one */
   private LabelAttribute labelAttribute;
+
 /** Object changing the color during painting **/
  protected RenderAttribute renderAttribute=null;
 
 /** Position of the label */
   private Point LabPosOffset = new Point(-30, -10);
+
  /** the typewidth to display in a relation */
  protected int minTypeWidth=0;
  protected int minValueWidth=0;
- // a point for shippping data between this class and the projectionmanager
+
+ /** A point for shippping data between this class and the projectionmanager.
+   * this point has only an technical aspect. It avoid to create a lot of
+   * points during the projection if this point is reused in the projection during
+   * analysing the nested list structure. Using this point instead of using the new 
+   * operator can speed up this procedure very much. 
+   **/
  static java.awt.geom.Point2D.Double aPoint = new Point2D.Double();
- // a basicstroke for easy creating stroked shapes for line objects
+
+/** A basicstroke for easy creating stroked shapes for line objects.
+  * The line painting algorithm seems to be much slower than to paint the
+  * border of the same area (which will have the same result. For this reason, it 
+  * is recommendet to create an area instead a line and only to paint this area without
+  * any fill. For testing the contains predicates, we need this border instead the 
+  * complete area. The BasicStroke class provides the needed functionality.
+  **/
  static BasicStroke stroke = new BasicStroke(); 
 
 
-  /**
-   *
-   * @return true if it is a pointtype object
-   * @see <a href="DisplayGraphsrc.html#isPointType">Source</a>
-   */
-  public boolean isPointType () {
-    return  ispointType;
+  /** Checks whether the Shape with the given number should be displayed 
+    * as a point.
+    **/
+  public boolean isPointType (int num) {
+    return  false;
   }
 
   /** For LineTypes, no interior will be drawn
     **/
-  public boolean isLineType(){
+  public boolean isLineType(int num){
     return false;
   }
 
@@ -135,193 +148,29 @@ public class DisplayGraph extends DsplGeneric
    * @see <a href="DisplayGraphsrc.html#getBounds">Source</a>
    */
   public Rectangle2D.Double getBounds () {
-    if (RenderObject == null)
-      return  null;
-    else{
-      Rectangle2D r = RenderObject.getBounds2D();
-      return new Rectangle2D.Double(r.getX(),r.getY(),r.getWidth(),r.getHeight());
-    }
-  }
-
-  /**
-   * Subclasses overrides this method to design their own Shape-object.
-   * @param af The actual transformation of the graphic context, in which the object will be placed
-   * @return Shape to render
-   * @see <a href="DisplayGraphsrc.html#getRenderObject">Source</a>
-   */
-  public Shape getRenderObject (AffineTransform af) {
-    return  RenderObject;
-  }
-
-  /** returns a set of objects to paint.
-    * This can be usefull when different kinds of objects
-    * should be drawn, e.g. point, line and region within a
-    * single object.
-    **/
-  public Shape[] getRenderObjects(AffineTransform af){
-      return null;
-  } 
-
-
-
-  /** paints this component on g **/
-  public void draw(Graphics g, double time){
-     if(RefLayer==null)
-        return;
-     draw(g,RefLayer.getProjection(),time);
-  }
-
-
-  /** paint one of teh given icons to g2 */
-  private void drawIcon(BufferedImage original, BufferedImage scaled,
-                        Rectangle2D box, boolean resize, Graphics2D g,
-                        AffineTransform at){
-     double x = box.getX();
-     double y = box.getY();
-     double w = box.getWidth();
-     double h = box.getHeight();
-     if(w<=0 || h<=0){
-       Reporter.debug("invalid value for iconbox ");
-       return;
-     }
-     // the current implementation ignores the scaled image
-     if(resize){
-        g.drawImage(original,(int)x,(int)y,(int)w,(int)h,null);
-     } else {
-        double dx = (w-original.getWidth())/2;
-        double dy = (h-original.getHeight())/2;
-        g.drawImage(original,(int)(x+dx),(int)(y+dy),null);
-     }
-     
-  }
-
-
-
-  /**
-   * This method draws the RenderObject with ist viewattributes collected in the category
-   * @param g The graphic context to draw in.
-   */
-  public void draw (Graphics g,AffineTransform af2,double time) {
-   
-    Shape sh=null; // transformed renderobject
-
-    Graphics2D g2 = (Graphics2D)g;
-
-
-    Shape render = getRenderObject(af2);
-    Shape[] moreShapes = getRenderObjects(af2);
-
-    // the bounding box of all objects
-    Rectangle2D bounds = null;
-
-    if (render == null && moreShapes==null){
-      // no object found
-      return;
-    }
-
-    if(render!=null){ 
-        sh = af2.createTransformedShape(render);
-        bounds = render.getBounds2D();
-    }
-    Shape[] shs=null;
-    if(moreShapes!=null){
-      shs = new Shape[moreShapes.length];
-      for(int i=0;i<shs.length;i++){
-          shs[i] = af2.createTransformedShape(moreShapes[i]);
-          if(bounds==null){
-             bounds = moreShapes[i].getBounds2D();
-          }else{
-             bounds.add(moreShapes[i].getBounds2D());
-          }
-      }
-    }
-
-    Paint fillStyle = Cat.getFillStyle(renderAttribute,time);
-
-    // paint the interior
-    if (fillStyle != null && !isLineType() && !Cat.getIconFill()){
-      g2.setPaint(fillStyle);
-			if(sh!=null){
-			   g2.fill(sh);
-      }
-			if(shs!=null){
-				for(int i=0;i<shs.length;i++){
-					 g2.fill(shs[i]);
-				}
-			}
-    }
-
-    if(Cat.getIconFill()){
-       boolean resize = Cat.getIconResizeToBox();
-       if(Cat.getTextureImage()!=null){
-          if(sh!=null){
-             drawIcon(Cat.getTextureImage(), Cat.getResizedImage(),sh.getBounds(),resize,g2,af2);
-          }
-          if(shs!=null){
-            for(int i=0;i<shs.length;i++){
-               drawIcon(Cat.getTextureImage(), Cat.getResizedImage(),shs[i].getBounds(),resize,g2,af2);
+     int num = numberOfShapes();
+     Rectangle2D.Double r = null;
+     for(int i=0;i<num;i++){
+        Shape shp = getRenderObject(i,new AffineTransform());
+        if(shp!=null){
+            Rectangle2D b = shp.getBounds2D();
+            if(r==null){
+                r = new Rectangle2D.Double(b.getX(),b.getY(),b.getWidth(),b.getHeight());
+            } else {
+                r.add(b);
             }
-          }
-
-       } else {
-         Reporter.writeError("no Icon found but iconFill is choosen");
-       }
-    }
-
-  
-    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
-    Color aktLineColor = Cat.getLineColor();
-    if (selected){
-      aktLineColor = new Color(Color.white.getRGB() ^ Cat.getLineColor().getRGB());
-    }
-    g2.setColor(aktLineColor);
-
-    // paint the border
-    if ((Cat.getLineWidth(renderAttribute,time) > 0.0f) || (selected)){
-      g2.setStroke(Cat.getLineStroke(renderAttribute,time));
-      if(sh!=null){
-          g2.draw(sh);
-      }
-      if(shs!=null){
-          for(int i=0;i<shs.length;i++){
-             g2.draw(shs[i]); 
-          }
-      }
-    }
-    drawLabel(g2, bounds,time);
+        }
+     }
+     return r;
   }
 
-  /**
-   * The draw method for the label.
-   * @param g  The graphic context to draw in.
-   * @param r  The bounding box of the object to label.
-   */
-  public void drawLabel (Graphics g, Rectangle2D r, double time) {
-    if(r==null){
-       Reporter.writeError("drawLabel with null-bounding box called !!");
-       return; 
-    }
-    String LabelText = getLabelText(time);
-    if (LabelText == null || LabelText.trim().equals("")){ // no label
-      return;
-    }
+  /** returns the number of Shapes for this object **/
+  public abstract int numberOfShapes();
 
-    Graphics2D g2 = (Graphics2D)g;
-    AffineTransform af2 = RefLayer.getProjection();
-    Point2D.Double p = new Point2D.Double(r.getX() + r.getWidth()/2, r.getY()
-        + r.getHeight()/2);
-    af2.transform(p, p);
-    float x = (float)(p.getX()+LabPosOffset.getX());
-    float y = (float)(p.getY()+LabPosOffset.getY());
-    if (selected) {
-      Rectangle2D re = g2.getFont().getStringBounds(LabelText, g2.getFontRenderContext());
-      g2.setPaint(new Color(255, 128, 255, 255));
-      g2.fill3DRect((int)x,(int)(y+re.getY()),(int)re.getWidth(), (int)re.getHeight(),
-          true);
-    }
-    g2.setPaint(Cat.getLineColor());
-    g2.drawString(LabelText, x,y);
-  }
+  public abstract Shape getRenderObject (int num,AffineTransform at);
+
+
+
 
   /**
    * Sets the category of this object.
@@ -369,12 +218,19 @@ public class DisplayGraph extends DsplGeneric
    * @see <a href="DisplayGraphsrc.html#contains">Source</a>
    */
   public boolean contains (double xpos, double ypos, double scalex, double scaley) {
-    //if (! isActual())  RenderObject =createRenderObject();
-    if (RenderObject == null)
-      return  false;
+    // create an rectangle around the given point
     Rectangle2D.Double r = new Rectangle2D.Double(xpos - 2.0*scalex, ypos - 2.0*scaley, 4.0*scalex, 4.0*scaley);
-    return RenderObject.intersects(r);
+    int num = numberOfShapes();
+    for(int i=0;i<num;i++){
+       Shape shp = getRenderObject(i,RefLayer.getProjection());
+       if(shp!=null && shp.intersects(r)){
+          return true;
+       }
+    }
+    return false;
+
   }
+
   /** The text representation of this object
    * @see <a href="DisplayGraphsrc.html#toString">Source</a>
    */

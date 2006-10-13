@@ -66,17 +66,6 @@ public class Dsplintimepoints extends Dsplpoints
   }
 
   /**
-   * Draws the included points if ActualTime == defined time by calling its superclass draw-method.
-   * @param g The graphics context
-   * @see <a href="Dsplintimepointssrc.html#draw">Source</a>
-   */
-  public void draw (Graphics g,double time) {
-    double t = RefLayer.getActualTime();
-    if (Math.abs(t - boundingInterval.getStart()) < 0.000001)
-      super.draw(g,time);
-  }
-
-  /**
    * Tests if a given position is contained in any of the points,but only if ActualTime == defined time
    * @param xpos The x-Position to test.
    * @param ypos The y-Position to test.

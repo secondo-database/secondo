@@ -37,8 +37,15 @@ public class Dsplmovingregion extends DisplayTimeGraph implements DsplSimple{
   Rectangle2D.Double bounds;
   double bufferedTime;
   int bufferedIndex=-1;
+
+  private Shape shp;
+
   /** defined flag */
   boolean defined;
+
+  public int numberOfShapes(){
+     return 1;
+  }
 
   /**
    * Gets the shape of this instance at the ActualTime
@@ -47,14 +54,17 @@ public class Dsplmovingregion extends DisplayTimeGraph implements DsplSimple{
    * @see <a href="Dsplmovingregionsrc.html#getRenderObject">Source</a>
    */
 
-  public Shape getRenderObject (AffineTransform at) {
+  public Shape getRenderObject(int num,AffineTransform at) {
+    if(num!=0){
+      return null;
+    }
     if(!defined){
       return null;
     }
     double t = RefLayer.getActualTime();
     if((t != bufferedTime) || (bufferedIndex <0))
-      RenderObject = getRenderObjectAtTime(t);
-    return  RenderObject;
+      shp = getRenderObjectAtTime(t);
+    return  shp;
   }
 
   /**
@@ -79,7 +89,7 @@ public class Dsplmovingregion extends DisplayTimeGraph implements DsplSimple{
     }
     bufferedIndex = index;
     if(index<0){
-      return (RenderObject=null);
+      return (shp=null);
     }
 
    RegionMap rm = (RegionMap) RegionMaps.get(index);
@@ -88,7 +98,7 @@ public class Dsplmovingregion extends DisplayTimeGraph implements DsplSimple{
    double t2 = in.getEnd();
    double delta = (t1==t2)?0 : (t-t1)/(t2-t1);
    if(rm.numberOfPoints<3){
-      return (RenderObject=null);
+      return (shp=null);
    }
    Vector Cycles = rm.Cycles;
    GeneralPath GP = new GeneralPath(GeneralPath.WIND_EVEN_ODD,rm.numberOfPoints);
@@ -101,7 +111,7 @@ public class Dsplmovingregion extends DisplayTimeGraph implements DsplSimple{
 	     double tmpy = em.y1+delta*(em.y2-em.y1);
        if(!ProjectionManager.project(tmpx,tmpy,aPoint)){
           Reporter.writeError("wrong parameter for choosed projection");
-          return (RenderObject=null);
+          return (shp=null);
        } 
 	     float x = (float)aPoint.x;
 	     float y = (float)aPoint.y;
@@ -113,10 +123,10 @@ public class Dsplmovingregion extends DisplayTimeGraph implements DsplSimple{
      }
    } catch(Exception e){
      Reporter.writeError("wrong parameter for choosed projection");
-     return (RenderObject=null);
+     return (shp=null);
    }
    GP.closePath();
-   return (RenderObject = new Area(GP));
+   return (shp = new Area(GP));
   }
 
   /**

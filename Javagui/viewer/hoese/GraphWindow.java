@@ -360,6 +360,7 @@ public class GraphWindow extends JLayeredPane
    */
   public void paintChildren (Graphics g) {
     if(ignorePaint) return;
+
     // paint the background image
     // first transform the boundig box for the background 
     // to into screen coordinates
@@ -372,24 +373,29 @@ public class GraphWindow extends JLayeredPane
     background.setClipRect(R2);
     Graphics2D g2 = (Graphics2D)g;
     g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-    // mark the selected object
     super.paintChildren(g2);
+
+    // mark the selected object
+
     DsplGraph dg = mw.getSelGO();
-    
     if ((dg != null) && (dg.getVisible())){
-      if(!dg.isLineType())
-          dg.draw(g2,CurrentState.ActualTime);              //the selected GraphObject must be drawn on top
-      else{
-         Composite C = g2.getComposite();
-         g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.0f));
-         dg.draw(g2,CurrentState.ActualTime);
-         g2.setComposite(C);
-      } 
-      }
-    if(additionalGraphObject!=null){
-      additionalGraphObject.draw(g2,at,CurrentState.ActualTime); 
-    } 
-  }
+        int num = dg.numberOfShapes();
+        for(int i=0;i<num;i++){
+		       if(!dg.isLineType(num))
+				 	    Layer.draw(dg,g2,CurrentState.ActualTime,at);
+           else{
+	   		      Composite C = g2.getComposite();
+		  			  g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.0f));
+			  	    Layer.draw(dg,g2,CurrentState.ActualTime,at);
+	            g2.setComposite(C);
+			     } 
+       }
+     }
+     // draw addinitional objects from objectvcreation
+     if(additionalGraphObject!=null){
+         Layer.draw(additionalGraphObject,g2,CurrentState.ActualTime,at); 
+     }
+}
 
   public void addMouseListener(MouseListener ML){
      MouseListener[] MLs = getMouseListeners();

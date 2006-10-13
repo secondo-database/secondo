@@ -72,10 +72,10 @@ public class Dsplintimepoint extends Dsplpoint
    * @return Rectangle or circle Shape if ActualTime == defined time
    * @see <a href="Dsplintimepointsrc.html#getRenderObject">Source</a>
    */
-  public Shape getRenderObject (AffineTransform at) {
+  public Shape getRenderObject (int num,AffineTransform at) {
     double t = RefLayer.getActualTime();
     if (Math.abs(t - TimeBounds.getStart()) < 0.000001)
-      return  super.getRenderObject(at); 
+      return  super.getRenderObject(num,at); 
     else 
       return  null;
   }
@@ -115,6 +115,10 @@ public class Dsplintimepoint extends Dsplpoint
     }
   }
 
+  public boolean isPointType(int num){
+    return true;
+  }
+
   /**
    * Init. the Dsplintimepoint instance.
    * @param type The symbol intimepoint
@@ -126,7 +130,6 @@ public class Dsplintimepoint extends Dsplpoint
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
     AttrName = type.symbolValue();
-    ispointType = true;         //to create the desired form
     ScanValue(value);
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");

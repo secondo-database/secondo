@@ -38,7 +38,6 @@ public class Dsplrect extends DisplayGraph {
    * Scans the numeric representation of a rectangle
    */
   private void ScanValue (ListExpr v) {
-    double koord[] = new double[2];
     if (v.listLength() != 4) {
       Reporter.writeError("Error: No correct rectangle expression: 4 elements needed");
       err = true;
@@ -80,6 +79,19 @@ public class Dsplrect extends DisplayGraph {
     }
   }
 
+  public int numberOfShapes(){
+     return 1;
+  }
+
+  /** Returns the rectangle to display **/
+  public Shape getRenderObject(int num,AffineTransform at){
+     if(num<1){
+       return rect;
+     } else{
+       return null;
+     }
+  }
+
   /**
    * Init. the Dsplrect instance.
    * @param type The symbol rect
@@ -98,7 +110,6 @@ public class Dsplrect extends DisplayGraph {
     } 
     else 
       qr.addEntry(this);
-      RenderObject=rect;
   }
 
 }

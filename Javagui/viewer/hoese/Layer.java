@@ -46,8 +46,6 @@ public class Layer extends JComponent {
   boolean Selected = false;
   /** the internal no. of this layer */
   int LayerNo;
-  Category LastCat = null;
-  DsplGraph LastDisplayGraph = null;
 
   /**
    * Default Construktor
@@ -206,24 +204,178 @@ public class Layer extends JComponent {
   }
 
 
-  /** set a new Category to paint the next object */
-  private void setCategory(DsplGraph dg,Graphics2D g2){
-    if(dg==null) return;
-    if(g2==null) return;
-    Category Cat = dg.getCategory();
-    if(Cat==null) return;
+  /** paint one of the given icons to g2 */
+  private static void drawIcon(BufferedImage original, BufferedImage scaled,
+                        Rectangle2D box, boolean resize, Graphics2D g,
+                        AffineTransform at){
+     double x = box.getX();
+     double y = box.getY();
+     double w = box.getWidth();
+     double h = box.getHeight();
+     if(w<=0 || h<=0){
+       Reporter.debug("invalid value for iconbox ");
+       return;
+     }
+     // the current implementation ignores the scaled image
+     if(resize){
+        g.drawImage(original,(int)x,(int)y,(int)w,(int)h,null);
+     } else {
+        double dx = (w-original.getWidth())/2;
+        double dy = (h-original.getHeight())/2;
+        g.drawImage(original,(int)(x+dx),(int)(y+dy),null);
+     }
+  }
 
-    LastCat=Cat;
-    LastDisplayGraph = dg;
+
+  /** The draw function using the transformation from getProjection **/
+  public void draw(DsplGraph dg,Graphics g,double time) {
+     draw(dg,g,time,getProjection());
+  }
+  
+
+  /**
+   * This method draws the RenderObject with ist viewattributes collected in the category
+   * @param g The graphic context to draw in.
+   */
+  public static void draw(DsplGraph dg,Graphics g,double time, AffineTransform af2) {
+    if(dg==null){
+       Reporter.writeError("try to draw nmull");
+       return;
+    }
+    // special treatment for non shape objects
+    if(dg instanceof DisplayComplex){
+      ((DisplayComplex)dg).draw(g,time,af2);
+    }
+
+    Shape sh=null; // transformed renderobject
+    Rectangle2D bounds=null;
+    Graphics2D g2 = (Graphics2D)g;
+    int num = dg.numberOfShapes();
+    Category cat = dg.getCategory();
+    for(int i=0;i<num;i++){
+       Shape shp = dg.getRenderObject(i,af2);
+       if(shp!=null){
+          sh = af2.createTransformedShape(shp);
+          if(bounds==null){
+               bounds = shp.getBounds2D();
+          } else {
+            bounds.add(shp.getBounds());
+          }
+          Paint fillStyle = cat.getFillStyle(dg.getRenderAttribute(),time);
+          
+          // paint the interior
+          if (fillStyle != null && !dg.isLineType(i) && !cat.getIconFill()){
+              g2.setPaint(fillStyle);
+        			if(sh!=null){
+			            g2.fill(sh);
+              }
+          }  
+          
+          // paint an icon
+          if(cat.getIconFill()){
+             boolean resize = cat.getIconResizeToBox();
+             if(cat.getTextureImage()!=null){
+                if(sh!=null){
+                   drawIcon(cat.getTextureImage(), cat.getResizedImage(),sh.getBounds(),resize,g2,af2);
+                 }
+             } else {
+                  Reporter.writeError("no Icon found but iconFill is choosen");
+             }
+           }
+           // switch line color if this object is selected
+           g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
+           Color aktLineColor = cat.getLineColor();
+           if (dg.getSelected()){
+                 aktLineColor = new Color(Color.white.getRGB() ^ cat.getLineColor().getRGB());
+           }
+           g2.setColor(aktLineColor);
+           
+           // paint the border
+          if ((cat.getLineWidth(dg.getRenderAttribute(),time) > 0.0f) || (dg.getSelected())){
+              g2.setStroke(cat.getLineStroke(dg.getRenderAttribute(),time));
+             if(sh!=null){
+                 g2.draw(sh);
+             }
+          }
+          drawLabel(dg,g2, bounds,time,af2);
+       }
+    }
+  }
+
+  /**
+   * The draw method for the label.
+   * @param g  The graphic context to draw in.
+   * @param r  The bounding box of the object to label.
+   */
+  public static  void drawLabel (DsplGraph dg, Graphics g, Rectangle2D r, 
+                                 double time, AffineTransform af2) {
+    if(r==null){
+       Reporter.writeError("drawLabel with null-bounding box called !!");
+       return; 
+    }
+    String LabelText = dg.getLabelText(time);
+    if (LabelText == null || LabelText.trim().equals("")){ // no label
+      return;
+    }
+
+    Graphics2D g2 = (Graphics2D)g;
+    Point2D.Double p = new Point2D.Double(r.getX() + r.getWidth()/2, r.getY()
+        + r.getHeight()/2);
+    af2.transform(p, p);
+    float x = (float)(p.getX()+dg.getLabPosOffset().getX());
+    float y = (float)(p.getY()+dg.getLabPosOffset().getY());
+    if (dg.getSelected()) {
+      Rectangle2D re = g2.getFont().getStringBounds(LabelText, g2.getFontRenderContext());
+      g2.setPaint(new Color(255, 128, 255, 255));
+      g2.fill3DRect((int)x,(int)(y+re.getY()),(int)re.getWidth(), (int)re.getHeight(),
+          true);
+    }
+    Category cat = dg.getCategory();
+    g2.setPaint(cat.getLineColor());
+    g2.drawString(LabelText, x,y);
+  }
+
+
+
+  /**
+    * Sets a new Category to paint the next object to the graphics context.
+    * @param dg:  the object to drawn
+    * @param g2:  the graphics context which is used
+    * @param num: the shape wich is to drawn, an negative number means that the
+    *             getRenderObject method is used instead of using this number as
+                  index for the array returned by the getRenderObjects() method
+    **/
+  private void setCategory(DsplGraph dg,Graphics2D g2, int num){
+
+    // ensure to have all required information
+
+    if(dg==null){ 
+         Reporter.writeError("Try to set a category for an object whith value null"); 
+         return;  
+    }
+    if(g2==null){ 
+       Reporter.writeError("try to set a Category without a graphics context");
+         return;
+    }
+    Category Cat = dg.getCategory();
+    if(Cat==null) {
+       Reporter.writeError("try to set a category which has value null");
+       return;
+    }
+
     AffineTransform af2 = getProjection();
-    Shape render = dg.getRenderObject(af2);
+    Shape shp;
+    boolean isPointType;
+    boolean isLineType;
+  
+    Shape render = dg.getRenderObject(num,af2);
     if(render==null)
        return;
     Shape sh = af2.createTransformedShape(render);
     if(sh==null) return;
 
 
-    if(!dg.isLineType()){
+    if(!dg.isLineType(num)){
        g2.setComposite(Cat.getAlphaStyle());
     } else{
       g2.setComposite(HoeseViewer.emptyStyle);
@@ -232,7 +384,7 @@ public class Layer extends JComponent {
     Paint P = Cat.getFillStyle(dg.getRenderAttribute(),CurrentState.ActualTime);
     g2.setPaint(P);
     if(P==null) return;
-    if (dg.isPointType()) {
+    if (dg.isPointType(num)) {
       if (P instanceof TexturePaint){
         BufferedImage bi = ((TexturePaint)P).getImage();
         if(bi==null) return;
@@ -243,7 +395,6 @@ public class Layer extends JComponent {
           ((GradientPaint)P).getColor1(),(float)(sh.getBounds().getX()+sh.getBounds().getWidth()),
           (float)(sh.getBounds().getY()+sh.getBounds().getHeight()),((GradientPaint)P).getColor2(),false));
     }
-    
 
   }
 
@@ -251,8 +402,11 @@ public class Layer extends JComponent {
   /** Paints the object to the graphics
     */
    public void paintObject(DsplGraph dg, Graphics2D g){
-      setCategory(dg,g);
-      dg.draw(g,CurrentState.ActualTime);
+     int num = dg.numberOfShapes();
+     for(int i=0;i<num;i++){ 
+         setCategory(dg,g,i);
+         draw(dg,g,CurrentState.ActualTime);
+     }
    } 
 
 
@@ -264,7 +418,6 @@ public class Layer extends JComponent {
   public void paintComponent (Graphics g) {
     Graphics2D g2 = (Graphics2D)g;
     try{
-      LastDisplayGraph = null;
       if (Selected){
         for(int i=0;i<GeoObjects.size();i++){
            DsplGraph dg = (DsplGraph)GeoObjects.get(i);

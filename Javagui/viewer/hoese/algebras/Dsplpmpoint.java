@@ -39,27 +39,37 @@ Time T = new Time();
 TotalMove Move=null;
 static DecimalFormat format = new DecimalFormat("#.####");
 
-public Shape getRenderObject(AffineTransform at){
+public boolean isPointType(int num){
+   return true;
+}
+
+public int numberOfShapes(){
+  return 1;
+}
+
+public Shape getRenderObject(int num,AffineTransform at){
+  if(num!=0){
+      return null;
+   }
   if(Move==null){
-     RenderObject = null;
      return null;
   }
   double t = RefLayer.getActualTime();
   T.readFrom(t);
   Point2D.Double Pos =  (Point2D.Double) Move.getObjectAt(T);
   if(Pos==null){
-     RenderObject = null;
      return null;
   }
   double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime); 
   double pixy = Math.abs(ps/at.getScaleY());
   double pixx = Math.abs(ps/at.getScaleX());
+  Shape shp;
   if(Cat.getPointasRect()){
-    RenderObject = new Rectangle2D.Double(Pos.getX()-pixx/2,Pos.getY()-pixy/2,pixx,pixy);
+    shp = new Rectangle2D.Double(Pos.getX()-pixx/2,Pos.getY()-pixy/2,pixx,pixy);
   }else{
-    RenderObject = new Ellipse2D.Double(Pos.getX()-pixx/2,Pos.getY()-pixy/2,pixx,pixy);
+    shp = new Ellipse2D.Double(Pos.getX()-pixx/2,Pos.getY()-pixy/2,pixx,pixy);
   }
-  return RenderObject;
+  return shp;
 }
 
 public String getLabel(double time){
@@ -78,7 +88,6 @@ public String getLabel(double time){
 
 public void init(ListExpr type,ListExpr value,QueryResult qr){
   AttrName = type.symbolValue();
-  ispointType = true;
   Move = new TotalMove();
   if(!Move.readFrom(value,linearClass)){
      qr.addEntry("("+AttrName +" WrongListFormat )");
