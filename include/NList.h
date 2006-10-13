@@ -72,7 +72,6 @@ lists are used is done by
 
 */
 
-extern NestedList* nl;
 
 /*
 2 String Constants
@@ -187,7 +186,9 @@ c)~.
     l(nl->Empty()), 
     e(nl->Empty()),
     len(0) 
-  {}
+  {
+    cout << "N:" << (void*) nl << endl;
+  }
   NList(const NList& rhs) : 
     l(rhs.l), 
     e(rhs.e),
@@ -198,6 +199,11 @@ c)~.
     e(nl->Empty()),
     len(nl->ListLength(list)) 
   {}
+  NList(const ListExpr list, int knownLen) : 
+    l(list), 
+    e(nl->Empty()),
+    len(knownLen) 
+  {}  
   NList(const NList& a, const NList& b) : 
     l( nl->TwoElemList(a.l, b.l) ),
     e( b.l ), 
@@ -208,6 +214,12 @@ c)~.
     e( c.l ), 
     len(3)
   {}
+  NList(const NList& a, const NList& b, const NList& c, const NList& d) : 
+    l( nl->FourElemList(a.l, b.l, c.l, d.l) ),
+    e( d.l ), 
+    len(4)
+  {}
+
   NList(const string& s, const bool isStr = false) :
     e( nl->Empty() ),
     len(0)
@@ -375,6 +387,10 @@ Functions applicable for ~symbol/string/text~ atoms.
     return result;
   } 
 
+  inline int intval() const
+  {
+    return nl->IntValue(l);
+  } 
 /*
 Conversion to C++ strings or a string Atom. The latter conversion can be
 used to convert a symbol or text atom into a string atom.
@@ -406,7 +422,7 @@ Comparison between ~NList/NList~ and ~NList/string~ instances
  
 
 /*
-Construction of big lists
+Construction of bigger lists
 
 */
   inline void makeHead(NList head) 
@@ -422,6 +438,16 @@ Construction of big lists
      len++;
   }
 
+/*
+Iteration over lists
+   
+The function ~rest~ removes the first element of a list.
+
+*/   
+
+  inline void rest() { l = nl->Rest(l); } 
+  
+  
 /*
 3 Support for implementing type mappings
 
@@ -451,8 +477,11 @@ functions.
     return true;
   }
 
+
+ static void setNLRef(NestedList* ptr) { nl = ptr; } 
   
  private:
+  static NestedList* nl;
   ListExpr l; 
   ListExpr e; // points to the last element of a list
   Cardinal len;
