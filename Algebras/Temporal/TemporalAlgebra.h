@@ -896,6 +896,7 @@ to ~val~.
                            TemporalUnit<Alpha>& result ) const
   {
     timeInterval.Intersection( i, result.timeInterval );
+    result.defined = defined;
   }
 
 /*

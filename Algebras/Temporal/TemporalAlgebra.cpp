@@ -163,6 +163,7 @@ void UReal::AtInterval( const Interval<Instant>& i,
   pResult->b = b;
   pResult->c = c;
   pResult->r = r;
+  pResult->StandardTemporalUnit<CcReal>::IsDefined();
 }
 
 /*
@@ -379,6 +380,8 @@ void UPoint::AtInterval( const Interval<Instant>& i,
   }
   else
     TemporalFunction( result.timeInterval.end, pResult->p1 );
+
+  pResult->SetDefined( IsDefined() );
 }
 
 void UPoint::Distance( const Point& p, UReal& result ) const
