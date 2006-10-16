@@ -221,8 +221,8 @@ extern AlgebraManager* am;
 #include "DateTime.h"
 using namespace datetime;
 
-bool TUA_DEBUG = false; // Set to true to activate debugging code
-//bool TUA_DEBUG = true; // Set to true to activate debugging code
+//bool TUA_DEBUG = false; // Set to true to activate debugging code
+bool TUA_DEBUG = true; // Set to true to activate debugging code
 
 /*
 2.1 Definition of some constants and auxiliary functions
@@ -247,7 +247,7 @@ string TUn2s(const double& i)
 }
 
 // make a string representation from a time interval
-string TUPrintTimeInterval( Interval<DateTime>& iv )
+string TUPrintTimeInterval( Interval<DateTime> iv )
 {
   string Result;
 
@@ -1783,15 +1783,15 @@ Variant 1: first argument is a scalar value
 
 */
 
-template <class Mapping>
+template <class Alpha>
 int MappingUnitAtPeriods( Word* args, Word& result, int message,
                           Word& local, Supplier s )
 {
   AtPeriodsLocalInfo *localinfo;
   const Interval<Instant> *interval;
 
-  const Mapping* unit;
-  Mapping r;
+  Alpha* unit;
+  Alpha r;
   Periods* periods;
 
 
@@ -1808,52 +1808,87 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
 
   case REQUEST:
     
+    if (TUA_DEBUG) cout << "\nMappingUnitAtPeriods: REQUEST" << endl;
     if( local.addr == 0 )
       return CANCEL;
     localinfo = (AtPeriodsLocalInfo *)local.addr;
-    unit = (Mapping*)localinfo->uWord.addr;
+    unit = (Alpha*)localinfo->uWord.addr;
     periods = (Periods*)localinfo->pWord.addr;
     
     if( !unit->IsDefined()    || 
-        !periods->IsDefined() ||   // by now, periods cannot be undefined
-        periods->IsEmpty()       ) // only empty
+        !periods->IsDefined() ||   // as a set-valued type, periods cannot be
+        periods->IsEmpty()       ) // undefined, but only empty
       return CANCEL;
-
+    if (TUA_DEBUG) 
+      cout << "   Unit's timeInterval u=" 
+           << TUPrintTimeInterval( unit->timeInterval ) << endl;
     if( localinfo->j == periods->GetNoComponents() )
-      return CANCEL;
-    periods->Get( localinfo->j, interval );
-    
-    if( interval->Before( unit->timeInterval ) )
       {
-        while (1)
+        if (TUA_DEBUG) 
+          cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (1)" 
+               << endl;
+        return CANCEL;
+      }
+    periods->Get( localinfo->j, interval );
+    if (TUA_DEBUG) cout << "   Probing timeInterval p =" 
+                        << TUPrintTimeInterval(*interval)
+                        << endl;
+    while( interval->Before( unit->timeInterval ) && 
+           localinfo->j < periods->GetNoComponents() )
+      {
+        localinfo->j++,
+        periods->Get(localinfo->j, interval);
+        if (TUA_DEBUG) 
           {
-            if( ++localinfo->j == periods->GetNoComponents() )
-              break;
-            periods->Get(localinfo->j, interval);
-            if (!( interval->Before( unit->timeInterval )))
-              break;
+             cout << "   Probing timeInterval=" 
+                  << TUPrintTimeInterval(*interval)
+                  << endl;
+             if (interval->Before( unit->timeInterval ))
+               cout << "     p is before u" << endl;
+             if (localinfo->j < periods->GetNoComponents())
+               cout << "   j < #Intervals" << endl;
           }
       }
 
     if( localinfo->j >= periods->GetNoComponents() ) {
       result.addr = 0;
+      if (TUA_DEBUG) 
+        cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (2)"
+             << endl;
       return CANCEL;
     }
     
     if( unit->timeInterval.Before( *interval ) )
       {
         result.addr = 0;
+        if (TUA_DEBUG) 
+          cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (3)" 
+               << endl;
         return CANCEL;
       }
     else
       {
+        // create unit restricted to interval
         unit->AtInterval( *interval, r );
-        Mapping* aux = new Mapping( r );
+        Alpha* aux = new Alpha( r );
         result = SetWord( aux );
         localinfo->j++;
+        if (TUA_DEBUG) 
+          {
+            cout << "   Result interval=" 
+                 << TUPrintTimeInterval(aux->timeInterval) 
+                 << endl;
+            cout << "   Result defined=" << aux->IsDefined()
+                 << endl;
+            cout << "MappingUnitAtPeriods: REQUEST finished: YIELD" 
+                 << endl;
+          }
         return YIELD;
       }
     
+    if (TUA_DEBUG) 
+      cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (4)" 
+           << endl;
     return CANCEL; // should not happen
     
   case CLOSE:
@@ -1880,13 +1915,13 @@ struct AtPeriodsLocalInfoUS
 };
 
 
-template <class Mapping>
+template <class Alpha>
 int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
                                 Word& local, Supplier s )
 {
   AtPeriodsLocalInfoUS *localinfo;
-  Mapping *unit, *aux;
-  Mapping resultUnit;
+  Alpha *unit, *aux;
+  Alpha resultUnit;
   Periods *periods;
   const Interval<Instant> *interval;
   bool foundUnit = false;
@@ -1911,7 +1946,7 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
     localinfo = (AtPeriodsLocalInfoUS *) local.addr; // restore local data
     if ( localinfo->uWord.addr == 0 )
       { result.addr = 0; return CANCEL; }
-    unit = (Mapping *) localinfo->uWord.addr;
+    unit = (Alpha *) localinfo->uWord.addr;
     if ( localinfo->pWord.addr == 0 )
       { result.addr = 0; return CANCEL; }
     periods = (Periods *) localinfo->pWord.addr;
@@ -1931,7 +1966,7 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
               {
                 qp->Request(args[0].addr, localinfo->uWord);  // get new unit
                 if( qp->Received( args[0].addr ) )
-                  unit = (Mapping *) localinfo->uWord.addr;
+                  unit = (Alpha *) localinfo->uWord.addr;
                 else 
                   { result.addr = 0; return CANCEL; }   // end of unit stream
                 foundUnit = unit->IsDefined();
@@ -1947,7 +1982,7 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
     // We have an interval possibly overlapping the unit's interval now
     // Return unit restricted to overlapping part of both intervals
     unit->AtInterval( *interval, resultUnit); // intersect unit and interval
-    aux = new Mapping( resultUnit );
+    aux = new Alpha( resultUnit );
     result = SetWord( aux );
     localinfo->j++;                           // increase interval counter
     return YIELD;
@@ -1958,7 +1993,7 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
         localinfo = (AtPeriodsLocalInfoUS *) local.addr;
         if ( localinfo->uWord.addr != 0 )
           {
-            unit = (Mapping *) localinfo->uWord.addr;
+            unit = (Alpha *) localinfo->uWord.addr;
             unit->DeleteIfAllowed();   // delete remaining original unit
           }
         delete (AtPeriodsLocalInfoUS *)localinfo;
@@ -2199,6 +2234,7 @@ UnitInstantPeriodsTypeMapBool( ListExpr args )
 5.11.2 Value Mapping for ~present~
 
 */
+
 template <class Mapping>
 int MappingUnitPresent_i( Word* args, Word& result, int message,
                           Word& local, Supplier s )
@@ -2218,6 +2254,7 @@ int MappingUnitPresent_i( Word* args, Word& result, int message,
     ((CcBool *)result.addr)->Set( true, false );
   return 0;
 }
+
 template <class Mapping>
 int MappingUnitPresent_p( Word* args, Word& result, int message,
                           Word& local, Supplier s )
@@ -2279,6 +2316,7 @@ UnitInstantPeriodsSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
+  // instant versions:
 
   if( nl->SymbolValue( arg1 ) == "ubool" &&
       nl->SymbolValue( arg2 ) == "instant" )
@@ -2304,7 +2342,7 @@ UnitInstantPeriodsSelect( ListExpr args )
       nl->SymbolValue( arg2 ) == "instant" )
     return 5;
 
-
+  // periods versions:
 
   if( nl->SymbolValue( arg1 ) == "ubool" &&
       nl->SymbolValue( arg2 ) == "periods" )
