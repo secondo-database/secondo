@@ -459,24 +459,47 @@ query  (ur3 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:
 #yields ((rel (tuple ( (elem ureal)))) ( ) )
 query (ur4 atperiods [const periods value ( ) ]) transformstream consume
 
-
-
-# initial_uconst
-
-
-
-# initial_ureal
+#testcase atperiods_ureal MANYCASES
+#yields ((rel (tuple ( (elem ureal))))  (((("2003-11-20-06:00" "2003-11-20-06:05" TRUE FALSE) (1.0 1.0 1.0 TRUE))) ((("2003-11-20-06:05" "2003-11-20-06:10" FALSE FALSE) (1.0 1.0 1.0 TRUE))) ((("2003-11-20-06:50" "2003-11-20-07:00" FALSE FALSE) (1.0 1.0 1.0 TRUE))) ) ) 
+query (ur4 atperiods [const periods value ( ("2003-11-20-05:05" "2003-11-20-05:10" TRUE TRUE) ("2003-11-20-05:55" "2003-11-20-06:05" TRUE FALSE) ("2003-11-20-06:05" "2003-11-20-06:10" FALSE FALSE) ("2003-11-20-06:50" "2003-11-20-07:55" FALSE TRUE) ("2003-11-20-07:59" "2003-11-20-08:55" FALSE TRUE) ) ]) transformstream consume
 
 
 
-# final_uconst
+#testcase initial_uconst defined
+#yields (iint ("2003-11-20-06:00" 1500))
+query initial(ui1)
+
+#testcase initial_uconst undefined
+#yields (iint undef)
+query initial(ui3)
+
+#testcase initial_ureal defined
+#tolerance_real 0.00001
+#yields (ireal ("2000-01-01" 3.0))
+query initial(ur1)
+
+#testcase initial_ureal undefined
+#yields (ireal undef)
+query initial(ur3)
 
 
 
-# final_ureal
+#testcase final_uconst defined
+#yields (iint ("2003-11-20-07:00" 1500))
+query final(ui1)
 
+#testcase final_uconst undefined
+#yields (iint undef)
+query initial(ui3)
 
+#testcase final_ureal defined
+#tolerance_real 0.00001
+#yields (ireal ("2000-01-05" 3.0))
+query final(ur1)
 
+#testcase final_ureal undefined
+#yields (ireal undef)
+query final(ur3)
 
 
 
