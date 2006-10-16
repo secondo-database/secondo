@@ -204,6 +204,12 @@ if [ "$1" == "isCmdPresent" ]; then
   done
 fi
 
+# $1: version number
+function returnVersion {
+  echo "sdkfjh jhdf "$1" (sdlfkj) lsdkfj"
+}
+
+
 if [ "$1" == "checkVersion" ]; then
 
   flex --version
@@ -213,6 +219,23 @@ if [ "$1" == "checkVersion" ]; then
   if ! checkVersion "flex --version" "9.1"; then
     echo "version is smaller than 9.1"
   fi
+  if ! checkVersion "gcc --version" "4.02"; then
+    echo "version is smaller than 4.02"
+  fi
+  if ! checkVersion "gcc --version" "3.01"; then
+    echo "version is higher or equal 3.01"
+  fi
+
+  for v in "1.01" "0.07" "2.1" "3.5.5" "4.02.1"; do
+    for v2 in "1.01" "0.07" "2.1" "3.5" "4.0"; do
+    #returnVersion "$v" "$v2"
+    if ! checkVersion "returnVersion $v" "$v2"; then
+      echo "Version $v < $v2!"
+    else  
+      echo "Version $v >= $v2!"
+    fi
+   done
+  done  
   
 fi
 

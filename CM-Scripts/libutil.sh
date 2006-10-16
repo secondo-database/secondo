@@ -732,24 +732,27 @@ function startupXterm {
 # $2 version given as "x.y" 
 function checkVersion {
 
-  local version=$($1 | sed -nr '1s#.* ([0-9]+[.][0-9]+).*#\1#p')
-  local m=${version%.*}
-  local n=${version#*.}
-  local x=${2%.*}
-  local y=${2#*.}
-
+  local version1=$($1 | sed -nr '1s#.* ([0-9]+[.][0-9]+).*#\1#p')
+  local -i m=$[${version1%.*}]
+  local -i n=$[${version1#*.}]
+  local -i x=$[${2%.*}]
+  local -i y=$[${2#*.}]
+  
   #echo "$m $n >= $x $y ?"
-  local ok="false"
-  if  let $[$m >= $x]; then
-    if  let $[$n >= $y]; then
-      ok="true"
-    fi
+
+  if  let $[$m > $x]; then
+    return 0
   fi
-     
-  if [ "$ok" == "false" ]; then
+  
+  if  let $[$m < $x]; then
     return 1
   fi
-  return 0
+  
+  # major number is equal, compare minor numbers
+  if  let $[$n >= $y]; then
+    return 0
+  fi
+  return 1
 }
 
 
