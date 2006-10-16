@@ -186,9 +186,7 @@ c)~.
     l(nl->Empty()), 
     e(nl->Empty()),
     len(0) 
-  {
-    cout << "N:" << (void*) nl << endl;
-  }
+  {}
   NList(const NList& rhs) : 
     l(rhs.l), 
     e(rhs.e),
