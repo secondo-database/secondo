@@ -732,24 +732,45 @@ function startupXterm {
 # $2 version given as "x.y" 
 function checkVersion {
 
-  local version1=$($1 | sed -nr '1s#.* ([0-9]+[.][0-9]+).*#\1#p')
-  local -i m=$[${version1%.*}]
-  local -i n=$[${version1#*.}]
-  local -i x=$[${2%.*}]
-  local -i y=$[${2#*.}]
-  
-  #echo "$m $n >= $x $y ?"
+  local version1=$($1 | sed -nr '1s#.* ([0-9]+)[.]([0-9]+)[.]?([0-9]+)?.*#\1x\2y\3#p')
+  local version2=$(echo "$2" | sed -nr '1s#[^0-9]*([0-9]+)[.]([0-9]+)[.]?([0-9]+)?.*#\1x\2y\3#p')
+  #echo "$version1 >= $version2 ?"
 
-  if  let $[$m > $x]; then
+  local -i n1=$[${version1%x*}]
+  local rest=${version1#*x}
+  #showValue rest
+  local -i n2=$[${rest%y*}]
+  local -i n3=$[${rest#*y}]
+  
+  local -i k1=$[${version2%x*}]
+  local rest=${version2#*x}
+  #showValue rest
+  local -i k2=$[${rest%y*}]
+  local -i k3=$[${rest#*y}]
+  
+  #echo "$n1 $n2 $n3 >= $k1 $k2 $k3 ?"
+  LU_Version1="${n1}.${n2}.${n3}" 
+  LU_Version1="${k1}.${k2}.${k3}" 
+ 
+  if  let $[$n1 > $k1]; then
     return 0
   fi
-  
-  if  let $[$m < $x]; then
+  if  let $[$n1 < $k1]; then
     return 1
   fi
   
-  # major number is equal, compare minor numbers
-  if  let $[$n >= $y]; then
+
+  # major number is equal, compare 2nd level
+  if  let $[$n2 > $k2]; then
+    return 0
+  fi
+  if  let $[$n2 < $k2]; then
+    return 1
+  fi
+
+
+  # 2nd level is equal, compare 3rd level
+  if  let $[$n3 >= $k3]; then
     return 0
   fi
   return 1

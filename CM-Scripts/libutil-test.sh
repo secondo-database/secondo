@@ -227,7 +227,7 @@ if [ "$1" == "checkVersion" ]; then
   fi
 
   for v in "1.01" "0.07" "2.1" "3.5.5" "4.02.1"; do
-    for v2 in "1.01" "0.07" "2.1" "3.5" "4.0"; do
+    for v2 in "1.01" "0.07" "2.1" "3.5.6" "4.0"; do
     #returnVersion "$v" "$v2"
     if ! checkVersion "returnVersion $v" "$v2"; then
       echo "Version $v < $v2!"
@@ -236,6 +236,13 @@ if [ "$1" == "checkVersion" ]; then
     fi
    done
   done  
+  
+  if ! checkVersion "returnVersion 4.1.1" "gcc-core-4.1.1.tar.gz"; then
+    echo "Error: gcc 4.1.1 expected !"
+  else
+    echo "gcc 4.1.1 as expected"
+  fi
+    
   
 fi
 
