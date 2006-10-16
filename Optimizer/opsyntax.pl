@@ -118,6 +118,7 @@ secondoOp(sum, postfixbrackets, 2).
 secondoOp(min, postfixbrackets, 2).
 secondoOp(max, postfixbrackets, 2).
 secondoOp(avg, postfixbrackets, 2).
+secondoOp(extract, postfixbrackets, 2).
 secondoOp(tuplesize, postfix, 1).
 secondoOp(exttuplesize, postfix, 1).
 secondoOp(attrsize, postfixbrackets, 2).
