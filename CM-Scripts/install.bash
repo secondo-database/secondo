@@ -635,10 +635,9 @@ fi
 #
 # GCC installation
 #
-gccVer="3.4"
 export PATH=".:$sdk/bin:$PATH"
 export LD_LIBRARY_PATH=".:$sdk/lib:$LD_LIBRARY_PATH"
-printSep "Installation of GCC $gccVer"
+printSep "Installation of GCC"
 echo "PATH: $PATH" >> $logfile
 echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH" >> $logfile
 checkCmd "gcc --version >> $logfile"
@@ -647,18 +646,19 @@ checkCmd "flex --version >> $logfile"
 checkCmd "bison --version >> $logfile"
 
 #install gcc if necessary
-if checkVersion "gcc --version" $gccVer; then
-  showMsg "info" "Your system's GCC has already a suitable version \n\
-hence we will not install it again below $sdk"
-else
-  # Compile GCC
+gccCoreFile=$platformdir/gnu/gcc-core-*
+if ! checkVersion "gcc --version" $gccCoreFile; then
   gccfiles=$platformdir/gnu/gcc-*
   installPackage "GCC with C++ support" "$gccfiles"  $temp/gcc-* "bootstrap install"
   assert hash -r
-  if ! checkVersion "gcc --version" $gccVer; then
-    showMsg "err" "Something went wrong! gcc --version does not report a version >= $gccVer"
+  if ! checkVersion "gcc --version" $gccCoreFile; then
+    showMsg "err" "Something went wrong! gcc --version does not report the
+    version of the package file \"$gccCoreFile\""
     abort
   fi
+else
+ showMsg "info" "gcc --version: $LU_Version1 >= $LU_Version2! We will don't
+ istall $gccCoreFile"
 fi
 
 configureFlags="CFLAGS=-I$sdk/include LDFLAGS=-L$sdk/lib"
@@ -674,14 +674,21 @@ installPackage "Lib curses"   $platformdir/gnu/ncurses-*     $temp/ncurses-*    
 installPackage "Lib readline" $platformdir/gnu/readline-*    $temp/readline-*      install --with-curses
 installPackage "SWI-Prolog"   $platformdir/prolog/pl-*       $temp/pl-*            install
 installPackage "Lib jpeg"     $platformdir/non-gnu/jpeg*     $temp/jpeg*           "install install-lib" 
-installPackage "C-Scope"      $platformdir/non-gnu/cscope-*  $temp/cscope-*        install
 
-if ! checkVersion "bison --version" "1.75"; then
-  installPackage "Bison, a parser generator" $platformdir/gnu/bison-* $temp/bison-* install 
+bisonFile=$platformdir/gnu/bison-*
+if ! checkVersion "bison --version" $bisonFile; then
+  installPackage "Bison, a parser generator" $bisonFile $temp/bison-* install
+else
+ showMsg "info" "bison --version: $LU_Version1 >= $LU_Version2! We will don't
+ install $bisonFile"
 fi
 
-if ! checkVersion "flex --version" "2.5"; then
-  installPackage "Flex, a scanner generator" $platformdir/non-gnu/flex-* $temp/flex-* install
+flexFile=$platformdir/non-gnu/flex-*
+if ! checkVersion "flex --version" $flexFile; then
+  installPackage "Flex, a scanner generator" $flexFile $temp/flex-* install
+else
+ showMsg "info" "flex --version: $LU_Version1 >= $LU_Version2! We will don't
+ install $flexFile"
 fi
 
 
