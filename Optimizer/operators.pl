@@ -122,6 +122,7 @@ isAggregationOP(min).
 isAggregationOP(max).
 isAggregationOP(sum).
 isAggregationOP(avg).
+isAggregationOP(extract).
 
 /*
 For later extensions (though needing separate cost functions):
