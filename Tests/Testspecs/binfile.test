@@ -30,7 +30,7 @@ open database binfiletest;
 (update a := (binfile <file>$(SECONDO_BUILD_DIR)/bin/JNI.ini</file--->));
 
 (create b : binfile);
-(update b := (binfile <file>$(SECONDO_BUILD_DIR)/bin/SecondoBDB</file--->));
+(update b := (binfile <file>$(SECONDO_BUILD_DIR)/lib/libRelation-C++Algebra.a</file--->));
 
 (create relFile :
   (rel
@@ -58,21 +58,22 @@ open database binfiletest;
   )
   (
     (1 <file>$(SECONDO_BUILD_DIR)/bin/JNI.ini</file---> "JNI.ini")
-    (2 <file>$(SECONDO_BUILD_DIR)/bin/SecondoBDB</file---> "SecondoBDB")
+    (2 <file>$(SECONDO_BUILD_DIR)/lib/libRelation-C++Algebra.a</file--->
+    "libRelation-C++Algebra.a")
   )
 ) );
 
 #testcase binfile1
 #yields (bool TRUE)
-query a saveto "/tmp/a.tmp";
+query a saveto "tmp/a.tmp";
 
 #testcase binfile1
 #yields (bool TRUE)
-query b saveto "/tmp/b.tmp";
+query b saveto "tmp/b.tmp";
 
 #testcase binfile2
 #yields (int 2)
-query relFile feed filter[.file saveto ("/tmp/" + .name)] count;
+query relFile feed filter[.file saveto ("tmp/" + .name)] count;
 
 #teardown
 close database;
