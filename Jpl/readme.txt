@@ -52,8 +52,8 @@ export PL_LIB_DIR="$SECONDO_SDK/pl/lib"
 
 export PL_VERSION=50620
 export PL_DLL_DIR="$SECONDO_SDK/pl/bin"
-export JPL_DLL=$(PL_DLL_DIR)/jpl.dll
-export PL_DLL=$(PL_DLL_DIR)/libpl.dll
+export JPL_DLL=$PL_DLL_DIR/jpl.dll
+export PL_DLL=$PL_DLL_DIR/libpl.dll
 export JPL_JAR=$PL_LIB_DIR/jpl.jar
 
 ......
