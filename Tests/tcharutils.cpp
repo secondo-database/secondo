@@ -46,9 +46,9 @@ int
 main () {
 
 
- cout << "<" << pad("Funktion pad(string, 30)", 30) << ">" << endl;
- cout << "<" << pad("füllt Zeichen auf, wenn der string", 30) << ">" << endl;
- cout << "<" << pad("weniger als 30 Zeichen hat", 30, '_') << ">" << endl;
+ cout << "<" << padStr("Funktion pad(string, 30)", 30) << ">" << endl;
+ cout << "<" << padStr("füllt Zeichen auf, wenn der string", 30) << ">" << endl;
+ cout << "<" << padStr("weniger als 30 Zeichen hat", 30, '_') << ">" << endl;
 
  string tab1 = "Hier sind ein paar Tabulatoren: -\t- -\t- -\t-";
  cout << "\"" << tab1 << "\"" << endl;
@@ -123,5 +123,14 @@ main () {
  
  y = wordWrap("          Meaning: ",80,mea);
  printWrapped(19,y);
+
+
+ cout << "Testing translate: " << endl;
+ string s="C:/home/Besitzer";
+ cout << ">" << s << "<" << endl;
+ s = translate(s, "/", "\\");
+ cout << ">" << s << "<" << endl;
+ 
+ cout << hexStr("abcd") << endl;
  
 }
