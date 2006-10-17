@@ -49,7 +49,15 @@ public:
    static void srand(unsigned int seed) { return srand(seed); }
   
    static void stacktrace(const std::string& fullAppName="");
-   
+  
+   static inline bool WindowsHost() {
+     #ifdef SECONDO_WIN32
+       return true;
+     #else
+       return false; 
+     #endif  
+   } 
+
 private:
    static const int endian_detect;
 
