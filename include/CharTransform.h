@@ -37,7 +37,11 @@ allows a pretty folding of words with a specified text length.
 #include <vector>
 #include <string>
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <cassert>
+
+#include "WinUnix.h"
 
 using namespace std;
 
@@ -238,6 +242,50 @@ inline string expandTabs(const string& s, const int n)
   }  
   return result;  
 } 
+
+inline string translate(const string& s,  const string& from, const string& to)
+{
+  string result=s;
+
+  size_t end = s.size();
+  size_t p1 = 0;
+  size_t p2 = 0;
+
+  while (p1 < end)
+  {
+    p2 = result.find_first_of(from,p1);
+
+    if ( p2 != string::npos ) 
+    {
+      result.replace(p2, 1, to);
+      p1 = p2+1;
+    } 
+    else 
+    {
+      p1 = end;
+    }
+    //cout << p1 << endl;
+  }  
+  return result;  
+} 
+
+inline string hexStr(const string& s)
+{
+  stringstream res;
+
+  size_t end = s.size();
+  size_t p = 0;
+
+  while (p < end)
+  {
+    res << hex << static_cast<int>( s[p] ) << " "; 
+    p++;
+    //cout << p << endl;
+  }  
+  return res.str();  
+} 
+
+
 
 /*
 A simple word wrapping algorithm which tries to fold a given
@@ -456,6 +504,10 @@ inline string expandVar(const string& s)
 {
   string t = s;
   expandVarRef(t);
+  if ( WinUnix::WindowsHost() )
+    t = translate(t, "/", "\\");
+  else
+    t = translate(t, "\\", "/");
   return t; 
 }
 
