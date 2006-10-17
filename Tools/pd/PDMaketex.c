@@ -29,8 +29,21 @@ char*  endProgram = "\n\\end{verbatim} \\end{quote}}\n\n";
 char*  startVerbatim = "\\begin{pdverbatim}\n    ";
 char*  endVerbatim = "\n\\end{pdverbatim}\n"; 
 
+// debugging flags for flex and bison
+extern int yydebug;
+extern int yy_flex_debug;
+
 int main()
 {
+
+  yydebug=0;
+  yy_flex_debug=0;
+  char* d = getenv("PD_DEBUG");
+  if (d) {
+    yydebug = atoi(d);
+    yy_flex_debug = yydebug;
+  }  
+
   char* s = getenv("PD_HEADER");
   if (s) {
     const char* lst="listing";

@@ -71,6 +71,7 @@ extern char* endVerbatim;
 
 
 #define YYERROR_VERBOSE
+#define YYDEBUG 1
 %}
 
 
@@ -439,7 +440,7 @@ start_elem	: text_char		{$$ = $1;}
 		| QUOTE 		{$$ = atomc("\"");}
 		| emphasized		{$$ = $1;}
 		| bold_face		{$$ = $1;}
-    | typewriter  {$$ = $1;}
+    		| typewriter            {$$ = $1;}
 		| special_char_format	{$$ = $1;}
 		| bracketed		{$$ = $1;}
 		;

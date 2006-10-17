@@ -17,9 +17,11 @@ GNU General Public License for more details.
 */
 
 %option yylineno
+%option debug
 
 %{
 #include "PDNestedText.h"
+
 %}
 
 
@@ -28,7 +30,7 @@ GNU General Public License for more details.
 lbracket	("(*"|"/*")
 rbracket	("*)"|"*/")
 star		[*]
-other		[-;,?!\`\'()/@#$%_\^{}+=|<>\n&üÜäÄöÖßµ¤]
+other		[-;,?!`´'()/@#$%_\^{}+=|<>\n&üÜäÄöÖßµ¤]
 open		{lbracket}{star}*(" "*[\n])+
 open2		([\n]" "*)*[\n]{lbracket}{star}*(" "*[\n])+
 close		{star}*{rbracket}(" "*[\n])+
@@ -126,6 +128,8 @@ figure		"                "
 
 
 /*
+<INITIAL>"'"	        	{ yylval = atom(yytext, yyleng); return(OTHER);}
+
 
 3.3 Testing the Lexical Analyser
 
