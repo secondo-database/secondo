@@ -366,6 +366,7 @@ vertices array.
 void Polygon::Destroy()
 {
   assert( state == complete );
+  vertices.Destroy();
 }
 
 /*
@@ -499,11 +500,9 @@ Word
 InPolygon( const ListExpr typeInfo, const ListExpr instance,
            const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  Polygon* polygon;
+  Polygon* polygon = new Polygon( 0 );
 
-  polygon = new Polygon( 0 );
-
-  ListExpr first;
+  ListExpr first = nl->Empty();
   ListExpr rest = instance;
   while( !nl->IsEmpty( rest ) )
   {
