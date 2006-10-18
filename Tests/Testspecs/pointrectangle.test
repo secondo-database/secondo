@@ -43,10 +43,18 @@ query r1;
 #yields (bool TRUE) 
 query p2 inside r1;
 
-#testcase insider2; 
+#testcase inside2; 
 #yields (bool FALSE) 
 query p4 inside r3;
  
+#testcase inside3; 
+#yields (bool TRUE) 
+query r2 inside r1;
+
+#testcase inside4; 
+#yields (bool FALSE) 
+query r2 inside r3;
+
 #testcase intersects1; 
 #yields (bool TRUE) 
 query r1 intersects r2;
