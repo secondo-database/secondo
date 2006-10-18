@@ -33,13 +33,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[--------]    [\hline]
 //[TOC]         [\tableofcontents]
 //[p]           [\par]
+//[@]           [\@]
 
 [1] How to Install a SDK for Secondo on Linux 
 
 
 [2]        Database Systems for new Applications           [p] 
                   University of Hagen                      [p] 
-	http://www.informatik.fernuni-hagen.de/secondo
+	http://www.informatik.fernuni-hagen.de/secondo     [p]
 
 
 September 2006, Victor Almeida.
@@ -67,7 +68,10 @@ Secondo's source code has the following dependencies:
 [44] 
   Tool/Compiler  & Version & Homepage           & CD-Directory  \\
   [--------]
+  bash           & 2.05b   & www.gnu.org        & extras/unix   \\
   make           & 3.79.1  & www.gnu.org        & extras/unix   \\
+		 &         &                    &               \\
+  texinfo        & 4.8     & www.gnu.org        & linux/gnu     \\
   gcc/c++        & 3.4.6   & gcc.gnu.org        & linux/gnu     \\
   bison          & 1.875   & www.gnu.org        & linux/gnu     \\
   lib readline   & 4.3     & www.gnu.org        & linux/gnu     \\
@@ -75,9 +79,10 @@ Secondo's source code has the following dependencies:
   findutils      & 4.2.28  & www.gnu.org        & linux/gnu     \\
 		 &         &                    &               \\
   flex           & 2.5.4   & www.gnu.org        & linux/non-gnu \\
-  lib jpeg       & v6b     & www.ijg.org       & linux/non-gnu \\
+  lib jpeg       & v6b     & www.ijg.org        & linux/non-gnu \\
   berkeley-db    & 4.2.52  & www.sleepycat.com  & linux/non-gnu \\
-  swi-prolog     & 5.4.7   & www.swi-prolog.org & linux/non-gnu \\
+		 &         &                    &               \\
+  swi-prolog     & 5.4.7   & www.swi-prolog.org & linux/prolog  \\
   java2 sdk      & 1.4.2   & www.javasoft.com   & linux/j2sdk   \\
 
 
@@ -89,24 +94,24 @@ is a link to the free software directory (http://directory.fsf.org). This is a
 portal to all known free software. 
 
 However, you can try to get the needed tools from the internet and set up your own
-environment. To some extend it may also work with higher or smaller version
+environment. To some extent it may also work with higher or smaller version
 numbers as recommend above. But we cannot guarantee that it will work. The
-version above the setup for which we know that it works.  
+version above is the setup for which we know that it works.  
 
 We follow three approaches to install the required 3rd-party software (i) the
 installation script, (ii) instructions for installing RPM-packages, (iii)
 instructions for compiling the packages itself. 
 
-The first one assumes that you download on of the Installation-Kits or that you
+The first one assumes that you download one of the Installation-Kits or that you
 got a cd-rom. These provide a script "installsdk" which will uncompress, compile
 and install the above tools with minimal user interaction below your "$HOME"[20]
 directory. 
 
-The second one is to use a linux distribution package installer. Some people
-will prefer this approach because the package installers normaly check
+The second one is to use a Linux distribution package installer. Some people
+will prefer this approach because the package installers normally check
 dependencies between software.  Given that we are experienced on using SuSE and
 linux, we provide installation instructions for both using the package
-administration tools YaST. In fact we do not provide information on how to use
+administration tool YaST. In fact we do not provide information on how to use
 the YaST tool, but only the package names needed. To do this you need to use the
 super user account ~root~. 
 
@@ -125,7 +130,7 @@ Download the installation kit of the secondo homepage and extract it
   tar -xvzf <inst-kit>.tar.gz
 /* 
 
-Alternativley you may have got a CD wich contains all the needed stuff. Then
+Alternatively you may have got a CD which contains all the needed stuff. Then
 copy it to your disk into a separate directory. Now go into the new created
 directory and run the script, e.g.
 
@@ -138,31 +143,21 @@ The script will create a subtree under "$HOME/secondo-sdk"[20] where it installs
 all 3rd-party software. The compilation of packages is done below the "/tmp"
 directory, the script will report the exact destination.
 
-The script will compile and install all packages in the directory
-"$HOME/secondo-sdk", hence you need not to be the system administrator to do the
-installation. Open a bash and extract the installation kit. Then move to the
-directory where the files reside and run the installation script, e.g.
-
-*/
-  cd <extraction-dir>/SECONDO_INSTALLATION_KIT
-  ./installsdk
-/*
-
 During the installation two child windows appear. The first contains the Java
 installation which needs some user interaction, and the other displays the
 messages of the compiler during installation. All tools will be installed into
 the directory "$HOME/secondo-sdk". However, we can not guarantee, that the
-script works on all available linux versions, but we hope that it basically
+script works on all available Linux versions, but we hope that it basically
 works and helps to save time. 
 
-If some steps fail you may need to study the log file and correct the
+If some steps fail, you may need to study the log file and correct the
 installation of the failed packages by hand.
 
-The most critical part of the installation of the ~gcc~. The problem is, that if
-the version of your systems gcc and the one to be installed is highly different
-this may result in an compile error. If your system´s compiler is already higher
-then the script will try to use it instead hoping that the secondo-code does
-compile.
+The most critical part of the installation is thath of the ~gcc~. The problem
+is, that if the version of your system's gcc and the one to be installed is
+highly different this may result in an compile error. If your system's compiler
+is already higher, then the script will try to use it instead hoping that the
+secondo-code does compile.
 
 At the end, the script will create some shell scripts which basically set up a
 lot of environment variables which are needed at compile time and runtime 
@@ -185,21 +180,20 @@ the shell you need to run
 /*
 
 You can also add this command in the file "[~]/.bashrc" which will be executed
-automatically when a new shell is invoked. 
+automatically when a new shell is invoked. Moreover, the following commands
+aliases are available: 
 
-*/
-secinit
-secenv
-secroot
-/*
+ * "secinit": Sets some environment variables to some default
+              values (it simply executes "secondorc"). Afterwards your shell 
+              environment will be altered and it should be possible to compile 
+              and link Secondo.
 
-are available. The first will set some environment variables to some default
-values. After this command is executed your shell environment will be altered
-and it should be possible to compile and link Secondo. The command "secenv"
-displays the values of some important environment variables. The last one
-defines the current directory as root of a Secondo source tree (changing
-variable "SECONDO_BUILD_DIR"). This is useful if you have different source trees
-and need to change between them.
+  * "secenv": Displays the values of some important environment variables.
+
+  * "secroot": Defines the current directory as root of a Secondo source tree 
+               (changing variable "SECONDO_BUILD_DIR"). This is useful if you 
+               have different source trees and need to change between them.
+
 
 
 2 Installing the packages with YaST under SuSE Linux
@@ -207,7 +201,7 @@ and need to change between them.
 Here is the list of all packages that must be installed. The search field inside
 YaST can be used to filter packages by name. If a package is already installed,
 just leave it marked.  If YaST presents other dependencies that are not provided
-here, just let it installs them.
+here, just let it install them.
 
 Some packages, e.g. java and swi-prolog, are not provided in the standard
 installation of SuSE, because they are not free software. One must use the
@@ -318,12 +312,12 @@ gcc --version
 /*
 
 If one of them is not present, please contact the system administrator to
-install them. In most linux installations these applications are already
+install them. In most Linux installations, these applications are already
 available.
 
 Depending on the the system, some of the packages needed are already installed.
 One could first check whether they are installed before really installing them.
-Skip the steps to install the packages that already installed in your system.
+Skip the steps to install the packages that are already installed in your system.
 
 In order to compile and install all the packages, we suggest to create a
 directory in the user home directory called secondo-sdk, so that it is possible
@@ -366,7 +360,7 @@ Normally, compiling and installing software is done in four steps:
 
 3.1 Building the C++ compiler
 
-In some linux systems, only the C compiler comes pre-installed but not the C++.
+In some Linux systems, only the C compiler comes pre-installed but not the C++.
 As said before, we are assuming that the C compiler is already installed. 
 
 First, it is good to check it the C++ compiler is already installed in the
@@ -615,48 +609,76 @@ export LD_LIBRARY_PATH=$J2SDK_ROOT/jre/lib/i386:
 
 /*
 
+you can check if your environment was set up correctly by calling the command
+"env" if you have used the installation script there is a command alias called
+"secenv" which will filter out the releveant variables and displays them. 
+
 5 Compiling Secondo
+
+Start a new shell and make sure that the environment variables explained in
+section 4 are set. 
+
+Change to the directory which contains the secondo source code and run make, e.g.
+
+*/
+  cd $HOME/secondo
+  make
+/*
+
+Afterwards you should run
+
+*/
+  make runtests
+/*
+
+which runs some automatic tests to be sure that everything works fine. If
+something fails please send a bug report to "secondo@fernuni-hagen.de"[23]
 
 
 6 Installing Latex and Ghostscript
 
-Secondo´s program code documentation is made with the PD-System which translates
+Secondo's program code documentation is made with the PD-System, which translates
 program code files into LaTeX. Additonally, for previewing EPS pictures together
 with LaTeX you need Ghostscript with its preview program. Hence, for using the
-PD-System you have to install these software using the system administration
-tools provided with your linux system.
+PD-System you have to install this software using the system administration
+tools provided with your Linux system.
 
-7 Installation Hints for other Unix Versions
+7 Installation Hints for other Unix based Systems
 
-Apart from the SuSe Linux releases other unix like systems are conceivable, but
+Apart from the SuSe Linux releases, other Unix like systems are conceivable, but
 we have no experience in compiling and installing the development environment on
 those systems. However, since all packages are compiled during installation it
 should work. A problem could be the Java installation since this is a binary
 version for i686-processors which will not run on other processor architectures
 like power-pc or sparc.
 
-Another problem could be that a commercial unix derivate provided from SUN, HP,
-DEC etc. has no bash or other gnu tools are replaced by their own versions e.g.
-C-Compiler, Linker, Assembler. Hence we recommend the following steps: 
+Another problem could be that a commercial Unix derivate provided from SUN, HP,
+DEC etc. does not have the gnu tools instead there are vendor specific versions
+of the command shell, the C-Compiler, the Linker, the Assembler, etc. Hence we
+recommend the following steps: 
 
-  * Install the bash. (a "tar.gz" file is in the "<CD>/extras/unix" directory) 
-    Install the gnu binutils package into the directory "$HOME/secondo-sdk".
+  * Install bash, the gnu shell, you will find it in the"<CD>/extras/unix" 
+    directory Install the gnu "binutils" package into the directory 
+    "$HOME/secondo-sdk".
 
   * Extract the gcc packages and read carefully the installation manual of the
     gcc. In the configure step use options which define the linker and
-    assembler. Install the gcc also into directory "$HOME/secondo-sdk" and set
-    up your environment such that this gcc will be used.
+    assembler in order to be sure that the tools of the binutils package are
+    used. Install the gcc also into directory "$HOME/secondo-sdk" and set
+    up your environment such that this gcc will be used. Verify it by calling
+    "gcc --version".
 
   * Edit the installation script "installsdk". Delete the lines which
     compile the gcc.  
 
-  * Run the script and follow the instructions as explained for linux.
+  * Run the script (see section 2) and follow the instructions as explained for
+    Linux.
 
 7.1 Mac-OSX
 
-On this platform you will need the package findutils, since our make rules will
-sometimes call find with some special options which are only available in the
-gnu implementation.
+On this platform you will need the package "findutils", since our make rules
+will sometimes call the "find" command with some special options which are only
+available in the gnu implementation.
 
 Before starting the installation script enter
 
