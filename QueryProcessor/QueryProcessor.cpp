@@ -2151,6 +2151,7 @@ QueryProcessor::TestOverloadedOperators( const string&
    *  If so save the messages in the error reporter. Errors detected
    *  afterwards will not be reported any more.
   */
+  int selFunIndex=-1;
   if ( nl->IsEqual( resultType, "typeerror" ) )
   {
     if(!ErrorReporter::TypeMapError){
@@ -2166,6 +2167,7 @@ QueryProcessor::TestOverloadedOperators( const string&
     if ( checkFunId ) 
     {
       opFunId = algebraManager->Select( alId, opId, typeList );
+      selFunIndex = opFunId;
       opFunId = opFunId * 65536 + opId;
 
       /*  Check whether this is a type operator; in that case
@@ -2180,8 +2182,11 @@ QueryProcessor::TestOverloadedOperators( const string&
 
   if ( traceMode ) 
   {
-    cout << wordWrap( "IN: ", width, NList(typeList).convertToString() )
+    cout << wordWrap( "IN: ", width, NList(typeList).convertToString() ) 
+         << endl
          << wordWrap( "OUT: ", width, NList(resultType).convertToString() )
+         << endl
+         << "SelectionFunction: index = " << selFunIndex << endl
          << sepLine << endl;
   }
 
