@@ -106,7 +106,7 @@ do
            if [ -n "$IGNORE_INCLUDES" ]; then
               TEXLOG="$TEMPDIR"/tmp.log
               # file errors: ignore them
-              LEF=$(cat "$TEXLOG" | grep -i '^\!' | grep -i "File .* not found" | grep -i "cannot determine size of" | wc -l)
+              LEF=$(cat "$TEXLOG" | grep -i '^!' | grep -i "File .* not found" | grep -i "cannot determine size of" | wc -l)
               # all latex errors
               LATERR=$(cat "$TEXLOG" | grep '^!' | wc -l)
               # non file errors
