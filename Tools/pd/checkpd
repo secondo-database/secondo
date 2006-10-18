@@ -100,15 +100,23 @@ do
           pdtabs <$F | maketex | linebreaks
         } >"$TEMPDIR"/tmp.tex
         latex -interaction=nonstopmode "$TEMPDIR"/tmp.tex >/dev/null
+        LATEXRET=$?
         LATEXOK=0
-        if [ $? -ne 0 ]; then
+        if [ "$LATEXRET" -ne 0 ]; then
            if [ -n "$IGNORE_INCLUDES" ]; then
               TEXLOG="$TEMPDIR"/tmp.log
-              LE=$(cat "$TEXLOG" | grep -i "^\!" | grep -vi "File .* not found" | grep -vi "cannot determine size of" | wc -l)
-              if [ "$LE" -gt 0 ]; then
+              # file errors: ignore them
+              LEF=$(cat "$TEXLOG" | grep -i '^\!' | grep -i "File .* not found" | grep -i "cannot determine size of" | wc -l)
+              # all latex errors
+              LATERR=$(cat "$TEXLOG" | grep '^!' | wc -l)
+              # non file errors
+              LE=$(expr "$LATERR" - "$LEF")
+              if [ "$LE" -gt 0 ]; then # no file problems
                  echo -e "LaTeX Error in \"$F\" \n"
                  LATEXFAILED=$(expr "$LATEXFAILED" + 1)
                  LATEXOK=1
+              else # problems in finding files, try to detect other errors
+                 echo "no file problems"
               fi
            else
              echo -e "LaTeX Error in \"$F\" (If the file contains figures we can't avoid this) \n"
