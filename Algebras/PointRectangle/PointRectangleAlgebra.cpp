@@ -52,6 +52,7 @@ using namespace std;
 #include "NestedList.h"
 #include "NList.h"
 #include "QueryProcessor.h"
+#include "ConstructorTemplates.h"
 
 /*
 In the next line declarations of the types defined in the ~StandardAlgebra~
@@ -68,7 +69,7 @@ extern QueryProcessor *qp;
 
 
 /*
-First we introduce a new namespace ~PRT~ in order 
+First we introduce a new namespace ~PointRectangle~ in order 
 to avoid name conflicts with other modules.
    
 */   
@@ -259,16 +260,22 @@ This one works for type constructors ~xpoint~.
 ListExpr
 XPointProperty()
 {
-  ConstructorInfo 
-       spec( t_XPOINT,
-             "-> " + k_SIMPLE,
-             t_XPOINT,
-             "(<x> <y>)",
-             "(-3 15)",
-             "x- and y-coordinates must be of type int."
-  );
-  return spec.list();
-}
+  ConstructorInfo ci; 
+  
+  ci.name = t_XPOINT;
+  ci.signature = "-> " + k_SIMPLE;
+  ci.typeExample =  t_XPOINT;
+  ci.listRep = "(<x> <y>)";
+  ci.valueExample = "(-3 15)";
+  ci.remarks = "x- and y-coordinates must be of type int.";
+
+  // the list() function of class ~Constructorinfo~ will create a list with two
+  // sublist of the structure ((S1 S2 S3 S4 S5)(T1 T2 T3 T4 T5)). The Sn are
+  // string atoms and used as labels and Tn are text atoms wich contain the
+  // values above. The list typeconstructors command will use these
+  // descriptions. 
+  // 
+  return ci.list(); }
 
 
 
@@ -430,93 +437,21 @@ OutXRectangle( ListExpr typeInfo, Word value )
 }
 
 
-
 Word
 CreateXRectangle( const ListExpr typeInfo )
 {
   return (SetWord( new XRectangle( 0, 0, 0, 0 ) ));
 }
 
-void
-DeleteXRectangle( const ListExpr typeInfo, Word& w )
-{
-  delete static_cast<XRectangle*>( w.addr );
-  w.addr = 0;
-}
-
-void
-CloseXRectangle( const ListExpr typeInfo, Word& w )
-{
-  delete static_cast<XRectangle*>( w.addr );
-  w.addr = 0;
-}
-
-Word
-CloneXRectangle( const ListExpr typeInfo, const Word& w )
-{
-  return SetWord( static_cast<XRectangle*>( w.addr )->Clone() );
-}
-
-int
-SizeOfXRectangle()
-{
-  return sizeof(XRectangle);
-}
-
 /*
-The Cast function for ~xrectangle~. Note, that an empty constructor is required.
 
-*/
-void* CastXRectangle( void* addr ) {
-  return (new (addr) XRectangle);}
-
-/*
-3.4 Property Function - Signature of the Type Constructor
+As you may have observed most implementations of the support functions needed for registering
+a secondo type are trivial to implement. Hence we offer a template class which provides default
+implementations (see below) hence only functions which need to do special things need to
+be implemented.
 
 */
 
-  
-ListExpr
-XRectangleProperty()
-{
-  ConstructorInfo 
-      spec( t_XRECTANGLE,
-            "-> " + k_SIMPLE,
-            t_XRECTANGLE,
-            "(<xleft> <xright> <ybottom> <ytop>)",
-            "(4 12 8 2)",
-            "all coordinates must be of type int."
-  );
-  return spec.list();
-}
-
-/*
-3.5 Kind Checking Function
-
-This function checks whether the type constructor is applied correctly. Since
-type constructor ~xrectangle~ does not have arguments, this is trivial.
-
-*/
-bool
-CheckXRectangle( ListExpr type, ListExpr& errorInfo )
-{
-  return (nl->IsEqual( type, t_XRECTANGLE ));
-}
-
-/*
-3.6 Creation of the Type Constructor Instance
-
-*/
-TypeConstructor 
-   xrectangleTC( t_XRECTANGLE,
-                 XRectangleProperty,
-                 OutXRectangle, InXRectangle,
-                 0, 0,
-                 CreateXRectangle, DeleteXRectangle,
-                 0, 0,
-                 CloseXRectangle, CloneXRectangle,
-                 CastXRectangle, SizeOfXRectangle,
-                 CheckXRectangle );
 /*
 4 Creating Operators
 
@@ -555,30 +490,65 @@ RectRectBool( ListExpr args )
 }
 
 ListExpr
-XPointRectBool( ListExpr args )
+insideTypeMap( ListExpr args )
 {
-  if ( nl->ListLength(args) == 2 )
+  if ( nl->ListLength(args) != 2 )
   {
-    ListExpr arg1 = nl->First(args);
-    ListExpr arg2 = nl->Second(args);
-    
-    if ( nl->IsEqual(arg1, t_XPOINT) && nl->IsEqual(arg2, t_XRECTANGLE) )
-      return nl->SymbolAtom(t_BOOL);
-    
-    if ((nl->AtomType(arg1) == SymbolType) &&
-        (nl->AtomType(arg2) == SymbolType))
-      ErrorReporter::ReportError("Type mapping function got parameters of type "
-                                 +nl->SymbolValue(arg1)+" and "
-                                 +nl->SymbolValue(arg2));
-    else
-      ErrorReporter::ReportError("Type mapping function got wrong "
-                                 "types as parameters.");
-  }
-  else
-    ErrorReporter::ReportError("Type mapping function got a "
+   ErrorReporter::ReportError("Type mapping function got a "
                                "parameter of length != 2.");
+    return nl->TypeError();
+  } 
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  
+  if ( nl->IsEqual(arg1, t_XPOINT) && nl->IsEqual(arg2, t_XRECTANGLE) )
+    return nl->SymbolAtom(t_BOOL);
+  
+  // second alternative of expected arguments
+  if ( nl->IsEqual(arg1, t_XRECTANGLE) && nl->IsEqual(arg2, t_XRECTANGLE) )
+    return nl->SymbolAtom(t_BOOL);
+  
+  if ((nl->AtomType(arg1) == SymbolType) &&
+      (nl->AtomType(arg2) == SymbolType))
+  { 
+    ErrorReporter::ReportError("Type mapping function got parameters of type "
+                               +nl->SymbolValue(arg1)+" and "
+                               +nl->SymbolValue(arg2));
+  }  
+  else
+  { 
+    ErrorReporter::ReportError("Type mapping function got wrong "
+                               "types as parameters.");
+  }  
   return nl->TypeError();
+  
 }
+
+/*
+4.3 Selection function
+
+A selection function is quite similar to a type mapping function. The only
+difference is that it doesn't return a type but the index of a value
+mapping function being able to deal with the respective combination of
+input parameter types.
+
+Note that a selection function does not need to check the correctness of
+argument types; it has already been checked by the type mapping function that it
+is applied to correct arguments.
+
+*/
+
+int
+insideSelect( ListExpr args )
+{
+  NList list(args);
+  if ( list.first().isSymbol( t_XRECTANGLE ) )
+    return 1;
+  else
+    return 0;
+}  
+
 
 /*
 4.3 Value Mapping Function
@@ -611,8 +581,9 @@ Inside predicate for xpoint and xrectangle.
 
 */
 int
-insideFun (Word* args, Word& result, int message, Word& local, Supplier s)
+insideFun_PR (Word* args, Word& result, int message, Word& local, Supplier s)
 {
+  cout << "insideFun_PR" << endl;
   XPoint* p = static_cast<XPoint*>( args[0].addr );
   XRectangle* r = static_cast<XRectangle*>( args[1].addr );
 
@@ -630,6 +601,40 @@ insideFun (Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
+/*
+Inside predicate for xrectangle and xrectangle.
+
+*/
+int
+insideFun_RR (Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  cout << "insideFun_RR" << endl;
+  XRectangle* r1 = static_cast<XRectangle*>( args[0].addr );
+  XRectangle* r2 = static_cast<XRectangle*>( args[1].addr );
+
+  result = qp->ResultStorage(s);   //query processor has provided
+                                   //a CcBool instance to take the result
+
+  CcBool* b = static_cast<CcBool*>( result.addr );
+  
+  bool res = true;
+  res = res && r1->GetXLeft() >= r2->GetXLeft(); 
+  res = res && r1->GetXLeft() <= r2->GetXRight(); 
+  
+  res = res && r1->GetXRight() >= r2->GetXLeft(); 
+  res = res && r1->GetXRight() <= r2->GetXRight(); 
+  
+  res = res && r1->GetYBottom() >= r2->GetYBottom(); 
+  res = res && r1->GetYBottom() <= r2->GetYTop(); 
+  
+  res = res && r1->GetYTop() >= r2->GetYBottom(); 
+  res = res && r1->GetYTop() <= r2->GetYTop(); 
+
+  b->Set(true, res); //the first argument says the boolean
+                     //value is defined, the second is the
+                     //real boolean value)
+  return 0;
+}
 
 
 /*
@@ -682,6 +687,13 @@ list as a string.
     oi->meaning   = "Inside predicate.";
     oi->example   = "p " + o_INSIDE + " r";
 
+    // add the alternative signatures
+    oi->appendSignature( t_XRECTANGLE + " x " + t_XRECTANGLE 
+                                              + " -> " + t_BOOL );
+
+    // define an array of function pointers which must be null terminated!
+    ValueMapping insideFuns[] = { insideFun_PR, insideFun_RR, 0 };
+    
 
 /*
 5.2 Definition of the Operators
@@ -691,19 +703,16 @@ The code below instatiates two objects of class ~Operator~.
 */
 
      static Operator intersectsOP (
-                           o_INTERSECTS,           //name
-                           intersectsSpec.str(),   //specification
-                           intersectsFun,          //value mapping
-                           Operator::SimpleSelect, //trivial selection function
-                           RectRectBool            //type mapping
+                           intersectsSpec,
+                           intersectsFun,    //value mapping
+                           RectRectBool      //type mapping
      );
 
      static Operator insideOP (
-                          o_INSIDE,             
-                          insideSpec.str(),       
-                          insideFun, 
-                          Operator::SimpleSelect,
-                          XPointRectBool  
+                          insideSpec,
+                          insideFuns,  // array of 
+                          insideSelect,
+                          insideTypeMap  
      );
   
 /*
@@ -711,6 +720,37 @@ The code below instatiates two objects of class ~Operator~.
 
 */
 
+  
+    ConstructorInfo ci;
+    ci.name         = t_XRECTANGLE;
+    ci.signature    = "-> " + k_SIMPLE;
+    ci.typeExample  = t_XRECTANGLE;
+    ci.listRep      =  "(<xleft> <xright> <ybottom> <ytop>)";
+    ci.valueExample = "(4 12 8 2)";
+    ci.remarks      = "all coordinates must be of type int.";
+
+/*
+
+The class ~ConstructorFunctions~ is a template class and will create many
+default implementations of functions used by a secondo type for deatails refer
+to "ConstructorFunctions.h". However some functions need to be implemented since
+the default may not be sufficient. The default kind check function assumes, that the
+type constructor does not have any arguments like function ~CheckXPoint~ does.
+
+*/    
+    ConstructorFunctions<XRectangle> cf;
+
+    // re-assign some function pointers
+    cf.create = CreateXRectangle;
+    cf.in = InXRectangle;
+    cf.out = OutXRectangle;
+
+    // the default implementations for open and save are only 
+    // suitable for a class which is derived from class ~Attribute~.
+    cf.open = 0;
+    cf.save = 0;
+    
+    static TypeConstructor xrectangleTC( ci, cf );
 
     AddTypeConstructor( &xpointTC );
     AddTypeConstructor( &xrectangleTC );
@@ -747,7 +787,7 @@ and to the query processor.
 The function has a C interface to make it possible to load the algebra
 dynamically at runtime (if it is built as dynamic link library). The name
 of the Initialization function defines the name of the algebra module by
-convention it must start with Initialize<AlgebraName>. 
+convention it must start with "Initialize<AlgebraName>". 
 
 In order to link the algebra togehter with the system you must create an 
 entry in the file makefile.algebra for it and to 
@@ -770,7 +810,7 @@ InitializePointRectangleAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
  
 In order to setup automated test procedures one can write a test specification
 for the ~TestRunner~ application. You will find the file example.test in
-directory bin and others in the directory Tests/Testspecs. There is also one for
+directory bin and others in the directory "Tests/Testspecs". There is also one for
 this algebra.
    
 */

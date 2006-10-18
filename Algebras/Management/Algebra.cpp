@@ -85,19 +85,9 @@ Operator::Operator( const OperatorInfo& oi,
                     ValueMapping vm,
                     TypeMapping tm )
 {
-  // construct a specification list
-  static const string txtBegin("<text>");  
-  static const string txtEnd("</text--->");  
-  stringstream spec;  
-  spec << "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\")(" 
-    << txtBegin << oi.signature << txtEnd
-    << txtBegin << oi.syntax << txtEnd
-    << txtBegin << oi.meaning << txtEnd
-    << txtBegin << oi.example << txtEnd << "))" << endl;
-
   // define member attributes
   name           = oi.name;
-  specString     = spec.str();  
+  specString     = oi.str();  
   numOfFunctions = 1;
   selectFunc     = SimpleSelect;
   valueMap       = new ValueMapping[1];
@@ -105,6 +95,30 @@ Operator::Operator( const OperatorInfo& oi,
 
   AddValueMapping( 0, vm );
 }
+
+Operator::Operator( const OperatorInfo& oi,
+                    ValueMapping vms[],
+                    SelectFunction sf,
+                    TypeMapping tm )
+{
+  int max = 0;
+  while ( vms[max] != 0 ) { max++; } 
+  
+  // define member attributes
+  name           = oi.name;
+  specString     = oi.str();  
+  numOfFunctions = max;
+  selectFunc     = sf;
+  valueMap       = new ValueMapping[max];
+  typeMap        = tm;
+
+  for ( int i = 0; i < max; i++ ) {
+    //cout << "Adding " << i << endl;
+    //cout << (void*) vms[i] << endl;
+    AddValueMapping( i, vms[i] );
+  }  
+}
+
 
 bool
 Operator::AddValueMapping( const int index, ValueMapping f )
@@ -262,18 +276,8 @@ TypeConstructor::Property()
 ListExpr
 TypeConstructor::Property(const ConstructorInfo& ci)
 {
-  return (nl->TwoElemList(
-         nl->FiveElemList(nl->StringAtom("Signature"),
-	                  nl->StringAtom("Example Type List"),
-			  nl->StringAtom("List Rep"),
-			  nl->StringAtom("Example List"),
-			  nl->StringAtom("Remarks")),
-         nl->FiveElemList(nl->StringAtom( ci.signature ),
-	                  nl->StringAtom( ci.typeExample ),
-			  nl->StringAtom( ci.listRep ),
-			  nl->StringAtom( ci.valueExample ),
-			  nl->StringAtom( ci.remarks ))));
-}
+  return ci.list();
+}  
 
 
 ListExpr
