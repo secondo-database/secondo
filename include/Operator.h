@@ -87,19 +87,25 @@ struct OperatorInfo {
  } 
 
  const string str() const { 
-  
+ 
+   const string S("<text>"); 
+   const string E("</text--->"); 
    const string headStr = "(\"Signature\" \"Syntax\" \"Meaning\" \"Example\")";
 
    string spec = "(" + headStr + "(" 
-              + "'" + signature + "'" 
-              + "'" + syntax + "'"
-              + "'" + meaning + "'"
-              + "'" + example + "'))";
+                 + S + signature + E 
+                 + S + syntax + E
+                 + S + meaning + E
+                 + S + example + E + "))";
    
    return spec; 
  }
 
-    
+ void appendSignature(const string& sig) {
+ 
+   signature += ", " + sig;
+ }  
+ 
 };
 
 
@@ -126,6 +132,11 @@ Constructs an operator with ~noF~ overloaded evaluation functions.
 
   Operator( const OperatorInfo& oi,
             ValueMapping vm,
+            TypeMapping tm );
+
+  Operator( const OperatorInfo& oi,
+            ValueMapping vms[],
+            SelectFunction sf,
             TypeMapping tm );
 
   
