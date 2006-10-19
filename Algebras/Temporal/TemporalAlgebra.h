@@ -864,8 +864,8 @@ Returns ~true~ if this temporal unit is before/after the value ~a~ and ~false~ o
 */
 
   virtual void TemporalFunction( const Instant& t, 
-				 Alpha& result, 
-				 bool ignoreLimits = false ) const = 0;
+                                 Alpha& result, 
+                                 bool ignoreLimits = false ) const = 0;
 /*
 The temporal function that receives a time instant ~t~ and returns the value
 associated with time ~t~ in the output argument ~result~.
@@ -1179,19 +1179,19 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 
 */
   virtual void TemporalFunction( const Instant& t, 
-				 Alpha& result, 
-				 bool ignoreLimits = false ) const
+                                 Alpha& result, 
+                                 bool ignoreLimits = false ) const
   {
     if ( !this->IsDefined() || 
-	 !t.IsDefined() || 
-	 (!this->timeInterval.Contains( t ) && !ignoreLimits))
+         !t.IsDefined() || 
+         (!this->timeInterval.Contains( t ) && !ignoreLimits))
       {
         result.SetDefined( false );
       }
     else
       {
-	result.CopyFrom( &constValue );
-        result.SetDefined( true );	
+        result.CopyFrom( &constValue );
+        result.SetDefined( true );      
       }
   }
 
@@ -1379,8 +1379,8 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 
 */
   virtual void TemporalFunction( const Instant& t, 
-				 CcReal& result, 
-				 bool ignoreLimits = false ) const;
+                                 CcReal& result, 
+                                 bool ignoreLimits = false ) const;
   virtual bool Passes( const CcReal& val ) const;
   virtual bool At( const CcReal& val, TemporalUnit<CcReal>& result ) const;
   virtual void AtInterval( const Interval<Instant>& i, 
@@ -1479,24 +1479,37 @@ Equality is calculated with respect to temporal evolution.
     TemporalUnit<CcReal>::defined = i->defined;
     if(i->defined)
       {
-	timeInterval.CopyFrom(i->timeInterval);
-	a = i->a;
-	b = i->b;
-	c = i->c;
-	r = i->r;
+        timeInterval.CopyFrom(i->timeInterval);
+        a = i->a;
+        b = i->b;
+        c = i->c;
+        r = i->r;
       }
     else
       {
-	timeInterval = Interval<Instant>();
-	a = 0;
-	b = 0;
-	c = 0;
-	r = false;
+        timeInterval = Interval<Instant>();
+        a = 0;
+        b = 0;
+        c = 0;
+        r = false;
       }
   }
 
 /*
-3.7.4 Attributes
+3.7.4 Other Methods
+
+*/
+
+  virtual void TranslateParab( const double& dx, const double& dy);
+
+/*
+   This operator will translate the apex of the parabolic curve 
+   used within the ureal representation by (dy,dy).
+ 
+*/
+
+/*
+3.7.5 Attributes
 
 */
   double a, b, c;
@@ -1577,8 +1590,8 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 */
 
   virtual void TemporalFunction( const Instant& t, 
-				 Point& result, 
-				 bool ignoreLimits = false ) const;
+                                 Point& result, 
+                                 bool ignoreLimits = false ) const;
   virtual bool Passes( const Point& val ) const;
   bool Passes( const Region& val ) const;
   virtual bool At( const Point& val, TemporalUnit<Point>& result ) const;
@@ -1674,15 +1687,15 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
     TemporalUnit<Point>::defined = i->defined;
     if(i->defined)
       {
-	timeInterval.CopyFrom( i->timeInterval );
-	p0 = i->p0;
-	p1 = i->p1;
+        timeInterval.CopyFrom( i->timeInterval );
+        p0 = i->p0;
+        p1 = i->p1;
       }
     else
       {
-	timeInterval = Interval<Instant>();
-	p0 = Point( false, 0.0, 0.0);
-	p1 = Point( false, 0.0, 0.0);
+        timeInterval = Interval<Instant>();
+        p0 = Point( false, 0.0, 0.0);
+        p1 = Point( false, 0.0, 0.0);
       }
   }
 

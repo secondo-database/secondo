@@ -105,7 +105,7 @@ void UReal::TemporalFunction( const Instant& t,
        !t.IsDefined() || 
        (!this->timeInterval.Contains( t ) && !ignoreLimits) )
     {
-      result.SetDefined(false);
+      result.Set(false, 0.0);
     }
   else
 
@@ -131,11 +131,10 @@ and so the original implementation was restored.
 */
     {
       double res = a * pow( t.ToDouble(), 2 ) +
-        b * ( t.ToDouble() ) +
-        c;
+                   b *      t.ToDouble()      +
+                   c;
       if( r ) res = sqrt( res );
       result.Set( true, res );
-      result.SetDefined( true );
     }
 }
 
@@ -164,6 +163,50 @@ void UReal::AtInterval( const Interval<Instant>& i,
   pResult->c = c;
   pResult->r = r;
   pResult->StandardTemporalUnit<CcReal>::IsDefined();
+}
+
+// translate the parabolic curve within a ureal by (dx,dy)
+void UReal::TranslateParab( const double& dx, const double& dy)
+{
+  long double xs,ys;
+  if (!AlmostEqual(a, 0.0) )
+    {
+      if (!AlmostEqual(b, 0.0) )
+        { // quadratic function with b != 0
+          xs =   -b/(2*a)         + dx;
+          ys = c - pow(b,2)/(4*a) + dy;
+          // a = a;
+          b = 2 * a * xs;
+          c = a * pow(xs,2) + ys;
+        }
+      else
+        { // quadratic function with b == 0
+          xs = dx;
+          ys = c + dy;
+        }
+      // a = a;
+      b = 2 * a * xs;
+      c = a * pow(xs,2) + ys;
+      return;
+    }
+  else 
+    { // a == 0
+      if (!AlmostEqual(b, 0.0) )
+        { // a linear function
+          // translate by (dy) only
+          a = 0.0;
+          // b = b;
+          c = c + dy;          
+        }
+      else
+        { // a constant function
+          // translate by (dy) only
+          a = 0.0;
+          b = 0.0;
+          c = c + dy;
+        }
+      // a = a;
+    }
 }
 
 /*
@@ -268,8 +311,8 @@ bool UPoint::At( const Point& p, TemporalUnit<Point>& result ) const
 VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
 
 */
-  assert( p.IsDefined() );
   assert( IsDefined() );
+  assert( p.IsDefined() );
 
   UPoint *pResult = (UPoint*)&result;
 
@@ -363,43 +406,89 @@ void UPoint::AtInterval( const Interval<Instant>& i,
 
   UPoint *pResult = (UPoint*)&result;
 
+  assert( IsDefined() );
+  assert( i.IsValid() );
   if( timeInterval.start == result.timeInterval.start )
-  {
-    pResult->p0 = p0;
-    pResult->timeInterval.start = timeInterval.start;
-    pResult->timeInterval.lc = pResult->timeInterval.lc && timeInterval.lc;
-  }
+    {
+      pResult->p0 = p0;
+      pResult->timeInterval.start = timeInterval.start;
+      pResult->timeInterval.lc = pResult->timeInterval.lc && timeInterval.lc;
+    }
   else
     TemporalFunction( result.timeInterval.start, pResult->p0 );
-
+  
   if( timeInterval.end == result.timeInterval.end )
-  {
-    pResult->p1 = p1;
-    pResult->timeInterval.end = timeInterval.end;
-    pResult->timeInterval.rc = pResult->timeInterval.rc && timeInterval.rc;
-  }
+    {
+      pResult->p1 = p1;
+      pResult->timeInterval.end = timeInterval.end;
+      pResult->timeInterval.rc = pResult->timeInterval.rc && timeInterval.rc;
+    }
   else
     TemporalFunction( result.timeInterval.end, pResult->p1 );
-
-  pResult->SetDefined( IsDefined() );
+  pResult->SetDefined ( true );
 }
 
 void UPoint::Distance( const Point& p, UReal& result ) const
 {
+  assert( IsDefined() );
+  assert( p.IsDefined() );
   result.timeInterval = timeInterval;
+  
 
-  double x0 = p0.GetX(), y0 = p0.GetY(),
-         x1 = p1.GetX(), y1 = p1.GetY(),
-         x = p.GetX(), y = p.GetY(),
-         t0 = result.timeInterval.start.ToDouble(),
-         t1 = result.timeInterval.end.ToDouble();
+/*
+   Old code:
 
-  result.a = pow( (x1 - x0) / (t1 - t0), 2 ) +
-             pow( (y1 - y0) / (t1 - t0), 2 );
-  result.b = 2 * ( (x0 - x) * (x1 - x0) / (t1 - t0) +
-                   (y0 - y) * (y1 - y0) / (t1 - t0) );
-  result.c = pow( x0 - x, 2 ) + pow( y0 - y, 2 );
+----
+  double 
+    x0 = p0.GetX(), y0 = p0.GetY(),
+    x1 = p1.GetX(), y1 = p1.GetY(),
+    x  =  p.GetX(),  y =  p.GetY(),
+    t0 = timeInterval.start.ToDouble(),
+    t1 = timeInterval.end.ToDouble();
+  DateTime DT = timeInterval.end - timeInterval.start;
+  double dt = DT.ToDouble();
+
+  result.a = (pow(x1-x0,2) + pow(y1-y0,2))/pow(dt, 2);
+  result.b = 2 * ( (x0-x)*(x1-x0) + (y0-y)*(y1-y0) ) / dt;
+  result.c = pow(x0-x,2) + pow(y0-y,2);
   result.r = true;
+  result.SetDefined( true );
+
+  //  double xtranslate = (DT/2 + timeInterval.start).ToDouble();
+  //  result.TranslateParab(-xtranslate,0.0);
+
+----
+
+   New code:
+
+*/
+
+  DateTime DT = timeInterval.end - timeInterval.start;
+  double dt = DT.ToDouble();
+  double
+    x0 = p0.GetX(), y0 = p0.GetY(),
+    x1 = p1.GetX(), y1 = p1.GetY(),
+    x  =  p.GetX(), y  =  p.GetY(),
+    t0 = timeInterval.start.ToDouble();
+
+  if ( AlmostEqual(dt, 0.0) )
+    { // single point
+      result.a = 0.0;
+      result.b = 0.0;
+      result.c = pow(x0-x,2) + pow(y0-y,2);
+      result.r = true;
+    }
+  else
+    {
+      double A = pow((x1-x0)/dt,2)+pow((y1-y0)/dt,2);
+      double B = 2*((x1-x0)*(x0-x)+(y1-y0)*(y0-y))/dt;
+      double C = pow(x0-x,2)+pow(y0-y,2);
+
+      result.a = A;
+      result.b = B-2*A*t0;
+      result.c = t0*(t0*A-B)+C;
+      result.r = true;
+    }
 }
 
 
@@ -1140,7 +1229,7 @@ ListExpr OutUReal( ListExpr typeInfo, Word value )
              OutDateTime( nl->TheEmptyList(),
              SetWord(&ureal->timeInterval.start) ),
              OutDateTime( nl->TheEmptyList(), 
-			  SetWord(&ureal->timeInterval.end) ),
+                          SetWord(&ureal->timeInterval.end) ),
              nl->BoolAtom( ureal->timeInterval.lc ),
              nl->BoolAtom( ureal->timeInterval.rc));
 
@@ -1378,7 +1467,7 @@ ListExpr OutUPoint( ListExpr typeInfo, Word value )
   else
     {
       ListExpr timeintervalList = nl->FourElemList(
-	  OutDateTime( nl->TheEmptyList(),
+          OutDateTime( nl->TheEmptyList(),
           SetWord(&upoint->timeInterval.start) ),
           OutDateTime( nl->TheEmptyList(), SetWord(&upoint->timeInterval.end) ),
           nl->BoolAtom( upoint->timeInterval.lc ),
@@ -1469,7 +1558,7 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
     }
   }
   else if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType 
-	    && nl->SymbolValue( instance ) == "undef" )
+            && nl->SymbolValue( instance ) == "undef" )
     {
       UPoint *upoint = new UPoint();
       upoint->SetDefined(false);
