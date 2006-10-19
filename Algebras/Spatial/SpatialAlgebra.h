@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
+//[_] [\_]
 
 [1] Header File of the Spatial Algebra
 
@@ -300,7 +301,7 @@ Operators redefinition.
 
 *Precondition:* ~u.IsDefined()~
 
-*Semantics:* ~(u.x + x, u.y + y)~
+*Semantics:*  ~(u.x + x, u.y + y)~
 
 *Complexity:* $O(1)$
 
@@ -956,7 +957,7 @@ The edge (segment) identifier
 */
   int coverageno;  
 /*
-Used for fast spatial scan of the inside_pr algorithm
+Used for fast spatial scan of the inside[_]pr algorithm
 
 */
   bool insideAbove; 
@@ -1609,7 +1610,7 @@ is the ~points~ result size.
 
 *Precondition:* ~U.IsOrdered()~
 
-*Semantics:* $$
+*Semantics:* translates the line 
 
 *Complexity:* $O(n)$, where ~n~ is the size of ~U~
 
@@ -1621,7 +1622,7 @@ is the ~points~ result size.
 
 *Precondition:* ~U.IsOrdered() and v.IsDefined()~
 
-*Semantics:* $$
+*Semantics:* 
 
 *Complexity:* $O(n)$, where ~n~ is the size of ~U~
 
@@ -1633,7 +1634,7 @@ is the ~points~ result size.
 
 *Precondition:* ~U.IsOrdered() and v.IsDefined() and w.IsDefined~
 
-*Semantics:* $$
+*Semantics:* 
 
 *Complexity:* $O(n)$, where ~n~ is the size of ~U~
 
@@ -2242,7 +2243,7 @@ is the ~points~ result size.
 
 *Precondition:* ~U.IsOrdered() and V.IsOrdered()~
 
-*Semantics:* \partial U \cap \partial V 
+*Semantics:* $\partial U \cap \partial V $
 
 *Complexity:* $O(m.n + r\log r)$, where ~m~ is the size of ~U~, ~n~ the size of ~V~, and ~r~
 is the ~line~ result size.
