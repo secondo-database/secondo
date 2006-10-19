@@ -1273,6 +1273,20 @@ double DateTime::operator/(const DateTime T2)const{
 }
 
 
+/*
+~Operator /~
+
+This Operator divides a DateTime by an integer
+
+*/
+DateTime DateTime::operator/(const long divisor)const{
+  assert(type==durationtype);
+  assert(divisor != 0);
+  ldiv_t Q = div(day,divisor);
+  long nday = (long) Q.quot;
+  long nms  = (long) ((Q.rem*MILLISECONDS)+milliseconds)/abs(divisor);
+  return DateTime(nday, nms, durationtype);
+}
 
 /*
 ~mul~

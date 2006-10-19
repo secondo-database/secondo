@@ -385,6 +385,14 @@ This Operator divides a DateTime by another dateTime
     double operator/(const DateTime T2)const;
 
 /*
+~Operator /~
+
+This Operator divides a DateTime (durationtype) by a long 
+
+*/
+    DateTime operator/(const long divisor)const;
+
+/*
 ~Operator multiply~
 
 This Operator multiplies a DateTime by a int and double number
