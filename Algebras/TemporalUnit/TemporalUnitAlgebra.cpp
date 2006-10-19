@@ -15,29 +15,29 @@ Feruniversit[ae]t Hagen.
 
 ----
                             Signatur
-     trajectory           upoint    -> line
+OK   trajectory           upoint    -> line
      makemvalue           stream (tuple ([x1:t1,xi:uType,..,xn:tn]))  ->  mType
      size                 periods  -> real
-     deftime      (**)    uT -> periods
-     atinstant    (**)    uT x instant  -> iT
-     atperiods    (**     uT x periods  -> (stream uT)
-(OK) Initial      (**)    uT -> iT
-(OK) final        (**)    uT -> iT
+OK   deftime      (**)    uT -> periods
+OK   atinstant    (**)    uT x instant  -> iT
+OK   atperiods    (**     uT x periods  -> (stream uT)
+OK   Initial      (**)    uT -> iT
+OK   final        (**)    uT -> iT
 OK   present      (**)    uT x instant  -> bool
-                  (**)    uT x periods  -> bool
+OK                (**)    uT x periods  -> bool
      point2d              periods  -> point
      queryrect2d          instant  -> rect
-     speed                mpoint   -> mreal
-                          upoint   -> ureal
+OK   speed                mpoint   -> mreal
+OK                        upoint   -> ureal
 OK   passes               upoint x point     -> bool
 OK   at                   upoint x point     -> upoint
      circle               point x real x int -> region
-     velocity             mpoint  -> mpoint
+OK   velocity             mpoint  -> mpoint
 OK                        upoint  -> upoint
-     derivable            mreal   -> mbool
-                          ureal   -> ubool
-     derivative           mreal   -> mreal
-                          ureal   -> ureal
+OK   derivable            mreal   -> mbool
+OK                        ureal   -> ubool
+OK   derivative           mreal   -> mreal
+OK                        ureal   -> ureal
 
 (*): These operators have been implemented for T in {bool, int, real, point}
 (**): These operators have been implemented for T in {bool, int, real, point, string, region}
@@ -101,9 +101,9 @@ OK   printstream: (stream T) --> (stream T)
 (OK) at:    ureal x real --> (stream ureal)
 
      distance:  T in {int, point}
-Test           uT x uT -> ureal
-Test           uT x  T -> ureal 
-Test            T x uT -> ureal
+(OK)           uT x uT -> ureal
+OK             uT x  T -> ureal 
+OK              T x uT -> ureal
 
 pre  intersects: For T in {bool, int, string, real, point}:
                  uT x uT --> (stream ubool)
@@ -135,7 +135,7 @@ n/a  sometimes: ubool --> bool
 n/a  never:     ubool --> bool
 n/a  always:    ubool --> bool
 
-
+n/a  uint2ureal: uint --> ureal
 
 ----
 
@@ -157,14 +157,8 @@ typemapping, valuemapping etc. This makes the file easier to extend.
 
 ----
 
-(C)     at: (ureal real) -> ureal
-???     trajectory: (upoint) -> line
-(C)     atmin: (ureal) -> (stream ureal)
-(C)     atmax: (ureal) -> (stream ureal)
 (R)     speed: (upoint) -> (ureal)
 (R)     velocity: (upoint) -> (upoint)
-(R)     distance: (uint uint) -> (ureal)
-(R)     distance: (int uint) -> (ureal)
 (R)     distance: (upoint upoint) -> (ureal)
 (R)     distance: (upoint point) -> (ureal)
 (R)     distance: (point Upoint) -> (ureal)
@@ -295,11 +289,6 @@ string TUPrintUReal( UReal* ureal )
 This section implements operators as member functions of the respective
 unit class.
 
-Definition of operators is similar to definition of type constructors. An
-operator is defined by creating an instance of class ~Operator~. Again we
-have to define some functions before we are able to create an ~Operator~
-instance.
-
 3.1 Operator ~speed~
 
 */
@@ -378,38 +367,35 @@ void UPoint::USpeed( UReal& result ) const
       
       result.timeInterval = timeInterval;
       
-      if (result.IsDefined() )
+      DateTime dt = timeInterval.end - timeInterval.start;
+      duration = dt.ToDouble() * 86400;   // value in seconds
+      
+      if(TUA_DEBUG) cout << "\nUPoint::USpeed duration=" 
+                         << duration << "s." << endl;
+      
+      if( duration > 0.0 )
+        {     
+          /*
+            The point unit can be represented as a function of
+            f(t) = (x0 + x1 * t, y0 + y1 * t).
+            The result of the derivation is the constant (x1,y1).
+            The speed is constant in each time interval.
+            Its value is represented by variable c. The variables a and b  
+            are set to zero.
+            
+          */
+          result.a = 0;  // speed is constant in the interval
+          result.b = 0;
+          result.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
+          result.r = false;
+          result.SetDefined( true );
+          if(TUA_DEBUG) cout << "\nUPoint::USpeed is defined." << endl;
+        }
+      else
         {
-          DateTime dt = timeInterval.end - timeInterval.start;
-          duration = dt.ToDouble() * 86400;   // value in seconds
-
-          if(TUA_DEBUG) cout << "\nUPoint::USpeed duration=" 
-                             << duration << "s." << endl;
-
-          if( duration > 0.0 )
-            {     
-              /*
-                The point unit can be represented as a function of
-                f(t) = (x0 + x1 * t, y0 + y1 * t).
-                The result of the derivation is the constant (x1,y1).
-                The speed is constant in each time interval.
-                Its value is represented by variable c. The variables a and b  
-                are set to zero.
-                
-              */
-              result.a = 0;                // speed is constant in the interval
-              result.b = 0;
-              result.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
-              result.r = false;
-              result.SetDefined( true );
-              if(TUA_DEBUG) cout << "\nUPoint::USpeed is defined." << endl;
-            }
-          else
-            {
-              result.SetDefined( false );
-              if(TUA_DEBUG) cout 
-                << "\nUPoint::USpeed is undef (empty result)." << endl;
-            }
+          result.SetDefined( false );
+          if(TUA_DEBUG) cout 
+            << "\nUPoint::USpeed is undef (empty result)." << endl;
         }
     }
 }
@@ -698,7 +684,7 @@ TypeMapSpeed( ListExpr args )
 int MPointSpeed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   result = (qp->ResultStorage( s ));
-  MReal  *res   = (MReal*) result.addr;
+  MReal  *res   = (MReal*)result.addr;
   MPoint *input = (MPoint*)args[0].addr;
   
   if ( input->IsDefined() )
@@ -706,8 +692,8 @@ int MPointSpeed(Word* args, Word& result, int message, Word& local, Supplier s)
     input->MSpeed( *res ); 
   else
     {
-      res->Clear();           // using empty mvalue instead
-      res->SetDefined(false); // of undef mvalue
+      res->Clear();             // using empty mvalue instead
+      //res->SetDefined(false); // of undef mvalue
     }
   return 0;
 }
@@ -715,13 +701,21 @@ int MPointSpeed(Word* args, Word& result, int message, Word& local, Supplier s)
 int UnitPointSpeed(Word* args,Word& result,int message,Word& local,Supplier s)
 {
   result = qp->ResultStorage( s );
-  UPoint *input = (UPoint*)result.addr;
+  UReal  *res   = (UReal*)result.addr;
+  UPoint *input = (UPoint*)args[0].addr;
   
   if ( input->IsDefined() )
-    // call member function:
-    ((UPoint*)args[0].addr)->USpeed(  *((UReal*)result.addr) );
+    { // call member function:
+      input->USpeed( *res );
+      if (TUA_DEBUG) 
+        cout << "UnitPointSpeed(): input def" << endl;
+    }  
   else
-     ((UPoint*)args[0].addr)->SetDefined(false);
+    {
+      res->SetDefined(false);
+      if (TUA_DEBUG) 
+        cout << "UnitPointSpeed(): input undef" << endl;
+    }
   return 0;
 }
 
@@ -1421,10 +1415,12 @@ int UnitPointTrajectory(Word* args, Word& result, int message,
   UPoint *upoint = ((UPoint*)args[0].addr);
 
   if ( !upoint->IsDefined() )
-    line->SetDefined( false );
+    {
+      line->Clear();                // Use empty value
+      // line->SetDefined( false ); // instead of undef
+    }
   else 
     upoint->UTrajectory( *line );   // call memberfunction
-  
   return 0;
 }
 
@@ -1439,13 +1435,14 @@ TemporalSpecTrajectory  =
 "<text>upoint -> line</text--->"
 "<text>trajectory( _ )</text--->"
 "<text>get the trajectory of the corresponding"
-"unit point object.</text--->"
+"unit point object. Static or undef upoint objects "
+"yield empty line objects.</text--->"
 "<text>trajectory( up1 )</text---> ) )";
 
 /* 
 5.6.4 Selection Function of operator ~trajectory~
 
-NOt necessary.
+Not necessary.
 
 */
 
@@ -3170,34 +3167,31 @@ int MPointVelocity(Word* args, Word& result, int message,
 {
   result = (qp->ResultStorage( s ));
   MPoint *res = (MPoint*) result.addr;
-  MPoint* input = (MPoint*)args[0].addr;
+  MPoint *input = (MPoint*)args[0].addr;
   
   res->Clear();
   if ( input->IsDefined() )
     // call member function:
     input->MVelocity( *res ); 
   else
-    res->SetDefined(false);
-  
+    {
+      res->Clear();             // use empty value 
+      //res->SetDefined(false); // instead of undef value
+    }
   return 0;
 }
 
 int UnitPointVelocity(Word* args, Word& result, int message,
                       Word& local, Supplier s)
 {
-  UPoint* input = (UPoint*)args[0].addr;
-  UPoint resValue;
-  
-  result = qp->ResultStorage( s );
+  result = (qp->ResultStorage( s ));
+  UPoint *input = (UPoint*)args[0].addr;
+  UPoint *res   = (UPoint*)result.addr;
   
   if ( !input->IsDefined() )
-    ((UPoint*)result.addr)->SetDefined( false );
+    res->SetDefined( false );
   else
-    {
-      input->UVelocity( resValue );
-      ((UPoint*)result.addr)->CopyFrom(&resValue);
-    }
-  
+    input->UVelocity( *res );
   return 0;
 }
 
@@ -5137,7 +5131,7 @@ Operator temporalunitsuse2( "suse2",
 5.21 Operator ~distance~
 
 The operator calculates the minimum distance between two units of base
-types int or point. The distance is always a non-negative ureal value.
+types ~int~ or ~point~. The distance is always a non-negative ~ureal~ value.
 
 ----
     For T in {int, point} 
@@ -5263,13 +5257,23 @@ void UPointDistance( const UPoint& p1, const UPoint& p2,
   
   Point rp0, rp1, rp2, rp3;
   double x0, x1, x2, x3, y0, y1, y2, y3, dx1, dy1, dx2, dy2, dt;
-  
+
   p1.TemporalFunction(iv.start, rp0);
   p1.TemporalFunction(iv.end, rp1);
   p2.TemporalFunction(iv.start, rp2);
   p2.TemporalFunction(iv.end, rp3);
-  
-  dt = iv.end.ToDouble() - iv.start.ToDouble();
+
+  if ( AlmostEqual(rp0,rp2) && AlmostEqual(rp1, rp3) )
+    { // identical points -> zero distance!
+      result.a = 0.0;
+      result.b = 0.0;
+      result.c = 0.0;
+      result.r = false;
+      return;
+    }
+
+  DateTime DT = iv.end - iv.start;
+  dt = DT.ToDouble();
   x0 = rp0.GetX(); y0 = rp0.GetY();
   x1 = rp1.GetX(); y1 = rp1.GetY();
   x2 = rp2.GetX(); y2 = rp2.GetY();
@@ -5293,9 +5297,9 @@ int TUDistance_UPoint_UPoint( Word* args, Word& result, int message,
   
   //  Word a1, a2;
   UPoint *u1, *u2;
-  
-  if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 0" << endl;
   result = qp->ResultStorage( s );
+  UPoint* res = (UPoint*) result.addr;
+  
   if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 1" << endl;
   
   u1 = (UPoint*)(args[0].addr);
@@ -5306,22 +5310,22 @@ int TUDistance_UPoint_UPoint( Word* args, Word& result, int message,
       !u1->timeInterval.Intersects( u2->timeInterval ) )
     { // return undefined ureal
       ((UReal*)(result.addr))->SetDefined( false );
-      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 7" << endl;
+      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 2" << endl;
     }
   else
     { // get intersection of deftime intervals
-      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 8" << endl;
+      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 3" << endl;
       u1->timeInterval.Intersection( u2->timeInterval, iv );  
-      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 9" << endl;
+      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 4" << endl;
       
       // calculate u1, u2, result
-      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 10" << endl;
+      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 5" << endl;
       UPointDistance( *u1, *u2,  *((UReal*)(result.addr)), iv);
-      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 11" << endl;
-      
+      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 6" << endl;
+      ((UReal*)(result.addr))->SetDefined( true );
     }
   // pass on result
-  if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 12" << endl;
+  if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 7" << endl;
   return 0;
 }
 
@@ -5330,7 +5334,9 @@ int TUDistance_UPoint_UPoint( Word* args, Word& result, int message,
 /*
 (a2) value mapping for 
 
----- (upoint point) -> ureal  and  (point upoint) -> ureal
+---- 
+     (upoint point) -> ureal  
+     (point upoint) -> ureal
 
 ----
 
@@ -5367,11 +5373,14 @@ int TUDistance_UPoint_Point( Word* args, Word& result, int message,
   if ( !((Point*)(thePoint.addr))->IsDefined() || 
        !((UPoint*)(theUPoint.addr))->IsDefined() )
     {
-      ((UPoint*)(result.addr))->SetDefined ( false );
+      ((UReal*)(result.addr))->SetDefined ( false );
     }
   else
-    ((UPoint*)(theUPoint.addr))->Distance( *((Point*)(thePoint.addr)), 
-                                           *((UReal*)(result.addr)));
+    {
+      ((UPoint*)(theUPoint.addr))->Distance( *((Point*)(thePoint.addr)), 
+                                             *((UReal*)(result.addr)));
+      ((UReal*)(result.addr))->SetDefined ( true );
+    }
   return 0;
 }
 
@@ -5417,6 +5426,7 @@ int TUDistance_UInt_UInt( Word* args, Word& result, int message,
       c2 = (double) u2->constValue.GetIntval();
       c = fabs(c1 - c2);
       *((UReal*)(result.addr)) = UReal(iv, 0, 0, c, false);
+      ((UReal*)(result.addr))->SetDefined( true );
     }
   // pass on result
   return 0;
@@ -5476,6 +5486,7 @@ int TUDistance_UInt_Int( Word* args, Word& result, int message,
       c2 = (double) i->GetIntval();
       c = fabs(c1 - c2);
       *((UReal*)(result.addr)) = UReal(u->timeInterval, 0, 0, c, false);
+      ((UReal*)(result.addr))->SetDefined( true );
     }
   // pass on result
   return 0;
@@ -8397,6 +8408,8 @@ public:
   TemporalUnitAlgebra() : Algebra()
   {
     AddOperator( &temporalunitmakemvalue );
+    AddOperator( &temporalunitcount );
+    AddOperator( &temporalunitprintstream );
     AddOperator( &temporalunittransformstream );
     AddOperator( &temporalunitsfeed );
     AddOperator( &temporalunitsuse );
@@ -8424,8 +8437,6 @@ public:
     AddOperator( &temporalvelocity );
     AddOperator( &temporalderivable );
     AddOperator( &temporalderivative );
-    AddOperator( &temporalunitcount );
-    AddOperator( &temporalunitprintstream );
     AddOperator( &streamFilter );
   }
   ~TemporalUnitAlgebra() {};
