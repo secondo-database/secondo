@@ -4,6 +4,10 @@
 # copy this file to an apropriate location and set up
 # an shell alias in your .bashrc file:
 
+checkDir "SECONDO_SDK" $SECONDO_SDK
+checkVar "SECONDO_PLATFORM" $SECONDO_PLATFORM
+checkDir "J2SDK_ROOT" $J2SDK_ROOT
+
 if [ -z $SETVAR_FIRST_CALL ]; then
 
   export SETVAR_FIRST_CALL="true"
@@ -26,14 +30,14 @@ sdk=$SECONDO_SDK
 binPaths=""
 libPaths=""
 incPaths=""
-for dir in gcc dep bison flex; do
+for dir in gcc bdb swi bison flex aux; do
   binPaths=$binPaths"$sdk/$dir/bin:"
   libPaths=$libPaths"$sdk/$dir/lib:"
   incPaths=$incPaths"$sdk/$dir/include:"
 done 
-echo $libPaths
-echo $binPaths
-echo $incPaths
+#echo $libPaths
+#echo $binPaths
+#echo $incPaths
 
 
 # Path declarations for the GCC
@@ -48,15 +52,15 @@ export JNI_INIT=${SECONDO_BUILD_DIR}/bin/JNI.ini
 
 ## Extend the search path
 PATH=.:${J2SDK_ROOT}/bin:$binPaths:${PATH}
-echo $PATH
 
 # The runtime linker uses different variables on linux and windows
 if [ $SECONDO_PLATFORM != "win32" ]; then
 
+   checkVar "PL_LIB_DIR" $PL_LIB_DIR
    pathList=${J2SDK_ROOT}/jre/lib/i386
    pathList=${pathList}:${J2SDK_ROOT}/jre/lib/i386/client
-   pathList=${pathList}:$libPaths
-   pathList=${pathList}:${BERKELEY_DB_DIR}/lib
+   pathList=${pathList}:${libPaths}
+   pathList=${pathList}:${SECONDO_BUILD_DIR}/lib
    pathList=${pathList}:${PL_LIB_DIR}
    pathList=${pathList}:${LD_LIBRARY_PATH}
 
@@ -64,10 +68,11 @@ if [ $SECONDO_PLATFORM != "win32" ]; then
 
 else
 
+   checkVar "MINGW_DIR" $MINGW_DIR
    pathList=${J2SDK_ROOT}/jre/bin/client
    pathList=${pathList}:${MINGW_DIR}
+   pathList=${pathList}:${libPaths}
    pathList=${pathList}:${SECONDO_BUILD_DIR}/lib
-   pathList=${pathList}:${SECONDO_SDK}/lib
    pathList=${pathList}:${SECONDO_SDK}/pl/bin
 
    PATH=${PATH}:${pathList}

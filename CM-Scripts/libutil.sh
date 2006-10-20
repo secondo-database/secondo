@@ -750,7 +750,7 @@ function checkVersion {
   
   #echo "$n1 $n2 $n3 >= $k1 $k2 $k3 ?"
   LU_Version1="${n1}.${n2}.${n3}" 
-  LU_Version1="${k1}.${k2}.${k3}" 
+  LU_Version2="${k1}.${k2}.${k3}" 
  
   if  let $[$n1 > $k1]; then
     return 0

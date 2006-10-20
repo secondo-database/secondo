@@ -13,14 +13,14 @@
 startDir=$PWD
 
 # include function definitions
-libFile="./scripts/bin/libutil.sh"
+libFile="./scripts/libutil.sh"
 if ! source $libFile; then 
   printf "%s\n" "This script needs routines from the file $libFile"
   exit 1; 
 fi
 
 if win32Host; then
-  shProfile="./scripts/home/profile"
+  shProfile="./scripts/profile"
   if [ -f $shProfile ]; then
     source $shProfile
   fi  
@@ -276,7 +276,7 @@ function copyConfigFiles {
   if ! checkPoint "$check"; then
     
     printx "%s\n" "Creating \$sdk/secondo* files"
-    local cmdfiles="secondorc secondo.*"
+    local cmdfiles="libutil.sh secondorc secondo.*"
     if win32Host; then
       cmdfiles="$cmdfiles profile"
     fi 
@@ -346,10 +346,25 @@ sdkName="secondo-sdk"
 declare -i numOfArgs=$#
 let numOfArgs++
 opt_platform=""
+opt_gcc="yes"
+
+function usageMsg {
+
+  printf "\n%s\n" "Usage of ${0##*/}:" 
+  printf "%s\n"   "  -h print this message and exit."
+  printf "%s\n"   "  -t test mode installing below directory /tmp"
+  printf "%s\n"   "  -d name of the the sdk root directory [default = $sdkName]"
+  printf "%s\n"   "  -p platform name. one of {linux, win32, mac_osx}."
+  printf "%s\n"   "  -s Use the system's gcc, don't install the provided one."
+  printf "%s\n"   "The script installs or compiles all 3rd party tools"
+  printf "%s\n\n" "which are needed to compile SECONDO."
+}
+
+
 
 while [ $numOfArgs -ne $OPTIND ]; do
 
-  getopts "d:p:ht" optKey
+  getopts "d:p:hts" optKey
   if [ "$optKey" == "?" ]; then
     optKey="h"
   fi
@@ -357,18 +372,14 @@ while [ $numOfArgs -ne $OPTIND ]; do
   case $optKey in
 
    h) showGPL
-      printf "\n%s\n" "Usage of ${0##*/}:" 
-      printf "%s\n"   "  -h print this message and exit."
-      printf "%s\n"   "  -t test mode installing below directory /tmp"
-      printf "%s\n"   "  -d name of the the sdk root directory [$sdkName]"
-      printf "%s\n"   "  -p platfomrm name"
-      printf "%s\n"   "The script installs or compiles all 3rd party tools"
-      printf "%s\n\n" "needed to compile SECONDO."
+      usageMsg
       exit 0;;
   
    d) sdkName=$OPTARG;;
      
    p) opt_platform=$OPTARG;; 
+   
+   s) opt_gcc="no";; 
       
    t) testMode="true"
 
@@ -379,7 +390,8 @@ done
 if [ "$opt_platform" != "linux" ]; then
   if [ "$opt_platform" != "mac_osx" ]; then
     if [ "$opt_platform" != "win32" ]; then
-      printf "%s\n" "Error: -p must be set to linux, mac_osx or win32!"
+      printf "%s\n" "Error: Option -p must be set to one of {linux, mac_osx or win32}!"
+      usageMsg
       exit 1
     fi
   fi
@@ -683,8 +695,8 @@ checkCmd "flex --version >> $logfile"
 checkCmd "bison --version >> $logfile"
 
 #install gcc if necessary
-gccCoreFile=$(ls $platformdir/gnu/gcc-core-*)
-if ! checkVersion "gcc --version" $gccCoreFile; then
+if [ "$opt_gcc" = "yes" ]; then
+  gccCoreFile=$(ls $platformdir/gnu/gcc-core*)
   gccfiles=$platformdir/gnu/gcc-*
   objDir=$temp/gcc.objects
   assert mkdir -p $objDir
@@ -692,46 +704,36 @@ if ! checkVersion "gcc --version" $gccCoreFile; then
   assert hash -r
   if ! checkVersion "gcc --version" $gccCoreFile; then
     showMsg "err" "Something went wrong! gcc --version: ($LU_Version1 < \
- $LU_Version2) does not report the version of the package file 
+ $LU_Version2) does not report the version of the package file. Retry with
+ option -c
  \"$gccCoreFile\""
     abort
   fi
 else
- showMsg "info" "gcc --version: $LU_Version1 >= $LU_Version2! We will don't
- install $gccCoreFile"
+ showMsg "info" "The system's gcc will be used" 
+ echo "gcc --version"
 fi
 
+configureFlags="CFLAGS=\"$cFlags\" LDFLAGS=\"$ldFlags\""
 
-
-configureFlags="CFLAGS=$cFlags LDFLAGS=$ldFlags"
-
-printSep "Compiling other packages ..."
-
-if [ "$opt_platform" == "mac_osx" ]; then
- installPackage "Findutils" aux $platformdir/gnu/findutils-* $temp/findutils-* install
-fi 
+printSep "Compiling auxiliary packages ..."
 
 installPackage "Lib curses"   aux $platformdir/gnu/ncurses-*     $temp/ncurses-*  "all install"
 installPackage "Lib readline" aux $platformdir/gnu/readline-*    $temp/readline-* "all install" --with-curses
 installPackage "Lib jpeg"     aux $platformdir/non-gnu/jpeg*     $temp/jpeg*      "all install install-lib" 
+if [ "$opt_platform" == "mac_osx" ]; then
+ installPackage "Findutils" aux $platformdir/gnu/findutils-* $temp/findutils-* install
+fi 
+
+installPackage "Bison, a parser generator" bison $platformdir/gnu/bison-*   $temp/bison-* install
+
+configureFlags=""
+installPackage "Flex, a scanner generator" flex $platformdir/non-gnu/flex-* $temp/flex-* install
+
+printSep "Compiling Berkely-DB and SWI-Prolog"
+
+configureFlags="CFLAGS=\"$cFlags\" LDFLAGS=\"$ldFlags\""
 installPackage "Berkeley-DB"  bdb $platformdir/non-gnu/db-*      $temp/db-*/build_unix "all install" --enable-cxx ../dist/configure
 installPackage "SWI-Prolog"   swi $platformdir/prolog/pl-*       $temp/pl-*       "all install"
-
-bisonFile=$(ls $platformdir/gnu/bison-*)
-if ! checkVersion "bison --version" $bisonFile; then
-  installPackage "Bison, a parser generator" bison $bisonFile $temp/bison-* install
-else
- showMsg "info" "bison --version: $LU_Version1 >= $LU_Version2! We will don't
- install $bisonFile"
-fi
-
-flexFile=$(ls $platformdir/non-gnu/flex-*)
-if ! checkVersion "flex --version" $flexFile; then
-  installPackage "Flex, a scanner generator" flex $flexFile $temp/flex-* install
-else
- showMsg "info" "flex --version: $LU_Version1 >= $LU_Version2! We will don't
- install $flexFile"
-fi
-
 
 finish

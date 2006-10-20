@@ -1,0 +1,43 @@
+# list of command aliases
+#
+# Feb 2005, M. Spiekermann
+
+# function secenv
+#
+# Displays environment informations importatnt for SECONDO
+
+checkVar "SECONDO_SDK" $SECONDO_SDK 
+
+function secenv {
+echo ""
+echo "Environment variables used by SECONDO:"
+echo "--------------------------------------"
+env | grep -e "\(SECONDO_\|LD_LIB\|^PATH\|INCLUDE\|BERKELEY\|PL_\|J2SDK\|CVSROOT\)" \
+    | sort \
+    | sed -e 's#\(.*\)=\(.*\)#\1 = "\2" \
+--#g'
+
+gcc --version | head -n1
+echo "--"
+flex --version | head -n1
+echo "--"
+bison --version | head -n1
+echo "--"
+db_archive -V | head -n1
+echo "--"
+echo "halt." | pl > /tmp/pl$$-version 2>&1;  cat /tmp/pl$$-version | head -n1
+echo "--"
+
+}
+
+# Setting the Envrionment for SECONDO 
+alias setvar="source $SECONDO_SDK/secondo.setroot" 
+alias catvar="secenv" 
+alias secinit="source $SECONDO_SDK/secondorc"
+alias secroot="source $SECONDO_SDK/secondo.setroot"
+
+# CVS
+alias jcvs='java -jar $SECONDO_SDK/jCVS-5.2.2/jars/jcvsii.jar'
+alias cvs-info='cvs -nq update | grep "^[A-Z]"'
+alias cvs-mod='cvs -nq update | grep "^[MAC]"'
+

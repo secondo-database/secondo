@@ -2,19 +2,21 @@
 #
 # Feb 2005, M. Spiekermann
 
+# definition of the secondo platform
 if [ "$SECONDO_PLATFORM" == "" ]; then
 if [ "$OSTYPE" == "msys" ]; then
    prefix=/c
    platform="win32"
-elif [ "$OSTYPE" == "mac_osx" ]; then
-   prefix=$HOME
-   platform="mac_osx"
-else
+elif [ "$OSTYPE" == "linux" ]; then
    prefix=$HOME
    platform="linux"
+else
+   echo "Error: Unrecognized platform OSTYPE=<$OSTYPE>, please set variable SECONDO_PLATFORM."
+   exit 1
 fi
 export SECONDO_PLATFORM=$platform
 else
+# a local shortcut
 platform=$SECONDO_PLATFORM
 fi
 

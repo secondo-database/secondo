@@ -7,6 +7,4 @@
 # replace ${USER} by the correct name
 export CVSROOT=":pserver:${USER}@zeppelin.fernuni-hagen.de:2401/home/cvsroot"
 
-# Berkeley DB
-export BERKELEY_DB_DIR=${SECONDO_SDK}
 
