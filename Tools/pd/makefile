@@ -29,7 +29,7 @@ LINKLIBS = -L$(SECONDO_SDK)/lib  -lfl
 
 # The first line is used when compiling with FLEX and BISON
 # The second line when compiling with LEX and YACC
-LEX = flex -l
+LEX = flex -X
 #LEX = lex
 
 # The first line is used when compiling with FLEX and BISON
