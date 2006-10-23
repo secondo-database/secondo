@@ -259,6 +259,42 @@ string TUPrintTimeInterval( Interval<DateTime> iv )
   return Result;
 }
 
+// make a string representation from a point
+string TUPrintPoint( const Point& p )
+{
+  string Result;
+
+  if ( p.IsDefined() )
+    Result = "( def  : ";
+  else 
+    Result = "( undef: ";
+  Result += TUn2s(p.GetX());
+  Result += "/";
+  Result += TUn2s(p.GetY());
+  Result += " )";
+
+  return Result;
+}
+
+// make a string representation from an upoint value
+string TUPrintUPoint( const UPoint& upoint )
+{
+  std::string str, Result;
+
+  if ( upoint.IsDefined() )
+    Result = "( def  : ";
+  else 
+    Result = "( undef: ";
+  Result += TUPrintTimeInterval(upoint.timeInterval);
+  Result += ", ";
+  Result += TUPrintPoint(upoint.p0);
+  Result += ", ";
+  Result += TUPrintPoint(upoint.p1);
+  Result +=" )";
+  Result += ((Attribute*)(&upoint))->AttrDelete2string();
+  return Result;
+}
+
 // make a string representation from an ureal value
 string TUPrintUReal( UReal* ureal )
 {
@@ -5251,20 +5287,43 @@ Returns the distance between two UPoints in the given interval as UReal
 
 */
 void UPointDistance( const UPoint& p1, const UPoint& p2, 
-                     UReal& result, Interval<Instant> iv)
+                     UReal& result, Interval<Instant>& iv)
 {
+  if (TUA_DEBUG)
+    {
+      cout << "UPointDistance:" << endl;
+      cout << "  p1=" << TUPrintUPoint(p1) << endl;
+      cout << "  p2=" << TUPrintUPoint(p2) << endl;
+    }
   result.timeInterval = iv;
   
-  Point rp0, rp1, rp2, rp3;
-  double x0, x1, x2, x3, y0, y1, y2, y3, dx1, dy1, dx2, dy2, dt;
+  Point rp10, rp11, rp20, rp21;
+  double 
+    x10, x11, x20, x21, 
+    y10, y11, y20, y21, 
+    dx1, dy1, 
+    dx2, dy2,
+    dx12, dy12;
 
-  p1.TemporalFunction(iv.start, rp0);
-  p1.TemporalFunction(iv.end, rp1);
-  p2.TemporalFunction(iv.start, rp2);
-  p2.TemporalFunction(iv.end, rp3);
+  // for calculation of temporal function:
+  // ignore temporal limits
+  p1.TemporalFunction(iv.start, rp10, true);
+  p1.TemporalFunction(iv.end,   rp11, true);
+  p2.TemporalFunction(iv.start, rp20, true);
+  p2.TemporalFunction(iv.end,   rp21, true);
 
-  if ( AlmostEqual(rp0,rp2) && AlmostEqual(rp1, rp3) )
+  if (TUA_DEBUG)
+    {
+      cout << "   iv=" << TUPrintTimeInterval(iv) << endl;
+      cout << "  rp10=" << TUPrintPoint(rp10) << ", rp11=" 
+           << TUPrintPoint(rp11) << endl;
+      cout << "  rp20=" << TUPrintPoint(rp20) << ", rp21=" 
+           << TUPrintPoint(rp21) << endl;
+    }
+  if ( AlmostEqual(rp10,rp20) && AlmostEqual(rp11,rp21) )
     { // identical points -> zero distance!
+      if (TUA_DEBUG) 
+        cout << "  identical points -> zero distance!" << endl;
       result.a = 0.0;
       result.b = 0.0;
       result.c = 0.0;
@@ -5273,19 +5332,46 @@ void UPointDistance( const UPoint& p1, const UPoint& p2,
     }
 
   DateTime DT = iv.end - iv.start;
-  dt = DT.ToDouble();
-  x0 = rp0.GetX(); y0 = rp0.GetY();
-  x1 = rp1.GetX(); y1 = rp1.GetY();
-  x2 = rp2.GetX(); y2 = rp2.GetY();
-  x3 = rp3.GetX(); y3 = rp3.GetY();
-  dx1 = (x1 - x0) / dt;
-  dy1 = (y1 - y0) / dt;
-  dx2 = (x3 - x2) / dt;
-  dy2 = (y3 - y2) / dt;
-  
-  result.a = pow( (dx1 - dx2), 2 ) + pow( (dy1 - dy2), 2 );
-  result.b = 2 * ( (x0 - x2) * (dx1 - dx2) + (y0 - y2) * (dy1 - dy2) );
-  result.c = pow( x0 - x2, 2 ) + pow( y0 - y2, 2 );
+  double   dt = DT.ToDouble();
+  double   t0 = iv.start.ToDouble();
+  x10 = rp10.GetX(); y10 = rp10.GetY();
+  x11 = rp11.GetX(); y11 = rp11.GetY();
+  x20 = rp20.GetX(); y20 = rp20.GetY();
+  x21 = rp21.GetX(); y21 = rp21.GetY();
+  dx1 = x11 - x10;   // x-difference final-initial for u1
+  dy1 = y11 - y10;   // y-difference final-initial for u1
+  dx2 = x21 - x20;   // x-difference final-initial for u2
+  dy2 = y21 - y20;   // y-difference final-initial for u2
+  dx12 = x10 - x20;  // x-distance at initial instant
+  dy12 = y10 - y20;  // y-distance at initial instant
+
+  if ( AlmostEqual(dt, 0) )
+    { // almost equal start and end time -> constant distance
+      if (TUA_DEBUG) 
+        cout << "  almost equal start and end time -> constant distance!" 
+             << endl;
+      result.a = 0.0;
+      result.b = 0.0;
+      result.c =   pow( ( (x11-x10) - (x21-x20) ) / 2, 2) 
+                 + pow( ( (y11-y10) - (y21-y20) ) / 2, 2);
+      result.r = true;
+      return;
+    }
+
+  if (TUA_DEBUG) 
+    cout << "  Normal distance calculation." << endl;
+
+  double a1 = (pow((dx1-dx2),2)+pow(dy1-dy2,2))/pow(dt,2);
+  double b1 = dx12 * (dx1-dx2);
+  double b2 = dy12 * (dy1-dy2);
+
+  result.a = a1;
+  result.b = -2*(  (t0*a1) 
+                 - ( b1 + b2 )/dt 
+               );
+  result.c =   pow(t0,2) * a1 
+             - 2*t0*(b1 + b2)/dt
+             + pow(dx12,2) + pow(dy12,2);
   result.r = true;
 }
 
@@ -5298,31 +5384,36 @@ int TUDistance_UPoint_UPoint( Word* args, Word& result, int message,
   //  Word a1, a2;
   UPoint *u1, *u2;
   result = qp->ResultStorage( s );
-  UPoint* res = (UPoint*) result.addr;
+  UReal* res = (UReal*) result.addr;
   
   if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 1" << endl;
   
   u1 = (UPoint*)(args[0].addr);
   u2 = (UPoint*)(args[1].addr);
-  
   if (!u1->IsDefined() || 
       !u2->IsDefined() || 
       !u1->timeInterval.Intersects( u2->timeInterval ) )
     { // return undefined ureal
-      ((UReal*)(result.addr))->SetDefined( false );
+      res->SetDefined( false );
       if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 2" << endl;
     }
   else
     { // get intersection of deftime intervals
+      if (TUA_DEBUG) 
+        cout << "TUDistance_UPoint_UPoint:" << endl
+             << "   iv1=" << TUPrintTimeInterval(u1->timeInterval) << endl
+             << "   iv2=" << TUPrintTimeInterval(u2->timeInterval) << endl;
+
       if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 3" << endl;
       u1->timeInterval.Intersection( u2->timeInterval, iv );  
-      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 4" << endl;
+      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: iv=" 
+                          << TUPrintTimeInterval(iv) << endl;
       
-      // calculate u1, u2, result
+      // calculate result
       if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 5" << endl;
-      UPointDistance( *u1, *u2,  *((UReal*)(result.addr)), iv);
+      UPointDistance( *u1, *u2,  *res, iv);
       if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 6" << endl;
-      ((UReal*)(result.addr))->SetDefined( true );
+      res->SetDefined( true );
     }
   // pass on result
   if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 7" << endl;
