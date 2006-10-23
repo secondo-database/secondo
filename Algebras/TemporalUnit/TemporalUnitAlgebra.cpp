@@ -100,8 +100,8 @@ OK   printstream: (stream T) --> (stream T)
 
 (OK) at:    ureal x real --> (stream ureal)
 
-     distance:  T in {int, point}
-(OK)           uT x uT -> ureal
+OK   distance:  T in {int, point}
+OK             uT x uT -> ureal
 OK             uT x  T -> ureal 
 OK              T x uT -> ureal
 
@@ -121,7 +121,7 @@ n/a  no_components: uT --> uint
 n/a  area: uregion --> ureal
 
 n/a  and, or: ubool x ubool --> (stream ubool)
-n/a           bool x ubool --> (stream ubool)
+n/a            bool x ubool --> (stream ubool)
 n/a           ubool x  bool --> (stream ubool)
 
 n/a  =, #: uT x uT --> (stream ubool)
@@ -157,11 +157,6 @@ typemapping, valuemapping etc. This makes the file easier to extend.
 
 ----
 
-(R)     speed: (upoint) -> (ureal)
-(R)     velocity: (upoint) -> (upoint)
-(R)     distance: (upoint upoint) -> (ureal)
-(R)     distance: (upoint point) -> (ureal)
-(R)     distance: (point Upoint) -> (ureal)
 (C)     intersection: (uint uint) -> (stream uint)
 (C)     intersection:(uint int) -> (stream uint)
 (C)     intersection: (int uint) -> (stream uint)
@@ -1039,8 +1034,8 @@ PeriodsTypeMapSize( ListExpr args )
 */
 int Size( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  double res, duration, intervalue_sup, intervalue_inf;
-  Instant sup, inf;
+  double   res = 0.0;
+  DateTime dur = DateTime(0, 0, durationtype);
 
   result = qp->ResultStorage( s );
   Periods* range = (Periods*)args[0].addr;
@@ -1051,28 +1046,17 @@ int Size( Word* args, Word& result, int message, Word& local, Supplier s )
     {
       if( !range->IsEmpty()  )
         {
-          const Interval<Instant> *intv1, *intv2;
-          duration = 0;
+          const Interval<Instant> *intv;
       
           for( int i = 0; i < range->GetNoComponents(); i++ )
             {
-              range->Get( i, intv1 );
-              range->Get( i, intv2 );
-              
-              Interval<Instant> timeInterval(intv1->start,intv2->end,
-                                             intv1->lc, intv2->rc);
-          
-              sup = timeInterval.end;
-              inf = timeInterval.start;
-              
-              intervalue_sup = sup.ToDouble();
-              intervalue_inf = inf.ToDouble();
-              // summarize all time intervals in seconds:
-              duration += (intervalue_sup - intervalue_inf)/1000;
+              range->Get( i, intv );
+              dur += (intv->end - intv->start);
             }
-          res = duration;
+          // transform to seconds
+          res = abs(dur.ToDouble())*86400;
         }
-      ((CcReal*)result.addr)->Set(true, res);  // return the resulT
+      ((CcReal*)result.addr)->Set(true, res);  // return the result
     }
   return 0;
 }
@@ -1087,7 +1071,8 @@ TemporalSpecSize  =
 "( <text>TemporalUnitAlgebra</text--->"
 "<text>(periods) -> real</text--->"
 "<text>size( _ )</text--->"
-"<text>return the duration of a moving object.</text--->"
+"<text>Return the duration in seconds spanned by a periods value "
+"as a real value.</text--->"
 "<text>query size(periods)</text---> ) )";
 
 /* 
