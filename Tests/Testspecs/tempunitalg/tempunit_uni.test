@@ -44,6 +44,9 @@ let up3 = [const upoint value undef];
 let up4 = [const upoint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 0.0 0.0 1000.0))];
 let up5 = [const upoint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 0.0 0.0 -1000.0))];
 let up6 = [const upoint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1500.0 1500.0 1500.0 1500.0))];
+let up7 = [const upoint value (("2000-01-02-23:50" "2000-01-03-00:10" TRUE TRUE) (1000.0 1000.0 2000.0 2000.0))];
+let up8 = [const upoint value (("2003-01-01-12:00" "2003-01-01-12:20" TRUE TRUE) (1000.0 1000.0 2000.0 2000.0))];
+let up9 = [const upoint value (("2003-11-20-05:30" "2003-11-20-06:30" TRUE TRUE) (0.0 0.0 0.0 0.0))];
 
 
 let mp1 = [const mpoint value ((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (-100.0 -100.0 100.0 100.0)))];
@@ -251,10 +254,10 @@ query atmin(ui2)
 #yields (ureal undef)
 query distance(ui3, i1)
 
-##testcase distance_ui1_i
-##tolerance_real 0.001
-##yields (ureal ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 0.0 1400.0 FALSE)))
-#query distance(ui1, i1)
+#testcase distance_ui1_i
+#tolerance_real 0.001
+#yields (ureal ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 0.0 1400.0 FALSE)))
+query distance(ui1, i1)
 
 #testcase distance_i_ui3
 #tolerance_real 0.001
@@ -503,16 +506,127 @@ query final(ur3)
 
 
 
-# trajectory_up
+#testcase trajectory_up undefined
+#yields (line ())
+query trajectory(up3)
 
-# speed_upoint
+#testcase trajectory_up defined up1
+#yields (line ( (1000.0 1000.0 2000.0 2000.0) ) )
+query trajectory(up1)
+
+#testcase trajectory_up defined up2
+#yields (line ( (1000.0 1000.0 2000.0 2000.0) ) )
+query trajectory(up2)
+
+
+
+#testcase speed_upoint undef
+#yields (ureal undef)
+query speed(up3)
+
+#testcase speed_upoint def1
+#yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(0.0 0.0 0.277777 FALSE)))
+query speed(up4)
+
+#testcase speed_upoint def2
+#yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(0.0 0.0 0.0 FALSE)))
+query speed(up6)
+
+#testcase speed_upoint def3
+#yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(0.0 0.0 0.392837 FALSE)))
+query speed(up1)
+
+
+
+#testcase distance_point_upoint ZERODISTANCE
+#yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(0.0 0.0 0.0 TRUE)))
+query distance(p, up6)
+
+#testcase distance_upoint_point ZERODISTANCE
+#yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(0.0 0.0 0.0 TRUE)))
+query distance(up6, p)
+
+#testcase distance_point_upoint NONZERODISTANCE 1
+#tolerance_real 0.001
+#yields (ureal (("2000-01-02-23:50" "2000-01-03-00:10" TRUE TRUE)(10368000000.0 -7.989001460373402e-09 2.842170943040401e-14 TRUE)))
+query distance(p, up7)
+
+#testcase distance_point_upoint NONZERODISTANCE 2
+#tolerance_real 0.001
+#yields (ureal (("2003-01-01-12:00" "2003-01-01-12:20" TRUE TRUE)(10368000000.0 -22695696000000.0 1.24202984405e+16 TRUE)))
+query distance(p, up8)
+
+
+
+#tolerance_real 0.001
 
 # distance_upoint_point
-# distance_point_upoint
-# distance_upoint_upoint
-# distance_ureal_real
-# distance_real_ureal
-# distance_ureal_ureal
+
+
+#testcase distance_upoint_upoint undef undef
+#yields (ureal undef)
+query distance(up3, up3)
+
+#testcase distance_upoint_upoint def undef
+#yields (ureal undef)
+query distance(up1, up3)
+
+#testcase distance_upoint_upoint undef def
+#yields (ureal undef)
+query distance(up3, up2)
+
+#testcase distance_upoint_upoint def def
+#yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (4608000000.0 -13061568000000.0 9255889682000000.0 TRUE)))
+query distance(up1, up2)
+
+#testcase distance_upoint_upoint def def ZERO
+#yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(0.0 0.0 0.0 FALSE)))
+query distance(up1, up1)
+
+#testcase distance_upoint_upoint def def ClipLeft
+#yields (ureal (("2003-11-20-06:00" "2003-11-20-06:30" TRUE TRUE) (1152000000.0 -3265536000000.0 2314176512000000.0 TRUE)))
+query distance(up1,up9)
+
+
+#testcase distance_int_uint DEF DEF
+#yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 0.0 1400.0 FALSE)))
+query distance(i1, ui1)
+
+#testcase distance_int_uint DEF UNDEF
+#yields (ureal undef)
+query distance(i1, ui3)
+
+#testcase distance_int_uint UNDEF DEF
+#yields (ureal undef)
+query distance([const int value undef], ui1)
+
+#testcase distance_uint_int DEF DEF
+#yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 0.0 1400.0 FALSE)))
+query distance(ui1, i1)
+
+#testcase distance_uint_int UNDEF DEF
+#yields (ureal undef)
+query distance(ui3, i1)
+
+#testcase distance_uint_int DEF UNDEF
+#yields (ureal undef)
+query distance(ui1, [const int value undef])
+
+
+
+#testcase distance_uint_uint ZERO
+#yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 0.0 0.0 FALSE)))
+query distance(ui1, ui1)
+
+#testcase distance_uint_uint DEF UNDEF
+#yields (ureal undef)
+query distance(ui1, ui3)
+
+#testcase distance_uint_uint UNDEF DEF
+#yields (ureal undef)
+query distance(ui3, ui1)
+
+
 
 # intersects_uconst_uconst
 # intersects_upoint_upoint
