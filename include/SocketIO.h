@@ -766,15 +766,19 @@ Flushes all output data from the buffer to the associated socket.
   virtual int pbackfail( int ch = EOF );
 
 
-  int showmanyc() { cerr << "showmanyc called!" << endl; return 0; };
+  streamsize showmanyc() { cerr << "showmanyc called!" << endl; return 0; };
 
-  streampos seekpos ( streampos sp, ios_base::openmode which = ios_base::in | ios_base::out ) {
-  
+  streampos seekpos ( streampos sp, 
+                      ios_base::openmode which = ios_base::in | ios_base::out ) 
+  {
     cerr << "streampos called!" << endl; 
     return EOF; 
   };
   
-  streambuf * setbuf ( char * s, streamsize n ) { cerr << "setbuf called!" << endl; return this; };
+  streambuf * setbuf ( char * s, streamsize n ) 
+  { 
+      cerr << "setbuf called!" << endl; return this; 
+  };
   void imbue ( const locale & loc ) { cerr << "imbue called!" << endl; };
 
 
