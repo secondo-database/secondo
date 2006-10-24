@@ -179,7 +179,7 @@ query units(zug5) transformstream makemvalue[elem]
 
 #testcase size_periods
 #tolerance_real 0.001
-#yields (real 2.37266e-005)
+#yields (real 2049.97412109375)
 query size(deftime(zug5))
 
 #testcase point2d
