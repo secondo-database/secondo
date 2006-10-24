@@ -452,6 +452,7 @@ separate functions which should be named Command\_<name>.
   errorMessage = "";
   errorCode    = 0;
   errorPos     = 0;
+  SmiEnvironment::SetError(E_SMI_OK);
   resultList   = nl->TheEmptyList();
 
 
@@ -1205,6 +1206,10 @@ separate functions which should be named Command\_<name>.
   }
 
   
+  if(errorCode!=0){
+      constructErrMsg(errorCode, errorMessage);
+  }
+  
   //*** END COMMAND RECOGNITION ***//
   
   if ( resultAsText )
@@ -1308,7 +1313,6 @@ separate functions which should be named Command\_<name>.
   delete fi; 
   
   
-  constructErrMsg(errorCode, errorMessage);
   
   return;
 }
