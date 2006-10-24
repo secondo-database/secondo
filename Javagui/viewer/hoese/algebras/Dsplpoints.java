@@ -36,8 +36,6 @@ public class Dsplpoints extends DisplayGraph {
   Point2D.Double[] points=null;
   Rectangle2D.Double bounds=null;
   private boolean defined;
-  private double lastTime;
-  private double lastSize = -1; // undefined
 
   /**
    * Scans the representation of the points datatype and 
@@ -138,21 +136,7 @@ public class Dsplpoints extends DisplayGraph {
   }
 
   public Shape getRenderObject(int num, AffineTransform at){
-     double ps;
-    if(lastSize<0){
-      lastTime = CurrentState.ActualTime;
-      ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);     
-    }else{
-      double ct = CurrentState.ActualTime;
-      if(lastTime==ct){
-        ps = lastSize;
-      } else {
-        ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);     
-        lastTime=ct; 
-      }
-    }
-    lastSize = ps;
-
+    double ps =  Cat.getPointSize(renderAttribute,CurrentState.ActualTime);     
     double pixy = Math.abs(ps/at.getScaleY());
     double pix  = Math.abs(ps/at.getScaleX());
     boolean isRect = Cat.getPointasRect();
