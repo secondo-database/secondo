@@ -17,7 +17,7 @@ Feruniversit[ae]t Hagen.
                             Signatur
 OK   trajectory           upoint    -> line
      makemvalue           stream (tuple ([x1:t1,xi:uType,..,xn:tn]))  ->  mType
-     size                 periods  -> real
+OK   size                 periods  -> real
 OK   deftime      (**)    uT -> periods
 OK   atinstant    (**)    uT x instant  -> iT
 OK   atperiods    (**     uT x periods  -> (stream uT)
@@ -554,29 +554,29 @@ This function is introduced as an additional memberfunction of class
 
 void UPoint::UTrajectory( Line& line ) const
 {
+  HalfSegment hs;
+  int edgeno = 0;
 
   line.Clear();
 
   if ( !IsDefined() )
-    line.SetDefined( false );
+    line.SetDefined( false ); // by now w/o functionality
   else 
-    {
-      
-      line.StartBulkLoad();
-      
-      HalfSegment hs;
-      
+    {      
+      line.StartBulkLoad();      
+
+
       if( !AlmostEqual( p0, p1 ) )
         {
-          
           hs.Set( true, p0, p1 );
-
+          hs.attr.edgeno = ++edgeno;
           line += hs;
           hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
-          line += hs;
+          line += hs;          
         }
-      
-      line.EndBulkLoad();
+
+      line.EndBulkLoad(true, true, true, true);
+      line.SetDefined( true ); // by now w/o functionality
     }
 }
 
@@ -883,7 +883,9 @@ TemporalSpecQueryrect2d  =
 "( <text>TemporalUnitAlgebra</text--->"
 "<text>(instant) -> rect</text--->"
 "<text>queryrect2d( _ )</text--->"
-"<text>return the rect of an instant object for a time interval.</text--->"
+"<text>Translate an instant object to a rect object to query the against "
+"a periods object translated to a point using operator 'point2d'. The "
+"undef instant is mapped to rect mininst^4</text--->"
 "<text>query queryrect2d(instant)</text---> ) )";
 
 /* 
@@ -945,7 +947,6 @@ int Point2d( Word* args, Word& result, int message, Word& local, Supplier s )
 
   if ( !range->IsDefined() )
     ((Point*)result.addr)->SetDefined( false );
-
   else 
     {
       X = 0; 
@@ -955,17 +956,21 @@ int Point2d( Word* args, Word& result, int message, Word& local, Supplier s )
           const Interval<Instant> *intv1, *intv2;
           
           range->Get( 0, intv1 );
-          range->Get( range->GetNoComponents()-1, intv2 );
-          
-          Interval<Instant> timeInterval(intv1->start,intv2->end,
-                                         intv1->lc,intv2->rc);
-          
-          sup = timeInterval.end;
-          inf = timeInterval.start;
+          range->Get( range->GetNoComponents()-1, intv2 );          
+          sup = intv1->end;
+          inf = intv2->start;
           Y = sup.ToDouble(); // Derives the maximum of all intervals.
           X = inf.ToDouble(); // Derives the minimum of all intervals.
         }
-      ((Point*)result.addr)->Set(X,Y ); // Returns the calculated point.
+      else
+        {
+          DateTime tmpinst = DateTime(0,0,instanttype);
+          tmpinst.ToMinimum(); 
+          X = tmpinst.ToDouble();          
+          Y = X;
+        }
+      ((Point*)result.addr)->SetDefined(true);          
+      ((Point*)result.addr)->Set(X,Y); // Returns the calculated point.
     }
   
   return 0;
@@ -982,7 +987,9 @@ TemporalSpecPoint2d  =
 "( <text>TemporalUnitAlgebra</text--->"
 "<text>(periods) -> point</text--->"
 "<text>point2d( _ )</text--->"
-"<text>return the point of a given interval.</text--->"
+"<text>Translate a periods value to a point value representing "
+"the period's total deftime interval. The empty periods value "
+"is mapped to the point corresponding to mininstant^2.</text--->"
 "<text>query point2d(periods)</text---> ) )";
 
 
@@ -1432,16 +1439,17 @@ int UnitPointTrajectory(Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
 
-  Line *line = ((Line*)result.addr);
+  Line   *line   = ((Line*)result.addr);
   UPoint *upoint = ((UPoint*)args[0].addr);
 
-  if ( !upoint->IsDefined() )
+  line->Clear();                // clear result
+  if ( upoint->IsDefined() )
+    upoint->UTrajectory( *line );   // call memberfunction
+  else 
     {
-      line->Clear();                // Use empty value
+      // line->Clear();             // Use empty value
       // line->SetDefined( false ); // instead of undef
     }
-  else 
-    upoint->UTrajectory( *line );   // call memberfunction
   return 0;
 }
 
@@ -1818,8 +1826,8 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
   case OPEN:
 
     localinfo = new AtPeriodsLocalInfo;
-    localinfo->uWord = args[0]; // qp->Request(args[0].addr, localinfo->uWord);
-    localinfo->pWord = args[1]; // qp->Request(args[1].addr, localinfo->pWord);
+    localinfo->uWord = args[0];
+    localinfo->pWord = args[1];
     localinfo->j = 0;
     local = SetWord(localinfo);
     return 0;
@@ -1949,7 +1957,6 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
   case OPEN:
     localinfo = new AtPeriodsLocalInfoUS;
     localinfo->pWord = args[1]; 
-    // qp->Request(args[1].addr, localinfo->pWord);   // get address of periods
     localinfo->j = 0;                              // init interval counter
     qp->Open( args[0].addr );                      // open stream of units
     qp->Request( args[0].addr, localinfo->uWord ); // request first unit
@@ -2655,11 +2662,11 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
       localinfo->NoOfResults = 0;
       if(TUA_DEBUG) cout << "  1" << endl;
 
-      a0 = args[0]; // qp->Request(args[0].addr, a0);
+      a0 = args[0];
       uinput = (UReal*)(a0.addr);
       if(TUA_DEBUG) cout << "  1.1" << endl;
 
-      a1 = args[1]; // qp->Request(args[1].addr, a1);
+      a1 = args[1];
       value = (CcReal*)(a1.addr);
       if(TUA_DEBUG) cout << "  1.2" << endl;
 
@@ -3602,7 +3609,7 @@ int MappingSFeed( Word* args, Word& result, int message,
       linfo = ( SFeedLocalInfo *)local.addr;
       if ( linfo->finished )
         return CANCEL;
-      argValue = args[0]; // qp->Request(args[0].addr, argValue);
+      argValue = args[0];
       result = SetWord(((Attribute*) (argValue.addr))->Clone());
       linfo->finished = true;
       return YIELD;
@@ -4400,7 +4407,6 @@ int Suse_SNN( Word* args, Word& result, int message,
       
       qp->Open(sli->X.addr);              // open outer stream argument
       sli->Xfinished = false;
-      // qp->Request(sli->Y.addr, sli->Y);   // save value of constant argument
       
       local = SetWord(sli);
       if(TUA_DEBUG) cout << "Suse_SNN finished OPEN" << endl;
@@ -4522,7 +4528,6 @@ int Suse_SNS( Word* args, Word& result, int message,
           sli->Y = SetWord(args[0].addr); // Y is the constant value
         }
       sli->YVal = sli->Y; // save value of constant argument
-      //qp->Request(sli->Y.addr, sli->YVal); 
       qp->Open(sli->X.addr);               // open the ("outer") input stream
       sli->Xfinished = false;
       sli->fun = SetWord(args[2].addr);
@@ -5744,7 +5749,7 @@ int atmaxUReal( Word* args, Word& result, int message,
     case OPEN :
       
       if(TUA_DEBUG) cout << "\natmaxUReal: OPEN " << endl;
-      a0 = args[0]; //qp->Request(args[0].addr, a0);
+      a0 = args[0];
       ureal = (UReal*)(a0.addr);
       if(TUA_DEBUG)
         cout << "  Argument ureal value: " << TUPrintUReal(ureal) << endl
@@ -6131,7 +6136,7 @@ int atminUReal( Word* args, Word& result, int message,
     {
     case OPEN :
       
-      a0 = args[0]; //qp->Request(args[0].addr, a0);
+      a0 = args[0];
       ureal = (UReal*)(a0.addr);
       if(TUA_DEBUG)
         cout << "  Argument ureal value: " << TUPrintUReal(ureal) << endl
