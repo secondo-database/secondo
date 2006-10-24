@@ -35,7 +35,9 @@ ALL_OBJS = AlgebraList.i $(DEP_FILES) \
 all: $(ALL_OBJS) 
 	rm -f AlgebraList.i
 
+ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
+endif
 
 # After building AlgebraList.o the file AlgebraList.i will be deleted
 # this ensures that it will be rebuild for every call of make. This guarantees
@@ -49,7 +51,6 @@ ifndef SECONDO_ACTIVATE_ALL_ALGEBRAS
 else
 	sed -e "s#ALGEBRA(#ALGEBRA_INCLUDE(#" $< > $@
 endif
-	cp $@ $@.last
 
 AlgebraList.cpp : AlgebraList.i
 	
