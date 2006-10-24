@@ -627,21 +627,123 @@ query distance(ui1, ui3)
 query distance(ui3, ui1)
 
 
+#testcase intersection_uconst_const def undef
+#yields (int 0)
+query intersection(ui1, [const int value undef]) count
+
+#testcase intersection_uconst_const undef def
+#yields (int 0)
+query intersection(ui3, i1) count
+
+#testcase intersection_uconst_const EMPTY
+#yields (int 0)
+query intersection(ui1, i1) count
+
+#testcase intersection_uconst_const NONEMPTY
+#yields (int 1)
+query intersection(ui1, [const int value 1500]) count
+
+#testcase intersection_const_uconst undef def
+#yields (int 0)
+query intersection([const int value undef], ui1) count
+
+#testcase intersection_const_uconst def undef
+#yields (int 0)
+query intersection(i1, ui3) count
+
+#testcase intersection_const_uconst EMPTY
+#yields (int 0)
+query intersection(i1, ui1) count
+
+#testcase intersection_const_uconst NONEMPTY
+#yields (int 1)
+query intersection([const int value 1500], ui1) count
+
+#testcase intersection_uconst_uconst def undef
+#yields (int 0)
+query intersection(ui1, ui3) count
+
+#testcase intersection_uconst_uconst undef def
+#yields (int 0)
+query intersection(ui3, ui2) count
+
+#testcase intersection_uconst_uconst EMPTY
+#yields (int 0)
+query intersection(ui1, ui2) count
+
+#testcase intersection_uconst_uconst NONEMPTY
+#yields ((rel (tuple ( (elem uint)))) (((("2003-11-20-06:30" "2003-11-20-07:00" TRUE FALSE) 1000))))
+query intersection(ui2, ui4) transformstream consume
+
+
+
+
+#testcase intersection_ureal_real DEF UNDEF
+#yields (int 0)
+query intersection(ur1, [const real value undef]) count
+
+#testcase intersection_ureal_real UNDEF DEF
+#yields (int 0)
+query intersection(ur3, r) count
+
+#testcase intersection_ureal_real EMPTY
+#yields (int 0)
+query intersection(ur1, [const real value -500000.0]) count
+
+#testcase intersection_ureal_real NONEMPTY
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-02" "2000-01-02" TRUE TRUE) (1.0 0.0 -1.0 FALSE)))((("2000-01-04" "2000-01-04" TRUE TRUE)(1.0 0.0 -1.0 FALSE)))))
+query intersection(ur1, r) transformstream consume
+
+
+
+#testcase intersection_real_ureal DEF UNDEF
+#yields (int 0)
+query intersection([const real value undef], ur1) count
+
+#testcase intersection_real_ureal UNDEF DEF
+#yields (int 0)
+query intersection(r, ur3) count
+
+#testcase intersection_real_ureal EMPTY
+#yields (int 0)
+query intersection([const real value -500000.0], ur1) count
+
+#testcase intersection_real_ureal NONEMPTY
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-02" "2000-01-02" TRUE TRUE) (1.0 0.0 -1.0 FALSE)))((("2000-01-04" "2000-01-04" TRUE TRUE)(1.0 0.0 -1.0 FALSE)))))
+query intersection(r, ur1) transformstream consume
+
+
+
+#testcase intersection_ureal_ureal DEF UNDEF
+#yields (int 0)
+query intersection(ur1, ur3) count
+
+#testcase intersection_ureal_ureal UNDEF DEF
+#yields (int 0)
+query intersection(ur3, ur2) count
+
+#testcase intersection_ureal_ureal EMPTY
+#yields (int 0)
+query intersection(ur2, ur4) count
+
+#testcase intersection_ureal_ureal NONEMPTY
+#yields (int 1)
+query intersection(ur1, ur1) count
+
+
+
+
+
+
+# intersection_upoint_point
+# intersection_point_upoint
+# intersection_upoint_upoint
+
+# intersection_upoint_uregion
 
 # intersects_uconst_uconst
 # intersects_upoint_upoint
 # intersects_ureal_ureal
-
-# intersection_uconst_const
-# intersection_const_uconst
-# intersection_uconst_uconst
-# intersection_ureal_real
-# intersection_real_ureal
-# intersection_ureal_ureal
-# intersection_upoint_point
-# intersection_point_upoint
-# intersection_upoint_upoint
-# intersection_upoint_uregion
 
 ############################
 # mopping up test database #
