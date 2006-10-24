@@ -87,40 +87,53 @@ SmiEnvironment::CurrentDatabase()
   }
 }
 
-SmiError
-SmiEnvironment::CheckLastErrorCode()
+
+void
+SmiEnvironment::ResetErrors()
 {
-  return lastError;
+  numOfErrors=0;
+  lastError = E_SMI_OK;
+  lastMessage = "";
+}
+
+int
+SmiEnvironment::GetNumOfErrors()
+{
+  return numOfErrors;
 }
 
 SmiError
 SmiEnvironment::GetLastErrorCode()
 {
-  SmiError smiErr = lastError;
-  return smiErr;
+  return lastError;
 }
 
 SmiError
 SmiEnvironment::GetLastErrorCode( string& errorMessage )
 {
-  SmiError smiErr = lastError;
-  errorMessage = lastMessage;
-  return smiErr;
+  errorMessage = "SecondoSMI: " + lastMessage;
+  lastMessage = "";
+  return lastError;
 }
 
 
 void 
 SmiEnvironment::SetError( const SmiError smiErr )
 { 
-  lastError   = smiErr;
-  lastMessage = "SecondoSMI: " + Err2Msg(smiErr);
+  SetError(smiErr, Err2Msg(smiErr));
 }
                         
 void 
 SmiEnvironment::SetError( const SmiError smiErr, const string& errMsg )
 { 
-  lastError   = smiErr;
-  lastMessage = "SecondoSMI: " + errMsg;
+  lastError = smiErr;
+  if (smiErr != E_SMI_OK)
+  { 
+    if ( numOfErrors > 0 )
+      lastMessage += "\n";	  
+    lastMessage += errMsg;
+    numOfErrors++;	
+  }  
 }                      
 
 

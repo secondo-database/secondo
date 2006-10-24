@@ -87,6 +87,7 @@ static int getfilename( Db* dbp, const Dbt* pkey, const Dbt* pdata, Dbt* skey );
 SmiEnvironment SmiEnvironment::instance;
 SmiError       SmiEnvironment::lastError = E_SMI_OK;
 string         SmiEnvironment::lastMessage;
+int            SmiEnvironment::numOfErrors = 0;
 bool           SmiEnvironment::smiStarted = false;
 bool           SmiEnvironment::singleUserMode = false;
 bool           SmiEnvironment::useTransactions = false;
@@ -744,22 +745,15 @@ SmiEnvironment::~SmiEnvironment()
 void
 SmiEnvironment::SetError( const SmiError smiErr, const int sysErr /* = 0 */ )
 {
-  lastError = smiErr;
   if ( sysErr != 0 )
   {
     if ( sysErr == DB_LOCK_DEADLOCK && instance.impl->txnStarted )
     {
       instance.impl->txnMustAbort = true;
     }
-    lastMessage = string("Berkeley-DB: ") + DbEnv::strerror( sysErr );
+    SetError(smiErr, DbEnv::strerror( sysErr ));
   }
-  if (sysErr != 0 && smiErr != E_SMI_OK)
-    lastMessage += "\n";
-  
-  if ( smiErr != E_SMI_OK )
-  { 
-    lastMessage += string("SecondoSMI: ") + Err2Msg(smiErr);
-  }
+  SetError(smiErr, Err2Msg(smiErr));
 }
 
 bool

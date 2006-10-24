@@ -725,7 +725,7 @@ place when a transaction is committed. When updates to the file catalog fail,
 the transaction is implicitly aborted.
 
 */
-  static SmiError CheckLastErrorCode();
+  static int GetNumOfErrors();
   static SmiError GetLastErrorCode();
   static SmiError GetLastErrorCode( string& errorMessage );
 /*
@@ -738,10 +738,9 @@ Optionally the accompanying error message is returned.
   static void SetError( const SmiError smiErr ); 
   static void SetError( const SmiError smiErr, const int sysErr ); 
   static void SetError( const SmiError smiErr, const string& errMsg );
+  static void ResetErrors();
 /*
 Allows to set an SmiError code and a system error code or an error message.
-(maybe these functions should not be public. Currently messages are
-generated only for errors occuring in the "Berkeley DB"[3].) 
 
 */
   static bool GetCacheStatistics(CacheInfo& ci, vector<FileInfo*>& fi);
@@ -823,6 +822,7 @@ Translate an SMI error code into a message!
   static SmiEnvironment instance;    // Instance of environment
   static SmiError       lastError;   // Last error code
   static string         lastMessage; // Last error message
+  static int            numOfErrors; // Last error message
   static bool           smiStarted;  // Flag SMI initialized
   static bool           singleUserMode;
   static bool           useTransactions;
