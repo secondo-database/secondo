@@ -112,6 +112,7 @@ using namespace std;
 #include "SecondoInterface.h"
 #include "SecondoSystem.h"
 #include "SecondoCatalog.h"
+#include "SecondoConfig.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "Profiles.h"
@@ -220,6 +221,12 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   bool ok = false;
   cout << endl << "Initializing the SECONDO Interface ..." << endl;
 
+
+  stringstream version;
+  version << "Version: " << SECONDO_VERSION_MAJOR << "." 
+          << SECONDO_VERSION_MINOR << endl;
+  cout << version.str() << endl;
+  
   // initialize runtime flags
   InitRTFlags(parmFile);
 
@@ -388,7 +395,7 @@ SecondoInterface::Terminate()
                    << endl;
       cmsg.error() << bullet << "Error: " << errMsg << endl;
       cmsg.send();
-    }
+         }
     initialized = false;
     activeTransaction = false;
     nl = 0;
@@ -448,13 +455,15 @@ separate functions which should be named Command\_<name>.
 
 */
 
-  // initialize variable parameters
+  //assert( SmiEnvironment::GetNumOfErrors() == 0 );
+ 
+  // reset errors 
+  SmiEnvironment::ResetErrors(); 
   errorMessage = "";
   errorCode    = 0;
   errorPos     = 0;
-  SmiEnvironment::SetError(E_SMI_OK);
+  
   resultList   = nl->TheEmptyList();
-
 
   NestedList* nl = SecondoSystem::GetNestedList();
   NestedList* al = SecondoSystem::GetAppNestedList();
@@ -522,6 +531,7 @@ separate functions which should be named Command\_<name>.
 
   if ( errorCode != 0 )
   {
+     //cerr << "aborting command execution ..." << endl;
      //abort command execution
      constructErrMsg(errorCode, errorMessage);
      return;
@@ -1330,8 +1340,7 @@ SecondoInterface::constructErrMsg(int errorCode, string& errorMessage)
     errorMessage += repMsg + "\n";
 
     // Check if there were SMI errors
-    SmiError smiErr = SmiEnvironment::CheckLastErrorCode();
-    if ( smiErr != E_SMI_OK) { 
+    if ( SmiEnvironment::GetNumOfErrors() != 0) { 
       string err;
       SmiEnvironment::GetLastErrorCode(err);
       errorMessage += err + "\n"; 
@@ -1343,7 +1352,7 @@ SecondoInterface::constructErrMsg(int errorCode, string& errorMessage)
     }
 
     errorMessage += GetErrorMessage(errorCode);
-  }  
+  } 
 }
 
 
