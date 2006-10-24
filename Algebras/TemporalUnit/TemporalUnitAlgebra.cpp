@@ -105,14 +105,17 @@ OK             uT x uT -> ureal
 OK             uT x  T -> ureal 
 OK              T x uT -> ureal
 
-pre  intersects: For T in {bool, int, string, real, point}:
-                 uT x uT --> (stream ubool)
-
-Test intersection:     uT x      uT --> (stream uT)
-Test                   uT x       T --> (stream uT)
-Test                    T x      uT --> (stream uT)
+     intersection: For T in {bool, int, string}:
+OK                     uT x      uT --> (stream uT)
+OK                     uT x       T --> (stream uT)
+OK                      T x      uT --> (stream uT)
+(OK)                ureal x    real --> (stream ureal)
+(OK)                 real x   ureal --> (stream ureal)
 Pre                 ureal x   ureal --> (stream ureal)
 Pre                upoint x uregion --> (stream upoint)
+
+pre  intersects: For T in {bool, int, string, real, point}:
+                 uT x uT --> (stream ubool)
 
 n/a  udirection: upoint --> ureal
 
@@ -2556,6 +2559,12 @@ may be two units, as ~ureal~ is represented by a quadratic polynomial
 function (or it's radical).
 
 5.13.1 Type Mapping for ~at~
+
+----
+     at:   upoint x point --> upoint
+     at:    ureal x real  --> (stream ureal)
+
+----
 
 */
 ListExpr
@@ -6885,6 +6894,8 @@ int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
     {
     case OPEN:
       
+      if (TUA_DEBUG) 
+        cout << "temporalUnitIntersection_CU_CU: received OPEN" << endl;
       sli = new TUIntersectionLocalInfo;
       sli->finished = true;
       sli->NoOfResults = 0;
@@ -6902,31 +6913,52 @@ int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
            uv1->EqualValue(*uv2) )         
         { // get intersection of deftime intervals
           uv1->timeInterval.Intersection( uv2->timeInterval, iv );  
+          if (TUA_DEBUG) cout << "  iv=" << TUPrintTimeInterval( iv ) << endl;
           // store result
           sli->resultValues[sli->NoOfResults] = SetWord( uv1->Clone() );
-          ((T*)(result.addr))->timeInterval = iv;
-          sli->NoOfResults++;     
+          ((T*)(sli->resultValues[sli->NoOfResults].addr))->timeInterval = iv;
+          sli->NoOfResults++;
+          sli->finished = false;
+          if (TUA_DEBUG) 
+            cout << "  added result" << endl;
         }// else: no result
       local = SetWord(sli);
+      if (TUA_DEBUG) 
+        cout << "temporalUnitIntersection_CU_CU: finished OPEN" << endl;
+      
       return 0;
       
     case REQUEST:
       
+      if (TUA_DEBUG) 
+        cout << "temporalUnitIntersection_CU_CU: received REQUEST" << endl;
       if(local.addr == 0)
-        return CANCEL;
+        {
+          if (TUA_DEBUG) 
+            cout << "temporalUnitIntersection_CU_CU: CANCEL (1)" << endl;
+          return CANCEL;
+        }
       sli = (TUIntersectionLocalInfo*) local.addr;
       if(sli->finished)
-        return CANCEL;
+        {
+          if (TUA_DEBUG) 
+            cout << "temporalUnitIntersection_CU_CU: CANCEL (2)" << endl;
+          return CANCEL;
+        }
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
         {
           result = SetWord( ((T*)
-            (sli->resultValues[sli->NoOfResultsDelivered].addr))->Clone() );   
+            (sli->resultValues[sli->NoOfResultsDelivered].addr))->Clone() );
           ((T*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
             ->DeleteIfAllowed();
           sli->NoOfResultsDelivered++;
+          if (TUA_DEBUG) 
+            cout << "temporalUnitIntersection_CU_CU: YIELD" << endl;
           return YIELD;
         }
       sli->finished = true;
+      if (TUA_DEBUG) 
+        cout << "temporalUnitIntersection_CU_CU: CANCEL (3)" << endl;
       return CANCEL;
       
     case CLOSE:
@@ -6965,6 +6997,8 @@ int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
     {
     case OPEN:
       
+      if (TUA_DEBUG)
+        cout << "temporalUnitIntersection_CU_C: received OPEN" << endl;      
       sli = new TUIntersectionLocalInfo;
       sli->finished = true;
       sli->NoOfResults = 0;
@@ -6977,27 +7011,44 @@ int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
       else
         { u1 = args[1]; u2 = args[0];}
       
+      if (TUA_DEBUG)
+        cout << "  uargindex =" << uargindex << endl;
       uv1 = (UT*) (u1.addr);
       uv2 = (T*) (u2.addr);
-      
       
       if ( uv1->IsDefined() && 
            uv2->IsDefined() && 
            (uv1->constValue.Compare( uv2 ) == 0 ) )        
         { // store result
           sli->resultValues[sli->NoOfResults] = SetWord( uv1->Clone() );
-          sli->NoOfResults++;     
+          sli->NoOfResults++; 
+          sli->finished = false;
+          if (TUA_DEBUG) cout << "  Added Result" << endl;
         }// else: no result
       local = SetWord(sli);
+      if (TUA_DEBUG)
+        cout << "temporalUnitIntersection_CU_C: finished OPEN" << endl;
       return 0;
       
     case REQUEST:
       
+      if (TUA_DEBUG)
+        cout << "temporalUnitIntersection_CU_C: received REQUEST" << endl;      
       if(local.addr == 0)
-        return CANCEL;
+        {
+          if (TUA_DEBUG)            
+            cout << "temporalUnitIntersection_CU_C: finished REQUEST: " 
+                 << "CANCEL (1)" << endl;      
+          return CANCEL;
+        }
       sli = (TUIntersectionLocalInfo*) local.addr;
       if(sli->finished)
-        return CANCEL;
+        {
+          if (TUA_DEBUG)            
+            cout << "temporalUnitIntersection_CU_C: finished REQUEST: " 
+                 << "CANCEL (2)" << endl;      
+          return CANCEL;
+        }
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
         {
           result = SetWord( ((UT*)
@@ -7005,9 +7056,15 @@ int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
           ((UT*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
             ->DeleteIfAllowed();
           sli->NoOfResultsDelivered++;
+          if (TUA_DEBUG)            
+            cout << "temporalUnitIntersection_CU_C: finished REQUEST: " 
+                 << "YIELD" << endl;      
           return YIELD;
         }
       sli->finished = true;
+      if (TUA_DEBUG)
+        cout << "temporalUnitIntersection_CU_C: finished REQUEST: " 
+             << "CANCEL (3)" << endl;
       return CANCEL;
       
     case CLOSE:
@@ -7081,16 +7138,19 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
 {
   MappingUnitAt_rLocalInfo *localinfo;
   double radicand, a, b, c, r, y;
-  DateTime t1, t2;
+  DateTime t1 = DateTime(instanttype);
+  DateTime t2 = DateTime(instanttype);
   Interval<Instant> rdeftime, deftime;
-  Word a0, a1;
   UReal *uinput;
-  
+  CcReal *value;
+  Word a0, a1;
   
   switch (message)
     {
     case OPEN :
       
+      if(TUA_DEBUG) 
+        cout << "\ntemporalUnitIntersection_ureal_real: OPEN" << endl;
       localinfo = new MappingUnitAt_rLocalInfo;
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
@@ -7102,47 +7162,98 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
       else
         { a0 = args[1]; a1 = args[0]; }
       
-      uinput = ((UReal*)(a0.addr));
-      y = ((CcReal*)(a1.addr))->GetRealval();
-      
+      localinfo = new MappingUnitAt_rLocalInfo;
+      localinfo->finished = true;
+      localinfo->NoOfResults = 0;
+      if(TUA_DEBUG) cout << "  1" << endl;
+
+      uinput = (UReal*)(a0.addr);
+      if(TUA_DEBUG) cout << "  1.1" << endl;
+
+      value = (CcReal*)(a1.addr);
+      if(TUA_DEBUG) cout << "  1.2" << endl;
+
+      if(TUA_DEBUG) cout << "  2" << endl;
+
+      if(TUA_DEBUG) cout << "  2.1: " << uinput->IsDefined() << endl;
+      if(TUA_DEBUG) cout << "  2.2: " << value->IsDefined() << endl;
+
       if ( !uinput->IsDefined() ||
-           !((CcReal*)(a1.addr))->IsDefined() )
+           !value->IsDefined() )
         { // some input is undefined -> return empty stream
+          if(TUA_DEBUG) cout << "  3: Some input is undefined. No result." 
+                             << endl;
           localinfo->NoOfResults = 0;
           localinfo->finished = true;
           local = SetWord(localinfo);
+          if(TUA_DEBUG) 
+            cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (1)" 
+                 << endl;
           return 0;
         }
-      
+      if(TUA_DEBUG) cout << "  4" << endl;
+
+      y = value->GetRealval();
       a = uinput->a;
       b = uinput->b;
       c = uinput->c;
       r = uinput->r;
       deftime = uinput->timeInterval;
-      
+
+      if(TUA_DEBUG) 
+        {cout << "    The UReal is" << " a= " << a << " b= " 
+              << b << " c= " << c << " r= " << r << endl;
+          cout << "    The Real is y=" << y << endl;
+          cout << "  5" << endl;
+        }
+            
       if ( (a == 0) && (b == 0) )
         { // constant function. Possibly return input unit
+          if(TUA_DEBUG) cout << "  6: 1st arg is a constant value" << endl;
           if (c != y)
             { // There will be no result, just an empty stream
+              if(TUA_DEBUG) cout << "  7" << endl;
               localinfo->NoOfResults = 0;
               localinfo->finished = true;
             }
           else
-            { // Return the complete unit
-              localinfo->runits[localinfo->NoOfResults].addr
-                = uinput->Copy();
-              localinfo->NoOfResults++;
-              localinfo->finished = false;
-            }
+                { // Return the complete unit
+                  if(TUA_DEBUG) 
+                    {
+                      cout << "  8: Found constant solution" << endl;
+                      cout << "    T1=" << c << endl;
+                      cout << "    Tstart=" << deftime.start.ToDouble() << endl;
+                      cout << "    Tend  =" << deftime.end.ToDouble() << endl;
+                    }
+                  localinfo->runits[localinfo->NoOfResults].addr
+                    = uinput->Copy();
+                  localinfo->NoOfResults++;
+                  localinfo->finished = false;
+                  if(TUA_DEBUG) cout << "  9" << endl;
+                }
+          if(TUA_DEBUG) cout << "  10" << endl;
           local = SetWord(localinfo);
+          if(TUA_DEBUG) 
+            cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (2)" 
+                 << endl;
           return 0;
         }
       if ( (a == 0) && (b != 0) )
         { // linear function. Possibly return input unit restricted 
           // to single value
-          t1.ReadFrom( (y - c)/b );
+          if(TUA_DEBUG) cout << "  11: 1st arg is a linear function" << endl;
+          double T1 = (y - c)/b;
+          if(TUA_DEBUG) 
+            {
+              cout << "    T1=" << T1 << endl;    
+              cout << "    Tstart=" << deftime.start.ToDouble() << endl;
+              cout << "    Tend  =" << deftime.end.ToDouble() << endl;    
+            }
+          t1.ReadFrom( T1 );
           if (deftime.Contains(t1))
             { // value is contained by deftime
+              if(TUA_DEBUG) 
+                cout << "  12: Found valid linear solution." << endl;
               localinfo->runits[localinfo->NoOfResults].addr = 
                 uinput->Copy();
               ((UReal*)(localinfo
@@ -7150,62 +7261,125 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
                 ->timeInterval = Interval<Instant>(t1, t1, true, true);
               localinfo->NoOfResults++;
               localinfo->finished = false;                
+              if(TUA_DEBUG) cout << "  13" << endl;
             }
           else
             { // value is not contained by deftime -> no result
+              if(TUA_DEBUG) 
+                cout << "  14: Found invalid linear solution." << endl;
               localinfo->NoOfResults = 0;
               localinfo->finished = true;
+              if(TUA_DEBUG) cout << "  15" << endl;
             }
+          if(TUA_DEBUG) cout << "  16" << endl;
           local = SetWord(localinfo);
+          cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (3)" 
+               << endl;
           return 0;
         }
       
-      radicand = ((y - c) / a) + ((b * b) / (4 * a * a));
-      if ( (a != 0) && (radicand <= 0) )
+      if(TUA_DEBUG) cout << "  17" << endl;
+      radicand = (b*b + 4*a*(y-c));
+      if(TUA_DEBUG) cout << "    radicand =" << radicand << endl;
+      if ( (a != 0) && (radicand >= 0) )
         { // quadratic function. There are possibly two result units
           // calculate the possible t-values t1, t2
           
-          t1.ReadFrom( sqrt(radicand) );
-          t2.ReadFrom( -sqrt(radicand) );
+/*
+The solution to the equation $at^2 + bt + c = y$ is 
+\[t_{1,2} = \frac{-b \pm \sqrt{b^2-4a(c-y)}}{2a},\] for $b^2-4a(c-y) = b^2+4a(y-c) \geq 0$.
+
+
+*/
+          if(TUA_DEBUG) cout << "  18: 1st arg is a quadratic function" << endl;
+          double T1 = (-b + sqrt(radicand)) / (2*a);
+          double T2 = (-b - sqrt(radicand)) / (2*a);
+          if(TUA_DEBUG) 
+            {
+              cout << "    T1=" << T1 << endl;
+              cout << "    T2=" << T2 << endl;
+              cout << "    Tstart=" << deftime.start.ToDouble() << endl;
+              cout << "    Tend  =" << deftime.end.ToDouble() << endl;    
+            }
+          t1.ReadFrom( T1 );
+          t2.ReadFrom( T2 );
           
           // check, whether t1 contained by deftime
-          if (deftime.Contains(Instant(t1)))
+          if (deftime.Contains( t1 ))
             {
+              if(TUA_DEBUG) 
+                cout << "  19: Found first quadratic solution" << endl;
               rdeftime.start = t1;
               rdeftime.end = t1;
+              rdeftime.lc = true;
+              rdeftime.rc = true;
               localinfo->runits[localinfo->NoOfResults].addr = 
                 new UReal( rdeftime,a,b,c,r );
+              ((UReal*) (localinfo->runits[localinfo->NoOfResults].addr))
+                ->SetDefined( true );
               localinfo->NoOfResults++;
               localinfo->finished = false;
+              if(TUA_DEBUG) cout << "  20" << endl;
             }
           // check, whether t2 contained by deftime
-          if (deftime.Contains( t2 ))
+          if ( !(t1 == t2) && (deftime.Contains( t2 )) )
             {
+              if(TUA_DEBUG) 
+                cout << "  21: Found second quadratic solution" << endl;
               rdeftime.start = t2;
               rdeftime.end = t2;
+              rdeftime.lc = true;
+              rdeftime.rc = true;
               localinfo->runits[localinfo->NoOfResults].addr = 
                 new UReal( rdeftime,a,b,c,r );
+              ((UReal*) (localinfo->runits[localinfo->NoOfResults].addr))
+                ->SetDefined (true );
               localinfo->NoOfResults++;
               localinfo->finished = false;
+              if(TUA_DEBUG) cout << "  22" << endl;
             }
         }
-      else // there is no result unit
+      else // negative discreminant -> there is no real solution 
+           //                          and no result unit
         {
+          if(TUA_DEBUG) cout << "  23: No real-valued solution" << endl;
           localinfo->NoOfResults = 0;
           localinfo->finished = true;
+          if(TUA_DEBUG) cout << "  24" << endl;
         }
+      if(TUA_DEBUG) cout << "  25" << endl;
       local = SetWord(localinfo);
+      if(TUA_DEBUG) 
+        cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (4)" 
+             << endl;
       return 0;
       
     case REQUEST :
       
+      if(TUA_DEBUG) cout << "\ntemporalUnitIntersection_ureal_real: REQUEST" 
+                         << endl;
       if (local.addr == 0)
-        return CANCEL;
+        {
+          cout << "\ntemporalUnitIntersection_ureal_real: REQUEST CANCEL (1)" 
+               << endl;
+          return CANCEL;
+        }
       localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
+      if(TUA_DEBUG) cout << "\n   localinfo: finished=" << localinfo->finished 
+                         << " NoOfResults==" << localinfo->NoOfResults << endl;
+
       if (localinfo->finished)
-        return CANCEL;
+        {
+          if(TUA_DEBUG) 
+            cout << "\ntemporalUnitIntersection_ureal_real: REQUEST CANCEL (2)" 
+                 << endl;
+          return CANCEL;
+        }
       if ( localinfo->NoOfResults <= 0 )
         { localinfo->finished = true;
+          if(TUA_DEBUG) 
+            cout << "\ntemporalUnitIntersection_ureal_real: REQUEST CANCEL (3)" 
+                 << endl;
           return CANCEL;
         }
       localinfo->NoOfResults--;
@@ -7214,10 +7388,14 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
                         ->Clone() );
       ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
         ->DeleteIfAllowed();
+      if(TUA_DEBUG) 
+        cout << "\ntemporalUnitIntersection_ureal_real: REQUEST YIELD" << endl;
       return YIELD;
       
     case CLOSE :
-      
+
+      if(TUA_DEBUG) cout << "\ntemporalUnitIntersection_ureal_real: CLOSE" 
+                         << endl;
       if (local.addr != 0)
         {
           localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
@@ -7226,14 +7404,14 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
               ->DeleteIfAllowed();
           delete localinfo;
         }
+      if(TUA_DEBUG) 
+        cout << "\ntemporalUnitIntersection_ureal_real: finished CLOSE" << endl;
       return 0;
     } // end switch
   
-  // should not be reached
+      // should not be reached
   return 0;
 }
-
-
 
 /*
 
@@ -7667,30 +7845,45 @@ int temporalunitIntersectionSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
-  if( nl->IsEqual( arg1, "ubool" ) )   return 0;
-  if( nl->IsEqual( arg1, "uint" ) )    return 1;
-  if( nl->IsEqual( arg1, "ureal" ) )   return 2;
-  if( nl->IsEqual( arg1, "upoint" ) )  return 3;
-  if( nl->IsEqual( arg1, "ustring" ) ) return 4;
+  if( nl->IsEqual( arg1, "ubool" )   && 
+      nl->IsEqual( arg2, "ubool") )   return 0;
+  if( nl->IsEqual( arg1, "uint" )    &&
+      nl->IsEqual( arg2, "uint" ) )    return 1;
+  if( nl->IsEqual( arg1, "ureal" )   &&
+      nl->IsEqual( arg2, "ureal" ) )   return 2;
+  if( nl->IsEqual( arg1, "upoint" )  &&
+      nl->IsEqual( arg2, "upoint" ) )  return 3;
+  if( nl->IsEqual( arg1, "ustring" ) &&
+      nl->IsEqual( arg2, "ustring" ) ) return 4;
   
-  if( nl->IsEqual( arg1, "ubool" ) )   return 5;
-  if( nl->IsEqual( arg1, "uint" ) )    return 6;
-  if( nl->IsEqual( arg1, "ureal" ) )   return 7;
-  if( nl->IsEqual( arg1, "upoint" ) &&
+  if( nl->IsEqual( arg1, "ubool" )   &&
+      nl->IsEqual( arg2, "bool" ))     return 5;
+  if( nl->IsEqual( arg1, "uint" )    &&
+      nl->IsEqual( arg2, "int" ))      return 6;
+  if( nl->IsEqual( arg1, "ureal" )   && 
+      nl->IsEqual( arg2, "real" ))     return 7;
+  if( nl->IsEqual( arg1, "upoint" )  &&
       nl->IsEqual( arg2, "point"  ) )  return 8;
-  if( nl->IsEqual( arg1, "ustring" ) ) return 9;
+  if( nl->IsEqual( arg1, "ustring" ) &&
+      nl->IsEqual( arg2, "string" ))   return 9;
   
-  if( nl->IsEqual( arg1, "ubool" ) )   return 10;
-  if( nl->IsEqual( arg1, "uint" ) )    return 11;
-  if( nl->IsEqual( arg1, "ureal" ) )   return 12;
-  if( nl->IsEqual( arg1, "upoint" ) )  return 13;
-  if( nl->IsEqual( arg1, "ustring" ) ) return 14;
+  if( nl->IsEqual( arg2, "ubool" )   &&
+      nl->IsEqual( arg1, "bool" ))     return 10;
+  if( nl->IsEqual( arg2, "uint" )    &&
+      nl->IsEqual( arg1, "int" ))      return 11;
+  if( nl->IsEqual( arg2, "ureal" )   &&
+      nl->IsEqual( arg1, "real" ))     return 12;
+  if( nl->IsEqual( arg2, "upoint" )  &&
+      nl->IsEqual( arg1, "upoint" ))   return 13;
+  if( nl->IsEqual( arg2, "ustring" ) &&
+      nl->IsEqual( arg1, "ustring" ))  return 14;
   
-  if( nl->IsEqual( arg1, "line" ) )    return 15;
-  if( nl->IsEqual( arg1, "upoint" ) &&
-      nl->IsEqual( arg2, "line" ) )    return 16;
-  if( nl->IsEqual( arg1, "upoint" ) &&
-      nl->IsEqual( arg2, "uregion" ) ) return 17;
+  if( nl->IsEqual( arg1, "line" )      &&
+      nl->IsEqual( arg2, "upoint" ))     return 15;
+  if( nl->IsEqual( arg1, "upoint" )    &&
+      nl->IsEqual( arg2, "line" ) )      return 16;
+  if( nl->IsEqual( arg1, "upoint" )    &&
+      nl->IsEqual( arg2, "uregion" ) )   return 17;
   cout << "\ntemporalunitIntersectionSelect: Unsupported datatype." << endl;
   return -1;
 }
