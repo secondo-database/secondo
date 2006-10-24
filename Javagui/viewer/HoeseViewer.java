@@ -97,8 +97,6 @@ public class HoeseViewer extends SecondoViewer {
   private DsplGraph selGraphObj;
   private DsplBase selBaseObj;
 
-  /** The projection from World (userspace) to Device-ccord. */
-  public AffineTransform allProjection;
 
   /** The rectangle where device-coords are clipped. */
   public Rectangle ClipRect = null;
@@ -472,8 +470,7 @@ public class HoeseViewer extends SecondoViewer {
  
     TextDisplay = new TextWindow(this);
     DoQuerySelection = new QueryListSelectionListener();
-    allProjection = new AffineTransform();
-    allProjection.scale(ZoomFactor, ZoomFactor);
+    CurrentState.transform.scale(ZoomFactor, ZoomFactor);
     LayerSwitchBar = new JPanel();
     GraphDisplay = new GraphWindow(this);
     GraphDisplay.setOpaque(true); // needed for background-color
@@ -486,7 +483,7 @@ public class HoeseViewer extends SecondoViewer {
         //Koordinaten in Weltkoordinaten umwandeln
         Point2D.Double p = new Point2D.Double();
         try {
-          p = (Point2D.Double)allProjection.inverseTransform(e.getPoint(),p);
+          p = (Point2D.Double)CurrentState.transform.inverseTransform(e.getPoint(),p);
         } catch (Exception ex) {}
         // compute the inverse projection if possible 
         if(!ProjectionManager.isReversible()){
@@ -1141,7 +1138,7 @@ public class HoeseViewer extends SecondoViewer {
               } 
               GraphDisplay.printAll(g);
               bgImage.setImage(bi);
-              AffineTransform at = (AffineTransform) allProjection.clone();
+              AffineTransform at = (AffineTransform) CurrentState.transform.clone();
               // convert the bounding bocx of the GraphDisplay into
               // world coordinates.
               try{
@@ -1190,7 +1187,7 @@ public class HoeseViewer extends SecondoViewer {
               // convert the bounding bocx of the GraphDisplay into
               // world coordinates.
               Rectangle2D R2= new Rectangle2D.Double();
-              AffineTransform at = (AffineTransform) allProjection.clone();
+              AffineTransform at = (AffineTransform) CurrentState.transform.clone();
               try{
                   R2.setRect(-x,-y,vw,vh);    
                   R2 = at.createInverse().createTransformedShape(R2).getBounds2D();
@@ -1296,12 +1293,12 @@ public class HoeseViewer extends SecondoViewer {
         }
         ZoomFactor *= zf;
         double m[] = new double[6];
-        allProjection.getMatrix(m);
+        CurrentState.transform.getMatrix(m);
         m[0] *= zf;
         m[3] *= zf;
         m[4] *= zf;
         m[5] *= zf;
-        allProjection = new AffineTransform(m);
+        CurrentState.transform = new AffineTransform(m);
         BBoxDC.setSize((int)(BBoxDC.getWidth()*zf), (int)(BBoxDC.getHeight()*zf));
         GraphDisplay.updateLayersSize(BBoxDC);
         Point p = GeoScrollPane.getViewport().getViewPosition();
@@ -1325,12 +1322,12 @@ public class HoeseViewer extends SecondoViewer {
         double zf = 1.25;
         ZoomFactor *= zf;
         double m[] = new double[6];
-        allProjection.getMatrix(m);
+        CurrentState.transform.getMatrix(m);
         m[0] *= zf;
         m[3] *= zf;
         m[4] *= zf;
         m[5] *= zf;
-        allProjection = new AffineTransform(m);
+        CurrentState.transform = new AffineTransform(m);
         BBoxDC.setSize((int)(BBoxDC.getWidth()*zf), (int)(BBoxDC.getHeight()*zf));
         GraphDisplay.updateLayersSize(BBoxDC);
         Point p = GeoScrollPane.getViewport().getViewPosition(); // left-top
@@ -2079,8 +2076,8 @@ public boolean canDisplay(SecondoObject o){
       double h = (double)GeoScrollPane.getViewport().getHeight();
       ClipRect = new Rectangle(0, 0, (int)w, (int)h);
     }
-    allProjection = calcProjection();         //addScaling(calcProjection());
-    Rectangle2D rDC = (Rectangle2D)allProjection.createTransformedShape(BBoxWC).getBounds();
+    CurrentState.transform = calcProjection();         //addScaling(calcProjection());
+    Rectangle2D rDC = (Rectangle2D)CurrentState.transform.createTransformedShape(BBoxWC).getBounds();
     double x = rDC.getX();
     double y = rDC.getY();
     double w = rDC.getWidth();
@@ -2120,7 +2117,7 @@ public boolean canDisplay(SecondoObject o){
     // compute the bounds of the selected object
    
     for(int i=0;i<num;i++){
-       Shape s = selGraphObj.getRenderObject(i,allProjection);
+       Shape s = selGraphObj.getRenderObject(i,CurrentState.transform);
        if(s!=null){
            if(r==null){
                r = s.getBounds2D();
@@ -2133,7 +2130,7 @@ public boolean canDisplay(SecondoObject o){
     if (r == null)            // an emtpy spatial object or an undefined timed object
        return;
     //try{
-    Shape s = allProjection.createTransformedShape(r);
+    Shape s = CurrentState.transform.createTransformedShape(r);
     r = s.getBounds2D();
     if (!isMouseSelected) {
       double w = (double)GeoScrollPane.getViewport().getWidth();
@@ -2308,13 +2305,13 @@ public boolean canDisplay(SecondoObject o){
           double zf = Math.min(w/r.getWidth(), h/r.getHeight());
           ZoomFactor *= zf;
           double m[] = new double[6];
-          allProjection.getMatrix(m);
+          CurrentState.transform.getMatrix(m);
           //double z=ZoomFactor;
           m[0] *= zf;
           m[3] *= zf;
           m[4] *= zf;
           m[5] *= zf;
-          allProjection = new AffineTransform(m);
+          CurrentState.transform = new AffineTransform(m);
           BBoxDC.setSize((int)(BBoxDC.getWidth()*zf), (int)(BBoxDC.getHeight()*zf));
           GraphDisplay.updateLayersSize(BBoxDC);
           GraphDisplay.scrollRectToVisible(new Rectangle((int)(r.getX()*zf),
@@ -2359,15 +2356,15 @@ public boolean canDisplay(SecondoObject o){
          return;
       Point2D.Double p = new Point2D.Double();
       try {
-        p = (Point2D.Double)allProjection.inverseTransform(e.getPoint(), p);
+        p = (Point2D.Double)CurrentState.transform.inverseTransform(e.getPoint(), p);
       } catch (Exception ex) {}
       //int hits = 0;
       double SelIndex = 10000, BestIndex = -1, TopIndex = -1;
       //boolean selectionfound = false;
       DsplGraph Obj2sel = null, top = null;
       int ComboIndex = -1, TopComboIndex = -1;
-      double scalex = 1/Math.abs(allProjection.getScaleX());
-      double scaley = 1/Math.abs(allProjection.getScaleY());
+      double scalex = 1/Math.abs(CurrentState.transform.getScaleX());
+      double scaley = 1/Math.abs(CurrentState.transform.getScaleY());
       //ListIterator li=QueryResultList.listIterator();
       if ((selGraphObj != null) && (selGraphObj.contains(p.getX(), p.getY(),
           scalex, scaley)))
@@ -2871,7 +2868,7 @@ public boolean canDisplay(SecondoObject o){
               GraphDisplay.repaint();
            points.add(thePoint);
            Graphics2D G = (Graphics2D)GraphDisplay.getGraphics();
-           Layer.draw(ps,G,CurrentState.ActualTime,allProjection);
+           Layer.draw(ps,G,CurrentState.ActualTime,CurrentState.transform);
 }
 
       /** This function computes the coordinates in the 'world' from the 
@@ -2881,7 +2878,7 @@ public boolean canDisplay(SecondoObject o){
           // first compute the virtual screen coordinates
           Point2D.Double p = new Point2D.Double();
           try{
-            p = (Point2D.Double) allProjection.inverseTransform(orig,p);
+            p = (Point2D.Double) CurrentState.transform.inverseTransform(orig,p);
           }catch(Exception e){} 
           double x = p.getX();
           double y = p.getY();

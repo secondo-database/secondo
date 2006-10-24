@@ -30,21 +30,24 @@ import tools.Reporter;
 
 
 /**
- * The displayclass of the points datatype (Rose algebra).
+ * The displayclass of the points datatype.
  */
 public class Dsplpoints extends DisplayGraph {
-  Vector points;
-  Rectangle2D.Double bounds;
-  private Shape shp;
+  Point2D.Double[] points=null;
+  Rectangle2D.Double bounds=null;
   private boolean defined;
+  private double lastTime;
+  private double lastSize = -1; // undefined
 
   /**
-   * Scans the representation of the points datatype and constructs the points Vector.
-   * @param v the numeric value of a list of x- and y-coordinate
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplpointssrc.html#ScanValue">Source</a>
+   * Scans the representation of the points datatype and 
+   * an array containing the points. 
+   * The representation is a list of points which are given just 
+   * by the two coordinates describing the position. 
+   * @param value: the list representing this points value
    */
   public void ScanValue (ListExpr value) {
+
     if(isUndefined(value)){
        err=false;
        defined = false;
@@ -52,7 +55,7 @@ public class Dsplpoints extends DisplayGraph {
     }
     defined = true;
     double koord[] = new double[2];
-    points = new Vector(20, 20);
+    Vector pointsV = new Vector(20, 20);
     while (!value.isEmpty()) {
       ListExpr v = value.first();
       if (v.listLength() != 2) {
@@ -71,12 +74,29 @@ public class Dsplpoints extends DisplayGraph {
       }
       if (!err) {
         if(!ProjectionManager.project(koord[0],koord[1],aPoint))
-           Reporter.writeError("error in projection at coordinate ("+koord[0]+", "+koord[1]+")");
+           Reporter.writeError("error in projection at coordinate ("+
+                                koord[0]+", "+koord[1]+")");
         else{
-          points.add(new Point2D.Double(aPoint.x,aPoint.y));
+          pointsV.add(new Point2D.Double(aPoint.x,aPoint.y));
         }
       }
       value = value.rest();
+    }
+    bounds = null;
+    if(!err){ // copy the vector into the array to avoid cast 
+              // during painting this object
+       int size = pointsV.size();
+       points = new Point2D.Double[size];
+       for(int i=0;i<size;i++){
+          Point2D.Double p = (Point2D.Double) pointsV.get(i);
+          points[i] = p;
+          if (bounds == null){
+              bounds = new Rectangle2D.Double(p.getX(), p.getY(), 0, 0);
+          } else {
+              bounds = (Rectangle2D.Double)bounds.createUnion(new Rectangle2D.Double(p.getX(),
+              p.getY(), 0, 0));
+          }
+       }
     }
   }
 
@@ -99,17 +119,6 @@ public class Dsplpoints extends DisplayGraph {
       return;
     }
     qr.addEntry(this);
-    ListIterator li = points.listIterator();
-    bounds = null;
-    while (li.hasNext()) {
-      Point2D.Double p = ((Point2D.Double)li.next());
-      if (bounds == null)
-        bounds = new Rectangle2D.Double(p.getX(), p.getY(), 0, 0);
-      else
-        bounds = (Rectangle2D.Double)bounds.createUnion(new Rectangle2D.Double(p.getX(),
-            p.getY(), 0, 0));
-    }
-    shp = bounds;
   }
 
   /**
@@ -125,21 +134,34 @@ public class Dsplpoints extends DisplayGraph {
   }
 
   public int numberOfShapes(){
-     return points.size();
+     return points.length;
   }
 
   public Shape getRenderObject(int num, AffineTransform at){
-    Point2D.Double p = (Point2D.Double) points.get(num);
-    double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
-    double pixy = Math.abs(ps/at.getScaleY());
-    double pix = Math.abs(ps/at.getScaleX());
-    Shape shp;
-    if (Cat.getPointasRect())
-      shp = new Rectangle2D.Double(p.getX()- pix/2, p.getY() - pixy/2, pix, pixy);
-    else {
-      shp = new Ellipse2D.Double(p.getX()- pix/2, p.getY() - pixy/2, pix, pixy);
+     double ps;
+    if(lastSize<0){
+      lastTime = CurrentState.ActualTime;
+      ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);     
+    }else{
+      double ct = CurrentState.ActualTime;
+      if(lastTime==ct){
+        ps = lastSize;
+      } else {
+        ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);     
+        lastTime=ct; 
+      }
     }
-    return  shp;
+    lastSize = ps;
+
+    double pixy = Math.abs(ps/at.getScaleY());
+    double pix  = Math.abs(ps/at.getScaleX());
+    boolean isRect = Cat.getPointasRect();
+    Point2D.Double p = points[num];
+    if (isRect){
+       return (new Rectangle2D.Double(p.getX()- pix/2, p.getY() - pixy/2, pix, pixy));
+    }  else {
+       return (new Ellipse2D.Double(p.getX()- pix/2, p.getY() - pixy/2, pix, pixy));
+    }
   }
 
   /**
@@ -155,12 +177,13 @@ public class Dsplpoints extends DisplayGraph {
     if(!defined){
        return false;
     }
-    boolean hit = false;
-    ListIterator li = points.listIterator();
     double scale = Cat.getPointSize(renderAttribute,CurrentState.ActualTime)*0.7*scalex;  
-    while (li.hasNext())
-      hit |= (((Point2D.Double)li.next()).distance(xpos, ypos) <= scale);
-    return  hit;
+    for(int i=0;i<points.length;i++){    
+      if(points[i].distance(xpos, ypos) <= scale){
+        return true;
+      }
+    }
+    return  false;
   }
 
 }

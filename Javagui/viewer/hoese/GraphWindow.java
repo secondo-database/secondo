@@ -95,7 +95,7 @@ public class GraphWindow extends JLayeredPane
    * @see <a href="Categorysrc.html#getProjection">Source</a>
    */
   public AffineTransform getProjection () {
-    return  mw.allProjection;
+    return  CurrentState.transform;
   }
 
  /** Set the flag for switching off repainting of the screen.
@@ -364,7 +364,7 @@ public class GraphWindow extends JLayeredPane
     // paint the background image
     // first transform the boundig box for the background 
     // to into screen coordinates
-    AffineTransform at = mw.allProjection;
+    AffineTransform at = CurrentState.transform;
     Rectangle2D R = at.createTransformedShape(mw.getBackgroundImage().getBBox()).getBounds();
     background.setBounds((int)R.getX(),(int)R.getY(),(int)R.getWidth(),(int)R.getHeight());
     Rectangle2D R2 = mw.GeoScrollPane.getBounds();
@@ -375,21 +375,14 @@ public class GraphWindow extends JLayeredPane
     g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
     super.paintChildren(g2);
 
-    // mark the selected object
+    // paint  the selected object again to be visible even if it is behind othe objects
 
     DsplGraph dg = mw.getSelGO();
     if ((dg != null) && (dg.getVisible())){
-        int num = dg.numberOfShapes();
-        for(int i=0;i<num;i++){
-		       if(!dg.isLineType(num))
-				 	    Layer.draw(dg,g2,CurrentState.ActualTime,at);
-           else{
 	   		      Composite C = g2.getComposite();
 		  			  g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.0f));
 			  	    Layer.draw(dg,g2,CurrentState.ActualTime,at);
 	            g2.setComposite(C);
-			     } 
-       }
      }
      // draw addinitional objects from objectvcreation
      if(additionalGraphObject!=null){

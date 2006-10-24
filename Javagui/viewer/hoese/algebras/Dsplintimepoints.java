@@ -123,10 +123,10 @@ public class Dsplintimepoints extends Dsplpoints
     } 
     else 
       qr.addEntry(this);
-    ListIterator li = points.listIterator();
+    
     bounds = null;
-    while (li.hasNext()) {
-      Point2D.Double p = ((Point2D.Double)li.next());
+    for(int i=0;i<points.length;i++) {
+      Point2D.Double p = points[i];
       if (bounds == null)
         bounds = new Rectangle2D.Double(p.getX() - 2, p.getY() - 2, 4, 4); 
       else 

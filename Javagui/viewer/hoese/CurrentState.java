@@ -16,6 +16,8 @@ public class CurrentState{
 
 public static double ActualTime=0.0;
 
+public static AffineTransform transform= new AffineTransform();
+
 
 public static Rectangle2D.Double getWorldBB(){
      return worldBB;

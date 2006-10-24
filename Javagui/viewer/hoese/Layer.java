@@ -252,6 +252,7 @@ public class Layer extends JComponent {
     Graphics2D g2 = (Graphics2D)g;
     int num = dg.numberOfShapes();
     Category cat = dg.getCategory();
+
     for(int i=0;i<num;i++){
        Shape shp = dg.getRenderObject(i,af2);
        if(shp!=null){
@@ -261,6 +262,7 @@ public class Layer extends JComponent {
           } else {
             bounds.add(shp.getBounds());
           }
+          setCategory(dg,g2,i);
           Paint fillStyle = cat.getFillStyle(dg.getRenderAttribute(),time);
           
           // paint the interior
@@ -297,8 +299,10 @@ public class Layer extends JComponent {
                  g2.draw(sh);
              }
           }
-          drawLabel(dg,g2, bounds,time,af2);
        }
+    }
+    if(bounds!=null){
+       drawLabel(dg,g2, bounds,time,af2);
     }
   }
 
@@ -345,7 +349,7 @@ public class Layer extends JComponent {
     *             getRenderObject method is used instead of using this number as
                   index for the array returned by the getRenderObjects() method
     **/
-  private void setCategory(DsplGraph dg,Graphics2D g2, int num){
+  private static void setCategory(DsplGraph dg,Graphics2D g2, int num){
 
     // ensure to have all required information
 
@@ -363,7 +367,7 @@ public class Layer extends JComponent {
        return;
     }
 
-    AffineTransform af2 = getProjection();
+    AffineTransform af2 = CurrentState.transform;
     Shape shp;
     boolean isPointType;
     boolean isLineType;
@@ -399,15 +403,6 @@ public class Layer extends JComponent {
   }
 
 
-  /** Paints the object to the graphics
-    */
-   public void paintObject(DsplGraph dg, Graphics2D g){
-     int num = dg.numberOfShapes();
-     for(int i=0;i<num;i++){ 
-         setCategory(dg,g,i);
-         draw(dg,g,CurrentState.ActualTime);
-     }
-   } 
 
 
   /**
@@ -422,14 +417,14 @@ public class Layer extends JComponent {
         for(int i=0;i<GeoObjects.size();i++){
            DsplGraph dg = (DsplGraph)GeoObjects.get(i);
            if ((dg.getVisible()) && (!dg.getSelected())){
-              paintObject(dg,g2);
+              draw(dg,g2,CurrentState.ActualTime);
            }
         }
       } else {
         for(int i=0;i<GeoObjects.size();i++){
           DsplGraph dg = (DsplGraph)GeoObjects.get(i);
           if (dg.getVisible()){
-              paintObject(dg,g2);
+              draw(dg,g2,CurrentState.ActualTime);
           }
         }
       }
