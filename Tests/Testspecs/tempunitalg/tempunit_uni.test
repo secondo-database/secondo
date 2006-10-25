@@ -53,6 +53,7 @@ let mp1 = [const mpoint value ((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALS
 let mp2 = [const mpoint value ((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (100.0 100.0 -100.0 -100.0)))];
 
 let p = [const point value (1500.0 1500.0)];
+let p3 = [const point value undef];
 
 let ui1 = [const uint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) 1500)];
 let ui2 = [const uint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) 1000)];
@@ -61,6 +62,7 @@ let ui4 = [const uint value (("2003-11-20-06:30" "2003-11-20-07:30" TRUE FALSE) 
 
 let ci = [const int value 1000];
 let i1 = [const int value 100];
+let i3 = [const int value undef];
 
 let ur1 = [const ureal value (("2000-01-01-00:00:00.000" "2000-01-05-00:00:00.000" TRUE TRUE) (1.0 0.0 -1.0 FALSE))];
 let ur2 = [const ureal value (("2000-01-02-23:59:59.900" "2000-01-03-00:00:00.100" TRUE TRUE) (-1.0 -1.0 -1.0 FALSE))];
@@ -181,7 +183,7 @@ query (up3 at p)
 #testcase at_up_undef-point
 #tolerance_real 0.001
 #yields (upoint undef)
-query (up2 at [const point value undef]) 
+query (up2 at p3) 
 
 #testcase passes TRUE
 #yields (bool TRUE)
@@ -197,7 +199,7 @@ query ( up3 passes p)
 
 #testcase passes up2 undef-point
 #yields (bool undef)
-query ( up2 passes [const point value undef])
+query ( up2 passes p3)
 
 #testcase velocity_up
 #tolerance_real 0.001
@@ -598,7 +600,7 @@ query distance(i1, ui3)
 
 #testcase distance_int_uint UNDEF DEF
 #yields (ureal undef)
-query distance([const int value undef], ui1)
+query distance(i3, ui1)
 
 #testcase distance_uint_int DEF DEF
 #yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 0.0 1400.0 FALSE)))
@@ -610,7 +612,7 @@ query distance(ui3, i1)
 
 #testcase distance_uint_int DEF UNDEF
 #yields (ureal undef)
-query distance(ui1, [const int value undef])
+query distance(ui1, i3)
 
 
 
@@ -629,7 +631,7 @@ query distance(ui3, ui1)
 
 #testcase intersection_uconst_const def undef
 #yields (int 0)
-query intersection(ui1, [const int value undef]) count
+query intersection(ui1, i3) count
 
 #testcase intersection_uconst_const undef def
 #yields (int 0)
@@ -643,9 +645,10 @@ query intersection(ui1, i1) count
 #yields (int 1)
 query intersection(ui1, [const int value 1500]) count
 
+
 #testcase intersection_const_uconst undef def
 #yields (int 0)
-query intersection([const int value undef], ui1) count
+query intersection(i3, ui1) count
 
 #testcase intersection_const_uconst def undef
 #yields (int 0)
@@ -658,6 +661,7 @@ query intersection(i1, ui1) count
 #testcase intersection_const_uconst NONEMPTY
 #yields (int 1)
 query intersection([const int value 1500], ui1) count
+
 
 #testcase intersection_uconst_uconst def undef
 #yields (int 0)
@@ -722,24 +726,78 @@ query intersection(ur1, ur3) count
 #yields (int 0)
 query intersection(ur3, ur2) count
 
-#testcase intersection_ureal_ureal EMPTY
+
+## NOT YET IMPLEMENTED:
+##testcase intersection_ureal_ureal EMPTY
+##yields (int 0)
+#query intersection(ur2, ur4) count
+
+## NOT YET IMPLEMENTED:
+##testcase intersection_ureal_ureal NONEMPTY
+##yields (int 1)
+#query intersection(ur1, ur1) count
+
+
+
+#testcase intersection_upoint_point UNDEF DEF
 #yields (int 0)
-query intersection(ur2, ur4) count
+query intersection(up3,p) count
 
-#testcase intersection_ureal_ureal NONEMPTY
-#yields (int 1)
-query intersection(ur1, ur1) count
+#testcase intersection_upoint_point DEF UNDEF
+#yields (int 0)
+query intersection(up1,p3) count
+
+#testcase intersection_upoint_point EMPTY
+#yields (int 0)
+query intersection(up4,p) count
+
+#testcase intersection_upoint_point NONEMPTY
+#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)(1500.0 1500.0 1500.0 1500.0)))))
+query intersection(up1,p) transformstream consume
 
 
 
+#testcase intersection_point_upoint UNDEF DEF
+#yields (int 0)
+query intersection(p3,up2) count
+
+#testcase intersection_point_upoint DEF UNDEF
+#yields (int 0)
+query intersection(p,up3) count
+
+#testcase intersection_point_upoint EMPTY
+#yields (int 0)
+query intersection(p,up5) count
+
+#testcase intersection_point_upoint NONEMPTY
+#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(1500.0 1500.0 1500.0 1500.0)))))
+query intersection(p,up6) transformstream consume
 
 
 
-# intersection_upoint_point
-# intersection_point_upoint
-# intersection_upoint_upoint
+#testcase intersection_upoint_upoint UNDEF DEF
+#yields (int 0)
+query intersection(up3,up4) count
 
+#testcase intersection_upoint_upoint DEF UNDEF
+#yields (int 0)
+query intersection(up2,up3) count
+
+#testcase intersection_upoint_upoint EMPTY
+#yields (int 0)
+query intersection(up2,up5) count
+
+#testcase intersection_upoint_upoint NONEMPTY
+#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)(1500.0 1500.0 1500.0 1500.0)))))
+query intersection(up1,up2) transformstream consume
+
+
+# intersection_upoint_line
+# intersection_line_upoint
+# intersection_upoint_region
+# intersection_region_upoint
 # intersection_upoint_uregion
+# intersection_uregion_upoint
 
 # intersects_uconst_uconst
 # intersects_upoint_upoint
