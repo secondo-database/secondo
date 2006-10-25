@@ -1802,7 +1802,7 @@ ListExpr InstantInt(ListExpr args){
          ErrorReporter::ReportError("int parapater expected \n");
      }
   }
-  ErrorReporter:: ReportError("exactly one argument required");
+  ErrorReporter::ReportError("exactly one argument required");
   return nl->SymbolAtom("typeerror");
 }
 
