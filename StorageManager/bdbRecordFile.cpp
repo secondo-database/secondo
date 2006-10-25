@@ -122,11 +122,9 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
     record.impl->useCursor = false;
     record.impl->bdbCursor = 0;
     record.initialized     = true;
-    SmiEnvironment::SetError( E_SMI_OK );
   }
   else
   {
-    SmiEnvironment::SetError( E_SMI_RECORD_SELECT, rc );
     record.initialized     = false;
   }
 

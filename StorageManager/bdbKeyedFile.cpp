@@ -71,9 +71,9 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
                             const SmiFile::AccessType accessType
                               /* = SmiFile::ReadOnly */ )
 {
-  int rc;
+  int rc=0;
   DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
-  Dbc* dbc;
+  Dbc* dbc = 0;
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
     rc = impl->bdbFile->cursor( tid, &dbc, 0 );
@@ -93,11 +93,6 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
     iterator.rangeSearch      = false;
     iterator.firstKey         = key;
     iterator.searchKey        = &iterator.firstKey;
-    SmiEnvironment::SetError( E_SMI_OK );
-  }
-  else
-  {
-    SmiEnvironment::SetError( E_SMI_RECORD_SELECT, rc );
   }
   return (rc == 0);
 }
@@ -151,11 +146,9 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
     record.impl->closeCursor = false;
     record.impl->bdbCursor   = 0;
     record.initialized       = true;
-    SmiEnvironment::SetError( E_SMI_OK );
   }
   else
   {
-    SmiEnvironment::SetError( E_SMI_RECORD_SELECT, rc );
     record.initialized     = false;
   }
 
