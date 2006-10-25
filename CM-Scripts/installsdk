@@ -29,8 +29,9 @@ fi
 function showBashrcMsg {
 
   printx "\n"
-  showMsg "em" "Note: Before compiling SECONDO run \"source ~/.secondorc\" \n\
-otherwise some environment variables are not set to their correct values \n\
+  showMsg "em" "Note: Before compiling SECONDO you need to define the environment variables SECONDO_SDK,
+SECONDO_PLATFORM, SECONDO_BUILD_DIR, then run \"source \$SECONDO_SDK/secondorc\" \n\
+otherwise the environment will not be suitable for compiling \n\
 and make will abort with an error."
 }
 
@@ -700,7 +701,7 @@ if [ "$opt_gcc" = "yes" ]; then
   gccfiles=$platformdir/gnu/gcc-*
   objDir=$temp/gcc.objects
   assert mkdir -p $objDir
-  installPackage "GCC with C++ support" gcc "$gccfiles" $objDir "bootstrap install" --enable-bootstrap ../gcc-*/configure
+  installPackage "GCC with C++ support" gcc "$gccfiles" $objDir "bootstrap install" --disable-nls ../gcc-*/configure
   assert hash -r
   if ! checkVersion "gcc --version" $gccCoreFile; then
     showMsg "err" "Something went wrong! gcc --version: ($LU_Version1 < \
