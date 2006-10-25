@@ -1,0 +1,317 @@
+/*
+//paragraph [1] Title: [{\LARGE \bf] [}]
+//characters [2] Type: [{\tt ] [}]
+//characters [4] Type: [ \texttt{\glqq{}] [}\grqq{}]
+//characters [5] Type: [\underline{\it ] [}]
+//paragraph [3] Title2: [{\LARGE \bf \begin{center}] [\end{center}}]
+//[hs26] [\hspace*{3.3cm}]
+//[hs25] [\hspace*{0.25cm}]
+//[vs1] [\vspace*{1.0cm}]
+//[ue] [\"{u}]
+//[ss] [{\ss}]
+//[ae] [\"{a}]
+//[oe] [\"{o}]
+//[Ae] [\"{A}]
+//[Ue] [\"{U}]
+//[<] [$< $]
+//[<=] [$\le $]
+//[nl] [\newline ]
+//[forall] [$\forall $]
+//[->] [$\rightarrow $]
+//[x] [$\times $]
+//[secondo] [\textsc{Secondo}]
+
+[3] Bericht
+
+Frank Hoffmann
+
+August - September 2006
+
+1 Testdaten f[ue]r die TemporalExt und TemporalLifted Algebra
+
+F[ue]r die Tests implementierter Operatoren dieser beiden Algebren sollten Testmengen realer Daten verwendet werden. Zus[ae]tzlich zu den bereits vorhandenen Daten f[ue]r ~movingregions~ und ~movingpoints~ wurden ~movingints~, ~movingreals~, ~movingbools~ und ~movingstrings~ in das [secondo] Format konvertiert. Beide Algebren bieten Operationen auf diesen Typen an.
+
+1.1 Objekte vom Typ ~mreal~
+
+1.1.1 DAX30 mit L[ue]cken
+
+Zun[ae]chst wurde ein ~mreal~ erzeugt, welches nur partiell in einem Zeitintervall definiert ist. Hierzu wurden die Kursdaten des Aktienindex DAX30 von der Internetseite Yahoo Finanzen heruntergeladen und mit Hilfe der Tabellenkalkulation "MS Excel"[2], sowie den Dienstprogrammen "sed" und "awk" f[ue]r [secondo] verf[ue]gbar gemacht. Der Startzeitpunkt des ~mreals~ ist der 15.08.1996 - 09:00 Uhr und der letzte definierte Zeitpunkt ist der 15.08.2006 - 17:30 Uhr. Eine einzelne Unit beschreibt die Kursentwicklung zwischen dem Er[oe]ffnungskurs und dem Schlu[ss]kurs an einem bestimmten Tag.
+
+*/
+(OBJECT dax30gap 
+    () 
+    mreal 
+    (
+      (("2006-08-15-09:00" "2006-08-15-17:30" TRUE TRUE)
+                           (0.0 280.743529411765 5677.37 FALSE))
+      (("2006-08-14-09:00" "2006-08-14-17:30" TRUE TRUE) 
+                           (0.0 87.331764705883 5661.07 FALSE))
+      ...
+      (("1996-08-15-09:00" "1996-08-15-17:30" TRUE TRUE) 
+                           (0.0 0.847058823530 2546.00 FALSE)))
+)
+/*
+1.1.2 DAX30 ohne L[ue]cken
+
+Dieses ~mreal~-Objekt wurde zus[ae]tzlich um Units erweitert, welche die Kursentwicklung zwischen Schlu[ss]kurs und Er[oe]ffnungskurs am Folgetag aufzeichnen. Dieses Objekt ist damit f[ue]r jeden beliebigen Zeitpunkt im Zeitintervall wohldefiniert.
+
+*/
+(OBJECT dax30nogap 
+    () 
+    mreal 
+    (
+      (("2006-08-15-09:00" "2006-08-15-17:30" TRUE TRUE)
+                           (0.0 280.7435294117650 5677.37 FALSE))
+      (("2006-08-14-17:30" "2006-08-15-09:00" FALSE FALSE)
+                           (0.0 -22.6529032258066 5692.00 FALSE))
+      ...
+      (("1996-08-15-17:30" "1996-08-16-09:00" FALSE FALSE)
+                           (0.0 4.6451612903226 2546.30 FALSE)))
+)
+/*
+1.1.3 Wetterdaten Hamburg
+
+Das Gymnasium Ohmoor in Hamburg-Niendorf betreibt seit 1991 eine Wetterstation, deren erfasste Werte (u.a. Temperaturen, Niederschl[ae]ge) t[ae]glich um 14:00 Uhr abgelesen werden. Diese Daten werden in Form von "MS Excel" Tabellen f[ue]r Auswertungen zum Download angeboten. Das folgende ~mreal~-Objekt beschreibt die Temperaturentwicklung an dieser Klimastation f[ue]r den Zeitraum 01.01.1991 - 14:00 Uhr bis 31.12.1997 -14:00 Uhr.
+
+*/
+(OBJECT wetterhh9197 
+    () 
+    mreal 
+    (
+
+      (("1991-01-01-14:00" "1991-01-02-14:00" TRUE FALSE)
+                           (0.0 2.8 6.0 FALSE))
+      (("1991-01-02-14:00" "1991-01-03-14:00" TRUE FALSE) 
+                           (0.0 -1.8 8.8 FALSE))
+      ...
+      (("1997-12-30-14:00" "1997-12-31-14:00" TRUE FALSE) 
+                           (0.0 3.1 5.7 FALSE)))
+)
+/*
+
+                Figure 1: Temperaturen in Hamburg 1991 - 1997 [wetter.eps]
+
+1.2 Objekt vom Typ ~mint~
+
+Die Umsatzdaten je Tag der im DAX30 notierten Adidas Aktien dienten als Basis f[ue]r das folgende ~movingint~-Objekt. Die Datenquelle war wiederum die Internetseite Yahoo Finanzen.
+
+*/
+(OBJECT adidasvolume 
+    () 
+    mint 
+    (
+      (("2006-08-16-09:00" "2006-08-17-09:00" TRUE FALSE) 2860803)
+      (("2006-08-15-09:00" "2006-08-16-09:00" TRUE FALSE) 1814294)
+      ...
+      (("2000-01-03-09:00" "2000-01-04-09:00" TRUE FALSE) 784844))
+)
+/*
+1.3 Objekt vom Typ ~mbool~
+
+Das ~mbool~-Objekt "adidasupdown" wurde wie folgt konstruiert:
+
+*/
+if (day.eroeffnungskurs < day.schlusskurs) then updown = "TRUE"
+else updown = "FALSE";
+
+if (day.schlusskurs < nextday.eroeffnungskurs) then updown = "TRUE"
+else updown = "FALSE";
+/*
+Es wurden wieder die Daten des Kursverlaufes der Adidas Aktie im Zeitraum 16.08.2006 - 03.01.2000 benutzt.
+
+*/
+(OBJECT adidasupdown
+    () 
+    mbool 
+    (
+      (( "2006-08-16-09:00" "2006-08-16-17:30" TRUE TRUE) TRUE )
+      (( "2006-08-15-17:30" "2006-08-16-09:00" FALSE FALSE) TRUE )
+      ...
+      (( "2000-01-03-09:00" "2000-01-03-17:30" TRUE TRUE) FALSE ))
+)
+/*
+1.4 Objekte vom Typ ~mstring~
+
+Das Sendeplanschema eines Radiosenders legt Zeitbl[oe]cke fest, in denen entweder
+
+  * moderiert wird (in der Regel drei Stunden),
+
+  * nonstop Musik gesendet wird,
+
+  * keine Musik gespielt wird.
+
+Die ~string~-Komponenten der ~mstring~-Units k[oe]nnen so die Werte 
+
+*/
+"<name_des_moderators>", "Nonstop", "NoBroadcast" 
+/*
+annehmen.
+
+1.4.1 Sendeplan mit L[ue]cken
+
+Das erste ~mstring~-Objekt "radiogap" enth[ae]lt keine Units mit Sendepausen.
+
+*/
+(OBJECT radiogap
+    () 
+    mstring 
+    (
+      ...
+      (( "2006-03-28-08:00""2006-03-28-10:00" TRUE FALSE) "Nonstop")
+      (( "2006-03-28-10:00""2006-03-28-13:00" TRUE FALSE) "Highlanderin")
+      ...
+      (( "2006-05-21-23:00""2006-05-22-03:00" TRUE FALSE) "Petra"))
+)
+/*
+1.4.2 Sendeplan ohne L[ue]cken
+
+Das zweite ~mstring~-Objekt "radionogap" besitzt f[ue]r jeden Zeitpunkt im betrachteten Zeitintervall eine definierte Zeichenkette.
+
+*/
+(OBJECT radiognoap
+    () 
+    mstring 
+    (
+      ...
+      (( "2006-05-19-23:00""2006-05-20-03:00" TRUE FALSE) "Teddy")
+      (( "2006-05-20-03:00""2006-05-20-08:00" TRUE FALSE) "NoBroadcast")
+      (( "2006-05-20-08:00""2006-05-20-12:00" TRUE FALSE) "Fanny")
+      ...
+      (( "2006-05-21-23:00""2006-05-22-03:00" TRUE FALSE) "Petra"))
+)
+/*
+Die Daten aus Abschnitt 1.4 decken einen Zeitraum von etwa drei Monaten ab.
+
+2 Implementierungen in der StandardAlgebra, RectangleAlgebra und RTreeAlgebra
+
+2.1 Operator ~hashvalue~ in der StandardAlgebra
+
+Der Operator ~hashvalue~ berechnet den Hashwert eines Objektes, welches zur Kind DATA geh[oe]rt. Er besitzt die folgende Signatur:
+
+        [forall] T in DATA, y in "int"[5]. [hs25]hashvalue: T [x] "int" [->] "int"
+
+Der Parameter ~y~ gibt die Gr[oe][ss]e der Hashtabelle an.
+
+Beispiel:
+
+*/
+query hashvalue("Test", 9997);
+/*
+Es wurden alle notwendigen Funktionen und Spezifikationen implementiert. Das ".spec"[2] File der Algebra wurde um eine Syntaxspezifikation f[ue]r diesen Operator erg[ae]nzt.
+
+2.1 Operator ~rectangle2~ in der RectangleAlgebra
+
+Der Operator ~rectangle2~ erzeugt ein Objekt vom Type "rect"[2] (zweidimensionales Rechteck). Die ersten beiden Parameter legen das ~x~-Intervall fest, w[ae]hrend die letzten beiden Parameter das ~y~-Intervall bestimmen. Die Signatur lautet:
+
+        [forall] x1, x2, y1, y2 in "int"[5] or [forall] x1, x2, y1, y2 in "real"[5].[hs25]rectangle2: x1 [x] x2 [x] y1 [x] y2 [->] "rect"
+
+Es muss x1 [<=] x2 und y1 [<=] y2 gelten.
+
+Beispiel:
+
+*/
+query rectangle2(10.0, 13.2, 1.312, 1.33);
+/*
+Es wurden alle notwendigen Funktionen und Spezifikationen implementiert. Das ".spec"[2] File der Algebra wurde um eine Syntaxspezifikation f[ue]r diesen Operator erg[ae]nzt.
+
+2.2 Operatoren ~rectangle3~ und ~rectangle4~ in der RectangleAlgebra
+
+Diese beiden Operatoren sind [ae]hnlich ~rectangle2~, wobei ~rectangle3~ ein dreidimensionales ("rect3"[2]) und  ~rectangle4~ ein vierdimensionales Rechteck 
+("rect4"[2]) erzeugt.
+
+Signatur f[ue]r ~rectangle3~:
+
+        [forall] x1, x2, y1, y2, z1, z2 in "int"[5] or [forall] x1, x2, y1, y2, z1, z2 in "real"[5].
+
+        rectangle3: x1 [x] x2 [x] y1 [x] y2 [x] z1 [x] z2 [->] "rect3"
+
+Es muss x1 [<=] x2, y1 [<=] y2 und z1 [<=] z2 gelten.
+
+Beispiel:
+
+*/
+query rectangle3(10.0, 11.0, 3.4, 3.5, 14.3, 234.5);
+/*
+Signatur f[ue]r ~rectangle4~:
+
+        [forall] x1, x2, y1, y2, z1, z2, k1, k2 in "int"[5] or [forall] x1, x2, y1, y2, z1, z2, k1, k2 in "real"[5].
+
+        rectangle4: x1 [x] x2 [x] y1 [x] y2 [x] z1 [x] z2 [x] k1 [x] k2 [->] "rect4"
+
+Es muss x1 [<] x2, y1 [<] y2, z1 [<] z2 und k1 [<] k2 gelten.
+
+Beispiel:
+
+*/
+query rectangle4(3, 4, 5, 6, 7, 8, 9, 10);
+/*
+Es wurden alle notwendigen Funktionen und Spezifikationen implementiert. Das ".spec"[2] File der Algebra wurde um Syntaxspezifikationen f[ue]r diese Operatoren erg[ae]nzt.
+
+2.2 Typkonstruktor ~rect8~ und Operator ~rectangle8~ in der RectangleAlgebra
+
+Der *Typkonstruktor* ~rect8~ erg[ae]nzt die bereits vorhandenen Konstruktoren ~rect~, ~rect3~ und ~rect4~ um einen Konstruktor f[ue]r ein achtdimensionales Rechteck ~rect8~. Ein Objekt vom Typ ~rect8~ geh[oe]rt zur Kind DATA.
+
+        [->] DATA[hs25] "rect8"[5]
+
+Beispiel zur Konstruktion:
+
+*/
+let myrect8 = [const rect8 value (1.0,2.0,3.0,4.0,5.0,6.0,7.0.8.0,
+                           9.0,10.0,11.0,12.0,13.0,14.0,15.0,16.0)]
+/*
+S[ae]mtliche Werte in der Liste m[ue]ssen vom Typ ~real~ sein.
+
+Die Propertyfunktion und die Checkfunktion wurden neu erstellt, w[ae]hrend die [ue]brigen Funktionen (u.a. In und Out) angepasst wurden. Die Dateien "DisplayTTY.cpp"[2] und "DisplayTTY.h"[2] wurden um eine Konsolendarstellung f[ue]r Objekte des Typs "rect8"[2] erweitert.
+
+Der *Operator* ~rectangle8~ erzeugt ein achtdimensionales Rechteck vom Typ ~rect8~.
+
+Signatur f[ue]r ~rectangle8~:
+
+        [forall] x1, x2, x3, x4, x5, x6, x7, x8 in "int"[5][hs25]or[hs25] [forall] x1, x2, x3, x4, x5, x6, x7, x8 in "real"[5][nl][forall] y in "real"[5].
+
+        rectangle8: x1 [x] x2 [x] x3 [x] x4 [x] x5 [x] x6 [x] x7 [x] x8 [x] y [->] "rect8"
+
+Die ~xi~ kennzeichnen die jeweils untere Grenze eines Achsenintervalls. Die obere Intervallgrenze dieser Achse errechnet sich aus ~xi~ + ~y~. (1 [<=] ~i~ [<=] 8)
+
+Es wurden alle notwendigen Funktionen und Spezifikationen implementiert. Das ".spec"[2] File der Algebra wurde um eine Syntaxspezifikation f[ue]r diesen Operator erg[ae]nzt.
+
+2.2 Typkonstruktor ~rtree8~ und Operator ~creatertree~ in der RTreeAlgebra
+
+Der *Typkonstruktor* ~rtree8~ erg[ae]nzt die bereits vorhandenen Konstruktoren ~rtree~, ~rtree3~ und ~rtree4~ um einen Konstruktor f[ue]r einen achtdimensionalen R-Baum ~rtree8~. Die Propertyfunktion und die Checkfunktion wurden neu erstellt, w[ae]hrend die [ue]brigen Funktionen (u.a. In und Out) angepasst wurden.
+
+Objekte vom Typ ~rtree8~ werden mit dem *Operator* ~creatertree~ erzeugt. Er besitzt drei verschiedene Signaturen. Enth[ae]lt die Datenbank z.B. das folgende relationale Objekt
+
+*/
+(OBJECT rtreetest 
+    () 
+    (rel 
+        (tuple 
+            (
+                (myrect8 rect8)))) 
+    (
+        (
+            (1.0 2.0 2.0 3.0 3.0 4.0 4.0 5.0 5.0
+             6.0 6.0 7.0 7.0 8.0 8.0 9.0)) 
+        (
+            (2.0 4.3 3.0 5.3 4.0 6.3 5.0 7.3 6.0
+             8.3 7.0 9.3 8.0 10.3 9.0 11.3))))  
+/*
+dann l[ae][ss]t sich ein achtdimensionaler R-Baum u.a. wie folgt erzeugen:
+
+*/
+let myrtree = rtreetest creatertree[myrect8];
+/*
+Die Funktionen TypeMapping und Selection wurden neu erstellt, der ValueMapping Vektor wurde erweitert und die Spezifikation des Operators entsprechend angepasst.
+
+3 Machbarkeitsstudie: [secondo] System auf Mac OS X 10.4 [nl] (Tiger Release)
+
+Im Rahmen dieser Studie sollte untersucht werden, ob eine Installation s[ae]mtlicher Komponenten des [secondo] Systems auf dem Apple Betriebssystem Mac OS X 10.4 Tiger Release m[oe]glich ist.
+
+Da das gesamte Betriebssystem inzwischen um einen Unix Kernel (Darwin) gebaut wurde und Terminals, sowie Unix Dienstprogramme (Xcode Tools) verf[ue]gbar sind, sollte eine Installation prinzipiell m[oe]glich sein. Von [secondo] ben[oe]tigte Third Party Tools (u.a. PROLOG-Interpreter, BerkeleyDB) sind ebenfalls als Mac OS X Versionen verf[ue]gbar.
+
+Inzwischen wurde das [secondo] System weitestgehend auf Mac OS X 10.4 installiert. Die Arbeiten erforderten zum Teil umfangreiche [Ae]nderungen in den Makefiles und einigen Systemdateien. Der modifizierte Code l[ae]uft selbstverst[ae]ndlich auch auf den bisher unterst[ue]tzten Plattformen Microsoft Windows und Linux. 
+
+Die Anpassung der Java PROLOG Schnittstelle, welche die Kommunikation zwischen grafischer Oberfläche und Optimierer Server realisiert ist zur Zeit noch in Arbeit. Die einzelnen Installationsschritte sollten auf einem Apple Rechner mit neu aufgespieltem Betriebssystem erneut nachvollzogen und detailliert dokumentiert werden.
+ 
+*/
+
