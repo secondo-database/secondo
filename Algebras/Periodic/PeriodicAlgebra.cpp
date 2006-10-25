@@ -13489,7 +13489,7 @@ const string AtSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"pmobject x instant -> object\""
    " \" _ atinstant _ \" "
-   " \"computes the value  of the argument at the given time\" "
+   " <text>computes the value  of the argument at the given time</text---> "
    " \" query P5 atinstant [const instant value 1.5]\" ))";
 
 const string InitialSpec =
@@ -13553,15 +13553,17 @@ const string CreatePMPointSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
    " ( \"mpoint  -> pmpoint\""
    " \" createpmpoint(_) \" "
-   " \"creates a periodic moving point from a linearly moving one\""
-   " \"it's is development\""
+   " <text>creates a periodic moving point "
+          "from a linearly moving one</text--->"
+   " \"\""
    " \" query createpmpoint(p1)\" ))";
 
 const string ToprelSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
    " ( \"pmobject x spatial[temporal] object -> pmint9m\""
    " \" toprel(_,_) \" "
-   " \"computes the moving 9 intersection matrix for this combination\""
+   " <text>computes the moving 9 intersection"
+          " matrix for this combination</text--->"
    " \"\""
    " \" query toprel(p1,p2)\" ))";
 
@@ -13569,7 +13571,8 @@ const string DistanceSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
    " ( \"pmpoint x point -> pmreal\""
    " \" distance(_, _) \" "
-   " \"computes the distance between a static point and a periodic moving one\""
+   " <text>computes the distance between a"
+          " static point and a periodic moving one</text--->"
    " \"\""
    " \" query distance(pm1,p1)\" ))";
 
@@ -13609,8 +13612,8 @@ const string NumberOfFlatUnitsSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
    " ( \"pmobject -> int\""
    " \" NumberOfFlatUnits(_) \" "
-   " \"computes the number of units of this object "
-   "in the flat representation\""
+   " <text>computes the number of units of this object "
+          "in the flat representation</text--->"
    " \"\""
    " \" query numberOfUnits(pm)\" ))";
 
@@ -13620,7 +13623,7 @@ const string TranslateSpec =
    " \" translate(_ , _) \" "
    " \" translates this object in time  \"  "
    " \" \" "
-   " \" query translate(o1,[const duration value (10 9)]) \" ))";
+   " <text> query translate(o1,[const duration value (10 9)]) </text---> ))";
 
 
 /*
