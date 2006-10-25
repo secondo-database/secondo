@@ -16,7 +16,7 @@ Feruniversit[ae]t Hagen.
 ----
                             Signatur
 OK   trajectory           upoint    -> line
-     makemvalue           stream (tuple ([x1:t1,xi:uType,..,xn:tn]))  ->  mType
+Test makemvalue           stream (tuple ([x1:t1,xi:uType,..,xn:tn]))  ->  mType
 OK   size                 periods  -> real
 OK   deftime      (**)    uT -> periods
 OK   atinstant    (**)    uT x instant  -> iT
@@ -25,13 +25,13 @@ OK   Initial      (**)    uT -> iT
 OK   final        (**)    uT -> iT
 OK   present      (**)    uT x instant  -> bool
 OK                (**)    uT x periods  -> bool
-     point2d              periods  -> point
-     queryrect2d          instant  -> rect
+(OK) point2d              periods  -> point
+(OK) queryrect2d          instant  -> rect
 OK   speed                mpoint   -> mreal
 OK                        upoint   -> ureal
 OK   passes               upoint x point     -> bool
 OK   at                   upoint x point     -> upoint
-     circle               point x real x int -> region
+Test circle               point x real x int -> region
 OK   velocity             mpoint  -> mpoint
 OK                        upoint  -> upoint
 OK   derivable            mreal   -> mbool
@@ -106,16 +106,40 @@ OK             uT x  T -> ureal
 OK              T x uT -> ureal
 
      intersection: For T in {bool, int, string}:
-OK                     uT x      uT --> (stream uT)
-OK                     uT x       T --> (stream uT)
-OK                      T x      uT --> (stream uT)
-(OK)                ureal x    real --> (stream ureal)
-(OK)                 real x   ureal --> (stream ureal)
-Pre                 ureal x   ureal --> (stream ureal)
-Pre                upoint x uregion --> (stream upoint)
+OK             uT x      uT --> (stream uT)
+OK             uT x       T --> (stream uT)
+OK              T x      uT --> (stream uT)
+(OK)        ureal x    real --> (stream ureal)
+(OK)         real x   ureal --> (stream ureal)
+Pre         ureal x   ureal --> (stream ureal)
+OK         upoint x   point --> (stream upoint) same as at: upoint x point
+OK          point x  upoint --> (stream upoint) same as at: upoint x point
+OK         upoint x  upoint --> (stream upoint)
+Pre        upoint x uregion --> (stream upoint)
+Pre       uregion x  upoint --> (stream upoint)
+Pre        upoint x    line --> (stream upoint)
+Pre          line x  upoint --> (stream upoint)
+Pre        upoint x  region --> (stream upoint)
+Pre        region x  upoint --> (stream upoint)
 
-pre  intersects: For T in {bool, int, string, real, point}:
-                 uT x uT --> (stream ubool)
+
+     intersects: For T in {bool, int, string, real, point}:
+Pre            uT x      uT --> (stream ubool)
+n/a            uT x       T --> (stream ubool)
+n/a             T x      uT --> (stream ubool)
+n/a         ureal x    real --> (stream ubool)
+n/a          real x   ureal --> (stream ubool)
+n/a         ureal x   ureal --> (stream ubool)
+n/a        upoint x   point --> (stream ubool)
+n/a         point x  upoint --> (stream ubool)
+n/a        upoint x  upoint --> (stream ubool)
+n/a        upoint x uregion --> (stream ubool)
+n/a       uregion x  upoint --> (stream ubool)
+n/a        upoint x    line --> (stream ubool)
+n/a          line x  upoint --> (stream ubool)
+n/a        upoint x  region --> (stream ubool)
+n/a        region x  upoint --> (stream ubool)
+
 
 n/a  udirection: upoint --> ureal
 
@@ -6723,12 +6747,22 @@ Operator temporalunitsaggregate( "saggregate",
 
 ----  
 
-    intersection: uT x uT --> (stream uT)         (all but T in {point, real})
-                  uT x  T --> (stream uT)               Test
-                   T x uT --> (stream uT)               Test
-                  upoint x line --> (stream upoint)      --
-                  line x upoint --> (stream upoint)      --
-                  upoint x uregion (stream upoint)       --
+     intersection: For T in {bool, int, string}:
+OK             uT x      uT --> (stream uT)
+OK             uT x       T --> (stream uT)
+OK              T x      uT --> (stream uT)
+(OK)        ureal x    real --> (stream ureal)
+(OK)         real x   ureal --> (stream ureal)
+Pre         ureal x   ureal --> (stream ureal)
+OK         upoint x   point --> (stream upoint) same as at: upoint x point
+OK          point x  upoint --> (stream upoint) same as at: upoint x point
+OK         upoint x  upoint --> (stream upoint)
+Pre        upoint x uregion --> (stream upoint)
+Pre       uregion x  upoint --> (stream upoint)
+Pre        upoint x    line --> (stream upoint)
+Pre          line x  upoint --> (stream upoint)
+Pre        upoint x  region --> (stream upoint)
+Pre        region x  upoint --> (stream upoint)
 
 ----
 
@@ -6851,6 +6885,21 @@ ListExpr TemporalUnitIntersectionTypeMap( ListExpr args )
       
       // Sixth case: upoint uregion -> stream upoint
       if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "uregion") )
+        return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                                nl->SymbolAtom( "upoint" ));  
+
+      // Eighth case: uregion upoint -> stream upoint
+      if( nl->IsEqual( arg1, "uregion" ) && nl->IsEqual( arg2, "upoint") )
+        return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                                nl->SymbolAtom( "upoint" ));  
+
+      // Ninth case: upoint region -> stream upoint
+      if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "region") )
+        return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                                nl->SymbolAtom( "upoint" ));  
+
+      // Tenth case: region upoint -> stream upoint
+      if( nl->IsEqual( arg1, "region" ) && nl->IsEqual( arg2, "upoint") )
         return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
                                 nl->SymbolAtom( "upoint" ));  
     }
@@ -7422,12 +7471,6 @@ value mapping for
 
 ----
 
-Test, whether both upoints have identical direction vectors. If so,
-return one argument restricted to the intersection of timeintervals.
-
-Otherwise there will be at most one possible point of intersection.
-
-
 */
 int 
 temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
@@ -7438,18 +7481,17 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
   UPoint *uv1, *uv2;
   Interval<Instant> iv;
   Instant t;
-  Point p1n_start, p1n_end, p2n_start, p2n_end, p_intersect;
+  Point p1n_start, p1n_end, p2n_start, p2n_end, p_intersect, d1, d2, p1;
   UPoint p1norm, p2norm;
-  double t_x, t_y, t1, t2, dxp1, dxp2, dyp1, dyp2;
-  Coord px11, px12, px21, px22, py11, py12, py21, py22;
-  double p1max[2], p1min[2], p2max[2], p2min[2];
-  Rectangle<2> mbb1, mbb2;
-  
+  double t_x, t_y, t1, t2, dxp1, dxp2, dyp1, dyp2, dt;
+
   // test for overlapping intervals
   switch( message )
     {
     case OPEN:
       
+      if (TUA_DEBUG) 
+        cout << "temporalUnitIntersection_upoint_upoint: received OPEN" << endl;
       sli = new TUIntersectionLocalInfo;
       sli->finished = true;
       sli->NoOfResults = 0;
@@ -7463,57 +7505,69 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
       if ( !uv1->IsDefined() ||
            !uv2->IsDefined() ||
            !uv1->timeInterval.Intersects( uv2->timeInterval ) )
-        return 0; // nothing to do
+        {
+          if (TUA_DEBUG) 
+            cout << "temporalUnitIntersection_upoint_upoint: finished OPEN (1)" 
+                 << endl;
+          return 0; // nothing to do
+        }
       
       // get common time interval
       uv1->timeInterval.Intersection(uv2->timeInterval, iv);
       
       // normalize both starting and ending points to interval
-      uv1->TemporalFunction( iv.start, p1n_start);
-      uv1->TemporalFunction( iv.end, p1n_end);
+      uv1->TemporalFunction( iv.start, p1n_start, true);
+      uv1->TemporalFunction( iv.end, p1n_end, true);
       p1norm = UPoint( iv, p1n_start, p1n_end );
-
-      uv2->TemporalFunction( iv.start, p2n_start);
-      uv2->TemporalFunction( iv.end, p2n_end);
+      
+      uv2->TemporalFunction( iv.start, p2n_start, true);
+      uv2->TemporalFunction( iv.end, p2n_end, true);
       p2norm = UPoint( iv, p2n_start, p2n_end );
       
-      // test MBBs:
-      px11 = p1n_start.GetX(); py11 = p1n_start.GetY();
-      px12 = p1n_end.GetX();   py12 = p1n_end.GetY();
-      px21 = p2n_start.GetX(); py21 = p2n_start.GetY();
-      px22 = p2n_end.GetX();   py22 = p2n_end.GetY();
-
-      p1min[0] = min(px11,px12); p1max[0] = max(px11,px12);
-      p1min[1] = min(py11,py12); p1max[1] = max(py11,py12);
-      p2min[0] = min(px21,px22); p2max[0] = max(px21,px22);
-      p2min[1] = min(py21,py22); p2max[1] = max(py21,py22);
-      
-      mbb1 = Rectangle<2>(true, p1min, p1max);
-      mbb2 = Rectangle<2>(true, p2min, p2max);
-      
-      if (!mbb1.Intersects(mbb2))
-        return 0; // no intersection
+      if (TUA_DEBUG) 
+        {
+          cout << "  uv1=" << TUPrintUPoint( *uv1 ) << endl
+               << "  uv2=" << TUPrintUPoint( *uv2 ) << endl
+               << "  iv=" << TUPrintTimeInterval( iv ) << endl
+               << "  p1norm=" << TUPrintUPoint( p1norm ) << endl
+               << "  p2norm=" << TUPrintUPoint( p2norm ) << endl;
+        }
       
       // test for identity:
       if ( p1norm.EqualValue( p2norm ))
         { // both upoints have the same linear function
           sli->resultValues[sli->NoOfResults] = SetWord( p1norm.Clone() );
-          sli->NoOfResults++;             
+          sli->NoOfResults++;      
+          sli->finished = false;       
+          if (TUA_DEBUG) 
+            cout << "  Identity test passed. Added result." << endl
+                 << "temporalUnitIntersection_upoint_upoint: finished OPEN (3)" 
+                 << endl;
           return 0;
         }
+      if (TUA_DEBUG) 
+        cout << "  Identity test failed." << endl;
       
-      // test for parallelity: they are parallel,
-      // if dx1 = dx2 and dy1 = dy2 and they don't have a common 
-      // starting or ending point
-      dxp1 = ((double) px12) - ((double) px11);
-      dyp1 = ((double) py12) - ((double) py11);
-      dxp2 = ((double) px22) - ((double) px21);
-      dyp2 = ((double) py22) - ((double) py21);
+      // test for ordinary intersection of the normalized upoints
+      d1 = p2n_start - p1n_start;
+      d2 = p2n_end   - p1n_end;
+      if ( ((d1.GetX() > 0) && (d2.GetX() > 0)) ||
+           ((d1.GetX() < 0) && (d2.GetX() < 0)) ||
+           ((d1.GetY() > 0) && (d2.GetY() > 0)) ||
+           ((d1.GetY() < 0) && (d2.GetY() < 0)))
+        { // no intersection
+          if (TUA_DEBUG) 
+            cout << "  No intersection. No Result." << endl
+                 << "temporalUnitIntersection_upoint_upoint: finished OPEN (4)" 
+                 << endl;
+          return 0; // nothing to do          
+        }
+      if (TUA_DEBUG) cout << "  Some Intersection." << endl;
       
-      if ( AlmostEqual(dxp1, dxp2) && AlmostEqual(dyp1, dyp2)      &&
-           ( !AlmostEqual(px11,px21) || !AlmostEqual(py11,py21) )  &&
-           ( !AlmostEqual(px12,px22) || !AlmostEqual(py12,py22) )   )
-        return 0; // they are parallel -> no intersection
+      dxp1 = (p1n_end - p1n_start).GetX();
+      dyp1 = (p1n_end - p1n_start).GetY();
+      dxp2 = (p2n_end - p2n_start).GetX();
+      dyp2 = (p2n_end - p2n_start).GetY();
       
 /*     
 Trying to find an intersection point $t$ with $A_1t + B_1 = A_2t + B_2$ 
@@ -7526,52 +7580,90 @@ where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
 
 */
       
-      if ( ( (dxp1-dxp2) == 0 ) || ( (dyp1-dyp2) == 0 ) )
-        {
-          cout << "\nWARNING: in temporalUnitIntersection_upoint_upoint:" 
-               << "Trajectories seem to be parallel, though that has not been"
-               << "been detected before." << endl;
-          return 0;
-        }
-      
-      t_x = (px21-px11) / (dxp1-dxp2);
-      t_y = (py21-py11) / (dyp1-dyp2);      
-      
+      dt = (iv.end - iv.start).ToDouble();
+
       t1 = iv.start.ToDouble();
       t2 = iv.end.ToDouble();
+
+      t_x = (dt*d1.GetX() + t1*(dxp1-dxp2)) / (dxp1-dxp2);
+      t_y = (dt*d1.GetY() + t1*(dyp1-dyp2)) / (dyp1-dyp2);
+      
+      if (TUA_DEBUG)
+        {
+          cout << "  dt =" << dt  << endl
+               << "  t_x=" << t_x << endl
+               << "  t_y=" << t_y << endl
+               << "  t1 =" << t1  << endl
+               << "  t2 =" << t2  << endl;
+        }
       
       if ( AlmostEqual(t_x, t_y) &&
            ( t_x >= t1) &&
            ( t_x <= t2) )
         { // We found an intersection
-          t.ReadFrom(t1); // create Instant
+          t.ReadFrom(t_x); // create Instant
+          t.SetType(instanttype); 
           iv = Interval<Instant>( t, t, true, true ); // create Interval
-          sli->resultValues[sli->NoOfResults] = SetWord( p1norm.Clone() );
+          uv1->TemporalFunction(t, p1, true);
+          sli->resultValues[sli->NoOfResults] = 
+            SetWord( new UPoint(iv, p1, p1) );
+          // HIER MUESSEN NOCH P1, P2 AN t ANGEPASST WERDEN!
+
+
           ((UPoint*)(sli->resultValues[sli->NoOfResults].addr))
             ->timeInterval=iv;
-          sli->NoOfResults++;                     
-        }
-      
+          sli->NoOfResults++;   
+          sli->finished = false;                         
+          if (TUA_DEBUG) 
+            cout << "  Found intersection. Added result." << endl;
+        }      
       // else: no result
+      if (TUA_DEBUG) 
+        cout << "temporalUnitIntersection_upoint_upoint: finished OPEN (6)" 
+             << endl;          
       return 0;
       
     case REQUEST:
       
+      if (TUA_DEBUG) 
+        cout << "temporalUnitIntersection_upoint_upoint: received REQUEST" 
+             << endl;          
       if(local.addr == 0)
-        return CANCEL;
+        {
+          if (TUA_DEBUG) 
+            cout << "temporalUnitIntersection_upoint_upoint: CANCEL (1)" 
+                 << endl;                    
+          return CANCEL;
+        }
       sli = (TUIntersectionLocalInfo*) local.addr;
       if(sli->finished)
-        return CANCEL;
+        {
+          if (TUA_DEBUG) 
+            cout << "temporalUnitIntersection_upoint_upoint: CANCEL (2)" 
+                 << endl;                    
+          return CANCEL;
+        }
+      if (TUA_DEBUG) 
+        {
+          cout << "  NoOfResults=" << sli->NoOfResults << endl
+               << "  NoOfResultsDelivered=" << sli->NoOfResultsDelivered
+               << endl;          
+        }
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
         {
           result = SetWord( ((UPoint*)
-            (sli->resultValues[sli->NoOfResultsDelivered].addr))->Clone() );
+             (sli->resultValues[sli->NoOfResultsDelivered].addr))->Clone() );
           ((UPoint*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
             ->DeleteIfAllowed();
           sli->NoOfResultsDelivered++;
+          if (TUA_DEBUG) 
+            cout << "temporalUnitIntersection_upoint_upoint: YIELD" 
+                 << endl;                    
           return YIELD;
         }
       sli->finished = true;
+      if (TUA_DEBUG) 
+        cout << "temporalUnitIntersection_upoint_upoint: CANCEL (3)" << endl;
       return CANCEL;
       
     case CLOSE:
@@ -7593,10 +7685,15 @@ where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
   return 0;
 }
 
-// value mapping for (upoint point) -> (stream upoint)
-//               and (upoint point) -> (stream upoint)
-// is identical with at: (upoint point) -> (stream upoint).
-// We just add switches for both signatures and the stream framework
+/*
+   value mapping for (upoint point) -> (stream upoint)
+                 and (point upoint) -> (stream upoint)
+
+   is identical with    at: (upoint point) -> (stream upoint).
+   We just add switches for both signatures and the stream framework
+
+*/
+
 template<int uargindex>
 int 
 temporalUnitIntersection_upoint_point( Word* args, Word& result, int message,
@@ -7635,7 +7732,8 @@ temporalUnitIntersection_upoint_point( Word* args, Word& result, int message,
           pResult.timeInterval.start.SetDefined(true);
           pResult.timeInterval.end.SetDefined(true);
           sli->resultValues[sli->NoOfResults] = SetWord( pResult.Clone() );
-          sli->NoOfResults++;     
+          sli->NoOfResults++;  
+          sli->finished = false;   
         }
       
       return 0;
@@ -7679,10 +7777,11 @@ temporalUnitIntersection_upoint_point( Word* args, Word& result, int message,
 }
 
 // for (upoint line) -> (stream upoint)
+//     (line upoint) -> (stream upoint)
 template<int uargindex>
-int
-temporalUnitIntersection_upoint_line( Word* args, Word& result, int message,
-                                      Word& local, Supplier s )
+int temporalUnitIntersection_upoint_line( Word* args, Word& result, 
+                                          int message,
+                                          Word& local, Supplier s )
 {
   cout << "\nATTENTION: temporalUnitIntersection_upoint_line "
        << "not yet implemented!" << endl;  
@@ -7690,14 +7789,17 @@ temporalUnitIntersection_upoint_line( Word* args, Word& result, int message,
 }
 
 // for (upoint uregion) -> (stream upoint)
-int
-temporalUnitIntersection_upoint_uregion( Word* args, Word& result, int message,
-                                         Word& local, Supplier s )
+//     (uregion upoint) -> (stream upoint)
+template<int uargindex>
+int temporalUnitIntersection_upoint_uregion( Word* args, Word& result, 
+                                             int message,
+                                             Word& local, Supplier s )
 {
   TUIntersectionLocalInfo *sli;
   UPoint  *upoint, pResult;
   URegion *uregion;
   Interval<Instant> iv;
+  Word a0, a1;
   
   cout << "\nATTENTION: temporalUnitIntersection_upoint_uregion "
        << "not yet implemented!" << endl;  
@@ -7715,9 +7817,16 @@ temporalUnitIntersection_upoint_uregion( Word* args, Word& result, int message,
       sli->NoOfResults = 0;
       sli->NoOfResultsDelivered = 0;
       local = SetWord(sli);
+
+      // initialize arguments, such that a0 always contains the ureal
+      //                       and a1 the real 
+      if (uargindex == 0)
+        { a0 = args[0]; a1 = args[1]; }
+      else
+        { a0 = args[1]; a1 = args[0]; }
       
-      upoint = (UPoint*)(args[0].addr);
-      uregion = (URegion*)(args[1].addr);
+      upoint = (UPoint*)(a0.addr);
+      uregion = (URegion*)(a1.addr);
       
       // test for definedness and intersection of deftimes
       if ( !upoint->IsDefined() ||
@@ -7784,6 +7893,24 @@ temporalUnitIntersection_upoint_uregion( Word* args, Word& result, int message,
   return 0;
 }
 
+// for (upoint region) -> (stream upoint)
+//     (region upoint) -> (stream upoint)
+template<int uargindex>
+int temporalUnitIntersection_upoint_region( Word* args, Word& result, 
+                                            int message,
+                                            Word& local, Supplier s )
+{
+  TUIntersectionLocalInfo *sli;
+  UPoint  *upoint, pResult;
+  Region  *region;
+  Interval<Instant> iv;
+  Word a0, a1;
+  
+  cout << "\nATTENTION: temporalUnitIntersection_upoint_region "
+       << "not yet implemented!" << endl;  
+  return 0;
+}
+
 /*
 5.26.3 Specification for operator ~intersection~
 
@@ -7800,6 +7927,9 @@ const string  TemporalUnitIntersectionSpec  =
   "(line upoint) -> (stream upoint)*\n"
   "(upoint line) -> (stream upoint)*\n"
   "(upoint uregion) -> (stream upoint)*\n"
+  "(uregion upoint) -> (stream upoint)*\n"
+  "(upoint region) -> (stream upoint)*\n"
+  "(region upoint) -> (stream upoint)*\n"
   "(*):  Not yet implemented\n"
   "(**): Not yet implemented for T = real</text--->"
   "<text>intersection(_, _)</text--->"
@@ -7838,7 +7968,11 @@ ValueMapping temporalunitintersectionmap[] =
     temporalUnitIntersection_upoint_line<0>,
     temporalUnitIntersection_upoint_line<1>,
     
-    temporalUnitIntersection_upoint_uregion
+    temporalUnitIntersection_upoint_uregion<0>,
+    temporalUnitIntersection_upoint_uregion<1>,
+
+    temporalUnitIntersection_upoint_region<0>,
+    temporalUnitIntersection_upoint_region<1>
   };
 
 int temporalunitIntersectionSelect( ListExpr args )
@@ -7874,7 +8008,7 @@ int temporalunitIntersectionSelect( ListExpr args )
   if( nl->IsEqual( arg2, "ureal" )   &&
       nl->IsEqual( arg1, "real" ))     return 12;
   if( nl->IsEqual( arg2, "upoint" )  &&
-      nl->IsEqual( arg1, "upoint" ))   return 13;
+      nl->IsEqual( arg1, "point" ))    return 13;
   if( nl->IsEqual( arg2, "ustring" ) &&
       nl->IsEqual( arg1, "ustring" ))  return 14;
   
@@ -7884,6 +8018,13 @@ int temporalunitIntersectionSelect( ListExpr args )
       nl->IsEqual( arg2, "line" ) )      return 16;
   if( nl->IsEqual( arg1, "upoint" )    &&
       nl->IsEqual( arg2, "uregion" ) )   return 17;
+  if( nl->IsEqual( arg1, "uregion" )   &&
+      nl->IsEqual( arg2, "upoint" ) )    return 18;
+  if( nl->IsEqual( arg1, "upoint" )    &&
+      nl->IsEqual( arg2, "region" ) )    return 19;
+  if( nl->IsEqual( arg1, "region" )    &&
+      nl->IsEqual( arg2, "upoint" ) )    return 20;
+
   cout << "\ntemporalunitIntersectionSelect: Unsupported datatype." << endl;
   return -1;
 }
