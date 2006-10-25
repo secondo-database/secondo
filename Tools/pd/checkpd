@@ -82,9 +82,9 @@ TABSYM=$(echo -e "\t")
 for F in $MYFILES
 do
    if [ ! -e "$F" ]; then
-      NOTFOUND=$(expr "$NOTFOUND" + 1)
+      NOTFOUND=$(expr $NOTFOUND + 1)
    else
-      PROCESSED=$(expr "$PROCESSED" + 1)
+      PROCESSED=$(expr $PROCESSED + 1)
       S=$((pdtabs <"$F" | maketex >/dev/null) 2>&1)
       if [ $? -ne 0 ]
       then
@@ -93,7 +93,7 @@ do
              echo "message : $S"
              echo -e "\n"
         fi
-        PDFAILED=$(expr "$PDFAILED" + 1)
+        PDFAILED=$(expr $PDFAILED + 1)
       else
         {
           cat "$PD_HEADER"
@@ -108,19 +108,19 @@ do
               # file errors: ignore them
               LEF1=$(cat "$TEXLOG" | grep -i '^!' | grep -i "cannot determine size of" | wc -l)
               LEF2=$(cat "$TEXLOG" | grep -i '^!' | grep -i 'file .* not found' | wc -l)
-              LEF=$(expr "$LEF1" + "$LEF2")
+              LEF=$(expr $LEF1 + $LEF2)
               # all latex errors
               LATERR=$(cat "$TEXLOG" | grep '^!' | wc -l)
               # non file errors
-              LE=$(expr "$LATERR" - "$LEF")
+              LE=$(expr $LATERR - $LEF)
               if [ "$LE" -gt 0 ]; then 
                  echo -e "LaTeX Error in \"$F\" \n"
-                 LATEXFAILED=$(expr "$LATEXFAILED" + 1)
+                 LATEXFAILED=$(expr $LATEXFAILED + 1)
                  LATEXOK=1
               fi
            else
              echo -e "LaTeX Error in \"$F\" (If the file contains figures we can't avoid this) \n"
-             LATEXFAILED=$(expr "$LATEXFAILED" + 1)
+             LATEXFAILED=$(expr $LATEXFAILED + 1)
              LATEXOK=1
            fi
         fi
@@ -137,7 +137,7 @@ do
                else
                   echo -e "Warning: $CL lines too long in \"$F\""
                fi
-               LINEFAILED=$(expr "$LINEFAILED" + 1)
+               LINEFAILED=$(expr $LINEFAILED + 1)
             else
               if [ "$VERBOSE" = "true" ]; then
                   tabcheck "$F"  
@@ -147,7 +147,7 @@ do
               TABS=$?
               if [ $TABS -gt 0 ]; then
                   echo -e "Warning: $F contains $TABS tabulators\n"
-                  TABCONTAMINATED=$(expr "$TABCONTAMINATED" + 1)
+                  TABCONTAMINATED=$(expr $TABCONTAMINATED + 1)
               fi
             fi
         fi
@@ -159,8 +159,8 @@ done
 cd "$HERE"
 rm -rf "$TEMPDIR"
 
-SUCCESS=$(expr "$PROCESSED" - "$PDFAILED" - "$LINEFAILED" - "$LATEXFAILED" - "$TABCONTAMINATED" )
-if [ "$PROCESSED" -gt 0 ]; then
+SUCCESS=$(expr $PROCESSED - $PDFAILED - $LINEFAILED - $LATEXFAILED - $TABCONTAMINATED )
+if [ $PROCESSED -gt 0 ]; then
    echo "checkpd Statistic:"
    if [ "$NOTFOUND" -gt 0 ]; then
       echo "files not found : $NOTFOUND "
@@ -179,13 +179,13 @@ else
 fi
 
 if [ "$STRONG" != "true" ]; then
-    FAILED=$(expr "$PDFAILED" + "$LATEXFAILED")
+    FAILED=$(expr $PDFAILED + $LATEXFAILED)
 else
-	FAILED=$(expr "$PDFAILED" + "$LATEXFAILED" +  "$LINEFAILED" )
+	FAILED=$(expr $PDFAILED + $LATEXFAILED +  $LINEFAILED )
 fi
 
 if [ "$VERYSTRONG" = "true"  ]; then
-    FAILED=$(expr "$PDFAILED" + "$LATEXFAILED" +  "$LINEFAILED" + "$TABCONTAMINATED" )
+    FAILED=$(expr $PDFAILED + $LATEXFAILED +  $LINEFAILED + $TABCONTAMINATED )
 fi
 
 #FAILED="$PDFAILED"
