@@ -2274,7 +2274,7 @@ const string MinusSpec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       " ( \"cluster x cluster -> cluster\""
       " \" _ - _ \" "
-      "  \"removes  the elements of o cluster from other one \" "
+      "  <text>removes  the elements of o cluster from other one </text---> "
       "  \" query c1 - c2 \" ))";
 
 const string NumberOfSpec =
@@ -2302,7 +2302,8 @@ const string ContainsSpec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       " ( \"cluster x int9m -> bool\""
       " \" _ contains _ \" "
-      "  \"checks whether the second element is member of the first one\" "
+      "  <text>checks whether the second element"
+      " is member of the first one </text---> "
       "  \" query c contains i \" ))";
 
 const string DisjointSpec =
@@ -2341,8 +2342,8 @@ const string ClusterNameOf_pc_m_Spec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       " ( \"predicategroup x int9m -> string\""
       " \"  clustername_of(_ , _) \" "
-      "  \"returns the name of the matrix in the given "
-      " predicategroup\" "
+      "  <text>returns the name of the matrix in the given "
+      " predicategroup </text---> "
       "  <text>query clustername_of(StdPG,m1)="
       "\"inside\" </text---> ))";
 
@@ -2350,7 +2351,7 @@ const string ClusterOf_pc_m_Spec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       " ( \"predicategroup x int9m -> cluster\""
       " \"  clusterof(_ , _) \" "
-      "  \"returns the predicate group containing the matrix\" "
+      "  <text>returns the predicate group containing the matrix</text---> "
       "  <text>query clusterof(StdPG,m1) </text---> ))";
 
 const string SizeOf_Spec =
@@ -2364,7 +2365,7 @@ const string CreateCluster_Spec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       " ( \" string x {text, string} -> cluster  \""
       " \"  createcluster(_ , _)\" "
-      "  \"creates an cluster with given name and condition\" "
+      "  <text>creates an cluster with given name and condition</text---> "
       "  <text>query createcluster(\"test\",\"ii & !ee\") </text---> ))";
 
 const string IsComplete_Spec =
