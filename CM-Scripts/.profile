@@ -3,7 +3,7 @@
 # assert that a default user name
 # and home directory exists
 if [ "$LOGNAME" == "" ]; then
-  echo -e "\$LOGNAME is empty! Set to \"nodbody\"."
+  echo -e "\$LOGNAME is empty! Set to \"nobody\"."
   LOGNAME="nobody"
 fi
 
