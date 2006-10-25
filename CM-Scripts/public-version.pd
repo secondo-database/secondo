@@ -5,69 +5,84 @@
 
 " "[1]
 
+
+\begin{center}
+{\Huge How to Update the Public CVS Module}
+\end{center}
+
 Sept. 2006, M. Spiekermann
 
-This file describes the actions needed to import the current secondo code into
+This file describes the actions needed to import the current Secondo code into
 the public cvs repository.
 
 1 Overview
 
 The cvs server on zeppelin has two different modules called ~secondo~ and
 ~secondo-src~. The first one contains the version which is private for the
-people of University in Hagen whereas the second is a special version which is
+people of University in Hagen, whereas the second is a special version which is
 reduced by some files which are not intended for public usage, e.g. unfinished
-or unstable work or parts which are used in unpublished papers. The files or
+or unstable implementations or parts which are used in unpublished papers. The files or
 directories which are not public can be configured in the file ~nonpublic.filelist~.
 
-extern users will have readonly access for this repository. Hence we can import updates
+Extern users will have readonly access for this repository. Hence we can import updates
 there and offer them a convenient way to merge in our changes of the core system into
-their code. 
+their (local modified) code. 
 
 
 2 Updating the Public Repository
 
-First checkout a copy of ~secondo~ with your cvs user.
-Checkout a copy of ~secondo-src~ (at the same level as secondo).
+First checkout a copy of module ~secondo~ with your cvs user.
+Then checkout a copy of module ~secondo-src~. 
 Afterwards do the following steps:
 
 
-  1 run "make showpubversions". This will show you the last tags beginning
-    with "public-". In the following we assume the the last version was
+  1 Go into directory secondo. Run "make showpubversions". This will show you the 
+    last tags beginning
+    with "public-". In the following we assume that the last version was
     "public-04".
 
-  2 run \\
+  2 Run \\
       "make changelog from=04 to=05" \\
     This command will update your cvs copy, tag the versions and computes a
     change log containg all commits between the two versions. 
 
-  3 run \\
+  3 Run \\
      "make src-archives tag=public-05 srcprefix=secondo-src" \\
-    This command will create a file "secondo-public-05-LAT1.tar.gz" somwhere 
+    This command will create a file "secondo-public-05-LAT1.tar.gz" somewhere 
     below the "/tmp" directory.
 
   4 Go into the parent directory and run \\
-     "tar -xzf/tmp/.../secondo-public-05-LAT1.tar.gz".
+     "tar -xzf /tmp/.../secondo-public-05-LAT1.tar.gz". This will overwrite the
+    files of secondo-src.
 
-  5 Compile the system and run the regression tests, e.g. "make runtests".
+  5 Go into directory secondo-src. Compile the system and run the regression tests, 
+    e.g. "make runtests".
 
-  6 Edit "Document/ChangeLog" by hand in order to hide information about non-public files.
+  6 Edit the file "Document/ChangeLog" by hand in order to hide information about non-public files.
 
   7 Do a cvs checkin with a useful comment for all files.
 
-  8 run "make realclean" and create with "make newfiles"
-    a list of possibly new files (and directories).
+  8 Run "make realclean" 
+
+  9 Create with "make newfiles"
+    a list of possibly new files (and directories). These will be stored in
+    "newfiles.txt"
  
-  9 Edit the above file by hand in order to delete files which are just not deleted
-    by make clean.
+ 10 For each directory create a new one in the cvs repository with "cvs add <dir-name>"
 
- 10 Create new directories with "cvs add <name>". Then run \\ "cvs add $(cat newfiles.txt)"[2]
+ 11 Then run \\ "cvs add $(cat newfiles.txt)"[2]
 
- 11 Goto step 8 until "newfiles.txt" is empty. 
+ 12 Goto step 9 until "newfiles.txt" is empty. 
 
 
 3 Automating the Procedure
 
 For automating the task above we need to be sure that "make realclean" really deletes all
-files which are not under CVS control. 
+files which are not under CVS control otherwise we will check in files which are
+created by make. 
+
+Steps 9-12 could be replaced by a script which iterates over the output of "cvs -nq update" 
+and checks for each entry if it is a directory. If it is a directory it
+needs to add recursively all files and subdirectories. 
 
 */
