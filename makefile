@@ -225,7 +225,7 @@ runtests: ttytest
 
 .PHONY: ttytest 
 ttytest:
-	cd CM-Scripts; ./run-tests.sh -tty
+	cd CM-Scripts; ./run-tests.sh -tty /tmp/runtests-$(USER) 900
 
 .PHONY: cstest 
 cstest:
