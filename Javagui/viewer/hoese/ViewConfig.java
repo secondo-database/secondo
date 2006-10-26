@@ -785,25 +785,30 @@ public class ViewConfig extends javax.swing.JDialog {
                   return;
             }
             // check for categories in selected references
-           Iterator it = ACL.getCatNames();
            int numberNames=0;
            int failed =0;
            Vector failedNames=new Vector();
+
+           // check whether all required categories are available
+           Iterator it = ACL.getCatNames(attrValueList);
            while(it.hasNext()){
               String CN = (String) it.next();
-              numberNames++;
-              found = false;
-              for (int i=0;i<mw.Cats.size() & ! found ;i++){
-                 Category cat = (Category)mw.Cats.get(i);
-                 if(cat.hasName(CN)){
-                    found = true;
+              if(CN!=null){ // a selection is found
+                 numberNames++;
+                 found = false;
+                 for (int i=0;i<mw.Cats.size() & ! found ;i++){
+                    Category cat = (Category)mw.Cats.get(i);
+                    if(cat.hasName(CN)){
+                       found = true;
+                    }
+                 }
+                 if(!found){ // name corresponds to no known category
+                     failed++;
+                     failedNames.add(CN);
                  }
               }
-              if(!found){ // name corresponds to no known category
-                  failed++;
-                  failedNames.add(CN);
-              }
            }
+
            if(numberNames==failed && numberNames>0){
               Reporter.showError("no categorie in the selected references is loaded \n abort");
               return;
@@ -813,8 +818,13 @@ public class ViewConfig extends javax.swing.JDialog {
                String msg = "not all categories in the seleced references are loaded \n"+
                             "you want to use the default category ?\n\n" +
                             "not known are \n" ;
+               int size = failedNames.size();
+               int max = Math.max(size,10); // report a maximum of 10 categories
                for(int i=0;i<failedNames.size();i++){
-                    msg += failedNames.get(i);
+                    msg += failedNames.get(i)+"\n";
+               }
+               if(size>max){
+                    msg += " .... ";
                }
                if(Reporter.showQuestion(msg)==Reporter.NO){
                     return;

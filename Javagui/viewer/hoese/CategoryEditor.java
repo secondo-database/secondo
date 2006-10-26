@@ -554,8 +554,10 @@ public class CategoryEditor extends javax.swing.JDialog {
   private void TextureIconBActionPerformed (java.awt.event.ActionEvent evt) {                   //GEN-FIRST:event_TextureIconBActionPerformed
     int returnVal = Texture_FileChooser.showOpenDialog(this);
     if (returnVal == JFileChooser.APPROVE_OPTION) {
-      IconFileName = Texture_FileChooser.getSelectedFile().getPath();
+      File f = Texture_FileChooser.getSelectedFile();
+      IconFileName = f.getPath();
       TextureIconB.setIcon(new ImageIcon(IconFileName));
+      IconFileName = f.getName();
     }
   }             //GEN-LAST:event_TextureIconBActionPerformed
 

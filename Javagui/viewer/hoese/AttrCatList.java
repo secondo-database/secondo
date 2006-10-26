@@ -65,7 +65,8 @@ public class AttrCatList{
     return Links.add(new Link(Value,CatName));
  }
 
-
+  /** Returns all contained category names 
+    **/
   public Iterator getCatNames(){
      TreeSet  CN = new TreeSet(new StringComparator());
      Iterator it = Links.iterator();
@@ -74,6 +75,30 @@ public class AttrCatList{
      }
      return CN.iterator();
   }
+
+  /** Returns all category names assigned to a value from the list.
+    **/
+  public Iterator getCatNames(ListExpr le){
+      TreeSet cn = new TreeSet(new StringComparator());
+      int at = le.atomType();
+      if(at!=ListExpr.NO_ATOM){ // not a list
+          String s = getCatName(le);
+          if(s!=null){
+             cn.add(s);
+          }
+      } else{
+         ListExpr scan = le;
+         while(!scan.isEmpty()){
+           String s = getCatName(scan.first());
+           if(s!=null){
+              cn.add(s);
+           }
+           scan = scan.rest();
+         }
+      }
+      return cn.iterator();
+  }
+
 
 /** add a new Link
    * @return true, if the pair (Value,CatName) is not contained in
@@ -174,24 +199,6 @@ public class AttrCatList{
  }
 
 
- /** returns the name of the Category for the Attribut in LE
-   * if LE is a komplex List (i.e. not an Integer,Symbol,String Int or Real
-   * or not a Castegory name exists for this value then null is returned */
- public String getCatName(ListExpr LE){
-   if(LE.atomType()==ListExpr.INT_ATOM)
-      return getCatName(LE.intValue());
-   else if(LE.atomType()==ListExpr.REAL_ATOM)
-      return getCatName(LE.realValue());
-   else if(LE.atomType()==ListExpr.BOOL_ATOM)
-      return getCatName(LE.boolValue());
-   else if (LE.atomType()==ListExpr.STRING_ATOM)
-      return getCatName(LE.stringValue());
-   else if (LE.atomType()==ListExpr.SYMBOL_ATOM)
-      return getCatName(LE.symbolValue());
-   else return null;
- }
-
-
  /** returns the number of attribute in List value with existing
    * link to a Category */
  public int  numberOfLinksFor(ListExpr List){
@@ -200,31 +207,27 @@ public class AttrCatList{
    while (!Values.isEmpty()){
      ListExpr LE=Values.first();
      Values = Values.rest();
-    if(LE.atomType()==ListExpr.INT_ATOM){
-         if(getCatName(LE.intValue())!=null)
-            tno++;
-         }
-      else if(LE.atomType()==ListExpr.REAL_ATOM){
-           if(getCatName(LE.realValue())!=null)
-             tno++;
-         }
-      else if(LE.atomType()==ListExpr.BOOL_ATOM){
-           if (getCatName(LE.boolValue())!=null)
-             tno++;
-         }
-      else if (LE.atomType()==ListExpr.STRING_ATOM){
-           if(getCatName(LE.stringValue())!=null)
-              tno++;
-         }
-      else if (LE.atomType()==ListExpr.SYMBOL_ATOM){
-           if (getCatName(LE.symbolValue())!=null)
-	      tno++;
-         }
+     if(getCatName(LE)!=null){
+         tno++;
+     }
    }
    return tno;
  }
 
-
+ /** Returns the name of the category for a given list.
+   * The list must be one of the supported atom types.
+   **/
+ public String getCatName(ListExpr LE){
+      int atomType = LE.atomType();
+      switch(atomType){
+          case ListExpr.SYMBOL_ATOM: return getCatName(LE.symbolValue());
+          case ListExpr.BOOL_ATOM:   return getCatName(LE.boolValue());
+          case ListExpr.STRING_ATOM: return getCatName(LE.stringValue());
+          case ListExpr.REAL_ATOM:   return getCatName(LE.realValue());
+          case ListExpr.INT_ATOM:    return getCatName(LE.intValue());
+          default: return null;
+      }
+ }
 
  /** search the category name for given value
    * if this value don't exists in the set of
