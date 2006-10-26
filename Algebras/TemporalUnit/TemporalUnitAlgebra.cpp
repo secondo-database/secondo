@@ -7776,8 +7776,30 @@ temporalUnitIntersection_upoint_point( Word* args, Word& result, int message,
   return 0;
 }
 
-// for (upoint line) -> (stream upoint)
-//     (line upoint) -> (stream upoint)
+/*
+Value mapping for 
+
+----
+
+  intersection:     (upoint line) -> (stream upoint)
+                    (line upoint) -> (stream upoint)
+
+----
+
+Strategy: 
+
+1. Use Line::Crossings(trajectory(up), respoints) to find isolated points
+
+2. Use Line::Intersection(trajectory(up) reslines) to find line segements
+
+3. For each point in respoints: create a result upoint
+
+4. For each half segment in reslines: create a result upoint
+
+5. Store results within localinfo
+
+*/
+
 template<int uargindex>
 int temporalUnitIntersection_upoint_line( Word* args, Word& result, 
                                           int message,
@@ -7786,7 +7808,219 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
   cout << "\nATTENTION: temporalUnitIntersection_upoint_line "
        << "not yet implemented!" << endl;  
   return 0;
-}
+
+  TUIntersectionLocalInfo *sli;
+  Word        a0, a1;
+  UPoint      *u, res;
+  Line        *l, trajU, reslines;
+  HalfSegment hs;
+  const HalfSegment *hs1, *hs2;
+  Points      respoints;
+  DateTime    TRes0 = DateTime(instanttype), 
+              TRes1 = DateTime(instanttype);
+  Interval<Instant> iv;
+  Point       p, pl, pr, p0, p1;
+  const Point *pc;
+  int         i, j;
+  double      
+    x0, x1, y0, y1,    // coord values
+    xl, xr, yl, yr,    // coord values
+    t0, dt, tl, tr;    // instant values
+  bool        lc, rc;
+  
+  switch( message )
+    {
+    case OPEN:
+      
+      sli = new TUIntersectionLocalInfo;
+      sli->finished = true;
+      sli->NoOfResults = 0;
+      sli->NoOfResultsDelivered = 0;
+      local = SetWord(sli);
+
+      // initialize arguments, such that a0 always contains the upoint
+      //                       and a1 the line 
+      if (uargindex == 0)
+        { a0 = args[0]; a1 = args[1]; }
+      else
+        { a0 = args[1]; a1 = args[0]; }
+      
+      u = (UPoint*)(a0.addr);
+      l = (Line*)(a1.addr);
+
+      // test for definedness
+      if ( !u->IsDefined() || !l->IsDefined() )
+        return 0; // nothing to do
+
+      // test for static upoint u
+      if ( AlmostEqual(u->p0, u->p1) ||
+           ( u->timeInterval.start == u->timeInterval.end ) )
+        { // this is a static upoint
+          // check if line l intersects point p0
+          if ( l->Contains(u->p0) )
+            { // add original upoint as the only result
+              res.SetDefined(true);
+              sli->resultValues[sli->NoOfResults] = SetWord( u->Clone() );
+              sli->NoOfResults++;   
+              sli->finished = false;              
+            }
+          return 0; // we are finished
+        }
+      // upoint u is not static, but moving
+      u->UTrajectory( trajU );
+
+      ////////////////////////////////////
+      // Merged code from Line::Intersection and Line:Crossings
+      // to save time
+
+      assert( l->IsOrdered() && trajU.IsOrdered() );
+      respoints.Clear();
+      reslines.Clear();
+
+      if( l->IsEmpty() || trajU.IsEmpty() )
+        return 0;
+      
+      reslines.StartBulkLoad();
+      respoints.StartBulkLoad();
+      for( i = 0; i < l->Size(); i++ )
+        {
+          l->Get( i, hs1 );
+          if( hs1->IsLeftDomPoint() )
+            {
+              for( j = 0; j < trajU.Size(); j++ )
+                {
+                  l->Get( j, hs2 );
+                  if( hs2->IsLeftDomPoint() )
+                    {// Crossings - part
+                      if( hs1->Intersection( *hs2, p ) )
+                        respoints += p;
+                      if( hs1->Intersection( *hs2, hs ) )
+                        {// Intersection - part
+                          reslines += hs;
+                          hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+                          reslines += hs;
+                        }
+                    }
+                }
+            }
+        }
+      respoints.EndBulkLoad();
+      reslines.EndBulkLoad();
+      // end of merged code
+      ////////////////////////////////////
+
+      x0 = u->p0.GetX();     y0 = u->p0.GetY();
+      x1 = u->p1.GetX();     y1 = u->p1.GetY();
+      dt = (u->timeInterval.end - u->timeInterval.start).ToDouble();
+      t0 = u->timeInterval.start.ToDouble();
+
+      for(i=0; i <  reslines.Size(); i++ )
+        { // get next HS
+          reslines.Get( i, hs1 );
+          pl = hs1->GetLeftPoint();
+          pr = hs1->GetRightPoint();
+          
+          xl = pl.GetX(); xr = pr.GetX(); // get single coords
+          yl = pl.GetY(); yr = pr.GetY(); // get single coords
+          
+          // as we have a non-static upoint here, we have 
+          // (dt != 0) && ((x1 != x0) || (y1 != y0)).
+          // Also, l is a non-degenerated line, 
+          // and thus can compute tl and tr, this are the instants, with
+          // x(tl) = xl, y(tl) = yl; x(tr) = xr, y(tr) = yr
+          
+          tl = (x1-x0 != 0) ? dt*(xl-x0)/(x1-x0)-t0 : dt*(yl-y0)/(y1-y0)-t0;
+          tr = (x1-x0 != 0) ? dt*(xr-x0)/(x1-x0)-t0 : dt*(yr-y0)/(y1-y0)-t0;
+
+          // sort the instants, such that t0 <= t1
+          if (tl <= tr)
+            {
+              TRes0.ReadFrom(tl);
+              TRes1.ReadFrom(tr);
+            }
+          else
+            {
+              TRes0.ReadFrom(tr);
+              TRes1.ReadFrom(tl);
+            }
+          u->TemporalFunction(TRes0, p0, true);
+          u->TemporalFunction(TRes1, p1, true);
+
+          lc = (TRes0 == u->timeInterval.start) && (u->timeInterval.lc);
+          rc = (TRes1 == u->timeInterval.end)   && (u->timeInterval.rc);
+
+          iv = Interval<Instant>(TRes0, TRes1, lc, rc);
+
+          res = UPoint(iv, p0, p1);
+          res.SetDefined(true);
+          // add moving upoint to localinfo
+          sli->resultValues[sli->NoOfResults] = SetWord( res.Clone() );
+          sli->NoOfResults++;   
+          sli->finished = false;
+        }
+
+      for(i=0; i <  respoints.Size(); i++ )
+        { // get next point
+          respoints.Get( i, pc );
+          xl = pc->GetX(); yl = pc->GetY(); // get single coords
+          
+          // As we have an intersection point and u is not static,
+          // we can compute tl with x(tl) = xl, y(tl) = yl:
+          tl = (x1-x0 != 0) ? dt*(xl-x0)/(x1-x0)-t0 : dt*(yl-y0)/(y1-y0)-t0;
+          
+          TRes0.ReadFrom(tl);
+          
+          u->TemporalFunction(TRes0, p0, true);
+          
+          iv = Interval<Instant>(TRes0, TRes0, true, true);
+          // create a upoint 
+          res = UPoint(iv, p0, p0);
+          res.SetDefined(true);
+          // add static upoint to localinfo
+          sli->resultValues[sli->NoOfResults] = SetWord( res.Clone() );
+          sli->NoOfResults++;   
+          sli->finished = false;
+        }
+      
+      return 0;
+      
+    case REQUEST:
+      
+      if(local.addr == 0)
+        return CANCEL;
+      sli = (TUIntersectionLocalInfo*) local.addr;
+      if(sli->finished)
+        return CANCEL;
+      if(sli->NoOfResultsDelivered < sli->NoOfResults)
+        {
+          result = SetWord( ((UPoint*)
+            (sli->resultValues[sli->NoOfResultsDelivered].addr))->Clone() );
+          ((UPoint*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
+            ->DeleteIfAllowed();
+          sli->NoOfResultsDelivered++;
+          return YIELD;
+        }
+      sli->finished = true;
+      return CANCEL;
+      
+    case CLOSE:
+      
+      if (local.addr != 0)
+        {
+          sli = (TUIntersectionLocalInfo*) local.addr;
+          while(sli->NoOfResultsDelivered < sli->NoOfResults)
+            {
+              ((UPoint*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
+                ->DeleteIfAllowed();
+              sli->NoOfResultsDelivered++;
+            }
+          delete sli;
+        }
+      return 0;
+    } // end switch
+  
+  return 0;
+}  
 
 // for (upoint uregion) -> (stream upoint)
 //     (uregion upoint) -> (stream upoint)
