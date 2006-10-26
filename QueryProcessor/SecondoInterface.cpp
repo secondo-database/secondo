@@ -459,6 +459,7 @@ separate functions which should be named Command\_<name>.
  
   // reset errors 
   SmiEnvironment::ResetErrors(); 
+  cmsg.resetErrors();
   errorMessage = "";
   errorCode    = 0;
   errorPos     = 0;
@@ -1345,11 +1346,10 @@ SecondoInterface::constructErrMsg(int errorCode, string& errorMessage)
       SmiEnvironment::GetLastErrorCode(err);
       errorMessage += err + "\n"; 
     }  
-
+  
+    cmsg.error() << "" ; // be sure to use the error channel 
     cmsg.send(); // flush cmsg buffer
-    if ( isCSImpl ) {
-      errorMessage += cmsg.getErrorMsg();
-    }
+    errorMessage += cmsg.getErrorMsg();
 
     errorMessage += GetErrorMessage(errorCode);
   } 

@@ -991,6 +991,41 @@ all objects mentioned in the expression have defined values.
   return (list);
 }
 
+/*
+This function uses the cmsg object to report errors from the given 
+list. The list should be in format ( ERRORS <error 1> ... <error n>).
+The ~errortype~ specifies the source of the error:
+
+
+  * 0 type error
+  * 1 error in in function
+  * 2 other error 
+
+*/
+void reportError(ListExpr errorInfo, int errorType){
+    if(!errorInfo){
+      return;
+    }
+    if(nl->ListLength(errorInfo)<2){ //no error
+      return;
+    }
+    ListExpr l = nl->Rest(errorInfo);
+    while(!nl->IsEmpty(l)){
+      string msg = nl->ToString(nl->First(l));
+      switch(errorType){
+        case 0: cmsg.typeError(msg);
+                cmsg.send();
+                break;
+        case 1: cmsg.inFunError(msg);
+                cmsg.send();
+                break;
+        default: cmsg.otherError(msg);
+                 cmsg.send();
+      }
+      l = nl->Rest(l);
+    }
+}
+
 ListExpr
 QueryProcessor::Annotate( const ListExpr expr,
                           NameIndex& varnames,
@@ -1355,6 +1390,7 @@ function index.
   firstSig = firstType = result = functionList = nl->TheEmptyList();
   
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  ListExpr errorList=errorInfo;
   
   string name="", typeName=""; 
   
@@ -1377,6 +1413,7 @@ function index.
   if ( nl->IsEmpty( expr ) )  
   {
     // case (i): result list ((none arglist ()) ()) for an empty list
+    reportError(errorList,2);
     return (nl->TwoElemList(
               nl->ThreeElemList(
                 nl->SymbolAtom( "none" ),
@@ -1405,6 +1442,7 @@ function index.
         values[valueno].typeInfo = nl->SymbolAtom( "int" );
         values[valueno].value = value;
         valueno++;
+        reportError(errorList,1);
         return (nl->TwoElemList(
                   nl->ThreeElemList(
                     expr,
@@ -1429,6 +1467,7 @@ function index.
         values[valueno].typeInfo = nl->SymbolAtom( "real" );
         values[valueno].value = value;
         valueno++;
+        reportError(errorList,1);
         return (nl->TwoElemList(
                   nl->ThreeElemList( 
                     expr,
@@ -1453,6 +1492,7 @@ function index.
         values[valueno].typeInfo = nl->SymbolAtom( "bool" );
         values[valueno].value = value;
         valueno++;
+        reportError(errorList,1);
         return (nl->TwoElemList(
                   nl->ThreeElemList(
                     expr,
@@ -1477,6 +1517,7 @@ function index.
         values[valueno].typeInfo = nl->SymbolAtom( "string" );
         values[valueno].value = value;
         valueno++;
+        reportError(errorList,1);
         return (nl->TwoElemList(
                   nl->ThreeElemList(
                     expr,
@@ -1501,6 +1542,7 @@ function index.
         values[valueno].typeInfo = nl->SymbolAtom( "text" );
         values[valueno].value = value;
         valueno++;
+        reportError(errorList,1);
         return (nl->TwoElemList(
                   nl->ThreeElemList(
                     expr,
@@ -1548,6 +1590,7 @@ function index.
                      << nl->ToString(functionList) << endl;
               }  
               values[valueno-1].isList = true;
+              reportError(errorList,1);
               return Annotate( functionList, newvarnames, 
                                newvartable, defined, 
                                nl->TheEmptyList() );
@@ -1556,6 +1599,7 @@ function index.
             { 
               // case (iii-b): ordinary object, 
               // return ((<obj. name> object <index>) <type>)
+              reportError(errorList,2);
               return (nl->TwoElemList(
                         nl->ThreeElemList(
                           expr,
@@ -1570,6 +1614,7 @@ function index.
             // case (iii-b): ordinary object, 
             // atomic type expression like int, real etc. 
             // return ((<obj. name> object <index>) <type>)
+            reportError(errorList,2);
             return (nl->TwoElemList(
                       nl->ThreeElemList(
                         expr,
@@ -1585,6 +1630,7 @@ function index.
               << "Unexpected type expression " << nl->ToString(typeExpr) 
               << endl; 
             cmsg.send();
+            reportError(errorList,2);
             return (nl->SymbolAtom( "exprerror" ));
           }
 
@@ -1594,6 +1640,7 @@ function index.
      // case (iii-a): operator, return 
      // ((<op> operator (<algId-1> <opId-1> ... <algId-N> <opId-N>)) typeerror) 
           ListExpr opList = GetCatalog()->GetOperatorIds( name );
+          reportError(errorList,2);
           return (nl->TwoElemList(
                     nl->ThreeElemList(
                       expr,
@@ -1607,6 +1654,7 @@ function index.
           // return ((<name> variable <pos> <funNo.>) <type>)
           GetVariable( name, varnames, vartable, position, 
                        funindex, typeExpr );
+          reportError(errorList,2);
           return (nl->TwoElemList(
                     nl->FourElemList(
                       expr,
@@ -1619,6 +1667,7 @@ function index.
         {
           // case (iii-f): a counter, 
           // return ((counter counter) typeerror)
+          reportError(errorList,2);
           return nl->TwoElemList(
                    nl->TwoElemList(
                      expr,
@@ -1629,6 +1678,7 @@ function index.
         {
           // case (iii-e): nothing of the above => identifier 
           // return ((<ident> identifier) <ident>)
+          reportError(errorList,2);
           return (nl->TwoElemList(
                     nl->TwoElemList(
                       expr,
@@ -1642,6 +1692,7 @@ function index.
           << "Default reached while annotation an atom!"
           << endl;
         cmsg.send();
+        reportError(errorList,2);
         return (nl->TheEmptyList());
       } 
     } // end of switch (nl->AtomType( expr ))
@@ -1653,6 +1704,7 @@ function index.
     if ( TypeOfSymbol( nl->First( expr ) ) == QP_FUN )
     { 
       // case (iv-a): annotate the function definition (abstraction)
+      reportError(errorList,2);
       return AnnotateFunction( expr, varnames, vartable, defined,
                                0, nl->TheEmptyList(), 
                                nl->TheEmptyList(), fatherargtypes );
@@ -1694,7 +1746,8 @@ function index.
         valueno++;
 
         if( isPointer ) 
-        {
+        { 
+          reportError(errorList,2); 
           return (nl->TwoElemList(
                     nl->ThreeElemList(
                       expr,
@@ -1704,6 +1757,7 @@ function index.
         } 
         else 
         {
+          reportError(errorList,2); 
           return (nl->TwoElemList(
                     nl->ThreeElemList(
                       expr,
@@ -1714,6 +1768,7 @@ function index.
       }
       else
       {
+        reportError(errorList,2); 
         return (nl->TwoElemList(
                   nl->ThreeElemList(
                     expr,
@@ -1767,8 +1822,10 @@ function index.
         if( !nl->IsEmpty( pair ) && 
             nl->IsAtom( pair ) && 
             nl->AtomType( pair ) == SymbolType && 
-            nl->SymbolValue( pair ) == "exprerror" )
+            nl->SymbolValue( pair ) == "exprerror" ){
+          reportError(errorList,2);
           return pair; 
+        }
 
         lastElem = nl->Append( lastElem, pair );
         lastType = nl->Append( lastType, nl->Second( pair ) );
@@ -1866,7 +1923,7 @@ will be processed.
                                          newList),
                                        resultType,
                                        nl->IntAtom(opFunId));
-       
+              reportError(errorList,2); 
               return (applyopList);
             }
             case QP_FUNCTION:
@@ -1904,6 +1961,7 @@ will be processed.
                   typeList = nl->Rest( typeList );
                   if ( !nl->Equal( firstSig, firstType ) )
                   {
+                    reportError(errorList,2); 
                     return (nl->SymbolAtom( "exprerror" ));
                   }
                 }
@@ -1926,6 +1984,7 @@ will be processed.
                   nl->WriteListExpr( result, cout, 2 );
                   cout << endl;
                 }
+                reportError(errorList,2); 
                 return (result);
               }
               else
@@ -1937,6 +1996,7 @@ will be processed.
                   cout << "expr: " << endl;
                   nl->WriteListExpr( expr, cout, 2 );
                 } 
+                reportError(errorList,2); 
                 return (nl->SymbolAtom( "exprerror" ));
               }
             }
@@ -1975,6 +2035,7 @@ will be processed.
                        << "Expected:" << nl->ToString(firstSig) << endl
                        << "Obtained:" << nl->ToString(firstType) << endl;
                     cmsg.send();
+                    reportError(errorList,0); 
                     return (nl->SymbolAtom( "exprerror" ));
                   }
                 }
@@ -1997,6 +2058,7 @@ will be processed.
                   nl->WriteListExpr( result, cout );
                   cout << endl;
                 }
+                reportError(errorList,2); 
                 return (result);
               }
               else
@@ -2012,6 +2074,7 @@ will be processed.
                    << "Type mismatch! Expecting " << expectedParams 
                    << " parameter but got " << retrievedParams <<  "." << endl;
                 cmsg.send();
+                reportError(errorList,0); 
                 return (nl->SymbolAtom( "exprerror" ));
               }
             }
@@ -2025,6 +2088,7 @@ will be processed.
 
               if ( counterNo > 0 && counterNo <= NO_COUNTERS )
               {
+                reportError(errorList,0); 
                 return nl->TwoElemList(
                          nl->FourElemList(
                            nl->SymbolAtom("none"),
@@ -2037,6 +2101,7 @@ will be processed.
               {
                 cout << "counter number " << counterNo << 
                         " is out of the range of counters." << endl; 
+                reportError(errorList,2); 
                 return nl->TwoElemList(
                          nl->FourElemList(
                            nl->SymbolAtom("none"),
@@ -2056,6 +2121,7 @@ will be processed.
                     << " an identifier or an empty list! " << endl;
               } 
               rest = list;
+              reportError(errorList,2); 
               return (nl->TwoElemList(
                         nl->ThreeElemList(
                           nl->SymbolAtom( "none" ),
@@ -2067,17 +2133,20 @@ will be processed.
         }
         else
         {
+          reportError(errorList,2); 
           return (nl->SymbolAtom( "exprerror" ));
         }
       }
       else
       {
+        reportError(errorList,2); 
         return (nl->SymbolAtom( "exprerror" ));
       }
     }
   } 
   
   // Any other case which should never be reached
+  reportError(errorList,2); 
   return (nl->SymbolAtom( "exprerror" ));
   
 } // end Annotate

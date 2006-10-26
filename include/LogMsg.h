@@ -321,8 +321,8 @@ public:
   inline string getErrorMsg() {
 
     string result = allErrors.str();
-    allErrors.str("");
-    allErrors.clear(); 
+  //  allErrors.str("");
+  //  allErrors.clear(); 
   
     if ( isSpaceStr(result) ) {
       result = "";
@@ -330,6 +330,12 @@ public:
 
     return result;
   }
+
+  inline void resetErrors(){
+       allErrors.str("");
+       allErrors.clear();
+  }
+
 
 /*
 We will use a global instance named ~cmsg~. Unfortunately, it is not
