@@ -11368,10 +11368,11 @@ const string SpatialSpecMinus  =
 
 const string SpatialSpecUnion  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point||points||line x point||points||line) -> "
-  "points||line</text--->"
+  "( <text>(point x points) -> points\n"
+  "(points x point) -> points\n"
+  "(points x points) -> points</text--->"
   "<text>_union_</text--->"
-  "<text>union of two sets.</text--->"
+  "<text>union of two sets. Also see: 'union_new'.</text--->"
   "<text>query points union point</text--->"
   ") )";
 
