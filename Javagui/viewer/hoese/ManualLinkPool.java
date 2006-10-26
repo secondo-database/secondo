@@ -36,6 +36,7 @@ private ManualLinkPool(){
 public static boolean add(AttrCatList NewLink){
   String N = NewLink.getName();
   if(N==null) return false;
+  N = N.trim();
   if(N.equals("")) return false;
   if(exists(N))
      return false;

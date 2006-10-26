@@ -32,7 +32,9 @@ import tools.Reporter;
 
 public class LinkAttrCat extends JDialog{
 
-
+/** Construct a new Dialog for assigning
+  * categories to given values 
+  **/
 public LinkAttrCat(HoeseViewer HV){
    super(HV.getMainFrame(),true);
    this.HV = HV;
@@ -271,21 +273,34 @@ public static final int OK = 0;
 public static final int CANCELED = 1;
 
 
+
+/**  This class represents the internal model of the table 
+  * which is shown.
+  */ 
+
 private class AttrCatTableModel implements TableModel{
 
+/** Adds a new TableModelListener **/
 public void addTableModelListener(TableModelListener l){
   if(!Listeners.contains(l))
      Listeners.add(l);
 }
 
+/* Returns the class of String **/
 public Class getColumnClass(int columnIndex){
   return "".getClass();
 }
 
+/* Returns the constant 2.
+ * The first row decsribes the attribute value and the second one the
+ * assigned category.
+ **/
 public int getColumnCount(){
   return 2;
 }
 
+/** Returns the name of the requested column.
+*/
 public String getColumnName(int columnIndex){
   if (columnIndex==0)
      return "Value";
@@ -294,11 +309,15 @@ public String getColumnName(int columnIndex){
   return "";
 }
 
+/** Returns the number of different values */
 public int getRowCount(){
   if(Links==null) return 0;
   return Links.getSize();
 }
 
+/** Returns the string representing the value of an attribute
+  * and the name of a category respectively.
+  **/
 public Object getValueAt(int rowIndex,int ColumnIndex){
   if(Links==null) return "";
   if(ColumnIndex==0)
@@ -308,25 +327,39 @@ public Object getValueAt(int rowIndex,int ColumnIndex){
   return "";
 }
 
-
+/** Changes the name of the Category located in the
+  * given row.
+  */
 public void setCatNameAt(int index,String Name){
    if(Links==null) return;
    Links.setCatNameAt(index,Name);
    informListeners();
 }
 
+/** Returns allways false.
+  * Changes are only allowed by the appropriate methods.
+  **/
 public boolean isCellEditable(int rowIndex, int ColumnIndex){
   return false;
 }
 
+/** Removes a listener object from this Model.
+  **/
 public void removeTableModelListener(TableModelListener l){
   Listeners.remove(l);
 }
 
+/** Does nothing.
+  * We don't allow changes using this function
+  */
 public void setValueAt(Object aValue,int rowIndex,int ColumnIndex){
   // we avoid extern changes
 }
 
+/** Returns the assigned category name for a attribute value given
+  * in the list LE.
+  * We only allow list atoms of type int, real, bool, string, or symbol.
+  **/
 public String getCatName(ListExpr LE){
      if(Links==null) return null;
      if(LE==null) return null;
@@ -344,14 +377,17 @@ public String getCatName(ListExpr LE){
      return null;
 }
 
-/* set the attributes from given list, link all value to defaultcategory */
+/** Sets the attributes from given list, link all value to defaultcategory 
+  **/
 public void setAttributes(ListExpr LE,Category DefaultCat){ // set all non komplex attribute
    if(Links==null) return;
    Links.clear(); // remove old attributes
    addAttributes(LE,DefaultCat);
 }
 
-/* set the attributes from given list, link all value to defaultcategory */
+/** Adds new values to the linklist.
+  * All new values are assigned to the given category. 
+  **/
 public void addAttributes(ListExpr LE,Category DefaultCat){ // set all non komplex attribute
    if(Links==null) return;
    if(LE==null) return;
@@ -377,35 +413,40 @@ public void addAttributes(ListExpr LE,Category DefaultCat){ // set all non kompl
    informListeners();
 }
 
-
-
+/** Reads the content of this model.
+  **/
 public void readFrom(AttrCatList ACL){
    Links = ACL;
    informListeners();
 }
 
+/** Returns the managed content. **/
 public AttrCatList getLinks(){
    return Links;
 }
 
+/** sets the content **/
 public void setLinks(AttrCatList ACL){
    Links = ACL;
    informListeners();
 }
 
+/** Informs all assigned listeners about changes within the content **/
 private void informListeners(){
    TableModelEvent TME = new TableModelEvent(this);
    for(int i=0;i<Listeners.size();i++)
        ((TableModelListener)Listeners.get(i)).tableChanged(TME);
 }
 
-
+/** Sets the default category **/
 public void setDefaultCat(Category Cat){
    if(Cat!=null && Links!=null )
      Links.setDefaultCatName(Cat.getName());
 }
 
+/** all listeners **/
 private Vector Listeners = new Vector();
+/** The links **/
 private AttrCatList Links = new AttrCatList();
 }
 
