@@ -350,7 +350,9 @@ public class Category
    * @see <a href="Categorysrc.html#setName">Source</a>
    */
   public void setName (String s) {
-    name = s;
+    if(s!=null){
+       name = s.trim();
+    }
   }
 
   /**
@@ -766,11 +768,29 @@ public class Category
  public boolean equals(Object o){
     if(! (o instanceof Category))
        return false;
-    else
-       return name.equals(((Category)o).name);
+    else{
+        return hasName(((Category)o).name);
+    }
  } 
 
-   
+  /** Checks whether this category has the given name.
+    * The comparison is relax in the sense of ignoring
+    * space at the start and the end and ignoring upper / lower case.
+    **/
+   public boolean hasName(String name){
+       String n1 = this.name;
+       String n2 = name;
+       if( (n1==null) && (n2==null)){
+          return true;
+       }
+       if((n1==null) || (n2==null)){
+          return false;
+       }
+       n1 = n1.trim().toLowerCase();
+       n2 = n2.trim().toLowerCase();
+       return n1.equals(n2);
+   }
+ 
 
 
   /**

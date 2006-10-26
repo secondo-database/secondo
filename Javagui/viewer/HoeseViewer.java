@@ -653,8 +653,9 @@ public class HoeseViewer extends SecondoViewer {
       while (!le.isEmpty()) {
          aCat = le.first();
          Category cat = Category.ConvertLEtoCat(aCat);
-         if (cat != null && Cats.indexOf(cat)<0 )  // only new categories
+         if (cat != null && Cats.indexOf(cat)<0 ){  // only new categories
              Cats.add(cat);
+         }
          le = le.rest();
        }
        return true;
@@ -1922,9 +1923,9 @@ public boolean canDisplay(SecondoObject o){
       String DirName = FC_Session.getCurrentDirectory().getAbsolutePath();
       bgImage.readFromListExpr(le.first(),DirName);
       readAllCats(le.second());
-      if(!Cats.contains(Category.getDefaultCat()))
+      if(!Cats.contains(Category.getDefaultCat())){
          Cats.add(Category.getDefaultCat());
-      
+      }
       le.first().destroy();
       le.second().destroy();
 

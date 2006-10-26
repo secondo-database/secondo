@@ -213,7 +213,7 @@ public class GraphWindow extends JLayeredPane
      int size = cats.size();
      for(int i=0;i<size;i++){
         Category Cat = (Category)cats.get(i);
-        if(Cat.getName().equals(name))
+        if(Cat.hasName(name))
             return Cat;
      }
      // nothing found
