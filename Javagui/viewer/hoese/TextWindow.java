@@ -24,6 +24,7 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import sj.lang.ListExpr;
+import sj.lang.ServerErrorCodes;
 import java.util.Properties;
 import java.util.*;
 import javax.swing.event.*;

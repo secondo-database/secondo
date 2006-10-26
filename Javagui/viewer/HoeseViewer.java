@@ -42,6 +42,7 @@ import  java.awt.image.*;
 import  viewer.hoese.algebras.Dsplpointsequence;
 import javax.swing.plaf.basic.*;
 import tools.Reporter;
+import sj.lang.ServerErrorCodes;
 
 /**
  * this is a viewer for spatial and temporal spatial objects
