@@ -40,7 +40,8 @@ OK   derivative           mreal   -> mreal
 OK                        ureal   -> ureal
 
 (*): These operators have been implemented for T in {bool, int, real, point}
-(**): These operators have been implemented for T in {bool, int, real, point, string, region}
+(**): These operators have been implemented for 
+      T in {bool, int, real, point, string, region}
 
 ----
 
@@ -237,8 +238,8 @@ extern AlgebraManager* am;
 #include "DateTime.h"
 using namespace datetime;
 
-//bool TUA_DEBUG = false; // Set to true to activate debugging code
-bool TUA_DEBUG = true; // Set to true to activate debugging code
+bool TUA_DEBUG = false; // Set to true to activate debugging code
+//bool TUA_DEBUG = true; // Set to true to activate debugging code
 
 /*
 2.1 Definition of some constants and auxiliary functions
@@ -9044,10 +9045,118 @@ Operator streamFilter (
 
 */
 
+/*
+6 Type operators
+
+Type operators are used only for inferring argument types of parameter functions. They have a type mapping but no evaluation function.
+
+*/
+
+/*
+6.1 Type Operator ~STREAMELEM~
+
+This type operator extracts the type of the elements from a stream type given as the first argument and otherwise just forwards its type.
+
+----    
+     ((stream T1) ...) -> T1
+              (T1 ...) -> T1
+----
+
+*/
+ListExpr
+STREAMELEMTypeMap( ListExpr args )
+{
+  if(nl->ListLength(args) >= 1)
+  {
+    ListExpr first = nl->First(args);
+    if (nl->ListLength(first) == 2)
+    {
+      if (nl->IsEqual(nl->First(first), "stream")) {
+        return nl->Second(first);
+      }
+      else {
+        return first;
+      }      
+    }
+    else {
+      return first;
+    }
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+const string STREAMELEMSpec =
+   "(( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+    "( <text>TemporalUnitAlgebra</text--->"
+      "<text>((stream T1) ... ) -> T1\n"
+      "(T1 ... ) -> T1</text--->"
+      "<text>type operator</text--->"
+      "<text>Extracts the type of the stream elements if the first "
+      "argument is a stream and forwards the first argument's type "
+      "otherwise.</text--->"
+      "<text>Not for use with sos-syntax</text---> ))";
+
+Operator STREAMELEM (
+      "STREAMELEM",
+      STREAMELEMSpec,
+      0,
+      Operator::SimpleSelect,
+      STREAMELEMTypeMap );
+
+/*
+6.2 Type Operator ~STREAMELEM2~
+
+This type operator extracts the type of the elements from the stream type within the second element within a list of argument types. Otherwise, the first arguments type is simplyforwarded.
+
+----    
+     (T1 (stream T2) ...) -> T2
+              (T1 T2 ...) -> T2
+----
+
+*/
+ListExpr
+STREAMELEM2TypeMap( ListExpr args )
+{
+  if(nl->ListLength(args) >= 2)
+  {
+    ListExpr second = nl->Second(args);
+    if (nl->ListLength(second) == 2)
+    {
+      if (nl->IsEqual(nl->First(second), "stream")) {
+        return nl->Second(second);
+      }
+      else {
+        return second;
+      }
+    }
+    else {
+      return second;
+    }
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+const string STREAMELEM2Spec =
+   "(( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+    "( <text>TemporalUnitAlgebra</text--->"
+      "<text>(T1 (stream T2) ... ) -> T2\n"
+      "( T1 T2 ... ) -> T2</text--->"
+      "<text>type operator</text--->"
+      "<text>Extracts the type of the elements from a stream given "
+      "as the second argument if it is a stream. Otherwise, it forwards "
+      "the original type.</text--->"
+      "<text>Not for use with sos-syntax.</text---> ))";
+
+Operator STREAMELEM2 (
+      "STREAMELEM2",
+      STREAMELEM2Spec,
+      0,
+      Operator::SimpleSelect,
+      STREAMELEM2TypeMap );
 
 
 /*
-6 Creating the Algebra
+7 Creating the Algebra
 
 */
 
@@ -9087,6 +9196,8 @@ public:
     AddOperator( &temporalderivable );
     AddOperator( &temporalderivative );
     AddOperator( &streamFilter );
+    AddOperator( &STREAMELEM );
+    AddOperator( &STREAMELEM2 );
   }
   ~TemporalUnitAlgebra() {};
 };

@@ -29,9 +29,9 @@ operator derivable alias DERIVABLE pattern op ( _ )
 operator derivative alias DERIVATIVE pattern op ( _ )
 operator atperiods alias ATPERIODS pattern _ infixop _
 operator sfeed alias SFEED pattern op ( _ )
-operator suse alias SUSE pattern _ op [ _ ] implicit parameter elem type TUPLE
-operator suse2 alias SUSE2 pattern _ _ op [ _ ] implicit parameters lefttuple, righttuple types TUPLE, TUPLE2
-operator saggregate alias SAGGREGATE pattern _ op [ _ ; _ ]
+operator suse alias SUSE pattern _ op [ _ ] implicit parameter streamelem type STREAMELEM
+operator suse2 alias SUSE2 pattern _ _ op [ _ ] implicit parameters streamelem1, streamelem2 types STREAMELEM, STREAMELEM2
+operator saggregate alias SAGGREGATE pattern _ op [ _ ; _ ] implicit parameter estreamelem type STREAMELEM
 operator at alias AT pattern _ infixop _ 
 operator atmax alias ATMAX pattern op ( _ )
 operator atmin alias ATMIN pattern op ( _ )
@@ -41,7 +41,7 @@ operator transformstream alias TRANSFORMSTREAM pattern _ op
 operator printstream alias PRINTSTREAM pattern _ op
 
 # Operator signatures already defined elsewhere:
-#operator filter alias FILTER pattern _ op [ fun ] implicit parameter elem type TUPLE
+#operator filter alias FILTER pattern _ op [ fun ] implicit parameter elemstr1 type STREAM1ELEM
 #operator count alias COUNT pattern _ op
 
 
