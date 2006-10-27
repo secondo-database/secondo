@@ -35,17 +35,13 @@ for dir in gcc bdb swi bison flex aux; do
   libPaths=$libPaths"$sdk/$dir/lib:"
   incPaths=$incPaths"$sdk/$dir/include:"
 done 
-#echo $libPaths
-#echo $binPaths
-#echo $incPaths
 
-
-# Path declarations for the GCC
 export CPLUS_INCLUDE_PATH=$incPaths
+export C_INCLUDE_PATH=$CPLUS_INCLUDE_PATH
 export LIBRARY_PATH=$libPaths:${SECONDO_BUILD_DIR}/lib
 
 # Bison
-export BISON_SIMPLE=${SECONDO_SDK}/bison/share/bison/bison.simple
+#export BISON_SIMPLE=${SECONDO_SDK}/bison/share/bison/bison.simple
 
 # JNI
 export JNI_INIT=${SECONDO_BUILD_DIR}/bin/JNI.ini
