@@ -553,6 +553,12 @@
                     <text>( plz )</text--->) 
                 ("plz_PLZ" 
                     <text>(createbtree plz PLZ)</text---> 
+                    <text>( plz )</text--->) 
+                ("plz2" 
+                    <text>(consume (remove (sortby (extend (feed plz) ((Sid (fun (tuple1 TUPLE) (randint (count plz)))))) ((Sid asc))) (Sid)))</text---> 
+                    <text>( plz )</text--->) 
+                ("plz3" 
+                    <text>(consume (remove (sortby (extend (feed plz) ((Sid (fun (tuple1 TUPLE) (randint (count plz)))))) ((Sid asc))) (Sid)))</text---> 
                     <text>( plz )</text--->))) 
         (OBJECT Staedte 
             (StaedteRel) 
