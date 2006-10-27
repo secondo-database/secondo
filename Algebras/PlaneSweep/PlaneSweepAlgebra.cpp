@@ -4131,8 +4131,8 @@ static int realm_lr( Word* args, Word& result, int message,
       return(0);
    }
    else  {
-       ((Line *)result.addr)->Clear();                // added by CD
-       // ((Line *)result.addr)->SetDefined( false ); // commented out by CD
+       ((Line *)result.addr)->Clear();
+       ((Line *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4158,8 +4158,8 @@ static int realm_rl( Word* args, Word& result, int message,
       return(0);
    }
    else  {
-       ((Region *)result.addr)->Clear(); // added by CD
-       //((Region *)result.addr)->SetDefined( false ); // commented out by CD
+       ((Region *)result.addr)->Clear();
+       ((Region *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4185,8 +4185,8 @@ static int realm_ll( Word* args, Word& result, int message,
    }
    else
    {
-       ((Line *)result.addr)->Clear(); // added by CD
-       // ((Line *)result.addr)->SetDefined( false ); // commented out by CD
+       ((Line *)result.addr)->Clear();
+       ((Line *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4290,16 +4290,14 @@ static int Inter_ll( Word* args, Word& result, int message,
             res = mo.Intersection( line1, line2 );
             if ( res->IsEmpty() )
               {
-                ((Line *)result.addr)->Clear(); // added by CD
-                //((Line *)result.addr)->SetDefined( false ); // removed by CD
+                ((Line *)result.addr)->Clear();
               }
             else
                result.addr = res;
             return(0);
          }
          else   {
-            ((Line *)result.addr)->Clear(); // added by CD
-            // ((Line *)result.addr)->SetDefined( false ); // removed by CD
+            ((Line *)result.addr)->Clear();
             return (0);
          }
       }
@@ -4308,8 +4306,8 @@ static int Inter_ll( Word* args, Word& result, int message,
          MakeOp mo;
          res = mo.Intersection( line1, line2 );
          if ( res->IsEmpty() ) {
-            ((Line *)result.addr)->Clear(); // added by CD
-            // ((Line *)result.addr)->SetDefined( false ); // removed by CD
+            ((Line *)result.addr)->Clear();
+            ((Line *)result.addr)->SetDefined( false );
             return (0);
          }
          else 
@@ -4318,8 +4316,8 @@ static int Inter_ll( Word* args, Word& result, int message,
       }
    }
    else  {
-     ((Line *)result.addr)->Clear(); // added by CD
-     // ((Line *)result.addr)->SetDefined( false ); // removed by CD
+     ((Line *)result.addr)->Clear();
+     ((Line *)result.addr)->SetDefined( false );
      
      return (0);
    }
@@ -4347,16 +4345,14 @@ static int Inter_lr( Word* args, Word& result, int message,
             MakeOp mo;
             res = mo.Intersection( r2, l1 );
             if (res->IsEmpty() ){
-              ((Line *)result.addr)->Clear(); // added by CD
-              // ((Line *)result.addr)->SetDefined( false ); // removed by CD
+              ((Line *)result.addr)->Clear();
             }
             else
               result.addr = res ;
             return(0);
          }
          else   {
-           ((Line *)result.addr)->Clear(); // added by CD
-           // ((Line *)result.addr)->SetDefined( false ); // removed by CD
+           ((Line *)result.addr)->Clear();
             return (0);
          }
       }
@@ -4365,8 +4361,8 @@ static int Inter_lr( Word* args, Word& result, int message,
          MakeOp mo;
          res = mo.Intersection( r2, l1  );
          if (res->IsEmpty() ) {
-           ((Line *)result.addr)->Clear(); // added by CD
-           // ((Line *)result.addr)->SetDefined( false ); // removed by CD
+           ((Line *)result.addr)->Clear();
+           ((Line *)result.addr)->SetDefined( false );
          }
          else
             result.addr = res;
@@ -4374,8 +4370,8 @@ static int Inter_lr( Word* args, Word& result, int message,
       }
    }
    else  {
-       ((Line *)result.addr)->Clear(); // added by CD
-       // ((Line *)result.addr)->SetDefined( false ); // removed by CD
+       ((Line *)result.addr)->Clear();
+       ((Line *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4392,8 +4388,7 @@ static int Inter_rl ( Word* args, Word& result, int message,
    Region *r2 = ((Region*)args[0].addr);
    if (l1->IsDefined() && r2->IsDefined() ) {
       if (l1->IsEmpty() || r2->IsEmpty() ) {
-         ((Line *)result.addr)->Clear(); // added by CD
-         // ((Line *)result.addr)->SetDefined( false ); // removed by CD
+         ((Line *)result.addr)->Clear();
          return (0);
       }
       if (l1->BoundingBox().IsDefined() &&
@@ -4403,16 +4398,14 @@ static int Inter_rl ( Word* args, Word& result, int message,
             MakeOp mo;
             res = mo.Intersection( r2, l1 );
             if (res->IsEmpty() ) {
-              ((Line *)result.addr)->Clear(); // added by CD
-              // ((Line *)result.addr)->SetDefined( false ); // removed by CD
+              ((Line *)result.addr)->Clear();
             }
             else
                result.addr = res;
             return(0);
          }
          else   {
-            ((Line *)result.addr)->Clear(); // added by CD
-            // ((Line *)result.addr)->SetDefined( false ); // removed by CD
+            ((Line *)result.addr)->Clear();
             return (0);
          }
       }
@@ -4421,8 +4414,8 @@ static int Inter_rl ( Word* args, Word& result, int message,
          MakeOp mo;
          res = mo.Intersection( r2, l1  );
          if (res->IsEmpty() ) {
-            ((Line *)result.addr)->Clear(); // added by CD
-            // ((Line *)result.addr)->SetDefined( false ); // removed by CD
+            ((Line *)result.addr)->Clear();
+            ((Line *)result.addr)->SetDefined( false );
          }
          else
             result.addr = res;
@@ -4430,8 +4423,8 @@ static int Inter_rl ( Word* args, Word& result, int message,
       }
    }
    else  {
-       ((Line *)result.addr)->Clear(); // added by CD
-       // ((Line *)result.addr)->SetDefined( false ); // removed by CD
+       ((Line *)result.addr)->Clear();
+       ((Line *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4448,8 +4441,7 @@ static int Inter_rr( Word* args, Word& result, int message,
    Region *r2 = ((Region*)args[1].addr);
    if (r1->IsDefined() && r2->IsDefined() ) {
       if (r1->IsEmpty() || r2->IsEmpty() ) {
-          ((Region *)result.addr)->Clear(); // added by CD
-          // ((Region *)result.addr)->SetDefined( false ); // removed by CD
+          ((Region *)result.addr)->Clear();
           return (0);
       }
       if (r1->BoundingBox().IsDefined() &&
@@ -4459,16 +4451,14 @@ static int Inter_rr( Word* args, Word& result, int message,
             MakeOp mo;
             res = mo.Intersection( r1, r2 );
             if ( res->IsEmpty() ){
-              ((Region *)result.addr)->Clear(); // added by CD
-              // ((Region *)result.addr)->SetDefined( false ); // removed by CD
+              ((Region *)result.addr)->Clear();
             }
             else
                result.addr = res;
             return(0);
          }
          else   { // no intersection possible
-            ((Region *)result.addr)->Clear(); // added by CD
-            // ((Region *)result.addr)->SetDefined( false ); // removed by CD
+            ((Region *)result.addr)->Clear();
             return (0);
          }
       }
@@ -4477,8 +4467,7 @@ static int Inter_rr( Word* args, Word& result, int message,
          MakeOp mo;
          res = mo.Intersection( r1, r2 );
          if ( res->IsEmpty() ) {
-            ((Region *)result.addr)->Clear(); // added by CD
-            // ((Region *)result.addr)->SetDefined( false ); // removed by CD
+            ((Region *)result.addr)->Clear();
          }
          else
             result.addr = res;
@@ -4486,8 +4475,8 @@ static int Inter_rr( Word* args, Word& result, int message,
       }
    }
    else  {
-       ((Region *)result.addr)->Clear(); // added by CD
-       // ((Region *)result.addr)->SetDefined( false ); // removed by CD
+       ((Region *)result.addr)->Clear();
+       ((Region *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4788,8 +4777,7 @@ Word& local, Supplier s )
    Region *r2 = ((Region*)args[1].addr);
    if (r1->IsDefined() && r2->IsDefined() )    {
       if ( r1->IsEmpty() && r2 -> IsEmpty() ) {
-         ((Region *)result.addr)->Clear();                // added by CD
-         // ((Region *)result.addr)->SetDefined( false ); // commented out by CD
+         ((Region *)result.addr)->Clear();
          return (0);
       }
       else if (r1->IsEmpty() ) {
@@ -4809,8 +4797,8 @@ Word& local, Supplier s )
       }
    }
    else  {
-       ((Region *)result.addr)->Clear();                // added by CD
-       // ((Region *)result.addr)->SetDefined( false ); // commented out by CD
+       ((Region *)result.addr)->Clear();
+       ((Region *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4826,13 +4814,13 @@ static int Union_lr( Word* args, Word& result, int message,
    result = qp->ResultStorage( s );
    Line *line = ((Line*)args[0].addr);
    Region *reg = ((Region*)args[1].addr);
-   if ( !reg->IsEmpty()&&line->IsDefined()&&reg->IsDefined()) {
+   if ( reg->IsDefined()&&!reg->IsEmpty()&&line->IsDefined() ) {
       result.addr = reg;
       return(0);
    }
    else  {
-      ((Region *)result.addr)->Clear();                // added by CD
-      // ((Region *)result.addr)->SetDefined( false ); // commented out by CD
+      ((Region *)result.addr)->Clear();
+      ((Region *)result.addr)->SetDefined( false );
       return (0);
    }
 }
@@ -4853,8 +4841,8 @@ Word& local, Supplier s )
       return(0);
    }
    else  {
-      ((Region *)result.addr)->Clear();                // added by CD
-      // ((Region *)result.addr)->SetDefined( false ); // commented out by CD
+      ((Region *)result.addr)->Clear();
+      ((Region *)result.addr)->SetDefined( false );
       return (0);
    }
 }
@@ -4871,8 +4859,7 @@ Word& local, Supplier s )
    Line *line2 = ((Line*)args[1].addr);
    if (line1->IsDefined() && line2->IsDefined() )    {
       if ( line1->IsEmpty() ) {
-         ((Line *)result.addr)->Clear();               // added by CD
-         //((Line *)result.addr)->SetDefined( false ); // commented out by CD
+         result.addr = line2;
          return(0);
       }
       else if (line2->IsEmpty() ) {
@@ -4888,8 +4875,8 @@ Word& local, Supplier s )
       }
    }
    else  {
-       ((Line *)result.addr)->Clear();                // added by CD
-       // ((Line *)result.addr)->SetDefined( false ); // commented out by CD
+       ((Line *)result.addr)->Clear();
+       ((Line *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -4966,8 +4953,7 @@ static int Minus_rr( Word* args, Word& result, int message,
    Region *r2 = ((Region*)args[1].addr);
    if (r1->IsDefined() && r2->IsDefined() ) {
       if ( r1 -> IsEmpty() ) {
-         ((Region *)result.addr)->Clear(); // added by CD
-         // ((Region *)result.addr)->SetDefined( false ); // removed by CD
+         ((Region *)result.addr)->Clear();
          return(0);
       }
       else if ( r2->IsEmpty() ) {
@@ -4980,10 +4966,8 @@ static int Minus_rr( Word* args, Word& result, int message,
             Region* res = new Region(0);
             MakeOp mo;
             res = mo.Minus( r1, r2 );
-            if (res->IsEmpty() ){
-              ((Region *)result.addr)->Clear(); // added by CD
-              // ((Region *)result.addr)->SetDefined( false ); // removed by CD
-            }
+            if (res->IsEmpty() )
+              ((Region *)result.addr)->Clear();
             else
                result.addr = res;
             return(0);
@@ -4998,8 +4982,8 @@ static int Minus_rr( Word* args, Word& result, int message,
          MakeOp mo;
          res = mo.Minus( r1, r2 );
          if (res->IsEmpty() ){
-           ((Region *)result.addr)->Clear(); // added by CD
-           // ((Region *)result.addr)->SetDefined( false ); // removed by CD
+           ((Region *)result.addr)->Clear();
+           ((Region *)result.addr)->SetDefined( false );
          }
          else
             result.addr = res;
@@ -5007,8 +4991,8 @@ static int Minus_rr( Word* args, Word& result, int message,
       }
    }
    else   {
-       ((Region *)result.addr)->Clear(); // added by CD
-       // ((Region *)result.addr)->SetDefined( false ); // removed by CD
+       ((Region *)result.addr)->Clear();
+       ((Region *)result.addr)->SetDefined( false );
        return (0);
    }
 }
@@ -5025,8 +5009,7 @@ Word& local, Supplier s )
    Region *reg = ((Region*)args[1].addr);
    if (line->IsDefined() && reg->IsDefined() )    {
       if ( line-> IsEmpty()|| reg->IsEmpty() ) {
-         ((Line *)result.addr)->Clear(); // added by CD
-         //((Line *)result.addr)->SetDefined( false ); // Removed by CD
+         ((Line *)result.addr)->Clear();
          return(0);
       }
       else if (line->BoundingBox().IsDefined() &&
@@ -5036,8 +5019,7 @@ Word& local, Supplier s )
             MakeOp mo;
             res = mo.Minus( line,reg );
             if ( res -> IsEmpty() ){
-              ((Line *)result.addr)->Clear(); // added by CD
-              //((Line *)result.addr)->SetDefined( false ); // Removed by CD
+              ((Line *)result.addr)->Clear();
             }
             else
                result.addr = res;
@@ -5053,8 +5035,8 @@ Word& local, Supplier s )
          MakeOp mo;
          res = mo.Minus( line, reg );
          if ( res -> IsEmpty() ){
-              ((Line *)result.addr)->Clear(); // added by CD
-              //((Line *)result.addr)->SetDefined( false ); // Removed by CD
+              ((Line *)result.addr)->Clear();
+              ((Line *)result.addr)->SetDefined( false );
             }
          else
             result.addr = res;
@@ -5062,8 +5044,8 @@ Word& local, Supplier s )
       }
    } // if IsDefined()
    else   {
-      ((Line *)result.addr)->Clear(); // added by CD
-      //((Line *)result.addr)->SetDefined( false ); // Removed by CD
+      ((Line *)result.addr)->Clear();
+      ((Line *)result.addr)->SetDefined( false );
       return (0);
    }
 }
@@ -5078,8 +5060,7 @@ Word& local, Supplier s )
    result = qp->ResultStorage( s );
    Line *line = ((Line*)args[1].addr);
    Region *reg = ((Region*)args[0].addr);
-   if ( ! line->IsEmpty() && line->IsDefined() &&
-   reg->IsDefined() )    {
+   if ( ! line->IsEmpty() && line->IsDefined() && reg->IsDefined() )    {
       result.addr = reg ;
       return(0);
    }
@@ -5095,59 +5076,52 @@ operator minus for objects line -line
 
 */
 static int Minus_ll( Word* args, Word& result, int message,
-Word& local, Supplier s )
+                     Word& local, Supplier s )
 {
-   result = qp->ResultStorage( s );
-   Line *line1 = ((Line*)args[0].addr);
-   Line *line2 = ((Line*)args[1].addr);
-   if (line1->IsDefined() && line2->IsDefined() )    {
-      if (line1->IsEmpty() ) {
-        ((Line *) result.addr)->Clear(); // added by CD
-         //((Line *) result.addr)->SetDefined(false); // removed by CD
-         return (0);
-      }
-      else if (line2->IsEmpty() ) {
-         result.addr = line1;
-         return (0);
-      }
-      else if (line1->BoundingBox().IsDefined() &&
-      line2->BoundingBox().IsDefined() ) {
-         if ((line1->BoundingBox().Intersects
-         (line2->BoundingBox() ) ) ) {
-            Line* res = new Line(0);
-            MakeOp mo;
-            res = mo.Minus( line1, line2 );
-            if (res->IsEmpty() ){
-              ((Line *) result.addr)->Clear(); // added by CD
-              //((Line *) result.addr)->SetDefined(false); // removed by CD
-            }
-            else
-               result.addr = res;
-            return(0);
-         }
-         else {
-            result.addr = line1;
-            return(0);
-         }
+  result = qp->ResultStorage( s );
+  Line *line1 = ((Line*)args[0].addr);
+  Line *line2 = ((Line*)args[1].addr);
+  if (line1->IsDefined() && line2->IsDefined() )    {
+    if (line1->IsEmpty() || line2->IsEmpty()) {
+       result.addr = line1;
+       return (0);
+    }
+    else if (line1->BoundingBox().IsDefined() &&
+             line2->BoundingBox().IsDefined() ) {
+      if ((line1->BoundingBox().Intersects
+           (line2->BoundingBox() ) ) ) {
+        Line* res = new Line(0);
+        MakeOp mo;
+        res = mo.Minus( line1, line2 );
+        if (res->IsEmpty() ){
+          ((Line *) result.addr)->Clear();
+        }
+        else
+          result.addr = res;
+        return(0);
       }
       else {
-         Line* res = new Line(0);
-         MakeOp mo;
-         res = mo.Minus( line1, line2 );
-         if (res ->IsEmpty() ){
-              ((Line *) result.addr)->Clear(); // added by CD
-              //((Line *) result.addr)->SetDefined(false); // removed by CD
-            }
-         else
-            result.addr = res;
-         return(0);
+        result.addr = line1;
+            return(0);
       }
-   }
-   else  {
-       ((Line *) result.addr)->Clear(); // added by CD
-       //((Line *) result.addr)->SetDefined(false); // removed by CD
-       return (0);
-   }
+    }
+    else {
+      Line* res = new Line(0);
+      MakeOp mo;
+      res = mo.Minus( line1, line2 );
+      if (res ->IsEmpty() ){
+        ((Line *) result.addr)->Clear();
+      }
+      else
+        result.addr = res;
+      return(0);
+    }
+  }
+  else  {
+    ((Line *) result.addr)->Clear();
+    ((Line *) result.addr)->SetDefined(false);
+    return (0);
+  }
 }
 
 
