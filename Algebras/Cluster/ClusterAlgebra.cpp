@@ -352,11 +352,11 @@ The parameters are eing used for the cluster algorithm.
 const string cluster_aSpec = 
         "( ( \"Signature\" \"Syntax\" \"Meaning\" "
         "\"Example\" ) "
-        "( <text>(points) -> points</text--->"
+        "( <text>points -> points</text--->"
         "<text>cluster_a ( _ )</text--->"
         "<text>Find cluster for"
         " points with standard cluster parameters.</text--->"
-        "<text>query cluster_a (POINTS1 feed extract[one])</text--->"
+        "<text>query cluster_a (Kneipen)</text--->"
         ") )";
 /*
 6.2 Specification Strings for Operator cluster\_b
@@ -365,11 +365,11 @@ const string cluster_aSpec =
 const string cluster_bSpec = 
         "( ( \"Signature\" \"Syntax\" \"Meaning\" "
         "\"Example\" ) "
-        "( <text>points (MinPts, Eps) -> points</text--->"
-        "<text>_ cluster_b (MinPts, Eps) </text--->"
+        "( <text>points -> points</text--->"
+        "<text>_ cluster_b [_, _] </text--->"
         "<text>Find cluster for"
-        " points with parameters (1)MinPts and (2)Eps.</text--->"
-        "<text></text--->"
+        " points with parameters MinPts (1) and Eps (2).</text--->"
+        "<text>query Kneipen cluster_b[5,200]</text--->"
         ") )";
 /*
 7.1 Operator cluster\_a
