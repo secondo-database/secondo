@@ -97,7 +97,10 @@ let SHMoveat20060616 = val(SHMove atinstant [const instant value "2006-06-16-16:
 let mpoint54 = [const mpoint value((("2006-06-11" "2006-06-20" TRUE TRUE)(12.0 54.7 18.0 55.4)))];
 restore ships from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/ships';
 restore goodspots from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/goodspots';
-restore shoals from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shoals';
+#
+# M. Spiekermann, deactivated all tests which are based on object shoals
+#
+#restore shoals from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shoals';
 let ship1 = ships feed filter[.shipid = 1] extract[ship];
 let ship2 = ships feed filter[.shipid = 2] extract[ship];
 let ship3 = ships feed filter[.shipid = 3] extract[ship];
@@ -111,7 +114,7 @@ let ship10 = ships feed filter[.shipid = 10] extract[ship];
 let ship11 = ships feed filter[.shipid = 11] extract[ship];
 let ship12 = ships feed filter[.shipid = 12] extract[ship];
 let gsws = goodspots feed extend[s1: ship1, s2: ship2, s3: ship3, s4: ship4, s5: ship5, s6: ship6, s7: ship7, s8: ship8, s9:ship9, s10: ship10, s11: ship11, s12: ship12] consume;
-let shws = shoals feed extend[s1: ship1, s2: ship2, s3: ship3, s4: ship4, s5: ship5, s6: ship6, s7: ship7, s8: ship8, s9:ship9, s10: ship10, s11: ship11, s12: ship12] consume;
+#let shws = shoals feed extend[s1: ship1, s2: ship2, s3: ship3, s4: ship4, s5: ship5, s6: ship6, s7: ship7, s8: ship8, s9:ship9, s10: ship10, s11: ship11, s12: ship12] consume;
 
 #testcase Type Constructor URegion 1
 #yields (uregion (("2006-06-10" "2006-06-20" TRUE TRUE) ((((1.0 1.0 5.0 1.0) (1.0 2.0 5.0 2.0) (2.0 2.0 6.0 2.0) (2.0 1.0 6.0 1.0))))))
@@ -2922,53 +2925,53 @@ query gsws feed extend[gssh: intersection(.s11, .goodspot)] project[gssh] consum
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/gsws12ints
 query gsws feed extend[gssh: intersection(.s12, .goodspot)] project[gssh] consume;
 
-#testcase Special Cases Oporto 13
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws1ints
-query shws feed extend[shsh: intersection(.s1, .shoal)] project[shsh] consume;
+##testcase Special Cases Oporto 13
+##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws1ints
+##query shws feed extend[shsh: intersection(.s1, .shoal)] project[shsh] consume;
 
-#testcase Special Cases Oporto 14
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws2ints
-query shws feed extend[shsh: intersection(.s2, .shoal)] project[shsh] consume;
+##testcase Special Cases Oporto 14
+##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws2ints
+##query shws feed extend[shsh: intersection(.s2, .shoal)] project[shsh] consume;
 
-#testcase Special Cases Oporto 15
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws3ints
-query shws feed extend[shsh: intersection(.s3, .shoal)] project[shsh] consume;
+##testcase Special Cases Oporto 15
+##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws3ints
+##query shws feed extend[shsh: intersection(.s3, .shoal)] project[shsh] consume;
 
-#testcase Special Cases Oporto 16
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws4ints
-query shws feed extend[shsh: intersection(.s4, .shoal)] project[shsh] consume;
+##testcase Special Cases Oporto 16
+##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws4ints
+##query shws feed extend[shsh: intersection(.s4, .shoal)] project[shsh] consume;
 
-#testcase Special Cases Oporto 17
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws5ints
-query shws feed extend[shsh: intersection(.s5, .shoal)] project[shsh] consume;
+##testcase Special Cases Oporto 17
+##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws5ints
+##query shws feed extend[shsh: intersection(.s5, .shoal)] project[shsh] consume;
 
-#testcase Special Cases Oporto 18
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws6ints
-query shws feed extend[shsh: intersection(.s6, .shoal)] project[shsh] consume;
+##testcase Special Cases Oporto 18
+##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws6ints
+##query shws feed extend[shsh: intersection(.s6, .shoal)] project[shsh] consume;
 
-#testcase Special Cases Oporto 19
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws7ints
-query shws feed extend[shsh: intersection(.s7, .shoal)] project[shsh] consume;
+##testcase Special Cases Oporto 19
+##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws7ints
+##query shws feed extend[shsh: intersection(.s7, .shoal)] project[shsh] consume;
 
-#testcase Special Cases Oporto 20
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws8ints
-query shws feed extend[shsh: intersection(.s8, .shoal)] project[shsh] consume;
+##testcase Special Cases Oporto 20
+##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws8ints
+##query shws feed extend[shsh: intersection(.s8, .shoal)] project[shsh] consume;
 
-#testcase Special Cases Oporto 21
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws9ints
-query shws feed extend[shsh: intersection(.s9, .shoal)] project[shsh] consume;
+##testcase Special Cases Oporto 21
+##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws9ints
+##query shws feed extend[shsh: intersection(.s9, .shoal)] project[shsh] consume;
 
-#testcase Special Cases Oporto 22
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws10ints
-query shws feed extend[shsh: intersection(.s10, .shoal)] project[shsh] consume;
+##testcase Special Cases Oporto 22
+##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws10ints
+##query shws feed extend[shsh: intersection(.s10, .shoal)] project[shsh] consume;
 
-#testcase Special Cases Oporto 23
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws11ints
-query shws feed extend[shsh: intersection(.s11, .shoal)] project[shsh] consume;
+##testcase Special Cases Oporto 23
+##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws11ints
+##query shws feed extend[shsh: intersection(.s11, .shoal)] project[shsh] consume;
 
-#testcase Special Cases Oporto 24
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws12ints
-query shws feed extend[shsh: intersection(.s12, .shoal)] project[shsh] consume;
+##testcase Special Cases Oporto 24
+##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shws12ints
+##query shws feed extend[shsh: intersection(.s12, .shoal)] project[shsh] consume;
 
 #  testcase Special Cases Oporto 25
 #  yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/movingregionalgebra/shwsinside
