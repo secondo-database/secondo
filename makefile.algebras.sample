@@ -139,6 +139,9 @@ ALGEBRAS     += PictureAlgebra
 #ALGEBRA_DIRS  += Midi
 #ALGEBRAS      += MidiAlgebra
 
+#ALGEBRA_DIRS  += Cluster
+#ALGEBRAS      += ClusterAlgebra
+
 # JNI Algebras - Java code will be called from C++ code.
 
 #JNI_ALGEBRA_DIRS := Fuzzy
