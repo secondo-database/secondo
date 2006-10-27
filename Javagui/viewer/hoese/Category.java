@@ -360,7 +360,7 @@ public class Category
    * @param Name the FileName as string
    */
   public void setIconName (String Name) {
-    if(Name.contains("/")){
+    if(Name.indexOf('/')>=0){
         Reporter.printTrace();
     }
     IconName = Name;
