@@ -25,6 +25,11 @@
 # LIBRARY_PATH         // list of paths for the linker
 # LD_LIBRARY_PATH      // list of paths for shared obejcts (runtime linker)
 
+# For some strange reason the jepge library is not found although it
+# is defined in LIBRARY_PATH. Therefore we define some special additional
+# linker flags
+export SECONDO_LDFLAGS="-L$SECONDO_SDK/aux/lib"
+
 
 #SWI Prolog
 export SWI_HOME_DIR="$SECONDO_SDK/swi/lib/pl-5.4.7"
