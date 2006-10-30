@@ -36,6 +36,8 @@ else
   runnerCmd="TestRunner --no-tmp"
 fi
 
+echo "TestRunner-Cmd: " $(which TestRunner)
+
 failedFileInfoDir="/tmp/run-tests"$$
 if [ "$2" != "" ]; then
   failedFileInfoDir="$2"
@@ -144,8 +146,9 @@ testSuites=$(find $buildDir -path "*Tests*.test" -o -path "*bin*.test" -a ! -nam
 #echo -e "$testSuites"
 #exit 1
 
-for testName in $dbFile $testSuites
-do 
+#echo "ldd: "$(ldd $SECONDO_BUILD_DIR/bin/SecondoBDB)
+
+for testName in $dbFile $testSuites; do
   runDir=${testName%/*}
   testFile=${testName##*/}
   if isCmdPresent "nice"; then

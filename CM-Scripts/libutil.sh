@@ -837,9 +837,8 @@ scriptDir=${buildDir}/CM-Scripts
 binDir=${buildDir}/bin
 optDir=${buildDir}/Optimizer
 
-# extend PATH varaibles for using SECONDO inside shell scripts
+# extend PATH variables for using SECONDO inside shell scripts
 PATH="${PATH}:${binDir}:${optDir}:${scriptDir}"
-LD_LIBRARY_PATH="/lib:${LD_LIBRARY_PATH}"
 
 #initialize date_ variables
 getTimeStamp
