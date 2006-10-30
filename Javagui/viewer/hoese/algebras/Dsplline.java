@@ -227,12 +227,15 @@ public class Dsplline extends DisplayGraph {
    */
   public boolean contains (double xpos, double ypos, double scalex, double scaley) {
     if (bounds==null) return false; // an empty line
+    // bounding box test
     if ((bounds.getWidth()*bounds.getHeight()!=0) && (!bounds.intersects(xpos - 5.0*scalex, ypos - 5.0*scaley, 10.0*scalex,
         10.0*scaley)))
       return  false;
     Rectangle2D.Double r = new Rectangle2D.Double(xpos - 5.0*scalex, ypos -
-        5.0*scaley, 10.0*scalex, 10.0*scaley);
-    return stroke.createStrokedShape(GP).intersects(r);
+                                                  5.0*scaley, 10.0*scalex, 10.0*scaley);
+
+
+    return GP.intersects(r);
   }
 
 }
