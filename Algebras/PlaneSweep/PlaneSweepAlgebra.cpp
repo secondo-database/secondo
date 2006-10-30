@@ -4859,11 +4859,11 @@ Word& local, Supplier s )
    Line *line2 = ((Line*)args[1].addr);
    if (line1->IsDefined() && line2->IsDefined() )    {
       if ( line1->IsEmpty() ) {
-         result.addr = line2;
+         *(Line*)result.addr = *line2;
          return(0);
       }
       else if (line2->IsEmpty() ) {
-         result.addr = line1;
+         *(Line*)result.addr = *line1;
          return(0);
       }
       else {
