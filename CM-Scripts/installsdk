@@ -282,7 +282,7 @@ function copyConfigFiles {
       cmdfiles="$cmdfiles profile"
     fi 
     for file in $cmdfiles; do
-      checkCmd cp -b $file $sdk
+      checkCmd cp $file $sdk
     done 
   else
     showMsg "info" "-> already done!"
@@ -396,7 +396,7 @@ if [ "$opt_platform" != "linux" ]; then
       exit 1
     fi
   fi
-fi 
+fi
 
 
 printf "\n"
@@ -555,6 +555,8 @@ else
   showMsg "info" "-> Source directory is already present!"
 fi
 
+if [ "$opt_platform" != "mac_osx" ]; then
+
 printSep "JAVA 2 SDK Version 1.4.2"
 if win32Host; then
   javaInstDir="$sdk/j2sdk1.4.2"
@@ -589,6 +591,7 @@ will be installed adjust the variable \$J2SDK_ROOT in the file \n\
   fi
 else  
   showMsg "info" "-> J2SDK seems to be already installed!"
+fi
 fi
 
 check="UNCOMP_JCVS"
@@ -677,15 +680,21 @@ cFlags=""
 ldFlags=""
 binPaths=""
 libPaths=""
+incPaths=""
 for dir in gcc aux bison flex; do
-  cFlags=$cFlags"-I$sdk/$dir/include"
-  ldFlags=$ldFlags"-I$sdk/$dir/lib"
+  cFlags=$cFlags"-I$sdk/$dir/include "
+  ldFlags=$ldFlags"-L$sdk/$dir/lib "
   binPaths=$binPaths"$sdk/$dir/bin:"
   libPaths=$libPaths"$sdk/$dir/lib:"
+  incPaths=$incPaths"$sdk/$dir/include:"
 done 
 
 export PATH=".:$binPaths:$PATH"
 export LD_LIBRARY_PATH=".:$libPaths:$LD_LIBRARY_PATH"
+export LIBRARY_PATH=$libPaths
+export C_INCLUDE_PATH=$incPaths
+export CPLUS_INCLUDE_PATH=$incPaths
+
 
 printSep "Installation of GCC"
 echo "PATH: $PATH" >> $logfile
@@ -712,7 +721,7 @@ if [ "$opt_gcc" = "yes" ]; then
   fi
 else
  showMsg "info" "The system's gcc will be used" 
- echo "gcc --version"
+ echo "gcc --version: " $(gcc --version)
 fi
 
 configureFlags="CFLAGS=\"$cFlags\" LDFLAGS=\"$ldFlags\""
@@ -723,7 +732,7 @@ installPackage "Lib curses"   aux $platformdir/gnu/ncurses-*     $temp/ncurses-*
 installPackage "Lib readline" aux $platformdir/gnu/readline-*    $temp/readline-* "all install" --with-curses
 installPackage "Lib jpeg"     aux $platformdir/non-gnu/jpeg*     $temp/jpeg*      "all install install-lib" 
 if [ "$opt_platform" == "mac_osx" ]; then
- installPackage "Findutils" aux $platformdir/gnu/findutils-* $temp/findutils-* install
+ installPackage "Findutils" aux $platformdir/gnu/findutils-* $temp/findutils-* "all install"
 fi 
 
 installPackage "Bison, a parser generator" bison $platformdir/gnu/bison-*   $temp/bison-* install
@@ -731,10 +740,16 @@ installPackage "Bison, a parser generator" bison $platformdir/gnu/bison-*   $tem
 configureFlags=""
 installPackage "Flex, a scanner generator" flex $platformdir/non-gnu/flex-* $temp/flex-* install
 
-printSep "Compiling Berkely-DB and SWI-Prolog"
+printSep "Compiling Berkely-DB"
 
 configureFlags="CFLAGS=\"$cFlags\" LDFLAGS=\"$ldFlags\""
 installPackage "Berkeley-DB"  bdb $platformdir/non-gnu/db-*      $temp/db-*/build_unix "all install" --enable-cxx ../dist/configure
+
+printSep "Compiling SWI-Prolog"
+
+configureFlags=""
+if [ "$opt_platform" != "mac_osx" ]; then
 installPackage "SWI-Prolog"   swi $platformdir/prolog/pl-*       $temp/pl-*       "all install"
+fi
 
 finish

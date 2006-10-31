@@ -721,7 +721,7 @@ function startupXterm {
     fi
     LU_xPID=$!
   else
-    showMsg "err" "No graphical console present!" 
+    showMsg "info" "No graphical console present! Child window will not be started." 
     return 1
   fi
   return 0
@@ -817,9 +817,9 @@ createTempDir
 TEMP=$LU_TMP
 
 # check if a graphical console is present
-which rxvt > /dev/null 2>&1
+type -p rxvt > /dev/null 2>&1
 if [ $? -ne 0 ]; then
-  which xterm > /dev/null 2>&1
+  type -p xterm > /dev/null 2>&1
   if [ $? -ne 0 ]; then
     showMsg "warn" "No grapichal console like  rxvt or xterm available."
     LU_xterm="" 
