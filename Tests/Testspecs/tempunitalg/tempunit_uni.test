@@ -72,11 +72,18 @@ let ur4 = [const ureal value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)
 let r = [const real value 0.0];
 let rundef = [const real value undef];
 
+
+let line1 = [const line value ((1500.0 1000.0 1500.0 2000.0))];
+let line2 = [const line value ((1010 1010 1100 1100)(1100 1100 1200 1000)(1200 1000 1600 1000)(1600 1000 1600 2010)(1600 2010 1700 1100)(1700 1100 1800 1800)(1800 1800 2300 2300))];
+let line3 = [const line value ()];
+let line4 = [const line value ((1000 1000 2000 2000))];
+
 (create ten : (rel(tuple((no int)))));
 (update ten := ((rel(tuple((no int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10))));
 
 restore zug5 from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5';
 
+let LinesRel = units(zug5) suse[fun(ZZ:STREAMELEM) trajectory(ZZ)] transformstream consume;
 
 ##################
 # unit operators #
@@ -791,7 +798,6 @@ query intersection(up2,up5) count
 #yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)(1500.0 1500.0 1500.0 1500.0)))))
 query intersection(up1,up2) transformstream consume
 
-
 # intersection_upoint_line
 # intersection_line_upoint
 # intersection_upoint_region
@@ -804,9 +810,27 @@ query intersection(up1,up2) transformstream consume
 # intersects_ureal_ureal
 
 ############################
+#    Complex testcases     #
+############################
+
+#testcase COMPLEX1 aggregate
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5Trajectory
+query units(zug5) suse[fun(ZZ:STREAMELEM) trajectory(ZZ)] transformstream aggregateB[elem; fun(XX:line, YY:line) union_new(XX, YY); [const line value ()]];
+
+#testcase COMPLEX2 aggregateB
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5Trajectory
+query units(zug5) suse[fun(ZZ:STREAMELEM) trajectory(ZZ)] transformstream aggregate[elem; fun(XX:line, YY:line) union_new(XX, YY); [const line value ()]];
+
+#testcase COMPLEX3 saggregate
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5Trajectory
+query units(zug5) suse[fun(ZZ:STREAMELEM) trajectory(ZZ)] saggregate[fun(XX:line, YY:line) union_new(XX, YY); [const line value ()]];
+
+
+############################
 # mopping up test database #
 ############################
 
 #teardown
 close database;
 delete database tempunittest
+
