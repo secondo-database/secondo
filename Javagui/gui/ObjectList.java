@@ -462,6 +462,45 @@ public int loadObject(){
        return number;
 }
 
+/** add the objects stored in the list **/
+private boolean addObject(ListExpr LE){
+   // check object representation
+   if(LE==null){
+     return false;
+   }
+   int length = LE.listLength();
+   if(length==6 && LE.first().atomType()==ListExpr.SYMBOL_ATOM &&
+      LE.first().symbolValue().equals("OBJECT")){
+      if(LE.second().atomType()!=ListExpr.SYMBOL_ATOM){
+          return false;
+      }
+      String Name = LE.second().symbolValue();
+      ListExpr obj =ListExpr.twoElemList(LE.fourth(),LE.fifth());
+      SecondoObject SO = new SecondoObject(IDManager.getNextID());
+      SO.setName(Name);
+      SO.fromList(obj);
+      addEntry(SO);
+      if(!gui.Environment.OLD_OBJECT_STYLE){
+        Reporter.writeWarning("Old styled ListExpr found");
+      }
+      return true;
+   }
+   if(length==5 && LE.first().atomType()==ListExpr.SYMBOL_ATOM &&
+      LE.first().symbolValue().equals("OBJECT")){
+      if(LE.second().atomType()!=ListExpr.SYMBOL_ATOM){
+         return false;
+      }
+      String Name = LE.second().symbolValue();
+      ListExpr obj =ListExpr.twoElemList(LE.fourth(),LE.fifth());
+      SecondoObject SO = new SecondoObject(IDManager.getNextID());
+      SO.setName(Name);
+      SO.fromList(obj);
+      addEntry(SO);
+      return true;
+   }
+   return false;
+} 
+
 
 /** reads a Secondo object from file
   * returns true if successful
@@ -471,11 +510,46 @@ public boolean loadObject(File ObjectFile){
   if(LE==null)
      return false;
   else{
-     SecondoObject SO = new SecondoObject(IDManager.getNextID());
-     SO.setName("File :"+ObjectFile.getName());
-     SO.fromList(LE);
-     addEntry(SO);
-     return true;
+     // import the objects from databases
+     boolean isDB = false;
+     ListExpr objects=null;
+     if(LE.listLength()==4 ){
+        ListExpr dbid = LE.first();
+        ListExpr name = LE.second();
+        ListExpr types = LE.third();
+        objects = LE.fourth();
+        isDB =  dbid.atomType()==ListExpr.SYMBOL_ATOM &&
+                dbid.symbolValue().equals("DATABASE") &&
+                name.atomType()==ListExpr.SYMBOL_ATOM &&
+                types.atomType()==ListExpr.NO_ATOM &&
+                types.listLength()>0 &&
+                types.first().atomType()==ListExpr.SYMBOL_ATOM &&
+                types.first().symbolValue().equals("TYPES") &&
+                objects.atomType()==ListExpr.NO_ATOM &&
+                objects.listLength()>0 &&
+                objects.first().atomType()==ListExpr.SYMBOL_ATOM &&
+                objects.first().symbolValue().equals("OBJECTS"); 
+     }
+     if(isDB){
+        objects=objects.rest();
+        if(objects.isEmpty()){
+          Reporter.showInfo("The database is empty");
+        }
+        while(!objects.isEmpty()){
+           ListExpr object = objects.first();
+           if(!addObject(object)){
+              Reporter.writeError("Error in objects's representation");
+           }
+           objects=objects.rest(); 
+        }
+        return  true;
+     } else {   
+        SecondoObject SO = new SecondoObject(IDManager.getNextID());
+        SO.setName("File :"+ObjectFile.getName());
+        SO.fromList(LE);
+        addEntry(SO);
+        return true;
+    }
   }
 }
 
