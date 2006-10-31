@@ -2,16 +2,38 @@
 #
 # Sept. 2006, M. Spiekermann
 
-# Berkeley DB
-export BERKELEY_DB_DIR=${SECONDO_SDK}
+# Note: If you plan to try to other versions of Berkeley DB, bison, flex, etc
+# rename the old one and configure it for installation within the directory
+# structure of installsdk which is
+#
+# $SECONDO_SDK 
+#          |-flex 
+#          |-bison 
+#          |-bdb       Berkeley-DB
+#          |-aux       Auxiliary tools, readline, jpeg-lib, etc. 
+#
+# If you plan to use another directory layout please be careful. Study the
+# settings made in the file "secondo.setroot".
+#
+# You need to set the environment variables
+#
+# C_INCLUDE_PATH       // list of paths for compiling C-code 
+# CPLUS_INCLUDE_PATH   // list of paths for compiling C++-code 
+# LIBRARY_PATH         // list of paths for the linker 
+# LD_LIBRARY_PATH      // list of paths for shared objects # (runtime linker)
+
+# For some strange reason the jpeg library is not found although it
+# is defined in LIBRARY_PATH. Therefore we define some special additional
+# linker flags
+export SECONDO_LDFLAGS="-L$SECONDO_SDK/aux/lib"
 
 #SWI Prolog
-export SWI_HOME_DIR="/opt/local/lib/swipl-5.6.18"
-export PL_INCLUDE_DIR="/opt/local/lib/swipl-5.6.18/include"
-export PL_LIB_DIR="/opt/local/lib/swipl-5.6.18/lib/powerpc-darwin8.6.0"
+export SWI_HOME_DIR="/opt/local/lib/swipl-5.4.7"
+export PL_INCLUDE_DIR="$SWI_HOME_DIR/include"
+export PL_LIB_DIR="$SWI_HOME_DIR/lib/powerpc-darwin8.6.0"
 
 
-export PL_VERSION=50618
+export PL_VERSION=50407
 # If the OptimizerServer crashes at runtime try to use it
 # with the jpl libraries provided by SWI-Prolog instead of
 # compiling it (see also Jpl/readme.txt).
@@ -29,4 +51,4 @@ export PD_DVI_VIEWER=xdvi
 export PD_PS_VIEWER=gv
 
 #Readline support
-#export readline=true
+export readline=true
