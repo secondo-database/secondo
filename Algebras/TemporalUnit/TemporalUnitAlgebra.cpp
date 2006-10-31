@@ -16,7 +16,7 @@ Feruniversit[ae]t Hagen.
 ----
                             Signatur
 OK   trajectory           upoint    -> line
-Test makemvalue           stream (tuple ([x1:t1,xi:uType,..,xn:tn]))  ->  mType
+(OK) makemvalue   (**)    stream (tuple ([x1:t1,xi:uT,..,xn:tn]))  ->  mT
 OK   size                 periods  -> real
 OK   deftime      (**)    uT -> periods
 OK   atinstant    (**)    uT x instant  -> iT
@@ -116,10 +116,10 @@ Pre         ureal x   ureal --> (stream ureal)
 OK         upoint x   point --> (stream upoint) same as at: upoint x point
 OK          point x  upoint --> (stream upoint) same as at: upoint x point
 OK         upoint x  upoint --> (stream upoint)
+Test       upoint x    line --> (stream upoint)
+Test         line x  upoint --> (stream upoint)
 Pre        upoint x uregion --> (stream upoint)
 Pre       uregion x  upoint --> (stream upoint)
-Pre        upoint x    line --> (stream upoint)
-Pre          line x  upoint --> (stream upoint)
 Pre        upoint x  region --> (stream upoint)
 Pre        region x  upoint --> (stream upoint)
 
@@ -164,6 +164,18 @@ n/a  never:     ubool --> bool
 n/a  always:    ubool --> bool
 
 n/a  uint2ureal: uint --> ureal
+
+
+
+
+Key to STATE of implementation:
+
+   OK : Operator has been implemented and fully tested
+  (OK): Operator has been implemented and partially tested
+  Test: Operator has been implemented, but tests have not been done
+  Pre : Operator has not been functionally implemented, but 
+        stubs (dummy code) exist
+  n/a : Neither functionally nor dummy code exists for this ones
 
 ----
 
@@ -238,8 +250,8 @@ extern AlgebraManager* am;
 #include "DateTime.h"
 using namespace datetime;
 
-bool TUA_DEBUG = false; // Set to true to activate debugging code
-//bool TUA_DEBUG = true; // Set to true to activate debugging code
+//bool TUA_DEBUG = false; // Set to true to activate debugging code
+bool TUA_DEBUG = true; // Set to true to activate debugging code
 
 /*
 2.1 Definition of some constants and auxiliary functions
@@ -302,7 +314,7 @@ string TUPrintPoint( const Point& p )
 // make a string representation from an upoint value
 string TUPrintUPoint( const UPoint& upoint )
 {
-  std::string str, Result;
+  std::string Result;
 
   if ( upoint.IsDefined() )
     Result = "( def  : ";
@@ -321,7 +333,7 @@ string TUPrintUPoint( const UPoint& upoint )
 // make a string representation from an ureal value
 string TUPrintUReal( UReal* ureal )
 {
-  std::string str, Result;
+  std::string Result;
 
   if ( ureal->IsDefined() )
     Result = "( def  : ";
@@ -586,14 +598,11 @@ void UPoint::UTrajectory( Line& line ) const
   int edgeno = 0;
 
   line.Clear();
-
+  line.StartBulkLoad();      
   if ( !IsDefined() )
     line.SetDefined( false ); // by now w/o functionality
   else 
     {      
-      line.StartBulkLoad();      
-
-
       if( !AlmostEqual( p0, p1 ) )
         {
           hs.Set( true, p0, p1 );
@@ -602,12 +611,10 @@ void UPoint::UTrajectory( Line& line ) const
           hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
           line += hs;          
         }
-
-      line.EndBulkLoad(true, true, true, true);
       line.SetDefined( true ); // by now w/o functionality
     }
+  line.EndBulkLoad();
 }
-
 
 
 /*
@@ -1151,6 +1158,10 @@ Type mapping for ~makemvalue~ is
               APPEND (i ti)
       stream (tuple ([x1:t1,x1:upoint,..,[xn:tn)))  ->  mpoint
               APPEND (i ti)
+      stream (tuple ([x1:t1,x1:ustring,..,[xn:tn)))  ->  mstring
+              APPEND (i ti)
+      stream (tuple ([x1:t1,x1:uregion,..,[xn:tn)))  ->  mregion
+              APPEND (i ti)
 
 ----
 
@@ -1238,8 +1249,11 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
   CHECK_COND( (inputtype == "ubool"
                || inputtype == "uint"
                || inputtype == "ureal"
-               || inputtype == "upoint" ),
-              "Attribute type is not of type ubool, uint, ureal or upoint.");
+               || inputtype == "upoint" 
+               || inputtype == "ustring"
+               || inputtype == "uregion"),
+              "Attribute type is not of type ubool, uint, ustring, ureal"
+              "upoint or uregion.");
   
   attrname = nl->SymbolValue(second);
   j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
@@ -1254,6 +1268,10 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
     attrtype = nl->SymbolAtom( "mreal" );
   if( inputtype == "uint" )
     attrtype = nl->SymbolAtom( "mint" );
+  if( inputtype == "ustring" )
+    attrtype = nl->SymbolAtom( "mstring" );
+  if( inputtype == "uregion" )
+    attrtype = nl->SymbolAtom( "mregion" );
   
   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
            nl->TwoElemList(nl->IntAtom(j),
@@ -1349,15 +1367,16 @@ const string
 TemporalSpecMakemvalue  =
 "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>TemporalUnitAlgebra</text--->"
-"<text>Fot T in {bool, int, real, point}:"
+"<text>For T in {bool, int, string, real, point, region}:"
 "((stream (tuple ((x1 t1)...(xn tn)))"
 " (uT)))-> mT</text--->"
-"<text>makemvalue[ _ ]</text--->"
-"<text>Create a moving object from a tuple stream containing "
-"units. No two unit timeintervals may overlap. Undefined units are "
+"<text>_ makemvalue[ _ ]</text--->"
+"<text>Create a moving object from a (not necessarily sorted) "
+"tuple stream containing units. "
+"No two unit timeintervals may overlap. Undefined units are "
 "allowed and will be ignored. A stream with less than 1 defined "
 "unit will result in an 'empty' moving object, not in an 'undef'.</text--->"
-"<text>makemvalue[ u1 ]</text---> ) )";
+"<text>query units(zug5) transformstream makemvalue[elem]</text---> ) )";
 
 /* 
 5.5.4 Selection Function of operator ~makemvalue~
@@ -1419,14 +1438,23 @@ while (!(nl->IsEmpty(rest)))
   if( inputtype == "upoint" )
     return 3;
 
+  if( inputtype == "ustring" )
+    return 4;
+
+  if( inputtype == "uregion" )
+    return 5;
+
 
   return -1; // This point should never be reached
 }
 
-ValueMapping temporalmakemvaluemap[] = { MappingMakemvalue<MBool, UBool>,
-                                         MappingMakemvalue<MBool, UBool>,
-                                         MappingMakemvalue<MReal, UReal>,
-                                         MappingMakemvalue<MPoint, UPoint> };
+ValueMapping temporalmakemvaluemap[] = {
+      MappingMakemvalue<MBool, UBool>,
+      MappingMakemvalue<MBool, UBool>,
+      MappingMakemvalue<MReal, UReal>,
+      MappingMakemvalue<MPoint, UPoint>,
+      MappingMakemvalue<MString, UString>,
+      MappingMakemvalue<MRegion, URegionEmb> };
 
 /*
 5.5.5  Definition of operator ~makemvalue~
@@ -1434,7 +1462,7 @@ ValueMapping temporalmakemvaluemap[] = { MappingMakemvalue<MBool, UBool>,
 */
 Operator temporalunitmakemvalue( "makemvalue",
                         TemporalSpecMakemvalue,
-                        4,
+                        6,
                         temporalmakemvaluemap,
                         MakemvalueSelect,
                         MovingTypeMapMakemvalue );
@@ -6443,7 +6471,7 @@ The result a single value of the same kind.
 
 ----   
        For T in kind DATA:
-       saggregate: (stream T) x (T x T --> T) x T --> T
+       saggregate: ((stream T) x (T x T --> T) x T) --> T
 
 ----
 
@@ -6480,7 +6508,7 @@ ListExpr TemporalUnitSaggregateTypeMap( ListExpr args )
        !(TypeOfRelAlgSymbol(nl->First(instream) == stream )) ||
        !am->CheckKind("DATA", nl->Second(instream), errorInfo) )
     {
-      ErrorReporter::ReportError("Operator saggregate expects a list of length"
+      ErrorReporter::ReportError("Operator saggregate expects a list of length "
                                  "two as first argument, having structure "
                                  "'(stream T)', for T in kind DATA.");
       return nl->SymbolAtom( "typeerror" );
@@ -6497,7 +6525,7 @@ ListExpr TemporalUnitSaggregateTypeMap( ListExpr args )
        !( nl->Equal(nl->Third(map), nl->Second(map)) ) ||
        !( nl->Equal(nl->Third(map), TypeT) ) )
     {
-      ErrorReporter::ReportError("Operator saggregate expects a list of length"
+      ErrorReporter::ReportError("Operator saggregate expects a list of length "
                                  "four as second argument, having structure "
                                  "'(map T T T)', where T has the base type of "
                                  "the first argument.");
@@ -7806,22 +7834,20 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
                                           int message,
                                           Word& local, Supplier s )
 {
-  cout << "\nATTENTION: temporalUnitIntersection_upoint_line "
-       << "not yet implemented!" << endl;  
-  return 0;
-
   TUIntersectionLocalInfo *sli;
   Word        a0, a1;
-  UPoint      *u, res;
-  Line        *l, trajU, reslines;
+  UPoint      res;
+  Line        trajU(2), reslines(10);
   HalfSegment hs;
   const HalfSegment *hs1, *hs2;
-  Points      respoints;
+  Points      respoints = Points(20);
   DateTime    TRes0 = DateTime(instanttype), 
               TRes1 = DateTime(instanttype);
   Interval<Instant> iv;
-  Point       p, pl, pr, p0, p1;
+  Point       p(0,0), pl(0,0), pr(0,0), p0(0,0), p1(0,0);
   const Point *pc;
+  const UPoint* u;
+  const Line*   l;
   int         i, j;
   double      
     x0, x1, y0, y1,    // coord values
@@ -7833,6 +7859,9 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
     {
     case OPEN:
       
+      if (TUA_DEBUG) 
+        cout << "temporalUnitIntersection_upoint_line: Received OPEN" 
+             << endl;
       sli = new TUIntersectionLocalInfo;
       sli->finished = true;
       sli->NoOfResults = 0;
@@ -7841,6 +7870,8 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
 
       // initialize arguments, such that a0 always contains the upoint
       //                       and a1 the line 
+
+      if (TUA_DEBUG) cout << "  uargindex=" << uargindex << endl;
       if (uargindex == 0)
         { a0 = args[0]; a1 = args[1]; }
       else
@@ -7848,10 +7879,17 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
       
       u = (UPoint*)(a0.addr);
       l = (Line*)(a1.addr);
+      if (TUA_DEBUG) cout << "  *u=" << TUPrintUPoint( *u ) << endl;
 
       // test for definedness
-      if ( !u->IsDefined() || !l->IsDefined() )
-        return 0; // nothing to do
+      if ( !u->IsDefined() || !l->IsDefined() || l->IsEmpty() )
+        {
+          if (TUA_DEBUG) 
+            cout << "  Undef/Empty arg -> Empty Result" << endl
+                 << "temporalUnitIntersection_upoint_line: Finished OPEN (1)" 
+                 << endl;
+          return 0; // nothing to do
+        }
 
       // test for static upoint u
       if ( AlmostEqual(u->p0, u->p1) ||
@@ -7864,14 +7902,19 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
               sli->resultValues[sli->NoOfResults] = SetWord( u->Clone() );
               sli->NoOfResults++;   
               sli->finished = false;              
+              if (TUA_DEBUG) 
+                cout << "  Static upoint -> Added Result" << endl;
             }
+          if (TUA_DEBUG) 
+            cout << "temporalUnitIntersection_upoint_line: Finished OPEN (2)" 
+                 << endl;
           return 0; // we are finished
         }
       // upoint u is not static, but moving
       u->UTrajectory( trajU );
 
       ////////////////////////////////////
-      // Merged code from Line::Intersection and Line:Crossings
+      // Merged code from Line::Intersection and Line::Crossings
       // to save time
 
       assert( l->IsOrdered() && trajU.IsOrdered() );
@@ -7890,7 +7933,7 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
             {
               for( j = 0; j < trajU.Size(); j++ )
                 {
-                  l->Get( j, hs2 );
+                  trajU.Get( j, hs2 );
                   if( hs2->IsLeftDomPoint() )
                     {// Crossings - part
                       if( hs1->Intersection( *hs2, p ) )
@@ -7918,8 +7961,13 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
       for(i=0; i <  reslines.Size(); i++ )
         { // get next HS
           reslines.Get( i, hs1 );
+          if (!hs1->IsLeftDomPoint()) 
+            continue;
           pl = hs1->GetLeftPoint();
           pr = hs1->GetRightPoint();
+          if( TUA_DEBUG ) 
+            cout << "  pl=" << TUPrintPoint(pl) 
+                 << ", pr=" << TUPrintPoint(pr) << endl;
           
           xl = pl.GetX(); xr = pr.GetX(); // get single coords
           yl = pl.GetY(); yr = pr.GetY(); // get single coords
@@ -7927,11 +7975,11 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
           // as we have a non-static upoint here, we have 
           // (dt != 0) && ((x1 != x0) || (y1 != y0)).
           // Also, l is a non-degenerated line, 
-          // and thus can compute tl and tr, this are the instants, with
+          // and thus we can compute tl and tr, this are the instants, with
           // x(tl) = xl, y(tl) = yl; x(tr) = xr, y(tr) = yr
           
-          tl = (x1-x0 != 0) ? dt*(xl-x0)/(x1-x0)-t0 : dt*(yl-y0)/(y1-y0)-t0;
-          tr = (x1-x0 != 0) ? dt*(xr-x0)/(x1-x0)-t0 : dt*(yr-y0)/(y1-y0)-t0;
+          tl = (x1-x0 != 0) ? dt*(xl-x0)/(x1-x0)+t0 : dt*(yl-y0)/(y1-y0)+t0;
+          tr = (x1-x0 != 0) ? dt*(xr-x0)/(x1-x0)+t0 : dt*(yr-y0)/(y1-y0)+t0;
 
           // sort the instants, such that t0 <= t1
           if (tl <= tr)
@@ -7944,20 +7992,32 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
               TRes0.ReadFrom(tr);
               TRes1.ReadFrom(tl);
             }
+          if (TUA_DEBUG)
+            cout << "  tl=" << tl << ", tr=" << tr << endl;
           u->TemporalFunction(TRes0, p0, true);
           u->TemporalFunction(TRes1, p1, true);
 
           lc = (TRes0 == u->timeInterval.start) && (u->timeInterval.lc);
           rc = (TRes1 == u->timeInterval.end)   && (u->timeInterval.rc);
 
+          if (TUA_DEBUG)
+            cout << "  lc=" << lc << ", rc=" << rc << endl;
+
           iv = Interval<Instant>(TRes0, TRes1, lc, rc);
+          if (TUA_DEBUG)
+            cout << "  iv=" << TUPrintTimeInterval(iv) << endl;
 
           res = UPoint(iv, p0, p1);
           res.SetDefined(true);
+          if (TUA_DEBUG)
+            cout << "  res=" << TUPrintUPoint(res) << endl;
+
           // add moving upoint to localinfo
           sli->resultValues[sli->NoOfResults] = SetWord( res.Clone() );
           sli->NoOfResults++;   
           sli->finished = false;
+          if (TUA_DEBUG) 
+            cout << "  Line: Added Result: " << TUPrintUPoint(res) << endl;
         }
 
       for(i=0; i <  respoints.Size(); i++ )
@@ -7967,7 +8027,7 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
           
           // As we have an intersection point and u is not static,
           // we can compute tl with x(tl) = xl, y(tl) = yl:
-          tl = (x1-x0 != 0) ? dt*(xl-x0)/(x1-x0)-t0 : dt*(yl-y0)/(y1-y0)-t0;
+          tl = (x1-x0 != 0) ? dt*(xl-x0)/(x1-x0)+t0 : dt*(yl-y0)/(y1-y0)+t0;
           
           TRes0.ReadFrom(tl);
           
@@ -7981,8 +8041,12 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
           sli->resultValues[sli->NoOfResults] = SetWord( res.Clone() );
           sli->NoOfResults++;   
           sli->finished = false;
+          if (TUA_DEBUG) 
+            cout << "  Point: Added Result: " << TUPrintUPoint(res) << endl;
         }
-      
+      if (TUA_DEBUG) 
+        cout << "temporalUnitIntersection_upoint_line: Finished OPEN (3)" 
+             << endl;      
       return 0;
       
     case REQUEST:
@@ -8247,10 +8311,10 @@ int temporalunitIntersectionSelect( ListExpr args )
   if( nl->IsEqual( arg2, "ustring" ) &&
       nl->IsEqual( arg1, "ustring" ))  return 14;
   
-  if( nl->IsEqual( arg1, "line" )      &&
-      nl->IsEqual( arg2, "upoint" ))     return 15;
-  if( nl->IsEqual( arg1, "upoint" )    &&
-      nl->IsEqual( arg2, "line" ) )      return 16;
+  if( nl->IsEqual( arg1, "upoint" )      &&
+      nl->IsEqual( arg2, "line" ))     return 15;
+  if( nl->IsEqual( arg1, "line" )    &&
+      nl->IsEqual( arg2, "upoint" ) )      return 16;
   if( nl->IsEqual( arg1, "upoint" )    &&
       nl->IsEqual( arg2, "uregion" ) )   return 17;
   if( nl->IsEqual( arg1, "uregion" )   &&
@@ -8260,7 +8324,6 @@ int temporalunitIntersectionSelect( ListExpr args )
   if( nl->IsEqual( arg1, "region" )    &&
       nl->IsEqual( arg2, "upoint" ) )    return 20;
 
-  cout << "\ntemporalunitIntersectionSelect: Unsupported datatype." << endl;
   return -1;
 }
 
