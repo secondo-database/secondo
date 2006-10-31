@@ -258,12 +258,14 @@ private:
     if ( !BufInfo[bufNr].recExists ) { // a new record is needed
 
       record.Finish(); 
-      assert( filePtr->AppendRecord( recId, record ) );
+      bool append_OK = filePtr->AppendRecord( recId, record );
+      assert( append_OK );
 
     } else {
       recId = BufInfo[bufNr].recId;
     }
-    assert( filePtr->SelectRecord( recId, record, SmiFile::Update ) );
+    bool select_OK = filePtr->SelectRecord( recId, record, SmiFile::Update );
+    assert( select_OK );
 
     record.Write( bufPtr, BUF_SIZE, 0);
     RecordInfo& recInfo = recidVec[ BufInfo[bufNr].pageNr ];
@@ -282,9 +284,9 @@ private:
     } else { // entry is present in page table
 
       record.Finish();
-      bool ok = filePtr->SelectRecord( recidVec[pageNr].id, 
-                                       record, SmiFile::Update );
-      assert(ok);
+      bool select_OK = filePtr->SelectRecord( recidVec[pageNr].id, 
+                                              record, SmiFile::Update );
+      assert(select_OK);
       
       record.Read( bufPtr, BUF_SIZE, 0);
       BufInfo[bufNr].recExists = true;
