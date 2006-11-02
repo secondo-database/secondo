@@ -1733,7 +1733,7 @@ void Points::Translate( const Coord& x, const Coord& y, Points& result ) const
     Get( i, p );
     result += p->Translate( x, y );
   }
-  result.EndBulkLoad( false );
+  result.EndBulkLoad( false, false );
 }
 
 size_t Points::HashValue() const
@@ -10684,17 +10684,28 @@ SpatialCommonBorder_rr( Word* args, Word& result, int message,
 int
 SpatialTranslate_p( Word* args, Word& result, int message, 
                     Word& local, Supplier s )
-{
+{ 
   result = qp->ResultStorage( s );
 
   const Point *p= (Point*)args[0].addr;
-  CcReal *tx = (CcReal*)args[1].addr,
-         *ty = (CcReal*)args[2].addr;
+  
+  Supplier son = qp->GetSupplier( args[1].addr, 0 );
+  Word t;
+  qp->Request( son, t );
+  const CcReal *tx = ((CcReal *)t.addr);
+  
+  son = qp->GetSupplier( args[1].addr, 1 ); 
+  qp->Request( son, t );
+  const CcReal *ty = ((CcReal *)t.addr);
 
-  if( p->IsDefined() && tx->IsDefined() && ty->IsDefined() )
-    *((Point*)result.addr) = p->Translate( tx->GetRealval(), ty->GetRealval() );
+  if( p->IsDefined())
+    if( tx->IsDefined() && ty->IsDefined() )
+      *((Point*)result.addr) = p->Translate( tx->GetRealval(), 
+		                             ty->GetRealval() );
+    else
+      *((Point*)result.addr) = *p; 
   else 
-    ((Point*)result.addr)->SetDefined( false ); 
+    ((Point*)result.addr)->SetDefined( false );
 
   return 0;
 }
@@ -10705,16 +10716,26 @@ SpatialTranslate_ps( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
 
-  Points *ps = (Points*)args[0].addr;
-  CcReal *tx = (CcReal*)args[1].addr,
-         *ty = (CcReal*)args[2].addr;
+  const Points *ps = (Points*)args[0].addr;
 
-  if( tx->IsDefined() && ty->IsDefined() )
-    ps->Translate( tx->GetRealval(), 
-                   ty->GetRealval(), 
-                   *((Points*)result.addr) );
+  Supplier son = qp->GetSupplier( args[1].addr, 0 );
+  Word t;
+  qp->Request( son, t );
+  const CcReal *tx = ((CcReal *)t.addr);
+  
+  son = qp->GetSupplier( args[1].addr, 1 ); 
+  qp->Request( son, t );
+  const CcReal *ty = ((CcReal *)t.addr);
+    
+  if( ps->IsDefined() )
+    if( tx->IsDefined() && ty->IsDefined() )
+      ps->Translate( tx->GetRealval(), 
+                     ty->GetRealval(), 
+                     *((Points*)result.addr) );
+    else
+      *((Points*)result.addr) = *ps; 
   else 
-    *((Points*)result.addr) = *ps; 
+    ((Points*)result.addr)->SetDefined( false ); 
 
   return 0;
 }
@@ -10731,16 +10752,23 @@ SpatialTranslate_l( Word* args, Word& result, int message,
   Supplier son = qp->GetSupplier( args[1].addr, 0 );
   Word t;
   qp->Request( son, t );
-
-  double tx, ty;
-  tx = ((CcReal *)t.addr)->GetRealval();
-  son = qp->GetSupplier( args[1].addr, 1 );
+  const CcReal *tx = ((CcReal *)t.addr);
+  
+  son = qp->GetSupplier( args[1].addr, 1 ); 
   qp->Request( son, t );
-  ty = ((CcReal *)t.addr)->GetRealval();
-
-  if( !cl->IsEmpty() )
-    cl->Translate( tx, tx, *pResult );
-
+  const CcReal *ty = ((CcReal *)t.addr);
+    
+  if(  !cl->IsEmpty() )
+    if( tx->IsDefined() && ty->IsDefined() ) {
+      const Coord txval = (Coord)(tx->GetRealval()),
+	          tyval = (Coord)(ty->GetRealval());
+      cl->Translate( txval, tyval, *pResult );
+    }
+    else
+      *((Line*)result.addr) = *cl; 
+  else 
+    ((Line*)result.addr)->SetDefined( false );
+  
   return 0;
 }
 
@@ -10755,18 +10783,26 @@ SpatialTranslate_r( Word* args, Word& result, int message,
 
   pResult->Clear();
 
+
   Supplier son = qp->GetSupplier( args[1].addr, 0 );
   Word t;
   qp->Request( son, t );
-
-  double tx, ty;
-  tx = ((CcReal *)t.addr)->GetRealval();
-  son = qp->GetSupplier( args[1].addr, 1 );
+  const CcReal *tx = ((CcReal *)t.addr);
+  
+  son = qp->GetSupplier( args[1].addr, 1 ); 
   qp->Request( son, t );
-  ty = ((CcReal *)t.addr)->GetRealval();
-
-  if( !cr->IsEmpty() )
-    cr->Translate( tx, ty, *pResult ); 
+  const CcReal *ty = ((CcReal *)t.addr);
+    
+  if(  !cr->IsEmpty() )
+    if( tx->IsDefined() && ty->IsDefined() ) {
+      const Coord txval = (Coord)(tx->GetRealval()),
+	          tyval = (Coord)(ty->GetRealval());
+      cr->Translate( txval, tyval, *pResult );
+    }
+    else
+      *((Region*)result.addr) = *cr; 
+  else 
+    ((Region*)result.addr)->SetDefined( false );
 
   return 0;
 }
