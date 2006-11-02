@@ -4355,7 +4355,7 @@ const string TemporalSpecIntersection =
   ") )";
 
 const string TemporalSpecUnion  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>TemporalAlgebra</text--->"
   "<text>(range(x) range(x)) -> range(x)</text--->"
@@ -4405,7 +4405,7 @@ const string TemporalSpecNoComponents =
   ") )";
 
 const string TemporalSpecInst  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>TemporalAlgebra</text--->"
   "<text>intime(x) -> instant</text--->"
@@ -4563,7 +4563,7 @@ const string MPointSpecTranslate  =
   ") )";
 
 const string TemporalSpecTheYear  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>TemporalAlgebra</text--->"
   "<text>int -> periods</text--->"

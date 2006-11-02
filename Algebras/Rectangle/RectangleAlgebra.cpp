@@ -88,7 +88,7 @@ Rectangle2Property()
             nl->FourElemList(nl->StringAtom("-> DATA"),
                              nl->StringAtom("rect"),
                              nl->StringAtom("(<left> <right> <bottom> <top>)"),
-                             nl->StringAtom("(0 1 0 1)"))));
+                             nl->StringAtom("(0.0 1.0 0.0 1.0)"))));
 }
 
 /*
@@ -1039,9 +1039,9 @@ const string RectangleSpecTranslate  =
   "( <text>(rect (real real)) -> rect "
   "(rect3 (real real real)) -> rect3 "
   "(rect4 (real real real real)) -> rect4</text--->"
-  "<text> translate[_; list]</text--->"
+  "<text> _ translate[list]</text--->"
   "<text> move the rectangle parallely for some distance.</text--->"
-  "<text> query translate[rect1; 3.5, 15.1]</text--->"
+  "<text> query rect1 translate[3.5, 15.1]</text--->"
   ") )";
   
 const string RectangleSpecRectangle2  =
