@@ -37,9 +37,9 @@ October, 2004 Schoenhammer Herbert, (virtual) method BoundingBox() added
 
 This header file essentially contains the definition of the struct ~Rectangle~.
 This class corresponds to the memory representation for the type constructor
-~rect~, ~rect3~ and ~rect4~ which are 2-dimensional, 3-dimensional or 4-dimensional
-rectangles alligned with the axes of each dimension. A rectangle in such a way
-can be represented by four, six or eight numbers (two for each dimension).
+~rect~, ~rect3~ and ~rect4~ which are 2-dimensional, 3-dimensional, 4-dimensional
+or 8-dimensional rectangles alligned with the axes of each dimension. A rectangle 
+in such a way can be represented by four, six or eight numbers (two for each dimension).
 
 
 2 Defines and includes
