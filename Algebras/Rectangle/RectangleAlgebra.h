@@ -243,13 +243,13 @@ of the rectangle.
 
       for (unsigned j = 0; j < dim; j++)
       {
-	thispos <<= 1;
-	thispos |= (min[j] >= 0);
-	rpos <<= 1;
-	rpos |= (r->min[j] >= 0);
+        thispos <<= 1;
+        thispos |= (min[j] >= 0);
+        rpos <<= 1;
+        rpos |= (r->min[j] >= 0);
       }
       if (thispos < rpos)
-	return -1;
+        return -1;
       if (thispos > rpos)
         return 1;
 
@@ -258,27 +258,27 @@ of the rectangle.
 
       for (unsigned j = 0; j < dim; j++)
       {
-	thismin[j] = (unsigned) fabs(min[j]);  
-	rmin[j] = (unsigned) fabs(r->min[j]);
+        thismin[j] = (unsigned) fabs(min[j]);  
+        rmin[j] = (unsigned) fabs(r->min[j]);
       }
 
       for (int j = 31; j >= 0; j--)
       {
-	thispos = 0;
-	rpos = 0;
+        thispos = 0;
+        rpos = 0;
 
-	for (unsigned k = 0; k < dim; k++)
-	{
-	  thispos <<= 1;
-	  thispos |= ((thismin[k] >> j) & 1);
-	  rpos <<= 1;
-	  rpos |= ((rmin[k] >> j) & 1);
-	}
+        for (unsigned k = 0; k < dim; k++)
+        {
+          thispos <<= 1;
+          thispos |= ((thismin[k] >> j) & 1);
+          rpos <<= 1;
+          rpos |= ((rmin[k] >> j) & 1);
+        }
 
-	if (thispos < rpos)
-	  return -1;
-	if (thispos > rpos)
-	  return 1;
+        if (thispos < rpos)
+          return -1;
+        if (thispos > rpos)
+          return 1;
       }
 
       // if no conclusion on z-order (based on integer coordinates) can be

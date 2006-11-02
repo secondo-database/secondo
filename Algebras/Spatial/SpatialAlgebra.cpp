@@ -10701,7 +10701,7 @@ SpatialTranslate_p( Word* args, Word& result, int message,
   if( p->IsDefined())
     if( tx->IsDefined() && ty->IsDefined() )
       *((Point*)result.addr) = p->Translate( tx->GetRealval(), 
-		                             ty->GetRealval() );
+                                             ty->GetRealval() );
     else
       *((Point*)result.addr) = *p; 
   else 
@@ -10761,7 +10761,7 @@ SpatialTranslate_l( Word* args, Word& result, int message,
   if(  !cl->IsEmpty() )
     if( tx->IsDefined() && ty->IsDefined() ) {
       const Coord txval = (Coord)(tx->GetRealval()),
-	          tyval = (Coord)(ty->GetRealval());
+                  tyval = (Coord)(ty->GetRealval());
       cl->Translate( txval, tyval, *pResult );
     }
     else
@@ -10796,7 +10796,7 @@ SpatialTranslate_r( Word* args, Word& result, int message,
   if(  !cr->IsEmpty() )
     if( tx->IsDefined() && ty->IsDefined() ) {
       const Coord txval = (Coord)(tx->GetRealval()),
-	          tyval = (Coord)(ty->GetRealval());
+                  tyval = (Coord)(ty->GetRealval());
       cr->Translate( txval, tyval, *pResult );
     }
     else
