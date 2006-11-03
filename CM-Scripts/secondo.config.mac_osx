@@ -28,9 +28,9 @@
 export SECONDO_LDFLAGS="-L$SECONDO_SDK/aux/lib"
 
 #SWI Prolog
-export SWI_HOME_DIR="/opt/local/lib/swipl-5.4.7"
+export SWI_HOME_DIR="/usr/local/lib/swipl-5.4.7"
 export PL_INCLUDE_DIR="$SWI_HOME_DIR/include"
-export PL_LIB_DIR="$SWI_HOME_DIR/lib/powerpc-darwin8.6.0"
+export PL_LIB_DIR="$SWI_HOME_DIR/lib/powerpc-darwin7.8.0"
 
 
 export PL_VERSION=50407
