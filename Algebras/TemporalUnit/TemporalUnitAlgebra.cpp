@@ -13,42 +13,6 @@ May 2006, initial version implemented by Thomas Fischer for diploma
 thesis with Prof. Dr. G[ue]ting, Fachbereich Informatik,
 Feruniversit[ae]t Hagen.
 
-----
-                            Signatur
-OK   trajectory           upoint    -> line
-(OK) makemvalue   (**)    stream (tuple ([x1:t1,xi:uT,..,xn:tn]))  ->  mT
-OK   size                 periods  -> real
-OK   deftime      (**)    uT -> periods
-OK   atinstant    (**)    uT x instant  -> iT
-OK   atperiods    (**     uT x periods  -> (stream uT)
-OK   Initial      (**)    uT -> iT
-OK   final        (**)    uT -> iT
-OK   present      (**)    uT x instant  -> bool
-OK                (**)    uT x periods  -> bool
-(OK) point2d              periods  -> point
-(OK) queryrect2d          instant  -> rect
-OK   speed                mpoint   -> mreal
-OK                        upoint   -> ureal
-OK   passes               upoint x point     -> bool
-OK   at                   upoint x point     -> upoint
-Test circle               point x real x int -> region
-OK   velocity             mpoint  -> mpoint
-OK                        upoint  -> upoint
-OK   derivable            mreal   -> mbool
-OK                        ureal   -> ubool
-OK   derivative           mreal   -> mreal
-OK                        ureal   -> ureal
-
-(*): These operators have been implemented for T in {bool, int, real, point}
-(**): These operators have been implemented for 
-      T in {bool, int, real, point, string, region}
-
-----
-
-*/
-
-/*
-
 July 2006, Christian D[ue]ntgen: The so far implemented operators do not suffice
 to model typical queries using the compact unit representation ~moving(T)~ with
 relations of units. Instead, we also need variants of spatiotemporal operators
@@ -65,108 +29,150 @@ an ordered pairwise comparison here.
 It may be useful, to have some operators consuming a stream of units and
 returning an aggregated vale, as e.g. initial, final, present, never, always.
 
-So we are to implement:
-
 ----
 
 State Operator/Signatures
 
-OK   suse:  (stream X)            (map X Y)            --> (stream Y)
-OK          (stream X)            (map X (stream Y))   --> (stream Y)
 
-OK   suse2: (stream X) Y          (map X Y Z)          --> (stream Z)
-OK          (stream X) Y          (map X Y stream(Z))  --> (stream Z)
-OK          X          (stream Y) (map X y Z)          --> (stream Z)
-OK          X          (stream Y) (map X y (stream Z)) --> (stream Z)
-OK          (stream X) (stream Y) (map X Y Z)          --> (stream Z)
-OK          (stream X) (stream Y) (map X Y (stream Z)) --> (stream Z)
-            for X,Y,Z of kind DATA
+OK    suse:  (stream X)            (map X Y)            --> (stream Y)
+OK           (stream X)            (map X (stream Y))   --> (stream Y)
 
-OK   sfeed: T --> (stream T)                                   
+OK    suse2: (stream X) Y          (map X Y Z)          --> (stream Z)
+OK           (stream X) Y          (map X Y stream(Z))  --> (stream Z)
+OK           X          (stream Y) (map X y Z)          --> (stream Z)
+OK           X          (stream Y) (map X y (stream Z)) --> (stream Z)
+OK           (stream X) (stream Y) (map X Y Z)          --> (stream Z)
+OK           (stream X) (stream Y) (map X Y (stream Z)) --> (stream Z)
+             for X,Y,Z of kind DATA
 
-OK   transformstream: (stream T) -> stream(tuple((element T)))
-OK                    stream(tuple((id T))) -> (stream T)
+OK    sfeed:                          T --> (stream T)
 
-OK   saggregate: (stream T) x (T x T --> T) x T  --> T
+OK    transformstream: stream(tuple((id T))) --> (stream T)
+OK                                (stream T) --> stream(tuple((element T)))
 
-OK   count: (stream T) --> int
+OK    saggregate:   (stream T) x (T x T --> T) x T  --> T
+ 
+OK    count:                 (stream T) --> int
 
-OK   filter: ((stream T) (map T bool)) --> int
+OK    filter: ((stream T) (map T bool)) --> int
 
-OK   printstream: (stream T) --> (stream T)
+OK    printstream:           (stream T) --> (stream T)
+
+(OK)  makemvalue   (**)  stream (tuple ([x1:t1,xi:uT,..,xn:tn])) -->  mT
+OK    size                      periods --> real
+(OK)  point2d                   periods --> point
+(OK)  queryrect2d               instant --> rect
+OK    circle         point x real x int --> region
+
+
+OK    trajectory                 upoint --> line
+OK    velocity                   mpoint --> mpoint
+OK                               upoint --> upoint
+OK    derivable                   mreal --> mbool
+OK                                ureal --> ubool
+OK    derivative                  mreal --> mreal
+OK                                ureal --> ureal
+OK    speed                      mpoint --> mreal
+OK                               upoint --> ureal
+
+      passes    For T in {bool, int, string, point}
+OK  +                        uT x      T --> bool
+n/a +                     ureal x   real --> bool
+n/a +                   uregion x region --> bool
+
+OK  + deftime      (**)              uT --> periods
+OK  + atinstant    (**)    uT x instant --> iT
+OK  + atperiods    (**     uT x periods --> (stream uT)
+OK  + Initial      (**)              uT --> iT
+OK  + final        (**)              uT --> iT
+OK  + present      (**)    uT x instant --> bool
+OK  +              (**)    uT x periods --> bool
      
-(OK) atmax: uT --> (stream uT)
+(OK)+ atmax: uT --> (stream uT)
 
-(OK) atmin: uT --> (stream uT)
+(OK)+ atmin: uT --> (stream uT)
 
-(OK) at:    ureal x real --> (stream ureal)
+(OK)+ at:    ureal x    real --> (stream ureal)
+OK  +       upoint x   point --> upoint
+n/a +       upoint x  region --> (stream upoint)
+n/a +       upoint x uregion --> (stream upoint)
 
-OK   distance:  T in {int, point}
-OK             uT x uT -> ureal
-OK             uT x  T -> ureal 
-OK              T x uT -> ureal
+
+      distance:  T in {int, point}
+OK  -           uT x uT -> ureal
+OK  ?           uT x  T -> ureal 
+OK  ?            T x uT -> ureal
 
      intersection: For T in {bool, int, string}:
-OK             uT x      uT --> (stream uT)
-OK             uT x       T --> (stream uT)
-OK              T x      uT --> (stream uT)
-(OK)        ureal x    real --> (stream ureal)
-(OK)         real x   ureal --> (stream ureal)
-Pre         ureal x   ureal --> (stream ureal)
-OK         upoint x   point --> (stream upoint) same as at: upoint x point
-OK          point x  upoint --> (stream upoint) same as at: upoint x point
-OK         upoint x  upoint --> (stream upoint)
-Test       upoint x    line --> (stream upoint)
-Test         line x  upoint --> (stream upoint)
-Pre        upoint x uregion --> (stream upoint)
-Pre       uregion x  upoint --> (stream upoint)
-Pre        upoint x  region --> (stream upoint)
-Pre        region x  upoint --> (stream upoint)
-
+OK  +          uT x      uT --> (stream uT)
+OK  +          uT x       T --> (stream uT)
+OK  +           T x      uT --> (stream uT)
+(OK)+       ureal x    real --> (stream ureal)
+(OK)+        real x   ureal --> (stream ureal)
+Pre +       ureal x   ureal --> (stream ureal)
+OK  -      upoint x   point --> (stream upoint) same as at: upoint x point
+OK  -       point x  upoint --> (stream upoint) same as at: upoint x point
+OK  -      upoint x  upoint --> (stream upoint)
+OK  +      upoint x    line --> (stream upoint)
+OK  +        line x  upoint --> (stream upoint)
+Pre +      upoint x uregion --> (stream upoint)
+Pre +     uregion x  upoint --> (stream upoint)
+Pre -      upoint x  region --> (stream upoint)
+Pre -      region x  upoint --> (stream upoint)
+n/a +      upoint x  points --> (stream upoint)
+n/a +      points x  upoint --> (stream upoint)
 
      intersects: For T in {bool, int, string, real, point}:
-Pre            uT x      uT --> (stream ubool)
-n/a            uT x       T --> (stream ubool)
-n/a             T x      uT --> (stream ubool)
-n/a         ureal x    real --> (stream ubool)
-n/a          real x   ureal --> (stream ubool)
-n/a         ureal x   ureal --> (stream ubool)
-n/a        upoint x   point --> (stream ubool)
-n/a         point x  upoint --> (stream ubool)
-n/a        upoint x  upoint --> (stream ubool)
-n/a        upoint x uregion --> (stream ubool)
-n/a       uregion x  upoint --> (stream ubool)
-n/a        upoint x    line --> (stream ubool)
-n/a          line x  upoint --> (stream ubool)
-n/a        upoint x  region --> (stream ubool)
-n/a        region x  upoint --> (stream ubool)
+Pre -          uT x      uT --> (stream ubool)
+n/a -          uT x       T --> (stream ubool)
+n/a -           T x      uT --> (stream ubool)
+n/a -       ureal x    real --> (stream ubool)
+n/a -        real x   ureal --> (stream ubool)
+n/a -       ureal x   ureal --> (stream ubool)
+n/a -      upoint x   point --> (stream ubool)
+n/a -       point x  upoint --> (stream ubool)
+n/a -      upoint x  upoint --> (stream ubool)
+n/a -      upoint x uregion --> (stream ubool)
+n/a -     uregion x  upoint --> (stream ubool)
+n/a -      upoint x    line --> (stream ubool)
+n/a -        line x  upoint --> (stream ubool)
+n/a -      upoint x  region --> (stream ubool)
+n/a -      region x  upoint --> (stream ubool)
 
+  inside: 
+n/a +      upoint x uregion --> (stream ubool)
+n/a +      upoint x  points --> (stream ubool)
+n/a +      upoint x    line --> (stream ubool)
+n/a +     uregion x  points --> (stream ubool)
+n/a +     uregion x    line --> (stream ubool)
 
-n/a  udirection: upoint --> ureal
+n/a +  mdirection: upoint --> ureal
 
-n/a  no_components: uT --> uint
+n/a +  no_components:  uT --> int
 
 n/a  area: uregion --> ureal
 
-n/a  and, or: ubool x ubool --> (stream ubool)
-n/a            bool x ubool --> (stream ubool)
-n/a           ubool x  bool --> (stream ubool)
+n/a + and, or: ubool x ubool --> (stream ubool)
+n/a +           bool x ubool --> (stream ubool)
+n/a +          ubool x  bool --> (stream ubool)
 
-n/a  =, #: uT x uT --> (stream ubool)
-n/a         T x uT --> (stream ubool)
-n/a        uT x  T --> (stream ubool)
+n/a +  =, #: uT x uT --> (stream ubool)
+n/a +         T x uT --> (stream ubool)
+n/a +        uT x  T --> (stream ubool)
 
-n/a  initial, final: (stream uT) --> iT
-n/a  present: (stream uT) x instant --> bool
-n/a  present: (stream uT) x periods --> bool
-n/a  sometimes: ubool --> bool
-n/a  never:     ubool --> bool
-n/a  always:    ubool --> bool
+n/a   initial, final: (stream uT) --> iT
+n/a   present: (stream uT) x instant --> bool
+n/a   present: (stream uT) x periods --> bool
+n/a + sometimes: ubool --> bool
+n/a + never:     ubool --> bool
+n/a + always:    ubool --> bool
 
 n/a  uint2ureal: uint --> ureal
 
 
-
+(*): These operators have been implemented for T in {bool, int, real, point}
+(**): These operators have been implemented for 
+      T in {bool, int, real, point, string, region}
 
 Key to STATE of implementation:
 
@@ -176,6 +182,9 @@ Key to STATE of implementation:
   Pre : Operator has not been functionally implemented, but 
         stubs (dummy code) exist
   n/a : Neither functionally nor dummy code exists for this ones
+
+    + : Exists for according mType
+    - : Does nor exist for according mType
 
 ----
 
@@ -6787,12 +6796,12 @@ Pre         ureal x   ureal --> (stream ureal)
 OK         upoint x   point --> (stream upoint) same as at: upoint x point
 OK          point x  upoint --> (stream upoint) same as at: upoint x point
 OK         upoint x  upoint --> (stream upoint)
-Pre        upoint x uregion --> (stream upoint)
-Pre       uregion x  upoint --> (stream upoint)
-Pre        upoint x    line --> (stream upoint)
-Pre          line x  upoint --> (stream upoint)
+OK         upoint x    line --> (stream upoint)
+OK           line x  upoint --> (stream upoint)
 Pre        upoint x  region --> (stream upoint)
 Pre        region x  upoint --> (stream upoint)
+Pre        upoint x uregion --> (stream upoint)
+Pre       uregion x  upoint --> (stream upoint)
 
 ----
 
