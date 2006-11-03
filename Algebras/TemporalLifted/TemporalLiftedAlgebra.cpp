@@ -6399,9 +6399,9 @@ static ValueMapping temporalormap[] = {
                 
 const string TemporalLiftSpecMEqual  
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	     "\"Example\" ) "
+             "\"Example\" ) "
              "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>T in {bool, int, string, real, point, region}"
+             "<text>T in {bool, int, string, real, point, region}"
              ", mT X mT -> mbool,"
              " mT x T -> mbool, T x mT -> mbool</text--->"
              "<text> _ = _ </text--->"
@@ -6410,43 +6410,44 @@ const string TemporalLiftSpecMEqual
              ") )";
 
 const string TemporalLiftSpecMNotEqual  
-           = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-             "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>T in {bool, int, string, real, point, region}"
-             ", mT X mT -> mbool,"
-             " mT x T -> mbool, T x mT -> mbool</text--->"
-             "<text> _ # _ </text--->"
-             "<text>Logical unequality for two MovingT.</text--->"
-             "<text>mb1 # mb2</text--->"
-             ") )";
+           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+            "\"Example\" ) "
+            "( <text>TemporalLiftedAlgebra</text--->"
+            "<text>T in {bool, int, string, real, point, region}"
+            ", mT X mT -> mbool,"
+            " mT x T -> mbool, T x mT -> mbool</text--->"
+            "<text> _ # _ </text--->"
+            "<text>Logical unequality for two MovingT.</text--->"
+            "<text>mb1 # mb2</text--->"
+            ") )";
 
 const string TemporalLiftSpecLT  
-           = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-             "\"Example\" )"
-             "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>T in {bool, int, real, string},  mT x T ->  mbool,"
-             " (mT x mT) -> mbool, (T x mT) -> mbool</text--->"
-             "<text>_ < _</text--->"
-             "<text>Less than.</text--->"
-             "<text>query i1 < i2</text--->"
-             ") )";
+          = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+            "\"Example\" )"
+            "( <text>TemporalLiftedAlgebra</text--->"
+            "<text>T in {bool, int, real, string},  mT x T ->  mbool,"
+            " (mT x mT) -> mbool, (T x mT) -> mbool</text--->"
+            "<text>_ < _</text--->"
+            "<text>Less than.</text--->"
+            "<text>query i1 < i2</text--->"
+            ") )";
 
 const string TemporalLiftSpecLE  
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-             "\"Example\" )"
-             "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>T in {bool, int, real, string}, mT x T -> mbool,"
-             " (mT x mT) -> mbool, (T x mT) -> mbool</text--->"
-             "<text>_ <= _</text--->"
-             "<text>Less or equal than.</text--->"
-             "<text>query i1 <= i2</text--->"
-             ") )";
+            "\"Example\" )"
+            "( <text>TemporalLiftedAlgebra</text--->"
+            "<text>T in {bool, int, real, string}, mT x T -> mbool,"
+            " (mT x mT) -> mbool, (T x mT) -> mbool</text--->"
+            "<text>_ <= _</text--->"
+            "<text>Less or equal than.</text--->"
+            "<text>query i1 <= i2</text--->"
+            ") )";
 
 const string TemporalLiftSpecGT 
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-             "\"Example\" )"
+            "\"Example\" )"
             "( <text>TemporalLiftedAlgebra</text--->"
-	    "<text>T in {bool, int, real, string},  mT x T -> mbool,"
+            "<text>T in {bool, int, real, string},  mT x T -> mbool,"
             " (mT x mT) -> mbool, (T x mT) -> mbool</text--->"
             "<text>_ > _</text--->"
             "<text>Greater than.</text--->"
@@ -6455,9 +6456,9 @@ const string TemporalLiftSpecGT
 
 const string TemporalLiftSpecGE  
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	    "\"Example\" )"
+            "\"Example\" )"
             "( <text>TemporalLiftedAlgebra</text--->"
-	    "<text>T in {bool, int, real, string},  mT x T -> mbool,"
+            "<text>T in {bool, int, real, string},  mT x T -> mbool,"
             " (mT x mT) -> mbool, (T x mT) -> mbool</text--->"
             "<text>_ >= _</text--->"
             "<text>Greater or equal than.</text--->"
@@ -6466,25 +6467,25 @@ const string TemporalLiftSpecGE
 
 const string temporalliftisemptyspec 
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	    "\"Example\" ) "
-             "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>T in {bool, int, string, real, point, region}"
-             " mT -> mbool</text--->"
-             "<text>isempty( _ )</text--->"
-             "<text>Checks if the m. object is not defined .</text--->"
-             "<text>isempty(mrg1)</text---> ) )";
+            "\"Example\" ) "
+            "( <text>TemporalLiftedAlgebra</text--->"
+            "<text>T in {bool, int, string, real, point, region}"
+            " mT -> mbool</text--->"
+            "<text>isempty( _ )</text--->"
+            "<text>Checks if the m. object is not defined .</text--->"
+            "<text>isempty(mrg1)</text---> ) )";
 
 const string TemporalLiftSpecInside 
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	    "\"Example\" ) "
-             "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>mpoint x points -> mbool,"
-             " mpoint x line -> mbool, mregion x points ->"
-             " mbool, mregion x line -> mbool</text--->"
-             "<text>_ inside _</text--->"
-             "<text>Inside.</text--->"
-             "<text>query mp1 inside pts1</text--->"
-             ") )";
+            "\"Example\" ) "
+            "( <text>TemporalLiftedAlgebra</text--->"
+            "<text>mpoint x points -> mbool,"
+            " mpoint x line -> mbool, mregion x points ->"
+            " mbool, mregion x line -> mbool</text--->"
+            "<text>_ inside _</text--->"
+            "<text>Inside.</text--->"
+            "<text>query mp1 inside pts1</text--->"
+            ") )";
 
 const string TemporalLiftSpecIntersection  
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
