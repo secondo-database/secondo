@@ -1154,7 +1154,7 @@ The comparisons are -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
 */
 static void CompareUReal(UReal u1, UReal u2, UBool& uBool, int op)
 {
-    Instant middle;
+    DateTime middle, tmp;
     CcReal value1, value2;
     double mid;
     if(TLA_DEBUG){
@@ -1162,9 +1162,13 @@ static void CompareUReal(UReal u1, UReal u2, UBool& uBool, int op)
       <<" "<<uBool.timeInterval.end.ToString()<<" "<<uBool.timeInterval.lc
       <<" "<<uBool.timeInterval.rc<<"]"<<endl;}
 
-    mid = (uBool.timeInterval.start.ToDouble() 
-         + uBool.timeInterval.end.ToDouble())/2.0;
+    //mid = (uBool.timeInterval.start.ToDouble() 
+         //+ uBool.timeInterval.end.ToDouble())/2.0;
+    tmp = uBool.timeInterval.start;
+    tmp.SetType(durationtype);
+    mid = (tmp + uBool.timeInterval.end).ToDouble()/2.0;
     middle.ReadFrom(mid);
+    middle.SetType(instanttype);
     u1.TemporalFunction(middle,value1);     
     u2.TemporalFunction(middle,value2);   
     if(TLA_DEBUG)
@@ -6489,9 +6493,9 @@ const string TemporalLiftSpecInside
 
 const string TemporalLiftSpecIntersection  
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	    "\"Example\" ) "
+            "\"Example\" ) "
              "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>S in {bool, int, string, real}, T in {line, points),"
+             "<text>S in {bool, int, string, real}, T in {line, points),"
              " mS x mS -> mS, mS x S -> mS, S x mS -> mS, "
              "mpoint x T -> mpoint, T x mpoint -> mpoint</text--->"
              "<text>intersection( _, _ )</text--->"
@@ -6503,7 +6507,7 @@ const string unionspec
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
              "\"Example\" ) "
              "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>R in {region}, P in {point}, mP x R-> mR,"
+             "<text>R in {region}, P in {point}, mP x R-> mR,"
              " mP x mR -> mR, P x mR -> mR</text--->"
              "<text>_ union _</text--->"
              "<text>Calculates union between the given objects.</text--->"
@@ -6511,9 +6515,9 @@ const string unionspec
              
 const string TemporalLiftSpecMinus 
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	     "\"Example\" ) "
+             "\"Example\" ) "
              "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>S in {bool, int, string, real}, mS x mS -> mS,"
+             "<text>S in {bool, int, string, real}, mS x mS -> mS,"
              " mS x S -> mS, S x mS -> mS, "
              "R in {region}, P in {point}, R x mP -> mR, "
              "mR x P -> mR, mR x mP -> mR, mR x points -> mR, "
@@ -6525,9 +6529,9 @@ const string TemporalLiftSpecMinus
                     
 const string rcenterspec 
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	     "\"Example\" ) "
+             "\"Example\" ) "
              "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>movingregion -> mpoint</text--->"
+             "<text>movingregion -> mpoint</text--->"
              "<text>rough_center ( _ )</text--->"
              "<text>Calculates an approach to the"
              "center of gravity of a moving Region.</text--->"
@@ -6535,9 +6539,9 @@ const string rcenterspec
              
 const string ncomponentsspec 
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	     "\"Example\" ) "
+             "\"Example\" ) "
              "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>movingregion -> mint</text--->"
+             "<text>movingregion -> mint</text--->"
              "<text>no_components ( _ )</text--->"
              "<text>Calculates the number of faces of "
              "a moving Region.</text--->"
@@ -6545,7 +6549,7 @@ const string ncomponentsspec
 
 const string perimeterspec
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	     "\"Example\" ) "
+             "\"Example\" ) "
              "( <text>TemporalLiftedAlgebra</text--->"
              "<text>movingregion -> mreal</text--->"
              "<text>perimeter ( _ )</text--->"
@@ -6554,18 +6558,18 @@ const string perimeterspec
 
 const string areaspec 
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	     "\"Example\" ) "
+             "\"Example\" ) "
              "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>movingregion -> mreal</text--->"
+             "<text>movingregion -> mreal</text--->"
              "<text>area ( _ )</text--->"
              "<text>Calculates the area of a moving Region.</text--->"
              "<text>area(mrg1)</text---> ) )";
     
 const string TemporalLiftSpecDistance 
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	     "\"Example\" ) "
+             "\"Example\" ) "
              "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>T in {real), mpoint x mpoint -> mreal, mT x mT"
+             "<text>T in {real), mpoint x mpoint -> mreal, mT x mT"
              " -> mreal, mT x T -> mreal, T x mT -> mreal</text--->"
              "<text> distance( _, _ ) </text--->"
              "<text>returns the moving distance</text--->"
@@ -6574,9 +6578,9 @@ const string TemporalLiftSpecDistance
 
 const string TemporalLiftSpecAnd  
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	     "\"Example\" ) "
+             "\"Example\" ) "
              "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>bool x mbool -> mbool, mbool x mbool ->"
+             "<text>bool x mbool -> mbool, mbool x mbool ->"
              " mbool, mbool x bool -> mbool</text--->"
              "<text> _ and _ </text--->"
              "<text>Logical AND for Bool and MBool.</text--->"
@@ -6585,9 +6589,9 @@ const string TemporalLiftSpecAnd
 
 const string TemporalLiftSpecOr  
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	     "\"Example\" ) "
+             "\"Example\" ) "
              "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>bool x mbool -> mbool, mbool x mbool ->"
+             "<text>bool x mbool -> mbool, mbool x mbool ->"
              " mbool, mbool x bool -> mbool</text--->"
              "<text> _ or _ </text--->"
              "<text>Logical OR for Bool and MBool.</text--->"
@@ -6596,9 +6600,9 @@ const string TemporalLiftSpecOr
                      
 const string TemporalLiftSpecNot 
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	     "\"Example\" ) "
+             "\"Example\" ) "
              "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>mbool -> mbool</text--->"
+             "<text>mbool -> mbool</text--->"
              "<text> not( _ )</text--->"
              "<text>Negates a MovingBool.</text--->"
              "<text>not(mb1)</text--->"
@@ -6606,9 +6610,9 @@ const string TemporalLiftSpecNot
                               
 const string temporalzerospec
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	     "\"Example\" ) "
+             "\"Example\" ) "
              "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>      -> mint</text--->"
+             "<text>      -> mint</text--->"
              "<text>zero()</text--->"
              "<text>Creates an mint-Object with value 0 from minInstant"
              " to maxInstant</text--->"
@@ -6616,9 +6620,9 @@ const string temporalzerospec
              
 const string temporalmintspec 
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	     "\"Example\" ) "
+             "\"Example\" ) "
              "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>periods -> mint</text--->"
+             "<text>periods -> mint</text--->"
              "<text>mmint( _ )</text--->"
              "<text>Creats a MInt from a periods-object with value 1"
              " for each existing period and 0 for every hole.</text--->"
@@ -6626,18 +6630,18 @@ const string temporalmintspec
 
 const string temporalplusspec
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	     "\"Example\" ) "
+             "\"Example\" ) "
              "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>mint x mint -> mint</text--->"
+             "<text>mint x mint -> mint</text--->"
              "<text>_ + _</text--->"
              "<text>Adds two mint-obects when both are existant</text--->"
              "<text>mi1 + mi2</text---> ) )";
 
 const string temporalconcatspec
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-	     "\"Example\" ) "
+             "\"Example\" ) "
              "( <text>TemporalLiftedAlgebra</text--->"
-	     "<text>mpoint x mpoint -> mpoint</text--->"
+             "<text>mpoint x mpoint -> mpoint</text--->"
              "<text>_ _ concat</text--->"
              "<text>Concats two MPoints. DefTime of the first mpoint must"
              " end before deftime of second point!</text--->"
@@ -6647,7 +6651,7 @@ const string TemporalLiftSpecABS
            = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
             "\"Example\" ) "
             "( <text>TemporalLiftedAlgebra</text--->"
-	    "<text>mreal -> mreal</text--->"
+            "<text>mreal -> mreal</text--->"
             "<text>abs( _ )</text--->"
             "<text>abs</text--->"
             "<text>query abs(mr1)</text--->"
