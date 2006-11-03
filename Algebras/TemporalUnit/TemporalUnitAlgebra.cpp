@@ -228,6 +228,7 @@ helping operators for indexing instant values in R-trees.
 #include <stack>
 #include <limits>
 #include <sstream>
+#include <vector>
 
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -250,8 +251,8 @@ extern AlgebraManager* am;
 #include "DateTime.h"
 using namespace datetime;
 
-//bool TUA_DEBUG = false; // Set to true to activate debugging code
-bool TUA_DEBUG = true; // Set to true to activate debugging code
+bool TUA_DEBUG = false; // Set to true to activate debugging code
+//bool TUA_DEBUG = true; // Set to true to activate debugging code
 
 /*
 2.1 Definition of some constants and auxiliary functions
@@ -6952,9 +6953,11 @@ ListExpr TemporalUnitIntersectionTypeMap( ListExpr args )
 struct TUIntersectionLocalInfo 
 {
   bool finished;
-  Word resultValues[2];
   int  NoOfResults;
   int  NoOfResultsDelivered;
+  Word resultValues[2];       // Used if at most 2 results can occur
+  vector<Word> resultValues2; // Used if more than 2 results may occur
+  MPoint *mpoint;             // Used for upoint x lines
 };
 
 // value mapping for constant units (uT uT) -> (stream uT)
@@ -7815,17 +7818,579 @@ Value mapping for
 
 ----
 
-Strategy: 
+Method ~TUUPointInsideLine~ 
 
-1. Use Line::Crossings(trajectory(up), respoints) to find isolated points
+Copied from TempralLiftedAlgebra
 
-2. Use Line::Intersection(trajectory(up) reslines) to find line segements
+calcultates the periods where the given UPoint lies
+inside the given Line. It returns the existing intervals in a Periods-Object. 
 
-3. For each point in respoints: create a result upoint
+*/
+static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
+{
+  if(TUA_DEBUG)
+    cout<<"MPointLineInside called"<<endl;
+  const HalfSegment *l;
 
-4. For each half segment in reslines: create a result upoint
+  const UPoint* up = (UPoint*) u;
+  Periods* period = new Periods(0);
+  Periods* between = new Periods(0);
+  Point pt;
+  Interval<Instant> newper; //part of the result
+  
+  pResult.Clear();
 
-5. Store results within localinfo
+    if(TUA_DEBUG){
+      cout<<"UPoint # "<<" ["<<up->timeInterval.start.ToString()<<" "
+      <<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc<<" "
+      <<up->timeInterval.rc<<"] ("<<up->p0.GetX()<<" "<<up->p0.GetY()
+      <<")->("<<up->p1.GetX()<<" "<<up->p1.GetY()<<")"<<endl;}
+
+    for( int n = 0; n < ln.Size(); n++)
+    {
+      Instant t;
+      ln.Get(n, l);
+      if(TUA_DEBUG){
+        cout<<"UPoint # "<<" ["<<up->timeInterval.start.ToString()
+        <<" "<<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc
+        <<" "<<up->timeInterval.rc<<"] ("<<up->p0.GetX()<<" "<<up->p0.GetY()
+        <<")->("<<up->p1.GetX()<<" "<<up->p1.GetY()<<")"<<endl;
+        cout<<"l      # "<<n<<" ("<<l->GetLeftPoint().GetX()
+        <<" "<<l->GetLeftPoint().GetY()
+        <<" "<<l->GetRightPoint().GetX()<<" "
+        <<l->GetRightPoint().GetY()<<") "<<endl;}
+      if (l->GetRightPoint().GetX() == l->GetDomPoint().GetX() 
+       && l->GetRightPoint().GetY() == l->GetDomPoint().GetY()) {
+        if(TUA_DEBUG)
+          cout<<"right point is dominating -> continue"<<endl;
+        continue;
+      }
+      if(( l->GetRightPoint().GetX() < up->p0.GetX() 
+       &&  l->GetRightPoint().GetX() < up->p1.GetX()) 
+       || (l->GetLeftPoint().GetX() > up->p0.GetX() 
+       &&  l->GetLeftPoint().GetX() > up->p1.GetX()) 
+       || (l->GetRightPoint().GetY() < up->p0.GetY() 
+       &&  l->GetRightPoint().GetY() < up->p1.GetY() 
+       && (l->GetLeftPoint().GetY() < up->p0.GetY() 
+       &&  l->GetLeftPoint().GetY() < up->p1.GetY())) 
+       || (l->GetRightPoint().GetY() > up->p0.GetY() 
+       &&  l->GetRightPoint().GetY() > up->p1.GetY() 
+       && (l->GetLeftPoint().GetY() > up->p0.GetY() 
+       &&  l->GetLeftPoint().GetY() > up->p1.GetY()))) {
+        if(TUA_DEBUG)
+          cout<<"Bounding Boxes not crossing!"<<endl;
+        continue;
+      }
+      double al, bl, aup, bup;
+      bool vl, vup;
+      vl = l->GetRightPoint().GetX() == l->GetLeftPoint().GetX();
+      if(!vl){
+        al = (l->GetRightPoint().GetY() - l->GetLeftPoint().GetY()) 
+           / (l->GetRightPoint().GetX() - l->GetLeftPoint().GetX());
+        bl =  l->GetLeftPoint().GetY() - l->GetLeftPoint().GetX() * al;
+          if(TUA_DEBUG)
+            cout<<"al: "<<al<<" bl: "<<bl<<endl;
+      }
+      else
+        if(TUA_DEBUG)
+          cout<<"l is vertical"<<endl;
+      vup = up->p1.GetX() == up->p0.GetX();
+      if(!vup){
+        aup = (up->p1.GetY() - up->p0.GetY()) 
+            / (up->p1.GetX() - up->p0.GetX());
+        bup =  up->p0.GetY() - up->p0.GetX() * aup;
+        if(TUA_DEBUG)
+          cout<<"aup: "<<aup<<" bup: "<<bup<<endl;
+      }
+      else 
+        if(TUA_DEBUG)
+          cout<<"up is vertical"<<endl;
+      if(vl && vup){
+        if(TUA_DEBUG)
+          cout<<"both elements are vertical!"<<endl;
+        if(up->p1.GetX() != l->GetLeftPoint().GetX()){
+        if(TUA_DEBUG)
+          cout<<"elements are vertical but not at same line"<<endl;
+          continue;
+        }
+        else {
+          if(TUA_DEBUG)
+            cout<<"elements on same line"<<endl;
+          if(up->p1.GetY() < l->GetLeftPoint().GetY() 
+           && up->p0.GetY() < l->GetLeftPoint().GetY()){
+            if(TUA_DEBUG)
+              cout<<"uPoint lower as linesegment"<<endl;
+            continue;
+          }
+          else if(up->p1.GetY() > l->GetRightPoint().GetY() 
+           && up->p0.GetY() > l->GetRightPoint().GetY()){
+            if(TUA_DEBUG)
+              cout<<"uPoint higher as linesegment"<<endl;
+            continue;
+          }
+          else{
+            if(TUA_DEBUG)
+              cout<<"uPoint and linesegment partequal"<<endl;
+            if (up->p0.GetY() <= l->GetLeftPoint().GetY() 
+             && up->p1.GetY() >= l->GetLeftPoint().GetY()){
+              if(TUA_DEBUG)
+                cout<<"uPoint starts below linesegemet"<<endl;
+              t.ReadFrom((l->GetLeftPoint().GetY() - up->p0.GetY()) 
+                     / (up->p1.GetY() - up->p0.GetY()) 
+                     * (up->timeInterval.end.ToDouble() 
+                     -  up->timeInterval.start.ToDouble()) 
+                     +  up->timeInterval.start.ToDouble());
+              t.SetType(instanttype);
+              if(TUA_DEBUG)
+                cout<<"t "<<t.ToString()<<endl;
+              newper.start = t;
+              newper.lc = (up->timeInterval.start == t) 
+                         ? up->timeInterval.lc : true;
+            }
+            if(up->p1.GetY() <= l->GetLeftPoint().GetY() 
+             && up->p0.GetY() >= l->GetLeftPoint().GetY()){
+              if(TUA_DEBUG)
+                cout<<"uPoint ends below linesegemet"<<endl;
+              t.ReadFrom((l->GetLeftPoint().GetY() - up->p0.GetY()) 
+                      / (up->p1.GetY() - up->p0.GetY()) 
+                      * (up->timeInterval.end.ToDouble() 
+                      -  up->timeInterval.start.ToDouble()) 
+                      +  up->timeInterval.start.ToDouble());
+              t.SetType(instanttype);
+              if(TUA_DEBUG)
+                cout<<"t "<<t.ToString()<<endl;
+              newper.end = t;
+              newper.rc = (up->timeInterval.end == t) 
+                         ? up->timeInterval.rc : true;
+            }
+            if(up->p0.GetY() <= l->GetRightPoint().GetY() 
+             && up->p1.GetY() >= l->GetRightPoint().GetY()){
+              if(TUA_DEBUG)
+                cout<<"uPoint ends above linesegemet"<<endl;
+              t.ReadFrom((l->GetRightPoint().GetY() - up->p0.GetY()) 
+                      / (up->p1.GetY() - up->p0.GetY()) 
+                      * (up->timeInterval.end.ToDouble() 
+                      -  up->timeInterval.start.ToDouble()) 
+                      +  up->timeInterval.start.ToDouble());
+              t.SetType(instanttype);
+              if(TUA_DEBUG)
+                cout<<"t "<<t.ToString()<<endl;
+              newper.end = t;
+              newper.rc = (up->timeInterval.end == t) 
+                         ? up->timeInterval.rc : true;
+            }
+            if(up->p1.GetY() <= l->GetRightPoint().GetY() 
+             && up->p0.GetY() >= l->GetRightPoint().GetY()){
+              if(TUA_DEBUG)
+                cout<<"uPoint starts above linesegemet"<<endl;
+              t.ReadFrom((l->GetRightPoint().GetY() - up->p0.GetY()) 
+                      / (up->p1.GetY() - up->p0.GetY()) 
+                      * (up->timeInterval.end.ToDouble() 
+                      - up->timeInterval.start.ToDouble()) 
+                      + up->timeInterval.start.ToDouble());
+              t.SetType(instanttype);
+              if(TUA_DEBUG)
+                cout<<"t "<<t.ToString()<<endl;
+              newper.start = t;
+              newper.lc = (up->timeInterval.start == t) 
+                         ? up->timeInterval.lc : true;
+            }
+            if (up->p0.GetY() <= l->GetRightPoint().GetY() 
+             && up->p0.GetY() >= l->GetLeftPoint().GetY()){
+              if(TUA_DEBUG)
+                cout<<"uPoint starts inside linesegemet"<<endl;
+              newper.start = up->timeInterval.start;
+              newper.lc =    up->timeInterval.lc;
+            }
+            if( up->p1.GetY() <= l->GetRightPoint().GetY() 
+             && up->p1.GetY() >= l->GetLeftPoint().GetY()){
+              if(TUA_DEBUG)
+                cout<<"uPoint ends inside linesegemet"<<endl;
+              newper.end = up->timeInterval.end;
+              newper.rc =  up->timeInterval.rc;
+            }
+            if(newper.start == newper.end 
+             && (!newper.lc || !newper.rc)){
+              if(TUA_DEBUG)
+                cout<<"not an interval"<<endl;
+              continue;
+            }
+          }
+        }
+      }
+      else if(vl){
+        if(TUA_DEBUG)
+          cout<<"vl is vertical vup not"<<endl;
+        t.ReadFrom((l->GetRightPoint().GetX() - up->p0.GetX()) 
+                / (up->p1.GetX() - up->p0.GetX()) 
+                * (up->timeInterval.end.ToDouble() 
+                -  up->timeInterval.start.ToDouble()) 
+                +  up->timeInterval.start.ToDouble());
+        t.SetType(instanttype);
+        if(TUA_DEBUG)
+          cout<<"t "<<t.ToString()<<endl;
+        if((up->timeInterval.start == t && !up->timeInterval.lc) 
+         ||  (up->timeInterval.end == t && !up->timeInterval.rc))
+          continue;
+          
+        if(up->timeInterval.start > t|| up->timeInterval.end < t){
+          if(TUA_DEBUG)
+            cout<<"up outside line"<<endl;
+          continue;
+        }
+        up->TemporalFunction(t, pt);
+        if(  pt.GetX() < l->GetLeftPoint().GetX() || 
+             pt.GetX() > l->GetRightPoint().GetX()
+         || (pt.GetY() < l->GetLeftPoint().GetY() && 
+             pt.GetY() < l->GetRightPoint().GetY())
+         || (pt.GetY() > l->GetLeftPoint().GetY() && 
+             pt.GetY() > l->GetRightPoint().GetY())){
+          if(TUA_DEBUG)
+            cout<<"pt outside up!"<<endl;
+          continue;
+        }
+        
+        newper.start = t;
+        newper.lc = true;
+        newper.end = t;
+        newper.rc = true;
+      }
+      else if(vup){
+        if(TUA_DEBUG)
+          cout<<"vup is vertical vl not"<<endl;
+        if(up->p1.GetY() != up->p0.GetY()) {
+          t.ReadFrom((up->p0.GetX() * al + bl - up->p0.GetY()) 
+                  / (up->p1.GetY() - up->p0.GetY()) 
+                  * (up->timeInterval.end.ToDouble() 
+                  -  up->timeInterval.start.ToDouble()) 
+                  +  up->timeInterval.start.ToDouble());
+          t.SetType(instanttype);
+          if(TUA_DEBUG)
+            cout<<"t "<<t.ToString()<<endl;
+          if((up->timeInterval.start == t && !up->timeInterval.lc) 
+           ||  (up->timeInterval.end == t && !up->timeInterval.rc)){
+            if(TUA_DEBUG)
+              cout<<"continue"<<endl;
+            continue;
+          }
+          
+          if(up->timeInterval.start > t|| up->timeInterval.end < t){
+            if(TUA_DEBUG)
+              cout<<"up outside line"<<endl;
+            continue;
+          }
+          up->TemporalFunction(t, pt);
+          if(  pt.GetX() < l->GetLeftPoint().GetX() ||  
+               pt.GetX() > l->GetRightPoint().GetX()
+           || (pt.GetY() < l->GetLeftPoint().GetY() && 
+               pt.GetY() < l->GetRightPoint().GetY())
+           || (pt.GetY() > l->GetLeftPoint().GetY() && 
+               pt.GetY() > l->GetRightPoint().GetY())){
+            if(TUA_DEBUG)
+              cout<<"pt outside up!"<<endl;
+            continue;
+          }
+          
+          newper.start = t;
+          newper.lc = true;
+          newper.end = t;
+          newper.rc = true;
+        }
+        else {
+          if(TUA_DEBUG)
+            cout<<"up is not moving"<<endl;
+          if(al * up->p1.GetX() + bl == up->p1.GetY()){
+            if(TUA_DEBUG)
+              cout<<"Point lies on line"<<endl;
+            newper = up->timeInterval;
+          }
+          else {
+            if(TUA_DEBUG)
+              cout<<"continue 2"<<endl;
+            continue;
+          }
+        }
+      }
+      else if(aup == al){
+        if(TUA_DEBUG)
+          cout<<"both lines have same gradient"<<endl;
+        if(bup != bl){
+          if(TUA_DEBUG)
+            cout<<"colinear but not equal"<<endl;
+          continue;
+        }
+         if(up->p0.GetX() <= l->GetLeftPoint().GetX() 
+         && up->p1.GetX() >= l->GetLeftPoint().GetX()){
+           if(TUA_DEBUG)
+             cout<<"uPoint starts left of linesegemet"<<endl;
+           t.ReadFrom((l->GetLeftPoint().GetX() - up->p0.GetX()) 
+                   / (up->p1.GetX() - up->p0.GetX()) 
+                   * (up->timeInterval.end.ToDouble() 
+                   -  up->timeInterval.start.ToDouble()) 
+                   +  up->timeInterval.start.ToDouble());
+           t.SetType(instanttype);
+           if(TUA_DEBUG)
+             cout<<"t "<<t.ToString()<<endl;
+           newper.start = t;
+           newper.lc = (up->timeInterval.start == t) 
+                      ? up->timeInterval.lc : true;
+        }
+        if(up->p1.GetX() <= l->GetLeftPoint().GetX() 
+        && up->p0.GetX() >= l->GetLeftPoint().GetX()){
+           if(TUA_DEBUG)
+             cout<<"uPoint ends left of linesegemet"<<endl;
+           t.ReadFrom((l->GetLeftPoint().GetX() - up->p0.GetX()) 
+                   / (up->p1.GetX() - up->p0.GetX()) 
+                   * (up->timeInterval.end.ToDouble() 
+                   -  up->timeInterval.start.ToDouble()) 
+                   +  up->timeInterval.start.ToDouble());
+           t.SetType(instanttype);
+           if(TUA_DEBUG)
+             cout<<"t "<<t.ToString()<<endl;
+           newper.end = t;
+           newper.rc = (up->timeInterval.end == t) 
+                      ? up->timeInterval.rc : true;
+        }
+        if(up->p0.GetX() <= l->GetRightPoint().GetX() 
+        && up->p1.GetX() >= l->GetRightPoint().GetX()){
+           if(TUA_DEBUG)
+             cout<<"uPoint ends right of linesegemet"<<endl;
+           t.ReadFrom((l->GetRightPoint().GetX() - up->p0.GetX()) 
+                   / (up->p1.GetX() - up->p0.GetX()) 
+                   * (up->timeInterval.end.ToDouble() 
+                   -  up->timeInterval.start.ToDouble()) 
+                   +  up->timeInterval.start.ToDouble());
+           t.SetType(instanttype);
+           if(TUA_DEBUG)
+             cout<<"t "<<t.ToString()<<endl;
+           newper.end = t;
+           newper.rc = (up->timeInterval.end == t) 
+                      ? up->timeInterval.rc : true;
+        }
+        if(up->p1.GetX() <= l->GetRightPoint().GetX() 
+        && up->p0.GetX() >= l->GetRightPoint().GetX()){
+           if(TUA_DEBUG)
+             cout<<"uPoint starts right of linesegemet"<<endl;
+           t.ReadFrom((l->GetRightPoint().GetX() - up->p0.GetX()) 
+                   / (up->p1.GetX() - up->p0.GetX()) 
+                   * (up->timeInterval.end.ToDouble() 
+                   -  up->timeInterval.start.ToDouble()) 
+                   +  up->timeInterval.start.ToDouble());
+           t.SetType(instanttype);
+           if(TUA_DEBUG)
+             cout<<"t "<<t.ToString()<<endl;
+           newper.start = t;
+           newper.lc = (up->timeInterval.start == t) 
+                      ? up->timeInterval.lc : true;
+        }
+        if(up->p0.GetX() <= l->GetRightPoint().GetX() 
+        && up->p0.GetX() >= l->GetLeftPoint().GetX()){
+           if(TUA_DEBUG)
+             cout<<"uPoint starts inside linesegemet"<<endl;
+           newper.start = up->timeInterval.start;
+           newper.lc =    up->timeInterval.lc;
+        }
+        if(up->p1.GetX() <= l->GetRightPoint().GetX() 
+        && up->p1.GetX() >= l->GetLeftPoint().GetX()){
+           if(TUA_DEBUG)
+             cout<<"uPoint ends inside linesegemet"<<endl;
+           newper.end = up->timeInterval.end;
+           newper.rc =  up->timeInterval.rc;
+        }
+        if(newper.start == newper.end 
+        && (!newper.lc || !newper.rc)){
+          if(TUA_DEBUG)
+            cout<<"not an interval"<<endl;
+          continue;
+        }
+      }
+      else{
+        if(TUA_DEBUG)
+          cout<<"both lines have different gradients"<<endl;
+        t.ReadFrom(((bl - bup) / (aup - al) - up->p0.GetX()) 
+                / (up->p1.GetX() - up->p0.GetX()) 
+                * (up->timeInterval.end.ToDouble() 
+                -  up->timeInterval.start.ToDouble()) 
+                +  up->timeInterval.start.ToDouble());
+        t.SetType(instanttype);
+        if((up->timeInterval.start == t && !up->timeInterval.lc) 
+         ||  (up->timeInterval.end == t && !up->timeInterval.rc)){
+          if(TUA_DEBUG)
+            cout<<"continue"<<endl;
+          continue;
+        }
+        
+        if(up->timeInterval.start > t|| up->timeInterval.end < t){
+          if(TUA_DEBUG)
+            cout<<"up outside line"<<endl;
+          continue;
+        }
+        up->TemporalFunction(t, pt);
+        if(  pt.GetX() < l->GetLeftPoint().GetX() ||  
+             pt.GetX() > l->GetRightPoint().GetX()
+         || (pt.GetY() < l->GetLeftPoint().GetY() && 
+             pt.GetY() < l->GetRightPoint().GetY())
+         || (pt.GetY() > l->GetLeftPoint().GetY() && 
+             pt.GetY() > l->GetRightPoint().GetY())){
+          if(TUA_DEBUG)
+            cout<<"pt outside up!"<<endl;
+          continue;
+        }
+        
+        newper.start = t;
+        newper.lc = true;
+        newper.end = t;
+        newper.rc = true;
+      }
+      if(TUA_DEBUG){
+        cout<<"newper ["<< newper.start.ToString()<<" "<<newper.end.ToString()
+        <<" "<<newper.lc<<" "<<newper.rc<<"]"<<endl;}
+      period->Clear();
+      period->StartBulkLoad();
+      period->Add(newper);
+      period->EndBulkLoad(false);
+      if (!pResult.IsEmpty()) {
+        between->Clear();
+        period->Union(pResult, *between);
+        pResult.Clear();
+        pResult.CopyFrom(between);
+      }
+      else 
+        pResult.CopyFrom(period);
+    }
+  delete between;
+  delete period;
+}
+
+/*
+Method ~TUCompletePeriods2MPoint~
+
+Copied from TempralLiftedAlgebra
+
+Completes a Periods-value to a MPoint-value. For this it adds the starting
+and end points.
+
+*/
+static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
+  MPoint* endResult){
+  if(TUA_DEBUG)
+    cout<<"TUCompletePeriods2MPoint called"<<endl;
+  
+  const UPoint* up = (UPoint*) u;
+  endResult->Clear();
+  endResult->StartBulkLoad();
+  const Interval<Instant> *per;
+  UPoint newUp;
+  Point pt;
+  int m = 0;
+  bool pfinished = (pResult->GetNoComponents() == 0);
+  for ( int i = 0; i < 1; i++) {
+    if(!up->IsDefined())
+        continue;
+    if(TUA_DEBUG){
+      cout<<"UPoint # "<<" ["<<up->timeInterval.start.ToString()
+      <<" "<<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc<<" "
+      <<up->timeInterval.rc<<"] ("<<up->p0.GetX()<<" "<<up->p0.GetY()<<")->("
+      <<up->p1.GetX()<<" "<<up->p1.GetY()<<")"<<endl;}
+    if(!pfinished) {
+      pResult->Get(m, per);
+      if(TUA_DEBUG){
+        cout<<"per "<<m<<" ["<<per->start.ToString()<<" "
+        <<per->end.ToString()<<" "<<per->lc<<" "<<per->rc<<"]"<<endl;}
+    }
+    if(pfinished) {
+      if(TUA_DEBUG)
+        cout<<"no per any more. break 1"<<endl;
+      break;
+    }
+    if(!(pfinished || up->timeInterval.end < per->start 
+     || (up->timeInterval.end == per->start 
+     && !up->timeInterval.rc && per->lc))) {
+      if(TUA_DEBUG)
+        cout<<"per not totally after up"<<endl;
+      if(up->timeInterval.start < per->start 
+       || (up->timeInterval.start == per->start 
+       && up->timeInterval.lc && !per->lc)) {
+        if(TUA_DEBUG)
+          cout<<"up starts before per"<<endl;
+        newUp.timeInterval = *per;
+      }
+      else {
+        if(TUA_DEBUG)
+          cout<<"per starts before or with up"<<endl;
+        newUp.timeInterval.start = up->timeInterval.start;
+        newUp.timeInterval.lc = up->timeInterval.lc;
+      }
+      while(true) {
+        if(up->timeInterval.end < per->end
+         || (up->timeInterval.end == per->end 
+         && per->rc && !up->timeInterval.rc)) {
+            if(TUA_DEBUG)
+              cout<<"per ends after up (break)"<<endl;
+            newUp.timeInterval.end = up->timeInterval.end; 
+            newUp.timeInterval.rc = up->timeInterval.rc; 
+            up->TemporalFunction(newUp.timeInterval.start, pt, true);
+            newUp.p0 = pt;
+            up->TemporalFunction(newUp.timeInterval.end, pt, true);
+            newUp.p1 = pt;
+            if(TUA_DEBUG){
+              cout<<"Add3 ("<<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
+              <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
+              <<") ["<<newUp.timeInterval.start.ToString()<<" "
+              <<newUp.timeInterval.end.ToString()<<" "
+              <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"<<endl;}
+            endResult->Add(newUp); 
+            break;
+        }
+        else {
+          if(TUA_DEBUG)
+            cout<<"per ends inside up"<<endl;
+          newUp.timeInterval.end = per->end;
+          newUp.timeInterval.rc = per->rc;
+          up->TemporalFunction(newUp.timeInterval.start, pt, true);
+          newUp.p0 = pt;
+          up->TemporalFunction(newUp.timeInterval.end, pt, true);
+          newUp.p1 = pt;
+          if(TUA_DEBUG){
+            cout<<"Add4 ("<<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
+             <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
+            <<") ["<<newUp.timeInterval.start.ToString()<<" "
+            <<newUp.timeInterval.end.ToString()<<" "
+            <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"<<endl;}
+          endResult->Add(newUp);
+        }
+        if(m == pResult->GetNoComponents() - 1){
+          if(TUA_DEBUG)
+            cout<<"last per"<<endl;
+          pfinished = true;
+        }
+        else {
+          pResult->Get(++m, per);
+          if(TUA_DEBUG){
+            cout<<"per "<<m<<" ["<<per->start.ToString()
+            <<" "<<per->end.ToString()<<" "<<per->lc<<" "<<per->rc<<"]"<<endl;}
+        }
+        if(!pfinished && (per->start < up->timeInterval.end 
+           || (per->start == up->timeInterval.end 
+           && up->timeInterval.rc && per->rc))){
+          if(TUA_DEBUG)
+            cout<<"next per starts in same up"<<endl;
+          newUp.timeInterval.start = per->start; 
+          newUp.timeInterval.lc = per->lc; 
+        }
+        else {
+          if(TUA_DEBUG)
+            cout<<"next interval after up -> finish up"<<endl;
+          break;
+        }
+      } //while
+    }
+  }
+  endResult->EndBulkLoad(false);
+}
+
+/*
+The value mapping function:
 
 */
 
@@ -7835,217 +8400,59 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
                                           Word& local, Supplier s )
 {
   TUIntersectionLocalInfo *sli;
-  Word        a0, a1;
-  UPoint      res;
-  Line        trajU(2), reslines(10);
-  HalfSegment hs;
-  const HalfSegment *hs1, *hs2;
-  Points      respoints = Points(20);
-  DateTime    TRes0 = DateTime(instanttype), 
-              TRes1 = DateTime(instanttype);
-  Interval<Instant> iv;
-  Point       p(0,0), pl(0,0), pr(0,0), p0(0,0), p1(0,0);
-  const Point *pc;
-  const UPoint* u;
-  const Line*   l;
-  int         i, j;
-  double      
-    x0, x1, y0, y1,    // coord values
-    xl, xr, yl, yr,    // coord values
-    t0, dt, tl, tr;    // instant values
-  bool        lc, rc;
-  
+  Word     a0, a1;
+  UPoint   res;
+  UPoint  *u;
+  Line    *l;
+  Periods *p;
+
+  const UPoint* cu;
+
   switch( message )
     {
     case OPEN:
       
       if (TUA_DEBUG) 
-        cout << "temporalUnitIntersection_upoint_line: Received OPEN" 
-             << endl;
+        cout << "temporalUnitIntersection_upoint_line<" 
+             << uargindex << ">: Received OPEN" << endl;
+
+      p = new Periods(10);
       sli = new TUIntersectionLocalInfo;
       sli->finished = true;
       sli->NoOfResults = 0;
       sli->NoOfResultsDelivered = 0;
+      sli->mpoint = new MPoint(10);
       local = SetWord(sli);
 
       // initialize arguments, such that a0 always contains the upoint
       //                       and a1 the line 
-
       if (TUA_DEBUG) cout << "  uargindex=" << uargindex << endl;
       if (uargindex == 0)
         { a0 = args[0]; a1 = args[1]; }
       else
         { a0 = args[1]; a1 = args[0]; }
-      
       u = (UPoint*)(a0.addr);
       l = (Line*)(a1.addr);
-      if (TUA_DEBUG) cout << "  *u=" << TUPrintUPoint( *u ) << endl;
 
       // test for definedness
       if ( !u->IsDefined() || !l->IsDefined() || l->IsEmpty() )
         {
           if (TUA_DEBUG) 
-            cout << "  Undef/Empty arg -> Empty Result" << endl
-                 << "temporalUnitIntersection_upoint_line: Finished OPEN (1)" 
-                 << endl;
-          return 0; // nothing to do
+            cout << "  Undef/Empty arg -> Empty Result" << endl << endl;
+          // nothing to do
         }
-
-      // test for static upoint u
-      if ( AlmostEqual(u->p0, u->p1) ||
-           ( u->timeInterval.start == u->timeInterval.end ) )
-        { // this is a static upoint
-          // check if line l intersects point p0
-          if ( l->Contains(u->p0) )
-            { // add original upoint as the only result
-              res.SetDefined(true);
-              sli->resultValues[sli->NoOfResults] = SetWord( u->Clone() );
-              sli->NoOfResults++;   
-              sli->finished = false;              
-              if (TUA_DEBUG) 
-                cout << "  Static upoint -> Added Result" << endl;
-            }
-          if (TUA_DEBUG) 
-            cout << "temporalUnitIntersection_upoint_line: Finished OPEN (2)" 
-                 << endl;
-          return 0; // we are finished
-        }
-      // upoint u is not static, but moving
-      u->UTrajectory( trajU );
-
-      ////////////////////////////////////
-      // Merged code from Line::Intersection and Line::Crossings
-      // to save time
-
-      assert( l->IsOrdered() && trajU.IsOrdered() );
-      respoints.Clear();
-      reslines.Clear();
-
-      if( l->IsEmpty() || trajU.IsEmpty() )
-        return 0;
-      
-      reslines.StartBulkLoad();
-      respoints.StartBulkLoad();
-      for( i = 0; i < l->Size(); i++ )
+      else
         {
-          l->Get( i, hs1 );
-          if( hs1->IsLeftDomPoint() )
-            {
-              for( j = 0; j < trajU.Size(); j++ )
-                {
-                  trajU.Get( j, hs2 );
-                  if( hs2->IsLeftDomPoint() )
-                    {// Crossings - part
-                      if( hs1->Intersection( *hs2, p ) )
-                        respoints += p;
-                      if( hs1->Intersection( *hs2, hs ) )
-                        {// Intersection - part
-                          reslines += hs;
-                          hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
-                          reslines += hs;
-                        }
-                    }
-                }
-            }
-        }
-      respoints.EndBulkLoad();
-      reslines.EndBulkLoad();
-      // end of merged code
-      ////////////////////////////////////
-
-      x0 = u->p0.GetX();     y0 = u->p0.GetY();
-      x1 = u->p1.GetX();     y1 = u->p1.GetY();
-      dt = (u->timeInterval.end - u->timeInterval.start).ToDouble();
-      t0 = u->timeInterval.start.ToDouble();
-
-      for(i=0; i <  reslines.Size(); i++ )
-        { // get next HS
-          reslines.Get( i, hs1 );
-          if (!hs1->IsLeftDomPoint()) 
-            continue;
-          pl = hs1->GetLeftPoint();
-          pr = hs1->GetRightPoint();
-          if( TUA_DEBUG ) 
-            cout << "  pl=" << TUPrintPoint(pl) 
-                 << ", pr=" << TUPrintPoint(pr) << endl;
-          
-          xl = pl.GetX(); xr = pr.GetX(); // get single coords
-          yl = pl.GetY(); yr = pr.GetY(); // get single coords
-          
-          // as we have a non-static upoint here, we have 
-          // (dt != 0) && ((x1 != x0) || (y1 != y0)).
-          // Also, l is a non-degenerated line, 
-          // and thus we can compute tl and tr, this are the instants, with
-          // x(tl) = xl, y(tl) = yl; x(tr) = xr, y(tr) = yr
-          
-          tl = (x1-x0 != 0) ? dt*(xl-x0)/(x1-x0)+t0 : dt*(yl-y0)/(y1-y0)+t0;
-          tr = (x1-x0 != 0) ? dt*(xr-x0)/(x1-x0)+t0 : dt*(yr-y0)/(y1-y0)+t0;
-
-          // sort the instants, such that t0 <= t1
-          if (tl <= tr)
-            {
-              TRes0.ReadFrom(tl);
-              TRes1.ReadFrom(tr);
-            }
-          else
-            {
-              TRes0.ReadFrom(tr);
-              TRes1.ReadFrom(tl);
-            }
-          if (TUA_DEBUG)
-            cout << "  tl=" << tl << ", tr=" << tr << endl;
-          u->TemporalFunction(TRes0, p0, true);
-          u->TemporalFunction(TRes1, p1, true);
-
-          lc = (TRes0 == u->timeInterval.start) && (u->timeInterval.lc);
-          rc = (TRes1 == u->timeInterval.end)   && (u->timeInterval.rc);
-
-          if (TUA_DEBUG)
-            cout << "  lc=" << lc << ", rc=" << rc << endl;
-
-          iv = Interval<Instant>(TRes0, TRes1, lc, rc);
-          if (TUA_DEBUG)
-            cout << "  iv=" << TUPrintTimeInterval(iv) << endl;
-
-          res = UPoint(iv, p0, p1);
-          res.SetDefined(true);
-          if (TUA_DEBUG)
-            cout << "  res=" << TUPrintUPoint(res) << endl;
-
-          // add moving upoint to localinfo
-          sli->resultValues[sli->NoOfResults] = SetWord( res.Clone() );
-          sli->NoOfResults++;   
-          sli->finished = false;
+          TUUPointInsideLine(u, *l, *p);    // get intersecting timeintervals
+          TUCompletePeriods2MPoint(u, p, sli->mpoint); // create upoints
+          sli->NoOfResults = sli->mpoint->GetNoComponents();
+          sli->finished = (sli->NoOfResults <= 0);
           if (TUA_DEBUG) 
-            cout << "  Line: Added Result: " << TUPrintUPoint(res) << endl;
+            cout << "  " << sli->NoOfResults << " result units" << endl << endl;
         }
-
-      for(i=0; i <  respoints.Size(); i++ )
-        { // get next point
-          respoints.Get( i, pc );
-          xl = pc->GetX(); yl = pc->GetY(); // get single coords
-          
-          // As we have an intersection point and u is not static,
-          // we can compute tl with x(tl) = xl, y(tl) = yl:
-          tl = (x1-x0 != 0) ? dt*(xl-x0)/(x1-x0)+t0 : dt*(yl-y0)/(y1-y0)+t0;
-          
-          TRes0.ReadFrom(tl);
-          
-          u->TemporalFunction(TRes0, p0, true);
-          
-          iv = Interval<Instant>(TRes0, TRes0, true, true);
-          // create a upoint 
-          res = UPoint(iv, p0, p0);
-          res.SetDefined(true);
-          // add static upoint to localinfo
-          sli->resultValues[sli->NoOfResults] = SetWord( res.Clone() );
-          sli->NoOfResults++;   
-          sli->finished = false;
-          if (TUA_DEBUG) 
-            cout << "  Point: Added Result: " << TUPrintUPoint(res) << endl;
-        }
+      delete p;
       if (TUA_DEBUG) 
-        cout << "temporalUnitIntersection_upoint_line: Finished OPEN (3)" 
+        cout << "temporalUnitIntersection_upoint_line: Finished OPEN" 
              << endl;      
       return 0;
       
@@ -8058,10 +8465,8 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
         return CANCEL;
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
         {
-          result = SetWord( ((UPoint*)
-            (sli->resultValues[sli->NoOfResultsDelivered].addr))->Clone() );
-          ((UPoint*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
-            ->DeleteIfAllowed();
+          sli->mpoint->Get(sli->NoOfResultsDelivered, cu);
+          result = SetWord( cu->Clone() );
           sli->NoOfResultsDelivered++;
           return YIELD;
         }
@@ -8073,12 +8478,7 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
       if (local.addr != 0)
         {
           sli = (TUIntersectionLocalInfo*) local.addr;
-          while(sli->NoOfResultsDelivered < sli->NoOfResults)
-            {
-              ((UPoint*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
-                ->DeleteIfAllowed();
-              sli->NoOfResultsDelivered++;
-            }
+          delete sli->mpoint;
           delete sli;
         }
       return 0;
@@ -8223,8 +8623,8 @@ const string  TemporalUnitIntersectionSpec  =
   "(uT uT) -> (stream uT)**\n"
   "(uT  T) -> (stream uT)\n"
   "( T uT) -> (stream uT)\n"
-  "(line upoint) -> (stream upoint)*\n"
-  "(upoint line) -> (stream upoint)*\n"
+  "(line upoint) -> (stream upoint)\n"
+  "(upoint line) -> (stream upoint)\n"
   "(upoint uregion) -> (stream upoint)*\n"
   "(uregion upoint) -> (stream upoint)*\n"
   "(upoint region) -> (stream upoint)*\n"
