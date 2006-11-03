@@ -49,7 +49,7 @@ DEFAULTLIB = -lpthread -lm -ldl -lstdc++
 ifeq ($(shared),yes)
 PICFLAG := -fPIC
 OBJEXT := lo
-LIBEXT := dynlib 
+LIBEXT := dylib 
 LDFLAGS := -bundle -flatnamespace
 else
 OBJEXT := o
@@ -61,5 +61,5 @@ endif
 DLLPICFLAG := -fPIC
 DLLOBJEXT := lo
 DLLEXT := dylib 
-DLLFLAGS := -dynamiclib
+DLLFLAGS := -dynamiclib -flatnamespace
 DLLPREF := lib

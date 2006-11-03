@@ -52,7 +52,9 @@ OPTIMIZER_SERVER = optserver
 # compilation options for the PROLOG shell
 ifeq ($(platform),win32)
 PLLDFLAGS := $(PL_LIB_DIR)/libpl.lib -lm
-else
+endif
+
+ifeq ($(platform),linux)
 ifdef GMP_LIB
 PLLDFLAGS := -L$(PL_LIB_DIR) -l$(PL_LIB) -lreadline -lncurses -lm -l$(GMP_LIB)
 else
@@ -60,6 +62,10 @@ PLLDFLAGS := -L$(PL_LIB_DIR) -l$(PL_LIB) -lreadline -lncurses -lm
 endif
 endif
 
+ifeq ($(platform),mac_osx)
+#PLLDFLAGS :=  -L$(PL_LIB_DIR) -l$(PL_LIB) $(SECONDO_SDK)/aux/lib/libreadline.a -lncurses -lm 
+PLLDFLAGS :=  -L$(PL_LIB_DIR) -l$(PL_LIB) /usr/local/lib/libreadline.a -lncurses -lm 
+endif
 
 # define directories for using jpl
 

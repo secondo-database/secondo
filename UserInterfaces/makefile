@@ -46,7 +46,7 @@ endif
 
 ifeq ($(readline),true)
 CCFLAGS += -DREADLINE
-RL_LD_FLAG = -lreadline -lncurses
+#RL_LD_FLAG = -lreadline -lncurses
 endif
 
 # Some optional switches used for providing a prolog
