@@ -77,6 +77,9 @@ let line1 = [const line value ((1500.0 1000.0 1500.0 2000.0))];
 let line2 = [const line value ((1010 1010 1100 1100)(1100 1100 1200 1000)(1200 1000 1600 1000)(1600 1000 1600 2010)(1600 2010 1700 1100)(1700 1100 1800 1800)(1800 1800 2300 2300))];
 let line3 = [const line value ()];
 let line4 = [const line value ((1000 1000 2000 2000))];
+let line5 = [const line value ((500 500 1200 1200)(1200 1200 1800 1800))];
+let line6 = [const line value ((500 500 1200 1200)(1100 1100 2100 2100))];
+
 
 (create ten : (rel(tuple((no int)))));
 (update ten := ((rel(tuple((no int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10))));
@@ -834,23 +837,58 @@ query intersection(up3, line2) count
 query intersection(up9, line1) count
 
 #testcase intersection_upoint_line SINGLE POINT
-#yields (upoint ( ("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE) (1500.0 1500.0 1500.0 1500.0) ) )
+#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE) (1500.0 1500.0 1500.0 1500.0)))))
 query intersection(up2, line1) transformstream consume
 
 #testcase intersection_upoint_line SINGLE LINE
-#yields (upoint ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (2000.0 2000.0 1000.0 1000.0) ) )
+#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (2000.0 2000.0 1000.0 1000.0)))))
 query intersection(up1, line4) transformstream consume
 
+#testcase intersection_upoint_line MIXED
+#yields (mpoint ((("2003-11-20-06:00:36" "2003-11-20-06:06" TRUE TRUE) (1010.0 1010.0 1100.0 1100.0)) (("2003-11-20-06:36" "2003-11-20-06:36" TRUE TRUE) (1600.0 1600.0 1600.0 1600.0)) (("2003-11-20-06:38:26.139" "2003-11-20-06:38:26.139" TRUE TRUE) (1640.594166666667 1640.594166666667 1640.594166666667 1640.594166666667)) (("2003-11-20-06:48" "2003-11-20-07:00" TRUE FALSE) (1800.0 1800.0 2000.0 2000.0))))
+query intersection(up2, line2) transformstream makemvalue[elem]
+
+#testcase intersection_upoint_line collinearCoherentSegments
+#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-06:48" TRUE TRUE) (1000.0 1000.0 1800.0 1800.0)))))
+query intersection(up2, line5) transformstream consume
+
+#testcase intersection_upoint_line overlappingSegments
+#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1000.0 1000.0 2000.0 2000.0)))))
+query intersection(up2, line6) transformstream consume
 
 
-##testcase intersection_upoint_line MIXED
-##yields (int 4)
-#query intersection(up2, line2) count
 
+#testcase intersection_line_upoint EMPTY DEF
+#yields (int 0)
+query intersection(line3, up1) count
 
+#testcase intersection_line_upoint NONEMPTY UNDEF
+#yields (int 0)
+query intersection(line2, up3) count
 
-# intersection_line_upoint
+#testcase intersection_line_upoint EMPTYRESULT
+#yields (int 0)
+query intersection(line1, up9) count
 
+#testcase intersection_line_upoint SINGLE POINT
+#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE) (1500.0 1500.0 1500.0 1500.0)))))
+query intersection(line1, up2) transformstream consume
+
+#testcase intersection_line_upoint SINGLE LINE
+#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (2000.0 2000.0 1000.0 1000.0)))))
+query intersection(line4, up1) transformstream consume
+
+#testcase intersection_line_upoint MIXED
+#yields (mpoint ((("2003-11-20-06:00:36" "2003-11-20-06:06" TRUE TRUE) (1010.0 1010.0 1100.0 1100.0)) (("2003-11-20-06:36" "2003-11-20-06:36" TRUE TRUE) (1600.0 1600.0 1600.0 1600.0)) (("2003-11-20-06:38:26.139" "2003-11-20-06:38:26.139" TRUE TRUE) (1640.594166666667 1640.594166666667 1640.594166666667 1640.594166666667)) (("2003-11-20-06:48" "2003-11-20-07:00" TRUE FALSE) (1800.0 1800.0 2000.0 2000.0))))
+query intersection(line2, up2) transformstream makemvalue[elem]
+
+#testcase intersection_line_upoint collinearCoherentSegments
+#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-06:48" TRUE TRUE) (1000.0 1000.0 1800.0 1800.0)))))
+query intersection(line5, up2) transformstream consume
+
+#testcase intersection_line_upoint overlappingSegments
+#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1000.0 1000.0 2000.0 2000.0)))))
+query intersection(line6, up2) transformstream consume
 
 
 
