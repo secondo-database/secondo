@@ -27,8 +27,7 @@
 # some direcories used to build tar.gz files for
 # Secondo sources or installation kits
 pref := SECONDO_INSTALLATION_KIT
-net := $(SECONDO_INST_KIT_ROOT)/$(pref)
-netsc := $(net)/scripts
+net := $(SECONDO_INST_KIT_ROOT)
 
 # local directory for tar archives
 ifndef tempdir
@@ -55,30 +54,22 @@ shrc := $(shell if [ ! -e $(tnew) ]; then touch $(tnew); fi)
 # Rules for copying configuration scripts
 SCRIPT_DIR := ./CM-Scripts
 
-SCRIPT_FILES := setvar.bash \
-		libutil.sh \
-		catvar.sh
+SCRIPT_FILES_CMD := libutil.sh \
+		    secondorc \
+	            secondo.aliases \
+	      	    secondo.setroot \
+	      	    profile
 
-RC_FILES_1 := secondorc \
-	      secondo.sdkrc \
-	      secondo.aliases
+SCRIPT_FILES_CFG := secondo.config.linux \
+              	    secondo.config.win32 \
+              	    secondo.config.mac_osx
 
-RC_FILES_2 := secondo.linuxrc \
-              secondo.win32rc \
-              secondo.mac_osxrc \
-	      profile	
 
-RC_FILES_OS := $(RC_FILES_1) secondo.$(platform)rc 
-ifeq ($(platform),win32)
-RC_FILES_OS += profile
-endif
+SDK_SCRIPTS_CMD := $(addprefix $(SECONDO_SDK)/, $(SCRIPT_FILES_CMD))
 
-SDK_SCRIPTS_BIN := $(addprefix $(SECONDO_SDK)/bin/, $(SCRIPT_FILES))
-SDK_SCRIPTS_HOME := $(addprefix $(HOME)/., $(RC_FILES_OS))
+INST_KIT_SCRIPTS := $(addprefix $(net)/scripts/, $(SCRIPT_FILES_CMD) $(SCRIPT_FILES_CFG))
 
-INST_KIT_BIN := $(addprefix $(netsc)/bin/, $(SCRIPT_FILES))
-INST_KIT_HOME := $(addprefix $(netsc)/home/, $(RC_FILES_1) $(RC_FILES_2))
-
+ALL_INST_KIT_SCRIPTS := $(net)/installsdk $(INST_KIT_SCRIPTS)
 
 # Files located at the web server
 websrv := $(SECONDO_WEBSRV_ROOT)/files
@@ -99,11 +90,9 @@ WIN_SRC := $(tempdir)/secondo-$(tag)-CP1252.zip
 LIN_SRC := $(tempdir)/secondo-$(tag)-LAT1.tar.gz
 SRC_FILES := $(WIN_SRC) $(LIN_SRC)
 
-ALL_SDK_SCRIPTS := $(net)/installsdk $(INST_KIT_BIN) $(INST_KIT_HOME)
-
 
 .PHONY: update-environment 
-update-environment: show-separator remove-old-apps remove-old-config $(SDK_SCRIPTS_BIN) $(SDK_SCRIPTS_HOME) show-update-msg
+update-environment: show-separator remove-old-apps remove-old-config $(SDK_SCRIPTS_CMD) show-update-msg
 
 
 UPDATE_MSG := "\n\
@@ -111,30 +100,29 @@ UPDATE_MSG := "\n\
   in one of the files above please transfer them into the new versions.\n\
   A backup copy ending with .backup will be kept.\n\n\
   Afterwards please execute the command\n\
-  source ~/.secondorc or close this shell \n\
+  source \$SECONDO_SDK/secondorc or close this shell \n\
   and start a new one.\n\n\
   Make can't do this for you since all commands started within\n\
   make are processed in a new subshell, hence the environment\n\
   of your current running shell will not be modified.\n"
 	
 VPATH := $(SCRIPT_DIR)
-$(SECONDO_SDK)/bin/%: %
+$(SECONDO_SDK)/%: %
 	@touch $(tupd)
 	@cp $@ $@.backup
 	@cp $< $@
 	@echo " updating" $@
 
-$(HOME)/.%: .%
-	@touch $(tupd)
-	@cp $@ $@.backup
-	@cp $< $@
-	@echo " updating" $@
-
-$(netsc)/home/%: .%
+$(net)/scripts/%: %
 	cp $< $@
 
-$(netsc)/bin/%: %
+$(net)/%: %
 	cp $< $@
+
+
+$(net)/installsdk: installsdk
+	cp $< $@
+	chmod 755 $@
 
 
 .PHONY: show-update-msg
@@ -147,14 +135,14 @@ show-separator:
 	@echo -e "\n *** Bash environment setup files *** \n"
 
 # update the installation kit 
-.PHONY: installsdk 
-installsdk: checkrootdir $(tnew) $(tsdk) 
+.PHONY: inst-kit 
+inst-kit: checkrootdir $(tnew) $(tsdk) 
 
 # special target which only updates script files
 .PHONY: sdk-scripts
 sdk-scripts: $(tnew)
 
-$(tnew): $(ALL_SDK_SCRIPTS)
+$(tnew): $(ALL_INST_KIT_SCRIPTS)
 	touch $@
 
 # special target which create new secondo source archives
@@ -344,9 +332,6 @@ $(srcprefix)/makefile:
 	cvs -Q export -r$(tag) -d$(srcprefix) secondo
 
 
-$(net)/installsdk: install.bash
-	cp $< $@
-	chmod 755 $@
 
 # store modified files in a tar archive
 
