@@ -1391,10 +1391,11 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
     double offset = i.timeInterval.start.ToDouble() 
     - timeInterval.start.ToDouble();
     
-    return AlmostEqual( a, i.a ) &&
-           AlmostEqual( 2 * a * offset + b, i.b ) &&
-           AlmostEqual( a * pow(offset, 2) + b * offset + c, i.c )
-           && r == i.r;
+    return (!IsDefined() && !i.IsDefined()) ||
+      (AlmostEqual( a, i.a ) &&
+       AlmostEqual( 2 * a * offset + b, i.b ) &&
+       AlmostEqual( a * pow(offset, 2) + b * offset + c, i.c )
+       && r == i.r );
   }
   
 /*
@@ -1432,6 +1433,15 @@ Equality is calculated with respect to temporal evolution.
   virtual int Compare( const Attribute* arg ) const
   {
     UReal* mr2 = (UReal*) arg;
+    
+    if (!IsDefined() && !mr2->IsDefined()) 
+      return 0;
+    if (!IsDefined())
+      return -1;
+    if (!mr2->IsDefined())
+      return 1;
+
+    // both ureals are defined...
     int cmp = timeInterval.CompareTo(mr2->timeInterval);
     if(cmp){
        return cmp;
@@ -1638,6 +1648,13 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   inline virtual int Compare( const Attribute* arg ) const
   {
     UPoint* up2 = (UPoint*) arg;
+    if (!IsDefined() && !up2->IsDefined()) 
+      return 0;
+    if (!IsDefined())
+      return -1;
+    if (!up2->IsDefined())
+      return 1;
+
     int cmp = timeInterval.CompareTo(up2->timeInterval);
     if(cmp){
        return cmp;

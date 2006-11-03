@@ -430,67 +430,44 @@ void UPoint::AtInterval( const Interval<Instant>& i,
 
 void UPoint::Distance( const Point& p, UReal& result ) const
 {
-  assert( IsDefined() );
-  assert( p.IsDefined() );
-  result.timeInterval = timeInterval;
-  
-
-/*
-   Old code:
-
-----
-  double 
-    x0 = p0.GetX(), y0 = p0.GetY(),
-    x1 = p1.GetX(), y1 = p1.GetY(),
-    x  =  p.GetX(),  y =  p.GetY(),
-    t0 = timeInterval.start.ToDouble(),
-    t1 = timeInterval.end.ToDouble();
-  DateTime DT = timeInterval.end - timeInterval.start;
-  double dt = DT.ToDouble();
-
-  result.a = (pow(x1-x0,2) + pow(y1-y0,2))/pow(dt, 2);
-  result.b = 2 * ( (x0-x)*(x1-x0) + (y0-y)*(y1-y0) ) / dt;
-  result.c = pow(x0-x,2) + pow(y0-y,2);
-  result.r = true;
-  result.SetDefined( true );
-
-  //  double xtranslate = (DT/2 + timeInterval.start).ToDouble();
-  //  result.TranslateParab(-xtranslate,0.0);
-
-----
-
-   New code:
-
-*/
-
-  DateTime DT = timeInterval.end - timeInterval.start;
-  double dt = DT.ToDouble();
-  double
-    x0 = p0.GetX(), y0 = p0.GetY(),
-    x1 = p1.GetX(), y1 = p1.GetY(),
-    x  =  p.GetX(), y  =  p.GetY(),
-    t0 = timeInterval.start.ToDouble();
-
-  if ( AlmostEqual(dt, 0.0) )
-    { // single point
-      result.a = 0.0;
-      result.b = 0.0;
-      result.c = pow(x0-x,2) + pow(y0-y,2);
-      result.r = true;
+  if( !IsDefined() || ! p.IsDefined() )
+    {
+      result.SetDefined(false);
     }
   else
     {
-      double A = pow((x1-x0)/dt,2)+pow((y1-y0)/dt,2);
-      double B = 2*((x1-x0)*(x0-x)+(y1-y0)*(y0-y))/dt;
-      double C = pow(x0-x,2)+pow(y0-y,2);
-
-      result.a = A;
-      result.b = B-2*A*t0;
-      result.c = t0*(t0*A-B)+C;
-      result.r = true;
+      result.timeInterval = timeInterval;
+  
+      DateTime DT = timeInterval.end - timeInterval.start;
+      double dt = DT.ToDouble();
+      double
+        x0 = p0.GetX(), y0 = p0.GetY(),
+        x1 = p1.GetX(), y1 = p1.GetY(),
+        x  =  p.GetX(), y  =  p.GetY(),
+        t0 = timeInterval.start.ToDouble();
+      
+      if ( AlmostEqual(dt, 0.0) )
+        { // single point
+          result.a = 0.0;
+          result.b = 0.0;
+          result.c = pow(x0-x,2) + pow(y0-y,2);
+          result.r = true;
+        }
+      else
+        {
+          double A = pow((x1-x0)/dt,2)+pow((y1-y0)/dt,2);
+          double B = 2*((x1-x0)*(x0-x)+(y1-y0)*(y0-y))/dt;
+          double C = pow(x0-x,2)+pow(y0-y,2);
+          
+          result.a = A;
+          result.b = B-2*A*t0;
+          result.c = t0*(t0*A-B)+C;
+          result.r = true;
+        }
+      result.SetDefined(true);
     }
+  return;
 }
-
 
 /*
 3.2 Class ~MInt~
@@ -564,7 +541,8 @@ void MPoint::Distance( const Point& p, MReal& result ) const
   {
     Get( i, uPoint );
     uPoint->Distance( p, uReal );
-    result.Add( uReal );
+    if ( uReal.IsDefined() )
+      result.Add( uReal );
   }
   result.EndBulkLoad( false );
 }
