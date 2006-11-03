@@ -41,9 +41,10 @@ operator transformstream alias TRANSFORMSTREAM pattern _ op
 operator printstream alias PRINTSTREAM pattern _ op
 
 # Operator signatures already defined elsewhere:
+
 #operator filter alias FILTER pattern _ op [ fun ] implicit parameter streamelem type STREAMELEM
 #operator count alias COUNT pattern _ op
-
+#operator no_components alaias NO_COMPONENTS pattern op ( _ )
 
 
 

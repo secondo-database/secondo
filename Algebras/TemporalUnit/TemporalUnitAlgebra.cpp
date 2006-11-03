@@ -75,7 +75,7 @@ OK                                ureal --> ureal
 OK    speed                      mpoint --> mreal
 OK                               upoint --> ureal
 
-      passes    For T in {bool, int, string, point}
+      passes:  For T in {bool, int, string, point}:
 OK  +                        uT x      T --> bool
 n/a +                     ureal x   real --> bool
 n/a +                   uregion x region --> bool
@@ -88,10 +88,12 @@ OK  + final        (**)              uT --> iT
 OK  + present      (**)    uT x instant --> bool
 OK  +              (**)    uT x periods --> bool
      
-(OK)+ atmax: uT --> (stream uT)
+      atmax:  For T in {bool, int, real, string}:
+(OK)+                     uT --> (stream uT)
 
-(OK)+ atmin: uT --> (stream uT)
-
+      atmin:  For T in {bool, int, real, string}:
+(OK)+                     uT --> (stream uT)
+ 
 (OK)+ at:    ureal x    real --> (stream ureal)
 OK  +       upoint x   point --> upoint
 n/a +       upoint x  region --> (stream upoint)
@@ -146,17 +148,18 @@ n/a +      upoint x    line --> (stream ubool)
 n/a +     uregion x  points --> (stream ubool)
 n/a +     uregion x    line --> (stream ubool)
 
-n/a +  mdirection: upoint --> ureal
+n/a + mdirection:    upoint --> ureal
 
-n/a +  no_components:  uT --> int
+OK  + no_components:     uT --> uint
 
-n/a  area: uregion --> ureal
+n/a + area: uregion --> ureal
 
 n/a + and, or: ubool x ubool --> (stream ubool)
 n/a +           bool x ubool --> (stream ubool)
 n/a +          ubool x  bool --> (stream ubool)
 
-n/a +  =, #: uT x uT --> (stream ubool)
+  =, #, <, >, <=, >=: 
+n/a +        uT x uT --> (stream ubool)
 n/a +         T x uT --> (stream ubool)
 n/a +        uT x  T --> (stream ubool)
 
@@ -169,8 +172,10 @@ n/a + always:    ubool --> bool
 
 n/a  uint2ureal: uint --> ureal
 
+COMMENTS:
 
-(*): These operators have been implemented for T in {bool, int, real, point}
+(*):  These operators have been implemented for 
+      T in {bool, int, real, point}
 (**): These operators have been implemented for 
       T in {bool, int, real, point, string, region}
 
@@ -8608,14 +8613,23 @@ int temporalUnitIntersection_upoint_region( Word* args, Word& result,
                                             int message,
                                             Word& local, Supplier s )
 {
+/*
+
+----
+
   TUIntersectionLocalInfo *sli;
   UPoint  *upoint, pResult;
   Region  *region;
   Interval<Instant> iv;
   Word a0, a1;
   
+----
+
+*/
+
   cout << "\nATTENTION: temporalUnitIntersection_upoint_region "
        << "not yet implemented!" << endl;  
+
   return 0;
 }
 
@@ -9483,7 +9497,116 @@ Operator streamFilter (
 
 
 /*
-5.31 Operator ~~
+5.31 Operator ~no_components~
+
+Return the number of components (units) contained by the object. For unit types,
+the result is either undef (for undef values) or a const unit with value=1 
+(otherwise). 
+
+----
+     n/a + no_components:     (uT) --> uint
+
+----
+
+*/
+
+/*
+5.31.1 Type mapping function for ~no_components~
+
+*/
+
+static ListExpr TUNoComponentsTypeMap(ListExpr args) {
+
+  if (nl->ListLength(args) == 1)
+    {
+      if (nl->IsEqual(nl->First(args), "ubool"))
+        return nl->SymbolAtom("uint");
+      if (nl->IsEqual(nl->First(args), "uint"))
+        return nl->SymbolAtom("uint");
+      if (nl->IsEqual(nl->First(args), "ureal"))
+        return nl->SymbolAtom("uint");
+      if (nl->IsEqual(nl->First(args), "ustring"))
+        return nl->SymbolAtom("uint");
+      if (nl->IsEqual(nl->First(args), "upoint"))
+        return nl->SymbolAtom("uint");
+      if (nl->IsEqual(nl->First(args), "uregion"))
+        return nl->SymbolAtom("uint");
+    }
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+5.31.2 Value mapping for operator ~no_components~
+
+*/
+
+template<class T>
+int TUNoComponentsValueMap(Word* args, Word& result, 
+                           int message, Word& local, Supplier s)
+{
+  result = (qp->ResultStorage( s ));
+  UInt  *res   = (UInt*)result.addr;
+  T     *input = (T*)args[0].addr;
+  
+  if ( input->IsDefined() )
+    {
+      res->SetDefined(true);
+      res->timeInterval.CopyFrom(input->timeInterval);
+      res->constValue.Set(true,1);
+    }
+  else
+    {
+      res->SetDefined(false);
+      res->constValue.Set(true,0);
+    }
+  return 0;
+}
+
+/*
+5.31.3 Specification for operator ~no_components~
+
+*/
+const string TUNoComponentsSpec  = 
+  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>TemporalUnitAlgebra</text--->"
+  "<text>For T in {bool, int, real, point, region}:\n"
+  "(uT) -> uint</text--->"
+  "<text> no_components( _ )</text--->"
+  "<text>Returns an undef uint for undef unit, an uint with the "
+  "argument's deftime and value '1' otherwise.</text--->"
+  "<text>query no_components([const uint value undef])</text--->"
+  ") )";
+
+/*
+5.31.4 Selection Function of operator ~no_components~
+
+Uses ~UnitSimpleSelect( ListExpr args )~
+
+*/
+
+ValueMapping temporalunitNoComponentsvaluemap[] = {
+  TUNoComponentsValueMap<UBool>,
+  TUNoComponentsValueMap<UInt>,
+  TUNoComponentsValueMap<UReal>,
+  TUNoComponentsValueMap<UPoint>,
+  TUNoComponentsValueMap<UString>,
+  TUNoComponentsValueMap<URegion>};
+/*
+5.31.5 Definition of operator ~no_components~
+
+*/
+Operator temporalunitnocomponents
+( 
+ "no_components",
+ TUNoComponentsSpec,
+ 6,
+ temporalunitNoComponentsvaluemap,
+ UnitSimpleSelect,
+ TUNoComponentsTypeMap 
+);
+
+/*
+5.32 Operator ~~
 
 ----
      (insert signature here)
@@ -9493,27 +9616,167 @@ Operator streamFilter (
 */
 
 /*
-5.31.1 Type mapping function for ~~
+5.32.1 Type mapping function for ~~
 
 */
 
 /*
-5.31.2 Value mapping for operator ~~
+5.32.2 Value mapping for operator ~~
 
 */
 
 /*
-5.31.3 Specification for operator ~~
+5.32.3 Specification for operator ~~
 
 */
 
 /*
-5.31.4 Selection Function of operator ~~
+5.32.4 Selection Function of operator ~~
 
 */
 
 /*
-5.31.5 Definition of operator ~~
+5.32.5 Definition of operator ~~
+
+*/
+
+/*
+5.33 Operator ~~
+
+----
+     (insert signature here)
+
+----
+
+*/
+
+/*
+5.33.1 Type mapping function for ~~
+
+*/
+
+/*
+5.33.2 Value mapping for operator ~~
+
+*/
+
+/*
+5.33.3 Specification for operator ~~
+
+*/
+
+/*
+5.33.4 Selection Function of operator ~~
+
+*/
+
+/*
+5.33.5 Definition of operator ~~
+
+*/
+
+/*
+5.34 Operator ~~
+
+----
+     (insert signature here)
+
+----
+
+*/
+
+/*
+5.34.1 Type mapping function for ~~
+
+*/
+
+/*
+5.34.2 Value mapping for operator ~~
+
+*/
+
+/*
+5.34.3 Specification for operator ~~
+
+*/
+
+/*
+5.34.4 Selection Function of operator ~~
+
+*/
+
+/*
+5.34.5 Definition of operator ~~
+
+*/
+
+/*
+5.35 Operator ~~
+
+----
+     (insert signature here)
+
+----
+
+*/
+
+/*
+5.35.1 Type mapping function for ~~
+
+*/
+
+/*
+5.35.2 Value mapping for operator ~~
+
+*/
+
+/*
+5.35.3 Specification for operator ~~
+
+*/
+
+/*
+5.35.4 Selection Function of operator ~~
+
+*/
+
+/*
+5.35.5 Definition of operator ~~
+
+*/
+
+/*
+5.36 Operator ~~
+
+----
+     (insert signature here)
+
+----
+
+*/
+
+/*
+5.36.1 Type mapping function for ~~
+
+*/
+
+/*
+5.36.2 Value mapping for operator ~~
+
+*/
+
+/*
+5.36.3 Specification for operator ~~
+
+*/
+
+/*
+5.36.4 Selection Function of operator ~~
+
+*/
+
+/*
+5.36.5 Definition of operator ~~
 
 */
 
@@ -9667,6 +9930,7 @@ public:
     AddOperator( &temporalvelocity );
     AddOperator( &temporalderivable );
     AddOperator( &temporalderivative );
+    AddOperator( &temporalunitnocomponents );
     AddOperator( &streamFilter );
     AddOperator( &STREAMELEM );
     AddOperator( &STREAMELEM2 );
