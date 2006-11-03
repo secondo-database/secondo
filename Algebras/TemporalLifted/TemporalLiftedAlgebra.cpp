@@ -3158,9 +3158,9 @@ static void CompletePeriods2MPoint(MPoint* mp, Periods* pResult,
               cout<<"per ends after up (break)"<<endl;
             newUp.timeInterval.end = up->timeInterval.end; 
             newUp.timeInterval.rc = up->timeInterval.rc; 
-            up->TemporalFunction(newUp.timeInterval.start, pt);
+            up->TemporalFunction(newUp.timeInterval.start, pt, true);
             newUp.p0 = pt;
-            up->TemporalFunction(newUp.timeInterval.end, pt);
+            up->TemporalFunction(newUp.timeInterval.end, pt, true);
             newUp.p1 = pt;
             if(TLA_DEBUG){
               cout<<"Add3 ("<<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
@@ -3176,9 +3176,9 @@ static void CompletePeriods2MPoint(MPoint* mp, Periods* pResult,
             cout<<"per ends inside up"<<endl;
           newUp.timeInterval.end = per->end;
           newUp.timeInterval.rc = per->rc;
-          up->TemporalFunction(newUp.timeInterval.start, pt);
+          up->TemporalFunction(newUp.timeInterval.start, pt, true);
           newUp.p0 = pt;
-          up->TemporalFunction(newUp.timeInterval.end, pt);
+          up->TemporalFunction(newUp.timeInterval.end, pt,true);
           newUp.p1 = pt;
           if(TLA_DEBUG){
             cout<<"Add4 ("<<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
@@ -3373,9 +3373,9 @@ static void TransformMBool2MPoint(MPoint *mp, MBool *mBool, MPoint *endResult)
         { //upoint ends after ubool
            
            newUp.timeInterval = ub->timeInterval;
-           up->TemporalFunction(newUp.timeInterval.start, pt);
+           up->TemporalFunction(newUp.timeInterval.start, pt, true);
            newUp.p0 = pt;
-           up->TemporalFunction(newUp.timeInterval.end, pt);
+           up->TemporalFunction(newUp.timeInterval.end, pt, true);
            newUp.p1 = pt;
            
            if(TLA_DEBUG)
@@ -3397,9 +3397,9 @@ static void TransformMBool2MPoint(MPoint *mp, MBool *mBool, MPoint *endResult)
           newUp.timeInterval.end   = up->timeInterval.end;
           newUp.timeInterval.rc    = up->timeInterval.rc;
           
-          up->TemporalFunction(newUp.timeInterval.start, pt);
+          up->TemporalFunction(newUp.timeInterval.start, pt, true);
           newUp.p0 = pt;
-          up->TemporalFunction(newUp.timeInterval.end, pt);
+          up->TemporalFunction(newUp.timeInterval.end, pt, true);
           newUp.p1 = pt;
           if(TLA_DEBUG)
           {
