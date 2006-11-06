@@ -108,27 +108,27 @@ void UReal::TemporalFunction( const Instant& t,
       result.Set(false, 0.0);
     }
   else
+    {
+      DateTime tmp = timeInterval.start;
+      tmp.SetType(durationtype);
+      double t2 = (t - tmp).ToDouble();
+      
+      double res = a * pow( t2, 2 ) +
+        b * ( t2 ) +
+        c;
+      if( r ) res = sqrt( res );
+      result.Set( true, res );
+    }
+  
 
 /*
 2006-Sep-22, CD:
 
-The following implemention was intended to minimize problems with 
-rounding errors. But all other operators to not respect this implementation,
-and so the original implementation was restored.
-
-----
-    {
-      double res = a * pow( t.ToDouble() - timeInterval.start.ToDouble(), 2 ) +
-        b * ( t.ToDouble() - timeInterval.start.ToDouble() ) +
-        c;
-      if( r ) res = sqrt( res );
-      result.Set( true, res );
-      result.SetDefined( true );
-    }
+The following implemention is the original implementation following the
+papers published, but suffers from rounding errors. 
 
 ----
 
-*/
     {
       double res = a * pow( t.ToDouble(), 2 ) +
                    b *      t.ToDouble()      +
@@ -136,6 +136,10 @@ and so the original implementation was restored.
       if( r ) res = sqrt( res );
       result.Set( true, res );
     }
+
+----
+
+*/
 }
 
 bool UReal::Passes( const CcReal& val ) const
@@ -162,7 +166,13 @@ void UReal::AtInterval( const Interval<Instant>& i,
   pResult->b = b;
   pResult->c = c;
   pResult->r = r;
-  pResult->StandardTemporalUnit<CcReal>::IsDefined();
+  pResult->StandardTemporalUnit<CcReal>::SetDefined(true);  
+
+  // Now, we need to translate the result to the starting instant  
+  DateTime tmp = pResult->timeInterval.start;
+  tmp.SetType(durationtype);
+  double tx = (timeInterval.start - tmp).ToDouble();
+  pResult->TranslateParab(tx, 0.0);
 }
 
 // translate the parabolic curve within a ureal by (dx,dy)
@@ -441,13 +451,13 @@ void UPoint::Distance( const Point& p, UReal& result ) const
       DateTime DT = timeInterval.end - timeInterval.start;
       double dt = DT.ToDouble();
       double
+        //t0 = timeInterval.start.ToDouble(),
         x0 = p0.GetX(), y0 = p0.GetY(),
         x1 = p1.GetX(), y1 = p1.GetY(),
-        x  =  p.GetX(), y  =  p.GetY(),
-        t0 = timeInterval.start.ToDouble();
+        x  =  p.GetX(), y  =  p.GetY();
       
       if ( AlmostEqual(dt, 0.0) )
-        { // single point
+        { // single point unit
           result.a = 0.0;
           result.b = 0.0;
           result.c = pow(x0-x,2) + pow(y0-y,2);
@@ -455,14 +465,29 @@ void UPoint::Distance( const Point& p, UReal& result ) const
         }
       else
         {
+          result.a = pow((x1-x0)/dt,2)+pow((y1-y0)/dt,2);
+          result.b = 2*((x1-x0)*(x0-x)+(y1-y0)*(y0-y))/dt;
+          result.c = pow(x0-x,2)+pow(y0-y,2);
+          result.r = true;
+          
+/*
+
+For the original representation of ureal, we need:
+
+----
           double A = pow((x1-x0)/dt,2)+pow((y1-y0)/dt,2);
           double B = 2*((x1-x0)*(x0-x)+(y1-y0)*(y0-y))/dt;
           double C = pow(x0-x,2)+pow(y0-y,2);
-          
+
           result.a = A;
           result.b = B-2*A*t0;
           result.c = t0*(t0*A-B)+C;
           result.r = true;
+
+----
+
+*/
+
         }
       result.SetDefined(true);
     }
