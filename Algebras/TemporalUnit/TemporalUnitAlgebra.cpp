@@ -158,7 +158,7 @@ n/a + and, or: ubool x ubool --> (stream ubool)
 n/a +           bool x ubool --> (stream ubool)
 n/a +          ubool x  bool --> (stream ubool)
 
-  =, #, <, >, <=, >=: 
+      =, #, <, >, <=, >=: 
 n/a +        uT x uT --> (stream ubool)
 n/a +         T x uT --> (stream ubool)
 n/a +        uT x  T --> (stream ubool)
@@ -171,6 +171,8 @@ n/a + never:     ubool --> bool
 n/a + always:    ubool --> bool
 
 n/a  uint2ureal: uint --> ureal
+
+
 
 COMMENTS:
 

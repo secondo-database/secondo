@@ -1244,6 +1244,13 @@ Returns ~true~ if the value of this temporal unit is equal to the value of the t
     // SPM: this pointer added since my windows gcc (v3.4.2) reports:
     // 'timeInterval' undeclared (first use this function) which
     // seems to be a compiler bug!
+    if (TemporalUnit<Alpha>::defined && !ctu->defined)
+      return 0;
+    if (!TemporalUnit<Alpha>::defined)
+      return -1;
+    if (!ctu->defined)
+      return 1;
+    
     int cmp = this->timeInterval.CompareTo(ctu->timeInterval);
     if(cmp){
        return cmp;

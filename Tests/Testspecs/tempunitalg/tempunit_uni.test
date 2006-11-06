@@ -113,106 +113,89 @@ query units(zug5) transformstream extend[no: randint(1000)] sortby[no asc] makem
 # unit operators #
 ##################
 
+#tolerance_real 0.001
+
 #testcase deftime
 #tolerance_real 0.001
 #yields (periods (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)))
 query deftime(up1)
 
 #testcase deftime_undef
-#tolerance_real 0.001
 #yields (periods ( ) )
 query deftime(up3)
 
 #testcase atinstant up1
-#tolerance_real 0.001
 #yields (ipoint ("2003-11-20-06:30" (1500.0 1500.0))) 
 query up1 atinstant [const instant value "2003-11-20-06:30"]
 
 #testcase atinstant undef_upoint
-#tolerance_real 0.001
 #yields (ipoint undef) 
 query up3 atinstant [const instant value "2003-11-20-06:30"]
 
 #testcase atinstant upoint undef_instant
-#tolerance_real 0.001
 #yields (ipoint undef) 
 query up1 atinstant [const instant value undef]
 
 #testcase atperiods upoint
-#tolerance_real 0.001
 #yields ((rel (tuple ( (elem upoint)))) ( (   (   ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1916.666666666667 1916.666666666667 1833.333333333333 1833.333333333333))) (   (   ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE) (1166.666666666667 1166.666666666667 1083.333333333334 1083.333333333334))))) 
 query (up1 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) 
 ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ] ) transformstream consume
 
 #testcase atperiods undef_upoint
-#tolerance_real 0.001
 #yields ((rel (tuple ( (elem upoint)))) ( )) 
 query (up3 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ] ) transformstream consume
 
 
 # as there are no undef-periods values, we use empt-periods here:
 #testcase atperiods upoint undef_periods
-#tolerance_real 0.001
 #yields ((rel (tuple ( (elem upoint)))) ( )) 
 query (up1 atperiods [const periods value ( ) ] ) transformstream consume
 
 #testcase initial_up
-#tolerance_real 0.001
 #yields (ipoint ("2003-11-20-06:00" (2000.0 2000.0)))
 query initial(up1)
 
 #testcase initial_up undef
-#tolerance_real 0.001
 #yields (ipoint undef)
 query initial(up3)
 
 #testcase final_up
-#tolerance_real 0.001
 #yields (ipoint ("2003-11-20-07:00" (1000.0 1000.0)))
 query final(up1)
 
 #testcase final_up undef
-#tolerance_real 0.001
 #yields (ipoint undef)
 query final(up3)
 
 #testcase present_I
-#tolerance_real 0.001
 #yields (bool TRUE)
 query (up1 present [const instant value "2003-11-20-06:33"])
 
 #testcase present_I instant-undef
-#tolerance_real 0.001
 #yields (bool undef)
 query (up1 present [const instant value undef])
 
 #testcase present_I upoint-undef
-#tolerance_real 0.001
 #yields (bool undef)
 query (up3 present [const instant value "2003-11-20-06:33"])
 
 #testcase present_P
-#tolerance_real 0.001
 #yields (bool TRUE)
 query (up1 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ])
 
 #testcase at_up_p1
-#tolerance_real 0.001
 #yields (upoint ( ("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE) (1500.0 1500.0 1500.0 1500.0)))
 query (up2 at p) 
 
 #testcase at_up_p2
-#tolerance_real 0.001
 #yields (upoint ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1500.0 1500.0 1500.0 1500.0)))
 query (up6 at p)
 
 #testcase at_undef-upoint_p1
-#tolerance_real 0.001
 #yields (upoint undef)
 query (up3 at p) 
 
 #testcase at_up_undef-point
-#tolerance_real 0.001
 #yields (upoint undef)
 query (up2 at p3) 
 
@@ -233,97 +216,78 @@ query ( up3 passes p)
 query ( up2 passes p3)
 
 #testcase velocity_up
-#tolerance_real 0.001
 #yields (upoint (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (-0.2777777777772725 -0.2777777777772725 -0.2777777777772725 -0.2777777777772725)))
 query velocity(up1)
 
 #testcase velocity_up 2
-#tolerance_real 0.001
 #yields (upoint (("2003-11-20-06:00" "2003-11-20-06:01" TRUE TRUE) (16.66667 0.0 16.66667 0.0)))
 query velocity([const upoint value(("2003-11-20-06:00" "2003-11-20-06:01" TRUE TRUE) (0.0 0.0 1000.0 0.0))])
 
 #testcase velocity undef-upoint
-#tolerance_real 0.001
 #yields (upoint undef)
 query velocity(up3)
 
 #testcase derivable_ur4
-#tolerance_real 0.001
 #yields (ubool ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) FALSE))
 query derivable(ur4)
 
 #testcase derivable_ur2
-#tolerance_real 0.001
 #yields (ubool ( ("2000-01-02-23:59:59.900" "2000-01-03-00:00:00.100" TRUE TRUE) TRUE))
 query derivable(ur2)
 
 #Testcase derivative_ur4 (radix)
-#tolerance_real 0.001
 #yields (ureal undef)
 query derivative(ur4)
 
 #Testcase derivative_ur3 (undefined)
-#tolerance_real 0.001
 #yields (ureal undef)
 query derivative(ur3)
 
 #testcase derivative_ur2 (defined)
-#tolerance_real 0.001
 #yields (ureal ( ("2000-01-02-23:59:59.900" "2000-01-03-00:00:00.100" TRUE TRUE) (0.0 -2.0 -1.0 FALSE)))
 query derivative(ur2)
 
 #testcase atmax_uconst
-#tolerance_real 0.001
 #yields (uint ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) 1500))
 query atmax(ui1)
 
 #testcase atmin_uconst
-#tolerance_real 0.001
 #yields (uint ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) 1000))
 query atmin(ui2)
 
 #testcase distance_ui3_i
-#tolerance_real 0.001
 #yields (ureal undef)
 query distance(ui3, i1)
 
 #testcase distance_ui1_i
-#tolerance_real 0.001
 #yields (ureal ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 0.0 1400.0 FALSE)))
 query distance(ui1, i1)
 
 #testcase distance_i_ui3
-#tolerance_real 0.001
 #yields (ureal undef)
 query distance(i1, ui3)
 
 #testcase atmax_ureal ur1
-#tolerance_real 0.001
 #yields ((rel (tuple ( (elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (1.0 0.0 -1.0 FALSE))) ((("2000-01-05" "2000-01-05" TRUE TRUE) (1.0 0.0 -1.0 FALSE)))))
 query atmax(ur1) transformstream consume
 
 #testcase atmax_ureal ur2
-#tolerance_real 0.001
 #yields ((rel (tuple ( (elem ureal)))) (((("2000-01-02-23:59:59.900" "2000-01-02-23:59:59.900" TRUE TRUE) (-1.0 -1.0 -1.0 FALSE)))))
 query atmax(ur2) transformstream consume
 
 #testcase atmax_ureal ur3
-#tolerance_real 0.001
 #yields (int 0)
 query atmax(ur3) count
 
 #testcase atmin_ureal ur1
-#tolerance_real 0.001
 #yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03" "2000-01-03" TRUE TRUE) (1.0 0.0 -1.0 FALSE)))))
 query atmin(ur1) transformstream consume
 
 #testcase atmin_ureal ur2
-#tolerance_real 0.001
 #yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03-00:00:00.100" "2000-01-03-00:00:00.100" TRUE TRUE) (-1.0 -1.0 -1.0 FALSE)))))
 query atmin(ur2) transformstream consume
 
 #testcase atmin_ureal ur3
-#tolerance_real 0.001
 #yields (int 0)
 query atmin(ur3) count
 
@@ -579,21 +543,18 @@ query distance(p, up6)
 #yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(0.0 0.0 0.0 TRUE)))
 query distance(up6, p)
 
+
+
+#tolerance_real 3.0
+
 #testcase distance_point_upoint NONZERODISTANCE 1
-#tolerance_real 0.001
 #yields (ureal (("2000-01-02-23:50" "2000-01-03-00:10" TRUE TRUE)(10368000000.0 -7.989001460373402e-09 2.842170943040401e-14 TRUE)))
 query distance(p, up7)
 
 #testcase distance_point_upoint NONZERODISTANCE 2
-#tolerance_real 0.001
 #yields (ureal (("2003-01-01-12:00" "2003-01-01-12:20" TRUE TRUE)(10368000000.0 -22695696000000.0 1.24202984405e+16 TRUE)))
 query distance(p, up8)
 
-
-
-#tolerance_real 0.001
-
-# distance_upoint_point
 
 
 #testcase distance_upoint_upoint undef undef
@@ -608,6 +569,8 @@ query distance(up1, up3)
 #yields (ureal undef)
 query distance(up3, up2)
 
+
+
 #testcase distance_upoint_upoint def def
 #yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (4608000000.0 -13061568000000.0 9255889682000000.0 TRUE)))
 query distance(up1, up2)
@@ -620,6 +583,9 @@ query distance(up1, up1)
 #yields (ureal (("2003-11-20-06:00" "2003-11-20-06:30" TRUE TRUE) (1152000000.0 -3265536000000.0 2314176512000000.0 TRUE)))
 query distance(up1,up9)
 
+
+
+#tolerance_real 0.0001
 
 #testcase distance_int_uint DEF DEF
 #yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 0.0 1400.0 FALSE)))
