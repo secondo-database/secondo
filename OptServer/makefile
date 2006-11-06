@@ -30,7 +30,7 @@ JPL_DLL=$(OPTDIR)/$(DLLPREF)jpl.$(JNI_DLLEXT)
 endif
 
 
-LINKFILES := $(SECONDO_BUILD_DIR)/UserInterfaces/cmsg.o $(SECONDOPL_DIR)/SecondoPL.o $(LIBDIR)/SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceGeneral.o $(JPL_DLL)
+LINKFILES := $(SECONDO_BUILD_DIR)/UserInterfaces/cmsg.o $(SECONDOPL_DIR)/SecondoPL.o $(LIBDIR)/SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceGeneral.o 
 
 # Some optional switches used for providing a prolog
 # predicate which maximizes the entropy. For details
@@ -42,6 +42,12 @@ endif
 
 LINK_FLAGS := $(ENT_LINK_LIBS) $(LD_LINK_LIBS) \
               $(JNI_CCFLAGS) 
+
+ifeq ($(platform),mac_osx)
+   LINK_FLAGS += -flat_namespace -undefined suppress
+else
+   LINKFILES += $(JPL_DLL)
+endif
 
 
 
