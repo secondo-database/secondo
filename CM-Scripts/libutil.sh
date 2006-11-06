@@ -38,7 +38,7 @@ declare -i LU_RC=0
 declare -i LU_ERRORS=0
 
 # global constants which influence the 
-# behaviour of some functions
+# behavior of some functions
 LU_TESTMODE=""
 LU_SENDMAIL="true"
 
@@ -74,7 +74,7 @@ function showValue
   echo "$var = <"$(eval echo '$'$var)">"
 }
 
-# print to logfile
+# print to log-file
 #
 function printl {
   if [ -n "$LU_LOG_INIT" ]; then
@@ -82,7 +82,7 @@ function printl {
   fi
 }
 
-# print to screen and into logfile if $LU_LOG is nonzero
+# print to screen and into log-file if $LU_LOG is nonzero
 #
 function printx {
 
@@ -150,7 +150,7 @@ if [ -z "$BASH" ]; then
   exit 1
 fi
 
-# assert - check if a command was succesful
+# assert - check if a command was successful
 #
 # $* cmd
 function assert {
@@ -211,7 +211,7 @@ function createDir {
 
 
 # write startup information into logfile
-# $1 writable logfile
+# $1 writable log-file
 #
 function initLogFile {
 
@@ -226,11 +226,11 @@ function initLogFile {
     checkCmd touch $LU_LOG
     if [ $? -ne 0 ]; then
       varValue LU_LOG
-      showMsg "err" "Can't touch logfile $LU_VARVALUE!"
+      showMsg "err" "Can't touch log-file $LU_VARVALUE!"
       exit 1
     fi
   else
-    showMsg "err" "No logfile defined!"
+    showMsg "err" "No log-file defined!"
     exit 1
   fi 
   LU_LOG_INIT="true" 
@@ -287,7 +287,7 @@ function printSep {
 # $* command
 #
 # execute a command. In case of an error display the
-# returncode
+# return code
 
 function checkCmd {
 
@@ -301,7 +301,7 @@ function checkCmd {
     else
       eval "{ $*; } >> $LU_LOG 2>&1"
     fi
-    LU_RC=$?  # save returncode
+    LU_RC=$?  # save return code
     if [ $LU_RC -ne 0 ]; then
       showMsg "err" "Command {$*} returned with value ${LU_RC}"
       let LU_ERRORS+=1  
@@ -556,7 +556,7 @@ function showGPL() {
 #
 # $1 list of directories
 #
-# For each direcory all *.gz files are assumed to be a tar archive and
+# For each directory all *.gz files are assumed to be a tar archive and
 # all *.zip files a zip archive
 
 function uncompressFolders {
@@ -672,7 +672,7 @@ function uncompress {
 #
 # reads file $1 which contains a list of "name1 name2" entries
 # and returns name2 if "$1"=0"name1". The parameter name1 should 
-# be unique otherwise the first occurence will be used.
+# be unique otherwise the first occurrence will be used.
 
 function mapStr() {
 
@@ -821,7 +821,7 @@ type -p rxvt > /dev/null 2>&1
 if [ $? -ne 0 ]; then
   type -p xterm > /dev/null 2>&1
   if [ $? -ne 0 ]; then
-    showMsg "warn" "No grapichal console like  rxvt or xterm available."
+    showMsg "warn" "No graphical console like  rxvt or xterm available."
     LU_xterm="" 
   else
     LU_xterm="xterm"

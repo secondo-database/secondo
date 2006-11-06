@@ -5,7 +5,7 @@
 # 04/19/05 M. Spiekermann
 # 04/22/09 M. Spiekermann, error handling for starting xterm &
 # 05/16/02 M. Spiekermann, MSYS-Mingw and Linux script merged into this version
-# 05/12/10 M. Spiekermann, Compilation of 3d party packages improved and uninstall function added  
+# 05/12/10 M. Spiekermann, Compilation of 3rd party packages improved and un-install function added  
 # 05/18/10 M. Spiekermann, Code restructured into many new functions. Easier to test and maintain.   
 # 06/27/09 M. Spiekermann, tools version check implemented and new packages
 #                          added in order to support Mac-OSX.   
@@ -19,7 +19,7 @@ if ! source $libFile; then
   exit 1; 
 fi
 
-if win32Host; then
+if [ "$opt_platform" == "win32" ]; then
   shProfile="./scripts/profile"
   if [ -f $shProfile ]; then
     source $shProfile
@@ -36,7 +36,7 @@ and make will abort with an error."
 }
 
 # The next two function are used to set checkpoints
-# for sucessful installation steps
+# for successful installation steps
 
 # $1 name
 function checkPoint {
@@ -80,7 +80,7 @@ function installPackage {
   # "trap - 0". As a result some configure scripts stop with
   # an error, e.g. for gcc 3.2.3. A solution is to start the
   # configure script with bash which turns off posix compatibility mode.
-  if ! win32Host; then
+  if [ "$opt_platform" != "win32" ]; then
     local bashCmd="bash"
   fi
 
@@ -213,7 +213,7 @@ function uncompressPackage {
 function unInstall {
 
     local dirs="$sdk $temp $build"
-    if win32Host; then
+    if [ "$opt_platform" == "win32" ]; then
       showMsg "warn" "We assume that you have removed MinGW by using windows' system \n\
 control software installation utility and SWI-Prolog by its \n\
 uninstall tool unwise.exe!"
@@ -244,7 +244,7 @@ uninstall tool unwise.exe!"
       LU_LOG_INIT=""
     done
 
-    if win32Host; then
+    if [ "$opt_platform" == "win32" ]; then
       printx "\n" 
       showMsg "em" "If Java 2 has been installed remove it with it's uninstall program or \n\
 window's system control."
@@ -278,8 +278,8 @@ function copyConfigFiles {
     
     printx "%s\n" "Creating \$sdk/secondo* files"
     local cmdfiles="libutil.sh secondorc secondo.*"
-    if win32Host; then
-      cmdfiles="$cmdfiles profile"
+    if [ "$opt_platform" == "win32" ]; then
+      checkCmd cp profile $HOME
     fi 
     for file in $cmdfiles; do
       checkCmd cp $file $sdk
@@ -301,7 +301,7 @@ function checkInstDir {
 
   if [ ! -d "$1" ]; then
     showMsg "warn" "Recommended installation directory \"$1\" \n\
-not found. You need to modify file \"$sdk/secondo.config\"."
+not found. You need to modify file \"$sdk/secondo.config.$opt_platform\"."
     return 1
   fi
   return 0
@@ -309,7 +309,7 @@ not found. You need to modify file \"$sdk/secondo.config\"."
 
 function installJava {
 
-  if win32Host; then
+  if [ "$opt_platform" == "win32" ]; then
     assert cd $j2dir
     j2sdk*windows*.exe
     checkInstDir $javaInstDir
@@ -487,7 +487,7 @@ printx "%s\n"   "    Target for SECONDO : $build"
 printx "%s\n"   "    Temporary directory: $temp"
 printx "%s\n\n" "    Used platform      : $opt_platform"
 
-for xdir in "$sdk" "$prologdir" "$sdk/bin" "$build"; do
+for xdir in "$sdk" "$prologdir" "$build"; do
   if [ -d "$xdir" ]; then
     showMsg "warn" "Directory $xdir already exists."
   fi 
@@ -518,21 +518,22 @@ $logfile"
 
 if [ "$testMode" == "true" ]; then
   assert mkdir -p $HOME
-  if win32Host; then
+  if [ "$opt_platform" == "win32" ]; then
     assert mkdir -p $instpath
   fi
 fi
 
 # create sdk directory
-assert mkdir -p $sdk/bin
+assert mkdir -p $sdk
 
 # On windows we need to install unzip first
-if win32Host; then
-  export PATH="$sdk/bin:$sdk/lib:/c/mingw/bin:$PATH"
+if [ "$opt_platform" == "win32" ]; then
+  assert mkdir -p $sdk/aux/bin
+  export PATH="$sdk/aux/bin:$sdk/aux/lib:/c/mingw/bin:$PATH"
 
-  if [ ! -e $sdk/bin/unzip.exe ]; then
+  if [ ! -e $sdk/aux/bin/unzip.exe ]; then
     printSep "Installing unzip ..."
-    assert cd $sdk/bin
+    assert cd $sdk/aux/bin
     checkCmd "$platformdir/non-gnu/unzip/unz550xN.exe" 
     checkCmd "unzip -q -o $platformdir/non-gnu/unzip/zip23xN.zip"
   fi
@@ -558,7 +559,8 @@ fi
 if [ "$opt_platform" != "mac_osx" ]; then
 
 printSep "JAVA 2 SDK Version 1.4.2"
-if win32Host; then
+
+if [ "$opt_platform" == "win32" ]; then
   javaInstDir="$sdk/j2sdk1.4.2"
 else  
   javaInstDir="$sdk/j2sdk1.4.2_01"
@@ -612,7 +614,7 @@ fi
 ## WINDOWS - INSTALLATION
 ##
 
-if win32Host; then
+if [ "$opt_platform" == "win32" ]; then
 
   printSep "MinGW (GCC 3.2 windows port) Installation"
   assert cd $platformdir/mingw
@@ -642,10 +644,17 @@ if win32Host; then
 
   printSep "Installation of Tools from the gnuwin32 project ..."
   assert cd $sdk
-  uncompressPackage "GNU Tools: bison, etc." "dir"   $platformdir/gnu
-  uncompressPackage "JPEG-Library"           "files" $platformdir/non-gnu/jpeg-*
-  uncompressPackage "Flex"                   "file"  $platformdir/non-gnu/flex-*
-  uncompressPackage "CVS-Client"             "file"  $platformdir/non-gnu/cvs-*
+  for dir in "aux flex bison"; do
+    assert mkdir $dir
+  done 
+  assert cd aux
+  uncompressPackage "GNU Tools"                  "dir"   $platformdir/gnu
+  uncompressPackage "JPEG-Library"               "files" $platformdir/non-gnu/jpeg-*
+  uncompressPackage "CVS console client"         "file"  $platformdir/non-gnu/cvs-*
+  assert cd ../flex 
+  uncompressPackage "Flex, a scanner generator"  "file"  $platformdir/non-gnu/flex-*
+  assert cd ../bison 
+  uncompressPackage "Bison, a parser generator"  "dir"   $platformdir/bison
 
   if ! startupXterm "Messages from make" tail -f $logfile; then
     printx "%s\n" "Messages from make are kept in $logfile"
@@ -740,7 +749,7 @@ installPackage "Bison, a parser generator" bison $platformdir/gnu/bison-*   $tem
 configureFlags=""
 installPackage "Flex, a scanner generator" flex $platformdir/non-gnu/flex-* $temp/flex-* install
 
-printSep "Compiling Berkely-DB"
+printSep "Compiling Berkeley-DB"
 
 configureFlags="CFLAGS=\"$cFlags\" LDFLAGS=\"$ldFlags\""
 installPackage "Berkeley-DB"  bdb $platformdir/non-gnu/db-*      $temp/db-*/build_unix "all install" --enable-cxx ../dist/configure
