@@ -66,18 +66,18 @@ We have built the system on the following operating-systems:
 Secondo's source code has the following dependencies:
 
 [44] 
-  Tool/Compiler  & Version & Homepage           & CD-Directory  \\
+  Tool/Compiler  & Version & Home page           & CD-Directory  \\
   [--------]
   bash           & 2.05b   & www.gnu.org        & extras/unix   \\
   make           & 3.79.1  & www.gnu.org        & extras/unix   \\
 		 &         &                    &               \\
   gcc/c++        & 3.4.6   & gcc.gnu.org        & linux/gnu     \\
-  bison          & 1.875   & www.gnu.org        & linux/gnu     \\
+  bison          & 2.1     & www.gnu.org        & linux/gnu     \\
   lib readline   & 4.3     & www.gnu.org        & linux/gnu     \\
   lib ncurses    & 5.3     & www.gnu.org        & linux/gnu     \\
-  findutils      & 4.2.28  & www.gnu.org        & linux/gnu     \\
+  findutils      & 4.2.25  & www.gnu.org        & linux/gnu     \\
 		 &         &                    &               \\
-  flex           & 2.5.4   & www.gnu.org        & linux/non-gnu \\
+  flex           & 2.5.33  & www.gnu.org        & linux/non-gnu \\
   lib jpeg       & v6b     & www.ijg.org        & linux/non-gnu \\
   berkeley-db    & 4.2.52  & www.sleepycat.com  & linux/non-gnu \\
 		 &         &                    &               \\
@@ -85,14 +85,14 @@ Secondo's source code has the following dependencies:
   java2 sdk      & 1.4.2   & www.javasoft.com   & linux/j2sdk   \\
 
 
-On the Secondo homepage we have collected them into
+On the Secondo home page we have collected them into
 Installation-Kits (Linux, Windows specific versions without Java2-SDK) and an
 ISO image of a CD-ROM which contains all tools for both operating systems and
 some databases. All tools with a GNU license can be found via www.gnu.org, there
 is a link to the free software directory (http://directory.fsf.org). This is a
 portal to all known free software. 
 
-However, you can try to get the needed tools from the internet and set up your own
+However, you can try to get the needed tools from the Internet and set up your own
 environment. To some extent it may also work with higher or smaller version
 numbers as recommend above. But we cannot guarantee that it will work. The
 version above is the setup for which we know that it works. Our experience is
@@ -103,21 +103,21 @@ installation script, (ii) instructions for installing RPM-packages, (iii)
 instructions for compiling the packages itself. 
 
 The first one assumes that you download one of the Installation-Kits or that you
-got a cd-rom. These provide a script "installsdk" which will uncompress, compile
+got a CD-ROM. These provide a script "installsdk" which will uncompress, compile
 and install the above tools with minimal user interaction below your "$HOME"[20]
 directory. 
 
 The second approach is to download the source code from their corresponding
-websites, compile, and install them. With this approach, it is possible to
+web sites, compile, and install them. With this approach, it is possible to
 perform the installation steps as an ordinary user. It is just to do the steps
 of (i) manually. This information may help you if the script failed in building
 some of the packages, or if you want to implement algebras which need features
-not covered by the standard sdk.
+not covered by the standard SDK.
 
 The third one is to use a Linux distribution package installer. Some people
 will prefer this approach because the package installers normally check
 dependencies between software. Given that we are experienced on using SuSE and
-linux, we provide installation instructions for both using the package
+Linux, we provide installation instructions for both using the package
 administration tool YaST. In fact we do not provide information on how to use
 the YaST tool, but only the package names needed. To do this you need to use the
 super user account ~root~. But keep in mind, that Secondo's source code may not
@@ -130,7 +130,7 @@ software are already installed, e.g. ~tar~, a C compiler ~gcc~, and ~make~.
 
 2 Running the script "installsdk"[23]
 
-Download the installation kit of the secondo homepage and extract it
+Download the installation kit of the secondo home page and extract it
 
 */
   tar -xvzf <inst-kit>.tar.gz
@@ -150,7 +150,7 @@ all 3rd-party software. The script nows the following options:
 
 */
   -h print this message and exit.
-  -d name of the the sdk root directory [default = secondo-sdk].
+  -d name of the the SDK root directory [default = secondo-sdk].
   -p platform name; one out of {linux, win32, mac_osx}.
   -s Use the system's gcc, don't try to install the provided one.
 /*
@@ -183,7 +183,7 @@ works and helps to save time.
 
 If some steps fail, you may need to study the log file and correct the
 installation of the failed packages by hand. Therefore you have to change into
-the build dir of the package and to run make distclean. Afterwards you can try
+the build directory of the package and to run make distclean. Afterwards you can try
 to configure it with other options or you may download another version. However,
 in this case you have to read the package's installation notes. 
 
@@ -250,7 +250,7 @@ If one of them is not present, please contact the system administrator to
 install them. In most Linux installations, these applications are already
 available.
 
-Depending on the the system, some of the packages needed are already installed.
+Depending on the system, some of the packages needed are already installed.
 One could first check whether they are installed before really installing them.
 Skip the steps to install the packages that are already installed in your system.
 
@@ -273,7 +273,7 @@ create environmental variables to point to these two directories, namely
 
 /*
 
-Let us also add the ~bin~ directory of the secondo sdk to the PATH and the ~lib~
+Let us also add the ~bin~ directory of secondo-sdk to the PATH and the ~lib~
 directory to the "LD_LIBRARY_PATH"[20]
 
 */
@@ -308,14 +308,14 @@ system. The following command will print information about it.
 
 /*
 
-In the following we will configure for subdirs below "$SECONDO_SDK". This make
+In the following we will configure for sub-directories below "$SECONDO_SDK". This make
 life easier if you want to delete a package or to install another alternative
 version of a package. As a drawback you need to take more care about search path
 configuration. We will use the same directory structure as "installsdk" does (refer
 to section 2).
 
 If the compiler is not installed, then we have to build it. Otherwise skip the
-next sub-sections.  The only dependency for the C++ compiler is the ~texinfo~
+next sub-sections.  The only dependency for the C++ compiler is the ~TeX-info~
 package, which itself depends on the ~ncurses~ library.
 
 3.1.1 Building the library ~ncurses~ without C++ support
@@ -335,9 +335,9 @@ secondo-install directory. Run the following set of commands.
   make install
 
 /*
-3.1.2 Building the package ~texinfo~
+3.1.2 Building the package ~TeX-info~
 
-We have found a problem while configuring the ~texinfo~ package that it seems not to
+We have found a problem while configuring the ~TeX-info~ package that it seems not to
 recognize the ~ncurses~ library. We then run this command in order to tell it where is
 the ~ncurses~ library.
 
@@ -345,7 +345,7 @@ the ~ncurses~ library.
   export LDFLAGS="-L$SECONDO_SDK/aux/lib -lncurses"
 
 /*
-Now we can build the ~texinfo~ package. Download it into the secondo-install
+Now we can build the ~TeX-info~ package. Download it into the secondo-install
 directory and run the following commands.
 
 */
@@ -369,7 +369,7 @@ and execute the following commands
 
 /*
 
-The ~gcc~ documentation strongly recomends that we create a directory for the
+The ~gcc~ documentation strongly recommends that we create a directory for the
 object files outside the directory tree of the ~gcc~.
 
 */
@@ -467,7 +467,7 @@ and run the following commands:
 3.5 Building ~Berkeley DB~
 
 Download the package into the secondo-install directory.
-We suggest downloading the version without encription (the file name contains
+We suggest downloading the version without encryption (the file name contains
 "NC"), since Secondo does not use this feature.
 
 Run the following commands:
@@ -484,7 +484,7 @@ Run the following commands:
 3.5 Building ~SWI-Prolog~
 
 Download the package into the secondo-install directory.
-We suggest downloading the version without encription (the file name contains
+We suggest downloading the version without encryption (the file name contains
 "NC"), since Secondo does not use this feature.
 
 Run the following commands:
@@ -659,11 +659,11 @@ which runs some automatic tests to be sure that everything works fine. If
 something fails please send a bug report to "secondo@fernuni-hagen.de"[23]
 
 
-6 Installing Latex and Ghostscript
+6 Installing Latex and Ghost-script
 
 Secondo's program code documentation is made with the PD-System, which translates
-program code files into LaTeX. Additonally, for previewing EPS pictures together
-with LaTeX you need Ghostscript with its preview program. Hence, for using the
+program code files into LaTeX. Additionally, for previewing EPS pictures together
+with LaTeX you need Ghost-script with its preview program. Hence, for using the
 PD-System you have to install this software using the system administration
 tools provided with your Linux system.
 
@@ -674,7 +674,7 @@ we have no experience in compiling and installing the development environment on
 those systems. However, since all packages are compiled during installation it
 should work. A problem could be the Java installation since this is a binary
 version for i686-processors which will not run on other processor architectures
-like power-pc or sparc.
+like power-pc or SPARC.
 
 Another problem could be that a commercial Unix derivate provided from SUN, HP,
 DEC etc. does not have the gnu tools instead there are vendor specific versions
