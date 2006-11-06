@@ -35,7 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[p]           [\par]
 //[@]           [\@]
 
-[1] How to Install a SDK for Secondo on Linux 
+[1] Setting up a SDK for Secondo 
 
 
 [2]        Database Systems for new Applications           [p] 
@@ -43,9 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 	http://www.informatik.fernuni-hagen.de/secondo     [p]
 
 
-September 2006, Victor Almeida.
-
-October 2006, M. Spiekermann.
+Last Changes: 11/6/06
 
 [TOC]
 
@@ -59,9 +57,11 @@ This guide explains the installation procedure for various software packages
 needed to set up an complete development environment ready to compile Secondo.
 We have built the system on the following operating-systems: 
 
-  * SuSe Linux: 8.1, 8.2, 9.0, 9.2, 10.1 
+  * SuSe Linux: 8.1, 8.2, 9.0, 9.2, 10.x 
 
   * Mac-OSX: Tiger
+
+  * MS-Windows: Win98, Win2000, WinXP
 
 Secondo's source code has the following dependencies:
 
@@ -99,8 +99,11 @@ version above is the setup for which we know that it works. Our experience is
 that even small changes in versions may cause compile time or runtime errors. 
 
 We follow three approaches to install the required 3rd-party software (i) the
-installation script, (ii) instructions for installing RPM-packages, (iii)
-instructions for compiling the packages itself. 
+installation script, (ii) instructions for compiling the packages itself, (iii)
+instructions for installing RPM-packages. The last two alternatives are not  
+possible for MS-Windows. For this platform many pre-compiled files can be found
+at "http://sourceforge.win32.net" and "www.mingw.org".
+. 
 
 The first one assumes that you download one of the Installation-Kits or that you
 got a CD-ROM. These provide a script "installsdk" which will uncompress, compile
@@ -152,7 +155,7 @@ all 3rd-party software. The script nows the following options:
   -h print this message and exit.
   -d name of the the SDK root directory [default = secondo-sdk].
   -p platform name; one out of {linux, win32, mac_osx}.
-  -s Use the system's gcc, don't try to install the provided one.
+  -s Use the system´s gcc, don´t try to install the provided one.
 /*
   
 The compilation of packages is done below the
@@ -166,16 +169,17 @@ messages of the compiler during installation. All tools will be installed below
 the directory "$HOME/secondo-sdk", it will create the following subdirectories:
 
 */
-
-  $SECONDO_SDK
-           |--- gcc
-           |--- aux 
-           |--- flex
-           |--- bison
-           |--- bdb
-           |--- swi
+  /
+  |---/home/$USER
+	     |---secondo
+             |---$SECONDO_SDK
+			|--- gcc
+			|--- aux 
+			|--- flex
+			|--- bison
+			|--- bdb
+			|--- swi
 /* 
-
 
 However, we can not guarantee, that the
 script works on all available Linux versions, but we hope that it basically
@@ -187,10 +191,10 @@ the build directory of the package and to run make distclean. Afterwards you can
 to configure it with other options or you may download another version. However,
 in this case you have to read the package's installation notes. 
 
-The most critical part of the installation is that of the ~gcc~. The problem
-is, that if the version of your system's gcc and the one to be installed is
-highly different this may result in an compile error. If you cannot manage to
-install the provided gcc, then you can try the "-s" switch. With this option, the 
+The most critical part of the installation is that of the ~gcc~. The problem is,
+that if the version of your system's gcc and the one to be installed is highly
+different this may result in an compile error. If you cannot manage to install
+the provided gcc, then you can try the "-s" switch. With this option, the
 system's gcc will be used. 
 
 At the end, the script will create some shell scripts which basically set up a
@@ -198,14 +202,14 @@ lot of environment variables which are needed at compile time and runtime
 in your "$SECONDO_SDK"[20] directory, these are
 
 */
-  secondorc
-  secondo.aliases
-  secondo.config.linux
-  secondo.setroot
-  libutil.sh
+  secondorc                 // the basic inititalization script
+  secondo.aliases           // some alias definitions
+  secondo.config.$platform  // optional settings
+  secondo.setroot           // definition of important search path lists
+  libutil.sh                // a library of useful shell functions
 /*
 
-These need to be changed if some tools are not
+The "[*].config.[*]" file needs to be changed if some tools are not
 installed in their assumed default installation directory, e.g. JAVA2-SDK, if it
 is already present. In order to execute the commands in the current instance of
 the shell you need to run 
@@ -232,6 +236,25 @@ aliases are available:
                (changing variable "SECONDO_BUILD_DIR"). This is useful if you 
                have different source trees and want to change between them.
 
+
+On MS-Windows. Most of the tools will be installed as binaries. Only the
+Berkeley-DB will be compiled. The gcc compiler will be installed with
+MSYS/MinGW, thus the created directories are:
+
+*/
+ C:
+  |---\secondo-sdk 
+  |        |--- aux 
+  |        |--- flex
+  |        |--- bison
+  |        |--- bdb
+  |        |--- swi
+  |	   
+  |---\msys\1.0\home\$USER
+  |                    |-.bashrc
+  |                    |---secondo
+  |---\mingw
+/* 
 
 3 Compiling all the packages
 
