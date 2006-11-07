@@ -109,12 +109,9 @@ void UReal::TemporalFunction( const Instant& t,
     }
   else
     {
-      DateTime tmp = timeInterval.start;
-      tmp.SetType(durationtype);
-      double t2 = (t - tmp).ToDouble();
-      
+      double t2 = t.ToDouble() - timeInterval.start.ToDouble();      
       double res = a * pow( t2, 2 ) +
-        b * ( t2 ) +
+        b * t2 +
         c;
       if( r ) res = sqrt( res );
       result.Set( true, res );
@@ -175,10 +172,11 @@ void UReal::AtInterval( const Interval<Instant>& i,
   pResult->TranslateParab(tx, 0.0);
 }
 
-// translate the parabolic curve within a ureal by (dx,dy)
-void UReal::TranslateParab( const double& dx, const double& dy)
+// translate the parabolic/linear/constant curve within a ureal by (dx,dy)
+// the ROOT flag is not considered at all!
+void UReal::TranslateParab(const double& dx, const double& dy)
 {
-  long double xs,ys;
+  long double xs,ys; // the coordinates of the new apex
   if (!AlmostEqual(a, 0.0) )
     {
       if (!AlmostEqual(b, 0.0) )
@@ -186,8 +184,8 @@ void UReal::TranslateParab( const double& dx, const double& dy)
           xs =   -b/(2*a)         + dx;
           ys = c - pow(b,2)/(4*a) + dy;
           // a = a;
-          b = 2 * a * xs;
-          c = a * pow(xs,2) + ys;
+          b = -2 * a * xs;
+          c = a*pow(xs,2) + ys;
         }
       else
         { // quadratic function with b == 0
@@ -195,15 +193,15 @@ void UReal::TranslateParab( const double& dx, const double& dy)
           ys = c + dy;
         }
       // a = a;
-      b = 2 * a * xs;
-      c = a * pow(xs,2) + ys;
+      b = -2 * a * dx;
+      c = c + dy;
       return;
     }
   else 
     { // a == 0
       if (!AlmostEqual(b, 0.0) )
         { // a linear function
-          // translate by dx and dy
+          // translate by (dx) and (dy)
           a = 0.0;
           // b = b;
           c = c + dy - dx * b;          
@@ -215,7 +213,6 @@ void UReal::TranslateParab( const double& dx, const double& dy)
           b = 0.0;
           c = c + dy;
         }
-      // a = a;
     }
 }
 
