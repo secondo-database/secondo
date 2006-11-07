@@ -160,30 +160,30 @@ Application::Application( int argc, const char** argv )
   signalStr[SIGSEGV] = "SIGSEGV";
 
   // --- Trap all signals that would terminate the program by default anyway.
-//  signal( SIGHUP,    Application::AbortOnSignalHandler );
-//  signal( SIGINT,    Application::AbortOnSignalHandler );
-//  signal( SIGQUIT,   Application::AbortOnSignalHandler );
-//  signal( SIGILL,    Application::AbortOnSignalHandler );
+  signal( SIGHUP,    Application::AbortOnSignalHandler );
+  signal( SIGINT,    Application::AbortOnSignalHandler );
+  signal( SIGQUIT,   Application::AbortOnSignalHandler );
+  signal( SIGILL,    Application::AbortOnSignalHandler );
   signal( SIGABRT,   Application::AbortOnSignalHandler );
   signal( SIGFPE,    Application::AbortOnSignalHandler );
-//  signal( SIGPIPE,   Application::AbortOnSignalHandler );
-//  signal( SIGALRM,   Application::AbortOnSignalHandler );
-//  signal( SIGTERM,   Application::AbortOnSignalHandler );
+  signal( SIGPIPE,   Application::AbortOnSignalHandler );
+  signal( SIGALRM,   Application::AbortOnSignalHandler );
+  signal( SIGTERM,   Application::AbortOnSignalHandler );
   signal( SIGSEGV,   Application::AbortOnSignalHandler );
-//  signal( SIGUSR1,   Application::UserSignalHandler );
-//  signal( SIGUSR2,   Application::UserSignalHandler );
-//  signal( SIGTRAP,   Application::AbortOnSignalHandler );
+  signal( SIGUSR1,   Application::UserSignalHandler );
+  signal( SIGUSR2,   Application::UserSignalHandler );
+  signal( SIGTRAP,   Application::AbortOnSignalHandler );
   signal( SIGBUS,    Application::AbortOnSignalHandler );
 #ifdef SIGSTKFLT
-//  signal( SIGSTKFLT, Application::AbortOnSignalHandler );
+  signal( SIGSTKFLT, Application::AbortOnSignalHandler );
 #endif
-//  signal( SIGIO,     Application::AbortOnSignalHandler );
-//  signal( SIGPOLL,   Application::AbortOnSignalHandler );
-//  signal( SIGXCPU,   Application::AbortOnSignalHandler );
-//  signal( SIGXFSZ,   Application::AbortOnSignalHandler );
-//  signal( SIGVTALRM, Application::AbortOnSignalHandler );
-//  signal( SIGPROF,   Application::AbortOnSignalHandler );
-//  signal( SIGPWR,    Application::AbortOnSignalHandler );
+  signal( SIGIO,     Application::AbortOnSignalHandler );
+  signal( SIGPOLL,   Application::AbortOnSignalHandler );
+  signal( SIGXCPU,   Application::AbortOnSignalHandler );
+  signal( SIGXFSZ,   Application::AbortOnSignalHandler );
+  signal( SIGVTALRM, Application::AbortOnSignalHandler );
+  signal( SIGPROF,   Application::AbortOnSignalHandler );
+  signal( SIGPWR,    Application::AbortOnSignalHandler );
 #else
   ::SetConsoleCtrlHandler( Application::AbortOnSignalHandler, TRUE );
 
@@ -236,40 +236,23 @@ This is the default signal handler for all signals that would
 abort the process if not handled otherwise.
 
 */
-  if ( Application::appPointer->abortMode )
-  {
-    if ( Application::appPointer->AbortOnSignal( sig ) )
-    {
-      if ( sig == SIGABRT || sig == SIGSEGV || sig == SIGFPE )
-      { 
-        cout << endl << " ********************************************";
-        cout << endl << " **";
-        cout << endl << " ** Signal #" << signalStr[sig] 
-             << " caught! Printing Stack ...";
-        cout << endl << " **";
-        cout << endl << " ********************************************" << endl;
-        Application* ap = Application::Instance();
-        string fullAppName = ap->GetApplicationPath() 
-                             + "/" + ap->GetApplicationName();
-        WinUnix::stacktrace(fullAppName);
-        cout << endl << " *********** End Stack **********************" << endl;
-        
-      }
-      exit(1);
-    }
-    else
-    {
-      Application::appPointer->abortFlag = true;
-      Application::appPointer->lastSignal = sig;
-      signal( sig, Application::AbortOnSignalHandler );
-    }
+  if ( sig == SIGABRT || sig == SIGSEGV || sig == SIGFPE )
+  { 
+  cout << endl << " ********************************************";
+  cout << endl << " **";
+  cout << endl << " ** Signal #" << signalStr[sig] 
+       << " caught! Printing Stack ...";
+  cout << endl << " **";
+  cout << endl << " ********************************************" << endl;
+  Application* ap = Application::Instance();
+  string fullAppName = ap->GetApplicationPath() 
+		       + "/" + ap->GetApplicationName();
+  WinUnix::stacktrace(fullAppName);
+  cout << endl << " *********** End Stack **********************" << endl;
+
   }
-  else
-  {
-    Application::appPointer->abortFlag = true;
-    Application::appPointer->lastSignal = sig;
-    signal( sig, Application::AbortOnSignalHandler );
-  }
+  signal( sig, SIG_DFL );
+  raise(sig);
 }
 
 void
