@@ -34,8 +34,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC]         [\tableofcontents]
 //[p]           [\par]
 //[@]           [\@]
+//[LISTING-SH]  [\lstsetSH]
 
-[1] Setting up a SDK for Secondo 
+[1] Setting up an SDK for Secondo 
 
 
 [2]        Database Systems for new Applications           [p] 
@@ -135,6 +136,8 @@ software are already installed, e.g. ~tar~, a C compiler ~gcc~, and ~make~.
 
 Download the installation kit of the secondo home page and extract it
 
+[LISTING-SH]
+
 */
   tar -xvzf <inst-kit>.tar.gz
 /* 
@@ -152,10 +155,10 @@ The script will create by default a subtree under "$HOME/secondo-sdk"[20] where 
 all 3rd-party software. The script nows the following options: 
 
 */
-  -h print this message and exit.
-  -d name of the the SDK root directory [default = secondo-sdk].
-  -p platform name; one out of {linux, win32, mac_osx}.
-  -s Use the system´s gcc, don´t try to install the provided one.
+   -h print this message and exit.
+   -d name of the the SDK root directory [default = secondo-sdk].
+   -p platform name; one out of {linux, win32, mac_osx}.
+   -s Use the system's gcc, don't try to install the provided one.
 /*
   
 The compilation of packages is done below the
