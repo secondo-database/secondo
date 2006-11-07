@@ -439,7 +439,11 @@ int DateTime::GetMillisecond()const{
 }
 
 int DateTime::GetWeekday()const{
-    return day % 7;
+    if(day>=0){
+        return day % 7;
+    } else {
+        return (day % 7 )  + 7;
+    }
 }
 
 /*
