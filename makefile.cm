@@ -55,19 +55,19 @@ shrc := $(shell if [ ! -e $(tnew) ]; then touch $(tnew); fi)
 SCRIPT_DIR := ./CM-Scripts
 
 SCRIPT_FILES_CMD := libutil.sh \
+	      	    profile \
+		    bashrc_example \
 		    secondorc \
 	            secondo.aliases \
 	      	    secondo.setroot \
-	      	    profile
-
-SCRIPT_FILES_CFG := secondo.config.linux \
+		    secondo.config.linux \
               	    secondo.config.win32 \
               	    secondo.config.mac_osx
 
 
 SDK_SCRIPTS_CMD := $(addprefix $(SECONDO_SDK)/, $(SCRIPT_FILES_CMD))
 
-INST_KIT_SCRIPTS := $(addprefix $(net)/scripts/, $(SCRIPT_FILES_CMD) $(SCRIPT_FILES_CFG))
+INST_KIT_SCRIPTS := $(addprefix $(net)/scripts/, $(SCRIPT_FILES_CMD) )
 
 ALL_INST_KIT_SCRIPTS := $(net)/installsdk $(INST_KIT_SCRIPTS)
 
@@ -139,7 +139,7 @@ show-separator:
 inst-kit: checkrootdir $(tnew) $(tsdk) 
 
 # special target which only updates script files
-.PHONY: sdk-scripts
+.PHONY: checkrootdir sdk-scripts
 sdk-scripts: $(tnew)
 
 $(tnew): $(ALL_INST_KIT_SCRIPTS)
