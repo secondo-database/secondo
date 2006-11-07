@@ -2,7 +2,7 @@
 #
 # Since Feb 2005. M. Spiekermann
 
-# Note: If you plan to try to other versions of Berkeley DB, bison, flex, etc
+# Note: If you plan to try other versions of Berkeley DB, bison, flex, etc
 # rename the old one and configure it for installation within the directory
 # structure of installsdk which is
 #
@@ -15,9 +15,8 @@
 #          |-aux       Auxiliary tools, readline, jpeg-lib, etc 
 #
 # If you plan to use another directory layout please be careful. Study the
-# settings made in the file "secondo.setroot".
-#
-# You need to set the environment variables
+# settings made in the file "secondo.setroot". There the following variables
+# are set: 
 #
 # C_INCLUDE_PATH       // list of paths for compiling C-code 
 # CPLUS_INCLUDE_PATH   // list of paths for compiling C++-code 

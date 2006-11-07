@@ -277,9 +277,9 @@ function copyConfigFiles {
   if ! checkPoint "$check"; then
     
     printx "%s\n" "Creating \$sdk/secondo* files"
-    local cmdfiles="libutil.sh secondorc secondo.*"
+    local cmdfiles="libutil.sh bashrc_example secondorc secondo.*"
     if [ "$opt_platform" == "win32" ]; then
-      checkCmd cp profile $HOME
+      checkCmd cp profile $HOME/.profile
     fi 
     for file in $cmdfiles; do
       checkCmd cp $file $sdk

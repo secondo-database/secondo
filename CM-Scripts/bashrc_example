@@ -1,0 +1,13 @@
+# SECONDO: Example file bashrc_example
+#
+# Append the following lines to "~/.bashrc" or "~/.profile"
+# and ajust the path and platform information if necessary
+
+export SECONDO_SDK=$HOME/secondo-sdk
+
+export SECONDO_BUILD_DIR=$HOME/secondo
+
+export SECODNO_PLATFORM="linux"
+
+# run commands which set up the environment.
+source $SECONDO_SDK/secondorc
