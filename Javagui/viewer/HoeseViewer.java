@@ -1620,6 +1620,10 @@ private boolean loadReferences(File F){
 
 /** Removes a SecondoObject */
 public void removeObject(SecondoObject o){
+   if(!canDisplay(o)){ // ensure the possibility that this object is shown
+        return;
+   }
+
    QueryResult qr = new QueryResult(o.getName(),o.toListExpr());
    int index = getQueryIndex(qr);
    if (index>=0){

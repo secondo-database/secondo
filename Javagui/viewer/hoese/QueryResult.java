@@ -97,7 +97,11 @@ public class QueryResult extends JList {
       AttrCount = 0;
     }
     else {
-      AttrCount = LEResult.first().second().second().listLength();
+     try{
+       AttrCount = LEResult.first().second().second().listLength();
+     }catch(Exception e){
+       AttrCount = 0;
+     }
     }
     GraphObjects = new Vector(50);
   }
