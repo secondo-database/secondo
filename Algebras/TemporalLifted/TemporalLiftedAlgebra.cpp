@@ -765,6 +765,8 @@ void DistanceUPoint( const UPoint& p1, const UPoint& p2, UReal&
   result.b = 2 * ( (x0 - x2) * (dx1 - dx2) + (y0 - y2) * (dy1 - dy2) );
   result.c = pow( x0 - x2, 2 ) + pow( y0 - y2, 2 );
   result.r = true;
+  // translate the function by dt
+  result.TranslateParab(dt, 0.0);
   if(TLA_DEBUG){
     cout<<" ends with: "<<"a "<<result.a<<", b "<<result.b<<", c "
     <<result.c<<", r "<<result.r<<endl;}
