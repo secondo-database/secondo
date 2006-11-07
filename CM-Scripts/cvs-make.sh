@@ -125,7 +125,7 @@ if [ $rc -ne 0 ]; then
   printf "%s\n" "Problems during build, sending a mail."
 
   mkMailStr "$mailBody1"
-  sendMail "$subject" "$mailRecipients $failedBuild_DefaultRecipients" "$MAIL_STR" "$cvsHistMailBackupDir" "$msgFile" 
+  sendMail "$subject $gccMailSubject" "$mailRecipients $failedBuild_DefaultRecipients" "$MAIL_STR" "$cvsHistMailBackupDir" "$msgFile" 
 
   return $rc 
 fi
@@ -144,7 +144,7 @@ let numOfArgs++
 
 while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
 
-  getopts "hnm:r:w:c:s:t:d:" optKey
+  getopts "hnm:r:w:c:s:t:d:g:" optKey
   if [ "$optKey" == "?" ]; then
     optKey="h"
   fi
@@ -161,6 +161,7 @@ while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
       printf "%s\n"   "  -d<sdk-dir> => \"${opt_sdkDir}\" "
       printf "%s\n"   "  -t<version-tag> => \"${opt_coTag}\" "
       printf "%s\n"   "  -m<cvs-module> => \"${opt_coModule}\" "
+      printf "%s\n"   "  -g<gcc-version> => \"${opt_gccVersion}\" "
       printf "%s\n"   "  -w<seconds> (timeout for tests!) => \"${opt_waitMax}\" "
       printf "%s\n\n" "  -c<checkout-dir> => \"tmp_secondo_<date>\""
       printf "%s\n"   "The script checks out a local copy of <cvs-module> into the directoy"
@@ -175,6 +176,8 @@ while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
    d) opt_sdkDir=$OPTARG;;
 
    t) opt_coTag=$OPTARG;;
+
+   g) opt_gccVersion=$OPTARG;;
    
    c) opt_coDir=$OPTARG;;
 
@@ -190,11 +193,12 @@ done
 
 printSep "Variable values"
 
-opt_coDir=tmp_${opt_coModule}_${date_ymd}_${date_HMS}
+opt_coDir=tmp_${opt_coModule}_${date_ymd}_${date_HMS}.${opt_gcc_version}
 
 showValue opt_rootDir
 showValue opt_sdkRootDir
 showValue opt_sdkDir
+showValue opt_gccVersion
 
 showValue opt_coTag
 showValue opt_coDir
@@ -211,6 +215,10 @@ if [ "$opt_coModule" == "" ]; then
   exit 1;
 fi
 
+
+if [ "$opt_gccVersion" != "" ]; then
+  gccMailSubject="(using $opt_gccVersion)" 
+fi
 
 
 # set up environment for secondo
@@ -232,7 +240,7 @@ export SECONDO_SDK=$opt_sdkRootDir/$opt_sdkDir
 
 showValue SECONDO_SDK 
 
-if ! source ~/.secondorc ""; then exit 1; fi
+if ! source $SECONDO_SDK/secondorc; then exit 1; fi
 
 # derive some other important directories
 cbuildDir=${opt_rootDir}/${opt_coDir}
@@ -390,7 +398,7 @@ printf "\n%s\n" "Entering directory $PWD"
 export SECONDO_ACTIVATE_ALL_ALGEBRAS="true"
 export SECONDO_YACC="/usr/bin/bison"
 
-logFile=$tmpDir/make-all-1.log
+logFile=$tmpDir/make-all-algebras.log
 makeModule "$logFile" "Building $opt_coModule with all algebras failed!"
 
 printSep "Cleaning $opt_coModule"
@@ -401,11 +409,11 @@ printf "\n%s\n" "files unkown to CVS:"
 leftFiles=$(cvs -nQ update | grep "^? ") 
 if [ "$leftFiles" != "" ]; then 
   mkMailStr "$mailBody3 $leftFiles"
-  sendMail "make realclean has left some files" "$mailRecipients" "$MAIL_STR" "$cvsHistMailBackupDir" "$logFile"
+  sendMail "make realclean has left some files! $gccMailSubject" "$mailRecipients" "$MAIL_STR" "$cvsHistMailBackupDir" "$logFile"
   fi
 
 printSep "Compile Again"
-logFile=$tmpDir/make-all-2.log
+logFile=$tmpDir/make-default-algebras.log
 unset SECONDO_ACTIVATE_ALL_ALGEBRAS
 makeModule "$logFile" "Building $opt_coModule failed!"
 
@@ -423,7 +431,7 @@ if [ $? == 0 ]; then
     printf "%s\n" "Problems during test, sending a mail"
   
     attachment2="$cbuildDir/failedTests.tar.gz"
-    subject2="Automatic tests failed!"
+    subject2="Automatic tests failed! $gccMailSubject"
 
     failedHist="
 
