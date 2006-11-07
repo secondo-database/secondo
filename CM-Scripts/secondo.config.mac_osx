@@ -26,7 +26,7 @@
 # For some strange reason the jpeg library is not found although it
 # is defined in LIBRARY_PATH. Therefore we define some special additional
 # linker flags
-export SECONDO_LDFLAGS="-L$SECONDO_SDK/aux/lib"
+export SECONDO_LDFLAGS="-L$SECONDO_SDK/auxtools/lib"
 
 #SWI Prolog
 export SWI_HOME_DIR="/opt/local/lib/swipl-5.6.20"

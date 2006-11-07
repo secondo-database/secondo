@@ -12,7 +12,7 @@
 #          |-bison 
 #          |-swi       SWI-Prolog
 #          |-bdb       Berkeley-DB 
-#          |-aux       Auxiliary tools, readline, jpeg-lib, etc 
+#          |-auxtools  Auxiliary tools, readline, jpeg-lib, etc 
 #
 # If you plan to use another directory layout please be careful. Study the
 # settings made in the file "secondo.setroot". There the following variables
@@ -26,7 +26,7 @@
 # For some strange reason the jpee library is not found although it
 # is defined in LIBRARY_PATH. Therefore we define some special additional
 # linker flags
-export SECONDO_LDFLAGS="-L$SECONDO_SDK/aux/lib"
+export SECONDO_LDFLAGS="-L$SECONDO_SDK/auxtools/lib"
 
 
 #SWI Prolog

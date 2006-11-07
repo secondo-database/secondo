@@ -17,7 +17,6 @@ PartitionedStreamAlgebra PartitionedStream
 # Directories
 
 Optimizer/Entropy
-Tools/Generators/TPC-H
 Data/Databases/spatial
 Data/Objects/Distrikte
 

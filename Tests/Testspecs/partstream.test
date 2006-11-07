@@ -120,6 +120,20 @@ query
   pdelete  
   count;
 
+#testcase pjoin2-2
+#yields success 
+query
+  Staedte pfeed[100]  puse[. project[SName] {a} ] 
+  plz  pfeed[100]  puse[. project[Ort] {b} ] 
+  pjoin2[ symj: . .. symmjoin[(.SName_a = ..Ort_b)], 
+            hj: . .. hashjoin[SName_a, Ort_b, 997], 
+           smj: . .. sortmergejoin[SName_a, Ort_b] 
+  ]  
+  pdelete  
+  count;
+
+
+
 #Example for expressing an index join with the PartStreamAlgebra!
 #testcase pjoin1-1
 #yields success 

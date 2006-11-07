@@ -34,7 +34,7 @@ sdk=$SECONDO_SDK
 binPaths=""
 libPaths=""
 incPaths=""
-for dir in gcc bdb swi bison flex aux; do
+for dir in gcc bdb swi bison flex auxtools; do
   binPaths=$binPaths"$sdk/$dir/bin:"
   libPaths=$libPaths"$sdk/$dir/lib:"
   incPaths=$incPaths"$sdk/$dir/include:"

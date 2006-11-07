@@ -8,12 +8,12 @@
 #
 # C:
 #  |---\secondo-sdk 
-#          |-flex 
-#          |-bison 
-#          |-bdb       Berkeley-DB
-#          |-aux       Auxiliary tools, readline, jpeg-lib, etc. 
-#          |-swi       SWI-Prolog 
-#          
+#  |       |-flex 
+#  |       |-bison 
+#  |       |-bdb       Berkeley-DB
+#  |       |-swi       SWI-Prolog 
+#  |       |-auxtools  Auxiliary tools, readline, jpeg-lib, etc. 
+#  |       
 #  |---\mingw
 #  |---\msys\1.0\home\$USER
 #                       |---secondo

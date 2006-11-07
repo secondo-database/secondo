@@ -51,6 +51,7 @@ using namespace std;
 #include "Algebra.h"
 #include "NestedList.h"
 #include "NList.h"
+#include "LogMsg.h"
 #include "QueryProcessor.h"
 #include "ConstructorTemplates.h"
 
@@ -183,6 +184,7 @@ InXPoint( const ListExpr typeInfo, const ListExpr instance,
     }
   }
   correct = false;
+  cmsg.inFunError("Expecting a list of two integer atoms!");
   return SetWord(Address(0));
 }
 
@@ -476,14 +478,14 @@ RectRectBool( ListExpr args )
     
     if ((nl->AtomType(arg1) == SymbolType) &&
         (nl->AtomType(arg2) == SymbolType))
-      ErrorReporter::ReportError("Type mapping function got parameters of type "
+      cmsg.typeError("Type mapping function got parameters of type "
                                  +nl->SymbolValue(arg1)+" and "
                                  +nl->SymbolValue(arg2));
     else
-      ErrorReporter::ReportError("Type mapping functions got wrong "
+      cmsg.typeError("Type mapping functions got wrong "
                                  "types as parameters.");
   }
-  ErrorReporter::ReportError("Type mapping function got a "
+  cmsg.typeError("Type mapping function got a "
                              "parameter of length != 2.");
   
   return nl->TypeError(); 
@@ -494,7 +496,7 @@ insideTypeMap( ListExpr args )
 {
   if ( nl->ListLength(args) != 2 )
   {
-   ErrorReporter::ReportError("Type mapping function got a "
+   cmsg.typeError("Type mapping function got a "
                                "parameter of length != 2.");
     return nl->TypeError();
   } 
@@ -512,13 +514,13 @@ insideTypeMap( ListExpr args )
   if ((nl->AtomType(arg1) == SymbolType) &&
       (nl->AtomType(arg2) == SymbolType))
   { 
-    ErrorReporter::ReportError("Type mapping function got parameters of type "
+    cmsg.typeError("Type mapping function got parameters of type "
                                +nl->SymbolValue(arg1)+" and "
                                +nl->SymbolValue(arg2));
   }  
   else
   { 
-    ErrorReporter::ReportError("Type mapping function got wrong "
+    cmsg.typeError("Type mapping function got wrong "
                                "types as parameters.");
   }  
   return nl->TypeError();

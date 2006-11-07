@@ -63,7 +63,7 @@ endif
 endif
 
 ifeq ($(platform),mac_osx)
-PLLDFLAGS :=  -L/opt/local/lib -L$(PL_LIB_DIR) -l$(PL_LIB) $(SECONDO_SDK)/aux/lib/libreadline.a -lncurses -lm 
+PLLDFLAGS :=  -L/opt/local/lib -L$(PL_LIB_DIR) -l$(PL_LIB) $(SECONDO_SDK)/auxtools/lib/libreadline.a -lncurses -lm 
 endif
 
 # define directories for using jpl

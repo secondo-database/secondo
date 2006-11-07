@@ -184,15 +184,15 @@ endif
 
 
 $(tempdir)/linux-sdk.tar.gz: $(tnew)
-	rm -f $@
-	tar -C $(SECONDO_INST_KIT_ROOT) -cvzf $@ \
-	$(pref)/Linux-Installation-Guide.pdf $(pref)/installsdk $(pref)/linux $(pref)/scripts --exclude $(pref)/linux/j2sdk* 
+	 rm -f $@
+	 tar -C $(SECONDO_INST_KIT_ROOT) -cvzf $@ \
+	 $(pref)/Linux-Installation-Guide.pdf $(pref)/installsdk $(pref)/linux $(pref)/scripts --exclude $(pref)/linux/j2sdk* 
 
 $(tempdir)/win32-sdk.zip: $(tnew)
-	rm -f $@
-	cd $(SECONDO_INST_KIT_ROOT) && zip -9 -r $@ \
-	$(pref)/Windows-Installation-Guide.pdf $(pref)/MSYS-* $(pref)/installsdk \
-	$(pref)/win32/prolog $(pref)/win32/mingw $(pref)/win32/non-gnu $(pref)/win32/gnu $(pref)/scripts
+	 rm -f $@
+	 cd $(SECONDO_INST_KIT_ROOT) && zip -9 -r $@ \
+	 $(pref)/Windows-Installation-Guide.pdf $(pref)/MSYS-* $(pref)/installsdk \
+	 $(pref)/win32/prolog $(pref)/win32/mingw $(pref)/win32/non-gnu $(pref)/win32/gnu $(pref)/scripts
 
 # create a iso image with Rockridge and Joliet extensions 
 .PHONY: isoimage
@@ -279,6 +279,12 @@ src-archive: rmList mkLat1
 	
 .PHONY: src-archives
 src-archives: rmList mkLat1 mkcp1252
+
+.PHONY: cp-sources
+cp-sources:
+	cp $(LIN_SRC) $(net)
+	cp $(WIN_SRC) $(net)
+
 
 .PHONY: src-archive2
 src-archive2: 

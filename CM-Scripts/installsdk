@@ -528,12 +528,12 @@ assert mkdir -p $sdk
 
 # On windows we need to install unzip first
 if [ "$opt_platform" == "win32" ]; then
-  assert mkdir -p $sdk/aux/bin
-  export PATH="$sdk/aux/bin:$sdk/aux/lib:/c/mingw/bin:$PATH"
+  assert mkdir -p $sdk/auxtools/bin
+  export PATH="$sdk/auxtools/bin:$sdk/auxtools/lib:/c/mingw/bin:$PATH"
 
-  if [ ! -e $sdk/aux/bin/unzip.exe ]; then
+  if [ ! -e $sdk/auxtools/bin/unzip.exe ]; then
     printSep "Installing unzip ..."
-    assert cd $sdk/aux/bin
+    assert cd $sdk/auxtools/bin
     checkCmd "$platformdir/non-gnu/unzip/unz550xN.exe" 
     checkCmd "unzip -q -o $platformdir/non-gnu/unzip/zip23xN.zip"
   fi
@@ -644,10 +644,10 @@ if [ "$opt_platform" == "win32" ]; then
 
   printSep "Installation of Tools from the gnuwin32 project ..."
   assert cd $sdk
-  for dir in "aux flex bison"; do
+  for dir in "auxtools flex bison"; do
     assert mkdir $dir
   done 
-  assert cd aux
+  assert cd auxtools
   uncompressPackage "GNU Tools"                  "dir"   $platformdir/gnu
   uncompressPackage "JPEG-Library"               "files" $platformdir/non-gnu/jpeg-*
   uncompressPackage "CVS console client"         "file"  $platformdir/non-gnu/cvs-*
@@ -690,7 +690,7 @@ ldFlags=""
 binPaths=""
 libPaths=""
 incPaths=""
-for dir in gcc aux bison flex; do
+for dir in gcc auxtools bison flex; do
   cFlags=$cFlags"-I$sdk/$dir/include "
   ldFlags=$ldFlags"-L$sdk/$dir/lib "
   binPaths=$binPaths"$sdk/$dir/bin:"
@@ -737,11 +737,11 @@ configureFlags="CFLAGS=\"$cFlags\" LDFLAGS=\"$ldFlags\""
 
 printSep "Compiling auxiliary packages ..."
 
-installPackage "Lib curses"   aux $platformdir/gnu/ncurses-*     $temp/ncurses-*  "all install"
-installPackage "Lib readline" aux $platformdir/gnu/readline-*    $temp/readline-* "all install" --with-curses
-installPackage "Lib jpeg"     aux $platformdir/non-gnu/jpeg*     $temp/jpeg*      "all install install-lib" 
+installPackage "Lib curses"   auxtools $platformdir/gnu/ncurses-*     $temp/ncurses-*  "all install"
+installPackage "Lib readline" auxtools $platformdir/gnu/readline-*    $temp/readline-* "all install" --with-curses
+installPackage "Lib jpeg"     auxtools $platformdir/non-gnu/jpeg*     $temp/jpeg*      "all install install-lib" 
 if [ "$opt_platform" == "mac_osx" ]; then
- installPackage "Findutils" aux $platformdir/gnu/findutils-* $temp/findutils-* "all install"
+ installPackage "Findutils" auxtools $platformdir/gnu/findutils-* $temp/findutils-* "all install"
 fi 
 
 installPackage "Bison, a parser generator" bison $platformdir/gnu/bison-*   $temp/bison-* install
