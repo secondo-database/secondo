@@ -203,10 +203,10 @@ void UReal::TranslateParab( const double& dx, const double& dy)
     { // a == 0
       if (!AlmostEqual(b, 0.0) )
         { // a linear function
-          // translate by (dy) only
+          // translate by dx and dy
           a = 0.0;
           // b = b;
-          c = c + dy;          
+          c = c + dy - dx * b;          
         }
       else
         { // a constant function
