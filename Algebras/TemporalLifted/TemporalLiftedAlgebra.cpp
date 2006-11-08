@@ -741,35 +741,49 @@ void DistanceUPoint( const UPoint& p1, const UPoint& p2, UReal&
 {
   if(TLA_DEBUG)
       cout<< "DistanceUPoint() called" << endl;
-  result.timeInterval = iv;
   
   Point rp0, rp1, rp2, rp3;
-  double x0, x1, x2, x3, y0, y1, y2, y3, dx1, dy1, dx2, dy2, dt;
+  double x0, x1, x2, x3, y0, y1, y2, y3, dx1, dy1, dx2, dy2;
+  DateTime DT = iv.end - iv.start;
+  double dt = DT.ToDouble();
   
   p1.TemporalFunction(iv.start, rp0);
-  p1.TemporalFunction(iv.end, rp1);
+  p1.TemporalFunction(iv.end,   rp1);
   p2.TemporalFunction(iv.start, rp2);
-  p2.TemporalFunction(iv.end, rp3);
-  
-  dt = iv.end.ToDouble() - iv.start.ToDouble();
+  p2.TemporalFunction(iv.end,   rp3);
   x0 = rp0.GetX(); y0 = rp0.GetY();
   x1 = rp1.GetX(); y1 = rp1.GetY();
   x2 = rp2.GetX(); y2 = rp2.GetY();
   x3 = rp3.GetX(); y3 = rp3.GetY();
-  dx1 = (x1 - x0) / dt;
-  dy1 = (y1 - y0) / dt;
-  dx2 = (x3 - x2) / dt;
-  dy2 = (y3 - y2) / dt;
-
-  result.a = pow( (dx1 - dx2), 2 ) + pow( (dy1 - dy2), 2 );
-  result.b = 2 * ( (x0 - x2) * (dx1 - dx2) + (y0 - y2) * (dy1 - dy2) );
-  result.c = pow( x0 - x2, 2 ) + pow( y0 - y2, 2 );
-  result.r = true;
-  // translate the function by dt
-  result.TranslateParab(dt, 0.0);
+  
+  if (AlmostEqual(dt, 0.0))
+    { // the timeinterval is a single instant only
+      result.timeInterval = iv;
+      result.a = 0.0;
+      result.b = 0.0;
+      result.c = pow(x0-x2,2) + pow(y0-y2,2);
+      result.r = true;
+      result.SetDefined(true);
+    }
+  else
+    {
+      dx1 = (x1 - x0) / dt;
+      dy1 = (y1 - y0) / dt;
+      dx2 = (x3 - x2) / dt;
+      dy2 = (y3 - y2) / dt;
+      
+      result.timeInterval = iv;
+      result.a = pow( (dx1 - dx2), 2 ) + pow( (dy1 - dy2), 2 );
+      result.b = 2 * ( (x0 - x2) * (dx1 - dx2) + (y0 - y2) * (dy1 - dy2) );
+      result.c = pow( x0 - x2, 2 ) + pow( y0 - y2, 2 );
+      result.r = true;
+      result.SetDefined(true);
+    }
+  // Translate the result to the left
+  // result.TranslateParab(-(iv.start.ToDouble()), 0.0);
   if(TLA_DEBUG){
     cout<<" ends with: "<<"a "<<result.a<<", b "<<result.b<<", c "
-    <<result.c<<", r "<<result.r<<endl;}
+        <<result.c<<", r "<<result.r<<endl;}
 }
 
 /*
@@ -816,7 +830,7 @@ void DistanceMPoint( MPoint& p1, MPoint& p2, MReal& result)
       result.MergeAdd( uReal );
     }
   }
-  result.EndBulkLoad( false );
+  result.EndBulkLoad();
 }
 
 /*
@@ -1198,7 +1212,7 @@ static void CompareUReal(UReal u1, UReal u2, UBool& uBool, int op)
 /*
 1.1 Method ~ShiftUReal~
 
-Transforms a MReal to newstart. Result of local definition of MReals.
+Transforms a UReal to newstart. Result of local definition of MReals.
 
 */
 static void ShiftUReal(UReal& op, Instant newstart)
