@@ -1499,14 +1499,16 @@ public boolean equals(Object o){
 
 
 public boolean equals(ListExpr LE, double epsilon, boolean isAbsolute){
-    if(LE==null)
+    if(LE==null){
       return false;
+    }
 
     if(!equalValues(LE,epsilon,isAbsolute)){ // check type and value of the first element
        return false;
     }
-    if(atomType()!=NO_ATOM)
+    if(atomType()!=NO_ATOM){
        return true;
+    }
 
 #ifdef PERSISTENT
     long TNkey = getNext();
@@ -1536,7 +1538,7 @@ public boolean equals(ListExpr LE, double epsilon, boolean isAbsolute){
          if(!TN.equalValues(LEN,epsilon,isAbsolute)){ // differences found
              return false;
          }
-         if(type==NO_ATOM){
+         if(TN.type==NO_ATOM){
             TN = TN.next;
             LEN=LEN.next;
          } else{
@@ -1544,8 +1546,9 @@ public boolean equals(ListExpr LE, double epsilon, boolean isAbsolute){
             LEN=null;
          }
     }
-    if(TN!=null || LEN!=null) // different lengths
+    if(TN!=null || LEN!=null){ // different lengths
        return false;
+    }
     return true;
 #endif
 }
@@ -1631,14 +1634,15 @@ private boolean equalValues(ListExpr LE,double epsilon, boolean isAbsolute){
        return S1.equals(S2);
     }
 
-    if(value==null && LE.value==null)
+    if(value==null && LE.value==null){
        return true;
+    }
     else{ // both value members are not null
        if(type!=REAL_ATOM && type!=NO_ATOM){
            boolean res = value.equals(LE.value);
            return res;
        }else if(type==NO_ATOM){
-          return ((ListExpr)value).equals((ListExpr)value,epsilon,isAbsolute);
+          return ((ListExpr)value).equals((ListExpr)LE.value,epsilon,isAbsolute);
 
        } else{
            return similar(realValue(),LE.realValue(),epsilon, isAbsolute);
