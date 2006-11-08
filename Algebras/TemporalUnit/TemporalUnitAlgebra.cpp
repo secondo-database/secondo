@@ -134,10 +134,10 @@ n/a -       ureal x   ureal --> (stream ubool)
 n/a -      upoint x   point --> (stream ubool)
 n/a -       point x  upoint --> (stream ubool)
 n/a -      upoint x  upoint --> (stream ubool)
-n/a -      upoint x uregion --> (stream ubool)
-n/a -     uregion x  upoint --> (stream ubool)
-n/a -      upoint x    line --> (stream ubool)
-n/a -        line x  upoint --> (stream ubool)
+n/a -      upoint x uregion --> (stream ubool) as inside
+n/a -     uregion x  upoint --> (stream ubool) as inside
+n/a -      upoint x    line --> (stream ubool) as inside
+n/a -        line x  upoint --> (stream ubool) as inside
 n/a -      upoint x  region --> (stream ubool)
 n/a -      region x  upoint --> (stream ubool)
 
@@ -152,7 +152,7 @@ n/a + mdirection:    upoint --> ureal
 
 OK  + no_components:     uT --> uint
 
-n/a + area: uregion --> ureal
+n/a + area: uregion --> ureal             see TemporalLiftedAlgebra
 
 n/a + and, or: ubool x ubool --> (stream ubool)
 n/a +           bool x ubool --> (stream ubool)
@@ -2729,6 +2729,7 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
   UReal *uinput;
   CcReal *value;
   Word a0, a1;
+  double tx, t0, A, B, C;
   
 
   switch (message)
@@ -2768,12 +2769,13 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
         }
       if(TUA_DEBUG) cout << "  4" << endl;
 
-      y = value->GetRealval();
-      a = uinput->a;
-      b = uinput->b;
-      c = uinput->c;
-      r = uinput->r;
+      y  = value->GetRealval();
+      a  = uinput->a;
+      b  = uinput->b;
+      c  = uinput->c;
+      r  = uinput->r;
       deftime = uinput->timeInterval;
+      t0 = deftime.start.ToDouble();
 
       if(TUA_DEBUG) 
         {cout << "    The UReal is" << " a= " << a << " b= " 
@@ -2816,7 +2818,7 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
         { // linear function. Possibly return input unit restricted 
           // to single value
           if(TUA_DEBUG) cout << "  11: 1st arg is a linear function" << endl;
-          double T1 = (y - c)/b;
+          double T1 = (y - c + b*t0)/b;
           if(TUA_DEBUG) 
             {
               cout << "    T1=" << T1 << endl;    
@@ -2833,6 +2835,11 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
               ((UReal*)(localinfo
                         ->runits[localinfo->NoOfResults].addr))
                 ->timeInterval = Interval<Instant>(t1, t1, true, true);
+              // translate result to new starting instant!
+              tx =  deftime.start.ToDouble() - T1;
+              ((UReal*)(localinfo
+                        ->runits[localinfo->NoOfResults].addr))
+                ->TranslateParab(tx, 0.0);
               localinfo->NoOfResults++;
               localinfo->finished = false;                
               if(TUA_DEBUG) cout << "  13" << endl;
@@ -2852,7 +2859,10 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
         }
       
       if(TUA_DEBUG) cout << "  17" << endl;
-      radicand = (b*b + 4*a*(y-c));
+      A = a;
+      B = b - 2*a*t0;
+      C = t0*(a*t0-b)+c;
+      radicand = pow(B,2) + 4*a*(y-C); 
       if(TUA_DEBUG) cout << "    radicand =" << radicand << endl;
       if ( (a != 0) && (radicand >= 0) )
         { // quadratic function. There are possibly two result units
@@ -2865,8 +2875,8 @@ The solution to the equation $at^2 + bt + c = y$ is
 
 */
           if(TUA_DEBUG) cout << "  18: 1st arg is a quadratic function" << endl;
-          double T1 = (-b + sqrt(radicand)) / (2*a);
-          double T2 = (-b - sqrt(radicand)) / (2*a);
+          double T1 = (-B + sqrt(radicand)) / (2*A);
+          double T2 = (-B - sqrt(radicand)) / (2*A);
           if(TUA_DEBUG) 
             {
               cout << "    T1=" << T1 << endl;
@@ -2890,6 +2900,11 @@ The solution to the equation $at^2 + bt + c = y$ is
                 new UReal( rdeftime,a,b,c,r );
               ((UReal*) (localinfo->runits[localinfo->NoOfResults].addr))
                 ->SetDefined( true );
+              // translate result to new starting instant!
+              tx = deftime.start.ToDouble() - T1;
+              ((UReal*)(localinfo
+                        ->runits[localinfo->NoOfResults].addr))
+                ->TranslateParab(tx, 0.0);
               localinfo->NoOfResults++;
               localinfo->finished = false;
               if(TUA_DEBUG) cout << "  20" << endl;
@@ -2907,6 +2922,11 @@ The solution to the equation $at^2 + bt + c = y$ is
                 new UReal( rdeftime,a,b,c,r );
               ((UReal*) (localinfo->runits[localinfo->NoOfResults].addr))
                 ->SetDefined (true );
+              // translate result to new starting instant!
+              tx =  deftime.start.ToDouble() - T2;
+              ((UReal*)(localinfo
+                        ->runits[localinfo->NoOfResults].addr))
+                ->TranslateParab(tx, 0.0);
               localinfo->NoOfResults++;
               localinfo->finished = false;
               if(TUA_DEBUG) cout << "  22" << endl;
@@ -3127,9 +3147,10 @@ int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
               *res += hs;         
             }      
         }
-      res->EndBulkLoad(true);
-      res->SetPartnerNo();
-      res->ComputeRegion();
+      res->EndBulkLoad();
+      //res->EndBulkLoad(true);
+      //res->SetPartnerNo();
+      //res->ComputeRegion();
     }
   return 0;
 }
@@ -5402,7 +5423,7 @@ void UPointDistance( const UPoint& p1, const UPoint& p2,
 
   DateTime DT = iv.end - iv.start;
   double   dt = DT.ToDouble();
-  double   t0 = iv.start.ToDouble();
+  //double   t0 = iv.start.ToDouble();
   x10 = rp10.GetX(); y10 = rp10.GetY();
   x11 = rp11.GetX(); y11 = rp11.GetY();
   x20 = rp20.GetX(); y20 = rp20.GetY();
@@ -5435,6 +5456,17 @@ void UPointDistance( const UPoint& p1, const UPoint& p2,
   double b2 = dy12 * (dy1-dy2);
 
   result.a = a1;
+  result.b = 2*(b1+b2)/dt;
+  result.c = pow(dx12,2) + pow(dy12,2);
+  result.r = true;
+
+/*
+For using the original ureal representation (without translation), 
+use the following code instead:
+
+----
+
+  result.a = a1;
   result.b = -2*(  (t0*a1) 
                  - ( b1 + b2 )/dt 
                );
@@ -5442,6 +5474,12 @@ void UPointDistance( const UPoint& p1, const UPoint& p2,
              - 2*t0*(b1 + b2)/dt
              + pow(dx12,2) + pow(dy12,2);
   result.r = true;
+
+----
+
+*/
+
+
 }
 
 
@@ -5581,7 +5619,7 @@ int TUDistance_UInt_UInt( Word* args, Word& result, int message,
       u1->timeInterval.Intersection( u2->timeInterval, iv );  
       
       // calculate  result
-      
+      // (as the result is constant, no translation step is required)
       c1 = (double) u2->constValue.GetIntval();
       c2 = (double) u2->constValue.GetIntval();
       c = fabs(c1 - c2);
@@ -5641,7 +5679,7 @@ int TUDistance_UInt_Int( Word* args, Word& result, int message,
     }
   else
     { // calculate  result
-      
+      // (as the result is constant, no translation step is required)
       c1 = (double) u->constValue.GetIntval();
       c2 = (double) i->GetIntval();
       c = fabs(c1 - c2);
@@ -5816,7 +5854,7 @@ int atmaxUReal( Word* args, Word& result, int message,
   UReal                *ureal;
   double  t_start, t_end, t_extr; // instants of interest
   double  v_start, v_end, v_extr; // values at resp. instants
-  double  a, b, c, r;
+  double  a, b, c, r, tx;
   int     maxValIndex;
   Instant t = DateTime(instanttype);
   Word    a0;
@@ -5876,6 +5914,7 @@ int atmaxUReal( Word* args, Word& result, int message,
               if(TUA_DEBUG) 
                 cout << "  4.1: constant function" << endl;
               sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
+              // no translation needed for constant ureal!
               if(TUA_DEBUG) 
                 cout << "       res " << sli->NoOfResults+1 << "=" 
                      << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
@@ -5895,6 +5934,7 @@ int atmaxUReal( Word* args, Word& result, int message,
               sli->t_res[sli->NoOfResults]->timeInterval.end =
                 sli->t_res[sli->NoOfResults]->timeInterval.start;
               sli->t_res[sli->NoOfResults]->timeInterval.rc = true;
+              // no translation needed, since remaining starting instant
               if(TUA_DEBUG) 
                 cout << "       res " << sli->NoOfResults+1 << "=" 
                      << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
@@ -5914,6 +5954,10 @@ int atmaxUReal( Word* args, Word& result, int message,
               sli->t_res[sli->NoOfResults]->timeInterval.start =
                 sli->t_res[sli->NoOfResults]->timeInterval.end;
               sli->t_res[sli->NoOfResults]->timeInterval.lc = true;            
+              // translate result to new starting instant!
+              tx = ureal->timeInterval.start.ToDouble() -
+                   ureal->timeInterval.end.ToDouble();
+              (sli->t_res[sli->NoOfResults])->TranslateParab(tx, 0.0);
               if(TUA_DEBUG) 
                 cout << "       res " << sli->NoOfResults+1 << "=" 
                      << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
@@ -5977,6 +6021,7 @@ int atmaxUReal( Word* args, Word& result, int message,
               t = ureal->timeInterval.start;
               Interval<Instant> i( t, t, true, true );
               sli->t_res[sli->NoOfResults]->timeInterval = i;
+              // no translation required
               if(TUA_DEBUG) 
                 cout << "       res " << sli->NoOfResults+1 << "=" 
                      << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
@@ -5990,6 +6035,9 @@ int atmaxUReal( Word* args, Word& result, int message,
               t = ureal->timeInterval.end;
               Interval<Instant> i( t, t, true, true );
               sli->t_res[sli->NoOfResults]->timeInterval = i;
+              // translate result to new starting instant!
+              tx = ureal->timeInterval.start.ToDouble() - t.ToDouble();
+              (sli->t_res[sli->NoOfResults])->TranslateParab(tx, 0.0);
               if(TUA_DEBUG) 
                 cout << "       res " << sli->NoOfResults+1 << "=" 
                      << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
@@ -6006,6 +6054,9 @@ int atmaxUReal( Word* args, Word& result, int message,
               t.ReadFrom(t_extr);
               Interval<Instant> i( t, t, true, true );
               sli->t_res[sli->NoOfResults]->timeInterval = i;
+              // translate result to new starting instant!
+              tx = ureal->timeInterval.start.ToDouble() - t_extr;
+              (sli->t_res[sli->NoOfResults])->TranslateParab(tx, 0.0);
               if(TUA_DEBUG) 
                 cout << "       res " << sli->NoOfResults+1 << "=" 
                      << TUPrintUReal(sli->t_res[sli->NoOfResults]) 
@@ -6204,7 +6255,7 @@ int atminUReal( Word* args, Word& result, int message,
   UReal                *ureal;
   double  t_start, t_end, t_extr; // instants of interest
   double  v_start, v_end, v_extr; // values at resp. instants
-  double  a, b, c, r;
+  double  a, b, c, r, tx;
   int     minValIndex;
   Instant t = DateTime(instanttype);
   Word    a0;
@@ -6239,6 +6290,7 @@ int atminUReal( Word* args, Word& result, int message,
         { // ureal contains only a single point.
           // -> return a copy of the ureal        
           sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
+          // no translation required
           if(TUA_DEBUG) 
             cout << "       single point" << endl
                  << "       res " << sli->NoOfResults+1 << "=" 
@@ -6254,6 +6306,7 @@ int atminUReal( Word* args, Word& result, int message,
             { //  constant function
               // the only result is a copy of the argument ureal
               sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
+              // no translation required
               if(TUA_DEBUG) 
                 cout << "       constant function" << endl
                      << "       res " << sli->NoOfResults+1 << "=" 
@@ -6270,6 +6323,10 @@ int atminUReal( Word* args, Word& result, int message,
               sli->t_res[sli->NoOfResults]->timeInterval.end =
                 sli->t_res[sli->NoOfResults]->timeInterval.start;
               sli->t_res[sli->NoOfResults]->timeInterval.lc = true;
+              // translate result to new starting instant!
+              tx = ureal->timeInterval.start.ToDouble() -
+                   ureal->timeInterval.end.ToDouble();
+              (sli->t_res[sli->NoOfResults])->TranslateParab(tx, 0.0);
               if(TUA_DEBUG) 
                 cout << "       linear function: final" << endl
                      << "       res " << sli->NoOfResults+1 << "=" 
@@ -6286,6 +6343,7 @@ int atminUReal( Word* args, Word& result, int message,
               sli->t_res[sli->NoOfResults]->timeInterval.start =
                 sli->t_res[sli->NoOfResults]->timeInterval.end;
               sli->t_res[sli->NoOfResults]->timeInterval.rc = true;
+              // no translation required
               if(TUA_DEBUG) 
                 cout << "       linear function: initial" << endl
                      << "       res " << sli->NoOfResults+1 << "=" 
@@ -6338,6 +6396,7 @@ int atminUReal( Word* args, Word& result, int message,
               t = ureal->timeInterval.start;
               Interval<Instant> i( t, t, true, true );
               sli->t_res[sli->NoOfResults]->timeInterval = i;
+              // no translation required
               if(TUA_DEBUG) 
                 cout << "       added start" << endl
                      << "       res " << sli->NoOfResults+1 << "=" 
@@ -6351,6 +6410,10 @@ int atminUReal( Word* args, Word& result, int message,
               t = ureal->timeInterval.end;
               Interval<Instant> i( t, t, true, true );
               sli->t_res[sli->NoOfResults]->timeInterval = i;
+              // translate result to new starting instant!
+              tx = ureal->timeInterval.start.ToDouble() -
+                   ureal->timeInterval.end.ToDouble();
+              (sli->t_res[sli->NoOfResults])->TranslateParab(tx, 0.0);
               if(TUA_DEBUG) 
                 cout << "       added end" << endl
                      << "       res " << sli->NoOfResults+1 << "=" 
@@ -6366,6 +6429,9 @@ int atminUReal( Word* args, Word& result, int message,
               t.ReadFrom(t_extr);
               Interval<Instant> i( t, t, true, true );
               sli->t_res[sli->NoOfResults]->timeInterval = i;
+              // translate result to new starting instant!
+              tx = ureal->timeInterval.start.ToDouble() - t_extr;
+              (sli->t_res[sli->NoOfResults])->TranslateParab(tx, 0.0);
               if(TUA_DEBUG) 
                 cout << "       added extr" << endl
                      << "       res " << sli->NoOfResults+1 << "=" 
@@ -6930,24 +6996,24 @@ ListExpr TemporalUnitIntersectionTypeMap( ListExpr args )
                                 nl->SymbolAtom( "upoint" ));  
       
       // Sixth case: upoint uregion -> stream upoint
-      if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "uregion") )
-        return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                                nl->SymbolAtom( "upoint" ));  
+      //if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "uregion") )
+      //  return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+      //                          nl->SymbolAtom( "upoint" ));  
 
       // Eighth case: uregion upoint -> stream upoint
-      if( nl->IsEqual( arg1, "uregion" ) && nl->IsEqual( arg2, "upoint") )
-        return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                                nl->SymbolAtom( "upoint" ));  
+      //if( nl->IsEqual( arg1, "uregion" ) && nl->IsEqual( arg2, "upoint") )
+      //  return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+      //                          nl->SymbolAtom( "upoint" ));  
 
       // Ninth case: upoint region -> stream upoint
-      if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "region") )
-        return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                                nl->SymbolAtom( "upoint" ));  
+      //if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "region") )
+      //  return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+      //                          nl->SymbolAtom( "upoint" ));  
 
       // Tenth case: region upoint -> stream upoint
-      if( nl->IsEqual( arg1, "region" ) && nl->IsEqual( arg2, "upoint") )
-        return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                                nl->SymbolAtom( "upoint" ));  
+      //if( nl->IsEqual( arg1, "region" ) && nl->IsEqual( arg2, "upoint") )
+      //  return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+      //                          nl->SymbolAtom( "upoint" ));  
     }
   
   // Error case:
@@ -7234,7 +7300,7 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
                                          Word& local, Supplier s )
 {
   MappingUnitAt_rLocalInfo *localinfo;
-  double radicand, a, b, c, r, y;
+  double radicand, a, b, c, r, y, tx;
   DateTime t1 = DateTime(instanttype);
   DateTime t2 = DateTime(instanttype);
   Interval<Instant> rdeftime, deftime;
@@ -7324,6 +7390,7 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
                     }
                   localinfo->runits[localinfo->NoOfResults].addr
                     = uinput->Copy();
+                  // no translation required
                   localinfo->NoOfResults++;
                   localinfo->finished = false;
                   if(TUA_DEBUG) cout << "  9" << endl;
@@ -7356,6 +7423,10 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
               ((UReal*)(localinfo
                         ->runits[localinfo->NoOfResults].addr))
                 ->timeInterval = Interval<Instant>(t1, t1, true, true);
+              // translate result to new starting instant!
+              tx = uinput->timeInterval.start.ToDouble() - T1;
+              ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
+                ->TranslateParab(tx, 0.0);
               localinfo->NoOfResults++;
               localinfo->finished = false;                
               if(TUA_DEBUG) cout << "  13" << endl;
@@ -7414,6 +7485,10 @@ The solution to the equation $at^2 + bt + c = y$ is
                 new UReal( rdeftime,a,b,c,r );
               ((UReal*) (localinfo->runits[localinfo->NoOfResults].addr))
                 ->SetDefined( true );
+              // translate result to new starting instant!
+              tx = uinput->timeInterval.start.ToDouble() - T1;
+              ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
+                ->TranslateParab(tx, 0.0);
               localinfo->NoOfResults++;
               localinfo->finished = false;
               if(TUA_DEBUG) cout << "  20" << endl;
@@ -7431,6 +7506,10 @@ The solution to the equation $at^2 + bt + c = y$ is
                 new UReal( rdeftime,a,b,c,r );
               ((UReal*) (localinfo->runits[localinfo->NoOfResults].addr))
                 ->SetDefined (true );
+              // translate result to new starting instant!
+              tx = uinput->timeInterval.start.ToDouble() - T2;
+              ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
+                ->TranslateParab(tx, 0.0);
               localinfo->NoOfResults++;
               localinfo->finished = false;
               if(TUA_DEBUG) cout << "  22" << endl;
@@ -8510,101 +8589,9 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
                                              int message,
                                              Word& local, Supplier s )
 {
-  TUIntersectionLocalInfo *sli;
-  UPoint  *upoint, pResult;
-  URegion *uregion;
-  Interval<Instant> iv;
-  Word a0, a1;
-  
   cout << "\nATTENTION: temporalUnitIntersection_upoint_uregion "
        << "not yet implemented!" << endl;  
-  return 0;
-  
-  ////////////////////////////////////////////////////////////////////////
-  // Only a framework...
-  
-  switch( message )
-    {
-    case OPEN:
-      
-      sli = new TUIntersectionLocalInfo;
-      sli->finished = true;
-      sli->NoOfResults = 0;
-      sli->NoOfResultsDelivered = 0;
-      local = SetWord(sli);
 
-      // initialize arguments, such that a0 always contains the ureal
-      //                       and a1 the real 
-      if (uargindex == 0)
-        { a0 = args[0]; a1 = args[1]; }
-      else
-        { a0 = args[1]; a1 = args[0]; }
-      
-      upoint = (UPoint*)(a0.addr);
-      uregion = (URegion*)(a1.addr);
-      
-      // test for definedness and intersection of deftimes
-      if ( !upoint->IsDefined() ||
-           !uregion->IsDefined() ||
-           !upoint->timeInterval.Intersects( uregion->timeInterval ) )
-        return 0; // nothing to do
-      
-      // get common time interval
-      upoint->timeInterval.Intersection(uregion->timeInterval, iv);
-      
-      //////////////////////////////////////////////
-      // extend this section to implement creation 
-      // of result stream elements:
-      
-      if ( false )
-        {
-          pResult.SetDefined(true);
-          pResult.timeInterval.start.SetDefined(true);
-          pResult.timeInterval.end.SetDefined(true);
-          sli->resultValues[sli->NoOfResults] = SetWord( pResult.Clone() );
-          sli->NoOfResults++;     
-        }
-      
-      return 0;
-      
-      //////////////////////////////////////////////
-      // Nothing do do from here on:
-      
-    case REQUEST:
-      
-      if(local.addr == 0)
-        return CANCEL;
-      sli = (TUIntersectionLocalInfo*) local.addr;
-      if(sli->finished)
-        return CANCEL;
-      if(sli->NoOfResultsDelivered < sli->NoOfResults)
-        {
-          result = SetWord( ((UPoint*)
-            (sli->resultValues[sli->NoOfResultsDelivered].addr))->Clone() );
-          ((UPoint*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
-            ->DeleteIfAllowed();
-          sli->NoOfResultsDelivered++;
-          return YIELD;
-        }
-      sli->finished = true;
-      return CANCEL;
-      
-    case CLOSE:
-      
-      if (local.addr != 0)
-        {
-          sli = (TUIntersectionLocalInfo*) local.addr;
-          while(sli->NoOfResultsDelivered < sli->NoOfResults)
-            {
-              ((UPoint*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
-                ->DeleteIfAllowed();
-              sli->NoOfResultsDelivered++;
-            }
-          delete sli;
-        }
-      return 0;
-    } // end switch
-  
   return 0;
 }
 
@@ -8615,20 +8602,6 @@ int temporalUnitIntersection_upoint_region( Word* args, Word& result,
                                             int message,
                                             Word& local, Supplier s )
 {
-/*
-
-----
-
-  TUIntersectionLocalInfo *sli;
-  UPoint  *upoint, pResult;
-  Region  *region;
-  Interval<Instant> iv;
-  Word a0, a1;
-  
-----
-
-*/
-
   cout << "\nATTENTION: temporalUnitIntersection_upoint_region "
        << "not yet implemented!" << endl;  
 
