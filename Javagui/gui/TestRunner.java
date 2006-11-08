@@ -123,11 +123,22 @@ private void execute(){
      return;
    }
    boolean isTest = yieldState!=YIELD_UNKNOWN && state==TESTCASE;
+   if(!isTest){
+      String info = "not a proper test: ";
+      if(state!=TESTCASE){
+          info += " not a testcase ";
+      } else {
+          info += "yieldstate unknown ";
+      }
+      Reporter.writeInfo(info);
+   } 
    boolean success = (yieldState==YIELD_SUCCESS) || (yieldState==YIELD_RESULT);
+   Reporter.writeInfo("execute command "+cmd);
    boolean ok = cp.execUserCommand(cmd,isTest,success,
                                       tolerance,absoluteTolerance, 
                                       resultList);
-   
+   Reporter.writeInfo("command finished");
+  
    if(!ok){
       Reporter.writeError("command failed : " + cmd);
       if(isTest){
@@ -295,7 +306,10 @@ private boolean nextCommand(BufferedReader in){
                  resultList=null;
                  return false;
               }
-              // no known command 
+              // no known command
+              Reporter.writeError("Error in testrunner file\n"+
+                                  "yields got an unknown argument :\n " + restOfLine);
+              errors++; 
               yieldState=YIELD_UNKNOWN;
               resultList=null;
               return false;
