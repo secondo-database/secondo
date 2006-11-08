@@ -1,0 +1,282 @@
+#This file is part of SECONDO.
+#
+#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Database Systems for New Applications.
+#
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+#
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+# A test for the TemporalLiftedAlgebra
+# Novemver 2006
+# Run with : Go to directory $(SECONODO_BUILD_DIR)/bin and type
+# SecondoBDB -test -i $SECONDO_BUILD_DIR/Tests/Testspecs/temporalliftedalgebra/temporallifted.test
+# Number of testcases: 58
+# Duration: about 30 seconds (Microsoft Windows platform)
+
+# clean up what may be left over from e.g. a segfault
+delete database tmpliftedtest;
+
+#setup
+create database tmpliftedtest;
+open database tmpliftedtest;
+
+restore Trains from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/temporalliftedalgebra/Trains';
+restore mehringdamm from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/temporalliftedalgebra/mehringdamm';
+restore mrain from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/temporalliftedalgebra/mrain';
+restore msnow from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/temporalliftedalgebra/msnow';
+restore eight from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/temporalliftedalgebra/eight';
+restore zoogarten from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/temporalliftedalgebra/zoogarten';
+restore UBahn from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/temporalliftedalgebra/UBahn';
+let snow8 = val(msnow atinstant eight);
+let pts = [const points value((9396 9871)(16821 1252)(-3560 14235))];
+let mrg1 = [const movingregion value (((0.0 2.0 TRUE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(10.0 120.0 30.0 120.0)(10.0 110.0 30.0 90.0)(120.0 110.0 120.0 90.0)(120.0 0.0 120.0 0.0)))))((2.0 4.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(30.0 120.0 50.0 120.0)(30.0 90.0 50.0 70.0)(120.0 90.0 120.0 70.0)(120.0 0.0 120.0 0.0)))))((4.0 6.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(50.0 120.0 70.0 120.0)(50.0 70.0 70.0 50.0)(120.0 70.0 120.0 50.0)(120.0 0.0 120.0 0.0)))))((6.0 8.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(70.0 120.0 90.0 120.0)(70.0 50.0 90.0 30.0)(120.0 50.0 120.0 30.0)(120.0 0.0 120.0 0.0)))))((8.0 10.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(90.0 120.0 110.0 120.0)(90.0 30.0 110.0 10.0)(120.0 30.0 120.0 10.0)(120.0 0.0 120.0 0.0))))))];
+let mrg2 = [const movingregion value (((0.0 10.0 TRUE TRUE)((((150.0 0.0 150.0 0.0)(150.0 120.0 150.0 120.0)(160.0 120.0 260.0 120.0)(160.0 110.0 260.0 10.0)(270.0 110.0 270.0 10.0)(270.0 0.0 270.0 0.0))))))];
+let center2 = [const region value((((7500.0 9200.0)(7500.0 11500.0)(10700.0 11500.0)(10700.0 9200.0))))];
+
+#testcase isempty for mbool, mint, mstring, mreal, mpoint and mregion 1
+#yields (int 25)
+query Trains feed {t1} Trains feed {t2} product extend[Emp: isempty(.Trip_t2)] project [Id_t1, Id_t2, Emp] count;
+
+#testcase isempty for mbool, mint, mstring, mreal, mpoint and mregion 2
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product project [Id_t1, Id_t2] count;
+
+#testcase = and # for mbool/mbool, mint/mint and mstring/mstring 1
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] extend[Eq: .Empty1 = .Empty2] project [Id_t1, Id_t2, Empty1, Eq] count;
+
+#testcase = and # for mbool/mbool, mint/mint and mstring/mstring 2
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] project [Id_t1, Id_t2, Empty1, Empty2] count;
+
+#testcase = and # for mbool/bool, mint/int and mstring/string
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] extend[Eq: .Empty1 = TRUE] project [Id_t1, Id_t2, Empty1, Eq] count;
+
+#testcase = and # for mreal/mreal 1
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] extend[Eq: .Dist1 = .Dist2] project [Id_t1, Id_t2, Dist1, Dist2, Eq] count;
+
+#testcase = and # for mreal/mreal 2
+#yields (int 25)
+query Trains feed {t1} Trains feed {t2} product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] project [Id_t1, Id_t2, Dist1, Dist2] count;
+
+#testcase = and # for mreal/real
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] extend[Eq: .Dist1 = 1000.0] project [Id_t1, Id_t2, Dist1, Dist2, Eq] count;
+
+#testcase = and # for mpoint/mpoint 1
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Meet: .Trip_t1 = .Trip_t2] project [Id_t1, Id_t2, Meet] count;
+
+#testcase = and # for mpoint/mpoint 2
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product project [Id_t1, Id_t2] count;
+
+#testcase = and # for mpoint/point
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Meet: mehringdamm = .Trip_t2] project [Id_t1, Id_t2, Meet] count;
+
+#testcase = and # for mregion/mregion 1
+#yields (int 5)
+query Trains feed head[5] extend[Eq: msnow = mrain] project [Id, Eq] count;
+
+#testcase = and # for mregion/mregion 2
+#yields (int 5)
+query Trains feed head[5] extend[Eq: TRUE] project [Id, Eq] count;
+
+#testcase = and # for mregion/region 1
+#yields (int 5)
+query Trains feed head[5] extend[Eq: msnow = zoogarten] project [Id, Eq] count;
+
+#testcase = and # for mregion/region 2
+#yields (int 5)
+query Trains feed head[5] extend[Eq: msnow = snow8] project [Id, Eq] count;
+
+#testcase inside for mregion/points and mregion/line 1
+#yields (int 25)
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Ins: mrain inside .geoData_u2] project [Id_t1, Name_u2, Ins] count;
+
+#testcase inside for mregion/points and mregion/line 2
+#yields (int 25)
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product project [Id_t1, Name_u2] count;
+
+#testcase inside for mpoint/points 1
+#yields (int 25)
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Ins: .Trip_t1 inside pts] project[Id_t1, Name_u2, Ins] count;
+
+#testcase inside for mpoint/points 2
+#yields (int 25)
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product project[Id_t1, Name_u2] count;
+
+#testcase inside for mpoint/line
+#yields (int 25)
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Ins: .Trip_t1 inside .geoData_u2] project[Id_t1, Name_u2, Ins] count;
+
+#testcase intersection for mbool/mbool, mint/mint and mstring/mstring 1
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] extend[Inter: intersection(.Empty1, .Empty2)] project [Id_t1, Id_t2, Empty1, Inter] count;
+
+#testcase intersection for mbool/mbool, mint/mint and mstring/mstring 2
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] project [Id_t1, Id_t2, Empty1, Empty2] count;
+
+#testcase intersection for mbool/bool, mint/int and mstring/string
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] extend[Inter: intersection(.Empty1, TRUE)] project [Id_t1, Id_t2, Empty1, Inter] count;
+
+#testcase intersection for mreal/mreal 1
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] extend[Inter: intersection(.Dist1, .Dist2)] project [Id_t1, Id_t2, Dist1, Dist2, Inter] count;
+
+#testcase intersection for mreal/mreal 2
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] project [Id_t1, Id_t2, Dist1, Dist2] count;
+
+#testcase intersection for mreal/real
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] extend[Inter: intersection(.Dist1, 1000.0)] project [Id_t1, Id_t2, Dist1, Dist2, Inter] count;
+
+#testcase intersection mpoint/points
+#yields (int 25)
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Inter: intersection(.Trip_t1, pts)] project[Id_t1, Name_u2, Inter] count;
+
+#testcase intersection mpoint/points
+#yields (int 25)
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product project[Id_t1, Name_u2] count;
+
+#testcase inersection for mpoint/line
+#yields (int 25)
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Inter: intersection(.Trip_t1, .geoData_u2)] project[Id_t1, Name_u2, Inter] count;
+
+#testcase minus for mbool/mbool, mint/mint and mstring/mstring 1
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] extend[Minus: .Empty1 minus .Empty2] project [Id_t1, Id_t2, Empty1, Minus] count;
+
+#testcase minus for mbool/mbool, mint/mint and mstring/mstring 2
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] project [Id_t1, Id_t2, Empty1, Empty2] count;
+
+#testcase minus for mbool/bool, mint/int and mstring/string
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] extend[Minus: .Empty1 minus TRUE] project [Id_t1, Id_t2, Empty1, Minus] count;
+
+#testcase minus for mreal/mreal 1
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] extend[Minus: .Dist1 minus .Dist2] project [Id_t1, Id_t2, Dist1, Dist2, Minus] count;
+
+#testcase minus for mreal/mreal 2
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] project [Id_t1, Id_t2, Dist1, Dist2] count;
+
+#testcase minus for mreal/real
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] extend[Minus: .Dist1 minus 1000.0] project [Id_t1, Id_t2, Dist1, Dist2, Minus] count;
+
+#testcase minus for mpoint/mpoint 1
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Minus: .Trip_t1 minus .Trip_t2] project [Id_t1, Id_t2, Minus] count;
+
+#testcase minus for mpoint/mpoint 2
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product project [Id_t1, Id_t2] count;
+
+#testcase minus for mpoint/point
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Minus: .Trip_t1 minus mehringdamm] project [Id_t1, Id_t2, Minus] count;
+
+#testcase minus for point/mpoint
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Minus: mehringdamm minus .Trip_t1 ] project [Id_t1, Id_t2, Minus] count;
+
+#testcase rough_center 1 
+#yields (int 25)
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[rc: rough_center(msnow)] project[Id_t1, Name_u2, rc] count;
+
+#testcase rough_center 2
+#yields (int 25)
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product project[Id_t1, Name_u2] count;
+
+#testcase rough_center 3
+#tolerance_real 0.0001
+#yields (line((48.76146788990825 51.97247706422019 51.97247706422019 48.76146788990825)(48.76146788990825 51.97247706422019 49.61538461538461 56.53846153846154)(49.61538461538461 56.53846153846154 55.45112781954887 59.58646616541353)(51.97247706422019 48.76146788990825 56.53846153846154 49.61538461538461)(56.53846153846154 49.61538461538461 59.58646616541353 55.45112781954887)))
+query trajectory(rough_center(mrg1));
+
+#testcase rough_center 4
+#yields (line((205.4511278195489 59.58646616541353 209.5864661654135 55.45112781954887)))
+query trajectory(rough_center(mrg2));
+
+#testcase rough_center 5
+#yields (mpoint((("2000-01-03" "2000-01-05" TRUE TRUE)(59.58646616541353 55.45112781954887 56.53846153846154 49.61538461538461))(("2000-01-05" "2000-01-07" FALSE TRUE)(56.53846153846154 49.61538461538461 51.97247706422019 48.76146788990825))(("2000-01-07" "2000-01-09" FALSE TRUE)(51.97247706422019 48.76146788990825 48.76146788990825 51.97247706422019))(("2000-01-09" "2000-01-11" FALSE TRUE)(48.76146788990825 51.97247706422019 49.61538461538461 56.53846153846154))(("2000-01-11" "2000-01-13" FALSE TRUE)(49.61538461538461 56.53846153846154 55.45112781954887 59.58646616541353))))
+query rough_center(mrg1);
+
+#testcase rough_center 6
+#yields (mpoint((("2000-01-03" "2000-01-13" TRUE TRUE)(209.5864661654135 55.45112781954887 205.4511278195489 59.58646616541353))))
+query rough_center(mrg2);
+
+#testcase no_components for mregion
+#yields (int 25)
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[nc: no_components(msnow)] project[Id_t1, Name_u2, nc] count;
+
+#testcase perimeter for mregion
+#yields (int 25)
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[peri: perimeter(msnow)] project[Id_t1, Name_u2, peri] count;
+
+#testcase area for mregion
+#yields (int 25)
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Area: area(msnow)] project[Id_t1, Name_u2, Area] count;
+
+#testcase distance for mreal/mreal 1
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] extend[Dist: distance (.Dist1, .Dist2)] project [Id_t1, Id_t2, Dist1, Dist2, Dist] count;
+
+#testcase distance for mreal/mreal 2
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] project [Id_t1, Id_t2, Dist1, Dist2] count;
+
+#testcaset distance for mreal/real
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist1: distance (.Trip_t1, mehringdamm)] extend[Dist2: distance(.Trip_t2, mehringdamm)] extend[Dist: distance(.Dist1, 1000.0)] project [Id_t1, Id_t2, Dist1, Dist2, Dist] count;
+
+#testcase distance for mpoint/mpoint
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Dist: distance (.Trip_t1, .Trip_t2)] project [Id_t1, Id_t2, Dist] count;
+
+#testcase and and or for mbool/mbool 1
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] extend[Or: .Empty1 or .Empty2] project [Id_t1, Id_t2, Empty1, Or] count;
+
+#testcase and and or for mbool/mbool 2
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] project [Id_t1, Id_t2, Empty1, Empty2] count;
+
+#testcase and and or for mbool/bool
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: isempty(.Trip_t2)] extend[Or: .Empty1 or TRUE] project [Id_t1, Id_t2, Empty1, Or] count;
+
+#testcase not for mbool
+#yields (int 25)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Empty1: isempty (.Trip_t1)] extend[Empty2: not(isempty(.Trip_t2))] project [Id_t1, Id_t2, Empty1, Empty2] count;
+
+#testcase other operators
+#yields (mint((("begin of time" "2003-11-20-06:09:27.783" TRUE FALSE)0)(("2003-11-20-06:09:27.783" "2003-11-20-06:16:27.783" TRUE FALSE)1)(("2003-11-20-06:16:27.783" "2003-11-20-06:17:14.902" TRUE TRUE)2)(("2003-11-20-06:17:14.902" "2003-11-20-06:23:27.783" FALSE FALSE)1)(("2003-11-20-06:23:27.783" "2003-11-20-06:24:14.902" TRUE TRUE)2)(("2003-11-20-06:24:14.902" "2003-11-20-06:30:27.783" FALSE FALSE)1)(("2003-11-20-06:30:27.783" "2003-11-20-06:31:14.902" TRUE TRUE) 2)(("2003-11-20-06:31:14.902" "2003-11-20-06:37:27.783" FALSE FALSE)1)(("2003-11-20-06:37:27.783" "2003-11-20-06:38:14.902" TRUE TRUE)2)(("2003-11-20-06:38:14.902" "2003-11-20-06:45:14.902" FALSE TRUE)1)(("2003-11-20-06:45:14.902" "end of time" FALSE TRUE)0)))
+query Trains feed head[5] extend[AtCenter: .Trip at center2] filter[not(isempty(deftime(.AtCenter)))] extend[Time: periods2mint(deftime(.AtCenter))] aggregate[Time; fun(m1: mint, m2: mint) m1 + m2; zero()];
+
+#testcase concat for mpoint/mpoint
+#yields (int 0)
+query Trains feed {t1} head[5] Trains feed {t2} head[5] product filter[ val(final(.Trip_t1)) = val(initial(.Trip_t2))] extend[Umsteig: .Trip_t1  .Trip_t2 concat] filter[not(isempty(deftime(.Umsteig)))] project [Id_t1, Id_t2, Umsteig] count;
+
+#teardown
+close database;
+delete database tmpliftedtest
