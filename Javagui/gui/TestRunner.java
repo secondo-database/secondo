@@ -261,9 +261,14 @@ private boolean nextCommand(BufferedReader in){
                  restOfLine = restOfLine.substring(1);
                  Reporter.writeInfo("expect result in file "+restOfLine);
                  restOfLine = expandVar(restOfLine);
+                 
                  resultList = ListExpr.getListExprFromFile(restOfLine);
+                 
                  if(resultList==null){
+                     errors++; // file not found is an error
                      Reporter.writeError("cannot read ListExpr from file " + restOfLine);
+                 }else {
+                     Reporter.writeInfo("expected result is load from file "+restOfLine);
                  }
                  yieldState=YIELD_RESULT;
                  return false;

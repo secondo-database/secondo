@@ -801,8 +801,11 @@ public class CommandPanel extends JScrollPane {
                if(expectedResult!=null){
                    Reporter.writeInfo("compare expected result with actual result");
                    boolean res = resultList.equals(expectedResult,epsilon,isAbsolute);
+                   
                    if(!res){
                       Reporter.writeError("failed comparison");   
+                   }else {
+                      Reporter.writeInfo("the resultlist is equal to the expected result");
                    }
                    return res;
                } else{
