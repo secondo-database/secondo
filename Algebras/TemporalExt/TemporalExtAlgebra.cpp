@@ -4649,276 +4649,231 @@ ValueMapping temporalatmaxextmap[] = {
 
 */
 const string TemporalSpecAtInstantExt  =
-    "( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>T in {int, bool, real, string, point, region},</text--->"
-    "<text>moving(T) x instant  -> intime(T)</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>T in {int, bool, real, string, point, region},\n"
+    "mT x instant  -> iT</text--->"
     "<text>_ atinstant _ </text--->"
     "<text>get the Intime value corresponding to the instant.</text--->"
     "<text>mpoint1 atinstant instant1</text--->"
     ") )";
 
 const string TemporalSpecAtPeriodsExt  =
-    "( ( \"Algebra\" \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>T in {int, bool, real, string, point, region*},</text--->"
-    "<text>moving(T) x periods -> moving(T)</text--->"
-    "<text>(*) Not yet implemented for this type constructor.</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>T in {int, bool, real, string, point, region*},\n"
+    "mT x periods -> mT\n"
+    "(*) Not yet implemented for this type constructor.</text--->"
     "<text>_ atperiods _ </text--->"
     "<text>restrict the movement to the given periods.</text--->"
     "<text>mpoint1 atperiods periods1</text--->"
     ") )";
 
 const string TemporalSpecInitialExt  =
-    "( ( \"Algebra\" \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>T in {int, bool, real, string, point, region*},</text--->"
-    "<text>(*) Not yet implemented for this type constructor.</text--->"
-    "<text>moving(T) -> intime(T)</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>T in {int, bool, real, string, point, region*},\n"
+    "(*) Not yet implemented for this type constructor.\n"
+    "mT -> iT</text--->"
     "<text> initial( _ )</text--->"
     "<text>Get intime value corresponding to the initial instant.</text--->"
     "<text>initial( mpoint1 )</text--->"
     ") )";
 
 const string TemporalSpecFinalExt  =
-    "( ( \"Algebra\" \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>T in {int, bool, real, string, point, region*},</text--->"
-    "<text>(*) Not yet implemented for this type constructor.</text--->"
-    "<text>moving(T) -> intime(T)</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>T in {int, bool, real, string, point, region*},\n"
+    "(*) Not yet implemented for this type constructor.\n"
+    "mT -> iT</text--->"
     "<text> final( _ )</text--->"
     "<text>get the intime value corresponding to the final instant.</text--->"
     "<text>final( mpoint1 )</text--->"
     ") )";
 
 const string TemporalSpecPresentExt  =
-    "( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" \" \""
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>moving(string) x instant -> bool,</text--->"
-    "<text>moving(string) x periods -> bool</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mstring x instant -> bool,\n"
+    "mstring x periods -> bool</text--->"
     "<text>_ present _ </text--->"
-    "<text>whether the object is present at the given instant</text--->"
-    "<text>or period.</text--->"
+    "<text>whether the object is present at the given instant "
+    "or period.</text--->"
     "<text>ms1 present instant1</text--->"
     ") )";
 
 const string TemporalSpecAtExt =
-    "( ( \"Algebra\" \"Signature\" \" \" \" \" \" \" \" \""
-    "\" \" \" \" \" \" \" \" \"Syntax\" "
-    "\"Meaning\" \" \" \"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>T in {real, string},</text--->"
-    "<text>moving(T) x T -> moving(T);</text--->"
-    "<text>T in {int, bool, real, string},</text--->"
-    "<text>moving(T) x range(T) -> moving(T);</text--->"
-    "<text>T in {points, line},</text--->"
-    "<text>moving(point) x T -> moving(point)</text--->"
-    "<text>moving(region) x point -> moving(point)**</text--->"
-    "<text>(*) Not yet implemented for this type constructor.</text--->"
-    "<text>(**) Operator signature is not implemented yet.</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>T in {real, string},\n"
+    "moving(T) x T -> moving(T);\n"
+    "T in {int, bool, real, string},\n"
+    "moving(T) x range(T) -> moving(T);\n"
+    "T in {points, line},\n"
+    "mpoint x T -> mpoint\n"
+    "movingregion x point -> mpoint**\n"
+    "(*) Not yet implemented for this type constructor.\n"
+    "(**) Operator signature is not implemented yet.</text--->"
     "<text> _ at _ </text--->"
-    "<text>restrict the movement at the times where the equality </text--->"
-    "<text>occurs.</text--->"
+    "<text>restrict the movement at the times where the equality "
+    "occurs.</text--->"
     "<text>mpoint1 at point1</text--->"
     ") )";
 
 const string TemporalSpecPassesExt =
-    "( ( \"Algebra\" \"Signature\" \" \" \" \" \" \""
-    "\" \" \" \" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>T in {int, bool, real, string},</text--->"
-    "<text>moving(T) x T -> bool;</text--->"
-    "<text>T in {points, line},</text--->"
-    "<text>moving(point) x T -> bool</text--->"
-    "<text>T in {point, points},</text--->"
-    "<text>moving(region) x T -> bool</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>T in {int, bool, real, string},\n"
+    "mT x T -> bool;\n"
+    "T in {points, line},\n"
+    "mpoint x T -> bool\n"
+    "T in {point, points},\n"
+    "movingregion x T -> bool</text--->"
     "<text>_ passes _ </text--->"
     "<text>whether the object passes the given value.</text--->"
     "<text>mpoint1 passes point1</text--->"
     ") )";
 
-const string TemporalSpecDefTimeExt  =
-    "( ( \"Algebra\" \"Signature\" \" \" \" \" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>T in {int, bool, real, string, point, region*},</text--->"
-    "<text>moving(T) -> periods</text--->"
-    "<text>(*) Not yet implemented for this type constructor.</text--->"
-    "<text> deftime( _ )</text--->"
-    "<text>get the defined time of the corresponding moving </text--->"
-    "<text>data objects.</text--->"
-    "<text>deftime( mp1 )</text--->"
-    ") )";
-
 const string TemporalSpecInstExt  =
-    "( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>T in {int, bool, real, string, point, region},</text--->"
-    "<text>intime(T) -> instant</text--->"
-    "<text>inst ( _ )</text--->"
-    "<text>Intime time instant.</text--->"
-    "<text>inst ( i1 )</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>T in {int, bool, real, string, point, region},\n"
+    "iT -> instant </text--->"
+    "<text>inst( _ ) </text--->"
+    "<text>Extract time instant from an intime value. </text--->"
+    "<text>inst( i1 )</text--->"
     ") )";
 
 const string TemporalSpecValExt  =
-    "( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>T in {int, bool, real, string, point, region},</text--->"
-    "<text>intime(T) -> T</text--->"
-    "<text>val ( _ )</text--->"
-    "<text>Intime value.</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>T in {int, bool, real, string, point, region},\n"
+    "iT -> T</text--->"
+    "<text>val( _ )</text--->"
+    "<text>Extract value from an intime value.</text--->"
     "<text>val ( i1 )</text--->"
     ") )";
 
+const string TemporalSpecDefTimeExt  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>T in {int, bool, real, string, point, region*},\n"
+    "mT -> periods\n"
+    "(*) Not yet implemented for this type constructor.</text--->"
+    "<text> deftime( _ )</text--->"
+    "<text>get the defined time intervals for the corresponding moving "
+    "data object as a periods value.</text--->"
+    "<text>deftime( mp1 )</text--->"
+    ") )";
+
 const string TemporalSpecDerivativeExt  =
-    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>moving(real) -> moving(real)</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mreal -> mreal</text--->"
     "<text>derivative_new ( _ )</text--->"
     "<text>Derivative of a mreal.</text--->"
     "<text>derivative_new ( mr1 )</text--->"
     ") )";
 
 const string TemporalSpecDerivableExt =
-    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>moving(mreal) -> moving(bool)</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mreal -> mbool</text--->"
     "<text>derivable_new ( _ )</text--->"
     "<text>Checking if mreal is derivable.</text--->"
     "<text>derivable_new ( mr1 )</text--->"
     ") )";
 
 const string TemporalSpecSpeedExt  =
-    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>moving(point) -> moving(real)</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint -> mreal</text--->"
     "<text>speed_new ( _ )</text--->"
-    "<text>Velocity of a mpoint given as mreal.</text--->"
+    "<text>Return scalar Velocity of a mpoint as a mreal.</text--->"
     "<text>speed_new ( mp1 )</text--->"
     ") )";
 
 const string RangeSpecRangevaluesExt  =
-    "( ( \"Algebra\" \"Signature\" \" \" \"Syntax\" \"Meaning\" \" \" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>T in {int, bool, real, string},</text--->"
-    "<text>moving(T) -> range(T)</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>T in {int, bool, real, string},\n"
+    "mT -> rT</text--->"
     "<text>rangevalues ( _ )</text--->"
-    "<text>Returns all the values assumed by the argument over time,</text--->"
-    "<text>as a set of intervals.</text--->"
+    "<text>Returns the smallest interval, that contains all "
+    "values assumed by the argument within its definition time "
+    "as a range value.</text--->"
     "<text>rangevalues ( mb1 )</text--->"
     ") )";
 
 const string BoolSpecSometimesExt  =
-    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>moving(bool) -> bool</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mbool -> bool</text--->"
     "<text>sometimes ( _ )</text--->"
-    "<text>Returns true if a unit at least is TRUE.</text--->"
+    "<text>Returns true if a unit at least once assumes value 'TRUE'.</text--->"
     "<text>sometimes ( mb1 )</text--->"
     ") )";
 
 const string BoolSpecAlwaysExt  =
-    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>moving(bool) -> bool</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mbool -> bool</text--->"
     "<text>always ( _ )</text--->"
-    "<text>Returns true if all units are TRUE.</text--->"
+    "<text>Returns 'true' iff the moving bool does not assume value 'FALSE' "
+    "within its definition time.</text--->"
     "<text>always ( mb1 )</text--->"
     ") )";
 
 const string BoolSpecNeverExt  =
-    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>moving(bool) -> bool</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>moving(bool) -> bool</text--->"
     "<text>never ( _ )</text--->"
-    "<text>Returns true if all units are FALSE.</text--->"
+    "<text>Returns 'true' iff the moving bool does not "
+    "assume value 'TRUE' within its definition time.</text--->"
     "<text>never ( mb1 )</text--->"
     ") )";
 
 const string TemporalSpecVelocityExt  =
-    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>moving(point) -> moving(point)</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint -> mpoint</text--->"
     "<text>velocity_new ( _ )</text--->"
-    "<text>Velocity of a mpoint given as mpoint(a vector function).</text--->"
+    "<text>Return the component-wise velocity vector of a mpoint as "
+    "a mpoint.</text--->"
     "<text>velocity_new ( mp1 )</text--->"
     ") )";
 
 const string GlobalSpecUnitOfTimeExt  =
-    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>real -> real</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>real -> real</text--->"
     "<text>setunitoftime ( _ )</text--->"
     "<text>Set factor for unit of time: ms * real.</text--->"
     "<text>setunitoftime ( 0.001 )</text--->"
     ") )";
 
 const string GlobalSpecUnitOfDistanceExt  =
-    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>real -> real</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>real -> real</text--->"
     "<text>setunitofdistance ( _ )</text--->"
     "<text>Set factor for unit of distance: m * real.</text--->"
-    "<text>setunitofdistance ( 1000. )</text--->"
+    "<text>setunitofdistance ( 1000.0 )</text--->"
     ") )";
 
 const string TemporalSpecMDirectionExt  =
-    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>mpoint -> mreal</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint -> mreal</text--->"
     "<text>mdirection ( _ )</text--->"
     "<text>Compute the angle between X-axis and the mpoints tangent.</text--->"
     "<text>mdirection ( mp1 )</text--->"
     ") )";
 
 const string TemporalSpecLocationsExt  =
-    "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>mpoint -> points</text--->"
-    "<text>locations ( _ )</text--->"
-    "<text>Get projection of immobile and isolated mpoints.</text--->"
-    "<text>locations ( mp1 )</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint -> points</text--->"
+    "<text>locations( _ )</text--->"
+    "<text>Project a mpoint onto its immobile and isolated points. "
+    "Return the result as a points value.</text--->"
+    "<text>locations( mp1 )</text--->"
     ") )";
 
 const string TemporalSpecAtminExt  =
-    "( ( \"Algebra\" \"Signature\" \"\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>T in {int, bool, real, string},</text--->"
-    "<text>moving(T) -> moving(T)</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>T in {int, bool, real, string},\n"
+    "mT -> mT</text--->"
     "<text>atmin ( _ )</text--->"
     "<text>Get moving(T) restricted to the least value.</text--->"
     "<text>atmin ( mi1 )</text--->"
     ") )";
 
 const string TemporalSpecAtmaxExt  =
-    "( ( \"Algebra\" \"Signature\" \"\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>TemporalExtAlgebra</text--->"
-    "<text>T in {int, bool, real, string},</text--->"
-    "<text>moving(T) -> moving(T)</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>T in {int, bool, real, string},\n"
+    "mT -> mT</text--->"
     "<text>atmax ( _ )</text--->"
-    "<text>Get moving(T) restricted to the largest value.</text--->"
+    "<text>Get moving object restricted to its largest value.</text--->"
     "<text>atmax ( mi1 )</text--->"
     ") )";
 

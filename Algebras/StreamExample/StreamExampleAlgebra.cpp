@@ -449,9 +449,8 @@ operator and also for one calling a parameter function.
 */
 
 const string intstreamSpec  = 
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>StreamExampleAlgebra</text--->"
-  "<text>(int int) -> (stream int)</text--->"
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(int int) -> (stream int)</text--->"
   "<text>intstream ( _ , _ )</text--->"
   "<text>Creates a stream of integers containing the numbers "
   "between the first and the second argument.</text--->"
@@ -459,27 +458,24 @@ const string intstreamSpec  =
   ") )";
 
 const string countSpec  = 
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>StreamExampleAlgebra</text--->"
-  "<text>((stream int)) -> int</text--->"
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>((stream int)) -> int</text--->"
   "<text>_ count</text--->"
   "<text>Counts the number of elements of an int stream.</text--->"
   "<text>query intstream (1,10) count</text--->"
   ") )";
 
 const string printintstreamSpec  = 
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>StreamExampleAlgebra</text--->"
-  "<text>((stream int)) -> (stream int)</text--->"
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>((stream int)) -> (stream int)</text--->"
   "<text>_ printintstream</text--->"
   "<text>Prints the elements of an integer stream.</text--->"
   "<text>query intstream (1,10) printintstream count</text--->"
   ") )";
 
 const string filterSpec  = 
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>StreamExampleAlgebra</text--->"
-  "<text>((stream int) (map int bool)) -> (stream int)</text--->"
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>((stream int) (map int bool)) -> (stream int)</text--->"
   "<text>_ filter [ fun ]</text--->"
   "<text>Filters the elements of an int stream by a predicate.</text--->"
   "<text>query intstream (1,10) filter[. > 7] printintstream count</text--->"
