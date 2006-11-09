@@ -747,10 +747,10 @@ void DistanceUPoint( const UPoint& p1, const UPoint& p2, UReal&
   DateTime DT = iv.end - iv.start;
   double dt = DT.ToDouble();
   
-  p1.TemporalFunction(iv.start, rp0);
-  p1.TemporalFunction(iv.end,   rp1);
-  p2.TemporalFunction(iv.start, rp2);
-  p2.TemporalFunction(iv.end,   rp3);
+  p1.TemporalFunction(iv.start, rp0, true);
+  p1.TemporalFunction(iv.end,   rp1, true);
+  p2.TemporalFunction(iv.start, rp2, true);
+  p2.TemporalFunction(iv.end,   rp3, true);
   x0 = rp0.GetX(); y0 = rp0.GetY();
   x1 = rp1.GetX(); y1 = rp1.GetY();
   x2 = rp2.GetX(); y2 = rp2.GetY();
@@ -779,8 +779,6 @@ void DistanceUPoint( const UPoint& p1, const UPoint& p2, UReal&
       result.r = true;
       result.SetDefined(true);
     }
-  // Translate the result to the left
-  // result.TranslateParab(-(iv.start.ToDouble()), 0.0);
   if(TLA_DEBUG){
     cout<<" ends with: "<<"a "<<result.a<<", b "<<result.b<<", c "
         <<result.c<<", r "<<result.r<<endl;}
@@ -1185,8 +1183,8 @@ static void CompareUReal(UReal u1, UReal u2, UBool& uBool, int op)
     mid = (tmp + uBool.timeInterval.end).ToDouble()/2.0;
     middle.ReadFrom(mid);
     middle.SetType(instanttype);
-    u1.TemporalFunction(middle,value1);     
-    u2.TemporalFunction(middle,value2);   
+    u1.TemporalFunction(middle,value1,true);     
+    u2.TemporalFunction(middle,value2,true);   
     if(TLA_DEBUG)
       cout<<value1.GetRealval()<<" =?= "<<value2.GetRealval()<<endl;  
     if (AlmostEqual(value1.GetRealval(), value2.GetRealval())) {
@@ -1615,7 +1613,7 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
             un.timeInterval.rc = true;
             CcReal value;
             
-            un.TemporalFunction(t[m], value);
+            un.TemporalFunction(t[m], value, true);
             un.a = 0.0;
             un.b = 0.0;
             un.c = value.GetRealval();
@@ -1928,7 +1926,7 @@ static void MPointInsideLine(MPoint& mp, Line& ln, Periods& pResult)
             cout<<"up outside line"<<endl;
           continue;
         }
-        up->TemporalFunction(t, pt);
+        up->TemporalFunction(t, pt, true);
         if(  pt.GetX() < l->GetLeftPoint().GetX() || 
              pt.GetX() > l->GetRightPoint().GetX()
          || (pt.GetY() < l->GetLeftPoint().GetY() && 
@@ -1969,7 +1967,7 @@ static void MPointInsideLine(MPoint& mp, Line& ln, Periods& pResult)
               cout<<"up outside line"<<endl;
             continue;
           }
-          up->TemporalFunction(t, pt);
+          up->TemporalFunction(t, pt, true);
           if(  pt.GetX() < l->GetLeftPoint().GetX() ||  
                pt.GetX() > l->GetRightPoint().GetX()
            || (pt.GetY() < l->GetLeftPoint().GetY() && 
@@ -2115,7 +2113,7 @@ static void MPointInsideLine(MPoint& mp, Line& ln, Periods& pResult)
             cout<<"up outside line"<<endl;
           continue;
         }
-        up->TemporalFunction(t, pt);
+        up->TemporalFunction(t, pt, true);
         if(  pt.GetX() < l->GetLeftPoint().GetX() ||  
              pt.GetX() > l->GetRightPoint().GetX()
          || (pt.GetY() < l->GetLeftPoint().GetY() && 
@@ -2264,10 +2262,10 @@ void MovingPointCompareMM( MPoint& p1, MPoint& p2, MBool& result,
   
     Point rp0, rp1, rp2, rp3;
   
-    u1->TemporalFunction(iv->start, rp0);
-    u1->TemporalFunction(iv->end, rp1);
-    u2->TemporalFunction(iv->start, rp2);
-    u2->TemporalFunction(iv->end, rp3);
+    u1->TemporalFunction(iv->start, rp0, true);
+    u1->TemporalFunction(iv->end, rp1, true);
+    u2->TemporalFunction(iv->start, rp2, true);
+    u2->TemporalFunction(iv->end, rp3, true);
     
     double t = MPointInMPoint(rp0.GetX(), rp0.GetY(), rp1.GetX(), rp1.GetY(),
                               rp2.GetX(), rp2.GetY(), rp3.GetX(), rp3.GetY());
@@ -2648,7 +2646,7 @@ void MovingRegionCompareMS( MRegion *mr, Region *r, MBool *result,
         if(TLA_DEBUG)
           cout<<"add interval # "<<i<<endl;
         pResult->Get(i, per);
-        ur->TemporalFunction(mr->GetMSegmentData(), per->start, snapshot);
+        ur->TemporalFunction(mr->GetMSegmentData(), per->start, snapshot, true);
         if(*r == snapshot){
           if(TLA_DEBUG)
             cout<<"r == snapshot!"<<endl;
@@ -2847,16 +2845,16 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
       time.ReadFrom(0.1  * (iv->end.ToDouble() - iv->start.ToDouble()) 
                          + iv->start.ToDouble());
       time.SetType(instanttype);
-      ureg1->TemporalFunction(mr1->GetMSegmentData(), time, snapshot1);
-      ureg2->TemporalFunction(mr2->GetMSegmentData(), time, snapshot2);
+      ureg1->TemporalFunction(mr1->GetMSegmentData(), time, snapshot1, true);
+      ureg2->TemporalFunction(mr2->GetMSegmentData(), time, snapshot2, true);
       if(snapshot1 == snapshot2){
         if(TLA_DEBUG)
           cout<<"snapshots of iv->start are equal"<<endl;
         time.ReadFrom(0.1  * (iv->end.ToDouble() - iv->start.ToDouble()) 
                            + iv->start.ToDouble());
         time.SetType(instanttype);
-        ureg1->TemporalFunction(mr1->GetMSegmentData(), time, snapshot1);
-        ureg2->TemporalFunction(mr2->GetMSegmentData(), time, snapshot2);
+        ureg1->TemporalFunction(mr1->GetMSegmentData(), time, snapshot1, true);
+        ureg2->TemporalFunction(mr2->GetMSegmentData(), time, snapshot2, true);
         if(snapshot1 == snapshot2){
             
           uBool.timeInterval = *iv;
@@ -2897,8 +2895,8 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
         
         */
         continue;
-      ureg1->TemporalFunction(mr1->GetMSegmentData(), per->start, snapshot1);
-      ureg2->TemporalFunction(mr2->GetMSegmentData(), per->start, snapshot2);
+      ureg1->TemporalFunction(mr1->GetMSegmentData(),per->start,snapshot1,true);
+      ureg2->TemporalFunction(mr2->GetMSegmentData(),per->start,snapshot2,true);
       if(snapshot1 == snapshot2){
         if(TLA_DEBUG)
           cout<<"snapshot equal!"<<endl;
@@ -3876,7 +3874,7 @@ static void MRealABS(MReal& op, MReal& result)
       middle = (uReal.timeInterval.start.ToDouble() 
               + uReal.timeInterval.end.ToDouble()) / 2;
       mid.ReadFrom(middle);
-      uReal.TemporalFunction(mid,value);     
+      uReal.TemporalFunction(mid,value,true);     
       if (value.GetRealval() < 0.0){
         if(TLA_DEBUG)
           cout<<"flip unit"<<endl;
@@ -3899,7 +3897,7 @@ static void MRealABS(MReal& op, MReal& result)
         middle = (uReal.timeInterval.start.ToDouble() 
                 + uReal.timeInterval.end.ToDouble()) / 2;
         mid.ReadFrom(middle);
-        uReal.TemporalFunction(mid,value);     
+        uReal.TemporalFunction(mid,value,true);     
         if (value.GetRealval() < 0.0){
           if(TLA_DEBUG)
             cout<<"flip part unit"<<endl;
@@ -3933,7 +3931,7 @@ static void MRealABS(MReal& op, MReal& result)
         middle = (uReal.timeInterval.start.ToDouble() 
                + uReal.timeInterval.end.ToDouble()) / 2;
         mid.ReadFrom(middle);
-        uReal.TemporalFunction(mid,value);     
+        uReal.TemporalFunction(mid,value,true);     
         if (value.GetRealval() < 0.0){
           if(TLA_DEBUG)
             cout<<"flip part of unit"<<endl;
