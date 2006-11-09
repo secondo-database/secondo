@@ -279,4 +279,4 @@ query Trains feed {t1} head[5] Trains feed {t2} head[5] product filter[ val(fina
 
 #teardown
 close database;
-delete database tmpliftedtest
+delete database tmpliftedtest;
