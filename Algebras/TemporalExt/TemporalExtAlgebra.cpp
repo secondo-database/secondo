@@ -614,7 +614,7 @@ void MPointExt::Locations( Points* result ) const
             }
         }
     }
-    result->EndBulkLoad( false );
+    result->EndBulkLoad( true );
 
 }
 
@@ -1681,7 +1681,7 @@ void MRegion::AtPeriods(Periods* per, MRegion* mregparam)
             }
         }
     }
-    if(0)
+    if(1)
     {
         for(unsigned int i=0;i<temp_intervals.size();i++)
         {
@@ -3806,6 +3806,7 @@ Steps for the first Unit
 
 */
             myValue.Set(true, !unitin->r);
+	    unitout.SetDefined(true);
             unitout.constValue.CopyFrom(&myValue);
 
             if(m->GetNoComponents()==1)
@@ -3901,22 +3902,26 @@ int MovingSpeedExt(
     {
         m->Get(i, unitin);
         distance = (unitin->p0.Distance(unitin->p1)) * FactorForUnitOfDistance;
-        t = ((unitin->timeInterval.end).GetAllMilliSeconds() -
-                (unitin->timeInterval.start).GetAllMilliSeconds())
-                * FactorForUnitOfTime;
-        speed = distance / t;
-        unitout.a = 0.;
-        unitout.b = 0.;
-        unitout.c = speed;
-        unitout.r = false;
-        unitout.timeInterval = unitin->timeInterval;
-        pResult->Add(unitout);
+	t = (((unitin->timeInterval.end) - 
+	      (unitin->timeInterval.start)).ToDouble()) * FactorForUnitOfTime;
+
+        if (t != 0.0) 
+	{
+          speed = distance / t;
+          unitout.a = 0.0;
+          unitout.b = 0.0;
+          unitout.c = speed;
+          unitout.r = false;
+          unitout.timeInterval = unitin->timeInterval;
+	  unitout.SetDefined(true);
+          pResult->Add(unitout);
+	}
     }
 
     cout << endl << endl;
     cout << "Unit of speed: " << FactorForUnitOfDistance;
     cout << " * m / " << FactorForUnitOfTime;
-    cout << " * ms" << endl << endl;
+    cout << " * day" << endl << endl;
     pResult->EndBulkLoad( false );
 
     return 0;
@@ -4343,8 +4348,8 @@ int MovingVelocityExt(
         m->Get(i, unitin);
         dx = unitin->p1.GetX()-unitin->p0.GetX();
         dy = unitin->p1.GetY()-unitin->p0.GetY();
-        dt = ((unitin->timeInterval.end).GetAllMilliSeconds() -
-                (unitin->timeInterval.start).GetAllMilliSeconds()) *
+        dt = ((unitin->timeInterval.end).ToDouble() -
+                (unitin->timeInterval.start).ToDouble()) *
                 FactorForUnitOfTime;
         unitout = new UPoint(
             unitin->timeInterval,
