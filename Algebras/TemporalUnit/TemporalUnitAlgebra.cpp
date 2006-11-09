@@ -809,9 +809,8 @@ int UnitPointSpeed(Word* args,Word& result,int message,Word& local,Supplier s)
 
 const string
 TemporalSpecSpeed  =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>mpoint -> mreal\n"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>mpoint -> mreal\n"
 "upoint -> ureal</text--->"
 "<text>speed( _ )</text--->"
 "<text>return the speed of a temporal spatial object in "
@@ -931,9 +930,8 @@ int Queryrect2d(Word* args, Word& result, int message, Word& local, Supplier s)
 
 const string
 TemporalSpecQueryrect2d  =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>(instant) -> rect</text--->"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>(instant) -> rect</text--->"
 "<text>queryrect2d( _ )</text--->"
 "<text>Translate an instant object to a rect object to query the against "
 "a periods object translated to a point using operator 'point2d'. The "
@@ -1035,9 +1033,8 @@ int Point2d( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 const string
 TemporalSpecPoint2d  =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>(periods) -> point</text--->"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>(periods) -> point</text--->"
 "<text>point2d( _ )</text--->"
 "<text>Translate a periods value to a point value representing "
 "the period's total deftime interval. The empty periods value "
@@ -1126,9 +1123,8 @@ int Size( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 const string
 TemporalSpecSize  =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>(periods) -> real</text--->"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>(periods) -> real</text--->"
 "<text>size( _ )</text--->"
 "<text>Return the duration in seconds spanned by a periods value "
 "as a real value.</text--->"
@@ -1382,9 +1378,8 @@ by now. Instead, ~undef~ values are substituted by ~empty~ mappings.
 */
 const string
 TemporalSpecMakemvalue  =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>For T in {bool, int, string, real, point, region}:"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>For T in {bool, int, string, real, point, region}:"
 "((stream (tuple ((x1 t1)...(xn tn)))"
 " (uT)))-> mT</text--->"
 "<text>_ makemvalue[ _ ]</text--->"
@@ -1532,9 +1527,8 @@ int UnitPointTrajectory(Word* args, Word& result, int message,
 */
 const string
 TemporalSpecTrajectory  =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>upoint -> line</text--->"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>upoint -> line</text--->"
 "<text>trajectory( _ )</text--->"
 "<text>get the trajectory of the corresponding"
 "unit point object. Static or undef upoint objects "
@@ -1614,9 +1608,8 @@ int MappingUnitDefTime( Word* args, Word& result, int message,
 */
 const string
 TemporalSpecDefTime  =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>uT -> periods \n"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>uT -> periods \n"
 "(for T in {bool, int, real, string, point, region})</text--->"
 "<text>deftime( _ )</text--->"
 "<text>get the definition time for the "
@@ -1722,9 +1715,8 @@ int MappingUnitAtInstant( Word* args, Word& result, int message,
 */
 const string
 TemporalSpecAtInstant  =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>(uT instant) -> iT\n"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>(uT instant) -> iT\n"
 "(T in {bool, int, real, string, point, region})</text--->"
 "<text>_ atinstant _ </text--->"
 "<text>From a unit type, get the Intime value corresponding to "
@@ -2110,9 +2102,8 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
 */
 const string
 TemporalSpecAtPeriods  =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\") "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>For T in {int, bool, real, string, point, region}:\n"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\") "
+"( <text>For T in {int, bool, real, string, point, region}:\n"
 "(uT periods) -> stream uT\n"
 "((stream uT) periods) -> stream uT</text--->"
 "<text>_ atperiods _ </text--->"
@@ -2239,9 +2230,8 @@ int MappingUnitFinal( Word* args, Word& result, int message,
 */
 const string
 TemporalSpecInitial  =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>uT -> iT\n"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>uT -> iT\n"
 "(T in {bool, int, real, string, point, region})</text--->"
 "<text>initial( _ )</text--->"
 "<text>From a unit type, get the intime value corresponding "
@@ -2250,9 +2240,8 @@ TemporalSpecInitial  =
 
 const string
 TemporalSpecFinal  =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>uT -> iT\n"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>uT -> iT\n"
 "(T in {bool, int, real, string, point, region})</text--->"
 "<text>final( _ )</text--->"
 "<text>get the intime value corresponding "
@@ -2392,9 +2381,8 @@ int MappingUnitPresent_p( Word* args, Word& result, int message,
 */
 const string
 TemporalSpecPresent  =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>({m|u}T instant) -> bool\n"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>({m|u}T instant) -> bool\n"
 "({m|u}T periods) -> bool\n"
 "(T in {bool, int, real, string, point, region)</text--->"
 "<text>_ present _ </text--->"
@@ -2554,9 +2542,8 @@ int MappingUnitPasses( Word* args, Word& result, int message,
 */
 const string
 TemporalSpecPasses =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>(uT T) -> bool\n"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>(uT T) -> bool\n"
 "for T in {bool, int, real*, string, point, region*}\n"
 "(*): Not yet implemented</text--->"
 "<text>_ passes _ </text--->"
@@ -3005,9 +2992,8 @@ The solution to the equation $at^2 + bt + c = y$ is
 */
 const string
 TemporalSpecAt =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>For T in {bool, int, string, point, region*}:\n"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>For T in {bool, int, string, point, region*}:\n"
 "(uT    T   ) -> uT\n"
 "(ureal real) -> (stream ureal)\n"
 "(*): Not yet implemented</text--->"
@@ -3084,11 +3070,11 @@ int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
   double valueX, valueY;
   double angle;
   int partnerno = 0;
+  HalfSegment hs;
 
-  res->Clear();
-
+  res->Clear();                // clear the result region
   if (!p->IsDefined() || !r->IsDefined() || !narg->IsDefined() )
-    {
+    { // Nothing to do
       res->SetDefined( false );
     }
   else
@@ -3100,57 +3086,46 @@ int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
       radius = r->GetRealval();
       
       res->StartBulkLoad();
-      
-      // Definition of an empty region:
-      Region rg(0);
-      HalfSegment hs;
-      
-      
-      if (( p->IsDefined())&&(n>3)&&(n<100)&&(radius >0.0))
+      if ((n>3)&&(n<101)&&(radius >0.0))
         {
           
-          //  Determination of a n polygon.
-          //  Division of 360 degree in n parts with the help of
-          //  a standardised circle and the circumference. U = 2 * PI
+          //  Calculate a polygon with (n) vertices and (n) edges.
+          //  To get the vertices, divide 360 degree in n parts using  
+          //  a standardised circle around p with circumference U = 2 * PI * r.
           
           for( int i = 0; i < n; i++ )
             {
-              angle = i * 2 * PI/n;
+              // The first point/vertex of the segment
+              angle = i * 2 * PI/n; // angle to starting vertex
+              valueX = x + radius * cos(angle);
+              valueY = y + radius * sin(angle);                            
+              Point v1(true, valueX ,valueY);
+
+              // The second point/vertex of the segment
+              if ((i+1) >= n)            // angle to end vertex
+                angle = 0 * 2 * PI/n;    // for inner vertex
+              else
+                angle = (i+1) * 2 * PI/n;// for ending = starting vertex
               valueX = x + radius * cos(angle);
               valueY = y + radius * sin(angle);
+              Point v2(true, valueX ,valueY);
               
-              //  The first point of the segment of a region.
-              //  The x-value can be defined with the cosine and
-              //  the y-value with the sine.
-              
-              Point edge1(true, valueX ,valueY);
-              
-              hs.attr.faceno = 0;
-              hs.attr.cycleno = 0;
+              // Create a halfsegment for this segment
+              hs.Set(true, v1, v2);
+              hs.attr.faceno = 0;         // only one face
+              hs.attr.cycleno = 0;        // only one cycle
               hs.attr.edgeno = partnerno;
               hs.attr.partnerno = partnerno++;
+              hs.attr.insideAbove = (hs.GetLeftPoint() == v1); 
               
-              if ((i+1) >= n)
-                angle = 0 * 2 * PI/n;
-              else
-                angle = (i+1) * 2 * PI/n;
-              
-              valueX = x + radius * cos(angle);
-              valueY = y + radius * sin(angle);
-              // The second point of the segment of a region.
-              Point edge2(true, valueX ,valueY);
-              
-              // Definition of the halfsegments.
-              hs.Set(true, edge1, edge2);
+              // Add halfsegments 2 times with opposite LeftDomPoints
               *res += hs;
               hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
               *res += hs;         
             }      
         }
       res->EndBulkLoad();
-      //res->EndBulkLoad(true);
-      //res->SetPartnerNo();
-      //res->ComputeRegion();
+      res->SetDefined( true );
     }
   return 0;
 }
@@ -3161,12 +3136,14 @@ int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 const string
 TemporalSpecCircle =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>(point real int) -> region</text--->"
-"<text>circle ( _ ) </text--->"
-"<text>defines a circle with a given radius"
-" and n calculated points.</text--->"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>(point real int) -> region</text--->"
+"<text>circle ( p, r, n ) </text--->"
+"<text>Creates a region with a shape approximating a circle "
+"with a given radius r>0.0 and 3<n<101 calculated edges around "
+"a given center point p. "
+"Parameters out of the given perimeters result in an "
+"empty region, undef values in an undef one .</text--->"
 "<text>circle (p,10.0,10)</text---> ) )";
 
 /* 
@@ -3233,9 +3210,8 @@ int MakePoint( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 const string
 TemporalSpecMakePoint =
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>int x int -> point</text--->"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>int x int -> point</text--->"
 "<text>makepoint ( _ ) </text--->"
 "<text>create a point from two "
 "given coordinates.</text--->"
@@ -3329,9 +3305,8 @@ int UnitPointVelocity(Word* args, Word& result, int message,
 */
 const string
 TemporalSpecVelocity=
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>mpoint -> mpoint\n"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>mpoint -> mpoint\n"
 "upoint -> upoint</text--->"
 "<text>velocity ( _ ) </text--->"
 "<text>describes the vector of the speed "
@@ -3474,9 +3449,8 @@ int UnitPointDerivable( Word* args, Word& result, int message,
 */
 const string
 TemporalSpecDerivable=
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>mreal -> mbool\n"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>mreal -> mbool\n"
 "ureal -> ubool</text--->"
 "<text>derivable ( _ ) </text--->"
 "<text>Returns a moving/unit bool decribing the "
@@ -3624,9 +3598,8 @@ int UnitPointDerivative( Word* args, Word& result, int message,
 */
 const string
 TemporalSpecDerivative=
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>{m|u}real -> {m|u}real</text--->"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>{m|u}real -> {m|u}real</text--->"
 "<text>derivative ( _ ) </text--->"
 "<text>Determine the derivative"
 " of a mreal/ureal value.</text--->"
@@ -3731,9 +3704,8 @@ int MappingSFeed( Word* args, Word& result, int message,
 */
 const string
 TemporalSpecSfeed=
-"( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>TemporalUnitAlgebra</text--->"
-"<text>For T in kind DATA:\n"
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>For T in kind DATA:\n"
 "T -> (stream T)</text--->"
 "<text>sfeed ( _ ) </text--->"
 "<text>create a single-value stream from "
@@ -5030,9 +5002,8 @@ int Suse_SSS( Word* args, Word& result, int message,
 */
 const string
 TemporalSpecSuse=
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>TemporalUnitAlgebra</text--->"
-  "<text>For X in kind DATA or X = tuple(Z)*, Y in kind DATA:\n"
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>For X in kind DATA or X = tuple(Z)*, Y in kind DATA:\n"
   "(*: not yet implemented)\n"
   "((stream X) (map X Y)         ) -> (stream Y) \n"
   "((stream X) (map X (stream Y))) -> (stream Y)</text--->"
@@ -5048,9 +5019,8 @@ TemporalSpecSuse=
 
 const string
 TemporalSpecSuse2=
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>TemporalUnitAlgebra</text--->"
-  "<text>For X in kind DATA or X = tuple(W)*, Y,Z in kind DATA:\n"
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>For X in kind DATA or X = tuple(W)*, Y,Z in kind DATA:\n"
   "(*: not yet implemented)\n"
   "((stream X) Y          (map X Y Z)         ) -> (stream Z) \n"
   "((stream X) Y          (map X Y stream(Z)) ) -> (stream Z) \n"
@@ -5698,8 +5668,8 @@ int TUDistance_UInt_Int( Word* args, Word& result, int message,
 */
 
 const string TemporalSpecDistance = 
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>TemporalUnitAlgebra</text--->" 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(" 
   "<text>For T in {point, int}:\n"
   "(uT uT) -> ureal\n"
   "(uT  T) -> ureal\n"
@@ -6145,9 +6115,9 @@ int atmaxUConst( Word* args, Word& result, int message,
 */
 
 const string TemporalSpecAtmax = 
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "(<text>TemporalUnitAlgebra</text--->" 
+  "(" 
   "<text>For T in {int, bool, string}:\n"
   "uT    -> uT\n"
   "ureal -> (stream ureal)</text--->"
@@ -6499,9 +6469,9 @@ int atminUConst( Word* args, Word& result, int message,
 */
 
 const string TemporalSpecAtmin = 
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "(<text>TemporalUnitAlgebra</text--->" 
+  "(" 
   "<text>For T in {int, bool, string}:\n"
   "uT    -> uT\n"
   "ureal -> (stream ureal)</text--->"
@@ -6774,9 +6744,9 @@ int Saggregate( Word* args, Word& result, int message,
 */
 
 const string TemporalUnitSaggregateSpec = 
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "(<text>TemporalUnitAlgebra</text--->" 
+  "(" 
   "<text>For T in kind DATA:\n"
   "((stream T) ((T T) -> T) T ) -> T\n</text--->"
   "<text>_ saggregate [ fun ; _ ]</text--->"
@@ -8614,9 +8584,9 @@ int temporalUnitIntersection_upoint_region( Word* args, Word& result,
 */
 
 const string  TemporalUnitIntersectionSpec  =
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "(<text>TemporalUnitAlgebra</text--->" 
+  "(" 
   "<text>For T in {bool, int, real, string, point}:\n"
   "(uT uT) -> (stream uT)**\n"
   "(uT  T) -> (stream uT)\n"
@@ -8988,9 +8958,9 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
 
 */
 const string TemporalUnitTransformstreamSpec = 
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "(<text>TemporalUnitAlgebra</text--->" 
+  "(" 
   "<text>For T in kind DATA:\n"
   "(stream T) -> stream(tuple((elem T)))\n"
   "stream(tuple(attrname T)) -> (stream T)</text--->"
@@ -9144,9 +9114,8 @@ streamCountFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string streamCountSpec  = 
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>TemporalUnitAlgebra</text--->"
-  "<text>For T in kind DATA:\n"
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>For T in kind DATA:\n"
   "((stream T)) -> int</text--->"
   "<text>_ count</text--->"
   "<text>Counts the number of elements of a stream.</text--->"
@@ -9272,9 +9241,8 @@ An example for a pure stream operator (input and output are streams).
 
 */
 const string streamPrintstreamSpec  = 
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>TemporalUnitAlgebra</text--->"
-  "<text>For T in kind DATA:\n"
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>For T in kind DATA:\n"
   "((stream T)) -> (stream T)</text--->"
   "<text>_ printstream</text--->"
   "<text>Prints the elements of an arbitrary stream.</text--->"
@@ -9442,9 +9410,8 @@ operator and also for one calling a parameter function.
 
 */
 const string streamFilterSpec  = 
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>TemporalUnitAlgebra</text--->"
-  "<text>For T in kind DATA:\n"
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>For T in kind DATA:\n"
   "((stream T) (map T bool)) -> (stream T)</text--->"
   "<text>_ filter [ fun ]</text--->"
   "<text>Filters the elements of a stream by a predicate.</text--->"
@@ -9542,9 +9509,8 @@ int TUNoComponentsValueMap(Word* args, Word& result,
 
 */
 const string TUNoComponentsSpec  = 
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>TemporalUnitAlgebra</text--->"
-  "<text>For T in {bool, int, real, point, region}:\n"
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>For T in {bool, int, real, point, region}:\n"
   "(uT) -> uint</text--->"
   "<text> no_components( _ )</text--->"
   "<text>Returns an undef uint for undef unit, an uint with the "
@@ -9796,9 +9762,8 @@ STREAMELEMTypeMap( ListExpr args )
 }
 
 const string STREAMELEMSpec =
-   "(( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
-    "( <text>TemporalUnitAlgebra</text--->"
-      "<text>((stream T1) ... ) -> T1\n"
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+    "( <text>((stream T1) ... ) -> T1\n"
       "(T1 ... ) -> T1</text--->"
       "<text>type operator</text--->"
       "<text>Extracts the type of the stream elements if the first "
@@ -9847,9 +9812,8 @@ STREAMELEM2TypeMap( ListExpr args )
 }
 
 const string STREAMELEM2Spec =
-   "(( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
-    "( <text>TemporalUnitAlgebra</text--->"
-      "<text>(T1 (stream T2) ... ) -> T2\n"
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+    "( <text>(T1 (stream T2) ... ) -> T2\n"
       "( T1 T2 ... ) -> T2</text--->"
       "<text>type operator</text--->"
       "<text>Extracts the type of the elements from a stream given "
