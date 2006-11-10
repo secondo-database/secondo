@@ -9898,7 +9898,9 @@ int TUOrValueMap(Word* args, Word& result, int message,
 */
 const string TUAndSpec  = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(ubool ubool) -> ubool</text--->"
+  "( <text>(ubool ubool) -> ubool\n"
+  "(ubool  bool) -> ubool\n"
+  "( bool ubool) -> ubool</text--->"
   "<text>_ and _</text--->"
   "<text>The operator returns the logical conjunction of its "
   "arguments, restricted to their common deftime. Any undefined "
@@ -9912,15 +9914,17 @@ const string TUAndSpec  =
 
 const string TUOrSpec  = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(ubool ubool) -> ubool</text--->"
-  "<text>_ and _</text--->"
-  "<text>The operator returns the logical conjunction of its "
+  "( <text>(ubool ubool) -> ubool\n"
+  "(ubool  bool) -> ubool\n"
+  "( bool ubool) -> ubool</text--->"
+  "<text>_ or _</text--->"
+  "<text>The operator returns the logical disjunction of its "
   "arguments, restricted to their common deftime. Any undefined "
   "argument or non-overlapping intervals result in an "
   "undefined result."
   "</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
-  "\"2011-01-03\" TRUE FALSE) TRUE)] and [const ubool value "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] or [const ubool value "
   "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
@@ -9985,37 +9989,45 @@ Operator temporalunitor
 
 
 /*
-5.35 Operator ~~
+5.35 Operator ~ComparePredicates~
+
+Here, we implement the binary comparison operators/presicates for (uT uT), (T uT) 
+and (uT T). The predicates are = (equality), # (unequality), < (smaller than),
+> (bigger than), <= (smaller tah or equal to), >= (bigger than or equal to).
 
 ----
-     (insert signature here)
+      =, #, <, >, <=, >=: 
+n/a +        uT x uT --> (stream ubool)
+n/a +         T x uT --> (stream ubool)
+n/a +        uT x  T --> (stream ubool)
+
 
 ----
 
 */
 
 /*
-5.35.1 Type mapping function for ~~
+5.35.1 Type mapping function for ~ComparePredicates~
 
 */
 
 /*
-5.35.2 Value mapping for operator ~~
+5.35.2 Value mapping for operator ~ComparePredicates~
 
 */
 
 /*
-5.35.3 Specification for operator ~~
+5.35.3 Specification for operator ~ComparePredicates~
 
 */
 
 /*
-5.35.4 Selection Function of operator ~~
+5.35.4 Selection Function of operator ~ComparePredicates~
 
 */
 
 /*
-5.35.5 Definition of operator ~~
+5.35.5 Definition of operator ~ComparePredicates~
 
 */
 
