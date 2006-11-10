@@ -1,6 +1,6 @@
 //This file is part of SECONDO.
 
-//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Copyright (C) 2004, University in Hagen, Department of Computer Science,
 //Database Systems for New Applications.
 
 //SECONDO is free software; you can redistribute it and/or modify
@@ -33,89 +33,91 @@ import tools.Reporter;
  */
 public class Dsplconstraint extends DisplayGraph {
 /** The internal datatype representation */
-  Shape[] geoShapes;
-
+  Area areaPolygons;
+  Point2D.Double[] arrPoints;
+  Rectangle2D.Double bounds;
+  GeneralPath GPLines;
 
   public int numberOfShapes(){
-    if(geoShapes==null){
-      return 0;
-    }
-    return geoShapes.length;
+     return 3;
   }
 
-  /**
-   * Scans the numeric representation of a point datatype 
-   * @param v the numeric value of the x- and y-coordinate
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplpointsrc.html#ScanValue">Source</a>
-  */ 
-  private void ScanValue (ListExpr v) {
-    Reporter.writeError("ScanValue gestartet!!");
-    
-    Vector vGeoObjects = new Vector();
-    
-    /*for(int i=0; i < 5; i++) 
-    try{
+public boolean isPointType(int num){
+    return (num==2);
+}
+
+  /** returns true because this type is a line **/
+  public boolean isLineType(int num){
+    return (num==1);
+  }
+
+  public Shape getRenderObject(int num,AffineTransform at){
+    if(num==0)
     {
-      Shape geoObject
-      GeneralPath gp = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
-      gp.moveTo(0.0f+i*5, 0.0f+i*5);
-      gp.lineTo(-20.0f+i*5, 3.0f+i*5);
-      gp.lineTo(0.0f+i*5, 10.0f+i*5);
-      gp.lineTo(10.0f+i*5, 10.0f+i*5);
-      gp.lineTo(12.0f+i*5, 7.0f+i*5);
-      gp.lineTo(10.0f+i*5, 0.0f+i*5);
-      gp.closePath();           
-      vGeoObjects.addElement(geoObject);
-    }    
-    
-    geoShapes = (Shape[])vGeoObjects.toArray(new Shape[0]);   
-   
-    } catch (Exception e) {
-     Reporter.writeError("Fehler in ScanValue: "+e); 
+        return areaPolygons;
+    } else if(num==1){
+      return GPLines;
+    } else if(num==2){
+        Area res = new Area();
+        double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
+        double pixx = Math.abs(ps/at.getScaleX());
+        double pixy = Math.abs(ps/at.getScaleY());
+        for(int i=0; i< arrPoints.length;i++)
+        {
+          if(Cat.getPointasRect())
+          {
+	        res.add(new Area(new Rectangle2D.Double(arrPoints[i].x-pixx/2,
+	                                        arrPoints[i].y-pixy/2,pixx,pixy)));
+          }
+          else
+          {
+            res.add(new Area(new Ellipse2D.Double(arrPoints[i].x-pixx/2,
+	                                        arrPoints[i].y-pixy/2,pixx,pixy)));
+          }
+       }
+       return res;
     }
-    Reporter.writeError("ScanValue erfolgreich beendet!!");
-    */
-    /*double koord[] = new double[2];
-    if (v.listLength() != 4) {
-      Reporter.writeError("Error: No correct rectangle expression: 4 elements needed");
-      err = true; 
-      return;
+    else
+    {
+      return null;
     }
-    if ((v.first().atomType() != ListExpr.INT_ATOM) || (v.second().atomType()
-          != ListExpr.INT_ATOM) || (v.third().atomType() != ListExpr.INT_ATOM)
-          || (v.fourth().atomType() != ListExpr.INT_ATOM)) {
-      Reporter.writeError("Error: No correct rectangle : 4 INTs needed");
-      err = true;
-      return;
-    }
-    if (!err) {
-      rect = new Rectangle2D.Double(v.first().intValue(),v.third().intValue(),v.second().intValue()-v.first().intValue(),
-        v.fourth().intValue()-v.third().intValue());
-    }
-    
-    //rect = new Rectangle2D.Double(-10.0,-10.0,20.0,20.0);
-    
-    
-    */
-    
+
+  }
+
+
+  /**
+   * Scans the numeric representation of a constraint datatype
+  */
+  private void ScanValue (ListExpr v) {
+
     boolean correct = true;
     ListExpr symbolicTuplesNL = v;
     ListExpr linConstraintsNL;
     ListExpr oneLinConstraintNL;
-    
+
+     boolean emptyPolygons = true;
+     boolean emptyLines = true;
+     boolean emptyPoints = true;
+     Vector vecPoints = new Vector();
+
+     areaPolygons = new Area();
+     //Line2D.Double newSegment = null;
+     GPLines = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
+
     if(!v.isAtom())
-    {  
-      Shape currentShape;
+    {
+      //Shape currentShape;
+
+
       while(!symbolicTuplesNL.isEmpty())
       {
         linConstraintsNL = symbolicTuplesNL.first();
-        symbolicTuplesNL = symbolicTuplesNL.rest();        
+        symbolicTuplesNL = symbolicTuplesNL.rest();
         if(!linConstraintsNL.isAtom())
         {
           Shape geoObject;
-          
-          Vector vLinConstraints = new Vector();        
+
+          Vector vLinConstraints = new Vector();
           int nrOfCEQ = 0;
           int currentIndex = 0;
           int firstIndexCEQ = -1;
@@ -130,22 +132,27 @@ public class Dsplconstraint extends DisplayGraph {
                 oneLinConstraintNL.third().atomType() == ListExpr.REAL_ATOM &&
                 oneLinConstraintNL.fourth().atomType() == ListExpr.SYMBOL_ATOM)
             {
-              LinearConstraint2D linConstraint = new LinearConstraint2D(oneLinConstraintNL.first().realValue(), oneLinConstraintNL.second().realValue(), oneLinConstraintNL.third().realValue(), oneLinConstraintNL.fourth().symbolValue());
+              Double a1 = LEUtils.readNumeric(oneLinConstraintNL.first());
+              Double a2 = LEUtils.readNumeric(oneLinConstraintNL.second());
+              Double b = LEUtils.readNumeric(oneLinConstraintNL.third());
+              String strOp = oneLinConstraintNL.fourth().symbolValue();
+
+              LinearConstraint2D linConstraint = new LinearConstraint2D(a1.doubleValue(), a2.doubleValue(), b.doubleValue(), strOp);
               vLinConstraints.addElement(linConstraint);
-              if(linConstraint.strOp.equals("eq")) 
+              if(linConstraint.strOp.equals("eq"))
               {
-                nrOfCEQ++; 
-                if(firstIndexCEQ==-1) 
+                nrOfCEQ++;
+                if(firstIndexCEQ==-1)
                 {
                   firstIndexCEQ = currentIndex;
-                } 
+                }
                 else if(secondIndexCEQ==-1)
                 {
                   secondIndexCEQ = currentIndex;
                 }
-                else 
+                else
                 {
-                  // then there are more than 2 EQ-constraints, what is a contradiction to the normalization! 
+                  // then there are more than 2 EQ-constraints, what is a contradiction to the normalization!
                   Reporter.writeError("Error: Too many EQ-constraints in symbolic tuple (max 2)!");
                 }
               }
@@ -153,15 +160,15 @@ public class Dsplconstraint extends DisplayGraph {
             else
             {
               Reporter.writeError("Error: Fehlerhafter Aufbau von linearem Constraint!");
-            }            
+            }
             currentIndex++;
-          }          
+          }
           // The number of eq-constraints determines the type of the shape:
           if(nrOfCEQ==0)
           {
             // convex polygon:
-            Reporter.writeError("DEBUG: CONVEX POLYGON");
-            GeneralPath gp = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
+            emptyPolygons = false;
+            GeneralPath GPPolygon = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
             for(int i=0; i < vLinConstraints.size(); i++)
             {
               Point2D.Double point;
@@ -174,13 +181,13 @@ public class Dsplconstraint extends DisplayGraph {
                       err=true;
                       return;
                    }else{
-      	              gp.moveTo((float)point.x, (float)point.y);
-      	           } 
+      	              GPPolygon.moveTo((float)point.x, (float)point.y);
+      	           }
                 }catch(Exception e){
       	           Reporter.writeError("Error in Projection at ("+point.x+","+point.y+")");
       		          err=true;
       		          return;
-      	        }                  
+      	        }
               }
               else
               {
@@ -191,60 +198,57 @@ public class Dsplconstraint extends DisplayGraph {
                       err=true;
                       return;
                    }else{
-      	              gp.lineTo((float)point.x, (float)point.y);
-      	           } 
+      	              GPPolygon.lineTo((float)point.x, (float)point.y);
+      	           }
                 }catch(Exception e){
       	           Reporter.writeError("Error in Projection at ("+point.x+","+point.y+")");
       		          err=true;
       		          return;
-      	        }                          
+      	        }
               }
             }
-            gp.closePath();
-            geoObject = gp;
-            vGeoObjects.addElement(geoObject);
-          } 
+            GPPolygon.closePath();
+            areaPolygons.add(new Area(GPPolygon));
+          }
           else if(nrOfCEQ==1)
           {
             // line segment:
-            Reporter.writeError("DEBUG: SEGMENT");
+            emptyLines = false;
             // the EQ-constraint is the very first
             Point2D.Double pointFirst = GetIntersectionPoint((LinearConstraint2D)vLinConstraints.elementAt(0), (LinearConstraint2D)vLinConstraints.elementAt(1));
             Point2D.Double pointSecond = GetIntersectionPoint((LinearConstraint2D)vLinConstraints.elementAt(0), (LinearConstraint2D)vLinConstraints.elementAt(2));
-            GeneralPath gp = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
             try{
               if(!ProjectionManager.project(pointFirst.x,pointFirst.y,aPoint)){
                   Reporter.writeError("error in projection at ("+pointFirst.x+", "+pointFirst.y+")");
                   err=true;
                   return;
-               }else{
-  	              gp.moveTo((float)pointFirst.x, (float)pointFirst.y);
-  	           } 
+               }
+               else{
+  	              GPLines.moveTo((float)pointFirst.x, (float)pointFirst.y);
+  	           }
             }catch(Exception e){
   	           Reporter.writeError("Error in Projection at ("+pointFirst.x+","+pointFirst.y+")");
   		          err=true;
   		          return;
-  	        }            
+  	        }
             try{
               if(!ProjectionManager.project(pointSecond.x,pointSecond.y,aPoint)){
                   Reporter.writeError("error in projection at ("+pointSecond.x+", "+pointSecond.y+")");
                   err=true;
                   return;
                }else{
-  	              gp.lineTo((float)pointSecond.x, (float)pointSecond.y);
-  	           } 
+  	              GPLines.lineTo((float)pointSecond.x, (float)pointSecond.y);
+  	           }
             }catch(Exception e){
   	           Reporter.writeError("Error in Projection at ("+pointSecond.x+","+pointSecond.y+")");
   		          err=true;
   		          return;
-  	        }                        
-            geoObject = gp;
-            vGeoObjects.addElement(geoObject);
+  	        }
           }
           else if(nrOfCEQ==2)
           {
             // point:
-            Reporter.writeError("DEBUG: POINT");
+            emptyPoints = false;
             Point2D.Double point = GetIntersectionPoint((LinearConstraint2D)vLinConstraints.elementAt(0), (LinearConstraint2D)vLinConstraints.elementAt(1));
             try{
               if(!ProjectionManager.project(point.x,point.y,aPoint)){
@@ -252,105 +256,107 @@ public class Dsplconstraint extends DisplayGraph {
                   err=true;
                   return;
                }else{
-                  geoObject = new Rectangle2D.Double(point.x, point.y, 0, 0);            
-                  vGeoObjects.addElement(geoObject);  	              
-  	           } 
+                    vecPoints.addElement(point);
+  	           }
             }catch(Exception e){
   	           Reporter.writeError("Error in Projection at ("+point.x+","+point.y+")");
   		          err=true;
   		          return;
-  	        }                        
+  	        }
           }
           else
           {
             Reporter.writeError("Error: nrOfCEQ to big!");
-          }                    
+          }
         }
         else
         {
           Reporter.writeError("Error: linConstraintsNL is atomic (shoud be a list!)");
-        }    
+        }
       } // while
-      geoShapes = (Shape[])vGeoObjects.toArray(new Shape[0]);   
     }
     else
     {
       Reporter.writeError("Error: instance is atomic (shoud be a list!)");
-      geoShapes = null;
-    }        
+    }
+
+     if(emptyPolygons)
+     {
+        areaPolygons = null;
+     }
+     if(emptyLines)
+     {
+        GPLines = null;
+     }
+     arrPoints = (Point2D.Double[])vecPoints.toArray(new Point2D.Double[0]);
   }
-  
-  public Shape getRenderObject(int num,AffineTransform at) {
-    return geoShapes[num];
-  }
- 
-  public boolean isPointType(int num){
-      return true;
-  }
- 
 
   /**
-   * Init. the Dsplrectangle instance.
-   * @param type The symbol rectangle
-   * @param value The 4 INTs  of a rectangle left,right,top,bottom.
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplrectanglesrc.html#init">Source</a>
+   * Init. the Dsplconstraint instance.
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    Reporter.writeError("init gestartet!!");
     AttrName = type.symbolValue();
     ScanValue(value);
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GA(constraint))"));
       return;
-    } 
-    else 
+    }
+    else
     {
-      qr.addEntry(this);   
-      // folgende Zeilen sind nur ein workaround:
-      // START WORKAROUND
-/*      GeneralPath gp = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
-      gp.moveTo((float)-10005.0, (float)-10005.0);
-      gp.lineTo((float)-10005.0, (float)10005.0);
-      gp.lineTo((float)10005.0, (float)10005.0);
-      gp.lineTo((float)10005.0, (float)10005.0);
-      gp.lineTo((float)10005.0, (float)-10005.0);
-      gp.lineTo((float)-10000.0, (float)-10005.0);
-      gp.lineTo((float)-10000.0, (float)-10000.0);
-      gp.lineTo((float)10000.0, (float)-10000.0);
-      gp.lineTo((float)10000.0, (float)10000.0);
-      gp.lineTo((float)-10000.0, (float)10000.0);
-      gp.lineTo((float)-10000.0, (float)-10000.0);
-      RenderObject = gp;
-      // ENDE WORKAROUND
-*/
+      qr.addEntry(this);
+      bounds = null;
+      if(areaPolygons!=null)
+      {
+        bounds = (Rectangle2D.Double)areaPolygons.getBounds2D();
+      }
+      if(GPLines!=null)
+      {
+        Area areaLines = new Area(GPLines.getBounds2D());
+        if (bounds == null)
+        {
+          bounds = (Rectangle2D.Double)areaLines.getBounds2D();
+        }
+        else
+        {
+          bounds = (Rectangle2D.Double)bounds.createUnion((Rectangle2D.Double)areaLines.getBounds2D());
+        }
+      }
+      for(int i=0; i< arrPoints.length;i++)
+      {
+        if (bounds == null)
+          bounds = new Rectangle2D.Double(arrPoints[i].x, arrPoints[i].y, 0, 0);
+        else
+          bounds = (Rectangle2D.Double)bounds.createUnion(new Rectangle2D.Double(arrPoints[i].x, arrPoints[i].y, 0, 0));
+      }
+
     }
   }
-  
-  
+
+  public Rectangle2D.Double getBounds () {
+    return bounds;
+  }
+
   Point2D.Double GetIntersectionPoint(final LinearConstraint2D linConFirst, final LinearConstraint2D linConSecond)
   {
-    // Input: two linear constraints 
+    // Input: two linear constraints
     // prerequisite: not parallel or equal (otherwise they woudn't intersection in one point)
     // Output: intersection point
 
     boolean blnIsPoint;
     Point2D.Double pIntersection;
     double x, y;
-    
+
     try {
       x = (linConFirst.a2*linConSecond.b-linConSecond.a2*linConFirst.b)/(linConFirst.a1*linConSecond.a2-linConSecond.a1*linConFirst.a2);
       y = (linConFirst.a1*linConSecond.b-linConSecond.a1*linConFirst.b)/(linConFirst.a2*linConSecond.a1-linConSecond.a2*linConFirst.a1);
       pIntersection = new Point2D.Double(x,y);
     }
     catch (Exception e) {
-      Reporter.writeError("Error: GetIntersectionPoint can't compute a single intersecting point - invalid input (lin. constraints describes parallel lines)!");               
+      Reporter.writeError("Error: GetIntersectionPoint can't compute a single intersecting point - invalid input (lin. constraints describes parallel lines)!");
       pIntersection = new Point2D.Double(0,0);
     }
-    return pIntersection; 
+    return pIntersection;
   }
 
 
@@ -358,28 +364,25 @@ public class Dsplconstraint extends DisplayGraph {
   {
     public double a1;
     public double a2;
-    public double b;   
-    public String strOp;         
-    
-    LinearConstraint2D() 
+    public double b;
+    public String strOp;
+
+    LinearConstraint2D()
     {
       a1 = 0;
       a2 = 0;
       b = 0;
-      strOp = new String("eq");      
+      strOp = new String("eq");
     }
-    
+
     LinearConstraint2D(double a1, double a2, double b, String strOp)
     {
       this.a1 = a1;
       this.a2 = a2;
       this.b = b;
-      this.strOp = strOp;      
-    }    
+      this.strOp = strOp;
+    }
   }
 
 
 }
-
-
-
