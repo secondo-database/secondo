@@ -72,6 +72,10 @@ let ur4 = [const ureal value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)
 let r = [const real value 0.0];
 let rundef = [const real value undef];
 
+let ubool1 = [const ubool value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) TRUE)];
+let ubool2 = [const ubool value (("2003-11-20-05:00" "2003-11-20-06:00" TRUE TRUE) TRUE)];
+let ubool3 = [const ubool value undef];
+let ubool4 = [const ubool value (("2003-11-20-06:30" "2003-11-20-06:45" TRUE FALSE) FALSE)];
 
 let line1 = [const line value ((1500.0 1000.0 1500.0 2000.0))];
 let line2 = [const line value ((1010 1010 1100 1100)(1100 1100 1200 1000)(1200 1000 1600 1000)(1600 1000 1600 2010)(1600 2010 1700 1100)(1700 1100 1800 1800)(1800 1800 2300 2300))];
@@ -893,11 +897,125 @@ query not([const ubool value (("2003-11-12" "2005-05-30" FALSE FALSE) TRUE)])
 
 #testcase not FALSE
 #yields (ubool (("2003-11-12" "2005-05-30" FALSE FALSE) TRUE))
-query not([const ubool value (("2003-11-12" "2005-05-30" FALSE FALSE) TRUE)])
+query not([const ubool value (("2003-11-12" "2005-05-30" FALSE FALSE) FALSE)])
 
 
 
+#testcase and_ubool_ubool undef arg1
+#yields (ubool (undef))
+query ubool3 and ubool1
 
+#testcase and_ubool_ubool undef arg2
+#yields (ubool (undef))
+query ubool 1 and ubool3
+
+#testcase and_ubool_ubool no intersect
+#yields (ubool (undef))
+query ubool2 and ubool4
+
+#testcase and_ubool_ubool TRUE
+#yields (ubool (("2003-11-20-06:00" "2003-11-20-06:00" TRUE TRUE) TRUE))
+query ubool1 and ubool2
+
+#testcase and_ubool_ubool FALSE
+#yields (ubool (("2003-11-20-06:30" "2003-11-20-06:45" TRUE TRUE) FALSE))
+query ubool1 and ubool4
+
+
+
+#testcase and_bool_ubool undef arg1
+#yields (ubool (undef))
+query [const bool value undef] and u1
+
+#testcase and_bool_ubool undef arg2
+#yields (ubool (undef))
+query [const bool value TRUE] and ubool3
+
+#testcase and_bool_ubool TRUE
+#yields (ubool (("2003-11-20-05:00" "2003-11-20-06:00" TRUE TRUE) TRUE))
+query [const bool value TRUE] and ubool2
+
+#testcase and_bool_ubool FALSE 1
+#yields (ubool (("2003-11-20-05:00" "2003-11-20-06:00" TRUE TRUE) FALSE))
+query [const bool value FALSE] and ubool2
+
+#testcase and_bool_ubool FALSE 2
+#yields (ubool (("2003-11-20-06:30" "2003-11-20-06:45" TRUE FALSE) FALSE))
+query [const bool value TRUE] and ubool4
+
+
+
+#testcase and_ubool_bool undef arg2
+#yields (ubool (undef))
+query u1 and [const bool value undef]
+
+#testcase and_ubool_bool undef arg1
+#yields (ubool (undef))
+query ubool3 and [const bool value TRUE]
+
+#testcase and_bool_ubool TRUE
+#yields (ubool (("2003-11-20-05:00" "2003-11-20-06:00" TRUE TRUE) TRUE))
+query ubool2 and [const bool value TRUE]
+
+#testcase and_bool_ubool FALSE 2
+#yields (ubool (("2003-11-20-05:00" "2003-11-20-06:00" TRUE TRUE) FALSE))
+query ubool2 and [const bool value FALSE]
+
+#testcase and_bool_ubool FALSE 1
+#yields (ubool (("2003-11-20-06:30" "2003-11-20-06:45" TRUE FALSE) FALSE))
+query ubool4 and [const bool value TRUE]
+
+
+
+#testcase or_ubool_ubool undef arg1
+#yields (ubool (undef))
+query ubool3 or ubool1
+
+#testcase or_ubool_ubool undef arg2
+#yields (ubool (undef))
+query ubool 1 or ubool3
+
+#testcase or_ubool_ubool no intersect
+#yields (ubool (undef))
+query ubool2 or ubool4
+
+#testcase or_ubool_ubool TRUE 1
+#yields (ubool (("2003-11-20-06:00" "2003-11-20-06:00" TRUE TRUE) TRUE))
+query ubool1 or ubool2
+
+#testcase or_ubool_ubool TRUE 2
+#yields (ubool (("2003-11-20-06:30" "2003-11-20-06:45" TRUE TRUE) TRUE))
+query ubool1 or ubool4
+
+#testcase or_ubool_ubool FALSE
+#yields (ubool (("2003-11-20-06:30" "2003-11-20-06:45" TRUE TRUE) FALSE))
+query ubool4 or ubool4
+
+
+
+#testcase or_bool_ubool undef arg1
+#yields (ubool (undef))
+query [const bool value undef] or u1
+
+#testcase or_bool_ubool undef arg2
+#yields (ubool (undef))
+query [const bool value TRUE] or ubool3
+
+#testcase or_bool_ubool TRUE 1 
+#yields (ubool (("2003-11-20-05:00" "2003-11-20-06:00" TRUE TRUE) TRUE))
+query [const bool value TRUE] or ubool2
+
+#testcase or_bool_ubool TRUE 2
+#yields (ubool (("2003-11-20-05:00" "2003-11-20-06:00" TRUE TRUE) TRUE))
+query [const bool value FALSE] or ubool2
+
+#testcase or_bool_ubool TRUE 3
+#yields (ubool (("2003-11-20-06:30" "2003-11-20-06:45" TRUE FALSE) TRUE))
+query [const bool value TRUE] or ubool4
+
+#testcase or_bool_ubool FALSE
+#yields (ubool (("2003-11-20-06:30" "2003-11-20-06:45" TRUE FALSE) FALSE))
+query [const bool value FALSE] or ubool4
 
 
 
