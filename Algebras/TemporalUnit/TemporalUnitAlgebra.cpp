@@ -49,55 +49,50 @@ OK    sfeed:                          T --> (stream T)
 
 OK    transformstream: stream(tuple((id T))) --> (stream T)
 OK                                (stream T) --> stream(tuple((element T)))
-
-OK    saggregate:   (stream T) x (T x T --> T) x T  --> T
- 
-OK    count:                 (stream T) --> int
-
-OK    filter: ((stream T) (map T bool)) --> int
-
-OK    printstream:           (stream T) --> (stream T)
-
+OK    saggregate:        (stream T) x (T x T --> T) x T  --> T
+OK    count:                      (stream T) --> int
+OK    filter:      ((stream T) (map T bool)) --> int
+OK    printstream:                (stream T) --> (stream T)
 (OK)  makemvalue   (**)  stream (tuple ([x1:t1,xi:uT,..,xn:tn])) -->  mT
-OK    size                      periods --> real
-(OK)  point2d                   periods --> point
-(OK)  queryrect2d               instant --> rect
-OK    circle         point x real x int --> region
+OK    size                           periods --> real
+(OK)  point2d                        periods --> point
+(OK)  queryrect2d                    instant --> rect
+OK    circle              point x real x int --> region
 
-
-OK    trajectory                 upoint --> line
-OK    velocity                   mpoint --> mpoint
-OK                               upoint --> upoint
-OK    derivable                   mreal --> mbool
-OK                                ureal --> ubool
-OK    derivative                  mreal --> mreal
-OK                                ureal --> ureal
-OK    speed                      mpoint --> mreal
-OK                               upoint --> ureal
+OK    isempty                             U  --> bool (for U in kind UNIT)
+OK    trajectory                      upoint --> line
+OK    velocity                        mpoint --> mpoint
+OK                                    upoint --> upoint
+OK    derivable                        mreal --> mbool
+OK                                     ureal --> ubool
+OK    derivative                       mreal --> mreal
+OK                                     ureal --> ureal
+OK    speed                           mpoint --> mreal
+OK                                    upoint --> ureal
 
       passes:  For T in {bool, int, string, point}:
-OK  +                        uT x      T --> bool
-n/a +                     ureal x   real --> bool
-n/a +                   uregion x region --> bool
+OK  +                            uT x      T --> bool
+n/a +                         ureal x   real --> bool
+n/a +                       uregion x region --> bool
 
-OK  + deftime      (**)              uT --> periods
-OK  + atinstant    (**)    uT x instant --> iT
-OK  + atperiods    (**     uT x periods --> (stream uT)
-OK  + Initial      (**)              uT --> iT
-OK  + final        (**)              uT --> iT
-OK  + present      (**)    uT x instant --> bool
-OK  +              (**)    uT x periods --> bool
+OK  + deftime      (**)                   uT --> periods
+OK  + atinstant    (**)         uT x instant --> iT
+OK  + atperiods    (**          uT x periods --> (stream uT)
+OK  + Initial      (**)                   uT --> iT
+OK  + final        (**)                   uT --> iT
+OK  + present      (**)         uT x instant --> bool
+OK  +              (**)         uT x periods --> bool
      
       atmax:  For T in {bool, int, real, string}:
-(OK)+                     uT --> (stream uT)
+(OK)+                                     uT --> (stream uT)
 
       atmin:  For T in {bool, int, real, string}:
-(OK)+                     uT --> (stream uT)
+(OK)+                                     uT --> (stream uT)
  
-(OK)+ at:    ureal x    real --> (stream ureal)
-OK  +       upoint x   point --> upoint
-n/a +       upoint x  region --> (stream upoint)
-n/a +       upoint x uregion --> (stream upoint)
+(OK)+ at:                    ureal x    real --> (stream ureal)
+OK  +                       upoint x   point --> upoint
+n/a +                       upoint x  region --> (stream upoint)
+n/a +                       upoint x uregion --> (stream upoint)
 
 
       distance:  T in {int, point}
@@ -154,14 +149,16 @@ OK  + no_components:     uT --> uint
 
 n/a + area: uregion --> ureal             see TemporalLiftedAlgebra
 
-n/a + and, or: ubool x ubool --> (stream ubool)
-n/a +           bool x ubool --> (stream ubool)
-n/a +          ubool x  bool --> (stream ubool)
+Test+ and, or: ubool x ubool --> ubool
+Test+           bool x ubool --> ubool
+Test+          ubool x  bool --> ubool
 
       =, #, <, >, <=, >=: 
 n/a +        uT x uT --> (stream ubool)
 n/a +         T x uT --> (stream ubool)
 n/a +        uT x  T --> (stream ubool)
+
+OK  + not:       ubool --> ubool
 
 n/a   initial, final: (stream uT) --> iT
 n/a   present: (stream uT) x instant --> bool
@@ -170,9 +167,11 @@ n/a + sometimes: ubool --> bool
 n/a + never:     ubool --> bool
 n/a + always:    ubool --> bool
 
-n/a  uint2ureal: uint --> ureal
-
-
+n/a   uint2ureal:       uint --> ureal
+n/a   int2real:          int --> real
+n/a   floor:            real --> int
+n/a   ceil:             real --> int
+n/a   round:      (real int) --> real
 
 COMMENTS:
 
@@ -2997,7 +2996,7 @@ TemporalSpecAt =
 "(uT    T   ) -> uT\n"
 "(ureal real) -> (stream ureal)\n"
 "(*): Not yet implemented</text--->"
-"<text> _ at _ </text--->"
+"<text>_ at _ </text--->"
 "<text>restrict the movement to the times "
 "where the equality occurs.\n"
 "Observe, that for type 'ureal', the result is a "
@@ -3086,7 +3085,7 @@ int Circle( Word* args, Word& result, int message, Word& local, Supplier s )
       radius = r->GetRealval();
       
       res->StartBulkLoad();
-      if ((n>3)&&(n<101)&&(radius >0.0))
+      if ((n>2)&&(n<101)&&(radius >0.0))
         {
           
           //  Calculate a polygon with (n) vertices and (n) edges.
@@ -3140,8 +3139,8 @@ TemporalSpecCircle =
 "( <text>(point real int) -> region</text--->"
 "<text>circle ( p, r, n ) </text--->"
 "<text>Creates a region with a shape approximating a circle "
-"with a given radius r>0.0 and 3<n<101 calculated edges around "
-"a given center point p. "
+"with a given a given center point p and radius r>0.0 by a "
+"regular polygon with 2<n<101 edges.\n"
 "Parameters out of the given perimeters result in an "
 "empty region, undef values in an undef one .</text--->"
 "<text>circle (p,10.0,10)</text---> ) )";
@@ -6121,7 +6120,7 @@ const string TemporalSpecAtmax =
   "<text>For T in {int, bool, string}:\n"
   "uT    -> uT\n"
   "ureal -> (stream ureal)</text--->"
-  "<text> atmax( _ )</text--->"
+  "<text>atmax( _ )</text--->"
   "<text>Restricts a the unittype value to the time where "
   "it takes it's maximum value.\n"
   "Observe, that for type 'ureal', the result is a '(stream ureal)' "
@@ -6475,7 +6474,7 @@ const string TemporalSpecAtmin =
   "<text>For T in {int, bool, string}:\n"
   "uT    -> uT\n"
   "ureal -> (stream ureal)</text--->"
-  "<text> atmin( _ )</text--->"
+  "<text>atmin( _ )</text--->"
   "<text>Restricts a the unittype value to the time where "
   "it takes it's minimum value.\n"
   "Observe, that for type 'ureal', the result is a '(stream ureal)' "
@@ -6760,7 +6759,7 @@ const string TemporalUnitSaggregateSpec =
   "<text>query intstream(1,5) saggregate[ "
   "fun(i1:int, i2:int) i1+i2 ; 0]\n"
   "query intstream(1,5) saggregate[ "
-  "fun(i1:int, i2:int) ifthenelse(i1>i2,i1,i2) ; 0]</text--->"
+  "fun(i1:STREAMELEM, i2:STREAMELEM) ifthenelse(i1>i2,i1,i2) ; 0]</text--->"
   ") )";
 
 /*
@@ -9512,7 +9511,7 @@ const string TUNoComponentsSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, real, point, region}:\n"
   "(uT) -> uint</text--->"
-  "<text> no_components( _ )</text--->"
+  "<text>no_components( _ )</text--->"
   "<text>Returns an undef uint for undef unit, an uint with the "
   "argument's deftime and value '1' otherwise.</text--->"
   "<text>query no_components([const uint value undef])</text--->"
@@ -9547,109 +9546,443 @@ Operator temporalunitnocomponents
 );
 
 /*
-5.32 Operator ~~
+5.32 Operator ~isempty~
+
+The operator returns TRUE, if the unit is undefined, otherwise it returns FALSE.
+It will never return an undefined result!
 
 ----
-     (insert signature here)
-
-----
-
-*/
-
-/*
-5.32.1 Type mapping function for ~~
-
-*/
-
-/*
-5.32.2 Value mapping for operator ~~
-
-*/
-
-/*
-5.32.3 Specification for operator ~~
-
-*/
-
-/*
-5.32.4 Selection Function of operator ~~
-
-*/
-
-/*
-5.32.5 Definition of operator ~~
-
-*/
-
-/*
-5.33 Operator ~~
-
-----
-     (insert signature here)
+      For U in kind UNIT:
+      isempty  U --> bool
 
 ----
 
 */
 
 /*
-5.33.1 Type mapping function for ~~
+5.32.1 Type mapping function for ~isempty~
+
+*/
+ListExpr 
+TUIsemptyTypeMap( ListExpr args )
+{
+  ListExpr arg1;
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  
+  if ( ( nl->ListLength(args) == 1 ) && ( nl->IsAtom(nl->First(args) ) ) )
+    {
+      arg1 = nl->First(args);
+      if( am->CheckKind("UNIT", arg1, errorInfo) ) 
+        return arg1;
+    }
+  ErrorReporter::ReportError("Operator isempty expects a list of length one, "
+                             "containing a value of type 'U' with U in "
+                             "kind UNIT.");
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+5.32.2 Value mapping for operator ~isempty~
+
+*/
+int TUIsemptyValueMap( Word* args, Word& result, int message,
+                       Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Attribute* val = ((Attribute*)args[0].addr);
+  if( val->IsDefined() )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+  return 0;
+}
+
+/*
+5.32.3 Specification for operator ~isempty~
+
+*/
+const string TUIsemptySpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>For U in kind UNIT:\n"
+  "U -> bool</text--->"
+  "<text>isempty( _ )</text--->"
+  "<text>The operator returns TRUE, if the unit is undefined, "
+  "otherwise it returns FALSE. It will never return an "
+  "undefined result!</text--->"
+  "<text>query is_empty([const uint value undef])</text--->"
+  ") )";
+
+/*
+5.32.4 Selection Function of operator ~isempty~
+
+Simple selection is used, as there is only one value mapping function.
 
 */
 
+ValueMapping temporalunitIsemptyvaluemap[] = { TUIsemptyValueMap };
+
 /*
-5.33.2 Value mapping for operator ~~
+5.32.5 Definition of operator ~isempty~
 
 */
+Operator temporalunitisempty
+( 
+ "isempty",
+ TUIsemptySpec,
+ 1,
+ temporalunitIsemptyvaluemap,
+ Operator::SimpleSelect,
+ TUIsemptyTypeMap
+);
 
 /*
-5.33.3 Specification for operator ~~
+5.33 Operator ~not~
 
-*/
-
-/*
-5.33.4 Selection Function of operator ~~
-
-*/
-
-/*
-5.33.5 Definition of operator ~~
-
-*/
-
-/*
-5.34 Operator ~~
+Negates an ubool.
 
 ----
-     (insert signature here)
+     not:   ubool --> ubool
 
 ----
 
 */
 
 /*
-5.34.1 Type mapping function for ~~
+5.33.1 Type mapping function for ~not~
+
+*/
+
+ListExpr
+TUNotTypeMap( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 1 )
+  {
+    ListExpr arg1 = nl->First( args );
+
+    if( nl->IsEqual( arg1, "ubool" )  )
+      return nl->SymbolAtom( "ubool" );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+/*
+5.33.2 Value mapping for operator ~not~
+
+*/
+
+int TUNotValueMap(Word* args, Word& result, int message,
+                      Word& local, Supplier s)
+{
+  result = (qp->ResultStorage( s ));
+  UBool *res = (UBool*) result.addr;
+  UBool *input = (UBool*)args[0].addr;
+  
+  if(!input->IsDefined())
+    res->SetDefined( false );
+  else
+    {
+      res->SetDefined( true );
+      res->CopyFrom(input);
+      res->constValue.Set(res->constValue.IsDefined(),
+                          !(res->constValue.GetBoolval()));
+    }
+  return 0;
+}
+/*
+5.33.3 Specification for operator ~not~
+
+*/
+const string TUNotSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>ubool -> ubool</text--->"
+  "<text>not( _ )</text--->"
+  "<text>The operator returns the logical complement of "
+  "its argument. Undef argument resullts in an undef result."
+  "</text--->"
+  "<text>query not([const ubool value ((\"2010-11-11\" "
+  "\"2011-01-03\" TRUE FALSE) TRUE)])</text--->"
+  ") )";
+/*
+5.33.4 Selection Function of operator ~not~
+
+We use simple selection:
+
+*/
+
+ValueMapping temporalunitNotvaluemap[] = { TUNotValueMap };
+
+/*
+5.33.5 Definition of operator ~not~
+
+*/
+Operator temporalunitnot
+( 
+ "not",
+ TUNotSpec,
+ 1,
+ temporalunitNotvaluemap,
+ Operator::SimpleSelect,
+ TUNotTypeMap
+);
+
+/*
+5.34 Operators ~and~ and ~or~
+
+These operators perform the binary conjunction/disjunction for ubool (and bool):
+
+----
+
+    and, or:  ubool x ubool -> ubool
+               bool x ubool -> ubool
+              ubool x  bool -> ubool
+----
 
 */
 
 /*
-5.34.2 Value mapping for operator ~~
+5.34.1 Type mapping function for ~and~ and ~or~
+
+We implement a genric function for binary boolean functions here:
 
 */
+
+ListExpr TUBinaryBoolFuncTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  string argstr1, argstr2;
+  
+  if( nl->ListLength( args ) == 2 )
+    {
+      arg1 = nl->First( args );
+      arg2 = nl->Second( args );
+      
+      // First case: ubool ubool -> ubool
+      if (nl->Equal( arg1, arg2 ))
+        {
+          if( nl->IsEqual( arg1, "ubool" ) )
+            return  arg1;
+        }
+      
+      // Second case: ubool bool -> ubool
+      if( nl->IsEqual( arg1, "ubool" ) && nl->IsEqual( arg2, "bool") )
+        return  arg1;
+      
+      // Third case: bool ubool -> ubool
+      if( nl->IsEqual( arg1, "bool" ) && nl->IsEqual( arg2, "ubool") )
+        return  arg2;
+    }
+  
+  // Error case:
+  nl->WriteToString(argstr1, arg1); 
+  nl->WriteToString(argstr2, arg2); 
+  ErrorReporter::ReportError(
+    "Binary booleon operator expects any combination of {bool, ubool} "
+    "as arguments, but the passed arguments have types '"+ argstr1 +
+    "' and '" + argstr2 + "'.");
+  return nl->SymbolAtom("typeerror");   
+}
+/*
+5.34.2 Value mapping for operators ~and~ and ~or~
+
+*/
+template<int ArgConf>
+int TUAndValueMap(Word* args, Word& result, int message,
+                  Word& local, Supplier s)
+{
+  assert( (ArgConf>=0) && (ArgConf<=2));
+
+  result = (qp->ResultStorage( s ));
+  UBool *res = (UBool*) result.addr;
+  UBool *u1, *u2;
+  CcBool *cb;
+  Interval<Instant> iv;
+
+  if(ArgConf == 0) // case: ubool x ubool -> ubool
+    {
+      u1 = (UBool*) args[0].addr;
+      u2 = (UBool*) args[1].addr;
+      
+      if  (!u1->IsDefined() || 
+           !u2->IsDefined() || 
+           !u1->timeInterval.Intersects( u2->timeInterval) )
+        res->SetDefined( false );
+      else
+        {
+          u1->timeInterval.Intersection( u2->timeInterval, iv );
+          res->SetDefined( true );
+          res->timeInterval = iv;
+          res->constValue.Set(
+            u1->constValue.IsDefined() && u2->constValue.IsDefined(),
+            u1->constValue.GetBoolval() && u2->constValue.GetBoolval());
+        }
+      return 0;
+    }
+  else if(ArgConf == 1) // case: ubool x bool -> ubool
+    {
+      u1 = (UBool*)args[0].addr;
+      cb = (CcBool*) args[1].addr;
+    }
+  else if(ArgConf == 1) // case: bool x ubool -> ubool
+    {
+      u1 = (UBool*)args[1].addr;
+      cb = (CcBool*) args[0].addr;
+    }
+  if (!u1->IsDefined() || !cb->IsDefined())
+    res->SetDefined( false );
+  else
+    {
+      res->CopyFrom(u1);
+      res->constValue.Set(u1->constValue.IsDefined(),
+           u1->constValue.GetBoolval() && cb->GetBoolval() );
+    }
+  return 0;
+}
+
+template<int ArgConf>
+int TUOrValueMap(Word* args, Word& result, int message,
+                 Word& local, Supplier s)
+{
+  assert( (ArgConf>=0) && (ArgConf<=2));
+
+  result = (qp->ResultStorage( s ));
+  UBool *res = (UBool*) result.addr;
+  UBool *u1, *u2;
+  CcBool *cb;
+  Interval<Instant> iv;
+
+  if(ArgConf == 0) // case: ubool x ubool -> ubool
+    {
+      u1 = (UBool*) args[0].addr;
+      u2 = (UBool*) args[1].addr;
+      
+      if  (!u1->IsDefined() || 
+           !u2->IsDefined() || 
+           !u1->timeInterval.Intersects( u2->timeInterval) )
+        res->SetDefined( false );
+      else
+        {
+          u1->timeInterval.Intersection( u2->timeInterval, iv );
+          res->SetDefined( true );
+          res->timeInterval = iv;
+          res->constValue.Set(
+            u1->constValue.IsDefined() && u2->constValue.IsDefined(),
+            u1->constValue.GetBoolval() || u2->constValue.GetBoolval());
+        }
+      return 0;
+    }
+  else if(ArgConf == 1) // case: ubool x bool -> ubool
+    {
+      u1 = (UBool*)args[0].addr;
+      cb = (CcBool*) args[1].addr;
+    }
+  else if(ArgConf == 1) // case: bool x ubool -> ubool
+    {
+      u1 = (UBool*)args[1].addr;
+      cb = (CcBool*) args[0].addr;
+    }
+  if (!u1->IsDefined() || !cb->IsDefined())
+    res->SetDefined( false );
+  else
+    {
+      res->CopyFrom(u1);
+      res->constValue.Set(u1->constValue.IsDefined(),
+           u1->constValue.GetBoolval() || cb->GetBoolval() );
+    }
+  return 0;
+}
+
+
 
 /*
-5.34.3 Specification for operator ~~
+5.34.3 Specification for operators ~and~ and ~or~
 
 */
+const string TUAndSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(ubool ubool) -> ubool</text--->"
+  "<text>_ and _</text--->"
+  "<text>The operator returns the logical conjunction of its "
+  "arguments, restricted to their common deftime. Any undefined "
+  "argument or non-overlapping intervals result in an "
+  "undefined result."
+  "</text--->"
+  "<text>query [const ubool value ((\"2010-11-11\" "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] and [const ubool value "
+  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
+  ") )";
+
+const string TUOrSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(ubool ubool) -> ubool</text--->"
+  "<text>_ and _</text--->"
+  "<text>The operator returns the logical conjunction of its "
+  "arguments, restricted to their common deftime. Any undefined "
+  "argument or non-overlapping intervals result in an "
+  "undefined result."
+  "</text--->"
+  "<text>query [const ubool value ((\"2010-11-11\" "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] and [const ubool value "
+  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
+  ") )";
+
 
 /*
-5.34.4 Selection Function of operator ~~
+5.34.4 Selection Function of operators ~and~ and ~or~
 
 */
+int TUBinaryBoolFuncSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args ),
+           arg2 = nl->Second( args );
+
+  if( nl->SymbolValue( arg1 ) == "ubool" 
+   && nl->SymbolValue( arg2 ) == "ubool" )
+    return 0;
+  if( nl->SymbolValue( arg1 ) == "ubool" 
+   && nl->SymbolValue( arg2 ) == "bool" )
+    return 1;  
+  if( nl->SymbolValue( arg1 ) == "bool" 
+   && nl->SymbolValue( arg2 ) == "ubool" )
+    return 2;
+    
+  return -1; // This point should never be reached
+}
+
+ValueMapping temporalunitAndValuemap[] = { 
+  TUAndValueMap<0>,
+  TUAndValueMap<1>,
+  TUAndValueMap<2>
+};
+
+ValueMapping temporalunitOrValuemap[] = { 
+  TUOrValueMap<0>,
+  TUOrValueMap<1>,
+  TUOrValueMap<2> 
+};
 
 /*
-5.34.5 Definition of operator ~~
+5.34.5 Definition of operators ~and~ and ~or~
 
 */
+Operator temporalunitand
+( 
+ "and",
+ TUAndSpec,
+ 1,
+ temporalunitAndValuemap,
+ TUBinaryBoolFuncSelect,
+ TUBinaryBoolFuncTypeMap
+);
+
+Operator temporalunitor
+( 
+ "or",
+ TUOrSpec,
+ 1,
+ temporalunitOrValuemap,
+ TUBinaryBoolFuncSelect,
+ TUBinaryBoolFuncTypeMap
+);
+
 
 /*
 5.35 Operator ~~
@@ -9718,6 +10051,76 @@ Operator temporalunitnocomponents
 
 /*
 5.36.5 Definition of operator ~~
+
+*/
+
+/*
+5.37 Operator ~~
+
+----
+     (insert signature here)
+
+----
+
+*/
+
+/*
+5.37.1 Type mapping function for ~~
+
+*/
+
+/*
+5.37.2 Value mapping for operator ~~
+
+*/
+
+/*
+5.37.3 Specification for operator ~~
+
+*/
+
+/*
+5.37.4 Selection Function of operator ~~
+
+*/
+
+/*
+5.37.5 Definition of operator ~~
+
+*/
+
+/*
+5.38 Operator ~~
+
+----
+     (insert signature here)
+
+----
+
+*/
+
+/*
+5.38.1 Type mapping function for ~~
+
+*/
+
+/*
+5.38.2 Value mapping for operator ~~
+
+*/
+
+/*
+5.38.3 Specification for operator ~~
+
+*/
+
+/*
+5.38.4 Selection Function of operator ~~
+
+*/
+
+/*
+5.38.5 Definition of operator ~~
 
 */
 
@@ -9851,6 +10254,7 @@ public:
     AddOperator( &temporalunitpoint2d );
     AddOperator( &temporalcircle );
     AddOperator( &temporalmakepoint );
+    AddOperator( &temporalunitisempty );
     AddOperator( &temporalunitdeftime );
     AddOperator( &temporalunitpresent );
     AddOperator( &temporalunitinitial );
@@ -9870,6 +10274,9 @@ public:
     AddOperator( &temporalderivable );
     AddOperator( &temporalderivative );
     AddOperator( &temporalunitnocomponents );
+    AddOperator( &temporalunitnot );
+    AddOperator( &temporalunitand );
+    AddOperator( &temporalunitor );
     AddOperator( &streamFilter );
     AddOperator( &STREAMELEM );
     AddOperator( &STREAMELEM2 );

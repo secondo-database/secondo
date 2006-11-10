@@ -873,6 +873,35 @@ query no_components(ureg)
 
 
 
+#testcase isempty undef
+#yields (bool TRUE)
+query isempty([const uint value undef])
+
+#testcase isempty def
+#yields (bool FALSE)
+query isempty([const uint value (("2003-11-12" "2005-05-30" FALSE FALSE) 7)])
+
+
+
+#testcase not undef
+#yields (ubool undef)
+query not([const ubool value undef])
+
+#testcase not TRUE
+#yields (ubool (("2003-11-12" "2005-05-30" FALSE FALSE) FALSE))
+query not([const ubool value (("2003-11-12" "2005-05-30" FALSE FALSE) TRUE)])
+
+#testcase not FALSE
+#yields (ubool (("2003-11-12" "2005-05-30" FALSE FALSE) TRUE))
+query not([const ubool value (("2003-11-12" "2005-05-30" FALSE FALSE) TRUE)])
+
+
+
+
+
+
+
+
 
 # intersection_upoint_region
 # intersection_region_upoint
