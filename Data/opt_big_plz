@@ -1,0 +1,25 @@
+# 11.10.2006, M. Spiekermann
+#
+# See also bug report K061110
+
+open database opt;
+
+let plz_big = plz feed ten feed product
+   extend[ Attr1: "wekrjhsjkdfhsjdfh", 
+       Attr2: randint(41267), 
+       Attr3: "sdkjfshdjfhhhh",
+       Attr4: "wekrjhsjkdfhsjdfh",  
+       Attr5: randint(41267), 
+       Attr6: "sdkjfshdjfhhhh", 
+       Attr7: randint(100000) / (1 + randint(100000)), 
+       Attr8: randint(400000), 
+       Attr9: "sdkfjhsjdfhh", 
+       AttrA: randint(100000) / (1 + randint(100000)), 
+       AttrB: "wekrjhsjkdfhsjdfh", 
+       AttrC: randint(40000), 
+       AttrD: 234876.45736,
+       AttrE: "wekrjhsjkdfhsjdfh", 
+       AttrF: seqnext(), 
+       AttrG: 123456,
+       AttrH: "0123456789012345678901234567890123456789012345678" ]
+  consume;
