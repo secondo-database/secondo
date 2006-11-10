@@ -848,7 +848,7 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
 
   if ( RTFlag::isActive("SMI:NoTransactions") ) {
     SmiEnvironment::Implementation::AutoCommitFlag = 0;
-    cout << endl << "AutoCommitFlag set to 0" << endl;
+    cout << endl << "Transactions: unused" << endl;
   } 
 
   int rc = 0;
@@ -887,7 +887,7 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
   {
     cachesize = CACHE_SIZE_MAX;
   }
-  cout << "Setting Cachesize to " << cachesize << " kb." << endl;
+  cout << "Cachesize: " << cachesize << " kb." << endl;
   rc = dbenv->set_cachesize( 0, cachesize * 1024, 0 );
 
   // --- Set locking configuration
@@ -917,6 +917,8 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
       rc = dbenv->set_lk_max_objects( lockValue );
     }
     rc = dbenv->set_lk_detect( DB_LOCK_DEFAULT );
+
+
   }
 
   // --- Set log directory, if requested
@@ -1010,6 +1012,13 @@ Transactions, logging and locking are enabled.
     }
   }
 
+  db_timeout_t microSeconds = 0;
+  dbenv->get_timeout(&microSeconds, DB_SET_LOCK_TIMEOUT);
+  cout << "Lock timeout: " << microSeconds << " (10e-6 s)" << endl;
+
+  dbenv->get_timeout(&microSeconds, DB_SET_TXN_TIMEOUT);
+  cout << "TXN timeout: " << microSeconds << " (10e-6 s)" << endl;
+
   // --- Create temporary Berkeley DB environment
 
   if ( rc == 0 )
@@ -1018,7 +1027,6 @@ Transactions, logging and locking are enabled.
   }
 
   // --- Check error condition
-
   if ( rc == 0 )
   {
     smiStarted = true;

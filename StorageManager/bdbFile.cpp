@@ -914,6 +914,8 @@ too little memory, the state changes to partial retrieval.
 */
 bool PrefetchingIteratorImpl::NewPrefetch()
 {  
+  //cerr << "PrefIter = " << (void*)this 
+  //     << ": NewPrefetch(), state = " << state << endl;
   if(state == INITIAL && (searchType == RANGE || searchType == RIGHTRANGE))
   {
     memcpy(keyBuffer, leftBoundary, leftBoundaryLength);
@@ -980,6 +982,7 @@ bool PrefetchingIteratorImpl::NewPrefetch()
     };
     
     state = BROKEN;
+    //cerr << "PrefetchingIterator - Warning: state==BROKEN" << endl;
     return false;
   }
    
