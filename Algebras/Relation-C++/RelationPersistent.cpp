@@ -1285,6 +1285,9 @@ RelationIterator::~RelationIterator()
 
 Tuple* RelationIterator::GetNextTuple()
 {
+//#define TRACE_ON
+//  NTRACE(10000, "GetNextTuple()")
+//#undef TRACE_ON 
   if( !privateRelationIterator->iterator->Next() )
   {
     privateRelationIterator->endOfScan = true;
