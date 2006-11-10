@@ -173,7 +173,7 @@ function uncompressPackage {
     local file=${1##*/}
     local name="UNCOMP_FILES_$file"
     if ! checkPoint "$name"; then
-      uncompressFiles $sdk $*
+      uncompressFiles $PWD $*
       if [ $? -eq 0 ]; then
         setCheckPoint "$name"
         return 0
@@ -191,7 +191,7 @@ function uncompressPackage {
     local file=${1##*/}
     local name="UNCOMP_FILE_$file"
     if ! checkPoint "$name"; then
-      uncompressFiles $sdk $*
+      uncompressFiles $PWD $*
       if [ $? -eq 0 ]; then
         setCheckPoint "$name"
 	return 0
@@ -410,6 +410,15 @@ if [ "$testMode" == "true" ]; then
   mkdir -p $instpath
 fi
 
+# check if $USER is defined
+if [ "$USER" == "" ]; then
+  if [ "$LOGNAME" == "" ]; then
+    showMsg "warn" "The variable \$USER and \$LOGNAME are empty. \$USER will be set to \"nobody\"."
+    USER="nobody"
+  else
+    USER="$LOGNAME"
+  fi  
+fi  
 
 # init log file
 temp=$LU_TMP/secondo-tmp-$USER/$sdkName
@@ -421,16 +430,6 @@ if [ $? -ne 0 ]; then
   abort
 fi
 logfile=$LU_LOG
-
-# check if $USER is defined
-if [ "$USER" == "" ]; then
-  if [ "$LOGNAME" == "" ]; then
-    showMsg "warn" "The variable \$USER and \$LOGNAME are empty. \$USER will be set to \"nobody\"."
-    USER="nobody"
-  else
-    USER="$LOGNAME"
-  fi  
-fi  
 
 # check if $HOME exists
 if [ ! -w "$HOME" ]; then
@@ -475,7 +474,7 @@ fi
 cdpath=$startDir
 sdk=$instpath/$sdkName
 build=$HOME/secondo
-prologdir=$sdk/pl
+prologdir=$sdk/swi
 
 
 
@@ -645,15 +644,15 @@ if [ "$opt_platform" == "win32" ]; then
   printSep "Installation of Tools from the gnuwin32 project ..."
   assert cd $sdk
   for dir in "auxtools flex bison"; do
-    assert mkdir $dir
+  assert mkdir -p $dir
   done 
   assert cd auxtools
   uncompressPackage "GNU Tools"                  "dir"   $platformdir/gnu
   uncompressPackage "JPEG-Library"               "files" $platformdir/non-gnu/jpeg-*
   uncompressPackage "CVS console client"         "file"  $platformdir/non-gnu/cvs-*
-  assert cd ../flex 
+  assert cd $sdk/flex
   uncompressPackage "Flex, a scanner generator"  "file"  $platformdir/non-gnu/flex-*
-  assert cd ../bison 
+  assert cd $sdk/bison
   uncompressPackage "Bison, a parser generator"  "dir"   $platformdir/bison
 
   if ! startupXterm "Messages from make" tail -f $logfile; then

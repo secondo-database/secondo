@@ -22,7 +22,7 @@
 # --------
 # August 2005, M. Spiekermann: Initial version
 
-bash -n $1
+sh -n $1
 if [ "$?" != "0" ]; then
   echo -e "\n There are syntax errors! \n"
   exit 1

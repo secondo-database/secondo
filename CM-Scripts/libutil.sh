@@ -317,14 +317,14 @@ function checkCmd {
 # search recursively for child processes. Result is stored
 # in global variable LU_CHILDS
 
+LU_TAB=$(echo -e "\t")
 function findChilds {
 
-   if [ "$OSTYPE" != "msys" ]; then
+   if [ "$OSTYPE" == "msys" ]; then
      # the msys sed implementation has problems with \t.
      # the next variable holds a TAB value
-     local t=" "
      #ps -f | sed -ne "s#\([^ $t]*\)[ $t]\+\([0-9]\+\)[ $t]\+$1[ $t].*#\2#p" | cat
-     local nextChilds=$(ps -f | sed -ne "s#\([^ $t]*\)[ $t]\+\([0-9]\+\)[ $t]\+$1[ $t].*#\2#p" | cat)
+     local nextChilds=$(ps -f | sed -ne "s#\([^ $LU_TAB]*\)[ $LU_TAB]\+\([0-9]\+\)[ $LU_TAB]\+$1[ $LU_TAB].*#\2#p" | cat)
    else
      local nextChilds=$(ps h -o pid --ppid $1 2>/dev/null | cat)
    fi
@@ -791,10 +791,9 @@ function createSecondoDatabase() {
   cd ${buildDir}/bin
   local cmd1="create database ${db};"
   local cmd2="restore database ${db} from '"${file}"';"
-  SecondoTTYBDB <<< "$cmd1
-$cmd2
-q;
-"
+  SecondoTTYBDB < "$cmd1; $cmd2; q;"
+
+
   
   local rc=$?
  

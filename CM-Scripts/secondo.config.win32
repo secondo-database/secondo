@@ -30,14 +30,14 @@
 # For some strange reason the jpeg library is not found although it
 # is defined in LIBRARY_PATH. Therefore we define some special additional
 # linker flags
-export SECONDO_LDFLAGS="-L$SECONDO_SDK/aux/lib"
+export SECONDO_LDFLAGS="-L$SECONDO_SDK/auxtools/lib"
 
 # MinGW
 export MINGW_DIR="/c/mingw/bin"
  
 #SWI_HOME_DIR must be specified with drive letter 
 #and \ as path separator 
-export SWI_HOME_DIR="C:\secondo-sdk\pl"
+export SWI_HOME_DIR="C:\secondo-sdk\swi"
 
 #SWI Prolog libraries
 export PL_INCLUDE_DIR="$SECONDO_SDK/swi/include"
@@ -45,8 +45,8 @@ export PL_LIB_DIR="$SECONDO_SDK/swi/lib"
 
 export PL_VERSION="50407"
 export PL_DLL_DIR="$SECONDO_SDK/swi/bin"
-export JPL_DLL=$(PL_DLL_DIR)/jpl.dll
-export PL_DLL=$(PL_DLL_DIR)/libpl.dll
+export JPL_DLL=$PL_DLL_DIR/jpl.dll
+export PL_DLL=$PL_DLL_DIR/libpl.dll
 export JPL_JAR=$PL_LIB_DIR/jpl.jar
 
 #JAVA

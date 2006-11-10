@@ -24,9 +24,18 @@ echo "--"
 bison --version | head -n1
 echo "--"
 db_archive -V | head -n1
-echo "--"
-echo "halt." | pl > /tmp/pl$$-version 2>&1;  cat /tmp/pl$$-version | head -n1
-echo "--"
+if [ $SECONDO_PLATFORM != "win32" ]; then
+
+  if [ $SECONDO_PLATFORM != "mac_osx" ]; then
+    plcmd="swipl"
+  fi
+  if [ $SECONDO_PLATFORM != "linux" ]; then
+    plcmd="pl"
+  fi
+  echo "--"
+  echo "halt." | $plcmd > /tmp/pl$$-version 2>&1;  cat /tmp/pl$$-version | head -n1
+  echo "--"
+fi
 
 }
 
