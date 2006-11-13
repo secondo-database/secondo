@@ -39,6 +39,7 @@ operator intersection alias INTERSECTION pattern op ( _ , _ )
 operator distance alias DISTANCE pattern op ( _ , _ )
 operator transformstream alias TRANSFORMSTREAM pattern _ op
 operator printstream alias PRINTSTREAM pattern _ op
+operator uint2ureal alias UINT2UREAL pattern op ( _ )
 
 # Operator signatures already defined elsewhere:
 

@@ -77,9 +77,11 @@ n/a +                       uregion x region --> bool
 
 OK  + deftime      (**)                   uT --> periods
 OK  + atinstant    (**)         uT x instant --> iT
-OK  + atperiods    (**          uT x periods --> (stream uT)
+OK  + atperiods    (**)         uT x periods --> (stream uT)
 OK  + Initial      (**)                   uT --> iT
+n/a   Initial      (**)          (stream uT) --> iT
 OK  + final        (**)                   uT --> iT
+n/a   final        (**)          (stream uT) --> iT
 OK  + present      (**)         uT x instant --> bool
 OK  +              (**)         uT x periods --> bool
      
@@ -149,23 +151,23 @@ OK  + no_components:     uT --> uint
 
 n/a + area: uregion --> ureal             see TemporalLiftedAlgebra
 
-Test+ and, or: ubool x ubool --> ubool
-Test+           bool x ubool --> ubool
-Test+          ubool x  bool --> ubool
+OK  + and, or: ubool x ubool --> ubool
+OK  +           bool x ubool --> ubool
+OK  +          ubool x  bool --> ubool
 
       =, #, <, >, <=, >=: 
-n/a +        uT x uT --> (stream ubool)
+OK  +                uT x uT --> (stream ubool)
 
-OK  + not:       ubool --> ubool
+OK  + not:             ubool --> ubool
 
-n/a   initial, final: (stream uT) --> iT
+
 n/a   present: (stream uT) x instant --> bool
 n/a   present: (stream uT) x periods --> bool
 n/a + sometimes: ubool --> bool
 n/a + never:     ubool --> bool
 n/a + always:    ubool --> bool
 
-n/a   uint2ureal:       uint --> ureal
+OK    uint2ureal:       uint --> ureal
 n/a   int2real:          int --> real
 n/a   floor:            real --> int
 n/a   ceil:             real --> int
@@ -189,6 +191,7 @@ Key to STATE of implementation:
 
     + : Exists for according mType
     - : Does nor exist for according mType
+    ? : It is unclear, whether it exists or not
 
 ----
 
@@ -651,26 +654,24 @@ be found in the operator implementation section below.
 
 4.1 Selection function ~UnitSimpleSelect~
 
-Is used for the ~deftime~,~atinstant~,~atperiods~, ~initial~, ~final~  
-operations.
+Is used for the ~deftime~,~atinstant~,~atperiods~ operations.
 
 */
 int
 UnitSimpleSelect( ListExpr args )
 {
-  ListExpr arg1 = nl->First( args );
-
-  if( nl->SymbolValue( arg1 ) == "ubool" )
+  ListExpr T = nl->First( args );
+  if( nl->SymbolValue( T ) == "ubool" )
     return 0;
-  if( nl->SymbolValue( arg1 ) == "uint" )
+  if( nl->SymbolValue( T ) == "uint" )
     return 1;
-  if( nl->SymbolValue( arg1 ) == "ureal" )
+  if( nl->SymbolValue( T ) == "ureal" )
     return 2;
-  if( nl->SymbolValue( arg1 ) == "upoint" )
+  if( nl->SymbolValue( T ) == "upoint" )
     return 3;
-  if( nl->SymbolValue( arg1 ) == "ustring" )
+  if( nl->SymbolValue( T ) == "ustring" )
     return 4;
-  if( nl->SymbolValue( arg1 ) == "uregion" )
+  if( nl->SymbolValue( T ) == "uregion" )
     return 5;
   
   return -1; // This point should never be reached
@@ -710,17 +711,17 @@ UnitCombinedUnitStreamSelect( ListExpr args )
       && ( nl->ListLength(arg1) == 2 )
       && ( TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) )
     { if( nl->IsEqual( nl->Second(arg1), "ubool" ) )
-        return 4;
-      if( nl->IsEqual( nl->Second(arg1), "uint" ) )
-        return 5;
-      if( nl->IsEqual( nl->Second(arg1), "ureal" ) )
         return 6;
-      if( nl->IsEqual( nl->Second(arg1), "upoint" ) )
+      if( nl->IsEqual( nl->Second(arg1), "uint" ) )
         return 7;
-      if( nl->IsEqual( nl->Second(arg1), "ustring" ) )
+      if( nl->IsEqual( nl->Second(arg1), "ureal" ) )
         return 8;
-      if( nl->IsEqual( nl->Second(arg1), "uregion" ) )
+      if( nl->IsEqual( nl->Second(arg1), "upoint" ) )
         return 9;
+      if( nl->IsEqual( nl->Second(arg1), "ustring" ) )
+        return 10;
+      if( nl->IsEqual( nl->Second(arg1), "uregion" ) )
+        return 11;
     }
   
   return -1; // This point should never be reached
@@ -2147,33 +2148,61 @@ Operator temporalunitatperiods( "atperiods",
 
 5.10.1 Type Mapping for ~initial~ and ~final~
 
+Signatures
+
+----
+    For T in {bool, int, real, string, point, region}:
+
+      (       uT) --> iT
+      (stream uT) --> iT
+
+----
+
+
 */
 ListExpr
 UnitTypeMapIntime( ListExpr args )
 {
- if ( nl->ListLength( args ) == 1 )
-  {
-    ListExpr arg1 = nl->First( args );
-
-       if( nl->IsEqual( arg1, "ubool" ) )
-      return nl->SymbolAtom( "ibool" );
-
-    if( nl->IsEqual( arg1, "uint" ) )
-      return nl->SymbolAtom( "iint" );
-
-    if( nl->IsEqual( arg1, "ureal" ) )
-      return nl->SymbolAtom( "ireal" );
-
-    if( nl->IsEqual( arg1, "upoint" ) )
-      return nl->SymbolAtom( "ipoint" );
-
-    if( nl->IsEqual( arg1, "ustring" ) )
-      return nl->SymbolAtom( "istring" );
-
-    if( nl->IsEqual( arg1, "uregion" ) )
-      return nl->SymbolAtom( "iregion" );
-
-  }
+  ListExpr t;
+  
+  if ( nl->ListLength( args ) == 1 )
+    {
+      if (nl->IsAtom(nl->First(args)))
+        t = nl->First( args );
+      else if (nl->ListLength(nl->First(args))==2 && 
+               nl->IsEqual(nl->First(nl->First(args)), "stream")) 
+        t = nl->Second(nl->First(args));
+      else
+        {
+          ErrorReporter::ReportError
+            ("Operator initial/final expects a (stream T)"
+             "for T in {bool,int,real,string,point,region}");
+          return nl->SymbolAtom( "typeerror" );
+        }
+     
+      if( nl->IsEqual( t, "ubool" ) )
+        return nl->SymbolAtom( "ibool" );
+      
+      if( nl->IsEqual( t, "uint" ) )
+        return nl->SymbolAtom( "iint" );
+      
+      if( nl->IsEqual( t, "ureal" ) )
+        return nl->SymbolAtom( "ireal" );
+      
+      if( nl->IsEqual( t, "upoint" ) )
+        return nl->SymbolAtom( "ipoint" );
+      
+      if( nl->IsEqual( t, "ustring" ) )
+        return nl->SymbolAtom( "istring" );
+      
+      if( nl->IsEqual( t, "uregion" ) )
+        return nl->SymbolAtom( "iregion" );
+    }
+  else
+    ErrorReporter::ReportError
+      ("Operator initial/final expects a list of length one, "
+       "containing a value of one type 'T' with T in "
+       "{bool,int,real,string,point,region}");
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -2181,6 +2210,8 @@ UnitTypeMapIntime( ListExpr args )
 5.10.2 Value Mapping for ~initial~ and ~final~
 
 */
+
+// first come the value mappings for (UNIT) argument
 template <class Unit, class Alpha>
 int MappingUnitInitial( Word* args, Word& result, int message,
                         Word& local, Supplier s )
@@ -2207,8 +2238,8 @@ int MappingUnitFinal( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
 
-  Unit* unit = ((Unit*)args[0].addr);
-  Intime<Alpha>* res = ((Intime<Alpha>*)result.addr);
+  Unit *unit = ((Unit*)args[0].addr);
+  Intime<Alpha> *res = ((Intime<Alpha>*)result.addr);
 
   if( !unit->IsDefined() || !(unit->timeInterval.end.IsDefined()) )
      res->SetDefined( false );
@@ -2221,68 +2252,170 @@ int MappingUnitFinal( Word* args, Word& result, int message,
   return 0;
 }
 
+//now, we give the value mappings for (stream UNIT) argument
+// Mode=0 for initial, Mode=1 for final
+template <class Unit, class Alpha, int Mode>
+int MappingUnitStreamInstantFinal( Word* args, Word& result, int message,
+                                   Word& local, Supplier s )
+{
+  assert(Mode>=0 && Mode<=1);
+  
+  result = qp->ResultStorage( s );
+
+  Word elem;
+  Unit *U = 0, *SavedUnit = 0;
+  Intime<Alpha> *I = ((Intime<Alpha>*)result.addr);
+
+  
+  qp->Open(args[0].addr);              // get first elem from stream 
+  qp->Request(args[0].addr, elem);     // get first elem from stream 
+  while ( qp->Received(args[0].addr) ) // there is a element from the stream
+    {
+      U = (Unit*) elem.addr;
+      if ( U->IsDefined() )
+        {
+          if (SavedUnit == 0)
+            SavedUnit = U;
+          else 
+            { 
+              if(Mode == 0)
+                { // initial-mode
+                  if ( U->timeInterval.Before((*SavedUnit).timeInterval.start) )
+                    {
+                      SavedUnit->DeleteIfAllowed();
+                      SavedUnit = U;
+                    }
+                  else
+                    U->DeleteIfAllowed();
+                }
+              else // (Mode == 1)
+                { // final-mode
+                  if ( U->timeInterval.After((*SavedUnit).timeInterval.end) )
+                    {
+                      SavedUnit->DeleteIfAllowed();
+                      SavedUnit = U;
+                    }
+                  else
+                    {
+                      U->DeleteIfAllowed();
+                    }
+                }      
+            }
+        }
+      else
+        U->DeleteIfAllowed();
+      qp->Request(args[0].addr, elem); // get next stream elem
+    }
+  qp->Close(args[0].addr); // close the stream
+
+  // create and return the result
+  if (SavedUnit == 0)
+    I->SetDefined(false);
+  else
+    if(Mode == 0)
+      { // initial-mode
+        SavedUnit->TemporalFunction
+          ( SavedUnit->timeInterval.start, I->value, true );
+        I->instant.CopyFrom( &SavedUnit->timeInterval.start );
+        I->SetDefined( true );    
+        SavedUnit->DeleteIfAllowed();
+      }
+    else // (Mode == 1)
+      { // final-mode
+        SavedUnit->TemporalFunction
+          ( SavedUnit->timeInterval.end, I->value, true );
+        I->instant.CopyFrom( &SavedUnit->timeInterval.end );
+        I->SetDefined( true );    
+        SavedUnit->DeleteIfAllowed();
+      }      
+  return 0;
+}
+
+
 /*
 5.10.3 Specification for operator ~initial~ and ~final~
 
 */
 const string
 TemporalSpecInitial  =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>uT -> iT\n"
-"(T in {bool, int, real, string, point, region})</text--->"
-"<text>initial( _ )</text--->"
-"<text>From a unit type, get the intime value corresponding "
-"to the initial instant.</text--->"
-"<text>initial( upoint1 )</text---> ) )";
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(       uT) -> iT\n"
+  "(stream uT) -> iT\n"
+  "(T in {bool, int, real, string, point, region})</text--->"
+  "<text>initial( _ )</text--->"
+  "<text>From a unit type (or a stream of units), get the "
+  "intime value corresponding to the (overall) initial instant.</text--->"
+  "<text>initial( upoint1 )</text---> ) )";
 
 const string
 TemporalSpecFinal  =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>uT -> iT\n"
-"(T in {bool, int, real, string, point, region})</text--->"
-"<text>final( _ )</text--->"
-"<text>get the intime value corresponding "
-"to the final instant.</text--->"
-"<text>final( upoint1 )</text---> ) )";
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>)       uT) -> iT\n"
+  "(stream uT) -> iT\n"
+  "(T in {bool, int, real, string, point, region})</text--->"
+  "<text>final( _ )</text--->"
+  "<text>get the intime value corresponding "
+  "to the (overall) final instant of the (stream of) unit.</text--->"
+  "<text>final( upoint1 )</text---> ) )";
 
 /* 
 5.10.4 Selection Function of operator ~initial~ and ~final~
 
-Use ~UnitSimpleSelect~ / ~UnitCombinedUnitStreamSelect~.
+Using ~UnitCombinedUnitStreamSelect~.
 
 */
 
-ValueMapping temporalunitinitialmap[] = { MappingUnitInitial<UBool, CcBool>,
-                                          MappingUnitInitial<UInt, CcInt>,
-                                          MappingUnitInitial<UReal, CcReal>,
-                                          MappingUnitInitial<UPoint, Point>, 
-                                          MappingUnitInitial<UString, CcString>,
-                                          MappingUnitInitial<URegion, Region>};
+ValueMapping temporalunitinitialmap[] = { 
+  MappingUnitInitial<UBool, CcBool>,
+  MappingUnitInitial<UInt, CcInt>,
+  MappingUnitInitial<UReal, CcReal>,
+  MappingUnitInitial<UPoint, Point>, 
+  MappingUnitInitial<UString, CcString>,
+  MappingUnitInitial<URegion, Region>,
+  MappingUnitStreamInstantFinal<UBool, CcBool, 0>,
+  MappingUnitStreamInstantFinal<UInt, CcInt, 0>,
+  MappingUnitStreamInstantFinal<UReal, CcReal, 0>,
+  MappingUnitStreamInstantFinal<UPoint, Point, 0>,
+  MappingUnitStreamInstantFinal<UString, CcString, 0>,
+  MappingUnitStreamInstantFinal<URegion, Region, 0>
+};
 
-ValueMapping temporalunitfinalmap[] = {  MappingUnitFinal<UBool, CcBool>,
-                                         MappingUnitFinal<UInt, CcInt>,
-                                         MappingUnitFinal<UReal, CcReal>,
-                                         MappingUnitFinal<UPoint, Point>, 
-                                         MappingUnitFinal<UString, CcString>,
-                                         MappingUnitFinal<URegion, Region>};
+ValueMapping temporalunitfinalmap[] = {  
+  MappingUnitFinal<UBool, CcBool>,
+  MappingUnitFinal<UInt, CcInt>,
+  MappingUnitFinal<UReal, CcReal>,
+  MappingUnitFinal<UPoint, Point>, 
+  MappingUnitFinal<UString, CcString>,
+  MappingUnitFinal<URegion, Region>,
+  MappingUnitStreamInstantFinal<UBool, CcBool, 1>,
+  MappingUnitStreamInstantFinal<UInt, CcInt, 1>,
+  MappingUnitStreamInstantFinal<UReal, CcReal, 1>,
+  MappingUnitStreamInstantFinal<UPoint, Point, 1>,
+  MappingUnitStreamInstantFinal<UString, CcString, 1>,
+  MappingUnitStreamInstantFinal<URegion, Region, 1>
+};
 
 /*
 5.10.5  Definition of operator ~initial~ and ~final~
 
 */
-Operator temporalunitinitial( "initial",
-                          TemporalSpecInitial,
-                          6,
-                          temporalunitinitialmap,
-                          UnitSimpleSelect,
-                          UnitTypeMapIntime );
+Operator temporalunitinitial
+( 
+ "initial",
+ TemporalSpecInitial,
+ 12,
+ temporalunitinitialmap,
+ UnitCombinedUnitStreamSelect,
+ UnitTypeMapIntime );
 
-Operator temporalunitfinal( "final",
-                        TemporalSpecFinal,
-                        6,
-                        temporalunitfinalmap,
-                        UnitSimpleSelect,
-                        UnitTypeMapIntime );
+Operator temporalunitfinal
+( 
+ "final",
+ TemporalSpecFinal,
+ 12,
+ temporalunitfinalmap,
+ UnitCombinedUnitStreamSelect,
+ UnitTypeMapIntime );
 
 /*
 5.11 Operator ~present~
@@ -10102,7 +10235,7 @@ int TUComparePredicatedValueMap(Word* args, Word& result, int message,
 5.35.3 Specification for operator ~ComparePredicates~
 
 */
-const string TUEq  = 
+const string TUEqSpec  = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
   "<text>_ = _</text--->"
@@ -10113,7 +10246,7 @@ const string TUEq  =
   "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
-const string TUNEq  = 
+const string TUNEqSpec  = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
   "<text>_ # _</text--->"
@@ -10124,7 +10257,7 @@ const string TUNEq  =
   "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
-const string TULt  = 
+const string TULtSpec  = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
   "<text>_ < _</text--->"
@@ -10135,7 +10268,7 @@ const string TULt  =
   "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
-const string TUBt  = 
+const string TUBtSpec  = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
   "<text>_ > _</text--->"
@@ -10146,7 +10279,7 @@ const string TUBt  =
   "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
-const string TULtEq  = 
+const string TULtEqSpec  = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
   "<text>_ <= _</text--->"
@@ -10157,7 +10290,7 @@ const string TULtEq  =
   "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
-const string TUBtEq  = 
+const string TUBtEqSpec  = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
   "<text>_ >= _</text--->"
@@ -10175,10 +10308,14 @@ We can use Operator::SimpleSelect:
 
 */
 
+/*
+5.35.5 Definition of operator ~ComparePredicates~
+
+*/
 Operator temporalunitisequal
 (
  "=",
- TUEq,
+ TUEqSpec,
  TUComparePredicatedValueMap<0>,
  Operator::SimpleSelect,
  TUComparePredicatesTypeMap
@@ -10187,7 +10324,7 @@ Operator temporalunitisequal
 Operator temporalunitisnotequal
 (
  "#",
- TUNEq,
+ TUNEqSpec,
  TUComparePredicatedValueMap<1>,
  Operator::SimpleSelect,
  TUComparePredicatesTypeMap
@@ -10196,7 +10333,7 @@ Operator temporalunitisnotequal
 Operator temporalunitsmaller
 (
  "<",
- TULt,
+ TULtSpec,
  TUComparePredicatedValueMap<2>,
  Operator::SimpleSelect,
  TUComparePredicatesTypeMap
@@ -10205,7 +10342,7 @@ Operator temporalunitsmaller
 Operator temporalunitbigger
 (
  ">",
- TUBt,
+ TUBtSpec,
  TUComparePredicatedValueMap<3>,
  Operator::SimpleSelect,
  TUComparePredicatesTypeMap
@@ -10214,7 +10351,7 @@ Operator temporalunitbigger
 Operator temporalunitsmallereq
 (
  "<=",
- TULtEq,
+ TULtEqSpec,
  TUComparePredicatedValueMap<4>,
  Operator::SimpleSelect,
  TUComparePredicatesTypeMap
@@ -10223,59 +10360,111 @@ Operator temporalunitsmallereq
 Operator temporalunitbiggereq
 (
  ">=",
- TUBtEq,
+ TUBtEqSpec,
  TUComparePredicatedValueMap<5>,
  Operator::SimpleSelect,
  TUComparePredicatesTypeMap
  );
-
 /*
-5.35.5 Definition of operator ~ComparePredicates~
+5.36 Operator ~uint2ureal~
+
+This operator creates an ureal value from an uint value
+
+----
+     uint --> ureal 
+
+----
 
 */
 
 /*
-5.36 Operator ~~
+5.36.1 Type mapping function for ~uint2ureal~
+
+*/
+ListExpr TUuint2urealTypeMap( ListExpr args )
+{
+  ListExpr arg1;
+  string argstr1;
+  
+  if( nl->ListLength( args ) == 1 )
+    {
+      arg1 = nl->First( args );
+      if( nl->IsEqual( arg1, "uint" ) )
+        return nl->SymbolAtom("ureal");
+    }
+  
+  // Error case:
+  nl->WriteToString(argstr1, arg1); 
+  ErrorReporter::ReportError(
+    "Operator uint2ureal expects an argument of type 'uint', "
+    "but the passed argument has type '"+ argstr1 + "'.");
+  return nl->SymbolAtom("typeerror");   
+}
+/*
+5.36.2 Value mapping for operator ~uint2ureal~
+
+*/
+int TUuint2urealValueMap(Word* args, Word& result, int message,
+                                Word& local, Supplier s)
+{
+  result = (qp->ResultStorage( s ));
+  UReal *res = (UReal*) result.addr;
+  UInt *u1;
+
+  u1 = (UInt*)args[0].addr;
+
+  res->SetDefined(u1->IsDefined());
+  if ( u1->IsDefined() )
+    {
+      res->timeInterval.CopyFrom(u1->timeInterval);
+      res->a = 0.0;
+      res->b = 0.0;
+      res->c = u1->constValue.GetIntval();
+      res->r = false;
+    }
+  return 0;
+}
+/*
+5.36.3 Specification for operator ~uint2ureal~
+
+*/
+const string TUuint2urealSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(uT uT) -> bool\n</text--->"
+  "<text>uint2ureal( _ )</text--->"
+  "<text>The operator creates a ureal value from an uint value.</text--->"
+  "<text>query uint2ureal([const uint value ((\"2010-11-11\" "
+  "\"2011-01-03\" TRUE FALSE) -5.4)])</text--->"
+  ") )";
+
+/*
+5.36.4 Selection Function of operator ~uint2ureal~
+
+We use Operator::SimpleSelect here.
+
+*/
+
+/*
+5.36.5 Definition of operator ~uint2ureal~
+
+*/
+Operator temporalunituint2ureal
+(
+ "uint2ureal",
+ TUuint2urealSpec,
+ TUuint2urealValueMap,
+ Operator::SimpleSelect,
+ TUuint2urealTypeMap
+ );
+
+/*
+5.37 Operator ~initial~, ~final~
 
 ----
      (insert signature here)
 
 ----
 
-*/
-
-/*
-5.36.1 Type mapping function for ~~
-
-*/
-
-/*
-5.36.2 Value mapping for operator ~~
-
-*/
-
-/*
-5.36.3 Specification for operator ~~
-
-*/
-
-/*
-5.36.4 Selection Function of operator ~~
-
-*/
-
-/*
-5.36.5 Definition of operator ~~
-
-*/
-
-/*
-5.37 Operator ~~
-
-----
-     (insert signature here)
-
-----
 
 */
 
@@ -10338,6 +10527,112 @@ Operator temporalunitbiggereq
 5.38.5 Definition of operator ~~
 
 */
+
+/*
+5.38 Operator ~~
+
+----
+     (insert signature here)
+
+----
+
+*/
+
+/*
+5.39.1 Type mapping function for ~~
+
+*/
+
+/*
+5.39.2 Value mapping for operator ~~
+
+*/
+
+/*
+5.39.3 Specification for operator ~~
+
+*/
+
+/*
+5.39.4 Selection Function of operator ~~
+
+*/
+
+/*
+5.39.5 Definition of operator ~~
+
+*/
+
+/*
+5.40 Operator ~~
+
+----
+     (insert signature here)
+
+----
+
+*/
+
+/*
+5.40.1 Type mapping function for ~~
+
+*/
+
+/*
+5.40.2 Value mapping for operator ~~
+
+*/
+
+/*
+5.40.3 Specification for operator ~~
+
+*/
+
+/*
+5.40.4 Selection Function of operator ~~
+
+*/
+
+/*
+5.40.5 Definition of operator ~~
+
+*/
+
+/*
+5.41 Operator ~~
+
+----
+     (insert signature here)
+
+----
+
+*/
+
+/*
+5.41.1 Type mapping function for ~~
+
+*/
+
+/*
+5.41.2 Value mapping for operator ~~
+
+*/
+
+/*
+5.41.3 Specification for operator ~~
+
+*/
+
+/*
+5.41.4 Selection Function of operator ~~
+
+*/
+
+/*
+5.41.5 Definition of operator ~~
+
+*/
+
 
 /*
 6 Type operators
@@ -10498,6 +10793,7 @@ public:
     AddOperator( &temporalunitbigger );
     AddOperator( &temporalunitsmallereq );
     AddOperator( &temporalunitbiggereq );
+    AddOperator( &temporalunituint2ureal );
     AddOperator( &streamFilter );
     AddOperator( &STREAMELEM );
     AddOperator( &STREAMELEM2 );

@@ -163,6 +163,10 @@ query initial(up1)
 #yields (ipoint undef)
 query initial(up3)
 
+#testcase initial stream
+#yields (ipoint ("2003-11-20-06:34:10" (25965.0 15030.0)))
+query initial(units(zug5) transformstream extend[zz: randint(500)] sortby[zz asc] remove[zz] transformstream)
+
 #testcase final_up
 #yields (ipoint ("2003-11-20-07:00" (1000.0 1000.0)))
 query final(up1)
@@ -170,6 +174,10 @@ query final(up1)
 #testcase final_up undef
 #yields (ipoint undef)
 query final(up3)
+
+#testcase final stream
+#yield (ipoint ("2003-11-20-06:00" (11068.0 12895.0)))
+query final(units(zug5) transformstream extend[zz: randint(500)] sortby[zz asc] remove[zz] transformstream)
 
 #testcase present_I
 #yields (bool TRUE)
