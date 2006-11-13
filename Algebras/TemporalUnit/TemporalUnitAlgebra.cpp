@@ -155,8 +155,6 @@ Test+          ubool x  bool --> ubool
 
       =, #, <, >, <=, >=: 
 n/a +        uT x uT --> (stream ubool)
-n/a +         T x uT --> (stream ubool)
-n/a +        uT x  T --> (stream ubool)
 
 OK  + not:       ubool --> ubool
 
@@ -9992,16 +9990,16 @@ Operator temporalunitor
 /*
 5.35 Operator ~ComparePredicates~
 
-Here, we implement the binary comparison operators/presicates for (uT uT), (T uT) 
-and (uT T). The predicates are = (equality), # (unequality), < (smaller than),
+Here, we implement the binary comparison operators/predicates for (uT uT). 
+The predicates are = (equality), # (unequality), < (smaller than),
 > (bigger than), <= (smaller tah or equal to), >= (bigger than or equal to).
 
-----
-      =, #, <, >, <=, >=: 
-n/a +        uT x uT --> (stream ubool)
-n/a +         T x uT --> (stream ubool)
-n/a +        uT x  T --> (stream ubool)
+The operators use the internat ~Compare~ function, which implements an ordering on the
+elements, but does not need to respect inuitive operator semantics (e.g. in case ureal).
 
+----
+      =, #, <, >, <=, >=: T in {int, bool, real, string, point, region}
+n/a +        uT x uT --> (stream ubool)
 
 ----
 
@@ -10011,21 +10009,225 @@ n/a +        uT x  T --> (stream ubool)
 5.35.1 Type mapping function for ~ComparePredicates~
 
 */
-
+ListExpr TUComparePredicatesTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  string argstr1, argstr2;
+  
+  if( nl->ListLength( args ) == 2 )
+    {
+      arg1 = nl->First( args );
+      arg2 = nl->Second( args );
+      if (nl->Equal( arg1, arg2 ))
+        {
+          if( (nl->IsEqual( arg1, "ubool" ) )   ||
+              (nl->IsEqual( arg1, "uint" ) )    ||
+              (nl->IsEqual( arg1, "ureal" ) )   ||
+              (nl->IsEqual( arg1, "upoint" ) )  ||
+              (nl->IsEqual( arg1, "ustring" ) ) ||
+              (nl->IsEqual( arg1, "uregion" ) ) ||
+              (nl->IsEqual( arg1, "upoint" ) ) )
+            return nl->SymbolAtom( "bool" );
+        }
+      
+    }
+  
+  // Error case:
+  nl->WriteToString(argstr1, arg1); 
+  nl->WriteToString(argstr2, arg2); 
+  ErrorReporter::ReportError(
+    "Compare Operator (one of =, #, <, <=, >, >=) expects two arguments of "
+    "type 'uT', where T in {bool, int, real, string, point, region}. The "
+    "passed arguments have types '"+ argstr1 +"' and '"
+    + argstr2 + "'.");
+  return nl->SymbolAtom("typeerror");   
+}
 /*
 5.35.2 Value mapping for operator ~ComparePredicates~
 
+template parameter ~OPType~ gives the character of the operator: 0 =, 1 #, 2 <, 3 >, 4 <=, 5 >=
+
 */
+
+template<int OpType>
+int TUComparePredicatedValueMap(Word* args, Word& result, int message,
+                                Word& local, Supplier s)
+{
+  assert( (OpType>=0) && (OpType<=5));
+
+  result = (qp->ResultStorage( s ));
+  CcBool *res = (CcBool*) result.addr;
+  Attribute *u1, *u2;
+  int p1;
+
+  u1 = (Attribute*)args[0].addr;
+  u2 = (Attribute*)args[1].addr;
+  
+  p1 = u1->Compare(u2);
+
+  switch (OpType) 
+    {
+    case 0: // is_equal
+      res->Set(true, (p1 == 0));
+      return 0;
+
+    case 1: // is_not_equal
+      res->Set(true, (p1 != 0));
+      return 0;
+      
+    case 2: // less_than
+      res->Set(true, (p1 == -1));
+      return 0;
+
+    case 3: // bigger_than
+      res->Set(true, (p1 == 1));
+      return 0;
+
+    case 4: // less_or_equal
+      res->Set(true, (p1 < 1) );
+      return 0;
+      
+    case 5: // bigger_or_equal
+      res->Set(true, (p1 > -1));
+      return 0;
+    }
+
+  res->Set(false, false);
+  return -1; // should not happen
+}
+
+
 
 /*
 5.35.3 Specification for operator ~ComparePredicates~
 
 */
+const string TUEq  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(uT uT) -> bool\n</text--->"
+  "<text>_ = _</text--->"
+  "<text>The operator checks if the internal ordering predicate "
+  "holds for both arguments.</text--->"
+  "<text>query [const ubool value ((\"2010-11-11\" "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] = [const ubool value "
+  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
+  ") )";
+
+const string TUNEq  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(uT uT) -> bool\n</text--->"
+  "<text>_ # _</text--->"
+  "<text>The operator checks if the internal ordering predicate "
+  "holds for both arguments.</text--->"
+  "<text>query [const ubool value ((\"2010-11-11\" "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] # [const ubool value "
+  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
+  ") )";
+
+const string TULt  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(uT uT) -> bool\n</text--->"
+  "<text>_ < _</text--->"
+  "<text>The operator checks if the internal ordering predicate "
+  "holds for both arguments.</text--->"
+  "<text>query [const ubool value ((\"2010-11-11\" "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] < [const ubool value "
+  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
+  ") )";
+
+const string TUBt  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(uT uT) -> bool\n</text--->"
+  "<text>_ > _</text--->"
+  "<text>The operator checks if the internal ordering predicate "
+  "holds for both arguments.</text--->"
+  "<text>query [const ubool value ((\"2010-11-11\" "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] > [const ubool value "
+  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
+  ") )";
+
+const string TULtEq  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(uT uT) -> bool\n</text--->"
+  "<text>_ <= _</text--->"
+  "<text>The operator checks if the internal ordering predicate "
+  "holds for both arguments.</text--->"
+  "<text>query [const ubool value ((\"2010-11-11\" "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] <= [const ubool value "
+  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
+  ") )";
+
+const string TUBtEq  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(uT uT) -> bool\n</text--->"
+  "<text>_ >= _</text--->"
+  "<text>The operator checks if the internal ordering predicate "
+  "holds for both arguments.</text--->"
+  "<text>query [const ubool value ((\"2010-11-11\" "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] >= [const ubool value "
+  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
+  ") )";
 
 /*
 5.35.4 Selection Function of operator ~ComparePredicates~
 
+We can use Operator::SimpleSelect:
+
 */
+
+Operator temporalunitisequal
+(
+ "=",
+ TUEq,
+ TUComparePredicatedValueMap<0>,
+ Operator::SimpleSelect,
+ TUComparePredicatesTypeMap
+ );
+
+Operator temporalunitisnotequal
+(
+ "#",
+ TUNEq,
+ TUComparePredicatedValueMap<1>,
+ Operator::SimpleSelect,
+ TUComparePredicatesTypeMap
+ );
+
+Operator temporalunitsmaller
+(
+ "<",
+ TULt,
+ TUComparePredicatedValueMap<2>,
+ Operator::SimpleSelect,
+ TUComparePredicatesTypeMap
+ );
+
+Operator temporalunitbigger
+(
+ ">",
+ TUBt,
+ TUComparePredicatedValueMap<3>,
+ Operator::SimpleSelect,
+ TUComparePredicatesTypeMap
+ );
+
+Operator temporalunitsmallereq
+(
+ "<=",
+ TULtEq,
+ TUComparePredicatedValueMap<4>,
+ Operator::SimpleSelect,
+ TUComparePredicatesTypeMap
+ );
+
+Operator temporalunitbiggereq
+(
+ ">=",
+ TUBtEq,
+ TUComparePredicatedValueMap<5>,
+ Operator::SimpleSelect,
+ TUComparePredicatesTypeMap
+ );
 
 /*
 5.35.5 Definition of operator ~ComparePredicates~
@@ -10290,6 +10492,12 @@ public:
     AddOperator( &temporalunitnot );
     AddOperator( &temporalunitand );
     AddOperator( &temporalunitor );
+    AddOperator( &temporalunitisequal );
+    AddOperator( &temporalunitisnotequal );
+    AddOperator( &temporalunitsmaller );
+    AddOperator( &temporalunitbigger );
+    AddOperator( &temporalunitsmallereq );
+    AddOperator( &temporalunitbiggereq );
     AddOperator( &streamFilter );
     AddOperator( &STREAMELEM );
     AddOperator( &STREAMELEM2 );
