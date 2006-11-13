@@ -1020,24 +1020,21 @@ CreateBTreeValueMapping_Stream(Word* args, Word& result, int message,
 
 */
 const string CreateBTreeSpec  = 
-    "( ( \"1st Signature\" \"2nd Signature\" "
-    "\"Syntax\" \"Meaning\" \"1st Example\" "
-    "\"2nd Example\" \"Comment\" ) "
-    "( <text>((rel (tuple (x1 t1)...(xn tn)))) xi)"
-    " -> (btree (tuple ((x1 t1)...(xn tn))) ti)</text--->"
-    "<text>((stream (tuple (x1 t1)...(xn tn) (id tid))) xi)"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>(((rel (tuple (x1 t1)...(xn tn)))) xi)"
+    " -> (btree (tuple ((x1 t1)...(xn tn))) ti)\n"
+    "((stream (tuple (x1 t1)...(xn tn) (id tid))) xi)"
     " -> (btree (tuple ((x1 t1)...(xn tn))) ti)</text--->"
     "<text>_ createbtree [ _ ]</text--->"
-    "<text>Creates a btree. The key type ti must"
-    " be either string or int or real or to implement the"
-    " kind INDEXABLE.</text--->"
-    "<text>let mybtree = ten createbtree [nr]</text--->"
-    "<text>let mybtree = ten feed extend[id: tupleid(.)] "
-    "sortby[no asc] createbtree[no]</text--->"
-    "<text>The operator only accepts input tuple types "
+    "<text>Creates a btree. The key type ti must "
+    "be either string or int or real or to implement the "
+    "kind INDEXABLE. The operator only accepts input tuple types "
     "containing 0 (for a relation) or 1 (for a stream) "
-    "attribute of type tid. "
-    "The naming of this attribute is of no concern.</text--->"
+    "attribute of type tid. The naming of this attribute is of "
+    "no concern.</text--->"
+    "<text>let mybtree = ten createbtree [nr];\n"
+    "let mybtree = ten feed extend[id: tupleid(.)] "
+    "sortby[no asc] createbtree[no]</text--->"
     ") )";
 
 /*
@@ -1286,8 +1283,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string ExactMatchSpec  =   
-  "( ( \"Signature\" \"Syntax\" \"Meaning\""
-  " \"Example\" )"
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>((btree (tuple ((x1 t1)...(xn tn)))"
   " ti)(rel (tuple ((x1 t1)...(xn tn)))) ti) ->"
   " (stream (tuple ((x1 t1)...(xn tn))))"
@@ -1320,8 +1316,7 @@ Operator exactmatch (
 
 */
 const string RangeSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" )"
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>((btree (tuple ((x1 t1)...(xn tn)))"
   " ti)(rel (tuple ((x1 t1)...(xn tn)))) ti ti)"
   " -> (stream (tuple ((x1 t1)...(xn tn))))"
@@ -1353,8 +1348,7 @@ Operator cpprange (
 
 */
 const string LeftRangeSpec  = 
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>((btree (tuple ((x1 t1)...(xn tn))) ti)"
   "(rel (tuple ((x1 t1)...(xn tn)))) ti) -> "
   "(stream"
@@ -1389,8 +1383,7 @@ Operator leftrange (
 
 */
 const string RightRangeSpec  = 
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>((btree (tuple ((x1 t1)...(xn tn)))"
   " ti)"
   "(rel (tuple ((x1 t1)...(xn tn)))) ti) -> "
@@ -1618,10 +1611,8 @@ IndexQueryS(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string ExactMatchSSpec  =         
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\""
-  " \"Example\" )"
-  "( <text>BTreeAlgebra</text--->"
-  "<text>(btree( (tuple(X))) ti) ti->)"
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+  "( <text>(btree( (tuple(X))) ti) ti->)"
   "(stream((id tid)))</text--->"
   "<text> _ exactmatchS [ _ ]</text--->"
   "<text>Uses the given btree to find all tuple "
@@ -1652,10 +1643,8 @@ Operator exactmatchs (
 
 */
 const string RangeSSpec  =         
-        "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-        "\"Example\" )"
-        "( <text>BTreeAlgebra</text--->"
-        "<text>((btree (tuple (X)) ti) ti ti)"
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+        "( <text>((btree (tuple (X)) ti) ti ti)"
         " -> (stream (tuple ((ti tid))))"
         "</text--->"
         "<text> _ rangeS [ _ , _ ]</text--->"
@@ -1686,10 +1675,8 @@ Operator cppranges (
 
 */
 const string LeftRangeSSpec  =         
-        "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-        "\"Example\" ) "
-        "( <text>BTreeAlgebra</text--->"
-        "<text>((btree (tuple (X)) ti) ti)"
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+        "( <text>((btree (tuple (X)) ti) ti)"
         " -> (stream (tuple ((ti tid))))</text--->"
         "<text>_ leftrangeS [ _ ]</text--->"
         "<text>Uses the given btree to find all tuple "
@@ -1721,10 +1708,8 @@ Operator leftranges (
 
 */
 const string RightRangeSSpec  = 
-        "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-        "\"Example\" ) "
-        "( <text>BTreeAlgebra</text--->"
-        "<text>((btree (tuple (X))"
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+        "( <text>((btree (tuple (X))"
         " ti) ti) -> (stream"
         " (tuple ((id tid))))</text--->"
         "<text>_ rightrangeS [ _ ]</text--->"
@@ -2058,8 +2043,7 @@ int insertBTreeValueMap(Word* args, Word& result, int message,
 
 */
 const string insertBTreeSpec  = 
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>stream(tuple(x@[TID tid])) x (btree(tuple(x) ti) xi)"
   " -> stream(tuple(x@[TID tid]))] "
   "</text--->"
@@ -2161,8 +2145,7 @@ int deleteBTreeValueMap(Word* args, Word& result, int message,
 
 */
 const string deleteBTreeSpec  = 
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>stream(tuple(x@[TID tid])) x (btree(tuple(x) ti) xi)"
   " -> stream(tuple(x@[TID tid]))] "
   "</text--->"
@@ -2272,8 +2255,7 @@ int updateBTreeValueMap(Word* args, Word& result, int message,
 
 */
 const string updateBTreeSpec  = 
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)])) x "
   "(btree(tuple(x) ti) xi)"
   " -> stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)]))] "
