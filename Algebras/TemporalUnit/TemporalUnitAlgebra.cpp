@@ -9552,7 +9552,7 @@ The operator returns TRUE, if the unit is undefined, otherwise it returns FALSE.
 It will never return an undefined result!
 
 ----
-      For U in kind UNIT:
+      For U in kind UNIT and U in kind DATA:
       isempty  U --> bool
 
 ----
@@ -9572,12 +9572,13 @@ TUIsemptyTypeMap( ListExpr args )
   if ( ( nl->ListLength(args) == 1 ) && ( nl->IsAtom(nl->First(args) ) ) )
     {
       arg1 = nl->First(args);
-      if( am->CheckKind("UNIT", arg1, errorInfo) ) 
+      if( am->CheckKind("DATA", arg1, errorInfo) && 
+          am->CheckKind("UNIT", arg1, errorInfo)) 
         return arg1;
     }
   ErrorReporter::ReportError("Operator isempty expects a list of length one, "
                              "containing a value of type 'U' with U in "
-                             "kind UNIT.");
+                             "kind UNIT and in kind DATA.");
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -9603,7 +9604,7 @@ int TUIsemptyValueMap( Word* args, Word& result, int message,
 */
 const string TUIsemptySpec  = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>For U in kind UNIT:\n"
+  "( <text>For U in kind UNIT and in kind DATA:\n"
   "U -> bool</text--->"
   "<text>isempty( _ )</text--->"
   "<text>The operator returns TRUE, if the unit is undefined, "
