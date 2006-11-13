@@ -902,11 +902,11 @@ query not([const ubool value (("2003-11-12" "2005-05-30" FALSE FALSE) FALSE)])
 
 
 #testcase and_ubool_ubool undef arg1
-#yields (ubool (undef))
+#yields (ubool undef)
 query ubool3 and ubool1
 
 #testcase and_ubool_ubool undef arg2
-#yields (ubool (undef))
+#yields (ubool undef)
 query ubool 1 and ubool3
 
 #testcase and_ubool_ubool no intersect
@@ -924,11 +924,11 @@ query ubool1 and ubool4
 
 
 #testcase and_bool_ubool undef arg1
-#yields (ubool (undef))
+#yields (ubool undef)
 query [const bool value undef] and u1
 
 #testcase and_bool_ubool undef arg2
-#yields (ubool (undef))
+#yields (ubool undef)
 query [const bool value TRUE] and ubool3
 
 #testcase and_bool_ubool TRUE
@@ -946,11 +946,11 @@ query [const bool value TRUE] and ubool4
 
 
 #testcase and_ubool_bool undef arg2
-#yields (ubool (undef))
+#yields (ubool undef)
 query u1 and [const bool value undef]
 
 #testcase and_ubool_bool undef arg1
-#yields (ubool (undef))
+#yields (ubool undef)
 query ubool3 and [const bool value TRUE]
 
 #testcase and_bool_ubool TRUE
@@ -968,15 +968,15 @@ query ubool4 and [const bool value TRUE]
 
 
 #testcase or_ubool_ubool undef arg1
-#yields (ubool (undef))
+#yields (ubool undef)
 query ubool3 or ubool1
 
 #testcase or_ubool_ubool undef arg2
-#yields (ubool (undef))
+#yields (ubool undef)
 query ubool 1 or ubool3
 
 #testcase or_ubool_ubool no intersect
-#yields (ubool (undef))
+#yields (ubool undef)
 query ubool2 or ubool4
 
 #testcase or_ubool_ubool TRUE 1
@@ -994,11 +994,11 @@ query ubool4 or ubool4
 
 
 #testcase or_bool_ubool undef arg1
-#yields (ubool (undef))
+#yields (ubool undef)
 query [const bool value undef] or u1
 
 #testcase or_bool_ubool undef arg2
-#yields (ubool (undef))
+#yields (ubool undef)
 query [const bool value TRUE] or ubool3
 
 #testcase or_bool_ubool TRUE 1 
