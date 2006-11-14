@@ -25,7 +25,7 @@ include ../makefile.inc
 include ../../makefile.$(platform)
 include ../../makefile.jni
 
-GetEnvDLL := ../lib/libGetEnv.$(JNI_DLLEXT)
+GetEnvDLL := ../lib/$(DLLPREF)GetEnv.$(JNI_DLLEXT)
 
 GCC := gcc
 

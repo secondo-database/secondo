@@ -377,11 +377,13 @@ not accessible by the user code.
           command = "("+command+")";
      ListExpr cmdList = new ListExpr();
      if(cmdList.readFromString(command)!=0){
+	errorMessage.append("cannot parse restore command");     
         errorCode.value=9; // syntax error in command
         return;
      }
      int len = cmdList.listLength();
-     if(len !=5 && len !=6){ // not a correct restore command
+     if(len !=4 && len !=5){ // not a correct restore command
+	errorMessage.append("invalid number of arguments fo restore command ");     
         errorCode.value=9; // syntax error in command
         return;
      }
@@ -400,6 +402,8 @@ not accessible by the user code.
         ListExpr le = cmdList;
         for(int i=0;i<4;i++){
            if(le.first().atomType()!=ListExpr.SYMBOL_ATOM){
+	      errorMessage.append("non- symbol in as first arguments of "+
+		                  "restore command");	      
               errorCode.value=9;
               return; 
            }
@@ -407,6 +411,7 @@ not accessible by the user code.
          if(!cmdList.first().symbolValue().equals("restore") ||
             !cmdList.second().symbolValue().equals("database") ||
             !cmdList.fourth().symbolValue().equals("from")){
+	    errorMessage.append("invalid keywords in restore command");	 
             errorCode.value=9;
             return;
          }
@@ -417,12 +422,14 @@ not accessible by the user code.
         ListExpr le = cmdList;
         for(int i=0;i<3;i++){
            if(le.first().atomType()!=ListExpr.SYMBOL_ATOM){
+	      errorMessage.append("invalid argument in object restore command");	   
               errorCode.value=9;
               return; 
            }
          }   
          if(!cmdList.first().symbolValue().equals("restore") ||
             !cmdList.third().symbolValue().equals("from")){
+            errorMessage.append("invalid keyword in object restore command found");
             errorCode.value=9;
             return;
          }
@@ -438,9 +445,13 @@ not accessible by the user code.
           default: errorCode.value=9;
                    return;
       }
+      filename = tools.CommonUtils.expandVar(filename);
       // check whether the file exists
       File file = new File(filename);
       if(!file.exists() || !file.canRead()){
+	 Reporter.writeWarning("try to restore an object from an non-existing" +
+		                " or non-readable file");	 
+	 errorMessage.append("error in reading file, file not available");
          errorCode.value= 28;
          return;
       } 

@@ -180,6 +180,7 @@ private JFileChooser FC_History = new JFileChooser();
 private JFileChooser FC_ExecuteFile = new JFileChooser();
 private JFileChooser FC_Database = new JFileChooser();
 private JFileChooser FC_Snapshot = new JFileChooser();
+private JFileChooser FC_Object = new JFileChooser();
 private FileFilter pngFilter;
 private FileFilter epsFilter;
 private static String pngTitle = "Save PNG image";
@@ -2451,7 +2452,7 @@ private void createMenuBar(){
    // databases
    MI_UpdateDatabases = new JMenuItem("Update");
    Menu_Databases.add(MI_UpdateDatabases);
-   MI_CreateDatabase = new JMenuItem("~create database~");
+   MI_CreateDatabase = new JMenuItem("create database");
    Menu_Databases.add(MI_CreateDatabase);
    OpenDatabaseMenu = new JMenu("open database");
    Menu_Databases.add(OpenDatabaseMenu);
@@ -2468,17 +2469,17 @@ private void createMenuBar(){
 
    // Import Export
    MI_SaveDatabase = Menu_ImExport.add("~save database~");
-   Menu_RestoreDatabase = new JMenu("~restore database~");
+   Menu_RestoreDatabase = new JMenu("restore database");
    Menu_ImExport.add(Menu_RestoreDatabase);
    MI_SaveObject = Menu_ImExport.add("~save object~");
-   MI_RestoreObject = Menu_ImExport.add("~restore object~");
+   MI_RestoreObject = Menu_ImExport.add("restore object");
 
    // Basic Commands
    MI_CreateType = Menu_BasicCommands.add("~create type~");
    MI_DeleteType = Menu_BasicCommands.add("~delete type~");
    MI_CreateObject = Menu_BasicCommands.add("~create object~");
    MI_UpdateObject = Menu_BasicCommands.add("~update~");
-   MI_DeleteObject = Menu_BasicCommands.add("~delete object~");
+   MI_DeleteObject = Menu_BasicCommands.add("delete object");
    MI_Let = Menu_BasicCommands.add("~let~");
    MI_Query = Menu_BasicCommands.add("~query~");
 
@@ -2997,9 +2998,16 @@ class Command_Listener implements ActionListener{
                 boolean ok=false;
                 String cmd = "";
                 if(Source.equals(MainWindow.this.MI_CreateDatabase)){
-		   ok = false;
-       MainWindow.ComPanel.showPrompt();
-		   MainWindow.ComPanel.appendText("create database <dbname>");
+		   ok = true;
+                   MainWindow.ComPanel.showPrompt();
+		   String dbname = JOptionPane.showInputDialog("Please enter the name of the database");
+		   if(dbname==null || dbname.trim().equals("")){
+                      return;
+		   }   
+	           cmd = "create database "+dbname;
+		   MainWindow.ComPanel.appendText(cmd);
+                   MainWindow.ComPanel.addToHistory(cmd);
+                   MainWindow.ComPanel.execUserCommand(cmd);
 		   return;
 		}
                 if(Source.equals(MainWindow.this.MI_SaveDatabase)){
@@ -3015,9 +3023,22 @@ class Command_Listener implements ActionListener{
 		   return;
 		}
                 if(Source.equals(MainWindow.this.MI_RestoreObject)){
-                   ok = false;
+                   ok = true;
+		   String ObjectName = JOptionPane.showInputDialog("Please input the name for the object");
+		   if(ObjectName==null || ObjectName.equals("")){
+                      return;
+	           } 
                    MainWindow.ComPanel.showPrompt();
-                   MainWindow.ComPanel.appendText("restore <objname> from <filename>");
+		   String fname;
+		   if(FC_Object.showOpenDialog(MainWindow.this)==JFileChooser.APPROVE_OPTION){
+                      fname ="'"+FC_Object.getSelectedFile().getPath()+"'";
+		   } else {
+                      return;
+	           }		   
+                   cmd = "restore "+ObjectName+" from "+fname;
+		   MainWindow.ComPanel.appendText(cmd);
+                   MainWindow.ComPanel.addToHistory(cmd);
+                   MainWindow.ComPanel.execUserCommand(cmd);
 		   return;
 		}
 		if(Source.equals(MainWindow.this.MI_CreateType)){
@@ -3027,10 +3048,17 @@ class Command_Listener implements ActionListener{
 		   return;
    	}
 		if(Source.equals(MainWindow.this.MI_DeleteType)){
-  		   ok = false;
-         MainWindow.ComPanel.showPrompt();
-         MainWindow.ComPanel.appendText("delete type <name>");
-         return;
+  		   ok = true;
+		   String typename = JOptionPane.showInputDialog("Please enter the name of the type to delete");
+		   if(typename==null || typename.trim().equals("")){
+		      return;
+		   }
+                   MainWindow.ComPanel.showPrompt();
+		   cmd = "delete type " + typename;
+		   MainWindow.ComPanel.appendText(cmd);
+                   MainWindow.ComPanel.addToHistory(cmd);
+                   MainWindow.ComPanel.execUserCommand(cmd);
+                   return;
    	}
 		if(Source.equals(MainWindow.this.MI_CreateObject)){
   		   ok = false;
@@ -3045,10 +3073,17 @@ class Command_Listener implements ActionListener{
          return;
    	}
 		if(Source.equals(MainWindow.this.MI_DeleteObject)){
-  		   ok = false;
-         MainWindow.ComPanel.showPrompt();
-	       MainWindow.ComPanel.appendText("delete <objname>");
-         return;
+  		   ok = true;
+		   String objname = JOptionPane.showInputDialog("Please enter the name of the object to delete");
+		   if(objname==null || objname.trim().equals("")){
+		      return;
+		   }
+                   MainWindow.ComPanel.showPrompt();
+		   cmd = "delete  " + objname;
+		   MainWindow.ComPanel.appendText(cmd);
+                   MainWindow.ComPanel.addToHistory(cmd);
+                   MainWindow.ComPanel.execUserCommand(cmd);
+                   return;
    	}
 		if(Source.equals(MainWindow.this.MI_Let)){
   		   ok = false;
