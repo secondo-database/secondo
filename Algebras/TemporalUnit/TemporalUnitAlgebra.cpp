@@ -84,8 +84,8 @@ OK  + final        (**)                   uT --> iT
 OK    final        (**)          (stream uT) --> iT
 OK  + present      (**)         uT x instant --> bool
 OK  +              (**)         uT x periods --> bool
-n/a                    (stream uT) x instant --> bool (use suse2 with present instead)
-n/a                    (stream uT) x periods --> bool (use suse2 with present instead)
+n/a                    (stream uT) x instant --> bool (use suse2/present)
+n/a                    (stream uT) x periods --> bool (use suse2/present)
      
       atmax:  For T in {bool, int, real, string}:
 (OK)+                                     uT --> (stream uT)
@@ -1171,7 +1171,7 @@ Type mapping for ~makemvalue~ is
               APPEND (i ti)
       stream (tuple ([x1:t1,x1:ustring,..,[xn:tn)))  ->  mstring
               APPEND (i ti)
-      stream (tuple ([x1:t1,x1:uregion,..,[xn:tn)))  ->  mregion
+      stream (tuple ([x1:t1,x1:uregion,..,[xn:tn)))  ->  movingregion
               APPEND (i ti)
 
 ----
@@ -1282,7 +1282,7 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
   if( inputtype == "ustring" )
     attrtype = nl->SymbolAtom( "mstring" );
   if( inputtype == "uregion" )
-    attrtype = nl->SymbolAtom( "mregion" );
+    attrtype = nl->SymbolAtom( "movingregion" );
   
   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
            nl->TwoElemList(nl->IntAtom(j),
@@ -1672,7 +1672,7 @@ UnitInstantTypeMapIntime( ListExpr args )
         return nl->SymbolAtom( "istring" );
 
       if( nl->IsEqual( arg1, "uregion" ) )
-        return nl->SymbolAtom( "iregion" );
+        return nl->SymbolAtom( "intimeregion" );
     }
   }
   return nl->SymbolAtom( "typeerror" );
@@ -2196,7 +2196,7 @@ UnitTypeMapIntime( ListExpr args )
         return nl->SymbolAtom( "istring" );
       
       if( nl->IsEqual( t, "uregion" ) )
-        return nl->SymbolAtom( "iregion" );
+        return nl->SymbolAtom( "intimeregion" );
     }
   else
     ErrorReporter::ReportError
