@@ -757,7 +757,7 @@ struct TemporalUnit
 3.5.1 Constructors and Destructor
 
 */
-  TemporalUnit() {}
+  TemporalUnit():defined( true ) {}
 /*
 The simple constructor. This constructor should not be used.
 
@@ -954,7 +954,7 @@ class StandardTemporalUnit :
 {
   public:
 
-    StandardTemporalUnit() {}
+    StandardTemporalUnit():TemporalUnit<Alpha>() {}
 /*
 The simple constructor. This constructor should not be used.
 
@@ -1029,7 +1029,7 @@ class SpatialTemporalUnit :
   public TemporalUnit<Alpha>
 {
   public:
-    SpatialTemporalUnit() {}
+  SpatialTemporalUnit():TemporalUnit<Alpha>() {}
 /*
 The simple constructor. This constructor should not be used.
 
@@ -1123,7 +1123,7 @@ struct ConstTemporalUnit : public StandardTemporalUnit<Alpha>
 3.6.1 Constructors, Destructor
 
 */
-  ConstTemporalUnit() {}
+  ConstTemporalUnit():StandardTemporalUnit<Alpha>() {}
 
   ConstTemporalUnit( const Interval<Instant>& interval, const Alpha& a ):
     StandardTemporalUnit<Alpha>( interval )
@@ -1327,7 +1327,7 @@ struct UReal : public StandardTemporalUnit<CcReal>
 3.7.1 Constructors and Destructor
 
 */
-  UReal() {};
+  UReal():StandardTemporalUnit<CcReal>() {};
 
   UReal( const Interval<Instant>& interval,
          const double a,
@@ -1546,7 +1546,7 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
 3.8.1 Constructors and Destructor
 
 */
-  UPoint() {};
+  UPoint():SpatialTemporalUnit<Point, 3>() {};
 
   UPoint( const Interval<Instant>& interval,
           const double x0, const double y0,
