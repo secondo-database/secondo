@@ -2935,7 +2935,7 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
         { // linear function. Possibly return input unit restricted 
           // to single value
           if(TUA_DEBUG) cout << "  11: 1st arg is a linear function" << endl;
-          double T1 = (y - c + b*t0)/b;
+          double T1 = (y - c + b*t0)/b ;
           if(TUA_DEBUG) 
             {
               cout << "    T1=" << T1 << endl;    
@@ -2992,8 +2992,8 @@ The solution to the equation $at^2 + bt + c = y$ is
 
 */
           if(TUA_DEBUG) cout << "  18: 1st arg is a quadratic function" << endl;
-          double T1 = (-B + sqrt(radicand)) / (2*A);
-          double T2 = (-B - sqrt(radicand)) / (2*A);
+          double T1 = (-B + sqrt(radicand)) / (2*A) ;
+          double T2 = (-B - sqrt(radicand)) / (2*A) ;
           if(TUA_DEBUG) 
             {
               cout << "    T1=" << T1 << endl;
@@ -3068,7 +3068,8 @@ The solution to the equation $at^2 + bt + c = y$ is
       if(TUA_DEBUG) cout << "\nMappingUnitAt_r: REQUEST" << endl;
       if (local.addr == 0)
         {
-          cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (1)" << endl;
+          if(TUA_DEBUG) 
+            cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (1)" << endl;
           return CANCEL;
         }
       localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
@@ -5473,7 +5474,7 @@ TypeMapTemporalUnitDistance( ListExpr args )
 
 Method ~UPointDistance~
 
-Returns the distance between two UPoints in the given interval as UReal 
+Returns the distance between two UPoints in their common interval as UReal 
 
 */
 void UPointDistance( const UPoint& p1, const UPoint& p2, 
@@ -7400,7 +7401,7 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
                                          Word& local, Supplier s )
 {
   MappingUnitAt_rLocalInfo *localinfo;
-  double radicand, a, b, c, r, y, tx;
+  double radicand, a, b, c, r, y, t0;
   DateTime t1 = DateTime(instanttype);
   DateTime t2 = DateTime(instanttype);
   Interval<Instant> rdeftime, deftime;
@@ -7462,6 +7463,7 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
       c = uinput->c;
       r = uinput->r;
       deftime = uinput->timeInterval;
+      t0 = deftime.start.ToDouble();
 
       if(TUA_DEBUG) 
         {cout << "    The UReal is" << " a= " << a << " b= " 
@@ -7506,7 +7508,7 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
         { // linear function. Possibly return input unit restricted 
           // to single value
           if(TUA_DEBUG) cout << "  11: 1st arg is a linear function" << endl;
-          double T1 = (y - c)/b;
+          double T1 = (y - c)/b + t0; // Add t0 due to representation
           if(TUA_DEBUG) 
             {
               cout << "    T1=" << T1 << endl;    
@@ -7520,13 +7522,12 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
                 cout << "  12: Found valid linear solution." << endl;
               localinfo->runits[localinfo->NoOfResults].addr = 
                 uinput->Copy();
+              localinfo->runits[localinfo->NoOfResults].addr = 
+                new UReal( rdeftime,0.0,0.0,y,false );
               ((UReal*)(localinfo
                         ->runits[localinfo->NoOfResults].addr))
                 ->timeInterval = Interval<Instant>(t1, t1, true, true);
-              // translate result to new starting instant!
-              tx = uinput->timeInterval.start.ToDouble() - T1;
-              ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
-                ->TranslateParab(tx, 0.0);
+              // No translation needed
               localinfo->NoOfResults++;
               localinfo->finished = false;                
               if(TUA_DEBUG) cout << "  13" << endl;
@@ -7541,8 +7542,9 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
             }
           if(TUA_DEBUG) cout << "  16" << endl;
           local = SetWord(localinfo);
-          cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (3)" 
-               << endl;
+          if(TUA_DEBUG) 
+            cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (3)" 
+                 << endl;
           return 0;
         }
       
@@ -7560,8 +7562,8 @@ The solution to the equation $at^2 + bt + c = y$ is
 
 */
           if(TUA_DEBUG) cout << "  18: 1st arg is a quadratic function" << endl;
-          double T1 = (-b + sqrt(radicand)) / (2*a);
-          double T2 = (-b - sqrt(radicand)) / (2*a);
+          double T1 = (-b + sqrt(radicand)) / (2*a) + t0; //Add t0 due to 
+          double T2 = (-b - sqrt(radicand)) / (2*a) + t0; //  representation
           if(TUA_DEBUG) 
             {
               cout << "    T1=" << T1 << endl;
@@ -7582,13 +7584,10 @@ The solution to the equation $at^2 + bt + c = y$ is
               rdeftime.lc = true;
               rdeftime.rc = true;
               localinfo->runits[localinfo->NoOfResults].addr = 
-                new UReal( rdeftime,a,b,c,r );
+                new UReal( rdeftime,0.0,0.0,y,false );
               ((UReal*) (localinfo->runits[localinfo->NoOfResults].addr))
                 ->SetDefined( true );
-              // translate result to new starting instant!
-              tx = uinput->timeInterval.start.ToDouble() - T1;
-              ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
-                ->TranslateParab(tx, 0.0);
+              // No translation needed
               localinfo->NoOfResults++;
               localinfo->finished = false;
               if(TUA_DEBUG) cout << "  20" << endl;
@@ -7603,13 +7602,10 @@ The solution to the equation $at^2 + bt + c = y$ is
               rdeftime.lc = true;
               rdeftime.rc = true;
               localinfo->runits[localinfo->NoOfResults].addr = 
-                new UReal( rdeftime,a,b,c,r );
+                new UReal( rdeftime,0.0,0.0,y,false );
               ((UReal*) (localinfo->runits[localinfo->NoOfResults].addr))
                 ->SetDefined (true );
-              // translate result to new starting instant!
-              tx = uinput->timeInterval.start.ToDouble() - T2;
-              ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
-                ->TranslateParab(tx, 0.0);
+              // No translation needed 
               localinfo->NoOfResults++;
               localinfo->finished = false;
               if(TUA_DEBUG) cout << "  22" << endl;
@@ -7636,8 +7632,9 @@ The solution to the equation $at^2 + bt + c = y$ is
                          << endl;
       if (local.addr == 0)
         {
-          cout << "\ntemporalUnitIntersection_ureal_real: REQUEST CANCEL (1)" 
-               << endl;
+          if(TUA_DEBUG)
+            cout << "\ntemporalUnitIntersection_ureal_real: REQUEST CANCEL (1)" 
+                 << endl;
           return CANCEL;
         }
       localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
@@ -9955,7 +9952,6 @@ int TUAndValueMap(Word* args, Word& result, int message,
       u1 = (UBool*)args[1].addr;
       cb = (CcBool*)args[0].addr;
     }
-  cout << "X1" << endl;      
   if (!u1->IsDefined() || !cb->IsDefined())
     res->SetDefined( false );
   else
@@ -10068,23 +10064,15 @@ int TUBinaryBoolFuncSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  cout << "Entered TUBinaryBoolFuncSelect." << endl;
-
   if( nl->SymbolValue( arg1 ) == "ubool" 
    && nl->SymbolValue( arg2 ) == "ubool" )
-    { cout << " Selected No. 0" << endl;
-      return 0;
-    }
+    return 0;
   if( nl->SymbolValue( arg1 ) == "ubool" 
    && nl->SymbolValue( arg2 ) == "bool" )
-    { cout << " Selected No. 1" << endl;
-      return 1;
-    }
+    return 1;
   if( nl->SymbolValue( arg1 ) == "bool" 
    && nl->SymbolValue( arg2 ) == "ubool" )
-    { cout << " Selected No. 2" << endl;
-      return 2;
-    }
+    return 2;
     
   return -1; // This point should never be reached
 }

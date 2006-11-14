@@ -405,7 +405,7 @@ query ui1 atinstant [const instant value undef]
 
 
 #testcase atinstant_ureal DEF
-#yields (ireal ("2000-01-03" -3.0) )
+#yields (ireal ("2000-01-03" 3.0) )
 query ur1 atinstant [const instant value "2000-01-03-00:00"]
 
 #testcase atinstant_ureal UNDEF
@@ -704,7 +704,7 @@ query intersection(ur3, r) count
 query intersection(ur1, [const real value -500000.0]) count
 
 #testcase intersection_ureal_real NONEMPTY
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-02" "2000-01-02" TRUE TRUE) (1.0 2.0 -1.0 FALSE)))((("2000-01-04" "2000-01-04" TRUE TRUE)(1.0 6.0 -1.0 FALSE)))))
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-02" "2000-01-02" TRUE TRUE) (0.0 0.0 0.0 FALSE)))))
 query intersection(ur1, r) transformstream consume
 
 
@@ -722,7 +722,7 @@ query intersection(r, ur3) count
 query intersection([const real value -500000.0], ur1) count
 
 #testcase intersection_real_ureal NONEMPTY
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-02" "2000-01-02" TRUE TRUE) (1.0 2.0 -1.0 FALSE)))((("2000-01-04" "2000-01-04" TRUE TRUE)(1.0 6.0 -1.0 FALSE)))))
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-02" "2000-01-02" TRUE TRUE) (0.0 0.0 0.0 FALSE)))))
 query intersection(r, ur1) transformstream consume
 
 
