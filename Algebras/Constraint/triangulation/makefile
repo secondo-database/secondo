@@ -17,7 +17,7 @@ LDFLAGS= -lm
 
 objects= construct.o misc.o monotone.o tri.o
 executable = triangulate
-libfile = ../../lib/libTriangulation.a 
+libfile = ../../../lib/libTriangulation.a 
 
 .PHONY: all
 all: $(libfile) # $(executable)
@@ -28,7 +28,7 @@ $(executable): $(objects)
 
 $(objects): $(inclpath)/triangulate.h
 
-../../lib/libTriangulation.a: construct.o misc.o monotone.o tri.o
+../../../lib/libTriangulation.a: construct.o misc.o monotone.o tri.o
 	ar r $@ $^
 	ranlib $@
 
