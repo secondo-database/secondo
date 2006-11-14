@@ -86,6 +86,8 @@ open database mytestdb;
 		("Wuerzburg" 128000 8700 "0931" "WUE")
 		("Wuppertal" 377000 5600 "0202" "W"))))    
 
+let resObj1 = 5;
+
 # a TESTCASE consists of a TESTCASE declarative followed
 # by a YIELDS declarative followed by a command.
 # multiple or no commands after a YIELD directive
@@ -94,7 +96,14 @@ open database mytestdb;
 # the expected output specified by the YIELD declarative
 # is converted to a ListExpr and the TestRunner compares
 # it to Secondo's actual output by calling  
-# NestedList->Equal 
+# NestedList->Equal. You can specifiy results in 4 ways:
+#
+# 1. a list expression
+# 2. in a separate file
+# 3. as a database object
+# 4. a simple check for "error" or "success"
+#
+# See below for examples. 
 
 #testcase countTestcase
 #yields (int 11)
@@ -149,21 +158,18 @@ query staedte;
 #yields success          
 query staedte feed avg[Bev];
 
+# In order to specify a database object as result   
+# use *<ident>, for example
+
 #testcase query a constant value 
-#yields success
-(query 1)
+#yields *resObj1
+query 5;
+
+# testcase StaedteQuery3
+# yields *staedte
+query staedte;
 
 # a demonstration of the various kinds of errors which can happen
-
-# The testcase below works, but there seems to be a bug
-# in SECONDO which causes the delete database to hang, since
-# some objects are locked by berkeley db.
-#
-# Hence it was commented out, but the bug was not fixed !!!
-#
-#Testcase UnexpectedError
-#yields success
-#query staedte feed;
 
 #testcase UnexpectedSuccess
 #yields error
@@ -200,9 +206,9 @@ query 10 / 3.14
 query 10 / 3.14 
 
 
-
 # An unspecified yields definition will result in an error
 # for example a result specified as "yields 3.184" will do so.
+
 
 # the TEARDOWN directive is followed by commands which
 # should be executed after the execution of all TESTCASES

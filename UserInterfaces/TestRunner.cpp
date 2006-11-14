@@ -38,6 +38,8 @@ evaluation have been fixed. Finally, some new features (Approximate comparison o
 result specification in external files and envrionment variable expansion in file names) were
 implemented.
 
+Nov 2006, M. Spiekermann. Results may now be also specified as database objects.
+
 1 Overview
 
 This is the test enviroment for Secondo. The code is derived from SecondoTTY.
@@ -135,7 +137,7 @@ needed for maintaining the test state
   string testName;
   string testCaseName;
  
-  typedef enum {Success, Error, Result, Unknown} YieldState; 
+  typedef enum {Success, Error, Result, Unknown, UndefinedObj} YieldState; 
   YieldState yieldState;
   bool skipToTearDown;
   
@@ -218,8 +220,9 @@ TestRunner::ShowTestSuccessMsg(const string& msg) const
 {
   cout
     << color(green)
-    << "** " << testCaseNumber << " ** OK! Testcase \"" << testCaseName << "\" "
-    << msg << color(normal) << endl;
+    << "** Test " << testCaseNumber << ": " 
+                  << testCaseName << " --> [OK]" << endl
+    << "** " << msg << color(normal) << endl;
 }
 
 
@@ -228,8 +231,8 @@ TestRunner::ShowTestErrorMsg() const
 {
   cout
     << endl << color(red) 
-    << "** " << testCaseNumber << " ** ERROR" 
-    << " in Testcase \"" << testCaseName << "\"." 
+    << "** Test " << testCaseNumber << ": " << testCaseName 
+    << " --> [ERROR]" << endl
     << color(normal) << endl;
   return;
 }
@@ -241,19 +244,19 @@ TestRunner::ShowErrCodeInfo(  const int errorCode,
                               const ListExpr outList      ) const
 {
    cout 
-     << "But got error : " <<  errorCode << endl
-     << "  code2Msg    : \"" << SecondoInterface::GetErrorMessage( errorCode ) 
+     << "Error-Code: " <<  errorCode << endl
+     << "Error-Text: \"" << SecondoInterface::GetErrorMessage( errorCode ) 
      << "\""
      << endl;
 
    if ( errorMessage.length() > 0 ) {
    cout 
-     << "  add. string : \"" << errorMessage << "\"" << endl;
+     << "Error-Msgs: \"" << errorMessage << "\"" << endl;
    }
 
    if ( !nl->IsEmpty(outList) ) 
    {
-     cout << " Errorlist: " << endl;
+     cout << " Error-List: " << endl;
      si->WriteErrorList(outList);
    }
 }
@@ -264,7 +267,7 @@ TestRunner::ShowCommand( const string& cmd) const
 {
   cout 
     << endl
-    << "Command was : " << endl 
+    << "Secondo-Cmd: " << endl 
     << "  " << cmd << endl;
 }
 
@@ -513,8 +516,9 @@ TestRunner::GetCommand()
             else
             {       
               char first=restOfLine[pos];           
-              if ( (first=='@') ||  (first=='(') ) // result specified
+              if ( (first=='@') ||  (first=='(') || (first=='*') ) 
               {
+                // result specified
                 yieldState = Result;
 
                 if (first=='@')
@@ -525,9 +529,34 @@ TestRunner::GetCommand()
                        << "'" << endl;
                   nl->ReadFromFile( expandVar(resultFileStr), expectedResult );
                 }       
-                else
+                else if (first=='(')
                 {
                   nl->ReadFromString(restOfLine, expectedResult);
+                }
+                else
+                {
+                  string ident = parse<string>( restOfLine.substr(1) );
+                  cout << "Query result specified in object '" << ident 
+                       << "'" << endl;
+                  string cmd="";
+                  ListExpr cmdList = 
+                               nl->TwoElemList( nl->SymbolAtom("query"), 
+                                                nl->SymbolAtom(ident)   );  
+                  int errorCode = 0, errorPos = 0;
+                  ListExpr outList = nl->Empty();
+                  string errorMessage = "";
+                  string errorText = "";
+                  si->Secondo( cmd, cmdList, 0, false, false,
+                               outList, errorCode, errorPos, errorMessage );
+
+                  if (errorCode || (errorMessage.length() > 0) ) {
+                    expectedResult = nl->Empty();
+                    yieldState = UndefinedObj;
+                  } 
+                  else
+                  {
+                    expectedResult = outList;
+                  }
                 }             
               }
               else if ( restOfLine.find("error") != string::npos )
@@ -796,6 +825,15 @@ TestRunner::CallSecondo()
           cout 
             << color(red)
             << "The test has an unknown yields value!" << endl
+            << color(normal) << endl;
+        }
+        else if( yieldState == UndefinedObj )
+        {
+          RegisterError();
+          cout 
+            << color(red)
+            << "The test's yields value is an undefined or " 
+            << "unpresent database object!" << endl
             << color(normal) << endl;
         }
         else { // default

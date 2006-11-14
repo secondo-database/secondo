@@ -10,7 +10,7 @@ dateStr=$(date +%Y_%m%d_%H%M%S)
 tempDir="/tmp/$USER/TestRunner_$dateStr"
 mkdir -p $tempDir
 export SECONDO_PARAM_SecondoHome="$tempDir"
-export SECONDO_PARAM_RTFlags=""
+export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color"
 
 # On linux the variable below will use a less efficient
 # malloc implementation which does error detection and aborts
