@@ -53,7 +53,7 @@ OK    saggregate:        (stream T) x (T x T --> T) x T  --> T
 OK    count:                      (stream T) --> int
 OK    filter:      ((stream T) (map T bool)) --> int
 OK    printstream:                (stream T) --> (stream T)
-(OK)  makemvalue   (**)  stream (tuple ([x1:t1,xi:uT,..,xn:tn])) -->  mT
+OK    makemvalue   (**)  stream (tuple ([x1:t1,xi:uT,..,xn:tn])) -->  mT
 OK    size                           periods --> real
 (OK)  point2d                        periods --> point
 (OK)  queryrect2d                    instant --> rect
@@ -79,11 +79,13 @@ OK  + deftime      (**)                   uT --> periods
 OK  + atinstant    (**)         uT x instant --> iT
 OK  + atperiods    (**)         uT x periods --> (stream uT)
 OK  + Initial      (**)                   uT --> iT
-n/a   Initial      (**)          (stream uT) --> iT
+OK    Initial      (**)          (stream uT) --> iT
 OK  + final        (**)                   uT --> iT
-n/a   final        (**)          (stream uT) --> iT
+OK    final        (**)          (stream uT) --> iT
 OK  + present      (**)         uT x instant --> bool
 OK  +              (**)         uT x periods --> bool
+n/a                    (stream uT) x instant --> bool (use suse2 with present instead)
+n/a                    (stream uT) x periods --> bool (use suse2 with present instead)
      
       atmax:  For T in {bool, int, real, string}:
 (OK)+                                     uT --> (stream uT)
@@ -156,16 +158,17 @@ OK  +           bool x ubool --> ubool
 OK  +          ubool x  bool --> ubool
 
       =, #, <, >, <=, >=: 
-OK  +                uT x uT --> (stream ubool)
+OK  +                uT x uT --> bool
 
 OK  + not:             ubool --> ubool
 
 
-n/a   present: (stream uT) x instant --> bool
-n/a   present: (stream uT) x periods --> bool
-n/a + sometimes: ubool --> bool
-n/a + never:     ubool --> bool
-n/a + always:    ubool --> bool
+n/a + sometimes: (       ubool) --> bool
+n/a              (stream ubool) --> bool
+n/a + never:     (       ubool) --> bool
+n/a              (stream ubool) --> bool
+n/a + always:    (       ubool) --> bool
+n/a              (stream ubool) --> bool
 
 OK    uint2ureal:       uint --> ureal
 n/a   int2real:          int --> real
@@ -213,10 +216,7 @@ typemapping, valuemapping etc. This makes the file easier to extend.
 
 ----
 
-(C)     intersection: (uint uint) -> (stream uint)
-(C)     intersection:(uint int) -> (stream uint)
-(C)     intersection: (int uint) -> (stream uint)
-
+ (none known)
 
 Key:
  (C): system crash
@@ -9881,26 +9881,23 @@ ListExpr TUBinaryBoolFuncTypeMap( ListExpr args )
 {
   ListExpr arg1, arg2;
   string argstr1, argstr2;
-  
+
   if( nl->ListLength( args ) == 2 )
     {
       arg1 = nl->First( args );
       arg2 = nl->Second( args );
       
       // First case: ubool ubool -> ubool
-      if (nl->Equal( arg1, arg2 ))
-        {
-          if( nl->IsEqual( arg1, "ubool" ) )
-            return  arg1;
-        }
+      if ( nl->IsEqual( arg1, "ubool" ) && nl->IsEqual( arg2, "ubool" ) )
+        return nl->SymbolAtom("ubool");
       
       // Second case: ubool bool -> ubool
       if( nl->IsEqual( arg1, "ubool" ) && nl->IsEqual( arg2, "bool") )
-        return  arg1;
+        return nl->SymbolAtom("ubool");
       
       // Third case: bool ubool -> ubool
       if( nl->IsEqual( arg1, "bool" ) && nl->IsEqual( arg2, "ubool") )
-        return  arg2;
+        return nl->SymbolAtom("ubool");
     }
   
   // Error case:
@@ -9951,13 +9948,14 @@ int TUAndValueMap(Word* args, Word& result, int message,
   else if(ArgConf == 1) // case: ubool x bool -> ubool
     {
       u1 = (UBool*)args[0].addr;
-      cb = (CcBool*) args[1].addr;
+      cb = (CcBool*)args[1].addr;
     }
-  else if(ArgConf == 1) // case: bool x ubool -> ubool
+  else if(ArgConf == 2) // case: bool x ubool -> ubool
     {
       u1 = (UBool*)args[1].addr;
-      cb = (CcBool*) args[0].addr;
+      cb = (CcBool*)args[0].addr;
     }
+  cout << "X1" << endl;      
   if (!u1->IsDefined() || !cb->IsDefined())
     res->SetDefined( false );
   else
@@ -10004,12 +10002,12 @@ int TUOrValueMap(Word* args, Word& result, int message,
   else if(ArgConf == 1) // case: ubool x bool -> ubool
     {
       u1 = (UBool*)args[0].addr;
-      cb = (CcBool*) args[1].addr;
+      cb = (CcBool*)args[1].addr;
     }
-  else if(ArgConf == 1) // case: bool x ubool -> ubool
+  else if(ArgConf == 2) // case: bool x ubool -> ubool
     {
       u1 = (UBool*)args[1].addr;
-      cb = (CcBool*) args[0].addr;
+      cb = (CcBool*)args[0].addr;
     }
   if (!u1->IsDefined() || !cb->IsDefined())
     res->SetDefined( false );
@@ -10070,15 +10068,23 @@ int TUBinaryBoolFuncSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
+  cout << "Entered TUBinaryBoolFuncSelect." << endl;
+
   if( nl->SymbolValue( arg1 ) == "ubool" 
    && nl->SymbolValue( arg2 ) == "ubool" )
-    return 0;
+    { cout << " Selected No. 0" << endl;
+      return 0;
+    }
   if( nl->SymbolValue( arg1 ) == "ubool" 
    && nl->SymbolValue( arg2 ) == "bool" )
-    return 1;  
+    { cout << " Selected No. 1" << endl;
+      return 1;
+    }
   if( nl->SymbolValue( arg1 ) == "bool" 
    && nl->SymbolValue( arg2 ) == "ubool" )
-    return 2;
+    { cout << " Selected No. 2" << endl;
+      return 2;
+    }
     
   return -1; // This point should never be reached
 }
@@ -10103,7 +10109,7 @@ Operator temporalunitand
 ( 
  "and",
  TUAndSpec,
- 1,
+ 3,
  temporalunitAndValuemap,
  TUBinaryBoolFuncSelect,
  TUBinaryBoolFuncTypeMap
@@ -10113,7 +10119,7 @@ Operator temporalunitor
 ( 
  "or",
  TUOrSpec,
- 1,
+ 3,
  temporalunitOrValuemap,
  TUBinaryBoolFuncSelect,
  TUBinaryBoolFuncTypeMap
@@ -10131,8 +10137,8 @@ The operators use the internat ~Compare~ function, which implements an ordering 
 elements, but does not need to respect inuitive operator semantics (e.g. in case ureal).
 
 ----
-      =, #, <, >, <=, >=: T in {int, bool, real, string, point, region}
-n/a +        uT x uT --> (stream ubool)
+      =, #, <, >, <=, >=: For T in {int, bool, real, string, point, region}
+n/a +        uT x uT --> bool
 
 ----
 
@@ -10169,7 +10175,7 @@ ListExpr TUComparePredicatesTypeMap( ListExpr args )
   nl->WriteToString(argstr1, arg1); 
   nl->WriteToString(argstr2, arg2); 
   ErrorReporter::ReportError(
-    "Compare Operator (one of =, #, <, <=, >, >=) expects two arguments of "
+    "Compare Operator (one of =, #, <, >, , <=, >=) expects two arguments of "
     "type 'uT', where T in {bool, int, real, string, point, region}. The "
     "passed arguments have types '"+ argstr1 +"' and '"
     + argstr2 + "'.");
