@@ -108,9 +108,9 @@ bool LinearConstraint::IsEqual(const LinearConstraint& linC)
   // (i)  v=0 for every v in R-{0}
   // (ii) v<=0 for every v in R+-{0}
   blnFirst = false;
-  if((this->get_Op()==OP_EQ && AlmostEqual(this->a1,0) && 
+  if((this->get_Op()==OP_EQ && AlmostEqual(this->a1,0) &&
       AlmostEqual(this->a2,0) && !AlmostEqual(this->b,0)) ||
-     (this->get_Op()==OP_LEQ && AlmostEqual(this->a1,0) && 
+     (this->get_Op()==OP_LEQ && AlmostEqual(this->a1,0) &&
       AlmostEqual(this->a2,0) && this->b>0))
   {
     // case (i) or (ii)
@@ -143,9 +143,9 @@ bool LinearConstraint::IsEqual(const LinearConstraint& linC)
   // (ii) v<=0 for every v in R which is not positive
   // (that means 0 or negative)
   blnFirst = false;
-  if((this->get_Op()==OP_EQ && AlmostEqual(this->a1,0) && 
+  if((this->get_Op()==OP_EQ && AlmostEqual(this->a1,0) &&
      AlmostEqual(this->a2,0) && AlmostEqual(this->b,0)) ||
-     (this->get_Op()==OP_LEQ && AlmostEqual(this->a1,0) && 
+     (this->get_Op()==OP_LEQ && AlmostEqual(this->a1,0) &&
      AlmostEqual(this->a2,0) && this->b<0))
   {
     // case (i) or (ii)
@@ -574,10 +574,10 @@ void SymbolicRelation::Normalize()
     {
       const LinearConstraint *linC;
       this->GetLinConstraints(linConIndex, linC);
-      if(!(AlmostEqual(linC->get_a1(),0) && 
-           AlmostEqual(linC->get_a2(),0) && 
+      if(!(AlmostEqual(linC->get_a1(),0) &&
+           AlmostEqual(linC->get_a2(),0) &&
            AlmostEqual(linC->get_b(),0)) &&
-         !(AlmostEqual(linC->get_a1(),0) && 
+         !(AlmostEqual(linC->get_a1(),0) &&
            AlmostEqual(linC->get_a2(),0) &&
            linC->get_b()<=0 && linC->get_Op()==OP_LEQ))
       {
@@ -592,8 +592,8 @@ void SymbolicRelation::Normalize()
     {
       const LinearConstraint *linC;
       this->GetLinConstraints(linConIndex, linC);
-      if(!AlmostEqual(linC->get_a1(),0) || 
-         !AlmostEqual(linC->get_a2(),0) || 
+      if(!AlmostEqual(linC->get_a1(),0) ||
+         !AlmostEqual(linC->get_a2(),0) ||
          !AlmostEqual(linC->get_b(),0))
       {
         // if at minimum one of the coefficients is not equal 0
@@ -661,7 +661,6 @@ void SymbolicRelation::Normalize()
       iSymTuple.isNormal = true;
       iSymTuple.startIndex = lastEndIndex+1;
       iSymTuple.endIndex = lastEndIndex + vLinConstraints.size();
-      iSymTuple.type = UNKNOWN;
       iSymTuple.mbbox = MinimumBoundingBox(vConvexPolygon);
       if(!this->mbbox.IsDefined())
       {
@@ -805,7 +804,6 @@ void triangulateRegion(const Region* reg,
 {
   int i;
   int noRetVertices = 0; // number of vertices which will be returned
-  int noRetTriangles = 0; // number of triangles which will be returned
   vTriangles.clear();
   vVertices.clear();
   if(!reg->IsEmpty())
@@ -1437,7 +1435,7 @@ void mergeTriangles2ConvexPolygons(
         Point2D nextCWPoint2D = Point2D(
                  (*(vCWPointSet[k1].Point))[0],
                  (*(vCWPointSet[k1].Point))[1]);
-        if(k1==0 || 
+        if(k1==0 ||
            nextCWPoint2D!=vConvexComponent[vConvexComponent.size()-1])
         {
           vConvexComponent.push_back(nextCWPoint2D);
@@ -3082,11 +3080,11 @@ void HalfPlaneIntersection(
     LinearConstraint linC(vLinConstraints[0]);
 
     vector<Point2D> vConvexPolygonWD; // WD = With Duclicates
-    blnNoXNoY = (AlmostEqual(linC.get_a1(),0) && 
+    blnNoXNoY = (AlmostEqual(linC.get_a1(),0) &&
                  AlmostEqual(linC.get_a2(),0));
-    blnVerticalBoundary = (!AlmostEqual(linC.get_a1(),0) && 
+    blnVerticalBoundary = (!AlmostEqual(linC.get_a1(),0) &&
                             AlmostEqual(linC.get_a2(),0));
-    blnHorizontalBoundary = (AlmostEqual(linC.get_a1(),0) && 
+    blnHorizontalBoundary = (AlmostEqual(linC.get_a1(),0) &&
                             !AlmostEqual(linC.get_a2(),0));
     blnLeftSideIn = (linC.get_a1() > 0);
     blnUpperSideIn = (linC.get_a2() < 0);
@@ -3930,7 +3928,7 @@ ListExpr Line2CTypeMap( ListExpr args )
 */
 ListExpr RegionxBool2CTypeMap( ListExpr args )
 {
-  ListExpr arg1, arg2, retNL;
+  ListExpr arg1, arg2;
   if ( nl->ListLength( args ) == 2 )
   {
     arg1 = nl->First( args );
@@ -4232,6 +4230,7 @@ int projectionValueMap( Word* args, Word& result, int message,
   SymbolicRelation* symRelResult;
   symRelResult = symRel->Clone();
   symRelResult->ProjectToAxis(blnXAxis, blnYAxis);
+  symRelResult->Normalize();
   *((SymbolicRelation *)result.addr) = *symRelResult;
   return (0);
 }
@@ -4375,7 +4374,7 @@ int points2constraintValueMap( Word* args, Word& result, int message,
 int line2constraintValueMap( Word* args, Word& result, int message,
            Word& local, Supplier s )
 {
-  int i, edgeno;
+  int i;
   result = qp->ResultStorage( s );
   SymbolicRelation* symRelResult = new SymbolicRelation(0, 0);
   Line* line2convert = (Line*)args[0].addr;
@@ -4436,7 +4435,6 @@ int line2constraintValueMap( Word* args, Word& result, int message,
 int region2constraintValueMap( Word* args, Word& result, int message,
            Word& local, Supplier s )
 {
-  int i;
   result = qp->ResultStorage( s );
   SymbolicRelation* symRelResult = new SymbolicRelation(0, 0);
   Region* reg = (Region*)args[0].addr;
@@ -4471,8 +4469,8 @@ int region2constraintValueMap( Word* args, Word& result, int message,
     vector<vector<Point2D> > vCWPoints2convert;
     if(blnMergeTriangles2ConvPoly)
     {
-      mergeTriangles2ConvexPolygons(vVertices, 
-                                    vTriangles, 
+      mergeTriangles2ConvexPolygons(vVertices,
+                                    vTriangles,
                                     vCWPoints2convert);
       for (int j = 0; j < vCWPoints2convert.size(); j++)
       {
@@ -4491,11 +4489,11 @@ int region2constraintValueMap( Word* args, Word& result, int message,
         // each triangle will be converted individually:
         vector<Point2D> v3Points2convert;
         // Annahme: einzelne Dreiecke aus Trianulierung bereits in CW-order:
-        Point2D p0(vVertices[vTriangles[j][0]][0], 
+        Point2D p0(vVertices[vTriangles[j][0]][0],
                    vVertices[vTriangles[j][0]][1]);
-        Point2D p1(vVertices[vTriangles[j][1]][0], 
+        Point2D p1(vVertices[vTriangles[j][1]][0],
                    vVertices[vTriangles[j][1]][1]);
-        Point2D p2(vVertices[vTriangles[j][2]][0], 
+        Point2D p2(vVertices[vTriangles[j][2]][0],
                    vVertices[vTriangles[j][2]][1]);
         v3Points2convert.push_back(p0);
         v3Points2convert.push_back(p1);
@@ -4532,7 +4530,7 @@ int region2constraintValueMap( Word* args, Word& result, int message,
 int constraint2pointValueMap( Word* args, Word& result, int message,
            Word& local, Supplier s )
 {
-  int i, j;
+  int i;
   result = qp->ResultStorage( s );
   SymbolicRelation* symRel = (SymbolicRelation*)args[0].addr;
   Point* pointResult;
@@ -4605,7 +4603,7 @@ int constraint2pointValueMap( Word* args, Word& result, int message,
 int constraint2pointsValueMap( Word* args, Word& result, int message,
            Word& local, Supplier s )
 {
-  int i, j;
+  int i;
   result = qp->ResultStorage( s );
   SymbolicRelation* symRel = (SymbolicRelation*)args[0].addr;
   Points* pointsResult = new Points(0);
@@ -4643,7 +4641,7 @@ int constraint2pointsValueMap( Word* args, Word& result, int message,
 int constraint2lineValueMap( Word* args, Word& result, int message,
            Word& local, Supplier s )
 {
-  int i, j;
+  int i;
   result = qp->ResultStorage( s );
   SymbolicRelation* symRel = (SymbolicRelation*)args[0].addr;
   Line* lineResult = new Line(0);

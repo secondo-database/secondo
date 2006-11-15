@@ -63,7 +63,6 @@ const string OP_EQ = "eq";
 const string OP_LEQ = "leq";
 // Word-Coordinates (arbitionary big):
 const Rectangle<2> WORLD(true, -10000.0, 10000.0, -10000.0, 10000.0);
-enum geotype {UNKNOWN, POINT, SEGMENT, POLYGON};
 
 
 /*
@@ -282,7 +281,6 @@ struct SymbolicTuple
   {
     this->startIndex = symTup.startIndex;
     this->endIndex = symTup.endIndex;
-    this->type = symTup.type;
     this->mbbox = symTup.mbbox;
     this->isNormal = symTup.isNormal;
     return *this;
@@ -300,7 +298,6 @@ struct SymbolicTuple
   int startIndex;
   int endIndex;
   // other related data:
-  geotype type;
   Rectangle<2> mbbox;
   bool isNormal;
 };
@@ -414,4 +411,3 @@ class SymbolicRelation : public StandardSpatialAttribute<2>
 } // namespace
 
 #endif
-
