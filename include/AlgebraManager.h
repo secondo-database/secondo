@@ -478,6 +478,7 @@ The specific error numbers are defined in the kind checking procedure;
 the list may contain further information to describe the error.
 
 */
+  void UpdateOperatorUsage();
  private:
   NestedList*              nl;
 /*
@@ -518,6 +519,7 @@ Is an array for references to all loaded algebra modules.
   
   return op;
   }
+
 
 };
 

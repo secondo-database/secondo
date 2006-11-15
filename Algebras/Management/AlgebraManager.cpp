@@ -433,3 +433,22 @@ AlgebraManager::CheckKind( const string& kindName,
   return (false);
 }
 
+
+void 
+AlgebraManager::UpdateOperatorUsage() {
+
+     
+     for (int algId = 0; algId < MAX_ALG; algId++) {
+       const int N = OperatorNumber(algId);
+       cout << GetAlgebraName(algId) << endl << endl;
+       for (int opId = 0; opId < N; opId++) {
+         if (opPtrField[algId][opId]) {
+            cout << Ops(algId, opId) << "1" << endl; 
+         }
+         else {
+            cout << Ops(algId, opId) << "0" << endl; 
+         } 
+       }
+     }  
+}
+
