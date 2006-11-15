@@ -232,7 +232,17 @@ class SystemInfoRel
   iterator end()   const { return tuples.end(); } 
 
   virtual void initSchema() = 0;
-  
+ 
+  void clear() {
+    iterator it = begin();
+    while (it != end())
+    {
+       delete *it;
+       it++;
+    } 
+    tuples.clear(); 
+  } 
+ 
 };
 
 

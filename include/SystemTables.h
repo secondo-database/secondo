@@ -469,4 +469,55 @@ class OperatorInfoRel : public SystemInfoRel
 }; 
 
 
+class OperatorUsageTuple : public InfoTuple
+{
+   public:
+   string name;
+   string algebra;
+   int    calls;
+   
+   OperatorUsageTuple() {}
+   virtual ~OperatorUsageTuple() {
+
+     name = "";
+     algebra = "";
+     calls = 0;
+   } 
+
+   virtual NList valueList() const
+   {
+     NList list;
+     list.makeHead( NList().stringAtom(name) );
+     list.append( NList().stringAtom(algebra) );
+     list.append( NList((int)calls) );
+     return list;
+   } 
+   
+   virtual ostream& print(ostream& os) const
+   {
+      os << name << sep
+         << algebra << sep
+         << calls << endl; 
+      return os;
+   } 
+};
+
+
+class OperatorUsageRel : public SystemInfoRel
+{
+   public:
+   OperatorUsageRel(const string& name) : SystemInfoRel(name) 
+   {}
+   virtual ~OperatorUsageRel() {}
+   
+   virtual void initSchema()
+   { 
+     addAttribute("Name", "string");
+     addAttribute("Algebra", "string");
+     addAttribute("Calls", "int");
+   } 
+}; 
+
+
+
 #endif

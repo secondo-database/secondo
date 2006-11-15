@@ -208,7 +208,7 @@ overloaded, identity (on the numbers) is sufficient.
 #include "AlgebraInit.h"
 #include "AlgebraClassDef.h"
 #include "Operator.h"
-
+#include "SystemInfoRel.h"
 
 /*
 1.6 Class "AlgebraManager"[1]
@@ -478,7 +478,7 @@ The specific error numbers are defined in the kind checking procedure;
 the list may contain further information to describe the error.
 
 */
-  void UpdateOperatorUsage();
+  void UpdateOperatorUsage(SystemInfoRel* table);
  private:
   NestedList*              nl;
 /*

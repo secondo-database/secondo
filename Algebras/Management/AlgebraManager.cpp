@@ -43,6 +43,7 @@ using namespace std;
 #include "CharTransform.h"
 #include "SecondoSystem.h"
 #include "DynamicLibrary.h"
+#include "SystemTables.h"
 
 AlgebraManager::AlgebraManager( NestedList& nlRef, 
                                 GetAlgebraEntryFunction getAlgebraEntryFunc )
@@ -435,20 +436,23 @@ AlgebraManager::CheckKind( const string& kindName,
 
 
 void 
-AlgebraManager::UpdateOperatorUsage() {
+AlgebraManager::UpdateOperatorUsage(SystemInfoRel* table) {
 
-     
-     for (int algId = 0; algId < MAX_ALG; algId++) {
-       const int N = OperatorNumber(algId);
-       cout << GetAlgebraName(algId) << endl << endl;
-       for (int opId = 0; opId < N; opId++) {
-         if (opPtrField[algId][opId]) {
-            cout << Ops(algId, opId) << "1" << endl; 
-         }
-         else {
-            cout << Ops(algId, opId) << "0" << endl; 
-         } 
-       }
-     }  
+  table->clear();
+  int algId = 0;
+
+  while ( NextAlgebraId( algId ) )
+  {
+    const int N = OperatorNumber(algId);
+    for (int opId = 0; opId < N; opId++) {
+      OperatorUsageTuple* t = new OperatorUsageTuple;
+      t->name = GetAlgebraName(algId);
+      t->algebra = Ops(algId, opId);
+      if (opPtrField[algId][opId]) 
+        t->calls=1; 
+      else 
+	t->calls=0; 
+      table->append(t,false); 
+    }
+  }
 }
-

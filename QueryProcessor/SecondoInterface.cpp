@@ -157,6 +157,7 @@ FileInfoRel* fileInfoRel = 0;
 DerivedObjRel* devObjRel = 0;
 TypeInfoRel* typeInfoRel = 0;
 OperatorInfoRel* operatorInfoRel = 0;
+OperatorUsageRel* operatorUsageRel = 0;
 
 
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
@@ -318,6 +319,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   fileInfoRel = new FileInfoRel("SEC2FILEINFO");
   typeInfoRel = new TypeInfoRel("SEC2TYPEINFO");
   operatorInfoRel = new OperatorInfoRel("SEC2OPERATORINFO");
+  operatorUsageRel = new OperatorUsageRel("SEC2OPERATORUSAGE");
 
   // The next table is currently only a dummy. This is necessary
   // that the catalog recognizes it as a system table. In the future
@@ -331,6 +333,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   st.insert(fileInfoRel);
   st.insert(typeInfoRel);
   st.insert(operatorInfoRel);
+  st.insert(operatorUsageRel);
   st.insert(devObjRel);
   
   // add size information into typeInfoRel
@@ -356,6 +359,7 @@ SecondoInterface::Terminate()
   const string bullet(" - ");
   if ( initialized )
   {    
+
     cmsg.info() << "Terminating the secondo interface instance ..." << endl;
     cmsg.send();
     // --- Abort open transaction, if there is an open transaction
@@ -1323,7 +1327,8 @@ separate functions which should be named Command\_<name>.
   }
   delete fi; 
   
-  
+  AlgebraManager& am = *SecondoSystem::GetAlgebraManager();
+  am.UpdateOperatorUsage(operatorUsageRel);
   
   return;
 }
