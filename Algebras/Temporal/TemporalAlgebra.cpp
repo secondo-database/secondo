@@ -555,7 +555,7 @@ void MPoint::Trajectory( Line& line ) const
 void MPoint::Distance( const Point& p, MReal& result ) const
 {
   const UPoint *uPoint;
-  UReal uReal;
+  UReal uReal(true);
 
   result.Clear();
   result.StartBulkLoad();
@@ -1560,7 +1560,7 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
   else if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType 
             && nl->SymbolValue( instance ) == "undef" )
     {
-      UPoint *upoint = new UPoint();
+      UPoint *upoint = new UPoint(true);
       upoint->SetDefined(false);
       upoint->timeInterval=
         Interval<DateTime>(DateTime(instanttype),

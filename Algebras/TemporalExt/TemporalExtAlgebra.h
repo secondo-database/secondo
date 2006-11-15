@@ -177,6 +177,8 @@ class URealExt : public UReal
 public:
     URealExt() : UReal() {}
 
+    URealExt(bool is_defined):UReal(is_defined) { }
+
     float GetUnitMin() const { return unit_min; }
 
     float GetUnitMax() const { return unit_max; }

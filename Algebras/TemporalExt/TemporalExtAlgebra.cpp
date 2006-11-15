@@ -527,7 +527,7 @@ Return: nothing
 void MPointExt::MDirection( MReal* result) const
 {
     const UPoint* unitin;
-    UReal uresult;
+    UReal uresult(true);
     bool defined;
 
     result->Clear();
@@ -673,7 +673,7 @@ void MPointExt::At( Points* pts, MPoint &result ) const
                         cout << "( " <<  tmp_pt->GetX()
                             << ", " << tmp_pt->GetY() << " ) ";
                     }
-                    UPoint uresult;
+                    UPoint uresult(true);
                     if(unitin->At( *tmp_pt, uresult ))
                         result.Add( uresult );
                 }
@@ -790,7 +790,7 @@ For unit points which do not have any motion
                                     << ", " << ln_chs->GetRightPoint().GetY()
                                     << " )" << endl;
                             }
-                            UPoint res;
+                            UPoint res(true);
                             const UPoint* uttmp;
                             res.CopyFrom( unitin );
                             bool unit_present = false;
@@ -848,8 +848,8 @@ For unit points which do not have any motion
                                             << ln_chs->GetRightPoint().GetY()
                                             << " )" << endl;
                                 }
-                                UPoint trash1;
-                                UPoint trash2;
+                                UPoint trash1(true);
+                                UPoint trash2(true);
 
                                 unitin->At( ln_chs->GetLeftPoint(), trash1 );
                                 unitin->At( ln_chs->GetRightPoint(), trash2 );
@@ -919,7 +919,7 @@ Looks for intersections in a point
                                         cout << "Intersection is a point!!"
                                         << endl;
                                     }
-                                    UPoint res;
+                                    UPoint res(true);
                                     unitin->At( inter_p, res );
                                     result.Add( res );
                                 }
@@ -1359,7 +1359,7 @@ Return: nothing
 void MRealExt::At( CcReal val, MReal &result ) const
 {
     const UReal* utemp;
-    UReal uresult;
+    UReal uresult(true);
     float unit_min, unit_max, time1, time2;
     float value = val.GetRealval();
     clock_t clock1, clock2, clock3, clock4, clock_ges;
@@ -1421,7 +1421,7 @@ Return: a boolean
 bool MRealExt::Passes( CcReal val ) const
 {
     const UReal* utemp;
-    UReal uresult;
+    UReal uresult(true);
     float unit_min, unit_max, time1, time2;
     float value = val.GetRealval();
     clock_t clock1, clock2, clock3, clock4, clock_ges;
@@ -1556,7 +1556,7 @@ Return: nothing
 void MRealExt::At( RReal* inv, MReal &result ) const
 {
     const UReal* utemp;
-    UReal uresult;
+    UReal uresult(true);
     float unit_min, unit_max;
 
     result.Clear();
@@ -3752,7 +3752,7 @@ int MovingDerivativeExt(
     Mapping* m = ((Mapping*)args[0].addr);
     Mapping* pResult = ((Mapping*)result.addr);
     const UReal* unitin;
-    UReal unitout;
+    UReal unitout(true);
 
     pResult->Clear();
     pResult->StartBulkLoad();
@@ -3791,7 +3791,7 @@ int MovingDerivableExt(
     Mapping* m = ((Mapping*)args[0].addr);
     MBool* pResult = ((MBool*)result.addr);
     const UReal* unitin;
-    UBool unitout;
+    UBool unitout(true);
     CcBool myValue;
 
     pResult->Clear();
@@ -3894,7 +3894,7 @@ int MovingSpeedExt(
     double speed, distance, t;
     const Point p0, p1;
     const UPoint* unitin;
-    UReal unitout;
+    UReal unitout(true);
 
     pResult->Clear();
     pResult->StartBulkLoad();

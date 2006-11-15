@@ -383,7 +383,7 @@ unit class.
 void MPoint::MSpeed( MReal& result ) const
 {
   const UPoint *uPoint;
-  UReal uReal;
+  UReal uReal(true);
   //  int counter = 0;
 
   result.Clear();
@@ -495,7 +495,7 @@ void UPoint::USpeed( UReal& result ) const
 void MPoint::MVelocity( MPoint& result ) const
 {
   const UPoint *uPoint;
-  UPoint p;
+  UPoint p(true);
   //  int counter = 0;
 
   result.Clear();
@@ -3518,7 +3518,6 @@ int MPointDerivable( Word* args, Word& result, int message,
   MBool* res = ((MBool*)result.addr);
   
   const UReal *uReal;
-  UBool boolvalue;
   CcBool b;
   
   res->Clear();
@@ -3539,7 +3538,7 @@ int MPointDerivable( Word* args, Word& result, int message,
           else
             b.Set(true,false);
           
-          UBool boolvalue (uReal->timeInterval,b);
+          UBool boolvalue(uReal->timeInterval,b);
           res->Add( boolvalue );
         }
       res->EndBulkLoad( false );
@@ -3565,7 +3564,7 @@ int UnitPointDerivable( Word* args, Word& result, int message,
       else
         b.Set(true,false);
       
-      UBool boolvalue (uReal->timeInterval,b);
+      UBool boolvalue(uReal->timeInterval,b);
       res->CopyFrom(&boolvalue);
     }
   else
@@ -3664,7 +3663,7 @@ int MPointDerivative( Word* args, Word& result, int message,
   MReal* res = ((MReal*)result.addr);
   
   const UReal *Unit;
-  UReal uReal;
+  UReal uReal(true);
   
   res->Clear();
   if ( value->IsDefined() )
@@ -7706,7 +7705,7 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
   Interval<Instant> iv;
   Instant t;
   Point p1n_start, p1n_end, p2n_start, p2n_end, p_intersect, d1, d2, p1;
-  UPoint p1norm, p2norm;
+  UPoint p1norm(true), p2norm(true);
   double t_x, t_y, t1, t2, dxp1, dxp2, dyp1, dyp2, dt;
 
   // test for overlapping intervals
@@ -7925,7 +7924,7 @@ temporalUnitIntersection_upoint_point( Word* args, Word& result, int message,
 {
   TUIntersectionLocalInfo *sli;
   Word a0, a1;
-  UPoint *unit, pResult;
+  UPoint *unit, pResult(true);
   Point *val;
   
   
@@ -8472,7 +8471,7 @@ static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
   endResult->Clear();
   endResult->StartBulkLoad();
   const Interval<Instant> *per;
-  UPoint newUp;
+  UPoint newUp(true);
   Point pt;
   int m = 0;
   bool pfinished = (pResult->GetNoComponents() == 0);
@@ -8593,7 +8592,7 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
 {
   TUIntersectionLocalInfo *sli;
   Word     a0, a1;
-  UPoint   res;
+  UPoint   res(true);
   UPoint  *u;
   Line    *l;
   Periods *p;

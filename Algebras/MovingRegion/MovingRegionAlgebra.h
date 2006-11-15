@@ -798,6 +798,13 @@ The default constructor does nothing.
     URegion() { }
 
 /*
+  Use the following constructor to declare temporal object variables etc.
+
+*/
+
+    URegion(bool is_defined):SpatialTemporalUnit<Region, 3>(is_defined) { }
+
+/*
 Constructor, which creates an region unit with ~segments~ prepared for ~n~
 elements (use ~0~ for ~n~ to creatw an empty region unit).
 

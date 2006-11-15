@@ -431,7 +431,7 @@ void MPerimeter(MRegion& reg, MReal& res) {
     res.StartBulkLoad();
     for(int n = 0; n < nocomponents; n++){
       const URegionEmb *ur; 
-      UReal ures;
+      UReal ures(true);
       double start = 0.0, end = 0.0;
       reg.Get(n, ur);
       if(!ur->IsValid())
@@ -479,7 +479,7 @@ void MArea(MRegion& reg, MReal& res) {
     res.StartBulkLoad();
     for(int n = 0; n < reg.GetNoComponents(); n++){
       const URegionEmb *ur;
-      UReal ures;
+      UReal ures(true);
       double at = 0.0, bt = 0.0, ct = 0.0;
       reg.Get(n, ur);
       if(!ur->IsValid())
@@ -792,7 +792,7 @@ Returns the distance between two MPoints as MReal
 */
 void DistanceMPoint( MPoint& p1, MPoint& p2, MReal& result) 
 {
-  UReal uReal;
+  UReal uReal(true);
   
   if(TLA_DEBUG)
     cout<<"DistanceMPoint called"<<endl;
@@ -1240,7 +1240,7 @@ static void MRealDistanceMM(MReal& op1, MReal& op2, MReal& result)
 {  
   if(TLA_DEBUG)
     cout<<"MRealDistanceMM called"<<endl;
-  UReal uReal;
+  UReal uReal(true);
   
   RefinementPartitionLift<MReal, MReal, UReal, UReal> rp(op1, op2);
   if(TLA_DEBUG)
@@ -1255,8 +1255,8 @@ static void MRealDistanceMM(MReal& op1, MReal& op2, MReal& result)
     int u2Pos;
     const UReal *u1transfer;
     const UReal *u2transfer;
-    UReal u1;
-    UReal u2;
+    UReal u1(true);
+    UReal u2(true);
   
     rp.Get(i, iv, u1Pos, u2Pos);
     if (u1Pos == -1 || u2Pos == -1)     
@@ -1406,7 +1406,7 @@ static void MovingRealCompareMM(MReal& op1, MReal& op2, MBool&
 {
   if(TLA_DEBUG)
     cout<<"MovingRealCompareMM called"<<endl;
-  UBool uBool;
+  UBool uBool(true);
    
   RefinementPartitionLift<MReal, MReal, UReal, UReal> rp(op1, op2);
   if(TLA_DEBUG)
@@ -1421,8 +1421,8 @@ static void MovingRealCompareMM(MReal& op1, MReal& op2, MBool&
     int u2Pos;
     const UReal *u1transfer;
     const UReal *u2transfer;
-    UReal u1;
-    UReal u2;
+    UReal u1(true);
+    UReal u2(true);
     
     rp.Get(i, iv, u1Pos, u2Pos);
     if (u1Pos == -1 || u2Pos == -1)     
@@ -1520,7 +1520,7 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
 {
  if(TLA_DEBUG)
    cout<<"MovingRealIntersectionMM called"<<endl;
- UReal un;
+ UReal un(true);
    
  RefinementPartitionLift<MReal, MReal, UReal, UReal> rp(op1, op2);
  if(TLA_DEBUG)
@@ -1535,8 +1535,8 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
    int u2Pos;
    const UReal *u1transfer;
    const UReal *u2transfer;
-   UReal u1;
-   UReal u2;
+   UReal u1(true);
+   UReal u2(true);
     
   rp.Get(i, iv, u1Pos, u2Pos);
 
@@ -1579,7 +1579,7 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
           cout<<m<<". crossing not in iv"<<endl;
       }   
     }
-    UBool uBool;
+    UBool uBool(true);
     uBool.timeInterval = *iv;
     if (counter == 0) {
       if(TLA_DEBUG)
@@ -2227,7 +2227,7 @@ For Operators ~=~ , ~\#~ and ~minus~ for MovingPoint/MovingPoint
 void MovingPointCompareMM( MPoint& p1, MPoint& p2, MBool& result,
  int op) 
 {
-  UBool uBool;
+  UBool uBool(true);
   
   if(TLA_DEBUG)
     cout<<"MovingPointCompareMM called"<<endl;
@@ -2358,7 +2358,7 @@ For Operators ~=~, ~\#~ and ~minus~ for MovingPoint/Point
 void MovingPointCompareMS( MPoint& p1, Point& p2, MBool& result,
  int op) 
 {
-  UBool uBool;
+  UBool uBool(true);
 
   result.Clear();
   result.StartBulkLoad();
@@ -2465,7 +2465,7 @@ void MovingRegionCompareMS( MRegion *mr, Region *r, MBool *result,
  int op) 
 {
   const URegionEmb *ur;
-  UBool uBool;   //Part of the result
+  UBool uBool(true);   //Part of the result
   
   result->Clear();
   result->StartBulkLoad();
@@ -2713,7 +2713,7 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
   Interval<Instant>* iv;
   int reg1Pos;
   int reg2Pos;
-  UBool uBool;
+  UBool uBool(true);
   
   result->Clear();
   result->StartBulkLoad();
@@ -2971,7 +2971,7 @@ static void CompletePeriods2MBool(MPoint* mp, Periods* pResult,
   endResult->Clear();
   endResult->StartBulkLoad();
   const Interval<Instant> *per;
-  UBool uBool;
+  UBool uBool(true);
   int m = 0;
   bool pfinished = (pResult->GetNoComponents() == 0);
   for ( int i = 0; i < mp->GetNoComponents(); i++) {
@@ -3126,7 +3126,7 @@ static void CompletePeriods2MPoint(MPoint* mp, Periods* pResult,
   endResult->Clear();
   endResult->StartBulkLoad();
   const Interval<Instant> *per;
-  UPoint newUp;
+  UPoint newUp(true);
   Point pt;
   int m = 0;
   bool pfinished = (pResult->GetNoComponents() == 0);
@@ -3328,7 +3328,7 @@ static void TransformMBool2MPoint(MPoint *mp, MBool *mBool, MPoint *endResult)
   
   
   const UBool *ub;
-  UPoint newUp;
+  UPoint newUp(true);
   Point pt;
   int pos = 0;
   
@@ -3494,7 +3494,7 @@ static void TransformMBool2MPoint(Point *p, MBool *mBool, MPoint *endResult)
   endResult->Clear();
   endResult->StartBulkLoad();
   const UBool *ub;
-  UPoint newUp;
+  UPoint newUp(true);
   
   if(TLA_DEBUG)
     cout<<"TransformMBool2MPoint2 called"<<endl;
@@ -3543,7 +3543,7 @@ static void MovingBoolMMOperators( MBool& op1, MBool& op2,
 {
   if(TLA_DEBUG)
     cout<<"MovingBoolMMOperators called"<<endl;
-  UBool uBool;  //part of the Result
+  UBool uBool(true);  //part of the Result
   
   RefinementPartitionLift<MBool, MBool, UBool, UBool> rp(op1, op2);
   if(TLA_DEBUG)
@@ -3557,8 +3557,8 @@ static void MovingBoolMMOperators( MBool& op1, MBool& op2,
     int u2Pos;
     const UBool *u1transfer;
     const UBool *u2transfer;
-    UBool u1;
-    UBool u2;
+    UBool u1(true);
+    UBool u2(true);
     
     rp.Get(i, iv, u1Pos, u2Pos);
     if(TLA_DEBUG){
@@ -3612,7 +3612,7 @@ static void MovingBoolMSOperators( MBool& op1, CcBool& op2,
 {
   if(TLA_DEBUG)
     cout<<"MovingBoolMSOperators called"<<endl;
-  UBool uBool;  //part of the Result
+  UBool uBool(true);  //part of the Result
   const UBool *u1transfer;
   
   result.Clear();
@@ -3656,7 +3656,7 @@ static void MovingCompareBoolMM( Mapping1& op1, Mapping2& op2,
 {
   if(TLA_DEBUG)
     cout<<"MovingCompareBoolMM called"<<endl;
-  UBool uBool;  //part of the Result
+  UBool uBool(true);  //part of the Result
   
   RefinementPartitionLift<Mapping1, Mapping2, Unit1, Unit2> 
   rp(op1, op2);
@@ -3785,7 +3785,7 @@ static void MovingCompareBoolMS( Mapping1& op1, Operator2& op2,
 {
   if(TLA_DEBUG)
     cout<<"MovingCompareBoolMS called"<<endl;
-  UBool uBool;  //part of the Result
+  UBool uBool(true);  //part of the Result
   const Unit1 *u1;
 
   result.Clear();
@@ -3816,7 +3816,7 @@ Calculates the absolut value of a mReal.
 */
 static void MRealABS(MReal& op, MReal& result)
 {  
-  UReal uReal;
+  UReal uReal(true);
   result.Clear();
   result.StartBulkLoad();
   for(int i = 0; i < op.GetNoComponents(); i++)
@@ -5212,7 +5212,7 @@ int IsEmptyValueMap(Word* args, Word& result, int message,
     result = qp->ResultStorage(s);
     MBool* pResult = (MBool*)result.addr;
     Mapping1* reg = (Mapping1*)args[0].addr;
-    UBool uBool;
+    UBool uBool(true);
     const Unit1 *ureg;
     
     pResult->Clear();
@@ -5342,7 +5342,7 @@ int MFalseValueMap(Word* args, Word& result, int message,
     result = qp->ResultStorage(s);
     MBool* pResult = (MBool*)result.addr;
     MRegion* reg = (MRegion*)args[0].addr;
-    UBool uBool;
+    UBool uBool(true);
     
     pResult->Clear();
     pResult->StartBulkLoad();
@@ -5992,7 +5992,7 @@ int TemporalNot( Word* args, Word& result, int message,
   MBool* pResult = (MBool*)result.addr;
   MBool* op = (MBool*)args[0].addr;
   const UBool *u1transfer;
-  UBool uBool;
+  UBool uBool(true);
   
   pResult->Clear();
   pResult->StartBulkLoad();
@@ -6032,7 +6032,7 @@ int TemporalZeroValueMap(Word* args, Word& result, int message,
     
     pResult->Clear();
     pResult->StartBulkLoad();
-    UInt uInt;
+    UInt uInt(true);
     uInt.timeInterval.lc = true;
     uInt.timeInterval.start.ToMinimum();
     uInt.timeInterval.start.SetType(instanttype);
@@ -6062,7 +6062,7 @@ int TemporalMIntValueMap( Word* args, Word& result, int message,
     Periods *pers = (Periods*)args[0].addr;
     MInt *pResult = (MInt*)result.addr;
     const Interval<Instant> *per;
-    UInt uInt;
+    UInt uInt(true);
     
     pResult->Clear();
     pResult->StartBulkLoad();
@@ -6130,7 +6130,7 @@ int TemporalPlusValueMap( Word* args, Word& result, int message,
   MInt *op2 = (MInt*)args[1].addr;
   MInt *pResult = (MInt*)result.addr;
    
-  UInt uInt;  //part of the Result
+  UInt uInt(true);  //part of the Result
   
   RefinementPartitionLift<MInt, MInt, UInt, UInt> rp(*op1, *op2);
   if(TLA_DEBUG)

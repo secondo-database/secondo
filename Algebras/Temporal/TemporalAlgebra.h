@@ -757,9 +757,16 @@ struct TemporalUnit
 3.5.1 Constructors and Destructor
 
 */
-  TemporalUnit():defined( true ) {}
+  TemporalUnit() {}
 /*
 The simple constructor. This constructor should not be used.
+
+*/
+
+  TemporalUnit( bool is_defined):defined(is_defined) {}
+
+/*
+Use this constructor when declaring temporal object variables etc.
 
 */
 
@@ -954,9 +961,16 @@ class StandardTemporalUnit :
 {
   public:
 
-    StandardTemporalUnit():TemporalUnit<Alpha>() {}
+    StandardTemporalUnit() {}
 /*
 The simple constructor. This constructor should not be used.
+
+*/
+
+    StandardTemporalUnit( bool is_defined):TemporalUnit<Alpha>(is_defined) {}
+
+/*
+Use this constructor when declaring temporal object variables etc.
 
 */
 
@@ -1029,9 +1043,16 @@ class SpatialTemporalUnit :
   public TemporalUnit<Alpha>
 {
   public:
-  SpatialTemporalUnit():TemporalUnit<Alpha>() {}
+  SpatialTemporalUnit() {}
 /*
 The simple constructor. This constructor should not be used.
+
+*/
+
+    SpatialTemporalUnit( bool is_defined):TemporalUnit<Alpha>(is_defined) {}
+
+/*
+Use this constructor when declaring temporal object variables etc.
 
 */
 
@@ -1123,7 +1144,9 @@ struct ConstTemporalUnit : public StandardTemporalUnit<Alpha>
 3.6.1 Constructors, Destructor
 
 */
-  ConstTemporalUnit():StandardTemporalUnit<Alpha>() {}
+  ConstTemporalUnit() {}
+
+  ConstTemporalUnit(bool is_defined):StandardTemporalUnit<Alpha>(is_defined) {}
 
   ConstTemporalUnit( const Interval<Instant>& interval, const Alpha& a ):
     StandardTemporalUnit<Alpha>( interval )
@@ -1327,7 +1350,9 @@ struct UReal : public StandardTemporalUnit<CcReal>
 3.7.1 Constructors and Destructor
 
 */
-  UReal():StandardTemporalUnit<CcReal>() {};
+  UReal() {};
+
+  UReal(bool is_defined):StandardTemporalUnit<CcReal>(is_defined) {};
 
   UReal( const Interval<Instant>& interval,
          const double a,
@@ -1546,7 +1571,9 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
 3.8.1 Constructors and Destructor
 
 */
-  UPoint():SpatialTemporalUnit<Point, 3>() {};
+  UPoint() {};
+
+  UPoint(bool is_defined):SpatialTemporalUnit<Point, 3>(is_defined) {};
 
   UPoint( const Interval<Instant>& interval,
           const double x0, const double y0,

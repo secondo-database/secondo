@@ -5372,7 +5372,7 @@ sufficient context to understand this method.
     if (MRA_DEBUG)
         cerr << "URegionEmb::RIF() called" << endl;
 
-    UPoint rUp;
+    UPoint rUp(true);
     restrictUPointToInterval(up, iv, rUp);
 
     for (unsigned int i = 0; i < segmentsNum; i++) {
@@ -5713,7 +5713,7 @@ consider the $TSI\_LEAVE$ intersection first.
                 ? iv.rc
                 : true;
 
-            UPoint rUp;
+            UPoint rUp(true);
             restrictUPointToInterval(up, iv, rUp);
 
             RestrictedIntersectionAddUPoint(
@@ -5771,7 +5771,7 @@ consider the $TSI\_LEAVE$ intersection first.
                 && prev_c)
                 lc = false;
 
-            UPoint rUp;
+            UPoint rUp(true);
             restrictUPointToInterval(up, iv, rUp);
 
             RestrictedIntersectionAddUPoint(
@@ -5830,7 +5830,7 @@ void URegionEmb::RestrictedIntersection(const DBArray<MSegmentData>* segments,
         unsigned int num = Plumbline(segments, up, iv);
 
         if (num > 0 && num % 2 == 1) {
-            UPoint rUp;
+          UPoint rUp(true);
             restrictUPointToInterval(up, iv, rUp);
 
             RestrictedIntersectionAddUPoint(
@@ -6580,6 +6580,7 @@ The class definition has been moved to ~MovingRegionAlgebra.h~.
 */
 
 URegion::URegion(unsigned int n) :
+    SpatialTemporalUnit<Region, 3>(true), 
     segments(n) {
 
     if (MRA_DEBUG)
@@ -6649,7 +6650,7 @@ void URegion::TemporalFunction(const Instant& t,
 URegion* URegion::Clone(void) const {
     if (MRA_DEBUG) cerr << "URegion::Clone() called" << endl;
 
-    URegion* res = new URegion(0);
+    URegion* res = new URegion( (unsigned int)0 );
     res->CopyFrom(this);
     res->SetDefined( TemporalUnit<Region>::defined );
     return res;
@@ -6722,7 +6723,7 @@ static Word InURegion(const ListExpr typeInfo,
     if (MRA_DEBUG) cerr << "InURegion() called" << endl;
 
 
-    URegion* ur = new URegion(0);
+    URegion* ur = new URegion((unsigned int)0);
 
     // Check for indefined value
     if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType 
@@ -6829,7 +6830,7 @@ static bool CheckURegion(ListExpr type, ListExpr& errorInfo) {
 static Word CreateURegion(const ListExpr typeInfo) {
     if (MRA_DEBUG) cerr << "CreateURegion() called" << endl;
 
-    return (SetWord(new URegion(0)));
+    return (SetWord(new URegion((unsigned int)0)));
 }
 
 /*
