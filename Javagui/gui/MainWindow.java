@@ -269,6 +269,12 @@ public MainWindow(String Title){
  int maxStringLength=48;
  useEntropy=false;
  if(config_file_ok){
+     String useGetEnv = Config.getProperty("USE_GETENV");
+     if(useGetEnv!=null && useGetEnv.toLowerCase().trim().equals("false")){
+        Environment.USE_GETENV = false;
+     }
+     useGetEnv = null;
+
      String UseEntropy = Config.getProperty("USE_ENTROPY");
      if(UseEntropy!=null){
         if(UseEntropy.toLowerCase().trim().equals("true"))

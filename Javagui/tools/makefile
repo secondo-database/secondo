@@ -45,7 +45,7 @@ all: ../sj/lang/ListExpr.class $(CLASSFILES)
 
 
 GetEnv.h: GetEnv.java
-	$(JAVAH) -classpath .. -o $@ tools.GetEnv
+	$(JAVAH) -force -classpath .. -o $@ tools.GetEnv
 
 GetEnv.o: GetEnv.c
 	$(GCC) -fPIC -D_REENTRANT -Wall $(JNIINCLUDE) -I. -c $< -o $@ 

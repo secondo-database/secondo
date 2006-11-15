@@ -1,6 +1,9 @@
 
 package tools;
 
+import gui.Environment;
+
+
 /** This class provides the getenv mechanism.
   * The most java versions support getenv in the
   * System class. Unfortunately, the default Java version
@@ -28,7 +31,12 @@ public class GetEnv{
     if(simple){
         return System.getenv(name);
     } else{
-        return getEnvFromC(name);
+        if(Environment.USE_GETENV){
+           return getEnvFromC(name);
+        }else{
+          Reporter.writeError("getenv disabled but called");
+          return name;
+        }
     }
   }
 
@@ -53,8 +61,17 @@ public class GetEnv{
 
   }
 
-  static { 
-    System.loadLibrary("GetEnv");
+  static {
+   if(Environment.USE_GETENV){
+      try{ 
+         System.loadLibrary("GetEnv");
+      }catch(Exception e){
+          Reporter.writeError("cannot load the GetEnv native library. please check your library path!");
+          Reporter.writeWarning("The getEnv mechanism will not be available");
+          Reporter.debug(e);
+          Environment.USE_GETENV=false; 
+      }
+   }
   }
 
 }

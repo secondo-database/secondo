@@ -79,6 +79,13 @@ public static boolean TTY_STYLED_SCRIPT = true;
 public static boolean TTY_STYLED_COMMAND = false;
 
 
+/** this variable can be used to switch of the
+  * getEnv feature. 
+  **/
+public static boolean USE_GETENV=true;
+
+
+
 /** Returns the currently used memeory in bytes **/
 public static long usedMemory(){
   return rt.totalMemory()-rt.freeMemory();

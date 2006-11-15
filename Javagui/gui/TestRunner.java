@@ -283,34 +283,33 @@ private boolean nextCommand(BufferedReader in){
                  yieldState=YIELD_RESULT;
                  return false;
               }
-              if(restOfLine.startsWith("(")){ // result given as string
-                  resultList=new ListExpr();
-                  if(resultList.readFromString(restOfLine)!=0){
-                     Reporter.writeError("invalid List found as result "+ restOfLine);
-                     resultList=null;
-                  }
-                  yieldState=YIELD_RESULT;
-                  return false;
+              // convert the remainder of the line into a nested list
+              resultList=new ListExpr();
+              if(resultList.readFromString(restOfLine)!=0){ // not a list
+                   Reporter.writeError("error in testfile: invalid argument for yields "+ restOfLine);
+                   errors++;
+                   resultList=null;
+                   yieldState=YIELD_UNKNOWN;
+                   return false;
               }
-              restOfLine=restOfLine.toLowerCase();
-              if(restOfLine.indexOf("error")>=0){ // error expected
+              // search for keywords of the TestRunner
+              if(resultList.atomType()==ListExpr.SYMBOL_ATOM){
+                String keyword = resultList.symbolValue().toLowerCase();
+                if(keyword.equals("error")){
                   Reporter.writeInfo("expect an error");
                   yieldState=YIELD_ERROR;
                   resultList=null;
                   return false;
-              }
-              if(restOfLine.indexOf("success")>=0){ // success expected
-                 Reporter.writeInfo("expect success");
-                 yieldState=YIELD_SUCCESS;
-                 resultList=null;
-                 return false;
-              }
-              // no known command
-              Reporter.writeError("Error in testrunner file\n"+
-                                  "yields got an unknown argument :\n " + restOfLine);
-              errors++; 
-              yieldState=YIELD_UNKNOWN;
-              resultList=null;
+                }
+                if(keyword.equals("success")){
+                   Reporter.writeInfo("expect success");
+                   yieldState=YIELD_SUCCESS;
+                   resultList=null;
+                   return false;
+                }
+              } 
+              // no keyword, simple list
+              yieldState=YIELD_RESULT;
               return false;
            } else if(command.equals("teardown")){
               state=TEARDOWN;

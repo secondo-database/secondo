@@ -795,10 +795,33 @@ public class CommandPanel extends JScrollPane {
                if(succ!=success){ // not the expected result
                   return false;
                }
-               if(!success){ // this was expected
+               if(!success){ // this case was expected
                   return true;
                }
                if(expectedResult!=null){
+                   // if the resultList is a single symbolAtom, it is interpreted as
+                   // a database objects which has to be load from the currently open database
+                   if(expectedResult.atomType()==ListExpr.SYMBOL_ATOM){
+                        String resCommand = "query "+expectedResult.symbolValue();
+                        ListExpr testResult = new ListExpr();
+                        IntByReference testErrorCode = new IntByReference(0);
+                        IntByReference testErrorPos = new IntByReference(0);
+                        StringBuffer testErrorMessage = new StringBuffer();
+                        Secondointerface.secondo(resCommand,testResult,testErrorCode,
+                                                 testErrorPos,testErrorMessage);
+                        if(testErrorCode.value!=0){
+                           Reporter.writeError(  "can't load the expected testresult '"
+                                               + expectedResult.symbolValue()
+                                               + "' from the database \n"
+                                               + "the error message is '"
+                                               + testErrorMessage +"'");
+                           return false; // test unsuccessful
+                        } else { // replace the expected result by the list get from the database
+                           expectedResult.destroy(); // not longer needed
+                           expectedResult = testResult;
+                        }
+                   }
+
                    Reporter.writeInfo("compare expected result with actual result");
                    boolean res = resultList.equals(expectedResult,epsilon,isAbsolute);
                    
