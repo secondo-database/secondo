@@ -422,6 +422,20 @@ SecondoInterface::Terminate()
 
 */
 
+bool
+SecondoInterface::Secondo( const string& cmdText,
+                           ListExpr& resultList,
+                           SecErrInfo& err       )
+{
+  Secondo( cmdText, nl->Empty(), 1, false, false, 
+           resultList, err.code, err.pos, err.msg );
+  
+  if (err.code != ERR_NO_ERROR || err.msg != "")
+    return false;
+  return true;
+}
+
+
 void
 SecondoInterface::Secondo( const string& commandText,
                            const ListExpr commandLE,

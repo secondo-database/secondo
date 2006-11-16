@@ -454,6 +454,12 @@ let Staedte_2 = Staedte feed project[Vorwahl] extend[Seq: seqnext()] consume;
 #yields success
 query Staedte feed Staedte_2 feed project[Vorwahl] {arg2} product consume count; 
 
+#testcase coverage1 
+#coverage RelationAlgebra
+
+#testcase coverage2 
+#coverage ExtRelationAlgebra
+
 #teardown
 close database;
 delete database relalgtest;

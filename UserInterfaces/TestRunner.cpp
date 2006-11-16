@@ -31,14 +31,18 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. 
 
-February 2006, M. Spiekermann. Reimplementation of the ~GetCommand()~ method. Parsing
-the input lines is now done with less code by using some useful functions operating
-on ~strings~ implemented in "CharTransform.h". Moreover some bugs concerning result 
-evaluation have been fixed. Finally, some new features (Approximate comparison of float values,
-result specification in external files and envrionment variable expansion in file names) were
+February 2006, M. Spiekermann. Reimplementation of the ~GetCommand()~ method.
+Parsing the input lines is now done with less code by using some useful
+functions operating on ~strings~ implemented in "CharTransform.h". Moreover
+some bugs concerning result evaluation have been fixed. Finally, some new
+features (Approximate comparison of float values, result specification in
+external files and envrionment variable expansion in file names) were
 implemented.
 
-Nov 2006, M. Spiekermann. Results may now be also specified as database objects.
+Nov 2006, M. Spiekermann. Results may now be also specified as database
+objects. Moreover, a new directive coverage was introduced which reports an
+error if not all operators of an specified algebra module were used inside teh
+tests.
 
 1 Overview
 
@@ -105,6 +109,12 @@ class TestRunner : public Application
   void ShowErrorSummary() const;
   void ShowTestSuccessMsg(const string& msg) const;
 
+  void VerifyResult(ListExpr outList, ListExpr expectedResult); 
+
+  void DisplayError( const string& cmd, ListExpr expectedResult, 
+                     int errorCode, const string& errorMessage, 
+                     ListExpr outList ); 
+
   string            parmFile;
   string            user;
   string            pswd;
@@ -113,6 +123,8 @@ class TestRunner : public Application
   string            iFileName;
   string            oFileName;
   string            cmd;
+  string            missingOps;
+  string            rightArrow, leftArrow;
   int               num;
   bool              isStdInput;
   bool              quit;
@@ -137,7 +149,8 @@ needed for maintaining the test state
   string testName;
   string testCaseName;
  
-  typedef enum {Success, Error, Result, Unknown, UndefinedObj} YieldState; 
+  typedef enum { Success, Error, Result, 
+                 Unknown, UndefinedObj, Coverage} YieldState; 
   YieldState yieldState;
   bool skipToTearDown;
   
@@ -167,6 +180,7 @@ TestRunner::TestRunner( const TTYParameter& tp )
   oFileName     = tp.oFileName;
   num           = parse<int>(tp.num);
   string cmd    = "";
+  missingOps    = "";
   isStdInput    = true;
   quit          = false;
   nl            = 0;
@@ -184,6 +198,16 @@ TestRunner::TestRunner( const TTYParameter& tp )
   expectedResult = nl->TheEmptyList();
   
   verbose = false;
+
+  const int n = 30;
+  const string ra(n,'>'); 
+  const string la(n,'<'); 
+  stringstream tmp;
+  tmp << color(red) << ra << color(normal);
+  rightArrow = tmp.str();
+  tmp.str("");
+  tmp << color(red) << la << color(normal);
+  leftArrow = tmp.str();
 
 }
 
@@ -308,6 +332,11 @@ TestRunner::ShowErrorSummary() const
     }
     cout << endl << endl;
   }
+
+  cout << endl
+       << "COVERAGE (untested operators):" << endl
+       << "------------------------------" << endl
+       << missingOps << endl;
 
 }
 
@@ -538,24 +567,17 @@ TestRunner::GetCommand()
                   string ident = parse<string>( restOfLine.substr(1) );
                   cout << "Query result specified in object '" << ident 
                        << "'" << endl;
-                  string cmd="";
-                  ListExpr cmdList = 
-                               nl->TwoElemList( nl->SymbolAtom("query"), 
-                                                nl->SymbolAtom(ident)   );  
-                  int errorCode = 0, errorPos = 0;
-                  ListExpr outList = nl->Empty();
-                  string errorMessage = "";
-                  string errorText = "";
-                  si->Secondo( cmd, cmdList, 0, false, false,
-                               outList, errorCode, errorPos, errorMessage );
+                  ListExpr resList = nl->Empty();
+                  SecErrInfo err;
+                  bool ok = si->Secondo( "query " + ident, resList, err );
 
-                  if (errorCode || (errorMessage.length() > 0) ) {
+                  if (!ok) {
                     expectedResult = nl->Empty();
                     yieldState = UndefinedObj;
                   } 
                   else
                   {
-                    expectedResult = outList;
+                    expectedResult = resList;
                   }
                 }             
               }
@@ -572,6 +594,18 @@ TestRunner::GetCommand()
                 yieldState = Unknown;
               }       
             }       
+          }
+          else if(command.find("coverage") == 0)
+          {
+            string algebra = restOfLine;
+            cout << "Computing coverage for algebra " << algebra << endl;
+            cmd = "query SEC2OPERATORUSAGE feed filter[.Algebra = \"" 
+                  + algebra 
+                  + "\"] filter[.Calls = 0] project[Operator] consume"; 
+            yieldState = Coverage;
+            string resText = "((rel(tuple(Operator string)))())";
+            bool ok = nl->ReadFromString(resText, expectedResult);
+            assert(ok);       
           }
           else if(command.find("teardown") == 0)
           {
@@ -633,6 +667,64 @@ TestRunner::ProcessCommands()
 }
 
 
+void 
+TestRunner::VerifyResult(ListExpr outList, ListExpr expectedResult) 
+{
+  /* verify that the expected results were delivered */
+  bool result = false;
+  if (realValTolerance.value != 0.0)
+  { 
+    cout << "realValTolerance!" << endl;
+    result = nl->Equal(outList, expectedResult, realValTolerance);
+  }  
+  else
+  { 
+    result = nl->Equal(outList, expectedResult);
+  }  
+
+  if(result)
+  {
+    ShowTestSuccessMsg("computing result as specified.");
+  }
+  else 
+  {
+    RegisterError();
+    cout 
+      << color(red)
+      << "The test returned unexpected results!" << endl
+      << rightArrow << endl
+      << color(normal)
+      << "Expected : " << endl;
+    nl->WriteListExpr(expectedResult, cout);
+    cout << endl << "But got : ";
+    nl->WriteListExpr(outList, cout);
+    ShowCommand(cmd);
+    cout << color(red)
+         << leftArrow
+         << color(normal) << endl;
+  }
+}
+
+void 
+TestRunner::DisplayError( const string& cmd, ListExpr expectedResult, 
+                          int errorCode, const string& errorMessage, 
+                          ListExpr outList) 
+{
+  cout 
+    << color(red)
+    << "The test returned an error, but should not do so!" << endl
+    << color(normal)
+    << rightArrow << endl
+    << "Expected result : " << endl
+    << nl->ToString(expectedResult) << endl;
+  ShowErrCodeInfo(errorCode, errorMessage, outList);
+  ShowCommand(cmd);
+  cout << color(red)
+       << leftArrow 
+       << color(normal) << endl;
+}
+
+
 /*
 11 CallSecondo
 
@@ -677,15 +769,6 @@ TestRunner::CallSecondo()
     }
   }
 
-  const int n = 30;
-  const string ra(n,'>'); 
-  const string la(n,'<'); 
-  stringstream tmp;
-  tmp << color(red) << ra << color(normal);
-  const string rightArrow = tmp.str();
-  tmp.str("");
-  tmp << color(red) << la << color(normal);
-  const string leftArrow = tmp.str();
 
 
   switch(state)
@@ -754,17 +837,7 @@ TestRunner::CallSecondo()
           else
           {
             RegisterError();
-          cout 
-            << color(red)
-            << "The test returned an error, but should not do so!" << endl
-            << color(normal)
-            << rightArrow << endl
-            << "Expected result : " << endl
-            << nl->ToString(expectedResult) << endl;
-          ShowErrCodeInfo(errorCode, errorMessage, outList);
-          ShowCommand(cmd);
-          cout
-            << leftArrow << endl;
+            DisplayError(cmd, expectedResult, errorCode, errorMessage, outList);
           }
         }
         else if( yieldState == Result )
@@ -772,51 +845,24 @@ TestRunner::CallSecondo()
           if(errorCode)
           {
             RegisterError();
-            cout 
-              << color(red)
-              << "The test returned an error, but should not do so!" << endl
-              << color(normal)
-              << rightArrow << endl
-              << "Expected result : " << endl
-              << nl->ToString(expectedResult) << endl;
-            ShowErrCodeInfo(errorCode, errorMessage, outList);
-            ShowCommand(cmd);
-            cout << leftArrow << endl;
+            DisplayError(cmd, expectedResult, errorCode, errorMessage, outList);
           }
           else 
           {
-            /* verify that the expected results were delivered */
-            bool result = false;
-            if (realValTolerance.value != 0.0)
-            { 
-              cout << "realValTolerance!" << endl;
-              result = nl->Equal(outList, expectedResult, realValTolerance);
-            }  
-            else
-            { 
-              result = nl->Equal(outList, expectedResult);
-            }  
-         
-            if(result)
-            {
-              ShowTestSuccessMsg("computing result as specified.");
-            }
-            else 
-            {
-              RegisterError();
-              cout 
-                << color(red)
-                << "The test returned unexpected results!" << endl
-                << rightArrow << endl
-                << color(normal)
-                << "Expected : " << endl;
-              nl->WriteListExpr(expectedResult, cout);
-              cout << endl << "But got : ";
-              nl->WriteListExpr(outList, cout);
-              ShowCommand(cmd);
-              cout
-                << leftArrow << endl;
-            }
+            VerifyResult(outList, expectedResult);
+          }  
+        }
+        else if( yieldState == Coverage )
+        {
+          if(errorCode)
+          {
+            RegisterError();
+            DisplayError(cmd, expectedResult, errorCode, errorMessage, outList);
+          }
+          else 
+          {
+            VerifyResult(outList, expectedResult);
+            missingOps += nl->ToString(nl->Second(outList));
           }  
         }
         else if( yieldState == Unknown )

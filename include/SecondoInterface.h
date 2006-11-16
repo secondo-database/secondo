@@ -147,6 +147,16 @@ class Socket;
 
 */ 
 
+struct SecErrInfo {
+
+  int code;
+  int pos;
+  string msg;
+  SecErrInfo() : code(0), pos(0), msg("") {}
+  ~SecErrInfo() {}; 
+};
+
+
 class SecondoInterface
 {
  public:
@@ -205,6 +215,10 @@ the "Secondo"[3] system and the ~SmiEnvironment~ are shut down.
                 string& errorMessage,
                 const string& resultFileName =
                                 "SecondoResult" );
+
+   bool Secondo( const string& cmdText, 
+                 ListExpr& resultList, 
+                 SecErrInfo& err        );
 /*
 Reads a command and executes it; it possibly returns a result.
 The command is one of a set of "Secondo"[3] commands described below. The
@@ -238,10 +252,12 @@ commands that may produce them. If an error occurred (~errorCode~ different from
 Possibly additional information about the error is given in the ~resultList~
 which is then a list of errors in the form explained below. 
 
-
 Furthermore, ~errorPos~ contains a position within the ~commandBuffer~
 where the error was detected (only when the command was given in the
 text buffer, of course). - not yet implemented. - 
+
+The second alternative is a short form for the ~text~ syntax without 
+the possibilty to specify a text file.
 
 2.1.1 Basic Commands
 

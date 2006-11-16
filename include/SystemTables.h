@@ -512,8 +512,8 @@ class OperatorUsageRel : public SystemInfoRel
    
    virtual void initSchema()
    { 
-     addAttribute("Name", "string");
      addAttribute("Algebra", "string");
+     addAttribute("Operator", "string");
      addAttribute("Calls", "int");
    } 
 }; 
