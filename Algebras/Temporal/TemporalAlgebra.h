@@ -1290,9 +1290,9 @@ Returns ~true~ if the value of this temporal unit is equal to the value of the t
     if( StandardTemporalUnit<Alpha>::IsDefined() )
       {
         os << "ConstUnit: " << "( (";
-        TemporalUnit<Alpha>::timeInterval.start.Print(os);
+        os << TemporalUnit<Alpha>::timeInterval.start.ToString();
         os << " ";
-        TemporalUnit<Alpha>::timeInterval.end.Print(os);
+        os << TemporalUnit<Alpha>::timeInterval.end.ToString();
         os<<" "<<(TemporalUnit<Alpha>::timeInterval.lc ? "TRUE " : "FALSE ");
         os<<" "<<(TemporalUnit<Alpha>::timeInterval.rc ? "TRUE) " : "FALSE) ");
         constValue.Print(os);
@@ -1514,9 +1514,9 @@ Equality is calculated with respect to temporal evolution.
     if(IsDefined())
       {
         os << "UReal: " << "( (";
-        timeInterval.start.Print(os);
+        os << timeInterval.start.ToString();
         os << " ";
-        timeInterval.end.Print(os);
+        os << timeInterval.end.ToString();
         os << " " << (timeInterval.lc ? "TRUE " : "FALSE ");
         os << " " << (timeInterval.rc ? "TRUE) (" : "FALSE) (");
         os << a << " " << b << " " << c;
@@ -1745,9 +1745,9 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
     if(IsDefined())
       {
         os << "UPoint: " << "( (";
-        timeInterval.start.Print(os);
+        os << timeInterval.start.ToString();
         os << " ";
-        timeInterval.end.Print(os);
+        os << timeInterval.end.ToString();
         os << " " << (timeInterval.lc ? "TRUE " : "FALSE ");
         os << " " << (timeInterval.rc ? "TRUE) " : "FALSE) ");
         p0.Print(os);
