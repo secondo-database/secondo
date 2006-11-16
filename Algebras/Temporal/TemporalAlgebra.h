@@ -238,7 +238,6 @@ Compares this and the argument;
 
 */
 
-
 /*
 
 3.2.3 Attributes
@@ -1288,7 +1287,20 @@ Returns ~true~ if the value of this temporal unit is equal to the value of the t
 
   virtual ostream& Print( ostream &os ) const
   {
-    return os << "Temporal Algebra---constunit" << endl;
+    if( StandardTemporalUnit<Alpha>::IsDefined() )
+      {
+        os << "ConstUnit: " << "( (";
+        TemporalUnit<Alpha>::timeInterval.start.Print(os);
+        os << " ";
+        TemporalUnit<Alpha>::timeInterval.end.Print(os);
+        os<<" "<<(TemporalUnit<Alpha>::timeInterval.lc ? "TRUE " : "FALSE ");
+        os<<" "<<(TemporalUnit<Alpha>::timeInterval.rc ? "TRUE) " : "FALSE) ");
+        constValue.Print(os);
+        os << " )" << endl;        
+        return os;
+      }
+    else
+      return os << "ConstUnit: (undef)" << endl;
   }
 
   virtual size_t HashValue() const
@@ -1498,7 +1510,21 @@ Equality is calculated with respect to temporal evolution.
 
   virtual ostream& Print( ostream &os ) const
   {
-    return os << "Temporal Algebra---ureal" << endl;
+    
+    if(IsDefined())
+      {
+        os << "UReal: " << "( (";
+        timeInterval.start.Print(os);
+        os << " ";
+        timeInterval.end.Print(os);
+        os << " " << (timeInterval.lc ? "TRUE " : "FALSE ");
+        os << " " << (timeInterval.rc ? "TRUE) (" : "FALSE) (");
+        os << a << " " << b << " " << c;
+        os << (r ? " TRUE) )" : " FALSE) )") << endl;        
+        return os;
+      }
+    else
+      return os << "UReal: (undef)" << endl;
   }
 
   virtual size_t HashValue() const
@@ -1715,7 +1741,23 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 
   inline virtual ostream& Print( ostream &os ) const
   {
-    return os << "Temporal Algebra --- UPoint"<< endl;
+    
+    if(IsDefined())
+      {
+        os << "UPoint: " << "( (";
+        timeInterval.start.Print(os);
+        os << " ";
+        timeInterval.end.Print(os);
+        os << " " << (timeInterval.lc ? "TRUE " : "FALSE ");
+        os << " " << (timeInterval.rc ? "TRUE) " : "FALSE) ");
+        p0.Print(os);
+        os << " ";
+        p1.Print(os);
+        os << " )" << endl;
+        return os;
+      }
+    else
+      return os << "UPoint: (undef)" << endl;
   }
 
   inline virtual size_t HashValue() const
@@ -1771,9 +1813,8 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 3.9 Mapping
 
 This class will implement the functionalities of the ~mapping~ type constructor.
-It contains a database array of temporal units. For that, ~Alpha~ must implement
-the class ~TemporalUnit~ or ~ConstTemporalUnit~, because functions of these classes
-will be used.
+It contains a database array of temporal units. For that, ~Unit~ must implement
+the class ~TemporalUnit~ or ~ConstTemporalUnit~, because functions of these classes will be used.
 
 */
 template <class Unit, class Alpha>

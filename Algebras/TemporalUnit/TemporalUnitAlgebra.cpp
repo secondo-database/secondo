@@ -58,17 +58,18 @@ OK    size                           periods --> real
 (OK)  point2d                        periods --> point
 (OK)  queryrect2d                    instant --> rect
 OK    circle              point x real x int --> region
+OK    uint2ureal:                       uint --> ureal
 
 OK    isempty                             U  --> bool (for U in kind UNIT)
 OK    trajectory                      upoint --> line
 OK    velocity                        mpoint --> mpoint
-OK                                    upoint --> upoint
+OK    velocity                        upoint --> upoint
 OK    derivable                        mreal --> mbool
-OK                                     ureal --> ubool
+OK    derivable                        ureal --> ubool
 OK    derivative                       mreal --> mreal
-OK                                     ureal --> ureal
+OK    derivative                       ureal --> ureal
 OK    speed                           mpoint --> mreal
-OK                                    upoint --> ureal
+OK    speed                           upoint --> ureal
 
       passes:  For T in {bool, int, string, point}:
 OK  +                            uT x      T --> bool
@@ -110,12 +111,12 @@ OK  +          uT x       T --> (stream uT)
 OK  +           T x      uT --> (stream uT)
 (OK)+       ureal x    real --> (stream ureal)
 (OK)+        real x   ureal --> (stream ureal)
-Pre +       ureal x   ureal --> (stream ureal)
 OK  -      upoint x   point --> (stream upoint) same as at: upoint x point
 OK  -       point x  upoint --> (stream upoint) same as at: upoint x point
 OK  -      upoint x  upoint --> (stream upoint)
 OK  +      upoint x    line --> (stream upoint)
 OK  +        line x  upoint --> (stream upoint)
+Pre +       ureal x   ureal --> (stream ureal)
 Pre +      upoint x uregion --> (stream upoint)
 Pre +     uregion x  upoint --> (stream upoint)
 Pre -      upoint x  region --> (stream upoint)
@@ -123,35 +124,7 @@ Pre -      region x  upoint --> (stream upoint)
 n/a +      upoint x  points --> (stream upoint)
 n/a +      points x  upoint --> (stream upoint)
 
-     intersects: For T in {bool, int, string, real, point}:
-Pre -          uT x      uT --> (stream ubool)
-n/a -          uT x       T --> (stream ubool)
-n/a -           T x      uT --> (stream ubool)
-n/a -       ureal x    real --> (stream ubool)
-n/a -        real x   ureal --> (stream ubool)
-n/a -       ureal x   ureal --> (stream ubool)
-n/a -      upoint x   point --> (stream ubool)
-n/a -       point x  upoint --> (stream ubool)
-n/a -      upoint x  upoint --> (stream ubool)
-n/a -      upoint x uregion --> (stream ubool) as inside
-n/a -     uregion x  upoint --> (stream ubool) as inside
-n/a -      upoint x    line --> (stream ubool) as inside
-n/a -        line x  upoint --> (stream ubool) as inside
-n/a -      upoint x  region --> (stream ubool)
-n/a -      region x  upoint --> (stream ubool)
-
-  inside: 
-n/a +      upoint x uregion --> (stream ubool)
-n/a +      upoint x  points --> (stream ubool)
-n/a +      upoint x    line --> (stream ubool)
-n/a +     uregion x  points --> (stream ubool)
-n/a +     uregion x    line --> (stream ubool)
-
-n/a + mdirection:    upoint --> ureal
-
 OK  + no_components:     uT --> uint
-
-n/a + area: uregion --> ureal             see TemporalLiftedAlgebra
 
 OK  + and, or: ubool x ubool --> ubool
 OK  +           bool x ubool --> ubool
@@ -162,6 +135,16 @@ OK  +                uT x uT --> bool
 
 OK  + not:             ubool --> ubool
 
+  inside: 
+n/a +      upoint x uregion --> (stream ubool)
+n/a +      upoint x  points --> (stream ubool)
+n/a +      upoint x    line --> (stream ubool)
+n/a +     uregion x  points --> (stream ubool)
+n/a +     uregion x    line --> (stream ubool)
+
+n/a + mdirection:    upoint --> ureal
+
+n/a + area: uregion --> ureal             see TemporalLiftedAlgebra
 
 n/a + sometimes: (       ubool) --> bool
 n/a              (stream ubool) --> bool
@@ -170,7 +153,6 @@ n/a              (stream ubool) --> bool
 n/a + always:    (       ubool) --> bool
 n/a              (stream ubool) --> bool
 
-OK    uint2ureal:       uint --> ureal
 n/a   int2real:          int --> real
 n/a   floor:            real --> int
 n/a   ceil:             real --> int
@@ -192,7 +174,7 @@ Key to STATE of implementation:
         stubs (dummy code) exist
   n/a : Neither functionally nor dummy code exists for this ones
 
-    + : Exists for according mType
+    + : Equivalent exists for according mType
     - : Does nor exist for according mType
     ? : It is unclear, whether it exists or not
 
@@ -6924,32 +6906,32 @@ Operator temporalunitsaggregate( "saggregate",
 
 
 /*
-5.25 Operator ~intersects~
+5.25 Operator ~~
 
 */
 
 /*
-5.25.1 Type mapping function for ~intersects~
+5.25.1 Type mapping function for ~~
 
 */
 
 /*
-5.25.2 Value mapping for operator ~intersects~
+5.25.2 Value mapping for operator ~~
 
 */
 
 /*
-5.24.3 Specification for operator ~intersects~
+5.24.3 Specification for operator ~s~
 
 */
 
 /*
-5.25.4 Selection Function of operator ~intersects~
+5.25.4 Selection Function of operator ~~
 
 */
 
 /*
-5.25.5 Definition of operator ~intersects~
+5.25.5 Definition of operator ~~
 
 */
 
