@@ -1012,9 +1012,17 @@ The destructor.
 
     virtual ostream& Print( ostream &os ) const
     {
-      return os << "Temporal Algebra---TemporalUnit" << endl;
+      if( IsDefined() )
+        {
+          os << "TemporalUnit: " << "( ";
+          os << " NO SPECIFIC Print()-Method!";
+          os << " )" << endl;        
+          return os;
+        }
+      else
+        return os << "TemporalUnit: (undef)" << endl;      
     }
-
+    
     virtual size_t HashValue() const
     {
       return 0;
@@ -1094,7 +1102,23 @@ The destructor.
 
     virtual ostream& Print( ostream &os ) const
     {
-      return os << "Temporal Algebra---SpatialTemporalUnit" << endl;
+      if( IsDefined() )
+        {
+          os << "SpatialTemporalUnit: " << "( (";
+          os << TemporalUnit<Alpha>::timeInterval.start.ToString();
+          os << " ";
+          os << TemporalUnit<Alpha>::timeInterval.end.ToString();
+          os << " "
+             << (TemporalUnit<Alpha>::timeInterval.lc ? "TRUE " : "FALSE ");
+          os << " "
+             << (TemporalUnit<Alpha>::timeInterval.rc ? "TRUE) " : "FALSE) ");
+          // print specific stuff:
+          os << " NO SPECIFIC Print()-Method!";          
+          os << " )" << endl;        
+          return os;
+        }
+      else
+      return os << "SpatialTemporalUnit: (undef)" << endl;
     }
 
     virtual size_t HashValue() const
