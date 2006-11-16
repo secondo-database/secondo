@@ -21,6 +21,10 @@ level remains. Models are also removed from type constructors.
 January-June 2006, various bugfixes and improvements by Holger M[ue]nx,
 with the help of Victor Almeida and Thomas Behr.
 
+November 2006, Christian D[ue]ntgen added operator ~units~. 
+To this end, an additional creator for URegion and assignment operators 
+have been intoduced.
+
 [TOC]
 
 1 Introduction
@@ -3646,6 +3650,8 @@ URegionEmb::URegionEmb(const Interval<Instant>& tiv,
              << endl;
 }
 
+
+
 URegionEmb::URegionEmb(
     DBArray<MSegmentData>* segments,
     const Interval<Instant>& tiv,
@@ -3758,6 +3764,15 @@ or counter-clockwise order is maintained within the region unit.
     bbox.Set(true, min, max);
 }
 
+
+void URegionEmb::SetSegmentsNum(int i){
+  segmentsNum=i;
+}
+
+void URegionEmb::SetStartPos(int i){
+  segmentsStartPos=i;
+}
+
 /*
 1.1 Methods required to act as unit in ~Mapping~ template
 
@@ -3769,7 +3784,7 @@ bool URegionEmb::IsValid(void) const {
 }
 
 /*
-<<<<<<< MovingRegionAlgebra.cpp
+
 1.1 Method ~Sizeof()~
 
 */
@@ -3780,10 +3795,7 @@ size_t URegion::Sizeof() const {
 }
 
 /*
-1.1 Method ~Clone()~
-=======
 1.1.1 Method ~Disjoint()~
->>>>>>> 1.97
 
 */
 bool URegionEmb::Disjoint(const URegionEmb& ur) const {
@@ -3827,6 +3839,8 @@ bool URegionEmb::Compare(const URegionEmb* ur) const {
     return false;
 }
 
+
+
 /*
 1.1 Moving segment access methods
 
@@ -3842,6 +3856,7 @@ int URegionEmb::GetSegmentsNum(void) const {
     return segmentsNum;
 }
 
+
 /*
 1.1.2 Method ~GetStartPos()~
 
@@ -3854,8 +3869,6 @@ const int URegionEmb::GetStartPos() const{
 
     return segmentsStartPos;
 }
-
-
 
 
 /*
@@ -6588,6 +6601,44 @@ URegion::URegion(unsigned int n) :
              << endl;
 }
 
+URegion::URegion(int i, MRegion& mr) {
+  
+  assert( mr.IsDefined() );
+  assert( i>=0 );
+  assert( i<mr.GetNoComponents() );
+
+  // get the appropriate URegionEmb from MRegion::units
+  const URegionEmb* OrigURemb;
+  mr.Get( i, OrigURemb );
+  uremb = *OrigURemb;
+  uremb.SetSegmentsNum(0);
+  uremb.SetStartPos(0);
+  segments = DBArray<MSegmentData>(0);
+
+  // copy timeInterval from URegionEmb to URegion
+  timeInterval = uremb.timeInterval;
+  
+  // copy MSegmentData
+  const int startSeg = OrigURemb->GetStartPos();
+  const int numSegs  = OrigURemb->GetSegmentsNum();
+
+  for(int s=0 ; s<numSegs ; s++)
+    {
+      const MSegmentData *segment;
+      mr.GetMSegmentData()->Get( s+startSeg, segment );
+      uremb.PutSegment(&segments, s, *segment, true);
+    }
+  SetDefined( true );
+}
+
+URegionEmb& URegionEmb::operator=(const URegionEmb& U) {
+  segmentsStartPos = U.segmentsStartPos;
+  segmentsNum = U.segmentsNum;
+  bbox = U.bbox;
+  timeInterval = U.timeInterval;
+  return *this;
+}
+
 /*
 1.1.1 Methods for database operators
 
@@ -6668,6 +6719,37 @@ void URegion::CopyFrom(const StandardAttribute* right) {
     *this = *ur;
     this->SetDefined( ur->IsDefined() );
 }
+
+/*
+Assignment operator
+
+*/
+
+ URegion& URegion::operator= ( const URegion& U) {
+
+   if(!U.IsDefined())
+     {
+       uremb = U.uremb;
+       //       segments = ??????
+       SetDefined(false);
+       return *this;
+     }
+   uremb = U.uremb;      // copy bbox, timeInterval, segmentsNum
+   uremb.SetStartPos(0); // set uremb.segmentsStartPos = 0
+
+   int start = U.uremb.GetStartPos();
+   int numsegs = U.uremb.GetSegmentsNum();
+   segments.Clear();
+   segments.Resize( U.uremb.GetSegmentsNum() );
+   for( int i=0 ; i<numsegs ; i++ )
+     {// copy single movingsegment
+       const MSegmentData* seg;
+       U.segments.Get(i+start, seg); 
+       segments.Put(i, *seg);       
+     }
+   
+   return *this;
+ }
 
 /*
 1.1.1.1 ~DBArray~ access
@@ -7334,6 +7416,17 @@ void MRegion::Get(const int i, const URegionEmb*& ur) const {
 const DBArray<MSegmentData>* MRegion::GetMSegmentData(void) {
     return &msegmentdata;
 }
+
+/*
+Add an idependent ~URegion~ object to the moving region. The URegions moving 
+segment is copied to the DBArrays for ~msegmentdata~ and ~units~.
+
+*/
+
+void MRegion::AddURegion(const int i, URegion& ur) {
+}
+
+
 
 /*
 1.1.1 Methods for database operators
@@ -8421,7 +8514,7 @@ ListExpr MRAUnitsTypeMap( ListExpr args )
   {
     ListExpr arg1 = nl->First(args);
 
-    if( nl->IsEqual( arg1, "mregion" ) )
+    if( nl->IsEqual( arg1, "movingregion" ) )
       return nl->TwoElemList(nl->SymbolAtom("stream"),
        nl->SymbolAtom("uregion"));
     
@@ -8868,9 +8961,7 @@ static int MoveValueMap(Word* args,
 /*
 Value mapping functions of operator ~units~
 
-Commented out due to problems with class URegion:
-
-----
+*/
 
 struct MRAUnitsLocalInfo
 {
@@ -8878,10 +8969,11 @@ struct MRAUnitsLocalInfo
   int unitIndex;  // current item index
 };
 
-int mraunitsvalmap(Word* args, Word& result, int message, Word& local, Supplier s)
+int mraunitsvalmap(Word* args, Word& result, 
+                   int message, Word& local, Supplier s)
 {
   MRegion* m;
-  const URegion* unit;
+  URegion* unit;
   MRAUnitsLocalInfo *localinfo;
 
   switch( message )
@@ -8902,12 +8994,11 @@ int mraunitsvalmap(Word* args, Word& result, int message, Word& local, Supplier 
       m = (MRegion*)localinfo->mWord.addr;
       if( (0 <= localinfo->unitIndex) 
           && (localinfo->unitIndex < m->GetNoComponents()) )
-      {
-        m->Get( localinfo->unitIndex++, unit );
-        URegion *aux = new URegion( *unit );
-        result = SetWord( aux );
-        return YIELD;
-      }
+        {
+          unit = new URegion(localinfo->unitIndex++, *m);
+          result = SetWord( unit );
+          return YIELD;
+        }
       return CANCEL;
 
     case CLOSE:
@@ -8921,9 +9012,6 @@ int mraunitsvalmap(Word* args, Word& result, int message, Word& local, Supplier 
   return -1;
 }
 
-----
-
-*/
 
 /*
 1.1.1 For unit testing operators
@@ -9243,14 +9331,12 @@ static const string verttrajectoryspec =
     "    <text>vertextrajectory(mregion1)</text---> ) )";
 
 const string mraunitsspec  =
-  "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>MovingRegionAlgebra</text--->"
-  "<text>mregion -> (stream uregion)</text--->"
-  "<text> units( _ )</text--->"
-  "<text>get the stream of units of the moving value.</text--->"
-  "<text>units( mregion1 )</text--->"
-  ") )";
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "  ( <text>movingregion -> (stream uregion)</text--->"
+  "<text>units( _ )</text--->"
+  "<text>Create the stream of all uregions contained by "
+  "the moving region.</text--->"
+  "<text>units( mregion1 )</text--->) )";
 
 /*
 Used for unit testing only.
@@ -9377,18 +9463,12 @@ static Operator vertextrajectory("vertextrajectory",
                    VertTrajectorySelect,
                    VertTrajectoryTypeMap);
 
-/*
-
-----
 static Operator mraunits("units",
                          mraunitsspec,
                          mraunitsvalmap,
                          Operator::SimpleSelect,
                          MRAUnitsTypeMap);
 
-----
-
-*/
 
 /*
 Used for unit testing only.
@@ -9447,8 +9527,7 @@ public:
     AddOperator(&bbox);
     AddOperator(&move);
     AddOperator(&vertextrajectory);
-    // Commented out due to problems with URegion
-    //    AddOperator(&mraunits);
+    AddOperator(&mraunits);
 
 #ifdef MRA_TRAVERSED
     AddOperator(&traversed);

@@ -1034,10 +1034,6 @@ query [const bool value FALSE] or ubool4
 # intersection_upoint_uregion
 # intersection_uregion_upoint
 
-# intersects_uconst_uconst
-# intersects_upoint_upoint
-# intersects_ureal_ureal
-
 
 
 ############################

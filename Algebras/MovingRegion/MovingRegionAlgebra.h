@@ -38,6 +38,7 @@ Please see ~MovingRegionAlgebra.cpp~ for more details on the
 #ifndef _MOVING_REGION_ALGEBRA_H_
 #define _MOVING_REGION_ALGEBRA_H_
 
+   class MRegion; // forward declaration
 /*
 1 Supporting classes and class template
 
@@ -614,7 +615,7 @@ The default constructor does nothing.
 
 /*
 Constructor, which creates an empty unit for the specified interval.
-The ~URegionEmb~ instance will store it segments starting at ~pos~
+The ~URegionEmb~ instance will store its segments starting at ~pos~
 in the moving segments array.
 
 */
@@ -634,14 +635,19 @@ starting at ~pos~ in ~segments~.
         const Region& region,
         unsigned int pos);
 
+
 /*
 1.1 Moving segments access methods
 
-Get number of segments, get specified segment, write specified segment.
+Get number of segments, get index of starting segment, 
+get the minimum bounding box,
+get specified segment, write specified segment.
 
 */
     int GetSegmentsNum(void) const;
     const int GetStartPos() const;
+    void SetSegmentsNum(int i);
+    void SetStartPos(int i);
 
     void GetSegment(
         const DBArray<MSegmentData>* segments,
@@ -728,7 +734,7 @@ in ~result~.
         const DBArray<MSegmentData>* segments,
         const Instant& t, 
         Region& result, 
-	bool ignoreLimits = false) const;
+        bool ignoreLimits = false) const;
 
 /*
 Return the bounding box of the region unit. This is an $O(1)$ operation
@@ -763,7 +769,17 @@ will run into a failed assertion.
 
 */
     bool Compare(const URegionEmb* ur) const;
+
+
+/*
+The assignment operator
+
+*/
+    URegionEmb& operator=(const URegionEmb&);
+
 };
+
+
 
 /*
 1 Class ~URegion~
@@ -812,6 +828,13 @@ elements (use ~0~ for ~n~ to creatw an empty region unit).
     URegion(unsigned int n);
 
 /*
+Create a URegion object by copying data from a given MRegion object. 
+
+*/
+
+    URegion(int i, MRegion& ur);
+
+/*
 1.1 Attribute access method
 
 Set and get the ~uremb~ attribute. Required for function ~InURegion()~.
@@ -840,7 +863,7 @@ required to make this class non-abstract.
                     TemporalUnit<Region>& result) const;
     virtual bool Passes(const Region& val) const;
 /* 
-Return the interal array containing the moving segments for read-only access.
+Return the internal array containing the moving segments for read-only access.
 
 */
    const DBArray<MSegmentData>* GetMSegmentData(){
@@ -882,14 +905,49 @@ its own moving segments storage, even if the copied instance has not.
 
 */
     virtual void CopyFrom(const StandardAttribute* right);
+
+/*
+Print method, primarly used for debugging purposes
+
+*/
+
+  virtual ostream& Print( ostream &os ) const
+  {
+    if( IsDefined() )
+      {
+        os << "URegion: " << "( (";
+        os << timeInterval.start.ToString();
+        os << " ";
+        os << timeInterval.end.ToString();
+        os<<" "<<(timeInterval.lc ? "TRUE " : "FALSE ");
+        os<<" "<<(timeInterval.rc ? "TRUE) " : "FALSE) ");
+        // print specific stuff:
+        os << " SegStartPos=" << uremb.GetStartPos();
+        os << " SegNum=" << uremb.GetSegmentsNum();
+        os << " BBox=";
+        uremb.BoundingBox().Print(os);
+        os << " )" << endl;        
+        return os;
+      }
+    else
+      return os << "ConstUnit: (undef)" << endl;
+  }
+/*
+The assignment operator
+
+*/
+
+    URegion& operator= ( const URegion& U);
+
 };
+
 
 /*
 1 Class ~MRegion~
 
-Represents a moving region. It contains an array of segments, which is
-references by its ~URegion~ units, which do not have its own storage for
-segments.
+Represents a moving region. It contains an array of ~MSegmentData~ for the
+moving segments, which is referenced by its ~URegionEmb~ units, which in turn
+do not have their own storage for moving segments.
 
 */
 
@@ -961,7 +1019,7 @@ set each unit to the constant value of ~r~.
     MRegion(MPoint& mp, Region& r);
 
 /*
-Constructs a contiunues moving region from the parameters. ~dummy~ is not
+Constructs a continuesly moving region from the parameters. ~dummy~ is not
 used.
 
 */
@@ -970,10 +1028,17 @@ used.
 /*
 1.1 Attribute access methods
 
-Get ~URegion~ unit ~i~ from this ~MRegion~ instance and return it in ~ur~.
+Get ~URegionEmb~ unit ~i~ from this ~MRegion~ instance and return it in ~ur~.
 
 */
     void Get(const int i, const URegionEmb*& ur) const;
+
+/*
+Add a idependent ~URegion~ object to the moving region. The URegions moving segment is copied to the DBArrays for ~msegmentdata~ and ~units~.
+
+*/
+
+    void AddURegion(const int i, URegion& ur);
 
 /*
 Allow read-only access to ~msegmentdata~.
@@ -1004,7 +1069,7 @@ Reduces this Moving Region to the time given by the periods value.
 Note: The implementation is done in the TemporalExtAlgebra.
 
 */
-void AtPeriods(Periods* per, MRegion* mregparam );
+    void AtPeriods(Periods* per, MRegion* mregparam );
 
 
 /*
