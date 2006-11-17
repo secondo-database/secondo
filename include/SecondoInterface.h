@@ -219,6 +219,10 @@ the "Secondo"[3] system and the ~SmiEnvironment~ are shut down.
    bool Secondo( const string& cmdText, 
                  ListExpr& resultList, 
                  SecErrInfo& err        );
+
+   bool Secondo( const ListExpr cmdList, 
+                 ListExpr& resultList, 
+                 SecErrInfo& err        );
 /*
 Reads a command and executes it; it possibly returns a result.
 The command is one of a set of "Secondo"[3] commands described below. The
@@ -257,7 +261,8 @@ where the error was detected (only when the command was given in the
 text buffer, of course). - not yet implemented. - 
 
 The second alternative is a short form for the ~text~ syntax without 
-the possibilty to specify a text file.
+the possibilty to specify a text file. Similary the third form is doing the
+same with a command given as list.
 
 2.1.1 Basic Commands
 

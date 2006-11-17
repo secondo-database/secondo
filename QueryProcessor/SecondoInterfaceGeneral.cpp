@@ -309,3 +309,39 @@ SecondoInterface::WriteErrorList ( ListExpr list, ostream& os /* = cerr */ )
   }  
 }
 
+/*
+Calling Secondo with command given in textual syntax
+
+*/
+
+bool
+SecondoInterface::Secondo( const string& cmdText,
+                           ListExpr& resultList,
+                           SecErrInfo& err       )
+{
+  Secondo( cmdText, nl->Empty(), 1, false, false, 
+           resultList, err.code, err.pos, err.msg );
+  
+  if (err.code != ERR_NO_ERROR || err.msg != "")
+    return false;
+  return true;
+}
+
+/*
+Calling Secondo with command given in list syntax
+
+*/
+
+bool
+SecondoInterface::Secondo( const ListExpr cmdList,
+                           ListExpr& resultList,
+                           SecErrInfo& err       )
+{
+  Secondo( "", cmdList, 0, false, false, 
+           resultList, err.code, err.pos, err.msg );
+  
+  if (err.code != ERR_NO_ERROR || err.msg != "")
+    return false;
+  return true;
+}
+

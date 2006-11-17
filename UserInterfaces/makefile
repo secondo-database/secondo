@@ -69,18 +69,18 @@ CCFLAGS += $(PLINCLUDEFLAGS) -DSECONDO_PL
 endif
 
 BDB_OBJECTS :=  TestRunner.o \
-		../ClientServer/SecondoServer.o \
-		SecondoInterface.o \
-		AlgebraList.o
+		../ClientServer/SecondoServer.o
+		 
+ALG_LIST    :=  SecondoInterface.o AlgebraList.o
 
 TTY_OBJECTS :=  cmsg.o MainTTY.o \
 		SecondoInterfaceGeneral.o \
 	        SecondoTTY.o \
 		DisplayTTY.o
 
-CS_OBJECTS :=   SecondoInterfaceCS.o
+CS_OBJECTS :=   MainTTYCS.o SecondoInterfaceCS.o
 
-APP_LIB := ../lib/libapp.$(LIBEXT)
+APP_LIB := ../lib/libappCommon.$(LIBEXT)
 
 APPLICATIONS := $(addsuffix $(EXEEXT), $(APPLICATIONS))
 
@@ -129,22 +129,18 @@ SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
 #
 # Note: Currently, the SecondoInterface depends on a static function of the relation
 # algebra which returns tuple statistics. We should change this in the future.
-$(APP_LIB): $(TTY_OBJECTS) $(BDB_OBJECTS) $(CS_OBJECTS) ../lib/libRelation-C++Algebra.a
+
+$(APP_LIB): $(TTY_OBJECTS) $(BDB_OBJECTS) 	
 	$(create-lib)
 
 
 $(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES)
-$(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(APP_LIB) $(PL_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lapp $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
-
-../$(SECONDO_DEMO)/Secondo$(SMIUP)$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES) 
-../$(SECONDO_DEMO)/Secondo$(SMIUP)$(EXEEXT): $(APP_LIB)
-	$(LD) $(EXEFLAGS) -static $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lapp $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG)
-	strip $@
+$(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(APP_LIB) $(ALG_LIST) $(PL_OBJECTS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
 
 $(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES)
-$(BINDIR)/SecondoCS$(EXEEXT): MainTTYCS.o $(APP_LIB) $(CS_OBJECTS) $(PL_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lapp $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS)
+$(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(PL_OBJECTS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS)
 
 
 ifneq ($(MAKECMDGOALS),clean)
