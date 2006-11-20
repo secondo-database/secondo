@@ -3206,18 +3206,13 @@ InstantEqual( Word* args, Word& result, int message, Word& local,
  Supplier s )
 {
   result = qp->ResultStorage( s );
-
-  if ( ((Instant*)args[0].addr)->IsDefined() &&
-       ((Instant*)args[1].addr)->IsDefined() )
-  {
-    if( ((Instant*)args[0].addr)->Compare( (Instant*)args[1].addr ) == 0 )
-      ((CcBool *)result.addr)->Set( true, true );
-    else
-      ((CcBool *)result.addr)->Set( true, false );
+  Instant* I1 = (Instant*) args[0].addr;
+  Instant* I2 = (Instant*) args[1].addr;
+  if(I1->IsDefined() && I2->IsDefined()){
+      ((CcBool *)result.addr)->Set( true, (I1->CompareTo(I2)==0)) ;
+  } else {
+      ((CcBool *)result.addr)->Set( false,false) ;
   }
-  else
-    ((CcBool *)result.addr)->Set( false, false );
-
   return 0;
 }
 
@@ -3242,18 +3237,13 @@ InstantNotEqual( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
-  if ( ((Instant*)args[0].addr)->IsDefined() &&
-       ((Instant*)args[1].addr)->IsDefined() )
-  {
-    if( ((Instant*)args[0].addr)->Compare( (Instant*)args[1].addr ) != 0 )
-      ((CcBool *)result.addr)->Set( true, true );
-    else
-      ((CcBool *)result.addr)->Set( true, false );
+  Instant* I1 = (Instant*) args[0].addr;
+  Instant* I2 = (Instant*) args[1].addr;
+  if(I1->IsDefined() && I2->IsDefined()){
+      ((CcBool *)result.addr)->Set( true, (I1->CompareTo(I2)!=0)) ;
+  } else {
+      ((CcBool *)result.addr)->Set( false,false) ;
   }
-  else
-    ((CcBool *)result.addr)->Set( false, false );
-
   return 0;
 }
 
@@ -3278,14 +3268,13 @@ InstantLess( Word* args, Word& result, int message, Word& local,
  Supplier s )
 {
   result = qp->ResultStorage( s );
-
-  if ( ((Instant*)args[0].addr)->IsDefined() &&
-       ((Instant*)args[1].addr)->IsDefined() )
-    ((CcBool *)result.addr)->
-      Set( true, ((Instant*)args[0].addr)->ToDouble() <
-                 ((Instant*)args[1].addr)->ToDouble() );
-  else
-    ((CcBool *)result.addr)->Set( false, false );
+  Instant* I1 = (Instant*) args[0].addr;
+  Instant* I2 = (Instant*) args[1].addr;
+  if(I1->IsDefined() && I2->IsDefined()){
+      ((CcBool *)result.addr)->Set( true, (I1->CompareTo(I2)<0)) ;
+  } else {
+      ((CcBool *)result.addr)->Set( false,false) ;
+  }
   return 0;
 }
 
@@ -3298,14 +3287,13 @@ InstantLessEqual( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
-  if ( ((Instant*)args[0].addr)->IsDefined() &&
-       ((Instant*)args[1].addr)->IsDefined() )
-    ((CcBool *)result.addr)->
-      Set( true, ((Instant*)args[0].addr)->ToDouble() <=
-                 ((Instant*)args[1].addr)->ToDouble() );
-  else
-    ((CcBool *)result.addr)->Set( false, false );
+  Instant* I1 = (Instant*) args[0].addr;
+  Instant* I2 = (Instant*) args[1].addr;
+  if(I1->IsDefined() && I2->IsDefined()){
+      ((CcBool *)result.addr)->Set( true, (I1->CompareTo(I2)<=0)) ;
+  } else {
+      ((CcBool *)result.addr)->Set( false,false) ;
+  }
   return 0;
 }
 
@@ -3318,14 +3306,13 @@ InstantGreater( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
-  if ( ((Instant*)args[0].addr)->IsDefined() &&
-       ((Instant*)args[1].addr)->IsDefined() )
-    ((CcBool *)result.addr)->
-      Set( true, ((Instant*)args[0].addr)->ToDouble() >
-                 ((Instant*)args[1].addr)->ToDouble() );
-  else
-    ((CcBool *)result.addr)->Set( false, false );
+  Instant* I1 = (Instant*) args[0].addr;
+  Instant* I2 = (Instant*) args[1].addr;
+  if(I1->IsDefined() && I2->IsDefined()){
+      ((CcBool *)result.addr)->Set( true, (I1->CompareTo(I2)>0)) ;
+  } else {
+      ((CcBool *)result.addr)->Set( false,false) ;
+  }
   return 0;
 }
 
@@ -3338,14 +3325,13 @@ InstantGreaterEqual( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
-  if ( ((Instant*)args[0].addr)->IsDefined() &&
-       ((Instant*)args[1].addr)->IsDefined() )
-    ((CcBool *)result.addr)->
-      Set( true, ((Instant*)args[0].addr)->ToDouble() >=
-                 ((Instant*)args[1].addr)->ToDouble() );
-  else
-    ((CcBool *)result.addr)->Set( false, false );
+  Instant* I1 = (Instant*) args[0].addr;
+  Instant* I2 = (Instant*) args[1].addr;
+  if(I1->IsDefined() && I2->IsDefined()){
+      ((CcBool *)result.addr)->Set( true, (I1->CompareTo(I2)>=0)) ;
+  } else {
+      ((CcBool *)result.addr)->Set( false,false) ;
+  }
   return 0;
 }
 
