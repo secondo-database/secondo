@@ -52,9 +52,16 @@ using namespace std;
 #include "SpatialAlgebra.h"
 #include "./triangulation/interface.h"
 
+/*
+The header of the triangulation libary contains two important things:
 
-#define MAX( a, b ) ((a) > (b) ? (a) : (b))
-#define MIN( a, b ) ((a) < (b) ? (a) : (b))
+  * Declaration of the function ~triangulate\_polygon~,
+
+  * Definition of the max number of segments of the input (SEGSIZE\_TRIANGULATION).
+
+
+*/
+
 
 namespace Constraint {
 
@@ -63,6 +70,8 @@ const string OP_EQ = "eq";
 const string OP_LEQ = "leq";
 // Word-Coordinates (arbitionary big):
 const Rectangle<2> WORLD(true, -10000.0, 10000.0, -10000.0, 10000.0);
+const int X = 0;
+const int Y = 1;
 
 
 /*
@@ -316,6 +325,8 @@ void HalfPlaneIntersection(const vector<LinearConstraint>& ,
 void triangulateRegion(const Region*,
              vector<vector<double> >&,
              vector<vector<int> >&);
+double GetTheta(Point2D&, Point2D&);
+double GetOrientedArea(double, double, double, double, double, double);
 void mergeTriangles2ConvexPolygons(const vector<vector<double> >&,
     const vector<vector<int> >&,
     vector<vector<Point2D> >&);
