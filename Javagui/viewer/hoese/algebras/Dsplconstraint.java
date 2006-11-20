@@ -308,18 +308,19 @@ public boolean isPointType(int num){
       bounds = null;
       if(areaPolygons!=null)
       {
-        bounds = (Rectangle2D.Double)areaPolygons.getBounds2D();
+        bounds = new Rectangle2D.Double();
+        bounds.setRect(areaPolygons.getBounds2D());
       }
       if(GPLines!=null)
       {
-        Area areaLines = new Area(GPLines.getBounds2D());
         if (bounds == null)
         {
-          bounds = (Rectangle2D.Double)areaLines.getBounds2D();
+          bounds = new Rectangle2D.Double();
+          bounds.setRect(GPLines.getBounds2D());
         }
         else
         {
-          bounds = (Rectangle2D.Double)bounds.createUnion((Rectangle2D.Double)areaLines.getBounds2D());
+          bounds = (Rectangle2D.Double)bounds.createUnion(GPLines.getBounds2D());
         }
       }
       for(int i=0; i< arrPoints.length;i++)
@@ -383,6 +384,4 @@ public boolean isPointType(int num){
       this.strOp = strOp;
     }
   }
-
-
 }
