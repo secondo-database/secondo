@@ -24,6 +24,8 @@ operator cintersection alias CINTERSECTION pattern _ infixop _
 operator cprojection alias CPROJECTION pattern  op ( _, _ )
 operator cselection alias CSELECTION pattern  op ( _, _, _, _, _ )
 operator csatisfy alias CSATISFY pattern  op ( _ )
+operator no_tuples alias NO_TUPLES pattern  op ( _ )
+operator no_constraints alias NO_TUPLES pattern  op ( _ )
 operator point2constraint alias POINT2CONSTRAINT pattern  op ( _ )
 operator points2constraint alias POINTS2CONSTRAINT pattern  op ( _ )
 operator line2constraint alias LINE2CONSTRAINT pattern  op ( _ )
@@ -33,6 +35,5 @@ operator constraint2points alias CONSTRAINT2POINTS pattern  op ( _ )
 operator constraint2line alias CONSTRAINT2LINE pattern  op ( _ )
 operator constraint2region alias CONSTRAINT2REGION pattern  _ op
 operator triangulate alias TRIANGULATE pattern _ op
-operator no_tuples alias NO_TUPLES pattern  op ( _ )
-operator no_constraints alias NO_TUPLES pattern  op ( _ )
+
 
