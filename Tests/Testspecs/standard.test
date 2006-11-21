@@ -317,6 +317,35 @@ query "house" > "hotel"
 #yields (bool TRUE)
 query upper ( "hello" ) = "hellp"
 
+#testcase ldistance
+#yields (int 1)
+query ldistance("second", "secondo")
+
+#testcase isempty
+#yields (bool FALSE)
+query isempty(1)
+
+#testcase intersection
+#yields (int 3)
+query intersection(3 , 3)
+
+#testcase minus
+#yields (int 4)
+query 4 minus 3
+
+#testcase ifthenelse
+#yields (string "true")
+query ifthenelse( 3 < 4 , "true" , "false")
+
+#testcase setoption
+#yields (bool undef)
+query setoption ("unknown", 3)
+
+#testcase hashvalue
+#yields (int 4)
+query hashvalue(4, 6) 
+
+
 #testcase elapsedtime 
 #yields success
 query (5 + 6) elapsedtime 
