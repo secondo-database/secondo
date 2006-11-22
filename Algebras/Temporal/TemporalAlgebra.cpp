@@ -97,32 +97,32 @@ const double MINDOUBLE = numeric_limits<double>::min();
 3.1 Class ~UReal~
 
 */
-void UReal::TemporalFunction( const Instant& t, 
-                              CcReal& result, 
+void UReal::TemporalFunction( const Instant& t,
+                              CcReal& result,
                               bool ignoreLimits ) const
 {
-  if ( !this->IsDefined() || 
-       !t.IsDefined() || 
+  if ( !this->IsDefined() ||
+       !t.IsDefined() ||
        (!this->timeInterval.Contains( t ) && !ignoreLimits) )
     {
       result.Set(false, 0.0);
     }
   else
     {
-      double t2 = t.ToDouble() - timeInterval.start.ToDouble();      
+      double t2 = t.ToDouble() - timeInterval.start.ToDouble();
       double res = a * pow( t2, 2 ) +
         b * t2 +
         c;
       if( r ) res = sqrt( res );
       result.Set( true, res );
     }
-  
+
 
 /*
 2006-Sep-22, CD:
 
 The following implemention is the original implementation following the
-papers published, but suffers from rounding errors. 
+papers published, but suffers from rounding errors.
 
 ----
 
@@ -163,69 +163,35 @@ void UReal::AtInterval( const Interval<Instant>& i,
   pResult->b = b;
   pResult->c = c;
   pResult->r = r;
-  pResult->StandardTemporalUnit<CcReal>::SetDefined(true);  
+  pResult->StandardTemporalUnit<CcReal>::SetDefined(true);
 
-  // Now, we need to translate the result to the starting instant  
+  // Now, we need to translate the result to the starting instant
   DateTime tmp = pResult->timeInterval.start;
   tmp.SetType(durationtype);
-  double tx = (timeInterval.start - tmp).ToDouble();
-  pResult->TranslateParab(tx, 0.0);
+  double tx = -((timeInterval.start - tmp).ToDouble());
+  pResult->TranslateParab(tx);
 }
 
-// translate the parabolic/linear/constant curve within a ureal by (dx,dy)
+// translate the parabolic/linear/constant curve within a ureal
+// by (t) on the x/time-axes
 // the ROOT flag is not considered at all!
-void UReal::TranslateParab(const double& dx, const double& dy)
+void UReal::TranslateParab(const double& t)
 {
-  long double xs,ys; // the coordinates of the new apex
-  if (!AlmostEqual(a, 0.0) )
-    {
-      if (!AlmostEqual(b, 0.0) )
-        { // quadratic function with b != 0
-          xs =   -b/(2*a)         + dx;
-          ys = c - pow(b,2)/(4*a) + dy;
-          // a = a;
-          b = -2 * a * xs;
-          c = a*pow(xs,2) + ys;
-        }
-      else
-        { // quadratic function with b == 0
-          xs = dx;
-          ys = c + dy;
-        }
-      // a = a;
-      b = -2 * a * dx;
-      c = c + dy;
-      return;
-    }
-  else 
-    { // a == 0
-      if (!AlmostEqual(b, 0.0) )
-        { // a linear function
-          // translate by (dx) and (dy)
-          a = 0.0;
-          // b = b;
-          c = c + dy - dx * b;          
-        }
-      else
-        { // a constant function
-          // translate by (dy) only
-          a = 0.0;
-          b = 0.0;
-          c = c + dy;
-        }
-    }
+  c = a*pow(t,2) + b*t + c;
+  b = 2*a*t      + b      ;
+  // a = a;
 }
 
 /*
 3.1 Class ~UPoint~
 
 */
-void UPoint::TemporalFunction( const Instant& t, 
-                               Point& result, 
+void UPoint::TemporalFunction( const Instant& t,
+                               Point& result,
                                bool ignoreLimits ) const
 {
-  if( !IsDefined() || 
-      !t.IsDefined() || 
+  if( !IsDefined() ||
+      !t.IsDefined() ||
       (!timeInterval.Contains( t ) && !ignoreLimits) )
     {
       result.SetDefined(false);
@@ -244,10 +210,10 @@ void UPoint::TemporalFunction( const Instant& t,
     {
       Instant t0 = timeInterval.start;
       Instant t1 = timeInterval.end;
-      
+
       double x = (p1.GetX() - p0.GetX()) * ((t - t0) / (t1 - t0)) + p0.GetX();
       double y = (p1.GetY() - p0.GetY()) * ((t - t0) / (t1 - t0)) + p0.GetY();
-      
+
       result.Set( x, y );
       result.SetDefined(true);
     }
@@ -423,7 +389,7 @@ void UPoint::AtInterval( const Interval<Instant>& i,
     }
   else
     TemporalFunction( result.timeInterval.start, pResult->p0 );
-  
+
   if( timeInterval.end == result.timeInterval.end )
     {
       pResult->p1 = p1;
@@ -444,7 +410,7 @@ void UPoint::Distance( const Point& p, UReal& result ) const
   else
     {
       result.timeInterval = timeInterval;
-  
+
       DateTime DT = timeInterval.end - timeInterval.start;
       double dt = DT.ToDouble();
       double
@@ -452,7 +418,7 @@ void UPoint::Distance( const Point& p, UReal& result ) const
         x0 = p0.GetX(), y0 = p0.GetY(),
         x1 = p1.GetX(), y1 = p1.GetY(),
         x  =  p.GetX(), y  =  p.GetY();
-      
+
       if ( AlmostEqual(dt, 0.0) )
         { // single point unit
           result.a = 0.0;
@@ -466,7 +432,7 @@ void UPoint::Distance( const Point& p, UReal& result ) const
           result.b = 2*((x1-x0)*(x0-x)+(y1-y0)*(y0-y))/dt;
           result.c = pow(x0-x,2)+pow(y0-y,2);
           result.r = true;
-          
+
 /*
 
 For the original representation of ureal, we need:
@@ -500,7 +466,7 @@ void MInt::ReadFrom(const MBool& arg){
   Clear();
   if(!arg.IsDefined()){
     SetDefined(false);
-    return; 
+    return;
   }
   SetDefined(true);
   int size = arg.GetNoComponents();
@@ -516,10 +482,10 @@ void MInt::ReadFrom(const MBool& arg){
     v = ubool->constValue.GetBoolval();
     currentValue.Set(true,v?1:0);
     UInt unit(ubool->timeInterval,currentValue);
-    Add(unit); 
-  } 
+    Add(unit);
+  }
   EndBulkLoad(false);
-} 
+}
 
 
 /*
@@ -1228,7 +1194,7 @@ ListExpr OutUReal( ListExpr typeInfo, Word value )
       ListExpr timeintervalList = nl->FourElemList(
              OutDateTime( nl->TheEmptyList(),
              SetWord(&ureal->timeInterval.start) ),
-             OutDateTime( nl->TheEmptyList(), 
+             OutDateTime( nl->TheEmptyList(),
                           SetWord(&ureal->timeInterval.end) ),
              nl->BoolAtom( ureal->timeInterval.lc ),
              nl->BoolAtom( ureal->timeInterval.rc));
@@ -1248,7 +1214,7 @@ ListExpr OutUReal( ListExpr typeInfo, Word value )
 
 The Nested list form is like this:
 
-----    
+----
        ( ( 6.37 9.9 TRUE FALSE)   (1.0 2.3 4.1 TRUE) )
 or:    undef
 
@@ -1305,7 +1271,7 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
           nl->IsAtom( nl->Fourth( second ) ) &&
           nl->AtomType( nl->Fourth( second ) ) == BoolType )
       {
-        UReal *ureal = 
+        UReal *ureal =
           new UReal( tinterval,
                      nl->RealValue( nl->First( second ) ),
                      nl->RealValue( nl->Second( second ) ),
@@ -1319,9 +1285,9 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
         }
         delete ureal;
       }
-    }    
+    }
   }
-  else if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType 
+  else if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType
             && nl->SymbolValue( instance ) == "undef" )
     {
       UReal *ureal = new UReal();
@@ -1557,7 +1523,7 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
       }
     }
   }
-  else if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType 
+  else if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType
             && nl->SymbolValue( instance ) == "undef" )
     {
       UPoint *upoint = new UPoint(true);
@@ -2436,7 +2402,7 @@ MovingBaseTypeMapBool( ListExpr args )
 // VTA - This operator is not yet implemented for the type of ~mreal~
 //        (nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" )) ||
         (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "point" )) ||
-        (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "region" )) ) 
+        (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "region" )) )
       return nl->SymbolAtom( "bool" );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -2713,7 +2679,7 @@ ListExpr Box2dTypeMap(ListExpr args)
 }
 
 /*
-16.1.18 Type mapping function "TemporalBBoxTypeMap" 
+16.1.18 Type mapping function "TemporalBBoxTypeMap"
 
 For operator ~bbox~
 
@@ -3077,15 +3043,15 @@ MovingBaseSelect( ListExpr args )
       nl->SymbolValue( arg2 ) == "int" )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "mreal" && 
+  if( nl->SymbolValue( arg1 ) == "mreal" &&
       nl->SymbolValue( arg2 ) == "real" )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "mpoint" && 
+  if( nl->SymbolValue( arg1 ) == "mpoint" &&
       nl->SymbolValue( arg2 ) == "point" )
     return 3;
 
-  if( nl->SymbolValue( arg1 ) == "mpoint" && 
+  if( nl->SymbolValue( arg1 ) == "mpoint" &&
       nl->SymbolValue( arg2 ) == "region" )
     return 4;
 
@@ -4164,7 +4130,7 @@ ValueMapping temporalpresentmap[] = { MappingPresent_i<MBool>,
 ValueMapping temporalpassesmap[] = { MappingPasses<MBool, CcBool, CcBool>,
                                      MappingPasses<MInt, CcInt, CcInt>,
                                      MappingPasses<MReal, CcReal, CcReal>,
-                                     MappingPasses<MPoint, Point, Point>, 
+                                     MappingPasses<MPoint, Point, Point>,
                                      MappingPasses<MPoint, Point, Region> };
 
 ValueMapping temporalinitialmap[] = { MappingInitial<MBool, UBool, CcBool>,
@@ -4194,7 +4160,7 @@ ValueMapping temporalbox3dmap[] = { Box3d_rect,
                                     Box3d_rect_periods};
 
 ValueMapping extdeftimemap[] = { TemporalExtDeftime<UBool, CcBool>,
-                                 TemporalExtDeftime<UInt, CcInt> 
+                                 TemporalExtDeftime<UInt, CcInt>
                                };
 
 

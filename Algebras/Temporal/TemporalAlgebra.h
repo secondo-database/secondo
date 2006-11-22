@@ -1592,11 +1592,11 @@ Equality is calculated with respect to temporal evolution.
 
 */
 
-  virtual void TranslateParab( const double& dx, const double& dy);
+  virtual void TranslateParab( const double& t);
 
 /*
    This operator will translate the apex of the parabolic curve 
-   used within the ureal representation by (dy,dy).
+   used within the ureal representation by (t) on the x/time-axes.
  
 */
 
@@ -4629,7 +4629,7 @@ void Mapping<Unit, Alpha>::Initial( Intime<Alpha>& result ) const
     units.Get( 0, unit );
 
     result.SetDefined( true );
-    unit->TemporalFunction( unit->timeInterval.start, result.value );
+    unit->TemporalFunction( unit->timeInterval.start, result.value, true );
     result.instant.CopyFrom( &unit->timeInterval.start );
   }
 }
@@ -4647,7 +4647,7 @@ void Mapping<Unit, Alpha>::Final( Intime<Alpha>& result ) const
     units.Get( GetNoComponents()-1, unit );
 
     result.SetDefined( true );
-    unit->TemporalFunction( unit->timeInterval.end, result.value );
+    unit->TemporalFunction( unit->timeInterval.end, result.value, true );
     result.instant.CopyFrom( &unit->timeInterval.end );
   }
 }
