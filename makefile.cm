@@ -27,7 +27,7 @@
 # some direcories used to build tar.gz files for
 # Secondo sources or installation kits
 pref := SECONDO_INSTALLATION_KIT
-net := $(SECONDO_INST_KIT_ROOT)
+net := $(SECONDO_INST_KIT_ROOT)/$(pref)
 
 # local directory for tar archives
 ifndef tempdir
@@ -76,14 +76,17 @@ websrv := $(SECONDO_WEBSRV_ROOT)/files
 
 lin_guide := Linux-Installation-Guide.pdf
 win_guide := Windows-Installation-Guide.pdf
+osx_guide := Mac-OSX-Installation-Guide.pdf
+sdk_guide := SDK_SETUP.pdf
 
-lin_sdk := linux-sdk.tar.gz
+lin_sdk := mac-osx-sdk.tar.gz
+osx_sdk := linux-sdk.tar.gz
 win_sdk := win32-sdk.zip
 iso_sdk := secondo-cd.iso.zip
 
-INST_GUIDES := $(addprefix $(websrv)/, $(lin_guide) $(win_guide))
-INST_KITS := $(addprefix $(websrv)/, $(lin_sdk) $(win_sdk) $(iso_sdk))
-INST_KITS2 := $(addprefix $(tempdir)/, $(lin_sdk) $(win_sdk))
+INST_GUIDES := $(addprefix $(websrv)/, $(lin_guide) $(win_guide) $(osx_guide) $(sdk_guide))
+INST_KITS := $(addprefix $(websrv)/, $(lin_sdk) $(win_sdk) $(osx_sdk))
+INST_KITS_TMP := $(addprefix $(tempdir)/, $(lin_sdk) $(win_sdk) $(osx_sdk))
 
 
 WIN_SRC := $(tempdir)/secondo-$(tag)-CP1252.zip
@@ -151,8 +154,11 @@ src-dist: src-archives
 	touch $(tnew) 
 
 # create new installation kits
-.PHONY: sdk-dist
-sdk-dist: $(INST_KITS2) $(tempdir)/secondo-cd.iso.zip
+.PHONY: sdk-tars
+sdk-tars: $(INST_KITS_TMP)
+
+.PHONY: sdk-cd
+sdk-cd: $(tempdir)/secondo-cd.iso.zip
 
 vpath %-Installation-Guide.pdf $(net)
 vpath %.zip $(tempdir)
@@ -186,12 +192,18 @@ endif
 $(tempdir)/linux-sdk.tar.gz: $(tnew)
 	 rm -f $@
 	 tar -C $(SECONDO_INST_KIT_ROOT) -cvzf $@ \
-	 $(pref)/Linux-Installation-Guide.pdf $(pref)/installsdk $(pref)/linux $(pref)/scripts --exclude $(pref)/linux/j2sdk* 
+	 $(pref)/$(lin_guide) $(pref)/$(sdk_guide) $(pref)/installsdk $(pref)/linux $(pref)/scripts --exclude $(pref)/linux/j2sdk* 
+
+
+$(tempdir)/mac-osx-sdk.tar.gz: $(tnew)
+	 rm -f $@
+	 tar -C $(SECONDO_INST_KIT_ROOT) -cvzf $@ \
+	 $(pref)/$(osx_guide) $(pref)/$(sdk_guide) $(pref)/installsdk $(pref)/linux $(pref)/mac_osx $(pref)/scripts --exclude $(pref)/linux/j2sdk* 
 
 $(tempdir)/win32-sdk.zip: $(tnew)
 	 rm -f $@
 	 cd $(SECONDO_INST_KIT_ROOT) && zip -9 -r $@ \
-	 $(pref)/Windows-Installation-Guide.pdf $(pref)/MSYS-* $(pref)/installsdk \
+	 $(pref)/$(win_guide) $(pref)/$(sdk_guide) $(pref)/MSYS-* $(pref)/installsdk \
 	 $(pref)/win32/prolog $(pref)/win32/mingw $(pref)/win32/non-gnu $(pref)/win32/gnu $(pref)/scripts
 
 # create a iso image with Rockridge and Joliet extensions 
