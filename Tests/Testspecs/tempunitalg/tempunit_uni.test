@@ -280,7 +280,7 @@ query distance(ui1, i1)
 query distance(i1, ui3)
 
 #testcase atmax_ureal ur1
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (1.0 0.0 -1.0 FALSE))) ((("2000-01-05" "2000-01-05" TRUE TRUE) (1.0 8.0 -1.0 FALSE)))))
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (1.0 0.0 -1.0 FALSE))) ((("2000-01-05" "2000-01-05" TRUE TRUE) (1.0 8.0 15.0 FALSE)))))
 query atmax(ur1) transformstream consume
 
 #testcase atmax_ureal ur2
@@ -292,11 +292,11 @@ query atmax(ur2) transformstream consume
 query atmax(ur3) count
 
 #testcase atmin_ureal ur1
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03" "2000-01-03" TRUE TRUE) (1.0 4.0 -1.0 FALSE)))))
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03" "2000-01-03" TRUE TRUE) (1.0 4.0 3.0 FALSE)))))
 query atmin(ur1) transformstream consume
 
 #testcase atmin_ureal ur2
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03-00:00:00.100" "2000-01-03-00:00:00.100" TRUE TRUE) (-1.0 -4.629629629629616e-06 -1.000002314820173 FALSE)))))
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03-00:00:00.100" "2000-01-03-00:00:00.100" TRUE TRUE) (-1.0 -1.00000462962963 -1.000002314820173 FALSE)))))
 query atmin(ur2) transformstream consume
 
 #testcase atmin_ureal ur3
@@ -308,7 +308,7 @@ query atmin(ur3) count
 query (ur1 at [const real value -1.0]) transformstream consume
 
 #testcase at_ureal ur1 def 2
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03" "2000-01-03" TRUE TRUE) (1.0 4.0 -1.0 FALSE))) ))
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03" "2000-01-03" TRUE TRUE) (1.0 4.0 3.0 FALSE))) ))
 query (ur1 at [const real value 3.0]) transformstream consume
 
 #testcase at_ureal ureal-undef def
@@ -448,15 +448,15 @@ query (ui1 atperiods [const periods value ( ) ]) transformstream consume
 
 
 #testcase atperiods_ureal BOTHINSIDE
-#yields ((rel (tuple ( (elem ureal))))  (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1.0 0.006944444444444444 1.003484278549383 TRUE))) ((("2003-11-20-06:50" "2003-11-20-06:55" FALSE TRUE) (1.0 0.06944444444444445 1.035927854938272 TRUE)) ) ) ) 
+#yields ((rel (tuple ( (elem ureal))))  (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1.0 1.006944444444444 1.003484278549383 TRUE))) ((("2003-11-20-06:50" "2003-11-20-06:55" FALSE TRUE) (1.0 1.069444444444444 1.035927854938272 TRUE)) ) ) ) 
 query (ur4 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" FALSE TRUE)) ]) transformstream consume
 
 #testcase atperiods_ureal ONEAHALFINSIDE
-#yields ((rel (tuple ( (elem ureal))))  (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1.0 0.006944444444444444 1.003484278549383 TRUE))) ((("2003-11-20-06:50" "2003-11-20-07:00" TRUE FALSE) (1.0 0.06944444444444445 1.035927854938272 TRUE)) ) ) )
+#yields ((rel (tuple ( (elem ureal))))  (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1.0 1.006944444444444 1.003484278549383 TRUE))) ((("2003-11-20-06:50" "2003-11-20-07:00" TRUE FALSE) (1.0 1.069444444444444 1.035927854938272 TRUE)) ) ) )
 query (ur4 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-08:55" TRUE TRUE)) ]) transformstream consume
 
 #testcase atperiods_ureal ONEINSIDE
-#yields ((rel (tuple ( (elem ureal))))  (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1.0 0.006944444444444444 1.003484278549383 TRUE))) ) )
+#yields ((rel (tuple ( (elem ureal))))  (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1.0 1.006944444444444 1.003484278549383 TRUE))) ) )
 query (ur4 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-08:50" "2003-11-20-09:55" TRUE TRUE)) ]) transformstream consume
 
 #testcase atperiods_ureal OUTSIDE
@@ -472,7 +472,7 @@ query  (ur3 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:
 query (ur4 atperiods [const periods value ( ) ]) transformstream consume
 
 #testcase atperiods_ureal MANYCASES
-#yields ((rel (tuple ( (elem ureal))))  (((("2003-11-20-06:00" "2003-11-20-06:05" TRUE FALSE) (1.0 -0.0 1.0 TRUE))) ((("2003-11-20-06:05" "2003-11-20-06:10" FALSE FALSE) (1.0 0.006944444444444444 1.003484278549383 TRUE))) ((("2003-11-20-06:50" "2003-11-20-07:00" FALSE FALSE) (1.0 0.06944444444444445 1.035927854938272 TRUE))) ) ) 
+#yields ((rel (tuple ( (elem ureal))))  (((("2003-11-20-06:00" "2003-11-20-06:05" TRUE FALSE) (1.0 1.0 1.0 TRUE))) ((("2003-11-20-06:05" "2003-11-20-06:10" FALSE FALSE) (1.0 0.006944444444444444 1.003484278549383 TRUE))) ((("2003-11-20-06:50" "2003-11-20-07:00" FALSE FALSE) (1.0 1.06944444444444445 1.035927854938272 TRUE))) ) ) 
 query (ur4 atperiods [const periods value ( ("2003-11-20-05:05" "2003-11-20-05:10" TRUE TRUE) ("2003-11-20-05:55" "2003-11-20-06:05" TRUE FALSE) ("2003-11-20-06:05" "2003-11-20-06:10" FALSE FALSE) ("2003-11-20-06:50" "2003-11-20-07:55" FALSE TRUE) ("2003-11-20-07:59" "2003-11-20-08:55" FALSE TRUE) ) ]) transformstream consume
 
 
