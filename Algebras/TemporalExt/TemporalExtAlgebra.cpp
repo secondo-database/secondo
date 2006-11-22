@@ -55,14 +55,14 @@ extern QueryProcessor *qp;
   FactorForUnitOfTime = 1. (default)
 
 */
-float FactorForUnitOfTime = 1.;
+double FactorForUnitOfTime = 1.;
 
 /*
 2.2 Global variable for unit of distance: meter [*] FactorForUnitOfDistance
   FactorForUnitOfDistance = 1. (default)
 
 */
-float FactorForUnitOfDistance = 1.;
+double FactorForUnitOfDistance = 1.;
 
 struct USegments
 {
@@ -82,16 +82,16 @@ struct GroupOfIntervals
 
 Parameters:
   utemp: pointer to UReal
-  minimum: a float (by reference)
-  maximum: a float (by reference)
+  minimum: a double (by reference)
+  maximum: a double (by reference)
 
 Return: nothing
 
 */
 
-void MinMaxValueFunction(const UReal* utemp, float& minimum, float& maximum)
+void MinMaxValueFunction(const UReal* utemp, double& minimum, double& maximum)
 {
-    float ts, te, ts_value, te_value, a, b, c;
+    double ts, te, ts_value, te_value, a, b, c;
     double t_extrem, t_extrem_value;
     bool lh = utemp->timeInterval.lc;
     bool rh = utemp->timeInterval.rc;
@@ -107,7 +107,7 @@ void MinMaxValueFunction(const UReal* utemp, float& minimum, float& maximum)
     c = utemp->c;
 
     ts_value = c;
-    te_value = a * pow( te-ts, 2 ) + b * (te-ts) + c;
+    te_value = a*pow(te,2) + b*te + c;
 
     if(0)
     {
@@ -140,7 +140,7 @@ void MinMaxValueFunction(const UReal* utemp, float& minimum, float& maximum)
 
     if(conv_conc)
     {
-        t_extrem_value = a * pow( t_extrem-ts, 2 ) + b * (t_extrem-ts) + c;
+        t_extrem_value = a*pow(t_extrem,2) + b*t_extrem + c;
         if(0)
         {
             cout << "t_extrem_value = " << t_extrem_value << endl;
@@ -207,12 +207,12 @@ Return:
 */
 
 bool timeIntervalOfRealInUReal(
-    float value,
+    double value,
     const UReal* ur,
-    float& t_value
+    double& t_value
 )
 {
-    float unit_min, unit_max, ts, te;
+    double unit_min, unit_max, ts, te;
     bool lh, rh;
 
     unit_min = ((URealExt*)ur)->GetUnitMin();
@@ -280,9 +280,9 @@ Find value in a quadratic function with Newtons Method
                     cout << "---> value in a quadratic function" << endl;
                 }
 
-                float t_newton = te;
-                float t_newton_old;
-                float t, dt, t_newton_diff, t_var;
+                double t_newton = te;
+                double t_newton_old;
+                double t, dt, t_newton_diff, t_var;
                 if(0)
                 {
                     cout << "t_newton(Start) = " << t_newton << endl;
@@ -634,7 +634,7 @@ void MPointExt::At( Points* pts, MPoint &result ) const
 {
     const UPoint* unitin;
     clock_t clock1, clock2, clock3, clock4, clock_ges;
-    float time1, time2;
+    double time1, time2;
 
     result.Clear();
     result.StartBulkLoad();
@@ -683,8 +683,8 @@ void MPointExt::At( Points* pts, MPoint &result ) const
         clock_ges = clock_ges + (clock4 - clock3);
     }
     clock2 = clock();
-    time2 = ((float)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
-    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    time2 = ((double)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
+    time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
     cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
     cout << "Total computing time : " << time1 << " ms" << endl;
     result.EndBulkLoad( false );
@@ -712,7 +712,7 @@ void MPointExt::At( Line* ln, MPoint &result ) const
     cout << "MPointExt::At called" << endl;
     const UPoint* unitin;
     clock_t clock1, clock2, clock3, clock4, clock_ges;
-    float time1, time2;
+    double time1, time2;
 
     result.Clear();
     result.StartBulkLoad();
@@ -933,8 +933,8 @@ Looks for intersections in a point
         clock_ges = clock_ges + (clock4 - clock3);
     }
     clock2 = clock();
-    time2 = ((float)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
-    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    time2 = ((double)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
+    time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
     cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
     cout << "Total computing time : " << time1 << " ms" << endl;
     result.EndBulkLoad( false );
@@ -955,7 +955,7 @@ bool MPointExt::Passes( Points* pts ) const
 {
     const UPoint* unitin;
     clock_t clock1, clock2, clock3, clock4, clock_ges;
-    float time1, time2;
+    double time1, time2;
     bool result = false;
 
     clock1 = clock();
@@ -1006,8 +1006,8 @@ bool MPointExt::Passes( Points* pts ) const
         i++;
     }
     clock2 = clock();
-    time2 = ((float)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
-    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    time2 = ((double)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
+    time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
     cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
     cout << "Total computing time : " << time1 << " ms" << endl;
 
@@ -1029,7 +1029,7 @@ bool MPointExt::Passes( Line* ln ) const
 {
     const UPoint* unitin;
     clock_t clock1, clock2, clock3, clock4, clock_ges;
-    float time1, time2;
+    double time1, time2;
     bool result = false;
 
     clock1 = clock();
@@ -1103,7 +1103,7 @@ For unit points which do not have any motion
                             {
                                 cout << "Intersects up " << i
                                      << " as a point at " << j << "!!" << endl
-                                     << "HS: ( " 
+                                     << "HS: ( "
                                      << ln_chs->GetLeftPoint().GetX()
                                      << ", " << ln_chs->GetLeftPoint().GetY()
                                      << " ; " << ln_chs->GetRightPoint().GetX()
@@ -1156,8 +1156,8 @@ Looks for intersections in a point inter\_p
         i++;
     }
     clock2 = clock();
-    time2 = ((float)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
-    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    time2 = ((double)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
+    time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
     cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
     cout << "Total computing time : " << time1 << " ms" << endl;
 
@@ -1178,25 +1178,35 @@ Return: nothing
 template <class Unit, class Alpha>
 void MappingExt<Unit, Alpha>::AtMin( Mapping<Unit, Alpha> &result ) const
 {
-    const Unit* utemp;
-    const Unit* umin;
-
-    Get(0, umin);
-    for(int i=1;i<Mapping<Unit, Alpha>::GetNoComponents();i++)
-    {
-        Get(i, utemp);
-        if(0)
-        {
-            cout << endl << "Compare: ";
-            cout << (utemp->constValue).Compare( &(umin->constValue) ) << endl;
-        }
-        if((utemp->constValue).Compare( &(umin->constValue) ) < 0)
-            ((Unit*)umin)->CopyFrom( utemp );
-    }
+    const Unit* unit;
+    int compRes = 0;
+    const Unit *umin;
 
     result.Clear();
     result.StartBulkLoad();
-    result.Add( *umin );
+
+    Get(0, unit);
+    result.Add( *unit );
+    umin = unit;
+
+    for(int i=1;i<Mapping<Unit, Alpha>::GetNoComponents();i++)
+    {
+      Get(i, unit);
+      compRes = (unit->constValue).Compare( &(umin->constValue) );
+      if(compRes > 0)
+        continue;
+      if(compRes == 0)
+        {
+          result.Add( *unit );
+          continue;
+        }
+      if(compRes < 0)
+        {
+          result.Clear();
+          result.Add( *unit );
+          umin = unit;
+        }
+    }
     result.EndBulkLoad( false );
 }
 
@@ -1214,25 +1224,35 @@ Return: nothing
 template <class Unit, class Alpha>
 void MappingExt<Unit, Alpha>::AtMax( Mapping<Unit, Alpha> &result ) const
 {
-    const Unit* utemp;
-    const Unit* umax;
-
-    Get(0, umax);
-    for(int i=1;i<Mapping<Unit, Alpha>::GetNoComponents();i++)
-    {
-        Get(i, utemp);
-        if(0)
-        {
-            cout << endl << "Compare: ";
-            cout << (utemp->constValue).Compare( &(umax->constValue) ) << endl;
-        }
-        if((utemp->constValue).Compare( &(umax->constValue) ) > 0)
-            ((Unit*)umax)->CopyFrom( utemp );
-    }
+    const Unit* unit;
+    int compRes = 0;
+    const Unit *umin;
 
     result.Clear();
     result.StartBulkLoad();
-    result.Add( *umax );
+
+    Get(0, unit);
+    result.Add( *unit );
+    umin = unit;
+
+    for(int i=1;i<Mapping<Unit, Alpha>::GetNoComponents();i++)
+    {
+      Get(i, unit);
+      compRes = (unit->constValue).Compare( &(umin->constValue) );
+      if(compRes < 0)
+        continue;
+      if(compRes == 0)
+        {
+          result.Add( *unit );
+          continue;
+        }
+      if(compRes > 0)
+        {
+          result.Clear();
+          result.Add( *unit );
+          umin = unit;
+        }
+    }
     result.EndBulkLoad( false );
 }
 
@@ -1251,19 +1271,19 @@ void MRealExt::AtMin( MReal &result ) const
 {
     const UReal* utemp;
     const UReal* uresult;
-    float min;
+    double min;
     int unit_num;
-    float unit_min, unit_max;
+    double unit_min, unit_max;
 
     Get(0, utemp);
     MinMaxValueFunction(utemp, unit_min, unit_max);
     ((URealExt*)utemp)->SetUnitMin( unit_min );
     ((URealExt*)utemp)->SetUnitMax( unit_max );
-    min = ((URealExt*)utemp)->GetUnitMin();
+    min = ((URealExt*)utemp)->GetUnitMax();
     unit_num = 0;
 
     if(0)
-        cout << "GetUnitMin(): " << ((URealExt*)utemp)->GetUnitMin() << endl;
+        cout << "GetUnitMax(): " << ((URealExt*)utemp)->GetUnitMax() << endl;
 
     for(int i=1;i<GetNoComponents();i++)
     {
@@ -1282,6 +1302,11 @@ void MRealExt::AtMin( MReal &result ) const
             unit_num = i;
         }
     }
+    // ATTENTION! This seems to be wrong. A moving object can reach its extrema
+    // several times! To return a single unit is NOT correct! Instead, one has
+    // to find ALL units with the appropriate extremum, restrict their deftimes
+    // to the interval, where they take the extreme value and add them to the
+    // result!
     Get( unit_num, uresult );
 
     result.Clear();
@@ -1305,9 +1330,9 @@ void MRealExt::AtMax( MReal &result ) const
 {
     const UReal* utemp;
     const UReal* uresult;
-    float max;
+    double max;
     int unit_num;
-    float unit_min, unit_max;
+    double unit_min, unit_max;
 
     Get(0, utemp);
     MinMaxValueFunction(utemp, unit_min, unit_max);
@@ -1336,6 +1361,11 @@ void MRealExt::AtMax( MReal &result ) const
             unit_num = i;
         }
     }
+    // ATTENTION! This seems to be wrong. A moving object can reach its extrema
+    // several times! To return a single unit is NOT correct! Instead, one has
+    // to find ALL units with the appropriate extremum, restrict their deftimes
+    // to the interval, where they take the extreme value and add them to the
+    // result!
     Get( unit_num, uresult );
 
     result.Clear();
@@ -1360,8 +1390,8 @@ void MRealExt::At( CcReal val, MReal &result ) const
 {
     const UReal* utemp;
     UReal uresult(true);
-    float unit_min, unit_max, time1, time2;
-    float value = val.GetRealval();
+    double unit_min, unit_max, time1, time2;
+    double value = val.GetRealval();
     clock_t clock1, clock2, clock3, clock4, clock_ges;
 
     result.Clear();
@@ -1375,7 +1405,7 @@ void MRealExt::At( CcReal val, MReal &result ) const
         MinMaxValueFunction(utemp, unit_min, unit_max);
         ((URealExt*)utemp)->SetUnitMin( unit_min );
         ((URealExt*)utemp)->SetUnitMax( unit_max );
-        float t_value;
+        double t_value;
         if(timeIntervalOfRealInUReal(value, utemp, t_value))
         {
             uresult.a = utemp->a;
@@ -1400,8 +1430,8 @@ void MRealExt::At( CcReal val, MReal &result ) const
         clock_ges = clock_ges + (clock4 - clock3);
     }
     clock2 = clock();
-    time2 = ((float)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
-    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    time2 = ((double)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
+    time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
     cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
     cout << "Total computing time : " << time1 << " ms" << endl;
     result.EndBulkLoad( false );
@@ -1422,8 +1452,8 @@ bool MRealExt::Passes( CcReal val ) const
 {
     const UReal* utemp;
     UReal uresult(true);
-    float unit_min, unit_max, time1, time2;
-    float value = val.GetRealval();
+    double unit_min, unit_max, time1, time2;
+    double value = val.GetRealval();
     clock_t clock1, clock2, clock3, clock4, clock_ges;
     bool result = false;
 
@@ -1451,8 +1481,8 @@ bool MRealExt::Passes( CcReal val ) const
         clock_ges = clock_ges + (clock4 - clock3);
     }
     clock2 = clock();
-    time2 = ((float)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
-    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    time2 = ((double)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
+    time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
     cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
     cout << "Total computing time : " << time1 << " ms" << endl;
 
@@ -1557,7 +1587,7 @@ void MRealExt::At( RReal* inv, MReal &result ) const
 {
     const UReal* utemp;
     UReal uresult(true);
-    float unit_min, unit_max;
+    double unit_min, unit_max;
 
     result.Clear();
     result.StartBulkLoad();
@@ -1590,7 +1620,7 @@ void MRealExt::At( RReal* inv, MReal &result ) const
                     cout << " = [ " << inv_result.start.GetValue()
                         << ", " << inv_result.end.GetValue() << " ] " << endl;
                 }
-                float t_value, t_value2;
+                double t_value, t_value2;
                 uresult.a = utemp->a;
                 uresult.b = utemp->b;
                 uresult.c = utemp->c;
@@ -3255,7 +3285,7 @@ int MRegionPointAtExt(
 
     m->Intersection( *tmp, *pResult );
     clock1 = clock();
-    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
     cout << "Total computing time : " << time1 << " ms" << endl;
 
 
@@ -3503,7 +3533,7 @@ int MRegionPointPassesExt(
     }
 
     clock2 = clock();
-    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
     cout << "Total computing time : " << time1 << " ms" << endl;
 
 
@@ -3664,8 +3694,8 @@ int MRegionPointsPassesExt(
     }
 
     clock2 = clock();
-    time2 = ((float)(clock_ges / pts->Size())/CLOCKS_PER_SEC) * 1000.;
-    time1 = ((float)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+    time2 = ((double)(clock_ges / pts->Size())/CLOCKS_PER_SEC) * 1000.;
+    time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
     cout << "Average computing time per elemtn of Points: "
             << time2 << " ms/unit" << endl;
     cout << "Total computing time : " << time1 << " ms" << endl;
@@ -3902,10 +3932,10 @@ int MovingSpeedExt(
     {
         m->Get(i, unitin);
         distance = (unitin->p0.Distance(unitin->p1)) * FactorForUnitOfDistance;
-	t = (((unitin->timeInterval.end) - 
+	t = (((unitin->timeInterval.end) -
 	      (unitin->timeInterval.start)).ToDouble()) * FactorForUnitOfTime;
 
-        if (t != 0.0) 
+        if (t != 0.0)
 	{
           speed = distance / t;
           unitout.a = 0.0;
@@ -3993,7 +4023,7 @@ int RangeRangevaluesIntExt(
     int temp;
     set<int> BTree;
     clock_t clock1, clock2, clock3, clock4;
-    float time1, time2;
+    double time1, time2;
 
     clock1 = clock();
     for(int i=0;i<m->GetNoComponents();i++)
@@ -4076,7 +4106,7 @@ int RangeRangevaluesStringExt(
     set<string> BTree;
     string temp;
     clock_t clock1, clock2, clock3, clock4;
-    float time1, time2;
+    double time1, time2;
 
     clock1 = clock();
     for(int i=0;i<m->GetNoComponents();i++)
@@ -4134,13 +4164,13 @@ int RangeRangevaluesRealExt(
     RReal* pResult = ((RReal*)result.addr);
 
     clock_t clock1, clock2, clock3, clock4;
-    float time1, time2;
+    double time1, time2;
 
     const UReal* utemp;
-    float min=0.,max=0.;
+    double min=0.,max=0.;
     CcReal mincc, maxcc;
     Interval<CcReal> inter;
-    multimap< float,const Interval<CcReal> > intermap;
+    multimap< double,const Interval<CcReal> > intermap;
 
     clock1 = clock();
     for(int i=0;i<m->GetNoComponents();i++)
@@ -4153,14 +4183,14 @@ int RangeRangevaluesRealExt(
         inter.end = maxcc;
         inter.lc = true;
         inter.rc = true;
-        intermap.insert(pair< float,const Interval<CcReal> >(max, inter));
+        intermap.insert(pair< double,const Interval<CcReal> >(max, inter));
     }
     clock2 = clock();
     time1 = ((clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
     cout << endl << "Time to insert values: "
           << time1 << " milliseconds" << endl;
 
-    multimap< float,const Interval<CcReal> >::iterator iter = intermap.end();
+    multimap< double,const Interval<CcReal> >::iterator iter = intermap.end();
     pResult->Clear();
     pResult->StartBulkLoad();
     --iter;
@@ -4339,7 +4369,7 @@ int MovingVelocityExt(
     MPoint* pResult = ((MPoint*)result.addr);
     const UPoint* unitin;
     UPoint* unitout;
-    float dx, dy, dt;
+    double dx, dy, dt;
 
     pResult->Clear();
     pResult->StartBulkLoad();
@@ -4419,6 +4449,8 @@ int GlobalUnitOfDistanceExt(
 }
 
 
+
+
 /*
 9.3.20 Value mapping function of operator ~mdirection~
 
@@ -4466,6 +4498,7 @@ int MovingLocationsExt(
 9.3.22 Value mapping functions of operator ~atmin~
 
 */
+
 template <class Mapping, class Unit, class Alpha>
 int MappingAtminExt(
     Word* args,

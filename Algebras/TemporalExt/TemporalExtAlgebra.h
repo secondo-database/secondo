@@ -179,16 +179,16 @@ public:
 
     URealExt(bool is_defined):UReal(is_defined) { }
 
-    float GetUnitMin() const { return unit_min; }
+    double GetUnitMin() const { return unit_min; }
 
-    float GetUnitMax() const { return unit_max; }
+    double GetUnitMax() const { return unit_max; }
 
-    void SetUnitMin( float min ) { unit_min = min; }
+    void SetUnitMin( double min ) { unit_min = min; }
 
-    void SetUnitMax( float max) { unit_max = max; }
+    void SetUnitMax( double max) { unit_max = max; }
 
 private:
-    float unit_min, unit_max;
+    double unit_min, unit_max;
 };
 
 /*
