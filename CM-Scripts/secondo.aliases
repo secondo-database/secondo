@@ -24,12 +24,12 @@ echo "--"
 bison --version | head -n1
 echo "--"
 db_archive -V | head -n1
-if [ $SECONDO_PLATFORM != "win32" ]; then
+if [ "$SECONDO_PLATFORM" != "win32" ]; then
 
-  if [ $SECONDO_PLATFORM != "mac_osx" ]; then
+  if [ "$SECONDO_PLATFORM" == "mac_osx" ]; then
     plcmd="swipl"
   fi
-  if [ $SECONDO_PLATFORM != "linux" ]; then
+  if [ "$SECONDO_PLATFORM" == "linux" ]; then
     plcmd="pl"
   fi
   echo "--"

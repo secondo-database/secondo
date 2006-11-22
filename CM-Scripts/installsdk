@@ -117,7 +117,7 @@ function installPackage {
           makeCmd="make $target"
         fi  
         printf "%s\n" "$makeCmd"
-        checkCmd make $target
+        checkCmd $makeCmd
         rc=$?
         if [ $rc -ne 0 ]; then
           return 1;
@@ -689,16 +689,18 @@ ldFlags=""
 binPaths=""
 libPaths=""
 incPaths=""
+SEP=""
 for dir in gcc auxtools bison flex; do
   cFlags=$cFlags"-I$sdk/$dir/include "
   ldFlags=$ldFlags"-L$sdk/$dir/lib "
-  binPaths=$binPaths"$sdk/$dir/bin:"
-  libPaths=$libPaths"$sdk/$dir/lib:"
-  incPaths=$incPaths"$sdk/$dir/include:"
+  binPaths=$binPaths$SEP"$sdk/$dir/bin"
+  libPaths=$libPaths$SEP"$sdk/$dir/lib"
+  incPaths=$incPaths$SEP"$sdk/$dir/include"
+  SEP=":"
 done 
 
 export PATH=".:$binPaths:$PATH"
-export LD_LIBRARY_PATH=".:$libPaths:$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="$libPaths:$LD_LIBRARY_PATH"
 export LIBRARY_PATH=$libPaths
 export C_INCLUDE_PATH=$incPaths
 export CPLUS_INCLUDE_PATH=$incPaths
@@ -707,6 +709,9 @@ export CPLUS_INCLUDE_PATH=$incPaths
 printSep "Installation of GCC"
 echo "PATH: $PATH" >> $logfile
 echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH" >> $logfile
+echo "LIBRARY_PATH: $LIBRARY_PATH" >> $logfile
+echo "C_INCLUDE_PATH: $C_INLCUDE_PATH" >> $logfile
+echo "CPLUS_INCLUDE_PATH: $CPLUS_INCLUDE_PATH" >> $logfile
 checkCmd "gcc --version >> $logfile"
 checkCmd "gcc --print-search-dirs >> $logfile"
 checkCmd "flex --version >> $logfile"
@@ -718,7 +723,7 @@ if [ "$opt_gcc" = "yes" ]; then
   gccfiles=$platformdir/gnu/gcc-*
   objDir=$temp/gcc.objects
   assert mkdir -p $objDir
-  installPackage "GCC with C++ support" gcc "$gccfiles" $objDir "bootstrap install" --disable-nls ../gcc-*/configure
+  installPackage "GCC with C++ support" gcc "$gccfiles" $objDir "all install" --disable-nls ../gcc-*/configure
   assert hash -r
   if ! checkVersion "gcc --version" $gccCoreFile; then
     showMsg "err" "Something went wrong! gcc --version: ($LU_Version1 < \
