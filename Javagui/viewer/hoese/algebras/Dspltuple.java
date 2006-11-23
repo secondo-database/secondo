@@ -76,11 +76,12 @@ public class Dspltuple extends DsplGeneric {
       int newnum = qr.getModel().getSize();
       int diff = newnum-oldnum;
       if(diff<1){
-         tools.Reporter.writeError("missing entry for attribute "+type.first().first().toString());
+         tools.Reporter.writeError("missing entry for attribute "+s);
+         tools.Reporter.writeError("check the implementation of the class " + dg.getClass());
          qr.addEntry("error");
       }
       if(diff>1){
-         tools.Reporter.writeError("to many entries for attribute "+type.first().first().toString()+
+         tools.Reporter.writeError("to many entries for attribute "+s+
                              "\n please check the implementation of the "+dg.getClass() + " class");
       }
        
