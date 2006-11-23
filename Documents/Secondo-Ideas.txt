@@ -44,16 +44,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 	http://www.informatik.fernuni-hagen.de/secondo     [p]
 
 
-Last Changes: 11/16/06, M. Spiekermann
+Last Changes: 11/23/06, M. Spiekermann
 
 [TOC]
 ""[20]
 
 1 Introduction
 
-This document contains open problems, missing features and proposals future
+This document contains open problems, missing features and proposals for future
 improvements of Secondo. It should be used to keep results of discussions as a
-small transcript in order to let others participate and to contribute. 
+small transcript in order to let others participate and contribute. 
 
 2 Ideas for Testing (11/16/06)
 
@@ -61,7 +61,7 @@ In the future the query example given in the operator specification should be
 based on objects from a special test database which contains some example data
 for each Secondo type. Moreover, it should be possible to specify more than one
 query with expected results. Thus the examples will be expanded into
-litlle test specifications. Further, this will not be specified in the
+little test specifications. Further, this will not be specified in the
 C++-Source code any longer but in special files instead.
 
 The file must be named as the algebra module but without the suffix "Algebra", e.g.
@@ -76,14 +76,15 @@ It contains entries of the following form:
 
 */
 
-Operator: isempty                 # name or symbol of the operator
-Number  : 1                       # number of the test case
-Example : query isempty(train5)   # query expression 
-Result  : file                    # the expected result list is stored 
-                                  # a file called TestResults/isempty_1.nl 
+Operator  : isempty                 # name or symbol of the operator
+Number    : 1                       # number of the test case
+Signature : mpoint -> bool          # the used signature of the operator
+Example   : query isempty(train5)   # query expression 
+Result    : file                    # the expected result list is stored 
+                                    # a file called TestResults/isempty_1.nl 
 or
 
-Result  : (int 5)                 # Result specified inline as list
+Result  : FALSE                     # Result specified inline as list
 
 
 /*
@@ -91,11 +92,13 @@ Result  : (int 5)                 # Result specified inline as list
 This is a more simplified form of ~TestRunner~ specifications. Make will
 concatenate them to a complete list which can be read in by the ~TestRunner~ and
 Secondo at startup. During algebra registration missing examples will be detected
-and printed to the display. 
+and printed to the display. The Example with number 1 will be used as entry for
+the list operators command, whereas the system table "SEC2OPERATORINFO" contains
+all examples.
 
-For testing quickly all operators the ~TestRunner~ can be invoked with the
+For testing quickly all operators, the ~TestRunner~ can be invoked with the
 parameter "-checkall". In this case it will open the database "berlintest" and
-runs test cases for all query examples.  Hence overnight runs will guarantee
+run test cases for all query examples.  Hence overnight runs will guarantee
 that all example queries work.
 
 Objects referred in queries must be stored in the database "berlintest" which will
@@ -105,10 +108,10 @@ of the ~TestRunner~ or is not present in the list of databases it will be restor
 
 2.1 Implementation 
 
-  * make copies the examples into a new directoy "bin/examples". 
+  * Make copies the examples into a new directoy "bin/examples". 
 
   * A new class ~ExampleReader~ which can read in an examples file and converts examples
-    in an internal format will be implemented.
+    to an internal format will be implemented.
 
   * The new ~TestRunner~ option opens or restores "berlintest" and runs the
     examples. The name of the test database can be configured in
