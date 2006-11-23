@@ -38,7 +38,8 @@ Please see ~MovingRegionAlgebra.cpp~ for more details on the
 #ifndef _MOVING_REGION_ALGEBRA_H_
 #define _MOVING_REGION_ALGEBRA_H_
 
-   class MRegion; // forward declaration
+class MRegion; // forward declaration
+class URegion; // forward declaration
 /*
 1 Supporting classes and class template
 
@@ -464,7 +465,11 @@ standalone region unit values without duplication of code.
 */
 
 class URegionEmb {
+
 private:
+
+  friend class MRegion;
+
 /*
 1.1 Private attributes
 
@@ -790,6 +795,9 @@ Instances of class ~URegion~ represent SECONDO ~uregion~ objects.
 
 class URegion : public SpatialTemporalUnit<Region, 3> {
 private:
+
+  friend class MRegion; // neede due to the cruel design of this classes...
+
 /*
 1.1 Private attributes
 
@@ -932,6 +940,7 @@ Print method, primarly used for debugging purposes
     else
       return os << "ConstUnit: (undef)" << endl;
   }
+
 /*
 The assignment operator
 
@@ -1038,7 +1047,7 @@ Add a idependent ~URegion~ object to the moving region. The URegions moving segm
 
 */
 
-    void AddURegion(const int i, URegion& ur);
+    void AddURegion(URegion& U);
 
 /*
 Allow read-only access to ~msegmentdata~.

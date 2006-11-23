@@ -6730,10 +6730,11 @@ Assignment operator
    if(!U.IsDefined())
      {
        uremb = U.uremb;
-       //       segments = ??????
+       segments = U.segments;
        SetDefined(false);
        return *this;
      }
+   timeInterval = U.timeInterval; // copy units copy of deftime!   
    uremb = U.uremb;      // copy bbox, timeInterval, segmentsNum
    uremb.SetStartPos(0); // set uremb.segmentsStartPos = 0
 
@@ -7423,7 +7424,35 @@ segment is copied to the DBArrays for ~msegmentdata~ and ~units~.
 
 */
 
-void MRegion::AddURegion(const int i, URegion& ur) {
+void MRegion::AddURegion(URegion& U ) {
+  
+
+  cout << "MRegion::AddURegion" << endl;
+  U.Print(cout);
+
+  if ( !U.IsDefined() )
+    return;
+
+  URegionEmb tmp;
+  int start=0, end=0;
+
+  StartBulkLoad();
+
+  // copy adjusted U.uremb data to units
+  start = msegmentdata.Size();
+  end = U.uremb.GetSegmentsNum();
+  tmp = *(U.GetEmbedded());
+  tmp.SetStartPos(start);
+  Add(tmp);
+  
+  // append U.segments to msegmentdata
+  for(int i=0 ; i<end ; i++)
+    {
+      const MSegmentData* dms;
+      U.segments.Get(i, dms);
+      msegmentdata.Put(i+start, *dms);
+    }
+  EndBulkLoad();
 }
 
 
