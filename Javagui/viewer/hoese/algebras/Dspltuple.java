@@ -65,12 +65,25 @@ public class Dspltuple extends DsplGeneric {
     while (!value.isEmpty()) {
       s = type.first().first().symbolValue();
       dg = LEUtils.getClassFromName(type.first().second().symbolValue());
+      // ensure to add exactly one entry per attribute
+      int oldnum = qr.getModel().getSize();
       if (dg instanceof DsplSimple){
          ((DsplSimple)dg).init(type.first().first(),maxNameLen, value.first(),0, qr);
       }
       else{
          dg.init(type.first().first(), value.first(), qr);
       }
+      int newnum = qr.getModel().getSize();
+      int diff = newnum-oldnum;
+      if(diff<1){
+         tools.Reporter.writeError("missing entry for attribute "+type.first().first().toString());
+         qr.addEntry("error");
+      }
+      if(diff>1){
+         tools.Reporter.writeError("to many entries for attribute "+type.first().first().toString()+
+                             "\n please check the implementation of the "+dg.getClass() + " class");
+      }
+       
       type = type.rest();
       value = value.rest();
     }
