@@ -142,6 +142,17 @@ public Time getStartTime(){
    return start;
 }
 
+public Time getEndTime(){
+  if(!defined){
+     return null;
+  }
+  Time r = new Time(0,0);
+  r.equalize(start);
+  r.addInternal(move.getInterval().getLength());
+  return r;
+}
+
+
 public boolean isDefined(){
    return defined;
 }

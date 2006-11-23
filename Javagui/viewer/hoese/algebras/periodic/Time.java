@@ -35,8 +35,14 @@ public Time(){
    milliseconds = 0;
 }
 
+/** creates a Time value from the arguments **/
 public Time(long day, long milliseconds){
    set(day,milliseconds);
+}
+
+/** copy constructor **/
+public Time(Time source){
+   set(source.day,source.milliseconds);
 }
 
 

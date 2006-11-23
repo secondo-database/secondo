@@ -47,6 +47,22 @@ public int numberOfShapes(){
   return 1;
 }
 
+/** returns the position at the given time.
+  * If the point is undefined at the given instant, null is 
+  * returned.
+  **/
+public Point2D.Double getPosition(Time T){
+   return (Point2D.Double) Move.getObjectAt(T);
+}
+
+public Time getMinTime(){
+    return Move.getStartTime();
+}
+
+public Time getMaxTime(){
+    return Move.getEndTime();
+}
+
 public Shape getRenderObject(int num,AffineTransform at){
   if(num!=0){
       return null;
@@ -90,15 +106,21 @@ public void init(ListExpr type,ListExpr value,QueryResult qr){
   AttrName = type.symbolValue();
   Move = new TotalMove();
   if(!Move.readFrom(value,linearClass)){
-     qr.addEntry("("+AttrName +" WrongListFormat )");
+     if(qr!=null){
+         qr.addEntry("("+AttrName +" WrongListFormat )");
+     }
      return;
   }
   if(!Move.isDefined()){
-     qr.addEntry(AttrName+" : undefined ");
+     if(qr!=null){
+        qr.addEntry(AttrName+" : undefined ");
+     }
      return;
   }
 
-  qr.addEntry(this);
+  if(qr!=null){
+     qr.addEntry(this);
+  }
   if(Move.getBoundingBox()==null){
      Reporter.writeError("Bounding Box can't be created");
   }
