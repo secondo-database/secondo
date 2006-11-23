@@ -106,7 +106,9 @@ const Point& Segment::GetRightPoint()   {  return hs.GetRightPoint();}
 bool Segment::GetIn1() const    { return in1; }
 
 void Segment::SetLeftPoint(const Point& p)   {
-   if  ( p != hs.GetRightPoint() && p != hs.GetLeftPoint() )
+   //if  ( p != hs.GetRightPoint() && p != hs.GetLeftPoint() )
+   if ((!AlmostEqual(p, hs.GetRightPoint())) && 
+                          (!AlmostEqual(p, hs.GetLeftPoint())))
       hs.Set(true,p,hs.GetRightPoint());
 }
 
