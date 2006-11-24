@@ -723,30 +723,37 @@ public class ViewConfig extends javax.swing.JDialog {
                  max = cnt;
                } else{ 
                    int rendobjpos = cnt*(AttrCount + 1)+ attrno;
-                   Object rendobj = Query.getModel().getElementAt(rendobjpos);
-                   if(!(rendobj instanceof RenderAttribute)){
-                      Reporter.writeError("Fatal error, no renderattribute found .");
-                      Reporter.writeError("found "+ rendobj+" instead on pos"+rendobjpos);
+                   int size = Query.getModel().getSize();
+                   if(rendobjpos>=size){
+                      Reporter.writeError("Too less elements in QueryResult."+
+                                          "Please check the involved Display classes");
                       dg.setRenderAttribute(null);
-                   } else{
-                     RenderAttribute curAttr = (RenderAttribute) rendobj;
-                     dg.setRenderAttribute(curAttr);
-                     if(curAttr.mayBeDefined()){
-                         double cmin = curAttr.getMinRenderValue();
-                         double cmax = curAttr.getMaxRenderValue();
-                         if(!Double.isInfinite(cmin) && !Double.isInfinite(cmax)){
-                             if(first){
-                                 first=false;
-                                 min = cmin;
-                                 max = cmax;
-                             } else{
-                               min = cmin<min?cmin:min;
-                               max = cmax>max?cmax:max;
-                             }
-                          } else{
-                             Reporter.debug("infinite range given from "+dg.getClass());
-                          }
-                     }
+                   } else {
+                       Object rendobj = Query.getModel().getElementAt(rendobjpos);
+                       if(!(rendobj instanceof RenderAttribute)){
+                          Reporter.writeError("Fatal error, no renderattribute found .");
+                          Reporter.writeError("found "+ rendobj+" instead on pos"+rendobjpos);
+                          dg.setRenderAttribute(null);
+                       } else{
+                         RenderAttribute curAttr = (RenderAttribute) rendobj;
+                         dg.setRenderAttribute(curAttr);
+                         if(curAttr.mayBeDefined()){
+                             double cmin = curAttr.getMinRenderValue();
+                             double cmax = curAttr.getMaxRenderValue();
+                             if(!Double.isInfinite(cmin) && !Double.isInfinite(cmax)){
+                                 if(first){
+                                     first=false;
+                                     min = cmin;
+                                     max = cmax;
+                                 } else{
+                                   min = cmin<min?cmin:min;
+                                   max = cmax>max?cmax:max;
+                                 }
+                              } else{
+                                 Reporter.debug("infinite range given from "+dg.getClass());
+                              }
+                         }
+                       }
                    }
                }
            }
