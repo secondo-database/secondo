@@ -34,8 +34,12 @@ dependent code should be isolated in this class.
 
 #include <string>
 
+using namespace std;
+
 class WinUnix {
 
+  static const bool win32;
+ 
 public:
    WinUnix(){};
    ~WinUnix(){};
@@ -50,14 +54,10 @@ public:
   
    static void stacktrace(const std::string& fullAppName="");
   
-   static inline bool WindowsHost() {
-     #ifdef SECONDO_WIN32
-       return true;
-     #else
-       return false; 
-     #endif  
-   } 
+   static inline bool WindowsHost() { return win32; }
 
+   static string MakePath(const string& s);
+   
 private:
    static const int endian_detect;
 

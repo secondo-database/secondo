@@ -50,6 +50,14 @@ using namespace std;
 const int
 WinUnix::endian_detect = 1;
 
+#ifdef SECONDO_WIN32
+const bool
+WinUnix::win32 = true;
+#else
+const bool
+WinUnix::win32 = false; 
+#endif  
+
 int
 WinUnix::getPageSize( void ) { 
 
@@ -62,7 +70,17 @@ WinUnix::getPageSize( void ) {
 #endif
 }
 
-
+string
+WinUnix::MakePath(const string& s)
+{ 
+  string t=s;
+  if ( win32 )
+    t = translate(t, "/", "\\");
+  else
+    t = translate(t, "\\", "/");
+  return t;  
+}
+    
 /* Obtain a backtrace and print it to stdout. */
 #ifdef SECONDO_LINUX
    
