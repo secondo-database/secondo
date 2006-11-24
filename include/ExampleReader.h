@@ -28,6 +28,7 @@ November 2006, M. Spiekermann.
 #define SECONDO_EXAMPLE_READER_H
 
 #include <iostream>
+#include <sstream>
 #include <map>
 
 #include "CharTransform.h"
@@ -50,6 +51,15 @@ struct ExampleInfo {
     signature="";
     example="";
     result="";
+  } 
+
+  void print(ostream& os) const
+  {
+    os << "Operator : " << opName << endl;
+    os << "Number   : " << number << endl;
+    os << "Signature: " << signature << endl;
+    os << "Example  : " << example << endl;
+    os << "Result   : " << result << endl;
   } 
 }; 
 
@@ -194,12 +204,15 @@ a*bc* with single characters a,b and c.
     cout << "Processing examples for algebra '" << algName << "'" << endl;
 
     ifstream stream;
-    stream.open(fileName.c_str());
+    stream.open(WinUnix::MakePath(fileName).c_str());
     if (!stream.good()) {
       cerr << "Error: Could not open file!" << endl;
       return false;
     }  
 
+    ExampleInfo info;
+    string key="";
+    
     while (!stream.eof() && !stream.fail()) {
 
       // read next input string;
@@ -207,23 +220,28 @@ a*bc* with single characters a,b and c.
       lineRest ="";
       pos=0;
       nextLine(stream, line);
-      while ( isSpaceStr(line)) {
+      while ( isSpaceStr(line) && !stream.eof()) {
+	line="";
         nextLine(stream,line);
       }
       if (debug)
         cout << lineCtr << ": " << line << endl;
-
-      ExampleInfo info;
+      if (debug)
+        cout << tokendef[expected] << endl;
 
       switch (expected) {
   
        case Operator: { 
-         
+        
+          if (stream.eof())
+	    return true;
+		       
           if (!match(Operator))
             return false;
           expected = Number;
           info.opName = lineRest;
-          examples[info.opName+algName] = info;
+	  key = info.opName+algName;
+          examples[key] = info;
           break;
        }
 
@@ -231,7 +249,7 @@ a*bc* with single characters a,b and c.
           if (!match(Number))
             return false;
            expected = Signature;
-           info.number = ::parse<int>(lineRest);
+           examples[key].number = ::parse<int>(lineRest);
           break;
        }
 
@@ -239,7 +257,7 @@ a*bc* with single characters a,b and c.
           if (!match(Signature))
             return false;
            expected = Example;
-           info.signature = lineRest;
+           examples[key].signature = lineRest;
           break;
        }
 
@@ -247,7 +265,7 @@ a*bc* with single characters a,b and c.
           if (!match(Example))
             return false;
            expected = Result;
-           info.example = lineRest;
+           examples[key].example = lineRest;
           break;
        }
 
@@ -255,7 +273,7 @@ a*bc* with single characters a,b and c.
           if (!match(Result))
             return false;
            expected = Operator;
-           info.result = lineRest;
+           examples[key].result = lineRest;
           break;
        }
 
@@ -281,21 +299,28 @@ a*bc* with single characters a,b and c.
   } 
 
 
-  void add(const string& op, ExampleInfo& ex)
+  void add(const string& op, const int nr, ExampleInfo& ex)
   {
-     examples[op+algName+"1"] = ex; 
+     cout << "adding ... " << endl; 
+     
+     stringstream key;
+     key << op << algName << nr;
+     examples[key.str()] = ex; 
   } 
 
   bool write() {
 
-    string fileName = "tmp/"+algName+".examples";
+    string fileName = WinUnix::MakePath("tmp/"+algName+".examples");
+    cout << "writing to file " << fileName << endl; 
     ofstream file;
     file.open(fileName.c_str());
 
     ExampleMap::const_iterator it = examples.begin();
-    while(it != examples.end() && file.good()) {
+    while(it != examples.end()) {
 
-      file << "test" << endl;  
+      it->second.print(file);
+      file << endl;  
+      file << endl;  
       it++;
     } 
 

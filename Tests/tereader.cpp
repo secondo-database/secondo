@@ -18,6 +18,19 @@ int main(int argc, char* argv[]) {
 
  bool ok = reader.parse();
 
+ ExampleInfo ex;
+ ex.opName = "test1";
+ ex.number = 1;
+ ex.signature = "bool x int -> bool";
+ ex.example = "query test1(TRUE, 5)";
+ ex.result = "TRUE";
+
+ for (int i=0; i < 10; i++) {
+   reader.add("test1", i, ex);
+ }
+
+ reader.write();
+  
  if (ok)
   return 0;
  return 1;
