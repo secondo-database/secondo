@@ -178,12 +178,16 @@ Application::Application( int argc, const char** argv )
   signal( SIGSTKFLT, Application::AbortOnSignalHandler );
 #endif
   signal( SIGIO,     Application::AbortOnSignalHandler );
+#ifdef SIGPOLL
   signal( SIGPOLL,   Application::AbortOnSignalHandler );
+#endif
   signal( SIGXCPU,   Application::AbortOnSignalHandler );
   signal( SIGXFSZ,   Application::AbortOnSignalHandler );
   signal( SIGVTALRM, Application::AbortOnSignalHandler );
   signal( SIGPROF,   Application::AbortOnSignalHandler );
+#ifdef SIGPWR
   signal( SIGPWR,    Application::AbortOnSignalHandler );
+#endif
 #else
   ::SetConsoleCtrlHandler( Application::AbortOnSignalHandler, TRUE );
 
