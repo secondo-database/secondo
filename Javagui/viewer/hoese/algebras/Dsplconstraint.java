@@ -58,21 +58,27 @@ public boolean isPointType(int num){
     } else if(num==1){
       return GPLines;
     } else if(num==2){
-        Area res = new Area();
+        Area res = null;
         double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
         double pixx = Math.abs(ps/at.getScaleX());
         double pixy = Math.abs(ps/at.getScaleY());
         for(int i=0; i< arrPoints.length;i++)
         {
+          Area tmp = null;
           if(Cat.getPointasRect())
           {
-	        res.add(new Area(new Rectangle2D.Double(arrPoints[i].x-pixx/2,
+	         tmp=(new Area(new Rectangle2D.Double(arrPoints[i].x-pixx/2,
 	                                        arrPoints[i].y-pixy/2,pixx,pixy)));
           }
           else
           {
-            res.add(new Area(new Ellipse2D.Double(arrPoints[i].x-pixx/2,
+            tmp=(new Area(new Ellipse2D.Double(arrPoints[i].x-pixx/2,
 	                                        arrPoints[i].y-pixy/2,pixx,pixy)));
+          }
+          if(res==null){
+            res = tmp;
+          }else{
+           res.add(tmp);
           }
        }
        return res;
