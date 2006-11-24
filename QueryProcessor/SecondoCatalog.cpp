@@ -95,6 +95,7 @@ The names of existing databases are stored in a list ~DBTable~.
 #include "SecondoCatalog.h"
 #include "NList.h"
 #include "SystemTables.h"
+#include "ExampleREader.h"
 
 using namespace std;
 
@@ -1985,10 +1986,11 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
     CatalogEntrySet* entrySet = pos->second;
     CatalogEntrySet::iterator i = entrySet->begin();
     
+    const int algId = i->algebraId;
+    const string algName =  am->GetAlgebraName(algId);
+    ExampleReader examples("tmp/"+algName+".examples");
     while (  i != entrySet->end())
     {
-      const int algId = i->algebraId;
-      const string algName =  am->GetAlgebraName(algId);
       NList list( am->Specs( algId, i->entryId ));
       assert( list.hasLength(2) );
       list = list.second();
@@ -2010,8 +2012,17 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
         t.remark = list.elem(5).str();
       r->append(&t, false);
 
+      // copy to Example Info
+      ExampleInfo ex;
+      ex.opName = t.name;
+      ex.number = 1; 
+      ex.signature = t.signature;
+      ex.example = t.example;
+      
+      examples.add(t.name, 1, ex);
       i++;
     }  
+    examples.write();
     pos++;
   }
 }
