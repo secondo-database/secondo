@@ -756,8 +756,8 @@ public class ViewConfig extends javax.swing.JDialog {
                        }
                    }
                }
+               cnt++;
            }
-           cnt++;
          }
          cat.setValueRange(min,max);
       } else{
