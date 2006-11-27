@@ -394,6 +394,8 @@ function killAfterTimeOut {
   if isRunning $1; then
     printx "\n%s\n" "Timeout for process $1 reached!"
     killProcess $1
+    LU_RC=500
+    return $LU_RC
   fi
   exit 0
 }
@@ -428,7 +430,11 @@ function timeOut() {
   # wait for termination of the command 
   wait $TIMEOUT_PID
   local rc=$?
-  LU_RC=rc
+  if [ $LU_RC -eq 500 ]; then
+    rc=$LU_RC
+  else
+    LU_RC=$rc
+  fi
   
   # if the command finished before timeout
   # kill the sleeping process

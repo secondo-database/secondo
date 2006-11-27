@@ -193,7 +193,7 @@ done
 
 printSep "Variable values"
 
-opt_coDir=tmp_${opt_coModule}_${date_ymd}_${date_HMS}.${opt_gcc_version}
+opt_coDir=/tmp/${opt_coModule}_${date_ymd}_${date_HMS}.gcc${opt_gccVersion}
 
 showValue opt_rootDir
 showValue opt_sdkRootDir
@@ -217,7 +217,7 @@ fi
 
 
 if [ "$opt_gccVersion" != "" ]; then
-  gccMailSubject="(using $opt_gccVersion)" 
+  gccMailSubject="(using gcc $opt_gccVersion)" 
 fi
 
 

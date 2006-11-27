@@ -83,8 +83,9 @@ function runTest() {
   echo -e "\n $runCmd"
   cd $runDir
   timeOut $waitSeconds $runCmd > ${logFile} 2>&1
+  rc=$LU_RC
 
-  if ! lastRC; then
+  if [ $rc -ne 0 ]; then
     echo -e "\nTest failed with returncode $LU_RC \n"
     failedTests="$failedTests ${logFile#$buildDir/}"
     let error++
@@ -98,7 +99,7 @@ function runTest() {
     local failedFileInfo=$failedFileInfoDir/"_failed_"$testName
     if [ "$testFailed" == "true" ]; then
       if [ ! -e $failedFileInfo ]; then
-         date +"$testName failed since %Y-%m-%d %H:%M" >> $failedFileInfo
+         date +"$testName failed since %Y-%m-%d %H:%M / rc=$rc" >> $failedFileInfo
       fi
     else
       rm -f $failedFileInfo
@@ -148,14 +149,16 @@ testSuites=$(find $buildDir -path "*Tests*.test" -o -path "*bin*.test" -a ! -nam
 
 #echo "ldd: "$(ldd $SECONDO_BUILD_DIR/bin/SecondoBDB)
 
+timeOut=1800
 for testName in $dbFile $testSuites; do
   runDir=${testName%/*}
   testFile=${testName##*/}
   if isCmdPresent "nice"; then
     niceOpt="nice -n 19"
   fi
-  runTest $runDir $testFile "$niceOpt time $runnerCmd -i  ${testFile}" $timeOutMax
+  runTest $runDir $testFile "$niceOpt time $runnerCmd -i  ${testFile}" $timeOut
   wait $! 
+  timeout=$timeOutMax
 done
 
 
