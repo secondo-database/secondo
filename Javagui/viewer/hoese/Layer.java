@@ -326,10 +326,14 @@ public class Layer extends JComponent {
     Point2D.Double p = new Point2D.Double(r.getX() + r.getWidth()/2, r.getY()
         + r.getHeight()/2);
     af2.transform(p, p);
+
     float x = (float)(p.getX()+dg.getLabPosOffset().getX());
     float y = (float)(p.getY()+dg.getLabPosOffset().getY());
+    Rectangle2D re = g2.getFont().getStringBounds(LabelText, g2.getFontRenderContext());
+    x -= re.getWidth()/2.0;
+    y += re.getHeight()/2.0;
+
     if (dg.getSelected()) {
-      Rectangle2D re = g2.getFont().getStringBounds(LabelText, g2.getFontRenderContext());
       g2.setPaint(new Color(255, 128, 255, 255));
       g2.fill3DRect((int)x,(int)(y+re.getY()),(int)re.getWidth(), (int)re.getHeight(),
           true);
