@@ -32,7 +32,7 @@ November 2006, M. Spiekermann.
 #include <map>
 
 #include "CharTransform.h"
-
+#include "LogMsg.h"
 
 using namespace std;
 
@@ -82,8 +82,8 @@ class ExampleReader {
   typedef map<string, ExampleInfo> ExampleMap; 
   ExampleMap examples;
 
-  void nextLine(istream& stream, string& line) {
-    getline(stream, line);
+  void nextLine(CFile& stream, string& line) {
+    getline(stream.ios(), line);
     lineCtr++;
   }
 
@@ -173,16 +173,17 @@ a*bc* with single characters a,b and c.
   }
 
   public:
-  ExampleReader(const string& file) : expected(Operator) 
+  ExampleReader(const string& file, const string& algebra="") 
+    : expected(Operator) 
   {
     
     lineCtr = 0;
     line="";
     lineRest="";
-    fileName=file;
+    fileName = WinUnix::MakePath(file);
+    algName=algebra;
 
-    
-    debug=true;
+    debug = RTFlag::isActive("SI:ExampleParser:Debug");
     tokendef[Operator]  = "Operator";
     tokendef[Number]    = "Number";
     tokendef[Signature] = "Signature";
@@ -194,18 +195,9 @@ a*bc* with single characters a,b and c.
 
   bool parse() { 
 
-    size_t p = fileName.find(".examples");
-    if (p == string::npos) {
-      cerr << "Warning: file '" << fileName 
-           << "'does not end with '.examples'" << endl;
-      algName=fileName; 
-    }   
-    algName=fileName.substr(0,p);
-    cout << "Processing examples for algebra '" << algName << "'" << endl;
 
-    ifstream stream;
-    stream.open(WinUnix::MakePath(fileName).c_str());
-    if (!stream.good()) {
+    CFile stream(fileName);
+    if (!stream.open()) {;
       cerr << "Error: Could not open file!" << endl;
       return false;
     }  
@@ -222,7 +214,7 @@ a*bc* with single characters a,b and c.
       nextLine(stream, line);
       while ( isSpaceStr(line) && !stream.eof()) {
 	line="";
-        nextLine(stream,line);
+        nextLine(stream, line);
       }
       if (debug)
         cout << lineCtr << ": " << line << endl;
@@ -240,7 +232,7 @@ a*bc* with single characters a,b and c.
             return false;
           expected = Number;
           info.opName = lineRest;
-	  key = info.opName+algName;
+	  key = info.opName;
           examples[key] = info;
           break;
        }
@@ -288,9 +280,9 @@ a*bc* with single characters a,b and c.
     return true;
   }
 
-  bool find(const string& Op, const string& Alg, ExampleInfo& ex) const
+  bool find(const string& Op, ExampleInfo& ex) const
   {
-     ExampleMap::const_iterator it = examples.find(Op+Alg+"1");
+     ExampleMap::const_iterator it = examples.find(Op);
      if (it == examples.end())
        return false;
 
@@ -301,8 +293,6 @@ a*bc* with single characters a,b and c.
 
   void add(const string& op, const int nr, ExampleInfo& ex)
   {
-     cout << "adding ... " << endl; 
-     
      stringstream key;
      key << op << algName << nr;
      examples[key.str()] = ex; 
@@ -310,25 +300,21 @@ a*bc* with single characters a,b and c.
 
   bool write() {
 
-    string fileName = WinUnix::MakePath("tmp/"+algName+".examples");
-    cout << "writing to file " << fileName << endl; 
-    ofstream file;
-    file.open(fileName.c_str());
-
+    CFile out(fileName);
+    if ( !out.overwrite() ) {
+      cerr << "Opening " << fileName << " failed!" << endl;
+      return false;
+    } 
+       
     ExampleMap::const_iterator it = examples.begin();
     while(it != examples.end()) {
 
-      it->second.print(file);
-      file << endl;  
-      file << endl;  
+      it->second.print(out.ios());
+      out.ios() << endl << endl;  
       it++;
     } 
 
-    if (!file.good())
-      return false;
-    file.close();
-
-    return true;
+    return out.close();
   } 
 
 };

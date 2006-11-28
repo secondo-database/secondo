@@ -8,9 +8,23 @@
 #include "ExampleReader.h"
 
 
+
+void test_rms(string suf, string s)
+{ 
+  string s1="x.y";
+  cout << s << " - ";
+  removeSuffix(suf, s);
+  cout << s << endl;
+} 
+
+
 using namespace std;
 
 int main(int argc, char* argv[]) {
+
+ test_rms("y", "x.y");
+ test_rms("y", "x.yy");
+ test_rms("Algebra", "StandardAlgebra");
 
  assert(argc == 2);
 
@@ -30,7 +44,7 @@ int main(int argc, char* argv[]) {
  }
 
  reader.write();
-  
+
  if (ok)
   return 0;
  return 1;
