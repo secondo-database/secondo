@@ -1,0 +1,140 @@
+Operator : TUPLE
+Number   : 1
+Signature: ((stream x)...) -> x, ((rel x)...) -> x
+Example  : not for use with sos-syntax
+Result   : 
+
+
+Operator : TUPLE2
+Number   : 1
+Signature: <text>((stream x) (stream y) ...) -> y, ((rel x) (rel y) ...) -> y
+Example  : not for use with sos-syntax
+Result   : 
+
+
+Operator : attr
+Number   : 1
+Signature: ((tuple ((x1 t1)...(xn tn))) xi)  -> ti)
+Example  : not for use with sos-syntax
+Result   : 
+
+
+Operator : attrsize
+Number   : 1
+Signature: stream|rel(tuple X) x ident -> real
+Example  : query cities attrsize[loc] or query cities feed attrsize[loc]
+Result   : 
+
+
+Operator : consume
+Number   : 1
+Signature: (stream x) -> (rel x)
+Example  : query cities feed consume
+Result   : 
+
+
+Operator : count
+Number   : 1
+Signature: ((stream/rel (tuple x))) -> int
+Example  : query cities count or query cities feed count
+Result   : 
+
+
+Operator : dumpstream
+Number   : 1
+Signature: stream(tuple(y)) x string -> stream(tuple(y))
+Example  : plz feed dumpstream["plz.txt", "|"] count
+Result   : 
+
+
+Operator : extattrsize
+Number   : 1
+Signature: stream|rel(tuple X) x ident -> real
+Example  : query cities extattrsize[loc] or query cities feed extattrsize[loc]
+Result   : 
+
+
+Operator : exttuplesize
+Number   : 1
+Signature: ((stream/rel (tuple x))) -> real
+Example  : query cities exttuplesize or query cities feed exttuplesize
+Result   : 
+
+
+Operator : feed
+Number   : 1
+Signature: (rel x) -> (stream x)
+Example  : query cities feed consume
+Result   : 
+
+
+Operator : filter
+Number   : 1
+Signature: ((stream x) (map x bool)) -> (stream x)
+Example  : query cities feed filter [.population > 500000] consume
+Result   : 
+
+
+Operator : mconsume
+Number   : 1
+Signature: (stream tuple(x)) -> (mrel mtuple(x))
+Example  : query cities feed mconsume
+Result   : 
+
+
+Operator : product
+Number   : 1
+Signature: ((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))) -> (stream (tuple (x1 ... xn y1 ... ym)))
+Example  : query ten feed twenty feed product count
+Result   : 
+
+
+Operator : project
+Number   : 1
+Signature: ((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream (tuple ((ai1 Ti1) ... (aik Tik))))
+Example  : query cities feed project[cityname, population] consume
+Result   : 
+
+
+Operator : reduce
+Number   : 1
+Signature: stream(tuple(y)) x (stream(tuple(y)) -> bool) x int -> stream(tuple(y))
+Example  : plz feed reduce[.PLZ > 50000, 2] count
+Result   : 
+
+
+Operator : rename
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn)))ar) -> (stream (tuple([a1ar:d1, ... ,anar:dn)))
+Example  : query ten feed rename [ r1 ] consume or query ten feed {r1} consume, the result has format e.g. n_r1
+Result   : 
+
+
+Operator : rootattrsize
+Number   : 1
+Signature: stream|rel(tuple X) x ident -> int
+Example  : query cities rootattrsize[loc] or query cities feed rootattrsize[loc]
+Result   : 
+
+
+Operator : roottuplesize
+Number   : 1
+Signature: ((stream|rel (tuple x))) -> int
+Example  : query cities roottuplesize or query cities feed roottuplesize
+Result   : 
+
+
+Operator : sizecounters
+Number   : 1
+Signature: stream(tuple(y)) x string -> stream(tuple(y))
+Example  : plz feed sizecounters["plz"] count
+Result   : 
+
+
+Operator : tuplesize
+Number   : 1
+Signature: ((stream/rel (tuple x))) -> real
+Example  : query cities tuplesize or query cities feed tuplesize
+Result   : 
+
+

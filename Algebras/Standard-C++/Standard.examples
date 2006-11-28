@@ -1,0 +1,252 @@
+Operator : #
+Number   : 1
+Signature: (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool
+Example  : query 2.1 # 2.01
+Result   : 
+
+
+Operator : *
+Number   : 1
+Signature: (int int) -> int, (int real) -> real, (real int) -> real, (real real) -> real
+Example  : query 5 * 1.4 
+Result   : 
+
+
+Operator : +
+Number   : 1
+Signature: (int int) -> int, (int real) -> real, (real int) -> real, (real real) -> real (string string) -> string
+Example  : query -1.2 + 7
+Result   : 
+
+
+Operator : -
+Number   : 1
+Signature: (int int) -> int, (int real) -> real, (real int) -> real, (real real) -> real
+Example  : query -.2 - 4
+Result   : 
+
+
+Operator : /
+Number   : 1
+Signature: (int int) -> real, (int real) -> real, (real int) -> real, (real real) -> real
+Example  : query 5 / 2 
+Result   : 
+
+
+Operator : <
+Number   : 1
+Signature: (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool
+Example  : query "house" < "hotel"
+Result   : 
+
+
+Operator : <=
+Number   : 1
+Signature: (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool
+Example  : query 8.2 <= 8.2
+Result   : 
+
+
+Operator : =
+Number   : 1
+Signature: (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool
+Example  : query 2.1 = 2.01
+Result   : 
+
+
+Operator : >
+Number   : 1
+Signature: (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool
+Example  : query 3 > 4.1
+Result   : 
+
+
+Operator : >=
+Number   : 1
+Signature: (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool
+Example  : query 3 >= 5
+Result   : 
+
+
+Operator : and
+Number   : 1
+Signature: (bool bool) -> bool
+Example  : query (8 = 8) and (3 < 4)
+Result   : 
+
+
+Operator : between
+Number   : 1
+Signature: (T x T x T) ->  bool
+Example  : query 5 between [3, 8], query "house" between ["ha", "hu"]
+Result   : 
+
+
+Operator : contains
+Number   : 1
+Signature: (string string) -> bool
+Example  : query "contains" contains "tai"
+Result   : 
+
+
+Operator : div
+Number   : 1
+Signature: (int int) -> int
+Example  : query 5 div 2 
+Result   : 
+
+
+Operator : elapsedtime
+Number   : 1
+Signature: (any type) ->  string.
+Example  : query plz feed elapsedtime
+Result   : 
+
+
+Operator : hashvalue
+Number   : 1
+Signature: T in DATA, y in int, T x y -> int
+Example  : query hashvalue( "Test", 9997 )
+Result   : 
+
+
+Operator : ifthenelse
+Number   : 1
+Signature: (bool x T x T) ->  T
+Example  : query ifthenelse(3 < 5,[const string value "less"],[const string value "greater"])
+Result   : 
+
+
+Operator : intersection
+Number   : 1
+Signature:  (int int) -> int, (real real) -> real,(bool bool) -> bool, (string string) -> string
+Example  : 
+Result   : 
+
+
+Operator : isempty
+Number   : 1
+Signature: bool -> bool, int -> bool, real -> bool, string -> bool
+Example  : query isempty ( 8 )
+Result   : 
+
+
+Operator : keywords
+Number   : 1
+Signature: (string) -> (stream string)
+Example  : query ten feed extendstream(name: mystring keywords) consume
+Result   : 
+
+
+Operator : ldistance
+Number   : 1
+Signature: string x string  -> int
+Example  : query ldistance( "hello" "world" )
+Result   : 
+
+
+Operator : log
+Number   : 1
+Signature: int -> int 
+Example  : query log (256)
+Result   : 
+
+
+Operator : minus
+Number   : 1
+Signature:  (int int) -> int, (real real) -> real, (bool bool) -> bool, (string string) -> string
+Example  : 
+Result   : 
+
+
+Operator : mod
+Number   : 1
+Signature: (int int) -> int
+Example  : query 8 mod 3 
+Result   : 
+
+
+Operator : not
+Number   : 1
+Signature: bool -> bool
+Example  : query not ( 4=4 )
+Result   : 
+
+
+Operator : or
+Number   : 1
+Signature: (bool bool) -> bool
+Example  : query (3 <= 4) or ("hotel" > "house")
+Result   : 
+
+
+Operator : randint
+Number   : 1
+Signature: int -> int 
+Example  : query randint (9)
+Result   : 
+
+
+Operator : randmax
+Number   : 1
+Signature:  -> int 
+Example  : query randmax()
+Result   : 
+
+
+Operator : relcount
+Number   : 1
+Signature: string -> int
+Example  : query "Staedte" relcount
+Result   : 
+
+
+Operator : relcount2
+Number   : 1
+Signature: string -> int
+Example  : query "Orte" relcount2
+Result   : 
+
+
+Operator : seqinit
+Number   : 1
+Signature: int -> bool 
+Example  : query seqinit(100)
+Result   : 
+
+
+Operator : seqnext
+Number   : 1
+Signature:  -> int 
+Example  : query seqnext ()
+Result   : 
+
+
+Operator : setoption
+Number   : 1
+Signature: string x int -> bool
+Example  : setoption("MaxMemPerOperator", 512*1024);
+Result   : 
+
+
+Operator : starts
+Number   : 1
+Signature: (string string) -> bool
+Example  : query "starts" starts "st"
+Result   : 
+
+
+Operator : substr
+Number   : 1
+Signature: (string x int x int) ->  string.
+Example  : query substr("test",2,3)
+Result   : 
+
+
+Operator : upper
+Number   : 1
+Signature: string -> string
+Example  : query upper ( "hello" )
+Result   : 
+
+

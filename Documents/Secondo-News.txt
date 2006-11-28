@@ -12,10 +12,10 @@
 From now on, we have an new mechanism for specifying example queries. In the
 future it should guarantee that all example queries of the online help will
 run and produce correct results. Thus it is another way of defining little
-test which are able to do a quick regression test over all algebra modules.
+tests which are suitable for a quick regression test over all algebra modules.
 The concept is described in the file Documents/Secondo-Ideas.txt. Basically
-you need to provide an ".examples" file in an algebra module's directory (for 
-and example refer to the StandardAlgebra). 
+you need to provide an ".examples" file in the algebra module's directory (for 
+an example refer to the StandardAlgebra). 
 
 At startup for each active algebra the ".examples" file will be read in and the
 examples are processed by the Secondo-Parser. Errors will be displayed during

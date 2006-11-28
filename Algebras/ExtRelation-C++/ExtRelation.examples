@@ -1,0 +1,217 @@
+Operator : GROUP
+Number   : 1
+Signature: ((stream x)) -> (rel x)
+Example  : not for use with sos-syntax
+Result   : 
+
+
+Operator : aggregate
+Number   : 1
+Signature: (stream(tuple((a1 t1) ... (an tn))) ai((ti ti) -> ti) ti -> ti
+Example  : query ten feed aggregate[no; fun(i1: int, i2: int) i1+i2; 0]
+Result   : 
+
+
+Operator : aggregateB
+Number   : 1
+Signature: (stream(tuple((a1 t1) ... (an tn))) ai((ti ti) -> ti) ti -> ti
+Example  : query ten feed aggregateB[no; fun(i1: int, i2: int) i1+i2; 0]
+Result   : 
+
+
+Operator : avg
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> real
+Example  : query cities feed avg [population]
+Result   : 
+
+
+Operator : cancel
+Number   : 1
+Signature: ((stream x) (map x bool)) -> (stream x)
+Example  : query cities feed cancel [.cityname = "Dortmund"] consume
+Result   : 
+
+
+Operator : concat
+Number   : 1
+Signature: ((stream (tuple (a1:d1 ... an:dn))) (stream (tuple (b1:d1 ... bn:dn)))) -> (stream (tuple (a1:d1 ... an:dn)))
+Example  : query ten feed five feed concat consume
+Result   : 
+
+
+Operator : extend
+Number   : 1
+Signature: (stream(tuple(x)) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> dn))] -> stream(tuple(x@[a1:d1, ... , an:dn])))
+Example  : query ten feed extend [mult5 : .nr * 5, mod2 : .nr mod 2] consume
+Result   : 
+
+
+Operator : extendstream
+Number   : 1
+Signature: ((stream tuple1) (map tuple1 stream(type))) -> (stream tuple1*tuple2)
+Example  : query UBahn feed extendstream[ newattr:  units(.Trajectory)] consume
+Result   : 
+
+
+Operator : extract
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di
+Example  : query cities feed extract [population]
+Result   : 
+
+
+Operator : groupby
+Number   : 1
+Signature: ((stream (tuple (a1:d1 ... an:dn))) (ai1 ... aik) ((bj1 (fun (rel (tuple (a1:d1 ... an:dn))) (_))) ... (bjl (fun (rel (tuple (a1:d1 ... an:dn))) (_))))) -> (stream (tuple (ai1:di1 ... aik:dik bj1 ... bjl)))
+Example  : query Employee feed sortby[DeptNr asc] groupby[DeptNr; anz : group feed count] consume
+Result   : 
+
+
+Operator : hashjoin
+Number   : 1
+Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj nbuckets) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
+Example  : query Employee feed Dept feed rename[A] hashjoin[DeptNr, DeptNr_A, 17] sort consume
+Result   : 
+
+
+Operator : head
+Number   : 1
+Signature: ExtRelationAlgebra
+Example  : Returns the first n elements of the input stream.
+Result   : 
+
+
+Operator : loopjoin
+Number   : 1
+Signature: ((stream tuple1) (map tuple1 rel(tuple2))) -> (stream tuple1*tuple2)
+Example  : query Staedte feed {s1} loopjoin[ fun(t1: TUPLE) plz feed filter [ attr(t1, SName_s1) = .Ort]] count
+Result   : 
+
+
+Operator : loopsel
+Number   : 1
+Signature: ((stream tuple1) (map tuple1 rel(tuple2))) -> (stream tuple2)
+Example  : query Staedte feed loopsel [ fun(t1: TUPLE) plz feed filter [ attr(t1, SName) = .Ort ]] count
+Result   : 
+
+
+Operator : max
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di
+Example  : query cities feed max [ cityname ]
+Result   : 
+
+
+Operator : mergediff
+Number   : 1
+Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))
+Example  : query twenty feed oddtwenty feed mergediff consume
+Result   : 
+
+
+Operator : mergejoin
+Number   : 1
+Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
+Example  : query duplicates feed ten feed rename[A] mergejoin[no, no_A] sort rdup consume
+Result   : 
+
+
+Operator : mergesec
+Number   : 1
+Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))
+Example  : query twenty feed oddtwenty feed mergesec consume
+Result   : 
+
+
+Operator : mergeunion
+Number   : 1
+Signature: ((stream (tuple ((x1 t1) ... (xn tn))))stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))
+Example  : query twenty feed oddtwenty feed mergeunion consume
+Result   : 
+
+
+Operator : min
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di
+Example  : query cities feed min [ cityname ]
+Result   : 
+
+
+Operator : projectextendstream
+Number   : 1
+Signature: ((stream tuple1) (ai1 ... aik) (map tuple1 stream(type))) -> (stream tuple1[ai1 ... aik]*type)
+Example  : query UBahn feed projectextendstream[ Id, Up; newattr:  units(.Trajectory)] consume
+Result   : 
+
+
+Operator : rdup
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))
+Example  : query twenty feed ten feed concat sort rdup consume
+Result   : 
+
+
+Operator : remove
+Number   : 1
+Signature: ((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream (tuple ((aj1 Tj1) ... (ajn-k Tjn-k))))
+Example  : query cities feed remove[zipcode] consume
+Result   : 
+
+
+Operator : sample
+Number   : 1
+Signature: (rel x) int real -> (stream x)
+Example  : query cities sample[0, 0.45] count
+Result   : 
+
+
+Operator : sort
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))
+Example  : query cities feed sort consume
+Result   : 
+
+
+Operator : sortby
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> (stream (tuple([a1:d1, ... ,an:dn])))
+Example  : query employee feed sortby[DeptNo asc] consume
+Result   : 
+
+
+Operator : sortmergejoin
+Number   : 1
+Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
+Example  : query duplicates feed ten feed mergejoin[no, nr] consume
+Result   : 
+
+
+Operator : sum
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di
+Example  : query cities feed sum[population]
+Result   : 
+
+
+Operator : symmjoin
+Number   : 1
+Signature: ((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))) (map (tuple (x1 ... xn)) (tuple (y1 ... ym)) -> bool) -> (stream (tuple (x1 ... xn y1 ... ym)))
+Example  : query ten feed {a} twenty feed {b} symmjoin[.no_a = .no_b] count
+Result   : 
+
+
+Operator : symmproduct
+Number   : 1
+Signature: (stream (tuple(X))) (stream (tuple(Y)))  -> (stream (tuple(X*Y))) ))
+Example  : query ten feed {a} ten feed {b} symmproduct count
+Result   : 
+
+
+Operator : symmproductextend
+Number   : 1
+Signature: (stream (tuple(X))) (stream (tuple(Y)))  [(z1, (tuple(X) tuple(Y) -> t1)) ... (zj, (tuple(X) tuple(Y) -> tj))]  -> (stream (tuple(X*Y*Z))) ))
+Example  : query ten feed {a} ten feed {b} symmproductextend[ [prod: (.no_a * ..no_b)] ] count
+Result   : 
+
+

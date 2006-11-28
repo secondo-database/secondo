@@ -1,0 +1,35 @@
+Operator : contains
+Number   : 1
+Signature: (text text) -> bool
+Example  : 
+Result   : 
+
+
+Operator : dice
+Number   : 1
+Signature:  int x text x text -> real 
+Example  :  dice(3  text1  text2) 
+Result   : 
+
+
+Operator : keywords
+Number   : 1
+Signature: (text) -> (stream string)
+Example  : let Keyword = documents feed extendstream[kword: .title keywords] consume
+Result   : 
+
+
+Operator : length
+Number   : 1
+Signature: (text ) -> int
+Example  : 
+Result   : 
+
+
+Operator : sentences
+Number   : 1
+Signature: (text) -> (stream text)
+Example  : let MySentences = documents feed projectextendstream[title; newattr: .content sentences] consume
+Result   : 
+
+
