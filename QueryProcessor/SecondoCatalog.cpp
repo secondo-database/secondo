@@ -92,10 +92,12 @@ The names of existing databases are stored in a list ~DBTable~.
 
 #include "SecondoSystem.h"
 #include "DerivedObj.h"
+#include "Operator.h"
 #include "SecondoCatalog.h"
 #include "NList.h"
 #include "SystemTables.h"
 #include "ExampleReader.h"
+#include "SecParser.h"
 
 using namespace std;
 
@@ -1979,39 +1981,87 @@ SecondoCatalog::Initialize(TypeInfoRel* r)
 void
 SecondoCatalog::Initialize(OperatorInfoRel* r)
 {
-  LocalOperatorCatalog::iterator pos = operators.begin();
+  int algId=0;
 
-  while ( pos != operators.end())
+  cout << endl
+       << "Initializing operator specs ..." << endl;
+
+  while ( am->NextAlgebraId(algId))
   {
-    CatalogEntrySet* entrySet = pos->second;
-    CatalogEntrySet::iterator i = entrySet->begin();
     
-    //ExampleReader examples("tmp/algName.examples");
-    while (  i != entrySet->end())
+    string algName =  am->GetAlgebraName(algId);
+    int n = am->OperatorNumber(algId);
+
+    cout << "Processing examples for '" << algName << "'" << endl;
+    string algShort = algName; 
+    removeSuffix("Algebra", algShort);
+    string fileName = "tmp/"+algShort+".examples";
+    CFile expectedFile(fileName);
+
+    bool fileExists = true;
+    if (!expectedFile.exists()) 
     {
-      const int algId = i->algebraId;
-      const string algName =  am->GetAlgebraName(algId);
-      NList list( am->Specs( algId, i->entryId ));
-      assert( list.hasLength(2) );
-      list = list.second();
-      //cout << algId << " ";
-      //cout << pos->first << ":  " << endl 
-      //     << list << endl << endl;
-      
+       cerr << "  Missing file " << fileName << endl;
+       fileExists = false; 
+    } 
+    
+    bool parseOk = false;
+    ExampleReader examples(fileName, algName);
+    if (fileExists) {
+      parseOk = examples.parse();
+      if (!parseOk) {
+         cerr << "  File is not correct! Please repair." << endl << endl;
+      }   
+    } 
+    
+   
+    int opId=0;
+    while ( opId < n)
+    {
+      //cout << am->getOperator( algId, opId )->GetName() << endl;
+      OperatorInfo oi = am->getOperator( algId, opId )->GetOpInfo();
       OperatorInfoTuple& t = *(new OperatorInfoTuple());
-      t.name = pos->first;
+      
+      ExampleInfo ex2;
+      bool specFound = false;
+      if (parseOk) {
+        specFound = examples.find(oi.name, ex2);
+        if ( !specFound ) {
+          cerr << "  Missing spec for operator " << oi.name << endl;
+        }
+      }  
+
+      bool secOk = false;
+      if (parseOk && specFound) {
+
+        SecParser sp;            
+        string exList = ""; 
+        int rc = sp.Text2List( ex2.example, exList );
+        secOk = (rc == 0);       
+        if ( !secOk )      
+        {
+            cerr << "Operator: " << ex2.opName << endl
+                 << "Number  : " << ex2.number << endl
+                 << "Example : " << ex2.example << endl << endl;
+        }
+      }  
+
+      t.name = oi.name;
       t.algebra = algName;
-      if (list.length() >= 1)
-      t.signature = list.elem(1).str();
-      if (list.length() >= 2)
-      t.syntax = list.elem(2).str();
-      if (list.length() >= 3)
-      t.meaning = list.elem(3).str();
-      if (list.length() >= 4)
-      t.example = list.elem(4).str();
-      if (list.length() >= 5)
-        t.remark = list.elem(5).str();
+      t.signature = oi.signature;
+      t.syntax = oi.syntax;
+      t.meaning = oi.meaning;
+      t.remark = oi.remark;
+
+      if (secOk) { // use example as is
+        t.example = ex2.example;
+      } else { // use original spec
+        t.example = oi.example;
+        t.remark = "Yields Secondo Parse Error!";
+      } 
+
       r->append(&t, false);
+      // to do: Appending more examples for the same operator!
 
       // copy to Example Info
       ExampleInfo ex;
@@ -2020,11 +2070,13 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
       ex.signature = t.signature;
       ex.example = t.example;
       
-      //examples.add(t.name, 1, ex);
-      i++;
+      examples.add(t.name, 1, ex);
+      opId++;
+    } 
+    if (!fileExists) {
+      cerr << "  Generating example file " << fileName << endl; 
+      examples.write();
     }  
-    //examples.write();
-    pos++;
   }
 }
 

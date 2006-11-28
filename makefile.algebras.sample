@@ -6,12 +6,28 @@
 
 # Master switch to use all algebras
 #SECONDO_ACTIVATE_ALL_ALGEBRAS := true
+
+# Master switch to compile the minimal set
+# of interdependet algebras.
+#SECONDO_MIN_ALGEBRA_SET := true
  
 # never change this
 ALGEBRA_DIRS := Standard-C++
 ALGEBRAS     := StandardAlgebra
 ALGEBRA_DEPS := 
 ALGEBRA_DEP_DIRS := 
+
+ALGEBRA_DIRS += FText
+ALGEBRAS     += FTextAlgebra
+
+ALGEBRA_DIRS += OldRelation-C++
+ALGEBRAS     += OldRelationAlgebra
+
+ALGEBRA_DIRS += Relation-C++
+ALGEBRAS     += RelationAlgebra
+
+ALGEBRA_DIRS += ExtRelation-C++
+ALGEBRAS     += ExtRelationAlgebra
 
 # comment out or add new algebras in this file. 
 # You have to define an algebra name and a directory
@@ -37,8 +53,12 @@ ALGEBRA_DEP_DIRS :=
 # librares, e.g. the jpeg algebra depends on libjpeg, put these libraries
 # and its directory into the variable ALGEBRA_DEPS and ALGEBRA_DEP_DIRS.
 
+ifndef SECONDO_MIN_ALGEBRA_SET
+
 ALGEBRA_DEPS += jpeg
 ALGEBRA_DEP_DIRS += $(SECONDO_SDK)/lib
+
+##########  Example Algebras
 
 ALGEBRA_DIRS += Function-C++
 ALGEBRAS     += FunctionAlgebra
@@ -46,26 +66,19 @@ ALGEBRAS     += FunctionAlgebra
 ALGEBRA_DIRS += PointRectangle
 ALGEBRAS     += PointRectangleAlgebra
 
-ALGEBRA_DIRS += Array
-ALGEBRAS     += ArrayAlgebra
-
 ALGEBRA_DIRS += StreamExample
 ALGEBRAS     += StreamExampleAlgebra
 
-ALGEBRA_DIRS += OldRelation-C++
-ALGEBRAS     += OldRelationAlgebra
+ALGEBRA_DIRS += Polygon
+ALGEBRAS     += PolygonAlgebra
 
-ALGEBRA_DIRS += Relation-C++
-ALGEBRAS     += RelationAlgebra
+ALGEBRA_DIRS += BinaryFile
+ALGEBRAS     += BinaryFileAlgebra
 
-ALGEBRA_DIRS += ExtRelation-C++
-ALGEBRAS     += ExtRelationAlgebra
+###########
 
 ALGEBRA_DIRS += Date
 ALGEBRAS     += DateAlgebra
-
-ALGEBRA_DIRS += Polygon
-ALGEBRAS     += PolygonAlgebra
 
 ALGEBRA_DIRS += BTree
 ALGEBRAS     += BTreeAlgebra
@@ -78,12 +91,6 @@ ALGEBRAS     += RectangleAlgebra
 
 ALGEBRA_DIRS += Spatial
 ALGEBRAS     += SpatialAlgebra
-
-ALGEBRA_DIRS += FText
-ALGEBRAS     += FTextAlgebra
-
-ALGEBRA_DIRS += BinaryFile
-ALGEBRAS     += BinaryFileAlgebra
 
 ALGEBRA_DIRS += Temporal
 ALGEBRAS     += TemporalAlgebra
@@ -130,6 +137,9 @@ ALGEBRAS     += PlaneSweepAlgebra
 ALGEBRA_DIRS += PartitionedStream   
 ALGEBRAS     += PartitionedStreamAlgebra
 
+ALGEBRA_DIRS += Array
+ALGEBRAS     += ArrayAlgebra
+
 #ALGEBRA_DIRS += MP3
 #ALGEBRAS     += MP3Algebra
 
@@ -152,3 +162,5 @@ ALGEBRAS     += PictureAlgebra
 
 #JNI_ALGEBRA_DIRS += Rose
 #JNIALGEBRAS      += RoseAlgebra
+
+endif
