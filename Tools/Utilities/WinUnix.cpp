@@ -159,5 +159,45 @@ WinUnix::stacktrace(const string& fullAppName)
 {
   cerr << "Sorry - stack trace not supported." << endl;
 }
+
 #endif
+
+/*
+Implementation of class ~CFile~
+
+*/   
+
+bool CFile::exists() 
+{
+  bool rc = access( fileName.c_str(), F_OK ) != -1;
+  return rc;
+} 
+
+bool CFile::open() 
+{
+  object.open(fileName.c_str(), ios::in);
+  return object;
+} 
+   
+bool CFile::overwrite() 
+{
+  object.open(fileName.c_str(), ios::out|ios::trunc);
+  return object;
+} 
+
+bool CFile::append() 
+{
+  object.open(fileName.c_str(), ios::out|ios::app);
+  return object;
+} 
+
+
+bool CFile::close() 
+{
+  object.close();
+  return object.good(); 
+}
+
+
+
 

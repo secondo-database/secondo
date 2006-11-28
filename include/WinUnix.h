@@ -33,6 +33,7 @@ dependent code should be isolated in this class.
 #define CLASS_WINUNIX_H
 
 #include <string>
+#include <fstream>
 
 using namespace std;
 
@@ -62,5 +63,47 @@ private:
    static const int endian_detect;
 
 };
+
+/*
+A Class for handling text files
+
+*/
+
+class CFile {
+
+   string fileName;
+   fstream object;
+
+  public:
+   CFile(const string& name) : fileName(WinUnix::MakePath(name)) 
+   { object.clear(); }
+   ~CFile() {}
+   bool exists();
+   bool open();      // open for reading
+   bool overwrite(); // overwrite existing 
+   bool append();    // append existing 
+   bool close();
+   bool eof() { return object.eof(); }
+   bool fail() { return object.fail(); }
+   bool good() { return object.good(); }
+   fstream& ios() { return object; }
+
+
+}; 
+
+  /*
+  template<class T>
+  CFile& operator<<(CFile& f, const T& t) {
+    f.ios() << t;
+    return f;
+  }
+
+  template <class T>
+  CFile& operator>>(CFile& f, const T& t) {
+    f.ios() >> t;
+    return f;
+  }
+  */
+
 
 #endif
