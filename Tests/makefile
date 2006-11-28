@@ -85,10 +85,13 @@ all:  $(OBJECTS)
 %.dep: %.cpp
 	$(CC) -MM $(CCFLAGS) $< > $@
 
+
+%.o: %.cpp
+	$(CC) -c -o $@ $(CCFLAGS) $< 
+
 # default rule for linking
 %$(EXEEXT): %.o
 	$(CC) $(EXEFLAGS) -o $@ $< $(LIBS)
-
 
 # Test Dynamic Library module
 
