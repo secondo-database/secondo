@@ -45,6 +45,64 @@ NestedList *nl;
 QueryProcessor *qp;
 AlgebraManager *am;
 
+
+OperatorInfo::OperatorInfo( const string& opName, const string& specStr)
+{ 
+  ListExpr spec = nl->Empty();
+
+  nl->ReadFromString(specStr, spec);
+  NList list(spec);
+  if ( !list.hasLength(2) ) {
+    cout << "Operator: " << opName << endl;
+    cout << "specStr: " << specStr << endl; 
+    cout << "Assuming a list of length 2!" << endl;
+    assert(false);
+  }  
+  list = list.second();
+
+  name = opName;
+  signature = "";
+  syntax = "";
+  meaning = "";
+  example = "";
+  remark ="";
+
+  if (list.length() >= 1)
+  signature = list.elem(1).str();
+  if (list.length() >= 2)
+  syntax = list.elem(2).str();
+  if (list.length() >= 3)
+  meaning = list.elem(3).str();
+  if (list.length() >= 4)
+  example = list.elem(4).str();
+  if (list.length() >= 5)
+  remark = list.elem(5).str();
+} 
+
+
+const string 
+OperatorInfo::str() const { 
+ 
+  const string S("<text>"); 
+  const string E("</text--->"); 
+  const string headStr = "(\"Signature\" \"Syntax\" \"Meaning\" \"Example\")";
+
+  string spec = "(" + headStr + "(" 
+                + S + signature + E 
+                + S + syntax + E
+                + S + meaning + E
+                + S + example + E + "))";
+  
+  return spec; 
+}
+
+void 
+OperatorInfo::appendSignature(const string& sig) {
+ 
+  signature += ", " + sig;
+}  
+
+
 /* Member functions of class Operator: */
 
 Operator::Operator( const string& nm,

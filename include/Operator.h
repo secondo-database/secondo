@@ -32,7 +32,10 @@ AlgebraClassDef.h and AlgebraInit.h
 #include <vector>
 
 #include "NestedList.h"
+#include "NList.h"
 #include "AlgebraTypes.h"
+
+//extern NestedList* nl;
 
 using namespace std;
 
@@ -64,13 +67,15 @@ struct OperatorInfo {
   string syntax;
   string meaning;
   string example;
+  string remark;
    
   OperatorInfo() :
     name(""),  
     signature(""),  
     syntax(""),
     meaning(""),
-    example("")
+    example(""),
+    remark("")
   {}
 
   OperatorInfo( const string& _name,
@@ -84,27 +89,14 @@ struct OperatorInfo {
    syntax = _syntax;
    meaning = _meaning;
    example = _example;
+   remark="";
  } 
 
- const string str() const { 
- 
-   const string S("<text>"); 
-   const string E("</text--->"); 
-   const string headStr = "(\"Signature\" \"Syntax\" \"Meaning\" \"Example\")";
+ OperatorInfo( const string& opName, const string& specStr);
 
-   string spec = "(" + headStr + "(" 
-                 + S + signature + E 
-                 + S + syntax + E
-                 + S + meaning + E
-                 + S + example + E + "))";
-   
-   return spec; 
- }
+ const string str() const;
 
- void appendSignature(const string& sig) {
- 
-   signature += ", " + sig;
- }  
+ void appendSignature(const string& sig);
  
 };
 
@@ -199,6 +191,9 @@ Returns the name of the operator.
 
 */
   inline const string& GetSpecString() const { return specString; }
+  inline OperatorInfo  GetOpInfo()     const { 
+    return OperatorInfo(name, specString); 
+  }
   inline const string& Specification() const { return specString; }
 
 /*
