@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 #
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 #
 #SECONDO is free software; you can redistribute it and/or modify
@@ -18,7 +18,7 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #########################################################################
-# Testing the TemporalUnitAlgebra 
+# Testing the TemporalUnitAlgebra
 #
 # Here: Testing stream operators and auxiliary operators
 #
@@ -178,9 +178,9 @@ query units(zug5) transformstream makemvalue[elem];
 #######################
 
 #tolerance_real 0.001
-#testcase size_periods
-#yields (real 2049.97412109375)
-query size(deftime(zug5));
+#testcase get_duration periods
+#yields (duration (0 2049974) )
+query get_duration(deftime(zug5));
 
 #tolerance_real 0.1
 #testcase point2d

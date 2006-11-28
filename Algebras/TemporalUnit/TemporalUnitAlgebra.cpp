@@ -53,7 +53,7 @@ OK    count:                      (stream T) --> int
 OK    filter:      ((stream T) (map T bool)) --> int
 OK    printstream:                (stream T) --> (stream T)
 OK    makemvalue   (**)  stream (tuple ([x1:t1,xi:uT,..,xn:tn])) -->  mT
-OK    size                           periods --> real
+OK    get_duration                   periods --> duration
 (OK)  point2d                        periods --> point
 (OK)  queryrect2d                    instant --> rect
 OK    circle              point x real x int --> region
@@ -1039,46 +1039,46 @@ Operator temporalunitpoint2d( "point2d",
                       PeriodsTypeMapPoint2d);
 
 /*
-5.4 Operator ~size~
+5.4 Operator ~get\_duration~
 
-5.4.1 Type Mapping for ~size~
+5.4.1 Type Mapping for ~get_duration~
 
-Type mapping for ~size~ is
+Type mapping for ~get\_duration~ is
 
-----  periods  [->]  real
+----  periods  [->]  duration
 
 ----
 
 */
 ListExpr
-PeriodsTypeMapSize( ListExpr args )
+PeriodsTypeMapGetDuration( ListExpr args )
 {
   if ( nl->ListLength( args ) == 1 )
   {
     ListExpr arg1 = nl->First( args );
 
     if( nl->IsEqual( arg1, "periods" )  )
-      return nl->SymbolAtom( "real" );
+      return nl->SymbolAtom( "duration" );
   }
   return nl->SymbolAtom( "typeerror" );
 }
 
 /*
-5.4.2 Value Mapping for ~size~
+5.4.2 Value Mapping for ~get\_duration~
 
 */
-int Size( Word* args, Word& result, int message, Word& local, Supplier s )
+int GetDuration( Word* args, Word& result, int message,
+                 Word& local, Supplier s )
 {
-  double   res = 0.0;
-  DateTime dur = DateTime(0, 0, durationtype);
-
   result = qp->ResultStorage( s );
   Periods* range = (Periods*)args[0].addr;
-
+  DateTime* Res = ((DateTime*)result.addr);
+  *Res = DateTime(0, 0, durationtype);
   if ( !range->IsDefined() )
-    ((CcReal*)result.addr)->SetDefined( false );
+    ((DateTime*)result.addr)->SetDefined( false );
   else
     {
+      Res->SetDefined(true);
       if( !range->IsEmpty()  )
         {
           const Interval<Instant> *intv;
@@ -1086,31 +1086,28 @@ int Size( Word* args, Word& result, int message, Word& local, Supplier s )
           for( int i = 0; i < range->GetNoComponents(); i++ )
             {
               range->Get( i, intv );
-              dur += (intv->end - intv->start);
+              *Res += (intv->end - intv->start);
             }
-          // transform to seconds
-          res = abs(dur.ToDouble())*86400;
         }
-      ((CcReal*)result.addr)->Set(true, res);  // return the result
     }
   return 0;
 }
 
 /*
-5.4.3 Specification for operator ~size~
+5.4.3 Specification for operator ~get\_duration~
 
 */
 const string
-TemporalSpecSize  =
+TemporalSpecGetDuration  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>(periods) -> real</text--->"
-"<text>size( _ )</text--->"
+"<text>get_duration( _ )</text--->"
 "<text>Return the duration in seconds spanned by a periods value "
 "as a real value.</text--->"
-"<text>query size(periods)</text---> ) )";
+"<text>query get_duration(periods)</text---> ) )";
 
 /*
-5.4.4 Selection Function of operator ~size~
+5.4.4 Selection Function of operator ~get\_duration~
 
 Not necessary.
 
@@ -1118,14 +1115,14 @@ Not necessary.
 
 
 /*
-5.4.5  Definition of operator ~size~
+5.4.5  Definition of operator ~get\_duration~
 
 */
-Operator temporalunitsize( "size",
-                      TemporalSpecSize,
-                      Size,
+Operator temporalunitget_duration( "get_duration",
+                      TemporalSpecGetDuration,
+                      GetDuration,
                       Operator::SimpleSelect,
-                      PeriodsTypeMapSize );
+                      PeriodsTypeMapGetDuration );
 
 /*
 5.5 Operator ~makemvalue~
@@ -10763,7 +10760,7 @@ public:
     AddOperator( &temporalunitatmin );
     AddOperator( &temporalunitintersection );
     AddOperator( &temporalunitpasses );
-    AddOperator( &temporalunitsize );
+    AddOperator( &temporalunitget_duration );
     AddOperator( &temporalunittrajectory );
     AddOperator( &temporalunitdistance );
     AddOperator( &temporalspeed );
