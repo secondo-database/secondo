@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -37,5 +37,7 @@ operator now alias NOW pattern op()
 operator today alias TODAY pattern op()
 operator theInstant alias THEINSTANT pattern op(_)
 operator / alias DIVIDE pattern _ infixop _
+operator create_duration alias CREATE_DURATION pattern op ( _ , _ )
+operator duration2real alias DURATION2REAL pattern op ( _ )
 
 

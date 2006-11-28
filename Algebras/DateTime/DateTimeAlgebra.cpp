@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -120,9 +120,9 @@ extern AlgebraManager *am;
 using namespace std;
 
 
-static long min_long = numeric_limits<long>::min(); 
+static long min_long = numeric_limits<long>::min();
 static long max_long = numeric_limits<long>::max();
-static int min_int = numeric_limits<int>::min(); 
+static int min_int = numeric_limits<int>::min();
 static int max_int = numeric_limits<int>::max();
 
 static string begin_of_time="begin of time";
@@ -320,7 +320,7 @@ Sets this instant to the mimimum possible value.
 void DateTime::ToMinimum(){
    defined = true;
    day = min_long;
-   milliseconds = 0; 
+   milliseconds = 0;
 }
 
 
@@ -333,7 +333,7 @@ Sets this instant to the maximum possible value.
 void DateTime::ToMaximum(){
    defined = true;
    day = max_long;
-   milliseconds = MILLISECONDS-1; 
+   milliseconds = MILLISECONDS-1;
 }
 
 
@@ -347,7 +347,7 @@ bool DateTime::IsMinimum()const {
   if(!defined){
      return false;
   }
-  return day==min_long && milliseconds==0; 
+  return day==min_long && milliseconds==0;
 }
 
 /*
@@ -360,7 +360,7 @@ bool DateTime::IsMaximum()const{
   if(!defined){
      return false;
   }
-  return day==max_long && milliseconds==MILLISECONDS-1; 
+  return day==max_long && milliseconds==MILLISECONDS-1;
 }
 
 
@@ -518,7 +518,7 @@ void DateTime::ToGregorian(const long Julian, long &year,
     year = jc - 4715;
     if (month > 2) --year;
     if (year <= 0) --year;
-  
+
 
 // the followingcode is converted from the fre pascal compiler unixutils.pp
    /*    long long D0   =   1461;
@@ -580,8 +580,8 @@ string DateTime::ToString() const{
      // calendar
     if(day < MIN_REPRESENTABLE || day >MAX_REPRESENTABLE){
         tmp << ToDouble();
-        return tmp.str(); 
-    } 
+        return tmp.str();
+    }
 
     int day,month;
     long year;
@@ -598,7 +598,7 @@ string DateTime::ToString() const{
     if(year < 100 && year >0)
       tmp << "0";
     if(year < 10 && year > 0)
-      tmp << "0";    
+      tmp << "0";
     tmp << year << "-";
     if(month<10)
        tmp << "0";
@@ -642,8 +642,8 @@ string DateTime::ToString() const{
        tmp << "0";
     tmp << ms;
   } else{
-    tmp << "unknown type, def=" << defined << " candel=" << canDelete 
-        << " type=" << type << " day = " << day << " ms = " 
+    tmp << "unknown type, def=" << defined << " candel=" << canDelete
+        << " type=" << type << " day = " << day << " ms = "
         << milliseconds;
   }
   return tmp.str();
@@ -659,7 +659,7 @@ and false is returned. In the other case, this instance will hold the
 the time represented by the string and the result is true.
 The format of the string must be:
 
-  *  YEAR-MONTH-DAY-HOUR:MIN[:SECOND[.MILLISECOND]] 
+  *  YEAR-MONTH-DAY-HOUR:MIN[:SECOND[.MILLISECOND]]
 
 Spaces are not allowed in this string. The squared brackets
 indicates optional parts. This function is not defined for durations.
@@ -1105,7 +1105,7 @@ void DateTime::SetDefined( bool defined ){
 /*
 ~Sizeof~
 
-The function ~Sizeof~ returns the ~sizeof~ of and instance 
+The function ~Sizeof~ returns the ~sizeof~ of and instance
 of the ~DateTime~ class.
 
 */
@@ -1311,7 +1311,7 @@ void DateTime::Mul(const long factor){
    BigInt<2> nd(0);
    nd = d.Div(MS,ms);
    day = nd.ToLong(of);
-   milliseconds = ms.ToLong(of); 
+   milliseconds = ms.ToLong(of);
 }
 
 /*
@@ -1354,8 +1354,8 @@ void DateTime::Mul(const double factor){
 ~Div~
 
 This operator computes how often ~dividend~ is contained whithin this
-DateTime. This DateTime, the dividend, and ~remainder~ must be of 
-type ~duration~.  
+DateTime. This DateTime, the dividend, and ~remainder~ must be of
+type ~duration~.
 
 */
  long DateTime::Div(DateTime dividend, DateTime& remainder,bool& overflow){
@@ -1374,8 +1374,8 @@ type ~duration~.
    // create values for result and remainder
    BigInt<2> Result(0), biremainder(0);
    Result = MyValue.Div(DivValue,biremainder);
-   long result = Result.ToLong(overflow); 
-   // the biremainder must be devided into day and milliseconds 
+   long result = Result.ToLong(overflow);
+   // the biremainder must be devided into day and milliseconds
    // We store the results into DivValue and DivMillis
    DivValue = biremainder.Div(BIMILLISECONDS,DivMillis);
    long l1 = DivMillis.ToLong(of);
@@ -1427,7 +1427,7 @@ DateTime DateTime::operator*(const double factor)const{
            milliseconds = MILLISECONDS-milliseconds;
         }
      }
-    
+
   }
 
 
@@ -1492,7 +1492,7 @@ this means to have length zero or be the NULLDATE respectively.
 
 */
     void DateTime::SetToZero(){
-        day=0; 
+        day=0;
         milliseconds = 0;
     }
 
@@ -1520,7 +1520,7 @@ bool DateTime::LessThanZero()const{
 
 SmiSize DateTime::SizeOfChars() const
 {
-  return ToString().length();  
+  return ToString().length();
 }
 
 void DateTime::WriteTo( char *dest ) const
@@ -1545,7 +1545,7 @@ ListExpr OutDateTime( ListExpr typeInfo, Word value ){
    DateTime* T = (DateTime*) value.addr;
    if( T->IsDefined() )
      return T->ToListExpr(false);
-   else 
+   else
      return nl->SymbolAtom("undef");
 }
 
@@ -1557,7 +1557,7 @@ Word InInstant( const ListExpr typeInfo, const ListExpr instance,
 
 
   ListExpr value = instance;
-  if( !nl->IsAtom(instance) && 
+  if( !nl->IsAtom(instance) &&
       (nl->ListLength(instance)==2) ){
     if(nl->IsEqual(nl->First(instance),"instant"))
       value = nl->Second(instance);
@@ -1565,7 +1565,7 @@ Word InInstant( const ListExpr typeInfo, const ListExpr instance,
   if(T->ReadFrom(value,false)){
     correct=true;
     return SetWord(T);
-  }   
+  }
   correct = false;
   delete(T);
   return SetWord(Address(0));
@@ -1803,7 +1803,7 @@ ListExpr InstantInt(ListExpr args){
      if(nl->IsEqual(nl->First(args),"instant")){
          return nl->SymbolAtom("int");
      } else {
-         ErrorReporter::ReportError("int parapater expected \n");
+         ErrorReporter::ReportError("instant parameter expected \n");
      }
   }
   ErrorReporter::ReportError("exactly one argument required");
@@ -1825,7 +1825,7 @@ ListExpr PlusCheck(ListExpr args){
      nl->IsEqual(nl->Second(args),"duration"))
      return nl->SymbolAtom("duration");
   ErrorReporter::ReportError("duration/instant or"
-                             " duration/duration expected\n"); 
+                             " duration/duration expected\n");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -1844,7 +1844,7 @@ ListExpr MinusCheck(ListExpr args){
      nl->IsEqual(nl->Second(args),"duration"))
      return nl->SymbolAtom("duration");
   ErrorReporter::ReportError("duration/instant or"
-                             " duration/duration expected\n"); 
+                             " duration/duration expected\n");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -1950,7 +1950,54 @@ ListExpr MinMaxDurationTM(ListExpr args){
    return nl->SymbolAtom("typeerror");
 }
 
+ListExpr CreateDurationTM(ListExpr args){
+  if(nl->ListLength(args)==1)
+    if ( nl->IsEqual(nl->First(args),"real") )
+      return nl->SymbolAtom("duration");
+    else{
+          ErrorReporter::ReportError("one real value expected\n");
+          return nl->SymbolAtom("typeerror");
+        }
+  if(nl->ListLength(args)==2){
+    if(nl->IsEqual(nl->First(args),"int") &&
+       nl->IsEqual(nl->Second(args),"int"))
+      return nl->SymbolAtom("duration");
+    else{
+          ErrorReporter::ReportError("two int values expected\n");
+          return nl->SymbolAtom("typeerror");
+        }
+  }
+  ErrorReporter::ReportError("One or two arguments required\n");
+  return nl->SymbolAtom("typeerror");
+}
 
+ListExpr Duration2RealTM(ListExpr args){
+  if(nl->ListLength(args)==1)
+    if ( nl->IsEqual(nl->First(args),"duration") )
+      return nl->SymbolAtom("real");
+    else{
+          ErrorReporter::ReportError("one duration value expected\n");
+          return nl->SymbolAtom("typeerror");
+        }
+  ErrorReporter::ReportError("One argument required\n");
+  return nl->SymbolAtom("typeerror");
+}
+
+ListExpr InstantOrDurationIntTM(ListExpr args){
+  if(nl->ListLength(args)==1){
+     if(nl->IsEqual(nl->First(args),"instant")){
+         return nl->SymbolAtom("int");
+     }
+     if(nl->IsEqual(nl->First(args),"duration")){
+         return nl->SymbolAtom("int");
+     }
+     else {
+         ErrorReporter::ReportError("instant/duration parameter expected \n");
+     }
+  }
+  ErrorReporter::ReportError("exactly one argument required");
+  return nl->SymbolAtom("typeerror");
+}
 
 /*
 4.2 Value Mappings
@@ -2062,6 +2109,14 @@ int DayFun(Word* args, Word& result, int message, Word& local, Supplier s){
     return 0;
 }
 
+int DurationDayFun(Word* args, Word& result, int message, Word& local,
+                   Supplier s){
+    result = qp->ResultStorage(s);
+    DateTime* T = (DateTime*) args[0].addr;
+    ((CcInt*) result.addr)->Set(true,T->GetDay());
+    return 0;
+}
+
 int MonthFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T = (DateTime*) args[0].addr;
@@ -2102,6 +2157,14 @@ int MillisecondFun(Word* args, Word& result, int message,
     result = qp->ResultStorage(s);
     DateTime* T = (DateTime*) args[0].addr;
     ((CcInt*) result.addr)->Set(true,T->GetMillisecond());
+    return 0;
+}
+
+int DurationMillisecondFun(Word* args, Word& result, int message,
+                           Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    DateTime* T = (DateTime*) args[0].addr;
+    ((CcInt*) result.addr)->Set(true,T->GetAllMilliSeconds());
     return 0;
 }
 
@@ -2175,14 +2238,14 @@ int DivFun(Word* args, Word& result, int message, Word& local, Supplier s){
 int MinFun(Word* args, Word& result, int message,
                   Word& local, Supplier s){
   result = qp->ResultStorage(s);
-  ((DateTime*) result.addr)->ToMinimum(); 
+  ((DateTime*) result.addr)->ToMinimum();
   return 0;
 }
 
 int MaxFun(Word* args, Word& result, int message,
                   Word& local, Supplier s){
   result = qp->ResultStorage(s);
-  ((DateTime*) result.addr)->ToMaximum(); 
+  ((DateTime*) result.addr)->ToMaximum();
   return 0;
 }
 
@@ -2215,6 +2278,63 @@ int WeekdayFun(Word* args, Word& result, int message,
     return 0;
 }
 
+int Duration2RealFun(Word* args, Word& result, int message,
+               Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    DateTime* T = (DateTime*) args[0].addr;
+    if(T->IsDefined())
+      {
+        double days = T->ToDouble();
+        ((CcReal*)result.addr)->Set(true,days);
+      }
+    else
+      {
+        ((CcReal*)result.addr)->Set(false,0.0);
+      }
+    return 0;
+}
+
+int CreateDurationFromRealFun(Word* args, Word& result, int message,
+                              Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    CcReal* R = (CcReal*) args[0].addr;
+    DateTime* T = (DateTime*)result.addr;
+
+    T->SetType(durationtype);
+    if(R->IsDefined())
+      {
+        double days = R->GetRealval();
+        T->ReadFrom(days);
+        T->SetDefined(true);
+      }
+    else
+      {
+        T->ReadFrom(0.0);
+        T->SetDefined(false);
+      }
+    return 0;
+}
+
+int CreateDurationFromIntIntFun(Word* args, Word& result, int message,
+                                Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    CcInt* Idays = (CcInt*) args[0].addr;
+    CcInt* Imsec = (CcInt*) args[1].addr;
+    DateTime* T = (DateTime*)result.addr;
+
+    T->SetType(durationtype);
+    if(Idays->IsDefined() && Imsec->IsDefined())
+      {
+        *T = DateTime(Idays->GetIntval(),Imsec->GetIntval(),durationtype);
+        T->SetDefined(true);
+      }
+    else
+      {
+        *T = DateTime(0,0,durationtype);
+        T->SetDefined(false);
+      }
+    return 0;
+}
 /*
 4.3 Specifications
 
@@ -2250,10 +2370,10 @@ const string TodaySpec =
 
 const string DaySpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"instant -> int\""
-   " \" day_of ( _ ) \" "
-   "   \"return the day of this instant\" "
-   "   \" query day_of(T1) \" ))";
+   " ( \"instant -> int\nduration -> int\""
+   "\" day_of ( _ ) \" "
+   "\"return the day of this instant/duration\" "
+   "\"query day_of(T1) \" ))";
 
 const string MonthSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -2268,7 +2388,6 @@ const string YearSpec =
    " \" year_of ( _ ) \" "
    "   \"return the year of this instant\" "
    "   \" query year_of(T1) \" ))";
-
 
 const string HourSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -2293,10 +2412,10 @@ const string SecondSpec =
 
 const string MillisecondSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"instant -> int\""
-   " \" millisecond_of(_) \" "
-   "   \"return the millisecond of this instant\" "
-   "   \" query millisecond_of(T1) \" ))";
+   " ( \"instant -> int\nduration -> int\""
+   "\" millisecond_of(_) \" "
+   "\"return the millisecond of this instant/duration\" "
+   "\"query millisecond_of(T1) \" ))";
 
 const string AddSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -2346,44 +2465,57 @@ const string WeekdaySpec =
    " ( \"instant -> string\""
    " \"  weekday_of ( _ ) \" "
    "   \"returns the weekday in human readable format\" "
-   "   \" query weekday_of(today())\" ))";
+   "   \"query weekday_of(today())\" ))";
 
 const string DivSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"duration x duration -> int\""
    " \"  _ / _  \" "
    " 'Computes how often the second argument is part of the first one' "
-   "   \" query a / b \" ))";
-
+   "   \"query a / b \" ))";
 
 const string MinInstantSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \" -> instant\""
    " \"  minInstant()  \" "
    "   \"returns the minimum possible instant \" "
-   "   \" query minInstant() \" ))";
-
+   "   \"query minInstant() \" ))";
 
 const string MaxInstantSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \" -> instant\""
    " \"  maxInstant()  \" "
    "   \"returns the maximum possible instant \" "
-   "   \" query maxInstant() \" ))";
+   "   \"query maxInstant() \" ))";
 
 const string MinDurationSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \" -> duration \""
    " \"  minDuration()  \" "
    "   'returns the minimum representable duration value ' "
-   "   \" query minDuration() \" ))";
+   "   \"query minDuration() \" ))";
 
 const string MaxDurationSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \" -> duration \""
    " \"  maxDuration()  \" "
    "   'returns the maximum representable duration value'  "
-   "   \" query maxDuration() \" ))";
+   "   \"query maxDuration() \" ))";
+
+const string Duration2RealSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \"duration -> real\""
+   "\"duration2real( _ )  \" "
+   "'Converts the duration to a real giving the duration in days.'  "
+   "'query duration2real([const duration value (-5 1000)])' ))";
+
+const string CreateDurationSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \" (int int) -> duration \""
+   " \"create_duration( _ )\ncreate_duration( _ , _ )\" "
+   "'Create a duration value from a real (days) or a pair of int "
+   "(days, milliseconds). The second int must be >=0'  "
+   "\"query create_duration(10, 5) \" ))";
 
 /*
 4.3 ValueMappings of overloaded Operators
@@ -2395,6 +2527,19 @@ ValueMapping TheInstantValueMap[] = {
         TheInstantFun_Int4,TheInstantFun_Int5,TheInstantFun_Int6,
         TheInstantFun_Int7 };
 
+ValueMapping CreateDurationValueMap[] = {
+        CreateDurationFromRealFun,
+        CreateDurationFromIntIntFun };
+
+ValueMapping DayValueMap[] = {
+        DayFun,
+        DurationDayFun};
+
+ValueMapping MillisecondValueMap[] = {
+        MillisecondFun,
+        DurationMillisecondFun};
+
+
 /*
 4.4 SelectionFunctions
 
@@ -2404,6 +2549,13 @@ static int TheInstantSelect(ListExpr args){
   return nl->ListLength(args)-1;
 }
 
+static int InstantOrDurationIntSelect(ListExpr args){
+  if(nl->IsEqual(nl->First(args),"instant"))
+    return 0;
+  if(nl->IsEqual(nl->First(args),"duration"))
+    return 1;
+  return -1; // should not happen
+}
 
 /*
 4.4 Definition of Operators
@@ -2431,11 +2583,12 @@ Operator dt_today(
        VoidInstant);
 
 Operator dt_day(
-       "day_of", // name
-       DaySpec, // specification
-       DayFun,
-       Operator::SimpleSelect,
-       InstantInt);
+       "day_of",            // name
+       DaySpec,             // specification
+       2,                   // number of functions
+       DayValueMap,
+       InstantOrDurationIntSelect,
+       InstantOrDurationIntTM);
 
 Operator dt_month(
        "month_of", // name
@@ -2473,11 +2626,12 @@ Operator dt_second(
        InstantInt);
 
 Operator dt_millisecond(
-       "millisecond_of", // name
-       MillisecondSpec, // specification
-       MillisecondFun,
-       Operator::SimpleSelect,
-       InstantInt);
+       "millisecond_of",           // name
+       MillisecondSpec,            // specification
+       2,                          // number of functions
+       MillisecondValueMap,
+       InstantOrDurationIntSelect,
+       InstantOrDurationIntTM);
 
 Operator dt_add(
        "+", // name
@@ -2565,12 +2719,27 @@ Operator dt_weekday(
        InstantString);
 
 Operator dt_theInstant(
-       "theInstant",                        // name
-       TheInstantSpec,                 // specification
+       "theInstant",               // name
+       TheInstantSpec,             // specification
        7,                          // number of functions
        TheInstantValueMap,
        TheInstantSelect,
        TheInstantTM);
+
+Operator dt_duration2real(
+       "duration2real",    // name
+       Duration2RealSpec,  // specification
+       Duration2RealFun,
+       Operator::SimpleSelect,
+       Duration2RealTM );
+
+Operator dt_create_duration(
+       "create_duration",          // name
+       CreateDurationSpec,         // specification
+       2,                          // number of functions
+       CreateDurationValueMap,
+       TheInstantSelect,
+       CreateDurationTM);
 
 
 /*
@@ -2613,7 +2782,8 @@ class DateTimeAlgebra : public Algebra
     AddOperator(&dt_maxInstant);
     AddOperator(&dt_minDuration);
     AddOperator(&dt_maxDuration);
-
+    AddOperator(&dt_create_duration);
+    AddOperator(&dt_duration2real);
   }
   ~DateTimeAlgebra() {};
 };
@@ -2639,7 +2809,7 @@ dynamically at runtime.
 
 extern "C"
 Algebra*
-InitializeDateTimeAlgebra( NestedList* nlRef, 
+InitializeDateTimeAlgebra( NestedList* nlRef,
                            QueryProcessor* qpRef,
                            AlgebraManager* amRef )
 {
