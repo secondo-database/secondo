@@ -36,12 +36,18 @@ endif
 
 
 .PHONY: all
-all: buildlibs
+all: examples buildlibs
 
 ../makefile.algebras: ../makefile.algebras.sample
 	$(cp-config-file)
 
 SPECFILES := $(wildcard $(addsuffix /*.spec, $(USED_ALGEBRA_DIRS) ))
+EXAMPLEFILES := $(wildcard $(addsuffix /*.examples, $(USED_ALGEBRA_DIRS) ))
+
+.PHONY: examples
+examples:
+	@if [ ! -d ../bin/tmp ]; then mkdir -p ../bin/tmp; fi
+	cp $(EXAMPLEFILES) ../bin/tmp
 
 specs: specs.test
 	@chmod u+x *.awk
@@ -69,7 +75,7 @@ specs.test: $(SPECFILES) ../makefile.algebras
 
 
 .PHONY:buildlibs
-buildlibs:
+buildlibs: examples
 	@echo -e "\n *** Building algebra libs ***\n";
 	for dir in $(USED_ALGEBRA_DIRS); do \
           if [ -e $$dir/makefile ]; then \
