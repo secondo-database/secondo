@@ -478,7 +478,25 @@ The specific error numbers are defined in the kind checking procedure;
 the list may contain further information to describe the error.
 
 */
+
+  inline Operator* getOperator(const int algebraId, const int opId) {
+  
+  assert( algebraId < MAX_ALG );
+  assert( (opId < MAX_OP) );
+  
+  Operator* op = opPtrField[algebraId][opId];
+  
+  if ( op == 0 ) {
+  
+    op = algebra[algebraId]->GetOperator( opId );
+    opPtrField[algebraId][opId] = op;
+  }  
+
+  return op;
+  }
+
   void UpdateOperatorUsage(SystemInfoRel* table);
+
  private:
   NestedList*              nl;
 /*
@@ -504,22 +522,7 @@ Is an array for references to all loaded algebra modules.
   Operator* opPtrField[MAX_ALG][MAX_OP];
 
   void InitOpPtrField();
-  inline Operator* getOperator(const int algebraId, const int opId) {
   
-  assert( algebraId < MAX_ALG );
-  assert( (opId < MAX_OP) );
-  
-  Operator* op = opPtrField[algebraId][opId];
-  
-  if ( op == 0 ) {
-  
-    op = algebra[algebraId]->GetOperator( opId );
-    opPtrField[algebraId][opId] = op;
-  }  
-  
-  return op;
-  }
-
 
 };
 

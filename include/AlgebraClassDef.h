@@ -30,7 +30,9 @@ AlgebraClassDef.h and AlgebraInit.h
 
 #include <vector>
 
+#include "NestedList.h"
 // forward declarations
+
 class Operator;
 class TypeConstructor;
 class QueryProcessor;
