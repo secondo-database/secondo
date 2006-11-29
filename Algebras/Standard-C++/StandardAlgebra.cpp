@@ -1020,6 +1020,20 @@ IntInt( ListExpr args )
 }
 
 ListExpr
+RealReal( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if ( nl->IsEqual( arg1, "real" ) )
+      return (nl->SymbolAtom( "real" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+
+ListExpr
 IntBool( ListExpr args )
 {
   ListExpr arg1;
@@ -2966,6 +2980,33 @@ CcHashValue( Word* args, Word& result, int message, Word& local,
   return (0);
 }
 
+/*
+4.22 Value mapping function of operator ~sqrt~
+
+*/
+
+int
+CcSqrt( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( ((CcReal*)args[0].addr)->IsDefined() ) 
+  {
+    const double tmp = ((CcReal*)args[0].addr)->GetRealval();
+    if ( tmp >= 0 )
+      ((CcReal *)result.addr)-> Set( true, sqrt( tmp ) );
+    else
+    {
+      ((CcReal *)result.addr)-> Set( false, 0 );
+    }
+  }
+  else
+  {
+    ((CcReal *)result.addr)-> Set( false, 0 );
+  }
+  return (0);
+}
+
+
 /* 
 4.15 Computes the Levenshtein distance between two strings.
 
@@ -3178,6 +3219,7 @@ ValueMapping ccdivisionmap[] =
 
 ValueMapping ccmodmap[] = { CcMod };
 ValueMapping ccdivmap[] = { CcDiv };
+ValueMapping ccsqrtmap[] = { CcSqrt };
 
 ValueMapping cclessmap[] = { CcLess<CcInt>, 
                              CcLess2<CcInt, CcReal>, 
@@ -3306,6 +3348,14 @@ const string CCSpecDiv2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                "<text>_ div _</text--->"
                                "<text>Integer Division.</text--->"
                                "<text>query 5 div 2 </text--->"
+                              ") )";
+
+const string CCSpecSqrt  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" )"
+                             "( <text>real -> real</text--->"
+                               "<text>sqrt( _ )</text--->"
+                               "<text>Extract a root.</text--->"
+                               "<text>query sqrt(2.1)</text--->"
                               ") )";
 
 const string CCSpecRandInt  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -3613,6 +3663,9 @@ Operator ccmod( "mod", CCSpecMod, 1, ccmodmap,
 Operator ccdiv( "div", CCSpecDiv2, 1, ccdivmap,  
                 Operator::SimpleSelect, CcMathTypeMap1 );
 
+Operator ccsqrt( "sqrt", CCSpecSqrt, 1, ccsqrtmap,  
+                Operator::SimpleSelect, RealReal );
+
 Operator ccrandint( "randint", CCSpecRandInt, RandInt,  
                     Operator::SimpleSelect, IntInt );
 
@@ -3747,6 +3800,8 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccdivision );
     AddOperator( &ccmod );
     AddOperator( &ccdiv );
+    AddOperator( &ccdiv );
+    AddOperator( &ccsqrt );
     AddOperator( &ccrandint );
     AddOperator( &ccrandmax );
     AddOperator( &ccseqinit );
