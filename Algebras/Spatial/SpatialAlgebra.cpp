@@ -8670,7 +8670,28 @@ SpatialSubLineMap( ListExpr args )
   return (nl->SymbolAtom( "typeerror" ));
 }
 
+/*
+10.1.6 Type mapping function for operator ~add~
 
+This type mapping function is the one for the ~add~ operator.
+The result type is a point.
+
+*/
+ListExpr
+SpatialAddTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+
+    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
+         SpatialTypeOfSymbol( arg2 ) == stpoint )
+      return (nl->SymbolAtom( "point" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
 /*
 10.3 Selection functions
 
@@ -11147,6 +11168,27 @@ SpatialSubLine( Word* args, Word& result, int message,
 }
 
 /*
+10.4.26 Value mapping function of operator ~add~
+
+*/
+int
+SpatialAdd_p( Word* args, Word& result, int message, 
+                    Word& local, Supplier s )
+{ 
+  result = qp->ResultStorage( s );
+
+  const Point *p1= (Point*)args[0].addr;
+  const Point *p2= (Point*)args[1].addr;
+
+  if( p1->IsDefined() && p2->IsDefined() )
+    *((Point*)result.addr) = *p1 + *p2 ;  
+  else 
+    ((Point*)result.addr)->SetDefined( false );
+
+  return 0;
+}
+
+/*
 10.5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -11305,6 +11347,7 @@ ValueMapping spatialverticesmap[] = {
   SpatialVertices_l,
   SpatialVertices_r };
 
+ValueMapping spatialaddmap[] = { SpatialAdd_p };
 /*
 10.5.2 Definition of specification strings
 
@@ -11501,6 +11544,15 @@ const string SpatialSpecTranslate  =
   "<text> _ translate[list]</text--->"
   "<text> move the object parallely for some distance.</text--->"
   "<text> query region1 translate[3.5, 15.1]</text--->"
+  ") )";
+
+const string SpatialSpecAdd  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>point x point -> point</text--->"
+  "<text> _ + _</text--->"
+  "<text> Returns the vector adition for two points.</text--->"
+  "<text> query [const point value (0.0 -1.2)] + "
+  "[const point value (-5.0 1.2)] </text--->"
   ") )";
 
 const string SpatialSpecWindowClippingIn  =
@@ -11754,6 +11806,14 @@ Operator spatialtranslate (
   SpatialSelectTranslate, 
   SpatialTranslateMap );
 
+Operator spatialadd ( 
+  "+", 
+  SpatialSpecAdd,
+  1, 
+  spatialaddmap, 
+  Operator::SimpleSelect,
+  SpatialAddTypeMap );
+
 Operator spatialwindowclippingin ( 
   "windowclippingin", 
   SpatialSpecWindowClippingIn, 
@@ -11871,6 +11931,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialatpoint );
     AddOperator( &spatialatposition );
     AddOperator( &spatialsubline );
+    AddOperator( &spatialadd );
   }
   ~SpatialAlgebra() {};
 };
