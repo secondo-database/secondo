@@ -36,6 +36,9 @@ list objects;
 #yields success
 open database basic_cmd;
 
+
+let myrel = [const rel(tuple([No: int])) value ((1))];
+
 #testcase list objects; 
 #yields success 
 list objects;
@@ -345,12 +348,25 @@ query setoption ("unknown", 3)
 #yields (int 4)
 query hashvalue(4, 6) 
 
-
 #testcase elapsedtime 
 #yields success
 query (5 + 6) elapsedtime 
 
-# ... to be continued
+#testcase relcount 
+#yields (int 1) 
+query "myrel" relcount
+
+#testcase relcount2 
+#yields (int 1) 
+query "myrel" relcount2
+
+#testcase keywords1 
+#yields (int 4) 
+query "this is a test" keywords count;
+
+#testcase keywords2 
+#yields ((rel(tuple(elem string)))(("this")("is")("a")("test"))) 
+query "this is a test" keywords transformstream consume;
 
 #testcase coverage
 #coverage StandardAlgebra
