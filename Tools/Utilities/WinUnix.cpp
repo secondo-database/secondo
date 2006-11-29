@@ -28,8 +28,11 @@ September 2003, M. Spiekermann: Implementation of getpagesize()
 #include "SecondoConfig.h"
 
 #ifdef SECONDO_WIN32
+#include <io.h>
 #include <windows.h>
+
 #else
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
