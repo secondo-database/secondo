@@ -36,6 +36,7 @@ operator # alias NE pattern _ infixop _
 operator = alias EQ pattern _ infixop _  
 
 operator not alias NOT pattern op ( _ )
+operator sqrt alias SQRT pattern op ( _ )
 operator and alias AND pattern  _ infixop _
 operator or alias OR pattern  _ infixop _
 
