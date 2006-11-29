@@ -2,85 +2,90 @@ Operator : #
 Number   : 1
 Signature: (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool
 Example  : query 2.1 # 2.01
-Result   : 
+Result   : TRUE
 
 
 Operator : *
 Number   : 1
 Signature: (int int) -> int, (int real) -> real, (real int) -> real, (real real) -> real
 Example  : query 5 * 1.4 
-Result   : 
+Result   : 7
 
 
 Operator : +
 Number   : 1
 Signature: (int int) -> int, (int real) -> real, (real int) -> real, (real real) -> real (string string) -> string
 Example  : query -1.2 + 7
-Result   : 
+Result   : 5.8
 
 
 Operator : -
 Number   : 1
 Signature: (int int) -> int, (int real) -> real, (real int) -> real, (real real) -> real
 Example  : query -.2 - 4
-Result   : 
+Result   : -4.2
 
 
 Operator : /
 Number   : 1
 Signature: (int int) -> real, (int real) -> real, (real int) -> real, (real real) -> real
 Example  : query 5 / 2 
-Result   : 
+Result   : 2.5
 
 
 Operator : <
 Number   : 1
 Signature: (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool
 Example  : query "house" < "hotel"
-Result   : 
+Result   : FALSE
 
 
 Operator : <=
 Number   : 1
 Signature: (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool
 Example  : query 8.2 <= 8.2
-Result   : 
+Result   : TRUE
 
 
 Operator : =
 Number   : 1
 Signature: (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool
 Example  : query 2.1 = 2.01
-Result   : 
+Result   : FALSE
 
 
 Operator : >
 Number   : 1
 Signature: (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool
 Example  : query 3 > 4.1
-Result   : 
+Result   : FALSE
 
 
 Operator : >=
 Number   : 1
 Signature: (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool
 Example  : query 3 >= 5
-Result   : 
+Result   : FALSE
 
 
 Operator : and
 Number   : 1
 Signature: (bool bool) -> bool
 Example  : query (8 = 8) and (3 < 4)
-Result   : 
+Result   : TRUE
 
 
 Operator : between
 Number   : 1
-Signature: (T x T x T) ->  bool
-Example  : query 5 between [3, 8], query "house" between ["ha", "hu"]
-Result   : 
+Signature: (int x int x int) ->  bool
+Example  : query 5 between [3, 8]
+Result   : TRUE
 
+Operator : between
+Number   : 2
+Signature: (string x string x string) ->  bool
+Example  : query "house" between ["ha", "hu"]
+Result   : TRUE
 
 Operator : contains
 Number   : 1
@@ -119,10 +124,27 @@ Result   :
 
 Operator : intersection
 Number   : 1
-Signature:  (int int) -> int, (real real) -> real,(bool bool) -> bool, (string string) -> string
-Example  : 
-Result   : 
+Signature: (int int) -> int
+Example  : query intersection(3 , 3)
+Result   : 3 
 
+Operator : intersection
+Number   : 2
+Signature: (real real) -> real
+Example  : query intersection(3.0 , 3.0)
+Result   : 3.0 
+
+Operator : intersection
+Number   : 3
+Signature: (bool bool) -> bool
+Example  : query intersection(TRUE , TRUE)
+Result   : TRUE 
+
+Operator : intersection
+Number   : 4
+Signature: (string string) -> string
+Example  : query intersection("abcd" , "abcd")
+Result   : "abcd" 
 
 Operator : isempty
 Number   : 1
@@ -134,15 +156,15 @@ Result   :
 Operator : keywords
 Number   : 1
 Signature: (string) -> (stream string)
-Example  : query ten feed extendstream(name: mystring keywords) consume
-Result   : 
+Example  : query "this is a test" keywords count
+Result   : 4
 
 
 Operator : ldistance
 Number   : 1
 Signature: string x string  -> int
-Example  : query ldistance( "hello" "world" )
-Result   : 
+Example  : query ldistance( "hello", "world" )
+Result   : 4
 
 
 Operator : log
@@ -155,8 +177,8 @@ Result   :
 Operator : minus
 Number   : 1
 Signature:  (int int) -> int, (real real) -> real, (bool bool) -> bool, (string string) -> string
-Example  : 
-Result   : 
+Example  : query 4 minus 3
+Result   : 4 
 
 
 Operator : mod
@@ -197,43 +219,43 @@ Result   :
 Operator : relcount
 Number   : 1
 Signature: string -> int
-Example  : query "Staedte" relcount
-Result   : 
+Example  : query "ten" relcount
+Result   : 10
 
 
 Operator : relcount2
 Number   : 1
 Signature: string -> int
-Example  : query "Orte" relcount2
-Result   : 
+Example  : query "ten" relcount2
+Result   : 10
 
 
 Operator : seqinit
 Number   : 1
 Signature: int -> bool 
 Example  : query seqinit(100)
-Result   : 
+Result   : TRUE
 
 
 Operator : seqnext
 Number   : 1
 Signature:  -> int 
 Example  : query seqnext ()
-Result   : 
+Result   : 100
 
 
 Operator : setoption
 Number   : 1
 Signature: string x int -> bool
-Example  : setoption("MaxMemPerOperator", 512*1024);
-Result   : 
+Example  : query setoption("MaxMemPerOperator", 512*1024);
+Result   : TRUE
 
 
 Operator : starts
 Number   : 1
 Signature: (string string) -> bool
 Example  : query "starts" starts "st"
-Result   : 
+Result   : TRUE
 
 
 Operator : substr
