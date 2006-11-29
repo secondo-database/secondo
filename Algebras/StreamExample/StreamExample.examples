@@ -1,0 +1,28 @@
+Operator : count
+Number   : 1
+Signature: ((stream int)) -> int
+Example  : query intstream (1,10) count
+Result   : 
+
+
+Operator : filter
+Number   : 1
+Signature: ((stream int) (map int bool)) -> (stream int)
+Example  : query intstream (1,10) filter[. > 7] printintstream count
+Result   : 
+
+
+Operator : intstream
+Number   : 1
+Signature: (int int) -> (stream int)
+Example  : query intstream (1,10) printintstream count
+Result   : 
+
+
+Operator : printintstream
+Number   : 1
+Signature: ((stream int)) -> (stream int)
+Example  : query intstream (1,10) printintstream count
+Result   : 
+
+
