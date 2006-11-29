@@ -11550,7 +11550,7 @@ const string SpatialSpecAdd  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>point x point -> point</text--->"
   "<text> _ + _</text--->"
-  "<text> Returns the vector adition for two points.</text--->"
+  "<text> Returns the vector addition for two points.</text--->"
   "<text> query [const point value (0.0 -1.2)] + "
   "[const point value (-5.0 1.2)] </text--->"
   ") )";
