@@ -254,6 +254,26 @@ private boolean nextCommand(BufferedReader in){
                    errors++;
                } 
                return false;
+           } else if(command.startsWith("coverage")){
+              if(state!=TESTCASE){
+                 Reporter.writeError("coverage directive found in non-Testcase section");
+                 errors++;
+                 resultList=null;
+                 return false;
+              }
+              String algName = restOfLine.trim();
+              Reporter.writeInfo("Computing coverage for algebra " + algName);
+              yieldState = YIELD_RESULT;
+              cmd = "query SEC2OPERATORUSAGE feed filter[.Algebra = \""
+                    + algName
+                    + "\"] filter[.Calls = 0] project[Operator] consume";
+              resultList= new ListExpr();
+              String resString = "( (rel(tuple((Operator string)))) ())";
+              resultList.readFromString(resString);
+              execute();
+              return true;
+           
+
            } else if(command.equals("yields")){
               if(state!=TESTCASE){ // invalid position for yields
                   Reporter.writeError("yields found in non-Testcase section");
