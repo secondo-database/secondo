@@ -2800,7 +2800,7 @@ are separated by a space character.
   {
     case OPEN:
       // cout << "open" << endl;
-      qp->Request(args[0].addr, arg0);
+      arg0 = args[0];
 
       str = ((CcString*)arg0.addr);
 
