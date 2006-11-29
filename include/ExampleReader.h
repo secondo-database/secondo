@@ -58,7 +58,10 @@ struct ExampleInfo {
     os << "Operator : " << opName << endl;
     os << "Number   : " << number << endl;
     os << "Signature: " << signature << endl;
-    os << "Example  : " << example << endl;
+    os << "Example  : ";
+    if (example.find("query ")==string::npos)
+      os << "query ";
+    os << example << endl;
     os << "Result   : " << result << endl;
   } 
 }; 
