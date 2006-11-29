@@ -2511,10 +2511,10 @@ const string Duration2RealSpec =
 
 const string CreateDurationSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \" (int int) -> duration \""
-   " \"create_duration( _ )\ncreate_duration( _ , _ )\" "
+   " ( \"(real) -> duration\n(int int) -> duration \""
+   "\"create_duration( _ )\ncreate_duration( _ , _ )\" "
    "'Create a duration value from a real (days) or a pair of int "
-   "(days, milliseconds). The second int must be >=0'  "
+   "(days, milliseconds). Parameter milliseconds must be >=0'  "
    "\"query create_duration(10, 5) \" ))";
 
 /*
