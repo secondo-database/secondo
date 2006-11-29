@@ -218,6 +218,7 @@ realclean: clean
 	$(MAKE) -C Algebras realclean
 	rm -f $(CONFIG_FILES) makefile.algebras 
 	rm -f Documents/.Secondo-News.txt 
+	rm -rf bin/tmp
 
 
 .PHONY: runtests
