@@ -603,7 +603,7 @@ TestRunner::GetCommand()
                   + algebra 
                   + "\"] filter[.Calls = 0] project[Operator] consume"; 
             yieldState = Coverage;
-            string resText = "((rel(tuple(Operator string)))())";
+            string resText = "((rel(tuple((Operator string))))())";
             bool ok = nl->ReadFromString(resText, expectedResult);
             assert(ok);       
           }
