@@ -11052,7 +11052,7 @@ SpatialComponents_ps( Word* args, Word& result, int message,
   switch( message )
   {
     case OPEN:
-      qp->Request(args[0].addr, local);
+      local.addr = ((Points*)args[0].addr);
       ((Points*)local.addr)->SelectFirst();
       return 0;
 
@@ -11582,9 +11582,11 @@ const string SpatialSpecScale  =
 
 const string SpatialSpecComponents  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>region -> stream(region)</text--->"
-  "<text>components(_)</text--->"
-  "<text>Returns the components of a region.</text--->"
+  "( <text>points -> stream(point), region -> "
+  "stream(region)</text--->"
+  "<text>components( _ )</text--->"
+  "<text>Returns the components of a points or region "
+  "object.</text--->"
   "<text>query components(r1) count;</text--->"
   ") )";
 
