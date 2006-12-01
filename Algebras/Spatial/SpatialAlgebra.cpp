@@ -8692,6 +8692,28 @@ SpatialAddTypeMap( ListExpr args )
   }
   return (nl->SymbolAtom( "typeerror" ));
 }
+
+/*
+10.1.7 Type mapping function for the operators ~getx~ and ~gety~   
+
+This type mapping function is the one for the ~getx and ~gety operator.
+The result type is a real.
+
+*/
+ListExpr
+SpatialGetXYMap( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+
+    if ( SpatialTypeOfSymbol( arg1 ) == stpoint )
+      return (nl->SymbolAtom( "real" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
 /*
 10.3 Selection functions
 
@@ -11189,6 +11211,46 @@ SpatialAdd_p( Word* args, Word& result, int message,
 }
 
 /*
+10.4.27 Value mapping function of operator ~getx~
+
+*/
+int
+SpatialGetX_p( Word* args, Word& result, int message, 
+                    Word& local, Supplier s )
+{ 
+  result = qp->ResultStorage( s );
+
+  const Point *p = (Point*)args[0].addr;
+
+  if( p->IsDefined() )
+    ((CcReal*)result.addr)->Set( true, p->GetX() ) ;  
+  else 
+    ((Point*)result.addr)->Set( false, 0.0 );
+
+  return 0;
+}
+
+/*
+10.4.28 Value mapping function of operator ~gety~
+
+*/
+int
+SpatialGetY_p( Word* args, Word& result, int message, 
+                    Word& local, Supplier s )
+{ 
+  result = qp->ResultStorage( s );
+
+  const Point *p = (Point*)args[0].addr;
+
+  if( p->IsDefined() )
+    ((CcReal*)result.addr)->Set( true, p->GetY() ) ;  
+  else 
+    ((Point*)result.addr)->Set( false, 0.0 );
+
+  return 0;
+}
+
+/*
 10.5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -11348,6 +11410,11 @@ ValueMapping spatialverticesmap[] = {
   SpatialVertices_r };
 
 ValueMapping spatialaddmap[] = { SpatialAdd_p };
+
+ValueMapping spatialgetxmap[] = { SpatialGetX_p };
+
+ValueMapping spatialgetymap[] = { SpatialGetY_p };
+
 /*
 10.5.2 Definition of specification strings
 
@@ -11628,6 +11695,22 @@ const string SpatialSpecSubLine  =
   "</text---><text>query subline(l, 0.0, size(.l), TRUE)</text--->"
   ") )";
 
+const string SpatialSpecGetX  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>point -> real</text--->"
+  "<text>getx( _ )</text--->"
+  "<text>Extracts the x-component of a point.</text--->"
+  "<text> query getx([const point value (0.0 -1.2)])</text--->"
+  ") )";
+
+const string SpatialSpecGetY  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>point -> real</text--->"
+  "<text>gety( _ )</text--->"
+  "<text>Extracts the y-component of a point.</text--->"
+  "<text> query gety([const point value (0.0 -1.2)])</text--->"
+  ") )";
+
 /*
 10.5.3 Definition of the operators
 
@@ -11877,6 +11960,22 @@ Operator spatialsubline (
   Operator::SimpleSelect,
   SpatialSubLineMap );
 
+Operator spatialgetx (
+  "getx",
+  SpatialSpecGetX,
+  1,
+  spatialgetxmap,
+  Operator::SimpleSelect,
+  SpatialGetXYMap );
+
+Operator spatialgety (
+  "gety",
+  SpatialSpecGetY,
+  1,
+  spatialgetymap,
+  Operator::SimpleSelect,
+  SpatialGetXYMap );
+
 /*
 11 Creating the Algebra
 
@@ -11934,6 +12033,8 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialatposition );
     AddOperator( &spatialsubline );
     AddOperator( &spatialadd );
+    AddOperator( &spatialgetx );
+    AddOperator( &spatialgety );
   }
   ~SpatialAlgebra() {};
 };
