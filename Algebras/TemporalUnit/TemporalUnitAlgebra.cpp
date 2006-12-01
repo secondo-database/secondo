@@ -3300,8 +3300,8 @@ TypeMapMakepoint( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "int" )
-       && nl->IsEqual( arg2, "int" ) )
+    if( nl->IsEqual( arg1, "real" )
+       && nl->IsEqual( arg2, "real" ) )
       return nl->SymbolAtom( "point" );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -3315,13 +3315,13 @@ int MakePoint( Word* args, Word& result, int message, Word& local, Supplier s )
 {
 
   result = qp->ResultStorage( s );
-  CcInt* value1 = (CcInt*)args[0].addr;
-  CcInt* value2 = (CcInt*)args[1].addr;
+  CcReal* value1 = (CcReal*)args[0].addr;
+  CcReal* value2 = (CcReal*)args[1].addr;
 
   if ( !value1->IsDefined() || !value2->IsDefined() )
     ((Point*)result.addr)->SetDefined( false );
   else
-    ((Point*)result.addr)->Set(value1->GetIntval(),value2->GetIntval() );
+    ((Point*)result.addr)->Set(value1->GetRealval(),value2->GetRealval() );
 
   return 0;
 }
@@ -3333,11 +3333,11 @@ int MakePoint( Word* args, Word& result, int message, Word& local, Supplier s )
 const string
 TemporalSpecMakePoint =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>int x int -> point</text--->"
+"( <text>real x real -> point</text--->"
 "<text>makepoint ( _ ) </text--->"
 "<text>create a point from two "
-"given coordinates.</text--->"
-"<text>makepoint (5,5)</text---> ) )";
+"given real coordinates.</text--->"
+"<text>makepoint (5.0,5.0)</text---> ) )";
 
 /*
 5.15.4 Selection Function of operator ~makepoint~
