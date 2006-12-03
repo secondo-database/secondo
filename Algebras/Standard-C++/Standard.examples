@@ -91,35 +91,35 @@ Operator : contains
 Number   : 1
 Signature: (string string) -> bool
 Example  : query "contains" contains "tai"
-Result   : 
+Result   : TRUE
 
 
 Operator : div
 Number   : 1
 Signature: (int int) -> int
 Example  : query 5 div 2 
-Result   : 
+Result   : 2
 
 
 Operator : elapsedtime
 Number   : 1
 Signature: (any type) ->  string.
 Example  : query plz feed elapsedtime
-Result   : 
+Result   : crashes
 
 
 Operator : hashvalue
 Number   : 1
 Signature: T in DATA, y in int, T x y -> int
 Example  : query hashvalue( "Test", 9997 )
-Result   : 
+Result   : 3719
 
 
 Operator : ifthenelse
 Number   : 1
 Signature: (bool x T x T) ->  T
 Example  : query ifthenelse(3 < 5,[const string value "less"],[const string value "greater"])
-Result   : 
+Result   : "less"
 
 
 Operator : intersection
@@ -150,7 +150,7 @@ Operator : isempty
 Number   : 1
 Signature: bool -> bool, int -> bool, real -> bool, string -> bool
 Example  : query isempty ( 8 )
-Result   : 
+Result   : FALSE
 
 
 Operator : keywords
@@ -170,8 +170,8 @@ Result   : 4
 Operator : log
 Number   : 1
 Signature: int -> int 
-Example  : query log (256)
-Result   : 
+Example  : query log (200)
+Result   : 7
 
 
 Operator : minus
@@ -185,35 +185,35 @@ Operator : mod
 Number   : 1
 Signature: (int int) -> int
 Example  : query 8 mod 3 
-Result   : 
+Result   : 2
 
 
 Operator : not
 Number   : 1
 Signature: bool -> bool
 Example  : query not ( 4=4 )
-Result   : 
+Result   : FALSE
 
 
 Operator : or
 Number   : 1
 Signature: (bool bool) -> bool
 Example  : query (3 <= 4) or ("hotel" > "house")
-Result   : 
+Result   : TRUE
 
 
 Operator : randint
 Number   : 1
 Signature: int -> int 
 Example  : query randint (9)
-Result   : 
+Result   : 0
 
 
 Operator : randmax
 Number   : 1
 Signature:  -> int 
 Example  : query randmax()
-Result   : 
+Result   : 32767
 
 
 Operator : relcount
@@ -261,14 +261,14 @@ Result   : TRUE
 Operator : substr
 Number   : 1
 Signature: (string x int x int) ->  string.
-Example  : query substr("test",2,3)
-Result   : 
+Example  : query substr("Hello World!", 2, 8)
+Result   : "ello Wo"
 
 
 Operator : upper
 Number   : 1
 Signature: string -> string
 Example  : query upper ( "hello" )
-Result   : 
+Result   : "hellp"
 
 
