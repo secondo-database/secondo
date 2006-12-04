@@ -251,6 +251,13 @@ Example  : query setoption("MaxMemPerOperator", 512*1024);
 Result   : TRUE
 
 
+Operator : sqrt
+Number   : 1
+Signature: real -> real
+Example  : query sqrt(2.1)
+Result   : 1.44914
+
+
 Operator : starts
 Number   : 1
 Signature: (string string) -> bool
