@@ -23,8 +23,8 @@ with the help of Victor Almeida and Thomas Behr.
 
 1 Introduction
 
-This file contains the class definitions of ~MSegmentData~, 
-~RefinementPartitionOrig~, 
+This file contains the class definitions of ~MSegmentData~,
+~RefinementPartitionOrig~,
 ~TrapeziumSegmentIntersection~, ~URegion~ and ~MRegion~, which
 are implemented in ~MovingRegionAlgebra.cpp~. These class definitions have
 been moved to this header file to facilitate development work on top of the
@@ -70,7 +70,7 @@ we say that the segment is degenerated).
     region area, which is right or below the segment.
 
 */
-enum DegenMode { 
+enum DegenMode {
     DGM_UNKNOWN,
     DGM_NONE,
     DGM_IGNORE,
@@ -199,13 +199,13 @@ and an exception is thrown otherwise.
     bool GetInsideAbove(void) const { return insideAbove; }
     bool GetPointInitial(void) const { return pointInitial; }
     bool GetPointFinal(void) const { return pointFinal; }
-    DegenMode GetDegeneratedInitial(void) const { 
+    DegenMode GetDegeneratedInitial(void) const {
         return degeneratedInitial; }
-    DegenMode GetDegeneratedFinal(void) const { 
+    DegenMode GetDegeneratedFinal(void) const {
         return degeneratedFinal; }
-    int GetDegeneratedInitialNext(void) const { 
+    int GetDegeneratedInitialNext(void) const {
         return degeneratedInitialNext; }
-    int GetDegeneratedFinalNext(void) const { 
+    int GetDegeneratedFinalNext(void) const {
         return degeneratedFinalNext; }
     bool IsValid() const {
         return true; }
@@ -221,13 +221,13 @@ and an exception is thrown otherwise.
     void SetInsideAbove(const bool ia) { insideAbove = ia; }
     void SetPointInital(const bool p) { pointInitial = p; }
     void SetPointFinal(const bool p) { pointFinal = p; }
-    void SetDegeneratedInitial(const DegenMode dm) { 
+    void SetDegeneratedInitial(const DegenMode dm) {
         degeneratedInitial = dm; }
-    void SetDegeneratedFinal(const DegenMode dm) { 
+    void SetDegeneratedFinal(const DegenMode dm) {
         degeneratedFinal = dm; }
-    void SetDegeneratedInitialNext(const int dn) { 
+    void SetDegeneratedInitialNext(const int dn) {
         degeneratedInitialNext = dn; }
-    void SetDegeneratedFinalNext(const int dn) { 
+    void SetDegeneratedFinalNext(const int dn) {
         degeneratedFinalNext = dn; }
 
 /*
@@ -271,9 +271,9 @@ public:
 1.1.1 Public attributes:
 
   * ~type~ is the type of the intersection as described by above shown
-    enumeration. 
+    enumeration.
 
-  * ~x~ and ~y~ are the coordinates of the intersection and ~t~ the 
+  * ~x~ and ~y~ are the coordinates of the intersection and ~t~ the
     time of the intersection.
 
 Due to the simplicity of this class, no private attributes and attribute
@@ -390,7 +390,7 @@ Runtime is $O(1)$.
 1 Class ~IRegion~
 
 The code for this data type is fairly simple because it can mostly rely on the
-instantiation of the class template ~Intime~ with class ~Region~. Just a 
+instantiation of the class template ~Intime~ with class ~Region~. Just a
 number of specialized constructors and methods must be overwritten to assure
 that the ~DBArray~ in ~Region~ is properly handled. ~Intime~ itself does
 not care about whether its ~value~ attribute is of a class with ~DBArray~
@@ -442,18 +442,18 @@ Clone this ~IRegion~ instance and return a pointer to the new instance.
 1 Class ~URegionEmb~
 
 ~URegion~ and ~MRegion~ use the common class ~URegionEmb~ due to the following
-situation: 
+situation:
 
 Moving regions contain a variable number of region units, and each
 region unit contains a variable number of moving segments. In theory, this
-requires a two-level data structure of DBArrays, which is not 
+requires a two-level data structure of DBArrays, which is not
 supported by SECONDO. Instead, a moving region object of class ~MRegion~
 contains two ~DBArray~ instances. The first ~DBArray~ instance contains all
 region units, represented as objects of class ~URegionEmb~. The second
 ~DBArray~ contains the moving segments of all regions units in a moving
 region. Each ~URegionEmb~ object knows the start index and the total number
-of its moving segments in the second ~DBArray~ instance. Methods of 
-~URegionEmb~, which need to access segments, receive the second ~DBArray~ 
+of its moving segments in the second ~DBArray~ instance. Methods of
+~URegionEmb~, which need to access segments, receive the second ~DBArray~
 instance as explicit parameter.
 
 Since region units, which are not contained in moving regions, need to be
@@ -473,7 +473,7 @@ private:
 /*
 1.1 Private attributes
 
-  * ~segmentsStartPos~ is the index in moving segments array, where this 
+  * ~segmentsStartPos~ is the index in moving segments array, where this
     instances segments are starting.
 
   * ~segmentsNum~ is the number of segments in the ~URegion~ instance.
@@ -497,7 +497,7 @@ during the interval.
 */
     unsigned int Plumbline(
         const DBArray<MSegmentData>* segments,
-        const UPoint& up, 
+        const UPoint& up,
         const Interval<Instant>& iv) const;
 
 
@@ -566,7 +566,7 @@ For the intersections between ~up~ and this ~URegionEmb~ instance's segments
 stored in ~vtsi~,
 match two pairs of intersection points, which have been previously calculated
 by ~RestrictedIntersectionFind()~, so that each pair contains an intersection
-point where the ~URegionEmb~ instance is being entered and an intersection 
+point where the ~URegionEmb~ instance is being entered and an intersection
 point where it is left. From each pair, construct a ~UPoint~ unit and add it to
 ~res~. ~pending~ is used to merge ~UPoint~ instances, if possible, but only
 if ~merge~ is ~true~.
@@ -603,7 +603,7 @@ public:
 /*
 1.1 Public attributes
 
-~timeInterval~ contains the interval of the unit. While a private 
+~timeInterval~ contains the interval of the unit. While a private
 attribute with proper public access methods would be more clean, we
 leave this attribute public to mimic a ~Unit~'s behaviour.
 
@@ -644,7 +644,7 @@ starting at ~pos~ in ~segments~.
 /*
 1.1 Moving segments access methods
 
-Get number of segments, get index of starting segment, 
+Get number of segments, get index of starting segment,
 get the minimum bounding box,
 get specified segment, write specified segment.
 
@@ -656,11 +656,11 @@ get specified segment, write specified segment.
 
     void GetSegment(
         const DBArray<MSegmentData>* segments,
-        int pos, 
+        int pos,
         const MSegmentData*& dms) const;
     void PutSegment(
         DBArray<MSegmentData>* segments,
-        int pos, 
+        int pos,
         const MSegmentData& dms,
         const bool isNew = false);
 
@@ -710,7 +710,7 @@ the value ~insideAbove~. This is required by function ~InURegionEmb()~.
 */
     void SetSegmentInsideAbove(
         DBArray<MSegmentData>* segments,
-        int pos, 
+        int pos,
         bool insideAbove);
 
 /*
@@ -737,8 +737,8 @@ in ~result~.
 */
     void TemporalFunction(
         const DBArray<MSegmentData>* segments,
-        const Instant& t, 
-        Region& result, 
+        const Instant& t,
+        Region& result,
         bool ignoreLimits = false) const;
 
 /*
@@ -769,7 +769,7 @@ Use it carefully to avoid inconsistencies.
 
 /*
 This method is not implemented since it is not required by the current
-version of the algebra but is required by the ~Mapping~ template.. Calls 
+version of the algebra but is required by the ~Mapping~ template.. Calls
 will run into a failed assertion.
 
 */
@@ -804,7 +804,7 @@ private:
   * ~segments~ contains the moving segments of this region unit.
 
   *  ~uremb~ is an instance of ~URegionEmb~, which will be used to provide most
-     of the functionality. Please note that the ~uremb~ is using ~segments~ 
+     of the functionality. Please note that the ~uremb~ is using ~segments~
      through a pointer to ~segments~, which is explicitely passed to ~uremb~'s
      methods.
 
@@ -836,7 +836,7 @@ elements (use ~0~ for ~n~ to creatw an empty region unit).
     URegion(unsigned int n);
 
 /*
-Create a URegion object by copying data from a given MRegion object. 
+Create a URegion object by copying data from a given MRegion object.
 
 */
 
@@ -858,8 +858,8 @@ Returns the ~Region~ value of this ~URegion~ unit at instant ~t~
 in ~result~.
 
 */
-    virtual void TemporalFunction(const Instant& t, 
-                                  Region& result, 
+    virtual void TemporalFunction(const Instant& t,
+                                  Region& result,
 				  bool ignoreLimits = false) const;
 
 /*
@@ -867,10 +867,10 @@ in ~result~.
 required to make this class non-abstract.
 
 */
-    virtual bool At(const Region& val, 
+    virtual bool At(const Region& val,
                     TemporalUnit<Region>& result) const;
     virtual bool Passes(const Region& val) const;
-/* 
+/*
 Return the internal array containing the moving segments for read-only access.
 
 */
@@ -934,7 +934,7 @@ Print method, primarly used for debugging purposes
         os << " SegNum=" << uremb.GetSegmentsNum();
         os << " BBox=";
         uremb.BoundingBox().Print(os);
-        os << " )" << endl;        
+        os << " )" << endl;
         return os;
       }
     else
@@ -981,9 +981,9 @@ is ~true~, the resulting ~URegion~ instances are merged, if possible.
     void IntersectionRP(
         MPoint& mp,
         MPoint& res,
-        RefinementPartitionOrig<MRegion, 
-                                MPoint, 
-                                URegionEmb, 
+        RefinementPartitionOrig<MRegion,
+                                MPoint,
+                                URegionEmb,
                                 UPoint>& rp,
         bool merge);
 
