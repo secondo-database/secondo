@@ -2053,6 +2053,8 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
       t.meaning = oi.meaning;
       t.remark = oi.remark;
 
+      t.result = ex2.result;
+
       if (secOk) { // use example as is
         t.example = ex2.example;
       } else { // use original spec

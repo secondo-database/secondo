@@ -348,8 +348,7 @@ class TypeInfoTuple : public InfoTuple
    string valueListExample;
    string remark;
    
-   TypeInfoTuple() {}
-   virtual ~TypeInfoTuple() {
+   TypeInfoTuple() {
 
      type = "";
      size = 0;  
@@ -360,6 +359,7 @@ class TypeInfoTuple : public InfoTuple
      valueListExample = "";
      remark = "";
    } 
+   virtual ~TypeInfoTuple() {}
 
    virtual NList valueList() const
    {
@@ -414,9 +414,9 @@ class OperatorInfoTuple : public InfoTuple
    string meaning;
    string example;
    string remark;
+   string result;
    
-   OperatorInfoTuple() {}
-   virtual ~OperatorInfoTuple() {
+   OperatorInfoTuple() {
 
      name = "";
      algebra = "";
@@ -424,8 +424,10 @@ class OperatorInfoTuple : public InfoTuple
      syntax = "";
      meaning = "";
      example = "";
+     result = "";
      remark = "";
    } 
+   virtual ~OperatorInfoTuple() {}
 
    virtual NList valueList() const
    {
@@ -436,6 +438,7 @@ class OperatorInfoTuple : public InfoTuple
      list.append( NList().textAtom(syntax) );
      list.append( NList().textAtom(meaning) );
      list.append( NList().textAtom(example) );
+     list.append( NList().textAtom(result) );
      list.append( NList().textAtom(remark) );
      return list;
    } 
@@ -464,6 +467,7 @@ class OperatorInfoRel : public SystemInfoRel
      addAttribute("Syntax", "text");
      addAttribute("Meaning", "text");
      addAttribute("Example", "text");
+     addAttribute("Result", "text");
      addAttribute("Remark", "text");
    } 
 }; 
