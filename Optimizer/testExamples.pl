@@ -1,18 +1,44 @@
-testExamplesV :- secondo('query SEC2OPERATORINFO feed filter[.Algebra = "StandardAlgebra"] sortby[Name asc] project[Name, Example, Result] consume', [_ | [ List | _ ]]), member([Name, Query, Result], List), 
-nl, write('============================================================='), 
-nl, write('Operator:        '), write(Name), 
-nl, write('Example:         '), write(Query),
-nl, write('ResultExample:   '), write(Result), 
+testExamplesV :- 
+  setAlgebras,
+  secondo('query SEC2OPERATORINFO feed 
+  filter[testAlgebras contains .Algebra]
+  sortby[Algebra asc, Name asc] project[Name, Example, Result] consume', 
+  [_ | [ List | _ ]]), member([Name, Query, Result], List), 
+  nl, write('============================================================='), 
+  nl, write('Operator:        '), write(Name), 
+  nl, write('Example:         '), write(Query),
+  nl, write('ResultExample:   '), write(Result), 
 	secondo(Query, [_, ResultQuery]),
-nl, write('ResultQuery:     '), write(ResultQuery), 
-checkEqual(Result, ResultQuery), fail.
+  nl, write('ResultQuery:     '), write(ResultQuery), 
+  checkEqual(Result, ResultQuery), 
+  fail.
 
 
 
 
-testExamples :- secondo('query SEC2OPERATORINFO feed filter[.Algebra = "StandardAlgebra"] sortby[Name asc] project[Name, Example, Result] consume', [_ | [ List | _ ]]), member([Name, Query, Result], List), 
-secondo(Query, [_, ResultQuery]),
-check(Name, Query, Result, ResultQuery), fail.
+testExamples :- 
+  setAlgebras,
+  secondo('query SEC2OPERATORINFO feed filter[testAlgebras contains .Algebra]   sortby[Algebra asc, Name asc] project[Name, Example, Result] consume',   
+  [_ | [ List | _ ]]), member([Name, Query, Result], List), 
+  secondo(Query, [_, ResultQuery]),
+  check(Name, Query, Result, ResultQuery), 
+  fail.
+
+
+setAlgebras :-
+  secondo('update testAlgebras := [const text value 
+	<text>StandardAlgebra, FunctionAlgebra</text--->]'), 
+  !.
+
+
+setAlgebras :-
+  secondo('let testAlgebras = [const text value 
+	<text>StandardAlgebra, FunctionAlgebra</text--->]').
+
+
+
+
+
 
 
 
