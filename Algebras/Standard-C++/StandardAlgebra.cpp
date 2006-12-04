@@ -3828,7 +3828,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccopkeywords );
     AddOperator( &ccopifthenelse );
     AddOperator( &ccbetween );
-    AddOperator( &ccelapsedtime );
+    //AddOperator( &ccelapsedtime );
     AddOperator( &ccldistance);
     AddOperator( &cchashvalue);
 
