@@ -78,12 +78,15 @@ all: jnicheck $(ALL_TARGETS)
 .PHONY: TTY 
 TTY: kernel
 
-
 .PHONY: kernel
 kernel: makedirs buildlibs buildalg buildapps
 
 .PHONY: linkonly
 linkonly: buildapps
+
+.PHONY: examples 
+examples:
+	make -C Algebras examples
 
 .PHONY: jnicheck
 jnicheck:

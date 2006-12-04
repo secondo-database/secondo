@@ -47,7 +47,9 @@ EXAMPLEFILES := $(wildcard $(addsuffix /*.examples, $(USED_ALGEBRA_DIRS) ))
 .PHONY: examples
 examples:
 	@if [ ! -d ../bin/tmp ]; then mkdir -p ../bin/tmp; fi
-	cp $(EXAMPLEFILES) ../bin/tmp
+	@if [ ! -d ../Optimizer/tmp ]; then mkdir -p ../Optimizer/tmp; fi
+	cp $(EXAMPLEFILES) ../bin/tmp 
+	cp $(EXAMPLEFILES) ../Optimizer/tmp 
 
 specs: specs.test
 	@chmod u+x *.awk
