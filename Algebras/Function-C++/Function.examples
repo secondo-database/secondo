@@ -1,0 +1,21 @@
+Operator : ANY2
+Number   : 1
+Signature: (t1 t2 ... tn) -> t1 -> t2
+Example  : query "type operator"
+Result   : "type operator"
+
+
+Operator : ANY
+Number   : 1
+Signature: (t1 t2 ... tn) -> t1
+Example  : query 17 within[fun(x: ANY) x * (x + 1)]
+Result   : 306
+
+
+Operator : within
+Number   : 1
+Signature: a x (a -> b) -> b
+Example  : query (7 + 5) within[. * .]
+Result   : 144
+
+
