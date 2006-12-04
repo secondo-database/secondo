@@ -133,10 +133,10 @@ OK  +                uT x uT --> bool
 OK  + not:             ubool --> ubool
 
   inside:
-n/a +      upoint x uregion --> (stream ubool)
-n/a +      upoint x    line --> (stream ubool)
-n/a +      upoint x  points --> (stream ubool)
-n/a +     uregion x  points --> (stream ubool)
+pre +      upoint x uregion --> (stream ubool)
+pre +      upoint x    line --> (stream ubool)
+pre +      upoint x  points --> (stream ubool)
+pre +     uregion x  points --> (stream ubool)
 
 n/a + mdirection:    upoint --> ureal
 
@@ -10568,10 +10568,14 @@ Operator temporalunituint2ureal
  );
 
 /*
-5.37 Operator ~initial~, ~final~
+5.37 Operator
 
 ----
-     (insert signature here)
+      inside:
+        pre +      upoint x uregion --> (stream ubool)
+        pre +      upoint x    line --> (stream ubool)
+        pre +      upoint x  points --> (stream ubool)
+        pre +     uregion x  points --> (stream ubool)
 
 ----
 
@@ -10579,29 +10583,269 @@ Operator temporalunituint2ureal
 */
 
 /*
-5.37.1 Type mapping function for ~~
+5.37.1 Type mapping function for ~inside~
 
 */
+ListExpr TemporalUnitInsideTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  string argstr;
+
+  if( nl->ListLength( args ) == 2 )
+    {
+      arg1 = nl->First( args );
+      arg2 = nl->Second( args );
+
+      if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "uregion") )
+        return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                                nl->SymbolAtom( "ubool" ));
+      if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "line") )
+        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                               nl->SymbolAtom( "ubool" ));
+      if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "points") )
+        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                               nl->SymbolAtom( "ubool" ));
+      if( nl->IsEqual( arg1, "uregion" ) && nl->IsEqual( arg2, "points") )
+        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                               nl->SymbolAtom( "ubool" ));
+    }
+
+  // Error case:
+  nl->WriteToString(argstr, args);
+  ErrorReporter::ReportError(
+    "Operator inside expects a list of length two with a certain signature. "
+    "But it gets '" + argstr + "'.");
+  return nl->SymbolAtom("typeerror");
+}
 
 /*
-5.37.2 Value mapping for operator ~~
+5.37.2 Value mapping for operator ~inside~
 
 */
+struct TUInsideLocalInfo
+{
+  bool finished;
+  int  NoOfResults;
+  int  NoOfResultsDelivered;
+  MBool *mbool;  // Used to store results
+};
+// case      upoint x uregion --> (stream ubool)
+int temporalUnitInside_up_ur( Word* args, Word& result, int message,
+                                    Word& local, Supplier s )
+{
+//  cout << "\nATTENTION: temporalUnitInside_up_ur "
+//       << "not yet implemented!" << endl;
+//  return 0;
+
+  // This implementation uses class-function
+  // void MRegion::Inside(MPoint& mp, MBool& res)
+  TUInsideLocalInfo *sli;
+  Word    a0, a1;
+  UPoint  *u;
+  URegion *r;
+  MPoint  mp_tmp(1);
+  MRegion mr_tmp(1);
+  const UBool* cu;
+
+  switch( message )
+    {
+    case OPEN:
+
+      if (TUA_DEBUG)
+        cerr << "temporalUnitInside_up_ur: Received OPEN"
+             << endl;
+
+      sli = new TUInsideLocalInfo;
+      sli->finished = true;
+      sli->NoOfResults = 0;
+      sli->NoOfResultsDelivered = 0;
+      sli->mbool = new MBool(10);
+      local = SetWord(sli);
+
+      // initialize arguments, such that a0 always contains the upoint
+      //                       and a1 the uregion
+      a0 = args[0];
+      a1 = args[1];
+      u = (UPoint*)(a0.addr);
+      r = (URegion*)(a1.addr);
+
+      // test for definedness
+      if ( !u->IsDefined() || !r->IsDefined() )
+        {
+          if (TUA_DEBUG)
+            cerr << "  Undef arg -> Empty Result" << endl << endl;
+          // nothing to do
+        }
+      else
+        {
+          mp_tmp.Clear();         // create temporary MPoint
+          mp_tmp.Add(*u);
+          mp_tmp.SetDefined(true);
+
+          mr_tmp.Clear();         // create temporary MRegion
+          //mr_tmp.StartBulkLoad();
+          mr_tmp.AddURegion(*r);
+          //mr_tmp.EndBulkLoad();
+          mr_tmp.SetDefined(true);
+          mr_tmp.Inside(mp_tmp, *(sli->mbool)); // get and save result;
+          sli->NoOfResults = sli->mbool->GetNoComponents();
+          sli->finished = (sli->NoOfResults <= 0);
+          if (TUA_DEBUG)
+            cerr << "  " << sli->NoOfResults << " result units" << endl << endl;
+        }
+      if (TUA_DEBUG)
+        cerr << "temporalUnitInside_up_ur: Finished OPEN"
+             << endl;
+      return 0;
+
+    case REQUEST:
+      if (TUA_DEBUG)
+        cerr << "temporalUnitInside_up_ur: Received REQUEST"
+             << endl;
+
+      if(local.addr == 0)
+        {
+          if (TUA_DEBUG)
+            cerr << "temporalUnitInside_up_ur: Finished REQUEST (1)"
+                 << endl;
+          return CANCEL;
+        }
+      sli = (TUInsideLocalInfo*) local.addr;
+      if(sli->finished)
+        {
+          if (TUA_DEBUG)
+            cerr << "temporalUnitInside_up_ur: Finished REQUEST (2)"
+                 << endl;
+          return CANCEL;
+        }
+      if(sli->NoOfResultsDelivered < sli->NoOfResults)
+        {
+          sli->mbool->Get(sli->NoOfResultsDelivered, cu);
+          result = SetWord( cu->Clone() );
+          sli->NoOfResultsDelivered++;
+          if (TUA_DEBUG)
+            cerr << "temporalUnitInside_up_ur: "
+                << "Finished REQUEST (YIELD)" << endl;
+          return YIELD;
+        }
+      sli->finished = true;
+      if (TUA_DEBUG)
+        cerr << "temporalUnitInside_up_ur: Finished REQUEST (3)"
+             << endl;
+      return CANCEL;
+
+    case CLOSE:
+
+      if (TUA_DEBUG)
+        cerr << "temporalUnitInside_up_ur: Received CLOSE"
+             << endl;
+      if (local.addr != 0)
+        {
+          sli = (TUInsideLocalInfo*) local.addr;
+          delete sli->mbool;
+          delete sli;
+        }
+      if (TUA_DEBUG)
+        cerr << "temporalUnitInside_up_ur: Finished CLOSE"
+             << endl;
+      return 0;
+    } // end switch
+
+  cerr << "temporalUnitInside_up_ur: Received UNKNOWN COMMAND"
+       << endl;
+  return 0;
+}
+
+// case      upoint x    line --> (stream ubool)
+int temporalUnitInside_up_l( Word* args, Word& result, int message,
+                                    Word& local, Supplier s )
+{
+  cout << "\nATTENTION: temporalUnitInside_up_l "
+       << "not yet implemented!" << endl;
+  return 0;
+}
+
+// case      upoint x  points --> (stream ubool)
+int temporalUnitInside_up_pts( Word* args, Word& result, int message,
+                                    Word& local, Supplier s )
+{
+  cout << "\nATTENTION: temporalUnitInside_up_pts "
+       << "not yet implemented!" << endl;
+  return 0;
+}
+
+// case      uregion x  points --> (stream ubool)
+int temporalUnitInside_ur_pts( Word* args, Word& result, int message,
+                                    Word& local, Supplier s )
+{
+  cout << "\nATTENTION: temporalUnitInside_ur_pts "
+       << "not yet implemented!" << endl;
+  return 0;
+}
 
 /*
-5.37.3 Specification for operator ~~
+5.37.3 Specification for operator ~inside~
 
 */
+
+const string  TemporalUnitInsideSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "("
+  "<text>"
+  "(upoint  uregion) -> (stream ubool)\n"
+  "(upoint     line) -> (stream ubool)*\n"
+  "(upoint   points) -> (stream ubool)*\n"
+  "(uregion  points) -> (stream ubool)*\n"
+  "(*):  Not yet implemented</text--->"
+  "<text>_ inside _</text--->"
+  "<text>Returns a stream of ubool indicating, whether the first "
+  "object is fully included by the second one.</text--->"
+  "<text>query upoint1 inside uregion1 count</text--->"
+  ") )";
 
 /*
-5.37.4 Selection Function of operator ~~
+5.37.4 Selection Function of operator ~inside~
 
 */
+ValueMapping temporalunitinsidemap[] =
+  {
+    temporalUnitInside_up_ur,
+    temporalUnitInside_up_l,
+    temporalUnitInside_up_pts,
+    temporalUnitInside_ur_pts
+  };
+
+int temporalunitInsideSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if( nl->IsEqual( arg1, "upoint" )   &&
+      nl->IsEqual( arg2, "uregion") )   return 0;
+  if( nl->IsEqual( arg1, "upoint" )    &&
+      nl->IsEqual( arg2, "line" ) )    return 1;
+  if( nl->IsEqual( arg1, "upoint" )   &&
+      nl->IsEqual( arg2, "points" ) )   return 2;
+  if( nl->IsEqual( arg1, "uregion" )  &&
+      nl->IsEqual( arg2, "points" ) )  return 3;
+
+  cerr << "ERROR: Unmatched case in temporalunitInsideSelect" << endl;
+  string argstr;
+  nl->WriteToString(argstr, args);
+  cerr << "       Argumets = '" << argstr << "'." << endl;
+  return -1;
+}
 
 /*
-5.37.5 Definition of operator ~~
+5.37.5 Definition of operator ~inside~
 
 */
+Operator temporalunitinside( "inside",
+                             TemporalUnitInsideSpec,
+                             4,
+                             temporalunitinsidemap,
+                             temporalunitInsideSelect,
+                             TemporalUnitInsideTypeMap);
 
 /*
 5.38 Operator ~~
@@ -10885,6 +11129,7 @@ public:
     AddOperator( &temporalunitatmax );
     AddOperator( &temporalunitatmin );
     AddOperator( &temporalunitintersection );
+    AddOperator( &temporalunitinside );
     AddOperator( &temporalunitpasses );
     AddOperator( &temporalunitget_duration );
     AddOperator( &temporalunittrajectory );

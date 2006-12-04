@@ -37,6 +37,7 @@ operator at alias AT pattern _ infixop _
 operator atmax alias ATMAX pattern op ( _ )
 operator atmin alias ATMIN pattern op ( _ )
 operator intersection alias INTERSECTION pattern op ( _ , _ )
+operator inside alias INSIDE pattern _ infixop _
 operator distance alias DISTANCE pattern op ( _ , _ )
 operator transformstream alias TRANSFORMSTREAM pattern _ op
 operator printstream alias PRINTSTREAM pattern _ op
