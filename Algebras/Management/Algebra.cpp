@@ -48,8 +48,8 @@ AlgebraManager *am;
 
 OperatorInfo::OperatorInfo( const string& opName, const string& specStr)
 { 
+  assert(nl);
   ListExpr spec = nl->Empty();
-
   nl->ReadFromString(specStr, spec);
   NList list(spec);
   if ( !list.hasLength(2) ) {
@@ -96,6 +96,17 @@ OperatorInfo::str() const {
   return spec; 
 }
 
+
+const ListExpr
+OperatorInfo::list() const { 
+
+  assert(nl);
+  ListExpr spec = nl->Empty();
+  nl->ReadFromString(str(), spec);
+  return spec;
+} 
+
+
 void 
 OperatorInfo::appendSignature(const string& sig) {
  
@@ -106,14 +117,14 @@ OperatorInfo::appendSignature(const string& sig) {
 /* Member functions of class Operator: */
 
 Operator::Operator( const string& nm,
-                    const string& spec,
+                    const string& specStr,
                     const int noF,
                     ValueMapping vms[],
                     SelectFunction sf,
                     TypeMapping tm )
 {
   name           = nm;
-  specString     = spec;
+  specString     = specStr;
   numOfFunctions = noF;
   selectFunc     = sf;
   valueMap       = new ValueMapping[numOfFunctions];
@@ -124,13 +135,13 @@ Operator::Operator( const string& nm,
 }
 
 Operator::Operator( const string& nm,
-                    const string& spec,
+                    const string& specStr,
                     ValueMapping vm,
                     SelectFunction sf,
                     TypeMapping tm )
 {
   name           = nm;
-  specString     = spec;
+  specString     = specStr;
   numOfFunctions = 1;
   selectFunc     = sf;
   valueMap       = new ValueMapping[1];
@@ -145,7 +156,8 @@ Operator::Operator( const OperatorInfo& oi,
 {
   // define member attributes
   name           = oi.name;
-  specString     = oi.str();  
+  specString     = oi.str();
+  spec           = oi;  
   numOfFunctions = 1;
   selectFunc     = SimpleSelect;
   valueMap       = new ValueMapping[1];
@@ -164,7 +176,8 @@ Operator::Operator( const OperatorInfo& oi,
   
   // define member attributes
   name           = oi.name;
-  specString     = oi.str();  
+  specString     = oi.str(); 
+  spec           = oi; 
   numOfFunctions = max;
   selectFunc     = sf;
   valueMap       = new ValueMapping[max];

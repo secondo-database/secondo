@@ -95,6 +95,7 @@ struct OperatorInfo {
  OperatorInfo( const string& opName, const string& specStr);
 
  const string str() const;
+ const ListExpr list() const;
 
  void appendSignature(const string& sig);
  
@@ -190,11 +191,19 @@ Defines a simple selection function for operators.
 Returns the name of the operator.
 
 */
-  inline const string& GetSpecString() const { return specString; }
-  inline OperatorInfo  GetOpInfo()     const { 
+  const ListExpr GetSpecList()   const { return spec.list(); }
+  const string&  GetSpecString() const { return specString; }
+
+  OperatorInfo  GetOpInfo() const 
+  { 
     return OperatorInfo(name, specString); 
   }
-  inline const string& Specification() const { return specString; }
+  
+  void SetOpInfo(const OperatorInfo& oi) 
+  { 
+     spec = oi;
+     specString = oi.str(); 
+  }
 
 /*
 Returns the specification string of the operator.
@@ -210,6 +219,7 @@ Adds a value mapping function to the list of overloaded operator functions.
 */
     string         name;           // Name of operator
     string         specString;     // Specification
+    OperatorInfo   spec;
     int            numOfFunctions; // No. overloaded functions
     SelectFunction selectFunc;
     ValueMapping*  valueMap; // Array of size numOfFunctions

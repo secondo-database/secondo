@@ -276,11 +276,7 @@ AlgebraManager::Ops( int algebraId, int operatorId )
 ListExpr
 AlgebraManager::Specs( int algebraId, int operatorId )
 {
-  ListExpr spec = nl->TheEmptyList();
-  nl->ReadFromString(
-        algebra[algebraId]->GetOperator( operatorId )->GetSpecString(),
-        spec );
-  return (spec);
+  return algebra[algebraId]->GetOperator( operatorId )->GetSpecList();
 }
 
 
