@@ -101,13 +101,6 @@ Example  : query 5 div 2
 Result   : 2
 
 
-Operator : elapsedtime
-Number   : 1
-Signature: (any type) ->  string.
-Example  : query plz feed elapsedtime
-Result   : crashes
-
-
 Operator : hashvalue
 Number   : 1
 Signature: T in DATA, y in int, T x y -> int
