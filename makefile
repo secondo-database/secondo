@@ -222,6 +222,7 @@ realclean: clean
 	rm -f $(CONFIG_FILES) makefile.algebras 
 	rm -f Documents/.Secondo-News.txt 
 	rm -rf bin/tmp
+	rm -rf Optimizer/tmp
 
 
 .PHONY: runtests
