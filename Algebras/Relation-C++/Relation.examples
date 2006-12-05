@@ -19,7 +19,7 @@ Example  : query Orte feed filter[attr(., BevT) > 500] count
 Result   : 13
 
 
-Operator : 
+Operator : attrsize
 Number   : 1
 Signature: stream|rel(tuple X) x ident -> real
 Example  : query Orte attrsize[Ort]
@@ -43,8 +43,8 @@ Result   : 41267
 Operator : dumpstream
 Number   : 1
 Signature: stream(tuple(y)) x string -> stream(tuple(y))
-Example  : query Staedte feed dumpstream["Staedte.txt", "|"] count
-Result   : 58
+Example  : query Staedte feed head[1] dumpstream["Staedte.txt", "|"] count
+Result   : 1
 
 
 Operator : extattrsize
