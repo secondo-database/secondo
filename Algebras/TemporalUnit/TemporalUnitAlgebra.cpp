@@ -3297,9 +3297,13 @@ TypeMapMakepoint( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "real" )
-       && nl->IsEqual( arg2, "real" ) )
-      return nl->SymbolAtom( "point" );
+    if( nl->IsEqual( arg1, "int" ) && nl->IsEqual( arg2, "int" ) )
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"), 
+               nl->OneElemList(nl->IntAtom(0)), nl->SymbolAtom("point") );
+
+    if( nl->IsEqual( arg1, "real" ) && nl->IsEqual( arg2, "real" ) )
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"), 
+               nl->OneElemList(nl->IntAtom(1)), nl->SymbolAtom("point") );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -3310,16 +3314,38 @@ TypeMapMakepoint( ListExpr args )
 */
 int MakePoint( Word* args, Word& result, int message, Word& local, Supplier s )
 {
+  CcInt* value1, *value2;
+  CcReal* value3, *value4;
+  bool paramtype;
 
   result = qp->ResultStorage( s );
-  CcReal* value1 = (CcReal*)args[0].addr;
-  CcReal* value2 = (CcReal*)args[1].addr;
+  if ( ((CcInt*)args[2].addr)->GetIntval() == 0 )
+  {
+    paramtype = false;
+    value1 = (CcInt*)args[0].addr;
+    value2 = (CcInt*)args[1].addr;
+  }
 
-  if ( !value1->IsDefined() || !value2->IsDefined() )
+  if ( ((CcInt*)args[2].addr)->GetIntval() == 1 )
+  {
+    paramtype = true;
+    value3 = (CcReal*)args[0].addr;
+    value4 = (CcReal*)args[1].addr;
+  }
+  if (paramtype)
+  {
+   if( !value3->IsDefined() || !value4->IsDefined() ) 
     ((Point*)result.addr)->SetDefined( false );
+   else   
+     ((Point*)result.addr)->Set(value3->GetRealval(),value4->GetRealval() );
+  }
   else
-    ((Point*)result.addr)->Set(value1->GetRealval(),value2->GetRealval() );
-
+  {
+   if( !value1->IsDefined() || !value2->IsDefined() ) 
+    ((Point*)result.addr)->SetDefined( false );
+   else   
+     ((Point*)result.addr)->Set(value1->GetIntval(),value2->GetIntval() );
+  }
   return 0;
 }
 
@@ -3330,10 +3356,10 @@ int MakePoint( Word* args, Word& result, int message, Word& local, Supplier s )
 const string
 TemporalSpecMakePoint =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>real x real -> point</text--->"
-"<text>makepoint ( _ ) </text--->"
+"( <text>int x int -> point, real x real -> point</text--->"
+"<text>makepoint ( _, _ ) </text--->"
 "<text>create a point from two "
-"given real coordinates.</text--->"
+"given real or integer coordinates.</text--->"
 "<text>makepoint (5.0,5.0)</text---> ) )";
 
 /*
