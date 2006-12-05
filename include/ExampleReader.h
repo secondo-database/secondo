@@ -70,7 +70,8 @@ struct ExampleInfo {
 
 class ExampleReader {
 
-  typedef enum {Operator, Number, Signature, Example, Result} Token; 
+  typedef enum { Database, Restore, Operator, 
+                 Number, Signature, Example, Result} Token; 
 
   bool debug;
   int lineCtr;
@@ -78,6 +79,9 @@ class ExampleReader {
   string lineRest;
   string algName;
   string fileName;
+  string database;
+  bool restore;
+
   size_t pos;
   Token expected;
   map<Token, string> tokendef; 
@@ -177,7 +181,7 @@ a*bc* with single characters a,b and c.
 
   public:
   ExampleReader(const string& file, const string& algebra="") 
-    : expected(Operator) 
+    : expected(Database) 
   {
     
     lineCtr = 0;
@@ -185,8 +189,12 @@ a*bc* with single characters a,b and c.
     lineRest="";
     fileName = WinUnix::MakePath(file);
     algName=algebra;
+    database="";
+    restore=false;
 
     debug = RTFlag::isActive("SI:ExampleParser:Debug");
+    tokendef[Database]  = "Database";
+    tokendef[Restore]   = "Restore";
     tokendef[Operator]  = "Operator";
     tokendef[Number]    = "Number";
     tokendef[Signature] = "Signature";
@@ -226,6 +234,25 @@ a*bc* with single characters a,b and c.
 
       switch (expected) {
   
+      case Database: { 
+        
+          if (!match(Database))
+            return false;
+          expected = Restore;
+          database = lineRest;
+          break;
+       }
+
+      case Restore: { 
+        
+          if (!match(Restore))
+            return false;
+          expected = Operator;
+          restore = (lineRest.find("Yes") != string::npos);
+          break;
+       }
+
+
        case Operator: { 
         
           if (stream.eof())
