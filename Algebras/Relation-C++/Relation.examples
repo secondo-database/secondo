@@ -19,7 +19,7 @@ Example  : query Orte feed filter[attr(., BevT) > 500] count
 Result   : 13
 
 
-Operator : attrsize
+Operator : 
 Number   : 1
 Signature: stream|rel(tuple X) x ident -> real
 Example  : query Orte attrsize[Ort]
@@ -50,91 +50,91 @@ Result   : 58
 Operator : extattrsize
 Number   : 1
 Signature: stream|rel(tuple X) x ident -> real
-Example  : query cities extattrsize[loc] or query cities feed extattrsize[loc]
-Result   : 
+Example  : query Trains extattrsize[Trip]
+Result   : 48
 
 
 Operator : exttuplesize
 Number   : 1
 Signature: ((stream/rel (tuple x))) -> real
-Example  : query cities exttuplesize or query cities feed exttuplesize
-Result   : 
+Example  : query Trains exttuplesize
+Result   : 80
 
 
 Operator : feed
 Number   : 1
 Signature: (rel x) -> (stream x)
-Example  : query cities feed consume
-Result   : 
+Example  : query Orte feed count
+Result   : 506
 
 
 Operator : filter
 Number   : 1
 Signature: ((stream x) (map x bool)) -> (stream x)
-Example  : query cities feed filter [.population > 500000] consume
-Result   : 
+Example  : query Orte feed filter[.BevT > 200] count
+Result   : 39
 
 
 Operator : mconsume
 Number   : 1
 Signature: (stream tuple(x)) -> (mrel mtuple(x))
-Example  : query cities feed mconsume
-Result   : 
+Example  : query Staedte feed mconsume count
+Result   : 58
 
 
 Operator : product
 Number   : 1
 Signature: ((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))) -> (stream (tuple (x1 ... xn y1 ... ym)))
-Example  : query ten feed twenty feed product count
-Result   : 
+Example  : query ten feed Staedte feed product count
+Result   : 580
 
 
 Operator : project
 Number   : 1
 Signature: ((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream (tuple ((ai1 Ti1) ... (aik Tik))))
-Example  : query cities feed project[cityname, population] consume
-Result   : 
+Example  : query Staedte feed project[SName, Bev] consume count
+Result   : 58
 
 
 Operator : reduce
 Number   : 1
 Signature: stream(tuple(y)) x (stream(tuple(y)) -> bool) x int -> stream(tuple(y))
-Example  : plz feed reduce[.PLZ > 50000, 2] count
-Result   : 
+Example  : query plz feed reduce[.PLZ > 50000, 2] count
+Result   : 31368
 
 
 Operator : rename
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn)))ar) -> (stream (tuple([a1ar:d1, ... ,anar:dn)))
-Example  : query ten feed rename [ r1 ] consume or query ten feed {r1} consume, the result has format e.g. n_r1
-Result   : 
+Example  : query ten feed rename[t1] consume count
+Result   : 10
 
 
 Operator : rootattrsize
 Number   : 1
 Signature: stream|rel(tuple X) x ident -> int
-Example  : query cities rootattrsize[loc] or query cities feed rootattrsize[loc]
-Result   : 
+Example  : query Trains rootattrsize[Trip]
+Result   : 48
 
 
 Operator : roottuplesize
 Number   : 1
 Signature: ((stream|rel (tuple x))) -> int
-Example  : query cities roottuplesize or query cities feed roottuplesize
-Result   : 
+Example  : query Trains feed project[Id, Trip] roottuplesize
+Result   : 60
 
 
 Operator : sizecounters
 Number   : 1
 Signature: stream(tuple(y)) x string -> stream(tuple(y))
-Example  : plz feed sizecounters["plz"] count
-Result   : 
+Example  : query plz feed sizecounters["plz"] count
+Result   : 41267
 
 
 Operator : tuplesize
 Number   : 1
 Signature: ((stream/rel (tuple x))) -> real
-Example  : query cities tuplesize or query cities feed tuplesize
-Result   : 
+Example  : query Trains tuplesize
+Result   : 11898.9
 
 
