@@ -2058,11 +2058,11 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
       if (secOk) { // use example of the .examples file 
         t.example = ex2.example;
         oi. example = ex2.example;
-        am->getOperator( algId, opId )->SetOpInfo(oi);
       } else { // use spec as given in the *.cpp file
         t.example = oi.example;
         t.remark = "Yields Secondo Parse Error!";
       } 
+      am->getOperator( algId, opId )->SetOpInfo(oi);
 
       r->append(&t, false);
       // to do: Appending more examples for the same operator!
