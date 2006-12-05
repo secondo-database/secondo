@@ -11071,27 +11071,33 @@ int
 SpatialComponents_ps( Word* args, Word& result, int message, 
                       Word& local, Supplier s )
 {
+  Points *localInfo;
+
   switch( message )
   {
     case OPEN:
-      local.addr = ((Points*)args[0].addr);
-      ((Points*)local.addr)->SelectFirst();
+      localInfo = new Points(*((Points*)args[0].addr));
+      localInfo->SelectFirst();
+      local = SetWord(localInfo);
       return 0;
 
     case REQUEST:
     {
-      Points *ps = (Points*)local.addr;
-      if( ps->EndOfPt() )
-        return CANCEL;
+      localInfo = (Points*)local.addr;
+      if(localInfo->EndOfPt() ){
+        return CANCEL;}
 
       const Point *p;
-      ps->GetPt( p );
+      localInfo->GetPt( p );
       result.addr = new Point( *p );
-      ps->SelectNext();
+      localInfo->SelectNext();
+      local = SetWord(localInfo);
       return YIELD;
     }
 
     case CLOSE:
+      localInfo = (Points*)local.addr;
+      delete localInfo;
       return 0;
   }
   return 0;
@@ -11104,8 +11110,41 @@ SpatialComponents_ps( Word* args, Word& result, int message,
 int SpatialVertices_r(Word* args, Word& result, int message, 
                       Word& local, Supplier s )
 {
+
+/*void Region::Vertices( Points& result ) const
+{
+  assert( IsOrdered() );
+
+  result.Clear();
+  if( IsEmpty() )
+    return;
+
+  const HalfSegment* hs;
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, hs );
+    if( hs->IsLeftDomPoint() )
+      result += hs->GetLeftPoint();
+  }
+  result.EndBulkLoad( false, true );
+}*/
+
   result = qp->ResultStorage(s);
-  ((Region*)args[0].addr)->Vertices( *(Points*) result.addr );
+  Region* reg = (Region*)args[0].addr;
+  assert( reg->IsOrdered() );
+  ((Points*)result.addr)->Clear();
+  if ( reg->IsEmpty() ) 
+    return 0;  
+  const HalfSegment* hs;
+  for( int i = 0; i < reg->Size(); i++ )
+  {
+    reg->Get( i, hs );
+    if( hs->IsLeftDomPoint() )
+      (*((Points*)result.addr)) += hs->GetLeftPoint();
+  }
+  ((Points*)result.addr)->EndBulkLoad( false, true);
+
+  //((Region*)args[0].addr)->Vertices( *(Points*) result.addr );
   return 0;
 }
 
