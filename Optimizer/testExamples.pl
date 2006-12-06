@@ -1,4 +1,12 @@
-testExamplesV :- 
+selftest :-
+  prepare,
+  testExamples.
+
+selftestV :-
+  prepare,
+  testExamplesV.
+
+testExamplesV :-
   secondo('query SEC2OPERATORINFO feed TestAlgebras feed 
   hashjoin[Algebra, Alg, 9997] sortby[AlgNo asc, Name asc] 
   project[Name, Example, Result] consume', 
@@ -15,7 +23,7 @@ testExamplesV :-
 
 
 
-testExamples :- 
+testExamples :-
   secondo('query SEC2OPERATORINFO feed TestAlgebras feed 
   hashjoin[Algebra, Alg, 9997] sortby[AlgNo asc, Name asc] 
   project[Name, Example, Result] consume',   
@@ -24,6 +32,22 @@ testExamples :-
   secondo(Query, [_, ResultQuery]),
   checkResults(Name, Query, Result, ResultQuery), 
   fail.
+
+
+
+prepare :- 
+  databaseName('berlintest'),
+  !.
+
+prepare :-
+  notIsDatabaseOpen,
+  secondo('open database berlintest'),
+  !.
+
+prepare :-
+  isDatabaseOpen,
+  secondo('close database'),
+  secondo('open database berlintest').
 
 
 
