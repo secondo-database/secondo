@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -40,7 +40,7 @@ calculation of random numbers in an specified range was revised according to the
 recommendations documented in the rand() manpage.
 
 July 08, 2004. M. Spiekermann changed the IN-function of data type ~real~.
-Integer atoms are now also accepted. 
+Integer atoms are now also accepted.
 
 November 2004. M. Spiekermann. Some small functions were moved to the header
 file in order to implement them as inline functions.
@@ -57,9 +57,12 @@ January 2006, M. Spiekermann new operator ~elapsedtime~ implemented.
 May 2006, M. Spiekermann new operator ~setoption~ implemented.
 
 May 11, 2006, M. Spiekermann. Most of the value mappings are replaced by template
-functions using the generic ~Compare~ function. This reduces the code a lot 
-(about 400 lines of code) and there are still some functions left which may 
-be replaced by template implementations. 
+functions using the generic ~Compare~ function. This reduces the code a lot
+(about 400 lines of code) and there are still some functions left which may
+be replaced by template implementations.
+
+December 06, 2006 C. Duentgen added operators int2real, real2int, int2bool, bool2int,
+ceil, floor.7
 
 \begin{center}
 \footnotesize
@@ -128,16 +131,16 @@ Following operators are defined:
 ----
 
 Computes a random integer within the range [0, arg-1]. The argument must be
-greater than 0. Otherwise it is set to 2. 
+greater than 0. Otherwise it is set to 2.
 
   * seqinit
   * seqnext
 
-----    int -> bool 
+----    int -> bool
             -> int
 ----
 The seqinit operator can be used to create
-sequences of numbers starting by arg. The n-th call of seqnext will return arg+n-1 
+sequences of numbers starting by arg. The n-th call of seqnext will return arg+n-1
 
   * log
 
@@ -173,6 +176,35 @@ it).
 ----    bool x bool --> bool
 ----
 
+  * int2real
+
+----    int --> real
+----
+
+  * real2int
+
+----   real --> int
+----
+
+  * int2bool
+
+----   int --> bool
+----
+
+  * bool2int
+
+----   boot --> int
+----
+
+  * ceil
+
+----  real --> real
+----
+
+  * floor
+
+----  real --> real
+----
 
 2 Includes
 
@@ -292,7 +324,7 @@ and a pointer to a value of this type. The representation of this value in
 nested list format is returned.
 
 For the simple types int, real, string, bool we don't use the type description at all. We will need it in the case of more complex type constructors,
-e.g. to be able to compute the nested list representation of a tuple value 
+e.g. to be able to compute the nested list representation of a tuple value
 we must know the types of the respective attribute values.
 
 */
@@ -328,7 +360,7 @@ InCcInt( ListExpr typeInfo, ListExpr value,
     correct = true;
     return (SetWord( new CcInt( true, nl->IntValue( value ) ) ));
   }
-  else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType 
+  else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
         && nl->SymbolValue( value ) == "undef" )
   {
     correct = true;
@@ -467,16 +499,16 @@ InCcReal( ListExpr typeInfo, ListExpr value,
     correct = true;
     return (SetWord( new CcReal( true, nl->RealValue( value ) )));
   }
-  else if ( isAtom && nodeType == SymbolType 
+  else if ( isAtom && nodeType == SymbolType
         && nl->SymbolValue( value ) == "undef" )
   {
     correct = true;
     return (SetWord( new CcReal( false, 0.0) ));
-  } 
+  }
   else if ( isAtom && nodeType == IntType  )
   {
     return ( SetWord( new CcReal( true, 1.0 * nl->IntValue(value) )));
-    correct = true;    
+    correct = true;
   }
   else
   {
@@ -624,7 +656,7 @@ InCcBool( ListExpr typeInfo, ListExpr value,
     correct = true;
     return (SetWord( new CcBool( true, nl->BoolValue( value ) ) ));
   }
-  else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType 
+  else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
         && nl->SymbolValue( value ) == "undef" )
   {
     correct = true;
@@ -697,7 +729,7 @@ TypeConstructor ccBool( "bool",             CcBoolProperty,
                         CreateCcBool,       DeleteCcBool,
                         0,                  0,
                         CloseCcBool,        CloneCcBool,
-                        CastBool,           SizeOfCcBool,  CheckBool ); 
+                        CastBool,           SizeOfCcBool,  CheckBool );
 
 /*
 3.5 Type constructor *CcString*
@@ -790,7 +822,7 @@ InCcString( ListExpr typeInfo, ListExpr value,
     string s = nl->StringValue( value );
     return (SetWord( new CcString( true, (STRING*)s.c_str() ) ));
   }
-  else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType 
+  else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
         && nl->SymbolValue( value ) == "undef" )
   {
     correct = true;
@@ -1000,9 +1032,10 @@ CcMathTypeMap2( ListExpr args )
 }
 
 /*
-4.2.4 Type mapping functions IntInt, IntBool and EmptyInt
+4.2.4 Type mapping functions IntInt, IntBool, BoolInt and EmptyInt
 
 Used for operators ~randint~, ~randmax~, ~initseq~, ~nextseq~ and ~log~.
+And for ~int2bool~, ~bool2int~.
 
 */
 
@@ -1032,6 +1065,31 @@ RealReal( ListExpr args )
   return (nl->SymbolAtom( "typeerror" ));
 }
 
+ListExpr
+RealInt( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if ( nl->IsEqual( arg1, "real" ) )
+      return (nl->SymbolAtom( "int" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+ListExpr
+IntReal( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if ( nl->IsEqual( arg1, "int" ) )
+      return (nl->SymbolAtom( "real" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
 
 ListExpr
 IntBool( ListExpr args )
@@ -1056,7 +1114,18 @@ EmptyInt( ListExpr args )
   }
 }
 
-
+ListExpr
+BoolInt( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if ( nl->IsEqual( arg1, "bool" ) )
+      return (nl->SymbolAtom( "int" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
 
 /*
 4.2.5 Type mapping function CcMathTypeMapBool
@@ -1212,11 +1281,11 @@ SubStrTypeMap( ListExpr args )
     ListExpr arg1 = nl->First( args );
     ListExpr arg2 = nl->Second( args );
     ListExpr arg3 = nl->Third( args );
-   
+
     if (    (TypeOfSymbol( arg1 ) == ccstring)
-         && (TypeOfSymbol( arg2 ) == ccint)   
-         && (TypeOfSymbol( arg3 ) == ccint)   
-        ) 
+         && (TypeOfSymbol( arg2 ) == ccint)
+         && (TypeOfSymbol( arg3 ) == ccint)
+        )
     {
       return (nl->SymbolAtom( "string" ));
     }
@@ -1260,12 +1329,12 @@ Type mapping for ~keywords~ is
 ListExpr
 keywordsType( ListExpr args ){
   ListExpr arg;
-  
+
   if ( nl->ListLength(args) == 1 )
   {
     arg = nl->First(args);
     if ( nl->IsEqual(arg, "string") )
-      return nl->TwoElemList(nl->SymbolAtom("stream"), 
+      return nl->TwoElemList(nl->SymbolAtom("stream"),
         nl->SymbolAtom("string"));
   }
   return nl->SymbolAtom("typeerror");
@@ -1282,7 +1351,7 @@ Type mapping for ~ifthenelse~ is
 */
 ListExpr ifthenelseType(ListExpr args)
 {
-  ListExpr arg1, arg2, arg3, 
+  ListExpr arg1, arg2, arg3,
            errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
   if ( nl->ListLength( args ) == 3 )
@@ -1297,9 +1366,9 @@ ListExpr ifthenelseType(ListExpr args)
                 ->CheckKind("DATA", arg2, errorInfo) &&
         SecondoSystem::GetAlgebraManager()
                 ->CheckKind("DATA", arg3, errorInfo) )
-    {    
+    {
       return arg2;
-    }  
+    }
   }
   ErrorReporter::ReportError("Incorrect input for operator ifthenelse.");
   return (nl->SymbolAtom( "typeerror" ));
@@ -1353,16 +1422,16 @@ CcHashValueTypeMap( ListExpr args )
 {
   ListExpr arg1, arg2,
            errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-  
+
   CHECK_COND(nl->ListLength(args) == 2,
   "Operator hasvalue expects a list of length two.");
-  
+
   arg1 = nl->First( args );
   arg2 = nl->Second( args );
-  
+
   CHECK_COND(am->CheckKind("DATA", arg1, errorInfo),
   "Object type of first argument does not belong to kind DATA!");
-  
+
   CHECK_COND(TypeOfSymbol( arg2 ) == ccint,
   "Object type of second argument must be int!");
 
@@ -1371,12 +1440,12 @@ CcHashValueTypeMap( ListExpr args )
 
 /*
 4.2.15 Type mapping function for the ~ldistance~ operator:
- 
+
 Type mapping for ~ldistance~ is string x string [->] int
 
 
 */
- 
+
 ListExpr CcLDistTypeMap(ListExpr args){
    if(nl->ListLength(args)!=2){
        ErrorReporter::ReportError("two arguments expected\n");
@@ -1649,7 +1718,7 @@ CcPlus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
   // extract arguments
   CcString* wstr1 = reinterpret_cast<CcString*>( args[0].addr );
   CcString* wstr2 = reinterpret_cast<CcString*>( args[1].addr );
-  
+
   string str1 = reinterpret_cast<const char*>( wstr1->GetStringval() );
   string str2 = reinterpret_cast<const char*>( wstr2->GetStringval() );
 
@@ -1965,10 +2034,10 @@ CcDiv( Word* args, Word& result, int message, Word& local, Supplier s )
 int randint(int u)      //Computes a random integer in the range 0..u-1,
                         //for u >= 2
 {
-  if ( u < 2 ) {u=2; srand ( time(NULL) );} 
+  if ( u < 2 ) {u=2; srand ( time(NULL) );}
         // For u < 2 also initialize the random number generator
-  // rand creates a value between [0,RAND_MAX]. The calculation procedure 
-  // below is recommended in the manpage of the rand() function. 
+  // rand creates a value between [0,RAND_MAX]. The calculation procedure
+  // below is recommended in the manpage of the rand() function.
   // Using rand() % u will yield poor results.
   return (int) ( (float)u * rand()/(RAND_MAX+1.0) );
 }
@@ -2065,27 +2134,27 @@ LogFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-template<class T> 
+template<class T>
 int
 CcLess( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   const T* a = static_cast<const T*>( args[0].addr );
   const T* b = static_cast<const T*>( args[1].addr );
-  
+
   ((CcBool *)result.addr)->Set( true, a->Compare(b) == -1 );
   return (0);
 }
 
-template<class T> 
+template<class T>
 int
 CcGreater( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   const T* a = static_cast<const T*>( args[0].addr );
   const T* b = static_cast<const T*>( args[1].addr );
-  
-  ((CcBool *)result.addr)->Set( true, a->Compare(b) == 1 ); 
+
+  ((CcBool *)result.addr)->Set( true, a->Compare(b) == 1 );
   return (0);
 }
 
@@ -2096,8 +2165,8 @@ CcEqual( Word* args, Word& result, int message, Word& local, Supplier s )
   result = qp->ResultStorage( s );
   const T* a = static_cast<const T*>( args[0].addr );
   const T* b = static_cast<const T*>( args[1].addr );
-  
-  ((CcBool *)result.addr)->Set( true, a->Compare(b) == 0 ); 
+
+  ((CcBool *)result.addr)->Set( true, a->Compare(b) == 0 );
   return (0);
 }
 
@@ -2134,8 +2203,8 @@ CcLessEqual( Word* args, Word& result, int message, Word& local, Supplier s )
   result = qp->ResultStorage( s );
   const T* a = static_cast<const T*>( args[0].addr );
   const T* b = static_cast<const T*>( args[1].addr );
-  
-  ((CcBool *)result.addr)->Set( true, a->Compare(b) <= 0 ); 
+
+  ((CcBool *)result.addr)->Set( true, a->Compare(b) <= 0 );
   return (0);
 }
 
@@ -2199,8 +2268,8 @@ CcGreaterEqual( Word* args, Word& result, int message, Word& local, Supplier s )
   result = qp->ResultStorage( s );
   const T* a = static_cast<const T*>( args[0].addr );
   const T* b = static_cast<const T*>( args[1].addr );
-  
-  ((CcBool *)result.addr)->Set( true, a->Compare(b) >= 0 ); 
+
+  ((CcBool *)result.addr)->Set( true, a->Compare(b) >= 0 );
   return (0);
 }
 
@@ -2208,7 +2277,7 @@ CcGreaterEqual( Word* args, Word& result, int message, Word& local, Supplier s )
 
 template<class S, class T>
 int
-CcGreaterEqual2( Word* args, Word& result, int message, Word& local, 
+CcGreaterEqual2( Word* args, Word& result, int message, Word& local,
                  Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2266,8 +2335,8 @@ CcDiff( Word* args, Word& result, int message, Word& local, Supplier s )
   result = qp->ResultStorage( s );
   const T* a = static_cast<const T*>( args[0].addr );
   const T* b = static_cast<const T*>( args[1].addr );
-  
-  ((CcBool *)result.addr)->Set( true, a->Compare(b) != 0 ); 
+
+  ((CcBool *)result.addr)->Set( true, a->Compare(b) != 0 );
   return (0);
 }
 
@@ -2361,7 +2430,7 @@ SubStrFun( Word* args, Word& result, int message, Word& local, Supplier s )
   CcString* wstr = reinterpret_cast<CcString*>( args[0].addr );
   CcInt* wpos1 = reinterpret_cast<CcInt*>( args[1].addr );
   CcInt* wpos2 = reinterpret_cast<CcInt*>( args[2].addr );
-  
+
   string str1 = reinterpret_cast<const char*>( wstr->GetStringval() );
   int p1 = wpos1->GetIntval();
   int p2 = wpos2->GetIntval();
@@ -2369,12 +2438,12 @@ SubStrFun( Word* args, Word& result, int message, Word& local, Supplier s )
   CcString* wres = reinterpret_cast<CcString*>( result.addr );
 
   // compute result value
-  if (    wstr->IsDefined() 
-       && wpos1->IsDefined() 
-       && wpos2->IsDefined() 
+  if (    wstr->IsDefined()
+       && wpos1->IsDefined()
+       && wpos2->IsDefined()
        && (p2 >= p1) && (p1 >= 1) )
   {
-    int n = min( static_cast<long unsigned int>(p2-p1), 
+    int n = min( static_cast<long unsigned int>(p2-p1),
         static_cast<long unsigned int>(str1.length()-p1) );
     wres->Set( true, (STRING*)(str1.substr(p1-1, n+1).c_str()) );
   }
@@ -2421,7 +2490,7 @@ AndFun( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( (((CcBool*)args[0].addr)->IsDefined() &&
         ((CcBool*)args[1].addr)->IsDefined()) )
   {
-    ((CcBool*)result.addr)->Set( true, 
+    ((CcBool*)result.addr)->Set( true,
         ((CcBool*)args[0].addr)->GetBoolval() &&
                        ((CcBool*)args[1].addr)->GetBoolval() );
   }
@@ -2444,7 +2513,7 @@ OrFun( Word* args, Word& result, int message, Word& local, Supplier s )
   if( ((CcBool*)args[0].addr)->IsDefined() &&
       ((CcBool*)args[1].addr)->IsDefined() )
   {
-    ((CcBool*)result.addr)->Set( true, 
+    ((CcBool*)result.addr)->Set( true,
         ((CcBool*)args[0].addr)->GetBoolval() ||
                   ((CcBool*)args[1].addr)->GetBoolval() );
   }
@@ -2503,7 +2572,7 @@ UpperFun( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   else
   {
-      ((CcString *)result.addr)->Set( false, 
+      ((CcString *)result.addr)->Set( false,
         ((CcString*)args[0].addr)->GetStringval());
   }
   return (0);
@@ -2515,17 +2584,17 @@ UpperFun( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 int
-CcSetIntersection_ii( Word* args, Word& result, int message, Word& local, 
+CcSetIntersection_ii( Word* args, Word& result, int message, Word& local,
         Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((CcInt*)args[0].addr)->IsDefined() &&
        ((CcInt*)args[1].addr)->IsDefined() )
   {
-    if( ((CcInt*)args[0].addr)->GetIntval() 
+    if( ((CcInt*)args[0].addr)->GetIntval()
         == ((CcInt*)args[1].addr)->GetIntval() )
     {
-      ((CcInt *)result.addr)->Set( true, 
+      ((CcInt *)result.addr)->Set( true,
         ((CcInt*)args[0].addr)->GetIntval() );
       return (0);
     }
@@ -2535,17 +2604,17 @@ CcSetIntersection_ii( Word* args, Word& result, int message, Word& local,
 }
 
 int
-CcSetIntersection_rr( Word* args, Word& result, int message, Word& local, 
+CcSetIntersection_rr( Word* args, Word& result, int message, Word& local,
         Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((CcReal*)args[0].addr)->IsDefined() &&
        ((CcReal*)args[1].addr)->IsDefined() )
   {
-    if( ((CcReal*)args[0].addr)->GetRealval() 
+    if( ((CcReal*)args[0].addr)->GetRealval()
         == ((CcReal*)args[1].addr)->GetRealval() )
     {
-      ((CcReal *)result.addr)->Set( true, 
+      ((CcReal *)result.addr)->Set( true,
         ((CcReal*)args[0].addr)->GetRealval() );
       return (0);
     }
@@ -2555,17 +2624,17 @@ CcSetIntersection_rr( Word* args, Word& result, int message, Word& local,
 }
 
 int
-CcSetIntersection_bb( Word* args, Word& result, int message, Word& local, 
+CcSetIntersection_bb( Word* args, Word& result, int message, Word& local,
         Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((CcBool*)args[0].addr)->IsDefined() &&
        ((CcBool*)args[1].addr)->IsDefined() )
   {
-    if( ((CcBool*)args[0].addr)->GetBoolval() 
+    if( ((CcBool*)args[0].addr)->GetBoolval()
         == ((CcBool*)args[1].addr)->GetBoolval() )
     {
-      ((CcBool*)result.addr)->Set( true, 
+      ((CcBool*)result.addr)->Set( true,
         ((CcBool*)args[0].addr)->GetBoolval() );
       return (0);
     }
@@ -2575,17 +2644,17 @@ CcSetIntersection_bb( Word* args, Word& result, int message, Word& local,
 }
 
 int
-CcSetIntersection_ss( Word* args, Word& result, int message, Word& local, 
+CcSetIntersection_ss( Word* args, Word& result, int message, Word& local,
         Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((CcString*)args[0].addr)->IsDefined() &&
        ((CcString*)args[1].addr)->IsDefined() )
   {
-    if( strcmp( *((CcString*)args[0].addr)->GetStringval(), 
+    if( strcmp( *((CcString*)args[0].addr)->GetStringval(),
         *((CcString*)args[1].addr)->GetStringval() ) == 0 )
     {
-      ((CcString*)result.addr)->Set( true, 
+      ((CcString*)result.addr)->Set( true,
         ((CcString*)args[0].addr)->GetStringval() );
       return (0);
     }
@@ -2607,7 +2676,7 @@ CcSetMinus_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( ((CcInt*)args[0].addr)->IsDefined() &&
        ((CcInt*)args[1].addr)->IsDefined() )
   {
-    if( ((CcInt*)args[0].addr)->GetIntval() 
+    if( ((CcInt*)args[0].addr)->GetIntval()
         == ((CcInt*)args[1].addr)->GetIntval() )
     {
       ((CcInt *)result.addr)->Set( false, 0 );
@@ -2625,7 +2694,7 @@ CcSetMinus_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( ((CcReal*)args[0].addr)->IsDefined() &&
        ((CcReal*)args[1].addr)->IsDefined() )
   {
-    if( ((CcReal*)args[0].addr)->GetRealval() 
+    if( ((CcReal*)args[0].addr)->GetRealval()
         == ((CcReal*)args[1].addr)->GetRealval() )
     {
       ((CcReal *)result.addr)->Set( false, 0.0 );
@@ -2643,7 +2712,7 @@ CcSetMinus_bb( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( ((CcBool*)args[0].addr)->IsDefined() &&
        ((CcBool*)args[1].addr)->IsDefined() )
   {
-    if( ((CcBool*)args[0].addr)->GetBoolval() 
+    if( ((CcBool*)args[0].addr)->GetBoolval()
         == ((CcBool*)args[1].addr)->GetBoolval() )
     {
       ((CcBool *)result.addr)->Set( false, false );
@@ -2661,7 +2730,7 @@ CcSetMinus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( ((CcString*)args[0].addr)->IsDefined() &&
        ((CcString*)args[1].addr)->IsDefined() )
   {
-    if( strcmp( *((CcString*)args[0].addr)->GetStringval(), 
+    if( strcmp( *((CcString*)args[0].addr)->GetStringval(),
         *((CcString*)args[1].addr)->GetStringval() ) == 0 )
     {
       STRING nullStr = "";
@@ -2669,7 +2738,7 @@ CcSetMinus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
       return (0);
     }
   }
-  ((CcString*)result.addr)->Set( true, 
+  ((CcString*)result.addr)->Set( true,
         ((CcString*)args[0].addr)->GetStringval() );
   return (0);
 }
@@ -2690,7 +2759,7 @@ RelcountFun( Word* args, Word& result, int message, Word& local, Supplier s )
   bool evaluable    = false;
   bool defined      = false;
   bool isFunction   = false;
-  
+
   result = qp->ResultStorage( s );
 
   if ( ((CcString*)args[0].addr)->IsDefined() )
@@ -2699,15 +2768,15 @@ RelcountFun( Word* args, Word& result, int message, Word& local, Supplier s )
     relname = (char*)(((CcString*)args[0].addr)->GetStringval());
     string querystring = "(count(feed " + (string)relname + "))";
     nl->ReadFromString(querystring, queryList);
-   
+
     // construct the operator tree within a new query processor instance
-    // NOTE: variable name for this instance must differ from qp 
+    // NOTE: variable name for this instance must differ from qp
     qpp = new QueryProcessor( nl, SecondoSystem::GetAlgebraManager() );
-    qpp->Construct( queryList, correct, 
+    qpp->Construct( queryList, correct,
                     evaluable, defined, isFunction, tree, resultType );
     if ( !defined )
     {
-      cout << "object value is undefined" << endl;         
+      cout << "object value is undefined" << endl;
     }
     else if ( correct )
     {
@@ -2722,7 +2791,7 @@ RelcountFun( Word* args, Word& result, int message, Word& local, Supplier s )
         resultList = nl->TwoElemList( resultType, valueList );
 
         // set the result value and destroy the operator tree
-        ((CcInt *)result.addr)->Set ( true, 
+        ((CcInt *)result.addr)->Set ( true,
           nl->IntValue(nl->Second(resultList)) );
         qpp->Destroy( tree, false );
       }
@@ -2749,7 +2818,7 @@ RelcountFun2( Word* args, Word& result, int message, Word& local, Supplier s )
   char* relname;
   string querystring;
   Word resultword;
-  
+
   result = qp->ResultStorage( s );
 
   if ( ((CcString*)args[0].addr)->IsDefined() )
@@ -2762,7 +2831,7 @@ RelcountFun2( Word* args, Word& result, int message, Word& local, Supplier s )
     // if ( QueryProcessor::ExecuteQuery(querystring, result) )
     if ( QueryProcessor::ExecuteQuery(querystring, resultword) )
     {
-      ((CcInt *)result.addr)->Set( true, 
+      ((CcInt *)result.addr)->Set( true,
       ((CcInt*)resultword.addr)->GetIntval() );
     }
     else cout << "Error in executing operator query" << endl;
@@ -2785,7 +2854,7 @@ characters from the end of a string.
 int trim (char s[])
 {
   int n;
-  
+
   for(n = strlen(s) - 1; n >= 0; n--)
    if ( !isspace(s[n]) ) break;
   s[n+1] = '\0';
@@ -2821,23 +2890,23 @@ are separated by a space character.
       subword = new Subword;
       subword->start = 0;
       subword->nochr = 0;
-      
+
       subword->subw = (STRING*)malloc(strlen(*str->GetStringval()) + 1);
-      // copy input string to allocated memory      
+      // copy input string to allocated memory
       strcpy(*subword->subw, *str->GetStringval());
       trim( *subword->subw ); //remove spaces from the end of the string
-      
+
       subword->strlength = strlen(*subword->subw);
       (*subword->subw)[subword->strlength] = '\0';
-      // get the necessary values to determine the first single word in the 
-      // string, if it is not empty or contains only space characters. 
+      // get the necessary values to determine the first single word in the
+      // string, if it is not empty or contains only space characters.
       if ( subword->strlength > 0) {
         i=0;
-        while ( isspace(*subword->subw[i]) ) i++;     
+        while ( isspace(*subword->subw[i]) ) i++;
         subword->start = i;
-      
+
         i=subword->start;
-        while ( (!(isspace(((*subword->subw)[i]))) && 
+        while ( (!(isspace(((*subword->subw)[i]))) &&
                 ((*subword->subw)[i]) != '\0') ) i++;
         subword->nochr = i - subword->start;
       }
@@ -2849,7 +2918,7 @@ are separated by a space character.
       subword = ((Subword*) local.addr);
       // another single word in the string still exists
       if ( (subword->strlength > 0) && (subword->start < subword->strlength) )
-      { 
+      {
         tmpstr = (((string)(*subword->subw)).substr(subword->start,
                 subword->nochr));
         strcpy(outstr, (char*)tmpstr.c_str());
@@ -2860,13 +2929,13 @@ are separated by a space character.
         subword->start += subword->nochr;
         i = subword->start;
         if (i < subword->strlength ) {
-          while ( isspace((*subword->subw)[i]) ) i++; 
+          while ( isspace((*subword->subw)[i]) ) i++;
 
-          subword->start = i;   
-          while ( (!isspace((*subword->subw)[i])) && 
+          subword->start = i;
+          while ( (!isspace((*subword->subw)[i])) &&
                   (((*subword->subw)[i]) != '\0') )  i++;
           subword->nochr = i - subword->start + 1;
-        }               
+        }
         local.addr = subword;
 
         return YIELD;
@@ -2882,10 +2951,10 @@ are separated by a space character.
           subword->start = subword->strlength = 1;
           local.addr = subword;
           return YIELD;
-        }         
+        }
       return CANCEL;
       }
-       
+
     case CLOSE:
       // cout << "close" << endl;
       subword = ((Subword*) local.addr);
@@ -2900,7 +2969,7 @@ are separated by a space character.
 int
 ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-    result = qp->ResultStorage( s );    
+    result = qp->ResultStorage( s );
 
     if (!((CcBool*)args[0].addr)->IsDefined() )
     {
@@ -2908,15 +2977,15 @@ ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
     }
     else if(((CcBool*)args[0].addr)->GetBoolval())
     {
-        ((StandardAttribute*)result.addr)->CopyFrom( 
-                (StandardAttribute*)args[1].addr );   
+        ((StandardAttribute*)result.addr)->CopyFrom(
+                (StandardAttribute*)args[1].addr );
     }
-    else    
+    else
     {
-        ((StandardAttribute*)result.addr)->CopyFrom( 
-                (StandardAttribute*)args[2].addr );   
+        ((StandardAttribute*)result.addr)->CopyFrom(
+                (StandardAttribute*)args[2].addr );
     }
-    
+
     return 0;
 }
 
@@ -2926,22 +2995,22 @@ ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
 */
 
 template<class T>
-int 
-CcBetween( Word* args, Word& result, int message, Word& local, 
+int
+CcBetween( Word* args, Word& result, int message, Word& local,
            Supplier s)
 {
   result = qp->ResultStorage( s );
   if ( ((T*)args[0].addr)->IsDefined() &&
-       ((T*)args[1].addr)->IsDefined() && 
+       ((T*)args[1].addr)->IsDefined() &&
         ((T*)args[2].addr)->IsDefined() )
   {
-    if ( ((T*)args[1].addr)->GetValue() 
+    if ( ((T*)args[1].addr)->GetValue()
         <= ((T*)args[2].addr)->GetValue() )
     {
       ((CcBool *)result.addr)->Set( true, (
-        ((T*)args[0].addr)->GetValue() >= 
+        ((T*)args[0].addr)->GetValue() >=
         ((T*)args[1].addr)->GetValue()) &&
-       (((T*)args[0].addr)->GetValue() <= 
+       (((T*)args[0].addr)->GetValue() <=
         ((T*)args[2].addr)->GetValue()));
     }
     else cerr << "ERROR in operator between: second argument must be less or"
@@ -2960,8 +3029,8 @@ CcBetween( Word* args, Word& result, int message, Word& local,
 
 */
 
-int 
-CcHashValue( Word* args, Word& result, int message, Word& local, 
+int
+CcHashValue( Word* args, Word& result, int message, Word& local,
            Supplier s)
 {
   result = qp->ResultStorage( s );
@@ -2969,8 +3038,8 @@ CcHashValue( Word* args, Word& result, int message, Word& local,
        ((CcInt*)args[1].addr)->IsDefined() &&
        (((CcInt*)args[1].addr)->GetValue() > -1) )
   {
-    ((CcInt *)result.addr)->Set( true, 
-                                ((StandardAttribute*)args[0].addr)->HashValue() 
+    ((CcInt *)result.addr)->Set( true,
+                                ((StandardAttribute*)args[0].addr)->HashValue()
                                  % ((CcInt*)args[1].addr)->GetValue() );
   }
   else
@@ -2989,7 +3058,7 @@ int
 CcSqrt( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( ((CcReal*)args[0].addr)->IsDefined() ) 
+  if( ((CcReal*)args[0].addr)->IsDefined() )
   {
     const double tmp = ((CcReal*)args[0].addr)->GetRealval();
     if ( tmp >= 0 )
@@ -3007,11 +3076,11 @@ CcSqrt( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 
-/* 
+/*
 4.15 Computes the Levenshtein distance between two strings.
 
 This distance is defined by the minimum count of operators in
-   
+
   * add character
 
   * remove character
@@ -3032,9 +3101,9 @@ static  int ld(const string source, const string target){
   if(m==0){
      return n;
   }
-  n++; 
+  n++;
   m++;
-  int matrix[n][m]; 
+  int matrix[n][m];
   // initialize
   for(int i=0;i<n;i++){
     matrix[i][0] = i;
@@ -3052,9 +3121,9 @@ static  int ld(const string source, const string target){
      }
   }
   int res = matrix[n-1][m-1];
-  return res; 
+  return res;
 }
- 
+
 
 int
 DistanceStrStrFun( Word* args, Word& result, int message, Word& local,
@@ -3070,7 +3139,7 @@ DistanceStrStrFun( Word* args, Word& result, int message, Word& local,
 }
 
 
-/* 
+/*
 Map any type to a string
 
 */
@@ -3082,7 +3151,7 @@ CcElapsedTypeMap( ListExpr args )
   if ( list.hasLength(1) )
    if ( list.first().str() == "typeerror" )
      return list.typeError("elapsedtime: input has a typeerror");
-  
+
   return (nl->SymbolAtom( "string" ));
 }
 
@@ -3104,8 +3173,8 @@ ccelapsedfun(Word* args, Word& result, int message, Word& local, Supplier s)
   // reset timer
   elapsedTime.start();
 
-  resStr->Set(true, (STRING*) estr.str().c_str()); 
- 
+  resStr->Set(true, (STRING*) estr.str().c_str());
+
   return 0;
 }
 
@@ -3119,14 +3188,14 @@ This operator maps
 
 As a side effect internal configuration parameter of SECONDO are changed.
 
-5.12.0 Specification 
+5.12.0 Specification
 
 */
 
 struct SetOptionInfo : OperatorInfo {
- 
+
   SetOptionInfo() : OperatorInfo()
-  { 
+  {
     name =      "setoption";
     signature = "string x int -> bool";
     syntax =    "setoption(key, n)";
@@ -3139,7 +3208,7 @@ struct SetOptionInfo : OperatorInfo {
 
 
 /*
-5.12.1 Type mapping 
+5.12.1 Type mapping
 
 The type mapping uses the wrapper class ~NList~ which hides calls
 to class NestedList. Moreover, there are some useful functions for
@@ -3150,17 +3219,17 @@ handling streams of tuples.
 static ListExpr setoption_tm(ListExpr args)
 {
   NList l(args);
-  
+
   const string opName = "setoption";
   string err1 = opName + "expects (string int)!";
-  
+
   if ( !l.checkLength(2, err1) )
     return l.typeError( err1 );
-  
-  if ( !l.first().isSymbol(Symbols::STRING()) ) 
+
+  if ( !l.first().isSymbol(Symbols::STRING()) )
     return l.typeError(err1);
 
-  if ( !l.second().isSymbol(Symbols::INT()) ) 
+  if ( !l.second().isSymbol(Symbols::INT()) )
     return l.typeError(err1);
 
   return NList(Symbols::BOOL()).listExpr();
@@ -3171,18 +3240,18 @@ setoption_vm( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   // args[0] : string
   // args[1] : int
-  
+
   result = qp->ResultStorage( s );
   string key = StdTypes::GetString(args[0]);
   int value = StdTypes::GetInt(args[1]);
-  
+
   bool found=false;
   if ( key == "MaxMemPerOperator" ) {
 
     found=true;
     qp->SetMaxMemPerOperator(value);
-  } 
-  
+  }
+
   if( found )
   {
     ((CcBool *)result.addr)->Set( true, true );
@@ -3194,8 +3263,155 @@ setoption_vm( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
+/*
+4.17 Operator ~round~ rounds a real with a given precision
 
+*/
+int
+CcRoundValueMap( Word* args, Word& result, int message,
+                 Word& local, Supplier s )
+{
+    CcReal* Svalue = (CcReal*) args[0].addr;
+    CcInt*  Sprecision = (CcInt*) args[1].addr;
+    result = qp->ResultStorage( s );
+    CcReal* res = (CcReal*) result.addr;
 
+    if ( !Svalue->IsDefined() || !Sprecision->IsDefined() )
+    {
+      res->SetDefined( false );
+    }
+    else
+    {
+      double value = Svalue->GetRealval();
+      int precision = Sprecision->GetIntval();
+      static const double base = 10.0;
+      double complete5, complete5i;
+
+      complete5 = value * pow(base, (double) (precision + 1));
+      if(value < 0.0)
+          complete5 -= 5.0;
+      else
+          complete5 += 5.0;
+      complete5 /= base;
+      modf(complete5, &complete5i);
+      res->Set( true, complete5i / pow(base, (double) precision) );
+    }
+    return 0;
+}
+
+/*
+4.18 Operator ~int2real~
+
+*/
+int
+CcInt2realValueMap( Word* args, Word& result, int message,
+                    Word& local, Supplier s )
+{
+    CcInt* arg = (CcInt*) args[0].addr;
+    result = qp->ResultStorage( s );
+    CcReal* res = (CcReal*) result.addr;
+
+    if ( !arg->IsDefined() )
+      res->SetDefined( false );
+    else
+      res->Set( true, (double) arg->GetIntval() );
+    return 0;
+}
+
+/*
+4.19 Operator ~real2int~
+
+*/
+int
+CcReal2intValueMap( Word* args, Word& result, int message,
+                    Word& local, Supplier s )
+{
+    CcReal* arg = (CcReal*) args[0].addr;
+    result = qp->ResultStorage( s );
+    CcInt* res = (CcInt*) result.addr;
+
+    if ( !arg->IsDefined() )
+      res->SetDefined( false );
+    else
+      res->Set( true, (int) arg->GetRealval() );
+    return 0;
+}
+
+/*
+4.20 Operator ~int2bool~
+
+*/
+int
+CcInt2boolValueMap( Word* args, Word& result, int message,
+                    Word& local, Supplier s )
+{
+    CcInt* arg = (CcInt*) args[0].addr;
+    result = qp->ResultStorage( s );
+    CcBool* res = (CcBool*) result.addr;
+
+    if ( !arg->IsDefined() )
+      res->SetDefined( false );
+    else
+      res->Set( true, arg->GetIntval() != 0);
+    return 0;
+}
+
+/*
+4.21 Operator ~bool2int~
+
+*/
+int
+CcBool2intValueMap( Word* args, Word& result, int message,
+                    Word& local, Supplier s )
+{
+    CcBool* arg = (CcBool*) args[0].addr;
+    result = qp->ResultStorage( s );
+    CcInt* res = (CcInt*) result.addr;
+
+    if ( !arg->IsDefined() )
+      res->SetDefined( false );
+    else
+      res->Set( true, arg->GetBoolval() ? 1 : 0);
+    return 0;
+}
+
+/*
+4.22 Operator ~floor~
+
+*/
+int
+CcFloorValueMap( Word* args, Word& result, int message,
+                    Word& local, Supplier s )
+{
+    CcReal* arg = (CcReal*) args[0].addr;
+    result = qp->ResultStorage( s );
+    CcReal* res = (CcReal*) result.addr;
+
+    if ( !arg->IsDefined() )
+      res->SetDefined( false );
+    else
+      res->Set( true, floor(arg->GetRealval()));
+    return 0;
+}
+
+/*
+4.23 Operator ~ceil~
+
+*/
+int
+CcCeilValueMap( Word* args, Word& result, int message,
+                    Word& local, Supplier s )
+{
+    CcReal* arg = (CcReal*) args[0].addr;
+    result = qp->ResultStorage( s );
+    CcReal* res = (CcReal*) result.addr;
+
+    if ( !arg->IsDefined() )
+      res->SetDefined( false );
+    else
+      res->Set( true, ceil(arg->GetRealval()));
+    return 0;
+}
 /*
 5 Definition of operators
 
@@ -3208,59 +3424,59 @@ such and array defined, so it easier to make them overloaded.
 
 */
 
-ValueMapping ccplusmap[] = 
+ValueMapping ccplusmap[] =
         { CcPlus_ii, CcPlus_ir, CcPlus_ri, CcPlus_rr, CcPlus_ss };
-ValueMapping ccminusmap[] = 
+ValueMapping ccminusmap[] =
         { CcMinus_ii, CcMinus_ir, CcMinus_ri, CcMinus_rr };
-ValueMapping ccproductmap[] = 
+ValueMapping ccproductmap[] =
         { CcProduct_ii, CcProduct_ir, CcProduct_ri, CcProduct_rr };
-ValueMapping ccdivisionmap[] = 
+ValueMapping ccdivisionmap[] =
         { CcDivision_ii, CcDivision_ir, CcDivision_ri, CcDivision_rr };
 
 ValueMapping ccmodmap[] = { CcMod };
 ValueMapping ccdivmap[] = { CcDiv };
 ValueMapping ccsqrtmap[] = { CcSqrt };
 
-ValueMapping cclessmap[] = { CcLess<CcInt>, 
-                             CcLess2<CcInt, CcReal>, 
-                             CcLess2<CcReal, CcInt>, 
+ValueMapping cclessmap[] = { CcLess<CcInt>,
+                             CcLess2<CcInt, CcReal>,
+                             CcLess2<CcReal, CcInt>,
                              CcLess<CcReal>,
-                             CcLess<CcBool>, 
+                             CcLess<CcBool>,
                              CcLess<CcString> };
 
-ValueMapping cclessequalmap[] = { CcLessEqual<CcInt>, 
-                                  CcLessEqual2<CcInt, CcReal>, 
+ValueMapping cclessequalmap[] = { CcLessEqual<CcInt>,
+                                  CcLessEqual2<CcInt, CcReal>,
                                   CcLessEqual2<CcReal, CcInt>,
-                                  CcLessEqual<CcReal>, 
-                                  CcLessEqual<CcBool>, 
+                                  CcLessEqual<CcReal>,
+                                  CcLessEqual<CcBool>,
                                   CcLessEqual<CcString> };
 
-ValueMapping ccgreatermap[] = { CcGreater<CcInt>, 
-                                CcGreater2<CcInt, CcReal>, 
+ValueMapping ccgreatermap[] = { CcGreater<CcInt>,
+                                CcGreater2<CcInt, CcReal>,
                                 CcGreater2<CcReal, CcInt>,
-                                CcGreater<CcReal>, 
-                                CcGreater<CcBool>, 
+                                CcGreater<CcReal>,
+                                CcGreater<CcBool>,
                                 CcGreater<CcString> };
 
-ValueMapping ccgreaterequalmap[] = { CcGreaterEqual<CcInt>, 
+ValueMapping ccgreaterequalmap[] = { CcGreaterEqual<CcInt>,
                                      CcGreaterEqual2<CcInt, CcReal>,
-                                     CcGreaterEqual2<CcReal, CcInt>, 
+                                     CcGreaterEqual2<CcReal, CcInt>,
                                      CcGreaterEqual<CcReal>,
-                                     CcGreaterEqual<CcBool>, 
+                                     CcGreaterEqual<CcBool>,
                                      CcGreaterEqual<CcString> };
 
-ValueMapping ccequalmap[] = { CcEqual<CcInt>, 
-                              CcEqual2<CcInt, CcReal>, 
-                              CcEqual2<CcReal, CcInt>, 
+ValueMapping ccequalmap[] = { CcEqual<CcInt>,
+                              CcEqual2<CcInt, CcReal>,
+                              CcEqual2<CcReal, CcInt>,
                               CcEqual<CcReal>,
-                              CcEqual<CcBool>,  
+                              CcEqual<CcBool>,
                               CcEqual<CcString> };
 
-ValueMapping ccdiffmap[] = { CcDiff<CcInt>, 
-                             CcDiff2<CcInt, CcReal>, 
-                             CcDiff2<CcReal, CcInt>, 
+ValueMapping ccdiffmap[] = { CcDiff<CcInt>,
+                             CcDiff2<CcInt, CcReal>,
+                             CcDiff2<CcReal, CcInt>,
                              CcDiff<CcReal>,
-                             CcDiff<CcBool>, 
+                             CcDiff<CcBool>,
                              CcDiff<CcString> };
 
 ValueMapping ccstartsmap[] = { StartsFun };
@@ -3271,16 +3487,16 @@ ValueMapping ccandmap[] = { AndFun };
 ValueMapping ccormap[] = { OrFun };
 ValueMapping ccnotmap[] = { NotFun };
 
-ValueMapping ccisemptymap[] = { IsEmpty<CcBool>, 
-                                IsEmpty<CcInt>, 
-                                IsEmpty<CcReal>, 
+ValueMapping ccisemptymap[] = { IsEmpty<CcBool>,
+                                IsEmpty<CcInt>,
+                                IsEmpty<CcReal>,
                                 IsEmpty<CcString> };
 
-ValueMapping ccsetintersectionmap[] = 
-        { CcSetIntersection_ii, CcSetIntersection_rr, CcSetIntersection_bb, 
+ValueMapping ccsetintersectionmap[] =
+        { CcSetIntersection_ii, CcSetIntersection_rr, CcSetIntersection_bb,
         CcSetIntersection_ss };
 
-ValueMapping ccsetminusmap[] = 
+ValueMapping ccsetminusmap[] =
         { CcSetMinus_ii, CcSetMinus_rr, CcSetMinus_bb, CcSetMinus_ss };
 
 ValueMapping ccoprelcountmap[] = { RelcountFun };
@@ -3288,19 +3504,29 @@ ValueMapping ccoprelcountmap2[] = { RelcountFun2 };
 ValueMapping cckeywordsmap[] = { keywordsFun };
 ValueMapping ccifthenelsemap[] = { ifthenelseFun };
 
-ValueMapping ccbetweenmap[] = { CcBetween<CcInt>, CcBetween<CcReal>, 
+ValueMapping ccbetweenmap[] = { CcBetween<CcInt>, CcBetween<CcReal>,
                                 CcBetween<CcString>, CcBetween<CcBool> };
-                                
-//ValueMapping cchashvaluemap[] = { CcHashValue<CcInt>, CcHashValue<CcReal>, 
+
+//ValueMapping cchashvaluemap[] = { CcHashValue<CcInt>, CcHashValue<CcReal>,
                                 //CcHashValue<CcString>, CcHashValue<CcBool> };
 
 ValueMapping cchashvaluemap[] = { CcHashValue };
+
+ValueMapping ccroundvaluemap[] = { CcRoundValueMap };
+
+ValueMapping ccint2realvaluemap[] = { CcInt2realValueMap };
+ValueMapping ccreal2intvaluemap[] = { CcReal2intValueMap };
+ValueMapping ccint2boolvaluemap[] = { CcInt2boolValueMap };
+ValueMapping ccbool2intvaluemap[] = { CcBool2intValueMap };
+ValueMapping ccfloorvaluemap[] = { CcFloorValueMap };
+ValueMapping ccceilvaluemap[] = { CcCeilValueMap };
+
 
 const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                           "( <text>(int int) -> int, (int real) -> real, "
                           "(real int)"
-                          " -> real, (real real) -> real " 
+                          " -> real, (real real) -> real "
                                 "(string string) -> string</text--->"
                            "<text>_ + _</text--->"
                            "<text>Addition. Strings are concatenated.</text--->"
@@ -3542,7 +3768,7 @@ const string CCSpecSetMinus  = "( ( \"Signature\" \"Meaning\" )"
                 "(bool bool) -> bool, (string string) -> string</text--->"
                 "<text> Set minus. </text--->"
                 ") )";
-                        
+
 const string CCSpecRelcount  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                         "\"Example\" )"
                         "( <text>string -> int</text--->"
@@ -3563,7 +3789,7 @@ const string CCSpecRelcount2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              " from class QueryProcessor.</text--->"
              "<text>query \"Orte\" relcount2</text--->"
              ") )";
-                                    
+
 const string CCSpecKeywords  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
                              "( <text>(string) -> (stream string)</text--->"
@@ -3589,7 +3815,7 @@ const string CCSpecIfthenelse  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "<text>query ifthenelse(3 < 5,[const string value \"less\"],"
                 "[const string value \"greater\"])</text--->"
              ") )";
-             
+
 const string CCSpecBetween  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
                              "( <text>(T x T x T) ->  bool</text--->"
@@ -3605,14 +3831,12 @@ const string CCSpecBetween  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                 "between [\"ha\", \"hu\"]</text--->"
              ") )";
 
-
-
-const string specListHeader = 
+const string specListHeader =
         "( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )";
 const string ST = "<text>";
 const string ET = "</text--->";
 
-const string 
+const string
 CCSpecSubStr = "(" + specListHeader + "("
                    + "'(string x int x int) ->  string.'"
                    + "'substr(s, p, q)'"
@@ -3620,23 +3844,23 @@ CCSpecSubStr = "(" + specListHeader + "("
                      + "position parameters p and q. Positions start at 0.'"
                    + "'query substr(\"test\",2,3)'))";
 
-const string 
+const string
 CCSpecElapsed = "(" + specListHeader + "("
                     + "'(any type) ->  string.'"
                     + "'_ elapsedtime'"
-                    + "'Returns the elpased time and the " 
+                    + "'Returns the elpased time and the "
                       + "cpu time in seconds encoded in a string'"
                     + "'query plz feed elapsedtime'))";
 
-const string CCLDistSpec  = 
+const string CCLDistSpec  =
             "( ( \"Signature\" \"Syntax\" \"Meaning\" " "\"Example\" )"
             "( <text>string x string  -> int</text--->"
                "<text>ldistance ( _ _ )</text--->"
                "<text>compute the distance between two strings </text--->"
                "<text>query ldistance( \"hello\" \"world\" )</text--->"
                                ") )";
-                               
-const string CCHashValueSpec  = 
+
+const string CCHashValueSpec  =
             "( ( \"Signature\" \"Syntax\" \"Meaning\" " "\"Example\" )"
             "( <text>T in DATA, y in int, T x y -> int</text--->"
                "<text>hashvalue ( _, _ )</text--->"
@@ -3644,117 +3868,200 @@ const string CCHashValueSpec  =
                "assuming that hashtable has size y.</text--->"
                "<text>query hashvalue( \"Test\", 9997 )</text--->"
                                ") )";
-   
-Operator ccplus( "+", CCSpecAdd, 5, ccplusmap,  
+
+const string CCRoundSpec =
+             "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+             "( <text>(real x int) -> real</text--->"
+             "<text>round(_, _)</text--->"
+             "<text>Rounds a real value with a precision of n decimals."
+             "</text--->"
+             "<text>query round(10.7367, 3)</text--->"
+             ") )";
+
+const string CCint2realSpec =
+             "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+             "( <text>int -> real</text--->"
+             "<text>int2real( _ )</text--->"
+             "<text>Creates a real value from an integer value using "
+             "C++ casting logic.</text--->"
+             "<text>query int2real(12)</text--->"
+             ") )";
+
+const string CCreal2intSpec =
+             "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+             "( <text>real -> int</text--->"
+             "<text>real2int( _ )</text--->"
+             "<text>Creates an int value from a real value</text--->"
+             "<text>query real2int(12.345)</text--->"
+             ") )";
+
+const string CCint2boolSpec =
+             "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+             "( <text>int -> bool</text--->"
+             "<text>int2bool( _ )</text--->"
+             "<text>Creates a bool value from an integer value. '0' will be "
+             "translated to 'FALSE', all other values to 'TRUE'</text--->"
+             "<text>query int2bool(0)</text--->"
+             ") )";
+
+const string CCbool2intSpec =
+             "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+             "( <text>bool -> int</text--->"
+             "<text>bool2int( _ )</text--->"
+             "<text>Creates an inteer value from a bool value. 'TRUE' will be "
+             "translated to '1', 'FALSE' to '0'</text--->"
+             "<text>query bool2int(TRUE)</text--->"
+             ") )";
+
+const string CCfloorSpec =
+             "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+             "( <text>real -> real</text--->"
+             "<text>floor( _ )</text--->"
+             "<text>Returns the largest integer not greater than the "
+             "argument.</text--->"
+             "<text>query floor(12.345)</text--->"
+             ") )";
+
+const string CCceilSpec =
+             "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+             "( <text>real -> real</text--->"
+             "<text>ceil( _ )</text--->"
+             "<text>Returns the smallest integer not less than the "
+             "argument.</text--->"
+             "<text>query ceil(12.345)</text--->"
+             ") )";
+
+Operator ccplus( "+", CCSpecAdd, 5, ccplusmap,
                  CcMathSelectCompute, CcMathTypeMap );
 
-Operator ccminus( "-", CCSpecSub, 4, ccminusmap,  
+Operator ccminus( "-", CCSpecSub, 4, ccminusmap,
                   CcMathSelectCompute, CcMathTypeMap );
 
-Operator ccproduct( "*", CCSpecMul, 4, ccproductmap,  
+Operator ccproduct( "*", CCSpecMul, 4, ccproductmap,
                     CcMathSelectCompute, CcMathTypeMap );
 
-Operator ccdivision( "/", CCSpecDiv, 4, ccdivisionmap,  
+Operator ccdivision( "/", CCSpecDiv, 4, ccdivisionmap,
                      CcMathSelectCompute, CcMathTypeMapdiv );
 
-Operator ccmod( "mod", CCSpecMod, 1, ccmodmap,  
+Operator ccmod( "mod", CCSpecMod, 1, ccmodmap,
                 Operator::SimpleSelect, CcMathTypeMap1 );
 
-Operator ccdiv( "div", CCSpecDiv2, 1, ccdivmap,  
+Operator ccdiv( "div", CCSpecDiv2, 1, ccdivmap,
                 Operator::SimpleSelect, CcMathTypeMap1 );
 
-Operator ccsqrt( "sqrt", CCSpecSqrt, 1, ccsqrtmap,  
+Operator ccsqrt( "sqrt", CCSpecSqrt, 1, ccsqrtmap,
                 Operator::SimpleSelect, RealReal );
 
-Operator ccrandint( "randint", CCSpecRandInt, RandInt,  
+Operator ccrandint( "randint", CCSpecRandInt, RandInt,
                     Operator::SimpleSelect, IntInt );
 
-Operator ccrandmax( "randmax", CCSpecMaxRand, MaxRand,  
+Operator ccrandmax( "randmax", CCSpecMaxRand, MaxRand,
                     Operator::SimpleSelect, EmptyInt );
 
-Operator ccseqinit( "seqinit", CCSpecInitSeq, InitSeq, 
+Operator ccseqinit( "seqinit", CCSpecInitSeq, InitSeq,
                     Operator::SimpleSelect, IntBool );
 
-Operator ccseqnext( "seqnext", CCSpecNextSeq, NextSeq,  
+Operator ccseqnext( "seqnext", CCSpecNextSeq, NextSeq,
                     Operator::SimpleSelect, EmptyInt );
 
-Operator cclog( "log", CCSpecLog, LogFun, 
+Operator cclog( "log", CCSpecLog, LogFun,
                 Operator::SimpleSelect, IntInt );
 
-Operator ccless( "<", CCSpecLT, 6, cclessmap, 
+Operator ccless( "<", CCSpecLT, 6, cclessmap,
                  CcMathSelectCompare, CcMathTypeMapBool );
 
-Operator cclessequal( "<=", CCSpecLE, 6, cclessequalmap, 
+Operator cclessequal( "<=", CCSpecLE, 6, cclessequalmap,
                       CcMathSelectCompare, CcMathTypeMapBool );
 
-Operator ccgreater( ">", CCSpecGT, 6, ccgreatermap, 
+Operator ccgreater( ">", CCSpecGT, 6, ccgreatermap,
                     CcMathSelectCompare, CcMathTypeMapBool );
 
-Operator ccgreaterequal( ">=", CCSpecGE, 6, ccgreaterequalmap,  
+Operator ccgreaterequal( ">=", CCSpecGE, 6, ccgreaterequalmap,
                          CcMathSelectCompare, CcMathTypeMapBool );
 
-Operator ccequal( "=", CCSpecEQ, 6, ccequalmap, 
+Operator ccequal( "=", CCSpecEQ, 6, ccequalmap,
                   CcMathSelectCompare, CcMathTypeMapBool );
 
-Operator ccdiff( "#", CCSpecNE, 6, ccdiffmap,  
+Operator ccdiff( "#", CCSpecNE, 6, ccdiffmap,
                  CcMathSelectCompare, CcMathTypeMapBool );
 
-Operator ccstarts( "starts", CCSpecBeg, 1, ccstartsmap, 
+Operator ccstarts( "starts", CCSpecBeg, 1, ccstartsmap,
                    Operator::SimpleSelect, CcMathTypeMapBool3 );
 
-Operator cccontains( "contains", CCSpecCon, 1, cccontainsmap, 
+Operator cccontains( "contains", CCSpecCon, 1, cccontainsmap,
                      Operator::SimpleSelect, CcMathTypeMapBool3 );
 
-Operator ccsubstr( "substr", CCSpecSubStr, SubStrFun, 
+Operator ccsubstr( "substr", CCSpecSubStr, SubStrFun,
                    Operator::SimpleSelect, SubStrTypeMap );
 
-Operator ccnot( "not", CCSpecNot, 1, ccnotmap, 
+Operator ccnot( "not", CCSpecNot, 1, ccnotmap,
                 Operator::SimpleSelect, CcMathTypeMapBool1 );
 
-Operator ccand( "and", CCSpecAnd, 1, ccandmap, 
+Operator ccand( "and", CCSpecAnd, 1, ccandmap,
                 Operator::SimpleSelect, CcMathTypeMapBool2 );
 
-Operator ccor( "or", CCSpecOr, 1, ccormap, 
+Operator ccor( "or", CCSpecOr, 1, ccormap,
                Operator::SimpleSelect, CcMathTypeMapBool2 );
 
-Operator ccisempty( "isempty", CCSpecIsEmpty, 4, ccisemptymap, 
+Operator ccisempty( "isempty", CCSpecIsEmpty, 4, ccisemptymap,
                     CcMathSelectIsEmpty, CcMathTypeMapBool4 );
 
-Operator ccuper( "upper", CCSpecUpper, UpperFun, 
+Operator ccuper( "upper", CCSpecUpper, UpperFun,
                  Operator::SimpleSelect, CcStringMapCcString );
 
-Operator ccsetintersection( "intersection", CCSpecSetIntersection, 4, 
+Operator ccsetintersection( "intersection", CCSpecSetIntersection, 4,
                 ccsetintersectionmap, CcMathSelectSet, CcMathTypeMap2 );
 
-Operator ccsetminus( "minus", CCSpecSetMinus, 4, ccsetminusmap, 
+Operator ccsetminus( "minus", CCSpecSetMinus, 4, ccsetminusmap,
                      CcMathSelectSet, CcMathTypeMap2 );
 
-Operator ccoprelcount( "relcount", CCSpecRelcount, 1, ccoprelcountmap, 
+Operator ccoprelcount( "relcount", CCSpecRelcount, 1, ccoprelcountmap,
                        Operator::SimpleSelect, CcStringMapCcInt );
 
-Operator ccoprelcount2( "relcount2", CCSpecRelcount2, 1, ccoprelcountmap2, 
+Operator ccoprelcount2( "relcount2", CCSpecRelcount2, 1, ccoprelcountmap2,
                         Operator::SimpleSelect, CcStringMapCcInt );
 
-Operator ccopkeywords( "keywords", CCSpecKeywords, 1, cckeywordsmap, 
+Operator ccopkeywords( "keywords", CCSpecKeywords, 1, cckeywordsmap,
                        Operator::SimpleSelect, keywordsType );
 
-Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, 1, ccifthenelsemap, 
+Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, 1, ccifthenelsemap,
                          Operator::SimpleSelect, ifthenelseType );
-                         
-Operator ccbetween( "between", CCSpecBetween, 4, ccbetweenmap, 
+
+Operator ccbetween( "between", CCSpecBetween, 4, ccbetweenmap,
                     CcBetweenSelect, CcBetweenTypeMap );
 
-Operator ccelapsedtime( "elapsedtime", CCSpecElapsed, ccelapsedfun, 
+Operator ccelapsedtime( "elapsedtime", CCSpecElapsed, ccelapsedfun,
                         Operator::SimpleSelect, CcElapsedTypeMap );
 
-Operator ccldistance( "ldistance", CCLDistSpec, DistanceStrStrFun,  
+Operator ccldistance( "ldistance", CCLDistSpec, DistanceStrStrFun,
                  Operator::SimpleSelect, CcLDistTypeMap);
-                 
-//Operator cchashvalue( "hashvalue", CCHashValueSpec, 4, cchashvaluemap,  
+
+//Operator cchashvalue( "hashvalue", CCHashValueSpec, 4, cchashvaluemap,
                  //CcHashValueSelect, CcHashValueTypeMap);
-                 
-Operator cchashvalue( "hashvalue", CCHashValueSpec, 1, cchashvaluemap,  
+
+Operator cchashvalue( "hashvalue", CCHashValueSpec, 1, cchashvaluemap,
                  Operator::SimpleSelect, CcHashValueTypeMap);
+
+Operator ccround( "round", CCRoundSpec, 1, ccroundvaluemap,
+                 Operator::SimpleSelect, CcRoundTypeMap);
+
+Operator ccint2real( "int2real", CCint2realSpec, 1, ccint2realvaluemap,
+                 Operator::SimpleSelect, IntReal);
+
+Operator ccreal2int( "real2int", CCreal2intSpec, 1, ccreal2intvaluemap,
+                 Operator::SimpleSelect, RealInt);
+
+Operator ccint2bool( "int2bool", CCint2boolSpec, 1, ccint2boolvaluemap,
+                 Operator::SimpleSelect, IntBool);
+
+Operator ccbool2int( "bool2int", CCbool2intSpec, 1, ccbool2intvaluemap,
+                 Operator::SimpleSelect, BoolInt);
+
+Operator ccceil( "ceil", CCceilSpec, 1, ccceilvaluemap,
+                 Operator::SimpleSelect, RealReal);
+
+Operator ccfloor( "floor", CCfloorSpec, 1, ccfloorvaluemap,
+                 Operator::SimpleSelect, RealReal);
 
 /*
 6 Class ~CcAlgebra~
@@ -3829,12 +4136,18 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccopifthenelse );
     AddOperator( &ccbetween );
     //AddOperator( &ccelapsedtime );
-    AddOperator( &ccldistance);
-    AddOperator( &cchashvalue);
-
+    AddOperator( &ccldistance );
+    AddOperator( &cchashvalue );
+    AddOperator( &ccround );
+    AddOperator( &ccint2real );
+    AddOperator( &ccreal2int );
+    AddOperator( &ccint2bool );
+    AddOperator( &ccbool2int );
+    AddOperator( &ccceil );
+    AddOperator( &ccfloor );
     static SetOptionInfo setoption_oi;
-    static Operator setoption_op( setoption_oi, 
-                                  setoption_vm, 
+    static Operator setoption_op( setoption_oi,
+                                  setoption_vm,
                                   setoption_tm );
     AddOperator(&setoption_op);
 
@@ -3910,12 +4223,12 @@ void
 ShowStandardTypesStatistics( const bool reset )
 {
   Counter::getRef("STD:INT_created") = CcInt::intsCreated;
-  Counter::getRef("STD:INT_deleted") = CcInt::intsDeleted; 
-  Counter::getRef("STD:REAL_created") = CcReal::realsCreated; 
-  Counter::getRef("STD:REAL_deleted") = CcReal::realsDeleted; 
-  Counter::getRef("STD:BOOL_created") = CcBool::boolsCreated; 
-  Counter::getRef("STD:BOOL_deleted") = CcBool::boolsDeleted; 
-  Counter::getRef("STD:STRING_created") = CcString::stringsCreated; 
+  Counter::getRef("STD:INT_deleted") = CcInt::intsDeleted;
+  Counter::getRef("STD:REAL_created") = CcReal::realsCreated;
+  Counter::getRef("STD:REAL_deleted") = CcReal::realsDeleted;
+  Counter::getRef("STD:BOOL_created") = CcBool::boolsCreated;
+  Counter::getRef("STD:BOOL_deleted") = CcBool::boolsDeleted;
+  Counter::getRef("STD:STRING_created") = CcString::stringsCreated;
   Counter::getRef("STD:STRING_deleted") = CcString::stringsDeleted;
 
   if( reset )
@@ -3928,24 +4241,24 @@ ShowStandardTypesStatistics( const bool reset )
 }
 
 
-int 
+int
 StdTypes::GetInt(const Word& w) {
    return Attribute::GetValue<CcInt, int>(w);
-} 
+}
 
 
 float
 StdTypes::GetReal(const Word& w) {
    return Attribute::GetValue<CcReal, float>(w);
-} 
+}
 
 
 bool
 StdTypes::GetBool(const Word& w) {
    return Attribute::GetValue<CcBool, bool>(w);
-} 
+}
 
-string 
+string
 StdTypes::GetString(const Word& w) {
    return Attribute::GetValue<CcString, string>(w);
-} 
+}

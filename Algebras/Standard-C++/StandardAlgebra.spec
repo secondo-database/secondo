@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -33,7 +33,7 @@ operator <= alias LE pattern _ infixop _
 operator >= alias GE pattern _ infixop _
 operator # alias NE pattern _ infixop _
 
-operator = alias EQ pattern _ infixop _  
+operator = alias EQ pattern _ infixop _
 
 operator not alias NOT pattern op ( _ )
 operator sqrt alias SQRT pattern op ( _ )
@@ -62,5 +62,11 @@ operator ldistance alias LDISTANCE pattern op (_ , _)
 
 operator hashvalue alias HASHVALUE pattern op ( _ , _)
 
-
+operator round alias ROUND pattern op( _ , _ )
+operator int2real alias INT2REAL pattern op( _ , _ )
+operator real2int alias REAL2INT pattern op( _ , _ )
+operator int2bool alias INT2BOOL pattern op( _ , _ )
+operator bool2int alias BOOL2INT pattern op( _ , _ )
+operator floor alias FLOOR pattern op( _ , _ )
+operator ceil alias CEIL pattern op( _ , _ )
 

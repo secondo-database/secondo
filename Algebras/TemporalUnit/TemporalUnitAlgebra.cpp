@@ -150,11 +150,6 @@ Test             (stream ubool) --> bool
 Test+ always:    (       ubool) --> bool
 Test             (stream ubool) --> bool
 
-n/a   int2real:          int --> real
-n/a   floor:            real --> int
-n/a   ceil:             real --> int
-n/a   round:      (real int) --> real
-
 COMMENTS:
 
 (*):  These operators have been implemented for
