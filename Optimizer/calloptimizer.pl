@@ -451,6 +451,7 @@ loadFiles(standard) :-
     [boundary],
     [searchtree],
     [relations],
+    [testExamples],
     retractall(loadedModule(_)),
     assert(loadedModule(standard))
   )
