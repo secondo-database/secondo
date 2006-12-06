@@ -93,8 +93,9 @@ n/a                    (stream uT) x periods --> bool (use suse2/present)
       atmin:  For T in {bool, int, real, string}:
 (OK)+                                     uT --> (stream uT)
 
-(OK)+ at:                    ureal x    real --> (stream ureal)
-OK  +                       upoint x   point --> upoint
+      at:     For T in {bool, int, string, point, region*}
+OK  +                           uT x       T --> uT
+(OK)                         ureal x    real --> (stream ureal)
 n/a +                       upoint x  region --> (stream upoint)
 
       distance:  T in {int, point}
@@ -115,7 +116,7 @@ OK  +      upoint x    line --> (stream upoint)
 OK  +        line x  upoint --> (stream upoint)
 Pre +       ureal x   ureal --> (stream ureal)
 Test+      upoint x uregion --> (stream upoint)
-Cras-     uregion x  upoint --> (stream upoint)
+Test-     uregion x  upoint --> (stream upoint)
 Pre -      upoint x  region --> (stream upoint)
 Pre -      region x  upoint --> (stream upoint)
 n/a +      upoint x  points --> (stream upoint)
@@ -133,7 +134,7 @@ OK  +                uT x uT --> bool
 OK  + not:             ubool --> ubool
 
   inside:
-pre +      upoint x uregion --> (stream ubool)
+Test+      upoint x uregion --> (stream ubool)
 pre +      upoint x    line --> (stream ubool)
 pre +      upoint x  points --> (stream ubool)
 pre +     uregion x  points --> (stream ubool)
@@ -142,12 +143,12 @@ n/a + mdirection:    upoint --> ureal
 
 n/a + area: uregion --> ureal             see TemporalLiftedAlgebra
 
-n/a + sometimes: (       ubool) --> bool
-n/a              (stream ubool) --> bool
-n/a + never:     (       ubool) --> bool
-n/a              (stream ubool) --> bool
-n/a + always:    (       ubool) --> bool
-n/a              (stream ubool) --> bool
+Test+ sometimes: (       ubool) --> bool
+Test             (stream ubool) --> bool
+Test+ never:     (       ubool) --> bool
+Test             (stream ubool) --> bool
+Test+ always:    (       ubool) --> bool
+Test             (stream ubool) --> bool
 
 n/a   int2real:          int --> real
 n/a   floor:            real --> int
@@ -2703,6 +2704,11 @@ UnitBaseSelect( ListExpr args )
       nl->SymbolValue( arg2 ) == "region" )
     return 3;
 
+  if( nl->SymbolValue( arg1 ) == "upoint" &&
+      nl->SymbolValue( arg2 ) == "region" )
+    return 4;
+
+
   return -1; // This point should never be reached
 }
 
@@ -2736,8 +2742,12 @@ function (or it's radical).
 5.13.1 Type Mapping for ~at~
 
 ----
-     at:   upoint x point --> upoint
-     at:    ureal x real  --> (stream ureal)
+      at:     For T in {bool, int, string, point, region*}
+OK  +                           uT x       T --> uT
+(OK)                         ureal x    real --> (stream ureal)
+n/a +                       upoint x  region --> (stream upoint)
+
+(*): Not yet implemented
 
 ----
 
@@ -2767,7 +2777,9 @@ TemporalUnitAtTypeMapUnit( ListExpr args )
       return nl->SymbolAtom( "ustring" );
     if( nl->IsEqual( arg1, "uregion" ) && nl->IsEqual( arg2, "region" ) )
       return nl->SymbolAtom( "uregion" );
-
+    if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "region" ) )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                             nl->SymbolAtom( "upoint" ));
   }
   if (TUA_DEBUG) cout << "\nTemporalUnitAtTypeMapUnit: 1" << endl;
   return nl->SymbolAtom( "typeerror" );
@@ -2776,12 +2788,12 @@ TemporalUnitAtTypeMapUnit( ListExpr args )
 /*
 5.13.2 Value Mapping for ~at~
 
-We implement two variants, the first for unit types using ~ConstTemporalUnits~
-and ~SpatialUnits~, and a second one for ~ureal~
+We implement three variants, the first for unit types using ~ConstTemporalUnits~
+and ~SpatialUnits~, a second one for ~ureal~, a third for ~upoint x region~
 
 */
 
-// first valuemapping, for all but ureal:
+// first valuemapping, for all but ureal, and upoint x region:
 template <class Unit, class Alpha>
 int MappingUnitAt( Word* args, Word& result, int message,
                    Word& local, Supplier s )
@@ -3104,6 +3116,15 @@ The solution to the equation $at^2 + bt + c = y$ is
   return 0;
 }
 
+// second value mapping: (ureal real) -> (stream ureal)
+int MappingUnitAt_up_rg( Word* args, Word& result, int message,
+                         Word& local, Supplier s )
+{
+  return 0;
+
+  //////////////////////
+
+}
 
 /*
 5.13.3 Specification for operator ~at~
@@ -3113,8 +3134,9 @@ const string
 TemporalSpecAt =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>For T in {bool, int, string, point, region*}:\n"
-"(uT    T   ) -> uT\n"
-"(ureal real) -> (stream ureal)\n"
+"(uT     T     ) -> uT\n"
+"(ureal  real  ) -> (stream ureal)\n"
+"(upoint region) -> (stream upoint)\n"
 "(*): Not yet implemented</text--->"
 "<text>_ at _ </text--->"
 "<text>restrict the movement to the times "
@@ -3135,7 +3157,8 @@ ValueMapping temporalunitatmap[] = {  MappingUnitAt< UBool, CcBool>,
                                       MappingUnitAt_r,
                                       MappingUnitAt< UPoint, Point>,
                                       MappingUnitAt< UString, CcString>,
-                                      MappingUnitAt< URegion, Region> };
+                                      MappingUnitAt< URegion, Region>,
+                                      MappingUnitAt_up_rg};
 
 /*
 5.13.5  Definition of operator ~at~
@@ -3143,7 +3166,7 @@ ValueMapping temporalunitatmap[] = {  MappingUnitAt< UBool, CcBool>,
 */
 Operator temporalunitat( "at",
                      TemporalSpecAt,
-                     6,
+                     7,
                      temporalunitatmap,
                      UnitBaseSelect,
                      TemporalUnitAtTypeMapUnit );
@@ -3298,11 +3321,11 @@ TypeMapMakepoint( ListExpr args )
     arg2 = nl->Second( args );
 
     if( nl->IsEqual( arg1, "int" ) && nl->IsEqual( arg2, "int" ) )
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"), 
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                nl->OneElemList(nl->IntAtom(0)), nl->SymbolAtom("point") );
 
     if( nl->IsEqual( arg1, "real" ) && nl->IsEqual( arg2, "real" ) )
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"), 
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                nl->OneElemList(nl->IntAtom(1)), nl->SymbolAtom("point") );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -3334,16 +3357,16 @@ int MakePoint( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   if (paramtype)
   {
-   if( !value3->IsDefined() || !value4->IsDefined() ) 
+   if( !value3->IsDefined() || !value4->IsDefined() )
     ((Point*)result.addr)->SetDefined( false );
-   else   
+   else
      ((Point*)result.addr)->Set(value3->GetRealval(),value4->GetRealval() );
   }
   else
   {
-   if( !value1->IsDefined() || !value2->IsDefined() ) 
+   if( !value1->IsDefined() || !value2->IsDefined() )
     ((Point*)result.addr)->SetDefined( false );
-   else   
+   else
      ((Point*)result.addr)->Set(value1->GetIntval(),value2->GetIntval() );
   }
   return 0;
@@ -10659,12 +10682,8 @@ struct TUInsideLocalInfo
 int temporalUnitInside_up_ur( Word* args, Word& result, int message,
                                     Word& local, Supplier s )
 {
-//  cout << "\nATTENTION: temporalUnitInside_up_ur "
-//       << "not yet implemented!" << endl;
-//  return 0;
-
   // This implementation uses class-function
-  // void MRegion::Inside(MPoint& mp, MBool& res)
+  //      void MRegion::Inside(MPoint& mp, MBool& res)
   TUInsideLocalInfo *sli;
   Word    a0, a1;
   UPoint  *u;
@@ -10874,109 +10893,361 @@ Operator temporalunitinside( "inside",
                              TemporalUnitInsideTypeMap);
 
 /*
-5.38 Operator ~~
-
-----
-     (insert signature here)
+5.38 Operator ~sometimes~
 
 ----
 
-*/
-
-/*
-5.38.1 Type mapping function for ~~
-
-*/
-
-/*
-5.38.2 Value mapping for operator ~~
-
-*/
-
-/*
-5.38.3 Specification for operator ~~
-
-*/
-
-/*
-5.38.4 Selection Function of operator ~~
-
-*/
-
-/*
-5.38.5 Definition of operator ~~
-
-*/
-
-/*
-5.38 Operator ~~
-
-----
-     (insert signature here)
+ sometimes: (       ubool) --> bool
+            (stream ubool) --> bool
 
 ----
 
 */
 
 /*
-5.39.1 Type mapping function for ~~
+5.38.1 Type mapping function for ~sometimes~
+
+*/
+ListExpr TemporalUnitBoolAggrTypeMap( ListExpr args )
+{
+  ListExpr t;
+  string argstr;
+
+  if ( nl->ListLength( args ) == 1 )
+    {
+      if (nl->IsAtom(nl->First(args)))
+        t = nl->First( args );
+      else if (nl->ListLength(nl->First(args))==2 &&
+               nl->IsEqual(nl->First(nl->First(args)), "stream"))
+        t = nl->Second(nl->First(args));
+      else
+        {
+          ErrorReporter::ReportError
+            ("Operator sometimes/always/never expects a (stream ubool)"
+             "or (ubool).");
+          return nl->SymbolAtom( "typeerror" );
+        }
+
+      if( nl->IsEqual( t, "ubool" ) )
+        return nl->SymbolAtom( "bool" );
+    }
+  nl->WriteToString(argstr, args);
+  ErrorReporter::ReportError
+    ("Operator sometimes/always/never expects a list of length one, "
+     "having list structure (ubool) or (stream ubool), but it gets '"
+     + argstr + "'.");
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+5.38.2 Value mapping for operator ~sometimes~
 
 */
 
+int TemporalUnitSometimes_streamubool( Word* args, Word& result, int message,
+                                       Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcBool *res = (CcBool*) result.addr;
+  Word elem;
+  UBool *U;
+  bool found = false;
+
+  qp->Open(args[0].addr);              // open input stream
+  qp->Request(args[0].addr, elem);     // get first elem from stream
+  while ( !found && qp->Received(args[0].addr) )
+    {
+      U = (UBool*) elem.addr;
+      if ( U->IsDefined() && U->constValue.GetBoolval() )
+        found = true;
+      else
+        qp->Request(args[0].addr, elem);
+      U->DeleteIfAllowed();
+    }
+  qp->Close(args[0].addr); // close the stream
+
+  // create and return the result
+  res->Set( true, found );
+  return 0;
+}
+
+int TemporalUnitSometimes_ubool( Word* args, Word& result, int message,
+                                 Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcBool *res = (CcBool*) result.addr;
+  UBool *U = (UBool*) args[0].addr;
+
+  if( U->IsDefined() && U->constValue.GetBoolval())
+    res->Set( true, true );
+  else
+    res->Set( true, false );
+  return 0;
+}
 /*
-5.39.2 Value mapping for operator ~~
+5.38.3 Specification for operator ~sometimes~
 
 */
 
+const string  TemporalUnitSometimesSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "("
+  "<text>"
+  "ubool -> bool\n"
+  "ubool -> bool\n"
+  "</text--->"
+  "<text>sometimes( _ )</text--->"
+  "<text>Returns 'true', iff the ubool/stream of ubool is 'true'"
+  "at least once, otherwise 'false'. Never returns 'undef'.</text--->"
+  "<text>query sometimes(ubool1)</text--->"
+  ") )";
+
 /*
-5.39.3 Specification for operator ~~
+5.38.4 Selection Function of operator ~sometimes~
 
 */
 
+int
+TemporalUnitBoolAggrSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+
+  if (nl->IsAtom( arg1 ) )
+    if( nl->SymbolValue( arg1 ) == "ubool" )
+      return 0;
+  if(   !( nl->IsAtom( arg1 ) )
+      && ( nl->ListLength(arg1) == 2 )
+      && ( TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) )
+    { if( nl->IsEqual( nl->Second(arg1), "ubool" ) )
+        return 1;
+    }
+  cerr << "Problem in TemporalUnitBoolAggrSelect!";
+  return -1; // This point should never be reached
+}
+
+ValueMapping TemporalUnitSometimesMap[] = {
+  TemporalUnitSometimes_ubool,
+  TemporalUnitSometimes_streamubool,
+};
+
 /*
-5.39.4 Selection Function of operator ~~
+5.38.5 Definition of operator ~sometimes~
 
 */
+Operator temporalunitsometimes( "sometimes",
+                                TemporalUnitSometimesSpec,
+                                2,
+                                TemporalUnitSometimesMap,
+                                TemporalUnitBoolAggrSelect,
+                                TemporalUnitBoolAggrTypeMap);
 
 /*
-5.39.5 Definition of operator ~~
-
-*/
-
-/*
-5.40 Operator ~~
+5.38 Operator ~never~
 
 ----
-     (insert signature here)
+
+     never: (       ubool) --> bool
+            (stream ubool) --> bool
 
 ----
 
 */
 
 /*
-5.40.1 Type mapping function for ~~
+5.39.1 Type mapping function for ~never~
+
+Using ~TemporalUnitBoolAggrTypeMap~
 
 */
 
 /*
-5.40.2 Value mapping for operator ~~
+5.39.2 Value mapping for operator ~never~
+
+*/
+int TemporalUnitNever_streamubool( Word* args, Word& result, int message,
+                                       Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcBool *res = (CcBool*) result.addr;
+  Word elem;
+  UBool *U;
+  bool found = true;
+
+  qp->Open(args[0].addr);              // open input stream
+  qp->Request(args[0].addr, elem);     // get first elem from stream
+  while ( found && qp->Received(args[0].addr) )
+    {
+      U = (UBool*) elem.addr;
+      if ( U->IsDefined() && U->constValue.GetBoolval() )
+        found = false;
+      else
+        qp->Request(args[0].addr, elem);
+      U->DeleteIfAllowed();
+    }
+  qp->Close(args[0].addr); // close the stream
+
+  // create and return the result
+  res->Set( true, found );
+  return 0;
+}
+
+int TemporalUnitNever_ubool( Word* args, Word& result, int message,
+                                 Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcBool *res = (CcBool*) result.addr;
+  UBool *U = (UBool*) args[0].addr;
+
+  if( U->IsDefined() && U->constValue.GetBoolval())
+    res->Set( true, false );
+  else
+    res->Set( true, true );
+  return 0;
+}
+/*
+5.39.3 Specification for operator ~never~
+
+*/
+const string  TemporalUnitNeverSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "("
+  "<text>"
+  "ubool -> bool\n"
+  "ubool -> bool\n"
+  "</text--->"
+  "<text>never( _ )</text--->"
+  "<text>Returns 'true', iff the ubool/stream does never take value 'true', "
+  "otherwise 'false'. Never returns 'undef'.</text--->"
+  "<text>query never(ubool1)</text--->"
+  ") )";
+
+/*
+5.39.4 Selection Function of operator ~never~
+
+Using ~TemporalUnitBoolAggrSelect~
+
+*/
+ValueMapping TemporalUnitNeverMap[] = {
+  TemporalUnitNever_ubool,
+  TemporalUnitNever_streamubool,
+};
+
+
+/*
+5.39.5 Definition of operator ~never~
+
+*/
+Operator temporalunitnever( "never",
+                            TemporalUnitNeverSpec,
+                            2,
+                            TemporalUnitNeverMap,
+                            TemporalUnitBoolAggrSelect,
+                            TemporalUnitBoolAggrTypeMap);
+
+/*
+5.40 Operator ~always~
+
+----
+
+    always: (       ubool) --> bool
+            (stream ubool) --> bool
+
+----
 
 */
 
 /*
-5.40.3 Specification for operator ~~
+5.40.1 Type mapping function for ~always~
+
+Using ~TemporalUnitBoolAggrTypeMap~
 
 */
 
 /*
-5.40.4 Selection Function of operator ~~
+5.40.2 Value mapping for operator ~always~
 
 */
+int TemporalUnitAlways_streamubool( Word* args, Word& result, int message,
+                                       Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcBool *res = (CcBool*) result.addr;
+  Word elem;
+  UBool *U;
+  bool found = true;
+
+  qp->Open(args[0].addr);              // open input stream
+  qp->Request(args[0].addr, elem);     // get first elem from stream
+  while ( found && qp->Received(args[0].addr) )
+    {
+      U = (UBool*) elem.addr;
+      if ( U->IsDefined() && !U->constValue.GetBoolval() )
+        found = false;
+      else
+        qp->Request(args[0].addr, elem);
+      U->DeleteIfAllowed();
+    }
+  qp->Close(args[0].addr); // close the stream
+
+  // create and return the result
+  res->Set( true, found );
+  return 0;
+}
+
+int TemporalUnitAlways_ubool( Word* args, Word& result, int message,
+                                 Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcBool *res = (CcBool*) result.addr;
+  UBool *U = (UBool*) args[0].addr;
+
+  if( U->IsDefined() && !U->constValue.GetBoolval())
+    res->Set( true, false );
+  else
+    res->Set( true, true );
+  return 0;
+}
+/*
+5.40.3 Specification for operator ~always~
+
+*/
+const string  TemporalUnitAlwaysSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "("
+  "<text>"
+  "ubool -> bool\n"
+  "ubool -> bool\n"
+  "</text--->"
+  "<text>always( _ )</text--->"
+  "<text>Returns 'false', iff the ubool/stream takes value 'true' "
+  "at least once, otherwise 'true'. Never returns 'undef'.</text--->"
+  "<text>query never(ubool1)</text--->"
+  ") )";
 
 /*
-5.40.5 Definition of operator ~~
+5.40.4 Selection Function of operator ~always~
+
+Using ~TemporalUnitBoolAggrSelect~
 
 */
+ValueMapping TemporalUnitAlwaysMap[] = {
+  TemporalUnitAlways_ubool,
+  TemporalUnitAlways_streamubool,
+};
+
+/*
+5.40.5 Definition of operator ~always~
+
+*/
+Operator temporalunitalways( "always",
+                             TemporalUnitAlwaysSpec,
+                             2,
+                             TemporalUnitAlwaysMap,
+                             TemporalUnitBoolAggrSelect,
+                             TemporalUnitBoolAggrTypeMap);
 
 /*
 5.41 Operator ~~
@@ -11010,6 +11281,111 @@ Operator temporalunitinside( "inside",
 
 /*
 5.41.5 Definition of operator ~~
+
+*/
+
+/*
+5.41 Operator ~~
+
+----
+     (insert signature here)
+
+----
+
+*/
+
+/*
+5.42.1 Type mapping function for ~~
+
+*/
+
+/*
+5.42.2 Value mapping for operator ~~
+
+*/
+
+/*
+5.42.3 Specification for operator ~~
+
+*/
+
+/*
+5.42.4 Selection Function of operator ~~
+
+*/
+
+/*
+5.42.5 Definition of operator ~~
+
+*/
+
+/*
+5.41 Operator ~~
+
+----
+     (insert signature here)
+
+----
+
+*/
+
+/*
+5.43.1 Type mapping function for ~~
+
+*/
+
+/*
+5.43.2 Value mapping for operator ~~
+
+*/
+
+/*
+5.43.3 Specification for operator ~~
+
+*/
+
+/*
+5.43.4 Selection Function of operator ~~
+
+*/
+
+/*
+5.43.5 Definition of operator ~~
+
+*/
+
+/*
+5.41 Operator ~~
+
+----
+     (insert signature here)
+
+----
+
+*/
+
+/*
+5.44.1 Type mapping function for ~~
+
+*/
+
+/*
+5.44.2 Value mapping for operator ~~
+
+*/
+
+/*
+5.44.3 Specification for operator ~~
+
+*/
+
+/*
+5.44.4 Selection Function of operator ~~
+
+*/
+
+/*
+5.44.5 Definition of operator ~~
 
 */
 
@@ -11168,6 +11544,9 @@ public:
     AddOperator( &temporalunitnot );
     AddOperator( &temporalunitand );
     AddOperator( &temporalunitor );
+    AddOperator( &temporalunitsometimes );
+    AddOperator( &temporalunitnever );
+    AddOperator( &temporalunitalways );
     AddOperator( &temporalunitisequal );
     AddOperator( &temporalunitisnotequal );
     AddOperator( &temporalunitsmaller );

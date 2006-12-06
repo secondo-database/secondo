@@ -52,6 +52,9 @@ operator uint2ureal alias UINT2UREAL pattern op ( _ )
 #operator not alias NOT pattern op ( _ )
 #operator and alias AND pattern _ infixop _
 #operator or alias OR pattern _ infixop _
+#operator sometimes alias SOMETIMES pattern op ( _ )
+#operator never alias NEVER pattern op ( _ )
+#operator always alias ALWAYS pattern op ( _ )
 #operator = alias EQ pattern _ infixop _
 #operator # alias NE pattern _ infixop _
 #operator < alias LT pattern _ infixop _
