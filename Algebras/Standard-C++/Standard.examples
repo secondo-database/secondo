@@ -8,7 +8,7 @@ Result   : TRUE
 Operator : *
 Number   : 1
 Signature: (int int) -> int, (int real) -> real, (real int) -> real, (real real) -> real
-Example  : query 5 * 1.4 
+Example  : query 5 * 1.4
 Result   : 7
 
 
@@ -29,7 +29,7 @@ Result   : -4.2
 Operator : /
 Number   : 1
 Signature: (int int) -> real, (int real) -> real, (real int) -> real, (real real) -> real
-Example  : query 5 / 2 
+Example  : query 5 / 2
 Result   : 2.5
 
 
@@ -97,7 +97,7 @@ Result   : TRUE
 Operator : div
 Number   : 1
 Signature: (int int) -> int
-Example  : query 5 div 2 
+Example  : query 5 div 2
 Result   : 2
 
 
@@ -119,25 +119,25 @@ Operator : intersection
 Number   : 1
 Signature: (int int) -> int
 Example  : query intersection(3 , 3)
-Result   : 3 
+Result   : 3
 
 Operator : intersection
 Number   : 2
 Signature: (real real) -> real
 Example  : query intersection(3.0 , 3.0)
-Result   : 3.0 
+Result   : 3.0
 
 Operator : intersection
 Number   : 3
 Signature: (bool bool) -> bool
 Example  : query intersection(TRUE , TRUE)
-Result   : TRUE 
+Result   : TRUE
 
 Operator : intersection
 Number   : 4
 Signature: (string string) -> string
 Example  : query intersection("abcd" , "abcd")
-Result   : "abcd" 
+Result   : "abcd"
 
 Operator : isempty
 Number   : 1
@@ -162,7 +162,7 @@ Result   : 4
 
 Operator : log
 Number   : 1
-Signature: int -> int 
+Signature: int -> int
 Example  : query log (200)
 Result   : 7
 
@@ -171,13 +171,13 @@ Operator : minus
 Number   : 1
 Signature:  (int int) -> int, (real real) -> real, (bool bool) -> bool, (string string) -> string
 Example  : query 4 minus 3
-Result   : 4 
+Result   : 4
 
 
 Operator : mod
 Number   : 1
 Signature: (int int) -> int
-Example  : query 8 mod 3 
+Example  : query 8 mod 3
 Result   : 2
 
 
@@ -197,14 +197,14 @@ Result   : TRUE
 
 Operator : randint
 Number   : 1
-Signature: int -> int 
+Signature: int -> int
 Example  : query randint (9)
 Result   : 0
 
 
 Operator : randmax
 Number   : 1
-Signature:  -> int 
+Signature:  -> int
 Example  : query randmax()
 Result   : 32767
 
@@ -225,14 +225,14 @@ Result   : 10
 
 Operator : seqinit
 Number   : 1
-Signature: int -> bool 
+Signature: int -> bool
 Example  : query seqinit(100)
 Result   : TRUE
 
 
 Operator : seqnext
 Number   : 1
-Signature:  -> int 
+Signature:  -> int
 Example  : query seqnext ()
 Result   : 100
 
@@ -272,3 +272,66 @@ Example  : query upper ( "hello" )
 Result   : "hellp"
 
 
+Operator : round
+Number   : 1
+Signature: real -> int
+Example  : query round(10.123, 2)
+Result   : 10.012
+
+Operator : round
+Number   : 2
+Signature: real -> int
+Example  : query round(4321.123, -2)
+Result   : 4300
+
+
+Operator : int2real
+Number   : 1
+Signature: int -> real
+Example  : query int2real(-2)
+Result   : -2
+
+
+Operator : real2int
+Number   : 1
+Signature: real -> int
+Example  : query real2int(-1.2)
+Result   : 1
+
+
+Operator : int2bool
+Number   : 1
+Signature: int -> bool
+Example  : int2bool(-5)
+Result   : TRUE
+
+Operator : int2bool
+Number   : 2
+Signature: int -> bool
+Example  : int2bool(0)
+Result   : FALSE
+
+Operator : bool2int
+Number   : 1
+Signature: bool -> int
+Example  : query bool2int(FALSE)
+Result   : 0
+
+Operator : bool2int
+Number   : 2
+Signature: bool -> int
+Example  : query bool2int(TRUE)
+Result   : 1
+
+Operator : ceil
+Number   : 1
+Signature: real -> real
+Example  : query ceil(-1.2)
+Result   : -1
+
+
+Operator : floor
+Number   : 1
+Signature: real -> real
+Example  : query floor(-1.2)
+Result   : -2
