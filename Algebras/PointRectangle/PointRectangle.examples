@@ -1,3 +1,6 @@
+Database : berlintest
+Restore  : NO
+
 Operator : inside
 Number   : 1
 Signature: xpoint x xrectangle -> bool, xrectangle x xrectangle -> bool

@@ -1,3 +1,6 @@
+Database : berlintest
+Restore  : NO
+
 Operator : TUPLE
 Number   : 1
 Signature: ((stream x)...) -> x, ((rel x)...) -> x
