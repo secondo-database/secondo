@@ -55,9 +55,9 @@ restore zug5 from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5';
 # stream operators #
 ####################
 
-#testcase sfeed
+#testcase feed
 #yields (int 1)
-query sfeed(ui1) count;
+query ui1 feed count;
 
 #testcase transformstream_S_TS
 #yields ((rel (tuple ((elem int)))) ((1) (2) (3) (4) (5) (6) (7) (8) (9) (10)))
@@ -71,101 +71,101 @@ query ten feed transformstream filter[. >7] count;
 #yields ((rel (tuple ((elem int)))) ((8) (9) (10)))
 query ten feed transformstream filter[. >7] transformstream consume;
 
-#testcase sfeed transformstream consume
+#testcase feed transformstream consume
 #yields ((rel (tuple ((elem int)))) ((1000)))
-query sfeed(ci) transformstream consume;
+query ci feed transformstream consume;
 
-#testcase suse_SN 1
+#testcase use_SN 1
 #yields (int 100000)
-query intstream(1,100000) suse[ fun(i:STREAMELEM) i*i ] count;
+query intstream(1,100000) use[ fun(i:STREAMELEM) i*i ] count;
 
-#testcase suse_SN 2
+#testcase use_SN 2
 #yields ((rel (tuple ((elem int)))) ((1) (4) (9) (16) (25) (36)))
-query intstream(1,6) suse[ fun(i:STREAMELEM) i*i ] transformstream consume;
+query intstream(1,6) use[ fun(i:STREAMELEM) i*i ] transformstream consume;
 
-#testcase suse_SS 1
+#testcase use_SS 1
 #yields (int 15)
-query intstream(1,6) suse[ fun(i:int) intstream(i,5) ] count;
+query intstream(1,6) use[ fun(i:int) intstream(i,5) ] count;
 
-#testcase suse_SS 2
+#testcase use_SS 2
 #yields ((rel (tuple ((elem int)))) ((1) (2) (3) (4) (5) (2) (3) (4) (5) (3) (4) (5) (4) (5) (5)))
-query intstream(1,6) suse[ fun(i:STREAMELEM) intstream(i,5) ] transformstream consume;
+query intstream(1,6) use[ fun(i:STREAMELEM) intstream(i,5) ] transformstream consume;
 
-#testcase suse2_SNN
+#testcase use2_SNN
 #yields (int 5)
-query [const int value 3] intstream(1,5) suse2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] count;
+query [const int value 3] intstream(1,5) use2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] count;
 
-#testcase suse2_SNN_2
+#testcase use2_SNN_2
 #yields ((rel (tuple ((elem int)))) ((4) (5) (6) (7)  (8)))
-query [const int value 3] intstream(1,5) suse2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] transformstream consume;
+query [const int value 3] intstream(1,5) use2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] transformstream consume;
 
-#testcase suse2_SNS 1
+#testcase use2_SNS 1
 #yields (int 15)
-query intstream(1,5) [const int value 5] suse2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] count;
+query intstream(1,5) [const int value 5] use2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] count;
 
-#testcase suse2_SNS 2
+#testcase use2_SNS 2
 #yields ((rel (tuple ((elem int)))) ((1) (2) (3) (4) (5) (2) (3) (4) (5) (3) (4) (5) (4) (5) (5) ))
-query intstream(1,5) [const int value 5] suse2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] transformstream consume;
+query intstream(1,5) [const int value 5] use2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] transformstream consume;
 
-#testcase suse2_NSN 1
+#testcase use2_NSN 1
 #yields (int 5)
-query [const int value 3] intstream(1,5) suse2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] count;
+query [const int value 3] intstream(1,5) use2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] count;
 
-#testcase suse2_NSN 2
+#testcase use2_NSN 2
 #yields ((rel (tuple ((elem int)))) ((4) (5) (6) (7) (8) ))
-query [const int value 3] intstream(1,5) suse2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] transformstream consume;
+query [const int value 3] intstream(1,5) use2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] transformstream consume;
 
-#testcase suse2_NSS 1
+#testcase use2_NSS 1
 #yields (int 6)
-query [const int value 3] intstream(1,5) suse2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] count;
+query [const int value 3] intstream(1,5) use2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] count;
 
-#testcase suse2_NSS 2
+#testcase use2_NSS 2
 #yields ((rel (tuple ((elem int)))) ( (3) (3) (4) (3) (4) (5) ) )
-query [const int value 3] intstream(1,5) suse2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] transformstream consume;
+query [const int value 3] intstream(1,5) use2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] transformstream consume;
 
-#testcase suse2_SSN 1
+#testcase use2_SSN 1
 #yields (int 100)
-query intstream(6,15) intstream(3,12) suse2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] count;
+query intstream(6,15) intstream(3,12) use2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] count;
 
-#testcase suse2_SSN 2
+#testcase use2_SSN 2
 #yields ((rel (tuple ((elem int)))) ( (2) (3) (4) (3) (4) (5) (4) (5) (6) ) )
-query intstream(1,3) intstream(1,3) suse2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] transformstream consume;
+query intstream(1,3) intstream(1,3) use2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] transformstream consume;
 
-#testcase suse2_SSS 1
+#testcase use2_SSS 1
 #yields (int 9)
-query intstream(1,2) intstream(1,3) suse2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] count;
+query intstream(1,2) intstream(1,3) use2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] count;
 
-#testcase suse2_SSS 2
+#testcase use2_SSS 2
 #yields ((rel (tuple ((elem int)))) ((1) (1) (2) (1) (2) (3) (2) (2) (3)))
-query intstream(1,2) intstream(1,3) suse2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] transformstream consume;
+query intstream(1,2) intstream(1,3) use2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] transformstream consume;
 
-#testcase saggregate 1
+#testcase aggregateS 1
 #yields (int 10)
-query intstream(1,0) saggregate[ fun(i1:STREAMELEM, i2:STREAMELEM) i1+i2 ; 10];
+query intstream(1,0) aggregateS[ fun(i1:STREAMELEM, i2:STREAMELEM) i1+i2 ; 10];
 
-#testcase saggregate 2
+#testcase aggregateS 2
 #yields (int 1)
-query intstream(1,1) saggregate[ fun(i1:STREAMELEM, i2:STREAMELEM) i1+i2 ; 10];
+query intstream(1,1) aggregateS[ fun(i1:STREAMELEM, i2:STREAMELEM) i1+i2 ; 10];
 
-#testcase saggregate 3
+#testcase aggregateS 3
 #yields (int 3)
-query intstream(1,2) saggregate[ fun(i1:STREAMELEM, i2:STREAMELEM) i1+i2 ; 0];
+query intstream(1,2) aggregateS[ fun(i1:STREAMELEM, i2:STREAMELEM) i1+i2 ; 0];
 
-#testcase saggregate 4
+#testcase aggregateS 4
 #yields (int 10)
-query intstream(1,4) saggregate[ fun(i1:STREAMELEM, i2:STREAMELEM) i1+i2 ; 0];
+query intstream(1,4) aggregateS[ fun(i1:STREAMELEM, i2:STREAMELEM) i1+i2 ; 0];
 
-#testcase saggregate 5
+#testcase aggregateS 5
 #yields (int 36)
-query intstream(1,8) saggregate[ fun(i1:STREAMELEM, i2:STREAMELEM) i1+i2 ; 0];
+query intstream(1,8) aggregateS[ fun(i1:STREAMELEM, i2:STREAMELEM) i1+i2 ; 0];
 
-#testcase saggregate 6
+#testcase aggregateS 6
 #yields (int 6)
-query intstream(1,3) saggregate[ fun(i1:STREAMELEM, i2:STREAMELEM) i1+i2 ; 0];
+query intstream(1,3) aggregateS[ fun(i1:STREAMELEM, i2:STREAMELEM) i1+i2 ; 0];
 
-#testcase saggregate 7
+#testcase aggregateS 7
 #yields (int 15)
-query intstream(1,5) saggregate[ fun(i:STREAMELEM, j:STREAMELEM) i+j ; 15];
+query intstream(1,5) aggregateS[ fun(i:STREAMELEM, j:STREAMELEM) i+j ; 15];
 
 #testcase makemvalue
 #tolerance_real 0.001
