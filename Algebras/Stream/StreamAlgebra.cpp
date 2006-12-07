@@ -54,7 +54,7 @@ OK    feed:                           T --> (stream T)
 
 OK    transformstream: stream(tuple((id T))) --> (stream T)
 OK                                (stream T) --> stream(tuple((element T)))
-OK    aggregate:         (stream T) x (T x T --> T) x T  --> T
+OK    aggregateS:        (stream T) x (T x T --> T) x T  --> T
 OK    count:                      (stream T) --> int
 OK    filter:      ((stream T) (map T bool)) --> int
 OK    printstream:                (stream T) --> (stream T)
@@ -1742,7 +1742,7 @@ Operator streamuse2( "use2",
 
 
 /*
-5.24 Operator ~aggregate~
+5.24 Operator ~aggregateS~
 
 Stream aggregation operator
 
@@ -1754,7 +1754,7 @@ The result a single value of the same kind.
 
 ----
        For T in kind DATA:
-       aggregate: ((stream T) x (T x T --> T) x T) --> T
+       aggregateS: ((stream T) x (T x T --> T) x T) --> T
 
 ----
 
@@ -1763,7 +1763,7 @@ The second argument is the function used in the aggregation.
 The third value is used to initialize the mapping (for the first elem)
 and will also be return if the input stream is empty.
 
-5.24.1 Type mapping function for ~aggregate~
+5.24.1 Type mapping function for ~aggregateS~
 
 */
 ListExpr StreamaggregateTypeMap( ListExpr args )
@@ -1774,7 +1774,7 @@ ListExpr StreamaggregateTypeMap( ListExpr args )
   // check for correct length
   if (nl->ListLength(args) != 3)
     {
-      ErrorReporter::ReportError("Operator aggregate expects a list of length "
+      ErrorReporter::ReportError("Operator aggregateS expects a list of length "
                                  "three.");
       return nl->SymbolAtom( "typeerror" );
     }
@@ -1791,7 +1791,7 @@ ListExpr StreamaggregateTypeMap( ListExpr args )
        !(TypeOfRelAlgSymbol(nl->First(instream) == stream )) ||
        !am->CheckKind("DATA", nl->Second(instream), errorInfo) )
     {
-      ErrorReporter::ReportError("Operator aggregate expects a list of length "
+      ErrorReporter::ReportError("Operator aggregateS expects a list of length "
                                  "two as first argument, having structure "
                                  "'(stream T)', for T in kind DATA.");
       return nl->SymbolAtom( "typeerror" );
@@ -1808,7 +1808,7 @@ ListExpr StreamaggregateTypeMap( ListExpr args )
        !( nl->Equal(nl->Third(map), nl->Second(map)) ) ||
        !( nl->Equal(nl->Third(map), TypeT) ) )
     {
-      ErrorReporter::ReportError("Operator aggregate expects a list of length "
+      ErrorReporter::ReportError("Operator aggregateS expects a list of length "
                                  "four as second argument, having structure "
                                  "'(map T T T)', where T has the base type of "
                                  "the first argument.");
@@ -1819,7 +1819,7 @@ ListExpr StreamaggregateTypeMap( ListExpr args )
   if ( !nl->IsAtom(zerovalue) ||
        !nl->Equal(TypeT, zerovalue) )
     {
-      ErrorReporter::ReportError("Operator aggregate expects a list of length"
+      ErrorReporter::ReportError("Operator aggregateS expects a list of length"
                                  "one as third argument (neutral elem), having "
                                  "structure 'T', where T is also the type of "
                                  "the mapping's arguments and result. Also, "
@@ -1979,7 +1979,7 @@ const string StreamaggregateSpec =
   "("
   "<text>For T in kind DATA:\n"
   "((stream T) ((T T) -> T) T ) -> T\n</text--->"
-  "<text>_ aggregate [ fun ; _ ]</text--->"
+  "<text>_ aggregateS [ fun ; _ ]</text--->"
   "<text>Aggregates the values from the stream (1st arg) "
   "using a binary associative and commutative "
   "aggregation function (2nd arg), "
@@ -1987,9 +1987,9 @@ const string StreamaggregateSpec =
   "result if the stream is empty). If the stream contains"
   "only one single element, that element will be returned"
   "as the result.</text--->"
-  "<text>query intstream(1,5) aggregate[ "
+  "<text>query intstream(1,5) aggregateS[ "
   "fun(i1:int, i2:int) i1+i2 ; 0]\n"
-  "query intstream(1,5) aggregate[ "
+  "query intstream(1,5) aggregateS[ "
   "fun(i1:STREAMELEM, i2:STREAMELEM) ifthenelse(i1>i2,i1,i2) ; 0]</text--->"
   ") )";
 
@@ -2014,7 +2014,7 @@ int streamaggregateSelect( ListExpr args )
 
 */
 
-Operator streamaggregate( "aggregate",
+Operator streamaggregateS( "aggregateS",
                                  StreamaggregateSpec,
                                  1,
                                  streamaggregatemap,
@@ -3014,7 +3014,7 @@ public:
     AddOperator( &streamfeed );
     AddOperator( &streamuse );
     AddOperator( &streamuse2 );
-    AddOperator( &streamaggregate );
+    AddOperator( &streamaggregateS );
     AddOperator( &streamfilter );
     AddOperator( &STREAMELEM );
     AddOperator( &STREAMELEM2 );

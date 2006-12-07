@@ -6803,7 +6803,7 @@ struct AggregStruct
 int Saggregate( Word* args, Word& result, int message,
                 Word& local, Supplier s )
 {
-  cerr << "Operator _ saggegate[_;_] is depricated. Use '_ aggregate[_;_]' "
+  cerr << "Operator _ saggegate[_;_] is depricated. Use '_ aggregateS[_;_]' "
        << "instead!\n"
        << "         This operator will be deleted soon!" << endl;
 
