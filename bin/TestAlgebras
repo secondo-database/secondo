@@ -1,0 +1,17 @@
+
+( OBJECT  TestAlgebras 
+   ()
+   ( rel 
+      ( tuple 
+         (
+            ( AlgNo  int )
+            ( Alg  string ))))
+   (
+      ( 1  "StandardAlgebra" )
+      ( 2  "FunctionAlgebra" )
+      ( 3  "RelationAlgebra" )
+      ( 4  "ExtRelationAlgebra" )
+      ( 5  "PointRectangleAlgebra" )
+      ( 6  "StreamExampleAlgebra" )
+      ( 7  "PolygonAlgebra" )))
+
