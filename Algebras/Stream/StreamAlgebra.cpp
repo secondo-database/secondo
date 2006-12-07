@@ -761,7 +761,7 @@ TypeMapUse2( ListExpr args )
 
 */
 
-struct SuseLocalInfo{
+struct UseLocalInfo{
   bool Xfinished, Yfinished, funfinished; // whether we have finished
   Word X, Y, fun;                         // pointers to the argument nodes
   Word XVal, YVal, funVal;                // the last arg values
@@ -772,7 +772,7 @@ struct SuseLocalInfo{
 int Use_SN( Word* args, Word& result, int message,
              Word& local, Supplier s )
 {
-  SuseLocalInfo     *sli;
+  UseLocalInfo     *sli;
   Word              instream = args[0], fun = args[1];
   Word              funResult, argValue;
   ArgVectorPointer  funArgs;
@@ -782,7 +782,7 @@ int Use_SN( Word* args, Word& result, int message,
     case OPEN :
 
       if(GSA_DEBUG) cout << "Use_SN received OPEN" << endl;
-      sli = new SuseLocalInfo;
+      sli = new UseLocalInfo;
       sli->Xfinished = true;
       qp->Open(instream.addr);
       sli->Xfinished = false;
@@ -802,7 +802,7 @@ int Use_SN( Word* args, Word& result, int message,
           if(GSA_DEBUG) cout << "Use_SN finished REQUEST: CANCEL (1)" << endl;
           return CANCEL;
         }
-      sli = (SuseLocalInfo*)local.addr;
+      sli = (UseLocalInfo*)local.addr;
 
       if (sli->Xfinished)
         {
@@ -843,7 +843,7 @@ int Use_SN( Word* args, Word& result, int message,
       if(GSA_DEBUG) cout << "Use_SN received CLOSE" << endl;
       if( local.addr != 0 )
         {
-          sli = (SuseLocalInfo*)local.addr;
+          sli = (UseLocalInfo*)local.addr;
           if ( !sli->Xfinished )
             qp->Close( instream.addr );
           delete sli;
@@ -861,7 +861,7 @@ int Use_SN( Word* args, Word& result, int message,
 int Use_SS( Word* args, Word& result, int message,
              Word& local, Supplier s )
 {
-  SuseLocalInfo    *sli;
+  UseLocalInfo    *sli;
   Word             funResult;
   ArgVectorPointer funargs;
 
@@ -869,7 +869,7 @@ int Use_SS( Word* args, Word& result, int message,
     {
     case OPEN :
 
-      sli = new SuseLocalInfo;
+      sli = new UseLocalInfo;
       sli->X   = SetWord( args[0].addr );
       sli->fun = SetWord( args[1].addr );
       sli->Xfinished   = true;
@@ -896,7 +896,7 @@ int Use_SS( Word* args, Word& result, int message,
       //1. recover local information
       if( local.addr == 0 )
         return CANCEL;
-      sli = (SuseLocalInfo*)local.addr;
+      sli = (UseLocalInfo*)local.addr;
 
       // create the next result
       while( !sli->Xfinished )
@@ -936,7 +936,7 @@ int Use_SS( Word* args, Word& result, int message,
 
       if( local.addr != 0 )
         {
-          sli = (SuseLocalInfo*)local.addr;
+          sli = (UseLocalInfo*)local.addr;
           if( !sli->funfinished )
             {
               qp->Close( sli->fun.addr );
@@ -958,7 +958,7 @@ int Use_SS( Word* args, Word& result, int message,
 int Use_SNN( Word* args, Word& result, int message,
               Word& local, Supplier s )
 {
-  SuseLocalInfo     *sli;
+  UseLocalInfo     *sli;
   Word              xval, funresult;
   ArgVectorPointer  funargs;
 
@@ -967,7 +967,7 @@ int Use_SNN( Word* args, Word& result, int message,
     case OPEN :
 
       if(GSA_DEBUG) cout << "\nUse_SNN received OPEN" << endl;
-      sli = new SuseLocalInfo ;
+      sli = new UseLocalInfo ;
       sli->Xfinished = true;
       sli->X.addr = 0;
       sli->Y.addr = 0;
@@ -1017,7 +1017,7 @@ int Use_SNN( Word* args, Word& result, int message,
           if(GSA_DEBUG) cout << "Use_SNN finished REQUEST: CLOSE (1)" << endl;
           return CANCEL;
         }
-      sli = (SuseLocalInfo*) local.addr;
+      sli = (UseLocalInfo*) local.addr;
       if (sli->Xfinished)
         { // stream already exhausted earlier
           result.addr = 0;
@@ -1059,7 +1059,7 @@ int Use_SNN( Word* args, Word& result, int message,
       if(GSA_DEBUG) cout << "Use_SNN received CLOSE" << endl;
       if( local.addr != 0 )
         {
-          sli = (SuseLocalInfo*)local.addr;
+          sli = (UseLocalInfo*)local.addr;
           if (!sli->Xfinished)
             qp->Close( sli->X.addr ); // close input
           delete sli;
@@ -1079,7 +1079,7 @@ int Use_SNS( Word* args, Word& result, int message,
               Word& local, Supplier s )
 {
 
-  SuseLocalInfo     *sli;
+  UseLocalInfo     *sli;
   Word              funresult;
   ArgVectorPointer  funargs;
 
@@ -1088,7 +1088,7 @@ int Use_SNS( Word* args, Word& result, int message,
     case OPEN :
 
       if(GSA_DEBUG) cout << "\nUse_SNS received OPEN" << endl;
-      sli = new SuseLocalInfo ;
+      sli = new UseLocalInfo ;
       sli->Xfinished   = true;
       sli->funfinished = true;
       sli->X.addr = 0;
@@ -1141,7 +1141,7 @@ int Use_SNS( Word* args, Word& result, int message,
           if(GSA_DEBUG) cout << "Use_SNN finished REQUEST: CLOSE (1)" << endl;
           return CANCEL;
         }
-      sli = (SuseLocalInfo*) local.addr;
+      sli = (UseLocalInfo*) local.addr;
       // 2. request values from inner stream
       while (!sli->Xfinished)
         {
@@ -1198,7 +1198,7 @@ int Use_SNS( Word* args, Word& result, int message,
       if(GSA_DEBUG) cout << "Use_SNN received CLOSE" << endl;
       if( local.addr != 0 )
         {
-          sli = (SuseLocalInfo*)local.addr;
+          sli = (UseLocalInfo*)local.addr;
           if (!sli->funfinished)
             qp->Close( sli->fun.addr ); // close map result stream
           if (!sli->Xfinished)
@@ -1218,7 +1218,7 @@ int Use_SNS( Word* args, Word& result, int message,
 int Use_SSN( Word* args, Word& result, int message,
               Word& local, Supplier s )
 {
-  SuseLocalInfo     *sli;
+  UseLocalInfo     *sli;
   Word              funresult;
   ArgVectorPointer  funargs;
 
@@ -1227,7 +1227,7 @@ int Use_SSN( Word* args, Word& result, int message,
     case OPEN :
 
       if(GSA_DEBUG) cout << "\nUse_SSN received OPEN" << endl;
-      sli = new SuseLocalInfo ;
+      sli = new UseLocalInfo ;
       sli->Xfinished = true;
       sli->Yfinished = true;
       // get argument configuration info
@@ -1276,7 +1276,7 @@ int Use_SSN( Word* args, Word& result, int message,
           if(GSA_DEBUG) cout << "Use_SSN finished REQUEST: CLOSE (1)" << endl;
           return CANCEL;
         }
-      sli = (SuseLocalInfo*) local.addr;
+      sli = (UseLocalInfo*) local.addr;
 
       while(!sli->Xfinished)
         {
@@ -1326,7 +1326,7 @@ int Use_SSN( Word* args, Word& result, int message,
       if(GSA_DEBUG) cout << "Use_SSN received CLOSE" << endl;
       if( local.addr != 0 )
         {
-          sli = (SuseLocalInfo*)local.addr;
+          sli = (UseLocalInfo*)local.addr;
           if (!sli->Yfinished)
             {
               qp->Close( sli->Y.addr ); // close inner instream
@@ -1353,7 +1353,7 @@ int Use_SSN( Word* args, Word& result, int message,
 int Use_SSS( Word* args, Word& result, int message,
               Word& local, Supplier s )
 {
-  SuseLocalInfo     *sli;
+  UseLocalInfo     *sli;
   Word              funresult;
   ArgVectorPointer  funargs;
 
@@ -1362,7 +1362,7 @@ int Use_SSS( Word* args, Word& result, int message,
     case OPEN :
 
       if(GSA_DEBUG) cout << "\nUse_SSS received OPEN" << endl;
-      sli = new SuseLocalInfo ;
+      sli = new UseLocalInfo ;
       sli->Xfinished   = true;
       sli->Yfinished   = true;
       sli->funfinished = true;
@@ -1414,7 +1414,7 @@ int Use_SSS( Word* args, Word& result, int message,
           if(GSA_DEBUG) cout << "Use_SSS finished REQUEST: CLOSE (1)" << endl;
           return CANCEL;
         }
-      sli = (SuseLocalInfo*) local.addr;
+      sli = (UseLocalInfo*) local.addr;
 
       while(!sli->Xfinished)
         {
@@ -1486,7 +1486,7 @@ int Use_SSS( Word* args, Word& result, int message,
       if(GSA_DEBUG) cout << "Use_SSS received CLOSE" << endl;
       if( local.addr != 0 )
         {
-          sli = (SuseLocalInfo*)local.addr;
+          sli = (UseLocalInfo*)local.addr;
           if (!sli->funfinished)
             {
               qp->Close( sli->fun.addr ); // close map result stream
@@ -1518,7 +1518,7 @@ int Use_SSS( Word* args, Word& result, int message,
 
 */
 const string
-StreamSpecSuse=
+StreamSpecUse=
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For X in kind DATA or X = tuple(Z)*, Y in kind DATA:\n"
   "(*: not yet implemented)\n"
@@ -1535,7 +1535,7 @@ StreamSpecSuse=
   "</text---> ) )";
 
 const string
-StreamSpecSuse2=
+StreamSpecUse2=
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For X in kind DATA or X = tuple(W)*, Y,Z in kind DATA:\n"
   "(*: not yet implemented)\n"
@@ -1580,7 +1580,7 @@ ValueMapping streamusemap[] =
   };
 
 int
-streamSuseSelect( ListExpr args )
+streamUseSelect( ListExpr args )
 {
   ListExpr sarg1     = nl->First( args );
   ListExpr mapresult = nl->Third(nl->Second(args));
@@ -1612,7 +1612,7 @@ streamSuseSelect( ListExpr args )
   else if ( isTuple &&  isStream) return 3;
   else
     {
-      cout << "\nstreamSuseSelect: Something's wrong!\n";
+      cout << "\nstreamUseSelect: Something's wrong!\n";
     }
   return -1;
 }
@@ -1631,7 +1631,7 @@ ValueMapping streamuse2map[] =
   };
 
 int
-streamSuse2Select( ListExpr args )
+streamUse2Select( ListExpr args )
 {
   ListExpr
     X = nl->First(args),
@@ -1714,7 +1714,7 @@ streamSuse2Select( ListExpr args )
 
   if (index > 3)
     cout << "\nWARNING: index =" << index
-         << ">3 in streamSuse2Select!" << endl;
+         << ">3 in streamUse2Select!" << endl;
 
   return index;
 }
@@ -1726,18 +1726,18 @@ streamSuse2Select( ListExpr args )
 
 
 Operator streamuse( "use",
-                           StreamSpecSuse,
+                           StreamSpecUse,
                            2,
                            streamusemap,
-                           streamSuseSelect,
+                           streamUseSelect,
                            TypeMapUse);
 
 
 Operator streamuse2( "use2",
-                            StreamSpecSuse2,
+                            StreamSpecUse2,
                             4,
                             streamuse2map,
-                            streamSuse2Select,
+                            streamUse2Select,
                             TypeMapUse2);
 
 
