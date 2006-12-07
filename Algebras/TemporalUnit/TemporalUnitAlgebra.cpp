@@ -46,12 +46,7 @@ OK           (stream X) (stream Y) (map X Y (stream Z)) --> (stream Z)
 
 OK    sfeed:                          T --> (stream T)
 
-OK    transformstream: stream(tuple((id T))) --> (stream T)
-OK                                (stream T) --> stream(tuple((element T)))
 OK    saggregate:        (stream T) x (T x T --> T) x T  --> T
-OK    count:                      (stream T) --> int
-OK    filter:      ((stream T) (map T bool)) --> int
-OK    printstream:                (stream T) --> (stream T)
 OK    makemvalue   (**)  stream (tuple ([x1:t1,xi:uT,..,xn:tn])) -->  mT
 OK    get_duration                   periods --> duration
 (OK)  point2d                        periods --> point
@@ -3836,6 +3831,8 @@ int MappingSFeed( Word* args, Word& result, int message,
       linfo = new SFeedLocalInfo;
       linfo->finished = false;
       local = SetWord(linfo);
+      cerr << "Operator sfeed(_) is depricated. Use '_ feed' instead!\n"
+           << "         This operator will be deleted soon!" << endl;
       return 0;
 
     case REQUEST:
@@ -4426,6 +4423,9 @@ int Suse_SN( Word* args, Word& result, int message,
     {
     case OPEN :
 
+      cerr << "Operator _ suse[_] is depricated. Use '_ use[_]' instead!\n"
+           << "         This operator will be deleted soon!" << endl;
+
       if(TUA_DEBUG) cout << "Suse_SN received OPEN" << endl;
       sli = new SuseLocalInfo;
       sli->Xfinished = true;
@@ -4513,6 +4513,8 @@ int Suse_SS( Word* args, Word& result, int message,
   switch (message)
     {
     case OPEN :
+      cerr << "Operator _ suse[_] is depricated. Use '_ use[_]' instead!\n"
+           << "         This operator will be deleted soon!" << endl;
 
       sli = new SuseLocalInfo;
       sli->X   = SetWord( args[0].addr );
@@ -4611,6 +4613,8 @@ int Suse_SNN( Word* args, Word& result, int message,
     {
     case OPEN :
 
+      cerr << "Operator _ suse2[_] is depricated. Use '_ use2[_]' instead!\n"
+           << "         This operator will be deleted soon!" << endl;
       if(TUA_DEBUG) cout << "\nSuse_SNN received OPEN" << endl;
       sli = new SuseLocalInfo ;
       sli->Xfinished = true;
@@ -4731,6 +4735,9 @@ int Suse_SNS( Word* args, Word& result, int message,
   switch (message)
     {
     case OPEN :
+
+      cerr << "Operator _ suse2[_] is depricated. Use '_ use2[_]' instead!\n"
+           << "         This operator will be deleted soon!" << endl;
 
       if(TUA_DEBUG) cout << "\nSuse_SNS received OPEN" << endl;
       sli = new SuseLocalInfo ;
@@ -4871,6 +4878,9 @@ int Suse_SSN( Word* args, Word& result, int message,
     {
     case OPEN :
 
+      cerr << "Operator _ suse2[_] is depricated. Use '_ use2[_]' instead!\n"
+           << "         This operator will be deleted soon!" << endl;
+
       if(TUA_DEBUG) cout << "\nSuse_SSN received OPEN" << endl;
       sli = new SuseLocalInfo ;
       sli->Xfinished = true;
@@ -5005,6 +5015,9 @@ int Suse_SSS( Word* args, Word& result, int message,
   switch (message)
     {
     case OPEN :
+
+      cerr << "Operator _ suse2[_] is depricated. Use '_ use2[_]' instead!\n"
+           << "         This operator will be deleted soon!" << endl;
 
       if(TUA_DEBUG) cout << "\nSuse_SSS received OPEN" << endl;
       sli = new SuseLocalInfo ;
@@ -6790,7 +6803,12 @@ struct AggregStruct
 int Saggregate( Word* args, Word& result, int message,
                 Word& local, Supplier s )
 {
-  // The argument vector contains the following values:
+  cerr << "Operator _ saggegate[_;_] is depricated. Use '_ aggregate[_;_]' "
+       << "instead!\n"
+       << "         This operator will be deleted soon!" << endl;
+
+
+// The argument vector contains the following values:
   Word
     stream  = args[0], // stream of elements T
     aggrmap = args[1], // mapping function T x T --> T
@@ -8998,734 +9016,6 @@ Operator temporalunitintersection( "intersection",
 
 
 /*
-5.27 Operator ~transformstream~
-
-----
-  transformstream: (stream T) -> stream(tuple((element T)))
-                   stream(tuple((id T))) -> (stream T)
-
-  for T in kind DATA, id some arbitrary identifier
-
-----
-
-Operator ~transformstream~ transforms a (stream DATA) into a
-(stream(tuple((element DATA)))) and vice versa. ~element~ is the name for the
-attribute created.
-
-The result of the first variant can e.g. be consumed to form a relation
-or be processed using ordinary tuplestream operators.
-
-*/
-
-/*
-5.27.1 Type mapping function for ~transformstream~
-
-*/
-
-ListExpr TemporalUnitTransformstreamTypeMap(ListExpr args)
-{
-  ListExpr first ;
-  string argstr;
-  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-  ListExpr TupleDescr, T;
-
-  if (nl->ListLength(args) != 1)
-    {
-      ErrorReporter::ReportError("Operator transformstream expects a list of "
-                                 "length one.");
-      return nl->SymbolAtom("typeerror");
-    }
-
-  first = nl->First(args);
-  nl->WriteToString(argstr, first);
-
-  // check for variant 1: (stream T)
-  if ( !nl->IsAtom(first) &&
-       (nl->ListLength(first) == 2) &&
-       (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-       nl->IsAtom(nl->Second(first)) &&
-       am->CheckKind("DATA", nl->Second(first), errorInfo) )
-    {
-      T = nl->Second(first);
-      return nl->TwoElemList(
-        nl->SymbolAtom("stream"),
-        nl->TwoElemList(
-            nl->SymbolAtom("tuple"),
-            nl->OneElemList(
-                nl->TwoElemList(
-                    nl->SymbolAtom("elem"),
-                    T))));
-    }
-  // check for variant 2: stream(tuple((id T)))
-  if ( !nl->IsAtom(first) &&
-       (nl->ListLength(first) == 2) &&
-       (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-       !nl->IsAtom(nl->Second(first)) &&
-       (nl->ListLength(nl->Second(first)) == 2) &&
-       (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) )
-    {
-      TupleDescr = nl->Second(nl->Second(first));
-      nl->WriteToString(argstr, TupleDescr);
-      if(TUA_DEBUG)
-        cout << "\n In tupledescr = " << argstr << endl;
-      if ( !nl->IsAtom(TupleDescr) &&
-           (nl->ListLength(TupleDescr) == 1) &&
-           !nl->IsAtom(nl->First(TupleDescr)) &&
-           (nl->ListLength(nl->First(TupleDescr)) == 2) &&
-           (nl->IsAtom(nl->First(nl->First(TupleDescr)))) &&
-           (nl->IsAtom(nl->Second(nl->First(TupleDescr)))) &&
-           am->CheckKind("DATA", nl->Second(nl->First(TupleDescr)), errorInfo))
-        {
-          T = nl->Second(nl->First(TupleDescr));
-          return nl->TwoElemList(
-                                 nl->SymbolAtom("stream"),
-                                 T);
-        }
-    }
-
-  // Wrong argument format!
-  ErrorReporter::ReportError(
-    "Operator transformstream expects exactly one argument. either "
-    "of type '(stream T)',or 'stream(tuple((id T))))', where T is of "
-    "kind DATA.\n"
-    "The passed argument has type '"+ argstr +"'.");
-  return nl->SymbolAtom("typeerror");
-}
-
-/*
-5.27.2 Value mapping for operator ~transformstream~
-
-*/
-
-struct TransformstreamLocalInfo
-{
-  bool     finished;
-  TupleType *resultTupleType;
-};
-
-// The first variant creates a tuplestream from a stream:
-int Transformstream_S_TS(Word* args, Word& result, int message,
-                         Word& local, Supplier s)
-{
-  TransformstreamLocalInfo *sli;
-  Word      value;
-  ListExpr  resultType;
-  Tuple     *newTuple;
-
-
-  switch ( message )
-    {
-    case OPEN:
-
-      qp->Open( args[0].addr );
-      sli = new TransformstreamLocalInfo;
-
-      resultType = GetTupleResultType( s );
-      sli->resultTupleType = new TupleType( nl->Second( resultType ) );
-      sli->finished = false;
-      local = SetWord(sli);
-      return 0;
-
-    case REQUEST:
-
-      if (local.addr == 0)
-        return CANCEL;
-
-      sli = (TransformstreamLocalInfo*) (local.addr);
-      if (sli->finished)
-        return CANCEL;
-
-      result = SetWord((Attribute*)((qp->ResultStorage(s)).addr));
-
-      qp->Request( args[0].addr, value );
-      if (!qp->Received( args[0].addr ))
-        { // input stream consumed
-          qp->Close( args[0].addr );
-          sli->finished = true;
-          result.addr = 0;
-          return CANCEL;
-        }
-      // create tuple, copy and pass result, delete value
-      newTuple = new Tuple( sli->resultTupleType );
-      newTuple->PutAttribute( 0, ((Attribute*)value.addr)->Clone() );
-      ((Attribute*)(value.addr))->DeleteIfAllowed();
-      result = SetWord(newTuple);
-      return YIELD;
-
-    case CLOSE:
-
-      if (local.addr != 0)
-        {
-          sli = (TransformstreamLocalInfo*) (local.addr);
-          if (!sli->finished)
-            qp->Close( args[0].addr );
-          sli->resultTupleType->DeleteIfAllowed();
-          delete sli;
-        }
-      return 0;
-    }
-  cout << "Transformstream_S_TS: UNKNOWN MESSAGE!" << endl;
-  return 0;
-}
-
-// The second variant creates a stream from a tuplestream:
-int Transformstream_TS_S(Word* args, Word& result, int message,
-                         Word& local, Supplier s)
-{
-  TransformstreamLocalInfo *sli;
-  Word   tuple;
-  Tuple* tupleptr;
-
-  switch ( message )
-    {
-    case OPEN:
-      if (TUA_DEBUG) cout << "Transformstream_TS_S: OPEN called" << endl;
-      qp->Open( args[0].addr );
-      sli = new TransformstreamLocalInfo;
-      sli->finished = false;
-      local = SetWord(sli);
-      if (TUA_DEBUG) cout << "Transformstream_TS_S: OPEN finished" << endl;
-      return 0;
-
-    case REQUEST:
-      if (TUA_DEBUG) cout << "Transformstream_TS_S: REQUEST called" << endl;
-      if (local.addr == 0)
-        {
-          if (TUA_DEBUG) cout
-            << "Transformstream_TS_S: REQUEST return CANCEL (1)" << endl;
-          return CANCEL;
-        }
-
-      sli = (TransformstreamLocalInfo*) (local.addr);
-      if (sli->finished)
-        {
-          if (TUA_DEBUG) cout
-            << "Transformstream_TS_S: REQUEST return CANCEL (2)" << endl;
-          return CANCEL;
-        }
-
-      qp->Request( args[0].addr, tuple );
-      if (!qp->Received( args[0].addr ))
-        { // input stream consumed
-          qp->Close( args[0].addr );
-          sli->finished = true;
-          result.addr = 0;
-          if (TUA_DEBUG) cout
-            << "Transformstream_TS_S: REQUEST return CANCEL (3)" << endl;
-          return CANCEL;
-        }
-      // extract, copy and pass value, delete tuple
-      tupleptr = (Tuple*)tuple.addr;
-      result.addr = tupleptr->GetAttribute(0)->Clone();
-      tupleptr->DeleteIfAllowed();
-      if (TUA_DEBUG) cout
-        << "Transformstream_TS_S: REQUEST return YIELD" << endl;
-      return YIELD;
-
-    case CLOSE:
-
-      if (TUA_DEBUG) cout << "Transformstream_TS_S: CLOSE called" << endl;
-      if (local.addr != 0)
-        {
-          sli = (TransformstreamLocalInfo*) (local.addr);
-          if (!sli->finished)
-            qp->Close( args[0].addr );
-          delete sli;
-        }
-      if (TUA_DEBUG) cout << "Transformstream_TS_S: CLOSE finished" << endl;
-      return 0;
-
-    }
-  cout << "Transformstream_TS_S: UNKNOWN MESSAGE!" << endl;
-  return 0;
-}
-
-/*
-5.27.3 Specification for operator ~transformstream~
-
-*/
-const string TemporalUnitTransformstreamSpec =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "("
-  "<text>For T in kind DATA:\n"
-  "(stream T) -> stream(tuple((elem T)))\n"
-  "stream(tuple(attrname T)) -> (stream T)</text--->"
-  "<text>_ transformstream</text--->"
-  "<text>Transforms a 'stream T' into a tuplestream "
-  "with a single attribute 'elem' containing the "
-  "values coming from the input stream and vice "
-  "versa. The identifier 'elem' is fixed, the "
-  "attribute name 'attrname' may be arbitrary "
-  "chosen, but the tuplestream's tupletype may "
-  "have only a single attribute.</text--->"
-  "<text>query intstream(1,5) transformstream consume\n "
-  "query ten feed transformstream printstream count</text--->"
-  ") )";
-
-/*
-5.27.4 Selection Function of operator ~transformstream~
-
-*/
-
-ValueMapping temporalunittransformstreammap[] =
-  {
-    Transformstream_S_TS,
-    Transformstream_TS_S
-  };
-
-int temporalunitTransformstreamSelect( ListExpr args )
-{
-  ListExpr first = nl->First( args );
-  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-
-  if ( !nl->IsAtom(first) &&
-       (nl->ListLength(first) == 2) &&
-       (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-       nl->IsAtom(nl->Second(first)) &&
-       am->CheckKind("DATA", nl->Second(first), errorInfo) )
-    return 0;
-  if ( !nl->IsAtom(first) &&
-       (nl->ListLength(first) == 2) &&
-       (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-       !nl->IsAtom(nl->Second(first)) &&
-       (nl->ListLength(nl->Second(first)) == 2) &&
-       (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple))
-    return 1;
-  cout << "\ntemporalunitTransformstreamSelect: Wrong type!" << endl;
-  return -1;
-}
-
-
-/*
-5.27.5 Definition of operator ~transformstream~
-
-*/
-
-Operator temporalunittransformstream( "transformstream",
-                      TemporalUnitTransformstreamSpec,
-                      2,
-                      temporalunittransformstreammap,
-                      temporalunitTransformstreamSelect,
-                      TemporalUnitTransformstreamTypeMap);
-
-
-/*
-5.28 Operator ~count~
-
-Signature:
-
-----
-     For T in kind DATA:
-     (stream T) -> int
-
-----
-
-The operator counts the number of stream elements.
-
-*/
-
-/*
-5.28.1 Type mapping function for ~count~
-
-*/
-
-ListExpr
-streamCountType( ListExpr args )
-{
-  ListExpr arg1;
-  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-  string outstr;
-
-  if ( nl->ListLength(args) == 1 )
-    {
-      arg1 = nl->First(args);
-
-    if ( !nl->IsAtom(arg1) && nl->ListLength(arg1) == 2 )
-      {
-        if ( nl->IsEqual(nl->First(arg1), "stream")
-             && ( nl->IsAtom(nl->Second(arg1) ) )
-             && am->CheckKind("DATA", nl->Second(arg1), errorInfo) )
-          return nl->SymbolAtom("int");
-        else
-          {
-            nl->WriteToString(outstr, arg1);
-            ErrorReporter::ReportError("Operator count expects a (stream T), "
-                                       "T in kind DATA. The argument profided "
-                                       "has type '" + outstr + "' instead.");
-          }
-      }
-    }
-  nl->WriteToString(outstr, nl->First(args));
-  ErrorReporter::ReportError("Operator count expects only a single "
-                             "argument of type (stream T), T "
-                             "in kind DATA. The argument provided "
-                             "has type '" + outstr + "' instead.");
-  return nl->SymbolAtom("typeerror");
-}
-
-/*
-5.28.2 Value mapping for operator ~count~
-
-*/
-
-int
-streamCountFun (Word* args, Word& result, int message, Word& local, Supplier s)
-/*
-  Count the number of elements in a stream. An example for consuming a stream.
-
-*/
-{
-  Word elem;
-  int count = 0;
-
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr, elem);
-
-  while ( qp->Received(args[0].addr) )
-    {
-      count++;
-      ((Attribute*) elem.addr)->DeleteIfAllowed();// consume the stream objects
-    qp->Request(args[0].addr, elem);
-    }
-  result = qp->ResultStorage(s);
-  ((CcInt*) result.addr)->Set(true, count);
-
-  qp->Close(args[0].addr);
-
-  return 0;
-}
-
-/*
-5.28.3 Specification for operator ~count~
-
-*/
-const string streamCountSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>For T in kind DATA:\n"
-  "((stream T)) -> int</text--->"
-  "<text>_ count</text--->"
-  "<text>Counts the number of elements of a stream.</text--->"
-  "<text>query intstream (1,10) count</text--->"
-  ") )";
-
-/*
-5.28.4 Selection Function of operator ~count~
-
-*/
-int
-streamCountSelect (ListExpr args ) { return 0; }
-
-/*
-5.28.5 Definition of operator ~count~
-
-*/
-Operator temporalunitcount (
-  "count",           //name
-  streamCountSpec,   //specification
-  streamCountFun,    //value mapping
-  streamCountSelect, //trivial selection function
-  streamCountType    //type mapping
-);
-
-
-/*
-5.29 Operator ~printstream~
-
-----
-    For T in kind DATA:
-    (stream T) -> (stream T)
-
-----
-
-For every stream element, the operator calls the ~print~ function
-and passes on the element.
-
-*/
-
-/*
-5.29.1 Type mapping function for ~printstream~
-
-*/
-ListExpr
-streamPrintstreamType( ListExpr args )
-{
-  ListExpr stream, errorInfo;
-  string out;
-
-  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-  stream = nl->First(args);
-
-  if ( nl->ListLength(args) != 1 )
-    {
-      ErrorReporter::ReportError("Operator printstream expects only a single "
-                                 "argument.");
-      return nl->SymbolAtom("typeerror");
-    }
-
-  // test first argument for stream(T), T in kind DATA
-  if (     nl->IsAtom(stream)
-           || !(nl->ListLength(stream) == 2)
-           || !nl->IsEqual(nl->First(stream), "stream")
-           || !am->CheckKind("DATA", nl->Second(stream), errorInfo) )
-    {
-      nl->WriteToString(out, stream);
-      ErrorReporter::ReportError("Operator printstream expects a (stream T), "
-                                 "T in kind DATA, as its first argument. "
-                                 "The argument provided "
-                                 "has type '" + out + "' instead.");
-      return nl->SymbolAtom("typeerror");
-    }
-
-  // return the input type as result
-  return stream;
-}
-
-/*
-5.29.2 Value mapping for operator ~printstream~
-
-*/
-int
-streamPrintstreamFun (Word* args, Word& result,
-                      int message, Word& local, Supplier s)
-/*
-Print the elements of an Attribute-type stream.
-An example for a pure stream operator (input and output are streams).
-
-*/
-{
-  Word elem;
-
-  switch( message )
-    {
-    case OPEN:
-
-      qp->Open(args[0].addr);
-      return 0;
-
-    case REQUEST:
-
-      qp->Request(args[0].addr, elem);
-      if ( qp->Received(args[0].addr) )
-        {
-          ((Attribute*) elem.addr)->Print(cout); cout << endl;
-          result = elem;
-          return YIELD;
-        }
-      else return CANCEL;
-
-    case CLOSE:
-
-      qp->Close(args[0].addr);
-      return 0;
-    }
-  /* should not happen */
-  return -1;
-}
-
-/*
-5.29.3 Specification for operator ~printstream~
-
-*/
-const string streamPrintstreamSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>For T in kind DATA:\n"
-  "((stream T)) -> (stream T)</text--->"
-  "<text>_ printstream</text--->"
-  "<text>Prints the elements of an arbitrary stream.</text--->"
-  "<text>query intstream (1,10) printstream count</text--->"
-  ") )";
-
-
-/*
-5.29.4 Selection Function of operator ~printstream~
-
-Uses the same function as for ~count~.
-
-*/
-
-
-/*
-5.29.5 Definition of operator ~printstream~
-
-*/
-Operator temporalunitprintstream (
-  "printstream",         //name
-  streamPrintstreamSpec, //specification
-  streamPrintstreamFun,  //value mapping
-  streamCountSelect,     //trivial selection function
-  streamPrintstreamType  //type mapping
-);
-
-
-/*
-5.30 Operator ~sfilter~
-
-----
-    For T in kind DATA:
-    ((stream T) (map T bool)) -> (stream T)
-
-----
-
-The operator filters the elements of an arbitrary stream by a predicate.
-
-*/
-
-/*
-5.30.1 Type mapping function for ~sfilter~
-
-*/
-ListExpr
-streamFilterType( ListExpr args )
-{
-  ListExpr stream, map, errorInfo;
-  string out, out2;
-
-  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-
-  if ( nl->ListLength(args) == 2 )
-    {
-      stream = nl->First(args);
-      map = nl->Second(args);
-
-      // test first argument for stream(T), T in kind DATA
-      if ( nl->IsAtom(stream)
-           || !(nl->ListLength(stream) == 2)
-           || !nl->IsEqual(nl->First(stream), "stream")
-           || !am->CheckKind("DATA", nl->Second(stream), errorInfo) )
-        {
-          nl->WriteToString(out, stream);
-          ErrorReporter::ReportError("Operator filter expects a (stream T), "
-                                     "T in kind DATA as its first argument. "
-                                     "The argument provided "
-                                     "has type '" + out + "' instead.");
-          return nl->SymbolAtom("typeerror");
-        }
-
-      // test second argument for map T' bool. T = T'
-      if ( nl->IsAtom(map)
-           || !nl->ListLength(map) == 3
-           || !nl->IsEqual(nl->First(map), "map")
-           || !nl->IsEqual(nl->Third(map), "bool") )
-        {
-          nl->WriteToString(out, map);
-          ErrorReporter::ReportError("Operator filter expects a "
-                                     "(map T bool), T in kind DATA, "
-                                     "as its second argument. "
-                                     "The second argument provided "
-                                     "has type '" + out + "' instead.");
-          return nl->SymbolAtom("typeerror");
-        }
-
-    if ( !( nl->Equal( nl->Second(stream), nl->Second(map) ) ) )
-      {
-        nl->WriteToString(out, nl->Second(stream));
-        nl->WriteToString(out2, nl->Second(map));
-        ErrorReporter::ReportError("Operator filter: the stream base type "
-                                   "T must match the map's argument type, "
-                                   "e.g. 1st: (stream T), 2nd: (map T bool). "
-                                   "The actual types are 1st: '" + out +
-                                   "', 2nd: '" + out2 + "'.");
-        return nl->SymbolAtom("typeerror");
-      }
-    }
-  else
-    { // wrong number of arguments
-      ErrorReporter::ReportError("Operator filter expects two arguments.");
-      return nl->SymbolAtom("typeerror");
-    }
-  return stream; // return type of first argument
-}
-
-/*
-5.30.2 Value mapping for operator ~sfilter~
-
-*/
-int
-streamFilterFun (Word* args, Word& result, int message, Word& local, Supplier s)
-/*
-Filter the elements of a stream by a predicate. An example for a stream
-operator and also for one calling a parameter function.
-
-*/
-{
-  Word elem, funresult;
-  ArgVectorPointer funargs;
-
-  switch( message )
-    {
-    case OPEN:
-
-      qp->Open(args[0].addr);
-      return 0;
-
-    case REQUEST:
-
-      funargs = qp->Argument(args[1].addr);  //Get the argument vector for
-      //the parameter function.
-      qp->Request(args[0].addr, elem);
-      while ( qp->Received(args[0].addr) )
-        {
-          (*funargs)[0] = elem;
-          //Supply the argument for the
-          //parameter function.
-          qp->Request(args[1].addr, funresult);
-          //Ask the parameter function
-          //to be evaluated.
-          if ( ((CcBool*) funresult.addr)->GetBoolval() )
-            {
-              result = elem;
-              return YIELD;
-            }
-          //consume the stream object:
-        ((Attribute*) elem.addr)->DeleteIfAllowed();
-        qp->Request(args[0].addr, elem); // get next element
-        }
-      return CANCEL;
-
-    case CLOSE:
-
-      qp->Close(args[0].addr);
-      return 0;
-    }
-  /* should not happen */
-  return -1;
-}
-
-/*
-5.30.3 Specification for operator ~sfilter~
-
-*/
-const string streamFilterSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>For T in kind DATA:\n"
-  "((stream T) (map T bool)) -> (stream T)</text--->"
-  "<text>_ filter [ fun ]</text--->"
-  "<text>Filters the elements of a stream by a predicate.</text--->"
-  "<text>query intstream (1,10) filter[. > 7] printintstream count</text--->"
-  ") )";
-
-/*
-5.30.4 Selection Function of operator ~sfilter~
-
-Uses the same function as for ~count~.
-
-*/
-
-/*
-5.30.5 Definition of operator ~sfilter~
-
-*/
-Operator streamFilter (
-  "filter",            //name
-  streamFilterSpec,   //specification
-  streamFilterFun,    //value mapping
-  streamCountSelect,  //trivial selection function
-  streamFilterType    //type mapping
-);
-
-
-/*
 5.31 Operator ~no_components~
 
 Return the number of components (units) contained by the object. For unit types,
@@ -11386,115 +10676,7 @@ Operator temporalunitalways( "always",
 
 
 /*
-6 Type operators
-
-Type operators are used only for inferring argument types of parameter functions. They have a type mapping but no evaluation function.
-
-*/
-
-/*
-6.1 Type Operator ~STREAMELEM~
-
-This type operator extracts the type of the elements from a stream type given as the first argument and otherwise just forwards its type.
-
-----
-     ((stream T1) ...) -> T1
-              (T1 ...) -> T1
-----
-
-*/
-ListExpr
-STREAMELEMTypeMap( ListExpr args )
-{
-  if(nl->ListLength(args) >= 1)
-  {
-    ListExpr first = nl->First(args);
-    if (nl->ListLength(first) == 2)
-    {
-      if (nl->IsEqual(nl->First(first), "stream")) {
-        return nl->Second(first);
-      }
-      else {
-        return first;
-      }
-    }
-    else {
-      return first;
-    }
-  }
-  return nl->SymbolAtom("typeerror");
-}
-
-const string STREAMELEMSpec =
-   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
-    "( <text>((stream T1) ... ) -> T1\n"
-      "(T1 ... ) -> T1</text--->"
-      "<text>type operator</text--->"
-      "<text>Extracts the type of the stream elements if the first "
-      "argument is a stream and forwards the first argument's type "
-      "otherwise.</text--->"
-      "<text>Not for use with sos-syntax</text---> ))";
-
-Operator STREAMELEM (
-      "STREAMELEM",
-      STREAMELEMSpec,
-      0,
-      Operator::SimpleSelect,
-      STREAMELEMTypeMap );
-
-/*
-6.2 Type Operator ~STREAMELEM2~
-
-This type operator extracts the type of the elements from the stream type within the second element within a list of argument types. Otherwise, the first arguments type is simplyforwarded.
-
-----
-     (T1 (stream T2) ...) -> T2
-              (T1 T2 ...) -> T2
-----
-
-*/
-ListExpr
-STREAMELEM2TypeMap( ListExpr args )
-{
-  if(nl->ListLength(args) >= 2)
-  {
-    ListExpr second = nl->Second(args);
-    if (nl->ListLength(second) == 2)
-    {
-      if (nl->IsEqual(nl->First(second), "stream")) {
-        return nl->Second(second);
-      }
-      else {
-        return second;
-      }
-    }
-    else {
-      return second;
-    }
-  }
-  return nl->SymbolAtom("typeerror");
-}
-
-const string STREAMELEM2Spec =
-   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
-    "( <text>(T1 (stream T2) ... ) -> T2\n"
-      "( T1 T2 ... ) -> T2</text--->"
-      "<text>type operator</text--->"
-      "<text>Extracts the type of the elements from a stream given "
-      "as the second argument if it is a stream. Otherwise, it forwards "
-      "the original type.</text--->"
-      "<text>Not for use with sos-syntax.</text---> ))";
-
-Operator STREAMELEM2 (
-      "STREAMELEM2",
-      STREAMELEM2Spec,
-      0,
-      Operator::SimpleSelect,
-      STREAMELEM2TypeMap );
-
-
-/*
-7 Creating the Algebra
+6 Creating the Algebra
 
 */
 
@@ -11504,9 +10686,6 @@ public:
   TemporalUnitAlgebra() : Algebra()
   {
     AddOperator( &temporalunitmakemvalue );
-    AddOperator( &temporalunitcount );
-    AddOperator( &temporalunitprintstream );
-    AddOperator( &temporalunittransformstream );
     AddOperator( &temporalunitsfeed );
     AddOperator( &temporalunitsuse );
     AddOperator( &temporalunitsuse2 );
@@ -11549,9 +10728,6 @@ public:
     AddOperator( &temporalunitsmallereq );
     AddOperator( &temporalunitbiggereq );
     AddOperator( &temporalunituint2ureal );
-    AddOperator( &streamFilter );
-    AddOperator( &STREAMELEM );
-    AddOperator( &STREAMELEM2 );
   }
   ~TemporalUnitAlgebra() {};
 };

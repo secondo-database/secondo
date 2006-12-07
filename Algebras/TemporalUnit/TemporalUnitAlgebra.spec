@@ -39,14 +39,10 @@ operator atmin alias ATMIN pattern op ( _ )
 operator intersection alias INTERSECTION pattern op ( _ , _ )
 operator inside alias INSIDE pattern _ infixop _
 operator distance alias DISTANCE pattern op ( _ , _ )
-operator transformstream alias TRANSFORMSTREAM pattern _ op
-operator printstream alias PRINTSTREAM pattern _ op
 operator uint2ureal alias UINT2UREAL pattern op ( _ )
 
 # Operator signatures already defined elsewhere:
 
-#operator filter alias FILTER pattern _ op [ fun ] implicit parameter streamelem type STREAMELEM
-#operator count alias COUNT pattern _ op
 #operator no_components alias NO_COMPONENTS pattern op ( _ )
 #operator isempty alias ISEMPTY pattern op ( _ )
 #operator not alias NOT pattern op ( _ )
