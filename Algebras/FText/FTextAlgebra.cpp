@@ -248,13 +248,18 @@ OutFText( ListExpr typeInfo, Word value )
 
   if(traces)
     cout <<"pftext->Get()='"<< pftext->Get() <<"'\n";
-  
-  ListExpr TextAtomVar=nl->TextAtom(pftext->Get());
+ 
+  ListExpr res;
+  if(pftext->IsDefined()){ 
+     res=nl->TextAtom(pftext->Get());
+  } else {
+     res = nl->SymbolAtom("undef");
+  }
   //nl->AppendText( TextAtomVar, pftext->Get() );
 
   if(traces)
     cout <<"End OutFText" << '\n';
-  return TextAtomVar;
+  return res;
 }
 
 
