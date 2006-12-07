@@ -2922,6 +2922,7 @@ are separated by a space character.
         tmpstr = (((string)(*subword->subw)).substr(subword->start,
                 subword->nochr));
         strcpy(outstr, (char*)tmpstr.c_str());
+        trim(outstr);
         elem = new CcString(true, &outstr);
         result.addr = elem;
         // determine the necessary values to get the next word in the string,

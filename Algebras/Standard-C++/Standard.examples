@@ -296,19 +296,19 @@ Operator : real2int
 Number   : 1
 Signature: real -> int
 Example  : query real2int(-1.2)
-Result   : 1
+Result   : -1
 
 
 Operator : int2bool
 Number   : 1
 Signature: int -> bool
-Example  : int2bool(-5)
+Example  : query int2bool(-5)
 Result   : TRUE
 
 Operator : int2bool
 Number   : 2
 Signature: int -> bool
-Example  : int2bool(0)
+Example  : query int2bool(0)
 Result   : FALSE
 
 Operator : bool2int

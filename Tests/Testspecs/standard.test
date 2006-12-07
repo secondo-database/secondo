@@ -8,91 +8,91 @@ delete database basic_cmd;
 #setup basic_cmd
 
 # if a command between the SETUP directive and the first
-# TESTCASE directive fails, then the whole test has failed 
+# TESTCASE directive fails, then the whole test has failed
 # and we immediately skip to the teardown
-# (the whole test does not make sense anymore if the 
+# (the whole test does not make sense anymore if the
 # SETUP has failed)
 
 create database basic_cmd;
 
 
-#testcase list algebras 
-#yields success 
+#testcase list algebras
+#yields success
 list algebras;
 
-#testcase list operators 
-#yields success 
+#testcase list operators
+#yields success
 list operators;
 
-#testcase list type constructors 
-#yields success 
+#testcase list type constructors
+#yields success
 list type constructors;
 
-#testcase list objects; 
+#testcase list objects;
 #yields error
 list objects;
- 
-#testcase open database 
+
+#testcase open database
 #yields success
 open database basic_cmd;
 
 
 let myrel = [const rel(tuple([No: int])) value ((1))];
 
-#testcase list objects; 
-#yields success 
+#testcase list objects;
+#yields success
 list objects;
 
-#testcase list types; 
-#yields success 
+#testcase list types;
+#yields success
 list types;
 
-# Test standard algebra 
-# Operations with int and real 
+# Test standard algebra
+# Operations with int and real
 
-#testcase create a real object with let; 
+#testcase create a real object with let;
 #yields success
-let x = -1.2 
+let x = -1.2
 
-#testcase create a real object with let; 
+#testcase create a real object with let;
 #yields success
 let y = [const real value -.2];
 
-#testcase create a int object with let; 
+#testcase create a int object with let;
 #yields success
-let a = 7 
+let a = 7
 
-#testcase create a int object with let; 
+#testcase create a int object with let;
 #yields success
-let b = [const int value -4]; 
+let b = [const int value -4];
 
-#testcase create a int object with let; 
+#testcase create a int object with let;
 #yields success
-let c = [const int value 2]; 
+let c = [const int value 2];
 
 #testcase a+b
-#yields (int 3) 
+#yields (int 3)
 query a + b
 
 #testcase a-b
 #yields (int 11)
-query a - b 
- 
+query a - b
+
 #testcase a*b
 #yields (int -28)
-query a * b 
+query a * b
 
 #testcase a/c
 #yields (real 3.5)
-query a / c 
+query a / c
 
 #testcase a mod c
 #yields (int 1)
-query a mod c 
- 
+query a mod c
+
 #testcase a div c
 #yields (int 3)
-query a div c 
+query a div c
 
 # Integer Comparisons
 
@@ -106,11 +106,11 @@ query a >= b
 
 #testcase b>a
 #yields (bool FALSE)
-query b > a 
+query b > a
 
 #testcase b<=a
 #yields (bool TRUE)
-query b <= a 
+query b <= a
 
 #testcase a=a
 #yields (bool TRUE)
@@ -134,85 +134,85 @@ query a # b;
 
 # Mixed Integer/Real Comparisons
 
-#testcase int/real-1 
+#testcase int/real-1
 #yields (bool TRUE)
 query 1.0 < 2;
 
-#testcase int/real-2 
+#testcase int/real-2
 #yields (bool FALSE)
 query 3.1 < 2;
 
-#testcase int/real-1 
+#testcase int/real-1
 #yields (bool TRUE)
 query 1.0 <= 2;
 
-#testcase int/real-2 
+#testcase int/real-2
 #yields (bool FALSE)
 query 3.1 <= 2;
 
-#testcase int/real-3 
+#testcase int/real-3
 #yields (bool TRUE)
 query 2.1 > 2;
 
-#testcase int/real-4 
+#testcase int/real-4
 #yields (bool FALSE)
 query 2.1 > 3;
 
-#testcase int/real-3 
+#testcase int/real-3
 #yields (bool TRUE)
 query 2.1 >= 2;
 
-#testcase int/real-4 
+#testcase int/real-4
 #yields (bool FALSE)
 query 2.1 >= 3;
 
-#testcase int/real-5 
+#testcase int/real-5
 #yields (bool TRUE)
 query 3.0 = 3;
 
-#testcase int/real-6 
+#testcase int/real-6
 #yields (bool FALSE)
 query 3.0 # 3;
 
 # real/int Comparisons
 
-#testcase int/real-1 
+#testcase int/real-1
 #yields (bool TRUE)
 query 1 < 2.0;
 
-#testcase int/real-2 
+#testcase int/real-2
 #yields (bool FALSE)
 query 3 < 2.1;
 
-#testcase int/real-1 
+#testcase int/real-1
 #yields (bool TRUE)
 query 1 <= 2.2;
 
-#testcase int/real-2 
+#testcase int/real-2
 #yields (bool FALSE)
 query 3 <= 2.4;
 
-#testcase int/real-3 
+#testcase int/real-3
 #yields (bool TRUE)
 query 2 > 1.9;
 
-#testcase int/real-4 
+#testcase int/real-4
 #yields (bool FALSE)
 query 2 > 3.3;
 
-#testcase int/real-3 
+#testcase int/real-3
 #yields (bool TRUE)
 query 2 >= 1.9;
 
-#testcase int/real-4 
+#testcase int/real-4
 #yields (bool FALSE)
 query 2 >= 3.1;
 
-#testcase int/real-5 
+#testcase int/real-5
 #yields (bool TRUE)
 query 3 = 3.0;
 
-#testcase int/real-6 
+#testcase int/real-6
 #yields (bool FALSE)
 query 3 # 3.0;
 
@@ -235,7 +235,7 @@ query randint (9) <= 8
 
 #testcase randint
 #yields (bool TRUE)
-query randint (9) >= 0 
+query randint (9) >= 0
 
 #testcase maxrand
 #yields success
@@ -246,7 +246,7 @@ query randmax()
 query seqnext()
 
 #testcase initseq
-#yields success 
+#yields success
 query seqinit(100)
 
 #testcase nextseq
@@ -283,7 +283,7 @@ query "starts" starts "xv"
 #yields (bool TRUE)
 query "starts" contains "rt"
 
-#testcase contains 2 
+#testcase contains 2
 #yields (bool FALSE)
 query "starts" contains "xc"
 
@@ -315,7 +315,6 @@ query "house" < "hotel"
 #yields (bool TRUE)
 query "house" > "hotel"
 
-
 #testcase upper
 #yields (bool TRUE)
 query upper ( "hello" ) = "hellp"
@@ -346,30 +345,85 @@ query setoption ("unknown", 3)
 
 #testcase hashvalue
 #yields (int 4)
-query hashvalue(4, 6) 
+query hashvalue(4, 6)
 
-#testcase elapsedtime 
-#yields success
-query (5 + 6) elapsedtime 
+###testcase elapsedtime
+###yields success
+##query (5 + 6) elapsedtime
 
-#testcase relcount 
-#yields (int 1) 
+#testcase relcount
+#yields (int 1)
 query "myrel" relcount
 
-#testcase relcount2 
-#yields (int 1) 
+#testcase relcount2
+#yields (int 1)
 query "myrel" relcount2
 
-#testcase keywords1 
-#yields (int 4) 
+#testcase keywords1
+#yields (int 4)
 query "this is a test" keywords count;
 
-#testcase keywords2 
-#yields ((rel(tuple(elem string)))(("this")("is")("a")("test"))) 
+#testcase keywords2
+#yields ((rel(tuple((elem string))))(("this")("is")("a")("test")))
 query "this is a test" keywords transformstream consume;
+
+#tolerance_real 0.000001
+
+#testcase round-1
+#yields (real 1.12346)
+query round(1.123456789, 5)
+
+#testcase round-2
+#yields (real 4300.0)
+query round(4321.123, -2)
+
+#testcase int2real-1
+#yields (real -2.0)
+query int2real(-2)
+
+#testcase int2real-2
+#yields (real 77.0)
+query int2real(77)
+
+#testcase real2int-1
+#yields (int -1)
+query real2int(-1.2)
+
+#testcase real2int-2
+#yields (int 789)
+query real2int(789.7)
+
+#testcase int2bool-1
+#yields (bool TRUE)
+query int2bool(-5)
+
+#testcase int2bool-2
+#yields (bool FALSE)
+query int2bool(0)
+
+#testcase bool2int-1
+#yields (int 0)
+query bool2int(FALSE)
+
+#testcase bool2int-2
+#yields (int 1)
+query bool2int(TRUE)
+
+#testcase ceil
+#yields (real -1.0)
+query ceil(-1.2)
+
+#testcase floor
+#yields (real -2.0)
+query floor(-1.2)
+
+
 
 #testcase coverage
 #coverage StandardAlgebra
+
+
+
 
 # the TEARDOWN directive is followed by commands which
 # should be executed after the execution of all TESTCASES
