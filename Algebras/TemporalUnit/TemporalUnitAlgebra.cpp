@@ -53,6 +53,12 @@ OK    get_duration                   periods --> duration
 (OK)  queryrect2d                    instant --> rect
 OK    circle              point x real x int --> region
 OK    uint2ureal:                       uint --> ureal
+      the_unit:  For T in {bool, int, string}
+Test          point  point  instant instant bool bool --> ubool
+Test          ipoint ipoint bool    bool              --> ubool
+Test          real real real bool instant instant bool bool --> ureal
+Test          iT duration bool bool       --> uT
+Test          T instant instant bool bool --> uT
 
 OK    isempty                             U  --> bool (for U in kind UNIT)
 OK    trajectory                      upoint --> line
@@ -216,6 +222,7 @@ helping operators for indexing instant values in R-trees.
 #include <vector>
 
 #include "NestedList.h"
+#include "NList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "Algebra.h"
@@ -10504,7 +10511,7 @@ const string  TemporalUnitAlwaysSpec =
   "("
   "<text>"
   "ubool -> bool\n"
-  "ubool -> bool\n"
+  "ubool -> bool"
   "</text--->"
   "<text>always( _ )</text--->"
   "<text>Returns 'false', iff the ubool/stream takes value 'true' "
@@ -10535,40 +10542,329 @@ Operator temporalunitalways( "always",
                              TemporalUnitBoolAggrTypeMap);
 
 /*
-5.41 Operator ~~
-
-----
-     (insert signature here)
+5.41 Operator ~the_upoint~
 
 ----
 
-*/
+   the_unit:  For T in {bool, int, string}
+              point  point  instant instant bool bool --> ubool
+              ipoint ipoint bool    bool              --> ubool
+              real real real bool instant instant bool bool --> ureal
+              iT duration bool bool --> uT
+              T instant instant bool bool --> uT
 
-/*
-5.41.1 Type mapping function for ~~
-
-*/
-
-/*
-5.41.2 Value mapping for operator ~~
-
-*/
-
-/*
-5.41.3 Specification for operator ~~
+----
 
 */
 
 /*
-5.41.4 Selection Function of operator ~~
+5.41.1 Type mapping function for ~the_unit~
 
 */
+ListExpr TU_TM_TheUnit( ListExpr args )
+{
+  string argstr;
+  nl->WriteToString(argstr, args);
+  // cerr << argstr << endl;
+  if (argstr == "(point point instant instant bool bool)")
+    return nl->SymbolAtom( "upoint" );
+  if (argstr == "(ipoint ipoint bool bool)")
+    return nl->SymbolAtom( "upoint" );
+
+  if (argstr == "(real real real bool instant instant bool bool)")
+    return nl->SymbolAtom( "ureal" );
+
+  if (argstr == "(bool instant instant bool bool)")
+    return nl->SymbolAtom( "ubool" );
+  if (argstr == "(ibool duration bool bool)")
+    return nl->SymbolAtom( "ubool" );
+
+  if (argstr == "(int instant instant bool bool)")
+    return nl->SymbolAtom( "uint" );
+  if (argstr == "(iint duration bool bool)")
+    return nl->SymbolAtom( "uint" );
+
+  if (argstr == "(string instant instant bool bool)")
+    return nl->SymbolAtom( "ustring" );
+  if (argstr == "(istring duration bool bool)")
+    return nl->SymbolAtom( "ustring" );
+
+  ErrorReporter::ReportError
+    ("Operator 'the_upoint' expects a list with structure "
+     "'(point point instant instant bool bool)' or"
+     "'(ipoint ipoint bool bool)'"
+     ", but it gets a list of type '" + argstr + "'.");
+  return nl->SymbolAtom( "typeerror" );
+}
 
 /*
-5.41.5 Definition of operator ~~
+5.41.2 Value mapping for operator ~the_unit~
 
 */
+// point point instant instant bool bool --> ubool
+int TU_VM_TheUnit_ppiibb(Word* args, Word& result,
+                           int message, Word& local, Supplier s)
+{
+  result = (qp->ResultStorage( s ));
+  UPoint *res   = (UPoint*)result.addr;
+  Point *p1 = (Point*)args[0].addr;
+  Point *p2 = (Point*)args[1].addr;
+  Instant *i1 = (Instant*)args[2].addr;
+  Instant *i2 = (Instant*)args[3].addr;
+  CcBool *cl = (CcBool*)args[4].addr;
+  CcBool *cr = (CcBool*)args[5].addr;
+  bool clb, crb;
 
+  // Test arguments for definedness
+  if ( !p1->IsDefined() || !p2->IsDefined() ||
+       !i1->IsDefined() || !i2->IsDefined() ||
+       !cl->IsDefined() || !cr->IsDefined()    )
+    res->SetDefined( false );
+  clb = cl->GetBoolval();
+  crb = cr->GetBoolval();
+
+  if ( (*i1 == *i2) && (!clb || !crb) ) // illegal interval setting
+    { res->SetDefined( false ); return 0; }
+  if ( *i1 < *i2 ) // sort instants
+  {
+    Interval<Instant> interval( *i1, *i2, clb, crb );
+    *res = UPoint( interval, *p1, *p2 );
+  }
+  else
+  {
+    Interval<Instant> interval( *i2, *i1, clb, crb );
+    *res = UPoint( interval, *p2, *p1 );
+  }
+  return 0;
+}
+
+// ipoint ipoint bool bool --> upoint
+int TU_VM_TheUnit_ipipbb(Word* args, Word& result,
+                           int message, Word& local, Supplier s)
+{
+  result = (qp->ResultStorage( s ));
+  UPoint *res   = (UPoint*)result.addr;
+  Intime<Point> *ip1 = (Intime<Point> *)args[0].addr;
+  Intime<Point> *ip2 = (Intime<Point> *)args[1].addr;
+  CcBool *cl = (CcBool*)args[2].addr;
+  CcBool *cr = (CcBool*)args[3].addr;
+  bool clb, crb;
+
+  // Test arguments for definedness
+  if ( !ip1->IsDefined() || !ip2->IsDefined() ||
+       !cl->IsDefined() || !cr->IsDefined()    )
+    res->SetDefined( false );
+  clb = cl->GetBoolval();
+  crb = cr->GetBoolval();
+
+  if ( (ip1->instant == ip2->instant) && (!clb || !crb) )
+    // illegal interval setting
+    { res->SetDefined( false ); return 0; }
+  if ( ip1->instant < ip2->instant ) // sort instants
+  {
+    Interval<Instant> interval( ip1->instant, ip2->instant, clb, crb );
+    *res = UPoint( interval, ip1->value, ip2->value );
+  }
+  else
+  {
+    Interval<Instant> interval( ip2->instant, ip1->instant, clb, crb );
+    *res = UPoint( interval, ip2->value, ip1->value );
+  }
+  return 0;
+}
+
+// real real real bool instant instant bool bool -> ubool
+int TU_VM_TheUnit_rrrbiibb(Word* args, Word& result,
+                           int message, Word& local, Supplier s)
+{
+  result = (qp->ResultStorage( s ));
+  UReal *res   = (UReal*)result.addr;
+  CcReal *a = (CcReal*)args[0].addr;
+  CcReal *b = (CcReal*)args[1].addr;
+  CcReal *c = (CcReal*)args[2].addr;
+  CcBool *r = (CcBool*)args[3].addr;
+  Instant *i1 = (Instant*)args[4].addr;
+  Instant *i2 = (Instant*)args[5].addr;
+  CcBool *cl = (CcBool*)args[6].addr;
+  CcBool *cr = (CcBool*)args[7].addr;
+  bool clb, crb;
+
+  // Test arguments for definedness
+  if ( !a->IsDefined() || !b->IsDefined() ||
+       !c->IsDefined() || !r->IsDefined() ||
+       !i1->IsDefined() || !i2->IsDefined() ||
+       !cl->IsDefined() || !cr->IsDefined()    )
+    res->SetDefined( false );
+  clb = cl->GetBoolval();
+  crb = cr->GetBoolval();
+
+  if ( (*i1 == *i2) && (!clb || !crb) ) // illegal interval setting
+    { res->SetDefined( false ); return 0; }
+  if ( *i1 < *i2 ) // sort instants
+  {
+    Interval<Instant> interval( *i1, *i2, clb, crb );
+    *res = UReal( interval, a->GetRealval(), b->GetRealval(),
+                            c->GetRealval(), r->GetBoolval() );
+  }
+  else
+  {
+    Interval<Instant> interval( *i2, *i1, clb, crb );
+    *res = UReal( interval, a->GetRealval(), b->GetRealval(),
+                            c->GetRealval(), r->GetBoolval() );
+  };
+  return 0;
+}
+
+// template for constant unit types:
+// iT duration bool bool -> uT
+template<class T>
+int TU_VM_TheUnit_iTdbb(Word* args, Word& result,
+                        int message, Word& local, Supplier s)
+{
+  result = (qp->ResultStorage( s ));
+  ConstTemporalUnit<T> *res   = (ConstTemporalUnit<T> *)result.addr;
+  Intime<T> *ip = (Intime<T> *)args[0].addr;
+  DateTime *dur = (DateTime*) args[1].addr;
+  CcBool *cl = (CcBool*)args[2].addr;
+  CcBool *cr = (CcBool*)args[3].addr;
+  bool clb, crb;
+
+  // Test arguments for definedness
+  if ( !ip->IsDefined() || !dur->IsDefined() ||
+       !cl->IsDefined() || !cr->IsDefined()    )
+    res->SetDefined( false );
+  clb = cl->GetBoolval();
+  crb = cr->GetBoolval();
+
+  assert(dur->GetType() == durationtype);
+  if ( (*dur == DateTime(0,0,durationtype)) && (!clb || !crb) )
+    // illegal interval setting
+    { res->SetDefined( false ); return 0; }
+  Interval<Instant> interval( ip->instant, ip->instant+(*dur), clb, crb );
+  *res = ConstTemporalUnit<T>( interval, ip->value );
+  return 0;
+}
+
+
+// template for constant unit types:
+// T instant instant bool bool -> uT
+template<class T>
+int TU_VM_TheUnit_Tiibb(Word* args, Word& result,
+                        int message, Word& local, Supplier s)
+{
+  result = (qp->ResultStorage( s ));
+  ConstTemporalUnit<T> *res   = (ConstTemporalUnit<T> *)result.addr;
+  T       *value = (T*) args[0].addr;
+  Instant *i1    = (DateTime*) args[1].addr;
+  Instant *i2    = (DateTime*) args[2].addr;
+  CcBool  *cl    = (CcBool*)args[3].addr;
+  CcBool  *cr    = (CcBool*)args[4].addr;
+  bool clb, crb;
+
+  // Test arguments for definedness
+  if ( !value->IsDefined() ||
+       !i1->IsDefined() || !i2->IsDefined() ||
+       !cl->IsDefined() || !cr->IsDefined()    )
+    res->SetDefined( false );
+  clb = cl->GetBoolval();
+  crb = cr->GetBoolval();
+
+  if ( (*i1 == *i2) && (!clb || !crb) ) // illegal interval setting
+    { res->SetDefined( false ); return 0; }
+  if ( *i1 < *i2 ) // sort instants
+  {
+    Interval<Instant> interval( *i1, *i2, clb, crb );
+    *res = ConstTemporalUnit<T>( interval, *value );
+  }
+  else
+  {
+    Interval<Instant> interval( *i2, *i1, clb, crb );
+    *res = ConstTemporalUnit<T>( interval, *value );
+  }
+  return 0;
+
+}
+
+/*
+5.41.3 Specification for operator ~the_unit~
+
+*/
+const string  TU_Spec_TheUnit =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "("
+  "<text>For T in {bool, int, string}:\n"
+  "point  point  instant instant bool bool --> ubool\n"
+  "ipoint ipoint bool    bool              --> ubool\n"
+  "real real real bool instant instant bool bool --> ureal\n"
+  "iT duration bool bool --> uT\n"
+  "T instant instant bool bool --> uT"
+  "</text--->"
+  "<text>the_unit( pstart, pend, tstart, tend, cl, cr )\n"
+  "the_unit( ip1, ip2, cl, cr )</text--->"
+  "<text>Creates a unit value from the argument list. The instants/ipoints"
+  "will be sorted automatically.</text--->"
+  "<text>query the_unit(point1, point2, instant1, instant2, bool1, bool2)"
+  "</text--->"
+  ") )";
+
+/*
+5.41.4 Selection Function of operator ~the_unit~
+
+*/
+int TU_Select_TheUnit( ListExpr args )
+{
+  string argstr;
+  nl->WriteToString(argstr, args);
+
+  if (argstr == "(point point instant instant bool bool)")
+    return 0;
+  if (argstr == "(ipoint ipoint bool bool)")
+    return 1;
+
+  if (argstr == "(real real real bool instant instant bool bool)")
+    return 2;
+
+  if (argstr == "(bool instant instant bool bool)")
+    return 3;
+  if (argstr == "(ibool duration bool bool)")
+    return 4;
+
+  if (argstr == "(int instant instant bool bool)")
+    return 5;
+  if (argstr == "(iint duration bool bool)")
+    return 6;
+
+  if (argstr == "(string instant instant bool bool)")
+    return 7;
+  if (argstr == "(istring duration bool bool)")
+    return 8;
+
+  return -1; // should not be reached!
+}
+
+ValueMapping TU_VMMap_TheUnit[] =
+  {
+    TU_VM_TheUnit_ppiibb,
+    TU_VM_TheUnit_ipipbb,
+    TU_VM_TheUnit_rrrbiibb,
+    TU_VM_TheUnit_Tiibb<CcBool>,
+    TU_VM_TheUnit_iTdbb<CcBool>,
+    TU_VM_TheUnit_Tiibb<CcInt>,
+    TU_VM_TheUnit_iTdbb<CcInt>,
+    TU_VM_TheUnit_Tiibb<CcString>,
+    TU_VM_TheUnit_iTdbb<CcString>
+  };
+/*
+5.41.5 Definition of operator ~the_unit~
+
+*/
+Operator temporalunittheupoint( "the_unit",
+                            TU_Spec_TheUnit,
+                            9,
+                            TU_VMMap_TheUnit,
+                            TU_Select_TheUnit,
+                            TU_TM_TheUnit);
 /*
 5.41 Operator ~~
 
@@ -10728,6 +11024,7 @@ public:
     AddOperator( &temporalunitsmallereq );
     AddOperator( &temporalunitbiggereq );
     AddOperator( &temporalunituint2ureal );
+    AddOperator( &temporalunittheupoint );
   }
   ~TemporalUnitAlgebra() {};
 };
