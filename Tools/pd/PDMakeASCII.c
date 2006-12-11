@@ -1,7 +1,11 @@
 /*
 ----
 This file is part of the PD system
-Copyright (C) 1998 Ralf Hartmut Gueting, Fachbereich Informatik, FernUniversitaet Hagen
+
+Copyright (C) 1998 Ralf Hartmut Gueting, 
+          (C) 2006 Markus Spiekermann
+
+Fachbereich Informatik, FernUniversitaet in Hagen
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -20,8 +24,14 @@ Use the parser to transform from implicitly formatted text to ASCII.
 
 */
 
-main()
-{	int error;
 
-	error = yyparse();
+#include "PDLib.h"
+
+main()
+{	
+   CheckDebugEnv();
+
+   int error=0;
+   error = yyparse();
+   return error;
 }

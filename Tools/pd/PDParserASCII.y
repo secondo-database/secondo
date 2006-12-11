@@ -76,6 +76,12 @@ followed by an empty line is written to the output file. To understand the outpu
 #include <stdlib.h>
 #include "PDNestedText.h"
 #include "PDParserDS.c"
+
+
+#define YYERROR_VERBOSE
+#define YYDEBUG 1
+
+extern void yyerror(const char *msg);
 %}
 
 %token OPEN CLOSE EPAR DEFLINE LETTER DIGIT OTHER TILDE STAR
@@ -637,15 +643,4 @@ annotations 	:
 
 %%
 
-
-#include "lex.yy.c"
-
-int yyerror(const char *msg)
-{
-  if (yytext[0] == '\n' && yytext[1] == '\n')
-    fprintf(stderr, "%s in paragraph before line %d.\n", msg, yylineno);
-  else
-    fprintf(stderr,
-            "%s at line %d reading symbol '%s'.\n", msg, yylineno, yytext);
- 
-}
+#include "PDLex.c"

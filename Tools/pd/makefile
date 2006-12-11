@@ -19,13 +19,14 @@
 # 10/03 Markus Spiekermann. Target install introduced.
 #
 # 05/04 Markus Spiekermann. Changes in documentation and script files.
+# 12/06 Markus Spiekermann. More generic rules introduced.
 
 # Uncomment next line to switch on debug mode
 #OPTIONS = -g
 
 # The first line is used when compiling with FLEX (2.5.4a) and BISON (1.35)
 # The second line when compiling with LEX and YACC
-LINKLIBS = -L$(SECONDO_SDK)/lib  -lfl
+LINKLIBS = -L$(SECONDO_SDK)/lib  -lfl 
 
 # The first line is used when compiling with FLEX and BISON
 # The second line when compiling with LEX and YACC
@@ -58,76 +59,66 @@ DOCU_HTML_FILES = HTML1 PDParserHTML.y PDMakeHTML.c \
 		  HTML5 makefile \
 		  PDRefsHTML
 
-OBJECTS = pdtabs \
+OBJECTS = PDNestedText.o \
+	  PDLib.o 
+
+APPS = pdtabs \
 	  linebreaks \
-	  makehtml \
-	  makeascii \
 	  enumerate \
 	  maketex \
           linecheck \
-    tabcheck \
-	  filterpd
+	  tabcheck \
+	  filterpd \
+	  makehtml \
+	  makeascii
 
 DOCU = docu docuhtml
 
 SCRIPTS = pd2ascii pd2html pd2tex pd2dvi pd2ps pd2pdf pdshow pdview checkpd pdpreview
 
-TEMPORARYS = lex.yy.c \
-	     y.tab.c \
-	     enumerate.yy.c \
-	     PDNestedText.o
+TEMPORARYS = PDLex.c enumerate.c linecheck.c tabcheck.c y.tab.c
 
 
 .PHONY all:
-all: $(OBJECTS) $(DOCU)
+all: $(OBJECTS) $(APPS) $(DOCU)
 	@chmod ugo+x $(SCRIPTS)
 
-maketex: PDMaketex.c PDParser.y lex.yy.c PDNestedText.h PDParserDS.c PDNestedText.o
+maketex: PDMaketex.c PDParser.y PDLex.c PDParserDS.c $(OBJECTS) 
 	$(YACC) PDParser.y
-	$(CC) $(OPTIONS) -o $@ $< y.tab.c PDNestedText.o $(LINKLIBS)
+	$(CC) $(OPTIONS) -o $@ $< y.tab.c $(OBJECTS) $(LINKLIBS)
 
-makehtml: PDMakeHTML.c PDNestedText.o PDParserHTML.y lex.yy.c PDNestedText.h PDParserDS.c
+makehtml: PDMakeHTML.c PDParserHTML.y PDLex.c PDParserDS.c $(OBJECTS)
 	$(YACC) PDParserHTML.y
-	$(CC) $(OPTIONS) -o $@ $< y.tab.c PDNestedText.o $(LINKLIBS)
+	$(CC) $(OPTIONS) -o $@ $< y.tab.c $(OBJECTS) $(LINKLIBS)
 
-makeascii: PDMakeASCII.c PDNestedText.o PDParserASCII.y lex.yy.c PDNestedText.h PDParserDS.c
+makeascii: PDMakeASCII.c PDParserASCII.y PDLex.c PDParserDS.c $(OBJECTS)
 	$(YACC) PDParserASCII.y
-	$(CC) $(OPTIONS) -o $@ $< y.tab.c PDNestedText.o $(LINKLIBS)
-
-enumerate: enumerate.l
-	$(LEX) -o$@.yy.c $<
-	$(CC) -o $@ $@.yy.c $(LINKLIBS)
+	$(CC) $(OPTIONS) -o $@ $< y.tab.c $(OBJECTS) $(LINKLIBS)
 
 
-lex.yy.c: PDLex.l PDNestedText.h
-	$(LEX) $<
+# some dependencies
+PDNestedText.o: PDNestedText.h
 
-PDNestedText.o: PDNestedText.c PDNestedText.h
+PDLib.o: PDLib.h
+
+
+# some generic translation rules
+
+%.c: %.l
+	$(LEX) -o$@ $<
+
+%.o: %.c
 	$(CC) -c -g $<
 
-pdtabs:	pdtabs.c
-	$(CC) -o $@ $<
+%: %.c
+	$(CC) -o $@ $< $(LINKLIBS)
 
-linebreaks: linebreaks.c
-	$(CC) -o $@ $<
 
 docu: $(DOCU_FILES)
 	cat $^ > $@
 
 docuhtml: $(DOCU_HTML_FILES)
 	cat $^ > $@
-
-tabcheck: tabcheck.c
-	$(CC) -o $@ $< $(LINKLIBS)
-
-tabcheck.c: tabcheck.l
-	$(LEX) -otabcheck.c $<
-
-linecheck: linecheck.c
-	$(CC) -o $@ $< $(LINKLIBS)
-
-linecheck.c: linecheck.l
-	$(LEX) -olinecheck.c $<
 
 .PHONY dist:
 dist: pd.tar.gz
@@ -151,5 +142,5 @@ install: $(OBJECTS) $(SCRIPTS)
 
 .PHONY clean:
 clean:
-	rm -f $(OBJECTS) $(DOCU) $(TEMPORARYS) *.exe linecheck.c tabcheck.c
+	rm -f $(OBJECTS) $(APPS) $(DOCU) $(TEMPORARYS) *.exe 
 

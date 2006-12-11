@@ -69,9 +69,10 @@ extern char* endProgram;
 extern char* startVerbatim;
 extern char* endVerbatim;
 
-
 #define YYERROR_VERBOSE
 #define YYDEBUG 1
+
+extern void yyerror(const char *msg);
 %}
 
 
@@ -698,15 +699,5 @@ annotations 	:
 
 %%
 
-#include "lex.yy.c"
+#include "PDLex.c"
 
-int yyerror(const char *msg)
-{
-  if (yytext[0] == '\n' && yytext[1] == '\n')
-    fprintf(stderr, "%s in paragraph before line %d.\n", msg, yylineno); 
-  else
-    fprintf(stderr, 
-            "%s at line %d reading symbol '%s'.\n", msg, yylineno, yytext);
-  exit(1);
-
-}

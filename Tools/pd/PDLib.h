@@ -18,29 +18,19 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 ----
 
-6.2 Main Program: Maketex.c
-
-Use the parser to transform from implicitly formatted text to TeX. The auxiliary
-functions CheckDebugEnv, InitHeader and PrintTail are implemented in file PDLib.c.
+This file declares some auxiliary functions.
 
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include "PDLib.h"
+#ifndef PD_LIB_H
+#define PD_LIB_H
 
 
-int main()
-{
+/* 
+Check environment variable PD\_DEBUG. If set define
+debug fkags for flex and bison
 
-  CheckDebugEnv();
-  InitHeader();
-   
-  int error=0;
-  error = yyparse();
+*/   
+void CheckDebugEnv();
 
-  PrintTail();
-  return error;
-}
-
-
+#endif
