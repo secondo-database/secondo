@@ -38,6 +38,8 @@ Class linearClass = (new PMPLinear()).getClass();
 Time T = new Time();
 TotalMove Move=null;
 static DecimalFormat format = new DecimalFormat("#.####");
+boolean error;
+
 
 public boolean isPointType(int num){
    return true;
@@ -103,11 +105,13 @@ public String getLabel(double time){
 
 
 public void init(ListExpr type,ListExpr value,QueryResult qr){
+  error = false;
   AttrName = type.symbolValue();
   Move = new TotalMove();
   if(!Move.readFrom(value,linearClass)){
      if(qr!=null){
          qr.addEntry("("+AttrName +" WrongListFormat )");
+         error=true;
      }
      return;
   }
@@ -139,6 +143,11 @@ public JPanel getTimeRenderer(double PixelTime){
 /* returns the minimum bounding box of this moving point */
 public Rectangle2D.Double getBounds(){
    return bounds;
+}
+
+/** returns the success of the last init command */
+public boolean getError(){
+   return error;
 }
 
 

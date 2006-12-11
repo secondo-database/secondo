@@ -42,7 +42,7 @@ private String readLine(BufferedReader R) throws IOException{
 }
 
 /*
-   - FileName   : the File containing datas
+   - FileName   : the File containing data
    - offsetTime : the starttime of the first moving point
    - repeats    : number of repeats
    - distance   : time distance between repeats

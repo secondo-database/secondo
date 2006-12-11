@@ -36,7 +36,7 @@ public Time(){
 }
 
 /** creates a Time value from the arguments **/
-public Time(long day, long milliseconds){
+public Time(int day, int milliseconds){
    set(day,milliseconds);
 }
 
@@ -47,7 +47,7 @@ public Time(Time source){
 
 
 /** sets the time */
-public boolean set(long day, long milliseconds){
+public boolean set(int day, int milliseconds){
    this.day=day;
    this.milliseconds = milliseconds;
    correct();
@@ -61,7 +61,7 @@ public double getDouble(){
 }
 
 /** returns this time as milliseconds */
-public long getMilliseconds(){
+public int getMilliseconds(){
     return day*MILLISECONDS + milliseconds;
 }
 
@@ -101,8 +101,8 @@ public boolean readFrom(ListExpr E){
         Reporter.debug("Time.readFrom: error in converting String to Time ");
         return false;
      }
-     day = DM[0];
-     milliseconds = DM[1];
+     day = (int)DM[0];
+     milliseconds = (int)DM[1];
      correct();
      return true;
   }
@@ -121,8 +121,8 @@ public boolean readFrom(ListExpr E){
 }
 
 public void readFrom(double d){
-    day = (long) d;
-    milliseconds = (long)((d-(double)day)*MILLISECONDS);
+    day = (int) d;
+    milliseconds = (int)((d-(double)day)*MILLISECONDS);
     correct();
 }
 
@@ -132,8 +132,8 @@ public boolean readFrom(String value){
        Reporter.debug("invalid Time format in Time.readFrom(String) :"+value);
        return false;
      }
-    day = DM[0];
-    milliseconds = DM[1];
+    day = (int)DM[0];
+    milliseconds = (int)DM[1];
     correct();
     return true;
 }
@@ -168,7 +168,7 @@ public Time minus(Time T){
 }
 
 /** computes the multiple of this Time instance */
-public Time mul(long factor){
+public Time mul(int factor){
    Time res = new Time();
    res.day = day*factor;
    res.milliseconds = milliseconds*factor;
@@ -201,10 +201,10 @@ public String getListExprString(boolean absolute){
 private Time correct(){
   // in a first step the milliseconds are moved to
   // be positive
-  long oldms = milliseconds;
-  long oldday = day;
-  long dif1=0;
-  long dif2=0;
+  int oldms = milliseconds;
+  int oldday = day;
+  int dif1=0;
+  int dif2=0;
   if(milliseconds < 0){
     dif1 = milliseconds/MILLISECONDS +1;
     day = day - dif1;
@@ -236,18 +236,18 @@ public Time copy(){
 
 
 public String toString(){
-   return DateTime.getString(getDouble());
+   return DateTime.getString(day,milliseconds);
 }
 
 public String toDurationString(){
-   long value = milliseconds;
-   long millies = value % 1000;
+   int value = milliseconds;
+   int millies = value % 1000;
    value = value/1000;
-   long seconds = value % 60;
+   int seconds = value % 60;
    value = value / 60;
-   long minutes = value % 60;
+   int minutes = value % 60;
    value = value / 60;
-   long hours = value % 24;
+   int hours = value % 24;
    value = value / 24;
    return "" + day +"-"+hours+":"+minutes+":"+seconds+"."+millies;
 }
@@ -255,7 +255,7 @@ public String toDurationString(){
 
 public static final Time ZeroTime = new Time(0,0);
 
-private int sign(long L){
+private int sign(int L){
    if(L<0) return -1;
    if(L==0) return 0;
    return 1;
@@ -267,7 +267,7 @@ public void equalize(Time T2){
 }
 
 
-private long milliseconds;
-private long day;
-public final static long MILLISECONDS=86400000;
+private int milliseconds;
+private int day;
+public final static int MILLISECONDS=86400000;
 }

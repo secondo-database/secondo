@@ -48,6 +48,8 @@ private String readLine(BufferedReader R) throws IOException{
  * standard output.
  *
  * @param NoT: number of trains to create
+               if this number is smaller or equal than zero, only a single train will be created,
+               not a whole relation containing trains
  * @param tD: time difference between the trains
  * @param start: start time of the first train
  * @param rep: number of repetitions of each train
@@ -58,6 +60,11 @@ private String readLine(BufferedReader R) throws IOException{
 public void printPeriodicPoint(int NoT,int tD,Time start,int rep, File F, boolean halfyear){
   point firstPoint=null;
   boolean first = true;
+  boolean singleTrain = false;
+  if(NoT<=0){
+     NoT=1;
+     singleTrain = true;
+  }
   try{
      line_number=0;
      BufferedReader R = new BufferedReader(new FileReader(F));
@@ -66,8 +73,12 @@ public void printPeriodicPoint(int NoT,int tD,Time start,int rep, File F, boolea
      RelInterval completeInterval = new RelInterval();
      completeInterval.set(new Time(),true,false);
      System.out.println("("); // start the object
-     System.out.println("    (rel(tuple((No int)(Trip pmpoint))))"); // the type
-     System.out.println("    ("); // open value list
+     if(singleTrain){
+        System.out.println(" pmpoint ");
+     } else {
+        System.out.println("    (rel(tuple((No int)(Trip pmpoint))))"); // the type
+        System.out.println("    ("); // open value list
+    }
      // read the pointlist for this train
      while(R.ready()){
         pointlist pl = new pointlist();
@@ -141,8 +152,10 @@ public void printPeriodicPoint(int NoT,int tD,Time start,int rep, File F, boolea
      int index;
      int size = PointLists.size();
      for(int train=0; train<NoT; train++){ // for every train
-         System.out.println("      ("); // open tuple
-         System.out.println("         "+train); // write the train number 
+        if(!singleTrain){
+            System.out.println("      ("); // open tuple
+            System.out.println("         "+train); // write the train number 
+        }
          // write the train
        
          System.out.println("          ("); // open train
@@ -202,9 +215,16 @@ public void printPeriodicPoint(int NoT,int tD,Time start,int rep, File F, boolea
              System.out.println("))"); //   close repetition for a half year 
          } 
 
-         System.out.println("))"); // closetrain,tuple
+         System.out.println(")"); // close train
+
+         if(!singleTrain){
+            System.out.println(")"); // close tuple
+         }
      }
-     System.out.println("))"); // close value,object
+     if(!singleTrain){
+       System.out.println(")"); // close tuple list
+     }
+     System.out.println(")"); // close object
 
   }catch(Exception e){
      System.err.println("an error is occurred");
@@ -222,7 +242,7 @@ private static void wrongParameter(String Message){
     System.out.println(" tD    : Distance between 2 trains in sec ");
     System.out.println(" start : the start time of the first train in yyyy-mm-dd-hh:min:sec");
     System.out.println(" rep   : number cycles for a single train ");
-    System.out.println(" NoT   : File to process ");
+    System.out.println(" FileName   : File to process ");
     System.exit(1);
 }
 
@@ -235,7 +255,8 @@ public static void main(String[] args){
     NoT=tD=rep=0;
     try{
       NoT = Integer.parseInt(args[0]);
-      if(NoT<=0) wrongParameter("number of trains has to be greater than zero");
+      //if(NoT<=0) wrongParameter("number of trains has to be greater than zero");
+      // its allowed now
       tD  = Integer.parseInt(args[1]);
       if(tD<=0) wrongParameter("time difference has to be greater than zero");
       rep = Integer.parseInt(args[3]);
