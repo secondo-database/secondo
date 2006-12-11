@@ -1,3 +1,4 @@
+#include <string.h>
 #include <triangulate.h>
 #include <sys/time.h>
 

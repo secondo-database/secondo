@@ -1,9 +1,11 @@
-inclpath = .
 
-CC=gcc
+INC := .
 
-CFLAGS= -UDEBUG -UCLOCK\
-	-I$(inclpath) -L/lib/pa1.1 -g
+CC := gcc
+
+CFLAGS := -UDEBUG -UCLOCK -I$(INC) -g
+
+LDFLAGS := -lm
 
 
 # DEBUG: turn on debugging output
@@ -13,26 +15,24 @@ CFLAGS= -UDEBUG -UCLOCK\
 #	      triangulate_polygon() instead.
 
 
-LDFLAGS= -lm
 
-objects= construct.o misc.o monotone.o tri.o
-executable = triangulate
-libfile = ../../../lib/libTriangulation.a 
+OBJECTS := construct.o misc.o monotone.o tri.o
+APP := triangulate
+LIBFILE := ../../../lib/libTriangulation.a 
 
 .PHONY: all
-all: $(libfile) # $(executable)
+all: $(LIBFILE) # $(APP)
 
-$(executable): $(objects)
-	rm -f $(executable)
-	$(CC) $(CFLAGS) $(objects) $(LDFLAGS) -o $(executable)
+$(APP): $(OBJECTS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-$(objects): $(inclpath)/triangulate.h
+$(OBJECTS): $(INC)/triangulate.h
 
-../../../lib/libTriangulation.a: construct.o misc.o monotone.o tri.o
-	ar r $@ $^
+$(LIBFILE): construct.o misc.o monotone.o tri.o
+	ar -rs $@ $^
 	ranlib $@
 
 .PHONY: clean 
 clean:
-	rm -f $(objects) $(libfile)
+	rm -f $(OBJECTS) $(APP) $(LIBFILE)
 

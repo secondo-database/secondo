@@ -58,6 +58,8 @@ ifndef SECONDO_MIN_ALGEBRA_SET
 ALGEBRA_DEPS += jpeg
 ALGEBRA_DEP_DIRS += $(SECONDO_SDK)/lib
 
+ALGEBRA_DEPS += Triangulation 
+
 ##########  Example Algebras
 
 ALGEBRA_DIRS += Function-C++
@@ -154,6 +156,9 @@ ALGEBRAS     += PictureAlgebra
 
 #ALGEBRA_DIRS  += Cluster
 #ALGEBRAS      += ClusterAlgebra
+
+ALGEBRA_DIRS  += Constraint 
+ALGEBRAS      += ConstraintAlgebra
 
 # JNI Algebras - Java code will be called from C++ code.
 
