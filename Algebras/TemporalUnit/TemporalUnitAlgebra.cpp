@@ -97,7 +97,7 @@ n/a                    (stream uT) x periods --> bool (use suse2/present)
       at:     For T in {bool, int, string, point, region*}
 OK  +                           uT x       T --> uT
 (OK)                         ureal x    real --> (stream ureal)
-n/a +                       upoint x  region --> (stream upoint)
+OK  +                       upoint x  region --> (stream upoint)
 
       distance:  T in {int, point}
 OK  -           uT x uT -> ureal
@@ -243,8 +243,8 @@ extern AlgebraManager* am;
 #include "DateTime.h"
 using namespace datetime;
 
-bool TUA_DEBUG = false; // Set to true to activate debugging code
-//bool TUA_DEBUG = true; // Set to true to activate debugging code
+//bool TUA_DEBUG = false; // Set to true to activate debugging code
+bool TUA_DEBUG = true; // Set to true to activate debugging code
 
 /*
 2.1 Definition of some constants and auxiliary functions
@@ -2672,7 +2672,7 @@ TemporalSpecPasses =
 
 */
 int
-UnitBaseSelect( ListExpr args )
+TUPassesSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
@@ -2695,26 +2695,26 @@ UnitBaseSelect( ListExpr args )
 
   if( nl->SymbolValue( arg1 ) == "ustring" &&
       nl->SymbolValue( arg2 ) == "string" )
-    return 2;
+    return 4;
 
   if( nl->SymbolValue( arg1 ) == "uregion" &&
       nl->SymbolValue( arg2 ) == "region" )
-    return 3;
+    return 5;
 
-  if( nl->SymbolValue( arg1 ) == "upoint" &&
-      nl->SymbolValue( arg2 ) == "region" )
-    return 4;
-
+//  if( nl->SymbolValue( arg1 ) == "upoint" &&
+//      nl->SymbolValue( arg2 ) == "region" )
+//      return 6;
 
   return -1; // This point should never be reached
 }
 
-ValueMapping temporalunitpassesmap[] = { MappingUnitPasses<UBool, CcBool>,
-                                         MappingUnitPasses<UInt, CcInt>,
-                                         MappingUnitPasses<UReal, CcReal>,
-                                         MappingUnitPasses<UPoint, Point>,
-                                         MappingUnitPasses<UString, CcString>,
-                                         MappingUnitPasses<URegion, Region> };
+ValueMapping temporalunitpassesmap[] = {
+  MappingUnitPasses<UBool, CcBool>,      //0
+  MappingUnitPasses<UInt, CcInt>,        //1
+  MappingUnitPasses<UReal, CcReal>,      //2
+  MappingUnitPasses<UPoint, Point>,      //3
+  MappingUnitPasses<UString, CcString>,  //4
+  MappingUnitPasses<URegion, Region> };  //5
 
 /*
 5.12.5  Definition of operator ~passes~
@@ -2724,7 +2724,7 @@ Operator temporalunitpasses( "passes",
                          TemporalSpecPasses,
                          6,
                          temporalunitpassesmap,
-                         UnitBaseSelect,
+                         TUPassesSelect,
                          UnitBaseTypeMapBool);
 
 /*
@@ -2742,7 +2742,7 @@ function (or it's radical).
       at:     For T in {bool, int, string, point, region*}
 OK  +                           uT x       T --> uT
 (OK)                         ureal x    real --> (stream ureal)
-n/a +                       upoint x  region --> (stream upoint)
+OK  +                       upoint x  region --> (stream upoint)
 
 (*): Not yet implemented
 
@@ -3113,14 +3113,130 @@ The solution to the equation $at^2 + bt + c = y$ is
   return 0;
 }
 
-// second value mapping: (ureal real) -> (stream ureal)
+struct TUAUPointAtRegionLocalInfo
+{
+  bool finished;
+  int  NoOfResults;
+  int  NoOfResultsDelivered;
+  MPoint *mpoint;  // Used to store results
+};
+
+// value mapping: (upoint region) -> (stream upoint)
 int MappingUnitAt_up_rg( Word* args, Word& result, int message,
                          Word& local, Supplier s )
 {
+  // This operator creates a single-unit MPoint and a single-unit static MRegion
+  // and calls MRegion::Intersection(MPoint mpoint, MPoint res)
+  TUAUPointAtRegionLocalInfo *sli;
+  UPoint  *u;
+  Region  *r;
+  MPoint  *mp_tmp;
+  MRegion *mr_tmp;
+  const UPoint* cu;
+
+  switch( message )
+    {
+    case OPEN:
+
+      if (TUA_DEBUG)
+        cerr << "MappingUnitAt_up_rg: Received OPEN"
+             << endl;
+
+      sli = new TUAUPointAtRegionLocalInfo;
+      sli->finished = true;
+      sli->NoOfResults = 0;
+      sli->NoOfResultsDelivered = 0;
+      sli->mpoint = new MPoint(10);
+      local = SetWord(sli);
+
+      u = (UPoint*)(args[0].addr);
+      r = (Region*)(args[1].addr);
+
+      // test for definedness
+      if ( !u->IsDefined() || !r->IsDefined() )
+        {
+          if (TUA_DEBUG)
+            cerr << "  Undef arg -> Empty Result" << endl << endl;
+          // nothing to do
+        }
+      else
+        {
+          mp_tmp = new MPoint(1);           // create temporary MPoint
+          mp_tmp->Add(*u);
+          mp_tmp->SetDefined(true);
+
+          mr_tmp = new MRegion(*mp_tmp, *r);// create temporary MRegion
+          mr_tmp->SetDefined(true);
+
+          mr_tmp->Intersection(*mp_tmp, *(sli->mpoint));// get and save result;
+          delete mp_tmp;
+          delete mr_tmp;
+          sli->NoOfResults = sli->mpoint->GetNoComponents();
+          sli->finished = (sli->NoOfResults <= 0);
+          if (TUA_DEBUG)
+            cerr << "  " << sli->NoOfResults << " result units" << endl << endl;
+        }
+      if (TUA_DEBUG)
+        cerr << "MappingUnitAt_up_rg: Finished OPEN"
+             << endl;
+      return 0;
+
+    case REQUEST:
+      if (TUA_DEBUG)
+        cerr << "MappingUnitAt_up_rg: Received REQUEST"
+             << endl;
+
+      if(local.addr == 0)
+        {
+          if (TUA_DEBUG)
+            cerr << "MappingUnitAt_up_rg: Finished REQUEST (1)"
+                 << endl;
+          return CANCEL;
+        }
+      sli = (TUAUPointAtRegionLocalInfo*) local.addr;
+      if(sli->finished)
+        {
+          if (TUA_DEBUG)
+            cerr << "MappingUnitAt_up_rg: Finished REQUEST (2)"
+                 << endl;
+          return CANCEL;
+        }
+      if(sli->NoOfResultsDelivered < sli->NoOfResults)
+        {
+          sli->mpoint->Get(sli->NoOfResultsDelivered, cu);
+          result = SetWord( cu->Clone() );
+          sli->NoOfResultsDelivered++;
+          if (TUA_DEBUG)
+            cerr << "MappingUnitAt_up_rg: "
+                << "Finished REQUEST (YIELD)" << endl;
+          return YIELD;
+        }
+      sli->finished = true;
+      if (TUA_DEBUG)
+        cerr << "MappingUnitAt_up_rg: Finished REQUEST (3)"
+             << endl;
+      return CANCEL;
+
+    case CLOSE:
+
+      if (TUA_DEBUG)
+        cerr << "MappingUnitAt_up_rg: Received CLOSE"
+             << endl;
+      if (local.addr != 0)
+        {
+          sli = (TUAUPointAtRegionLocalInfo*) local.addr;
+          delete sli->mpoint;
+          delete sli;
+        }
+      if (TUA_DEBUG)
+        cerr << "MappingUnitAt_up_rg: Finished CLOSE"
+             << endl;
+      return 0;
+    } // end switch
+
+  cerr << "MappingUnitAt_up_rg: Received UNKNOWN COMMAND"
+       << endl;
   return 0;
-
-  //////////////////////
-
 }
 
 /*
@@ -3145,17 +3261,52 @@ TemporalSpecAt =
 /*
 5.13.4 Selection Function of operator ~at~
 
-Uses ~unitBaseSelect~.
-
 */
+int
+TUSelectAt( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args ),
+           arg2 = nl->Second( args );
 
-ValueMapping temporalunitatmap[] = {  MappingUnitAt< UBool, CcBool>,
-                                      MappingUnitAt< UInt, CcInt>,
-                                      MappingUnitAt_r,
-                                      MappingUnitAt< UPoint, Point>,
-                                      MappingUnitAt< UString, CcString>,
-                                      MappingUnitAt< URegion, Region>,
-                                      MappingUnitAt_up_rg};
+  if( nl->SymbolValue( arg1 ) == "ubool" &&
+      nl->SymbolValue( arg2 ) == "bool" )
+    return 0;
+
+  if( nl->SymbolValue( arg1 ) == "uint" &&
+      nl->SymbolValue( arg2 ) == "int" )
+    return 1;
+
+  if( nl->SymbolValue( arg1 ) == "ureal" &&
+      nl->SymbolValue( arg2 ) == "real" )
+    return 2;
+
+  if( nl->SymbolValue( arg1 ) == "upoint" &&
+      nl->SymbolValue( arg2 ) == "point" )
+    return 3;
+
+  if( nl->SymbolValue( arg1 ) == "ustring" &&
+      nl->SymbolValue( arg2 ) == "string" )
+    return 4;
+
+  if( nl->SymbolValue( arg1 ) == "uregion" &&
+      nl->SymbolValue( arg2 ) == "region" )
+    return 5;
+
+  if( nl->SymbolValue( arg1 ) == "upoint" &&
+      nl->SymbolValue( arg2 ) == "region" )
+    return 6;
+
+  return -1; // This point should never be reached
+}
+
+
+ValueMapping temporalunitatmap[] = {  MappingUnitAt< UBool, CcBool>,    //0
+                                      MappingUnitAt< UInt, CcInt>,      //1
+                                      MappingUnitAt_r,                  //2
+                                      MappingUnitAt< UPoint, Point>,    //3
+                                      MappingUnitAt< UString, CcString>,//4
+                                      MappingUnitAt< URegion, Region>,  //5
+                                      MappingUnitAt_up_rg};             //6
 
 /*
 5.13.5  Definition of operator ~at~
@@ -3165,7 +3316,7 @@ Operator temporalunitat( "at",
                      TemporalSpecAt,
                      7,
                      temporalunitatmap,
-                     UnitBaseSelect,
+                     TUSelectAt,
                      TemporalUnitAtTypeMapUnit );
 
 /*
