@@ -29,10 +29,6 @@ operator velocity alias VELOCITY pattern op ( _ )
 operator derivable alias DERIVABLE pattern op ( _ )
 operator derivative alias DERIVATIVE pattern op ( _ )
 operator atperiods alias ATPERIODS pattern _ infixop _
-operator sfeed alias SFEED pattern op ( _ )
-operator suse alias SUSE pattern _ op [ _ ] implicit parameter streamelem type STREAMELEM
-operator suse2 alias SUSE2 pattern _ _ op [ _ ] implicit parameters streamelem1, streamelem2 types STREAMELEM, STREAMELEM2
-operator saggregate alias SAGGREGATE pattern _ op [ _ ; _ ] implicit parameter estreamelem type STREAMELEM
 operator at alias AT pattern _ infixop _
 operator atmax alias ATMAX pattern op ( _ )
 operator atmin alias ATMIN pattern op ( _ )
@@ -45,8 +41,6 @@ operator the_unit alias THE_UNIT pattern op( _ , _ , _ , _ , _ , _ , _ )
 
 # Operator signatures already defined elsewhere:
 
-#operator filter alias FILTER pattern _ op [ fun ] implicit parameter streamelem type STREAMELEM
-#operator count alias COUNT pattern _ op
 #operator no_components alias NO_COMPONENTS pattern op ( _ )
 #operator isempty alias ISEMPTY pattern op ( _ )
 #operator not alias NOT pattern op ( _ )
