@@ -133,7 +133,7 @@ query units(zug5) the_mvalue
 
 #testcase the_mvalue SHUFFLED INPUT
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5AsResult
-query units(zug5) transformstream extend[no: randint(1000)] sortby[no asc] transformstream the_mvalue
+query units(zug5) transformstream extend[no: randint(1000)] sortby[no asc] project[elem] transformstream the_mvalue
 
 
 ##################
