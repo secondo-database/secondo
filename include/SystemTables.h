@@ -105,15 +105,15 @@ class CmdTimesRel : public SystemInfoRel
    
    virtual void initSchema()
    { 
-     addAttribute("CmdNr", "int");
-     addAttribute("CmdStr", "text");
-     addAttribute("ElapsedTime", "real");
-     addAttribute("CpuTime", "real");
-     addAttribute("CommitTime", "real");
-     addAttribute("queryReal", "real");
-     addAttribute("queryCPU", "real");
-     addAttribute("outObjReal", "real");
-     addAttribute("copyReal", "real");
+     addAttribute("CmdNr",       sym.INT()  );
+     addAttribute("CmdStr",      sym.TEXT() );
+     addAttribute("ElapsedTime", sym.REAL() );
+     addAttribute("CpuTime",     sym.REAL() );
+     addAttribute("CommitTime",  sym.REAL() );
+     addAttribute("queryReal",   sym.REAL() );
+     addAttribute("queryCPU",    sym.REAL() );
+     addAttribute("outObjReal",  sym.REAL() );
+     addAttribute("copyReal",    sym.REAL() );
    } 
 
 }; 
@@ -137,7 +137,7 @@ class CmdCtr : public InfoTuple
      NList list;
      list.makeHead( NList(nr) );
      list.append( NList().stringAtom(ctrStr) );
-     list.append( NList((int) value) );
+     list.append( NList().intAtom(value) );
      return list;
    } 
 
@@ -159,9 +159,9 @@ class CmdCtrRel : public SystemInfoRel
    
    virtual void initSchema()
    { 
-     addAttribute("CtrNr", "int");
-     addAttribute("CtrStr", "string");
-     addAttribute("Value", "int");
+     addAttribute("CtrNr",  sym.INT()    );
+     addAttribute("CtrStr", sym.STRING() );
+     addAttribute("Value",  sym.INT()    );
    } 
 }; 
 
@@ -207,9 +207,9 @@ class DerivedObjRel : public SystemInfoRel
    
    virtual void initSchema()
    { 
-     addAttribute("name", "string");
-     addAttribute("value", "text");
-     addAttribute("usedObjs", "text");
+     addAttribute("name",     sym.STRING() );
+     addAttribute("value",    sym.TEXT()   );
+     addAttribute("usedObjs", sym.TEXT()   );
    } 
 }; 
 
@@ -224,14 +224,14 @@ class CacheInfoTuple : public InfoTuple, public CacheInfo
    {
      NList value;
      value.makeHead( NList(cstatNr) );
-     value.append( NList((int)bytes) );
-     value.append( NList((int)regsize) );
-     value.append( NList((int)cache_hit) );
-     value.append( NList((int)cache_miss) );
-     value.append( NList((int)page_create) );
-     value.append( NList((int)page_in) );
-     value.append( NList((int)page_out) );
-     value.append( NList((int)pages) );
+     value.append( NList().intAtom(bytes) );
+     value.append( NList().intAtom(regsize) );
+     value.append( NList().intAtom(cache_hit) );
+     value.append( NList().intAtom(cache_miss) );
+     value.append( NList().intAtom(page_create) );
+     value.append( NList().intAtom(page_in) );
+     value.append( NList().intAtom(page_out) );
+     value.append( NList().intAtom(pages) );
      return value;
    } 
    
@@ -259,15 +259,15 @@ class CacheInfoRel : public SystemInfoRel
    
    virtual void initSchema()
    { 
-     addAttribute("CStatNr", "int");
-     addAttribute("Bytes", "int");
-     addAttribute("RegSize", "int");
-     addAttribute("Hits", "int");
-     addAttribute("Misses", "int");
-     addAttribute("Pages_New", "int");
-     addAttribute("Pages_In", "int");
-     addAttribute("Pages_Out", "int");
-     addAttribute("Pages_All", "int");
+     addAttribute("CStatNr",   sym.INT() );
+     addAttribute("Bytes",     sym.INT() );
+     addAttribute("RegSize",   sym.INT() );
+     addAttribute("Hits",      sym.INT() );
+     addAttribute("Misses",    sym.INT() );
+     addAttribute("Pages_New", sym.INT() );
+     addAttribute("Pages_In",  sym.INT() );
+     addAttribute("Pages_Out", sym.INT() );
+     addAttribute("Pages_All", sym.INT() );
    } 
 }; 
 
@@ -292,12 +292,12 @@ class FileInfoTuple : public InfoTuple, public FileInfo
      NList value;
      value.makeHead( NList(fstatNr) );
      value.append( NList().textAtom(file_name) );
-     value.append( NList((int)pagesize) );
-     value.append( NList((int)cache_hit) );
-     value.append( NList((int)cache_miss) );
-     value.append( NList((int)page_create) );
-     value.append( NList((int)page_in) );
-     value.append( NList((int)page_out) );
+     value.append( NList().intAtom(pagesize) );
+     value.append( NList().intAtom(cache_hit) );
+     value.append( NList().intAtom(cache_miss) );
+     value.append( NList().intAtom(page_create) );
+     value.append( NList().intAtom(page_in) );
+     value.append( NList().intAtom(page_out) );
      return value;
    } 
    
@@ -325,14 +325,14 @@ class FileInfoRel : public SystemInfoRel
    
    virtual void initSchema()
    { 
-     addAttribute("FStatNr", "int");
-     addAttribute("File", "text");
-     addAttribute("PageSize", "int");
-     addAttribute("Hits", "int");
-     addAttribute("Misses", "int");
-     addAttribute("Pages_New", "int");
-     addAttribute("Pages_In", "int");
-     addAttribute("Pages_Out", "int");
+     addAttribute("FStatNr",   sym.INT()  );
+     addAttribute("File",      sym.TEXT() );
+     addAttribute("PageSize",  sym.INT()  );
+     addAttribute("Hits",      sym.INT()  );
+     addAttribute("Misses",    sym.INT()  );
+     addAttribute("Pages_New", sym.INT()  );
+     addAttribute("Pages_In",  sym.INT()  );
+     addAttribute("Pages_Out", sym.INT()  );
    } 
 }; 
 
@@ -371,7 +371,7 @@ class TypeInfoTuple : public InfoTuple
      list.append( NList().textAtom(listRep) );
      list.append( NList().textAtom(valueListExample) );
      list.append( NList().textAtom(remark) );
-     list.append( NList((int) size) );
+     list.append( NList().intAtom(size) );
      return list;
    } 
    
@@ -393,14 +393,14 @@ class TypeInfoRel : public SystemInfoRel
    
    virtual void initSchema()
    { 
-     addAttribute("Type", "string");
-     addAttribute("Algebra", "string");
-     addAttribute("Signature", "text");
-     addAttribute("TypeListExample", "text");
-     addAttribute("ListRep", "text");
-     addAttribute("ValueListExample", "text");
-     addAttribute("Remark", "text");
-     addAttribute("Size", "int");
+     addAttribute("Type",             sym.STRING() );
+     addAttribute("Algebra",          sym.STRING() );
+     addAttribute("Signature",        sym.TEXT()   );
+     addAttribute("TypeListExample",  sym.TEXT()   );
+     addAttribute("ListRep",          sym.TEXT()   );
+     addAttribute("ValueListExample", sym.TEXT()   );
+     addAttribute("Remark",           sym.TEXT()   );
+     addAttribute("Size",             sym.INT()    );
    } 
 }; 
 
@@ -461,14 +461,14 @@ class OperatorInfoRel : public SystemInfoRel
    
    virtual void initSchema()
    { 
-     addAttribute("Name", "string");
-     addAttribute("Algebra", "string");
-     addAttribute("Signature", "text");
-     addAttribute("Syntax", "text");
-     addAttribute("Meaning", "text");
-     addAttribute("Example", "text");
-     addAttribute("Result", "text");
-     addAttribute("Remark", "text");
+     addAttribute("Name",      sym.STRING() );
+     addAttribute("Algebra",   sym.STRING() );
+     addAttribute("Signature", sym.TEXT()   );
+     addAttribute("Syntax",    sym.TEXT()   );
+     addAttribute("Meaning",   sym.TEXT()   );
+     addAttribute("Example",   sym.TEXT()   );
+     addAttribute("Result",    sym.TEXT()   );
+     addAttribute("Remark",    sym.TEXT()   );
    } 
 }; 
 
@@ -493,7 +493,7 @@ class OperatorUsageTuple : public InfoTuple
      NList list;
      list.makeHead( NList().stringAtom(name) );
      list.append( NList().stringAtom(algebra) );
-     list.append( NList((int)calls) );
+     list.append( NList().intAtom(calls) );
      return list;
    } 
    
@@ -516,9 +516,9 @@ class OperatorUsageRel : public SystemInfoRel
    
    virtual void initSchema()
    { 
-     addAttribute("Algebra", "string");
-     addAttribute("Operator", "string");
-     addAttribute("Calls", "int");
+     addAttribute("Algebra",  sym.STRING() );
+     addAttribute("Operator", sym.STRING() );
+     addAttribute("Calls",    sym.INT()    );
    } 
 }; 
 

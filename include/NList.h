@@ -108,8 +108,14 @@ struct Symbols {
     static const string& STRING() { 
        static string s("string"); return s; 
     }  
+    static const string& TEXT() { 
+       static string s("text"); return s; 
+    }  
     static const string& INT() { 
        static string s("int"); return s; 
+    }  
+    static const string& REAL() { 
+       static string s("real"); return s; 
     }  
     static const string& BOOL() { 
        static string s("bool"); return s; 
@@ -117,6 +123,19 @@ struct Symbols {
     static const string& REL() { 
        static string s("rel"); return s; 
     }  
+    static const string& TUPLE() { 
+       static string s("tuple"); return s; 
+    }  
+    static const string& PTUPLE() { 
+       static string s("ptuple"); return s; 
+    }  
+    static const string& STREAM() { 
+       static string s("stream"); return s; 
+    }  
+    static const string& TYPEERROR() { 
+       static string s("typeerror"); return s; 
+    }  
+
 };  
 
 
@@ -241,6 +260,22 @@ c)~.
     len(0)
   {}
     
+  inline NList& intAtom(const int val) 
+  {
+    len = 0;
+    e = nl->Empty();
+    l = nl->IntAtom(val);
+    return *this;
+  } 
+
+  inline NList& realAtom(const double val) 
+  {
+    len = 0;
+    e = nl->Empty();
+    l = nl->RealAtom(val);
+    return *this;
+  } 
+
   inline NList& stringAtom(const string& val) 
   {
     len = 0;
@@ -257,7 +292,6 @@ c)~.
     return *this;
   } 
 
-  
   inline NList& symbolAtom(const string& val) 
   {
     len = 0;
