@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# SelfTest Startup Script
+#
+# 12.12.2006, M. Spiekermann
+
+export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color"
+
+# On linux the variable below will use a less efficient
+# malloc implementation which does error detection and aborts
+# the process as soon as an error is recognized.
+export MALLOC_CHECK_=2
+
+runner="$(which SecondoBDB) -test -e"
+# check if nice command is present
+ncmd=$(which nice)
+if [ $? -ne 0 ]; then
+   runCmd=$runner
+else
+  runCmd="nice -n 19  $runner" 
+fi
+
+if [ $# -eq 0 ]; then
+  files=$(find tmp -iname "*.examples")
+else
+  files=$*	
+fi
+
+declare -i err=0
+errFiles=""
+for f in $files; do
+ $runCmd -i $f
+ if [ $? -ne 0 ]; then
+   err=$[$err + 1]	 
+   errFiles=$errFiles"\n   $f"
+ fi  
+done
+
+if [ $err -ne 0 ]; then
+  echo -e "\n\n Selftest failed! The algebra(s)"
+  echo -e "$errFiles"
+  echo -e "\n return with errors."
+fi
+
+exit $err
