@@ -1697,6 +1697,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   void UTrajectory( Line& line ) const;
   void USpeed( UReal& result ) const;
   void UVelocity( UPoint& result ) const;
+  void Intersection(const UPoint &other, UPoint &result) const;
   virtual bool EqualValue( UPoint& i )
   {
   return   AlmostEqual( p0, i.p0 ) &&
@@ -1828,15 +1829,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   }
 
 /*
-3.8.4 Class Functions for Operators
-
-*/
-
-void Intersection(const UPoint &other, UPoint &result);
-void Intersection(const Point &point, UPoint &result);
-
-/*
-3.8.5 Attributes
+3.8.4 Attributes
 
 */
   Point p0, p1;

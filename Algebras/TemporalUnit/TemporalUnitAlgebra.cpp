@@ -332,112 +332,6 @@ string TUPrintUReal( UReal* ureal )
   return Result;
 }
 
-/*
-3 Implementation of the unit class method operators
-
-This section implements operators as member functions of the respective
-unit class.
-
-3.1 Operator ~speed~
-
-*/
-void MPoint::MSpeed( MReal& result ) const
-{
-  const UPoint *uPoint;
-  UReal uReal(true);
-  //  int counter = 0;
-
-  result.Clear();
-  if ( !IsDefined() )
-    {
-      // result.SetDefined( false ); // no undef Mappings by now
-      if(TUA_DEBUG) cout << "\nMPoint::MSpeed is undef (undef arg)." << endl;
-    }
-  else
-    {
-      result.StartBulkLoad();
-
-      for( int i = 0; i < GetNoComponents(); i++ )
-        {
-          Get( i, uPoint );
-
-          uPoint->USpeed( uReal );
-          if( uReal.IsDefined() )
-            {
-              result.Add( uReal ); // append ureal to mreal
-              //              counter++;
-            }
-        }
-      result.EndBulkLoad( true );
-/*
-Activating the following snippet would allow for creating undef objects
-instead of empty ones. Alas, the SetDefined() and IsDefined() methods do
-not have functional implementations by now. Instead, ~undef~ values are
-substituted by ~empty~ mappings.
-
-----
-      if(counter == 0)
-        {
-          result.SetDefined( false );
-          if(TUA_DEBUG) cout << "\nMPoint::MSpeed is undef (empty result)." << endl;
-        }
-      else
-        {
-          result.SetDefined( true );
-          if(TUA_DEBUG) cout << "\nMPoint::MSpeed is defined." << endl;
-        }
-
-----
-
-*/
-    }
-  if(TUA_DEBUG) cout << "MPoint::MSpeed() finished!" << endl;
-}
-
-
-/*
-3.2 Operator ~Velocity~
-
-*/
-void MPoint::MVelocity( MPoint& result ) const
-{
-  const UPoint *uPoint;
-  UPoint p(true);
-  //  int counter = 0;
-
-  result.Clear();
-  if ( !IsDefined() )
-    {
-      // result.SetDefined( false ); // no undef Mappings by now
-      if(TUA_DEBUG) cout << "\nMPoint::MVelocity: undef unit" << endl;
-    }
-  else
-    {
-      result.StartBulkLoad();
-      for( int i = 0; i < GetNoComponents(); i++ )
-        {
-          Get( i, uPoint );
-          /*
-            Definition of a new point unit p. The velocity is constant
-            at all times of the interval of the unit. This is exactly
-            the same as within operator ~speed~. The result is a vector
-            and can be represented as a upoint.
-
-          */
-
-          uPoint->UVelocity( p );
-          if( p.IsDefined() )
-            {
-              result.Add( p );
-              //              counter++;
-            }
-        }
-      result.EndBulkLoad( true );
-    }
-  if(TUA_DEBUG) cout << "MPoint::MVelocity() finished!" << endl;
-}
-
-
 
 /*
 4 General Selection functions
@@ -5858,12 +5752,7 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
 {
   TUIntersectionLocalInfo *sli;
   Word u1, u2;
-  UPoint *uv1, *uv2;
-  Interval<Instant> iv;
-  Instant t;
-  Point p1n_start, p1n_end, p2n_start, p2n_end, p_intersect, d1, d2, p1;
-  UPoint p1norm(true), p2norm(true);
-  double t_x, t_y, t1, t2, dxp1, dxp2, dyp1, dyp2, dt;
+  UPoint *uv1, *uv2, *res;
 
   // test for overlapping intervals
   switch( message )
@@ -5881,120 +5770,16 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
       u2 = args[1];
       uv1 = (UPoint*) (u1.addr);
       uv2 = (UPoint*) (u2.addr);
-
-      if ( !uv1->IsDefined() ||
-           !uv2->IsDefined() ||
-           !uv1->timeInterval.Intersects( uv2->timeInterval ) )
-        {
-          if (TUA_DEBUG)
-            cout << "temporalUnitIntersection_upoint_upoint: finished OPEN (1)"
-                 << endl;
-          return 0; // nothing to do
-        }
-
-      // get common time interval
-      uv1->timeInterval.Intersection(uv2->timeInterval, iv);
-
-      // normalize both starting and ending points to interval
-      uv1->AtInterval(iv, p1norm);
-      p1n_start = p1norm.p0;
-      p1n_end   = p1norm.p1;
-
-      uv2->AtInterval(iv, p2norm);
-      p2n_start = p2norm.p0;
-      p2n_end   = p2norm.p1;
-
-      if (TUA_DEBUG)
-        {
-          cout << "  uv1=" << TUPrintUPoint( *uv1 ) << endl
-               << "  uv2=" << TUPrintUPoint( *uv2 ) << endl
-               << "  iv=" << TUPrintTimeInterval( iv ) << endl
-               << "  p1norm=" << TUPrintUPoint( p1norm ) << endl
-               << "  p2norm=" << TUPrintUPoint( p2norm ) << endl;
-        }
-
-      // test for identity:
-      if ( p1norm.EqualValue( p2norm ))
-        { // both upoints have the same linear function
-          sli->resultValues[sli->NoOfResults] = SetWord( p1norm.Clone() );
-          sli->NoOfResults++;
-          sli->finished = false;
-          if (TUA_DEBUG)
-            cout << "  Identity test passed. Added result." << endl
-                 << "temporalUnitIntersection_upoint_upoint: finished OPEN (3)"
-                 << endl;
-          return 0;
-        }
-      if (TUA_DEBUG)
-        cout << "  Identity test failed." << endl;
-
-      // test for ordinary intersection of the normalized upoints
-      d1 = p2n_start - p1n_start;
-      d2 = p2n_end   - p1n_end;
-      if ( ((d1.GetX() > 0) && (d2.GetX() > 0)) ||
-           ((d1.GetX() < 0) && (d2.GetX() < 0)) ||
-           ((d1.GetY() > 0) && (d2.GetY() > 0)) ||
-           ((d1.GetY() < 0) && (d2.GetY() < 0)))
-        { // no intersection
-          if (TUA_DEBUG)
-            cout << "  No intersection. No Result." << endl
-                 << "temporalUnitIntersection_upoint_upoint: finished OPEN (4)"
-                 << endl;
-          return 0; // nothing to do
-        }
-      if (TUA_DEBUG) cout << "  Some Intersection." << endl;
-
-      dxp1 = (p1n_end - p1n_start).GetX();
-      dyp1 = (p1n_end - p1n_start).GetY();
-      dxp2 = (p2n_end - p2n_start).GetX();
-      dyp2 = (p2n_end - p2n_start).GetY();
-
-/*
-Trying to find an intersection point $t$ with $A_1t + B_1 = A_2t + B_2$
-we get:
-
-\[ t_x = \frac{px_{21} - px_{11}}{dxp_1 - dxp_2} \quad
-t_y = \frac{py_{21} - py_{11}}{dyp_1 - pyp_2} \]
-
-where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
-
-*/
-
-      dt = (iv.end - iv.start).ToDouble();
-
-      t1 = iv.start.ToDouble();
-      t2 = iv.end.ToDouble();
-
-      t_x = (dt*d1.GetX() + t1*(dxp1-dxp2)) / (dxp1-dxp2);
-      t_y = (dt*d1.GetY() + t1*(dyp1-dyp2)) / (dyp1-dyp2);
-
-      if (TUA_DEBUG)
-        {
-          cout << "  dt =" << dt  << endl
-               << "  t_x=" << t_x << endl
-               << "  t_y=" << t_y << endl
-               << "  t1 =" << t1  << endl
-               << "  t2 =" << t2  << endl;
-        }
-
-      if ( AlmostEqual(t_x, t_y) &&
-           ( t_x >= t1) &&
-           ( t_x <= t2) )
-        { // We found an intersection
-          t.ReadFrom(t_x); // create Instant
-          t.SetType(instanttype);
-          iv = Interval<Instant>( t, t, true, true ); // create Interval
-          uv1->TemporalFunction(t, p1, true);
-          sli->resultValues[sli->NoOfResults] =
-            SetWord( new UPoint(iv, p1, p1) );
-          ((UPoint*)(sli->resultValues[sli->NoOfResults].addr))
-            ->timeInterval=iv;
-          sli->NoOfResults++;
-          sli->finished = false;
-          if (TUA_DEBUG)
-            cout << "  Found intersection. Added result." << endl;
-        }
-      // else: no result
+      res = new UPoint( false );
+      uv1->Intersection(*uv2, *res);
+      if ( res->IsDefined() )
+      {
+        sli->resultValues[sli->NoOfResults] = SetWord( res );
+        sli->NoOfResults++;
+        sli->finished = false;
+      }
+      else
+        delete( res );
       if (TUA_DEBUG)
         cout << "temporalUnitIntersection_upoint_upoint: finished OPEN (6)"
              << endl;

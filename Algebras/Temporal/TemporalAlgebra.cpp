@@ -556,7 +556,7 @@ void UPoint::UTrajectory( Line& line ) const
   line.EndBulkLoad();
 }
 
-void UPoint::Intersection(const UPoint &other, UPoint &result)
+void UPoint::Intersection(const UPoint &other, UPoint &result) const
 {
       Interval<Instant> iv;
       Instant t;
@@ -637,10 +637,6 @@ where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
       return;
 }
 
-void UPoint::Intersection(const Point &point, UPoint &result)
-{
-
-}
 
 /*
 3.2 Class ~MInt~
@@ -719,6 +715,59 @@ void MPoint::Distance( const Point& p, MReal& result ) const
   }
   result.EndBulkLoad( false );
 }
+
+void MPoint::MVelocity( MPoint& result ) const
+{
+  const UPoint *uPoint;
+  UPoint p(true);
+  //  int counter = 0;
+
+  result.Clear();
+  result.StartBulkLoad();
+  for( int i = 0; i < GetNoComponents(); i++ )
+        {
+          Get( i, uPoint );
+          /*
+            Definition of a new point unit p. The velocity is constant
+            at all times of the interval of the unit. This is exactly
+            the same as within operator ~speed~. The result is a vector
+            and can be represented as a upoint.
+
+          */
+
+          uPoint->UVelocity( p );
+          if( p.IsDefined() )
+            {
+              result.Add( p );
+              //              counter++;
+            }
+        }
+  result.EndBulkLoad( true );
+}
+
+void MPoint::MSpeed( MReal& result ) const
+{
+  const UPoint *uPoint;
+  UReal uReal(true);
+  //  int counter = 0;
+
+  result.Clear();
+  result.StartBulkLoad();
+
+  for( int i = 0; i < GetNoComponents(); i++ )
+        {
+          Get( i, uPoint );
+
+          uPoint->USpeed( uReal );
+          if( uReal.IsDefined() )
+            {
+              result.Add( uReal ); // append ureal to mreal
+              //              counter++;
+            }
+        }
+  result.EndBulkLoad( true );
+}
+
 
 /*
 4 Type Constructors
