@@ -210,6 +210,9 @@ a*bc* with single characters a,b and c.
     tokendef[Signature] = "Signature";
     tokendef[Example]   = "Example";
     tokendef[Result]    = "Result";
+
+    examples.clear();
+    scan=begin();
   }
   ~ExampleReader() {}
 
@@ -372,10 +375,10 @@ a*bc* with single characters a,b and c.
 
   void initScan() { scan=begin();}
   bool next(ExampleInfo& ex) {
-     scan++;
      if (scan != end())
      { 
        ex = scan->second;
+       scan++;
        return true;
      }
      return false;       
