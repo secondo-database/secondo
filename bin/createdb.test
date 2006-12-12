@@ -51,5 +51,17 @@ restore database germany from '$(HOME)/secondo-data/Databases/germany';
 #yields success
 close database;
 
+#testcase berlintest1  
+#yields success
+create database berlintest;
+
+#testcase berlintest2
+#yields success
+restore database berlintest from '$(HOME)/secondo-data/Databases/berlintest';
+
+#test case berlintest3 
+#yields success
+close database;
+
 #teardown
 
