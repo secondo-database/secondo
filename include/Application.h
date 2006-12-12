@@ -188,6 +188,8 @@ removes the first argument if present.
   typedef enum {Test, Optimizer, Server, TTY} RunMode;
   RunMode runMode;
   
+  bool runExamples;
+
   TTYParameter(const int argc, char** argv)
   {
     parmFile      = "";
@@ -203,6 +205,7 @@ removes the first argument if present.
     argValues = argv;
 
     runMode = TTY;
+    runExamples = false;
   } 
 
   bool isTestRunnerMode() { return removeFirstArg("-test"); } 
@@ -317,6 +320,10 @@ CheckConfiguration()
     else if ( argOk && argSwitch == "-num" )  // Number of test case
     {
       num = argValue;
+    }
+    else if ( argSwitch == "-e" )  // Expecting example file 
+    {
+      runExamples = true;
     }
     else if ( argSwitch == "-test" )  // TestRunner mode
     {

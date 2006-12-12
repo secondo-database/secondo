@@ -66,14 +66,17 @@ This is the test enviroment for Secondo. The code is derived from SecondoTTY.
 #include "Application.h"
 #include "Profiles.h"
 #include "FileSystem.h"
+
 #include "SecondoSystem.h"
 #include "SecondoInterface.h"
 #include "SecondoSMI.h"
+#include "SecParser.h"
+
 #include "NestedList.h"
 #include "DisplayTTY.h"
 #include "CharTransform.h"
 #include "LogMsg.h"
-
+#include "ExampleReader.h"
 
 using namespace std;
 
@@ -89,12 +92,18 @@ class TestRunner : public Application
   void ProcessFile( const string& fileName );
   void ProcessCommand();
   void ProcessCommands();
+  void ProcessExamples();
+
+  bool RunCmd(const string& dbName, SecErrInfo& err);
 
   ListExpr CallSecondo();
   void CallSecondo2();
   void RegisterError();
  
- 
+  ListExpr MakeConstant(const string& type, ListExpr value); 
+
+  void CoverageQuery(const string& algebra); 
+
   // read only functions 
   bool AbortOnSignal( int sig ) const;
   bool IsInternalCommand( const string& line ) const;
@@ -105,6 +114,7 @@ class TestRunner : public Application
                         const ListExpr outList      ) const;
 
   void ShowCommand( const string& cmd) const;
+  void ShowTestTitle() const;
   void ShowTestErrorMsg() const;
   void ShowErrorSummary() const;
   void ShowTestSuccessMsg(const string& msg) const;
@@ -127,6 +137,7 @@ class TestRunner : public Application
   string            rightArrow, leftArrow;
   int               num;
   bool              isStdInput;
+  bool              runExamples;
   bool              quit;
   bool              verbose;
   NestedList*       nl;
@@ -179,6 +190,8 @@ TestRunner::TestRunner( const TTYParameter& tp )
   iFileName     = tp.iFileName;
   oFileName     = tp.oFileName;
   num           = parse<int>(tp.num);
+  runExamples   = tp.runExamples;
+
   string cmd    = "";
   missingOps    = "";
   isStdInput    = true;
@@ -240,13 +253,23 @@ TestRunner::ProcessFile( const string& fileName )
 }
 
 void
+TestRunner::ShowTestTitle() const
+{
+  cout
+    << endl << endl << color(green)
+    << "*** Test " << testCaseNumber << ": " 
+                  << testCaseName << " ***"
+                  << color(normal) << endl;
+}
+
+
+
+void
 TestRunner::ShowTestSuccessMsg(const string& msg) const
 {
   cout
     << color(green)
-    << "** Test " << testCaseNumber << ": " 
-                  << testCaseName << " --> [OK]" << endl
-    << "** " << msg << color(normal) << endl;
+    << "==> [OK] " << msg << color(normal) << endl;
 }
 
 
@@ -255,10 +278,7 @@ TestRunner::ShowTestErrorMsg() const
 {
   cout
     << endl << color(red) 
-    << "** Test " << testCaseNumber << ": " << testCaseName 
-    << " --> [ERROR]" << endl
-    << color(normal) << endl;
-  return;
+    << "==> [ERROR]" << color(normal) << endl;
 }
 
 
@@ -346,6 +366,20 @@ TestRunner::RegisterError()
   numErrors++;
   errorLines.push_back( make_pair(testCaseNumber, testCaseLine) );
   ShowTestErrorMsg();
+}
+
+
+void
+TestRunner::CoverageQuery(const string& algebra) 
+{
+  cout << "Computing coverage for algebra " << algebra << endl;
+  cmd = "query SEC2OPERATORUSAGE feed filter[.Algebra = \"" 
+        + algebra 
+        + "\"] filter[.Calls = 0] project[Operator] consume"; 
+  yieldState = Coverage;
+  string resText = "((rel(tuple((Operator string))))())";
+  bool ok = nl->ReadFromString(resText, expectedResult);
+  assert(ok);       
 }
 
 
@@ -597,15 +631,8 @@ TestRunner::GetCommand()
           }
           else if(command.find("coverage") == 0)
           {
-            string algebra = restOfLine;
-            cout << "Computing coverage for algebra " << algebra << endl;
-            cmd = "query SEC2OPERATORUSAGE feed filter[.Algebra = \"" 
-                  + algebra 
-                  + "\"] filter[.Calls = 0] project[Operator] consume"; 
             yieldState = Coverage;
-            string resText = "((rel(tuple((Operator string))))())";
-            bool ok = nl->ReadFromString(resText, expectedResult);
-            assert(ok);       
+            CoverageQuery(restOfLine); 
           }
           else if(command.find("teardown") == 0)
           {
@@ -666,6 +693,158 @@ TestRunner::ProcessCommands()
   }
 }
 
+void
+TestRunner::ProcessExamples()
+{
+ 
+  cout << "Processing examples for " << iFileName << "!" << endl;
+  
+  // parse example file
+  ExampleReader examples(iFileName);
+  bool parseOk = examples.parse();
+  if (!parseOk) {
+    numErrors++;
+    return;
+  } 
+
+  bool needsRestore = examples.getRestoreFlag();
+  bool rc = false;
+  SecErrInfo err;
+
+  string dbName = examples.getDB();
+  string dbFile = dbName;
+
+  if (!needsRestore) {
+
+    cout << "Opening database  " << dbName << "!" << endl;
+    rc = RunCmd("open database " + dbName, err);
+    if (!rc) 
+    {
+       cout << "Command failed with msg: " << err.msg << endl;
+       cout << "Trying to restore ..." << endl;
+       needsRestore = true;
+    } 
+  }
+
+
+  if (needsRestore) {
+
+    if (err.code == ERR_IDENT_UNKNOWN_DB_NAME)
+      rc = RunCmd("create database " + dbName, err);
+    if (!rc) {
+      numErrors++;
+      cout << "Restore failed with msg: " << err.msg << endl;
+      cout << "Giving up!" << endl;
+      return;
+    } 
+
+
+    rc = RunCmd("restore database " + dbName + " from " + dbFile, err);
+    if (!rc) {
+      numErrors++;
+      cout << "Restore failed with msg: " << err.msg << endl;
+      cout << "Giving up!" << endl;
+      return;
+    } 
+  }
+
+  state = TESTCASE;
+  yieldState = Result;
+
+  // iterate over all examples
+  ExampleInfo info;
+  examples.initScan();
+  while ( examples.next(info) )
+  {
+     cmd = info.example;
+     expectedResult = nl->Empty();
+     ListExpr tmpList = nl->Empty();
+     bool resultOk = false;
+
+     if (info.result[0] != '(') 
+     {
+       //SecParser sp;            // translates SECONDO syntax into nested list
+       //string listCommand = ""; // buffer for command in list form 
+       //resultOk = (sp.Text2List( info.result, listCommand ) == 0);
+       //if (resultOk)
+       resultOk = nl->ReadFromString("(" + info.result + ")", tmpList);
+       tmpList = (nl->First(tmpList));
+       if (resultOk) {
+       switch ( nl->AtomType(tmpList) ) {
+
+          case BoolType: {
+                          expectedResult =  MakeConstant("bool", tmpList); 
+                          break;
+                        }               
+          case IntType: {
+                          expectedResult =  MakeConstant("int", tmpList); 
+                          break;
+                        }               
+          case RealType:{
+                          expectedResult =  MakeConstant("real", tmpList); 
+                          break;
+                        }
+          case TextType:{
+                          expectedResult =  MakeConstant("text", tmpList);
+                          break; 
+                        }
+          case StringType:{
+                            expectedResult =  MakeConstant("string", tmpList); 
+                            break;
+                          }
+          default: { 
+                     cerr << "Result is not of type bool, int,"
+                          << " real, string, or text!" << endl;
+                     resultOk = false;
+                   }                
+       } 
+       }
+     }
+     else
+     { 
+       resultOk = nl->ReadFromString(info.result, expectedResult);
+     } 
+
+     if (!resultOk) {
+       cerr << "Error: Could not parse result!" << endl;
+       expectedResult = nl->SymbolAtom("ERROR");
+       numErrors++;
+     }  
+
+     testCaseNumber++;
+     testCaseName = info.opName;
+     testCaseLine = info.lineNo;
+     CallSecondo2(); 
+  }
+
+  string algebra = iFileName;
+  removeSuffix(".examples", algebra);
+  removePrefix("tmp/", algebra);
+  algebra += "Algebra";
+  testCaseNumber++;
+  testCaseName = "Coverage test for " + algebra;
+  testCaseLine = 0;
+  yieldState = Coverage;
+  CoverageQuery(algebra); 
+  CallSecondo2(); 
+}
+
+
+ListExpr 
+TestRunner::MakeConstant(const string& type, ListExpr value) 
+{
+   return nl->TwoElemList(nl->SymbolAtom(type), value);
+} 
+
+
+bool
+TestRunner::RunCmd(const string& cmd, SecErrInfo& err) 
+{
+   ListExpr result = nl->Empty();
+   cout << "cmd:" << cmd << endl;
+   bool rc = si->Secondo( cmd, result, err);
+   return rc;
+}
 
 void 
 TestRunner::VerifyResult(ListExpr outList, ListExpr expectedResult) 
@@ -713,7 +892,6 @@ TestRunner::DisplayError( const string& cmd, ListExpr expectedResult,
   cout 
     << color(red)
     << "The test returned an error, but should not do so!" << endl
-    << color(normal)
     << rightArrow << endl
     << "Expected result : " << endl
     << nl->ToString(expectedResult) << endl;
@@ -741,6 +919,7 @@ TestRunner::CallSecondo()
   string errorMessage = "";
   string errorText = "";
 
+
   if(!skipToTearDown)
   {
     if (verbose) { 
@@ -764,6 +943,7 @@ TestRunner::CallSecondo()
     }
     else
     {
+      cout << cmd << endl;
       si->Secondo( cmd, cmdList, 1, false, false,
                   outList, errorCode, errorPos, errorMessage );
     }
@@ -920,6 +1100,7 @@ TestRunner::CallSecondo()
 void
 TestRunner::CallSecondo2()
 {
+  ShowTestTitle();
   ListExpr result;
   result = CallSecondo();
   nl->initializeListMemory();
@@ -979,7 +1160,14 @@ TestRunner::Execute()
       } 
 
 
-      ProcessCommands();
+      if (runExamples) 
+      {
+        ProcessExamples();
+      }
+      else { 
+        ProcessCommands();
+      }  
+
       if ( iFileName.length() > 0 )
       {
         if ( fileInput.is_open() )
