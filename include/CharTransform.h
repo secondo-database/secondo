@@ -159,6 +159,8 @@ characters or if it is empty.
 
 bool isSpaceStr(const string& s);
 
+bool contains(const string& s);
+
 size_t firstNonSpace(const string& s);
 
 string removeNewLines(const string& s);
@@ -216,7 +218,11 @@ string expandVar(const string& s);
 // append characters if necessary
 string padStr(const string& s, size_t n, const char ch=' ');
 
+bool hasPrefix(const string& pre, const string& s);
+bool hasSuffix(const string& suf, const string& s);
+
 bool removeSuffix(const string& suf, string& s);
+bool removePrefix(const string& pre, string& s);
 
 class SpecialChars {
 

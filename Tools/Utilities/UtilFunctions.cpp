@@ -667,6 +667,12 @@ string padStr(const string& s, size_t n, const char ch/*=' '*/)
 } 
 
 
+bool hasSuffix(const string& suf, const string& s)
+{
+  return (s.rfind(suf) != string::npos);
+}  
+
+
 bool removeSuffix(const string& suf, string& s)
 {
   size_t pos = s.rfind(suf);
@@ -676,6 +682,24 @@ bool removeSuffix(const string& suf, string& s)
   }
   return false;
 }  
+
+bool hasPrefix(const string& pre, const string& s)
+{
+  return (s.rfind(pre) == 0);
+}  
+
+
+bool removePrefix(const string& pre, string& s)
+{
+  size_t pos = s.rfind(pre);
+  if (pos == 0) {
+    s = s.substr(pre.length());
+    return true;
+  }
+  return false;
+}  
+
+
 
 
 /*
