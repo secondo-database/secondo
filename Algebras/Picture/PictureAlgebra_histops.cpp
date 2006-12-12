@@ -167,7 +167,7 @@ Please notice thate the specified parameters ~p~ and ~t~ are type float.
 
 */
 
-bool Picture::Like(float p, float t, int l, int u, bool& valid) {
+bool Picture::Like(double p, double t, int l, int u, bool& valid) {
     if (PA_DEBUG) cerr << "Picture::Like() called" << endl;
 
     //

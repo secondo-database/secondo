@@ -580,7 +580,7 @@ comparision with the method described in 3.4.2 are the specified real
 values ~p~ and ~t~.
 
 */
-bool Histogram::Like(float p, float t, int l, int u, bool& valid) {
+bool Histogram::Like(double p, double t, int l, int u, bool& valid) {
 
     if (PA_DEBUG) cerr << "Histogram::Like() called Type(Real)" << endl;
 

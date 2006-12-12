@@ -223,7 +223,7 @@ class to provide their functionality. See the description of class
 */
     bool Equals(Histogram* h, int n, int p, bool& valid, double& diff);
     bool Like(int p, int t, int l, int u, bool& valid);
-    bool Like(float p, float t, int l, int u, bool& valid);
+    bool Like(double p, double t, int l, int u, bool& valid);
 
 /*
 
@@ -519,7 +519,7 @@ interval $[l, u]$.
 
 */
     bool Like(int p, int t, int l, int u, bool & valid);
-    bool Like(float p, float t, int l, int u, bool& valid);
+    bool Like(double p, double t, int l, int u, bool& valid);
     
 /*
 
