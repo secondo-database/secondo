@@ -1,7 +1,6 @@
 Database: berlintest
 Restore: NO
 
-
 Operator : #
 Number   : 1
 Signature: (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool
@@ -13,7 +12,7 @@ Operator : *
 Number   : 1
 Signature: (int int) -> int, (int real) -> real, (real int) -> real, (real real) -> real
 Example  : query 5 * 1.4
-Result   : 7
+Result   : 7.0
 
 
 Operator : +
@@ -202,15 +201,15 @@ Result   : TRUE
 Operator : randint
 Number   : 1
 Signature: int -> int
-Example  : query randint (9)
-Result   : 0
+Example  : query randint (9) < 9
+Result   : TRUE
 
 
 Operator : randmax
 Number   : 1
 Signature:  -> int
-Example  : query randmax()
-Result   : 32767
+Example  : query randmax() > 32766
+Result   : TRUE
 
 
 Operator : relcount
@@ -252,7 +251,7 @@ Operator : sqrt
 Number   : 1
 Signature: real -> real
 Example  : query sqrt(2.1)
-Result   : 1.44914
+Result   : 1.449137674618944
 
 
 Operator : starts
@@ -278,22 +277,22 @@ Result   : "hellp"
 
 Operator : round
 Number   : 1
-Signature: real -> int
+Signature: real -> real 
 Example  : query round(10.123, 2)
 Result   : 10.012
 
 Operator : round
 Number   : 2
-Signature: real -> int
+Signature: real -> real
 Example  : query round(4321.123, -2)
-Result   : 4300
+Result   : 4300.0
 
 
 Operator : int2real
 Number   : 1
 Signature: int -> real
 Example  : query int2real(-2)
-Result   : -2
+Result   : -2.0
 
 
 Operator : real2int
@@ -331,11 +330,11 @@ Operator : ceil
 Number   : 1
 Signature: real -> real
 Example  : query ceil(-1.2)
-Result   : -1
+Result   : -1.0
 
 
 Operator : floor
 Number   : 1
 Signature: real -> real
 Example  : query floor(-1.2)
-Result   : -2
+Result   : -2.0

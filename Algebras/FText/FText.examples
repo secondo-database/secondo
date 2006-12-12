@@ -1,35 +1,52 @@
+Database : berlintest
+Restore  : No
+
 Operator : contains
 Number   : 1
-Signature: (text text) -> bool
-Example  : 
-Result   : 
+Signature: text x text -> bool
+Example  : query 'hello world' contains 'hell'
+Result   : TRUE
 
+Operator : contains
+Number   : 2
+Signature: text x text -> bool
+Example  : query 'hello world' contains 'o w'
+Result   : TRUE
+
+Operator : contains
+Number   : 3
+Signature: text x text -> bool
+Example  : query 'hello world' contains 'ld'
+Result   : TRUE
+
+Operator : contains
+Number   : 4
+Signature: text x text -> bool
+Example  : query 'hello world' contains 'lox' 
+Result   : FALSE
 
 Operator : dice
 Number   : 1
-Signature:  int x text x text -> real 
-Example  :  dice(3  text1  text2) 
-Result   : 
-
+Signature: int x text x text -> real 
+Example  : query dice(1, 'abc', 'bac')
+Result   : 0.5
 
 Operator : keywords
 Number   : 1
-Signature: (text) -> (stream string)
-Example  : let Keyword = documents feed extendstream[kword: .title keywords] consume
-Result   : 
-
+Signature: text -> stream(string)
+Example  : query 'two keys' keywords count 
+Result   :  2 
 
 Operator : length
 Number   : 1
-Signature: (text ) -> int
-Example  : 
-Result   : 
-
+Signature: text -> int
+Example  : query length('hello') 
+Result   : 5
 
 Operator : sentences
 Number   : 1
-Signature: (text) -> (stream text)
-Example  : let MySentences = documents feed projectextendstream[title; newattr: .content sentences] consume
-Result   : 
+Signature: text -> stream(text)
+Example  : query 'First sentence. Second sentence.' sentences count
+Result   : 2
 
 

@@ -22,4 +22,9 @@ operator rectangle3 alias RECTANGLE3 pattern op ( _ , _, _, _, _, _)
 operator rectangle4 alias RECTANGLE4 pattern op ( _ , _, _, _, _, _, _, _)
 operator rectangle8 alias RECTANGLE8 pattern op ( _ , _, _, _, _, _, _, _, _)
 
+operator translate alias TRANSLATE pattern  _ op [list]
+operator union alias UNION pattern _ infixop _
+operator inside alias INSIDE pattern _ infixop _
+operator intersects alias INTERSECTS pattern _ infixop _
+operator intersection alias INTERSECTION pattern op (_, _)
 

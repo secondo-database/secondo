@@ -1,0 +1,38 @@
+Database: berlintest
+Restore : No
+
+Operator : creatertree
+Number   : 1
+Signature: ((rel (tuple (x1 t1)...(xn tn)))) xi) -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false)
+Example  : query relA creatertree [ AttrA ]
+Result   : 
+
+
+Operator : gettuples
+Number   : 1
+Signature: (stream (tuple ((id tid) (x1 t1)...(xn tn)))) x (rel (tuple ((y1 t1)...(yn tn)))) -> (stream (tuple ((x1 t1)...(xn tn) (y1 t1)...(yn tn))))
+Example  : query citiesInd windowintersectsS[r] cities gettuples consume
+Result   : 
+
+
+Operator : gettuplesdbl
+Number   : 1
+Signature: (stream (tuple ((id tid) (x1 t1)...(xn tn)))) x (rel (tuple ((y1 t1)...(yn tn)))) -> (stream (tuple ((x1 t1)...(xn tn) (y1 t1)...(yn tn))))
+Example  : query citiesInd windowintersectsS[r] cities gettuplesdbl[arg3] consume
+Result   : 
+
+
+Operator : windowintersects
+Number   : 1
+Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) rect||rect3||rect4) -> (stream (tuple ((x1 t1)...(xn tn))))
+Example  : query citiesInd cities windowintersects[r] consume
+Result   : 
+
+
+Operator : windowintersectsS
+Number   : 1
+Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti) rect<d> -> (stream (tuple ((key rect<d>)(id tid))))
+Example  : query citiesInd cities windowintersects[r] consume
+Result   : 
+
+
