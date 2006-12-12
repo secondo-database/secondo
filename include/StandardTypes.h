@@ -250,6 +250,8 @@ class CcInt : public StandardAttribute
 
 */
 
+
+#define REAL double
 class CcReal : public StandardAttribute
 {
  public:
@@ -258,7 +260,7 @@ class CcReal : public StandardAttribute
      realsCreated++; 
   }
 
-  inline CcReal( bool d, float v ) 
+  inline CcReal( bool d, REAL v ) 
   { 
     defined = d; 
     realval = v; 
@@ -293,24 +295,24 @@ class CcReal : public StandardAttribute
     return sizeof( *this );
   }
 
-  inline float GetRealval() const
+  inline REAL GetRealval() const
   { 
     return realval;
   }
   
-  inline float GetValue() const
+  inline REAL GetValue() const
   { 
     return realval;
   }
 
   
-  inline void Set( float v ) 
+  inline void Set( REAL v ) 
   { 
     defined = true, 
     realval = v; 
   }
 
-  inline void Set( bool d, float v ) 
+  inline void Set( bool d, REAL v ) 
   { 
     defined = d;
     realval = v; 
@@ -328,7 +330,7 @@ class CcReal : public StandardAttribute
 
     unsigned long h = 0;
     char* s = (char*)&realval;
-    for(unsigned int i = 1; i <= sizeof(float) / sizeof(char); i++)
+    for(unsigned int i = 1; i <= sizeof(REAL) / sizeof(char); i++)
     {
       h = 5 * h + *s;
       s++;
@@ -372,9 +374,8 @@ class CcReal : public StandardAttribute
 
  private:
   bool  defined;
-  float realval;
+  REAL  realval;
 };
-
 
 
 
@@ -660,7 +661,7 @@ into the corresponding C++ type
 struct StdTypes
 {
   static int GetInt(const Word& w); 
-  static float GetReal(const Word& w); 
+  static REAL GetReal(const Word& w); 
   static bool GetBool(const Word& w); 
   static string GetString(const Word& w); 
 };

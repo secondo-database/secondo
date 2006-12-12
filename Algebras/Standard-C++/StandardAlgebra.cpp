@@ -1909,7 +1909,7 @@ CcDivision_ii( Word* args, Word& result, int message, Word& local, Supplier s )
        ((CcInt*)args[1].addr)->GetIntval() )
   {
     ((CcReal *)result.addr)->
-      Set( true, ((float )((CcInt*)args[0].addr)->GetIntval()) /
+      Set( true, ((REAL )((CcInt*)args[0].addr)->GetIntval()) /
                           ((CcInt*)args[1].addr)->GetIntval() );
   }
   else
@@ -4248,9 +4248,9 @@ StdTypes::GetInt(const Word& w) {
 }
 
 
-float
+REAL
 StdTypes::GetReal(const Word& w) {
-   return Attribute::GetValue<CcReal, float>(w);
+   return Attribute::GetValue<CcReal, REAL>(w);
 }
 
 
