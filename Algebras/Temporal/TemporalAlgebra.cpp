@@ -457,6 +457,191 @@ For the original representation of ureal, we need:
   return;
 }
 
+void UPoint::USpeed( UReal& result ) const
+{
+
+  double x0, y0, x1, y1;
+  double duration;
+
+  if ( !IsDefined() )
+    result.SetDefined( false );
+  else
+    {
+      x0 = p0.GetX();
+      y0 = p0.GetY();
+
+      x1 = p1.GetX();
+      y1 = p1.GetY();
+
+      result.timeInterval = timeInterval;
+
+      DateTime dt = timeInterval.end - timeInterval.start;
+      duration = dt.ToDouble() * 86400;   // value in seconds
+
+      if( duration > 0.0 )
+        {
+          /*
+            The point unit can be represented as a function of
+            f(t) = (x0 + x1 * t, y0 + y1 * t).
+            The result of the derivation is the constant (x1,y1).
+            The speed is constant in each time interval.
+            Its value is represented by variable c. The variables a and b
+            are set to zero.
+
+          */
+          result.a = 0;  // speed is constant in the interval
+          result.b = 0;
+          result.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
+          result.r = false;
+          result.SetDefined( true );
+        }
+      else
+        result.SetDefined( false );
+    }
+}
+
+void UPoint::UVelocity( UPoint& result ) const
+{
+
+  double x0, y0, x1, y1;
+  double duration;
+
+  if ( ! IsDefined() )
+      result.SetDefined( false );
+  else
+    {
+      x0 = p0.GetX();
+      y0 = p0.GetY();
+
+      x1 = p1.GetX();
+      y1 = p1.GetY();
+
+      DateTime dt = timeInterval.end - timeInterval.start;
+      duration = dt.ToDouble() * 86400;   // value in seconds
+
+      if( duration > 0.0 )
+        {
+          UPoint p(timeInterval,
+                   (x1-x0)/duration,(y1-y0)/duration, // velocity is constant
+                   (x1-x0)/duration,(y1-y0)/duration  // throughout the unit
+                  );
+          p.SetDefined( true );
+          result.CopyFrom( &p );
+          result.SetDefined( true );
+        }
+      else
+        {
+          UPoint p(timeInterval,0,0,0,0);
+          result.CopyFrom( &p );
+          result.SetDefined( false );
+        }
+    }
+}
+
+void UPoint::UTrajectory( Line& line ) const
+{
+  HalfSegment hs;
+  int edgeno = 0;
+
+  line.Clear();
+  line.StartBulkLoad();
+  if( !AlmostEqual( p0, p1 ) )
+        {
+          hs.Set( true, p0, p1 );
+          hs.attr.edgeno = ++edgeno;
+          line += hs;
+          hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+          line += hs;
+        }
+  line.EndBulkLoad();
+}
+
+void UPoint::Intersection(const UPoint &other, UPoint &result)
+{
+      Interval<Instant> iv;
+      Instant t;
+      Point p_intersect, d1, d2, p1;
+      UPoint p1norm(true), p2norm(true);
+      double t_x, t_y, t1, t2, dxp1, dxp2, dyp1, dyp2, dt;
+
+      if ( !IsDefined() ||
+           !other.IsDefined() ||
+           !timeInterval.Intersects( other.timeInterval ) )
+        {
+          result.SetDefined( false );
+          return; // nothing to do
+        }
+      // get common time interval
+      timeInterval.Intersection(other.timeInterval, iv);
+
+      // normalize both starting and ending points to interval
+      AtInterval(iv, p1norm);
+      other.AtInterval(iv, p2norm);
+
+      // test for identity:
+      if ( p1norm.EqualValue( p2norm ))
+        { // both upoints have the same linear function
+          result = p1norm;
+          return;
+        }
+
+      // test for ordinary intersection of the normalized upoints
+      d1 = p2norm.p0 - p1norm.p0;
+      d2 = p2norm.p1 - p1norm.p1;
+      if ( ((d1.GetX() > 0) && (d2.GetX() > 0)) ||
+           ((d1.GetX() < 0) && (d2.GetX() < 0)) ||
+           ((d1.GetY() > 0) && (d2.GetY() > 0)) ||
+           ((d1.GetY() < 0) && (d2.GetY() < 0)))
+        { // no intersection
+          result.SetDefined( false );
+          return; // nothing to do
+        }
+      // Some intersection...
+      dxp1 = (p1norm.p1 - p1norm.p0).GetX();
+      dyp1 = (p1norm.p1 - p1norm.p0).GetY();
+      dxp2 = (p2norm.p1 - p2norm.p0).GetX();
+      dyp2 = (p2norm.p1 - p2norm.p0).GetY();
+
+/*
+Trying to find an intersection point $t$ with $A_1t + B_1 = A_2t + B_2$
+we get:
+
+\[ t_x = \frac{px_{21} - px_{11}}{dxp_1 - dxp_2} \quad
+t_y = \frac{py_{21} - py_{11}}{dyp_1 - pyp_2} \]
+
+where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
+
+*/
+
+      dt = (iv.end - iv.start).ToDouble();
+
+      t1 = iv.start.ToDouble();
+      t2 = iv.end.ToDouble();
+
+      t_x = (dt*d1.GetX() + t1*(dxp1-dxp2)) / (dxp1-dxp2);
+      t_y = (dt*d1.GetY() + t1*(dyp1-dyp2)) / (dyp1-dyp2);
+
+      if ( AlmostEqual(t_x, t_y) &&
+           ( t_x >= t1) &&
+           ( t_x <= t2) )
+        { // We found an intersection
+          t.ReadFrom(t_x); // create Instant
+          t.SetType(instanttype);
+          iv = Interval<Instant>( t, t, true, true ); // create Interval
+          TemporalFunction(t, p1, true);
+          result = UPoint(iv, p1, p1);
+          return;
+        }
+      // else: no result
+      result.SetDefined( false );
+      return;
+}
+
+void UPoint::Intersection(const Point &point, UPoint &result)
+{
+
+}
+
 /*
 3.2 Class ~MInt~
 

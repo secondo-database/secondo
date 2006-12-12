@@ -63,7 +63,8 @@ very verbose and has significant negative input on the algebra's performance.
 Only enable debug output if you know what you are doing!
 
 */
-const bool TLA_DEBUG = false;
+//const bool TLA_DEBUG = false;
+const bool TLA_DEBUG = true;
 
 /*
 1 Class template ~RefinementPartition~
@@ -134,6 +135,9 @@ the refinement partition in the referenced variables ~civ~, ~ur~ and
 of unit intervals in the respective ~Mapping~ instance.
 
 Runtime is $O(1)$.
+
+You can use ~void TemporalUnit<Alpha>::AtInterval(const Interval<Instant>
+&i, TemporalUnit<Alpha> &result)~ to access the broken-dpwn units
 
 */
     void Get(unsigned int pos,
@@ -3772,6 +3776,7 @@ static void MovingIntersectionMM( Mapping1& op1, Mapping2& op2,
   result.EndBulkLoad(false);
 }
 
+
 /*
 1.1 Method ~MovingCompareBoolMS~
 
@@ -4281,6 +4286,9 @@ MovingIntersectionTypeMap( ListExpr args )
      && nl->IsEqual( arg2, "line" ) )
       return nl->SymbolAtom( "mpoint" );
     if( nl->IsEqual( arg1, "points" )
+     && nl->IsEqual( arg2, "mpoint" ) )
+      return nl->SymbolAtom( "mpoint" );
+    if( nl->IsEqual( arg1, "mpoint" )
      && nl->IsEqual( arg2, "mpoint" ) )
       return nl->SymbolAtom( "mpoint" );
     if( nl->IsEqual( arg1, "line" )
@@ -4822,6 +4830,9 @@ int MovingIntersectionSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "string"
    && nl->SymbolValue( arg2 ) == "mstring" )
     return 15;
+  if( nl->SymbolValue( arg1 ) == "mpoint"
+   && nl->SymbolValue( arg2 ) == "mpoint" )
+    return 16;
 
   return -1; // This point should never be reached
 }
@@ -5544,6 +5555,76 @@ int TemporalMMIntersection( Word* args, Word& result, int message,
   MovingIntersectionMM<Mapping1, Mapping2, Unit1, Unit2>
   ( *((Mapping1*)args[0].addr), *((Mapping2*)args[1].addr),
    *((Mapping1*)result.addr), op);
+
+  return 0;
+}
+
+// value mapping for intersection: mpoint x mpoint --> mpoint
+int TemporalMPointMPointIntersection( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  //cerr << "TemporalMPointMPointIntersection not yet implemented" << endl;
+  //return 0;
+  /////////////// Xris ////////////////////////////
+  result = (qp->ResultStorage( s ));
+  MPoint *op1 = (MPoint*) args[0].addr;
+  MPoint *op2 = (MPoint*) args[1].addr;
+  MPoint *res = (MPoint*) result.addr;
+
+  if(TLA_DEBUG)
+    cout<<"TemporalMPointMPointIntersection called"<<endl;
+
+  MPoint un(1);  //part of the Result
+
+  RefinementPartitionLift<MPoint, MPoint, UPoint, UPoint> rp(*op1, *op2);
+
+  if(TLA_DEBUG)
+    cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
+
+  res->Clear();
+  res->StartBulkLoad();
+
+  for(unsigned int i = 0; i < rp.Size(); i++)
+  {
+    Interval<Instant>* iv;
+    int u1Pos;
+    int u2Pos;
+
+    UPoint u1(10);
+    UPoint u2(10);
+
+    const UPoint *u1transfer;
+    const UPoint *u2transfer;
+
+    rp.Get(i, iv, u1Pos, u2Pos);
+
+    if (u1Pos == -1 || u2Pos == -1 )
+      continue;
+
+    else {
+      if(TLA_DEBUG)
+        cout<<"Both operators existant in interval iv #"<<i<<" ["
+        << iv->start.ToString()<< " "<< iv->end.ToString()<< " "<< iv->lc
+        << " "<< iv->rc<< "] "<< u1Pos<< " "<< u2Pos<< endl;
+
+      op1->Get(u1Pos, u1transfer);
+      op2->Get(u2Pos, u2transfer);
+
+      if( !u1transfer->IsDefined() || !u2transfer->IsDefined() )
+        continue;
+
+      // u1 = *u1transfer;
+      // u2 = *u2transfer;
+      u1transfer->AtInterval(*iv, u1);
+      u2transfer->AtInterval(*iv, u2);
+
+      // create intersection of  u1 x u2
+      // un.timeInterval = *iv;
+
+      res->MergeAdd(u1);
+      }
+    }
+  res->EndBulkLoad();
 
   return 0;
 }
@@ -6364,7 +6445,8 @@ static ValueMapping temporalliftintersectionmap[] = {
                 LineMPointIntersection,
                 TemporalMMIntersection<MString, MString, UString, UString, 1>,
                 TemporalMSIntersection<MString, UString, CcString, 1>,
-                TemporalSMIntersection<MString, UString, CcString, 1>};
+                TemporalSMIntersection<MString, UString, CcString, 1>,
+                TemporalMPointMPointIntersection};
 
 static ValueMapping unionvaluemap[] = {
                 MPRUnionValueMap,
@@ -6710,7 +6792,7 @@ static Operator temporalminside( "inside",
 
 static Operator temporalmintersection( "intersection",
                             TemporalLiftSpecIntersection,
-                            16,
+                            17,
                             temporalliftintersectionmap,
                             MovingIntersectionSelect,
                             MovingIntersectionTypeMap );

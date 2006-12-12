@@ -394,60 +394,6 @@ substituted by ~empty~ mappings.
   if(TUA_DEBUG) cout << "MPoint::MSpeed() finished!" << endl;
 }
 
-void UPoint::USpeed( UReal& result ) const
-{
-
-  double x0, y0, x1, y1;
-  double duration;
-
-  if ( !IsDefined() )
-    {
-      result.SetDefined( false );
-      if(TUA_DEBUG) cout << "\nUPoint::USpeed: undef (undef arg)." << endl;
-    }
-  else
-    {
-
-      x0 = p0.GetX();
-      y0 = p0.GetY();
-
-      x1 = p1.GetX();
-      y1 = p1.GetY();
-
-      result.timeInterval = timeInterval;
-
-      DateTime dt = timeInterval.end - timeInterval.start;
-      duration = dt.ToDouble() * 86400;   // value in seconds
-
-      if(TUA_DEBUG) cout << "\nUPoint::USpeed duration="
-                         << duration << "s." << endl;
-
-      if( duration > 0.0 )
-        {
-          /*
-            The point unit can be represented as a function of
-            f(t) = (x0 + x1 * t, y0 + y1 * t).
-            The result of the derivation is the constant (x1,y1).
-            The speed is constant in each time interval.
-            Its value is represented by variable c. The variables a and b
-            are set to zero.
-
-          */
-          result.a = 0;  // speed is constant in the interval
-          result.b = 0;
-          result.c = sqrt(pow( (x1-x0), 2 ) + pow( (y1- y0), 2 ))/duration;
-          result.r = false;
-          result.SetDefined( true );
-          if(TUA_DEBUG) cout << "\nUPoint::USpeed is defined." << endl;
-        }
-      else
-        {
-          result.SetDefined( false );
-          if(TUA_DEBUG) cout
-            << "\nUPoint::USpeed is undef (empty result)." << endl;
-        }
-    }
-}
 
 /*
 3.2 Operator ~Velocity~
@@ -487,112 +433,10 @@ void MPoint::MVelocity( MPoint& result ) const
             }
         }
       result.EndBulkLoad( true );
-
-/*
-Activating the following snippet would allow for creating undef objects
-instead of empty ones. Alas, the SetDefined() and IsDefined() methods do
-not have functional implementations by now. Instead, ~undef~ values are
-substituted by ~empty~ mappings.
-
-----
-      if(counter>0)
-        {
-          result.SetDefined( true );
-          if(TUA_DEBUG) cout << "\nMPoint::MVelocity result defined." << endl;
-        }
-      else // counter == 0
-        {
-          result.SetDefined( false );
-          if(TUA_DEBUG) cout << "\nMPoint::MVelocity result empty." << endl;
-        }
-
-----
-
-*/
-
     }
   if(TUA_DEBUG) cout << "MPoint::MVelocity() finished!" << endl;
 }
 
-
-void UPoint::UVelocity( UPoint& result ) const
-{
-
-  double x0, y0, x1, y1;
-  double duration;
-
-  if ( ! IsDefined() )
-    {
-      result.SetDefined( false );
-      if(TUA_DEBUG) cout << "\nUPoint::UVelocity undef (undef arg)." << endl;
-    }
-  else
-    {
-      x0 = p0.GetX();
-      y0 = p0.GetY();
-
-      x1 = p1.GetX();
-      y1 = p1.GetY();
-
-      DateTime dt = timeInterval.end - timeInterval.start;
-      duration = dt.ToDouble() * 86400;   // value in seconds
-
-      if(TUA_DEBUG) cout << "\nUPoint::UVelocity duration="
-                         << duration << "s." << endl;
-
-      if( duration > 0.0 )
-        {
-          if(TUA_DEBUG) cout << "\nUPoint::UVelocity result defined." << endl;
-          UPoint p(timeInterval,
-                   (x1-x0)/duration,(y1-y0)/duration, // velocity is constant
-                   (x1-x0)/duration,(y1-y0)/duration  // throughout the unit
-                  );
-          p.SetDefined( true );
-          result.CopyFrom( &p );
-          result.SetDefined( true );
-        }
-      else
-        {
-          if(TUA_DEBUG) cout << "\nUPoint::UVelocity undef (no result)."
-                             << endl;
-          UPoint p(timeInterval,0,0,0,0);
-          result.CopyFrom( &p );
-          result.SetDefined( false );
-        }
-    }
-}
-
-/*
-3.6 Operator ~Trajectory~
-
-This function is introduced as an additional memberfunction of class
-~UPoint~:
-
-*/
-
-void UPoint::UTrajectory( Line& line ) const
-{
-  HalfSegment hs;
-  int edgeno = 0;
-
-  line.Clear();
-  line.StartBulkLoad();
-  if ( !IsDefined() )
-    line.SetDefined( false ); // by now w/o functionality
-  else
-    {
-      if( !AlmostEqual( p0, p1 ) )
-        {
-          hs.Set( true, p0, p1 );
-          hs.attr.edgeno = ++edgeno;
-          line += hs;
-          hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
-          line += hs;
-        }
-      line.SetDefined( true ); // by now w/o functionality
-    }
-  line.EndBulkLoad();
-}
 
 
 /*
@@ -1021,7 +865,7 @@ Operator temporalunitpoint2d( "point2d",
 /*
 5.4 Operator ~get\_duration~
 
-5.4.1 Type Mapping for ~get_duration~
+5.4.1 Type Mapping for ~get\_duration~
 
 Type mapping for ~get\_duration~ is
 
@@ -6052,13 +5896,13 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
       uv1->timeInterval.Intersection(uv2->timeInterval, iv);
 
       // normalize both starting and ending points to interval
-      uv1->TemporalFunction( iv.start, p1n_start, true);
-      uv1->TemporalFunction( iv.end, p1n_end, true);
-      p1norm = UPoint( iv, p1n_start, p1n_end );
+      uv1->AtInterval(iv, p1norm);
+      p1n_start = p1norm.p0;
+      p1n_end   = p1norm.p1;
 
-      uv2->TemporalFunction( iv.start, p2n_start, true);
-      uv2->TemporalFunction( iv.end, p2n_end, true);
-      p2norm = UPoint( iv, p2n_start, p2n_end );
+      uv2->AtInterval(iv, p2norm);
+      p2n_start = p2norm.p0;
+      p2n_end   = p2norm.p1;
 
       if (TUA_DEBUG)
         {
@@ -6143,9 +5987,6 @@ where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
           uv1->TemporalFunction(t, p1, true);
           sli->resultValues[sli->NoOfResults] =
             SetWord( new UPoint(iv, p1, p1) );
-          // HIER MUESSEN NOCH P1, P2 AN t ANGEPASST WERDEN!
-
-
           ((UPoint*)(sli->resultValues[sli->NoOfResults].addr))
             ->timeInterval=iv;
           sli->NoOfResults++;
