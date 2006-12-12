@@ -1066,13 +1066,15 @@ template functions
            return (BoolValue( list1 ) == BoolValue( list2 ));
          case RealType: 
          {
+           double r1 = RealValue( list1 );         
+           double r2 = RealValue( list2 );         
            if (EXACT) 
-           {             
-             return (RealValue( list1 ) == RealValue( list2 ));
+           { 
+             return (r1 == r2);
            }
            else
            {
-             return t.approxEqual( RealValue( list1 ), RealValue( list2 ) ); 
+             return t.approxEqual( r1, r2 ); 
            }               
          }  
          case SymbolType:
