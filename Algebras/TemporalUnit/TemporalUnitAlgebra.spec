@@ -23,6 +23,7 @@ operator queryrect2d alias QUERYRECT2D pattern op ( _ )
 operator point2d alias POINT2D pattern op ( _ )
 operator get_duration alias GET_DURATION pattern op ( _ )
 operator makemvalue alias MAKEMVALUE pattern _ op [ _ ]
+operator the_mvalue alias THE_MVALUE pattern _ op
 operator circle alias CIRCLE pattern op ( _ )
 operator makepoint alias MAKEPOINT pattern op ( _ )
 operator velocity alias VELOCITY pattern op ( _ )

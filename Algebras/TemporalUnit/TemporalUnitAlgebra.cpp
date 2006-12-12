@@ -28,11 +28,15 @@ an ordered pairwise comparison here.
 It may be useful, to have some operators consuming a stream of units and
 returning an aggregated vale, as e.g. initial, final, present, never, always.
 
+December 2006, Christian D[ue]ntgen: Moved class functions for unit types to where
+they belong (ie. ~TemporalAlgebra~).
+
 ----
 
 State Operator/Signatures
 
 OK    makemvalue   (**)  stream (tuple ([x1:t1,xi:uT,..,xn:tn])) -->  mT
+OK    the_mvalue   (**)            stream uT --> mT
 OK    get_duration                   periods --> duration
 (OK)  point2d                        periods --> point
 (OK)  queryrect2d                    instant --> rect
@@ -843,16 +847,16 @@ Operator temporalunitget_duration( "get_duration",
                       PeriodsTypeMapGetDuration );
 
 /*
-5.5 Operator ~makemvalue~
+5.5 Operators ~makemvalue~, ~the_mvalue~
 
-This operator creates a moving object type mT from a stream of unit type
+This operators create a moving object type mT from a stream of unit type
 objects uT. The operator does not expect the stream to be ordered by their
 timeintervals. Also, undefined units are allowed (but will be ignored).
 If the stream contains amindst 2 units with overlapping timeIntervals,
 the operator might crash. If the stream is empty, the result will be an
 empty mT.
 
-5.5.1 Type Mapping for ~makemvalue~
+5.5.1 Type Mapping for ~makemvalue~, ~the_mvalue~
 
 Type mapping for ~makemvalue~ is
 
@@ -871,7 +875,30 @@ Type mapping for ~makemvalue~ is
 
 ----
 
+For ~the_mvalue~, it is
+
+---- the_mvalue:  (stream uT) -->  mT
+----
+
 */
+
+ListExpr TU_TM_themvalue( ListExpr args )
+{
+  string argstr;
+
+  // quick check for signature (stream uT) --> mT
+  nl->WriteToString(argstr, args);
+  cout << endl << argstr << endl;
+  if ( argstr == "((stream ubool))" )   return nl->SymbolAtom( "mbool" );
+  if ( argstr == "((stream uint))" )    return nl->SymbolAtom( "mint" );
+  if ( argstr == "((stream ureal))" )   return nl->SymbolAtom( "mreal" );
+  if ( argstr == "((stream upoint))" )  return nl->SymbolAtom( "mpoint" );
+  if ( argstr == "((stream uregion))" ) return nl->SymbolAtom( "movingregion" );
+  if ( argstr == "((stream ustring))" ) return nl->SymbolAtom( "mstring" );
+
+  return nl->SymbolAtom( "typeerror" );
+}
+
 ListExpr MovingTypeMapMakemvalue( ListExpr args )
 
 {
@@ -881,14 +908,12 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
   int j;
   string argstr, argstr2, attrname, inputtype, inputname, fulllist;
 
-
   //check the list length.
   CHECK_COND(nl->ListLength(args) == 2,
              "Operator makemvalue expects a list of length two.");
 
   first = nl->First(args);
   nl->WriteToString(argstr, first);
-
 
   // check the structure of the list.
   CHECK_COND(nl->ListLength(first) == 2  &&
@@ -988,7 +1013,7 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
 }
 
 /*
-5.5.2 Value Mapping for ~makemvalue~
+5.5.2 Value Mapping for ~makemvalue~, ~the_mvalue~
 
 */
 
@@ -1034,6 +1059,38 @@ int MappingMakemvalue(Word* args,Word& result,int message,
   return 0;
 }
 
+template <class Mapping, class Unit>
+int MappingMakemvaluePlain(Word* args,Word& result,int message,
+                      Word& local,Supplier s)
+{
+  Mapping* m;
+  Unit* unit;
+  Word currentUnit;
+
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, currentUnit);
+
+  result = qp->ResultStorage(s);
+
+  m = (Mapping*) result.addr;
+  m->Clear();
+  m->StartBulkLoad();
+
+  while ( qp->Received(args[0].addr) ) // get all tuples
+    {
+      unit = (Unit*) currentUnit.addr;
+      if(unit->IsDefined())
+        {
+          m->Add( *unit );
+          unit->DeleteIfAllowed();
+        }
+      qp->Request(args[0].addr, currentUnit);
+    }
+  m->EndBulkLoad( true ); // force Mapping to sort the units
+  qp->Close(args[0].addr);
+
+  return 0;
+}
 // here comes the version for movingregion, where URegion has a rather
 // ugly implementation and thus needs a specialized treatment!
 int MappingMakemvalue_mregion(Word* args,Word& result,int message,
@@ -1079,46 +1136,102 @@ int MappingMakemvalue_mregion(Word* args,Word& result,int message,
   return 0;
 }
 
+int MappingMakemvalue_mregionPlain(Word* args,Word& result,int message,
+                              Word& local,Supplier s)
+{
+  MRegion* m;
+  URegion* unit;
+  Word currentUnit;
+
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, currentUnit);
+
+  result = qp->ResultStorage(s);
+
+  m = (MRegion*) result.addr;
+  m->Clear();
+  m->StartBulkLoad();
+
+  while ( qp->Received(args[0].addr) ) // get all tuples
+    {
+      unit = (URegion*) currentUnit.addr;
+      if(unit->IsDefined())
+        {
+          cout << "MappingMakemvalue_mregion: " << endl;
+          unit->Print(cout);
+          m->AddURegion( *unit );
+          unit->DeleteIfAllowed();
+        }
+      qp->Request(args[0].addr, currentUnit);
+    }
+  m->EndBulkLoad( true ); // force Mapping to sort the units
+  qp->Close(args[0].addr);
+
+  return 0;
+}
+
 /*
-5.5.3 Specification for operator ~makemvalue~
+5.5.3 Specification for operators ~makemvalue~, ~the_mvalue~
 
 */
 const string
 TemporalSpecMakemvalue  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>For T in {bool, int, string, real, point, region}:"
-"((stream (tuple ((x1 t1)...(xn tn)))"
-" (uT)))-> mT</text--->"
+"( <text>For T in {bool, int, string, real, point, region}:\n"
+"((stream (tuple ((x1 t1)...(xn tn))) (uT)))-> mT</text--->"
 "<text>_ makemvalue[ _ ]</text--->"
 "<text>Create a moving object from a (not necessarily sorted) "
-"tuple stream containing units. "
+"tuple stream containing a unit type attribute. "
 "No two unit timeintervals may overlap. Undefined units are "
 "allowed and will be ignored. A stream with less than 1 defined "
 "unit will result in an 'empty' moving object, not in an 'undef'.</text--->"
 "<text>query units(zug5) transformstream makemvalue[elem]</text---> ) )";
 
+const string
+TemporalSpecThemvalue  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>For T in {bool, int, string, real, point, region}:\n"
+"(stream uT) -> mT</text--->"
+"<text>_ the_mvalue</text--->"
+"<text>Create a moving object from a (not necessarily sorted) "
+"object stream containing units. "
+"No two unit timeintervals may overlap. Undefined units are "
+"allowed and will be ignored. A stream with less than 1 defined "
+"unit will result in an 'empty' moving object, not in an 'undef'.</text--->"
+"<text>query units(zug5) the_mvalue</text---> ) )";
+
 /*
-5.5.4 Selection Function of operator ~makemvalue~
+5.5.4 Selection Function of operators ~makemvalue~, ~the_mvalue~
 
 */
+int
+ThemvalueSelect( ListExpr args )
+{
+  string argstr;
+  nl->WriteToString(argstr, args);
+  if ( argstr == "((stream ubool))" )   return 0;
+  if ( argstr == "((stream uint))" )    return 1;
+  if ( argstr == "((stream ureal))" )   return 2;
+  if ( argstr == "((stream upoint))" )  return 3;
+  if ( argstr == "((stream uregion))" ) return 4;
+  if ( argstr == "((stream ustring))" ) return 5;
+  return -1; // This point should never be reached
+}
+
 int
 MakemvalueSelect( ListExpr args )
 {
 
- ListExpr first, second, rest, listn,
+  ListExpr first, second, rest, listn,
            lastlistn, first2, second2, firstr;
 
-
   string argstr, argstr2, attrname, inputtype, inputname;
-
 
   first = nl->First(args);
   second  = nl->Second(args);
   nl->WriteToString(argstr, first);
 
-
   nl->WriteToString(inputname, second);
-
 
   rest = nl->Second(nl->Second(first));
   listn = nl->OneElemList(nl->First(rest));
@@ -1131,8 +1244,7 @@ MakemvalueSelect( ListExpr args )
   nl->WriteToString(argstr2, second2);
   if (attrname == inputname)
      inputtype = argstr2;
-
-while (!(nl->IsEmpty(rest)))
+  while (!(nl->IsEmpty(rest)))
   {
      lastlistn = nl->Append(lastlistn,nl->First(rest));
      firstr = nl->First(rest);
@@ -1144,25 +1256,12 @@ while (!(nl->IsEmpty(rest)))
      if (attrname == inputname)
          inputtype = argstr2;
   }
-
-  if( inputtype == "ubool" )
-    return 0;
-
-  if( inputtype == "uint" )
-    return 1;
-
-  if( inputtype == "ureal" )
-    return 2;
-
-  if( inputtype == "upoint" )
-    return 3;
-
-  if( inputtype == "ustring" )
-    return 4;
-
-  if( inputtype == "uregion" )
-    return 5;
-
+  if( inputtype == "ubool" )   return 0;
+  if( inputtype == "uint" )    return 1;
+  if( inputtype == "ureal" )   return 2;
+  if( inputtype == "upoint" )  return 3;
+  if( inputtype == "ustring" ) return 4;
+  if( inputtype == "uregion" ) return 5;
 
   return -1; // This point should never be reached
 }
@@ -1175,6 +1274,14 @@ ValueMapping temporalmakemvaluemap[] = {
       MappingMakemvalue<MString, UString>,
       MappingMakemvalue_mregion };
 
+ValueMapping temporalthemvaluemap[] = {
+      MappingMakemvaluePlain<MBool, UBool>,
+      MappingMakemvaluePlain<MBool, UBool>,
+      MappingMakemvaluePlain<MReal, UReal>,
+      MappingMakemvaluePlain<MPoint, UPoint>,
+      MappingMakemvaluePlain<MString, UString>,
+      MappingMakemvalue_mregionPlain };
+
 /*
 5.5.5  Definition of operator ~makemvalue~
 
@@ -1185,6 +1292,13 @@ Operator temporalunitmakemvalue( "makemvalue",
                         temporalmakemvaluemap,
                         MakemvalueSelect,
                         MovingTypeMapMakemvalue );
+
+Operator temporalunitthemvalue( "the_mvalue",
+                        TemporalSpecThemvalue,
+                        6,
+                        temporalthemvaluemap,
+                        ThemvalueSelect,
+                        TU_TM_themvalue );
 
 /*
 5.6 Operator ~trajectory~
@@ -8864,6 +8978,7 @@ public:
   TemporalUnitAlgebra() : Algebra()
   {
     AddOperator( &temporalunitmakemvalue );
+    AddOperator( &temporalunitthemvalue );
     AddOperator( &temporalunitqueryrect2d );
     AddOperator( &temporalunitpoint2d );
     AddOperator( &temporalcircle );

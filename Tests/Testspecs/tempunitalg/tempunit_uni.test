@@ -116,6 +116,27 @@ query units(zug5) transformstream makemvalue[elem]
 query units(zug5) transformstream extend[no: randint(1000)] sortby[no asc] makemvalue[elem]
 
 ##################
+#   the_mvalue   #
+##################
+
+#testcase the_mvalue EMPTY INPUT
+#yields (mpoint ())
+query units([const mpoint value ()]) the_mvalue
+
+#testcase the_mvalue UNDEF in INPUT
+#yields (mpoint ())
+query [const upoint value undef] feed the_mvalue
+
+#testcase the_mvalue SORTED INPUT
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5AsResult
+query units(zug5) the_mvalue
+
+#testcase the_mvalue SHUFFLED INPUT
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5AsResult
+query units(zug5) transformstream extend[no: randint(1000)] sortby[no asc] transformstream the_mvalue
+
+
+##################
 # unit operators #
 ##################
 
