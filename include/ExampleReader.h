@@ -41,6 +41,7 @@ struct ExampleInfo {
 
   string opName;
   int number;
+  int lineNo;
   string signature;
   string example;
   string result;
@@ -48,6 +49,7 @@ struct ExampleInfo {
   ExampleInfo() {
     opName="";
     number=0;
+    lineNo=0;
     signature="";
     example="";
     result="";
@@ -86,8 +88,16 @@ class ExampleReader {
   Token expected;
   map<Token, string> tokendef; 
 
+  //typedef list<ExampleInfo> ExampleList; 
   typedef map<string, ExampleInfo> ExampleMap; 
   ExampleMap examples;
+
+  typedef ExampleMap::iterator iterator;
+
+  iterator begin() { return examples.begin(); }
+  iterator end()   { return examples.end();   }
+
+  iterator scan;
 
   void nextLine(CFile& stream, string& line) {
     getline(stream.ios(), line);
@@ -203,6 +213,8 @@ a*bc* with single characters a,b and c.
   }
   ~ExampleReader() {}
 
+  
+
 
   bool parse() { 
 
@@ -248,7 +260,9 @@ a*bc* with single characters a,b and c.
           if (!match(Restore))
             return false;
           expected = Operator;
-          restore = (lineRest.find("Yes") != string::npos);
+          restore = hasSuffix(lineRest, "Yes");
+          restore = restore || hasSuffix(lineRest, "YES");
+          restore = restore || hasSuffix(lineRest, "yes");
           break;
        }
 
@@ -263,6 +277,7 @@ a*bc* with single characters a,b and c.
           expected = Number;
           info.opName = lineRest;
 	  key = info.opName;
+          //examples[key].push_back(info);
           examples[key] = info;
           break;
        }
@@ -288,6 +303,7 @@ a*bc* with single characters a,b and c.
             return false;
            expected = Result;
            examples[key].example = lineRest;
+           examples[key].lineNo = lineCtr;
           break;
        }
 
@@ -335,7 +351,10 @@ a*bc* with single characters a,b and c.
       cerr << "Opening " << fileName << " failed!" << endl;
       return false;
     } 
-       
+    
+    out.ios() << "Database: berlintest" << endl
+              << "Restore : No" << endl << endl;
+
     ExampleMap::const_iterator it = examples.begin();
     while(it != examples.end()) {
 
@@ -345,6 +364,21 @@ a*bc* with single characters a,b and c.
     } 
 
     return out.close();
+  } 
+
+  string getDB() { return database; } 
+
+  bool getRestoreFlag() { return restore; } 
+
+  void initScan() { scan=begin();}
+  bool next(ExampleInfo& ex) {
+     scan++;
+     if (scan != end())
+     { 
+       ex = scan->second;
+       return true;
+     }
+     return false;       
   } 
 
 };

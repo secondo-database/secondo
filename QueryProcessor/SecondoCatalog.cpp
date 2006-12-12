@@ -2041,8 +2041,8 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
         if ( !secOk )      
         {
             cerr << "Operator: " << ex2.opName << endl
-                 << "Number  : " << ex2.number << endl
-                 << "Example : " << ex2.example << endl << endl;
+                 << "Example : " << ex2.example << endl 
+                 << "In line : " << ex2.lineNo << endl << endl;
         }
       }  
 
