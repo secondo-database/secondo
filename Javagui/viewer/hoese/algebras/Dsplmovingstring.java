@@ -117,26 +117,25 @@ public class Dsplmovingstring extends DsplGeneric implements Timed,LabelAttribut
 
     while (!v.isEmpty()) {
       ListExpr le = v.first();
-      if (le.listLength() != 5){
+      if (le.listLength() != 2){
         err=true;
         defined=false;
         return "<error>";
       }
-      Interval in = LEUtils.readInterval(ListExpr.fourElemList(le.first(), 
-          le.second(), le.third(), le.fourth()));
+      Interval in = LEUtils.readInterval(le.first()) ;
       if (in == null){
         defined=false;
         err=true;
         return "<error>";
       }
       Intervals.add(in);
-      if (le.fifth().atomType() != ListExpr.STRING_ATOM){
+      if (le.second().atomType() != ListExpr.STRING_ATOM){
         defined=false;
         err=true;
         return "<error>";
 
       }
-      Strings.add(le.fifth().stringValue());
+      Strings.add(le.second().stringValue());
       v = v.rest();
     }
     err = false;
