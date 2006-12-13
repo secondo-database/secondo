@@ -29,7 +29,7 @@
 # Configuration Options
 
 # root for created local directories and files
-opt_rootDir=$HOME
+opt_rootDir=/tmp
 
 
 # cvs configuration
@@ -193,7 +193,7 @@ done
 
 printSep "Variable values"
 
-opt_coDir=/tmp/${opt_coModule}_${date_ymd}_${date_HMS}.gcc${opt_gccVersion}
+opt_coDir=${opt_coModule}_${date_ymd}_${date_HMS}.gcc${opt_gccVersion}
 
 showValue opt_rootDir
 showValue opt_sdkRootDir
@@ -274,7 +274,9 @@ showValue cvsHistMailBackupDir
 # $1 body 
 function mkMailStr {
 
-  MAIL_STR="Used SECONDO_SDK=<"$SECONDO_SDK">
+  MAIL_STR="SECONDO_SDK=<"$SECONDO_SDK">
+SECONDO_BUILD_DIR=<"$SECONDO_BUILD_DIR">
+
 
 $cvsChanges
 
