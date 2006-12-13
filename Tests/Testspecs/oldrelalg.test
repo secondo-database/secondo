@@ -196,7 +196,7 @@ query ten feed head[0] filter[.no > 5] consume count;
 query Staedte feed filter[.SName > 5] consume count;
 
 #testcase Average1
-#yields (real 325017.25)
+#yields (real 325017.2413793103)
 query Staedte feed avg[Bev];
 
 #testcase Average2
