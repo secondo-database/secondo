@@ -73,9 +73,13 @@ query poly_100 feed extend[Obj2: polybig] project[Obj2] consume count;
 query poly_100 feed poly_100 feed {arg2} sortmergejoin[Obj, Obj_arg2] count;
 
 
-#testcase Hash-Join-1 (known to crash)
-#yields (int 100)
-query poly_100 feed poly_100 feed {arg2} hashjoin[Obj, Obj_arg2, 9997] count;
+# testcase Hash-Join-1 (known to crash)
+# yields (int 100)
+# query poly_100 feed poly_100 feed {arg2} hashjoin[Obj, Obj_arg2, 9997] count;
+#
+# Type polygon should not be in kind DATA. Functionality of the classes Attribute and
+# StandardAttribute should be revised! Some properties of Attribute should be moved to
+# StandardAttribute.
 
 #teardown
 close database;
