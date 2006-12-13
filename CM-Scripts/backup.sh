@@ -9,8 +9,15 @@
 # libutil.sh must be in a directory specified in $PATH 
 source ${0%/*}/libutil.sh
 
-cmd_rm="rm"
-cmd_cp="cp -v"
+declare -i err=0
+
+function checkErr {
+
+  if [ $? -ne 0 ]; then
+    err=$[$err + 1]
+  fi
+
+}
 
 # check arguments
 if [ "$1" != "-i" -a "$1" != "-f" -o $# -ne 3 ]; then
@@ -28,26 +35,17 @@ LastName=${2##*/}
 
 printf "%s\n" "Backing up $SourceDir -> ${BackupDir}/$LastName ..."
 
-printSep "Changing permissons in the repository directory ..."
-find ${BackupDir}/$LastName ! -perm "+u=w" -print -exec chmod u+w '{}' ';'
-
 if [ $1 == "-f" ]; then
 
   printSep "Starting full backup of $SourceDir ..."
-  if ( tar -cjf ${BackupDir}/${date_ymd}_FULL_BACKUP_OF_${LastName}.tar.bz2 $SourceDir )
-  then
-    $cmd_rm -rf ${BackupDir}/$LastName
-  fi
+  tar -cjf ${BackupDir}/${date_ymd}_FULL_BACKUP_OF_${LastName}.tar.bz2 --exclude secondo-data $SourceDir
+  checkErr $?
   
-
-else
-
-  printSep "Starting incremental backup of ${SourceDir} ..."
-
 fi
 
-printSep "Copying new or modified files ..."
+printSep "Mirroring zeppelin:/home/cvsroot to vieta:CVS_Backup ..."
 
-$cmd_cp -ru $SourceDir $BackupDir;
+rsync -vuac --exclude secondo-data /home/cvsroot /www/CVS_Backup/
+checkErr $?
 
-
+exit $err
