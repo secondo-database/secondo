@@ -888,7 +888,6 @@ ListExpr TU_TM_themvalue( ListExpr args )
 
   // quick check for signature (stream uT) --> mT
   nl->WriteToString(argstr, args);
-  cout << endl << argstr << endl;
   if ( argstr == "((stream ubool))" )   return nl->SymbolAtom( "mbool" );
   if ( argstr == "((stream uint))" )    return nl->SymbolAtom( "mint" );
   if ( argstr == "((stream ureal))" )   return nl->SymbolAtom( "mreal" );
@@ -7877,7 +7876,7 @@ int TUuint2urealValueMap(Word* args, Word& result, int message,
 */
 const string TUuint2urealSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(uT uT) -> bool\n</text--->"
+  "( <text>uint -> ureal\n</text--->"
   "<text>uint2ureal( _ )</text--->"
   "<text>The operator creates a ureal value from an uint value.</text--->"
   "<text>query uint2ureal([const uint value ((\"2010-11-11\" "
@@ -8586,9 +8585,12 @@ ListExpr TU_TM_TheUnit( ListExpr args )
     return nl->SymbolAtom( "ustring" );
 
   ErrorReporter::ReportError
-    ("Operator 'the_upoint' expects a list with structure "
-     "'(point point instant instant bool bool)' or"
-     "'(ipoint ipoint bool bool)'"
+    ("Operator 'the_unit' expects a list with structure "
+     "'(point point instant instant bool bool)', "
+     "'(ipoint ipoint bool bool)', "
+     "'(real real real bool instant instant bool bool)', "
+     "'(T instant instant bool bool)' or "
+     "'(iT duration bool bool)' for T in {bool, int, string }"
      ", but it gets a list of type '" + argstr + "'.");
   return nl->SymbolAtom( "typeerror" );
 }
