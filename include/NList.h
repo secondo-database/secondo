@@ -83,6 +83,8 @@ always redundant string constants into the code.
    
 */   
 
+using namespace std;
+
 struct Symbols {
 
     const string rel;
@@ -108,6 +110,9 @@ struct Symbols {
     static const string& STRING() { 
        static string s("string"); return s; 
     }  
+#ifdef SECONDO_WIN32
+#undef TEXT
+#endif    
     static const string& TEXT() { 
        static string s("text"); return s; 
     }  
