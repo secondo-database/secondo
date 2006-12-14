@@ -1087,6 +1087,98 @@ private final static void writeListExprAppeningToString (ListExpr list, StringBu
 }
 
 
+/** Writes this list to a PrintStream without building a big string before **/
+public void writeTo(PrintStream out){
+  ListExpr list = this;
+  writeListExpr(list,out,"");
+}
+
+/** Writes list to a PrintStream without building a big string before. */
+private final static void writeListExpr (ListExpr list, PrintStream out,
+      String identation) {
+
+    String separator = " ";
+    boolean hasSubLists = false;
+    identation = identation + "    ";    // It will use an identation bigger in each recursion.
+    // If is not an atom appends "(" to the output.
+    if (!list.isAtom()) {
+      out.print("(");        // Start of list.
+    }
+    // while it is not an empty list.
+    while (!list.isEmpty()) {
+      switch (list.atomType()) {
+        case ListExpr.NO_ATOM:
+          {
+#ifdef PERSISTENT
+            if ((!hasSubLists) && (!(new ListExpr(list.getValue()).isEmpty()) &&
+                (new ListExpr(list.getValue())).atomType() == NO_ATOM)) {
+#else
+          if ((!hasSubLists) && (!((ListExpr)list.value).isEmpty()) && (((ListExpr)list.value).type
+                == NO_ATOM)) {
+#endif
+                // If this list contains a sublist it changes the separtor, making
+                // it equal to "\n"+~identation~ (this is, increases the
+                // identation used).
+                hasSubLists = true;
+                separator = "\n" + identation;
+                // And stats using the new separator between elements right now.
+                out.print(separator);
+             }
+             // Writes its content, using in it a deeper identation.
+#ifdef PERSISTENT
+             writeListExpr((new ListExpr(list.getValue())), out, identation);
+#else
+             writeListExpr((ListExpr)list.value,out,identation);
+#endif
+             break;
+          }
+     case ListExpr.INT_ATOM:
+          {
+            out.print(""+list.intValue());
+            return;
+          }
+       case ListExpr.REAL_ATOM:
+          {
+            out.print(""+list.realValue());
+            return;
+          }
+        case ListExpr.BOOL_ATOM:
+          { // It writes the value in uppercase ("TRUE" or "FALSE").
+            boolean v = list.boolValue();
+            String S = v?"TRUE":"FALSE";
+            out.print(S);
+            return;
+          }
+        case ListExpr.STRING_ATOM:
+          {
+            out.print("\"" + list.stringValue() + "\"");
+            return;
+          }
+        case ListExpr.SYMBOL_ATOM:
+          {
+            out.print(list.symbolValue());
+            return;
+          }
+        case ListExpr.TEXT_ATOM:
+          {
+            out.print(BEGIN_TEXT+list.textValue()+END_TEXT);
+            return;
+          }
+      }
+#ifdef PERSISTENT
+     list = new ListExpr(list.getNext());
+#else
+     list = (ListExpr) list.next;
+#endif
+      if (!list.isEmpty()) {
+        // if is not the last element adds the separator string.
+        out.print(separator);
+      }
+    }
+    // if the code reachs this point, it was not an atom, so it appends the end of lists.
+    out.print(")");          // End of list.
+    return;
+}
 
 public static ListExpr oneElemList (ListExpr elem1) {
 	return  cons(elem1, theEmptyList());
