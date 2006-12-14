@@ -1,4 +1,4 @@
-If results defined in the .examples file are to big they
+If results defined in the .examples file are too big, they
 can be stored as nested list in a file named by the following
 convention:
 
@@ -10,10 +10,10 @@ the short version (without suffix Algebra), e.g.
 result1_feed_Relation
 result3_PLUS_Standard
 
-<No> is the number of the example,
+<No> is the number of the example, 
 <Opname> is the operator name or if it is a symbol like + the alias Name 
 written in capital letters (like in the spec file).
 
 Regards
 
- Markus
+Markus
