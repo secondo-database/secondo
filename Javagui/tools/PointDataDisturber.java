@@ -659,7 +659,8 @@ private void createData(){
  Time currentTime = new Time(pmpoint.getMinTime());
  Time max = pmpoint.getMaxTime();
  int writtenUnits=0;
-   while((currentTime.compareTo(max)<=0)  && (writtenUnits<maxMeasures)){
+   while((currentTime.compareTo(max)<=0)  && 
+         ((writtenUnits<maxMeasures) || (maxMeasures<=0))){
        Time actualTime=delayManager.getTime(currentTime);
        addLocation(currentTime,pmpoint.getPosition(actualTime));
        currentTime.addInternal(defaultDiff);
