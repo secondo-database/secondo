@@ -25,7 +25,10 @@ MA  02111-1307  USA
 
 TemporalLiftedAlgebra
 
-Juni 2006 J[ue]rgen Schmidt
+Juni 2006: Original implementation by J[ue]rgen Schmidt
+
+December 2006: Christian D[ue]ntgen added
+operator ~intersection: mpoint x mpoint [->] mpoint~
 
 1 Overview
 
@@ -39,23 +42,23 @@ For this it leans on Lema, Forlizzi, G[ue]ting, Nardelli, Schneider:
 
 
 #include <cmath>
+#include <limits>
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
 #include "StandardTypes.h"
-#include "SpatialAlgebra.h"
-#include <limits>
-
-extern NestedList* nl;
-extern QueryProcessor* qp;
-
 
 #include "DateTime.h"
 using namespace datetime;
 
+#include "SpatialAlgebra.h"
 #include "TemporalAlgebra.h"
 #include "MovingRegionAlgebra.h"
 #include "TemporalExtAlgebra.h"
+
+
+extern NestedList* nl;
+extern QueryProcessor* qp;
 
 /*
 Set ~TLA\_DEBUG~ to ~true~ for debug output. Please note that debug output is
@@ -63,361 +66,14 @@ very verbose and has significant negative input on the algebra's performance.
 Only enable debug output if you know what you are doing!
 
 */
-//const bool TLA_DEBUG = false;
-const bool TLA_DEBUG = true;
+const bool TLA_DEBUG = false;
+//const bool TLA_DEBUG = true;
 
 /*
-1 Class template ~RefinementPartition~
+1 Class template ~RefinementPartitionLift~
 
-*/
+This implementation was renamed ~RefinementPartition~ and moved to ~TemporalAlgebra.h~.
 
-template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-class RefinementPartitionLift {
-private:
-/*
-Private attributes:
-
-  * ~iv~: Array (vector) of sub-intervals, which has been calculated from the
-    unit intervals of the ~Mapping~ instances.
-
-  * ~vur~: Maps intervals in ~iv~ to indices of original units in first
-    ~Mapping~ instance. A $-1$ values indicates that interval in ~iv~ is no
-    sub-interval of any unit interval in first ~Mapping~ instance.
-
-  * ~vup~: Same as ~vur~ for second mapping instance.
-
-*/
-    vector< Interval<Instant>* > iv;
-    vector<int> vur;
-    vector<int> vup;
-
-/*
-~AddUnit()~ is a small helper method to create a new interval from
-~start~ and ~end~ instant and ~lc~ and ~rc~ flags and to add these to the
-~iv~, ~vur~ and ~vup~ vectors.
-
-*/
-    void AddUnits(const int urPos,
-                  const int upPos,
-                  const Instant& start,
-                  const Instant& end,
-                  const bool lc,
-                  const bool rc);
-
-public:
-/*
-The constructor creates the refinement partition from the two ~Mapping~
-instances ~mr~ and ~mp~.
-
-Runtime is $O(\max(n, m))$ with $n$ and $m$ the numbers of units in
-~mr~ and ~mp~.
-
-*/
-    RefinementPartitionLift(Mapping1& mr, Mapping2& mp);
-
-/*
-Since the elements of ~iv~ point to dynamically allocated objects, we need
-a destructor.
-
-*/
-    ~RefinementPartitionLift();
-
-/*
-Return the number of intervals in the refinement partition.
-
-*/
-    unsigned int Size(void);
-
-/*
-Return the interval and indices in original units of position $pos$ in
-the refinement partition in the referenced variables ~civ~, ~ur~ and
-~up~. Remember that ~ur~ or ~up~ may be $-1$ if interval is no sub-interval
-of unit intervals in the respective ~Mapping~ instance.
-
-Runtime is $O(1)$.
-
-You can use ~void TemporalUnit<Alpha>::AtInterval(const Interval<Instant>
-&i, TemporalUnit<Alpha> &result)~ to access the broken-dpwn units
-
-*/
-    void Get(unsigned int pos,
-             Interval<Instant>*& civ,
-             int& ur,
-             int& up);
-};
-
-
-template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-unsigned int RefinementPartitionLift<Mapping1, Mapping2, Unit1, Unit2>
-::Size(void) {
-
-        return iv.size();
-    }
-
-template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-void RefinementPartitionLift<Mapping1, Mapping2, Unit1, Unit2>
-::Get(unsigned int pos, Interval<Instant>*& civ, int& ur,
-     int& up) {
-
-        assert(pos < iv.size());
-
-        civ = iv[pos];
-        ur = vur[pos];
-        up = vup[pos];
-    }
-
-template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-void RefinementPartitionLift<Mapping1, Mapping2, Unit1,
- Unit2>::AddUnits(
-    const int urPos,
-    const int upPos,
-    const Instant& start,
-    const Instant& end,
-    const bool lc,
-    const bool rc) {
-    if(TLA_DEBUG){
-      cout<<"RP::AddUnits()                ["<<start.ToString()<<" "
-      <<end.ToString()<<" "<<lc<<" "<<rc<<"] "<<urPos<<" "<<upPos<<endl;
-    }
-
-    Interval<Instant>* civ = new Interval<Instant>(start, end,
-     lc, rc);
-
-    iv.push_back(civ);
-    vur.push_back(urPos);
-    vup.push_back(upPos);
-}
-
-template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-RefinementPartitionLift<Mapping1, Mapping2, Unit1,
- Unit2>::RefinementPartitionLift(
-    Mapping1& mr,
-    Mapping2& mp) {
-    if(TLA_DEBUG)
-      cout << "RP::RP() called" << endl;
-
-    int mrUnit = 0;
-    int mpUnit = 0;
-
-    const Unit1 *ur;
-    const Unit2 *up;
-
-    Instant t, rpstart, rpend, test;
-    bool c, rplc, rprc, tc;
-    int before = 0;
-    int addu = 0;
-    int subu = 0;
-
-    if(mr.GetNoComponents() > 0 && mp.GetNoComponents() > 0){
-       mr.Get(0, ur);
-       mp.Get(0, up);
-
-       if (ur->timeInterval.start < up->timeInterval.start) {
-          test = ur->timeInterval.start;
-          tc = !ur->timeInterval.lc;
-       }
-       else if(ur->timeInterval.start == up->timeInterval.start) {
-          test = ur->timeInterval.start;
-          tc = !(ur->timeInterval.lc || up->timeInterval.lc);
-       }
-       else {
-          test = up->timeInterval.start;
-          tc = !up->timeInterval.lc;
-       }
-    }
-    else if(mr.GetNoComponents() > 0){
-       mr.Get(0, ur);
-       test = ur->timeInterval.start;
-       tc = !ur->timeInterval.lc;
-       t = ur->timeInterval.start;
-       c = !ur->timeInterval.lc;
-    }
-    else if(mp.GetNoComponents() > 0){
-       mp.Get(0, up);
-       test = up->timeInterval.start;
-       tc = !up->timeInterval.lc;
-       t = up->timeInterval.start;
-       c = !up->timeInterval.lc;
-    }
-    while (mrUnit < mr.GetNoComponents()
-       && mpUnit < mp.GetNoComponents()) {
-
-        t = test;
-        c = tc;
-
-        if(TLA_DEBUG){
-          cout<<"RP::RP() mrUnit= "<<mrUnit<<" mpUnit= "<<mpUnit
-          <<" t "<<t.ToString()<<" c "<<c<<endl;
-          cout<<"RP::RP() mpUnit interval=["<<up->timeInterval.start.ToString()
-          <<" "<<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc
-          <<" "<<up->timeInterval.rc<<"]"<<endl;
-          cout<<"RP::RP() mrUnit interval=["<<ur->timeInterval.start.ToString()
-          <<" "<<ur->timeInterval.end.ToString()<<" "<<ur->timeInterval.lc
-          <<" "<<ur->timeInterval.rc<< "]"<< endl;}
-
-        addu = 0;
-        subu = 0;
-        if (t == up->timeInterval.end
-        && (up->timeInterval.rc == c)) {
-          if(TLA_DEBUG)
-            cout<<"up ends now"<<endl;
-          rpend = t;
-          rprc = up->timeInterval.rc;
-          subu -= 1;
-          if (++mpUnit < mp.GetNoComponents()) {
-            mp.Get(mpUnit, up);
-          }
-        }
-        if (t == ur->timeInterval.end
-        && (ur->timeInterval.rc == c)) {
-          if(TLA_DEBUG)
-            cout<<"ur ends now"<<endl;
-          rpend = t;
-          rprc = ur->timeInterval.rc;
-          subu -= 2;
-          if (++mrUnit < mr.GetNoComponents()) {
-            mr.Get(mrUnit, ur);
-          }
-        }
-
-        if (t == up->timeInterval.start
-        && (up->timeInterval.lc != c)
-        && mpUnit < mp.GetNoComponents()) {
-          if(TLA_DEBUG)
-            cout<<"up starts now"<<endl;
-          addu += 1;
-        }
-        if (t == ur->timeInterval.start
-        && (ur->timeInterval.lc != c)
-        && mrUnit < mr.GetNoComponents()) {
-          if(TLA_DEBUG)
-            cout<<"ur starts now"<<endl;
-          addu += 2;
-        }
-        if(TLA_DEBUG)
-          cout<<"before "<<before<<" subu "<<subu<<" addu "<<addu<<endl;
-        if (before == 3 && subu == -3)
-          AddUnits(mrUnit-1, mpUnit-1, rpstart, rpend,
-           rplc, rprc);
-        else if (before == 3 && subu == -2)
-          AddUnits(mrUnit-1, mpUnit, rpstart, rpend, rplc, rprc);
-        else if (before == 3 && subu == -1)
-          AddUnits(mrUnit, mpUnit-1, rpstart, rpend, rplc, rprc);
-        else if (before == 2 && subu == -2)
-          AddUnits(mrUnit-1, -1, rpstart, rpend, rplc, rprc);
-        else if (before == 1 && subu == -1)
-          AddUnits(-1, mpUnit-1, rpstart, rpend, rplc, rprc);
-        else if (before == 1 && addu == 2) {
-          AddUnits(-1, mpUnit, rpstart, t,
-          rplc, c);
-        }
-        else if (before == 2 && addu == 1) {
-          AddUnits(mrUnit, -1, rpstart, t,
-          rplc, c);
-        }
-        rpstart = t;
-        rplc = !c;
-
-        before += addu;
-        before += subu;
-
-        test = t;
-        tc = c;
-        if (up->timeInterval.start > t
-         || ((up->timeInterval.start == t) && ( !c && !up->timeInterval.lc))){
-          test = up->timeInterval.start;
-          tc = !up->timeInterval.lc;
-        }
-        if (ur->timeInterval.start > t
-         || ((ur->timeInterval.start == t) && ( !c && !ur->timeInterval.lc))){
-          if (((test == t) && (c == tc)) || (ur->timeInterval.start < test
-           || ((ur->timeInterval.start == test)
-           && (tc && ur->timeInterval.lc )))){
-            test = ur->timeInterval.start;
-            tc = !ur->timeInterval.lc;
-          }
-        }
-        if (up->timeInterval.end > t
-         || ((up->timeInterval.end == t) && (!c && up->timeInterval.rc))) {
-          if (((test == t) && (c == tc)) || (up->timeInterval.end < test
-           || ((up->timeInterval.end == test)
-           && (tc && !up->timeInterval.rc )))){
-            test = up->timeInterval.end;
-            tc = up->timeInterval.rc;;
-          }
-        }
-        if (ur->timeInterval.end > t
-         || ((ur->timeInterval.end == t) && (!c && ur->timeInterval.rc))) {
-          if (((test == t) && (tc == c)) || (ur->timeInterval.end < test
-           || ((ur->timeInterval.end == test)
-           && (tc && !ur->timeInterval.rc)))){
-            test = ur->timeInterval.end;
-            tc = ur->timeInterval.rc;
-          }
-        }
-        if(TLA_DEBUG)
-          cout<<"next t "<<test.ToString()<<" c "<<tc<<endl;
-    }//while
-    if (mrUnit < mr.GetNoComponents()) {
-        if (t < ur->timeInterval.end){
-            if(TLA_DEBUG)
-              cout<<"Add rest of ur"<<endl;
-            AddUnits(mrUnit, -1, t, ur->timeInterval.end,
-                 c, ur->timeInterval.rc);
-            }
-        mrUnit++;
-
-        while (mrUnit < mr.GetNoComponents()) {
-            mr.Get(mrUnit, ur);
-
-            if(TLA_DEBUG)
-              cout<<"Add all solo units of r"<<endl;
-            AddUnits(mrUnit, -1, ur->timeInterval.start, ur->timeInterval.end,
-                ur->timeInterval.lc, ur->timeInterval.rc);
-            mrUnit++;
-        }
-    }
-    if (mpUnit < mp.GetNoComponents()) {
-        if (t < up->timeInterval.end){
-            if(TLA_DEBUG)
-              cout<<"Add rest of up"<<endl;
-            AddUnits(-1, mpUnit, t, up->timeInterval.end,
-                c, up->timeInterval.rc);
-            }
-        mpUnit++;
-
-        while (mpUnit < mp.GetNoComponents()) {
-            mp.Get(mpUnit, up);
-
-            if(TLA_DEBUG)
-              cout<<"Add all solo units of p"<<endl;
-            AddUnits(-1, mpUnit, up->timeInterval.start, up->timeInterval.end,
-                up->timeInterval.lc, up->timeInterval.rc);
-            mpUnit++;
-        }
-    }
-    if(TLA_DEBUG){
-      Interval<Instant> *ivtest;
-      cout<<"Complete RefinementPartitionLift"<<endl;
-      for(unsigned int m = 0; m < iv.size(); m++){
-        ivtest = iv[m];
-        cout<<"["<<ivtest->start.ToString()<<" "<<ivtest->end.ToString()
-        <<" "<<ivtest->lc<<" "<<ivtest->rc<<"] "<<vur[m]<<" "<<vup[m]<<endl;
-      }
-    }
-}
-
-template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-RefinementPartitionLift<Mapping1, Mapping2, Unit1,
- Unit2>::~RefinementPartitionLift() {
-
-    if(TLA_DEBUG)
-      cout << "RP::~RP() called" << endl;
-
-    for (unsigned int i = 0; i < iv.size(); i++) delete iv[i];
-}
-
-/*
 1 Methods used by the ValueMapping-Functions
 
 1.1 Method ~MPerimeter()~
@@ -800,7 +456,7 @@ void DistanceMPoint( MPoint& p1, MPoint& p2, MReal& result)
 
   if(TLA_DEBUG)
     cout<<"DistanceMPoint called"<<endl;
-  RefinementPartitionLift<MPoint, MPoint, UPoint, UPoint> rp(p1, p2);
+  RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(p1, p2);
   if(TLA_DEBUG)
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
 
@@ -1246,7 +902,7 @@ static void MRealDistanceMM(MReal& op1, MReal& op2, MReal& result)
     cout<<"MRealDistanceMM called"<<endl;
   UReal uReal(true);
 
-  RefinementPartitionLift<MReal, MReal, UReal, UReal> rp(op1, op2);
+  RefinementPartition<MReal, MReal, UReal, UReal> rp(op1, op2);
   if(TLA_DEBUG)
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
 
@@ -1412,7 +1068,7 @@ static void MovingRealCompareMM(MReal& op1, MReal& op2, MBool&
     cout<<"MovingRealCompareMM called"<<endl;
   UBool uBool(true);
 
-  RefinementPartitionLift<MReal, MReal, UReal, UReal> rp(op1, op2);
+  RefinementPartition<MReal, MReal, UReal, UReal> rp(op1, op2);
   if(TLA_DEBUG)
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
 
@@ -1526,7 +1182,7 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
    cout<<"MovingRealIntersectionMM called"<<endl;
  UReal un(true);
 
- RefinementPartitionLift<MReal, MReal, UReal, UReal> rp(op1, op2);
+ RefinementPartition<MReal, MReal, UReal, UReal> rp(op1, op2);
  if(TLA_DEBUG)
    cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
 
@@ -2235,7 +1891,7 @@ void MovingPointCompareMM( MPoint& p1, MPoint& p2, MBool& result,
 
   if(TLA_DEBUG)
     cout<<"MovingPointCompareMM called"<<endl;
-  RefinementPartitionLift<MPoint, MPoint, UPoint, UPoint> rp(p1, p2);
+  RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(p1, p2);
   if(TLA_DEBUG)
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
 
@@ -2710,7 +2366,7 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
 {
   if(TLA_DEBUG)
     cout<<"MovingRegionCompareMM called"<<endl;
-  RefinementPartitionLift<MRegion, MRegion, URegionEmb, URegionEmb>
+  RefinementPartition<MRegion, MRegion, URegionEmb, URegionEmb>
      rp(*mr1, *mr2);
   if(TLA_DEBUG)
     cout<<"RefimentPartiion done with size "<<rp.Size()<<endl;
@@ -3549,7 +3205,7 @@ static void MovingBoolMMOperators( MBool& op1, MBool& op2,
     cout<<"MovingBoolMMOperators called"<<endl;
   UBool uBool(true);  //part of the Result
 
-  RefinementPartitionLift<MBool, MBool, UBool, UBool> rp(op1, op2);
+  RefinementPartition<MBool, MBool, UBool, UBool> rp(op1, op2);
   if(TLA_DEBUG)
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
   result.Clear();
@@ -3662,7 +3318,7 @@ static void MovingCompareBoolMM( Mapping1& op1, Mapping2& op2,
     cout<<"MovingCompareBoolMM called"<<endl;
   UBool uBool(true);  //part of the Result
 
-  RefinementPartitionLift<Mapping1, Mapping2, Unit1, Unit2>
+  RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
   rp(op1, op2);
   if(TLA_DEBUG)
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
@@ -3722,7 +3378,7 @@ static void MovingIntersectionMM( Mapping1& op1, Mapping2& op2,
 
   Unit1 un;  //part of the Result
 
-  RefinementPartitionLift<Mapping1, Mapping2, Unit1, Unit2>
+  RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
   rp(op1, op2);
 
   if(TLA_DEBUG)
@@ -3990,7 +3646,7 @@ implemented yet.
 */
 
 void copyMRegionMPoint(MRegion& reg, MPoint& pt, MRegion& result) {
-    RefinementPartitionLift<MRegion, MPoint, URegionEmb, UPoint> rp(reg,pt);
+    RefinementPartition<MRegion, MPoint, URegionEmb, UPoint> rp(reg,pt);
     Interval<Instant>* iv;
     int regPos;
     int ptPos;
@@ -5563,20 +5219,18 @@ int TemporalMMIntersection( Word* args, Word& result, int message,
 int TemporalMPointMPointIntersection( Word* args, Word& result, int message,
  Word& local, Supplier s )
 {
-  //cerr << "TemporalMPointMPointIntersection not yet implemented" << endl;
-  //return 0;
-  /////////////// Xris ////////////////////////////
   result = (qp->ResultStorage( s ));
   MPoint *op1 = (MPoint*) args[0].addr;
   MPoint *op2 = (MPoint*) args[1].addr;
   MPoint *res = (MPoint*) result.addr;
+  UPoint resunit( false );
 
   if(TLA_DEBUG)
     cout<<"TemporalMPointMPointIntersection called"<<endl;
 
   MPoint un(1);  //part of the Result
 
-  RefinementPartitionLift<MPoint, MPoint, UPoint, UPoint> rp(*op1, *op2);
+  RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(*op1, *op2);
 
   if(TLA_DEBUG)
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
@@ -5590,18 +5244,24 @@ int TemporalMPointMPointIntersection( Word* args, Word& result, int message,
     int u1Pos;
     int u2Pos;
 
-    UPoint u1(10);
-    UPoint u2(10);
+    UPoint u1( true );
+    UPoint u2( true );
 
     const UPoint *u1transfer;
     const UPoint *u2transfer;
 
     rp.Get(i, iv, u1Pos, u2Pos);
 
+    if (TLA_DEBUG)
+      cout << "rp:" << i << ": (" << iv->start.ToString()<< " "
+           << iv->end.ToString() << " " << iv->lc << " " << iv->rc << ") "
+           << u1Pos << " " << u2Pos << endl;
+
     if (u1Pos == -1 || u2Pos == -1 )
       continue;
 
-    else {
+    else
+    {
       if(TLA_DEBUG)
         cout<<"Both operators existant in interval iv #"<<i<<" ["
         << iv->start.ToString()<< " "<< iv->end.ToString()<< " "<< iv->lc
@@ -5610,21 +5270,24 @@ int TemporalMPointMPointIntersection( Word* args, Word& result, int message,
       op1->Get(u1Pos, u1transfer);
       op2->Get(u2Pos, u2transfer);
 
+      if (TLA_DEBUG)
+      {
+        cout << "Actual partition #" << i << ":" << endl << " u1=";
+        u1transfer->Print(cout);
+        cout << endl << " u2="; u2transfer->Print(cout); cout << endl;
+      }
       if( !u1transfer->IsDefined() || !u2transfer->IsDefined() )
         continue;
-
-      // u1 = *u1transfer;
-      // u2 = *u2transfer;
       u1transfer->AtInterval(*iv, u1);
       u2transfer->AtInterval(*iv, u2);
 
       // create intersection of  u1 x u2
-      // un.timeInterval = *iv;
-
-      res->MergeAdd(u1);
-      }
+      u1.Intersection(u2, resunit);
+      if ( resunit.IsDefined() )
+        res->MergeAdd(resunit);
     }
-  res->EndBulkLoad();
+  }
+  res->EndBulkLoad( false );
 
   return 0;
 }
@@ -6213,7 +5876,7 @@ int TemporalPlusValueMap( Word* args, Word& result, int message,
 
   UInt uInt(true);  //part of the Result
 
-  RefinementPartitionLift<MInt, MInt, UInt, UInt> rp(*op1, *op2);
+  RefinementPartition<MInt, MInt, UInt, UInt> rp(*op1, *op2);
   if(TLA_DEBUG)
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
   pResult->Clear();
@@ -6584,7 +6247,8 @@ const string TemporalLiftSpecIntersection
             "\"Example\" ) "
              "( <text>S in {bool, int, string, real}, T in {line, points),"
              " mS x mS -> mS, mS x S -> mS, S x mS -> mS, "
-             "mpoint x T -> mpoint, T x mpoint -> mpoint</text--->"
+             "mpoint x T -> mpoint, T x mpoint -> mpoint\n"
+             "mpoint x mpoint -> mpoint</text--->"
              "<text>intersection( _, _ )</text--->"
              "<text>Intersection.</text--->"
              "<text>query intersection (mi1,  mi2)</text--->"

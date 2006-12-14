@@ -446,7 +446,7 @@ Parameters:
     mp: a MPoint (by reference)
     res: a MPoint for result (by reference)
     rp: a reference to an object
-      RefinementPartitionOrig<MRegion, MPoint, URegionEmb, UPoint>
+      RefinementPartition<MRegion, MPoint, URegionEmb, UPoint>
     merge: a boolean
 
 Return: nothing
@@ -457,7 +457,7 @@ void IntersectionRPExt(
     MRegion* mreg,
     MPoint& mp,
     MPoint& res,
-    RefinementPartitionOrig<
+    RefinementPartition<
         MRegion,
         MPoint,
         URegionEmb,
@@ -3441,7 +3441,7 @@ int MRegionPointPassesExt(
 
         bool result = false;
 
-        RefinementPartitionOrig<
+        RefinementPartition<
             MRegion,
             MPoint,
             URegionEmb,
@@ -3598,7 +3598,7 @@ int MRegionPointsPassesExt(
                         << endl;
             }
 
-            RefinementPartitionOrig<
+            RefinementPartition<
                     MRegion,
             MPoint,
             URegionEmb,

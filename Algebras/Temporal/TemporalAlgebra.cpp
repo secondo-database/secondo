@@ -69,12 +69,15 @@ file.
 
 */
 #include <cmath>
+#include <limits>
+#include <iostream>
+#include <sstream>
+#include <string>
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
-#include <limits>
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -82,14 +85,22 @@ extern QueryProcessor* qp;
 #include "DateTime.h"
 #include "TemporalAlgebra.h"
 
+string int2string(const int& number)
+{
+  ostringstream oss;
+  oss << number;
+  return oss.str();
+}
+
 /*
 1.1 Definition of some constants
 
 */
+const bool TA_DEBUG = false;  // debugging off
+// const bool TA_DEBUG = true;  // debugging on
+
 const double MAXDOUBLE = numeric_limits<double>::max();
 const double MINDOUBLE = numeric_limits<double>::min();
-
-
 
 /*
 3 Implementation of C++ Classes
@@ -563,44 +574,74 @@ void UPoint::Intersection(const UPoint &other, UPoint &result) const
       Point p_intersect, d1, d2, p1;
       UPoint p1norm(true), p2norm(true);
       double t_x, t_y, t1, t2, dxp1, dxp2, dyp1, dyp2, dt;
+      bool intersectionfound = false;
 
       if ( !IsDefined() ||
            !other.IsDefined() ||
            !timeInterval.Intersects( other.timeInterval ) )
         {
           result.SetDefined( false );
+          if (TA_DEBUG)
+            cerr << "No intersection (0): deftimes do not overlap" << endl;
           return; // nothing to do
         }
-      // get common time interval
-      timeInterval.Intersection(other.timeInterval, iv);
+      if (timeInterval == other.timeInterval)
+      { // identical timeIntervals
+        p1norm = *this;
+        p2norm = other;
+        iv = timeInterval;
+      }
+      else
+      { // get common time interval
+        timeInterval.Intersection(other.timeInterval, iv);
+        // normalize both starting and ending points to interval
+        AtInterval(iv, p1norm);
+        other.AtInterval(iv, p2norm);
+      }
 
-      // normalize both starting and ending points to interval
-      AtInterval(iv, p1norm);
-      other.AtInterval(iv, p2norm);
-
+      if (TA_DEBUG)
+      {
+        cerr << "    p1norm=";
+        p1norm.Print(cerr);
+        cerr << endl << "    p2norm=";
+        p2norm.Print(cerr);
+        cerr << endl;
+      }
       // test for identity:
       if ( p1norm.EqualValue( p2norm ))
         { // both upoints have the same linear function
           result = p1norm;
+          if (TA_DEBUG)
+          {
+            cerr << "Found intersection (1): equal upoints" << endl
+                 << "    Result=";
+            result.Print(cerr);
+            cerr << endl;
+          }
           return;
         }
 
       // test for ordinary intersection of the normalized upoints
-      d1 = p2norm.p0 - p1norm.p0;
-      d2 = p2norm.p1 - p1norm.p1;
+      d1 = p2norm.p0 - p1norm.p0; // difference vector at starting instant
+      d2 = p2norm.p1 - p1norm.p1; // difference vector at ending instant
       if ( ((d1.GetX() > 0) && (d2.GetX() > 0)) ||
            ((d1.GetX() < 0) && (d2.GetX() < 0)) ||
            ((d1.GetY() > 0) && (d2.GetY() > 0)) ||
            ((d1.GetY() < 0) && (d2.GetY() < 0)))
-        { // no intersection
+        { // no intersection (projections to X/Y do not cross each other)
+          if (TA_DEBUG)
+            cerr << "No intersection (1) - projections do not intersect:"
+                 << endl
+                 << "  d1X=" << d1.GetX() << " d2X=" << d2.GetX() << endl
+                 << "  d1Y=" << d1.GetY() << " d2Y=" << d2.GetY() << endl;
           result.SetDefined( false );
           return; // nothing to do
         }
-      // Some intersection...
-      dxp1 = (p1norm.p1 - p1norm.p0).GetX();
-      dyp1 = (p1norm.p1 - p1norm.p0).GetY();
-      dxp2 = (p2norm.p1 - p2norm.p0).GetX();
-      dyp2 = (p2norm.p1 - p2norm.p0).GetY();
+      // Some intersection is possible, as projections intersect...
+      dxp1 = (p1norm.p1 - p1norm.p0).GetX(); // arg1: X-difference
+      dyp1 = (p1norm.p1 - p1norm.p0).GetY(); // arg1: Y-difference
+      dxp2 = (p2norm.p1 - p2norm.p0).GetX(); // arg2: X-difference
+      dyp2 = (p2norm.p1 - p2norm.p0).GetY(); // arg2: Y-difference
 
 /*
 Trying to find an intersection point $t$ with $A_1t + B_1 = A_2t + B_2$
@@ -621,18 +662,52 @@ where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
       t_x = (dt*d1.GetX() + t1*(dxp1-dxp2)) / (dxp1-dxp2);
       t_y = (dt*d1.GetY() + t1*(dyp1-dyp2)) / (dyp1-dyp2);
 
-      if ( AlmostEqual(t_x, t_y) &&
-           ( t_x >= t1) &&
-           ( t_x <= t2) )
+      if (TA_DEBUG)
+        cerr << "  dt=" << dt << " t1=" << t1 << " t2=" << t2 << endl
+             << "  (dxp1-dxp2)=" << (dxp1-dxp2)
+             << " (dyp1-dyp2)=" << (dyp1-dyp2) << endl
+             << "  t_x=" << t_x << " t_y=" << t_y << endl;
+
+      // Standard case: (dxp1-dxp2) != 0.0 != (dyp1-dyp2)
+      if ( AlmostEqual(t_x, t_y) && ( t_x >= t1) && ( t_x <= t2) )
         { // We found an intersection
+          if (TA_DEBUG) cerr << "  Case 1: X/Y variable" << endl;
           t.ReadFrom(t_x); // create Instant
-          t.SetType(instanttype);
+          intersectionfound = true;
+        }
+      // Special case: (dxp1-dxp2) == 0.0 -- constant X
+      else if ( AlmostEqual(dxp1-dxp2, 0.0) )
+        {
+          if (TA_DEBUG) cerr << "  Case 2: constant X" << endl;
+          t_y = t1 + d1.GetY() * dt / (dyp1 - dyp2);
+          t.ReadFrom(t_y); // create Instant
+          intersectionfound = true;
+        }
+      // Special case: (dyp1-dyp2) == 0.0 -- constant Y
+      else if ( AlmostEqual(dyp1-dyp2, 0.0) )
+        {
+          if (TA_DEBUG) cerr << "  Case 3: constant Y" << endl;
+          t_x = t1 + d1.GetX() * dt / (dxp1 - dxp2);
+          t.ReadFrom(t_x); // create Instant
+          intersectionfound = true;
+        }
+      if ( intersectionfound )
+        {
+          t.SetType(instanttype); // force instanttype
           iv = Interval<Instant>( t, t, true, true ); // create Interval
           TemporalFunction(t, p1, true);
           result = UPoint(iv, p1, p1);
+          if (TA_DEBUG)
+            {
+              cerr << "Found intersection (2): intersection point" << endl
+                   << "    Result=";
+              result.Print(cerr);
+              cerr << endl;
+            }
           return;
         }
       // else: no result
+      if (TA_DEBUG) cerr << "No intersection (2)." << endl;
       result.SetDefined( false );
       return;
 }
@@ -1458,6 +1533,8 @@ or:    undef
 Word InUReal( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct )
 {
+  string errmsg;
+  correct = true;
   if ( nl->ListLength( instance ) == 2 )
   {
     ListExpr first = nl->First( instance );
@@ -1470,8 +1547,10 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
       Instant *start = (Instant *)InInstant( nl->TheEmptyList(),
        nl->First( first ),
         errorPos, errorInfo, correct ).addr;
-      if( correct == false )
+      if( !correct )
       {
+        errmsg = "InUReal(): Error in first instant.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         delete start;
         return SetWord( Address(0) );
       }
@@ -1479,8 +1558,10 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
       Instant *end = (Instant *)InInstant( nl->TheEmptyList(),
        nl->Second( first ),
                                            errorPos, errorInfo, correct ).addr;
-      if( correct == false )
+      if( !correct )
       {
+        errmsg = "InUReal(): Error in second instant.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         delete start;
         delete end;
         return SetWord( Address(0) );
@@ -1489,9 +1570,16 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
       Interval<Instant> tinterval( *start, *end,
                                    nl->BoolValue( nl->Third( first ) ),
                                    nl->BoolValue( nl->Fourth( first ) ) );
-
       delete start;
       delete end;
+
+      correct = tinterval.IsValid();
+      if ( !correct )
+        {
+          errmsg = "InUReal(): Non valid time interval.";
+          errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+          return SetWord( Address(0) );
+        }
 
       ListExpr second = nl->Second( instance );
 
@@ -1529,9 +1617,12 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
       ureal->timeInterval=
         Interval<DateTime>(DateTime(instanttype),
                            DateTime(instanttype),true,true);
-      correct = true;
-      return (SetWord( ureal ));
+      correct = ureal->timeInterval.IsValid();
+      if ( correct )
+        return (SetWord( ureal ));
     }
+  errmsg = "InUReal(): Non valid representation.";
+  errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
   correct = false;
   return SetWord( Address(0) );
 }
@@ -1692,6 +1783,7 @@ The Nested list form is like this:  ( ( 6.37  9.9  TRUE FALSE)   (1.0 2.3 4.1 2.
 Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct )
 {
+  string errmsg;
   if ( nl->ListLength( instance ) == 2 )
   {
     ListExpr first = nl->First( instance );
@@ -1707,8 +1799,10 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
        nl->First( first ),
         errorPos, errorInfo, correct ).addr;
 
-      if( correct == false )
+      if( !correct )
       {
+        errmsg = "InUPoint(): Error in first instant.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         delete start;
         return SetWord( Address(0) );
       }
@@ -1717,8 +1811,10 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
        nl->Second( first ),
                                            errorPos, errorInfo, correct ).addr;
 
-      if( correct == false )
+      if( !correct )
       {
+        errmsg = "InUPoint(): Error in second instant.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         delete start;
         delete end;
         return SetWord( Address(0) );
@@ -1726,10 +1822,17 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
 
       Interval<Instant> tinterval( *start, *end,
                                    nl->BoolValue( nl->Third( first ) ),
-       nl->BoolValue( nl->Fourth( first ) ) );
-
+                                   nl->BoolValue( nl->Fourth( first ) ) );
       delete start;
       delete end;
+
+      correct = tinterval.IsValid();
+      if (!correct)
+        {
+          errmsg = "InUPoint(): Non valid time interval.";
+          errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+          return SetWord( Address(0) );
+        }
 
       ListExpr second = nl->Second( instance );
       if( nl->ListLength( second ) == 4 &&
@@ -1748,11 +1851,12 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
                                      nl->RealValue( nl->Third( second ) ),
                                      nl->RealValue( nl->Fourth( second ) ) );
 
-        if( upoint->IsValid() )
-        {
-          correct = true;
+        correct = upoint->IsValid();
+        if( correct )
           return SetWord( upoint );
-        }
+
+        errmsg = "InUPoint(): Error in start/end point.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         delete upoint;
       }
     }
@@ -1765,9 +1869,12 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
       upoint->timeInterval=
         Interval<DateTime>(DateTime(instanttype),
                            DateTime(instanttype),true,true);
-      correct = true;
-      return (SetWord( upoint ));
+      correct = upoint->timeInterval.IsValid();
+      if ( correct )
+        return (SetWord( upoint ));
     }
+  errmsg = "InUPoint(): Error in representation.";
+  errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
   correct = false;
   return SetWord( Address(0) );
 }
@@ -4660,7 +4767,7 @@ const string TemporalSpecDistance =
 const string TemporalSpecUnits  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, real, point}:\n"
-  "mT -> (stream uT)</text--->"
+  "   mT -> (stream uT)</text--->"
   "<text> units( _ )</text--->"
   "<text>get the stream of units of the moving value.</text--->"
   "<text>units( mpoint1 )</text--->"
@@ -4669,7 +4776,7 @@ const string TemporalSpecUnits  =
 const string TemporalSpecBBox  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>upoint -> rect3,\n"
-  "rT -> rT</text--->"
+  "   rT -> rT</text--->"
   "<text>bbox ( _ )</text--->"
   "<text>Returns the 3d bounding box of the unit (for upoint)\n"
   "or the range value with the smallest closed interval that\n"
@@ -4745,8 +4852,10 @@ const string TemporalSpecThePeriod =
 
 const string Box3dSpec  =
   "( ( \"Signatures\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>For S in {rect, instant, periods}:        S -> rect3 \n"
-          "For T in {instant, periods}:       rect x T -> rect3  </text--->"
+  "( <text>For S in {rect, instant, periods}:\n"
+  "          S -> rect3 \n"
+  "For T in {instant, periods}:\n"
+  "   rect x T -> rect3  </text--->"
   "<text>box3d(_)</text--->"
   "<text>returns a threedimensional box which is unlimited "
   "in non-specified parts</text--->"

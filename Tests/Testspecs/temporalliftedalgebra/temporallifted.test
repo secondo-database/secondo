@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 #
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 #
 #SECONDO is free software; you can redistribute it and/or modify
@@ -43,6 +43,30 @@ let pts = [const points value((9396 9871)(16821 1252)(-3560 14235))];
 let mrg1 = [const movingregion value (((0.0 2.0 TRUE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(10.0 120.0 30.0 120.0)(10.0 110.0 30.0 90.0)(120.0 110.0 120.0 90.0)(120.0 0.0 120.0 0.0)))))((2.0 4.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(30.0 120.0 50.0 120.0)(30.0 90.0 50.0 70.0)(120.0 90.0 120.0 70.0)(120.0 0.0 120.0 0.0)))))((4.0 6.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(50.0 120.0 70.0 120.0)(50.0 70.0 70.0 50.0)(120.0 70.0 120.0 50.0)(120.0 0.0 120.0 0.0)))))((6.0 8.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(70.0 120.0 90.0 120.0)(70.0 50.0 90.0 30.0)(120.0 50.0 120.0 30.0)(120.0 0.0 120.0 0.0)))))((8.0 10.0 FALSE TRUE)((((0.0 0.0 0.0 0.0)(0.0 120.0 0.0 120.0)(90.0 120.0 110.0 120.0)(90.0 30.0 110.0 10.0)(120.0 30.0 120.0 10.0)(120.0 0.0 120.0 0.0))))))];
 let mrg2 = [const movingregion value (((0.0 10.0 TRUE TRUE)((((150.0 0.0 150.0 0.0)(150.0 120.0 150.0 120.0)(160.0 120.0 260.0 120.0)(160.0 110.0 260.0 10.0)(270.0 110.0 270.0 10.0)(270.0 0.0 270.0 0.0))))))];
 let center2 = [const region value((((7500.0 9200.0)(7500.0 11500.0)(10700.0 11500.0)(10700.0 9200.0))))];
+
+let mpoint1 = [const mpoint value (
+(("2000-01-03-06:00:00.0" "2000-01-03-06:10:00.0" TRUE TRUE)  (   0.0    0.0   1000.0     0.0))
+(("2000-01-03-06:15:00.0" "2000-01-03-06:15:00.0" TRUE TRUE)  (1500.0    0.0   1500.0     0.0))
+(("2000-01-03-06:17:00.0" "2000-01-03-06:18:00.0" FALSE TRUE) (1700.0 2000.0   1800.0  2000.0))
+(("2000-01-03-06:20:00.0" "2000-01-03-06:20:00.0" TRUE TRUE)  (2000.0 2000.0   2000.0  2000.0))
+(("2000-01-03-06:25:00.0" "2000-01-03-06:30:00.0" FALSE FALSE)(2500.0 1000.0   3000.0 -1000.0))
+(("2000-01-03-06:40:00.0" "2000-01-03-06:50:00.0" FALSE FALSE)( 300.0   45.0   -500.0   750.0))
+)]
+
+let mpoint2 = [const mpoint value (
+(("2000-01-03-06:05:00.0" "2000-01-03-06:15:00.0" FALSE FALSE)( 500.0    0.0   1500.0     0.0))
+(("2000-01-03-06:15:00.0" "2000-01-03-06:22:00.0" FALSE TRUE) (1500.0 2000.0   2200.0  2000.0))
+(("2000-01-03-06:25:00.0" "2000-01-03-06:35:00.0" TRUE FALSE) (2500.0    0.0   3500.0     0.0))
+(("2000-01-03-06:40:00.0" "2000-01-03-06:50:00.0" FALSE FALSE)( 300.0   45.0   -500.0   750.0))
+)]
+
+let mpoint4 = [const mpoint value (
+(("2000-01-03-06:00:00.0" "2000-01-03-06:10:00.0" TRUE TRUE)  (   0.0    0.0   1000.0     0.0))
+(("2000-01-03-06:20:00.0" "2000-01-03-06:20:00.0" TRUE TRUE)  (2000.0 2000.0   2000.0  2000.0))
+(("2000-01-03-06:25:00.0" "2000-01-03-06:30:00.0" FALSE FALSE)(2500.0 1000.0   3000.0 -1000.0))
+(("2000-01-03-06:40:00.0" "2000-01-03-06:50:00.0" FALSE FALSE)( 300.0   45.0   -500.0   750.0))
+)]
+
 
 #testcase isempty for mbool, mint, mstring, mreal, mpoint and mregion 1
 #yields (int 25)
@@ -200,7 +224,7 @@ query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Minus: .T
 #yields (int 25)
 query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Minus: mehringdamm minus .Trip_t1 ] project [Id_t1, Id_t2, Minus] count;
 
-#testcase rough_center 1 
+#testcase rough_center 1
 #yields (int 25)
 query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[rc: rough_center(msnow)] project[Id_t1, Name_u2, rc] count;
 
@@ -276,6 +300,11 @@ query Trains feed head[5] extend[AtCenter: .Trip at center2] filter[not(isempty(
 #testcase concat for mpoint/mpoint
 #yields (int 0)
 query Trains feed {t1} head[5] Trains feed {t2} head[5] product filter[ val(final(.Trip_t1)) = val(initial(.Trip_t2))] extend[Umsteig: .Trip_t1  .Trip_t2 concat] filter[not(isempty(deftime(.Umsteig)))] project [Id_t1, Id_t2, Umsteig] count;
+
+#testcase intersection for mpoint/mpoint
+#yields (mpoint ((("2000-01-03-06:05" "2000-01-03-06:10" FALSE TRUE)(500.0 0.0 1000.0 0.0))(("2000-01-03-06:17" "2000-01-03-06:18" FALSE TRUE)(1700.0 2000.0 1800.0 2000.0))(("2000-01-03-06:20" "2000-01-03-06:20" TRUE TRUE)(2000.0 2000.0 2000.0 2000.0))(("2000-01-03-06:27:30" "2000-01-03-06:27:30" TRUE TRUE)(2750.0 0.0 2750.0 0.0))(("2000-01-03-06:40" "2000-01-03-06:50" FALSE FALSE)(300.0 45.0 -500.0 750.0))))
+query intersection(mpoint1, mpoint2)
+
 
 #teardown
 close database;

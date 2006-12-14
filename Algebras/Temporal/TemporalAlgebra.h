@@ -45,6 +45,10 @@ of only one minimal interval, that contains all intervals from a range type
 Sept 2006 Christian D[ue]ntgen implemented ~defined~ flag for unit types
 [TOC]
 
+Dec 2006 Christian D[ue]ntgen: Moved RefimentPartition from MovingRegionAlgbera
+to here and replaced the error-prone implementation in TemporalLiftedAlgbra by
+this version.
+
 1 Overview
 
 The type system of the Temporal Algebra can be seen below.
@@ -69,6 +73,8 @@ The type system of the Temporal Algebra can be seen below.
 #define _TEMPORAL_ALGEBRA_H_
 
 #include <iostream>
+#include <sstream>
+#include <string>
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
@@ -84,6 +90,11 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 using namespace datetime;
+
+const bool REFINEMENT_DEBUG = false;
+//const bool REFINEMENT_DEBUG = true;
+
+string int2string(const int& number);
 
 /*
 3 C++ Classes (Defintion)
@@ -575,12 +586,6 @@ before on a contrary order, i.e., ~x before Y~.
     void RBBox( Range<Alpha>& result ) const;
 
 
-
-  private:
-/*
-3.3.6 Private member functions
-
-*/
     bool IsValid() const;
 /*
 This functions tests if a ~range~ is in a valid format. It is used for debugging
@@ -2327,16 +2332,20 @@ bool Interval<Alpha>::IsValid() const
   if( !start.IsDefined() || !end.IsDefined() )
     return false;
 
-  if( start.Compare( &end ) < 0 )
+  int cmp = start.Compare( &end );
+  if( cmp < 0 ) // start < end
   {
     if( start.Adjacent( &end ) )
       return lc || rc;
+    else
+      return true;
   }
-  else if( start.Compare( &end ) == 0 )
+  else if( cmp == 0 ) // start == end
   {
     return rc && lc;
   }
-  return true;
+  // start > end
+  return false;
 }
 
 /*
@@ -4777,7 +4786,10 @@ Word InRange( const ListExpr typeInfo, const ListExpr instance,
   range->StartBulkLoad();
 
   ListExpr rest = instance;
-  while( !nl->IsEmpty( rest ) )
+
+  correct = true;
+
+  while( !nl->IsEmpty( rest ) && correct )
   {
     ListExpr first = nl->First( rest );
     rest = nl->Rest( rest );
@@ -4793,41 +4805,52 @@ Word InRange( const ListExpr typeInfo, const ListExpr instance,
       Alpha *start = (Alpha *)InFun( nl->TheEmptyList(),
                                      nl->First( first ),
                                      errorPos, errorInfo, correct ).addr;
-      if( correct == false )
+      if( !correct )
       {
         delete start;
-        return SetWord( Address(0) );
+        break;
       }
 
       Alpha *end = (Alpha *)InFun( nl->TheEmptyList(),
                                    nl->Second( first ),
                                    errorPos, errorInfo, correct ).addr;
-      if( correct == false )
+
+      if( !correct )
       {
         delete start;
         delete end;
-        return SetWord( Address(0) );
+        break;
       }
+      // get closedness parameters
+      bool lc = nl->BoolValue( nl->Third( first ) );
+      bool rc = nl->BoolValue( nl->Fourth( first ) );
 
-      Interval<Alpha> interval( *start, *end,
-                                nl->BoolValue( nl->Third( first ) ),
-                                nl->BoolValue( nl->Fourth( first ) ) );
+      // check, wether interval is well defined
+      Interval<Alpha> interval( *start, *end, lc, rc );
+      correct = interval.IsValid();
 
       delete start;
       delete end;
 
+      if ( !correct )
+        break;
+
       range->Add( interval );
     }
     else
-    {
-      correct = false;
-      range->Destroy();
-      delete range;
-      return SetWord( Address(0) );
-    }
+      {
+        correct = false;
+        break;
+      }
   }
-  range->EndBulkLoad( true );
-  correct = true;
+  if ( !correct )
+  {
+    range->Destroy();
+    delete range;
+    return SetWord( Address(0) );
+  }
+  range->EndBulkLoad( false ); // Do not sort. We expect sorted input
+  correct = range->IsValid();  // Check, wether input was well defined
 
   return SetWord( range );
 }
@@ -5102,6 +5125,8 @@ Word InConstTemporalUnit( const ListExpr typeInfo,
                           ListExpr& errorInfo,
                           bool& correct             )
 {
+  string errmsg;
+
   if( nl->ListLength( instance ) == 2 &&
       nl->IsAtom( nl->Second( instance ) ) )
   {
@@ -5117,8 +5142,10 @@ Word InConstTemporalUnit( const ListExpr typeInfo,
       Instant *start =
         (Instant *)InInstant( nl->TheEmptyList(), nl->First( first ),
                               errorPos, errorInfo, correct ).addr;
-      if( correct == false )
+      if( !correct )
       {
+        errmsg = "InConstTemporalUnit(): Error in first instant.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         delete start;
         return SetWord( Address(0) );
       }
@@ -5126,19 +5153,31 @@ Word InConstTemporalUnit( const ListExpr typeInfo,
       Instant *end =
         (Instant *)InInstant( nl->TheEmptyList(), nl->Second( first ),
                               errorPos, errorInfo, correct ).addr;
-      if( correct == false )
+      if( !correct )
       {
+        errmsg = "InConstTemporalUnit(): Error in second instant.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         delete start;
         delete end;
         return SetWord( Address(0) );
       }
+      // get closedness parameters
+      bool lc = nl->BoolValue( nl->Third( first ) );
+      bool rc = nl->BoolValue( nl->Fourth( first ) );
 
-      Interval<Instant> tinterval( *start, *end,
-                                   nl->BoolValue( nl->Third( first ) ),
-                                   nl->BoolValue( nl->Fourth( first ) ) );
+      Interval<Instant> tinterval( *start, *end, lc, rc );
 
       delete start;
       delete end;
+
+      // check, wether interval is well defined
+      correct = tinterval.IsValid();
+      if ( !correct )
+        {
+          errmsg = "InConstTemporalUnit(): Non valid time interval.";
+          errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+          return SetWord( Address(0) );
+        }
 
       //2. deal with the alpha value
       Alpha *value = (Alpha *)InFun( nl->TheEmptyList(), nl->Second( instance ),
@@ -5173,7 +5212,8 @@ Word InConstTemporalUnit( const ListExpr typeInfo,
       correct = true;
       return (SetWord( constunit ));
     }
-
+  errmsg = "InConstTemporalUnit(): Error in representation.";
+  errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
   correct = false;
   return SetWord( Address(0) );
 }
@@ -5290,6 +5330,10 @@ Word InMapping( const ListExpr typeInfo, const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   Mapping* m = new Mapping( 0 );
+  correct = true;
+  int unitcounter = 0;
+  string errmsg;
+
   m->StartBulkLoad();
 
   ListExpr rest = instance;
@@ -5300,32 +5344,33 @@ Word InMapping( const ListExpr typeInfo, const ListExpr instance,
 
     Unit *unit = (Unit*)InUnit( nl->TheEmptyList(), first,
                                 errorPos, errorInfo, correct ).addr;
-    if( correct == false )
+
+    if( correct && (!unit->IsDefined() || !unit->IsValid() ) )
     {
+      errmsg = "InMapping(): Unit " + int2string(unitcounter) + " is undef.";
+      errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
       correct = false;
       delete unit;
+      delete m;
+      return SetWord( Address(0) );
+    }
+    if ( !correct )
+    {
+      errmsg = "InMapping(): Representation of Unit "
+                + int2string(unitcounter) + " is wrong.";
+      errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
       m->Destroy();
       delete m;
       return SetWord( Address(0) );
     }
     m->Add( *unit );
+    unitcounter++;
     delete unit;
   }
 
-  m->EndBulkLoad( true );
+  m->EndBulkLoad( true ); // if this succeeds, all is OK
 
-  if( m->IsValid() )
-  {
-    correct = true;
-    return SetWord( m );
-  }
-  else
-  {
-    correct = false;
-    m->Destroy();
-    delete m;
-    return SetWord( 0 );
-  }
+  return SetWord( m );
 }
 
 /*
@@ -5735,5 +5780,358 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
   /* should not happen */
   return -1;
 }
+
+
+/*
+7.0 Refinement Partition
+
+*/
+
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+class RefinementPartition {
+private:
+/*
+Private attributes:
+
+  * ~iv~: Array (vector) of sub-intervals, which has been calculated from the
+    unit intervals of the ~Mapping~ instances.
+
+  * ~vur~: Maps intervals in ~iv~ to indices of original units in first
+    ~Mapping~ instance. A $-1$ values indicates that interval in ~iv~ is no
+    sub-interval of any unit interval in first ~Mapping~ instance.
+
+  * ~vup~: Same as ~vur~ for second mapping instance.
+
+*/
+    vector< Interval<Instant>* > iv;
+    vector<int> vur;
+    vector<int> vup;
+
+/*
+~AddUnit()~ is a small helper method to create a new interval from
+~start~ and ~end~ instant and ~lc~ and ~rc~ flags and to add these to the
+~iv~, ~vur~ and ~vup~ vectors.
+
+*/
+    void AddUnits(const int urPos,
+                  const int upPos,
+                  const Instant& start,
+                  const Instant& end,
+                  const bool lc,
+                  const bool rc);
+
+public:
+/*
+The constructor creates the refinement partition from the two ~Mapping~
+instances ~mr~ and ~mp~.
+
+Runtime is $O(\max(n, m))$ with $n$ and $m$ the numbers of units in
+~mr~ and ~mp~.
+
+*/
+    RefinementPartition(Mapping1& mr, Mapping2& mp);
+
+/*
+Since the elements of ~iv~ point to dynamically allocated objects, we need
+a destructor.
+
+*/
+    ~RefinementPartition();
+
+/*
+Return the number of intervals in the refinement partition.
+
+*/
+    unsigned int Size(void);
+
+/*
+Return the interval and indices in original units of position $pos$ in
+the refinement partition in the referenced variables ~civ~, ~ur~ and
+~up~. Remember that ~ur~ or ~up~ may be $-1$ if interval is no sub-interval
+of unit intervals in the respective ~Mapping~ instance.
+
+Runtime is $O(1)$.
+
+You can use ~void TemporalUnit<Alpha>::AtInterval(const Interval<Instant>
+&i, TemporalUnit<Alpha> &result)~ to access the broken-dpwn units
+
+*/
+    void Get(unsigned int pos,
+             Interval<Instant>*& civ,
+             int& ur,
+             int& up);
+};
+
+
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+unsigned int RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
+::Size(void) {
+
+        return iv.size();
+    }
+
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+void RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
+::Get(unsigned int pos, Interval<Instant>*& civ, int& ur,
+     int& up) {
+
+        assert(pos < iv.size());
+
+        civ = iv[pos];
+        ur = vur[pos];
+        up = vup[pos];
+    }
+
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+void RefinementPartition<Mapping1, Mapping2, Unit1,
+ Unit2>::AddUnits(
+    const int urPos,
+    const int upPos,
+    const Instant& start,
+    const Instant& end,
+    const bool lc,
+    const bool rc) {
+    if(REFINEMENT_DEBUG){
+      cout<<"RP::AddUnits()                ["<<start.ToString()<<" "
+      <<end.ToString()<<" "<<lc<<" "<<rc<<"] "<<urPos<<" "<<upPos<<endl;
+    }
+
+    Interval<Instant>* civ = new Interval<Instant>(start, end,
+     lc, rc);
+
+    iv.push_back(civ);
+    vur.push_back(urPos);
+    vup.push_back(upPos);
+}
+
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+RefinementPartition<Mapping1, Mapping2, Unit1,
+ Unit2>::RefinementPartition(
+    Mapping1& mr,
+    Mapping2& mp) {
+    if(REFINEMENT_DEBUG)
+      cout << "RP::RP() called" << endl;
+
+    int mrUnit = 0;
+    int mpUnit = 0;
+
+    const Unit1 *ur;
+    const Unit2 *up;
+
+    Instant t, rpstart, rpend, test;
+    bool c, rplc, rprc, tc;
+    int before = 0;
+    int addu = 0;
+    int subu = 0;
+
+    if(mr.GetNoComponents() > 0 && mp.GetNoComponents() > 0){
+       mr.Get(0, ur);
+       mp.Get(0, up);
+
+       if (ur->timeInterval.start < up->timeInterval.start) {
+          test = ur->timeInterval.start;
+          tc = !ur->timeInterval.lc;
+       }
+       else if(ur->timeInterval.start == up->timeInterval.start) {
+          test = ur->timeInterval.start;
+          tc = !(ur->timeInterval.lc || up->timeInterval.lc);
+       }
+       else {
+          test = up->timeInterval.start;
+          tc = !up->timeInterval.lc;
+       }
+    }
+    else if(mr.GetNoComponents() > 0){
+       mr.Get(0, ur);
+       test = ur->timeInterval.start;
+       tc = !ur->timeInterval.lc;
+       t = ur->timeInterval.start;
+       c = !ur->timeInterval.lc;
+    }
+    else if(mp.GetNoComponents() > 0){
+       mp.Get(0, up);
+       test = up->timeInterval.start;
+       tc = !up->timeInterval.lc;
+       t = up->timeInterval.start;
+       c = !up->timeInterval.lc;
+    }
+    while (mrUnit < mr.GetNoComponents()
+       && mpUnit < mp.GetNoComponents()) {
+
+        t = test;
+        c = tc;
+
+        if(REFINEMENT_DEBUG){
+          cout<<"RP::RP() mrUnit= "<<mrUnit<<" mpUnit= "<<mpUnit
+          <<" t "<<t.ToString()<<" c "<<c<<endl;
+          cout<<"RP::RP() mpUnit interval=["<<up->timeInterval.start.ToString()
+          <<" "<<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc
+          <<" "<<up->timeInterval.rc<<"]"<<endl;
+          cout<<"RP::RP() mrUnit interval=["<<ur->timeInterval.start.ToString()
+          <<" "<<ur->timeInterval.end.ToString()<<" "<<ur->timeInterval.lc
+          <<" "<<ur->timeInterval.rc<< "]"<< endl;}
+
+        addu = 0;
+        subu = 0;
+        if (t == up->timeInterval.end
+        && (up->timeInterval.rc == c)) {
+          if(REFINEMENT_DEBUG)
+            cout<<"up ends now"<<endl;
+          rpend = t;
+          rprc = up->timeInterval.rc;
+          subu -= 1;
+          if (++mpUnit < mp.GetNoComponents()) {
+            mp.Get(mpUnit, up);
+          }
+        }
+        if (t == ur->timeInterval.end
+        && (ur->timeInterval.rc == c)) {
+          if(REFINEMENT_DEBUG)
+            cout<<"ur ends now"<<endl;
+          rpend = t;
+          rprc = ur->timeInterval.rc;
+          subu -= 2;
+          if (++mrUnit < mr.GetNoComponents()) {
+            mr.Get(mrUnit, ur);
+          }
+        }
+
+        if (t == up->timeInterval.start
+        && (up->timeInterval.lc != c)
+        && mpUnit < mp.GetNoComponents()) {
+          if(REFINEMENT_DEBUG)
+            cout<<"up starts now"<<endl;
+          addu += 1;
+        }
+        if (t == ur->timeInterval.start
+        && (ur->timeInterval.lc != c)
+        && mrUnit < mr.GetNoComponents()) {
+          if(REFINEMENT_DEBUG)
+            cout<<"ur starts now"<<endl;
+          addu += 2;
+        }
+        if(REFINEMENT_DEBUG)
+          cout<<"before "<<before<<" subu "<<subu<<" addu "<<addu<<endl;
+        if (before == 3 && subu == -3)
+          AddUnits(mrUnit-1, mpUnit-1, rpstart, rpend,
+           rplc, rprc);
+        else if (before == 3 && subu == -2)
+          AddUnits(mrUnit-1, mpUnit, rpstart, rpend, rplc, rprc);
+        else if (before == 3 && subu == -1)
+          AddUnits(mrUnit, mpUnit-1, rpstart, rpend, rplc, rprc);
+        else if (before == 2 && subu == -2)
+          AddUnits(mrUnit-1, -1, rpstart, rpend, rplc, rprc);
+        else if (before == 1 && subu == -1)
+          AddUnits(-1, mpUnit-1, rpstart, rpend, rplc, rprc);
+        else if (before == 1 && addu == 2) {
+          AddUnits(-1, mpUnit, rpstart, t,
+          rplc, c);
+        }
+        else if (before == 2 && addu == 1) {
+          AddUnits(mrUnit, -1, rpstart, t,
+          rplc, c);
+        }
+        rpstart = t;
+        rplc = !c;
+
+        before += addu;
+        before += subu;
+
+        test = t;
+        tc = c;
+        if (up->timeInterval.start > t
+         || ((up->timeInterval.start == t) && ( !c && !up->timeInterval.lc))){
+          test = up->timeInterval.start;
+          tc = !up->timeInterval.lc;
+        }
+        if (ur->timeInterval.start > t
+         || ((ur->timeInterval.start == t) && ( !c && !ur->timeInterval.lc))){
+          if (((test == t) && (c == tc)) || (ur->timeInterval.start < test
+           || ((ur->timeInterval.start == test)
+           && (tc && ur->timeInterval.lc )))){
+            test = ur->timeInterval.start;
+            tc = !ur->timeInterval.lc;
+          }
+        }
+        if (up->timeInterval.end > t
+         || ((up->timeInterval.end == t) && (!c && up->timeInterval.rc))) {
+          if (((test == t) && (c == tc)) || (up->timeInterval.end < test
+           || ((up->timeInterval.end == test)
+           && (tc && !up->timeInterval.rc )))){
+            test = up->timeInterval.end;
+            tc = up->timeInterval.rc;;
+          }
+        }
+        if (ur->timeInterval.end > t
+         || ((ur->timeInterval.end == t) && (!c && ur->timeInterval.rc))) {
+          if (((test == t) && (tc == c)) || (ur->timeInterval.end < test
+           || ((ur->timeInterval.end == test)
+           && (tc && !ur->timeInterval.rc)))){
+            test = ur->timeInterval.end;
+            tc = ur->timeInterval.rc;
+          }
+        }
+        if(REFINEMENT_DEBUG)
+          cout<<"next t "<<test.ToString()<<" c "<<tc<<endl;
+    }//while
+    if (mrUnit < mr.GetNoComponents()) {
+        if (t < ur->timeInterval.end){
+            if(REFINEMENT_DEBUG)
+              cout<<"Add rest of ur"<<endl;
+            AddUnits(mrUnit, -1, t, ur->timeInterval.end,
+                 c, ur->timeInterval.rc);
+            }
+        mrUnit++;
+
+        while (mrUnit < mr.GetNoComponents()) {
+            mr.Get(mrUnit, ur);
+
+            if(REFINEMENT_DEBUG)
+              cout<<"Add all solo units of r"<<endl;
+            AddUnits(mrUnit, -1, ur->timeInterval.start, ur->timeInterval.end,
+                ur->timeInterval.lc, ur->timeInterval.rc);
+            mrUnit++;
+        }
+    }
+    if (mpUnit < mp.GetNoComponents()) {
+        if (t < up->timeInterval.end){
+            if(REFINEMENT_DEBUG)
+              cout<<"Add rest of up"<<endl;
+            AddUnits(-1, mpUnit, t, up->timeInterval.end,
+                c, up->timeInterval.rc);
+            }
+        mpUnit++;
+
+        while (mpUnit < mp.GetNoComponents()) {
+            mp.Get(mpUnit, up);
+
+            if(REFINEMENT_DEBUG)
+              cout<<"Add all solo units of p"<<endl;
+            AddUnits(-1, mpUnit, up->timeInterval.start, up->timeInterval.end,
+                up->timeInterval.lc, up->timeInterval.rc);
+            mpUnit++;
+        }
+    }
+    if(REFINEMENT_DEBUG){
+      Interval<Instant> *ivtest;
+      cout<<"Complete RefinementPartition"<<endl;
+      for(unsigned int m = 0; m < iv.size(); m++){
+        ivtest = iv[m];
+        cout<<"["<<ivtest->start.ToString()<<" "<<ivtest->end.ToString()
+        <<" "<<ivtest->lc<<" "<<ivtest->rc<<"] "<<vur[m]<<" "<<vup[m]<<endl;
+      }
+    }
+}
+
+template<class Mapping1, class Mapping2, class Unit1, class Unit2>
+RefinementPartition<Mapping1, Mapping2, Unit1,
+ Unit2>::~RefinementPartition() {
+
+    if(REFINEMENT_DEBUG)
+      cout << "RP::~RP() called" << endl;
+
+    for (unsigned int i = 0; i < iv.size(); i++) delete iv[i];
+}
+
 
 #endif // _TEMPORAL_ALGEBRA_H_

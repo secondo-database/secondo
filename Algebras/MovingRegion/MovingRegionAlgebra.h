@@ -24,7 +24,6 @@ with the help of Victor Almeida and Thomas Behr.
 1 Introduction
 
 This file contains the class definitions of ~MSegmentData~,
-~RefinementPartitionOrig~,
 ~TrapeziumSegmentIntersection~, ~URegion~ and ~MRegion~, which
 are implemented in ~MovingRegionAlgebra.cpp~. These class definitions have
 been moved to this header file to facilitate development work on top of the
@@ -37,6 +36,15 @@ Please see ~MovingRegionAlgebra.cpp~ for more details on the
 
 #ifndef _MOVING_REGION_ALGEBRA_H_
 #define _MOVING_REGION_ALGEBRA_H_
+
+#include <queue>
+#include <stdexcept>
+#include "Algebra.h"
+#include "NestedList.h"
+#include "QueryProcessor.h"
+#include "StandardTypes.h"
+#include "TemporalAlgebra.h"
+#include "DateTime.h"
 
 class MRegion; // forward declaration
 class URegion; // forward declaration
@@ -296,97 +304,10 @@ Compares intersections by their time.
 };
 
 /*
-1.1 Class template ~RefinementPartitionOrig~
+1.1 Class template ~RefinementPartition~
 
-The class template is called ~RefinementPartitionOrig~ and not
-~RefinementPartition~ because J[ue]rgen Schmidt decided to implement
-his own version of ~RefinementPartition~ in his ~TemporalLiftedAlgebra~,
-resulting in conflicts. The postfix ~Orig~ indicates who was here first!
-:-)
+Moved to ~TemporalAlgebra.h~.
 
-*/
-
-template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-class RefinementPartitionOrig {
-private:
-/*
-1.1.1 Private attributes:
-
-  * ~iv~: Array (vector) of sub-intervals, which has been calculated from the
-    unit intervals of the ~Mapping~ instances.
-
-  * ~vur~: Maps intervals in ~iv~ to indices of original units in first
-    ~Mapping~ instance. A $-1$ values indicates that interval in ~iv~ is no
-    sub-interval of any unit interval in first ~Mapping~ instance.
-
-  * ~vup~: Same as ~vur~ for second mapping instance.
-
-*/
-    vector< Interval<Instant>* > iv;
-    vector<int> vur;
-    vector<int> vup;
-
-/*
-1.1.1 Private methods
-
-~AddUnit()~ is a small helper method to create a new interval from
-~start~ and ~end~ instant and ~lc~ and ~rc~ flags and to add these to the
-~iv~, ~vur~ and ~vup~ vectors.
-
-*/
-    void AddUnits(
-        const int urPos,
-        const int upPos,
-        const Instant& start,
-        const Instant& end,
-        const bool lc,
-        const bool rc);
-
-public:
-/*
-1.1.1 Constructor and destructor
-
-The constructor creates the refinement partition from the two ~Mapping~
-instances ~mr~ and ~mp~.
-
-Runtime is $O(\max(n, m))$ with $n$ and $m$ the numbers of units in
-~mr~ and ~mp~.
-
-*/
-    RefinementPartitionOrig(Mapping1& mr, Mapping2& mp);
-
-/*
-Since the elements of ~iv~ point to dynamically allocated objects, we need
-a destructor.
-
-*/
-    ~RefinementPartitionOrig();
-
-/*
-1.1.1 Methods
-
-Return the number of intervals in the refinement partition.
-
-*/
-    unsigned int Size(void);
-
-/*
-Return the interval and indices in original units of position $pos$ in
-the refinement partition in the referenced variables ~civ~, ~ur~ and
-~up~. Remember that ~ur~ or ~up~ may be $-1$ if interval is no sub-interval
-of unit intervals in the respective ~Mapping~ instance.
-
-Runtime is $O(1)$.
-
-*/
-    void Get(
-        unsigned int pos,
-        Interval<Instant>*& civ,
-        int& ur,
-        int& up);
-};
-
-/*
 1 Class ~IRegion~
 
 The code for this data type is fairly simple because it can mostly rely on the
@@ -981,7 +902,7 @@ is ~true~, the resulting ~URegion~ instances are merged, if possible.
     void IntersectionRP(
         MPoint& mp,
         MPoint& res,
-        RefinementPartitionOrig<MRegion,
+        RefinementPartition<MRegion,
                                 MPoint,
                                 URegionEmb,
                                 UPoint>& rp,
