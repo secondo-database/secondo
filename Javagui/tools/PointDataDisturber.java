@@ -25,6 +25,7 @@ import viewer.hoese.algebras.Dsplpmpoint;
 import viewer.hoese.algebras.periodic.*;
 import sj.lang.ListExpr;
 import java.io.*;
+import java.util.Vector;
 
 
 // This class takes a file containing a single Periodic Moving Point and
@@ -39,58 +40,99 @@ import java.io.*;
 
 public class PointDataDisturber {
 
+/* data section */
 
+/** Stream for writing log messages **/
+private PrintStream log = System.err;
+
+/** Comtains the periodic moving point representing the
+  * the clean source of the disturbed data.
+  **/
 private  Dsplpmpoint pmpoint=null; // contains the point data
 
+/** The time difference between two measures. **/
 private  Time defaultDiff = new Time(0,1000);   // 1 second
 
+/** Stream in which the output is written. **/
 private  PrintStream out=System.out;     // the output stream
 
-private double maxError; // the maximum error from the original data
+/** The maximum error.
+  * All produces errors will be smaller or equal to this 
+  * value.
+  **/
+private double maxError;
 
-private double maxErrorDiff; // the maximum error difference between two measuresa
+/** Defines the possible change of the error between two measures.
+  **/
+private double maxErrorDiff; 
 
 
-/** if this is set to true, he maximum error measure depends on the
+/** If this is set to true, the maximum error measure depends on the
   * length of the trajectory to the last measure point
   * The length is multiplied to maxErrorDiff.
   */
 private boolean relativeError = true;
 
+/** Restrictts the number od measures.
+  * If this value is zero, the complete source is scanned.
+  **/
+private int maxMeasures = 0; 
 
-private int maxUnits = 12000; // for debugging only // restricts the numbe rof created units
 
-
-/** stores the last original point **/
+/** Stores the last original point.
+  * This value is reuired for computing a relative error between
+  * two measures and also not to change the error if the point is
+  * staying.
+  **/
 private java.awt.geom.Point2D.Double lastPoint; 
-/** stores the last applied error in x  and y dimension **/
+
+/** Stores the last applied error in x  and y dimension.
+  **/
 private java.awt.geom.Point2D.Double lastError; 
 
 
-/** number of data to delete **/
+/** Number of data to delete.
+  * This value holds the number of measure which is to remove.
+  **/
 private int removeSequence = 0;
+/** If a complete sequence is removed, its maximum length is 
+  * given by this value.
+  **/
 private int maxSequence = 50;
 
-/** Probability to delete measures  **/
-private double removeOneProb = 0.01;  // 1 %
-/** Probability to delete a complete Sequence of measures **/
+/** Probability to delete measures.  **/
+private double removeProb = 0.01;  
+/** Probability to delete a complete Sequence of measures. **/
 private double removeSeqProb = 0.0001; 
 
 
-/** the unitwriter */
+/** The unitwriter.
+  * This objects is responsible for converting streams of measures 
+  * into upoint lists.
+  **/
 private UnitWriter writer;
 
-/** the delayManager **/
+/** The delayManager.
+  * This member controls the creation and realization of delay events.
+  **/
 private DelayManager delayManager= new DelayManager();
 
 
 /* some statistical information */
-/** number of measures **/
+/** Number of measures. **/
 private int measures;
-/** numbe rof skipped units */
+/** Number of skipped (removed) units */
 private int skippedUnits;
 
+/** zerotime for easy checks **/
+private static final Time ZEROTIME = new Time(0,0);
 
+
+
+/* public section */
+
+
+/** Creates a new Instance of this class.*/
 public PointDataDisturber(){
    pmpoint = null;
    defaultDiff = new Time(0,1000);
@@ -107,11 +149,414 @@ public PointDataDisturber(){
 }
 
 
-private void writeStatistic(){
-  System.err.println("measures : " + measures);
-  System.err.println("skipped units : " + skippedUnits);
+/** Sets the time difference between 
+  * two measures 
+  **/
+public void setTimeDiff(Time t){
+  if(t.compareTo(ZEROTIME)>0){ 
+     defaultDiff.equalize(t);
+  } else {
+     log.println("PointDataDisturber time difference <= 0");     
+  }
+}
+
+/** Sets the maximum error and the maximum error diff.
+  *@param absolute: the maximum error which can be produced 
+  *@param errorDiff: the maximum error drevation betweem two measures
+  **/
+public void setMaxErrors(double absolute,double errorDiff){
+  if((absolute<0) || (errorDiff<0)){
+      log.println("invalid value for maximum error or maximum error difference");
+      return;
+  }
+  if(errorDiff>absolute){
+     log.println("the absolute error has to be greater than the error difference");
+     return;
+  }
+  maxError = absolute;
+  maxErrorDiff = errorDiff;
+}
+
+/** Enables the computation of relative errors.
+  * If on is set to true, the maximum error derivation is computed by
+  * multiplying the distance to the last position whith the maximum error
+  * difference. Otherwise the maximum error difference is an absolute value.
+  **/
+public void enableRelativeError(boolean on){
+   relativeError=true; 
+}
+
+/** Reduces the number of measures.
+  * Sets the maximum number of measures. If count is smaller or equal to
+  * zero, the complete source point will be processed.
+  **/
+public void setMaximumMeasures(int count){
+    maxMeasures = Math.max(0,count);
+}
+
+/** Sets the maximum length of a removes sequence.
+  **/
+public void setMaxSeqLength(int length){
+   if(length<=0){
+      log.println("maximum sequence length has to be greater than zero");
+   } else {
+      maxSequence = length;
+   }
+}
+
+/** Sets the probability to remove  measures.
+  * This value determines the probability for both, removing single 
+  * measures and to remove whole chains of measures.
+  **/
+public void setRemoveProb(double prob){
+   if(prob>=1 ){
+      log.println("the probability to remove a measure has to be smaller than 1");
+   } else {
+      removeProb = prob;
+   }
+}
+
+/** Determines the relation between removing single measures or
+  * to remove whole chains of measures.
+  * A value of 0 means, only single measures will be removed,
+  * in contrast a value of 1 forces the remove of complete chains.
+  * @param prob: the probability in range [0,1]
+  **/
+public void setRemoveSeqProb(double prob){
+   if(prob>=1 ){
+      log.println("the probability to remove a measure has to be smaller than 1");
+   } else {
+      removeSeqProb = prob;
+   }
+}
+
+/** Sets the probability of delay events.
+  *@param prob: the probability in [0,1]
+   **/
+public void setEventProb(double prob){
+   delayManager.setEventProb(prob);
+}
+
+/** Sets the relation between stop events and deceleration events.
+  *@param prob: the probability in [0,1]
+  **/
+public void setStopProb(double prob){
+   delayManager.setStopProb(prob);
+}
+
+/** Sets the maximum delay per event.
+  **/
+public void setMaxDelay(double delay){
+   delayManager.setMaxDelay(delay);
+}
+
+/** Sets the deceleration factors.
+  * The deceleration is between the minDec-multiple
+  * and maxDec-multiple of the original speed.
+  *@param minDec: minimum deceleration in range [0,1]
+  *@param maxDec: maximum deceleration in range [0,1]
+  **/
+public void setDecs(double minDec, double maxDec){
+   delayManager.setDecs(minDec, maxDec);
+}
+
+/** sets the factors for the acceleration.
+  * The acceleration is between the (1+minAcc)-multiple 
+  * and the (1+maxAcc)-multiple of the original speed.
+  *@param minAcc: minimum acceleration (&gt;0)
+  *@param maxAcc: maximum acceleration (&gt;minAcc)
+  **/
+public void setAccs(double minAcc, double maxAcc){
+   delayManager.setAccs(minAcc,maxAcc);
+}
+
+
+/** Sets the stream where logging messages are printed. **/
+public void setLog(PrintStream log){
+  if(log!=null){
+      this.log = log;
+      writer.setLog(log);
+      delayManager.setLog(log);
+  }
+}
+
+/** Sets the stream for printing the generated data.
+  **/
+public void setOut(PrintStream out){
+   this.out = out;
+   writer.setOut(out);
+}
+
+/** Prints out some statistical information the the log stream **/
+public void writeStatistic(){
+  log.println("measures : " + measures);
+  log.println("skipped units : " + skippedUnits);
   writer.printStatistic();
 }
+
+/** Converts the data given by the list.
+  **/
+public boolean processList(ListExpr theList){
+  log.println("start to process a new list ");
+  int length = theList.listLength();
+  ListExpr first = theList.first();
+  // first case, a single (type value) list
+  if(length==2){
+    if(first.atomType()==ListExpr.SYMBOL_ATOM && first.symbolValue().equals("pmpoint")){
+        log.println("pmpoint detected in list ");
+        out.println("(mpoint ");
+        boolean res = processValueList(theList.second());
+        out.println(")");
+        return res;
+    } else if((first.atomType()==ListExpr.NO_ATOM) && 
+               (first.listLength()==2) && 
+               (first.first().atomType()==ListExpr.SYMBOL_ATOM) &&
+               (first.first().symbolValue().equals("rel"))){
+           log.println("relation detected in list");
+           out.println("(");
+           boolean res = processRelList(first,theList.second());
+           out.println(")");
+           return res;
+   } else {
+        theList.writeTo(out);
+        log.println("List is not a peridic moving point");
+        return true;
+    }
+  }
+  // object list
+  if(length==5 && first.atomType()==ListExpr.SYMBOL_ATOM && first.symbolValue().equals("OBJECT")){
+      log.println("object styled list detected");
+      return processObjectList(theList);
+  }
+
+
+  // Database
+  if(length==4 && first.atomType()==ListExpr.SYMBOL_ATOM && first.symbolValue().equals("DATABASE")){
+     boolean res = true;
+     log.println("database list found");
+     out.println("( DATABASE ");
+     theList.second().writeTo(out); // DB-Name
+     theList.third().writeTo(out);  // types
+     ListExpr objects = theList.fourth(); // all objects
+     if(objects.atomType()!=ListExpr.NO_ATOM || objects.isEmpty()){
+         log.println("wrong list format for database objects found");
+         objects.writeTo(out);
+     } else if(objects.first().atomType()!=ListExpr.SYMBOL_ATOM ||
+           !objects.first().symbolValue().equals("OBJECTS")){
+              log.println("wrong list format for database objects found");
+               objects.writeTo(out);
+     } else {
+       out.println("( OBJECTS");
+         objects = objects.rest();
+         while(!objects.isEmpty()){
+              if (!processObjectList(objects.first())){
+                  res = false;
+              }
+              objects = objects.rest();
+         }
+       out.println(")"); 
+     }
+
+     out.println(")"); // close database
+     return res; 
+  }
+  log.println("unsupported list detected");
+  theList.writeTo(out);
+  return true;
+}
+
+
+/* private section */
+
+
+/** Process a OBJECT styled list.  **/
+private boolean processObjectList(ListExpr theList){
+   int length = theList.listLength();
+   if(length!=5){ // just copy the list
+      log.println("invalid length for object representation ");
+      theList.writeTo(out);
+      return false;
+   }
+
+   // check for OBJECT
+   ListExpr key = theList.first();
+   if(key.atomType()!=ListExpr.SYMBOL_ATOM || !key.symbolValue().equals("OBJECT")){
+      log.println("invalid object representation (wrong keyword)");
+      theList.writeTo(out);
+      return false;
+   }
+
+   ListExpr type = theList.fourth();
+  
+   // check for periodic moving point 
+   if(type.atomType()==ListExpr.SYMBOL_ATOM && type.symbolValue().equals("pmpoint")){
+       log.println("found a periodic point object");
+       out.println("(OBJECT ");
+       theList.second().writeTo(out);
+       theList.third().writeTo(out);
+       out.println(" mpoint ");  // change pmpoint to mpoint
+       boolean res = processValueList(theList.fifth());
+       out.println(")");
+       return res;
+   }
+
+   // check for relation
+   if((type.atomType()==ListExpr.NO_ATOM) && 
+      (type.listLength()==2) &&
+      (type.first().atomType()==ListExpr.SYMBOL_ATOM) &&
+      (type.first().symbolValue().equals("rel"))){
+      out.println("(OBJECT ");
+      theList.second().writeTo(out);
+      theList.third().writeTo(out);
+      boolean res = processRelList(type,theList.fifth());
+      out.println(")"); 
+      return res;
+   }
+
+   log.println("unsupported object found");
+   theList.writeTo(out);
+   return true;
+}
+
+
+private boolean processRelList(ListExpr type, ListExpr value){
+   log.println("process a relation");
+   // analyse the type, also checks for correctness
+
+  // check the type listlength
+  if(type.listLength()!=2){
+    log.println("invalid length for a relation type ");
+    type.writeTo(out);
+    value.writeTo(out);
+    return false;
+  }  
+  // check the 'rel' keyword
+  if(type.first().atomType()!=ListExpr.SYMBOL_ATOM ||
+     !type.first().symbolValue().equals("rel")){
+       log.println("invalid keyword for a relation type ");
+       type.writeTo(out);
+       value.writeTo(out);
+       return false;
+  }
+  ListExpr tupleType = type.second();
+  // check the correct structure for the tuple
+  if(tupleType.listLength()!=2){
+     log.println("invalid length for the tuple type detected");
+     type.writeTo(out);
+     value.writeTo(out);
+     return false;
+  }
+
+  if((tupleType.first().atomType()!=ListExpr.SYMBOL_ATOM) ||
+     (!tupleType.first().symbolValue().equals("tuple")) ||
+     (tupleType.second().atomType()!=ListExpr.NO_ATOM)){
+     log.println("invalid structure /keyword in tuple definition");
+     type.writeTo(out);
+     value.writeTo(out);
+     return false;
+  }
+
+  // tuple seems to be correct, detect periodic moving point attributes
+  // and store the appropriate indexes within an vector
+  Vector pmpIndexes= new Vector();
+  int index = 0;
+  ListExpr attributes = tupleType.second();
+  int no_attributes = attributes.listLength();
+  while(!attributes.isEmpty()){
+     ListExpr attr = attributes.first();
+     attributes = attributes.rest();
+     if( (attr.listLength()==2) &&
+         (attr.second().atomType()==ListExpr.SYMBOL_ATOM) &&
+         (attr.second().symbolValue().equals("pmpoint"))){
+          pmpIndexes.add(new Integer(index));
+     } 
+     index++;
+  }
+
+  log.println(""+pmpIndexes.size()+" periodic moving point attributes detected");
+  if(pmpIndexes.size()==0){ // keep lists unchanged
+     type.writeTo(out);
+     value.writeTo(out);
+     return true;
+  }
+
+  // write the type to out (just opmpoint changed to Point)
+  out.println("( rel (tuple ( ");
+  index = 0;
+  attributes = tupleType.second();
+  while(!attributes.isEmpty()){
+    ListExpr attr = attributes.first();
+    attributes = attributes.rest();
+    Integer ci = new Integer(index);
+    ListExpr cl;
+    if(pmpIndexes.contains(ci)){
+         cl = ListExpr.twoElemList(attr.first(), ListExpr.symbolAtom("mpoint"));
+    } else {
+         cl = attr;
+    }
+    cl.writeTo(out);
+    index++;
+  }
+  out.println(")))");  // close tuple, rel, and type
+
+
+  // process the relation value
+
+  if(value.atomType()!=ListExpr.NO_ATOM){
+     log.println("invalid value list for relation ");
+     value.writeTo(out);
+     return false;
+  }
+
+  out.println("("); // open value list
+  boolean res = true;
+  while(!value.isEmpty()){
+      ListExpr tuple = value.first();
+      value = value.rest();
+      if(tuple.listLength()!=no_attributes){
+         log.println("error, length of tuple differs from it's type definition");
+      } else { // process the tuple
+        index = 0;
+        out.println(" ( "); // open tuple
+        while(!tuple.isEmpty()){
+           ListExpr attr = tuple.first();
+           tuple=tuple.rest();
+           if(pmpIndexes.contains(new Integer(index))){
+              if(! processValueList(attr)){
+                res = false;
+              }
+           } else{
+             attr.writeTo(out);
+           }
+           index++;
+        }
+        out.println(" )"); // close tuple
+      }
+  }
+  out.println(")"); // close value list
+  return res;
+}
+
+
+/** process the value list of a periodic moving point **/
+private boolean processValueList( ListExpr value){
+   log.println("\n\nstart conversion of a single periodic moving point \n\n");
+   Dsplpmpoint pmp = new Dsplpmpoint();
+   pmp.init(ListExpr.symbolAtom("pmpoint"),value,null);
+   if(pmp.getError()){
+      log.println("Invalid list representation of a periodic moving point");
+      // print out an empty list
+      out.println(" ( ) ");
+      return false; 
+   }
+   setPMPoint(pmp);
+   writeValue();
+   return true;
+}
+
+
+
+
 
 
 private void addLocation(Time t, java.awt.geom.Point2D.Double p){
@@ -169,15 +614,17 @@ private void addLocation(Time t, java.awt.geom.Point2D.Double p){
     return;
  }
  
- double remove = Math.random();  
- if(remove < removeSeqProb){ // remove a whole sequence
-    removeSequence = (int)(maxSequence*Math.random());
+ double remove = Math.random(); 
+
+ if(remove < removeProb){
+    double removeSeq = Math.random();
+    if(removeSeq < removeSeqProb){ // remove a whole sequence
+         removeSequence = (int)(maxSequence*Math.random());
+         skippedUnits++;
+         return;
+    } 
     skippedUnits++;
     return;
- } 
- if(remove < removeOneProb){ // ignore this measure
-     skippedUnits++;
-     return;
  }
 
  // create an inexact measure
@@ -202,81 +649,144 @@ private void writeRest(){
 /** Write the generated data to out
 **/
 private void createData(){
+  // start a new conversion
+ delayManager.reset();
+ writer.reset();
+ lastError=null;
+ lastPoint= null;
+ measures = 0;
+ skippedUnits = 0;
  Time currentTime = new Time(pmpoint.getMinTime());
  Time max = pmpoint.getMaxTime();
  int writtenUnits=0;
-   while((currentTime.compareTo(max)<=0)  && (writtenUnits<maxUnits)){
+   while((currentTime.compareTo(max)<=0)  && (writtenUnits<maxMeasures)){
        Time actualTime=delayManager.getTime(currentTime);
-   //    System.err.println("currentTime : " + currentTime+" actualTime "+ actualTime);
-   //    Time delay = currentTime.minus(actualTime);
-   //    System.err.println("delay is " + delay);
-
        addLocation(currentTime,pmpoint.getPosition(actualTime));
        currentTime.addInternal(defaultDiff);
        writtenUnits++;
    }
    writer.finish();
+   writeStatistic();
 }
 
-public static void main(String[] args){
-  // the first argument is the file to process
-  // in this first implementation we don't use other arguments
-  // but use default values
-  if(args.length<1){
-     System.err.println("Missing filename");
-     System.exit(1);
-  }
-  // get the arguments
-  String filename = args[0];
+/** Sets the data source for this object.
+  **/
+private void setPMPoint(Dsplpmpoint pmp){
+   pmpoint = pmp;
+}
 
-
-
-  File F = new File(filename);
-  if(!F.exists()){
-     System.err.println("File " + filename +" not found");
-     System.exit(1);
-  }
-  
-  ListExpr pmpointList = new ListExpr();
-  if(pmpointList.readFromFile(filename)!=0){
-     System.err.println("Error in Parsing File");
-     System.exit(1);
-  }
-
-  PointDataDisturber pdd= new  PointDataDisturber();
-
-
-  pdd.pmpoint = new Dsplpmpoint(); 
-
-  pdd.pmpoint.init(ListExpr.symbolAtom("pmpoint"),pmpointList,null);
-  if(pdd.pmpoint.getError()){
-     System.err.println("Error in list format");
-     System.exit(1); 
-  }
-  pdd.writeHeader();
-  pdd.createData();
-  pdd.writeRest();
-
-  pdd.writeStatistic();
-
+/** print outs the generated data **/
+private void writeValue(){
+   out.println("(");
+   createData();
+   out.println(")");
 
 }
+
+
+
 
 
 
 private static class DelayManager{
 
 
-
+private PrintStream log= System.err;
 private Time scheduledDelay= new Time(0,0);
 private Time lastReceivedTime;
 private Time lastSendTime;
 private double probability = 0.01; // create an event in 1% 
+private double stopprob = 0.5;
+private double minDec = 0.1;
+private double maxDec = 0.9;
+private double minAcc = 0.1;
+private double maxAcc = 0.2;
 
 /** maximum dela yin seconds **/
 private double maxDelay = 200;
 
 private int state = STATE_NORMAL;
+
+
+// must be called before conversion starts
+public void reset(){
+    lastReceivedTime = null;
+    lastSendTime = null;
+    scheduledDelay = new Time(0,0);
+    state = STATE_NORMAL;
+}
+
+
+
+
+/** Sets tbe probability for events. 
+  * The value has to be in range [0.1].
+  **/
+public void setEventProb(double prob){
+    if((prob<0) || (prob >1) ){
+      return;
+    }
+    probability = prob;
+}
+
+/** sets the relation between stop and deceleration events **/
+public void setStopProb(double prob){
+   if((prob<0) || (prob>1)){
+      return;
+   }
+   stopprob=prob;
+}
+
+/** Sets the values of minimum and maximum deceleration.
+  * Both values has to be in range [0,1]. The value 0 means
+  * thats the point stops. A value of 1 indicated a non deceleration
+  * movement. 
+  **/
+public void setDecs(double minDec, double maxDec){
+   if(minDec>maxDec){
+      return;
+   }
+   if(minDec<0){
+      return;
+   }
+   if(maxDec>1 || maxDec==0){
+     return;
+   }
+   this.minDec=minDec;
+   this.maxDec=maxDec;
+
+}
+
+/** Sets the values of minimum and maximum acceleration.
+  * Both values has to be in range (0,..]. The value 0 means
+  * thats the point goes in the same speed as without acceleration.
+  * A value of 1 indicates double speed and so on. 
+  **/
+public void setAccs(double minAcc, double maxAcc){
+   if(minAcc>maxAcc){
+      return;
+   }
+   if(minAcc<0){
+      return;
+   }
+   if(maxAcc==0){
+     return;
+   }
+   this.minAcc=minAcc;
+   this.maxAcc=maxAcc;
+}
+
+public void setMaxDelay(double seconds){
+   if(maxDelay<1){
+       return;
+   }
+   maxDelay = seconds;
+}
+
+public void setLog(PrintStream log){
+   this.log = log;
+}
+
 
 /** returns the current state as String **/
 public String getState(int stateCode){
@@ -292,10 +802,10 @@ public String getState(int stateCode){
 
 /** prints the state to cerr **/
 private void printState(){
-  System.err.println("state "+getState(state));
-  System.err.println("lastReceivedTime " + lastReceivedTime);
-  System.err.println("lastSendTime " + lastSendTime);
-  System.err.println("scheduledDelay " + scheduledDelay.toDurationString()); 
+  log.println("state "+getState(state));
+  log.println("lastReceivedTime " + lastReceivedTime);
+  log.println("lastSendTime " + lastSendTime);
+  log.println("scheduledDelay " + scheduledDelay.toDurationString()); 
 }
 
 
@@ -304,7 +814,8 @@ private void checkSendTime(Time origTime, Time sendTime){
    if(sendTime==null) return;
    int cmp = origTime.compareTo(sendTime);
    if(cmp<0){
-        System.err.println("wrong computation:  sendTime > origTime");
+        log.println("wrong computation:  sendTime > origTime");
+
         printState();
         System.exit(1);
    }
@@ -315,13 +826,12 @@ private void checkSendTime(Time origTime, Time sendTime){
 public Time getTime(Time origTime){
 
    if(lastReceivedTime==null){ //first call
-        lastReceivedTime = origTime.copy();
-        lastSendTime = origTime.copy();
-        checkSendTime(origTime,lastSendTime);
-        return lastSendTime;
-   }
-   if(origTime.compareTo(lastReceivedTime)<=0){
-     System.err.println("DelayManager: wrong order of instants !!");
+      lastReceivedTime = origTime.copy();
+      lastSendTime = origTime.copy();
+      checkSendTime(origTime,lastSendTime);
+      return lastSendTime;
+   } else if(origTime.compareTo(lastReceivedTime)<=0){
+     log.println("DelayManager: wrong order of instants !!");
      return origTime;
    }
 
@@ -339,7 +849,7 @@ public Time getTime(Time origTime){
    if(state==STATE_STOP){
       // leave the stop state
       if(origTime.minus(lastSendTime).compareTo(scheduledDelay)>=0){
-        System.err.println("Change state to HURRY");
+        log.println("Change state to HURRY");
         state = STATE_HURRY;
       }      
       lastReceivedTime = origTime.copy();
@@ -351,10 +861,10 @@ public Time getTime(Time origTime){
    if(state==STATE_DECELERATION){
      if(origTime.minus(lastSendTime).compareTo(scheduledDelay)>=0){
         state = STATE_HURRY;
-        System.err.println("Change state to HURRY");
+        log.println("Change state to HURRY");
      }      
      // compute the deceleration between 10 and 90 percent
-     double dec = 0.1+Math.random()*0.8;
+     double dec = minDec+Math.random()*(maxDec-minDec);
      Time origDelta = origTime.minus(lastReceivedTime);
      Time delta = origDelta.mul(dec);
      lastSendTime.addInternal(delta);
@@ -366,7 +876,7 @@ public Time getTime(Time origTime){
    // process hurry 
    if(state==STATE_HURRY){
      // compute the acceleration between 10 and 20 percent
-     double dec = 1.1+Math.random()+0.1;
+     double dec = 1 + minAcc+Math.random()*(maxAcc-minAcc);
      Time origDelta = origTime.minus(lastReceivedTime);
      Time delta = origDelta.mul(dec);
      lastSendTime.addInternal(delta);
@@ -374,14 +884,14 @@ public Time getTime(Time origTime){
      if(lastSendTime.compareTo(origTime)>=0){
          lastSendTime.equalize(origTime);
          state = STATE_NORMAL;
-         System.err.println("Change state to NORMAL");
+         log.println("Change state to NORMAL");
      }
      lastReceivedTime = origTime.copy();
      checkSendTime(origTime,lastSendTime);
      return lastSendTime.copy(); 
    }
    lastReceivedTime = origTime.copy();
-   System.err.println("Unknown state " + state);
+   log.println("Unknown state " + state);
    return null;
 
 }
@@ -403,16 +913,14 @@ private void createEvent(){
    scheduledDelay = new Time(0,delay); 
 
    // flip a coin for the kind of event
-   if(Math.random()<0.5){
-       System.err.println("create a stop of " + (delay/1000) +" seconds");
+   if(Math.random()<stopprob){
+       log.println("create a stop of " + (delay/1000) +" seconds");
        state = STATE_STOP;
    } else{
-       System.err.println("create a deceleration of " + (delay/1000) +" seconds");
+       log.println("create a deceleration of " + (delay/1000) +" seconds");
        state = STATE_DECELERATION;
    }
 }
-
-
 
 /** normal state - no delay **/
 private static final int STATE_NORMAL=0; 
@@ -433,17 +941,33 @@ private static final int STATE_HURRY=3;
 private static class UnitWriter{
 
 private PrintStream out;
-
+private PrintStream log = System.err;
 
 public UnitWriter(PrintStream out, double epsilon){
    this.out=out;
    this.epsilon = epsilon;
 }
 
+/** sets the PrintStream for logging purposes **/
+public void setLog(PrintStream log){
+   this.log = log;
+}
+
+public void setOut(PrintStream out){
+   this.out = out;
+}
+
 
 /** Appends a new point in time
   **/
 boolean addMeasure(Time T,double x, double y){
+
+  if(T.compareTo(t1)<=0){ // time must be more than before
+     log.println("UnitWriter: wrong order of measures detected");
+     log.println("last time :"+t1+" ne time "+T);
+     return false;
+  }
+
   double t = T.getDouble();
   if(!initialized){ // the first point
     x1 = x;
@@ -453,11 +977,6 @@ boolean addMeasure(Time T,double x, double y){
     return true; 
   }
 
-  if(T.compareTo(t1)<=0){ // time must be more than before
-     System.err.println("UnitWriter: wrong order of measures detected");
-     System.err.println("last time :"+t1+" ne time "+T);
-     return false;
-  }
 
   if(!isComplete){ // only one point is stored
     x2 = x;
@@ -541,9 +1060,28 @@ private boolean write(){
 
 
 private void printStatistic(){
-   System.err.println("written Units  : " + writtenUnits );
-   System.err.println("skipped Points : " + skippedPoints);
+   log.println("written Units  : " + writtenUnits );
+   log.println("skipped Points : " + skippedPoints);
+
 }
+
+public void reset(){
+  initialized = false;
+  isComplete = false;
+  lastTime = 0.0;
+  x1 = 0.0;
+  y1 = 0.0;
+  t1 = new Time(0,0);
+  x2 = 0.0;
+  y2 = 0.0;
+  t2 = new Time(0,0);
+  dX = 0.0;
+  dY = 0.0;
+  written = false;
+  writtenUnits = 0;
+  skippedPoints = 0;
+}
+
 
 // is true if the first point in time is stored
 private boolean initialized = false;
