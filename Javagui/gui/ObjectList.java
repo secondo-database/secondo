@@ -385,14 +385,15 @@ public void clearList(){
 
 public boolean hideSelectedObject(){
   boolean hidden=false;
-  int index = Content.getSelectedIndex();
-  if (index>=0){
+  int[] indices = Content.getSelectedIndices();
+  for(int i=0; i< indices.length; i++){
+      int index = indices[i];
       SecondoObject SO = (SecondoObject) Objects.get(index);
       if (VC!=null)
           VC.hideObject(this,SO);
       markAsNoDisplayed(SO);
       hidden=true;
-  } 
+  }
   return hidden;
 }
 
@@ -410,15 +411,29 @@ public void hideAll(){
 /* sends the showObject message for the selected object to the ViewerControl */
 public boolean showSelectedObject(){
     boolean ok=false; 
-    int index = Content.getSelectedIndex();
-    if (index>=0){
+    int[] indices = Content.getSelectedIndices();
+    if (indices.length>0){
+        // the first objects determines a possible switch of the
+        // current viewer
+        int index = indices[0];
         SecondoObject SO = (SecondoObject) Objects.get(index); 
         if (VC!=null){
             if (VC.showObject(SO)){
                  markAsDisplayed(SO);
                  ok = true;
             }
-       }
+        }
+        // process also other selected values
+        // the viewer selected by the first object is not changed.
+        for(int i=1;i<indices.length;i++){
+           index = indices[i];
+           SecondoObject sO = (SecondoObject)Objects.get(index);
+           if(VC!=null && VC.canActualDisplay(sO)){
+               if(VC.showObject(sO)){
+                  markAsDisplayed(sO);
+               }
+           }
+        }
     }
     return ok;
 } 
@@ -627,17 +642,20 @@ public boolean saveSelectedObject(){
  // delete the selected object from list **/
  public boolean removeSelectedObject(){
    boolean removed = false;
-   int index = Content.getSelectedIndex();
-   if (index<0 || index>=Objects.size()){
+   int[] indices = Content.getSelectedIndices();
+   if (indices.length==0){
       Reporter.showWarning("no item selected");
-   }
-   else {
-     SecondoObject SO = (SecondoObject) Objects.get(index);
-     VC.hideObject(this,SO);
-     myListModel.remove(index);
-     Objects.remove(index);
-     SO.toListExpr().destroy();
-     removed = true;
+   } else {
+    // remove item in reverse order
+    for(int i=indices.length; i>0; i--){
+       int index = indices[i-1];
+       SecondoObject SO = (SecondoObject) Objects.get(index);
+       VC.hideObject(this,SO);
+       myListModel.remove(index);
+       Objects.remove(index);
+       SO.toListExpr().destroy();
+       removed = true;
+    }
    }
    return removed;
  }
