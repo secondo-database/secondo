@@ -1653,12 +1653,16 @@ public void removeObject(SecondoObject o){
 
        // remove from ComboBox
        CB.removeItemAt(index);
-       if (CB.getItemCount()==0)
+       if (CB.getItemCount()==0){
            TextDisplay.clearComboBox();
+       }
        CB = TextDisplay.getQueryCombo();
-       CB.setSelectedIndex(-1);
-
-        updateViewParameter();
+       if(CB.getItemCount()==0){
+          CB.setSelectedIndex(-1);
+       } else{
+          CB.setSelectedIndex(0);
+       }
+       updateViewParameter();
     }
 
 }
