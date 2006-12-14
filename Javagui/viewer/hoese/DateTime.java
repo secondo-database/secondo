@@ -93,7 +93,7 @@ public static double getTime(int Days, int msecs){
   return Days+(double)msecs/86400000.0;
 }
 
-public static String getString(int Days,int msecs){
+public static String getString(long Days,long msecs){
    if(Days<0 && msecs>0)
       Days--;
   int[] Greg = JulianDate.fromJulian(Days);
@@ -104,14 +104,14 @@ public static String getString(int Days,int msecs){
   if(Greg[2]<10)
      res+="0";
   res+=Greg[2]+"-";
-  int rest = msecs;
-  int ms = rest%1000;
+  long rest = msecs;
+  long ms = rest%1000;
   rest = rest/1000;
-  int sec = rest%60;
+  long sec = rest%60;
   rest = rest /60;
-  int min = rest%60;
+  long min = rest%60;
   rest = rest/60;
-  int hour=rest;
+  long hour=rest;
   if(hour<10)
      res+="0";
   res = res+hour+":";

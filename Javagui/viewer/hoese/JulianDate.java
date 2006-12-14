@@ -27,7 +27,7 @@ package viewer.hoese;
 public class JulianDate{
 
 
-public static int toJulian(int year, int month, int day)
+public static long toJulian(int year, int month, int day)
    /**
     * @return The Julian day number that begins at noon of
     * this day
@@ -42,22 +42,22 @@ public static int toJulian(int year, int month, int day)
     * This algorithm is from Press et al., Numerical Recipes
     * in C, 2nd ed., Cambridge University Press 1992
     */
-   {  int jy = year;
+   {  long jy = year;
       if (year < 0) jy++;
-      int jm = month;
+      long jm = month;
       if (month > 2) jm++;
       else
       {  jy--;
          jm += 13;
       }
-      int jul = (int) (java.lang.Math.floor(365.25 * jy)
+      long jul = (long) (java.lang.Math.floor(365.25 * jy)
       + java.lang.Math.floor(30.6001*jm) + day + 1720995.0);
-      int IGREG = 15 + 31*(10+12*1582);
+      long IGREG = 15 + 31*(10+12*1582);
          // Gregorian Calendar adopted Oct. 15, 1582
       if (day + 31 * (month + 12 * year) >= IGREG)
          // change over to Gregorian calendar
-      {  int ja = (int)(0.01 * jy);
-         jul += 2 - ja + (int)(0.25 * ja);
+      {  long ja = (long)(0.01 * jy);
+         jul += 2 - ja + (long)(0.25 * ja);
       }
       return jul-NULL_DAY;
    }
@@ -65,7 +65,7 @@ public static int toJulian(int year, int month, int day)
 
 /** returns an array [year,month,day] */
 
-public static int[] fromJulian(int j)
+public static int[] fromJulian(long j)
    /**
     * Converts a Julian day to a calendar date
     * @param j  the Julian date
@@ -73,8 +73,8 @@ public static int[] fromJulian(int j)
     * in C, 2nd ed., Cambridge University Press 1992
     */
    {  j=j+NULL_DAY;
-      int ja = j;
-      int JGREG = 2299161;
+      long ja = j;
+      long JGREG = 2299161;
          /* the Julian date of the adoption of the Gregorian
             calendar
          */
@@ -82,22 +82,22 @@ public static int[] fromJulian(int j)
       /* cross-over to Gregorian Calendar produces this
          correction
       */
-      {  int jalpha = (int)(((float)(j - 1867216) - 0.25)
+      {  long jalpha = (long)(((float)(j - 1867216) - 0.25)
              / 36524.25);
-         ja += 1 + jalpha - (int)(0.25 * jalpha);
+         ja += 1 + jalpha - (long)(0.25 * jalpha);
       }
-      int jb = ja + 1524;
-      int jc = (int)(6680.0 + ((float)(jb-2439870) - 122.1)
+      long jb = ja + 1524;
+      long jc = (long)(6680.0 + ((float)(jb-2439870) - 122.1)
           /365.25);
-      int jd = (int)(365 * jc + (0.25 * jc));
-      int je = (int)((jb - jd)/30.6001);
-      int day = jb - jd - (int)(30.6001 * je);
-      int month = je - 1;
+      long jd = (long)(365 * jc + (0.25 * jc));
+      long je = (long)((jb - jd)/30.6001);
+      long day = jb - jd - (long)(30.6001 * je);
+      long month = je - 1;
       if (month > 12) month -= 12;
-      int year = jc - 4715;
+      long year = jc - 4715;
       if (month > 2) --year;
       if (year <= 0) --year;
-      int[] res ={year,month,day};
+      int[] res ={(int)year,(int)month,(int)day};
       return res;
    }
 

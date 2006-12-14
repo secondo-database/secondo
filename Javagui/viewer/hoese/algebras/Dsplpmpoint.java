@@ -39,6 +39,11 @@ Time T = new Time();
 TotalMove Move=null;
 static DecimalFormat format = new DecimalFormat("#.####");
 boolean error;
+boolean defined;
+
+public Dsplpmpoint(){
+   defined = false;
+}
 
 
 public boolean isPointType(int num){
@@ -113,15 +118,18 @@ public void init(ListExpr type,ListExpr value,QueryResult qr){
          qr.addEntry("("+AttrName +" WrongListFormat )");
          error=true;
      }
+     defined = false;
      return;
   }
   if(!Move.isDefined()){
      if(qr!=null){
         qr.addEntry(AttrName+" : undefined ");
      }
+     defined=false; 
      return;
   }
 
+  defined = true;
   if(qr!=null){
      qr.addEntry(this);
   }
@@ -148,6 +156,11 @@ public Rectangle2D.Double getBounds(){
 /** returns the success of the last init command */
 public boolean getError(){
    return error;
+}
+
+/** returns the defined state for this object **/
+public boolean isDefined(){
+    return defined;
 }
 
 
