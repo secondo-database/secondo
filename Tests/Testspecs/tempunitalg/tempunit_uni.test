@@ -53,6 +53,8 @@ let mp1 = [const mpoint value ((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALS
 let mp2 = [const mpoint value ((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (100.0 100.0 -100.0 -100.0)))];
 
 let p = [const point value (1500.0 1500.0)];
+let p1 = [const point value (2000.0 2000.0)];
+let p2 = [const point value (1000.0 1000.0)];
 let p3 = [const point value undef];
 
 let ui1 = [const uint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) 1500)];
@@ -70,6 +72,10 @@ let ur3 = [const ureal value undef];
 let ur4 = [const ureal value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1.0 1.0 1.0 TRUE))];
 
 let r = [const real value 0.0];
+let r1 = [const real value 2.0];
+let r2 = [const real value -3.0];
+let r3 = [const real value undef];
+
 let rundef = [const real value undef];
 
 let ubool1 = [const ubool value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) TRUE)];
@@ -88,12 +94,18 @@ let ureg = [const uregion value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FAL
 
 let spiral = [const region value ((( (1200.0 1300.0) (1300.0 1300.0) (1300.0 1400.0) (1100.0 1400.0)  (1100.0 1100.0) (1500.0 1100.0) (1500.0 1500.0) (1600.0 1500.0) (1600.0 1000.0) (1000.0 1000.0) (1000.0 1500.0) (1400.0 1500.0) (1400.0 1200.0) (1200.0 1200.0) )((1025.0 1025.0)(1075.0 1025.0)(1075.0 1075.0)(1025.0 1075.0)))(((1600.0 1600.0)(1700.0 1600.0)(1700.0 1700.0)(1600.0 1700.0))) (((1035.0  1035.0)(1065.0 1035.0)(1065.0 1065.0)(1035.0 1065.0))) )]
 
+let uspiral = units(move(up1 feed the_mvalue, spiral)) transformstream extract[elem]
+
 (create ten : (rel(tuple((no int)))));
 (update ten := ((rel(tuple((no int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10))));
 
 restore zug5 from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5';
 
 let LinesRel = units(zug5) use[fun(ZZ:STREAMELEM) trajectory(ZZ)] transformstream consume;
+
+let inst1 = [const instant value "2003-11-20-06:00"];
+let inst2 = [const instant value "2003-11-20-07:00"];
+let inst3 = [const instant value undef];
 
 ##################
 #   makemvalue   #
@@ -898,6 +910,138 @@ query intersection(line6, up2) transformstream consume
 
 
 
+#testcase intersection_upoint_region
+#yields (mpoint ((("2003-11-20-06:18" "2003-11-20-06:24" TRUE TRUE)(1700.0 1700.0 1600.0 1600.0))(("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)(1500.0 1500.0 1500.0 1500.0))(("2003-11-20-06:36" "2003-11-20-06:48" TRUE TRUE)(1400.0 1400.0 1200.0 1200.0))(("2003-11-20-06:54" "2003-11-20-06:55:30" TRUE TRUE)(1100.0 1100.0 1075.0 1075.0))(("2003-11-20-06:56:06" "2003-11-20-06:57:54" TRUE TRUE)(1065.0 1065.0 1035.0 1035.0))(("2003-11-20-06:58:30" "2003-11-20-07:00" TRUE FALSE)(1025.0 1025.0 1000.0 1000.0))))
+query intersection(up1, spiral) the_mvalue
+
+#testcase intersection_region_upoint
+#yields (mpoint ((("2003-11-20-06:00" "2003-11-20-06:01:30" TRUE TRUE)(1000.0 1000.0 1025.0 1025.0))(("2003-11-20-06:02:06" "2003-11-20-06:03:54" TRUE TRUE)(1035.0 1035.0 1065.0 1065.0))(("2003-11-20-06:04:30" "2003-11-20-06:06" TRUE TRUE)(1075.0 1075.0 1100.0 1100.0))(("2003-11-20-06:12" "2003-11-20-06:24" TRUE TRUE)(1200.0 1200.0 1400.0 1400.0))(("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)(1500.0 1500.0 1500.0 1500.0))(("2003-11-20-06:36" "2003-11-20-06:42" TRUE TRUE)(1600.0 1600.0 1700.0 1700.0))))
+query intersection(spiral, up2) the_mvalue
+
+#testcase intersection_upoint_uregion
+#yields (mpoint ((("2003-11-20-06:00" "2003-11-20-06:01:30" TRUE TRUE)(0.0 0.0 0.0 0.0))(("2003-11-20-06:02:06" "2003-11-20-06:03:54" TRUE TRUE)(0.0 0.0 0.0 0.0))(("2003-11-20-06:04:30" "2003-11-20-06:06" TRUE TRUE)(0.0 0.0 0.0 0.0))(("2003-11-20-06:12" "2003-11-20-06:24" TRUE TRUE)(0.0 0.0 0.0 0.0))))
+query intersection(up9, uspiral) the_mvalue
+
+#testcase intersection_uregion_upoint
+#yields (mpoint ((("2003-11-20-06:00" "2003-11-20-06:01:30" TRUE TRUE)(0.0 0.0 0.0 25.0))(("2003-11-20-06:02:15" "2003-11-20-06:06" TRUE TRUE)(0.0 37.5 0.0 99.99999999999999))(("2003-11-20-06:12" "2003-11-20-06:15" TRUE TRUE)(0.0 200.0 0.0 250.0))))
+query intersection(uspiral, up4) the_mvalue
+
+
+
+#testcase the_mvalue mpoint
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5AsResult
+query units(zug5) the_mvalue
+
+#testcase the_mvalue mreal
+#tolerance_real 0.001
+#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5_speed
+query units(speed(zug5)) the_mvalue
+
+#testcase the_mvalue mint
+#yields (mint ((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)1500)))
+query ui1 feed the_mvalue
+
+#testcase the_mvalue mbool
+#yields (mbool ((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)TRUE)))
+query ubool1 feed the_mvalue
+
+#testcase the_mvalue mstring
+#yields (mstring ((("2003-11-20-06:00" "2003-11-20-07:00" FALSE FALSE)"VENI VIDI VICI")))
+query the_unit("VENI VIDI VICI", inst1, inst2, FALSE, FALSE) feed the_mvalue
+
+
+
+#testcase the_unit (point  point  instant instant bool bool) --> upoint (1)
+#yields (upoint (("2003-11-20-06:00" "2003-11-20-07:00" FALSE FALSE)(2000.0 2000.0 1000.0 1000.0)))
+query the_unit(p1, p2, inst1, inst2, FALSE, FALSE)
+
+#testcase the_unit (point  point  instant instant bool bool) --> upoint (2)
+#yields (upoint (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(1000.0 1000.0 2000.0 2000.0)))
+query the_unit(p1, p2, inst2, inst1, TRUE, FALSE)
+
+#testcase the_unit (ipoint ipoint bool bool) --> upoint (1)
+#yields (upoint (("2003-11-20-06:00" "2003-11-20-07:00" TRUE TRUE)(2000.0 2000.0 1000.0 1000.0)))
+query the_unit (the_ivalue(inst1, p1), the_ivalue(inst2, p2), TRUE, TRUE)
+
+#testcase the_unit (ipoint ipoint bool bool) --> upoint (2)
+#yields (upoint (("2003-11-20-06:00" "2003-11-20-07:00" FALSE TRUE)(2000.0 2000.0 1000.0 1000.0)))
+query the_unit (the_ivalue(inst2, p2), the_ivalue(inst1, p1), FALSE, TRUE)
+
+#testcase the_unit (real real real bool instant instant bool bool) --> ureal (1)
+#yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(2.0 -3.0 2.5 TRUE)))
+query the_unit(r1, r2, r + 2.5, TRUE, inst1, inst2, TRUE, FALSE)
+
+#testcase the_unit (real real real bool instant instant bool bool) --> ureal (1)
+#yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" FALSE TRUE)(-3.0 2.5 2.0 TRUE)))
+#testcase the_unit (iT duration bool bool) --> uT (1)
+#yields (uint (("2003-11-20-06:00" "2003-11-21-18:00" FALSE FALSE)1500))
+query the_unit(initial(ui1), create_duration(1.5), FALSE, FALSE)
+
+#testcase the_unit (iT duration bool bool) --> uT (2)
+#yields (uint (("2003-11-20-06:00" "2003-11-21-18:00" FALSE FALSE)1500))
+query the_unit(initial(ui1), create_duration(1.5), FALSE, FALSE)
+
+#testcase the_unit (iT duration bool bool) --> uT (3)
+#yields (ubool undef)
+query the_unit(initial(ubool1), create_duration(0, 0), FALSE, FALSE)
+
+#testcase the_unit (iT duration bool bool) --> uT (4)
+#yields (ubool undef)
+query the_unit(initial(ubool1), create_duration(0, 1), FALSE, FALSE)
+
+#testcase the_unit (T instant instant bool bool) --> uT (1)
+#yields (ustring (("2003-11-20-06:00" "2003-11-20-07:00" FALSE TRUE)"Gliep!"))
+query the_unit("Gliep!", inst1, inst2, FALSE, TRUE)
+
+#testcase the_unit (T instant instant bool bool) --> uT (2)
+#yields (uint undef)
+query the_unit(333, inst2, inst2, FALSE, TRUE)
+
+#testcase the_unit (T instant instant bool bool) --> uT (3)
+#yields (uint (("2003-11-20-07:00" "2003-11-20-07:00" TRUE TRUE)987654321))
+query the_unit(987654321, inst2, inst2, TRUE, TRUE)
+
+#testcase the_unit (T instant instant bool bool) --> uT (4)
+#yields (ubool undef)
+query the_unit(FALSE, inst1, inst1 + [const duration value (0 1)], FALSE, FALSE)
+
+#testcase the_unit (T instant instant bool bool) --> uT (4)
+#yields (ubool (("2003-11-20-06:00" "2003-11-20-06:00:00.001" FALSE TRUE)FALSE))
+query the_unit(FALSE, inst1, inst1 + [const duration value (0 1)], FALSE, TRUE)
+
+
+
+#testcase the_ivalue undef
+#yields (iint undef)
+query the_ivalue(inst3, 75)
+
+#testcase the_ivalue string
+#yields (istring ("2003-11-20-06:00" "Hallo!"))
+query the_ivalue(inst1, "Hallo!")
+
+
+#testcase the_ivalue point
+#yields (ipoint ("2003-11-20-07:00"(2000.0 2000.0)))
+query the_ivalue(inst2, p1)
+
+#testcase the_ivalue undef point
+#yields (ipoint ("2003-11-20-07:00" undef))
+query the_ivalue(inst2, p3)
+
+#testcase the_ivalue real
+#yields (ireal ("2003-11-20-07:00" 2.0))
+query the_ivalue(inst2, r1)
+
+#testcase the_ivalue bool
+#yields (ibool ("2003-11-20-07:00" FALSE))
+query the_ivalue(inst2, FALSE)
+
+##testcase the_ivalue region
+##yields (iregion undef)
+#query the_ivalue(inst3, spiral)
+
+
+
 #testcase no_components undef
 #yields (uint undef)
 query no_components(up3)
@@ -1051,16 +1195,6 @@ query [const bool value TRUE] or ubool4
 #testcase or_bool_ubool FALSE
 #yields (ubool (("2003-11-20-06:30" "2003-11-20-06:45" TRUE FALSE) FALSE))
 query [const bool value FALSE] or ubool4
-
-
-
-
-
-# intersection_upoint_region
-# intersection_region_upoint
-# intersection_upoint_uregion
-# intersection_uregion_upoint
-
 
 
 ############################

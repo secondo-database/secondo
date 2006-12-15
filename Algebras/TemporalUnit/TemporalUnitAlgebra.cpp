@@ -42,12 +42,16 @@ OK    get_duration                   periods --> duration
 (OK)  queryrect2d                    instant --> rect
 OK    circle              point x real x int --> region
 OK    uint2ureal:                       uint --> ureal
-      the_unit:  For T in {bool, int, string}
+
+the_unit:  For T in {bool, int, string}
 Test          point  point  instant instant bool bool --> ubool
 Test          ipoint ipoint bool    bool              --> ubool
 Test          real real real bool instant instant bool bool --> ureal
 Test          iT duration bool bool       --> uT
 Test          T instant instant bool bool --> uT
+
+      the_ivalue:  For T in {bool, int, string, real, point, region}
+n/a                              (instant T) --> iT
 
 OK    isempty                             U  --> bool (for U in kind UNIT)
 OK    trajectory                      upoint --> line
@@ -107,8 +111,8 @@ OK  +        line x  upoint --> (stream upoint)
 Pre +       ureal x   ureal --> (stream ureal)
 Test+      upoint x uregion --> (stream upoint)
 Test-     uregion x  upoint --> (stream upoint)
-Pre -      upoint x  region --> (stream upoint)
-Pre -      region x  upoint --> (stream upoint)
+Test-      upoint x  region --> (stream upoint) same as: at: upoint x region
+Test-      region x  upoint --> (stream upoint)
 n/a +      upoint x  points --> (stream upoint)
 n/a +      points x  upoint --> (stream upoint)
 
@@ -233,7 +237,7 @@ extern AlgebraManager* am;
 using namespace datetime;
 
 bool TUA_DEBUG = false; // Set to true to activate debugging code
-//bool TUA_DEBUG = true; // Set to true to activate debugging code
+// bool TUA_DEBUG = true; // Set to true to activate debugging code
 
 /*
 2.1 Definition of some constants and auxiliary functions
@@ -1210,10 +1214,10 @@ ThemvalueSelect( ListExpr args )
   nl->WriteToString(argstr, args);
   if ( argstr == "((stream ubool))" )   return 0;
   if ( argstr == "((stream uint))" )    return 1;
-  if ( argstr == "((stream ureal))" )   return 2;
-  if ( argstr == "((stream upoint))" )  return 3;
-  if ( argstr == "((stream uregion))" ) return 4;
-  if ( argstr == "((stream ustring))" ) return 5;
+  if ( argstr == "((stream ustring))" ) return 2;
+  if ( argstr == "((stream ureal))" )   return 3;
+  if ( argstr == "((stream upoint))" )  return 4;
+  if ( argstr == "((stream uregion))" ) return 5;
   return -1; // This point should never be reached
 }
 
@@ -1257,9 +1261,9 @@ MakemvalueSelect( ListExpr args )
   }
   if( inputtype == "ubool" )   return 0;
   if( inputtype == "uint" )    return 1;
-  if( inputtype == "ureal" )   return 2;
-  if( inputtype == "upoint" )  return 3;
-  if( inputtype == "ustring" ) return 4;
+  if( inputtype == "ustring" ) return 2;
+  if( inputtype == "ureal" )   return 3;
+  if( inputtype == "upoint" )  return 4;
   if( inputtype == "uregion" ) return 5;
 
   return -1; // This point should never be reached
@@ -1267,18 +1271,18 @@ MakemvalueSelect( ListExpr args )
 
 ValueMapping temporalmakemvaluemap[] = {
       MappingMakemvalue<MBool, UBool>,
-      MappingMakemvalue<MBool, UBool>,
+      MappingMakemvalue<MInt, UInt>,
+      MappingMakemvalue<MString, UString>,
       MappingMakemvalue<MReal, UReal>,
       MappingMakemvalue<MPoint, UPoint>,
-      MappingMakemvalue<MString, UString>,
       MappingMakemvalue_mregion };
 
 ValueMapping temporalthemvaluemap[] = {
       MappingMakemvaluePlain<MBool, UBool>,
-      MappingMakemvaluePlain<MBool, UBool>,
+      MappingMakemvaluePlain<MInt, UInt>,
+      MappingMakemvaluePlain<MString, UString>,
       MappingMakemvaluePlain<MReal, UReal>,
       MappingMakemvaluePlain<MPoint, UPoint>,
-      MappingMakemvaluePlain<MString, UString>,
       MappingMakemvalue_mregionPlain };
 
 /*
@@ -5270,14 +5274,14 @@ ListExpr TemporalUnitIntersectionTypeMap( ListExpr args )
                                 nl->SymbolAtom( "upoint" ));
 
       // Ninth case: upoint region -> stream upoint
-      //if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "region") )
-      //  return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
-      //                          nl->SymbolAtom( "upoint" ));
+      if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "region") )
+       return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                               nl->SymbolAtom( "upoint" ));
 
       // Tenth case: region upoint -> stream upoint
-      //if( nl->IsEqual( arg1, "region" ) && nl->IsEqual( arg2, "upoint") )
-      //  return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
-      //                          nl->SymbolAtom( "upoint" ));
+      if( nl->IsEqual( arg1, "region" ) && nl->IsEqual( arg2, "upoint") )
+       return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                               nl->SymbolAtom( "upoint" ));
     }
 
   // Error case:
@@ -6730,9 +6734,12 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
   return 0;
 }
 
-// for (upoint uregion) -> (stream upoint)
-//     (uregion upoint) -> (stream upoint)
-template<int uargindex>
+// for (upoint uregion) -> (stream upoint) (with <0, true>)
+//     (uregion upoint) -> (stream upoint) (with <1, true>)
+//     (upoint  region) -> (stream upoint) (with <0, false>)
+//     (region  upoint) -> (stream upoint) (with <1, false>)
+//
+template<int uargindex, bool regionismoving>
 int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
                                              int message,
                                              Word& local, Supplier s )
@@ -6740,13 +6747,16 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
 // This implementation uses class function
 //   MRegion::Intersection(MPoint& mp, MPoint& res)
 //   by creating a single-unit MRegion and a single-unit MPoint
+// This is not very clever, but is comparable to the implementation found in
+//   the MovingRegionAlgebra.
 
   TUIntersectionLocalInfo *sli;
   Word    a0, a1;
-  UPoint  *u;
-  URegion *r;
-  MPoint  mp_tmp(1);
-  MRegion mr_tmp(1);
+  UPoint  *u = 0;
+  URegion *r = 0;
+  Region  *f = 0;
+  MPoint  *mp_tmp;
+  MRegion *mr_tmp;
   const UPoint* cu;
 
   switch( message )
@@ -6755,7 +6765,8 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
 
       if (TUA_DEBUG)
         cerr << "temporalUnitIntersection_upoint_uregion<"
-             << uargindex << ">: Received OPEN" << endl;
+             << uargindex << ", " << regionismoving
+             << ">: Received OPEN" << endl;
 
       sli = new TUIntersectionLocalInfo;
       sli->finished = true;
@@ -6765,7 +6776,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
       local = SetWord(sli);
 
       // initialize arguments, such that a0 always contains the upoint
-      //                       and a1 the uregion
+      //                       and a1 the uregion/region
       if (TUA_DEBUG) cerr << "  uargindex=" << uargindex << endl;
       if (uargindex == 0)
         { a0 = args[0]; a1 = args[1]; }
@@ -6774,14 +6785,20 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
       else
         {
           cerr << "temporalUnitIntersection_upoint_uregion<"
-               << uargindex << ">: WRONG uargindex!" << endl;
+               << uargindex << ", " << regionismoving
+               << ">: WRONG uargindex!" << endl;
           return -1;
         }
       u = (UPoint*)(a0.addr);
-      r = (URegion*)(a1.addr);
+      if ( regionismoving )
+        r = (URegion*)(a1.addr);
+      else
+        f = (Region*) (a1.addr);
 
       // test for definedness
-      if ( !u->IsDefined() || !r->IsDefined() )
+      if ( !u->IsDefined() ||
+           ( regionismoving && !r->IsDefined()) ||
+           (!regionismoving && !f->IsDefined()) )
         {
           if (TUA_DEBUG)
             cerr << "  Undef arg -> Empty Result" << endl << endl;
@@ -6789,17 +6806,26 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
         }
       else
         {
-          mp_tmp.Clear();         // create temporary MPoint
-          mp_tmp.Add(*u);
-          mp_tmp.SetDefined(true);
+          mp_tmp = new MPoint(1); // create temporary MPoint
+          mp_tmp->Add(*u);
+          mp_tmp->SetDefined(true);
 
-          mr_tmp.Clear();         // create temporary MRegion
-          //mr_tmp.StartBulkLoad();
-          mr_tmp.AddURegion(*r);
-          //mr_tmp.EndBulkLoad();
-          mr_tmp.SetDefined(true);
-
-          mr_tmp.Intersection(mp_tmp, *(sli->mpoint)); // get and save result;
+          // create temporary MRegion
+          if ( regionismoving )
+          { // case (upoint x uregion): from a URegion
+            mr_tmp = new MRegion(1);
+            mr_tmp->AddURegion(*r);
+            //mr_tmp.EndBulkLoad();
+            mr_tmp->SetDefined(true);
+          }
+          else
+          { // case (upoint x region): from (MPoint,Region)
+             mr_tmp = new MRegion(*mp_tmp, *f);
+             mr_tmp->SetDefined(true);
+          }
+          mr_tmp->Intersection(*mp_tmp, *(sli->mpoint)); // get and save result;
+          delete mp_tmp;
+          delete mr_tmp;
           sli->NoOfResults = sli->mpoint->GetNoComponents();
           sli->finished = (sli->NoOfResults <= 0);
           if (TUA_DEBUG)
@@ -6813,13 +6839,15 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
     case REQUEST:
       if (TUA_DEBUG)
         cerr << "temporalUnitIntersection_upoint_uregion<"
-             << uargindex << ">: Received REQUEST" << endl;
+             << uargindex << ", " << regionismoving
+             << ">: Received REQUEST" << endl;
 
       if(local.addr == 0)
         {
           if (TUA_DEBUG)
             cerr << "temporalUnitIntersection_upoint_uregion<"
-                 << uargindex << ">: Finished REQUEST (1)" << endl;
+                 << uargindex << ", " << regionismoving
+                 << ">: Finished REQUEST (1)" << endl;
           return CANCEL;
         }
       sli = (TUIntersectionLocalInfo*) local.addr;
@@ -6827,7 +6855,8 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
         {
           if (TUA_DEBUG)
             cerr << "temporalUnitIntersection_upoint_uregion<"
-                 << uargindex << ">: Finished REQUEST (2)" << endl;
+                 << uargindex << ", " << regionismoving
+                 << ">: Finished REQUEST (2)" << endl;
           return CANCEL;
         }
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
@@ -6837,20 +6866,23 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
           sli->NoOfResultsDelivered++;
           if (TUA_DEBUG)
             cerr << "temporalUnitIntersection_upoint_uregion<"
-                 << uargindex << ">: Finished REQUEST (YIELD)" << endl;
+                 << uargindex << ", " << regionismoving
+                 << ">: Finished REQUEST (YIELD)" << endl;
           return YIELD;
         }
       sli->finished = true;
       if (TUA_DEBUG)
         cerr << "temporalUnitIntersection_upoint_uregion<"
-             << uargindex << ">: Finished REQUEST (3)" << endl;
+             << uargindex << ", " << regionismoving
+             << ">: Finished REQUEST (3)" << endl;
       return CANCEL;
 
     case CLOSE:
 
       if (TUA_DEBUG)
         cerr << "temporalUnitIntersection_upoint_uregion<"
-             << uargindex << ">: Received CLOSE" << endl;
+             << uargindex << ", " << regionismoving
+             << ">: Received CLOSE" << endl;
       if (local.addr != 0)
         {
           sli = (TUIntersectionLocalInfo*) local.addr;
@@ -6859,27 +6891,17 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
         }
       if (TUA_DEBUG)
         cerr << "temporalUnitIntersection_upoint_uregion<"
-             << uargindex << ">: Finished CLOSE" << endl;
+             << uargindex << ", " << regionismoving
+             << ">: Finished CLOSE" << endl;
       return 0;
     } // end switch
 
   cerr << "temporalUnitIntersection_upoint_uregion<"
-       << uargindex << ">: Received UNKNOWN COMMAND" << endl;
+       << uargindex << ", " << regionismoving
+       << ">: Received UNKNOWN COMMAND" << endl;
   return 0;
 }
 
-// for (upoint region) -> (stream upoint)
-//     (region upoint) -> (stream upoint)
-template<int uargindex>
-int temporalUnitIntersection_upoint_region( Word* args, Word& result,
-                                            int message,
-                                            Word& local, Supplier s )
-{
-  cout << "\nATTENTION: temporalUnitIntersection_upoint_region "
-       << "not yet implemented!" << endl;
-
-  return 0;
-}
 
 /*
 5.26.3 Specification for operator ~intersection~
@@ -6891,17 +6913,16 @@ const string  TemporalUnitIntersectionSpec  =
   "\"Example\" ) "
   "("
   "<text>For T in {bool, int, real, string, point}:\n"
-  "(uT uT) -> (stream uT)**\n"
+  "(uT uT) -> (stream uT)*\n"
   "(uT  T) -> (stream uT)\n"
   "( T uT) -> (stream uT)\n"
   "(line upoint) -> (stream upoint)\n"
   "(upoint line) -> (stream upoint)\n"
   "(upoint uregion) -> (stream upoint)\n"
   "(uregion upoint) -> (stream upoint)\n"
-  "(upoint region) -> (stream upoint)*\n"
-  "(region upoint) -> (stream upoint)*\n"
-  "(*):  Not yet implemented\n"
-  "(**): Not yet implemented for T = real</text--->"
+  "(upoint region) -> (stream upoint)\n"
+  "(region upoint) -> (stream upoint)\n"
+  "(*): Not yet implemented for T = real</text--->"
   "<text>intersection(_, _)</text--->"
   "<text>Returns the intersection of two unit datatype values "
   "or of a unit datatype and its corrosponding simple datatype "
@@ -6938,11 +6959,11 @@ ValueMapping temporalunitintersectionmap[] =
     temporalUnitIntersection_upoint_line<0>,        // 15
     temporalUnitIntersection_upoint_line<1>,
 
-    temporalUnitIntersection_upoint_uregion<0>,
-    temporalUnitIntersection_upoint_uregion<1>,
+    temporalUnitIntersection_upoint_uregion<0, true>,
+    temporalUnitIntersection_upoint_uregion<1, true>,
 
-    temporalUnitIntersection_upoint_region<0>,
-    temporalUnitIntersection_upoint_region<1>       // 20
+    temporalUnitIntersection_upoint_uregion<0, false>,
+    temporalUnitIntersection_upoint_uregion<1, false>       // 20
   };
 
 int temporalunitIntersectionSelect( ListExpr args )
@@ -7010,7 +7031,7 @@ int temporalunitIntersectionSelect( ListExpr args )
 
 Operator temporalunitintersection( "intersection",
                                    TemporalUnitIntersectionSpec,
-                                   19,
+                                   21,
                                    temporalunitintersectionmap,
                                    temporalunitIntersectionSelect,
                                    TemporalUnitIntersectionTypeMap);
@@ -8621,7 +8642,9 @@ int TU_VM_TheUnit_ppiibb(Word* args, Word& result,
   clb = cl->GetBoolval();
   crb = cr->GetBoolval();
 
-  if ( (*i1 == *i2) && (!clb || !crb) ) // illegal interval setting
+  if ( ( (*i1 == *i2) && (!clb || !crb) ) ||
+       ( i1->Adjacent(i2) && !(clb || crb) ) )
+    // illegal interval setting
     { res->SetDefined( false ); return 0; }
   if ( *i1 < *i2 ) // sort instants
   {
@@ -8655,7 +8678,8 @@ int TU_VM_TheUnit_ipipbb(Word* args, Word& result,
   clb = cl->GetBoolval();
   crb = cr->GetBoolval();
 
-  if ( (ip1->instant == ip2->instant) && (!clb || !crb) )
+  if ( ( (ip1->instant == ip2->instant) && (!clb || !crb) ) ||
+       ( ip1->instant.Adjacent(&ip2->instant) && !(clb || crb) ) )
     // illegal interval setting
     { res->SetDefined( false ); return 0; }
   if ( ip1->instant < ip2->instant ) // sort instants
@@ -8696,7 +8720,8 @@ int TU_VM_TheUnit_rrrbiibb(Word* args, Word& result,
   clb = cl->GetBoolval();
   crb = cr->GetBoolval();
 
-  if ( (*i1 == *i2) && (!clb || !crb) ) // illegal interval setting
+  if ( ( (*i1 == *i2) && (!clb || !crb) )    ||
+       (  i1->Adjacent(i2) && !(clb || crb) )  )// illegal interval setting
     { res->SetDefined( false ); return 0; }
   if ( *i1 < *i2 ) // sort instants
   {
@@ -8735,7 +8760,8 @@ int TU_VM_TheUnit_iTdbb(Word* args, Word& result,
   crb = cr->GetBoolval();
 
   assert(dur->GetType() == durationtype);
-  if ( (*dur == DateTime(0,0,durationtype)) && (!clb || !crb) )
+  if ( ( (*dur == DateTime(0,0,durationtype)) &&  (!clb || !crb) ) ||
+       ( (*dur == DateTime(0,1,durationtype)) && !( clb ||  crb) )    )
     // illegal interval setting
     { res->SetDefined( false ); return 0; }
   Interval<Instant> interval( ip->instant, ip->instant+(*dur), clb, crb );
@@ -8767,7 +8793,8 @@ int TU_VM_TheUnit_Tiibb(Word* args, Word& result,
   clb = cl->GetBoolval();
   crb = cr->GetBoolval();
 
-  if ( (*i1 == *i2) && (!clb || !crb) ) // illegal interval setting
+  if ( ( (*i1 == *i2) && (!clb || !crb) )   ||
+       ( i1->Adjacent(i2) && !(clb || crb) )  )// illegal interval setting
     { res->SetDefined( false ); return 0; }
   if ( *i1 < *i2 ) // sort instants
   {
@@ -8799,9 +8826,10 @@ const string  TU_Spec_TheUnit =
   "T instant instant bool bool --> uT"
   "</text--->"
   "<text>the_unit( pstart, pend, tstart, tend, cl, cr )\n"
-  "the_unit( ip1, ip2, cl, cr )</text--->"
+  "the_unit( ip1, ip2, cl, cr )\n"
+  "the_unit( a, b, c, r, tstart, tend, cl, cr )</text--->"
   "<text>Creates a unit value from the argument list. The instants/ipoints"
-  "will be sorted automatically.</text--->"
+  "/(point/instant)-pairs will be sorted automatically.</text--->"
   "<text>query the_unit(point1, point2, instant1, instant2, bool1, bool2)"
   "</text--->"
   ") )";
@@ -8843,15 +8871,15 @@ int TU_Select_TheUnit( ListExpr args )
 
 ValueMapping TU_VMMap_TheUnit[] =
   {
-    TU_VM_TheUnit_ppiibb,
+    TU_VM_TheUnit_ppiibb,           //0
     TU_VM_TheUnit_ipipbb,
-    TU_VM_TheUnit_rrrbiibb,
+    TU_VM_TheUnit_rrrbiibb,         //2
     TU_VM_TheUnit_Tiibb<CcBool>,
-    TU_VM_TheUnit_iTdbb<CcBool>,
+    TU_VM_TheUnit_iTdbb<CcBool>,    //4
     TU_VM_TheUnit_Tiibb<CcInt>,
-    TU_VM_TheUnit_iTdbb<CcInt>,
+    TU_VM_TheUnit_iTdbb<CcInt>,     //6
     TU_VM_TheUnit_Tiibb<CcString>,
-    TU_VM_TheUnit_iTdbb<CcString>
+    TU_VM_TheUnit_iTdbb<CcString>   //8
   };
 /*
 5.41.5 Definition of operator ~the_unit~
@@ -8864,39 +8892,135 @@ Operator temporalunittheupoint( "the_unit",
                             TU_Select_TheUnit,
                             TU_TM_TheUnit);
 /*
-5.41 Operator ~~
+5.41 Operator ~the_ivalue~
+
+This operator creates an intime value from an instant and a value.
 
 ----
-     (insert signature here)
+      the_ivalue:  For T in {bool, int, string, real, point, region}
+n/a                              (instant T) --> iT
 
 ----
 
 */
 
 /*
-5.42.1 Type mapping function for ~~
+5.42.1 Type mapping function for ~the_ivalue~
 
 */
+ListExpr TU_TM_TheIvalue( ListExpr args )
+{
+  string argstr;
+  nl->WriteToString(argstr, args);
+  // cerr << argstr << endl;
+  if (argstr == "(instant bool)")
+    return nl->SymbolAtom( "ibool" );
+  if (argstr == "(instant int)")
+    return nl->SymbolAtom( "iint" );
+  if (argstr == "(instant string)")
+    return nl->SymbolAtom( "istring" );
+  if (argstr == "(instant real)")
+    return nl->SymbolAtom( "ireal" );
+  if (argstr == "(instant point)")
+    return nl->SymbolAtom( "ipoint" );
+  if (argstr == "(instant region)")
+    return nl->SymbolAtom( "iregion" );
+
+  ErrorReporter::ReportError
+    ("Operator 'the_ivalue' expects a list with structure "
+     "'(instant T)', "
+     "for T in {bool, int, string, real, point, region}"
+     ", but it gets a list of type '" + argstr + "'.");
+  return nl->SymbolAtom( "typeerror" );
+}
+/*
+5.42.2 Value mapping for operator ~the_ivalue~
+
+*/
+
+template <class T>
+int TU_VM_TheIvalue(Word* args, Word& result,
+                        int message, Word& local, Supplier s)
+{
+  result = (qp->ResultStorage( s ));
+  Intime<T> *res   = (Intime<T> *) result.addr;
+  Instant   *inst  = (DateTime*)   args[0].addr;
+  T         *value = (T*)          args[1].addr;
+
+  // Test arguments for definedness
+  if ( !inst->IsDefined() )
+    res->SetDefined( false );
+  else
+  {
+    *res = Intime<T>(*inst, *value);
+    res->SetDefined( true );
+  }
+  return 0;
+
+}
 
 /*
-5.42.2 Value mapping for operator ~~
+5.42.3 Specification for operator ~the_ivalue~
 
 */
+const string  TU_Spec_TheIvalue =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "("
+  "<text>For T in {bool, int, string, real, point, region}:\n"
+  "instant T --> iT"
+  "</text--->"
+  "<text>the_ivalue( instant, value )</text--->"
+  "<text>Creates an intime value from the argument list. "
+  "An undef 'instant' argument results in an undef result.</text--->"
+  "<text>query the_ivalue(instant1, point1)"
+  "</text--->"
+  ") )";
 
 /*
-5.42.3 Specification for operator ~~
+5.42.4 Selection Function of operator ~the_ivalue~
 
 */
+int TU_Select_TheIvalue( ListExpr args )
+{
+  string argstr;
+  nl->WriteToString(argstr, args);
 
+  if (argstr == "(instant bool)")
+    return 0;
+  if (argstr == "(instant int)")
+    return 1;
+  if (argstr == "(instant string)")
+    return 2;
+  if (argstr == "(instant real)")
+    return 3;
+  if (argstr == "(instant point)")
+    return 4;
+  if (argstr == "(instant region)")
+    return 5;
+
+  return -1; // should not be reached!
+}
+
+ValueMapping TU_VMMap_TheIvalue[] =
+  {
+    TU_VM_TheIvalue<CcBool>,
+    TU_VM_TheIvalue<CcInt>,
+    TU_VM_TheIvalue<CcString>,
+    TU_VM_TheIvalue<CcReal>,
+    TU_VM_TheIvalue<Point>,
+    TU_VM_TheIvalue<Region>
+  };
 /*
-5.42.4 Selection Function of operator ~~
+5.42.5 Definition of operator ~the_ivalue~
 
 */
-
-/*
-5.42.5 Definition of operator ~~
-
-*/
+Operator temporalunittheivalue( "the_ivalue",
+                            TU_Spec_TheIvalue,
+                            6,
+                            TU_VMMap_TheIvalue,
+                            TU_Select_TheIvalue,
+                            TU_TM_TheIvalue);
 
 /*
 5.41 Operator ~~
@@ -9020,6 +9144,7 @@ public:
     AddOperator( &temporalunitbiggereq );
     AddOperator( &temporalunituint2ureal );
     AddOperator( &temporalunittheupoint );
+    AddOperator( &temporalunittheivalue );
   }
   ~TemporalUnitAlgebra() {};
 };

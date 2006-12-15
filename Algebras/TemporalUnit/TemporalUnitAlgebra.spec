@@ -39,6 +39,7 @@ operator distance alias DISTANCE pattern op ( _ , _ )
 operator printstream alias PRINTSTREAM pattern _ op
 operator uint2ureal alias UINT2UREAL pattern op ( _ )
 operator the_unit alias THE_UNIT pattern op( _ , _ , _ , _ , _ , _ , _ )
+operator the_ivalue alias THE_IVALUE pattern op( _ , _ )
 
 # Operator signatures already defined elsewhere:
 
