@@ -49,6 +49,8 @@ private JTextField maxErrorDiffTF;
 private double maxErrorDiffDefault = 1;
 private JRadioButton relErrorRB;
 private boolean relErrorDefault = false;
+private JTextField changeErrorProbTF;
+private double changeErrorProbDefault = 1;
 private JTextField maxMeasuresTF;
 private int maxMeasuresDefault = 2000;    // change it to zero !!!
 private JTextField maxSequenceTF;
@@ -57,6 +59,9 @@ private JTextField removeProbTF;
 private double removeProbDefault = 0.01;
 private JTextField removeSeqProbTF;
 private double removeSeqProbDefault = 0.0001;
+private JTextField writerToleranceTF;
+private double writerToleranceDefault = 0;
+
 
 // gui components and default values for delay
 private Component delaySettings;
@@ -84,6 +89,8 @@ private int maxAccDefault = 20;
 // gui components for the log area
 private Component logTab;
 private JTextArea logArea;
+private JButton clearLogBtn;
+private ScrollListener scrollListener;
 
 // components for the IO tab
 private Component IOTab;
@@ -115,7 +122,7 @@ public DisturberGui(){
   addTabs(tabbedPane);
   getContentPane().add(tabbedPane); 
 
-  log = new Logger(logArea);
+  log = new Logger(logArea,scrollListener);
   log.println("gui started");
   pdd.setLog(log);    
 }
@@ -230,7 +237,7 @@ private Component getInOutComponent(){
   **/
 private Component getDisturbComponent(){
    JPanel panel =  new JPanel();
-   panel.setLayout(new GridLayout(8,2));
+   panel.setLayout(new GridLayout(10,2));
    
   // build the single components
    JLabel timeDiffLabel = new JLabel("time difference");
@@ -256,6 +263,13 @@ private Component getDisturbComponent(){
 
    panel.add(new JLabel(""));  // dummy
 
+
+   JLabel changeErrorProbLabel = new JLabel("pobability to change the error");
+   panel.add(changeErrorProbLabel);
+   changeErrorProbTF = new JTextField(20);
+   panel.add(changeErrorProbTF);
+
+
    JLabel maxMeasuresLabel = new JLabel("maximum measures");
    panel.add(maxMeasuresLabel);
  
@@ -279,6 +293,13 @@ private Component getDisturbComponent(){
 
    removeSeqProbTF = new JTextField(20);
    panel.add(removeSeqProbTF);
+
+   JLabel writerToleranceLabel = new JLabel("unit writer tolerance");
+   panel.add(writerToleranceLabel);
+
+   writerToleranceTF = new JTextField(20);
+   panel.add(writerToleranceTF);
+
 
    setDisturbDefaults();
 
@@ -425,9 +446,10 @@ private Component getLogComponent(){
    logArea= new JTextArea();
    logArea.setEditable(false);
    JScrollPane sp = new JScrollPane(logArea);
+   scrollListener = new ScrollListener(sp);
    JPanel panel = new JPanel(new BorderLayout());
    panel.add(sp,BorderLayout.CENTER);
-   JButton clearLogBtn = new JButton("clear");
+   clearLogBtn = new JButton("clear");
    JPanel p2 = new JPanel();
    p2.add(clearLogBtn);
    panel.add(p2,BorderLayout.SOUTH);
@@ -500,6 +522,12 @@ private void setDisturbDefaults(){
 
    removeSeqProbTF.setText(nf.format(removeSeqProbDefault));
    pdd.setRemoveSeqProb(removeSeqProbDefault);
+
+   changeErrorProbTF.setText(nf.format(changeErrorProbDefault));
+   pdd.setChangeErrorProb(changeErrorProbDefault);
+
+   writerToleranceTF.setText(nf.format(writerToleranceDefault));
+   pdd.setWriterTolerance(writerToleranceDefault);
 }
 
 /** Sets all settings in the Delay tab to its default values **/
@@ -628,6 +656,25 @@ private void startConversion(){
    // use relative error, no check, just get the value
    boolean relativeErrorValue = relErrorRB.isSelected();
 
+
+   double changeErrorProbValue = -1;
+   try{
+      changeErrorProbValue = Double.parseDouble(changeErrorProbTF.getText());
+   }catch(Exception e){
+     changeErrorProbValue = -1;
+   }
+   // check for valid range
+   if( (changeErrorProbValue < 0) || (changeErrorProbValue > 1)){
+      JOptionPane.showMessageDialog(this,"Invalid value for probability to change the error",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
+      log.println("invalid value for probability to chnage the error");
+      tabbedPane.setSelectedComponent(disturbSettings);
+      changeErrorProbTF.requestFocus(); 
+      return;        
+   }
+
+
+
    // maximum number of created measures
    int maxMeasures=0;
    try{
@@ -687,6 +734,24 @@ private void startConversion(){
       return;        
    }
 
+   double writerToleranceValue =-1;
+   try{
+     writerToleranceValue=Double.parseDouble(writerToleranceTF.getText());
+   }catch(Exception e){
+     writerToleranceValue = -1;
+   }
+   if(writerToleranceValue <0){
+      JOptionPane.showMessageDialog(this,"Invalid value for writer tolerance ",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
+      log.println("invalid writer tolerance");
+      tabbedPane.setSelectedComponent(disturbSettings);
+      writerToleranceTF.requestFocus(); 
+      return;        
+
+   }
+
+
+
    // delay settings
    double eventProbValue = -1;
    try{
@@ -731,10 +796,12 @@ private void startConversion(){
    pdd.setTimeDiff(tD);
    pdd.setMaxErrors(maxErrorValue,maxErrorDiffValue);
    pdd.enableRelativeError(relativeErrorValue);
+   pdd.setChangeErrorProb(changeErrorProbValue);
    pdd.setMaximumMeasures(maxMeasures);
    pdd.setMaxSeqLength(maxSequenceValue);
    pdd.setRemoveProb(removeProbValue);
    pdd.setRemoveSeqProb(removeSeqProbValue);
+   pdd.setWriterTolerance(writerToleranceValue);
    // delay settings
    pdd.setEventProb(eventProbValue);
    pdd.setMaxDelay(maxDelayValue);
@@ -754,36 +821,15 @@ private void startConversion(){
       return;
    }
 
-   pdd.setOut(out);
-   boolean error = !pdd.processList(theList); 
-   if(error){
-      JOptionPane.showMessageDialog(this,"Error in converting list.\n"+
-                                    "Possible error in list structure. \n"+
-                                    "please consult the log messages",
-                                    "failed",
-                                     JOptionPane.ERROR_MESSAGE);
-      log.println("There was errors during conversion"); 
-   }
-   pdd.setOut(System.out);
-   try{
-      out.close();
-   }catch(Exception e){
-      JOptionPane.showMessageDialog(this,"Cannot close output file.",
-                                    "Error", JOptionPane.ERROR_MESSAGE);
-      log.println("error in closing output file ");
-      return; 
-  } 
+  tabbedPane.setEnabled(false);
+  clearLogBtn.setEnabled(false);
+  Component[] comps = {tabbedPane,clearLogBtn};
+  FinishListener finisher = new FinishListener(comps);
 
-  if(!error){
-    JOptionPane.showMessageDialog(this,"Conversion finished","Success",
-                                JOptionPane.INFORMATION_MESSAGE);
-  }
-  tabbedPane.setSelectedComponent(IOTab);
-  log.println("conversion finished");
-
+  Runner runner = new Runner(pdd,out,log,theList,this,finisher);
+  Thread thread = new Thread(runner);
+  thread.start();
 }
-
-
 
 /** The main function **/
 public static void main(String[] args){
@@ -792,15 +838,111 @@ public static void main(String[] args){
 
 }
 
+
+private static class FinishListener{
+   private Component[] components;
+   public FinishListener(Component[] ComponentsToEnable){
+        this.components = ComponentsToEnable;
+   }
+
+   public void finish(boolean success){
+      for(int i=0;i<components.length;i++){
+        components[i].setEnabled(true);
+      }
+
+   }
+}
+
+
+
+private static class Runner implements Runnable{
+   private PointDataDisturber pdd;
+   private PrintStream out;
+   private Component parent;
+   private PrintStream log;
+   private ListExpr theList;
+   private boolean error;
+   private FinishListener finisher;
+
+   public Runner(PointDataDisturber pdd,
+                 PrintStream out,
+                 PrintStream log,
+                 ListExpr theList,
+                 Component parent,
+                 FinishListener finisher){
+       this.pdd = pdd;
+       this.out = out;
+       this.log = log; 
+       this.theList = theList;
+       this.parent = parent;
+       this.finisher = finisher;
+   }
+
+    public void run(){
+       error = false;
+       pdd.setOut(out);
+         error = !pdd.processList(theList); 
+         if(error){
+             JOptionPane.showMessageDialog(parent,"Error in converting list.\n"+
+                                    "Possible error in list structure. \n"+
+                                    "please consult the log messages",
+                                    "failed",
+                                     JOptionPane.ERROR_MESSAGE);
+             log.println("There was errors during conversion"); 
+       }
+       pdd.setOut(System.out);
+       try{
+            out.close();
+       }catch(Exception e){
+            JOptionPane.showMessageDialog(parent,"Cannot close output file.",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
+            log.println("error in closing output file ");
+        return; 
+  } 
+
+  if(!error){
+    JOptionPane.showMessageDialog(parent,"Conversion finished","Success",
+                                JOptionPane.INFORMATION_MESSAGE);
+  }
+  finisher.finish(error);
+  log.println("conversion finished");
+  }
+
+  public boolean getError(){
+       return error;
+  }
+   
+}
+
+
+private class ScrollListener{
+  JScrollPane sp;
+
+  public ScrollListener(JScrollPane sp){
+     this.sp = sp;
+  }
+
+  public void scrollDown(){
+     JScrollBar sb = sp.getVerticalScrollBar();
+     if(sb!=null){
+        sb.setValue(sb.getMaximum());
+     }
+  }
+
+}
+
+
 /** class for logging **/
 private static class Logger extends PrintStream{
    
-   JTextArea area;
+   private JTextArea area;
+   private ScrollListener sl;
 
    /** creates a new logging area */
-   public Logger(JTextArea area){
+   public Logger(JTextArea area,ScrollListener sl){
       super(System.err);
       this.area = area;
+      this.sl = sl;
    }
 
    
@@ -813,72 +955,91 @@ private static class Logger extends PrintStream{
    public void print(boolean b){
      String text = b?"true":"false";
      area.append(text);
+     sl.scrollDown();
    }
    
    public void print(char c){
        area.append(""+c);
+       sl.scrollDown();
    }
    
    public void print(char[] s){
        area.append(""+s);
+       sl.scrollDown();
    }
    
    public void print(double d){
       area.append(""+d);
+      sl.scrollDown();
    }
 
    public void print(float f){
-     area.append(""+f);
+      area.append(""+f);
+      sl.scrollDown();
    }
 
    public void print(int i){
-     area.append(""+i);
+      area.append(""+i);
+      sl.scrollDown();
    }
 
    public void print(long l){
      area.append(""+l);
+     sl.scrollDown();
    }
 
    public void print(Object o){
       area.append(""+o);
+      sl.scrollDown();
    }
 
    public void print(String s){
       area.append(s);
+      sl.scrollDown();
    }
 
    public void println(){
       area.append("\n");
+      sl.scrollDown();
    }
  
    public void println(boolean x){
       area.append(""+x+"\n");
+      sl.scrollDown();
    }
 
    public void println(char x){
       area.append(""+x+"\n");
+      sl.scrollDown();
    }
    public void println(char[] x){
       area.append(""+x+"\n");
+      sl.scrollDown();
    }
    public void println(double x){
       area.append(""+x+"\n");
+      sl.scrollDown();
    }
    public void println(float x){
       area.append(""+x+"\n");
+      sl.scrollDown();
    }
    
    public void println(int x){
       area.append(""+x+"\n");
+      sl.scrollDown();
    }
    public void println(long x){
       area.append(""+x+"\n");
+      sl.scrollDown();
    }
    public void println(Object x){
       area.append(""+x+"\n");
+      sl.scrollDown();
    }
    public void println(String x){
       area.append(""+x+"\n");
+      sl.scrollDown();
    }
 
    public void setError(boolean err){}
@@ -887,16 +1048,19 @@ private static class Logger extends PrintStream{
       for(int i=off; i<len;i++){
         area.append(""+buf[i]);
       }
+      sl.scrollDown();
    }
 
    public void write(int b){
       area.append(""+b);
+      sl.scrollDown();
    }
    
    public void write(byte[] b){
      for(int i=0;i<b.length;i++){
        area.append(""+b[i]);
      }
+      sl.scrollDown();
    }
 
 

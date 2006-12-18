@@ -100,6 +100,10 @@ private int removeSequence = 0;
   **/
 private int maxSequence = 50;
 
+
+/** Probability to change the current error per measure */
+private double changeErrorProb = 0.3;
+
 /** Probability to delete measures.  **/
 private double removeProb = 0.01;  
 /** Probability to delete a complete Sequence of measures. **/
@@ -204,6 +208,18 @@ public void setMaxSeqLength(int length){
    }
 }
 
+/** Sets the probablity to change the current error between two 
+  * measures.
+  * @param prob: the probability in [0,1]
+  **/
+public void setChangeErrorProb(double prob){
+  if( (prob<=0) || (prob>1)){
+      log.println("setChangeErrorProb called with invalid value ");
+  } else {
+      changeErrorProb = prob;
+ }
+}
+
 /** Sets the probability to remove  measures.
   * This value determines the probability for both, removing single 
   * measures and to remove whole chains of measures.
@@ -285,6 +301,13 @@ public void setLog(PrintStream log){
 public void setOut(PrintStream out){
    this.out = out;
    writer.setOut(out);
+}
+
+/** Sets the tolerance which is used to connect the current
+  * created unit with the new measure.
+  **/
+public void setWriterTolerance(double tolerance){
+   this.writer.setTolerance(tolerance);
 }
 
 /** Prints out some statistical information the the log stream **/
@@ -573,7 +596,8 @@ private void addLocation(Time t, java.awt.geom.Point2D.Double p){
   } else{
       double dx=0;
       double dy=0;
-      if(!lastPoint.equals(p)){ // only change the error if the point is moving
+      boolean changeError = Math.random()<changeErrorProb;
+      if(!lastPoint.equals(p) && changeError){ // only change the error if the point is moving
         if(relativeError){
           double length = p.distance(lastPoint);
           double med = length*maxErrorDiff;
@@ -777,6 +801,8 @@ public void setAccs(double minAcc, double maxAcc){
    this.maxAcc=maxAcc;
 }
 
+
+
 public void setMaxDelay(double seconds){
    if(maxDelay<1){
        return;
@@ -790,7 +816,7 @@ public void setLog(PrintStream log){
 
 
 /** returns the current state as String **/
-public String getState(int stateCode){
+private  String getState(int stateCode){
    switch(stateCode){
       case STATE_NORMAL: return "NORMAL";
       case STATE_STOP: return "STOP";
@@ -947,6 +973,11 @@ private PrintStream log = System.err;
 public UnitWriter(PrintStream out, double epsilon){
    this.out=out;
    this.epsilon = epsilon;
+}
+
+/** sets the value of the error tolerance to conect units **/
+public void setTolerance(double e){
+     epsilon = Math.max(0,e);
 }
 
 /** sets the PrintStream for logging purposes **/
