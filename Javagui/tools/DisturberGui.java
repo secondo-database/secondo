@@ -915,7 +915,7 @@ private static class Runner implements Runnable{
 }
 
 
-private class ScrollListener{
+private static class ScrollListener{
   JScrollPane sp;
 
   public ScrollListener(JScrollPane sp){
