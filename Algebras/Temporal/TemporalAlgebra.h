@@ -5329,7 +5329,9 @@ template <class Mapping, class Unit,
 Word InMapping( const ListExpr typeInfo, const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  Mapping* m = new Mapping( 0 );
+
+  int numUnits = nl->ListLength(instance);
+  Mapping* m = new Mapping( numUnits );
   correct = true;
   int unitcounter = 0;
   string errmsg;
