@@ -323,8 +323,7 @@ private void addRemoveToInsertTable(){
    }
    insertTable.addKeyListener(new KeyAdapter(){
       public void keyPressed(KeyEvent evt){
-           if( (evt.getKeyCode()==KeyEvent.VK_DELETE) ||
-               (evt.getKeyCode()==KeyEvent.VK_CUT)){
+           if( (evt.getKeyCode()==KeyEvent.VK_DELETE)){ 
                  removeInsertSelection(); 
            }
       }
@@ -465,15 +464,19 @@ private void removeInsertSelection(){
     if(insertTable==null){ // no table available
        return;
     }
+    if(insertTable.isEditing()){
+       return;
+    }
     int[] selectedRows = insertTable.getSelectedRows();
     if( selectedRows.length==0){
         JOptionPane.showMessageDialog(this,"Nothing selected");
         return;
     }
 
-    if(JOptionPane.showConfirmDialog(this,"All selected rows will be deleted\n Do you want to continue?",
+    int answer = JOptionPane.showConfirmDialog(this,"All selected rows will be deleted\n Do you want to continue?",
                                   "Please Confirm",
-                                  JOptionPane.YES_NO_OPTION)==JOptionPane.NO_OPTION){
+                                  JOptionPane.YES_NO_OPTION);
+    if((answer!=JOptionPane.YES_OPTION)){
          return; 
     }
 
@@ -1040,6 +1043,15 @@ load an which filter-criteria he wants to apply.
 				removeButtons = new Vector();
 				criteriaPanels = new Vector();
 				criteriaFields = new Vector();
+
+        relField.addKeyListener(new KeyAdapter(){
+           public void keyPressed(KeyEvent evt){
+              if(evt.getKeyCode()==KeyEvent.VK_ENTER){
+                   LoadDialog.this.cancelled=false;
+                   LoadDialog.this.hide();
+              }
+           }
+       });
 				
 				
 			}
