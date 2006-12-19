@@ -28,7 +28,9 @@ TemporalLiftedAlgebra
 Juni 2006: Original implementation by J[ue]rgen Schmidt
 
 December 2006: Christian D[ue]ntgen added
-operator ~intersection: mpoint x mpoint [->] mpoint~
+operator ~intersection: mpoint x mpoint [->] mpoint~- Corrected code for
+~SolvePoly(...)~ and separated the solver methods to an on header file called
+~PolySolver.h~.
 
 1 Overview
 
@@ -47,6 +49,7 @@ For this it leans on Lema, Forlizzi, G[ue]ting, Nardelli, Schneider:
 #include "QueryProcessor.h"
 #include "Algebra.h"
 #include "StandardTypes.h"
+#include "PolySolver.h"
 
 #include "DateTime.h"
 using namespace datetime;
@@ -492,255 +495,14 @@ void DistanceMPoint( MPoint& p1, MPoint& p2, MReal& result)
 }
 
 /*
-1.1 Method ~Swop~
-
-Just changes place of the two given arguments.
-
-*/
-
-void Swop(double& a, double& b)
-{
-  double i;
-  i = a;
-  a = b;
-  b = i;
-}
-
-/*
-1.1 Method ~SolvePoly~ 1
-
-Solves the Polynom ax+b=0 and gives back the number of solutiones.
-
-*/
-int SolvePoly(const double &a, const double &b, double &solution)
-{
-  if(TLA_DEBUG){
-    cout<<"SolvePoly 1 called with a: "<<a<<" ,b: "<<b<<endl;}
-
-  if(a == 0.0)
-    return 0;
-  solution = -b / a;
-  if(TLA_DEBUG){
-    cout<<"SolvePoly1 ends with 1 solution"<<endl;
-    cout<<"solution = "<<solution<<"  "<<(a*solution)+b<<endl;
-  }
-  return 1;
-}
-
-/*
-1.1 Method ~SolvePoly~ 2
-
-Solves the Polynom ax\^2+bx+c=0 and gives back the number of solutiones.
-The solutions are given back in solution in ordedered style if sort is true.
-
-*/
-int SolvePoly(const double &a, const double &b, const double &c,
-              double solution[2], const bool &sort)
-{
-  int number = 0;
-  double d;
-  if(TLA_DEBUG)
-    cout<<"SolvePoly 2 called with a: "<<a<<" ,b: "<<b<<" ,c: "<<c<<endl;
-
-  if(a != 0.0){ //SolvePoly2 needed
-    d = pow(b, 2) - 4 * a * c;
-    if (d < 0)
-      number = 0;
-    else if (d == 0) {
-      solution[0] = -b / 2 / a;
-      number = 1;
-    }
-    else {
-      if (sort) {
-        solution[0] = (a > 0) ? ((-b - sqrt(d)) / 2 / a)
-                    : ((-b + sqrt(d)) / 2 / a);
-        solution[1] = (a > 0) ? ((-b + sqrt(d)) / 2 / a)
-                    : ((-b - sqrt(d)) / 2 / a);
-      }
-      else {
-        solution[0] = (-b + sqrt(d)) / 2 / a;
-        solution[1] = (-b - sqrt(d)) / 2 / a;
-      }
-      number = 2;
-    }
-  }
-  else { //use SolvePoly1
-    number = SolvePoly(b, c, solution[1]);
-  }
-  if(TLA_DEBUG){
-    cout<<"SolvePoly2 ends with  "<<number<<" solutions"<<endl;
-    for (int i = 0; i < number; i++)
-      cout<<"solution["<<i<<"] = "<<solution[i]
-      <<"  "<<(a*pow(solution[i],2)+b*solution[i]+c)<<endl;
-  }
-  return number;
-}
-
-/*
-1.1 Method ~SolvePoly~ 3
-
-Solves the Polynom ax\^3+bx\^2+cx+d=0 and gives back the number
-of solutiones. The solutions are given back in solution in ordedered style.
-
-*/
-int SolvePoly(const double &a, const double &b, const double &c,
-              const double &d, double solution[3])
-{
-  int number = 0;
-  double disk, p, q;
-
-  if(TLA_DEBUG){
-    cout<<"SolvePoly3 called with a: "<<a<<" ,b: "<<b
-    <<" ,c: "<<c<<" ,d: "<<d<<endl;}
-  if(a != 0.0) { //SolvePoly3 needed
-    p = ( 3 * a * c - pow(b ,2)) / 9 / pow(a, 2);
-    q = (2 * pow(b ,3) - 9 * a * b * c + 27 * pow(a, 2) * d) / 54 / pow(a, 3);
-    disk = pow(p, 3) + pow (q, 2);
-    if(TLA_DEBUG){
-      cout<<"p = "<<p<<", q = "<<q<<" disk = "<<disk<<endl;}
-
-    if (disk > 0) {  //one real solutuion
-      double u = -q + sqrt(disk);
-      u = u < 0 ? -pow(-u, 1.0 / 3.0) : pow(u, 1.0 / 3.0);
-      double v = -q - sqrt(disk);
-      v = v < 0 ? -pow(-v, 1.0 / 3.0) : pow(v, 1.0 / 3.0);
-      if(TLA_DEBUG)
-        cout<<"u "<<u<<", v "<<v<<endl;
-      solution[0] = u + v - b / 3 / a;
-      number = 1;
-    }
-    else if (disk == 0) {
-      double u = q<0 ? -pow(-q, 1.0 / 3.0) : pow(q, 1.0 / 3.0);
-      solution[0] = 2 * u - b / 3 / a;
-      solution[1] = -u - b / 3 / a;
-      if (solution[0] > solution[1] )
-        Swop(solution[0], solution[1]);
-      number = 2;
-    }
-    else {
-      double phi = acos(-q / sqrt(abs(pow(p, 3))));
-      solution[0] = 2 * sqrt(abs(p)) * cos(phi / 3) - b / 3 / a;
-      solution[1] = -2 * sqrt(abs(p)) * cos(phi / 3 + 1.047197551196598)
-                    - b / 3 / a;
-      solution[2] = -2 * sqrt(abs(p)) * cos(phi / 3 - 1.047197551196598)
-                    - b / 3 / a;
-
-      if ( solution[0] > solution[1])
-        Swop(solution[0], solution[1]);
-      if ( solution[1] > solution[2])
-        Swop(solution[1], solution[2]);
-      if ( solution[0] > solution[1])
-        Swop(solution[0], solution[1]);
-      number = 3;
-    }
-  }
-  else { //use SolvePoly2
-    double sol2[2];
-    number = SolvePoly(b, c, d, sol2, true);
-    for(int i = 0; i < number; i++)
-      solution[i] = sol2[i];
-  }
-  if(TLA_DEBUG){
-    cout<<"SolvePoly3 ends with  "<<number<<" solutions"<<endl;
-    for (int i = 0; i < number; i++)
-      cout<<"solution["<<i<<"] = "<<solution[i]<<"  "
-      <<(a*pow(solution[i],3)+b*pow(solution[i],2)+c*solution[i]+d)<<endl;
-  }
-  return number;
-}
-
-/*
-1.1 Method ~SolvePoly~ 4
-
-Solves the Polynom ax\^4+bx\^3+cx\^2+dx+e=0 and gives back the number of
-solutiones. The solutions are given back in solution in ordedered style.
-
-*/
-int SolvePoly(const double &a, const double &b, const double &c,
-              const double &d, const double &e,
-              double solution[4])
-{
-  int number1 = 0;
-  int number2 = 0;
-  double z;
-  double sol3[3];
-  double sol21[2];
-  double sol22[2];
-  double sol23[2];
-  double sol24[2];
-
-  if(TLA_DEBUG){
-    cout<<"SolvePoly 4 called with a: "<<a<<" ,b: "<<b
-    <<" ,c: "<<c<<" ,d: "<<d<<" ,e: "<<e<<endl;}
-
-  if(a != 0.0){ //SolvePoly4 needed
-    //Solve cubic resolvent
-    number1 = SolvePoly(1.0, -c, (b * d - 4 * a * e),
-              (4 * a * c * e - pow(b, 2)* e - a * pow(d, 2)), sol3);
-    if(TLA_DEBUG)
-      for (int i = 0; i < number1; i++)
-        cout<<"sol3["<<i<<"] = "<<sol3[i]<<endl;
-//     z = a > 0.0 ? sol3[number1 - 1] : solution[0]; // Original line
-    z = a > 0.0 ? sol3[number1 - 1] : sol3[0]; // corrected line
-    if(TLA_DEBUG)
-      cout<<"z "<<z<<endl;
-    number1 = SolvePoly(1.0, -b, (a * (c - z)), sol21, false);
-    if(TLA_DEBUG)
-      for (int i = 0; i < number1; i++)
-        cout<<"sol21["<<i<<"] = "<<sol21[i]<<endl;
-    if (number1 == 1)
-      sol21[1] = sol21[0];
-    number1 = SolvePoly(1.0, -z, (a * e), sol22, false);
-    if(TLA_DEBUG)
-      for (int i = 0; i < number1; i++)
-        cout<<"sol22["<<i<<"] = "<<sol22[i]<<endl;
-    if (number1 == 1)
-      sol22[1] = sol22[0];
-    if ((b * z)<(2 * a * d)) {
-      Swop(sol21[0], sol21[1]);
-    }
-    // find solutions
-    number1 = SolvePoly(a, sol21[0], sol22[0], sol23, true);
-    number2 = SolvePoly(a, sol21[1], sol22[1], sol24, true);
-    for (int i = 0; i < number1; i++)
-      solution[i] = sol23[i];
-    for (int i = 0; i < number2; i++)
-      solution[number1 + i] = sol24[i];
-    number1 += number2;
-    for (int i = 0; i < number1 ; i++)
-      for (int n = i + 1; n < number1 ; n++)
-        if (solution[i] > solution [n])
-          Swop(solution[i],solution[n]);
-    for (int i = 0; i < number1 - 1; i++)
-      if (AlmostEqual(solution[i], solution[i+1])) {
-        for (int n = 0; n < number1 -1; n++)
-          solution[n] = solution [n + 1];
-        number1--;
-      }
-  }
-  else { //use SolvePoly3
-    number1 = SolvePoly(b, c, d, e, sol3);
-    for(int i = 0; i < number1; i++)
-      solution[i] = sol3[i];
-  }
-  if(TLA_DEBUG){
-    cout<<"SolvePoly4 ends with  "<<number1<<" solutions"<<endl;
-    for (int i = 0; i < number1; i++)
-       cout<<"solution["<<i<<"] = "<<solution[i]<<"  "<<(a*pow(solution[i],4)
-       +b*pow(solution[i],3)+c*pow(solution[i],2)+d*solution[i]+e)<<endl;
-  }
-  return number1;
-}
-
-/*
 1.1 Method ~FindEqualTimes4Real~
 
 Function FindEqualTimes4Real to find all times where u1 and u2 are
-eqaul, gives them back in t and returns their number. u1 and u2 must
+equal, gives them back in t and returns their number. u1 and u2 must
 have the same timeIntervals (use ShiftUReal to get this)
 
 */
-int FindEqualTimes4Real(UReal& u1, UReal& u2, Instant t[4]){
+int FindEqualTimes4Real(const UReal& u1, const UReal& u2, Instant t[4]){
     int number;
     double sol2[2];
     double sol4[4];
