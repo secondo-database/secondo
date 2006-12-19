@@ -268,11 +268,8 @@ DisplayTTY::DisplayReal( ListExpr type, ListExpr numType, ListExpr value )
   }
   else
   {
-    cout << setprecision(6) << nl->RealValue( value );
-    if(RTFlag::isActive("TTY:Real:ShowFullPrecision")) {
-    cout << " (internal = " << setprecision(16) 
-         << nl->RealValue( value ) << ")";
-    }
+    cout.unsetf(ios_base::floatfield);
+    cout << setprecision(16) << nl->RealValue( value );
   }
 }
 

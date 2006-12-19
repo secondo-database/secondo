@@ -769,6 +769,9 @@ TestRunner::ProcessExamples()
        //if (resultOk)
        resultOk = nl->ReadFromString("(" + info.result + ")", tmpList);
        tmpList = (nl->First(tmpList));
+       realValTolerance.isRelative = true;
+       realValTolerance.value = 0.0;
+       //realValTolerance.value = 8.881784197e-16; // ~ 2^(-50)
        if (resultOk) {
        switch ( nl->AtomType(tmpList) ) {
 
@@ -782,6 +785,8 @@ TestRunner::ProcessExamples()
                         }               
           case RealType:{
                           expectedResult =  MakeConstant("real", tmpList); 
+                          //realValTolerance.isRelative = false;
+                          //realValTolerance.value = 0.001;
                           break;
                         }
           case TextType:{
