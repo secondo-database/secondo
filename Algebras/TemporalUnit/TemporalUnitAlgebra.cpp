@@ -43,15 +43,16 @@ OK    get_duration                   periods --> duration
 OK    circle              point x real x int --> region
 OK    uint2ureal:                       uint --> ureal
 
-the_unit:  For T in {bool, int, string}
-Test          point  point  instant instant bool bool --> ubool
-Test          ipoint ipoint bool    bool              --> ubool
-Test          real real real bool instant instant bool bool --> ureal
-Test          iT duration bool bool       --> uT
-Test          T instant instant bool bool --> uT
+the_unit:  For T in {bool, int, string, region*}
+           *: Crashed for T=region
+OK          point  point  instant instant bool bool --> ubool
+OK          ipoint ipoint bool    bool              --> ubool
+OK          real real real bool instant instant bool bool --> ureal
+OK          iT duration bool bool       --> uT
+OK          T instant instant bool bool --> uT
 
       the_ivalue:  For T in {bool, int, string, real, point, region}
-n/a                              (instant T) --> iT
+OK                               (instant T) --> iT
 
 OK    isempty                             U  --> bool (for U in kind UNIT)
 OK    trajectory                      upoint --> line
@@ -77,9 +78,9 @@ OK    Initial      (**)          (stream uT) --> iT
 OK  + final        (**)                   uT --> iT
 OK    final        (**)          (stream uT) --> iT
 OK  + present      (**)         uT x instant --> bool
-OK  +              (**)         uT x periods --> bool
-n/a                    (stream uT) x instant --> bool (use use2/present)
-n/a                    (stream uT) x periods --> bool (use use2/present)
+OK  + present      (**)         uT x periods --> bool
+n/a   present          (stream uT) x instant --> bool (use use2/present)
+n/a   present          (stream uT) x periods --> bool (use use2/present)
 
       atmax:  For T in {bool, int, real, string}:
 (OK)+                                     uT --> (stream uT)
@@ -109,10 +110,10 @@ OK  -      upoint x  upoint --> (stream upoint)
 OK  +      upoint x    line --> (stream upoint)
 OK  +        line x  upoint --> (stream upoint)
 Pre +       ureal x   ureal --> (stream ureal)
-Test+      upoint x uregion --> (stream upoint)
-Test-     uregion x  upoint --> (stream upoint)
-Test-      upoint x  region --> (stream upoint) same as: at: upoint x region
-Test-      region x  upoint --> (stream upoint)
+OK  +      upoint x uregion --> (stream upoint)
+OK  -     uregion x  upoint --> (stream upoint)
+OK  -      upoint x  region --> (stream upoint) same as: at: upoint x region
+OK  -      region x  upoint --> (stream upoint)
 n/a +      upoint x  points --> (stream upoint)
 n/a +      points x  upoint --> (stream upoint)
 
@@ -122,16 +123,28 @@ OK  + and, or: ubool x ubool --> ubool
 OK  +           bool x ubool --> ubool
 OK  +          ubool x  bool --> ubool
 
-      =, #, <, >, <=, >=:
-OK  +                uT x uT --> bool
+      ==, ##, <<, >>, <<==, >>==: T in {bool, int, string, real, point, region}
+Test+                uT x uT --> bool
+
+=, #, <, >, <=, >=: T in {bool, int, string}
+Test +                uT x      uT --> (stream ubool)
+n/a                    T x      uT --> (stream ubool)
+n/a                    T x      uT --> (stream ubool)
+Test +            upoint x  upoint --> (stream ubool)
+n/a  +             point x  upoint --> (stream ubool)
+n/a  +            upoint x   point --> (stream ubool)
+pre  +           uregion x uregion --> (stream ubool)
+n/a  +            region x uregion --> (stream ubool)
+n/a  +           uregion x  region --> (stream ubool)
+
 
 OK  + not:             ubool --> ubool
 
   inside:
 Test+      upoint x uregion --> (stream ubool)
 pre +      upoint x    line --> (stream ubool)
-pre +      upoint x  points --> (stream ubool)
-pre +     uregion x  points --> (stream ubool)
+n/a +      upoint x  points --> (stream ubool)
+n/a +     uregion x  points --> (stream ubool)
 
 n/a + mdirection:    upoint --> ureal
 
@@ -340,6 +353,12 @@ string TUPrintUReal( UReal* ureal )
   return Result;
 }
 
+/*
+3 Auxiliary Functions
+
+*/
+
+
 
 /*
 4 General Selection functions
@@ -364,6 +383,7 @@ be found in the operator implementation section below.
 Is used for the ~deftime~,~atinstant~,~atperiods~ operations.
 
 */
+
 int
 UnitSimpleSelect( ListExpr args )
 {
@@ -7591,11 +7611,15 @@ Operator temporalunitor
 5.35 Operator ~ComparePredicates~
 
 Here, we implement the binary comparison operators/predicates for (uT uT).
-The predicates are = (equality), # (unequality), < (smaller than),
-> (bigger than), <= (smaller tah or equal to), >= (bigger than or equal to).
+The predicates are == (equality), ## (unequality), << (smaller than),
+>> (bigger than), <<== (smaller than or equal to), >>== (bigger than or equal to).
 
 The operators use the internat ~Compare~ function, which implements an ordering on the
 elements, but does not need to respect inuitive operator semantics (e.g. in case ureal).
+They compare whole units as such. They do NOT compare the values!
+
+WARNING: Do not confuse this operators with the ~CompareValuePredicates~, which
+         compare the values.
 
 ----
       =, #, <, >, <=, >=: For T in {int, bool, real, string, point, region}
@@ -7622,9 +7646,8 @@ ListExpr TUComparePredicatesTypeMap( ListExpr args )
         {
           if( (nl->IsEqual( arg1, "ubool" ) )   ||
               (nl->IsEqual( arg1, "uint" ) )    ||
-              (nl->IsEqual( arg1, "ureal" ) )   ||
-              (nl->IsEqual( arg1, "upoint" ) )  ||
               (nl->IsEqual( arg1, "ustring" ) ) ||
+              (nl->IsEqual( arg1, "ureal" ) )   ||
               (nl->IsEqual( arg1, "uregion" ) ) ||
               (nl->IsEqual( arg1, "upoint" ) ) )
             return nl->SymbolAtom( "bool" );
@@ -7636,10 +7659,10 @@ ListExpr TUComparePredicatesTypeMap( ListExpr args )
   nl->WriteToString(argstr1, arg1);
   nl->WriteToString(argstr2, arg2);
   ErrorReporter::ReportError(
-    "Compare Operator (one of =, #, <, >, , <=, >=) expects two arguments of "
-    "type 'uT', where T in {bool, int, real, string, point, region}. The "
-    "passed arguments have types '"+ argstr1 +"' and '"
-    + argstr2 + "'.");
+    "Compare Operator (one of ==, ##, <<, >>, , <<==, >>==) expects "
+    "two arguments of type 'uT', where T in {bool, int, real, "
+    "string, point, region}./nThe passed arguments have types '"
+    + argstr1 +"' and '" + argstr2 + "'.");
   return nl->SymbolAtom("typeerror");
 }
 /*
@@ -7705,66 +7728,66 @@ int TUComparePredicatedValueMap(Word* args, Word& result, int message,
 const string TUEqSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
-  "<text>_ = _</text--->"
+  "<text>_ == _</text--->"
   "<text>The operator checks if the internal ordering predicate "
   "holds for both arguments.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
-  "\"2011-01-03\" TRUE FALSE) TRUE)] = [const ubool value "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] == [const ubool value "
   "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
 const string TUNEqSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
-  "<text>_ # _</text--->"
+  "<text>_ ## _</text--->"
   "<text>The operator checks if the internal ordering predicate "
   "holds for both arguments.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
-  "\"2011-01-03\" TRUE FALSE) TRUE)] # [const ubool value "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] ## [const ubool value "
   "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
 const string TULtSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
-  "<text>_ < _</text--->"
+  "<text>_ << _</text--->"
   "<text>The operator checks if the internal ordering predicate "
   "holds for both arguments.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
-  "\"2011-01-03\" TRUE FALSE) TRUE)] < [const ubool value "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] << [const ubool value "
   "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
 const string TUBtSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
-  "<text>_ > _</text--->"
+  "<text>_ >> _</text--->"
   "<text>The operator checks if the internal ordering predicate "
   "holds for both arguments.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
-  "\"2011-01-03\" TRUE FALSE) TRUE)] > [const ubool value "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] >> [const ubool value "
   "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
 const string TULtEqSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
-  "<text>_ <= _</text--->"
+  "<text>_ <<== _</text--->"
   "<text>The operator checks if the internal ordering predicate "
   "holds for both arguments.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
-  "\"2011-01-03\" TRUE FALSE) TRUE)] <= [const ubool value "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] <<== [const ubool value "
   "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
 const string TUBtEqSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(uT uT) -> bool\n</text--->"
-  "<text>_ >= _</text--->"
+  "<text>_ >>== _</text--->"
   "<text>The operator checks if the internal ordering predicate "
   "holds for both arguments.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
-  "\"2011-01-03\" TRUE FALSE) TRUE)] >= [const ubool value "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] >>== [const ubool value "
   "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
@@ -7781,7 +7804,7 @@ We can use Operator::SimpleSelect:
 */
 Operator temporalunitisequal
 (
- "=",
+ "==",
  TUEqSpec,
  TUComparePredicatedValueMap<0>,
  Operator::SimpleSelect,
@@ -7790,7 +7813,7 @@ Operator temporalunitisequal
 
 Operator temporalunitisnotequal
 (
- "#",
+ "##",
  TUNEqSpec,
  TUComparePredicatedValueMap<1>,
  Operator::SimpleSelect,
@@ -7799,7 +7822,7 @@ Operator temporalunitisnotequal
 
 Operator temporalunitsmaller
 (
- "<",
+ "<<",
  TULtSpec,
  TUComparePredicatedValueMap<2>,
  Operator::SimpleSelect,
@@ -7808,7 +7831,7 @@ Operator temporalunitsmaller
 
 Operator temporalunitbigger
 (
- ">",
+ ">>",
  TUBtSpec,
  TUComparePredicatedValueMap<3>,
  Operator::SimpleSelect,
@@ -7817,7 +7840,7 @@ Operator temporalunitbigger
 
 Operator temporalunitsmallereq
 (
- "<=",
+ "<<==",
  TULtEqSpec,
  TUComparePredicatedValueMap<4>,
  Operator::SimpleSelect,
@@ -7826,7 +7849,7 @@ Operator temporalunitsmallereq
 
 Operator temporalunitbiggereq
 (
- ">=",
+ ">>==",
  TUBtEqSpec,
  TUComparePredicatedValueMap<5>,
  Operator::SimpleSelect,
@@ -7929,8 +7952,8 @@ Operator temporalunituint2ureal
 
 ----
       inside:
-        pre +      upoint x uregion --> (stream ubool)
-        pre +      upoint x    line --> (stream ubool)
+        OK  +      upoint x uregion --> (stream ubool)
+        OK  +      upoint x    line --> (stream ubool)
         pre +      upoint x  points --> (stream ubool)
         pre +     uregion x  points --> (stream ubool)
 
@@ -8370,7 +8393,7 @@ Using ~TemporalUnitBoolAggrTypeMap~
 */
 
 /*
-5.39.2 Value mapping for operator ~never~
+5.39.2 Value mapping for operator ~never~localinfo
 
 */
 int TemporalUnitNever_streamubool( Word* args, Word& result, int message,
@@ -8606,13 +8629,13 @@ ListExpr TU_TM_TheUnit( ListExpr args )
     return nl->SymbolAtom( "ustring" );
 
   ErrorReporter::ReportError
-    ("Operator 'the_unit' expects a list with structure "
-     "'(point point instant instant bool bool)', "
-     "'(ipoint ipoint bool bool)', "
-     "'(real real real bool instant instant bool bool)', "
-     "'(T instant instant bool bool)' or "
-     "'(iT duration bool bool)' for T in {bool, int, string }"
-     ", but it gets a list of type '" + argstr + "'.");
+    ("Operator 'the_unit' expects a list with structure\n"
+     "'(point point instant instant bool bool)', or \n"
+     "'(ipoint ipoint bool bool)', or \n"
+     "'(real real real bool instant instant bool bool)', or\n"
+     "'(T instant instant bool bool)', or \n"
+     "'(iT duration bool bool)'\n for T in {bool, int, string },\n"
+     ", but it gets a list of type \n'" + argstr + "'.");
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -8892,7 +8915,7 @@ Operator temporalunittheupoint( "the_unit",
                             TU_Select_TheUnit,
                             TU_TM_TheUnit);
 /*
-5.41 Operator ~the_ivalue~
+5.42 Operator ~the_ivalue~
 
 This operator creates an intime value from an instant and a value.
 
@@ -9023,42 +9046,490 @@ Operator temporalunittheivalue( "the_ivalue",
                             TU_TM_TheIvalue);
 
 /*
-5.41 Operator ~~
+5.41 Operator ~ComparePredicateValues~
+
+Here, we implement the binary comparison operators/predicates for (uT uT).
+The predicates are = (equality), # (unequality), < (smaller than),
+> (bigger than), <= (smaller than or equal to), >= (bigger than or equal to).
+
+The operators compare the values for each instant of time, so they will return
+a (stream ubool) for the intersection of arguments' deftimes.
+
+WARNING: Do not confuse this operators with the ~ComparePredicates~, which
+         compare the units as such.
 
 ----
-     (insert signature here)
+      =, #, <, >, <=, >=: For T in {int, bool, real, string, point, region}
+n/a +        uT x uT --> bool
 
 ----
 
 */
 
 /*
-5.43.1 Type mapping function for ~~
+5.43.1 Type mapping function for ~ComparePredicateValues~
+
+*/
+ListExpr TUCompareValuePredicatesTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  string argstr1, argstr2;
+
+  if( nl->ListLength( args ) == 2 )
+    {
+      arg1 = nl->First( args );
+      arg2 = nl->Second( args );
+      if (nl->Equal( arg1, arg2 ))
+        {
+          if( (nl->IsEqual( arg1, "ubool" ) )   ||
+              (nl->IsEqual( arg1, "uint" ) )    ||
+              (nl->IsEqual( arg1, "ureal" ) )   ||
+              (nl->IsEqual( arg1, "ustring" ) ) )
+            return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                                nl->SymbolAtom( "ubool" ));
+        }
+    }
+  // Error case:
+  nl->WriteToString(argstr1, arg1);
+  nl->WriteToString(argstr2, arg2);
+  ErrorReporter::ReportError(
+    "CompareTemporalValueOperator (one of <, >, <=, >=) "
+    "expects two arguments of "
+    "type 'uT', where T in {bool, int, real, string}. The "
+    "passed arguments have types '" + argstr1 + "' and '"
+    + argstr2 + "'.");
+  return nl->SymbolAtom("typeerror");
+}
+
+ListExpr TUCompareValueEqPredicatesTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  string argstr1, argstr2;
+
+  if( nl->ListLength( args ) == 2 )
+    {
+      arg1 = nl->First( args );
+      arg2 = nl->Second( args );
+      if (nl->Equal( arg1, arg2 ))
+        {
+          if( (nl->IsEqual( arg1, "ubool" ) )   ||
+              (nl->IsEqual( arg1, "uint" ) )    ||
+              (nl->IsEqual( arg1, "ureal" ) )   ||
+              (nl->IsEqual( arg1, "ustring" )   ||
+              (nl->IsEqual( arg1, "upoint" ) )   ||
+              (nl->IsEqual( arg1, "uregion" ) ) ) )
+            return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                                nl->SymbolAtom( "ubool" ));
+        }
+    }
+  // Error case:
+  nl->WriteToString(argstr1, arg1);
+  nl->WriteToString(argstr2, arg2);
+  ErrorReporter::ReportError(
+    "CompareTemporalValueOperator (one of =, #, <, >, , <=, >=) "
+    "expects two arguments of "
+    "type 'uT', where T in {bool, int, real, string, point, region}. The "
+    "passed arguments have types '" + argstr1 + "' and '"
+    + argstr2 + "'.");
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+5.43.2 Value mapping for operator ~ComparePredicateValues~
+
+*/
+template <class T, int opcode>
+int TU_VM_ComparePredicateValue_Const(Word* args, Word& result,
+                                      int message, Word& local, Supplier s)
+{
+  assert( (opcode >= 0) && (opcode <= 5));
+
+  ConstTemporalUnit<T> *u1  = (ConstTemporalUnit<T> *) args[0].addr;
+  ConstTemporalUnit<T> *u2  = (ConstTemporalUnit<T> *) args[1].addr;
+  bool *finished;
+  Interval<Instant> iv;
+  int p1;
+  bool compresult = false;
+
+  switch( message )
+  {
+    case OPEN:
+      finished = new bool(false); //
+      local = SetWord(finished);
+      return 0;
+
+    case REQUEST:
+      if( local.addr == 0 )
+        return CANCEL;
+      finished = (bool*) local.addr;
+      if ( finished )
+        return CANCEL;
+      if ( !u1->IsDefined() || !u2->IsDefined() )
+        { *finished = true; return CANCEL; }
+      if (!u1->timeInterval.Intersects(u2->timeInterval) )
+      { *finished = true; return CANCEL; }
+
+      u1->timeInterval.Intersection(u2->timeInterval, iv);
+      p1 = u1->constValue.Compare( &u2->constValue );
+
+      switch (opcode)
+      {
+        case 0: // is_equal
+          compresult = (p1 == 0); break;
+        case 1: // is_not_equal
+          compresult =  (p1 != 0); break;
+        case 2: // less_than
+          compresult = (p1 == -1); break;
+        case 3: // bigger_than
+          compresult = (p1 == 1); break;
+        case 4: // less_or_equal
+          compresult = (p1 < 1); break;
+        case 5: // bigger_or_equal
+          compresult = (p1 > -1); break;
+      } // end switch (opcode)
+      result = SetWord(
+          new ConstTemporalUnit<CcBool>(iv, CcBool(true, compresult) ) );
+      *finished = true; // only one result!
+      return YIELD;
+
+    case CLOSE:
+      if( local.addr != 0 )
+      {
+        finished = (bool*) local.addr;
+        delete finished;
+      }
+      return 0;
+  } // end switch (message)
+  return -1; // should not be reached
+}
+
+struct TUCompareValueLocalInfo
+{
+  bool finished;
+  int  NoOfResults;
+  int  NoOfResultsDelivered;
+  MBool *intersectionBool;
+};
+
+template <int opcode>
+int TU_VM_ComparePredicateValue_UPoint(Word* args, Word& result,
+                                   int message, Word& local, Supplier s)
+{
+  assert( (opcode >= 0) && (opcode <= 1));
+
+  UPoint *u1  = (UPoint*) args[0].addr;
+  UPoint *u2  = (UPoint*) args[1].addr;
+  const UPoint u1i, u2i;
+  UPoint uinters(true);
+  const UBool* cu;
+  TUCompareValueLocalInfo *localinfo;
+  Interval<Instant> iv, ivBefore, ivInters, ivAfter;
+  bool compresult = false;
+
+  switch( message )
+    {
+    case OPEN:
+
+      localinfo = new TUCompareValueLocalInfo;
+      local = SetWord(localinfo);
+      localinfo->finished = true;
+      localinfo->NoOfResults = 0;
+      localinfo->NoOfResultsDelivered = 0;
+      localinfo->intersectionBool = new MBool(3);
+
+      if ( !u1->IsDefined() || !u2->IsDefined() )
+        { cerr << "Undef input" << endl; return 0; }
+      if ( !u1->timeInterval.Intersects(u2->timeInterval) )
+        { cerr << "Deftimes do not intersect" << endl; return 0; }
+
+      cerr << "Deftime intersect" << endl;
+      u1->timeInterval.Intersection(u2->timeInterval, iv);
+      u1->Intersection(*u2, uinters);
+      ivInters = uinters.timeInterval;
+      compresult = (opcode == 0) ? uinters.IsDefined() : !uinters.IsDefined();
+
+      if (!uinters.IsDefined())
+      {// no intersection: result unit spans common interval totally
+        cerr << "No intersection" << endl;
+        localinfo->intersectionBool->Add(UBool(iv,CcBool(true,compresult)));
+        localinfo->NoOfResults++;
+        localinfo->finished = false;
+        return 0;
+      }
+      if ( uinters.IsDefined() &&
+          !(iv.start == ivInters.start && iv.lc == ivInters.lc))
+      {// before intersection interval
+        cerr << "Before intersection" << endl;
+        ivBefore=Interval<Instant>(iv.start,ivInters.start,iv.lc,!ivInters.lc);
+        localinfo->intersectionBool->Add(
+            ConstTemporalUnit<CcBool>(ivBefore, CcBool(true, !compresult)) );
+        localinfo->NoOfResults++;
+        localinfo->finished = false;
+      }
+      if (uinters.IsDefined())
+      { // at intersection interval
+        cerr << "At intersection" << endl;
+        localinfo->intersectionBool->Add(
+            ConstTemporalUnit<CcBool>(ivInters, CcBool(true, compresult)) );
+        localinfo->NoOfResults++;
+        localinfo->finished = false;
+      }
+      if (uinters.IsDefined() && !(iv.end==ivInters.end && iv.rc==ivInters.rc))
+      {// after intersection interval
+        cerr << "After intersection" << endl;
+        ivAfter = Interval<Instant>(ivInters.end,iv.end,!ivInters.rc,iv.rc);
+        localinfo->intersectionBool->Add(
+            ConstTemporalUnit<CcBool>(ivAfter, CcBool(true, !compresult)) );
+        localinfo->NoOfResults++;
+        localinfo->finished = false;
+      }
+      return 0;
+
+    case REQUEST:
+
+      if( local.addr == 0 )
+        return CANCEL;
+      localinfo = (TUCompareValueLocalInfo*) local.addr;
+      if ( localinfo->finished )
+        return CANCEL;
+      if ( localinfo->NoOfResultsDelivered >= localinfo->NoOfResults)
+        { localinfo->finished = true; return CANCEL; }
+      localinfo->intersectionBool->Get(localinfo->NoOfResultsDelivered, cu);
+      result = SetWord( cu->Clone() );
+      localinfo->NoOfResultsDelivered++;
+      return YIELD;
+
+    case CLOSE:
+      if( local.addr != 0 )
+      {
+        localinfo = (TUCompareValueLocalInfo*) local.addr;
+        delete localinfo->intersectionBool;
+        delete localinfo;
+      }
+      return 0;
+  } // end switch (message)
+  return -1; // should not be reached
+}
+
+template<int opcode>
+int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
+                                      int message, Word& local, Supplier s)
+{
+//   UReal   *u1  = (UReal*) args[0].addr;
+//   UReal   *u2  = (UReal*) args[1].addr;
+
+  cerr << "TU_VM_ComparePredicateValue_UReal() not yet implemented!"
+       << endl;
+  return -1;
+}
+
+template<int opcode>
+int TU_VM_ComparePredicateValue_URegion(Word* args, Word& result,
+                                        int message, Word& local, Supplier s)
+{
+//   URegion   *u1  = (URegion*) args[0].addr;
+//   URegion   *u2  = (URegion*) args[1].addr;
+
+  cerr << "TU_VM_ComparePredicateValue_URegion() not yet implemented!"
+       << endl;
+  return -1; // should not be reached
+}
+
+/*
+5.43.3 Specification for operator ~ComparePredicateValues~
 
 */
 
+const string TUEqVSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>For T in {bool, int, string, real, point, region}\n"
+  "(uT uT) -> bool\n</text--->"
+  "<text>_ = _</text--->"
+  "<text>The operator returns the value of the temporal predicate.</text--->"
+  "<text>query [const ubool value ((\"2010-11-11\" "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] = [const ubool value "
+  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
+  ") )";
+
+const string TUNEqVSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>For T in {bool, int, string, real, point, region}\n"
+  "(uT uT) -> (stream bool)\n</text--->"
+  "<text>_ # _</text--->"
+  "<text>The operator returns the value of the temporal predicate.</text--->"
+  "<text>query [const ubool value ((\"2010-11-11\" "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] # [const ubool value "
+  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
+  ") )";
+
+const string TULtVSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>For T in {bool, int, string, real}\n"
+  "(uT uT) -> (stream bool)\n</text--->"
+  "<text>_ < _</text--->"
+  "<text>The operator returns the value of the temporal predicate.</text--->"
+  "<text>query [const ubool value ((\"2010-11-11\" "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] < [const ubool value "
+  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
+  ") )";
+
+const string TUBtVSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>For T in {bool, int, string, real}\n"
+  "(uT uT) -> (stream bool)\n</text--->"
+  "<text>_ > _</text--->"
+  "<text>The operator returns the value of the temporal predicate.</text--->"
+  "<text>query [const ubool value ((\"2010-11-11\" "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] > [const ubool value "
+  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
+  ") )";
+
+const string TULtEqVSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>For T in {bool, int, string, real}\n"
+  "(uT uT) -> (stream bool)\n</text--->"
+  "<text>_ <= _</text--->"
+  "<text>The operator returns the value of the temporal predicate.</text--->"
+  "<text>query [const ubool value ((\"2010-11-11\" "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] <= [const ubool value "
+  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
+  ") )";
+
+const string TUBtEqVSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>For T in {bool, int, string, real}\n"
+  "(uT uT) -> (stream bool)\n</text--->"
+  "<text>_ >= _</text--->"
+  "<text>The operator returns the value of the temporal predicate.</text--->"
+  "<text>query [const ubool value ((\"2010-11-11\" "
+  "\"2011-01-03\" TRUE FALSE) TRUE)] >= [const ubool value "
+  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
+  ") )";
+
 /*
-5.43.2 Value mapping for operator ~~
+5.43.4 Selection Function of operator ~ComparePredicateValues~
 
 */
+template<int opcode>
+int TU_Select_ComparePredicateValue ( ListExpr args )
+{
+  string argstr;
+  nl->WriteToString(argstr, args);
 
+  if (argstr == "(ubool ubool)")
+    return 0 + opcode;
+  if (argstr == "(uint uint)")
+    return 6 + opcode;
+  if (argstr == "(ustring ustring)")
+    return 12 + opcode;
+  if (argstr == "(ureal ureal)")
+    return 18 + opcode;
+  if (argstr == "(upoint upoint)")
+    return 24 + opcode;
+  if (argstr == "(uregion uregion)")
+    return 26 + opcode;
+
+  return -1; // should not be reached!
+}
+
+ValueMapping TU_VMMap_ComparePredicateValue[] =
+  {
+    TU_VM_ComparePredicateValue_Const<CcBool,0>,    //  0
+    TU_VM_ComparePredicateValue_Const<CcBool,1>,
+    TU_VM_ComparePredicateValue_Const<CcBool,2>,
+    TU_VM_ComparePredicateValue_Const<CcBool,3>,
+    TU_VM_ComparePredicateValue_Const<CcBool,4>,
+    TU_VM_ComparePredicateValue_Const<CcBool,5>,    //  5
+    TU_VM_ComparePredicateValue_Const<CcInt,0>,     //  6
+    TU_VM_ComparePredicateValue_Const<CcInt,1>,
+    TU_VM_ComparePredicateValue_Const<CcInt,2>,
+    TU_VM_ComparePredicateValue_Const<CcInt,3>,
+    TU_VM_ComparePredicateValue_Const<CcInt,4>,
+    TU_VM_ComparePredicateValue_Const<CcInt,5>,    //  11
+    TU_VM_ComparePredicateValue_Const<CcString,0>, //  12
+    TU_VM_ComparePredicateValue_Const<CcString,1>,
+    TU_VM_ComparePredicateValue_Const<CcString,2>,
+    TU_VM_ComparePredicateValue_Const<CcString,3>,
+    TU_VM_ComparePredicateValue_Const<CcString,4>,
+    TU_VM_ComparePredicateValue_Const<CcString,5>, // 17
+    TU_VM_ComparePredicateValue_UReal<0>,          // 18
+    TU_VM_ComparePredicateValue_UReal<1>,
+    TU_VM_ComparePredicateValue_UReal<2>,
+    TU_VM_ComparePredicateValue_UReal<3>,
+    TU_VM_ComparePredicateValue_UReal<4>,
+    TU_VM_ComparePredicateValue_UReal<5>,          // 23
+    TU_VM_ComparePredicateValue_UPoint<0>,         // 24
+    TU_VM_ComparePredicateValue_UPoint<1>,         // 25
+    TU_VM_ComparePredicateValue_URegion<0>,        // 26
+    TU_VM_ComparePredicateValue_URegion<1>         // 27
+  };
 /*
-5.43.3 Specification for operator ~~
+5.43.5 Definition of operator ~ComparePredicateValues~
 
 */
+Operator temporalunitvalisequal
+(
+ "=",
+ TUEqVSpec,
+ 28,
+ TU_VMMap_ComparePredicateValue,
+ TU_Select_ComparePredicateValue<0>,
+ TUCompareValueEqPredicatesTypeMap
+ );
+
+Operator temporalunitvalisnotequal
+(
+ "#",
+ TUNEqVSpec,
+ 28,
+ TU_VMMap_ComparePredicateValue,
+ TU_Select_ComparePredicateValue<1>,
+ TUCompareValueEqPredicatesTypeMap
+ );
+
+Operator temporalunitvalsmaller
+(
+ "<",
+ TULtVSpec,
+ 24,
+ TU_VMMap_ComparePredicateValue,
+ TU_Select_ComparePredicateValue<2>,
+ TUCompareValuePredicatesTypeMap
+ );
+
+Operator temporalunitvalbigger
+(
+ ">",
+ TUBtVSpec,
+ 24,
+ TU_VMMap_ComparePredicateValue,
+ TU_Select_ComparePredicateValue<3>,
+ TUCompareValuePredicatesTypeMap
+ );
+
+Operator temporalunitvalsmallereq
+(
+ "<=",
+ TULtEqVSpec,
+ 24,
+ TU_VMMap_ComparePredicateValue,
+ TU_Select_ComparePredicateValue<4>,
+ TUCompareValuePredicatesTypeMap
+ );
+
+Operator temporalunitvalbiggereq
+(
+ ">=",
+ TUBtEqVSpec,
+ 24,
+ TU_VMMap_ComparePredicateValue,
+ TU_Select_ComparePredicateValue<5>,
+ TUCompareValuePredicatesTypeMap
+ );
+
 
 /*
-5.43.4 Selection Function of operator ~~
-
-*/
-
-/*
-5.43.5 Definition of operator ~~
-
-*/
-
-/*
-5.41 Operator ~~
+5.44 Operator ~~
 
 ----
      (insert signature here)
@@ -9089,6 +9560,76 @@ Operator temporalunittheivalue( "the_ivalue",
 
 /*
 5.44.5 Definition of operator ~~
+
+*/
+
+/*
+5.45 Operator ~~
+
+----
+     (insert signature here)
+
+----
+
+*/
+
+/*
+5.45.1 Type mapping function for ~~
+
+*/
+
+/*
+5.45.2 Value mapping for operator ~~
+
+*/
+
+/*
+5.45.3 Specification for operator ~~
+
+*/
+
+/*
+5.45.4 Selection Function of operator ~~
+
+*/
+
+/*
+5.45.5 Definition of operator ~~
+
+*/
+
+/*
+5.44 Operator ~~
+
+----
+     (insert signature here)
+
+----
+
+*/
+
+/*
+5.46.1 Type mapping function for ~~
+
+*/
+
+/*
+5.46.2 Value mapping for operator ~~
+
+*/
+
+/*
+5.46.3 Specification for operator ~~
+
+*/
+
+/*
+5.46.4 Selection Function of operator ~~
+
+*/
+
+/*
+5.46.5 Definition of operator ~~
 
 */
 
@@ -9142,6 +9683,12 @@ public:
     AddOperator( &temporalunitbigger );
     AddOperator( &temporalunitsmallereq );
     AddOperator( &temporalunitbiggereq );
+    AddOperator( &temporalunitvalisequal );
+    AddOperator( &temporalunitvalisnotequal );
+    AddOperator( &temporalunitvalsmaller );
+    AddOperator( &temporalunitvalbigger );
+    AddOperator( &temporalunitvalsmallereq );
+    AddOperator( &temporalunitvalbiggereq );
     AddOperator( &temporalunituint2ureal );
     AddOperator( &temporalunittheupoint );
     AddOperator( &temporalunittheivalue );

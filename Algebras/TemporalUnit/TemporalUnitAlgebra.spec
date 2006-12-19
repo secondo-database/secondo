@@ -40,6 +40,12 @@ operator printstream alias PRINTSTREAM pattern _ op
 operator uint2ureal alias UINT2UREAL pattern op ( _ )
 operator the_unit alias THE_UNIT pattern op( _ , _ , _ , _ , _ , _ , _ )
 operator the_ivalue alias THE_IVALUE pattern op( _ , _ )
+operator == alias VEQ pattern _ infixop _
+operator ## alias VNE pattern _ infixop _
+operator << alias VLT pattern _ infixop _
+operator >> alias VGT pattern _ infixop _
+operator <<== alias VLE pattern _ infixop _
+operator >>== alias VGE pattern _ infixop _
 
 # Operator signatures already defined elsewhere:
 
