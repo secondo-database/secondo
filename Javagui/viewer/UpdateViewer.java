@@ -22,14 +22,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    04-2005, Matthias Zielke
 
+   01-2006, T. Behr: generic approach for displaying different types realized
+   12-2006, T. Behr: SplitPane between relation and insertions introduced
+                     Removing rows from insertions implemented 
+
 
 */
 package viewer;
 
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 import java.util.Vector;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -82,6 +85,9 @@ public class UpdateViewer extends SecondoViewer implements TableModelListener {
 	private JScrollPane relScroll;
 
 	private JScrollPane insertScroll;
+
+  private JSplitPane insertSplit= new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+
 
 	// Dialog to show errormessages
 	private JDialog errorDialog;
@@ -300,12 +306,34 @@ Removes the relation that could be edited to insert new tuples.
 
 */
 	public void removeInsertRelation() {
-		this.remove(insertScroll);
+   //		this.remove(insertScroll);
+    this.remove(insertSplit);
+    this.add(relScroll, BorderLayout.CENTER);
 		insertData = null;
 		insertTable = null;
 		insertScroll = null;
 		this.validate();
 	}
+
+
+/* Adds remove functionality to the insertTable */
+private void addRemoveToInsertTable(){
+   if(insertTable==null){
+      return;
+   }
+   insertTable.addKeyListener(new KeyAdapter(){
+      public void keyPressed(KeyEvent evt){
+           if( (evt.getKeyCode()==KeyEvent.VK_DELETE) ||
+               (evt.getKeyCode()==KeyEvent.VK_CUT)){
+                 removeInsertSelection(); 
+           }
+      }
+   });
+
+
+}
+
+
 	
 /*
 Removes the last added tuple from the insert-relation
@@ -324,7 +352,12 @@ Removes the last added tuple from the insert-relation
 			insertData = newInsertData;
 			insertTable = new JTable(insertData, head);
 			insertScroll.setViewportView(insertTable);
-			this.add(insertScroll, BorderLayout.SOUTH);
+      insertSplit.setBottomComponent(insertScroll); 
+      this.add(insertSplit,BorderLayout.CENTER);
+      insertSplit.revalidate();
+      insertSplit.setDividerLocation(0.5); 
+      addRemoveToInsertTable();
+		//	this.add(insertScroll, BorderLayout.SOUTH);
 			this.validate();
 			this.repaint();
 			return true;
@@ -425,6 +458,55 @@ This method assures only the actually allowed actions can be executed or chosen.
 			break;
 		}
 	}
+
+
+/** Removes all selected rows from the InsertTable. **/
+private void removeInsertSelection(){
+    if(insertTable==null){ // no table available
+       return;
+    }
+    int[] selectedRows = insertTable.getSelectedRows();
+    if( selectedRows.length==0){
+        JOptionPane.showMessageDialog(this,"Nothing selected");
+        return;
+    }
+
+    if(JOptionPane.showConfirmDialog(this,"All selected rows will be deleted\n Do you want to continue?",
+                                  "Please Confirm",
+                                  JOptionPane.YES_NO_OPTION)==JOptionPane.NO_OPTION){
+         return; 
+    }
+
+    String[][] newInsertData = new String[insertData.length-selectedRows.length][insertData[0].length];
+    // copy all non-removed rows
+    int pos = 0; 
+    for(int i=0;i < insertData.length;i++){
+       if(pos>=selectedRows.length){ // all selected rows are removed already
+          newInsertData[i-pos] = insertData[i];
+       } else if(i==selectedRows[pos]){ // remove this row
+            pos++;
+       } else {
+          newInsertData[i-pos] = insertData[i];
+       }
+    }
+
+		insertData = newInsertData;
+		insertTable = new JTable(insertData, head);
+    addRemoveToInsertTable();
+		insertScroll.setViewportView(insertTable);
+    int lastPos = insertSplit.getDividerLocation();
+    insertSplit.setBottomComponent(insertScroll);
+    this.add(insertSplit,BorderLayout.CENTER);
+		this.validate();
+		this.repaint();
+    insertSplit.setDividerLocation(lastPos);
+}
+
+
+
+
+
+
 
 /*
 Creates a JTable from the parameter LE. If LE doesn't represent a relation 'null' will be
@@ -607,6 +689,7 @@ Shows an empty relation that can be edited to contain tuples that shall be inser
 			insertData[0][i] = "";
 		}
 		insertTable = new JTable(insertData, head);
+    addRemoveToInsertTable();
 		insertScroll = new JScrollPane() {
 			public Dimension getPreferredSize() {
 				return new Dimension(this.getParent().getWidth(), this
@@ -614,9 +697,14 @@ Shows an empty relation that can be edited to contain tuples that shall be inser
 			}
 		};
 		insertScroll.setViewportView(insertTable);
-		this.add(insertScroll, BorderLayout.SOUTH);
+    insertSplit.setTopComponent(relScroll);
+    insertSplit.setBottomComponent(insertScroll);
+    this.add(insertSplit, BorderLayout.CENTER); 
+    this.revalidate();
 		this.validate();
 		this.repaint();
+    insertSplit.revalidate();
+    insertSplit.setDividerLocation(0.5);
 	}
 
 /*
@@ -635,11 +723,15 @@ edited. Takes over the already edited insert-tuples and shows one more empty tup
 		}
 		insertData = newInsertData;
 		insertTable = new JTable(insertData, head);
+    addRemoveToInsertTable();
 		insertScroll.setViewportView(insertTable);
-		this.add(insertScroll, BorderLayout.SOUTH);
+    int lastPos = insertSplit.getDividerLocation();
+  //  insertSplit.setTopComponent(relScroll);
+    insertSplit.setBottomComponent(insertScroll);
+    this.add(insertSplit,BorderLayout.CENTER);
 		this.validate();
 		this.repaint();
-
+    insertSplit.setDividerLocation(lastPos);
 	}
 
 /*
@@ -864,6 +956,9 @@ criteria he wants to apply.
 			loadDialog.setSize(600, 500);
 			loadDialog.show();
 		}
+
+
+
 
 
 
