@@ -512,7 +512,7 @@ void Swop(double& a, double& b)
 Solves the Polynom ax+b=0 and gives back the number of solutiones.
 
 */
-int SolvePoly(double a, double b, double solution)
+int SolvePoly(const double &a, const double &b, double &solution)
 {
   if(TLA_DEBUG){
     cout<<"SolvePoly 1 called with a: "<<a<<" ,b: "<<b<<endl;}
@@ -534,8 +534,8 @@ Solves the Polynom ax\^2+bx+c=0 and gives back the number of solutiones.
 The solutions are given back in solution in ordedered style if sort is true.
 
 */
-int SolvePoly(double a, double b, double c, double solution[2],
- bool sort)
+int SolvePoly(const double &a, const double &b, const double &c,
+              double solution[2], const bool &sort)
 {
   int number = 0;
   double d;
@@ -583,8 +583,8 @@ Solves the Polynom ax\^3+bx\^2+cx+d=0 and gives back the number
 of solutiones. The solutions are given back in solution in ordedered style.
 
 */
-int SolvePoly(double a, double b, double c, double d,
- double solution[3])
+int SolvePoly(const double &a, const double &b, const double &c,
+              const double &d, double solution[3])
 {
   int number = 0;
   double disk, p, q;
@@ -656,8 +656,9 @@ Solves the Polynom ax\^4+bx\^3+cx\^2+dx+e=0 and gives back the number of
 solutiones. The solutions are given back in solution in ordedered style.
 
 */
-int SolvePoly(double a, double b, double c, double d, double e,
- double solution[4])
+int SolvePoly(const double &a, const double &b, const double &c,
+              const double &d, const double &e,
+              double solution[4])
 {
   int number1 = 0;
   int number2 = 0;
@@ -679,7 +680,8 @@ int SolvePoly(double a, double b, double c, double d, double e,
     if(TLA_DEBUG)
       for (int i = 0; i < number1; i++)
         cout<<"sol3["<<i<<"] = "<<sol3[i]<<endl;
-    z = a > 0.0 ? sol3[number1 - 1] : solution[0];
+//     z = a > 0.0 ? sol3[number1 - 1] : solution[0]; // Original line
+    z = a > 0.0 ? sol3[number1 - 1] : sol3[0]; // corrected line
     if(TLA_DEBUG)
       cout<<"z "<<z<<endl;
     number1 = SolvePoly(1.0, -b, (a * (c - z)), sol21, false);
