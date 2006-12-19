@@ -45,6 +45,7 @@ September 2003, M. Spiekermann: Implementation of getpagesize()
 #include <iostream>
 #include <string>
 
+#include "CharTransform.h"
 #include "WinUnix.h"
 #include "LogMsg.h"
 
@@ -52,6 +53,7 @@ using namespace std;
 
 const int
 WinUnix::endian_detect = 1;
+
 
 #ifdef SECONDO_WIN32
 const bool
@@ -73,16 +75,6 @@ WinUnix::getPageSize( void ) {
 #endif
 }
 
-string
-WinUnix::MakePath(const string& s)
-{ 
-  string t=s;
-  if ( win32 )
-    t = translate(t, "/", "\\");
-  else
-    t = translate(t, "\\", "/");
-  return t;  
-}
     
 /* Obtain a backtrace and print it to stdout. */
 #ifdef SECONDO_LINUX
@@ -170,6 +162,31 @@ Implementation of class ~CFile~
 
 */   
 
+const char*
+CFile::pathSepWin32 = "\\";
+
+const char*
+CFile::pathSepUnix = "/";
+
+#ifdef SECONDO_WIN32
+const char*
+CFile::pathSep = pathSepWin32;
+#else
+const char*
+CFile::pathSep = pathSepUnix;
+#endif  
+
+string
+CFile::MakePath(const string& s)
+{ 
+  string t=s;
+  if ( WinUnix::isWin32() )
+    t = translate(t, pathSepUnix, pathSepWin32);
+  else
+    t = translate(t, pathSepWin32, pathSepUnix);
+  return t;  
+}
+
 bool CFile::exists() 
 {
   bool rc = access( fileName.c_str(), F_OK ) != -1;
@@ -201,6 +218,25 @@ bool CFile::close()
   return object.good(); 
 }
 
+
+string CFile::getPath() const 
+{
+  size_t pos = fileName.find_last_of(pathSep);
+  if (pos != string::npos)
+    return fileName.substr(0,pos+1);
+  else
+    return "";
+}
+
+
+string CFile::getName() const
+{
+  string name = fileName;
+  string path = getPath();
+  if (path != "")
+    removePrefix(path, name);
+  return name;
+}
 
 
 

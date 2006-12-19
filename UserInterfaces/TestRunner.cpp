@@ -698,8 +698,20 @@ TestRunner::ProcessExamples()
 {
  
   cout << "Processing examples for " << iFileName << "!" << endl;
-  
+ 
+  const char* envVar = "SECONDO_BUILD_DIR";
+  char* buildDir = getenv(envVar);
+  if (buildDir == 0) {
+    cerr << "Variable " << envVar << " not defined!" << endl;
+    exit(1);
+  }
+
   // parse example file
+  CFile in(iFileName);
+  string algebraShort = in.getName();
+  removeSuffix(".examples", algebraShort); 
+  string algebra = algebraShort + "Algebra";
+
   ExampleReader examples(iFileName);
   bool parseOk = examples.parse();
   if (!parseOk) {
@@ -797,10 +809,35 @@ TestRunner::ProcessExamples()
                             expectedResult =  MakeConstant("string", tmpList); 
                             break;
                           }
-          default: { 
-                     cerr << "Result is not of type bool, int,"
-                          << " real, string, or text!" << endl;
-                     resultOk = false;
+          default: { // result will be interpreted as file name
+                     string file = info.result;
+                     string opIdent = info.opName;
+                     if (info.aliasName != "")
+                       opIdent = info.aliasName;
+
+                     if ( file == "file" ) {
+                       stringstream ss;
+                       ss << "result" << info.number 
+                          << "_" << opIdent << "_" << algebraShort;
+                       file = ss.str();
+                     }
+                     file = string(buildDir) + "/Selftest/" + file; 
+                     ListExpr objList = nl->Empty();
+                     resultOk = nl->ReadFromFile(file, objList);
+                     if ( nl->ListLength(objList) != 5 
+                          || !nl->IsEqual(nl->First(objList),"OBJECT") ) 
+                     {
+                       cerr << "File contains a list which " 
+                            << "is not in object format!" << endl;
+                       resultOk = false;
+                     }
+                     else
+                     {
+                       ListExpr fourth = nl->Fourth(objList);
+                       ListExpr fifth = nl->Fifth(objList);
+                       expectedResult = nl->TwoElemList(fourth, fifth);
+                     }  
+                   
                    }                
        } 
        }
@@ -822,10 +859,6 @@ TestRunner::ProcessExamples()
      CallSecondo2(); 
   }
 
-  string algebra = iFileName;
-  removeSuffix(".examples", algebra);
-  removePrefix("tmp/", algebra);
-  algebra += "Algebra";
   testCaseNumber++;
   testCaseName = "Coverage test for " + algebra;
   testCaseLine = 0;

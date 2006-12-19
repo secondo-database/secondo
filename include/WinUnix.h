@@ -55,9 +55,10 @@ public:
   
    static void stacktrace(const std::string& fullAppName="");
   
-   static inline bool WindowsHost() { return win32; }
+   static inline bool WindowsHost() { return isWin32(); }
+   static inline bool isWin32() { return win32; }
+   static inline bool isUnix() { return !win32; }
 
-   static string MakePath(const string& s);
    
 private:
    static const int endian_detect;
@@ -71,11 +72,10 @@ A Class for handling text files
 
 class CFile {
 
-   string fileName;
    fstream object;
 
   public:
-   CFile(const string& name) : fileName(WinUnix::MakePath(name)) 
+   CFile(const string& name) : fileName(MakePath(name)) 
    { object.clear(); }
    ~CFile() {}
    bool exists();
@@ -88,7 +88,15 @@ class CFile {
    bool good() { return object.good(); }
    fstream& ios() { return object; }
 
+   const string fileName;
+   string getPath() const;
+   string getName() const;
 
+   static const char* pathSepWin32;
+   static const char* pathSepUnix;
+   static const char* pathSep;
+
+   static string MakePath(const string& s);
 }; 
 
   /*

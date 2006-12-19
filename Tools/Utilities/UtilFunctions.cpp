@@ -691,7 +691,7 @@ bool hasPrefix(const string& pre, const string& s)
 
 bool removePrefix(const string& pre, string& s)
 {
-  size_t pos = s.rfind(pre);
+  size_t pos = s.find(pre);
   if (pos == 0) {
     s = s.substr(pre.length());
     return true;

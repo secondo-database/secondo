@@ -40,6 +40,7 @@ using namespace std;
 struct ExampleInfo {
 
   string opName;
+  string aliasName;
   int number;
   int lineNo;
   string signature;
@@ -48,6 +49,7 @@ struct ExampleInfo {
 
   ExampleInfo() {
     opName="";
+    aliasName="";
     number=0;
     lineNo=0;
     signature="";
@@ -197,7 +199,7 @@ a*bc* with single characters a,b and c.
     lineCtr = 0;
     line="";
     lineRest="";
-    fileName = WinUnix::MakePath(file);
+    fileName = file;
     algName=algebra;
     database="";
     restore=false;
@@ -278,8 +280,15 @@ a*bc* with single characters a,b and c.
           if (!match(Operator))
             return false;
           expected = Number;
-          info.opName = lineRest;
-	  key = info.opName;
+          size_t pos = lineRest.find(" alias");
+
+          if ( pos != string::npos )
+            info.aliasName = trim( lineRest.substr(pos+6) );
+          else 
+            pos = lineRest.length(); 	  
+
+          info.opName = trim( lineRest.substr(0,pos) );
+          key = info.opName;
           //examples[key].push_back(info);
           examples[key] = info;
           break;
@@ -351,7 +360,7 @@ a*bc* with single characters a,b and c.
 
     CFile out(fileName);
     if ( !out.overwrite() ) {
-      cerr << "Opening " << fileName << " failed!" << endl;
+      cerr << "Opening " << out.fileName << " failed!" << endl;
       return false;
     } 
     
