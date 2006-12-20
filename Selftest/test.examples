@@ -7,6 +7,12 @@ Signature: (stream tuple) -> real
 Example  : query Staedte feed avg[Bev] 
 Result   : 325017.2413793103
 
+Operator : avg 
+Number   : 1
+Signature: (stream tuple) -> real
+Example  : query plz feed avg[PLZ] 
+Result   : 47939.1677127002
+
 
 Operator : +
 Number   : 1
