@@ -800,8 +800,8 @@ TestRunner::ProcessExamples()
                         }               
           case RealType:{
                           expectedResult =  MakeConstant("real", tmpList); 
-                          //realValTolerance.isRelative = false;
-                          //realValTolerance.value = 0.001;
+                          realValTolerance.isRelative = false;
+                          realValTolerance.value = 1e-10;
                           break;
                         }
           case TextType:{

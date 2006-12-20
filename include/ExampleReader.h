@@ -48,6 +48,10 @@ struct ExampleInfo {
   string result;
 
   ExampleInfo() {
+    reset();
+  } 
+
+  void reset() {
     opName="";
     aliasName="";
     number=0;
@@ -55,7 +59,7 @@ struct ExampleInfo {
     signature="";
     example="";
     result="";
-  } 
+  }
 
   void print(ostream& os) const
   {
@@ -280,6 +284,8 @@ a*bc* with single characters a,b and c.
           if (!match(Operator))
             return false;
           expected = Number;
+
+          info.reset(); 
           size_t pos = lineRest.find(" alias");
 
           if ( pos != string::npos )
