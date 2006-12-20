@@ -274,6 +274,10 @@ DisplayTTY::DisplayReal( ListExpr type, ListExpr numType, ListExpr value )
     double d = nl->RealValue( value );
     int p = min( static_cast<int>(ceil(log10(d))) + 10, 16 );
     cout << setprecision(p) << d;
+
+    if ( RTFlag::isActive("TTY:Real:16digits") ) {
+      cout << " (16digits = " << setprecision(16) << d << ")";
+    }
   }
 }
 
