@@ -1,0 +1,1043 @@
+Database: berlintest
+Restore: NO
+
+Operator : # alias NOTEQUAL 
+Number   : 1
+Signature: int x mint -> mbool
+Example  : query 2 # noAtCenter
+Result   : file
+
+
+Operator : # alias NOTEQUAL
+Number   : 2
+Signature: bool x mbool -> mbool
+Example  : query TRUE # (train1 inside mrain)
+Result   : file
+
+
+Operator : # alias NOTEQUAL
+Number   : 3
+Signature: string x mstring -> mbool
+Example  : query "Zitadelle" # train7upsights
+Result   : file
+
+
+Operator : # alias NOTEQUAL
+Number   : 4
+Signature: real x mreal -> mbool
+Example  : query 3000.0 # distance(train1, mehringdamm)
+Result   : "Error: returns wrong value list"
+
+
+Operator : # alias NOTEQUAL
+Number   : 5
+Signature: point x mpoint -> mbool
+Example  : query mehringdamm # train6
+Result   : file
+
+
+Operator : # alias NOTEQUAL
+Number   : 6
+Signature: region x mregion -> mbool
+Example  : query val(mrain atinstant eight) # mrain
+Result   : file
+
+
+Operator : # alias NOTEQUAL
+Number   : 7
+Signature: mint x mint -> mbool
+Example  : query noAtCenter # noAtTiergarten
+Result   : file
+
+
+Operator : # alias NOTEQUAL
+Number   : 8
+Signature: mbool x mbool -> mbool
+Example  : query (train7down inside mrain2) # (train7up inside mrain2)
+Result   : file
+
+
+Operator : # alias NOTEQUAL
+Number   : 9
+Signature: mstring x mstring -> mbool
+Example  : query train7upsights # train7downsights
+Result   : file
+
+
+Operator : # alias NOTEQUAL
+Number   : 10
+Signature: mreal x mreal -> mbool
+Example  : query distance(train7,mehringdamm) # distance(train7down,mehringdamm)
+Result   : "Error: returns wrong value list"
+
+
+Operator : # alias NOTEQUAL
+Number   : 11
+Signature: mpoint x mpoint -> mbool
+Example  : query train7 # train7down
+Result   : file
+
+
+Operator : # alias NOTEQUAL
+Number   : 12
+Signature: mregion x mregion -> mbool
+Example  : query mrain # mrain3
+Result   : file
+
+Operator : # alias NOTEQUAL
+Number   : 13
+Signature: mint x int -> mbool
+Example  : query noAtCenter # 2
+Result   : file
+
+
+Operator : # alias NOTEQUAL
+Number   : 14
+Signature: mbool x bool -> mbool
+Example  : query (train1 inside mrain) # TRUE
+Result   : file
+
+
+Operator : # alias NOTEQUAL
+Number   : 15
+Signature: mstring x string -> mbool
+Example  : query train7upsights # "Zitadelle"
+Result   : file
+
+
+Operator : # alias NOTEQUAL
+Number   : 16
+Signature: mreal x real -> mbool
+Example  : query distance(train1, mehringdamm) # 3000.0
+Result   : "Error: returns wrong value list"
+
+
+Operator : # alias NOTEQUAL
+Number   : 17
+Signature: mpoint x point -> mbool
+Example  : query train6 # mehringdamm
+Result   : file
+
+
+Operator : # alias NOTEQUAL
+Number   : 18
+Signature: mregion x region -> mbool
+Example  : query mrain # val(mrain atinstant eight)
+Result   : file
+
+
+Operator : + alias PLUS
+Number   : 1
+Signature: mint x mint -> mint
+Example  : query noAtCenter + noAtTiergarten
+Result   : file
+
+
+Operator : <= alias LOWEREQUAL
+Number   : 1
+Signature: int x mint -> mbool
+Example  : query 1 <= noAtCenter
+Result   : file
+
+
+Operator : <= alias LOWEREQUAL
+Number   : 2
+Signature: bool x mbool -> mbool
+Example  : query FALSE < (train1 inside mrain)
+Result   : file
+
+
+Operator : <= alias LOWEREQUAL
+Number   : 3
+Signature: string x mstring -> mbool
+Example  : query "Kudamm-Karree" <= train7upsights 
+Result   : file
+
+
+Operator : <= alias LOWEREQUAL
+Number   : 4
+Signature: real x mreal -> mbool
+Example  : query 1000.0 <= distance(train1, mehringdamm)
+Result   : "Error: returns wrong value list"
+
+
+Operator : <= alias LOWEREQUAL
+Number   : 5
+Signature: mint x mint -> mbool
+Example  : query noAtCenter <= noAtTiergarten
+Result   : file
+
+
+Operator : <= alias LOWEREQUAL
+Number   : 6
+Signature: mbool x mbool -> mbool
+Example  : query (train7down inside mrain2) <= (train7up inside mrain2)
+Result   : file
+
+
+Operator : <= alias LOWEREQUAL
+Number   : 7
+Signature: mstring x mstring -> mbool
+Example  : query train7upsights <= train7downsights
+Result   : file
+
+
+Operator : <= alias LOWEREQUAL
+Number   : 8
+Signature: mreal x mreal -> mbool
+Example  : query distance(train7,mehringdamm) < distance(train7down,mehringdamm)
+Result   : "Error: resturns wrong value list"
+
+Operator : <= alias LOWEREQUAL
+Number   : 9
+Signature: mint x int -> mbool
+Example  : query noAtCenter <= 1
+Result   : file
+
+
+Operator : <= alias LOWEREQUAL
+Number   : 10
+Signature: mbool x bool -> mbool
+Example  : query (train1 inside mrain) <= FALSE
+Result   : file
+
+
+Operator : <= alias LOWEREQUAL
+Number   : 11
+Signature: mstring x string -> mbool
+Example  : query train7upsights <= "Kudamm-Karree" 
+Result   : file
+
+
+Operator : <= alias LOWEREQUAL
+Number   : 12
+Signature: mreal x real -> mbool
+Example  : query distance(train1, mehringdamm) <= 1000.0
+Result   : "Error: returns wrong value list"
+
+
+Operator : < alias LOWER
+Number   : 1
+Signature: int x mint -> mbool
+Example  : query 0 < noAtCenter
+Result   : file
+
+
+Operator : < alias LOWER
+Number   : 2
+Signature: bool x mbool -> mbool
+Example  : query FALSE < (train1 inside mrain)
+Result   : file
+
+
+Operator : < alias LOWER
+Number   : 3
+Signature: string x mstring -> mbool
+Example  : query "Kudamm-Karree" < train7upsights
+Result   : file
+
+
+Operator : < alias LOWER
+Number   : 4
+Signature: real x mreal -> mbool
+Example  : query 1000.0 < distance(train1, mehringdamm)
+Result   : file
+
+
+Operator : < alias LOWER
+Number   : 5
+Signature: mint x mint -> mbool
+Example  : query noAtTiergarten < noAtCenter
+Result   : file
+
+
+Operator : < alias LOWER
+Number   : 6
+Signature: mbool x mbool -> mbool
+Example  : query (train7down inside mrain2) < (train7up inside mrain2)
+Result   : file
+
+
+Operator : < alias LOWER
+Number   : 7
+Signature: mstring x mstring -> mbool
+Example  : query train7upsights < train7downsights
+Result   : file
+
+
+Operator : < alias LOWER
+Number   : 8
+Signature: mreal x mreal -> mbool
+Example  : query distance(train7,mehringdamm) < distance(train7down,mehringdamm)
+Result   : file
+
+Operator : < alias LOWER
+Number   : 9
+Signature: mint x int -> mbool
+Example  : query noAtCenter < 0
+Result   : file
+
+
+Operator : < alias LOWER
+Number   : 10
+Signature: mbool x bool -> mbool
+Example  : query (train1 inside mrain) < FALSE
+Result   : file
+
+
+Operator : < alias LOWER
+Number   : 11
+Signature: mstring x string -> mbool
+Example  : query train7upsights < "Kudamm-Karree"
+Result   : file
+
+
+Operator : < alias LOWER
+Number   : 12
+Signature: mreal x real -> mbool
+Example  : query distance(train1, mehringdamm) < 1000.0
+Result   : file
+
+
+Operator : = alias EQUAL
+Number   : 1
+Signature: int x mint -> mbool
+Example  : query 2 = noAtCenter
+Result   : file
+
+
+Operator : = alias EQUAL
+Number   : 2
+Signature: bool x mbool -> mbool
+Example  : query TRUE = (train1 inside mrain)
+Result   : file
+
+
+Operator : = alias EQUAL
+Number   : 3
+Signature: string x mstring -> mbool
+Example  : query "Zitadelle" = train7upsights
+Result   : file
+
+
+Operator : = alias EQUAL
+Number   : 4
+Signature: real x mreal -> mbool
+Example  : query 3000.0 = distance(train1, mehringdamm)
+Result   : "Error: returns wrong value list"
+
+
+Operator : = alias EQUAL
+Number   : 5
+Signature: point x mpoint -> mbool
+Example  : query mehringdamm = train6
+Result   : file
+
+
+Operator : = alias EQUAL
+Number   : 6
+Signature: region x mregion -> mbool
+Example  : query val(mrain atinstant eight) = mrain
+Result   : file
+
+
+Operator : = alias EQUAL
+Number   : 7
+Signature: mint x mint -> mbool
+Example  : query noAtCenter = noAtTiergarten
+Result   : file
+
+
+Operator : = alias EQUAL
+Number   : 8
+Signature: mbool x mbool -> mbool
+Example  : query (train7down inside mrain2) = (train7up inside mrain2)
+Result   : file
+
+
+Operator : = alias EQUAL
+Number   : 9
+Signature: mstring x mstring -> mbool
+Example  : query train7upsights = train7downsights
+Result   : file
+
+
+Operator : = alias EQUAL
+Number   : 10
+Signature: mreal x mreal -> mbool
+Example  : query distance(train7,mehringdamm) = distance(train7down,mehringdamm)
+Result   : "Error: returns wrong value list"
+
+Operator : = alias EQUAL
+Number   : 11
+Signature: mpoint x mpoint -> mbool
+Example  : query train7 = train7down
+Result   : file
+
+
+Operator : = alias EQUAL
+Number   : 12
+Signature: mregion x mregion -> mbool
+Example  : query mrain = mrain3
+Result   : file
+
+Operator : = alias EQUAL
+Number   : 13
+Signature: mint x int -> mbool
+Example  : query noAtCenter = 2
+Result   : file
+
+
+Operator : = alias EQUAL
+Number   : 14
+Signature: mbool x bool -> mbool
+Example  : query (train1 inside mrain) = TRUE
+Result   : file
+
+
+Operator : = alias EQUAL
+Number   : 15
+Signature: mstring x string -> mbool
+Example  : query train7upsights = "Zitadelle" 
+Result   : file
+
+
+Operator : = alias EQUAL
+Number   : 16
+Signature: mreal x real -> mbool
+Example  : query distance(train1, mehringdamm) = 3000.0
+Result   : "Error: returns wrong value list"
+
+
+Operator : = alias EQUAL
+Number   : 17
+Signature: mpoint x point -> mbool
+Example  : query train6 = mehringdamm
+Result   : file
+
+
+Operator : = alias EQUAL
+Number   : 18
+Signature: mregion x region -> mbool
+Example  : query mrain = val(mrain atinstant eight)
+Result   : file
+
+
+Operator : > alias GREATER
+Number   : 1
+Signature: int x mint -> mbool
+Example  : query 1 > noAtCenter
+Result   : file
+
+
+Operator : > alias GREATER
+Number   : 2
+Signature: bool x mbool -> mbool
+Example  : query TRUE > (train1 inside mrain)
+Result   : file
+
+
+Operator : > alias GREATER
+Number   : 3
+Signature: string x mstring -> mbool
+Example  : query train7upsights > "Kudamm-Karree" 
+Result   : file
+
+
+Operator : > alias GREATER
+Number   : 4
+Signature: real x mreal -> mbool
+Example  : query 1000.0 > distance(train1, mehringdamm)
+Result   : "Error: returns wrong value list"
+
+
+Operator : > alias GREATER
+Number   : 5
+Signature: mint x mint -> mbool
+Example  : query noAtCenter > noAtTiergarten
+Result   : file
+
+
+Operator : > alias GREATER
+Number   : 6
+Signature: mbool x mbool -> mbool
+Example  : query (train7down inside mrain2) > (train7up inside mrain2)
+Result   : file
+
+
+Operator : > alias GREATER
+Number   : 7
+Signature: mstring x mstring -> mbool
+Example  : query train7upsights > train7downsights
+Result   : file
+
+
+Operator : > alias GREATER
+Number   : 8
+Signature: mreal x mreal -> mbool
+Example  : query distance(train7,mehringdamm) > distance(train7down,mehringdamm)
+Result   : "Error: returns wrong value list"
+
+Operator : > alias GREATER
+Number   : 9
+Signature: mint x int -> mbool
+Example  : query noAtCenter > 1
+Result   : file
+
+
+Operator : > alias GREATER
+Number   : 10
+Signature: mbool x bool -> mbool
+Example  : query (train1 inside mrain) > TRUE
+Result   : file
+
+
+Operator : > alias GREATER
+Number   : 11
+Signature: mstring x string -> mbool
+Example  : query train7upsights > "Kudamm-Karree" 
+Result   : file
+
+
+Operator : > alias GREATER
+Number   : 12
+Signature: mreal x real -> mbool
+Example  : query distance(train1, mehringdamm) > 1000.0
+Result   : file
+
+
+Operator : >= alias GREATEREQUAL alias GREATEREQUAL
+Number   : 1
+Signature: int x mint -> mbool
+Example  : query 1 >= noAtCenter
+Result   : file
+
+
+Operator : >= alias GREATEREQUAL alias GREATEREQUAL
+Number   : 2
+Signature: bool x mbool -> mbool
+Example  : query TRUE >= (train1 inside mrain)
+Result   : file
+
+
+Operator : >= alias GREATEREQUAL
+Number   : 3
+Signature: string x mstring -> mbool
+Example  : query "Kudamm-Karree" >= train7upsights
+Result   : file
+
+
+Operator : >= alias GREATEREQUAL
+Number   : 4
+Signature: real x mreal -> mbool
+Example  : query 1000.0 >= distance(train1, mehringdamm)
+Result   : "Error: returns wrong value list"
+
+
+Operator : >= alias GREATEREQUAL
+Number   : 5
+Signature: mint x mint -> mbool
+Example  : query noAtTiergarten >= noAtCenter
+Result   : file
+
+
+Operator : >= alias GREATEREQUAL
+Number   : 6
+Signature: mbool x mbool -> mbool
+Example  : query (train7down inside mrain2) >= (train7up inside mrain2)
+Result   : file
+
+
+Operator : >= alias GREATEREQUAL
+Number   : 7
+Signature: mstring x mstring -> mbool
+Example  : query train7upsights >= train7downsights
+Result   : file
+
+
+Operator : >= alias GREATEREQUAL
+Number   : 8
+Signature: mreal x mreal -> mbool
+Example  : query distance(train7,mehringdamm) >= distance(train7down,mehringdamm)
+Result   : "Error: returns wrong value list"
+
+Operator : >= alias GREATEREQUAL
+Number   : 9
+Signature: mint x int -> mbool
+Example  : query noAtCenter >= 1
+Result   : file
+
+
+Operator : >= alias GREATEREQUAL
+Number   : 10
+Signature: mbool x bool -> mbool
+Example  : query (train1 inside mrain) >= TRUE
+Result   : file
+
+
+Operator : >= alias GREATEREQUAL
+Number   : 11
+Signature: mstring x string -> mbool
+Example  : query train7upsights >= "Kudamm-Karree" 
+Result   : file
+
+
+Operator : >= alias GREATEREQUAL
+Number   : 12
+Signature: mreal x real -> mbool
+Example  : query distance(train1, mehringdamm) >= 1000.0
+Result   : "Error: returns wrong value list"
+
+
+Operator : abs
+Number   : 1
+Signature: mreal -> mreal
+Example  : query abs([const mreal value((("2003-11-1" "2003-11-5" TRUE TRUE)(0.0 0.0 -5000.0 FALSE)))]) 
+Result   : file
+
+
+Operator : and
+Number   : 1
+Signature: mbool x bool -> mbool
+Example  : query (train7down inside mrain2) and TRUE
+Result   : file
+
+
+Operator : and
+Number   : 2
+Signature: bool x mbool -> mbool
+Example  : query TRUE and (train7down inside mrain2)
+Result   : file
+
+
+Operator : and
+Number   : 3
+Signature: mbool x mbool -> mbool
+Example  : query (train7 inside mrain2) and (train7down inside mrain2)
+Result   : file
+
+
+Operator : area
+Number   : 1
+Signature: mregion -> mreal
+Example  : query area(move(train1, Sehenswuerdreg feed extract[geoData]))
+Result   : "Error: returns negative value for the area"
+
+
+Operator : concat
+Number   : 1
+Signature: mpoint x mpoint -> mpoint
+Example  : query  train1first train1second concat
+Result   : file
+
+
+Operator : distance
+Number   : 1
+Signature: mreal x real -> mreal
+Example  : query distance(distance(train7, mehringdamm), 200.0)
+Result   : file
+
+
+Operator : distance
+Number   : 2
+Signature: mreal x mreal -> mreal
+Example  : query distance(distance(train1, mehringdamm), distance(train7, mehringdamm))
+Result   : file
+
+
+Operator : distance
+Number   : 3
+Signature: real x mreal -> mreal
+Example  : query distance(200.0, distance(train7, mehringdamm))
+Result   : file
+
+
+Operator : distance
+Number   : 4
+Signature: mpoint x mpoint -> mreal
+Example  : query distance(train7up, train7down)
+Result   : file
+
+
+Operator : inside
+Number   : 1
+Signature: mpoint x points -> mbool
+Example  : query train7 inside train7stations
+Result   : file
+
+
+Operator : inside
+Number   : 2
+Signature: mpoint x line -> mbool
+Example  : query train7 inside train7sections
+Result   : "Error: returns wrong value list, maybe rounding errors."
+
+
+Operator : inside
+Number   : 3
+Signature: mregion x points -> mbool
+Example  : query mrain inside (intersection((val(mrain atinstant six30)), Sehenswuerdaspoints))
+Result   : file
+
+
+Operator : inside
+Number   : 4
+Signature: mregion x line -> mbool
+Example  : query mrain inside mrainline
+Result   : file
+
+
+Operator : intersection
+Number   : 1
+Signature: int x mint -> mint
+Example  : query intersection(2, noAtCenter)
+Result   : file
+
+
+Operator : intersection
+Number   : 2
+Signature: bool x mbool -> mbool
+Example  : query intersection(FALSE, (train1 inside mrain))
+Result   : file
+
+
+Operator : intersection
+Number   : 3
+Signature: string x mstring -> mstring
+Example  : query intersection("Kudamm-Karree", train7upsights) 
+Result   : file
+
+
+Operator : intersection
+Number   : 4
+Signature: real x mreal -> mreal
+Example  : query intersection(3000.0, intersection(train1, mehringdamm)) 
+Result   : "Error: returns wrong value list"
+
+
+Operator : intersection
+Number   : 5
+Signature: mint x mint -> mint
+Example  : query intersection(noAtCenter, noAtTiergarten) 
+Result   : file
+
+Operator : intersection
+Number   : 6
+Signature: mbool x mbool -> mbool
+Example  : query intersection((train7 inside mrain2),(train7up inside mrain2)) 
+Result   : file
+
+
+Operator : intersection
+Number   : 7
+Signature: mstring x mstring -> mstring
+Example  : query intersection(train7upsights, train7downsights) 
+Result   : file
+
+ 
+Operator : intersection
+Number   : 8
+Signature: mreal x mreal -> mreal
+Example  : query intersection(distance(train7,mehringdamm), distance(train7down,mehringdamm))
+Result   : "Error: returns wrong value list"
+
+Operator : intersection
+Number   : 9
+Signature: mint x int -> mint
+Example  : query intersection(noAtCenter,2)
+Result   : file
+
+
+Operator : intersection
+Number   : 10
+Signature: mbool x bool -> mbool
+Example  : query intersection((train1 inside mrain),FALSE)
+Result   : file
+
+
+Operator : intersection
+Number   : 11
+Signature: mstring x string -> mstring
+Example  : query intersection(train7upsights, "Kudamm-Karree") 
+Result   : file
+
+
+Operator : intersection
+Number   : 12
+Signature: mreal x real -> mreal
+Example  : query intersection(intersection(train1, mehringdamm), 3000.0) 
+Result   : "Error: returns wrong value list"
+
+
+Operator : intersection
+Number   : 13
+Signature: mpoint x mpoint -> mpoint
+Example  : query intersection(train7, train7down)  
+Result   : file
+
+
+Operator : isempty
+Number   : 1
+Signature: mbool -> mbool
+Example  : query isempty(train1 inside mrain)
+Result   : file
+ 
+
+Operator : isempty
+Number   : 2
+Signature: mint -> mbool
+Example  : query isempty(noAtCenter)
+Result   : "Error: returns an empty mbool value"
+
+
+Operator : isempty
+Number   : 3
+Signature: mstring -> mbool
+Example  : query isempty(train7upsights)
+Result   : file
+
+
+Operator : isempty
+Number   : 4
+Signature: mreal -> mbool
+Example  : query isempty(distance(train1, mehringdamm))
+Result   : file
+
+
+Operator : isempty
+Number   : 5
+Signature: mpoint -> mbool
+Example  : query isempty(train7up)
+Result   : file
+
+
+Operator : isempty
+Number   : 6
+Signature: mregion -> mbool
+Example  : query isempty(msnow)
+Result   : file
+
+
+Operator : minus
+Number   : 1
+Signature: int x mint -> mint
+Example  : query 2 minus noAtCenter
+Result   : file
+
+
+Operator : minus
+Number   : 2 
+Signature: bool x mbool -> mbool
+Example  : query TRUE minus (train7 inside mrain2)
+Result   : file
+
+
+Operator : minus
+Number   : 3
+Signature: string x mstring -> mstring
+Example  : query "Zitadelle" minus train7upsights
+Result   : file
+
+
+Operator : minus
+Number   : 4
+Signature: real x mreal -> mreal
+Example  : query 3000.0 minus (distance(train7, mehringdamm))
+Result   : file
+
+
+Operator : minus
+Number   : 5
+Signature: point x mpoint -> mpoint
+Example  : query mehringdamm minus train7
+Result   : file
+
+
+Operator : minus
+Number   : 6
+Signature: mint x int -> mint
+Example  : query noAtCenter minus 2
+Result   : file
+
+
+Operator : minus
+Number   : 7 
+Signature: mbool x bool -> mbool
+Example  : query (train7 inside mrain2) minus TRUE
+Result   : file
+
+
+Operator : minus
+Number   : 8
+Signature: mstring x string -> mstring
+Example  : query train7upsights minus "Zitadelle"
+Result   : file
+
+
+Operator : minus
+Number   : 9
+Signature: mreal x real -> mreal
+Example  : query (distance(train7, mehringdamm)) minus 3000.0
+Result   : file
+
+
+Operator : minus
+Number   : 10
+Signature: mpoint x point -> mpoint
+Example  : query train7 minus mehringdamm
+Result   : file
+
+
+Operator : minus
+Number   : 11
+Signature: mint x mint -> mint
+Example  : query noAtTiergarten minus noAtCenter
+Result   : file
+
+
+Operator : minus
+Number   : 12 
+Signature: mbool x mbool -> mbool
+Example  : query (train7 inside mrain2) minus (train7down inside mrain2)
+Result   : file
+
+
+Operator : minus
+Number   : 13
+Signature: mstring x mstring -> mstring
+Example  : query train7downsights minus train7upsights
+Result   : file
+
+
+Operator : minus
+Number   : 14
+Signature: mreal x mreal -> mreal
+Example  : query (distance(train1, mehringdamm)) minus (distance(train7, mehringdamm))
+Result   : file
+
+
+Operator : minus
+Number   : 15
+Signature: mpoint x mpoint -> mpoint
+Example  : query train7 minus train7down
+Result   : file
+
+
+Operator : minus
+Number   : 16
+Signature: region x mpoint -> mregion
+Example  : query (val(mrain2 atinstant six30)) minus train7down
+Result   : file
+
+
+Operator : minus
+Number   : 17 
+Signature: mregion x point -> mregion
+Example  : query mrain2 minus (val(train7down atinstant six30))
+Result   : file
+
+
+Operator : minus
+Number   : 18
+Signature: mregion x mpoint -> mregion
+Example  : query mrain2 minus train7down
+Result   : "Error: returns wrong value list"
+
+
+Operator : minus
+Number   : 19
+Signature: mregion x points -> mregion
+Example  : query mrain minus Sehenswuerdaspoints
+Result   : file
+
+
+Operator : minus
+Number   : 20
+Signature: mregion x line -> mpoint
+Example  : query mrain2 minus train7sections
+Result   : file
+
+
+Operator : no_components
+Number   : 1
+Signature: mregion -> mint
+Example  : query no_components(mrain)
+Result   : file
+
+
+Operator : not
+Number   : 1
+Signature: mbool -> mbool
+Example  : query not(train7 inside mrain2)
+Result   : file
+
+
+Operator : or
+Number   : 1
+Signature: mbool x bool -> mbool
+Example  : query (train7down inside mrain2) or FALSE
+Result   : file
+
+
+Operator : or
+Number   : 2
+Signature: bool x mbool -> mbool
+Example  : query FALSE or (train7down inside mrain2)
+Result   : file
+
+
+Operator : or
+Number   : 3
+Signature: mbool x mbool -> mbool
+Example  : query (train7 inside mrain2) or (train7down inside mrain2)
+Result   : file
+
+
+Operator : perimeter
+Number   : 1
+Signature: mregion -> mreal
+Example  : query perimeter (move(train1, Sehenswuerdreg feed extract[geoData]))
+Result   : file
+
+
+Operator : periods2mint
+Number   : 1
+Signature: periods -> mint
+Example  : query periods2mint(deftime(train7 at thecenter)) 
+Result   : file
+
+
+Operator : rough_center
+Number   : 1
+Signature: mregion -> mpoint
+Example  : query rough_center(mrain)
+Result   : file
+
+
+Operator : union
+Number   : 1
+Signature: mpoint x region -> mregion
+Example  : query train7 union thecenter
+Result   : file
+
+
+Operator : union
+Number   : 2
+Signature: mpoint x mregion -> mregion
+Example  : query train7 union mrain2
+Result   : file
+
+
+Operator : union
+Number   : 3 
+Signature: point x mregion -> mregion
+Example  : query mehringdamm union mrain2
+Result   : file
+
+
+Operator : zero
+Number   : 1
+Signature: -> mint
+Example  : query zero()
+Result   : file
+
