@@ -3258,7 +3258,7 @@ static void MRealABS(MReal& op, MReal& result)
       <<" u1.r "<<u1->r<<endl;}
 
     Instant t[2];
-    Instant mid;
+    Instant mid(instanttype);
     double middle;
     CcReal value;
     int number;
@@ -3296,9 +3296,11 @@ static void MRealABS(MReal& op, MReal& result)
     if (counter == 0) {
       if(TLA_DEBUG)
         cout<<"no crossings in iv"<<endl;
-      middle = (uReal.timeInterval.start.ToDouble()
-              + uReal.timeInterval.end.ToDouble()) / 2;
-      mid.ReadFrom(middle);
+      //middle = (uReal.timeInterval.start.ToDouble()
+              //+ uReal.timeInterval.end.ToDouble()) / 2;
+      //mid.ReadFrom(middle);
+      mid = uReal.timeInterval.start
+            + ((uReal.timeInterval.end - uReal.timeInterval.start) / 2);
       uReal.TemporalFunction(mid,value,true);
       if (value.GetRealval() < 0.0){
         if(TLA_DEBUG)
