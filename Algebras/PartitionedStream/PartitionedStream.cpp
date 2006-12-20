@@ -471,7 +471,7 @@ integrity checks for the arguments and result type.
     if ( len != (n+2) )
       return false;
 
-    if ( !l.first().isSymbol( sym.map ) )
+    if ( !l.first().isSymbol( sym.MAP() ) )
       return false;
      
     sig.resize(n+1); 
@@ -484,29 +484,29 @@ integrity checks for the arguments and result type.
   
   static bool checkRelTuple(const NList& l, NList& attrs)
   {
-    return checkDepth3(l, sym.rel, sym.tuple, attrs);
+    return checkDepth3(l, sym.REL(), sym.TUPLE(), attrs);
   }
   
   static bool checkStreamTuple(const NList& l, NList& attrs)
   {
-    return checkDepth3(l, sym.stream, sym.tuple, attrs);
+    return checkDepth3(l, sym.STREAM(), sym.TUPLE(), attrs);
   }
 
   static bool checkStreamPTuple(const NList& l, NList& attrs)
   {
-    return checkDepth3(l, sym.stream, sym.ptuple, attrs);
+    return checkDepth3(l, sym.STREAM(), sym.PTUPLE(), attrs);
   }
   
   static NList makeStreamTuple(const NList& attrs)
   {  
-    NList tup( NList(sym.tuple), attrs );
-    return NList( NList(sym.stream), tup );
+    NList tup( NList(sym.TUPLE()), attrs );
+    return NList( NList(sym.STREAM()), tup );
   }
   
   static NList makeStreamPTuple(const NList& attrs)
   {  
-    NList tup( NList(sym.ptuple), attrs );
-    return NList( NList(sym.stream), tup );
+    NList tup( NList(sym.PTUPLE()), attrs );
+    return NList( NList(sym.STREAM()), tup );
   }
 
   static bool checkLength(const NList& l, const int len, string& err)
@@ -556,9 +556,9 @@ static ListExpr pfeed_tm(ListExpr args)
 {
   NList l(args);
 
-  string e1 = expects(sym.rel,sym.tuple);
+  string e1 = expects(sym.REL(),sym.TUPLE());
   
-  static const string err1 = "pfeed expects (" + e1 + " " + sym.integer + ")!";
+  static const string err1 = "pfeed expects (" + e1 + " " + sym.INT() + ")!";
   
   if ( !l.hasLength(2) )
     return l.typeError(err1);
@@ -567,9 +567,9 @@ static ListExpr pfeed_tm(ListExpr args)
   if ( !checkRelTuple( l.first(), attrs ) )
     return l.typeError("First list element should be " + e1 + ".");
   
-  if ( !l.second().isSymbol( sym.integer ) )
+  if ( !l.second().isSymbol( sym.INT() ) )
     return l.typeError( "Second list element should be symbol '" 
-                        + sym.integer + "'." );
+                        + sym.INT() + "'." );
  
   return makeStreamPTuple(attrs).listExpr();
 }
@@ -704,7 +704,7 @@ static ListExpr pdelete_tm(ListExpr args)
 {
   NList l(args);
   
-  string e1 = expects( sym.stream, sym.ptuple );
+  string e1 = expects( sym.STREAM(), sym.PTUPLE() );
 
   static const string err1 = "pdelete expects " + e1 + "!";
   
@@ -793,7 +793,7 @@ static ListExpr pshow_tm(ListExpr args)
 {
   NList l(args);
   
-  string e1 = expects( sym.stream, sym.ptuple );
+  string e1 = expects( sym.STREAM(), sym.PTUPLE() );
 
   static const string err1 = "pshow expects " + e1 + "!";
   
@@ -870,7 +870,7 @@ static ListExpr PSTREAM1_tm(ListExpr args)
   NList l(args);
 
   //TRACE("PSTREAM1_tm:" << l.convertToString())  
-  string e1 = expects( sym.stream, sym.ptuple );
+  string e1 = expects( sym.STREAM(), sym.PTUPLE() );
 
   static const string err1 = "PSTREAM1 expects (" + e1 + "...)!";
   
@@ -888,7 +888,7 @@ static ListExpr PSTREAM2_tm(ListExpr args)
 {
   NList l(args);
   
-  string e1 = expects( sym.stream, sym.ptuple );
+  string e1 = expects( sym.STREAM(), sym.PTUPLE() );
 
   static const string err1 = "PSTREAM2 expects ((...) " + e1 + "...)!";
   
@@ -928,7 +928,7 @@ static ListExpr puse_tm(ListExpr args)
 {
   NList l(args);
   
-  static const string e1 = expects( sym.stream, sym.ptuple );
+  static const string e1 = expects( sym.STREAM(), sym.PTUPLE() );
 
   static string err1 = "Expecting input (" + e1 + ")!";
   
@@ -1204,8 +1204,8 @@ static ListExpr pjoin2_tm(ListExpr args)
 {
   NList l(args);
   
-  static const string e1 = expects( sym.stream, sym.ptuple, "y1" );
-  static const string e2 = expects( sym.stream, sym.ptuple, "y2" );
+  static const string e1 = expects( sym.STREAM(), sym.PTUPLE(), "y1" );
+  static const string e2 = expects( sym.STREAM(), sym.PTUPLE(), "y2" );
 
   static string err1 = "Expecting input ( " 
                        + e1 + " " + e2
@@ -2109,8 +2109,8 @@ static ListExpr pjoin1_tm(ListExpr args)
 {
   NList l(args);
   
-  static const string e1 = expects( sym.stream, sym.ptuple, "y1" );
-  static const string e2 = expects( sym.rel, sym.tuple, "y2" );
+  static const string e1 = expects( sym.STREAM(), sym.PTUPLE(), "y1" );
+  static const string e2 = expects( sym.REL(), sym.TUPLE(), "y2" );
 
   static string err1 = "Expecting input (" 
                        + e1 + " " + e2
@@ -2352,7 +2352,7 @@ static ListExpr pcreate_tm(ListExpr args)
   NList l(args);
   NList attrs;
   
-  static const string& e1 = expects( sym.stream, sym.tuple );
+  static const string e1 = expects( sym.STREAM(), sym.TUPLE() );
   string err1 = "pcreate expects (" + e1 + "int)!";
 
     if ( !checkLength( l, 2, err1 ) )
@@ -2361,7 +2361,7 @@ static ListExpr pcreate_tm(ListExpr args)
     if ( !checkStreamTuple( l.first(), attrs) )
       return l.typeError( argNotCorrect(1) + err1);
 
-    if ( !l.second().isSymbol(sym.integer) )
+    if ( !l.second().isSymbol(sym.INT()) )
       return l.typeError( argNotCorrect(2) + err1);
   
   return makeStreamPTuple(attrs).listExpr();
@@ -2417,7 +2417,7 @@ static ListExpr pcreate2_tm(ListExpr args)
 {
   NList l(args);
   
-  static const string& e1 = expects( sym.stream, sym.tuple );
+  static const string e1 = expects( sym.STREAM(), sym.TUPLE() );
   static string err1 = "pcreate2 expects (" + e1 + "int int)!";
   
   if ( !checkLength(l, 3, err1) )
@@ -2427,10 +2427,10 @@ static ListExpr pcreate2_tm(ListExpr args)
   if ( !checkStreamTuple( l.first(), attrs) )
     return l.typeError( argNotCorrect(1) + err1);
   
-  if ( !l.second().isSymbol(sym.integer) )
+  if ( !l.second().isSymbol(sym.INT()) )
     return l.typeError( argNotCorrect(2) + err1);
   
-  if ( !l.third().isSymbol(sym.integer) )
+  if ( !l.third().isSymbol(sym.INT()) )
     return l.typeError( argNotCorrect(3) + err1);
 
   return makeStreamPTuple(attrs).listExpr();
@@ -2460,8 +2460,8 @@ static ListExpr shuffle2_tm(ListExpr args, const string& op)
 {
   NList l(args);
   
-  static const string& e1 = expects( sym.stream, sym.tuple );
-  static const string& e2 = expects( sym.stream, sym.ptuple );
+  static const string e1 = expects( sym.STREAM(), sym.TUPLE() );
+  static const string e2 = expects( sym.STREAM(), sym.PTUPLE() );
   string err1 = op + " expects (" + e1 + ") or (" + e2 + ")!";
   
   if ( !checkLength(l, 1, err1) )
@@ -2687,7 +2687,6 @@ class PartStreamAlgebra : public Algebra
         oi.meaning =   "Creates a stream containing marker tuples. "
                        "Every max(|k|,2) tuples a new marker tuple will "
                        "be inserted.";
-        oi.example =   "plz pfeed[500] pdelete count"; 
       
       op = new Operator(
         oi,  
@@ -2701,7 +2700,6 @@ class PartStreamAlgebra : public Algebra
         oi.signature = "stream(ptuple(y) -> stream(tuple(y))";
         oi.syntax =    "_ pdelete";
         oi.meaning =   "Removes marker tuples from a stream";
-        oi.example =   "plz pfeed[500] pdelete count"; 
       
       op = new Operator(
         oi,  
@@ -2715,8 +2713,6 @@ class PartStreamAlgebra : public Algebra
         oi.signature = "((stream(ptuple(y)) ...) -> stream(tuple(y))";
         oi.syntax =    "Not available";
         oi.meaning =   "Type mapping operator";
-        oi.example =   "plz pfeed[500] puse[fun (s: PSTREAM1) s head[5]] "
-                       "pdelete count"; 
       
       op = new Operator(
         oi,  
@@ -2730,8 +2726,6 @@ class PartStreamAlgebra : public Algebra
         oi.signature = "((...) (stream(ptuple(y)) ...) -> stream(tuple(y))";
         oi.syntax =    "Not available";
         oi.meaning =   "Type mapping operator";
-        oi.example =   "plz pfeed[500] plz pfeed[100] "
-                       "pjoin2[fun (s: PSTREAM1, t PSTREAM2) ..."; 
       
       op = new Operator(
         oi,  
@@ -2747,8 +2741,6 @@ class PartStreamAlgebra : public Algebra
         oi.syntax =    "_ puse[ _ ]";
         oi.meaning =   "Hides the marker tuples for the parameter function "
                        "and inserts them again into the result stream";
-        oi.example =   "plz pfeed[500] puse[. filter[.PLZ = 44227]] "
-                       "pdelete count"; 
       
       op = new Operator(
         oi,  
@@ -2771,10 +2763,6 @@ class PartStreamAlgebra : public Algebra
                        "ilj (index-loop-join).";
         oi.meaning =   "Implements the adaptive join for a tuple stream "
                        "and a base relation.";
-        oi.example =   "plz pfeed[100] plz "
-                       " pjoin1[ symj: . .. feed {arg2} "
-                       "symjoin[.PLZ = .PLZ_arg2]] "
-                       "pdelete count"; 
       
       op = new Operator(
         oi,  
@@ -2794,9 +2782,6 @@ class PartStreamAlgebra : public Algebra
                        "given as streams. Function f1 will be used for the"
                        "probe join. Each function must have one of the names"
                        "symj (symmjoin), smj (sortmergejoin), hj (hashjoin).";
-        oi.example =   "plz pfeed[100] plz pfeed[100] "
-                       " pjoin2[ symj: . .. {arg2} symjoin[.PLZ = .PLZ_arg2]] "
-                       "pdelete count"; 
       
       op = new Operator(
         oi,  
@@ -2812,7 +2797,6 @@ class PartStreamAlgebra : public Algebra
         oi.syntax =    "_ pcreate[ _ ]";
         oi.meaning =   "Consumes a stream and creates a partitioned "
                        "stream like pfeed";
-        oi.example =   "plz feed pcreate[100] pdelete count"; 
       
       op = new Operator(
         oi,  
@@ -2830,7 +2814,6 @@ class PartStreamAlgebra : public Algebra
                        "stream size as third parameter. This is useful if "
                        "the input stream is returned "
                        "by an index structure and the size is known.";
-        oi.example =   "plz feed pcreate[100, 42167] pdelete count"; 
       
       op = new Operator(
         oi,  
@@ -2846,7 +2829,6 @@ class PartStreamAlgebra : public Algebra
         oi.syntax =    "_ shuffle";
         oi.meaning =   "Overloaded operator which materializes a stream "
                        "and produces output tuples in random order.";
-        oi.example =   "plz feed pshuffle count"; 
       
       op = new Operator(
         oi,  
@@ -2864,7 +2846,6 @@ class PartStreamAlgebra : public Algebra
                        "memory buffer and outputs them in random order. "
                        "For large input streams the randomness might be "
                        "insufficient.";
-        oi.example =   "plz feed memshuffle count"; 
       
       op = new Operator(
         oi,  
@@ -2878,7 +2859,6 @@ class PartStreamAlgebra : public Algebra
         oi.signature = "stream(ptuple(y)) -> stream(ptuple(y))";
         oi.syntax =    "_ pshow";
         oi.meaning =   "Display the marker tuples' information.";
-        oi.example =   "plz pfeed[100] pshow pdelete count"; 
       
       op = new Operator(
         oi,  

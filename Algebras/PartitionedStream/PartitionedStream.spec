@@ -18,10 +18,12 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator shuffle alias SHUFFLE pattern _ op
+operator memshuffle alias MEMSHUFFLE pattern _ op
 
 operator pfeed alias PFEED pattern _ op [ _ ]
 
 operator pcreate alias PCREATE pattern _ op [ _ ]
+operator pcreate2 alias PCREATE2 pattern _ op [ _, _ ]
 
 operator pdelete alias PDELETE pattern _ op
 
