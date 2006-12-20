@@ -1,7 +1,4 @@
-
-(OBJECT ten 
-    () 
-    (rel 
+   ((rel 
         (tuple 
             (
                 (no int)))) 
