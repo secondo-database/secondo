@@ -249,8 +249,7 @@ extern AlgebraManager* am;
 #include "DateTime.h"
 using namespace datetime;
 
-bool TUA_DEBUG = false; // Set to true to activate debugging code
-// bool TUA_DEBUG = true; // Set to true to activate debugging code
+//#define TUA_DEBUG
 
 /*
 2.1 Definition of some constants and auxiliary functions
@@ -515,14 +514,16 @@ int UnitPointSpeed(Word* args,Word& result,int message,Word& local,Supplier s)
   if ( input->IsDefined() )
     { // call member function:
       input->USpeed( *res );
-      if (TUA_DEBUG)
+#ifdef TUA_DEBUG
         cout << "UnitPointSpeed(): input def" << endl;
+#endif
     }
   else
     {
       res->SetDefined(false);
-      if (TUA_DEBUG)
-        cout << "UnitPointSpeed(): input undef" << endl;
+#ifdef TUA_DEBUG
+      cout << "UnitPointSpeed(): input undef" << endl;
+#endif
     }
   return 0;
 }
@@ -1743,7 +1744,9 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
 
   case REQUEST:
 
-    if (TUA_DEBUG) cout << "\nMappingUnitAtPeriods: REQUEST" << endl;
+#ifdef TUA_DEBUG
+    cout << "\nMappingUnitAtPeriods: REQUEST" << endl;
+#endif
     if( local.addr == 0 )
       return CANCEL;
     localinfo = (AtPeriodsLocalInfo *)local.addr;
@@ -1754,52 +1757,57 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
         !periods->IsDefined() ||   // as a set-valued type, periods cannot be
         periods->IsEmpty()       ) // undefined, but only empty
       return CANCEL;
-    if (TUA_DEBUG)
+#ifdef TUA_DEBUG
       cout << "   Unit's timeInterval u="
            << TUPrintTimeInterval( unit->timeInterval ) << endl;
-    if( localinfo->j == periods->GetNoComponents() )
+#endif
+      if( localinfo->j == periods->GetNoComponents() )
       {
-        if (TUA_DEBUG)
+#ifdef TUA_DEBUG
           cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (1)"
                << endl;
-        return CANCEL;
+#endif
+          return CANCEL;
       }
     periods->Get( localinfo->j, interval );
-    if (TUA_DEBUG) cout << "   Probing timeInterval p ="
-                        << TUPrintTimeInterval(*interval)
-                        << endl;
-    while( interval->Before( unit->timeInterval ) &&
+#ifdef TUA_DEBUG
+    cout << "   Probing timeInterval p ="
+         << TUPrintTimeInterval(*interval)
+         << endl;
+#endif
+        while( interval->Before( unit->timeInterval ) &&
            localinfo->j < periods->GetNoComponents() )
       {
         localinfo->j++,
         periods->Get(localinfo->j, interval);
-        if (TUA_DEBUG)
-          {
-             cout << "   Probing timeInterval="
-                  << TUPrintTimeInterval(*interval)
-                  << endl;
-             if (interval->Before( unit->timeInterval ))
-               cout << "     p is before u" << endl;
-             if (localinfo->j < periods->GetNoComponents())
-               cout << "   j < #Intervals" << endl;
-          }
+#ifdef TUA_DEBUG
+        cout << "   Probing timeInterval="
+            << TUPrintTimeInterval(*interval)
+            << endl;
+        if (interval->Before( unit->timeInterval ))
+          cout << "     p is before u" << endl;
+        if (localinfo->j < periods->GetNoComponents())
+          cout << "   j < #Intervals" << endl;
+#endif
       }
 
     if( localinfo->j >= periods->GetNoComponents() ) {
       result.addr = 0;
-      if (TUA_DEBUG)
+#ifdef TUA_DEBUG
         cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (2)"
              << endl;
-      return CANCEL;
+#endif
+        return CANCEL;
     }
 
     if( unit->timeInterval.Before( *interval ) )
       {
         result.addr = 0;
-        if (TUA_DEBUG)
+#ifdef TUA_DEBUG
           cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (3)"
                << endl;
-        return CANCEL;
+#endif
+          return CANCEL;
       }
     else
       {
@@ -1808,8 +1816,7 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
         Alpha* aux = new Alpha( r );
         result = SetWord( aux );
         localinfo->j++;
-        if (TUA_DEBUG)
-          {
+#ifdef TUA_DEBUG
             cout << "   Result interval="
                  << TUPrintTimeInterval(aux->timeInterval)
                  << endl;
@@ -1817,14 +1824,15 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
                  << endl;
             cout << "MappingUnitAtPeriods: REQUEST finished: YIELD"
                  << endl;
-          }
+#endif
         return YIELD;
       }
 
-    if (TUA_DEBUG)
+#ifdef TUA_DEBUG
       cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (4)"
            << endl;
-    return CANCEL; // should not happen
+#endif
+      return CANCEL; // should not happen
 
   case CLOSE:
 
@@ -2618,8 +2626,9 @@ TemporalUnitAtTypeMapUnit( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
-    if (TUA_DEBUG) cout << "\nTemporalUnitAtTypeMapUnit: 0" << endl;
-
+#ifdef TUA_DEBUG
+    cout << "\nTemporalUnitAtTypeMapUnit: 0" << endl;
+#endif
     if( nl->IsEqual( arg1, "ubool" ) && nl->IsEqual( arg2, "bool" ) )
       return nl->SymbolAtom( "ubool" );
     if( nl->IsEqual( arg1, "uint" ) && nl->IsEqual( arg2, "int" ) )
@@ -2638,7 +2647,9 @@ TemporalUnitAtTypeMapUnit( ListExpr args )
       return nl->TwoElemList(nl->SymbolAtom( "stream" ),
                              nl->SymbolAtom( "upoint" ));
   }
-  if (TUA_DEBUG) cout << "\nTemporalUnitAtTypeMapUnit: 1" << endl;
+#ifdef TUA_DEBUG
+  cout << "\nTemporalUnitAtTypeMapUnit: 1" << endl;
+#endif
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -2710,38 +2721,31 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
     {
     case OPEN :
 
-      if(TUA_DEBUG) cout << "\nMappingUnitAt_r: OPEN" << endl;
+#ifdef TUA_DEBUG
+      cout << "\nMappingUnitAt_r: OPEN" << endl;
+#endif
       localinfo = new MappingUnitAt_rLocalInfo;
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
-      if(TUA_DEBUG) cout << "  1" << endl;
-
       a0 = args[0];
       uinput = (UReal*)(a0.addr);
-      if(TUA_DEBUG) cout << "  1.1" << endl;
-
       a1 = args[1];
       value = (CcReal*)(a1.addr);
-      if(TUA_DEBUG) cout << "  1.2" << endl;
-
-      if(TUA_DEBUG) cout << "  2" << endl;
-
-      if(TUA_DEBUG) cout << "  2.1: " << uinput->IsDefined() << endl;
-      if(TUA_DEBUG) cout << "  2.2: " << value->IsDefined() << endl;
-
       if ( !uinput->IsDefined() ||
            !value->IsDefined() )
         { // some input is undefined -> return empty stream
-          if(TUA_DEBUG) cout << "  3: Some input is undefined. No result."
-                             << endl;
+#ifdef TUA_DEBUG
+          cout << "  3: Some input is undefined. No result."
+               << endl;
+#endif
           localinfo->NoOfResults = 0;
           localinfo->finished = true;
           local = SetWord(localinfo);
-          if(TUA_DEBUG) cout << "\nMappingUnitAt_r: finished OPEN (1)"
-                             << endl;
+#ifdef TUA_DEBUG
+          cout << "\nMappingUnitAt_r: finished OPEN (1)" << endl;
+#endif
           return 0;
         }
-      if(TUA_DEBUG) cout << "  4" << endl;
 
       y  = value->GetRealval();
       a  = uinput->a;
@@ -2751,59 +2755,63 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
       deftime = uinput->timeInterval;
       t0 = deftime.start.ToDouble();
 
-      if(TUA_DEBUG)
+#ifdef TUA_DEBUG
         {cout << "    The UReal is" << " a= " << a << " b= "
               << b << " c= " << c << " r= " << r << endl;
           cout << "    The Real is y=" << y << endl;
           cout << "  5" << endl;
         }
-
+#endif
       if ( (a == 0) && (b == 0) )
         { // constant function. Possibly return input unit
-          if(TUA_DEBUG) cout << "  6: 1st arg is a constant value" << endl;
+#ifdef TUA_DEBUG
+          cout << "  6: 1st arg is a constant value" << endl;
+#endif
           if (c != y)
             { // There will be no result, just an empty stream
-              if(TUA_DEBUG) cout << "  7" << endl;
+#ifdef TUA_DEBUG
+              cout << "  7: empty stream" << endl;
+#endif
               localinfo->NoOfResults = 0;
               localinfo->finished = true;
             }
           else
                 { // Return the complete unit
-                  if(TUA_DEBUG)
-                    {
+#ifdef TUA_DEBUG
                       cout << "  8: Found constant solution" << endl;
                       cout << "    T1=" << c << endl;
                       cout << "    Tstart=" << deftime.start.ToDouble() << endl;
                       cout << "    Tend  =" << deftime.end.ToDouble() << endl;
-                    }
+#endif
                   localinfo->runits[localinfo->NoOfResults].addr
                     = uinput->Copy();
                   localinfo->NoOfResults++;
                   localinfo->finished = false;
-                  if(TUA_DEBUG) cout << "  9" << endl;
                 }
-          if(TUA_DEBUG) cout << "  10" << endl;
           local = SetWord(localinfo);
-          if(TUA_DEBUG)
+#ifdef TUA_DEBUG
             cout << "\nMappingUnitAt_r: finished OPEN (2)" << endl;
-          return 0;
+#endif
+            return 0;
         }
       if ( (a == 0) && (b != 0) )
         { // linear function. Possibly return input unit restricted
           // to single value
-          if(TUA_DEBUG) cout << "  11: 1st arg is a linear function" << endl;
+#ifdef TUA_DEBUG
+          cout << "  11: 1st arg is a linear function" << endl;
+#endif
           double T1 = (y - c + b*t0)/b ;
-          if(TUA_DEBUG)
-            {
+#ifdef TUA_DEBUG
               cout << "    T1=" << T1 << endl;
               cout << "    Tstart=" << deftime.start.ToDouble() << endl;
               cout << "    Tend  =" << deftime.end.ToDouble() << endl;
-            }
+#endif
           t1.ReadFrom( T1 );
           if (deftime.Contains(t1))
             { // value is contained by deftime
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "  12: Found valid linear solution." << endl;
+#endif
               localinfo->runits[localinfo->NoOfResults].addr =
                 uinput->Copy();
               ((UReal*)(localinfo
@@ -2816,28 +2824,29 @@ int MappingUnitAt_r( Word* args, Word& result, int message,
                 ->TranslateParab(tx);
               localinfo->NoOfResults++;
               localinfo->finished = false;
-              if(TUA_DEBUG) cout << "  13" << endl;
             }
           else
             { // value is not contained by deftime -> no result
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "  14: Found invalid linear solution." << endl;
-              localinfo->NoOfResults = 0;
+#endif
+                localinfo->NoOfResults = 0;
               localinfo->finished = true;
-              if(TUA_DEBUG) cout << "  15" << endl;
             }
-          if(TUA_DEBUG) cout << "  16" << endl;
           local = SetWord(localinfo);
+#ifdef TUA_DEBUG
           cout << "\nMappingUnitAt_r: finished OPEN (3)" << endl;
+#endif
           return 0;
         }
 
-      if(TUA_DEBUG) cout << "  17" << endl;
       A = a;
       B = b - 2*a*t0;
       C = t0*(a*t0-b)+c;
       radicand = pow(B,2) + 4*a*(y-C);
-      if(TUA_DEBUG) cout << "    radicand =" << radicand << endl;
+#ifdef TUA_DEBUG
+      cout << "    radicand =" << radicand << endl;
+#endif
       if ( (a != 0) && (radicand >= 0) )
         { // quadratic function. There are possibly two result units
           // calculate the possible t-values t1, t2
@@ -2848,24 +2857,26 @@ The solution to the equation $at^2 + bt + c = y$ is
 
 
 */
-          if(TUA_DEBUG) cout << "  18: 1st arg is a quadratic function" << endl;
+#ifdef TUA_DEBUG
+          cout << "  18: 1st arg is a quadratic function" << endl;
+#endif
           double T1 = (-B + sqrt(radicand)) / (2*A) ;
           double T2 = (-B - sqrt(radicand)) / (2*A) ;
-          if(TUA_DEBUG)
-            {
+#ifdef TUA_DEBUG
               cout << "    T1=" << T1 << endl;
               cout << "    T2=" << T2 << endl;
               cout << "    Tstart=" << deftime.start.ToDouble() << endl;
               cout << "    Tend  =" << deftime.end.ToDouble() << endl;
-            }
+#endif
           t1.ReadFrom( T1 );
           t2.ReadFrom( T2 );
 
           // check, whether t1 contained by deftime
           if (deftime.Contains( t1 ))
             {
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "  19: Found first quadratic solution" << endl;
+#endif
               rdeftime.start = t1;
               rdeftime.end = t1;
               rdeftime.lc = true;
@@ -2881,13 +2892,13 @@ The solution to the equation $at^2 + bt + c = y$ is
                 ->TranslateParab(tx);
               localinfo->NoOfResults++;
               localinfo->finished = false;
-              if(TUA_DEBUG) cout << "  20" << endl;
             }
           // check, whether t2 contained by deftime
           if ( !(t1 == t2) && (deftime.Contains( t2 )) )
             {
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "  21: Found second quadratic solution" << endl;
+#endif
               rdeftime.start = t2;
               rdeftime.end = t2;
               rdeftime.lc = true;
@@ -2903,46 +2914,52 @@ The solution to the equation $at^2 + bt + c = y$ is
                 ->TranslateParab(tx);
               localinfo->NoOfResults++;
               localinfo->finished = false;
-              if(TUA_DEBUG) cout << "  22" << endl;
             }
         }
       else // negative discreminant -> there is no real solution
            //                          and no result unit
         {
-          if(TUA_DEBUG) cout << "  23: No real-valued solution" << endl;
+#ifdef TUA_DEBUG
+          cout << "  23: No real-valued solution" << endl;
+#endif
           localinfo->NoOfResults = 0;
           localinfo->finished = true;
-          if(TUA_DEBUG) cout << "  24" << endl;
         }
-      if(TUA_DEBUG) cout << "  25" << endl;
       local = SetWord(localinfo);
-      if(TUA_DEBUG)
+#ifdef TUA_DEBUG
         cout << "\nMappingUnitAt_r: finished OPEN (4)" << endl;
-      return 0;
+#endif
+        return 0;
 
     case REQUEST :
 
-      if(TUA_DEBUG) cout << "\nMappingUnitAt_r: REQUEST" << endl;
+#ifdef TUA_DEBUG
+      cout << "\nMappingUnitAt_r: REQUEST" << endl;
+#endif
       if (local.addr == 0)
         {
-          if(TUA_DEBUG)
+#ifdef TUA_DEBUG
             cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (1)" << endl;
-          return CANCEL;
+#endif
+            return CANCEL;
         }
       localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
-      if(TUA_DEBUG) cout << "\n   localinfo: finished=" << localinfo->finished
-                         << " NoOfResults==" << localinfo->NoOfResults << endl;
-
+#ifdef TUA_DEBUG
+      cout << "\n   localinfo: finished=" << localinfo->finished
+           << " NoOfResults==" << localinfo->NoOfResults << endl;
+#endif
       if (localinfo->finished)
         {
-          if(TUA_DEBUG)
+#ifdef TUA_DEBUG
             cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (2)" << endl;
+#endif
           return CANCEL;
         }
       if ( localinfo->NoOfResults <= 0 )
         { localinfo->finished = true;
-          if(TUA_DEBUG)
+#ifdef TUA_DEBUG
             cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (3)" << endl;
+#endif
           return CANCEL;
         }
       localinfo->NoOfResults--;
@@ -2951,12 +2968,16 @@ The solution to the equation $at^2 + bt + c = y$ is
                         ->Clone() );
       ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
         ->DeleteIfAllowed();
-      if(TUA_DEBUG) cout << "\nMappingUnitAt_r: finished REQUEST YIELD" << endl;
+#ifdef TUA_DEBUG
+      cout << "\nMappingUnitAt_r: finished REQUEST YIELD" << endl;
+#endif
       return YIELD;
 
     case CLOSE :
 
-      if(TUA_DEBUG) cout << "\nMappingUnitAt_r: CLOSE" << endl;
+#ifdef TUA_DEBUG
+      cout << "\nMappingUnitAt_r: CLOSE" << endl;
+#endif
       if (local.addr != 0)
         {
           localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
@@ -2965,7 +2986,9 @@ The solution to the equation $at^2 + bt + c = y$ is
               ->DeleteIfAllowed();
           delete localinfo;
         }
-      if(TUA_DEBUG) cout << "\nMappingUnitAt_r: finished CLOSE" << endl;
+#ifdef TUA_DEBUG
+      cout << "\nMappingUnitAt_r: finished CLOSE" << endl;
+#endif
       return 0;
     } // end switch
 
@@ -2998,10 +3021,9 @@ int MappingUnitAt_up_rg( Word* args, Word& result, int message,
     {
     case OPEN:
 
-      if (TUA_DEBUG)
-        cerr << "MappingUnitAt_up_rg: Received OPEN"
-             << endl;
-
+#ifdef TUA_DEBUG
+        cerr << "MappingUnitAt_up_rg: Received OPEN" << endl;
+#endif
       sli = new TUAUPointAtRegionLocalInfo;
       sli->finished = true;
       sli->NoOfResults = 0;
@@ -3015,9 +3037,10 @@ int MappingUnitAt_up_rg( Word* args, Word& result, int message,
       // test for definedness
       if ( !u->IsDefined() || !r->IsDefined() )
         {
-          if (TUA_DEBUG)
+#ifdef TUA_DEBUG
             cerr << "  Undef arg -> Empty Result" << endl << endl;
-          // nothing to do
+#endif
+            // nothing to do
         }
       else
         {
@@ -3033,32 +3056,33 @@ int MappingUnitAt_up_rg( Word* args, Word& result, int message,
           delete mr_tmp;
           sli->NoOfResults = sli->mpoint->GetNoComponents();
           sli->finished = (sli->NoOfResults <= 0);
-          if (TUA_DEBUG)
+#ifdef TUA_DEBUG
             cerr << "  " << sli->NoOfResults << " result units" << endl << endl;
+#endif
         }
-      if (TUA_DEBUG)
-        cerr << "MappingUnitAt_up_rg: Finished OPEN"
-             << endl;
-      return 0;
+#ifdef TUA_DEBUG
+        cerr << "MappingUnitAt_up_rg: Finished OPEN" << endl;
+#endif
+        return 0;
 
     case REQUEST:
-      if (TUA_DEBUG)
-        cerr << "MappingUnitAt_up_rg: Received REQUEST"
-             << endl;
+#ifdef TUA_DEBUG
+        cerr << "MappingUnitAt_up_rg: Received REQUEST" << endl;
+#endif
 
       if(local.addr == 0)
         {
-          if (TUA_DEBUG)
-            cerr << "MappingUnitAt_up_rg: Finished REQUEST (1)"
-                 << endl;
+#ifdef TUA_DEBUG
+            cerr << "MappingUnitAt_up_rg: Finished REQUEST (1)" << endl;
+#endif
           return CANCEL;
         }
       sli = (TUAUPointAtRegionLocalInfo*) local.addr;
       if(sli->finished)
         {
-          if (TUA_DEBUG)
-            cerr << "MappingUnitAt_up_rg: Finished REQUEST (2)"
-                 << endl;
+#ifdef TUA_DEBUG
+            cerr << "MappingUnitAt_up_rg: Finished REQUEST (2)"<< endl;
+#endif
           return CANCEL;
         }
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
@@ -3066,31 +3090,32 @@ int MappingUnitAt_up_rg( Word* args, Word& result, int message,
           sli->mpoint->Get(sli->NoOfResultsDelivered, cu);
           result = SetWord( cu->Clone() );
           sli->NoOfResultsDelivered++;
-          if (TUA_DEBUG)
+#ifdef TUA_DEBUG
             cerr << "MappingUnitAt_up_rg: "
-                << "Finished REQUEST (YIELD)" << endl;
+                 << "Finished REQUEST (YIELD)" << endl;
+#endif
           return YIELD;
         }
       sli->finished = true;
-      if (TUA_DEBUG)
-        cerr << "MappingUnitAt_up_rg: Finished REQUEST (3)"
-             << endl;
+#ifdef TUA_DEBUG
+        cerr << "MappingUnitAt_up_rg: Finished REQUEST (3)"<< endl;
+#endif
       return CANCEL;
 
     case CLOSE:
 
-      if (TUA_DEBUG)
-        cerr << "MappingUnitAt_up_rg: Received CLOSE"
-             << endl;
+#ifdef TUA_DEBUG
+        cerr << "MappingUnitAt_up_rg: Received CLOSE"<< endl;
+#endif
       if (local.addr != 0)
         {
           sli = (TUAUPointAtRegionLocalInfo*) local.addr;
           delete sli->mpoint;
           delete sli;
         }
-      if (TUA_DEBUG)
-        cerr << "MappingUnitAt_up_rg: Finished CLOSE"
-             << endl;
+#ifdef TUA_DEBUG
+        cerr << "MappingUnitAt_up_rg: Finished CLOSE"<< endl;
+#endif
       return 0;
     } // end switch
 
@@ -3942,12 +3967,11 @@ Returns the distance between two UPoints in their common interval as UReal
 void UPointDistance( const UPoint& p1, const UPoint& p2,
                      UReal& result, Interval<Instant>& iv)
 {
-  if (TUA_DEBUG)
-    {
+#ifdef TUA_DEBUG
       cout << "UPointDistance:" << endl;
       cout << "  p1=" << TUPrintUPoint(p1) << endl;
       cout << "  p2=" << TUPrintUPoint(p2) << endl;
-    }
+#endif
   result.timeInterval = iv;
 
   Point rp10, rp11, rp20, rp21;
@@ -3965,18 +3989,18 @@ void UPointDistance( const UPoint& p1, const UPoint& p2,
   p2.TemporalFunction(iv.start, rp20, true);
   p2.TemporalFunction(iv.end,   rp21, true);
 
-  if (TUA_DEBUG)
-    {
+#ifdef TUA_DEBUG
       cout << "   iv=" << TUPrintTimeInterval(iv) << endl;
       cout << "  rp10=" << TUPrintPoint(rp10) << ", rp11="
            << TUPrintPoint(rp11) << endl;
       cout << "  rp20=" << TUPrintPoint(rp20) << ", rp21="
            << TUPrintPoint(rp21) << endl;
-    }
+#endif
   if ( AlmostEqual(rp10,rp20) && AlmostEqual(rp11,rp21) )
     { // identical points -> zero distance!
-      if (TUA_DEBUG)
+#ifdef TUA_DEBUG
         cout << "  identical points -> zero distance!" << endl;
+#endif
       result.a = 0.0;
       result.b = 0.0;
       result.c = 0.0;
@@ -4000,9 +4024,9 @@ void UPointDistance( const UPoint& p1, const UPoint& p2,
 
   if ( AlmostEqual(dt, 0) )
     { // almost equal start and end time -> constant distance
-      if (TUA_DEBUG)
-        cout << "  almost equal start and end time -> constant distance!"
-             << endl;
+#ifdef TUA_DEBUG
+      cout << "  almost equal start and end time -> constant distance!"<< endl;
+#endif
       result.a = 0.0;
       result.b = 0.0;
       result.c =   pow( ( (x11-x10) - (x21-x20) ) / 2, 2)
@@ -4011,9 +4035,9 @@ void UPointDistance( const UPoint& p1, const UPoint& p2,
       return;
     }
 
-  if (TUA_DEBUG)
+#ifdef TUA_DEBUG
     cout << "  Normal distance calculation." << endl;
-
+#endif
   double a1 = (pow((dx1-dx2),2)+pow(dy1-dy2,2))/pow(dt,2);
   double b1 = dx12 * (dx1-dx2);
   double b2 = dy12 * (dy1-dy2);
@@ -4056,8 +4080,6 @@ int TUDistance_UPoint_UPoint( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   UReal* res = (UReal*) result.addr;
 
-  if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 1" << endl;
-
   u1 = (UPoint*)(args[0].addr);
   u2 = (UPoint*)(args[1].addr);
   if (!u1->IsDefined() ||
@@ -4065,28 +4087,24 @@ int TUDistance_UPoint_UPoint( Word* args, Word& result, int message,
       !u1->timeInterval.Intersects( u2->timeInterval ) )
     { // return undefined ureal
       res->SetDefined( false );
-      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 2" << endl;
     }
   else
     { // get intersection of deftime intervals
-      if (TUA_DEBUG)
+#ifdef TUA_DEBUG
         cout << "TUDistance_UPoint_UPoint:" << endl
              << "   iv1=" << TUPrintTimeInterval(u1->timeInterval) << endl
              << "   iv2=" << TUPrintTimeInterval(u2->timeInterval) << endl;
-
-      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 3" << endl;
+#endif
       u1->timeInterval.Intersection( u2->timeInterval, iv );
-      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: iv="
-                          << TUPrintTimeInterval(iv) << endl;
-
+#ifdef TUA_DEBUG
+      cout << "TUDistance_UPoint_UPoint: iv="
+           << TUPrintTimeInterval(iv) << endl;
+#endif
       // calculate result
-      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 5" << endl;
       UPointDistance( *u1, *u2,  *res, iv);
-      if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 6" << endl;
       res->SetDefined( true );
     }
   // pass on result
-  if (TUA_DEBUG) cout << "TUDistance_UPoint_UPoint: 7" << endl;
   return 0;
 }
 
@@ -4428,63 +4446,72 @@ int atmaxUReal( Word* args, Word& result, int message,
     {
     case OPEN :
 
-      if(TUA_DEBUG) cout << "\natmaxUReal: OPEN " << endl;
+#ifdef TUA_DEBUG
+      cout << "\natmaxUReal: OPEN " << endl;
+#endif
       a0 = args[0];
       ureal = (UReal*)(a0.addr);
-      if(TUA_DEBUG)
+#ifdef TUA_DEBUG
         cout << "  Argument ureal value: " << TUPrintUReal(ureal) << endl
              << "  1" << endl;
+#endif
       sli = new AtExtrURealLocalInfo;
       sli->NoOfResults = 0;
       sli->ResultsDelivered = 0;
       local = SetWord(sli);
-      if(TUA_DEBUG) cout << "  2" << endl;
 
       if ( !(ureal->IsDefined()) )
         { // ureal undefined
           // -> return empty stream
-          if(TUA_DEBUG) cout << "  2.1: ureal undefined" << endl;
+#ifdef TUA_DEBUG
+          cout << "  2.1: ureal undefined" << endl;
+#endif
           sli->NoOfResults = 0;
-          if(TUA_DEBUG)
+#ifdef TUA_DEBUG
             cout << "atmaxUReal: OPEN  finished (1)" << endl;
+#endif
           return 0;
         }
-      if(TUA_DEBUG) cout << "  3" << endl;
 
       if ( (ureal->timeInterval.start).ToDouble() ==
            (ureal->timeInterval.end).ToDouble() )
         { // ureal contains only a single point.
           // -> return a copy of the ureal
-          if(TUA_DEBUG)
+#ifdef TUA_DEBUG
             cout << "  3.1: ureal contains only a single point" << endl;
+#endif
           sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
-          if(TUA_DEBUG)
+#ifdef TUA_DEBUG
             cout << "       res="
                  << TUPrintUReal(sli->t_res[sli->NoOfResults])
                  << endl;
+#endif
           sli->NoOfResults++;
-          if(TUA_DEBUG)
+#ifdef TUA_DEBUG
             cout << "atmaxUReal: OPEN  finished (2)" << endl;
+#endif
           return 0;
         }
-      if(TUA_DEBUG) cout << "  4" << endl;
 
       if (ureal->a == 0)
         {
           if ( ureal->b == 0 )
             { //  constant function
               // the only result is a copy of the argument ureal
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "  4.1: constant function" << endl;
+#endif
               sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
               // no translation needed for constant ureal!
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "       res " << sli->NoOfResults+1 << "="
                      << TUPrintUReal(sli->t_res[sli->NoOfResults])
                      << endl;
+#endif
               sli->NoOfResults++;
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "atmaxUReal: OPEN  finished (3)" << endl;
+#endif
               return 0;
             }
           if ( ureal->b < 0 )
@@ -4492,19 +4519,22 @@ int atmaxUReal( Word* args, Word& result, int message,
               // the result is a clone of the argument, restricted to
               // its starting instant
               sli->t_res[sli->NoOfResults] = ureal->Clone();
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "  4.2: linear function/initial" << endl;
+#endif
               sli->t_res[sli->NoOfResults]->timeInterval.end =
                 sli->t_res[sli->NoOfResults]->timeInterval.start;
               sli->t_res[sli->NoOfResults]->timeInterval.rc = true;
               // no translation needed, since remaining starting instant
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "       res " << sli->NoOfResults+1 << "="
                      << TUPrintUReal(sli->t_res[sli->NoOfResults])
                      << endl;
+#endif
               sli->NoOfResults++;
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "atmaxUReal: OPEN  finished (4)" << endl;
+#endif
               return 0;
             }
           if ( ureal->b > 0 )
@@ -4512,8 +4542,9 @@ int atmaxUReal( Word* args, Word& result, int message,
               // the result is a clone of the argument, restricted to
               // its final instant
               sli->t_res[sli->NoOfResults] = ureal->Clone();
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "  4.3: linear function/final" << endl;
+#endif
               sli->t_res[sli->NoOfResults]->timeInterval.start =
                 sli->t_res[sli->NoOfResults]->timeInterval.end;
               sli->t_res[sli->NoOfResults]->timeInterval.lc = true;
@@ -4521,22 +4552,25 @@ int atmaxUReal( Word* args, Word& result, int message,
               tx = ureal->timeInterval.end.ToDouble() -
                    ureal->timeInterval.start.ToDouble();
               (sli->t_res[sli->NoOfResults])->TranslateParab(tx);
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "       res " << sli->NoOfResults+1 << "="
                      << TUPrintUReal(sli->t_res[sli->NoOfResults])
                      << endl;
+#endif
               sli->NoOfResults++;
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "atmaxUReal: OPEN  finished (5)" << endl;
+#endif
               return 0;
             }
         }
-      if(TUA_DEBUG) cout << "  5" << endl;
 
       if (ureal->a != 0)
         { // quadratic function
           // we have to additionally check for the extremum
-          if(TUA_DEBUG) cout << "  5.1: quadratic function" << endl;
+#ifdef TUA_DEBUG
+          cout << "  5.1: quadratic function" << endl;
+#endif
 
           // get the times of interest
           a = ureal->a;
@@ -4550,50 +4584,59 @@ int atmaxUReal( Word* args, Word& result, int message,
           v_start = getValUreal(t_start,a,b,c,r);
           v_extr  = getValUreal(t_extr, a,b,c,r);
           v_end   = getValUreal(t_end,  a,b,c,r);
-          if(TUA_DEBUG)
+#ifdef TUA_DEBUG
             cout << "  5.2" << endl
                  << "\tt_start=" << t_start << "\t v_start=" << v_start << endl
                  << "\tt_extr =" << t_extr  << "\t v_extr =" << v_extr  << endl
                  << "\tt_end  =" << t_end   << "\t v_end  =" << v_end   << endl;
-
+#endif
           // compute, which values are maximal
           if ( (t_start < t_extr) && (t_end   > t_extr) )
             { // check all 3 candidates
-              if(TUA_DEBUG) cout << "  5.3: check all 3 candidates" << endl;
+#ifdef TUA_DEBUG
+              cout << "  5.3: check all 3 candidates" << endl;
+#endif
               maxValIndex = getMaxValIndex(v_extr,v_start,v_end);
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "  5.3  maxValIndex=" << maxValIndex << endl;
+#endif
             }
           else
             { // extremum not within interval --> possibly 2 results
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "  5.4: extremum not in interv (2 candidates)" << endl;
+#endif
               maxValIndex = 0;
               if (v_start >= v_end) // max at t_start
                 maxValIndex += 2;
               if (v_end >= v_start) // max at t_end
                 maxValIndex += 4;
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "  5.4  maxValIndex=" << maxValIndex << endl;
+#endif
             }
-          if(TUA_DEBUG) cout << "  5.5" << endl;
           if (maxValIndex & 2)
             { // start value
-              if(TUA_DEBUG) cout << "  5.6: added start value" << endl;
+#ifdef TUA_DEBUG
+              cout << "  5.6: added start value" << endl;
+#endif
               sli->t_res[sli->NoOfResults] = ureal->Clone();
               t = ureal->timeInterval.start;
               Interval<Instant> i( t, t, true, true );
               sli->t_res[sli->NoOfResults]->timeInterval = i;
               // no translation required
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "       res " << sli->NoOfResults+1 << "="
                      << TUPrintUReal(sli->t_res[sli->NoOfResults])
                      << endl;
+#endif
               sli->NoOfResults++;
             }
           if ( ( maxValIndex & 4 ) && ( t_end != t_start ) )
             { // end value
-              if(TUA_DEBUG) cout << "  5.7: added end value" << endl;
+#ifdef TUA_DEBUG
+              cout << "  5.7: added end value" << endl;
+#endif
               sli->t_res[sli->NoOfResults] = ureal->Clone();
               t = ureal->timeInterval.end;
               Interval<Instant> i( t, t, true, true );
@@ -4601,10 +4644,11 @@ int atmaxUReal( Word* args, Word& result, int message,
               // translate result to new starting instant!
               tx = t.ToDouble() - ureal->timeInterval.start.ToDouble();
               (sli->t_res[sli->NoOfResults])->TranslateParab(tx);
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "       res " << sli->NoOfResults+1 << "="
                      << TUPrintUReal(sli->t_res[sli->NoOfResults])
                      << endl;
+#endif
               sli->NoOfResults++;
             }
 
@@ -4612,7 +4656,9 @@ int atmaxUReal( Word* args, Word& result, int message,
                (t_extr != t_start) &&
                (t_extr != t_end)      )
             {
-              if(TUA_DEBUG) cout << "  5.8: added extremum" << endl;
+#ifdef TUA_DEBUG
+              cout << "  5.8: added extremum" << endl;
+#endif
               sli->t_res[sli->NoOfResults] = ureal->Clone();
               t.ReadFrom(t_extr);
               Interval<Instant> i( t, t, true, true );
@@ -4620,58 +4666,63 @@ int atmaxUReal( Word* args, Word& result, int message,
               // translate result to new starting instant!
               tx = t_extr - ureal->timeInterval.start.ToDouble();
               (sli->t_res[sli->NoOfResults])->TranslateParab(tx);
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "       res " << sli->NoOfResults+1 << "="
                      << TUPrintUReal(sli->t_res[sli->NoOfResults])
                      << endl;
+#endif
               sli->NoOfResults++;
             }
-          if(TUA_DEBUG)
+#ifdef TUA_DEBUG
             cout << "atmaxUReal: OPEN  finished (6)" << endl;
+#endif
           return 0;
         }
-      if(TUA_DEBUG) cout << "  6" << endl;
       cout << "\natmaxUReal (OPEN): This should not happen!" << endl;
-      if(TUA_DEBUG) cout << "atmaxUReal: OPEN  finished (7)" << endl;
+#ifdef TUA_DEBUG
+      cout << "atmaxUReal: OPEN  finished (7)" << endl;
+#endif
       return 0;
 
     case REQUEST :
 
-      if(TUA_DEBUG) cout << "\natmaxUReal: REQUEST" << endl;
+#ifdef TUA_DEBUG
+      cout << "\natmaxUReal: REQUEST" << endl;
+#endif
       if (local.addr == 0)
         {
-          if(TUA_DEBUG)
+#ifdef TUA_DEBUG
             cout << "atmaxUReal: REQUEST CANCEL(1)" << endl;
+#endif
           return CANCEL;
         }
       sli = (AtExtrURealLocalInfo*) local.addr;
-      if(TUA_DEBUG)
-        cout << " 1" << endl;
       if (sli->NoOfResults <= sli->ResultsDelivered)
         {
-          if(TUA_DEBUG)
+#ifdef TUA_DEBUG
             cout << "atmaxUReal: REQUEST CANCEL (2)" << endl;
+#endif
           return CANCEL;
         }
-      if(TUA_DEBUG)
-        cout << " 2" << endl;
       result = SetWord( sli->t_res[sli->ResultsDelivered]->Copy() );
-      if(TUA_DEBUG)
-        cout << " 3" << endl;
       sli->t_res[sli->ResultsDelivered]->DeleteIfAllowed();
-      if(TUA_DEBUG)
+#ifdef TUA_DEBUG
         cout << " 4: delivered result[" << sli->ResultsDelivered+1
              << "/" << sli->NoOfResults<< "]="
              << TUPrintUReal((UReal*)(result.addr))
              << endl;
+#endif
       sli->ResultsDelivered++;
-      if(TUA_DEBUG)
+#ifdef TUA_DEBUG
         cout << "atmaxUReal: REQUEST YIELD" << endl;
+#endif
       return YIELD;
 
     case CLOSE :
 
-      if(TUA_DEBUG) cout << "\natmaxUReal: CLOSE" << endl;
+#ifdef TUA_DEBUG
+      cout << "\natmaxUReal: CLOSE" << endl;
+#endif
       if (local.addr != 0)
         {
           sli = (AtExtrURealLocalInfo*) local.addr;
@@ -4682,7 +4733,9 @@ int atmaxUReal( Word* args, Word& result, int message,
             }
           delete sli;
         }
-      if(TUA_DEBUG) cout << "atmaxUReal: CLOSE finished" << endl;
+#ifdef TUA_DEBUG
+      cout << "atmaxUReal: CLOSE finished" << endl;
+#endif
       return 0;
 
     } // end switch
@@ -4831,10 +4884,10 @@ int atminUReal( Word* args, Word& result, int message,
 
       a0 = args[0];
       ureal = (UReal*)(a0.addr);
-      if(TUA_DEBUG)
+#ifdef TUA_DEBUG
         cout << "  Argument ureal value: " << TUPrintUReal(ureal) << endl
              << "  1" << endl;
-
+#endif
       sli = new AtExtrURealLocalInfo;
       sli->NoOfResults = 0;
       sli->ResultsDelivered = 0;
@@ -4844,7 +4897,9 @@ int atminUReal( Word* args, Word& result, int message,
         { // ureal undefined
           // -> return empty stream
           sli->NoOfResults = 0;
-          if(TUA_DEBUG) cout << "       ureal undef: no solution" << endl;
+#ifdef TUA_DEBUG
+          cout << "       ureal undef: no solution" << endl;
+#endif
           return 0;
         }
 
@@ -4854,11 +4909,12 @@ int atminUReal( Word* args, Word& result, int message,
           // -> return a copy of the ureal
           sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
           // no translation required
-          if(TUA_DEBUG)
+#ifdef TUA_DEBUG
             cout << "       single point" << endl
                  << "       res " << sli->NoOfResults+1 << "="
                  << TUPrintUReal(sli->t_res[sli->NoOfResults])
                  << endl;
+#endif
           sli->NoOfResults++;
           return 0;
         }
@@ -4870,11 +4926,12 @@ int atminUReal( Word* args, Word& result, int message,
               // the only result is a copy of the argument ureal
               sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
               // no translation required
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "       constant function" << endl
                      << "       res " << sli->NoOfResults+1 << "="
                      << TUPrintUReal(sli->t_res[sli->NoOfResults])
                      << endl;
+#endif
               sli->NoOfResults++;
               return 0;
             }
@@ -4890,11 +4947,12 @@ int atminUReal( Word* args, Word& result, int message,
               tx = ureal->timeInterval.end.ToDouble() -
                    ureal->timeInterval.start.ToDouble();
               (sli->t_res[sli->NoOfResults])->TranslateParab(tx);
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "       linear function: final" << endl
                      << "       res " << sli->NoOfResults+1 << "="
                      << TUPrintUReal(sli->t_res[sli->NoOfResults])
                      << endl;
+#endif
               sli->NoOfResults++;
               return 0;
             }
@@ -4907,11 +4965,12 @@ int atminUReal( Word* args, Word& result, int message,
                 sli->t_res[sli->NoOfResults]->timeInterval.end;
               sli->t_res[sli->NoOfResults]->timeInterval.rc = true;
               // no translation required
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "       linear function: initial" << endl
                      << "       res " << sli->NoOfResults+1 << "="
                      << TUPrintUReal(sli->t_res[sli->NoOfResults])
                      << endl;
+#endif
               sli->NoOfResults++;
               return 0;
             }
@@ -4933,11 +4992,12 @@ int atminUReal( Word* args, Word& result, int message,
           v_extr  = getValUreal(t_extr, a,b,c,r);
           v_start = getValUreal(t_start,a,b,c,r);
           v_end   = getValUreal(t_end,  a,b,c,r);
-          if(TUA_DEBUG)
+#ifdef TUA_DEBUG
             cout << "\nQuadratic function. Cadidates are: " << endl
                  << "\tt_start=" << t_start << "\t v_start=" << v_start << endl
                  << "\tt_extr =" << t_extr  << "\t v_extr =" << v_extr  << endl
                  << "\tt_end  =" << t_end   << "\t v_end  =" << v_end   << endl;
+#endif
           // compute, which values are minimal
 
           if ( (t_start < t_extr) && (t_end > t_extr) )
@@ -4951,7 +5011,9 @@ int atminUReal( Word* args, Word& result, int message,
               if (v_end <= v_start) // min at end
                 minValIndex += 4;
             }
-          if(TUA_DEBUG) cout << "\tminValIndex = " <<  minValIndex << endl;
+#ifdef TUA_DEBUG
+          cout << "\tminValIndex = " <<  minValIndex << endl;
+#endif
 
           if (minValIndex & 2)
             {
@@ -4960,11 +5022,12 @@ int atminUReal( Word* args, Word& result, int message,
               Interval<Instant> i( t, t, true, true );
               sli->t_res[sli->NoOfResults]->timeInterval = i;
               // no translation required
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "       added start" << endl
                      << "       res " << sli->NoOfResults+1 << "="
                      << TUPrintUReal(sli->t_res[sli->NoOfResults])
                      << endl;
+#endif
               sli->NoOfResults++;
             }
           if ( (minValIndex & 4) && (t_start != t_end) )
@@ -4977,11 +5040,12 @@ int atminUReal( Word* args, Word& result, int message,
               tx = ureal->timeInterval.end.ToDouble() -
                    ureal->timeInterval.start.ToDouble();
               (sli->t_res[sli->NoOfResults])->TranslateParab(tx);
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "       added end" << endl
                      << "       res " << sli->NoOfResults+1 << "="
                      << TUPrintUReal(sli->t_res[sli->NoOfResults])
                      << endl;
+#endif
               sli->NoOfResults++;
             }
           if ( (minValIndex & 1)   &&
@@ -4995,11 +5059,12 @@ int atminUReal( Word* args, Word& result, int message,
               // translate result to new starting instant!
               tx = t_extr - ureal->timeInterval.start.ToDouble();
               (sli->t_res[sli->NoOfResults])->TranslateParab(tx);
-              if(TUA_DEBUG)
+#ifdef TUA_DEBUG
                 cout << "       added extr" << endl
                      << "       res " << sli->NoOfResults+1 << "="
                      << TUPrintUReal(sli->t_res[sli->NoOfResults])
                      << endl;
+#endif
               sli->NoOfResults++;
             }
           return 0;
@@ -5018,11 +5083,12 @@ int atminUReal( Word* args, Word& result, int message,
 
       result = SetWord( sli->t_res[sli->ResultsDelivered]->Clone() );
       sli->t_res[sli->ResultsDelivered]->DeleteIfAllowed();
-      if(TUA_DEBUG)
+#ifdef TUA_DEBUG
         cout << "    delivered result[" << sli->ResultsDelivered+1
              << "/" << sli->NoOfResults<< "]="
              << TUPrintUReal((UReal*)(result.addr))
              << endl;
+#endif
       sli->ResultsDelivered++;
       return YIELD;
 
@@ -5345,8 +5411,9 @@ int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
     {
     case OPEN:
 
-      if (TUA_DEBUG)
+#ifdef TUA_DEBUG
         cout << "temporalUnitIntersection_CU_CU: received OPEN" << endl;
+#endif
       sli = new TUIntersectionLocalInfo;
       sli->finished = true;
       sli->NoOfResults = 0;
@@ -5364,36 +5431,43 @@ int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
            uv1->EqualValue(*uv2) )
         { // get intersection of deftime intervals
           uv1->timeInterval.Intersection( uv2->timeInterval, iv );
-          if (TUA_DEBUG) cout << "  iv=" << TUPrintTimeInterval( iv ) << endl;
+#ifdef TUA_DEBUG
+          cout << "  iv=" << TUPrintTimeInterval( iv ) << endl;
+#endif
           // store result
           sli->resultValues[sli->NoOfResults] = SetWord( uv1->Clone() );
           ((T*)(sli->resultValues[sli->NoOfResults].addr))->timeInterval = iv;
           sli->NoOfResults++;
           sli->finished = false;
-          if (TUA_DEBUG)
-            cout << "  added result" << endl;
+#ifdef TUA_DEBUG
+          cout << "  added result" << endl;
+#endif
         }// else: no result
       local = SetWord(sli);
-      if (TUA_DEBUG)
-        cout << "temporalUnitIntersection_CU_CU: finished OPEN" << endl;
+#ifdef TUA_DEBUG
+      cout << "temporalUnitIntersection_CU_CU: finished OPEN" << endl;
+#endif
 
       return 0;
 
     case REQUEST:
 
-      if (TUA_DEBUG)
-        cout << "temporalUnitIntersection_CU_CU: received REQUEST" << endl;
+#ifdef TUA_DEBUG
+      cout << "temporalUnitIntersection_CU_CU: received REQUEST" << endl;
+#endif
       if(local.addr == 0)
         {
-          if (TUA_DEBUG)
-            cout << "temporalUnitIntersection_CU_CU: CANCEL (1)" << endl;
+#ifdef TUA_DEBUG
+          cout << "temporalUnitIntersection_CU_CU: CANCEL (1)" << endl;
+#endif
           return CANCEL;
         }
       sli = (TUIntersectionLocalInfo*) local.addr;
       if(sli->finished)
         {
-          if (TUA_DEBUG)
-            cout << "temporalUnitIntersection_CU_CU: CANCEL (2)" << endl;
+#ifdef TUA_DEBUG
+          cout << "temporalUnitIntersection_CU_CU: CANCEL (2)" << endl;
+#endif
           return CANCEL;
         }
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
@@ -5403,13 +5477,15 @@ int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
           ((T*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
             ->DeleteIfAllowed();
           sli->NoOfResultsDelivered++;
-          if (TUA_DEBUG)
-            cout << "temporalUnitIntersection_CU_CU: YIELD" << endl;
+#ifdef TUA_DEBUG
+          cout << "temporalUnitIntersection_CU_CU: YIELD" << endl;
+#endif
           return YIELD;
         }
       sli->finished = true;
-      if (TUA_DEBUG)
-        cout << "temporalUnitIntersection_CU_CU: CANCEL (3)" << endl;
+#ifdef TUA_DEBUG
+      cout << "temporalUnitIntersection_CU_CU: CANCEL (3)" << endl;
+#endif
       return CANCEL;
 
     case CLOSE:
@@ -5448,8 +5524,9 @@ int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
     {
     case OPEN:
 
-      if (TUA_DEBUG)
-        cout << "temporalUnitIntersection_CU_C: received OPEN" << endl;
+#ifdef TUA_DEBUG
+      cout << "temporalUnitIntersection_CU_C: received OPEN" << endl;
+#endif
       sli = new TUIntersectionLocalInfo;
       sli->finished = true;
       sli->NoOfResults = 0;
@@ -5462,8 +5539,9 @@ int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
       else
         { u1 = args[1]; u2 = args[0];}
 
-      if (TUA_DEBUG)
-        cout << "  uargindex =" << uargindex << endl;
+#ifdef TUA_DEBUG
+      cout << "  uargindex =" << uargindex << endl;
+#endif
       uv1 = (UT*) (u1.addr);
       uv2 = (T*) (u2.addr);
 
@@ -5474,30 +5552,36 @@ int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
           sli->resultValues[sli->NoOfResults] = SetWord( uv1->Clone() );
           sli->NoOfResults++;
           sli->finished = false;
-          if (TUA_DEBUG) cout << "  Added Result" << endl;
+#ifdef TUA_DEBUG
+          cout << "  Added Result" << endl;
+#endif
         }// else: no result
       local = SetWord(sli);
-      if (TUA_DEBUG)
-        cout << "temporalUnitIntersection_CU_C: finished OPEN" << endl;
+#ifdef TUA_DEBUG
+      cout << "temporalUnitIntersection_CU_C: finished OPEN" << endl;
+#endif
       return 0;
 
     case REQUEST:
 
-      if (TUA_DEBUG)
-        cout << "temporalUnitIntersection_CU_C: received REQUEST" << endl;
+#ifdef TUA_DEBUG
+      cout << "temporalUnitIntersection_CU_C: received REQUEST" << endl;
+#endif
       if(local.addr == 0)
         {
-          if (TUA_DEBUG)
-            cout << "temporalUnitIntersection_CU_C: finished REQUEST: "
-                 << "CANCEL (1)" << endl;
+#ifdef TUA_DEBUG
+          cout << "temporalUnitIntersection_CU_C: finished REQUEST: "
+               << "CANCEL (1)" << endl;
+#endif
           return CANCEL;
         }
       sli = (TUIntersectionLocalInfo*) local.addr;
       if(sli->finished)
         {
-          if (TUA_DEBUG)
-            cout << "temporalUnitIntersection_CU_C: finished REQUEST: "
-                 << "CANCEL (2)" << endl;
+#ifdef TUA_DEBUG
+          cout << "temporalUnitIntersection_CU_C: finished REQUEST: "
+               << "CANCEL (2)" << endl;
+#endif
           return CANCEL;
         }
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
@@ -5507,15 +5591,17 @@ int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
           ((UT*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
             ->DeleteIfAllowed();
           sli->NoOfResultsDelivered++;
-          if (TUA_DEBUG)
-            cout << "temporalUnitIntersection_CU_C: finished REQUEST: "
-                 << "YIELD" << endl;
+#ifdef TUA_DEBUG
+          cout << "temporalUnitIntersection_CU_C: finished REQUEST: "
+               << "YIELD" << endl;
+#endif
           return YIELD;
         }
       sli->finished = true;
-      if (TUA_DEBUG)
-        cout << "temporalUnitIntersection_CU_C: finished REQUEST: "
-             << "CANCEL (3)" << endl;
+#ifdef TUA_DEBUG
+      cout << "temporalUnitIntersection_CU_C: finished REQUEST: "
+           << "CANCEL (3)" << endl;
+#endif
       return CANCEL;
 
     case CLOSE:
@@ -5600,8 +5686,9 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
     {
     case OPEN :
 
-      if(TUA_DEBUG)
-        cout << "\ntemporalUnitIntersection_ureal_real: OPEN" << endl;
+#ifdef TUA_DEBUG
+      cout << "\ntemporalUnitIntersection_ureal_real: OPEN" << endl;
+#endif
       localinfo = new MappingUnitAt_rLocalInfo;
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
@@ -5616,33 +5703,24 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
       localinfo = new MappingUnitAt_rLocalInfo;
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
-      if(TUA_DEBUG) cout << "  1" << endl;
-
       uinput = (UReal*)(a0.addr);
-      if(TUA_DEBUG) cout << "  1.1" << endl;
-
       value = (CcReal*)(a1.addr);
-      if(TUA_DEBUG) cout << "  1.2" << endl;
-
-      if(TUA_DEBUG) cout << "  2" << endl;
-
-      if(TUA_DEBUG) cout << "  2.1: " << uinput->IsDefined() << endl;
-      if(TUA_DEBUG) cout << "  2.2: " << value->IsDefined() << endl;
-
       if ( !uinput->IsDefined() ||
            !value->IsDefined() )
         { // some input is undefined -> return empty stream
-          if(TUA_DEBUG) cout << "  3: Some input is undefined. No result."
-                             << endl;
+#ifdef TUA_DEBUG
+          cout << "  3: Some input is undefined. No result."
+               << endl;
+#endif
           localinfo->NoOfResults = 0;
           localinfo->finished = true;
           local = SetWord(localinfo);
-          if(TUA_DEBUG)
-            cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (1)"
-                 << endl;
+#ifdef TUA_DEBUG
+          cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (1)"
+               << endl;
+#endif
           return 0;
         }
-      if(TUA_DEBUG) cout << "  4" << endl;
 
       y = value->GetRealval();
       a = uinput->a;
@@ -5652,61 +5730,65 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
       deftime = uinput->timeInterval;
       t0 = deftime.start.ToDouble();
 
-      if(TUA_DEBUG)
-        {cout << "    The UReal is" << " a= " << a << " b= "
-              << b << " c= " << c << " r= " << r << endl;
-          cout << "    The Real is y=" << y << endl;
-          cout << "  5" << endl;
-        }
+#ifdef TUA_DEBUG
+      cout << "    The UReal is" << " a= " << a << " b= "
+           << b << " c= " << c << " r= " << r << endl;
+      cout << "    The Real is y=" << y << endl;
+      cout << "  5" << endl;
+#endif
 
       if ( (a == 0) && (b == 0) )
         { // constant function. Possibly return input unit
-          if(TUA_DEBUG) cout << "  6: 1st arg is a constant value" << endl;
+#ifdef TUA_DEBUG
+          cout << "  6: 1st arg is a constant value" << endl;
+#endif
           if (c != y)
             { // There will be no result, just an empty stream
-              if(TUA_DEBUG) cout << "  7" << endl;
+#ifdef TUA_DEBUG
+              cout << "  7 empty stream" << endl;
+#endif
               localinfo->NoOfResults = 0;
               localinfo->finished = true;
             }
           else
                 { // Return the complete unit
-                  if(TUA_DEBUG)
-                    {
-                      cout << "  8: Found constant solution" << endl;
-                      cout << "    T1=" << c << endl;
-                      cout << "    Tstart=" << deftime.start.ToDouble() << endl;
-                      cout << "    Tend  =" << deftime.end.ToDouble() << endl;
-                    }
+#ifdef TUA_DEBUG
+                  cout << "  8: Found constant solution" << endl;
+                  cout << "    T1=" << c << endl;
+                  cout << "    Tstart=" << deftime.start.ToDouble() << endl;
+                  cout << "    Tend  =" << deftime.end.ToDouble() << endl;
+#endif
                   localinfo->runits[localinfo->NoOfResults].addr
                     = uinput->Copy();
                   // no translation required
                   localinfo->NoOfResults++;
                   localinfo->finished = false;
-                  if(TUA_DEBUG) cout << "  9" << endl;
                 }
-          if(TUA_DEBUG) cout << "  10" << endl;
           local = SetWord(localinfo);
-          if(TUA_DEBUG)
-            cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (2)"
-                 << endl;
+#ifdef TUA_DEBUG
+          cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (2)"
+                << endl;
+#endif
           return 0;
         }
       if ( (a == 0) && (b != 0) )
         { // linear function. Possibly return input unit restricted
           // to single value
-          if(TUA_DEBUG) cout << "  11: 1st arg is a linear function" << endl;
+#ifdef TUA_DEBUG
+          cout << "  11: 1st arg is a linear function" << endl;
+#endif
           double T1 = (y - c)/b + t0; // Add t0 due to representation
-          if(TUA_DEBUG)
-            {
-              cout << "    T1=" << T1 << endl;
-              cout << "    Tstart=" << deftime.start.ToDouble() << endl;
-              cout << "    Tend  =" << deftime.end.ToDouble() << endl;
-            }
+#ifdef TUA_DEBUG
+          cout << "    T1=" << T1 << endl;
+          cout << "    Tstart=" << deftime.start.ToDouble() << endl;
+          cout << "    Tend  =" << deftime.end.ToDouble() << endl;
+#endif
           t1.ReadFrom( T1 );
           if (deftime.Contains(t1))
             { // value is contained by deftime
-              if(TUA_DEBUG)
-                cout << "  12: Found valid linear solution." << endl;
+#ifdef TUA_DEBUG
+              cout << "  12: Found valid linear solution." << endl;
+#endif
               localinfo->runits[localinfo->NoOfResults].addr =
                 uinput->Copy();
               localinfo->runits[localinfo->NoOfResults].addr =
@@ -5717,27 +5799,27 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
               // No translation needed
               localinfo->NoOfResults++;
               localinfo->finished = false;
-              if(TUA_DEBUG) cout << "  13" << endl;
             }
           else
             { // value is not contained by deftime -> no result
-              if(TUA_DEBUG)
-                cout << "  14: Found invalid linear solution." << endl;
+#ifdef TUA_DEBUG
+              cout << "  14: Found invalid linear solution." << endl;
+#endif
               localinfo->NoOfResults = 0;
               localinfo->finished = true;
-              if(TUA_DEBUG) cout << "  15" << endl;
             }
-          if(TUA_DEBUG) cout << "  16" << endl;
           local = SetWord(localinfo);
-          if(TUA_DEBUG)
-            cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (3)"
-                 << endl;
+#ifdef TUA_DEBUG
+          cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (3)"
+               << endl;
+#endif
           return 0;
         }
 
-      if(TUA_DEBUG) cout << "  17" << endl;
       radicand = (b*b + 4*a*(y-c));
-      if(TUA_DEBUG) cout << "    radicand =" << radicand << endl;
+#ifdef TUA_DEBUG
+      cout << "    radicand =" << radicand << endl;
+#endif
       if ( (a != 0) && (radicand >= 0) )
         { // quadratic function. There are possibly two result units
           // calculate the possible t-values t1, t2
@@ -5748,24 +5830,26 @@ The solution to the equation $at^2 + bt + c = y$ is
 
 
 */
-          if(TUA_DEBUG) cout << "  18: 1st arg is a quadratic function" << endl;
+#ifdef TUA_DEBUG
+          cout << "  18: 1st arg is a quadratic function" << endl;
+#endif
           double T1 = (-b + sqrt(radicand)) / (2*a) + t0; //Add t0 due to
           double T2 = (-b - sqrt(radicand)) / (2*a) + t0; //  representation
-          if(TUA_DEBUG)
-            {
-              cout << "    T1=" << T1 << endl;
-              cout << "    T2=" << T2 << endl;
-              cout << "    Tstart=" << deftime.start.ToDouble() << endl;
-              cout << "    Tend  =" << deftime.end.ToDouble() << endl;
-            }
+#ifdef TUA_DEBUG
+          cout << "    T1=" << T1 << endl;
+          cout << "    T2=" << T2 << endl;
+          cout << "    Tstart=" << deftime.start.ToDouble() << endl;
+          cout << "    Tend  =" << deftime.end.ToDouble() << endl;
+#endif
           t1.ReadFrom( T1 );
           t2.ReadFrom( T2 );
 
           // check, whether t1 contained by deftime
           if (deftime.Contains( t1 ))
             {
-              if(TUA_DEBUG)
-                cout << "  19: Found first quadratic solution" << endl;
+#ifdef TUA_DEBUG
+              cout << "  19: Found first quadratic solution" << endl;
+#endif
               rdeftime.start = t1;
               rdeftime.end = t1;
               rdeftime.lc = true;
@@ -5777,13 +5861,13 @@ The solution to the equation $at^2 + bt + c = y$ is
               // No translation needed
               localinfo->NoOfResults++;
               localinfo->finished = false;
-              if(TUA_DEBUG) cout << "  20" << endl;
             }
           // check, whether t2 contained by deftime
           if ( !(t1 == t2) && (deftime.Contains( t2 )) )
             {
-              if(TUA_DEBUG)
-                cout << "  21: Found second quadratic solution" << endl;
+#ifdef TUA_DEBUG
+              cout << "  21: Found second quadratic solution" << endl;
+#endif
               rdeftime.start = t2;
               rdeftime.end = t2;
               rdeftime.lc = true;
@@ -5795,51 +5879,56 @@ The solution to the equation $at^2 + bt + c = y$ is
               // No translation needed
               localinfo->NoOfResults++;
               localinfo->finished = false;
-              if(TUA_DEBUG) cout << "  22" << endl;
             }
         }
       else // negative discreminant -> there is no real solution
            //                          and no result unit
         {
-          if(TUA_DEBUG) cout << "  23: No real-valued solution" << endl;
+#ifdef TUA_DEBUG
+          cout << "  23: No real-valued solution" << endl;
+#endif
           localinfo->NoOfResults = 0;
           localinfo->finished = true;
-          if(TUA_DEBUG) cout << "  24" << endl;
         }
-      if(TUA_DEBUG) cout << "  25" << endl;
       local = SetWord(localinfo);
-      if(TUA_DEBUG)
-        cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (4)"
-             << endl;
+#ifdef TUA_DEBUG
+      cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (4)"<<endl;
+#endif
       return 0;
 
     case REQUEST :
 
-      if(TUA_DEBUG) cout << "\ntemporalUnitIntersection_ureal_real: REQUEST"
-                         << endl;
+#ifdef TUA_DEBUG
+      cout << "\ntemporalUnitIntersection_ureal_real: REQUEST"<< endl;
+#endif
       if (local.addr == 0)
         {
-          if(TUA_DEBUG)
-            cout << "\ntemporalUnitIntersection_ureal_real: REQUEST CANCEL (1)"
-                 << endl;
+#ifdef TUA_DEBUG
+          cout << "\ntemporalUnitIntersection_ureal_real: REQUEST CANCEL (1)"
+               << endl;
+#endif
           return CANCEL;
         }
       localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
-      if(TUA_DEBUG) cout << "\n   localinfo: finished=" << localinfo->finished
-                         << " NoOfResults==" << localinfo->NoOfResults << endl;
+#ifdef TUA_DEBUG
+      cout << "\n   localinfo: finished=" << localinfo->finished
+           << " NoOfResults==" << localinfo->NoOfResults << endl;
+#endif
 
       if (localinfo->finished)
         {
-          if(TUA_DEBUG)
-            cout << "\ntemporalUnitIntersection_ureal_real: REQUEST CANCEL (2)"
-                 << endl;
+#ifdef TUA_DEBUG
+          cout << "\ntemporalUnitIntersection_ureal_real: REQUEST CANCEL (2)"
+               << endl;
+#endif
           return CANCEL;
         }
       if ( localinfo->NoOfResults <= 0 )
         { localinfo->finished = true;
-          if(TUA_DEBUG)
-            cout << "\ntemporalUnitIntersection_ureal_real: REQUEST CANCEL (3)"
-                 << endl;
+#ifdef TUA_DEBUG
+          cout << "\ntemporalUnitIntersection_ureal_real: REQUEST CANCEL (3)"
+               << endl;
+#endif
           return CANCEL;
         }
       localinfo->NoOfResults--;
@@ -5848,14 +5937,16 @@ The solution to the equation $at^2 + bt + c = y$ is
                         ->Clone() );
       ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
         ->DeleteIfAllowed();
-      if(TUA_DEBUG)
-        cout << "\ntemporalUnitIntersection_ureal_real: REQUEST YIELD" << endl;
+#ifdef TUA_DEBUG
+      cout << "\ntemporalUnitIntersection_ureal_real: REQUEST YIELD" << endl;
+#endif
       return YIELD;
 
     case CLOSE :
 
-      if(TUA_DEBUG) cout << "\ntemporalUnitIntersection_ureal_real: CLOSE"
-                         << endl;
+#ifdef TUA_DEBUG
+      cout << "\ntemporalUnitIntersection_ureal_real: CLOSE"<< endl;
+#endif
       if (local.addr != 0)
         {
           localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
@@ -5864,8 +5955,9 @@ The solution to the equation $at^2 + bt + c = y$ is
               ->DeleteIfAllowed();
           delete localinfo;
         }
-      if(TUA_DEBUG)
-        cout << "\ntemporalUnitIntersection_ureal_real: finished CLOSE" << endl;
+#ifdef TUA_DEBUG
+      cout << "\ntemporalUnitIntersection_ureal_real: finished CLOSE" << endl;
+#endif
       return 0;
     } // end switch
 
@@ -5896,8 +5988,9 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
     {
     case OPEN:
 
-      if (TUA_DEBUG)
-        cout << "temporalUnitIntersection_upoint_upoint: received OPEN" << endl;
+#ifdef TUA_DEBUG
+      cout << "temporalUnitIntersection_upoint_upoint: received OPEN" << endl;
+#endif
       sli = new TUIntersectionLocalInfo;
       sli->finished = true;
       sli->NoOfResults = 0;
@@ -5917,37 +6010,40 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
       }
       else
         delete( res );
-      if (TUA_DEBUG)
-        cout << "temporalUnitIntersection_upoint_upoint: finished OPEN (6)"
-             << endl;
+#ifdef TUA_DEBUG
+      cout << "temporalUnitIntersection_upoint_upoint: finished OPEN (6)"
+           << endl;
+#endif
       return 0;
 
     case REQUEST:
 
-      if (TUA_DEBUG)
-        cout << "temporalUnitIntersection_upoint_upoint: received REQUEST"
-             << endl;
+#ifdef TUA_DEBUG
+      cout << "temporalUnitIntersection_upoint_upoint: received REQUEST"
+           << endl;
+#endif
       if(local.addr == 0)
         {
-          if (TUA_DEBUG)
-            cout << "temporalUnitIntersection_upoint_upoint: CANCEL (1)"
-                 << endl;
+#ifdef TUA_DEBUG
+          cout << "temporalUnitIntersection_upoint_upoint: CANCEL (1)"
+               << endl;
+#endif
           return CANCEL;
         }
       sli = (TUIntersectionLocalInfo*) local.addr;
       if(sli->finished)
         {
-          if (TUA_DEBUG)
-            cout << "temporalUnitIntersection_upoint_upoint: CANCEL (2)"
-                 << endl;
+#ifdef TUA_DEBUG
+          cout << "temporalUnitIntersection_upoint_upoint: CANCEL (2)"
+               << endl;
+#endif
           return CANCEL;
         }
-      if (TUA_DEBUG)
-        {
-          cout << "  NoOfResults=" << sli->NoOfResults << endl
-               << "  NoOfResultsDelivered=" << sli->NoOfResultsDelivered
-               << endl;
-        }
+#ifdef TUA_DEBUG
+        cout << "  NoOfResults=" << sli->NoOfResults << endl
+             << "  NoOfResultsDelivered=" << sli->NoOfResultsDelivered
+             << endl;
+#endif
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
         {
           result = SetWord( ((UPoint*)
@@ -5955,14 +6051,16 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
           ((UPoint*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
             ->DeleteIfAllowed();
           sli->NoOfResultsDelivered++;
-          if (TUA_DEBUG)
-            cout << "temporalUnitIntersection_upoint_upoint: YIELD"
-                 << endl;
+#ifdef TUA_DEBUG
+          cout << "temporalUnitIntersection_upoint_upoint: YIELD"
+               << endl;
+#endif
           return YIELD;
         }
       sli->finished = true;
-      if (TUA_DEBUG)
-        cout << "temporalUnitIntersection_upoint_upoint: CANCEL (3)" << endl;
+#ifdef TUA_DEBUG
+      cout << "temporalUnitIntersection_upoint_upoint: CANCEL (3)" << endl;
+#endif
       return CANCEL;
 
     case CLOSE:
@@ -6095,8 +6193,9 @@ inside the given Line. It returns the existing intervals in a Periods-Object.
 */
 static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
 {
-  if(TUA_DEBUG)
-    cout<<"MPointLineInside called"<<endl;
+#ifdef TUA_DEBUG
+  cout<<"MPointLineInside called"<<endl;
+#endif
   const HalfSegment *l;
 
   const UPoint* up = (UPoint*) u;
@@ -6107,29 +6206,32 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
 
   pResult.Clear();
 
-    if(TUA_DEBUG){
-      cout<<"UPoint # "<<" ["<<up->timeInterval.start.ToString()<<" "
-      <<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc<<" "
-      <<up->timeInterval.rc<<"] ("<<up->p0.GetX()<<" "<<up->p0.GetY()
-      <<")->("<<up->p1.GetX()<<" "<<up->p1.GetY()<<")"<<endl;}
+#ifdef TUA_DEBUG
+    cout<<"UPoint # "<<" ["<<up->timeInterval.start.ToString()<<" "
+        <<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc<<" "
+        <<up->timeInterval.rc<<"] ("<<up->p0.GetX()<<" "<<up->p0.GetY()
+        <<")->("<<up->p1.GetX()<<" "<<up->p1.GetY()<<")"<<endl;
+#endif
 
     for( int n = 0; n < ln.Size(); n++)
     {
       Instant t;
       ln.Get(n, l);
-      if(TUA_DEBUG){
+#ifdef TUA_DEBUG
         cout<<"UPoint # "<<" ["<<up->timeInterval.start.ToString()
-        <<" "<<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc
-        <<" "<<up->timeInterval.rc<<"] ("<<up->p0.GetX()<<" "<<up->p0.GetY()
-        <<")->("<<up->p1.GetX()<<" "<<up->p1.GetY()<<")"<<endl;
+          <<" "<<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc
+          <<" "<<up->timeInterval.rc<<"] ("<<up->p0.GetX()<<" "<<up->p0.GetY()
+          <<")->("<<up->p1.GetX()<<" "<<up->p1.GetY()<<")"<<endl;
         cout<<"l      # "<<n<<" ("<<l->GetLeftPoint().GetX()
-        <<" "<<l->GetLeftPoint().GetY()
-        <<" "<<l->GetRightPoint().GetX()<<" "
-        <<l->GetRightPoint().GetY()<<") "<<endl;}
+          <<" "<<l->GetLeftPoint().GetY()
+          <<" "<<l->GetRightPoint().GetX()<<" "
+          <<l->GetRightPoint().GetY()<<") "<<endl;
+#endif
       if (l->GetRightPoint().GetX() == l->GetDomPoint().GetX()
        && l->GetRightPoint().GetY() == l->GetDomPoint().GetY()) {
-        if(TUA_DEBUG)
-          cout<<"right point is dominating -> continue"<<endl;
+#ifdef TUA_DEBUG
+        cout<<"right point is dominating -> continue"<<endl;
+#endif
         continue;
       }
       if(( l->GetRightPoint().GetX() < up->p0.GetX()
@@ -6144,8 +6246,9 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
        &&  l->GetRightPoint().GetY() > up->p1.GetY()
        && (l->GetLeftPoint().GetY() > up->p0.GetY()
        &&  l->GetLeftPoint().GetY() > up->p1.GetY()))) {
-        if(TUA_DEBUG)
-          cout<<"Bounding Boxes not crossing!"<<endl;
+#ifdef TUA_DEBUG
+        cout<<"Bounding Boxes not crossing!"<<endl;
+#endif
         continue;
       }
       double al, bl, aup, bup;
@@ -6155,154 +6258,178 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
         al = (l->GetRightPoint().GetY() - l->GetLeftPoint().GetY())
            / (l->GetRightPoint().GetX() - l->GetLeftPoint().GetX());
         bl =  l->GetLeftPoint().GetY() - l->GetLeftPoint().GetX() * al;
-          if(TUA_DEBUG)
-            cout<<"al: "<<al<<" bl: "<<bl<<endl;
+#ifdef TUA_DEBUG
+        cout<<"al: "<<al<<" bl: "<<bl<<endl;
+#endif
       }
+#ifdef TUA_DEBUG
       else
-        if(TUA_DEBUG)
-          cout<<"l is vertical"<<endl;
+        cout<<"l is vertical"<<endl;
+#endif
       vup = up->p1.GetX() == up->p0.GetX();
       if(!vup){
         aup = (up->p1.GetY() - up->p0.GetY())
             / (up->p1.GetX() - up->p0.GetX());
         bup =  up->p0.GetY() - up->p0.GetX() * aup;
-        if(TUA_DEBUG)
-          cout<<"aup: "<<aup<<" bup: "<<bup<<endl;
+#ifdef TUA_DEBUG
+        cout<<"aup: "<<aup<<" bup: "<<bup<<endl;
+#endif
       }
+#ifdef TUA_DEBUG
       else
-        if(TUA_DEBUG)
           cout<<"up is vertical"<<endl;
+#endif
       if(vl && vup){
-        if(TUA_DEBUG)
+#ifdef TUA_DEBUG
           cout<<"both elements are vertical!"<<endl;
+#endif
         if(up->p1.GetX() != l->GetLeftPoint().GetX()){
-        if(TUA_DEBUG)
+#ifdef TUA_DEBUG
           cout<<"elements are vertical but not at same line"<<endl;
+#endif
           continue;
         }
         else {
-          if(TUA_DEBUG)
-            cout<<"elements on same line"<<endl;
+#ifdef TUA_DEBUG
+          cout<<"elements on same line"<<endl;
+#endif
           if(up->p1.GetY() < l->GetLeftPoint().GetY()
            && up->p0.GetY() < l->GetLeftPoint().GetY()){
-            if(TUA_DEBUG)
-              cout<<"uPoint lower as linesegment"<<endl;
+#ifdef TUA_DEBUG
+            cout<<"uPoint lower as linesegment"<<endl;
+#endif
             continue;
           }
           else if(up->p1.GetY() > l->GetRightPoint().GetY()
            && up->p0.GetY() > l->GetRightPoint().GetY()){
-            if(TUA_DEBUG)
-              cout<<"uPoint higher as linesegment"<<endl;
+#ifdef TUA_DEBUG
+            cout<<"uPoint higher as linesegment"<<endl;
+#endif
             continue;
           }
           else{
-            if(TUA_DEBUG)
-              cout<<"uPoint and linesegment partequal"<<endl;
+#ifdef TUA_DEBUG
+            cout<<"uPoint and linesegment partequal"<<endl;
+#endif
             if (up->p0.GetY() <= l->GetLeftPoint().GetY()
              && up->p1.GetY() >= l->GetLeftPoint().GetY()){
-              if(TUA_DEBUG)
-                cout<<"uPoint starts below linesegemet"<<endl;
+#ifdef TUA_DEBUG
+              cout<<"uPoint starts below linesegemet"<<endl;
+#endif
               t.ReadFrom((l->GetLeftPoint().GetY() - up->p0.GetY())
                      / (up->p1.GetY() - up->p0.GetY())
                      * (up->timeInterval.end.ToDouble()
                      -  up->timeInterval.start.ToDouble())
                      +  up->timeInterval.start.ToDouble());
               t.SetType(instanttype);
-              if(TUA_DEBUG)
-                cout<<"t "<<t.ToString()<<endl;
+#ifdef TUA_DEBUG
+              cout<<"t "<<t.ToString()<<endl;
+#endif
               newper.start = t;
               newper.lc = (up->timeInterval.start == t)
                          ? up->timeInterval.lc : true;
             }
             if(up->p1.GetY() <= l->GetLeftPoint().GetY()
              && up->p0.GetY() >= l->GetLeftPoint().GetY()){
-              if(TUA_DEBUG)
-                cout<<"uPoint ends below linesegemet"<<endl;
+#ifdef TUA_DEBUG
+              cout<<"uPoint ends below linesegemet"<<endl;
+#endif
               t.ReadFrom((l->GetLeftPoint().GetY() - up->p0.GetY())
                       / (up->p1.GetY() - up->p0.GetY())
                       * (up->timeInterval.end.ToDouble()
                       -  up->timeInterval.start.ToDouble())
                       +  up->timeInterval.start.ToDouble());
               t.SetType(instanttype);
-              if(TUA_DEBUG)
-                cout<<"t "<<t.ToString()<<endl;
+#ifdef TUA_DEBUG
+              cout<<"t "<<t.ToString()<<endl;
+#endif
               newper.end = t;
               newper.rc = (up->timeInterval.end == t)
                          ? up->timeInterval.rc : true;
             }
             if(up->p0.GetY() <= l->GetRightPoint().GetY()
              && up->p1.GetY() >= l->GetRightPoint().GetY()){
-              if(TUA_DEBUG)
-                cout<<"uPoint ends above linesegemet"<<endl;
+#ifdef TUA_DEBUG
+              cout<<"uPoint ends above linesegemet"<<endl;
+#endif
               t.ReadFrom((l->GetRightPoint().GetY() - up->p0.GetY())
                       / (up->p1.GetY() - up->p0.GetY())
                       * (up->timeInterval.end.ToDouble()
                       -  up->timeInterval.start.ToDouble())
                       +  up->timeInterval.start.ToDouble());
               t.SetType(instanttype);
-              if(TUA_DEBUG)
-                cout<<"t "<<t.ToString()<<endl;
+#ifdef TUA_DEBUG
+              cout<<"t "<<t.ToString()<<endl;
+#endif
               newper.end = t;
               newper.rc = (up->timeInterval.end == t)
                          ? up->timeInterval.rc : true;
             }
             if(up->p1.GetY() <= l->GetRightPoint().GetY()
              && up->p0.GetY() >= l->GetRightPoint().GetY()){
-              if(TUA_DEBUG)
-                cout<<"uPoint starts above linesegemet"<<endl;
+#ifdef TUA_DEBUG
+              cout<<"uPoint starts above linesegemet"<<endl;
+#endif
               t.ReadFrom((l->GetRightPoint().GetY() - up->p0.GetY())
                       / (up->p1.GetY() - up->p0.GetY())
                       * (up->timeInterval.end.ToDouble()
                       - up->timeInterval.start.ToDouble())
                       + up->timeInterval.start.ToDouble());
               t.SetType(instanttype);
-              if(TUA_DEBUG)
-                cout<<"t "<<t.ToString()<<endl;
+#ifdef TUA_DEBUG
+              cout<<"t "<<t.ToString()<<endl;
+#endif
               newper.start = t;
               newper.lc = (up->timeInterval.start == t)
                          ? up->timeInterval.lc : true;
             }
             if (up->p0.GetY() <= l->GetRightPoint().GetY()
              && up->p0.GetY() >= l->GetLeftPoint().GetY()){
-              if(TUA_DEBUG)
-                cout<<"uPoint starts inside linesegemet"<<endl;
+#ifdef TUA_DEBUG
+              cout<<"uPoint starts inside linesegemet"<<endl;
+#endif
               newper.start = up->timeInterval.start;
               newper.lc =    up->timeInterval.lc;
             }
             if( up->p1.GetY() <= l->GetRightPoint().GetY()
              && up->p1.GetY() >= l->GetLeftPoint().GetY()){
-              if(TUA_DEBUG)
-                cout<<"uPoint ends inside linesegemet"<<endl;
+#ifdef TUA_DEBUG
+              cout<<"uPoint ends inside linesegemet"<<endl;
+#endif
               newper.end = up->timeInterval.end;
               newper.rc =  up->timeInterval.rc;
             }
             if(newper.start == newper.end
              && (!newper.lc || !newper.rc)){
-              if(TUA_DEBUG)
-                cout<<"not an interval"<<endl;
+#ifdef TUA_DEBUG
+              cout<<"not an interval"<<endl;
+#endif
               continue;
             }
           }
         }
       }
       else if(vl){
-        if(TUA_DEBUG)
-          cout<<"vl is vertical vup not"<<endl;
+#ifdef TUA_DEBUG
+        cout<<"vl is vertical vup not"<<endl;
+#endif
         t.ReadFrom((l->GetRightPoint().GetX() - up->p0.GetX())
                 / (up->p1.GetX() - up->p0.GetX())
                 * (up->timeInterval.end.ToDouble()
                 -  up->timeInterval.start.ToDouble())
                 +  up->timeInterval.start.ToDouble());
         t.SetType(instanttype);
-        if(TUA_DEBUG)
-          cout<<"t "<<t.ToString()<<endl;
+#ifdef TUA_DEBUG
+        cout<<"t "<<t.ToString()<<endl;
+#endif
         if((up->timeInterval.start == t && !up->timeInterval.lc)
          ||  (up->timeInterval.end == t && !up->timeInterval.rc))
           continue;
 
         if(up->timeInterval.start > t|| up->timeInterval.end < t){
-          if(TUA_DEBUG)
-            cout<<"up outside line"<<endl;
+#ifdef TUA_DEBUG
+          cout<<"up outside line"<<endl;
+#endif
           continue;
         }
         up->TemporalFunction(t, pt);
@@ -6312,8 +6439,9 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
              pt.GetY() < l->GetRightPoint().GetY())
          || (pt.GetY() > l->GetLeftPoint().GetY() &&
              pt.GetY() > l->GetRightPoint().GetY())){
-          if(TUA_DEBUG)
-            cout<<"pt outside up!"<<endl;
+#ifdef TUA_DEBUG
+          cout<<"pt outside up!"<<endl;
+#endif
           continue;
         }
 
@@ -6323,8 +6451,9 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
         newper.rc = true;
       }
       else if(vup){
-        if(TUA_DEBUG)
-          cout<<"vup is vertical vl not"<<endl;
+#ifdef TUA_DEBUG
+        cout<<"vup is vertical vl not"<<endl;
+#endif
         if(up->p1.GetY() != up->p0.GetY()) {
           t.ReadFrom((up->p0.GetX() * al + bl - up->p0.GetY())
                   / (up->p1.GetY() - up->p0.GetY())
@@ -6332,18 +6461,21 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                   -  up->timeInterval.start.ToDouble())
                   +  up->timeInterval.start.ToDouble());
           t.SetType(instanttype);
-          if(TUA_DEBUG)
-            cout<<"t "<<t.ToString()<<endl;
+#ifdef TUA_DEBUG
+          cout<<"t "<<t.ToString()<<endl;
+#endif
           if((up->timeInterval.start == t && !up->timeInterval.lc)
            ||  (up->timeInterval.end == t && !up->timeInterval.rc)){
-            if(TUA_DEBUG)
-              cout<<"continue"<<endl;
+#ifdef TUA_DEBUG
+            cout<<"continue"<<endl;
+#endif
             continue;
           }
 
           if(up->timeInterval.start > t|| up->timeInterval.end < t){
-            if(TUA_DEBUG)
-              cout<<"up outside line"<<endl;
+#ifdef TUA_DEBUG
+            cout<<"up outside line"<<endl;
+#endif
             continue;
           }
           up->TemporalFunction(t, pt);
@@ -6353,8 +6485,9 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                pt.GetY() < l->GetRightPoint().GetY())
            || (pt.GetY() > l->GetLeftPoint().GetY() &&
                pt.GetY() > l->GetRightPoint().GetY())){
-            if(TUA_DEBUG)
-              cout<<"pt outside up!"<<endl;
+#ifdef TUA_DEBUG
+            cout<<"pt outside up!"<<endl;
+#endif
             continue;
           }
 
@@ -6364,116 +6497,133 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
           newper.rc = true;
         }
         else {
-          if(TUA_DEBUG)
-            cout<<"up is not moving"<<endl;
+#ifdef TUA_DEBUG
+          cout<<"up is not moving"<<endl;
+#endif
           if(al * up->p1.GetX() + bl == up->p1.GetY()){
-            if(TUA_DEBUG)
-              cout<<"Point lies on line"<<endl;
+#ifdef TUA_DEBUG
+            cout<<"Point lies on line"<<endl;
+#endif
             newper = up->timeInterval;
           }
           else {
-            if(TUA_DEBUG)
-              cout<<"continue 2"<<endl;
+#ifdef TUA_DEBUG
+            cout<<"continue 2"<<endl;
+#endif
             continue;
           }
         }
       }
       else if(aup == al){
-        if(TUA_DEBUG)
-          cout<<"both lines have same gradient"<<endl;
+#ifdef TUA_DEBUG
+        cout<<"both lines have same gradient"<<endl;
+#endif
         if(bup != bl){
-          if(TUA_DEBUG)
-            cout<<"colinear but not equal"<<endl;
+#ifdef TUA_DEBUG
+          cout<<"colinear but not equal"<<endl;
+#endif
           continue;
         }
          if(up->p0.GetX() <= l->GetLeftPoint().GetX()
          && up->p1.GetX() >= l->GetLeftPoint().GetX()){
-           if(TUA_DEBUG)
-             cout<<"uPoint starts left of linesegemet"<<endl;
+#ifdef TUA_DEBUG
+           cout<<"uPoint starts left of linesegemet"<<endl;
+#endif
            t.ReadFrom((l->GetLeftPoint().GetX() - up->p0.GetX())
                    / (up->p1.GetX() - up->p0.GetX())
                    * (up->timeInterval.end.ToDouble()
                    -  up->timeInterval.start.ToDouble())
                    +  up->timeInterval.start.ToDouble());
            t.SetType(instanttype);
-           if(TUA_DEBUG)
-             cout<<"t "<<t.ToString()<<endl;
+#ifdef TUA_DEBUG
+           cout<<"t "<<t.ToString()<<endl;
+#endif
            newper.start = t;
            newper.lc = (up->timeInterval.start == t)
                       ? up->timeInterval.lc : true;
         }
         if(up->p1.GetX() <= l->GetLeftPoint().GetX()
         && up->p0.GetX() >= l->GetLeftPoint().GetX()){
-           if(TUA_DEBUG)
-             cout<<"uPoint ends left of linesegemet"<<endl;
+#ifdef TUA_DEBUG
+           cout<<"uPoint ends left of linesegemet"<<endl;
+#endif
            t.ReadFrom((l->GetLeftPoint().GetX() - up->p0.GetX())
                    / (up->p1.GetX() - up->p0.GetX())
                    * (up->timeInterval.end.ToDouble()
                    -  up->timeInterval.start.ToDouble())
                    +  up->timeInterval.start.ToDouble());
            t.SetType(instanttype);
-           if(TUA_DEBUG)
-             cout<<"t "<<t.ToString()<<endl;
+#ifdef TUA_DEBUG
+           cout<<"t "<<t.ToString()<<endl;
+#endif
            newper.end = t;
            newper.rc = (up->timeInterval.end == t)
                       ? up->timeInterval.rc : true;
         }
         if(up->p0.GetX() <= l->GetRightPoint().GetX()
         && up->p1.GetX() >= l->GetRightPoint().GetX()){
-           if(TUA_DEBUG)
-             cout<<"uPoint ends right of linesegemet"<<endl;
+#ifdef TUA_DEBUG
+           cout<<"uPoint ends right of linesegemet"<<endl;
+#endif
            t.ReadFrom((l->GetRightPoint().GetX() - up->p0.GetX())
                    / (up->p1.GetX() - up->p0.GetX())
                    * (up->timeInterval.end.ToDouble()
                    -  up->timeInterval.start.ToDouble())
                    +  up->timeInterval.start.ToDouble());
            t.SetType(instanttype);
-           if(TUA_DEBUG)
-             cout<<"t "<<t.ToString()<<endl;
+#ifdef TUA_DEBUG
+           cout<<"t "<<t.ToString()<<endl;
+#endif
            newper.end = t;
            newper.rc = (up->timeInterval.end == t)
                       ? up->timeInterval.rc : true;
         }
         if(up->p1.GetX() <= l->GetRightPoint().GetX()
         && up->p0.GetX() >= l->GetRightPoint().GetX()){
-           if(TUA_DEBUG)
-             cout<<"uPoint starts right of linesegemet"<<endl;
+#ifdef TUA_DEBUG
+           cout<<"uPoint starts right of linesegemet"<<endl;
+#endif
            t.ReadFrom((l->GetRightPoint().GetX() - up->p0.GetX())
                    / (up->p1.GetX() - up->p0.GetX())
                    * (up->timeInterval.end.ToDouble()
                    -  up->timeInterval.start.ToDouble())
                    +  up->timeInterval.start.ToDouble());
            t.SetType(instanttype);
-           if(TUA_DEBUG)
-             cout<<"t "<<t.ToString()<<endl;
+#ifdef TUA_DEBUG
+           cout<<"t "<<t.ToString()<<endl;
+#endif
            newper.start = t;
            newper.lc = (up->timeInterval.start == t)
                       ? up->timeInterval.lc : true;
         }
         if(up->p0.GetX() <= l->GetRightPoint().GetX()
         && up->p0.GetX() >= l->GetLeftPoint().GetX()){
-           if(TUA_DEBUG)
-             cout<<"uPoint starts inside linesegemet"<<endl;
+#ifdef TUA_DEBUG
+           cout<<"uPoint starts inside linesegemet"<<endl;
+#endif
            newper.start = up->timeInterval.start;
            newper.lc =    up->timeInterval.lc;
         }
         if(up->p1.GetX() <= l->GetRightPoint().GetX()
         && up->p1.GetX() >= l->GetLeftPoint().GetX()){
-           if(TUA_DEBUG)
-             cout<<"uPoint ends inside linesegemet"<<endl;
+#ifdef TUA_DEBUG
+           cout<<"uPoint ends inside linesegemet"<<endl;
+#endif
            newper.end = up->timeInterval.end;
            newper.rc =  up->timeInterval.rc;
         }
         if(newper.start == newper.end
         && (!newper.lc || !newper.rc)){
-          if(TUA_DEBUG)
-            cout<<"not an interval"<<endl;
+#ifdef TUA_DEBUG
+          cout<<"not an interval"<<endl;
+#endif
           continue;
         }
       }
       else{
-        if(TUA_DEBUG)
-          cout<<"both lines have different gradients"<<endl;
+#ifdef TUA_DEBUG
+        cout<<"both lines have different gradients"<<endl;
+#endif
         t.ReadFrom(((bl - bup) / (aup - al) - up->p0.GetX())
                 / (up->p1.GetX() - up->p0.GetX())
                 * (up->timeInterval.end.ToDouble()
@@ -6482,14 +6632,16 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
         t.SetType(instanttype);
         if((up->timeInterval.start == t && !up->timeInterval.lc)
          ||  (up->timeInterval.end == t && !up->timeInterval.rc)){
-          if(TUA_DEBUG)
-            cout<<"continue"<<endl;
+#ifdef TUA_DEBUG
+          cout<<"continue"<<endl;
+#endif
           continue;
         }
 
         if(up->timeInterval.start > t|| up->timeInterval.end < t){
-          if(TUA_DEBUG)
-            cout<<"up outside line"<<endl;
+#ifdef TUA_DEBUG
+          cout<<"up outside line"<<endl;
+#endif
           continue;
         }
         up->TemporalFunction(t, pt);
@@ -6499,8 +6651,9 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
              pt.GetY() < l->GetRightPoint().GetY())
          || (pt.GetY() > l->GetLeftPoint().GetY() &&
              pt.GetY() > l->GetRightPoint().GetY())){
-          if(TUA_DEBUG)
-            cout<<"pt outside up!"<<endl;
+#ifdef TUA_DEBUG
+          cout<<"pt outside up!"<<endl;
+#endif
           continue;
         }
 
@@ -6509,9 +6662,10 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
         newper.end = t;
         newper.rc = true;
       }
-      if(TUA_DEBUG){
-        cout<<"newper ["<< newper.start.ToString()<<" "<<newper.end.ToString()
-        <<" "<<newper.lc<<" "<<newper.rc<<"]"<<endl;}
+#ifdef TUA_DEBUG
+      cout<<"newper ["<< newper.start.ToString()<<" "<<newper.end.ToString()
+          <<" "<<newper.lc<<" "<<newper.rc<<"]"<<endl;
+#endif
       period->Clear();
       period->StartBulkLoad();
       period->Add(newper);
@@ -6540,9 +6694,9 @@ and end points.
 */
 static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
   MPoint* endResult){
-  if(TUA_DEBUG)
+#ifdef TUA_DEBUG
     cout<<"TUCompletePeriods2MPoint called"<<endl;
-
+#endif
   const UPoint* up = (UPoint*) u;
   endResult->Clear();
   endResult->StartBulkLoad();
@@ -6554,37 +6708,43 @@ static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
   for ( int i = 0; i < 1; i++) {
     if(!up->IsDefined())
         continue;
-    if(TUA_DEBUG){
-      cout<<"UPoint # "<<" ["<<up->timeInterval.start.ToString()
+#ifdef TUA_DEBUG
+    cout<<"UPoint # "<<" ["<<up->timeInterval.start.ToString()
       <<" "<<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc<<" "
       <<up->timeInterval.rc<<"] ("<<up->p0.GetX()<<" "<<up->p0.GetY()<<")->("
-      <<up->p1.GetX()<<" "<<up->p1.GetY()<<")"<<endl;}
+      <<up->p1.GetX()<<" "<<up->p1.GetY()<<")"<<endl;
+#endif
     if(!pfinished) {
       pResult->Get(m, per);
-      if(TUA_DEBUG){
-        cout<<"per "<<m<<" ["<<per->start.ToString()<<" "
-        <<per->end.ToString()<<" "<<per->lc<<" "<<per->rc<<"]"<<endl;}
+#ifdef TUA_DEBUG
+      cout<<"per "<<m<<" ["<<per->start.ToString()<<" "
+        <<per->end.ToString()<<" "<<per->lc<<" "<<per->rc<<"]"<<endl;
+#endif
     }
     if(pfinished) {
-      if(TUA_DEBUG)
-        cout<<"no per any more. break 1"<<endl;
+#ifdef TUA_DEBUG
+      cout<<"no per any more. break 1"<<endl;
+#endif
       break;
     }
     if(!(pfinished || up->timeInterval.end < per->start
      || (up->timeInterval.end == per->start
      && !up->timeInterval.rc && per->lc))) {
-      if(TUA_DEBUG)
-        cout<<"per not totally after up"<<endl;
+#ifdef TUA_DEBUG
+      cout<<"per not totally after up"<<endl;
+#endif
       if(up->timeInterval.start < per->start
        || (up->timeInterval.start == per->start
        && up->timeInterval.lc && !per->lc)) {
-        if(TUA_DEBUG)
-          cout<<"up starts before per"<<endl;
+#ifdef TUA_DEBUG
+        cout<<"up starts before per"<<endl;
+#endif
         newUp.timeInterval = *per;
       }
       else {
-        if(TUA_DEBUG)
-          cout<<"per starts before or with up"<<endl;
+#ifdef TUA_DEBUG
+        cout<<"per starts before or with up"<<endl;
+#endif
         newUp.timeInterval.start = up->timeInterval.start;
         newUp.timeInterval.lc = up->timeInterval.lc;
       }
@@ -6592,62 +6752,70 @@ static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
         if(up->timeInterval.end < per->end
          || (up->timeInterval.end == per->end
          && per->rc && !up->timeInterval.rc)) {
-            if(TUA_DEBUG)
-              cout<<"per ends after up (break)"<<endl;
+#ifdef TUA_DEBUG
+            cout<<"per ends after up (break)"<<endl;
+#endif
             newUp.timeInterval.end = up->timeInterval.end;
             newUp.timeInterval.rc = up->timeInterval.rc;
             up->TemporalFunction(newUp.timeInterval.start, pt, true);
             newUp.p0 = pt;
             up->TemporalFunction(newUp.timeInterval.end, pt, true);
             newUp.p1 = pt;
-            if(TUA_DEBUG){
-              cout<<"Add3 ("<<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
+#ifdef TUA_DEBUG
+            cout<<"Add3 ("<<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
               <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
               <<") ["<<newUp.timeInterval.start.ToString()<<" "
               <<newUp.timeInterval.end.ToString()<<" "
-              <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"<<endl;}
+              <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"<<endl;
+#endif
             endResult->Add(newUp);
             break;
         }
         else {
-          if(TUA_DEBUG)
-            cout<<"per ends inside up"<<endl;
+#ifdef TUA_DEBUG
+          cout<<"per ends inside up"<<endl;
+#endif
           newUp.timeInterval.end = per->end;
           newUp.timeInterval.rc = per->rc;
           up->TemporalFunction(newUp.timeInterval.start, pt, true);
           newUp.p0 = pt;
           up->TemporalFunction(newUp.timeInterval.end, pt, true);
           newUp.p1 = pt;
-          if(TUA_DEBUG){
-            cout<<"Add4 ("<<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
+#ifdef TUA_DEBUG
+          cout<<"Add4 ("<<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
              <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
             <<") ["<<newUp.timeInterval.start.ToString()<<" "
             <<newUp.timeInterval.end.ToString()<<" "
-            <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"<<endl;}
+            <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"<<endl;
+#endif
           endResult->Add(newUp);
         }
         if(m == pResult->GetNoComponents() - 1){
-          if(TUA_DEBUG)
-            cout<<"last per"<<endl;
+#ifdef TUA_DEBUG
+          cout<<"last per"<<endl;
+#endif
           pfinished = true;
         }
         else {
           pResult->Get(++m, per);
-          if(TUA_DEBUG){
-            cout<<"per "<<m<<" ["<<per->start.ToString()
-            <<" "<<per->end.ToString()<<" "<<per->lc<<" "<<per->rc<<"]"<<endl;}
+#ifdef TUA_DEBUG
+          cout<<"per "<<m<<" ["<<per->start.ToString()
+            <<" "<<per->end.ToString()<<" "<<per->lc<<" "<<per->rc<<"]"<<endl;
+#endif
         }
         if(!pfinished && (per->start < up->timeInterval.end
            || (per->start == up->timeInterval.end
            && up->timeInterval.rc && per->rc))){
-          if(TUA_DEBUG)
-            cout<<"next per starts in same up"<<endl;
+#ifdef TUA_DEBUG
+          cout<<"next per starts in same up"<<endl;
+#endif
           newUp.timeInterval.start = per->start;
           newUp.timeInterval.lc = per->lc;
         }
         else {
-          if(TUA_DEBUG)
-            cout<<"next interval after up -> finish up"<<endl;
+#ifdef TUA_DEBUG
+          cout<<"next interval after up -> finish up"<<endl;
+#endif
           break;
         }
       } //while
@@ -6679,10 +6847,10 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
     {
     case OPEN:
 
-      if (TUA_DEBUG)
-        cout << "temporalUnitIntersection_upoint_line<"
-             << uargindex << ">: Received OPEN" << endl;
-
+#ifdef TUA_DEBUG
+      cout << "temporalUnitIntersection_upoint_line<"
+           << uargindex << ">: Received OPEN" << endl;
+#endif
       p = new Periods(10);
       sli = new TUIntersectionLocalInfo;
       sli->finished = true;
@@ -6693,7 +6861,9 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
 
       // initialize arguments, such that a0 always contains the upoint
       //                       and a1 the line
-      if (TUA_DEBUG) cout << "  uargindex=" << uargindex << endl;
+#ifdef TUA_DEBUG
+      cout << "  uargindex=" << uargindex << endl;
+#endif
       if (uargindex == 0)
         { a0 = args[0]; a1 = args[1]; }
       else
@@ -6704,8 +6874,9 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
       // test for definedness
       if ( !u->IsDefined() || !l->IsDefined() || l->IsEmpty() )
         {
-          if (TUA_DEBUG)
-            cout << "  Undef/Empty arg -> Empty Result" << endl << endl;
+#ifdef TUA_DEBUG
+          cout << "  Undef/Empty arg -> Empty Result" << endl << endl;
+#endif
           // nothing to do
         }
       else
@@ -6714,13 +6885,15 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
           TUCompletePeriods2MPoint(u, p, sli->mpoint); // create upoints
           sli->NoOfResults = sli->mpoint->GetNoComponents();
           sli->finished = (sli->NoOfResults <= 0);
-          if (TUA_DEBUG)
-            cout << "  " << sli->NoOfResults << " result units" << endl << endl;
+#ifdef TUA_DEBUG
+          cout << "  " << sli->NoOfResults << " result units" << endl << endl;
+#endif
         }
       delete p;
-      if (TUA_DEBUG)
-        cout << "temporalUnitIntersection_upoint_line: Finished OPEN"
-             << endl;
+#ifdef TUA_DEBUG
+      cout << "temporalUnitIntersection_upoint_line: Finished OPEN"
+           << endl;
+#endif
       return 0;
 
     case REQUEST:
@@ -6783,11 +6956,11 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
     {
     case OPEN:
 
-      if (TUA_DEBUG)
+#ifdef TUA_DEBUG
         cerr << "temporalUnitIntersection_upoint_uregion<"
              << uargindex << ", " << regionismoving
              << ">: Received OPEN" << endl;
-
+#endif
       sli = new TUIntersectionLocalInfo;
       sli->finished = true;
       sli->NoOfResults = 0;
@@ -6797,7 +6970,9 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
 
       // initialize arguments, such that a0 always contains the upoint
       //                       and a1 the uregion/region
-      if (TUA_DEBUG) cerr << "  uargindex=" << uargindex << endl;
+#ifdef TUA_DEBUG
+      cerr << "  uargindex=" << uargindex << endl;
+#endif
       if (uargindex == 0)
         { a0 = args[0]; a1 = args[1]; }
       else if (uargindex == 1)
@@ -6820,8 +6995,9 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
            ( regionismoving && !r->IsDefined()) ||
            (!regionismoving && !f->IsDefined()) )
         {
-          if (TUA_DEBUG)
+#ifdef TUA_DEBUG
             cerr << "  Undef arg -> Empty Result" << endl << endl;
+#endif
           // nothing to do
         }
       else
@@ -6848,35 +7024,39 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
           delete mr_tmp;
           sli->NoOfResults = sli->mpoint->GetNoComponents();
           sli->finished = (sli->NoOfResults <= 0);
-          if (TUA_DEBUG)
-            cerr << "  " << sli->NoOfResults << " result units" << endl << endl;
+#ifdef TUA_DEBUG
+          cerr << "  " << sli->NoOfResults << " result units" << endl << endl;
+#endif
         }
-      if (TUA_DEBUG)
-        cerr << "temporalUnitIntersection_upoint_uregion: Finished OPEN"
-             << endl;
+#ifdef TUA_DEBUG
+      cerr << "temporalUnitIntersection_upoint_uregion: Finished OPEN"
+           << endl;
+#endif
       return 0;
 
     case REQUEST:
-      if (TUA_DEBUG)
+#ifdef TUA_DEBUG
         cerr << "temporalUnitIntersection_upoint_uregion<"
              << uargindex << ", " << regionismoving
              << ">: Received REQUEST" << endl;
-
+#endif
       if(local.addr == 0)
         {
-          if (TUA_DEBUG)
-            cerr << "temporalUnitIntersection_upoint_uregion<"
-                 << uargindex << ", " << regionismoving
-                 << ">: Finished REQUEST (1)" << endl;
+#ifdef TUA_DEBUG
+          cerr << "temporalUnitIntersection_upoint_uregion<"
+               << uargindex << ", " << regionismoving
+               << ">: Finished REQUEST (1)" << endl;
+#endif
           return CANCEL;
         }
       sli = (TUIntersectionLocalInfo*) local.addr;
       if(sli->finished)
         {
-          if (TUA_DEBUG)
-            cerr << "temporalUnitIntersection_upoint_uregion<"
-                 << uargindex << ", " << regionismoving
-                 << ">: Finished REQUEST (2)" << endl;
+#ifdef TUA_DEBUG
+          cerr << "temporalUnitIntersection_upoint_uregion<"
+               << uargindex << ", " << regionismoving
+               << ">: Finished REQUEST (2)" << endl;
+#endif
           return CANCEL;
         }
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
@@ -6884,35 +7064,39 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
           sli->mpoint->Get(sli->NoOfResultsDelivered, cu);
           result = SetWord( cu->Clone() );
           sli->NoOfResultsDelivered++;
-          if (TUA_DEBUG)
-            cerr << "temporalUnitIntersection_upoint_uregion<"
-                 << uargindex << ", " << regionismoving
-                 << ">: Finished REQUEST (YIELD)" << endl;
+#ifdef TUA_DEBUG
+          cerr << "temporalUnitIntersection_upoint_uregion<"
+               << uargindex << ", " << regionismoving
+               << ">: Finished REQUEST (YIELD)" << endl;
+#endif
           return YIELD;
         }
       sli->finished = true;
-      if (TUA_DEBUG)
-        cerr << "temporalUnitIntersection_upoint_uregion<"
-             << uargindex << ", " << regionismoving
-             << ">: Finished REQUEST (3)" << endl;
+#ifdef TUA_DEBUG
+      cerr << "temporalUnitIntersection_upoint_uregion<"
+           << uargindex << ", " << regionismoving
+           << ">: Finished REQUEST (3)" << endl;
+#endif
       return CANCEL;
 
     case CLOSE:
 
-      if (TUA_DEBUG)
-        cerr << "temporalUnitIntersection_upoint_uregion<"
-             << uargindex << ", " << regionismoving
-             << ">: Received CLOSE" << endl;
+#ifdef TUA_DEBUG
+      cerr << "temporalUnitIntersection_upoint_uregion<"
+           << uargindex << ", " << regionismoving
+           << ">: Received CLOSE" << endl;
+#endif
       if (local.addr != 0)
         {
           sli = (TUIntersectionLocalInfo*) local.addr;
           delete sli->mpoint;
           delete sli;
         }
-      if (TUA_DEBUG)
-        cerr << "temporalUnitIntersection_upoint_uregion<"
-             << uargindex << ", " << regionismoving
-             << ">: Finished CLOSE" << endl;
+#ifdef TUA_DEBUG
+      cerr << "temporalUnitIntersection_upoint_uregion<"
+           << uargindex << ", " << regionismoving
+           << ">: Finished CLOSE" << endl;
+#endif
       return 0;
     } // end switch
 
@@ -8027,9 +8211,9 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
     {
     case OPEN:
 
-      if (TUA_DEBUG)
-        cerr << "temporalUnitInside_up_ur: Received OPEN"
-             << endl;
+#ifdef TUA_DEBUG
+      cerr << "temporalUnitInside_up_ur: Received OPEN" << endl;
+#endif
 
       sli = new TUInsideLocalInfo;
       sli->finished = true;
@@ -8048,8 +8232,9 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
       // test for definedness
       if ( !u->IsDefined() || !r->IsDefined() )
         {
-          if (TUA_DEBUG)
-            cerr << "  Undef arg -> Empty Result" << endl << endl;
+#ifdef TUA_DEBUG
+          cerr << "  Undef arg -> Empty Result" << endl << endl;
+#endif
           // nothing to do
         }
       else
@@ -8066,32 +8251,33 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
           mr_tmp.Inside(mp_tmp, *(sli->mbool)); // get and save result;
           sli->NoOfResults = sli->mbool->GetNoComponents();
           sli->finished = (sli->NoOfResults <= 0);
-          if (TUA_DEBUG)
-            cerr << "  " << sli->NoOfResults << " result units" << endl << endl;
+#ifdef TUA_DEBUG
+          cerr << "  " << sli->NoOfResults << " result units" << endl << endl;
+#endif
         }
-      if (TUA_DEBUG)
-        cerr << "temporalUnitInside_up_ur: Finished OPEN"
-             << endl;
+#ifdef TUA_DEBUG
+      cerr << "temporalUnitInside_up_ur: Finished OPEN"
+           << endl;
+#endif
       return 0;
 
     case REQUEST:
-      if (TUA_DEBUG)
-        cerr << "temporalUnitInside_up_ur: Received REQUEST"
-             << endl;
-
+#ifdef TUA_DEBUG
+      cerr << "temporalUnitInside_up_ur: Received REQUEST"<< endl;
+#endif
       if(local.addr == 0)
         {
-          if (TUA_DEBUG)
-            cerr << "temporalUnitInside_up_ur: Finished REQUEST (1)"
-                 << endl;
+#ifdef TUA_DEBUG
+          cerr << "temporalUnitInside_up_ur: Finished REQUEST (1)" << endl;
+#endif
           return CANCEL;
         }
       sli = (TUInsideLocalInfo*) local.addr;
       if(sli->finished)
         {
-          if (TUA_DEBUG)
-            cerr << "temporalUnitInside_up_ur: Finished REQUEST (2)"
-                 << endl;
+#ifdef TUA_DEBUG
+          cerr << "temporalUnitInside_up_ur: Finished REQUEST (2)"<< endl;
+#endif
           return CANCEL;
         }
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
@@ -8099,31 +8285,32 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
           sli->mbool->Get(sli->NoOfResultsDelivered, cu);
           result = SetWord( cu->Clone() );
           sli->NoOfResultsDelivered++;
-          if (TUA_DEBUG)
-            cerr << "temporalUnitInside_up_ur: "
-                << "Finished REQUEST (YIELD)" << endl;
+#ifdef TUA_DEBUG
+          cerr << "temporalUnitInside_up_ur: "
+               << "Finished REQUEST (YIELD)" << endl;
+#endif
           return YIELD;
         }
       sli->finished = true;
-      if (TUA_DEBUG)
-        cerr << "temporalUnitInside_up_ur: Finished REQUEST (3)"
-             << endl;
+#ifdef TUA_DEBUG
+      cerr << "temporalUnitInside_up_ur: Finished REQUEST (3)"<< endl;
+#endif
       return CANCEL;
 
     case CLOSE:
 
-      if (TUA_DEBUG)
-        cerr << "temporalUnitInside_up_ur: Received CLOSE"
-             << endl;
+#ifdef TUA_DEBUG
+      cerr << "temporalUnitInside_up_ur: Received CLOSE"<< endl;
+#endif
       if (local.addr != 0)
         {
           sli = (TUInsideLocalInfo*) local.addr;
           delete sli->mbool;
           delete sli;
         }
-      if (TUA_DEBUG)
-        cerr << "temporalUnitInside_up_ur: Finished CLOSE"
-             << endl;
+#ifdef TUA_DEBUG
+      cerr << "temporalUnitInside_up_ur: Finished CLOSE"<< endl;
+#endif
       return 0;
     } // end switch
 

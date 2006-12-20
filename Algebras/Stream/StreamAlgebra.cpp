@@ -130,8 +130,7 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
-bool GSA_DEBUG = false; // Set to true to activate debugging code
-//bool GSA_DEBUG = true; // Set to true to activate debugging code
+// #define GSA_DEBUG
 
 /*
 4 General Selection functions
@@ -289,15 +288,11 @@ TypeMapUse( ListExpr args )
 
   errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
-  if (GSA_DEBUG) cout << "\nTypeMapUse: 0" << endl;
-
   if ( (nl->ListLength( args ) != 2) )
     {
-      if (GSA_DEBUG) cout << "TypeMapUse: 1" << endl;
       ErrorReporter::ReportError("Operator use expects a list of length two ");
       return nl->SymbolAtom( "typeerror" );
     }
-  if (GSA_DEBUG) cout << "TypeMapUse: 2" << endl;
 
   // get use arguments
   sarg1 = nl->First( args );
@@ -308,29 +303,24 @@ TypeMapUse( ListExpr args )
           || ( nl->ListLength( sarg1 ) != 2)
           || !(TypeOfRelAlgSymbol(nl->First(sarg1) == stream )) )
     {
-      if (GSA_DEBUG) cout << "TypeMapUse: 3" << endl;
-
       ErrorReporter::ReportError(
         "Operator use expects its first Argument to "
         "be of type '(stream T), for T in kind DATA)'.");
       return nl->SymbolAtom( "typeerror" );
     }
   sarg1Type = nl->Second(sarg1);
-  if (GSA_DEBUG) cout << "TypeMapUse: 4" << endl;
 
   // check sarg1 to be a (stream T) for T in kind DATA
   // or T of type tuple(X)
   if(    !nl->IsAtom( sarg1Type )
          && !am->CheckKind("DATA", nl->Second( sarg1Type ), errorInfo) )
     {
-      if (GSA_DEBUG) cout << "TypeMapUse: 5" << endl;
       nl->WriteToString(outstr1, sarg1Type);
       ErrorReporter::ReportError("Operator use expects its 1st argument "
                                  "to be '(stream T)', T of kind DATA, but"
                                  "receives '" + outstr1 + "' as T.");
       return nl->SymbolAtom( "typeerror" );
     }
-  if (GSA_DEBUG) cout << "TypeMapUse: 6" << endl;
 
   // This check can be removed when operators working on tuplestreams have
   // been implemented:
@@ -338,14 +328,12 @@ TypeMapUse( ListExpr args )
        (nl->ListLength( sarg1Type ) == 2) &&
        nl->IsEqual( nl->First(sarg1Type), "tuple") )
     {
-      if (GSA_DEBUG) cout << "TypeMapUse: 7" << endl;
       ErrorReporter::ReportError("Operator use still not implemented for "
                                  "arguments of type 'tuple(X)' or "
                                  "'(stream tuple(X))'.");
       return nl->SymbolAtom( "typeerror" );
     }
 
-  if (GSA_DEBUG) cout << "TypeMapUse: 8" << endl;
   if ( !nl->IsAtom( sarg1Type ) &&
        ( (nl->ListLength( sarg1Type ) != 2) ||
          !nl->IsEqual( nl->First(sarg1Type), "tuple") ||
@@ -353,33 +341,27 @@ TypeMapUse( ListExpr args )
          )
        )
     {
-      if (GSA_DEBUG) cout << "TypeMapUse: 9" << endl;
       nl->WriteToString(outstr1, sarg1);
       return nl->SymbolAtom( "typeerror" );
     }
-  if (GSA_DEBUG) cout << "TypeMapUse: 10" << endl;
 
   // check for map
   if (  nl->IsAtom( map ) || !( nl->IsEqual(nl->First(map), "map") ) )
     {
-      if (GSA_DEBUG) cout << "TypeMapUse: 11" << endl;
       nl->WriteToString(outstr1, map);
       ErrorReporter::ReportError("Operator use expects a map as "
                                  "2nd argument, but gets '" + outstr1 +
                                  "' instead.");
       return nl->SymbolAtom( "typeerror" );
     }
-  if (GSA_DEBUG) cout << "TypeMapUse: 12" << endl;
 
   if ( nl->ListLength(map) != 3 )
     {
-      if (GSA_DEBUG) cout << "TypeMapUse: 13" << endl;
       ErrorReporter::ReportError("Number of map arguments must be 1 "
                                  "for operator use.");
       return nl->SymbolAtom( "typeerror" );
     }
 
-  if (GSA_DEBUG) cout << "TypeMapUse: 14" << endl;
   // get map arguments
   marg1 = nl->Second(map);
   mres  = nl->Third(map);
@@ -388,7 +370,6 @@ TypeMapUse( ListExpr args )
 
   if ( !( nl->Equal(marg1, sarg1Type) ) )
     {
-      if (GSA_DEBUG) cout << "TypeMapUse: 15" << endl;
       nl->WriteToString(outstr1, sarg1Type);
       nl->WriteToString(outstr2, marg1);
       ErrorReporter::ReportError("Operator use: 1st argument's stream"
@@ -399,58 +380,45 @@ TypeMapUse( ListExpr args )
                                  "' and '" + outstr2 + "'.");
       return nl->SymbolAtom( "typeerror" );
     }
-  if (GSA_DEBUG) cout << "TypeMapUse: 16" << endl;
 
   // get map result type 'sresType'
   if( !( nl->IsAtom( mres ) ) && ( nl->ListLength( mres ) == 2) )
     {
-      if (GSA_DEBUG) cout << "TypeMapUse: 17" << endl;
 
       if (  TypeOfRelAlgSymbol(nl->First(mres) == stream ) )
         {
-          if (GSA_DEBUG) cout << "TypeMapUse: 18" << endl;
           if ( !am->CheckKind("DATA", nl->Second(mres), errorInfo) )
             {
-              if (GSA_DEBUG) cout << "TypeMapUse: 19" << endl;
-
               ErrorReporter::ReportError(
                 "Operator use expects its 2nd Argument to "
                 "return a '(stream T)', T of kind DATA'.");
               return nl->SymbolAtom( "typeerror" );
             }
-          if (GSA_DEBUG) cout << "TypeMapUse: 20" << endl;
-
           sresType = mres; // map result type is already a stream
           nl->WriteToString(outstr1, sresType);
-          if (GSA_DEBUG) cout << "\nTypeMapUse Resulttype (1): "
-                              << outstr1 << "\n";
+#ifdef GSA_DEBUG
+          cout << "\nTypeMapUse Resulttype (1): "
+               << outstr1 << "\n";
+#endif
           return sresType;
         }
-      if (GSA_DEBUG) cout << "TypeMapUse: 21" << endl;
-
     }
   else // map result type is not a stream, so encapsulate it
     {
-      if (GSA_DEBUG) cout << "TypeMapUse: 22" << endl;
-
       if ( !am->CheckKind("DATA", mres, errorInfo) )
         {
-          if (GSA_DEBUG) cout << "TypeMapUse: 23" << endl;
-
           ErrorReporter::ReportError(
             "Operator use expects its 2nd Argument to "
             "return a type of kind DATA.");
           return nl->SymbolAtom( "typeerror" );
         }
-      if (GSA_DEBUG) cout << "TypeMapUse: 24" << endl;
-
       sresType = nl->TwoElemList(nl->SymbolAtom("stream"), mres);
       nl->WriteToString(outstr1, sresType);
-      if (GSA_DEBUG) cout << "\nTypeMapUse Resulttype (2): "
-                          << outstr1 << "\n";
+#ifdef GSA_DEBUG
+      cout << "\nTypeMapUse Resulttype (2): " << outstr1 << "\n";
+#endif
       return sresType;
     }
-  if (GSA_DEBUG) cout << "TypeMapUse: 25" << endl;
 
   // otherwise (some unmatched error)
   return nl->SymbolAtom( "typeerror" );
@@ -472,8 +440,6 @@ TypeMapUse2( ListExpr args )
     resisstream   = false;
   int argConfCode = 0;
 
-  if (GSA_DEBUG) cout << "\nTypeMapUse2: 0" << endl;
-
   errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
   // 0. Check number of arguments
@@ -484,14 +450,10 @@ TypeMapUse2( ListExpr args )
       return nl->SymbolAtom( "typeerror" );
     }
 
-  if (GSA_DEBUG) cout << "TypeMapUse2: 1" << endl;
-
   // 1. get use arguments
   sarg1 = nl->First( args );
   sarg2 = nl->Second( args );
   map   = nl->Third( args );
-
-  if (GSA_DEBUG) cout << "TypeMapUse2: 2" << endl;
 
   // 2. First argument
   // check sarg1 for being a stream
@@ -543,8 +505,6 @@ TypeMapUse2( ListExpr args )
       return nl->SymbolAtom( "typeerror" );
     }
 
-  if (GSA_DEBUG) cout << "TypeMapUse2: 3" << endl;
-
   // 3. Second Argument
   // check sarg2 for being a stream
   if( nl->IsAtom( sarg2 )
@@ -595,8 +555,6 @@ TypeMapUse2( ListExpr args )
       return nl->SymbolAtom( "typeerror" );
     }
 
-  if (GSA_DEBUG) cout << "TypeMapUse2: 4" << endl;
-
   // 4. First and Second argument
   // check whether at least one stream argument is present
   if ( !sarg1isstream && !sarg2isstream )
@@ -606,8 +564,6 @@ TypeMapUse2( ListExpr args )
         "argument to be of type '(stream T), for T in kind DATA)'.");
       return nl->SymbolAtom( "typeerror" );
     }
-
-  if (GSA_DEBUG) cout << "TypeMapUse2: 5" << endl;
 
   // 5. Third argument
   // check third for being a map
@@ -661,18 +617,12 @@ TypeMapUse2( ListExpr args )
       return nl->SymbolAtom( "typeerror" );
     }
 
-  if (GSA_DEBUG) cout << "TypeMapUse2: 6" << endl;
-
   // 6. Determine result type
   // get map result type 'sresType'
   if( !nl->IsAtom( mres )  && ( nl->ListLength( mres ) == 2) )
     {
-      if (GSA_DEBUG) cout << "TypeMapUse2: 6.1" << endl;
-
       if (  TypeOfRelAlgSymbol(nl->First(mres) == stream ) )
         {
-          if (GSA_DEBUG) cout << "TypeMapUse2: 6.2" << endl;
-
           if ( !am->CheckKind("DATA", nl->Second(mres), errorInfo) &&
                !( !nl->IsAtom(nl->Second(mres)) &&
                   nl->ListLength(nl->Second(mres)) == 2 &&
@@ -681,23 +631,17 @@ TypeMapUse2( ListExpr args )
                   )
                )
             {
-              if (GSA_DEBUG) cout << "TypeMapUse2: 6.3" << endl;
-
               ErrorReporter::ReportError(
                 "Operator use2 expects its 3rd Argument to "
                 "return a '(stream T)', T of kind DATA or T = 'tuple(X)'.");
               return nl->SymbolAtom( "typeerror" );
             }
-          if (GSA_DEBUG) cout << "TypeMapUse2: 6.4" << endl;
-
           resisstream = true;
           sresType = mres; // map result type is already a stream
         }
     }
   else // map result type is not a stream, so encapsulate it
     {
-      if (GSA_DEBUG) cout << "TypeMapUse2: 6.5" << endl;
-
       if (    !( nl->IsAtom(mres) && am->CheckKind("DATA", mres, errorInfo))
               && !( !nl->IsAtom(mres) &&
                     nl->ListLength(mres) == 2 &&
@@ -707,20 +651,14 @@ TypeMapUse2( ListExpr args )
                     )
               )
         {
-          if (GSA_DEBUG) cout << "TypeMapUse2: 6.6" << endl;
-
           ErrorReporter::ReportError(
             "Operator use2 expects its 3rd Argument to "
             "return a type T of kind DATA or T = 'tuple(X)'.");
           return nl->SymbolAtom( "typeerror" );
         }
-      if (GSA_DEBUG) cout << "TypeMapUse2: 6.7" << endl;
-
       resisstream = false;
       sresType = nl->TwoElemList(nl->SymbolAtom("stream"), mres);
     }
-
-  if(GSA_DEBUG) cout << "TypeMapUse2: 7" << endl;
 
   // 7. This check can be removed when operators working on tuplestreams have
   //    been implemented:
@@ -735,8 +673,6 @@ TypeMapUse2( ListExpr args )
       return nl->SymbolAtom( "typeerror" );
     }
 
-
-  if (GSA_DEBUG) cout << "TypeMapUse2: 8" << endl;
 
   // 8. Append flags describing argument configuration for value mapping:
   //     0: no stream
@@ -781,13 +717,17 @@ int Use_SN( Word* args, Word& result, int message,
     {
     case OPEN :
 
-      if(GSA_DEBUG) cout << "Use_SN received OPEN" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SN received OPEN" << endl;
+#endif
       sli = new UseLocalInfo;
       sli->Xfinished = true;
       qp->Open(instream.addr);
       sli->Xfinished = false;
       local = SetWord(sli);
-      if(GSA_DEBUG) cout << "Use_SN finished OPEN" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SN finished OPEN" << endl;
+#endif
       return 0;
 
     case REQUEST :
@@ -796,17 +736,23 @@ int Use_SN( Word* args, Word& result, int message,
       // pass it to the parameter function and evalute the latter.
       // The result is simply passed on.
 
-      if(GSA_DEBUG) cout << "Use_SN received REQUEST" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SN received REQUEST" << endl;
+#endif
       if( local.addr == 0 )
         {
-          if(GSA_DEBUG) cout << "Use_SN finished REQUEST: CANCEL (1)" << endl;
+#ifdef GSA_DEBUG
+          cout << "Use_SN finished REQUEST: CANCEL (1)" << endl;
+#endif
           return CANCEL;
         }
       sli = (UseLocalInfo*)local.addr;
 
       if (sli->Xfinished)
         {
-          if(GSA_DEBUG) cout << "Use_SN finished REQUEST: CANCEL (2)" << endl;
+#ifdef GSA_DEBUG
+          cout << "Use_SN finished REQUEST: CANCEL (2)" << endl;
+#endif
           return CANCEL;
         }
 
@@ -821,11 +767,13 @@ int Use_SN( Word* args, Word& result, int message,
           // copy result:
           result = SetWord(((Attribute*) (funResult.addr))->Clone());
           ((Attribute*) (argValue.addr))->DeleteIfAllowed(); // delete argument
-          if(GSA_DEBUG)
-            cout << "        result.addr    =" << result.addr << endl;
+#ifdef GSA_DEBUG
+          cout << "        result.addr    =" << result.addr << endl;
+#endif
           argValue.addr = 0;
-          if(GSA_DEBUG)
-            cout << "Use_SN finished REQUEST: YIELD" << endl;
+#ifdef GSA_DEBUG
+          cout << "Use_SN finished REQUEST: YIELD" << endl;
+#endif
           return YIELD;
         }
       else // (input stream consumed completely)
@@ -833,14 +781,17 @@ int Use_SN( Word* args, Word& result, int message,
           qp->Close(instream.addr);
           sli->Xfinished = true;
           result.addr = 0;
-          if(GSA_DEBUG)
-            cout << "Use_SN finished REQUEST: CANCEL (3)" << endl;
+#ifdef GSA_DEBUG
+          cout << "Use_SN finished REQUEST: CANCEL (3)" << endl;
+#endif
           return CANCEL;
         }
 
     case CLOSE :
 
-      if(GSA_DEBUG) cout << "Use_SN received CLOSE" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SN received CLOSE" << endl;
+#endif
       if( local.addr != 0 )
         {
           sli = (UseLocalInfo*)local.addr;
@@ -848,7 +799,9 @@ int Use_SN( Word* args, Word& result, int message,
             qp->Close( instream.addr );
           delete sli;
         }
-      if(GSA_DEBUG) cout << "Use_SN finished CLOSE" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SN finished CLOSE" << endl;
+#endif
       return 0;
 
     }  // end switch
@@ -892,7 +845,9 @@ int Use_SS( Word* args, Word& result, int message,
       // If the inner stream is consumed, we try to get a new value
       // from the 'outer' stream and re-open the inner stream
 
-      if(GSA_DEBUG) cout << "\nUse_SS: Received REQUEST";
+#ifdef GSA_DEBUG
+      cout << "\nUse_SS: Received REQUEST";
+#endif
       //1. recover local information
       if( local.addr == 0 )
         return CANCEL;
@@ -921,7 +876,9 @@ int Use_SS( Word* args, Word& result, int message,
             { // cloning and passing the result
               result = SetWord(((Attribute*) (funResult.addr))->Clone());
               ((Attribute*) (funResult.addr))->DeleteIfAllowed();
-              if(GSA_DEBUG) cout << "     result.addr=" << result.addr << endl;
+#ifdef GSA_DEBUG
+              cout << "     result.addr=" << result.addr << endl;
+#endif
               return YIELD;
             }
           else
@@ -966,7 +923,9 @@ int Use_SNN( Word* args, Word& result, int message,
     {
     case OPEN :
 
-      if(GSA_DEBUG) cout << "\nUse_SNN received OPEN" << endl;
+#ifdef GSA_DEBUG
+      cout << "\nUse_SNN received OPEN" << endl;
+#endif
       sli = new UseLocalInfo ;
       sli->Xfinished = true;
       sli->X.addr = 0;
@@ -978,9 +937,9 @@ int Use_SNN( Word* args, Word& result, int message,
         {
           delete( sli );
           local.addr = 0;
-          if(GSA_DEBUG)
-            cout << "\nUse_SNN was called with stream result mapping!"
-                 <<  endl;
+#ifdef GSA_DEBUG
+          cout << "\nUse_SNN was called with stream result mapping!" <<  endl;
+#endif
           return 0;
         }
       if(sli->argConfDescriptor & 1)
@@ -998,7 +957,9 @@ int Use_SNN( Word* args, Word& result, int message,
       sli->Xfinished = false;
 
       local = SetWord(sli);
-      if(GSA_DEBUG) cout << "Use_SNN finished OPEN" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SNN finished OPEN" << endl;
+#endif
       return 0;
 
     case REQUEST :
@@ -1008,20 +969,26 @@ int Use_SNN( Word* args, Word& result, int message,
       // function and evalute the latter. The result is simply passed on.
       // sli->X is the stream, sli->Y the constant argument.
 
-      if(GSA_DEBUG) cout << "Use_SNN received REQUEST" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SNN received REQUEST" << endl;
+#endif
 
       // 1. get local data object
       if (local.addr == 0)
         {
           result.addr = 0;
-          if(GSA_DEBUG) cout << "Use_SNN finished REQUEST: CLOSE (1)" << endl;
+#ifdef GSA_DEBUG
+          cout << "Use_SNN finished REQUEST: CLOSE (1)" << endl;
+#endif
           return CANCEL;
         }
       sli = (UseLocalInfo*) local.addr;
       if (sli->Xfinished)
         { // stream already exhausted earlier
           result.addr = 0;
-          if(GSA_DEBUG) cout << "Use_SNN finished REQUEST: CLOSE (2)" << endl;
+#ifdef GSA_DEBUG
+          cout << "Use_SNN finished REQUEST: CLOSE (2)" << endl;
+#endif
           return CANCEL;
         }
 
@@ -1031,7 +998,9 @@ int Use_SNN( Word* args, Word& result, int message,
         { // stream exhausted now
           qp->Close( sli->X.addr );
           sli->Xfinished = true;
-          if(GSA_DEBUG) cout << "Use_SNN finished REQUEST: CLOSE (3)" << endl;
+#ifdef GSA_DEBUG
+          cout << "Use_SNN finished REQUEST: CLOSE (3)" << endl;
+#endif
           return CANCEL;
         }
 
@@ -1049,14 +1018,20 @@ int Use_SNN( Word* args, Word& result, int message,
         }
       qp->Request( sli->fun.addr, funresult );
       result = SetWord(((Attribute*) (funresult.addr))->Clone());
-      if(GSA_DEBUG) cout << "     result.addr=" << result.addr << endl;
+#ifdef GSA_DEBUG
+      cout << "     result.addr=" << result.addr << endl;
+#endif
       ((Attribute*) (xval.addr))->DeleteIfAllowed();
-      if(GSA_DEBUG) cout << "Use_SNN finished REQUEST: YIELD" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SNN finished REQUEST: YIELD" << endl;
+#endif
       return YIELD;
 
     case CLOSE :
 
-      if(GSA_DEBUG) cout << "Use_SNN received CLOSE" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SNN received CLOSE" << endl;
+#endif
       if( local.addr != 0 )
         {
           sli = (UseLocalInfo*)local.addr;
@@ -1064,7 +1039,9 @@ int Use_SNN( Word* args, Word& result, int message,
             qp->Close( sli->X.addr ); // close input
           delete sli;
         }
-      if(GSA_DEBUG) cout << "Use_SNN finished CLOSE" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SNN finished CLOSE" << endl;
+#endif
       return 0;
 
     }  // end switch
@@ -1087,7 +1064,9 @@ int Use_SNS( Word* args, Word& result, int message,
     {
     case OPEN :
 
-      if(GSA_DEBUG) cout << "\nUse_SNS received OPEN" << endl;
+#ifdef GSA_DEBUG
+      cout << "\nUse_SNS received OPEN" << endl;
+#endif
       sli = new UseLocalInfo ;
       sli->Xfinished   = true;
       sli->funfinished = true;
@@ -1121,7 +1100,9 @@ int Use_SNS( Word* args, Word& result, int message,
       sli->Xfinished = false;
       sli->fun = SetWord(args[2].addr);
       local = SetWord(sli);
-      if(GSA_DEBUG) cout << "Use_SNN finished OPEN" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SNN finished OPEN" << endl;
+#endif
       return 0;
 
     case REQUEST :
@@ -1132,13 +1113,17 @@ int Use_SNS( Word* args, Word& result, int message,
       // sli->X is a pointer to the OUTER stream,
       // sli->Y is a pointer to the constant argument.
 
-      if(GSA_DEBUG) cout << "Use_SNN received REQUEST" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SNN received REQUEST" << endl;
+#endif
 
       // 1. get local data object
       if (local.addr == 0)
         {
           result.addr = 0;
-          if(GSA_DEBUG) cout << "Use_SNN finished REQUEST: CLOSE (1)" << endl;
+#ifdef GSA_DEBUG
+          cout << "Use_SNN finished REQUEST: CLOSE (1)" << endl;
+#endif
           return CANCEL;
         }
       sli = (UseLocalInfo*) local.addr;
@@ -1152,8 +1137,9 @@ int Use_SNS( Word* args, Word& result, int message,
               if (!qp->Received(sli->X.addr))
                 { // stream X exhaused. CANCEL
                   sli->Xfinished = true;
-                  if(GSA_DEBUG)
-                    cout << "Use_SNN finished REQUEST: CLOSE (3)" << endl;
+#ifdef GSA_DEBUG
+                  cout << "Use_SNN finished REQUEST: CLOSE (3)" << endl;
+#endif
                   return CANCEL;
                 }
               funargs = qp->Argument( sli->fun.addr );
@@ -1175,11 +1161,10 @@ int Use_SNS( Word* args, Word& result, int message,
             { // inner stream returned a result
               result = SetWord(((Attribute*) (funresult.addr))->Clone());
               ((Attribute*) (funresult.addr))->DeleteIfAllowed();
-              if(GSA_DEBUG)
-                {
-                  cout << "     result.addr=" << result.addr << endl;
-                  cout << "Use_SNN finished REQUEST: YIELD" << endl;
-                }
+#ifdef GSA_DEBUG
+              cout << "     result.addr=" << result.addr << endl;
+              cout << "Use_SNN finished REQUEST: YIELD" << endl;
+#endif
               return YIELD;
             }
           else{ // inner stream exhausted
@@ -1190,12 +1175,16 @@ int Use_SNS( Word* args, Word& result, int message,
           }
         } // end while
       result.addr = 0;
-      if(GSA_DEBUG) cout << "Use_SNN finished REQUEST: CLOSE (4)" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SNN finished REQUEST: CLOSE (4)" << endl;
+#endif
       return CANCEL;
 
     case CLOSE :
 
-      if(GSA_DEBUG) cout << "Use_SNN received CLOSE" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SNN received CLOSE" << endl;
+#endif
       if( local.addr != 0 )
         {
           sli = (UseLocalInfo*)local.addr;
@@ -1205,7 +1194,9 @@ int Use_SNS( Word* args, Word& result, int message,
             qp->Close( sli->X.addr );   // close outer stream
           delete sli;
         }
-      if(GSA_DEBUG) cout << "Use_SNN finished CLOSE" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SNN finished CLOSE" << endl;
+#endif
       return 0;
 
     }  // end switch
@@ -1226,7 +1217,9 @@ int Use_SSN( Word* args, Word& result, int message,
     {
     case OPEN :
 
-      if(GSA_DEBUG) cout << "\nUse_SSN received OPEN" << endl;
+#ifdef GSA_DEBUG
+      cout << "\nUse_SSN received OPEN" << endl;
+#endif
       sli = new UseLocalInfo ;
       sli->Xfinished = true;
       sli->Yfinished = true;
@@ -1255,7 +1248,9 @@ int Use_SSN( Word* args, Word& result, int message,
       qp->Open(sli->X.addr);            // open outer stream argument
       sli->Xfinished = false;
       local = SetWord(sli);
-      if(GSA_DEBUG) cout << "Use_SSN finished OPEN" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SSN finished OPEN" << endl;
+#endif
       return 0;
 
     case REQUEST :
@@ -1267,13 +1262,17 @@ int Use_SSN( Word* args, Word& result, int message,
       // We also need to delete each element, when it is not required
       // anymore.
 
-      if(GSA_DEBUG) cout << "Use_SSN received REQUEST" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SSN received REQUEST" << endl;
+#endif
 
       // get local data object
       if (local.addr == 0)
         {
           result.addr = 0;
-          if(GSA_DEBUG) cout << "Use_SSN finished REQUEST: CLOSE (1)" << endl;
+#ifdef GSA_DEBUG
+          cout << "Use_SSN finished REQUEST: CLOSE (1)" << endl;
+#endif
           return CANCEL;
         }
       sli = (UseLocalInfo*) local.addr;
@@ -1288,8 +1287,9 @@ int Use_SSN( Word* args, Word& result, int message,
                   qp->Close(sli->X.addr);
                   sli->Xfinished = true;
                   result.addr = 0;
-                  if(GSA_DEBUG)
-                    cout << "Use_SSN finished REQUEST: CANCEL (2)" << endl;
+#ifdef GSA_DEBUG
+                  cout << "Use_SSN finished REQUEST: CANCEL (2)" << endl;
+#endif
                   return CANCEL;
                 }
               // Got next X-elem. (Re-)Start inner instream:
@@ -1314,16 +1314,22 @@ int Use_SSN( Word* args, Word& result, int message,
               qp->Request( sli->fun.addr, funresult );
               result = SetWord(((Attribute*) (funresult.addr))->Clone());
               ((Attribute*) (sli->YVal.addr))->DeleteIfAllowed();
-              if(GSA_DEBUG) cout << "Use_SSN finished REQUEST: YIELD" << endl;
+#ifdef GSA_DEBUG
+              cout << "Use_SSN finished REQUEST: YIELD" << endl;
+#endif
               return YIELD;
             }
         } // end while
-      if(GSA_DEBUG) cout << "Use_SSN finished REQUEST: CANCEL (3)" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SSN finished REQUEST: CANCEL (3)" << endl;
+#endif
       return CANCEL;
 
     case CLOSE :
 
-      if(GSA_DEBUG) cout << "Use_SSN received CLOSE" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SSN received CLOSE" << endl;
+#endif
       if( local.addr != 0 )
         {
           sli = (UseLocalInfo*)local.addr;
@@ -1338,7 +1344,9 @@ int Use_SSN( Word* args, Word& result, int message,
           delete sli;
         }
       result.addr = 0;
-      if(GSA_DEBUG) cout << "Use_SSN finished CLOSE" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SSN finished CLOSE" << endl;
+#endif
       return 0;
 
     }  // end switch
@@ -1361,7 +1369,9 @@ int Use_SSS( Word* args, Word& result, int message,
     {
     case OPEN :
 
-      if(GSA_DEBUG) cout << "\nUse_SSS received OPEN" << endl;
+#ifdef GSA_DEBUG
+      cout << "\nUse_SSS received OPEN" << endl;
+#endif
       sli = new UseLocalInfo ;
       sli->Xfinished   = true;
       sli->Yfinished   = true;
@@ -1390,7 +1400,9 @@ int Use_SSS( Word* args, Word& result, int message,
       qp->Open(sli->X.addr);            // open X stream argument
       sli->Xfinished = false;
       local = SetWord(sli);
-      if(GSA_DEBUG) cout << "Use_SSS finished OPEN" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SSS finished OPEN" << endl;
+#endif
       return 0;
 
     case REQUEST :
@@ -1405,13 +1417,17 @@ int Use_SSS( Word* args, Word& result, int message,
       // We also need to delete each X/Y element, when it is not required
       // any more.
 
-      if(GSA_DEBUG) cout << "Use_SSS received REQUEST" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SSS received REQUEST" << endl;
+#endif
 
       // get local data object
       if (local.addr == 0)
         {
           result.addr = 0;
-          if(GSA_DEBUG) cout << "Use_SSS finished REQUEST: CLOSE (1)" << endl;
+#ifdef GSA_DEBUG
+          cout << "Use_SSS finished REQUEST: CLOSE (1)" << endl;
+#endif
           return CANCEL;
         }
       sli = (UseLocalInfo*) local.addr;
@@ -1426,8 +1442,9 @@ int Use_SSS( Word* args, Word& result, int message,
                 { // X-instream exhaused
                   qp->Close(sli->X.addr);
                   sli->Xfinished = true;
-                  if(GSA_DEBUG)
-                    cout << "Use_SSS finished REQUEST: CANCEL (2)" << endl;
+#ifdef GSA_DEBUG
+                  cout << "Use_SSS finished REQUEST: CANCEL (2)" << endl;
+#endif
                   result.addr = 0;
                   return CANCEL;
                 }
@@ -1465,8 +1482,9 @@ int Use_SSS( Word* args, Word& result, int message,
                 { // got a value from map result stream
                   result=SetWord(((Attribute*)(funresult.addr))->Clone());
                   ((Attribute*) (funresult.addr))->DeleteIfAllowed();
-                  if(GSA_DEBUG)
-                    cout << "Use_SSS finished REQUEST: YIELD" << endl;
+#ifdef GSA_DEBUG
+                  cout << "Use_SSS finished REQUEST: YIELD" << endl;
+#endif
                   return YIELD;
                 }
               else
@@ -1478,12 +1496,16 @@ int Use_SSS( Word* args, Word& result, int message,
             }
         } // end while
       result.addr = 0;
-      if(GSA_DEBUG) cout << "Use_SSS finished REQUEST: CANCEL (3)" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SSS finished REQUEST: CANCEL (3)" << endl;
+#endif
       return CANCEL;
 
     case CLOSE :
 
-      if(GSA_DEBUG) cout << "Use_SSS received CLOSE" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SSS received CLOSE" << endl;
+#endif
       if( local.addr != 0 )
         {
           sli = (UseLocalInfo*)local.addr;
@@ -1503,7 +1525,9 @@ int Use_SSS( Word* args, Word& result, int message,
             qp->Close( sli->X.addr ); // close outer instream
           delete sli;
         }
-      if(GSA_DEBUG) cout << "Use_SSS finished CLOSE" << endl;
+#ifdef GSA_DEBUG
+      cout << "Use_SSS finished CLOSE" << endl;
+#endif
       return 0;
 
     }  // end switch
@@ -2091,8 +2115,9 @@ ListExpr StreamTransformstreamTypeMap(ListExpr args)
     {
       TupleDescr = nl->Second(nl->Second(first));
       nl->WriteToString(argstr, TupleDescr);
-      if(GSA_DEBUG)
-        cout << "\n In tupledescr = " << argstr << endl;
+#ifdef GSA_DEBUG
+      cout << "\n In tupledescr = " << argstr << endl;
+#endif
       if ( !nl->IsAtom(TupleDescr) &&
            (nl->ListLength(TupleDescr) == 1) &&
            !nl->IsAtom(nl->First(TupleDescr)) &&
@@ -2204,28 +2229,36 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
   switch ( message )
     {
     case OPEN:
-      if (GSA_DEBUG) cout << "Transformstream_TS_S: OPEN called" << endl;
+#ifdef GSA_DEBUG
+      cout << "Transformstream_TS_S: OPEN called" << endl;
+#endif
       qp->Open( args[0].addr );
       sli = new TransformstreamLocalInfo;
       sli->finished = false;
       local = SetWord(sli);
-      if (GSA_DEBUG) cout << "Transformstream_TS_S: OPEN finished" << endl;
+#ifdef GSA_DEBUG
+      cout << "Transformstream_TS_S: OPEN finished" << endl;
+#endif
       return 0;
 
     case REQUEST:
-      if (GSA_DEBUG) cout << "Transformstream_TS_S: REQUEST called" << endl;
+#ifdef GSA_DEBUG
+      cout << "Transformstream_TS_S: REQUEST called" << endl;
+#endif
       if (local.addr == 0)
         {
-          if (GSA_DEBUG) cout
-            << "Transformstream_TS_S: REQUEST return CANCEL (1)" << endl;
+#ifdef GSA_DEBUG
+          cout<< "Transformstream_TS_S: REQUEST return CANCEL (1)" << endl;
+#endif
           return CANCEL;
         }
 
       sli = (TransformstreamLocalInfo*) (local.addr);
       if (sli->finished)
         {
-          if (GSA_DEBUG) cout
-            << "Transformstream_TS_S: REQUEST return CANCEL (2)" << endl;
+#ifdef GSA_DEBUG
+          cout<< "Transformstream_TS_S: REQUEST return CANCEL (2)" << endl;
+#endif
           return CANCEL;
         }
 
@@ -2235,21 +2268,25 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
           qp->Close( args[0].addr );
           sli->finished = true;
           result.addr = 0;
-          if (GSA_DEBUG) cout
-            << "Transformstream_TS_S: REQUEST return CANCEL (3)" << endl;
+#ifdef GSA_DEBUG
+          cout<< "Transformstream_TS_S: REQUEST return CANCEL (3)" << endl;
+#endif
           return CANCEL;
         }
       // extract, copy and pass value, delete tuple
       tupleptr = (Tuple*)tuple.addr;
       result.addr = tupleptr->GetAttribute(0)->Clone();
       tupleptr->DeleteIfAllowed();
-      if (GSA_DEBUG) cout
-        << "Transformstream_TS_S: REQUEST return YIELD" << endl;
+#ifdef GSA_DEBUG
+      cout<< "Transformstream_TS_S: REQUEST return YIELD" << endl;
+#endif
       return YIELD;
 
     case CLOSE:
 
-      if (GSA_DEBUG) cout << "Transformstream_TS_S: CLOSE called" << endl;
+#ifdef GSA_DEBUG
+      cout << "Transformstream_TS_S: CLOSE called" << endl;
+#endif
       if (local.addr != 0)
         {
           sli = (TransformstreamLocalInfo*) (local.addr);
@@ -2257,7 +2294,9 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
             qp->Close( args[0].addr );
           delete sli;
         }
-      if (GSA_DEBUG) cout << "Transformstream_TS_S: CLOSE finished" << endl;
+#ifdef GSA_DEBUG
+      cout << "Transformstream_TS_S: CLOSE finished" << endl;
+#endif
       return 0;
 
     }
