@@ -1,0 +1,128 @@
+Database: berlintest
+Restore : No
+
+Operator : category
+Number   : 1
+Signature: picture -> string
+Example  : query pic category
+Result   : 
+
+
+Operator : colordist
+Number   : 1
+Signature: picture int -> histogram
+Example  : query pic colordist [ 0 ]
+Result   : 
+
+
+Operator : cut
+Number   : 1
+Signature: picture int int int int -> picture
+Example  : query pic cut [ 100, 100, 400, 200 ] 
+Result   : 
+
+
+Operator : display
+Number   : 1
+Signature: picture -> bool
+Example  : query pic display
+Result   : 
+
+
+Operator : equals
+Number   : 1
+Signature: picture picture int int -> real
+Example  : query pic1 pic2 equals [ 5, 100 ]
+Result   : 
+
+
+Operator : export
+Number   : 1
+Signature: picture text -> bool
+Example  : query pic export [ "/tmp/schmuh.jpg" ]
+Result   : 
+
+
+Operator : filename
+Number   : 1
+Signature: picture -> string
+Example  : query pic filename
+Result   : 
+
+
+Operator : flipleft
+Number   : 1
+Signature: picture int -> picture
+Example  : query pic flipleft [ 1 ] 
+Result   : 
+
+
+Operator : height
+Number   : 1
+Signature: picture -> int
+Example  : query pic height
+Result   : 
+
+
+Operator : isgrayscale
+Number   : 1
+Signature: picture -> bool
+Example  : query pic isgrayscale
+Result   : 
+
+
+Operator : isportrait
+Number   : 1
+Signature: picture -> bool
+Example  : query pic isportrait
+Result   : 
+
+
+Operator : like
+Number   : 1
+Signature: picture int int int int -> bool
+Example  : query pic like [ 50, 5, 100, 200 ]
+Result   : 
+
+Operator : like
+Number   : 2
+Signature: picture real real int int -> bool
+Example  : query pic like [ 50.0, 5.0, 100, 200 ]
+Result   : 
+
+
+Operator : mirror
+Number   : 1
+Signature: picture bool -> picture
+Example  : query pic mirror [ TRUE ] 
+Result   : 
+
+
+Operator : picturedate
+Number   : 1
+Signature: picture -> instant
+Example  : query pic category
+Result   : 
+
+
+Operator : scale
+Number   : 1
+Signature: picture int int int int -> picture
+Example  : query pic scale [ 800, 533 ] 
+Result   : 
+
+
+Operator : simpleequals
+Number   : 1
+Signature: picture picture-> bool
+Example  : query pic1 simpleequals pic2
+Result   : 
+
+
+Operator : width
+Number   : 1
+Signature: picture -> int
+Example  : query pic width
+Result   : 
+
+

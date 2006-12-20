@@ -19,18 +19,24 @@
 
 # Begin ArrayAlgebra.spec
 
+
+operator makearray alias MAKEARRAY pattern op ( _, _ )
+# Note: ( _, _ ) means also a comma separated list of arbitrary length 
+
 operator get alias GET pattern op ( _, _ )
 
 operator put alias PUT pattern op ( _, _, _ )
+
+operator size alias SIZE pattern op ( _ )
 
 operator sortarray alias SORTARRAY pattern _ op [ fun ]
          implicit parameter element type ELEMENT
 
 operator tie alias TIE pattern _ op [ fun ] 
-         implicit parameters first, second types ELEMENT, ELEMENT
+         implicit parameter first type ELEMENT
 
 operator cumulate alias CUMULATE pattern _ op [ fun ] 
-         implicit parameters first, second types ELEMENT, ELEMENT
+         implicit parameter first type ELEMENT
 
 operator distribute alias DISTRIBUTE pattern _ op [ _ ]
 
