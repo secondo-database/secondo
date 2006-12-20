@@ -1,0 +1,41 @@
+
+( mstring 
+   (
+      (
+         ( "2003-11-20-06:06"  "2003-11-20-06:06:08.692"  TRUE  FALSE ) "Flughafen Schönefeld" )
+      (
+         ( "2003-11-20-06:06:08.692"  "2003-11-20-06:13:25.780"  TRUE  FALSE ) "Krankenhaus Neukölln" )
+      (
+         ( "2003-11-20-06:13:25.780"  "2003-11-20-06:18:50"  TRUE  FALSE ) "Hufeisensiedlung" )
+      (
+         ( "2003-11-20-06:18:50"  "2003-11-20-06:24:41.737"  TRUE  FALSE ) "Naturtheater Hasenheide" )
+      (
+         ( "2003-11-20-06:24:41.737"  "2003-11-20-06:26:50"  TRUE  FALSE ) "Gasometer" )
+      (
+         ( "2003-11-20-06:26:50"  "2003-11-20-06:27:33.522"  TRUE  FALSE ) "Marheinekehalle" )
+      (
+         ( "2003-11-20-06:27:33.522"  "2003-11-20-06:28:12.989"  TRUE  FALSE ) "Bezirksamt Kreuzberg" )
+      (
+         ( "2003-11-20-06:28:12.989"  "2003-11-20-06:29:01.859"  TRUE  FALSE ) "Amerika-Gedenkbibliothek" )
+      (
+         ( "2003-11-20-06:29:01.859"  "2003-11-20-06:30:18.775"  TRUE  FALSE ) "Hebbeltheater" )
+      (
+         ( "2003-11-20-06:30:18.775"  "2003-11-20-06:32:12.509"  TRUE  FALSE ) "Museum für Verkehr und Technik" )
+      (
+         ( "2003-11-20-06:32:12.509"  "2003-11-20-06:35:45.579"  TRUE  FALSE ) "Kammergericht" )
+      (
+         ( "2003-11-20-06:35:45.579"  "2003-11-20-06:37:24.485"  TRUE  FALSE ) "Rathaus Schöneberg" )
+      (
+         ( "2003-11-20-06:37:24.485"  "2003-11-20-06:40:50"  TRUE  FALSE ) "St.-Gertrauden-Krankenhaus" )
+      (
+         ( "2003-11-20-06:40:50"  "2003-11-20-06:42:48.942"  TRUE  FALSE ) "Kudamm-Karree" )
+      (
+         ( "2003-11-20-06:42:48.942"  "2003-11-20-06:45:42.743"  TRUE  FALSE ) "Deutsche Oper Berlin" )
+      (
+         ( "2003-11-20-06:45:42.743"  "2003-11-20-06:47:38.161"  TRUE  FALSE ) "Rathaus Charlottenburg" )
+      (
+         ( "2003-11-20-06:47:38.161"  "2003-11-20-06:52:10.594"  TRUE  FALSE ) "Schloß Charlottenburg" )
+      (
+         ( "2003-11-20-06:52:10.594"  "2003-11-20-06:55:50"  TRUE  FALSE ) "DRK-Klinikum Westend" )
+      (
+         ( "2003-11-20-07:01:11.382"  "2003-11-20-07:02"  TRUE  FALSE ) "Rathaus Spandau" )))

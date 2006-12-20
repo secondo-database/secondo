@@ -1,0 +1,9 @@
+
+( mbool 
+   (
+      (
+         ( "begin of time"  "2003-11-20-07:00"  TRUE  FALSE ) TRUE )
+      (
+         ( "2003-11-20-07:00"  "2003-11-20-08:50"  TRUE  FALSE ) FALSE )
+      (
+         ( "2003-11-20-08:50"  "end of time"  TRUE  TRUE ) TRUE )))
