@@ -26,6 +26,7 @@ import viewer.hoese.algebras.periodic.*;
 import sj.lang.ListExpr;
 import java.io.*;
 import java.util.Vector;
+import java.util.Properties;
 
 
 // This class takes a file containing a single Periodic Moving Point and
@@ -164,6 +165,366 @@ public void setTimeDiff(Time t){
   }
 }
 
+
+/** Writes the current setting to cfg.
+  *  Overwrites existing key/data pairs
+  **/
+public void writeConfig(Properties cfg){
+   Time T = getTimeDiff();
+   long ms = T.getMilliseconds() / 1000;
+   cfg.setProperty("TIMEDIFF",""+ms); 
+   cfg.setProperty("MAX_ERROR",""+getMaxError());
+   cfg.setProperty("MAX_ERROR_DIFF",""+getMaxErrorDiff());
+   cfg.setProperty("RELATIVE_ERROR",""+isRelativeError());
+   cfg.setProperty("CHANGE_ERROR_PROB",""+getChangeErrorProb());
+   cfg.setProperty("MAX_MEASURES",""+getMaximumMeasures());
+   cfg.setProperty("MAX_SEQUENCE",""+getMaxSeqLength());
+   cfg.setProperty("REMOVE_PROB",""+getRemoveProb());
+   cfg.setProperty("REMOVE_SEQ_PROB",""+getRemoveSeqProb());
+   cfg.setProperty("WRITER_TOLERANCE",""+getWriterTolerance());
+   cfg.setProperty("EVENT_PROB",""+getEventProb());
+   cfg.setProperty("MAX_DELAY",""+getMaxDelay());
+   cfg.setProperty("STOP_PROB",""+getStopProb());
+   cfg.setProperty("MIN_DEC",""+getMinDec());
+   cfg.setProperty("MAX_DEC",""+getMaxDec());
+   cfg.setProperty("MIN_ACC",""+getMinAcc());
+   cfg.setProperty("MAX_ACC",""+getMaxAcc());
+
+}
+
+
+/** Read the configuration from the argument. 
+  * Returns the number of errors.
+  **/
+public int readConfig(Properties cfg){
+   int errors = 0;
+   String value;
+   value = cfg.getProperty("TIMEDIFF");
+   if(value!=null){
+      try{
+        value = value.trim();
+        int d = (int)(Double.parseDouble(value)*1000); // time diff in seconds
+        Time t = new Time(0,d);
+        setTimeDiff(t);  
+        if(t.compareTo(getTimeDiff())!=0){
+           log.println(t.toDurationString()+" is not a valid time difference");
+           errors++;
+        } else {
+            log.println("time diff set to " + t.toDurationString());
+        }
+      }catch(Exception e){
+        log.println("invalid Value found for time difference in configuration");
+        errors++;
+      }
+   } else{
+       log.println("time diff not found");
+   }
+
+   value = cfg.getProperty("MAX_ERROR");
+   double me=-1;
+   if(value!=null){
+      try{
+        me = Double.parseDouble(value);
+      }catch(Exception e){
+         log.println(value +" is not valid for maximum error");
+         errors++;
+      }
+   } else{
+       log.println("max error not found");
+   }
+
+   
+   value = cfg.getProperty("MAX_ERROR_DIFF");
+   double med=-1;
+   if(value!=null){
+      try{
+        med=Double.parseDouble(value);
+      }catch(Exception e){
+         log.println(value + " is not valid for error difference");
+         errors++;
+      }
+   } else{
+      log.println("max error diff not found");
+   }
+   
+   if(me>-1 && med>-1){
+     setMaxErrors(me,med);
+     if(me!=getMaxError() || med!=getMaxErrorDiff()){
+         log.println(""+me + ", "+ med+ " is not valid combination for max error and max error diff");
+         errors++;
+     } else{
+         log.println("set error (diff) to " + me + " (" + med+")");
+     }
+   } else {
+      log.println(" invaue value for error or error diff:"+me+" ("+med+")");
+      errors++;
+   }
+
+   value = cfg.getProperty("RELATIVE_ERROR");
+   if((value!=null) && value.trim().toLowerCase().equals("true")){
+        log.println("enable relative error");
+        enableRelativeError(true);
+   } else {
+        log.println("disable relative error");
+        enableRelativeError(false); 
+   } 
+
+
+
+   value = cfg.getProperty("CHANGE_ERROR_PROB");
+   if(value!=null){
+      try{
+         double cep = Double.parseDouble(value);
+         setChangeErrorProb(cep);
+         if(cep!=getChangeErrorProb()){
+              log.println("invalid value for change error prob " + value);
+              errors++;
+         } else{
+             log.println("set change error prob to "+ cep);
+         }
+
+      } catch(Exception e){
+         log.println("invalid value for change error prob " + value);
+         errors++;
+      }
+   } else {
+      log.println("change error prob not found");
+  }
+
+    
+
+   value = cfg.getProperty("MAX_MEASURES");
+   if(value!=null){
+        try{
+           int mm = Integer.parseInt(value);
+           setMaximumMeasures(mm);
+           if(getMaximumMeasures()!=mm){
+               log.println(value+" is not valid for max measures");
+               errors++;
+           } else {
+               log.println("set max measures to " + mm);
+           }
+        }catch(Exception e){
+          log.println(value+" is not valid for max measures");
+          errors++;
+        }
+    } else{
+        log.println("max measures not found");
+    }
+
+  
+   value = cfg.getProperty("MAX_SEQUENCE");
+   if(value != null){
+      try{
+          int ms = Integer.parseInt(value);
+          setMaxSeqLength(ms);
+          if(ms!=getMaxSeqLength()){
+            log.println("invalid value for max sequnece" + ms);
+            errors++;
+          } else{
+            log.println("set max measures to " + ms);
+          }
+      }catch(Exception e){
+          log.println(value+" is not valid for max sequence");
+          errors++;
+      }
+   } else{
+       log.println("max sequennce not found");
+   }
+
+   value = cfg.getProperty("REMOVE_PROB");
+   if(value!=null){
+       try{
+          double rp = Double.parseDouble(value);
+          setRemoveProb(rp);
+          if(rp!=getRemoveProb()){
+             log.println("invalid value for remove probability");
+             errors++;
+          } else{
+             log.println("set remove prob to " + rp);
+          }
+       }catch(Exception e){
+          log.println(value + " is not valid for remove probability");
+          errors++;
+       }
+   } else{
+        log.println("renmove prob not found");
+   }
+
+   value = cfg.getProperty("REMOVE_SEQ_PROB");
+   if(value!=null){
+       try{
+         double rsp = Double.parseDouble(value);
+         setRemoveSeqProb(rsp);
+         if(rsp!=getRemoveSeqProb()){
+            log.println("invalid value for remove seq prob " + rsp);
+            errors++;
+         }   else {
+            log.println("set remove seq prob to " + rsp);
+         }
+       }catch(Exception e){
+          log.println(value+" is not valid for remove seq prob");
+          errors++;
+       }
+   } else{
+     log.println("remove seq prob not found");
+   }
+
+   value = cfg.getProperty("WRITER_TOLERANCE");
+   if(value != null){
+      try{
+          double wt = Double.parseDouble(value);
+          setWriterTolerance(wt);
+          if(wt!=getWriterTolerance()){
+            log.println("invalid value for writer tolerance");
+            errors++;
+          } else{
+             log.println("set writer tolerance to " + wt );
+          }
+      }catch(Exception e){
+          log.println("invalid value for writer tolerance");
+          errors++; 
+      }
+   } else{
+       log.println("writer tolerance not found");
+   }
+
+
+   value = cfg.getProperty("EVENT_PROB");
+   if(value!=null){
+       try{
+           double ep = Double.parseDouble(value);
+           setEventProb(ep);
+           if(ep!=getEventProb()){
+             log.println("invalid value for event probability" + ep);
+             errors++;
+           }else{
+             log.println("set event probability to " + ep);
+           }
+       } catch(Exception e){
+           log.println(value +" is not valid for event probability");
+           errors++;
+       }
+   } else{
+       log.println("event prob not found");
+   }
+
+   value = cfg.getProperty("MAX_DELAY");
+   if(value!=null){
+      try{
+          double md = Double.parseDouble(value);
+          setMaxDelay(md);
+          if(md!=getMaxDelay()){
+            log.println("invalid value for max dela " + md);
+            errors++;
+          }else {
+              log.println("set max delay to " + md);
+          }
+      }catch(Exception e){
+           log.println(value+" is not valid for max delay");
+           errors++;
+     }
+   } else{
+       log.println("max delay not found");
+   }
+
+   value = cfg.getProperty("STOP_PROB");
+   if(value!=null){
+      try{
+        double sp = Double.parseDouble(value);
+        setStopProb(sp);
+        if(sp!=getStopProb()){
+             log.println("invalid value for stop probability"+ sp);
+             errors++;
+         }else{
+             log.println("set stop probability to " + sp);
+         } 
+      }catch(Exception e){
+          log.println(value+" is not valid for stop probability");
+          errors++;
+      }
+   } else{
+      log.println("stop prob not found");
+   }
+
+   
+   double minDec=-1;
+   double maxDec=-1;
+
+   value = cfg.getProperty("MIN_DEC");
+   if(value!=null){
+       try{
+          minDec=Double.parseDouble(value);
+       }catch(Exception e){
+          log.println(value+" is not valid for min Dec"); 
+          errors++;
+       }
+   } else{
+       log.println("min dec not found");
+   }
+
+   value = cfg.getProperty("MAX_DEC");
+   if(value!=null){
+       try{
+         maxDec = Double.parseDouble(value);
+       }catch(Exception e){
+          log.println(value+"is not valid for max Dec");   
+       } 
+   } else{
+      log.println("max dec not found");
+   }
+
+   setDecs(minDec,maxDec);
+   if(minDec!=getMinDec() || maxDec!=getMaxDec()){
+       log.println("invalid range for deceleration ["+ minDec+", "+ maxDec+"]");
+       errors++;
+   } else {
+       log.println("set deceleration to range [" +minDec+" , " + maxDec+"]");
+   }
+
+
+   double minacc=-1;
+   double maxacc=-1;
+
+   value = cfg.getProperty("MIN_ACC");
+   if(value!=null){
+       try{
+          minacc=Double.parseDouble(value);
+       }catch(Exception e){
+          log.println(value+" is not valid for min acc"); 
+          errors++;
+       }
+   } else{
+       log.println("min acc not found");
+   }
+   value = cfg.getProperty("MAX_ACC");
+   if(value!=null){
+       try{
+         maxacc = Double.parseDouble(value);
+       }catch(Exception e){
+          log.println(value+"is not valid for max acc");   
+       } 
+   } else{
+      log.println("max acc not found");
+  }
+
+   setAccs(minacc,maxacc);
+   if(minacc!=getMinAcc() || maxacc!=getMaxAcc()){
+       log.println("invalid range for accerelation ["+ minacc+", "+ maxacc+"]");
+       errors++;
+   } else {
+       log.println("set acceleration to range [" +minacc+" , " + maxacc+"]");
+   }
+
+   return errors;
+}
+
+
+/** Returns the current time difference between two measures. **/
+public Time getTimeDiff(){
+    return defaultDiff.copy();
+}
+
 /** Sets the maximum error and the maximum error diff.
   *@param absolute: the maximum error which can be produced 
   *@param errorDiff: the maximum error drevation betweem two measures
@@ -181,13 +542,26 @@ public void setMaxErrors(double absolute,double errorDiff){
   maxErrorDiff = errorDiff;
 }
 
+/** Returns the maximum error **/
+public double getMaxError(){ return maxError;}
+
+/** Returns the maximum change of the error per measure **/
+public double getMaxErrorDiff(){ return maxErrorDiff;}
+
+
+
 /** Enables the computation of relative errors.
   * If on is set to true, the maximum error derivation is computed by
   * multiplying the distance to the last position whith the maximum error
   * difference. Otherwise the maximum error difference is an absolute value.
   **/
 public void enableRelativeError(boolean on){
-   relativeError=true; 
+   relativeError=on; 
+}
+
+/** Checks whether relative error is enabled. **/
+public boolean isRelativeError(){
+   return relativeError;
 }
 
 /** Reduces the number of measures.
@@ -198,6 +572,15 @@ public void setMaximumMeasures(int count){
     maxMeasures = Math.max(0,count);
 }
 
+/** Returns the maximum number of measures.
+  * A return  value of zero means, that the conevrsion will stop
+  * if the end of the definition time is reached.
+  **/
+public int getMaximumMeasures(){
+    return maxMeasures;
+}  
+
+
 /** Sets the maximum length of a removes sequence.
   **/
 public void setMaxSeqLength(int length){
@@ -207,6 +590,12 @@ public void setMaxSeqLength(int length){
       maxSequence = length;
    }
 }
+
+/** Returns the maximum length of a removed sequence. **/
+public int getMaxSeqLength(){
+    return maxSequence;
+}
+
 
 /** Sets the probablity to change the current error between two 
   * measures.
@@ -220,6 +609,13 @@ public void setChangeErrorProb(double prob){
  }
 }
 
+/** Return s the probability to change the error between two measures.
+  **/
+public double getChangeErrorProb(){
+    return changeErrorProb;
+}
+
+
 /** Sets the probability to remove  measures.
   * This value determines the probability for both, removing single 
   * measures and to remove whole chains of measures.
@@ -230,6 +626,11 @@ public void setRemoveProb(double prob){
    } else {
       removeProb = prob;
    }
+}
+
+/** Returns the probability to remove a measure or a sequence of measures **/
+public double getRemoveProb(){
+   return removeProb;
 }
 
 /** Determines the relation between removing single measures or
@@ -246,12 +647,27 @@ public void setRemoveSeqProb(double prob){
    }
 }
 
+/** Returns the ratio between removing a single measure and remove whole
+  * sequences of measures. 
+  **/
+public double getRemoveSeqProb(){
+    return removeSeqProb;
+}
+
+
 /** Sets the probability of delay events.
   *@param prob: the probability in [0,1]
    **/
 public void setEventProb(double prob){
    delayManager.setEventProb(prob);
 }
+
+/** Returns the probability to create a stop or deceleration event.
+  **/
+public double getEventProb(){
+   return  delayManager.getEventProb();
+}
+
 
 /** Sets the relation between stop events and deceleration events.
   *@param prob: the probability in [0,1]
@@ -260,10 +676,22 @@ public void setStopProb(double prob){
    delayManager.setStopProb(prob);
 }
 
+/** returns the ration between stop and deceleration events.
+  **/
+public double getStopProb(){
+   return delayManager.getStopProb();
+}
+
+
 /** Sets the maximum delay per event.
   **/
 public void setMaxDelay(double delay){
    delayManager.setMaxDelay(delay);
+}
+
+/** returns the maximum delay in seconds*/
+public double getMaxDelay(){
+   return delayManager.getMaxDelay();
 }
 
 /** Sets the deceleration factors.
@@ -276,6 +704,16 @@ public void setDecs(double minDec, double maxDec){
    delayManager.setDecs(minDec, maxDec);
 }
 
+/** Returns the mimimum deceleration. **/
+public double getMinDec(){
+   return delayManager.getMinDec();
+}
+
+/** Returns the maximum deceleration.**/
+public double getMaxDec(){
+   return delayManager.getMaxDec();
+}
+
 /** sets the factors for the acceleration.
   * The acceleration is between the (1+minAcc)-multiple 
   * and the (1+maxAcc)-multiple of the original speed.
@@ -286,6 +724,15 @@ public void setAccs(double minAcc, double maxAcc){
    delayManager.setAccs(minAcc,maxAcc);
 }
 
+/** returns the minimum acceleration. **/
+public double getMinAcc(){
+    return delayManager.getMinAcc();
+}
+
+/** Returns the maximum acceleratin. **/
+public double getMaxAcc(){
+   return delayManager.getMaxAcc();
+}
 
 /** Sets the stream where logging messages are printed. **/
 public void setLog(PrintStream log){
@@ -308,6 +755,11 @@ public void setOut(PrintStream out){
   **/
 public void setWriterTolerance(double tolerance){
    this.writer.setTolerance(tolerance);
+}
+
+/** Returns the error tolerance for connecting units. **/
+public double getWriterTolerance(){
+   return writer.getTolerance();
 }
 
 /** Prints out some statistical information the the log stream **/
@@ -583,6 +1035,12 @@ private boolean processValueList( ListExpr value){
 
 
 private void addLocation(Time t, java.awt.geom.Point2D.Double p){
+
+  if(p==null){
+     log.println("addLocation has received a point with value null ");
+     return;
+  }
+
   measures++;
 
   // first, change the error
@@ -754,12 +1212,22 @@ public void setEventProb(double prob){
     probability = prob;
 }
 
+/** Returns the probability to create an event . **/
+public double getEventProb(){
+   return probability;
+}
+
 /** sets the relation between stop and deceleration events **/
 public void setStopProb(double prob){
    if((prob<0) || (prob>1)){
       return;
    }
    stopprob=prob;
+}
+
+/** Returns the ratio between stop and deceleration events. **/
+public double getStopProb(){
+   return stopprob;
 }
 
 /** Sets the values of minimum and maximum deceleration.
@@ -782,6 +1250,17 @@ public void setDecs(double minDec, double maxDec){
 
 }
 
+/** Returns the minimum deceleration **/
+public double getMinDec(){
+   return minDec;
+}
+
+/** returns the maximum deceleration. **/
+public double getMaxDec(){
+    return maxDec;
+}
+
+
 /** Sets the values of minimum and maximum acceleration.
   * Both values has to be in range (0,..]. The value 0 means
   * thats the point goes in the same speed as without acceleration.
@@ -802,12 +1281,27 @@ public void setAccs(double minAcc, double maxAcc){
 }
 
 
+/** returns the minimum acceleration. **/
+public double getMinAcc(){
+   return minAcc;
+}
 
+/** returns the maximum acceleration. **/
+public double getMaxAcc(){
+    return maxAcc;
+}
+
+/** Sets the maximum delay in seconds. **/
 public void setMaxDelay(double seconds){
    if(maxDelay<1){
        return;
    }
    maxDelay = seconds;
+}
+
+/** Returns the maximum dela yin seconds **/
+public double getMaxDelay(){
+    return maxDelay;
 }
 
 public void setLog(PrintStream log){
@@ -978,6 +1472,11 @@ public UnitWriter(PrintStream out, double epsilon){
 /** sets the value of the error tolerance to conect units **/
 public void setTolerance(double e){
      epsilon = Math.max(0,e);
+}
+
+/** return the tolerance for connecting units. **/
+public double getTolerance(){
+    return epsilon;
 }
 
 /** sets the PrintStream for logging purposes **/

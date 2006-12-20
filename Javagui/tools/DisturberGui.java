@@ -31,6 +31,7 @@ import java.text.*;
 import javax.swing.event.*;
 import javax.swing.border.*;
 import java.util.Vector;
+import java.util.Properties;
 
 import java.io.*;
 
@@ -134,6 +135,13 @@ private void createMenuBar(){
    JMenu fileMenu = new JMenu("File");
    mainMenu.add(fileMenu);
    JMenuItem exitMenu = new JMenuItem("Exit");
+
+   JMenuItem saveCfgMenu = new JMenuItem("Save Config");
+   JMenuItem readCfgMenu = new JMenuItem("Read Config");
+   fileMenu.add(readCfgMenu);
+   fileMenu.add(saveCfgMenu);
+
+
    fileMenu.add(exitMenu);
 
    exitMenu.addActionListener(new ActionListener(){
@@ -141,6 +149,18 @@ private void createMenuBar(){
          DisturberGui.this.setVisible(false);
          System.exit(0);
       }
+   });
+   
+   saveCfgMenu.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+           DisturberGui.this.saveCfg();
+       }
+   });
+
+   readCfgMenu.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+            DisturberGui.this.readCfg();
+       }
    });
 
    setJMenuBar(mainMenu);
@@ -551,6 +571,300 @@ private void setDelayDefaults(){
 }
 
 
+/** Checks the values for validity and stores them into
+  * the underlying point data disturber.
+  **/
+private boolean writeValuesToPdd(){
+   // check values
+
+   // time diffence
+   double timeDiffValue=0.0;
+   try{
+     timeDiffValue = Double.parseDouble(timeDiffTF.getText());
+   }catch(Exception e){
+     timeDiffValue = 0.0; // an invalid value
+   }
+   // check for valid range
+   if(timeDiffValue <= 0.001){  // minimum value is one millisecond
+      JOptionPane.showMessageDialog(this,"Invalid value for time difference",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
+      log.println("invalid value dor time diffence");
+      tabbedPane.setSelectedComponent(disturbSettings);
+      timeDiffTF.requestFocus(); 
+      return false;        
+   }
+
+
+   // maximum error
+   double maxErrorValue=-1.0;
+   try{
+     maxErrorValue = Double.parseDouble(maxErrorTF.getText());
+   }catch(Exception e){
+     maxErrorValue = -1.0; // an invalid value
+   }
+   // check for valid range
+   if(maxErrorValue < 0){
+      JOptionPane.showMessageDialog(this,"Invalid value for maximum error",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
+      log.println("invalid value for maximum error");
+      tabbedPane.setSelectedComponent(disturbSettings);
+      maxErrorTF.requestFocus(); 
+      return false;        
+   }
+
+   // maximum error difference per measure
+   double maxErrorDiffValue=-1.0;
+   try{
+     maxErrorDiffValue = Double.parseDouble(maxErrorDiffTF.getText());
+   }catch(Exception e){
+     maxErrorDiffValue = -1.0; // an invalid value
+   }
+   // check for valid range
+   if( (maxErrorDiffValue < 0) || (maxErrorDiffValue > maxErrorValue)){
+      JOptionPane.showMessageDialog(this,"Invalid value for maximum error difference",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
+      log.println("invalid value for maximum error difference");
+      tabbedPane.setSelectedComponent(disturbSettings);
+      maxErrorDiffTF.requestFocus(); 
+      return false;        
+   }
+  
+   // use relative error, no check, just get the value
+   boolean relativeErrorValue = relErrorRB.isSelected();
+
+
+   double changeErrorProbValue = -1;
+   try{
+      changeErrorProbValue = Double.parseDouble(changeErrorProbTF.getText());
+   }catch(Exception e){
+     changeErrorProbValue = -1;
+   }
+   // check for valid range
+   if( (changeErrorProbValue < 0) || (changeErrorProbValue > 1)){
+      JOptionPane.showMessageDialog(this,"Invalid value for probability to change the error",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
+      log.println("invalid value for probability to chnage the error");
+      tabbedPane.setSelectedComponent(disturbSettings);
+      changeErrorProbTF.requestFocus(); 
+      return false;        
+   }
+
+
+
+   // maximum number of created measures
+   int maxMeasures=0;
+   try{
+     maxMeasures = Integer.parseInt(maxMeasuresTF.getText());
+   }catch(Exception e){
+      JOptionPane.showMessageDialog(this,"Invalid value for maximum measures\n ( not an int)",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
+      log.println("maximum measure is not an int");
+      tabbedPane.setSelectedComponent(disturbSettings);
+      maxMeasuresTF.requestFocus(); 
+      return false;        
+   }
+
+   
+   int maxSequenceValue = -1;
+   try{
+     maxSequenceValue = Integer.parseInt(maxSequenceTF.getText());
+   }catch(Exception e){
+       maxSequenceValue = -1;
+   }
+   if(maxSequenceValue <1){
+      JOptionPane.showMessageDialog(this,"Invalid value for maximum lenth of a removed sequence",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
+      log.println("invalid value for maximum length of a removes sequence");
+      tabbedPane.setSelectedComponent(disturbSettings);
+      maxSequenceTF.requestFocus(); 
+      return false;        
+   }
+
+   double removeProbValue=-1;
+   try{
+      removeProbValue = Double.parseDouble(removeProbTF.getText());
+   } catch(Exception e){
+      removeProbValue = -1; 
+   }
+   if((removeProbValue<0) || (removeProbValue>=1)){
+      JOptionPane.showMessageDialog(this,"Invalid value for removing probability ",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
+      log.println("invalid remove probability");
+      tabbedPane.setSelectedComponent(disturbSettings);
+      removeProbTF.requestFocus(); 
+      return false;        
+   }
+
+   double removeSeqProbValue = -1;
+   try{
+      removeSeqProbValue = Double.parseDouble(removeSeqProbTF.getText());
+   } catch(Exception e){
+      removeSeqProbValue = -1; 
+   }
+   if((removeSeqProbValue<0) || (removeSeqProbValue>=1)){
+      JOptionPane.showMessageDialog(this,"Invalid value for removing sequence probability ",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
+      log.println("invalid remove sequence probability");
+      tabbedPane.setSelectedComponent(disturbSettings);
+      removeSeqProbTF.requestFocus(); 
+      return false;        
+   }
+
+   double writerToleranceValue =-1;
+   try{
+     writerToleranceValue=Double.parseDouble(writerToleranceTF.getText());
+   }catch(Exception e){
+     writerToleranceValue = -1;
+   }
+   if(writerToleranceValue <0){
+      JOptionPane.showMessageDialog(this,"Invalid value for writer tolerance ",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
+      log.println("invalid writer tolerance");
+      tabbedPane.setSelectedComponent(disturbSettings);
+      writerToleranceTF.requestFocus(); 
+      return false;        
+
+   }
+
+
+
+   // delay settings
+   double eventProbValue = -1;
+   try{
+       eventProbValue = Double.parseDouble(eventProbTF.getText());
+   }catch(Exception e){
+       eventProbValue = -1;
+   }
+   if((eventProbValue <0) || (eventProbValue>1)){
+      JOptionPane.showMessageDialog(this,"Invalid value for delay event probability ",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
+      log.println("invalid delay event probability");
+      tabbedPane.setSelectedComponent(delaySettings);
+      eventProbTF.requestFocus(); 
+      return false;        
+   }
+
+   int maxDelayValue = -1;
+   try{
+       maxDelayValue = Integer.parseInt(maxDelayTF.getText());
+   }catch(Exception e){
+       maxDelayValue = -1;
+   }
+   if(maxDelayValue < 1){
+      JOptionPane.showMessageDialog(this,"Invalid value maximum delay",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
+      log.println("invalid maximum delay ");
+      tabbedPane.setSelectedComponent(delaySettings);
+      maxDelayTF.requestFocus(); 
+      return false;        
+   }
+    
+   double minDecValue = minDecSl.getValue()/100.0;
+   double maxDecValue = maxDecSl.getValue()/100.0;
+   double minAccValue = minAccSl.getValue()/100.0;
+   double maxAccValue = maxAccSl.getValue()/100.0;
+   double stopProbValue = stopProbSl.getValue()/100.0;
+
+
+   // set all values to the processing component
+   // value from the disturbance component
+   Time tD = new Time(0,(int)(timeDiffValue)*1000);
+   pdd.setTimeDiff(tD);
+   pdd.setMaxErrors(maxErrorValue,maxErrorDiffValue);
+   pdd.enableRelativeError(relativeErrorValue);
+   pdd.setChangeErrorProb(changeErrorProbValue);
+   pdd.setMaximumMeasures(maxMeasures);
+   pdd.setMaxSeqLength(maxSequenceValue);
+   pdd.setRemoveProb(removeProbValue);
+   pdd.setRemoveSeqProb(removeSeqProbValue);
+   pdd.setWriterTolerance(writerToleranceValue);
+   // delay settings
+   pdd.setEventProb(eventProbValue);
+   pdd.setMaxDelay(maxDelayValue);
+   pdd.setStopProb(stopProbValue);
+   pdd.setDecs(minDecValue,maxDecValue);
+   pdd.setAccs(minAccValue,maxAccValue);
+   return true;
+}
+
+
+/* Sets the gui to the current values of the point data disturber. **/
+private void readValuesFromPdd(){
+   Time T = pdd.getTimeDiff();
+   long ms = T.getMilliseconds() / 1000;
+   timeDiffTF.setText(nf.format(ms));
+   maxErrorTF.setText(nf.format(pdd.getMaxError()));
+   maxErrorDiffTF.setText(nf.format(pdd.getMaxErrorDiff()));
+   relErrorRB.setEnabled(pdd.isRelativeError());
+   changeErrorProbTF.setText(nf.format(pdd.getChangeErrorProb()));
+   maxMeasuresTF.setText(nf.format(pdd.getMaximumMeasures()));
+   maxSequenceTF.setText(nf.format(pdd.getMaxSeqLength()));
+   removeProbTF.setText(nf.format(pdd.getRemoveProb()));
+   removeSeqProbTF.setText(nf.format(pdd.getRemoveSeqProb()));
+   writerToleranceTF.setText(nf.format(pdd.getWriterTolerance()));
+   eventProbTF.setText(nf.format(pdd.getEventProb()));
+   maxDelayTF.setText(nf.format(pdd.getMaxDelay()));
+   stopProbSl.setValue((int)(pdd.getStopProb()*100));
+   minDecSl.setValue((int)(pdd.getMinDec()*100));
+   maxDecSl.setValue((int)(pdd.getMaxDec()*100));
+   minAccSl.setValue((int)(pdd.getMinAcc()*100));
+   maxAccSl.setValue((int)(pdd.getMaxAcc()*100));
+}
+
+
+
+/** read the configuration **/
+private void readCfg(){
+
+    JFileChooser fc = new JFileChooser(".");
+    if(fc.showOpenDialog(this)!=JFileChooser.APPROVE_OPTION){
+        return;
+    }
+    Properties cfg = new Properties();
+    try{
+       FileInputStream in = new FileInputStream(fc.getSelectedFile());
+       cfg.load(in);
+    }catch(Exception e){
+       log.println("cannot read " + fc.getSelectedFile());
+       JOptionPane.showMessageDialog(this,"Problem in reading from file");
+       return;
+    } 
+    pdd.readConfig(cfg);
+    readValuesFromPdd();
+}
+
+/** Saves the current settings. **/
+private void saveCfg(){
+    JFileChooser fc = new JFileChooser(".");
+    if(fc.showSaveDialog(this)!=JFileChooser.APPROVE_OPTION){
+        return;
+    }
+    File f = fc.getSelectedFile();
+    if(f.exists()){
+        if(JOptionPane.showConfirmDialog(this,"File exits\noverwrite it?",
+                                         "Please Confirm",
+                                         JOptionPane.YES_NO_OPTION)!=JOptionPane.YES_OPTION){
+            return;
+        }
+    }
+
+    Properties cfg = new Properties();
+    writeValuesToPdd(); // check the settings
+    pdd.writeConfig(cfg);
+    try{
+        FileOutputStream o = new FileOutputStream(f);
+        cfg.store(o,"Configuration file of the point data disturber");
+        o.close();
+        JOptionPane.showMessageDialog(this,"Successful stored");
+    }catch(Exception e){
+       log.println("Error in storing file");
+       JOptionPane.showMessageDialog(this,"Storing failed");
+    }
+
+}
+
+
+
 /** Starts the conversion.
   * First, the validity of all settings is checked. If successsful,
   * the settings are moved into the appropriate underlying implementation.
@@ -585,6 +899,9 @@ private void startConversion(){
       return;
    }
 
+   if(!writeValuesToPdd()){
+      return;
+   }
   
    // check outputFile
    File outFile = new File(outFileName);
@@ -598,216 +915,7 @@ private void startConversion(){
       }   
    } 
 
-
-   // check values
-
-   // time diffence
-   double timeDiffValue=0.0;
-   try{
-     timeDiffValue = Double.parseDouble(timeDiffTF.getText());
-   }catch(Exception e){
-     timeDiffValue = 0.0; // an invalid value
-   }
-   // check for valid range
-   if(timeDiffValue <= 0.001){  // minimum value is one millisecond
-      JOptionPane.showMessageDialog(this,"Invalid value for time difference",
-                                    "Error", JOptionPane.ERROR_MESSAGE);
-      log.println("invalid value dor time diffence");
-      tabbedPane.setSelectedComponent(disturbSettings);
-      timeDiffTF.requestFocus(); 
-      return;        
-   }
-
-
-   // maximum error
-   double maxErrorValue=-1.0;
-   try{
-     maxErrorValue = Double.parseDouble(maxErrorTF.getText());
-   }catch(Exception e){
-     maxErrorValue = -1.0; // an invalid value
-   }
-   // check for valid range
-   if(maxErrorValue < 0){
-      JOptionPane.showMessageDialog(this,"Invalid value for maximum error",
-                                    "Error", JOptionPane.ERROR_MESSAGE);
-      log.println("invalid value for maximum error");
-      tabbedPane.setSelectedComponent(disturbSettings);
-      maxErrorTF.requestFocus(); 
-      return;        
-   }
-
-   // maximum error difference per measure
-   double maxErrorDiffValue=-1.0;
-   try{
-     maxErrorDiffValue = Double.parseDouble(maxErrorDiffTF.getText());
-   }catch(Exception e){
-     maxErrorDiffValue = -1.0; // an invalid value
-   }
-   // check for valid range
-   if( (maxErrorDiffValue < 0) || (maxErrorDiffValue > maxErrorValue)){
-      JOptionPane.showMessageDialog(this,"Invalid value for maximum error difference",
-                                    "Error", JOptionPane.ERROR_MESSAGE);
-      log.println("invalid value for maximum error difference");
-      tabbedPane.setSelectedComponent(disturbSettings);
-      maxErrorDiffTF.requestFocus(); 
-      return;        
-   }
-  
-   // use relative error, no check, just get the value
-   boolean relativeErrorValue = relErrorRB.isSelected();
-
-
-   double changeErrorProbValue = -1;
-   try{
-      changeErrorProbValue = Double.parseDouble(changeErrorProbTF.getText());
-   }catch(Exception e){
-     changeErrorProbValue = -1;
-   }
-   // check for valid range
-   if( (changeErrorProbValue < 0) || (changeErrorProbValue > 1)){
-      JOptionPane.showMessageDialog(this,"Invalid value for probability to change the error",
-                                    "Error", JOptionPane.ERROR_MESSAGE);
-      log.println("invalid value for probability to chnage the error");
-      tabbedPane.setSelectedComponent(disturbSettings);
-      changeErrorProbTF.requestFocus(); 
-      return;        
-   }
-
-
-
-   // maximum number of created measures
-   int maxMeasures=0;
-   try{
-     maxMeasures = Integer.parseInt(maxMeasuresTF.getText());
-   }catch(Exception e){
-      JOptionPane.showMessageDialog(this,"Invalid value for maximum measures\n ( not an int)",
-                                    "Error", JOptionPane.ERROR_MESSAGE);
-      log.println("maximum measure is not an int");
-      tabbedPane.setSelectedComponent(disturbSettings);
-      maxMeasuresTF.requestFocus(); 
-      return;        
-   }
-
    
-   int maxSequenceValue = -1;
-   try{
-     maxSequenceValue = Integer.parseInt(maxSequenceTF.getText());
-   }catch(Exception e){
-       maxSequenceValue = -1;
-   }
-   if(maxSequenceValue <1){
-      JOptionPane.showMessageDialog(this,"Invalid value for maximum lenth of a removed sequence",
-                                    "Error", JOptionPane.ERROR_MESSAGE);
-      log.println("invalid value for maximum length of a removes sequence");
-      tabbedPane.setSelectedComponent(disturbSettings);
-      maxSequenceTF.requestFocus(); 
-      return;        
-   }
-
-   double removeProbValue=-1;
-   try{
-      removeProbValue = Double.parseDouble(removeProbTF.getText());
-   } catch(Exception e){
-      removeProbValue = -1; 
-   }
-   if((removeProbValue<0) || (removeProbValue>=1)){
-      JOptionPane.showMessageDialog(this,"Invalid value for removing probability ",
-                                    "Error", JOptionPane.ERROR_MESSAGE);
-      log.println("invalid remove probability");
-      tabbedPane.setSelectedComponent(disturbSettings);
-      removeProbTF.requestFocus(); 
-      return;        
-   }
-
-   double removeSeqProbValue = -1;
-   try{
-      removeSeqProbValue = Double.parseDouble(removeSeqProbTF.getText());
-   } catch(Exception e){
-      removeSeqProbValue = -1; 
-   }
-   if((removeSeqProbValue<0) || (removeSeqProbValue>=1)){
-      JOptionPane.showMessageDialog(this,"Invalid value for removing sequence probability ",
-                                    "Error", JOptionPane.ERROR_MESSAGE);
-      log.println("invalid remove sequence probability");
-      tabbedPane.setSelectedComponent(disturbSettings);
-      removeSeqProbTF.requestFocus(); 
-      return;        
-   }
-
-   double writerToleranceValue =-1;
-   try{
-     writerToleranceValue=Double.parseDouble(writerToleranceTF.getText());
-   }catch(Exception e){
-     writerToleranceValue = -1;
-   }
-   if(writerToleranceValue <0){
-      JOptionPane.showMessageDialog(this,"Invalid value for writer tolerance ",
-                                    "Error", JOptionPane.ERROR_MESSAGE);
-      log.println("invalid writer tolerance");
-      tabbedPane.setSelectedComponent(disturbSettings);
-      writerToleranceTF.requestFocus(); 
-      return;        
-
-   }
-
-
-
-   // delay settings
-   double eventProbValue = -1;
-   try{
-       eventProbValue = Double.parseDouble(eventProbTF.getText());
-   }catch(Exception e){
-       eventProbValue = -1;
-   }
-   if((eventProbValue <0) || (eventProbValue>1)){
-      JOptionPane.showMessageDialog(this,"Invalid value for delay event probability ",
-                                    "Error", JOptionPane.ERROR_MESSAGE);
-      log.println("invalid delay event probability");
-      tabbedPane.setSelectedComponent(delaySettings);
-      eventProbTF.requestFocus(); 
-      return;        
-   }
-
-   int maxDelayValue = -1;
-   try{
-       maxDelayValue = Integer.parseInt(maxDelayTF.getText());
-   }catch(Exception e){
-       maxDelayValue = -1;
-   }
-   if(maxDelayValue < 1){
-      JOptionPane.showMessageDialog(this,"Invalid value maximum delay",
-                                    "Error", JOptionPane.ERROR_MESSAGE);
-      log.println("invalid maximum delay ");
-      tabbedPane.setSelectedComponent(delaySettings);
-      maxDelayTF.requestFocus(); 
-      return;        
-   }
-    
-   double minDecValue = minDecSl.getValue()/100.0;
-   double maxDecValue = maxDecSl.getValue()/100.0;
-   double minAccValue = minAccSl.getValue()/100.0;
-   double maxAccValue = maxAccSl.getValue()/100.0;
-   double stopProbValue = stopProbSl.getValue()/100.0;
-
-
-   // set all values to the processing component
-   // value from the disturbance component
-   Time tD = new Time(0,(int)(timeDiffValue)*1000);
-   pdd.setTimeDiff(tD);
-   pdd.setMaxErrors(maxErrorValue,maxErrorDiffValue);
-   pdd.enableRelativeError(relativeErrorValue);
-   pdd.setChangeErrorProb(changeErrorProbValue);
-   pdd.setMaximumMeasures(maxMeasures);
-   pdd.setMaxSeqLength(maxSequenceValue);
-   pdd.setRemoveProb(removeProbValue);
-   pdd.setRemoveSeqProb(removeSeqProbValue);
-   pdd.setWriterTolerance(writerToleranceValue);
-   // delay settings
-   pdd.setEventProb(eventProbValue);
-   pdd.setMaxDelay(maxDelayValue);
-   pdd.setStopProb(stopProbValue);
-   pdd.setDecs(minDecValue,maxDecValue);
-   pdd.setAccs(minAccValue,maxAccValue);
 
 
    // try to open the output file
