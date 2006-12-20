@@ -87,25 +87,7 @@ using namespace std;
 
 struct Symbols {
 
-    const string rel;
-    const string map;
-    const string tuple;
-    const string ptuple;
-    const string stream;
-    const string typeerror;
-    const string integer;
-    const string _string;
-   
-    Symbols() :
-      rel("rel"),
-      map("map"),
-      tuple("tuple"),
-      ptuple("ptuple"),
-      stream("stream"),
-      typeerror("typeerror"),
-      integer("int"),
-      _string("string")
-    {}
+    Symbols() {}
 
     static const string& STRING() { 
        static string s("string"); return s; 
@@ -136,6 +118,9 @@ struct Symbols {
     }  
     static const string& STREAM() { 
        static string s("stream"); return s; 
+    }  
+    static const string& MAP() { 
+       static string s("map"); return s; 
     }  
     static const string& TYPEERROR() { 
        static string s("typeerror"); return s; 
@@ -494,12 +479,12 @@ functions.
 */
   inline bool checkStreamTuple(NList& attrs)
   {
-    return checkDepth3(sym.stream, sym.tuple, attrs);
+    return checkDepth3(sym.STREAM(), sym.TUPLE(), attrs);
   }
 
   inline bool checkRel(NList& attrs)
   {
-    return checkDepth3(sym.rel, sym.tuple, attrs);
+    return checkDepth3(sym.REL(), sym.TUPLE(), attrs);
   }
 
   inline bool checkLength(const int len, string& err)
