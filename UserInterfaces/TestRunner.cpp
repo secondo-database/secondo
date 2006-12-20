@@ -257,9 +257,10 @@ TestRunner::ShowTestTitle() const
 {
   cout
     << endl << endl << color(green)
-    << "*** Test " << testCaseNumber << ": " 
-                  << testCaseName << " ***"
-                  << color(normal) << endl;
+    << "*** Test " << testCaseNumber 
+    << " (line " << testCaseLine << "): "
+    << testCaseName << " ***"
+    << color(normal) << endl;
 }
 
 
@@ -781,7 +782,7 @@ TestRunner::ProcessExamples()
        //resultOk = (sp.Text2List( info.result, listCommand ) == 0);
        //if (resultOk)
        resultOk = nl->ReadFromString("(" + info.result + ")", tmpList);
-       cout << nl->ToString(tmpList) << endl;
+       //cout << nl->ToString(tmpList) << endl;
        tmpList = (nl->First(tmpList));
        realValTolerance.isRelative = true;
        realValTolerance.value = 0.0;
@@ -825,6 +826,7 @@ TestRunner::ProcessExamples()
                      }
                      file = string(buildDir) + "/Selftest/" + file; 
                      ListExpr objList = nl->Empty();
+                     cout << "Reading result from file " << file << endl;
                      resultOk = nl->ReadFromFile(file, objList);
                      if (resultOk)
                      {

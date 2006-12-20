@@ -59,6 +59,8 @@ using namespace std;
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <cmath>
+#include <math.h>
 
 #include "DisplayTTY.h"
 #include "NestedList.h"
@@ -269,7 +271,9 @@ DisplayTTY::DisplayReal( ListExpr type, ListExpr numType, ListExpr value )
   else
   {
     cout.unsetf(ios_base::floatfield);
-    cout << setprecision(16) << nl->RealValue( value );
+    double d = nl->RealValue( value );
+    int p = min( static_cast<int>(ceil(log10(d))) + 10, 16 );
+    cout << setprecision(p) << d;
   }
 }
 
