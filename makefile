@@ -70,13 +70,14 @@ ALL_TARGETS = makedirs \
 	$(OPTIMIZER_SERVER) \
 	java2 \
 	tests \
+        examples \
 	update-config
 
 .PHONY: all
 all: jnicheck $(ALL_TARGETS) 
 
 .PHONY: TTY 
-TTY: kernel
+TTY: kernel examples
 
 .PHONY: kernel
 kernel: makedirs buildlibs buildalg buildapps
