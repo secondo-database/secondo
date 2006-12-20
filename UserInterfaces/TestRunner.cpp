@@ -773,13 +773,15 @@ TestRunner::ProcessExamples()
      ListExpr tmpList = nl->Empty();
      bool resultOk = false;
 
-     if (info.result[0] != '(') 
+     if (info.result != "") {
+     if (  (info.result[0] != '(') ) 
      {
        //SecParser sp;            // translates SECONDO syntax into nested list
        //string listCommand = ""; // buffer for command in list form 
        //resultOk = (sp.Text2List( info.result, listCommand ) == 0);
        //if (resultOk)
        resultOk = nl->ReadFromString("(" + info.result + ")", tmpList);
+       cout << nl->ToString(tmpList) << endl;
        tmpList = (nl->First(tmpList));
        realValTolerance.isRelative = true;
        realValTolerance.value = 0.0;
@@ -824,20 +826,23 @@ TestRunner::ProcessExamples()
                      file = string(buildDir) + "/Selftest/" + file; 
                      ListExpr objList = nl->Empty();
                      resultOk = nl->ReadFromFile(file, objList);
-                     if ( nl->ListLength(objList) != 5 
-                          || !nl->IsEqual(nl->First(objList),"OBJECT") ) 
+                     if (resultOk)
                      {
-                       cerr << "File contains a list which " 
-                            << "is not in object format!" << endl;
-                       resultOk = false;
+		       expectedResult = objList;
+		       if ( nl->ListLength(objList) == 5 
+			    && nl->IsEqual(nl->First(objList),"OBJECT") ) 
+		       {
+			 ListExpr fourth = nl->Fourth(objList);
+			 ListExpr fifth = nl->Fifth(objList);
+			 expectedResult = nl->TwoElemList(fourth, fifth);
+		       }  
                      }
                      else
                      {
-                       ListExpr fourth = nl->Fourth(objList);
-                       ListExpr fifth = nl->Fifth(objList);
-                       expectedResult = nl->TwoElemList(fourth, fifth);
-                     }  
-                   
+                       cerr << "File " << file << " contains not a "
+                            << " correct nested list!" 
+                            << endl;
+                     }
                    }                
        } 
        }
@@ -845,6 +850,7 @@ TestRunner::ProcessExamples()
      else
      { 
        resultOk = nl->ReadFromString(info.result, expectedResult);
+     }
      } 
 
      if (!resultOk) {
