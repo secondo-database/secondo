@@ -62,6 +62,7 @@ ALGEBRA_DEPS += Triangulation
 
 ##########  Example Algebras
 
+
 ALGEBRA_DIRS += Function-C++
 ALGEBRAS     += FunctionAlgebra
 
@@ -124,8 +125,8 @@ ALGEBRAS     += TupleIdentifierAlgebra
 ALGEBRA_DIRS += UpdateRel
 ALGEBRAS     += UpdateRelationAlgebra
 
-ALGEBRA_DIRS += PointSequence
-ALGEBRAS     += PointSequenceAlgebra
+#ALGEBRA_DIRS += PointSequence
+#ALGEBRAS     += PointSequenceAlgebra
 
 ALGEBRA_DIRS += MovingRegion
 ALGEBRAS     += MovingRegionAlgebra
@@ -157,8 +158,8 @@ ALGEBRAS     += PictureAlgebra
 #ALGEBRA_DIRS  += Cluster
 #ALGEBRAS      += ClusterAlgebra
 
-ALGEBRA_DIRS  += Constraint 
-ALGEBRAS      += ConstraintAlgebra
+#ALGEBRA_DIRS  += Constraint 
+#ALGEBRAS      += ConstraintAlgebra
 
 # JNI Algebras - Java code will be called from C++ code.
 
