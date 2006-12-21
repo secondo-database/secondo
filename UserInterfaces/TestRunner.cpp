@@ -59,6 +59,7 @@ This is the test enviroment for Secondo. The code is derived from SecondoTTY.
 #include <sstream>
 #include <algorithm>
 #include <utility>
+#include <map>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -88,6 +89,12 @@ class TestRunner : public Application
   int  Execute();
 
  private:
+
+  typedef enum { Success, Error, Result, 
+                 Unknown, UndefinedObj, Coverage} YieldState;
+
+  map<YieldState, string> yieldStateStr;
+
 
   void ProcessFile( const string& fileName );
   void ProcessCommand();
@@ -133,7 +140,10 @@ class TestRunner : public Application
   string            iFileName;
   string            oFileName;
   string            cmd;
+
   string            missingOps;
+  int               missingOpsNo;
+
   string            rightArrow, leftArrow;
   int               num;
   bool              isStdInput;
@@ -147,7 +157,7 @@ class TestRunner : public Application
   typedef list< pair<int,int> > ErrorInfo; 
   ErrorInfo errorLines;
 
-
+ 
 /* 
 the following variables and constants are 
 needed for maintaining the test state 
@@ -160,8 +170,7 @@ needed for maintaining the test state
   string testName;
   string testCaseName;
  
-  typedef enum { Success, Error, Result, 
-                 Unknown, UndefinedObj, Coverage} YieldState; 
+ 
   YieldState yieldState;
   bool skipToTearDown;
   
@@ -194,15 +203,17 @@ TestRunner::TestRunner( const TTYParameter& tp )
 
   string cmd    = "";
   missingOps    = "";
+  missingOpsNo  = 0;
   isStdInput    = true;
   quit          = false;
   nl            = 0;
   si            = 0;
 
-  state = START;
   
   skipToTearDown = false;
-  yieldState = Success;
+
+  state = START;
+  yieldState = Unknown;
   
   testCaseNumber = 0;
   testCaseLine = 0;
@@ -221,6 +232,14 @@ TestRunner::TestRunner( const TTYParameter& tp )
   tmp.str("");
   tmp << color(red) << la << color(normal);
   leftArrow = tmp.str();
+
+  yieldStateStr[Success]      = "Success";
+  yieldStateStr[Error]        = "Error";
+  yieldStateStr[Result]       = "Result";
+  yieldStateStr[Unknown]      = "Unknown";
+  yieldStateStr[UndefinedObj] = "UndefinedObj";
+  yieldStateStr[Coverage]     = "Coverage";
+
 
 }
 
@@ -255,6 +274,9 @@ TestRunner::ProcessFile( const string& fileName )
 void
 TestRunner::ShowTestTitle() const
 {
+  if ( state != TESTCASE )
+    return; 
+
   cout
     << endl << endl << color(green)
     << "*** Test " << testCaseNumber 
@@ -354,11 +376,13 @@ TestRunner::ShowErrorSummary() const
     cout << endl << endl;
   }
 
-  cout << endl
-       << "COVERAGE (untested operators):" << endl
-       << "------------------------------" << endl
-       << missingOps << endl;
-
+  if (missingOpsNo > 0)
+  {
+    cout << endl
+         << "COVERAGE (untested operators):" << endl
+         << "------------------------------" << endl
+         << missingOps << endl;
+  }
 }
 
 void
@@ -777,16 +801,12 @@ TestRunner::ProcessExamples()
      if (info.result != "") {
      if (  (info.result[0] != '(') ) 
      {
-       //SecParser sp;            // translates SECONDO syntax into nested list
-       //string listCommand = ""; // buffer for command in list form 
-       //resultOk = (sp.Text2List( info.result, listCommand ) == 0);
-       //if (resultOk)
        resultOk = nl->ReadFromString("(" + info.result + ")", tmpList);
        //cout << nl->ToString(tmpList) << endl;
        tmpList = (nl->First(tmpList));
        realValTolerance.isRelative = true;
        realValTolerance.value = 0.0;
-       //realValTolerance.value = 8.881784197e-16; // ~ 2^(-50)
+       realValTolerance.value = 1e-15; // ~ 2^(-50)
        if (resultOk) {
        switch ( nl->AtomType(tmpList) ) {
 
@@ -801,7 +821,7 @@ TestRunner::ProcessExamples()
           case RealType:{
                           expectedResult =  MakeConstant("real", tmpList); 
                           realValTolerance.isRelative = false;
-                          realValTolerance.value = 1e-10;
+                          realValTolerance.value = 5e-11;
                           break;
                         }
           case TextType:{
@@ -1088,7 +1108,9 @@ TestRunner::CallSecondo()
           else 
           {
             VerifyResult(outList, expectedResult);
-            missingOps += nl->ToString(nl->Second(outList));
+            ListExpr ops = nl->Second(outList);
+            missingOps += nl->ToString(ops);
+            missingOpsNo += nl->ListLength(ops);
           }  
         }
         else if( yieldState == Unknown )
