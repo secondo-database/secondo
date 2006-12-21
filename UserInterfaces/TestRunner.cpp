@@ -39,10 +39,16 @@ features (Approximate comparison of float values, result specification in
 external files and envrionment variable expansion in file names) were
 implemented.
 
-Nov 2006, M. Spiekermann. Results may now be also specified as database
+Nov. 2006, M. Spiekermann. Results may now be also specified as database
 objects. Moreover, a new directive coverage was introduced which reports an
-error if not all operators of an specified algebra module were used inside teh
+error if not all operators of an specified algebra module were used inside the
 tests.
+
+Dec. 2006, M. Spiekermann. A new operationg mode for processing ".example"
+files was implemented. These files will guarantee that the examples of the
+online help (e.g. list operators) are corrects since they could also be used as
+input for the TestRunner.
+
 
 1 Overview
 
@@ -791,8 +797,14 @@ TestRunner::ProcessExamples()
   // iterate over all examples
   ExampleInfo info;
   examples.initScan();
-  while ( examples.next(info) )
+  for (; !examples.endOfScan(); examples.nextOfScan() )
   {
+     ExampleReader::ExampleList list = examples.getCurrentList();
+     ExampleReader::ExampleList::const_iterator it = list.begin();
+     
+     for(; it != list.end(); it++) {
+
+     info = **it;
      cmd = info.example;
      expectedResult = nl->Empty();
      ListExpr tmpList = nl->Empty();
@@ -885,6 +897,8 @@ TestRunner::ProcessExamples()
      testCaseName = info.opName;
      testCaseLine = info.lineNo;
      CallSecondo2(); 
+
+  }
   }
 
   testCaseNumber++;

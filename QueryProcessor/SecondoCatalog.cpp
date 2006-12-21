@@ -65,6 +65,12 @@ April 2006, M. Spiekermann. New methods ~systemTable~ and ~createRelation~ added
 These will be used to check if a given object name is a system table and if a
 relation should be created on the fly by calling ~InObject~.
 
+Nov. - Dec. 2006, M. Spiekermann. Initialization of system tables for operators
+and type constructors. Values for examples queries provided as online help are
+stored in .examples files in the algebra directories. These queries will be used
+now. 
+
+
 
 This module implements the module *SecondoCatalog*. It consists of six
 parts: First it contains an interface to *Databases and Transactions*
@@ -98,6 +104,8 @@ The names of existing databases are stored in a list ~DBTable~.
 #include "SystemTables.h"
 #include "ExampleReader.h"
 #include "SecParser.h"
+#include "LogMsg.h"
+
 
 using namespace std;
 
@@ -1981,10 +1989,16 @@ SecondoCatalog::Initialize(TypeInfoRel* r)
 void
 SecondoCatalog::Initialize(OperatorInfoRel* r)
 {
-  int algId=0;
+  int algId = 0;
+  bool traceExpl = false;
+
+  if ( RTFlag::isActive("Catalog:TraceExamples") )
+    traceExpl = true;
 
   cout << endl
        << "Initializing operator specs ..." << endl;
+
+  
 
   while ( am->NextAlgebraId(algId))
   {
@@ -1992,7 +2006,8 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
     string algName =  am->GetAlgebraName(algId);
     int n = am->OperatorNumber(algId);
 
-    cout << "Processing examples for '" << algName << "'" << endl;
+    cout << "Processing '" << algName << "'";
+    cout << " (" << n << " operators)" << endl;
     string algShort = algName; 
     removeSuffix("Algebra", algShort);
     string fileName = "tmp/"+algShort+".examples";
@@ -2001,7 +2016,7 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
     bool fileExists = true;
     if (!expectedFile.exists()) 
     {
-       cerr << "  Missing file " << fileName << endl;
+       cerr << "  Missing file " << fileName << "!" << endl;
        fileExists = false; 
     } 
     
@@ -2018,70 +2033,100 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
     int opId=0;
     while ( opId < n)
     {
-      //cout << am->getOperator( algId, opId )->GetName() << endl;
+
+      if (traceExpl)
+        cout << am->getOperator( algId, opId )->GetName() << endl;
       OperatorInfo oi = am->getOperator( algId, opId )->GetOpInfo();
-      OperatorInfoTuple& t = *(new OperatorInfoTuple());
-      
+ 
+      if (!fileExists) {
+	// copy to Example Info
+	ExampleInfo ex;
+	ex.opName = oi.name;
+	ex.number = 1; 
+	ex.signature = oi.signature;
+	ex.example = oi.example;
+	  
+	examples.add(oi.name, 1, ex);
+      }
+      else
+      {
+
       ExampleInfo ex2;
+      ExampleReader::ExampleList list;
+      ExampleReader::ExampleList::const_iterator it;
+
       bool specFound = false;
       if (parseOk) {
         specFound = examples.find(oi.name, ex2);
-        if ( !specFound ) {
-          cerr << "  Missing spec for operator " << oi.name << endl;
-        }
-      }  
 
+      if ( !specFound ) {
+        cerr << "  Missing spec for operator " << oi.name << endl;
+        // to do: punishment, e.g. removing the operator from the
+        // algebra manager.
+      }
+      else {
+
+      // examples for the current operator are available 
+
+      list = examples.find(oi.name);
+
+      int i = 0;
+      for (it = list.begin(); it != list.end(); it++)
+      {
+      OperatorInfoTuple& t = *(new OperatorInfoTuple());
+      ex2 = **it;
+      
+      if (traceExpl)
+        cout << ex2.example << endl;
+     
       bool secOk = false;
-      if (parseOk && specFound) {
+      SecParser sp;            
+      string exList = ""; 
+      int rc = sp.Text2List( ex2.example, exList );
+      secOk = (rc == 0);       
+      if ( !secOk )      
+      {
+	t.remark = "Return Secondo Parse Error!";
 
-        SecParser sp;            
-        string exList = ""; 
-        int rc = sp.Text2List( ex2.example, exList );
-        secOk = (rc == 0);       
-        if ( !secOk )      
-        {
-            cerr << "Operator: " << ex2.opName << endl
-                 << "Example : " << ex2.example << endl 
-                 << "In line : " << ex2.lineNo << endl << endl;
-        }
-      }  
-
+	  cerr << "Operator: " << ex2.opName << endl
+	       << "Example : " << ex2.example << endl 
+	       << "In line : " << ex2.lineNo << endl << endl;
+      }
+  
       t.name = oi.name;
       t.algebra = algName;
       t.signature = oi.signature;
       t.syntax = oi.syntax;
       t.meaning = oi.meaning;
       t.remark = oi.remark;
-
       t.result = ex2.result;
 
-      if (secOk) { // use example of the .examples file 
-        t.example = ex2.example;
-        oi. example = ex2.example;
-      } else { // use spec as given in the *.cpp file
-        t.example = oi.example;
-        t.remark = "Yields Secondo Parse Error!";
-      } 
+      // define example values
+      t.example = ex2.example;
+
+      if (i==0) {
+      // overrule operator spec of the .cpp file.
+      oi. example = ex2.example;
       am->getOperator( algId, opId )->SetOpInfo(oi);
+      }
+      i++;
 
       r->append(&t, false);
-      // to do: Appending more examples for the same operator!
 
-      // copy to Example Info
-      ExampleInfo ex;
-      ex.opName = t.name;
-      ex.number = 1; 
-      ex.signature = t.signature;
-      ex.example = t.example;
-      
-      examples.add(t.name, 1, ex);
+      } // end for 
+      } // end !specFound
+      } // end parseOk 
+
+      } // end file exists
       opId++;
-    } 
+    
+    } // end of operator iteration
     if (!fileExists) {
       cerr << "  Generating example file " << fileName << endl; 
       examples.write();
     }  
-  }
+
+  } // end of algbra iteration 
 }
 
 

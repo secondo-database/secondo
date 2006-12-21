@@ -20,7 +20,10 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-November 2006, M. Spiekermann.
+November 2006, M. Spiekermann. Start of implementation.
+
+Dec 2006, M. Spiekermann. Implementation Finished. The example reader can now
+handle multiple examples per operator and supports alias names.
 
 */
 
@@ -30,6 +33,7 @@ November 2006, M. Spiekermann.
 #include <iostream>
 #include <sstream>
 #include <map>
+#include <list>
 
 #include "CharTransform.h"
 #include "LogMsg.h"
@@ -94,14 +98,17 @@ class ExampleReader {
   Token expected;
   map<Token, string> tokendef; 
 
-  //typedef list<ExampleInfo> ExampleList; 
-  typedef map<string, ExampleInfo> ExampleMap; 
+  public:
+  typedef list<ExampleInfo*> ExampleList; 
+
+  private:
+  typedef map<string, ExampleList> ExampleMap; 
   ExampleMap examples;
 
-  typedef ExampleMap::iterator iterator;
+  typedef ExampleMap::const_iterator iterator;
 
-  iterator begin() { return examples.begin(); }
-  iterator end()   { return examples.end();   }
+  iterator begin() const { return examples.begin(); }
+  iterator end()   const { return examples.end();   }
 
   iterator scan;
 
@@ -220,7 +227,20 @@ a*bc* with single characters a,b and c.
     examples.clear();
     scan=begin();
   }
-  ~ExampleReader() {}
+  ~ExampleReader() {
+
+    ExampleMap::iterator it = examples.begin();
+    while (it != examples.end() ) 
+    {
+      ExampleList& list = it->second;
+      ExampleList::iterator it2 = list.begin();
+      while (it2 != list.end() ) {
+        delete *it2;
+        it2++;
+      }
+      it++;
+    } 
+  }
 
   
 
@@ -234,7 +254,7 @@ a*bc* with single characters a,b and c.
       return false;
     }  
 
-    ExampleInfo info;
+    ExampleInfo* info = 0;
     string key="";
     
     while (!stream.eof() && !stream.fail()) {
@@ -285,18 +305,17 @@ a*bc* with single characters a,b and c.
             return false;
           expected = Number;
 
-          info.reset(); 
+          info = new ExampleInfo;
           size_t pos = lineRest.find(" alias");
 
           if ( pos != string::npos )
-            info.aliasName = trim( lineRest.substr(pos+6) );
+            info->aliasName = trim( lineRest.substr(pos+6) );
           else 
             pos = lineRest.length(); 	  
 
-          info.opName = trim( lineRest.substr(0,pos) );
-          key = info.opName;
-          //examples[key].push_back(info);
-          examples[key] = info;
+          key = trim( lineRest.substr(0,pos) );
+          info->opName = key;
+          examples[key].push_back(info);
           break;
        }
 
@@ -304,7 +323,7 @@ a*bc* with single characters a,b and c.
           if (!match(Number))
             return false;
            expected = Signature;
-           examples[key].number = ::parse<int>(lineRest);
+           info->number = ::parse<int>(lineRest);
           break;
        }
 
@@ -312,7 +331,7 @@ a*bc* with single characters a,b and c.
           if (!match(Signature))
             return false;
            expected = Example;
-           examples[key].signature = lineRest;
+           info->signature = lineRest;
           break;
        }
 
@@ -320,8 +339,8 @@ a*bc* with single characters a,b and c.
           if (!match(Example))
             return false;
            expected = Result;
-           examples[key].example = lineRest;
-           examples[key].lineNo = lineCtr;
+           info->example = lineRest;
+           info->lineNo = lineCtr;
           break;
        }
 
@@ -329,7 +348,7 @@ a*bc* with single characters a,b and c.
           if (!match(Result))
             return false;
            expected = Operator;
-           examples[key].result = lineRest;
+           info->result = lineRest;
           break;
        }
 
@@ -344,22 +363,33 @@ a*bc* with single characters a,b and c.
     return true;
   }
 
-  bool find(const string& Op, ExampleInfo& ex) const
+/*
+Get first example of the example list
+
+*/
+  bool find(const string& op, ExampleInfo& ex) const
   {
-     ExampleMap::const_iterator it = examples.find(Op);
+     ExampleMap::const_iterator it = examples.find(op);
      if (it == examples.end())
        return false;
 
-     ex = it->second;
+     ex = *it->second.front();
      return true;
   } 
 
+  const ExampleList& find(const string& op) const
+  {
+     ExampleMap::const_iterator it = examples.find(op);
+     assert( it != examples.end() );
+     return it->second;
+  } 
 
   void add(const string& op, const int nr, ExampleInfo& ex)
   {
      stringstream key;
      key << op << algName << nr;
-     examples[key.str()] = ex; 
+     ExampleInfo* info = new ExampleInfo(ex);
+     examples[key.str()].push_back(info);
   } 
 
   bool write() {
@@ -373,12 +403,13 @@ a*bc* with single characters a,b and c.
     out.ios() << "Database: berlintest" << endl
               << "Restore : No" << endl << endl;
 
-    ExampleMap::const_iterator it = examples.begin();
-    while(it != examples.end()) {
+    ExampleInfo ex; 
+    ostream& os = out.ios();
+    initScan();
+    while(next(ex)) {
 
-      it->second.print(out.ios());
-      out.ios() << endl << endl;  
-      it++;
+      ex.print(os);
+      os << endl << endl;  
     } 
 
     return out.close();
@@ -388,16 +419,37 @@ a*bc* with single characters a,b and c.
 
   bool getRestoreFlag() { return restore; } 
 
-  void initScan() { scan=begin();}
-  bool next(ExampleInfo& ex) {
-     if (scan != end())
-     { 
-       ex = scan->second;
-       scan++;
-       return true;
+/*
+The functions below are provided for iterating
+over all examples
+
+*/
+
+
+  inline void initScan() { scan=begin();}
+
+  inline bool next(ExampleInfo& ex) {
+     bool end = endOfScan();
+     if (!end) {
+       ex = *scan->second.front();
+       nextOfScan();
      }
-     return false;       
-  } 
+     return !end;       
+  }
+
+  inline void nextOfScan() {
+     scan++;
+  }
+
+  inline bool endOfScan() const {
+     return ( scan == end() );
+  }
+
+  inline const ExampleList& getCurrentList() const
+  {
+    return scan->second;
+  }
+ 
 
 };
 

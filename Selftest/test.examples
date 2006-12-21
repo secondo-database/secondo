@@ -30,6 +30,6 @@ Result   : file
 Operator : sortby  alias SORTBY 
 Number   : 2 
 Signature: rel(tuple) -> int 
-Example  : query ten feed sortby[no asc] consume 
+Example  : query ten feed sortby[no asc] {x2} consume 
 Result   : file 
 
