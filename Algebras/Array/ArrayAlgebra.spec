@@ -33,7 +33,7 @@ operator sortarray alias SORTARRAY pattern _ op [ fun ]
          implicit parameter element type ELEMENT
 
 operator tie alias TIE pattern _ op [ fun ] 
-         implicit parameter first type ELEMENT
+         implicit parameters first, second types ELEMENT, ELEMENT
 
 operator cumulate alias CUMULATE pattern _ op [ fun ] 
          implicit parameter first type ELEMENT
