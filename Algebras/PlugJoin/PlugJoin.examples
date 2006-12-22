@@ -1,0 +1,10 @@
+Database: berlintest
+Restore : No
+
+Operator : spatialjoin
+Number   : 1
+Signature: stream(tuple([x_1 : t_1, ... x_n : t_n])) x stream (tuple([y_1 : t_1,...,y_m : t_m])) x x_i x y_i -> stream(tuple([x_1 : t_1,...,x_n : t_n, y_1 : t_1, ..., y_m : t_m])) ; with x_i, y_i in {SPATIAL2D, rect, rect3, rect4}
+Example  : query Flaechen feed {Flaeche} Sehenswuerdreg feed{PoI} spatialjoin [ geoData_Flaeche, geoData_PoI] project[Name_Flaeche,Name_PoI] count
+Result   : 50 
+
+
