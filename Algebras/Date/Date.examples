@@ -1,0 +1,52 @@
+Database: berlintest
+Restore : No
+
+Operator : <
+Number   : 1
+Signature: date x date -> bool
+Example  : query [const date value "23.12.2006"] < [const date value "24.12.2006"]
+Result   : TRUE
+
+
+Operator : =
+Number   : 1
+Signature: date x date  -> bool
+Example  : query [const date value "23.12.2006"] = [const date value "24.12.2006"]
+Result   : FALSE
+
+
+Operator : >
+Number   : 1
+Signature: date x date  -> bool
+Example  : query [const date value "23.12.2006"] > [const date value "24.12.2006"]
+Result   : FALSE
+
+
+Operator : day_of
+Number   : 1
+Signature: date -> int
+Example  : query day_of ([const date value "23.12.2006"] )
+Result   : 23
+
+
+Operator : month_of
+Number   : 1
+Signature: date -> int
+Example  : query month_of ([const date value "23.12.2006"] )
+Result   : 12 
+
+
+Operator : thedate
+Number   : 1
+Signature: int x int x int -> date
+Example  : query thedate(23,12,2006)
+Result   : (date "23.12.2006")
+
+
+Operator : year_of
+Number   : 1
+Signature: date -> int
+Example  : query year_of ([ const date value "23.12.2006"] )
+Result   : 2006
+
+
