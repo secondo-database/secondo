@@ -4,22 +4,22 @@ Restore : No
 Operator : ELEMENT2
 Number   : 1
 Signature: ((array t) (array u) ... ) -> u
-Example  : query ai al loopa[fun(i:int,l:int)(i+l)]
-Result   : 
+Example  : query intset_a10 intset_a10 loopa[. + ..]
+Result   : ((array int) (2 4 6 8 10 12 14 16 18 20)) 
 
 
 Operator : ELEMENT
 Number   : 1
 Signature: ((array t) ... ) -> t
-Example  : query ai al loopa[. + ..]
-Result   : 
+Example  : query intset_a10 realset_a10 loopa[. + (.. * 1.2)]
+Result   : ((array real) (2.2 4.4 6.6 8.8 11.0 13.2 15.4 17.6 19.8 22.0)) 
 
 
 Operator : cumulate
 Number   : 1
 Signature: ((array t) (map t t t)) -> (array t)
-Example  : query ai cumulate[. + .]
-Result   : 
+Example  : query intset_a10 cumulate[. + ..]
+Result   : ((array int) (1 3 6 10 15 21 28 36 45 55))
 
 
 Operator : distribute
@@ -32,36 +32,36 @@ Result   : 10
 Operator : get
 Number   : 1
 Signature: ((array t) int) -> t
-Example  : query get(ai,3)
-Result   : 
+Example  : query get(intset_a10, 3)
+Result   : 4
 
 
 Operator : loop
 Number   : 1
 Signature: ((array t) (map t r)) -> (array r)
-Example  : query ai loop [fun(i:int)(i*i)]
-Result   : 
+Example  : query plz_a20 loop[. count] tie [. + ..]
+Result   : 41267
 
 
 Operator : loopa
 Number   : 1
 Signature: ((array t) (array u) (map t u r)) -> (array r)
-Example  : query ai al loopa[fun(i:int,l:int)(i+l)]
-Result   : 
+Example  : query plz_a20 staedte_a20 loopa[. count + .. count] tie[. + ..]
+Result   : 41325 
 
 
 Operator : loopb
 Number   : 1
 Signature: ((array t) (array u) (map t u r)) -> (array r)
-Example  : query ai al loopb[fun(i:int,l:int)(i+l)]
-Result   : 
+Example  : query size( intset_a10 intset_a10 loopb[. + ..] )
+Result   : 100
 
 
 Operator : loopselect
 Number   : 1
 Signature: ((array t) ((name1 (map t r)) ... (namen (map t r))) int real) -> (array r)
-Example  : query ai loopselect[f:fun(i:int)(i*2), g:fun(l:int)(l+l); 10, 0.1]
-Result   : 
+Example  : query plz_a20 loopselect[ f1: . feed plz feed {ren1} hashjoin[PLZ, PLZ_ren1, 997] count, f2: . feed plz feed {ren1} sortmergejoin[PLZ, PLZ_ren1] count; 5, 0.2 ] tie[. + ..]
+Result   : 248793
 
 
 Operator : loopselecta
@@ -74,15 +74,15 @@ Result   :
 Operator : loopselectb
 Number   : 1
 Signature: ((array t) (array u) ((name1 (map t u r)) ... (namen (map t u r))) int real) -> (array r)
-Example  : query ai al loopselectb[f:fun(i1:int,l1:int)(i1 mod l1), g:fun(i2:int,l2:int)(i2-(i2 div l2)*l2); 10, 0.1]
-Result   : 
+Example  : query plz_a20 plz_a20 loopselectb[ f1: . feed .. feed {ren1} hashjoin[PLZ, PLZ_ren1, 997] count, f2: . feed .. feed {ren1} sortmergejoin[PLZ, PLZ_ren1] count; 5, 0.2 ] tie[. + ..]
+Result   : 248793 
 
 
 Operator : loopswitch
 Number   : 1
 Signature: ((array t) ((name1 (map t r)) ... (namen (map t r)))) -> (array r)
-Example  : query ai loopswitch[f:fun(i:int)(i*2), g:fun(l:int)(l+l)]
-Result   : 
+Example  : query plz_a20 loopswitch[ f1: . feed plz feed {ren1} hashjoin[PLZ, PLZ_ren1, 997] count, f2: . feed plz feed {ren1} sortmergejoin[PLZ, PLZ_ren1] count ] tie[. + ..]
+Result   : 248793
 
 
 Operator : loopswitcha
@@ -95,8 +95,8 @@ Result   :
 Operator : loopswitchb
 Number   : 1
 Signature: ((array t) (array u) ((name1 (map t u r)) ... (namen (map t u r)))) -> (array r)
-Example  : query ai al loopswitchb[f:fun(i1:int,l1:int)(i1 mod l1), g:fun(i2:int,l2:int)(i2-(i2 div l2)*l2)]
-Result   : 
+Example  : query plz_a20 plz_a20 loopswitchb[ f1: . feed .. feed {ren1} hashjoin[PLZ, PLZ_ren1, 997] count, f2: . feed .. feed {ren1} sortmergejoin[PLZ, PLZ_ren1] count ] tie[. + ..]
+Result   : 248793 
 
 
 Operator : makearray
@@ -109,56 +109,56 @@ Result   : 4
 Operator : partjoin
 Number   : 1
 Signature: ((array (rel t)) (array (rel u)) (map (rel t) (rel u) r)) -> (array r)
-Example  : query ar ar partjoin[fun(r1:reltype,r2:reltype)r1 feed r2 feed rename[A] product count]
-Result   : 
+Example  : query plz_a20 plz_a20 partjoin[ . feed .. feed {ren1} hashjoin[PLZ, PLZ_ren1, 997] count]
+Result   : 248793 
 
 
 Operator : partjoinselect
 Number   : 1
 Signature: ((array (rel t)) (array (rel u)) ((name1 (map (rel t) (rel u) r)) ... (namen (map (rel t) (rel u) r))) int real) -> (array r)
-Example  : query ar ar partjoinselect[f:fun(r11:reltype,r12:reltype)r11 feed r12 feed rename[A] sortmergejoin[no,no_A] count, g:fun(r21:reltype,r22:reltype)r21 feed r22 feed rename[A] product filter[.no=.no_A] count; 10, 0.1]
-Result   : 
+Example  : query plz_a20 plz_a20 partjoinselect[ f1: . feed .. feed {ren1} hashjoin[PLZ, PLZ_ren1, 997] count, f2: . feed .. feed {ren1} sortmergejoin[PLZ, PLZ_ren1] count; 5, 0.2 ] tie[. + ..]
+Result   : 248793 
 
 
 Operator : partjoinswitch
 Number   : 1
 Signature: ((array (rel t)) (array (rel u)) ((name1 (map (rel t) (rel u) r)) ... (namen (map (rel t) (rel u) r)))) -> (array r)
-Example  : query ar ar partjoinswitch[f:fun(r11:reltype,r12:reltype)r11 feed r12 feed rename[A] sortmergejoin[no,no_A] count, g:fun(r21:reltype,r22:reltype)r21 feed r22 feed rename[A] product filter[.no=.no_A] count]
-Result   : 
+Example  : query plz_a20 plz_a20 partjoinswitch[ f1: . feed .. feed {ren1} hashjoin[PLZ, PLZ_ren1, 997] count, f2: . feed .. feed {ren1} sortmergejoin[PLZ, PLZ_ren1] count ] tie[. + ..]
+Result   : 248793 
 
 
 Operator : put
 Number   : 1
 Signature: ((array t) t int) -> (array t)
-Example  : query put(ai,9,3)
-Result   : 
+Example  : query put(stringset_a4, "array of strings!", 3)
+Result   : ((array(string)) ("This" "is" "an" "array of strings!")
 
 
 Operator : size
 Number   : 1
 Signature: ((array t)) -> int
-Example  : query size(ai)
-Result   : 
+Example  : query size(intset_a10)
+Result   : 10
 
 
 Operator : sortarray
 Number   : 1
 Signature: ((array t) (map t int)) -> (array t)
-Example  : query ai sortarray[fun(i:int)i]
-Result   : 
+Example  : query intset_a10 sortarray[. - (. * .)]
+Result   : ((array int) (10 9 8 7 6 5 4 3 2 1))
 
 
 Operator : summarize
 Number   : 1
 Signature: ((array (rel t))) -> (stream t)
-Example  : query prel summarize consume
-Result   : 
+Example  : query plz_a20 summarize consume count
+Result   : 41267
 
 
 Operator : tie
 Number   : 1
 Signature: ((array t) (map t t t)) -> t
-Example  : query ai tie[fun(i:int,l:int)(i+l)]
-Result   : 
+Example  : query intset_a10 tie[. + ..] = (10 * 11) / 2
+Result   : TRUE
 
 

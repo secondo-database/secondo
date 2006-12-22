@@ -36,7 +36,7 @@ operator tie alias TIE pattern _ op [ fun ]
          implicit parameters first, second types ELEMENT, ELEMENT
 
 operator cumulate alias CUMULATE pattern _ op [ fun ] 
-         implicit parameter first type ELEMENT
+         implicit parameters first, second types ELEMENT, ELEMENT
 
 operator distribute alias DISTRIBUTE pattern _ op [ _ ]
 
@@ -55,21 +55,27 @@ operator loopswitch alias LOOPSWITCH pattern _ op [ funlist ]
          implicit parameter element type ELEMENT
 
 operator loopswitcha alias LOOPSWITCHA pattern _ _ op [ funlist ]
+         implicit parameters first, second types ELEMENT, ELEMENT2
 
 operator loopswitchb alias LOOPSWITCHB pattern _ _ op [ funlist ]
+         implicit parameters first, second types ELEMENT, ELEMENT2
 
 operator loopselect alias LOOPSELECT pattern _ op [ funlist; _, _ ] 
          implicit parameter element type ELEMENT
 
 operator loopselecta alias LOOPSELECTA pattern _ _ op [ funlist; _, _ ]
+         implicit parameters first, second types ELEMENT, ELEMENT2
 
 operator loopselectb alias LOOPSELECTB pattern _ _ op [ funlist; _, _ ]
+         implicit parameters first, second types ELEMENT, ELEMENT2
 
 operator partjoin alias PARTJOIN pattern _ _ op [ fun ] 
          implicit parameters first, second types ELEMENT, ELEMENT2
 
 operator partjoinswitch alias PARTJOINSWITCH pattern _ _ op [ funlist ]
+         implicit parameters first, second types ELEMENT, ELEMENT2
 
 operator partjoinselect alias PARTJOINSELECT pattern _ _ op [ funlist; _, _ ]
+         implicit parameters first, second types ELEMENT, ELEMENT2
 
 # End ArrayAlgebra.spec
