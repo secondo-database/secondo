@@ -149,6 +149,8 @@ public class HoeseViewer extends SecondoViewer {
 
   private JMenuItem selectSequenceCat;
   private JRadioButtonMenuItem create_Rectangle_MI;
+  private boolean enablePointSequence = true;
+  private JMenu createMenu;
   private JRadioButtonMenuItem create_PointSequence_MI;
   private JRadioButtonMenuItem create_FilledPointSequence_MI;
   private JRadioButtonMenuItem create_Points_MI;
@@ -577,6 +579,11 @@ public class HoeseViewer extends SecondoViewer {
        setAllOpaque(this,false);
     }
 
+    if(enablePointSequence){
+       create_PointSequence_MI.setSelected(true);
+    } else {
+        create_Point_MI.setSelected(true);
+    }
   }
 
   /* sets all contained componenets to be opaque */
@@ -985,7 +992,7 @@ public class HoeseViewer extends SecondoViewer {
     jMenuGui.add(catByName);
     jMenuGui.add(new JSeparator());
     
-    JMenu createMenu = new JMenu("Object Creation");
+     createMenu = new JMenu("Object Creation");
    // jMenuGui.add(createMenu); // moved into the main menu
     selectSequenceCat = new JMenuItem("Select Category");
     createMenu.add(selectSequenceCat);
@@ -999,8 +1006,10 @@ public class HoeseViewer extends SecondoViewer {
     create_Region_MI = new JRadioButtonMenuItem("Region");
     
     createMenu.add(create_Rectangle_MI);
-    createMenu.add(create_PointSequence_MI);
-    createMenu.add(create_FilledPointSequence_MI);
+    if(enablePointSequence){
+        createMenu.add(create_PointSequence_MI);
+        createMenu.add(create_FilledPointSequence_MI);
+    }
     createMenu.add(create_Points_MI);
     createMenu.add(create_Point_MI);
     createMenu.add(create_Line_MI);
@@ -1013,7 +1022,6 @@ public class HoeseViewer extends SecondoViewer {
     createTypes.add(create_Point_MI);
     createTypes.add(create_Line_MI);
     createTypes.add(create_Region_MI);
-    create_PointSequence_MI.setSelected(true);
 
     // add an changeListener for inrforming the createPointSequnceListener when needed
     ChangeListener cL = new ChangeListener(){
@@ -2501,7 +2509,15 @@ public boolean canDisplay(SecondoObject o){
        TexturePath = HoeseHome+"textures";
        ReferencePath = HoeseHome+"references";
 
-
+       String enablePointSequenceString = configuration.getProperty("USE_POINTSEQUENCE");
+       if(enablePointSequenceString!= null){
+           System.out.println("check PointSequence");
+           if(enablePointSequenceString.trim().toLowerCase().equals("false")){
+               enablePointSequence = false;
+               createMenu.remove(create_PointSequence_MI);
+               createMenu.remove(create_FilledPointSequence_MI);
+           }
+       } 
 
        // set special category path
        String TmpCatPath = configuration.getProperty("CATEGORY_PATH");
