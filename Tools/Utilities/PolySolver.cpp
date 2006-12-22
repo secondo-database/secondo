@@ -29,9 +29,9 @@ whereever practicable.
 
 using namespace std;
 
-const bool   POLYSOLVERDEBUG = false;
-// const bool   POLYSOLVERDEBUG = true;  // Only for debugging!
-const double PS_FACTOR    = 0.00000001;
+// #define POLYSOLVERDEBUG
+
+#define PS_FACTOR 0.00000001
 
 bool PS_AlmostEqual( const double d1, const double d2 )
 {
@@ -73,16 +73,16 @@ Solves the Polynom ax+b=0 and gives back the number of solutiones.
 */
 int SolvePoly(const double &a, const double &b, double &solution)
 {
-  if(POLYSOLVERDEBUG){
-    cout<<"SolvePoly 1 called with a: "<<a<<" ,b: "<<b<<endl;}
-
+#ifdef POLYSOLVERDEBUG
+    cout<<"SolvePoly 1 called with a: "<<a<<" ,b: "<<b<<endl;
+#endif
   if(a == 0.0)
     return 0;
   solution = (-b / a);
-  if(POLYSOLVERDEBUG){
+#ifdef POLYSOLVERDEBUG
     cout<<"SolvePoly1 ends with 1 solution"<<endl;
     cout<<"solution = "<<solution<<"  "<<(a*solution)+b<<endl;
-  }
+#endif
   cout << solution<< endl;
   return 1;
 }
@@ -100,8 +100,9 @@ int SolvePoly(const double &a, const double &b,
 {
   int number = 0;
   double d;
-  if(POLYSOLVERDEBUG)
-    cout<<"SolvePoly 2 called with a: "<<a<<" ,b: "<<b<<" ,c: "<<c<<endl;
+#ifdef POLYSOLVERDEBUG
+  cout<<"SolvePoly 2 called with a: "<<a<<" ,b: "<<b<<" ,c: "<<c<<endl;
+#endif
 
   if(a != 0.0){ //SolvePoly2 needed
     d = pow(b, 2) - 4 * a * c;
@@ -128,12 +129,12 @@ int SolvePoly(const double &a, const double &b,
   else { //use SolvePoly1
     number = SolvePoly(b, c, solution[1]);
   }
-  if(POLYSOLVERDEBUG){
-    cout<<"SolvePoly2 ends with  "<<number<<" solutions"<<endl;
-    for (int i = 0; i < number; i++)
-      cout<<"solution["<<i<<"] = "<<solution[i]
-      <<"  "<<(a*pow(solution[i],2)+b*solution[i]+c)<<endl;
-  }
+#ifdef POLYSOLVERDEBUG
+  cout<<"SolvePoly2 ends with  "<<number<<" solutions"<<endl;
+  for (int i = 0; i < number; i++)
+    cout<<"solution["<<i<<"] = "<<solution[i]
+        <<"  "<<(a*pow(solution[i],2)+b*solution[i]+c)<<endl;
+#endif
   return number;
 }
 
@@ -150,23 +151,26 @@ int SolvePoly(const double &a, const double &b, const double &c,
   int number = 0;
   double disk, p, q;
 
-  if(POLYSOLVERDEBUG){
-    cout<<"SolvePoly3 called with a: "<<a<<" ,b: "<<b
-    <<" ,c: "<<c<<" ,d: "<<d<<endl;}
+#ifdef POLYSOLVERDEBUG
+  cout<<"SolvePoly3 called with a: "<<a<<" ,b: "<<b
+      <<" ,c: "<<c<<" ,d: "<<d<<endl;
+#endif
   if(a != 0.0) { //SolvePoly3 needed
     p = ( 3 * a * c - pow(b ,2)) / 9 / pow(a, 2);
     q = (2 * pow(b ,3) - 9 * a * b * c + 27 * pow(a, 2) * d) / 54 / pow(a, 3);
     disk = pow(p, 3) + pow (q, 2);
-    if(POLYSOLVERDEBUG){
-      cout<<"p = "<<p<<", q = "<<q<<" disk = "<<disk<<endl;}
+#ifdef POLYSOLVERDEBUG
+    cout<<"p = "<<p<<", q = "<<q<<" disk = "<<disk<<endl;
+#endif
 
     if (disk > 0) {  //one real solution
       double u = -q + sqrt(disk);
       u = u < 0 ? -pow(-u, 1.0 / 3.0) : pow(u, 1.0 / 3.0);
       double v = -q - sqrt(disk);
       v = v < 0 ? -pow(-v, 1.0 / 3.0) : pow(v, 1.0 / 3.0);
-      if(POLYSOLVERDEBUG)
-        cout<<"u "<<u<<", v "<<v<<endl;
+#ifdef POLYSOLVERDEBUG
+      cout<<"u "<<u<<", v "<<v<<endl;
+#endif
       solution[0] = u + v - b / 3 / a;
       number = 1;
     }
@@ -201,12 +205,12 @@ int SolvePoly(const double &a, const double &b, const double &c,
     for(int i = 0; i < number; i++)
       solution[i] = sol2[i];
   }
-  if(POLYSOLVERDEBUG){
-    cout<<"SolvePoly3 ends with  "<<number<<" solutions"<<endl;
-    for (int i = 0; i < number; i++)
-      cout<<"solution["<<i<<"] = "<<solution[i]<<"  "
-      <<(a*pow(solution[i],3)+b*pow(solution[i],2)+c*solution[i]+d)<<endl;
-  }
+#ifdef POLYSOLVERDEBUG
+  cout<<"SolvePoly3 ends with  "<<number<<" solutions"<<endl;
+  for (int i = 0; i < number; i++)
+    cout<<"solution["<<i<<"] = "<<solution[i]<<"  "
+        <<(a*pow(solution[i],3)+b*pow(solution[i],2)+c*solution[i]+d)<<endl;
+#endif
   return number;
 }
 
@@ -230,31 +234,35 @@ int SolvePoly(const double &a, const double &b,
   double sol23[2];
   double sol24[2];
 
-  if(POLYSOLVERDEBUG){
+#ifdef POLYSOLVERDEBUG
     cout<<"SolvePoly 4 called with a: "<<a<<" ,b: "<<b
-    <<" ,c: "<<c<<" ,d: "<<d<<" ,e: "<<e<<endl;}
+    <<" ,c: "<<c<<" ,d: "<<d<<" ,e: "<<e<<endl;
+#endif
 
   if(a != 0.0){ //SolvePoly4 needed
     //Solve cubic resolvent
     number1 = SolvePoly(1.0, -c, (b * d - 4 * a * e),
               (4 * a * c * e - pow(b, 2)* e - a * pow(d, 2)), sol3);
-    if(POLYSOLVERDEBUG)
-      for (int i = 0; i < number1; i++)
-        cout<<"sol3["<<i<<"] = "<<sol3[i]<<endl;
-//     z = a > 0.0 ? sol3[number1 - 1] : solution[0]; // orig
+#ifdef POLYSOLVERDEBUG
+    for (int i = 0; i < number1; i++)
+      cout<<"sol3["<<i<<"] = "<<sol3[i]<<endl;
+#endif
     z = a > 0.0 ? sol3[number1 - 1] : sol3[0];  // new
-    if(POLYSOLVERDEBUG)
-      cout<<"z "<<z<<endl;
+#ifdef POLYSOLVERDEBUG
+    cout<<"z "<<z<<endl;
+#endif
     number1 = SolvePoly(1.0, -b, (a * (c - z)), sol21, false);
-    if(POLYSOLVERDEBUG)
-      for (int i = 0; i < number1; i++)
-        cout<<"sol21["<<i<<"] = "<<sol21[i]<<endl;
+#ifdef POLYSOLVERDEBUG
+    for (int i = 0; i < number1; i++)
+      cout<<"sol21["<<i<<"] = "<<sol21[i]<<endl;
+#endif
     if (number1 == 1)
       sol21[1] = sol21[0];
     number1 = SolvePoly(1.0, -z, (a * e), sol22, false);
-    if(POLYSOLVERDEBUG)
-      for (int i = 0; i < number1; i++)
-        cout<<"sol22["<<i<<"] = "<<sol22[i]<<endl;
+#ifdef POLYSOLVERDEBUG
+    for (int i = 0; i < number1; i++)
+      cout<<"sol22["<<i<<"] = "<<sol22[i]<<endl;
+#endif
     if (number1 == 1)
       sol22[1] = sol22[0];
     if ((b * z)<(2 * a * d)) {
@@ -284,12 +292,12 @@ int SolvePoly(const double &a, const double &b,
     for(int i = 0; i < number1; i++)
       solution[i] = sol3[i];
   }
-  if(POLYSOLVERDEBUG){
-    cout<<"SolvePoly4 ends with  "<<number1<<" solutions"<<endl;
-    for (int i = 0; i < number1; i++)
-       cout<<"solution["<<i<<"] = "<<solution[i]<<"  "<<(a*pow(solution[i],4)
-       +b*pow(solution[i],3)+c*pow(solution[i],2)+d*solution[i]+e)<<endl;
-  }
+#ifdef POLYSOLVERDEBUG
+  cout<<"SolvePoly4 ends with  "<<number1<<" solutions"<<endl;
+  for (int i = 0; i < number1; i++)
+      cout<<"solution["<<i<<"] = "<<solution[i]<<"  "<<(a*pow(solution[i],4)
+      +b*pow(solution[i],3)+c*pow(solution[i],2)+d*solution[i]+e)<<endl;
+#endif
   return number1;
 }
 

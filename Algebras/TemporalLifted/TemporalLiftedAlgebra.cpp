@@ -28,9 +28,11 @@ TemporalLiftedAlgebra
 Juni 2006: Original implementation by J[ue]rgen Schmidt
 
 December 2006: Christian D[ue]ntgen added
-operator ~intersection: mpoint x mpoint [->] mpoint~- Corrected code for
-~SolvePoly(...)~ and separated the solver methods to an on header file called
-~PolySolver.h~.
+operator ~intersection: mpoint x mpoint [->] mpoint~.
+
+December 2006: Christian D[ue]ntgen corrected code for ~SolvePoly(...)~
+and separated the solver methods to its own header file called
+~PolySolver.h~ within the SECONDO ~include~ directory.
 
 1 Overview
 
@@ -535,7 +537,7 @@ int FindEqualTimes4Real(const UReal& u1, const UReal& u2, Instant t[4]){
         for (int m = 0; m < number; m++)
            t[m].ReadFrom(sol2[m] + u1.timeInterval.start.ToDouble());
      }
-     else{
+     else{ // solve the squared equation
       double v, w, x, y, z;
       if (u2.r) {
         v = pow(u1.a, 2);                         //x^4
@@ -3296,10 +3298,7 @@ static void MRealABS(MReal& op, MReal& result)
     if (counter == 0) {
       if(TLA_DEBUG)
         cout<<"no crossings in iv"<<endl;
-      //middle = (uReal.timeInterval.start.ToDouble()
-              //+ uReal.timeInterval.end.ToDouble()) / 2;
-      //mid.ReadFrom(middle);
-      mid = uReal.timeInterval.start
+      mid =   uReal.timeInterval.start
             + ((uReal.timeInterval.end - uReal.timeInterval.start) / 2);
       uReal.TemporalFunction(mid,value,true);
       if (value.GetRealval() < 0.0){

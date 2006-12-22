@@ -239,7 +239,7 @@ helping operators for indexing instant values in R-trees.
 #include "TemporalExtAlgebra.h"
 #include "MovingRegionAlgebra.h"
 #include "RectangleAlgebra.h"
-
+#include "PolySolver.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -357,6 +357,117 @@ string TUPrintUReal( UReal* ureal )
 
 */
 
+/*
+Auxiliary Method ~TU_FindEqualTimesUReal~
+
+Function ~TU_FindEqualTimesUReal~ returns the number of instants, where
+u1 and u2 are equal. The instants are passed on in the array-parameter ~t~.
+
+PRECONDITION: u1 and u2 must have the same timeIntervals
+
+*/
+
+int TU_FindEqualTimesUReal(const UReal& u1, const UReal& u2, Instant t[4]){
+    int number;
+    double sol2[2];
+    double sol4[4];
+#ifdef TUA_DEBUG
+     cout<<"TU_FindEqualTimesUReal called with"<<endl;
+     cout<<"u1.a "<<u1.a<<" u1.b "<<u1.b<<" u1.c "<<u1.c<<" u1.r "<<u1.r<<endl;
+     cout<<"u2.a "<<u2.a<<" u2.b "<<u2.b<<" u2.c "<<u2.c<<" u2.r "<<u2.r<<endl;
+#endif
+    if (u1.r == u2.r) {
+#ifdef TUA_DEBUG
+    cout<<"u1.r == u2.r"<<endl;
+#endif
+
+      number = SolvePoly(u1.a - u2.a, u1.b - u2.b, u1.c - u2.c, sol2, true);
+      for (int m = 0; m < number; m++)
+        t[m].ReadFrom(sol2[m] + u1.timeInterval.start.ToDouble());
+    }
+    else {
+#ifdef TUA_DEBUG
+       cout<<"u1.r != u2.r"<<endl;
+#endif
+     if (u2.r && u2.a == 0 && u2.b == 0) {
+#ifdef TUA_DEBUG
+        cout<<"Spezial case u2 = const"<<endl;
+#endif
+        number = SolvePoly(u1.a, u1.b, u1.c - sqrt(u2.c), sol2, true);
+        for (int m = 0; m < number; m++)
+           t[m].ReadFrom(sol2[m] + u1.timeInterval.start.ToDouble());
+     }
+     else if (u1.r && u1.a == 0 && u1.b == 0) {
+#ifdef TUA_DEBUG
+        cout<<"Spezial case u1 = const"<<endl;
+#endif
+        number = SolvePoly(u2.a, u2.b, u2.c - sqrt(u1.c), sol2, true);
+        for (int m = 0; m < number; m++)
+           t[m].ReadFrom(sol2[m] + u1.timeInterval.start.ToDouble());
+     }
+     else{ // solve the squared equation
+      double v, w, x, y, z;
+      if (u2.r) {
+        v = pow(u1.a, 2);                         //x^4
+        w = 2 * u1.a * u1.b;                      //x^3
+        x = 2 * u1.a * u1.c + pow(u1.b, 2)- u2.a; //x^2
+        y = 2 * u1.b * u1.c - u2.b;               //x
+        z = pow(u1.c, 2) - u2.c;                  //c
+      }
+      else {
+        v = pow(u2.a, 2);                         //x^4
+        w = 2 * u2.a * u2.b;                      //x^3
+        x = 2 * u2.a * u2.c + pow(u2.b, 2)- u1.a; //x^2
+        y = 2 * u2.b * u2.c - u1.b;               //x
+        z = pow(u2.c, 2) - u1.c;                  //c
+      }
+      //va^4+wa^3+xa^2+ya+z=0
+
+#ifdef TUA_DEBUG
+      cout<<"v: "<<v<<", w: "<<w<<", x:"<<x<<", y:"<<y<<", z:"<<z<<endl;
+#endif
+      number = SolvePoly(v, w, x, y, z, sol4);
+      for (int n = 0; n < number; n++){
+        double val1 = u1.a * pow(sol4[n],2) + u1.b * sol4[n] + u1.c;
+        if(u1.r)
+          val1 = sqrt(val1);
+        double val2 = u2.a * pow(sol4[n],2) + u2.b * sol4[n] + u2.c;
+        if(u2.r)
+          val2 = sqrt(val2);
+#ifdef TUA_DEBUG
+        cout<<n<<". at "<<sol4[n]<<endl<<"val1 "<<val1<<", val2 "<<val2<<endl;
+#endif
+        if(!AlmostEqual(val1, val2)){
+#ifdef TUA_DEBUG
+          cout<<"false Point -> remove"<<endl;
+#endif
+          for (int i = n; i < number; i++)
+            sol4[i] = sol4 [i + 1];
+          number--;
+          n--;
+        }
+      }
+      for (int m = 0; m < number; m++)
+         t[m].ReadFrom(sol4[m] + u1.timeInterval.start.ToDouble());
+     }
+    }
+#ifdef TUA_DEBUG
+    cout<<"FindEqualTimes4Real ends with "<<number<<"solutions"<<endl;
+#endif
+  return number;
+}
+
+/*
+Auxiliary Method ~TU_GetMidwayInstant~
+
+Returns the instant at the middle of the interval defined by ~start~ and  ~end~.
+
+*/
+
+Instant TU_GetMidwayInstant(const Instant &start, const Instant &end)
+{
+  return start + ((end - start) / 2);
+}
 
 
 /*
@@ -5225,10 +5336,10 @@ OK          point x  upoint --> (stream upoint) same as at: upoint x point
 OK         upoint x  upoint --> (stream upoint)
 OK         upoint x    line --> (stream upoint)
 OK           line x  upoint --> (stream upoint)
-Pre        upoint x  region --> (stream upoint)
-Pre        region x  upoint --> (stream upoint)
-Pre        upoint x uregion --> (stream upoint)
-Pre       uregion x  upoint --> (stream upoint)
+OK         upoint x  region --> (stream upoint)
+OK         region x  upoint --> (stream upoint)
+OK         upoint x uregion --> (stream upoint)
+OK        uregion x  upoint --> (stream upoint)
 
 ----
 
@@ -5662,6 +5773,11 @@ int temporalUnitIntersection_ureal_ureal( Word* args, Word& result, int message,
   cout << "\nATTENTION: temporalUnitIntersection_ureal_ureal "
        << "not yet implemented!" << endl;
   return 0;
+
+  // restrict ureal to common deftime
+  // check, whether ureals are identical -> return complete ureal
+  // create list of intersection instants
+  // create ureals from list of intersection instants
 }
 
 
@@ -7917,7 +8033,7 @@ const string TUEqSpec  =
   "holds for both arguments.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
   "\"2011-01-03\" TRUE FALSE) TRUE)] == [const ubool value "
-  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
+  "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
 const string TUNEqSpec  =
@@ -7928,7 +8044,7 @@ const string TUNEqSpec  =
   "holds for both arguments.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
   "\"2011-01-03\" TRUE FALSE) TRUE)] ## [const ubool value "
-  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
+  "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
 const string TULtSpec  =
@@ -7939,7 +8055,7 @@ const string TULtSpec  =
   "holds for both arguments.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
   "\"2011-01-03\" TRUE FALSE) TRUE)] << [const ubool value "
-  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
+  "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
 const string TUBtSpec  =
@@ -7950,7 +8066,7 @@ const string TUBtSpec  =
   "holds for both arguments.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
   "\"2011-01-03\" TRUE FALSE) TRUE)] >> [const ubool value "
-  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
+  "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
 const string TULtEqSpec  =
@@ -7961,7 +8077,7 @@ const string TULtEqSpec  =
   "holds for both arguments.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
   "\"2011-01-03\" TRUE FALSE) TRUE)] <<== [const ubool value "
-  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
+  "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
 const string TUBtEqSpec  =
@@ -7972,7 +8088,7 @@ const string TUBtEqSpec  =
   "holds for both arguments.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
   "\"2011-01-03\" TRUE FALSE) TRUE)] >>== [const ubool value "
-  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
+  "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)]</text--->"
   ") )";
 
 /*
@@ -9313,7 +9429,7 @@ ListExpr TUCompareValueEqPredicatesTypeMap( ListExpr args )
   nl->WriteToString(argstr1, arg1);
   nl->WriteToString(argstr2, arg2);
   ErrorReporter::ReportError(
-    "CompareTemporalValueOperator (one of =, #, <, >, , <=, >=) "
+    "CompareTemporalValueOperator (one of =, #) "
     "expects two arguments of "
     "type 'uT', where T in {bool, int, real, string, point, region}. The "
     "passed arguments have types '" + argstr1 + "' and '"
@@ -9418,11 +9534,11 @@ int TU_VM_ComparePredicateValue_UPoint(Word* args, Word& result,
     case OPEN:
 
       localinfo = new TUCompareValueLocalInfo;
-      local = SetWord(localinfo);
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
       localinfo->NoOfResultsDelivered = 0;
-      localinfo->intersectionBool = new MBool(3);
+      localinfo->intersectionBool = new MBool(5);
+      local = SetWord(localinfo);
 
       if ( !u1->IsDefined() || !u2->IsDefined() )
         { cerr << "Undef input" << endl; return 0; }
@@ -9502,11 +9618,172 @@ template<int opcode>
 int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
                                       int message, Word& local, Supplier s)
 {
-//   UReal   *u1  = (UReal*) args[0].addr;
-//   UReal   *u2  = (UReal*) args[1].addr;
+  UReal *u1  = (UReal*) args[0].addr;
+  UReal *u2  = (UReal*) args[1].addr;
+  UReal un1(true), un2(true);
+  const UBool* cu;
+  UBool newunit(true);
+  TUCompareValueLocalInfo *localinfo;
+  Interval<Instant> iv, ivnew;
+  Instant teq[4],
+          start(instanttype), end(instanttype),
+          testInst(instanttype);
+  int i, numEq, cmpres;
+  bool compresult, lc;
+  CcReal fccr1(true, 0.0), fccr2(true,0.0);
 
-  cerr << "TU_VM_ComparePredicateValue_UReal() not yet implemented!"
-       << endl;
+  switch (message)
+  {
+    case OPEN:
+      localinfo = new TUCompareValueLocalInfo;
+      localinfo->finished = true;
+      localinfo->NoOfResults = 0;
+      localinfo->NoOfResultsDelivered = 0;
+      localinfo->intersectionBool = new MBool(5);
+      local = SetWord(localinfo);
+
+      if ( !u1->IsDefined() ||
+           !u2->IsDefined() ||
+           !u1->timeInterval.Intersects(u2->timeInterval) )
+      { // no result
+        return 0;
+      }
+      // common deftime --> some result exists
+      u1->timeInterval.Intersection(u2->timeInterval, iv);
+      u1->AtInterval(iv, un1);
+      u2->AtInterval(iv, un2);
+      if ( un1.r == un2.r &&
+          AlmostEqual(un1.a, un2.a) &&
+          AlmostEqual(un1.b, un2.b) &&
+          AlmostEqual(un1.c, un2.c)
+         )
+      { // equal ureals return single unit: TRUE for =, <=, >=; FALSE otherwise
+        compresult = (opcode == 0 || opcode == 4 || opcode == 5);
+        newunit = UBool(un1.timeInterval, CcBool(true, compresult));
+        localinfo->intersectionBool->Add(newunit);
+        localinfo->NoOfResults++;
+        localinfo->finished = false;
+        return 0;
+      }
+      for (i=0; i<4; i++)
+         teq[i] = Instant(0, 0, instanttype);
+      numEq = TU_FindEqualTimesUReal(un1, un2, teq);
+      if ( numEq == 0 )
+      { // special case: no equality -> only one result unit
+        testInst = TU_GetMidwayInstant(iv.start, iv.end);
+        un1.TemporalFunction(testInst, fccr1, false);
+        un2.TemporalFunction(testInst, fccr2, false);
+        cmpres = fccr1.Compare( &fccr2 );
+        compresult = ( (opcode == 0 && cmpres == 0) ||
+                       (opcode == 1 && cmpres != 0) ||
+                       (opcode == 2 && cmpres  < 0) ||
+                       (opcode == 3 && cmpres  > 0) ||
+                       (opcode == 4 && cmpres <= 0) ||
+                       (opcode == 5 && cmpres >= 0)    );
+        newunit = UBool(iv, CcBool(true, compresult));
+        localinfo->intersectionBool->Add(newunit);
+        localinfo->NoOfResults++;
+        localinfo->finished = false;
+        return 0;
+      }
+      // case: numEq > 0, at least one instant of equality
+      // iterate the array of instants and create result units
+      // UBool::MergeAdd() will merge units with common value
+      // for <= and >=
+      localinfo->intersectionBool->StartBulkLoad();
+      start = iv.start;   // the ending instant for the next interval
+      lc = iv.lc;
+      i = 0;              // counter for onstants of equality
+      // handle special case: first equality in first instant
+      if (start == teq[i])
+      {
+        if (iv.lc)
+        {
+          compresult = ( (opcode == 0 && cmpres == 0) ||
+                         (opcode == 1 && cmpres != 0) ||
+                         (opcode == 2 && cmpres  < 0) ||
+                         (opcode == 3 && cmpres  > 0) ||
+                         (opcode == 4 && cmpres <= 0) ||
+                         (opcode == 5 && cmpres >= 0)    );
+          ivnew = Interval<Instant>(start, start, true, true);
+          newunit = UBool(ivnew, CcBool(true, compresult));
+          localinfo->intersectionBool->Add(newunit);
+          lc = false;
+        } // else: equal instant not in interval!
+        i++;
+      }
+      while ( i < numEq )
+      {
+        end = teq[i];
+        ivnew = Interval<Instant>(start, end, lc, false);
+        testInst = TU_GetMidwayInstant(start, end);
+        un1.TemporalFunction(testInst, fccr1, false);
+        un2.TemporalFunction(testInst, fccr2, false);
+        cmpres = fccr1.Compare( &fccr2 );
+        compresult = ( (opcode == 0 && cmpres == 0) ||
+                       (opcode == 1 && cmpres != 0) ||
+                       (opcode == 2 && cmpres  < 0) ||
+                       (opcode == 3 && cmpres  > 0) ||
+                       (opcode == 4 && cmpres <= 0) ||
+                       (opcode == 5 && cmpres >= 0)    );
+        newunit = UBool(ivnew, CcBool(true, compresult));
+        localinfo->intersectionBool->MergeAdd(newunit);
+        if ( !(end == iv.end) || iv.rc )
+        {
+          ivnew = Interval<Instant>(end, end, true, true);
+          compresult = (opcode == 0 || opcode == 4 || opcode == 5);
+          newunit = UBool(ivnew, CcBool(true, compresult));
+          localinfo->intersectionBool->MergeAdd(newunit);
+        }
+        start = end;
+        i++;
+        lc = false;
+      }
+      if ( start < iv.end )
+      { // handle teq[numEq-1] < iv.end
+        ivnew = Interval<Instant>(start, iv.end, false, iv.rc);
+        testInst = TU_GetMidwayInstant(start, iv.end);
+        un1.TemporalFunction(testInst, fccr1, false);
+        un2.TemporalFunction(testInst, fccr2, false);
+        cmpres = fccr1.Compare( &fccr2 );
+        compresult = ( (opcode == 0 && cmpres == 0) ||
+                       (opcode == 1 && cmpres != 0) ||
+                       (opcode == 2 && cmpres  < 0) ||
+                       (opcode == 3 && cmpres  > 0) ||
+                       (opcode == 4 && cmpres <= 0) ||
+                       (opcode == 5 && cmpres >= 0)    );
+        newunit = UBool(ivnew, CcBool(true, compresult));
+        localinfo->intersectionBool->MergeAdd(newunit);
+      }
+      localinfo->intersectionBool->EndBulkLoad(true);
+      localinfo->NoOfResults = localinfo->intersectionBool->GetNoComponents();
+      localinfo->finished = ( localinfo->NoOfResults > 0 );
+      return 0;
+
+    case REQUEST:
+      if (local.addr == 0)
+        return CANCEL;
+      localinfo = (TUCompareValueLocalInfo*) local.addr;
+      if (localinfo->finished)
+        return CANCEL;
+      if (localinfo->NoOfResultsDelivered >= localinfo->NoOfResults)
+      {
+        localinfo->finished = true;
+        return CANCEL;
+      }
+      localinfo->intersectionBool->Get(localinfo->NoOfResultsDelivered, cu);
+      result = SetWord( cu->Clone() );
+      localinfo->NoOfResultsDelivered++;
+      return YIELD;
+
+    case CLOSE:
+      if( local.addr != 0 )
+      {
+        localinfo = (TUCompareValueLocalInfo*) local.addr;
+        delete localinfo->intersectionBool;
+        delete localinfo;
+      }
+  }
   return -1;
 }
 
@@ -9546,7 +9823,7 @@ const string TUNEqVSpec  =
   "<text>The operator returns the value of the temporal predicate.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
   "\"2011-01-03\" TRUE FALSE) TRUE)] # [const ubool value "
-  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
+  "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
   ") )";
 
 const string TULtVSpec  =
@@ -9557,7 +9834,7 @@ const string TULtVSpec  =
   "<text>The operator returns the value of the temporal predicate.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
   "\"2011-01-03\" TRUE FALSE) TRUE)] < [const ubool value "
-  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
+  "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
   ") )";
 
 const string TUBtVSpec  =
@@ -9568,7 +9845,7 @@ const string TUBtVSpec  =
   "<text>The operator returns the value of the temporal predicate.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
   "\"2011-01-03\" TRUE FALSE) TRUE)] > [const ubool value "
-  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
+  "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
   ") )";
 
 const string TULtEqVSpec  =
@@ -9579,7 +9856,7 @@ const string TULtEqVSpec  =
   "<text>The operator returns the value of the temporal predicate.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
   "\"2011-01-03\" TRUE FALSE) TRUE)] <= [const ubool value "
-  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
+  "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
   ") )";
 
 const string TUBtEqVSpec  =
@@ -9590,7 +9867,7 @@ const string TUBtEqVSpec  =
   "<text>The operator returns the value of the temporal predicate.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
   "\"2011-01-03\" TRUE FALSE) TRUE)] >= [const ubool value "
-  "((\"2011-01-01\"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
+  "((\"2011-01-01\" \"2012-09-17\" FALSE TRUE) TRUE)] the_mvalue</text--->"
   ") )";
 
 /*
