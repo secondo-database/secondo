@@ -4,8 +4,8 @@ Restore : No
 Operator : creatertree
 Number   : 1
 Signature: ((rel (tuple (x1 t1)...(xn tn)))) xi) -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false)
-Example  : query strassen creatertree [ geoData ] strassen windowintersects[ bbox(thecenter) ] count
-Result   : 1266
+Example  : query strassen creatertree[geoData]
+result   : file
 
 
 Operator : gettuples

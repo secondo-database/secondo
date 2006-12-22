@@ -4,7 +4,6 @@ Restore : No
 Operator : STREAMELEM2
 Number   : 1
 Signature: (T1 (stream T2) ... ) -> T2
-( T1 T2 ... ) -> T2
 Example  : query 3 feed 2 feed use2[fun(X: int, Y: STREAMELEM2) X+Y ] count
 Result   : 1
 
