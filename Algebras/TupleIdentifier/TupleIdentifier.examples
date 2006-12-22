@@ -1,0 +1,17 @@
+Database: berlintest
+Restore : No
+
+Operator : addtupleid
+Number   : 1
+Signature: (stream (tuple ((x1 t1) ... (xn tn)))) ->(stream (tuple ((x1 t1) ... (xn tn) (id tid))))
+Example  : query plz feed addtupleid count
+Result   : 41267
+
+
+Operator : tupleid
+Number   : 1
+Signature: (tuple x) -> tid 
+Example  : query plz feed extend[ TID : tupleid(.) ] count
+Result   : 41267
+
+
