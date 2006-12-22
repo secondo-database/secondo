@@ -1,0 +1,10 @@
+Database: berlintest
+Restore : No
+
+Operator : saveto
+Number   : 1
+Signature: (binfile string) -> bool
+Example  : query [const binfile value 'U0VDT05ETwo='] saveto "secname.txt" 
+Result   : TRUE
+
+
