@@ -53,7 +53,7 @@ MeshGeneratorNetGen.o: MeshGeneratorNetGen.c
 
 .PHONY: clean
 clean:
-	rm -f *.dll
+	rm -f MeshGenerator.dll MGNetGen.dll
 	rm -f *.h
 	rm -f *.o
 	rm -f *.class
