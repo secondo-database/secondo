@@ -1,0 +1,121 @@
+Database: berlintest
+Restore : No
+
+Operator : STREAMELEM2
+Number   : 1
+Signature: (T1 (stream T2) ... ) -> T2
+( T1 T2 ... ) -> T2
+Example  : query 3 feed 2 feed use2[fun(X: int, Y: STREAMELEM2) X+Y ] count
+Result   : 1
+
+
+Operator : STREAMELEM
+Number   : 1
+Signature: ((stream T1) ... ) -> T1
+(T1 ... ) -> T1
+Example  : query 3 feed 2 feed use2[fun(X: STREAMELEM, Y: int) X+Y ] count
+Result   : 1
+
+
+Operator : aggregateS
+Number   : 1
+Signature: For T in kind DATA:
+((stream T) ((T T) -> T) T ) -> T
+
+Example  : query intstream(1,5) aggregateS[ fun(i1:int, i2:int) i1+i2 ; 0]
+Result   : 15
+
+
+Operator : count
+Number   : 1
+Signature: For T in kind DATA:
+((stream T)) -> int
+Example  : query intstream (1,10) count
+Result   : 10
+
+
+Operator : feed
+Number   : 1
+Signature: For T in kind DATA:
+T -> (stream T)
+Example  : query 5 feed count;
+Result   :
+
+
+Operator : filter
+Number   : 1
+Signature: For T in kind DATA:
+((stream T) (map T bool)) -> (stream T)
+Example  : query intstream (1,10) filter[. > 7] count
+Result   : 3
+
+
+Operator : printstream
+Number   : 1
+Signature: For T in kind DATA:
+((stream T)) -> (stream T)
+Example  : query intstream (1,10) printstream count
+Result   : 10
+
+
+Operator : transformstream
+Number   : 1
+Signature: For T in kind DATA: (stream T) -> stream(tuple((elem T)))
+Example  : query intstream(1,5) transformstream transformstream count
+Result   : 5
+
+Operator : transformstream
+Number   : 2
+Signature: For T in kind DATA: stream(tuple(attrname T)) -> (stream T)
+Example  : query ten feed transformstream printstream count
+Result   : 10
+
+Operator : use2
+Number   : 1
+Signature: ((stream X) Y (map X Y stream(Z)) ) -> (stream Z)
+Example  : query intstream(1,5) 5 use2[ fun(i:int, j:int) intstream(i,j) ] count;
+Result   : 15
+
+Operator : use2
+Number   : 2
+Signature: (X (stream Y) (map X Y Z) ) -> (stream Z)
+Example  : query 3 intstream(1,5) use2[ fun(i:int, j:int) i+j ] count;
+Result   : 5
+
+Operator : use2
+Number   : 3
+Signature: ((stream X) Y (map X Y Z)) -> (stream Z)
+Example  : query intstream(1,5) 3 use2[ fun(i:int, j:int) i+j ] count;
+Result   : 5
+
+Operator : use2
+Number   : 4
+Signature: ((stream X) Y (map X Y stream(Z)) ) -> (stream Z)
+Example  : query intstream(1,5) 2 use2[ fun(i:int, j:int) intstream(i,j) ] count;
+Result   : 10
+
+Operator : use2
+Number   : 5
+Signature: (X (stream Y) (map X Y Z) ) -> (stream Z)
+Example  : query intstream(1,5) intstream(1,5) use2[ fun(i:int, j:int) i+j ] count;
+Result   : 25
+
+Operator : use2
+Number   : 6
+Signature: ((stream X) (stream Y) (map X Y (stream Z))) -> (stream Z)
+Example  : query intstream(1,2) intstream(1,3) use2[ fun(i:int, j:int) intstream(i,j) ] count;
+Result   : 9
+
+
+Operator : use
+Number   : 1
+Signature: ((stream X) (map X Y)) -> (stream Y)
+Example  : query intstream(1,5) use[ fun(i:int) i*i ] count;
+Result   : 5
+
+Operator : use
+Number   : 2
+Signature: ((stream X) (map X (stream Y))) -> (stream Y)
+Example  : query intstream(1,5) use[ fun(i:int) intstream(i,5) ] count;
+Result   : 15
+
