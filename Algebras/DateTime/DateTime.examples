@@ -5,41 +5,41 @@ Operator : *
 Number   : 1
 Signature: duration x real -> duration
 Example  : query [const duration value (1 0)] * 7.0
-Result   : (7 0)
+Result   : (duration (7 0))
 
 
 Operator : +
 Number   : 1
 Signature: instant x duration -> instant
 Example  : query [const instant value "2006-12-18"] + [const duration value (1 0)]
-Result   : "2006-12-19"
+Result   : (instant "2006-12-19")
 
 
 Operator : +
 Number   : 1
 Signature: duration x duration -> instant
 Example  : query [const duration value (0 1)] + [const duration value (1 0)]
-Result   : (1 1)
+Result   : (duration (1 1))
 
 
 Operator : -
 Number   : 1
 Signature: instant x instant -> duration
 Example  : query [const instant value "2006-12-18"] - [const instant value "2006-12-17"]
-Result   : (1 0)
+Result   : (duration (1 0))
 
 Operator : -
 Number   : 1
 Signature: instant x duration -> instant
 Example  : query [const instant value "2006-12-18"] - [const duration value (1 0)]
-Result   : "2006-12-17"
+Result   : (instant "2006-12-17")
 
 
 Operator : -
 Number   : 1
 Signature: duration x duration -> duration
 Example  : query [const duration value (18 0)] - [const duration value (1 0)]
-Result   : (17 0)
+Result   : (duration (17 0))
 
 Operator : /
 Number   : 1
@@ -59,7 +59,7 @@ Operator : <
 Number   : 1
 Signature: duration x duration -> bool
 Example  : query [const duration value (19 1)] < [const duration value (19 2)]
-Result   : FALSE
+Result   : TRUE 
 
 
 Operator : =
@@ -94,14 +94,14 @@ Operator : create_duration
 Number   : 1
 Signature: real -> duration
 Example  : query create_duration(1.0) 
-Result   : (1 0)
+Result   : (duration (1 0))
 
 
 Operator : create_duration
 Number   : 1
 Signature: int x int  -> duration
 Example  : query create_duration(1, 1) 
-Result   : (1 1)
+Result   : (duration (1 1))
 
 
 Operator : duration2real
@@ -128,7 +128,7 @@ Operator : maxDuration
 Number   : 1
 Signature:  -> duration 
 Example  : query maxDuration() 
-Result   : (2147483647 86399999)
+Result   : (duration (2147483647 86399999))
 
 
 Operator : maxInstant
@@ -181,7 +181,7 @@ Result   :  12
 Operator : now
 Number   : 1
 Signature:  -> instant
-Example  :  query now() - [const duration value (1 0)] < now() 
+Example  :  query (now() - [const duration value (1 0)]) < now() 
 Result   : TRUE
 
 
@@ -196,20 +196,20 @@ Operator : theInstant
 Number   : 1
 Signature:  int  -> instant
 Example  : query theInstant(2006)
-Result   : "2006-1-1"
+Result   : (instant "2006-1-1")
 
 
 Operator : theInstant
 Number   : 1
 Signature:  int x int x int x int x int x int  -> instant
 Example  : query theInstant(2006, 12 , 18, 15, 40 , 31)
-Result   : "2006-12-18-15:40:31"
+Result   : (instant "2006-12-18-15:40:31")
 
 
 Operator : today
 Number   : 1
 Signature:  -> instant
-Example  :  query today() + [const duration value (1 0)] > today()
+Example  :  query (today() + [const duration value (1 0)]) > today()
 Result   : TRUE
 
 
