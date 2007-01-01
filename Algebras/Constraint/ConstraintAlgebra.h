@@ -82,6 +82,11 @@ const int Y = 1;
 // foreward declaration:
 class LinearConstraint;
 
+inline bool AlmostEqual( const double d1, const double d2 )
+{
+  return fabs(d1 - d2) < FACTOR;
+}
+
 struct Point2D
 {
   Point2D( )
@@ -140,77 +145,6 @@ struct Point2D
     }
   }
 
-  bool OnSegment( const Point2D& p1, const Point2D& p2 ) const
-  {
-    // Prerequisite: the points in {p1, p2} are not equal
-    // Special case (vertical segment)
-    if(p1==(*this) || p2==(*this))
-    {
-        return true;
-    }
-    else if(AlmostEqual(p1.x, p2.x) &&
-            AlmostEqual(p1.x, (*this).x) &&
-            AlmostEqual(p2.x, (*this).x))
-    {
-      Point2D pSegmentUpp = p1;
-      Point2D pSegmentLow = p2;
-      if(p1.y < p2.y)
-      {
-         pSegmentUpp = p2;
-         pSegmentLow = p1;
-      }
-      if((pSegmentLow.y <= (*this).y) &&
-        ((*this).y <= pSegmentUpp.y))
-      {
-        return true;
-      }
-      else
-      {
-        return false;
-      }
-    }
-    else // non-vertical case of segment
-    {
-      // in order to calculate a line, we have to have two diffrent points
-      // pFirst, pSecond (different x-coordinates!)
-      Point2D pSegmentLeft, pSegmentRight;
-      if(p1.x < p2.x)
-      {
-         pSegmentLeft = p1;
-         pSegmentRight = p2;
-
-      }
-      else
-      {
-         pSegmentLeft = p2;
-         pSegmentRight = p1;      }
-
-      // => (pSegmentLeft.x!=pSegmentRight.x)
-      double m,b; // Geradengleichung y = mx+b
-      m = (pSegmentRight.y-pSegmentLeft.y)/
-            (pSegmentRight.x-pSegmentLeft.x);
-      // m is defined because of the fact (pSegmentLeft.x!=pSegmentRight.x)
-      b = pSegmentLeft.y - m*pSegmentLeft.x;
-      if((pSegmentLeft.x <= (*this).x) && ((*this).x <= pSegmentRight.x))
-      {
-        double y = m*(*this).x + b;
-        if(AlmostEqual(y, (*this).y))
-        {
-          return true;
-        }
-        else
-        {
-          return false;
-        }
-      }
-      else
-      {
-        return false;
-      }
-    }
-  }
-
-
   bool OnSameLineAs( const Point2D& p1, const Point2D& p2 ) const
   {
     // Prerequisite: at minimum two of the points in {*this, p1, p2} are
@@ -238,25 +172,102 @@ struct Point2D
         pThird = p2;
       }
 
-      // => (pFirst.x!=pSecond.x)
-      double m,b; // Geradengleichung y = mx+b
-      m = (pSecond.y-pFirst.y)/(pSecond.x-pFirst.x);
-      // m is defined because of the fact (pFirst.x!=pSecond.x)
-      b = pFirst.y - m*pFirst.x;
-      if(AlmostEqual(pThird.y, m*pThird.x + b))
+	  // if third Point is equal to first or second => true!
+	  if(pThird==pFirst || pThird==pSecond)
       {
-        // if also the third point fits the equation y = mx+b
-        // => they all lie on the same line!
         return true;
       }
-      else
+      else // there are 3 diffrent points!
       {
-        return false;
-      }
+	    if(AlmostEqual(pThird.x,pFirst.x))
+		{
+		  // because pFirst and pSecond are not on vertical line:
+		  return false;
+		}
+		else
+		{
+		  double m1 = (pSecond.y-pFirst.y)/(pSecond.x-pFirst.x);
+		  double m2 = (pThird.y-pFirst.y)/(pThird.x-pFirst.x);
+		  if(AlmostEqual(m1,m2))
+		  {
+			 return true;
+		  }
+		  else
+		  {
+			 return false;
+		  }
+		}
+	  }
     }
   }
 
-  void printOut()
+
+  bool OnSegment( const Point2D& p1, const Point2D& p2 ) const
+  {
+    // Prerequisite: the points in {p1, p2} are not equal
+   if(!this->OnSameLineAs(p1, p2))
+   {
+     return false;
+   }
+   else
+   {
+   	 // {p1, p2, *this} are on same line
+	 if(AlmostEqual(p1.x,p2.x))
+	 {
+	   // VERTICAL CASE:
+       Point2D pSegmentUpp = p1;
+       Point2D pSegmentLow = p2;
+       if(p1.y < p2.y)
+       {
+         pSegmentUpp = p2;
+         pSegmentLow = p1;
+       }
+       if((pSegmentLow.y < (*this).y ||
+           AlmostEqual(pSegmentLow.y, (*this).y)) &&
+           ((*this).y < pSegmentUpp.y ||
+           AlmostEqual((*this).y, pSegmentUpp.y)))
+       {
+         return true;
+       }
+       else
+       {
+         return false;
+       }
+	 }
+	 else
+	 {
+	   // NON-VERTICAL CASE:
+       Point2D pSegmentLeft, pSegmentRight;
+       if(p1.x < p2.x)
+       {
+         pSegmentLeft = p1;
+         pSegmentRight = p2;
+
+       }
+       else
+       {
+         pSegmentLeft = p2;
+         pSegmentRight = p1;
+       }
+
+       // => (pSegmentLeft.x!=pSegmentRight.x)
+
+       if((pSegmentLeft.x < (*this).x ||
+           AlmostEqual(pSegmentLeft.x, (*this).x)) &&
+           ((*this).x < pSegmentRight.x ||
+           AlmostEqual((*this).x, pSegmentRight.x)))
+       {
+         return true;
+       }
+       else
+       {
+         return false;
+       }
+	 }
+   }
+  }
+
+  void PrintOut() const
   {
      cout << " (x,y) == (" << (*this).x << ", " << (*this).y <<
        ") " <<endl;
@@ -295,7 +306,27 @@ struct SymbolicTuple
     return *this;
   }
 
-  void printOut()
+  const Rectangle<2> BoundingBox() const
+  {
+    if(!this->mbbox.IsDefined())
+    {
+  	  return this->mbbox;
+    }
+    else
+    {
+      double minx = mbbox.MinD(0);
+	  double maxx = mbbox.MaxD(0);
+	  double miny = mbbox.MinD(1);
+	  double maxy = mbbox.MaxD(1);
+      return Rectangle<2>( true,
+                       minx - FACTOR,
+                       maxx + FACTOR,
+                       miny - FACTOR,
+                       maxy + FACTOR );
+    }
+  }
+
+  void PrintOut() const
   {
      cout << " (startIndex, endIndex, isNormal) == ("
           << (*this).startIndex << ", "
@@ -322,19 +353,19 @@ void ConvexPolygonIntersection(const vector<Point2D>&,
         vector<Point2D>&);
 void HalfPlaneIntersection(const vector<LinearConstraint>& ,
                vector<Point2D>&);
-void triangulateRegion(const Region*,
+void TriangulateRegion(const Region*,
              vector<vector<double> >&,
              vector<vector<int> >&);
 double GetTheta(Point2D&, Point2D&);
 double GetOrientedArea(double, double, double, double, double, double);
-void mergeTriangles2ConvexPolygons(const vector<vector<double> >&,
+void MergeTriangles2ConvexPolygons(const vector<vector<double> >&,
     const vector<vector<int> >&,
     vector<vector<Point2D> >&);
 Point2D GetIntersectionPoint(const LinearConstraint&,
     const LinearConstraint&);
 Point2D GetPointFromSegment(const double,
       const Point2D&, const Point2D&);
-void printSlab(VerticalTrapez);
+void PrintSlab(VerticalTrapez);
 
 
 
@@ -351,22 +382,15 @@ class LinearConstraint
     LinearConstraint& operator=(const LinearConstraint&);
     bool IsParallel(const LinearConstraint&);
     bool IsEqual(const LinearConstraint&);
-
-
-  void printOut()
-  {
-     cout << "DEBUG: " << a1 << "*x + " << a2
-     << "*y + " << b << " " << strOp << endl;
-  }
-
-    double get_a1() const;
-    double get_a2() const;
-    double get_b() const;
-    string get_Op() const;
-    void set_a1(double);
-    void set_a2(double);
-    void set_b(double);
-    void set_Op(string);
+    double Get_a1() const;
+    double Get_a2() const;
+    double Get_b() const;
+    string Get_Op() const;
+    void Set_a1(double);
+    void Set_a2(double);
+    void Set_b(double);
+    void Set_Op(string);
+    void PrintOut() const;
 
   private:
     bool defined;
@@ -394,9 +418,10 @@ class SymbolicRelation : public StandardSpatialAttribute<2>
     int LinConstraintsSize() const;
     int SymbolicTuplesSize() const;
     void GetLinConstraints( const int, LinearConstraint const*&) const;
-    void addSymbolicTuple(const vector<LinearConstraint>);
-    void appendSymbolicRelation(const SymbolicRelation&);
-    void overlapSymbolicRelation(const SymbolicRelation&);
+    void AddSymbolicTuple(const vector<LinearConstraint>);
+    void AppendSymbolicRelation(const SymbolicRelation&);
+    void JoinSymbolicRelation(const SymbolicRelation&);
+    bool OverlapsSymbolicRelation(const SymbolicRelation&) const;
     void Normalize();
     void ProjectToAxis(const bool, const bool);
     // The following functions are needed for the SymbolicRelation class
@@ -412,6 +437,7 @@ class SymbolicRelation : public StandardSpatialAttribute<2>
     size_t Sizeof() const;
     void CopyFrom(const StandardAttribute*);
     const Rectangle<2> BoundingBox() const;
+
   private:
     DBArray<LinearConstraint> linConstraints;
     DBArray<SymbolicTuple> symbolicTuples;

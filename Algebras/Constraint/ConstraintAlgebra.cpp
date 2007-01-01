@@ -80,21 +80,21 @@ LinearConstraint* LinearConstraint::Clone()
 
 LinearConstraint& LinearConstraint::operator=(const LinearConstraint& linC)
 {
-  this->a1 = linC.get_a1();
-  this->a2 = linC.get_a2();
-  this->b = linC.get_b();
-  strcpy(this->strOp,(linC.get_Op()).c_str());
+  this->a1 = linC.Get_a1();
+  this->a2 = linC.Get_a2();
+  this->b = linC.Get_b();
+  strcpy(this->strOp,(linC.Get_Op()).c_str());
   return *this;
 }
 
 bool LinearConstraint::IsParallel(const LinearConstraint& linC)
 {
   bool isParallel = (AlmostEqual(this->a1,0) &&
-                     AlmostEqual(linC.get_a1(),0)) ||
+                     AlmostEqual(linC.Get_a1(),0)) ||
                     (AlmostEqual(this->a2,0) &&
-                     AlmostEqual(linC.get_a2(),0)) ||
+                     AlmostEqual(linC.Get_a2(),0)) ||
                      AlmostEqual(this->a1/this->a2,
-                      linC.get_a1()/linC.get_a2());
+                      linC.Get_a1()/linC.Get_a2());
   // Semantic in special case one of the linear constraints is 0x+0y+0=0:
   // will be "parallel" to the other linear constraint.
   return isParallel;
@@ -110,19 +110,19 @@ bool LinearConstraint::IsEqual(const LinearConstraint& linC)
   // (i)  v=0 for every v in R-{0}
   // (ii) v<=0 for every v in R+-{0}
   blnFirst = false;
-  if((this->get_Op()==OP_EQ && AlmostEqual(this->a1,0) &&
+  if((this->Get_Op()==OP_EQ && AlmostEqual(this->a1,0) &&
       AlmostEqual(this->a2,0) && !AlmostEqual(this->b,0)) ||
-     (this->get_Op()==OP_LEQ && AlmostEqual(this->a1,0) &&
+     (this->Get_Op()==OP_LEQ && AlmostEqual(this->a1,0) &&
       AlmostEqual(this->a2,0) && this->b>0))
   {
     // case (i) or (ii)
     blnFirst = true;
   }
   blnSecond = false;
-  if((linC.get_Op()==OP_EQ && AlmostEqual(linC.get_a1(),0)
-   && AlmostEqual(linC.get_a2(),0) && !AlmostEqual(linC.get_b(),0)) ||
-     (linC.get_Op()==OP_LEQ && AlmostEqual(linC.get_a1(),0) &&
-      AlmostEqual(linC.get_a2(),0) && linC.get_b()>0))
+  if((linC.Get_Op()==OP_EQ && AlmostEqual(linC.Get_a1(),0)
+   && AlmostEqual(linC.Get_a2(),0) && !AlmostEqual(linC.Get_b(),0)) ||
+     (linC.Get_Op()==OP_LEQ && AlmostEqual(linC.Get_a1(),0) &&
+      AlmostEqual(linC.Get_a2(),0) && linC.Get_b()>0))
   {
     // case (i) or (ii)
     blnSecond = true;
@@ -145,19 +145,19 @@ bool LinearConstraint::IsEqual(const LinearConstraint& linC)
   // (ii) v<=0 for every v in R which is not positive
   // (that means 0 or negative)
   blnFirst = false;
-  if((this->get_Op()==OP_EQ && AlmostEqual(this->a1,0) &&
+  if((this->Get_Op()==OP_EQ && AlmostEqual(this->a1,0) &&
      AlmostEqual(this->a2,0) && AlmostEqual(this->b,0)) ||
-     (this->get_Op()==OP_LEQ && AlmostEqual(this->a1,0) &&
+     (this->Get_Op()==OP_LEQ && AlmostEqual(this->a1,0) &&
      AlmostEqual(this->a2,0) && this->b<0))
   {
     // case (i) or (ii)
     blnFirst = true;
   }
   blnSecond = false;
-  if((linC.get_Op()==OP_EQ && AlmostEqual(linC.get_a1(),0)
-   && AlmostEqual(linC.get_a2(),0) && AlmostEqual(linC.get_b(),0)) ||
-     (linC.get_Op()==OP_LEQ && AlmostEqual(linC.get_a1(),0) &&
-      AlmostEqual(linC.get_a2(),0) && linC.get_b()<=0))
+  if((linC.Get_Op()==OP_EQ && AlmostEqual(linC.Get_a1(),0)
+   && AlmostEqual(linC.Get_a2(),0) && AlmostEqual(linC.Get_b(),0)) ||
+     (linC.Get_Op()==OP_LEQ && AlmostEqual(linC.Get_a1(),0) &&
+      AlmostEqual(linC.Get_a2(),0) && linC.Get_b()<=0))
   {
     // case (i) or (ii)
     blnSecond = true;
@@ -179,21 +179,21 @@ bool LinearConstraint::IsEqual(const LinearConstraint& linC)
   // this implies that not both a1 and a2 are 0 because
   // otherwise the constraint would have represented ether the
   // empty set or the set of all points in R^2:
-  if((!AlmostEqual(this->a1,0) && !AlmostEqual(linC.get_a1(),0)) ||
-        (!AlmostEqual(this->a2,0) && !AlmostEqual(linC.get_a2(),0)))
+  if((!AlmostEqual(this->a1,0) && !AlmostEqual(linC.Get_a1(),0)) ||
+        (!AlmostEqual(this->a2,0) && !AlmostEqual(linC.Get_a2(),0)))
   {
     double lamda;
-    if(!AlmostEqual(this->a1,0) && !AlmostEqual(linC.get_a1(),0))
+    if(!AlmostEqual(this->a1,0) && !AlmostEqual(linC.Get_a1(),0))
     {
-      lamda = this->a1/linC.get_a1();
+      lamda = this->a1/linC.Get_a1();
     }
     else
     {
-      lamda = this->a2/linC.get_a2();
+      lamda = this->a2/linC.Get_a2();
     }
-    if(AlmostEqual(this->a1,(lamda*linC.get_a1())) &&
-       AlmostEqual(this->a2, (lamda*linC.get_a2())) &&
-       AlmostEqual(this->b, (lamda*linC.get_b())))
+    if(AlmostEqual(this->a1,(lamda*linC.Get_a1())) &&
+       AlmostEqual(this->a2, (lamda*linC.Get_a2())) &&
+       AlmostEqual(this->b, (lamda*linC.Get_b())))
     {
       return true;
     }
@@ -213,47 +213,52 @@ bool LinearConstraint::IsEqual(const LinearConstraint& linC)
   }
 }
 
-double LinearConstraint::get_a1() const
+double LinearConstraint::Get_a1() const
 {
   return this->a1;
 }
 
-double LinearConstraint::get_a2() const
+double LinearConstraint::Get_a2() const
 {
   return this->a2;
 }
 
-double LinearConstraint::get_b() const
+double LinearConstraint::Get_b() const
 {
   return this->b;
 }
 
-string LinearConstraint::get_Op() const
+string LinearConstraint::Get_Op() const
 {
   return string(this->strOp);
 }
 
-void LinearConstraint::set_a1(double a1)
+void LinearConstraint::Set_a1(double a1)
 {
   this->a1 = a1;
 }
 
-void LinearConstraint::set_a2(double a2)
+void LinearConstraint::Set_a2(double a2)
 {
   this->a2 = a2;
 }
 
-void LinearConstraint::set_b(double b)
+void LinearConstraint::Set_b(double b)
 {
   this->b = b;
 }
 
-void LinearConstraint::set_Op(string strOp)
+void LinearConstraint::Set_Op(string strOp)
 {
   string strCutOp(strOp,0,4);
   strcpy(this->strOp,strCutOp.c_str());
 }
 
+void LinearConstraint::PrintOut() const
+{
+  cout << "DEBUG: " << a1 << "*x + " << a2
+       << "*y + " << b << " " << strOp << endl;
+}
 
 /*
 4 Implementation of class ~SymbolicRelation~
@@ -352,7 +357,7 @@ int SymbolicRelation::SymbolicTuplesSize() const
   return this->symbolicTuples.Size();
 }
 
-void SymbolicRelation::addSymbolicTuple(
+void SymbolicRelation::AddSymbolicTuple(
       const vector<LinearConstraint> vLinConstraints)
 {
   // Achtung: setzt mbbox vorerst auf <leer>,
@@ -376,7 +381,7 @@ void SymbolicRelation::addSymbolicTuple(
   this->symbolicTuples.Append(tuplePositionInArray);
 }
 
-void SymbolicRelation::appendSymbolicRelation(
+void SymbolicRelation::AppendSymbolicRelation(
         const SymbolicRelation& otherSymRel)
 {
   // append the lin. constraints into the linConstraints-DBArray:
@@ -417,7 +422,7 @@ void SymbolicRelation::appendSymbolicRelation(
   }
 }
 
-void SymbolicRelation::overlapSymbolicRelation(
+void SymbolicRelation::JoinSymbolicRelation(
         const SymbolicRelation& otherSymRel)
 {
   int i, j;
@@ -459,7 +464,8 @@ void SymbolicRelation::overlapSymbolicRelation(
         otherSymRel.GetSymbolicTuples(j, symTuple);
         if(vSymbolicTuplesOld[i].mbbox.IsDefined() &&
            symTuple->mbbox.IsDefined() &&
-           vSymbolicTuplesOld[i].mbbox.Intersects(symTuple->mbbox))
+           vSymbolicTuplesOld[i].BoundingBox().Intersects(
+              symTuple->BoundingBox()))
         {
           k1 = vSymbolicTuplesOld[i].startIndex;
           k2 = vSymbolicTuplesOld[i].endIndex+1;
@@ -476,11 +482,93 @@ void SymbolicRelation::overlapSymbolicRelation(
             otherSymRel.GetLinConstraints(k, linC);
             vlinConstraints2Add.push_back(*linC);
           }
-          addSymbolicTuple(vlinConstraints2Add);
+          AddSymbolicTuple(vlinConstraints2Add);
         }
       }
     }
   }
+}
+
+bool SymbolicRelation::OverlapsSymbolicRelation(
+                            const SymbolicRelation& otherSymRel) const
+{
+  int i, j;
+  int k1,k2,k3,k4,k;
+
+  if(this->BoundingBox().IsDefined() &&
+     otherSymRel.BoundingBox().IsDefined() &&
+     this->BoundingBox().Intersects(otherSymRel.BoundingBox()))
+  {
+	const LinearConstraint *linC;
+    for(i = 0; i < this->SymbolicTuplesSize(); i++)
+    {
+      for(j = 0; j < otherSymRel.SymbolicTuplesSize(); j++)
+      {
+        const SymbolicTuple *symTuple1, *symTuple2;
+        this->GetSymbolicTuples(i, symTuple1);
+        otherSymRel.GetSymbolicTuples(j, symTuple2);
+        if(symTuple1->BoundingBox().IsDefined() &&
+           symTuple2->BoundingBox().IsDefined() &&
+           symTuple1->BoundingBox().Intersects(
+              symTuple2->BoundingBox()))
+        {
+		  vector<LinearConstraint> vCEQ;
+          vector<LinearConstraint> vNEQ;
+		  vector<Point2D> vConvexPolygon;
+          k1 = symTuple1->startIndex;
+          k2 = symTuple1->endIndex+1;
+          k3 = symTuple2->startIndex;
+          k4 = symTuple2->endIndex+1;
+          for(k=k1; k < k2; k++)
+          {
+		  	this->GetLinConstraints(k, linC);
+            if(linC->Get_Op()==OP_EQ)
+            {
+              vCEQ.push_back(*linC);
+            }
+            else // OP_LEQ
+            {
+              vNEQ.push_back(*linC);
+            }
+          }
+          for(k=k3; k < k4; k++)
+          {
+            otherSymRel.GetLinConstraints(k, linC);
+            if(linC->Get_Op()==OP_EQ)
+            {
+              vCEQ.push_back(*linC);
+            }
+            else // OP_LEQ
+            {
+              vNEQ.push_back(*linC);
+            }
+          }
+          if(vCEQ.size() > 0)
+          {
+            for(k=0; k < vCEQ.size(); k++)
+            {
+              // Transformation of equation to equivalent unequations:
+              // (a1*x+a2*y+b=0) <=> (a1*x+a2*y+b<=0) AND (-a1*x-a2*y-b<=0)
+              LinearConstraint linConstraint1(vCEQ[k].Get_a1(),
+                          vCEQ[k].Get_a2(), vCEQ[k].Get_b(), OP_LEQ);
+              LinearConstraint linConstraint2(-vCEQ[k].Get_a1(),
+                          -vCEQ[k].Get_a2(), -vCEQ[k].Get_b(), OP_LEQ);
+              vNEQ.push_back(linConstraint1);
+              vNEQ.push_back(linConstraint2);
+            }
+          }
+          HalfPlaneIntersection(vNEQ, vConvexPolygon);
+		  if(vConvexPolygon.size() > 0)
+		  {
+		   	// the conjuction of the two tuples is not empty
+			// Early-Stop:
+			return true;
+		  }
+        }
+      }
+    }
+  }
+  return false;
 }
 
 void SymbolicRelation::ProjectToAxis(const bool blnXAxis,
@@ -525,7 +613,7 @@ void SymbolicRelation::ProjectToAxis(const bool blnXAxis,
       vLinConstraints2Add.push_back(linConBottom);
       vLinConstraints2Add.push_back(linConTop);
     }
-    addSymbolicTuple(vLinConstraints2Add);
+    AddSymbolicTuple(vLinConstraints2Add);
   }
 }
 
@@ -576,12 +664,12 @@ void SymbolicRelation::Normalize()
     {
       const LinearConstraint *linC;
       this->GetLinConstraints(linConIndex, linC);
-      if(!(AlmostEqual(linC->get_a1(),0) &&
-           AlmostEqual(linC->get_a2(),0) &&
-           AlmostEqual(linC->get_b(),0)) &&
-         !(AlmostEqual(linC->get_a1(),0) &&
-           AlmostEqual(linC->get_a2(),0) &&
-           linC->get_b()<=0 && linC->get_Op()==OP_LEQ))
+      if(!(AlmostEqual(linC->Get_a1(),0) &&
+           AlmostEqual(linC->Get_a2(),0) &&
+           AlmostEqual(linC->Get_b(),0)) &&
+         !(AlmostEqual(linC->Get_a1(),0) &&
+           AlmostEqual(linC->Get_a2(),0) &&
+           linC->Get_b()<=0 && linC->Get_Op()==OP_LEQ))
       {
         IsRealSubSet = true;
       }
@@ -594,14 +682,14 @@ void SymbolicRelation::Normalize()
     {
       const LinearConstraint *linC;
       this->GetLinConstraints(linConIndex, linC);
-      if(!AlmostEqual(linC->get_a1(),0) ||
-         !AlmostEqual(linC->get_a2(),0) ||
-         !AlmostEqual(linC->get_b(),0))
+      if(!AlmostEqual(linC->Get_a1(),0) ||
+         !AlmostEqual(linC->Get_a2(),0) ||
+         !AlmostEqual(linC->Get_b(),0))
       {
         // if at minimum one of the coefficients is not equal 0
         // (otherwise we can ignore this linear constraint representing R^2
         // because there is an other constraint which intersects R^2)
-        if(linC->get_Op()==OP_EQ)
+        if(linC->Get_Op()==OP_EQ)
         {
           vCEQ.push_back(*linC);
         }
@@ -621,10 +709,10 @@ void SymbolicRelation::Normalize()
         {
           // Transformation of equation to equivalent unequations:
           // (a1*x+a2*y+b=0) <=> (a1*x+a2*y+b<=0) AND (-a1*x-a2*y-b<=0)
-          LinearConstraint linConstraint1(vCEQ[k].get_a1(),
-                      vCEQ[k].get_a2(), vCEQ[k].get_b(), OP_LEQ);
-          LinearConstraint linConstraint2(-vCEQ[k].get_a1(),
-                      -vCEQ[k].get_a2(), -vCEQ[k].get_b(), OP_LEQ);
+          LinearConstraint linConstraint1(vCEQ[k].Get_a1(),
+                      vCEQ[k].Get_a2(), vCEQ[k].Get_b(), OP_LEQ);
+          LinearConstraint linConstraint2(-vCEQ[k].Get_a1(),
+                      -vCEQ[k].Get_a2(), -vCEQ[k].Get_b(), OP_LEQ);
           vNEQ.push_back(linConstraint1);
           vNEQ.push_back(linConstraint2);
         }
@@ -672,6 +760,7 @@ void SymbolicRelation::Normalize()
       {
          // if both are defined compute Union of the two MBBs:
           this->mbbox = this->mbbox.Union(iSymTuple.mbbox);
+
       }
       else
       {
@@ -765,9 +854,9 @@ size_t SymbolicRelation::HashValue() const
     {
       const LinearConstraint *linC;
       GetLinConstraints( i, linC );
-      a1 = linC->get_a1();
-      a2 = linC->get_a2();
-      b = linC->get_b();
+      a1 = linC->Get_a1();
+      a2 = linC->Get_a2();
+      b = linC->Get_b();
       h=h+(unsigned long)(5*a1+5*a2+b); // Hash-Funktion
     }
     return size_t(h);
@@ -787,9 +876,23 @@ void SymbolicRelation::CopyFrom(const StandardAttribute* right)
 
 const Rectangle<2> SymbolicRelation::BoundingBox() const
 {
-  return  this->mbbox;
+  if(!this->mbbox.IsDefined())
+  {
+  	return this->mbbox;
+  }
+  else
+  {
+  	double minx = mbbox.MinD(0);
+	double maxx = mbbox.MaxD(0);
+	double miny = mbbox.MinD(1);
+	double maxy = mbbox.MaxD(1);
+    return Rectangle<2>( true,
+                       minx - FACTOR,
+                       maxx + FACTOR,
+                       miny - FACTOR,
+                       maxy + FACTOR );
+  }
 }
-
 
 /*
 5 Auxilary functions, structs and classes
@@ -797,10 +900,10 @@ const Rectangle<2> SymbolicRelation::BoundingBox() const
 */
 
 /*
-5.1 ~triangulateRegion~-function
+5.1 ~TriangulateRegion~-function
 
 */
-void triangulateRegion(const Region* reg,
+void TriangulateRegion(const Region* reg,
   vector<vector<double> >& vVertices,
   vector<vector<int> >& vTriangles)
 {
@@ -962,13 +1065,11 @@ void triangulateRegion(const Region* reg,
           }
         }
 
-
         int noOfTriangles = (noPointsOfFace-2)+2*(noCyclesOfFace-1);
         int triangles[noOfTriangles][3];
 
         int ret = triangulate_polygon(noCyclesOfFace, cntr, vertices,
                         triangles);
-
         for (int j = 0; j < noOfTriangles; j++)
         {
           // each triangle will be added to vector triangles:
@@ -987,6 +1088,7 @@ void triangulateRegion(const Region* reg,
     }
   }
 }
+
 
 /*
 5.2 ~GetTheta~-function
@@ -1032,9 +1134,9 @@ double GetOrientedArea(double px, double py,
 }
 
 /*
-5.3 ~mergeTriangles2ConvexPolygons~-function
+5.3 ~MergeTriangles2ConvexPolygons~-function
 
-5.3.1 Additional datastructures for ~mergeTriangles2ConvexPolygons~-function
+5.3.1 Additional datastructures for ~MergeTriangles2ConvexPolygons~-function
 
 */
 struct EdgeRef
@@ -1133,10 +1235,10 @@ class CWPointComparator
 };
 
 /*
-5.3.2 ~mergeTriangles2ConvexPolygons~-function impementation
+5.3.2 ~MergeTriangles2ConvexPolygons~-function impementation
 
 */
-void mergeTriangles2ConvexPolygons(
+void MergeTriangles2ConvexPolygons(
   const vector<vector<double> >& vVertices,
   const vector<vector<int> >& vTriangles,
   vector<vector<Point2D> >& vCWPoints)
@@ -1460,6 +1562,8 @@ void mergeTriangles2ConvexPolygons(
   }
 }
 
+
+
 /*
 5.4 ~GetIntersectionPoint~-function
 
@@ -1472,14 +1576,14 @@ Point2D GetIntersectionPoint(const LinearConstraint& linConFirst,
   // intersection in one point)
   // Output: intersection point
 
-  double x = (linConFirst.get_a2()*linConSecond.get_b()-
-      linConSecond.get_a2()*linConFirst.get_b())/
-        (linConFirst.get_a1()*linConSecond.get_a2()-
-        linConSecond.get_a1()*linConFirst.get_a2());
-  double y = (linConFirst.get_a1()*linConSecond.get_b()-
-    linConSecond.get_a1()*linConFirst.get_b())/
-      (linConFirst.get_a2()*linConSecond.get_a1()-
-      linConSecond.get_a2()*linConFirst.get_a1());
+  double x = (linConFirst.Get_a2()*linConSecond.Get_b()-
+      linConSecond.Get_a2()*linConFirst.Get_b())/
+        (linConFirst.Get_a1()*linConSecond.Get_a2()-
+        linConSecond.Get_a1()*linConFirst.Get_a2());
+  double y = (linConFirst.Get_a1()*linConSecond.Get_b()-
+    linConSecond.Get_a1()*linConFirst.Get_b())/
+      (linConFirst.Get_a2()*linConSecond.Get_a1()-
+      linConSecond.Get_a2()*linConFirst.Get_a1());
   Point2D pIntersection(x, y);
   return pIntersection;
 }
@@ -1778,10 +1882,10 @@ void ToConstraint(const vector<Point2D>& vConvexPolygon,
           {
             leq_factor = -1.0;
           }
-          linC.set_a1(leq_factor);
-          linC.set_a2(0.0);
-          linC.set_b(leq_factor*(-pFirst.x));
-          linC.set_Op(OP_LEQ);
+          linC.Set_a1(leq_factor);
+          linC.Set_a2(0.0);
+          linC.Set_b(leq_factor*(-pFirst.x));
+          linC.Set_Op(OP_LEQ);
         }
         else // pFirst.x!=pSecond.x
         {
@@ -1800,10 +1904,10 @@ void ToConstraint(const vector<Point2D>& vConvexPolygon,
             // pOther is not on the same line!)
             leq_factor = -1.0;
           }
-          linC.set_a1(leq_factor*m);
-          linC.set_a2(leq_factor*(-1.0));
-          linC.set_b(leq_factor*b);
-          linC.set_Op(OP_LEQ);
+          linC.Set_a1(leq_factor*m);
+          linC.Set_a2(leq_factor*(-1.0));
+          linC.Set_b(leq_factor*b);
+          linC.Set_Op(OP_LEQ);
         }
         vLinConstraints.push_back(linC);
       }
@@ -1934,11 +2038,11 @@ void ComputeXOrderedSequenceOfSlabs(const vector<Point2D>& vP,
 }
 
 /*
-The ~printSlab~-function is just a tool for debug & test-activities.
+The ~PrintSlab~-function is just a tool for debug \& test-activities.
 
 */
 
-void printSlab(VerticalTrapez currentSlab)
+void PrintSlab(VerticalTrapez currentSlab)
 {
    cout << endl << "DEBUG: currentSlab:" << endl;
    cout << "DEBUG: -> currentSlab.IsEmpty == " << currentSlab.IsEmpty
@@ -2178,6 +2282,8 @@ void GetIntersectionPoint(
   return;
 }
 
+
+
 /*
 5.11 ~ConvexPolygonIntersection~-function
 
@@ -2230,10 +2336,23 @@ void ConvexPolygonIntersection(const vector<Point2D>& vP,
       (*vTwoElementPointSet)[1].x))
     {
       // vertical case
+	  double upp_y, low_y;
+	  if((*vTwoElementPointSet)[0].y < (*vTwoElementPointSet)[1].y)
+      {
+	  	upp_y = (*vTwoElementPointSet)[1].y;
+		low_y = (*vTwoElementPointSet)[0].y;
+	  }
+	  else
+      {
+	  	upp_y = (*vTwoElementPointSet)[0].y;
+		low_y = (*vTwoElementPointSet)[1].y;
+	  }
       if(pSinglePoint->OnSameLineAs((*vTwoElementPointSet)[0],
                (*vTwoElementPointSet)[1])
-        && (*vTwoElementPointSet)[0].y <= (*pSinglePoint).y &&
-               (*pSinglePoint).y <= (*vTwoElementPointSet)[0].y)
+        && (low_y < (*pSinglePoint).y ||
+          AlmostEqual(low_y, (*pSinglePoint).y))
+        && (*pSinglePoint).y < upp_y ||
+          AlmostEqual((*pSinglePoint).y, upp_y))
       {
          vPQIntersectionWD.push_back(*pSinglePoint);
       }
@@ -2241,10 +2360,23 @@ void ConvexPolygonIntersection(const vector<Point2D>& vP,
     else
     {
       // non-vertical case
+	  double left_x, right_x;
+	  if((*vTwoElementPointSet)[0].x < (*vTwoElementPointSet)[1].x)
+      {
+	  	left_x = (*vTwoElementPointSet)[0].x;
+		right_x = (*vTwoElementPointSet)[1].x;
+	  }
+	  else
+      {
+	  	left_x = (*vTwoElementPointSet)[1].x;
+		right_x = (*vTwoElementPointSet)[0].x;
+	  }
       if(pSinglePoint->OnSameLineAs((*vTwoElementPointSet)[0],
             (*vTwoElementPointSet)[1])
-        && (*vTwoElementPointSet)[0].x <= (*pSinglePoint).x &&
-                (*pSinglePoint).x <= (*vTwoElementPointSet)[0].x)
+        && (left_x < (*pSinglePoint).x ||
+          AlmostEqual(left_x, (*pSinglePoint).x)) &&
+                ((*pSinglePoint).x < right_x ||
+          AlmostEqual((*pSinglePoint).x, right_x)))
       {
          vPQIntersectionWD.push_back(*pSinglePoint);
       }
@@ -2295,10 +2427,10 @@ void ConvexPolygonIntersection(const vector<Point2D>& vP,
     for(i=0; i<vLinConstraints.size(); i++)
     {
       double dblSinglePoint =
-       vLinConstraints[i].get_a1()*pSinglePoint.x +
-       vLinConstraints[i].get_a2()*pSinglePoint.y +
-         vLinConstraints[i].get_b();
-      if(dblSinglePoint > 0)
+       vLinConstraints[i].Get_a1()*pSinglePoint.x +
+       vLinConstraints[i].Get_a2()*pSinglePoint.y +
+         vLinConstraints[i].Get_b();
+      if(!(dblSinglePoint < 0 || AlmostEqual(dblSinglePoint, 0)))
       {
         blnSinglePointInside = false;
         break;
@@ -2339,18 +2471,18 @@ void ConvexPolygonIntersection(const vector<Point2D>& vP,
     blnSegmentSecondInside = true;
     for(i=0; i<vLinConstraints.size(); i++)
     {
-      double dblSegFirst =  vLinConstraints[i].get_a1()*pSegmentFirst.x +
-        vLinConstraints[i].get_a2()*pSegmentFirst.y +
-        vLinConstraints[i].get_b();
+      double dblSegFirst =  vLinConstraints[i].Get_a1()*pSegmentFirst.x +
+        vLinConstraints[i].Get_a2()*pSegmentFirst.y +
+        vLinConstraints[i].Get_b();
       double dblSegSecond =
-          vLinConstraints[i].get_a1()*pSegmentSecond.x +
-          vLinConstraints[i].get_a2()*pSegmentSecond.y +
-          vLinConstraints[i].get_b();
-      if(dblSegFirst > 0)
+          vLinConstraints[i].Get_a1()*pSegmentSecond.x +
+          vLinConstraints[i].Get_a2()*pSegmentSecond.y +
+          vLinConstraints[i].Get_b();
+	  if(!(dblSegFirst < 0 || AlmostEqual(dblSegFirst, 0)))
       {
         blnSegmentFirstInside = false;
       }
-      if(dblSegSecond > 0)
+	  if(!(dblSegSecond < 0 || AlmostEqual(dblSegSecond, 0)))
       {
         blnSegmentSecondInside = false;
       }
@@ -3104,18 +3236,18 @@ void HalfPlaneIntersection(
     LinearConstraint linC(vLinConstraints[0]);
 
     vector<Point2D> vConvexPolygonWD; // WD = With Duclicates
-    blnNoXNoY = (AlmostEqual(linC.get_a1(),0) &&
-                 AlmostEqual(linC.get_a2(),0));
-    blnVerticalBoundary = (!AlmostEqual(linC.get_a1(),0) &&
-                            AlmostEqual(linC.get_a2(),0));
-    blnHorizontalBoundary = (AlmostEqual(linC.get_a1(),0) &&
-                            !AlmostEqual(linC.get_a2(),0));
-    blnLeftSideIn = (linC.get_a1() > 0);
-    blnUpperSideIn = (linC.get_a2() < 0);
+    blnNoXNoY = (AlmostEqual(linC.Get_a1(),0) &&
+                 AlmostEqual(linC.Get_a2(),0));
+    blnVerticalBoundary = (!AlmostEqual(linC.Get_a1(),0) &&
+                            AlmostEqual(linC.Get_a2(),0));
+    blnHorizontalBoundary = (AlmostEqual(linC.Get_a1(),0) &&
+                            !AlmostEqual(linC.Get_a2(),0));
+    blnLeftSideIn = (linC.Get_a1() > 0);
+    blnUpperSideIn = (linC.Get_a2() < 0);
     if(blnNoXNoY)
     {
       // special case 0*x + 0*y + <value> <= 0;
-      if(linC.get_b() <= 0)
+      if(linC.Get_b() <= 0)
       {
         // => R^2
         Point2D p1, p2, p3, p4;
@@ -3128,7 +3260,7 @@ void HalfPlaneIntersection(
         vConvexPolygonWD.push_back(p3);
         vConvexPolygonWD.push_back(p4);
       }
-      else // (linC.get_b() > 0)
+      else // (linC.Get_b() > 0)
       {
         // => {}
         // do nothing!
@@ -3139,7 +3271,7 @@ void HalfPlaneIntersection(
       // TOP-bounding of the rectangle WORLD:
       if(blnHorizontalBoundary)
       {
-        yCut = (-linC.get_b()/linC.get_a2());
+        yCut = (-linC.Get_b()/linC.Get_a2());
         if(AlmostEqual(wyTop, yCut) || (yCut <= wyTop && blnUpperSideIn) ||
           (yCut >= wyTop && !blnUpperSideIn))
         {
@@ -3154,11 +3286,11 @@ void HalfPlaneIntersection(
       {
         if(blnVerticalBoundary)
         {
-          xCut = (-linC.get_b()/linC.get_a1());
+          xCut = (-linC.Get_b()/linC.Get_a1());
         }
         else
         {
-          xCut = (-linC.get_b()-linC.get_a2()*wyTop)/linC.get_a1();
+          xCut = (-linC.Get_b()-linC.Get_a2()*wyTop)/linC.Get_a1();
         }
         if(wxLeft <= xCut && xCut <= wxRight)
         {
@@ -3192,7 +3324,7 @@ void HalfPlaneIntersection(
       // RIGHT-bounding of the rectangle WORLD:
       if(blnVerticalBoundary)
       {
-        xCut = (-linC.get_b()/linC.get_a1());
+        xCut = (-linC.Get_b()/linC.Get_a1());
         if(AlmostEqual(wxRight, xCut) ||
           (xCut <= wxRight && !blnLeftSideIn) ||
           (xCut >= wxRight && blnLeftSideIn))
@@ -3208,11 +3340,11 @@ void HalfPlaneIntersection(
       {
         if(blnHorizontalBoundary)
         {
-          yCut = (-linC.get_b()/linC.get_a2());
+          yCut = (-linC.Get_b()/linC.Get_a2());
         }
         else
         {
-          yCut = (-linC.get_b()-linC.get_a1()*wxRight)/linC.get_a2();
+          yCut = (-linC.Get_b()-linC.Get_a1()*wxRight)/linC.Get_a2();
         }
         if(wyBottom <= yCut && yCut <= wyTop)
         {
@@ -3245,7 +3377,7 @@ void HalfPlaneIntersection(
       // BOTTOM-bounding of the rectangle WORLD:
       if(blnHorizontalBoundary)
       {
-        yCut = (-linC.get_b()/linC.get_a2());
+        yCut = (-linC.Get_b()/linC.Get_a2());
         if(AlmostEqual(wyBottom, yCut) || (yCut >= wyBottom &&
           !blnUpperSideIn) ||
           (yCut <= wyBottom && blnUpperSideIn))
@@ -3261,11 +3393,11 @@ void HalfPlaneIntersection(
       {
         if(blnVerticalBoundary)
         {
-          xCut = (-linC.get_b()/linC.get_a1());
+          xCut = (-linC.Get_b()/linC.Get_a1());
         }
         else
         {
-          xCut = (-linC.get_b()-linC.get_a2()*wyBottom)/linC.get_a1();
+          xCut = (-linC.Get_b()-linC.Get_a2()*wyBottom)/linC.Get_a1();
         }
         if(wxLeft <= xCut && xCut <= wxRight)
         {
@@ -3298,7 +3430,7 @@ void HalfPlaneIntersection(
       // LEFT-bounding of the rectangle WORLD:
       if(blnVerticalBoundary)
       {
-        xCut = (-linC.get_b()/linC.get_a1());
+        xCut = (-linC.Get_b()/linC.Get_a1());
         if(AlmostEqual(wxLeft, xCut) ||
               (xCut <= wxLeft && !blnLeftSideIn) ||
               (xCut >= wxLeft && blnLeftSideIn))
@@ -3314,11 +3446,11 @@ void HalfPlaneIntersection(
       {
         if(blnHorizontalBoundary)
         {
-          yCut = (-linC.get_b()/linC.get_a2());
+          yCut = (-linC.Get_b()/linC.Get_a2());
         }
         else
         {
-          yCut = (-linC.get_b()-linC.get_a1()*wxLeft)/linC.get_a2();
+          yCut = (-linC.Get_b()-linC.Get_a1()*wxLeft)/linC.Get_a2();
         }
         if(wyBottom <= yCut && yCut <= wyTop)
         {
@@ -3383,12 +3515,9 @@ void HalfPlaneIntersection(
     vector<Point2D> vQ;
     HalfPlaneIntersection(vLinConstraintsPart1, vP);
     HalfPlaneIntersection(vLinConstraintsPart2, vQ);
-
     ConvexPolygonIntersection(vP, vQ, vConvexPolygon);
-    }
+  }
 }
-
-
 
 /*
 6 Type Constructor ~constraint~
@@ -3420,10 +3549,10 @@ ListExpr OutConstraint( ListExpr typeInfo, Word value )
       for(int j = pSymRelIP->startIndex; j <= pSymRelIP->endIndex; j++)
       {
         symRel->GetLinConstraints(j, pLinConstraint);
-        double a1 = pLinConstraint->get_a1();
-        double a2 = pLinConstraint->get_a2();
-        double b = pLinConstraint->get_b();
-        string Op = pLinConstraint->get_Op();
+        double a1 = pLinConstraint->Get_a1();
+        double a2 = pLinConstraint->Get_a2();
+        double b = pLinConstraint->Get_b();
+        string Op = pLinConstraint->Get_Op();
         if(i==0)
         {
           if(j==pSymRelIP->startIndex)
@@ -3525,7 +3654,7 @@ Word InConstraint( const ListExpr typeInfo, const ListExpr instance,
         }
         if(vLinConstraints.size()>0)
         {
-          symbolicRelation->addSymbolicTuple(vLinConstraints);
+          symbolicRelation->AddSymbolicTuple(vLinConstraints);
         }
         else
         {
@@ -3594,7 +3723,7 @@ Word CreateConstraint( const ListExpr typeInfo )
   vector<LinearConstraint> vLinConstraints;
   LinearConstraint linConstraint(0.0, 0.0, 0.0, OP_EQ);
   vLinConstraints.push_back(linConstraint);
-  symbolicRelation->addSymbolicTuple(vLinConstraints);
+  symbolicRelation->AddSymbolicTuple(vLinConstraints);
   symbolicRelation->Normalize(); // in order to compute the mmbox
   return (SetWord(symbolicRelation));
 }
@@ -3859,9 +3988,38 @@ ListExpr C2BoolTypeMap( ListExpr args )
   return nl->SymbolAtom( "typeerror" );
 }
 
+/*
+7.1.6 Type mapping function ~CxC2BoolTypeMap~
+
+*/
+ListExpr CxC2BoolTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if(nl->IsEqual(arg1, "constraint") &&
+      nl->IsEqual(arg2, "constraint"))
+    {
+      return (nl->SymbolAtom("bool"));
+    }
+    else
+    {
+      ErrorReporter::ReportError("Type mapping function got wrong "
+      " types as parameters.");
+    }
+  }
+  else
+  {
+    ErrorReporter::ReportError("Type mapping function got a parameter"
+      " of length != 2.");
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
 
 /*
-7.1.6 Type mapping function ~C2IntTypeMap~
+7.1.7 Type mapping function ~C2IntTypeMap~
 
 */
 ListExpr C2IntTypeMap( ListExpr args )
@@ -3891,7 +4049,7 @@ ListExpr C2IntTypeMap( ListExpr args )
 
 
 /*
-7.1.7 Type mapping function ~Point2CTypeMap~
+7.1.8 Type mapping function ~Point2CTypeMap~
 
 */
 ListExpr Point2CTypeMap( ListExpr args )
@@ -3921,7 +4079,7 @@ ListExpr Point2CTypeMap( ListExpr args )
 
 
 /*
-7.1.8 Type mapping function ~Points2CTypeMap~
+7.1.9 Type mapping function ~Points2CTypeMap~
 
 */
 ListExpr Points2CTypeMap( ListExpr args )
@@ -3950,7 +4108,7 @@ ListExpr Points2CTypeMap( ListExpr args )
 }
 
 /*
-7.1.9 Type mapping function ~Line2CTypeMap~
+7.1.10 Type mapping function ~Line2CTypeMap~
 
 */
 ListExpr Line2CTypeMap( ListExpr args )
@@ -3979,7 +4137,7 @@ ListExpr Line2CTypeMap( ListExpr args )
 
 
 /*
-7.1.10 Type mapping function ~Region2CTypeMap~
+7.1.11 Type mapping function ~Region2CTypeMap~
 
 */
 ListExpr RegionxBool2CTypeMap( ListExpr args )
@@ -3997,7 +4155,7 @@ ListExpr RegionxBool2CTypeMap( ListExpr args )
     else
     {
       ErrorReporter::ReportError("Type mapping function got wrong "
-        " types as parameters. Use x or y as second parameter!");
+        " types as parameters. Use TRUE or FALSE as second parameter!");
     }
   }
   else
@@ -4009,7 +4167,7 @@ ListExpr RegionxBool2CTypeMap( ListExpr args )
 }
 
 /*
-7.1.11 Type mapping function ~C2PointTypeMap~
+7.1.12 Type mapping function ~C2PointTypeMap~
 
 */
 ListExpr C2PointTypeMap( ListExpr args )
@@ -4038,7 +4196,7 @@ ListExpr C2PointTypeMap( ListExpr args )
 }
 
 /*
-7.1.12 Type mapping function ~C2PointsTypeMap~
+7.1.13 Type mapping function ~C2PointsTypeMap~
 
 */
 ListExpr C2PointsTypeMap( ListExpr args )
@@ -4067,7 +4225,7 @@ ListExpr C2PointsTypeMap( ListExpr args )
 }
 
 /*
-7.1.13 Type mapping function ~C2LineTypeMap~
+7.1.14 Type mapping function ~C2LineTypeMap~
 
 */
 ListExpr C2LineTypeMap( ListExpr args )
@@ -4096,7 +4254,7 @@ ListExpr C2LineTypeMap( ListExpr args )
 }
 
 /*
-7.1.14 Type mapping function ~CStream2RegionStreamTypeMap~
+7.1.15 Type mapping function ~CStream2RegionStreamTypeMap~
 
 */
 ListExpr CStream2RegionStreamTypeMap( ListExpr args )
@@ -4141,7 +4299,36 @@ ListExpr CStream2RegionStreamTypeMap( ListExpr args )
 
 
 /*
-7.1.15 Type mapping function ~RegionStream2RegionStreamTypeMap~
+7.1.16 Type mapping function ~C2RectTypeMap~
+
+*/
+ListExpr C2RectTypeMap( ListExpr args )
+{
+    ListExpr arg;
+    if ( nl->ListLength( args ) == 1 )
+    {
+      arg = nl->First( args );
+
+      if(nl->IsEqual(arg, "constraint"))
+      {
+        return (nl->SymbolAtom("rect"));
+      }
+    else
+    {
+    ErrorReporter::ReportError("Type mapping function got wrong "
+      " type as parameter.");
+    }
+    }
+  else
+  {
+    ErrorReporter::ReportError("Type mapping function got a parameter"
+      " of length != 1.");
+  }
+    return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+7.1.17 Type mapping function ~RegionStream2RegionStreamTypeMap~
 
 */
 ListExpr RegionStream2RegionStreamTypeMap( ListExpr args )
@@ -4209,16 +4396,16 @@ int unionValueMap( Word* args, Word& result, int message,
   }
 
   symRelResult = symRelFirst->Clone();
-  symRelResult->appendSymbolicRelation(*symRelSecond);
+  symRelResult->AppendSymbolicRelation(*symRelSecond);
   *((SymbolicRelation *)result.addr) = *symRelResult;
   return (0);
 }
 
 /*
-7.2.2 Value mapping functions of operator ~coverlap~
+7.2.2 Value mapping functions of operator ~cintersection~ alias ~cjoin~
 
 */
-int overlapValueMap( Word* args, Word& result, int message,
+int intersectionValueMap( Word* args, Word& result, int message,
            Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -4228,7 +4415,7 @@ int overlapValueMap( Word* args, Word& result, int message,
 
 
   symRelResult = symRelFirst->Clone();
-  symRelResult->overlapSymbolicRelation(*symRelSecond);
+  symRelResult->JoinSymbolicRelation(*symRelSecond);
   symRelResult->Normalize();
   *((SymbolicRelation *)result.addr) = *symRelResult;
   return (0);
@@ -4285,11 +4472,11 @@ int selectionValueMap( Word* args, Word& result, int message,
   LinearConstraint linC(a1, a2, b, strOp);
   vLinearConstraints.push_back(linC);
   SymbolicRelation symRelSecond(0, 0);
-  symRelSecond.addSymbolicTuple(vLinearConstraints);
+  symRelSecond.AddSymbolicTuple(vLinearConstraints);
   symRelSecond.Normalize(); // for mbbox-computation
   // apply the overlap function:
   symRelResult = symRel->Clone();
-  symRelResult->overlapSymbolicRelation(symRelSecond);
+  symRelResult->JoinSymbolicRelation(symRelSecond);
   symRelResult->Normalize();
   *((SymbolicRelation *)result.addr) = *symRelResult;
   return (0);
@@ -4309,7 +4496,22 @@ int satisfyValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.6 Value mapping functions of operator ~no\_tuples~
+7.2.6 Value mapping functions of operator ~coverlaps~
+
+*/
+int overlapsValueMap( Word* args, Word& result, int message,
+           Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  SymbolicRelation* symRelFirst = ((SymbolicRelation*)args[0].addr);
+  SymbolicRelation* symRelSecond = ((SymbolicRelation*)args[1].addr);
+  ((CcBool *)result.addr)->Set(true,
+    symRelFirst->OverlapsSymbolicRelation(*symRelSecond));
+  return (0);
+}
+
+/*
+7.2.7 Value mapping functions of operator ~no\_tuples~
 
 */
 int no_tuplesValueMap( Word* args, Word& result, int message,
@@ -4322,7 +4524,7 @@ int no_tuplesValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.7 Value mapping functions of operator ~no\_constraints~
+7.2.8 Value mapping functions of operator ~no\_constraints~
 
 */
 int no_constraintsValueMap( Word* args, Word& result, int message,
@@ -4334,9 +4536,119 @@ int no_constraintsValueMap( Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+7.2.9 Value mapping functions of operator ~bbox~
+
+*/
+int bboxValueMap( Word* args, Word& result, int message,
+           Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  *((Rectangle<2>*)result.addr) =
+     ((SymbolicRelation*)args[0].addr)->BoundingBox();
+  return 0;
+}
+
 
 /*
-7.2.8 Value mapping functions of operator (import function) ~point2constraint~
+7.2.10 Value mapping functions of operator ~triangulate~
+
+*/
+struct TriangulateLocalInfo
+{
+  vector<Region*> triangles;
+  vector<Region*>::iterator iter;
+};
+
+int triangulateValueMap( Word* args, Word& result, int message,
+           Word& local, Supplier s )
+{
+  TriangulateLocalInfo *localInfo;
+  if(message==OPEN)
+  {
+    localInfo = new TriangulateLocalInfo();
+    local = SetWord( localInfo );
+    qp->Open(args[0].addr);
+    return 0;
+  }
+  else if(message==REQUEST)
+  {
+    Word elem;
+    Region* reg;
+    localInfo = (TriangulateLocalInfo*)local.addr;
+    // ist vektor mit triangles leer oder bereits vollständig verarbeitet?
+    if(localInfo->triangles.size()==0 ||
+      localInfo->iter == localInfo->triangles.end())
+    {
+      if(localInfo->iter == localInfo->triangles.end())
+      {
+        localInfo->triangles.clear();
+      }
+      bool blnInputRegionIsEmpty = true;
+      while(blnInputRegionIsEmpty)
+      {
+        qp->Request(args[0].addr, elem);
+        if(qp->Received(args[0].addr))
+        {
+          reg = (Region*)elem.addr;
+          blnInputRegionIsEmpty = reg->IsEmpty()
+            || reg->Size()/2 >= SEGSIZE_TRIANGULATION;
+          if(reg->Size()/2 >= SEGSIZE_TRIANGULATION)
+          {
+            ErrorReporter::ReportError("INVALID INPUT: "
+              "too many segments! "
+              "Increase SEGSIZE in TRIANGULATION-Lib "
+              "in order to process.");
+          }
+        }
+        else
+        {
+          return CANCEL;
+        }
+      }
+      vector<vector<double> > vVertices;
+      vector<vector<int> > vTriangles;
+      TriangulateRegion(reg, vVertices, vTriangles);
+      for (int j = 0; j < vTriangles.size(); j++)
+      {
+        ListExpr resultNL =
+      nl->ThreeElemList(
+            nl->TwoElemList(
+              nl->RealAtom((Coord)vVertices[vTriangles[j][0]][X]),
+              nl->RealAtom((Coord)vVertices[vTriangles[j][0]][Y])),
+            nl->TwoElemList(
+              nl->RealAtom((Coord)vVertices[vTriangles[j][1]][X]),
+              nl->RealAtom((Coord)vVertices[vTriangles[j][1]][Y])),
+            nl->TwoElemList(
+              nl->RealAtom((Coord)vVertices[vTriangles[j][2]][X]),
+              nl->RealAtom((Coord)vVertices[vTriangles[j][2]][Y])));
+        ListExpr regionNL = nl->OneElemList(nl->OneElemList(resultNL));
+        ListExpr errorInfoInRegion;
+        bool correctInRegion;
+        Region* r = (Region*)InRegion(nl->TheEmptyList(),
+          regionNL, 0, errorInfoInRegion, correctInRegion ).addr;
+    r->EndBulkLoad( false, false, false, true);
+        localInfo->triangles.push_back( r );
+      }
+      // und Regions in localInfo->triangles speichern
+      localInfo->iter = localInfo->triangles.begin();
+    }
+    result = SetWord( *localInfo->iter++ );
+    return YIELD;
+  }
+  if(message==CLOSE)
+  {
+    qp->Close(args[0].addr);
+    localInfo = (TriangulateLocalInfo*)local.addr;
+    delete localInfo;
+    return 0;
+  }
+  return 0;
+}
+
+
+/*
+7.2.11 Value mapping functions of operator (import function) ~point2constraint~
 
 */
 int point2constraintValueMap( Word* args, Word& result, int message,
@@ -4357,7 +4669,7 @@ int point2constraintValueMap( Word* args, Word& result, int message,
       vPoints.push_back(p2Convert);
       vector<LinearConstraint> vLinConstraints;
       ToConstraint(vPoints, vLinConstraints);
-      symRelResult->addSymbolicTuple(vLinConstraints);
+      symRelResult->AddSymbolicTuple(vLinConstraints);
     }
     else
     {
@@ -4372,7 +4684,7 @@ int point2constraintValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.9 Value mapping functions of operator (import function) ~points2constraint~
+7.2.12 Value mapping functions of operator (import function) ~points2constraint~
 
 */
 int points2constraintValueMap( Word* args, Word& result, int message,
@@ -4399,7 +4711,7 @@ int points2constraintValueMap( Word* args, Word& result, int message,
         vPoints.push_back(p2Convert);
         vector<LinearConstraint> vLinConstraints;
         ToConstraint(vPoints, vLinConstraints);
-        symRelResult->addSymbolicTuple(vLinConstraints);
+        symRelResult->AddSymbolicTuple(vLinConstraints);
       }
       else
       {
@@ -4425,7 +4737,7 @@ int points2constraintValueMap( Word* args, Word& result, int message,
 
 
 /*
-7.2.10 Value mapping functions of operator (import function) ~line2constraint~
+7.2.13 Value mapping functions of operator (import function) ~line2constraint~
 
 */
 int line2constraintValueMap( Word* args, Word& result, int message,
@@ -4468,7 +4780,7 @@ int line2constraintValueMap( Word* args, Word& result, int message,
         vPoints.push_back(rp2Convert);
         vector<LinearConstraint> vLinConstraints;
         ToConstraint(vPoints, vLinConstraints);
-        symRelResult->addSymbolicTuple(vLinConstraints);
+        symRelResult->AddSymbolicTuple(vLinConstraints);
       }
     }
     delete clippedLine;
@@ -4487,7 +4799,7 @@ int line2constraintValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.11 Value mapping functions of operator (import function) ~region2constraint~
+7.2.14 Value mapping functions of operator (import function) ~region2constraint~
 
 */
 int region2constraintValueMap( Word* args, Word& result, int message,
@@ -4522,12 +4834,12 @@ int region2constraintValueMap( Word* args, Word& result, int message,
     }
     vector<vector<double> > vVertices;
     vector<vector<int> > vTriangles;
-    triangulateRegion(reg, vVertices, vTriangles);
+    TriangulateRegion(reg, vVertices, vTriangles);
     // Vektor von nicht-leeren Vektoren von Point2D-Objekten in cw-order:
     vector<vector<Point2D> > vCWPoints2convert;
     if(blnMergeTriangles2ConvPoly)
     {
-      mergeTriangles2ConvexPolygons(vVertices,
+      MergeTriangles2ConvexPolygons(vVertices,
                                     vTriangles,
                                     vCWPoints2convert);
       for (int j = 0; j < vCWPoints2convert.size(); j++)
@@ -4536,7 +4848,7 @@ int region2constraintValueMap( Word* args, Word& result, int message,
 
         vector<LinearConstraint> vLinConstraints;
         ToConstraint(vCWPoints2convert[j], vLinConstraints);
-        symRelResult->addSymbolicTuple(vLinConstraints);
+        symRelResult->AddSymbolicTuple(vLinConstraints);
       }
     }
     else
@@ -4577,7 +4889,7 @@ int region2constraintValueMap( Word* args, Word& result, int message,
     }
         vector<LinearConstraint> vLinConstraints;
         ToConstraint(v3Points2convert, vLinConstraints);
-        symRelResult->addSymbolicTuple(vLinConstraints);
+        symRelResult->AddSymbolicTuple(vLinConstraints);
       }
     }
     if(!blnRegionTotalInWORLD)
@@ -4602,7 +4914,7 @@ int region2constraintValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.12 Value mapping functions of operator (export function) ~constraint2point~
+7.2.15 Value mapping functions of operator (export function) ~constraint2point~
 
 */
 int constraint2pointValueMap( Word* args, Word& result, int message,
@@ -4639,7 +4951,7 @@ int constraint2pointValueMap( Word* args, Word& result, int message,
       // symTuple contains 2 lin. Constraints
         symRel->GetLinConstraints(symTuple->startIndex, linC1);
         symRel->GetLinConstraints(symTuple->startIndex+1, linC2);
-        if(linC1->get_Op()==OP_EQ && linC2->get_Op()==OP_EQ)
+        if(linC1->Get_Op()==OP_EQ && linC2->Get_Op()==OP_EQ)
         {
           noPoints++;
         }
@@ -4648,8 +4960,8 @@ int constraint2pointValueMap( Word* args, Word& result, int message,
     if(noPoints == 1)
     {
       // convert:
-      pointResult = new Point( true, (Coord)(-linC1->get_b()),
-        (Coord)(-linC2->get_b()));
+      pointResult = new Point( true, (Coord)(-linC1->Get_b()),
+        (Coord)(-linC2->Get_b()));
     }
     else
     {
@@ -4672,10 +4984,8 @@ int constraint2pointValueMap( Word* args, Word& result, int message,
   return (0);
 }
 
-
-
 /*
-7.2.13 Value mapping functions of operator (export function) ~constraint2points~
+7.2.16 Value mapping functions of operator (export function) ~constraint2points~
 
 */
 int constraint2pointsValueMap( Word* args, Word& result, int message,
@@ -4697,10 +5007,10 @@ int constraint2pointsValueMap( Word* args, Word& result, int message,
     // symTuple contains 2 lin. Constraints
       symRel->GetLinConstraints(symTuple->startIndex, linC1);
       symRel->GetLinConstraints(symTuple->startIndex+1, linC2);
-      if(linC1->get_Op()==OP_EQ && linC2->get_Op()==OP_EQ)
+      if(linC1->Get_Op()==OP_EQ && linC2->Get_Op()==OP_EQ)
       {
-        Point* p = new Point( true, (Coord)(-linC1->get_b()),
-            (Coord)(-linC2->get_b()));
+        Point* p = new Point( true, (Coord)(-linC1->Get_b()),
+            (Coord)(-linC2->Get_b()));
         (*pointsResult) += (*p);
         delete p;
       }
@@ -4713,7 +5023,7 @@ int constraint2pointsValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.14 Value mapping functions of operator (export function) ~constraint2line~
+7.2.17 Value mapping functions of operator (export function) ~constraint2line~
 
 */
 int constraint2lineValueMap( Word* args, Word& result, int message,
@@ -4737,9 +5047,9 @@ int constraint2lineValueMap( Word* args, Word& result, int message,
       symRel->GetLinConstraints(symTuple->startIndex, linC1);
       symRel->GetLinConstraints(symTuple->startIndex+1, linC2);
       symRel->GetLinConstraints(symTuple->startIndex+2, linC3);
-      if(linC1->get_Op()==OP_EQ &&
-         linC2->get_Op()==OP_LEQ &&
-         linC3->get_Op()==OP_LEQ)
+      if(linC1->Get_Op()==OP_EQ &&
+         linC2->Get_Op()==OP_LEQ &&
+         linC3->Get_Op()==OP_LEQ)
       {
         Point2D pFrom2D = GetIntersectionPoint(*linC1, *linC2);
         Point2D pTo2D = GetIntersectionPoint(*linC1, *linC3);
@@ -4761,7 +5071,7 @@ int constraint2lineValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.15 Value mapping functions of operator (export function) ~constraint2region~
+7.2.18 Value mapping functions of operator (export function) ~constraint2region~
 
 */
 struct constraint2regionLocalInfo
@@ -4830,9 +5140,9 @@ int constraint2regionValueMap( Word* args, Word& result, int message,
                         linConstraint2);
           sr->GetLinConstraints(symTuple->startIndex+2,
                         linConstraint3);
-          if(linConstraint1->get_Op()==OP_LEQ &&
-               linConstraint2->get_Op()==OP_LEQ &&
-               linConstraint3->get_Op()==OP_LEQ)
+          if(linConstraint1->Get_Op()==OP_LEQ &&
+               linConstraint2->Get_Op()==OP_LEQ &&
+               linConstraint3->Get_Op()==OP_LEQ)
           {
             ListExpr regionNL, resultNL, lastNL;
             Point2D startPoint2D, fromPoint2D, toPoint2D;
@@ -4910,102 +5220,6 @@ int constraint2regionValueMap( Word* args, Word& result, int message,
   return 0;
 }
 
-/*
-7.2.16 Value mapping functions of operator ~triangulate~
-
-*/
-struct TriangulateLocalInfo
-{
-  vector<Region*> triangles;
-  vector<Region*>::iterator iter;
-};
-
-int triangulateValueMap( Word* args, Word& result, int message,
-           Word& local, Supplier s )
-{
-  TriangulateLocalInfo *localInfo;
-  if(message==OPEN)
-  {
-    localInfo = new TriangulateLocalInfo();
-    local = SetWord( localInfo );
-    qp->Open(args[0].addr);
-    return 0;
-  }
-  else if(message==REQUEST)
-  {
-    Word elem;
-    Region* reg;
-    localInfo = (TriangulateLocalInfo*)local.addr;
-    // ist vektor mit triangles leer oder bereits vollständig verarbeitet?
-    if(localInfo->triangles.size()==0 ||
-      localInfo->iter == localInfo->triangles.end())
-    {
-      if(localInfo->iter == localInfo->triangles.end())
-      {
-        localInfo->triangles.clear();
-      }
-      bool blnInputRegionIsEmpty = true;
-      while(blnInputRegionIsEmpty)
-      {
-        qp->Request(args[0].addr, elem);
-        if(qp->Received(args[0].addr))
-        {
-          reg = (Region*)elem.addr;
-          blnInputRegionIsEmpty = reg->IsEmpty()
-            || reg->Size()/2 >= SEGSIZE_TRIANGULATION;
-          if(reg->Size()/2 >= SEGSIZE_TRIANGULATION)
-          {
-            ErrorReporter::ReportError("INVALID INPUT: "
-              "too many segments! "
-              "Increase SEGSIZE in TRIANGULATION-Lib "
-              "in order to process.");
-          }
-        }
-        else
-        {
-          return CANCEL;
-        }
-      }
-      vector<vector<double> > vVertices;
-      vector<vector<int> > vTriangles;
-      triangulateRegion(reg, vVertices, vTriangles);
-      for (int j = 0; j < vTriangles.size(); j++)
-      {
-        ListExpr resultNL =
-      nl->ThreeElemList(
-            nl->TwoElemList(
-              nl->RealAtom((Coord)vVertices[vTriangles[j][0]][X]),
-              nl->RealAtom((Coord)vVertices[vTriangles[j][0]][Y])),
-            nl->TwoElemList(
-              nl->RealAtom((Coord)vVertices[vTriangles[j][1]][X]),
-              nl->RealAtom((Coord)vVertices[vTriangles[j][1]][Y])),
-            nl->TwoElemList(
-              nl->RealAtom((Coord)vVertices[vTriangles[j][2]][X]),
-              nl->RealAtom((Coord)vVertices[vTriangles[j][2]][Y])));
-        ListExpr regionNL = nl->OneElemList(nl->OneElemList(resultNL));
-        ListExpr errorInfoInRegion;
-        bool correctInRegion;
-        Region* r = (Region*)InRegion(nl->TheEmptyList(),
-          regionNL, 0, errorInfoInRegion, correctInRegion ).addr;
-    r->EndBulkLoad( false, false, false, true);
-        localInfo->triangles.push_back( r );
-      }
-      // und Regions in localInfo->triangles speichern
-      localInfo->iter = localInfo->triangles.begin();
-    }
-    result = SetWord( *localInfo->iter++ );
-    return YIELD;
-  }
-  if(message==CLOSE)
-  {
-    qp->Close(args[0].addr);
-    localInfo = (TriangulateLocalInfo*)local.addr;
-    delete localInfo;
-    return 0;
-  }
-  return 0;
-}
-
 
 /*
 7.3 Definition of operators
@@ -5018,64 +5232,100 @@ Definition of operators is done in a way similar to definition of type construct
 const string ConstraintSpecUnion  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>constraint x constraint -> constraint</text--->"
-  "<text>_cunion_</text--->"
+  "<text>_ cunion _</text--->"
   "<text>union of two constraints.</text--->"
-  "<text>query constraint1 cunion constraint2</text--->"
-  ") )";
-
-const string ConstraintSpecOverlap  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>constraint x constraint -> constraint</text--->"
-  "<text>_coverlap_</text--->"
-  "<text>overlap of two constraints: takes as input "
-  "two relations and performs a nested loop over both "
-  "collections of tuples, taking the conjunction of "
-  "each pair of tuples.</text--->"
-  "<text>query constraint1 coverlap constraint2</text--->"
-  ") )";
+  "<text>query objConstraintPolygon1 cunion objConstraintPolygon2"
+  "</text--->) )";
 
 const string ConstraintSpecJoin  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>constraint x constraint -> constraint</text--->"
-  "<text>_cjoin_</text--->"
+  "<text>_ cjoin _</text--->"
   "<text>join of two constraints (equal semantics like the "
   "coverlap-operator).</text--->"
-  "<text>query constraint1 cjoin constraint2</text--->"
+  "<text>query objConstraintPolygon1 cjoin objConstraintPolygon2</text--->"
   ") )";
 
 const string ConstraintSpecIntersection  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>constraint x constraint -> constraint</text--->"
-  "<text>_cintersection_</text--->"
+  "<text>_ cintersection _</text--->"
   "<text>intersection of two constraints (equal semantics like the "
   "coverlap-operator).</text--->"
-  "<text>query constraint1 cintersection constraint2</text--->"
-  ") )";
+  "<text>query objConstraintPolygon1 cintersection objConstraintLine1"
+  "</text--->) )";
 
 const string ConstraintSpecProjection  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>constraint x axis -> constraint</text--->"
-  "<text>cprojection(_, _)</text--->"
+  "<text>cprojection( _ , _ )</text--->"
   "<text>projection of a constraint to an certain axis (x or y).</text--->"
-  "<text>query cprojection(constraint1, x)</text--->"
+  "<text>query cprojection(objConstraintPolygon1, x)</text--->"
   ") )";
 
 const string ConstraintSpecSelection  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>constraint x real x real x real x {eq, leq} ->"
   " constraint</text--->"
-  "<text>cselection(_, _, _, _, _)</text--->"
+  "<text>cselection( _ , _ , _ , _ , _ )</text--->"
   "<text>select (restrict) a constraint relation to a "
   "certain linear constraint.</text--->"
-  "<text>query cselection(constraint1, 1.0, 0.0, 0.0, leq)</text--->"
-  ") )";
+  "<text>query cselection(objConstraintPolygon1, 1.0, 0.0, -7.0, leq)"
+  "</text--->) )";
 
 const string ConstraintSpecSatisfy  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>constraint -> bool</text--->"
   "<text>csatisfy( _ )</text--->"
   "<text>checks if the represented pointset is empty or not.</text--->"
-  "<text>query csatisfy(constraint1)</text--->"
+  "<text>query csatisfy(objConstraintPolygon1)</text--->"
+  ") )";
+
+const string ConstraintSpecOverlaps  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>constraint x constraint -> bool</text--->"
+  "<text>_ coverlaps _</text--->"
+  "<text>return TRUE if there exist points which are in "
+  "both symbolic relations.</text--->"
+  "<text>query objConstraintPolygon1 coverlaps "
+  "objConstraintPolygon2</text--->"
+  ") )";
+
+const string ConstraintSpecNo_Tuples  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>constraint -> int</text--->"
+  "<text>no_tuples( _ )</text--->"
+  "<text>return the number of symbolic tuples of a constraint value "
+  "(symbolic relation) </text--->"
+  "<text>query no_tuples(objConstraintPolygon1)</text--->"
+  ") )";
+
+const string ConstraintSpecNo_Constraints  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>constraint -> int</text--->"
+  "<text>no_constraints( _ )</text--->"
+  "<text>return the total number of atomar linear constraints of a "
+  "constraint value (symbolic relation) </text--->"
+  "<text>query no_constraints(objConstraintPolygon1)</text--->"
+  ") )";
+
+const string ConstraintSpecBBox  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>constraint -> rect</text--->"
+  "<text>bbox( _ )</text--->"
+  "<text>return the bounding box of a symbolic relation"
+  "region values (triangles)</text--->"
+  "<text>query bbox(objConstraintPolygon1)</text--->"
+  ") )";
+
+const string ConstraintSpecTriangulate  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>stream(region) -> stream(region)</text--->"
+  "<text>_ triangulate </text--->"
+  "<text>triangulate a stream of region values into a stream of "
+  "region values (triangles)</text--->"
+  "<text>query Flaechen feed project[geoData] transformstream "
+  "triangulate transformstream count</text--->"
   ") )";
 
 const string ConstraintSpecPoint2Constraint  =
@@ -5084,7 +5334,8 @@ const string ConstraintSpecPoint2Constraint  =
   "<text>point2constraint( _ )</text--->"
   "<text>converts a point value from the spatial-algebra "
   "to a constraint value.</text--->"
-  "<text>let objConstraint = point2constraint(objPoint)</text--->"
+  "<text>query UBahnhof feed extend[p: point2constraint(.geoData "
+  "scale[0.1])] filter[csatisfy(.p)=TRUE] project[p] count</text--->"
   ") )";
 
 const string ConstraintSpecPoints2Constraint  =
@@ -5093,7 +5344,7 @@ const string ConstraintSpecPoints2Constraint  =
   "<text>points2constraint( _ )</text--->"
   "<text>converts a points value (set of points) from the spatial-algebra "
   "to a constraint value.</text--->"
-  "<text>let objConstraint = points2constraint(objPoints)</text--->"
+  "<text>query points2constraint(train7stations scale[0.1])</text--->"
   ") )";
 
 const string ConstraintSpecLine2Constraint  =
@@ -5102,12 +5353,12 @@ const string ConstraintSpecLine2Constraint  =
   "<text>line2constraint( _ )</text--->"
   "<text>converts a line value (set of segments) from the spatial-algebra "
   "to a constraint value.</text--->"
-  "<text>let objConstraint = line2constraint(objLine)</text--->"
+  "<text>query line2constraint(PotsdamLine scale[0.1])</text--->"
   ") )";
 
 const string ConstraintSpecRegion2Constraint  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(region x bool) -> constraint</text--->"
+  "( <text>region x bool -> constraint</text--->"
   "<text>region2constraint( _ , _ )</text--->"
   "<text>converts a region value (set of faces = polygons with "
   "inner holes) "
@@ -5115,7 +5366,7 @@ const string ConstraintSpecRegion2Constraint  =
   "The first argument is the region, the second argument is"
   " a boolean flag which indicates if the function should also "
   " merge the triangules to bigger convex polygons if possible.</text--->"
-  "<text>let objConstraint = region2constraint(objRegion, false)</text--->"
+  "<text>query region2constraint(thecenter scale[0.1], TRUE)</text--->"
   ") )";
 
 const string ConstraintSpecConstraint2Point  =
@@ -5125,7 +5376,7 @@ const string ConstraintSpecConstraint2Point  =
   "<text>converts a constraint value (provided it does contain"
   " one single point) "
   " to a point value of the spatial-algebra.</text--->"
-  "<text>let objPoint = constraint2point(objConstraint)</text--->"
+  "<text>query constraint2point(objConstraintPoint1)</text--->"
   ") )";
 
 const string ConstraintSpecConstraint2Points  =
@@ -5134,7 +5385,7 @@ const string ConstraintSpecConstraint2Points  =
   "<text>constrain2points( _ )</text--->"
   "<text>converts a constraint value (provided it does contain points) "
   " to a points value of the spatial-algebra.</text--->"
-  "<text>let objPoints = constraint2points(objConstraint)</text--->"
+  "<text>query constraint2points(objConstraintPoints1)</text--->"
   ") )";
 
 const string ConstraintSpecConstraint2Line  =
@@ -5144,7 +5395,7 @@ const string ConstraintSpecConstraint2Line  =
   "<text>converts a constraint value (provided it does contain "
   "line-segments) "
   " to a line value of the spatial-algebra.</text--->"
-  "<text>let objLine = constraint2line(objConstraint)</text--->"
+  "<text>query constraint2line(objConstraintLine1)</text--->"
   ") )";
 
 const string ConstraintSpecConstraint2Region  =
@@ -5154,37 +5405,10 @@ const string ConstraintSpecConstraint2Region  =
   "<text>converts a stream of constraint values (provided it does "
   "contain not only points and lines) "
   " to a stream of region values of the spatial-algebra.</text--->"
-  "<text>query sfeed(objConstraint) constraint2region "
-  "transformstream consume</text--->"
+  "<text>query objConstraintPolygon1 feed constraint2region "
+  "count</text--->"
   ") )";
 
-const string ConstraintSpecTriangulate  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>stream(region) -> stream(region)</text--->"
-  "<text>_ triangulate </text--->"
-  "<text>triangulate a stream of region values into a stream of "
-  "region values (triangles)</text--->"
-  "<text>query sfeed(objRegion) triangulate transformstream "
-  "consume</text--->"
-  ") )";
-
-const string ConstraintSpecNo_Tuples  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>constraint -> int</text--->"
-  "<text>no_tuples( _ )</text--->"
-  "<text>return the number of symbolic tuples of a constraint value "
-  "(symbolic relation) </text--->"
-  "<text>query no_tuples(objConstraint)</text--->"
-  ") )";
-
-const string ConstraintSpecNo_Constraints  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>constraint -> int</text--->"
-  "<text>no_constraints( _ )</text--->"
-  "<text>return the total number of atomar linear constraints of a "
-  "constraint value (symbolic relation) </text--->"
-  "<text>query no_constraints(objConstraint)</text--->"
-  ") )";
 
 /*
 7.3.2 Definition of the operators
@@ -5196,21 +5420,15 @@ Operator constraintunion( "cunion",
                           Operator::SimpleSelect,
                           CxC2CTypeMap);
 
-Operator constraintoverlap( "coverlap",
-                          ConstraintSpecOverlap,
-                          overlapValueMap,
-                          Operator::SimpleSelect,
-                          CxC2CTypeMap);
-
 Operator constraintjoin( "cjoin",
                           ConstraintSpecJoin,
-                          overlapValueMap,
+                          intersectionValueMap,
                           Operator::SimpleSelect,
                           CxC2CTypeMap);
 
 Operator constraintintersection( "cintersection",
                           ConstraintSpecIntersection,
-                          overlapValueMap,
+                          intersectionValueMap,
                           Operator::SimpleSelect,
                           CxC2CTypeMap);
 
@@ -5231,6 +5449,36 @@ Operator constraintsatisfy( "csatisfy",
                           satisfyValueMap,
                           Operator::SimpleSelect,
                           C2BoolTypeMap);
+
+Operator constraintoverlaps( "coverlaps",
+                          ConstraintSpecOverlaps,
+                          overlapsValueMap,
+                          Operator::SimpleSelect,
+                          CxC2BoolTypeMap);
+
+Operator no_tuples( "no_tuples",
+                          ConstraintSpecNo_Tuples,
+                          no_tuplesValueMap,
+                          Operator::SimpleSelect,
+                          C2IntTypeMap);
+
+Operator no_constraints( "no_constraints",
+                          ConstraintSpecNo_Constraints,
+                          no_constraintsValueMap,
+                          Operator::SimpleSelect,
+                          C2IntTypeMap);
+
+Operator bbox( "bbox",
+                          ConstraintSpecBBox,
+                          bboxValueMap,
+                          Operator::SimpleSelect,
+                          C2RectTypeMap);
+
+Operator triangulate( "triangulate",
+                          ConstraintSpecTriangulate,
+                          triangulateValueMap,
+                          Operator::SimpleSelect,
+                          RegionStream2RegionStreamTypeMap);
 
 Operator point2constraint( "point2constraint",
                           ConstraintSpecPoint2Constraint,
@@ -5280,23 +5528,6 @@ Operator constraint2region( "constraint2region",
                           Operator::SimpleSelect,
                           CStream2RegionStreamTypeMap);
 
-Operator triangulate( "triangulate",
-                          ConstraintSpecTriangulate,
-                          triangulateValueMap,
-                          Operator::SimpleSelect,
-                          RegionStream2RegionStreamTypeMap);
-
-Operator no_tuples( "no_tuples",
-                          ConstraintSpecNo_Tuples,
-                          no_tuplesValueMap,
-                          Operator::SimpleSelect,
-                          C2IntTypeMap);
-
-Operator no_constraints( "no_constraints",
-                          ConstraintSpecNo_Constraints,
-                          no_constraintsValueMap,
-                          Operator::SimpleSelect,
-                          C2IntTypeMap);
 
 /*
 8 Creating the Algebra
@@ -5311,25 +5542,27 @@ class ConstraintAlgebra : public Algebra
     AddTypeConstructor( &constraint );
 
     constraint.AssociateKind("DATA");
+	constraint.AssociateKind("SPATIAL2D");
 
     AddOperator( &constraintunion );
-    AddOperator( &constraintoverlap );
     AddOperator( &constraintjoin );
     AddOperator( &constraintintersection );
     AddOperator( &constraintprojection );
     AddOperator( &constraintselection );
     AddOperator( &constraintsatisfy );
+    AddOperator( &constraintoverlaps );
     AddOperator( &no_tuples );
     AddOperator( &no_constraints );
-    AddOperator( &constraint2point );
-    AddOperator( &constraint2points );
-    AddOperator( &constraint2line );
-    AddOperator( &constraint2region );
+    AddOperator( &bbox );
+    AddOperator( &triangulate );
     AddOperator( &point2constraint );
     AddOperator( &points2constraint );
     AddOperator( &line2constraint );
     AddOperator( &region2constraint );
-  AddOperator( &triangulate );
+    AddOperator( &constraint2point );
+    AddOperator( &constraint2points );
+    AddOperator( &constraint2line );
+    AddOperator( &constraint2region );
   }
   ~ConstraintAlgebra() {};
 };
