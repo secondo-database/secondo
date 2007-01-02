@@ -958,10 +958,10 @@ int GetDuration( Word* args, Word& result, int message,
 const string
 TemporalSpecGetDuration  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>(periods) -> real</text--->"
+"( <text>(periods) -> duration</text--->"
 "<text>get_duration( _ )</text--->"
-"<text>Return the duration in seconds spanned by a periods value "
-"as a real value.</text--->"
+"<text>Return the duration in spanned by a periods value "
+"as a duration value.</text--->"
 "<text>query get_duration(periods)</text---> ) )";
 
 /*
@@ -3720,7 +3720,7 @@ int MPointDerivable( Word* args, Word& result, int message,
             b.Set(true,false);
 
           UBool boolvalue(uReal->timeInterval,b);
-          res->Add( boolvalue );
+          res->MergeAdd( boolvalue );
         }
       res->EndBulkLoad( false );
     }
@@ -3862,7 +3862,7 @@ int MPointDerivative( Word* args, Word& result, int message,
               uReal.c = Unit->b;
               uReal.r = Unit->r;
               uReal.SetDefined(true);
-              res->Add( uReal );
+              res->MergeAdd( uReal );
             }
           // else: Do nothing. Do NOT add an undefined unit!
           //       (That would conflict e.g. with operator deftime())
@@ -5485,8 +5485,9 @@ ListExpr TemporalUnitIntersectionTypeMap( ListExpr args )
   nl->WriteToString(argstr1, arg1);
   nl->WriteToString(argstr2, arg2);
   ErrorReporter::ReportError(
-    "Operator intersection expects two arguments of the same type T, "
-    "where T in {ubool, uint, ureal, ustring, upoint}"
+    "Operator intersection expects argumentlist (T,T), (uT,T), (T,uT), "
+    "where T in {ubool, uint, ureal, ustring, upoint}\n or a combination of "
+    "{upoint,line}, {upoint,uregion}, {upoint,region}.\n"
     "The passed arguments have types '"+ argstr1 +"' and '"
     + argstr2 + "'.");
   return nl->SymbolAtom("typeerror");
@@ -7493,13 +7494,12 @@ TUIsemptyTypeMap( ListExpr args )
   if ( ( nl->ListLength(args) == 1 ) && ( nl->IsAtom(nl->First(args) ) ) )
     {
       arg1 = nl->First(args);
-      if( am->CheckKind("DATA", arg1, errorInfo) &&
-          am->CheckKind("UNIT", arg1, errorInfo))
-        return arg1;
+      if( am->CheckKind("UNIT", arg1, errorInfo) )
+        return nl->SymbolAtom("bool");
     }
   ErrorReporter::ReportError("Operator isempty expects a list of length one, "
                              "containing a value of type 'U' with U in "
-                             "kind UNIT and in kind DATA.");
+                             "kind UNIT.");
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -7525,13 +7525,13 @@ int TUIsemptyValueMap( Word* args, Word& result, int message,
 */
 const string TUIsemptySpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>For U in kind UNIT and in kind DATA:\n"
+  "( <text>For U in kind UNIT:\n"
   "U -> bool</text--->"
   "<text>isempty( _ )</text--->"
   "<text>The operator returns TRUE, if the unit is undefined, "
   "otherwise it returns FALSE. It will never return an "
   "undefined result!</text--->"
-  "<text>query is_empty([const uint value undef])</text--->"
+  "<text>query isempty([const uint value undef])</text--->"
   ") )";
 
 /*
@@ -8749,7 +8749,7 @@ const string  TemporalUnitNeverSpec =
   "("
   "<text>"
   "ubool -> bool\n"
-  "ubool -> bool\n"
+  "(stream ubool) -> bool\n"
   "</text--->"
   "<text>never( _ )</text--->"
   "<text>Returns 'true', iff the ubool/stream does never take value 'true', "

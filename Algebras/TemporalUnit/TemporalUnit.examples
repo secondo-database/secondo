@@ -196,159 +196,206 @@ Result   :
 
 Operator : deftime
 Number   : 1
-Signature: uT -> periods
-(for T in {bool, int, real, string, point, region})
-Example  : query deftime( up1 )
+Signature: ubool -> periods
+Example  : query deftime( the_unit(TRUE, six30, nine, FALSE, FALSE) )
 Result   :
+
+
+Operator : deftime
+Number   : 2
+Signature: uint -> periods
+Example  : query deftime( the_unit(-56, six30, nine, FALSE, FALSE) )
+Result   :
+
+
+Operator : deftime
+Number   : 3
+Signature: ureal -> periods
+Example  : query deftime( the_unit(3.0, -2.0, 1.0, TRUE, six30, nine, FALSE, FALSE) )
+Result   :
+
+
+Operator : deftime
+Number   : 4
+Signature: ustring -> periods
+Example  : query deftime( the_unit("test", six30, nine, FALSE, FALSE) )
+Result   :
+
+
+Operator : deftime
+Number   : 5
+Signature: upoint -> periods
+Example  : query deftime( the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, FALSE) )
+Result   :
+
+
+Operator : deftime
+Number   : 6
+Signature: uregion -> periods
+Example  : query deftime( the_unit(TRUE, six30, nine, FALSE, FALSE) )
+Result   : NOTYETIMPLEMENTED
 
 
 Operator : derivable
 Number   : 1
 Signature: mreal -> mbool
-ureal -> ubool
-Example  : query derivable (mreal)
-Result   :
+Example  : query derivable(speed(train1))
+Result   : ((("2003-11-20-06:03" "2003-11-20-06:43" TRUE FALSE)TRUE))
+
+
+Operator : derivable
+Number   : 2
+Signature: ureal -> ubool
+Example  : query derivable (the_unit(3.0, -2.0, 1.0, TRUE, six30, nine, TRUE, TRUE))
+Result   : (("2003-11-20-06:30" "2003-11-20-09:00" TRUE TRUE)FALSE)
 
 
 Operator : derivative
 Number   : 1
-Signature: {m|u}real -> {m|u}real
-Example  : query derivable (mreal)
-Result   :
+Signature: ureal -> ureal
+Example  : query derivative(the_unit(3.0, -2.0, 1.0, FALSE, six30, nine, TRUE, TRUE))
+Result   : (("2003-11-20-06:30" "2003-11-20-09:00" TRUE TRUE)(0.0 6.0 -2.0 FALSE))
+
+
+Operator : derivative
+Number   : 2
+Signature: mreal -> mreal
+Example  : query derivative(the_unit(3.0, -2.0, 1.0, FALSE, six30, nine, TRUE, TRUE) feed the_mvalue)
+Result   : ((("2003-11-20-06:30" "2003-11-20-09:00" TRUE TRUE)(0.0 6.0 -2.0 FALSE))))
 
 
 Operator : distance
 Number   : 1
 Signature: (uT uT) -> ureal
-Example  : query distance(upoint1,point1)
-Result   :
+Example  : query distance(the_unit(alexanderplatz, mehringdamm, six30, nine, TRUE, FALSE), the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE))
+Result   : (("2003-11-20-06:30" "2003-11-20-09:00" TRUE TRUE)(4.4016205824E9 -4.58502144E8 1.194016E7 TRUE))
 
 
 Operator : distance
 Number   : 2
 Signature: (uT  T) -> ureal
-Example  : query distance(upoint1,point1)
-Result   :
+Example  : query distance(the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE), makepoint( (getx(mehringdamm + alexanderplatz)/2) + 100.0 , (gety(mehringdamm + alexanderplatz)/2) + 100.0))
+Result   : (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(1.1004051456E9 -1.05609216E8 2535440.0 TRUE))
 
 
 Operator : distance
 Number   : 3
 Signature: ( T uT) -> ureal
-Example  : query distance(upoint1,point1)
-Result   :
+Example  : query distance(alexanderplatz, the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE))
+Result   :(("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(1.1004051456E9 -0.0 0.0 TRUE))
 
 
 Operator : final
 Number   : 1
 Signature: uT -> iT
 (stream uT) -> iT
-Example  : query final( upoint1 )
-Result   :
+Example  : query final(the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE))
+Result   : ("2003-11-20-09:00" (9396.0 9871.0))
 
 
 Operator : final
 Number   : 2
 Signature: (stream uT) -> iT
-Example  : query final( upoint1 )
-Result   :
+Example  : query final(units(train1))
+Result   : ("2003-11-20-06:43" (-521.0 3925.0))
 
 
 Operator : get_duration
 Number   : 1
-Signature: (periods) -> real
-Example  : query get_duration(periods)
-Result   :
+Signature: (periods) -> duration
+Example  : query get_duration(deftime(train1))
+Result   : (0 2400000)
 
 
 Operator : initial
 Number   : 1
 Signature: uT -> iT
-Example  : query initial( upoint1 )
-Result   :
+Example  : query initial(the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE))
+Result   : ("2003-11-20-06:30" (11068.0 12895.0))
 
 
 Operator : initial
 Number   : 2
 Signature: (stream uT) -> iT
-Example  : query initial( upoint1 )
-Result   :
+Example  : query initial(units(train1))
+Result   : ("2003-11-20-06:03" (13506.0 11159.0))
 
 
 Operator : inside
 Number   : 1
 Signature: (upoint  uregion) -> (stream ubool)
-Example  : query upoint1 inside uregion1 count
-Result   :
+Example  : query (the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE) inside ( units(mrain) head[1] transformstream extract[elem])) the_mvalue
+Result   : ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)FALSE))
 
 
 Operator : intersection
 Number   : 1
 Signature: (uT uT) -> (stream uT)
-Example  : query intersection(upoint1, upoint2) count
-Result   :
+Example  : query intersection(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE), the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE)) transformstream extract[elem]
+Result   : (("2003-11-20-07:45" "2003-11-20-07:45" TRUE TRUE)(10232.0 11383.0 10232.0 11383.0))
 
 
 Operator : intersection
 Number   : 2
 Signature: (uT  T) -> (stream uT)
-Example  : query intersection(upoint1, upoint2) count
-Result   :
+Example  : query intersection(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE), mehringdamm) count
+Result   : 0
 
 
 Operator : intersection
 Number   : 3
 Signature: ( T uT) -> (stream uT)
-Example  : query intersection(upoint1, upoint2) count
-Result   :
+Example  : query intersection(alexanderplatz, the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE)) count
+Result   : 1
 
 
 Operator : intersection
 Number   : 4
 Signature: (line upoint) -> (stream upoint)
-Example  : query intersection(upoint1, upoint2) count
-Result   :
+Example  : query intersection(strassen feed head[105] aggregateB[geoData; fun(l1:line, l2:line) union_new(l1, l2); [const line value ()] ], the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE)) the_mvalue
+Result   : ((("2003-11-20-06:36:41.132" "2003-11-20-06:36:41.132" TRUE TRUE)(9470.521411555555 10005.780352 9470.521411555555 10005.780352))(("2003-11-20-06:45:12.127" "2003-11-20-06:45:12.127" TRUE TRUE)(9565.452927111111 10177.474672 9565.452927111111 10177.474672))(("2003-11-20-06:47:39.480" "2003-11-20-06:47:39.480" TRUE TRUE)(9592.82784 10226.98528 9592.82784 10226.98528)))
 
 
 Operator : intersection
 Number   : 5
 Signature: (upoint line) -> (stream upoint)
-Example  : query intersection(upoint1, upoint2) count
-Result   :
+Example  : query intersection(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE), strassen feed head[105] aggregateB[geoData; fun(l1:line, l2:line) union_new(l1, l2); [const line value ()] ]) the_mvalue
+Result   : ((("2003-11-20-06:36:41.132" "2003-11-20-06:36:41.132" TRUE TRUE)(9470.521411555555 10005.780352 9470.521411555555 10005.780352))(("2003-11-20-06:45:12.127" "2003-11-20-06:45:12.127" TRUE TRUE)(9565.452927111111 10177.474672 9565.452927111111 10177.474672))(("2003-11-20-06:47:39.480" "2003-11-20-06:47:39.480" TRUE TRUE)(9592.82784 10226.98528 9592.82784 10226.98528)))
 
 
 Operator : intersection
 Number   : 6
 Signature: (upoint uregion) -> (stream upoint)
-Example  : query intersection(upoint1, upoint2) count
-Result   :
+Example  : query intersection(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE), units(msnow) transformstream extract[elem]) count
+Result   : 0
 
 
 Operator : intersection
 Number   : 7
 Signature: (uregion upoint) -> (stream upoint)
-Example  : query intersection(upoint1, upoint2) count
-Result   :
+Example  : query intersection(units(msnow) transformstream extract[elem], the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE)) count
+Result   : 0
 
 
 Operator : intersection
 Number   : 8
 Signature: (upoint region) -> (stream upoint)
-Example  : query intersection(upoint1, upoint2) count
-Result   :
+Example  : query intersection(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE), thecenter) the_mvalue
+Result   : ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(9395.999999998783 9870.999999997799 11068.0 12895.0)))
 
 
 Operator : intersection
 Number   : 9
 Signature: (region upoint) -> (stream upoint)
-Example  : query intersection(upoint1, upoint2) count
-Result   :
+Example  : query intersection(thecenter, the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE)) the_mvalue
+Result   : ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(9395.999999998783 9870.999999997799 11068.0 12895.0)))
 
 
 Operator : isempty
 Number   : 1
 Signature: U -> bool
-Example  : query is_empty([const uint value undef])
-Result   :
+Example  : query isempty([const uint value undef])
+Result   : TRUE
 
 
 Operator : makemvalue
