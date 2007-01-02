@@ -7421,10 +7421,11 @@ Used by ~intersection~:
 static ListExpr MPointMRegionToMPointTypeMap(ListExpr args)
 {
     if (MRA_DEBUG)
+    {
         cerr << "MPointMRegionToMPointTypeMap() called" << endl;
-
-    cerr << nl->SymbolValue(nl->First(args)) << endl;
-    cerr << nl->SymbolValue(nl->Second(args)) << endl;
+        cerr << nl->SymbolValue(nl->First(args)) << endl;
+        cerr << nl->SymbolValue(nl->Second(args)) << endl;
+    }
 
     if (nl->ListLength(args) == 2
         && nl->IsEqual(nl->First(args), "mpoint")
