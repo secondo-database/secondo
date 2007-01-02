@@ -1971,12 +1971,46 @@ ListExpr CreateDurationTM(ListExpr args){
   return nl->SymbolAtom("typeerror");
 }
 
+ListExpr CreateInstantTM(ListExpr args){
+  if(nl->ListLength(args)==1)
+    if ( nl->IsEqual(nl->First(args),"real") )
+      return nl->SymbolAtom("instant");
+    else{
+          ErrorReporter::ReportError("one real value expected\n");
+          return nl->SymbolAtom("typeerror");
+        }
+  if(nl->ListLength(args)==2){
+    if(nl->IsEqual(nl->First(args),"int") &&
+       nl->IsEqual(nl->Second(args),"int"))
+      return nl->SymbolAtom("instant");
+    else{
+          ErrorReporter::ReportError("two int values expected\n");
+          return nl->SymbolAtom("typeerror");
+        }
+  }
+  ErrorReporter::ReportError("One or two arguments required\n");
+  return nl->SymbolAtom("typeerror");
+}
+
+
 ListExpr Duration2RealTM(ListExpr args){
   if(nl->ListLength(args)==1)
     if ( nl->IsEqual(nl->First(args),"duration") )
       return nl->SymbolAtom("real");
     else{
           ErrorReporter::ReportError("one duration value expected\n");
+          return nl->SymbolAtom("typeerror");
+        }
+  ErrorReporter::ReportError("One argument required\n");
+  return nl->SymbolAtom("typeerror");
+}
+
+ListExpr Instant2RealTM(ListExpr args){
+  if(nl->ListLength(args)==1)
+    if ( nl->IsEqual(nl->First(args),"instant") )
+      return nl->SymbolAtom("real");
+    else{
+          ErrorReporter::ReportError("one instant value expected\n");
           return nl->SymbolAtom("typeerror");
         }
   ErrorReporter::ReportError("One argument required\n");
@@ -2278,7 +2312,7 @@ int WeekdayFun(Word* args, Word& result, int message,
     return 0;
 }
 
-int Duration2RealFun(Word* args, Word& result, int message,
+int DateTime2RealFun(Word* args, Word& result, int message,
                Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T = (DateTime*) args[0].addr;
@@ -2293,6 +2327,7 @@ int Duration2RealFun(Word* args, Word& result, int message,
       }
     return 0;
 }
+
 
 int CreateDurationFromRealFun(Word* args, Word& result, int message,
                               Word& local, Supplier s){
@@ -2323,7 +2358,7 @@ int CreateDurationFromIntIntFun(Word* args, Word& result, int message,
     DateTime* T = (DateTime*)result.addr;
 
     T->SetType(durationtype);
-    if(Idays->IsDefined() && Imsec->IsDefined())
+    if(Idays->IsDefined() && Imsec->IsDefined() && Imsec->GetIntval() >= 0.0)
       {
         *T = DateTime(Idays->GetIntval(),Imsec->GetIntval(),durationtype);
         T->SetDefined(true);
@@ -2335,6 +2370,49 @@ int CreateDurationFromIntIntFun(Word* args, Word& result, int message,
       }
     return 0;
 }
+
+int CreateInstantFromRealFun(Word* args, Word& result, int message,
+                              Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    CcReal* R = (CcReal*) args[0].addr;
+    DateTime* T = (DateTime*)result.addr;
+
+    T->SetType(instanttype);
+    if(R->IsDefined())
+      {
+        double days = R->GetRealval();
+        T->ReadFrom(days);
+        T->SetDefined(true);
+      }
+    else
+      {
+        T->ReadFrom(0.0);
+        T->SetDefined(false);
+      }
+    return 0;
+}
+
+int CreateInstantFromIntIntFun(Word* args, Word& result, int message,
+                                Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    CcInt* Idays = (CcInt*) args[0].addr;
+    CcInt* Imsec = (CcInt*) args[1].addr;
+    DateTime* T = (DateTime*)result.addr;
+
+    T->SetType(instanttype);
+    if(Idays->IsDefined() && Imsec->IsDefined() && Imsec->GetIntval() >= 0.0)
+      {
+        *T = DateTime(Idays->GetIntval(),Imsec->GetIntval(),instanttype);
+        T->SetDefined(true);
+      }
+    else
+      {
+        *T = DateTime(0,0,instanttype);
+        T->SetDefined(false);
+      }
+    return 0;
+}
+
 /*
 4.3 Specifications
 
@@ -2509,6 +2587,14 @@ const string Duration2RealSpec =
    "'Converts the duration to a real giving the duration in days.'  "
    "'query duration2real([const duration value (-5 1000)])' ))";
 
+const string Instant2RealSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \"instant -> real\""
+   "\"instant2real( _ )  \" "
+   "'Converts the instant to a real giving the distance to "
+   "the NULL_DAY in days.'  "
+   "'query duration2real([const instant value (-5 1000)])' ))";
+
 const string CreateDurationSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"(real) -> duration\n(int int) -> duration \""
@@ -2516,6 +2602,14 @@ const string CreateDurationSpec =
    "'Create a duration value from a real (days) or a pair of int "
    "(days, milliseconds). Parameter milliseconds must be >=0'  "
    "\"query create_duration(10, 5) \" ))";
+
+const string CreateInstantSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \"(real) -> instant\n(int int) -> instant \""
+   "\"create_instant( _ )\ncreate_instant( _ , _ )\" "
+   "'Create an instant value from a real (days) or a pair of int "
+   "(days, milliseconds). Parameter milliseconds must be >=0'  "
+   "\"query create_instant(10, 5) \" ))";
 
 /*
 4.3 ValueMappings of overloaded Operators
@@ -2530,6 +2624,10 @@ ValueMapping TheInstantValueMap[] = {
 ValueMapping CreateDurationValueMap[] = {
         CreateDurationFromRealFun,
         CreateDurationFromIntIntFun };
+
+ValueMapping CreateInstantValueMap[] = {
+        CreateInstantFromRealFun,
+        CreateInstantFromIntIntFun };
 
 ValueMapping DayValueMap[] = {
         DayFun,
@@ -2729,9 +2827,16 @@ Operator dt_theInstant(
 Operator dt_duration2real(
        "duration2real",    // name
        Duration2RealSpec,  // specification
-       Duration2RealFun,
+       DateTime2RealFun,
        Operator::SimpleSelect,
        Duration2RealTM );
+
+Operator dt_instant2real(
+       "instant2real",    // name
+       Instant2RealSpec,  // specification
+       DateTime2RealFun,
+       Operator::SimpleSelect,
+       Instant2RealTM );
 
 Operator dt_create_duration(
        "create_duration",          // name
@@ -2740,6 +2845,14 @@ Operator dt_create_duration(
        CreateDurationValueMap,
        TheInstantSelect,
        CreateDurationTM);
+
+Operator dt_create_instant(
+       "create_instant",          // name
+       CreateInstantSpec,         // specification
+       2,                          // number of functions
+       CreateInstantValueMap,
+       TheInstantSelect,
+       CreateInstantTM);
 
 
 /*
@@ -2783,7 +2896,9 @@ class DateTimeAlgebra : public Algebra
     AddOperator(&dt_minDuration);
     AddOperator(&dt_maxDuration);
     AddOperator(&dt_create_duration);
+    AddOperator(&dt_create_instant);
     AddOperator(&dt_duration2real);
+    AddOperator(&dt_instant2real);
   }
   ~DateTimeAlgebra() {};
 };

@@ -38,6 +38,8 @@ operator today alias TODAY pattern op()
 operator theInstant alias THEINSTANT pattern op(_)
 operator / alias DIVIDE pattern _ infixop _
 operator create_duration alias CREATE_DURATION pattern op ( _ , _ )
+operator create_instant alias CREATE_INSTANT pattern op ( _ , _ )
 operator duration2real alias DURATION2REAL pattern op ( _ )
+operator instant2real alias INSTANT2REAL pattern op ( _ )
 
 
