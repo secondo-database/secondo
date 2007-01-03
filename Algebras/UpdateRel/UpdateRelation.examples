@@ -1,150 +1,150 @@
-Database: berlintest
-Restore : No
+Database: staedtetest
+Restore : NO
 
 Operator : addid
 Number   : 1
 Signature: stream(tuple(x))  -> stream(tuple(x@[TID:tid]))] 
-Example  : query staedte feed addid consume
-Result   : 
+Example  : query Staedte feed addid consume
+Result   : file
 
 
 Operator : createdeleterel
 Number   : 1
 Signature: rel(tuple(x)) -> rel(tuple(x@[TID:tid]))] 
-Example  : query staedte createdeleterel
-Result   : 
+Example  : query Staedte createdeleterel
+Result   : file
 
 
 Operator : createinsertrel
 Number   : 1
 Signature: rel(tuple(x)) -> rel(tuple(x@[TID:tid]))] 
-Example  : query staedte createinsertrel 
-Result   : 
+Example  : query Staedte createinsertrel 
+Result   : file
 
 
 Operator : createupdaterel
 Number   : 1
 Signature: rel(tuple(x)) -> rel(tuple(x@[(a1_old x1)...(an_old xn)(TID:tid)]))] 
-Example  : query staedte createupdaterel 
-Result   : 
+Example  : query Staedte createupdaterel 
+Result   : file
 
 
 Operator : deletebyid
 Number   : 1
 Signature: rel(tuple(x))) x (tid)  -> stream(tuple(x@[TID:tid]))] 
-Example  : query staedte deletebyid [[const tid value (5)]] count
-Result   : 
+Example  : query Staedte1 deletebyid[[const tid value 5]] consume
+Result   : file
 
 
 Operator : deletedirect
 Number   : 1
 Signature: stream(tuple(x)) x rel(tuple(x)) -> stream(tuple(x@[TID:tid]))] 
-Example  : query staedte feed filter [.SName = 'Hagen']staedte deletedirect consume
-Result   : 
+Example  : query Staedte2 feed filter [.SName = "Hagen"] Staedte deletedirect consume
+Result   : file
 
 
 Operator : deletedirectsave
 Number   : 1
 Signature: stream(tuple(x)) x rel(tuple(x)) x rel(tuple(x@[TID:tid])) -> stream(tuple(x@[TID:tid]))] 
-Example  : query staedte feed filter [.Bev > 200000] staedte staedteD deletedirectsave consume
-Result   : 
+Example  : query Staedte3 feed filter [.Bev > 200000] Staedte3 StaedteD deletedirectsave count
+Result   : 29
 
 
 Operator : deletertree
 Number   : 1
 Signature: stream(tuple(x@[TID: tid])) x rtree(tuple(x) ti) x xi) -> stream(tuple(x@[TID: tid]))] 
-Example  : query staedte feed filter [.Name = 'Hagen']  staedte deletedirect staedte_Ort deletertree [Ort] count 
-Result   : 
+Example  : query Kinos2 feed filter[.Name contains "UCI"] Kinos2 deletedirect Kinos2_Ort deletertree[Ort] consume
+Result   : file
 
 
 Operator : deletesearch
 Number   : 1
 Signature: stream(tuple(x)) x rel(tuple(x)) -> stream(tuple(x@[TID:tid]))] 
-Example  : query alteStaedte feed staedte deletesearch consume
-Result   : 
+Example  : query Staedte feed filter[.SName = "Hannover"] Staedte4 deletesearch consume
+Result   : file
 
 
 Operator : deletesearchsave
 Number   : 1
 Signature: stream(tuple(x)) x rel(tuple(x)) x rel(tuple(x@[TID:tid])) -> stream(tuple(x@[TID:tid]))] 
-Example  : query alteStaedte feed staedte staedteD deletesearchsave consume
-Result   : 
+Example  : query Staedte feed filter[.SName = "Hannover"] Staedte5 StaedteD deletesearchsave count
+Result   : 1
 
 
 Operator : insert
 Number   : 1
 Signature: stream(tuple(x)) x rel(tuple(x)) -> stream(tuple(x@[TID:tid]))] 
-Example  : query neueStaedte feed staedte insert consume
-Result   : 
+Example  : query Grossstaedte feed Kleinstaedte1 insert count
+Result   : 12
 
 
 Operator : insertrtree
 Number   : 1
 Signature: stream(tuple(x@[TID:tid])) x rtree(tuple(x) ti) x xi -> stream(tuple(x@[TID:tid]))] 
-Example  : query neueStaedte feed staedte insert staedte_Ort  insertrtree [Ort] count 
-Result   : 
+Example  : query Kinos feed filter[.Name contains "UCI"] KinosOhneUCI1 insert KinosOhneUCI1_Ort insertrtree[Ort] count
+Result   : 4
 
 
 Operator : insertsave
 Number   : 1
 Signature: stream(tuple(x)) x rel(tuple(x)) x rel(tuple(x@[TID:tid])) -> stream(tuple(x@[TID:tid]))] 
-Example  : query neueStaedte feed staedte staedteI insertsave consume
-Result   : 
+Example  : query Grossstaedte feed Kleinstaedte2 KleinstaedteI insertsave count
+Result   : 12
 
 
 Operator : inserttuple
 Number   : 1
 Signature: rel(tuple(x))) x [t1 ... tn] -> stream(tuple(x@[TID:tid]))] 
-Example  : query staedte inserttuple['Kassel', 200000, 50000] consume
-Result   : 
+Example  : query Kleinstaedte3 inserttuple["Bremen", 526000, 2800, "0421", "HB"] count
+Result   : 1
 
 
 Operator : inserttuplesave
 Number   : 1
 Signature: rel(tuple(x)) x rel(tuple(x@[TID:tid])) x [t1 ... tn] -> stream(tuple(x@[TID:tid]))] 
-Example  : query staedte staedteI inserttuplesave['Kassel', 200000, 50000] consume
-Result   : 
+Example  : query Kleinstaedte4 KleinstaedteI inserttuplesave["Bremen", 526000, 2800, "0421", "HB"] count
+Result   : 1
 
 
 Operator : updatebyid
 Number   : 1
 Signature: stream(tuple(x))) x (rel(tuple(x))) x (tid) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> dn))] -> stream(tuple(x @[x1_old t1] @...[xn_old tn] @[TID tid])))
-Example  : query staedte feed staedte updatebyid [[const tid value (5)] (Bev: .Bev + 1000, PLZ: .PLZ - 50] count
-Result   : 
+Example  : query Staedte6 updatebyid[[const tid value 10]; Bev: .Bev + 10000, PLZ: 44225] consume
+Result   : file
 
 
 Operator : updatedirect
 Number   : 1
 Signature: stream(tuple(x)) x rel(tuple(x)) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> dn))] -> stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid])))
-Example  : query ten feed ten updatedirect [nr: .nr * 5] consume
-Result   : 
+Example  : query ten1 feed ten1 updatedirect [no: .no * 5] consume
+Result   : file
 
 
 Operator : updatedirectsave
 Number   : 1
 Signature: stream(tuple(x)) x rel(tuple(x)) x rel(tuple(x @ x @ [TID tid])) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> dn))] -> stream(tuple(x @[x1_old t1]@ ...[xn_old tn] @ [TID tid]))
-Example  : query ten feed ten tenU updatedirectsave [nr : .nr * 5] consume
-Result   : 
+Example  : Crashes: query ten2 feed ten2 tenU updatedirectsave [no : .no * 5] count
+Result   : "Error"
 
 
 Operator : updatertree
 Number   : 1
 Signature: stream(tuple(x@[(a1_old x1) ... (an_old xn) (TID: tid)])) x rtree(tuple(x) ti) x xi -> stream(tuple(x@[(a1_old x1) ... (an_old xn) (TID: tid)]))] 
-Example  : query staedte feed filter [.Name = 'Hagen']  staedte updatedirect [Ort : newRegion] staedte_Ort updatertree [Ort] count 
-Result   : 
+Example  : query Kinos1 feed filter[.Name = "Passage"] Kinos1 updatedirect[Ort: PassageNeu] Kinos1_Ort updatertree[Ort] consume
+Result   : file
 
 
 Operator : updatesearch
 Number   : 1
 Signature: stream(tuple(x)) x rel(tuple(x)) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> dn))] -> stream(tuple(x @ [x1_old t1]@...[xn_old tn] @ [TID tid])))
-Example  : query staedteUpdate feed staedte updatesearch [Bev: .Bev + 1000] consume
-Result   : 
+Example  : query Staedte feed filter[.SName = "Hannover"] Staedte7 updatesearch[Bev: .Bev + 1000] count
+Result   : 1
 
 
 Operator : updatesearchsave
 Number   : 1
 Signature: stream(tuple(x)) x rel(tuple(x)) x (rel(tuple(x @ x @ [TID tid]))) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> dn))] -> stream(tuple(x @[x1_old t1]@...[xn_old t1] @ [TID tid]))
-Example  : query staedteUp feed staedte staedteU updatesearchsave[Bev: .Bev + 1000] consume
-Result   : 
+Example  : Crashes: query Staedte feed filter[.SName = "Hannover"] Staedte8 StaedteU updatesearchsave[Bev: .Bev + 1000] consume
+Result   : "Error"
 
 
