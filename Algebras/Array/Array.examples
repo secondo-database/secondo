@@ -5,14 +5,14 @@ Operator : ELEMENT2
 Number   : 1
 Signature: ((array t) (array u) ... ) -> u
 Example  : query intset_a10 intset_a10 loopa[. + ..]
-Result   : ((array int) (2 4 6 8 10 12 14 16 18 20)) 
+Result   : ((array int) (2 4 6 8 10 12 14 16 18 20))
 
 
 Operator : ELEMENT
 Number   : 1
 Signature: ((array t) ... ) -> t
 Example  : query intset_a10 realset_a10 loopa[. + (.. * 1.2)]
-Result   : ((array real) (2.2 4.4 6.6 8.8 11.0 13.2 15.4 17.6 19.8 22.0)) 
+Result   : ((array real) (2.2 4.4 6.6 8.8 11.0 13.2 15.4 17.6 19.8 22.0))
 
 
 Operator : cumulate
@@ -67,8 +67,8 @@ Result   : 248793
 Operator : loopselecta
 Number   : 1
 Signature: ((array t) (array u) ((name1 (map t u r)) ... (namen (map t u r))) int real) -> (array r)
-Example  : query ai al loopselecta[f:fun(i1:int,l1:int)(i1 mod l1), g:fun(i2:int,l2:int)(i2-(i2 div l2)*l2); 10, 0.1]
-Result   : 
+Example  : query plz_a20_PLZ plz_a20 loopselecta[f: . .. exactmatch[58084] count; 5, 0.1] tie[. + ..]
+Result   : 'Bug: there must be a bug in the btree type since loopselecta and loopswitcha do not work with (array btree) whereas on other types they work' 
 
 
 Operator : loopselectb
@@ -88,8 +88,8 @@ Result   : 248793
 Operator : loopswitcha
 Number   : 1
 Signature: ((array t) (array u) ((name1 (map t u r)) ... (namen (map t u r)))) -> (array r)
-Example  : query ai al loopswitcha[f:fun(i1:int,l1:int)(i1 mod l1), g:fun(i2:int,l2:int)(i2-(i2 div l2)*l2)]
-Result   : 
+Example  : query plz_a20 plz_a20 loopswitcha[f: . count + .. count] tie[. + ..] / 2
+Result   : 41267.0
 
 
 Operator : loopswitchb
@@ -109,7 +109,7 @@ Result   : 4
 Operator : partjoin
 Number   : 1
 Signature: ((array (rel t)) (array (rel u)) (map (rel t) (rel u) r)) -> (array r)
-Example  : query plz_a20 plz_a20 partjoin[ . feed .. feed {ren1} hashjoin[PLZ, PLZ_ren1, 997] count]
+Example  : query plz_a20 plz_a20 partjoin[ . feed .. feed {ren1} hashjoin[PLZ, PLZ_ren1, 997] count] tie[. + ..]
 Result   : 248793 
 
 
@@ -131,7 +131,7 @@ Operator : put
 Number   : 1
 Signature: ((array t) t int) -> (array t)
 Example  : query put(stringset_a4, "array of strings!", 3)
-Result   : ((array(string)) ("This" "is" "an" "array of strings!")
+Result   : ((array string) ("This" "is" "an" "array of strings!"))
 
 
 Operator : size

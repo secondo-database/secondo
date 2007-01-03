@@ -91,6 +91,10 @@ value mapping of the ~summarize~ operator.
 
 June 2006, V. Almeida moved some code to the FunVector.h and FunVector.cpp files
 
+Januar 2007, Some bug fixes. However, loopswitcha and loopselect a do not work for arrays
+of btree. 
+
+
 1 Preliminaries
 
 1.1 Includes
@@ -506,8 +510,8 @@ OpenArray( SmiRecord& valueRecord, size_t& offset,
            const ListExpr typeInfo, Word& value )
 {
   ListExpr valueList = 0;
-  string valueString;
-  int valueLength;
+  string valueString = "";
+  int valueLength = 0;
 
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   bool correct;
@@ -1390,7 +1394,8 @@ cumulateFun( Word* args, Word& result, int message, Word& local, Supplier s )
       qp->Request(args[1].addr, funresult);
 
       if (funresult.addr != cumResult.addr) {
-        (am->DeleteObj(algebraId, typeId))(typeOfElement, cumResult);
+        //(am->DeleteObj(algebraId, typeId))(typeOfElement, cumResult);
+        // SPM: will be deleted by the QP's destroy function. 
         cumResult = genericClone(algebraId, typeId, typeOfElement, funresult);
       }
     }
@@ -2798,6 +2803,7 @@ appendToRel( Word& relation, Word append )
     rel->AppendTuple(tuple);
     tuple->DeleteIfAllowed();
   }
+  delete rit;
 }
 
 /*
