@@ -1017,7 +1017,7 @@ Result   : file
 Operator : union
 Number   : 1
 Signature: mpoint x region -> mregion
-Example  : query (train7 at the center) union thecenter
+Example  : query (train7 at thecenter) union thecenter
 Result   : file
 
 
