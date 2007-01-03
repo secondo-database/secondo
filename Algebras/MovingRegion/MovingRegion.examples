@@ -1,0 +1,103 @@
+Database: berlintest
+Restore: NO
+
+
+Operator : at
+Number   : 1
+Signature: mpoint x region -> mpoint
+Example  : query val(initial(train7 at thecenter))
+Result   : (point(13083.68986189901,6898.797053983461))
+
+
+Operator : atinstant
+Number   : 1
+Signature: mregion x instant -> iregion
+Example  : query val(mrain atinstant six30)
+Result   : file
+
+
+
+Operator : bbox
+Number   : 1
+Signature: uregion -> rect3
+Example  : query bbox(units(mrain) transformstream extract[elem])
+Result   : file
+
+
+Operator : deftime
+Number   : 1
+Signature: mregion -> periods
+Example  : query deftime(mrain)
+Result   : (periods(("2003-11-20-06:06" "2003-11-20-08:10" TRUE TRUE)))
+
+
+Operator : final
+Number   : 1
+Signature: mregion -> iregion
+Example  : query inst(final(mrain))
+Result   : (instant "2003-11-20-08:10")
+
+
+Operator : initial
+Number   : 1
+Signature: mregion -> iregion
+Example  : query inst(initial(mrain))
+Result   : (instant "2003-11-20-06:06")
+
+
+Operator : inside
+Number   : 1
+Signature: mpoint x mregion -> mbool
+Example  : query val(initial(train7 inside mrain2))
+Result   : FALSE
+
+
+Operator : inst
+Number   : 1
+Signature: iregion -> instant
+Example  : query inst(initial(mrain))
+Result   : (instant "2003-11-20-06:06")
+
+
+Operator : intersection
+Number   : 1
+Signature: (mpoint mregion) -> mpoint
+Example  : query intersection(train7, mrain2)
+Result   : file
+
+
+Operator : move
+Number   : 1
+Signature: mpoint x region -> mregion
+Example  : query inst(initial(move(train7, thecenter)))
+Result   : (instant "2003-11-20-06:06")
+
+
+Operator : present
+Number   : 1
+Signature: mregion x instant -> bool
+Example  : query mrain2 present six30
+Result   : TRUE
+
+
+Operator : units
+Number   : 1
+Signature: movingregion -> (stream uregion)
+Example  : query units(mrain) transformstream extract[elem]
+Result   : file
+
+
+Operator : val
+Number   : 1
+Signature: iregion -> region
+Example  : query val(initial(mrain))
+Result   : file
+
+
+Operator : vertextrajectory
+Number   : 1
+Signature: mregion -> line
+Example  : query vertextrajectory(mrain)
+Result   : file
+
+
