@@ -26,7 +26,7 @@ Operator : attrsize
 Number   : 1
 Signature: stream|rel(tuple X) x ident -> real
 Example  : query Orte attrsize[Ort]
-Result   : 56
+Result   : 56.0
 
 
 Operator : consume
@@ -54,14 +54,14 @@ Operator : extattrsize
 Number   : 1
 Signature: stream|rel(tuple X) x ident -> real
 Example  : query Trains extattrsize[Trip]
-Result   : 48
+Result   : 48.0
 
 
 Operator : exttuplesize
 Number   : 1
 Signature: ((stream/rel (tuple x))) -> real
 Example  : query Trains exttuplesize
-Result   : 80
+Result   : 80.0
 
 
 Operator : feed
@@ -138,6 +138,6 @@ Operator : tuplesize
 Number   : 1
 Signature: ((stream/rel (tuple x))) -> real
 Example  : query Trains tuplesize
-Result   : 11898.9
+Result   : 11085.83629893239
 
 
