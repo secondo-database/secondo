@@ -17,22 +17,22 @@ Result   : 6554
 
 Operator : gettuplesdbl
 Number   : 1
-Signature: (stream (tuple ((id tid) (x1 t1)...(xn tn)))) x (rel (tuple ((y1 t1)...(yn tn)))) -> (stream (tuple ((x1 t1)...(xn tn) (y1 t1)...(yn tn))))
-Example  : Trains feed addid extendstream[units(Trip)]
-Result   :
+Signature: (stream (tuple ((id tid) (x1 t1)...(xn tn)))) x (rel (tuple ((y1 t1)...(yn tn)))) x yk -> (stream (tuple ((x1 t1)...(xn tn) (y1 t1)...(yn tn))))
+Example  : query (Trains feed {X} filter[.Id_X < 3] filter[.Up_X = TRUE] addid extend[low: 2 , high: 3] project[TID, low, high]) Trains gettuplesdbl[Trip] consume
+Result   : ((rel (tuple ((Id int)(Line int)(Up bool)(Trip mpoint))))((1 1 TRUE ((("2003-11-20-06:04:08.127" "2003-11-20-06:04:15.658" TRUE FALSE)(13287.0 10675.0 13244.0 10635.0))(("2003-11-20-06:04:15.658" "2003-11-20-06:04:22.886" TRUE FALSE)(13244.0 10635.0 13193.0 10611.0))))(2 1 TRUE ((("2003-11-20-06:11:08.127" "2003-11-20-06:11:15.658" TRUE FALSE)(13287.0 10675.0 13244.0 10635.0))(("2003-11-20-06:11:15.658" "2003-11-20-06:11:22.886" TRUE FALSE)(13244.0 10635.0 13193.0 10611.0))))))
 
 
 Operator : windowintersects
 Number   : 1
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) rect||rect3||rect4) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query strassen creatertree [ geoData ] strassen windowintersects[ bbox(thecenter) ] count
+Example  : query strassen feed addid creatertree [ geoData ] strassen windowintersects[ bbox(thecenter) ] count
 Result   : 1266
 
 
 Operator : windowintersectsS
 Number   : 1
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti) rect<d> -> (stream (tuple ((key rect<d>)(id tid))))
-Example  : query strassen creatertree [ geoData ] strassen windowintersectsS[ bbox(thecenter) ] count
+Example  : query strassen feed addid creatertree [ geoData ] strassen windowintersectsS[ bbox(thecenter) ] count
 Result   : 1266
 
 
