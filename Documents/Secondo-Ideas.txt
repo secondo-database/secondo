@@ -74,18 +74,47 @@ Standard.examples, Relation.examples, FText.examples ...
 /*
 It contains entries of the following form: 
 
+If the result type is a simple standard type like int, real, string, bool or text
+or if it is a small list you may specify it directly.
+
 */
 
-Operator  : isempty                 # name or symbol of the operator
-Number    : 1                       # number of the test case
-Signature : mpoint -> bool          # the used signature of the operator
-Example   : query isempty(train5)   # query expression 
-Result    : file                    # the expected result list is stored 
-                                    # a file called TestResults/isempty_1.nl 
-or
+Operator : *                       # name or symbol of the operator
+Number   : 1                       # number of the test case
+Signature: (int real) -> real      # the used signature of the operator
+Example  : query 5 * 1.4           # query expression 
+Result   : 7.0                     # expected result 
 
-Result  : FALSE                     # Result specified inline as list
 
+Operator : cumulate
+Number   : 1
+Signature: ((array t) (map t t t)) -> (array t)
+Example  : query intset_a10 cumulate[. + ..]
+Result   : ((array int) (1 3 6 10 15 21 28 36 45 55))
+
+/*
+
+If the result is more complex it should be stored in a file which must be
+stored below the directory Selftest. The files have unique names which are
+composed by the operator name, the example number and the algebra name. If
+the operator is a special sign like "<" or "#" you must specify an alias name
+for it.
+
+*/
+
+Operator : < alias LOWER
+Number   : 4
+Signature: real x mreal -> mbool
+Example  : query 1000.0 < distance(train1, mehringdamm)
+Result   : file
+
+/*
+
+For the examble above the result will be expected in the file 
+
+*/
+
+  Selftest/result4_LOWER_TemporalLifted
 
 /*
 
@@ -96,19 +125,19 @@ and printed to the display. The Example with number 1 will be used as entry for
 the list operators command, whereas the system table "SEC2OPERATORINFO" contains
 all examples.
 
-For testing quickly all operators, the ~TestRunner~ can be invoked with the
-parameter "-checkall". In this case it will open the database "berlintest" and
-run test cases for all query examples.  Hence overnight runs will guarantee
-that all example queries work.
+For testing quickly all operators, a new command called ~Selftest~ can be
+invoked.  This will start the TestRunner in a special mode. For every algebra
+the query examples will be tested on the specified databases which will be
+automatically restored if it is not present. Hence overnight runs will
+guarantee that all example queries work.
 
-Objects referred in queries must be stored in the database "berlintest" which will
-become a cvs-member in the bin directory. If it has changed since the last run
-of the ~TestRunner~ or is not present in the list of databases it will be restored.
-
+Objects referred in queries must be stored in the database "berlintest" which
+is maintained in the secondo-data repository and must be copied to the bin
+directory. 
 
 2.1 Implementation 
 
-  * Make copies the examples into a new directoy "bin/examples". 
+  * make copies the examples into a new directoy "bin/examples". 
 
   * A new class ~ExampleReader~ which can read in an examples file and converts examples
     to an internal format will be implemented.
@@ -117,9 +146,15 @@ of the ~TestRunner~ or is not present in the list of databases it will be restor
     examples. The name of the test database can be configured in
     "SecondoConfig.ini". 
 
-  * The Secondo-Kernel needs to be changed in order to complete the operator specifications
+  * The Secondo-Kernel needs was changed in order to complete the operator specifications
     with the example queries.
     
+
+2.2 Future Improvements
+
+Database berlintest should become a cvs-member of the bin directory. If it has
+changed (md5sum) since the last run of the ~TestRunner~  it will be restored.
+
 
 */
 
