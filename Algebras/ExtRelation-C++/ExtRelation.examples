@@ -4,8 +4,8 @@ Restore  : NO
 Operator : GROUP
 Number   : 1
 Signature: ((stream x)) -> (rel x)
-Example  : query Orte feed sortby[BevT asc] groupby[BevT; Cnt: fun(g: GROUP) g count] filter[.Cnt > 10] consume count
-Result   : 5
+Example  : query Orte feed sortby[BevT asc] groupby[BevT; Cnt: fun(g: GROUP) g count] filter[.Cnt > 10] consume
+Result   : file
 
 
 Operator : aggregate
@@ -26,28 +26,28 @@ Operator : avg
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> real
 Example  : query Staedte feed avg [Bev]
-Result   : 325017
+Result   : 325017.2413793103
 
 
 Operator : cancel
 Number   : 1
 Signature: ((stream x) (map x bool)) -> (stream x)
-Example  : query Staedte feed cancel [.SName = "Dortmund"] consume count
-Result   : 9
+Example  : query Staedte feed cancel [.SName = "Dortmund"] consume
+Result   : file
 
 
 Operator : concat
 Number   : 1
 Signature: ((stream (tuple (a1:d1 ... an:dn))) (stream (tuple (b1:d1 ... bn:dn)))) -> (stream (tuple (a1:d1 ... an:dn)))
-Example  : query ten feed ten feed concat consume count
-Result   : 20
+Example  : query ten feed ten feed concat consume
+Result   : file
 
 
 Operator : extend
 Number   : 1
 Signature: (stream(tuple(x)) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> dn))] -> stream(tuple(x@[a1:d1, ... , an:dn])))
 Example  : query ten feed extend [Mult5: .no * 5, mod2 : .no mod 2] tuplesize
-Result   : 36
+Result   : 36.0
 
 
 Operator : extendstream
@@ -67,8 +67,8 @@ Result   : 26
 Operator : groupby
 Number   : 1
 Signature: ((stream (tuple (a1:d1 ... an:dn))) (ai1 ... aik) ((bj1 (fun (rel (tuple (a1:d1 ... an:dn))) (_))) ... (bjl (fun (rel (tuple (a1:d1 ... an:dn))) (_))))) -> (stream (tuple (ai1:di1 ... aik:dik bj1 ... bjl)))
-Example  : query Orte feed sortby[BevT asc] groupby[BevT; Cnt: group count] filter[.Cnt > 10] consume count
-Result   : 5
+Example  : query Orte feed sortby[BevT asc] groupby[BevT; Cnt: group count] filter[.Cnt > 10] consume
+Result   : file
 
 
 Operator : hashjoin
@@ -143,8 +143,8 @@ Result   : 100000
 Operator : projectextendstream
 Number   : 1
 Signature: ((stream tuple1) (ai1 ... aik) (map tuple1 stream(type))) -> (stream tuple1[ai1 ... aik]*type)
-Example  : query Trains feed head[5] projectextendstream[Id, Line, Up; UTrip:  units(.Trip)] consume tuplesize
-Result   : 152
+Example  : query Trains feed head[5] projectextendstream[Id, Line, Up; UTrip:  units(.Trip)] consume
+Result   : file
 
 
 Operator : rdup
@@ -158,7 +158,7 @@ Operator : remove
 Number   : 1
 Signature: ((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream (tuple ((aj1 Tj1) ... (ajn-k Tjn-k))))
 Example  : query Staedte feed remove[Kennzeichen] tuplesize
-Result   : 136
+Result   : 136.0
 
 
 Operator : sample
@@ -171,15 +171,15 @@ Result   : 500
 Operator : sort
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))
-Example  : query Staedte feed sort consume count
-Result   : 58
+Example  : query Staedte feed sort consume
+Result   : file
 
 
 Operator : sortby
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> (stream (tuple([a1:d1, ... ,an:dn])))
-Example  : query Staedte feed sortby[Bev desc] head[3] consume count
-Result   : 3
+Example  : query Staedte feed sortby[Bev desc] head[3] consume
+Result   : file
 
 
 Operator : sortmergejoin
@@ -199,21 +199,21 @@ Result   : 18851000
 Operator : symmjoin
 Number   : 1
 Signature: ((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))) (map (tuple (x1 ... xn)) (tuple (y1 ... ym)) -> bool) -> (stream (tuple (x1 ... xn y1 ... ym)))
-Example  : query Flaechen feed {f} WFlaechen feed {w} symmjoin[.geoData_f adjacent ..geoData_w] consume count
-Result   : 19
+Example  : query Flaechen feed {f} WFlaechen feed {w} symmjoin[.geoData_f adjacent ..geoData_w] consume
+Result   : file
 
 
 Operator : symmproduct
 Number   : 1
 Signature: (stream (tuple(X))) (stream (tuple(Y)))  -> (stream (tuple(X*Y))) ))
-Example  : query ten feed {a} ten feed {b} symmproduct head[12] consume count
-Result   : 12
+Example  : query ten feed {a} ten feed {b} symmproduct head[12] consume
+Result   : file
 
 
 Operator : symmproductextend
 Number   : 1
 Signature: (stream (tuple(X))) (stream (tuple(Y)))  [(z1, (tuple(X) tuple(Y) -> t1)) ... (zj, (tuple(X) tuple(Y) -> tj))]  -> (stream (tuple(X*Y*Z))) ))
-Example  : query ten feed {a} ten feed {b} symmproductextend[prod: .no_a * ..no_b] consume count
-Result   : 100
+Example  : query ten feed {a} ten feed {b} symmproductextend[prod: .no_a * ..no_b] consume
+Result   : file
 
 
