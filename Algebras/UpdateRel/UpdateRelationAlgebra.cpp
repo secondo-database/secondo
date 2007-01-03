@@ -3838,7 +3838,7 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
 
   CHECK_COND(nl->IsAtom(rtreeType) &&
     nl->AtomType(rtreeType) == BoolType &&
-    nl->BoolValue(rtreeType) == true,
+    nl->BoolValue(rtreeType) == FALSE,
     "Updates are not available for double index R-Trees");
 
   // Handle third argument which shall be the name of the attribute
