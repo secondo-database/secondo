@@ -249,7 +249,7 @@ Operator : derivative
 Number   : 2
 Signature: mreal -> mreal
 Example  : query derivative(the_unit(3.0, -2.0, 1.0, FALSE, six30, nine, TRUE, TRUE) feed the_mvalue)
-Result   : (mreal ((("2003-11-20-06:30" "2003-11-20-09:00" TRUE TRUE)(0.0 6.0 -2.0 FALSE)))))
+Result   : (mreal ((("2003-11-20-06:30" "2003-11-20-09:00" TRUE TRUE)(0.0 6.0 -2.0 FALSE))))
 
 
 Operator : distance
@@ -486,7 +486,7 @@ Operator : or
 Number   : 3
 Signature: ( bool ubool) -> ubool
 Example  : query FALSE or [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)]
-Result   : (ubool (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)))
+Result   : (ubool (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE))
 
 
 Operator : passes

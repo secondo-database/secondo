@@ -33,7 +33,7 @@ Operator : feed
 Number   : 1
 Signature:T -> (stream T)
 Example  : query 5 feed count;
-Result   :
+Result   : 1
 
 
 Operator : filter
@@ -84,7 +84,7 @@ Operator : use2
 Number   : 4
 Signature: ((stream X) Y (map X Y stream(Z)) ) -> (stream Z)
 Example  : query intstream(1,5) 2 use2[ fun(i:int, j:int) intstream(i,j) ] count;
-Result   : 10
+Result   : 3
 
 Operator : use2
 Number   : 5
