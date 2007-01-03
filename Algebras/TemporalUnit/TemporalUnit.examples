@@ -11,278 +11,266 @@ Result   : TRUE
 Operator : #
 Number   : 1
 Signature: (uT uT) -> (stream bool)
-Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] # [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)] the_mvalue
-Result   :
+Example  : query ([const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] # [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)]) the_mvalue
+Result   : (mbool((("2011-01-01" "2011-01-03" FALSE FALSE) FALSE)))
 
 
 Operator : <<==
 Number   : 1
 Signature: (uT uT) -> bool
 Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] <<== [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)]
-Result   :
+Result   : TRUE
 
 
 Operator : <<
 Number   : 1
 Signature: (uT uT) -> bool
 Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] << [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)]
-Result   :
+Result   : TRUE
 
 
 Operator : <=
 Number   : 1
 Signature: (uT uT) -> (stream bool)
-Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] <= [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)] the_mvalue
-Result   :
+Example  : query ([const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] <= [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)]) the_mvalue
+Result   : (mbool((("2011-01-01" "2011-01-03" FALSE FALSE) TRUE)))
 
 
 Operator : <
 Number   : 1
 Signature: (uT uT) -> (stream bool)
-Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] < [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)] the_mvalue
-Result   :
+Example  : query ([const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] < [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)]) the_mvalue
+Result   : (mbool((("2011-01-01" "2011-01-03" FALSE FALSE) FALSE)))
 
 
 Operator : ==
 Number   : 1
 Signature: (uT uT) -> bool
 Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] == [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)]
-Result   :
+Result   : FALSE
 
 
 Operator : =
 Number   : 1
 Signature: (uT uT) -> bool
-Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] = [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)] the_mvalue
-Result   :
+Example  : query ([const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] = [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)]) the_mvalue
+Result   : (mbool((("2011-01-01" "2011-01-03" FALSE FALSE) TRUE)))
 
 
 Operator : >=
 Number   : 1
 Signature: (uT uT) -> (stream bool)
-Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] >= [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)] the_mvalue
-Result   :
+Example  : query ([const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] >= [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)]) the_mvalue
+Result   : (mbool((("2011-01-01" "2011-01-03" FALSE FALSE) TRUE)))
 
 
 Operator : >>==
 Number   : 1
 Signature: (uT uT) -> bool
 Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] >>== [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)]
-Result   :
+Result   : FALSE
 
 
 Operator : >>
 Number   : 1
 Signature: (uT uT) -> bool
 Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] >> [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)]
-Result   :
+Result   : FALSE
 
 
 Operator : >
 Number   : 1
 Signature: (uT uT) -> (stream bool)
-Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] > [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)] the_mvalue
-Result   :
+Example  : query ([const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] > [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)]) the_mvalue
+Result   : (mbool((("2011-01-01" "2011-01-03" FALSE FALSE) FALSE)))
 
 
 Operator : always
 Number   : 1
 Signature: ubool -> bool
-Example  : query never(ubool1)
-Result   :
+Example  : query never([const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)])
+Result   : FALSE
 
 
 Operator : always
 Number   : 2
 Signature: stream ubool -> bool
-Example  : query never(ubool1)
-Result   :
+Example  : query never(units(train5) use[fun(X:upoint) the_unit(isempty(X), inst(initial(X)), inst(final(X)), TRUE, FALSE)] )
+Result   : TRUE
 
 Operator : and
 Number   : 1
 Signature: (ubool ubool) -> ubool
 Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] and [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)]
-Result   :
+Result   : (ubool (("2011-01-01" "2011-01-03" FALSE FALSE)TRUE))
 
 
 Operator : and
 Number   : 2
 Signature: (ubool  bool) -> ubool
-Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] and [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)]
-Result   :
+Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] and FALSE
+Result   : (ubool (("2010-11-11" "2011-01-03" TRUE FALSE)FALSE))
 
 
 Operator : and
 Number   : 3
 Signature: (bool ubool) -> ubool
-Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] and [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)]
-Result   :
+Example  : query TRUE and [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)]
+Result   : (ubool (("2011-01-01" "2012-09-17" FALSE TRUE)TRUE))
 
 
 Operator : at
 Number   : 1
 Signature: (uT     T     ) -> uT
-Example  : query upoint1 at point1
-Result   :
+Example  : query the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, FALSE) at makepoint(10232.0, 11383.0)
+Result   : (upoint (("2003-11-20-07:45" "2003-11-20-07:45" TRUE TRUE)(10232.0 11383.0 10232.0 11383.0)))
 
 
 Operator : atinstant
 Number   : 1
 Signature: (uT instant) -> iT
-Example  : query upoint1 atinstant instant1
-Result   :
+Example  : query the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, FALSE) atinstant create_instant(1417,27900000)
+Result   : (ipoint ("2003-11-20-07:45" (10232.0 11383.0)))
 
 
 Operator : atmax
 Number   : 1
 Signature: uT -> uT
-Example  : query atmax( uT1 )
-Result   :
+Example  : query atmax( the_unit("test", six30, nine, TRUE, FALSE) )
+Result   : (ustring (("2003-11-20-06:30" "2003-11-20-09:00" TRUE FALSE)"test"))
 
 
 Operator : atmax
 Number   : 2
 Signature: ureal -> (stream ureal)
-Example  : query atmax( ureal1 ) count
-Result   :
+Example  : query atmax(the_unit(-3.0, 2.0, -1.0, FALSE, create_instant(0,0), create_instant(3,0), TRUE, TRUE)) the_mvalue
+Result   : (mreal ((("2000-01-03-08:00" "2000-01-03-08:00" TRUE TRUE)(-3.0 1.1102230246251565E-16 -0.6666666666666666 FALSE))))
 
 
 Operator : atmin
 Number   : 1
 Signature: uT    -> uT
-Example  : query atmin( uT1 )
-Result   :
+Example  : query atmin( the_unit("test", six30, nine, TRUE, FALSE) )
+Result   : (ustring (("2003-11-20-06:30" "2003-11-20-09:00" TRUE FALSE)"test"))
 
 
 Operator : atmin
 Number   : 2
 Signature: ureal -> (stream ureal)
-Example  : query atmin( ureal1 ) count
-Result   :
-
-
-Operator : atperiods
-Number   : 1
-Signature: For T in {int, bool, real, string, point, region}:
-(uT periods) -> stream uT
-((stream uT) periods) -> stream uT
-Example  : query upoint1 atperiods thehour(2003,11,11,8)
-sfeed(upoint1) atperiods thehour(2003,11,11,8)
-Result   :
+Example  : query atmin(the_unit(3.0, -2.0, 1.0, FALSE, create_instant(0,0), create_instant(3,0), TRUE, TRUE)) the_mvalue
+Result   : (mreal ((("2000-01-03-08:00" "2000-01-03-08:00" TRUE TRUE)(3.0 -1.1102230246251565E-16 0.6666666666666666 FALSE))))
 
 
 Operator : atperiods
 Number   : 1
 Signature: (uT periods) -> stream uT
-Example  : query upoint1 atperiods thehour(2003,11,11,8)
-sfeed(upoint1) atperiods thehour(2003,11,11,8)
-Result   :
+Example  : query (the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, FALSE) atperiods thesecond(2003,11,20,8,30,0)) the_mvalue
+Result   : (mpoint ((("2003-11-20-08:30" "2003-11-20-08:30:01" TRUE FALSE)(10733.6 12290.2 10733.785777777777 12290.536))))
 
 
 Operator : atperiods
 Number   : 2
 Signature: ((stream uT) periods) -> stream uT
-Example  : query upoint1 atperiods thehour(2003,11,11,8)
-sfeed(upoint1) atperiods thehour(2003,11,11,8)
-Result   :
+Example  : query (the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, FALSE) feed atperiods thesecond(2003,11,20,8,30,0)) the_mvalue
+Result   : (mpoint ((("2003-11-20-08:30" "2003-11-20-08:30:01" TRUE FALSE)(10733.6 12290.2 10733.785777777777 12290.536))))
 
 
 Operator : circle
 Number   : 1
 Signature: (point real int) -> region
-Example  : query circle (p,10.0,10)
-Result   :
+Example  : query circle (mehringdamm,10.0,5)
+Result   : (region ((((9387.94290861108 9865.076886093399)(9387.887918876153 9876.847575552323)(9399.07239228953 9880.516323114482)(9406.0 9871.0)(9399.161172031974 9861.512798548345)))))
 
 
 Operator : deftime
 Number   : 1
 Signature: ubool -> periods
 Example  : query deftime( the_unit(TRUE, six30, nine, FALSE, FALSE) )
-Result   :
+Result   : (periods (("2003-11-20-06:30" "2003-11-20-09:00" FALSE FALSE)))
 
 
 Operator : deftime
 Number   : 2
 Signature: uint -> periods
 Example  : query deftime( the_unit(-56, six30, nine, FALSE, FALSE) )
-Result   :
+Result   : (periods (("2003-11-20-06:30" "2003-11-20-09:00" FALSE FALSE)))
 
 
 Operator : deftime
 Number   : 3
 Signature: ureal -> periods
-Example  : query deftime( the_unit(3.0, -2.0, 1.0, TRUE, six30, nine, FALSE, FALSE) )
-Result   :
+Example  : query deftime( the_unit(3.0, -2.0, 1.0, TRUE, six30, nine, FALSE, TRUE) )
+Result   : (periods (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)))
 
 
 Operator : deftime
 Number   : 4
 Signature: ustring -> periods
-Example  : query deftime( the_unit("test", six30, nine, FALSE, FALSE) )
-Result   :
+Example  : query deftime( the_unit("test", six30, nine, TRUE, FALSE) )
+Result   : (periods (("2003-11-20-06:30" "2003-11-20-09:00" TRUE FALSE)))
 
 
 Operator : deftime
 Number   : 5
 Signature: upoint -> periods
 Example  : query deftime( the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, FALSE) )
-Result   :
+Result   : (periods (("2003-11-20-06:30" "2003-11-20-09:00" FALSE FALSE)))
 
 
 Operator : deftime
 Number   : 6
 Signature: uregion -> periods
-Example  : query deftime( the_unit(TRUE, six30, nine, FALSE, FALSE) )
-Result   : NOTYETIMPLEMENTED
+Example  : query deftime( units(mrain) transformstream extract[elem] )
+Result   : (periods (("2003-11-20-06:06" "2003-11-20-08:10" TRUE TRUE)))
 
 
 Operator : derivable
 Number   : 1
 Signature: mreal -> mbool
 Example  : query derivable(speed(train1))
-Result   : ((("2003-11-20-06:03" "2003-11-20-06:43" TRUE FALSE)TRUE))
+Result   : (mbool ((("2003-11-20-06:03" "2003-11-20-06:43" TRUE FALSE)TRUE)))
 
 
 Operator : derivable
 Number   : 2
 Signature: ureal -> ubool
 Example  : query derivable (the_unit(3.0, -2.0, 1.0, TRUE, six30, nine, TRUE, TRUE))
-Result   : (("2003-11-20-06:30" "2003-11-20-09:00" TRUE TRUE)FALSE)
+Result   : (ubool (("2003-11-20-06:30" "2003-11-20-09:00" TRUE TRUE)FALSE))
 
 
 Operator : derivative
 Number   : 1
 Signature: ureal -> ureal
 Example  : query derivative(the_unit(3.0, -2.0, 1.0, FALSE, six30, nine, TRUE, TRUE))
-Result   : (("2003-11-20-06:30" "2003-11-20-09:00" TRUE TRUE)(0.0 6.0 -2.0 FALSE))
+Result   : (ureal (("2003-11-20-06:30" "2003-11-20-09:00" TRUE TRUE)(0.0 6.0 -2.0 FALSE)))
 
 
 Operator : derivative
 Number   : 2
 Signature: mreal -> mreal
 Example  : query derivative(the_unit(3.0, -2.0, 1.0, FALSE, six30, nine, TRUE, TRUE) feed the_mvalue)
-Result   : ((("2003-11-20-06:30" "2003-11-20-09:00" TRUE TRUE)(0.0 6.0 -2.0 FALSE))))
+Result   : (mreal ((("2003-11-20-06:30" "2003-11-20-09:00" TRUE TRUE)(0.0 6.0 -2.0 FALSE)))))
 
 
 Operator : distance
 Number   : 1
 Signature: (uT uT) -> ureal
 Example  : query distance(the_unit(alexanderplatz, mehringdamm, six30, nine, TRUE, FALSE), the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE))
-Result   : (("2003-11-20-06:30" "2003-11-20-09:00" TRUE TRUE)(4.4016205824E9 -4.58502144E8 1.194016E7 TRUE))
+Result   : (ureal (("2003-11-20-06:30" "2003-11-20-09:00" TRUE TRUE)(4.4016205824E9 -4.58502144E8 1.194016E7 TRUE)))
 
 
 Operator : distance
 Number   : 2
 Signature: (uT  T) -> ureal
 Example  : query distance(the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE), makepoint( (getx(mehringdamm + alexanderplatz)/2) + 100.0 , (gety(mehringdamm + alexanderplatz)/2) + 100.0))
-Result   : (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(1.1004051456E9 -1.05609216E8 2535440.0 TRUE))
+Result   : (ureal (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(1.1004051456E9 -1.05609216E8 2535440.0 TRUE)))
 
 
 Operator : distance
 Number   : 3
 Signature: ( T uT) -> ureal
 Example  : query distance(alexanderplatz, the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE))
-Result   :(("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(1.1004051456E9 -0.0 0.0 TRUE))
+Result   :(ureal (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(1.1004051456E9 -0.0 0.0 TRUE)))
 
 
 Operator : final
@@ -290,49 +278,49 @@ Number   : 1
 Signature: uT -> iT
 (stream uT) -> iT
 Example  : query final(the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE))
-Result   : ("2003-11-20-09:00" (9396.0 9871.0))
+Result   : (ipoint ("2003-11-20-09:00" (9396.0 9871.0)))
 
 
 Operator : final
 Number   : 2
 Signature: (stream uT) -> iT
 Example  : query final(units(train1))
-Result   : ("2003-11-20-06:43" (-521.0 3925.0))
+Result   : (ipoint ("2003-11-20-06:43" (-521.0 3925.0)))
 
 
 Operator : get_duration
 Number   : 1
 Signature: (periods) -> duration
 Example  : query get_duration(deftime(train1))
-Result   : (0 2400000)
+Result   : (duration (0 2400000))
 
 
 Operator : initial
 Number   : 1
 Signature: uT -> iT
 Example  : query initial(the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE))
-Result   : ("2003-11-20-06:30" (11068.0 12895.0))
+Result   : (ipoint ("2003-11-20-06:30" (11068.0 12895.0)))
 
 
 Operator : initial
 Number   : 2
 Signature: (stream uT) -> iT
 Example  : query initial(units(train1))
-Result   : ("2003-11-20-06:03" (13506.0 11159.0))
+Result   : (ipoint ("2003-11-20-06:03" (13506.0 11159.0)))
 
 
 Operator : inside
 Number   : 1
 Signature: (upoint  uregion) -> (stream ubool)
 Example  : query (the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE) inside ( units(mrain) head[1] transformstream extract[elem])) the_mvalue
-Result   : ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)FALSE))
+Result   : (mbool ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)FALSE)))
 
 
 Operator : intersection
 Number   : 1
 Signature: (uT uT) -> (stream uT)
 Example  : query intersection(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE), the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE)) transformstream extract[elem]
-Result   : (("2003-11-20-07:45" "2003-11-20-07:45" TRUE TRUE)(10232.0 11383.0 10232.0 11383.0))
+Result   : (upoint (("2003-11-20-07:45" "2003-11-20-07:45" TRUE TRUE)(10232.0 11383.0 10232.0 11383.0)))
 
 
 Operator : intersection
@@ -353,14 +341,14 @@ Operator : intersection
 Number   : 4
 Signature: (line upoint) -> (stream upoint)
 Example  : query intersection(strassen feed head[105] aggregateB[geoData; fun(l1:line, l2:line) union_new(l1, l2); [const line value ()] ], the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE)) the_mvalue
-Result   : ((("2003-11-20-06:36:41.132" "2003-11-20-06:36:41.132" TRUE TRUE)(9470.521411555555 10005.780352 9470.521411555555 10005.780352))(("2003-11-20-06:45:12.127" "2003-11-20-06:45:12.127" TRUE TRUE)(9565.452927111111 10177.474672 9565.452927111111 10177.474672))(("2003-11-20-06:47:39.480" "2003-11-20-06:47:39.480" TRUE TRUE)(9592.82784 10226.98528 9592.82784 10226.98528)))
+Result   : (mpoint ((("2003-11-20-06:36:41.132" "2003-11-20-06:36:41.132" TRUE TRUE)(9470.521411555555 10005.780352 9470.521411555555 10005.780352))(("2003-11-20-06:45:12.127" "2003-11-20-06:45:12.127" TRUE TRUE)(9565.452927111111 10177.474672 9565.452927111111 10177.474672))(("2003-11-20-06:47:39.480" "2003-11-20-06:47:39.480" TRUE TRUE)(9592.82784 10226.98528 9592.82784 10226.98528))))
 
 
 Operator : intersection
 Number   : 5
 Signature: (upoint line) -> (stream upoint)
 Example  : query intersection(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE), strassen feed head[105] aggregateB[geoData; fun(l1:line, l2:line) union_new(l1, l2); [const line value ()] ]) the_mvalue
-Result   : ((("2003-11-20-06:36:41.132" "2003-11-20-06:36:41.132" TRUE TRUE)(9470.521411555555 10005.780352 9470.521411555555 10005.780352))(("2003-11-20-06:45:12.127" "2003-11-20-06:45:12.127" TRUE TRUE)(9565.452927111111 10177.474672 9565.452927111111 10177.474672))(("2003-11-20-06:47:39.480" "2003-11-20-06:47:39.480" TRUE TRUE)(9592.82784 10226.98528 9592.82784 10226.98528)))
+Result   : (mpoint ((("2003-11-20-06:36:41.132" "2003-11-20-06:36:41.132" TRUE TRUE)(9470.521411555555 10005.780352 9470.521411555555 10005.780352))(("2003-11-20-06:45:12.127" "2003-11-20-06:45:12.127" TRUE TRUE)(9565.452927111111 10177.474672 9565.452927111111 10177.474672))(("2003-11-20-06:47:39.480" "2003-11-20-06:47:39.480" TRUE TRUE)(9592.82784 10226.98528 9592.82784 10226.98528))))
 
 
 Operator : intersection
@@ -381,14 +369,14 @@ Operator : intersection
 Number   : 8
 Signature: (upoint region) -> (stream upoint)
 Example  : query intersection(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE), thecenter) the_mvalue
-Result   : ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(9395.999999998783 9870.999999997799 11068.0 12895.0)))
+Result   : (mpoint ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(9395.999999998783 9870.999999997799 11068.0 12895.0))))
 
 
 Operator : intersection
 Number   : 9
 Signature: (region upoint) -> (stream upoint)
 Example  : query intersection(thecenter, the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE)) the_mvalue
-Result   : ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(9395.999999998783 9870.999999997799 11068.0 12895.0)))
+Result   : (mpoint ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(9395.999999998783 9870.999999997799 11068.0 12895.0))))
 
 
 Operator : isempty
@@ -402,55 +390,55 @@ Operator : makemvalue
 Number   : 1
 Signature: stream (tuple ((x1 t1)...(xi uint)...(xn tn))) xi -> mint
 Example  : query the_unit(123, [const instant value "2000-01-03"], [const instant value "2000-01-04"], FALSE, TRUE) feed transformstream makemvalue[elem]
-Result   : ((("2000-01-03" "2000-01-04" FALSE TRUE)123))
+Result   : (mint ((("2000-01-03" "2000-01-04" FALSE TRUE)123)))
 
 
 Operator : makemvalue
 Number   : 2
 Signature: stream (tuple ((x1 t1)...(xi ubool)...(xn tn))) xi -> mbool
 Example  : query the_unit(TRUE, [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE) feed transformstream makemvalue[elem]
-Result   : ((("2000-01-03" "2000-01-04" TRUE FALSE)TRUE))
+Result   : (mbool ((("2000-01-03" "2000-01-04" TRUE FALSE)TRUE)))
 
 
 Operator : makemvalue
 Number   : 3
 Signature: stream (tuple ((x1 t1)...(xi ustring)...(xn tn))) xi -> mstring
 Example  : query the_unit("Test!", [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, TRUE) feed transformstream makemvalue[elem]
-Result   : ((("2000-01-03" "2000-01-04" TRUE TRUE)"Test!"))
+Result   : (mstring ((("2000-01-03" "2000-01-04" TRUE TRUE)"Test!")))
 
 
 Operator : makemvalue
 Number   : 4
 Signature: stream (tuple ((x1 t1)...(xi ureal)...(xn tn))) xi -> mreal
 Example  : query the_unit(-1.0, 2.3, 4.5, TRUE, [const instant value "2000-01-03"], [const instant value "2000-01-04"], FALSE, FALSE) feed transformstream makemvalue[elem]
-Result   : ((("2000-01-03" "2000-01-04" FALSE FALSE)(-1.0 2.3 4.5 TRUE)))
+Result   : (mreal ((("2000-01-03" "2000-01-04" FALSE FALSE)(-1.0 2.3 4.5 TRUE))))
 
 
 Operator : makemvalue
 Number   : 5
 Signature: stream (tuple ((x1 t1)...(xi upoint)...(xn tn))) xi -> mpoint
 Example  : query the_unit(makepoint(1000.0, -1000.0), makepoint(-2000.0, 2000.0), [const instant value "2000-01-03"], [const instant value "2000-01-04"], FALSE, FALSE) feed transformstream makemvalue[elem]
-Result   : ((("2000-01-03" "2000-01-04" FALSE FALSE)(1000.0 -1000.0 -2000.0 2000.0)))
+Result   : (mpoint ((("2000-01-03" "2000-01-04" FALSE FALSE)(1000.0 -1000.0 -2000.0 2000.0))))
 
 
 Operator : makemvalue
 Number   : 6
 Signature: stream (tuple ((x1 t1)...(xi uregion)...(xn tn))) xi -> movingregion
-Example  : query
-Result   : CRASH
+Example  : query 1 * 1
+Result   : CRASHES
 
 Operator : makepoint
 Number   : 1
 Signature: int x int -> point
 Example  : query makepoint (5,5)
-Result   : (5.0 5.0)
+Result   : (point (5.0 5.0))
 
 
 Operator : makepoint
 Number   : 2
 Signature: real x real -> point
 Example  : query makepoint (5.0,5.0)
-Result   : (5.0 5.0)
+Result   : (point (5.0 5.0))
 
 
 Operator : never
@@ -471,35 +459,35 @@ Operator : no_components
 Number   : 1
 Signature: (uT) -> uint
 Example  : query no_components([const uint value undef])
-Result   : undef
+Result   : (uint undef)
 
 
 Operator : not
 Number   : 1
 Signature: ubool -> ubool
 Example  : query not([const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)])
-Result   : (("2010-11-11" "2011-01-03" TRUE FALSE) FALSE)
+Result   : (ubool (("2010-11-11" "2011-01-03" TRUE FALSE) FALSE))
 
 
 Operator : or
 Number   : 1
 Signature: (ubool ubool) -> ubool
 Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] or [const ubool value (("2011-01-01" "2012-09-17" FALSE TRUE) TRUE)]
-Result   : (("2011-01-01" "2011-01-03" FALSE FALSE) TRUE)
+Result   : (ubool (("2011-01-01" "2011-01-03" FALSE FALSE) TRUE))
 
 
 Operator : or
 Number   : 2
 Signature: (ubool  bool) -> ubool
 Example  : query [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)] or FALSE
-Result   : (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)
+Result   : (ubool (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE))
 
 
 Operator : or
 Number   : 3
 Signature: ( bool ubool) -> ubool
 Example  : query FALSE or [const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)]
-Result   : (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE))
+Result   : (ubool (("2010-11-11" "2011-01-03" TRUE FALSE) TRUE)))
 
 
 Operator : passes
@@ -513,7 +501,7 @@ Operator : point2d
 Number   : 1
 Signature: (periods) -> point
 Example  : query point2d(deftime(train1)
-Result   : (1417.2520833333333 1417.2798611111111)
+Result   : (point (1417.2520833333333 1417.2798611111111))
 
 
 Operator : present
@@ -548,7 +536,7 @@ Operator : queryrect2d
 Number   : 1
 Signature: (instant) -> rect
 Example  : query queryrect2d(six30)
-Result   : (-2.147483648E9 1417.2708333333333 1417.2708333333333 2.147483648E9)
+Result   : (rect (-2.147483648E9 1417.2708333333333 1417.2708333333333 2.147483648E9))
 
 
 Operator : sometimes
@@ -569,77 +557,77 @@ Operator : speed
 Number   : 1
 Signature: mpoint -> mreal
 Example  : query speed(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE) feed the_mvalue)
-Result   : ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(0.0 0.0 0.3839392956133162 FALSE)))
+Result   : (mreal ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(0.0 0.0 0.3839392956133162 FALSE))))
 
 
 Operator : speed
 Number   : 2
 Signature: upoint -> ureal
 Example  : query speed(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE))
-Result   : (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(0.0 0.0 0.3839392956133162 FALSE))
+Result   : (ureal (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(0.0 0.0 0.3839392956133162 FALSE)))
 
 
 Operator : the_ivalue
 Number   : 1
 Signature: instant T --> iT
 Example  : query the_ivalue(six30, alexanderplatz)
-Result   : ("2003-11-20-06:30" (11068.0 12895.0))
+Result   : (ipoint ("2003-11-20-06:30" (11068.0 12895.0)))
 
 
 Operator : the_mvalue
 Number   : 1
 Signature: (stream uT) -> mT
 Example  : query the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE) feed the_mvalue
-Result   : ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(9396.0 9871.0 11068.0 12895.0)))
+Result   : (mpoint ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(9396.0 9871.0 11068.0 12895.0))))
 
 
 Operator : the_unit
 Number   : 1
 Signature: point  point  instant instant bool bool --> ubool
 Example  : query the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE)
-Result   : (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(9396.0 9871.0 11068.0 12895.0))
+Result   : (upoint (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(9396.0 9871.0 11068.0 12895.0)))
 
 
 Operator : the_unit
 Number   : 2
 Signature: ipoint ipoint bool    bool              --> ubool
 Example  : query the_unit(the_ivalue(six30,mehringdamm), the_ivalue(six30,makepoint(10,100)), TRUE, TRUE)
-Result   : (("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)(10.0 100.0 9396.0 9871.0))
+Result   : (upoint (("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)(10.0 100.0 9396.0 9871.0)))
 
 
 Operator : the_unit
 Number   : 3
 Signature: real real real bool instant instant bool bool --> ureal
 Example  : query the_unit(-5.6, 3.2, 4.9, TRUE, six30, nine, FALSE, TRUE)
-Result   : (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(-5.6 3.2 4.9 TRUE))
+Result   : (ureal (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(-5.6 3.2 4.9 TRUE)))
 
 
 Operator : the_unit
 Number   : 4
 Signature: iT duration bool bool --> uT
 Example  : query the_unit(the_ivalue(six30,15), create_duration(0, 600000), TRUE, TRUE)
-Result   : (("2003-11-20-06:30" "2003-11-20-06:40" TRUE TRUE)15)
+Result   : (uint (("2003-11-20-06:30" "2003-11-20-06:40" TRUE TRUE)15))
 
 
 Operator : the_unit
 Number   : 5
 Signature: T instant instant bool bool --> uT
 Example  : query the_unit(TRUE, six30, nine, FALSE, TRUE)
-Result   : (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE) TRUE)
+Result   : (ubool (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE) TRUE))
 
 
 Operator : trajectory
 Number   : 1
 Signature: upoint -> line
 Example  : query UnitTrains feed head[3] project[UTrip] transformstream use[fun(X:upoint) trajectory(X)] aggregateS[fun(Y:line, Z:line) union_new(Y,Z); [const line value ()]]
-Result   : ((13244.0 10635.0 13287.0 10675.0)(13287.0 10675.0 13336.0 10785.0)(13336.0 10785.0 13506.0 11159.0))
+Result   : (line ((13244.0 10635.0 13287.0 10675.0)(13287.0 10675.0 13336.0 10785.0)(13336.0 10785.0 13506.0 11159.0)))
 
 
 Operator : uint2ureal
 Number   : 1
 Signature: uint -> ureal
 Example  : query uint2ureal([const uint value (("2010-11-11" "2011-01-03" TRUE FALSE) -5)])
-Result   : (("2010-11-11" "2011-01-03" TRUE FALSE)(0.0 0.0 -5.0 FALSE))
+Result   : (ureal (("2010-11-11" "2011-01-03" TRUE FALSE)(0.0 0.0 -5.0 FALSE)))
 
 
 Operator : velocity
