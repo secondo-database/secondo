@@ -152,7 +152,7 @@ Operator : speed_new
 Number   : 1
 Signature: mpoint -> mreal
 Example  : query val(initial(speed_new(train7)))
-Result   : 1991238.100644561
+Result   : 1991238100644.561
 
 
 Operator : val

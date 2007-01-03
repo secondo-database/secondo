@@ -506,14 +506,14 @@ Example  : query distance(train1, mehringdamm) > 1000.0
 Result   : file
 
 
-Operator : >= alias GREATEREQUAL alias GREATEREQUAL
+Operator : >= alias GREATEREQUAL
 Number   : 1
 Signature: int x mint -> mbool
 Example  : query 1 >= noAtCenter
 Result   : file
 
 
-Operator : >= alias GREATEREQUAL alias GREATEREQUAL
+Operator : >= alias GREATEREQUAL
 Number   : 2
 Signature: bool x mbool -> mbool
 Example  : query TRUE >= (train1 inside mrain)
@@ -711,7 +711,7 @@ Result   : file
 Operator : intersection
 Number   : 4
 Signature: real x mreal -> mreal
-Example  : query intersection(3000.0, intersection(train1, mehringdamm)) 
+Example  : query intersection(3000.0, distance(train1, mehringdamm)) 
 Result   : "Error: returns wrong value list"
 
 
@@ -719,13 +719,13 @@ Operator : intersection
 Number   : 5
 Signature: mint x mint -> mint
 Example  : query intersection(noAtCenter, noAtTiergarten) 
-Result   : file
+Result   : "Error: returns sometimes units with undef values"
 
 Operator : intersection
 Number   : 6
 Signature: mbool x mbool -> mbool
 Example  : query intersection((train7 inside mrain2),(train7up inside mrain2)) 
-Result   : file
+Result   : "Error: returns sometimes units with undef values"
 
 
 Operator : intersection
@@ -765,7 +765,7 @@ Result   : file
 Operator : intersection
 Number   : 12
 Signature: mreal x real -> mreal
-Example  : query intersection(intersection(train1, mehringdamm), 3000.0) 
+Example  : query intersection(distance(train1, mehringdamm), 3000.0) 
 Result   : "Error: returns wrong value list"
 
 
@@ -787,7 +787,7 @@ Operator : isempty
 Number   : 2
 Signature: mint -> mbool
 Example  : query isempty(noAtCenter)
-Result   : "Error: returns an empty mbool value"
+Result   : (mbool((("begin of time" "end of time" TRUE TRUE)FALSE)))
 
 
 Operator : isempty
@@ -864,7 +864,7 @@ Operator : minus
 Number   : 7 
 Signature: mbool x bool -> mbool
 Example  : query (train7 inside mrain2) minus TRUE
-Result   : file
+Result   : "Error: returns sometimes units with undef values"
 
 
 Operator : minus
@@ -892,14 +892,14 @@ Operator : minus
 Number   : 11
 Signature: mint x mint -> mint
 Example  : query noAtTiergarten minus noAtCenter
-Result   : file
+Result   : "Error: returns sometimes units with undef values"
 
 
 Operator : minus
 Number   : 12 
 Signature: mbool x mbool -> mbool
 Example  : query (train7 inside mrain2) minus (train7down inside mrain2)
-Result   : file
+Result   : "Error: returns sometimes units with undef values"
 
 
 Operator : minus

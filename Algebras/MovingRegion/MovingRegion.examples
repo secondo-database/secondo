@@ -6,7 +6,7 @@ Operator : at
 Number   : 1
 Signature: mpoint x region -> mpoint
 Example  : query val(initial(train7 at thecenter))
-Result   : (point(13083.68986189901,6898.797053983461))
+Result   : (point(13083.68986189901 6898.797053983461))
 
 
 Operator : atinstant
