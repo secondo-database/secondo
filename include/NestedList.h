@@ -417,34 +417,85 @@ text atom.
 */
 
 
+/*
+Sometimes float values need not to be equal but approximately equal. The type
+below can be used to specify an relative or absolute tolerance. 
+
+*/
+
+
 struct Tolerance 
 {
   double value;
   bool isRelative;
-  Tolerance(double d = 0.0, bool b = false) : value(d), isRelative(b) {}
+  bool trace;
+
+
+  Tolerance(double d = 0.0, bool b = false) : 
+    value(d), isRelative(b), trace(false) {}
+
+  void relative(double v = minErr() ) {
+    isRelative = true;
+    value = v;
+  }
+
+  void absolute(double v = 0.0) {
+
+    isRelative = false;
+    value = v;
+  }
+
+  // double values have only 16 correct decimal digits thus there
+  // ~natural~ relative error is about 1e-15  = 2^(-50)
+  inline static const double minErr() { return 1e-15; }
+
+
+/*
+The function below returns true if ~d1~ and ~d2~ differ only by a specified tolerance.
+
+If the tolerance is relative it will be ~err/100 * d1~. Hence
+~d1~ has the role of an expected value and ~d2~ will be the tested value.  
+
+If it is not relative, the difference $|d1 - d2|$ must be smaller than err.
+
+Note: computing the difference of two floating point values which are almost
+the same produces a high error and should be avoided. Hence we test 
+$d1 - err < d2  or d2 - err < d1$
+
+
+*/
+
   inline bool approxEqual(const double& d1, const double& d2) const
   {
-    double err=value;
-    if (isRelative)
-    {
-      errno = 0;
-      err = (value * d1) / 100.0;
+    if (d1 == d2)
+      return true;
+
+    double err = value;
+    if (!isRelative) {
+      if (d1 > d2)
+	return ((d1 - err) < d2);
+      else
+	return ((d2 - err) < d1);
+    } 
+
+    // test the relative error
+
+
+    err = max( err, minErr() ) * fabs(d1);
+
+    if (trace) {
+      cout << "d1: " << d1 << endl;
+      cout << "d2: " << d2 << endl;
+      cout << "err: " << err << endl;
     }
-    if (errno == ERANGE)
-    {
-      err = 2.0 * DBL_MIN;
-    }  
-    //cout << "d1: " << d1 << endl;
-    //cout << "d2: " << d2 << endl;
-    //cout << "err: " << err << endl;
-    return fabs(d2-d1) < err; 
+
+    if (d1 > d2)
+      return ((d1 - err) < d2);
+    else
+      return ((d2 - err) < d1);
   }  
 };      
 
-/*
-Sometimes float values need not to be equal but approximately equal. The type
-above can be used to specify a tolerance 
-*/
 
 
 /*

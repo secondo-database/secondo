@@ -1,5 +1,5 @@
 Database: berlintest
-Restore: NO
+Restore : No 
 
 Operator : #
 Number   : 1
@@ -279,7 +279,7 @@ Operator : round
 Number   : 1
 Signature: real -> real 
 Example  : query round(10.123, 2)
-Result   : 10.012
+Result   : 10.12
 
 Operator : round
 Number   : 2

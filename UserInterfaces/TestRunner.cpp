@@ -594,8 +594,12 @@ TestRunner::GetCommand()
               realValTolerance.isRelative = false;
               cout << "Absolute";
             }               
-            realValTolerance.value = 
-                        parse<double>( toleranceStr.substr(offset) );
+            double d = parse<double>( toleranceStr.substr(offset) );
+            if (realValTolerance.isRelative)
+               realValTolerance.value = d / 100.0;
+            else 
+               realValTolerance.value = d;
+
             cout << " tolerance set to " 
                  << realValTolerance.value << suffix << endl;
           }
@@ -772,16 +776,7 @@ TestRunner::ProcessExamples()
 
   if (needsRestore) {
 
-    if (err.code == ERR_IDENT_UNKNOWN_DB_NAME)
-      rc = RunCmd("create database " + dbName, err);
-    if (!rc) {
-      numErrors++;
-      cout << "Restore failed with msg: " << err.msg << endl;
-      cout << "Giving up!" << endl;
-      return;
-    } 
-
-
+    RunCmd("create database " + dbName, err);
     rc = RunCmd("restore database " + dbName + " from " + dbFile, err);
     if (!rc) {
       numErrors++;
@@ -810,15 +805,13 @@ TestRunner::ProcessExamples()
      ListExpr tmpList = nl->Empty();
      bool resultOk = false;
 
+     realValTolerance.relative();
      if (info.result != "") {
      if (  (info.result[0] != '(') ) 
      {
        resultOk = nl->ReadFromString("(" + info.result + ")", tmpList);
        //cout << nl->ToString(tmpList) << endl;
        tmpList = (nl->First(tmpList));
-       realValTolerance.isRelative = true;
-       realValTolerance.value = 0.0;
-       realValTolerance.value = 1e-15; // ~ 2^(-50)
        if (resultOk) {
        switch ( nl->AtomType(tmpList) ) {
 
@@ -832,8 +825,6 @@ TestRunner::ProcessExamples()
                         }               
           case RealType:{
                           expectedResult =  MakeConstant("real", tmpList); 
-                          realValTolerance.isRelative = false;
-                          realValTolerance.value = 5e-11;
                           break;
                         }
           case TextType:{
@@ -931,10 +922,11 @@ TestRunner::VerifyResult(ListExpr outList, ListExpr expectedResult)
 {
   /* verify that the expected results were delivered */
   bool result = false;
-  if (realValTolerance.value != 0.0)
+  double d = realValTolerance.value;
+  if ( d != 0.0)
   { 
-    cout << "realValTolerance!" << endl;
-    result = nl->Equal(outList, expectedResult, realValTolerance);
+
+    result = nl->Equal(expectedResult, outList, realValTolerance);
   }  
   else
   { 
@@ -950,7 +942,18 @@ TestRunner::VerifyResult(ListExpr outList, ListExpr expectedResult)
     RegisterError();
     cout 
       << color(red)
-      << "The test returned unexpected results!" << endl
+      << "The test returned unexpected results!" << endl;
+
+    if (d != 0.0) {
+      cout << "Used real value tolerance: " << d; 
+    if (realValTolerance.isRelative)
+      cout << " (relative) ";
+    else
+      cout << " (relative) ";
+    cout << endl;
+    }
+
+    cout  
       << rightArrow << endl
       << color(normal)
       << "Expected : " << endl;
