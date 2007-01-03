@@ -276,7 +276,6 @@ Result   :(ureal (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(1.100405145
 Operator : final
 Number   : 1
 Signature: uT -> iT
-(stream uT) -> iT
 Example  : query final(the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE))
 Result   : (ipoint ("2003-11-20-09:00" (9396.0 9871.0)))
 
@@ -500,7 +499,7 @@ Result   : TRUE
 Operator : point2d
 Number   : 1
 Signature: (periods) -> point
-Example  : query point2d(deftime(train1)
+Example  : query point2d(deftime(train1))
 Result   : (point (1417.2520833333333 1417.2798611111111))
 
 
