@@ -1,0 +1,45 @@
+Database : berlintest
+Restore : NO
+
+Operator : intersection_new
+Number   : 1
+Signature: region x region -> region
+Example  : query intersection_new(val(mrain atinstant six30), val(mrain3 atinstant six30))
+Result   : file
+
+
+Operator : intersects_new
+Number   : 1
+Signature: region x region -> bool
+Example  : query (val(mrain atinstant six30)) intersects_new (val(mrain3 atinstant six30))
+Result   : file
+
+
+Operator : minus_new
+Number   : 1
+Signature: region x region -> region
+Example  : query minus_new(val(mrain atinstant six30), val(mrain3 atinstant six30))
+Result   : file
+
+
+Operator : p_intersects
+Number   : 1
+Signature: region x region -> bool 
+Example  : query (val(mrain atinstant six30)) p_intersects (val(mrain3 atinstant six30))
+Result   : file
+
+
+Operator : realm
+Number   : 1
+Signature: region x region -> region
+Example  : query realm(val(mrain atinstant six30), val(mrain3 atinstant six30))
+Result   : file
+
+
+Operator : union_new
+Number   : 1
+Signature: region x region -> region
+Example  : query union_new(val(mrain atinstant six30), val(mrain3 atinstant six30))
+Result   : file
+
+
