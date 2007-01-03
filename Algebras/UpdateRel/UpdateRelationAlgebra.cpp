@@ -52,12 +52,12 @@ extern QueryProcessor* qp;
 /*
 2 Operators
 
-2.19 Operators ~createinsertrel~, ~createdeleterel~ and 
+2.19 Operators ~createinsertrel~, ~createdeleterel~ and
 ~createupdaterel~
 
-Create an empty relation with the schema of the result-tupletyp of 
-the corresponding 'update'-operators. This operator is used to 
-create an auxiliary relation for updates on relations which shall 
+Create an empty relation with the schema of the result-tupletyp of
+the corresponding 'update'-operators. This operator is used to
+create an auxiliary relation for updates on relations which shall
 be passed to existing indices later on.
 
 2.19.1 General Type mapping function of operators ~createinsertrel~,
@@ -65,7 +65,7 @@ be passed to existing indices later on.
 
 
 
-Type mapping ~createinsertrel~, ~createdeleterel~, and 
+Type mapping ~createinsertrel~, ~createdeleterel~, and
 ~createupdaterel~
 
 ----     (rel X)
@@ -86,7 +86,7 @@ Type mapping ~createupdaterel~
 
 
 */
-ListExpr createAuxiliaryRelTypeMap( const ListExpr& args, 
+ListExpr createAuxiliaryRelTypeMap( const ListExpr& args,
                                     const string opName )
 {
   ListExpr first,rest,listn,lastlistn,oldAttribute, outList;
@@ -114,7 +114,7 @@ ListExpr createAuxiliaryRelTypeMap( const ListExpr& args,
      (IsTupleDescription(nl->Second(nl->Second(first)))),
      "Operator " + opName + " expects as first argument a list "
      "with structure (rel(tuple ((a1 t1)...(an tn))))\n"
-     "Operator " + opName + " gets as first argument '" +  
+     "Operator " + opName + " gets as first argument '" +
      argstr + "'." );
 
   // build first part of the result-tupletype
@@ -128,8 +128,8 @@ ListExpr createAuxiliaryRelTypeMap( const ListExpr& args,
      rest = nl->Rest(rest);
   }
   if ( opName == "createupdaterel")
-    // Append once again all attributes from the argument-relation 
-    // to the result-tupletype but the names of the attributes 
+    // Append once again all attributes from the argument-relation
+    // to the result-tupletype but the names of the attributes
     // extendend by '_old'
   {
     rest = nl->Second(nl->Second(first));
@@ -137,7 +137,7 @@ ListExpr createAuxiliaryRelTypeMap( const ListExpr& args,
     {
       nl->WriteToString(oldName, nl->First(nl->First(rest)));
       oldName += "_old";
-      oldAttribute = 
+      oldAttribute =
         nl->TwoElemList(
           nl->SymbolAtom(oldName),
           nl->Second(nl->First(rest)));
@@ -147,9 +147,9 @@ ListExpr createAuxiliaryRelTypeMap( const ListExpr& args,
   }
 
   //Append last attribute for the tupleidentifier
-  lastlistn = nl->Append(lastlistn, 
+  lastlistn = nl->Append(lastlistn,
                          nl->TwoElemList(
-                           nl->SymbolAtom("TID"),  
+                           nl->SymbolAtom("TID"),
                            nl->SymbolAtom("tid")));
   outList = nl->TwoElemList(
               nl->SymbolAtom("rel"),
@@ -178,7 +178,7 @@ ListExpr createUpdateRelTypeMap( ListExpr args)
 2.19.2 General Value mapping function of operators ~createinsertrel~, ~createdeleterel~ and ~createupdaterel~
 
 */
-int createUpdateRelValueMap(Word* args, Word& result, int message, 
+int createUpdateRelValueMap(Word* args, Word& result, int message,
                             Word& local, Supplier s)
 {
   result = qp->ResultStorage( s );
@@ -189,7 +189,7 @@ int createUpdateRelValueMap(Word* args, Word& result, int message,
 2.19.3 Specification of operator ~createinsertrel~
 
 */
-const string createinsertrelSpec  = 
+const string createinsertrelSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>rel(tuple(x))"
@@ -219,7 +219,7 @@ Operator extrelcreateinsertrel (
 2.20.3 Specification of operator ~createdeleterel~
 
 */
-const string createdeleterelSpec  = 
+const string createdeleterelSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>rel(tuple(x))"
@@ -249,7 +249,7 @@ Operator extrelcreatedeleterel (
 2.21.3 Specification of operator ~createupdaterel~
 
 */
-const string createupdaterelSpec  = 
+const string createupdaterelSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>rel(tuple(x))"
@@ -315,7 +315,7 @@ ListExpr insertDeleteRelTypeMap( ListExpr& args, string opName )
     (IsTupleDescription(nl->Second(nl->Second(first)))),
     "Operator " + opName +" expects as first argument a list with "
     "structure (stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName +" gets as first argument '" + 
+    "Operator " + opName +" gets as first argument '" +
     argstr + "'." );
 
   CHECK_COND(!(nl->IsAtom(second)) &&
@@ -332,13 +332,13 @@ ListExpr insertDeleteRelTypeMap( ListExpr& args, string opName )
     (IsTupleDescription(nl->Second(nl->Second(second)))),
     "Operator " + opName +" expects as second argument a list with "
     "structure (rel(tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName +" gets as second argument '" + 
+    "Operator " + opName +" gets as second argument '" +
     argstr2 + "'." );
 
   nl->WriteToString(argstr, nl->Second(first));
   nl->WriteToString(argstr2, nl->Second(second));
   CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second))),
-    "Operator " + opName +": Tuple type in the argumentstream '" + 
+    "Operator " + opName +": Tuple type in the argumentstream '" +
     argstr +
     "' is different from the tuple type '" + argstr2 +
     "' in the relation" );
@@ -353,9 +353,9 @@ ListExpr insertDeleteRelTypeMap( ListExpr& args, string opName )
     lastlistn = nl->Append(lastlistn,nl->First(rest));
     rest = nl->Rest(rest);
   }
-  lastlistn = nl->Append(lastlistn, 
+  lastlistn = nl->Append(lastlistn,
                          nl->TwoElemList(
-                           nl->SymbolAtom("TID"), 
+                           nl->SymbolAtom("TID"),
                            nl->SymbolAtom("tid")));
   outList = nl->TwoElemList(
               nl->SymbolAtom("stream"),
@@ -379,7 +379,7 @@ ListExpr insertRelTypeMap(ListExpr args)
 2.22.2 Value mapping function of operator ~insert~
 
 */
-int insertRelValueMap(Word* args, Word& result, int message, 
+int insertRelValueMap(Word* args, Word& result, int message,
                       Word& local, Supplier s)
 {
   Word t;
@@ -433,7 +433,7 @@ int insertRelValueMap(Word* args, Word& result, int message,
 2.22.3 Specification of operator ~insert~
 
 */
-const string insertSpec  = 
+const string insertSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>stream(tuple(x)) x rel(tuple(x))"
@@ -505,7 +505,7 @@ ListExpr insertSaveRelTypeMap( ListExpr args )
     (IsTupleDescription(nl->Second(nl->Second(first)))),
     "Operator insertsave expects as first argument a list with "
     "structure (stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator insertsave gets as first argument '" + 
+    "Operator insertsave gets as first argument '" +
     argstr + "'." );
 
   CHECK_COND(!(nl->IsAtom(second)) &&
@@ -522,7 +522,7 @@ ListExpr insertSaveRelTypeMap( ListExpr args )
     (IsTupleDescription(nl->Second(nl->Second(second)))),
     "Operator insertsave expects as second argument a list with "
     "structure (rel(tuple ((a1 t1)...(an tn))))\n"
-    "Operator insertsave gets as second argument '" + 
+    "Operator insertsave gets as second argument '" +
     argstr2 + "'." );
 
   nl->WriteToString(argstr2, third);
@@ -534,14 +534,14 @@ ListExpr insertSaveRelTypeMap( ListExpr args )
     (IsTupleDescription(nl->Second(nl->Second(third)))),
     "Operator insertsave expects as third argument a list with "
     "structure (rel(tuple ((a1 t1)...(an tn)(TID tid)))\n"
-    "Operator insertsave gets as third argument '" + 
+    "Operator insertsave gets as third argument '" +
     argstr2 + "'." );
 
   nl->WriteToString(argstr, nl->Second(first));
   nl->WriteToString(argstr2, nl->Second(second));
   CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second))),
-    "Operator insertsave: Tuple type in the argumentstream '" + 
-    argstr + "' is different from the tuple type '" + 
+    "Operator insertsave: Tuple type in the argumentstream '" +
+    argstr + "' is different from the tuple type '" +
     argstr2 + "' in the relation" );
 
   // build resutllist
@@ -554,14 +554,14 @@ ListExpr insertSaveRelTypeMap( ListExpr args )
     lastlistn = nl->Append(lastlistn,nl->First(rest));
     rest = nl->Rest(rest);
   }
-  lastlistn= nl->Append(lastlistn, 
+  lastlistn= nl->Append(lastlistn,
                         nl->TwoElemList(
-                          nl->SymbolAtom("TID"), 
+                          nl->SymbolAtom("TID"),
                           nl->SymbolAtom("tid")));
   nl->WriteToString(argstr, listn);
   nl->WriteToString(argstr2, nl->Second(nl->Second(third)));
   CHECK_COND( (nl->Equal(listn,nl->Second(nl->Second(third)))),
-    "Operator insertsave: Tuple type of the resultstream '" + 
+    "Operator insertsave: Tuple type of the resultstream '" +
     argstr + "' is different from the tuple type '" + argstr2 +
     "' in the auxiliary-relation" );
   outList = nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -573,7 +573,7 @@ ListExpr insertSaveRelTypeMap( ListExpr args )
 2.23.2 Value mapping function of operator ~insertsave~
 
 */
-int insertSaveRelValueMap(Word* args, Word& result, int message, 
+int insertSaveRelValueMap(Word* args, Word& result, int message,
                           Word& local, Supplier s)
 {
   Word t;
@@ -632,7 +632,7 @@ int insertSaveRelValueMap(Word* args, Word& result, int message,
 2.23.3 Specification of operator ~insertsave~
 
 */
-const string insertSaveSpec  = 
+const string insertSaveSpec  =
   "(( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "(<text>stream(tuple(x)) x rel(tuple(x)) x rel(tuple(x@[TID:tid]))"
@@ -681,7 +681,7 @@ ListExpr deleteSearchRelTypeMap( ListExpr args )
 2.24.2 Value mapping function of operator ~deletesearch~
 
 */
-int deleteSearchRelValueMap(Word* args, Word& result, int message, 
+int deleteSearchRelValueMap(Word* args, Word& result, int message,
                             Word& local, Supplier s)
 {
   Word t;
@@ -752,10 +752,10 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
       {
         hashValue = 0;
         for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
-           hashValue += 
+           hashValue +=
              ((StandardAttribute*)
                (nextTup->GetAttribute(i)))->HashValue();
-        nextBucket = 
+        nextBucket =
           localTransport->hashTable->operator[](hashValue % 256);
         nextTup->IncReference();
         nextBucket->push_back(nextTup);
@@ -763,14 +763,14 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
       }
       delete iter;
       resultType = GetTupleResultType( s );
-      localTransport->resultTupleType = 
+      localTransport->resultTupleType =
         new TupleType( nl->Second( resultType ) );
       local = SetWord( localTransport );
       return 0;
 
     case REQUEST :
       localTransport =  (LocalTransport*) local.addr;
-      // deletedTuples can contain duplicates that have not been 
+      // deletedTuples can contain duplicates that have not been
       // given to the resultstream yet
       if (!localTransport->deletedTuples->empty())
       {
@@ -785,7 +785,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
       relation = (Relation*)(args[1].addr);
       assert(relation != 0);
       tupleFound = false;
-      // tupleFound will stay false until a matching tuple to a 
+      // tupleFound will stay false until a matching tuple to a
       // inputtuple was found
       while (! tupleFound)
       {
@@ -795,7 +795,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
           tup = (Tuple*)t.addr;
           hashValue = 0;
           for( int i = 0; i < tup->GetNoAttributes(); i++ )
-            hashValue += 
+            hashValue +=
               ((StandardAttribute*)
                 (tup->GetAttribute(i)))->HashValue();
           SortOrderSpecification full;
@@ -803,7 +803,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
                full.push_back(pair<int,bool> (i+1,false));
           TupleCompareBy compare(full);
           // get correct bucket from hashtable
-          nextBucket = 
+          nextBucket =
             localTransport->hashTable->operator[](hashValue % 256);
           // look for all matching tuples in the bucket
           for (size_t j = 0; j < nextBucket->size(); j++)
@@ -813,19 +813,19 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
             {
               if(!compare(nextTup,tup) && !compare(tup,nextTup))
               {
-                newTuple = 
+                newTuple =
                   new Tuple(localTransport->resultTupleType);
-                assert( newTuple->GetNoAttributes() == 
+                assert( newTuple->GetNoAttributes() ==
                         nextTup->GetNoAttributes() + 1 );
-                for( int i = 0; 
-                     i < nextTup->GetNoAttributes(); 
+                for( int i = 0;
+                     i < nextTup->GetNoAttributes();
                      i++ )
-                  newTuple->PutAttribute( 
+                  newTuple->PutAttribute(
                     i, (nextTup->GetAttribute(i))->Clone() );
                 const TupleId& tid = nextTup->GetTupleId();
-                StandardAttribute* tidAttr = 
+                StandardAttribute* tidAttr =
                   new TupleIdentifier(true,tid);
-                newTuple->PutAttribute( 
+                newTuple->PutAttribute(
                   nextTup->GetNoAttributes(), tidAttr );
                 relation->DeleteTuple(nextTup);
                 newTuple->IncReference();
@@ -863,7 +863,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
 2.24.3 Specification of operator ~deletesearch~
 
 */
-const string deleteSearchSpec  = 
+const string deleteSearchSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>stream(tuple(x)) x rel(tuple(x))"
@@ -911,7 +911,7 @@ ListExpr deleteDirectRelTypeMap( ListExpr args )
 2.25.2 Value mapping function of operator ~deletedirect~
 
 */
-int deleteDirectRelValueMap(Word* args, Word& result, int message, 
+int deleteDirectRelValueMap(Word* args, Word& result, int message,
                             Word& local, Supplier s)
 {
   Word t;
@@ -966,7 +966,7 @@ int deleteDirectRelValueMap(Word* args, Word& result, int message,
 2.25.3 Specification of operator ~deletedirect~
 
 */
-const string deleteDirectSpec  = 
+const string deleteDirectSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>stream(tuple(x)) x rel(tuple(x))"
@@ -1040,7 +1040,7 @@ ListExpr deleteSaveRelTypeMap( ListExpr& args, string opName )
     (IsTupleDescription(nl->Second(nl->Second(first)))),
     "Operator " + opName + " expects as first argument a list with "
     "structure (stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName + " gets as first argument '" + 
+    "Operator " + opName + " gets as first argument '" +
     argstr + "'." );
   // Check updaterelation
   CHECK_COND(!(nl->IsAtom(second)) &&
@@ -1057,7 +1057,7 @@ ListExpr deleteSaveRelTypeMap( ListExpr& args, string opName )
     (IsTupleDescription(nl->Second(nl->Second(second)))),
     "Operator " + opName + " expects as second argument a list with "
     "structure (rel(tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName + " gets as second argument '" + 
+    "Operator " + opName + " gets as second argument '" +
     argstr2 + "'." );
   // Check auxiliary relation
   nl->WriteToString(argstr2, third);
@@ -1069,15 +1069,15 @@ ListExpr deleteSaveRelTypeMap( ListExpr& args, string opName )
     (IsTupleDescription(nl->Second(nl->Second(third)))),
     "Operator " + opName + " expects as third argument a list with "
     "structure (rel(tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName + " gets as third argument '" + 
+    "Operator " + opName + " gets as third argument '" +
     argstr2 + "'." );
 
-  // Compare tupletype of the inputstream with tupletype of the 
+  // Compare tupletype of the inputstream with tupletype of the
   // updaterelation
   nl->WriteToString(argstr, nl->Second(first));
   nl->WriteToString(argstr2, nl->Second(second));
   CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second))),
-    "Operator " + opName + ": Tuple type in the argumentstream '" + 
+    "Operator " + opName + ": Tuple type in the argumentstream '" +
     argstr + "' is different from the tuple type '" + argstr2 +
     "' in the relation" );
   // build resultlist
@@ -1090,16 +1090,16 @@ ListExpr deleteSaveRelTypeMap( ListExpr& args, string opName )
     lastlistn = nl->Append(lastlistn,nl->First(rest));
     rest = nl->Rest(rest);
   }
-  lastlistn = nl->Append(lastlistn, 
+  lastlistn = nl->Append(lastlistn,
                          nl->TwoElemList(
-                           nl->SymbolAtom("TID"), 
+                           nl->SymbolAtom("TID"),
                            nl->SymbolAtom("tid")));
-  // Compare tupletype of resulttuples with tupletype of auxiliary 
+  // Compare tupletype of resulttuples with tupletype of auxiliary
   // relation
   nl->WriteToString(argstr, listn);
   nl->WriteToString(argstr2, nl->Second(nl->Second(third)));
   CHECK_COND( (nl->Equal(listn,nl->Second(nl->Second(third)))),
-    "Operator " + opName + ": Tuple type of the resultstream '" + 
+    "Operator " + opName + ": Tuple type of the resultstream '" +
     argstr + "' is different from the tuple type '" + argstr2 +
     "' in the auxiliary-relation" );
   outList = nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -1122,7 +1122,7 @@ ListExpr deleteSearchSaveRelTypeMap(ListExpr args)
 2.26.2 Value mapping function of operator ~deletesearchsave~
 
 */
-int deleteSearchSaveRelValueMap(Word* args, Word& result, int message, 
+int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
                                 Word& local, Supplier s)
 {
   Word t;
@@ -1192,10 +1192,10 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
       {
         hashValue = 0;
         for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
-          hashValue += 
+          hashValue +=
             ((StandardAttribute*)
              (nextTup->GetAttribute(i)))->HashValue();
-        nextBucket = 
+        nextBucket =
           localTransport->hashTable->operator[](hashValue % 256);
         nextTup->IncReference();
         nextBucket->push_back(nextTup);
@@ -1203,7 +1203,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
       }
       delete iter;
       resultType = GetTupleResultType( s );
-      localTransport->resultTupleType = 
+      localTransport->resultTupleType =
         new TupleType( nl->Second( resultType ) );
       local = SetWord( localTransport );
       return 0;
@@ -1211,7 +1211,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
     case REQUEST :
       localTransport = (LocalTransport*) local.addr;
 
-      // Check if already deleted duplicates have to be given to 
+      // Check if already deleted duplicates have to be given to
       // the outputstream
       if (!localTransport->deletedTuples->empty())
       {
@@ -1226,7 +1226,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
       auxRelation = (Relation*)(args[2].addr);
       assert(auxRelation != 0);
       tupleFound = false;
-      // tupleFound will stay false until a tuple with the same 
+      // tupleFound will stay false until a tuple with the same
       // values as one of the inputtuples is found
       while (! tupleFound)
       {
@@ -1236,7 +1236,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
           tup = (Tuple*)t.addr;
           hashValue = 0;
           for( int i = 0; i < tup->GetNoAttributes(); i++ )
-            hashValue += 
+            hashValue +=
               ((StandardAttribute*)
                (tup->GetAttribute(i)))->HashValue();
           SortOrderSpecification full;
@@ -1244,7 +1244,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
             full.push_back(pair<int,bool> (i+1,false));
           TupleCompareBy compare(full);
           // Get the right hash-bucket
-          nextBucket = 
+          nextBucket =
             localTransport->hashTable->operator[](hashValue % 256);
           // Check all tuples in the bucket
           for (size_t j = 0; j < nextBucket->size(); j++)
@@ -1254,19 +1254,19 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
             {
               if(!compare(nextTup,tup) && !compare(tup,nextTup))
               {
-                newTuple = 
+                newTuple =
                   new Tuple(localTransport->resultTupleType);
-                assert( newTuple->GetNoAttributes() == 
+                assert( newTuple->GetNoAttributes() ==
                         nextTup->GetNoAttributes() +1 );
-                for( int i = 0; 
-                     i < nextTup->GetNoAttributes(); 
+                for( int i = 0;
+                     i < nextTup->GetNoAttributes();
                      i++ )
-                  newTuple->PutAttribute( 
+                  newTuple->PutAttribute(
                     i, (nextTup->GetAttribute(i))->Clone() );
                 const TupleId& tid = nextTup->GetTupleId();
-                StandardAttribute* tidAttr = 
+                StandardAttribute* tidAttr =
                   new TupleIdentifier(true,tid);
-                newTuple->PutAttribute( 
+                newTuple->PutAttribute(
                   nextTup->GetNoAttributes(), tidAttr);
                 relation->DeleteTuple(nextTup);
                 auxRelation->AppendTuple(newTuple);
@@ -1307,7 +1307,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
 2.26.3 Specification of operator ~deletesearchsave~
 
 */
-const string deleteSearchSaveSpec  = 
+const string deleteSearchSaveSpec  =
   "(( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "(<text>stream(tuple(x)) x rel(tuple(x)) x rel(tuple(x@[TID:tid]))"
@@ -1359,8 +1359,8 @@ ListExpr deleteDirectSaveRelTypeMap(ListExpr args)
 
 */
 
-int deleteDirectSaveRelValueMap(Word* args, Word& result, 
-                                int message, Word& local, 
+int deleteDirectSaveRelValueMap(Word* args, Word& result,
+                                int message, Word& local,
                                 Supplier s)
 {
   Word t;
@@ -1390,7 +1390,7 @@ int deleteDirectSaveRelValueMap(Word* args, Word& result,
       {
         tup = (Tuple*)t.addr;
         Tuple *newTuple = new Tuple( resultTupleType );
-        assert( newTuple->GetNoAttributes() == 
+        assert( newTuple->GetNoAttributes() ==
                 tup->GetNoAttributes() +1 );
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
           newTuple->PutAttribute( i, tup->GetAttribute( i )->Clone() );
@@ -1423,7 +1423,7 @@ int deleteDirectSaveRelValueMap(Word* args, Word& result,
 2.27.3 Specification of operator ~deletedirectsave~
 
 */
-const string deleteDirectSaveSpec  = 
+const string deleteDirectSaveSpec  =
   "(( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "(<text>stream(tuple(x)) x rel(tuple(x)) x rel(tuple(x@[TID:tid]))"
@@ -1490,7 +1490,7 @@ ListExpr insertTupleTypeMap(ListExpr args)
     (IsTupleDescription(nl->Second(nl->Second(first)))),
     "Operator inserttuple expects as first argument a list with "
     "structure (rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator inserttuple gets as first argument '" + 
+    "Operator inserttuple gets as first argument '" +
     argstr + "'." );
   // Check second argument
   nl->WriteToString(argstr, second);
@@ -1499,13 +1499,13 @@ ListExpr insertTupleTypeMap(ListExpr args)
     "Operator inserttuple expects a list of attributetypes "
     "(t1...tn)\n"
     "Operator inserttuple gets a list '" + argstr + "'.");
-  // Check if there are as many values in the second argument as 
+  // Check if there are as many values in the second argument as
   // attributes in the tuples of the relation
-  CHECK_COND(nl->ListLength(second) == 
+  CHECK_COND(nl->ListLength(second) ==
              nl->ListLength(nl->Second(nl->Second(first))),
     "Operator inserttuple expects the same nuber of attributetypes "
     "than attributes in the tupletype of the relation");
-  // Check if types of the new tuplevalues and types of the tuples 
+  // Check if types of the new tuplevalues and types of the tuples
   // of the relation at the same position are the same
   rest = nl->Second(nl->Second(first));
   rest2 = second;
@@ -1530,9 +1530,9 @@ ListExpr insertTupleTypeMap(ListExpr args)
     lastlistn = nl->Append(lastlistn,nl->First(rest));
     rest = nl->Rest(rest);
   }
-  lastlistn = nl->Append(lastlistn, 
+  lastlistn = nl->Append(lastlistn,
                          nl->TwoElemList(
-                           nl->SymbolAtom("TID"), 
+                           nl->SymbolAtom("TID"),
                            nl->SymbolAtom("tid")));
   outList = nl->TwoElemList(nl->SymbolAtom("stream"),
             nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
@@ -1543,7 +1543,7 @@ ListExpr insertTupleTypeMap(ListExpr args)
 2.28.2 Value mapping function of operator ~inserttuple~
 
 */
-int insertTupleRelValueMap(Word* args, Word& result, int message, 
+int insertTupleRelValueMap(Word* args, Word& result, int message,
                            Word& local, Supplier s)
 {
   Word attrValue;
@@ -1587,7 +1587,7 @@ int insertTupleRelValueMap(Word* args, Word& result, int message,
         relation->AppendTuple(insertTuple);
         const TupleId& tid = insertTuple->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
-        resultTuple->PutAttribute( 
+        resultTuple->PutAttribute(
           resultTuple->GetNoAttributes() -1, tidAttr);
         result = SetWord(resultTuple);
         insertTuple->DeleteIfAllowed();
@@ -1610,7 +1610,7 @@ int insertTupleRelValueMap(Word* args, Word& result, int message,
 2.28.3 Specification of operator ~inserttuple~
 
 */
-const string insertTupleSpec  = 
+const string insertTupleSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>rel(tuple(x))) x [t1 ... tn]"
@@ -1661,7 +1661,7 @@ Type mapping ~inserttuplesave~ on a relation
 
 ListExpr insertTupleSaveTypeMap(ListExpr args)
 {
-  ListExpr first,second, third, rest, rest2, listn, 
+  ListExpr first,second, third, rest, rest2, listn,
            lastlistn, outList;
   string argstr="",valueString, argstr2;
 
@@ -1681,7 +1681,7 @@ ListExpr insertTupleSaveTypeMap(ListExpr args)
     (IsTupleDescription(nl->Second(nl->Second(first)))),
     "Operator inserttuplesave expects as first argument a list with "
     "structure (rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator inserttuplesave gets as first argument '" + 
+    "Operator inserttuplesave gets as first argument '" +
     argstr + "'." );
   // Check value-list
   nl->WriteToString(argstr, third);
@@ -1690,9 +1690,9 @@ ListExpr insertTupleSaveTypeMap(ListExpr args)
     "Operator inserttuplesave expects a list of attributetypes "
     "(t1...tn)\n"
     "Operator inserttuplesave gets a list '" + argstr + "'.");
-  // Check if there are as many new values as attributes in the 
+  // Check if there are as many new values as attributes in the
   // tuples of the updaterelation
-  CHECK_COND(nl->ListLength(third) == 
+  CHECK_COND(nl->ListLength(third) ==
              nl->ListLength(nl->Second(nl->Second(first))),
     "Operator inserttuplesave expects the same nuber of attribute "
     "types than attributes in the tupletype of the relation");
@@ -1706,10 +1706,10 @@ ListExpr insertTupleSaveTypeMap(ListExpr args)
     (IsTupleDescription(nl->Second(nl->Second(second)))),
     "Operator inserttuplesave expects as second argument a list "
     "with structure (rel(tuple ((a1 t1)...(an tn))))\n"
-    "Operator inserttuplesave gets as second argument '" + 
+    "Operator inserttuplesave gets as second argument '" +
     argstr2 + "'." );
 
-   // Check if types of new values and types of the tuples of the 
+   // Check if types of new values and types of the tuples of the
    // updatrelation at the same positions are the same
    rest = nl->Second(nl->Second(first));
    rest2 = third;
@@ -1733,16 +1733,16 @@ ListExpr insertTupleSaveTypeMap(ListExpr args)
     lastlistn = nl->Append(lastlistn,nl->First(rest));
     rest = nl->Rest(rest);
   }
-  lastlistn = nl->Append(lastlistn, 
+  lastlistn = nl->Append(lastlistn,
                          nl->TwoElemList(
-                           nl->SymbolAtom("TID"), 
+                           nl->SymbolAtom("TID"),
                            nl->SymbolAtom("tid")));
-  // Check if result-tupletype and type of the auxiliary relation 
+  // Check if result-tupletype and type of the auxiliary relation
   // are the same
   nl->WriteToString(argstr, listn);
   nl->WriteToString(argstr2, nl->Second(nl->Second(second)));
   CHECK_COND( (nl->Equal(listn,nl->Second(nl->Second(second)))),
-    "Operator inserttuplesave: Tuple type of the resultstream '" + 
+    "Operator inserttuplesave: Tuple type of the resultstream '" +
     argstr + "' is different from the tuple type '" + argstr2 +
     "' in the auxiliary-relation" );
   outList = nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -1754,8 +1754,8 @@ ListExpr insertTupleSaveTypeMap(ListExpr args)
 2.29.2 Value mapping function of operator ~inserttuplesave~
 
 */
-int insertTupleSaveRelValueMap(Word* args, Word& result, 
-                               int message, Word& local, 
+int insertTupleSaveRelValueMap(Word* args, Word& result,
+                               int message, Word& local,
                                Supplier s)
 {
   Word attrValue;
@@ -1802,7 +1802,7 @@ int insertTupleSaveRelValueMap(Word* args, Word& result,
         relation->AppendTuple(insertTuple);
         const TupleId& tid = insertTuple->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
-        resultTuple->PutAttribute( 
+        resultTuple->PutAttribute(
           resultTuple->GetNoAttributes() -1, tidAttr);
         auxRelation->AppendTuple(resultTuple);
         result = SetWord(resultTuple);
@@ -1827,7 +1827,7 @@ int insertTupleSaveRelValueMap(Word* args, Word& result,
 2.29.3 Specification of operator ~inserttuplesave~
 
 */
-const string insertTupleSaveSpec  = 
+const string insertTupleSaveSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>rel(tuple(x)) x rel(tuple(x@[TID:tid])) x [t1 ... tn]"
@@ -1876,7 +1876,7 @@ Type mapping for ~updatedirect~ and ~updatesearch~ is
 */
 ListExpr updateTypeMap( ListExpr& args, string opName )
 {
-  ListExpr first, second,third,errorInfo, rest, listn, 
+  ListExpr first, second,third,errorInfo, rest, listn,
            lastlistn, first2, second2, firstr,attrType,
            numberList, lastNumberList,oldAttribute, outlist;
   int attrIndex, noAttrs ;
@@ -1902,7 +1902,7 @@ ListExpr updateTypeMap( ListExpr& args, string opName )
     (IsTupleDescription(nl->Second(nl->Second(first)))),
     "Operator " + opName + " expects as first argument a list with "
     "structure (stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName + " gets as first argument '" + 
+    "Operator " + opName + " gets as first argument '" +
     argstr + "'." );
   // Check update-relation
   CHECK_COND(!(nl->IsAtom(second)) &&
@@ -1919,15 +1919,15 @@ ListExpr updateTypeMap( ListExpr& args, string opName )
     (IsTupleDescription(nl->Second(nl->Second(second)))),
     "Operator " + opName + " expects as second argument a list with "
     "structure (rel(tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName + " gets as second argument '" + 
+    "Operator " + opName + " gets as second argument '" +
     argstr2 + "'." );
 
-  // Check if tuples of the inputstream and of the relation have 
+  // Check if tuples of the inputstream and of the relation have
   // the same schema
   nl->WriteToString(argstr, nl->Second(first));
   nl->WriteToString(argstr2, nl->Second(second));
   CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second))),
-    "Operator " + opName + ": Tuple type in the argumentstream '" + 
+    "Operator " + opName + ": Tuple type in the argumentstream '" +
     argstr + "' is different from the tuple type '" + argstr2 +
     "' in the relation" );
   // Check function-argumentlist
@@ -1955,40 +1955,40 @@ ListExpr updateTypeMap( ListExpr& args, string opName )
       "structure "
       "(<attrname> (map (tuple ( (a1 t1)...(an tn) )) ti) )\n."
       "Operator" + opName + " gets a list '" + argstr + "'.\n" );
-    // Check if functions have argumenttuples of the same type as 
+    // Check if functions have argumenttuples of the same type as
     //those ones from the inputstream
     nl->WriteToString(argstr, nl->Second(first));
     nl->WriteToString(argstr2, second2);
     CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second2))),
-      "Operator " + opName + ": Tuple type in first argument '" + 
-      argstr + "' is different from the argument tuple type '" + 
+      "Operator " + opName + ": Tuple type in first argument '" +
+      argstr + "' is different from the argument tuple type '" +
       argstr2 + "' in the mapping function" );
-    // Is the name of the attribute that shall be computed by the 
+    // Is the name of the attribute that shall be computed by the
     // function a valid name
     nl->WriteToString(argstr, first2);
     CHECK_COND( (nl->IsAtom(first2)) &&
       (nl->AtomType(first2) == SymbolType),
       "Operator " + opName + ": Attribute name '" + argstr +
       "' is not an atom or not of type SymbolType" );
-    // Is the name of the attribute of the function an 
+    // Is the name of the attribute of the function an
     // attributename of the tuples of the inputstream
-    attrIndex = FindAttribute(nl->Second(nl->Second(first)), 
+    attrIndex = FindAttribute(nl->Second(nl->Second(first)),
                               argstr, attrType);
     CHECK_COND( attrIndex != 0 ,
-     "Operator " + opName + ": Attribute name '" + argstr + 
+     "Operator " + opName + ": Attribute name '" + argstr +
      "' of the mapping-functions"
      " is not an attributename of the tuples of the relation" );
-    // Is the type of the attribute of the function the same as the 
+    // Is the type of the attribute of the function the same as the
     // type of the attribute of the tuples of the inputstream
     nl->WriteToString(argstr2, attrType);
     nl->WriteToString(argstr3, nl->Third(second2));
     CHECK_COND( nl->Equal(attrType, nl->Third(second2)),
-      "Operator " + opName + ": Attribute type '" + argstr3 + 
-      "' of the mapping-functions is not the type " + argstr2 + 
-      " of attributename '" + argstr + 
+      "Operator " + opName + ": Attribute type '" + argstr3 +
+      "' of the mapping-functions is not the type " + argstr2 +
+      " of attributename '" + argstr +
       "' of the tuples of the relation" );
 
-    // Construct a list with all indices of the changed attributes 
+    // Construct a list with all indices of the changed attributes
     // in the inputstream to be appended to the resultstream
     if (firstcall)
     {
@@ -1998,7 +1998,7 @@ ListExpr updateTypeMap( ListExpr& args, string opName )
     }
     else
     {
-      lastNumberList = 
+      lastNumberList =
         nl->Append(
           lastNumberList,
           nl->IntAtom(attrIndex));
@@ -2020,20 +2020,20 @@ ListExpr updateTypeMap( ListExpr& args, string opName )
   {
     nl->WriteToString(oldName, nl->First(nl->First(rest)));
     oldName += "_old";
-    oldAttribute = 
+    oldAttribute =
       nl->TwoElemList(
         nl->SymbolAtom(oldName),
         nl->Second(nl->First(rest)));
     lastlistn = nl->Append(lastlistn,oldAttribute);
     rest = nl->Rest(rest);
   }
-  lastlistn = 
+  lastlistn =
     nl->Append(
-      lastlistn, 
+      lastlistn,
       nl->TwoElemList(
-        nl->SymbolAtom("TID"), 
+        nl->SymbolAtom("TID"),
         nl->SymbolAtom("tid")));
-  outlist = 
+  outlist =
     nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),
       nl->TwoElemList(
@@ -2060,7 +2060,7 @@ ListExpr updateDirectRelTypeMap(ListExpr args)
 2.30.2 Value mapping function of operator ~updatedirect~
 
 */
-int UpdateDirect(Word* args, Word& result, int message, 
+int UpdateDirect(Word* args, Word& result, int message,
                  Word& local, Supplier s)
 {
   Word t, value, elem;
@@ -2093,17 +2093,17 @@ int UpdateDirect(Word* args, Word& result, int message,
         tup = (Tuple*)t.addr;
         Tuple *newTuple = new Tuple( resultTupleType );
         // Copy the attributes from the old tuple
-        assert( newTuple->GetNoAttributes() == 
+        assert( newTuple->GetNoAttributes() ==
                 2 * tup->GetNoAttributes() + 1);
         for (int i = 0; i < tup->GetNoAttributes(); i++)
-          newTuple->PutAttribute( 
+          newTuple->PutAttribute(
             tup->GetNoAttributes()+i, tup->GetAttribute(i)->Clone());
         // Number of attributes to be replaced
         noOfAttrs = ((CcInt*)args[3].addr)->GetIntval();
         // Supplier for the functions
         supplier = args[2].addr;
         vector<int>* changedIndices = new vector<int>(noOfAttrs);
-        vector<Attribute*>* newAttrs = 
+        vector<Attribute*>* newAttrs =
           new vector<Attribute*>(noOfAttrs);
         for (int i=1; i <= noOfAttrs; i++)
         {
@@ -2154,7 +2154,7 @@ int UpdateDirect(Word* args, Word& result, int message,
 2.18.3 Specification of operator ~updatedirect~
 
 */
-const string UpdateDirectSpec  = 
+const string UpdateDirectSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>stream(tuple(x)) x rel(tuple(x)) x [(a1, (tuple(x)"
@@ -2204,7 +2204,7 @@ ListExpr updateSearchRelTypeMap(ListExpr args)
 2.18.2 Value mapping function of operator ~updatesearch~
 
 */
-int UpdateSearch(Word* args, Word& result, int message, 
+int UpdateSearch(Word* args, Word& result, int message,
                  Word& local, Supplier s)
 {
   Word t, value, elem;
@@ -2279,10 +2279,10 @@ int UpdateSearch(Word* args, Word& result, int message,
       {
         hashValue = 0;
         for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
-           hashValue += 
+           hashValue +=
              ((StandardAttribute*)
               (nextTup->GetAttribute(i)))->HashValue();
-        nextBucket = 
+        nextBucket =
           localTransport->hashTable->operator[](hashValue % 256);
         nextTup->IncReference();
         nextBucket->push_back(nextTup);
@@ -2290,7 +2290,7 @@ int UpdateSearch(Word* args, Word& result, int message,
       }
       delete iter;
       resultType = GetTupleResultType( s );
-      localTransport->resultTupleType = 
+      localTransport->resultTupleType =
         new TupleType( nl->Second( resultType ) );
       local = SetWord( localTransport );
       return 0;
@@ -2298,7 +2298,7 @@ int UpdateSearch(Word* args, Word& result, int message,
     case REQUEST :
 
       localTransport =  (LocalTransport*) local.addr;
-      // Check if an already updated duplicate of the last 
+      // Check if an already updated duplicate of the last
       // inputtuple has to be given to the resultstream first
       if (!localTransport->updatedTuples->empty())
       {
@@ -2311,7 +2311,7 @@ int UpdateSearch(Word* args, Word& result, int message,
       // No more duplicates to send to the resultstream
       relation = (Relation*) args[1].addr;
       tupleFound = false;
-      // tupleFound will stay false until a tuple with the same 
+      // tupleFound will stay false until a tuple with the same
       // values as the inputtuple was found and updated
       while (! tupleFound)
       {
@@ -2321,7 +2321,7 @@ int UpdateSearch(Word* args, Word& result, int message,
           tup = (Tuple*)t.addr;
           hashValue = 0;
           for( int i = 0; i < tup->GetNoAttributes(); i++ )
-            hashValue += 
+            hashValue +=
               ((StandardAttribute*)
                 (tup->GetAttribute(i)))->HashValue();
           SortOrderSpecification full;
@@ -2329,9 +2329,9 @@ int UpdateSearch(Word* args, Word& result, int message,
             full.push_back(pair<int,bool> (i+1,false));
           TupleCompareBy compare(full);
           // Get the right bucket from the hashtable
-          nextBucket = 
+          nextBucket =
             localTransport->hashTable->operator[](hashValue % 256);
-          // Get all tuples from the bucket that have the same 
+          // Get all tuples from the bucket that have the same
           // attributevalues as the inputtuple
           for (size_t j = 0; j < nextBucket->size(); j++)
           {
@@ -2340,20 +2340,20 @@ int UpdateSearch(Word* args, Word& result, int message,
             {
               if(!compare(nextTup,tup) && !compare(tup,nextTup))
               {
-                newTuple = 
+                newTuple =
                   new Tuple(localTransport->resultTupleType);
-                assert( newTuple->GetNoAttributes() == 
+                assert( newTuple->GetNoAttributes() ==
                         2 * nextTup->GetNoAttributes() + 1);
                 for (int i = 0; i < nextTup->GetNoAttributes(); i++)
-                  newTuple->PutAttribute( 
-                    nextTup->GetNoAttributes()+i, 
+                  newTuple->PutAttribute(
+                    nextTup->GetNoAttributes()+i,
                     nextTup->GetAttribute(i)->Clone());
                 noOfAttrs = ((CcInt*)args[3].addr)->GetIntval();
                 // Supplier for the functions
                 supplier = args[2].addr;
-                vector<int>* changedIndices = 
+                vector<int>* changedIndices =
                   new vector<int>(noOfAttrs);
-                vector<Attribute*>* newAttrs = 
+                vector<Attribute*>* newAttrs =
                   new vector<Attribute*>(noOfAttrs);
                 for (int i=1; i <= noOfAttrs; i++)
                 {
@@ -2368,7 +2368,7 @@ int UpdateSearch(Word* args, Word& result, int message,
                   funargs = qp->Argument(supplier3);
                   (*funargs)[0] = SetWord(nextTup);
                   qp->Request(supplier3,value);
-                  newAttribute = 
+                  newAttribute =
                     ((StandardAttribute*)value.addr)->Clone();
                   (*newAttrs)[i-1] = newAttribute;
                 }
@@ -2377,9 +2377,9 @@ int UpdateSearch(Word* args, Word& result, int message,
                 for (int i = 0; i < nextTup->GetNoAttributes(); i++)
                   newTuple->CopyAttribute( i, nextTup, i );
                 const TupleId& tid = nextTup->GetTupleId();
-                StandardAttribute* tidAttr = 
+                StandardAttribute* tidAttr =
                   new TupleIdentifier(true,tid);
-                newTuple->PutAttribute( 
+                newTuple->PutAttribute(
                   newTuple->GetNoAttributes() - 1, tidAttr );
                 delete changedIndices;
                 delete newAttrs;
@@ -2420,7 +2420,7 @@ int UpdateSearch(Word* args, Word& result, int message,
 2.18.3 Specification of operator ~updatesearch~
 
 */
-const string UpdateSearchSpec  = 
+const string UpdateSearchSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>stream(tuple(x)) x rel(tuple(x)) x [(a1, (tuple(x)"
@@ -2475,7 +2475,7 @@ Type mapping for ~updatedirectsave~ and ~updatesearchsave~is
 ListExpr updateSaveTypeMap( ListExpr& args, string opName )
 {
   ListExpr first, second,third,fourth,errorInfo, rest, listn,
-           lastlistn, first2, second2, firstr,attrType,numberList, 
+           lastlistn, first2, second2, firstr,attrType,numberList,
            lastNumberList,oldAttribute, outlist;
   int attrIndex, noAttrs ;
   bool firstcall = true;
@@ -2500,10 +2500,10 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
     (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
     (nl->ListLength(nl->Second(first)) == 2) &&
     (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator " + opName + 
+    "Operator " + opName +
     " expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName + " gets as first argument '" + 
+    "Operator " + opName + " gets as first argument '" +
     argstr + "'." );
   // Check updaterelation
   CHECK_COND(!(nl->IsAtom(second)) &&
@@ -2520,15 +2520,15 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
     (IsTupleDescription(nl->Second(nl->Second(second)))),
     "Operator " + opName + " expects as second argument a list with "
     "structure (rel(tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName + " gets as second argument '" + 
+    "Operator " + opName + " gets as second argument '" +
     argstr2 + "'." );
 
-  // Check if tupletype of the tuples of the inputstream is the 
+  // Check if tupletype of the tuples of the inputstream is the
   // same as the one of the tuples of the update-relation
   nl->WriteToString(argstr, nl->Second(first));
   nl->WriteToString(argstr2, nl->Second(second));
   CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second))),
-    "Operator " + opName + ": Tuple type in the argumentstream '" + 
+    "Operator " + opName + ": Tuple type in the argumentstream '" +
     argstr + "' is different from the tuple type '" + argstr2 +
     "' in the relation" );
   // Check auxiliary relation
@@ -2541,7 +2541,7 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
     (IsTupleDescription(nl->Second(nl->Second(third)))),
     "Operator " + opName + " expects as third argument a list with "
     "structure (rel(tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName + " gets as third argument '" + 
+    "Operator " + opName + " gets as third argument '" +
     argstr2 + "'." );
   // Check functionlist for updating
   CHECK_COND(!(nl->IsAtom(fourth)) &&
@@ -2568,13 +2568,13 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
       "structure"
       " (<attrname> (map (tuple ( (a1 t1)...(an tn) )) ti) )\n."
       "Operator" + opName + " gets a list '" + argstr + "'.\n" );
-    // Is the type of the argumentuples of the function the same 
+    // Is the type of the argumentuples of the function the same
     // tupletype as in the updaterelation?
     nl->WriteToString(argstr, nl->Second(first));
     nl->WriteToString(argstr2, second2);
     CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second2))),
-      "Operator " + opName + ": Tuple type in first argument '" + 
-      argstr + "' is different from the argument tuple type '" + 
+      "Operator " + opName + ": Tuple type in first argument '" +
+      argstr + "' is different from the argument tuple type '" +
       argstr2 + "' in the mapping function" );
     // Is the function attributename a valid name?
     nl->WriteToString(argstr, first2);
@@ -2582,23 +2582,23 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
       (nl->AtomType(first2) == SymbolType),
       "Operator " + opName + ": Attribute name '" + argstr +
       "' is not an atom or not of type SymbolType" );
-    // Is the attributname of the function an attributename in the 
+    // Is the attributname of the function an attributename in the
     // tuples of the update-relation?
-    attrIndex = FindAttribute(nl->Second(nl->Second(first)), 
+    attrIndex = FindAttribute(nl->Second(nl->Second(first)),
                               argstr, attrType);
     CHECK_COND( attrIndex != 0 ,
-      "Operator " + opName + ": Attribute name '" + 
+      "Operator " + opName + ": Attribute name '" +
       argstr + "' of the mapping-functions"
       " is not an attributename of the tuples of the relation" );
     // Are the types of those attributes the same?
     nl->WriteToString(argstr2, attrType);
     nl->WriteToString(argstr3, nl->Third(second2));
     CHECK_COND( nl->Equal(attrType, nl->Third(second2)),
-      "Operator " + opName + ": Attribute type '" + 
+      "Operator " + opName + ": Attribute type '" +
       argstr3 + "' of the mapping-functions"
-      " is not the type " + argstr2 + " of attributename '" + 
+      " is not the type " + argstr2 + " of attributename '" +
       argstr + "' of the tuples of the relation" );
-    // build a list with all indices of the updated attributes in 
+    // build a list with all indices of the updated attributes in
     // the update-relation to be appended to the resultstream
     if (firstcall)
     {
@@ -2608,7 +2608,7 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
     }
     else
     {
-      lastNumberList = 
+      lastNumberList =
         nl->Append(
           lastNumberList,
           nl->IntAtom(attrIndex));
@@ -2630,18 +2630,18 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
   {
     nl->WriteToString(oldName, nl->First(nl->First(rest)));
     oldName += "_old";
-    oldAttribute = 
+    oldAttribute =
       nl->TwoElemList(
         nl->SymbolAtom(oldName),
         nl->Second(nl->First(rest)));
     lastlistn = nl->Append(lastlistn,oldAttribute);
     rest = nl->Rest(rest);
   }
-  lastlistn = 
+  lastlistn =
     nl->Append(
-      lastlistn, 
+      lastlistn,
       nl->TwoElemList(
-        nl->SymbolAtom("TID"), 
+        nl->SymbolAtom("TID"),
         nl->SymbolAtom("tid")));
 
   outlist = nl->ThreeElemList(
@@ -2671,7 +2671,7 @@ ListExpr updateDirectSaveRelTypeMap(ListExpr args)
 2.30.2 Value mapping function of operator ~updatedirectsave~
 
 */
-int UpdateDirectSave(Word* args, Word& result, int message, 
+int UpdateDirectSave(Word* args, Word& result, int message,
                      Word& local, Supplier s)
 {
   Word t, value, elem;
@@ -2706,16 +2706,16 @@ int UpdateDirectSave(Word* args, Word& result, int message,
       {
         tup = (Tuple*)t.addr;
         Tuple *newTuple = new Tuple( resultTupleType );
-        assert( newTuple->GetNoAttributes() == 
+        assert( newTuple->GetNoAttributes() ==
                 2 * tup->GetNoAttributes() + 1);
         for (int i = 0; i < tup->GetNoAttributes(); i++)
-          newTuple->PutAttribute( 
+          newTuple->PutAttribute(
             tup->GetNoAttributes()+i, tup->GetAttribute(i)->Clone());
         noOfAttrs = ((CcInt*)args[4].addr)->GetIntval();
         // Get the supplier for the updatefunctions
         supplier = args[3].addr;
         vector<int>* changedIndices = new vector<int>(noOfAttrs);
-        vector<Attribute*>* newAttrs = 
+        vector<Attribute*>* newAttrs =
           new vector<Attribute*>(noOfAttrs);
         for (int i=1; i <= noOfAttrs; i++)
         { // supplier for the next index of an updated attribute
@@ -2741,7 +2741,7 @@ int UpdateDirectSave(Word* args, Word& result, int message,
         }
         const TupleId& tid = tup->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
-        newTuple->PutAttribute( 
+        newTuple->PutAttribute(
           newTuple->GetNoAttributes() - 1, tidAttr);
         auxTuple->CopyAttribute( newTuple->GetNoAttributes() - 1,
                                  newTuple,
@@ -2774,7 +2774,7 @@ int UpdateDirectSave(Word* args, Word& result, int message,
 2.30.3 Specification of operator ~updatedirectsave~
 
 */
-const string UpdateDirectSaveSpec  = 
+const string UpdateDirectSaveSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>stream(tuple(x)) x rel(tuple(x)) x rel(tuple(x @ x @ [TID tid]))"
@@ -2827,7 +2827,7 @@ ListExpr updateSearchSaveRelTypeMap(ListExpr args)
 2.31.2 Value mapping function of operator ~updatesearchsave~
 
 */
-int UpdateSearchSave(Word* args, Word& result, int message, 
+int UpdateSearchSave(Word* args, Word& result, int message,
                      Word& local, Supplier s)
 {
   Word t, value, elem;
@@ -2903,10 +2903,10 @@ int UpdateSearchSave(Word* args, Word& result, int message,
       {
         hashValue = 0;
         for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
-          hashValue += 
+          hashValue +=
             ((StandardAttribute*)
               (nextTup->GetAttribute(i)))->HashValue();
-        nextBucket = 
+        nextBucket =
           localTransport->hashTable->operator[](hashValue % 256);
         nextTup->IncReference();
         nextBucket->push_back(nextTup);
@@ -2914,7 +2914,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
       }
       delete iter;
       resultType = GetTupleResultType( s );
-      localTransport->resultTupleType = 
+      localTransport->resultTupleType =
         new TupleType( nl->Second( resultType ) );
       local = SetWord( localTransport );
       return 0;
@@ -2922,7 +2922,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
     case REQUEST :
 
       localTransport =  (LocalTransport*) local.addr;
-      // Check if an already updated duplicate of the last 
+      // Check if an already updated duplicate of the last
       // inputtuples has to be send to the outputstream first
       if (!localTransport->updatedTuples->empty())
       {
@@ -2937,7 +2937,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
       auxRelation = (Relation*)(args[2].addr);
       assert(auxRelation != 0);
       tupleFound = false;
-      // tupleFound will stay false until a tuple with the same 
+      // tupleFound will stay false until a tuple with the same
       // values as one of the inputtuples was found
       while (! tupleFound)
       {
@@ -2947,7 +2947,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
           tup = (Tuple*)t.addr;
           hashValue = 0;
           for( int i = 0; i < tup->GetNoAttributes(); i++ )
-            hashValue += 
+            hashValue +=
               ((StandardAttribute*)
                 (tup->GetAttribute(i)))->HashValue();
           SortOrderSpecification full;
@@ -2955,9 +2955,9 @@ int UpdateSearchSave(Word* args, Word& result, int message,
             full.push_back(pair<int,bool> (i+1,false));
           TupleCompareBy compare(full);
           // Get the right bucket
-          nextBucket = 
+          nextBucket =
             localTransport->hashTable->operator[](hashValue % 256);
-          // Look for all tuples in the bucket if they have the 
+          // Look for all tuples in the bucket if they have the
           // same attributevalues
           for (size_t j = 0; j < nextBucket->size(); j++)
           {
@@ -2966,21 +2966,21 @@ int UpdateSearchSave(Word* args, Word& result, int message,
             {
               if(!compare(nextTup,tup) && !compare(tup,nextTup))
               {
-                newTuple = 
+                newTuple =
                   new Tuple( localTransport->resultTupleType );
-                assert( newTuple->GetNoAttributes() == 
+                assert( newTuple->GetNoAttributes() ==
                         2 * nextTup->GetNoAttributes() + 1);
-                for (int i = 0; 
+                for (int i = 0;
                      i < nextTup->GetNoAttributes(); i++)
-                  newTuple->PutAttribute( 
-                    nextTup->GetNoAttributes() +i, 
+                  newTuple->PutAttribute(
+                    nextTup->GetNoAttributes() +i,
                     nextTup->GetAttribute(i)->Clone());
                 noOfAttrs = ((CcInt*)args[4].addr)->GetIntval();
                 // Supplier for the updatefunctions
                 supplier = args[3].addr;
-                vector<int>* changedIndices = 
+                vector<int>* changedIndices =
                   new vector<int>(noOfAttrs);
-                vector<Attribute*>* newAttrs = 
+                vector<Attribute*>* newAttrs =
                   new vector<Attribute*>(noOfAttrs);
                 for (int i=1; i <= noOfAttrs; i++)
                 {
@@ -2995,13 +2995,13 @@ int UpdateSearchSave(Word* args, Word& result, int message,
                   funargs = qp->Argument(supplier3);
                   (*funargs)[0] = SetWord(nextTup);
                   qp->Request(supplier3,value);
-                  newAttribute = 
+                  newAttribute =
                     ((StandardAttribute*)value.addr)->Clone();
                   (*newAttrs)[i-1] = newAttribute;
                 }
                 relation->UpdateTuple(
                   nextTup,*changedIndices,*newAttrs);
-                Tuple *auxTuple = 
+                Tuple *auxTuple =
                   new Tuple( auxRelation->GetTupleType() );
                 for (int i = 0; i < nextTup->GetNoAttributes(); i++)
                 {
@@ -3009,13 +3009,13 @@ int UpdateSearchSave(Word* args, Word& result, int message,
                   auxTuple->CopyAttribute( i, nextTup, i );
                 }
                 const TupleId& tid = nextTup->GetTupleId();
-                StandardAttribute* tidAttr = 
+                StandardAttribute* tidAttr =
                   new TupleIdentifier(true,tid);
-                newTuple->PutAttribute( 
+                newTuple->PutAttribute(
                   newTuple->GetNoAttributes() - 1, tidAttr);
-                auxTuple->CopyAttribute( 
+                auxTuple->CopyAttribute(
                   newTuple->GetNoAttributes() - 1,
-                  newTuple, 
+                  newTuple,
                   auxTuple->GetNoAttributes() - 1 );
                 auxRelation->AppendTuple(auxTuple);
                 auxTuple->DeleteIfAllowed();
@@ -3026,7 +3026,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
               }
             }
           }
-          // Check if at least one updated tuple has to be send to 
+          // Check if at least one updated tuple has to be send to
           // the outputstream
           if (!localTransport->updatedTuples->empty())
           {
@@ -3060,7 +3060,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
 2.31.3 Specification of operator ~updatesearchsave~
 
 */
-const string UpdateSearchSaveSpec  = 
+const string UpdateSearchSaveSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>stream(tuple(x)) x rel(tuple(x)) x "
@@ -3071,7 +3071,7 @@ const string UpdateSearchSaveSpec  =
   "<text>_ _ _updatesearchsave [funlist]</text--->"
   "<text>Like `updatesearch` but each result-tuple "
   " is appended to the auxiliary relation.</text--->"
-  "<text>query staedteUp feed staedte staedteU " 
+  "<text>query staedteUp feed staedte staedteU "
   "updatesearchsave [Bev : .Bev +1000] consume"
   "</text--->"
   ") )";
@@ -3132,13 +3132,13 @@ ListExpr appendIdentifierTypeMap (ListExpr args)
     lastlistn = nl->Append(lastlistn,nl->First(rest));
     rest = nl->Rest(rest);
   }
-  lastlistn = 
+  lastlistn =
     nl->Append(
-      lastlistn, 
+      lastlistn,
       nl->TwoElemList(
-        nl->SymbolAtom("TID"), 
+        nl->SymbolAtom("TID"),
         nl->SymbolAtom("tid")));
-  outList = 
+  outList =
     nl->TwoElemList(
       nl->SymbolAtom("stream"),
       nl->TwoElemList(
@@ -3152,7 +3152,7 @@ ListExpr appendIdentifierTypeMap (ListExpr args)
 2.32.2 Value mapping function of operator ~addid~
 
 */
-int appendIdentifierValueMap(Word* args, Word& result, int message, 
+int appendIdentifierValueMap(Word* args, Word& result, int message,
                              Word& local, Supplier s)
 {
   Word t;
@@ -3204,7 +3204,7 @@ int appendIdentifierValueMap(Word* args, Word& result, int message,
 2.32.3 Specification of operator ~addid~
 
 */
-const string appendIdentifierSpec  = 
+const string appendIdentifierSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" \"Comment\" \" \" \" \") "
   "( <text>stream(tuple(x)) "
@@ -3264,7 +3264,7 @@ ListExpr deleteByIdTypeMap(ListExpr args)
     (IsTupleDescription(nl->Second(nl->Second(first)))),
     "Operator deletebyid expects as first argument a list with "
     "structure (rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator deletebyid gets as first argument '" + 
+    "Operator deletebyid gets as first argument '" +
     argstr + "'." );
   // Check secondo argument
   nl->WriteToString(argstr, second);
@@ -3282,13 +3282,13 @@ ListExpr deleteByIdTypeMap(ListExpr args)
     lastlistn = nl->Append(lastlistn,nl->First(rest));
     rest = nl->Rest(rest);
   }
-  lastlistn = 
+  lastlistn =
     nl->Append(
-      lastlistn, 
+      lastlistn,
       nl->TwoElemList(
-        nl->SymbolAtom("TID"), 
+        nl->SymbolAtom("TID"),
         nl->SymbolAtom("tid")));
-  outList = 
+  outList =
     nl->TwoElemList(
       nl->SymbolAtom("stream"),
       nl->TwoElemList(
@@ -3302,7 +3302,7 @@ ListExpr deleteByIdTypeMap(ListExpr args)
 2.33.2 Value mapping function of operator ~deletebyid~
 
 */
-int deleteByIdValueMap(Word* args, Word& result, int message, 
+int deleteByIdValueMap(Word* args, Word& result, int message,
                        Word& local, Supplier s)
 {
   Tuple* resultTuple;
@@ -3343,7 +3343,7 @@ int deleteByIdValueMap(Word* args, Word& result, int message,
           resultTuple->PutAttribute(
             i, deleteTuple->GetAttribute(i)->Clone());
         relation->DeleteTuple(deleteTuple);
-        resultTuple->PutAttribute( 
+        resultTuple->PutAttribute(
           resultTuple->GetNoAttributes() -1, tid->Clone());
         result = SetWord(resultTuple);
         resultTupleType->DeleteIfAllowed();
@@ -3368,7 +3368,7 @@ int deleteByIdValueMap(Word* args, Word& result, int message,
 2.33.3 Specification of operator ~deletebyid~
 
 */
-const string deleteByIdSpec  = 
+const string deleteByIdSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>rel(tuple(x))) x (tid) "
@@ -3409,8 +3409,8 @@ Operator extreldeletebyid (
 
 ListExpr updateByIdTypeMap(ListExpr args)
 {
-  ListExpr first, second,third,errorInfo, rest, listn, lastlistn, 
-           first2, second2, firstr,attrType, numberList, 
+  ListExpr first, second,third,errorInfo, rest, listn, lastlistn,
+           first2, second2, firstr,attrType, numberList,
            lastNumberList,oldAttribute, outlist;
   string argstr,valueString, argstr2, argstr3, oldName;
   int attrIndex, noAttrs ;
@@ -3467,15 +3467,15 @@ ListExpr updateByIdTypeMap(ListExpr args)
       "structure"
       " (<attrname> (map (tuple ( (a1 t1)...(an tn) )) ti) )\n."
       "Operator updatebyid gets a list '" + argstr + "'.\n" );
-    // Check if functions have argumenttuples of the same type as 
+    // Check if functions have argumenttuples of the same type as
     // those ones from the relation
     nl->WriteToString(argstr, nl->Second(first));
     nl->WriteToString(argstr2, second2);
     CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second2))),
-      "Operator updatebyid: Tuple type in first argument '" + 
-      argstr + "' is different from the argument tuple type '" + 
+      "Operator updatebyid: Tuple type in first argument '" +
+      argstr + "' is different from the argument tuple type '" +
       argstr2 + "' in the mapping function" );
-    // Is the name of the attribute that shall be computed by the 
+    // Is the name of the attribute that shall be computed by the
     // function a valid name
     nl->WriteToString(argstr, first2);
     CHECK_COND( (nl->IsAtom(first2)) &&
@@ -3484,23 +3484,23 @@ ListExpr updateByIdTypeMap(ListExpr args)
       "' is not an atom or not of type SymbolType" );
     // Is the name of the attribute of the function an attributename
     // of the tuples of the relation
-    attrIndex = FindAttribute(nl->Second(nl->Second(first)), 
+    attrIndex = FindAttribute(nl->Second(nl->Second(first)),
                               argstr, attrType);
     CHECK_COND( attrIndex != 0 ,
-     "Operator updatebyid: Attribute name '" + argstr + 
+     "Operator updatebyid: Attribute name '" + argstr +
      "' of the mapping-functions"
      " is not an attributename of the tuples of the relation" );
-    // Is the type of the attribute of the function the same as the 
+    // Is the type of the attribute of the function the same as the
     // type of the attribute of the tuples of the relation
     nl->WriteToString(argstr2, attrType);
     nl->WriteToString(argstr3, nl->Third(second2));
     CHECK_COND( nl->Equal(attrType, nl->Third(second2)),
-      "Operator updatebyid: Attribute type '" + argstr3 + 
+      "Operator updatebyid: Attribute type '" + argstr3 +
       "' of the mapping-functions"
-      " is not the type " + argstr2 + " of attributename '" + 
+      " is not the type " + argstr2 + " of attributename '" +
       argstr + "' of the tuples of the relation" );
 
-    // Construct a list with all indices of the changed attributes 
+    // Construct a list with all indices of the changed attributes
     // in the inputstream to be appended to the resultstream
     if (firstcall)
     {
@@ -3510,7 +3510,7 @@ ListExpr updateByIdTypeMap(ListExpr args)
     }
     else
     {
-      lastNumberList = 
+      lastNumberList =
         nl->Append(
           lastNumberList,
           nl->IntAtom(attrIndex));
@@ -3532,20 +3532,20 @@ ListExpr updateByIdTypeMap(ListExpr args)
   {
     nl->WriteToString(oldName, nl->First(nl->First(rest)));
     oldName += "_old";
-    oldAttribute = 
+    oldAttribute =
       nl->TwoElemList(
         nl->SymbolAtom(oldName),
         nl->Second(nl->First(rest)));
     lastlistn = nl->Append(lastlistn,oldAttribute);
     rest = nl->Rest(rest);
   }
-  lastlistn = 
+  lastlistn =
     nl->Append(
-      lastlistn, 
+      lastlistn,
       nl->TwoElemList(
-        nl->SymbolAtom("TID"), 
+        nl->SymbolAtom("TID"),
         nl->SymbolAtom("tid")));
-  outlist = 
+  outlist =
     nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),
       nl->TwoElemList(
@@ -3564,7 +3564,7 @@ ListExpr updateByIdTypeMap(ListExpr args)
 2.34.2 Value mapping function of operator ~updatebyid~
 
 */
-int updateByIdValueMap(Word* args, Word& result, int message, 
+int updateByIdValueMap(Word* args, Word& result, int message,
                        Word& local, Supplier s)
 {
   Word elem, value;
@@ -3607,15 +3607,15 @@ int updateByIdValueMap(Word* args, Word& result, int message,
            return CANCEL;
         }
         for (int i = 0; i < updateTuple->GetNoAttributes(); i++)
-          resultTuple->PutAttribute( 
-            updateTuple->GetNoAttributes() +i, 
+          resultTuple->PutAttribute(
+            updateTuple->GetNoAttributes() +i,
             updateTuple->GetAttribute(i)->Clone());
         // Number of attributes to be replaced
         noOfAttrs = ((CcInt*)args[3].addr)->GetIntval();
         // Supplier for the functions
         supplier = args[2].addr;
         vector<int>* changedIndices = new vector<int>(noOfAttrs);
-        vector<Attribute*>* newAttrs = 
+        vector<Attribute*>* newAttrs =
           new vector<Attribute*>(noOfAttrs);
         for (int i=1; i <= noOfAttrs; i++)
         {
@@ -3637,7 +3637,7 @@ int updateByIdValueMap(Word* args, Word& result, int message,
         relation->UpdateTuple(updateTuple,*changedIndices,*newAttrs);
         for (int i = 0; i < updateTuple->GetNoAttributes(); i++)
           resultTuple->CopyAttribute( i, updateTuple, i );
-        resultTuple->PutAttribute( 
+        resultTuple->PutAttribute(
           resultTuple->GetNoAttributes() -1, tid->Clone());
         result = SetWord(resultTuple);
         delete changedIndices;
@@ -3664,7 +3664,7 @@ int updateByIdValueMap(Word* args, Word& result, int message,
 2.34.3 Specification of operator ~updatebyid~
 
 */
-const string updateByIdSpec  = 
+const string updateByIdSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "(<text>stream(tuple(x))) x (rel(tuple(x))) x "
@@ -3729,7 +3729,7 @@ Type mapping ~updatertree~ on a rtree
 
 ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
 {
-  ListExpr rest,next,listn,lastlistn,restRTreeAttrs, 
+  ListExpr rest,next,listn,lastlistn,restRTreeAttrs,
            oldAttribute,outList;
   string argstr, argstr2, oldName;
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
@@ -3746,13 +3746,13 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
   CHECK_COND(nl->ListLength(streamDescription) == 2  &&
     (TypeOfRelAlgSymbol(nl->First(streamDescription)) == stream) &&
     (nl->ListLength(nl->Second(streamDescription)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(streamDescription))) == 
+    (TypeOfRelAlgSymbol(nl->First(nl->Second(streamDescription))) ==
       tuple) &&
     (nl->ListLength(nl->Second(streamDescription)) == 2) &&
     (IsTupleDescription(nl->Second(nl->Second(streamDescription)))),
     "Operator " + opName + " expects as first argument a list with "
     "structure (stream (tuple ((a1 t1)...(an tn)(tid real)))\n"
-    "Operator " + opName + " gets as first argument '" + 
+    "Operator " + opName + " gets as first argument '" +
     argstr + "'." );
   // Test if last attribute is of type 'tid'
   rest = nl->Second(nl->Second(streamDescription));
@@ -3765,20 +3765,20 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
     (nl->IsAtom(nl->Second(next)))&&
     (nl->AtomType(nl->Second(next)) == SymbolType)&&
     (nl->SymbolValue(nl->Second(next)) == "tid"),
-    "Operator " + opName + 
+    "Operator " + opName +
     ": Type of last attribute of tuples of the inputstream "
     "must be tid" );
   // Test rtree
 
   /* handle rtree part of argument */
-  CHECK_COND(!nl->IsEmpty(rtreeDescription), 
-    "Operator " + opName + 
+  CHECK_COND(!nl->IsEmpty(rtreeDescription),
+    "Operator " + opName +
     ": Description for the rtree may not be empty");
-  CHECK_COND(!nl->IsAtom(rtreeDescription), 
-    "Operator " + opName + 
+  CHECK_COND(!nl->IsAtom(rtreeDescription),
+    "Operator " + opName +
     ": Description for the rtree may not be an atom");
-  CHECK_COND(nl->ListLength(rtreeDescription) == 4, 
-    "Operator " + opName + 
+  CHECK_COND(nl->ListLength(rtreeDescription) == 4,
+    "Operator " + opName +
     ": Description for the rtree must consist of four parts");
 
   ListExpr rtreeSymbol = nl->First(rtreeDescription);;
@@ -3787,86 +3787,86 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
   ListExpr rtreeType = nl->Fourth(rtreeDescription);
 
   /* handle rtree type constructor */
-  CHECK_COND(nl->IsAtom(rtreeSymbol), 
-    "Operator " + opName + 
+  CHECK_COND(nl->IsAtom(rtreeSymbol),
+    "Operator " + opName +
     ": First part of the rtree-description has to be 'rtree'");
-  CHECK_COND(nl->AtomType(rtreeSymbol) == SymbolType, 
-    "Operator " + opName + 
+  CHECK_COND(nl->AtomType(rtreeSymbol) == SymbolType,
+    "Operator " + opName +
     ": First part of the rtree-description has to be 'rtree' ");
   CHECK_COND(nl->SymbolValue(rtreeSymbol) == "rtree",
-    "Operator " + opName + 
+    "Operator " + opName +
     ": First part of the rtree-description has to be 'rtree' ");
   /* handle btree tuple description */
-  CHECK_COND(!nl->IsEmpty(rtreeTupleDescription), 
-    "Operator " + opName + 
+  CHECK_COND(!nl->IsEmpty(rtreeTupleDescription),
+    "Operator " + opName +
     ": Second part of the rtree-description has to be a "
     "tuple-description ");
-  CHECK_COND(!nl->IsAtom(rtreeTupleDescription), 
-    "Operator " + opName + 
+  CHECK_COND(!nl->IsAtom(rtreeTupleDescription),
+    "Operator " + opName +
     ": Second part of the rtree-description has to be a "
     "tuple-description ");
-  CHECK_COND(nl->ListLength(rtreeTupleDescription) == 2, 
-    "Operator " + opName + 
+  CHECK_COND(nl->ListLength(rtreeTupleDescription) == 2,
+    "Operator " + opName +
     ": Second part of the rtree-description has to be a "
     "tuple-description ");
   ListExpr rtreeTupleSymbol = nl->First(rtreeTupleDescription);;
   ListExpr rtreeAttrList = nl->Second(rtreeTupleDescription);
 
   CHECK_COND(nl->IsAtom(rtreeTupleSymbol),
-    "Operator " + opName + 
+    "Operator " + opName +
     ": Second part of the rtree-description has to be a "
     "tuple-description ");
-  CHECK_COND(nl->AtomType(rtreeTupleSymbol) == SymbolType, 
-    "Operator " + opName + 
+  CHECK_COND(nl->AtomType(rtreeTupleSymbol) == SymbolType,
+    "Operator " + opName +
     ": Second part of the rtree-description has to be a "
     "tuple-description ");
-  CHECK_COND(nl->SymbolValue(rtreeTupleSymbol) == "tuple", 
-    "Operator " + opName + 
+  CHECK_COND(nl->SymbolValue(rtreeTupleSymbol) == "tuple",
+    "Operator " + opName +
     ": Second part of the rtree-description has to be a "
     "tuple-description ");
-  CHECK_COND(IsTupleDescription(rtreeAttrList), 
-    "Operator " + opName + 
+  CHECK_COND(IsTupleDescription(rtreeAttrList),
+    "Operator " + opName +
     ": Second part of the rtree-description has to be a "
     "tuple-description ");
 
   /* Handle key-part of rtreedescription */
-  CHECK_COND(nl->IsAtom(rtreeKeyType), 
-    "Operator " + opName + 
+  CHECK_COND(nl->IsAtom(rtreeKeyType),
+    "Operator " + opName +
     ": Key of the rtree has to be an atom");
   CHECK_COND(nl->AtomType(rtreeKeyType) == SymbolType,
     "Operator " + opName + ": Key of the rtree has to be an atom");
 
   CHECK_COND(nl->IsAtom(rtreeType) &&
     nl->AtomType(rtreeType) == BoolType &&
-    nl->BoolValue(rtreeType) == FALSE,
+    nl->BoolValue(rtreeType) == false,
     "Updates are not available for double index R-Trees");
 
   // Handle third argument which shall be the name of the attribute
   // of the streamtuples that serves as the key for the rtree
-  // Later on it is checked if this name is an attributename of the 
+  // Later on it is checked if this name is an attributename of the
   // inputtuples
-  CHECK_COND(nl->IsAtom(nameOfKeyAttribute), 
-    "Operator " + opName + 
+  CHECK_COND(nl->IsAtom(nameOfKeyAttribute),
+    "Operator " + opName +
     ": Name of the key-attribute of the streamtuples has to "
     "be an atom");
-  CHECK_COND(nl->AtomType(nameOfKeyAttribute) == SymbolType, 
-    "Operator " + opName + 
+  CHECK_COND(nl->AtomType(nameOfKeyAttribute) == SymbolType,
+    "Operator " + opName +
     ": Name of the key-attribute of the streamtuples has to "
     "be an atom");
 
-  // Check whether tupledescription of the stream without the last 
+  // Check whether tupledescription of the stream without the last
   // attribute is the same as the tupledescription of the rtree
   rest = nl->Second(nl->Second(streamDescription));
-  CHECK_COND(nl->ListLength(rest) > 1 , 
-    "Operator " + opName + 
+  CHECK_COND(nl->ListLength(rest) > 1 ,
+    "Operator " + opName +
     ": There must be at least two attributes in the tuples of "
     "the tuple-stram");
   //Test if stream-tupledescription fits to btree-tupledescription
   listn = nl->OneElemList(nl->First(rest));
   lastlistn = listn;
   rest = nl->Rest(rest);
-  // For updates the inputtuples need to carry the old 
-  // attributevalues after the new values but their names with 
+  // For updates the inputtuples need to carry the old
+  // attributevalues after the new values but their names with
   // an additional _old at the end
   if (opName == "updatebtree")
   {
@@ -3876,23 +3876,23 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
       lastlistn = nl->Append(lastlistn,nl->First(rest));
       rest = nl->Rest(rest);
     }
-    CHECK_COND(nl->Equal(listn,rtreeAttrList), 
-      "Operator " + opName + 
+    CHECK_COND(nl->Equal(listn,rtreeAttrList),
+      "Operator " + opName +
       ": First part of the tupledescription of the stream "
       "has to be the same as the tupledescription of the rtree");
     // Compare second part of the streamdescription
     restRTreeAttrs = rtreeAttrList;
     while (nl->ListLength(rest) >  1)
     {
-      nl->WriteToString(oldName, 
+      nl->WriteToString(oldName,
                         nl->First(nl->First(restRTreeAttrs)));
       oldName += "_old";
-      oldAttribute = 
+      oldAttribute =
         nl->TwoElemList(
           nl->SymbolAtom(oldName),
           nl->Second(nl->First(restRTreeAttrs)));
-      CHECK_COND(nl->Equal(oldAttribute,nl->First(rest)), 
-        "Operator " + opName + 
+      CHECK_COND(nl->Equal(oldAttribute,nl->First(rest)),
+        "Operator " + opName +
         ": Second part of the tupledescription of the stream "
         "without the last attribute has to be the same as the "
         "tupledescription of the rtree except for that"
@@ -3901,8 +3901,8 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
       restRTreeAttrs = nl->Rest(restRTreeAttrs);
     }
   }
-  // For insert and delete check whether tupledescription of the 
-  // stream without the last attribute is the same as the 
+  // For insert and delete check whether tupledescription of the
+  // stream without the last attribute is the same as the
   // tupledescription of the rtree
   else
    // operators insertrtree and deletertree
@@ -3912,8 +3912,8 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
       lastlistn = nl->Append(lastlistn,nl->First(rest));
       rest = nl->Rest(rest);
     }
-    CHECK_COND(nl->Equal(listn,rtreeAttrList), 
-      "Operator " + opName + 
+    CHECK_COND(nl->Equal(listn,rtreeAttrList),
+      "Operator " + opName +
       ": tupledescription of the stream without the"
       "last attribute has to be the same as the "
       "tupledescription of the rtree");
@@ -3924,15 +3924,15 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
   string attrname = nl->SymbolValue(nameOfKeyAttribute);
   ListExpr attrType;
   int j = FindAttribute(listn,attrname,attrType);
-  CHECK_COND(j != 0, 
-    "Operator " + opName + 
+  CHECK_COND(j != 0,
+    "Operator " + opName +
     ": Name of the attribute that shall contain the keyvalue for the"
     "rtree was not found as a name of the attributes of the "
     "tuples of the inputstream");
   //Test if type of the attriubte which shall be taken as a key is
   // the same as the keytype of the rtree
-  CHECK_COND(nl->Equal(attrType,rtreeKeyType), 
-    "Operator " + opName + 
+  CHECK_COND(nl->Equal(attrType,rtreeKeyType),
+    "Operator " + opName +
     ": Type of the attribute that shall contain the keyvalue for the"
     "rtree is not the same as the keytype of the rtree");
   // Check if indexed attribute has a spatial-type
@@ -3945,7 +3945,7 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
     "Operator " + opName + " expects that attribute "+attrname+"\n"
     "belongs to kinds SPATIAL2D, SPATIAL3D, or SPATIAL4D\n"
     "or rect, rect3, and rect4.");
-  // Extract dimension and spatianltype to append them to the 
+  // Extract dimension and spatianltype to append them to the
   // resultlist
   int dim = 0;
   int spatial = 0;
@@ -3980,9 +3980,9 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
   lastAppend = nl->Append(lastAppend,nl->IntAtom(spatial));
   //Append the index of the attribute over which the btree is built
   //to the resultlist.
-  outList = 
+  outList =
     nl->ThreeElemList(
-      nl->SymbolAtom("APPEND"), 
+      nl->SymbolAtom("APPEND"),
       nl->OneElemList(append),
       streamDescription);
   return outList;
@@ -4007,10 +4007,10 @@ ListExpr insertRTreeTypeMap(ListExpr args)
 
 
 template<unsigned dim>
-void insertRTree_rect(Word& rtreeWord, Attribute* keyAttr, 
+void insertRTree_rect(Word& rtreeWord, Attribute* keyAttr,
                       TupleId& oldTid)
 {
-  R_Tree<dim, TupleId> *rtree = 
+  R_Tree<dim, TupleId> *rtree =
     (R_Tree<dim, TupleId>*)rtreeWord.addr;
   BBox<dim> *box = (BBox<dim>*)keyAttr;
   R_TreeLeafEntry<dim, TupleId> e( *box, oldTid );
@@ -4018,17 +4018,17 @@ void insertRTree_rect(Word& rtreeWord, Attribute* keyAttr,
 }
 
 template<unsigned dim>
-void insertRTree_spatial(Word& rtreeWord, Attribute* keyAttr, 
+void insertRTree_spatial(Word& rtreeWord, Attribute* keyAttr,
                          TupleId& oldTid){
-  R_Tree<dim, TupleId> *rtree = 
+  R_Tree<dim, TupleId> *rtree =
     (R_Tree<dim, TupleId>*)rtreeWord.addr;
-  BBox<dim> box = 
+  BBox<dim> box =
     ((StandardSpatialAttribute<dim>*)keyAttr)->BoundingBox();
   R_TreeLeafEntry<dim, TupleId> e( box, oldTid );
   rtree->Insert( e );
 }
 
-int insertRTreeValueMap(Word* args, Word& result, int message, 
+int insertRTreeValueMap(Word* args, Word& result, int message,
                         Word& local, Supplier s)
 {
   Word t, attrPos, dimWord, spatialWord;
@@ -4081,14 +4081,14 @@ int insertRTreeValueMap(Word* args, Word& result, int message,
         {
           switch(dim)
           {
-          case 2: 
-            insertRTree_spatial<2>(args[1],keyAttr,oldTid); 
+          case 2:
+            insertRTree_spatial<2>(args[1],keyAttr,oldTid);
             break;
-          case 3: 
-            insertRTree_spatial<3>(args[1],keyAttr,oldTid); 
+          case 3:
+            insertRTree_spatial<3>(args[1],keyAttr,oldTid);
             break;
-          case 4: 
-            insertRTree_spatial<4>(args[1],keyAttr,oldTid); 
+          case 4:
+            insertRTree_spatial<4>(args[1],keyAttr,oldTid);
             break;
           }
         }
@@ -4096,14 +4096,14 @@ int insertRTreeValueMap(Word* args, Word& result, int message,
         {
           switch(dim)
           {
-          case 2: 
-            insertRTree_rect<2>(args[1],keyAttr,oldTid); 
+          case 2:
+            insertRTree_rect<2>(args[1],keyAttr,oldTid);
             break;
-          case 3: 
-            insertRTree_rect<3>(args[1],keyAttr,oldTid); 
+          case 3:
+            insertRTree_rect<3>(args[1],keyAttr,oldTid);
             break;
-          case 4: 
-            insertRTree_rect<4>(args[1],keyAttr,oldTid); 
+          case 4:
+            insertRTree_rect<4>(args[1],keyAttr,oldTid);
             break;
           }
         }
@@ -4127,7 +4127,7 @@ int insertRTreeValueMap(Word* args, Word& result, int message,
 7.3.3 Specification of operator ~insertrtree~
 
 */
-const string insertRTreeSpec  = 
+const string insertRTreeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>stream(tuple(x@[TID:tid])) x rtree(tuple(x) ti) x xi"
@@ -4178,10 +4178,10 @@ ListExpr deleteRTreeTypeMap( ListExpr args )
 */
 
 template<unsigned dim>
-void deleteRTree_rect(Word& rtreeWord, Attribute* keyAttr, 
+void deleteRTree_rect(Word& rtreeWord, Attribute* keyAttr,
                       TupleId& oldTid)
 {
-  R_Tree<dim, TupleId> *rtree = 
+  R_Tree<dim, TupleId> *rtree =
     (R_Tree<dim, TupleId>*)rtreeWord.addr;
   BBox<dim> *box = (BBox<dim>*)keyAttr;
   R_TreeLeafEntry<dim, TupleId> e( *box, oldTid );
@@ -4189,18 +4189,18 @@ void deleteRTree_rect(Word& rtreeWord, Attribute* keyAttr,
 }
 
 template<unsigned dim>
-void deleteRTree_spatial(Word& rtreeWord, Attribute* keyAttr, 
+void deleteRTree_spatial(Word& rtreeWord, Attribute* keyAttr,
                          TupleId& oldTid)
 {
-  R_Tree<dim, TupleId> *rtree = 
+  R_Tree<dim, TupleId> *rtree =
     (R_Tree<dim, TupleId>*)rtreeWord.addr;
-  BBox<dim> box = 
+  BBox<dim> box =
     ((StandardSpatialAttribute<dim>*)keyAttr)->BoundingBox();
   R_TreeLeafEntry<dim, TupleId> e( box, oldTid );
   rtree->Remove( e );
 }
 
-int deleteRTreeValueMap(Word* args, Word& result, int message, 
+int deleteRTreeValueMap(Word* args, Word& result, int message,
                         Word& local, Supplier s)
 {
   Word t, attrPos, dimWord, spatialWord;
@@ -4253,14 +4253,14 @@ int deleteRTreeValueMap(Word* args, Word& result, int message,
         {
           switch(dim)
           {
-          case 2: 
-            deleteRTree_spatial<2>(args[1],keyAttr,oldTid); 
+          case 2:
+            deleteRTree_spatial<2>(args[1],keyAttr,oldTid);
             break;
-          case 3: 
-            deleteRTree_spatial<3>(args[1],keyAttr,oldTid); 
+          case 3:
+            deleteRTree_spatial<3>(args[1],keyAttr,oldTid);
             break;
-          case 4: 
-            deleteRTree_spatial<4>(args[1],keyAttr,oldTid); 
+          case 4:
+            deleteRTree_spatial<4>(args[1],keyAttr,oldTid);
             break;
           }
         }
@@ -4268,14 +4268,14 @@ int deleteRTreeValueMap(Word* args, Word& result, int message,
         {
           switch(dim)
           {
-          case 2: 
-            deleteRTree_rect<2>(args[1],keyAttr,oldTid); 
+          case 2:
+            deleteRTree_rect<2>(args[1],keyAttr,oldTid);
             break;
-          case 3: 
-            deleteRTree_rect<3>(args[1],keyAttr,oldTid); 
+          case 3:
+            deleteRTree_rect<3>(args[1],keyAttr,oldTid);
             break;
-          case 4: 
-            deleteRTree_rect<4>(args[1],keyAttr,oldTid); 
+          case 4:
+            deleteRTree_rect<4>(args[1],keyAttr,oldTid);
             break;
           }
         }
@@ -4299,7 +4299,7 @@ int deleteRTreeValueMap(Word* args, Word& result, int message,
 7.4.3 Specification of operator ~deletertree~
 
 */
-const string deleteRTreeSpec  = 
+const string deleteRTreeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>stream(tuple(x@[TID: tid])) x rtree(tuple(x) ti) x xi)"
@@ -4351,7 +4351,7 @@ ListExpr updateRTreeTypeMap( ListExpr args )
 
 */
 
-int updateRTreeValueMap(Word* args, Word& result, int message, 
+int updateRTreeValueMap(Word* args, Word& result, int message,
                         Word& local, Supplier s)
 {
   Word t, attrPos, dimWord, spatialWord;
@@ -4408,9 +4408,9 @@ int updateRTreeValueMap(Word* args, Word& result, int message,
         {
           switch(dim)
           {
-            case 2: 
+            case 2:
               if ((((StandardSpatialAttribute<2>*) keyAttr)->
-                     BoundingBox()) != 
+                     BoundingBox()) !=
                   (((StandardSpatialAttribute<2>*) oldKeyAttr)->
                      BoundingBox()))
               {
@@ -4418,9 +4418,9 @@ int updateRTreeValueMap(Word* args, Word& result, int message,
                 insertRTree_spatial<2>(args[1],keyAttr,oldTid);
               }
               break;
-            case 3: 
+            case 3:
               if ((((StandardSpatialAttribute<3>*) keyAttr)->
-                     BoundingBox()) != 
+                     BoundingBox()) !=
                   (((StandardSpatialAttribute<3>*) oldKeyAttr)->
                      BoundingBox()))
               {
@@ -4428,9 +4428,9 @@ int updateRTreeValueMap(Word* args, Word& result, int message,
                 insertRTree_spatial<3>(args[1],keyAttr,oldTid);
               }
               break;
-            case 4: 
+            case 4:
               if ((((StandardSpatialAttribute<4>*) keyAttr)->
-                     BoundingBox()) != 
+                     BoundingBox()) !=
                   (((StandardSpatialAttribute<4>*) oldKeyAttr)->
                      BoundingBox()))
               {
@@ -4444,24 +4444,24 @@ int updateRTreeValueMap(Word* args, Word& result, int message,
         {
           switch(dim)
           {
-            case 2: 
-              if (((Rectangle<2>*) keyAttr) != 
+            case 2:
+              if (((Rectangle<2>*) keyAttr) !=
                   ((Rectangle<2>*) oldKeyAttr))
               {
                 deleteRTree_rect<2>(args[1],oldKeyAttr,oldTid);
                 insertRTree_rect<2>(args[1],keyAttr,oldTid);
               }
               break;
-            case 3: 
-              if (((Rectangle<3>*) keyAttr) != 
+            case 3:
+              if (((Rectangle<3>*) keyAttr) !=
                   ((Rectangle<3>*) oldKeyAttr))
               {
                 deleteRTree_rect<3>(args[1],oldKeyAttr,oldTid);
                 insertRTree_rect<3>(args[1],keyAttr,oldTid);
               }
               break;
-            case 4: 
-              if (((Rectangle<4>*) keyAttr) != 
+            case 4:
+              if (((Rectangle<4>*) keyAttr) !=
                   ((Rectangle<4>*) oldKeyAttr))
               {
                 deleteRTree_rect<4>(args[1],oldKeyAttr,oldTid);
@@ -4490,7 +4490,7 @@ int updateRTreeValueMap(Word* args, Word& result, int message,
 7.5.3 Specification of operator ~updatertree~
 
 */
-const string updateRTreeSpec  = 
+const string updateRTreeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "(<text>stream(tuple(x@[(a1_old x1) ... (an_old xn) (TID: tid)])) "
@@ -4583,7 +4583,7 @@ dynamically at runtime.
 
 extern "C"
 Algebra*
-InitializeUpdateRelationAlgebra( NestedList* nlRef, 
+InitializeUpdateRelationAlgebra( NestedList* nlRef,
                                  QueryProcessor* qpRef )
 {
   nl = nlRef;
