@@ -9465,7 +9465,7 @@ int TU_VM_ComparePredicateValue_Const(Word* args, Word& result,
       if( local.addr == 0 )
         return CANCEL;
       finished = (bool*) local.addr;
-      if ( finished )
+      if ( *finished )
         return CANCEL;
       if ( !u1->IsDefined() || !u2->IsDefined() )
         { *finished = true; return CANCEL; }
