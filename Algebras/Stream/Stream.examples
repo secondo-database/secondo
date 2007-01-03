@@ -11,61 +11,54 @@ Result   : 1
 Operator : STREAMELEM
 Number   : 1
 Signature: ((stream T1) ... ) -> T1
-(T1 ... ) -> T1
 Example  : query 3 feed 2 feed use2[fun(X: STREAMELEM, Y: int) X+Y ] count
 Result   : 1
 
 
 Operator : aggregateS
 Number   : 1
-Signature: For T in kind DATA:
-((stream T) ((T T) -> T) T ) -> T
-
+Signature: ((stream T) ((T T) -> T) T ) -> T
 Example  : query intstream(1,5) aggregateS[ fun(i1:int, i2:int) i1+i2 ; 0]
 Result   : 15
 
 
 Operator : count
 Number   : 1
-Signature: For T in kind DATA:
-((stream T)) -> int
+Signature:((stream T)) -> int
 Example  : query intstream (1,10) count
 Result   : 10
 
 
 Operator : feed
 Number   : 1
-Signature: For T in kind DATA:
-T -> (stream T)
+Signature:T -> (stream T)
 Example  : query 5 feed count;
 Result   :
 
 
 Operator : filter
 Number   : 1
-Signature: For T in kind DATA:
-((stream T) (map T bool)) -> (stream T)
+Signature:((stream T) (map T bool)) -> (stream T)
 Example  : query intstream (1,10) filter[. > 7] count
 Result   : 3
 
 
 Operator : printstream
 Number   : 1
-Signature: For T in kind DATA:
-((stream T)) -> (stream T)
+Signature:((stream T)) -> (stream T)
 Example  : query intstream (1,10) printstream count
 Result   : 10
 
 
 Operator : transformstream
 Number   : 1
-Signature: For T in kind DATA: (stream T) -> stream(tuple((elem T)))
+Signature: (stream T) -> stream(tuple((elem T)))
 Example  : query intstream(1,5) transformstream transformstream count
 Result   : 5
 
 Operator : transformstream
 Number   : 2
-Signature: For T in kind DATA: stream(tuple(attrname T)) -> (stream T)
+Signature: stream(tuple(attrname T)) -> (stream T)
 Example  : query ten feed transformstream printstream count
 Result   : 10
 
