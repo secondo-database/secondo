@@ -1,5 +1,5 @@
 Database: staedtetest
-Restore : NO
+Restore : YES
 
 Operator : addid
 Number   : 1
@@ -123,7 +123,7 @@ Result   : file
 Operator : updatedirectsave
 Number   : 1
 Signature: stream(tuple(x)) x rel(tuple(x)) x rel(tuple(x @ x @ [TID tid])) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> dn))] -> stream(tuple(x @[x1_old t1]@ ...[xn_old tn] @ [TID tid]))
-Example  : Crashes: query ten2 feed ten2 tenU updatedirectsave [no : .no * 5] count
+Example  : query 'Crashes: query ten2 feed ten2 tenU updatedirectsave [no : .no * 5] count'
 Result   : "Error"
 
 
@@ -144,7 +144,7 @@ Result   : 1
 Operator : updatesearchsave
 Number   : 1
 Signature: stream(tuple(x)) x rel(tuple(x)) x (rel(tuple(x @ x @ [TID tid]))) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> dn))] -> stream(tuple(x @[x1_old t1]@...[xn_old t1] @ [TID tid]))
-Example  : Crashes: query Staedte feed filter[.SName = "Hannover"] Staedte8 StaedteU updatesearchsave[Bev: .Bev + 1000] consume
+Example  : query 'Crashes: query Staedte feed filter[.SName = "Hannover"] Staedte8 StaedteU updatesearchsave[Bev: .Bev + 1000] consume'
 Result   : "Error"
 
 
