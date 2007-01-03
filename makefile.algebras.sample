@@ -15,7 +15,7 @@
 ALGEBRA_DIRS := Standard-C++
 ALGEBRAS     := StandardAlgebra
 ALGEBRA_DEPS :=
-ALGEBRA_DEP_DIRS :=
+ALGEBRA_DEP_DIRS := $(SECONDO_SDK)/lib
 
 ALGEBRA_DIRS += FText
 ALGEBRAS     += FTextAlgebra
@@ -55,10 +55,7 @@ ALGEBRAS     += ExtRelationAlgebra
 
 ifndef SECONDO_MIN_ALGEBRA_SET
 
-ALGEBRA_DEPS += jpeg
-ALGEBRA_DEP_DIRS += $(SECONDO_SDK)/lib
 
-ALGEBRA_DEPS += Triangulation 
 
 ##########  Example Algebras
 
@@ -151,6 +148,7 @@ ALGEBRAS     += ArrayAlgebra
 
 ALGEBRA_DIRS += Picture
 ALGEBRAS     += PictureAlgebra
+ALGEBRA_DEPS += jpeg
 
 #ALGEBRA_DIRS  += Midi
 #ALGEBRAS      += MidiAlgebra
@@ -160,6 +158,7 @@ ALGEBRAS     += PictureAlgebra
 
 #ALGEBRA_DIRS  += Constraint 
 #ALGEBRAS      += ConstraintAlgebra
+#ALGEBRA_DEPS  += Triangulation 
 
 # JNI Algebras - Java code will be called from C++ code.
 
