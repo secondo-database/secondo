@@ -41,5 +41,10 @@ operator create_duration alias CREATE_DURATION pattern op ( _ , _ )
 operator create_instant alias CREATE_INSTANT pattern op ( _ , _ )
 operator duration2real alias DURATION2REAL pattern op ( _ )
 operator instant2real alias INSTANT2REAL pattern op ( _ )
+operator mininstant alias MININSTANT pattern op()
+operator maxnstant alias MAXINSTANT pattern op()
+operator minduration alias MINDURATION pattern op()
+operator maxduration alias MAXDURATION pattern op()
+ 
 
 
