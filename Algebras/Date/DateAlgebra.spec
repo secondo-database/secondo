@@ -18,6 +18,8 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator < alias LT pattern _ infixop _
+operator = alias EQ pattern _ infixop _
+operator > alias GT pattern _ infixop _ 
 operator year_of alias YEAR_OF pattern op ( _ )
 operator month_of alias MONTH_OF pattern op ( _ )
 operator day_of alias DAY_OF pattern op ( _ )
