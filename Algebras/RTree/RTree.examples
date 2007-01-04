@@ -5,7 +5,7 @@ Operator : creatertree
 Number   : 1
 Signature: ((rel (tuple (x1 t1)...(xn tn)))) xi) -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false)
 Example  : query strassen creatertree[geoData]
-Result   : ((rtree (tuple ((Name string)(Typ string)(geoData line)))lineFALSE)("R-Tree statistics" ("Height" 1)("# of (leaf) entries" 3212)("# of nodes" 55)("Bounding Box" (-10836.00000001 33575.00000001 -6686.00000001 28095.00000001))))
+Result   : ((rtree (tuple ((Name string)(Typ string)(geoData line)))line FALSE)("R-Tree statistics" ("Height" 1)("# of (leaf) entries" 3212)("# of nodes" 55)("Bounding Box" (-10836.00000001 33575.00000001 -6686.00000001 28095.00000001))))
 
 
 Operator : gettuples
