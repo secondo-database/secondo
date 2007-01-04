@@ -3860,23 +3860,71 @@ void Line::SubLine( double pos1, double pos2,
   l.EndBulkLoad();     
 }
 
-void Line::Vertices( Points& result ) const
+void Line::Vertices( Points* result ) const
 {
+  
   assert( IsOrdered() );
 
-  result.Clear();
-  if( IsEmpty() )
+  result->Clear();
+  
+  if(!IsDefined()){
+    result->SetDefined(false);
     return;
+  }
+  result->SetDefined(true);
+  if( IsEmpty() ){
+    return;
+  }
 
   const HalfSegment* hs;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs );
-    if( hs->IsLeftDomPoint() )
-      result += hs->GetLeftPoint();
+    *result += hs->GetDomPoint();
   }
-  result.EndBulkLoad( false, true );
+  result->EndBulkLoad( false, true );
 }
+
+void Line::Boundary(Points* result) const{
+  // we assume that the interior of each halfsegment has no
+  // common point with any part of another halfsegment
+  result->Clear();
+  if(!IsDefined()){
+     result->SetDefined(false);
+     return;
+  }
+  if(IsEmpty()){
+    return;
+  }
+  const HalfSegment* hs;
+  const HalfSegment* hs_n; // neighbooring halfsegment
+  Point p;
+  int size = Size();
+  result->StartBulkLoad();
+  for(int i=0;i<size;i++){
+     bool common = false;
+     Get(i,hs);
+     p=hs->GetDomPoint();
+     if(i>0){
+       Get(i-1,hs_n);
+       if(p==hs_n->GetDomPoint()){
+          common=true;
+       }
+     }
+     if(i<size-1){
+       Get(i+1,hs_n);
+       if(p==hs_n->GetDomPoint()){
+          common=true;
+       }
+     }
+     if(!common){
+        *result += p;
+     }
+  }
+  result->EndBulkLoad(false,false);
+
+}
+
 
 bool Line::Find( const HalfSegment& hs, int& pos ) const
 {
@@ -5433,23 +5481,57 @@ int Region::NoComponents() const
   return noComponents;
 }
 
-void Region::Vertices( Points& result ) const
+void Region::Vertices( Points* result ) const
 {
   assert( IsOrdered() );
 
-  result.Clear();
-  if( IsEmpty() )
-    return;
+  result->Clear();
+  if(!IsDefined()){
+      result->SetDefined(false);
+      return;
+  }
+  result->SetDefined(true);
 
+  if( IsEmpty() ){
+    return;
+  }
+
+  const HalfSegment* hs;
+  int size = Size();
+  for( int i = 0; i < size; i++ )
+  {
+    Get( i, hs );
+    Point p = hs->GetDomPoint();
+    *result += p;
+  }
+  cout << size << "points included, remove possible duplicates" << endl;
+  result->EndBulkLoad( false, true );
+}
+
+
+void Region::Boundary( Line* result ) const
+{
+  assert( IsOrdered() );
+
+  result->Clear();
+  if(!IsDefined()){
+      result->SetDefined(false);
+      return;
+  }
+
+  if( IsEmpty() ){
+    return;
+  }
   const HalfSegment* hs;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs );
-    if( hs->IsLeftDomPoint() )
-      result += hs->GetLeftPoint();
+    *result += *hs;
   }
-  result.EndBulkLoad( false, true );
+  result->EndBulkLoad( false, true );
 }
+
+
  
 Region& Region::operator=( const Region& r )
 {
@@ -8436,6 +8518,27 @@ ListExpr SpatialVerticesMap(ListExpr args)
   return nl->SymbolAtom("typeerror");
 }
 
+/*
+10.1.18 Type Mapping function for operator ~boundary~
+
+*/
+ListExpr SpatialBoundaryMap(ListExpr args)
+{
+  if(nl->ListLength(args)!=1)
+  {
+    ErrorReporter::ReportError("invalid number of arguments");
+    return nl->SymbolAtom("typeerror");
+  }
+  if( SpatialTypeOfSymbol( nl->First( args ) ) == stregion ){
+     return nl->SymbolAtom("line");
+  }
+
+  if( SpatialTypeOfSymbol( nl->First( args ) ) == stline ){
+      return nl->SymbolAtom("points");
+  }
+  ErrorReporter::ReportError("region or line required");
+  return nl->SymbolAtom("typeerror");
+}
 
 /*
 10.1.14 Type mapping function for operator ~commonborder~
@@ -9376,6 +9479,23 @@ int SpatialVerticesSelect( ListExpr args )
     return 0;
   
   if( nl->IsEqual(nl->First(args), "region") )
+    return 1;
+  
+  return -1; // This point should never be reached
+}
+
+/*
+10.3.19 Selection function ~SpatialBoundarySelect~
+
+This select function is used for the ~vertices~ operator.
+
+*/
+int SpatialBoundarySelect( ListExpr args )
+{
+  if( nl->IsEqual(nl->First(args), "region") )
+    return 0;
+  
+  if( nl->IsEqual(nl->First(args), "line") )
     return 1;
   
   return -1; // This point should never be reached
@@ -11110,41 +11230,10 @@ SpatialComponents_ps( Word* args, Word& result, int message,
 int SpatialVertices_r(Word* args, Word& result, int message, 
                       Word& local, Supplier s )
 {
-
-/*void Region::Vertices( Points& result ) const
-{
-  assert( IsOrdered() );
-
-  result.Clear();
-  if( IsEmpty() )
-    return;
-
-  const HalfSegment* hs;
-  for( int i = 0; i < Size(); i++ )
-  {
-    Get( i, hs );
-    if( hs->IsLeftDomPoint() )
-      result += hs->GetLeftPoint();
-  }
-  result.EndBulkLoad( false, true );
-}*/
-
   result = qp->ResultStorage(s);
   Region* reg = (Region*)args[0].addr;
-  assert( reg->IsOrdered() );
-  ((Points*)result.addr)->Clear();
-  if ( reg->IsEmpty() ) 
-    return 0;  
-  const HalfSegment* hs;
-  for( int i = 0; i < reg->Size(); i++ )
-  {
-    reg->Get( i, hs );
-    if( hs->IsLeftDomPoint() )
-      (*((Points*)result.addr)) += hs->GetLeftPoint();
-  }
-  ((Points*)result.addr)->EndBulkLoad( false, true);
-
-  //((Region*)args[0].addr)->Vertices( *(Points*) result.addr );
+  Points* res = (Points*)result.addr;  
+  reg->Vertices(res);
   return 0;
 }
 
@@ -11152,7 +11241,32 @@ int SpatialVertices_l(Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   result = qp->ResultStorage(s);
-  ((Line*)args[0].addr)->Vertices( *(Points*) result.addr );
+  ((Line*)args[0].addr)->Vertices( (Points*) result.addr );
+  return 0;
+}
+
+
+/*
+10.4.28 Value mapping functions of operator ~boundary~
+
+*/
+
+int SpatialBoundary_r(Word* args, Word& result, int message, 
+                      Word& local, Supplier s )
+{
+  result = qp->ResultStorage(s);
+  Region* reg = (Region*)args[0].addr;
+  Line* res = (Line*) result.addr;  
+  reg->Boundary(res);
+  return 0;
+}
+int SpatialBoundary_l(Word* args, Word& result, int message, 
+                      Word& local, Supplier s )
+{
+  result = qp->ResultStorage(s);
+  Line* line = (Line*)args[0].addr;
+  Points* res = (Points*) result.addr;  
+  line->Boundary(res);
   return 0;
 }
 
@@ -11448,6 +11562,10 @@ ValueMapping spatialverticesmap[] = {
   SpatialVertices_l,
   SpatialVertices_r };
 
+ValueMapping spatialboundarymap[] = {
+  SpatialBoundary_r,
+  SpatialBoundary_l};
+
 ValueMapping spatialaddmap[] = { SpatialAdd_p };
 
 ValueMapping spatialgetxmap[] = { SpatialGetX_p };
@@ -11702,6 +11820,14 @@ const string SpatialSpecVertices  =
   "<text>vertices(_)</text--->"
   "<text>Returns the vertices of a region or line.</text--->"
   "<text>query vertices(r1)</text--->"
+  ") )";
+
+const string SpatialSpecBoundary  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+  "( <text>(region -> line) or (line -> points)</text--->"
+  "<text>boundary(_)</text--->"
+  "<text>Returns the boundary of a region or a line.</text--->"
+  "<text>query boundary(thecenter)</text--->"
   ") )";
 
 const string SpatialSpecAtPoint  =
@@ -11978,6 +12104,14 @@ Operator spatialvertices (
   SpatialVerticesSelect,  
   SpatialVerticesMap);
 
+Operator spatialboundary ( 
+  "boundary", 
+  SpatialSpecBoundary,  
+  2, 
+  spatialboundarymap, 
+  SpatialBoundarySelect,  
+  SpatialBoundaryMap);
+
 Operator spatialatpoint (
   "atpoint",
   SpatialSpecAtPoint,
@@ -12067,6 +12201,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialwindowclippingout );
     AddOperator( &spatialcomponents );
     AddOperator( &spatialvertices );
+    AddOperator( &spatialboundary );
     AddOperator( &spatialscale );
     AddOperator( &spatialatpoint );
     AddOperator( &spatialatposition );

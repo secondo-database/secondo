@@ -21,4 +21,27 @@ operator clip alias CLIP pattern  op (_, _)
 operator windowclippingin alias WINDOWCLIPPINGIN pattern op ( _ , _)
 operator windowclippingout alias WINDOWCLIPPINGOUT pattern op ( _ , _)
 operator vertices alias VERTICES pattern op ( _ )
+operator isempty alias ISEMPTY pattern op(_)
+operator = alias EQ pattern _ infixop _
+operator # alias NEQ pattern _ infixop _
+operator intersects alias INTERSECTS pattern _ infixop _
+operator inside alias INSIDE pattern _ infixop _
+operator intersection alias INTERSECTION pattern op(_,_)
+operator minus alias MINUS pattern _ infixop _
+operator union alias UNION pattern _ infixop _
+operator no_components alias NO_COMPONENTS pattern  op ( _ )
+operator no_segments alias NO_SEGMENTS pattern  op ( _ )
+operator components alias COMPONENTS pattern op(_)
+operator boundary alias BOUNDARY pattern op(_)
+operator atpoint alias ATPOINT pattern op(_,_)
+operator atposition alias ATPOSITION pattern op(_,_)
+operator subline alias SUBLINE pattern op(_,_)
+operator + alias PLUS pattern _ infixop _
+operator getx alias GETX pattern op(_)
+operator gety alias GETY pattern op(_)
+
+
+
+
+
 

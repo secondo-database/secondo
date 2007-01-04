@@ -1651,7 +1651,19 @@ is the ~points~ result size.
 *Complexity:* $O(m)$, where ~m~ is the size of ~U~.
 
 */
-    void Vertices( Points& result ) const;
+    void Vertices( Points* result ) const;
+
+/*
+6.4.6 Operation ~boundary~
+
+*Precondition:* ~U.IsOrdered()~
+
+*Semantics:* the boundary of ~U~
+
+*Complexity:* $O(m)$, where ~m~ is the size of ~U~.
+
+*/
+    void Boundary( Points* result ) const;
 
 /*
 4.4 Object Traversal Functions
@@ -2271,7 +2283,20 @@ is the ~line~ result size.
 *Complexity:* $O(m)$, where ~m~ is the size of ~U~.
 
 */
-    void Vertices( Points& result ) const;
+    void Vertices( Points* result ) const;
+
+
+/*
+6.4.5 Operation ~boundary~
+
+*Precondition:* ~U.IsOrdered()~
+
+*Semantics:* The boundary of ~U~
+
+*Complexity:* $O(m)$, where ~m~ is the size of ~U~.
+
+*/
+    void Boundary(Line* result) const;
 
 /*
 4.4 Object Traversal Functions
