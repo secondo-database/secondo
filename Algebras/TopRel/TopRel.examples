@@ -1,0 +1,217 @@
+Database: berlintest
+Restore : No
+
+Operator : +
+Number   : 1
+Signature: cluster x int9m -> cluster
+Example  : query [const cluster value ("empty" )] + [const int9m value 1] 
+Result   : (cluster ("empty" 1)) 
+
+
+Operator : -
+Number   : 1
+Signature: cluster x cluster -> cluster
+Example  : query [const cluster value ("c1"  1 2 3)] - [const cluster value ("c1" 2)]
+Result   : (cluster ("c1" 1 3))
+
+
+Operator : clustername_of
+Number   : 1
+Signature: predicategroup x int9m -> string
+Example  : query clustername_of([const predicategroup value ( ("c1" 1 2 6) ("c2" 3 4 5))] , [const int9m value 2])
+Result   : "c1" 
+
+
+Operator : clusterof
+Number   : 1
+Signature: predicategroup x int9m -> cluster
+Example  : query clusterof([const predicategroup value ( ("c1" 1 2 6) ("c2" 3 4 5))] , [const int9m value 2])
+Result   : (cluster ("c1" 1 2 6))
+
+
+Operator : contains
+Number   : 1
+Signature: cluster x int9m -> bool
+Example  : query [const cluster value ("c1" 4 511 2)] contains [const int9m value 16] 
+Result   : FALSE
+
+
+Operator : createcluster
+Number   : 1
+Signature:  string x {text, string} -> cluster  
+Example  :  query createcluster("test","ii & !ee & ib & bi & !bb")
+Result   : (cluster ("test" 416 418 420 422 424 426 428 430 480 482 484 486 488 490 492 494))
+
+
+Operator : createpgroup
+Number   : 1
+Signature: cluster x cluster x ... -> predicategroup
+Example  : query  createpgroup([const cluster value ("c1" 1 2)], [const cluster value ("c2" 6 7)]) 
+Result   : (predicategroup ( ("c1" 1 2) ("c2" 6 7)))
+
+
+Operator : createprioritypgroup
+Number   : 1
+Signature: cluster x cluster x ... -> predicategroup
+Example  : query  createprioritypgroup([const cluster value ("c1" 1 2 6 )], [const cluster value ("c2" 6 7)]) 
+Result   : (predicategroup ( ("c1" 1 2 6) ("c2"  7))) 
+
+
+Operator : createvalidpgroup
+Number   : 1
+Signature: cluster x cluster x ... -> predicategroup
+Example  : query  createvalidpgroup( [const cluster value ("valid" 1 2 3 4)], [const cluster value ("c1" 1 2 6)], [const cluster value ("c2" 4 5 6)]) 
+Result   :  (predicategroup ( ("c1" 1 2) ("c2" 4)))
+
+
+Operator : disjoint
+Number   : 1
+Signature: cluster x cluster -> bool
+Example  : query [const cluster value ("c1" 1 2 3)] disjoint [const  cluster value ("c2" 6 7 8)] 
+Result   : TRUE
+
+
+Operator : intersection
+Number   : 1
+Signature: int9m x int9m -> int9m 
+Example  : query number_of(intersection([const int9m value 6] , [const int9m value 5] ))
+Result   : (int 4)
+
+
+Operator : intersection
+Number   : 1
+Signature: cluster x cluster -> cluster 
+Example  :  query intersection([const cluster value ("c1" 1 2 3)] , [const cluster value ("c2" 2 5 8)])
+Result   : (cluster ("c1" 2))
+
+
+
+Operator : invert
+Number   : 1
+Signature: int9m -> int9M 
+Example  :  query number_of(invert([const int9m value 511]))
+Result   : (int 0)
+
+
+Operator : invert
+Number   : 1
+Signature: cluster -> cluster 
+Example  :  query invert([const cluster  value ("c1" "!(ii & ib & ie & bi & bb & be & ei & eb & ee)")])
+Result   : (cluster ("c1" 511))
+
+
+
+Operator : isComplete
+Number   : 1
+Signature:  predicategroup -> bool  
+Example  :  query isComplete([const predicategroup value (("c1" "!ee")("c2" "ee"))]) 
+Result   : TRUE
+
+
+Operator : multiintersection
+Number   : 1
+Signature: int9m x int9m x ... -> int9m  
+Example  : query number_of(multiintersection( [const int9m value 511], [const int9m value 3], [const int9m value 5])) 
+Result   : (int 1) 
+
+Operator : multiintersection
+Number   : 1
+Signature: cluster x cluster x ... -> cluster 
+Example  : query multiintersection([const cluster value ("c1" "!ee")], [const cluster value ("c2" "!bb")], [const cluster value("c3" "ii & ib & ie & bi & be & ei & eb")]) 
+Result   : (cluster ("c1" 494))
+
+Operator : name_of
+Number   : 1
+Signature: cluster -> string
+Example  :  query name_of([const cluster value ("c1" "!ii")]) 
+Result   : (string "c1")
+
+
+Operator : number_of
+Number   : 1
+Signature: int9m -> int
+Example  : query number_of([const int9m value 3]) 
+Result   : (int 3)
+
+
+Operator : pwdisjoint
+Number   : 1
+Signature:  cluster x cluster x ... -> bool  
+Example  :  query pwdisjoint([const cluster value ("c1" "!ee")], [const cluster value ("c2" "ee")],[const cluster value("c3" "ii")]) 
+Result   : FALSE
+
+
+Operator : relax
+Number   : 1
+Signature:  cluster x string -> cluster  
+Example  : query relax([const cluster value ("c1" 511)]," ee & ei & ii & bi & bb & ib")
+Result   : (cluster ("c1" 437 439 445 447 501 503 509 511)) 
+
+Operator : relax
+Number   : 1
+Signature:  cluster x text -> cluster  
+Example  : query relax([const cluster value ("c1" 511)],[const text value ' ee & ei & ii & bi & bb & ib'])
+Result   : (cluster ("c1" 437 439 445 447 501 503 509 511)) 
+
+Operator : renamecluster
+Number   : 1
+Signature: cluster x string -> cluster 
+Example  : query [const cluster value ("c1" 511)]  renamecluster["c2"] 
+Result   : (cluster ("c2" 511))
+
+
+Operator : restrict
+Number   : 1
+Signature: cluster x string -> cluster  
+Example  : query restrict([const cluster value ("c1" 511 510)] , "ee" )
+Result   : (cluster ("c1" 511))
+
+Operator : restrict
+Number   : 1
+Signature: cluster x text -> cluster  
+Example  : query restrict([const cluster value ("c1" 511 510)] , [const text value 'ee'] )
+Result   : (cluster ("c1" 511))
+
+Operator : sizeof
+Number   : 1
+Signature: cluster -> int 
+Example  : query sizeof([const cluster value ("c1" 500 501)]) 
+Result   : (int 2)
+
+Operator : sizeof
+Number   : 1
+Signature: predicategroup  -> int 
+Example  : query sizeof([const predicategroup value (("c1" 45))]) 
+Result   : (int 2)
+
+Operator : transpose
+Number   : 1
+Signature: int9m -> int9m   
+Example  : query number_of(transpose([const int9m value 200]))
+Result   : (int 38)
+
+Operator : transpose
+Number   : 1
+Signature: cluster x string -> cluster 
+Example  : query transpose([const cluster value ("c" 200)],"c2") 
+Result   : (cluster ("c2" 38))
+
+Operator : union
+Number   : 1
+Signature: int9m x int9m -> int9m 
+Example  : query number_of([const int9m value 1] union [const int9m value 4]) 
+Result   : (int 5)
+
+Operator : union
+Number   : 1
+Signature: cluster x cluster -> cluster 
+Example  :  query [const cluster value ("c1" 1)] union [const cluster value ("c2" 2)] 
+Result   : (cluster ("c1" 1 2))
+
+Operator : unspecified
+Number   : 1
+Signature:  predicategroup -> cluster  
+Example  : query unspecified([const predicategroup value (("c1" "true"))]) 
+Result   : (cluster ("unspecified"))
+
+
