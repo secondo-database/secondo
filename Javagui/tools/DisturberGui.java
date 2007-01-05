@@ -941,6 +941,7 @@ private void startConversion(){
 
 /** The main function **/
 public static void main(String[] args){
+   ListExpr.initialize(100000);
    DisturberGui dg = new DisturberGui();
    dg.setVisible(true);
 
