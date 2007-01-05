@@ -1,0 +1,14 @@
+
+(
+   ( rel 
+      ( tuple 
+         (
+            ( SName  string )
+            ( Bev  int )
+            ( PLZ  int )
+            ( Vorwahl  string )
+            ( Kennzeichen  string )
+            ( TID  tid ))))
+   (
+      ( "Hagen"  206000  5800  "02331"  "HA"  19 )))
+

@@ -1,0 +1,19 @@
+
+(
+   ( rel 
+      ( tuple 
+         (
+            ( Name  string )
+            ( Strasse  string )
+            ( Ort  point )
+            ( TID  tid ))))
+   (
+      ( "UCI Kinowelt Friedrichshain"  "Landsberger Allee 54" 
+         ( 12997.0  13252.0 ) 10 )
+      ( "UCI Kinowelt Le Prom Marzahn"  "Märkische Allee 176" 
+         ( 19679.0  15176.0 ) 38 )
+      ( "UCI Kinowelt Zoo Palast"  "Hardenbergstr. 29" 
+         ( 5740.0  11005.0 ) 56 )
+      ( "UCI Kinowelt Gropius Passagen"  "Johannisthaler Chaussee 295" 
+         ( 14079.0  2800.0 ) 66 )))
+

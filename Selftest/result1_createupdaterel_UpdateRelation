@@ -1,0 +1,18 @@
+
+(
+   ( rel 
+      ( tuple 
+         (
+            ( SName  string )
+            ( Bev  int )
+            ( PLZ  int )
+            ( Vorwahl  string )
+            ( Kennzeichen  string )
+            ( SName_old  string )
+            ( Bev_old  int )
+            ( PLZ_old  int )
+            ( Vorwahl_old  string )
+            ( Kennzeichen_old  string )
+            ( TID  tid ))))
+   ())
+

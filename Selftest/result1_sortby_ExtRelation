@@ -1,0 +1,15 @@
+
+(
+   ( rel 
+      ( tuple 
+         (
+            ( SName  string )
+            ( Bev  int )
+            ( PLZ  int )
+            ( Vorwahl  string )
+            ( Kennzeichen  string ))))
+   (
+      ( "Berlin"  1859000  1000  "030"  "B" )
+      ( "Hamburg"  1580000  2000  "040"  "HH" )
+      ( "Muenchen"  1267000  8000  "089"  "M" )))
+

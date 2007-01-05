@@ -1,0 +1,17 @@
+
+(
+   ( rel 
+      ( tuple 
+         (
+            ( Name  string )
+            ( Strasse  string )
+            ( Ort  point )
+            ( Name_old  string )
+            ( Strasse_old  string )
+            ( Ort_old  point )
+            ( TID  tid ))))
+   (
+      ( "Passage"  "Karl-Marx-Str. 131" 
+         ( 12883.83823008849  7800.913053097345 ) "Passage"  "Karl-Marx-Str. 131" 
+         ( 12805.0  8037.0 ) 73 )))
+
