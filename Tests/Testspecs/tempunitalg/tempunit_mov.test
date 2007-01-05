@@ -97,7 +97,7 @@ query velocity([const mpoint value ( ) ])
 
 #testcase derivable_mr
 #tolerance_real 0.001
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5_derivable
+#yields (mbool ( ( ("2003-11-20-06:00" "2003-11-20-06:34:10" TRUE FALSE) TRUE)))
 query derivable(speed(zug5))
 
 #testcase derivable_mr empty-mr
@@ -106,7 +106,7 @@ query derivable([const mreal value ( ) ])
 
 #testcase derivative_mr
 #tolerance_real 0.001
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5_derivative
+#yields (mreal ( ( ("2003-11-20-06:00" "2003-11-20-06:34:10" TRUE FALSE) (0.0 0.0 0.0 FALSE))))
 query derivative(speed(zug5))
 
 #testcase derivative_mr empty-mr
