@@ -2635,7 +2635,7 @@ static int memshuffle_vm( Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
   // args[0]: Input stream(ptuple(y))  or stream(tuple(y)) 
-  return 0;
+  return shuffle_vm(args, result, message, local, s);
 }   
 
 

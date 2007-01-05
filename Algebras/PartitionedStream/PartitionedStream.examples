@@ -18,7 +18,7 @@ Result   : 248793
 Operator : memshuffle
 Number   : 1
 Signature: stream(ptuple(y)) -> stream(ptuple(y)), stream(tuple(y)) -> stream(tuple(y))
-Example  : query plz feed memshuffle count
+Example  : query plz pfeed[1000] memshuffle pdelete count
 Result   : 41267
 
 
@@ -26,7 +26,8 @@ Operator : pcreate2
 Number   : 1
 Signature: stream(tuple(y)) x int x int -> stream(ptuple(y))
 Example  : query plz feed pcreate2[100, 42167] pdelete count
-Result   : 41267
+Result   : bug
+Remark   : Not implemented yet! 
 
 
 Operator : pcreate
@@ -54,7 +55,7 @@ Operator : pjoin1
 Number   : 1
 Signature: ( stream(ptuple(y1)) rel(tuple(y2)) ( ( map (stream(tuple(y1))) (rel(tuple(y2))) (stream(tuple(z))) ) ... N repeats ... ))-> (stream(ptuple(z))).
 Example  : query Staedte pfeed[100] puse[. {arg1}] plz pjoin1[ 1; symj: . .. feed head[1000] {1} filter[.PLZ < 50000] head[500] {2} symmjoin[.SName_arg1 = ..Ort], ilj: . loopjoin[fun(t1: TUPLE) plz_Ort .. exactmatch[attr(t1, SName_arg1)] filter[.PLZ < 50000] {3} ]] pdelete count 
-Result   : 
+Result   : 4340
 
 
 Operator : pjoin2
@@ -80,8 +81,15 @@ Result   : 1
 
 Operator : shuffle
 Number   : 1
-Signature: stream(ptuple(y)) -> stream(ptuple(y)), stream(tuple(y)) -> stream(tuple(y))
+Signature: stream(tuple(y)) -> stream(tuple(y))
 Example  : query plz feed shuffle count
+Result   : 41267
+
+
+Operator : shuffle
+Number   : 2
+Signature: stream(ptuple(y)) -> stream(ptuple(y))
+Example  : query plz pfeed[1000] shuffle pdelete count
 Result   : 41267
 
 
