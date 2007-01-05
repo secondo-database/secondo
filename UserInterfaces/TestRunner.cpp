@@ -409,7 +409,7 @@ TestRunner::ShowErrorSummary() const
     cout << "There were " << bugs.size() << " known bugs." << endl; 
 
   if (crashes.size() > 0)
-    cout << "There were " << crashes.size() << " ommitted queries "
+    cout << "There were " << crashes.size() << " omitted queries "
          << "which are known to crash" << endl; 
 
 
