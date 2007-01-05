@@ -6,6 +6,18 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+
+2007-05-01  Example Queries 
+===============================================================================
+
+There are new features for the definition of example queries please study
+the file Documents/Secondo-Ideas.txt for details.
+
+Regards,
+
+Markus
+ 
+
 2006-28-11 Operator specs 
 ===============================================================================
 

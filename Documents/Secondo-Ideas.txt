@@ -44,10 +44,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 	http://www.informatik.fernuni-hagen.de/secondo     [p]
 
 
-Last Changes: 11/23/06, M. Spiekermann
+Last Changes: 01/05/07, M. Spiekermann
 
 [TOC]
 ""[20]
+
 
 1 Introduction
 
@@ -55,29 +56,47 @@ This document contains open problems, missing features and proposals for future
 improvements of Secondo. It should be used to keep results of discussions as a
 small transcript in order to let others participate and contribute. 
 
-2 Ideas for Testing (11/16/06)
+2 Ideas for Testing and Bug Reporting 
 
-In the future the query example given in the operator specification should be
-based on objects from a special test database which contains some example data
-for each Secondo type. Moreover, it should be possible to specify more than one
-query with expected results. Thus the examples will be expanded into
-little test specifications. Further, this will not be specified in the
-C++-Source code any longer but in special files instead.
+2.1 History 
 
-The file must be named as the algebra module but without the suffix "Algebra", e.g.
+  * November 2006. The idea of an quick regression test for all algebra modules was born.
+
+  * December 2006. A parser for example files was written. The Testrunner was modified and
+    a new command Selftest has been provided. 
+
+  * January 07. Some refinenments in order to handle operators which have bugs. Thus it is also
+    possible to report bugs by giving examples which makes the .example files also 
+    as a source for bug reports. 
+
+Current State: Nearly finished.
+ 
+
+2.2 Overview
+
+A query example given in the operator specification should be based on objects
+from a special test database which contains some example data.  Moreover, it is
+possible to specify more than one query with expected results. Thus the
+examples are little test specifications. 
+
+Further, this will not be specified in the C++-Source code any longer but in
+special files instead.  The file must be named as the algebra module but
+without the suffix "Algebra", e.g.
 
 */
-
 
 Standard.examples, Relation.examples, FText.examples ...
 
 /*
+
+2.3 How to define Examples
+
 It contains entries of the following form: 
 
-If the result type is a simple standard type like int, real, string, bool or text
-or if it is a small list you may specify it directly.
-
 */
+
+Database : berlintest
+Restore  : No
 
 Operator : *                       # name or symbol of the operator
 Number   : 1                       # number of the test case
@@ -91,11 +110,22 @@ Number   : 1
 Signature: ((array t) (map t t t)) -> (array t)
 Example  : query intset_a10 cumulate[. + ..]
 Result   : ((array int) (1 3 6 10 15 21 28 36 45 55))
+Remark   : The slot n of the result array contains the 
+aggregation of the n values of the input array
+
+... EOF
+
 
 /*
 
+First you need to specify a database and if this database sould be restored before
+running the examples. 
+
+If the result type is a simple standard type like int, real, string, bool or text
+or if it is a small list you may specify it directly. The field "Remark" is optional.
+
 If the result is more complex it should be stored in a file which must be
-stored below the directory Selftest. The files have unique names which are
+stored below the directory "Selftest". The files have unique names which are
 composed by the operator name, the example number and the algebra name. If
 the operator is a special sign like "<" or "#" you must specify an alias name
 for it.
@@ -110,7 +140,7 @@ Result   : file
 
 /*
 
-For the examble above the result will be expected in the file 
+For the example above the result will be expected in the file 
 
 */
 
@@ -118,12 +148,33 @@ For the examble above the result will be expected in the file
 
 /*
 
-This is a more simplified form of ~TestRunner~ specifications. Make will
-concatenate them to a complete list which can be read in by the ~TestRunner~ and
-Secondo at startup. During algebra registration missing examples will be detected
-and printed to the display. The Example with number 1 will be used as entry for
-the list operators command, whereas the system table "SEC2OPERATORINFO" contains
-all examples.
+In some rare cases the result of an operation may be platform dependent. For this
+purpose it is possible to define 
+
+*/
+
+Result: file_platform
+
+/*
+
+which indicates that the rsult can be found in files called
+
+*/
+
+  Selftest/result4_LOWER_TemporalLifted_win32
+  Selftest/result4_LOWER_TemporalLifted_linux
+
+/*
+
+All in all this is a more simplified form of ~TestRunner~ specifications. Make will
+copy them to the "bin/tmp" directory. If the expected and computed result differ an error
+will be reported and if the expected result was given in a file the computed result will
+written to the same file extended by the suffix "_error".    
+ 
+At startup of secondo the examples of each active algebra module are parsed.
+Missing examples will be detected and printed to the display. The Example with
+number 1 will be used as entry for the list operators command, whereas the
+system table "SEC2OPERATORINFO" contains all examples.
 
 For testing quickly all operators, a new command called ~Selftest~ can be
 invoked.  This will start the TestRunner in a special mode. For every algebra
@@ -131,29 +182,72 @@ the query examples will be tested on the specified databases which will be
 automatically restored if it is not present. Hence overnight runs will
 guarantee that all example queries work.
 
-Objects referred in queries must be stored in the database "berlintest" which
+If you want just run a single example file call for example
+
+*/
+
+SelfTest ../Algebras/Standard/Standard.examples
+
+/*
+
+this may be useful during the development of example queries. 
+
+Objects referred in queries should be stored in the database "berlintest" which
 is maintained in the secondo-data repository and must be copied to the bin
 directory. 
 
-2.1 Implementation 
 
-  * make copies the examples into a new directoy "bin/examples". 
+2.3 Bug Reports
+
+During the development of example files or during working with Secondo one may
+find queries which do not compute the correct results or those which force the system to crash.
+In these cases you can specify 
+
+*/
+
+Result: crashes
+
+or
+
+Result: bug
+Remark: The operation ....
+
+/*
+
+The first variant will avoid the execution of the example whereas the second
+one will execute the query but ignore the result. The ~Testrunner~ will report
+them as known bugs but not as unexpected errors. Later it is possible to find
+those queries by using the system table "SEC2OPERATORINFO", e.g.
+
+*/
+
+query SEC2OPERATORINFO feed filter[.Result contains 'bug'] consume
+
+/*
+
+Hence the system relation will be a source for many query examples which could also 
+contain some explanations and for known bugs as well.  
+
+
+2.1 Implementation Details
+
+  * make copies the examples into a new directoy "bin/tmp". 
 
   * A new class ~ExampleReader~ which can read in an examples file and converts examples
-    to an internal format will be implemented.
+    to an internal format was implemented.
 
-  * The new ~TestRunner~ option opens or restores "berlintest" and runs the
-    examples. The name of the test database can be configured in
-    "SecondoConfig.ini". 
+  * The new ~TestRunner~ option "-e" opens or restores the specified test database and runs the
+    examples. The application was improved in order to handle queries with known or accepted bugs
+    or those which will crash.
 
-  * The Secondo-Kernel needs was changed in order to complete the operator specifications
-    with the example queries.
+  * The Secondo-Kernel was changed in order to complete the operator specifications
+    with information stored in the .example files.
     
 
 2.2 Future Improvements
 
-Database berlintest should become a cvs-member of the bin directory. If it has
-changed (md5sum) since the last run of the ~TestRunner~  it will be restored.
+Database berlintest should become a cvs-member of the "bin" directory. If it has
+changed (md5sum) since the last run of ~Selftest~ it will be restored.
 
 
 */
