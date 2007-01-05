@@ -70,6 +70,9 @@ let ur1 = [const ureal value (("2000-01-01-00:00:00.000" "2000-01-05-00:00:00.00
 let ur2 = [const ureal value (("2000-01-02-23:59:59.900" "2000-01-03-00:00:00.100" TRUE TRUE) (-1.0 -1.0 -1.0 FALSE))];
 let ur3 = [const ureal value undef];
 let ur4 = [const ureal value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1.0 1.0 1.0 TRUE))];
+let ur5 = [const ureal value (("2000-01-01-00:00:00.000" "2000-01-05-00:00:00.000" TRUE TRUE) (1.0 0.0 -1.0 FALSE))];
+let ur6 = [const ureal value (("2000-01-01-00:00:00.000" "2000-01-05-00:00:00.000" TRUE TRUE) (-1.0 0.0 1.0 FALSE))];
+
 
 let r = [const real value 0.0];
 let r1 = [const real value 2.0];
@@ -1195,6 +1198,74 @@ query [const bool value TRUE] or ubool4
 #testcase or_bool_ubool FALSE
 #yields (ubool (("2003-11-20-06:30" "2003-11-20-06:45" TRUE FALSE) FALSE))
 query [const bool value FALSE] or ubool4
+
+
+
+#testcase isEqualVal constUnit
+#yields (bool TRUE)
+query always(ui2 = ui4)
+
+#testcase isEqualVal upoint
+#yields (mbool ((("2003-11-20-06:00" "2003-11-20-06:30" TRUE FALSE)FALSE)(("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)TRUE)(("2003-11-20-06:30" "2003-11-20-07:00" FALSE FALSE)FALSE)))
+query (up1 = up2 ) the_mvalue
+
+##testcase isEqualVal ureal
+##yields
+##query (ur1 = ur2) the_mvalue
+
+
+
+##testcase isNotEqualVal constUnit
+##yields
+##query (up1 # up2 ) the_mvalue
+
+##testcase isNotEqualVal upoint
+##yields
+##query (ui2 # ui4) the_mvalue
+
+##testcase isNotEqualVal ureal
+##yields
+##query
+
+
+
+#testcase isSmallerVal constUnit
+#yields (bool TRUE)
+query never(ui2 # ui4)
+
+##testcase isSmallerVal ureal
+##yields
+##query
+
+
+
+##testcase isSmallerEqVal constUnit
+##yields
+##query
+
+##testcase isSmallerEqVal ureal
+##yields
+##query
+
+
+
+##testcase isBiggerVal constUnit
+##yields
+##query
+
+##testcase isBiggerVal ureal
+##yields
+##query
+
+
+
+##testcase isBiggerEqVal constUnit
+##yields
+##query
+
+##testcase isBiggerEqVal ureal
+##yields
+##query
 
 
 ############################
