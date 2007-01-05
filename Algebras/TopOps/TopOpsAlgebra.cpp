@@ -543,8 +543,8 @@ void GetInt9M(Points*  ps, Point* p,Int9M& res){
   GetCalls_ps_p++;
 #endif
   // initialization
-  res.SetValue(true);
-  res.SetEE(true); // holds always
+  res.SetValue(0);
+  res.SetEE(true); // holds always for bounded objects
   
   // check for emptyness
   if(ps->IsEmpty()){ // the simples case
@@ -559,7 +559,7 @@ void GetInt9M(Points*  ps, Point* p,Int9M& res){
   // bounding box check
   Rectangle<2> box_ps = ps->BoundingBox();
   Rectangle<2> box_p  = p->BoundingBox();
-  if(!box_p.Intersects(box_ps)){
+  if(!box_p.Intersects(box_ps)){ // disjointness of the bounding boxes
       res.SetIE(true);
       res.SetEI(true);
 #ifdef TOPOPS_USE_STATISTIC
@@ -572,8 +572,11 @@ void GetInt9M(Points*  ps, Point* p,Int9M& res){
   if(size>1){
      res.SetIE(true);
   }
-  if(ps->Contains(p)){
+  if(!(ps->Contains(p))){
      res.SetEI(true);
+     res.SetIE(true);
+  } else{
+     res.SetII(true);  
   }
   return;
 }
