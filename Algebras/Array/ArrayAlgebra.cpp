@@ -1870,8 +1870,9 @@ loopFun( Word* args, Word& result, int message, Word& local, Supplier s )
   Word a[n];
   string info;
 
+  cout << "Processing ..." << endl;
   for (int i=0; i<n; i++) {
-    info = "Processing element " + toString(i);
+    info = toString(i);
     f.request(array->getElement(i), funresult, info);
     a[i] = genericClone(algebraId, typeId, typeOfElement, funresult);
   }
@@ -1967,8 +1968,9 @@ loopaFun( Word* args, Word& result, int message, Word& local, Supplier s )
   Word a[n];
   string info;
 
+  cout << "Processing elements ..." << endl;
   for (int i=0; i<n; i++) {
-    info = "Processing elements " + toString(i) + " and " + toString(i);
+    info = "(" + toString(i) + ", " + toString(i) + ")";
     f.request(firstArray->getElement(i), secondArray->getElement(i),
               funresult, info);
     a[i] = genericClone(algebraId, typeId, typeOfElement, funresult);
@@ -2037,9 +2039,10 @@ loopbFun( Word* args, Word& result, int message, Word& local, Supplier s )
   Word a[n * m];
   string info;
 
+  cout << "Processing elements ..." << endl;
   for (int i=0; i<n; i++) {
     for (int l=0; l<m; l++) {
-      info = "Processing elements " + toString(i) + " and " + toString(l);
+      info = "(" + toString(i) + ", " + toString(l) + ")";
       f.request(firstArray->getElement(i), secondArray->getElement(l),
                 funresult, info);
       a[i * m + l] = genericClone(algebraId, typeId, typeOfElement, funresult);
@@ -2184,8 +2187,9 @@ loopswitchFun( Word* args, Word& result, int message, Word& local, Supplier s )
   Word funresult;
   string info;
 
+  cout << "Processing ..." << endl;
   for (int i=0; i<n; i++) {
-    info = "Processing element " + toString(i);
+    info = toString(i);
 
     sw.request(array->getElement(i), funresult, info);
     a[i] = genericClone(algebraId, typeId, typeOfElement, funresult);
@@ -2343,8 +2347,9 @@ loopswitchaFun( Word* args, Word& result, int message, Word& local,
   Word funresult;
   string info;
 
+  cout << "Processing elements ..." << endl;
   for (int i=0; i<n; i++) {
-    info = "Processing elements " + toString(i) + " and " + toString(i);
+    info = "(" + toString(i) + ", " + toString(i) + ")";
 
     sw.request(firstArray->getElement(i), secondArray->getElement(i),
                funresult, info);
@@ -2419,9 +2424,10 @@ loopswitchbFun( Word* args, Word& result, int message, Word& local,
   Word funresult;
   string info;
 
+  cout << "Processing elements ..." << endl;
   for (int i=0; i<n; i++) {
     for (int l=0; l<m; l++) {
-      info = "Processing elements " + toString(i) + " and " + toString(l);
+      info = "(" + toString(i) + ", " + toString(l) + ")";
 
       sw.request(firstArray->getElement(i), secondArray->getElement(l),
                  funresult, info);
@@ -2529,8 +2535,10 @@ loopselectFun( Word* args, Word& result, int message, Word& local, Supplier s )
   Word funresult;
   string info;
 
+  
+  cout << "Processing elements ..." << endl; 
   for (int i=0; i<n; i++) {
-    info = "Processing element " + toString(i);
+    info = toString(i);
 
     se.request(array->getElement(i), funresult, info);
     a[i] = genericClone(algebraId, typeId, typeOfElement, funresult);
@@ -2637,8 +2645,9 @@ loopselectaFun( Word* args, Word& result, int message, Word& local,
   Word funresult;
   string info;
 
+  cout << "Processing elements ..." << endl;
   for (int i=0; i<n; i++) {
-    info = "Processing elements " + toString(i) + " and " + toString(i);
+    info = "(" + toString(i) + ", " + toString(i) + ")";
 
     se.request(firstArray->getElement(i), secondArray->getElement(i),
                funresult, info);
@@ -2728,9 +2737,10 @@ loopselectbFun( Word* args, Word& result, int message, Word& local,
   Word funresult;
   string info;
 
+  cout << "Processing";
   for (int i=0; i<n; i++) {
     for (int l=0; l<m; l++) {
-      info = "Processing elements " + toString(i) + " and " + toString(l);
+      info = "(" + toString(i) + ", " + toString(l) + ")";
 
       se.request(firstArray->getElement(i), secondArray->getElement(l),
                  funresult, info);
@@ -2897,9 +2907,10 @@ partjoinFun( Word* args, Word& result, int message, Word& local, Supplier s )
   // Process the first elements individually to get an "entry point" for the
   // second part (see below).
 
+  cout << "Processing (phase 1):" << endl;
   if ((i-j) <= (n-m)) {
     while ((i-j) <= (n-m)) {
-      info =  "Processing partitions " + toString(i) + " and " + toString(j);
+      info =  "(" + toString(i) + ", " + toString(j) + ")";
 
       f.request(firstArray->getElement(i), secondArray->getElement(j),
                 funresult, info);
@@ -2916,7 +2927,7 @@ partjoinFun( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   else {
     while ((i-j) >= (n-m)) {
-      info = "Processing partitions " + toString(i) + " and " + toString(j);
+      info =  "(" + toString(i) + ", " + toString(j) + ")";
 
       f.request(firstArray->getElement(i), secondArray->getElement(j),
                 funresult, info);
@@ -2934,18 +2945,17 @@ partjoinFun( Word* args, Word& result, int message, Word& local, Supplier s )
   // the step by step summarization and evaluation of larger parts of the
   // participating arrays of relations.
 
+  cout << "Processing (phase 2):" << endl; 
   while (i < n) {
     appendToRel(Acum, firstArray->getElement(i-1));
     appendToRel(Bcum, secondArray->getElement(j));
 
-    info = "Processing partitions [0;" + toString(i-1) + "] and "
-           + toString(j);
+    info = "[0;" + toString(i-1) + "] and " + toString(j);
 
     f.request(Acum, secondArray->getElement(j), funresult, info);
     a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
 
-    info = "Processing partitions " + toString(i) + " and [0;"
-           + toString(j) + "]";
+    info = toString(i) + " and [0;" + toString(j) + "]";
 
     f.request(firstArray->getElement(i), Bcum, funresult, info);
     a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
@@ -3147,9 +3157,10 @@ partjoinswitchFun( Word* args, Word& result, int message, Word& local,
   Word Acum = SetWord(0);
   Word Bcum = SetWord(0);
 
+  cout << "Processing (phase1):" << endl;
   if ((i-j) <= (n-m)) {
     while ((i-j) <= (n-m)) {
-      info =  "Processing partitions " + toString(i) + " and " + toString(j);
+      info =  "(" + toString(i) + ", " + toString(j) + ")";
 
       sw.request(firstArray->getElement(i), secondArray->getElement(j),
                  funresult, info);
@@ -3165,7 +3176,7 @@ partjoinswitchFun( Word* args, Word& result, int message, Word& local,
   }
   else {
     while ((i-j) >= (n-m)) {
-      info = "Processing partitions " + toString(i) + " and " + toString(j);
+      info = "(" + toString(i) + ", " + toString(j) + ")";
 
       sw.request(firstArray->getElement(i), secondArray->getElement(j),
                  funresult, info);
@@ -3177,18 +3188,17 @@ partjoinswitchFun( Word* args, Word& result, int message, Word& local,
     i++;
   }
 
+  cout << "Processing (phase2):" << endl;
   while (i < n) {
     appendToRel(Acum, firstArray->getElement(i-1));
     appendToRel(Bcum, secondArray->getElement(j));
 
-    info = "Processing partitions [0;" + toString(i-1) + "] and "
-           + toString(j);
+    info = "[0;" + toString(i-1) + "] and " + toString(j);
 
     sw.request(Acum, secondArray->getElement(j), funresult, info);
     a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
 
-    info = "Processing partitions " + toString(i) + " and [0;"
-           + toString(j) + "]";
+    info = toString(i) + " and [0;" + toString(j) + "]";
 
     sw.request(firstArray->getElement(i), Bcum, funresult, info);
     a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
@@ -3318,9 +3328,10 @@ partjoinselectFun( Word* args, Word& result, int message, Word& local,
   Word Acum = SetWord(0);
   Word Bcum = SetWord(0);
 
+  cout << "Processing (phase 1):" << endl;
   if ((i-j) <= (n-m)) {
     while ((i-j) <= (n-m)) {
-      info =  "Processing partitions " + toString(i) + " and " + toString(j);
+      info =  "(" + toString(i) + ", " + toString(j) + ")";
 
       se.request(firstArray->getElement(i), secondArray->getElement(j),
                  funresult, info);
@@ -3336,7 +3347,7 @@ partjoinselectFun( Word* args, Word& result, int message, Word& local,
   }
   else {
     while ((i-j) >= (n-m)) {
-      info = "Processing partitions " + toString(i) + " and " + toString(j);
+      info = "(" + toString(i) + ", " + toString(j) + ")";
 
       se.request(firstArray->getElement(i), secondArray->getElement(j),
                  funresult, info);
@@ -3348,18 +3359,17 @@ partjoinselectFun( Word* args, Word& result, int message, Word& local,
     i++;
   }
 
+  cout << "Processing (phase 2):" << endl;
   while (i < n) {
     appendToRel(Acum, firstArray->getElement(i-1));
     appendToRel(Bcum, secondArray->getElement(j));
 
-    info = "Processing partitions [0;" + toString(i-1) + "] and "
-           + toString(j);
+    info = "[0;" + toString(i-1) + "] and " + toString(j);
 
     se.request(Acum, secondArray->getElement(j), funresult, info);
     a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
 
-    info = "Processing partitions " + toString(i) + " and [0;"
-           + toString(j) + "]";
+    info = toString(i) + " and [0;" + toString(j) + "]";
 
     se.request(firstArray->getElement(i), Bcum, funresult, info);
     a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);

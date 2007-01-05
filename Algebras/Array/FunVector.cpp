@@ -86,6 +86,7 @@ FunInfo::request( Word* arguments, int n, Word& funresult, string info = "" )
   clock_t c1;
   clock_t c2;
   double timediff;
+  bool trace = false;
 
   funargs = qp->Argument( supplier );
 
@@ -97,6 +98,7 @@ FunInfo::request( Word* arguments, int n, Word& funresult, string info = "" )
     cout << info << ", ";
   }
 
+  if (trace)
   cout << "function " << name << ", ";
 
   c1 = clock();
@@ -108,8 +110,9 @@ FunInfo::request( Word* arguments, int n, Word& funresult, string info = "" )
   timesUsed++;
   consumedTime += timediff;
 
-  cout << "used CPU time: " << timediff << " (" << consumedTime
-       << ") seconds." << endl;
+  if (trace)
+    cout << "used CPU time: " << timediff << " (" << consumedTime
+         << ") seconds." << endl;
 }
 
 
@@ -289,8 +292,9 @@ FunVector::writeSummary()
 {
   sort(funInfos.begin(), funInfos.end());
 
+  cout << endl;
   for (int i=0; i < (int)funInfos.size(); i++) {
-    cout << "SUMMARY, " << funInfos[i] << "\n";
+    cout << "SUMMARY, " << funInfos[i] << endl;
   }
 }
 
