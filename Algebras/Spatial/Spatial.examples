@@ -1,0 +1,246 @@
+Database : berlintest
+Restore  : NO
+
+Operator : #
+Number   : 1
+Signature: (point point) -> bool, (points points) -> bool, (line line) -> bool, (region region) -> bool
+Example  : query mehringdamm # alexanderplatz
+Result   : TRUE
+
+
+Operator : +
+Number   : 1
+Signature: point x point -> point
+Example  : query [const point value (0.0 -1.2)] + [const point value (-5.0 1.2)] 
+Result   : (point (-5.0 0.0))
+
+
+Operator : =
+Number   : 1
+Signature: (point point) -> bool, (points points) -> bool, (line line) -> bool, (region region) -> bool
+Example  : query tiergarten = zoogarten
+Result   : FALSE
+
+
+Operator : adjacent
+Number   : 1
+Signature: (points||line||region x points||line||region) -> bool
+Example  : query WFlaechen feed filter[.geoData adjacent grunewald] consume
+Result   : file
+
+
+Operator : atpoint
+Number   : 1
+Signature: line x point x bool -> real
+Example  : query atpoint(trajectory(train7), mehringdamm, TRUE)
+Result   : 18852.027945347138
+
+
+Operator : atposition
+Number   : 1
+Signature: line x real x bool -> point
+Example  : query atposition(trajectory(train7), 18852.027945347138, TRUE)
+Result   : bug
+Remark   : result point appears at wrong position
+
+Operator : atposition
+Number   : 2
+Signature: line x real x bool -> point
+Example  : query WFlaechen feed filter[.Name = "Spree"] UBahn feed {u} symmjoin[.geoData intersects_new ..geoData_u] extend[Schnitt: intersection_new(.geoData, .geoData_u)] project[Schnitt] extend[Start: atposition(.Schnitt, 0.0, TRUE)] consume
+Result   : crashes
+
+
+Operator : bbox
+Number   : 1
+Signature: (point||points||line||region) -> rect
+Example  : query bbox(tiergarten)
+Result   : (rect (5659.99999999 8571.00000001 11434.99999999 12795.00000001))
+
+
+Operator : commonborder
+Number   : 1
+Signature: (region x region) -> line
+Example  : query WFlaechen feed filter[.geoData adjacent grunewald] extend[Common: commonborder(.geoData, grunewald)] project[Common] consume
+Result   : file
+
+Operator : commonborder
+Number   : 2
+Signature: (region x region) -> line
+Example  : query commonborder(tiergarten, tiergarten)
+Result   : file
+
+
+Operator : components
+Number   : 1
+Signature: points -> stream(point), region -> stream(region)
+Example  : query components(koepenick) count
+Result   : crashes
+
+Operator : components
+Number   : 2
+Signature: points -> stream(point), region -> stream(region)
+Example  : query components(tiergarten) count
+Result   : 1
+
+
+Operator : crossings
+Number   : 1
+Signature: (line x line) -> points
+Example  : query strassen feed {s1} strassen feed {s2} spatialjoin[geoData_s1, geoData_s2] filter[.Name_s1 < .Name_s2] filter[.geoData_s1 intersects .geoData_s2] projectextendstream[Name_s1, Name_s2; Cross: components(crossings(.geoData_s1, .geoData_s2))] project[Cross] consume
+Result   : file
+
+
+Operator : direction
+Number   : 1
+Signature: (point x point) -> real
+Example  : query direction(mehringdamm, alexanderplatz)
+Result   : 61.061353020685345
+
+
+Operator : distance
+Number   : 1
+Signature: (point||points||line x point||points||line) -> real
+Example  : query distance(mehringdamm, alexanderplatz)
+Result   : 3455.4536605198455
+
+
+Operator : ininterior
+Number   : 1
+Signature: (point x line||region) -> bool
+Example  : query mehringdamm ininterior trajectory(train7)
+Result   : crashes
+
+
+Operator : inside
+Number   : 1
+Signature: (point||points||line||region x points||line||region) -> bool
+Example  : query point1 inside line1
+Result   : 
+
+
+Operator : intersection
+Number   : 1
+Signature:  (point||points||line||region x point||points||line||region)-> points||line||region
+Example  : query points intersection region
+Result   : 
+
+
+Operator : intersects
+Number   : 1
+Signature: (points||line||region x points||line||region) -> bool 
+Example  : query region1 intersects region2
+Result   : 
+
+
+Operator : isempty
+Number   : 1
+Signature: point -> bool, points -> bool, line -> bool,region -> bool
+Example  : query isempty ( line1 )
+Result   : 
+
+
+Operator : minus
+Number   : 1
+Signature: (point||points||line||region x point||points||line||region) -> point||points||line||region
+Example  : query points minus point
+Result   : crashes
+
+
+Operator : no_components
+Number   : 1
+Signature: (points||line||region) -> int
+Example  : query no_components(region)
+Result   : 
+
+
+Operator : no_segments
+Number   : 1
+Signature: (region) -> int
+Example  : query no_segments(region)
+Result   : 
+
+
+Operator : onborder
+Number   : 1
+Signature: (point x line||region) -> bool
+Example  : query point onborder line
+Result   : crashes
+
+
+Operator : overlaps
+Number   : 1
+Signature: (points||line||region x points||line||region) -> bool
+Example  : query line overlap region
+Result   : 
+
+
+Operator : scale
+Number   : 1
+Signature: for T in {point, points, line, region}: T x real -> T
+Example  :  query region1 scale[1000.0]
+Result   : 
+
+
+Operator : single
+Number   : 1
+Signature: (points) -> point
+Example  : query single(points)
+Result   : 
+
+
+Operator : size
+Number   : 1
+Signature: (line) -> real
+Example  :  query size(line)
+Result   : 
+
+
+Operator : subline
+Number   : 1
+Signature: line x real x real x bool -> line
+Example  : query subline(l, 0.0, size(.l), TRUE)
+Result   : 
+
+
+Operator : touchpoints
+Number   : 1
+Signature: (line||region x region) -> points
+Example  :  query touchpoints(line, region)
+Result   : crashes
+
+
+Operator : translate
+Number   : 1
+Signature: (point||points||line||region x real x real) -> point||points||line||region
+Example  :  query region1 translate[3.5, 15.1]
+Result   : 
+
+
+Operator : union
+Number   : 1
+Signature: (point x points) -> points, (points x point) -> points, (points x points) -> points
+Example  : query points union point
+Result   : crashes
+
+
+Operator : vertices
+Number   : 1
+Signature: (region -> points) or (line -> points)
+Example  : query vertices(r1)
+Result   : 
+
+
+Operator : windowclippingin
+Number   : 1
+Signature: (line x rect) -> line, (region x rect) --> region
+Example  :  query windowclippingin(line1, window)
+Result   : 
+
+
+Operator : windowclippingout
+Number   : 1
+Signature: (line x rect) -> line, (region x rect) --> region
+Example  :  query windowclippingout(line1, rect)
+Result   : 
+
+
