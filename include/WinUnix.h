@@ -59,6 +59,7 @@ public:
    static inline bool isWin32() { return win32; }
    static inline bool isUnix() { return !win32; }
 
+   static string getPlatformStr();
    
 private:
    static const int endian_detect;

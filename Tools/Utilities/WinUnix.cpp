@@ -64,7 +64,7 @@ WinUnix::win32 = false;
 #endif  
 
 int
-WinUnix::getPageSize( void ) { 
+WinUnix::getPageSize() { 
 
 #ifndef SECONDO_WIN32
    return ( getpagesize() );
@@ -73,6 +73,16 @@ WinUnix::getPageSize( void ) {
    GetSystemInfo( &SysInf );
    return ( SysInf.dwPageSize );
 #endif
+}
+
+string
+WinUnix::getPlatformStr() { 
+
+  if (win32)
+    return "win32";
+  else
+    return "linux";
+
 }
 
     
