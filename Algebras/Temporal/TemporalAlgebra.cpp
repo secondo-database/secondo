@@ -791,6 +791,238 @@ void MPoint::Distance( const Point& p, MReal& result ) const
   result.EndBulkLoad( false );
 }
 
+
+/*
+This function checks whether the end point of the first unit is equals
+to the start point of the second unit and if the time difference is
+at most a single instant
+
+*/
+static bool connected(const UPoint* u1, const UPoint* u2){
+   if(u1->p1 != u2->p0){ // spatial connected
+       return false;
+   }
+   // temporal connection
+   if(! ((u1->timeInterval.end) == (u2->timeInterval.start))){
+       return false;
+   }
+   return true;
+}
+
+ /*
+static bool isBreak(const UPoint* u){
+   return u->p0 == u->p1;
+}
+
+ */
+
+/**
+~Simplify~
+
+This function removed some sampling points from a moving point 
+to get simpler data. It's implemented using an algorithm based 
+on the Douglas Peucker algorithm for line simplification.
+
+**/
+
+void MPoint::Simplify(const double epsilon, MPoint& result) const{
+   result.Clear();
+
+   // check for defined state
+   if(!IsDefined()){
+     result.SetDefined(false);
+     return;
+   }
+   result.SetDefined(true);
+
+   unsigned int size = GetNoComponents();
+   // no simplification possible if epsilon < 0 
+   // or if at most one unit present
+   if(epsilon<0 || size < 2){
+      result.CopyFrom(this);
+      return;
+   }
+
+   // create an boolean array which represents all sample points 
+   // contained in the result
+   bool useleft[size];
+   bool useright[size];
+   // at start, no sampling point is used
+   for(unsigned int i=0;i<size;i++){
+       useleft[i] = false;
+       useright[i] =false;
+   }      
+   
+   unsigned int first=0;
+   unsigned int last=1;
+   const UPoint* u1;
+   const UPoint* u2;
+   while(last<size){
+      // check whether last and last -1 are connected 
+      Get(last-1,u1);
+      Get(last,u2);
+      /*
+      if(isBreak(u1)){
+         if(last-1 > first){
+            Simplify(first,last-2,useleft,useright,epsilon);
+         }
+         Simplify(last-1, last-1, useleft, useright, epsilon);
+         first = last;
+         last++;
+      } else if(isBreak(u2)){ 
+         Simplify(first,last-1,useleft,useright,epsilon);
+         last++;
+         Simplify(last-1, last-1,useleft,useright,epsilon);
+         first = last;
+         last++;
+      } else */if(connected(u1,u2)){ // enlarge the sequence
+         last++;
+      } else {
+          Simplify(first,last-1,useleft, useright, epsilon);
+          first=last;
+          last++;
+      }
+   } 
+   // process the last recognized sequence
+   Simplify(first,last-1,useleft, useright,epsilon); 
+
+
+   // count the number of units
+   int count = 1; // count the most right sample point
+   for( unsigned int i=0;i<size;i++){
+      if( useleft[i]){
+         count++;
+      }
+   }
+
+   // debugging, check validity of the useLeft and useright
+   if(!useleft[0]){
+       cout << " Error in simplifying, left point is not used " << endl;
+       return;
+   }
+   if(!useright[size-1]){
+       cout << "Error in simplifying, right point is not used " << endl;
+       return;
+   }
+   for(unsigned int i=1;i<size-1;i++){
+       if((useleft[i])^(useright[i-1])){
+          cout << "error in simplification, left[" << i 
+               << "] = " << useleft[i] << " but right[" << (i-1)
+               << "] = " << useright[i-1] << endl;
+       }
+       if((useleft[i+1])^(useright[i])){
+          cout << "error in simplification, left[" << (i+1) 
+               << "] = " << useleft[i+1] << " but right[" << (i)
+               << "] = " << useright[i] << endl;
+       }
+   }
+
+   // end of debugging code
+
+   result.Resize(count); // prepare enough memory 
+
+   result.StartBulkLoad();
+   Instant start;
+   Point p0;
+   bool closeLeft;
+   bool leftDefined = false;
+   for(unsigned int i=0; i< size; i++){
+     const UPoint* upoint;
+     
+     Get(i,upoint);
+     if(useleft[i]){
+        // debug
+        if(leftDefined){
+           cout << " error in mpoint simplification,"
+                << " overwrite an existing leftPoint "  << endl;
+        }
+        // end of debug
+        p0 = upoint->p0;
+        closeLeft = upoint->timeInterval.lc;
+        start = upoint->timeInterval.start;
+        leftDefined=true;
+     } 
+     if(useright[i]){
+        // debug
+        if(!leftDefined){
+           cout << " error in mpoint simplification,"
+                << " rightdefined before leftdefined "  << endl;
+
+        }
+        Interval<Instant> interval(start,upoint->timeInterval.end,closeLeft,
+                                   upoint->timeInterval.rc);
+
+        UPoint newUnit(interval,p0,upoint->p1);
+        result.Add(newUnit);
+        leftDefined=false;
+     }
+   }
+   result.EndBulkLoad(false);
+}
+
+
+/**
+~Simplify~
+
+Recursive implementation of simplifying movements.
+
+**/
+
+void MPoint::Simplify(const int min, 
+                 const int max, 
+                 bool* useleft, 
+                 bool* useright, 
+                 const double epsilon) const {
+
+  // the endpoints are used in each case
+  useleft[min] = true;
+  useright[max] = true;
+
+  if(min==max){ // no intermediate sampling points -> nothing to simplify
+     return;
+  }
+
+  const UPoint* u1;
+  const UPoint* u2;
+  // build a UPoint from the endpoints
+  Get(min,u1);
+  Get(max,u2);  
+
+  UPoint upoint(Interval<Instant>(u1->timeInterval.start, 
+                u2->timeInterval.end,true,true),
+                u1->p0,
+                u2->p1);
+                
+  // search for the point with the highest distance to its simplified position
+  double maxDist = 0;
+  int maxIndex=0;
+  Point p_orig;
+  Point p_simple;
+  const UPoint* u;
+  double distance;
+  for(int i=min+1;i<=max;i++){
+     Get(i,u);
+     upoint.TemporalFunction(u->timeInterval.start,p_simple, true);
+     distance  = p_simple.Distance(u->p0);  
+     if(distance>maxDist){ // new maximum found
+        maxDist = distance;
+        maxIndex = i;
+     }  
+  }
+
+  if(maxIndex==0){  // no difference found
+      return;
+  }
+  if(maxDist<=epsilon){  // differnce is in allowed range
+      return;
+  }
+
+  // split at the left point of maxIndex
+  Simplify(min,maxIndex-1,useleft,useright,epsilon);
+  Simplify(maxIndex,max,useleft,useright,epsilon);
+}
+
+
 void MPoint::MVelocity( MPoint& result ) const
 {
   const UPoint *uPoint;
@@ -2865,6 +3097,29 @@ ListExpr MovingTypeMapUnits( ListExpr args )
 }
 
 /*
+16.1.12 Type mapping for simplify operator
+
+*/
+
+ListExpr MovingTypeMapSimplify(ListExpr args){
+   if(nl->ListLength(args)!=2){
+       ErrorReporter::ReportError("two arguments expected");
+       return nl->SymbolAtom("typeerror");
+   }
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+   if(nl->IsEqual(arg1,"mpoint") &&
+      nl->IsEqual(arg2,"real")){
+       return nl->SymbolAtom("mpoint");
+   }
+   ErrorReporter::ReportError("mpoint x real expected");
+   return nl->SymbolAtom("typeerror");
+}
+
+
+
+
+/*
 16.1.13 Type mapping function ~IntSetTypeMapPeriods~
 
 It is used for the operators ~theyear~, ~themonth~, ~theday~, ~thehour~, ~theminute~,
@@ -3864,6 +4119,20 @@ int MPointDistance( Word* args, Word& result, int message, Word&
 }
 
 /*
+16.3.29 Value mapping function for the operator ~simplify~
+
+*/
+int MPointSimplify(Word* args, Word& result, 
+                   int message, Word& local,
+                   Supplier s){
+  result = qp->ResultStorage( s );
+  double epsilon = ((CcReal*)args[1].addr)->GetRealval();
+  ((MPoint*)args[0].addr)->Simplify(epsilon, *((MPoint*)result.addr) );
+  return 0;
+}
+                  
+
+/*
 16.3.31 Value mapping functions of operator ~bbox~
 
 */
@@ -4764,6 +5033,14 @@ const string TemporalSpecDistance =
   "<text>distance( mpoint1, point1 )</text--->"
   ") )";
 
+const string TemporalSpecSimplify =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mpoint x real -> mpoint</text--->"
+  "<text>simplify( _, _ ) </text--->"
+  "<text>simplifys the mpoint with a maximum difference of epsilon</text--->"
+  "<text>simplify( train7, 50.0 )</text--->"
+  ") )";
+
 const string TemporalSpecUnits  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, real, point}:\n"
@@ -5104,6 +5381,12 @@ Operator temporaldistance( "distance",
                            Operator::SimpleSelect,
                            MovingBaseTypeMapMReal );
 
+Operator temporalsimplify( "simplify",
+                           TemporalSpecSimplify,
+                           MPointSimplify,
+                           Operator::SimpleSelect,
+                           MovingTypeMapSimplify );
+
 Operator temporalunits( "units",
                         TemporalSpecUnits,
                         5,
@@ -5282,6 +5565,7 @@ class TemporalAlgebra : public Algebra
 
     AddOperator( &temporalat );
     AddOperator( &temporaldistance );
+    AddOperator( &temporalsimplify );
     AddOperator( &temporaltranslate );
 
     AddOperator( &temporaltheyear );

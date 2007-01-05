@@ -2284,6 +2284,27 @@ The constructor. Initializes space for ~n~ elements.
 */
   void Distance( const Point& p, MReal& result ) const;
 
+
+/*
+3.10.5.4 Operation ~Simplify~
+
+*Precondition*: ~X.IsOrdered()~
+
+*Semantics*: Simplifies the tracjectory this moving point.
+             
+*Complexity*: worst case: O(n * n), in average O(n * log (n))
+
+*/
+
+   void Simplify(const double epsilon, MPoint& result) const;
+             
+private:
+   void Simplify(const int min, const int max,
+                 bool* useleft, bool* useright,
+                 const double epsilon) const;
+
+
+
 };
 
 /*
