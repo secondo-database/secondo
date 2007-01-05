@@ -2098,8 +2098,13 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
       t.signature = oi.signature;
       t.syntax = oi.syntax;
       t.meaning = oi.meaning;
-      t.remark = oi.remark;
       t.result = ex2.result;
+
+      if (ex2.remark != "")
+        t.remark = ex2.remark;
+      else
+        t.remark = oi.remark;
+
 
       // define example values
       t.example = ex2.example;
