@@ -138,6 +138,7 @@ Operator : tuplesize
 Number   : 1
 Signature: ((stream/rel (tuple x))) -> real
 Example  : query Trains tuplesize
-Result   : 11085.83629893239
+Result   : file_platform
+Remark   : On Linux and Windows this operator returns other values, Maybe it depends on Berkeley-DB or different page sizes.
 
 
