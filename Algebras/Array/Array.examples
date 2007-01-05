@@ -40,8 +40,7 @@ Operator : loop
 Number   : 1
 Signature: ((array t) (map t r)) -> (array r)
 Example  : query plz_a20 loop[. count] tie [. + ..]
-Result   : 41267
-
+Result   : 41267 
 
 Operator : loopa
 Number   : 1
@@ -68,7 +67,8 @@ Operator : loopselecta
 Number   : 1
 Signature: ((array t) (array u) ((name1 (map t u r)) ... (namen (map t u r))) int real) -> (array r)
 Example  : query plz_a20_PLZ plz_a20 loopselecta[f: . .. exactmatch[58084] count; 5, 0.1] tie[. + ..]
-Result   : 'Bug: there must be a bug in the btree type since loopselecta and loopswitcha do not work with (array btree) whereas on other types they work' 
+Result   : crashes
+Remark   : There must be a bug in the btree type since loopselecta and loopswitcha do not work with (array btree) whereas on other types they work. The first time when the query is executed it produces a correct result but afterwards the object plz_a20_PLZ is damaged. 
 
 
 Operator : loopselectb
@@ -90,6 +90,13 @@ Number   : 1
 Signature: ((array t) (array u) ((name1 (map t u r)) ... (namen (map t u r)))) -> (array r)
 Example  : query plz_a20 plz_a20 loopswitcha[f: . count + .. count] tie[. + ..] / 2
 Result   : 41267.0
+
+Operator : loopswitcha
+Number   : 2
+Signature: ((array t) (array u) ((name1 (map t u r)) ... (namen (map t u r)))) -> (array r)
+Example  : query plz_a20_PLZ plz_a20 loopswitcha[f: . count + .. count] tie[. + ..] / 2
+Result   : bug 
+Remark   : Object plz_a20_PLZ not present in database berlintest. But if so, it would crash.  
 
 
 Operator : loopswitchb
