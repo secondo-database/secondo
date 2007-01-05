@@ -4,6 +4,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.*;
 import java.awt.event.*;
+import java.util.Vector;
+import java.util.Iterator;
 
 public class FunctionPanel extends JPanel{
 
@@ -73,6 +75,10 @@ public void paint(Graphics g){
     width=getWidth()-2*borderSize;
     g.setColor(Color.BLACK);
     int height=getHeight()-2*borderSize;
+
+    Graphics2D g2 = (Graphics2D) g;
+
+/* //  implementation using a GeneralPath Object
     if(!GPcomputed){
        if(!y_computed)
            compute_y(width,height);
@@ -81,7 +87,7 @@ public void paint(Graphics g){
        GP = new GeneralPath();
        Double y;
        for(int ix=0;ix<width;ix++){
-         double x = xmin+dx*ix/width;
+         double x = xmin+(dx*ix)/width;
          if((y=function.getValueAt(x))!=null){
              if(first){
                 GP.moveTo((float)ix,(float)(y.doubleValue()));
@@ -96,9 +102,53 @@ public void paint(Graphics g){
        GP.transform(at);
        GPcomputed=true;
     }
-    Graphics2D g2 = (Graphics2D) g;
+    
     if(GP!=null)
       g2.draw(GP);
+
+*/
+ // implementation using a set of Line2D.Double Objects
+    if(!GPcomputed || (segments == null )){
+       double[] matrix = new double[6];
+
+       if(!y_computed){
+          compute_y(width,height);
+       }
+       at.getMatrix(matrix);
+       double dx = xmax-xmin;
+       segments = new  Vector(width);
+       Double y;
+       java.awt.geom.Point2D.Double lastpoint = null;
+       java.awt.geom.Point2D.Double thepoint = null;
+       for(int ix=0;ix<width;ix++){
+         double x = xmin + (dx*ix)/width;
+         if((y=function.getValueAt(x))!=null){
+             double xd1 = (double) ix; 
+             double yd1 = y.doubleValue();
+             
+             double xd = matrix[0]*xd1 + matrix[2]*yd1 + matrix[4];
+             double yd = matrix[1]*xd1 + matrix[3]*yd1 + matrix[5];
+             thepoint = new Point2D.Double(xd,yd);
+            if(lastpoint!=null){
+              Line2D.Double line =  new Line2D.Double(lastpoint,thepoint);
+              segments.add(line);
+            }
+            lastpoint = thepoint;
+         } else { // undefined state
+           lastpoint=null;
+         }
+      }
+      GPcomputed=true;
+    }
+    if(segments!=null){
+       Iterator it = segments.iterator();
+       while(it.hasNext()){
+         Shape s = (Shape) it.next();
+         g2.draw(s);
+       }
+    }
+
+
     if(crossEnabled){
         g.drawLine(lastX,0,lastX,height+2*borderSize);
      //   g.drawLine(lastX-20,lastY,lastX+20,lastY);
@@ -217,7 +267,8 @@ private double ymin;
 private double ymax;
 private AffineTransform at=new AffineTransform();
 private double[] atinv=new double[6];
-private GeneralPath GP = null;
+//private GeneralPath GP = null;
+private Vector segments = null;
 private boolean crossEnabled=false;
 private int lastX;
 private int lastY;
