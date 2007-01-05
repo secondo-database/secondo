@@ -345,6 +345,8 @@ Default save function.
       // Read the element
       valueRecord.Read( elem, size, offset );
       elem = (Attribute*)(algMgr->Cast(algId, typeId))( elem );
+      elem->del.refs = 1;
+      elem->del.isDelete = true;
       offset += size;
 
       // Open the FLOBs
