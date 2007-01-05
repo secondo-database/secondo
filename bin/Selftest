@@ -30,9 +30,10 @@ declare -i err=0
 errFiles=""
 for f in $files; do
  $runCmd -i $f
- if [ $? -ne 0 ]; then
+ rc=$?
+ if [ $rc -ne 0 ]; then
    err=$[$err + 1]	 
-   errFiles=$errFiles"\n   $f"
+   errFiles=$errFiles"\n   $f ($rc errors)"
  fi  
 done
 

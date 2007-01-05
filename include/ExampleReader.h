@@ -25,6 +25,9 @@ November 2006, M. Spiekermann. Start of implementation.
 Dec 2006, M. Spiekermann. Implementation Finished. The example reader can now
 handle multiple examples per operator and supports alias names.
 
+Jan 2007, M. Spiekermann. New result tokens file_platform, bug and crashes added.
+Moreover the parser reports more kind of errors. 
+
 */
 
 #ifndef SECONDO_EXAMPLE_READER_H
@@ -43,6 +46,9 @@ using namespace std;
 
 struct ExampleInfo {
 
+  typedef enum { List, Atom, 
+                 File, PlatformFile, Bug, Crash, Invalid} Type;
+
   string opName;
   string aliasName;
   int number;
@@ -50,6 +56,9 @@ struct ExampleInfo {
   string signature;
   string example;
   string result;
+  string remark;
+  Type resultType;
+  
 
   ExampleInfo() {
     reset();
@@ -63,6 +72,7 @@ struct ExampleInfo {
     signature="";
     example="";
     result="";
+    resultType=List;
   }
 
   void print(ostream& os) const
@@ -83,7 +93,7 @@ struct ExampleInfo {
 class ExampleReader {
 
   typedef enum { Database, Restore, Operator, 
-                 Number, Signature, Example, Result} Token; 
+                 Number, Signature, Example, Result, Remark} Token; 
 
   bool debug;
   int lineCtr;
@@ -170,23 +180,27 @@ a*bc* with single characters a,b and c.
     return ok;
   } 
 
-  bool match(Token t) {
+  bool match(Token t, bool showErr = true) {
      
      string token = tokendef[t];
      pos = line.find(token); 
      if ( pos == string::npos ) {
+       if (showErr) {
        cerr << errMsg() << "expecting token '" 
             << token << "'! But got '" << line << "'"
             << endl;
+       } 
        return false;
      }
      pos = pos + token.size();
      size_t pos2 = pos;
      if (!match_Astar_B_Cstar(' ',':',' '))
      {
+       if (showErr) {
        cerr << errMsg() << "expecting regexp (' '*':' '*)" 
             << lineCtr << "! But got '" << line.substr(pos2) << "'" 
             << endl;
+       }
        return false;
      }
 
@@ -223,6 +237,7 @@ a*bc* with single characters a,b and c.
     tokendef[Signature] = "Signature";
     tokendef[Example]   = "Example";
     tokendef[Result]    = "Result";
+    tokendef[Remark]    = "Remark";
 
     examples.clear();
     scan=begin();
@@ -235,7 +250,7 @@ a*bc* with single characters a,b and c.
       ExampleList& list = it->second;
       ExampleList::iterator it2 = list.begin();
       while (it2 != list.end() ) {
-        delete *it2;
+        //delete *it2;
         it2++;
       }
       it++;
@@ -273,6 +288,9 @@ a*bc* with single characters a,b and c.
       if (debug)
         cout << tokendef[expected] << endl;
 
+      bool switchAgain = true; 
+      while(switchAgain) {
+        switchAgain=false;
       switch (expected) {
   
       case Database: { 
@@ -324,6 +342,12 @@ a*bc* with single characters a,b and c.
             return false;
            expected = Signature;
            info->number = ::parse<int>(lineRest);
+           if (!uniqueNumbers(key)) {
+            cerr << errMsg() << "The numbers for operator " << key 
+                 << " are not unique! Number " << info->number
+                 << " is used more than one times. " << endl;
+            return false;
+           }
           break;
        }
 
@@ -347,13 +371,38 @@ a*bc* with single characters a,b and c.
        case Result: {
           if (!match(Result))
             return false;
-           expected = Operator;
+           expected = Remark;
            info->result = lineRest;
+           info->resultType = resultType(lineRest); 
+           if (info->resultType == ExampleInfo::Invalid) {
+             cerr << errMsg()
+                  << "Result = [" << lineRest << "] is invalid" << endl;
+           } 
           break;
        }
 
+      case Remark: {
+           if (!match(Remark, false)) {
+            if (info->resultType == ExampleInfo::Bug) {
+              cerr << errMsg()
+                   << "Expecting a remark field which describes "
+                   << "the specified bug!"
+                   << endl;
+              return false;
+            }
+            else {
+              switchAgain = true;
+            }
+           }
+           expected = Operator;
+           info->remark = lineRest;
+          break;
+       }
+
+
        default: // never reached
          cerr << errMsg() << endl; 
+      }
       }
 
       if (debug) {
@@ -450,6 +499,49 @@ over all examples
     return scan->second;
   }
  
+  inline bool uniqueNumbers(const string& key) {
+    
+    set<int> usedNumbers;
+    ExampleList& list = examples[key];
+    ExampleList::const_iterator it = list.begin();
+
+    for (it = list.begin(); it != list.end(); it++)
+    {
+      if ( !usedNumbers.insert( (*it)->number ).second ) {
+        return false;
+      }
+    }
+ 
+    return true;
+  }
+
+
+  ExampleInfo::Type resultType(const string& result)
+  {
+    if (  (result[0] == '(') ) 
+      return ExampleInfo::List;
+       
+    // special result token
+    if (result=="file")
+      return ExampleInfo::File; 
+    if (result=="file_platform")
+      return ExampleInfo::PlatformFile; 
+    if (result=="bug")
+      return ExampleInfo::Bug; 
+    if (result=="crashes")
+      return ExampleInfo::Crash;
+
+    // otherwise a list atom
+    if (result=="TRUE" || result=="FALSE")
+      return ExampleInfo::Atom; 
+    
+    char c = result[0];
+    const string validChars="+-.0123456789\"'<";
+    if ( validChars.find(c) != string::npos )
+      return ExampleInfo::Atom; 
+
+    return ExampleInfo::Invalid; 
+  } 
 
 };
 

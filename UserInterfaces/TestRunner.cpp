@@ -79,6 +79,7 @@ This is the test enviroment for Secondo. The code is derived from SecondoTTY.
 #include "SecondoSMI.h"
 #include "SecParser.h"
 
+#include "WinUnix.h"
 #include "NestedList.h"
 #include "DisplayTTY.h"
 #include "CharTransform.h"
@@ -97,7 +98,7 @@ class TestRunner : public Application
  private:
 
   typedef enum { Success, Error, Result, 
-                 Unknown, UndefinedObj, Coverage} YieldState;
+                 Unknown, UndefinedObj, Coverage, Bug} YieldState;
 
   map<YieldState, string> yieldStateStr;
 
@@ -145,6 +146,7 @@ class TestRunner : public Application
   string            port;
   string            iFileName;
   string            oFileName;
+  string            resultFile;
   string            cmd;
 
   string            missingOps;
@@ -156,6 +158,7 @@ class TestRunner : public Application
   bool              runExamples;
   bool              quit;
   bool              verbose;
+  bool              useResultFile;
   NestedList*       nl;
   bool              isQuery;
   SecondoInterface* si;
@@ -163,6 +166,13 @@ class TestRunner : public Application
   typedef list< pair<int,int> > ErrorInfo; 
   ErrorInfo errorLines;
 
+  typedef vector< ExampleInfo > ExampleVec; 
+  ExampleVec crashes;
+  ExampleVec bugs;
+  ExampleVec errors;
+
+  typedef vector< string > StringVec; 
+  StringVec errMsg;
  
 /* 
 the following variables and constants are 
@@ -217,6 +227,8 @@ TestRunner::TestRunner( const TTYParameter& tp )
 
   
   skipToTearDown = false;
+  useResultFile = false;
+  resultFile = "";
 
   state = START;
   yieldState = Unknown;
@@ -245,6 +257,7 @@ TestRunner::TestRunner( const TTYParameter& tp )
   yieldStateStr[Unknown]      = "Unknown";
   yieldStateStr[UndefinedObj] = "UndefinedObj";
   yieldStateStr[Coverage]     = "Coverage";
+  yieldStateStr[Bug]          = "Bug";
 
 
 }
@@ -355,23 +368,25 @@ TestRunner::ShowErrorSummary() const
 
   if(numErrors == 0)
   {
-    cout << "There were *** no *** errors." << endl;
+    cout << "There were *** no *** unexpected errors." << endl;
   }
   else if(numErrors == 1)
   {
-    cout << "There was *** 1 *** error." << endl;
+    cout << "There was *** 1 *** unexpected error." << endl;
   }
   else if (numErrors > 1)
   {
-    cout << "There were *** " << numErrors << " *** errors." << endl;
+    cout << "There were *** " << numErrors << " *** unexpected errors." << endl;
   }
   else 
   {
     cout << "There were Errors outside of the test cases!" << endl;
   }
-
+  cout << endl;
+  
   if ( numErrors > 0 ) {
 
+    if (errorLines.size() > 0) {
     cout << endl << "<testno>@<lineno> which caused an error: ";
     ErrorInfo::const_iterator it = errorLines.begin();
     while ( it != errorLines.end() )  
@@ -380,7 +395,23 @@ TestRunner::ShowErrorSummary() const
       it++;
     }
     cout << endl << endl;
+    }
   }
+
+  if (errMsg.size() > 0) {
+    StringVec::const_iterator it = errMsg.begin();
+    for(it = errMsg.begin(); it != errMsg.end(); it++) {
+      cout << "* " << *it << endl << endl; 
+    } 
+  }
+
+  if (bugs.size() > 0)
+    cout << "There were " << bugs.size() << " known bugs." << endl; 
+
+  if (crashes.size() > 0)
+    cout << "There were " << crashes.size() << " ommitted queries "
+         << "which are known to crash" << endl; 
+
 
   if (missingOpsNo > 0)
   {
@@ -389,6 +420,7 @@ TestRunner::ShowErrorSummary() const
          << "------------------------------" << endl
          << missingOps << endl;
   }
+  cout << endl;
 }
 
 void
@@ -751,6 +783,7 @@ TestRunner::ProcessExamples()
   bool parseOk = examples.parse();
   if (!parseOk) {
     numErrors++;
+    errMsg.push_back("Parse error in example file!");
     return;
   } 
 
@@ -780,6 +813,7 @@ TestRunner::ProcessExamples()
     rc = RunCmd("restore database " + dbName + " from " + dbFile, err);
     if (!rc) {
       numErrors++;
+      errMsg.push_back("Restore Failed!");
       cout << "Restore failed with msg: " << err.msg << endl;
       cout << "Giving up!" << endl;
       return;
@@ -804,15 +838,16 @@ TestRunner::ProcessExamples()
      expectedResult = nl->Empty();
      ListExpr tmpList = nl->Empty();
      bool resultOk = false;
-
      realValTolerance.relative();
-     if (info.result != "") {
-     if (  (info.result[0] != '(') ) 
+
+    
+     if ( info.resultType == ExampleInfo::Atom ) 
      {
        resultOk = nl->ReadFromString("(" + info.result + ")", tmpList);
        //cout << nl->ToString(tmpList) << endl;
-       tmpList = (nl->First(tmpList));
        if (resultOk) {
+         if (nl->ListLength(tmpList) >= 1)
+           tmpList = (nl->First(tmpList));
        switch ( nl->AtomType(tmpList) ) {
 
           case BoolType: {
@@ -836,61 +871,98 @@ TestRunner::ProcessExamples()
                             break;
                           }
           default: { // result will be interpreted as file name
-                     string file = info.result;
-                     string opIdent = info.opName;
-                     if (info.aliasName != "")
-                       opIdent = info.aliasName;
-
-                     if ( file == "file" ) {
-                       stringstream ss;
-                       ss << "result" << info.number 
-                          << "_" << opIdent << "_" << algebraShort;
-                       file = ss.str();
-                     }
-                     file = string(buildDir) + "/Selftest/" + file; 
-                     ListExpr objList = nl->Empty();
-                     cout << "Reading result from file " << file << endl;
-                     resultOk = nl->ReadFromFile(file, objList);
-                     if (resultOk)
-                     {
-		       expectedResult = objList;
-		       if ( nl->ListLength(objList) == 5 
-			    && nl->IsEqual(nl->First(objList),"OBJECT") ) 
-		       {
-			 ListExpr fourth = nl->Fourth(objList);
-			 ListExpr fifth = nl->Fifth(objList);
-			 expectedResult = nl->TwoElemList(fourth, fifth);
-		       }  
-                     }
-                     else
-                     {
-                       cerr << "File " << file << " contains not a "
-                            << " correct nested list!" 
-                            << endl;
-                     }
-                   }                
-       } 
-       }
+                     cerr << "Could not determine symbol atom type of '" 
+                          << info.result << "'" << endl;
+                   
+                    }                
+       } // end of switch 
+       } // end of resultOk
      }
-     else
+
+     if ( info.resultType == ExampleInfo::List ) 
      { 
        resultOk = nl->ReadFromString(info.result, expectedResult);
      }
-     } 
+
+     bool simpleFile =  info.resultType == ExampleInfo::File;
+     bool platformFile = info.resultType == ExampleInfo::PlatformFile; 
+     useResultFile = false;
+
+     if ( simpleFile || platformFile ) 
+     { 
+       useResultFile = true;
+       string file = info.result;
+       string opIdent = info.opName;
+       if (info.aliasName != "")
+	 opIdent = info.aliasName;
+
+       stringstream ss;
+       ss << "result" << info.number 
+	  << "_" << opIdent << "_" << algebraShort;
+       if (platformFile) {
+         ss << "_" << WinUnix::getPlatformStr(); 
+       }
+
+       file = ss.str();
+       resultFile = string(buildDir) + "/Selftest/" + file; 
+
+       ListExpr objList = nl->Empty();
+       //cout << "Reading result from file " << file << endl;
+       resultOk = nl->ReadFromFile(resultFile, objList);
+       if (resultOk)
+       {
+	 expectedResult = objList;
+	 if ( nl->ListLength(objList) == 5 
+	      && nl->IsEqual(nl->First(objList),"OBJECT") ) 
+	 {
+	   ListExpr fourth = nl->Fourth(objList);
+	   ListExpr fifth = nl->Fifth(objList);
+	   expectedResult = nl->TwoElemList(fourth, fifth);
+	 }  
+       }
+       else
+       {
+	 cerr << "File " << resultFile << " contains not a "
+	      << " correct nested list!" 
+	      << endl;
+       }
+     }
 
      if (!resultOk) {
        cerr << "Error: Could not parse result!" << endl;
+       cerr << "Result string: " << info.result << endl;
+       cerr << "Result type  : " << info.resultType << endl;
        expectedResult = nl->SymbolAtom("ERROR");
-       numErrors++;
      }  
 
      testCaseNumber++;
      testCaseName = info.opName;
      testCaseLine = info.lineNo;
-     CallSecondo2(); 
 
-  }
-  }
+
+     switch (info.resultType) {
+
+     case ExampleInfo::Bug: {
+       yieldState = Bug; 
+       bugs.push_back(info);
+       CallSecondo2();
+       break;
+     }
+
+     case ExampleInfo::Crash: {
+       crashes.push_back(info); 
+       ShowTestTitle();
+       cout << "Not executed! Known to crash." << endl; 
+       break;
+     }
+     default: {
+       yieldState = Result; 
+       CallSecondo2();
+     }
+     }
+
+  } // end of list iteration 
+  } // end of operator iteration 
 
   testCaseNumber++;
   testCaseName = "Coverage test for " + algebra;
@@ -930,7 +1002,7 @@ TestRunner::VerifyResult(ListExpr outList, ListExpr expectedResult)
   }  
   else
   { 
-    result = nl->Equal(outList, expectedResult);
+    result = nl->Equal(expectedResult, outList);
   }  
 
   if(result)
@@ -957,9 +1029,20 @@ TestRunner::VerifyResult(ListExpr outList, ListExpr expectedResult)
       << rightArrow << endl
       << color(normal)
       << "Expected : " << endl;
-    nl->WriteListExpr(expectedResult, cout);
-    cout << endl << "But got : ";
-    nl->WriteListExpr(outList, cout);
+    if (useResultFile)
+      cout << resultFile;
+    else
+      nl->WriteListExpr(expectedResult, cout);
+
+    cout << endl << "But got: " << endl;
+    if (useResultFile) {
+      string errFile = resultFile + "_err";
+      cout << errFile;
+      nl->WriteToFile(errFile, outList);
+    }
+    else
+      nl->WriteListExpr(outList, cout);
+
     ShowCommand(cmd);
     cout << color(red)
          << leftArrow
@@ -1069,8 +1152,10 @@ TestRunner::CallSecondo()
     case TESTCASE:
       if(!skipToTearDown)
       {
- 
-        if( yieldState == Error)
+        if( yieldState == Bug) {
+          ShowTestSuccessMsg("Known bug! The result is ignored!");
+        }
+        else if( yieldState == Error)
         {
           if (errorCode)
           {       
