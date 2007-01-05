@@ -6,6 +6,7 @@ import java.awt.geom.*;
 import java.awt.event.*;
 import java.util.Vector;
 import java.util.Iterator;
+import tools.Reporter;
 
 public class FunctionPanel extends JPanel{
 
@@ -153,13 +154,13 @@ public void paint(Graphics g){
         g.drawLine(lastX,0,lastX,height+2*borderSize);
      //   g.drawLine(lastX-20,lastY,lastX+20,lastY);
     }
-    if(yEnabled){
+    if(yEnabled && (atinv!=null)){
         double my = atinv[1]*lastX+atinv[3]*lastY+atinv[5]; // position of the mouse
         String Label = ""+my;
         // Rectangle2D R  = g.getFont().getStringBounds(Label,g2.getFontRenderContext());
         // g.drawString(""+my,lastX+2,lastY+(int)R.getHeight());
          g.drawString(Label,lastX+2,lastY-2);
-    }
+    } 
 }
 
 
@@ -252,8 +253,13 @@ private void compute_y(int width,int height){
    AffineTransform trans = (AffineTransform.getTranslateInstance(borderSize,borderSize));
    at.preConcatenate(trans);
    try{
-      at.createInverse().getMatrix(atinv);
+      AffineTransform ati = at.createInverse();
+      if(atinv==null){ // create a new matrix if required
+         atinv = new double[6]; 
+      }
+     ati.getMatrix(atinv);
    }catch(Exception e){
+       Reporter.debug("could not create the inverse matrix");
        atinv=null;
    }
 }
