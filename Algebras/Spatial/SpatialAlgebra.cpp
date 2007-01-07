@@ -2821,49 +2821,9 @@ bool HalfSegment::Crosses( const HalfSegment& hs ) const
 }
 
 bool HalfSegment::Inside( const HalfSegment& hs ) const
-{ 
-  if( ( lp == hs.GetLeftPoint() && rp == hs.GetRightPoint() ) ||
-      ( lp == hs.GetRightPoint() && rp == hs.GetLeftPoint() ) )
-    return true;
-
-  double k, a, K, A;
-
-  Coord xl = lp.GetX(), yl = lp.GetY(),
-        xr = rp.GetX(), yr = rp.GetY();
-
-  if( xl != xr )
-  {
-    k = (yr - yl) / (xr - xl);
-    a = yl - k * xl;
-  }
-
-  Coord Xl = hs.GetLeftPoint().GetX(), 
-        Yl = hs.GetLeftPoint().GetY(),
-        Xr = hs.GetRightPoint().GetX(),
-        Yr = hs.GetRightPoint().GetY();
-
-  if( Xl != Xr )
-  {
-    K = (Yr - Yl) / (Xr - Xl);
-    A = Yl - K * Xl;
-  }
-
-  if( Xl == Xr && xl == xr )  //1. both are vertical lines
-  {
-    if( xl == Xl )
-    {
-      if( yl >= Yl && yl <= Yr && yr >= Yl && yr <= Yr )
-        return true;
-      return false;
-    }
-  }
-  else if( Xl != Xr && xl != xr && K == k && A == a ) 
-  {
-    if( xl >= Xl && xr <= Xr ) 
-      return true;
-  }
-
-  return false;
+{
+  return hs.Contains( GetLeftPoint() ) &&
+         hs.Contains( GetRightPoint() );
 }
 
 bool HalfSegment::Contains( const Point& p ) const
@@ -3807,15 +3767,28 @@ void Line::SubLine( double pos1, double pos2,
                     bool startsSmaller, Line& l ) const
 {
   if( IsEmpty() ||
-      !simple ||
-      pos1 < 0 && !AlmostEqual( pos1, 0 ) ||
-      pos2 > Length() && !AlmostEqual( pos2, Length() ) )
+      !simple )
+    return;
+
+  if( pos1 < 0 )
+    pos1 = 0;
+  else if( pos1 > length )
+    pos1 = length;
+
+  if( pos2 < 0 )
+    pos2 = 0;
+  else if( pos2 > length )
+    pos2 = length;
+
+  if( AlmostEqual( pos1, pos2 ) ||
+      pos1 > pos2 )
     return;
 
   if( startsSmaller != this->startsSmaller )
   {
-    pos1 = length - pos1;
-    pos2 = length - pos2;
+    double aux = length - pos1;
+    pos1 = length - pos2;
+    pos2 = aux;
   }
 
   // First search for the first half segment
@@ -3841,8 +3814,9 @@ void Line::SubLine( double pos1, double pos2,
     l += auxHs;
   }
 
-  while( lrs2->lrsPos + hs->Length() < pos2 ||
-         AlmostEqual( lrs2->lrsPos + hs->Length(), pos2 ) )
+  while( lrsPos < lrsArray.Size() - 1 && 
+         ( lrs2->lrsPos + hs->Length() < pos2 ||
+           AlmostEqual( lrs2->lrsPos + hs->Length(), pos2 ) ) )
   {  
     // Get the next half segment in the sequence
     Get( ++lrsPos, lrs2 );
@@ -3935,22 +3909,7 @@ bool Line::Find( const HalfSegment& hs, int& pos ) const
 bool Line::Find( const Point& p, int& pos ) const
 {
   assert( IsOrdered() );
-  if( line.Find( &p, PointHalfSegmentCompare, pos ) )
-  {
-    // we have to go back to the first half segment with
-    // dominating point equal to p.
-    const HalfSegment *hs;
-    for( ; pos >= 0; pos-- )
-    {
-      Get( pos, hs );
-      if( !AlmostEqual( hs->GetDomPoint(), p ) )
-        break;
-    }
-    if( pos == -1 )
-      pos = 0;  
-    return true;
-  }
-  return false;
+  return line.Find( &p, PointHalfSegmentCompare, pos );
 }
 
 bool Line::Find( const LRS& lrs, int& pos ) const
@@ -5655,18 +5614,7 @@ bool Region::Find( const HalfSegment& hs, int& pos ) const
 bool Region::Find( const Point& p, int& pos ) const
 {
   assert( IsOrdered() );
-  if( region.Find( &p, PointHalfSegmentCompare, pos ) )
-    // we need to come back to the first hs with dominating point
-    // equal to p
-  {
-    const HalfSegment *hs;
-    Get( pos, hs );
-    assert( AlmostEqual( hs->GetDomPoint(), p ) );
-    while( pos > 0 && AlmostEqual( hs->GetDomPoint(), p ) )
-      pos--;
-    return true;
-  }
-  return false;
+  return region.Find( &p, PointHalfSegmentCompare, pos );
 }
 
 void Region::Sort()
@@ -11330,6 +11278,9 @@ SpatialSubLine( Word* args, Word& result, int message,
   CcReal *pos1 = (CcReal*)args[1].addr,
          *pos2 = (CcReal*)args[2].addr;
   CcBool *startsSmaller = (CcBool*)args[3].addr;
+  Line *rLine = (Line*)result.addr;
+
+  rLine->Clear();
 
   if( pos1->IsDefined() &&
       pos2->IsDefined() &&
@@ -11337,7 +11288,7 @@ SpatialSubLine( Word* args, Word& result, int message,
     l->SubLine( pos1->GetRealval(), 
                 pos2->GetRealval(), 
                 startsSmaller->GetBoolval(),
-                *(Line*)result.addr );
+                *rLine );
 
   return 0;
 }

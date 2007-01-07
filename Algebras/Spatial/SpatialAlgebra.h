@@ -1388,6 +1388,16 @@ Returns whether the line value is empty.
 Returns the number of half segments in the line value.
 
 */
+    inline Point StartPoint( bool startsSmaller ) const;
+/*
+Returns the starting point of the line.
+
+*/
+    inline Point EndPoint( bool startsSmaller ) const;
+/*
+Returns the end point of the line.
+
+*/
     bool Contains( const Point& p ) const;
 /*
 Checks whether the point ~p~ is contained in the line
@@ -3432,6 +3442,47 @@ inline int Line::Size() const
   return line.Size();
 }
 
+inline Point Line::StartPoint( bool startsSmaller ) const
+{
+  if( IsEmpty() )
+    return Point( false );
+
+  if( startsSmaller && this->startsSmaller )
+    pos = 0;
+  else  
+    pos = Size() - 1;
+
+  const LRS *lrs;
+  Get( pos, lrs );
+
+  const HalfSegment* hs;
+  Get( lrs->hsPos, hs );
+
+  return pos == 0 ?
+         hs->GetDomPoint() :
+         hs->GetSecPoint();
+}
+
+inline Point Line::EndPoint( bool startsSmaller ) const
+{
+  if( IsEmpty() )
+    return Point( false );
+
+  if( startsSmaller && this->startsSmaller )
+    pos = Size()-1;
+  else  
+    pos = 0;
+
+  const LRS *lrs;
+  Get( pos, lrs );
+
+  const HalfSegment* hs;
+  Get( lrs->hsPos, hs );
+
+  return pos == 0 ?
+         hs->GetDomPoint() :
+         hs->GetSecPoint();
+}
 inline void Line::Get( const int i, const HalfSegment*& hs ) const
 {
   line.Get( i, hs );
@@ -3574,12 +3625,17 @@ inline bool Region::GetHs( const HalfSegment*& hs ) const
 */
 inline bool AlmostEqual( const double d1, const double d2 )
 {
-  int i1, i2;
-  double dd1 = frexp( d1, &i1 ),
-         dd2 = frexp( d2, &i2 );
+  double i1, i2;
+  double dd1 = modf( d1, &i1 ),
+         dd2 = modf( d2, &i2 );
+  long ii1 = (long)i1,
+       ii2 = (long)i2;
 
-  return i1 == i2 &&
-         fabs(dd1 - dd2) < FACTOR;
+  if( abs(ii1 - ii2) > 1 ) 
+    return false;
+
+  int d = abs(ii1) - abs(ii2);
+  return fabs(dd1 - dd2 - d) < FACTOR;
 }
 
 inline bool AlmostEqual( const Point& p1, const Point& p2 )
