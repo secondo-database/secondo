@@ -4724,9 +4724,12 @@ int AggregateB(Word* args, Word& result, int message,
     // read the second tuple
     qp->Request( args[0].addr, t2 );
     if( !qp->Received( args[0].addr ) )
+    {
       ((StandardAttribute*)result.addr)->
         CopyFrom( (StandardAttribute*)((Tuple*)t1.addr)->
           GetAttribute( index-1 ) );
+      ((Tuple*)t1.addr)->DeleteIfAllowed();
+    }
     else
     {
       // match both tuples and put the result into the stack
