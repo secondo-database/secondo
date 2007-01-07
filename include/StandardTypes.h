@@ -86,7 +86,7 @@ class CcInt : public StandardAttribute
     intsCreated++; 
   }
  
-  inline CcInt( bool d, int v )
+  inline CcInt( bool d, int v = 0 )
   { 
     defined = d; intval = v;  
     intsCreated++; 
@@ -260,7 +260,7 @@ class CcReal : public StandardAttribute
      realsCreated++; 
   }
 
-  inline CcReal( bool d, REAL v ) 
+  inline CcReal( bool d, REAL v = 0.0 ) 
   { 
     defined = d; 
     realval = v; 
@@ -392,7 +392,7 @@ class CcBool : public StandardAttribute
     boolsCreated++; 
   }
 
-  inline CcBool( bool d, int v )
+  inline CcBool( bool d, int v = false )
   { 
     defined  = d; 
     boolval = v; 
