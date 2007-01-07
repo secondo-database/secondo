@@ -464,7 +464,6 @@ to ~InDiskSmall~.
         }
         else
         {
-          assert( fd.inMemory.canDelete == false );
           char *buffer = fd.inMemory.buffer;
           fd.inDiskSmall.buffer = buffer;
         }
