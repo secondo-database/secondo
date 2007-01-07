@@ -157,16 +157,23 @@ void PrivateTuple::UpdateSave( const vector<int>& changedIndices,
   if( state == Solid && hasFLOBs && extensionSize > 0 )
   {
     assert( memoryTuple != 0 );
-    assert( (extensionSize == 0 && extensionTuple == 0 ) ||
-            (extensionSize != 0 && extensionTuple != 0 ) );
 
+    if( extensionTuple != 0 )
+      free( extensionTuple );
+    if( extensionSize > 0 )
+      extensionTuple = (char*)malloc( extensionSize );
+
+    char *extensionPtr = extensionTuple;
     for( int i = 0; i < tupleType->GetNoAttributes(); i++)
     {
       for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
       {
         FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
         if( !tmpFLOB->IsLob() )
-          tmpFLOB->SaveToExtensionTuple( 0 );
+        {
+          tmpFLOB->SaveToExtensionTuple( extensionPtr );
+          extensionPtr += tmpFLOB->Size();
+        }
       }
     }
   }

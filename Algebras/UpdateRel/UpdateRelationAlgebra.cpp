@@ -3631,7 +3631,7 @@ int updateByIdValueMap(Word* args, Word& result, int message,
           funargs = qp->Argument(supplier3);
           (*funargs)[0] = SetWord(updateTuple);
           qp->Request(supplier3,value);
-          newAttribute = ((StandardAttribute*)value.addr)->Clone();
+          newAttribute = ((Attribute*)value.addr)->Clone();
           (*newAttrs)[i-1] = newAttribute;
         }
         relation->UpdateTuple(updateTuple,*changedIndices,*newAttrs);
