@@ -3275,8 +3275,34 @@ Region* MakeOp::Intersection(const Region* reg1, const Region* reg2)
    } // end while
    resline->Destroy(); delete resline;
    resregion->Destroy(); delete resregion;
-   // VTA - I need to come back here
-   result->EndBulkLoad(true, true, false, false);
+
+  
+   unsigned int size = result->Size(); 
+   result->Resize(size*2);
+   /*
+     At this point, for each segment, a single halfsegment is inserted 
+     into the halfsegment array of the result. The egde numbers are 
+     taken from the original objects and may be outside the valid range 
+     (0..noSegments(result).
+     The following loop corrects this state by adding the missing 
+     halfsegments and correcting the edge numbers.
+   */  
+   
+    const HalfSegment* hs_oldptr;
+    for( unsigned int i=0; i< size; i++){ // scan all old halfsegments
+         result->Get(i,hs_oldptr);
+         HalfSegment hs_old(*hs_oldptr);
+         hs_old.SetLeftDomPoint(true);
+         hs_old.attr.edgeno = i;
+         result->Put(i,hs_old);
+         HalfSegment hsNew(hs_old);
+         hsNew.SetLeftDomPoint(false);
+         *result += hsNew;       
+    }
+   
+   // VTA - I need to come back here , should be solved
+   
+   result->EndBulkLoad();
   // cout << " ===========================result fertig ========" << endl;
    return result;
 }
