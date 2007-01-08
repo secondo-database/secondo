@@ -3008,15 +3008,14 @@ static ListExpr commonBorderTypeMap (ListExpr args) {
 
 static ListExpr verticesTypeMap (ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  ListExpr arg1,arg2;
+  ListExpr arg1;
   if (nl->ListLength(args) == 1) {
     arg1 = nl->First(args);
     if (nl->IsEqual(arg1,"rline"))
       return nl->SymbolAtom("rpoints");
     if (nl->IsEqual(arg1,"rregion"))
       return nl->SymbolAtom("rpoints");
-    if ((nl->AtomType(arg1) == SymbolType) && 
-        (nl->AtomType(arg2) == SymbolType)) 
+    if ((nl->AtomType(arg1) == SymbolType)) 
       ErrorReporter::ReportError("Type mapping function got parameter of type "
         +nl->SymbolValue(arg1));
     else
