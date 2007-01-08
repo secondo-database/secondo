@@ -9,14 +9,14 @@ Result   : (duration (7 0))
 
 
 Operator : +
-Number   : 1
+Number   : 2
 Signature: instant x duration -> instant
 Example  : query [const instant value "2006-12-18"] + [const duration value (1 0)]
 Result   : (instant "2006-12-19")
 
 
 Operator : +
-Number   : 1
+Number   : 3
 Signature: duration x duration -> instant
 Example  : query [const duration value (0 1)] + [const duration value (1 0)]
 Result   : (duration (1 1))
@@ -29,14 +29,14 @@ Example  : query [const instant value "2006-12-18"] - [const instant value "2006
 Result   : (duration (1 0))
 
 Operator : -
-Number   : 1
+Number   : 2
 Signature: instant x duration -> instant
 Example  : query [const instant value "2006-12-18"] - [const duration value (1 0)]
 Result   : (instant "2006-12-17")
 
 
 Operator : -
-Number   : 1
+Number   : 3
 Signature: duration x duration -> duration
 Example  : query [const duration value (18 0)] - [const duration value (1 0)]
 Result   : (duration (17 0))
@@ -56,7 +56,7 @@ Result   : TRUE
 
 
 Operator : <
-Number   : 1
+Number   : 2
 Signature: duration x duration -> bool
 Example  : query [const duration value (19 1)] < [const duration value (19 2)]
 Result   : TRUE
@@ -70,7 +70,7 @@ Result   : TRUE
 
 
 Operator : =
-Number   : 1
+Number   : 2
 Signature: duration x duration -> bool
 Example  : query [const duration value ( 21 1)] = [const duration value (21 1)]
 Result   : TRUE
@@ -84,7 +84,7 @@ Result   : FALSE
 
 
 Operator : >
-Number   : 1
+Number   : 2
 Signature: duration x duration -> bool
 Example  : query [const duration value (18 599)] > [const duration value (19 0)]
 Result   : FALSE
@@ -98,7 +98,7 @@ Result   : (duration (1 0))
 
 
 Operator : create_duration
-Number   : 1
+Number   : 2
 Signature: int x int  -> duration
 Example  : query create_duration(1, 1)
 Result   : (duration (1 1))
@@ -112,7 +112,7 @@ Result   : (instant "2000-01-04")
 
 
 Operator : create_instant
-Number   : 1
+Number   : 2
 Signature: int x int  -> instant
 Example  : query create_instant(1, 1)
 Result   : (instant "2000-01-04-00:00:00.001")
@@ -167,7 +167,7 @@ Example  : query millisecond_of([const instant value "2006-12-18"])
 Result   : 0
 
 Operator : millisecond_of
-Number   : 1
+Number   : 2
 Signature: duration -> int
 Example  : query millisecond_of([const duration value (1 200)])
 Result   : 200
@@ -222,7 +222,7 @@ Result   : (instant "2006-01-01")
 
 
 Operator : theInstant
-Number   : 1
+Number   : 2
 Signature:  int x int x int x int x int x int  -> instant
 Example  : query theInstant(2006, 12 , 18, 15, 40 , 31)
 Result   : (instant "2006-12-18-15:40:31")
@@ -256,7 +256,7 @@ Example  : query day_of([const instant value "2006-12-18"])
 Result   : 18
 
 Operator : day_of
-Number   : 1
+Number   : 2
 Signature: duration -> int
 Example  : query day_of([const duration value (21 599)])
 Result   : 21
