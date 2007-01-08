@@ -2296,7 +2296,20 @@ The constructor. Initializes space for ~n~ elements.
 
 */
 
-   void Simplify(const double epsilon, MPoint& result) const;
+   void Simplify(const double epsilon, MPoint& result,
+                 const bool checkBreakPoints,
+                 const DateTime& duration) const;
+
+/*
+3.10.5.5 Operation ~BreakPoints~
+
+*Precondition*: ~X.IsOrdered()~
+*Semantics*: Computes all points where this mpoints stays longer than the given
+             time.
+
+*/
+    void BreakPoints(Points& result, const DateTime& dur) const;
+
              
 private:
    void Simplify(const int min, const int max,

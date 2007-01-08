@@ -809,12 +809,16 @@ static bool connected(const UPoint* u1, const UPoint* u2){
    return true;
 }
 
- /*
-static bool isBreak(const UPoint* u){
-   return u->p0 == u->p1;
+
+static bool IsBreakPoint(const UPoint* u,const DateTime& duration){
+   if(u->p0 != u->p1){ // equal points required
+     return false;
+   }
+   DateTime dur = u->timeInterval.end -  u->timeInterval.start;
+   return (dur > duration);
 }
 
- */
+
 
 /**
 ~Simplify~
@@ -825,7 +829,9 @@ on the Douglas Peucker algorithm for line simplification.
 
 **/
 
-void MPoint::Simplify(const double epsilon, MPoint& result) const{
+void MPoint::Simplify(const double epsilon, MPoint& result, 
+                      const bool checkBreakPoints,
+                      const DateTime& dur) const{
    result.Clear();
 
    // check for defined state
@@ -861,21 +867,21 @@ void MPoint::Simplify(const double epsilon, MPoint& result) const{
       // check whether last and last -1 are connected 
       Get(last-1,u1);
       Get(last,u2);
-      /*
-      if(isBreak(u1)){
+      
+      if( checkBreakPoints && IsBreakPoint(u1,dur)){
          if(last-1 > first){
             Simplify(first,last-2,useleft,useright,epsilon);
          }
          Simplify(last-1, last-1, useleft, useright, epsilon);
          first = last;
          last++;
-      } else if(isBreak(u2)){ 
+      } else if( checkBreakPoints && IsBreakPoint(u2,dur)){ 
          Simplify(first,last-1,useleft,useright,epsilon);
          last++;
          Simplify(last-1, last-1,useleft,useright,epsilon);
          first = last;
          last++;
-      } else */if(connected(u1,u2)){ // enlarge the sequence
+      } else if(connected(u1,u2)){ // enlarge the sequence
          last++;
       } else {
           Simplify(first,last-1,useleft, useright, epsilon);
@@ -1020,6 +1026,27 @@ void MPoint::Simplify(const int min,
   // split at the left point of maxIndex
   Simplify(min,maxIndex-1,useleft,useright,epsilon);
   Simplify(maxIndex,max,useleft,useright,epsilon);
+}
+
+
+
+void MPoint::BreakPoints(Points& result, const DateTime& dur) const{
+    result.Clear();
+    if(!IsDefined()){
+      result.SetDefined(false);
+      return;
+    }
+    result.SetDefined(true);
+    int size = GetNoComponents();
+    result.StartBulkLoad();
+    const UPoint* unit;
+    for(int i=0;i<size;i++){
+        Get(i,unit);
+        if(IsBreakPoint(unit,dur)){
+           result += (unit->p0);
+        }
+    }
+    result.EndBulkLoad();
 }
 
 
@@ -3102,6 +3129,36 @@ ListExpr MovingTypeMapUnits( ListExpr args )
 */
 
 ListExpr MovingTypeMapSimplify(ListExpr args){
+   int len = nl->ListLength(args);
+   
+   if((len!=2) && (len !=3)){
+       ErrorReporter::ReportError("two or three arguments expected");
+       return nl->SymbolAtom("typeerror");
+   }
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+   if(nl->IsEqual(arg1,"mpoint") &&
+      nl->IsEqual(arg2,"real")){
+        if(len==2){
+           return nl->SymbolAtom("mpoint");
+        } else { // check the third argument
+          ListExpr arg3 = nl->Third(args);
+          if(nl->IsEqual(arg3,"duration")){
+             return nl->SymbolAtom("mpoint");
+          }
+        }
+   }
+   ErrorReporter::ReportError("mpoint x real [ x duration] expected");
+   return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+16.1.12 Type mapping for the breakpoints  operator
+
+*/
+
+ListExpr MovingTypeMapBreakPoints(ListExpr args){
    if(nl->ListLength(args)!=2){
        ErrorReporter::ReportError("two arguments expected");
        return nl->SymbolAtom("typeerror");
@@ -3109,14 +3166,12 @@ ListExpr MovingTypeMapSimplify(ListExpr args){
    ListExpr arg1 = nl->First(args);
    ListExpr arg2 = nl->Second(args);
    if(nl->IsEqual(arg1,"mpoint") &&
-      nl->IsEqual(arg2,"real")){
-       return nl->SymbolAtom("mpoint");
+      nl->IsEqual(arg2,"duration")){
+       return nl->SymbolAtom("points");
    }
-   ErrorReporter::ReportError("mpoint x real expected");
+   ErrorReporter::ReportError("mpoint x duration expected");
    return nl->SymbolAtom("typeerror");
 }
-
-
 
 
 /*
@@ -3724,6 +3779,19 @@ int ExtDeftimeSelect(ListExpr args){
    return -1;
 }
 
+
+/*
+16.2.32 Selection function for simplify
+
+*/
+int SimplifySelect(ListExpr args){
+   int len = nl->ListLength(args);
+   if(len==2) return 0;
+   if(len==3) return 1;
+   return -1;
+}
+
+
 /*
 16.3 Value mapping functions
 
@@ -4119,7 +4187,7 @@ int MPointDistance( Word* args, Word& result, int message, Word&
 }
 
 /*
-16.3.29 Value mapping function for the operator ~simplify~
+16.3.29 Value mappings function for the operator ~simplify~
 
 */
 int MPointSimplify(Word* args, Word& result, 
@@ -4127,10 +4195,39 @@ int MPointSimplify(Word* args, Word& result,
                    Supplier s){
   result = qp->ResultStorage( s );
   double epsilon = ((CcReal*)args[1].addr)->GetRealval();
-  ((MPoint*)args[0].addr)->Simplify(epsilon, *((MPoint*)result.addr) );
+  DateTime dur(durationtype);
+  ((MPoint*)args[0].addr)->Simplify( epsilon, 
+                                     *((MPoint*)result.addr),
+                                     false,dur );
   return 0;
 }
-                  
+                 
+int MPointSimplify2(Word* args, Word& result, 
+                   int message, Word& local,
+                   Supplier s){
+  result = qp->ResultStorage( s );
+  double epsilon = ((CcReal*)args[1].addr)->GetRealval();
+  DateTime* dur = (DateTime*)args[2].addr;
+  ((MPoint*)args[0].addr)->Simplify( epsilon, 
+                                     *((MPoint*)result.addr),
+                                     true,*dur );
+  return 0;
+}
+
+
+ 
+/*
+16.3.29 Value mapping function for the operator ~breakpoints~
+
+*/
+int MPointBreakPoints(Word* args, Word& result, 
+                   int message, Word& local,
+                   Supplier s){
+  result = qp->ResultStorage( s );
+  DateTime* dur = ((DateTime*)args[1].addr);
+  ((MPoint*)args[0].addr)->BreakPoints(*((Points*)result.addr),*dur );
+  return 0;
+}
 
 /*
 16.3.31 Value mapping functions of operator ~bbox~
@@ -4773,6 +4870,8 @@ ValueMapping extdeftimemap[] = { TemporalExtDeftime<UBool, CcBool>,
                                  TemporalExtDeftime<UInt, CcInt>
                                };
 
+ValueMapping simplifymap[] = { MPointSimplify, MPointSimplify2 };
+
 
 /*
 16.4.2 Specification strings
@@ -5035,10 +5134,19 @@ const string TemporalSpecDistance =
 
 const string TemporalSpecSimplify =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mpoint x real -> mpoint</text--->"
-  "<text>simplify( _, _ ) </text--->"
+  "( <text>mpoint x real [ x duration ] -> mpoint</text--->"
+  "<text>simplify( _, _ [, _]) </text--->"
   "<text>simplifys the mpoint with a maximum difference of epsilon</text--->"
-  "<text>simplify( train7, 50.0 )</text--->"
+  "<text>simplify( train7, 50.0, [const duration value (0, 10000)] )</text--->"
+  ") )";
+
+const string TemporalSpecBreakPoints =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mpoint x duration -> points</text--->"
+  "<text>breakpoints( _, _ ) </text--->"
+  "<text>computes all points where the mpoints stops longer"
+  " than the given duration</text--->"
+  "<text>breakpoints( train7, [const duration value (0 1000)] )</text--->"
   ") )";
 
 const string TemporalSpecUnits  =
@@ -5383,9 +5491,16 @@ Operator temporaldistance( "distance",
 
 Operator temporalsimplify( "simplify",
                            TemporalSpecSimplify,
-                           MPointSimplify,
-                           Operator::SimpleSelect,
+                           2,
+                           simplifymap,
+                           SimplifySelect,
                            MovingTypeMapSimplify );
+
+Operator temporalbreakpoints( "breakpoints",
+                           TemporalSpecBreakPoints,
+                           MPointBreakPoints,
+                           Operator::SimpleSelect,
+                           MovingTypeMapBreakPoints );
 
 Operator temporalunits( "units",
                         TemporalSpecUnits,
@@ -5566,6 +5681,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalat );
     AddOperator( &temporaldistance );
     AddOperator( &temporalsimplify );
+    AddOperator( &temporalbreakpoints );
     AddOperator( &temporaltranslate );
 
     AddOperator( &temporaltheyear );
