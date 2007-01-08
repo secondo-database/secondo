@@ -8459,8 +8459,9 @@ ListExpr SpatialVerticesMap(ListExpr args)
     return nl->SymbolAtom("typeerror");
   }
   if( (nl->IsEqual(nl->First(args),"region")) ||
-      (nl->IsEqual(nl->First(args),"line")) )
+      (nl->IsEqual(nl->First(args),"line")) ){
     return nl->SymbolAtom("points");
+  }
 
   ErrorReporter::ReportError("region or line required");
   return nl->SymbolAtom("typeerror");

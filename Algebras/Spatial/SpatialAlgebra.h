@@ -1408,6 +1408,14 @@ Checks whether the point ~p~ is contained in the line
 Reads the ith half segment from the line value.
 
 */
+
+    inline void Resize(const int newSize);
+/*
+Sets the new capacity of the halfsegment array to the
+maximum of its original size and the argument. 
+
+*/
+
     inline void Put( const int i, const HalfSegment& hs );
 /*
 Writes the the half segment ~hs~ to the ith position.
@@ -3486,6 +3494,12 @@ inline Point Line::EndPoint( bool startsSmaller ) const
 inline void Line::Get( const int i, const HalfSegment*& hs ) const
 {
   line.Get( i, hs );
+}
+
+inline void Line::Resize(const int newSize){
+   if(newSize>Size()){
+      line.Resize(newSize);
+   }
 }
 
 inline void Line::Put( const int i, const HalfSegment& hs )
