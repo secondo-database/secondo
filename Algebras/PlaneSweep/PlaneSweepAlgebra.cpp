@@ -2353,7 +2353,7 @@ void MakeRealm::REALM(const Region* reg1, const Region* reg2,
       counter ++;
    }
    // VTA - I need to come back here
-   result1->EndBulkLoad(true, true, false, false);
+   result1->EndBulkLoad();
    //  reconstruction of line
    result2->Clear();
    result2->StartBulkLoad();
@@ -2367,7 +2367,7 @@ void MakeRealm::REALM(const Region* reg1, const Region* reg2,
       counter++;
    }
    // VTA - I need to come back here
-   result2->EndBulkLoad(true, true, false, false);
+   result2->EndBulkLoad();
 }
 
 void MakeRealm::REALM(const Line* line1, const Region* reg2, 
@@ -2400,18 +2400,21 @@ void MakeRealm::REALM(const Line* line1, const Region* reg2,
    //  reconstruction of region
    result1->Clear();
    result1->StartBulkLoad();
+   int counter = 0;
    while (! res1.empty() )  {
       HalfSegment hs = res1.back();
+      hs.attr.edgeno = counter;
       hs.SetLeftDomPoint(true);       *result1 += hs;
       hs.SetLeftDomPoint(false);      *result1 += hs;
+      counter++;
       res1.pop_back();
    }
-   // VTA - I need to come back here
-   result1->EndBulkLoad(true, true, false, false);
+   // VTA - I need to come back here - solved ??
+   result1->EndBulkLoad();
    //  reconstruction of line
    result2->Clear();
    result2->StartBulkLoad();
-   int counter = 0;
+   counter = 0;
    while (! res2.empty() )    {
       HalfSegment hs = res2.front();
       hs.attr.edgeno = counter;
@@ -2455,25 +2458,31 @@ void MakeRealm::REALM(const Line* line1, const Line* line2,
    //  reconstruction of first line
    result1->Clear();
    result1->StartBulkLoad();
+   int counter=0;
    while (! res1.empty() )  {
       HalfSegment hs = res1.back();
+      hs.attr.edgeno = counter;
       hs.SetLeftDomPoint(true);       *result1 += hs;
       hs.SetLeftDomPoint(false);      *result1 += hs;
+      counter++;
       res1.pop_back();
    }
    // VTA - I need to come back here
-   result1->EndBulkLoad(true, true, false, false);
+   result1->EndBulkLoad();
    //  reconstruction of second line
    result2->Clear();
    result2->StartBulkLoad();
+   counter=0;
    while (! res2.empty() )    {
       HalfSegment hs = res2.back();
+      hs.attr.edgeno = counter;
       hs.SetLeftDomPoint(true);       *result2 += hs;
       hs.SetLeftDomPoint(false);      *result2 += hs;
+      counter++;
       res2.pop_back();
    }
-   // VTA - I need to come back here
-   result2->EndBulkLoad(true, true, false, false);
+   // VTA - I need to come back here - solved ??
+   result2->EndBulkLoad();
    //cout << result1 << endl;
    //cout << result2 << endl;
 }
@@ -3204,6 +3213,12 @@ Region* MakeOp::Intersection(const Region* reg1, const Region* reg2)
    return result;
 }
 
+/*
+~Intersection~ operation.
+
+*/
+
+
  Line* MakeOp::Intersection(const Region* reg, const Line* line)
  {
   // first Realmisation of both arguments
@@ -3307,7 +3322,10 @@ Region* MakeOp::Intersection(const Region* reg1, const Region* reg2)
    return result;
 }
 
+/*
+~Intersection~ operation
 
+*/
 Line* MakeOp::Intersection(const Line* line1, const Line* line2)
 {
   // first Realmisation of both lines
@@ -3337,11 +3355,28 @@ Line* MakeOp::Intersection(const Line* line1, const Line* line2)
    } // end while
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
-   // VTA - I need to come back here
-   result->EndBulkLoad(true, true, false, false);
+   // VTA - I need to come back here -- solved ??
+   unsigned int size = result->Size(); 
+   result->Resize(size*2);
+    const HalfSegment* hs_oldptr;
+    for( unsigned int i=0; i< size; i++){ // scan all old halfsegments
+         result->Get(i,hs_oldptr);
+         HalfSegment hs_old(*hs_oldptr);
+         hs_old.SetLeftDomPoint(true);
+         hs_old.attr.edgeno = i;
+         result->Put(i,hs_old);
+         HalfSegment hsNew(hs_old);
+         hsNew.SetLeftDomPoint(false);
+         *result += hsNew;       
+    }
+   result->EndBulkLoad();
    return result;
 }
 
+/*
+~Intersects~ predicate
+
+*/
 bool MakeOp::P_Intersects(const Region* reg1, const Region* reg2)
 {
   // first Realmisation of both regions
@@ -3419,6 +3454,10 @@ bool MakeOp::P_Intersects(const Region* reg1, const Region* reg2)
    return false;
 }
 
+/*
+~Intersects~ predicate
+
+*/
 bool MakeOp::P_Intersects(const Region* reg, const Line* line)
 {
   // first Realmisation of both arguments
@@ -3491,6 +3530,11 @@ bool MakeOp::P_Intersects(const Region* reg, const Line* line)
    return false;
 }
 
+
+/*
+~Intersects~ predicate
+
+*/
 bool MakeOp::P_Intersects(const Line* line1, const Line* line2)
 {
      // first Realmisation of both lines
@@ -3519,7 +3563,10 @@ bool MakeOp::P_Intersects(const Line* line1, const Line* line2)
    return false;
 }
 
+/*
+~Intersects~ predicate
 
+*/
 bool MakeOp::Intersects(const Region* reg1, const Region* reg2)
 {
   // first Realmisation of both regions
@@ -3591,6 +3638,10 @@ bool MakeOp::Intersects(const Region* reg1, const Region* reg2)
    res2->Destroy(); delete res2;
    return false;
 }
+/*
+~Intersects~ predicate
+
+*/
 
 bool MakeOp::Intersects (const Region* reg, const Line* line) {
   // first Realmisation of both arguments
@@ -3664,6 +3715,10 @@ bool MakeOp::Intersects (const Region* reg, const Line* line) {
    return false;
 }
 
+/*
+~Intersects~ predicate
+
+*/
 bool MakeOp::Intersects (const Line* line1, const Line* line2)
 {
   // first Realmisation of both lines
@@ -3691,6 +3746,11 @@ bool MakeOp::Intersects (const Line* line1, const Line* line2)
    res2->Destroy(); delete res2;
    return false;
 }
+
+/*
+~Union~ operator
+
+*/
 
 Region* MakeOp::Union(const Region* reg1, const Region* reg2)
 {
@@ -3812,6 +3872,10 @@ Region* MakeOp::Union(const Region* reg1, const Region* reg2)
    return result;
 }
 
+/*
+~Union~ operator
+
+*/
 
 Line* MakeOp::Union(const Line* line1, const Line* line2)
 {
@@ -3848,12 +3912,29 @@ Line* MakeOp::Union(const Line* line1, const Line* line2)
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
    // VTA - I need to come back here
-   result->EndBulkLoad(true, true, false, false);
+   unsigned int size = result->Size(); 
+   result->Resize(size*2);
+    const HalfSegment* hs_oldptr;
+    for( unsigned int i=0; i< size; i++){ // scan all old halfsegments
+         result->Get(i,hs_oldptr);
+         HalfSegment hs_old(*hs_oldptr);
+         hs_old.SetLeftDomPoint(true);
+         hs_old.attr.edgeno = i;
+         result->Put(i,hs_old);
+         HalfSegment hsNew(hs_old);
+         hsNew.SetLeftDomPoint(false);
+         *result += hsNew;       
+    }
+
+   result->EndBulkLoad();
    return result;
 }
 
 
+/*
+~Minus~ operator
 
+*/
 Region* MakeOp::Minus(const Region* reg1, const Region* reg2)
 {
   // first Realmisation of both regions
@@ -3963,6 +4044,10 @@ Region* MakeOp::Minus(const Region* reg1, const Region* reg2)
    return result;
 }
 
+/*
+~Minus~ operator
+
+*/
 Line* MakeOp::Minus(const Line* line, const Region* reg)
 {   // first Realmisation of both arguments
    Line* resLine = new Line(0);
@@ -3983,6 +4068,7 @@ Line* MakeOp::Minus(const Line* line, const Region* reg)
    SEntry oldEntry1;
    BinTreeNode<SEntry>* oldnode1;
     // while there are segments in the first arguments
+   int counter = 0;
    while ( i < resLine -> Size() ) {
      // select_ first
       if (i < resLine -> Size() && j < resReg -> Size() ) {
@@ -4015,8 +4101,11 @@ Line* MakeOp::Minus(const Line* line, const Region* reg)
             if (pred == 0 || (pred!=0 && pred->GetEntry().GetO()==0) )
             {
          HalfSegment auxHs1( *hs1 );
-               (*result) += auxHs1;    auxHs1.SetLeftDomPoint(false);
+               auxHs1.attr.edgeno = counter;
+               (*result) += auxHs1;    
+               auxHs1.SetLeftDomPoint(false);
                (*result) += auxHs1;
+               counter++;
             }
             sweepline.Delete (en) ;
          }
@@ -4033,10 +4122,15 @@ Line* MakeOp::Minus(const Line* line, const Region* reg)
    resLine->Destroy(); delete resLine;
    resReg->Destroy(); delete resReg;
    // VTA - I need to come back here
-   result->EndBulkLoad(true, true, false, false);
+   result->EndBulkLoad();
    return result;
 
 }
+
+/*
+~Minus~ operator
+
+*/
 
 Line* MakeOp::Minus(const Line* line1, const Line* line2)
 {
@@ -4073,7 +4167,20 @@ Line* MakeOp::Minus(const Line* line1, const Line* line2)
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
    // VTA - I need to come back here
-   result->EndBulkLoad(true, true, false, false);
+   unsigned int size = result->Size(); 
+   result->Resize(size*2);
+    const HalfSegment* hs_oldptr;
+    for( unsigned int i=0; i< size; i++){ // scan all old halfsegments
+         result->Get(i,hs_oldptr);
+         HalfSegment hs_old(*hs_oldptr);
+         hs_old.SetLeftDomPoint(true);
+         hs_old.attr.edgeno = i;
+         result->Put(i,hs_old);
+         HalfSegment hsNew(hs_old);
+         hsNew.SetLeftDomPoint(false);
+         *result += hsNew;       
+    }
+   result->EndBulkLoad();
    return result;
 }
 
