@@ -193,6 +193,61 @@ void UReal::TranslateParab(const double& t)
   // a = a;
 }
 
+double AntiderivativeSQRTpoly1(double a, double b, double x)
+{
+  assert( a != 0 );
+  return 2/(3*a)*sqrt(a*x+b);
+}
+
+double Antiderivative1overSQRTpoly2(double a, double b, double c, double x)
+{ // precontition: a != 0
+  assert(a != 0);
+  if(a>0)
+    return 1/sqrt(a) * log(2*sqrt(a*(a*x*x+b*x+c))+2*a*x+b);
+  if(a<0 && (4*a*c-b*b)<0)
+    return -1/sqrt(-a) * asin((2*a*x+b)/sqrt(-4*a*c+b*b));
+  return 0;
+}
+
+double AntiderivativeSQRTpoly2(double a, double b, double c, double x)
+{
+  return   (2*a*x+b)*sqrt(a*x*x+b*x+c)/(4*a)
+         + 1/(2*(4*a/(2*a*c-b*b)))*Antiderivative1overSQRTpoly2(a, b, c, x);
+}
+
+// integrate an ureal over its deftime
+// Precondition: this is defined
+double UReal::Integrate() const
+{
+  assert ( IsDefined() );
+
+  double t0 = timeInterval.start.ToDouble();
+  double t1 = timeInterval.end.ToDouble();
+
+  if(!r)
+  { // no squareroot
+    return   a/3*pow(t1,3)
+           + b/2*pow(t1,2)
+           + c*t1
+           - a/3*pow(t0,3)
+           - b/2*pow(t0,2)
+           - c*t0;
+  }
+  // square root
+  if ( a == 0.0 && b == 0.0)
+  {  // a == b == 0: simple case
+    return sqrt(c) * (t1-t0);
+  }
+  if ( a == 0.0 && b != 0.0 )
+  {
+    return   AntiderivativeSQRTpoly1(b, c, t1)
+           - AntiderivativeSQRTpoly1(b, c, t0);
+  }
+  // complex case. Siehe Bronstein, Taschenbuch der Mathematik 21.5 (Nr. 245)
+  return   AntiderivativeSQRTpoly2(a, b, c, t1)
+         - AntiderivativeSQRTpoly2(a, b, c, t0);
+}
+
 /*
 3.1 Class ~UPoint~
 
@@ -809,29 +864,23 @@ static bool connected(const UPoint* u1, const UPoint* u2){
    return true;
 }
 
-
-static bool IsBreakPoint(const UPoint* u,const DateTime& duration){
-   if(u->p0 != u->p1){ // equal points required
-     return false;
-   }
-   DateTime dur = u->timeInterval.end -  u->timeInterval.start;
-   return (dur > duration);
+ /*
+static bool isBreak(const UPoint* u){
+   return u->p0 == u->p1;
 }
 
-
+ */
 
 /**
 ~Simplify~
 
-This function removed some sampling points from a moving point 
-to get simpler data. It's implemented using an algorithm based 
+This function removed some sampling points from a moving point
+to get simpler data. It's implemented using an algorithm based
 on the Douglas Peucker algorithm for line simplification.
 
 **/
 
-void MPoint::Simplify(const double epsilon, MPoint& result, 
-                      const bool checkBreakPoints,
-                      const DateTime& dur) const{
+void MPoint::Simplify(const double epsilon, MPoint& result) const{
    result.Clear();
 
    // check for defined state
@@ -842,14 +891,14 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
    result.SetDefined(true);
 
    unsigned int size = GetNoComponents();
-   // no simplification possible if epsilon < 0 
+   // no simplification possible if epsilon < 0
    // or if at most one unit present
    if(epsilon<0 || size < 2){
       result.CopyFrom(this);
       return;
    }
 
-   // create an boolean array which represents all sample points 
+   // create an boolean array which represents all sample points
    // contained in the result
    bool useleft[size];
    bool useright[size];
@@ -857,40 +906,40 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
    for(unsigned int i=0;i<size;i++){
        useleft[i] = false;
        useright[i] =false;
-   }      
-   
+   }
+
    unsigned int first=0;
    unsigned int last=1;
    const UPoint* u1;
    const UPoint* u2;
    while(last<size){
-      // check whether last and last -1 are connected 
+      // check whether last and last -1 are connected
       Get(last-1,u1);
       Get(last,u2);
-      
-      if( checkBreakPoints && IsBreakPoint(u1,dur)){
+      /*
+      if(isBreak(u1)){
          if(last-1 > first){
             Simplify(first,last-2,useleft,useright,epsilon);
          }
          Simplify(last-1, last-1, useleft, useright, epsilon);
          first = last;
          last++;
-      } else if( checkBreakPoints && IsBreakPoint(u2,dur)){ 
+      } else if(isBreak(u2)){
          Simplify(first,last-1,useleft,useright,epsilon);
          last++;
          Simplify(last-1, last-1,useleft,useright,epsilon);
          first = last;
          last++;
-      } else if(connected(u1,u2)){ // enlarge the sequence
+      } else */if(connected(u1,u2)){ // enlarge the sequence
          last++;
       } else {
           Simplify(first,last-1,useleft, useright, epsilon);
           first=last;
           last++;
       }
-   } 
+   }
    // process the last recognized sequence
-   Simplify(first,last-1,useleft, useright,epsilon); 
+   Simplify(first,last-1,useleft, useright,epsilon);
 
 
    // count the number of units
@@ -912,12 +961,12 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
    }
    for(unsigned int i=1;i<size-1;i++){
        if((useleft[i])^(useright[i-1])){
-          cout << "error in simplification, left[" << i 
+          cout << "error in simplification, left[" << i
                << "] = " << useleft[i] << " but right[" << (i-1)
                << "] = " << useright[i-1] << endl;
        }
        if((useleft[i+1])^(useright[i])){
-          cout << "error in simplification, left[" << (i+1) 
+          cout << "error in simplification, left[" << (i+1)
                << "] = " << useleft[i+1] << " but right[" << (i)
                << "] = " << useright[i] << endl;
        }
@@ -925,7 +974,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
 
    // end of debugging code
 
-   result.Resize(count); // prepare enough memory 
+   result.Resize(count); // prepare enough memory
 
    result.StartBulkLoad();
    Instant start;
@@ -934,7 +983,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
    bool leftDefined = false;
    for(unsigned int i=0; i< size; i++){
      const UPoint* upoint;
-     
+
      Get(i,upoint);
      if(useleft[i]){
         // debug
@@ -947,7 +996,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
         closeLeft = upoint->timeInterval.lc;
         start = upoint->timeInterval.start;
         leftDefined=true;
-     } 
+     }
      if(useright[i]){
         // debug
         if(!leftDefined){
@@ -974,10 +1023,10 @@ Recursive implementation of simplifying movements.
 
 **/
 
-void MPoint::Simplify(const int min, 
-                 const int max, 
-                 bool* useleft, 
-                 bool* useright, 
+void MPoint::Simplify(const int min,
+                 const int max,
+                 bool* useleft,
+                 bool* useright,
                  const double epsilon) const {
 
   // the endpoints are used in each case
@@ -992,13 +1041,13 @@ void MPoint::Simplify(const int min,
   const UPoint* u2;
   // build a UPoint from the endpoints
   Get(min,u1);
-  Get(max,u2);  
+  Get(max,u2);
 
-  UPoint upoint(Interval<Instant>(u1->timeInterval.start, 
+  UPoint upoint(Interval<Instant>(u1->timeInterval.start,
                 u2->timeInterval.end,true,true),
                 u1->p0,
                 u2->p1);
-                
+
   // search for the point with the highest distance to its simplified position
   double maxDist = 0;
   int maxIndex=0;
@@ -1009,11 +1058,11 @@ void MPoint::Simplify(const int min,
   for(int i=min+1;i<=max;i++){
      Get(i,u);
      upoint.TemporalFunction(u->timeInterval.start,p_simple, true);
-     distance  = p_simple.Distance(u->p0);  
+     distance  = p_simple.Distance(u->p0);
      if(distance>maxDist){ // new maximum found
         maxDist = distance;
         maxIndex = i;
-     }  
+     }
   }
 
   if(maxIndex==0){  // no difference found
@@ -1026,27 +1075,6 @@ void MPoint::Simplify(const int min,
   // split at the left point of maxIndex
   Simplify(min,maxIndex-1,useleft,useright,epsilon);
   Simplify(maxIndex,max,useleft,useright,epsilon);
-}
-
-
-
-void MPoint::BreakPoints(Points& result, const DateTime& dur) const{
-    result.Clear();
-    if(!IsDefined()){
-      result.SetDefined(false);
-      return;
-    }
-    result.SetDefined(true);
-    int size = GetNoComponents();
-    result.StartBulkLoad();
-    const UPoint* unit;
-    for(int i=0;i<size;i++){
-        Get(i,unit);
-        if(IsBreakPoint(unit,dur)){
-           result += (unit->p0);
-        }
-    }
-    result.EndBulkLoad();
 }
 
 
@@ -3129,36 +3157,6 @@ ListExpr MovingTypeMapUnits( ListExpr args )
 */
 
 ListExpr MovingTypeMapSimplify(ListExpr args){
-   int len = nl->ListLength(args);
-   
-   if((len!=2) && (len !=3)){
-       ErrorReporter::ReportError("two or three arguments expected");
-       return nl->SymbolAtom("typeerror");
-   }
-   ListExpr arg1 = nl->First(args);
-   ListExpr arg2 = nl->Second(args);
-   if(nl->IsEqual(arg1,"mpoint") &&
-      nl->IsEqual(arg2,"real")){
-        if(len==2){
-           return nl->SymbolAtom("mpoint");
-        } else { // check the third argument
-          ListExpr arg3 = nl->Third(args);
-          if(nl->IsEqual(arg3,"duration")){
-             return nl->SymbolAtom("mpoint");
-          }
-        }
-   }
-   ErrorReporter::ReportError("mpoint x real [ x duration] expected");
-   return nl->SymbolAtom("typeerror");
-}
-
-
-/*
-16.1.12 Type mapping for the breakpoints  operator
-
-*/
-
-ListExpr MovingTypeMapBreakPoints(ListExpr args){
    if(nl->ListLength(args)!=2){
        ErrorReporter::ReportError("two arguments expected");
        return nl->SymbolAtom("typeerror");
@@ -3166,12 +3164,14 @@ ListExpr MovingTypeMapBreakPoints(ListExpr args){
    ListExpr arg1 = nl->First(args);
    ListExpr arg2 = nl->Second(args);
    if(nl->IsEqual(arg1,"mpoint") &&
-      nl->IsEqual(arg2,"duration")){
-       return nl->SymbolAtom("points");
+      nl->IsEqual(arg2,"real")){
+       return nl->SymbolAtom("mpoint");
    }
-   ErrorReporter::ReportError("mpoint x duration expected");
+   ErrorReporter::ReportError("mpoint x real expected");
    return nl->SymbolAtom("typeerror");
 }
+
+
 
 
 /*
@@ -3779,19 +3779,6 @@ int ExtDeftimeSelect(ListExpr args){
    return -1;
 }
 
-
-/*
-16.2.32 Selection function for simplify
-
-*/
-int SimplifySelect(ListExpr args){
-   int len = nl->ListLength(args);
-   if(len==2) return 0;
-   if(len==3) return 1;
-   return -1;
-}
-
-
 /*
 16.3 Value mapping functions
 
@@ -4187,47 +4174,18 @@ int MPointDistance( Word* args, Word& result, int message, Word&
 }
 
 /*
-16.3.29 Value mappings function for the operator ~simplify~
+16.3.29 Value mapping function for the operator ~simplify~
 
 */
-int MPointSimplify(Word* args, Word& result, 
+int MPointSimplify(Word* args, Word& result,
                    int message, Word& local,
                    Supplier s){
   result = qp->ResultStorage( s );
   double epsilon = ((CcReal*)args[1].addr)->GetRealval();
-  DateTime dur(durationtype);
-  ((MPoint*)args[0].addr)->Simplify( epsilon, 
-                                     *((MPoint*)result.addr),
-                                     false,dur );
-  return 0;
-}
-                 
-int MPointSimplify2(Word* args, Word& result, 
-                   int message, Word& local,
-                   Supplier s){
-  result = qp->ResultStorage( s );
-  double epsilon = ((CcReal*)args[1].addr)->GetRealval();
-  DateTime* dur = (DateTime*)args[2].addr;
-  ((MPoint*)args[0].addr)->Simplify( epsilon, 
-                                     *((MPoint*)result.addr),
-                                     true,*dur );
+  ((MPoint*)args[0].addr)->Simplify(epsilon, *((MPoint*)result.addr) );
   return 0;
 }
 
-
- 
-/*
-16.3.29 Value mapping function for the operator ~breakpoints~
-
-*/
-int MPointBreakPoints(Word* args, Word& result, 
-                   int message, Word& local,
-                   Supplier s){
-  result = qp->ResultStorage( s );
-  DateTime* dur = ((DateTime*)args[1].addr);
-  ((MPoint*)args[0].addr)->BreakPoints(*((Points*)result.addr),*dur );
-  return 0;
-}
 
 /*
 16.3.31 Value mapping functions of operator ~bbox~
@@ -4870,8 +4828,6 @@ ValueMapping extdeftimemap[] = { TemporalExtDeftime<UBool, CcBool>,
                                  TemporalExtDeftime<UInt, CcInt>
                                };
 
-ValueMapping simplifymap[] = { MPointSimplify, MPointSimplify2 };
-
 
 /*
 16.4.2 Specification strings
@@ -5134,19 +5090,10 @@ const string TemporalSpecDistance =
 
 const string TemporalSpecSimplify =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mpoint x real [ x duration ] -> mpoint</text--->"
-  "<text>simplify( _, _ [, _]) </text--->"
+  "( <text>mpoint x real -> mpoint</text--->"
+  "<text>simplify( _, _ ) </text--->"
   "<text>simplifys the mpoint with a maximum difference of epsilon</text--->"
-  "<text>simplify( train7, 50.0, [const duration value (0, 10000)] )</text--->"
-  ") )";
-
-const string TemporalSpecBreakPoints =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mpoint x duration -> points</text--->"
-  "<text>breakpoints( _, _ ) </text--->"
-  "<text>computes all points where the mpoints stops longer"
-  " than the given duration</text--->"
-  "<text>breakpoints( train7, [const duration value (0 1000)] )</text--->"
+  "<text>simplify( train7, 50.0 )</text--->"
   ") )";
 
 const string TemporalSpecUnits  =
@@ -5491,16 +5438,9 @@ Operator temporaldistance( "distance",
 
 Operator temporalsimplify( "simplify",
                            TemporalSpecSimplify,
-                           2,
-                           simplifymap,
-                           SimplifySelect,
-                           MovingTypeMapSimplify );
-
-Operator temporalbreakpoints( "breakpoints",
-                           TemporalSpecBreakPoints,
-                           MPointBreakPoints,
+                           MPointSimplify,
                            Operator::SimpleSelect,
-                           MovingTypeMapBreakPoints );
+                           MovingTypeMapSimplify );
 
 Operator temporalunits( "units",
                         TemporalSpecUnits,
@@ -5681,7 +5621,6 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalat );
     AddOperator( &temporaldistance );
     AddOperator( &temporalsimplify );
-    AddOperator( &temporalbreakpoints );
     AddOperator( &temporaltranslate );
 
     AddOperator( &temporaltheyear );

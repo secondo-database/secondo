@@ -212,7 +212,7 @@ Returns ~true~ if this interval is inside the interval ~i~ and ~false~ otherwise
 
   bool Contains( const Alpha& a ) const;
 /*
-Returns ~true~ if this interval contains the value ~a~ and ~false~ otherwise.
+ Returns ~true~ if this interval contains the value ~a~ and ~false~ otherwise.
 
 *Precondition:* ~a.IsDefined()~
 
@@ -1606,6 +1606,12 @@ Equality is calculated with respect to temporal evolution.
 
 */
 
+  double Integrate() const;
+/*
+Precondition this[->]IsDefined() is true
+
+*/
+
 /*
 3.7.5 Attributes
 
@@ -2291,26 +2297,13 @@ The constructor. Initializes space for ~n~ elements.
 *Precondition*: ~X.IsOrdered()~
 
 *Semantics*: Simplifies the tracjectory this moving point.
-             
+
 *Complexity*: worst case: O(n * n), in average O(n * log (n))
 
 */
 
-   void Simplify(const double epsilon, MPoint& result,
-                 const bool checkBreakPoints,
-                 const DateTime& duration) const;
+   void Simplify(const double epsilon, MPoint& result) const;
 
-/*
-3.10.5.5 Operation ~BreakPoints~
-
-*Precondition*: ~X.IsOrdered()~
-*Semantics*: Computes all points where this mpoints stays longer than the given
-             time.
-
-*/
-    void BreakPoints(Points& result, const DateTime& dur) const;
-
-             
 private:
    void Simplify(const int min, const int max,
                  bool* useleft, bool* useright,
