@@ -50,6 +50,7 @@ will change the type of the this object to a {\tt duration}.
 #include <string>
 #include "NestedList.h"
 #include "StandardAttribute.h"
+#include "BigInt.h"
 
 namespace datetime {
 
@@ -260,6 +261,16 @@ double value.
 
 */
     double ToDouble() const;
+
+/*
+~ToBigInt~
+
+If this DateTime is a duration, the returned value is the
+duration in milliseconds. Otherwise (an instant type), the returned
+values represents the distance to the NULLDAY in milliseconds.
+
+*/
+    BigInt<8> ToBigInt() const;
 
 /*
 ~CompareTo~
