@@ -208,17 +208,24 @@ double Antiderivative1overSQRTpoly2(double a, double b, double c, double x)
 { // Bronstein, Taschenbuch der Mathematik 21.5.2.8 (241)
   assert(a != 0);
   if(a>0)
-    return 1/sqrt(a) * log(2*sqrt(a*(a*x*x+b*x+c))+2*a*x+b);
-  if(a<0 && (4*a*c-b*b)<0)
-    return -1/sqrt(-a) * asin((2*a*x+b)/sqrt(-4*a*c+b*b));
+    return 1/sqrt(a) * log(2*sqrt(a*(a*pow(x,2)+b*x+c))+2*a*x+b);
+  if(a<0 && (4*a*c-pow(b,2))<0)
+    return -1/sqrt(-a) * asin((2*a*x+b)/sqrt(-4*a*c+pow(b,2)));
   return 0;
+//   assert( a >= 0 );
+//   return log((b + 2*a*x)/sqrt(a) + 2*sqrt(c + b*x + a*x*x))/sqrt(a);
 }
 
 double AntiderivativeSQRTpoly2(double a, double b, double c, double x)
 { // Bronstein, Taschenbuch der Mathematik 21.5.2.8 (245)
   assert(a != 0);
-  return   (2*a*x+b)*sqrt(a*x*x+b*x+c)/(4*a)
-         + 1/(2*(4*a/(2*a*c-b*b)))*Antiderivative1overSQRTpoly2(a, b, c, x);
+  return   (2*a*x+b)*sqrt(a*pow(x,2)+b*x+c)/(4*a)
+       + 1/(2*(4*a/(2*a*c-pow(b,2))))*Antiderivative1overSQRTpoly2(a, b, c, x);
+//   assert( a >= 0 );
+//   return (  2*sqrt(a)*(b + 2*a*x)* sqrt(c + x*(b + a*x))
+//         - (b*b - 4*a*c)* log((b + 2*a*x)/sqrt(a) + 2*sqrt(c + x*(b + a*x))))
+//        / (8*pow(a,(3/2)));
+
 }
 
 
@@ -234,13 +241,25 @@ double UReal::Integrate() const
 
   if(!r)
   { // no squareroot
+//     return   AntiderivativePoly2(a,b,c,t1)
+//            - AntiderivativePoly2(a,b,c,t0);
+    if(a == 0 && b == 0) // constant function
+      return c * ((timeInterval.end-timeInterval.start).ToDouble());
+    if(a == 0) // linear function
+      {
+        cout << "Linear function used" << endl;
+        DateTime start(timeInterval.start);
+        start.SetType(durationtype);
+        return (0.5*b*((timeInterval.end+start).ToDouble()) + c)
+                * (timeInterval.end-timeInterval.start).ToDouble();
+      }
     return   AntiderivativePoly2(a,b,c,t1)
            - AntiderivativePoly2(a,b,c,t0);
   }
   // square root
   if ( a == 0.0 && b == 0.0)
   {  // sqrt of constant
-    return sqrt(c) * (t1-t0);
+    return sqrt(c) * ((timeInterval.end-timeInterval.start).ToDouble());
   }
   if ( a == 0.0 && b != 0.0 )
   { // sqrt of poly1
@@ -831,7 +850,7 @@ We keep a unit if it is no linear representation.
 */
 bool keep(const UReal* unit){
    if(unit->a != 0) { // square included
-      return true; 
+      return true;
    }
    if(unit->r){    // square-root
       return true;
@@ -913,7 +932,7 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
           last++;
     }
   }
-  Simplify(first,last-1,useleft,useright,epsilon); 
+  Simplify(first,last-1,useleft,useright,epsilon);
 
   // build the result
    int count = 1; // count the most right sample point
@@ -922,7 +941,7 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
          count++;
       }
    }
-   result.Resize(count); // prepare enough memory 
+   result.Resize(count); // prepare enough memory
 
    // scan the units
    const UReal* unit;
@@ -957,7 +976,7 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
                UReal newUnit(Interval<Instant>(start,end,lc,rc),
                              startValue.GetRealval(),
                              endValue.GetRealval());
-               result.Add(newUnit);     
+               result.Add(newUnit);
                leftDefined=false;
              }
 
@@ -984,10 +1003,10 @@ void MReal::Simplify(const int min, const int max,
   const UReal* u2;
   // build a UPoint from the endpoints
   Get(min,u1);
-  Get(max,u2); 
+  Get(max,u2);
   CcReal cr1(true,0.0);
   CcReal cr2(true,0.0);
-  
+
   u1->TemporalFunction(u1->timeInterval.start,cr1,true);
   u2->TemporalFunction(u2->timeInterval.end,cr2,true);
 
@@ -995,14 +1014,14 @@ void MReal::Simplify(const int min, const int max,
   double r2 = cr2.GetRealval();
 
   // build the approximating unit
-   
 
-  UReal ureal(Interval<Instant>(u1->timeInterval.start, 
+
+  UReal ureal(Interval<Instant>(u1->timeInterval.start,
                 u2->timeInterval.end,true,true),
                 r1,
                 r2);
-                
-  // search for the real with the highest distance to this unit 
+
+  // search for the real with the highest distance to this unit
   double maxDist = 0;
   int maxIndex=0;
   CcReal r_orig(true,0);
@@ -1013,11 +1032,11 @@ void MReal::Simplify(const int min, const int max,
      Get(i,u);
      ureal.TemporalFunction(u->timeInterval.start,r_simple, true);
      u->TemporalFunction(u->timeInterval.start,r_orig,true);
-     distance  = abs(r_simple.GetRealval()- r_orig.GetRealval());  
+     distance  = abs(r_simple.GetRealval()- r_orig.GetRealval());
      if(distance>maxDist){ // new maximum found
         maxDist = distance;
         maxIndex = i;
-     }  
+     }
   }
 
   if(maxIndex==0){  // no difference found
@@ -1113,13 +1132,13 @@ static bool IsBreakPoint(const UPoint* u,const DateTime& duration){
 /**
 ~Simplify~
 
-This function removed some sampling points from a moving point 
-to get simpler data. It's implemented using an algorithm based 
+This function removed some sampling points from a moving point
+to get simpler data. It's implemented using an algorithm based
 on the Douglas Peucker algorithm for line simplification.
 
 **/
 
-void MPoint::Simplify(const double epsilon, MPoint& result, 
+void MPoint::Simplify(const double epsilon, MPoint& result,
                       const bool checkBreakPoints,
                       const DateTime& dur) const{
    result.Clear();
@@ -1132,14 +1151,14 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
    result.SetDefined(true);
 
    unsigned int size = GetNoComponents();
-   // no simplification possible if epsilon < 0 
+   // no simplification possible if epsilon < 0
    // or if at most one unit present
    if(epsilon<0 || size < 2){
       result.CopyFrom(this);
       return;
    }
 
-   // create an boolean array which represents all sample points 
+   // create an boolean array which represents all sample points
    // contained in the result
    bool useleft[size];
    bool useright[size];
@@ -1147,17 +1166,17 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
    for(unsigned int i=0;i<size;i++){
        useleft[i] = false;
        useright[i] =false;
-   }      
-   
+   }
+
    unsigned int first=0;
    unsigned int last=1;
    const UPoint* u1;
    const UPoint* u2;
    while(last<size){
-      // check whether last and last -1 are connected 
+      // check whether last and last -1 are connected
       Get(last-1,u1);
       Get(last,u2);
-      
+
       if( checkBreakPoints && IsBreakPoint(u1,dur)){
          if(last-1 > first){
             Simplify(first,last-2,useleft,useright,epsilon);
@@ -1165,7 +1184,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
          Simplify(last-1, last-1, useleft, useright, epsilon);
          first = last;
          last++;
-      } else if( checkBreakPoints && IsBreakPoint(u2,dur)){ 
+      } else if( checkBreakPoints && IsBreakPoint(u2,dur)){
          Simplify(first,last-1,useleft,useright,epsilon);
          last++;
          Simplify(last-1, last-1,useleft,useright,epsilon);
@@ -1178,9 +1197,9 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
           first=last;
           last++;
       }
-   } 
+   }
    // process the last recognized sequence
-   Simplify(first,last-1,useleft, useright,epsilon); 
+   Simplify(first,last-1,useleft, useright,epsilon);
 
 
    // count the number of units
@@ -1191,7 +1210,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
       }
    }
 
-   result.Resize(count); // prepare enough memory 
+   result.Resize(count); // prepare enough memory
 
    result.StartBulkLoad();
    Instant start;
@@ -1200,7 +1219,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
    bool leftDefined = false;
    for(unsigned int i=0; i< size; i++){
      const UPoint* upoint;
-     
+
      Get(i,upoint);
      if(useleft[i]){
         // debug
@@ -1213,7 +1232,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
         closeLeft = upoint->timeInterval.lc;
         start = upoint->timeInterval.start;
         leftDefined=true;
-     } 
+     }
      if(useright[i]){
         // debug
         if(!leftDefined){
@@ -1240,10 +1259,10 @@ Recursive implementation of simplifying movements.
 
 **/
 
-void MPoint::Simplify(const int min, 
-                 const int max, 
-                 bool* useleft, 
-                 bool* useright, 
+void MPoint::Simplify(const int min,
+                 const int max,
+                 bool* useleft,
+                 bool* useright,
                  const double epsilon) const {
 
   // the endpoints are used in each case
@@ -1258,13 +1277,13 @@ void MPoint::Simplify(const int min,
   const UPoint* u2;
   // build a UPoint from the endpoints
   Get(min,u1);
-  Get(max,u2);  
+  Get(max,u2);
 
-  UPoint upoint(Interval<Instant>(u1->timeInterval.start, 
+  UPoint upoint(Interval<Instant>(u1->timeInterval.start,
                 u2->timeInterval.end,true,true),
                 u1->p0,
                 u2->p1);
-                
+
   // search for the point with the highest distance to its simplified position
   double maxDist = 0;
   int maxIndex=0;
@@ -1275,11 +1294,11 @@ void MPoint::Simplify(const int min,
   for(int i=min+1;i<=max;i++){
      Get(i,u);
      upoint.TemporalFunction(u->timeInterval.start,p_simple, true);
-     distance  = p_simple.Distance(u->p0);  
+     distance  = p_simple.Distance(u->p0);
      if(distance>maxDist){ // new maximum found
         maxDist = distance;
         maxIndex = i;
-     }  
+     }
   }
 
   if(maxIndex==0){  // no difference found
@@ -3396,7 +3415,7 @@ ListExpr MovingTypeMapUnits( ListExpr args )
 
 ListExpr MovingTypeMapSimplify(ListExpr args){
    int len = nl->ListLength(args);
-   
+
    if((len!=2) && (len !=3)){
        ErrorReporter::ReportError("two or three arguments expected");
        return nl->SymbolAtom("typeerror");
@@ -4080,7 +4099,7 @@ int SimplifySelect(ListExpr args){
    int len = nl->ListLength(args);
    if(len==2){
        // mpoint x real
-       if(nl->IsEqual(nl->First(args),"mpoint")){ 
+       if(nl->IsEqual(nl->First(args),"mpoint")){
            return 0;
        } else { // mreal x real
            return 2;
@@ -4506,25 +4525,25 @@ int MPointDistance( Word* args, Word& result, int message, Word&
 16.3.29 Value mappings function for the operator ~simplify~
 
 */
-int MPointSimplify(Word* args, Word& result, 
+int MPointSimplify(Word* args, Word& result,
                    int message, Word& local,
                    Supplier s){
   result = qp->ResultStorage( s );
   double epsilon = ((CcReal*)args[1].addr)->GetRealval();
   DateTime dur(durationtype);
-  ((MPoint*)args[0].addr)->Simplify( epsilon, 
+  ((MPoint*)args[0].addr)->Simplify( epsilon,
                                      *((MPoint*)result.addr),
                                      false,dur );
   return 0;
 }
-                 
-int MPointSimplify2(Word* args, Word& result, 
+
+int MPointSimplify2(Word* args, Word& result,
                    int message, Word& local,
                    Supplier s){
   result = qp->ResultStorage( s );
   double epsilon = ((CcReal*)args[1].addr)->GetRealval();
   DateTime* dur = (DateTime*)args[2].addr;
-  ((MPoint*)args[0].addr)->Simplify( epsilon, 
+  ((MPoint*)args[0].addr)->Simplify( epsilon,
                                      *((MPoint*)result.addr),
                                      true,*dur );
   return 0;
@@ -4536,7 +4555,7 @@ int MRealSimplify(Word* args, Word& result,
 
     result = qp->ResultStorage(s);
     double epsilon = ((CcReal*)args[1].addr)->GetRealval();
-    ((MReal*)args[0].addr)->Simplify( epsilon, 
+    ((MReal*)args[0].addr)->Simplify( epsilon,
                                      *((MReal*)result.addr));
      return 0;
 }
@@ -4547,7 +4566,7 @@ int MRealSimplify(Word* args, Word& result,
 */
 template <class mtype>
 int Integrate(Word* args, Word& result,
-              int message, Word& local, 
+              int message, Word& local,
               Supplier s){
    result = qp->ResultStorage(s);
    mtype* arg = (mtype*) args[0].addr;
@@ -4562,12 +4581,12 @@ int Integrate(Word* args, Word& result,
 
 
 
- 
+
 /*
 16.3.29 Value mapping function for the operator ~breakpoints~
 
 */
-int MPointBreakPoints(Word* args, Word& result, 
+int MPointBreakPoints(Word* args, Word& result,
                    int message, Word& local,
                    Supplier s){
   result = qp->ResultStorage( s );
