@@ -194,13 +194,18 @@ void UReal::TranslateParab(const double& t)
 }
 
 double AntiderivativeSQRTpoly1(double a, double b, double x)
-{
+{ // Bronstein, Taschenbuch der Mathematik 21.5.2.3 (121)
   assert( a != 0 );
   return 2/(3*a)*sqrt(a*x+b);
 }
 
+double AntiderivativePoly2(double a, double b, double c, double x)
+{
+  return  a/3*pow(x,3) + b/2*pow(x,2) + c*x;
+}
+
 double Antiderivative1overSQRTpoly2(double a, double b, double c, double x)
-{ // precontition: a != 0
+{ // Bronstein, Taschenbuch der Mathematik 21.5.2.8 (241)
   assert(a != 0);
   if(a>0)
     return 1/sqrt(a) * log(2*sqrt(a*(a*x*x+b*x+c))+2*a*x+b);
@@ -210,7 +215,8 @@ double Antiderivative1overSQRTpoly2(double a, double b, double c, double x)
 }
 
 double AntiderivativeSQRTpoly2(double a, double b, double c, double x)
-{
+{ // Bronstein, Taschenbuch der Mathematik 21.5.2.8 (245)
+  assert(a != 0);
   return   (2*a*x+b)*sqrt(a*x*x+b*x+c)/(4*a)
          + 1/(2*(4*a/(2*a*c-b*b)))*Antiderivative1overSQRTpoly2(a, b, c, x);
 }
@@ -226,24 +232,20 @@ double UReal::Integrate() const
 
   if(!r)
   { // no squareroot
-    return   a/3*pow(t1,3)
-           + b/2*pow(t1,2)
-           + c*t1
-           - a/3*pow(t0,3)
-           - b/2*pow(t0,2)
-           - c*t0;
+    return   AntiderivativePoly2(a,b,c,t1)
+           - AntiderivativePoly2(a,b,c,t0);
   }
   // square root
   if ( a == 0.0 && b == 0.0)
-  {  // a == b == 0: simple case
+  {  // sqrt of constant
     return sqrt(c) * (t1-t0);
   }
   if ( a == 0.0 && b != 0.0 )
-  {
+  { // sqrt of poly1
     return   AntiderivativeSQRTpoly1(b, c, t1)
            - AntiderivativeSQRTpoly1(b, c, t0);
   }
-  // complex case. Siehe Bronstein, Taschenbuch der Mathematik 21.5 (Nr. 245)
+  // sqrt of poly2
   return   AntiderivativeSQRTpoly2(a, b, c, t1)
          - AntiderivativeSQRTpoly2(a, b, c, t0);
 }
