@@ -212,7 +212,7 @@ Returns ~true~ if this interval is inside the interval ~i~ and ~false~ otherwise
 
   bool Contains( const Alpha& a ) const;
 /*
- Returns ~true~ if this interval contains the value ~a~ and ~false~ otherwise.
+Returns ~true~ if this interval contains the value ~a~ and ~false~ otherwise.
 
 *Precondition:* ~a.IsDefined()~
 
@@ -1406,6 +1406,22 @@ struct UReal : public StandardTemporalUnit<CcReal>
     r( r )
     {}
 
+  // linear approximation between v1 and v2
+  UReal(const Interval<Instant>& interval,
+        const double v1,
+        const double v2): StandardTemporalUnit<CcReal>(interval){
+        
+       Instant diff = interval.end-interval.start;
+       a = 0;
+       r = false;
+       c = v1;
+       if(diff.IsZero()){
+          b = 0;
+          return;
+       }
+       b = (v2-v1) / diff.ToDouble();       
+  }
+
 /*
 3.6.2 Operator redefinitions
 
@@ -1611,6 +1627,7 @@ Equality is calculated with respect to temporal evolution.
 Precondition this[->]IsDefined() is true
 
 */
+
 
 /*
 3.7.5 Attributes
@@ -2238,7 +2255,44 @@ representing the  value 1 over their interval.
 3.11 Class ~MReal~
 
 */
-typedef Mapping< UReal, CcReal > MReal;
+class MReal: public Mapping< UReal, CcReal > {
+public:
+
+/*
+3.11.1 Constructory
+
+*/
+
+   MReal() {}
+  
+   MReal( const int n ):
+      Mapping< UReal, CcReal >( n )
+      {}
+
+/*
+3.11.2 Operation ~Simplify~
+
+Simplifies the connected linear approximated parts of this moving real.
+
+*/
+   void Simplify(const double epsilon, MReal& result) const;
+
+/*
+3.11.3 Operation ~Integrate~
+
+Compute the integral of this moving real.
+
+*/
+   double Integrate();
+
+
+
+private:
+   void Simplify(const int min, const int max,
+                 bool* useleft, bool* useright,
+                 const double epsilon) const;
+
+};
 
 /*
 3.12 Class ~MPoint~
@@ -2297,13 +2351,26 @@ The constructor. Initializes space for ~n~ elements.
 *Precondition*: ~X.IsOrdered()~
 
 *Semantics*: Simplifies the tracjectory this moving point.
-
+             
 *Complexity*: worst case: O(n * n), in average O(n * log (n))
 
 */
 
-   void Simplify(const double epsilon, MPoint& result) const;
+   void Simplify(const double epsilon, MPoint& result,
+                 const bool checkBreakPoints,
+                 const DateTime& duration) const;
 
+/*
+3.10.5.5 Operation ~BreakPoints~
+
+*Precondition*: ~X.IsOrdered()~
+*Semantics*: Computes all points where this mpoints stays longer than the given
+             time.
+
+*/
+    void BreakPoints(Points& result, const DateTime& dur) const;
+
+             
 private:
    void Simplify(const int min, const int max,
                  bool* useleft, bool* useright,

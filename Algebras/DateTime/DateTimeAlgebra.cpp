@@ -1011,6 +1011,10 @@ bool DateTime::operator==(const DateTime T2)const{
   return CompareTo(&T2)==0;
 }
 
+bool DateTime::operator!=(const DateTime T2)const{
+  return CompareTo(&T2)!=0;
+}
+
 bool DateTime::operator<(const DateTime T2)const{
   return CompareTo(&T2)<0;
 }
