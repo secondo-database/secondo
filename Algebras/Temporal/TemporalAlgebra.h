@@ -1628,6 +1628,19 @@ Precondition this[->]IsDefined() is true
 
 */
 
+  double Max(bool& correct) const;
+/*
+
+*Precondition*: this[->]IsDefined() is true
+
+*/
+  
+double Min(bool& correct) const;
+/*
+
+*Precondition*: this[->]IsDefined() is true
+
+*/
 
 /*
 3.7.5 Attributes
@@ -2285,7 +2298,18 @@ Compute the integral of this moving real.
 */
    double Integrate();
 
+/*
+3.11.4 Operation ~Max~
 
+*/
+
+   double Max(bool& correct) const;
+
+/*
+3.11.5 Operation ~Min~
+
+*/
+   double Min(bool& correct) const;
 
 private:
    void Simplify(const int min, const int max,

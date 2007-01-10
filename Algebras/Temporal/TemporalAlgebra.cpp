@@ -263,6 +263,89 @@ double UReal::Integrate() const
 }
 
 
+
+
+/*
+This function computes the maximum of this UReal.
+
+*/
+double UReal::Max(bool& correct) const{
+  if(!IsDefined()){
+    correct=false;
+    return 0.0;
+  } 
+  
+  //double t0 = timeInterval.start.ToDouble();
+  //double t1 = timeInterval.end.ToDouble();
+  double t = (timeInterval.end - timeInterval.start).ToDouble();
+  correct = true; 
+
+  double v1 = c;  // == TemporalFunction(t0);
+  double v2 = a*t*t + b*t + c; // TemporalFunction (t1);  
+  
+  double v3 = c; // value for extremum 
+  if(!AlmostEqual(a,0)){
+     double ts = (-1.0*b)/(2.0*a);
+     if( (ts>0) && (ts < t)){
+         v3 = a*t*t + b*t + c;
+     }
+  }
+  // determine the maximum of v1 .. v3
+  double max = v1;
+  if(v2>max){
+     max = v2;
+  } 
+  if(v3 > max){
+     max = v3;
+  }
+  
+  if(r){
+    return sqrt(max);
+  } else {
+    return max;
+  }
+}
+
+
+/*
+This function computes the minimum of this UReal.
+
+*/
+double UReal::Min(bool& correct) const{
+  if(!IsDefined()){
+     correct=false;
+     return  0.0;
+  }
+
+  // double t0 = timeInterval.start.ToDouble();
+  // double t1 = timeInterval.end.ToDouble();
+  double t = (timeInterval.end - timeInterval.start).ToDouble();
+  correct = true; 
+  double v1 = c;  // == TemporalFunction(t0);
+  double v2 = a*t*t + b*t + c; // TemporalFunction (t1);  
+  
+  double v3 = c; // value for extremum 
+  if(!AlmostEqual(a,0)){
+     double ts = (-1.0*b)/(2.0*a);
+     if( (ts>0) && (ts < t)){
+         v3 = a*t*t + b*t + c;
+     }
+  }
+  // determine the minimum of v1 .. v3
+  double min = v1;
+  if(v2<min){
+     min = v2;
+  } 
+  if(v3 < min){
+     min = v3;
+  }
+  if(r){
+    return sqrt(min);
+  } else {
+    return min;
+  }
+}
+
 /*
 3.1 Class ~UPoint~
 
@@ -868,6 +951,64 @@ double MReal::Integrate(){
    }
    return sum;
 }
+
+double MReal::Max(bool& correct) const{
+   if(!IsDefined()){
+      correct=false;
+      return 0.0;
+   }
+
+   int size = GetNoComponents();
+
+   if(size<=0){
+      correct=false;
+      return 0.0;
+   }
+
+   correct = true;
+   const UReal* unit;
+   Get(0,unit);
+   bool dummy;
+   double max = unit->Max(dummy);
+   for(int i=1;i<size;i++){
+       Get(i,unit);
+       double umax = unit->Max(dummy);
+       if(umax>max){
+          max = umax;
+       }
+   }
+   return max;
+}
+
+
+double MReal::Min(bool& correct) const{
+   if(!IsDefined()){
+      correct=false;
+      return 0.0;
+   }
+
+   int size = GetNoComponents();
+
+   if(size<=0){
+      correct=false;
+      return 0.0;
+   }
+
+   correct = true;
+   const UReal* unit;
+   Get(0,unit);
+   bool dummy;
+   double min = unit->Min(dummy);
+   for(int i=1;i<size;i++){
+       Get(i,unit);
+       double umin = unit->Min(dummy);
+       if(umin<min){
+          min = umin;
+       }
+   }
+   return min;
+}
+
 
 /*
 Helper function for the ~simplify~ operator
@@ -3511,6 +3652,25 @@ ListExpr TypeMapIntegrate(ListExpr args){
    return nl->SymbolAtom("typeerror");
 }
 
+/*
+16.1.12 Type mapping function of the ~min~ and the ~max~ Operator
+
+*/
+ListExpr TypeMapMinMax(ListExpr args){
+   int len = nl->ListLength(args);
+   if(len!=1){
+      ErrorReporter::ReportError("one argument expected");
+      return nl->SymbolAtom("typeerror");
+   }
+   ListExpr arg = nl->First(args);
+   if(nl->IsEqual(arg,"ureal") ||
+      nl->IsEqual(arg,"mreal")){
+      return nl->SymbolAtom("real");
+   }
+   ErrorReporter::ReportError("ureal or mreal expected");
+   return nl->SymbolAtom("typeerror");
+}
+
 
 
 /*
@@ -4154,6 +4314,21 @@ int IntegrateSelect(ListExpr args){
 
 }
 
+/*
+16.2.32 Selection function for ~min~ and ~max~
+
+*/
+int MinMaxSelect(ListExpr args){
+   ListExpr arg = nl->First(args);
+   if(nl->IsEqual(arg,"ureal")){
+       return 0;
+   }
+   if(nl->IsEqual(arg,"mreal")){
+       return 1;
+   }
+   return -1; // should never occur
+}
+
 
 /*
 16.3 Value mapping functions
@@ -4608,7 +4783,37 @@ int Integrate(Word* args, Word& result,
 }
 
 
+/*
+16.2.28 Value Mapping function for the operator min 
 
+*/
+template <class mtype>
+int VM_Min(Word* args, Word& result,
+              int message, Word& local, 
+              Supplier s){
+   result = qp->ResultStorage(s);
+   mtype* arg = (mtype*) args[0].addr;
+   bool correct;
+   double res = arg->Min(correct);
+   ((CcReal*)result.addr)->Set(correct,res);
+   return 0;
+}
+
+/*
+16.2.28 Value Mapping function for the operator min 
+
+*/
+template <class mtype>
+int VM_Max(Word* args, Word& result,
+              int message, Word& local, 
+              Supplier s){
+   result = qp->ResultStorage(s);
+   mtype* arg = (mtype*) args[0].addr;
+   bool correct;
+   double res = arg->Max(correct);
+   ((CcReal*)result.addr)->Set(correct,res);
+   return 0;
+}
  
 /*
 16.3.29 Value mapping function for the operator ~breakpoints~
@@ -5269,6 +5474,10 @@ ValueMapping simplifymap[] = { MPointSimplify, MPointSimplify2,
 
 ValueMapping integratemap[] = { Integrate<UReal>, Integrate<MReal> };
 
+ValueMapping minmap[] = { VM_Min<UReal>, VM_Min<MReal> };
+
+ValueMapping maxmap[] = { VM_Max<UReal>, VM_Max<MReal> };
+
 
 /*
 16.4.2 Specification strings
@@ -5545,6 +5754,23 @@ const string TemporalSpecIntegrate =
   "<text>computes the determined inegtral of the argument</text--->"
   "<text>integrate(mreal5000)</text--->"
   ") )";
+
+const string TemporalSpecMin =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>{ureal , mreal} -> real</text--->"
+  "<text>minimum( _ ) </text--->"
+  "<text>computes the minimum value of the argument</text--->"
+  "<text>minimum(mreal5000)</text--->"
+  ") )";
+
+const string TemporalSpecMax =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>{ureal , mreal} -> real</text--->"
+  "<text>maximum( _ ) </text--->"
+  "<text>computes the maximum value of the argument</text--->"
+  "<text>maximum(mreal5000)</text--->"
+  ") )";
+
 
 const string TemporalSpecBreakPoints =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -5909,6 +6135,20 @@ Operator temporalintegrate( "integrate",
                            IntegrateSelect,
                            TypeMapIntegrate );
 
+Operator temporalminimum( "minimum",
+                           TemporalSpecMin,
+                           2,
+                           minmap,
+                           MinMaxSelect,
+                           TypeMapMinMax );
+
+Operator temporalmaximum( "maximum",
+                           TemporalSpecMax,
+                           2,
+                           maxmap,
+                           MinMaxSelect,
+                           TypeMapMinMax );
+
 Operator temporalbreakpoints( "breakpoints",
                            TemporalSpecBreakPoints,
                            MPointBreakPoints,
@@ -6095,6 +6335,8 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporaldistance );
     AddOperator( &temporalsimplify );
     AddOperator( &temporalintegrate );
+    AddOperator( &temporalminimum );
+    AddOperator( &temporalmaximum );
     AddOperator( &temporalbreakpoints );
     AddOperator( &temporaltranslate );
 
