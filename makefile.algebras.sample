@@ -53,9 +53,12 @@ ALGEBRAS     += ExtRelationAlgebra
 # librares, e.g. the jpeg algebra depends on libjpeg, put these libraries
 # and its directory into the variable ALGEBRA_DEPS and ALGEBRA_DEP_DIRS.
 
+ifdef SECONDO_ACTIVATE_ALL_ALGEBRAS
+ALGEBRA_DEPS += jpeg
+ALGEBRA_DEPS += Triangulation 
+endif
+
 ifndef SECONDO_MIN_ALGEBRA_SET
-
-
 
 ##########  Example Algebras
 
@@ -150,6 +153,7 @@ ALGEBRA_DIRS += Picture
 ALGEBRAS     += PictureAlgebra
 ALGEBRA_DEPS += jpeg
 
+
 #ALGEBRA_DIRS  += Midi
 #ALGEBRAS      += MidiAlgebra
 
@@ -172,3 +176,6 @@ ALGEBRA_DEPS += jpeg
 #JNIALGEBRAS      += RoseAlgebra
 
 endif
+
+ALGEBRA_DEPS := $(sort $(ALGEBRA_DEPS))
+
