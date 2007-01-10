@@ -1,66 +1,65 @@
-Database: berlintest
-Restore: NO
+Database: constrainttest
+Restore : NO
 
 
 Operator : cunion
 Number   : 1
 Signature: (constraint constraint) -> constraint
-Example  : query objConstraintPolygon1 cunion objConstraintPolygon2
+Example  : query consPolygon1 cunion consPolygon2
 Result   : 
 
 Operator : cjoin
 Number   : 1
 Signature: (constraint constraint) -> constraint
-Example  : query objConstraintPolygon1 cjoin objConstraintPolygon2
+Example  : query consPolygon1 cjoin consPolygon2
 Result   : 
 
 Operator : cintersection
 Number   : 1
 Signature: (constraint constraint) -> constraint
-Example  : query objConstraintPolygon1 cintersection objConstraintLine1
+Example  : query consPolygon1 cintersection consLine1
 Result   : 
 
 Operator : cprojection
 Number   : 1
 Signature: (constraint {x,y}) -> constraint
-Example  : query cprojection(objConstraintPolygon1, x)
+Example  : query cprojection(consPolygon1, x)
 Result   : 
 
 Operator : cselection
 Number   : 1
 Signature: (constraint real real real {eq, leq}) -> constraint
-Example  : query cselection(objConstraintPolygon1, 1.0, 0.0, -7.0, leq)
+Example  : query cselection(consPolygon1, 1.0, 0.0, -7.0, leq)
 Result   : 
 
 Operator : csatisfy
 Number   : 1
 Signature: (constraint) -> bool
-Example  : query csatisfy(objConstraintPolygon1)
-
+Example  : query csatisfy(consPolygon1)
 Result   : TRUE
 
 Operator : coverlaps
 Number   : 1
 Signature: (constraint constraint) -> bool
-Example  : query objConstraintPolygon1 coverlaps objConstraintPolygon2
+Example  : query consPolygon1 coverlaps consPolygon2
 Result   : TRUE
 
 Operator : no_tuples
 Number   : 1
 Signature: (constraint) -> int
-Example  : query no_tuples(objConstraintPolygon1)
+Example  : query no_tuples(consPolygon1)
 Result   : 65
 
 Operator : no_constraints
 Number   : 1
 Signature: (constraint) -> int
-Example  : query no_constraints(objConstraintPolygon1)
+Example  : query no_constraints(consPolygon1)
 Result   : 250
 
 Operator : bbox
 Number   : 1
 Signature: (constraint) -> rect
-Example  : query bbox(objConstraintPolygon1)
+Example  : query bbox(consPolygon1)
 Result   : 
 
 Operator : triangulate
@@ -96,24 +95,24 @@ Result   :
 Operator : constraint2point
 Number   : 1
 Signature: (constraint) -> point
-Example  : query constraint2point(objConstraintPoint1)
+Example  : query constraint2point(consPoint1)
 Result   : 
 
 Operator : constraint2points
 Number   : 1
 Signature: (constraint) -> points
-Example  : query constraint2points(objConstraintPoints1)
+Example  : query constraint2points(consPoints1)
 Result   : 
 
 Operator : constraint2line
 Number   : 1
 Signature: (constraint) -> line
-Example  : query constraint2line(objConstraintLine1)
+Example  : query constraint2line(consLine1)
 Result   : 
 
 Operator : constraint2region
 Number   : 1
 Signature: (stream(constraint)) -> stream(region)
-Example  : query objConstraintPolygon1 feed constraint2region count;
+Example  : query consPolygon1 feed constraint2region count;
 Result   : 65
 
