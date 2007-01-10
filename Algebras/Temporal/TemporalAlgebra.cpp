@@ -194,32 +194,69 @@ void UReal::TranslateParab(const double& t)
   // a = a;
 }
 
-double AntiderivativeSQRTpoly1(double a, double b, double x)
+double AntiderivativeSQRTpoly1(const double a, const double b, 
+                               const double x)
 { // Bronstein, Taschenbuch der Mathematik 21.5.2.3 (121)
   assert( a != 0 );
-  return 2/(3*a)*sqrt(a*x+b);
+  double X = a*x+b;
+  return (2/(3*a))*sqrt(X*X*X);
 }
 
-double AntiderivativePoly2(double a, double b, double c, double x)
+
+long double arcsinh(long double XVal)
 {
-  return  a/3*pow(x,3) + b/2*pow(x,2) + c*x;
-}
+  return log(XVal + sqrt(XVal * XVal + 1.0));
+}  
 
-double Antiderivative1overSQRTpoly2(double a, double b, double c, double x)
+double Antiderivative1overSQRTpoly2(const double a, const  double b, 
+                                    const double c, const double x)
 { // Bronstein, Taschenbuch der Mathematik 21.5.2.8 (241)
   assert(a != 0);
-  if(a>0)
-    return 1/sqrt(a) * log(2*sqrt(a*(a*x*x+b*x+c))+2*a*x+b);
-  if(a<0 && (4*a*c-b*b)<0)
-    return -1/sqrt(-a) * asin((2*a*x+b)/sqrt(-4*a*c+b*b));
+
+  double Delta = 4*a*x - b*b;
+
+  if((a>0) && (Delta > 0)){
+      return (1/sqrt(a)) * arcsinh( (2*a*x +b)/sqrt(Delta) ); 
+  }
+
+  if((a>0.0) && (Delta==0.0)){
+      return (1.0/sqrt(a))*log(2*a*x+b);
+  } 
+
+  if(a<0 && Delta<0){
+      return -1.0*((1/(sqrt(-1.0*a))) * asin((2*a*x+b)/(sqrt(-1.0*Delta))));
+  }
+
+  if(a>0){ // case Delta < 0
+     double f1 = 1/ sqrt(a);
+     double sum = 2*sqrt(a*(a*x*x*x+b*x+c)) + 2*a*x + b;
+     double f2 = log(sum);
+     double res = f1*f2;
+     return res;
+  }
+
+  cerr <<  "invalid case reached" << endl;
+
   return 0;
+
 }
 
-double AntiderivativeSQRTpoly2(double a, double b, double c, double x)
+double AntiderivativeSQRTpoly2(const double a, const double b, 
+                               const double c, const double x)
 { // Bronstein, Taschenbuch der Mathematik 21.5.2.8 (245)
   assert(a != 0);
-  return   (2*a*x+b)*sqrt(a*x*x+b*x+c)/(4*a)
-         + 1/(2*(4*a/(2*a*c-b*b)))*Antiderivative1overSQRTpoly2(a, b, c, x);
+  
+  double f = ( 4*a*c-b*b )  / 8*a;   // == 1/2k
+  double v = a*x*x+b*x+c;
+  if(v<0){  // correct values resulting from rounding errors
+     if(!AlmostEqual(v,0)) {
+        cerr << "Invalid computation in UREal::Integrate" << endl;
+     }
+     v = 0;
+  } 
+  double s1 = ((2*a*x +b) * sqrt(v)) / (4*a);
+  double s2 = f *Antiderivative1overSQRTpoly2(a, b, c, x);
+  return  s1 + s2;
 }
 
 
@@ -229,37 +266,22 @@ double AntiderivativeSQRTpoly2(double a, double b, double c, double x)
 double UReal::Integrate() const
 {
   assert ( IsDefined() );
-
-   double t0 = timeInterval.start.ToDouble();
-   double t1 = timeInterval.end.ToDouble();
-
-   double b = this->b - 2 * a*t0;
-   double t0_2 = t0*t0;
-   double c = a*t0_2 - this->b*t0 + this->c;
-
-   if(!r)
-   {
-       double t0_3 = t0_2 * t0;
-       double t1_2 = t1 * t1;
-       double t1_3 = t1_2 * t1;
-       return ((t1_3-t0_3)*a)/3.0 + (t1_2-t0_2)*b*0.5 + (t1-t0)*c;
-   }
-
-
-   cout << "square root mode " << endl;
+  double t = (timeInterval.end - timeInterval.start).ToDouble();
+  if(!r) { // simple case without square root
+      // form: ax^2 + bx + c
+      return a*t*t*t/3.0 + 0.5*b*t*t + c*t;  
+  }
   // square root
   if ( a == 0.0 && b == 0.0)
-  {  // sqrt of constant
-    return sqrt(c) * (t1-t0);
+  {  // form: sqrt(c)  
+    return   sqrt(c) * t;
   }
   if ( a == 0.0 && b != 0.0 )
-  { // sqrt of poly1
-    return   AntiderivativeSQRTpoly1(b, c, t1)
-           - AntiderivativeSQRTpoly1(b, c, t0);
+  { // form : sqrt(bx + c)
+    return   AntiderivativeSQRTpoly1(b, c, t);
   }
-  // sqrt of poly2
-  return   AntiderivativeSQRTpoly2(a, b, c, t1)
-         - AntiderivativeSQRTpoly2(a, b, c, t0);
+  // form : sqrt ( ax^2 + bx + c) 
+  return    AntiderivativeSQRTpoly2(a, b, c, t);
 }
 
 
@@ -290,6 +312,11 @@ double UReal::Max(bool& correct) const{
          v3 = a*t*t + b*t + c;
      }
   }
+  // debug
+  if(isnan(v1) || isnan(v2) || isnan(v3)){
+      cerr << " cannot determine the value within a unit" << endl;
+  }
+
   // determine the maximum of v1 .. v3
   double max = v1;
   if(v2>max){
@@ -330,6 +357,10 @@ double UReal::Min(bool& correct) const{
      if( (ts>0) && (ts < t)){
          v3 = a*t*t + b*t + c;
      }
+  }
+  // debug
+  if(isnan(v1) || isnan(v2) || isnan(v3)){
+      cerr << " cannot determine the value within a unit" << endl;
   }
   // determine the minimum of v1 .. v3
   double min = v1;
@@ -935,6 +966,7 @@ double MReal::Integrate(){
       Get(i,unit);
       ISC isc;
       isc.value = unit->Integrate();
+      if(isnan(isc.value)) cout << " value = " << isc.value << endl;
       isc.level = 0;
       while(!theStack.empty() && (theStack.top().level == isc.level)){
           isc.value = isc.value + theStack.top().value;
