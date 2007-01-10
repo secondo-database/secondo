@@ -88,6 +88,8 @@ using namespace std;
 #include "NestedList.h"
 #include "NList.h"
 
+#include "LogMsg.h"
+
 SecondoSystem* SecondoSystem::secondoSystem = 0;
 
 /**************************************************************************
@@ -405,6 +407,7 @@ Precondition: dbState = dbOpen.
 
 */
   ListExpr list;
+  
   int rc = 0;
 
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
@@ -417,13 +420,20 @@ Precondition: dbState = dbOpen.
     cout << "Reading file ..." << endl;
     if ( !nl->ReadFromFile( filename, list ) )
     {
-      rc = 2; // Error reading file
+      return 2; // Error reading file
     }
-    else if ( !nl->IsEqual( nl->Second( list ), objectname, false ) )
+
+    if ( !nl->IsEqual( nl->Second( list ), objectname, false ) )
     {
-      rc = 1; // Object name in file different
+      string name = nl->SymbolValue(nl->Second(list));
+      cmsg.warning() << "Object name of the file '" 
+                     << name <<  "' changed to '" 
+                     << objectname << "'!" << endl;
+      cmsg.send();
+      nl->Replace( nl->Second(list), nl->SymbolAtom(objectname) );
     }
-    else if ( nl->IsEmpty( list) )
+
+    if ( nl->IsEmpty( list) )
     {
       rc = 3; // List structure invalid
     }
@@ -437,7 +447,6 @@ Precondition: dbState = dbOpen.
     {
       rc = 4; // Error in reading object
     }
-    nl->Destroy( list );
   }
   return ( rc );
 }
@@ -648,15 +657,16 @@ bool
 SecondoSystem::RestoreObjects( ListExpr objects,
                                ListExpr& errorInfo )
 {
-  ListExpr first, typeExpr, valueList;
-  int objno;
-  string objectName, typeName;
-  Word value;
-  bool correctObj;
+  ListExpr first = nl->Empty();
+  ListExpr typeExpr = nl->Empty();
+  ListExpr valueList = nl->Empty();
+  int objno = 0;
+  string objectName="", typeName="";
+  Word value = SetWord(0);
+  bool correctObj = false;
   bool correct = true;
 
   objects = nl->Rest( objects );
-  objno = 0;
 
   cout << "Restoring objects ..." << endl;
 
@@ -720,10 +730,11 @@ SecondoSystem::RestoreObjects( ListExpr objects,
         // wrong type expression
         correct = false;
         errorInfo = nl->Append( errorInfo,
-                      nl->ThreeElemList(
+                      nl->FourElemList(
                         nl->IntAtom( 52 ),
                         nl->IntAtom( objno ),
-                        nl->Second( first ) ) );
+                        nl->Second( first ),
+                        typeExpr ));
       }
     }
     else

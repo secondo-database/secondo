@@ -693,6 +693,20 @@ Returns (a pointer to) the right son of ~list~. Result can be the empty list.
 
 *Precondition*: ~list~ is no atom and is not empty.
 
+*/
+
+  inline void Replace( ListExpr oldList, ListExpr newList )
+  {
+     NodeRecord tmpNode;
+     nodeTable->Get(oldList, tmpNode);
+     tmpNode = (*nodeTable)[newList];
+     nodeTable->Put(oldList, tmpNode);
+  };
+
+
+/*
+
+
 1.3.5 Input/Output
 
 */
