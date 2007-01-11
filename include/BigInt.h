@@ -432,6 +432,7 @@ If not, the result will conatain an undefined value.
 */
  long ToLong(bool& correct){
     // check whether more than the first part is used
+    correct = true;
     for(unsigned int i=1;i<size;i++){
         if(value[i]!=0)
           correct = false;
