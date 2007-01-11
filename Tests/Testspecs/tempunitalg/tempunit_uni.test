@@ -322,7 +322,7 @@ query distance(ui1, i1)
 query distance(i1, ui3)
 
 #testcase atmax_ureal ur1
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (1.0 0.0 -1.0 FALSE))) ((("2000-01-05" "2000-01-05" TRUE TRUE) (1.0 8.0 15.0 FALSE)))))
+#yields ((rel (tuple ((elem ureal))))(((("2000-01-05" "2000-01-05" TRUE TRUE)(1.0 8.0 15.0 FALSE)))))
 query atmax(ur1) transformstream consume
 
 #testcase atmax_ureal ur2
@@ -334,7 +334,7 @@ query atmax(ur2) transformstream consume
 query atmax(ur3) count
 
 #testcase atmin_ureal ur1
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03" "2000-01-03" TRUE TRUE) (1.0 4.0 3.0 FALSE)))))
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (1.0 0.0 -1.0 FALSE)))))
 query atmin(ur1) transformstream consume
 
 #testcase atmin_ureal ur2
