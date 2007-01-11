@@ -1410,7 +1410,7 @@ struct UReal : public StandardTemporalUnit<CcReal>
   UReal(const Interval<Instant>& interval,
         const double v1,
         const double v2): StandardTemporalUnit<CcReal>(interval){
-        
+
        Instant diff = interval.end-interval.start;
        a = 0;
        r = false;
@@ -1419,7 +1419,7 @@ struct UReal : public StandardTemporalUnit<CcReal>
           b = 0;
           return;
        }
-       b = (v2-v1) / diff.ToDouble();       
+       b = (v2-v1) / diff.ToDouble();
   }
 
 /*
@@ -1628,14 +1628,65 @@ Precondition this[->]IsDefined() is true
 
 */
 
+  int PeriodsAtVal( const double& value, Periods& times) const;
+
+/*
+Sets the Periods value to the times, where this takes the
+specified value. Returns the number of results (0-2).
+
+WARNING: May return points, that are not inside this->timeInterval,
+         if a value is located at an open start/end instant.
+
+*/
+
+  int PeriodsAtEqual( const UReal& other, Periods& times) const;
+
+/*
+Sets the Periods value to the times, where both UReals takes the
+same value. Returns the number of results (0-2).
+
+*/
+
+  int AtMin( vector<UReal>& result ) const;
+
+/*
+Creates a vector of units, which are the restriction of this to
+the periods, where it takes its minimum value.
+
+Precondition: this[->]IsDefined() && other.IsDefined()
+
+Result: stores the resultununit into vector result and returns
+        the number of results (1-2) found.
+
+WARNING: AtMin may return points, that are not inside this->timeInterval,
+         if a minimum is located at an open start/end instant.
+
+*/
+
+  int AtMax( vector<UReal>& result ) const;
+
+/*
+Creates a vector of units, which are the restriction of this to
+the periods, where it takes its maximum value.
+
+Precondition: this[->]IsDefined() && other.IsDefined()
+
+Result: stores the resultununit into vector result and returns
+        the number of results (1-2) found.
+
+WARNING: AtMax may return points, that are not inside this->timeInterval,
+         if a maximum is located at an open start/end instant.
+
+*/
+
   double Max(bool& correct) const;
 /*
 
 *Precondition*: this[->]IsDefined() is true
 
 */
-  
-double Min(bool& correct) const;
+
+  double Min(bool& correct) const;
 /*
 
 *Precondition*: this[->]IsDefined() is true
@@ -2277,7 +2328,7 @@ public:
 */
 
    MReal() {}
-  
+
    MReal( const int n ):
       Mapping< UReal, CcReal >( n )
       {}
@@ -2375,7 +2426,7 @@ The constructor. Initializes space for ~n~ elements.
 *Precondition*: ~X.IsOrdered()~
 
 *Semantics*: Simplifies the tracjectory this moving point.
-             
+
 *Complexity*: worst case: O(n * n), in average O(n * log (n))
 
 */
@@ -2394,7 +2445,7 @@ The constructor. Initializes space for ~n~ elements.
 */
     void BreakPoints(Points& result, const DateTime& dur) const;
 
-             
+
 private:
    void Simplify(const int min, const int max,
                  bool* useleft, bool* useright,
@@ -5973,7 +6024,7 @@ of unit intervals in the respective ~Mapping~ instance.
 Runtime is $O(1)$.
 
 You can use ~void TemporalUnit<Alpha>::AtInterval(const Interval<Instant>
-&i, TemporalUnit<Alpha> &result)~ to access the broken-dpwn units
+&i, TemporalUnit<Alpha> &result)~ to access the broken-down units
 
 */
     void Get(unsigned int pos,

@@ -74,11 +74,13 @@ file.
 #include <sstream>
 #include <string>
 #include <stack>
+#include <vector>
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
+#include "PolySolver.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -121,7 +123,10 @@ void UReal::TemporalFunction( const Instant& t,
     }
   else
     {
-      double t2 = t.ToDouble() - timeInterval.start.ToDouble();
+      DateTime T2(durationtype);
+      T2 = t - timeInterval.start;
+      double t2 = T2.ToDouble();
+//      double t2 = t.ToDouble() - timeInterval.start.ToDouble();
       double res = a * pow( t2, 2 ) +
         b * t2 +
         c;
@@ -194,7 +199,7 @@ void UReal::TranslateParab(const double& t)
   // a = a;
 }
 
-double AntiderivativeSQRTpoly1(const double a, const double b, 
+double AntiderivativeSQRTpoly1(const double a, const double b,
                                const double x)
 { // Bronstein, Taschenbuch der Mathematik 21.5.2.3 (121)
   assert( a != 0 );
@@ -206,9 +211,9 @@ double AntiderivativeSQRTpoly1(const double a, const double b,
 long double arcsinh(long double XVal)
 {
   return log(XVal + sqrt(XVal * XVal + 1.0));
-}  
+}
 
-double Antiderivative1overSQRTpoly2(const double a, const  double b, 
+double Antiderivative1overSQRTpoly2(const double a, const  double b,
                                     const double c, const double x)
 { // Bronstein, Taschenbuch der Mathematik 21.5.2.8 (241)
   assert(a != 0);
@@ -216,12 +221,12 @@ double Antiderivative1overSQRTpoly2(const double a, const  double b,
   double Delta = 4*a*x - b*b;
 
   if((a>0) && (Delta > 0)){
-      return (1/sqrt(a)) * arcsinh( (2*a*x +b)/sqrt(Delta) ); 
+      return (1/sqrt(a)) * arcsinh( (2*a*x +b)/sqrt(Delta) );
   }
 
   if((a>0.0) && (Delta==0.0)){
       return (1.0/sqrt(a))*log(2*a*x+b);
-  } 
+  }
 
   if(a<0 && Delta<0){
       return -1.0*((1/(sqrt(-1.0*a))) * asin((2*a*x+b)/(sqrt(-1.0*Delta))));
@@ -241,11 +246,11 @@ double Antiderivative1overSQRTpoly2(const double a, const  double b,
 
 }
 
-double AntiderivativeSQRTpoly2(const double a, const double b, 
+double AntiderivativeSQRTpoly2(const double a, const double b,
                                const double c, const double x)
 { // Bronstein, Taschenbuch der Mathematik 21.5.2.8 (245)
   assert(a != 0);
-  
+
   double f = ( 4*a*c-b*b )  / 8*a;   // == 1/2k
   double v = a*x*x+b*x+c;
   if(v<0){  // correct values resulting from rounding errors
@@ -253,7 +258,7 @@ double AntiderivativeSQRTpoly2(const double a, const double b,
         cerr << "Invalid computation in UREal::Integrate" << endl;
      }
      v = 0;
-  } 
+  }
   double s1 = ((2*a*x +b) * sqrt(v)) / (4*a);
   double s2 = f *Antiderivative1overSQRTpoly2(a, b, c, x);
   return  s1 + s2;
@@ -269,22 +274,20 @@ double UReal::Integrate() const
   double t = (timeInterval.end - timeInterval.start).ToDouble();
   if(!r) { // simple case without square root
       // form: ax^2 + bx + c
-      return a*t*t*t/3.0 + 0.5*b*t*t + c*t;  
+      return a*t*t*t/3.0 + 0.5*b*t*t + c*t;
   }
   // square root
   if ( a == 0.0 && b == 0.0)
-  {  // form: sqrt(c)  
+  {  // form: sqrt(c)
     return   sqrt(c) * t;
   }
   if ( a == 0.0 && b != 0.0 )
   { // form : sqrt(bx + c)
     return   AntiderivativeSQRTpoly1(b, c, t);
   }
-  // form : sqrt ( ax^2 + bx + c) 
+  // form : sqrt ( ax^2 + bx + c)
   return    AntiderivativeSQRTpoly2(a, b, c, t);
 }
-
-
 
 
 /*
@@ -295,21 +298,21 @@ double UReal::Max(bool& correct) const{
   if(!IsDefined()){
     correct=false;
     return 0.0;
-  } 
-  
+  }
+
   //double t0 = timeInterval.start.ToDouble();
   //double t1 = timeInterval.end.ToDouble();
   double t = (timeInterval.end - timeInterval.start).ToDouble();
-  correct = true; 
+  correct = true;
 
   double v1 = c;  // == TemporalFunction(t0);
-  double v2 = a*t*t + b*t + c; // TemporalFunction (t1);  
-  
-  double v3 = c; // value for extremum 
+  double v2 = a*t*t + b*t + c; // TemporalFunction (t1);
+
+  double v3 = c; // value for extremum
   if(!AlmostEqual(a,0)){
      double ts = (-1.0*b)/(2.0*a);
      if( (ts>0) && (ts < t)){
-         v3 = a*t*t + b*t + c;
+         v3 = a*ts*ts + b*ts + c;
      }
   }
   // debug
@@ -321,18 +324,17 @@ double UReal::Max(bool& correct) const{
   double max = v1;
   if(v2>max){
      max = v2;
-  } 
+  }
   if(v3 > max){
      max = v3;
   }
-  
+
   if(r){
     return sqrt(max);
   } else {
     return max;
   }
 }
-
 
 /*
 This function computes the minimum of this UReal.
@@ -347,26 +349,26 @@ double UReal::Min(bool& correct) const{
   // double t0 = timeInterval.start.ToDouble();
   // double t1 = timeInterval.end.ToDouble();
   double t = (timeInterval.end - timeInterval.start).ToDouble();
-  correct = true; 
+  correct = true;
   double v1 = c;  // == TemporalFunction(t0);
-  double v2 = a*t*t + b*t + c; // TemporalFunction (t1);  
-  
-  double v3 = c; // value for extremum 
+  double v2 = a*t*t + b*t + c; // TemporalFunction (t1);
+
+  double v3 = c; // value for extremum
   if(!AlmostEqual(a,0)){
      double ts = (-1.0*b)/(2.0*a);
      if( (ts>0) && (ts < t)){
-         v3 = a*t*t + b*t + c;
+         v3 = a*ts*ts + b*ts + c;
      }
   }
   // debug
   if(isnan(v1) || isnan(v2) || isnan(v3)){
-      cerr << " cannot determine the value within a unit" << endl;
+      cerr << "UReal::Min(): cannot determine the value within a unit" << endl;
   }
   // determine the minimum of v1 .. v3
   double min = v1;
   if(v2<min){
      min = v2;
-  } 
+  }
   if(v3 < min){
      min = v3;
   }
@@ -375,6 +377,208 @@ double UReal::Min(bool& correct) const{
   } else {
     return min;
   }
+}
+
+/*
+Sets the Periods value to the times, where this takes the
+specified value. Returns the number of results (0-2).
+
+WARNING: May return points, that are not inside this->timeInterval,
+         if a value is located at an open start/end instant.
+
+*/
+int UReal::PeriodsAtVal( const double& value, Periods& times) const
+{
+  double inst_d[2]; // instants as double
+  int no_res = 0;
+  DateTime t0(durationtype), t1(instanttype);
+  Interval<Instant> iv;
+
+  cout << "UReal::PeriodsAtVal( " << value << ", ...) called." << endl;
+  cout << "\ta=" << a << " b=" << b << " c=" << c << " r=" << r << endl;
+  cout << "\tstart=" << timeInterval.start.ToDouble()
+       << " end=" << timeInterval.end.ToDouble()
+       << " lc=" << timeInterval.lc
+       << " rc=" << timeInterval.rc << endl;
+  times.Clear();
+  if( !IsDefined() )
+    return 0;
+
+  if( a==0.0 && b==0.0 )
+    // special case: constant ureal
+    {
+      cout << "UReal::PeriodsAtVal(): constant case" << endl;
+      if ( (!r && AlmostEqual(c, value)) ||
+           (r && AlmostEqual(sqrt(c), value) ) )
+      {
+        times.StartBulkLoad();
+        times.Add(timeInterval);
+        times.EndBulkLoad();
+        return times.GetNoComponents();
+      }
+      else // no result
+        return 0;
+    }
+  if( !r )
+  {
+    cout << "UReal::PeriodsAtVal(): r==false" << endl;
+    no_res = SolvePoly(a, b, (c-value), inst_d, true);
+  }
+  else
+  {
+    cout << "UReal::PeriodsAtVal(): r==true" << endl;
+    if (value >= 0.0)
+      no_res = SolvePoly(a, b, (c-(value*value)), inst_d, true);
+    else
+      return 0;
+  }
+  times.Print(cout);
+  for(int i=0; i<no_res; i++)
+  {
+    t0.ReadFrom(inst_d[i]);
+    t1 = timeInterval.start + t0;
+    if( (t1 == timeInterval.start) ||
+        (t1 == timeInterval.end)   ||
+        timeInterval.Contains(t1)     )
+    {
+      cout << "\tt1=" << t1.ToDouble() << endl;
+      cout << "\tt1.IsDefined()=" << t1.IsDefined() << endl;
+      cout << "\ttimes.IsValid()=" << times.IsValid() << endl;
+      if( !times.Contains( t1 ) )
+      {
+        cout << "UReal::PeriodsAtVal(): add instant" << endl;
+        iv = Interval<Instant>(t1, t1, true, true);
+        times.StartBulkLoad();
+        times.Add(iv); // add only once
+        times.EndBulkLoad();
+      }
+      else
+        cout << "UReal::PeriodsAtVal(): not added instant" << endl;
+    }
+  }
+  return times.GetNoComponents();
+}
+
+
+/*
+Creates a vector of units, which are the restriction of this to
+the periods, where it takes its minimum value.
+
+Precondition: this[->]IsDefined() && other.IsDefined()
+Result: stores the resultununit into vector result and returns
+        the number of results (1-2) found.
+
+WARNING: AtMin may return points, that are not inside this->timeInterval,
+         if a minimum is located at an open start/end instant.
+
+*/
+int UReal::AtMin(vector<UReal>& result) const
+{
+  assert( IsDefined() );
+  result.clear();
+
+  bool correct = true;
+  Periods minTimesPeriods(2);
+  int no_res = 0;
+  double minVal = Min(correct);
+
+  if(!correct)
+    return 0;
+  cout << "UReal::AtMin(): minVal=" << minVal << endl;
+  minTimesPeriods.Clear();
+  no_res = PeriodsAtVal( minVal, minTimesPeriods );
+  for(int i=0; i<no_res; i++)
+  {
+    const Interval<DateTime>* iv;
+    minTimesPeriods.Get(i, iv);
+    UReal unit = UReal( *this );
+    if( iv->Inside(timeInterval) )
+      AtInterval( *iv, unit );
+    else
+    { // solve problem with min at open interval start/end!
+      if(iv->start == timeInterval.start)
+      {
+        UReal unit2(
+          Interval<DateTime>(timeInterval.start, timeInterval.end, true, true),
+          a, b, c, r );
+        unit2.AtInterval( *iv, unit );
+      }
+      else if(iv->end == timeInterval.end)
+      {
+        UReal unit2(
+          Interval<DateTime>(timeInterval.start, timeInterval.end, true, true),
+          a, b, c, r );
+        unit2.AtInterval( *iv, unit );
+      }
+    }
+    result.push_back(unit);
+  }
+  return result.size();
+}
+
+
+/*
+Creates a vector of units, which are the restriction of this to
+the periods, where it takes its maximum value.
+
+  Precondition: this[->]IsDefined() && other.IsDefined()
+Result: stores the resultununit into vector result and returns
+        the number of results (1-2) found.
+
+WARNING: AtMax may return points, that are not inside this->timeInterval,
+         if a maximum is located at an open start/end instant.
+
+*/
+int UReal::AtMax( vector<UReal>& result) const
+{
+  assert( IsDefined() );
+  result.clear();
+
+  bool correct = true;
+  Periods maxTimesPeriods(2);
+  int no_res = 0;
+  double maxVal = Max(correct);
+  if(!correct)
+    return 0;
+  cout << "UReal::AtMin(): maxVal=" << maxVal << endl;
+  no_res = PeriodsAtVal( maxVal, maxTimesPeriods );
+  for(int i=0; i<no_res; i++)
+  {
+    const Interval<DateTime>* iv;
+    maxTimesPeriods.Get(i, iv);
+    UReal unit = UReal( *this );
+    if( iv->Inside(timeInterval) )
+      AtInterval( *iv, unit );
+    else
+    { // solve problem with max at open interval start/end!
+      if(iv->start == timeInterval.start)
+      {
+        UReal unit2(
+          Interval<DateTime>(timeInterval.start, timeInterval.end, true, true),
+          a, b, c, r );
+        unit2.AtInterval( *iv, unit );
+      }
+      else if(iv->end == timeInterval.end)
+      {
+        UReal unit2(
+          Interval<DateTime>(timeInterval.start, timeInterval.end, true, true),
+          a, b, c, r );
+        unit2.AtInterval( *iv, unit );
+      }
+    }
+    result.push_back(unit);
+  }
+  return result.size();
+}
+
+/*
+Sets the Periods value to the times, where both UReals takes the
+same value. Returns the number of results (0-2).
+
+*/
+int UReal::PeriodsAtEqual( const UReal& other, Periods& times) const
+{
+  return 0;
 }
 
 /*
@@ -934,7 +1138,7 @@ void MInt::ReadFrom(const MBool& arg){
 
 3.1 ~Integrate~
 
-3.1.1 Helper structure 
+3.1.1 Helper structure
 
 */
 
@@ -950,7 +1154,7 @@ struct ISC{
 The integrate function sums all integrate value for the single units.
 To avoid adding big and small integer values, we compute the sum
  balanced similar to the aggregateB operator of teh ExtRelationAlgebra.
- 
+
 */
 
 double MReal::Integrate(){
@@ -1050,7 +1254,7 @@ We keep a unit if it is no linear representation.
 */
 bool keep(const UReal* unit){
    if(unit->a != 0) { // square included
-      return true; 
+      return true;
    }
    if(unit->r){    // square-root
       return true;
@@ -1133,7 +1337,7 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
           last++;
     }
   }
-  Simplify(first,last-1,useleft,useright,epsilon); 
+  Simplify(first,last-1,useleft,useright,epsilon);
 
   // build the result
    int count = 1; // count the most right sample point
@@ -1142,7 +1346,7 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
          count++;
       }
    }
-   result.Resize(count); // prepare enough memory 
+   result.Resize(count); // prepare enough memory
 
    // scan the units
    const UReal* unit;
@@ -1177,7 +1381,7 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
                UReal newUnit(Interval<Instant>(start,end,lc,rc),
                              startValue.GetRealval(),
                              endValue.GetRealval());
-               result.Add(newUnit);     
+               result.Add(newUnit);
                leftDefined=false;
              }
 
@@ -1204,10 +1408,10 @@ void MReal::Simplify(const int min, const int max,
   const UReal* u2;
   // build a UPoint from the endpoints
   Get(min,u1);
-  Get(max,u2); 
+  Get(max,u2);
   CcReal cr1(true,0.0);
   CcReal cr2(true,0.0);
-  
+
   u1->TemporalFunction(u1->timeInterval.start,cr1,true);
   u2->TemporalFunction(u2->timeInterval.end,cr2,true);
 
@@ -1215,14 +1419,14 @@ void MReal::Simplify(const int min, const int max,
   double r2 = cr2.GetRealval();
 
   // build the approximating unit
-   
 
-  UReal ureal(Interval<Instant>(u1->timeInterval.start, 
+
+  UReal ureal(Interval<Instant>(u1->timeInterval.start,
                 u2->timeInterval.end,true,true),
                 r1,
                 r2);
-                
-  // search for the real with the highest distance to this unit 
+
+  // search for the real with the highest distance to this unit
   double maxDist = 0;
   int maxIndex=0;
   CcReal r_orig(true,0);
@@ -1233,11 +1437,11 @@ void MReal::Simplify(const int min, const int max,
      Get(i,u);
      ureal.TemporalFunction(u->timeInterval.start,r_simple, true);
      u->TemporalFunction(u->timeInterval.start,r_orig,true);
-     distance  = abs(r_simple.GetRealval()- r_orig.GetRealval());  
+     distance  = abs(r_simple.GetRealval()- r_orig.GetRealval());
      if(distance>maxDist){ // new maximum found
         maxDist = distance;
         maxIndex = i;
-     }  
+     }
   }
 
   if(maxIndex==0){  // no difference found
@@ -1333,13 +1537,13 @@ static bool IsBreakPoint(const UPoint* u,const DateTime& duration){
 /**
 ~Simplify~
 
-This function removed some sampling points from a moving point 
-to get simpler data. It's implemented using an algorithm based 
+This function removed some sampling points from a moving point
+to get simpler data. It's implemented using an algorithm based
 on the Douglas Peucker algorithm for line simplification.
 
 **/
 
-void MPoint::Simplify(const double epsilon, MPoint& result, 
+void MPoint::Simplify(const double epsilon, MPoint& result,
                       const bool checkBreakPoints,
                       const DateTime& dur) const{
    result.Clear();
@@ -1352,14 +1556,14 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
    result.SetDefined(true);
 
    unsigned int size = GetNoComponents();
-   // no simplification possible if epsilon < 0 
+   // no simplification possible if epsilon < 0
    // or if at most one unit present
    if(epsilon<0 || size < 2){
       result.CopyFrom(this);
       return;
    }
 
-   // create an boolean array which represents all sample points 
+   // create an boolean array which represents all sample points
    // contained in the result
    bool useleft[size];
    bool useright[size];
@@ -1367,17 +1571,17 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
    for(unsigned int i=0;i<size;i++){
        useleft[i] = false;
        useright[i] =false;
-   }      
-   
+   }
+
    unsigned int first=0;
    unsigned int last=1;
    const UPoint* u1;
    const UPoint* u2;
    while(last<size){
-      // check whether last and last -1 are connected 
+      // check whether last and last -1 are connected
       Get(last-1,u1);
       Get(last,u2);
-      
+
       if( checkBreakPoints && IsBreakPoint(u1,dur)){
          if(last-1 > first){
             Simplify(first,last-2,useleft,useright,epsilon);
@@ -1385,7 +1589,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
          Simplify(last-1, last-1, useleft, useright, epsilon);
          first = last;
          last++;
-      } else if( checkBreakPoints && IsBreakPoint(u2,dur)){ 
+      } else if( checkBreakPoints && IsBreakPoint(u2,dur)){
          Simplify(first,last-1,useleft,useright,epsilon);
          last++;
          Simplify(last-1, last-1,useleft,useright,epsilon);
@@ -1398,9 +1602,9 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
           first=last;
           last++;
       }
-   } 
+   }
    // process the last recognized sequence
-   Simplify(first,last-1,useleft, useright,epsilon); 
+   Simplify(first,last-1,useleft, useright,epsilon);
 
 
    // count the number of units
@@ -1411,7 +1615,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
       }
    }
 
-   result.Resize(count); // prepare enough memory 
+   result.Resize(count); // prepare enough memory
 
    result.StartBulkLoad();
    Instant start;
@@ -1420,7 +1624,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
    bool leftDefined = false;
    for(unsigned int i=0; i< size; i++){
      const UPoint* upoint;
-     
+
      Get(i,upoint);
      if(useleft[i]){
         // debug
@@ -1433,7 +1637,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
         closeLeft = upoint->timeInterval.lc;
         start = upoint->timeInterval.start;
         leftDefined=true;
-     } 
+     }
      if(useright[i]){
         // debug
         if(!leftDefined){
@@ -1460,10 +1664,10 @@ Recursive implementation of simplifying movements.
 
 **/
 
-void MPoint::Simplify(const int min, 
-                 const int max, 
-                 bool* useleft, 
-                 bool* useright, 
+void MPoint::Simplify(const int min,
+                 const int max,
+                 bool* useleft,
+                 bool* useright,
                  const double epsilon) const {
 
   // the endpoints are used in each case
@@ -1478,13 +1682,13 @@ void MPoint::Simplify(const int min,
   const UPoint* u2;
   // build a UPoint from the endpoints
   Get(min,u1);
-  Get(max,u2);  
+  Get(max,u2);
 
-  UPoint upoint(Interval<Instant>(u1->timeInterval.start, 
+  UPoint upoint(Interval<Instant>(u1->timeInterval.start,
                 u2->timeInterval.end,true,true),
                 u1->p0,
                 u2->p1);
-                
+
   // search for the point with the highest distance to its simplified position
   double maxDist = 0;
   int maxIndex=0;
@@ -1495,11 +1699,11 @@ void MPoint::Simplify(const int min,
   for(int i=min+1;i<=max;i++){
      Get(i,u);
      upoint.TemporalFunction(u->timeInterval.start,p_simple, true);
-     distance  = p_simple.Distance(u->p0);  
+     distance  = p_simple.Distance(u->p0);
      if(distance>maxDist){ // new maximum found
         maxDist = distance;
         maxIndex = i;
-     }  
+     }
   }
 
   if(maxIndex==0){  // no difference found
@@ -3616,7 +3820,7 @@ ListExpr MovingTypeMapUnits( ListExpr args )
 
 ListExpr MovingTypeMapSimplify(ListExpr args){
    int len = nl->ListLength(args);
-   
+
    if((len!=2) && (len !=3)){
        ErrorReporter::ReportError("two or three arguments expected");
        return nl->SymbolAtom("typeerror");
@@ -4319,7 +4523,7 @@ int SimplifySelect(ListExpr args){
    int len = nl->ListLength(args);
    if(len==2){
        // mpoint x real
-       if(nl->IsEqual(nl->First(args),"mpoint")){ 
+       if(nl->IsEqual(nl->First(args),"mpoint")){
            return 0;
        } else { // mreal x real
            return 2;
@@ -4760,25 +4964,25 @@ int MPointDistance( Word* args, Word& result, int message, Word&
 16.3.29 Value mappings function for the operator ~simplify~
 
 */
-int MPointSimplify(Word* args, Word& result, 
+int MPointSimplify(Word* args, Word& result,
                    int message, Word& local,
                    Supplier s){
   result = qp->ResultStorage( s );
   double epsilon = ((CcReal*)args[1].addr)->GetRealval();
   DateTime dur(durationtype);
-  ((MPoint*)args[0].addr)->Simplify( epsilon, 
+  ((MPoint*)args[0].addr)->Simplify( epsilon,
                                      *((MPoint*)result.addr),
                                      false,dur );
   return 0;
 }
-                 
-int MPointSimplify2(Word* args, Word& result, 
+
+int MPointSimplify2(Word* args, Word& result,
                    int message, Word& local,
                    Supplier s){
   result = qp->ResultStorage( s );
   double epsilon = ((CcReal*)args[1].addr)->GetRealval();
   DateTime* dur = (DateTime*)args[2].addr;
-  ((MPoint*)args[0].addr)->Simplify( epsilon, 
+  ((MPoint*)args[0].addr)->Simplify( epsilon,
                                      *((MPoint*)result.addr),
                                      true,*dur );
   return 0;
@@ -4790,7 +4994,7 @@ int MRealSimplify(Word* args, Word& result,
 
     result = qp->ResultStorage(s);
     double epsilon = ((CcReal*)args[1].addr)->GetRealval();
-    ((MReal*)args[0].addr)->Simplify( epsilon, 
+    ((MReal*)args[0].addr)->Simplify( epsilon,
                                      *((MReal*)result.addr));
      return 0;
 }
@@ -4801,7 +5005,7 @@ int MRealSimplify(Word* args, Word& result,
 */
 template <class mtype>
 int Integrate(Word* args, Word& result,
-              int message, Word& local, 
+              int message, Word& local,
               Supplier s){
    result = qp->ResultStorage(s);
    mtype* arg = (mtype*) args[0].addr;
@@ -4816,12 +5020,12 @@ int Integrate(Word* args, Word& result,
 
 
 /*
-16.2.28 Value Mapping function for the operator min 
+16.2.28 Value Mapping function for the operator min
 
 */
 template <class mtype>
 int VM_Min(Word* args, Word& result,
-              int message, Word& local, 
+              int message, Word& local,
               Supplier s){
    result = qp->ResultStorage(s);
    mtype* arg = (mtype*) args[0].addr;
@@ -4832,12 +5036,12 @@ int VM_Min(Word* args, Word& result,
 }
 
 /*
-16.2.28 Value Mapping function for the operator min 
+16.2.28 Value Mapping function for the operator min
 
 */
 template <class mtype>
 int VM_Max(Word* args, Word& result,
-              int message, Word& local, 
+              int message, Word& local,
               Supplier s){
    result = qp->ResultStorage(s);
    mtype* arg = (mtype*) args[0].addr;
@@ -4846,12 +5050,12 @@ int VM_Max(Word* args, Word& result,
    ((CcReal*)result.addr)->Set(correct,res);
    return 0;
 }
- 
+
 /*
 16.3.29 Value mapping function for the operator ~breakpoints~
 
 */
-int MPointBreakPoints(Word* args, Word& result, 
+int MPointBreakPoints(Word* args, Word& result,
                    int message, Word& local,
                    Supplier s){
   result = qp->ResultStorage( s );

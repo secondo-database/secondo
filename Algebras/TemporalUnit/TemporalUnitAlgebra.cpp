@@ -4503,40 +4503,8 @@ struct AtExtrURealLocalInfo
 {
   int NoOfResults;
   int ResultsDelivered;
-  UReal* t_res[3];
+  vector<UReal> resultUnitVector;
 };
-
-int getMaxValIndex( double& first, double& second, double& third)
-{ // returns a 3-bit field indicating smallest values
-
-  if ( (first > second) && (first > third) )
-    return 1;
-  if ( (second > first) && (second > third) )
-    return 2;
-  if ( (first == second) && (second > third) )
-    return 3;
-  if ( (third > first) && (third > second) )
-    return 4;
-  if ( (first == third) && (first > second) )
-    return 5;
-  if ( (second == third) && (second > first) )
-    return 6;
-  return 7; // they are all equal
-}
-
-double getValUreal(const double& t,
-                   const double& a,
-                   const double& b,
-                   const double& c,
-                   const bool& r)
-{
-  double tmp;
-  tmp = a*pow(t,2) + b*t + c;
-  if (r)
-    return sqrt(tmp);
-  else
-    return tmp;
-}
 
 
 int atmaxUReal( Word* args, Word& result, int message,
@@ -4544,11 +4512,6 @@ int atmaxUReal( Word* args, Word& result, int message,
 {
   AtExtrURealLocalInfo *sli;
   UReal                *ureal;
-  double  t_start, t_end, t_extr; // instants of interest
-  double  v_start, v_end, v_extr; // values at resp. instants
-  double  a, b, c, r, tx;
-  int     maxValIndex;
-  Instant t = DateTime(instanttype);
   Word    a0;
 
   result = qp->ResultStorage( s );
@@ -4557,9 +4520,6 @@ int atmaxUReal( Word* args, Word& result, int message,
     {
     case OPEN :
 
-#ifdef TUA_DEBUG
-      cout << "\natmaxUReal: OPEN " << endl;
-#endif
       a0 = args[0];
       ureal = (UReal*)(a0.addr);
 #ifdef TUA_DEBUG
@@ -4567,290 +4527,54 @@ int atmaxUReal( Word* args, Word& result, int message,
              << "  1" << endl;
 #endif
       sli = new AtExtrURealLocalInfo;
+      sli->resultUnitVector.clear();
       sli->NoOfResults = 0;
       sli->ResultsDelivered = 0;
       local = SetWord(sli);
 
-      if ( !(ureal->IsDefined()) )
+      if ( !ureal->IsDefined() )
         { // ureal undefined
           // -> return empty stream
-#ifdef TUA_DEBUG
-          cout << "  2.1: ureal undefined" << endl;
-#endif
           sli->NoOfResults = 0;
 #ifdef TUA_DEBUG
-            cout << "atmaxUReal: OPEN  finished (1)" << endl;
+          cout << "       ureal undef: no solution" << endl;
 #endif
           return 0;
         }
-
-      if ( (ureal->timeInterval.start).ToDouble() ==
-           (ureal->timeInterval.end).ToDouble() )
-        { // ureal contains only a single point.
-          // -> return a copy of the ureal
-#ifdef TUA_DEBUG
-            cout << "  3.1: ureal contains only a single point" << endl;
-#endif
-          sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
-#ifdef TUA_DEBUG
-            cout << "       res="
-                 << TUPrintUReal(sli->t_res[sli->NoOfResults])
-                 << endl;
-#endif
-          sli->NoOfResults++;
-#ifdef TUA_DEBUG
-            cout << "atmaxUReal: OPEN  finished (2)" << endl;
-#endif
-          return 0;
-        }
-
-      if (ureal->a == 0)
-        {
-          if ( ureal->b == 0 )
-            { //  constant function
-              // the only result is a copy of the argument ureal
-#ifdef TUA_DEBUG
-                cout << "  4.1: constant function" << endl;
-#endif
-              sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
-              // no translation needed for constant ureal!
-#ifdef TUA_DEBUG
-                cout << "       res " << sli->NoOfResults+1 << "="
-                     << TUPrintUReal(sli->t_res[sli->NoOfResults])
-                     << endl;
-#endif
-              sli->NoOfResults++;
-#ifdef TUA_DEBUG
-                cout << "atmaxUReal: OPEN  finished (3)" << endl;
-#endif
-              return 0;
-            }
-          if ( ureal->b < 0 )
-            { // linear fuction
-              // the result is a clone of the argument, restricted to
-              // its starting instant
-              sli->t_res[sli->NoOfResults] = ureal->Clone();
-#ifdef TUA_DEBUG
-                cout << "  4.2: linear function/initial" << endl;
-#endif
-              sli->t_res[sli->NoOfResults]->timeInterval.end =
-                sli->t_res[sli->NoOfResults]->timeInterval.start;
-              sli->t_res[sli->NoOfResults]->timeInterval.rc = true;
-              // no translation needed, since remaining starting instant
-#ifdef TUA_DEBUG
-                cout << "       res " << sli->NoOfResults+1 << "="
-                     << TUPrintUReal(sli->t_res[sli->NoOfResults])
-                     << endl;
-#endif
-              sli->NoOfResults++;
-#ifdef TUA_DEBUG
-                cout << "atmaxUReal: OPEN  finished (4)" << endl;
-#endif
-              return 0;
-            }
-          if ( ureal->b > 0 )
-            { // linear fuction
-              // the result is a clone of the argument, restricted to
-              // its final instant
-              sli->t_res[sli->NoOfResults] = ureal->Clone();
-#ifdef TUA_DEBUG
-                cout << "  4.3: linear function/final" << endl;
-#endif
-              sli->t_res[sli->NoOfResults]->timeInterval.start =
-                sli->t_res[sli->NoOfResults]->timeInterval.end;
-              sli->t_res[sli->NoOfResults]->timeInterval.lc = true;
-              // translate result to new starting instant!
-              tx = ureal->timeInterval.end.ToDouble() -
-                   ureal->timeInterval.start.ToDouble();
-              (sli->t_res[sli->NoOfResults])->TranslateParab(tx);
-#ifdef TUA_DEBUG
-                cout << "       res " << sli->NoOfResults+1 << "="
-                     << TUPrintUReal(sli->t_res[sli->NoOfResults])
-                     << endl;
-#endif
-              sli->NoOfResults++;
-#ifdef TUA_DEBUG
-                cout << "atmaxUReal: OPEN  finished (5)" << endl;
-#endif
-              return 0;
-            }
-        }
-
-      if (ureal->a != 0)
-        { // quadratic function
-          // we have to additionally check for the extremum
-#ifdef TUA_DEBUG
-          cout << "  5.1: quadratic function" << endl;
-#endif
-
-          // get the times of interest
-          a = ureal->a;
-          b = ureal->b;
-          c = ureal->c;
-          r = ureal->r;
-          t_start = (ureal->timeInterval.start).ToDouble();
-          t_extr  = -b/(2*a);
-          t_end   = (ureal->timeInterval.end).ToDouble();
-          // get the values of interest
-          v_start = getValUreal(t_start,a,b,c,r);
-          v_extr  = getValUreal(t_extr, a,b,c,r);
-          v_end   = getValUreal(t_end,  a,b,c,r);
-#ifdef TUA_DEBUG
-            cout << "  5.2" << endl
-                 << "\tt_start=" << t_start << "\t v_start=" << v_start << endl
-                 << "\tt_extr =" << t_extr  << "\t v_extr =" << v_extr  << endl
-                 << "\tt_end  =" << t_end   << "\t v_end  =" << v_end   << endl;
-#endif
-          // compute, which values are maximal
-          if ( (t_start < t_extr) && (t_end   > t_extr) )
-            { // check all 3 candidates
-#ifdef TUA_DEBUG
-              cout << "  5.3: check all 3 candidates" << endl;
-#endif
-              maxValIndex = getMaxValIndex(v_extr,v_start,v_end);
-#ifdef TUA_DEBUG
-                cout << "  5.3  maxValIndex=" << maxValIndex << endl;
-#endif
-            }
-          else
-            { // extremum not within interval --> possibly 2 results
-#ifdef TUA_DEBUG
-                cout << "  5.4: extremum not in interv (2 candidates)" << endl;
-#endif
-              maxValIndex = 0;
-              if (v_start >= v_end) // max at t_start
-                maxValIndex += 2;
-              if (v_end >= v_start) // max at t_end
-                maxValIndex += 4;
-#ifdef TUA_DEBUG
-                cout << "  5.4  maxValIndex=" << maxValIndex << endl;
-#endif
-            }
-          if (maxValIndex & 2)
-            { // start value
-#ifdef TUA_DEBUG
-              cout << "  5.6: added start value" << endl;
-#endif
-              sli->t_res[sli->NoOfResults] = ureal->Clone();
-              t = ureal->timeInterval.start;
-              Interval<Instant> i( t, t, true, true );
-              sli->t_res[sli->NoOfResults]->timeInterval = i;
-              // no translation required
-#ifdef TUA_DEBUG
-                cout << "       res " << sli->NoOfResults+1 << "="
-                     << TUPrintUReal(sli->t_res[sli->NoOfResults])
-                     << endl;
-#endif
-              sli->NoOfResults++;
-            }
-          if ( ( maxValIndex & 4 ) && ( t_end != t_start ) )
-            { // end value
-#ifdef TUA_DEBUG
-              cout << "  5.7: added end value" << endl;
-#endif
-              sli->t_res[sli->NoOfResults] = ureal->Clone();
-              t = ureal->timeInterval.end;
-              Interval<Instant> i( t, t, true, true );
-              sli->t_res[sli->NoOfResults]->timeInterval = i;
-              // translate result to new starting instant!
-              tx = t.ToDouble() - ureal->timeInterval.start.ToDouble();
-              (sli->t_res[sli->NoOfResults])->TranslateParab(tx);
-#ifdef TUA_DEBUG
-                cout << "       res " << sli->NoOfResults+1 << "="
-                     << TUPrintUReal(sli->t_res[sli->NoOfResults])
-                     << endl;
-#endif
-              sli->NoOfResults++;
-            }
-
-          if ( (maxValIndex & 1)   &&
-               (t_extr != t_start) &&
-               (t_extr != t_end)      )
-            {
-#ifdef TUA_DEBUG
-              cout << "  5.8: added extremum" << endl;
-#endif
-              sli->t_res[sli->NoOfResults] = ureal->Clone();
-              t.ReadFrom(t_extr);
-              Interval<Instant> i( t, t, true, true );
-              sli->t_res[sli->NoOfResults]->timeInterval = i;
-              // translate result to new starting instant!
-              tx = t_extr - ureal->timeInterval.start.ToDouble();
-              (sli->t_res[sli->NoOfResults])->TranslateParab(tx);
-#ifdef TUA_DEBUG
-                cout << "       res " << sli->NoOfResults+1 << "="
-                     << TUPrintUReal(sli->t_res[sli->NoOfResults])
-                     << endl;
-#endif
-              sli->NoOfResults++;
-            }
-#ifdef TUA_DEBUG
-            cout << "atmaxUReal: OPEN  finished (6)" << endl;
-#endif
-          return 0;
-        }
-      cout << "\natmaxUReal (OPEN): This should not happen!" << endl;
-#ifdef TUA_DEBUG
-      cout << "atmaxUReal: OPEN  finished (7)" << endl;
-#endif
+      sli->NoOfResults = ureal->AtMax(sli->resultUnitVector);
       return 0;
 
     case REQUEST :
 
-#ifdef TUA_DEBUG
-      cout << "\natmaxUReal: REQUEST" << endl;
-#endif
       if (local.addr == 0)
-        {
-#ifdef TUA_DEBUG
-            cout << "atmaxUReal: REQUEST CANCEL(1)" << endl;
-#endif
-          return CANCEL;
-        }
+        return CANCEL;
       sli = (AtExtrURealLocalInfo*) local.addr;
+
       if (sli->NoOfResults <= sli->ResultsDelivered)
-        {
+        return CANCEL;
+
+      result = SetWord( sli->resultUnitVector[sli->ResultsDelivered].Clone() );
 #ifdef TUA_DEBUG
-            cout << "atmaxUReal: REQUEST CANCEL (2)" << endl;
-#endif
-          return CANCEL;
-        }
-      result = SetWord( sli->t_res[sli->ResultsDelivered]->Copy() );
-      sli->t_res[sli->ResultsDelivered]->DeleteIfAllowed();
-#ifdef TUA_DEBUG
-        cout << " 4: delivered result[" << sli->ResultsDelivered+1
+        cout << "    delivered result[" << sli->ResultsDelivered+1
              << "/" << sli->NoOfResults<< "]="
              << TUPrintUReal((UReal*)(result.addr))
              << endl;
 #endif
       sli->ResultsDelivered++;
-#ifdef TUA_DEBUG
-        cout << "atmaxUReal: REQUEST YIELD" << endl;
-#endif
       return YIELD;
 
     case CLOSE :
 
-#ifdef TUA_DEBUG
-      cout << "\natmaxUReal: CLOSE" << endl;
-#endif
       if (local.addr != 0)
         {
           sli = (AtExtrURealLocalInfo*) local.addr;
-          while (sli->NoOfResults > sli->ResultsDelivered)
-            {
-              sli->t_res[sli->ResultsDelivered]->DeleteIfAllowed();
-              sli->ResultsDelivered++;
-            }
+//           for(unsigned int i=0; i< sli->resultUnitVector.size(); i++)
+//             sli->resultUnitVector[i].DeleteIfAllowed();
           delete sli;
         }
-#ifdef TUA_DEBUG
-      cout << "atmaxUReal: CLOSE finished" << endl;
-#endif
       return 0;
 
     } // end switch
-  cout << "\natmaxUReal (UNKNOWN COMMAND): This should not happen!" << endl;
   return 0;   // should not be reached
 }
 
@@ -4957,34 +4681,11 @@ Uses typemapping ~UnitBaseTypeMapAtmax~ intended for related operator ~atmax~
 
 */
 
-int getMinValIndex( double& first, double& second, double& third)
-{ // returns a 3-bit field indicating smallest values
-
-  if ( (first < second) && (first < third) )
-    return 1;
-  if ( (second < first) && (second < third) )
-    return 2;
-  if ( (first == second) && (second < third) )
-    return 3;
-  if ( (third < first) && (third < second) )
-    return 4;
-  if ( (first == third) && (first < second) )
-    return 5;
-  if ( (second == third) && (second < first) )
-    return 6;
-  return 7; // they are all equal
-}
-
 int atminUReal( Word* args, Word& result, int message,
                 Word& local, Supplier s )
 {
   AtExtrURealLocalInfo *sli;
   UReal                *ureal;
-  double  t_start, t_end, t_extr; // instants of interest
-  double  v_start, v_end, v_extr; // values at resp. instants
-  double  a, b, c, r, tx;
-  int     minValIndex;
-  Instant t = DateTime(instanttype);
   Word    a0;
 
   result = qp->ResultStorage( s );
@@ -5000,6 +4701,7 @@ int atminUReal( Word* args, Word& result, int message,
              << "  1" << endl;
 #endif
       sli = new AtExtrURealLocalInfo;
+      sli->resultUnitVector.clear();
       sli->NoOfResults = 0;
       sli->ResultsDelivered = 0;
       local = SetWord(sli);
@@ -5013,174 +4715,7 @@ int atminUReal( Word* args, Word& result, int message,
 #endif
           return 0;
         }
-
-      if ( (ureal->timeInterval.start).ToDouble() ==
-           (ureal->timeInterval.end).ToDouble() )
-        { // ureal contains only a single point.
-          // -> return a copy of the ureal
-          sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
-          // no translation required
-#ifdef TUA_DEBUG
-            cout << "       single point" << endl
-                 << "       res " << sli->NoOfResults+1 << "="
-                 << TUPrintUReal(sli->t_res[sli->NoOfResults])
-                 << endl;
-#endif
-          sli->NoOfResults++;
-          return 0;
-        }
-
-      if (ureal->a == 0)
-        {
-          if ( ureal->b == 0 )
-            { //  constant function
-              // the only result is a copy of the argument ureal
-              sli->t_res[sli->NoOfResults] = (UReal*) (ureal->Copy());
-              // no translation required
-#ifdef TUA_DEBUG
-                cout << "       constant function" << endl
-                     << "       res " << sli->NoOfResults+1 << "="
-                     << TUPrintUReal(sli->t_res[sli->NoOfResults])
-                     << endl;
-#endif
-              sli->NoOfResults++;
-              return 0;
-            }
-          if ( ureal->b < 0 )
-            { // linear fuction
-              // the result is a clone of the argument, restricted to
-              // its ending instant
-              sli->t_res[sli->NoOfResults] = ureal->Clone();
-              sli->t_res[sli->NoOfResults]->timeInterval.end =
-                sli->t_res[sli->NoOfResults]->timeInterval.start;
-              sli->t_res[sli->NoOfResults]->timeInterval.lc = true;
-              // translate result to new starting instant!
-              tx = ureal->timeInterval.end.ToDouble() -
-                   ureal->timeInterval.start.ToDouble();
-              (sli->t_res[sli->NoOfResults])->TranslateParab(tx);
-#ifdef TUA_DEBUG
-                cout << "       linear function: final" << endl
-                     << "       res " << sli->NoOfResults+1 << "="
-                     << TUPrintUReal(sli->t_res[sli->NoOfResults])
-                     << endl;
-#endif
-              sli->NoOfResults++;
-              return 0;
-            }
-          if ( ureal->b > 0 )
-            { // linear fuction
-              // the result is a clone of the argument, restricted to
-              // its starting instant
-              sli->t_res[sli->NoOfResults] = ureal->Clone();
-              sli->t_res[sli->NoOfResults]->timeInterval.start =
-                sli->t_res[sli->NoOfResults]->timeInterval.end;
-              sli->t_res[sli->NoOfResults]->timeInterval.rc = true;
-              // no translation required
-#ifdef TUA_DEBUG
-                cout << "       linear function: initial" << endl
-                     << "       res " << sli->NoOfResults+1 << "="
-                     << TUPrintUReal(sli->t_res[sli->NoOfResults])
-                     << endl;
-#endif
-              sli->NoOfResults++;
-              return 0;
-            }
-        }
-
-      if (ureal->a !=0)
-        { // quadratic function
-          // we have to additionally ckeck for the extremum
-
-          // get the times of interest
-          a = ureal->a;
-          b = ureal->b;
-          c = ureal->c;
-          r = ureal->r;
-          t_extr  = -b/(2*a);
-          t_start = (ureal->timeInterval.start).ToDouble();
-          t_end   = (ureal->timeInterval.end).ToDouble();
-          // get the values of interest
-          v_extr  = getValUreal(t_extr, a,b,c,r);
-          v_start = getValUreal(t_start,a,b,c,r);
-          v_end   = getValUreal(t_end,  a,b,c,r);
-#ifdef TUA_DEBUG
-            cout << "\nQuadratic function. Cadidates are: " << endl
-                 << "\tt_start=" << t_start << "\t v_start=" << v_start << endl
-                 << "\tt_extr =" << t_extr  << "\t v_extr =" << v_extr  << endl
-                 << "\tt_end  =" << t_end   << "\t v_end  =" << v_end   << endl;
-#endif
-          // compute, which values are minimal
-
-          if ( (t_start < t_extr) && (t_end > t_extr) )
-            // 3 possible results
-            minValIndex = getMinValIndex(v_extr,v_start,v_end);
-          else
-            { // only 2 possible results
-              minValIndex = 0;
-              if (v_start <= v_end) // min at start
-                minValIndex += 2;
-              if (v_end <= v_start) // min at end
-                minValIndex += 4;
-            }
-#ifdef TUA_DEBUG
-          cout << "\tminValIndex = " <<  minValIndex << endl;
-#endif
-
-          if (minValIndex & 2)
-            {
-              sli->t_res[sli->NoOfResults] = ureal->Clone();
-              t = ureal->timeInterval.start;
-              Interval<Instant> i( t, t, true, true );
-              sli->t_res[sli->NoOfResults]->timeInterval = i;
-              // no translation required
-#ifdef TUA_DEBUG
-                cout << "       added start" << endl
-                     << "       res " << sli->NoOfResults+1 << "="
-                     << TUPrintUReal(sli->t_res[sli->NoOfResults])
-                     << endl;
-#endif
-              sli->NoOfResults++;
-            }
-          if ( (minValIndex & 4) && (t_start != t_end) )
-            {
-              sli->t_res[sli->NoOfResults] = ureal->Clone();
-              t = ureal->timeInterval.end;
-              Interval<Instant> i( t, t, true, true );
-              sli->t_res[sli->NoOfResults]->timeInterval = i;
-              // translate result to new starting instant!
-              tx = ureal->timeInterval.end.ToDouble() -
-                   ureal->timeInterval.start.ToDouble();
-              (sli->t_res[sli->NoOfResults])->TranslateParab(tx);
-#ifdef TUA_DEBUG
-                cout << "       added end" << endl
-                     << "       res " << sli->NoOfResults+1 << "="
-                     << TUPrintUReal(sli->t_res[sli->NoOfResults])
-                     << endl;
-#endif
-              sli->NoOfResults++;
-            }
-          if ( (minValIndex & 1)   &&
-               (t_extr != t_start) &&
-               (t_extr != t_end)      )
-            {
-              sli->t_res[sli->NoOfResults] = ureal->Clone();
-              t.ReadFrom(t_extr);
-              Interval<Instant> i( t, t, true, true );
-              sli->t_res[sli->NoOfResults]->timeInterval = i;
-              // translate result to new starting instant!
-              tx = t_extr - ureal->timeInterval.start.ToDouble();
-              (sli->t_res[sli->NoOfResults])->TranslateParab(tx);
-#ifdef TUA_DEBUG
-                cout << "       added extr" << endl
-                     << "       res " << sli->NoOfResults+1 << "="
-                     << TUPrintUReal(sli->t_res[sli->NoOfResults])
-                     << endl;
-#endif
-              sli->NoOfResults++;
-            }
-          return 0;
-        }
-      cout << "\natminUReal (OPEN): This should not happen!" << endl;
+      sli->NoOfResults = ureal->AtMin(sli->resultUnitVector);
       return 0;
 
     case REQUEST :
@@ -5192,8 +4727,7 @@ int atminUReal( Word* args, Word& result, int message,
       if (sli->NoOfResults <= sli->ResultsDelivered)
         return CANCEL;
 
-      result = SetWord( sli->t_res[sli->ResultsDelivered]->Clone() );
-      sli->t_res[sli->ResultsDelivered]->DeleteIfAllowed();
+      result = SetWord( sli->resultUnitVector[sli->ResultsDelivered].Clone() );
 #ifdef TUA_DEBUG
         cout << "    delivered result[" << sli->ResultsDelivered+1
              << "/" << sli->NoOfResults<< "]="
@@ -5208,11 +4742,8 @@ int atminUReal( Word* args, Word& result, int message,
       if (local.addr != 0)
         {
           sli = (AtExtrURealLocalInfo*) local.addr;
-          while (sli->NoOfResults > sli->ResultsDelivered)
-            {
-              sli->t_res[sli->ResultsDelivered]->DeleteIfAllowed();
-              sli->ResultsDelivered++;
-            }
+//           for(unsigned int i=0; i< sli->resultUnitVector.size(); i++)
+//             sli->resultUnitVector[i].DeleteIfAllowed();
           delete sli;
         }
       return 0;

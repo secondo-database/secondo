@@ -424,7 +424,7 @@ Operator : makemvalue
 Number   : 6
 Signature: stream (tuple ((x1 t1)...(xi uregion)...(xn tn))) xi -> movingregion
 Example  : query 1 * 1
-Result   : CRASHES
+Result   : crashes
 
 Operator : makepoint
 Number   : 1
@@ -637,7 +637,7 @@ Result   : 113
 
 
 Operator : velocity
-Number   : 1
+Number   : 2
 Signature: mpoint -> mpoint
 Example  : query units(velocity(Trains feed extract[Trip]) at makepoint(0, 0)) count
 Result   : 23
