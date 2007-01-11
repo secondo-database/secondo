@@ -6,31 +6,31 @@ Operator : cunion
 Number   : 1
 Signature: (constraint constraint) -> constraint
 Example  : query consPolygon1 cunion consPolygon2
-Result   : 
+Result   : file
 
 Operator : cjoin
 Number   : 1
 Signature: (constraint constraint) -> constraint
 Example  : query consPolygon1 cjoin consPolygon2
-Result   : 
+Result   : file
 
 Operator : cintersection
 Number   : 1
 Signature: (constraint constraint) -> constraint
 Example  : query consPolygon1 cintersection consLine1
-Result   : 
+Result   : file
 
 Operator : cprojection
 Number   : 1
 Signature: (constraint {x,y}) -> constraint
 Example  : query cprojection(consPolygon1, x)
-Result   : 
+Result   : file
 
 Operator : cselection
 Number   : 1
 Signature: (constraint real real real {eq, leq}) -> constraint
 Example  : query cselection(consPolygon1, 1.0, 0.0, -7.0, leq)
-Result   : 
+Result   : file
 
 Operator : csatisfy
 Number   : 1
@@ -60,59 +60,65 @@ Operator : bbox
 Number   : 1
 Signature: (constraint) -> rect
 Example  : query bbox(consPolygon1)
-Result   : 
+Result   : file
 
 Operator : triangulate
 Number   : 1
 Signature: (stream(region)) -> stream(region)
-Example  : query Flaechen feed project[geoData] transformstream triangulate transformstream count;
-Result   : 2974
+Example  : query spatRegion feed triangulate count
+Result   : 35
 
 Operator : point2constraint
 Number   : 1
 Signature: (point) -> constraint
-Example  : query UBahnhof feed extend[p: point2constraint(.geoData scale[0.1])] filter[csatisfy(.p)=TRUE] project[p] count; 
-Result   : 173
+Example  : query point2constraint(spatPoint)
+Result   : file
 
 Operator : points2constraint
 Number   : 1
 Signature: (points) -> constraint
-Example  : query points2constraint(train7stations scale[0.1]);
-Result   : 
+Example  : query points2constraint(spatPoints)
+Result   : file
 
 Operator : line2constraint
 Number   : 1
 Signature: (line) -> constraint
-Example  : query line2constraint(PotsdamLine scale[0.1]);
-Result   : 
+Example  : query line2constraint(spatLine)
+Result   : file
 
 Operator : region2constraint
 Number   : 1
 Signature: (region) -> constraint
-Example  : query region2constraint(thecenter scale[0.1], TRUE);
-Result   : 
+Example  : query region2constraint(spatRegion, TRUE)
+Result   : file
+
+Operator : region2constraint
+Number   : 2
+Signature: (region) -> constraint
+Example  : query region2constraint(spatRegion, FALSE)
+Result   : file
 
 Operator : constraint2point
 Number   : 1
 Signature: (constraint) -> point
 Example  : query constraint2point(consPoint1)
-Result   : 
+Result   : file
 
 Operator : constraint2points
 Number   : 1
 Signature: (constraint) -> points
 Example  : query constraint2points(consPoints1)
-Result   : 
+Result   : file
 
 Operator : constraint2line
 Number   : 1
 Signature: (constraint) -> line
 Example  : query constraint2line(consLine1)
-Result   : 
+Result   : file
 
 Operator : constraint2region
 Number   : 1
 Signature: (stream(constraint)) -> stream(region)
-Example  : query consPolygon1 feed constraint2region count;
+Example  : query consPolygon1 feed constraint2region count
 Result   : 65
 
