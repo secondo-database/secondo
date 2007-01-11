@@ -567,10 +567,11 @@ day value.
    BigInt<8> bi_res(day);
    BigInt<8> bi_MS(MILLISECONDS);
    bi_res.MulInternal(bi_MS,correct);
-   assert(correct);
+   correct = true;
+   //assert(correct);
    BigInt<8> bi_ms(milliseconds);
    bi_res.AddInternal(bi_ms,correct);
-   assert(correct);
+   //assert(correct);
    return  bi_res;  
  }
 
