@@ -3796,7 +3796,7 @@ int MovingDerivativeExt(
             unitout.c = unitin->b;
             unitout.r = false;
             unitout.timeInterval = unitin->timeInterval;
-            pResult->Add(unitout);
+            pResult->MergeAdd(unitout);
         }
     }
     pResult->EndBulkLoad( false );
