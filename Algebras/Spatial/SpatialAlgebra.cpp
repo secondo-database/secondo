@@ -3693,6 +3693,24 @@ void Line::Translate( const Coord& x, const Coord& y, Line& result ) const
   result.EndBulkLoad( false, false, false, false );
 }
 
+void Line::Transform( Region& result ) const
+{
+  assert( IsOrdered() );
+
+  const HalfSegment *hs;
+  result.StartBulkLoad();
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, hs );
+
+    HalfSegment auxhs( *hs );
+    result += auxhs;
+  }
+  result.SetNoComponents( NoComponents() );
+  //result.EndBulkLoad( false, false, false, false );
+  result.EndBulkLoad();
+}
+
 bool Line::AtPosition( double pos, bool startsSmaller, Point& p ) const
 {
   if( startsSmaller != this->startsSmaller )
@@ -8767,6 +8785,27 @@ SpatialGetXYMap( ListExpr args )
 }
 
 /*
+10.1.7 Type mapping function for the operators ~line2region~  
+
+This type mapping function is the one for the ~line2region~ operator.
+The result type is a region.
+
+*/
+ListExpr
+SpatialLine2RegionMap( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+
+    if ( SpatialTypeOfSymbol( arg1 ) == stline )
+      return (nl->SymbolAtom( "region" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
 10.3 Selection functions
 
 A selection function is quite similar to a type mapping function. The only
@@ -10885,6 +10924,26 @@ SpatialTranslate_l( Word* args, Word& result, int message,
 }
 
 int
+SpatialLine2Region( Word* args, Word& result, int message, 
+                    Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  Line *cl = (Line *)args[0].addr;
+  Region *pResult = (Region *)result.addr;
+
+  pResult->Clear();
+
+  if(  !cl->IsEmpty() )
+    cl->Transform( *pResult );
+
+  else 
+    ((Region*)result.addr)->SetDefined( false );
+  
+  return 0;
+}
+
+int
 SpatialTranslate_r( Word* args, Word& result, int message, 
                     Word& local, Supplier s )
 {
@@ -11828,6 +11887,14 @@ const string SpatialSpecGetY  =
   "<text> query gety([const point value (0.0 -1.2)])</text--->"
   ") )";
 
+const string SpatialSpecLine2Region  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>line -> region</text--->"
+  "<text>_ line2region</text--->"
+  "<text>Converts a line object to a region object.</text--->"
+  "<text> query gety([const point value (0.0 -1.2)])</text--->"
+  ") )";
+
 /*
 10.5.3 Definition of the operators
 
@@ -12101,6 +12168,13 @@ Operator spatialgety (
   Operator::SimpleSelect,
   SpatialGetXYMap );
 
+Operator spatialline2region (
+  "line2region",
+  SpatialSpecLine2Region,
+  SpatialLine2Region,
+  Operator::SimpleSelect,
+  SpatialLine2RegionMap );
+
 /*
 11 Creating the Algebra
 
@@ -12161,6 +12235,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialadd );
     AddOperator( &spatialgetx );
     AddOperator( &spatialgety );
+    AddOperator( &spatialline2region );
   }
   ~SpatialAlgebra() {};
 };

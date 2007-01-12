@@ -39,6 +39,7 @@ operator subline alias SUBLINE pattern op(_,_)
 operator + alias PLUS pattern _ infixop _
 operator getx alias GETX pattern op(_)
 operator gety alias GETY pattern op(_)
+operator line2region alias LINE2REGION pattern _ op
 
 
 

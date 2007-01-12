@@ -308,6 +308,19 @@ Operators redefinition.
 */
     inline Point Translate( const Coord& x, const Coord& y ) const;
     inline void Translate( const Coord& x, const Coord& y );
+
+/*
+4.3.15 Operation ~add~
+
+*Precondition:* ~p1.IsDefined(), p2.IsDefined()~
+
+*Semantics:*  ~(p1.x + p2.x, p1.y + p2.y)~
+
+*Complexity:* $O(1)$
+
+*/
+    inline Point Add( const Point& p ) const;
+
 /*
 4.4 Functions needed to import the the ~point~ data type to tuple
 
@@ -1624,6 +1637,18 @@ is the ~points~ result size.
 */
     void Translate( const Coord& x, const Coord& y, Line& l ) const;
 /*
+4.3.14 Operation ~transform~
+
+*Precondition:* ~U.IsOrdered()~
+
+*Semantics:* ~U -> R~
+
+*Complexity:* $O(n)$, where ~n~ is the size of ~U~
+
+*/
+    void Transform( Region& r ) const;
+/*
+
 6.4.6 Operation ~atposition~
 
 *Precondition:* ~U.IsOrdered()~
@@ -3021,6 +3046,12 @@ inline void Point::Translate( const Coord& x, const Coord& y )
     this->x += x;
     this->y += y;
   }
+}
+
+inline Point Point::Add( const Point& p ) const
+{
+  assert( defined && p.defined );
+  return Point( true, this->x + p.x, this->y + p.y );
 }
 
 inline Point& Point::operator=( const Point& p )
