@@ -4,84 +4,84 @@ Restore : No
 Operator : #
 Number   : 1
 Signature: (rect<d> x rect<d>) -> bool
-Example  : query rect1 # rect
-Result   : 
+Example  : query [const rect value (0.0 1.0 0.0 1.0)] # [const rect value (0.0 1.0 0.0 1.0)]
+Result   : FALSE
 
 
 Operator : =
 Number   : 1
 Signature: (rect<d> x rect<d>) -> bool
-Example  : query rect1 = rect
-Result   : 
+Example  : query [const rect value (0.0 2.0 0.0 3.0)] = [const rect value (0.0 2.0 0.0 3.0)]
+Result   : TRUE
 
 
 Operator : inside
 Number   : 1
 Signature: (rect<d> x rect<d>) -> bool
-Example  : query rect1 inside rect
-Result   : 
+Example  : query [const rect value (1.0 2.0 1.0 2.0)] inside [const rect value (0.0 5.0 0.0 10.0)]
+Result   : TRUE
 
 
 Operator : intersection
 Number   : 1
 Signature: (rect<d> x rect<d>) -> rect<d>
-Example  : query intersection(rect1, rect2)
-Result   : 
+Example  : query intersection([const rect value (0.0 1.0 0.0 1.0)], [const rect value (0.5 2.0 0.5 2.0)])
+Result   : (rect (0.5 1.0 0.5 1.0))
 
 
 Operator : intersects
 Number   : 1
 Signature: (rect<d> x rect<d>) -> bool 
-Example  : query rect1 intersects rect
-Result   : 
+Example  : query [const rect value (0.0 1.0 0.0 1.0)] intersects [const rect value (0.5 2.0 0.5 2.0)]
+Result   : TRUE
 
 
 Operator : isempty
 Number   : 1
 Signature: rect<d> -> bool
-Example  : query isempty ( rect1 )
-Result   : 
+Example  : query isempty ([const rect value(0.0 1.0 0.0 1.0)])
+Result   : FALSE
 
 
 Operator : rectangle2
 Number   : 1
 Signature: (int x int x int x int -> rect) or (real x real x real x real -> rect)
 Example  : query rectangle2(17.0, 24.3, 12.0, 13.1)
-Result   : 
+Result   : (rect (17.0 24.3 12.0 13.1))
 
 
 Operator : rectangle3
 Number   : 1
 Signature: (int x int x int x int x int x int -> rect3) or (real x real x real x real x real x real -> rect3)
-Example  : query rectangle3(17.0, 24.0, 12.0, 13.1, 4.41, 6.18)
-Result   : 
+Example  : query rectangle3(17, 24, 12, 13, 4, 6)
+Result   : (rect3 (17.0 24.0 12.0 13.0 4.0 6.0))
 
 
 Operator : rectangle4
 Number   : 1
 Signature: (int x int x int x int x int x int x int x int -> rect4) or (real x real x real x real x real x real x real x real-> rect4)
-Example  : query rectangle3(17.0, 24.0, 12.0, 13.1, 4.41, 6.18, 2.3, 3.74)
-Result   : 
+Example  : query rectangle4(17, 24, 12, 13, 4, 6, 2, 3)
+Result   : (rect4 (17.0 24.0 12.0 13.0 4.0 6.0 2.0 3.0))
 
 
 Operator : rectangle8
 Number   : 1
 Signature: (int x int x int x int x int x int x int x int x real -> rect8) or (real x real x real x real x real x real x real x real x real -> rect8)
 Example  : query rectangle8(1,2,3,4,5,6,7,8, 1.2)
-Result   : 
+Result   : (rect8 (1.0 2.2 2.0 3.2 3.0 4.2 4.0 5.2 5.0 6.2 6.0 7.2 7.0 8.2 8.0 9.2))
 
 
 Operator : translate
 Number   : 1
 Signature: (rect (real real)) -> rect (rect3 (real real real)) -> rect3 (rect4 (real real real real)) -> rect4
-Example  :  query rect1 translate[3.5, 15.1]
-Result   : 
+Example  : query [const rect value (0.0 1.0 0.0 1.0)] translate[10.0, 20.0]
+Result   : (rect (10.0 11.0 20.0 21.0))
 
 
 Operator : union
 Number   : 1
 Signature: (rect<d> x rect<d>) -> rect<d>
-Example  : query rect1 union rect2
-Result   : 
+Example  : query [const rect value (0.0 1.0 0.0 1.0)] union [const rect value (2.0 3.0 2.0 3.0)]
+Result   : (rect (0.0 3.0 0.0 3.0))
 
 
