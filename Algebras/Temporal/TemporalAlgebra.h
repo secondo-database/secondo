@@ -2362,6 +2362,22 @@ Compute the integral of this moving real.
 */
    double Min(bool& correct) const;
 
+/*
+3.11.6 Operation ~AtMin~
+
+Restrict to periods where the temporal value is maximal.
+
+*/
+   void AtMin( MReal& result ) const;
+
+/*
+3.11.7 Operation ~AtMax~
+
+Restrict to periods where the temporal value is minimum.
+
+*/
+   void AtMax( MReal& result ) const;
+
 private:
    void Simplify(const int min, const int max,
                  bool* useleft, bool* useright,
@@ -2407,6 +2423,7 @@ The constructor. Initializes space for ~n~ elements.
   void Trajectory( Line& line ) const;
   void MSpeed(  MReal& result ) const;
   void MVelocity( MPoint& result ) const;
+
 /*
 3.10.5.3 Operation ~distance~
 

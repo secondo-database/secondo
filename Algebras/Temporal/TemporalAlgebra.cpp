@@ -402,6 +402,7 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
        << " rc=" << timeInterval.rc << endl;
   times.Clear();
   if( !IsDefined() )
+    cout << "UReal::PeriodsAtVal(): Undefined UReal -> 0 results." << endl;
     return 0;
 
   if( a==0.0 && b==0.0 )
@@ -409,15 +410,20 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
     {
       cout << "UReal::PeriodsAtVal(): constant case" << endl;
       if ( (!r && AlmostEqual(c, value)) ||
-           (r && AlmostEqual(sqrt(c), value) ) )
+           (r &&
+             (AlmostEqual(sqrt(c), value) || AlmostEqual(c, value*value) ) ) )
       {
         times.StartBulkLoad();
         times.Add(timeInterval);
         times.EndBulkLoad();
+        cout << "UReal::PeriodsAtVal(): constant UReal -> 1 result." << endl;
         return times.GetNoComponents();
       }
       else // no result
+      {
+        cout << "UReal::PeriodsAtVal(): constant UReal -> 0 results." << endl;
         return 0;
+      }
     }
   if( !r )
   {
@@ -427,12 +433,16 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
   else
   {
     cout << "UReal::PeriodsAtVal(): r==true" << endl;
-    if (value >= 0.0)
-      no_res = SolvePoly(a, b, (c-(value*value)), inst_d, true);
-    else
+    if (value < 0.0)
+    {
+      cout << "UReal::PeriodsAtVal(): radix cannot become <0. -> 0 results."
+           << endl;
       return 0;
+    }
+    else
+      no_res = SolvePoly(a, b, (c-(value*value)), inst_d, true);
   }
-  times.Print(cout);
+//   times.Print(cout);
   for(int i=0; i<no_res; i++)
   {
     t0.ReadFrom(inst_d[i]);
@@ -456,6 +466,8 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
         cout << "UReal::PeriodsAtVal(): not added instant" << endl;
     }
   }
+  cout << "UReal::PeriodsAtVal(): Calculated "
+       << times.GetNoComponents() << "results." << endl;
   return times.GetNoComponents();
 }
 
@@ -484,7 +496,7 @@ int UReal::AtMin(vector<UReal>& result) const
 
   if(!correct)
     return 0;
-  cout << "UReal::AtMin(): minVal=" << minVal << endl;
+//  cout << "UReal::AtMin(): minVal=" << minVal << endl;
   minTimesPeriods.Clear();
   no_res = PeriodsAtVal( minVal, minTimesPeriods );
   for(int i=0; i<no_res; i++)
@@ -540,7 +552,7 @@ int UReal::AtMax( vector<UReal>& result) const
   double maxVal = Max(correct);
   if(!correct)
     return 0;
-  cout << "UReal::AtMin(): maxVal=" << maxVal << endl;
+//  cout << "UReal::AtMax(): maxVal=" << maxVal << endl;
   no_res = PeriodsAtVal( maxVal, maxTimesPeriods );
   for(int i=0; i<no_res; i++)
   {
@@ -578,6 +590,11 @@ same value. Returns the number of results (0-2).
 */
 int UReal::PeriodsAtEqual( const UReal& other, Periods& times) const
 {
+  // check for deftime overlap
+  // restrict units to common deftime
+  // case 0: U1 and U2 implement same function
+  // case 1: r1 == r2 (use UReal::PeriodsAtVal(0.0,...))
+  // case 2: r1 != r2 similar, but solve Polynom of degree=4
   return 0;
 }
 
@@ -1245,6 +1262,211 @@ double MReal::Min(bool& correct) const{
    return min;
 }
 
+// restrict to periods with maximum value
+void MReal::AtMin( MReal& result ) const
+{
+  double globalMin = numeric_limits<double>::infinity();
+  double localMin  = 0.0;
+  int noLocalMin = 0;
+  bool correct = true;
+  const UReal *actual_ur = 0;
+  const UReal *last_ur = 0;
+  UReal last_candidate(true);
+  bool firstCall = true;
+  result.Clear();
+  result.StartBulkLoad();
+  for(int i=0; i<GetNoComponents(); i++)
+  {
+    cerr << "MReal::AtMin(): Processing unit "
+         << i << "..." << endl;
+    last_ur = actual_ur;
+    Get( i, actual_ur );
+    localMin = actual_ur->Min(correct);
+    if(!correct)
+    {
+      cerr << "MReal::AtMin(): Cannot compute minimum value for unit "
+           << i << "." << endl;
+      continue;
+    }
+    if( localMin < globalMin )
+    { // found new global min, invalidate actual result
+      globalMin = localMin;
+      result.Clear();
+      result.StartBulkLoad(); // we have to repeat this alter Clear()
+      firstCall = true;
+      last_ur = 0;
+      cerr << "MReal::AtMin(): New globalMin=" << globalMin << endl;
+    }
+    if( localMin <= globalMin )
+    { // this ureal contains global minima
+      vector<UReal> localMinimaVec;
+      noLocalMin = actual_ur->AtMin( localMinimaVec );
+      cerr << "MReal::AtMin(): Unit " << i << " has "
+           << noLocalMin << " minima" << endl;
+      for(int j=0; j< noLocalMin; j++)
+      {
+        UReal candidate = localMinimaVec[j];
+        // test, whether candidate overlaps last_inserted one
+        if( j==0 &&               // check only unit's first local min!
+            !firstCall &&         // don't check if there is no last_candidate
+            last_candidate.Intersects(candidate) &&
+            ( !last_ur->Intersects(last_candidate) ||
+              !actual_ur->Intersects(candidate)
+            )
+          )
+        {
+          cerr << "MReal::AtMin(): unit overlaps last one." << endl;
+          if( last_candidate.timeInterval.start
+              == last_candidate.timeInterval.end )
+          { // case 1: drop last_candidate (which is an instant-unit)
+            cerr << "MReal::AtMin(): drop last unit." << endl;
+            last_candidate = candidate;
+            continue;
+          }
+          else if( candidate.timeInterval.start
+                   == candidate.timeInterval.end )
+          { // case 2: drop candidate
+            cerr << "MReal::AtMin(): drop actual unit." << endl;
+            continue;
+          }
+          else
+            cerr << "MReal::AtMin(): This should not happen!" << endl;
+        }
+        else
+        { // All is fine. Just insert last_candidate.
+          cerr << "MReal::AtMin(): unit does not overlap with last." << endl;
+          if(firstCall)
+          {
+            cerr << "MReal::AtMin(): Skipping insertion of last unit." << endl;
+            firstCall = false;
+          }
+          else
+          {
+            cerr << "MReal::AtMin(): Added last unit" << endl;
+            result.MergeAdd(last_candidate);
+          }
+          last_candidate = candidate;
+        }
+      }
+    }
+    else
+    {
+      cerr << "MReal::AtMin(): Unit " << i
+           << " has no global minimum." << endl;
+    }
+  }
+  if(!firstCall)
+  {
+    result.MergeAdd(last_candidate);
+    cerr << "MReal::AtMin(): Added final unit" << endl;
+  }
+  else
+    cerr << "MReal::AtMin(): Skipping insertion of final unit." << endl;
+  result.EndBulkLoad();
+}
+
+// restrict to periods with maximum value
+void MReal::AtMax( MReal& result ) const
+{
+  double globalMax = -numeric_limits<double>::infinity();
+  double localMax  = 0.0;
+  int noLocalMax = 0;
+  bool correct = true;
+  const UReal *actual_ur = 0;
+  const UReal *last_ur = 0;
+  UReal last_candidate(true);
+  bool firstCall = true;
+  result.Clear();
+  result.StartBulkLoad();
+  for(int i=0; i<GetNoComponents(); i++)
+  {
+    cerr << "MReal::AtMax(): Processing unit "
+         << i << "..." << endl;
+    last_ur = actual_ur;
+    Get( i, actual_ur );
+    localMax = actual_ur->Max(correct);
+    if(!correct)
+    {
+      cerr << "MReal::AtMax(): Cannot compute maximum value for unit "
+           << i << "." << endl;
+      continue;
+    }
+    if( localMax > globalMax )
+    { // found new global max, invalidate actual result
+      globalMax = localMax;
+      result.Clear();
+      result.StartBulkLoad(); // we have to repeat this alter Clear()
+      firstCall = true;
+      last_ur = 0;
+      cerr << "MReal::AtMax(): New globalMax=" << globalMax << endl;
+    }
+    if( localMax >= globalMax )
+    { // this ureal contains global maxima
+      vector<UReal> localMaximaVec;
+      noLocalMax = actual_ur->AtMax( localMaximaVec );
+      cerr << "MReal::AtMax(): Unit " << i << " has "
+           << noLocalMax << " maxima" << endl;
+      for(int j=0; j< noLocalMax; j++)
+      {
+        UReal candidate = localMaximaVec[j];
+        // test, whether candidate overlaps last_inserted one
+        if( j==0 &&               // check only unit's first local max!
+            !firstCall &&         // don't check if there is no last_candidate
+            last_candidate.Intersects(candidate) &&
+            ( !last_ur->Intersects(last_candidate) ||
+              !actual_ur->Intersects(candidate)
+            )
+          )
+        {
+          cerr << "MReal::AtMax(): unit overlaps last one." << endl;
+          if( last_candidate.timeInterval.start
+              == last_candidate.timeInterval.end )
+          { // case 1: drop last_candidate (which is an instant-unit)
+            cerr << "MReal::AtMax(): drop last unit." << endl;
+            last_candidate = candidate;
+            continue;
+          }
+          else if( candidate.timeInterval.start
+                   == candidate.timeInterval.end )
+          { // case 2: drop candidate
+            cerr << "MReal::AtMax(): drop actual unit." << endl;
+            continue;
+          }
+          else
+            cerr << "MReal::AtMax(): This should not happen!" << endl;
+        }
+        else
+        { // All is fine. Just insert last_candidate.
+          cerr << "MReal::AtMax(): unit does not overlap with last." << endl;
+          if(firstCall)
+          {
+            cerr << "MReal::AtMax(): Skipping insertion of last unit." << endl;
+            firstCall = false;
+          }
+          else
+          {
+            cerr << "MReal::AtMax(): Added last unit" << endl;
+            result.MergeAdd(last_candidate);
+          }
+          last_candidate = candidate;
+        }
+      }
+    }
+    else
+    {
+      cerr << "MReal::AtMax(): Unit " << i
+           << " has no global maximum." << endl;
+    }
+  }
+  if(!firstCall)
+  {
+    result.MergeAdd(last_candidate);
+    cerr << "MReal::AtMax(): Added final unit" << endl;
+  }
+  else
+    cerr << "MReal::AtMax(): Skipping insertion of final unit." << endl;
+  result.EndBulkLoad();
+}
 
 /*
 Helper function for the ~simplify~ operator

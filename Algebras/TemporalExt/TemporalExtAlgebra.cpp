@@ -1279,11 +1279,11 @@ void MRealExt::AtMin( MReal &result ) const
     MinMaxValueFunction(utemp, unit_min, unit_max);
     ((URealExt*)utemp)->SetUnitMin( unit_min );
     ((URealExt*)utemp)->SetUnitMax( unit_max );
-    min = ((URealExt*)utemp)->GetUnitMax();
+    min = ((URealExt*)utemp)->GetUnitMin();
     unit_num = 0;
 
     if(0)
-        cout << "GetUnitMax(): " << ((URealExt*)utemp)->GetUnitMax() << endl;
+        cout << "GetUnitMin(): " << ((URealExt*)utemp)->GetUnitMin() << endl;
 
     for(int i=1;i<GetNoComponents();i++)
     {
@@ -4534,37 +4534,23 @@ int MappingAtmaxExt(
     return 0;
 }
 
-int MappingAtminExt_r(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int MappingAtminExt_r( Word* args, Word& result,
+                       int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-
-    MRealExt* m = ((MRealExt*)args[0].addr);
+    MReal* m = ((MReal*)args[0].addr);
     MReal* pResult = ((MReal*)result.addr);
-    //pResult->Clear();
     m->AtMin( *pResult );
-
     return 0;
 }
 
-int MappingAtmaxExt_r(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int MappingAtmaxExt_r( Word* args, Word& result,
+                       int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-
-    MRealExt* m = ((MRealExt*)args[0].addr);
+    MReal* m = ((MReal*)args[0].addr);
     MReal* pResult = ((MReal*)result.addr);
-    //pResult->Clear();
     m->AtMax( *pResult );
-
     return 0;
 }
 
