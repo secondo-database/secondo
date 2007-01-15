@@ -425,6 +425,9 @@ Precondition: dbState = dbOpen.
 
     if ( !nl->IsEqual( nl->Second( list ), objectname, false ) )
     {
+      if(nl->AtomType(nl->Second(list))!=SymbolType){
+          return 3; // error in list structure
+      }
       string name = nl->SymbolValue(nl->Second(list));
       cmsg.warning() << "Object name of the file '" 
                      << name <<  "' changed to '" 
