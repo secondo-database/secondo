@@ -51,51 +51,16 @@ using namespace std;
 #include "StandardAttribute.h"
 #include "FLOB.h"
 #include "Base64.h"
+#include "BinaryFileAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
 /*
-2 Type Constructor ~binfile~
-
-2.1 Class ~BinaryFile~
+2 Constructor ~binfile~
 
 */
-class BinaryFile : public StandardAttribute
-{
-  public:
-
-    inline BinaryFile() {};
-/*
-This constructor should not be used.
-
-*/
-    inline BinaryFile( const int size );
-    inline ~BinaryFile();
-    inline void Destroy();
-
-    inline bool IsDefined() const;
-    inline void SetDefined( bool Defined);
-    inline size_t Sizeof() const;
-    inline size_t HashValue() const;
-    void CopyFrom(const StandardAttribute* right);
-    inline int Compare(const Attribute * arg) const;
-    inline bool Adjacent(const Attribute * arg) const;
-    BinaryFile* Clone() const;
-    ostream& Print( ostream &os ) const;
-    inline int NumOfFLOBs() const;
-    inline FLOB *GetFLOB(const int i);
-
-    void Encode( string& textBytes ) const;
-    void Decode( const string& textBytes );
-    bool SaveToFile( const char *fileName ) const;
-
-  private:
-
-    FLOB binData;
-    bool canDelete;
-};
 
 inline BinaryFile::BinaryFile( const int size ) :
 binData( size ),
@@ -195,6 +160,27 @@ void BinaryFile::Decode( const string& textBytes )
   binData.Resize( result );
   binData.Put( 0, result, bytes );
   free( bytes );
+}
+
+
+int BinaryFile::GetSize() const{
+   return binData.Size();
+}
+
+void BinaryFile::Get(size_t offset,const char** bytes) const{
+   binData.Get(offset,bytes); 
+}
+
+void BinaryFile::Resize(const int newSize){
+    if(newSize<=0){
+        binData.Clean();
+    } else {
+        binData.Resize(newSize);
+    }
+}
+
+void BinaryFile::Put(const int offset, int size, char* bytes){
+   Put(offset,size,bytes);
 }
 
 bool BinaryFile::SaveToFile( const char *fileName ) const
