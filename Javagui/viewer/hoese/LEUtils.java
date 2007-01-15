@@ -214,6 +214,18 @@ public class LEUtils {
         return DateTime.getString(t);
   }
 
+  /** Converts a String representing an instant into a double value 
+    **/
+   public static Double convertStringToTime(String s){
+      long[] daymillis = DateTime.getDayMillis(s);
+      if(daymillis==null){
+          return null;
+	    } else {
+         return  new Double((double)daymillis[0]+(double)daymillis[1]/86400000.0);
+      }
+   }
+
+
   /**
    * Convert a time in separated integers into a double-value
    * @param day The day value
