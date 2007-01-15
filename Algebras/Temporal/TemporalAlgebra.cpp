@@ -316,9 +316,9 @@ double UReal::Max(bool& correct) const{
      }
   }
   // debug
-  //if(isnan(v1) || isnan(v2) || isnan(v3)){
-  //    cerr << " cannot determine the value within a unit" << endl;
-  //}
+  if(isnan(v1) || isnan(v2) || isnan(v3)){
+      cerr << " cannot determine the value within a unit" << endl;
+  }
 
   // determine the maximum of v1 .. v3
   double max = v1;
@@ -361,10 +361,9 @@ double UReal::Min(bool& correct) const{
      }
   }
   // debug
-  //if(isnan(v1) || isnan(v2) || isnan(v3)){
-  //    cerr << "UReal::Min(): cannot determine"
-  //" the value within a unit" << endl;
-  //}
+  if(isnan(v1) || isnan(v2) || isnan(v3)){
+      cerr << "UReal::Min(): cannot determine the value within a unit" << endl;
+  }
   // determine the minimum of v1 .. v3
   double min = v1;
   if(v2<min){
@@ -379,27 +378,6 @@ double UReal::Min(bool& correct) const{
     return min;
   }
 }
-
-/*
-Replaces this uReal by a linear approximation between the value at the start and the end.
-
-*/
-void UReal::Linearize(UReal& result) const{
-    if(!IsDefined()){
-       result.SetDefined(false);
-       return;
-    }
-    CcReal V;
-    TemporalFunction(timeInterval.start,V,true);
-    double v1 = V.GetRealval();
-    TemporalFunction(timeInterval.end,V,true);
-    double v2 = V.GetRealval();
-    result = UReal(timeInterval,v1,v2);
-    
-}
-
-
-
 
 /*
 Sets the Periods value to the times, where this takes the
@@ -493,12 +471,172 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
   return times.GetNoComponents();
 }
 
+/*
+Sets the Periods value to the times, where this takes the
+minimum value. Returns the number of results (0-2).
+
+WARNING: May return points, that are not inside this->timeInterval,
+         if a value is located at an open start/end instant.
+
+*/
+double UReal::PeriodsAtMin(bool& correct, Periods& times) const
+{
+  times.Clear();
+  if( !IsDefined() )
+  {
+     correct = false;
+     return numeric_limits<double>::infinity();
+  }
+
+  double t = (timeInterval.end - timeInterval.start).ToDouble();
+  double ts = 0.0;
+  correct = true;
+  double min = numeric_limits<double>::infinity();
+  Interval<Instant> iv;
+  double v0 = c;               // TemporalFunction(t0);
+  double v1 = a*t*t + b*t + c; // TemporalFunction(t1);
+  // TemporalFunction for extremum:
+  double v2 = numeric_limits<double>::infinity();
+  if(!AlmostEqual(a,0)){
+     ts = (-1.0*b)/(2.0*a);
+     if( (ts>0) && (ts < t)){
+         v2 = a*ts*ts + b*ts + c;
+     }
+  }
+  if(isnan(v0) || isnan(v1) || isnan(v2)){
+      cerr << "UReal::Min(): cannot determine the value within a unit" << endl;
+      correct = false;
+      return numeric_limits<double>::infinity();
+  }
+  // determine the minimum of v0 .. v2
+  min = v0;
+  if(v1<min){
+     min = v1;
+  }
+  if(v2 < min){
+     min = v2;
+  }
+  if( AlmostEqual(a, 0.0) && AlmostEqual(b, 0.0))
+  { // constant unit - return complete deftime
+    times.StartBulkLoad();
+    times.Add(timeInterval);
+    times.EndBulkLoad();
+  }
+  else // 1 or 2 minima
+  {
+    times.StartBulkLoad();
+    if(v0 <= min)
+    {
+      iv = Interval<Instant>(timeInterval.start,timeInterval.start,true,true);
+      times.Add(iv);
+    }
+    if(v1 <= min)
+    {
+      iv = Interval<Instant>(timeInterval.end,timeInterval.end,true,true);
+      times.Add(iv);
+    }
+    if(v2 <= min)
+    {
+      DateTime TS(durationtype);
+      TS.ReadFrom(ts);
+      DateTime T1(instanttype);
+      T1 = timeInterval.start + TS;
+      iv = Interval<Instant>(T1,T1,true,true);
+      times.Add(iv);
+    }
+    times.EndBulkLoad();
+  }
+  // return the minimum value
+  correct = true;
+  return ( r ? sqrt(min) : min );
+}
+
+/*
+Sets the Periods value to the times, where this takes the
+maximum value. Returns the number of results (0-2).
+
+WARNING: May return points, that are not inside this->timeInterval,
+         if a value is located at an open start/end instant.
+
+*/
+double UReal::PeriodsAtMax(bool& correct, Periods& times) const
+{
+  times.Clear();
+  if( !IsDefined() )
+  {
+     correct = false;
+     return -numeric_limits<double>::infinity();
+  }
+
+  double t = (timeInterval.end - timeInterval.start).ToDouble();
+  double ts = 0.0;
+  correct = true;
+  double max = numeric_limits<double>::infinity();
+  Interval<Instant> iv;
+  double v0 = c;               // TemporalFunction(t0);
+  double v1 = a*t*t + b*t + c; // TemporalFunction(t1);
+  // TemporalFunction for extremum:
+  double v2 = numeric_limits<double>::infinity();
+  if(!AlmostEqual(a,0)){
+     ts = (-1.0*b)/(2.0*a);
+     if( (ts>0) && (ts < t)){
+         v2 = a*ts*ts + b*ts + c;
+     }
+  }
+  if(isnan(v0) || isnan(v1) || isnan(v2)){
+      cerr << "UReal::Max(): cannot determaxe the value within a unit" << endl;
+      correct = false;
+      return numeric_limits<double>::infinity();
+  }
+  // determaxe the maximum of v0 .. v2
+  max = v0;
+  if(v1 > max){
+     max = v1;
+  }
+  if(v2 > max){
+     max = v2;
+  }
+  if( AlmostEqual(a, 0.0) && AlmostEqual(b, 0.0))
+  { // constant unit - return complete deftime
+    times.StartBulkLoad();
+    times.Add(timeInterval);
+    times.EndBulkLoad();
+  }
+  else // 1 or 2 maxima
+  {
+    times.StartBulkLoad();
+    if(v0 >= max)
+    {
+      iv = Interval<Instant>(timeInterval.start,timeInterval.start,true,true);
+      times.Add(iv);
+    }
+    if(v1 >= max)
+    {
+      iv = Interval<Instant>(timeInterval.end,timeInterval.end,true,true);
+      times.Add(iv);
+    }
+    if(v2 >= max)
+    {
+      DateTime TS(durationtype);
+      TS.ReadFrom(ts);
+      DateTime T1(instanttype);
+      T1 = timeInterval.start + TS;
+      iv = Interval<Instant>(T1,T1,true,true);
+      times.Add(iv);
+    }
+    times.EndBulkLoad();
+  }
+  // return the maximum value
+  correct = true;
+  return ( r ? sqrt(max) : max );
+}
 
 /*
 Creates a vector of units, which are the restriction of this to
 the periods, where it takes its minimum value.
 
-Precondition: this[->]IsDefined() && other.IsDefined()
+Precondition: this[->]IsDefined()
+
 Result: stores the resultununit into vector result and returns
         the number of results (1-2) found.
 
@@ -513,15 +651,13 @@ int UReal::AtMin(vector<UReal>& result) const
 
   bool correct = true;
   Periods minTimesPeriods(2);
-  int no_res = 0;
-  double minVal = Min(correct);
+  minTimesPeriods.Clear();
+  double minVal = PeriodsAtMin(correct, minTimesPeriods);
 
   if(!correct)
     return 0;
 //  cout << "UReal::AtMin(): minVal=" << minVal << endl;
-  minTimesPeriods.Clear();
-  no_res = PeriodsAtVal( minVal, minTimesPeriods );
-  for(int i=0; i<no_res; i++)
+  for(int i=0; i<minTimesPeriods.GetNoComponents(); i++)
   {
     const Interval<DateTime>* iv;
     minTimesPeriods.Get(i, iv);
@@ -555,7 +691,8 @@ int UReal::AtMin(vector<UReal>& result) const
 Creates a vector of units, which are the restriction of this to
 the periods, where it takes its maximum value.
 
-  Precondition: this[->]IsDefined() && other.IsDefined()
+Precondition: this[->]IsDefined()
+
 Result: stores the resultununit into vector result and returns
         the number of results (1-2) found.
 
@@ -570,13 +707,13 @@ int UReal::AtMax( vector<UReal>& result) const
 
   bool correct = true;
   Periods maxTimesPeriods(2);
-  int no_res = 0;
-  double maxVal = Max(correct);
+  maxTimesPeriods.Clear();
+  double maxVal = PeriodsAtMax(correct, maxTimesPeriods);
+
   if(!correct)
     return 0;
 //  cout << "UReal::AtMax(): maxVal=" << maxVal << endl;
-  no_res = PeriodsAtVal( maxVal, maxTimesPeriods );
-  for(int i=0; i<no_res; i++)
+  for(int i=0; i<maxTimesPeriods.GetNoComponents(); i++)
   {
     const Interval<DateTime>* iv;
     maxTimesPeriods.Get(i, iv);
@@ -605,6 +742,56 @@ int UReal::AtMax( vector<UReal>& result) const
   return result.size();
 }
 
+/*
+Creates a vector of units, which are the restriction of this to
+the periods, where it takes a certain value.
+
+  Precondition: this[->]IsDefined() && value.IsDefined()
+Result: stores the resultununit into vector result and returns
+        the number of results (1-2) found.
+
+WARNING: AtMax may return points, that are not inside this->timeInterval,
+         if a maximum is located at an open start/end instant.
+
+*/
+int UReal::AtValue(CcReal value, vector<UReal>& result) const
+{
+  assert( IsDefined() && value.IsDefined() );
+  result.clear();
+
+  Periods valTimesPeriods(2);
+  int no_res = 0;
+  double theVal = value.GetRealval();
+//  cout << "UReal::AtVal(): theVal=" << theVal << endl;
+  no_res = PeriodsAtVal( theVal, valTimesPeriods );
+  for(int i=0; i<no_res; i++)
+  {
+    const Interval<DateTime>* iv;
+    valTimesPeriods.Get(i, iv);
+    UReal unit = UReal( *this );
+    if( iv->Inside(timeInterval) )
+      AtInterval( *iv, unit );
+    else
+    { // solve problem with max at open interval start/end!
+      if(iv->start == timeInterval.start)
+      {
+        UReal unit2(
+          Interval<DateTime>(timeInterval.start, timeInterval.end, true, true),
+          a, b, c, r );
+        unit2.AtInterval( *iv, unit );
+      }
+      else if(iv->end == timeInterval.end)
+      {
+        UReal unit2(
+          Interval<DateTime>(timeInterval.start, timeInterval.end, true, true),
+          a, b, c, r );
+        unit2.AtInterval( *iv, unit );
+      }
+    }
+    result.push_back(unit);
+  }
+  return result.size();
+}
 /*
 Sets the Periods value to the times, where both UReals takes the
 same value. Returns the number of results (0-2).
@@ -1209,7 +1396,7 @@ double MReal::Integrate(){
       Get(i,unit);
       ISC isc;
       isc.value = unit->Integrate();
-      //if(isnan(isc.value)) cout << " value = " << isc.value << endl;
+      if(isnan(isc.value)) cout << " value = " << isc.value << endl;
       isc.level = 0;
       while(!theStack.empty() && (theStack.top().level == isc.level)){
           isc.value = isc.value + theStack.top().value;
@@ -1299,8 +1486,8 @@ void MReal::AtMin( MReal& result ) const
   result.StartBulkLoad();
   for(int i=0; i<GetNoComponents(); i++)
   {
-    cerr << "MReal::AtMin(): Processing unit "
-         << i << "..." << endl;
+//     cerr << "MReal::AtMin(): Processing unit "
+//          << i << "..." << endl;
     last_ur = actual_ur;
     Get( i, actual_ur );
     localMin = actual_ur->Min(correct);
@@ -1317,14 +1504,14 @@ void MReal::AtMin( MReal& result ) const
       result.StartBulkLoad(); // we have to repeat this alter Clear()
       firstCall = true;
       last_ur = 0;
-      cerr << "MReal::AtMin(): New globalMin=" << globalMin << endl;
+//       cerr << "MReal::AtMin(): New globalMin=" << globalMin << endl;
     }
     if( localMin <= globalMin )
     { // this ureal contains global minima
       vector<UReal> localMinimaVec;
       noLocalMin = actual_ur->AtMin( localMinimaVec );
-      cerr << "MReal::AtMin(): Unit " << i << " has "
-           << noLocalMin << " minima" << endl;
+//       cerr << "MReal::AtMin(): Unit " << i << " has "
+//            << noLocalMin << " minima" << endl;
       for(int j=0; j< noLocalMin; j++)
       {
         UReal candidate = localMinimaVec[j];
@@ -1337,18 +1524,18 @@ void MReal::AtMin( MReal& result ) const
             )
           )
         {
-          cerr << "MReal::AtMin(): unit overlaps last one." << endl;
+//           cerr << "MReal::AtMin(): unit overlaps last one." << endl;
           if( last_candidate.timeInterval.start
               == last_candidate.timeInterval.end )
           { // case 1: drop last_candidate (which is an instant-unit)
-            cerr << "MReal::AtMin(): drop last unit." << endl;
+//             cerr << "MReal::AtMin(): drop last unit." << endl;
             last_candidate = candidate;
             continue;
           }
           else if( candidate.timeInterval.start
                    == candidate.timeInterval.end )
           { // case 2: drop candidate
-            cerr << "MReal::AtMin(): drop actual unit." << endl;
+//             cerr << "MReal::AtMin(): drop actual unit." << endl;
             continue;
           }
           else
@@ -1356,7 +1543,7 @@ void MReal::AtMin( MReal& result ) const
         }
         else
         { // All is fine. Just insert last_candidate.
-          cerr << "MReal::AtMin(): unit does not overlap with last." << endl;
+//           cerr << "MReal::AtMin(): unit does not overlap with last." << endl;
           if(firstCall)
           {
             cerr << "MReal::AtMin(): Skipping insertion of last unit." << endl;
@@ -1364,26 +1551,26 @@ void MReal::AtMin( MReal& result ) const
           }
           else
           {
-            cerr << "MReal::AtMin(): Added last unit" << endl;
+//             cerr << "MReal::AtMin(): Added last unit" << endl;
             result.MergeAdd(last_candidate);
           }
           last_candidate = candidate;
         }
       }
     }
-    else
-    {
-      cerr << "MReal::AtMin(): Unit " << i
-           << " has no global minimum." << endl;
-    }
+//     else
+//     {
+//       cerr << "MReal::AtMin(): Unit " << i
+//            << " has no global minimum." << endl;
+//     }
   }
   if(!firstCall)
   {
     result.MergeAdd(last_candidate);
-    cerr << "MReal::AtMin(): Added final unit" << endl;
+//     cerr << "MReal::AtMin(): Added final unit" << endl;
   }
-  else
-    cerr << "MReal::AtMin(): Skipping insertion of final unit." << endl;
+//   else
+//     cerr << "MReal::AtMin(): Skipping insertion of final unit." << endl;
   result.EndBulkLoad();
 }
 
@@ -1402,8 +1589,8 @@ void MReal::AtMax( MReal& result ) const
   result.StartBulkLoad();
   for(int i=0; i<GetNoComponents(); i++)
   {
-    cerr << "MReal::AtMax(): Processing unit "
-         << i << "..." << endl;
+//     cerr << "MReal::AtMax(): Processing unit "
+//          << i << "..." << endl;
     last_ur = actual_ur;
     Get( i, actual_ur );
     localMax = actual_ur->Max(correct);
@@ -1420,14 +1607,14 @@ void MReal::AtMax( MReal& result ) const
       result.StartBulkLoad(); // we have to repeat this alter Clear()
       firstCall = true;
       last_ur = 0;
-      cerr << "MReal::AtMax(): New globalMax=" << globalMax << endl;
+//       cerr << "MReal::AtMax(): New globalMax=" << globalMax << endl;
     }
     if( localMax >= globalMax )
     { // this ureal contains global maxima
       vector<UReal> localMaximaVec;
       noLocalMax = actual_ur->AtMax( localMaximaVec );
-      cerr << "MReal::AtMax(): Unit " << i << " has "
-           << noLocalMax << " maxima" << endl;
+//       cerr << "MReal::AtMax(): Unit " << i << " has "
+//            << noLocalMax << " maxima" << endl;
       for(int j=0; j< noLocalMax; j++)
       {
         UReal candidate = localMaximaVec[j];
@@ -1440,18 +1627,18 @@ void MReal::AtMax( MReal& result ) const
             )
           )
         {
-          cerr << "MReal::AtMax(): unit overlaps last one." << endl;
+//           cerr << "MReal::AtMax(): unit overlaps last one." << endl;
           if( last_candidate.timeInterval.start
               == last_candidate.timeInterval.end )
           { // case 1: drop last_candidate (which is an instant-unit)
-            cerr << "MReal::AtMax(): drop last unit." << endl;
+//             cerr << "MReal::AtMax(): drop last unit." << endl;
             last_candidate = candidate;
             continue;
           }
           else if( candidate.timeInterval.start
                    == candidate.timeInterval.end )
           { // case 2: drop candidate
-            cerr << "MReal::AtMax(): drop actual unit." << endl;
+//             cerr << "MReal::AtMax(): drop actual unit." << endl;
             continue;
           }
           else
@@ -1459,62 +1646,119 @@ void MReal::AtMax( MReal& result ) const
         }
         else
         { // All is fine. Just insert last_candidate.
-          cerr << "MReal::AtMax(): unit does not overlap with last." << endl;
+//         cerr << "MReal::AtMax(): unit does not overlap with last." << endl;
           if(firstCall)
           {
-            cerr << "MReal::AtMax(): Skipping insertion of last unit." << endl;
+//          cerr << "MReal::AtMax(): Skipping insertion of last unit." << endl;
             firstCall = false;
           }
           else
           {
-            cerr << "MReal::AtMax(): Added last unit" << endl;
+//             cerr << "MReal::AtMax(): Added last unit" << endl;
             result.MergeAdd(last_candidate);
           }
           last_candidate = candidate;
         }
       }
     }
-    else
-    {
-      cerr << "MReal::AtMax(): Unit " << i
-           << " has no global maximum." << endl;
-    }
+//     else
+//     {
+//       cerr << "MReal::AtMax(): Unit " << i
+//            << " has no global maximum." << endl;
+//     }
   }
   if(!firstCall)
   {
     result.MergeAdd(last_candidate);
-    cerr << "MReal::AtMax(): Added final unit" << endl;
+//     cerr << "MReal::AtMax(): Added final unit" << endl;
   }
-  else
-    cerr << "MReal::AtMax(): Skipping insertion of final unit." << endl;
+//   else
+//     cerr << "MReal::AtMax(): Skipping insertion of final unit." << endl;
   result.EndBulkLoad();
 }
 
-void MReal::Linearize(MReal& result) const{
+// restrict to periods with certain value
+void MReal::AtValue( CcReal& ccvalue, MReal& result ) const
+{
+  assert( ccvalue.IsDefined() );
+
+  int noLocalResults = 0;
+  const UReal *actual_ur = 0;
+  const UReal *last_ur = 0;
+  UReal last_candidate(true);
+  bool firstCall = true;
   result.Clear();
-  if(!IsDefined()){
-     result.SetDefined(false);
-     return;
-  }
-  result.SetDefined(true);
-  int size = GetNoComponents();
-  if(size<1){
-     return;
-  }
-  result.Resize(size);
-  const UReal* unitptr;
-  UReal unit;
   result.StartBulkLoad();
-  for(int i=0;i<size;i++){
-      Get(i,unitptr);
-      unitptr->Linearize(unit);
-      result.Add(unit);
+  for(int i=0; i<GetNoComponents(); i++)
+  {
+//     cerr << "MReal::AtValue(): Processing unit "
+//          << i << "..." << endl;
+    last_ur = actual_ur;
+    Get( i, actual_ur );
+    vector<UReal> localResultVec;
+    noLocalResults = actual_ur->AtValue( ccvalue, localResultVec );
+//       cerr << "MReal::AtValue(): Unit " << i << " has "
+//            << noLocalResults << " results" << endl;
+    for(int j=0; j< noLocalResults; j++)
+    {
+      UReal candidate = localResultVec[j];
+      // test, whether candidate overlaps last_inserted one
+      if( j==0 &&               // check only unit's first local max!
+          !firstCall &&         // don't check if there is no last_candidate
+          last_candidate.Intersects(candidate) &&
+          ( !last_ur->Intersects(last_candidate) ||
+            !actual_ur->Intersects(candidate)
+          )
+        )
+      {
+//           cerr << "MReal::AtValue(): unit overlaps last one." << endl;
+        if( last_candidate.timeInterval.start
+            == last_candidate.timeInterval.end )
+        { // case 1: drop last_candidate (which is an instant-unit)
+//             cerr << "MReal::AtValue(): drop last unit." << endl;
+          last_candidate = candidate;
+          continue;
+        }
+        else if( candidate.timeInterval.start
+                  == candidate.timeInterval.end )
+        { // case 2: drop candidate
+//             cerr << "MReal::AtValue(): drop actual unit." << endl;
+          continue;
+        }
+        else
+          cerr << "MReal::AtValue(): This should not happen!" << endl;
+      }
+      else
+      { // All is fine. Just insert last_candidate.
+//      cerr << "MReal::AtValue(): unit does not overlap with last." << endl;
+        if(firstCall)
+        {
+//        cerr << "MReal::AtValue(): Skipping insertion of last unit." << endl;
+          firstCall = false;
+        }
+        else
+        {
+//             cerr << "MReal::AtValue(): Added last unit" << endl;
+          result.MergeAdd(last_candidate);
+        }
+        last_candidate = candidate;
+      }
+    }
+//     else
+//     {
+//       cerr << "MReal::AtValue(): Unit " << i
+//            << " does never take the value." << endl;
+//     }
   }
-  result.EndBulkLoad(false);
-
+  if(!firstCall)
+  {
+    result.MergeAdd(last_candidate);
+//     cerr << "MReal::AtValue(): Added final unit" << endl;
+  }
+//   else
+//     cerr << "MReal::AtValue(): Skipping insertion of final unit." << endl;
+  result.EndBulkLoad();
 }
-
-
 
 /*
 Helper function for the ~simplify~ operator
@@ -4178,25 +4422,6 @@ ListExpr TypeMapMinMax(ListExpr args){
 }
 
 
-/*
-16.1.12 Type mapping function of the ~linearize~ Operator
-
-*/
-ListExpr TypeMapLinearize(ListExpr args){
-   int len = nl->ListLength(args);
-   if(len!=1){
-      ErrorReporter::ReportError("one argument expected");
-      return nl->SymbolAtom("typeerror");
-   }
-   ListExpr arg = nl->First(args);
-   if(nl->IsEqual(arg,"ureal") ||
-      nl->IsEqual(arg,"mreal")){
-      return nl->SymbolAtom(nl->SymbolValue(arg));
-   }
-   ErrorReporter::ReportError("ureal or mreal expected");
-   return nl->SymbolAtom("typeerror");
-}
-
 
 /*
 16.1.13 Type mapping function ~IntSetTypeMapPeriods~
@@ -4840,21 +5065,6 @@ int IntegrateSelect(ListExpr args){
 }
 
 /*
-16.2.32 Selection function for ~linearize~
-
-*/
-int LinearizeSelect(ListExpr args){
-   ListExpr arg = nl->First(args);
-   if(nl->IsEqual(arg,"ureal")){
-       return 0;
-   }
-   if(nl->IsEqual(arg,"mreal")){
-       return 1;
-   }
-   return -1; // should never occur
-
-}
-/*
 16.2.32 Selection function for ~min~ and ~max~
 
 */
@@ -5319,21 +5529,6 @@ int Integrate(Word* args, Word& result,
    }
    double res = arg->Integrate();
    ((CcReal*)result.addr)->Set(true,res);
-   return 0;
-}
-
-/*
-16.2.28 Value Mapping function for the operator linearize 
-
-*/
-template <class mtype>
-int Linearize(Word* args, Word& result,
-              int message, Word& local,
-              Supplier s){
-   result = qp->ResultStorage(s);
-   mtype* arg = (mtype*) args[0].addr;
-   mtype* res = (mtype*) result.addr;
-   arg->Linearize(*res);
    return 0;
 }
 
@@ -6029,8 +6224,6 @@ ValueMapping simplifymap[] = { MPointSimplify, MPointSimplify2,
 
 ValueMapping integratemap[] = { Integrate<UReal>, Integrate<MReal> };
 
-ValueMapping linearizemap[] = { Linearize<UReal>, Linearize<MReal> };
-
 ValueMapping minmap[] = { VM_Min<UReal>, VM_Min<MReal> };
 
 ValueMapping maxmap[] = { VM_Max<UReal>, VM_Max<MReal> };
@@ -6310,14 +6503,6 @@ const string TemporalSpecIntegrate =
   "<text>integrate( _ ) </text--->"
   "<text>computes the determined inegtral of the argument</text--->"
   "<text>integrate(mreal5000)</text--->"
-  ") )";
-
-const string TemporalSpecLinearize =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>{ureal , mreal} -> real</text--->"
-  "<text>linearize( _ ) </text--->"
-  "<text>computes a linear approximation of the argument</text--->"
-  "<text>linearize(distance(train7, train6))</text--->"
   ") )";
 
 const string TemporalSpecMin =
@@ -6700,13 +6885,6 @@ Operator temporalintegrate( "integrate",
                            IntegrateSelect,
                            TypeMapIntegrate );
 
-Operator temporallinearize( "linearize",
-                           TemporalSpecLinearize,
-                           2,
-                           linearizemap,
-                           LinearizeSelect,
-                           TypeMapLinearize );
-
 Operator temporalminimum( "minimum",
                            TemporalSpecMin,
                            2,
@@ -6907,7 +7085,6 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporaldistance );
     AddOperator( &temporalsimplify );
     AddOperator( &temporalintegrate );
-    AddOperator( &temporallinearize );
     AddOperator( &temporalminimum );
     AddOperator( &temporalmaximum );
     AddOperator( &temporalbreakpoints );

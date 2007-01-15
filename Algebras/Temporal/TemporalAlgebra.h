@@ -1639,6 +1639,26 @@ WARNING: May return points, that are not inside this->timeInterval,
 
 */
 
+  double PeriodsAtMin(bool& correct, Periods& times) const;
+/*
+Sets the Periods value to the times, where this takes the
+minimum value. Returns the minimum value.
+
+WARNING: May return points, that are not inside this->timeInterval,
+         if a value is located at an open start/end instant.
+
+*/
+
+  double PeriodsAtMax(bool& correct, Periods& times) const;
+/*
+Sets the Periods value to the times, where this takes the
+minimum value. Returns the maximum value.
+
+WARNING: May return points, that are not inside this->timeInterval,
+         if a value is located at an open start/end instant.
+
+*/
+
   int PeriodsAtEqual( const UReal& other, Periods& times) const;
 
 /*
@@ -1653,7 +1673,7 @@ same value. Returns the number of results (0-2).
 Creates a vector of units, which are the restriction of this to
 the periods, where it takes its minimum value.
 
-Precondition: this[->]IsDefined() && other.IsDefined()
+Precondition: this[->]IsDefined()
 
 Result: stores the resultununit into vector result and returns
         the number of results (1-2) found.
@@ -1669,8 +1689,22 @@ WARNING: AtMin may return points, that are not inside this->timeInterval,
 Creates a vector of units, which are the restriction of this to
 the periods, where it takes its maximum value.
 
-Precondition: this[->]IsDefined() && other.IsDefined()
+Precondition: this[->]IsDefined()
 
+Result: stores the resultununit into vector result and returns
+        the number of results (1-2) found.
+
+WARNING: AtMax may return points, that are not inside this->timeInterval,
+         if a maximum is located at an open start/end instant.
+
+*/
+
+  int AtValue(CcReal value, vector<UReal>& result) const;
+/*
+Creates a vector of units, which are the restriction of this to
+the periods, where it takes a certain value.
+
+  Precondition: this[->]IsDefined() && value.IsDefined()
 Result: stores the resultununit into vector result and returns
         the number of results (1-2) found.
 
@@ -2398,6 +2432,17 @@ Restrict to periods where the temporal value is minimum.
 
 */
    void AtMax( MReal& result ) const;
+
+/*
+3.11.8 Operation ~AtMax~
+
+Restrict to periods where the temporal value is equal to a const value.
+
+Precondition: ccvalue.IsDefined() == true
+
+*/
+   void MReal::AtValue( CcReal& ccvalue, MReal& result ) const;
+
 
 private:
    void Simplify(const int min, const int max,
