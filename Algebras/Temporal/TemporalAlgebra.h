@@ -1693,6 +1693,16 @@ WARNING: AtMax may return points, that are not inside this->timeInterval,
 
 */
 
+   void Linearize(UReal& result) const; 
+/*
+Stores a linear approximation of this UReal in result.
+
+*/
+   
+
+
+
+
 /*
 3.7.5 Attributes
 
@@ -2361,6 +2371,17 @@ Compute the integral of this moving real.
 
 */
    double Min(bool& correct) const;
+
+/*
+3.11.6 Operation ~Linearize~
+
+This function replaces all units by linear approximations between their
+start and end value.
+
+*/
+   void Linearize(MReal& result) const;
+
+
 
 /*
 3.11.6 Operation ~AtMin~

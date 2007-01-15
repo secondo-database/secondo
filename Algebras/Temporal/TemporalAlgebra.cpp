@@ -316,9 +316,9 @@ double UReal::Max(bool& correct) const{
      }
   }
   // debug
-  if(isnan(v1) || isnan(v2) || isnan(v3)){
-      cerr << " cannot determine the value within a unit" << endl;
-  }
+  //if(isnan(v1) || isnan(v2) || isnan(v3)){
+  //    cerr << " cannot determine the value within a unit" << endl;
+  //}
 
   // determine the maximum of v1 .. v3
   double max = v1;
@@ -361,9 +361,10 @@ double UReal::Min(bool& correct) const{
      }
   }
   // debug
-  if(isnan(v1) || isnan(v2) || isnan(v3)){
-      cerr << "UReal::Min(): cannot determine the value within a unit" << endl;
-  }
+  //if(isnan(v1) || isnan(v2) || isnan(v3)){
+  //    cerr << "UReal::Min(): cannot determine"
+  //" the value within a unit" << endl;
+  //}
   // determine the minimum of v1 .. v3
   double min = v1;
   if(v2<min){
@@ -378,6 +379,27 @@ double UReal::Min(bool& correct) const{
     return min;
   }
 }
+
+/*
+Replaces this uReal by a linear approximation between the value at the start and the end.
+
+*/
+void UReal::Linearize(UReal& result) const{
+    if(!IsDefined()){
+       result.SetDefined(false);
+       return;
+    }
+    CcReal V;
+    TemporalFunction(timeInterval.start,V,true);
+    double v1 = V.GetRealval();
+    TemporalFunction(timeInterval.end,V,true);
+    double v2 = V.GetRealval();
+    result = UReal(timeInterval,v1,v2);
+    
+}
+
+
+
 
 /*
 Sets the Periods value to the times, where this takes the
@@ -1187,7 +1209,7 @@ double MReal::Integrate(){
       Get(i,unit);
       ISC isc;
       isc.value = unit->Integrate();
-      if(isnan(isc.value)) cout << " value = " << isc.value << endl;
+      //if(isnan(isc.value)) cout << " value = " << isc.value << endl;
       isc.level = 0;
       while(!theStack.empty() && (theStack.top().level == isc.level)){
           isc.value = isc.value + theStack.top().value;
@@ -1467,6 +1489,32 @@ void MReal::AtMax( MReal& result ) const
     cerr << "MReal::AtMax(): Skipping insertion of final unit." << endl;
   result.EndBulkLoad();
 }
+
+void MReal::Linearize(MReal& result) const{
+  result.Clear();
+  if(!IsDefined()){
+     result.SetDefined(false);
+     return;
+  }
+  result.SetDefined(true);
+  int size = GetNoComponents();
+  if(size<1){
+     return;
+  }
+  result.Resize(size);
+  const UReal* unitptr;
+  UReal unit;
+  result.StartBulkLoad();
+  for(int i=0;i<size;i++){
+      Get(i,unitptr);
+      unitptr->Linearize(unit);
+      result.Add(unit);
+  }
+  result.EndBulkLoad(false);
+
+}
+
+
 
 /*
 Helper function for the ~simplify~ operator
@@ -4130,6 +4178,25 @@ ListExpr TypeMapMinMax(ListExpr args){
 }
 
 
+/*
+16.1.12 Type mapping function of the ~linearize~ Operator
+
+*/
+ListExpr TypeMapLinearize(ListExpr args){
+   int len = nl->ListLength(args);
+   if(len!=1){
+      ErrorReporter::ReportError("one argument expected");
+      return nl->SymbolAtom("typeerror");
+   }
+   ListExpr arg = nl->First(args);
+   if(nl->IsEqual(arg,"ureal") ||
+      nl->IsEqual(arg,"mreal")){
+      return nl->SymbolAtom(nl->SymbolValue(arg));
+   }
+   ErrorReporter::ReportError("ureal or mreal expected");
+   return nl->SymbolAtom("typeerror");
+}
+
 
 /*
 16.1.13 Type mapping function ~IntSetTypeMapPeriods~
@@ -4773,6 +4840,21 @@ int IntegrateSelect(ListExpr args){
 }
 
 /*
+16.2.32 Selection function for ~linearize~
+
+*/
+int LinearizeSelect(ListExpr args){
+   ListExpr arg = nl->First(args);
+   if(nl->IsEqual(arg,"ureal")){
+       return 0;
+   }
+   if(nl->IsEqual(arg,"mreal")){
+       return 1;
+   }
+   return -1; // should never occur
+
+}
+/*
 16.2.32 Selection function for ~min~ and ~max~
 
 */
@@ -5237,6 +5319,21 @@ int Integrate(Word* args, Word& result,
    }
    double res = arg->Integrate();
    ((CcReal*)result.addr)->Set(true,res);
+   return 0;
+}
+
+/*
+16.2.28 Value Mapping function for the operator linearize 
+
+*/
+template <class mtype>
+int Linearize(Word* args, Word& result,
+              int message, Word& local,
+              Supplier s){
+   result = qp->ResultStorage(s);
+   mtype* arg = (mtype*) args[0].addr;
+   mtype* res = (mtype*) result.addr;
+   arg->Linearize(*res);
    return 0;
 }
 
@@ -5932,6 +6029,8 @@ ValueMapping simplifymap[] = { MPointSimplify, MPointSimplify2,
 
 ValueMapping integratemap[] = { Integrate<UReal>, Integrate<MReal> };
 
+ValueMapping linearizemap[] = { Linearize<UReal>, Linearize<MReal> };
+
 ValueMapping minmap[] = { VM_Min<UReal>, VM_Min<MReal> };
 
 ValueMapping maxmap[] = { VM_Max<UReal>, VM_Max<MReal> };
@@ -6211,6 +6310,14 @@ const string TemporalSpecIntegrate =
   "<text>integrate( _ ) </text--->"
   "<text>computes the determined inegtral of the argument</text--->"
   "<text>integrate(mreal5000)</text--->"
+  ") )";
+
+const string TemporalSpecLinearize =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>{ureal , mreal} -> real</text--->"
+  "<text>linearize( _ ) </text--->"
+  "<text>computes a linear approximation of the argument</text--->"
+  "<text>linearize(distance(train7, train6))</text--->"
   ") )";
 
 const string TemporalSpecMin =
@@ -6593,6 +6700,13 @@ Operator temporalintegrate( "integrate",
                            IntegrateSelect,
                            TypeMapIntegrate );
 
+Operator temporallinearize( "linearize",
+                           TemporalSpecLinearize,
+                           2,
+                           linearizemap,
+                           LinearizeSelect,
+                           TypeMapLinearize );
+
 Operator temporalminimum( "minimum",
                            TemporalSpecMin,
                            2,
@@ -6793,6 +6907,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporaldistance );
     AddOperator( &temporalsimplify );
     AddOperator( &temporalintegrate );
+    AddOperator( &temporallinearize );
     AddOperator( &temporalminimum );
     AddOperator( &temporalmaximum );
     AddOperator( &temporalbreakpoints );
