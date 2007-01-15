@@ -394,21 +394,23 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
   DateTime t0(durationtype), t1(instanttype);
   Interval<Instant> iv;
 
-  cout << "UReal::PeriodsAtVal( " << value << ", ...) called." << endl;
+/*  cout << "UReal::PeriodsAtVal( " << value << ", ...) called." << endl;
   cout << "\ta=" << a << " b=" << b << " c=" << c << " r=" << r << endl;
   cout << "\tstart=" << timeInterval.start.ToDouble()
        << " end=" << timeInterval.end.ToDouble()
        << " lc=" << timeInterval.lc
-       << " rc=" << timeInterval.rc << endl;
+       << " rc=" << timeInterval.rc << endl;*/
   times.Clear();
   if( !IsDefined() )
-    cout << "UReal::PeriodsAtVal(): Undefined UReal -> 0 results." << endl;
-    return 0;
+  {
+//      cout << "UReal::PeriodsAtVal(): Undefined UReal -> 0 results." << endl;
+     return 0;
+  }
 
   if( a==0.0 && b==0.0 )
     // special case: constant ureal
     {
-      cout << "UReal::PeriodsAtVal(): constant case" << endl;
+//       cout << "UReal::PeriodsAtVal(): constant case" << endl;
       if ( (!r && AlmostEqual(c, value)) ||
            (r &&
              (AlmostEqual(sqrt(c), value) || AlmostEqual(c, value*value) ) ) )
@@ -416,27 +418,27 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
         times.StartBulkLoad();
         times.Add(timeInterval);
         times.EndBulkLoad();
-        cout << "UReal::PeriodsAtVal(): constant UReal -> 1 result." << endl;
+//         cout << "UReal::PeriodsAtVal(): constant UReal -> 1 result." << endl;
         return times.GetNoComponents();
       }
       else // no result
       {
-        cout << "UReal::PeriodsAtVal(): constant UReal -> 0 results." << endl;
+//      cout << "UReal::PeriodsAtVal(): constant UReal -> 0 results." << endl;
         return 0;
       }
     }
   if( !r )
   {
-    cout << "UReal::PeriodsAtVal(): r==false" << endl;
+//     cout << "UReal::PeriodsAtVal(): r==false" << endl;
     no_res = SolvePoly(a, b, (c-value), inst_d, true);
   }
   else
   {
-    cout << "UReal::PeriodsAtVal(): r==true" << endl;
+//     cout << "UReal::PeriodsAtVal(): r==true" << endl;
     if (value < 0.0)
     {
-      cout << "UReal::PeriodsAtVal(): radix cannot become <0. -> 0 results."
-           << endl;
+//       cout << "UReal::PeriodsAtVal(): radix cannot become <0. -> 0 results."
+//            << endl;
       return 0;
     }
     else
@@ -451,23 +453,23 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
         (t1 == timeInterval.end)   ||
         timeInterval.Contains(t1)     )
     {
-      cout << "\tt1=" << t1.ToDouble() << endl;
+/*      cout << "\tt1=" << t1.ToDouble() << endl;
       cout << "\tt1.IsDefined()=" << t1.IsDefined() << endl;
-      cout << "\ttimes.IsValid()=" << times.IsValid() << endl;
+      cout << "\ttimes.IsValid()=" << times.IsValid() << endl;*/
       if( !times.Contains( t1 ) )
       {
-        cout << "UReal::PeriodsAtVal(): add instant" << endl;
+//         cout << "UReal::PeriodsAtVal(): add instant" << endl;
         iv = Interval<Instant>(t1, t1, true, true);
         times.StartBulkLoad();
         times.Add(iv); // add only once
         times.EndBulkLoad();
       }
-      else
-        cout << "UReal::PeriodsAtVal(): not added instant" << endl;
+/*      else
+        cout << "UReal::PeriodsAtVal(): not added instant" << endl;*/
     }
   }
-  cout << "UReal::PeriodsAtVal(): Calculated "
-       << times.GetNoComponents() << "results." << endl;
+/*  cout << "UReal::PeriodsAtVal(): Calculated "
+       << times.GetNoComponents() << "results." << endl;*/
   return times.GetNoComponents();
 }
 
@@ -503,7 +505,8 @@ double UReal::PeriodsAtMin(bool& correct, Periods& times) const
          v2 = a*ts*ts + b*ts + c;
      }
   }
-  if(isnan(v0) || isnan(v1) || isnan(v2)){
+  if(isnan(v0) || isnan(v1) || isnan(v2))
+  {
       cerr << "UReal::Min(): cannot determine the value within a unit" << endl;
       correct = false;
       return numeric_limits<double>::infinity();
@@ -541,8 +544,11 @@ double UReal::PeriodsAtMin(bool& correct, Periods& times) const
       TS.ReadFrom(ts);
       DateTime T1(instanttype);
       T1 = timeInterval.start + TS;
-      iv = Interval<Instant>(T1,T1,true,true);
-      times.Add(iv);
+      if( !(T1<timeInterval.start) && !(T1>timeInterval.end) )
+      {
+        iv = Interval<Instant>(T1,T1,true,true);
+        times.Add(iv);
+      }
     }
     times.EndBulkLoad();
   }
@@ -571,12 +577,12 @@ double UReal::PeriodsAtMax(bool& correct, Periods& times) const
   double t = (timeInterval.end - timeInterval.start).ToDouble();
   double ts = 0.0;
   correct = true;
-  double max = numeric_limits<double>::infinity();
+  double max = -numeric_limits<double>::infinity();
   Interval<Instant> iv;
   double v0 = c;               // TemporalFunction(t0);
   double v1 = a*t*t + b*t + c; // TemporalFunction(t1);
   // TemporalFunction for extremum:
-  double v2 = numeric_limits<double>::infinity();
+  double v2 = -numeric_limits<double>::infinity();
   if(!AlmostEqual(a,0)){
      ts = (-1.0*b)/(2.0*a);
      if( (ts>0) && (ts < t)){
@@ -584,7 +590,8 @@ double UReal::PeriodsAtMax(bool& correct, Periods& times) const
      }
   }
   if(isnan(v0) || isnan(v1) || isnan(v2)){
-      cerr << "UReal::Max(): cannot determaxe the value within a unit" << endl;
+      cerr << "UReal::Max(): cannot determine the value within a unit"
+           << endl;
       correct = false;
       return numeric_limits<double>::infinity();
   }
@@ -621,8 +628,11 @@ double UReal::PeriodsAtMax(bool& correct, Periods& times) const
       TS.ReadFrom(ts);
       DateTime T1(instanttype);
       T1 = timeInterval.start + TS;
-      iv = Interval<Instant>(T1,T1,true,true);
-      times.Add(iv);
+      if( !(T1<timeInterval.start) && !(T1>timeInterval.end) )
+      {
+        iv = Interval<Instant>(T1,T1,true,true);
+        times.Add(iv);
+      }
     }
     times.EndBulkLoad();
   }
@@ -662,26 +672,27 @@ int UReal::AtMin(vector<UReal>& result) const
     const Interval<DateTime>* iv;
     minTimesPeriods.Get(i, iv);
     UReal unit = UReal( *this );
+    correct = false;
     if( iv->Inside(timeInterval) )
+    {
       AtInterval( *iv, unit );
+      correct = true;
+    }
     else
     { // solve problem with min at open interval start/end!
-      if(iv->start == timeInterval.start)
+      if( (iv->start == timeInterval.start) || (iv->end == timeInterval.end) )
       {
         UReal unit2(
           Interval<DateTime>(timeInterval.start, timeInterval.end, true, true),
           a, b, c, r );
         unit2.AtInterval( *iv, unit );
-      }
-      else if(iv->end == timeInterval.end)
-      {
-        UReal unit2(
-          Interval<DateTime>(timeInterval.start, timeInterval.end, true, true),
-          a, b, c, r );
-        unit2.AtInterval( *iv, unit );
+        correct = true;
       }
     }
-    result.push_back(unit);
+    if( correct )
+      result.push_back(unit);
+    else
+      cout << "UReal::AtMin(): This should not happen!" << endl;
   }
   return result.size();
 }
@@ -713,31 +724,34 @@ int UReal::AtMax( vector<UReal>& result) const
   if(!correct)
     return 0;
 //  cout << "UReal::AtMax(): maxVal=" << maxVal << endl;
+//  cout << "timeInterval = (" << timeInterval.start.ToString() << " "
+//       << timeInterval.end.ToString() << " "
+//       << timeInterval.lc << " " << timeInterval.rc << ")" << endl;*/*/
   for(int i=0; i<maxTimesPeriods.GetNoComponents(); i++)
   {
     const Interval<DateTime>* iv;
     maxTimesPeriods.Get(i, iv);
+//     cout << "iv = (" << iv->start.ToString() << " " << iv->end.ToString()
+//          << " " << iv->lc << " " << iv->rc << ")" << endl;*/
     UReal unit = UReal( *this );
+    correct = false;
     if( iv->Inside(timeInterval) )
-      AtInterval( *iv, unit );
-    else
-    { // solve problem with max at open interval start/end!
-      if(iv->start == timeInterval.start)
-      {
-        UReal unit2(
-          Interval<DateTime>(timeInterval.start, timeInterval.end, true, true),
-          a, b, c, r );
-        unit2.AtInterval( *iv, unit );
-      }
-      else if(iv->end == timeInterval.end)
-      {
-        UReal unit2(
-          Interval<DateTime>(timeInterval.start, timeInterval.end, true, true),
-          a, b, c, r );
-        unit2.AtInterval( *iv, unit );
-      }
+    {
+       AtInterval( *iv, unit );
+       correct = true;
     }
-    result.push_back(unit);
+    else if( (iv->start==timeInterval.start) || (iv->end==timeInterval.end) )
+    { // solve problem with max at open interval start/end!
+      UReal unit2(
+        Interval<DateTime>(timeInterval.start, timeInterval.end, true, true),
+        a, b, c, r );
+      unit2.AtInterval( *iv, unit );
+      correct = true;
+    }
+    if( correct )
+      result.push_back(unit);
+    else
+      cout << "UReal::AtMax(): This should not happen!" << endl;
   }
   return result.size();
 }
@@ -773,14 +787,7 @@ int UReal::AtValue(CcReal value, vector<UReal>& result) const
       AtInterval( *iv, unit );
     else
     { // solve problem with max at open interval start/end!
-      if(iv->start == timeInterval.start)
-      {
-        UReal unit2(
-          Interval<DateTime>(timeInterval.start, timeInterval.end, true, true),
-          a, b, c, r );
-        unit2.AtInterval( *iv, unit );
-      }
-      else if(iv->end == timeInterval.end)
+      if( (iv->start == timeInterval.start) || (iv->end == timeInterval.end) )
       {
         UReal unit2(
           Interval<DateTime>(timeInterval.start, timeInterval.end, true, true),
@@ -1543,10 +1550,10 @@ void MReal::AtMin( MReal& result ) const
         }
         else
         { // All is fine. Just insert last_candidate.
-//           cerr << "MReal::AtMin(): unit does not overlap with last." << endl;
+//        cerr << "MReal::AtMin(): unit does not overlap with last." << endl;
           if(firstCall)
           {
-            cerr << "MReal::AtMin(): Skipping insertion of last unit." << endl;
+//          cerr << "MReal::AtMin(): Skipping insertion of last unit." << endl;
             firstCall = false;
           }
           else

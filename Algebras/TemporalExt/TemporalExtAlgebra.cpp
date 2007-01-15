@@ -3158,6 +3158,24 @@ int MappingStringAtExt(
   return 0;
 }
 
+// ORIGINAL IMPLEMENTATION:
+// int MappingRealAtExt(
+//     Word* args,
+//     Word& result,
+//     int message,
+//     Word& local,
+//     Supplier s )
+// {
+//     result = qp->ResultStorage( s );
+//     MRealExt *m = ((MRealExt*)args[0].addr);
+//     CcReal* val = ((CcReal*)args[1].addr);
+//     MReal* pResult = ((MReal*)result.addr);
+//     pResult->Clear();
+//     m->At( *val, *pResult );
+//     return 0;
+// }
+
+// CORRECTED IMPLEMENTATION:
 int MappingRealAtExt(
     Word* args,
     Word& result,
@@ -3166,12 +3184,12 @@ int MappingRealAtExt(
     Supplier s )
 {
     result = qp->ResultStorage( s );
-    MRealExt *m = ((MRealExt*)args[0].addr);
+    MReal *m = ((MReal*)args[0].addr);
     CcReal* val = ((CcReal*)args[1].addr);
     MReal* pResult = ((MReal*)result.addr);
     pResult->Clear();
-    m->At( *val, *pResult );
-
+    if ( val->IsDefined() )
+      m->AtValue( *val, *pResult );
     return 0;
 }
 
