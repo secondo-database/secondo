@@ -59,7 +59,7 @@ using namespace std;
 #include <string>
 #include <cmath>
 
-#ifndef M_PI 
+#ifndef M_PI
 const double M_PI = acos( -1.0 );
 #endif
 
@@ -111,7 +111,7 @@ There are 6 combinations, pp, pl, pr, ll, lr, rr
 enum object {none, first, second, both};
 enum status {endnone, endfirst, endsecond, endboth};
 
-void SelectFirst_pp( const Points& P1, const Points& P2, 
+void SelectFirst_pp( const Points& P1, const Points& P2,
                      object& obj, status& stat )
 {
   P1.SelectFirst();
@@ -121,34 +121,34 @@ void SelectFirst_pp( const Points& P1, const Points& P2,
   bool gotP1 = P1.GetPt( p1 ),
        gotP2 = P2.GetPt( p2 );
 
-  if( !gotP1 && !gotP2 ) 
+  if( !gotP1 && !gotP2 )
   {
-    obj = none; 
+    obj = none;
     stat = endboth;
   }
-  else if( !gotP1 ) 
-  { 
-    obj = second; 
-    stat = endfirst; 
-  }
-  else if( !gotP2 ) 
+  else if( !gotP1 )
   {
-    obj = first; 
-    stat = endsecond; 
+    obj = second;
+    stat = endfirst;
+  }
+  else if( !gotP2 )
+  {
+    obj = first;
+    stat = endsecond;
   }
   else //both defined
   {
     stat = endnone;
-    if( *p1 < *p2 ) 
+    if( *p1 < *p2 )
       obj = first;
-    else if( *p1 > *p2 ) 
+    else if( *p1 > *p2 )
       obj = second;
-    else 
+    else
       obj = both;
   }
 }
 
-void SelectNext_pp( const Points& P1, const Points& P2, 
+void SelectNext_pp( const Points& P1, const Points& P2,
                     object& obj, status& stat )
 {
   // 1. get the current elements
@@ -193,34 +193,34 @@ void SelectNext_pp( const Points& P1, const Points& P2,
   }
 
   //3. generate the outputs
-  if( !gotP1 && !gotP2 ) 
+  if( !gotP1 && !gotP2 )
   {
-    obj = none; 
+    obj = none;
     stat = endboth;
   }
-  else if( !gotP1 ) 
+  else if( !gotP1 )
   {
-    obj = second; 
-    stat = endfirst; 
+    obj = second;
+    stat = endfirst;
   }
-  else if( !gotP2 ) 
+  else if( !gotP2 )
   {
-    obj = first; 
-    stat = endsecond; 
+    obj = first;
+    stat = endsecond;
   }
   else //both defined
   {
     stat = endnone;
-    if( *p1 < *p2 ) 
+    if( *p1 < *p2 )
       obj = first;
-    else if( *p1 > *p2 ) 
+    else if( *p1 > *p2 )
       obj = second;
-    else 
+    else
       obj = both;
   }
 }
 
-void SelectFirst_pl( const Points& P, const Line& L, 
+void SelectFirst_pl( const Points& P, const Line& L,
                      object& obj, status& stat )
 {
   P.SelectFirst();
@@ -237,33 +237,33 @@ void SelectFirst_pl( const Points& P, const Line& L,
     p2 = hs->GetDomPoint();
 
   if( !gotPt && !gotHs )
-  { 
-    obj = none; 
+  {
+    obj = none;
     stat = endboth;
   }
-  else if( !gotPt ) 
+  else if( !gotPt )
   {
-    obj = second; 
-    stat = endfirst; 
+    obj = second;
+    stat = endfirst;
   }
-  else if( !gotHs ) 
-  { 
-    obj = first; 
-    stat = endsecond; 
+  else if( !gotHs )
+  {
+    obj = first;
+    stat = endsecond;
   }
   else //both defined
   {
     stat = endnone;
-    if( *p1 < p2 ) 
+    if( *p1 < p2 )
       obj = first;
-    else if( *p1 > p2 ) 
+    else if( *p1 > p2 )
       obj = second;
-    else 
+    else
       obj=both;
   }
 }
 
-void SelectNext_pl( const Points& P, const Line& L, 
+void SelectNext_pl( const Points& P, const Line& L,
                     object& obj, status& stat )
 {
   // 1. get the current elements
@@ -320,34 +320,34 @@ void SelectNext_pl( const Points& P, const Line& L,
   }
 
   //3. generate the outputs
-  if( !gotPt && !gotHs ) 
+  if( !gotPt && !gotHs )
   {
-    obj = none; 
+    obj = none;
     stat = endboth;
   }
-  else if( !gotPt ) 
-  { 
-    obj = second; 
-    stat = endfirst; 
-  }
-  else if( !gotHs ) 
+  else if( !gotPt )
   {
-    obj = first; 
-    stat = endsecond; 
+    obj = second;
+    stat = endfirst;
+  }
+  else if( !gotHs )
+  {
+    obj = first;
+    stat = endsecond;
   }
   else //both defined
   {
     stat=endnone;
-    if( *p1 < p2 ) 
+    if( *p1 < p2 )
       obj = first;
-    else if( *p1 > p2 ) 
+    else if( *p1 > p2 )
       obj = second;
-    else 
+    else
       obj = both;
   }
 }
 
-void SelectFirst_pr( const Points& P, const Region& R, 
+void SelectFirst_pr( const Points& P, const Region& R,
                      object& obj, status& stat )
 {
   P.SelectFirst();
@@ -362,34 +362,34 @@ void SelectFirst_pr( const Points& P, const Region& R,
   if( gotHs )
     p2 = hs->GetDomPoint();
 
-  if( !gotPt && !gotHs ) 
+  if( !gotPt && !gotHs )
   {
-    obj = none; 
+    obj = none;
     stat = endboth;
   }
-  else if( !gotPt ) 
+  else if( !gotPt )
   {
-    obj = second; 
-    stat = endfirst; 
+    obj = second;
+    stat = endfirst;
   }
-  else if( !gotHs ) 
+  else if( !gotHs )
   {
-    obj = first; 
-    stat = endsecond; 
+    obj = first;
+    stat = endsecond;
   }
   else //both defined
   {
     stat = endnone;
-    if( *p1 < p2 ) 
+    if( *p1 < p2 )
       obj = first;
-    else if( *p1 > p2 ) 
+    else if( *p1 > p2 )
       obj = second;
-    else 
+    else
       obj=both;
   }
 }
 
-void SelectNext_pr( const Points& P, const Region& R, 
+void SelectNext_pr( const Points& P, const Region& R,
                     object& obj, status& stat )
 {
   // 1. get the current elements
@@ -399,7 +399,7 @@ void SelectNext_pr( const Points& P, const Region& R,
 
   bool gotPt = P.GetPt( p1 ),
        gotHs = R.GetHs( hs );
-  if( gotHs )  
+  if( gotHs )
     p2 = hs->GetDomPoint();
 
   //2. move the pointers
@@ -430,11 +430,11 @@ void SelectNext_pr( const Points& P, const Region& R,
     {
       R.SelectNext();
       gotHs = R.GetHs( hs );
-      if( gotHs ) 
+      if( gotHs )
         p2 = hs->GetDomPoint();
     }
     else
-    { 
+    {
       P.SelectNext();
       gotPt = P.GetPt( p1 );
       R.SelectNext();
@@ -445,34 +445,34 @@ void SelectNext_pr( const Points& P, const Region& R,
   }
 
   //3. generate the outputs
-  if( !gotPt && !gotHs ) 
+  if( !gotPt && !gotHs )
   {
-    obj = none; 
+    obj = none;
     stat = endboth;
   }
-  else if( !gotPt ) 
+  else if( !gotPt )
   {
-    obj = second; 
-    stat = endfirst; 
+    obj = second;
+    stat = endfirst;
   }
-  else if( !gotHs ) 
+  else if( !gotHs )
   {
-    obj = first; 
-    stat = endsecond; 
+    obj = first;
+    stat = endsecond;
   }
   else //both defined
   {
     stat = endnone;
-    if( *p1 < p2 ) 
+    if( *p1 < p2 )
       obj = first;
-    else if( *p1 > p2 ) 
+    else if( *p1 > p2 )
       obj = second;
-    else 
+    else
       obj = both;
   }
 }
 
-void SelectFirst_ll( const Line& L1, const Line& L2, 
+void SelectFirst_ll( const Line& L1, const Line& L2,
                      object& obj, status& stat )
 {
   L1.SelectFirst();
@@ -482,33 +482,33 @@ void SelectFirst_ll( const Line& L1, const Line& L2,
   bool gotHs1 = L1.GetHs( hs1 ),
        gotHs2 = L2.GetHs( hs2 );
 
-  if( !gotHs1 && !gotHs2 ) 
+  if( !gotHs1 && !gotHs2 )
   {
-    obj = none; 
+    obj = none;
     stat = endboth;
   }
-  else if( !gotHs1 ) 
+  else if( !gotHs1 )
   {
-    obj = second; 
-    stat = endfirst; 
+    obj = second;
+    stat = endfirst;
   }
   else if( !gotHs2 )
   {
-    obj = first; 
-    stat = endsecond; 
+    obj = first;
+    stat = endsecond;
   }
   else //both defined
   {
     stat = endnone;
-    if( *hs1 < *hs2 ) 
+    if( *hs1 < *hs2 )
       obj = first;
-    else if( *hs1 > *hs2 ) 
+    else if( *hs1 > *hs2 )
       obj = second;
     else obj = both;
   }
 }
 
-void SelectNext_ll( const Line& L1, const Line& L2, 
+void SelectNext_ll( const Line& L1, const Line& L2,
                     object& obj, status& stat )
 {
   // 1. get the current elements
@@ -553,34 +553,34 @@ void SelectNext_ll( const Line& L1, const Line& L2,
   }
 
   //3. generate the outputs
-  if( !gotHs1 && !gotHs2 ) 
+  if( !gotHs1 && !gotHs2 )
   {
-    obj = none; 
+    obj = none;
     stat = endboth;
   }
-  else if( !gotHs1 ) 
-  { 
-    obj = second; 
-    stat = endfirst; 
-  }
-  else if( !gotHs2 ) 
+  else if( !gotHs1 )
   {
-    obj = first; 
-    stat = endsecond; 
+    obj = second;
+    stat = endfirst;
+  }
+  else if( !gotHs2 )
+  {
+    obj = first;
+    stat = endsecond;
   }
   else //both defined
   {
     stat = endnone;
-    if( *hs1 < *hs2 ) 
+    if( *hs1 < *hs2 )
       obj = first;
-    else if( *hs1 > *hs2 ) 
+    else if( *hs1 > *hs2 )
       obj = second;
-    else 
+    else
       obj = both;
   }
 }
 
-void SelectFirst_lr( const Line& L, const Region& R, 
+void SelectFirst_lr( const Line& L, const Region& R,
                      object& obj, status& stat )
 {
   L.SelectFirst();
@@ -590,34 +590,34 @@ void SelectFirst_lr( const Line& L, const Region& R,
   bool gotHs1 = L.GetHs( hs1 ),
        gotHs2 = R.GetHs( hs2 );
 
-  if( !gotHs1 && !gotHs2 ) 
+  if( !gotHs1 && !gotHs2 )
   {
-    obj = none; 
+    obj = none;
     stat = endboth;
   }
-  else if( !gotHs1 ) 
-  { 
-    obj = second; 
-    stat = endfirst; 
-  }
-  else if( !gotHs2 ) 
+  else if( !gotHs1 )
   {
-    obj = first; 
-    stat = endsecond; 
+    obj = second;
+    stat = endfirst;
+  }
+  else if( !gotHs2 )
+  {
+    obj = first;
+    stat = endsecond;
   }
   else //both defined
   {
     stat = endnone;
-    if( *hs1 < *hs2 ) 
+    if( *hs1 < *hs2 )
       obj = first;
-    else if( *hs1 > *hs2 ) 
+    else if( *hs1 > *hs2 )
       obj = second;
-    else 
+    else
       obj = both;
   }
 }
 
-void SelectNext_lr( const Line& L, const Region& R, 
+void SelectNext_lr( const Line& L, const Region& R,
                     object& obj, status& stat )
 {
   // 1. get the current elements
@@ -662,34 +662,34 @@ void SelectNext_lr( const Line& L, const Region& R,
   }
 
   //3. generate the outputs
-  if( !gotHs1 && gotHs2 ) 
+  if( !gotHs1 && gotHs2 )
   {
-    obj = none; 
+    obj = none;
     stat = endboth;
   }
-  else if( !gotHs1 ) 
+  else if( !gotHs1 )
   {
-    obj = second; 
-    stat = endfirst; 
+    obj = second;
+    stat = endfirst;
   }
-  else if( !gotHs2 ) 
+  else if( !gotHs2 )
   {
-    obj = first; 
-    stat = endsecond; 
+    obj = first;
+    stat = endsecond;
   }
   else //both defined
   {
     stat = endnone;
-    if( *hs1 < *hs2 ) 
+    if( *hs1 < *hs2 )
       obj = first;
-    else if( *hs1 > *hs2 ) 
+    else if( *hs1 > *hs2 )
       obj = second;
-    else 
+    else
       obj=both;
   }
 }
 
-void SelectFirst_rr( const Region& R1, const Region& R2, 
+void SelectFirst_rr( const Region& R1, const Region& R2,
                      object& obj, status& stat )
 {
   R1.SelectFirst();
@@ -699,34 +699,34 @@ void SelectFirst_rr( const Region& R1, const Region& R2,
   bool gotHs1 = R1.GetHs( hs1 ),
        gotHs2 = R2.GetHs( hs2 );
 
-  if( !gotHs1 && !gotHs2 ) 
+  if( !gotHs1 && !gotHs2 )
   {
-    obj = none; 
+    obj = none;
     stat = endboth;
   }
-  else if( !gotHs1 ) 
+  else if( !gotHs1 )
   {
-    obj = second; 
-    stat = endfirst; 
+    obj = second;
+    stat = endfirst;
   }
-  else if( !gotHs2 ) 
+  else if( !gotHs2 )
   {
-    obj = first; 
-    stat = endsecond; 
+    obj = first;
+    stat = endsecond;
   }
   else //both defined
   {
     stat = endnone;
-    if( *hs1 < *hs2 ) 
+    if( *hs1 < *hs2 )
       obj = first;
-    else if( *hs1 > *hs2 ) 
+    else if( *hs1 > *hs2 )
       obj = second;
-    else  
+    else
       obj=both;
   }
 }
 
-void SelectNext_rr( const Region& R1, const Region& R2, 
+void SelectNext_rr( const Region& R1, const Region& R2,
                     object& obj, status& stat )
 {
   // 1. get the current elements
@@ -771,29 +771,29 @@ void SelectNext_rr( const Region& R1, const Region& R2,
   }
 
   //3. generate the outputs
-  if( !gotHs1 && !gotHs2 ) 
+  if( !gotHs1 && !gotHs2 )
   {
     obj = none;
     stat = endboth;
   }
-  else if( !gotHs1 ) 
+  else if( !gotHs1 )
   {
-    obj = second; 
-    stat = endfirst; 
+    obj = second;
+    stat = endfirst;
   }
-  else if( !gotHs2 ) 
+  else if( !gotHs2 )
   {
-    obj = first; 
-    stat = endsecond; 
+    obj = first;
+    stat = endsecond;
   }
   else //both defined
   {
     stat = endnone;
-    if( *hs1 < *hs2 ) 
+    if( *hs1 < *hs2 )
       obj = first;
-    else if( *hs1 > *hs2 ) 
+    else if( *hs1 > *hs2 )
       obj = second;
-    else 
+    else
       obj = both;
   }
 }
@@ -833,7 +833,7 @@ bool Point::Inside( const Rectangle<2>& r ) const
 
 double Point::Distance( const Point& p ) const
 {
-  double dx = p.x - x, 
+  double dx = p.x - x,
          dy = p.y - y;
 
   return sqrt( pow( dx, 2 ) + pow( dy, 2 ) );
@@ -921,10 +921,10 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
         x = nl->IntValue(first);
       else if( nl->AtomType(first) == RealType )
         x = nl->RealValue(first);
-      else 
+      else
         correct = false;
     }
-    else 
+    else
       correct = false;
 
     //2. processing the second data item
@@ -934,10 +934,10 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
         y = nl->IntValue(second);
       else if( nl->AtomType(second) == RealType )
         y = nl->RealValue(second);
-      else 
+      else
         correct = false;
     }
-    else 
+    else
       correct = false;
 
     //3. create the class object
@@ -946,7 +946,7 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
   }
   else if( nl->IsEqual( instance, "undef" ) )
   {
-    correct = true; 
+    correct = true;
     return SetWord( new Point( false ) );
   }
 
@@ -1088,7 +1088,7 @@ Points& Points::operator=( const Points& ps )
   points.Clear();
 
   if( !ps.IsEmpty() )
-  {  
+  {
     points.Resize( ps.Size() );
     for( int i = 0; i < ps.Size(); i++ )
     {
@@ -1287,7 +1287,7 @@ void Points::RemoveDuplicates()
 
   const Point *p1, *p2;
   int i = 0, j = 0;
-  Get( i++, p1 );  
+  Get( i++, p1 );
   points.Put( j++, *p1 );
   while( i < Size() )
   {
@@ -1297,8 +1297,8 @@ void Points::RemoveDuplicates()
       Get( i++, p2 );
     p1 = p2;
     points.Put( j++, *p1 );
-  }    
-  points.Resize( j );   
+  }
+  points.Resize( j );
 }
 
 bool Points::Contains( const Point& p ) const
@@ -1418,7 +1418,7 @@ bool Points::Intersects( const Points& ps ) const
     SelectNext_pp( *this, ps, obj, stat );
   }
   return false;
-} 
+}
 
 bool Points::Intersects( const Line& l ) const
 {
@@ -1476,7 +1476,7 @@ bool Points::Adjacent( const Region& r ) const
 
   if( !BoundingBox().Intersects( r.BoundingBox() ) )
     return false;
-  
+
   const Point *p;
   bool found = false;
   for( int i = 0; i < Size(); i++ )
@@ -1489,7 +1489,7 @@ bool Points::Adjacent( const Region& r ) const
     // At least one point is contained in the region
     // If it is not inside the region, then the
     // function will return true.
-    found = true; 
+    found = true;
     if( r.InnerContains( *p ) )
       return false;
   }
@@ -1674,7 +1674,7 @@ void Points::Union( const Points& ps, Points& result ) const
       assert( GetPt( p ) );
     else if( obj == second )
       assert( ps.GetPt( p ) );
-    result += *p;    
+    result += *p;
     SelectNext_pp( *this, ps, obj, stat );
   }
   result.EndBulkLoad( false, false );
@@ -1692,9 +1692,9 @@ double Points::Distance( const Point& p ) const
 
     if( AlmostEqual( p, *pi ) )
       return 0.0;
-    
+
     result = MIN( result, pi->Distance( p ) );
-  }    
+  }
   return result;
 }
 
@@ -1738,7 +1738,7 @@ void Points::Translate( const Coord& x, const Coord& y, Points& result ) const
 
 size_t Points::HashValue() const
 {
-  if( IsEmpty() )  
+  if( IsEmpty() )
   return 0;
 
   size_t h = 0;
@@ -1767,8 +1767,8 @@ bool Points::IsValid() const
     if( AlmostEqual( p1, *p2 ) )
       return false;
     p1 = *p2;
-  }  
-  return true; 
+  }
+  return true;
 }
 
 void Points::Clear()
@@ -1790,22 +1790,22 @@ int Points::Compare( const Attribute* arg ) const
 {
   const Points* ps = (const Points*)arg;
 
-  if( !ps ) 
+  if( !ps )
     return (-2);
 
   if( IsEmpty() && ps->IsEmpty() )
     return 0;
 
-  if( IsEmpty() )  
+  if( IsEmpty() )
     return -1;
 
-  if( ps->IsEmpty() ) 
+  if( ps->IsEmpty() )
     return 1;
 
-  if( Size() > ps->Size() ) 
+  if( Size() > ps->Size() )
     return 1;
 
-  if( Size() < ps->Size() ) 
+  if( Size() < ps->Size() )
     return -1;
 
   for( int i = 0; i < Size(); i++ )
@@ -1814,10 +1814,10 @@ int Points::Compare( const Attribute* arg ) const
     Get( i, p1);
     ps->Get( i, p2 );
 
-    if( *p1 > *p2 ) 
+    if( *p1 > *p2 )
       return 1;
 
-    if( *p1 < *p2 ) 
+    if( *p1 < *p2 )
       return -1;
   }
   return 0;
@@ -1860,7 +1860,7 @@ OutPoints( ListExpr typeInfo, Word value )
 
   const Point *p;
   points->Get( 0, p );
-  ListExpr result = 
+  ListExpr result =
     nl->OneElemList( OutPoint( nl->TheEmptyList(), SetWord( (void*)p ) ) );
   ListExpr last = result;
 
@@ -1890,7 +1890,7 @@ InPoints( const ListExpr typeInfo, const ListExpr instance,
     ListExpr first = nl->First( rest );
     rest = nl->Rest( rest );
 
-    Point *p = (Point*)InPoint( nl->TheEmptyList(), 
+    Point *p = (Point*)InPoint( nl->TheEmptyList(),
                                 first, 0, errorInfo, correct ).addr;
     if( correct )
     {
@@ -2090,7 +2090,7 @@ int HalfSegment::Compare( const HalfSegment& hs ) const
 {
   const Point& dp = GetDomPoint(),
                    sp = GetSecPoint(),
-                   DP = hs.GetDomPoint(), 
+                   DP = hs.GetDomPoint(),
                    SP = hs.GetSecPoint();
 
   if( dp < DP )
@@ -2100,7 +2100,7 @@ int HalfSegment::Compare( const HalfSegment& hs ) const
 
   if( ldp != hs.ldp )
   {
-    if( ldp == false ) 
+    if( ldp == false )
       return -1;
     return 1;
   }
@@ -2111,21 +2111,21 @@ int HalfSegment::Compare( const HalfSegment& hs ) const
       if( ( sp.GetY() > dp.GetY() && SP.GetY() > DP.GetY() ) ||
           ( sp.GetY() < dp.GetY() && SP.GetY() < DP.GetY() ) )
       {
-        if( sp < SP ) 
+        if( sp < SP )
           return -1;
-        if( sp > SP ) 
+        if( sp > SP )
           return 1;
         return 0;
       }
       else if( sp.GetY() > dp.GetY() )
       {
-        if( ldp == true ) 
+        if( ldp == true )
           return 1;
         return -1;
       }
       else
       {
-        if( ldp == true ) 
+        if( ldp == true )
           return -1;
         return 1;
       }
@@ -2134,13 +2134,13 @@ int HalfSegment::Compare( const HalfSegment& hs ) const
     {
       if( sp.GetY() > dp.GetY() )
       {
-        if( ldp == true ) 
+        if( ldp == true )
           return 1;
         return -1;
       }
       else if( sp.GetY() < dp.GetY() )
       {
-        if( ldp == true ) 
+        if( ldp == true )
           return -1;
         return 1;
       }
@@ -2149,13 +2149,13 @@ int HalfSegment::Compare( const HalfSegment& hs ) const
     {
       if( SP.GetY() > DP.GetY() )
       {
-        if( ldp == true ) 
+        if( ldp == true )
           return -1;
         return 1;
       }
       else if( SP.GetY() < DP.GetY() )
       {
-        if( ldp == true ) 
+        if( ldp == true )
           return 1;
         return -1;
       }
@@ -2169,14 +2169,14 @@ int HalfSegment::Compare( const HalfSegment& hs ) const
       double k = (yd - ys) / (xd - xs),
              K= (Yd -Ys) / (Xd - Xs);
 
-      if( k < K ) 
+      if( k < K )
         return -1;
-      if( k > K) 
+      if( k > K)
         return 1;
 
-      if( sp < SP ) 
+      if( sp < SP )
         return -1;
-      if( sp > SP ) 
+      if( sp > SP )
         return 1;
       return 0;
     }
@@ -2216,22 +2216,22 @@ bool HalfSegment::operator>( const HalfSegment& hs ) const
 
 int HalfSegment::LogicCompare( const HalfSegment& hs ) const
 {
-  if( attr.faceno < hs.attr.faceno ) 
+  if( attr.faceno < hs.attr.faceno )
     return -1;
 
-  if( attr.faceno > hs.attr.faceno ) 
+  if( attr.faceno > hs.attr.faceno )
     return 1;
 
-  if( attr.cycleno < hs.attr.cycleno ) 
+  if( attr.cycleno < hs.attr.cycleno )
     return -1;
 
-  if( attr.cycleno > hs.attr.cycleno ) 
+  if( attr.cycleno > hs.attr.cycleno )
     return 1;
 
-  if( attr.edgeno < hs.attr.edgeno ) 
+  if( attr.edgeno < hs.attr.edgeno )
     return -1;
 
-  if( attr.edgeno > hs.attr.edgeno ) 
+  if( attr.edgeno > hs.attr.edgeno )
     return 1;
 
   return 0;
@@ -2248,7 +2248,7 @@ int HalfSegmentLogicCompare(const void *a, const void *b)
 {
   const HalfSegment *hsa = (const HalfSegment *)a,
                     *hsb = (const HalfSegment *)b;
-  
+
   return hsa->LogicCompare( *hsb );
 }
 
@@ -2282,20 +2282,20 @@ bool HalfSegment::Intersects( const HalfSegment& hs ) const
 {
   double k, a, K, A;
 
-  if( !BoundingBox().Intersects( hs.BoundingBox() ) ) 
+  if( !BoundingBox().Intersects( hs.BoundingBox() ) )
     return false;
 
-  Coord xl = lp.GetX(), 
+  Coord xl = lp.GetX(),
         yl = lp.GetY(),
-        xr = rp.GetX(), 
+        xr = rp.GetX(),
         yr = rp.GetY(),
-        Xl = hs.GetLeftPoint().GetX(), 
+        Xl = hs.GetLeftPoint().GetX(),
         Yl = hs.GetLeftPoint().GetY(),
-        Xr = hs.GetRightPoint().GetX(), 
+        Xr = hs.GetRightPoint().GetX(),
         Yr = hs.GetRightPoint().GetY();
 
-  if( AlmostEqual( xl, xr ) && 
-      AlmostEqual( Xl, Xr ) ) 
+  if( AlmostEqual( xl, xr ) &&
+      AlmostEqual( Xl, Xr ) )
     // both segments are vertical
   {
     if( AlmostEqual( xl, Xl ) &&
@@ -2327,12 +2327,12 @@ bool HalfSegment::Intersects( const HalfSegment& hs ) const
   {
     Coord y0 = k * Xl + a;
 
-    if( ( Xl > xl || AlmostEqual( Xl, xl ) ) && 
+    if( ( Xl > xl || AlmostEqual( Xl, xl ) ) &&
         ( Xl < xr || AlmostEqual( Xl, xr ) ) )
     {
-      if( ( ( y0 > Yl || AlmostEqual( y0, Yl ) ) && 
-            ( y0 < Yr || AlmostEqual( y0, Yr ) ) ) || 
-          ( ( y0 > Yr || AlmostEqual( y0, Yr ) ) && 
+      if( ( ( y0 > Yl || AlmostEqual( y0, Yl ) ) &&
+            ( y0 < Yr || AlmostEqual( y0, Yr ) ) ) ||
+          ( ( y0 > Yr || AlmostEqual( y0, Yr ) ) &&
             ( y0 < Yl || AlmostEqual( y0, Yl ) ) ) )
         // (Xl, y0) is the intersection point
         return true;
@@ -2340,17 +2340,17 @@ bool HalfSegment::Intersects( const HalfSegment& hs ) const
     return false;
   }
 
-  if( AlmostEqual( xl, xr ) )    
+  if( AlmostEqual( xl, xr ) )
     // only this segment is vertical
   {
     Coord Y0 = K * xl + A;
 
-    if( ( xl > Xl || AlmostEqual( xl, Xl ) ) && 
-        ( xl < Xr || AlmostEqual( xl, Xr ) ) ) 
+    if( ( xl > Xl || AlmostEqual( xl, Xl ) ) &&
+        ( xl < Xr || AlmostEqual( xl, Xr ) ) )
     {
-      if( ( ( Y0 > yl || AlmostEqual( Y0, yl ) ) && 
-            ( Y0 < yr || AlmostEqual( Y0, yr ) ) ) || 
-          ( ( Y0 > yr || AlmostEqual( Y0, yr ) ) && 
+      if( ( ( Y0 > yl || AlmostEqual( Y0, yl ) ) &&
+            ( Y0 < yr || AlmostEqual( Y0, yr ) ) ) ||
+          ( ( Y0 > yr || AlmostEqual( Y0, yr ) ) &&
             ( Y0 < yl || AlmostEqual( Y0, yl ) ) ) )
         // (xl, Y0) is the intersection point
         return true;
@@ -2358,28 +2358,28 @@ bool HalfSegment::Intersects( const HalfSegment& hs ) const
     return false;
   }
 
-  // both segments are non-vertical 
+  // both segments are non-vertical
 
-  if( AlmostEqual( k, K ) ) 
+  if( AlmostEqual( k, K ) )
     // both segments have the same inclination
   {
-    if( AlmostEqual( A, a ) && 
-        ( ( xl > Xl || AlmostEqual( xl, Xl ) ) && 
-          ( xl < Xr || AlmostEqual( xl, Xr ) ) ) || 
-        ( ( Xl > xl || AlmostEqual( xl, Xl ) ) && 
+    if( AlmostEqual( A, a ) &&
+        ( ( xl > Xl || AlmostEqual( xl, Xl ) ) &&
+          ( xl < Xr || AlmostEqual( xl, Xr ) ) ) ||
+        ( ( Xl > xl || AlmostEqual( xl, Xl ) ) &&
           ( Xl < xr || AlmostEqual( xr, Xl ) ) ) )
       // the segments are in the same straight line
       return true;
   }
   else
   {
-    Coord x0 = (A - a) / (k - K);  
+    Coord x0 = (A - a) / (k - K);
     // y0 = x0 * k + a;
 
-    if( ( x0 > xl || AlmostEqual( x0, xl ) ) && 
-        ( x0 < xr || AlmostEqual( x0, xr ) ) && 
-        ( x0 > Xl || AlmostEqual( x0, Xl ) ) && 
-        ( x0 < Xr || AlmostEqual( x0, Xr ) ) ) 
+    if( ( x0 > xl || AlmostEqual( x0, xl ) ) &&
+        ( x0 < xr || AlmostEqual( x0, xr ) ) &&
+        ( x0 > Xl || AlmostEqual( x0, Xl ) ) &&
+        ( x0 < Xr || AlmostEqual( x0, Xr ) ) )
       // the segments intersect at (x0, y0)
       return true;
   }
@@ -2395,7 +2395,7 @@ bool HalfSegment::InnerIntersects( const HalfSegment& hs ) const
         xr = rp.GetX(), yr = rp.GetY();
 
   if( xl != xr )
-  {     
+  {
     k = (yr - yl) / (xr - xl);
     a = yl - k * xl;
   }
@@ -2413,7 +2413,7 @@ bool HalfSegment::InnerIntersects( const HalfSegment& hs ) const
 
   if( xl == xr && Xl == Xr ) //both l and L are vertical lines
   {
-    if( xl != Xl ) 
+    if( xl != Xl )
       return false;
 
     Coord ylow, yup, Ylow, Yup;
@@ -2452,7 +2452,7 @@ bool HalfSegment::InnerIntersects( const HalfSegment& hs ) const
     //(Xl, y0) is the intersection of l and L
     if( Xl >= xl && Xl <= xr )
     {
-      if( ( yy > Yl && yy < Yr ) || 
+      if( ( yy > Yl && yy < Yr ) ||
           ( yy > Yr && yy < Yl ) )
         return true;
       return false;
@@ -2468,7 +2468,7 @@ bool HalfSegment::InnerIntersects( const HalfSegment& hs ) const
     //(xl, Y0) is the intersection of l and L
     if( xl > Xl && xl < Xr )
     {
-      if( ( YY >= yl && YY <= yr ) || 
+      if( ( YY >= yl && YY <= yr ) ||
           ( YY >= yr && YY <= yl ) )
         return true;
       return false;
@@ -2476,11 +2476,11 @@ bool HalfSegment::InnerIntersects( const HalfSegment& hs ) const
     else return false;
   }
 
-  //otherwise: both segments are non-vertical 
+  //otherwise: both segments are non-vertical
   if( k == K )
   {
     if( A != a ) //Parallel lines
-      return false; 
+      return false;
 
     //they are in the same straight line
     if( xr <= Xl || xl >= Xr )
@@ -2501,20 +2501,20 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
 {
   double k, a, K, A;
 
-  if( !BoundingBox().Intersects( hs.BoundingBox() ) ) 
+  if( !BoundingBox().Intersects( hs.BoundingBox() ) )
     return false;
 
-  Coord xl = lp.GetX(), 
+  Coord xl = lp.GetX(),
         yl = lp.GetY(),
-        xr = rp.GetX(), 
+        xr = rp.GetX(),
         yr = rp.GetY(),
-        Xl = hs.GetLeftPoint().GetX(), 
+        Xl = hs.GetLeftPoint().GetX(),
         Yl = hs.GetLeftPoint().GetY(),
-        Xr = hs.GetRightPoint().GetX(), 
+        Xr = hs.GetRightPoint().GetX(),
         Yr = hs.GetRightPoint().GetY();
 
-  if( AlmostEqual( xl, xr ) && 
-      AlmostEqual( Xl, Xr ) ) 
+  if( AlmostEqual( xl, xr ) &&
+      AlmostEqual( Xl, Xr ) )
     // both segments are vertical
   {
     if( AlmostEqual( yr, Yl ) )
@@ -2549,12 +2549,12 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
   {
     Coord y0 = k * Xl + a;
 
-    if( ( Xl > xl || AlmostEqual( Xl, xl ) ) && 
+    if( ( Xl > xl || AlmostEqual( Xl, xl ) ) &&
         ( Xl < xr || AlmostEqual( Xl, xr ) ) )
     {
-      if( ( ( y0 > Yl || AlmostEqual( y0, Yl ) ) && 
-            ( y0 < Yr || AlmostEqual( y0, Yr ) ) ) || 
-          ( ( y0 > Yr || AlmostEqual( y0, Yr ) ) && 
+      if( ( ( y0 > Yl || AlmostEqual( y0, Yl ) ) &&
+            ( y0 < Yr || AlmostEqual( y0, Yr ) ) ) ||
+          ( ( y0 > Yr || AlmostEqual( y0, Yr ) ) &&
             ( y0 < Yl || AlmostEqual( y0, Yl ) ) ) )
         // (Xl, y0) is the intersection point
       {
@@ -2565,30 +2565,30 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
     return false;
   }
 
-  if( AlmostEqual( xl, xr ) )    
+  if( AlmostEqual( xl, xr ) )
     // only this segment is vertical
   {
     Coord Y0 = K * xl + A;
 
-    if( ( xl > Xl || AlmostEqual( xl, Xl ) ) && 
-        ( xl < Xr || AlmostEqual( xl, Xr ) ) ) 
+    if( ( xl > Xl || AlmostEqual( xl, Xl ) ) &&
+        ( xl < Xr || AlmostEqual( xl, Xr ) ) )
     {
-      if( ( ( Y0 > yl || AlmostEqual( Y0, yl ) ) && 
-            ( Y0 < yr || AlmostEqual( Y0, yr ) ) ) || 
-          ( ( Y0 > yr || AlmostEqual( Y0, yr ) ) && 
+      if( ( ( Y0 > yl || AlmostEqual( Y0, yl ) ) &&
+            ( Y0 < yr || AlmostEqual( Y0, yr ) ) ) ||
+          ( ( Y0 > yr || AlmostEqual( Y0, yr ) ) &&
             ( Y0 < yl || AlmostEqual( Y0, yl ) ) ) )
         // (xl, Y0) is the intersection point
       {
-        resp.Set( xl, Y0 ); 
+        resp.Set( xl, Y0 );
         return true;
       }
     }
     return false;
   }
 
-  // both segments are non-vertical 
+  // both segments are non-vertical
 
-  if( AlmostEqual( k, K ) ) 
+  if( AlmostEqual( k, K ) )
     // both segments have the same inclination
   {
     if( AlmostEqual( rp, hs.lp ) )
@@ -2604,13 +2604,13 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
     return false;
   }
 
-  Coord x0 = (A - a) / (k - K),  
+  Coord x0 = (A - a) / (k - K),
         y0 = x0 * k + a;
 
-  if( ( x0 > xl || AlmostEqual( x0, xl ) ) && 
-      ( x0 < xr || AlmostEqual( x0, xr ) ) && 
-      ( x0 > Xl || AlmostEqual( x0, Xl ) ) && 
-      ( x0 < Xr || AlmostEqual( x0, Xr ) ) ) 
+  if( ( x0 > xl || AlmostEqual( x0, xl ) ) &&
+      ( x0 < xr || AlmostEqual( x0, xr ) ) &&
+      ( x0 > Xl || AlmostEqual( x0, Xl ) ) &&
+      ( x0 < Xr || AlmostEqual( x0, Xr ) ) )
     // the segments intersect at (x0, y0)
   {
     resp.Set( x0, y0 );
@@ -2620,7 +2620,7 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
   return false;
 }
 
-bool HalfSegment::Intersection( const HalfSegment& hs, 
+bool HalfSegment::Intersection( const HalfSegment& hs,
                                 HalfSegment& reshs ) const
 {
   double k, a, K, A;
@@ -2643,7 +2643,7 @@ bool HalfSegment::Intersection( const HalfSegment& hs,
         Xr = hs.GetRightPoint().GetX(),
         Yr = hs.GetRightPoint().GetY();
 
-  if( AlmostEqual( xl, xr ) && 
+  if( AlmostEqual( xl, xr ) &&
       AlmostEqual( Xl, Xr ) )
     //both l and L are vertical lines
   {
@@ -2677,12 +2677,12 @@ bool HalfSegment::Intersection( const HalfSegment& hs,
       Point p1, p2;
       if( ylow > Ylow )
         p1.Set( xl, ylow );
-      else 
+      else
         p1.Set( xl, Ylow );
 
       if( yup < Yup )
         p2.Set( xl, yup );
-      else 
+      else
         p2.Set( xl, Yup );
 
       reshs.Set( true, p1, p2 );
@@ -2691,20 +2691,20 @@ bool HalfSegment::Intersection( const HalfSegment& hs,
     else return false;
   }
 
-  if( AlmostEqual( Xl, Xr ) || 
+  if( AlmostEqual( Xl, Xr ) ||
       AlmostEqual( xl, xr ) )
     //only L or l is vertical
     return false;
 
   //otherwise: both *this and *arg are non-vertical lines
-  
+
   k = (yr - yl) / (xr - xl);
   a = yl - k * xl;
 
   K = (Yr - Yl) / (Xr - Xl);
   A = Yl - K * Xl;
-  
-  if( AlmostEqual( k, K ) && 
+
+  if( AlmostEqual( k, K ) &&
       AlmostEqual( A, a ) )
   {
     if( xr > Xl && xl < Xr &&
@@ -2714,12 +2714,12 @@ bool HalfSegment::Intersection( const HalfSegment& hs,
       Point p1, p2;
       if( xl > Xl )
         p1.Set( xl, yl );
-      else  
+      else
         p1.Set( Xl, Yl );
 
       if( xr < Xr )
         p2.Set( xr, yr );
-      else  
+      else
         p2.Set( Xr, Yr );
 
       reshs.Set( true, p1, p2 );
@@ -2734,20 +2734,20 @@ bool HalfSegment::Crosses( const HalfSegment& hs ) const
 {
   double k, a, K, A;
 
-  if( !BoundingBox().Intersects( hs.BoundingBox() ) ) 
+  if( !BoundingBox().Intersects( hs.BoundingBox() ) )
     return false;
 
-  Coord xl = lp.GetX(), 
+  Coord xl = lp.GetX(),
         yl = lp.GetY(),
-        xr = rp.GetX(), 
+        xr = rp.GetX(),
         yr = rp.GetY(),
-        Xl = hs.GetLeftPoint().GetX(), 
+        Xl = hs.GetLeftPoint().GetX(),
         Yl = hs.GetLeftPoint().GetY(),
-        Xr = hs.GetRightPoint().GetX(), 
+        Xr = hs.GetRightPoint().GetX(),
         Yr = hs.GetRightPoint().GetY();
 
-  if( AlmostEqual( xl, xr ) && 
-      AlmostEqual( Xl, Xr ) ) 
+  if( AlmostEqual( xl, xr ) &&
+      AlmostEqual( Xl, Xr ) )
     // both segments are vertical
     return false;
 
@@ -2770,12 +2770,12 @@ bool HalfSegment::Crosses( const HalfSegment& hs ) const
   {
     double y0 = k * Xl + a;
 
-    if( Xl > xl && !AlmostEqual( Xl, xl ) && 
+    if( Xl > xl && !AlmostEqual( Xl, xl ) &&
         Xl < xr && !AlmostEqual( Xl, xr ) )
     {
-      if( ( y0 > Yl && !AlmostEqual( y0, Yl ) && 
-            y0 < Yr && !AlmostEqual( y0, Yr ) ) || 
-          ( y0 > Yr && !AlmostEqual( y0, Yr ) && 
+      if( ( y0 > Yl && !AlmostEqual( y0, Yl ) &&
+            y0 < Yr && !AlmostEqual( y0, Yr ) ) ||
+          ( y0 > Yr && !AlmostEqual( y0, Yr ) &&
             y0 < Yl && !AlmostEqual( y0, Yl ) ) )
         // (Xl, y0) is the intersection point
         return true;
@@ -2783,17 +2783,17 @@ bool HalfSegment::Crosses( const HalfSegment& hs ) const
     return false;
   }
 
-  if( AlmostEqual( xl, xr ) )    
+  if( AlmostEqual( xl, xr ) )
     // only this segment is vertical
   {
     double Y0 = K * xl + A;
 
-    if( ( xl > Xl && !AlmostEqual( xl, Xl ) ) && 
-        ( xl < Xr && !AlmostEqual( xl, Xr ) ) ) 
+    if( ( xl > Xl && !AlmostEqual( xl, Xl ) ) &&
+        ( xl < Xr && !AlmostEqual( xl, Xr ) ) )
     {
-      if( ( Y0 > yl && !AlmostEqual( Y0, yl ) && 
-            Y0 < yr && !AlmostEqual( Y0, yr ) ) || 
-          ( Y0 > yr && !AlmostEqual( Y0, yr ) && 
+      if( ( Y0 > yl && !AlmostEqual( Y0, yl ) &&
+            Y0 < yr && !AlmostEqual( Y0, yr ) ) ||
+          ( Y0 > yr && !AlmostEqual( Y0, yr ) &&
             Y0 < yl && !AlmostEqual( Y0, yl ) ) )
         // (xl, Y0) is the intersection point
         return true;
@@ -2801,19 +2801,19 @@ bool HalfSegment::Crosses( const HalfSegment& hs ) const
     return false;
   }
 
-  // both segments are non-vertical 
+  // both segments are non-vertical
 
-  if( AlmostEqual( k, K ) ) 
+  if( AlmostEqual( k, K ) )
     // both segments have the same inclination
     return false;
 
-  double x0 = (A - a) / (k - K);  
+  double x0 = (A - a) / (k - K);
   // y0 = x0 * k + a;
 
-  if( x0 > xl && !AlmostEqual( x0, xl ) && 
-      x0 < xr && !AlmostEqual( x0, xr ) && 
-      x0 > Xl && !AlmostEqual( x0, Xl ) && 
-      x0 < Xr && !AlmostEqual( x0, Xr ) ) 
+  if( x0 > xl && !AlmostEqual( x0, xl ) &&
+      x0 < xr && !AlmostEqual( x0, xr ) &&
+      x0 > Xl && !AlmostEqual( x0, Xl ) &&
+      x0 < Xr && !AlmostEqual( x0, Xr ) )
     // the segments intersect at (x0, y0)
     return true;
 
@@ -2828,8 +2828,8 @@ bool HalfSegment::Inside( const HalfSegment& hs ) const
 
 bool HalfSegment::Contains( const Point& p ) const
 {
-  if( AlmostEqual( p, lp ) || 
-      AlmostEqual( p, rp ) ) 
+  if( AlmostEqual( p, lp ) ||
+      AlmostEqual( p, rp ) )
     return true;
 
   Coord xl = lp.GetX(), yl = lp.GetY(),
@@ -2844,25 +2844,25 @@ bool HalfSegment::Contains( const Point& p ) const
 
     if( AlmostEqual( k1, k2 ) )
     {
-      if( ( x > xl || AlmostEqual( x, xl ) ) && 
+      if( ( x > xl || AlmostEqual( x, xl ) ) &&
           ( x < xr || AlmostEqual( x, xr ) ) )
         // we check only this possibility because lp < rp and
         // therefore, in this case, xl < xr
         return true;
     }
   }
-  else if( AlmostEqual( xl, xr ) && 
+  else if( AlmostEqual( xl, xr ) &&
            AlmostEqual( xl, x ) )
-    // the segment is vertical and the point is also in the 
+    // the segment is vertical and the point is also in the
     // same x-position. In this case we just have to check
     // whether the point is inside the y-interval
   {
-    if( ( y > yl || AlmostEqual( y, yl ) ) && 
+    if( ( y > yl || AlmostEqual( y, yl ) ) &&
         ( y < yr || AlmostEqual( y, yr ) ) ||
-        ( y < yl || AlmostEqual( y, yl ) ) && 
+        ( y < yl || AlmostEqual( y, yl ) ) &&
         ( y > yr || AlmostEqual( y, yr ) ) )
-      // Here we check both possibilities because we do not 
-      // know wheter yl < yr, given that we used the 
+      // Here we check both possibilities because we do not
+      // know wheter yl < yr, given that we used the
       // AlmostEqual function in the previous condition
       return true;
   }
@@ -2891,7 +2891,7 @@ double HalfSegment::Distance( const Point& p ) const
       {
         result = p.Distance( GetLeftPoint() );
         auxresult = p.Distance( GetRightPoint() );
-        if( result > auxresult ) 
+        if( result > auxresult )
           result = auxresult;
       }
     }
@@ -2903,7 +2903,7 @@ double HalfSegment::Distance( const Point& p ) const
       {
         result = p.Distance( GetLeftPoint() );
         auxresult = p.Distance( GetRightPoint() );
-        if( result > auxresult ) 
+        if( result > auxresult )
           result = auxresult;
       }
     }
@@ -2955,7 +2955,7 @@ bool HalfSegment::RayAbove( const Point& p, double &abovey0 ) const
       return true;
     }
     else if( xl < x && x < xr )
-    {   
+    {
       double k = (yr - yl) / (xr - xl),
              a = (yl - k * xl),
              y0 = k * x + a;
@@ -2973,7 +2973,7 @@ bool HalfSegment::RayAbove( const Point& p, double &abovey0 ) const
 typedef unsigned int outcode;
 enum { TOP = 0x1, BOTTOM = 0x2, RIGHT = 0x4, LEFT = 0x8 };
 
-outcode CompOutCode( double x, double y, double xmin, 
+outcode CompOutCode( double x, double y, double xmin,
                      double xmax, double ymin, double ymax)
 {
   outcode code = 0;
@@ -2991,7 +2991,7 @@ outcode CompOutCode( double x, double y, double xmin,
 }
 
 void HalfSegment::CohenSutherlandLineClipping( const Rectangle<2> &window,
-                                               double &x0, double &y0, 
+                                               double &x0, double &y0,
                                                double &x1, double &y1,
                                                bool &accept ) const
 {
@@ -3028,19 +3028,19 @@ void HalfSegment::CohenSutherlandLineClipping( const Rectangle<2> &window,
       //Now find the intersection point;
       //use formulas y = y0 + slope * (x - x0), x = x0 + (1 /slope) * (y-y0).
 
-      if (outcodeOut & TOP) 
+      if (outcodeOut & TOP)
         //Divide the line at top of clip rectangle
       {
         x = x0 + (x1 - x0) * (ymax - y0) / (y1 - y0);
         y = ymax;
       }
-      else if (outcodeOut & BOTTOM)  
+      else if (outcodeOut & BOTTOM)
         //Divide line at bottom edge of clip rectangle
       {
         x = x0 + (x1 - x0) * (ymin - y0) / (y1 - y0);
         y = ymin;
       }
-      else if (outcodeOut & RIGHT) 
+      else if (outcodeOut & RIGHT)
         //Divide line at right edge of clip rectangle
       {
         y = y0 + (y1 - y0) * (xmax - x0) / (x1 - x0);
@@ -3072,8 +3072,8 @@ void HalfSegment::CohenSutherlandLineClipping( const Rectangle<2> &window,
 }
 
 void HalfSegment::WindowClippingIn( const Rectangle<2> &window,
-                                    HalfSegment &hsInside, bool &inside, 
-                                    bool &isIntersectionPoint, 
+                                    HalfSegment &hsInside, bool &inside,
+                                    bool &isIntersectionPoint,
                                     Point &intersectionPoint) const
 {
   double x0 = GetLeftPoint().GetX(),
@@ -3109,7 +3109,7 @@ void HalfSegment::WindowClippingIn( const Rectangle<2> &window,
 
 The list representation of a HalfSegment is
 
-----  ( bool (lp rp))  
+----  ( bool (lp rp))
 ----
 
 where the bool value indicate whether the dominating point is the left point.
@@ -3126,15 +3126,15 @@ OutHalfSegment( ListExpr typeInfo, Word value )
   Point lp = hs->GetLeftPoint(),
             rp = hs->GetRightPoint();
 
-  return nl->TwoElemList( 
+  return nl->TwoElemList(
            nl-> BoolAtom(hs->IsLeftDomPoint() ),
-           nl->TwoElemList( 
+           nl->TwoElemList(
              OutPoint( nl->TheEmptyList(), SetWord( &lp ) ),
              OutPoint( nl->TheEmptyList(), SetWord( &rp) ) ) );
 }
 
 Word
-InHalfSegment( const ListExpr typeInfo, const ListExpr instance, 
+InHalfSegment( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   if ( nl->ListLength( instance ) == 2 )
@@ -3193,7 +3193,7 @@ void Line::StartBulkLoad()
   ordered = false;
 }
 
-void Line::EndBulkLoad( bool sort, bool remDup, 
+void Line::EndBulkLoad( bool sort, bool remDup,
                         bool setPartnerNo, bool setNoComponents )
 {
   if( sort )
@@ -3352,7 +3352,7 @@ bool Line::Contains( const Point& p ) const
       if( hs->Contains( p ) )
         return true;
     }
-  } 
+  }
   return false;
 }
 
@@ -3381,7 +3381,7 @@ bool Line::Intersects( const Line& l ) const
         if (hs2->IsLeftDomPoint())
         {
           if( hs1->Intersects( *hs2 ) )
-            return true; 
+            return true;
         }
       }
     }
@@ -3403,7 +3403,7 @@ bool Line::Intersects( const Region& r ) const
     return false;
 
   const HalfSegment *hsl, *hsr;
-  for( int i = 0; i < Size(); i++ ) 
+  for( int i = 0; i < Size(); i++ )
   {
     Get( i, hsl );
     if( hsl->IsLeftDomPoint() )
@@ -3418,7 +3418,7 @@ bool Line::Intersects( const Region& r ) const
         }
       }
 
-      if( r.Contains( hsl->GetLeftPoint() ) || 
+      if( r.Contains( hsl->GetLeftPoint() ) ||
           r.Contains( hsl->GetRightPoint() ) )
         return true;
     }
@@ -3505,7 +3505,7 @@ bool Line::Adjacent( const Region& r ) const
       if( r.InnerContains( hsl->GetLeftPoint() ) ||
           r.InnerContains( hsl->GetRightPoint() ) )
         return false;
-     
+
       for( int j = 0; j < r.Size(); j++ )
       {
         r.Get( j, hsr );
@@ -3615,7 +3615,7 @@ double Line::Distance( const Point& p ) const
 
 double Line::Distance( const Points& ps ) const
 {
-  assert( IsOrdered() && !IsEmpty() && 
+  assert( IsOrdered() && !IsEmpty() &&
           ps.IsOrdered() && !ps.IsEmpty() );
 
   const HalfSegment *hs;
@@ -3660,7 +3660,7 @@ double Line::Distance( const Line& l ) const
 
         if( hs1->Intersects( *hs2 ) )
           return 0.0;
-        
+
         result = MIN( result, hs1->Distance( *hs2 ) );
       }
     }
@@ -3715,7 +3715,7 @@ bool Line::AtPosition( double pos, bool startsSmaller, Point& p ) const
 {
   if( startsSmaller != this->startsSmaller )
     pos = length - pos;
-    
+
   LRS lrs( pos, 0 );
   int lrsPos;
   if( !Find( lrs, lrsPos ) )
@@ -3726,13 +3726,13 @@ bool Line::AtPosition( double pos, bool startsSmaller, Point& p ) const
 
   const HalfSegment *hs;
   Get( lrs2->hsPos, hs );
-  
-  p = hs->AtPosition( pos - lrs2->lrsPos ); 
+
+  p = hs->AtPosition( pos - lrs2->lrsPos );
   return true;
 }
 
-bool Line::AtPoint( const Point& p, 
-                    bool startsSmaller, 
+bool Line::AtPoint( const Point& p,
+                    bool startsSmaller,
                     double& result ) const
 {
   if( IsEmpty() || !simple )
@@ -3781,7 +3781,7 @@ bool Line::AtPoint( const Point& p,
   return false;
 }
 
-void Line::SubLine( double pos1, double pos2, 
+void Line::SubLine( double pos1, double pos2,
                     bool startsSmaller, Line& l ) const
 {
   if( IsEmpty() ||
@@ -3832,14 +3832,14 @@ void Line::SubLine( double pos1, double pos2,
     l += auxHs;
   }
 
-  while( lrsPos < lrsArray.Size() - 1 && 
+  while( lrsPos < lrsArray.Size() - 1 &&
          ( lrs2->lrsPos + hs->Length() < pos2 ||
            AlmostEqual( lrs2->lrsPos + hs->Length(), pos2 ) ) )
-  {  
+  {
     // Get the next half segment in the sequence
     Get( ++lrsPos, lrs2 );
     Get( lrs2->hsPos, hs );
- 
+
     if( hs->SubHalfSegment( pos1 - lrs2->lrsPos, pos2 - lrs2->lrsPos, auxHs ) )
     {
       auxHs.attr.edgeno = ++edgeno;
@@ -3849,16 +3849,16 @@ void Line::SubLine( double pos1, double pos2,
     }
   }
 
-  l.EndBulkLoad();     
+  l.EndBulkLoad();
 }
 
 void Line::Vertices( Points* result ) const
 {
-  
+
   assert( IsOrdered() );
 
   result->Clear();
-  
+
   if(!IsDefined()){
     result->SetDefined(false);
     return;
@@ -3997,7 +3997,7 @@ bool Line::GetNextSegment( const int poshs, const HalfSegment& hs,
   return false;
 }
 
-bool Line::GetNextSegments( const int poshs, const HalfSegment& hs, 
+bool Line::GetNextSegments( const int poshs, const HalfSegment& hs,
                             vector<bool>& visited,
                             int& posnexths, const HalfSegment*& nexths,
                             stack< pair<int, const HalfSegment*> >& nexthss )
@@ -4025,7 +4025,7 @@ bool Line::GetNextSegments( const int poshs, const HalfSegment& hs,
       }
       else
         break;
-    }   
+    }
   }
 
   auxposhs = poshs;
@@ -4033,7 +4033,7 @@ bool Line::GetNextSegments( const int poshs, const HalfSegment& hs,
   {
     auxposhs++;
     if( !visited[auxposhs] )
-    {     
+    {
       Get( auxposhs, aux );
       if( hs.GetDomPoint() == aux->GetDomPoint() )
       {
@@ -4053,11 +4053,11 @@ bool Line::GetNextSegments( const int poshs, const HalfSegment& hs,
 
   return !first;
 }
- 
-void 
-Line::VisitHalfSegments( int& poshs, const HalfSegment*& hs, 
+
+void
+Line::VisitHalfSegments( int& poshs, const HalfSegment*& hs,
                          double& lrspos,
-                         int& edgeno, int cycleno, int faceno, 
+                         int& edgeno, int cycleno, int faceno,
                          stack< pair<int, const HalfSegment*> >& nexthss,
                          vector<bool>& visited )
 {
@@ -4084,7 +4084,7 @@ Line::VisitHalfSegments( int& poshs, const HalfSegment*& hs,
   auxhs.attr.faceno = faceno;
   line.Put( poshs, auxhs );
 
-  while( GetNextSegments( poshs, *hs, visited, 
+  while( GetNextSegments( poshs, *hs, visited,
                           posnexths, nexths, nexthss ) )
   {
     auxhs = *nexths;
@@ -4095,7 +4095,7 @@ Line::VisitHalfSegments( int& poshs, const HalfSegment*& hs,
 
     lrsArray.Append( LRS( lrspos, posnexths ) );
     lrspos += nexths->Length();
- 
+
     poshs = nexths->attr.partnerno;
     Get( poshs, hs );
 
@@ -4115,7 +4115,7 @@ void Line::SetNoComponents()
   // First we go to the beginning
   const HalfSegment *hs, *nexths;
 
-  // hs contains the beginning half segment 
+  // hs contains the beginning half segment
   double lrspos = 0.0;
   int edgeno = 0, cycleno = 0, faceno = 0;
   vector<bool> visited( Size(), false );
@@ -4124,7 +4124,7 @@ void Line::SetNoComponents()
 
   int poshs = 0, posnexths;
   while( poshs < Size() )
-  { 
+  {
     Get( poshs, hs );
 
     vector<bool> visited2( Size(), false );
@@ -4143,16 +4143,16 @@ void Line::SetNoComponents()
     start = hs->GetDomPoint();
 
     cycleno = 0;
-    VisitHalfSegments( poshs, hs, lrspos, edgeno, cycleno++, 
+    VisitHalfSegments( poshs, hs, lrspos, edgeno, cycleno++,
                        faceno, nexthss, visited );
 
-    while( !nexthss.empty() )    
+    while( !nexthss.empty() )
     {
       poshs = nexthss.top().first;
       hs = nexthss.top().second;
       nexthss.pop();
 
-      VisitHalfSegments( poshs, hs, lrspos, edgeno, cycleno++, 
+      VisitHalfSegments( poshs, hs, lrspos, edgeno, cycleno++,
                          faceno, nexthss, visited );
     }
     for( poshs = 0; poshs < Size() && visited[poshs]; poshs++ );
@@ -4161,16 +4161,16 @@ void Line::SetNoComponents()
     faceno++;
   }
 
-  this->noComponents = faceno;    
+  this->noComponents = faceno;
   this->length = lrspos;
-  this->simple = faceno == 0 && cycleno == 0 || 
+  this->simple = faceno == 0 && cycleno == 0 ||
                  faceno == 1 && cycleno == 1;
-  this->cycle = this->simple && 
-                start.IsDefined() && 
+  this->cycle = this->simple &&
+                start.IsDefined() &&
                 end.IsDefined() &&
                 AlmostEqual( start, end );
-  this->startsSmaller = this->simple && 
-                        !this->cycle && 
+  this->startsSmaller = this->simple &&
+                        !this->cycle &&
                         start.IsDefined() &&
                         end.IsDefined() &&
                         start < end;
@@ -4236,7 +4236,7 @@ void Line::WindowClippingIn( const Rectangle<2> &window,
     {
       Point intersectionPoint;
       hs->WindowClippingIn( window, hsInside, insidehs,
-                            isIntersectionPoint, 
+                            isIntersectionPoint,
                             intersectionPoint );
       if( insidehs && !isIntersectionPoint )
       {
@@ -4267,16 +4267,16 @@ void Line::WindowClippingOut( const Rectangle<2> &window,
     if( hs->IsLeftDomPoint() )
     {
       Point intersectionPoint;
-      hs->WindowClippingIn( window, hsInside, outsidehs, 
+      hs->WindowClippingIn( window, hsInside, outsidehs,
                             isIntersectionPoint,
                             intersectionPoint );
       if( outsidehs && !isIntersectionPoint )
       {
         if( hs->GetLeftPoint() != hsInside.GetLeftPoint() )
-        {//Add the part of the half segment composed by the left 
+        {//Add the part of the half segment composed by the left
          // point of hs and the left point of hsInside.
-          HalfSegment hsLeft( true, 
-                              hs->GetLeftPoint(), 
+          HalfSegment hsLeft( true,
+                              hs->GetLeftPoint(),
                               hsInside.GetLeftPoint() );
           AttrType attr = hs->GetAttr();
           hsLeft.SetAttr(attr);
@@ -4286,10 +4286,10 @@ void Line::WindowClippingOut( const Rectangle<2> &window,
           outside = true;
         }
         if( hs->GetRightPoint() != hsInside.GetRightPoint() )
-        {//Add the part of the half segment composed by the left 
+        {//Add the part of the half segment composed by the left
          // point of hs and the left point of hsInside.
-          HalfSegment hsRight( true, 
-                               hs->GetRightPoint(), 
+          HalfSegment hsRight( true,
+                               hs->GetRightPoint(),
                                hsInside.GetRightPoint() );
           AttrType attr=hs->GetAttr();
           hsRight.SetAttr(attr);
@@ -4328,7 +4328,7 @@ ostream& operator<<( ostream& os, const Line& cl )
 
 size_t Line::HashValue() const
 {
-  if( IsEmpty() )  
+  if( IsEmpty() )
     return 0;
 
   size_t h = 0;
@@ -4366,16 +4366,16 @@ void Line::CopyFrom( const StandardAttribute* right )
 int Line::Compare( const Attribute *arg ) const
 {
   const Line &l = *((const Line*)arg);
- 
-  if( Size() > l.Size() ) 
+
+  if( Size() > l.Size() )
     return 1;
   if( Size() < l.Size() )
     return -1;
- 
+
   object obj;
   status stat;
-  SelectFirst_ll( *this, l, obj, stat ); 
-  
+  SelectFirst_ll( *this, l, obj, stat );
+
   while( stat == endnone )
   {
     if( obj == first )
@@ -4454,7 +4454,7 @@ OutLine( ListExpr typeInfo, Word value )
 
 */
 Word
-InLine( const ListExpr typeInfo, const ListExpr instance, 
+InLine( const ListExpr typeInfo, const ListExpr instance,
         const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   Line* l = new Line( 0 );
@@ -4475,18 +4475,18 @@ InLine( const ListExpr typeInfo, const ListExpr instance,
       {
         halfpoint = nl->TwoElemList(
                       nl->TwoElemList(
-                        nl->First(first), 
+                        nl->First(first),
                         nl->Second(first)),
                       nl->TwoElemList(
-                        nl->Third(first), 
+                        nl->Third(first),
                         nl->Fourth(first)));
       }
       halfseg = nl->TwoElemList(nl->BoolAtom(true), halfpoint);
       hs = (HalfSegment*)InHalfSegment( nl->TheEmptyList(), halfseg,
                                         0, errorInfo, correct ).addr;
       if( correct )
-      {   
-        hs->attr.edgeno = edgeno++; 
+      {
+        hs->attr.edgeno = edgeno++;
         *l += *hs;
         hs->SetLeftDomPoint( !hs->IsLeftDomPoint() );
         *l += *hs;
@@ -4693,14 +4693,14 @@ void Region::StartBulkLoad()
   ordered = false;
 }
 
-void Region::EndBulkLoad( bool sort, bool setCoverageNo, 
+void Region::EndBulkLoad( bool sort, bool setCoverageNo,
                           bool setPartnerNo, bool computeRegion )
 {
   if( sort )
     Sort();
 
   if( setCoverageNo )
-  {          
+  {
     const HalfSegment *hs;
     int currCoverageNo = 0;
 
@@ -4725,7 +4725,7 @@ void Region::EndBulkLoad( bool sort, bool setCoverageNo,
 
   if( computeRegion )
     ComputeRegion();
-  
+
   ordered = true;
 }
 
@@ -4736,7 +4736,7 @@ bool Region::Contains( const Point& p ) const
   if( IsEmpty() )
     return false;
 
-  if( !p.Inside(bbox) ) 
+  if( !p.Inside(bbox) )
     return false;
 
   map<int, int> faceISN;
@@ -4759,7 +4759,7 @@ bool Region::Contains( const Point& p ) const
 
   //2. deal with equal-x hs's
   region.Get( i, hs );
-  while( i > 0 && 
+  while( i > 0 &&
          hs->GetDomPoint().GetX() == p.GetX() )
   {
     if( hs->Contains(p) )
@@ -4770,7 +4770,7 @@ bool Region::Contains( const Point& p ) const
       if( faceISN.find( hs->attr.faceno ) != faceISN.end() )
         faceISN[ hs->attr.faceno ]++;
       else
-        faceISN[ hs->attr.faceno ] = 1; 
+        faceISN[ hs->attr.faceno ] = 1;
     }
     region.Get( --i, hs );
   }
@@ -4786,7 +4786,7 @@ bool Region::Contains( const Point& p ) const
   {
     this->Get(i, hs);
 
-    if( hs->Contains(p) )  
+    if( hs->Contains(p) )
       return true;
 
     if( hs->IsLeftDomPoint() &&
@@ -4799,11 +4799,11 @@ bool Region::Contains( const Point& p ) const
       if( faceISN.find( hs->attr.faceno ) != faceISN.end() )
         faceISN[ hs->attr.faceno ]++;
       else
-        faceISN[ hs->attr.faceno ] = 1; 
+        faceISN[ hs->attr.faceno ] = 1;
     }
 
     i--;  //the iterator
-  } 
+  }
 
   for( map<int, int>::iterator iter = faceISN.begin();
        iter != faceISN.end();
@@ -4822,7 +4822,7 @@ bool Region::InnerContains( const Point& p ) const
   if( IsEmpty() )
     return false;
 
-  if( !p.Inside(bbox) ) 
+  if( !p.Inside(bbox) )
     return false;
 
   map<int, int> faceISN;
@@ -4845,7 +4845,7 @@ bool Region::InnerContains( const Point& p ) const
 
   //2. deal with equal-x hs's
   region.Get( i, hs );
-  while( i > 0 && 
+  while( i > 0 &&
          hs->GetDomPoint().GetX() == p.GetX() )
   {
     if( hs->Contains(p) )
@@ -4856,7 +4856,7 @@ bool Region::InnerContains( const Point& p ) const
       if( faceISN.find( hs->attr.faceno ) != faceISN.end() )
         faceISN[ hs->attr.faceno ]++;
       else
-        faceISN[ hs->attr.faceno ] = 1; 
+        faceISN[ hs->attr.faceno ] = 1;
     }
     region.Get( --i, hs );
   }
@@ -4872,7 +4872,7 @@ bool Region::InnerContains( const Point& p ) const
   {
     this->Get(i, hs);
 
-    if( hs->Contains(p) )  
+    if( hs->Contains(p) )
       return false;
 
     if( hs->IsLeftDomPoint() &&
@@ -4885,11 +4885,11 @@ bool Region::InnerContains( const Point& p ) const
       if( faceISN.find( hs->attr.faceno ) != faceISN.end() )
         faceISN[ hs->attr.faceno ]++;
       else
-        faceISN[ hs->attr.faceno ] = 1; 
+        faceISN[ hs->attr.faceno ] = 1;
     }
 
     i--;  //the iterator
-  } 
+  }
 
   for( map<int, int>::iterator iter = faceISN.begin();
        iter != faceISN.end();
@@ -4925,8 +4925,8 @@ bool Region::Contains( const HalfSegment& hs ) const
   if( IsEmpty() )
     return false;
 
-  if( !hs.GetLeftPoint().Inside(bbox) || 
-      !hs.GetRightPoint().Inside(bbox) ) 
+  if( !hs.GetLeftPoint().Inside(bbox) ||
+      !hs.GetRightPoint().Inside(bbox) )
     return false;
 
   if( !Contains(hs.GetLeftPoint()) ||
@@ -4950,14 +4950,14 @@ bool Region::Contains( const HalfSegment& hs ) const
       else if( hs.Intersects(*auxhs) &&
                ( auxhs->Contains(hs.GetLeftPoint()) ||
                  auxhs->Contains(hs.GetRightPoint()) ) );
-        checkMidPoint = true; 
+        checkMidPoint = true;
     }
   }
 
   if( checkMidPoint )
-  { 
-    Point midp( true, 
-                ( hs.GetLeftPoint().GetX() + hs.GetRightPoint().GetX() ) / 2, 
+  {
+    Point midp( true,
+                ( hs.GetLeftPoint().GetX() + hs.GetRightPoint().GetX() ) / 2,
                 ( hs.GetLeftPoint().GetY() + hs.GetRightPoint().GetY() ) / 2 );
     if( !Contains( midp ) )
       return false;
@@ -5000,7 +5000,7 @@ bool Region::HoleEdgeContain( const HalfSegment& hs ) const
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, auxhs );
-    if( auxhs->IsLeftDomPoint() && 
+    if( auxhs->IsLeftDomPoint() &&
         auxhs->attr.cycleno > 0 &&
         hs.Inside( *auxhs ) )
       return true;
@@ -5027,7 +5027,7 @@ bool Region::Intersects( const Region &r ) const
 
   if( Inside( r ) || r.Inside( *this ) )
     return true;
-  
+
   const HalfSegment *hs1, *hs2;
   for( int i = 0; i < Size(); i++ )
   {
@@ -5037,7 +5037,7 @@ bool Region::Intersects( const Region &r ) const
       for( int j = 0; j < r.Size(); j++ )
       {
         r.Get( j, hs2 );
-        if( hs2->IsLeftDomPoint() && 
+        if( hs2->IsLeftDomPoint() &&
             hs1->Intersects( *hs2 ) )
           return true;
       }
@@ -5061,7 +5061,7 @@ bool Region::Inside( const Region& r ) const
     return false;
 
   const HalfSegment *hs1, *hs2;
-  for( int i = 0; i < Size(); i++ ) 
+  for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs1 );
 
@@ -5079,7 +5079,7 @@ bool Region::Inside( const Region& r ) const
   {
     r.Get( j, hs2 );
 
-    if( hs2->IsLeftDomPoint() && 
+    if( hs2->IsLeftDomPoint() &&
         hs2->attr.cycleno > 0 )
     //&& (hs2 is not masked by another face of region2)
     {
@@ -5126,7 +5126,7 @@ bool Region::Adjacent( const Region& r ) const
           if( hs1->Crosses( *hs2 ) )
             return false;
           found = true;
-        }  
+        }
       }
     }
   }
@@ -5218,7 +5218,7 @@ double Region::Distance( const Point& p ) const
 
 double Region::Distance( const Points& ps ) const
 {
-  assert( IsOrdered() && !IsEmpty() && 
+  assert( IsOrdered() && !IsEmpty() &&
           ps.IsOrdered() && !ps.IsEmpty() );
 
   double result = numeric_limits<double>::max();
@@ -5251,7 +5251,7 @@ double Region::Distance( const Region &r ) const
 
   if( Inside( r ) || r.Inside( *this ) )
     return 0.0;
-  
+
   double result = numeric_limits<double>::max();
   const HalfSegment *hs1, *hs2;
 
@@ -5264,7 +5264,7 @@ double Region::Distance( const Region &r ) const
       {
         r.Get( j, hs2 );
         if( hs2->IsLeftDomPoint() )
-        { 
+        {
           if( hs1->Intersects( *hs2 ) )
             return 0.0;
 
@@ -5509,7 +5509,7 @@ void Region::Boundary( Line* result ) const
 }
 
 
- 
+
 Region& Region::operator=( const Region& r )
 {
   assert( r.IsOrdered() );
@@ -5669,13 +5669,13 @@ void Region::SetPartnerNo()
   int size = Size();
   int tmp[size/2];
   const HalfSegment* hs;
-  for( int i = 0; i < size; i++ ) 
+  for( int i = 0; i < size; i++ )
   {
     Get( i, hs );
     if( hs->IsLeftDomPoint() )
     {
       tmp[hs->attr.edgeno] = i;
-    } 
+    }
     else
     {
       int p = tmp[hs->attr.edgeno];
@@ -5692,7 +5692,7 @@ void Region::SetPartnerNo()
 
 double VectorSize(const Point &p1, const Point &p2)
 {
-  double size = pow( (p1.GetX() - p2.GetX()),2) 
+  double size = pow( (p1.GetX() - p2.GetX()),2)
                 + pow( (p1.GetY() - p2.GetY()),2);
   size = sqrt(size);
   return size;
@@ -5706,9 +5706,9 @@ double Angle(const Point &v, const Point &p1,const Point &p2)
 
   //If P1P2 is vertical and the window's edge
   // been tested is horizontal , then
-  //the angle VP1P2 is equal to 90 degrees. On the 
+  //the angle VP1P2 is equal to 90 degrees. On the
   //other hand, if P1P2 is vertical
-  //and the window's edge been tested is vertical, then 
+  //and the window's edge been tested is vertical, then
   // the angle is 90 degrees.
   //Similar tests are applied when P1P2 is horizontal.
 
@@ -5740,7 +5740,7 @@ ostream& operator<<( ostream& o, const EdgePoint & p )
 EdgePoint* EdgePoint::GetEdgePoint( const Point &p,
                                     const Point &p2,
                                     bool insideAbove,
-                                    const Point &v, 
+                                    const Point &v,
                                     const bool reject )
 {
   //The point p2 must be outside the window
@@ -5758,7 +5758,7 @@ EdgePoint* EdgePoint::GetEdgePoint( const Point &p,
   {
     if (insideAbove)
     {
-      if ( (p.GetX()-p2.GetX())>0 ) 
+      if ( (p.GetX()-p2.GetX())>0 )
         //p2.GetX() is located to the left of p.GetX()
         direction =  false; //RIGHT
       else
@@ -5777,9 +5777,9 @@ EdgePoint* EdgePoint::GetEdgePoint( const Point &p,
 
 }
 
-void AddPointToEdgeArray( const Point &p, 
+void AddPointToEdgeArray( const Point &p,
                           const HalfSegment &hs,
-                          const Rectangle<2> &window, 
+                          const Rectangle<2> &window,
                           vector<EdgePoint> pointsOnEdge[4] )
 {
   EdgePoint *dp;
@@ -5787,9 +5787,9 @@ void AddPointToEdgeArray( const Point &p,
   AttrType attr;
   attr = hs.GetAttr();
   Point p2;
-  //If the left and right edges are been tested then 
+  //If the left and right edges are been tested then
   //it is not need to check the angle
-  //between the half segment and the edge. If the attribute 
+  //between the half segment and the edge. If the attribute
   //inside above is true, then
   //the direction is up (false), otherwise it is down (true).
   if (p.GetX() == window.MinD(0))
@@ -5937,7 +5937,7 @@ void Region::CreateNewSegments(vector <EdgePoint>pointsOnEdge, Region &cr,
     while (begin<=end)
     {
       dpAux = pointsOnEdge[begin];
-      if (!( (dpAux.GetX() == dp.GetX()) && (dpAux.GetY() == dp.GetY()) 
+      if (!( (dpAux.GetX() == dp.GetX()) && (dpAux.GetY() == dp.GetY())
             && (dpAux.direction==dp.direction) ) )
         break;
       begin++;
@@ -5958,7 +5958,7 @@ void Region::CreateNewSegments(vector <EdgePoint>pointsOnEdge, Region &cr,
               (dpAux.direction==dp.direction) ) )
          break;
 
-      //when a rejected point is found the rejectEndPoint 
+      //when a rejected point is found the rejectEndPoint
       //does not change anymore.
 
       end--;
@@ -6046,21 +6046,21 @@ void Region::CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
 
   AttrType attr;
 
-  if ( ( (pointsOnEdge[WTOP].size()==0) || 
+  if ( ( (pointsOnEdge[WTOP].size()==0) ||
          (pointsOnEdge[WLEFT].size()==0) )
      && ( this->Contains(tlPoint) ) )
       tl = true;
 
-  if ( ( (pointsOnEdge[WTOP].size()==0) || 
+  if ( ( (pointsOnEdge[WTOP].size()==0) ||
          (pointsOnEdge[WRIGHT].size()==0)  )
        && ( this->Contains(trPoint) ) )
       tr = true;
 
-  if ( ( (pointsOnEdge[WBOTTOM].size()==0) || 
+  if ( ( (pointsOnEdge[WBOTTOM].size()==0) ||
          (pointsOnEdge[WLEFT].size()==0)  )
        && ( this->Contains(blPoint) ) )
       bl = true;
-  if ( ( (pointsOnEdge[WBOTTOM].size()==0) || 
+  if ( ( (pointsOnEdge[WBOTTOM].size()==0) ||
          (pointsOnEdge[WRIGHT].size()==0)  )
          && ( this->Contains(brPoint) ) )
       br = true;
@@ -6155,11 +6155,11 @@ bool Region::ClippedHSOnEdge(const Rectangle<2> &window,const HalfSegment &hs,
   EdgePoint ep1,ep2;
   AttrType attr=hs.GetAttr();
   bool reject = false,
-       result = false; 
+       result = false;
   //Returns true if the clipped hs was treated as a segment on edge
-  if ( hs.GetLeftPoint().GetY() == hs.GetRightPoint().GetY() ) 
+  if ( hs.GetLeftPoint().GetY() == hs.GetRightPoint().GetY() )
   { //horizontal edge
-    if (( hs.GetLeftPoint().GetY() == window.MaxD(1) ) ) 
+    if (( hs.GetLeftPoint().GetY() == window.MaxD(1) ) )
     { //top edge
   // If the half segment lies on the upper edge and
   // the insideAbove attribute's value
@@ -6234,8 +6234,8 @@ bool Region::ClippedHSOnEdge(const Rectangle<2> &window,const HalfSegment &hs,
   return result;
 }
 
-bool Region::GetCycleDirection( const Point &pA, 
-                                const Point &pP, 
+bool Region::GetCycleDirection( const Point &pA,
+                                const Point &pP,
                                 const Point &pB )
 {
   double m_p_a,m_p_b;
@@ -6287,8 +6287,8 @@ always the right point of the last segment.
   this->Get(1,hs2);
   assert( hs1->GetLeftPoint()==hs2->GetLeftPoint() );
   pP = hs1->GetLeftPoint();
-  // If we have the last half segment connected to the first half 
-  // segment, the difference //between their partner numbers is 
+  // If we have the last half segment connected to the first half
+  // segment, the difference //between their partner numbers is
   // more than one.
   if (abs(hs1->attr.edgeno - hs2->attr.edgeno)>1)
   {
@@ -6317,7 +6317,7 @@ always the right point of the last segment.
   return GetCycleDirection(pA,pP,pB);
 }
 
-   //cycleDirection: true (cycle is clockwise) / false 
+   //cycleDirection: true (cycle is clockwise) / false
   // (cycle is counterclockwise)
   //It is need that the attribute insideAbove of the half segments represents
   //the order that  their points were typed: true (left point, right point) /
@@ -6342,7 +6342,7 @@ void Region::GetClippedHSIn(const Rectangle<2> &window,
     if (hs->IsLeftDomPoint())
     {
       Point intersectionPoint;
-      hs->WindowClippingIn(window, hsInside, inside, 
+      hs->WindowClippingIn(window, hsInside, inside,
                            isIntersectionPoint,intersectionPoint);
       if (isIntersectionPoint)
          AddPointToEdgeArray(intersectionPoint,*hs,window, pointsOnEdge);
@@ -6360,12 +6360,12 @@ void Region::GetClippedHSIn(const Rectangle<2> &window,
             hsInside.SetLeftDomPoint( !hsInside.IsLeftDomPoint() );
             clippedRegion += hsInside;
 
-            //Add the points to the array of the points that lie on 
+            //Add the points to the array of the points that lie on
             //some of the window's edges
             const Point& lp = hsInside.GetLeftPoint(),
                              rp = hsInside.GetRightPoint();
 
-            //If the point lies on one edge it must be added to the 
+            //If the point lies on one edge it must be added to the
             //corresponding vector.
             AddPointToEdgeArray(lp,*hs,window, pointsOnEdge);
             AddPointToEdgeArray(rp, *hs,window, pointsOnEdge);
@@ -6405,7 +6405,7 @@ void Region::GetClippedHSOut(const Rectangle<2> &window,
     if (hs->IsLeftDomPoint())
     {
       Point intersectionPoint;
-      hs->WindowClippingIn(window,hsInside, inside, 
+      hs->WindowClippingIn(window,hsInside, inside,
                            isIntersectionPoint,intersectionPoint);
       if (inside)
       {
@@ -6426,13 +6426,13 @@ void Region::GetClippedHSOut(const Rectangle<2> &window,
         }
         else
         {
-          hsOnEdge = ClippedHSOnEdge(window, hsInside, 
+          hsOnEdge = ClippedHSOnEdge(window, hsInside,
                                      false, pointsOnEdge);
           if (!hsOnEdge)
           {
             HalfSegment aux( *hs );
             if (hs->GetLeftPoint()!=hsInside.GetLeftPoint())
-             //Add the part of the half segment composed by the left 
+             //Add the part of the half segment composed by the left
              //point of hs and the left point of hsInside.
               clippedRegion.AddClippedHS(aux.GetLeftPoint(),
                                          hsInside.GetLeftPoint(),
@@ -6440,7 +6440,7 @@ void Region::GetClippedHSOut(const Rectangle<2> &window,
             AddPointToEdgeArray(hsInside.GetLeftPoint(),aux,
                                 window, pointsOnEdge);
             if (hs->GetRightPoint()!=hsInside.GetRightPoint())
-             //Add the part of the half segment composed by the right 
+             //Add the part of the half segment composed by the right
              //point of hs and the right point of hsInside.
               clippedRegion.AddClippedHS(hsInside.GetRightPoint(),
                                          aux.GetRightPoint(),
@@ -6482,22 +6482,22 @@ void Region::GetClippedHS(const Rectangle<2> &window,
   Point bPoint,ePoint;
   bPoint.Set(window.MinD(0),window.MaxD(1)); //left-top
   ePoint.Set(window.MaxD(0),window.MaxD(1)); //right-top
-  CreateNewSegments(pointsOnEdge[WTOP],clippedRegion,bPoint,ePoint, 
+  CreateNewSegments(pointsOnEdge[WTOP],clippedRegion,bPoint,ePoint,
                     WTOP,partnerno,inside);
   bPoint.Set(window.MinD(0),window.MinD(1)); //left-bottom
   ePoint.Set(window.MaxD(0),window.MinD(1)); //right-bottom
-  CreateNewSegments(pointsOnEdge[WBOTTOM],clippedRegion,bPoint,ePoint, 
+  CreateNewSegments(pointsOnEdge[WBOTTOM],clippedRegion,bPoint,ePoint,
                     WBOTTOM,partnerno,inside);
   bPoint.Set(window.MinD(0),window.MinD(1)); //left-bottom
   ePoint.Set(window.MinD(0),window.MaxD(1)); //left-top
-  CreateNewSegments(pointsOnEdge[WLEFT],clippedRegion,bPoint,ePoint, 
+  CreateNewSegments(pointsOnEdge[WLEFT],clippedRegion,bPoint,ePoint,
                     WLEFT,partnerno,inside);
   bPoint.Set(window.MaxD(0),window.MinD(1)); //right-bottom
   ePoint.Set(window.MaxD(0),window.MaxD(1)); //right-top
   CreateNewSegments(pointsOnEdge[WRIGHT],clippedRegion,bPoint,ePoint,
                      WRIGHT,partnerno,inside);
 
-  CreateNewSegmentsWindowVertices(window, pointsOnEdge,clippedRegion, 
+  CreateNewSegmentsWindowVertices(window, pointsOnEdge,clippedRegion,
                                   partnerno,inside);
 
   clippedRegion.EndBulkLoad();
@@ -6519,7 +6519,7 @@ bool Region::IsCriticalPoint( const Point &adjacentPoint,
     if (!adjCHS->IsLeftDomPoint())
       continue;
     AttrType attr = adjCHS->GetAttr();
-    //When looking for critical points, the partner of 
+    //When looking for critical points, the partner of
     //the adjacent half segment found
     //cannot be consired.
     if (attr.partnerno == hsPosition)
@@ -6540,15 +6540,15 @@ bool Region::IsCriticalPoint( const Point &adjacentPoint,
   return (adjacencyNo>1);
 }
 
-bool Region::GetAdjacentHS( const HalfSegment &hs, 
+bool Region::GetAdjacentHS( const HalfSegment &hs,
                             const int hsPosition,
-                            int &position, 
+                            int &position,
                             const int partnerno,
-                            const int partnernoP, 
+                            const int partnernoP,
                             HalfSegment const*& adjacentCHS,
-                            const Point &adjacentPoint, 
+                            const Point &adjacentPoint,
                             Point &newAdjacentPoint,
-                            bool *cycle, 
+                            bool *cycle,
                             int step) const
 {
   bool adjacencyFound=false;
@@ -6590,11 +6590,11 @@ is been computed has a critical point.
 
 */
 
-void Region::ComputeCycle( HalfSegment &hs, 
+void Region::ComputeCycle( HalfSegment &hs,
                            int faceno,
                            int cycleno,
-                           int &edgeno, 
-                           bool *cycle ) 
+                           int &edgeno,
+                           bool *cycle )
 {
   Point nextPoint = hs.GetLeftPoint(),
             lastPoint = hs.GetRightPoint(),
@@ -6642,56 +6642,56 @@ void Region::ComputeCycle( HalfSegment &hs,
      previousPoint = nextPoint;
      if (s->goToCHS1Right)
      {
-       s->goToCHS1Right=GetAdjacentHS(s->hs1,  
-                                      s->hs2Partnerno, 
+       s->goToCHS1Right=GetAdjacentHS(s->hs1,
+                                      s->hs2Partnerno,
                                       s->hs1PosRight,
                                       s->hs1Partnerno,
                                       s->hs2Partnerno,adjacentCHS,
-                                      previousPoint, 
-                                      nextPoint, 
-                                      cycle,  
+                                      previousPoint,
+                                      nextPoint,
+                                      cycle,
                                       1);
        adjacentPointFound=s->goToCHS1Right;
      }
      if ( !adjacentPointFound && s->goToCHS1Left )
      {
-       s->goToCHS1Left=GetAdjacentHS(s->hs1, 
-                                     s->hs2Partnerno, 
+       s->goToCHS1Left=GetAdjacentHS(s->hs1,
+                                     s->hs2Partnerno,
                                      s->hs1PosLeft,
                                      s->hs1Partnerno,
                                      s->hs2Partnerno,
                                      adjacentCHS,
-                                     previousPoint, 
-                                     nextPoint, 
-                                     cycle, 
+                                     previousPoint,
+                                     nextPoint,
+                                     cycle,
                                      -1);
        adjacentPointFound=s->goToCHS1Left;
      }
      if (!adjacentPointFound && s->goToCHS2Right)
      {
-       s->goToCHS2Right=GetAdjacentHS(s->hs2, 
-                                      s->hs1Partnerno, 
+       s->goToCHS2Right=GetAdjacentHS(s->hs2,
+                                      s->hs1Partnerno,
                                       s->hs2PosRight,
                                       s->hs2Partnerno,
                                       s->hs1Partnerno,
                                       adjacentCHS,
-                                      previousPoint, 
-                                      nextPoint, 
-                                      cycle, 
+                                      previousPoint,
+                                      nextPoint,
+                                      cycle,
                                       1);
        adjacentPointFound=s->goToCHS2Right;
      }
      if (!adjacentPointFound && s->goToCHS2Left)
      {
-       s->goToCHS2Left=GetAdjacentHS(s->hs2, 
-                                     s->hs1Partnerno, 
+       s->goToCHS2Left=GetAdjacentHS(s->hs2,
+                                     s->hs1Partnerno,
                                      s->hs2PosLeft,
                                      s->hs2Partnerno,
                                      s->hs1Partnerno,
                                      adjacentCHS,
-                                     previousPoint, 
-                                     nextPoint, 
-                                     cycle, 
+                                     previousPoint,
+                                     nextPoint,
+                                     cycle,
                                      -1);
        adjacentPointFound = s->goToCHS2Left;
      }
@@ -6700,7 +6700,7 @@ void Region::ComputeCycle( HalfSegment &hs,
 
      if ( (currentCriticalPoint!=NULL) && (*currentCriticalPoint==nextPoint) )
      {
-       //The critical point defines a cycle, so it is need to 
+       //The critical point defines a cycle, so it is need to
        //remove the segments
        //from the vector, and set the segment as not visited in thei
        // cycle array.
@@ -6830,9 +6830,9 @@ void Region::ComputeRegion()
 {
   //array that stores in position i the last cycle number of the face i
   vector<int> face;
-  //array that stores in the position ~i~ if the half 
+  //array that stores in the position ~i~ if the half
   //segment hi had already the face
-  //number, the cycle number and the edge number 
+  //number, the cycle number and the edge number
   //attributes set properly, in other words,
   //it means that hi is already part of a cycle
   bool *cycle;
@@ -6890,7 +6890,7 @@ void Region::WindowClippingIn(const Rectangle<2> &window,
   //cout<<endl<<"Original: "<<*this<<endl;
   if (!this->bbox.Intersects(window))
     return;
-  //If the bounding box of the region is inside the window, 
+  //If the bounding box of the region is inside the window,
   //then the clippedRegion
   //is equal to the region been clipped.
 
@@ -6909,7 +6909,7 @@ void Region::WindowClippingIn(const Rectangle<2> &window,
 void Region::WindowClippingOut(const Rectangle<2> &window,
                                Region &clippedRegion) const
 {
-  //If the bounding box of the region is inside the window, 
+  //If the bounding box of the region is inside the window,
   //then the clipped region is empty
   //cout<<"region: "<<*this<<endl;
   if (window.Contains(this->bbox))
@@ -6942,7 +6942,7 @@ size_t   Region::HashValue() const
     x1=hs->GetLeftPoint().GetX();
     y1=hs->GetLeftPoint().GetY();
 
-    x2=hs->GetRightPoint().GetX();  
+    x2=hs->GetRightPoint().GetX();
     y2=hs->GetRightPoint().GetY();
     h=h+(unsigned long)((5*x1 + y1)+ (5*x2 + y2));
   }
@@ -7037,7 +7037,7 @@ bool Region::InsertOk( const HalfSegment& hs ) const
   const HalfSegment *auxhs;
   double dummyy0;
 
-  return true;  
+  return true;
     //the check is closed temporarily to import data.
 
   int prevcycleMeet[50];
@@ -7235,7 +7235,7 @@ OutRegion( ListExpr typeInfo, Word value )
 
     const HalfSegment *hs, *hsnext;
 
-    ListExpr regionNL = nl->TheEmptyList(); 
+    ListExpr regionNL = nl->TheEmptyList();
     ListExpr regionNLLast = regionNL;
 
     ListExpr faceNL = nl->TheEmptyList();
@@ -7295,7 +7295,7 @@ OutRegion( ListExpr typeInfo, Word value )
           {
             outputP=leftoverP;
 
-            if (hs->GetLeftPoint() == leftoverP)  
+            if (hs->GetLeftPoint() == leftoverP)
               leftoverP = hs->GetRightPoint();
             else if (hs->GetRightPoint() == leftoverP)
             {
@@ -7353,7 +7353,7 @@ OutRegion( ListExpr typeInfo, Word value )
               return nl->TheEmptyList();
             }
 
-            pointNL = OutPoint( nl->TheEmptyList(), 
+            pointNL = OutPoint( nl->TheEmptyList(),
                                 SetWord(&outputP) );
             if (cycleNL == nl->TheEmptyList())
             {
@@ -7397,7 +7397,7 @@ OutRegion( ListExpr typeInfo, Word value )
 
           RCopy->Get( i+1, hsnext );
           if ((hs->GetLeftPoint() == hsnext->GetLeftPoint()) ||
-             ((hs->GetLeftPoint() == hsnext->GetRightPoint()))) 
+             ((hs->GetLeftPoint() == hsnext->GetRightPoint())))
           {
             outputP = hs->GetRightPoint();
             leftoverP = hs->GetLeftPoint();
@@ -7461,7 +7461,7 @@ OutRegion( ListExpr typeInfo, Word value )
 
 */
 Word
-InRegion( const ListExpr typeInfo, const ListExpr instance, 
+InRegion( const ListExpr typeInfo, const ListExpr instance,
           const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   Region* cr = new Region( 0 );
@@ -7589,7 +7589,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
             hs->attr.edgeno=edno;
             hs->attr.partnerno=partnerno;
             partnerno++;
-            hs->attr.insideAbove = (hs->GetLeftPoint() == p1); 
+            hs->attr.insideAbove = (hs->GetLeftPoint() == p1);
               //true (L-->R ),false (R--L)
             p1 = p2;
 
@@ -7630,7 +7630,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
           hs->attr.edgeno=edno;
           hs->attr.partnerno=partnerno;
           hs->attr.insideAbove = (hs->GetRightPoint() == firstP);
-          //true (L-->R ),false (R--L), 
+          //true (L-->R ),false (R--L),
           //the order of typing is last point than first point.
           partnerno++;
 
@@ -7705,7 +7705,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
               //To implement the test
             */
             delete rDir;
-            //After the end of the first cycle of the face, 
+            //After the end of the first cycle of the face,
             //all the following cycles are
             //holes, then isCycle is set to false.
             isCycle = false;
@@ -7885,7 +7885,7 @@ void* CastRegion(void* addr)
 TypeConstructor region(
         "region",                       //name
         RegionProperty,                 //describing signature
-        OutRegion,      InRegion,       //Out and In functions 
+        OutRegion,      InRegion,       //Out and In functions
         0,              0,              //SaveTo and RestoreFrom List functions
         CreateRegion,   DeleteRegion,   //object creation and deletion
         OpenRegion,     SaveRegion,     // object open and save
@@ -7922,28 +7922,28 @@ SpatialTypeMapBool( ListExpr args )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint && 
+    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
          SpatialTypeOfSymbol( arg2 ) == stpoint)
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints && 
+    if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
          SpatialTypeOfSymbol( arg2 ) == stpoints)
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stline && 
+    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
          SpatialTypeOfSymbol( arg2 ) == stline)
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stregion && 
+    if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
          SpatialTypeOfSymbol( arg2 ) == stregion)
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint && 
+    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
          SpatialTypeOfSymbol( arg2 ) == stpoints)
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints && 
+    if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
          SpatialTypeOfSymbol( arg2 ) == stpoint)
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint && 
+    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
          SpatialTypeOfSymbol( arg2 ) == stline)
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint && 
+    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
          SpatialTypeOfSymbol( arg2 ) == stregion)
       return (nl->SymbolAtom( "bool" ));
   }
@@ -8630,7 +8630,7 @@ This type mapping function is used for the ~scale~ operator. This operator
 scales a spatial object by a given factor.
 
 */
-ListExpr SpatialScaleMap(ListExpr args) 
+ListExpr SpatialScaleMap(ListExpr args)
 {
    if(nl->ListLength(args)!=2)
    {
@@ -8733,7 +8733,7 @@ SpatialSubLineMap( ListExpr args )
 
     if ( SpatialTypeOfSymbol( arg1 ) == stline &&
          nl->IsEqual( arg2, "real" ) &&
-         nl->IsEqual( arg3, "real" ) && 
+         nl->IsEqual( arg3, "real" ) &&
          nl->IsEqual( arg4, "bool" ) )
       return (nl->SymbolAtom( "line" ));
   }
@@ -8764,7 +8764,7 @@ SpatialAddTypeMap( ListExpr args )
 }
 
 /*
-10.1.7 Type mapping function for the operators ~getx~ and ~gety~   
+10.1.7 Type mapping function for the operators ~getx~ and ~gety~
 
 This type mapping function is the one for the ~getx and ~gety operator.
 The result type is a real.
@@ -8785,7 +8785,7 @@ SpatialGetXYMap( ListExpr args )
 }
 
 /*
-10.1.7 Type mapping function for the operators ~line2region~  
+10.1.7 Type mapping function for the operators ~line2region~
 
 This type mapping function is the one for the ~line2region~ operator.
 The result type is a region.
@@ -9465,10 +9465,10 @@ int SpatialVerticesSelect( ListExpr args )
 {
   if( nl->IsEqual(nl->First(args), "line") )
     return 0;
-  
+
   if( nl->IsEqual(nl->First(args), "region") )
     return 1;
-  
+
   return -1; // This point should never be reached
 }
 
@@ -9482,13 +9482,13 @@ int SpatialBoundarySelect( ListExpr args )
 {
   if( nl->IsEqual(nl->First(args), "region") )
     return 0;
-  
+
   if( nl->IsEqual(nl->First(args), "line") )
     return 1;
-  
+
   return -1; // This point should never be reached
 }
-  
+
 /*
 10.4 Value mapping functions
 
@@ -9502,7 +9502,7 @@ parameter types.
 
 */
 int
-SpatialIsEmpty_p( Word* args, Word& result, int message, 
+SpatialIsEmpty_p( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9514,7 +9514,7 @@ SpatialIsEmpty_p( Word* args, Word& result, int message,
 }
 
 int
-SpatialIsEmpty_ps( Word* args, Word& result, int message, 
+SpatialIsEmpty_ps( Word* args, Word& result, int message,
                    Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9526,9 +9526,9 @@ SpatialIsEmpty_ps( Word* args, Word& result, int message,
 }
 
 int
-SpatialIsEmpty_l( Word* args, Word& result, int message, 
+SpatialIsEmpty_l( Word* args, Word& result, int message,
                   Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
 
   if( ((Line*)args[0].addr)->IsEmpty() )
@@ -9539,7 +9539,7 @@ SpatialIsEmpty_l( Word* args, Word& result, int message,
 }
 
 int
-SpatialIsEmpty_r( Word* args, Word& result, int message, 
+SpatialIsEmpty_r( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9556,7 +9556,7 @@ SpatialIsEmpty_r( Word* args, Word& result, int message,
 
 */
 int
-SpatialEqual_pp( Word* args, Word& result, int message, 
+SpatialEqual_pp( Word* args, Word& result, int message,
                  Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9570,7 +9570,7 @@ SpatialEqual_pp( Word* args, Word& result, int message,
 }
 
 int
-SpatialEqual_psps( Word* args, Word& result, int message, 
+SpatialEqual_psps( Word* args, Word& result, int message,
                    Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9580,9 +9580,9 @@ SpatialEqual_psps( Word* args, Word& result, int message,
 }
 
 int
-SpatialEqual_ll( Word* args, Word& result, int message, 
+SpatialEqual_ll( Word* args, Word& result, int message,
                  Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
   ((CcBool *)result.addr)->
     Set( true, *((Line*)args[0].addr) == *((Line*)args[1].addr) );
@@ -9590,7 +9590,7 @@ SpatialEqual_ll( Word* args, Word& result, int message,
 }
 
 int
-SpatialEqual_rr( Word* args, Word& result, int message, 
+SpatialEqual_rr( Word* args, Word& result, int message,
                  Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9604,7 +9604,7 @@ SpatialEqual_rr( Word* args, Word& result, int message,
 
 */
 int
-SpatialNotEqual_pp( Word* args, Word& result, int message, 
+SpatialNotEqual_pp( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9618,7 +9618,7 @@ SpatialNotEqual_pp( Word* args, Word& result, int message,
 }
 
 int
-SpatialNotEqual_psps( Word* args, Word& result, int message, 
+SpatialNotEqual_psps( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9628,9 +9628,9 @@ SpatialNotEqual_psps( Word* args, Word& result, int message,
 }
 
 int
-SpatialNotEqual_ll( Word* args, Word& result, int message, 
+SpatialNotEqual_ll( Word* args, Word& result, int message,
                     Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
   ((CcBool *)result.addr)->
     Set( true, *((Line*)args[0].addr) != *((Line*)args[1].addr));
@@ -9638,7 +9638,7 @@ SpatialNotEqual_ll( Word* args, Word& result, int message,
 }
 
 int
-SpatialNotEqual_rr( Word* args, Word& result, int message, 
+SpatialNotEqual_rr( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9652,7 +9652,7 @@ SpatialNotEqual_rr( Word* args, Word& result, int message,
 
 */
 int
-SpatialIntersects_psps( Word* args, Word& result, int message, 
+SpatialIntersects_psps( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9663,7 +9663,7 @@ SpatialIntersects_psps( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersects_psl( Word* args, Word& result, int message, 
+SpatialIntersects_psl( Word* args, Word& result, int message,
                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9675,7 +9675,7 @@ SpatialIntersects_psl( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersects_lps( Word* args, Word& result, int message, 
+SpatialIntersects_lps( Word* args, Word& result, int message,
                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9687,7 +9687,7 @@ SpatialIntersects_lps( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersects_psr( Word* args, Word& result, int message, 
+SpatialIntersects_psr( Word* args, Word& result, int message,
                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9699,7 +9699,7 @@ SpatialIntersects_psr( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersects_rps( Word* args, Word& result, int message, 
+SpatialIntersects_rps( Word* args, Word& result, int message,
                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9711,9 +9711,9 @@ SpatialIntersects_rps( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersects_ll( Word* args, Word& result, int message, 
+SpatialIntersects_ll( Word* args, Word& result, int message,
                       Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
   if( ((Line*)args[0].addr)->Intersects( *((Line*)args[1].addr) ) )
     ((CcBool *)result.addr)->Set( true, true );
@@ -9723,7 +9723,7 @@ SpatialIntersects_ll( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersects_lr( Word* args, Word& result, int message, 
+SpatialIntersects_lr( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9735,7 +9735,7 @@ SpatialIntersects_lr( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersects_rl( Word* args, Word& result, int message, 
+SpatialIntersects_rl( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9747,7 +9747,7 @@ SpatialIntersects_rl( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersects_rr( Word* args, Word& result, int message, 
+SpatialIntersects_rr( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9763,7 +9763,7 @@ SpatialIntersects_rr( Word* args, Word& result, int message,
 
 */
 int
-SpatialInside_pps( Word* args, Word& result, int message, 
+SpatialInside_pps( Word* args, Word& result, int message,
                    Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9777,20 +9777,20 @@ SpatialInside_pps( Word* args, Word& result, int message,
 }
 
 int
-SpatialInside_pl( Word* args, Word& result, int message, 
+SpatialInside_pl( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   Point *p = ((Point*)args[0].addr);
   if( p->IsDefined() )
     ((CcBool *)result.addr)->Set( true, ((Line*)args[1].addr)->Contains( *p ) );
-  else 
+  else
     ((CcBool *)result.addr)->SetDefined( false );
   return 0;
 }
 
 int
-SpatialInside_pr( Word* args, Word& result, int message, 
+SpatialInside_pr( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9804,67 +9804,67 @@ SpatialInside_pr( Word* args, Word& result, int message,
 }
 
 int
-SpatialInside_psps( Word* args, Word& result, int message, 
+SpatialInside_psps( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((CcBool *)result.addr)->
-    Set( true, 
+    Set( true,
          ((Points*)args[0].addr)->Inside( *((Points*)args[1].addr) ) );
   return 0;
 }
 
 int
-SpatialInside_psl( Word* args, Word& result, int message, 
+SpatialInside_psl( Word* args, Word& result, int message,
                    Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((CcBool *)result.addr)->
-    Set( true, 
+    Set( true,
          ((Points*)args[0].addr)->Inside( *((Line*)args[1].addr) ) );
   return 0;
 }
 
 int
-SpatialInside_psr( Word* args, Word& result, int message, 
+SpatialInside_psr( Word* args, Word& result, int message,
                    Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((CcBool *)result.addr)->
-    Set( true, 
+    Set( true,
          ((Points*)args[0].addr)->Inside( *((Region*)args[1].addr) ) );
   return 0;
 }
 
 int
-SpatialInside_ll( Word* args, Word& result, int message, 
+SpatialInside_ll( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((CcBool *)result.addr)->
-    Set( true, 
+    Set( true,
          ((Line*)args[0].addr)->Inside( *((Line*)args[1].addr) ) );
   return 0;
 }
 
 int
-SpatialInside_lr( Word* args, Word& result, int message, 
+SpatialInside_lr( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((CcBool *)result.addr)->
-    Set( true, 
+    Set( true,
          ((Line*)args[0].addr)->Inside( *((Region*)args[1].addr) ) );
   return 0;
 }
 
 int
-SpatialInside_rr( Word* args, Word& result, int message, 
+SpatialInside_rr( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((CcBool *)result.addr)->
-    Set( true, 
+    Set( true,
          ((Region*)args[0].addr)->Inside( *((Region*)args[1].addr) ) );
   return 0;
 }
@@ -9874,56 +9874,56 @@ SpatialInside_rr( Word* args, Word& result, int message,
 
 */
 int
-SpatialAdjacent_psr( Word* args, Word& result, int message, 
+SpatialAdjacent_psr( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((CcBool *)result.addr)->
-    Set( true, 
+    Set( true,
          ((Points*)args[0].addr)->Adjacent( *((Region*)args[1].addr) ) );
   return 0;
 }
 
 int
-SpatialAdjacent_rps( Word* args, Word& result, int message, 
+SpatialAdjacent_rps( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((CcBool *)result.addr)->
-    Set( true, 
+    Set( true,
          ((Points*)args[1].addr)->Adjacent( *((Region*)args[0].addr) ) );
   return 0;
 }
 
 int
-SpatialAdjacent_lr( Word* args, Word& result, int message, 
+SpatialAdjacent_lr( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((CcBool *)result.addr)->
-    Set( true, 
+    Set( true,
          ((Line*)args[0].addr)->Adjacent( *((Region*)args[1].addr) ) );
   return 0;
 }
 
 int
-SpatialAdjacent_rl( Word* args, Word& result, int message, 
+SpatialAdjacent_rl( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((CcBool *)result.addr)->
-    Set( true, 
+    Set( true,
          ((Line*)args[1].addr)->Adjacent( *((Region*)args[0].addr) ) );
   return 0;
 }
 
 int
-SpatialAdjacent_rr( Word* args, Word& result, int message, 
+SpatialAdjacent_rr( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((CcBool *)result.addr)->
-    Set( true, 
+    Set( true,
          ((Region*)args[0].addr)->Adjacent( *((Region*)args[1].addr) ) );
   return 0;
 }
@@ -9933,12 +9933,12 @@ SpatialAdjacent_rr( Word* args, Word& result, int message,
 
 */
 int
-SpatialOverlaps_rr( Word* args, Word& result, int message, 
+SpatialOverlaps_rr( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((CcBool *)result.addr)->
-    Set( true, 
+    Set( true,
          ((Region*)args[0].addr)->Overlaps( *((Region*)args[1].addr) ) );
   return 0;
 }
@@ -9948,7 +9948,7 @@ SpatialOverlaps_rr( Word* args, Word& result, int message,
 
 */
 int
-SpatialOnBorder_pr( Word* args, Word& result, int message, 
+SpatialOnBorder_pr( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9956,20 +9956,20 @@ SpatialOnBorder_pr( Word* args, Word& result, int message,
 
   if( p->IsDefined() )
     ((CcBool *)result.addr)->
-      Set( true, 
+      Set( true,
            ((Region*)args[1].addr)->OnBorder( *((Point*)args[0].addr) ) );
   else
     ((CcBool *)result.addr)->Set( false, false );
 
   return 0;
 }
-  
+
 /*
 10.4.14 Value mapping functions of operator ~ininterior~
 
 */
 int
-SpatialInInterior_pr( Word* args, Word& result, int message, 
+SpatialInInterior_pr( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9977,7 +9977,7 @@ SpatialInInterior_pr( Word* args, Word& result, int message,
 
   if( p->IsDefined() )
     ((CcBool *)result.addr)->
-      Set( true, 
+      Set( true,
            ((Region*)args[1].addr)->InInterior( *((Point*)args[0].addr) ) );
   else
     ((CcBool *)result.addr)->Set( false, false );
@@ -9990,7 +9990,7 @@ SpatialInInterior_pr( Word* args, Word& result, int message,
 
 */
 int
-SpatialIntersection_pp( Word* args, Word& result, int message, 
+SpatialIntersection_pp( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10004,7 +10004,7 @@ SpatialIntersection_pp( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersection_pps( Word* args, Word& result, int message, 
+SpatialIntersection_pps( Word* args, Word& result, int message,
                          Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10017,7 +10017,7 @@ SpatialIntersection_pps( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersection_psp( Word* args, Word& result, int message, 
+SpatialIntersection_psp( Word* args, Word& result, int message,
                          Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10030,7 +10030,7 @@ SpatialIntersection_psp( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersection_pl( Word* args, Word& result, int message, 
+SpatialIntersection_pl( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10043,7 +10043,7 @@ SpatialIntersection_pl( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersection_lp( Word* args, Word& result, int message, 
+SpatialIntersection_lp( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10056,12 +10056,12 @@ SpatialIntersection_lp( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersection_pr( Word* args, Word& result, int message, 
+SpatialIntersection_pr( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   Point *p=((Point*)args[0].addr);
-  if( p->IsDefined() && ((Region*)args[1].addr)->Contains( *p ) ) 
+  if( p->IsDefined() && ((Region*)args[1].addr)->Contains( *p ) )
     *((Point *)result.addr) = *p;
   else
     ((Point *)result.addr)->SetDefined( false );
@@ -10069,7 +10069,7 @@ SpatialIntersection_pr( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersection_rp( Word* args, Word& result, int message, 
+SpatialIntersection_rp( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10082,7 +10082,7 @@ SpatialIntersection_rp( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersection_psps( Word* args, Word& result, int message, 
+SpatialIntersection_psps( Word* args, Word& result, int message,
                           Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10093,7 +10093,7 @@ SpatialIntersection_psps( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersection_psl( Word* args, Word& result, int message, 
+SpatialIntersection_psl( Word* args, Word& result, int message,
                          Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10104,7 +10104,7 @@ SpatialIntersection_psl( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersection_lps( Word* args, Word& result, int message, 
+SpatialIntersection_lps( Word* args, Word& result, int message,
                          Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10115,7 +10115,7 @@ SpatialIntersection_lps( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersection_psr( Word* args, Word& result, int message, 
+SpatialIntersection_psr( Word* args, Word& result, int message,
                          Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10125,7 +10125,7 @@ SpatialIntersection_psr( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersection_rps( Word* args, Word& result, int message, 
+SpatialIntersection_rps( Word* args, Word& result, int message,
                          Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10135,9 +10135,9 @@ SpatialIntersection_rps( Word* args, Word& result, int message,
 }
 
 int
-SpatialIntersection_ll( Word* args, Word& result, int message, 
+SpatialIntersection_ll( Word* args, Word& result, int message,
                         Word& local, Supplier s )
-{   
+{
   result = qp->ResultStorage( s );
   ((Line*)args[0].addr)->
     Intersection( *((Line*)args[1].addr), *((Line *)result.addr) );
@@ -10149,7 +10149,7 @@ SpatialIntersection_ll( Word* args, Word& result, int message,
 
 */
 int
-SpatialMinus_pp( Word* args, Word& result, int message, 
+SpatialMinus_pp( Word* args, Word& result, int message,
                  Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10157,13 +10157,13 @@ SpatialMinus_pp( Word* args, Word& result, int message,
         *p2 = (Point*)args[1].addr;
   if( p1->IsDefined() && p2->IsDefined() && *p1 == *p2 )
     *((Point *)result.addr) = *p1;
-  else 
+  else
     ((Point *)result.addr)->SetDefined( false );
   return 0;
 }
 
 int
-SpatialMinus_pps( Word* args, Word& result, int message, 
+SpatialMinus_pps( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10176,7 +10176,7 @@ SpatialMinus_pps( Word* args, Word& result, int message,
 }
 
 int
-SpatialMinus_pl( Word* args, Word& result, int message, 
+SpatialMinus_pl( Word* args, Word& result, int message,
                  Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10189,7 +10189,7 @@ SpatialMinus_pl( Word* args, Word& result, int message,
 }
 
 int
-SpatialMinus_pr( Word* args, Word& result, int message, 
+SpatialMinus_pr( Word* args, Word& result, int message,
                  Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10202,7 +10202,7 @@ SpatialMinus_pr( Word* args, Word& result, int message,
 }
 
 int
-SpatialMinus_psp( Word* args, Word& result, int message, 
+SpatialMinus_psp( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10215,7 +10215,7 @@ SpatialMinus_psp( Word* args, Word& result, int message,
 }
 
 int
-SpatialMinus_lp( Word* args, Word& result, int message, 
+SpatialMinus_lp( Word* args, Word& result, int message,
                  Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10224,7 +10224,7 @@ SpatialMinus_lp( Word* args, Word& result, int message,
 }
 
 int
-SpatialMinus_rp( Word* args, Word& result, int message, 
+SpatialMinus_rp( Word* args, Word& result, int message,
                  Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10233,7 +10233,7 @@ SpatialMinus_rp( Word* args, Word& result, int message,
 }
 
 int
-SpatialMinus_psps( Word* args, Word& result, int message, 
+SpatialMinus_psps( Word* args, Word& result, int message,
                    Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10247,7 +10247,7 @@ SpatialMinus_psps( Word* args, Word& result, int message,
 }
 
 int
-SpatialMinus_psl( Word* args, Word& result, int message, 
+SpatialMinus_psl( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10261,7 +10261,7 @@ SpatialMinus_psl( Word* args, Word& result, int message,
 }
 
 int
-SpatialMinus_psr( Word* args, Word& result, int message, 
+SpatialMinus_psr( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10275,7 +10275,7 @@ SpatialMinus_psr( Word* args, Word& result, int message,
 }
 
 int
-SpatialMinus_lps( Word* args, Word& result, int message, 
+SpatialMinus_lps( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10284,7 +10284,7 @@ SpatialMinus_lps( Word* args, Word& result, int message,
 }
 
 int
-SpatialMinus_rps( Word* args, Word& result, int message, 
+SpatialMinus_rps( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10293,7 +10293,7 @@ SpatialMinus_rps( Word* args, Word& result, int message,
 }
 
 int
-SpatialMinus_rl( Word* args, Word& result, int message, 
+SpatialMinus_rl( Word* args, Word& result, int message,
                  Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10306,7 +10306,7 @@ SpatialMinus_rl( Word* args, Word& result, int message,
 
 */
 int
-SpatialUnion_pps( Word* args, Word& result, int message, 
+SpatialUnion_pps( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10323,7 +10323,7 @@ SpatialUnion_pps( Word* args, Word& result, int message,
 }
 
 int
-SpatialUnion_psp( Word* args, Word& result, int message, 
+SpatialUnion_psp( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10340,7 +10340,7 @@ SpatialUnion_psp( Word* args, Word& result, int message,
 }
 
 int
-SpatialUnion_psps( Word* args, Word& result, int message, 
+SpatialUnion_psps( Word* args, Word& result, int message,
                    Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10359,7 +10359,7 @@ SpatialUnion_psps( Word* args, Word& result, int message,
 */
 
 int
-SpatialCrossings_ll( Word* args, Word& result, int message, 
+SpatialCrossings_ll( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10375,7 +10375,7 @@ SpatialCrossings_ll( Word* args, Word& result, int message,
 
 */
 int
-SpatialSingle_ps( Word* args, Word& result, int message, 
+SpatialSingle_ps( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10388,8 +10388,8 @@ SpatialSingle_ps( Word* args, Word& result, int message,
     ps->Get( 0, p );
     *(Point*)result.addr = *p;
   }
-  else 
-    ((Point *)result.addr)->SetDefined( false ); 
+  else
+    ((Point *)result.addr)->SetDefined( false );
 
   return 0;
 }
@@ -10399,7 +10399,7 @@ SpatialSingle_ps( Word* args, Word& result, int message,
 
 */
 int
-SpatialDistance_pp( Word* args, Word& result, int message, 
+SpatialDistance_pp( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10415,7 +10415,7 @@ SpatialDistance_pp( Word* args, Word& result, int message,
 }
 
 int
-SpatialDistance_pps( Word* args, Word& result, int message, 
+SpatialDistance_pps( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10431,7 +10431,7 @@ SpatialDistance_pps( Word* args, Word& result, int message,
 }
 
 int
-SpatialDistance_psp( Word* args, Word& result, int message, 
+SpatialDistance_psp( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10447,14 +10447,14 @@ SpatialDistance_psp( Word* args, Word& result, int message,
 }
 
 int
-SpatialDistance_pl( Word* args, Word& result, int message, 
+SpatialDistance_pl( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
   Point *p=((Point*)args[0].addr);
   Line *cl=((Line*)args[1].addr);
-  
+
   if( p->IsDefined() && !cl->IsEmpty() )
     ((CcReal *)result.addr)->Set( true, cl->Distance( *p ) );
   else
@@ -10464,14 +10464,14 @@ SpatialDistance_pl( Word* args, Word& result, int message,
 }
 
 int
-SpatialDistance_lp( Word* args, Word& result, int message, 
+SpatialDistance_lp( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
   Point *p=((Point*)args[1].addr);
   Line *cl=((Line*)args[0].addr);
-  
+
   if( p->IsDefined() && !cl->IsEmpty() )
     ((CcReal *)result.addr)->Set( true, cl->Distance( *p ) );
   else
@@ -10481,7 +10481,7 @@ SpatialDistance_lp( Word* args, Word& result, int message,
 }
 
 int
-SpatialDistance_pr( Word* args, Word& result, int message, 
+SpatialDistance_pr( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10498,7 +10498,7 @@ SpatialDistance_pr( Word* args, Word& result, int message,
 }
 
 int
-SpatialDistance_rp( Word* args, Word& result, int message, 
+SpatialDistance_rp( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10515,7 +10515,7 @@ SpatialDistance_rp( Word* args, Word& result, int message,
 }
 
 int
-SpatialDistance_psps( Word* args, Word& result, int message, 
+SpatialDistance_psps( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10532,7 +10532,7 @@ SpatialDistance_psps( Word* args, Word& result, int message,
 }
 
 int
-SpatialDistance_psl( Word* args, Word& result, int message, 
+SpatialDistance_psl( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10549,7 +10549,7 @@ SpatialDistance_psl( Word* args, Word& result, int message,
 }
 
 int
-SpatialDistance_lps( Word* args, Word& result, int message, 
+SpatialDistance_lps( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10566,7 +10566,7 @@ SpatialDistance_lps( Word* args, Word& result, int message,
 }
 
 int
-SpatialDistance_psr( Word* args, Word& result, int message, 
+SpatialDistance_psr( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10583,7 +10583,7 @@ SpatialDistance_psr( Word* args, Word& result, int message,
 }
 
 int
-SpatialDistance_rps( Word* args, Word& result, int message, 
+SpatialDistance_rps( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10600,7 +10600,7 @@ SpatialDistance_rps( Word* args, Word& result, int message,
 }
 
 int
-SpatialDistance_ll( Word* args, Word& result, int message, 
+SpatialDistance_ll( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10617,7 +10617,7 @@ SpatialDistance_ll( Word* args, Word& result, int message,
 }
 
 int
-SpatialDistance_rr( Word* args, Word& result, int message, 
+SpatialDistance_rr( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10638,7 +10638,7 @@ SpatialDistance_rr( Word* args, Word& result, int message,
 
 */
 int
-SpatialDirection_pp( Word* args, Word& result, int message, 
+SpatialDirection_pp( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10660,7 +10660,7 @@ SpatialDirection_pp( Word* args, Word& result, int message,
 */
 
 int
-SpatialNoComponents_ps( Word* args, Word& result, int message, 
+SpatialNoComponents_ps( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10669,7 +10669,7 @@ SpatialNoComponents_ps( Word* args, Word& result, int message,
 }
 
 int
-SpatialNoComponents_l( Word* args, Word& result, int message, 
+SpatialNoComponents_l( Word* args, Word& result, int message,
                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10678,7 +10678,7 @@ SpatialNoComponents_l( Word* args, Word& result, int message,
 }
 
 int
-SpatialNoComponents_r( Word* args, Word& result, int message, 
+SpatialNoComponents_r( Word* args, Word& result, int message,
                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10691,7 +10691,7 @@ SpatialNoComponents_r( Word* args, Word& result, int message,
 
 */
 int
-SpatialNoSegments_l( Word* args, Word& result, int message, 
+SpatialNoSegments_l( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10702,7 +10702,7 @@ SpatialNoSegments_l( Word* args, Word& result, int message,
 }
 
 int
-SpatialNoSegments_r( Word* args, Word& result, int message, 
+SpatialNoSegments_r( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10717,7 +10717,7 @@ SpatialNoSegments_r( Word* args, Word& result, int message,
 
 */
 int
-SpatialBBox_p( Word* args, Word& result, int message, 
+SpatialBBox_p( Word* args, Word& result, int message,
                Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10731,7 +10731,7 @@ SpatialBBox_p( Word* args, Word& result, int message,
 }
 
 int
-SpatialBBox_ps( Word* args, Word& result, int message, 
+SpatialBBox_ps( Word* args, Word& result, int message,
                 Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10740,7 +10740,7 @@ SpatialBBox_ps( Word* args, Word& result, int message,
 }
 
 int
-SpatialBBox_l( Word* args, Word& result, int message, 
+SpatialBBox_l( Word* args, Word& result, int message,
                Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10749,7 +10749,7 @@ SpatialBBox_l( Word* args, Word& result, int message,
 }
 
 int
-SpatialBBox_r( Word* args, Word& result, int message, 
+SpatialBBox_r( Word* args, Word& result, int message,
                Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10763,7 +10763,7 @@ SpatialBBox_r( Word* args, Word& result, int message,
 
 */
 int
-SpatialSize_l( Word* args, Word& result, int message, 
+SpatialSize_l( Word* args, Word& result, int message,
                Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10776,7 +10776,7 @@ SpatialSize_l( Word* args, Word& result, int message,
 
 */
 int
-SpatialTouchPoints_lr( Word* args, Word& result, int message, 
+SpatialTouchPoints_lr( Word* args, Word& result, int message,
                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10787,7 +10787,7 @@ SpatialTouchPoints_lr( Word* args, Word& result, int message,
 }
 
 int
-SpatialTouchPoints_rl( Word* args, Word& result, int message, 
+SpatialTouchPoints_rl( Word* args, Word& result, int message,
                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10798,7 +10798,7 @@ SpatialTouchPoints_rl( Word* args, Word& result, int message,
 }
 
 int
-SpatialTouchPoints_rr( Word* args, Word& result, int message, 
+SpatialTouchPoints_rr( Word* args, Word& result, int message,
                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10814,7 +10814,7 @@ SpatialTouchPoints_rr( Word* args, Word& result, int message,
 */
 
 int
-SpatialCommonBorder_rr( Word* args, Word& result, int message, 
+SpatialCommonBorder_rr( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10833,36 +10833,36 @@ SpatialCommonBorder_rr( Word* args, Word& result, int message,
 
 */
 int
-SpatialTranslate_p( Word* args, Word& result, int message, 
+SpatialTranslate_p( Word* args, Word& result, int message,
                     Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
 
   const Point *p= (Point*)args[0].addr;
-  
+
   Supplier son = qp->GetSupplier( args[1].addr, 0 );
   Word t;
   qp->Request( son, t );
   const CcReal *tx = ((CcReal *)t.addr);
-  
-  son = qp->GetSupplier( args[1].addr, 1 ); 
+
+  son = qp->GetSupplier( args[1].addr, 1 );
   qp->Request( son, t );
   const CcReal *ty = ((CcReal *)t.addr);
 
   if( p->IsDefined())
     if( tx->IsDefined() && ty->IsDefined() )
-      *((Point*)result.addr) = p->Translate( tx->GetRealval(), 
+      *((Point*)result.addr) = p->Translate( tx->GetRealval(),
                                              ty->GetRealval() );
     else
-      *((Point*)result.addr) = *p; 
-  else 
+      *((Point*)result.addr) = *p;
+  else
     ((Point*)result.addr)->SetDefined( false );
 
   return 0;
 }
 
 int
-SpatialTranslate_ps( Word* args, Word& result, int message, 
+SpatialTranslate_ps( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10873,26 +10873,26 @@ SpatialTranslate_ps( Word* args, Word& result, int message,
   Word t;
   qp->Request( son, t );
   const CcReal *tx = ((CcReal *)t.addr);
-  
-  son = qp->GetSupplier( args[1].addr, 1 ); 
+
+  son = qp->GetSupplier( args[1].addr, 1 );
   qp->Request( son, t );
   const CcReal *ty = ((CcReal *)t.addr);
-    
+
   if( ps->IsDefined() )
     if( tx->IsDefined() && ty->IsDefined() )
-      ps->Translate( tx->GetRealval(), 
-                     ty->GetRealval(), 
+      ps->Translate( tx->GetRealval(),
+                     ty->GetRealval(),
                      *((Points*)result.addr) );
     else
-      *((Points*)result.addr) = *ps; 
-  else 
-    ((Points*)result.addr)->SetDefined( false ); 
+      *((Points*)result.addr) = *ps;
+  else
+    ((Points*)result.addr)->SetDefined( false );
 
   return 0;
 }
 
 int
-SpatialTranslate_l( Word* args, Word& result, int message, 
+SpatialTranslate_l( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10904,11 +10904,11 @@ SpatialTranslate_l( Word* args, Word& result, int message,
   Word t;
   qp->Request( son, t );
   const CcReal *tx = ((CcReal *)t.addr);
-  
-  son = qp->GetSupplier( args[1].addr, 1 ); 
+
+  son = qp->GetSupplier( args[1].addr, 1 );
   qp->Request( son, t );
   const CcReal *ty = ((CcReal *)t.addr);
-    
+
   if(  !cl->IsEmpty() )
     if( tx->IsDefined() && ty->IsDefined() ) {
       const Coord txval = (Coord)(tx->GetRealval()),
@@ -10916,15 +10916,15 @@ SpatialTranslate_l( Word* args, Word& result, int message,
       cl->Translate( txval, tyval, *pResult );
     }
     else
-      *((Line*)result.addr) = *cl; 
-  else 
+      *((Line*)result.addr) = *cl;
+  else
     ((Line*)result.addr)->SetDefined( false );
-  
+
   return 0;
 }
 
 int
-SpatialLine2Region( Word* args, Word& result, int message, 
+SpatialLine2Region( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10937,14 +10937,14 @@ SpatialLine2Region( Word* args, Word& result, int message,
   if(  !cl->IsEmpty() )
     cl->Transform( *pResult );
 
-  else 
+  else
     ((Region*)result.addr)->SetDefined( false );
-  
+
   return 0;
 }
 
 int
-SpatialTranslate_r( Word* args, Word& result, int message, 
+SpatialTranslate_r( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -10959,11 +10959,11 @@ SpatialTranslate_r( Word* args, Word& result, int message,
   Word t;
   qp->Request( son, t );
   const CcReal *tx = ((CcReal *)t.addr);
-  
-  son = qp->GetSupplier( args[1].addr, 1 ); 
+
+  son = qp->GetSupplier( args[1].addr, 1 );
   qp->Request( son, t );
   const CcReal *ty = ((CcReal *)t.addr);
-    
+
   if(  !cr->IsEmpty() )
     if( tx->IsDefined() && ty->IsDefined() ) {
       const Coord txval = (Coord)(tx->GetRealval()),
@@ -10971,8 +10971,8 @@ SpatialTranslate_r( Word* args, Word& result, int message,
       cr->Translate( txval, tyval, *pResult );
     }
     else
-      *((Region*)result.addr) = *cr; 
-  else 
+      *((Region*)result.addr) = *cr;
+  else
     ((Region*)result.addr)->SetDefined( false );
 
   return 0;
@@ -10983,7 +10983,7 @@ SpatialTranslate_r( Word* args, Word& result, int message,
 
 */
 int
-SpatialWindowClippingIn_l( Word* args, Word& result, int message, 
+SpatialWindowClippingIn_l( Word* args, Word& result, int message,
                            Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -11000,7 +11000,7 @@ SpatialWindowClippingIn_l( Word* args, Word& result, int message,
 }
 
 int
-SpatialWindowClippingIn_r( Word* args, Word& result, int message, 
+SpatialWindowClippingIn_r( Word* args, Word& result, int message,
                            Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -11022,7 +11022,7 @@ SpatialWindowClippingIn_r( Word* args, Word& result, int message,
 
 */
 int
-SpatialWindowClippingOut_l( Word* args, Word& result, int message, 
+SpatialWindowClippingOut_l( Word* args, Word& result, int message,
                             Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -11038,7 +11038,7 @@ SpatialWindowClippingOut_l( Word* args, Word& result, int message,
 }
 
 int
-SpatialWindowClippingOut_r( Word* args, Word& result, int message, 
+SpatialWindowClippingOut_r( Word* args, Word& result, int message,
                             Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -11162,7 +11162,7 @@ struct ComponentsLocalInfo
 };
 
 int
-SpatialComponents_r( Word* args, Word& result, int message, 
+SpatialComponents_r( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   ComponentsLocalInfo *localInfo;
@@ -11196,7 +11196,7 @@ SpatialComponents_r( Word* args, Word& result, int message,
 }
 
 int
-SpatialComponents_ps( Word* args, Word& result, int message, 
+SpatialComponents_ps( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   Points *localInfo;
@@ -11235,17 +11235,17 @@ SpatialComponents_ps( Word* args, Word& result, int message,
 10.4.28 Value mapping functions of operator ~vertices~
 
 */
-int SpatialVertices_r(Word* args, Word& result, int message, 
+int SpatialVertices_r(Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   result = qp->ResultStorage(s);
   Region* reg = (Region*)args[0].addr;
-  Points* res = (Points*)result.addr;  
+  Points* res = (Points*)result.addr;
   reg->Vertices(res);
   return 0;
 }
 
-int SpatialVertices_l(Word* args, Word& result, int message, 
+int SpatialVertices_l(Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   result = qp->ResultStorage(s);
@@ -11259,21 +11259,21 @@ int SpatialVertices_l(Word* args, Word& result, int message,
 
 */
 
-int SpatialBoundary_r(Word* args, Word& result, int message, 
+int SpatialBoundary_r(Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   result = qp->ResultStorage(s);
   Region* reg = (Region*)args[0].addr;
-  Line* res = (Line*) result.addr;  
+  Line* res = (Line*) result.addr;
   reg->Boundary(res);
   return 0;
 }
-int SpatialBoundary_l(Word* args, Word& result, int message, 
+int SpatialBoundary_l(Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   result = qp->ResultStorage(s);
   Line* line = (Line*)args[0].addr;
-  Points* res = (Points*) result.addr;  
+  Points* res = (Points*) result.addr;
   line->Boundary(res);
   return 0;
 }
@@ -11291,8 +11291,8 @@ SpatialAtPoint( Word* args, Word& result, int message,
   Point *p = (Point*)args[1].addr;
   CcBool *startsSmaller = (CcBool*)args[2].addr;
   double res;
-  
-  if( p->IsDefined() && 
+
+  if( p->IsDefined() &&
       startsSmaller->IsDefined() &&
       l->AtPoint( *p, startsSmaller->GetBoolval(), res ) )
     ((CcReal*)result.addr)->Set( true, res );
@@ -11317,8 +11317,8 @@ SpatialAtPosition( Word* args, Word& result, int message,
 
   if( !pos->IsDefined() ||
       !startsSmaller->IsDefined() ||
-      !l->AtPosition( pos->GetRealval(), 
-                      startsSmaller->GetBoolval(), 
+      !l->AtPosition( pos->GetRealval(),
+                      startsSmaller->GetBoolval(),
                       *p ) )
     p->SetDefined( false );
 
@@ -11345,8 +11345,8 @@ SpatialSubLine( Word* args, Word& result, int message,
   if( pos1->IsDefined() &&
       pos2->IsDefined() &&
       startsSmaller->IsDefined() )
-    l->SubLine( pos1->GetRealval(), 
-                pos2->GetRealval(), 
+    l->SubLine( pos1->GetRealval(),
+                pos2->GetRealval(),
                 startsSmaller->GetBoolval(),
                 *rLine );
 
@@ -11358,17 +11358,17 @@ SpatialSubLine( Word* args, Word& result, int message,
 
 */
 int
-SpatialAdd_p( Word* args, Word& result, int message, 
+SpatialAdd_p( Word* args, Word& result, int message,
                     Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
 
   const Point *p1= (Point*)args[0].addr;
   const Point *p2= (Point*)args[1].addr;
 
   if( p1->IsDefined() && p2->IsDefined() )
-    *((Point*)result.addr) = *p1 + *p2 ;  
-  else 
+    *((Point*)result.addr) = *p1 + *p2 ;
+  else
     ((Point*)result.addr)->SetDefined( false );
 
   return 0;
@@ -11379,16 +11379,16 @@ SpatialAdd_p( Word* args, Word& result, int message,
 
 */
 int
-SpatialGetX_p( Word* args, Word& result, int message, 
+SpatialGetX_p( Word* args, Word& result, int message,
                     Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
 
   const Point *p = (Point*)args[0].addr;
 
   if( p->IsDefined() )
-    ((CcReal*)result.addr)->Set( true, p->GetX() ) ;  
-  else 
+    ((CcReal*)result.addr)->Set( true, p->GetX() ) ;
+  else
     ((Point*)result.addr)->Set( false, 0.0 );
 
   return 0;
@@ -11399,16 +11399,16 @@ SpatialGetX_p( Word* args, Word& result, int message,
 
 */
 int
-SpatialGetY_p( Word* args, Word& result, int message, 
+SpatialGetY_p( Word* args, Word& result, int message,
                     Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
 
   const Point *p = (Point*)args[0].addr;
 
   if( p->IsDefined() )
-    ((CcReal*)result.addr)->Set( true, p->GetY() ) ;  
-  else 
+    ((CcReal*)result.addr)->Set( true, p->GetY() ) ;
+  else
     ((Point*)result.addr)->Set( false, 0.0 );
 
   return 0;
@@ -11427,25 +11427,25 @@ defined, so it easier to make them overloaded.
 10.5.1 Definition of value mapping vectors
 
 */
-ValueMapping spatialisemptymap[] = { 
+ValueMapping spatialisemptymap[] = {
   SpatialIsEmpty_p,
   SpatialIsEmpty_ps,
   SpatialIsEmpty_l,
   SpatialIsEmpty_r };
 
-ValueMapping spatialequalmap[] = {   
+ValueMapping spatialequalmap[] = {
   SpatialEqual_pp,
   SpatialEqual_psps,
   SpatialEqual_ll,
   SpatialEqual_rr };
 
-ValueMapping spatialnotequalmap[] = { 
+ValueMapping spatialnotequalmap[] = {
   SpatialNotEqual_pp,
   SpatialNotEqual_psps,
   SpatialNotEqual_ll,
   SpatialNotEqual_rr };
 
-ValueMapping spatialintersectsmap[] = { 
+ValueMapping spatialintersectsmap[] = {
   SpatialIntersects_psps,
   SpatialIntersects_psl,
   SpatialIntersects_psr,
@@ -11456,7 +11456,7 @@ ValueMapping spatialintersectsmap[] = {
   SpatialIntersects_rl,
   SpatialIntersects_rr };
 
-ValueMapping spatialinsidemap[] = { 
+ValueMapping spatialinsidemap[] = {
   SpatialInside_pps,
   SpatialInside_pl,
   SpatialInside_pr,
@@ -11467,14 +11467,14 @@ ValueMapping spatialinsidemap[] = {
   SpatialInside_lr,
   SpatialInside_rr };
 
-ValueMapping spatialadjacentmap[] = { 
+ValueMapping spatialadjacentmap[] = {
   SpatialAdjacent_psr,
   SpatialAdjacent_lr,
   SpatialAdjacent_rps,
   SpatialAdjacent_rl,
   SpatialAdjacent_rr };
 
-ValueMapping spatialintersectionmap[] = { 
+ValueMapping spatialintersectionmap[] = {
   SpatialIntersection_pp,
   SpatialIntersection_pps,
   SpatialIntersection_pl,
@@ -11485,11 +11485,11 @@ ValueMapping spatialintersectionmap[] = {
   SpatialIntersection_psr,
   SpatialIntersection_lp,
   SpatialIntersection_lps,
-  SpatialIntersection_ll, 
+  SpatialIntersection_ll,
   SpatialIntersection_rp,
   SpatialIntersection_rps };
 
-ValueMapping spatialminusmap[] = { 
+ValueMapping spatialminusmap[] = {
   SpatialMinus_pp,
   SpatialMinus_pps,
   SpatialMinus_pl,
@@ -11504,12 +11504,12 @@ ValueMapping spatialminusmap[] = {
   SpatialMinus_rps,
   SpatialMinus_rl };
 
-ValueMapping spatialunionmap[] = { 
+ValueMapping spatialunionmap[] = {
   SpatialUnion_pps,
   SpatialUnion_psp,
   SpatialUnion_psps };
 
-ValueMapping spatialdistancemap[] = { 
+ValueMapping spatialdistancemap[] = {
   SpatialDistance_pp,
   SpatialDistance_pps,
   SpatialDistance_pl,
@@ -11520,32 +11520,32 @@ ValueMapping spatialdistancemap[] = {
   SpatialDistance_psr,
   SpatialDistance_lp,
   SpatialDistance_lps,
-  SpatialDistance_ll, 
+  SpatialDistance_ll,
   SpatialDistance_rp,
   SpatialDistance_rps,
   SpatialDistance_rr };
 
-ValueMapping spatialnocomponentsmap[] = { 
+ValueMapping spatialnocomponentsmap[] = {
   SpatialNoComponents_ps,
   SpatialNoComponents_l,
   SpatialNoComponents_r };
 
-ValueMapping spatialnosegmentsmap[] = { 
+ValueMapping spatialnosegmentsmap[] = {
   SpatialNoSegments_l,
   SpatialNoSegments_r };
 
-ValueMapping spatialbboxmap[] = { 
-  SpatialBBox_p, 
-  SpatialBBox_ps, 
-  SpatialBBox_l, 
+ValueMapping spatialbboxmap[] = {
+  SpatialBBox_p,
+  SpatialBBox_ps,
+  SpatialBBox_l,
   SpatialBBox_r };
 
-ValueMapping spatialtouchpointsmap[] = { 
+ValueMapping spatialtouchpointsmap[] = {
   SpatialTouchPoints_lr,
   SpatialTouchPoints_rl,
   SpatialTouchPoints_rr };
 
-ValueMapping spatialtranslatemap[] = { 
+ValueMapping spatialtranslatemap[] = {
   SpatialTranslate_p,
   SpatialTranslate_ps,
   SpatialTranslate_l,
@@ -11559,7 +11559,7 @@ ValueMapping spatialwindowclippingoutmap[] = {
   SpatialWindowClippingOut_l,
   SpatialWindowClippingOut_r };
 
-ValueMapping spatialscalemap[] = { 
+ValueMapping spatialscalemap[] = {
   SpatialScale_p,
   SpatialScale_ps,
   SpatialScale_l,
@@ -11899,236 +11899,236 @@ const string SpatialSpecLine2Region  =
 10.5.3 Definition of the operators
 
 */
-Operator spatialisempty ( 
-  "isempty", 
-  SpatialSpecIsEmpty, 
-  4, 
+Operator spatialisempty (
+  "isempty",
+  SpatialSpecIsEmpty,
+  4,
   spatialisemptymap,
-  SpatialSelectIsEmpty, 
+  SpatialSelectIsEmpty,
   SpatialTypeMapBool1 );
 
-Operator spatialequal ( 
-  "=", 
-  SpatialSpecEqual, 
-  4, 
+Operator spatialequal (
+  "=",
+  SpatialSpecEqual,
+  4,
   spatialequalmap,
-  SpatialSelectCompare, 
+  SpatialSelectCompare,
   SpatialTypeMapBool );
 
-Operator spatialnotequal ( 
-  "#", 
-  SpatialSpecNotEqual, 
-  4, 
+Operator spatialnotequal (
+  "#",
+  SpatialSpecNotEqual,
+  4,
   spatialnotequalmap,
-  SpatialSelectCompare, 
+  SpatialSelectCompare,
   SpatialTypeMapBool );
 
-Operator spatialintersects ( 
-  "intersects", 
-  SpatialSpecIntersects, 
-  9, 
+Operator spatialintersects (
+  "intersects",
+  SpatialSpecIntersects,
+  9,
   spatialintersectsmap,
-  SpatialSelectIntersects, 
+  SpatialSelectIntersects,
   GeoGeoMapBool );
 
-Operator spatialinside ( 
-  "inside", 
-  SpatialSpecInside, 
-  9, 
-  spatialinsidemap, 
-  SpatialSelectInside, 
+Operator spatialinside (
+  "inside",
+  SpatialSpecInside,
+  9,
+  spatialinsidemap,
+  SpatialSelectInside,
   GeoGeoMapBool );
 
-Operator spatialadjacent ( 
-  "adjacent", 
-  SpatialSpecAdjacent, 
-  5, 
-  spatialadjacentmap, 
-  SpatialSelectAdjacent, 
+Operator spatialadjacent (
+  "adjacent",
+  SpatialSpecAdjacent,
+  5,
+  spatialadjacentmap,
+  SpatialSelectAdjacent,
   GeoGeoMapBool );
 
-Operator spatialoverlaps ( 
-  "overlaps", 
-  SpatialSpecOverlaps, 
-  SpatialOverlaps_rr, 
-  Operator::SimpleSelect, 
-  GeoGeoMapBool );
-
-Operator spatialonborder ( 
-  "onborder", 
-  SpatialSpecOnBorder, 
-  SpatialOnBorder_pr, 
+Operator spatialoverlaps (
+  "overlaps",
+  SpatialSpecOverlaps,
+  SpatialOverlaps_rr,
   Operator::SimpleSelect,
   GeoGeoMapBool );
 
-Operator spatialininterior ( 
-  "ininterior", 
-  SpatialSpecOnBorder, 
-  SpatialInInterior_pr, 
+Operator spatialonborder (
+  "onborder",
+  SpatialSpecOnBorder,
+  SpatialOnBorder_pr,
   Operator::SimpleSelect,
   GeoGeoMapBool );
 
-Operator spatialintersection ( 
-  "intersection", 
-  SpatialSpecIntersection, 
-  13, 
-  spatialintersectionmap, 
-  SpatialSelectIntersection, 
+Operator spatialininterior (
+  "ininterior",
+  SpatialSpecOnBorder,
+  SpatialInInterior_pr,
+  Operator::SimpleSelect,
+  GeoGeoMapBool );
+
+Operator spatialintersection (
+  "intersection",
+  SpatialSpecIntersection,
+  13,
+  spatialintersectionmap,
+  SpatialSelectIntersection,
   SpatialIntersectionMap );
 
-Operator spatialminus ( 
-  "minus", 
-  SpatialSpecMinus, 
-  13, 
-  spatialminusmap, 
-  SpatialSelectMinus, 
+Operator spatialminus (
+  "minus",
+  SpatialSpecMinus,
+  13,
+  spatialminusmap,
+  SpatialSelectMinus,
   SpatialMinusMap );
 
-Operator spatialunion ( 
-  "union", 
-  SpatialSpecUnion, 
-  3, 
-  spatialunionmap, 
-  SpatialSelectUnion, 
+Operator spatialunion (
+  "union",
+  SpatialSpecUnion,
+  3,
+  spatialunionmap,
+  SpatialSelectUnion,
   SpatialUnionMap );
 
-Operator spatialcrossings ( 
-  "crossings", 
-  SpatialSpecCrossings, 
-  SpatialCrossings_ll, 
+Operator spatialcrossings (
+  "crossings",
+  SpatialSpecCrossings,
+  SpatialCrossings_ll,
   Operator::SimpleSelect,
   SpatialCrossingsMap );
 
-Operator spatialsingle ( 
-  "single", 
-  SpatialSpecSingle, 
-  SpatialSingle_ps, 
-  Operator::SimpleSelect, 
+Operator spatialsingle (
+  "single",
+  SpatialSpecSingle,
+  SpatialSingle_ps,
+  Operator::SimpleSelect,
   SpatialSingleMap );
 
-Operator spatialdistance ( 
-  "distance", 
-  SpatialSpecDistance, 
-  14, 
-  spatialdistancemap, 
-  SpatialSelectDistance, 
+Operator spatialdistance (
+  "distance",
+  SpatialSpecDistance,
+  14,
+  spatialdistancemap,
+  SpatialSelectDistance,
   SpatialDistanceMap );
 
-Operator spatialdirection ( 
-  "direction", 
-  SpatialSpecDirection, 
-  SpatialDirection_pp, 
+Operator spatialdirection (
+  "direction",
+  SpatialSpecDirection,
+  SpatialDirection_pp,
   Operator::SimpleSelect,
   SpatialDirectionMap );
 
-Operator spatialnocomponents ( 
-  "no_components", 
-  SpatialSpecNocomponents, 
-  3, 
-  spatialnocomponentsmap, 
-  SpatialSelectNoComponents, 
+Operator spatialnocomponents (
+  "no_components",
+  SpatialSpecNocomponents,
+  3,
+  spatialnocomponentsmap,
+  SpatialSelectNoComponents,
   SpatialNoComponentsMap );
 
-Operator spatialnosegments ( 
-  "no_segments", 
-  SpatialSpecNoSegments, 
-  2, 
-  spatialnosegmentsmap, 
-  SpatialSelectNoSegments, 
+Operator spatialnosegments (
+  "no_segments",
+  SpatialSpecNoSegments,
+  2,
+  spatialnosegmentsmap,
+  SpatialSelectNoSegments,
   SpatialNoSegmentsMap );
 
-Operator spatialbbox ( 
-  "bbox", 
-  SpatialSpecBbox, 
-  4, 
-  spatialbboxmap, 
-  SpatialSelectBBox, 
+Operator spatialbbox (
+  "bbox",
+  SpatialSpecBbox,
+  4,
+  spatialbboxmap,
+  SpatialSelectBBox,
   SpatialBBoxMap );
 
-Operator spatialsize ( 
-  "size", 
-  SpatialSpecSize, 
-  SpatialSize_l, 
-  Operator::SimpleSelect, 
+Operator spatialsize (
+  "size",
+  SpatialSpecSize,
+  SpatialSize_l,
+  Operator::SimpleSelect,
   SpatialSizeMap );
 
-Operator spatialtouchpoints ( 
-  "touchpoints", 
-  SpatialSpecTouchpoints, 
-  3, 
-  spatialtouchpointsmap, 
-  SpatialSelectTouchPoints, 
+Operator spatialtouchpoints (
+  "touchpoints",
+  SpatialSpecTouchpoints,
+  3,
+  spatialtouchpointsmap,
+  SpatialSelectTouchPoints,
   SpatialTouchPointsMap );
 
-Operator spatialcommonborder ( 
-  "commonborder", 
-  SpatialSpecCommonborder, 
-  SpatialCommonBorder_rr, 
-  Operator::SimpleSelect, 
+Operator spatialcommonborder (
+  "commonborder",
+  SpatialSpecCommonborder,
+  SpatialCommonBorder_rr,
+  Operator::SimpleSelect,
   SpatialCommonBorderMap );
 
-Operator spatialtranslate ( 
-  "translate", 
-  SpatialSpecTranslate, 
-  4, 
-  spatialtranslatemap, 
-  SpatialSelectTranslate, 
+Operator spatialtranslate (
+  "translate",
+  SpatialSpecTranslate,
+  4,
+  spatialtranslatemap,
+  SpatialSelectTranslate,
   SpatialTranslateMap );
 
-Operator spatialadd ( 
-  "+", 
+Operator spatialadd (
+  "+",
   SpatialSpecAdd,
-  1, 
-  spatialaddmap, 
+  1,
+  spatialaddmap,
   Operator::SimpleSelect,
   SpatialAddTypeMap );
 
-Operator spatialwindowclippingin ( 
-  "windowclippingin", 
-  SpatialSpecWindowClippingIn, 
-  4, 
-  spatialwindowclippinginmap, 
-  SpatialSelectWindowClipping, 
+Operator spatialwindowclippingin (
+  "windowclippingin",
+  SpatialSpecWindowClippingIn,
+  4,
+  spatialwindowclippinginmap,
+  SpatialSelectWindowClipping,
   SpatialWindowClippingMap );
 
-Operator spatialwindowclippingout ( 
-  "windowclippingout", 
-  SpatialSpecWindowClippingOut, 
-  4, 
-  spatialwindowclippingoutmap, 
-  SpatialSelectWindowClipping, 
+Operator spatialwindowclippingout (
+  "windowclippingout",
+  SpatialSpecWindowClippingOut,
+  4,
+  spatialwindowclippingoutmap,
+  SpatialSelectWindowClipping,
   SpatialWindowClippingMap );
 
-Operator spatialscale ( 
-  "scale", 
-  SpatialSpecScale, 
-  4, 
-  spatialscalemap, 
-  SpatialSelectTranslate, 
+Operator spatialscale (
+  "scale",
+  SpatialSpecScale,
+  4,
+  spatialscalemap,
+  SpatialSelectTranslate,
   SpatialScaleMap );
 
-Operator spatialcomponents ( 
-  "components", 
+Operator spatialcomponents (
+  "components",
   SpatialSpecComponents,
   2,
-  spatialcomponentsmap, 
-  SpatialComponentsSelect, 
+  spatialcomponentsmap,
+  SpatialComponentsSelect,
   SpatialComponentsMap );
 
-Operator spatialvertices ( 
-  "vertices", 
-  SpatialSpecVertices,  
-  2, 
-  spatialverticesmap, 
-  SpatialVerticesSelect,  
+Operator spatialvertices (
+  "vertices",
+  SpatialSpecVertices,
+  2,
+  spatialverticesmap,
+  SpatialVerticesSelect,
   SpatialVerticesMap);
 
-Operator spatialboundary ( 
-  "boundary", 
-  SpatialSpecBoundary,  
-  2, 
-  spatialboundarymap, 
-  SpatialBoundarySelect,  
+Operator spatialboundary (
+  "boundary",
+  SpatialSpecBoundary,
+  2,
+  spatialboundarymap,
+  SpatialBoundarySelect,
   SpatialBoundaryMap);
 
 Operator spatialatpoint (
@@ -12190,15 +12190,15 @@ class SpatialAlgebra : public Algebra
     AddTypeConstructor( &line );
     AddTypeConstructor( &region );
 
-    point.AssociateKind("DATA");    
-    points.AssociateKind("DATA"); 
-    line.AssociateKind("DATA");     
-    region.AssociateKind("DATA");  
+    point.AssociateKind("DATA");
+    points.AssociateKind("DATA");
+    line.AssociateKind("DATA");
+    region.AssociateKind("DATA");
 
-    point.AssociateKind("SPATIAL2D");   
-    points.AssociateKind("SPATIAL2D");  
-    line.AssociateKind("SPATIAL2D");    
-    region.AssociateKind("SPATIAL2D");  
+    point.AssociateKind("SPATIAL2D");
+    points.AssociateKind("SPATIAL2D");
+    line.AssociateKind("SPATIAL2D");
+    region.AssociateKind("SPATIAL2D");
 
     AddOperator( &spatialisempty );
     AddOperator( &spatialequal );

@@ -91,11 +91,11 @@ Forward declarations.
 const double FACTOR = 0.00000001;
 
 inline double ApplyFactor( const double d );
-inline bool AlmostEqual( const double d1, 
+inline bool AlmostEqual( const double d1,
                          const double d2 );
-inline bool AlmostEqual( const Point& p1, 
+inline bool AlmostEqual( const Point& p1,
                          const Point& p2 );
-inline bool AlmostEqual( const HalfSegment& hs1, 
+inline bool AlmostEqual( const HalfSegment& hs1,
                          const HalfSegment& hs2 );
 
 /*
@@ -215,7 +215,7 @@ Operators redefinition.
 
 *Semantics:* $u \neq v$
 
-*Complexity:* $O(1)$
+*Complexity:* $O(1)$Algebras/RTree/RTree.examples
 
 */
     inline bool operator!=( const Point& p ) const;
@@ -349,14 +349,28 @@ as an attribute.
     }
 
     inline int Compare( const Attribute *arg ) const
-    {
-      if( !defined )
-        return -1;
+//     { // Original implementation:
+//       if( !defined )
+//         return -1;
+//       const Point* p = (const Point*)arg;
+//       if( !p )
+//         return -2;
+//       if( !defined && !p->defined )
+//         return 0;
+//       if( !p->defined )
+//         return 1;
+//       if( *this > *p )
+//         return 1;
+//       if( *this < *p )
+//         return -1;
+//       return 0;
+//     }
+    { // CD: Implementation following guidelines from Attribute.h:
       const Point* p = (const Point*)arg;
-      if( !p )
-        return -2;
       if( !defined && !p->defined )
         return 0;
+      if( !defined && p->defined )
+        return -1;
       if( !p->defined )
         return 1;
       if( *this > *p )
@@ -500,13 +514,13 @@ Returns whether the set is empty of not.
 */
     bool IsValid() const;
 /*
-Checks if the point set is valid, i.e., if it contains only defined points and 
+Checks if the point set is valid, i.e., if it contains only defined points and
 no duplicates.
 
 */
     inline int Size() const;
 /*
-Returns the size of the point set in terms of number of points. 
+Returns the size of the point set in terms of number of points.
 Returns ~0~ if the set is empty.
 
 */
@@ -587,7 +601,7 @@ of ~U~.
 
 *Semantics:* $U \cup V$
 
-*Complexity:* $O(m)$, if the sets are not ordered, and $O(m+(m+n)log(m+n))$, otherwise, where ~n~ is 
+*Complexity:* $O(m)$, if the sets are not ordered, and $O(m+(m+n)log(m+n))$, otherwise, where ~n~ is
 the size of ~U~ and ~m~ is the size of ~V~.
 
 */
@@ -874,7 +888,7 @@ Sorts the persistent array of points.
 */
     void RemoveDuplicates();
 /*
-Remove duplicates in the (ordered) array of points. 
+Remove duplicates in the (ordered) array of points.
 
 */
     bool Find( const Point& p, int& pos ) const;
@@ -953,32 +967,32 @@ Redefinition of the assignement operator.
 6.1 Attributes
 
 */
-  int faceno;       
+  int faceno;
 /*
-The face identifier 
+The face identifier
 
 */
-  int cycleno;      
+  int cycleno;
 /*
-The cycle identifier 
+The cycle identifier
 
 */
-  int edgeno;       
+  int edgeno;
 /*
-The edge (segment) identifier 
+The edge (segment) identifier
 
 */
-  int coverageno;  
+  int coverageno;
 /*
 Used for fast spatial scan of the inside[_]pr algorithm
 
 */
-  bool insideAbove; 
+  bool insideAbove;
 /*
 Indicates whether the region's area is above or left of its segment
 
 */
-  int partnerno;    
+  int partnerno;
 /*
 Stores the position of the partner half segment in half segment ordered array
 
@@ -1063,7 +1077,7 @@ Returns the bounding box of the half segment.
 */
     inline const AttrType& GetAttr() const;
 /*
-Returns the "attr" value associated with a half segment. The "attr" value is useful when we 
+Returns the "attr" value associated with a half segment. The "attr" value is useful when we
 process region values.
 
 */
@@ -1083,7 +1097,7 @@ Returns the point at relative position ~pos~.
 Returns the relative position of the point ~p~.
 
 */
-    inline bool SubHalfSegment( double pos1, double pos2, 
+    inline bool SubHalfSegment( double pos1, double pos2,
                                 HalfSegment& result ) const;
 /*
 Returns the sub half segment trimmed by ~pos1~ and ~pos2~.
@@ -1140,18 +1154,18 @@ dominating points -\verb+>+  LDP flages  -\verb+>+ directions (rotations).
 */
     bool Intersects( const HalfSegment& hs ) const;
 /*
-Decides whether two half segments intersect with each other with any kind of intersection. 
+Decides whether two half segments intersect with each other with any kind of intersection.
 
 */
     bool InnerIntersects( const HalfSegment& hs ) const;
 /*
-Decides whether two half segments intersect in the following manner: a point of the first segment and an 
+Decides whether two half segments intersect in the following manner: a point of the first segment and an
 innerpoint of the second segment are the same.
 
 */
     bool Crosses( const HalfSegment& hs ) const;
 /*
-Computes whether two half segments intersect in their mid-points. Endpoints are not considered in 
+Computes whether two half segments intersect in their mid-points. Endpoints are not considered in
 computing the results.
 
 */
@@ -1167,17 +1181,17 @@ halfsegment ~hs~.
 
 */
    void CohenSutherlandLineClipping( const Rectangle<2> &window,
-                                     double &x0, double &y0, 
+                                     double &x0, double &y0,
                                      double &x1, double &y1,
                                      bool &accept) const;
 /*
 Implements the Cohen and Sutherland algorithm for clipping a segment to a clipping window.
 
 */
-   void WindowClippingIn( const Rectangle<2> &window, 
-                          HalfSegment &hs, 
+   void WindowClippingIn( const Rectangle<2> &window,
+                          HalfSegment &hs,
                           bool &inside,
-                          bool &isIntersectionPoint, 
+                          bool &isIntersectionPoint,
                           Point &intersectionPoint) const;
 /*
 Computes the part of the segment that is inside the rectangle ~window~, if
@@ -1189,19 +1203,19 @@ receives the intersection point.
 */
     bool Inside( const HalfSegment& hs ) const ;
 /*
-Computes whether the half segment is inside the one in ~hs~. 
+Computes whether the half segment is inside the one in ~hs~.
 
 */
-    bool Contains( const Point& p ) const; 
+    bool Contains( const Point& p ) const;
 /*
-Computes whether the point ~p~ is contained in the half segment. 
+Computes whether the point ~p~ is contained in the half segment.
 Uses the ~AlmostEqual~ function.
 
 */
     bool RayAbove( const Point& p, double &abovey0 ) const;
 /*
 
-Decides whether a half segment is above a point. This is useful when we want to decide 
+Decides whether a half segment is above a point. This is useful when we want to decide
 whether a point is inside a region.
 
 */
@@ -1217,7 +1231,7 @@ Computes the minimum distance from two half segments.
 */
     int LogicCompare( const HalfSegment& hs ) const;
 /*
-Compares two half segments according to their attribute values (~attr~). 
+Compares two half segments according to their attribute values (~attr~).
 
 */
     bool innerInter( const HalfSegment& chs,  Point& resp,
@@ -1281,7 +1295,7 @@ struct LRS
 
   LRS& operator=( const LRS& lrs )
   { lrsPos = lrs.lrsPos; hsPos = lrs.hsPos; return *this; }
-  
+
   double lrsPos;
   int hsPos;
 };
@@ -1343,7 +1357,7 @@ half segments is ordered.
 */
     inline bool IsOrdered() const;
 /*
-Returns whether the set of half segments is ordered. There is a flag ~ordered~ (see attributes) 
+Returns whether the set of half segments is ordered. There is a flag ~ordered~ (see attributes)
 in order to avoid a scan in the half segments set to answer this question.
 
 */
@@ -1353,7 +1367,7 @@ Marks the begin of a bulk load of half segments relaxing the condition that the 
 ordered.
 
 */
-     void EndBulkLoad( bool sort = true, bool remDup = true, 
+     void EndBulkLoad( bool sort = true, bool remDup = true,
                        bool setPartnerNo = true, bool setNoComponents = true );
 /*
 Marks the end of a bulk load and sorts the half segments set if the argument ~sort~ is set to true.
@@ -1425,7 +1439,7 @@ Reads the ith half segment from the line value.
     inline void Resize(const int newSize);
 /*
 Sets the new capacity of the halfsegment array to the
-maximum of its original size and the argument. 
+maximum of its original size and the argument.
 
 */
 
@@ -1513,7 +1527,7 @@ Assignement operator redefinition.
 *Complexity:* $O(m(n + \log n))$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    bool Intersects( const Region& r ) const; 
+    bool Intersects( const Region& r ) const;
 /*
 6.4.4 Operation ~inside~ (with ~line~)
 
@@ -1576,7 +1590,7 @@ Assignement operator redefinition.
 
 *Semantics:* $\{ p \in U \cap V | p \textrm{ is isolated in } U \cap V \}$
 
-*Complexity:* $O(m.n + r\log r)$, where ~m~ is the size of ~U~, ~n~ the size of ~V~, and ~r~ 
+*Complexity:* $O(m.n + r\log r)$, where ~m~ is the size of ~U~, ~n~ the size of ~V~, and ~r~
 is the ~points~ result size.
 
 */
@@ -1653,36 +1667,36 @@ is the ~points~ result size.
 
 *Precondition:* ~U.IsOrdered()~
 
-*Semantics:* translates the line 
+*Semantics:* translates the line
 
 *Complexity:* $O(n)$, where ~n~ is the size of ~U~
 
 */
-    bool 
+    bool
     AtPosition( double pos, bool startsSmaller, Point& p ) const;
 /*
 6.4.6 Operation ~atpoint~
 
 *Precondition:* ~U.IsOrdered() and v.IsDefined()~
 
-*Semantics:* 
+*Semantics:*
 
 *Complexity:* $O(n)$, where ~n~ is the size of ~U~
 
 */
-    bool 
+    bool
     AtPoint( const Point& p, bool startsSmaller, double& result ) const;
 /*
 6.4.6 Operation ~subline~
 
 *Precondition:* ~U.IsOrdered() and v.IsDefined() and w.IsDefined~
 
-*Semantics:* 
+*Semantics:*
 
 *Complexity:* $O(n)$, where ~n~ is the size of ~U~
 
 */
-    void SubLine( double pos1, double pos2, 
+    void SubLine( double pos1, double pos2,
                   bool startsSmaller, Line& l ) const;
 /*
 6.4.6 Operation ~vertices~
@@ -1833,7 +1847,7 @@ returns its position. Returns false if the half segment is not found.
     bool Find( const Point& p, int& pos ) const;
 /*
 Searches (binary search algorithm) for a point in the line value and
-returns its position, i.e. the first half segment with dominating point 
+returns its position, i.e. the first half segment with dominating point
 less than or equal to ~p~. Returns true if the half segment dominating
 point is equal to ~p~ and false otherwise.
 
@@ -1851,28 +1865,28 @@ points to the position to right one and the right half segment partnerno points 
 to the left one.
 
 */
-    bool 
+    bool
     GetNextSegment( const int poshs, const HalfSegment& hs,
                     int& posnexths, const HalfSegment*& nexths );
-    bool 
-    GetNextSegments( const int poshs, 
+    bool
+    GetNextSegments( const int poshs,
                      const HalfSegment& hs,
                      vector<bool>& visited,
-                     int& posnexths, 
+                     int& posnexths,
                      const HalfSegment*& nexths,
                      stack< pair<int, const HalfSegment*> >& nexthss );
-    void 
+    void
     VisitHalfSegments( int& poshs, const HalfSegment*& hs, double& lrspos,
                        int& edgeno, int cycleno, int faceno,
                        stack< pair<int, const HalfSegment*> >& nexthss,
                        vector<bool>& visited );
     void SetNoComponents();
 /*
-Calculates and sets the number of components for the line. For every half segment, the following 
-information is stored: faceno contains the number of the component, cycleno contains the 
+Calculates and sets the number of components for the line. For every half segment, the following
+information is stored: faceno contains the number of the component, cycleno contains the
 ramification that the segment belongs, and edgeno contains the segment number.
 
-The method ~VisitHalfSegments~ is a recursive function that does the job for 
+The method ~VisitHalfSegments~ is a recursive function that does the job for
 ~SetNoComponents~.
 
 6.10 Atrtibutes
@@ -1943,12 +1957,12 @@ ostream& operator<<( ostream& o, const Line& cl );
 7 Class Region
 
 This class implements the memory representation of the ~region~ type constructor. A region is
-composed of a set of faces. Each face consists of a set of cycles which correspond to an outer 
+composed of a set of faces. Each face consists of a set of cycles which correspond to an outer
 cycle and a groups of holes (inner cycles).
 
-A ~region~ value is a set of half segments. In the external (nested list) representation, a region 
-value is expressed as a set of faces, and each face is composed of a set of cycles.  However, in the 
-internal (class) representation, it is expressed as a set of sorted half segments, which are stored  
+A ~region~ value is a set of half segments. In the external (nested list) representation, a region
+value is expressed as a set of faces, and each face is composed of a set of cycles.  However, in the
+internal (class) representation, it is expressed as a set of sorted half segments, which are stored
 in a persistend DBArray.
 
 */
@@ -2010,11 +2024,11 @@ in order to avoid a scan in the half segments set to answer this question.
 */
     void StartBulkLoad();
 /*
-Marks the begin of a bulk load of half segments relaxing the condition that the half segments 
+Marks the begin of a bulk load of half segments relaxing the condition that the half segments
 must be ordered.
 
 */
-     void EndBulkLoad( bool sort = true, 
+     void EndBulkLoad( bool sort = true,
                        bool setCoverageNo = true,
                        bool setPartnerNo = true,
                        bool computeRegion = true );
@@ -2084,7 +2098,7 @@ Updates the ~attr~ value of the half segment at position ~position~ from the ~re
 Updates the ~attr~ value of the current half segment from the ~region~ value.The current
 half segment is indicated by ~pos~.
 
-*/ 
+*/
     bool InsertOk( const HalfSegment& hs ) const;
 /*
 This function check whether a region value is valid after the insertion of a new half segment.
@@ -2113,7 +2127,7 @@ of different cycles can intersect each other;
 /*
 Assignement operator redefinition.
 
-7.5 Operations 
+7.5 Operations
 
 7.5.2 Operation $=$ (~equal~)
 
@@ -2256,7 +2270,7 @@ Assignement operator redefinition.
   double Distance( const Region& r ) const;
 
 /*
-6.4.4 Operation ~components~ 
+6.4.4 Operation ~components~
 
 *Precondition:* ~U.IsOrdered()~
 
@@ -2294,7 +2308,7 @@ is the ~points~ result size.
 */
     void TouchPoints( const Region& r, Points& result ) const;
 /*
-6.4.5 Operation ~common[_]border~ 
+6.4.5 Operation ~common[_]border~
 
 *Precondition:* ~U.IsOrdered() and V.IsOrdered()~
 
@@ -2491,7 +2505,7 @@ Moves the region according x and y and stores the result in result.
 VTA - Move this to the operators section
 
 ~Translate~
- 
+
 Moves this region.
 
 */
@@ -2506,7 +2520,7 @@ Moves this region.
        for(int i=0;i<size;i++)
        {
            Get(i,hs);
-           HalfSegment ths(*hs); 
+           HalfSegment ths(*hs);
            ths.Translate(x,y);
            region.Put(i,ths);
        }
@@ -2538,8 +2552,8 @@ part on the left). The points were typed in the order A, P and B, and P is the
 leftmost point of the cycle.
 
 */
-  static bool GetCycleDirection( const Point &pA, 
-                                 const Point &pP, 
+  static bool GetCycleDirection( const Point &pA,
+                                 const Point &pP,
                                  const Point &pB);
   bool GetCycleDirection() const;
 
@@ -2611,8 +2625,8 @@ This function is just used in order to add clipped half segments to the clipped
 region.
 
 */
-   void AddClippedHS( const Point &pl, 
-                      const Point &pr, 
+   void AddClippedHS( const Point &pl,
+                      const Point &pr,
                       AttrType &attr,
                       int &partnerno );
 
@@ -2674,10 +2688,10 @@ This function sets the cycle and edge number of a face's cycle. It calls the fun
 ~GetAdjacentHS~ and ~SearchForCriticalPoint~.
 
 */
-   void ComputeCycle( HalfSegment &hs, 
+   void ComputeCycle( HalfSegment &hs,
                       int faceno,
                       int cycleno,
-                      int &edgeno, 
+                      int &edgeno,
                       bool *cycle );
 
 /*
@@ -2775,20 +2789,20 @@ Whether the half segments in the region value are sorted.
 */
 ostream& operator<<( ostream& o, const Region& cr );
 
-Word InPoint( const ListExpr typeInfo, const ListExpr instance, 
+Word InPoint( const ListExpr typeInfo, const ListExpr instance,
               const int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr OutPoint( ListExpr typeInfo, Word value );
 ListExpr
 OutPoint( ListExpr typeInfo, Word value );
 
 Word
-InLine( const ListExpr typeInfo, const ListExpr instance, 
+InLine( const ListExpr typeInfo, const ListExpr instance,
         const int errorPos, ListExpr& errorInfo, bool& correct ) ;
 ListExpr
 OutLine( ListExpr typeInfo, Word value );
 
 Word
-InRegion( const ListExpr typeInfo, const ListExpr instance, 
+InRegion( const ListExpr typeInfo, const ListExpr instance,
           const int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr
 OutRegion( ListExpr typeInfo, Word value );
@@ -2812,9 +2826,9 @@ class EdgePoint : public Point
     {
     }
 
-    EdgePoint( const Point p, 
+    EdgePoint( const Point p,
                const bool dir,
-               const bool reject): 
+               const bool reject):
     Point(p)
     {
       direction = dir;
@@ -2830,8 +2844,8 @@ class EdgePoint : public Point
       rejected = reject;
     }
 
-    void Set( const Point& p, 
-              const bool dir, 
+    void Set( const Point& p,
+              const bool dir,
               const bool reject)
     {
       Set( p.GetX(), p.GetY(), dir, reject );
@@ -2853,7 +2867,7 @@ class EdgePoint : public Point
       return *this;
     }
 
-    static EdgePoint* GetEdgePoint( const Point &p, 
+    static EdgePoint* GetEdgePoint( const Point &p,
                                     const Point &p2,
                                     bool insideAbove,
                                     const Point &v,
@@ -3068,7 +3082,8 @@ inline Point& Point::operator=( const Point& p )
 inline bool Point::operator==( const Point& p ) const
 {
   assert( defined && p.defined );
-  return x == p.x && y == p.y;
+//  return x == p.x && y == p.y; // changed by CD
+  return AlmostEqual(x, p.x) && AlmostEqual(y, p.y);
 }
 
 inline bool Point::operator!=( const Point& p ) const
@@ -3084,8 +3099,8 @@ inline bool Point::operator<=( const Point& p ) const
 inline bool Point::operator<( const Point& p ) const
 {
   assert( defined && p.defined );
-  return x < p.x ||
-         x == p.x && y < p.y;
+//  return x < p.x || (x == p.x && y < p.y);
+  return x < p.x || (AlmostEqual(x, p.x) && y < p.y); // changed by CD
 }
 
 inline bool Point::operator>=( const Point& p ) const
@@ -3096,8 +3111,8 @@ inline bool Point::operator>=( const Point& p ) const
 inline bool Point::operator>( const Point& p ) const
 {
   assert( defined && p.defined );
-  return x > p.x ||
-         x == p.x && y > p.y;
+//   return x > p.x || ( x == p.x && y > p.y );
+  return x > p.x || ( AlmostEqual(x, p.x) && y > p.y ); // changed by CD
 }
 
 inline Point Point::operator+( const Point& p ) const
@@ -3242,9 +3257,9 @@ inline bool Points::GetPt( const Point*& p ) const
 11.3 Class ~HalfSegment~
 
 */
-inline 
-HalfSegment::HalfSegment( bool ldp, 
-                          const Point& lp, 
+inline
+HalfSegment::HalfSegment( bool ldp,
+                          const Point& lp,
                           const Point& rp ):
 ldp( ldp ),
 lp( lp ),
@@ -3268,54 +3283,54 @@ attr( hs.attr )
 {
 }
 
-inline const Point& 
+inline const Point&
 HalfSegment::GetLeftPoint() const
 {
   return lp;
 }
 
-inline const Point& 
+inline const Point&
 HalfSegment::GetRightPoint() const
 {
   return rp;
 }
 
-inline const Point& 
+inline const Point&
 HalfSegment::GetDomPoint() const
 {
-  if( ldp ) 
+  if( ldp )
     return lp;
   return rp;
 }
 
-inline const Point& 
+inline const Point&
 HalfSegment::GetSecPoint() const
 {
-  if( ldp ) 
+  if( ldp )
     return rp;
   return lp;
 }
 
-inline bool 
+inline bool
 HalfSegment::IsLeftDomPoint() const
 {
   return ldp;
 }
 
-inline void 
+inline void
 HalfSegment::SetLeftDomPoint( bool ldp )
 {
   this->ldp = ldp;
 }
 
-inline const Rectangle<2> 
+inline const Rectangle<2>
 HalfSegment::BoundingBox() const
 {
   double minx = MIN( GetLeftPoint().GetX(), GetRightPoint().GetX() ),
          maxx = MAX( GetLeftPoint().GetX(), GetRightPoint().GetX() ),
          miny = MIN( GetLeftPoint().GetY(), GetRightPoint().GetY() ),
          maxy = MAX( GetLeftPoint().GetY(), GetRightPoint().GetY() );
-         
+
   return Rectangle<2>( true,
                        minx - ApplyFactor(minx),
                        maxx + ApplyFactor(maxx),
@@ -3323,25 +3338,25 @@ HalfSegment::BoundingBox() const
                        maxy + ApplyFactor(maxy) );
 }
 
-inline const AttrType& 
+inline const AttrType&
 HalfSegment::GetAttr() const
 {
   return attr;
 }
 
-inline void 
+inline void
 HalfSegment::SetAttr( AttrType& attr )
 {
   this->attr = attr;
 }
 
-inline double 
+inline double
 HalfSegment::Length() const
 {
   return rp.Distance( lp );
 }
 
-inline Point 
+inline Point
 HalfSegment::AtPosition( double pos ) const
 {
   if( pos < 0 ||
@@ -3352,28 +3367,28 @@ HalfSegment::AtPosition( double pos ) const
       AlmostEqual( pos, Length() ) )
     return GetSecPoint();
 
-  return Point( true, 
-                GetDomPoint().GetX() + pos * 
+  return Point( true,
+                GetDomPoint().GetX() + pos *
                   (GetSecPoint().GetX() - GetDomPoint().GetX()) / Length(),
-                GetDomPoint().GetY() + pos * 
-                  (GetSecPoint().GetY() - GetDomPoint().GetY()) / Length() ); 
+                GetDomPoint().GetY() + pos *
+                  (GetSecPoint().GetY() - GetDomPoint().GetY()) / Length() );
 }
 
-inline double 
+inline double
 HalfSegment::AtPoint( const Point& p ) const
 {
   assert( Contains( p ) );
-  if( AlmostEqual( rp.GetX(), lp.GetX() ) && 
+  if( AlmostEqual( rp.GetX(), lp.GetX() ) &&
       AlmostEqual( p.GetX(), rp.GetX() ) )
     // the segment is vertical
-    return Length() * (p.GetY() - GetDomPoint().GetY()) / 
+    return Length() * (p.GetY() - GetDomPoint().GetY()) /
                       (GetSecPoint().GetY() - GetDomPoint().GetY());
-  return Length() * (p.GetX() - GetDomPoint().GetX()) / 
+  return Length() * (p.GetX() - GetDomPoint().GetX()) /
                     (GetSecPoint().GetX() - GetDomPoint().GetX());
 }
 
-inline bool 
-HalfSegment::SubHalfSegment( double pos1, double pos2, 
+inline bool
+HalfSegment::SubHalfSegment( double pos1, double pos2,
                                          HalfSegment& result ) const
 {
   if( AlmostEqual( AtPosition( pos1 ), AtPosition( pos2 ) ) )
@@ -3423,7 +3438,7 @@ startsSmaller( cl.startsSmaller )
   for( int i = 0; i < cl.lrsArray.Size(); i++ )
   {
     cl.lrsArray.Get( i, lrs );
-    lrsArray.Put( i, *lrs ); 
+    lrsArray.Put( i, *lrs );
   }
 }
 
@@ -3448,7 +3463,7 @@ inline double Line::Length() const
   return length;
 }
 
-inline void 
+inline void
 Line::SetLineType( bool simple, bool cycle, bool startsSmaller )
 {
   this->simple = simple;
@@ -3488,7 +3503,7 @@ inline Point Line::StartPoint( bool startsSmaller ) const
 
   if( startsSmaller && this->startsSmaller )
     pos = 0;
-  else  
+  else
     pos = Size() - 1;
 
   const LRS *lrs;
@@ -3509,7 +3524,7 @@ inline Point Line::EndPoint( bool startsSmaller ) const
 
   if( startsSmaller && this->startsSmaller )
     pos = Size()-1;
-  else  
+  else
     pos = 0;
 
   const LRS *lrs;
@@ -3676,7 +3691,7 @@ inline bool AlmostEqual( const double d1, const double d2 )
   long ii1 = (long)i1,
        ii2 = (long)i2;
 
-  if( abs(ii1 - ii2) > 1 ) 
+  if( abs(ii1 - ii2) > 1 )
     return false;
 
   int d = abs(ii1) - abs(ii2);
