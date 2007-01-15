@@ -662,7 +662,8 @@ int UReal::AtMin(vector<UReal>& result) const
   bool correct = true;
   Periods minTimesPeriods(2);
   minTimesPeriods.Clear();
-  double minVal = PeriodsAtMin(correct, minTimesPeriods);
+//   double minVal = PeriodsAtMin(correct, minTimesPeriods);
+  PeriodsAtMin(correct, minTimesPeriods);
 
   if(!correct)
     return 0;
@@ -719,7 +720,8 @@ int UReal::AtMax( vector<UReal>& result) const
   bool correct = true;
   Periods maxTimesPeriods(2);
   maxTimesPeriods.Clear();
-  double maxVal = PeriodsAtMax(correct, maxTimesPeriods);
+//   double maxVal = PeriodsAtMax(correct, maxTimesPeriods);
+  PeriodsAtMax(correct, maxTimesPeriods);
 
   if(!correct)
     return 0;
