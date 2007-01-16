@@ -81,6 +81,7 @@ file.
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
 #include "PolySolver.h"
+#include <math.h>
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -362,9 +363,9 @@ double UReal::Max(bool& correct) const{
      }
   }
   // debug
-  if(isnan(v1) || isnan(v2) || isnan(v3)){
-      cerr << " cannot determine the value within a unit" << endl;
-  }
+  //if(isnan(v1) || isnan(v2) || isnan(v3)){
+  //    cerr << " cannot determine the value within a unit" << endl;
+  //}
 
   // determine the maximum of v1 .. v3
   double max = v1;
@@ -407,9 +408,10 @@ double UReal::Min(bool& correct) const{
      }
   }
   // debug
-  if(isnan(v1) || isnan(v2) || isnan(v3)){
-      cerr << "UReal::Min(): cannot determine the value within a unit" << endl;
-  }
+  //if(isnan(v1) || isnan(v2) || isnan(v3)){
+  //    cerr << "UReal::Min(): cannot determine the value within a unit" 
+  //         << endl;
+  //}
   // determine the minimum of v1 .. v3
   double min = v1;
   if(v2<min){
@@ -1560,7 +1562,7 @@ double MReal::Integrate(){
       Get(i,unit);
       ISC isc;
       isc.value = unit->Integrate();
-      if(isnan(isc.value)) cout << " value = " << isc.value << endl;
+      //if(isnan(isc.value)) cout << " value = " << isc.value << endl;
       isc.level = 0;
       while(!theStack.empty() && (theStack.top().level == isc.level)){
           isc.value = isc.value + theStack.top().value;
