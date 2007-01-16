@@ -89,6 +89,22 @@ extern QueryProcessor* qp;
 #include "DateTime.h"
 #include "TemporalAlgebra.h"
 
+
+#ifdef SECONDO_WIN32
+   double asinh(double z){
+       return log(z + sqrt(z*z +1));
+   }
+   
+    bool isnan(double x){
+       return ((x!=x) || ((x==1) && (x == 0)));
+
+    }	    
+
+#endif
+
+
+
+
 string int2string(const int& number)
 {
   ostringstream oss;
