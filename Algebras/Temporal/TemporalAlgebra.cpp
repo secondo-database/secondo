@@ -91,14 +91,15 @@ extern QueryProcessor* qp;
 
 
 #ifdef SECONDO_WIN32
-   double asinh(double z){
-       return log(z + sqrt(z*z +1));
-   }
-   
-    bool isnan(double x){
-       return ((x!=x) || ((x==1) && (x == 0)));
+double asinh(double z)
+{
+  return log(z + sqrt(z*z +1));
+}
 
-    }	    
+bool isnan(double x)
+{
+  return ((x!=x) || ((x==1) && (x == 0)));
+}
 
 #endif
 
@@ -228,21 +229,21 @@ double AntiderivativeSQRTpoly2(const double a, const double b,
   double Xr = sqrt(X);
   double t1 = (h1*Xr)/(4*a);
 
-  double f = 0.5*c - (b*b) / (8*a);  // 1 / 2k 
+  double f = 0.5*c - (b*b) / (8*a);  // 1 / 2k
 
   double t2 = 0;
 
   // Bronstein (241)
   double anti2;
-  int ucase = -1; 
+  int ucase = -1;
   if((a>0) && (Delta>0))  {
      ucase = 1;
      //anti2 = (1/sqrt(a)) * asinh(h1 / sqrt(Delta));
      //t2 = f*anti2;
 
       t2 = (Delta / (8*pow(a,1.5))) * asinh(h1/sqrt(Delta));
-     
-     
+
+
   } else if((a>0) && (Delta==0)){
      ucase = 2;
      anti2 = (1/sqrt(a)) * log(h1);
@@ -261,42 +262,42 @@ double AntiderivativeSQRTpoly2(const double a, const double b,
   }
   double result = t1 + t2;
 
-  
+
 
   /* Unfortunately , small rounding errors in the anti2 computation
-     are often multiplied with very large numbers for (f) in many 
+     are often multiplied with very large numbers for (f) in many
      datasets. This leads to very wrong results if these data are used.
      For this reason, we compute the valid range of the result. If the
      computed result is outside of this value, we approximate the integral
      by the integral of a linear function between the values at the boundaries.
      (the same as integrate(linearize2(unit))
-   */ 
-     
+   */
+
   // compute the minimum and the maximum value
-  double xs = -1.0*b / (2*a);  
+  double xs = -1.0*b / (2*a);
   double v1 = sqrt(c);
   double v2 = sqrt(a*x*x+b*x+c);
   double v3 = v1;
   if(xs>0 && xs < x){
       v3 = sqrt(a*xs*xs+b*xs+c);
   } else {
-      xs = -1.0; 
+      xs = -1.0;
   }
   double min = v1;
   if(v2 < min){
      min = v2;
-  } 
+  }
   if(v3<min){
      min = v3;
   }
   double max = v1;
   if(v2 > max){
      max = v2;
-  } 
+  }
   if(v3>max){
      max = v3;
   }
-  
+
   double minint = min*x;
   double maxint = max*x;
 
@@ -306,10 +307,10 @@ double AntiderivativeSQRTpoly2(const double a, const double b,
          double h = (x==0)?0:(v2-v1)/x;
          result = (0.5*h*x + v1)*x;
      } else {
-        // integrate 0..xs          
+        // integrate 0..xs
         double h = (v3-v1)/x;
         double res1 = (0.5*h*xs + v1)*xs;
-        // integrate xs .. x 
+        // integrate xs .. x
         double diff = x-xs;
         h = (v2-v3)/diff;
         double res2 = (0.5*h*diff+v3)*diff;
@@ -425,7 +426,7 @@ double UReal::Min(bool& correct) const{
   }
   // debug
   //if(isnan(v1) || isnan(v2) || isnan(v3)){
-  //    cerr << "UReal::Min(): cannot determine the value within a unit" 
+  //    cerr << "UReal::Min(): cannot determine the value within a unit"
   //         << endl;
   //}
   // determine the minimum of v1 .. v3
@@ -458,12 +459,12 @@ void UReal::Linearize(UReal& result) const{
     TemporalFunction(timeInterval.end,V,true);
     double v2 = V.GetRealval();
     result = UReal(timeInterval,v1,v2);
-    
+
 }
 
 /*
-Computes a linear approximation of this ureal. 
-If the extremum of the represented function is contained in 
+Computes a linear approximation of this ureal.
+If the extremum of the represented function is contained in
 the corresponding interval, the unit is split into two ones.
 
 */
@@ -473,7 +474,7 @@ void UReal::Linearize(UReal& result1, UReal& result2) const{
         result2.SetDefined(false);
         return;
     }
-     
+
     if((a==0) && !r){  // already linear
       result1.CopyFrom(this);
       result2.SetDefined(false);
@@ -500,7 +501,7 @@ void UReal::Linearize(UReal& result1, UReal& result2) const{
     ixs.ReadFrom(xs); // convert the double into an instant
     Instant ixst(instanttype);
     ixst = timeInterval.start + ixs; // translate into the interval
-   
+
     if( (ixst <= timeInterval.start) || (ixst>=timeInterval.end) ||
         ixst.Adjacent(&timeInterval.end)){
         // extremum outside or very closed to the bounds
@@ -514,14 +515,14 @@ void UReal::Linearize(UReal& result1, UReal& result2) const{
     TemporalFunction(ixst,V,true);
     double v3 = V.GetRealval();
 
-    
-   
+
+
     Interval<Instant> interval1(timeInterval.start,ixst,timeInterval.lc,true);
     Interval<Instant> interval2(ixst,timeInterval.end,false,timeInterval.rc);
 
     result1 = UReal(interval1,v1,v3);
-    result2 = UReal(interval2,v3,v2); 
-} 
+    result2 = UReal(interval2,v3,v2);
+}
 
 
 
@@ -541,16 +542,16 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
   DateTime t0(durationtype), t1(instanttype);
   Interval<Instant> iv;
 
-/*  cout << "UReal::PeriodsAtVal( " << value << ", ...) called." << endl;
-  cout << "\ta=" << a << " b=" << b << " c=" << c << " r=" << r << endl;
-  cout << "\tstart=" << timeInterval.start.ToDouble()
-       << " end=" << timeInterval.end.ToDouble()
-       << " lc=" << timeInterval.lc
-       << " rc=" << timeInterval.rc << endl;*/
+//   cout << "UReal::PeriodsAtVal( " << value << ", ...) called." << endl;
+//   cout << "\ta=" << a << " b=" << b << " c=" << c << " r=" << r << endl;
+//   cout << "\tstart=" << timeInterval.start.ToDouble()
+//        << " end=" << timeInterval.end.ToDouble()
+//        << " lc=" << timeInterval.lc
+//        << " rc=" << timeInterval.rc << endl;
   times.Clear();
   if( !IsDefined() )
   {
-//      cout << "UReal::PeriodsAtVal(): Undefined UReal -> 0 results." << endl;
+     cout << "UReal::PeriodsAtVal(): Undefined UReal -> 0 results." << endl;
      return 0;
   }
 
@@ -570,7 +571,7 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
       }
       else // no result
       {
-//      cout << "UReal::PeriodsAtVal(): constant UReal -> 0 results." << endl;
+     cout << "UReal::PeriodsAtVal(): constant UReal -> 0 results." << endl;
         return 0;
       }
     }
@@ -591,18 +592,20 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
     else
       no_res = SolvePoly(a, b, (c-(value*value)), inst_d, true);
   }
-//   times.Print(cout);
+  times.Print(cout);
+//   cout << "SolvePoly found no_res=" << no_res << " results." << endl;
   for(int i=0; i<no_res; i++)
   {
+//     cout << "Processing inst_d[" << i << "]=" << inst_d[i] << endl;
     t0.ReadFrom(inst_d[i]);
     t1 = timeInterval.start + t0;
+//     cout << "\tt1=" << t1.ToDouble() << endl;
+//     cout << "\tt1.IsDefined()=" << t1.IsDefined() << endl;
     if( (t1 == timeInterval.start) ||
         (t1 == timeInterval.end)   ||
         timeInterval.Contains(t1)     )
     {
-/*      cout << "\tt1=" << t1.ToDouble() << endl;
-      cout << "\tt1.IsDefined()=" << t1.IsDefined() << endl;
-      cout << "\ttimes.IsValid()=" << times.IsValid() << endl;*/
+//       cout << "\ttimes.IsValid()=" << times.IsValid() << endl;
       if( !times.Contains( t1 ) )
       {
 //         cout << "UReal::PeriodsAtVal(): add instant" << endl;
@@ -611,12 +614,13 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
         times.Add(iv); // add only once
         times.EndBulkLoad();
       }
-/*      else
-        cout << "UReal::PeriodsAtVal(): not added instant" << endl;*/
+//    else
+//     cout << "UReal::PeriodsAtVal(): not added instant (doublet)" << endl;
     }
+//     cout << "UReal::PeriodsAtVal(): not added instant (outside)" << endl;
   }
-/*  cout << "UReal::PeriodsAtVal(): Calculated "
-       << times.GetNoComponents() << "results." << endl;*/
+//   cout << "UReal::PeriodsAtVal(): Calculated "
+//        << times.GetNoComponents() << "results." << endl;
   return times.GetNoComponents();
 }
 
@@ -931,19 +935,14 @@ int UReal::AtValue(CcReal value, vector<UReal>& result) const
   {
     const Interval<DateTime>* iv;
     valTimesPeriods.Get(i, iv);
-    UReal unit = UReal( *this );
-    if( iv->Inside(timeInterval) )
-      AtInterval( *iv, unit );
-    else
-    { // solve problem with max at open interval start/end!
-      if( (iv->start == timeInterval.start) || (iv->end == timeInterval.end) )
-      {
-        UReal unit2(
-          Interval<DateTime>(timeInterval.start, timeInterval.end, true, true),
-          a, b, c, r );
-        unit2.AtInterval( *iv, unit );
-      }
-    }
+//     cout << (iv->lc ? "UReal::AtValue: iv=[ " : "iv=[ ")
+//          << iv->start.ToString() << " "
+//          << iv->end.ToString()
+//          << (iv->rc ? " ]" : " [") << endl;
+    UReal unit(true);
+    unit = UReal(*iv, 0.0, 0.0, theVal, false); // making things easier...
+//     cout << "  Unit = ";
+//     unit.Print(cout); cout << endl;
     result.push_back(unit);
   }
   return result.size();
@@ -955,7 +954,12 @@ same value. Returns the number of results (0-2).
 */
 int UReal::PeriodsAtEqual( const UReal& other, Periods& times) const
 {
+  int no_res = 0;
+  double inst_d[4];
+  DateTime t0(durationtype), t1(instanttype);
+  Interval<Instant> iv;
   Interval<Instant> commonIv;
+
   UReal u1(true), u2(true), udiff(true);
   times.Clear();
   if( !IsDefined()       ||
@@ -985,7 +989,62 @@ int UReal::PeriodsAtEqual( const UReal& other, Periods& times) const
   // normalize, such that u1r==false and u2.r==true
   if (u1.r)
   { udiff = u1; u1 = u2; u2 = udiff; }
+  // solve u1^2 = u2^2 <=> u1^2 - u2^2 = 0
+  double A = u1.a;
+  double B = u1.b;
+  double C = u1.c;
+  double D = u2.a;
+  double E = u2.b;
+  double F = u2.c;
+  no_res = SolvePoly(A*A,
+                     2*A*B,
+                     2*A*C+B*B-D,
+                     2*B*C-E,
+                     C*C-F,
+                     inst_d);
 
+  for(int i=0; i<no_res; i++)
+  {
+    t0.ReadFrom(inst_d[i]);
+    t1 = commonIv.start + t0;
+    if( (t1 == commonIv.start) ||
+        (t1 == commonIv.end)   ||
+        commonIv.Contains(t1)     )
+    {
+//       cout << "\tt1=" << t1.ToDouble() << endl;
+//       cout << "\tt1.IsDefined()=" << t1.IsDefined() << endl;
+//       cout << "\ttimes.IsValid()=" << times.IsValid() << endl;
+      if( !times.Contains( t1 ) )
+      {
+//         cout << "UReal::PeriodsAtEqual(): add instant" << endl;
+        iv = Interval<Instant>(t1, t1, true, true);
+        times.StartBulkLoad();
+        times.Add(iv); // add only once
+        times.EndBulkLoad();
+      }
+//    else
+//    cout << "UReal::PeriodsAtEqual(): not added instant" << endl;
+    }
+  }
+//cout << "UReal::PeriodsAtEqual(): Calculated "
+//     << times.GetNoComponents() << "results." << endl;
+  return times.GetNoComponents();
+}
+
+/*
+Creates a vector of ubool, that cover the UReals common deftime and
+indicate wheter their temporal values are equal or not.
+
+Precondition: this[->]IsDefined() && value.IsDefined()
+
+Result: stores the resultunit into vector result and returns
+        the number of results found.
+
+*/
+
+int UReal::IsEqual(const UReal& other, vector<UBool> result) const
+{
+  result.clear();
   return 0;
 }
 
@@ -1860,7 +1919,7 @@ void MReal::AtMax( MReal& result ) const
 }
 
 // restrict to periods with certain value
-void MReal::AtValue( CcReal& ccvalue, MReal& result ) const
+void MReal::AtValue( const CcReal& ccvalue, MReal& result ) const
 {
   assert( ccvalue.IsDefined() );
 
@@ -5820,7 +5879,7 @@ int Integrate(Word* args, Word& result,
 }
 
 /*
-16.2.28 Value Mapping function for the operator linearize 
+16.2.28 Value Mapping function for the operator linearize
 
 */
 template <class mtype>

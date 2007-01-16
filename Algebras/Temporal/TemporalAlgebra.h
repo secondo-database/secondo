@@ -924,7 +924,7 @@ This can be used to create sub-units for refinement partitions.
 /*
 Returns ~true~ if the value of this temporal unit is equal to the
 value of the temporal unit ~i~ and ~false~ if they are different.
-Equality is computed with respect of temporal evolution.
+Equality is computed with respect to temporal evolution.
 
 */
 
@@ -1694,7 +1694,7 @@ the periods, where it takes its maximum value.
 
 Precondition: this[->]IsDefined()
 
-Result: stores the resultununit into vector result and returns
+Result: stores the resultunit into vector result and returns
         the number of results (1-2) found.
 
 WARNING: AtMax may return points, that are not inside this->timeInterval,
@@ -1707,12 +1707,25 @@ WARNING: AtMax may return points, that are not inside this->timeInterval,
 Creates a vector of units, which are the restriction of this to
 the periods, where it takes a certain value.
 
-  Precondition: this[->]IsDefined() && value.IsDefined()
-Result: stores the resultununit into vector result and returns
-        the number of results (1-2) found.
+*Precondition*: this[->]IsDefined() && value.IsDefined()
+
+*Result*: stores the resultununit into vector result and returns
+          the number of results (1-2) found.
 
 WARNING: AtMax may return points, that are not inside this->timeInterval,
          if a maximum is located at an open start/end instant.
+
+*/
+
+  int IsEqual(const UReal& other, vector<UBool> result) const;
+/*
+Creates a vector of ubool, that cover the UReals common deftime and
+indicate wheter their temporal values are equal or not.
+
+Precondition: this[->]IsDefined() && value.IsDefined()
+
+Result: stores the resultunit into vector result and returns
+        the number of results found.
 
 */
 
@@ -2456,7 +2469,7 @@ Restrict to periods where the temporal value is equal to a const value.
 Precondition: ccvalue.IsDefined() == true
 
 */
-   void AtValue( CcReal& ccvalue, MReal& result ) const;
+   void AtValue( const CcReal& ccvalue, MReal& result ) const;
 
 
 private:

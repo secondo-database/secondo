@@ -121,9 +121,9 @@ Result   : (ubool (("2011-01-01" "2012-09-17" FALSE TRUE)TRUE))
 
 Operator : at
 Number   : 1
-Signature: (uT     T     ) -> uT
-Example  : query the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, FALSE) at makepoint(10232.0, 11383.0)
-Result   : (upoint (("2003-11-20-07:45" "2003-11-20-07:45" TRUE TRUE)(10232.0 11383.0 10232.0 11383.0)))
+Signature: (uT     T     ) -> (stream uT)
+Example  : query (the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, FALSE) at makepoint(10232.0, 11383.0)) the_mvalue
+Result   : (mpoint ((("2003-11-20-07:45" "2003-11-20-07:45" TRUE TRUE)(10232.0 11383.0 10232.0 11383.0))))
 
 
 Operator : atinstant

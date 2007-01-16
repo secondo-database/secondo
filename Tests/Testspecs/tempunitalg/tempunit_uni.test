@@ -234,20 +234,20 @@ query (up3 present [const instant value "2003-11-20-06:33"])
 query (up1 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ])
 
 #testcase at_up_p1
-#yields (upoint ( ("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE) (1500.0 1500.0 1500.0 1500.0)))
-query (up2 at p)
+#yields (mpoint ( ( ("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE) (1500.0 1500.0 1500.0 1500.0))))
+query (up2 at p) the_mvalue
 
 #testcase at_up_p2
-#yields (upoint ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1500.0 1500.0 1500.0 1500.0)))
-query (up6 at p)
+#yields (mpoint ( ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1500.0 1500.0 1500.0 1500.0))))
+query (up6 at p) the_mvalue
 
 #testcase at_undef-upoint_p1
-#yields (upoint undef)
-query (up3 at p)
+#yields (mpoint ())
+query (up3 at p) the_mvalue
 
 #testcase at_up_undef-point
-#yields (upoint undef)
-query (up2 at p3)
+#yields (mpoint ())
+query (up2 at p3) the_mvalue
 
 #testcase at_up_rg
 #yields ((rel (tuple ((elem upoint))))(((("2003-11-20-06:18" "2003-11-20-06:24" TRUE TRUE)(1700.0 1700.0 1600.0 1600.0)))((("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)(1500.0 1500.0 1500.0 1500.0)))((("2003-11-20-06:36" "2003-11-20-06:48" TRUE TRUE)(1400.0 1400.0 1200.0 1200.0)))((("2003-11-20-06:54" "2003-11-20-06:55:30" TRUE TRUE)(1100.0 1100.0 1075.0 1075.0)))((("2003-11-20-06:56:06" "2003-11-20-06:57:54" TRUE TRUE)(1065.0 1065.0 1035.0 1035.0)))(( ("2003-11-20-06:58:30" "2003-11-20-07:00" TRUE FALSE) (1025.0 1025.0 1000.0 1000.0)))))
@@ -346,11 +346,11 @@ query atmin(ur2) transformstream consume
 query atmin(ur3) count
 
 #testcase at_ureal ur1 def 1
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (1.0 -0.0 -1.0 FALSE)))))
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (0.0 0.0 -1.0 FALSE)))))
 query (ur1 at [const real value -1.0]) transformstream consume
 
 #testcase at_ureal ur1 def 2
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03" "2000-01-03" TRUE TRUE) (1.0 4.0 3.0 FALSE))) ))
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03" "2000-01-03" TRUE TRUE) (0.0 0.0 3.0 FALSE))) ))
 query (ur1 at [const real value 3.0]) transformstream consume
 
 #testcase at_ureal ureal-undef def

@@ -83,15 +83,15 @@ n/a   present          (stream uT) x instant --> bool (use use2/present)
 n/a   present          (stream uT) x periods --> bool (use use2/present)
 
       atmax:  For T in {bool, int, real, string}:
-(OK)+                                     uT --> (stream uT)
+OK  +                                     uT --> (stream uT)
 
       atmin:  For T in {bool, int, real, string}:
-(OK)+                                     uT --> (stream uT)
+OK  +                                     uT --> (stream uT)
 
       at:     For T in {bool, int, string, point, region*}
-OK  +                           uT x       T --> uT
-(OK)                         ureal x    real --> (stream ureal)
-OK  +                       upoint x  region --> (stream upoint)
+OK  +       uT x       T --> (stream uT)       same as intersection: uT x T
+OK       ureal x    real --> (stream ureal)    same as intersection: ureal  x real
+ERR +   upoint x  region --> (stream upoint)   same as intersection: upoint x uregion
 
       distance:  T in {int, point}
 OK  -           uT x uT -> ureal
@@ -100,22 +100,24 @@ OK  ?            T x uT -> ureal
 
      intersection: For T in {bool, int, string}:
 OK  +          uT x      uT --> (stream uT)
-OK  +          uT x       T --> (stream uT)
-OK  +           T x      uT --> (stream uT)
-(OK)+       ureal x    real --> (stream ureal)
-(OK)+        real x   ureal --> (stream ureal)
+OK  +          uT x       T --> (stream uT)     same as at: uT  x T
+OK  +           T x      uT --> (stream uT)     same as at: uT  x T
+OK  +       ureal x    real --> (stream ureal)  same as at: ureal  x real
+OK  +        real x   ureal --> (stream ureal)  same as at: ureal  x real
 OK  -      upoint x   point --> (stream upoint) same as at: upoint x point
 OK  -       point x  upoint --> (stream upoint) same as at: upoint x point
 OK  -      upoint x  upoint --> (stream upoint)
 OK  +      upoint x    line --> (stream upoint)
 OK  +        line x  upoint --> (stream upoint)
 Pre +       ureal x   ureal --> (stream ureal)
-OK  +      upoint x uregion --> (stream upoint)
+OK  +      upoint x uregion --> (stream upoint) same as at: upoint x uregion
 OK  -     uregion x  upoint --> (stream upoint)
 OK  -      upoint x  region --> (stream upoint) same as: at: upoint x region
 OK  -      region x  upoint --> (stream upoint)
 n/a +      upoint x  points --> (stream upoint)
 n/a +      points x  upoint --> (stream upoint)
+Pre -     uregion x  region --> (stream uregion)
+Pre -      region x uregion --> (stream uregion)
 
 OK  + no_components:     uT --> uint
 
@@ -169,6 +171,7 @@ Key to STATE of implementation:
    OK : Operator has been implemented and fully tested
   (OK): Operator has been implemented and partially tested
   Test: Operator has been implemented, but tests have not been done
+  ERR : Operator produces errors
   Pre : Operator has not been functionally implemented, but
         stubs (dummy code) exist
   n/a : Neither functionally nor dummy code exists for this ones
@@ -2707,615 +2710,6 @@ Operator temporalunitpasses( "passes",
                          UnitBaseTypeMapBool);
 
 /*
-5.13 Operator ~at~
-
-The operator restrict a unit type to interval, where it's value
-is equal to a given value. For base types ~bool~, ~int~ and ~point~,
-the result will be only a single unit, but for base type ~real~, there
-may be two units, as ~ureal~ is represented by a quadratic polynomial
-function (or it's radical).
-
-5.13.1 Type Mapping for ~at~
-
-----
-      at:     For T in {bool, int, string, point, region*}
-OK  +                           uT x       T --> uT
-(OK)                         ureal x    real --> (stream ureal)
-OK  +                       upoint x  region --> (stream upoint)
-
-(*): Not yet implemented
-
-----
-
-*/
-ListExpr
-TemporalUnitAtTypeMapUnit( ListExpr args )
-{
-  ListExpr arg1, arg2;
-  if( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-
-#ifdef TUA_DEBUG
-    cout << "\nTemporalUnitAtTypeMapUnit: 0" << endl;
-#endif
-    if( nl->IsEqual( arg1, "ubool" ) && nl->IsEqual( arg2, "bool" ) )
-      return nl->SymbolAtom( "ubool" );
-    if( nl->IsEqual( arg1, "uint" ) && nl->IsEqual( arg2, "int" ) )
-      return nl->SymbolAtom( "uint" );
-    if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "point" ) )
-      return nl->SymbolAtom( "upoint" );
-    // for ureal, _ at _ will return a stream of ureals!
-    if( nl->IsEqual( arg1, "ureal" ) && nl->IsEqual( arg2, "real" ) )
-      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                             nl->SymbolAtom( "ureal" ));
-    if( nl->IsEqual( arg1, "ustring" ) && nl->IsEqual( arg2, "string" ) )
-      return nl->SymbolAtom( "ustring" );
-    if( nl->IsEqual( arg1, "uregion" ) && nl->IsEqual( arg2, "region" ) )
-      return nl->SymbolAtom( "uregion" );
-    if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "region" ) )
-      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                             nl->SymbolAtom( "upoint" ));
-  }
-#ifdef TUA_DEBUG
-  cout << "\nTemporalUnitAtTypeMapUnit: 1" << endl;
-#endif
-  return nl->SymbolAtom( "typeerror" );
-}
-
-/*
-5.13.2 Value Mapping for ~at~
-
-We implement three variants, the first for unit types using ~ConstTemporalUnits~
-and ~SpatialUnits~, a second one for ~ureal~, a third for ~upoint x region~
-
-*/
-
-// first valuemapping, for all but ureal, and upoint x region:
-template <class Unit, class Alpha>
-int MappingUnitAt( Word* args, Word& result, int message,
-                   Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  Word a0, a1;
-
-  a0 = args[0];
-  a1 = args[1];
-
-  Unit* unit = ((Unit*)a0.addr);
-  Alpha* val = ((Alpha*)a1.addr);
-
-  Unit* pResult = ((Unit*)result.addr);
-
-  if ( !unit->IsDefined() || !val->IsDefined() )
-    pResult->SetDefined(false);
-  else if (unit->At( *val, *pResult ))
-    {
-      pResult->SetDefined(true);
-      pResult->timeInterval.start.SetDefined(true);
-      pResult->timeInterval.end.SetDefined(true);
-    }
-  else
-    {
-      pResult->SetDefined(false);
-      pResult->timeInterval.start.SetDefined(false);
-      pResult->timeInterval.end.SetDefined(true);
-    }
-
-  return 0;
-}
-
-struct MappingUnitAt_rLocalInfo {
-  bool finished;
-  int  NoOfResults;  // the number of remaining results
-  Word runits[2];    // the results
-};
-
-// second value mapping: (ureal real) -> (stream ureal)
-int MappingUnitAt_r( Word* args, Word& result, int message,
-                   Word& local, Supplier s )
-{
-  MappingUnitAt_rLocalInfo *localinfo;
-  double radicand, a, b, c, r, y;
-  DateTime t1 = DateTime(instanttype);
-  DateTime t2 = DateTime(instanttype);
-  Interval<Instant> rdeftime, deftime;
-  UReal *uinput;
-  CcReal *value;
-  Word a0, a1;
-  double tx, t0, A, B, C;
-
-
-  switch (message)
-    {
-    case OPEN :
-
-#ifdef TUA_DEBUG
-      cout << "\nMappingUnitAt_r: OPEN" << endl;
-#endif
-      localinfo = new MappingUnitAt_rLocalInfo;
-      localinfo->finished = true;
-      localinfo->NoOfResults = 0;
-      a0 = args[0];
-      uinput = (UReal*)(a0.addr);
-      a1 = args[1];
-      value = (CcReal*)(a1.addr);
-      if ( !uinput->IsDefined() ||
-           !value->IsDefined() )
-        { // some input is undefined -> return empty stream
-#ifdef TUA_DEBUG
-          cout << "  3: Some input is undefined. No result."
-               << endl;
-#endif
-          localinfo->NoOfResults = 0;
-          localinfo->finished = true;
-          local = SetWord(localinfo);
-#ifdef TUA_DEBUG
-          cout << "\nMappingUnitAt_r: finished OPEN (1)" << endl;
-#endif
-          return 0;
-        }
-
-      y  = value->GetRealval();
-      a  = uinput->a;
-      b  = uinput->b;
-      c  = uinput->c;
-      r  = uinput->r;
-      deftime = uinput->timeInterval;
-      t0 = deftime.start.ToDouble();
-
-#ifdef TUA_DEBUG
-        {cout << "    The UReal is" << " a= " << a << " b= "
-              << b << " c= " << c << " r= " << r << endl;
-          cout << "    The Real is y=" << y << endl;
-          cout << "  5" << endl;
-        }
-#endif
-      if ( (a == 0) && (b == 0) )
-        { // constant function. Possibly return input unit
-#ifdef TUA_DEBUG
-          cout << "  6: 1st arg is a constant value" << endl;
-#endif
-          if (c != y)
-            { // There will be no result, just an empty stream
-#ifdef TUA_DEBUG
-              cout << "  7: empty stream" << endl;
-#endif
-              localinfo->NoOfResults = 0;
-              localinfo->finished = true;
-            }
-          else
-                { // Return the complete unit
-#ifdef TUA_DEBUG
-                      cout << "  8: Found constant solution" << endl;
-                      cout << "    T1=" << c << endl;
-                      cout << "    Tstart=" << deftime.start.ToDouble() << endl;
-                      cout << "    Tend  =" << deftime.end.ToDouble() << endl;
-#endif
-                  localinfo->runits[localinfo->NoOfResults].addr
-                    = uinput->Copy();
-                  localinfo->NoOfResults++;
-                  localinfo->finished = false;
-                }
-          local = SetWord(localinfo);
-#ifdef TUA_DEBUG
-            cout << "\nMappingUnitAt_r: finished OPEN (2)" << endl;
-#endif
-            return 0;
-        }
-      if ( (a == 0) && (b != 0) )
-        { // linear function. Possibly return input unit restricted
-          // to single value
-#ifdef TUA_DEBUG
-          cout << "  11: 1st arg is a linear function" << endl;
-#endif
-          double T1 = (y - c + b*t0)/b ;
-#ifdef TUA_DEBUG
-              cout << "    T1=" << T1 << endl;
-              cout << "    Tstart=" << deftime.start.ToDouble() << endl;
-              cout << "    Tend  =" << deftime.end.ToDouble() << endl;
-#endif
-          t1.ReadFrom( T1 );
-          if (deftime.Contains(t1))
-            { // value is contained by deftime
-#ifdef TUA_DEBUG
-                cout << "  12: Found valid linear solution." << endl;
-#endif
-              localinfo->runits[localinfo->NoOfResults].addr =
-                uinput->Copy();
-              ((UReal*)(localinfo
-                        ->runits[localinfo->NoOfResults].addr))
-                ->timeInterval = Interval<Instant>(t1, t1, true, true);
-              // translate result to new starting instant!
-              tx =  T1 - deftime.start.ToDouble();
-              ((UReal*)(localinfo
-                        ->runits[localinfo->NoOfResults].addr))
-                ->TranslateParab(tx);
-              localinfo->NoOfResults++;
-              localinfo->finished = false;
-            }
-          else
-            { // value is not contained by deftime -> no result
-#ifdef TUA_DEBUG
-                cout << "  14: Found invalid linear solution." << endl;
-#endif
-                localinfo->NoOfResults = 0;
-              localinfo->finished = true;
-            }
-          local = SetWord(localinfo);
-#ifdef TUA_DEBUG
-          cout << "\nMappingUnitAt_r: finished OPEN (3)" << endl;
-#endif
-          return 0;
-        }
-
-      A = a;
-      B = b - 2*a*t0;
-      C = t0*(a*t0-b)+c;
-      radicand = pow(B,2) + 4*a*(y-C);
-#ifdef TUA_DEBUG
-      cout << "    radicand =" << radicand << endl;
-#endif
-      if ( (a != 0) && (radicand >= 0) )
-        { // quadratic function. There are possibly two result units
-          // calculate the possible t-values t1, t2
-
-/*
-The solution to the equation $at^2 + bt + c = y$ is
-\[t_{1,2} = \frac{-b \pm \sqrt{b^2-4a(c-y)}}{2a},\] for $b^2-4a(c-y) = b^2+4a(y-c) \geq 0$.
-
-
-*/
-#ifdef TUA_DEBUG
-          cout << "  18: 1st arg is a quadratic function" << endl;
-#endif
-          double T1 = (-B + sqrt(radicand)) / (2*A) ;
-          double T2 = (-B - sqrt(radicand)) / (2*A) ;
-#ifdef TUA_DEBUG
-              cout << "    T1=" << T1 << endl;
-              cout << "    T2=" << T2 << endl;
-              cout << "    Tstart=" << deftime.start.ToDouble() << endl;
-              cout << "    Tend  =" << deftime.end.ToDouble() << endl;
-#endif
-          t1.ReadFrom( T1 );
-          t2.ReadFrom( T2 );
-
-          // check, whether t1 contained by deftime
-          if (deftime.Contains( t1 ))
-            {
-#ifdef TUA_DEBUG
-                cout << "  19: Found first quadratic solution" << endl;
-#endif
-              rdeftime.start = t1;
-              rdeftime.end = t1;
-              rdeftime.lc = true;
-              rdeftime.rc = true;
-              localinfo->runits[localinfo->NoOfResults].addr =
-                new UReal( rdeftime,a,b,c,r );
-              ((UReal*) (localinfo->runits[localinfo->NoOfResults].addr))
-                ->SetDefined( true );
-              // translate result to new starting instant!
-              tx = T1 - deftime.start.ToDouble();
-              ((UReal*)(localinfo
-                        ->runits[localinfo->NoOfResults].addr))
-                ->TranslateParab(tx);
-              localinfo->NoOfResults++;
-              localinfo->finished = false;
-            }
-          // check, whether t2 contained by deftime
-          if ( !(t1 == t2) && (deftime.Contains( t2 )) )
-            {
-#ifdef TUA_DEBUG
-                cout << "  21: Found second quadratic solution" << endl;
-#endif
-              rdeftime.start = t2;
-              rdeftime.end = t2;
-              rdeftime.lc = true;
-              rdeftime.rc = true;
-              localinfo->runits[localinfo->NoOfResults].addr =
-                new UReal( rdeftime,a,b,c,r );
-              ((UReal*) (localinfo->runits[localinfo->NoOfResults].addr))
-                ->SetDefined (true );
-              // translate result to new starting instant!
-              tx =  T2 - deftime.start.ToDouble();
-              ((UReal*)(localinfo
-                        ->runits[localinfo->NoOfResults].addr))
-                ->TranslateParab(tx);
-              localinfo->NoOfResults++;
-              localinfo->finished = false;
-            }
-        }
-      else // negative discreminant -> there is no real solution
-           //                          and no result unit
-        {
-#ifdef TUA_DEBUG
-          cout << "  23: No real-valued solution" << endl;
-#endif
-          localinfo->NoOfResults = 0;
-          localinfo->finished = true;
-        }
-      local = SetWord(localinfo);
-#ifdef TUA_DEBUG
-        cout << "\nMappingUnitAt_r: finished OPEN (4)" << endl;
-#endif
-        return 0;
-
-    case REQUEST :
-
-#ifdef TUA_DEBUG
-      cout << "\nMappingUnitAt_r: REQUEST" << endl;
-#endif
-      if (local.addr == 0)
-        {
-#ifdef TUA_DEBUG
-            cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (1)" << endl;
-#endif
-            return CANCEL;
-        }
-      localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
-#ifdef TUA_DEBUG
-      cout << "\n   localinfo: finished=" << localinfo->finished
-           << " NoOfResults==" << localinfo->NoOfResults << endl;
-#endif
-      if (localinfo->finished)
-        {
-#ifdef TUA_DEBUG
-            cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (2)" << endl;
-#endif
-          return CANCEL;
-        }
-      if ( localinfo->NoOfResults <= 0 )
-        { localinfo->finished = true;
-#ifdef TUA_DEBUG
-            cout << "\nMappingUnitAt_r: finished REQUEST CANCEL (3)" << endl;
-#endif
-          return CANCEL;
-        }
-      localinfo->NoOfResults--;
-      result = SetWord( ((UReal*)(localinfo
-                                  ->runits[localinfo->NoOfResults].addr))
-                        ->Clone() );
-      ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
-        ->DeleteIfAllowed();
-#ifdef TUA_DEBUG
-      cout << "\nMappingUnitAt_r: finished REQUEST YIELD" << endl;
-#endif
-      return YIELD;
-
-    case CLOSE :
-
-#ifdef TUA_DEBUG
-      cout << "\nMappingUnitAt_r: CLOSE" << endl;
-#endif
-      if (local.addr != 0)
-        {
-          localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
-          for (;localinfo->NoOfResults>0;localinfo->NoOfResults--)
-            ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
-              ->DeleteIfAllowed();
-          delete localinfo;
-        }
-#ifdef TUA_DEBUG
-      cout << "\nMappingUnitAt_r: finished CLOSE" << endl;
-#endif
-      return 0;
-    } // end switch
-
-      // should not be reached
-  return 0;
-}
-
-struct TUAUPointAtRegionLocalInfo
-{
-  bool finished;
-  int  NoOfResults;
-  int  NoOfResultsDelivered;
-  MPoint *mpoint;  // Used to store results
-};
-
-// value mapping: (upoint region) -> (stream upoint)
-int MappingUnitAt_up_rg( Word* args, Word& result, int message,
-                         Word& local, Supplier s )
-{
-  // This operator creates a single-unit MPoint and a single-unit static MRegion
-  // and calls MRegion::Intersection(MPoint mpoint, MPoint res)
-  TUAUPointAtRegionLocalInfo *sli;
-  UPoint  *u;
-  Region  *r;
-  MPoint  *mp_tmp;
-  MRegion *mr_tmp;
-  const UPoint* cu;
-
-  switch( message )
-    {
-    case OPEN:
-
-#ifdef TUA_DEBUG
-        cerr << "MappingUnitAt_up_rg: Received OPEN" << endl;
-#endif
-      sli = new TUAUPointAtRegionLocalInfo;
-      sli->finished = true;
-      sli->NoOfResults = 0;
-      sli->NoOfResultsDelivered = 0;
-      sli->mpoint = new MPoint(10);
-      local = SetWord(sli);
-
-      u = (UPoint*)(args[0].addr);
-      r = (Region*)(args[1].addr);
-
-      // test for definedness
-      if ( !u->IsDefined() || !r->IsDefined() )
-        {
-#ifdef TUA_DEBUG
-            cerr << "  Undef arg -> Empty Result" << endl << endl;
-#endif
-            // nothing to do
-        }
-      else
-        {
-          mp_tmp = new MPoint(1);           // create temporary MPoint
-          mp_tmp->Add(*u);
-          mp_tmp->SetDefined(true);
-
-          mr_tmp = new MRegion(*mp_tmp, *r);// create temporary MRegion
-          mr_tmp->SetDefined(true);
-
-          mr_tmp->Intersection(*mp_tmp, *(sli->mpoint));// get and save result;
-          delete mp_tmp;
-          delete mr_tmp;
-          sli->NoOfResults = sli->mpoint->GetNoComponents();
-          sli->finished = (sli->NoOfResults <= 0);
-#ifdef TUA_DEBUG
-            cerr << "  " << sli->NoOfResults << " result units" << endl << endl;
-#endif
-        }
-#ifdef TUA_DEBUG
-        cerr << "MappingUnitAt_up_rg: Finished OPEN" << endl;
-#endif
-        return 0;
-
-    case REQUEST:
-#ifdef TUA_DEBUG
-        cerr << "MappingUnitAt_up_rg: Received REQUEST" << endl;
-#endif
-
-      if(local.addr == 0)
-        {
-#ifdef TUA_DEBUG
-            cerr << "MappingUnitAt_up_rg: Finished REQUEST (1)" << endl;
-#endif
-          return CANCEL;
-        }
-      sli = (TUAUPointAtRegionLocalInfo*) local.addr;
-      if(sli->finished)
-        {
-#ifdef TUA_DEBUG
-            cerr << "MappingUnitAt_up_rg: Finished REQUEST (2)"<< endl;
-#endif
-          return CANCEL;
-        }
-      if(sli->NoOfResultsDelivered < sli->NoOfResults)
-        {
-          sli->mpoint->Get(sli->NoOfResultsDelivered, cu);
-          result = SetWord( cu->Clone() );
-          sli->NoOfResultsDelivered++;
-#ifdef TUA_DEBUG
-            cerr << "MappingUnitAt_up_rg: "
-                 << "Finished REQUEST (YIELD)" << endl;
-#endif
-          return YIELD;
-        }
-      sli->finished = true;
-#ifdef TUA_DEBUG
-        cerr << "MappingUnitAt_up_rg: Finished REQUEST (3)"<< endl;
-#endif
-      return CANCEL;
-
-    case CLOSE:
-
-#ifdef TUA_DEBUG
-        cerr << "MappingUnitAt_up_rg: Received CLOSE"<< endl;
-#endif
-      if (local.addr != 0)
-        {
-          sli = (TUAUPointAtRegionLocalInfo*) local.addr;
-          delete sli->mpoint;
-          delete sli;
-        }
-#ifdef TUA_DEBUG
-        cerr << "MappingUnitAt_up_rg: Finished CLOSE"<< endl;
-#endif
-      return 0;
-    } // end switch
-
-  cerr << "MappingUnitAt_up_rg: Received UNKNOWN COMMAND"
-       << endl;
-  return 0;
-}
-
-/*
-5.13.3 Specification for operator ~at~
-
-*/
-const string
-TemporalSpecAt =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>For T in {bool, int, string, point, region*}:\n"
-"(uT     T     ) -> uT\n"
-"(ureal  real  ) -> (stream ureal)\n"
-"(upoint region) -> (stream upoint)\n"
-"(*): Not yet implemented</text--->"
-"<text>_ at _ </text--->"
-"<text>restrict the movement to the times "
-"where the equality occurs.\n"
-"Observe, that for type 'ureal', the result is a "
-"'(stream ureal)' rather than a 'ureal'!</text--->"
-"<text>upoint1 at point1</text---> ) )";
-
-/*
-5.13.4 Selection Function of operator ~at~
-
-*/
-int
-TUSelectAt( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args ),
-           arg2 = nl->Second( args );
-
-  if( nl->SymbolValue( arg1 ) == "ubool" &&
-      nl->SymbolValue( arg2 ) == "bool" )
-    return 0;
-
-  if( nl->SymbolValue( arg1 ) == "uint" &&
-      nl->SymbolValue( arg2 ) == "int" )
-    return 1;
-
-  if( nl->SymbolValue( arg1 ) == "ureal" &&
-      nl->SymbolValue( arg2 ) == "real" )
-    return 2;
-
-  if( nl->SymbolValue( arg1 ) == "upoint" &&
-      nl->SymbolValue( arg2 ) == "point" )
-    return 3;
-
-  if( nl->SymbolValue( arg1 ) == "ustring" &&
-      nl->SymbolValue( arg2 ) == "string" )
-    return 4;
-
-  if( nl->SymbolValue( arg1 ) == "uregion" &&
-      nl->SymbolValue( arg2 ) == "region" )
-    return 5;
-
-  if( nl->SymbolValue( arg1 ) == "upoint" &&
-      nl->SymbolValue( arg2 ) == "region" )
-    return 6;
-
-  return -1; // This point should never be reached
-}
-
-
-ValueMapping temporalunitatmap[] = {  MappingUnitAt< UBool, CcBool>,    //0
-                                      MappingUnitAt< UInt, CcInt>,      //1
-                                      MappingUnitAt_r,                  //2
-                                      MappingUnitAt< UPoint, Point>,    //3
-                                      MappingUnitAt< UString, CcString>,//4
-                                      MappingUnitAt< URegion, Region>,  //5
-                                      MappingUnitAt_up_rg};             //6
-
-/*
-5.13.5  Definition of operator ~at~
-
-*/
-Operator temporalunitat( "at",
-                     TemporalSpecAt,
-                     7,
-                     temporalunitatmap,
-                     TUSelectAt,
-                     TemporalUnitAtTypeMapUnit );
-
-/*
 5.14 Operator ~circle~
 
 5.14.1 Type Mapping for ~circle~
@@ -5298,7 +4692,6 @@ t^2 + (2 b_1 c_1 - b_2) t - c_2 = 0 \]
 ~ureal~ value with $r = true$.
 
 */
-
 int temporalUnitIntersection_ureal_ureal( Word* args, Word& result, int message,
                                           Word& local, Supplier s )
 {
@@ -5315,17 +4708,18 @@ int temporalUnitIntersection_ureal_ureal( Word* args, Word& result, int message,
 
 // value mapping for constant units (uT  T) -> (stream uT)
 //                            and   ( T uT) -> (stream uT)
-// The method is almost identical to that used for operator
-//                            at: (ureal real) -> (stream ureal)
+struct MappingUnitIntersection_rLocalInfo {
+  bool finished;
+  int  NoOfResults;          // total number of results
+  int  ResultsDelivered;     // number of results already delivered
+  vector<UReal> resvector;   // the results
+};
+
 template<int uargindex>
 int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
                                          Word& local, Supplier s )
 {
-  MappingUnitAt_rLocalInfo *localinfo;
-  double radicand, a, b, c, r, y, t0;
-  DateTime t1 = DateTime(instanttype);
-  DateTime t2 = DateTime(instanttype);
-  Interval<Instant> rdeftime, deftime;
+  MappingUnitIntersection_rLocalInfo *localinfo;
   UReal *uinput;
   CcReal *value;
   Word a0, a1;
@@ -5334,278 +4728,58 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
     {
     case OPEN :
 
-#ifdef TUA_DEBUG
-      cout << "\ntemporalUnitIntersection_ureal_real: OPEN" << endl;
-#endif
-      localinfo = new MappingUnitAt_rLocalInfo;
+      localinfo = new MappingUnitIntersection_rLocalInfo;
+      local = SetWord(localinfo);
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
+      localinfo->ResultsDelivered = 0;
 
-      // initialize arguments, such that a0 always contains the ureal
-      //                       and a1 the real
+      // initialize arguments, such that a0 always contains the UReal
+      //                       and a1 the CcReal
       if (uargindex == 0)
         { a0 = args[0]; a1 = args[1]; }
       else
         { a0 = args[1]; a1 = args[0]; }
 
-      localinfo = new MappingUnitAt_rLocalInfo;
-      localinfo->finished = true;
-      localinfo->NoOfResults = 0;
       uinput = (UReal*)(a0.addr);
       value = (CcReal*)(a1.addr);
       if ( !uinput->IsDefined() ||
            !value->IsDefined() )
-        { // some input is undefined -> return empty stream
-#ifdef TUA_DEBUG
-          cout << "  3: Some input is undefined. No result."
-               << endl;
-#endif
-          localinfo->NoOfResults = 0;
-          localinfo->finished = true;
-          local = SetWord(localinfo);
-#ifdef TUA_DEBUG
-          cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (1)"
-               << endl;
-#endif
-          return 0;
-        }
+      { // some input is undefined -> return empty stream
+        localinfo->NoOfResults = 0;
+        localinfo->finished = true;
+        return 0;
+      }
 
-      y = value->GetRealval();
-      a = uinput->a;
-      b = uinput->b;
-      c = uinput->c;
-      r = uinput->r;
-      deftime = uinput->timeInterval;
-      t0 = deftime.start.ToDouble();
-
-#ifdef TUA_DEBUG
-      cout << "    The UReal is" << " a= " << a << " b= "
-           << b << " c= " << c << " r= " << r << endl;
-      cout << "    The Real is y=" << y << endl;
-      cout << "  5" << endl;
-#endif
-
-      if ( (a == 0) && (b == 0) )
-        { // constant function. Possibly return input unit
-#ifdef TUA_DEBUG
-          cout << "  6: 1st arg is a constant value" << endl;
-#endif
-          if (c != y)
-            { // There will be no result, just an empty stream
-#ifdef TUA_DEBUG
-              cout << "  7 empty stream" << endl;
-#endif
-              localinfo->NoOfResults = 0;
-              localinfo->finished = true;
-            }
-          else
-                { // Return the complete unit
-#ifdef TUA_DEBUG
-                  cout << "  8: Found constant solution" << endl;
-                  cout << "    T1=" << c << endl;
-                  cout << "    Tstart=" << deftime.start.ToDouble() << endl;
-                  cout << "    Tend  =" << deftime.end.ToDouble() << endl;
-#endif
-                  localinfo->runits[localinfo->NoOfResults].addr
-                    = uinput->Copy();
-                  // no translation required
-                  localinfo->NoOfResults++;
-                  localinfo->finished = false;
-                }
-          local = SetWord(localinfo);
-#ifdef TUA_DEBUG
-          cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (2)"
-                << endl;
-#endif
-          return 0;
-        }
-      if ( (a == 0) && (b != 0) )
-        { // linear function. Possibly return input unit restricted
-          // to single value
-#ifdef TUA_DEBUG
-          cout << "  11: 1st arg is a linear function" << endl;
-#endif
-          double T1 = (y - c)/b + t0; // Add t0 due to representation
-#ifdef TUA_DEBUG
-          cout << "    T1=" << T1 << endl;
-          cout << "    Tstart=" << deftime.start.ToDouble() << endl;
-          cout << "    Tend  =" << deftime.end.ToDouble() << endl;
-#endif
-          t1.ReadFrom( T1 );
-          if (deftime.Contains(t1))
-            { // value is contained by deftime
-#ifdef TUA_DEBUG
-              cout << "  12: Found valid linear solution." << endl;
-#endif
-              localinfo->runits[localinfo->NoOfResults].addr =
-                uinput->Copy();
-              localinfo->runits[localinfo->NoOfResults].addr =
-                new UReal( rdeftime,0.0,0.0,y,false );
-              ((UReal*)(localinfo
-                        ->runits[localinfo->NoOfResults].addr))
-                ->timeInterval = Interval<Instant>(t1, t1, true, true);
-              // No translation needed
-              localinfo->NoOfResults++;
-              localinfo->finished = false;
-            }
-          else
-            { // value is not contained by deftime -> no result
-#ifdef TUA_DEBUG
-              cout << "  14: Found invalid linear solution." << endl;
-#endif
-              localinfo->NoOfResults = 0;
-              localinfo->finished = true;
-            }
-          local = SetWord(localinfo);
-#ifdef TUA_DEBUG
-          cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (3)"
-               << endl;
-#endif
-          return 0;
-        }
-
-      radicand = (b*b + 4*a*(y-c));
-#ifdef TUA_DEBUG
-      cout << "    radicand =" << radicand << endl;
-#endif
-      if ( (a != 0) && (radicand >= 0) )
-        { // quadratic function. There are possibly two result units
-          // calculate the possible t-values t1, t2
-
-/*
-The solution to the equation $at^2 + bt + c = y$ is
-\[t_{1,2} = \frac{-b \pm \sqrt{b^2-4a(c-y)}}{2a},\] for $b^2-4a(c-y) = b^2+4a(y-c) \geq 0$.
-
-
-*/
-#ifdef TUA_DEBUG
-          cout << "  18: 1st arg is a quadratic function" << endl;
-#endif
-          double T1 = (-b + sqrt(radicand)) / (2*a) + t0; //Add t0 due to
-          double T2 = (-b - sqrt(radicand)) / (2*a) + t0; //  representation
-#ifdef TUA_DEBUG
-          cout << "    T1=" << T1 << endl;
-          cout << "    T2=" << T2 << endl;
-          cout << "    Tstart=" << deftime.start.ToDouble() << endl;
-          cout << "    Tend  =" << deftime.end.ToDouble() << endl;
-#endif
-          t1.ReadFrom( T1 );
-          t2.ReadFrom( T2 );
-
-          // check, whether t1 contained by deftime
-          if (deftime.Contains( t1 ))
-            {
-#ifdef TUA_DEBUG
-              cout << "  19: Found first quadratic solution" << endl;
-#endif
-              rdeftime.start = t1;
-              rdeftime.end = t1;
-              rdeftime.lc = true;
-              rdeftime.rc = true;
-              localinfo->runits[localinfo->NoOfResults].addr =
-                new UReal( rdeftime,0.0,0.0,y,false );
-              ((UReal*) (localinfo->runits[localinfo->NoOfResults].addr))
-                ->SetDefined( true );
-              // No translation needed
-              localinfo->NoOfResults++;
-              localinfo->finished = false;
-            }
-          // check, whether t2 contained by deftime
-          if ( !(t1 == t2) && (deftime.Contains( t2 )) )
-            {
-#ifdef TUA_DEBUG
-              cout << "  21: Found second quadratic solution" << endl;
-#endif
-              rdeftime.start = t2;
-              rdeftime.end = t2;
-              rdeftime.lc = true;
-              rdeftime.rc = true;
-              localinfo->runits[localinfo->NoOfResults].addr =
-                new UReal( rdeftime,0.0,0.0,y,false );
-              ((UReal*) (localinfo->runits[localinfo->NoOfResults].addr))
-                ->SetDefined (true );
-              // No translation needed
-              localinfo->NoOfResults++;
-              localinfo->finished = false;
-            }
-        }
-      else // negative discreminant -> there is no real solution
-           //                          and no result unit
-        {
-#ifdef TUA_DEBUG
-          cout << "  23: No real-valued solution" << endl;
-#endif
-          localinfo->NoOfResults = 0;
-          localinfo->finished = true;
-        }
-      local = SetWord(localinfo);
-#ifdef TUA_DEBUG
-      cout << "\ntemporalUnitIntersection_ureal_real: finished OPEN (4)"<<endl;
-#endif
+      // call UReal::AtValue(CcReal value, vector<UReal>& result)
+      localinfo->NoOfResults = uinput->AtValue(*value, localinfo->resvector);
+      localinfo->finished = (localinfo->NoOfResults <= 0);
       return 0;
 
     case REQUEST :
 
-#ifdef TUA_DEBUG
-      cout << "\ntemporalUnitIntersection_ureal_real: REQUEST"<< endl;
-#endif
       if (local.addr == 0)
-        {
-#ifdef TUA_DEBUG
-          cout << "\ntemporalUnitIntersection_ureal_real: REQUEST CANCEL (1)"
-               << endl;
-#endif
-          return CANCEL;
-        }
-      localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
-#ifdef TUA_DEBUG
-      cout << "\n   localinfo: finished=" << localinfo->finished
-           << " NoOfResults==" << localinfo->NoOfResults << endl;
-#endif
+        return CANCEL;
+      localinfo = (MappingUnitIntersection_rLocalInfo*) local.addr;
 
       if (localinfo->finished)
-        {
-#ifdef TUA_DEBUG
-          cout << "\ntemporalUnitIntersection_ureal_real: REQUEST CANCEL (2)"
-               << endl;
-#endif
-          return CANCEL;
-        }
-      if ( localinfo->NoOfResults <= 0 )
-        { localinfo->finished = true;
-#ifdef TUA_DEBUG
-          cout << "\ntemporalUnitIntersection_ureal_real: REQUEST CANCEL (3)"
-               << endl;
-#endif
-          return CANCEL;
-        }
-      localinfo->NoOfResults--;
-      result = SetWord( ((UReal*)(localinfo
-                                  ->runits[localinfo->NoOfResults].addr))
-                        ->Clone() );
-      ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
-        ->DeleteIfAllowed();
-#ifdef TUA_DEBUG
-      cout << "\ntemporalUnitIntersection_ureal_real: REQUEST YIELD" << endl;
-#endif
+        return CANCEL;
+      if ( localinfo->NoOfResults <= localinfo->ResultsDelivered )
+      { localinfo->finished = true;
+        return CANCEL;
+      }
+      result =
+          SetWord(localinfo->resvector[localinfo->ResultsDelivered].Clone());
+      localinfo->ResultsDelivered++;
       return YIELD;
 
     case CLOSE :
 
-#ifdef TUA_DEBUG
-      cout << "\ntemporalUnitIntersection_ureal_real: CLOSE"<< endl;
-#endif
       if (local.addr != 0)
-        {
-          localinfo = (MappingUnitAt_rLocalInfo*) local.addr;
-          for (;localinfo->NoOfResults>0;localinfo->NoOfResults--)
-            ((UReal*)(localinfo->runits[localinfo->NoOfResults].addr))
-              ->DeleteIfAllowed();
-          delete localinfo;
-        }
-#ifdef TUA_DEBUG
-      cout << "\ntemporalUnitIntersection_ureal_real: finished CLOSE" << endl;
-#endif
+      {
+        localinfo = (MappingUnitIntersection_rLocalInfo*) local.addr;
+        delete localinfo;
+      }
       return 0;
     } // end switch
 
@@ -6754,6 +5928,16 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
   return 0;
 }
 
+template<int uargindex>
+int temporalUnitIntersection_uregion_region( Word* args, Word& result,
+                                             int message,
+                                             Word& local, Supplier s )
+{
+  cerr << "temporalUnitIntersection_uregion_region(): Not yet Implemented!"
+       << endl;
+  return 0;
+}
+
 
 /*
 5.26.3 Specification for operator ~intersection~
@@ -6887,6 +6071,160 @@ Operator temporalunitintersection( "intersection",
                                    temporalunitintersectionmap,
                                    temporalunitIntersectionSelect,
                                    TemporalUnitIntersectionTypeMap);
+
+
+/*
+5.13 Operator ~at~
+
+The operator restrict a unit type to interval, where it's value
+is equal to a given value. For base types ~bool~, ~int~ and ~point~,
+the result will be only a single unit, but for base type ~real~, there
+may be two units, as ~ureal~ is represented by a quadratic polynomial
+function (or it's radical).
+
+5.13.1 Type Mapping for ~at~
+
+----
+      at:     For T in {bool, int, string, point, region*}
+OK  +                           uT x       T --> uT
+OK                           ureal x    real --> (stream ureal)
+OK  +                       upoint x  region --> (stream upoint)
+
+(*): Not yet implemented
+
+----
+
+*/
+ListExpr
+TemporalUnitAtTypeMapUnit( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+
+#ifdef TUA_DEBUG
+    cout << "\nTemporalUnitAtTypeMapUnit: 0" << endl;
+#endif
+    if( nl->IsEqual( arg1, "ubool" ) && nl->IsEqual( arg2, "bool" ) )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                             nl->SymbolAtom( "ubool" ));
+    if( nl->IsEqual( arg1, "uint" ) && nl->IsEqual( arg2, "int" ) )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                             nl->SymbolAtom( "uint" ));
+    if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "point" ) )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                             nl->SymbolAtom( "upoint" ));
+    // for ureal, _ at _ will return a stream of ureals!
+    if( nl->IsEqual( arg1, "ureal" ) && nl->IsEqual( arg2, "real" ) )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                             nl->SymbolAtom( "ureal" ));
+    if( nl->IsEqual( arg1, "ustring" ) && nl->IsEqual( arg2, "string" ) )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                             nl->SymbolAtom( "ustring" ));
+    if( nl->IsEqual( arg1, "uregion" ) && nl->IsEqual( arg2, "region" ) )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                             nl->SymbolAtom( "uregion" ));
+    if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "region" ) )
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                             nl->SymbolAtom( "upoint" ));
+  }
+#ifdef TUA_DEBUG
+  cout << "\nTemporalUnitAtTypeMapUnit: 1" << endl;
+#endif
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+5.13.2 Value Mapping for ~at~
+
+Instead of implementing dedicated value mappings, we use those for operator
+~intersection~.
+
+*/
+
+
+/*
+5.13.3 Specification for operator ~at~
+
+*/
+const string
+TemporalSpecAt =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>For T in {bool, int, string, point, region*}:\n"
+"(uT     T     ) -> (stream uT)\n"
+"(ureal  real  ) -> (stream ureal)\n"
+"(upoint region) -> (stream upoint)\n"
+"(*): Not yet implemented</text--->"
+"<text>_ at _ </text--->"
+"<text>restrict the movement to the times "
+"where the equality occurs.\n"
+"Observe, that the result is always a "
+"'(stream UNIT)' rather than a 'UNIT'!</text--->"
+"<text>upoint1 at point1 the_mvalue</text---> ) )";
+
+/*
+5.13.4 Selection Function of operator ~at~
+
+*/
+int
+TUSelectAt( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args ),
+           arg2 = nl->Second( args );
+
+  if( nl->SymbolValue( arg1 ) == "ubool" &&
+      nl->SymbolValue( arg2 ) == "bool" )
+    return 0;
+
+  if( nl->SymbolValue( arg1 ) == "uint" &&
+      nl->SymbolValue( arg2 ) == "int" )
+    return 1;
+
+  if( nl->SymbolValue( arg1 ) == "ureal" &&
+      nl->SymbolValue( arg2 ) == "real" )
+    return 2;
+
+  if( nl->SymbolValue( arg1 ) == "upoint" &&
+      nl->SymbolValue( arg2 ) == "point" )
+    return 3;
+
+  if( nl->SymbolValue( arg1 ) == "ustring" &&
+      nl->SymbolValue( arg2 ) == "string" )
+    return 4;
+
+  if( nl->SymbolValue( arg1 ) == "uregion" &&
+      nl->SymbolValue( arg2 ) == "region" )
+    return 5;
+
+  if( nl->SymbolValue( arg1 ) == "upoint" &&
+      nl->SymbolValue( arg2 ) == "region" )
+    return 6;
+
+  return -1; // This point should never be reached
+}
+
+
+ValueMapping temporalunitatmap[] = {
+  temporalUnitIntersection_CU_C< UBool, CcBool, 0 >,          //0
+  temporalUnitIntersection_CU_C< UInt, CcInt, 0 >,            //1
+  temporalUnitIntersection_ureal_real<0>,                     //2
+  temporalUnitIntersection_upoint_point<0>,                   //3
+  temporalUnitIntersection_CU_C< UString, CcString, 0 >,      //4
+  temporalUnitIntersection_uregion_region<0>,                 //5
+  temporalUnitIntersection_upoint_uregion<0, false>};          //6
+
+/*
+5.13.5  Definition of operator ~at~
+
+*/
+Operator temporalunitat( "at",
+                     TemporalSpecAt,
+                     7,
+                     temporalunitatmap,
+                     TUSelectAt,
+                     TemporalUnitAtTypeMapUnit );
 
 
 
