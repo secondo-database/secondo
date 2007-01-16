@@ -808,11 +808,37 @@ same value. Returns the number of results (0-2).
 */
 int UReal::PeriodsAtEqual( const UReal& other, Periods& times) const
 {
-  // check for deftime overlap
+  Interval<Instant> commonIv;
+  UReal u1(true), u2(true), udiff(true);
+  times.Clear();
+  if( !IsDefined()       ||
+      !other.IsDefined() ||
+      !timeInterval.Intersects(other.timeInterval) )
+    return 0;
+  timeInterval.Intersection(other.timeInterval, commonIv);
   // restrict units to common deftime
-  // case 0: U1 and U2 implement same function
-  // case 1: r1 == r2 (use UReal::PeriodsAtVal(0.0,...))
+  AtInterval(commonIv, u1);
+  other.AtInterval(commonIv, u2);
+  if( u1.r == u2.r            &&
+      AlmostEqual(u1.a, u2.a) &&
+      AlmostEqual(u1.b, u2.b) &&
+      AlmostEqual(u1.c, u2.c) )
+  { // case 0: U1 and U2 implement same function
+    times.StartBulkLoad();
+    times.Add(commonIv);
+    times.EndBulkLoad();
+    return 1;
+  }
+  if( u1.r == u2.r )
+  { // case 1: r1 == r2 (use UReal::PeriodsAtVal(0.0,...))
+    udiff = UReal(commonIv, (u1.a-u2.a), (u1.b-u2.b), (u1.c-u2.c), u1.r);
+    return udiff.PeriodsAtVal(0.0, times);
+  }
   // case 2: r1 != r2 similar, but solve Polynom of degree=4
+  // normalize, such that u1r==false and u2.r==true
+  if (u1.r)
+  { udiff = u1; u1 = u2; u2 = udiff; }
+
   return 0;
 }
 

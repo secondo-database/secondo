@@ -1665,7 +1665,7 @@ WARNING: May return points, that are not inside this->timeInterval,
   int PeriodsAtEqual( const UReal& other, Periods& times) const;
 
 /*
-Sets the Periods value to the times, where both UReals takes the
+Sets the Periods value to the times, where both UReals take the
 same value. Returns the number of results (0-2).
 
 */
@@ -2423,7 +2423,7 @@ Restrict to periods where the temporal value is equal to a const value.
 Precondition: ccvalue.IsDefined() == true
 
 */
-   void MReal::AtValue( CcReal& ccvalue, MReal& result ) const;
+   void AtValue( CcReal& ccvalue, MReal& result ) const;
 
 
 private:
