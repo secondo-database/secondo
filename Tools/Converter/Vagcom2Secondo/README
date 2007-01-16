@@ -1,0 +1,74 @@
+Introduction
+============
+
+
+This converter can convert LOG files produced by the software VAG.COM version 3.11-2.
+The software can be downloaded as shareware from:
+   http://www.ross-tech.com/
+
+A log file consists of a header and data lines in csv format. The converter analyses 
+the header and produces a relation consisting of a single tuple. The attributes depend
+on the logged data. For each measured value, four attributes are created in the relation.
+These are the name, the range and the measure unit of this value as string type and a
+moving real representing the values.
+
+
+Compiling the converter
+=======================
+
+To compile the converter, go into the Javagui directory and run make.
+After that, go into the converter directory an run make again.
+Ensure to have set the SECONDO_BUILD_DIR environment varaible correctly.
+
+
+Running the converter
+=====================
+
+The best way to run the converter is to use the convert script. 
+Ensure to have set the SECONDO_BUILD_DIR variable correctly. After that,
+type in:
+    convert <filename> [-o <output file>] [-n <object name>]
+
+The filename is the log file which should be converted. 
+Using the -o option, the output file can be specified. If this option is omitted,
+the output is written to the console. 
+If the -n option is used, the output is created in SECONDO's object format with the
+given name. Such files can restored in SECONDO directly. Without this option, the
+file format is given by ( <type> <value> ). Such files can be read from the Javagui.
+
+
+
+Producing Data
+==============
+Note this guide is without any warranty. 
+Wrong use of the interfaces and /or the software may destroy the 
+car electronics !!
+
+
+To produce log files, you need:
+  - a car produced after 1993  by the VAG affiliated group (VW, Audi, Skoda) 
+  - an OBD interface with KKL-support
+    (complete devices and kits can be ordered from  "www.obd-diag.com" or "www.ross-tech.com")
+  - a notebook with a free serial or usb port (depending on the interface)
+  - the VAG.COM software version 3.11-2 (www.ross-tech.com)
+  
+First, install the devie driver and the VAG.COM siftware according to its instructions.
+Connect the device with your car (ensure to enable the KKL mode). Connect the device 
+with the notebook. Switch on the notebook and start the VAG-software. 
+After this, switch on the car's ignition. Set the correct serial port in the software 
+("Options" button). 
+If the settings are correct, press the "Select" button and select the interface to be logged.
+If the connection is built, press the "Meas. Blocks - 08" button. Select the appropriate groups
+and press the "log" button. Enter the file name (or use the generated one) and press the button
+labaled with "Start". After logging is completed, press the stop button, and exit the software.
+Switch off the car and remove the interface from it and from the notebook.
+
+
+
+
+
+
+
+
+
+
