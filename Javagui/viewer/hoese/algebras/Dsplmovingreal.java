@@ -301,8 +301,10 @@ public class Dsplmovingreal extends DsplGeneric implements
       Interval in=null;
       ListExpr map=null;
       int len = le.listLength();
-      if(len!=2 && len !=8)
+      if(len!=2 && len !=8){
+         Reporter.debug("invalid listlength, (2 or 8 expected but got " + len);
          return;
+      }
       if (len == 8){
          Reporter.writeWarning("Warning: deprecated list representation for moving real");
          in = LEUtils.readInterval(ListExpr.fourElemList(le.first(),
@@ -314,7 +316,13 @@ public class Dsplmovingreal extends DsplGeneric implements
          map = le.second();
       }
       MRealMap rm = readMRealMap(map);
-      if ((in == null) || (rm == null)){
+      if ((in == null) || (rm == null)) {
+          if(in==null){
+             Reporter.debug("Error in interval representation ");
+          }
+          if(rm==null){
+             Reporter.debug("error in map representation");
+          }
           return;
       }
       Intervals.add(in);
@@ -369,7 +377,7 @@ public class Dsplmovingreal extends DsplGeneric implements
     if (err) {
       defined = false;
       Reporter.writeError("Error in ListExpr :parsing aborted");
-      qr.addEntry(new String("(" + AttrName + ": TA(MReal))"));
+      qr.addEntry(new String(AttrName + ": TA(MReal)"));
       return;
     } 
     else 
