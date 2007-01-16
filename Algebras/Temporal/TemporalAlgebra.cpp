@@ -199,69 +199,112 @@ void UReal::TranslateParab(const double& t)
   // a = a;
 }
 
-double AntiderivativeSQRTpoly1(const double a, const double b,
-                               const double x)
-{ // Bronstein, Taschenbuch der Mathematik 21.5.2.3 (121)
-  assert( a != 0 );
-  double X = a*x+b;
-  return (2/(3*a))*sqrt(X*X*X);
-}
-
-
-long double arcsinh(long double XVal)
-{
-  return log(XVal + sqrt(XVal * XVal + 1.0));
-}
-
-double Antiderivative1overSQRTpoly2(const double a, const  double b,
-                                    const double c, const double x)
-{ // Bronstein, Taschenbuch der Mathematik 21.5.2.8 (241)
-  assert(a != 0);
-
-  double Delta = 4*a*x - b*b;
-
-  if((a>0) && (Delta > 0)){
-      return (1/sqrt(a)) * arcsinh( (2*a*x +b)/sqrt(Delta) );
-  }
-
-  if((a>0.0) && (Delta==0.0)){
-      return (1.0/sqrt(a))*log(2*a*x+b);
-  }
-
-  if(a<0 && Delta<0){
-      return -1.0*((1/(sqrt(-1.0*a))) * asin((2*a*x+b)/(sqrt(-1.0*Delta))));
-  }
-
-  if(a>0){ // case Delta < 0
-     double f1 = 1/ sqrt(a);
-     double sum = 2*sqrt(a*(a*x*x*x+b*x+c)) + 2*a*x + b;
-     double f2 = log(sum);
-     double res = f1*f2;
-     return res;
-  }
-
-  cerr <<  "invalid case reached" << endl;
-
-  return 0;
-
-}
 
 double AntiderivativeSQRTpoly2(const double a, const double b,
                                const double c, const double x)
 { // Bronstein, Taschenbuch der Mathematik 21.5.2.8 (245)
   assert(a != 0);
 
-  double f = ( 4*a*c-b*b )  / 8*a;   // == 1/2k
-  double v = a*x*x+b*x+c;
-  if(v<0){  // correct values resulting from rounding errors
-     if(!AlmostEqual(v,0)) {
-        cerr << "Invalid computation in UREal::Integrate" << endl;
-     }
-     v = 0;
+  double X = x*(a*x+b)+c;
+  double Delta = 4*a*c - b*b;
+  double h1 = 2*a*x+b;
+  double Xr = sqrt(X);
+  double t1 = (h1*Xr)/(4*a);
+
+  double f = 0.5*c - (b*b) / (8*a);  // 1 / 2k 
+
+  double t2 = 0;
+
+  // Bronstein (241)
+  double anti2;
+  int ucase = -1; 
+  if((a>0) && (Delta>0))  {
+     ucase = 1;
+     //anti2 = (1/sqrt(a)) * asinh(h1 / sqrt(Delta));
+     //t2 = f*anti2;
+
+      t2 = (Delta / (8*pow(a,1.5))) * asinh(h1/sqrt(Delta));
+     
+     
+  } else if((a>0) && (Delta==0)){
+     ucase = 2;
+     anti2 = (1/sqrt(a)) * log(h1);
+     t2 = f * anti2;
+  } else if((a<0) && (Delta<0)){
+     ucase = 3;
+     anti2 = -1.0 * (1/ sqrt(-1.0*a)) * asin( h1 / sqrt(-1.0*Delta));
+     t2 = f * anti2;
+  } else if (a>0) { // && Delta < 0
+     ucase = 4;
+     anti2 = (1 / sqrt(a)) * log ( 2.0 * sqrt(a*X) + h1);
+     t2 = f*anti2;
+  } else {
+     cerr << " invalid case reached " << endl;
+     anti2 = 0;
   }
-  double s1 = ((2*a*x +b) * sqrt(v)) / (4*a);
-  double s2 = f *Antiderivative1overSQRTpoly2(a, b, c, x);
-  return  s1 + s2;
+  double result = t1 + t2;
+
+  
+
+  /* Unfortunately , small rounding errors in the anti2 computation
+     are often multiplied with very large numbers for (f) in many 
+     datasets. This leads to very wrong results if these data are used.
+     For this reason, we compute the valid range of the result. If the
+     computed result is outside of this value, we approximate the integral
+     by the integral of a linear function between the values at the boundaries.
+     (the same as integrate(linearize2(unit))
+   */ 
+     
+  // compute the minimum and the maximum value
+  double xs = -1.0*b / (2*a);  
+  double v1 = sqrt(c);
+  double v2 = sqrt(a*x*x+b*x+c);
+  double v3 = v1;
+  if(xs>0 && xs < x){
+      v3 = sqrt(a*xs*xs+b*xs+c);
+  } else {
+      xs = -1.0; 
+  }
+  double min = v1;
+  if(v2 < min){
+     min = v2;
+  } 
+  if(v3<min){
+     min = v3;
+  }
+  double max = v1;
+  if(v2 > max){
+     max = v2;
+  } 
+  if(v3>max){
+     max = v3;
+  }
+  
+  double minint = min*x;
+  double maxint = max*x;
+
+  if( (result < minint) || (result > maxint)){
+     //cerr << " approximate used case:" << ucase << endl;
+     if(xs<=0){ // approximate lineary between 0 and x
+         double h = (x==0)?0:(v2-v1)/x;
+         result = (0.5*h*x + v1)*x;
+     } else {
+        // integrate 0..xs          
+        double h = (v3-v1)/x;
+        double res1 = (0.5*h*xs + v1)*xs;
+        // integrate xs .. x 
+        double diff = x-xs;
+        h = (v2-v3)/diff;
+        double res2 = (0.5*h*diff+v3)*diff;
+        result = res1+res2;
+     }
+     if( (result < minint) || (result > maxint)){
+          cerr << " error in approximation " << endl;
+          cerr << " range is " << minint << " ,  " << maxint << endl;
+          cerr << " but result is " << result << endl;
+     }
+  }
+  return  result;
 }
 
 
@@ -283,10 +326,13 @@ double UReal::Integrate() const
   }
   if ( a == 0.0 && b != 0.0 )
   { // form : sqrt(bx + c)
-    return   AntiderivativeSQRTpoly1(b, c, t);
+     double X = b*t+c;
+     return (2/ (3*b))* sqrt(X*X*X);
   }
   // form : sqrt ( ax^2 + bx + c)
-  return    AntiderivativeSQRTpoly2(a, b, c, t);
+  double res = AntiderivativeSQRTpoly2(a, b, c, t);
+  return res;
+
 }
 
 
@@ -378,6 +424,89 @@ double UReal::Min(bool& correct) const{
     return min;
   }
 }
+
+/*
+Replaces this uReal by a linear approximation between the value at the start and the end.
+
+*/
+void UReal::Linearize(UReal& result) const{
+    if(!IsDefined()){
+       result.SetDefined(false);
+       return;
+    }
+    CcReal V;
+    TemporalFunction(timeInterval.start,V,true);
+    double v1 = V.GetRealval();
+    TemporalFunction(timeInterval.end,V,true);
+    double v2 = V.GetRealval();
+    result = UReal(timeInterval,v1,v2);
+    
+}
+
+/*
+Computes a linear approximation of this ureal. 
+If the extremum of the represented function is contained in 
+the corresponding interval, the unit is split into two ones.
+
+*/
+void UReal::Linearize(UReal& result1, UReal& result2) const{
+    if(!IsDefined()){
+        result1.SetDefined(false);
+        result2.SetDefined(false);
+        return;
+    }
+     
+    if((a==0) && !r){  // already linear
+      result1.CopyFrom(this);
+      result2.SetDefined(false);
+      return;
+    }
+
+
+
+    CcReal V;
+    TemporalFunction(timeInterval.start,V,true);
+    double v1 = V.GetRealval();
+    TemporalFunction(timeInterval.end,V,true);
+    double v2 = V.GetRealval();
+
+    if( a==0 ) {  // sqrt of a linear function
+        result1 = UReal(timeInterval,v1,v2);
+        result2.SetDefined(false);
+        return;
+    }
+
+    double xs = (-1.0*b) / (2.0*a);
+
+    Instant ixs(durationtype);
+    ixs.ReadFrom(xs); // convert the double into an instant
+    Instant ixst(instanttype);
+    ixst = timeInterval.start + ixs; // translate into the interval
+   
+    if( (ixst <= timeInterval.start) || (ixst>=timeInterval.end) ||
+        ixst.Adjacent(&timeInterval.end)){
+        // extremum outside or very closed to the bounds
+        result1 = UReal(timeInterval,v1,v2);
+        result2.SetDefined(false);
+        return;
+    }
+
+    // extremum found inside this interval
+
+    TemporalFunction(ixst,V,true);
+    double v3 = V.GetRealval();
+
+    
+   
+    Interval<Instant> interval1(timeInterval.start,ixst,timeInterval.lc,true);
+    Interval<Instant> interval2(ixst,timeInterval.end,false,timeInterval.rc);
+
+    result1 = UReal(interval1,v1,v3);
+    result2 = UReal(interval2,v3,v2); 
+} 
+
+
+
 
 /*
 Sets the Periods value to the times, where this takes the
@@ -1794,6 +1923,59 @@ void MReal::AtValue( CcReal& ccvalue, MReal& result ) const
 //     cerr << "MReal::AtValue(): Skipping insertion of final unit." << endl;
   result.EndBulkLoad();
 }
+
+void MReal::Linearize(MReal& result) const{
+  result.Clear();
+  if(!IsDefined()){
+     result.SetDefined(false);
+     return;
+  }
+  result.SetDefined(true);
+  int size = GetNoComponents();
+  if(size<1){
+     return;
+  }
+  result.Resize(size);
+  const UReal* unitptr;
+  UReal unit;
+  result.StartBulkLoad();
+  for(int i=0;i<size;i++){
+      Get(i,unitptr);
+      unitptr->Linearize(unit);
+      result.Add(unit);
+  }
+  result.EndBulkLoad(false);
+
+}
+
+void MReal::Linearize2(MReal& result) const{
+  result.Clear();
+  if(!IsDefined()){
+     result.SetDefined(false);
+     return;
+  }
+  result.SetDefined(true);
+  int size = GetNoComponents();
+  if(size<1){
+     return;
+  }
+  result.Resize(size);
+  const UReal* unitptr;
+  UReal unit1;
+  UReal unit2;
+  result.StartBulkLoad();
+  for(int i=0;i<size;i++){
+      Get(i,unitptr);
+      unitptr->Linearize(unit1,unit2);
+      result.Add(unit1);
+      if(unit2.IsDefined()){
+         result.Add(unit2);
+      }
+  }
+  result.EndBulkLoad(false);
+
+}
+
 
 /*
 Helper function for the ~simplify~ operator
@@ -4457,6 +4639,42 @@ ListExpr TypeMapMinMax(ListExpr args){
 }
 
 
+/*
+16.1.12 Type mapping function of the ~linearize~ Operator
+
+*/
+ListExpr TypeMapLinearize(ListExpr args){
+   int len = nl->ListLength(args);
+   if(len!=1){
+      ErrorReporter::ReportError("one argument expected");
+      return nl->SymbolAtom("typeerror");
+   }
+   ListExpr arg = nl->First(args);
+   if(nl->IsEqual(arg,"ureal") ||
+      nl->IsEqual(arg,"mreal")){
+      return nl->SymbolAtom(nl->SymbolValue(arg));
+   }
+   ErrorReporter::ReportError("ureal or mreal expected");
+   return nl->SymbolAtom("typeerror");
+}
+
+/*
+16.1.12 Type mapping function of the ~linearize2~ Operator
+
+*/
+ListExpr TypeMapLinearize2(ListExpr args){
+   int len = nl->ListLength(args);
+   if(len!=1){
+      ErrorReporter::ReportError("one argument expected");
+      return nl->SymbolAtom("typeerror");
+   }
+   ListExpr arg = nl->First(args);
+   if( nl->IsEqual(arg,"mreal")){
+      return nl->SymbolAtom(nl->SymbolValue(arg));
+   }
+   ErrorReporter::ReportError("mreal expected");
+   return nl->SymbolAtom("typeerror");
+}
 
 /*
 16.1.13 Type mapping function ~IntSetTypeMapPeriods~
@@ -5100,6 +5318,22 @@ int IntegrateSelect(ListExpr args){
 }
 
 /*
+16.2.32 Selection function for ~Linearize~
+
+*/
+int LinearizeSelect(ListExpr args){
+   ListExpr arg = nl->First(args);
+   if(nl->IsEqual(arg,"ureal")){
+       return 0;
+   }
+   if(nl->IsEqual(arg,"mreal")){
+       return 1;
+   }
+   return -1; // should never occur
+
+}
+
+/*
 16.2.32 Selection function for ~min~ and ~max~
 
 */
@@ -5567,6 +5801,30 @@ int Integrate(Word* args, Word& result,
    return 0;
 }
 
+/*
+16.2.28 Value Mapping function for the operator linearize 
+
+*/
+template <class mtype>
+int Linearize(Word* args, Word& result,
+              int message, Word& local,
+              Supplier s){
+   result = qp->ResultStorage(s);
+   mtype* arg = (mtype*) args[0].addr;
+   mtype* res = (mtype*) result.addr;
+   arg->Linearize(*res);
+   return 0;
+}
+
+int Linearize2(Word* args, Word& result,
+              int message, Word& local,
+              Supplier s){
+   result = qp->ResultStorage(s);
+   MReal* arg = (MReal*) args[0].addr;
+   MReal* res = (MReal*) result.addr;
+   arg->Linearize2(*res);
+   return 0;
+}
 
 /*
 16.2.28 Value Mapping function for the operator min
@@ -6257,6 +6515,7 @@ ValueMapping extdeftimemap[] = { TemporalExtDeftime<UBool, CcBool>,
 ValueMapping simplifymap[] = { MPointSimplify, MPointSimplify2,
                                MRealSimplify };
 
+ValueMapping linearizemap[] = { Linearize<UReal>, Linearize<MReal> };
 ValueMapping integratemap[] = { Integrate<UReal>, Integrate<MReal> };
 
 ValueMapping minmap[] = { VM_Min<UReal>, VM_Min<MReal> };
@@ -6538,6 +6797,22 @@ const string TemporalSpecIntegrate =
   "<text>integrate( _ ) </text--->"
   "<text>computes the determined inegtral of the argument</text--->"
   "<text>integrate(mreal5000)</text--->"
+  ") )";
+
+const string TemporalSpecLinearize =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>{ureal , mreal} -> real</text--->"
+  "<text>linearize( _ ) </text--->"
+  "<text>computes a linear approximation of the argument</text--->"
+  "<text>linearize(distance(train7, train6))</text--->"
+  ") )";
+
+const string TemporalSpecLinearize2 =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> mreal -> real</text--->"
+  "<text>linearize2( _ ) </text--->"
+  "<text>computes a linear approximation of the argument</text--->"
+  "<text>linearize2(distance(train7, train6))</text--->"
   ") )";
 
 const string TemporalSpecMin =
@@ -6920,6 +7195,19 @@ Operator temporalintegrate( "integrate",
                            IntegrateSelect,
                            TypeMapIntegrate );
 
+Operator temporallinearize( "linearize",
+                           TemporalSpecLinearize,
+                           2,
+                           linearizemap,
+                           LinearizeSelect,
+                           TypeMapLinearize );
+
+Operator temporallinearize2( "linearize2",
+                           TemporalSpecLinearize2,
+                           Linearize2,
+                           Operator::SimpleSelect,
+                           TypeMapLinearize2 );
+
 Operator temporalminimum( "minimum",
                            TemporalSpecMin,
                            2,
@@ -7120,6 +7408,8 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporaldistance );
     AddOperator( &temporalsimplify );
     AddOperator( &temporalintegrate );
+    AddOperator( &temporallinearize );
+    AddOperator( &temporallinearize2 );
     AddOperator( &temporalminimum );
     AddOperator( &temporalmaximum );
     AddOperator( &temporalbreakpoints );
