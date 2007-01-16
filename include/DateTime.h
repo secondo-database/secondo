@@ -420,6 +420,8 @@ This Operator multiplies a DateTime by a int and double number
     bool operator!=(const DateTime T2)const;
     bool operator<(const DateTime T2)const;
     bool operator>(const DateTime T2)const;
+    bool operator<=(const DateTime T2)const;
+    bool operator>=(const DateTime T2)const;
 
 /*
 ~Abs~
