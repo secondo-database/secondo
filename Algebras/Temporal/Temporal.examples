@@ -1,0 +1,331 @@
+Database: berlintest
+Restore : No
+
+Operator : #
+Number   : 1
+Signature: (instant instant) -> bool, (rT rT)) -> bool
+Example  : query [const instant value "2007-12-24"] # [const instant value "2007-12-25"]
+Result   : TRUE
+
+
+Operator : <=
+Number   : 1
+Signature: (instant instant) -> bool
+Example  : query [const instant value "2007-12-24"] <= [const instant value "2007-12-24"]
+Result   : TRUE
+
+
+Operator : <
+Number   : 1
+Signature: (instant instant) -> bool
+Example  : query [const instant value "2007-12-24"] < [const instant value "2007-12-24"]
+Result   : FALSE
+
+
+Operator : =
+Number   : 1
+Signature: (instant instant) -> bool, (rT rT) -> bool
+Example  : query [const instant value "2007-12-24"] = [const instant value "2007-12-24"]
+Result   : TRUE
+
+
+Operator : >=
+Number   : 1
+Signature: (instant instant) -> bool
+Example  : query [const instant value "2007-12-24"] >= [const instant value "2007-12-31"]
+Result   : FALSE
+
+
+Operator : >
+Number   : 1
+Signature: (instant instant) -> bool
+Example  : query [const instant value "2007-12-24"] > [const instant value "2007-12-31"]
+Result   : FALSE
+
+
+Operator : at
+Number   : 1
+Signature: (mT T) -> mT
+Example  : query mreal5000 at 5000.0
+Result   : (mreal ((("2003-11-20" "2003-11-21" TRUE TRUE) (0.0 0.0 5000.0 FALSE))))
+
+
+Operator : atinstant
+Number   : 1
+Signature: (mT instant) -> iT
+Example  : query mreal5000 atinstant [const instant value "2003-11-20"]
+Result   : (ireal ("2003-11-20" 5000.0))
+
+
+Operator : atperiods
+Number   : 1
+Signature: (mT periods) -> mT
+Example  : query train7 atperiods [const periods value (("2003-11-20-07:01:40" "20003-11-20-07:45" TRUE TRUE))]
+Result   : (mpoint((("2003-11-20-07:01:40" "2003-11-20-07:01:44.586" TRUE FALSE)(-3519.76750330251 14374.09577278732 -3544.0 14312.0))(("2003-11-20-07:01:44.586" "2003-11-20-07:01:50" TRUE FALSE)(-3544.0 14312.0 -3560.0 14235.0))(("2003-11-20-07:01:50" "2003-11-20-07:02" TRUE FALSE)(-3560.0 14235.0 -3560.0 14235.0))))
+
+Operator : bbox
+Number   : 1
+Signature: upoint -> rect3, rT -> rT
+Example  : query bbox([const upoint value (("2003-10-10" "2003-12-10" TRUE TRUE) (0.0 0.0 1.0 1.0))])
+Result   : (rect3 (0.0 1.0 0.0 1.0 1376.0 1437.0))
+
+
+Operator : before
+Number   : 1
+Signature: (rT rT) -> bool, (T rT) -> bool, (rT T) -> bool
+Example  : query 5 before [const rint value ((0 1 TRUE FALSE) (1 2 TRUE FALSE))]
+Result   : FALSE
+
+
+Operator : box2d
+Number   : 1
+Signature: rect3 -> rect
+Example  : query box2d(box1000)
+Result   : (rect (2265.0 2265.0 4892.0 4892.0))
+
+
+Operator : box3d
+Number   : 1
+Signature: For S in {rect, instant, periods}: S -> rect3 For T in {instant, periods}: rect x T -> rect3  
+Example  : query box3d([const rect value (0.0 0.0 1000.0 1000.0)],six30)
+Result   : (rect3 (0.0 0.0 1000.0 1000.0 1417.270833333333 1417.270833333333))
+
+
+Operator : breakpoints
+Number   : 1
+Signature: mpoint x duration -> points
+Example  : query breakpoints( train7, [const duration value (0 1000)] )
+Result   : file
+
+
+Operator : deftime
+Number   : 1
+Signature: moving(x) -> periods
+Example  : query deftime(train7)
+Result   : (periods (("2003-11-20-06:06" "2003-11-20-07:02" TRUE FALSE)))
+
+
+Operator : distance
+Number   : 1
+Signature: (mpoint point) -> mreal
+Example  : query distance(train7, mehringdamm)
+Result   : file
+
+
+Operator : equal
+Number   : 1
+Signature: (moving(x) moving(x)) -> bool
+Example  : query train7 equal train7
+Result   : TRUE
+
+
+Operator : extdeftime
+Number   : 1
+Signature: mT x uT -> mT with T in {bool, int}  
+Example  : query extdeftime([const mbool value ((("begin of time" "2001-10-10" TRUE FALSE) TRUE) (("2002-10-10" "end of time" TRUE FALSE) TRUE))], [const ubool value (("200-12-30" "2000-12-31" TRUE FALSE) FALSE)])
+Result   : file
+
+
+Operator : final
+Number   : 1
+Signature: mT -> iT
+Example  : query final(train7)
+Result   : (ipoint ("2003-11-20-07:02" (-3560.0 14235.0)))
+
+
+Operator : initial
+Number   : 1
+Signature: mT -> iT
+Example  : query initial(train7)
+Result   : (ipoint ("2003-11-20-06:06" (16821.0 1252.0)))
+
+
+Operator : inside
+Number   : 1
+Signature: (rT rT) -> bool, (T  rT) -> bool
+Example  : query 5 inside [const rint value ((0 1 TRUE FALSE)(1 10 TRUE FALSE))]
+Result   : TRUE
+
+
+Operator : inst
+Number   : 1
+Signature: iT -> instant
+Example  : query inst(initial(train7))
+Result   : (instant "2003-11-20-06:06")
+
+
+Operator : integrate
+Number   : 1
+Signature: {ureal , mreal} -> real
+Example  : query integrate(mreal5000)
+Result   : 5000.0
+
+Operator : intersection
+Number   : 1
+Signature: (rT rT) -> rT
+Example  : query intersection([const rint value((0 6 TRUE FALSE)(8 10 TRUE FALSE))], [const rint value ((5 8 TRUE TRUE))])
+Result   : (rint ((5 6 TRUE FALSE)(8 8 TRUE TRUE)))
+
+
+Operator : intersects
+Number   : 1
+Signature: (rT rT) -> bool
+Example  : query [const rint value((0 6 TRUE FALSE)(8 10 TRUE FALSE))] intersects [const rint value ((5 8 TRUE TRUE))]
+Result   : TRUE
+
+
+Operator : isempty
+Number   : 1
+Signature: instant -> bool, rT -> bool, uT -> bool
+Example  : query isempty(train7)
+Result   : file
+
+
+Operator : maximum
+Number   : 1
+Signature: rT -> T
+Example  : query maximum ([const rint value ((0 1 TRUE FALSE) (2 10 TRUE FALSE))])
+Result   : 10
+
+
+Operator : mbool2mint
+Number   : 1
+Signature: mbool -> mint 
+Example  : query mbool2mint(isempty(train7))
+Result   : file
+
+
+Operator : minimum
+Number   : 1
+Signature: rT -> T
+Example  : query minimum([const rint value ((0 1 TRUE FALSE) (2 3 TRUE FALSE))])
+Result   : 0
+
+
+Operator : minus
+Number   : 1
+Signature: (rT rT ) -> rT
+Example  : query [const rint value ((0 10 TRUE FALSE))] minus [const rint value ((2 5 TRUE FALSE))]
+Result   : (rint ((0 2 TRUE FALSE)(5 10 TRUE FALSE)))
+
+
+
+Operator : no_components
+Number   : 1
+Signature: rT -> int, mT -> int
+Example  : query no_components (train7)
+Result   : 185
+
+
+Operator : nonequal
+Number   : 1
+Signature: (mT mT) -> bool
+Example  : query train7 nonequal simplify(train7, 50.0)
+Result   : TRUE
+
+
+Operator : passes
+Number   : 1
+Signature: (mT T) -> bool
+Example  : query train7 passes mehringdamm
+Result   : TRUE
+
+
+Operator : present
+Number   : 1
+Signature: (mT instant) -> bool, (mT periods) -> bool
+Example  : query train7 present(six30)
+Result   : TRUE
+
+
+Operator : simplify
+Number   : 1
+Signature: mpoint x real [ x duration ] -> mpoint | mreal x real -> mreal
+Example  : query simplify(train7, 50.0)
+Result   : file
+
+
+Operator : theday
+Number   : 1
+Signature: int x int x int -> periods
+Example  : query theday(2002, 6,3)
+Result   : (periods (("2002-06-03" "2002-06-04" TRUE FALSE)))
+
+
+Operator : thehour
+Number   : 1
+Signature: int x int x int x int -> periods
+Example  : query thehour(2002, 2, 28, 8)
+Result   : (periods (("2002-02-28-08:00" "2002-02-28-09:00" TRUE FALSE)))
+
+
+Operator : theminute
+Number   : 1
+Signature: int x int x int x int x int -> periods
+Example  : query theminute(2002, 3, 28, 8, 59)
+Result   : (periods (("2002-03-28-08:59" "2002-03-28-09:00" TRUE FALSE)))
+
+
+Operator : themonth
+Number   : 1
+Signature: int x int -> periods
+Example  : query themonth(2002, 3)
+Result   : (periods (("2002-03-01" "2002-04-01" TRUE FALSE)))
+
+
+Operator : theperiod
+Number   : 1
+Signature: (periods periods) -> periods
+Example  : query theperiod(theyear(2002), theyear(2004))
+Result   : (periods (("2002-01-01" "2005-01-01" TRUE FALSE)))
+
+
+Operator : thesecond
+Number   : 1
+Signature: int x int x int x int x int x int -> periods
+Example  : query thesecond(2002, 12, 31, 23, 59, 59)
+Result   : (periods (("2002-12-31-23:59:59" "2003-01-01" TRUE FALSE)))
+
+
+Operator : theyear
+Number   : 1
+Signature: int -> periods
+Example  : query theyear(2002)
+Result   : (periods (("2002-01-01" "2003-01-01" TRUE FALSE)))
+
+
+Operator : trajectory
+Number   : 1
+Signature: mpoint -> line
+Example  : query trajectory(train7)
+Result   : file
+
+
+Operator : translate
+Number   : 1
+Signature: mpoint x duration x real x real -> mpoint
+Example  : query train7 translate[[const duration value (5 10)],5.0,8.0]
+Result   : file
+
+
+Operator : union
+Number   : 1
+Signature: (rT rT) -> rT
+Example  : query [const rint value ((0 1 TRUE FALSE))] union [const rint value ((1 2 TRUE FALSE))]    
+Result   : (rint ((0 2 TRUE FALSE)))
+
+
+Operator : units
+Number   : 1
+Signature: For T in {bool, int, real, point}: mT -> (stream uT)
+Example  : query units(train7) count
+Result   : 185
+
+
+Operator : val
+Number   : 1
+Signature: iT -> T
+Example  : query val ([const iint value ("2003-10-10" 1)])
+Result   : 1
+
+
