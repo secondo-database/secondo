@@ -53,8 +53,8 @@ public class Dsplmovingreal extends DsplGeneric implements
 
 
   public boolean isExternDisplayed(){
-      //return(functionframe.isVisible() && this.equals(functionframe.getSource()));
-      return functionframe.isVisible() && functionframe.contains(this);
+      return(functionframe.isVisible() && this.equals(functionframe.getSource()));
+      //return functionframe.isVisible() && functionframe.contains(this);
   }
 
   public void  displayExtern(){
@@ -63,8 +63,8 @@ public class Dsplmovingreal extends DsplGeneric implements
           return;
       }
       if(boundingInterval!=null){
-        // functionframe.setSource(this);
-         functionframe.addFunction(this);        
+         functionframe.setSource(this);
+        // functionframe.addFunction(this);        
          functionframe.setVisible(true);
          functionframe.toFront();
       } else{
@@ -551,7 +551,8 @@ public class Dsplmovingreal extends DsplGeneric implements
     }
   }
 
-private static  MultiFunctionFrame functionframe = new MultiFunctionFrame();
+//private static  MultiFunctionFrame functionframe = new MultiFunctionFrame();
+private static  FunctionFrame functionframe = new FunctionFrame();
 
 
 
