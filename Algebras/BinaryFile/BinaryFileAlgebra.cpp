@@ -179,8 +179,8 @@ void BinaryFile::Resize(const int newSize){
     }
 }
 
-void BinaryFile::Put(const int offset, int size, char* bytes){
-   Put(offset,size,bytes);
+void BinaryFile::Put(const int offset, int size, const char* bytes){
+   binData.Put(offset,size,bytes);
 }
 
 bool BinaryFile::SaveToFile( const char *fileName ) const

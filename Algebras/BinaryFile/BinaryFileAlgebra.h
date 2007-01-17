@@ -64,7 +64,7 @@ This constructor should not be used.
     int GetSize() const;
     void Get(size_t offset,const char** bytes) const;
     void Resize(int newSize);
-    void Put(int offset, int size, char* bytes);
+    void Put(int offset, int size, const char* bytes);
 
 
 
