@@ -179,7 +179,7 @@ query units(zug5) transformstream makemvalue[elem];
 
 #tolerance_real 0.001
 #testcase get_duration periods
-#yields (duration (0 2049974) )
+#yields (duration (0 2050000) )
 query get_duration(deftime(zug5));
 
 #tolerance_real 0.1
