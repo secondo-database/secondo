@@ -1,0 +1,12 @@
+
+(mbool 
+    (
+        (
+            ("begin of time" "2001-10-10" TRUE FALSE) 
+            TRUE) 
+        (
+            ("2001-10-10" "2002-10-10" TRUE FALSE) 
+            FALSE) 
+        (
+            ("2002-10-10" "end of time" TRUE FALSE) 
+            TRUE)))
