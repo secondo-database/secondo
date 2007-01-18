@@ -894,9 +894,12 @@ Otherwise (~ignoreLimits = false~, resp. unspecified) there will be following
 /*
 Checks if inside the unit the function passes by the value ~val~.
 
+*Precondition:* IsDefined() == true && val.IsDefined() == true
+
 */
 
   virtual bool At( const Alpha& val, TemporalUnit<Alpha>& result ) const = 0;
+
 /*
 Returns a unit restricted to the parts where the temporal function is equal
 to ~val~.
@@ -1742,16 +1745,16 @@ Result: stores the resultunit into vector result and returns
 *Precondition*: this[->]IsDefined() is true
 
 */
-  
+
   void Linearize(UReal& result) const;
 
- 
-   void Linearize(UReal& result1, UReal& result2) const; 
+
+   void Linearize(UReal& result1, UReal& result2) const;
    /*
      Stores a linear approximation of this UReal in result1 and result2.
-     If the extremum is outside of the corresponding interval, result2 will 
+     If the extremum is outside of the corresponding interval, result2 will
      be undefined and result 1 contains a linear approximation between the
-     value at the interval boundaries. Otherwise this unit is split at the 
+     value at the interval boundaries. Otherwise this unit is split at the
      extremum.
    */
 

@@ -175,16 +175,29 @@ papers published, but suffers from rounding errors.
 }
 
 bool UReal::Passes( const CcReal& val ) const
-  // VTA - Not implemented yet
 {
+  assert( IsDefined()  && val.IsDefined() );
+
+  Periods times(2);
+  int no_res = PeriodsAtVal( val.GetRealval(), times);
+  for(int i=0; i<no_res; i++)
+  {
+    const Interval<DateTime>* iv;
+    times.Get(i, iv);
+    // only return true, iff the value is *REALLY* reached!
+    if( iv->Inside(timeInterval) )
+      return true;
+  }
   return false;
 }
 
 bool UReal::At( const CcReal& val, TemporalUnit<CcReal>& result ) const
-  // VTA - Not implemented yet
   // CD - Implementation causes problem, as the result could be a set of
   // 0-2 Units!
+  // Use UReal::PeriodaAtValue() or UReal::AtValue() instead!
 {
+  cerr << "UReal::At() is not implementable! Use UReal::AtValue() instead!"
+       << endl;
   return false;
 }
 
@@ -2199,7 +2212,6 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
    result.EndBulkLoad();
 }
 
-// not implemented yet
 void MReal::Simplify(const int min, const int max,
                      bool* useleft, bool* useright,
                      const double epsilon) const{
@@ -4497,8 +4509,7 @@ MovingBaseTypeMapBool( ListExpr args )
 
     if( (nl->IsEqual( arg1, "mbool" ) && nl->IsEqual( arg2, "bool" )) ||
         (nl->IsEqual( arg1, "mint" ) && nl->IsEqual( arg2, "int" )) ||
-// VTA - This operator is not yet implemented for the type of ~mreal~
-//        (nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" )) ||
+        (nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" )) ||
         (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "point" )) ||
         (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "region" )) )
       return nl->SymbolAtom( "bool" );
@@ -4527,9 +4538,8 @@ MovingBaseTypeMapMoving( ListExpr args )
     if( nl->IsEqual( arg1, "mint" ) && nl->IsEqual( arg2, "int" ) )
       return nl->SymbolAtom( "mint" );
 
-// VTA - This operator is not yet implemented for the type of ~mreal~
-//    if( nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" ) )
-//      return nl->SymbolAtom( "mreal" );
+   if( nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" ) )
+     return nl->SymbolAtom( "mreal" );
 
     if( nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "point" ) )
       return nl->SymbolAtom( "mpoint" );
@@ -6418,6 +6428,33 @@ int TemporalExtDeftime( Word* args, Word& result, int message,
 }
 
 /*
+16.3.41 Value Mapping function for ~at~
+
+Here, we only implement the VM for ~mreal x real [->] mreal~. All other
+VMs are implemented using a template function from ~TemporalAlgebra.h~.
+
+Since it would use the unimplementable ~UReal::At(...)~
+method, we implement this version using ~UReal::AtValue(...)~.
+
+*/
+
+int MappingAt_MReal_CcReal( Word* args, Word& result, int message,
+                   Word& local, Supplier s )
+{
+  result = qp->ResultStorage(s);
+  MReal* res = (MReal*) result.addr;
+  res->Clear();
+
+  MReal* mr = (MReal*) args[0].addr;
+  CcReal* r = (CcReal*) args[1].addr;
+
+  if( !mr->IsDefined() || !r->IsDefined() )
+    return 0; // return with empty MReal
+  mr->AtValue( *r, *res );
+  return 0;
+}
+
+/*
 16.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -6571,7 +6608,7 @@ ValueMapping temporalfinalmap[] = { MappingFinal<MBool, UBool, CcBool>,
 
 ValueMapping temporalatmap[] = { MappingAt<MBool, UBool, CcBool>,
                                  MappingAt<MInt, UInt, CcInt>,
-                                 MappingAt<MReal, UReal, CcReal>,
+                                 MappingAt_MReal_CcReal,
                                  MappingAt<MPoint, UPoint, Point> };
 
 ValueMapping temporalunitsmap[] = { MappingUnits<MBool, UBool>,

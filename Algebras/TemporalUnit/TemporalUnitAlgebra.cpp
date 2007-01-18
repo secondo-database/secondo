@@ -67,7 +67,7 @@ OK    speed                           upoint --> ureal
 
       passes:  For T in {bool, int, string, point}:
 OK  +                            uT x      T --> bool
-n/a +                         ureal x   real --> bool
+Test+                         ureal x   real --> bool
 n/a +                       uregion x region --> bool
 
 OK  + deftime      (**)                   uT --> periods
@@ -91,7 +91,7 @@ OK  +                                     uT --> (stream uT)
       at:     For T in {bool, int, string, point, region*}
 OK  +       uT x       T --> (stream uT)       same as intersection: uT x T
 OK       ureal x    real --> (stream ureal)    same as intersection: ureal  x real
-ERR +   upoint x  region --> (stream upoint)   same as intersection: upoint x uregion
+OK  +   upoint x  region --> (stream upoint)   same as intersection: upoint x uregion
 
       distance:  T in {int, point}
 OK  -           uT x uT -> ureal
@@ -109,7 +109,7 @@ OK  -       point x  upoint --> (stream upoint) same as at: upoint x point
 OK  -      upoint x  upoint --> (stream upoint)
 OK  +      upoint x    line --> (stream upoint)
 OK  +        line x  upoint --> (stream upoint)
-Pre +       ureal x   ureal --> (stream ureal)
+OK  +       ureal x   ureal --> (stream ureal)
 OK  +      upoint x uregion --> (stream upoint) same as at: upoint x uregion
 OK  -     uregion x  upoint --> (stream upoint)
 OK  -      upoint x  region --> (stream upoint) same as: at: upoint x region
@@ -4692,22 +4692,6 @@ t^2 + (2 b_1 c_1 - b_2) t - c_2 = 0 \]
 ~ureal~ value with $r = true$.
 
 */
-int temporalUnitIntersection_ureal_ureal( Word* args, Word& result, int message,
-                                          Word& local, Supplier s )
-{
-  cout << "\nATTENTION: temporalUnitIntersection_ureal_ureal "
-       << "not yet implemented!" << endl;
-  return 0;
-
-  // restrict ureal to common deftime
-  // check, whether ureals are identical -> return complete ureal
-  // create list of intersection instants
-  // create ureals from list of intersection instants
-}
-
-
-// value mapping for constant units (uT  T) -> (stream uT)
-//                            and   ( T uT) -> (stream uT)
 struct MappingUnitIntersection_rLocalInfo {
   bool finished;
   int  NoOfResults;          // total number of results
@@ -4715,6 +4699,106 @@ struct MappingUnitIntersection_rLocalInfo {
   vector<UReal> resvector;   // the results
 };
 
+int temporalUnitIntersection_ureal_ureal( Word* args, Word& result, int message,
+                                          Word& local, Supplier s )
+{
+  MappingUnitIntersection_rLocalInfo *localinfo;
+  UReal *ureal1, *ureal2;
+  Word a0, a1;
+  Periods result_times(2);
+
+  switch (message)
+    {
+    case OPEN :
+
+      localinfo = new MappingUnitIntersection_rLocalInfo;
+      local = SetWord(localinfo);
+      localinfo->finished = true;
+      localinfo->resvector.clear();
+      localinfo->NoOfResults = 0;
+      localinfo->ResultsDelivered = 0;
+
+      // initialize arguments, such that a0 always contains the UReal
+      //                       and a1 the CcReal
+      a0 = args[0]; a1 = args[1];
+      ureal1 = (UReal*)(a0.addr);
+      ureal2 = (UReal*)(a1.addr);
+      if ( !ureal1->IsDefined() ||
+           !ureal2->IsDefined() )
+      { // some input is undefined -> return empty stream
+        return 0;
+      }
+
+      // call int UReal::PeriodsAtEqual( UReal& other, Periods& times)
+      localinfo->NoOfResults = ureal1->PeriodsAtEqual( *ureal2, result_times);
+      cout << "temporalUnitIntersection_ureal_ureal(): NoOfResults="
+           << localinfo->NoOfResults << endl;
+      localinfo->finished = (localinfo->NoOfResults <= 0);
+      for(int i=0; i<localinfo->NoOfResults; i++)
+      { // create result vector
+        UReal unit(true);
+        const Interval<Instant> *iv;
+        cout << "temporalUnitIntersection_ureal_ureal(): Processing interval "
+             << i << endl;
+        result_times.Get(i, iv);
+        if( iv->start == iv->end )
+        { // simplify result to constant
+          DateTime T(durationtype);
+          T = iv->start - ureal1->timeInterval.start;
+          double t = T.ToDouble();
+          double value = ureal1->a*t*t + ureal1->b*t + ureal1->c;
+          value = ureal1->r ? sqrt(value) : value;
+          unit = UReal(*iv, 0.0, 0.0, value, false);
+        }
+        else
+          ureal1->AtInterval(*iv, unit);
+        localinfo->resvector.push_back(unit);
+        cout << "temporalUnitIntersection_ureal_ureal():  Added unit ";
+        unit.Print(cout);
+        cout << endl;
+      }
+      localinfo->finished = ( localinfo->NoOfResults <= 0 );
+      cout << "temporalUnitIntersection_ureal_ureal(): NoOfResults="
+           << localinfo->NoOfResults << endl
+           << "temporalUnitIntersection_ureal_ureal(): finished="
+           << localinfo->finished << endl;
+      return 0;
+
+    case REQUEST :
+
+      if (local.addr == 0)
+        return CANCEL;
+      localinfo = (MappingUnitIntersection_rLocalInfo*) local.addr;
+
+      if (localinfo->finished)
+        return CANCEL;
+      if ( localinfo->NoOfResults <= localinfo->ResultsDelivered )
+      { localinfo->finished = true;
+        return CANCEL;
+      }
+      result =
+          SetWord(localinfo->resvector[localinfo->ResultsDelivered].Clone());
+      localinfo->ResultsDelivered++;
+      return YIELD;
+
+    case CLOSE :
+
+      if (local.addr != 0)
+      {
+        localinfo = (MappingUnitIntersection_rLocalInfo*) local.addr;
+        delete localinfo;
+      }
+      return 0;
+    } // end switch
+
+      // should not be reached
+  return 0;
+}
+
+
+
+// value mapping for constant units (uT  T) -> (stream uT)
+//                            and   ( T uT) -> (stream uT)
 template<int uargindex>
 int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
                                          Word& local, Supplier s )
@@ -5992,14 +6076,14 @@ ValueMapping temporalunitintersectionmap[] =
     temporalUnitIntersection_upoint_point<1>,
     temporalUnitIntersection_CU_C<UString, CcString, 1>,
 
-    temporalUnitIntersection_upoint_line<0>,        // 15
+    temporalUnitIntersection_upoint_line<0>,         // 15
     temporalUnitIntersection_upoint_line<1>,
 
     temporalUnitIntersection_upoint_uregion<0, true>,
     temporalUnitIntersection_upoint_uregion<1, true>,
 
     temporalUnitIntersection_upoint_uregion<0, false>,
-    temporalUnitIntersection_upoint_uregion<1, false>       // 20
+    temporalUnitIntersection_upoint_uregion<1, false>// 20
   };
 
 int temporalunitIntersectionSelect( ListExpr args )

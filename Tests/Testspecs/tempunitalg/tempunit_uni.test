@@ -777,16 +777,29 @@ query intersection(ur1, ur3) count
 #yields (int 0)
 query intersection(ur3, ur2) count
 
+#testcase intersection_ureal_ureal EMPTY
+#yields (int 0)
+query intersection(ur1, ur2) count
 
-## NOT YET IMPLEMENTED:
-##testcase intersection_ureal_ureal EMPTY
-##yields (int 0)
-#query intersection(ur2, ur4) count
+#testcase intersection_ureal_ureal SELF
+#yields (mreal ( ( ("2000-01-01" "2000-01-05" TRUE TRUE) (1.0 0.0 -1.0 FALSE))))
+query intersection(ur1, ur1) the_mvalue
 
-## NOT YET IMPLEMENTED:
-##testcase intersection_ureal_ureal NONEMPTY
-##yields (int 1)
-#query intersection(ur1, ur1) count
+#testcase intersection_ureal_ureal SINGLE1
+#yields (mreal ( ( ("2000-01-02" "2000-01-02" TRUE TRUE) (0.0 0.0 0.0 FALSE))))
+query intersection(ur5, ur6) the_mvalue
+
+#testcase intersection_ureal_ureal SINGLE2
+#yields (mreal ( ( ("2000-01-02" "2000-01-02" TRUE TRUE) (0.0 0.0 0.0 FALSE))))
+query intersection(ur6, ur5) the_mvalue
+
+#testcase intersection_ureal_ureal DOUBLE1
+#yields (mreal ( ( ("2003-11-20-06:19:23.604" "2003-11-20-06:19:23.604" TRUE TRUE) (0.0 0.0 499.99991902221586 FALSE)) ( ("2003-11-20-06:40:36.396" "2003-11-20-06:40:36.396" TRUE TRUE) (0.0 0.0 499.99991902221643 FALSE))))
+query intersection(distance(up1,up2),[const ureal value (("2003-11-20-05:00" "2003-11-20-08:00" TRUE TRUE)(0.0 0.0 500.0 FALSE))]) the_mvalue
+
+#testcase intersection_ureal_ureal DOUBLE2
+#yields (mreal ( ( ("2003-11-20-06:19:23.604" "2003-11-20-06:19:23.604" TRUE TRUE) (0.0 0.0 499.99991902221586 FALSE)) ( ("2003-11-20-06:40:36.396" "2003-11-20-06:40:36.396" TRUE TRUE) (0.0 0.0 499.99991902221643 FALSE))))
+query intersection([const ureal value (("2003-11-20-05:00" "2003-11-20-08:00" TRUE TRUE)(0.0 0.0 500.0 FALSE))],distance(up1,up2)) the_mvalue
 
 
 
