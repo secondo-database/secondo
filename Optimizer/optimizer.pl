@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -250,10 +250,10 @@ Example call:
 
 
 createPredicateFacts(Preds) :-
-  optimizerOption(adaptiveJoin),   
+  optimizerOption(adaptiveJoin),
   storePredicates(Preds), !.
- 
-createPredicateFacts(_). 
+
+createPredicateFacts(_).
 
 
 pog(Rels, Preds, Nodes, Edges) :-
@@ -264,7 +264,7 @@ pog(Rels, Preds, Nodes, Edges) :-
   deleteNodes, storeNodes(Nodes),
   deleteEdges, storeEdges(Edges),
   deleteVariables, deleteCounters,
-  createPredicateFacts(Preds), 
+  createPredicateFacts(Preds),
   deletePlanEdges, createPlanEdges,
   HighNode is 2**M -1,
   retract(highNode(_)), assert(highNode(HighNode)).
@@ -275,8 +275,8 @@ pog(Rels, Preds, Nodes, Edges) :-
 
 3.2 Maintaining Counters
 
-The dynamic fact ~nCounter~ stores the values of counters as a pair 
-(name, value). 
+The dynamic fact ~nCounter~ stores the values of counters as a pair
+(name, value).
 
 */
 
@@ -289,7 +289,7 @@ nextCounter(Name, Result) :-
   retract(nCounter(Name, Value)),
   assert(nCounter(Name, Result)).
 
-% create a new counter if necessary 
+% create a new counter if necessary
 nextCounter(Name, 1) :-
   assert(nCounter(Name, 1)).
 
@@ -299,14 +299,14 @@ getCounter(Name, Value) :-
 
 getCounter(Name, 0) :-
   resetCounter(Name, 0).
- 
+
 resetCounter(Name) :-
   retractall(nCounter(Name, _)).
 
-resetCounter(Name, Value) :- 
+resetCounter(Name, Value) :-
   retractall(nCounter(Name, _)),
   assert(nCounter(Name, Value)).
- 
+
 deleteCounters :-
   resetCounter(nodeCtr).
 
@@ -315,16 +315,16 @@ showCounters :-
   showCounters(List).
 
 showCounters([]).
- 
+
 showCounters([H|T]) :-
   H = [Name, Value],
   write(Name), write(' = '), write(Value), nl,
   showCounters(T).
 
- 
+
 showpog(Rels, Preds) :-
   nl, write('Rels: '), write(Rels),
-  nl, write('Preds: '), write(Preds), 
+  nl, write('Preds: '), write(Preds),
   nl, nl, write('Nodes: '), nl, writeNodes,
   nl, nl, write('Edges: '), nl, writeEdges,
   nl, nl, write('Plan Edges: '), nl, writePlanEdges.
@@ -365,7 +365,7 @@ restorePartitionClauses :-
 ----
 
 For the given start partition ~Partition0~, a list of predicates ~Preds~
-containing ~NoOfPred~ predicates, return the ~Nodes~ and ~Edges~ of the 
+containing ~NoOfPred~ predicates, return the ~Nodes~ and ~Edges~ of the
 predicate order graph.
 
 */
@@ -419,8 +419,8 @@ This means that for a selection predicate we have to find the arp
 containing its relation and modify it accordingly, the other arps
 in the partition are copied unchanged.
 
-For a join predicate we have to find the two arps containing its 
-two relations and to merge them into a single arp; the remaining 
+For a join predicate we have to find the two arps containing its
+two relations and to merge them into a single arp; the remaining
 arps are copied unchanged.
 
 Or a join predicate may find its two relations in the same arp which means
@@ -566,7 +566,7 @@ copied version reflects a previous application of predicate ~Pred~.
 
 This is implemented by retrieving from each old edge its start node,
 constructing for this start node and predicate ~Pred~ a target node to
-which then the predicate associated with the old edge is applied. 
+which then the predicate associated with the old edge is applied.
 
 */
 
@@ -607,7 +607,7 @@ writeEdgeList([edge(Source, Target, Term, _, _, _) | Edges]) :-
         deleteEdges.
 ----
 
-Just as the names say. Store a list of nodes or edges, repectively, as facts; 
+Just as the names say. Store a list of nodes or edges, repectively, as facts;
 and delete them from memory again.
 
 */
@@ -634,7 +634,7 @@ Write the currently stored nodes and edges, respectively.
 
 */
 writeNode :-
-  node(No, Preds, Partition), 
+  node(No, Preds, Partition),
   write('Node: '), write(No), nl,
   write('Preds: '), write(Preds), nl,
   write('Partition: '), write(Partition), nl, nl,
@@ -658,13 +658,13 @@ writeEdges :- not(writeEdge).
 5.1 Precise Notation for Input
 
 Since now we have to look into the structure of predicates, and need to be
-able to generate Secondo executable expressions in their precise format, we 
+able to generate Secondo executable expressions in their precise format, we
 need to define the input notation precisely.
 
 5.1.1 The Source Language
 [:Section 4.1.1]
 
-We assume the queries can be entered basically as select-from-where 
+We assume the queries can be entered basically as select-from-where
 structures, as follows. Let schemas be given as:
 
 ----    plz(PLZ:string, Ort:string)
@@ -695,17 +695,17 @@ For example
 ----    rel(staedte, *, u)
 ----
 
-is a term denoting the ~Staedte~ relation; ~u~ says that it is actually to be 
+is a term denoting the ~Staedte~ relation; ~u~ says that it is actually to be
 written in upper case whereas
 
 ----    rel(plz, *, l)
 ----
 
 denotes the ~plz~ relation to be written in lower case. The second argument
-~Var~ contains an explicit variable if it has been assigned, otherwise the 
-symbol [*]. If an explicit variable has been used in the query, we need to 
-perfom renaming in the plan. For example, in the second query above, the 
-relations would be denoted as 
+~Var~ contains an explicit variable if it has been assigned, otherwise the
+symbol [*]. If an explicit variable has been used in the query, we need to
+perfom renaming in the plan. For example, in the second query above, the
+relations would be denoted as
 
 ----    rel(staedte, s, u)
         rel(plz, p, l)
@@ -718,33 +718,33 @@ Within predicates, attributes are annotated as follows:
         attr(ort, 2, u)
 ----
 
-This says that  ~ort~ is an attribute of the second argument within a join 
-condition, to be written in upper case. For a selection condition, the second 
+This says that  ~ort~ is an attribute of the second argument within a join
+condition, to be written in upper case. For a selection condition, the second
 argument is ignored; it can be set to 0 or 1.
 
 Hence for the two queries above, the translation would be
 
 ----    fromwhere(
-          [rel(staedte, *, u)], 
+          [rel(staedte, *, u)],
           [pr(attr(bev, 0, u) > 500000, rel(staedte, *, u))]
         )
 
         fromwhere(
           [rel(staedte, s, u), rel(plz, p, l)],
-          [pr(attr(s:sName, 1, u) = attr(p:ort, 2, u), 
+          [pr(attr(s:sName, 1, u) = attr(p:ort, 2, u),
                 rel(staedte, s, u), rel(plz, p, l)),
            pr(attr(p:pLZ, 0, u) > 40000, rel(plz, p, l))]
         )
 ----
 
 Note that the upper or lower case distinction refers only to the first letter
-of a relation or attribute name. Other letters are written on the PROLOG side 
+of a relation or attribute name. Other letters are written on the PROLOG side
 in the same way as in Secondo.
 
 Note further that if explicit variables are used, the attribute name will
 include them, e.g. s:sName.
 
-The projection occurring in the select-from-where statement is for the moment 
+The projection occurring in the select-from-where statement is for the moment
 not passed to the optimizer; it is treated outside.
 
 So example 2 is rewritten as:
@@ -764,13 +764,13 @@ The two queries mentioned above are:
 */
 
 example4 :- pog(
-  [rel(staedte, *, u)], 
+  [rel(staedte, *, u)],
   [pr(attr(bev, 1, u) > 500000, rel(staedte, *, u))],
   _, _).
 
 example5 :- pog(
   [rel(staedte, s, u), rel(plz, p, l)],
-  [pr(attr(s:sName, 1, u) = attr(p:ort, 2, u), rel(staedte, s, u), 
+  [pr(attr(s:sName, 1, u) = attr(p:ort, 2, u), rel(staedte, s, u),
     rel(plz, p,l)),
    pr(attr(p:pLZ, 1, u) > 40000, rel(plz, p, l))],
   _, _).
@@ -789,7 +789,7 @@ In the target language, we use the following operators:
 
                                 where Tuple3 = Tuple1 o Tuple2
 
-        symmjoin:       stream(Tuple1) x stream(Tuple2) x 
+        symmjoin:       stream(Tuple1) x stream(Tuple2) x
 				(Tuple 1 x Tuple 2 -> bool) -> stream(Tuple3)
 
                                 where Tuple3 = Tuple1 o Tuple2
@@ -809,12 +809,12 @@ In the target language, we use the following operators:
                                 where   Tuple3 = Tuple1 o Tuple2
                                         attrname1 occurs in Tuple1
                                         attrname2 occurs in Tuple2
-                                        
+
         loopjoin:       stream(Tuple1) x (Tuple1 -> stream(Tuple2)
                                 -> stream(Tuple3)
 
                                 where   Tuple3 = Tuple1 o Tuple2
-                                
+
         exactmatch:     btree(Tuple, AttrType) x rel(Tuple) x AttrType
                                 -> stream(Tuple)
 
@@ -850,37 +850,37 @@ In the target language, we use the following operators:
 
         groupby:       stream(Tuple) x GroupAttrs x NewFields -> stream(Tuple2)
 
-                                group stream by the grouping attributes; for 
-                                each group compute new fields each of which is 
-                                specified in the form Attrname : Expr. The 
-                                argument stream must already be sorted by the 
+                                group stream by the grouping attributes; for
+                                each group compute new fields each of which is
+                                specified in the form Attrname : Expr. The
+                                argument stream must already be sorted by the
                                 grouping attributes.
 
         windowintersects:   rtree(Tuple) x rel(Tuple) x rect -> stream(Tuple)
 
                                 Creates a stream of tuples containing all
-                                tuples stored within the rtree and the relation, 
+                                tuples stored within the rtree and the relation,
                                 whose bbox intersects the second argument.
 
         windowintersectsS:  rtree(Tuple) x rect -> stream(tid)
- 
+
                                 Creates a stream of tuple identifiers for all
-                                tuples stored within the rtree, whose bbox 
+                                tuples stored within the rtree, whose bbox
                                 intersects the second argument.
 
         gettuples:          stream(tip) x rel(Tuple) -> stream(Tuple)
 
-                                Create a stream of tuples, by reading all those 
-                                tuples from the relation, whose tuple identifier 
-                                are passed in the input stream 
- 
+                                Create a stream of tuples, by reading all those
+                                tuples from the relation, whose tuple identifier
+                                are passed in the input stream
+
         sort:               stream(Tuple) -> stream(Tuple)
-                                
+
                                 Sorts the input stream lexicographically
 
         rdup:               stream(Tuple) -> stream(Tuple)
 
-                                Removes duplicates from a lexicographically 
+                                Removes duplicates from a lexicographically
                                 ordered input stream
 ----
 
@@ -891,7 +891,7 @@ Parameter functions are written as
 
 ----    fun([param(Var1, Type1), ..., param(VarN, TypeN)], Expr)
 ----
-        
+
 
 5.1.3 Converting Plans to Atoms and Writing them.
 
@@ -923,7 +923,7 @@ wp(Plan) :-
 
 Function ~newVariable~ outputs a new unique variable name.
 The variable name is unique in the sense that ~newVariable~ never
-outputs the same name twice (in a PROLOG session). 
+outputs the same name twice (in a PROLOG session).
 It should be emphasized that the output
 is not a PROLOG variable but a variable name to be used for defining
 abstractions in the Secondo system.
@@ -941,7 +941,7 @@ newVariable(Var) :-
   assert(varDefined(N1)),
   atom_concat('var', N1, Var).
 
-newVariable(Var) :- 
+newVariable(Var) :-
   assert(varDefined(1)),
   Var = 'var1'.
 
@@ -949,15 +949,15 @@ deleteVariables :- retractall(varDefined(_)).
 
 
 /*
-The ~plan\_to\_atom(attr(Name, Arg, Case), Result)~ predicate is not able to distinguish whether 
+The ~plan\_to\_atom(attr(Name, Arg, Case), Result)~ predicate is not able to distinguish whether
 to return ~.Name~ or ~..Name~ for ~Arg~ = 2. Now, we use a predicate ~consider\_Arg2(T1, T2)~ to return a term ~T2~, that is constructed from term ~T1~ by replacing all occurrences of ~attr(\_, 2, \_)~ in it by ~attr2(\_, 2, \_)~.
- 
+
 */
 
-consider_Arg2(Pred, Pred) :- 
+consider_Arg2(Pred, Pred) :-
   atomic(Pred).
 
-consider_Arg2(attr(Name, 2, Case), attr2(Name, 2, Case)):- !.                 
+consider_Arg2(attr(Name, 2, Case), attr2(Name, 2, Case)):- !.
 
 consider_Arg2(Term,Term2) :-
   compound(Term),
@@ -1005,10 +1005,10 @@ Handle Implicit arguments in parameter functions:
 
 plan_to_atom(implicitArg(1), Result) :-
   atom_concat('.', ' ', Result).
-  
+
 plan_to_atom(implicitArg(2), Result) :-
   atom_concat('..', ' ', Result).
-   
+
 
 /*
 Lists:
@@ -1151,7 +1151,7 @@ plan_to_atom(field(NewAttr, Expr), Result) :-
   plan_to_atom(Expr, EAtom),
   concat_atom([NAtom, ': ', EAtom], '', Result).
 
- 
+
 /*
 Using the switch ``removeHiddenAttributes'', ~reduce~ can either be left in the plan or removed from it.
 
@@ -1163,7 +1163,7 @@ plan_to_atom(reduce(Stream, Pred, Factor), Result) :-
   plan_to_atom(Stream, StreamAtom),
   plan_to_atom(Pred, PredAtom),
   plan_to_atom(Factor, FactorAtom),
-  concat_atom([StreamAtom, 'reduce[', PredAtom, ', ', FactorAtom, '] '], '', 
+  concat_atom([StreamAtom, 'reduce[', PredAtom, ', ', FactorAtom, '] '], '',
     Result),
   !.
 
@@ -1175,7 +1175,7 @@ plan_to_atom(reduce(Stream, _, _), StreamAtom) :-
 
 /*
 Attributes can be designated as hidden by setting their argument number to 100,
-e.g. in a term ~attrname(attr(xxxIDplz, 100, l))~. If the flag ~removeHiddenAttributes~ is set, 
+e.g. in a term ~attrname(attr(xxxIDplz, 100, l))~. If the flag ~removeHiddenAttributes~ is set,
 they are removed from a projection list. Currently used for the entropy optimizer.
 
 */
@@ -1190,7 +1190,7 @@ plan_to_atom(project(Stream, Fields), Result) :-
   !.
 
 plan_to_atom(project(Stream, Fields), Result) :-
-  removeHiddenAttributes, 			
+  removeHiddenAttributes,
   plan_to_atom(Stream, SAtom),
   removeHidden(Fields, Fields2),	% defined after plan_to_atom
   plan_to_atom(Fields2, FAtom),
@@ -1222,7 +1222,7 @@ plan_to_atom(like(X, Y, Z, A, B), Result) :-
   plan_to_atom(Z, ZAtom),
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
-  concat_atom([XAtom,' like[',YAtom,', ',ZAtom,', ',AAtom,', ',BAtom,']'], 
+  concat_atom([XAtom,' like[',YAtom,', ',ZAtom,', ',AAtom,', ',BAtom,']'],
   '', Result),
   !.
 
@@ -1238,8 +1238,8 @@ plan_to_atom(theminute(X, Y, Z, A, B), Result) :-
   plan_to_atom(Z, ZAtom),
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
-  concat_atom([' theminute(', XAtom, ', ', YAtom, ', ', ZAtom, ', ', 
-    AAtom, ', ', BAtom, ')'], 
+  concat_atom([' theminute(', XAtom, ', ', YAtom, ', ', ZAtom, ', ',
+    AAtom, ', ', BAtom, ')'],
   '', Result),
   !.
 
@@ -1283,13 +1283,13 @@ plan_to_atom(attribute(X, Y), Result) :-
   plan_to_atom(Y, YAtom),
   concat_atom(['attr(', XAtom, ', ', YAtom, ')'], '', Result),
   !.
- 
+
 
 plan_to_atom(date(X), Result) :-
   plan_to_atom(X, XAtom),
   concat_atom(['[const instant value ', XAtom, ']'], '', Result),
   !.
-  
+
 plan_to_atom(interval(X, Y), Result) :-
   concat_atom(['[const duration value (', X, ' ', Y, ')]'], '', Result),
   !.
@@ -1301,11 +1301,11 @@ Sort orders and attribute names.
 */
 
 plan_to_atom(asc(Attr), Result) :-
-  plan_to_atom(Attr, AttrAtom), 
+  plan_to_atom(Attr, AttrAtom),
   atom_concat(AttrAtom, ' asc', Result).
 
 plan_to_atom(desc(Attr), Result) :-
-  plan_to_atom(Attr, AttrAtom), 
+  plan_to_atom(Attr, AttrAtom),
   atom_concat(AttrAtom, ' desc', Result).
 
 plan_to_atom(attr(Name, Arg, Case), Result) :-
@@ -1352,20 +1352,20 @@ plan_to_atom(true, Result) :-
 Integrating counters into query plans
 
 */
- 
+
 plan_to_atom(counter(Term,N), Result) :-
   plan_to_atom( Term, TermRes ),
   concat_atom( [ TermRes, ' {', N,'} '], Result ),
   !.
 
- 
+
 /*
-Translation of operators driven by predicate ~secondoOp~ in 
+Translation of operators driven by predicate ~secondoOp~ in
 file ~opSyntax~. There are rules for
 
   * postfix, 1 or 2 arguments
 
-  * postfix followed by one argument in square brackets, in total 2 
+  * postfix followed by one argument in square brackets, in total 2
 or 3 arguments
 
   * prefix, 2 arguments
@@ -1426,12 +1426,12 @@ plan_to_atom(Term, Result) :-
 
 
 /*
-Generic rules. Operators that are not 
+Generic rules. Operators that are not
 recognized are assumed to be:
 
   * 1 argument: prefix
 
-  * 2 arguments: infix 
+  * 2 arguments: infix
 
   * 3 arguments: prefix
 
@@ -1503,7 +1503,7 @@ params_to_atom([param(Var, Type) | Params], Result) :-
 
 
 
-type_to_atom(tuple, 'TUPLE').           
+type_to_atom(tuple, 'TUPLE').
 type_to_atom(tuple2, 'TUPLE2').
 type_to_atom(group, 'GROUP').
 
@@ -1520,7 +1520,7 @@ If the argument is of the form res(N), then it is a stream already and can be
 used unchanged. If it is of the form arg(N), then it is a base relation; a
 ~feed~ must be applied and possibly a ~rename~.
 
-For ~res(N)~ and ~arg(N)~, there should be only one possible translation, so 
+For ~res(N)~ and ~arg(N)~, there should be only one possible translation, so
 respect the correct ordering of clauses and use cuts to enforce the uniqueness
 of translation results.
 
@@ -1537,7 +1537,7 @@ arg(N) => rename(feed(rel(Name, Var, Case)), Var) :-
   argument(N, rel(Name, Var, Case)), !.
 
 arg(N) => project(feed(rel(Name, *, Case)), AttrNames) :-
-  argument(N, rel(Name, *, Case)), !, 
+  argument(N, rel(Name, *, Case)), !,
   usedAttrList(rel(Name, *, Case), AttrNames).
 
 arg(N) => rename(project(feed(rel(Name, Var, Case)), AttrNames), Var) :-
@@ -1565,9 +1565,9 @@ Translation of selections using indices.
 
 April 2006, Christian D[ue]ntgen. Added project-translation for index selections.
 
-May 2006, Translating a selection-predicate into a combimation of ~windowintersects~/
+May 2006, Translating a selection-predicate into a combination of ~windowintersects~/
 ~windowintersectsS~ and ~filter~, the optimizer will add an initial project ~after~ the
-filter. For non-star-queries with one single selection this may even result in plans 
+filter. For non-star-queries with one single selection this may even result in plans
 with two consecutive projections. This problem is still unsolved.
 
 */
@@ -1576,7 +1576,7 @@ select(arg(N), Y) => X :-
   indexselect(arg(N), Y) => X.
 
 select(arg(N), Y) => project(X, AttrNames) :-
-  not(isStarQuery), 
+  not(isStarQuery),
   argument(N, rel(Name, *, Case)),
   indexselect(arg(N), Y) => X,
   % no renaming, so just use native projection attr list
@@ -1599,7 +1599,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, Case) = Y, Rel)) => X :-
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
   exactmatch(IndexName, rel(Name, *, Case), Y)
   :-
-  argument(N, rel(Name, *, Case)), 
+  argument(N, rel(Name, *, Case)),
   hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
 
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
@@ -1632,7 +1632,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, Case) >= Y, Rel)) => X :-
 indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
   rightrange(IndexName, rel(Name, *, Case), Y)
   :-
-  argument(N, rel(Name, *, Case)),  
+  argument(N, rel(Name, *, Case)),
   hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
 
 indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
@@ -1644,19 +1644,19 @@ indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
 
 /*
 
-C. D[ue]ntgen, Feb 2006: When using renaming, the indexselect rule using 
-``windowintersects'' failed, because the rule accesses the original (not renamed) 
-relation. The correct approach is to do a rename on the result ~before~ the 
+C. D[ue]ntgen, Feb 2006: When using renaming, the indexselect rule using
+``windowintersects'' failed, because the rule accesses the original (not renamed)
+relation. The correct approach is to do a rename on the result ~before~ the
 filter is used.
 
 */
 
-% Generic indesselect translation for predicates checking on mbbs
+% Generic indexselect translation for predicates checking on mbbs
 
 % exploit commutativity of operators
 indexselect(arg(N), pr(Pred, Rel)) => X :-
   Pred =.. [OP, Y, attr(AttrName, Arg, Case)],
-  isBBoxPredicate(OP), 
+  isBBoxPredicate(OP),
   isCommutativeOP(OP),
   Pred2 =.. [OP, attr(AttrName, Arg, Case), Y],
   indexselect(arg(N), pr(Pred2, Rel)) => X.
@@ -1666,19 +1666,19 @@ indexselect(arg(N), pr(Pred, _)) =>
   filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), Pred)
   :-
   Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y],
-  isBBoxPredicate(OP), 
+  isBBoxPredicate(OP),
   % alternatively: member(OP,[adjacent, intersects, inside, overlaps]),
-  argument(N, rel(Name, *, Case)),  
+  argument(N, rel(Name, *, Case)),
   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
 
 indexselect(arg(N), pr(Pred, _)) =>
   filter(rename(windowintersects(IndexName, rel(Name,*,Case),bbox(Y)),RelAlias),
          Pred)
   :-
-  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y], 
-  isBBoxPredicate(OP), 
+  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y],
+  isBBoxPredicate(OP),
   % alternatively: member(OP,[adjacent, intersects, inside, overlaps]),
-  argument(N, rel(Name, RelAlias, Case)), RelAlias \= *, 
+  argument(N, rel(Name, RelAlias, Case)), RelAlias \= *,
   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
 
 
@@ -1697,32 +1697,32 @@ indexselect(arg(N), Pred) => X :-
 
 % 'present' with object_time index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
-  filter(gettuples(windowintersectsS(IndexName, queryrect2d(Y)), 
+  filter(gettuples(windowintersectsS(IndexName, queryrect2d(Y)),
          rel(Name, *, Case)), attr(AttrName, Arg, AttrCase) present Y)
   :-
   argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), 
+  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase),
            IndexName, object_time).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
-  filter(rename(gettuples(windowintersectsS(IndexName, queryrect2d(Y)), 
+  filter(rename(gettuples(windowintersectsS(IndexName, queryrect2d(Y)),
         rel(Name, *, Case)), RelAlias), attr(AttrName, Arg, AttrCase) present Y)
   :-
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), 
+  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase),
            IndexName, object_time).
 
 % 'present' with unit_time index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
-  filter(gettuples(rdup(sort(windowintersectsS(IndexName, queryrect2d(Y)))), 
+  filter(gettuples(rdup(sort(windowintersectsS(IndexName, queryrect2d(Y)))),
          rel(Name, *, Case)), attr(AttrName, Arg, AttrCase) present Y)
   :-
-  argument(N, rel(Name, *, Case)), 
+  argument(N, rel(Name, *, Case)),
   hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_time).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   filter(rename(gettuples(rdup(sort(
-         windowintersectsS(IndexName, queryrect2d(Y)))), 
+         windowintersectsS(IndexName, queryrect2d(Y)))),
          rel(Name, *, Case)), RelAlias), attr(AttrName, Arg, AttrCase) present Y)
   :-
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
@@ -1731,32 +1731,32 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
 
 % 'passes' with object_space index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
-  filter(gettuples(windowintersectsS(IndexName, bbox(Y)), rel(Name, *, Case)), 
+  filter(gettuples(windowintersectsS(IndexName, bbox(Y)), rel(Name, *, Case)),
          attr(AttrName, Arg, AttrCase) passes Y)
   :-
-  argument(N, rel(Name, *, Case)), 
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), 
+  argument(N, rel(Name, *, Case)),
+  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase),
            IndexName, object_space).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
-  filter(rename(gettuples(windowintersectsS(IndexName, bbox(Y)), 
+  filter(rename(gettuples(windowintersectsS(IndexName, bbox(Y)),
          rel(Name, *, Case)), RelAlias), attr(AttrName, Arg, AttrCase) passes Y)
   :-
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), 
+  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase),
            IndexName, object_space).
 
 
 % 'passes' with unit_space index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
-  filter(gettuples(rdup(sort(windowintersectsS(IndexName, bbox(Y)))), 
+  filter(gettuples(rdup(sort(windowintersectsS(IndexName, bbox(Y)))),
          rel(Name, *, Case)), attr(AttrName, Arg, AttrCase) passes Y)
   :-
-  argument(N, rel(Name, *, Case)), 
+  argument(N, rel(Name, *, Case)),
   hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),IndexName, unit_space).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
-  filter(rename(gettuples(rdup(sort(windowintersectsS(IndexName, bbox(Y)))), 
+  filter(rename(gettuples(rdup(sort(windowintersectsS(IndexName, bbox(Y)))),
          rel(Name, *, Case)), RelAlias), attr(AttrName, Arg, AttrCase) passes Y)
   :-
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
@@ -1764,17 +1764,17 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
 
 
 % 'bbox(x) intersects box3d(bbox(Z),Y)' with unit_3d index
-indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
+indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
-  gettuples(rdup(sort(windowintersectsS(IndexName, box3d(bbox(Z),Y)))), 
+  gettuples(rdup(sort(windowintersectsS(IndexName, box3d(bbox(Z),Y)))),
             rel(Name, *, Case))
   :-
-  argument(N, rel(Name, *, Case)), 
+  argument(N, rel(Name, *, Case)),
   hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_3d).
 
-indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
+indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
-  rename(gettuples(rdup(sort(windowintersectsS(IndexName, box3d(bbox(Z),Y)))), 
+  rename(gettuples(rdup(sort(windowintersectsS(IndexName, box3d(bbox(Z),Y)))),
             rel(Name, *, Case)), RelAlias)
   :-
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
@@ -1782,16 +1782,16 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
 
 
 % 'bbox(x) intersects box3d(bbox(Z),Y)' with object_3d index
-indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
+indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
   gettuples(windowintersectsS(IndexName, box3d(bbox(Z),Y)), rel(Name, *, Case))
   :-
   argument(N, rel(Name, *, Case)),
   hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, object_d3).
 
-indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects 
+indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
-  rename(gettuples(windowintersectsS(IndexName, box3d(bbox(Z),Y)), 
+  rename(gettuples(windowintersectsS(IndexName, box3d(bbox(Z),Y)),
          rel(Name, *, Case)), RelAlias)
   :-
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
@@ -1823,8 +1823,8 @@ Index joins:
 
 
 join(Arg1, arg(N), pr(X=Y, _, _)) => loopjoin(Arg1S, MatchExpr) :-
-  isOfSecond(Attr2, X, Y),
-  isNotOfSecond(Expr1, X, Y),
+  isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
+  isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
   argument(N, RelDescription),
   hasIndex(RelDescription, Attr2, IndexName, btree),
   Arg1 => Arg1S,
@@ -1843,12 +1843,12 @@ Try to apply projections as early as possible!
 
 */
 
- 
+
 exactmatch(IndexName, arg(N), Expr) =>
   exactmatch(IndexName, Rel, Expr) :-
-  isStarQuery, 
+  isStarQuery,
   argument(N, Rel),
-  Rel = rel(_, *, _), % no renaming needed 
+  Rel = rel(_, *, _), % no renaming needed
   !.
 
 exactmatch(IndexName, arg(N), Expr) =>
@@ -1860,22 +1860,22 @@ exactmatch(IndexName, arg(N), Expr) =>
 
 exactmatch(IndexName, arg(N), Expr) =>
   project(exactmatch(IndexName, Rel, Expr), AttrNames) :-
-  not(isStarQuery), 
+  not(isStarQuery),
   argument(N, Rel ),
   Rel = rel(_, *, _), % no renaming needed
   usedAttrList(Rel, AttrNames),
   !.
 
- 
+
 exactmatch(IndexName, arg(N), Expr) =>
   rename(project(exactmatch(IndexName, Rel, Expr), AttrNames), Var) :-
-  not(isStarQuery), 
+  not(isStarQuery),
   argument(N, Rel),
   Rel = rel(_, Var, _), % with renaming
   usedAttrList(Rel, AttrNames),
   !.
 
- 
+
 /*
 One could easily add rules for ~loopjoin~ with ~rightrange~ and ~leftrange~
 operators for joins on "<=", ">=", "<" and ">" here.
@@ -1883,13 +1883,86 @@ operators for joins on "<=", ">=", "<" and ">" here.
 */
 
 
+/*
 
+Loopindexjoin with bbox predicate using an rtree
+
+Some joins can be performed as a combination of a loopjoin using a
+windowintersects and a consecutive filter.
+This requires one argument to be a ~arg(N)~.
+
+*/
+
+
+join(Arg1, arg(N), pr(Pred, _, _))
+  => filter(loopjoin(Arg1S, RTreeLookupExpr), Pred) :-
+  Pred =.. [Op, X, Y],        % join condition is
+  isBBoxPredicate(Op),        % a bbox-predicate
+  isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
+  isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
+  argument(N, RelDescription),% get info on 2nd relation
+  hasIndex(RelDescription, Attr2, IndexName, rtree), % the relation has an index on Attr2
+  Arg1 => Arg1S,
+  rtreeindexlookupexpr(IndexName, arg(N), Expr1) => RTreeLookupExpr.
+
+join(arg(N), Arg2, pr(Pred, _, _))
+  => filter(loopjoin(Arg2S, RTreeLookupExpr), Pred) :-
+  Pred =.. [Op, X, Y],
+  isBBoxPredicate(Op),
+  isOfFirst(Attr1, X, Y),
+  isNotOfFirst(Expr2, X, Y),
+  argument(N, RelDescription),
+  hasIndex(RelDescription, Attr1, IndexName, rtree),
+  Arg2 => Arg2S,
+  rtreeindexlookupexpr(IndexName, arg(N), Expr2) => RTreeLookupExpr.
 
 /*
-Joins with generic predicates using bbox checks, that can exploit 
+Try to apply projections as early as possible!
+
+*/
+
+
+rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
+  windowintersects(IndexName, Rel, Expr) :-
+  isStarQuery,
+  argument(N, Rel),
+  Rel = rel(_, *, _), % no renaming needed
+  !.
+
+rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
+  rename(windowintersects(IndexName, Rel, Expr), Var) :-
+  isStarQuery, % no need for project
+  argument(N, Rel),
+  Rel = rel(_, Var, _),
+  !.
+
+rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
+  project(windowintersects(IndexName, Rel, Expr), AttrNames) :-
+  not(isStarQuery),
+  argument(N, Rel ),
+  Rel = rel(_, *, _), % no renaming needed
+  usedAttrList(Rel, AttrNames),
+  !.
+
+
+rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
+  rename(project(windowintersects(IndexName, Rel, Expr), AttrNames), Var) :-
+  not(isStarQuery),
+  argument(N, Rel),
+  Rel = rel(_, Var, _), % with renaming
+  usedAttrList(Rel, AttrNames),
+  !.
+
+/*
+Joins with generic predicates using bbox checks, that can exploit
 the spatialjoin to reduce the set of candidates. Predicates are chosen by
-their properties as defiend by predicates ~isBBoxPredicate/1~ and 
+their properties as defiend by predicates ~isBBoxPredicate/1~ and
 ~isCommutativeOP/1~ in file ``operators.pl''.
+
+CD: There seems to be a problem in this rules. When I added the rules
+for 'Loopindexjoin with bbox predicate using an rtree', I first did this
+behind this section. Then, they were never used. I inserted them in front of
+this section, and it worked. There seems to exist a critical cut somewhere...
 
 */
 
@@ -1897,14 +1970,14 @@ join(Arg1, Arg2, pr(Pred, R1, R2)) => JoinPlan :-
   Pred =.. [Op, X, Y],
   isBBoxPredicate(Op),
   X = attr(_, _, _),
-  Y = attr(_, _, _), !,
+  Y = attr(_, _, _), !, % perhaps, this cut is the reason to the ^^^problem
   Arg1 => Arg1S,
   Arg2 => Arg2S,
   join00(Arg1S, Arg2S, pr(Pred, R1, R2)) => JoinPlan.
 
 
 % spatialjoin with generic BBoxPredicate:
-join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg1S, 
+join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg1S,
   Arg2S, attrname(Attr1), attrname(Attr2)), Pred2) :-
   Pred =.. [Op, X, Y],
   isBBoxPredicate(Op),
@@ -1913,7 +1986,7 @@ join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg1S,
   Pred2 =.. [Op, Attr1, Attr2].
 
 % spatialjoin with generic commutative BBoxPredicate (additional):
-join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg2S, 
+join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg2S,
   Arg1S, attrname(Attr2), attrname(Attr1)), Pred2) :-
   Pred =.. [Op, Y, X],
   isCommutativeOP(Op),
@@ -1921,6 +1994,8 @@ join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg2S,
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, Y, X),
   Pred2 =.. [Op, Attr1, Attr2].
+
+
 
 /*
 
@@ -2020,7 +2095,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_hj(Arg1S, Arg2S, Fields) :-
   fail,
   try_pjoin2_hj(X, Y, Fields).
 
- 
+
 
 
 
@@ -2034,7 +2109,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _))
   optimizerOption(intOrders(_)),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y),
-  orderTest(mergejoinPossible).	
+  orderTest(mergejoinPossible).
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _))
   => sortLeftThenMergejoin(Arg1S, Arg2S, attrname(Attr1),
@@ -2058,7 +2133,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _))
 The rules below will be used only if option ~adaptiveJoin~ is set. For
 details refer to ~adaptiveJoin.pl~.
 
-*/ 
+*/
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2(Arg1S, Arg2S, Fields) :-
   fail,
@@ -2066,11 +2141,13 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2(Arg1S, Arg2S, Fields) :-
   try_pjoin2(X, Y, Fields).
 
 
- 
+
 /*
 
-----    isOfFirst(Attr, X, Y)
-        isOfSecond(Attr, X, Y)
+----    isOfFirst(Attr?, X+, Y+)
+        isOfSecond(Attr?, X+, Y+)
+        isNotOfFirst(Attr?, X+, Y+)
+        isNotOfSecond(Attr?, X+, Y+)
 ----
 
 ~Attr~ equal to either ~X~ or ~Y~ is an attribute of the first(second) relation.
@@ -2100,7 +2177,7 @@ createPlanEdge :-
   assert(planEdge(Source, Target, Plan, Result)),
   fail.
 
-createPlanEdges :- 
+createPlanEdges :-
   not(createPlanEdge),
   modifyPlanEdges.
 
@@ -2109,13 +2186,13 @@ deletePlanEdges :- retractall(planEdge(_, _, _, _)).
 modifyPlanEdges :-
   optimizerOption(adaptiveJoin),
   deleteRegularJoinEdges.
-  
+
 modifyPlanEdges.
- 
+
 planEdgeInfoAll(Source, Target) :-
   write('Source: '), write(Source), nl,
   write('Target: '), write(Target), nl.
-  
+
 planEdgeInfo2(Plan, Result) :-
   write('Plan  : '), wp(Plan), nl,
   %  write('\t'), write(Plan), nl,
@@ -2127,16 +2204,16 @@ planEdgeInfo3(Source, Target, Plan, Result) :-
   write('Term  : '), write(Plan), nl,
   write('----------------'), nl,
   planEdgeInfo2(Plan, Result).
-  
+
 writePlanEdges2:-
-  planEdge(Source, Target, Plan, Result), 
+  planEdge(Source, Target, Plan, Result),
   planEdgeInfoAll(Source, Target),
   planEdgeInfo2(Plan, Result),
-  nl, 
+  nl,
   fail.
 
 writePlanEdges3:-
-  planEdge(Source, Target, Plan, Result), 
+  planEdge(Source, Target, Plan, Result),
   planEdgeInfo3(Source, Target, Plan, Result),
   nl,
   fail.
@@ -2216,7 +2293,7 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   setNodeSize(Result, Size),
   assert(edgeSelectivity(Source, Target, Sel)),
   !.
-  
+
 assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   not(optimizerOption(nawracosts)),
   resSize(Arg1, Card1),
@@ -2250,14 +2327,14 @@ Argument ~Arg~ has size ~Size~.
 */
 
 resSize(arg(N), Size) :- argument(N, rel(Rel, _, _)), card(Rel, Size), !.
-resSize(arg(N), _) :- 
+resSize(arg(N), _) :-
   write('Error in optimizer: cannot find cardinality for '),
   argument(N, Rel), wp(Rel), nl, fail.
 resSize(res(N), Size) :- resultSize(N, Size), !.
 
 
 /*
-Assign tuple sizes to a node. Tuple sizes are saved as facts of the form 
+Assign tuple sizes to a node. Tuple sizes are saved as facts of the form
 ~nodeTupleSize(Node, sizeTerm(Core, InFlob, ExtFlob))~.
 
 */
@@ -2265,7 +2342,7 @@ Assign tuple sizes to a node. Tuple sizes are saved as facts of the form
 :- dynamic nodeTupleSize/2.
 :- dynamic storedPredNoPET/3.
 
-setNodeTupleSize(Node, _) :- 
+setNodeTupleSize(Node, _) :-
   nodeTupleSize(Node, _), !.
 
 setNodeTupleSize(Node, TupleSize) :-
@@ -2305,7 +2382,7 @@ setPredNoPET(Index, _, _) :-
 
 setPredNoPET(Index, CalcPET, ExpPET) :-
   assert(storedPredNoPET(Index, CalcPET, ExpPET)), !.
-  
+
 getPredNoPET(Source, Target, CalcPET, ExpPET) :-
   Index is Target - Source,
   getPredNoPET(Index, CalcPET, ExpPET), !.
@@ -2333,24 +2410,24 @@ writeSizes :-
 
 writeNodeSizes :-
   findall([Node, Size], resultSize(Node, Size), L),
-  Format = [ ['Node', 'l'], 
-             ['Size', 'l'] ], 
-  showTuples(L, Format). 
+  Format = [ ['Node', 'l'],
+             ['Size', 'l'] ],
+  showTuples(L, Format).
 
 edgeSelInfo(Source, Target, Sel, Pred) :-
  edgeSelectivity(Source, Target, Sel),
  edge(Source, Target, join(_, _, pr(Pred,_,_)), _, _, _).
- 
+
 edgeSelInfo(Source, Target, Sel, Pred) :-
  edgeSelectivity(Source, Target, Sel),
  edge(Source, Target, select(_, pr(Pred,_)), _, _, _).
- 
+
 writeEdgeSels :-
  findall([Source-Target, Sel, Pred], edgeSelInfo(Source, Target, Sel, Pred), L),
-  Format = [ ['Edge', 'l'], 
-             ['Selectivity', 'l'], 
-             ['Predicate', 'l'] ], 
-  showTuples(L, Format). 
+  Format = [ ['Edge', 'l'],
+             ['Selectivity', 'l'],
+             ['Predicate', 'l'] ],
+  showTuples(L, Format).
 
 
 /*
@@ -2361,7 +2438,7 @@ Delete node sizes and selectivities of edges.
 
 */
 
-deleteSizes :- 
+deleteSizes :-
   retractall(resultSize(_, _)),
   retractall(edgeSelectivity(_, _, _)),
   retractall(nodeTupleSize(_, _)).
@@ -2378,7 +2455,7 @@ deleteSizesNawra :-
 ----    cost(Term, Sel, Size, Cost) :-
 ----
 
-The cost of an executable ~Term~ representing a predicate with selectivity ~Sel~ 
+The cost of an executable ~Term~ representing a predicate with selectivity ~Sel~
 is ~Cost~ and the size of the result is ~Size~.
 
 This is evaluated recursively descending into the term. When the operator
@@ -2419,7 +2496,7 @@ cost(consume(X), Sel, S, C) :-
 
 /*
 For ~filter~, there are several special cases to distinguish:
- 
+
   1 ~filter(spatialjoin(...), P)~
 
   2 ~filter(gettuples(...), P)~
@@ -2431,20 +2508,20 @@ For ~filter~, there are several special cases to distinguish:
 For the first three cases, the edge is the translation of a spatial predicate, that
 makes use of bounding box checks. The first argument of filter will already reduce
 the set of possible candidates, so that the cardinality of tuples processed by filter
-will be smaller than the cardinality passed down in the 3rd argument of ~cost~. Also, the selectivity passed with the second argument of ~cost~ if the ~total~ selectivity. To 
+will be smaller than the cardinality passed down in the 3rd argument of ~cost~. Also, the selectivity passed with the second argument of ~cost~ if the ~total~ selectivity. To
 get the selectivity of the preselection, one can analyse the predicate and lookup
 the table ~storedBBoxSel/3~ for that selectivity, which should be passed to the recursive call of ~cost~.
 
-PROBLEM: What happens with the entropy-optimizer? As for cases 2 + 3, there is no 
-problem, as the index is used to create a fresh tuple stream. But, as for case 1, we 
-might get into problems, as the selectivity of the bbox-check depends on earlier 
+PROBLEM: What happens with the entropy-optimizer? As for cases 2 + 3, there is no
+problem, as the index is used to create a fresh tuple stream. But, as for case 1, we
+might get into problems, as the selectivity of the bbox-check depends on earlier
 predicates - so we should consider both selectivities in the minimization of the entropy.
 
 */
 
 cost(filter(X, _), Sel, S, C) :-
   X = spatialjoin(_, _, _, _),
-%  X = spatialjoin(_, _, attrname(attr(Attr1, ArgNr1, Case1)), 
+%  X = spatialjoin(_, _, attrname(attr(Attr1, ArgNr1, Case1)),
 %                        attrname(attr(Attr2, ArgNr2, Case2))),
 %  getSimplePred(P, PSimple),
 %  databaseName(DB),
@@ -2543,7 +2620,7 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, C) :-
       (SizeY/NBuckets +1) +                     % pair of buckets
     B * S.                                      % producing the result tuples
 
-cost(sort(X), Sel, S, C) :- 
+cost(sort(X), Sel, S, C) :-
   cost(X, Sel, SizeX, CostX),
   sortmergejoinTC(A, _),
   S is SizeX,
@@ -2553,7 +2630,7 @@ cost(sort(X), Sel, S, C) :-
 
 cost(sortby(X, _), Sel, S, C) :-
   cost(sort(X), Sel, S, C).
-  
+
 cost(mergejoin(X, Y, _, _), Sel, S, C) :-
   cost(X, 1, SizeX, CostX),
   cost(Y, 1, SizeY, CostY),
@@ -2575,7 +2652,7 @@ cost(sortRightThenMergejoin(X, Y, AX, AY), Sel, S, C) :-
 
 
 
-/* 
+/*
    Simple cost estimation for ~symmjoin~
 
 */
@@ -2592,14 +2669,14 @@ cost(spatialjoin(X, Y, _, _), Sel, S, C) :-
   cost(X, 1, SizeX, CostX),
   cost(Y, 1, SizeY, CostY),
   spatialjoinTC(A, B),
-  S is SizeX * SizeY * Sel,  
-  C is CostX + CostY +                  % producing the arguments           
-  A * SizeX * log(SizeX + 1) +          % building the R-Tree  
-  %SizeY * log(SizeX + 1) +             % look up in the R-Tree for each 
+  S is SizeX * SizeY * Sel,
+  C is CostX + CostY +                  % producing the arguments
+  A * SizeX * log(SizeX + 1) +          % building the R-Tree
+  %SizeY * log(SizeX + 1) +             % look up in the R-Tree for each
                                         % element of the second stream
   Sel * SizeX * SizeY * log(SizeX + 1) +
   B * S.                                % cost to produce result tuples
-  
+
 
 /*
 costs for pjoin2 will only be used if option ~adpativeJoin~ is enabled.
@@ -2645,7 +2722,7 @@ cost(rdup(X), Sel, S, C) :-
   cost(X, Sel, S, C1),
   sortmergejoinTC(A, _),
   C is C1 + A * S.
- 
+
 
 
 %fapra1590
@@ -2702,7 +2779,7 @@ createCostEdge :- % use standard cost functions
 
 createCostEdges :- not(createCostEdge).
 
-deleteCostEdges :- 
+deleteCostEdges :-
   retractall(costEdge(_, _, _, _, _, _)),
   retractall(storedExtendSTermCost(_, _)),
   retractall(storedExtendAttrSize(_, _)),
@@ -2717,9 +2794,9 @@ costEdgeInfo(Source, Target, Plan, Result, Size, Cost) :-
   nl, write('Target: '), write(Target),
   nl, write('Plan  : '), wp(Plan),
 %  nl, write('        '), write(Plan),  % for testing
-  nl, write('Result: '), write(Result), 
+  nl, write('Result: '), write(Result),
   nl, write('Size  : '), write(Size),
-  nl, write('Cost  : '), write(Cost), nl. 
+  nl, write('Cost  : '), write(Cost), nl.
 
 writeCostEdges2 :-
   costEdge(Source, Target, Plan, Result, Size, Cost),
@@ -2742,13 +2819,13 @@ bestPlan~ will unify a best plan according to the assigned costs.
 % assignCosts :-
 %   optimizerOption(entropy),
 %   assignEntropyCost.
- 
- 
+
+
 assignCosts :-
   deleteSizes,
   (optimizerOption(nawracosts) -> deleteSizesNawra; true),
   deleteCostEdges,
-  assignSizes, 
+  assignSizes,
   createCostEdges.
 
 
@@ -2760,24 +2837,24 @@ graph.
 
 9.1 Shortest Path Algorithm by Dijkstra
 
-We implement the shortest path algorithm by Dijkstra. There are two  
-relevant sets of nodes: 
- 
-  * center: the nodes for which shortest paths have already been
-computed 
+We implement the shortest path algorithm by Dijkstra. There are two
+relevant sets of nodes:
 
-  * boundary: the nodes that have been seen, but that have not yet been  
-expanded. These need to be kept in a priority queue. 
- 
-A node, as used during shortest path computation, is represented as a term 
+  * center: the nodes for which shortest paths have already been
+computed
+
+  * boundary: the nodes that have been seen, but that have not yet been
+expanded. These need to be kept in a priority queue.
+
+A node, as used during shortest path computation, is represented as a term
 
 ----    node(Name, Distance, Path)
 ----
 
 where ~Name~ is the node number, ~Distance~ the distance along the shortest
 path to this node, and ~Path~ is the list of edges forming the shortest path.
-   
-The graph is represented by the set of ~costEdges~. 
+
+The graph is represented by the set of ~costEdges~.
 
 The center is represented as a set of facts of the form
 
@@ -2791,14 +2868,14 @@ possible in constant time.
 The boundary is represented by an abstract data type as described in the
 interface below. Essentially it is a priority queue implementation.
 
- 
-----    successor(Node, Succ) :- 
+
+----    successor(Node, Succ) :-
 ----
 
 ~Succ~ is a successor of node ~Node~ via some edge. This includes computation
 of the distance and path of the successor.
 
-*/ 
+*/
 
 successor(node(Source, Distance, Path), node(Target, Distance2, Path2)) :-
   costEdge(Source, Target, Term, Result, Size, Cost),
@@ -2807,16 +2884,16 @@ successor(node(Source, Distance, Path), node(Target, Distance2, Path2)) :-
 
 /*
 
-----    dijkstra(Source, Dest, Path, Length) :- 
+----    dijkstra(Source, Dest, Path, Length) :-
 ----
 
 The shortest path from ~Source~ to ~Dest~ is ~Path~ of length ~Length~.
 
 */
- 
-:- dynamic center/2. 
 
-dijkstra(Source, Dest, Path, Length) :- 
+:- dynamic center/2.
+
+dijkstra(Source, Dest, Path, Length) :-
   emptyCenter,
   b_empty(Boundary),
   b_insert(Boundary, node(Source, 0, []), Boundary1),
@@ -2825,8 +2902,8 @@ dijkstra(Source, Dest, Path, Length) :-
 
 emptyCenter :- retractall(center(_, _)).
 
- 
-/* 
+
+/*
 ----    dijkstra1(Boundary, Dest, NoOfCalls) :-
 ----
 
@@ -2837,14 +2914,14 @@ just containing the start node.
 For testing we check at which iteration the destination ~Dest~ is reached.
 
 */
- 
+
 dijkstra1(Boundary, _, _, found) :- !,
         tree_height(Boundary, H),
         write('Height of search tree for boundary is '), write(H), nl.
 
 dijkstra1(Boundary, _, _, _) :- b_isEmpty(Boundary).
 dijkstra1(Boundary, Dest, N, _) :-
-        % write('Boundary = '), writeList(Boundary), nl, write('====='), nl, 
+        % write('Boundary = '), writeList(Boundary), nl, write('====='), nl,
   b_removemin(Boundary, Node, Bound2),
   Node = node(Name, _, _),
   assert(center(Name, Node)),
@@ -2886,32 +2963,32 @@ writePath([costEdge(Source, Target, Term, Result, Size, Cost) | Path]) :-
 
 Insert into ~Boundary~  all successors of node ~Node~ not yet present in
 the center, updating their distance if they are already present, to obtain
-~BoundaryNew~. 
+~BoundaryNew~.
 
-*/   
+*/
 putsuccessors(Boundary, Node, BoundaryNew) :-
 
   % comment out next line for debugging infos
   % succInfo(Node),
 
   findall(Succ, successor(Node, Succ), Successors), !,
-  putsucc1(Boundary, Successors, BoundaryNew). 
+  putsucc1(Boundary, Successors, BoundaryNew).
 
 
-/* 
+/*
 Some predicates printing debugging output.
 
-*/  
+*/
 
 nodeInfo(Node) :-
   node(Nr, D, L) = Node,
-  nl, write('Node      : '), write(Nr), 
+  nl, write('Node      : '), write(Nr),
   nl, write('Distance  : '), write(D),
-  nl, write('Cost edges: '), nl, 
+  nl, write('Cost edges: '), nl,
   showCostEdges(L).
 
 showCostEdges([]) :- nl.
-showCostEdges([H|T]) :- 
+showCostEdges([H|T]) :-
   costEdgeInfo(H), showCostEdges(T).
 
 showSuccList(Node) :- successor(Node, Succ), nodeInfo(Succ), fail.
@@ -2924,8 +3001,8 @@ succInfo(Node) :-
 
 
 
-/* 
-----    putsucc1(Boundary, Successors, BoundaryNew) :- 
+/*
+----    putsucc1(Boundary, Successors, BoundaryNew) :-
 ----
 
 put all successors not yet in the center from the list ~Successors~ into the
@@ -2944,36 +3021,36 @@ this case it replaces the previous node entry in the boundary.
 
   * The first successor does not exist in the boundary. It is inserted.
 
-*/   
+*/
 
 putsucc1(Boundary, [], Boundary).
- 
-putsucc1(Boundary, [node(N, _, _) | Successors], BNew) :- 
-  center(N, _), !, 
-  putsucc1(Boundary, Successors, BNew). 
 
-putsucc1(Boundary, [node(N, D, _) | Successors], BNew) :-  
-  b_memberByName(Boundary, N, node(N, DistOld, _)), 
-  DistOld =< D, !, 
-  putsucc1(Boundary, Successors, BNew). 
+putsucc1(Boundary, [node(N, _, _) | Successors], BNew) :-
+  center(N, _), !,
+  putsucc1(Boundary, Successors, BNew).
+
+putsucc1(Boundary, [node(N, D, _) | Successors], BNew) :-
+  b_memberByName(Boundary, N, node(N, DistOld, _)),
+  DistOld =< D, !,
+  putsucc1(Boundary, Successors, BNew).
 
 putsucc1(Boundary, [node(N, D, P) | Successors], BNew) :-
-  b_memberByName(Boundary, N, node(N, DistOld, _)), 
-  D < DistOld, !, 
-  b_deleteByName(Boundary, N, Bound2), 
-  b_insert(Bound2, node(N, D, P), Bound3), 
-  putsucc1(Bound3, Successors, BNew). 
+  b_memberByName(Boundary, N, node(N, DistOld, _)),
+  D < DistOld, !,
+  b_deleteByName(Boundary, N, Bound2),
+  b_insert(Bound2, node(N, D, P), Bound3),
+  putsucc1(Bound3, Successors, BNew).
 
-putsucc1(Boundary, [node(N, D, P) | Successors], BNew) :-  
-  b_insert(Boundary, node(N, D, P), Bound2), 
-  putsucc1(Bound2, Successors, BNew). 
+putsucc1(Boundary, [node(N, D, P) | Successors], BNew) :-
+  b_insert(Boundary, node(N, D, P), Bound2),
+  putsucc1(Bound2, Successors, BNew).
 
-  
-/* 
+
+/*
 
 9.2 Interface ~Boundary~
- 
-The boundary is represented in a data structure with the following 
+
+The boundary is represented in a data structure with the following
 operations:
 
 ----    b_empty(-Boundary) :-
@@ -2988,27 +3065,27 @@ Checks whether the boundary is empty.
 
 
 ----    b_removemin(+Boundary, -Node, -BoundaryOut) :-
----- 
+----
 
 Returns the node ~Node~ with minimal distance from the set ~Boundary~ and
 returns also ~BoundaryOut~ where this node is removed.
-   
+
 ----    b_insert(+Boundary, +Node, -BoundaryOut) :-
 ----
- 
+
 Inserts a node that must not yet be present (i.e., no other node of that
 name).
-   
+
 ----    b_memberByName(+Boundary, +Name, -Node) :-
----- 
- 
-If a node ~Node~ with name ~Name~ is present, it is returned. 
- 
+----
+
+If a node ~Node~ with name ~Name~ is present, it is returned.
+
 ----    b_deleteByName(+Boundary, +Name, -BoundaryOut) :-
----- 
- 
-Returns the boundary, where the node with name ~Name~ is deleted. 
- 
+----
+
+Returns the boundary, where the node with name ~Name~ is deleted.
+
 */
 
 /*
@@ -3024,16 +3101,16 @@ The plan corresponding to ~Path~ is ~Plan~.
 plan(Path, Plan) :-
   optimizerOption(adaptiveJoin),
   makePStream(Path, Plan).
- 
+
 
 plan(Path, Plan) :-
   deleteNodePlans,
   traversePath(Path),
-  highestNode(Path, N), 
+  highestNode(Path, N),
   nodePlan(N, Plan).
 
 
- 
+
 deleteNodePlans :-  retractall(nodePlan(_, _)).
 
 % switch for entropy optimizer
@@ -3041,7 +3118,7 @@ traversePath(Path) :-
   optimizerOption(entropy),
   traversePath2(Path), !.
 
- 
+
 traversePath([]).
 
 traversePath([costEdge(_, _, Term, Result, _, _) | Path]) :-
@@ -3053,7 +3130,7 @@ traversePath([costEdge(_, _, Term, Result, _, _) | Path]) :-
 embedSubPlans(res(N), Term) :-
   nodePlan(N, Term), !.
 
-embedSubPlans(Term, Term2) :- 
+embedSubPlans(Term, Term2) :-
   compound(Term), !,
   Term =.. [Functor | Args],
   embedded(Args, Args2),
@@ -3084,13 +3161,13 @@ bestPlan :-
   bestPlan(Plan, Cost), !,
   write('The best plan is:'), nl, nl,
   wp(Plan),
-  nl, nl, 
+  nl, nl,
   write('The cost is: '), write(Cost), nl.
 
 bestPlan(Plan, Cost) :-
   nl, write('Computing best Plan ...'), nl,
   dc(bestPlan, writeCostEdges),
-  highNode(N), 
+  highNode(N),
   dijkstra(0, N, Path, Cost),
   dc(bestPlan, writePath(Path)),
   plan(Path, Plan).
@@ -3362,11 +3439,11 @@ callLookup(Query, Query2) :-
   newQuery,
   lookup(Query, Query2), !.
 
-newQuery :- 
-  clearVariables, 
-  clearQueryRelations, 
-  clearQueryAttributes, 
-  clearUsedAttributes, 
+newQuery :-
+  clearVariables,
+  clearQueryRelations,
+  clearQueryAttributes,
+  clearUsedAttributes,
   clearIsStarQuery.
 
 clearVariables       :- retractall(variable(_, _)).
@@ -3392,7 +3469,7 @@ lookup(select Attrs from Rels where Preds,
   lookupPreds(Preds, Preds2),
   makeList(Rels2, Rels2List),
   makeList(Preds2, Preds2List),
-  (optimizerOption(entropy) 
+  (optimizerOption(entropy)
     -> registerSelfJoins(Preds2List, 1); true).
 					% needed for entropy optimizer
 
@@ -3410,7 +3487,7 @@ lookup(Query groupby Attrs, Query2 groupby Attrs3) :-
   lookup(Query, Query2),
   makeList(Attrs, Attrs2),
   lookupAttrs(Attrs2, Attrs3).
-  
+
 lookup(Query first N, Query2 first N) :-
   lookup(Query, Query2).
 
@@ -3520,7 +3597,7 @@ lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :- !,
   variable(Var, Rel2),
   Rel2 = rel(Rel, _, _),
   spelled(Rel:Attr, attr(Attr2, VA, Case)),
-  (   usedAttr(Rel2, attr(Attr2, VA, Case)) 
+  (   usedAttr(Rel2, attr(Attr2, VA, Case))
     ; assert(usedAttr(Rel2, attr(Attr2, VA, Case)))
   ).
 
@@ -3553,13 +3630,13 @@ lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
   lookupAttr(Expr, Expr2),
   queryAttr(attr(Name, 0, u)),
   !,
-  write('***** Error: attribute name '), write(Name), 
+  write('***** Error: attribute name '), write(Name),
   write(' doubly defined in query.'),
   nl.
 
 /*
-Generic lookup functionality for lookupAttr/2 on functors of arbitrary arity 
-using Univ (=../2) rather than (functor/3 and arg/3) was introduced by 
+Generic lookup functionality for lookupAttr/2 on functors of arbitrary arity
+using Univ (=../2) rather than (functor/3 and arg/3) was introduced by
 C. D[ue]ntgen.
 
 */
@@ -3601,16 +3678,16 @@ isAttribute(Name, Rel) :-
 11.3.5 Modification of the Where-Clause
 
 
-03/10/2006: (C. D[ue]ntgen) Enabled optimizer to process even predicates with more 
-            than two occurences of attributes, as long as at most 2 relations 
-            are concerned, e.g. something like $a+a>b$, a and b being attributes 
+03/10/2006: (C. D[ue]ntgen) Enabled optimizer to process even predicates with more
+            than two occurences of attributes, as long as at most 2 relations
+            are concerned, e.g. something like $a+a>b$, a and b being attributes
             of relations A resp. B, is now accepted.
 
 */
 
 lookupPreds([], []) :- !.
 
-lookupPreds([P | Ps], [P2 | P2s]) :- 
+lookupPreds([P | Ps], [P2 | P2s]) :-
   lookupPred(P, P2),
   lookupPreds(Ps, P2s), !.
 
@@ -3634,7 +3711,7 @@ lookupPred(Pred, undefined) :-
          write('\' is a constant. This is not allowed.'), nl
        )
     ; ( (N > 2)
-        -> ( write('Error in query: Predicate \''), write(Pred), 
+        -> ( write('Error in query: Predicate \''), write(Pred),
              write('\' involves more than two relations: '),
              write(Rels), write('. This is not allowed.'), nl
            )
@@ -3647,7 +3724,7 @@ lookupPred(Pred, undefined) :-
 /*
 ----    lookupPred1(+Pred, -Pred2, +RelsBefore, -RelsAfter) :-
 ----
-~Pred2~ is the transformed version of ~Pred~; before this is called, 
+~Pred2~ is the transformed version of ~Pred~; before this is called,
 attributes so far considered have already used relations from list ~RelsBefore~.
 The relation list is updated and returned in ~RelsAfter~.
 
@@ -3657,7 +3734,7 @@ lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), RelsBefore, RelsAfter)
   :-
   variable(Var, Rel2), !, Rel2 = rel(Rel, Var, _),
   spelled(Rel:Attr, attr(Attr2, X, Case)),
-  ( member(Rel2, RelsBefore) 
+  ( member(Rel2, RelsBefore)
       -> RelsAfter = RelsBefore
        ; append(RelsBefore, [Rel2], RelsAfter)
   ),
@@ -3692,16 +3769,16 @@ lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-
   Term =.. [Op|Args],
   lookupPred2(Args, Args2, RelsBefore, RelsAfter),
   Term2 =.. [Op|Args2],
-  !.  
+  !.
 
 lookupPred1(Term, Term, Rels, Rels) :-
   atom(Term),
   not(is_list(Term)),
-  write('Symbol \''), write(Term), 
+  write('Symbol \''), write(Term),
   write('\' not recognized, supposed to be a Secondo object.'), nl, !.
 
 lookupPred1(Term, Term, Rels, Rels).
- 
+
 lookupPred2([], [], RelsBefore, RelsBefore).
 
 lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
@@ -3712,34 +3789,34 @@ lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
 
 /*
 11.3.6 Check the Spelling of Relation and Attribute Names
- 
+
 */
- 
+
 spelled(Rel:Attr, attr(Attr2, 0, l)) :-
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
   spelling(DCRel:DCAttr, Attr3),
   Attr3 = lc(Attr2),
   !.
- 
+
 spelled(Rel:Attr, attr(Attr2, 0, u)) :-
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
   spelling(DCRel:DCAttr, Attr2),
   !.
- 
+
 spelled(_:_, attr(_, 0, _)) :- !, fail. % no attr entry in spelling table
- 
+
 spelled(Rel, Rel2, l) :-
   downcase_atom(Rel, DCRel),
   spelling(DCRel, Rel3),
   Rel3 = lc(Rel2),
   !.
- 
+
 spelled(Rel, Rel2, u) :-
   downcase_atom(Rel, DCRel),
   spelling(DCRel, Rel2), !.
- 
+
 spelled(_, _, _) :- !, fail.  % no rel entry in spelling table.
 
 
@@ -3794,28 +3871,28 @@ only the cost for evaluating the essential part, the conjunctive query.
 % special handling for the entropy optimizer
 
 translate1(Query, Stream3, Select2, Cost2) :-
-  optimizerOption(entropy), 
-  deleteSmallResults, 
-  retractall(highNode(_)), assert(highNode(0)), 
+  optimizerOption(entropy),
+  deleteSmallResults,
+  retractall(highNode(_)), assert(highNode(0)),
   assert(buildingSmallPlan),
   retractall(removeHiddenAttributes),
-  translate(Query, Stream1, Select, Cost1), 
-  translateEntropy(Stream1, Stream2, Cost1, Cost2), 
+  translate(Query, Stream1, Select, Cost1),
+  translateEntropy(Stream1, Stream2, Cost1, Cost2),
 % Hook for CSE substitution:
-  rewritePlanforCSE(Stream2, Stream3, Select, Select2), 
+  rewritePlanforCSE(Stream2, Stream3, Select, Select2),
   !.
 
 % default handling
 
 translate1(Query, Stream2, Select2, Cost) :-
-  translate(Query, Stream, Select, Cost), 
+  translate(Query, Stream, Select, Cost),
   rewritePlanforCSE(Stream, Stream2, Select, Select2), % Hook for CSE substitution
   !.
- 
-% the main predicate which does the translation of a query 
- 
+
+% the main predicate which does the translation of a query
+
 translate(Query groupby Attrs,
-        groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields), 
+        groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields),
         select Select2, Cost) :-
   translate(Query, Stream, SelectClause, Cost),
   makeList(Attrs, Attrs2),
@@ -3826,7 +3903,7 @@ translate(Query groupby Attrs,
   translateFields(SelAttrs, Attrs2, Fields, Select2),
   !.
 
-translate(Select from Rels where Preds, Stream, Select, Cost) :- 
+translate(Select from Rels where Preds, Stream, Select, Cost) :-
   not( optimizerOption(immediatePlan) ),
   not( optimizerOption(intOrders(_))     ),  % standard behaviour
   getTime(( pog(Rels, Preds, _, _),
@@ -3834,7 +3911,7 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
             bestPlan(Stream, Cost),
             !
           ), Time),
-  ( optimizerOption(pathTiming) 
+  ( optimizerOption(pathTiming)
     -> ( write('\nTIMING for path creation: '), write(Time), write(' ms.\n') )
      ; true
   ), !.
@@ -3845,17 +3922,17 @@ Modified version to integrate the optional generation of immediate plans.
 The option is activated, when ~optimizerOption(immediatePlan)~ is
 defined. See file ``immediateplan.pl'' for further information.
 
-The rule is also used when using the ``interesting orders extension''. 
+The rule is also used when using the ``interesting orders extension''.
 To activate this option use ``setOption(intOrders(V))'' for a variant ~V~.
 
 */
 
-translate(Select from Rels where Preds, Stream, Select, Cost) :- 
+translate(Select from Rels where Preds, Stream, Select, Cost) :-
   ( optimizerOption(immediatePlan) ; optimizerOption(intOrders(_)) ),
   getTime(( immPlanTranslate(Select from Rels where Preds, Stream, Select, Cost),
             !
           ), Time),
-  ( optimizerOption(pathTiming) 
+  ( optimizerOption(pathTiming)
     -> ( write('\nTIMING for path creation: '), write(Time), write(' ms.\n') )
      ; true
   ), !.
@@ -3863,37 +3940,37 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
 
 /*
 Below we handle the case of queries without where-clause. This results
-in simple Cartesian products of the relations in the from-clause. 
+in simple Cartesian products of the relations in the from-clause.
 This case is not very important and we don't want to make the code complicated by
 applying projections for removing unnecessary attributes which might be a performance
 benefit if a groupby- or orderby- clause is present. The product will be computed
 by the symmjoin operator with a constant filter function which always returns true.
 This operator works well and has symmetric costs, whereas product has antisymmetric
-costs. 
+costs.
 
 C. Duentgen, Feb/17/2006: changed tuple variable names for the sake of uniqueness
-                          (otherwise, a triple-product will crash). 
+                          (otherwise, a triple-product will crash).
 
 */
 
 
 translate(Select from Rel, Stream, Select, 0) :-
   not(is_list(Rel)),
-  makeStream(Rel, Stream), 
-  (optimizerOption(pathTiming) 
+  makeStream(Rel, Stream),
+  (optimizerOption(pathTiming)
     -> write('\nTIMING for path creation: No optimization.\n') ; true
   ), !.
 
 translate(Select from [Rel], Stream, Select, 0) :-
   makeStream(Rel, Stream),
   deleteVariables,
-  (optimizerOption(pathTiming) 
+  (optimizerOption(pathTiming)
     -> write('\nTIMING for path creation: No optimization.\n') ; true
   ).
 
 
-translate(Select from [Rel | Rels], 
-        symmjoin(S1, S2, fun([param(T1, tuple), param(T2, tuple2)], true)), 
+translate(Select from [Rel | Rels],
+        symmjoin(S1, S2, fun([param(T1, tuple), param(T2, tuple2)], true)),
         Select, 0) :-
   makeStream(Rel, S1),
   translate1(Select from Rels, S2, Select, _),
@@ -3915,13 +3992,13 @@ to find all goal for query ~usedAttr(Rel,X)~.
 
 */
 
-usedAttrList(Rel, ResList) :- 
+usedAttrList(Rel, ResList) :-
   setof(X, usedAttr(Rel, X), R1),
   %nl, write('AttrList: '), write(R1), nl,
-  attrnames(R1, ResList). 
+  attrnames(R1, ResList).
 
 renameAttributes(_, [], []).
-renameAttributes(Var, [attrname(attr(Attr,Arg,Case))|AttrNames], 
+renameAttributes(Var, [attrname(attr(Attr,Arg,Case))|AttrNames],
                       [attrname(attr(Var:Attr,Arg,Case))|RenamedAttrNames]
                 ) :-
   renameAttributes(Var, AttrNames, RenamedAttrNames), !.
@@ -3942,7 +4019,7 @@ which will translate to a corresponding projection operation.
 
 translateFields([], _, [], []).
 
-translateFields([count(*) as NewAttr | Select], GroupAttrs, 
+translateFields([count(*) as NewAttr | Select], GroupAttrs,
         [field(NewAttr , count(feed(group))) | Fields], [NewAttr | Select2]) :-
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
@@ -3952,9 +4029,9 @@ translateFields([sum(attr(Name, Var, Case)) as NewAttr | Select], GroupAttrs,
         [NewAttr| Select2]) :-
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
-  
+
 translateFields([sum(Expr) as NewAttr | Select], GroupAttrs,
-        [field(NewAttr, 
+        [field(NewAttr,
           sum(
             extend(feed(group), field(attr(xxxExprField, 0, l), Expr)),
             attrname(attr(xxxExprField, 0, l))
@@ -3977,7 +4054,7 @@ translateFields([Attr as Name | Select], GroupAttrs, Fields, [Attr as Name | Sel
 
 
 /*
-Generic rule for aggregate functions, similar to sum. For operators, the 
+Generic rule for aggregate functions, similar to sum. For operators, the
 property ~isAggregationOP(Op)~ is declared in file ``operators.pl''.
 
 */
@@ -4010,7 +4087,7 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
 
 
 translateFields([Term | Select], GroupAttrs,
-        Fields, 
+        Fields,
         Select2) :-
   compound(Term),
   functor(Term, AggrOp, 1),
@@ -4031,8 +4108,8 @@ translateFields([Attr | Select], GroupAttrs, Fields, Select2) :-
   !,
   translateFields(Select, GroupAttrs, Fields, Select2),
   write('*****'), nl,
-  write('***** Error in groupby: '), 
-  write(Attr), 
+  write('***** Error in groupby: '),
+  write(Attr),
   write(' is neither a grouping attribute'), nl,
   write('      nor an aggregate expression.'), nl,
   write('*****'), nl.
@@ -4107,8 +4184,8 @@ queryToStream(Select from Rels groupby Attrs, Stream2, Cost) :-
   !.
 
 queryToStream(Query, Stream2, Cost) :-
-  translate1(Query, Stream, Select, Cost), 
-  finish(Stream, Select, [], Stream2), 
+  translate1(Query, Stream, Select, Cost),
+  finish(Stream, Select, [], Stream2),
   !.
 
 /*
@@ -4284,7 +4361,7 @@ optimize(Query) :-
 
 optimize(Query, QueryOut, CostOut) :-
   rewriteQuery(Query, RQuery),
-  callLookup(RQuery, Query2), !, 
+  callLookup(RQuery, Query2), !,
   queryToPlan(Query2, Plan, CostOut), !,
   plan_to_atom(Plan, QueryOut).
 
@@ -4330,8 +4407,8 @@ Below we present some generic rules for evaluating SQL examples.
 
 */
 
-showExample(Nr, Query) :- 
-  sqlExample(Nr, Query), 
+showExample(Nr, Query) :-
+  sqlExample(Nr, Query),
   nl, write('SQL: '), write(Query), nl, nl.
 
 example(Nr) :- showExample(Nr, Query), optimize(Query).
@@ -4346,8 +4423,8 @@ Examples 14 - 22:
 
 sqlExample( 14,
 
-  select * 
-  from [staedte as s, plz as p] 
+  select *
+  from [staedte as s, plz as p]
   where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0]
   ).
 
@@ -4359,8 +4436,8 @@ sqlExample( 15,
 
 sqlExample( 16,
 
-  select * 
-  from [staedte as s, plz as p] 
+  select *
+  from [staedte as s, plz as p]
   where [s:sname = p:ort, p:plz > 40000]
   ).
 
@@ -4375,7 +4452,7 @@ which initializes the local stack to 4 MB.
 */
 
 
-/* 
+/*
 Example 17 is too complex for the interesting Orders extension (even with 64M stacks):
 
 ----
@@ -4414,7 +4491,7 @@ sqlExample( 18,
   ).
 
 
-sqlExample( 19, 
+sqlExample( 19,
   select *
   from [staedte, plz as p1, plz as p2]
   where [
@@ -4440,7 +4517,7 @@ sqlExample( 20,
   ).
 
 
-sqlExample( 21, 
+sqlExample( 21,
   select *
   from [staedte, plz as p1, plz as p2, plz as p3]
   where [
@@ -4468,11 +4545,11 @@ example21 :- example(21).
         sql(Term, SecondoQueryRest)
         let(X, Term)
         let(X, Term, SecondoQueryRest)
-----    
+----
 
 ~Term~ must be one of the available select-from-where statements.
 It is optimized and Secondo is called to execute it. ~SecondoQueryRest~
-is a character string (atom) containing a sequence of Secondo 
+is a character string (atom) containing a sequence of Secondo
 operators that can be appended to a given
 plan found by the optimizer; in this case the optimizer returns a
 plan producing a stream.
@@ -4486,17 +4563,17 @@ to a new object ~X~, using the optimizer.
 
 Exception Handling
 
-If an error is encountered during the optimization process, an exception should be 
-thrown using the built-in Prolog predicate 
+If an error is encountered during the optimization process, an exception should be
+thrown using the built-in Prolog predicate
 
 ----    throw(sql_ERROR(X)),
----- 
+----
 
-where ~X~ is a term that represents a somehow meaningful error-message, e.g. 
-respecting the format 
+where ~X~ is a term that represents a somehow meaningful error-message, e.g.
+respecting the format
 
-----    <prolog-file>\<Predicate>(<Arguments>). 
----- 
+----    <prolog-file>\<Predicate>(<Arguments>).
+----
 
 A standard exception handler is implemented by
 the predicate ~defaultExceptionHandler(G)~ that will catch any exception respecting the
@@ -4505,7 +4582,7 @@ exception-format described above, that is thrown within goal ~G~.
 */
 
 defaultExceptionHandler(G) :-
-  catch( G, 
+  catch( G,
          sql_ERROR(X),
          ( write('\nException \''), write(X), write('\' caught.'),
            write('\nAn ERROR occured, please inspect the output above.'),
@@ -4545,7 +4622,7 @@ sql(Term, SecondoQueryRest) :- defaultExceptionHandler((
  )).
 
 
-let(X, Term) :- defaultExceptionHandler(( 
+let(X, Term) :- defaultExceptionHandler((
   isDatabaseOpen,
   mOptimize(Term, Query, Cost),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
@@ -4563,13 +4640,13 @@ let(X, Term, SecondoQueryRest) :- defaultExceptionHandler((
   concat_atom(['let ', X, ' = ', Query], '', Command),
   secondo(Command)
  )).
-         
+
 
 /*
 ----    streamOptimize(Term, Query, Cost) :-
 ----
 
-Optimize the ~Term~ producing an incomplete Secondo query plan ~Query~ 
+Optimize the ~Term~ producing an incomplete Secondo query plan ~Query~
 returning a stream.
 
 */
@@ -4679,8 +4756,8 @@ card(N) :- dijkstra(0, N, Path, _),
   N > 0,
   highNode(High),
   N =< High,
-  plan(Path, Plan), 
-  plan_to_atom(Plan, Query), 
+  plan(Path, Plan),
+  plan_to_atom(Plan, Query),
   atom_concat(Query, ' count', CountQuery),
   atom_concat('query ', CountQuery, FullQuery),
   secondo(FullQuery, [_, Result]),
@@ -4704,10 +4781,10 @@ cards(N) :-
   cards(N1).
 
 writeRealSizes :-
-  realResult(Node, Size), 
+  realResult(Node, Size),
   write('Node: '), write(Node), write(', Real size: '), write(Size), nl,
   fail.
- 
+
 computeCards :-
   retractall(realResult(_, _)),
   cards(1).
@@ -4715,10 +4792,10 @@ computeCards :-
 allCards :-
   computeCards,
   writeRealSizes.
- 
+
 /*
 17 Loading Extensions for Nawra Cost Functions
 
 */
-  
+
 :- [nawra].

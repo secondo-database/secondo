@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 1.1 Constants for Certain Operators
 
 The constants for the operators have been determined by experiments. For
-those experiments, time measurement code was added to some relational operators 
+those experiments, time measurement code was added to some relational operators
 (hashjoin, product, and sortmergejoin). This permitted determining how much
 CPU time is needed for sorting tuples, how much CPU time is needed for hashing etc.
 If one wants to experiment by oneself, the time meeasurement support in the
@@ -78,6 +78,8 @@ require them to be handled differently in some ways.
 
 % Predicates which can use bboxes:
 isBBoxPredicate(intersects).
+isBBoxPredicate(intersects_new).
+isBBoxPredicate(p_intersects).
 isBBoxPredicate(inside).       % also on moving x moving -> movingbool
 isBBoxPredicate(insideold).
 %isBBoxPredicate(adjacent). % would this be correct?
@@ -89,12 +91,15 @@ isBBoxPredicate(ininterior).
 % other operators using bboxes:
 isBBoxOperator(touchpoints).
 isBBoxOperator(intersection).
+isBBoxOperator(intersection_new).
 isBBoxOperator(commonborder).
 isBBoxOperator(commonborderscan).
 isBBoxOperator(X) :- isBBoxPredicate(X).
 
 %isBBoxOperator(minus).
+%isBBoxOperator(minus_new).
 %isBBoxOperator(union).
+%isBBoxOperator(union_new).
 %isBBoxOperator(crossings).
 %isBBoxOperator(distance).
 %isBBoxOperator(direction).
@@ -107,6 +112,8 @@ Commutative operators can be handled specially in some translation rules
 
 */
 isCommutativeOP(intersects).
+isCommutativeOP(intersects_new).
+isCommutativeOP(p_intersects).
 isCommutativeOP(adjacent).
 isCommutativeOP(attached).
 isCommutativeOP(overlaps).
@@ -135,7 +142,7 @@ For later extensions (though needing separate cost functions):
 
 /*
 PlanRewriting needs to identify join operators to allow for a generalized handling.
-For each join operator ~j~, a fact ~isJoinOP(j)~ must be defined. Join operators 
+For each join operator ~j~, a fact ~isJoinOP(j)~ must be defined. Join operators
 are expected to merge the attribute sets of their first two arguments. All other
 operators are expected not to change the attribute set of the manipulated stream.
 
@@ -197,13 +204,15 @@ noFlobType(rect3).
 noFlobType(rect4).
 noFlobType(rint).
 noFlobType(rreal).
-noFlobType(periods). 
+noFlobType(periods).
 noFlobType(ibool).
 noFlobType(iint).
+noFlobType(istring).
 noFlobType(ireal).
 noFlobType(ipoint).
 noFlobType(ubool).
 noFlobType(uint).
+noFlobType(ustring).
 noFlobType(ureal).
 noFlobType(upoint).
 noFlobType(instant).
