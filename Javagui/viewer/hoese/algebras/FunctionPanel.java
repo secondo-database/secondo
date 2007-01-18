@@ -78,40 +78,10 @@ public void paint(Graphics g){
     int height=getHeight()-2*borderSize;
 
     Graphics2D g2 = (Graphics2D) g;
-
-/* //  implementation using a GeneralPath Object
-    if(!GPcomputed){
-       if(!y_computed)
-           compute_y(width,height);
-       double dx = xmax-xmin;
-       boolean first = true;
-       GP = new GeneralPath();
-       Double y;
-       for(int ix=0;ix<width;ix++){
-         double x = xmin+(dx*ix)/width;
-         if((y=function.getValueAt(x))!=null){
-             if(first){
-                GP.moveTo((float)ix,(float)(y.doubleValue()));
-                first=false; 
-             } else{
-                GP.lineTo((float)ix,(float)(y.doubleValue()));
-             }    
-         } else{ // unfefined state
-            first = true;
-         }
-       }
-       GP.transform(at);
-       GPcomputed=true;
-    }
-    
-    if(GP!=null)
-      g2.draw(GP);
-
-*/
- // implementation using a set of Line2D.Double Objects
-    if(!GPcomputed || (segments == null )){
+    if(height <= 0 ){
+        segments = null; // no space to paint anything
+    } else if((!GPcomputed || (segments == null) )){
        double[] matrix = new double[6];
-
        if(!y_computed){
           compute_y(width,height);
        }
@@ -119,8 +89,8 @@ public void paint(Graphics g){
        double dx = xmax-xmin;
        segments = new  Vector(width);
        Double y;
-       java.awt.geom.Point2D.Double lastpoint = null;
        java.awt.geom.Point2D.Double thepoint = null;
+       Vector pointList = new Vector(width);
        for(int ix=0;ix<width;ix++){
          double x = xmin + (dx*ix)/width;
          if((y=function.getValueAt(x))!=null){
@@ -130,15 +100,13 @@ public void paint(Graphics g){
              double xd = matrix[0]*xd1 + matrix[2]*yd1 + matrix[4];
              double yd = matrix[1]*xd1 + matrix[3]*yd1 + matrix[5];
              thepoint = new Point2D.Double(xd,yd);
-            if(lastpoint!=null){
-              Line2D.Double line =  new Line2D.Double(lastpoint,thepoint);
-              segments.add(line);
-            }
-            lastpoint = thepoint;
+             pointList.add(thepoint);
          } else { // undefined state
-           lastpoint=null;
+           tools.LineSimplification.addSegments(pointList,segments,(ymax-ymin)/height);
+           pointList.clear();
          }
       }
+      tools.LineSimplification.addSegments(pointList,segments,(ymax-ymin)/height);
       GPcomputed=true;
     }
     if(segments!=null){
@@ -189,6 +157,7 @@ public boolean getOrig(int mouseX,int mouseY,java.awt.geom.Point2D.Double result
 public void setFunction(Function function){
     this.function=function;
     GPcomputed=false;
+    repaint();
 }
 
 public boolean setInterval(double xmin,double xmax){

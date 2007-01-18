@@ -7,6 +7,7 @@ import java.awt.event.*;
 import java.util.Vector;
 import java.util.Iterator;
 import tools.Reporter;
+import tools.LineSimplification;
 
 /*
  This class provides a panel able to display several functions.
@@ -86,34 +87,38 @@ public boolean isYEnabled(){
 }
 
 /** Computes the segment Vector for the given function **/
-private Vector getSegments(Function f){
-   
-   Vector result = new Vector(width);
+private Vector getSegments(Function f, double height){
+  
+   Vector result = new Vector(width); // aquire enough space
    double[] matrix = new double[6];
    at.getMatrix(matrix);
    double dx = xmax-xmin;
    Double y;
-   java.awt.geom.Point2D.Double lastpoint = null;
    java.awt.geom.Point2D.Double thepoint = null;
-   for(int ix=0;ix<width;ix++){
+ 
+   double epsilon = (ymax-ymin) / height; // corresponds to 1 pixel 
+ 
+   Vector pointList = new Vector(width); 
+  
+  for(int ix=0;ix<width;ix++){
       double x = xmin + (dx*ix)/width;
       boolean inRange = (f.getInterval().getStart()<=x) &&   
                          (x<= f.getInterval().getEnd());
-      if(inRange && (y=f.getValueAt(x))!=null){
+      y = f.getValueAt(x);
+      if(inRange && (y!=null)){
           double xd1 = (double) ix; 
           double yd1 = y.doubleValue();
           double xd = matrix[0]*xd1 + matrix[2]*yd1 + matrix[4];
           double yd = matrix[1]*xd1 + matrix[3]*yd1 + matrix[5];
           thepoint = new Point2D.Double(xd,yd);
-          if(lastpoint!=null){
-              Line2D.Double line =  new Line2D.Double(lastpoint,thepoint);
-              result.add(line);
-           }
-           lastpoint = thepoint;
+          pointList.add(thepoint);
       } else { // undefined state
-           lastpoint=null;
+           LineSimplification.addSegments(pointList,result,epsilon); 
+           pointList.clear();
       }
    }
+	 LineSimplification.addSegments(pointList,result,epsilon); 
+	 pointList.clear();
    return result;
 }
 
@@ -140,7 +145,7 @@ public void paint(Graphics g){
     }
     for(int i=0;i<allFunctions.size();i++){
         if(allSegments.get(i)==null){
-            allSegments.set(i,getSegments((Function)allFunctions.get(i)));
+            allSegments.set(i,getSegments((Function)allFunctions.get(i),height));
         }
     }
 
@@ -153,6 +158,16 @@ public void paint(Graphics g){
          while(it.hasNext()){
              Shape s = (Shape) it.next();
              g2.draw(s);
+             Line2D.Double l = (Line2D.Double) s;
+             // debug
+             //Point2D p1 = l.getP1();
+             //Point2D p2 = l.getP2();
+             //double v = height/(ymax-ymin);
+             //s = new Ellipse2D.Double(p1.getX()-v*1.5,p1.getY()-v*1.5,v*3,v*3);
+             //g2.draw(s);   
+             //s = new Ellipse2D.Double(p2.getX()-v*1.5,p2.getY()-v*1.5,v*3,v*3);
+             //g2.draw(s);   
+
          }
     }
     g2.setColor(Color.BLACK);
@@ -198,6 +213,7 @@ public void addFunction(Function function){
     //segmentsComputed=false;
     allSegments.add(null);
     y_computed=false; // may be a new y value
+    repaint();
 }
 
 private void addInterval(double min, double max){
@@ -234,6 +250,10 @@ private void addColor(){
   int b = 0;
 
   int number = allFunctions.size()-1;
+
+  if(number >= 5){ // don't allow white color
+     number++;
+  }
 
 
   int pos = 1;
