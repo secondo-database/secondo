@@ -64,7 +64,7 @@ public class Dsplmovingreal extends DsplGeneric implements
       }
       if(boundingInterval!=null){
          functionframe.setSource(this);
-        // functionframe.addFunction(this);        
+         //functionframe.addFunction(this);        
          functionframe.setVisible(true);
          functionframe.toFront();
       } else{

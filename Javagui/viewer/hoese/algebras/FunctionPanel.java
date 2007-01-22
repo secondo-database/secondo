@@ -107,9 +107,7 @@ public void paint(Graphics g){
            pointList.clear();
          }
       }
-      System.out.println("before simpl: " + pointList.size());
       tools.LineSimplification.addSegments(pointList,segments,epsilon);
-      System.out.println("After simp : " + segments.size());
       GPcomputed=true;
     }
     if(segments!=null){
