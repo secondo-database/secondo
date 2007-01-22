@@ -96,7 +96,7 @@ private Vector getSegments(Function f, double height){
    Double y;
    java.awt.geom.Point2D.Double thepoint = null;
  
-   double epsilon = (ymax-ymin) / height; // corresponds to 1 pixel 
+   double epsilon = Math.min((xmax-xmin)/width, (ymax-ymin) / height); // corresponds to 1 pixel 
  
    Vector pointList = new Vector(width); 
   

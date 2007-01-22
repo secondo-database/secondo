@@ -91,6 +91,7 @@ public void paint(Graphics g){
        Double y;
        java.awt.geom.Point2D.Double thepoint = null;
        Vector pointList = new Vector(width);
+       double epsilon = Math.min( (xmax-xmin)/width, (ymax-ymin)/width);
        for(int ix=0;ix<width;ix++){
          double x = xmin + (dx*ix)/width;
          if((y=function.getValueAt(x))!=null){
@@ -102,11 +103,13 @@ public void paint(Graphics g){
              thepoint = new Point2D.Double(xd,yd);
              pointList.add(thepoint);
          } else { // undefined state
-           tools.LineSimplification.addSegments(pointList,segments,(ymax-ymin)/height);
+           tools.LineSimplification.addSegments(pointList,segments,epsilon);
            pointList.clear();
          }
       }
-      tools.LineSimplification.addSegments(pointList,segments,(ymax-ymin)/height);
+      System.out.println("before simpl: " + pointList.size());
+      tools.LineSimplification.addSegments(pointList,segments,epsilon);
+      System.out.println("After simp : " + segments.size());
       GPcomputed=true;
     }
     if(segments!=null){
