@@ -81,6 +81,7 @@ file.
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
 #include "PolySolver.h"
+#include "RelationAlgebra.h"
 #include <math.h>
 
 extern NestedList* nl;
@@ -4745,6 +4746,7 @@ ListExpr TypeMapLinearize(ListExpr args){
    return nl->SymbolAtom("typeerror");
 }
 
+
 /*
 16.1.12 Type mapping function of the ~linearize2~ Operator
 
@@ -4762,6 +4764,137 @@ ListExpr TypeMapLinearize2(ListExpr args){
    ErrorReporter::ReportError("mreal expected");
    return nl->SymbolAtom("typeerror");
 }
+
+/*
+16.1.13 Type mapping function for the ~approximate~ operator
+
+*/
+ListExpr TypeMapApproximate(ListExpr args){
+
+  int len = nl->ListLength(args);
+  if(len != 3 ){
+      ErrorReporter::ReportError("three arguments expected");
+      return nl->SymbolAtom("typeerror");
+  }
+  // extract the attribute names
+  ListExpr a1list = nl->Second(args);
+  ListExpr a2list = nl->Third(args);
+
+  if(nl->AtomType(a1list)!=SymbolType){
+      ErrorReporter::ReportError("the second argument has to be a symbol");
+      return nl->SymbolAtom("typeerror");
+  }
+  if(nl->AtomType(a2list)!=SymbolType){
+      ErrorReporter::ReportError("the third argument has to be a symbol");
+      return nl->SymbolAtom("typeerror");
+  }
+  string a1 = nl->SymbolValue(a1list);
+  string a2 = nl->SymbolValue(a2list);
+
+  string restype="";
+  int a1index = -1;
+  int a2index = -1;
+
+  ListExpr stype = nl->First(args);
+  if(nl->AtomType(stype)!=NoAtom){
+     ErrorReporter::ReportError("stream(tuple(...))"
+                                " expected as the first argument");
+     return nl->SymbolAtom("typeerror");
+  }
+
+  if((nl->ListLength(stype)!=2) || 
+     (!nl->IsEqual(nl->First(stype),"stream" ))){
+     ErrorReporter::ReportError("stream(tuple(...))"
+                                " expected as the first argument");
+     return nl->SymbolAtom("typeerror");
+  }
+
+  ListExpr ttype = nl->Second(stype);
+
+  if((nl->ListLength(ttype)!=2) || 
+     (!nl->IsEqual(nl->First(ttype),"tuple" ))){
+     ErrorReporter::ReportError("stream(tuple(...))"
+                                " expected as the first argument");
+     return nl->SymbolAtom("typeerror");
+  }
+
+  ListExpr attributes = nl->Second(ttype);
+  if(nl->AtomType(attributes)!=NoAtom){
+      ErrorReporter::ReportError("invalid tuple type");
+      return nl->SymbolAtom("typeerror");
+  }
+  int pos = 0;
+  while(!nl->IsEmpty(attributes)){
+     ListExpr attr = nl->First(attributes);
+     if( (nl->AtomType(attr)!=NoAtom) ||
+         (nl->ListLength(attr)!=2)){
+         ErrorReporter::ReportError("invalid tuple type");
+         return nl->SymbolAtom("typeerror");
+     }
+     ListExpr anl = nl->First(attr);
+     ListExpr atl = nl->Second(attr);
+     if( (nl->AtomType(anl)!=SymbolType) ||
+         (nl->AtomType(atl)!=SymbolType)){
+         ErrorReporter::ReportError("invalid tuple type");
+         return nl->SymbolAtom("typeerror");
+     }
+
+     string aname = nl->SymbolValue(anl);
+     if(aname==a1){
+        if(a1index>=0){
+           ErrorReporter::ReportError("attr name occurs twice");
+           return nl->SymbolAtom("typeerror");
+        }
+        if(!nl->IsEqual(atl,"instant")){
+            ErrorReporter::ReportError("first attr has to be of type instant");
+            return nl->SymbolAtom("typeerror");
+        }      
+        a1index = pos;
+     }
+
+     if(aname==a2){
+        if(a2index >= 0){
+           ErrorReporter::ReportError("attr name occurs twice");
+           return nl->SymbolAtom("typeerror");
+        }
+        string a2type = nl->SymbolValue(atl);
+        if(a2type=="real"){
+            restype = "mreal";
+        } else if (a2type=="point"){
+            restype = "mpoint";
+        } else {
+           ErrorReporter::ReportError("seocond attr has to be of"
+                                      " type real or point");
+           return nl->SymbolAtom("typeerror");
+        }
+        a2index = pos;
+     }
+     pos++; 
+     attributes = nl->Rest(attributes);
+  }
+
+  if(a1index<0){
+     ErrorReporter::ReportError("first attr name does"
+                                " not occur in the typle");
+     return nl->SymbolAtom("typeerror");
+  }
+
+  if(a2index<0){
+     ErrorReporter::ReportError("second attr name does"
+                                " not occur in the typle");
+     return nl->SymbolAtom("typeerror");
+  }
+
+  // all is correct
+  ListExpr ind = nl->TwoElemList(nl->IntAtom(a1index),
+                                 nl->IntAtom(a2index));
+
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                           ind,
+                           nl->SymbolAtom(restype));
+}
+
+
 
 /*
 16.1.13 Type mapping function ~IntSetTypeMapPeriods~
@@ -5417,8 +5550,26 @@ int LinearizeSelect(ListExpr args){
        return 1;
    }
    return -1; // should never occur
+}
+
+/*
+16.2.32 Selection fucntion fot ~Approximate~
+
+*/
+int ApproximateSelect(ListExpr args){
+  ListExpr res = TypeMapApproximate(args);
+  string type = nl->SymbolValue(nl->Third(res));
+  if(type == "mpoint"){
+     return 0;
+  } else if(type == "mreal"){
+     return 1;
+  }
+  return -1;
+  
 
 }
+
+
 
 /*
 16.2.32 Selection function for ~min~ and ~max~
@@ -5910,6 +6061,97 @@ int Linearize2(Word* args, Word& result,
    MReal* arg = (MReal*) args[0].addr;
    MReal* res = (MReal*) result.addr;
    arg->Linearize2(*res);
+   return 0;
+}
+
+/* 
+16.2.28 Value Mapping Functions for Approximate
+
+*/
+
+int ApproximateMReal(Word* args, Word& result,
+                int message, Word& local,
+                Supplier s){
+
+   result = qp->ResultStorage(s);
+   MReal* res = (MReal*) result.addr;
+   int index1 = ((CcInt*)args[3].addr)->GetIntval();
+   int index2 = ((CcInt*)args[4].addr)->GetIntval();
+   
+   res->Clear();
+   res->SetDefined(true);
+   Word actual;
+
+   qp->Open(args[0].addr);
+   qp->Request(args[0].addr, actual);
+   
+   CcReal lastValue,currentValue;
+   Instant lastInstant,currentInstant;
+   bool first = true;
+   while (qp->Received(args[0].addr)) {
+     Tuple* tuple = (Tuple*)actual.addr;
+     currentValue =  *((CcReal*)(tuple->GetAttribute(index2))); 
+     currentInstant = *((Instant*)(tuple->GetAttribute(index1)));
+     if(!first){
+        // check order of instants - ignored wrong ordered elements
+        if(currentInstant>lastInstant){
+           Interval<Instant> interval(lastInstant, currentInstant, 
+                                      true ,false);
+           UReal unit(interval,lastValue.GetRealval(),
+                               currentValue.GetRealval()); 
+           res->MergeAdd(unit);
+        }
+     } else {
+       first = false;
+     }
+     lastValue = currentValue;
+     lastInstant = currentInstant;
+     tuple->DeleteIfAllowed();
+     qp->Request(args[0].addr, actual);
+   }
+   qp->Close(args[0].addr);
+   return 0;
+}
+
+
+int ApproximateMPoint(Word* args, Word& result,
+                int message, Word& local,
+                Supplier s){
+   result = qp->ResultStorage(s);
+   MPoint* res = (MPoint*) result.addr;
+   int index1 = ((CcInt*)args[3].addr)->GetIntval();
+   int index2 = ((CcInt*)args[4].addr)->GetIntval();
+   
+   res->Clear();
+   res->SetDefined(true);
+   Word actual;
+
+   qp->Open(args[0].addr);
+   qp->Request(args[0].addr, actual);
+   
+   Point lastValue,currentValue;
+   Instant lastInstant,currentInstant;
+   bool first = true;
+   while (qp->Received(args[0].addr)) {
+     Tuple* tuple = (Tuple*)actual.addr;
+     currentValue =  *((Point*)(tuple->GetAttribute(index2))); 
+     currentInstant = *((Instant*)(tuple->GetAttribute(index1)));
+     if(!first){
+        // check order of instants - ignored wrong ordered elements
+        if(currentInstant>lastInstant){
+           Interval<Instant> interval(lastInstant, currentInstant, true ,false);
+           UPoint unit(interval,lastValue,currentValue); 
+           res->MergeAdd(unit);
+        }
+     } else {
+       first = false;
+     }
+     lastValue = currentValue;
+     lastInstant = currentInstant;
+     tuple->DeleteIfAllowed();
+     qp->Request(args[0].addr, actual);
+   }
+   qp->Close(args[0].addr);
    return 0;
 }
 
@@ -6632,6 +6874,8 @@ ValueMapping simplifymap[] = { MPointSimplify, MPointSimplify2,
 ValueMapping linearizemap[] = { Linearize<UReal>, Linearize<MReal> };
 ValueMapping integratemap[] = { Integrate<UReal>, Integrate<MReal> };
 
+ValueMapping approximatemap[] = { ApproximateMPoint, ApproximateMReal };
+
 ValueMapping minmap[] = { VM_Min<UReal>, VM_Min<MReal> };
 
 ValueMapping maxmap[] = { VM_Max<UReal>, VM_Max<MReal> };
@@ -6919,6 +7163,16 @@ const string TemporalSpecLinearize =
   "<text>linearize( _ ) </text--->"
   "<text>computes a linear approximation of the argument</text--->"
   "<text>linearize(distance(train7, train6))</text--->"
+  ") )";
+
+const string TemporalSpecApproximate =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>stream(tuple(a1: t1) (...(an,tn) x ai x aj  -> mtj ,"
+           " (ti = instant, tj in {real,point)</text--->"
+  "<text>_ approximate [ _ _ ] </text--->"
+  "<text>computes a linear approximation betweeni"
+       " the sampling points</text--->"
+  "<text>  </text--->"
   ") )";
 
 const string TemporalSpecLinearize2 =
@@ -7322,6 +7576,13 @@ Operator temporallinearize2( "linearize2",
                            Operator::SimpleSelect,
                            TypeMapLinearize2 );
 
+Operator temporalapproximate( "approximate",
+                           TemporalSpecApproximate,
+                           2,
+                           approximatemap,
+                           ApproximateSelect,
+                           TypeMapApproximate );
+
 Operator temporalminimum( "minimum",
                            TemporalSpecMin,
                            2,
@@ -7524,6 +7785,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalintegrate );
     AddOperator( &temporallinearize );
     AddOperator( &temporallinearize2 );
+    AddOperator( &temporalapproximate );
     AddOperator( &temporalminimum );
     AddOperator( &temporalmaximum );
     AddOperator( &temporalbreakpoints );

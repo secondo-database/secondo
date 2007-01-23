@@ -52,3 +52,6 @@ operator breakpoints alias BREAKPOINTS pattern op(_,_)
 operator integrate alias INTEGRATE pattern op(_)
 operator minimum alias MINIMUM pattern op(_)
 operator maximum alias MAXIMUM pattern op(_)
+
+operator approximate alias APPROXIMATE pattern _ op [_, _ ]
+
