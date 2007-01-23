@@ -5553,7 +5553,7 @@ int LinearizeSelect(ListExpr args){
 }
 
 /*
-16.2.32 Selection fucntion fot ~Approximate~
+16.2.32 Selection function for ~Approximate~
 
 */
 int ApproximateSelect(ListExpr args){
@@ -6092,20 +6092,27 @@ int ApproximateMReal(Word* args, Word& result,
      Tuple* tuple = (Tuple*)actual.addr;
      currentValue =  *((CcReal*)(tuple->GetAttribute(index2))); 
      currentInstant = *((Instant*)(tuple->GetAttribute(index1)));
-     if(!first){
-        // check order of instants - ignored wrong ordered elements
-        if(currentInstant>lastInstant){
-           Interval<Instant> interval(lastInstant, currentInstant, 
-                                      true ,false);
-           UReal unit(interval,lastValue.GetRealval(),
-                               currentValue.GetRealval()); 
-           res->MergeAdd(unit);
-        }
-     } else {
-       first = false;
+     if(currentInstant.IsDefined()){ // ignore undefined instants
+       if(currentValue.IsDefined()){
+         if(!first){
+            // check order of instants - ignore wrong ordered elements
+            if(currentInstant>lastInstant){
+               Interval<Instant> interval(lastInstant, currentInstant, 
+                                          true ,false);
+               UReal unit(interval,lastValue.GetRealval(),
+                                   currentValue.GetRealval()); 
+               res->MergeAdd(unit);
+            }
+         } else {
+           first = false;
+         }
+         lastValue = currentValue;
+         lastInstant = currentInstant;
+      }
+      else { // current value is not defined
+         first = true;
+      }
      }
-     lastValue = currentValue;
-     lastInstant = currentInstant;
      tuple->DeleteIfAllowed();
      qp->Request(args[0].addr, actual);
    }
@@ -6136,21 +6143,29 @@ int ApproximateMPoint(Word* args, Word& result,
      Tuple* tuple = (Tuple*)actual.addr;
      currentValue =  *((Point*)(tuple->GetAttribute(index2))); 
      currentInstant = *((Instant*)(tuple->GetAttribute(index1)));
-     if(!first){
-        // check order of instants - ignored wrong ordered elements
-        if(currentInstant>lastInstant){
-           Interval<Instant> interval(lastInstant, currentInstant, true ,false);
-           UPoint unit(interval,lastValue,currentValue); 
-           res->MergeAdd(unit);
-        }
-     } else {
-       first = false;
+     if(currentInstant.IsDefined()){ // ignore undefined instants
+       if(currentValue.IsDefined()){
+         if(!first){
+            // check order of instants - ignored wrong ordered elements
+            if(currentInstant>lastInstant){
+               Interval<Instant> interval(lastInstant, currentInstant,
+                                           true ,false);
+               UPoint unit(interval,lastValue,currentValue); 
+               res->MergeAdd(unit);
+            }
+         } else {
+           first = false;
+         }
+         lastValue = currentValue;
+         lastInstant = currentInstant;
+       } else { // undefined value found
+         first = true;
+       }
      }
-     lastValue = currentValue;
-     lastInstant = currentInstant;
      tuple->DeleteIfAllowed();
      qp->Request(args[0].addr, actual);
    }
+   
    qp->Close(args[0].addr);
    return 0;
 }
