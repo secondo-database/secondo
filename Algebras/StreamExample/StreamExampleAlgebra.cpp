@@ -123,6 +123,32 @@ intstreamType( ListExpr args ){
 }
 
 /*
+Type Mapping for ~realstream~ is
+
+real x real x real -> stream(real)
+
+*/
+
+ListExpr realstreamTypeMap( ListExpr args ){
+  ListExpr arg1, arg2, arg3;
+  if ( nl->ListLength(args) == 3 )
+  {
+    arg1 = nl->First(args);
+    arg2 = nl->Second(args);
+    arg3 = nl->Third(args);
+    if ( nl->IsEqual(arg1, "real") && nl->IsEqual(arg2, "real") &&
+         nl->IsEqual(arg3, "real") ){
+      return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("real"));
+    }
+    ErrorReporter::ReportError("real x real x real expected");
+  }
+  ErrorReporter::ReportError("Type mapping function got a "
+                             "parameter of length != 3.");
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
 Type mapping for ~count~ is
 
 ----    ((stream int)) -> int
@@ -328,6 +354,77 @@ This is illustrated in the value mapping functions below.
 }
 
 int
+realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
+/*
+Works like the intstream operator.
+
+*/
+{
+  struct RangeAndDiff {double first, last, diff;
+                       int iter;
+         }* range_d;
+
+  CcReal* r1;
+  CcReal* r2;
+  CcReal* r3;
+  double current;
+  double cd;
+  CcReal* elem;
+  
+
+  switch( message )
+  {
+    case OPEN:
+
+      r1 = ((CcReal*)args[0].addr);
+      r2 = ((CcReal*)args[1].addr);
+      r3 = ((CcReal*)args[2].addr);
+
+      range_d = new RangeAndDiff();
+      range_d->first = r1->GetRealval();
+      range_d->last =  r2->GetRealval();
+      range_d->diff = r3->GetRealval();
+      range_d->iter = 0;
+      local.addr = range_d;
+      return 0;
+
+    case REQUEST:
+      range_d = ((RangeAndDiff*) local.addr);
+      cd = (double) range_d->iter * range_d->diff;
+      current = range_d->first + cd;
+      if(range_d->diff==0.0){ // don't allow endless loops
+        return CANCEL;
+      } else if(range_d->diff<0.0){
+         if(current<range_d->last){
+            return CANCEL;
+         } else {
+            elem = new CcReal(true,current);
+            result.addr = elem;
+            range_d->iter++;
+            return YIELD;
+         }
+      } else {
+         if(current>range_d->last){
+            return CANCEL;
+         } else {
+            elem = new CcReal(true,current);
+            result.addr = elem;
+            range_d->iter++;
+            return YIELD;
+         }
+      }
+
+      return -1; 
+    case CLOSE:
+      range_d = ((RangeAndDiff*) local.addr);
+      delete range_d;
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
+
+int
 countFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 Count the number of elements in a stream. An example for consuming a stream.
@@ -457,6 +554,15 @@ const string intstreamSpec  =
   "<text>query intstream (1,10) printintstream count</text--->"
   ") )";
 
+const string realstreamSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>real x real x real -> stream (real)</text--->"
+  "<text>realstream ( _ , _ , _ )</text--->"
+  "<text>Creates a stream of reals containing the numbers "
+  "between the first and the second argument.</text--->"
+  "<text>query realstream (2.0 , 10.0, 0.5) count</text--->"
+  ") )";
+
 const string countSpec  = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>((stream int)) -> int</text--->"
@@ -491,6 +597,14 @@ Operator intstream (
   intstreamFun,    //value mapping
   Operator::SimpleSelect,    //trivial selection function
   intstreamType    //type mapping
+);
+
+Operator realstream (
+  "realstream",     //name
+  realstreamSpec,   //specification
+  realstreamFun,    //value mapping
+  Operator::SimpleSelect,    //trivial selection function
+  realstreamTypeMap    //type mapping
 );
 
 Operator cppcount (
@@ -530,6 +644,7 @@ class StreamExampleAlgebra : public Algebra
   StreamExampleAlgebra() : Algebra()
   {
     AddOperator( &intstream );
+    AddOperator( &realstream );
     AddOperator( &cppcount );
     AddOperator( &printintstream );
     AddOperator( &sfilter );
