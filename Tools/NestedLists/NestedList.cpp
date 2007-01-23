@@ -1355,8 +1355,12 @@ NestedList::ReadInt(istream& in, const int len /*= 4*/) const{
 
 long
 NestedList::ReadShort(istream& in) const {
-
-  return ReadInt(in, 2);
+  long result = ReadInt(in, 2);
+  if((result & 0x8000)  == 0x8000) {
+     //result is negativ, adjust first bytes
+     result |= ((~0l) ^ 0xffff) ;
+  }
+  return result;
 }  
 
 
