@@ -75,6 +75,7 @@ public class FunctionFrame extends JFrame{
       });
 
       JPanel controlPanel = new JPanel();
+      controlPanel.add(saveTableBtn);
       controlPanel.add(saveBtn);
       controlPanel.add(closeBtn);
       getContentPane().add(controlPanel,BorderLayout.SOUTH);
@@ -90,10 +91,26 @@ public class FunctionFrame extends JFrame{
             }
       };
       fc.setFileFilter(ff);
+      
+      javax.swing.filechooser.FileFilter ff2 = new javax.swing.filechooser.FileFilter(){
+            public String getDescription(){
+              return ("value table");
+            }
+            public boolean accept(File f){
+              if(f==null) return false;
+              return f.getName().endsWith("csv");
+            }
+      };
+      fc2.setFileFilter(ff2);
       saveBtn.addActionListener(new ActionListener(){
           public void actionPerformed(ActionEvent evt){
              exportToPS();
           }
+      });
+      saveTableBtn.addActionListener(new ActionListener(){
+             public void actionPerformed(ActionEvent evt){
+                exportValueTable();
+             }
       });
 
    }
@@ -157,6 +174,29 @@ public class FunctionFrame extends JFrame{
            
      }
    }
+   
+  private void exportValueTable(){
+     if(fc2.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
+        try{
+          File F = fc2.getSelectedFile();
+          if(F.exists()){
+            if(Reporter.showQuestion("File already exits\n overwrite it?")!=Reporter.YES){
+              return;
+            }
+          }
+          boolean result = functionpanel.writeToFile(F);
+          if(!result){
+             Reporter.showError("Error in exporting table");
+          } else {
+             Reporter.showInfo("Table successfully exported");
+          }
+
+        } catch(Exception e){
+           Reporter.showError("Error in exporting graphic");
+           Reporter.debug(e);
+        } 
+     }
+   }
 
    FunctionPanel functionpanel = new FunctionPanel();
    Function function;
@@ -166,12 +206,14 @@ public class FunctionFrame extends JFrame{
    Point2D.Double MP = new Point2D.Double();
    JButton closeBtn = new JButton("close");
    JButton saveBtn = new JButton("export to ps");
+   JButton saveTableBtn = new JButton("export as table");
    JScrollPane functionSP;
    JMenu XFormat;
    JRadioButtonMenuItem showTimeBtn = new JRadioButtonMenuItem("time");
    JRadioButtonMenuItem showRealBtn = new JRadioButtonMenuItem("real");
 
    static JFileChooser fc = new JFileChooser();
+   static JFileChooser fc2 = new JFileChooser();
 
 }
 

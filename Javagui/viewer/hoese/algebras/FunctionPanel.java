@@ -7,6 +7,7 @@ import java.awt.event.*;
 import java.util.Vector;
 import java.util.Iterator;
 import tools.Reporter;
+import java.io.*;
 
 public class FunctionPanel extends JPanel{
 
@@ -66,6 +67,65 @@ public boolean isYEnabled(){
     return yEnabled;
 }
 
+
+/** Write a value table of this function.
+  * Note that the output will depend on the current size.
+  **/ 
+public boolean writeToFile(File f){
+    // compute the segments building the function
+    width=getWidth()-2*borderSize;
+    int height=getHeight()-2*borderSize;
+    Vector segments = new Vector();
+    if(height <= 0 ){
+        return false; // no space to paint anything
+    } else { // compute the lines
+       if(!y_computed){
+          compute_y(width,height);
+       }
+       double dx = xmax-xmin;
+       segments = new  Vector(width);
+       Double y;
+       java.awt.geom.Point2D.Double thepoint = null;
+       Vector pointList = new Vector(width);
+       double epsilon = Math.min( (xmax-xmin)/width, (ymax-ymin)/width);
+       for(int ix=0;ix<width;ix++){
+         double x = xmin + (dx*ix)/width;
+         if((y=function.getValueAt(x))!=null){
+             thepoint = new Point2D.Double(x,y);
+             pointList.add(thepoint);
+         } else { // undefined state
+           tools.LineSimplification.addSegments(pointList,segments,epsilon);
+           pointList.clear();
+         }
+      }
+      tools.LineSimplification.addSegments(pointList,segments,epsilon);
+    }
+    if(segments==null){ // nothing to output
+       return false; 
+    }
+    try{
+       PrintStream out = new PrintStream(new FileOutputStream(f));
+       Point2D  lastPoint =null;
+       for(int i=0;i<segments.size();i++){
+          Line2D.Double line = (Line2D.Double) segments.get(i);
+          Point2D p1 = line.getP1();
+          Point2D p2 = line.getP2();
+          if(lastPoint==null ||  !lastPoint.equals(p1)){
+             if(lastPoint!=null){ // hole in definition
+                out.println(""); 
+             }
+             out.println(p1.getX()+ "  " + p1.getY());
+          } 
+          out.println(p2.getX()+ " " + p2.getY());
+          lastPoint = p2; 
+       }
+       out.close();
+       return true;
+    }catch(Exception e){
+        Reporter.debug(e);
+        return false;
+    }
+}
 
 
 public void paint(Graphics g){
