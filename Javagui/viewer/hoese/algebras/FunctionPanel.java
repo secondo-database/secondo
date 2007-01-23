@@ -193,6 +193,13 @@ public void paint(Graphics g){
 }
 
 
+/** Returns the function cooridnates of for the given mouse position
+  * @param mouseX: the x coordinate of the mouse
+  * @param mouseY: the y coordinate of the mouse
+  * @param result: contains the (x,y) pair of the function, y will be undfined if
+                   the return value is false
+  * @param coords: the mosue coordinates in the world', will be defined in each case
+  **/
 public boolean getOrig(int mouseX,int mouseY,java.awt.geom.Point2D.Double result,Point2D.Double coords){
    if(atinv==null)
         return false;
@@ -202,14 +209,15 @@ public boolean getOrig(int mouseX,int mouseY,java.awt.geom.Point2D.Double result
         return false; 
    double pixSize = (xmax-xmin)/width;
    double x = (mouseX-borderSize)*pixSize+xmin;
+   result.x=x;
+   result.y=0;
+   coords.x = x;
    double my = atinv[1]*mouseX+atinv[3]*mouseY+atinv[5]; // position of the mouse
+   coords.y = my;
    Double y = function.getValueAt(x);
    if(y==null) 
         return false;
-   result.x=x;
    result.y=y.doubleValue();
-   coords.x = x;
-   coords.y = my;
    
    return true;
 }

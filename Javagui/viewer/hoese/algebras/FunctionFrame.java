@@ -57,13 +57,12 @@ public class FunctionFrame extends JFrame{
       functionpanel.addMouseMotionListener(new MouseMotionAdapter(){
            public void mouseMoved(MouseEvent e){
                if(functionpanel.getOrig(e.getX(),e.getY(),P,MP)){
-                   String TL = showTimeBtn.isSelected()?DateTime.getString(P.x):""+P.x;
-                   TimeLabel.setText("x= "+ TL);
                    ValueLabel.setText("y= "+P.y);
                } else{
-                  TimeLabel.setText(" ");
                   ValueLabel.setText(" ");
                }
+               String TL = showTimeBtn.isSelected()?DateTime.getString(P.x):""+P.x;
+               TimeLabel.setText("x= "+ TL);
            }
       });
       functionpanel.showCross(true);
