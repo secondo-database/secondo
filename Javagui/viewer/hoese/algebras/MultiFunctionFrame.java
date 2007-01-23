@@ -39,6 +39,16 @@ public class MultiFunctionFrame extends JFrame{
       functionpanel.setBackground(Color.WHITE);
       functionSP = new JScrollPane(functionpanel);
       getContentPane().add(functionSP,BorderLayout.CENTER);
+      XFormat = new JMenu("X-format");
+      XFormat.add(showTimeBtn);
+      XFormat.add(showRealBtn);
+      ButtonGroup grp = new ButtonGroup();
+      grp.add(showTimeBtn);
+      grp.add(showRealBtn);
+      JMenuBar menubar = new JMenuBar();
+      menubar.add(XFormat);
+      setJMenuBar(menubar);
+      showTimeBtn.setSelected(true);
       JPanel P1 = new JPanel(new GridLayout(1,3));
       P1.add(TimeLabel);
       P1.add(ValueLabel);
@@ -46,7 +56,8 @@ public class MultiFunctionFrame extends JFrame{
       functionpanel.addMouseMotionListener(new MouseMotionAdapter(){
            public void mouseMoved(MouseEvent e){
                if(functionpanel.getOrig(e.getX(),e.getY(),MP)){
-                   TimeLabel.setText("x= "+DateTime.getString(MP.x));
+                   String TL = showTimeBtn.isSelected()?DateTime.getString(MP.x):""+MP.x;
+                   TimeLabel.setText("x= "+ TL);
                    ValueLabel.setText("y= "+MP.y);
                } else{
                   TimeLabel.setText(" ");
@@ -158,6 +169,9 @@ public class MultiFunctionFrame extends JFrame{
    JButton saveBtn = new JButton("export to ps");
    JButton clearBtn = new JButton("remove all");
    JScrollPane functionSP;
+   JMenu XFormat;
+   JRadioButtonMenuItem showTimeBtn = new JRadioButtonMenuItem("time");
+   JRadioButtonMenuItem showRealBtn = new JRadioButtonMenuItem("real");
 
    static JFileChooser fc = new JFileChooser();
 
