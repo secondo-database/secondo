@@ -2511,7 +2511,6 @@ public boolean canDisplay(SecondoObject o){
 
        String enablePointSequenceString = configuration.getProperty("USE_POINTSEQUENCE");
        if(enablePointSequenceString!= null){
-           System.out.println("check PointSequence");
            if(enablePointSequenceString.trim().toLowerCase().equals("false")){
                enablePointSequence = false;
                createMenu.remove(create_PointSequence_MI);
