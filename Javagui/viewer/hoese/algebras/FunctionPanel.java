@@ -91,7 +91,7 @@ public boolean writeToFile(File f){
        for(int ix=0;ix<width;ix++){
          double x = xmin + (dx*ix)/width;
          if((y=function.getValueAt(x))!=null){
-             thepoint = new Point2D.Double(x,y);
+             thepoint = new java.awt.geom.Point2D.Double(x,y.doubleValue());
              pointList.add(thepoint);
          } else { // undefined state
            tools.LineSimplification.addSegments(pointList,segments,epsilon);
