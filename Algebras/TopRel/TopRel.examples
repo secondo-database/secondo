@@ -79,7 +79,7 @@ Result   : (int 4)
 
 
 Operator : intersection
-Number   : 1
+Number   : 2
 Signature: cluster x cluster -> cluster 
 Example  :  query intersection([const cluster value ("c1" 1 2 3)] , [const cluster value ("c2" 2 5 8)])
 Result   : (cluster ("c1" 2))
@@ -94,7 +94,7 @@ Result   : (int 0)
 
 
 Operator : invert
-Number   : 1
+Number   : 2
 Signature: cluster -> cluster 
 Example  :  query invert([const cluster  value ("c1" "!(ii & ib & ie & bi & bb & be & ei & eb & ee)")])
 Result   : (cluster ("c1" 511))
@@ -115,7 +115,7 @@ Example  : query number_of(multiintersection( [const int9m value 511], [const in
 Result   : (int 1) 
 
 Operator : multiintersection
-Number   : 1
+Number   : 2
 Signature: cluster x cluster x ... -> cluster 
 Example  : query multiintersection([const cluster value ("c1" "!ee")], [const cluster value ("c2" "!bb")], [const cluster value("c3" "ii & ib & ie & bi & be & ei & eb")]) 
 Result   : (cluster ("c1" 494))
@@ -148,7 +148,7 @@ Example  : query relax([const cluster value ("c1" 511)]," ee & ei & ii & bi & bb
 Result   : (cluster ("c1" 437 439 445 447 501 503 509 511)) 
 
 Operator : relax
-Number   : 1
+Number   : 2
 Signature:  cluster x text -> cluster  
 Example  : query relax([const cluster value ("c1" 511)],[const text value ' ee & ei & ii & bi & bb & ib'])
 Result   : (cluster ("c1" 437 439 445 447 501 503 509 511)) 
@@ -167,7 +167,7 @@ Example  : query restrict([const cluster value ("c1" 511 510)] , "ee" )
 Result   : (cluster ("c1" 511))
 
 Operator : restrict
-Number   : 1
+Number   : 2
 Signature: cluster x text -> cluster  
 Example  : query restrict([const cluster value ("c1" 511 510)] , [const text value 'ee'] )
 Result   : (cluster ("c1" 511))
@@ -179,7 +179,7 @@ Example  : query sizeof([const cluster value ("c1" 500 501)])
 Result   : (int 2)
 
 Operator : sizeof
-Number   : 1
+Number   : 2
 Signature: predicategroup  -> int 
 Example  : query sizeof([const predicategroup value (("c1" 45))]) 
 Result   : (int 2)
@@ -191,7 +191,7 @@ Example  : query number_of(transpose([const int9m value 200]))
 Result   : (int 38)
 
 Operator : transpose
-Number   : 1
+Number   : 2
 Signature: cluster x string -> cluster 
 Example  : query transpose([const cluster value ("c" 200)],"c2") 
 Result   : (cluster ("c2" 38))
@@ -203,7 +203,7 @@ Example  : query number_of([const int9m value 1] union [const int9m value 4])
 Result   : (int 5)
 
 Operator : union
-Number   : 1
+Number   : 2
 Signature: cluster x cluster -> cluster 
 Example  :  query [const cluster value ("c1" 1)] union [const cluster value ("c2" 2)] 
 Result   : (cluster ("c1" 1 2))
