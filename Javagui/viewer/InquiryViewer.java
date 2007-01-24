@@ -545,9 +545,11 @@ public boolean canDisplay(SecondoObject o){
     int index = ComboBox.getSelectedIndex();
     if (index>=0){
        HTMLArea.setText((String)ObjectTexts.get(index));
+       HTMLArea.setCaretPosition(0);
     }   else {
        // set an empty text
        HTMLArea.setText(" <html><head></head><body></body></html>");
+       HTMLArea.setCaretPosition(0);
     }
     LastSearchPos = 0;
 

@@ -564,6 +564,7 @@ private String getAlgebraText(ListExpr algebra){
        }
 
        TextArea.setText(Text);
+       TextArea.setCaretPosition(0);
 
     }
     catch(Exception e){}
