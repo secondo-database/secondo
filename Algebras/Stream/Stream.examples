@@ -62,6 +62,12 @@ Signature: stream(tuple(attrname T)) -> (stream T)
 Example  : query ten feed transformstream printstream count
 Result   : 10
 
+Operator : projecttransformstream
+Number   : 1
+Signature: stream(tuple((a1 t1)...(an tn))) x ai -> stream(ti)
+Example  : query Staedte feed projecttransformstream [PLZ] printstream count
+Result   : 58
+
 Operator : use2
 Number   : 1
 Signature: ((stream X) Y (map X Y stream(Z)) ) -> (stream Z)

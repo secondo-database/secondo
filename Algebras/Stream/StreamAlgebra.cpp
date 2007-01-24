@@ -58,6 +58,7 @@ OK    aggregateS:        (stream T) x (T x T --> T) x T  --> T
 OK    count:                      (stream T) --> int
 OK    filter:      ((stream T) (map T bool)) --> int
 OK    printstream:                (stream T) --> (stream T)
+      projecttransformstream: stream(tuple((a1 t1) ..(an tn))) x ai -> stream(ti)
 
 COMMENTS:
 
@@ -2375,6 +2376,151 @@ Operator streamtransformstream( "transformstream",
 
 
 /*
+5.28 Operator ~projecttransformstream~ 
+
+5.28.1 Type Mapping
+
+*/
+ListExpr ProjecttransformstreamTM(ListExpr args){
+   if(nl->ListLength(args)!=2){
+       ErrorReporter::ReportError("2 arguments expected");
+       return nl->SymbolAtom("typeerror");
+   }
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+   if(nl->AtomType(arg2)!=SymbolType){
+      ErrorReporter::ReportError("the second argumnet has"
+                                 " to be an attributename");
+      return nl->SymbolAtom("typeerror");
+   }
+   string aname = nl->SymbolValue(arg2);
+
+   if( (nl->ListLength(arg1)!=2) || !nl->IsEqual(nl->First(arg1),"stream")){
+      ErrorReporter::ReportError("stream expected");
+      return nl->SymbolAtom("typeerror");
+   }
+   ListExpr streamtype = nl->Second(arg1);
+   if( (nl->ListLength(streamtype)!=2) || 
+        !nl->IsEqual(nl->First(streamtype),"tuple")){
+      ErrorReporter::ReportError("stream(tuple) expected");
+      return nl->SymbolAtom("typeerror");
+   }
+   ListExpr attributes = nl->Second(streamtype);
+   int pos = 0;
+   while(!nl->IsEmpty(attributes)){
+      ListExpr attribute = nl->First(attributes);
+      if(nl->ListLength(attribute)!=2){
+          ErrorReporter::ReportError("invalid tuple representation");
+          return nl->SymbolAtom("typeerror");
+      }
+      if(nl->IsEqual(nl->First(attribute),aname)){
+        // name found -> create result list
+        return nl->ThreeElemList( nl->SymbolAtom("APPEND"),
+                                  nl->OneElemList(nl->IntAtom(pos)),
+                                  nl->TwoElemList(
+                                      nl->SymbolAtom("stream"),
+                                      nl->Second(attribute)));
+      }
+      attributes = nl->Rest(attributes);
+      pos++;
+   } 
+   ErrorReporter::ReportError("attribute not found in tuple");
+   return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+5.28.2 Value Mapping 
+
+*/
+
+int Projecttransformstream(Word* args, Word& result, int message,
+                         Word& local, Supplier s)
+{
+  TransformstreamLocalInfo *sli;
+  Word   tuple;
+  Tuple* tupleptr;
+  int pos;
+
+  switch ( message )
+    {
+    case OPEN:
+      qp->Open( args[0].addr );
+      sli = new TransformstreamLocalInfo;
+      sli->finished = false;
+      local = SetWord(sli);
+      return 0;
+
+    case REQUEST:
+      if (local.addr == 0) {
+        return CANCEL;
+      }
+      sli = (TransformstreamLocalInfo*) (local.addr);
+      if (sli->finished) {
+        return CANCEL;
+      }
+
+      qp->Request( args[0].addr, tuple );
+      if (!qp->Received( args[0].addr ))
+        { // input stream consumed
+          qp->Close( args[0].addr );
+          sli->finished = true;
+          result.addr = 0;
+          return CANCEL;
+        }
+        // extract, copy and pass value, delete tuple
+        tupleptr = (Tuple*)tuple.addr;
+        pos = ((CcInt*)args[2].addr)->GetIntval();
+        result.addr = tupleptr->GetAttribute(pos)->Clone();
+        tupleptr->DeleteIfAllowed();
+        return YIELD;
+
+    case CLOSE:
+      if (local.addr != 0)
+        {
+          sli = (TransformstreamLocalInfo*) (local.addr);
+          if (!sli->finished)
+            qp->Close( args[0].addr );
+          delete sli;
+        }
+      return 0;
+
+    }
+  cerr << "Projecttransformstream: UNKNOWN MESSAGE!" << endl;
+  return -1;
+}
+
+/*
+5.28.3 Specification
+
+*/
+const string ProjecttransformstreamSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "("
+  "<text>stream(tuple((a1 t1)...(an tn))) x an  -> (stream tn)</text--->"
+  "<text>_ project transformstream [ _ ] </text--->"
+  "<text> extracts an attribute from a tuple stream </text--->"
+  "<text>query Staedte feed projecttransformstream"
+       " [PLZ] printintstream count</text--->"
+  ") )";
+
+/*
+5.28.4 Definition of the operator instance 
+
+*/
+Operator projecttransformstream (
+  "projecttransformstream",     //name
+  ProjecttransformstreamSpec,   //specification
+  Projecttransformstream,    //value mapping
+  Operator::SimpleSelect, //trivial selection function
+  ProjecttransformstreamTM    //type mapping
+);
+
+
+
+
+/*
 5.28 Operator ~count~
 
 Signature:
@@ -3050,6 +3196,7 @@ public:
     AddOperator( &streamcount );
     AddOperator( &streamprintstream );
     AddOperator( &streamtransformstream );
+    AddOperator( &projecttransformstream );
     AddOperator( &streamfeed );
     AddOperator( &streamuse );
     AddOperator( &streamuse2 );
