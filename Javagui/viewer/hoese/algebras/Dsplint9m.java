@@ -45,7 +45,7 @@ public class Dsplint9m extends DsplGeneric implements DsplSimple, ExternDisplay{
   private String entry; 
 
   /* returns the string representation for the given value list */
-  private String getDisplay(ListExpr value){
+  public String getDisplay(ListExpr value){
      if(isUndefined(value)){
        return "undefined";
      }
@@ -96,7 +96,7 @@ public class Dsplint9m extends DsplGeneric implements DsplSimple, ExternDisplay{
      } else{
        text = display;
      }
-     return display;
+     return text;
 
   }
 
@@ -104,8 +104,7 @@ public class Dsplint9m extends DsplGeneric implements DsplSimple, ExternDisplay{
   /* Sets the entry for the queryresult.
   */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-     entry = type.symbolValue()+" : "+getDisplay(value);
-     qr.addEntry(this);
+      init(type,0,value,0,qr);
   }
 
   public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
