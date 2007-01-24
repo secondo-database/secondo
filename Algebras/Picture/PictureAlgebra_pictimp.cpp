@@ -51,6 +51,7 @@ using namespace std;
 #include "ImageConverter.h"
 
 #include "DateTime.h"
+#include "LogMsg.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -67,13 +68,13 @@ Helper function to convert a string to upper case.
 
 static void xstrupr(char *str)
 {
-	size_t i,len;
+        size_t i,len;
 
-	len = strlen(str);
-	for (i=0; i < len; ++i)
-	{
-		str[i] = toupper(str[i]);
-	}
+        len = strlen(str);
+        for (i=0; i < len; ++i)
+        {
+                str[i] = toupper(str[i]);
+        }
 }
 
 
@@ -93,10 +94,10 @@ of the methods implemented here.
 */
 
 Picture::Picture(string imgdataB64,
-		 string fn,
-		 string cat,
-		 bool isp,
-		 string dt) {
+                 string fn,
+                 string cat,
+                 bool isp,
+                 string dt) {
     if (PA_DEBUG) cerr << "Picture::Picture()-1 called" << endl;
 
     strcpy(filename, fn.c_str());
@@ -106,21 +107,21 @@ Picture::Picture(string imgdataB64,
     isDefined = true;
 
     if (PA_DEBUG) {
-	cerr << "Picture::Picture()-1 imgdataBase64.length()="
-	     << imgdataB64.length()
-	     << endl;
-	cerr << "Picture::Picture()-1 filename="
-	     << filename
-	     << endl;
-	cerr << "Picture::Picture()-1 category="
-	     << category
-	     << endl;
-	cerr << "Picture::Picture()-1 date="
-	     << date
-	     << endl;
-	cerr << "Picture::Picture()-1 isPortrait="
-	     << isPortrait
-	     << endl;
+        cerr << "Picture::Picture()-1 imgdataBase64.length()="
+             << imgdataB64.length()
+             << endl;
+        cerr << "Picture::Picture()-1 filename="
+             << filename
+             << endl;
+        cerr << "Picture::Picture()-1 category="
+             << category
+             << endl;
+        cerr << "Picture::Picture()-1 date="
+             << date
+             << endl;
+        cerr << "Picture::Picture()-1 isPortrait="
+             << isPortrait
+             << endl;
     }
 
     Base64 b64;
@@ -130,8 +131,8 @@ Picture::Picture(string imgdataB64,
     unsigned long len = b64.decode(imgdataB64, imgdata);
 
     if (PA_DEBUG) {
-	cerr << "Picture::Picture()-1 size=" << size << endl;
-	cerr << "Picture::Picture()-1 len=" << len << endl;
+        cerr << "Picture::Picture()-1 size=" << size << endl;
+        cerr << "Picture::Picture()-1 len=" << len << endl;
     }
 
     assert( len <= size );
@@ -146,67 +147,67 @@ Picture::Picture(string imgdataB64,
     if (PA_DEBUG) cerr << "Picture::Picture() upper value " << name << endl;
 
     if (strstr(name, ".JPG")) {
-	if (PA_DEBUG) 
-	    cerr << "Picture::Picture() JPEG Format detected" << endl;	
+        if (PA_DEBUG) 
+            cerr << "Picture::Picture() JPEG Format detected" << endl;  
 
-	imgType = IMAGE_JPEG;
+        imgType = IMAGE_JPEG;
     } else if (strstr(name, ".TGA")) {
-	if (PA_DEBUG) 
-	    cerr << "Picture::Picture() TGA Format detected" << endl;
+        if (PA_DEBUG) 
+            cerr << "Picture::Picture() TGA Format detected" << endl;
 
-	imgType = IMAGE_TGA;
+        imgType = IMAGE_TGA;
     } else if (strstr(name, ".PCX")) {
-	if (PA_DEBUG) 
-	    cerr << "Picture::Picture() PCX Format detected" << endl;
+        if (PA_DEBUG) 
+            cerr << "Picture::Picture() PCX Format detected" << endl;
 
-	imgType = IMAGE_PCX;
+        imgType = IMAGE_PCX;
     } else if (strstr(name, ".BMP")) {
-	if (PA_DEBUG) 
-	    cerr << "Picture::Picture() Bitmap Format detected" << endl;
+        if (PA_DEBUG) 
+            cerr << "Picture::Picture() Bitmap Format detected" << endl;
 
-	imgType = IMAGE_BMP;
+        imgType = IMAGE_BMP;
     } else {
-	if (PA_DEBUG) 
-	    cerr << "Picture::Picture() unknown image format: " 
-		 << filename 
-		 << endl;
+        if (PA_DEBUG) 
+            cerr << "Picture::Picture() unknown image format: " 
+                 << filename 
+                 << endl;
 
-	delete[] imgdata;
-	jpegData = 0;
-	isDefined = false;
-	return;
+        delete[] imgdata;
+        jpegData = 0;
+        isDefined = false;
+        return;
     }
 
     if (imgType != IMAGE_JPEG) {
-	converter = 
-	    new CImageConverter(imgType, 
-				(unsigned char*)imgdata, 
-				(unsigned long)size);
+        converter = 
+            new CImageConverter(imgType, 
+                                (unsigned char*)imgdata, 
+                                (unsigned long)size);
 
-	if (!converter->Defined()) {
-	    if (PA_DEBUG) 
-		cerr << "Picture::Picture() cannot read image: " 
-		     << filename 
-		     << endl;
-	    delete[] imgdata;
-	    jpegData = 0;
-	    isDefined = false;
-	    return;
-	} else {
-	    delete[] imgdata;
+        if (!converter->Defined()) {
+            if (PA_DEBUG) 
+                cerr << "Picture::Picture() cannot read image: " 
+                     << filename 
+                     << endl;
+            delete[] imgdata;
+            jpegData = 0;
+            isDefined = false;
+            return;
+        } else {
+            delete[] imgdata;
 
-	    // generate jpeg data
-	    imgdata = (char*)converter->GetJpegData(len);
+            // generate jpeg data
+            imgdata = (char*)converter->GetJpegData(len);
 
-	    strcat(filename, ".JPG");
+            strcat(filename, ".JPG");
 
-	    if (PA_DEBUG) 
-		cerr << "Picture::Picture() image converted, size: " 
-		     << len 
-		     << endl;
-	}
+            if (PA_DEBUG) 
+                cerr << "Picture::Picture() image converted, size: " 
+                     << len 
+                     << endl;
+        }
 
-	delete converter;
+        delete converter;
     }
 
     //jpegData = new FLOB(size);
@@ -215,9 +216,11 @@ Picture::Picture(string imgdataB64,
     jpegData.Put(0, len, imgdata);
 
     //if (PA_DEBUG)
-    //	cerr << "Picture::Picture()-1 jpegData="
-    //	     << (unsigned int) jpegData
-    //	     << endl;
+    //  cerr << "Picture::Picture()-1 jpegData="
+    //       << (unsigned int) jpegData
+    //       << endl;
+
+
 
     createHistograms(imgdata, len);
 
@@ -227,11 +230,11 @@ Picture::Picture(string imgdataB64,
 }
 
 Picture::Picture(char* imgdata,
-		 unsigned long size,
-		 string fn,
-		 string cat,
-		 bool isp,
-		 string dt) {
+                 unsigned long size,
+                 string fn,
+                 string cat,
+                 bool isp,
+                 string dt) {
     if (PA_DEBUG) cerr << "Picture::Picture()-2 called" << endl;
 
     Set(imgdata, size, fn, cat, isp, dt);
@@ -243,9 +246,9 @@ Picture::~Picture(void) {
     if (PA_DEBUG) cerr << "Picture::~Picture() called" << endl;
 
     //if (PA_DEBUG) 
-    //	cerr << "Picture::~Picture() jpegData=" 
-    //	     << (unsigned int) jpegData 
-    //	     << endl;
+    //  cerr << "Picture::~Picture() jpegData=" 
+    //       << (unsigned int) jpegData 
+    //       << endl;
 
     //if (jpegData) delete jpegData;
 
@@ -270,26 +273,37 @@ void Picture::createHistograms(char* imgdata, unsigned long size) {
 
     double maxValue = 0.0;
 
-    histogram[HC_RED] = Histogram( rgbData, rgbSize, HC_RED ); 	
-    if ( histogram[HC_RED].GetHistogramMaxValue() > maxValue )
-	maxValue = histogram[HC_RED].GetHistogramMaxValue();
+    // store picture attributes
+    width = JPEGPicture::GetWidth((unsigned char*)imgdata, size);
+    height = JPEGPicture::GetHeight((unsigned char*)imgdata, size);
+    isGrayscale = JPEGPicture::IsGrayScale((unsigned char*)imgdata, size);
 
-    histogram[HC_GREEN] = Histogram( rgbData, rgbSize, HC_GREEN ); 	
-    if ( histogram[HC_GREEN].GetHistogramMaxValue() > maxValue )
-	maxValue = histogram[HC_GREEN].GetHistogramMaxValue();
+    const unsigned int numOfPixels = rgbSize/3;
+    if ( !( (3 * numOfPixels) == rgbSize ))
+    {
+      cerr << "height: " << height << endl;
+      cerr << "width: " << width << endl;
+      cerr << "rgbSize: " << rgbSize << endl;
+    }
+    //assert( numOfPixels == (height*width) );
+    const double relFactor = 100.0 * 1.0 / (double)numOfPixels;
 
-    histogram[HC_BLUE] = Histogram( rgbData, rgbSize, HC_BLUE ); 	
-    if ( histogram[HC_BLUE].GetHistogramMaxValue() > maxValue )
-	maxValue = histogram[HC_BLUE].GetHistogramMaxValue();
+    // compute percentage values
 
-    histogram[HC_BRIGHTNESS] = Histogram( rgbData, rgbSize, HC_BRIGHTNESS );
-    if ( histogram[HC_BRIGHTNESS].GetHistogramMaxValue() > maxValue )
-	maxValue = histogram[HC_BRIGHTNESS].GetHistogramMaxValue();
+    for (int i=HC_RED; i<=HC_BRIGHTNESS; i++) 
+    { 
+      histogram[i] = Histogram( rgbData, rgbSize, (HistogramChannel)i );
+      if ( histogram[i].GetHistogramMaxValue() > maxValue )
+          maxValue = histogram[i].GetHistogramMaxValue();
+      histogram[i].SetHistogramMaxValue( maxValue );
+      histogram[i].ScaleValues(relFactor);
+      
+      if (RTFlag::isActive("PA:histogramCheck")) {
+        histogram[i].CheckSum((int)numOfPixels);
+        histogram[i].CheckSum(100.0);
+      }
+    }
 
-    histogram[HC_RED].SetHistogramMaxValue( maxValue );
-    histogram[HC_GREEN].SetHistogramMaxValue( maxValue );
-    histogram[HC_BLUE].SetHistogramMaxValue( maxValue );
-    histogram[HC_BRIGHTNESS].SetHistogramMaxValue( maxValue );
 }
 
 /*
@@ -302,9 +316,9 @@ string Picture::GetJPEGBase64Data(void) {
     if (PA_DEBUG) cerr << "Picture::GetJPEGBase64Data() called" << endl;
 
     //if (PA_DEBUG) 
-    //	cerr << "Picture::GetJPEGBase64Data() jpegData->Size()=" 
-    //	     << jpegData->Size() 
-    //	     << endl;
+    //  cerr << "Picture::GetJPEGBase64Data() jpegData->Size()=" 
+    //       << jpegData->Size() 
+    //       << endl;
 
     Base64 b64;
 
@@ -316,9 +330,9 @@ string Picture::GetJPEGBase64Data(void) {
     b64.encode(imgdata, size, res);
 
     if (PA_DEBUG) 
-	cerr << "Picture::GetJPEGBase64Data() res.length()=" 
-	     << res.length() 
-	     << endl;
+        cerr << "Picture::GetJPEGBase64Data() res.length()=" 
+             << res.length() 
+             << endl;
 
     return res;
 }
@@ -339,11 +353,11 @@ const char* Picture::GetJPEGData(unsigned long& size) const {
 */
 
 void Picture::Set(char* imgdata,
-		  unsigned long size,
-		  string fn,
-		  string cat,
-		  bool isp,
-		  string dt) {
+                  unsigned long size,
+                  string fn,
+                  string cat,
+                  bool isp,
+                  string dt) {
     if (PA_DEBUG) cerr << "Picture::Set()-2 called" << endl;
 
     strcpy(filename, fn.c_str());
@@ -380,8 +394,8 @@ size_t Picture::HashValue(void) const {
     str += date;
     const char *s = str.c_str();
     while (*s != 0) {
-	h = 5*h+*s;
-	s++;
+        h = 5*h+*s;
+        s++;
     }
 
     h = 5*h+(isPortrait ? 1 : 0);
@@ -404,21 +418,21 @@ void Picture::CopyFrom(const StandardAttribute* attr) {
     isDefined = p->isDefined;
 
     if (isDefined) {
-	isPortrait = p->isPortrait;
-	strcpy(filename, p->filename);
-	strcpy(category, p->category);
-	strcpy(date, p->date);
+        isPortrait = p->isPortrait;
+        strcpy(filename, p->filename);
+        strcpy(category, p->category);
+        strcpy(date, p->date);
 
-	if (PA_DEBUG) 
-	    cerr << "Picture::CopyFrom() filename" << p->filename << endl;
+        if (PA_DEBUG) 
+            cerr << "Picture::CopyFrom() filename" << p->filename << endl;
     
-	unsigned long size;
-	const char* buf = p->GetJPEGData(size);
+        unsigned long size;
+        const char* buf = p->GetJPEGData(size);
     
-	jpegData.Resize(size);
-	jpegData.Put(0, size, buf);
+        jpegData.Resize(size);
+        jpegData.Put(0, size, buf);
 
-	memcpy(histogram, p->histogram, sizeof(histogram));
+        memcpy(histogram, p->histogram, sizeof(histogram));
     }
 }
 
@@ -428,8 +442,8 @@ int Picture::Compare(const Attribute* a) const  {
     const Picture* p = (const Picture*) a;
 
     if (PA_DEBUG) {
-	cerr << "Picture::Compare() filename=" << filename << endl;
-	cerr << "Picture::Compare() p->filename=" << p->filename << endl;
+        cerr << "Picture::Compare() filename=" << filename << endl;
+        cerr << "Picture::Compare() p->filename=" << p->filename << endl;
     }
 
     int res = strcmp(filename, p->filename);
@@ -481,8 +495,8 @@ bool Picture::Export(string filename) {
 
     ofstream ofs(filename.c_str(), ios::out|ios::trunc|ios::binary);
     if (!ofs) {
-	cerr << "could not create file '" << filename << "'" << endl;
-	return false;
+        cerr << "could not create file '" << filename << "'" << endl;
+        return false;
     }
 
     ofs.write(buf, size);
@@ -507,31 +521,31 @@ bool Picture::Display(void) {
     char* filename = strdup(fileStr.str().c_str());
     int fd = mkstemp(filename);
     if (fd < 0) {
-	cerr << "could not create temporary file '" 
-	     << filename 
-	     << "': "
-	     << endl;
-	perror("mkstemp");
-	return false;
+        cerr << "could not create temporary file '" 
+             << filename 
+             << "': "
+             << endl;
+        perror("mkstemp");
+        return false;
     }
 
     if (PA_DEBUG) cerr << "Picture::Display() temp file " << filename << endl;
 
     unsigned int len = write(fd, buf, size);
     if (len < 0) {
-	cerr << "Picture::Display() could not write to temp file '"
-	     << filename
-	     << "': ";
-	perror("write");
-	unlink(filename);
-	return false;
+        cerr << "Picture::Display() could not write to temp file '"
+             << filename
+             << "': ";
+        perror("write");
+        unlink(filename);
+        return false;
     } else if (len != size) {
-	cerr << "Picture::Display() could only partially write to temp file '"
-	     << filename
-	     << "'"
-	     << endl;
-	unlink(filename);
-	return false;
+        cerr << "Picture::Display() could only partially write to temp file '"
+             << filename
+             << "'"
+             << endl;
+        unlink(filename);
+        return false;
     }
     
     close(fd);
@@ -545,11 +559,11 @@ bool Picture::Display(void) {
     system(cmd.c_str());
 
     if (unlink(filename) < 0) {
-	cerr << "Picture::Display() could not remove temporary file '"
-	     << filename
-	     << "': ";
-	perror("unlink");
-	return false;
+        cerr << "Picture::Display() could not remove temporary file '"
+             << filename
+             << "': ";
+        perror("unlink");
+        return false;
     }
 
 #else
@@ -582,13 +596,13 @@ int Picture::SimpleCompare(const Attribute* a) const {
     int res = memcmp(buf1, buf2, size);
 
     if (res != 0)   
-	return res;
+        return res;
     else if (size1 < size2)
-	return -1;
+        return -1;
     else if (size1 > size2)
-	return 1;
+        return 1;
     else 
-	return 0;
+        return 0;
 }
 
 /*
@@ -606,90 +620,90 @@ static ListExpr OutPicture(ListExpr typeInfo, Word value) {
     if (PA_DEBUG) cerr << "OutPicture() filename=" << p->GetFilename() << endl;
 
     if (p->IsDefined()) {
-	ListExpr imgdata = nl->TextAtom();
-	nl->AppendText(imgdata, p->GetJPEGBase64Data());
+        ListExpr imgdata = nl->TextAtom();
+        nl->AppendText(imgdata, p->GetJPEGBase64Data());
 
-	return
-	    nl->FiveElemList(
-		nl->StringAtom(p->GetFilename()),
-		nl->StringAtom(p->GetDate()),
-		nl->StringAtom(p->GetCategory()),
-		nl->BoolAtom(p->IsPortrait()),
-		imgdata);
+        return
+            nl->FiveElemList(
+                nl->StringAtom(p->GetFilename()),
+                nl->StringAtom(p->GetDate()),
+                nl->StringAtom(p->GetCategory()),
+                nl->BoolAtom(p->IsPortrait()),
+                imgdata);
     } else
-	return nl->SymbolAtom("undef");
+        return nl->SymbolAtom("undef");
 }
 
 static Word InPicture(const ListExpr typeInfo,
-		      const ListExpr instance,
-		      const int errorPos,
-		      ListExpr& errorInfo,
-		      bool& correct) {
+                      const ListExpr instance,
+                      const int errorPos,
+                      ListExpr& errorInfo,
+                      bool& correct) {
     if (PA_DEBUG) cerr << "InPicture() called" << endl;
 
     if (nl->ListLength(instance) == 5) {
-	if (PA_DEBUG) cerr << "InPicture() list length is correct" << endl;
+        if (PA_DEBUG) cerr << "InPicture() list length is correct" << endl;
 
-	ListExpr filename = nl->First(instance);
-	ListExpr date = nl->Second(instance);
-	ListExpr category = nl->Third(instance);
-	ListExpr isportrait = nl->Fourth(instance);
-	ListExpr imgdata = nl->Fifth(instance);
+        ListExpr filename = nl->First(instance);
+        ListExpr date = nl->Second(instance);
+        ListExpr category = nl->Third(instance);
+        ListExpr isportrait = nl->Fourth(instance);
+        ListExpr imgdata = nl->Fifth(instance);
 
-	cerr << nl->StringValue(filename) << endl;
-	cerr << nl->StringValue(category) << endl;
-	cerr << nl->StringValue(date) << endl;
+        cerr << nl->StringValue(filename) << endl;
+        cerr << nl->StringValue(category) << endl;
+        cerr << nl->StringValue(date) << endl;
 
-	if (nl->IsAtom(filename)
-	    && nl->AtomType(filename) == StringType
-	    && nl->IsAtom(date)
-	    && nl->AtomType(date) == StringType
-	    && nl->IsAtom(isportrait)
-	    && nl->AtomType(category) == StringType
-	    && nl->IsAtom(isportrait)
-	    && nl->AtomType(isportrait) == BoolType
-	    && nl->IsAtom(imgdata)
-	    && nl->AtomType(imgdata) == TextType) {
-	    if (PA_DEBUG) 
-		cerr << "InPicture() list elements are correct" << endl;
+        if (nl->IsAtom(filename)
+            && nl->AtomType(filename) == StringType
+            && nl->IsAtom(date)
+            && nl->AtomType(date) == StringType
+            && nl->IsAtom(isportrait)
+            && nl->AtomType(category) == StringType
+            && nl->IsAtom(isportrait)
+            && nl->AtomType(isportrait) == BoolType
+            && nl->IsAtom(imgdata)
+            && nl->AtomType(imgdata) == TextType) {
+            if (PA_DEBUG) 
+                cerr << "InPicture() list elements are correct" << endl;
 
-	    DateTime dt;
+            DateTime dt;
 
-	    if (dt.ReadFrom(nl->StringValue(date))) {
-		if (PA_DEBUG) 
-		    cerr << "InPicture() date is correct" << endl;
-		string imgdataBase64 = "";
-		string current;
-		while (nl->GetNextText(imgdata, current, 72*1000+1000)) {
-		    imgdataBase64 += current;
-		    if (PA_DEBUG)
-			cerr << "InPicture() position=" 
-			     << imgdataBase64.length() 
-			     << endl;
-		}
-		
-		if (PA_DEBUG)
-		    cerr << "InPicture() imgdataBase64.length()="
-			 << imgdataBase64.length() 
-			 << endl;
+            if (dt.ReadFrom(nl->StringValue(date))) {
+                if (PA_DEBUG) 
+                    cerr << "InPicture() date is correct" << endl;
+                string imgdataBase64 = "";
+                string current;
+                while (nl->GetNextText(imgdata, current, 72*1000+1000)) {
+                    imgdataBase64 += current;
+                    if (PA_DEBUG)
+                        cerr << "InPicture() position=" 
+                             << imgdataBase64.length() 
+                             << endl;
+                }
+                
+                if (PA_DEBUG)
+                    cerr << "InPicture() imgdataBase64.length()="
+                         << imgdataBase64.length() 
+                         << endl;
 
-		correct = true;
-		Picture* pic =
-		    new Picture(imgdataBase64,
-				nl->StringValue(filename),
-				nl->StringValue(category),
-				nl->BoolValue(isportrait),
-				nl->StringValue(date));
-		if (PA_DEBUG) 
-		    cerr << "InPicture() created picture at " 
-			 << (int) pic 
-			 << endl;
-		return SetWord(pic);
-	    } else
-		if (PA_DEBUG) 
-		    cerr << "InPicture() date is not correct" << endl;
+                correct = true;
+                Picture* pic =
+                    new Picture(imgdataBase64,
+                                nl->StringValue(filename),
+                                nl->StringValue(category),
+                                nl->BoolValue(isportrait),
+                                nl->StringValue(date));
+                if (PA_DEBUG) 
+                    cerr << "InPicture() created picture at " 
+                         << (int) pic 
+                         << endl;
+                return SetWord(pic);
+            } else
+                if (PA_DEBUG) 
+                    cerr << "InPicture() date is not correct" << endl;
 
-	}
+        }
     }
 
     correct = false;
@@ -704,20 +718,20 @@ static Word InPicture(const ListExpr typeInfo,
 
 static ListExpr PictureProperty(void) {
     return
-	nl->TwoElemList(
-	    nl->FiveElemList(
-		nl->StringAtom("Signature"),
-		nl->StringAtom("Example Type List"),
-		nl->StringAtom("List Rep"),
-		nl->StringAtom("Example List"),
-		nl->StringAtom("Remarks")),
-	    nl->FiveElemList(
-		nl->StringAtom("-> DATA"),
-		nl->StringAtom("picture"),
-		nl->StringAtom(
-		    "(<file> <date> <category> <isportrait> <data> )"),
-		nl->StringAtom("n/a"),
-		nl->StringAtom("<date> is in instant format.")));
+        nl->TwoElemList(
+            nl->FiveElemList(
+                nl->StringAtom("Signature"),
+                nl->StringAtom("Example Type List"),
+                nl->StringAtom("List Rep"),
+                nl->StringAtom("Example List"),
+                nl->StringAtom("Remarks")),
+            nl->FiveElemList(
+                nl->StringAtom("-> DATA"),
+                nl->StringAtom("picture"),
+                nl->StringAtom(
+                    "(<file> <date> <category> <isportrait> <data> )"),
+                nl->StringAtom("n/a"),
+                nl->StringAtom("<date> is in instant format.")));
 }
 
 /*
@@ -736,9 +750,9 @@ static Word CreatePicture(const ListExpr typeInfo) {
 
 static void DeletePicture(const ListExpr typeInfo, Word& w) {
     if (PA_DEBUG) 
-	cerr << "DeletePicture() called for " 
-	     << (int) w.addr 
-	     << endl;
+        cerr << "DeletePicture() called for " 
+             << (int) w.addr 
+             << endl;
 
     delete (Picture*) w.addr;
     if (PA_DEBUG) cerr << "DeletePicture() #2" << endl;
@@ -748,9 +762,9 @@ static void DeletePicture(const ListExpr typeInfo, Word& w) {
 
 static void ClosePicture(const ListExpr typeInfo, Word& w) {
     if (PA_DEBUG) 
-	cerr << "ClosePicture() called for " 
-	     << (int) w.addr 
-	     << endl;
+        cerr << "ClosePicture() called for " 
+             << (int) w.addr 
+             << endl;
 
     delete (Picture*) w.addr;
     if (PA_DEBUG) cerr << "ClosePicture() #1" << endl;
@@ -771,8 +785,8 @@ static int SizeOfPicture(void) {
 }
 
 static bool OpenPicture(SmiRecord& rec, size_t& offset,
-			const ListExpr typeInfo,
-			Word& w) {
+                        const ListExpr typeInfo,
+                        Word& w) {
     if (PA_DEBUG) cerr << "OpenPicture() called" << endl;
 
     bool isDefined;
@@ -784,42 +798,42 @@ static bool OpenPicture(SmiRecord& rec, size_t& offset,
     unsigned int pos = 0;
 
     if (rec.Read(&isDefined, sizeof(bool), pos) != sizeof(bool)) {
-	cerr << "OpenPicture() could not read defined flag" << endl;
-	return false;
+        cerr << "OpenPicture() could not read defined flag" << endl;
+        return false;
     }
     if (PA_DEBUG) cerr << "OpenPicture() isDefined=" << isDefined << endl;
 
     if (!isDefined) {
-	w.addr = new Picture(false);
-	return true;
+        w.addr = new Picture(false);
+        return true;
     }
 
     pos += sizeof(bool);
 
     if (rec.Read(filename, sizeof(STRING), pos) != sizeof(STRING)) {
-	cerr << "OpenPicture() could not read filename" << endl;
-	return false;
+        cerr << "OpenPicture() could not read filename" << endl;
+        return false;
     }
     pos += sizeof(STRING);
     if (PA_DEBUG) cerr << "OpenPicture() filename=" << filename << endl;
 
     if (rec.Read(category, sizeof(STRING), pos) != sizeof(STRING)) {
-	cerr << "OpenPicture() could not read category" << endl;
-	return false;
+        cerr << "OpenPicture() could not read category" << endl;
+        return false;
     }
     pos += sizeof(STRING);
     if (PA_DEBUG) cerr << "OpenPicture() category=" << category << endl;
 
     if (rec.Read(date, sizeof(STRING), pos) != sizeof(STRING)) {
-	cerr << "OpenPicture() could not read date" << endl;
-	return false;
+        cerr << "OpenPicture() could not read date" << endl;
+        return false;
     }
     pos += sizeof(STRING);
     if (PA_DEBUG) cerr << "OpenPicture() date=" << date << endl;
 
     if (rec.Read(&isPortrait, sizeof(bool), pos) != sizeof(bool)) {
-	cerr << "OpenPicture() could not read portrait flag" << endl;
-	return false;
+        cerr << "OpenPicture() could not read portrait flag" << endl;
+        return false;
     }
     pos += sizeof(bool);
     if (PA_DEBUG) cerr << "OpenPicture() isPortrait=" << isPortrait << endl;
@@ -827,9 +841,9 @@ static bool OpenPicture(SmiRecord& rec, size_t& offset,
     unsigned int jpegSize;
 
     if (rec.Read(&jpegSize, sizeof(unsigned int), pos) 
-	!= sizeof(unsigned int)) {
-	cerr << "OpenPicture() could not read JPEG data size" << endl;
-	return false;
+        != sizeof(unsigned int)) {
+        cerr << "OpenPicture() could not read JPEG data size" << endl;
+        return false;
     }
     pos += sizeof(unsigned int);
     if (PA_DEBUG) cerr << "OpenPicture() jpegSize=" << jpegSize << endl;
@@ -837,21 +851,21 @@ static bool OpenPicture(SmiRecord& rec, size_t& offset,
     char* jpegData = new char[jpegSize];
 
     if (rec.Read(jpegData, jpegSize, pos) != jpegSize) {
-	cerr << "OpenPicture() could not read JPEG data" << endl;
-	return false;
+        cerr << "OpenPicture() could not read JPEG data" << endl;
+        return false;
     }
 
     w.addr = 
-	new Picture(jpegData, jpegSize, filename, category, isPortrait, date);
-	   
+        new Picture(jpegData, jpegSize, filename, category, isPortrait, date);
+           
     delete[] jpegData;
 
     return true;
 }
 
 static bool SavePicture(SmiRecord& rec, size_t& offset,
-			const ListExpr typeInfo,
-			Word& w) {
+                        const ListExpr typeInfo,
+                        Word& w) {
     if (PA_DEBUG) cerr << "SavePicture() called" << endl;
 
     Picture* p = (Picture*) w.addr;
@@ -861,10 +875,10 @@ static bool SavePicture(SmiRecord& rec, size_t& offset,
     unsigned int pos = 0;
 
     if (rec.Write(&isDefined, sizeof(bool), pos) != sizeof(bool)) {
-	cerr << "SavePicture() could not write defined flag of " 
-	     << (int) p 
-	     << endl;
-	return false;
+        cerr << "SavePicture() could not write defined flag of " 
+             << (int) p 
+             << endl;
+        return false;
     }
 
     if (!isDefined) return true;
@@ -872,37 +886,37 @@ static bool SavePicture(SmiRecord& rec, size_t& offset,
     pos += sizeof(bool);
 
     if (rec.Write(p->GetFilename().c_str(), sizeof(STRING), pos) 
-	!= sizeof(STRING)) {
-	cerr << "SavePicture() could not write filename of " 
-	     << (int) p 
-	     << endl;
-	return false;
+        != sizeof(STRING)) {
+        cerr << "SavePicture() could not write filename of " 
+             << (int) p 
+             << endl;
+        return false;
     }
     pos += sizeof(STRING);
     if (rec.Write(p->GetCategory().c_str(), sizeof(STRING), pos) 
-	!= sizeof(STRING)) {
-	cerr << "SavePicture() could not write category of " 
-	     << (int) p 
-	     << endl;
-	return false;
+        != sizeof(STRING)) {
+        cerr << "SavePicture() could not write category of " 
+             << (int) p 
+             << endl;
+        return false;
     }
     pos += sizeof(STRING);
     if (rec.Write(p->GetDate().c_str(), sizeof(STRING), pos) 
-	!= sizeof(STRING)) {
-	cerr << "SavePicture() could not write date of " 
-	     << (int) p 
-	     << endl;
-	return false;
+        != sizeof(STRING)) {
+        cerr << "SavePicture() could not write date of " 
+             << (int) p 
+             << endl;
+        return false;
     }
     pos += sizeof(STRING);
 
     bool isPortrait = p->IsPortrait();
 
     if (rec.Write(&isPortrait, sizeof(bool), pos) != sizeof(bool)) {
-	cerr << "SavePicture() could not write portrait flag of " 
-	     << (int) p 
-	     << endl;
-	return false;
+        cerr << "SavePicture() could not write portrait flag of " 
+             << (int) p 
+             << endl;
+        return false;
     }
     pos += sizeof(bool);
 
@@ -910,19 +924,19 @@ static bool SavePicture(SmiRecord& rec, size_t& offset,
     const char* jpegData = p->GetJPEGData(jpegSize);
 
     if (rec.Write(&jpegSize, sizeof(unsigned int), pos) 
-	!= sizeof(unsigned int)) {
-	cerr << "SavePicture() could not write JPEG data size of " 
-	     << (int) p 
-	     << endl;
-	return false;
+        != sizeof(unsigned int)) {
+        cerr << "SavePicture() could not write JPEG data size of " 
+             << (int) p 
+             << endl;
+        return false;
     }
     pos += sizeof(unsigned int);
 
     if (rec.Write(jpegData, jpegSize, pos) != jpegSize) {
-	cerr << "SavePicture() could not write JPEG data of " 
-	     << (int) p 
-	     << endl;
-	return false;
+        cerr << "SavePicture() could not write JPEG data of " 
+             << (int) p 
+             << endl;
+        return false;
     }
 
     return true;
@@ -948,9 +962,9 @@ static bool CheckPicture(ListExpr type, ListExpr& errorInfo) {
 
 static void* CastPicture(void* addr) {
     if (PA_DEBUG) 
-	cerr << "CastPicture() called, addr=" 
-	     << (unsigned int) addr
-	     << endl;
+        cerr << "CastPicture() called, addr=" 
+             << (unsigned int) addr
+             << endl;
 
     return new (addr) Picture;
 }
@@ -986,18 +1000,18 @@ ListExpr PictureDateTypeMap(ListExpr args) {
     if (PA_DEBUG) cerr << "PictureDateTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 1) {
-	if (nl->IsEqual(nl->First(args), "picture"))
-	    return nl->SymbolAtom("instant");
-	else {
-	    string lexpr;
-	    nl->WriteToString(lexpr, nl->First(args));
-	    ErrorReporter::ReportError(
-		"expected 'picture' argument but received '"+lexpr+"'");
-	}
+        if (nl->IsEqual(nl->First(args), "picture"))
+            return nl->SymbolAtom("instant");
+        else {
+            string lexpr;
+            nl->WriteToString(lexpr, nl->First(args));
+            ErrorReporter::ReportError(
+                "expected 'picture' argument but received '"+lexpr+"'");
+        }
     } else 
-	ErrorReporter::ReportError(
-	    "expected one argument but received "
-	    +nl->ListLength(args));
+        ErrorReporter::ReportError(
+            "expected one argument but received "
+            +nl->ListLength(args));
 
     return nl->SymbolAtom("typeerror");
 }
@@ -1008,24 +1022,24 @@ ListExpr PictureExportTypeMap(ListExpr args) {
     string lexpr;
 
     if (nl->ListLength(args) == 2) {
-	if (!nl->IsEqual(nl->First(args), "picture")) {
-	    nl->WriteToString(lexpr, nl->First(args));
-	    ErrorReporter::ReportError(
-		"expected 'picture' as first argument but received '"
-		+lexpr
-		+"'");
-	} else if (!nl->IsEqual(nl->Second(args), "string")) {
-	    nl->WriteToString(lexpr, nl->Second(args));
-	    ErrorReporter::ReportError(
-		"expected 'string' as second argument but received '"
-		+lexpr
-		+"'");
-	} else 
-	    return nl->SymbolAtom("bool");
+        if (!nl->IsEqual(nl->First(args), "picture")) {
+            nl->WriteToString(lexpr, nl->First(args));
+            ErrorReporter::ReportError(
+                "expected 'picture' as first argument but received '"
+                +lexpr
+                +"'");
+        } else if (!nl->IsEqual(nl->Second(args), "string")) {
+            nl->WriteToString(lexpr, nl->Second(args));
+            ErrorReporter::ReportError(
+                "expected 'string' as second argument but received '"
+                +lexpr
+                +"'");
+        } else 
+            return nl->SymbolAtom("bool");
     } else
-	ErrorReporter::ReportError(
-	    "expected two arguments but received "
-	    +nl->ListLength(args));
+        ErrorReporter::ReportError(
+            "expected two arguments but received "
+            +nl->ListLength(args));
 
     return nl->SymbolAtom("typeerror");
 }
@@ -1036,24 +1050,24 @@ ListExpr PictureSimpleEqualsTypeMap(ListExpr args) {
     string lexpr;
 
     if (nl->ListLength(args) == 2) {
-	if (!nl->IsEqual(nl->First(args), "picture")) {
-	    nl->WriteToString(lexpr, nl->First(args));
-	    ErrorReporter::ReportError(
-		"expected 'picture' as first argument but received '"
-		+lexpr
-		+"'");
+        if (!nl->IsEqual(nl->First(args), "picture")) {
+            nl->WriteToString(lexpr, nl->First(args));
+            ErrorReporter::ReportError(
+                "expected 'picture' as first argument but received '"
+                +lexpr
+                +"'");
         } else if (!nl->IsEqual(nl->Second(args), "picture")) {
-	    nl->WriteToString(lexpr, nl->Second(args));
-	    ErrorReporter::ReportError(
-		"expected 'string' as second argument but received '"
-		+lexpr
-		+"'");
-	} else 
-	    return nl->SymbolAtom("bool");
+            nl->WriteToString(lexpr, nl->Second(args));
+            ErrorReporter::ReportError(
+                "expected 'string' as second argument but received '"
+                +lexpr
+                +"'");
+        } else 
+            return nl->SymbolAtom("bool");
     } else
-	ErrorReporter::ReportError(
-	    "expected two arguments but received "
-	    +nl->ListLength(args));
+        ErrorReporter::ReportError(
+            "expected two arguments but received "
+            +nl->ListLength(args));
 
     return nl->SymbolAtom("typeerror");
 }
@@ -1065,10 +1079,10 @@ ListExpr PictureSimpleEqualsTypeMap(ListExpr args) {
 */
 
 int PictureFilenameValueMap(Word* args,
-			    Word& result,
-			    int message,
-			    Word& local,
-			    Supplier s) {
+                            Word& result,
+                            int message,
+                            Word& local,
+                            Supplier s) {
     if (PA_DEBUG) cerr << "PictureFilenameValueMap() called" << endl;
 
     Picture* p = ((Picture*) args[0].addr);
@@ -1076,19 +1090,19 @@ int PictureFilenameValueMap(Word* args,
     result = qp->ResultStorage(s);
 
     if (p->IsDefined())
-	((CcString*) result.addr)->Set(true, 
-				       (STRING*) p->GetFilename().c_str());
+        ((CcString*) result.addr)->Set(true, 
+                                       (STRING*) p->GetFilename().c_str());
     else
-	((CcString*) result.addr)->Set(false, (STRING*) "");
+        ((CcString*) result.addr)->Set(false, (STRING*) "");
 
     return 0;
 }
 
 int PictureCategoryValueMap(Word* args,
-			    Word& result,
-			    int message,
-			    Word& local,
-			    Supplier s) {
+                            Word& result,
+                            int message,
+                            Word& local,
+                            Supplier s) {
     if (PA_DEBUG) cerr << "PictureCategoryValueMap() called" << endl;
 
     Picture* p = ((Picture*) args[0].addr);
@@ -1096,19 +1110,19 @@ int PictureCategoryValueMap(Word* args,
     result = qp->ResultStorage(s);
 
     if (p->IsDefined())
-	((CcString*) result.addr)->Set(true, 
-				       (STRING*) p->GetCategory().c_str());
+        ((CcString*) result.addr)->Set(true, 
+                                       (STRING*) p->GetCategory().c_str());
     else
-	((CcString*) result.addr)->Set(false, (STRING*) "");
+        ((CcString*) result.addr)->Set(false, (STRING*) "");
 
     return 0;
 }
 
 int PictureDateValueMap(Word* args,
-			Word& result,
-			int message,
-			Word& local,
-			Supplier s) {
+                        Word& result,
+                        int message,
+                        Word& local,
+                        Supplier s) {
     if (PA_DEBUG) cerr << "PictureCategoryValueMap() called" << endl;
 
     Picture* p = ((Picture*) args[0].addr);
@@ -1116,18 +1130,18 @@ int PictureDateValueMap(Word* args,
     result = qp->ResultStorage(s);
 
     if (p->IsDefined())
-	((DateTime*) result.addr)->ReadFrom(p->GetDate());
+        ((DateTime*) result.addr)->ReadFrom(p->GetDate());
     else
-	((DateTime*) result.addr)->ReadFrom("undefined");
+        ((DateTime*) result.addr)->ReadFrom("undefined");
 
     return 0;
 }
 
 int PictureIsPortraitValueMap(Word* args,
-			      Word& result,
-			      int message,
-			      Word& local,
-			      Supplier s) {
+                              Word& result,
+                              int message,
+                              Word& local,
+                              Supplier s) {
     if (PA_DEBUG) cerr << "PictureIsPortraitValueMap() called" << endl;
 
     Picture* p = ((Picture*) args[0].addr);
@@ -1135,42 +1149,42 @@ int PictureIsPortraitValueMap(Word* args,
     result = qp->ResultStorage(s);
 
     if (p->IsDefined())
-	((CcBool*) result.addr)->Set(true, p->IsPortrait());
+        ((CcBool*) result.addr)->Set(true, p->IsPortrait());
     else
-	((CcBool*) result.addr)->Set(false, false);
+        ((CcBool*) result.addr)->Set(false, false);
 
     return 0;
 }
 
 int PictureDisplayValueMap(Word* args,
-			   Word& result,
-			   int message,
-			   Word& local,
-			   Supplier s) {
+                           Word& result,
+                           int message,
+                           Word& local,
+                           Supplier s) {
     if (PA_DEBUG) cerr << "PictureDisplayValueMap() called" << endl;
 
     Picture* p = (Picture*) args[0].addr;
 
     if (PA_DEBUG) 
-	cerr << "PictureDisplayValueMap() filename" 
-	     << p->GetFilename() 
-	     << endl;
+        cerr << "PictureDisplayValueMap() filename" 
+             << p->GetFilename() 
+             << endl;
 
     result = qp->ResultStorage(s);
 
     if (p->IsDefined()) {
-	((CcBool*) result.addr)->Set(true, p->Display());
+        ((CcBool*) result.addr)->Set(true, p->Display());
     } else
-	((CcBool*) result.addr)->Set(false, false);
+        ((CcBool*) result.addr)->Set(false, false);
 
     return 0;
 }
 
 int PictureExportValueMap(Word* args,
-			  Word& result,
-			  int message,
-			  Word& local,
-			  Supplier s) {
+                          Word& result,
+                          int message,
+                          Word& local,
+                          Supplier s) {
     if (PA_DEBUG) cerr << "PictureExportValueMap() called" << endl;
 
     Picture* p = (Picture*) args[0].addr;
@@ -1179,19 +1193,19 @@ int PictureExportValueMap(Word* args,
     result = qp->ResultStorage(s);
 
     if (p->IsDefined())
-	((CcBool*) result.addr)->Set(true, 
-				     p->Export((char*) str->GetStringval()));
+        ((CcBool*) result.addr)->Set(true, 
+                                     p->Export((char*) str->GetStringval()));
     else
-	((CcBool*) result.addr)->Set(false, false);
+        ((CcBool*) result.addr)->Set(false, false);
 
     return 0;
 }
 
 int PictureSimpleEqualsValueMap(Word* args,
-				Word& result,
-				int message,
-				Word& local,
-				Supplier s) {
+                                Word& result,
+                                int message,
+                                Word& local,
+                                Supplier s) {
     if (PA_DEBUG) cerr << "PictureSimpleEqualsValueMap() called" << endl;
 
     Picture* p1 = (Picture*) args[0].addr;
@@ -1200,10 +1214,10 @@ int PictureSimpleEqualsValueMap(Word* args,
     result = qp->ResultStorage(s);
 
     if (p1->IsDefined() && p2->IsDefined())
-	((CcBool*) result.addr)->Set(true, 
-				     p1->SimpleCompare((Attribute*) p2) == 0);
+        ((CcBool*) result.addr)->Set(true, 
+                                     p1->SimpleCompare((Attribute*) p2) == 0);
     else
-	((CcBool*) result.addr)->Set(false, false);
+        ((CcBool*) result.addr)->Set(false, false);
 
     return 0;
 }

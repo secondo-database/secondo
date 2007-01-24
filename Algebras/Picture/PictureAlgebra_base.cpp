@@ -168,16 +168,27 @@ static const string pictureColordistSpec =
 
 static const string pictureEqualsSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( 'picture picture int int -> real' "
-    "'p1 p2 equals [ n, t ]' "
-    "'Returns 0.0 if pictures are \"similar\" in the sense "
-    "that |avg_n(p1_hist)-avg_n(p2_hist)| < t/10000. Here avg_n "
-    "defines the avagerage of n subsequent color values. If this "
-    "tolerance is exceeded the sum of all "
-    "aberrations will be calculated and returned as result.'"
-    "'pic1 pic2 equals [ 5, 100 ] : This means a sliding window of "
-    "five values may have an abberration of 1%.'"
+    "( <text>picture picture int int -> real</text--->"
+    "<text>p1 p2 equals [ n, t ]</text--->"
+    "<text>Returns 0 if pictures are 'similar' in the sense "
+    "that abs( avg_i^i+n(p1_hist[i]) - avg_i^[i+n](p2_hist[i])) < t/10000 "
+    "If this tolerance is exceeded the sum of all "
+    "aberrations will be calculated.</text--->"
+    "<text>pic1 pic2 equals [ 5, 100 ]</text--->"
     ") )";
+
+static const string pictureContainsSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>picture picture -> bool</text--->"
+    "<text>p1 contains p2</text--->"
+    "<text>Returns TRUE if the red, green, and blue histogram "
+    "curves based on absolute numbers of pixels of p1 are an upper boundary "
+    "for the respective curves of p2. This can be used to filter "
+    "out candidates "
+    "which may contain p2. </text--->"
+    "<text>pic1 contains pic2</text--->"
+    ") )";
+
 
 static const string pictureSimpleEqualsSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -352,6 +363,13 @@ extern int PictureEqualsValueMap(Word* args,
                                  Word& local,
                                  Supplier s);
 
+extern int PictureContainsValueMap(Word* args,
+                                 Word& result,
+                                 int message,
+                                 Word& local,
+                                 Supplier s);
+
+
 extern ValueMapping pictureLikeValueMap[];
 
 extern int PictureLikeSelect(ListExpr args);
@@ -489,6 +507,15 @@ static Operator equals(
     PictureEqualsTypeMap                   //type mapping
 );
 
+static Operator containsOp(
+    "contains",                            //name
+    pictureContainsSpec,                   //specification
+    PictureContainsValueMap,               //value mapping
+    SimpleSelect,                          //mapping selection function
+    PictureSimpleEqualsTypeMap             //type mapping
+);
+
+
 static Operator like(
     "like",                                //name
     pictureLikeSpec,                       //specification
@@ -572,6 +599,7 @@ public:
         AddOperator(&isportrait);
         AddOperator(&colordist);
         AddOperator(&equals);
+        AddOperator(&containsOp);
         AddOperator(&simpleequals);
         AddOperator(&like);
         AddOperator(&scale);

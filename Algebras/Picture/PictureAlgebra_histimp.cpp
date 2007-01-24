@@ -59,27 +59,30 @@ histgram. Furthermore some private variables such as ~channel~ and the
 
 */
 Histogram::Histogram( unsigned char * rgbData,
-		      unsigned long rgbSize,
-		      HistogramChannel _channel) {
+                      unsigned long rgbSize,
+                      HistogramChannel _channel) {
 
     if (PA_DEBUG) cerr << "Histogram::Histogram()-1 called" << endl;
     
     //
-    //	Initialise the histogram array and the channel !
+    //  Initialise the histogram array and the channel !
     //
     histogramMaxValue = 0.0;
     channel = HistogramChannel(0);
     isDefined = false;
-    for ( int i=0; i<256; i++ )
-	histogram[i] = 0.0;
+    for ( int i=0; i<256; i++ ) 
+    {
+        histogram[i] = 0.0;
+        histogram_abs[i] = 0;
+    }
 
     if (( _channel < 0 ) || ( _channel > 3 ) )
     {
-	cerr << endl << endl
-	     << "Channel has a wrong value. Valid values are [0, 3]. "
-	     << "Specified value: " << _channel << endl<< endl;
+        cerr << endl << endl
+             << "Channel has a wrong value. Valid values are [0, 3]. "
+             << "Specified value: " << _channel << endl<< endl;
 
-	return;
+        return;
     }
 
     channel = _channel;
@@ -90,77 +93,59 @@ Histogram::Histogram( unsigned char * rgbData,
 
     if ( channel < HistogramChannel(HC_BRIGHTNESS) )
     {
-	//
-	//	Create Histogram for Red, Green, Blue
-	//
-    	for ( unsigned int i=channel; i< rgbSize-3; i+=3 )
-    	{
-		no = (unsigned int) rgbData[i];
-		if ( (no < 0) || (no > 255 ))
-			cerr << no  <<", ";
-		else
-		{
-			histogram[ no ]++;
-		}
-	
-	 }
-	 cerr << endl;
+        //
+        //      Create Histogram for Red, Green, Blue
+        //
+        for ( unsigned int i=channel; i<rgbSize; i+=3 )
+        {
+                no = (unsigned int) rgbData[i];
+                if ( (no < 0) || (no > 255 ))
+                        cerr << "color value out of range: " << no  <<", ";
+                else
+                {
+                   histogram_abs[ no ]++;
+                }
+        
+         }
+         cerr << endl;
     }
     else
     {
-	//
-	//	Create Histogram for BRIGHTNESS
+        //
+        //      Create Histogram for BRIGHTNESS
         //
         double y = 0.0;
         int index = 0;
 
-	for ( unsigned int i=0; i< rgbSize-3; i+=3 )
-	{
-		y = 0.3  * (unsigned int) rgbData[i] +
+        for ( unsigned int i=0; i< rgbSize-3; i+=3 )
+        {
+                y = 0.3  * (unsigned int) rgbData[i] +
                     0.59 * (unsigned int) rgbData[i+1] + 
                     0.11 * (unsigned int) rgbData[i+2];
 
-		index = (int) y;
+                index = (int) y;
 
-		histogram[ index ]++;
-	}
+                histogram[ index ]++;
+        }
     }
 
-
     //
-    //	The percentage is required, therefore another calculation
-    //  is necessary.
-    //
-    //	rgbSize is the size of Red, Green and Blue data. 
-    //
-    histogramMaxValue = 0.0;
-    for (int i = 0; i < 256; i++)
-    {
-	histogram[i] = 
-		((double)histogram[i]) * 100.0 * 3.0 / (double)(rgbSize+1.0);
-
-	if ( histogramMaxValue < histogram[i] )
-		histogramMaxValue = histogram[i];
-    }
-
-
-    //
-    //	Print out for debug purposes
+    //  Print out for debug purposes
     //
     if (PA_DEBUG)
     {
-    	cerr << "Histogram::Histogram histogram: " <<  endl;
-	for ( int i=0; i< 256; i++ )
-	{
-		cerr << histogram[i] ;
-		if ( (i%10) == 0 )
-			cerr << endl;
-		else
-			cerr << ", ";
-	}
-	cerr << endl;
-    	cerr << "Histogram::Histogram channel: " << channel << endl;
-    	cerr << "Max Value: " << histogramMaxValue << endl;
+        cerr << "Histogram::Histogram histogram: " <<  endl;
+        for ( int i=0; i< 256; i++ )
+        {
+                cerr << histogram[i] ;
+                if ( (i%10) == 0 )
+                        cerr << endl;
+                else
+                        cerr << ", ";
+        }
+        cerr << endl;
+        cerr << "Histogram::Histogram channel: " << channel << endl;
+        cerr << "Max Value: " << histogramMaxValue << endl;
     }
 
 }
@@ -174,32 +159,32 @@ the ~histogram~. These information are saved in the ~histogram~ object.
 
 */
 Histogram::Histogram( double * _histogram,
-		      HistogramChannel _channel,
+                      HistogramChannel _channel,
                       double maxValue) {
     if (PA_DEBUG) cerr << "Histogram::Histogram()-2 called" << endl;
 
     //
-    //	Initialise the histogram array and the channel !
+    //  Initialise the histogram array and the channel !
     //
     channel = HistogramChannel(0);
     isDefined = false;
     for ( int i=0; i<256; i++ )
-	histogram[i] = 0.0;
+        histogram[i] = 0.0;
 
     //
-    //	Check the specified parameter !
+    //  Check the specified parameter !
     //
     if (( _channel < 0 ) || ( _channel > 3 ) )
     {
-	cerr << endl << endl
-	     << "Channel has a wron value. Valid values are [0, 3]. "
-	     << "Specified value: " << _channel << endl<< endl;
+        cerr << endl << endl
+             << "Channel has a wron value. Valid values are [0, 3]. "
+             << "Specified value: " << _channel << endl<< endl;
 
-	return;
+        return;
     }
 
     //
-    //	Everything is fine !
+    //  Everything is fine !
     //
     channel = _channel;
     histogramMaxValue = maxValue;
@@ -207,25 +192,25 @@ Histogram::Histogram( double * _histogram,
 
     for ( int i=0; i<256; i++ )
     {
-	histogram[i] = _histogram[i];
+        histogram[i] = _histogram[i];
     }
 
     //
-    //	Print out for debug purposes
+    //  Print out for debug purposes
     //
 //  if (PA_DEBUG)
 //  {
-//    	cerr << "Histogram::Histogram channel: " << channel << endl;
-//    	cerr << "Histogram::Histogram histogram: " <<  endl;
-//	for ( int i=0; i< 256; i++ )
-//	{
-//		cerr << histogram[i] ;
-//		if ( (i%10) == 0 )
-//			cerr << endl;
-//		else
-//			cerr << ", ";
-//	}
-//	cerr << endl;
+//      cerr << "Histogram::Histogram channel: " << channel << endl;
+//      cerr << "Histogram::Histogram histogram: " <<  endl;
+//      for ( int i=0; i< 256; i++ )
+//      {
+//              cerr << histogram[i] ;
+//              if ( (i%10) == 0 )
+//                      cerr << endl;
+//              else
+//                      cerr << ", ";
+//      }
+//      cerr << endl;
 //   }
 
 }
@@ -236,6 +221,49 @@ Histogram::Histogram( double * _histogram,
 
 */
 
+void
+Histogram::ScaleValues(double factor) {
+
+    for ( int i=0; i<256; i++ )
+    {
+        histogram[i] = ((double)histogram_abs[i]) * factor;
+    }
+    histogramMaxValue = histogramMaxValue * factor; 
+
+}
+
+
+double
+Histogram::CheckSum(double refValue) {
+
+    double sum = 0.0;
+    for ( int i=0; i<256; i++ )
+    {
+        sum += histogram[i];
+    }
+    if ( sum != refValue ) {
+      cerr << "color(" << channel 
+           << ") sum(double) differs by " << refValue - sum << endl;
+    }
+    return sum;
+}
+
+int
+Histogram::CheckSum(int refValue) {
+
+    int sum = 0;
+    for ( int i=0; i<256; i++ )
+    {
+        sum += histogram_abs[i];
+    }
+    if ( sum != refValue ) {
+      cerr << "color(" << channel 
+           << ") sum(int) differs by " << refValue - sum << endl;
+    }
+    return sum;
+}
+
+
 size_t Histogram::HashValue(void) const {
     if (PA_DEBUG) cerr << "Histogram::HashValue() called" << endl;
 
@@ -244,7 +272,7 @@ size_t Histogram::HashValue(void) const {
     if ( !isDefined) return 0;
 
     for ( int i=0; i<256; i++ )
-	h += ((int) (histogram[i]*100)) * (i+1) + channel;
+        h += ((int) (histogram[i]*100)) * (i+1) + channel;
 
     return h;
 }
@@ -255,18 +283,18 @@ void Histogram::CopyFrom(const StandardAttribute* attr) {
     const Histogram* h = (const Histogram*) attr;
 
     //
-    //	copy all attributes
+    //  copy all attributes
     //
     isDefined = h->isDefined;
 
     if ( ! isDefined )
-	return;
+        return;
 
     channel   = h->channel;
     histogramMaxValue = h->histogramMaxValue;
 
     for ( int i=0; i<256; i++ )
-	histogram[i] = h->histogram[i];
+        histogram[i] = h->histogram[i];
 }
 
 int Histogram::Compare(const Attribute* a) const {
@@ -275,31 +303,31 @@ int Histogram::Compare(const Attribute* a) const {
     const Histogram * h = (const Histogram*) a;
 
     //
-    //	At first, check the channel
+    //  At first, check the channel
     //
     if ( channel < h->channel )
-	return -1;
+        return -1;
     else
     if ( channel > h->channel )
-	return +1;
+        return +1;
 
     //
-    //	There is no difference in terms of channel, so check
-    //	the histograms.
+    //  There is no difference in terms of channel, so check
+    //  the histograms.
     //
     for ( int i=0; i< 256; i++ )
     {
-	if ( fabs( histogram[i] - h->histogram[i]) < DIFFERENZ_DELTA )
-		continue;
+        if ( fabs( histogram[i] - h->histogram[i]) < DIFFERENZ_DELTA )
+                continue;
 
-	if ( histogram[i] < h->histogram[i] )
-		return -1;
-	else
-		return 1;	
+        if ( histogram[i] < h->histogram[i] )
+                return -1;
+        else
+                return 1;       
     }
 
     //
-    //	In this case, both histograms are equal! 
+    //  In this case, both histograms are equal! 
     //
     return 0;
 }
@@ -353,7 +381,7 @@ double Histogram::GetHistogramMaxValue(void) {
     if (PA_DEBUG) cerr << "Histogram::GetHistogramMaxValue() called" << endl;
 
     if (PA_DEBUG)
-	cerr << "Max Value: " << histogramMaxValue << endl;
+        cerr << "Max Value: " << histogramMaxValue << endl;
     return histogramMaxValue;
 }
 
@@ -379,29 +407,34 @@ bool Histogram::Equals(Histogram* h, int n, int p, bool& valid, double& diff) {
     if ( n <= 0 )
     {
         cerr << endl << endl
-	     << "Function: equals: picture x picture x int x int"  << endl	
-	     << "Third argument " << n << " must be positive. It will be set to 1." 
+             << "Function: equals: picture x picture x int x int"  << endl      
+             << "Third argument " << n << " must be positive. "
+             << "It will be set to 1." 
              << endl << endl;
        
-	n=1;
+        n=1;
     }
     if ( n > 256 )
     {
         cerr << endl << endl
-	     << "Function: equals: picture x picture x int x int"  << endl	
-	     << "Third argmument " << n << " must be lower equal 256. It will be set to 1." 
+             << "Function: equals: picture x picture x int x int"  << endl      
+             << "Third argmument " << n << " must be lower equal 256. "
+             << "It will be set to 1." 
              << endl << endl;
        
-	n=1;
+        n=1;
     }
     if ( (p<0) || ((double)p > (100/Tolerance_Unit)) )
     {
         cerr << endl << endl
-	     << "Function: equals: picture x picture x int x int"  << endl	
-	     << "The tolerance value must be between 0 and " << 100/Tolerance_Unit << endl
-             << "Specified value: " << p << " will be set to 100" << endl << endl;
+             << "Function: equals: picture x picture x int x int" 
+             << endl      
+             << "The tolerance value must be between 0 and " 
+             << 100/Tolerance_Unit << endl
+             << "Specified value: " << p << " will be set to 100" 
+             << endl << endl;
        
-	p=100;
+        p=100;
     }
 
     double m1=0, m2=0;
@@ -409,63 +442,63 @@ bool Histogram::Equals(Histogram* h, int n, int p, bool& valid, double& diff) {
     bool isEqual = true;
 
     //
-    //	Create intervals of n numbers in row ! Than calculate the 
+    //  Create intervals of n numbers in row ! Than calculate the 
     //  average values of these n numbers for comparision.
     //
     for( int i=0; i<=256-n; i++ )
     {
-	m1 = 0.0;
-	m2 = 0.0;
+        m1 = 0.0;
+        m2 = 0.0;
 
-	for ( int j=i; j<i+n; j++ )
-	{
-		m1 += histogram[ j ];
-		m2 += h->histogram[ j ];
+        for ( int j=i; j<i+n; j++ )
+        {
+                m1 += histogram[ j ];
+                m2 += h->histogram[ j ];
 
-		//if (histogram[j] < 0 
-		//    || histogram[j] > 100
-		//    || h->histogram[j] < 0
-		//    || h->histogram[j] > 100) {
-		//    cerr << "Histogram::Equals() this looks fishy! j="
-		//	 << j
-		//	 << " histogram[j]="
-		//	 << histogram[j]
-		//	 << " h->histogram[j]="
-		//	 << h->histogram[j]
-		//	 << " this="
-		//	 << (int) this
-		// 	 << " h="
-		//	 << (int) h
-		//	 << endl;
-		//}
-	}
-	
-	m1 = m1 / (double) n;
-	m2 = m2 / (double) n;
+                //if (histogram[j] < 0 
+                //    || histogram[j] > 100
+                //    || h->histogram[j] < 0
+                //    || h->histogram[j] > 100) {
+                //    cerr << "Histogram::Equals() this looks fishy! j="
+                //       << j
+                //       << " histogram[j]="
+                //       << histogram[j]
+                //       << " h->histogram[j]="
+                //       << h->histogram[j]
+                //       << " this="
+                //       << (int) this
+                //       << " h="
+                //       << (int) h
+                //       << endl;
+                //}
+        }
+        
+        m1 = m1 / (double) n;
+        m2 = m2 / (double) n;
 
        
-	//
-	//	Check, whether these pictures are equal !
-	//
+        //
+        //      Check, whether these pictures are equal !
+        //
         double dist = abs( m1 - m2 );
         double maxdiff = p * Tolerance_Unit;
         if ( dist > maxdiff )
-	{
+        {
         if (PA_DEBUG)
-		cerr << i<< ". [" << m1-maxdiff << ", " << m1+maxdiff 
-				<< "] , m2 = " << m2 << endl;
-		isEqual = false;
+                cerr << i<< ". [" << m1-maxdiff << ", " << m1+maxdiff 
+                                << "] , m2 = " << m2 << endl;
+                isEqual = false;
                 diff += dist; 
-	}
+        }
         if (PA_DEBUG)
-		cerr << i<< ". [" << m1-maxdiff << ", " 
-			<< m1+maxdiff << "] (, m1 = " << m1 
-			<< "), m2 = " << m2 << endl;
+                cerr << i<< ". [" << m1-maxdiff << ", " 
+                        << m1+maxdiff << "] (, m1 = " << m1 
+                        << "), m2 = " << m2 << endl;
     }
 
     cerr << "histogram difference: " << diff << endl; 
     if (PA_DEBUG) cerr << "These pictures are " 
-			<< ((isEqual)? "": "not " ) << "equal." << endl;
+                        << ((isEqual)? "": "not " ) << "equal." << endl;
     return( isEqual );
 
 }
@@ -483,32 +516,32 @@ bool Histogram::Like(int p, int t, int l, int u, bool& valid) {
     if (PA_DEBUG) cerr << "Histogram::Like() called (Type:Int)" << endl;
 
     //
-    //	Check the specified arguments
+    //  Check the specified arguments
     //
     if (( p < 0 ) || ( p > 100 ))
     {
         cerr << endl << endl
-	     << "Function: like: picture x int x int x int x int"  << endl	
+             << "Function: like: picture x int x int x int x int"  << endl      
              << "The second argument must be in the interval "
              << "[0, 100]." << endl
              << "Specified argument: " << p << endl << endl;
 
-	valid = false;
-	return false;
+        valid = false;
+        return false;
     }
     if (( t < 0 ) || ( t > 100 ))
     {
         cerr << endl << endl
-	     << "Function: like: picture x int x int x int x int"  << endl	
+             << "Function: like: picture x int x int x int x int"  << endl      
              << "The third argument must be in the interval "
              << "[0, 100]." << endl
              << "Specified argument: " << t << endl << endl;
 
-	valid = false;
-	return false;
+        valid = false;
+        return false;
     }
     //
-    //	Actually, I expect that l < u, but nevertheless, I'll check it.
+    //  Actually, I expect that l < u, but nevertheless, I'll check it.
     //
     int min = (l<u) ? l:u;
     int max = (l<u) ? u:l;
@@ -516,18 +549,18 @@ bool Histogram::Like(int p, int t, int l, int u, bool& valid) {
     if (( min < 0 ) || ( max > 255 ))
     {
         cerr << endl << endl
-	     << "Function: like: picture x int x int x int x int"  << endl	
+             << "Function: like: picture x int x int x int x int"  << endl      
              << "The fourth and fifth argument must be in the interval"
              << "[0, 255]." << endl
              << "Specified arguments: " << l << ", " << u << endl << endl;
 
-	valid = false;
-	return false;
+        valid = false;
+        return false;
     }
     if (( p-t < 0 ) || ( p+t > 100 ))
     {
         cerr << endl << endl
-	     << "Function: like: picture x int x int x int x int"  << endl	
+             << "Function: like: picture x int x int x int x int"  << endl      
              << "The values calculated by " << endl
              << "   second argument + third argument OR " << endl
              << "   second argument - third argument " << endl 
@@ -537,8 +570,8 @@ bool Histogram::Like(int p, int t, int l, int u, bool& valid) {
              << "  Third argument: " << t  << endl
              << "  => 0<= " << p-t<<", "<< p+t <<" <= 100 " << endl << endl;
 
-	valid = false;
-	return false;
+        valid = false;
+        return false;
     }
 
 
@@ -547,24 +580,24 @@ bool Histogram::Like(int p, int t, int l, int u, bool& valid) {
 
     for ( int i=min; i<=max; i++ )
     {
-	percentageOfPixel += histogram[i];
+        percentageOfPixel += histogram[i];
     }
 
     if (PA_DEBUG)
     {
-	cerr << "[" << p-t << ", " << p+t << "], l:"
-			<< percentageOfPixel << endl;
+        cerr << "[" << p-t << ", " << p+t << "], l:"
+                        << percentageOfPixel << endl;
 
-    	cerr << " p-t <= percentageOfPixel: " << 
-		((p-t)<=percentageOfPixel) << endl;
-    	cerr << " p+t >= percentageOfPixel: " << 
-		((p+t)>=percentageOfPixel) << endl;
+        cerr << " p-t <= percentageOfPixel: " << 
+                ((p-t)<=percentageOfPixel) << endl;
+        cerr << " p+t >= percentageOfPixel: " << 
+                ((p+t)>=percentageOfPixel) << endl;
     }
 
     if (( ((double)p-t) <= percentageOfPixel ) && 
-	( percentageOfPixel <= ((double)p+t) ))
+        ( percentageOfPixel <= ((double)p+t) ))
     {
-	return true;
+        return true;
     }
 
     return false;
@@ -585,32 +618,32 @@ bool Histogram::Like(double p, double t, int l, int u, bool& valid) {
     if (PA_DEBUG) cerr << "Histogram::Like() called Type(Real)" << endl;
 
     //
-    //	Check the specified arguments
+    //  Check the specified arguments
     //
     if (( p < 0.0 ) || ( p > 100.0 ))
     {
         cerr << endl << endl
-	     << "Function: like: picture x real x real x int x int"  << endl	
+             << "Function: like: picture x real x real x int x int"  << endl    
              << "The second argument must be in the interval "
              << "[0, 100]." << endl
              << "Specified argument: " << p << endl << endl;
 
-	valid = false;
-	return false;
+        valid = false;
+        return false;
     }
     if (( t < 0.0 ) || ( t > 100.0 ))
     {
         cerr << endl << endl
-	     << "Function: like: picture x real x real x int x int"  << endl	
+             << "Function: like: picture x real x real x int x int"  << endl    
              << "The third argument must be in the interval "
              << "[0, 100]." << endl
              << "Specified argument: " << t << endl << endl;
 
-	valid = false;
-	return false;
+        valid = false;
+        return false;
     }
     //
-    //	Actually, I expect that l < u, but nevertheless, I'll check it.
+    //  Actually, I expect that l < u, but nevertheless, I'll check it.
     //
     int min = (l<u) ? l:u;
     int max = (l<u) ? u:l;
@@ -618,18 +651,18 @@ bool Histogram::Like(double p, double t, int l, int u, bool& valid) {
     if (( min < 0 ) || ( max > 255 ))
     {
         cerr << endl << endl
-	     << "Function: like: picture x int x int x int x int"  << endl	
+             << "Function: like: picture x int x int x int x int"  << endl      
              << "The fourth and fifth argument must be in the interval"
              << "[0, 255]." << endl
              << "Specified arguments: " << l << ", " << u << endl << endl;
 
-	valid = false;
-	return false;
+        valid = false;
+        return false;
     }
     if (( p-t < 0.0 ) || ( p+t > 100.0 ))
     {
         cerr << endl << endl
-	     << "Function: like: picture x real x real x int x int"  << endl	
+             << "Function: like: picture x real x real x int x int"  << endl    
              << "The values calculated by " << endl
              << "   second argument + third argument OR " << endl
              << "   second argument - third argument " << endl 
@@ -639,8 +672,8 @@ bool Histogram::Like(double p, double t, int l, int u, bool& valid) {
              << "  Third argument: " << t  << endl
              << "  => 0.0<= " << p-t<<", "<< p+t <<" <= 100.0 " << endl << endl;
 
-	valid = false;
-	return false;
+        valid = false;
+        return false;
     }
 
 
@@ -649,31 +682,61 @@ bool Histogram::Like(double p, double t, int l, int u, bool& valid) {
 
     for ( int i=min; i<=max; i++ )
     {
-	percentageOfPixel += histogram[i];
+        percentageOfPixel += histogram[i];
     }
 
     if (PA_DEBUG)
     {
-	cerr << "[" << p-t << ", " << p+t << "], l:"
-			<< percentageOfPixel << endl;
+        cerr << "[" << p-t << ", " << p+t << "], l:"
+                        << percentageOfPixel << endl;
     }
 
     //
-    //	query pic1 like [ 100,0, 0, 255 ] liefert false !!! Erwartet wurde
-    //	True
+    //  query pic1 like [ 100,0, 0, 255 ] liefert false !!! Erwartet wurde
+    //  True
     //
 
     cerr << " p-t <= percentageOfPixel: " << 
-		((p-t)<=percentageOfPixel) << endl;
+                ((p-t)<=percentageOfPixel) << endl;
     cerr << " p+t >= percentageOfPixel: " << 
-		((p+t)>=percentageOfPixel) << endl;
-		
+                ((p+t)>=percentageOfPixel) << endl;
+                
     if (( (p-t) <= percentageOfPixel ) && ( percentageOfPixel <= (p+t) ))
     {
-	return true;
+        return true;
     }
 
     return false;
+}
+
+/*
+
+3.4.4 Operator ~Contains~
+
+This function checks whether a histogram based on absolute numbers of pixels
+is dominated by another histogram. 
+
+*/
+bool Histogram::Contains(int pixel_this, Histogram* h, int pixel_h) {
+
+  const int tol = 2;
+  bool isContained=true;
+
+  for( int i=0; i<=255; i++ )
+  {
+    // The values of this histogram must be greater or equal
+    // than the one which is tested to be contained.
+    int diff = histogram_abs[i] - h->histogram_abs[i];
+    if ( (diff * tol) < -4 ) {
+       cerr << "Histogram color=" << channel 
+            << ", diff=" << diff 
+            << ", index=" << i << endl; 
+       isContained=false;
+       break;
+    }
+
+  }
+  return isContained;
 }
 
 /*
@@ -689,40 +752,40 @@ static ListExpr OutHistogram(ListExpr typeInfo, Word value) {
 
     if ( h->IsDefined() )
     {
-	double * histoData = h->GetHistogramData();
+        double * histoData = h->GetHistogramData();
 
-	ListExpr result = nl->OneElemList( nl->RealAtom( histoData[0]));
-	ListExpr histoDataList = result;
+        ListExpr result = nl->OneElemList( nl->RealAtom( histoData[0]));
+        ListExpr histoDataList = result;
 
-	for ( int i=1; i<256; i++ )
-	{
-		histoDataList = nl->Append( histoDataList, 
-				   nl->RealAtom( histoData[i]) ); 
-	}
+        for ( int i=1; i<256; i++ )
+        {
+                histoDataList = nl->Append( histoDataList, 
+                                   nl->RealAtom( histoData[i]) ); 
+        }
 
-	if (PA_DEBUG)
-	    cerr << "MaxValue: " << h->GetHistogramMaxValue() << endl;
-	return( nl->ThreeElemList(
-			(int)nl->IntAtom(h->GetHistogramChannel()),
-			nl->RealAtom(h->GetHistogramMaxValue()),
-			result ));
-	
+        if (PA_DEBUG)
+            cerr << "MaxValue: " << h->GetHistogramMaxValue() << endl;
+        return( nl->ThreeElemList(
+                        (int)nl->IntAtom(h->GetHistogramChannel()),
+                        nl->RealAtom(h->GetHistogramMaxValue()),
+                        result ));
+        
     }
     
     return nl->SymbolAtom( "undef" );
 }
 
 static Word InHistogram(const ListExpr typeInfo,
-		       const ListExpr instance,
-		       const int errorPos,
-		       ListExpr& errorInfo,
-		       bool& correct) {
+                       const ListExpr instance,
+                       const int errorPos,
+                       ListExpr& errorInfo,
+                       bool& correct) {
     if (PA_DEBUG) cerr << "InHistogram() called" << endl;
 
 
     double histoData[ 256 ];
     for ( int i=0; i<256; i++ )
-	histoData[i] = 0.0;
+        histoData[i] = 0.0;
     
     ListExpr channel;
     ListExpr maxValue;
@@ -730,77 +793,77 @@ static Word InHistogram(const ListExpr typeInfo,
 
     if ( nl->ListLength(instance) == 3 )
     {
-	//
-	//	Get & check the channel !
-	//
-	channel = nl->First(instance);
+        //
+        //      Get & check the channel !
+        //
+        channel = nl->First(instance);
 
-	if ( ! (nl->IsAtom( channel ) && (nl->AtomType(channel) == IntType )))
-	{
-		if (PA_DEBUG) 
-			cerr << "InHistogram() channel as 'Int' expected" 
-				<< endl;
-		correct = false;
+        if ( ! (nl->IsAtom( channel ) && (nl->AtomType(channel) == IntType )))
+        {
+                if (PA_DEBUG) 
+                        cerr << "InHistogram() channel as 'Int' expected" 
+                                << endl;
+                correct = false;
 
-		return( SetWord(Address(0)));
-	}
+                return( SetWord(Address(0)));
+        }
 
-	//
-	//	Get & check the channel !
-	//
-	maxValue = nl->Second(instance);
+        //
+        //      Get & check the channel !
+        //
+        maxValue = nl->Second(instance);
 
-	if ( !(nl->IsAtom( maxValue ) && (nl->AtomType(maxValue)==RealType)))
-	{
-		if (PA_DEBUG) 
-			cerr << "InHistogram() maxValue as 'Real' expected" 
-				<< endl;
-		correct = false;
+        if ( !(nl->IsAtom( maxValue ) && (nl->AtomType(maxValue)==RealType)))
+        {
+                if (PA_DEBUG) 
+                        cerr << "InHistogram() maxValue as 'Real' expected" 
+                                << endl;
+                correct = false;
 
-		return( SetWord(Address(0)));
-	}
+                return( SetWord(Address(0)));
+        }
 
-	//
-	//	Get & check the histogram-data  !
-	//
-	int index = 0;
-	ListExpr colorList = nl->Third( instance );
+        //
+        //      Get & check the histogram-data  !
+        //
+        int index = 0;
+        ListExpr colorList = nl->Third( instance );
 
-	while ( ! nl->IsEmpty( colorList ) )
-	{
-		color = nl->First( colorList );
-		colorList = nl->Rest( colorList );
+        while ( ! nl->IsEmpty( colorList ) )
+        {
+                color = nl->First( colorList );
+                colorList = nl->Rest( colorList );
 
-		if ( ! (nl->IsAtom(color) && (nl->AtomType(color)==RealType)))
-		{
-			if (PA_DEBUG) 
-				cerr << "InHistogram() colorNo. " << index
-				     << " as 'Int' expected" << endl;
-			correct = false;
+                if ( ! (nl->IsAtom(color) && (nl->AtomType(color)==RealType)))
+                {
+                        if (PA_DEBUG) 
+                                cerr << "InHistogram() colorNo. " << index
+                                     << " as 'Int' expected" << endl;
+                        correct = false;
 
-			return( SetWord(Address(0)));
+                        return( SetWord(Address(0)));
 
-		}
-		histoData[ index ] = nl->RealValue(color);
-		index++;
-	}
+                }
+                histoData[ index ] = nl->RealValue(color);
+                index++;
+        }
     }
     else
     {
-	if (PA_DEBUG) 
-		cerr << "InHistogram() Wrong Number of Parameter! Got " 
-			<< nl->ListLength( instance )
-		        << " parameter, but expected three." << endl;
-	correct = false;
+        if (PA_DEBUG) 
+                cerr << "InHistogram() Wrong Number of Parameter! Got " 
+                        << nl->ListLength( instance )
+                        << " parameter, but expected three." << endl;
+        correct = false;
 
-	return( SetWord(Address(0)));
+        return( SetWord(Address(0)));
     }
 
     correct = true;
 
     return SetWord( new Histogram( histoData,
-			HistogramChannel(nl->IntValue( channel)),
-    			nl->RealValue(maxValue) )); 
+                        HistogramChannel(nl->IntValue( channel)),
+                        nl->RealValue(maxValue) )); 
 }
 
 /*
@@ -810,21 +873,21 @@ static Word InHistogram(const ListExpr typeInfo,
 */
 static ListExpr HistogramProperty(void) {
     return
-	nl->TwoElemList(
-	    nl->FiveElemList(
-		nl->StringAtom("Signature"),
-		nl->StringAtom("Example Type List"),
-		nl->StringAtom("List Rep"),
-		nl->StringAtom("Example List"),
-		nl->StringAtom("Remarks")),
-	    nl->FiveElemList(
-		nl->StringAtom("-> DATA"),
-		nl->StringAtom("histogram"),
-		nl->StringAtom(
-		    "(<channel> <brightness_0> ... <brightness_255>)"),
-		nl->StringAtom(
-		    "(0 0 0 1 2 .. 255 255)"),
-		nl->StringAtom("n/a")));
+        nl->TwoElemList(
+            nl->FiveElemList(
+                nl->StringAtom("Signature"),
+                nl->StringAtom("Example Type List"),
+                nl->StringAtom("List Rep"),
+                nl->StringAtom("Example List"),
+                nl->StringAtom("Remarks")),
+            nl->FiveElemList(
+                nl->StringAtom("-> DATA"),
+                nl->StringAtom("histogram"),
+                nl->StringAtom(
+                    "(<channel> <brightness_0> ... <brightness_255>)"),
+                nl->StringAtom(
+                    "(0 0 0 1 2 .. 255 255)"),
+                nl->StringAtom("n/a")));
 }
 
 /*

@@ -46,35 +46,24 @@ algebra!
 See the documentation of ~PictureAlgebra.h~ for details on the behaviour
 of the methods implemented here.
 
+M. Spiekermann. The attributes width, height, etc. are stored
+in private member variables. 
+
 */
 
 int Picture::GetWidth(void) {
     if (PA_DEBUG) cerr << "Picture::Width() called" << endl;
-
-    unsigned long size;
-    const char *buffer = GetJPEGData(size);
-    int width = JPEGPicture::GetWidth((unsigned char*)buffer, size);
-	  return width;
+    return width;
 }
 
 int Picture::GetHeight(void) {
     if (PA_DEBUG) cerr << "Picture::Height() called" << endl;
-
-
-    unsigned long size;
-    const char *buffer = GetJPEGData(size);
-    int height = JPEGPicture::GetHeight((unsigned char*)buffer, size);
-	  return height;
+    return height;
 }
 
 bool Picture::IsGrayScale(void) {
     if (PA_DEBUG) cerr << "Picture::IsGrayScale() called" << endl;
-
-
-    unsigned long size;
-    const char *buffer = GetJPEGData(size);
-    bool grayscale = JPEGPicture::IsGrayScale((unsigned char*)buffer, size);
-	  return grayscale;
+    return isGrayscale;
 }
 
 /*

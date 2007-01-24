@@ -98,7 +98,12 @@ are the red, green and blue components of the pixel.
 
 */
 
-enum HistogramChannel { HC_RED, HC_GREEN, HC_BLUE, HC_BRIGHTNESS };
+enum HistogramChannel { 
+  HC_RED, 
+  HC_GREEN, 
+  HC_BLUE, 
+  HC_BRIGHTNESS, 
+};
 
 /*
 
@@ -130,8 +135,10 @@ for details on this attribute.
  private:
     bool isDefined;
     double histogram[256];
+    int histogram_abs[256];
     HistogramChannel channel;
     double histogramMaxValue;
+
 
 /*
 
@@ -177,6 +184,9 @@ created, .
 
 */
     double* GetHistogramData(void);
+    void ScaleValues(double factor);
+    double CheckSum(double refValue);
+    int CheckSum(int refValue);
 
 /*
 
@@ -222,6 +232,7 @@ class to provide their functionality. See the description of class
 
 */
     bool Equals(Histogram* h, int n, int p, bool& valid, double& diff);
+    bool Contains(int p_this, Histogram* h, int p_h);
     bool Like(int p, int t, int l, int u, bool& valid);
     bool Like(double p, double t, int l, int u, bool& valid);
 
@@ -295,8 +306,11 @@ only once even if used multiple times.
     STRING date;
     bool isPortrait;
     bool isDefined;
+    bool isGrayscale;
     FLOB jpegData;
-    Histogram histogram[4];
+    Histogram histogram[7];
+    unsigned int height;
+    unsigned int width;
 
 /*
 
@@ -510,7 +524,8 @@ averages of ~n~ consecutive elements of the histograms of both images exists
 so that the averages have a differences of more than ~p~ percent.
 
 */
-    bool Equals(Picture* pic, int n, int p, bool & valid, double& diff);
+    bool Equals(Picture* pic, int n, int p, bool& valid, double& diff);
+    bool Contains(Picture* pic); 
 
 /*
 
