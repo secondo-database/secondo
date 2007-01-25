@@ -30,3 +30,8 @@ Example  : query intstream (1, 5) printintstream count
 Result   : 5
 
 
+Operator : realstream 
+Number   : 1
+Signature: real x real x real -> stream(real)
+Example  : query realstream(0.0, 1.0, 0.1) count
+Result   : 11
