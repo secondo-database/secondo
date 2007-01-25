@@ -4,125 +4,125 @@ Restore : No
 Operator : category
 Number   : 1
 Signature: picture -> string
-Example  : query pic category
-Result   : 
+Example  : query theater category
+Result   : "photo-de"
 
 
 Operator : colordist
 Number   : 1
 Signature: picture int -> histogram
-Example  : query pic colordist [ 0 ]
-Result   : 
+Example  : query theater colordist [ 0 ]
+Result   : file
 
 
 Operator : cut
 Number   : 1
-Signature: picture int int int int -> picture
-Example  : query pic cut [ 100, 100, 400, 200 ] 
-Result   : 
+Signature: picture x int x int x int x int -> picture
+Example  : query theater cut [ 100, 100, 400, 200 ] 
+Result   : file
 
 
 Operator : display
 Number   : 1
 Signature: picture -> bool
-Example  : query pic display
-Result   : 
+Example  : query paper display
+Result   : FALSE
 
 
 Operator : equals
 Number   : 1
-Signature: picture picture int int -> real
-Example  : query pic1 pic2 equals [ 5, 100 ]
-Result   : 
+Signature: picture x picture x int x int -> real
+Example  : query paper theater equals [ 5, 100 ]
+Result   : 85.4435073143313
 
 
 Operator : export
 Number   : 1
-Signature: picture text -> bool
-Example  : query pic export [ "/tmp/schmuh.jpg" ]
-Result   : 
+Signature: picture x text -> bool
+Example  : query theater export [ "../tmp/theater.jpg" ]
+Result   : TRUE
 
 
 Operator : filename
 Number   : 1
 Signature: picture -> string
-Example  : query pic filename
-Result   : 
+Example  : query paper filename
+Result   : "paper.jpg"
 
 
 Operator : flipleft
 Number   : 1
-Signature: picture int -> picture
-Example  : query pic flipleft [ 1 ] 
-Result   : 
+Signature: picture x int -> picture
+Example  : query paper flipleft [ 1 ] 
+Result   : file
 
 
 Operator : height
 Number   : 1
 Signature: picture -> int
-Example  : query pic height
-Result   : 
+Example  : query paper height
+Result   : 533
 
 
 Operator : isgrayscale
 Number   : 1
 Signature: picture -> bool
-Example  : query pic isgrayscale
-Result   : 
+Example  : query paper isgrayscale
+Result   : FALSE
 
 
 Operator : isportrait
 Number   : 1
 Signature: picture -> bool
-Example  : query pic isportrait
-Result   : 
+Example  : query paper isportrait
+Result   : FALSE
 
 
 Operator : like
 Number   : 1
-Signature: picture int int int int -> bool
-Example  : query pic like [ 50, 5, 100, 200 ]
-Result   : 
+Signature: picture x int x int x int x int -> bool
+Example  : query paper like [ 50, 5, 100, 200 ]
+Result   : FALSE
 
 Operator : like
 Number   : 2
-Signature: picture real real int int -> bool
-Example  : query pic like [ 50.0, 5.0, 100, 200 ]
-Result   : 
+Signature: picture x real x real x int x int -> bool
+Example  : query theater like [ 50.0, 5.0, 100, 200 ]
+Result   : FALSE
 
 
 Operator : mirror
 Number   : 1
-Signature: picture bool -> picture
-Example  : query pic mirror [ TRUE ] 
-Result   : 
+Signature: picture x bool -> picture
+Example  : query paper mirror [ TRUE ] 
+Result   : file
 
 
 Operator : picturedate
 Number   : 1
 Signature: picture -> instant
-Example  : query pic category
-Result   : 
+Example  : query paper picturedate
+Result   : (instant "2004-12-01")
 
 
 Operator : scale
 Number   : 1
-Signature: picture int int int int -> picture
-Example  : query pic scale [ 800, 533 ] 
-Result   : 
+Signature: picture x int x int -> picture
+Example  : query paper scale [1000, 1066] height
+Result   : 1066
 
 
 Operator : simpleequals
 Number   : 1
-Signature: picture picture-> bool
-Example  : query pic1 simpleequals pic2
-Result   : 
+Signature: picture x picture -> bool
+Example  : query pictures feed filter [.pic simpleequals theater] count
+Result   : 1
 
 
 Operator : width
 Number   : 1
 Signature: picture -> int
-Example  : query pic width
-Result   : 
+Example  : query theater width
+Result   : 800
 
 
