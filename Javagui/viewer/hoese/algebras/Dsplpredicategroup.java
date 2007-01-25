@@ -35,7 +35,7 @@ import java.awt.Font;
 /**
  * A displayclass for the cluster type 
  */
-public class Dsplcluster extends DsplGeneric implements DsplSimple, ExternDisplay{
+public class Dsplpredicategroup extends DsplGeneric implements DsplSimple, ExternDisplay{
   /** string which is used for wrong formatted nested lists **/
   static final String ERROR="wrong list";
   /** a frame for external display **/
@@ -48,126 +48,41 @@ public class Dsplcluster extends DsplGeneric implements DsplSimple, ExternDispla
   private static final int no_columns=6;
 
   /* returns the used style sheet */
-  public static String getCss(){
-    return "<style type=\"text/css\">\n" 
-             + "body{"
-             + "font-size:14pt; "
-             + "font-style:normal;"
-             + "font-weight:normal;"
-             + "font-stretch:normal;"
-             + "font-family:serif;"
-             + "color:black;"
-             + "background-color:white;"
-             + "text-align:justify;"
-             + "margin-left:1em;"
-             + "margin-right:1em;"
-             + "}"
-
-             + "h1{ color:blue;"
-             + "text-align:left;"
-             + "font-size:xx-large;"
-             + "font-style:normal;"
-             + "font-weight:bold;"
-             + "font-stretch:wider;"
-             + "font-family:serif; }"
-
-             + "h2{ color:blue;"
-             + "font-size:x-large;"
-             + "font-style:normal;"
-             + "font-weight:bold;"
-             + "font-stretch:wider;"
-             + "font-family:serif; }"
-
-             + "table{ "
-             + "font-size:14pt;"
-             + "font-family:monospace;"
-             + "fonst-style:normal;"
-             + "border-spacing:14pt;"
-             + "}"
-             + "td{ "
-             + "font-size:14pt;"
-             + "font-family:monospace;"
-             + "fonst-style:normal;"
-             + "border-color:blue;"
-             + "border-style:solid;"
-             + "border-width:1pt;"
-             + "}"
-           + "</style>\n";
+  private static String getCss(){
+     // use the same style as a cluster
+     return Dsplcluster.getCss();
   }
 
-  /** Extracts the name from the list.
-    * If the structure of value does not allow to extract the name
-    * (i.e. the structure does not represent a valid cluster),
-    * null is returned.
-    **/
-  public String getName(ListExpr value){
-      if(value.listLength()<1){
-          return null;
-      }      
-      ListExpr namelist = value.first();
-      if(namelist.atomType()!=ListExpr.STRING_ATOM){
-          return null;
-      }
-      return namelist.stringValue(); 
-  }
 
-  
-  public String getContent(ListExpr value,int headLevel){
+  /** returns this group as html-formatted text **/  
+  public String getContent(ListExpr value){
       
       if(isUndefined(value)){
           return "undefined";
       }
-      String name = getName(value);
-      if(name==null){
-         return ERROR;
-      }
-      if(headLevel<1){
-        headLevel=1;
-      }
-      if(headLevel>9){
-        headLevel=9;
-      }
       StringBuffer sb = new StringBuffer();
-      sb.append("<h"+headLevel+"> "+name + "</h"+headLevel+">\n");
       int cell = 0;
       int row = 0;
-      Dsplint9m int9m = new Dsplint9m();
-      value = value.rest(); // jump over the name
-      sb.append("<table> \n");
+      Dsplcluster cluster = new Dsplcluster();
+      sb.append("<h1> Predicategroup </h1><br>");
       while(!value.isEmpty()){
-         if( cell % no_columns==0){
-            sb.append("<tr>");
-            row++;
-         }
-         String celltext = int9m.getDisplay(value.first());
-         celltext=celltext.replaceAll("\n","<br>\n"); 
-         sb.append("<td>");
-         sb.append(celltext);
-         sb.append("</td>");
-         cell++;
-         row++;
+         String clustertext = cluster.getContent(value.first(),2);
+         sb.append(clustertext);
+         sb.append("<br><br><hr><br><br>");
          value = value.rest();
-         if(cell % no_columns ==0 || value.isEmpty()){
-             sb.append("</tr>");
-         }
       }
-      sb.append("</table>\n");
       return sb.toString();
 
   }  
 
   /* returns the string representation for the given value list */
   public String getDisplay(ListExpr value){
-      String name = getName(value);
-      if(name==null){ // error in listExpr
-         name ="error";
-      }
       StringBuffer sb = new StringBuffer();
-      sb.append("<html> <head> <title> cluster: "+name+"</title>");
+      sb.append("<html> <head> <title> predicategroup </title>");
       sb.append(getCss());
       sb.append("</head>\n");
       sb.append("<body>\n");
-      sb.append(getContent(value,1));
+      sb.append(getContent(value));
       sb.append("</body>\n");
       sb.append("</html>\n");
       return sb.toString(); 
@@ -184,7 +99,7 @@ public class Dsplcluster extends DsplGeneric implements DsplSimple, ExternDispla
   {
      String T = new String(type.symbolValue());
      text = getDisplay(value);
-     String V = "cluster";
+     String V = "predicategroup";
      T=extendString(T,typewidth);
      entry = T + " : " + V;
      qr.addEntry(this);
@@ -197,24 +112,24 @@ public class Dsplcluster extends DsplGeneric implements DsplSimple, ExternDispla
 
    /** shows this matrix in an external window **/
    public void displayExtern(){
-       extWin.setCluster(this);
+       extWin.setGroup(this);
        extWin.setVisible(true);
    }
 
    public boolean isExternDisplayed(){
-      return this==extWin.cluster && extWin.isVisible();
+      return this==extWin.group && extWin.isVisible();
    }
 
   private static class ExtWin extends JFrame{
      private JEditorPane textArea = new JEditorPane();
      private JButton   closeBtn = new JButton("close");
-     private Dsplcluster cluster = null;
+     private Dsplpredicategroup group = null;
      private static java.awt.Dimension dim = new java.awt.Dimension(100,100);
      private JScrollPane scrollpane;
 
      /** creates a new external window **/
      public ExtWin(){
-       super("Cluster");
+       super("Predicategroup");
        getContentPane().setLayout(new BorderLayout());
        setSize(450,600);
        getContentPane().add(closeBtn,BorderLayout.SOUTH);
@@ -230,9 +145,9 @@ public class Dsplcluster extends DsplGeneric implements DsplSimple, ExternDispla
        getContentPane().add(scrollpane,BorderLayout.CENTER);
      }    
 
-     public void setCluster(Dsplcluster cluster){
-       this.cluster = cluster;
-       textArea.setText(cluster.text);
+     public void setGroup(Dsplpredicategroup group){
+       this.group = group;
+       textArea.setText(group.text);
        textArea.setCaretPosition(0);
      }     
 
