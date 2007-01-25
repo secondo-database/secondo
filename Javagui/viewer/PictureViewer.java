@@ -819,10 +819,27 @@ This methode adds an Objects to the viewer, stores it and displays it.
 
  public double getDisplayQuality(SecondoObject SO){
 
-    if(canDisplay(SO))
-       return 0.9;
-    else
+    if(!canDisplay(SO)){
        return 0;
+    }
+    // the list structure is checked at this point
+    // thereby we can avoid a lot of tests
+    ListExpr type = SO.toListExpr().first();
+    // picture or attribute
+    if(type.isAtom()){
+      return 0.9;
+    }
+    // relation
+    ListExpr attributes = type.second().second();
+    while(!attributes.isEmpty()){
+      String attrtype = attributes.first().second().symbolValue();
+      if(attrtype.equals("histogram") || 
+         attrtype.equals("picture")){
+         return 0.9;
+      }
+      attributes=attributes.rest();
+    }
+    return 0.2; // not appropriate for only standard-realations
  }
 
 
