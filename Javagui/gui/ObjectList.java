@@ -723,7 +723,7 @@ public boolean storeSelectedObject(){
                      }
                   } 
                   else { // success
-                     Reporter.showError("object "+SOName+" stored into database");
+                     Reporter.showInfo("object "+SOName+" stored into database");
                      stored = true;
                   }
               }
