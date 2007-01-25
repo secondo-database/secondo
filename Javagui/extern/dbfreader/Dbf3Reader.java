@@ -92,6 +92,13 @@ public  ListExpr getList(String FileName){
 	 }
      }
      BR.close();
+     ListExpr typeList = RH.getTypeList();
+     if(typeList==null){
+       return null;
+     }
+     if(Res==null){ // an empty table
+       Res = new ListExpr();
+     }
      return ListExpr.twoElemList(RH.getTypeList(),Res);
 
   }
