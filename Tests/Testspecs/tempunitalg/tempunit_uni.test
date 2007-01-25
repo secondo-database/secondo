@@ -1214,6 +1214,86 @@ query [const bool value FALSE] or ubool4
 
 
 
+#testcase inside upoint uregion
+#yields (mbool ( ( ("2003-11-20-06:00" "2003-11-20-06:21:28.272" TRUE FALSE) FALSE)  (("2003-11-20-06:21:28.272" "2003-11-20-06:28:31.203" TRUE TRUE) TRUE) ( ("2003-11-20-06:28:31.203" "2003-11-20-07:00" FALSE FALSE) FALSE)))
+query (up1 inside ureg) the_mvalue
+
+#testcase inside upoint uregion
+#yields (mbool ( ( ("2003-11-20-06:00" "2003-11-20-06:32:13.196" TRUE FALSE) FALSE) ( ("2003-11-20-06:32:13.196" "2003-11-20-06:42:47.591" TRUE TRUE) TRUE) ( ("2003-11-20-06:42:47.591" "2003-11-20-07:00" FALSE FALSE) FALSE)))
+query (up2 inside ureg) the_mvalue
+
+#testcase inside upoint uregion
+#yields (mbool ( ( ("2003-11-20-05:30" "2003-11-20-06:30" TRUE TRUE) FALSE)))
+query (up9 inside ureg) the_mvalue
+
+
+
+#testcase sometimes Unit TRUE
+#yields (bool TRUE)
+query sometimes(ubool2)
+
+#testcase sometimes Unit FALSE
+#yields (bool FALSE)
+query sometimes(ubool4)
+
+#testcase sometimes Unit UNDEF
+#yields (bool FALSE)
+query sometimes(ubool3)
+
+
+#testcase sometimesStream TRUE
+#yields (bool TRUE)
+query sometimes( up1 inside ureg )
+
+#testcase sometimesStream FALSE
+#yields (bool FALSE)
+query sometimes( up9 inside ureg )
+
+
+#testcase never Unit TRUE
+#yields (bool TRUE)
+query never(ubool4)
+
+#testcase never Unit FALSE
+#yields (bool FALSE)
+query never(ubool2)
+
+#testcase never Unit UNDEF
+#yields (bool TRUE)
+query never(ubool3)
+
+#testcase never Stream TRUE
+#yields (bool TRUE)
+query never( up9 inside ureg )
+
+#testcase never Stream FALSE
+#yields (bool FALSE)
+query never( up1 inside ureg )
+
+
+
+#testcase always Unit TRUE
+#yields (bool TRUE)
+query always(ubool2)
+
+#testcase always Unit FALSE
+#yields (bool FALSE)
+query always(ubool4)
+
+#testcase always Unit UNDEF
+#yields (bool TRUE)
+query always(ubool3)
+
+#testcase alwaysStream Unit TRUE
+#yields (bool TRUE)
+query always( (up9 inside ureg) use[fun(X:ubool) not(X)] )
+
+#testcase alwaysStream Unit FALSE
+#yields (bool FALSE)
+query always(up1 inside ureg)
+
+
+
 #testcase isEqualVal constUnit
 #yields (bool TRUE)
 query always(ui2 = ui4)
@@ -1222,80 +1302,80 @@ query always(ui2 = ui4)
 #yields (mbool ((("2003-11-20-06:00" "2003-11-20-06:30" TRUE FALSE)FALSE)(("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)TRUE)(("2003-11-20-06:30" "2003-11-20-07:00" FALSE FALSE)FALSE)))
 query (up1 = up2 ) the_mvalue
 
-##testcase isEqualVal ureal
-##yields
-##query (ur1 = ur2) the_mvalue
+#testcase isEqualVal ureal
+#yields (mbool ((("2000-01-02-23:59:59.900" "2000-01-03-00:00:00.100" TRUE TRUE) FALSE)))
+query (ur1 = ur2) the_mvalue
 
 
 
-##testcase isNotEqualVal constUnit
-##yields
-##query (up1 # up2 ) the_mvalue
+#testcase isNotEqualVal upoint
+#yields (mbool ( ( ("2003-11-20-06:00" "2003-11-20-06:30" TRUE FALSE) TRUE) ( ("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE) FALSE) ( ("2003-11-20-06:30" "2003-11-20-07:00" FALSE FALSE) TRUE)) )
+query (up1 # up2 ) the_mvalue
 
-##testcase isNotEqualVal upoint
-##yields
-##query (ui2 # ui4) the_mvalue
+#testcase isNotEqualVal constUnit
+#yields (mbool ( ( ("2003-11-20-06:30" "2003-11-20-07:00" TRUE FALSE) FALSE)))
+query (ui2 # ui4) the_mvalue
 
-##testcase isNotEqualVal ureal
-##yields
-##query
+#testcase isNotEqualVal ureal
+#yields (mbool ( ( ("2000-01-01" "2000-01-02" TRUE FALSE) TRUE) ( ("2000-01-02" "2000-01-02" TRUE TRUE) FALSE) ( ("2000-01-02" "2000-01-05" FALSE TRUE) TRUE)))
+query (ur5 # ur6) the_mvalue
 
 
 
 #testcase isSmallerVal constUnit
 #yields (bool TRUE)
-query never(ui2 # ui4)
+query never (ui2 < ui4)
 
-##testcase isSmallerVal ureal
-##yields
-##query
-
-
-
-##testcase isSmallerEqVal constUnit
-##yields
-##query
-
-##testcase isSmallerEqVal ureal
-##yields
-##query
+#testcase isSmallerVal ureal
+#yields (mbool ( ( ("2000-01-01" "2000-01-02" TRUE FALSE) TRUE) ( ("2000-01-02" "2000-01-05" TRUE TRUE) FALSE)))
+query (ur5 < ur6) the_mvalue
 
 
 
-##testcase isBiggerVal constUnit
-##yields
-##query
+#testcase isSmallerEqVal constUnit
+#yields (mbool ( ( ("2003-11-20-06:30" "2003-11-20-07:00" TRUE FALSE) TRUE)))
+query (ui2 <= ui4) the_mvalue
 
-##testcase isBiggerVal ureal
-##yields
-##query
+#testcase isSmallerEqVal ureal
+#yields (mbool ( ( ("2000-01-01" "2000-01-02" TRUE TRUE) TRUE) ( ("2000-01-02" "2000-01-05" FALSE TRUE) FALSE)))
+query (ur5 <= ur6) the_mvalue
 
 
 
-##testcase isBiggerEqVal constUnit
-##yields
-##query
+#testcase isBiggerVal constUnit
+#yields (bool TRUE)
+query never (ui2 > ui4)
 
-##testcase isBiggerEqVal ureal
-##yields
-##query
+#testcase isBiggerVal ureal
+#yields (mbool ( ( ("2000-01-01" "2000-01-02" TRUE TRUE) FALSE) ( ("2000-01-02" "2000-01-05" FALSE TRUE) TRUE)))
+query (ur5 > ur6) the_mvalue
+
+
+
+#testcase isBiggerEqVal constUnit
+#yields (mbool ( ( ("2003-11-20-06:30" "2003-11-20-07:00" TRUE FALSE) TRUE)))
+query (ui2 >= ui4) the_mvalue
+
+#testcase isBiggerEqVal ureal
+#yields (mbool ( ( ("2000-01-01" "2000-01-02" TRUE FALSE) FALSE) ( ("2000-01-02" "2000-01-05" TRUE TRUE) TRUE)))
+query (ur5 >= ur6) the_mvalue
 
 
 ############################
 #    Complex testcases     #
 ############################
 
-#testcase COMPLEX1 aggregateB
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5Trajectory
-query units(zug5) use[fun(ZZ:STREAMELEM) trajectory(ZZ)] transformstream aggregateB[elem; fun(XX:line, YY:line) union_new(XX, YY); [const line value ()]];
+##testcase COMPLEX1 aggregateB
+##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5Trajectory
+#query units(zug5) use[fun(ZZ:STREAMELEM) trajectory(ZZ)] transformstream aggregateB[elem; fun(XX:line, YY:line) union_new(XX, YY); [const line value ()]];
 
-#testcase COMPLEX2 aggregate
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5Trajectory
-query units(zug5) use[fun(ZZ:STREAMELEM) trajectory(ZZ)] transformstream aggregate[elem; fun(XX:line, YY:line) union_new(XX, YY); [const line value ()]];
+##testcase COMPLEX2 aggregate
+##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5Trajectory
+#query units(zug5) use[fun(ZZ:STREAMELEM) trajectory(ZZ)] transformstream aggregate[elem; fun(XX:line, YY:line) union_new(XX, YY); [const line value ()]];
 
-#testcase COMPLEX3 aggregateS
-#yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5Trajectory
-query units(zug5) use[fun(ZZ:STREAMELEM) trajectory(ZZ)] aggregateS[fun(XX:line, YY:line) union_new(XX, YY); [const line value ()]];
+##testcase COMPLEX3 aggregateS
+##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5Trajectory
+#query units(zug5) use[fun(ZZ:STREAMELEM) trajectory(ZZ)] aggregateS[fun(XX:line, YY:line) union_new(XX, YY); [const line value ()]];
 
 
 ############################

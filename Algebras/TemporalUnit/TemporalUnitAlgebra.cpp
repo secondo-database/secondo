@@ -67,7 +67,7 @@ OK    speed                           upoint --> ureal
 
       passes:  For T in {bool, int, string, point}:
 OK  +                            uT x      T --> bool
-Test+                         ureal x   real --> bool
+OK  +                         ureal x   real --> bool
 n/a +                       uregion x region --> bool
 
 OK  + deftime      (**)                   uT --> periods
@@ -128,22 +128,22 @@ OK  +          ubool x  bool --> ubool
       ==, ##, <<, >>, <<==, >>==: T in {bool, int, string, real, point, region}
 Test+                uT x uT --> bool
 
-=, #, <, >, <=, >=: T in {bool, int, string}
-Test +                uT x      uT --> (stream ubool)
+=, #, <, >, <=, >=: T in {bool, int, string, real}
+OK   +                uT x      uT --> (stream ubool)
 n/a                    T x      uT --> (stream ubool)
 n/a                    T x      uT --> (stream ubool)
-Test +            upoint x  upoint --> (stream ubool)
-n/a  +             point x  upoint --> (stream ubool)
-n/a  +            upoint x   point --> (stream ubool)
-pre  +           uregion x uregion --> (stream ubool)
-n/a  +            region x uregion --> (stream ubool)
-n/a  +           uregion x  region --> (stream ubool)
+OK   +            upoint x  upoint --> (stream ubool) for {=,#} only
+n/a  +             point x  upoint --> (stream ubool) for {=,#} only
+n/a  +            upoint x   point --> (stream ubool) for {=,#} only
+pre  +           uregion x uregion --> (stream ubool) for {=,#} only
+n/a  +            region x uregion --> (stream ubool) for {=,#} only
+n/a  +           uregion x  region --> (stream ubool) for {=,#} only
 
 
 OK  + not:             ubool --> ubool
 
   inside:
-Test+      upoint x uregion --> (stream ubool)
+OK  +      upoint x uregion --> (stream ubool)
 pre +      upoint x    line --> (stream ubool)
 n/a +      upoint x  points --> (stream ubool)
 n/a +     uregion x  points --> (stream ubool)
@@ -152,12 +152,12 @@ n/a + mdirection:    upoint --> ureal
 
 n/a + area: uregion --> ureal             see TemporalLiftedAlgebra
 
-Test+ sometimes: (       ubool) --> bool
-Test             (stream ubool) --> bool
-Test+ never:     (       ubool) --> bool
-Test             (stream ubool) --> bool
-Test+ always:    (       ubool) --> bool
-Test             (stream ubool) --> bool
+OK  + sometimes: (       ubool) --> bool
+OK               (stream ubool) --> bool
+OK  + never:     (       ubool) --> bool
+OK               (stream ubool) --> bool
+OK  + always:    (       ubool) --> bool
+OK               (stream ubool) --> bool
 
 COMMENTS:
 
@@ -360,105 +360,6 @@ string TUPrintUReal( UReal* ureal )
 
 */
 
-/*
-Auxiliary Method ~TU_FindEqualTimesUReal~
-
-Function ~TU_FindEqualTimesUReal~ returns the number of instants, where
-u1 and u2 are equal. The instants are passed on in the array-parameter ~t~.
-
-PRECONDITION: u1 and u2 must have the same timeIntervals
-
-*/
-
-int TU_FindEqualTimesUReal(const UReal& u1, const UReal& u2, Instant t[4]){
-    int number;
-    double sol2[2];
-    double sol4[4];
-#ifdef TUA_DEBUG
-     cout<<"TU_FindEqualTimesUReal called with"<<endl;
-     cout<<"u1.a "<<u1.a<<" u1.b "<<u1.b<<" u1.c "<<u1.c<<" u1.r "<<u1.r<<endl;
-     cout<<"u2.a "<<u2.a<<" u2.b "<<u2.b<<" u2.c "<<u2.c<<" u2.r "<<u2.r<<endl;
-#endif
-    if (u1.r == u2.r) {
-#ifdef TUA_DEBUG
-    cout<<"u1.r == u2.r"<<endl;
-#endif
-
-      number = SolvePoly(u1.a - u2.a, u1.b - u2.b, u1.c - u2.c, sol2, true);
-      for (int m = 0; m < number; m++)
-        t[m].ReadFrom(sol2[m] + u1.timeInterval.start.ToDouble());
-    }
-    else {
-#ifdef TUA_DEBUG
-       cout<<"u1.r != u2.r"<<endl;
-#endif
-     if (u2.r && u2.a == 0 && u2.b == 0) {
-#ifdef TUA_DEBUG
-        cout<<"Spezial case u2 = const"<<endl;
-#endif
-        number = SolvePoly(u1.a, u1.b, u1.c - sqrt(u2.c), sol2, true);
-        for (int m = 0; m < number; m++)
-           t[m].ReadFrom(sol2[m] + u1.timeInterval.start.ToDouble());
-     }
-     else if (u1.r && u1.a == 0 && u1.b == 0) {
-#ifdef TUA_DEBUG
-        cout<<"Spezial case u1 = const"<<endl;
-#endif
-        number = SolvePoly(u2.a, u2.b, u2.c - sqrt(u1.c), sol2, true);
-        for (int m = 0; m < number; m++)
-           t[m].ReadFrom(sol2[m] + u1.timeInterval.start.ToDouble());
-     }
-     else{ // solve the squared equation
-      double v, w, x, y, z;
-      if (u2.r) {
-        v = pow(u1.a, 2);                         //x^4
-        w = 2 * u1.a * u1.b;                      //x^3
-        x = 2 * u1.a * u1.c + pow(u1.b, 2)- u2.a; //x^2
-        y = 2 * u1.b * u1.c - u2.b;               //x
-        z = pow(u1.c, 2) - u2.c;                  //c
-      }
-      else {
-        v = pow(u2.a, 2);                         //x^4
-        w = 2 * u2.a * u2.b;                      //x^3
-        x = 2 * u2.a * u2.c + pow(u2.b, 2)- u1.a; //x^2
-        y = 2 * u2.b * u2.c - u1.b;               //x
-        z = pow(u2.c, 2) - u1.c;                  //c
-      }
-      //va^4+wa^3+xa^2+ya+z=0
-
-#ifdef TUA_DEBUG
-      cout<<"v: "<<v<<", w: "<<w<<", x:"<<x<<", y:"<<y<<", z:"<<z<<endl;
-#endif
-      number = SolvePoly(v, w, x, y, z, sol4);
-      for (int n = 0; n < number; n++){
-        double val1 = u1.a * pow(sol4[n],2) + u1.b * sol4[n] + u1.c;
-        if(u1.r)
-          val1 = sqrt(val1);
-        double val2 = u2.a * pow(sol4[n],2) + u2.b * sol4[n] + u2.c;
-        if(u2.r)
-          val2 = sqrt(val2);
-#ifdef TUA_DEBUG
-        cout<<n<<". at "<<sol4[n]<<endl<<"val1 "<<val1<<", val2 "<<val2<<endl;
-#endif
-        if(!AlmostEqual(val1, val2)){
-#ifdef TUA_DEBUG
-          cout<<"false Point -> remove"<<endl;
-#endif
-          for (int i = n; i < number; i++)
-            sol4[i] = sol4 [i + 1];
-          number--;
-          n--;
-        }
-      }
-      for (int m = 0; m < number; m++)
-         t[m].ReadFrom(sol4[m] + u1.timeInterval.start.ToDouble());
-     }
-    }
-#ifdef TUA_DEBUG
-    cout<<"FindEqualTimes4Real ends with "<<number<<"solutions"<<endl;
-#endif
-  return number;
-}
 
 /*
 Auxiliary Method ~TU_GetMidwayInstant~
@@ -469,7 +370,9 @@ Returns the instant at the middle of the interval defined by ~start~ and  ~end~.
 
 Instant TU_GetMidwayInstant(const Instant &start, const Instant &end)
 {
-  return start + ((end - start) / 2);
+  DateTime result(instanttype);
+  result = start + ((end - start) / 2);
+  return result;
 }
 
 
@@ -4731,15 +4634,15 @@ int temporalUnitIntersection_ureal_ureal( Word* args, Word& result, int message,
 
       // call int UReal::PeriodsAtEqual( UReal& other, Periods& times)
       localinfo->NoOfResults = ureal1->PeriodsAtEqual( *ureal2, result_times);
-      cout << "temporalUnitIntersection_ureal_ureal(): NoOfResults="
-           << localinfo->NoOfResults << endl;
+//       cout << "temporalUnitIntersection_ureal_ureal(): NoOfResults="
+//            << localinfo->NoOfResults << endl;
       localinfo->finished = (localinfo->NoOfResults <= 0);
       for(int i=0; i<localinfo->NoOfResults; i++)
       { // create result vector
         UReal unit(true);
         const Interval<Instant> *iv;
-        cout << "temporalUnitIntersection_ureal_ureal(): Processing interval "
-             << i << endl;
+//      cout << "temporalUnitIntersection_ureal_ureal(): Processing interval "
+//           << i << endl;
         result_times.Get(i, iv);
         if( iv->start == iv->end )
         { // simplify result to constant
@@ -4753,15 +4656,15 @@ int temporalUnitIntersection_ureal_ureal( Word* args, Word& result, int message,
         else
           ureal1->AtInterval(*iv, unit);
         localinfo->resvector.push_back(unit);
-        cout << "temporalUnitIntersection_ureal_ureal():  Added unit ";
-        unit.Print(cout);
+//         cout << "temporalUnitIntersection_ureal_ureal():  Added unit ";
+//         unit.Print(cout);
         cout << endl;
       }
       localinfo->finished = ( localinfo->NoOfResults <= 0 );
-      cout << "temporalUnitIntersection_ureal_ureal(): NoOfResults="
-           << localinfo->NoOfResults << endl
-           << "temporalUnitIntersection_ureal_ureal(): finished="
-           << localinfo->finished << endl;
+//       cout << "temporalUnitIntersection_ureal_ureal(): NoOfResults="
+//            << localinfo->NoOfResults << endl
+//            << "temporalUnitIntersection_ureal_ureal(): finished="
+//            << localinfo->finished << endl;
       return 0;
 
     case REQUEST :
@@ -8494,11 +8397,17 @@ int TU_VM_ComparePredicateValue_UPoint(Word* args, Word& result,
       local = SetWord(localinfo);
 
       if ( !u1->IsDefined() || !u2->IsDefined() )
-        { cerr << "Undef input" << endl; return 0; }
+        {
+//           cerr << "Undef input" << endl; 
+          return 0;
+        }
       if ( !u1->timeInterval.Intersects(u2->timeInterval) )
-        { cerr << "Deftimes do not intersect" << endl; return 0; }
+        {
+//           cerr << "Deftimes do not intersect" << endl; 
+          return 0;
+        }
 
-      cerr << "Deftime intersect" << endl;
+//       cerr << "Deftime intersect" << endl;
       u1->timeInterval.Intersection(u2->timeInterval, iv);
       u1->Intersection(*u2, uinters);
       ivInters = uinters.timeInterval;
@@ -8506,7 +8415,7 @@ int TU_VM_ComparePredicateValue_UPoint(Word* args, Word& result,
 
       if (!uinters.IsDefined())
       {// no intersection: result unit spans common interval totally
-        cerr << "No intersection" << endl;
+//         cerr << "No intersection" << endl;
         localinfo->intersectionBool->Add(UBool(iv,CcBool(true,compresult)));
         localinfo->NoOfResults++;
         localinfo->finished = false;
@@ -8515,7 +8424,7 @@ int TU_VM_ComparePredicateValue_UPoint(Word* args, Word& result,
       if ( uinters.IsDefined() &&
           !(iv.start == ivInters.start && iv.lc == ivInters.lc))
       {// before intersection interval
-        cerr << "Before intersection" << endl;
+//         cerr << "Before intersection" << endl;
         ivBefore=Interval<Instant>(iv.start,ivInters.start,iv.lc,!ivInters.lc);
         localinfo->intersectionBool->Add(
             ConstTemporalUnit<CcBool>(ivBefore, CcBool(true, !compresult)) );
@@ -8524,7 +8433,7 @@ int TU_VM_ComparePredicateValue_UPoint(Word* args, Word& result,
       }
       if (uinters.IsDefined())
       { // at intersection interval
-        cerr << "At intersection" << endl;
+//         cerr << "At intersection" << endl;
         localinfo->intersectionBool->Add(
             ConstTemporalUnit<CcBool>(ivInters, CcBool(true, compresult)) );
         localinfo->NoOfResults++;
@@ -8532,7 +8441,7 @@ int TU_VM_ComparePredicateValue_UPoint(Word* args, Word& result,
       }
       if (uinters.IsDefined() && !(iv.end==ivInters.end && iv.rc==ivInters.rc))
       {// after intersection interval
-        cerr << "After intersection" << endl;
+//         cerr << "After intersection" << endl;
         ivAfter = Interval<Instant>(ivInters.end,iv.end,!ivInters.rc,iv.rc);
         localinfo->intersectionBool->Add(
             ConstTemporalUnit<CcBool>(ivAfter, CcBool(true, !compresult)) );
@@ -8577,10 +8486,15 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
   const UBool* cu;
   UBool newunit(true);
   TUCompareValueLocalInfo *localinfo;
-  Interval<Instant> iv, ivnew;
-  Instant teq[4],
-          start(instanttype), end(instanttype),
-          testInst(instanttype);
+  Interval<Instant> 
+     iv(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false),
+     ivnew(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false);
+  const Interval<Instant> *actIntv;
+  Instant 
+     start(instanttype),
+     end(instanttype),
+     testInst(instanttype);
+  Periods *eqPeriods;
   int i, numEq, cmpres;
   bool compresult, lc;
   CcReal fccr1(true, 0.0), fccr2(true,0.0);
@@ -8589,69 +8503,85 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
   {
     case OPEN:
       localinfo = new TUCompareValueLocalInfo;
+      local = SetWord(localinfo);
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
       localinfo->NoOfResultsDelivered = 0;
       localinfo->intersectionBool = new MBool(5);
-      local = SetWord(localinfo);
+      localinfo->intersectionBool->Clear();
 
       if ( !u1->IsDefined() ||
            !u2->IsDefined() ||
            !u1->timeInterval.Intersects(u2->timeInterval) )
       { // no result
+//      cout << "TU_VM_ComparePredicateValue_UReal: No Result." << endl;
         return 0;
       }
       // common deftime --> some result exists
       u1->timeInterval.Intersection(u2->timeInterval, iv);
       u1->AtInterval(iv, un1);
       u2->AtInterval(iv, un2);
+//    cout << "  un1="; un1.Print(cout) ; cout << endl;
+//    cout << "  un2="; un2.Print(cout) ; cout << endl;
       if ( un1.r == un2.r &&
-          AlmostEqual(un1.a, un2.a) &&
-          AlmostEqual(un1.b, un2.b) &&
-          AlmostEqual(un1.c, un2.c)
+           AlmostEqual(un1.a, un2.a) &&
+           AlmostEqual(un1.b, un2.b) &&
+           AlmostEqual(un1.c, un2.c)
          )
       { // equal ureals return single unit: TRUE for =, <=, >=; FALSE otherwise
+//      cout << "TU_VM_ComparePredicateValue_UReal: Total Equality" << endl;
         compresult = (opcode == 0 || opcode == 4 || opcode == 5);
-        newunit = UBool(un1.timeInterval, CcBool(true, compresult));
+        newunit = UBool(iv, CcBool(true, compresult));
+        localinfo->intersectionBool->StartBulkLoad();
         localinfo->intersectionBool->Add(newunit);
+        localinfo->intersectionBool->EndBulkLoad();
         localinfo->NoOfResults++;
         localinfo->finished = false;
         return 0;
       }
-      for (i=0; i<4; i++)
-         teq[i] = Instant(0, 0, instanttype);
-      numEq = TU_FindEqualTimesUReal(un1, un2, teq);
+      eqPeriods = new Periods(4);
+      un1.PeriodsAtEqual(un2, *eqPeriods); // only intervals of length
+      numEq = eqPeriods->GetNoComponents();// 1 instant herein (start==end)
+//    cout << "  numEq=" << numEq << endl;
       if ( numEq == 0 )
       { // special case: no equality -> only one result unit
+//      cout << "TU_VM_ComparePredicateValue_UReal: Single Result." << endl;
         testInst = TU_GetMidwayInstant(iv.start, iv.end);
         un1.TemporalFunction(testInst, fccr1, false);
         un2.TemporalFunction(testInst, fccr2, false);
         cmpres = fccr1.Compare( &fccr2 );
-        compresult = ( (opcode == 0 && cmpres == 0) ||
-                       (opcode == 1 && cmpres != 0) ||
-                       (opcode == 2 && cmpres  < 0) ||
-                       (opcode == 3 && cmpres  > 0) ||
-                       (opcode == 4 && cmpres <= 0) ||
-                       (opcode == 5 && cmpres >= 0)    );
+        compresult = ( (opcode == 0 && cmpres == 0) ||   // ==
+                       (opcode == 1 && cmpres != 0) ||   // #
+                       (opcode == 2 && cmpres  < 0) ||   // <
+                       (opcode == 3 && cmpres  > 0) ||   // >
+                       (opcode == 4 && cmpres <= 0) ||   // <=
+                       (opcode == 5 && cmpres >= 0)    );// >=
         newunit = UBool(iv, CcBool(true, compresult));
+        localinfo->intersectionBool->StartBulkLoad();
         localinfo->intersectionBool->Add(newunit);
+        localinfo->intersectionBool->EndBulkLoad();
         localinfo->NoOfResults++;
         localinfo->finished = false;
+        delete eqPeriods;
         return 0;
       }
       // case: numEq > 0, at least one instant of equality
-      // iterate the array of instants and create result units
+      // iterate the Periods and create result units
       // UBool::MergeAdd() will merge units with common value
       // for <= and >=
+//    cout << "TU_VM_ComparePredicateValue_UReal: Multiple Results." << endl;
       localinfo->intersectionBool->StartBulkLoad();
       start = iv.start;   // the ending instant for the next interval
       lc = iv.lc;
-      i = 0;              // counter for onstants of equality
+      i = 0;              // counter for instants of equality
+      eqPeriods->Get(i, actIntv);
       // handle special case: first equality in first instant
-      if (start == teq[i])
+      if (start == actIntv->start)
       {
+//      cout << "TU_VM_ComparePredicateValue_UReal: Handling start...";
         if (iv.lc)
         {
+//        cout << " required." << endl;
           compresult = ( (opcode == 0 && cmpres == 0) ||
                          (opcode == 1 && cmpres != 0) ||
                          (opcode == 2 && cmpres  < 0) ||
@@ -8661,13 +8591,25 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
           ivnew = Interval<Instant>(start, start, true, true);
           newunit = UBool(ivnew, CcBool(true, compresult));
           localinfo->intersectionBool->Add(newunit);
+//        cout << "TU_VM_ComparePredicateValue_UReal: Added initial" 
+//             << i << endl;
           lc = false;
         } // else: equal instant not in interval!
+//      else
+//        cout << " not required." << endl;
         i++;
       }
       while ( i < numEq )
       {
-        end = teq[i];
+//      cout << "TU_VM_ComparePredicateValue_UReal: Pass i=" << i << endl;
+        eqPeriods->Get(i, actIntv);
+//      if(actIntv->start != actIntv->end)
+//      {
+//        cout << "Something's wrong with actIntv!" << endl;
+//      }
+        end = actIntv->start;
+//      cout << "  start=" << start.ToString() 
+//           << "  end="   << end.ToString()   << endl;
         ivnew = Interval<Instant>(start, end, lc, false);
         testInst = TU_GetMidwayInstant(start, end);
         un1.TemporalFunction(testInst, fccr1, false);
@@ -8681,8 +8623,10 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
                        (opcode == 5 && cmpres >= 0)    );
         newunit = UBool(ivnew, CcBool(true, compresult));
         localinfo->intersectionBool->MergeAdd(newunit);
+//      cout << "TU_VM_ComparePredicateValue_UReal: Added regular" << i << endl;
         if ( !(end == iv.end) || iv.rc )
         {
+//        cout << "TU_VM_ComparePredicateValue_UReal: rc==true" << endl;
           ivnew = Interval<Instant>(end, end, true, true);
           compresult = (opcode == 0 || opcode == 4 || opcode == 5);
           newunit = UBool(ivnew, CcBool(true, compresult));
@@ -8707,10 +8651,13 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
                        (opcode == 5 && cmpres >= 0)    );
         newunit = UBool(ivnew, CcBool(true, compresult));
         localinfo->intersectionBool->MergeAdd(newunit);
+//      cout << "TU_VM_ComparePredicateValue_UReal: Added final res" 
+//           << i << endl;
       }
       localinfo->intersectionBool->EndBulkLoad(true);
       localinfo->NoOfResults = localinfo->intersectionBool->GetNoComponents();
-      localinfo->finished = ( localinfo->NoOfResults > 0 );
+      localinfo->finished = ( localinfo->NoOfResults <= 0 );
+      delete eqPeriods;
       return 0;
 
     case REQUEST:
