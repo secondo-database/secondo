@@ -2087,6 +2087,10 @@ The following two rules are used for the ~adaptiveJoin~ extension. If used, the 
 
 */
 
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2(Arg1S, Arg2S, Fields) :-
+  optimizerOption(adaptiveJoin), 
+  try_pjoin2_smj(X, Y, Fields).
+
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_smj(Arg1S, Arg2S, Fields) :-
   fail,
@@ -2433,6 +2437,100 @@ writeEdgeSels :-
 
 
 /*
+The dynamic predicates below are used to display 
+the edge selectivites and estimated sizes of the 
+last computed best plan which is stored in ~path/1~.
+
+Moreover if option ~useCounters~ is swichted on the real
+sizes for the POG-nodes traversed by the path are computed.
+
+After a query the use can investigate the plan by using
+the predicates ~checkSizes/0~ and ~showPredOrder/0~.
+
+*/
+
+:- dynamic pathInfo/5,
+           observedNodeSizes/2,
+           nodeSizeCounter/4,
+           nodeSizeCounter/2,
+           path/1.
+           
+
+sizeAndSel(Src, Tgt, Sel, Size) :-
+  costEdge(Src, Tgt, _, _, Size, _),
+  edgeSelectivity(Src,Tgt, Sel).
+
+createPathInfo([H|T]) :-
+  H = costEdge(Src, Tgt, _, ResNode, SizeEst, _),
+  edgeSelectivity(Src, Tgt, Sel),
+  getRealSize(ResNode, SizeReal),
+  assert(pathInfo(Src, Tgt, Sel, SizeEst, SizeReal)),
+  createPathInfo(T). 
+
+createPathInfo([]).
+
+
+getRealSize(ResNode, SizeReal) :-
+  nodeSizeCounter(ResNode, SizeReal).
+
+getRealSize(_, -1).
+ 
+
+checkSizes :-
+  computeNodeSizes, !,
+  findall([Src-Tgt, Sel, SzEst, SzReal], pathInfo(Src, Tgt, Sel, SzEst, SzReal), L),
+  Format = [ ['Edge-Ids', 'l'],
+             ['Selectivity', 'l'], 
+             ['Size-Est', 'l'], 
+             ['Size-Real', 'l'] 
+             ],
+  showTuples(L, Format).
+
+
+computeNodeSizes :-
+  pathInfo(_,_,_,_,_).
+
+computeNodeSizes :-
+  optimizerOption(useCounters),
+  computeObservedNodeSizes, !,
+  path(P), createPathInfo(P).
+
+computeNodeSizes :-
+  path(P), createPathInfo(P).
+
+createObservedNodeSizes([]).
+createObservedNodeSizes([ [Nc,Value] | T ]) :-
+  nodeSizeCounter(Nc, _, _, Result ),
+  assert(nodeSizeCounter(Result, Value)),
+  createObservedNodeSizes( T ).
+
+computeObservedNodeSizes :-
+  retractall(observedNodeSizes(_,_)),
+  secondo('list counters', C ), !,
+  getCounter(nodeSizeCtr, Nc),
+  %Last is Nc - 1,
+  %showValue('C', C),
+  subList(C, Nc, L),
+  %showValue('Nc', Nc),
+  %showValue('L', L),
+  createObservedNodeSizes( L ).
+
+
+showPredOrder :-
+  findall([Src-Tgt, Pred], edgePredicate(Src, Tgt, Pred), L),
+  Format = [ ['Edge-Ids', 'l'],
+             ['Predicate', 'l']
+             ],
+  showTuples(L, Format).
+
+edgePredicate(Source, Target, Pred) :-
+  pathInfo(Source, Target, _, _, _),
+  edgeSelInfo(Source, Target, _, Pred).
+
+
+
+
+/*
 ----    deleteSizes :-
 ----
 
@@ -2443,7 +2541,11 @@ Delete node sizes and selectivities of edges.
 deleteSizes :-
   retractall(resultSize(_, _)),
   retractall(edgeSelectivity(_, _, _)),
-  retractall(nodeTupleSize(_, _)).
+  retractall(nodeTupleSize(_, _)),
+  retractall(nodeSizeCounter(_, _, _, _)),
+  retractall(nodeSizeCounter(_, _)),
+  retractall(pathInfo(_, _, _, _, _)),
+  retractall(path(_)).
 
 deleteSizesNawra :-
   retractall(storedPredNoPET(_, _, _)).
@@ -3112,7 +3214,6 @@ plan(Path, Plan) :-
   nodePlan(N, Plan).
 
 
-
 deleteNodePlans :-  retractall(nodePlan(_, _)).
 
 % switch for entropy optimizer
@@ -3120,13 +3221,28 @@ traversePath(Path) :-
   optimizerOption(entropy),
   traversePath2(Path), !.
 
+% insert counters 
+traversePath(Path) :-
+  optimizerOption(useCounters), !, 
+  resetCounter(nodeSizeCtr),
+  traversePathX(Path).
 
+% default 
 traversePath([]).
 
 traversePath([costEdge(_, _, Term, Result, _, _) | Path]) :-
   embedSubPlans(Term, Term2),
   assert(nodePlan(Result, Term2)),
   traversePath(Path).
+
+traversePathX([]).
+
+traversePathX([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
+  embedSubPlans(Term, Term2),
+  nextCounter(nodeSizeCtr, Nc),
+  assert(nodePlan(Result, counter(Term2,Nc))),
+  assert(nodeSizeCounter(Nc, Source, Target, Result)),
+  traversePathX(Path).
 
 
 embedSubPlans(res(N), Term) :-
@@ -3171,8 +3287,12 @@ bestPlan(Plan, Cost) :-
   dc(bestPlan, writeCostEdges),
   highNode(N),
   dijkstra(0, N, Path, Cost),
+  assert(path(Path)),
   dc(bestPlan, writePath(Path)),
   plan(Path, Plan).
+
+
+
 
 /*
 10 A Larger Example
@@ -4782,10 +4902,16 @@ cards(N) :-
   N1 is N + 1,
   cards(N1).
 
+resultSizes(Node, SizeEst, SizeReal) :-
+  resultSize(Node, SizeEst),
+  realResult(Node, SizeReal).
+
 writeRealSizes :-
-  realResult(Node, Size),
-  write('Node: '), write(Node), write(', Real size: '), write(Size), nl,
-  fail.
+  findall([Node, SizeEst, SizeReal], resultSizes(Node, SizeEst, SizeReal), L),
+  Format = [ ['Node', 'l'],
+             ['Size-Estimated', 'l'],
+             ['Size-Real', 'l'] ],
+  showTuples(L, Format).
 
 computeCards :-
   retractall(realResult(_, _)),
