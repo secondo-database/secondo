@@ -82,7 +82,7 @@ isBBoxPredicate(intersects_new).
 isBBoxPredicate(p_intersects).
 isBBoxPredicate(inside).       % also on moving x moving -> movingbool
 isBBoxPredicate(insideold).
-%isBBoxPredicate(adjacent). % would this be correct?
+isBBoxPredicate(adjacent).
 isBBoxPredicate(attached).
 isBBoxPredicate(overlaps).
 isBBoxPredicate(onborder).

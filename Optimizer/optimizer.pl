@@ -1653,33 +1653,35 @@ filter is used.
 
 % Generic indexselect translation for predicates checking on mbbs
 
-% exploit commutativity of operators
+indexselect(arg(N), pr(Pred, _)) =>
+%Old:  filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), Pred)
+  filter(windowintersects(IndexName, rel(Name, *, Case), Y), Pred)
+  :-
+  (  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y] 
+   ; Pred =.. [OP, Y, attr(AttrName, Arg, AttrCase)] ),
+  isBBoxPredicate(OP),
+  argument(N, rel(Name, *, Case)),
+  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
+
+indexselect(arg(N), pr(Pred, _)) =>
+%Old:  filter(rename(windowintersects(IndexName, rel(Name,*,Case),bbox(Y)),
+%         RelAlias), Pred)
+  filter(rename(windowintersects(IndexName, rel(Name,*,Case),bbox(Y)),RelAlias),
+         Pred)
+  :-
+  (  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y]
+   ; Pred =.. [OP, Y, attr(AttrName, Arg, AttrCase)]),
+  isBBoxPredicate(OP),
+  argument(N, rel(Name, RelAlias, Case)), RelAlias \= *,
+  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
+
+% exploit commutativity of operators (additional cases)
 indexselect(arg(N), pr(Pred, Rel)) => X :-
   Pred =.. [OP, Y, attr(AttrName, Arg, Case)],
   isBBoxPredicate(OP),
   isCommutativeOP(OP),
   Pred2 =.. [OP, attr(AttrName, Arg, Case), Y],
   indexselect(arg(N), pr(Pred2, Rel)) => X.
-
-
-indexselect(arg(N), pr(Pred, _)) =>
-  filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), Pred)
-  :-
-  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y],
-  isBBoxPredicate(OP),
-  % alternatively: member(OP,[adjacent, intersects, inside, overlaps]),
-  argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
-
-indexselect(arg(N), pr(Pred, _)) =>
-  filter(rename(windowintersects(IndexName, rel(Name,*,Case),bbox(Y)),RelAlias),
-         Pred)
-  :-
-  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y],
-  isBBoxPredicate(OP),
-  % alternatively: member(OP,[adjacent, intersects, inside, overlaps]),
-  argument(N, rel(Name, RelAlias, Case)), RelAlias \= *,
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
 
 
 /*
