@@ -942,12 +942,15 @@ showTuplesRec([], _).
 
 showTuplesRec([H|T], WriteSpec) :-
   showTupleRec(H, WriteSpec), nl,
+  %format('~p~t~+~p~t~+~p~t~+~p~n',H),
   showTuplesRec(T, WriteSpec).
 
 showTupleRec([], _).
 
 showTupleRec([H|T], [Wh|Wt]) :- 
+  %showValue('Wh', Wh),
   writef(Wh, [H]),
+  %format('~p~t ~+~p~t ~+~p~t~ +~p',[H]),
   showTupleRec(T, Wt).
 
 showHeader(L, WriteSpec) :-
@@ -995,4 +998,24 @@ portray(Term) :-
 
 portray(Term) :-
   write(Term).
+
+/*
+2. 3 ~subList/3~
+
+----
+  subList(+L, +N, ?Res)
+----
+
+Unifies the first ~N~ elements of List ~L~ with ~Res~.
+
+*/
+
+subList(L, N, Res) :-
+ subListRec(L, N, 1, Res).
+
+subListRec([H|_], N, N, [H]).
+subListRec([H|T], N, Pos, [H|T2]) :-
+  NewPos is Pos + 1,
+  subListRec(T, N, NewPos, T2).
+
 
