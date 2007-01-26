@@ -126,7 +126,7 @@ tpcQuery(1, select
 from
 	  lineitem 
 where
-	  l_shipdate < cmpdate1 
+l_shipdate < theInstant(1998,9,2)
 groupby [
 	  l_returnflag,
 	  l_linestatus
@@ -140,3 +140,37 @@ orderby
 
 tpc(No) :- tpcQuery(No, X), sql(X).
 tpcAfterLookup(No) :- tpcQuery(No, X), callLookup(X,Y), !, write(Y).
+
+% a variant of TPC-3 which includes some correlated predicates
+tpcCorrelated(1, select
+	[ 
+          c_nationkey,
+          count(*) as sumX
+        ]
+from
+	[ 
+          customer,
+	  orders,
+	  lineitem 
+        ]
+where
+	[
+          l_receiptdate < (l_shipdate + create_duration(30.0)),
+          l_commitdate < (l_shipdate + create_duration(30.0)),
+          l_commitdate < (l_receiptdate + create_duration(30.0)),
+          l_receiptdate > (theInstant(1996,1,1) + create_duration(30.0)),
+          l_commitdate > (theInstant(1996,1,1) + create_duration(30.0)),
+          l_shipdate >  (theInstant(1996,1,1) + create_duration(30.0)),
+          l_quantity > 25, 
+          c_custkey = o_custkey,
+	  l_orderkey = o_orderkey 
+        ]
+groupby [
+	  c_nationkey 
+        ] 
+
+).
+
+tpcCorrel(N) :-
+  tpcCorrelated(N, T), sql(T). 
+
