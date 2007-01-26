@@ -111,6 +111,13 @@ optimizerOptionInfo(standard, none, no,
                     true
                    ).
 
+optimizerOptionInfo(useCounters, none, no,
+                    'Insert counters into the computed plan.',
+                    true,
+                    true
+                   ).
+
+
 optimizerOptionInfo(allOff, none, no,
                     'Turn off really ALL options.',
                     delAllOptions,
@@ -585,6 +592,7 @@ to disk automatically on system halt.
 
 defaultOptions :-
   setOption(standard),
+  delOption(useCounters),
   setOption(debug),
   debugLevel(selectivity),
   setOption(autosave).
