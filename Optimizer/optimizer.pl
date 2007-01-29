@@ -1,4 +1,5 @@
 /*
+
 ----
 This file is part of SECONDO.
 
@@ -18,6 +19,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
 ----
 
 //paragraph [10] title: [{\Large \bf ]  [}]
@@ -31,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[Ue] [\"{U}]
 //[**] [$**$]
 //[star] [$*$]
+//[->] [$\rightarrow$]
 //[toc] [\tableofcontents]
 //[=>] [\verb+=>+]
 //[:Section Translation] [\label{sec:translation}]
@@ -1360,8 +1363,29 @@ plan_to_atom(counter(Term,N), Result) :-
 
 
 /*
+Aggregation operators
+
+*/
+
+plan_to_atom(aggregate(Term, AttrName, AggrFunction, DefaultVal), Result) :-
+  plan_to_atom( Term, TermRes ),
+  plan_to_atom( AttrName, AttrNameRes ),
+  plan_to_atom( AggrFunction, AggrFunRes ),
+  concat_atom( [ TermRes, ' aggregate[ ', AttrNameRes, ' ; ', AggrFunRes, 
+                 ' ; ', DefaultVal, ' ] ' ], Result ),
+  !.
+
+plan_to_atom(aggregateB(Term, AttrName, AggrFunction, DefaultVal), Result) :-
+  plan_to_atom( Term, TermRes ),
+  plan_to_atom( AttrName, AttrNameRes ),
+  plan_to_atom( AggrFunction, AggrFunRes ),
+  concat_atom( [ TermRes, ' aggregateB[ ', AttrNameRes, ' ; ', AggrFunRes, 
+                 ' ; ', DefaultVal, ' ] ' ], Result ),
+  !.
+
+/*
 Translation of operators driven by predicate ~secondoOp~ in
-file ~opSyntax~. There are rules for
+file ~opsyntax~. There are rules for
 
   * postfix, 1 or 2 arguments
 
@@ -1503,9 +1527,14 @@ params_to_atom([param(Var, Type) | Params], Result) :-
 
 
 
-type_to_atom(tuple, 'TUPLE').
-type_to_atom(tuple2, 'TUPLE2').
-type_to_atom(group, 'GROUP').
+type_to_atom(tuple, 'TUPLE')   :- !.
+type_to_atom(tuple2, 'TUPLE2') :- !.
+type_to_atom(group, 'GROUP')   :- !.
+
+% Needed for aggregate/aggregateB:
+type_to_atom(X, Y) :-
+  concat_atom([X], Y),
+  !.
 
 
 /*
@@ -3756,6 +3785,21 @@ lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
   write(' doubly defined in query.'),
   nl.
 
+
+/*
+Special clause for ~aggregate~ and ~aggregateB~
+Here, only descend into the attribute name (1st argument)
+
+*/
+
+lookupAttr(Term, Result) :-
+  compound(Term),
+  Term =.. [AggrOp, Attr, Op, Type, Default],
+  member(AggrOp,[aggregate, aggregateB]),
+  lookupAttr(Attr, AttrRes),
+  Result =.. [AggrOp, AttrRes, Op, Type, Default],
+  !.
+
 /*
 Generic lookup functionality for lookupAttr/2 on functors of arbitrary arity
 using Univ (=../2) rather than (functor/3 and arg/3) was introduced by
@@ -4141,27 +4185,28 @@ which will translate to a corresponding projection operation.
 
 translateFields([], _, [], []).
 
+% special case: count(*)
 translateFields([count(*) as NewAttr | Select], GroupAttrs,
         [field(NewAttr , count(feed(group))) | Fields], [NewAttr | Select2]) :-
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
-translateFields([sum(attr(Name, Var, Case)) as NewAttr | Select], GroupAttrs,
-        [field(NewAttr, sum(feed(group), attrname(attr(Name, Var, Case)))) | Fields],
-        [NewAttr| Select2]) :-
-  translateFields(Select, GroupAttrs, Fields, Select2),
-  !.
+% translateFields([sum(attr(Name, Var, Case)) as NewAttr | Select], GroupAttrs,
+%        [field(NewAttr, sum(feed(group), attrname(attr(Name, Var, Case)))) | Fields],
+%         [NewAttr| Select2]) :-
+%   translateFields(Select, GroupAttrs, Fields, Select2),
+%   !.
 
-translateFields([sum(Expr) as NewAttr | Select], GroupAttrs,
-        [field(NewAttr,
-          sum(
-            extend(feed(group), field(attr(xxxExprField, 0, l), Expr)),
-            attrname(attr(xxxExprField, 0, l))
-            ))
-        | Fields],
-        [NewAttr| Select2]) :-
-  translateFields(Select, GroupAttrs, Fields, Select2),
-  !.
+% translateFields([sum(Expr) as NewAttr | Select], GroupAttrs,
+%         [field(NewAttr,
+%           sum(
+%             extend(feed(group), field(attr(xxxExprField, 0, l), Expr)),
+%             attrname(attr(xxxExprField, 0, l))
+%             ))
+%         | Fields],
+%         [NewAttr| Select2]) :-
+%   translateFields(Select, GroupAttrs, Fields, Select2),
+%   !.
 
 translateFields([Attr | Select], GroupAttrs, Fields, [Attr | Select2]) :-
   member(Attr, GroupAttrs),
@@ -4181,50 +4226,125 @@ property ~isAggregationOP(Op)~ is declared in file ``operators.pl''.
 
 */
 
+% simple/predefined aggregation functions
 translateFields([Term as NewAttr | Select], GroupAttrs,
         [field(NewAttr, Term2) | Fields],
         [NewAttr| Select2]) :-
   compound(Term),
-  functor(Term, AggrOp, 1),
-  arg(1, Term, attr(Name, Var, Case)),
+  Term =.. [AggrOp, attr(Name, Var, Case)],
   isAggregationOP(AggrOp),
-  functor(Term2, AggrOp, 2),
-  arg(1, Term2, feed(group)),
-  arg(2, Term2, attrname(attr(Name, Var, Case))),
+  Term2 =.. [AggrOp, feed(group), attrname(attr(Name, Var, Case))],
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
+% simple/predefined aggregation functions
 translateFields([Term as NewAttr | Select], GroupAttrs,
         [field(NewAttr, Term2) | Fields],
         [NewAttr| Select2]) :-
   compound(Term),
-  functor(Term, AggrOp, 1),
-  arg(1, Term, Expr),
+  Term =.. [AggrOp, Expr],
   isAggregationOP(AggrOp),
-  functor(Term2, AggrOp, 2),
-  arg(1, Term2, extend(feed(group), field(attr(xxxExprField, 0, l), Expr))),
-  arg(2, Term2, attrname(attr(xxxExprField, 0, l))),
+  Term2 =.. [AggrOp, 
+             extend(feed(group), field(attr(xxxExprField, 0, l), Expr)),
+             attrname(attr(xxxExprField, 0, l))],
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
 
+% simple/predefined aggregation functions
 translateFields([Term | Select], GroupAttrs,
         Fields,
         Select2) :-
   compound(Term),
-  functor(Term, AggrOp, 1),
-  arg(1, Term, Attr),
+  Term =.. [AggrOp, _],
   isAggregationOP(AggrOp),
-  functor(Term2, AggrOp, 2),
-  arg(1, Term2, feed(group)),
-  arg(2, Term2, attrname(Attr)),
+%   Term2 =.. [AggrOp, feed(group), attrname(Attr)],
   translateFields(Select, GroupAttrs, Fields, Select2),
   write('*****'), nl,
   write('***** Error in groupby: missing name for new attribute'), nl,
   write('*****'), nl,
   !.
 
+/*
+Generic rules for user defined aggregation functions, using
+~aggregate~ and ~aggregateB~. 
 
+The SQL-syntax is as follows:
+  
+  aggregate(ARGUMENT, FUNCTION, TYPE, DEFAULTVALUE)
+  
+  ARGUMENT is either a valid attribute, or an expression.
+  
+  FUNCTION is the operator name (only the name!) used as the aggregation 
+  function. The operator must have signature TYPE x TYPE [->] TYPE. For
+  aggregateB, it must be commutative and associative. If you want to use
+  an infix operator, you must enclose it in round parantheses, eg. ([star]) for
+  the multiplication.
+  
+  TYPE is the datatype processed by the aggregation function.
+  
+  DEFAULTVALUE is a value of type TYPE. If you give a constant expression,
+  you should enclose the list expression in single quotes, eg. 
+  '[const region value ()]'.
+  
+  Otherwise, you can use it in the select clause of a query, just like 
+  ordinary aggregation operator, like ~sum~, ~avg~, ~min~, or ~max~. 
+  As usual for SQL, aggregation is only allowed in the context of grouping!
+  
+*/
+
+% complex/user defined arbitrary aggregation functions
+translateFields([Term as NewAttr | Select], GroupAttrs,
+        [field(NewAttr, Term2) | Fields],
+        [NewAttr| Select2]) :-
+  compound(Term),
+  Term =.. [AggrOp, attr(Name, Var, Case), FunOp, Type, Default],
+  member(AggrOp, [aggregate, aggregateB]),
+  newVariable(Var1),
+  newVariable(Var2),
+  AggrFun =.. [FunOp, Var1, Var2],
+  Term2 =..[AggrOp, 
+            feed(group), 
+            attrname(attr(Name, Var, Case)), 
+            fun([ param(Var1, Type), param(Var2, Type)], AggrFun), 
+            Default],
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
+
+% complex/arbitrary aggregation functions
+translateFields([Term as NewAttr | Select], GroupAttrs,
+        [field(NewAttr, Term2) | Fields],
+        [NewAttr| Select2]) :-
+  compound(Term),
+  Term =.. [AggrOp, Expr, FunOp, Type, Default],
+  member(AggrOp, [aggregate, aggregateB]),
+  newVariable(Var1),
+  newVariable(Var2),
+  AggrFun =.. [FunOp, Var1, Var2],
+  Term2 =.. [AggrOp, 
+             extend(feed(group), field(attr(xxxExprField, 0, l), Expr)), 
+             attrname(attr(xxxExprField, 0, l)),
+             fun([param(Var1, Type),param(Var2, Type)],AggrFun),
+             Default],
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
+
+
+% complex/user defined arbitrary aggregation functions
+translateFields([Term | Select], GroupAttrs,
+        Fields,
+        Select2) :-
+  compound(Term),
+  Term =.. [AggrOp, _, _, _],
+  isAggregationOP(AggrOp),
+%   Term2 =.. [AggrOp, feed(group), attrname(Attr), Fun, Default],
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  write('*****'), nl,
+  write('***** Error in groupby: missing name for new attribute'), nl,
+  write('*****'), nl,
+  !.
+
+% general error case
 translateFields([Attr | Select], GroupAttrs, Fields, Select2) :-
   not(member(Attr, GroupAttrs)),
   !,

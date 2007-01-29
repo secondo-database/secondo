@@ -135,9 +135,9 @@ isAggregationOP(extract).
 For later extensions (though needing separate cost functions):
 
 */
-%isAggregationOP(aggregate).  % the cost of the provided function should be applied, works lineary
-%isAggregationOP(aggregateb). % the cost of the provided function should be applied,
-                              %   Additionally, the operator works balanced (in log(CX) steps).
+isAggregationOP(aggregate).  % the cost of the provided function should be applied, works lineary
+isAggregationOP(aggregateB). % the cost of the provided function should be applied,
+                             %   Additionally, the operator works balanced (in log(CX) steps).
 
 
 /*
