@@ -9,7 +9,7 @@ tpcQuery(10, select
       [
 	ccustkey,
 	cname,
-	sum(l_extendedprice * (1 - l_discount)) as revenue,
+	sum(lextendedprice * (1 - ldiscount)) as revenue,
 	cacctbal,
 	nname,
 	caddress,
@@ -126,7 +126,7 @@ tpcQuery(1, select
 from
 	  lineitem 
 where
-l_shipdate < theInstant(1998,9,2)
+lshipdate < theInstant(1998,9,2)
 groupby [
 	  lreturnflag,
 	  llinestatus
