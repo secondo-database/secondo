@@ -1371,14 +1371,6 @@ plan_to_atom(aggregate(Term, AttrName, AggrFunction, DefaultVal), Result) :-
   plan_to_atom( Term, TermRes ),
   plan_to_atom( AttrName, AttrNameRes ),
   plan_to_atom( AggrFunction, AggrFunRes ),
-  concat_atom( [ TermRes, ' aggregate[ ', AttrNameRes, ' ; ', AggrFunRes, 
-                 ' ; ', DefaultVal, ' ] ' ], Result ),
-  !.
-
-plan_to_atom(aggregateB(Term, AttrName, AggrFunction, DefaultVal), Result) :-
-  plan_to_atom( Term, TermRes ),
-  plan_to_atom( AttrName, AttrNameRes ),
-  plan_to_atom( AggrFunction, AggrFunRes ),
   concat_atom( [ TermRes, ' aggregateB[ ', AttrNameRes, ' ; ', AggrFunRes, 
                  ' ; ', DefaultVal, ' ] ' ], Result ),
   !.
@@ -1531,7 +1523,7 @@ type_to_atom(tuple, 'TUPLE')   :- !.
 type_to_atom(tuple2, 'TUPLE2') :- !.
 type_to_atom(group, 'GROUP')   :- !.
 
-% Needed for aggregate/aggregateB:
+% Needed for aggregate
 type_to_atom(X, Y) :-
   concat_atom([X], Y),
   !.
@@ -3787,7 +3779,7 @@ lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
 
 
 /*
-Special clause for ~aggregate~ and ~aggregateB~
+Special clause for ~aggregate~
 Here, only descend into the attribute name (1st argument)
 
 */
@@ -3795,7 +3787,7 @@ Here, only descend into the attribute name (1st argument)
 lookupAttr(Term, Result) :-
   compound(Term),
   Term =.. [AggrOp, Attr, Op, Type, Default],
-  member(AggrOp,[aggregate, aggregateB]),
+  member(AggrOp,[aggregate]),
   lookupAttr(Attr, AttrRes),
   Result =.. [AggrOp, AttrRes, Op, Type, Default],
   !.
@@ -4267,7 +4259,7 @@ translateFields([Term | Select], GroupAttrs,
 
 /*
 Generic rules for user defined aggregation functions, using
-~aggregate~ and ~aggregateB~. 
+~aggregate~. 
 
 The SQL-syntax is as follows:
   
@@ -4276,10 +4268,10 @@ The SQL-syntax is as follows:
   ARGUMENT is either a valid attribute, or an expression.
   
   FUNCTION is the operator name (only the name!) used as the aggregation 
-  function. The operator must have signature TYPE x TYPE [->] TYPE. For
-  aggregateB, it must be commutative and associative. If you want to use
-  an infix operator, you must enclose it in round parantheses, eg. ([star]) for
-  the multiplication.
+  function. The operator must have signature TYPE x TYPE [->] TYPE. It must 
+  be a commutative and associative function. If you want to use
+  an infix operator, you must enclose it in round parentheses, eg. ([star]) for
+  the multiplication *: TYPE x TYPE [->] TYPE.
   
   TYPE is the datatype processed by the aggregation function.
   
@@ -4287,8 +4279,9 @@ The SQL-syntax is as follows:
   you should enclose the list expression in single quotes, eg. 
   '[const region value ()]'.
   
-  Otherwise, you can use it in the select clause of a query, just like 
-  ordinary aggregation operator, like ~sum~, ~avg~, ~min~, or ~max~. 
+  Otherwise, you can use user defined aggregation in the select clause of 
+  a query, just like ordinary aggregation operator, like ~sum~, ~avg~, 
+  ~min~, or ~max~. 
   As usual for SQL, aggregation is only allowed in the context of grouping!
   
 */
@@ -4299,7 +4292,7 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
         [NewAttr| Select2]) :-
   compound(Term),
   Term =.. [AggrOp, attr(Name, Var, Case), FunOp, Type, Default],
-  member(AggrOp, [aggregate, aggregateB]),
+  member(AggrOp, [aggregate]),
   newVariable(Var1),
   newVariable(Var2),
   AggrFun =.. [FunOp, Var1, Var2],
@@ -4317,7 +4310,7 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
         [NewAttr| Select2]) :-
   compound(Term),
   Term =.. [AggrOp, Expr, FunOp, Type, Default],
-  member(AggrOp, [aggregate, aggregateB]),
+  member(AggrOp, [aggregate]),
   newVariable(Var1),
   newVariable(Var2),
   AggrFun =.. [FunOp, Var1, Var2],
@@ -4336,8 +4329,7 @@ translateFields([Term | Select], GroupAttrs,
         Select2) :-
   compound(Term),
   Term =.. [AggrOp, _, _, _],
-  isAggregationOP(AggrOp),
-%   Term2 =.. [AggrOp, feed(group), attrname(Attr), Fun, Default],
+  member(AggrOp, [aggregate]),
   translateFields(Select, GroupAttrs, Fields, Select2),
   write('*****'), nl,
   write('***** Error in groupby: missing name for new attribute'), nl,
