@@ -1,9 +1,10 @@
 # Hand optimized query plan for TPC-1
 #
 
+# Note: The TPC-H relation schemas were changed. The prefix [A-Z]_ was replaced by [a-z].
 query 
   LINEITEM feed  
-    project [ L_RETURNFLAG, L_LINESTATUS, L_SHIPDATE, L_QUANTITY, L_EXTENDEDPRICE, L_DISCOUNT, L_TAX ] 
+    project [ lRETURNFLAG, lLINESTATUS, lSHIPDATE, lQUANTITY, lEXTENDEDPRICE, lDISCOUNT, lTAX ] 
       filter[ .L_SHIPDATE < cmpdate1 ]  
         sortby[L_RETURNFLAG asc, L_LINESTATUS asc] 
           groupby[L_RETURNFLAG, L_LINESTATUS; Count_order: group feed  count , 

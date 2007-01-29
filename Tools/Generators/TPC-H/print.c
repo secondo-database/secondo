@@ -156,14 +156,14 @@ static FILE *fp = NULL;
      fp = print_prep(CUST, 0);
      fprintf(fp, "(OBJECT CUSTOMER \n");
      fprintf(fp, "  ()");
-     fprintf(fp, "  (rel( tuple ( (C_CUSTKEY int) \n");
-     fprintf(fp, "                (C_NAME string) \n");
-     fprintf(fp, "                (C_ADDRESS string) \n");
-     fprintf(fp, "                (C_NATIONKEY int) \n");
-     fprintf(fp, "                (C_PHONE string) \n");
-     fprintf(fp, "                (C_ACCTBAL real) \n");
-     fprintf(fp, "                (C_MKTSEGMENT string) \n");
-     fprintf(fp, "                (C_COMMENT text) )))\n");
+     fprintf(fp, "  (rel( tuple ( (cCUSTKEY int) \n");
+     fprintf(fp, "                (cNAME string) \n");
+     fprintf(fp, "                (cADDRESS string) \n");
+     fprintf(fp, "                (cNATIONKEY int) \n");
+     fprintf(fp, "                (cPHONE string) \n");
+     fprintf(fp, "                (cACCTBAL real) \n");
+     fprintf(fp, "                (cMKTSEGMENT string) \n");
+     fprintf(fp, "                (cCOMMENT text) )))\n");
      fprintf(fp, "  ( \n");
    }
 
@@ -202,15 +202,15 @@ pr_order(order_t *o, int mode)
 	
      fprintf(fp_o, "(OBJECT ORDERS \n");
      fprintf(fp_o, "  ()");
-     fprintf(fp_o, "  (rel( tuple ( (O_ORDERKEY int) \n");
-     fprintf(fp_o, "                (O_CUSTKEY int) \n");
-     fprintf(fp_o, "                (O_ORDERSTATUS string) \n");
-     fprintf(fp_o, "                (O_TOTALPRICE real) \n");
-     fprintf(fp_o, "                (O_ORDERDATE instant) \n");
-     fprintf(fp_o, "                (O_ORDERPRIORITY string) \n");
-     fprintf(fp_o, "                (O_CLERK string) \n");
-     fprintf(fp_o, "                (O_SHIPPRIORITY int) \n");     
-     fprintf(fp_o, "                (O_COMMENT text) )))\n");
+     fprintf(fp_o, "  (rel( tuple ( (oORDERKEY int) \n");
+     fprintf(fp_o, "                (oCUSTKEY int) \n");
+     fprintf(fp_o, "                (oORDERSTATUS string) \n");
+     fprintf(fp_o, "                (oTOTALPRICE real) \n");
+     fprintf(fp_o, "                (oORDERDATE instant) \n");
+     fprintf(fp_o, "                (oORDERPRIORITY string) \n");
+     fprintf(fp_o, "                (oCLERK string) \n");
+     fprintf(fp_o, "                (oSHIPPRIORITY int) \n");     
+     fprintf(fp_o, "                (oCOMMENT text) )))\n");
      fprintf(fp_o, "  ( \n");
 	
     }
@@ -250,22 +250,22 @@ pr_line(order_t *o, int mode)
 
      fprintf(fp_l, "(OBJECT LINEITEM \n");
      fprintf(fp_l, "  ()");
-     fprintf(fp_l, "  (rel( tuple ( (L_ORDERKEY int) \n");
-     fprintf(fp_l, "                (L_PARTKEY int) \n");
-     fprintf(fp_l, "                (L_SUPPKEY int) \n");
-     fprintf(fp_l, "                (L_LINENUMBER int) \n");
-     fprintf(fp_l, "                (L_QUANTITY real) \n");
-     fprintf(fp_l, "                (L_EXTENDEDPRICE real) \n");
-     fprintf(fp_l, "                (L_DISCOUNT real) \n");
-     fprintf(fp_l, "                (L_TAX real) \n");
-     fprintf(fp_l, "                (L_RETURNFLAG string) \n");
-     fprintf(fp_l, "                (L_LINESTATUS string) \n");
-     fprintf(fp_l, "                (L_SHIPDATE instant) \n");
-     fprintf(fp_l, "                (L_COMMITDATE instant) \n"); 
-     fprintf(fp_l, "                (L_RECEIPTDATE instant) \n");
-     fprintf(fp_l, "                (L_SHIPINSTRUCT string) \n");
-     fprintf(fp_l, "                (L_SHIPMODE string) \n");                        
-     fprintf(fp_l, "                (L_COMMENT string) )))\n");
+     fprintf(fp_l, "  (rel( tuple ( (lORDERKEY int) \n");
+     fprintf(fp_l, "                (lPARTKEY int) \n");
+     fprintf(fp_l, "                (lSUPPKEY int) \n");
+     fprintf(fp_l, "                (lLINENUMBER int) \n");
+     fprintf(fp_l, "                (lQUANTITY real) \n");
+     fprintf(fp_l, "                (lEXTENDEDPRICE real) \n");
+     fprintf(fp_l, "                (lDISCOUNT real) \n");
+     fprintf(fp_l, "                (lTAX real) \n");
+     fprintf(fp_l, "                (lRETURNFLAG string) \n");
+     fprintf(fp_l, "                (lLINESTATUS string) \n");
+     fprintf(fp_l, "                (lSHIPDATE instant) \n");
+     fprintf(fp_l, "                (lCOMMITDATE instant) \n"); 
+     fprintf(fp_l, "                (lRECEIPTDATE instant) \n");
+     fprintf(fp_l, "                (lSHIPINSTRUCT string) \n");
+     fprintf(fp_l, "                (lSHIPMODE string) \n");                        
+     fprintf(fp_l, "                (lCOMMENT string) )))\n");
      fprintf(fp_l, "  ( \n");
 	
 	
@@ -324,15 +324,15 @@ static FILE *p_fp = NULL;
 
      fprintf(p_fp, "(OBJECT PART \n");
      fprintf(p_fp, "  ()");
-     fprintf(p_fp, "  (rel( tuple ( (P_PARTKEY int) \n");
-     fprintf(p_fp, "                (P_NAME text) \n");
-     fprintf(p_fp, "                (P_MFGR string) \n");
-     fprintf(p_fp, "                (P_BRAND string) \n");
-     fprintf(p_fp, "                (P_TYPE string) \n");
-     fprintf(p_fp, "                (P_SIZE int) \n");
-     fprintf(p_fp, "                (P_CONTAINER string) \n");
-     fprintf(p_fp, "                (P_RETAILPRICE real) \n");                       
-     fprintf(p_fp, "                (P_COMMENT string) )))\n");
+     fprintf(p_fp, "  (rel( tuple ( (pPARTKEY int) \n");
+     fprintf(p_fp, "                (pNAME text) \n");
+     fprintf(p_fp, "                (pMFGR string) \n");
+     fprintf(p_fp, "                (pBRAND string) \n");
+     fprintf(p_fp, "                (pTYPE string) \n");
+     fprintf(p_fp, "                (pSIZE int) \n");
+     fprintf(p_fp, "                (pCONTAINER string) \n");
+     fprintf(p_fp, "                (pRETAILPRICE real) \n");                       
+     fprintf(p_fp, "                (pCOMMENT string) )))\n");
      fprintf(p_fp, "  ( \n");
    }
 
@@ -369,11 +369,11 @@ pr_psupp(part_t *part, int mode)
 	
      fprintf(ps_fp, "(OBJECT PARTSUPP \n");
      fprintf(ps_fp, "  ()");
-     fprintf(ps_fp, "  (rel( tuple ( (PS_PARTKEY int) \n");
-     fprintf(ps_fp, "                (PS_SUPPKEY int) \n");
-     fprintf(ps_fp, "                (PS_AVAILQTY int) \n");
-     fprintf(ps_fp, "                (PS_SUPPLYCOST real) \n");                 
-     fprintf(ps_fp, "                (PS_COMMENT text) )))\n");
+     fprintf(ps_fp, "  (rel( tuple ( (psPARTKEY int) \n");
+     fprintf(ps_fp, "                (psSUPPKEY int) \n");
+     fprintf(ps_fp, "                (psAVAILQTY int) \n");
+     fprintf(ps_fp, "                (psSUPPLYCOST real) \n");                 
+     fprintf(ps_fp, "                (psCOMMENT text) )))\n");
      fprintf(ps_fp, "  ( \n");
    }
 
@@ -417,13 +417,13 @@ static FILE *fp = NULL;
 
      fprintf(fp, "(OBJECT SUPPLIER \n");
      fprintf(fp, "  ()");
-     fprintf(fp, "  (rel( tuple ( (S_SUPPKEY int) \n");
-     fprintf(fp, "                (S_NAME string) \n");
-     fprintf(fp, "                (S_ADDRESS string) \n");
-     fprintf(fp, "                (S_NATIONKEY int) \n");
-     fprintf(fp, "                (S_PHONE string) \n");
-     fprintf(fp, "                (S_ACCTBAL real) \n");                   
-     fprintf(fp, "                (S_COMMENT text) )))\n");
+     fprintf(fp, "  (rel( tuple ( (sSUPPKEY int) \n");
+     fprintf(fp, "                (sNAME string) \n");
+     fprintf(fp, "                (sADDRESS string) \n");
+     fprintf(fp, "                (sNATIONKEY int) \n");
+     fprintf(fp, "                (sPHONE string) \n");
+     fprintf(fp, "                (sACCTBAL real) \n");                   
+     fprintf(fp, "                (sCOMMENT text) )))\n");
      fprintf(fp, "  ( \n");
    }
 
@@ -454,10 +454,10 @@ static FILE *fp = NULL;
 
      fprintf(fp, "(OBJECT NATION \n");
      fprintf(fp, "  ()");
-     fprintf(fp, "  (rel( tuple ( (N_NATIONKEY int) \n");
-     fprintf(fp, "                (N_NAME string) \n");
-     fprintf(fp, "                (N_REGIONKEY int) \n");                  
-     fprintf(fp, "                (N_COMMENT text) )))\n");
+     fprintf(fp, "  (rel( tuple ( (nNATIONKEY int) \n");
+     fprintf(fp, "                (nNAME string) \n");
+     fprintf(fp, "                (nREGIONKEY int) \n");                  
+     fprintf(fp, "                (nCOMMENT text) )))\n");
      fprintf(fp, "  ( \n");
    }
 
@@ -483,9 +483,9 @@ static FILE *fp = NULL;
 	
      fprintf(fp, "(OBJECT REGION \n");
      fprintf(fp, "  ()");
-     fprintf(fp, "  (rel( tuple ( (R_REGIONKEY int) \n");
-     fprintf(fp, "                (R_NAME string) \n");                 
-     fprintf(fp, "                (R_COMMENT text) )))\n");
+     fprintf(fp, "  (rel( tuple ( (rREGIONKEY int) \n");
+     fprintf(fp, "                (rNAME string) \n");                 
+     fprintf(fp, "                (rCOMMENT text) )))\n");
      fprintf(fp, "  ( \n");
    }
 
