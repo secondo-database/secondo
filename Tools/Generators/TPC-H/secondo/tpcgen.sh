@@ -65,6 +65,8 @@ printf "\n%s\n" "Creating database ${dbName} with a scale factor ${scaleFactor}!
 tpcDir=${buildDir}/Tools/Generators/TPC-H
 tempDir=/tmp/$USER/TPC/tmp_tpcgen_${date_ymd}_${date_HMS}
 
+PATH="$PATH:."
+
 # Generate data
 printSep "Generating TPC-H data"
 cd $tpcDir
@@ -88,8 +90,19 @@ assert cd $tempDir
 
 
 export SECONDO_PARAM_SecondoHome=$bdbHome
-SecondoTTYBDB <<< "create database ${dbName};
+export SECONDO_PARAM_RTFlags="SMI:NoTransactions,DEBUG:DemangleStackTrace,CMSG:Color"
+
+ncmd=$(which nice)
+niceOpt="nice -n19"
+if [ $? -ne 0 ]; then
+  niceOpt=""    
+fi
+
+$niceOpt SecondoTTYBDB <<< "create database ${dbName};
 open database ${dbName};
 @${tpcDir}/secondo/restore_objs
 q;"
 
+if [ $? -eq 0 ]; then
+ rm -rf $tempDir
+fi

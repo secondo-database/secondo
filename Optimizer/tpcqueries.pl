@@ -7,14 +7,14 @@
 
 tpcQuery(10, select
       [
-	c_custkey,
-	c_name,
+	ccustkey,
+	cname,
 	sum(l_extendedprice * (1 - l_discount)) as revenue,
-	c_acctbal,
-	n_name,
-	c_address,
-	c_phone,
-	c_comment
+	cacctbal,
+	nname,
+	caddress,
+	cphone,
+	ccomment
       ]
 from
       [
@@ -25,22 +25,22 @@ from
       ]
 where
       [
-	c_custkey = o_custkey,
-	l_orderkey = o_orderkey,
-	not(o_orderdate < cmpdate10_1),
-	o_orderdate < cmpdate10_2,
-	l_returnflag = "R",
-	c_nationkey = n_nationkey
+	ccustkey = ocustkey,
+	lorderkey = oorderkey,
+	not(oorderdate < theInstant(1993,10,1)),
+	oorderdate < theInstant(1994,1,1),
+	lreturnflag = "R",
+	cnationkey = nnationkey
       ]
 groupby
       [
-	c_custkey,
-	c_name,
-	c_acctbal,
-	c_phone,
-	n_name,
-	c_address,
-	c_comment
+	ccustkey,
+	cname,
+	cacctbal,
+	cphone,
+	nname,
+	caddress,
+	ccomment
        ]
 orderby [ revenue desc]
 first 20 
@@ -48,8 +48,8 @@ first 20
 
 tpcQuery(5, select
        [
-	n_name,
-	sum(l_extendedprice * (1 - l_discount)) as revenue
+	nname,
+	sum(lextendedprice * (1 - ldiscount)) as revenue
        ]
 from
        [
@@ -62,27 +62,27 @@ from
        ]
 where
        [
-	c_custkey = o_custkey,
-	l_orderkey = o_orderkey,
-	l_suppkey = s_suppkey,
-	c_nationkey = s_nationkey,
-	s_nationkey = n_nationkey,
-	n_regionkey = r_regionkey,
-        r_name = "ASIA", 
-	not(o_orderdate < cmpdate5_1),
-	o_orderdate < cmpdate5_2 
+	ccustkey = ocustkey,
+	lorderkey = oorderkey,
+	lsuppkey = ssuppkey,
+	cnationkey = snationkey,
+	snationkey = nnationkey,
+	nregionkey = rregionkey,
+        rname = "ASIA", 
+	not(oorderdate < theInstant(1994,1,1)),
+	oorderdate < theInstant(1995,1,1) 
        ]
-groupby [ n_name ]
+groupby [ nname ]
 orderby [ revenue desc ]
 ).
 
 
 tpcQuery(3, select
 	[ 
-          l_orderkey,
-          sum(l_extendedprice * (1 - l_discount)) as revenue,
-	  o_orderdate,
-	  o_shippriority 
+          lorderkey,
+          sum(lextendedprice * (1 - ldiscount)) as revenue,
+	  oorderdate,
+	  oshippriority 
         ]
 from
 	[ 
@@ -92,20 +92,20 @@ from
         ]
 where
 	[
-          c_mktsegment = "BUILDING", 
-          c_custkey = o_custkey,
-	  l_orderkey = o_orderkey 
+          cmktsegment = "BUILDING", 
+          ccustkey = ocustkey,
+	  lorderkey = oorderkey 
         ]
 groupby
 	[ 
-          l_orderkey,
-	  o_orderdate,
-	  o_shippriority 
+          lorderkey,
+	  oorderdate,
+	  oshippriority 
         ]
 orderby
 	[ 
           revenue desc,
-	  o_orderdate asc 
+	  oorderdate asc 
         ]
 first 10
 ).
@@ -113,28 +113,28 @@ first 10
 tpcQuery(1, select
 	[ 
           count(*) as count_order,
-          l_returnflag,
-          l_linestatus,
-          sum(l_quantity) as sum_qty,
-          sum(l_extendedprice) as sum_base_price,
-          sum(l_extendedprice * (1 - l_discount)) as sum_disc_price,
-          sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge,
-          avg(l_quantity) as avg_qty,
-	  avg(l_extendedprice) as avg_price,
-	  avg(l_discount) as avg_disc
+          lreturnflag,
+          llinestatus,
+          sum(lquantity) as sum_qty,
+          sum(lextendedprice) as sum_base_price,
+          sum(lextendedprice * (1 - ldiscount)) as sum_disc_price,
+          sum(lextendedprice * (1 - ldiscount) * (1 + ltax)) as sum_charge,
+          avg(lquantity) as avg_qty,
+	  avg(lextendedprice) as avg_price,
+	  avg(ldiscount) as avg_disc
         ]
 from
 	  lineitem 
 where
 l_shipdate < theInstant(1998,9,2)
 groupby [
-	  l_returnflag,
-	  l_linestatus
+	  lreturnflag,
+	  llinestatus
         ] 
 orderby
 	[ 
-          l_returnflag asc,
-	  l_linestatus asc 
+          lreturnflag asc,
+	  llinestatus asc 
         ]
 ).
 
@@ -144,7 +144,7 @@ tpcAfterLookup(No) :- tpcQuery(No, X), callLookup(X,Y), !, write(Y).
 % a variant of TPC-3 which includes some correlated predicates
 tpcCorrelated(1, select
 	[ 
-          c_nationkey,
+          cnationkey,
           count(*) as sumX
         ]
 from
@@ -155,18 +155,18 @@ from
         ]
 where
 	[
-          l_receiptdate < (l_shipdate + create_duration(30.0)),
-          l_commitdate < (l_shipdate + create_duration(30.0)),
-          l_commitdate < (l_receiptdate + create_duration(30.0)),
-          l_receiptdate > (theInstant(1996,1,1) + create_duration(30.0)),
-          l_commitdate > (theInstant(1996,1,1) + create_duration(30.0)),
-          l_shipdate >  (theInstant(1996,1,1) + create_duration(30.0)),
-          l_quantity > 25, 
-          c_custkey = o_custkey,
-	  l_orderkey = o_orderkey 
+          lreceiptdate < (lshipdate + create_duration(30.0)),
+          lcommitdate < (lshipdate + create_duration(30.0)),
+          lcommitdate < (lreceiptdate + create_duration(30.0)),
+          lreceiptdate > (theInstant(1996,1,1) + create_duration(30.0)),
+          lcommitdate > (theInstant(1996,1,1) + create_duration(30.0)),
+          lshipdate >  (theInstant(1996,1,1) + create_duration(30.0)),
+          lquantity > 25, 
+          ccustkey = ocustkey,
+	  lorderkey = oorderkey 
         ]
 groupby [
-	  c_nationkey 
+	  cnationkey 
         ] 
 
 ).
