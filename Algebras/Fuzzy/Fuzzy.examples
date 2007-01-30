@@ -1,0 +1,237 @@
+Database: berlintest
+Restore : No
+
+Operator : add
+Number   : 1
+Signature: fuzzyobject_i x fuzzyobject_i) -> fuzzyobject_i
+Example  : query add( [const fpoint value (12.0 ((0 0 1.0)))] ,[const fpoint value (24.0 ((20 30 1.0)))]) 
+Result   : (fpoint (1.0 ( (0 0 1.0) (20 30 1.0)))) 
+
+
+Operator : alphacut
+Number   : 1
+Signature: fobject real bool) -> fregion
+Example  : query alphacut([const fpoint value (1.0 ((0 0 0.1)(20 30 0.9)))],0.8,TRUE) 
+Result   : (fpoint (1.0 ( (20 30 0.8999999761581421)))) 
+
+
+Operator : area3d
+Number   : 1
+Signature: fregion -> real
+Example  : query area3d([const fregion value (100.0 ( ( (0 0 1.0)(10 15 0.5)(20 0 0.0))))]) 
+Result   : (real 424.2640686035156) 
+
+
+Operator : area
+Number   : 1
+Signature: fregion -> real
+Example  : query area([const fregion value (100.0 ( ( (0 0 1.0)(10 15 0.5)(20 0 0.0))))])
+Result   : (real 100.0)
+
+
+Operator : basicarea
+Number   : 1
+Signature: fregion -> real
+Example  : query basicarea([const fregion value (100.0 ( ( (0 0 1.0)(10 15 0.5)(20 0 0.0))))])
+Result   : (real 150.0)
+
+
+Operator : basiccard
+Number   : 1
+Signature: fpoint -> real
+Example  : query basiccard([const fpoint value (1.0 ( (0 0 1.0)))])
+Result   : (real 1.0 )
+
+
+Operator : basiclength
+Number   : 1
+Signature: (fline) -> real
+Example  : query basiclength([const fline value (100.0 ( ( (0 0 1.0)(10 15 0.5))))])
+Result   : (real 18.02775637731995)
+
+
+Operator : basicsimilar
+Number   : 1
+Signature: fobject_i x fobject_i -> real
+Example  : query basicsimilar([const fregion value (100.0 ( ( (0 0 1.0)(10 15 0.5)(20 0 0.0))))], [const fregion value (100.0 ( ( (0 0 1.0)(10 15 0.5)(20 0 0.0))))] )
+Result   : (real 1.0)
+
+
+Operator : boundary
+Number   : 1
+Signature: fline -> fpoint , fregion -> fline 
+Example  : query boundary(([const fline value (100.0 ( ( (0 0 1.0)(10 15 0.5))))]))
+Result   : (fpoint (1.0 ( (0 0 1.0) (10 15 1.0)))) 
+
+
+Operator : cardinality
+Number   : 1
+Signature: fpoint -> real
+Example  : query cardinality([const fpoint value (1.0 ( (0 0 0.5)))])
+Result   : (real 0.5) 
+
+
+Operator : commonlines
+Number   : 1
+Signature: (fregion,fregion) -> fline
+Example  : query commonlines( [const fregion value (100.0 ( ( (0 0 1.0)(10 15 0.5)(20 0 0.0))))], [const fregion value (100.0         ( ( (0 0 1.0)(10 15 0.5)(20 0 0.0))))])
+Result   : (fline (1.0 ()))
+
+
+Operator : commonpoints
+Number   : 1
+Signature: (fline,fline) -> fpoint , (fregion,fregion) -> fpoint 
+Example  : query commonpoints( [const fline value (100.0 ( ( (0 0 1.0)(10 15 0.5))))] , [const fline value (100.0 ( ( (10 15 1.0)(20 30 0.5))))])
+Result   : (fpoint (1.0 ((10 15 1.0))))
+
+
+Operator : contour
+Number   : 1
+Signature: fregion -> fline
+Example  : query contour([const fregion value (100.0 ( ( (0 0 1.0)(10 15 0.5)(20 0 0.0))))]) 
+Result   : (fline (1.0 ( ( (0 0 1.0) (10 15 1.0)) ( (0 0 1.0) (20 0 1.0)) ( (10 15 1.0) (20 0 1.0)))))
+
+
+
+Operator : difference
+Number   : 1
+Signature: fregion,fregion -> fregion, (fline,fline) -> fline  (fpoint,fpoint)-> fpoint
+Example  : query difference([const fpoint value (1.0 ( (0 0 0.5)))],[const fpoint value (1.0 ( (0 0 0.5)))])
+Result   : (fpoint (1.0 ()))
+
+
+Operator : fuzzy_intersection
+Number   : 1
+Signature: (fregion,fregion) -> fregion, (fline,fline) -> fline  (fpoint,fpoint)-> fpoint
+Example  : query fuzzy_intersection([const fpoint value (1.0 ( (0 0 0.5)))],[const fpoint value (1.0 ( (0 0 0.5)))])
+Result   : (fpoint (1.0 ((0 0 0.5))))
+
+
+Operator : fuzzy_union
+Number   : 1
+Signature: fuzzyobject_i x fuzzyobject_i -> fuzzyobject_i
+Example  : query fuzzy_union([const fpoint value (1.0 ( (0 0 0.5)))],[const fpoint value (1.0 ( (0 0 0.5)))])
+Result   : (fpoint (1.0 ((0 0 0.5))))
+
+
+Operator : holes
+Number   : 1
+Signature: fregion -> fregion 
+Example  : query holes([const fregion value (100.0 ( ( (0 0 1.0)(10 15 0.5)(20 0 0.0))))]) 
+Result   : (fregion (1.0 ()))
+
+
+Operator : isempty
+Number   : 1
+Signature: fobject -> bool
+Example  : query isempty([const fpoint value (1.0 () )])
+Result   : (bool TRUE)
+
+
+Operator : length3d
+Number   : 1
+Signature: fline -> real
+Example  : query length3d([const fline value (100.0 ( ( (0 0 1.0)(10 15 0.5))))])
+Result   : (real 18.03468879687143)
+
+
+Operator : length
+Number   : 1
+Signature: fline -> real
+Example  : query length([const fline value (100.0 ( ( (0 0 1.0)(10 15 0.5))))])
+Result   : (real 13.52081728298996)
+
+
+Operator : max_value_at
+Number   : 1
+Signature: fobject x real x real -> bool
+Example  : query max_value_at([const fregion value (100.0 ( ( (0 0 1.0)(10 15 0.5)(20 0 0.0))))],7.5,3.5)
+Result   : (real 0.625)
+
+
+Operator : maxvalue
+Number   : 1
+Signature:  fobject -> bool
+Example  : query maxvalue([const fregion value (100.0 ( ( (0 0 1.0)(10 15 0.5)(20 0 0.0))))])
+Result   : (real 1.0)
+
+
+Operator : mid_value_at
+Number   : 1
+Signature: fobject x real x real  -> real
+Example  : query mid_value_at([const fregion value (100.0 ( ( (0 0 1.0)(10 15 0.5)(20 0 0.0))))],7.5,3.5)
+Result   : (real 0.625) 
+
+
+Operator : min_value_at
+Number   : 1
+Signature: fobject x real x real  -> real
+Example  : query min_value_at([const fregion value (100.0 ( ( (0 0 1.0)(10 15 0.5)(20 0 0.0))))],7.5,3.5)
+Result   : (real 0.625)
+
+
+Operator : minvalue
+Number   : 1
+Signature:  fobject -> bool
+Example  : query minvalue([const fregion value (100.0 ( ( (0 0 1.0)(10 15 0.5)(20 0 0.0))))])
+Result   : (real 0.0)
+
+
+Operator : scaled_add
+Number   : 1
+Signature: fuzzyobject_i x fuzzyobject_i  -> fuzzyobject_i
+Example  : query scaled_add( [const fpoint value (12.0 ((0 0 1.0)))] ,[const fpoint value (24.0 ((20 30 1.0)))])
+Result   : (fpoint (24.0 ( (0 0 0.5) (20 30 1.0))))
+
+
+
+Operator : scaled_difference
+Number   : 1
+Signature: fuzzyobject_i x fuzzyobject_i  -> fuzzyobject_i
+Example  : query scaled_difference([const fpoint value (2.0 ( (0 0 0.5)))],[const fpoint value (1.0 ( (0 0 0.5)))])
+Result   : (fpoint (0.5 ( (0 0 1.0))))
+
+
+Operator : scaled_intersection
+Number   : 1
+Signature: fuzzyobject_i x fuzzyobject_i  -> fuzzyobject_i
+Example  : query scaled_intersection([const fpoint value (2.0 ( (0 0 0.5)))],[const fpoint value (1.0 ( (0 0 0.5)))])
+Result   : (fpoint (0.5 ( (0 0 1.0))))
+
+
+Operator : scaled_union
+Number   : 1
+Signature: fuzzyobject_i x fuzzyobject_i -> fuzzyobject_i
+Example  : query scaled_union([const fpoint value (2.0 ( (0 0 0.5)))],[const fpoint value (1.0 ( (0 0 0.5)))]) 
+Result   : (fpoint (1.0 ( (0 0 1.0))))
+
+
+Operator : scalefactor
+Number   : 1
+Signature: fobject -> real
+Example  : query scalefactor([const fpoint value (2.0 ( (0 0 0.5)))])
+Result   : (real 2.0)
+
+
+Operator : set_sf
+Number   : 1
+Signature: fuzzyobjects_i x  real -> fuzzyobject_i
+Example  : query set_sf([const fpoint value (2.0 ( (0 0 0.5)))], 200.0)
+Result   : (fpoint (200.0 ( (0 0 0.5))))
+
+
+Operator : sharp
+Number   : 1
+Signature: fuzzyobject_i -> fuzzyobject_i
+Example  : query sharp([const fpoint value (2.0 ( (0 0 0.5)))])
+Result   : (fpoint (1.0 ( (0 0 1.0))))
+
+
+
+Operator : similar
+Number   : 1
+Signature: fobject_i x fobject_i -> real
+Example  : query similar([const fpoint value (2.0 ( (0 0 0.5)))],[const fpoint value (1.0 ( (0 0 0.5)))])
+Result   : (real 1.0)
+
+
