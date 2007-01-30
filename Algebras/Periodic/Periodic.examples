@@ -1,0 +1,164 @@
+Database: berlintest
+Restore : No
+
+Operator : =
+Number   : 1
+Signature: pbbox x pbbox -> bool
+Example  : query [const pbbox value (12.0 23.3  100.987 5245.978)] = [const pbbox value (12.0 23.3  100.987 5245.978)]
+Result   : (bool TRUE) 
+
+
+Operator : atinstant
+Number   : 1
+Signature: pmobject x instant -> object
+Example  : query [const pmpoint value ((instant "2007-01-30-18:00") ( linear  (( rinterval( TRUE  FALSE ( duration ( 0  7000000   ))))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ] atinstant [const instant value "2007-01-30-18:56"] 
+Result   : (point (13424.4 10979.48))
+
+
+Operator : breakpoints
+Number   : 1
+Signature: pmpoint | pmpoints  -> points
+Example  : query breakpoints([const pmpoint value ((instant "2007-01-30-18:00") ( linear  (( rinterval( TRUE  FALSE ( duration ( 0  7000000   ))))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ]) 
+Result   : (points ()) 
+
+
+Operator : contains
+Number   : 1
+Signature: pbbox x pbbox -> bool
+Example  : query  [const pbbox value (12.0 23.3  100.987 5245.978)] contains [const pbbox value (13.0 24.3  100.0 1000.0)]
+Result   : (bool TRUE)
+
+
+Operator : createpmpoint
+Number   : 1
+Signature: mpoint  -> pmpoint
+Example  : query createpmpoint(train7) 
+Result   : file
+
+
+Operator : distance
+Number   : 1
+Signature: pmpoint x point -> pmreal
+Example  : query distance(createpmpoint(train7),[const point value (0.0 0.0)]) 
+Result   : file
+
+
+Operator : end
+Number   : 1
+Signature: pinterval -> instant
+Example  : query end([const pinterval value ((instant "2007-01-30") (instant "2007-01-31") TRUE TRUE)])
+Result   : (instant "2007-01-31") 
+
+
+Operator : expand
+Number   : 1
+Signature: pmpoint -> mpoint
+Example  : query expand( [const pmpoint value ((instant "2007-01-30-18:00") ( linear  (( rinterval( TRUE  FALSE ( duration ( 0  7000000   ))))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ])
+Result   : (mpoint ( ( ("2007-01-30-18:00" "2007-01-30-19:56:40" TRUE FALSE) (13506.0 11159.0 13336.0 10785.0))))
+
+
+Operator : final
+Number   : 1
+Signature: pmobject -> object
+Example  : query final([const pmpoint value ((instant "2007-01-30-18:00") ( linear  (( rinterval( TRUE  FALSE ( duration (        0  7000000   ))))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ])
+Result   : (point (13336.0  10785.0 ))
+
+
+Operator : initial
+Number   : 1
+Signature: pmobject -> object
+Example  : query initial([const pmpoint value ((instant "2007-01-30-18:00") ( linear  (( rinterval( TRUE  FALSE ( duration (             0  7000000   ))))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ]) 
+Result   : (point (13506.0 11159.0))
+
+
+Operator : intersection
+Number   : 1
+Signature: pbbox x pbbox -> pbbox
+Example  : query  intersection([const pbbox value (12.0 23.3  100.987 5245.978)] , [const pbbox value (13.0 24.3  100.0 1000.0)]) 
+Result   : (pbbox (13.0 24.3  100.0 1000.0))
+
+
+Operator : intersects
+Number   : 1
+Signature: pbbox x pbbox -> bool
+Example  : query [const pbbox value (12.0 23.3  100.987 5245.978)] intersects [const pbbox value (13.0 24.3  100.0 1000.0)] 
+Result   : (bool TRUE) 
+
+
+Operator : length
+Number   : 1
+Signature: pinterval -> duration
+Example  : query length([const pinterval value ((instant "2007-01-30") (instant "2007-01-31") TRUE TRUE)])
+Result   : (duration (1 0))
+
+
+Operator : numberOfCNodes
+Number   : 1
+Signature: pmobject -> int
+Example  : query numberOfCNodes(createpmpoint(train7)) 
+Result   : (int 1)
+
+
+Operator : numberOfFlatUnits
+Number   : 1
+Signature: pmobject -> int
+Example  : query numberOfFlatUnits(createpmpoint(train7))
+Result   : (int 185)
+
+
+Operator : numberOfNodes
+Number   : 1
+Signature: pmobject -> int
+Example  : query numberOfNodes(createpmpoint(train7))
+Result   : (int 187)
+
+
+Operator : numberOfPNodes
+Number   : 1
+Signature: pmobject -> int
+Example  : query numberOfPNodes(createpmpoint(train7))
+Result   : (int 0)
+
+
+Operator : numberOfUnits
+Number   : 1
+Signature: pmobject -> int
+Example  : query numberOfUnits(createpmpoint(train7))
+Result   : (int 185)
+
+
+Operator : ptranslate
+Number   : 1
+Signature: pmobject x duration -> pmobject 
+Example  : query [const pmpoint value ((instant "2007-01-30-18:00") ( linear  (( rinterval( TRUE  FALSE ( duration ( 0  7000000   ))))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ] ptranslate [ [const duration value (1 0)] ] 
+Result   : (pmpoint ( (instant "2007-01-31-18:00") (linear ( (rinterval (TRUE FALSE (duration (0 7000000)))) (13506.0 11159.0) (13336.0 10785.0)))))
+
+
+
+Operator : start
+Number   : 1
+Signature: pinterval -> instant
+Example  : query start([const pinterval value ((instant "2007-01-30") (instant "2007-01-31") TRUE TRUE)]) 
+Result   : (instant "2007-01-30")
+
+
+Operator : toprel
+Number   : 1
+Signature: pmobject x spatial[temporal] object -> pmint9m
+Example  : query toprel( [const pmpoint value ((instant "2007-01-30-18:00") ( linear  (( rinterval( TRUE  FALSE ( duration (        0  7000000   ))))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ], [const point value (0.0 0.0)]) 
+Result   : (pmint9m ( (instant "2007-01-30-18:00") (linear ( (rinterval (TRUE FALSE (duration (0 7000000)))) (FALSE FALSE TRUE FALSE FALSE FALSE TRUE FALSE TRUE))))) 
+
+Operator : trajectory
+Number   : 1
+Signature: pmpoint -> line
+Example  : query trajectory([const pmpoint value ((instant "2007-01-30-18:00") ( linear  (( rinterval( TRUE  FALSE ( duration (0  7000000))))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ])
+Result   : (line ( (13336.0 10785.0 13506.0 11159.0))) 
+
+
+Operator : union
+Number   : 1
+Signature:  pbbox x pbbox -> pbbox
+Example  : query  [const pbbox value (12.0 23.3  100.987 5245.978)] union [const pbbox value (13.0 24.3  100.0 1000.0)]
+Result   : (pbbox (12.0 23.3 100.987 5245.978))
+
+

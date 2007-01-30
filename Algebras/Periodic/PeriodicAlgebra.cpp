@@ -658,7 +658,7 @@ void PBBox::Intersection(const PBBox* B2){
   maxX = maxX<B2->maxX? maxX : B2->maxX;
   minY = minY>B2->minY? minY : B2->minY;
   maxY = maxY<B2->maxY? maxY : B2->maxY;
-  SetEmpty(minX<=maxX && minY<=maxY);
+  SetEmpty(minX>maxX ||  minY>maxY);
 }
 
 /*
@@ -1357,7 +1357,7 @@ bool RelInterval::ReadFrom(const ListExpr LE, const bool typeincluded){
         cerr << __POS__ << ": wrong type in interval" << endl;
      return false;
    }
-   DateTime time=DateTime(durationtype);
+   DateTime time(durationtype);
    if(!(time.ReadFrom(nl->Third(V),true))){
          if(DEBUG_MODE)
            cerr << __POS__ << ": error in reading length of interval" << endl;
@@ -2013,31 +2013,42 @@ LE is in format (type value)  or LE only represents the value list.
 bool PInterval::ReadFrom(const ListExpr LE, const bool typeincluded){
    __TRACE__
   ListExpr value;
+   cout<< "typeincluded : " << typeincluded << endl;
    if(typeincluded){
       if(nl->ListLength(LE)!=2)
          return false;
       if(nl->IsEqual(nl->First(LE),"pinterval"))
          return false;
       value = nl->Second(LE);
-   } else
+   } else {
        value = LE;
-   if(nl->ListLength(value)!=4)
+   }
+   if(nl->ListLength(value)!=4){
+      cout << "Invalid ListLength" << endl << endl;
       return false;
+   }
    bool lc,rc;
    if( nl->AtomType(nl->Third(value))!=BoolType ||
-       nl->AtomType(nl->Fourth(value))!=BoolType)
+       nl->AtomType(nl->Fourth(value))!=BoolType){
+       cout << "no bool values" << endl;
        return false;
-   DateTime start,end;
-   if(!start.ReadFrom(nl->First(value),true))
+   }
+   DateTime start(instanttype);
+   DateTime end(instanttype);
+   if(!start.ReadFrom(nl->First(value),true)){
       return false;
-   if(!end.ReadFrom(nl->Second(value),true))
+   }
+   if(!end.ReadFrom(nl->Second(value),true)){
       return false;
+   }
    lc = nl->BoolValue(nl->Third(value));
    rc = nl->BoolValue(nl->Fourth(value));
-   if( (start==end) && !( rc && lc)) // a single instant has to be closed
+   if( (start==end) && !( rc && lc)) { // a single instant has to be closed
       return false;
-   if( start > end)  // start has to be before end
+   }
+   if( start > end) { // start has to be before end
       return false;
+   }
    DateTime duration = end-start;
    Set(&start,&duration,lc,rc);
    return true;
@@ -3217,7 +3228,7 @@ bool MovingRealUnit::GetFrom(double start,
                              double end, 
                              RelInterval interval){
  // check the preconditions
- DateTime length;
+ DateTime length(durationtype);
  interval.StoreLength(length);
  if(length.LessThanZero()) 
    return false;
@@ -3231,10 +3242,12 @@ bool MovingRealUnit::GetFrom(double start,
  if(start==end){
     map.Set(0,0,start,false);
     this->interval.Equalize(&interval);
+    defined = true;
     return true;
  }
  double b = (end-start) / (length.ToDouble());
  map.Set(0,b,start,false);
+ defined = true;
  this->interval.Equalize(&interval);
  return true;
 } 
@@ -4509,7 +4522,7 @@ void PMSimple<T, Unit>::splitRec(const DateTime instant, const bool toLeft,
      PeriodicMove PM = (*PMtmp);
      RelInterval sminterval;
      GetInterval(PM.submove,sminterval);
-     DateTime smlength;
+     DateTime smlength(durationtype);
      sminterval.StoreLength(smlength);
      DateTime ZeroTime(instanttype);
 
@@ -4542,7 +4555,7 @@ template <class T, class Unit>
 void PMSimple<T, Unit>::SplitLeft(const DateTime& instant,const bool toLeft, 
                PMSimple<T,Unit>* result){
   SubMove LastMove;
-  DateTime startTimecopy;
+  DateTime startTimecopy(instanttype);
   startTimecopy.Equalize(&startTime);
 
   if(!SplitLeftRec(instant,toLeft,*result,submove,startTimecopy,LastMove))
@@ -4579,7 +4592,7 @@ First, we handle the a single unit.
         Unit rightUnit;
         u.Split(dur,toLeft,rightUnit); 
         result.linearMoves.Append(u);
-        DateTime len;
+        DateTime len(durationtype);
         interval.StoreLength(len);
         startTime = startTime + len;
         lastSubmove.arrayNumber=LINEAR;
@@ -5890,7 +5903,7 @@ bool PMInt9M::CreateFrom( DBArray<LinearInt9MMove>& linearMoves,
                 SM3.duration.Equalize(&duration);
                 linearMoves.Get(j,LM);
                 RelInterval interval = LM->interval;
-                DateTime length;
+                DateTime length(durationtype);
                 interval.GetLength(length);
                 duration += length;
                 this->compositeSubMoves.Append(SM3);
@@ -9352,13 +9365,20 @@ Line*  PMPoint::Trajectory(){
   Res->StartBulkLoad();
   HalfSegment HS1;
   HalfSegment HS2;
-
-  for(int i=0;i<linearMoves.Size();i++){
+  int size = linearMoves.Size();
+  if(size>0){
+    Res->Resize(size*2);
+  }
+  int edge=0;
+  for(int i=0;i<size;i++){
      linearMoves.Get(i,LM);
      if(LM->IsDefined() && !LM->IsStatic() ){
-        bool hasHS1=LM->GetHalfSegment(true, HS1),
-             hasHS2=LM->GetHalfSegment(false, HS2);
+        bool hasHS1=LM->GetHalfSegment(true, HS1);
+        bool hasHS2=LM->GetHalfSegment(false, HS2);
         if(hasHS1 && hasHS2){
+          HS1.attr.edgeno = edge;
+          HS2.attr.edgeno = edge;
+          edge++;
           *Res+=HS1;
           *Res+=HS2;
         }
