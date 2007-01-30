@@ -1,0 +1,1486 @@
+(
+    pmpoint 
+    (
+        (instant "2003-11-20-06:06") 
+        (composite 
+            (
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 8692)))) 
+                        (16821.0 1252.0) 
+                        (16673.0 1387.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 16084)))) 
+                        (16673.0 1387.0) 
+                        (16436.0 1672.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 7488)))) 
+                        (16436.0 1672.0) 
+                        (16344.0 1818.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 6875)))) 
+                        (16344.0 1818.0) 
+                        (16229.0 1927.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 6957)))) 
+                        (16229.0 1927.0) 
+                        (16097.0 2018.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 3904)))) 
+                        (16097.0 2018.0) 
+                        (16013.0 2050.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (16013.0 2050.0) 
+                        (16013.0 2050.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 9130)))) 
+                        (16013.0 2050.0) 
+                        (15899.0 2080.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 11016)))) 
+                        (15899.0 2080.0) 
+                        (15757.0 2072.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 29854)))) 
+                        (15757.0 2072.0) 
+                        (15373.0 2039.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (15373.0 2039.0) 
+                        (15373.0 2039.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 27402)))) 
+                        (15373.0 2039.0) 
+                        (15177.0 2037.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 29843)))) 
+                        (15177.0 2037.0) 
+                        (14965.0 2062.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 26521)))) 
+                        (14965.0 2062.0) 
+                        (14780.0 2104.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 26234)))) 
+                        (14780.0 2104.0) 
+                        (14600.0 2157.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (14600.0 2157.0) 
+                        (14600.0 2157.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 13681)))) 
+                        (14600.0 2157.0) 
+                        (14394.0 2266.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 12455)))) 
+                        (14394.0 2266.0) 
+                        (14217.0 2383.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 11344)))) 
+                        (14217.0 2383.0) 
+                        (14074.0 2513.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 12520)))) 
+                        (14074.0 2513.0) 
+                        (13933.0 2673.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (13933.0 2673.0) 
+                        (13933.0 2673.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 19024)))) 
+                        (13933.0 2673.0) 
+                        (13837.0 2806.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 30295)))) 
+                        (13837.0 2806.0) 
+                        (13717.0 3038.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 27731)))) 
+                        (13717.0 3038.0) 
+                        (13645.0 3266.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 32950)))) 
+                        (13645.0 3266.0) 
+                        (13582.0 3543.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (13582.0 3543.0) 
+                        (13582.0 3543.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10838)))) 
+                        (13582.0 3543.0) 
+                        (13534.0 3734.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 9384)))) 
+                        (13534.0 3734.0) 
+                        (13491.0 3899.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 5558)))) 
+                        (13491.0 3899.0) 
+                        (13491.0 4000.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 8935)))) 
+                        (13491.0 4000.0) 
+                        (13536.0 4156.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 8916)))) 
+                        (13536.0 4156.0) 
+                        (13614.0 4298.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 6369)))) 
+                        (13614.0 4298.0) 
+                        (13643.0 4410.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (13643.0 4410.0) 
+                        (13643.0 4410.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 45524)))) 
+                        (13643.0 4410.0) 
+                        (13662.0 4761.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 31964)))) 
+                        (13662.0 4761.0) 
+                        (13642.0 5007.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 18236)))) 
+                        (13642.0 5007.0) 
+                        (13614.0 5145.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 14276)))) 
+                        (13614.0 5145.0) 
+                        (13592.0 5253.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (13592.0 5253.0) 
+                        (13592.0 5253.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 11187)))) 
+                        (13592.0 5253.0) 
+                        (13540.0 5518.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 5014)))) 
+                        (13540.0 5518.0) 
+                        (13537.0 5639.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 4229)))) 
+                        (13537.0 5639.0) 
+                        (13552.0 5740.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 4611)))) 
+                        (13552.0 5740.0) 
+                        (13525.0 5848.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 24959)))) 
+                        (13525.0 5848.0) 
+                        (13262.0 6390.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (13262.0 6390.0) 
+                        (13262.0 6390.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 47323)))) 
+                        (13262.0 6390.0) 
+                        (13113.0 6695.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 62677)))) 
+                        (13113.0 6695.0) 
+                        (13049.0 7140.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (13049.0 7140.0) 
+                        (13049.0 7140.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 20226)))) 
+                        (13049.0 7140.0) 
+                        (13029.0 7475.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 13630)))) 
+                        (13029.0 7475.0) 
+                        (12953.0 7688.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 16144)))) 
+                        (12953.0 7688.0) 
+                        (12871.0 7943.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (12871.0 7943.0) 
+                        (12871.0 7943.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 38437)))) 
+                        (12871.0 7943.0) 
+                        (12797.0 8161.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 31860)))) 
+                        (12797.0 8161.0) 
+                        (12693.0 8321.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 39703)))) 
+                        (12693.0 8321.0) 
+                        (12518.0 8482.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (12518.0 8482.0) 
+                        (12518.0 8482.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10300)))) 
+                        (12518.0 8482.0) 
+                        (12390.0 8600.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 39700)))) 
+                        (12390.0 8600.0) 
+                        (11837.0 8980.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (11837.0 8980.0) 
+                        (11837.0 8980.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 22033)))) 
+                        (11837.0 8980.0) 
+                        (11621.0 9087.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 12370)))) 
+                        (11621.0 9087.0) 
+                        (11490.0 9121.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 67334)))) 
+                        (11490.0 9121.0) 
+                        (10766.0 9257.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 8263)))) 
+                        (10766.0 9257.0) 
+                        (10684.0 9295.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (10684.0 9295.0) 
+                        (10684.0 9295.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 11998)))) 
+                        (10684.0 9295.0) 
+                        (10600.0 9330.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 16820)))) 
+                        (10600.0 9330.0) 
+                        (10473.0 9318.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 81182)))) 
+                        (10473.0 9318.0) 
+                        (9883.0 9494.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (9883.0 9494.0) 
+                        (9883.0 9494.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 33522)))) 
+                        (9883.0 9494.0) 
+                        (9391.0 9654.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 2377)))) 
+                        (9391.0 9654.0) 
+                        (9356.0 9665.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 2707)))) 
+                        (9356.0 9665.0) 
+                        (9341.0 9704.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 11394)))) 
+                        (9341.0 9704.0) 
+                        (9396.0 9871.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (9396.0 9871.0) 
+                        (9396.0 9871.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 12989)))) 
+                        (9396.0 9871.0) 
+                        (9421.0 9953.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 15680)))) 
+                        (9421.0 9953.0) 
+                        (9411.0 10056.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 19938)))) 
+                        (9411.0 10056.0) 
+                        (9357.0 10176.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 13252)))) 
+                        (9357.0 10176.0) 
+                        (9282.0 10221.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 20376)))) 
+                        (9282.0 10221.0) 
+                        (9156.0 10268.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 8154)))) 
+                        (9156.0 10268.0) 
+                        (9116.0 10304.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 19611)))) 
+                        (9116.0 10304.0) 
+                        (8988.0 10323.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (8988.0 10323.0) 
+                        (8988.0 10323.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 18775)))) 
+                        (8988.0 10323.0) 
+                        (8802.0 10294.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 15008)))) 
+                        (8802.0 10294.0) 
+                        (8664.0 10234.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 14043)))) 
+                        (8664.0 10234.0) 
+                        (8568.0 10131.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 17769)))) 
+                        (8568.0 10131.0) 
+                        (8518.0 9960.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 14667)))) 
+                        (8518.0 9960.0) 
+                        (8470.0 9821.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 6978)))) 
+                        (8470.0 9821.0) 
+                        (8434.0 9761.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 8675)))) 
+                        (8434.0 9761.0) 
+                        (8372.0 9700.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 7635)))) 
+                        (8372.0 9700.0) 
+                        (8302.0 9669.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 6450)))) 
+                        (8302.0 9669.0) 
+                        (8238.0 9660.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (8238.0 9660.0) 
+                        (8238.0 9660.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 7476)))) 
+                        (8238.0 9660.0) 
+                        (8106.0 9642.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 5033)))) 
+                        (8106.0 9642.0) 
+                        (8023.0 9608.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 5561)))) 
+                        (8023.0 9608.0) 
+                        (7956.0 9535.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 4299)))) 
+                        (7956.0 9535.0) 
+                        (7911.0 9473.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 6014)))) 
+                        (7911.0 9473.0) 
+                        (7829.0 9404.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 16271)))) 
+                        (7829.0 9404.0) 
+                        (7546.0 9341.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 5346)))) 
+                        (7546.0 9341.0) 
+                        (7451.0 9347.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (7451.0 9347.0) 
+                        (7451.0 9347.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 9923)))) 
+                        (7451.0 9347.0) 
+                        (7392.0 9350.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 100077)))) 
+                        (7392.0 9350.0) 
+                        (6805.0 9248.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (6805.0 9248.0) 
+                        (6805.0 9248.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 45579)))) 
+                        (6805.0 9248.0) 
+                        (6187.0 9131.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 4421)))) 
+                        (6187.0 9131.0) 
+                        (6126.0 9130.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (6126.0 9130.0) 
+                        (6126.0 9130.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 50000)))) 
+                        (6126.0 9130.0) 
+                        (5505.0 8963.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (5505.0 8963.0) 
+                        (5505.0 8963.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 24485)))) 
+                        (5505.0 8963.0) 
+                        (5220.0 8880.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 25515)))) 
+                        (5220.0 8880.0) 
+                        (4911.0 8866.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (4911.0 8866.0) 
+                        (4911.0 8866.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 15462)))) 
+                        (4911.0 8866.0) 
+                        (4813.0 8864.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 9316)))) 
+                        (4813.0 8864.0) 
+                        (4761.0 8892.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 85222)))) 
+                        (4761.0 8892.0) 
+                        (4381.0 9276.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (4381.0 9276.0) 
+                        (4381.0 9276.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 50000)))) 
+                        (4381.0 9276.0) 
+                        (4072.0 9636.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (4072.0 9636.0) 
+                        (4072.0 9636.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10793)))) 
+                        (4072.0 9636.0) 
+                        (3975.0 9780.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 5460)))) 
+                        (3975.0 9780.0) 
+                        (3941.0 9861.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 13745)))) 
+                        (3941.0 9861.0) 
+                        (3904.0 10079.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 14958)))) 
+                        (3904.0 10079.0) 
+                        (3857.0 10315.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 5044)))) 
+                        (3857.0 10315.0) 
+                        (3853.0 10396.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (3853.0 10396.0) 
+                        (3853.0 10396.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 32390)))) 
+                        (3853.0 10396.0) 
+                        (3886.0 10585.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 16552)))) 
+                        (3886.0 10585.0) 
+                        (3883.0 10683.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 61058)))) 
+                        (3883.0 10683.0) 
+                        (3809.0 11037.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (3809.0 11037.0) 
+                        (3809.0 11037.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 50000)))) 
+                        (3809.0 11037.0) 
+                        (3683.0 11621.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (3683.0 11621.0) 
+                        (3683.0 11621.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 11043)))) 
+                        (3683.0 11621.0) 
+                        (3677.0 11754.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10931)))) 
+                        (3677.0 11754.0) 
+                        (3704.0 11883.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 11952)))) 
+                        (3704.0 11883.0) 
+                        (3757.0 12017.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 8817)))) 
+                        (3757.0 12017.0) 
+                        (3779.0 12121.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 7257)))) 
+                        (3779.0 12121.0) 
+                        (3770.0 12208.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (3770.0 12208.0) 
+                        (3770.0 12208.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 25180)))) 
+                        (3770.0 12208.0) 
+                        (3750.0 12451.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 12479)))) 
+                        (3750.0 12451.0) 
+                        (3771.0 12570.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 12291)))) 
+                        (3771.0 12570.0) 
+                        (3769.0 12689.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 14739)))) 
+                        (3769.0 12689.0) 
+                        (3729.0 12826.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 22434)))) 
+                        (3729.0 12826.0) 
+                        (3719.0 13043.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 11038)))) 
+                        (3719.0 13043.0) 
+                        (3699.0 13148.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 11839)))) 
+                        (3699.0 13148.0) 
+                        (3643.0 13248.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (3643.0 13248.0) 
+                        (3643.0 13248.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 22250)))) 
+                        (3643.0 13248.0) 
+                        (3472.0 13427.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 14920)))) 
+                        (3472.0 13427.0) 
+                        (3393.0 13573.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 12830)))) 
+                        (3393.0 13573.0) 
+                        (3353.0 13710.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (3353.0 13710.0) 
+                        (3353.0 13710.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 34594)))) 
+                        (3353.0 13710.0) 
+                        (3324.0 14013.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 18371)))) 
+                        (3324.0 14013.0) 
+                        (3269.0 14165.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 16635)))) 
+                        (3269.0 14165.0) 
+                        (3166.0 14269.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 15977)))) 
+                        (3166.0 14269.0) 
+                        (3035.0 14320.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 24423)))) 
+                        (3035.0 14320.0) 
+                        (2823.0 14355.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (2823.0 14355.0) 
+                        (2823.0 14355.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 21123)))) 
+                        (2823.0 14355.0) 
+                        (2626.0 14385.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 12530)))) 
+                        (2626.0 14385.0) 
+                        (2508.0 14392.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 16347)))) 
+                        (2508.0 14392.0) 
+                        (2354.0 14384.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (2354.0 14384.0) 
+                        (2354.0 14384.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10594)))) 
+                        (2354.0 14384.0) 
+                        (2158.0 14382.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 39406)))) 
+                        (2158.0 14382.0) 
+                        (1429.0 14388.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (1429.0 14388.0) 
+                        (1429.0 14388.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 110000)))) 
+                        (1429.0 14388.0) 
+                        (863.0 14383.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (863.0 14383.0) 
+                        (863.0 14383.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 50000)))) 
+                        (863.0 14383.0) 
+                        (-267.0 14501.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (-267.0 14501.0) 
+                        (-267.0 14501.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 27290)))) 
+                        (-267.0 14501.0) 
+                        (-523.0 14522.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 45643)))) 
+                        (-523.0 14522.0) 
+                        (-946.0 14597.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 15393)))) 
+                        (-946.0 14597.0) 
+                        (-1090.0 14581.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 21674)))) 
+                        (-1090.0 14581.0) 
+                        (-1288.0 14532.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (-1288.0 14532.0) 
+                        (-1288.0 14532.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 57512)))) 
+                        (-1288.0 14532.0) 
+                        (-1829.0 14385.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 23141)))) 
+                        (-1829.0 14385.0) 
+                        (-2051.0 14345.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 13150)))) 
+                        (-2051.0 14345.0) 
+                        (-2179.0 14352.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 16197)))) 
+                        (-2179.0 14352.0) 
+                        (-2320.0 14423.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (-2320.0 14423.0) 
+                        (-2320.0 14423.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 9677)))) 
+                        (-2320.0 14423.0) 
+                        (-2449.0 14474.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 11691)))) 
+                        (-2449.0 14474.0) 
+                        (-2616.0 14488.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 8732)))) 
+                        (-2616.0 14488.0) 
+                        (-2738.0 14460.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 7744)))) 
+                        (-2738.0 14460.0) 
+                        (-2849.0 14461.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 12156)))) 
+                        (-2849.0 14461.0) 
+                        (-3019.0 14499.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (-3019.0 14499.0) 
+                        (-3019.0 14499.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 11382)))) 
+                        (-3019.0 14499.0) 
+                        (-3175.0 14554.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 7087)))) 
+                        (-3175.0 14554.0) 
+                        (-3278.0 14555.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10798)))) 
+                        (-3278.0 14555.0) 
+                        (-3423.0 14495.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 9263)))) 
+                        (-3423.0 14495.0) 
+                        (-3512.0 14394.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 6056)))) 
+                        (-3512.0 14394.0) 
+                        (-3544.0 14312.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 5414)))) 
+                        (-3544.0 14312.0) 
+                        (-3560.0 14235.0))) 
+                (linear 
+                    (
+                        (rinterval 
+                            (TRUE FALSE 
+                                (duration 
+                                    (0 10000)))) 
+                        (-3560.0 14235.0) 
+                        (-3560.0 14235.0)))))))
