@@ -66,6 +66,9 @@ in ~PrivateTupleBuffer~. This function will now call the tuples'
 member functions ~DecReference~ and ~DeleteIfAllowed~ instead of 
 deleting the tuple pointer directly. 
 
+January 2007, M. Spiekermann. Fixed a memory leak in ~PrivateTupleBuffer~.
+
+
 [TOC]
 
 1 Overview
@@ -581,8 +584,11 @@ void Tuple::PutAttribute( const int index, Attribute* attr )
 
 This class is used to collect tuples for sorting, for example, or
 to do a cartesian product. In this persistent version, if the buffer
-is small it will be stored in memory and if it is large, it will be
-stored into a disk file.
+is small it will be stored in memory and if it exceeds the allowed size, 
+the current buffer contents will be flushed to disk.
+
+The Iterator will first retrieve the tuples on disk and afterwards the remaining
+tuples which reside in memory.
 
 3.9.1 Struct ~PrivateTupleBuffer~
 
@@ -604,10 +610,9 @@ The constructor.
 */
   ~PrivateTupleBuffer()
   {
+    clearAll();
     if( !inMemory )
       diskBuffer->Delete();
-    else
-      clearAll();
   }
 
   void clearAll()

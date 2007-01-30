@@ -57,6 +57,9 @@ June 2006, Christian D[ue]ntgen added operators ~symmproduct~ and ~symmproductex
 
 August 2006, Christian D[ue]ntgen added signature ((stream T) int) -> (stream T) to operator ~head~.
 
+January 2007, M. Spiekermann. Reference counting in groupby corrected, since it causes a segmentation fault, 
+when the Tuplebuffer needs to be flushed on disk.
+
 [TOC]
 
 1 Includes and defines
@@ -2765,8 +2768,10 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       {
         tup = (Tuple*)t.addr;
         Tuple *newTuple = new Tuple( resultTupleType );
-        for( int i = 0; i < tup->GetNoAttributes(); i++ )
+        for( int i = 0; i < tup->GetNoAttributes(); i++ ) {
+          //cout << (void*) tup << endl;
           newTuple->CopyAttribute( i, tup, i );
+        }  
         supplier = args[1].addr;
         nooffun = qp->GetNoSons(supplier);
         for (int i=0; i < nooffun;i++)
@@ -4389,6 +4394,7 @@ int GroupByValueMapping
 
         tp = new TupleBuffer(gbli->MAX_MEMORY);
         tp->AppendTuple(gbli->t);
+        gbli->t->DeleteIfAllowed();
       }
 
       // get number of attributes
@@ -4417,12 +4423,14 @@ int GroupByValueMapping
         if (ifequal) // store in tuple buffer
         {
           tp->AppendTuple( s );
+          s->DeleteIfAllowed();
           qp->Request(args[0].addr, sWord); 
           // get next tuple
         }
         else
           // store tuple pointer in local info
           gbli->t = (Tuple *)sWord.addr; 
+          gbli->t->IncReference();
       }
       if (ifequal) 
       // last group finished, stream ends
@@ -4442,6 +4450,7 @@ int GroupByValueMapping
           ((CcInt*)args[startIndexOfExtraArguments+i].addr)->GetIntval();
         t->CopyAttribute(attribIdx - 1, s, i);
       }
+      s->DeleteIfAllowed();
       value2 = (Supplier)args[2].addr; // list of functions
       noOffun  =  qp->GetNoSons(value2);
       delete relIter;
