@@ -226,19 +226,25 @@ public BasicSegment[] getNeightboors(){
   BasicPoint[] ToEP1 = EP_1.getNeightboors();
   BasicPoint[] ToEP2 = EP_2.getNeightboors();
   BasicSegment[] result;
-  result = new BasicSegment[ ToEP1.length + ToEP2.length -2 ];
+  result = new BasicSegment[ ToEP1.length + ToEP2.length  -2  ];
   // all neightbooring points without EP1 or EP2 respectively
   int j=0;  // current position in result
-  for(int i=0;i<ToEP1.length;i++)
+  for(int i=0;i<ToEP1.length;i++) {
     if (!ToEP1[i].equals(EP_2)) {
        result[j]= new BasicSegment(ToEP1[i],EP_1);
        j++;
+    } else{
+       System.out.println("ignore point ");
     }
-  for(int i=0;i<ToEP2.length;i++)
+  }
+  for(int i=0;i<ToEP2.length;i++){
      if(!ToEP2[i].equals(EP_1)){
        result[j]= new BasicSegment(ToEP2[i],EP_2);
        j++;
+     } else {
+       System.out.println("ignore point ");
      }
+  }
  return result;
 }
 

@@ -920,7 +920,7 @@ This function reads a FEPoint from a ListExpr. If LE is not a valid
 representation of a fepoint then null is returned.
 
 */
-static jobject ListExprTofEPoint(ListExpr &LE){
+static jobject ListExprTofEPoint(ListExpr &LE,bool check=true){
    if( (nl->ListLength(LE))!=3)
       return 0;
    ListExpr a1 = nl->First(LE);
@@ -943,6 +943,15 @@ static jobject ListExprTofEPoint(ListExpr &LE){
    if(mid==0) error(__LINE__);
    jobject res= env->NewObject(cls,mid,x,y,z);
    if(res==0) error(__LINE__);
+   if(check){
+      // check validity 
+      mid = env->GetMethodID(cls,"isValid","()Z");
+      if(mid==0) error(__LINE__);
+      bool ok = env->CallBooleanMethod(res,mid);
+      if(!ok){
+        return 0;
+     }
+   }
    return res;
 }
 
@@ -987,12 +996,20 @@ static jobject ListExprToFSegment(ListExpr LE){
     "(Lfuzzyobjects/simple/fEPoint;Lfuzzyobjects/simple/fEPoint;)V");
   if(mid==0) error(__LINE__);
   ListExpr P1L = nl->First(LE);
-  jobject P1 = ListExprTofEPoint(P1L);
+  jobject P1 = ListExprTofEPoint(P1L,false);
   if(P1==0) return 0;
   ListExpr P2L = nl->Second(LE);
-  jobject P2 = ListExprTofEPoint(P2L);
+  jobject P2 = ListExprTofEPoint(P2L,false);
   if(P2==0) return 0;
-  return env->NewObject(cls,mid,P1,P2);
+  jobject res =  env->NewObject(cls,mid,P1,P2);
+  mid = env->GetMethodID(cls,"isValid","()Z");
+  if(mid==0) error(__LINE__);
+  bool ok = env->CallBooleanMethod(res,mid);
+  if(!ok) {
+    return 0;
+  } else {
+    return res;
+  }
 }
 
 /*
@@ -1014,13 +1031,13 @@ static jobject ListExprToFTriangle(ListExpr LE){
     "Lfuzzyobjects/simple/fEPoint;)V");
   if(mid==0) error(__LINE__);
   ListExpr P1L = nl->First(LE);
-  jobject P1 = ListExprTofEPoint(P1L);
+  jobject P1 = ListExprTofEPoint(P1L,false);
   if(P1==0) return 0;
   ListExpr P2L = nl->Second(LE);
-  jobject P2 = ListExprTofEPoint(P2L);
+  jobject P2 = ListExprTofEPoint(P2L,false);
   if(P2==0) return 0;
   ListExpr P3L = nl->Third(LE);
-  jobject P3 = ListExprTofEPoint(P3L);
+  jobject P3 = ListExprTofEPoint(P3L,false);
   if(P3==0) return 0;
   return env->NewObject(cls,mid,P1,P2,P3);
 }
@@ -1949,6 +1966,7 @@ static Word InFLine( const ListExpr typeInfo,
   double z = nl->RealValue(Factor);
    // create a new fuzzy line
   jclass cls = env->FindClass("fuzzyobjects/composite/FLine");
+  if(cls==0) error(__LINE__);
   jmethodID mid = env->GetMethodID(cls,"<init>","()V");
   if(mid==0) error(__LINE__);
   jobject FL = env->NewObject(cls,mid);
@@ -1978,6 +1996,15 @@ static Word InFLine( const ListExpr typeInfo,
     }
 
   if(ok){
+     // check validity
+     mid = env->GetMethodID(cls,"isValid","()Z");
+     if(mid==0) error(__LINE__);
+     bool ok = env->CallBooleanMethod(FL,mid);
+     if(!ok){
+        correct=false;
+        env->DeleteLocalRef(FL);
+        return SetWord(Address(0));
+     }
      correct=true;
      return SetWord(new CcFLine(FL));
   } else{
@@ -2016,6 +2043,12 @@ static Word InFRegion(const ListExpr typeInfo,
   mid = env->GetMethodID(cls,"setSF","(D)Z");
   if(mid==0) error(__LINE__);
   bool ok = env->CallBooleanMethod(FR,mid,z);
+  if(!ok){ // invalid value for scale factor
+    correct=false;
+    env->DeleteLocalRef(FR);
+    return SetWord(Address(0));
+  }
+
   // add the Objects
   mid = env->GetMethodID(cls,"add",
                           "(Lfuzzyobjects/simple/fTriangle;)Z");
@@ -2037,6 +2070,15 @@ static Word InFRegion(const ListExpr typeInfo,
     }
   if(ok){
      correct=true;
+     // check validity
+     mid = env->GetMethodID(cls,"isValid","()Z");
+     if(mid==0) error(__LINE__);
+     bool ok = env->CallBooleanMethod(FR,mid);
+     if(!ok){
+         correct=false;
+         env->DeleteLocalRef(FR);
+         return SetWord(Address(0));
+     } 
      return SetWord(new CcFRegion(FR));
   } else{
     correct=false;

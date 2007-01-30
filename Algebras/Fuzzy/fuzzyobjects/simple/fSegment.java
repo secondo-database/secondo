@@ -151,6 +151,9 @@ public String toString() {
  *         Point whith a degree greater then 0 in this segment
  */
 public boolean isValid() {
+if( (EP_1==null) || (EP_2==null)){
+  return false;
+}
 return  EP_1.neightbooring(EP_2) &&     // is over a BasicLine
         (Z1>=0) && (Z1<=1)  &&          // Zi is in [0,1]
         (Z2>=0) && (Z2<=1)  &&
