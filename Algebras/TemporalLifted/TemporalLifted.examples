@@ -26,7 +26,8 @@ Operator : # alias NOTEQUAL
 Number   : 4
 Signature: real x mreal -> mbool
 Example  : query 3000.0 # distance(train1, mehringdamm)
-Result   : "Error: returns wrong value list"
+Result   : bug
+Remark   : "returns wrong value list"
 
 
 Operator : # alias NOTEQUAL
@@ -68,7 +69,8 @@ Operator : # alias NOTEQUAL
 Number   : 10
 Signature: mreal x mreal -> mbool
 Example  : query distance(train7,mehringdamm) # distance(train7down,mehringdamm)
-Result   : "Error: returns wrong value list"
+Result   : bug
+Remark   : "returns wrong value list"
 
 
 Operator : # alias NOTEQUAL
@@ -109,7 +111,8 @@ Operator : # alias NOTEQUAL
 Number   : 16
 Signature: mreal x real -> mbool
 Example  : query distance(train1, mehringdamm) # 3000.0
-Result   : "Error: returns wrong value list"
+Result   : bug
+Remark   : "returns wrong value list"
 
 
 Operator : # alias NOTEQUAL
@@ -158,7 +161,8 @@ Operator : <= alias LOWEREQUAL
 Number   : 4
 Signature: real x mreal -> mbool
 Example  : query 1000.0 <= distance(train1, mehringdamm)
-Result   : "Error: returns wrong value list"
+Result   : bug
+Remark   : "returns wrong value list"
 
 
 Operator : <= alias LOWEREQUAL
@@ -186,7 +190,8 @@ Operator : <= alias LOWEREQUAL
 Number   : 8
 Signature: mreal x mreal -> mbool
 Example  : query distance(train7,mehringdamm) < distance(train7down,mehringdamm)
-Result   : "Error: resturns wrong value list"
+Result   : bug
+Remark   : "resturns wrong value list"
 
 Operator : <= alias LOWEREQUAL
 Number   : 9
@@ -213,7 +218,8 @@ Operator : <= alias LOWEREQUAL
 Number   : 12
 Signature: mreal x real -> mbool
 Example  : query distance(train1, mehringdamm) <= 1000.0
-Result   : "Error: returns wrong value list"
+Result   : bug
+Remark   : "returns wrong value list"
 
 
 Operator : < alias LOWER
@@ -324,7 +330,8 @@ Operator : = alias EQUAL
 Number   : 4
 Signature: real x mreal -> mbool
 Example  : query 3000.0 = distance(train1, mehringdamm)
-Result   : "Error: returns wrong value list"
+Result   : bug
+Remark   : "returns wrong value list"
 
 
 Operator : = alias EQUAL
@@ -366,7 +373,8 @@ Operator : = alias EQUAL
 Number   : 10
 Signature: mreal x mreal -> mbool
 Example  : query distance(train7,mehringdamm) = distance(train7down,mehringdamm)
-Result   : "Error: returns wrong value list"
+Result   : bug
+Remark   : "returns wrong value list"
 
 Operator : = alias EQUAL
 Number   : 11
@@ -406,7 +414,8 @@ Operator : = alias EQUAL
 Number   : 16
 Signature: mreal x real -> mbool
 Example  : query distance(train1, mehringdamm) = 3000.0
-Result   : "Error: returns wrong value list"
+Result   : bug
+Remark   : "returns wrong value list"
 
 
 Operator : = alias EQUAL
@@ -448,7 +457,8 @@ Operator : > alias GREATER
 Number   : 4
 Signature: real x mreal -> mbool
 Example  : query 1000.0 > distance(train1, mehringdamm)
-Result   : "Error: returns wrong value list"
+Result   : bug
+Remark   : "returns wrong value list"
 
 
 Operator : > alias GREATER
@@ -476,7 +486,8 @@ Operator : > alias GREATER
 Number   : 8
 Signature: mreal x mreal -> mbool
 Example  : query distance(train7,mehringdamm) > distance(train7down,mehringdamm)
-Result   : "Error: returns wrong value list"
+Result   : bug
+Remark   : "returns wrong value list"
 
 Operator : > alias GREATER
 Number   : 9
@@ -531,7 +542,8 @@ Operator : >= alias GREATEREQUAL
 Number   : 4
 Signature: real x mreal -> mbool
 Example  : query 1000.0 >= distance(train1, mehringdamm)
-Result   : "Error: returns wrong value list"
+Result   : bug
+Remark   : "returns wrong value list"
 
 
 Operator : >= alias GREATEREQUAL
@@ -559,7 +571,8 @@ Operator : >= alias GREATEREQUAL
 Number   : 8
 Signature: mreal x mreal -> mbool
 Example  : query distance(train7,mehringdamm) >= distance(train7down,mehringdamm)
-Result   : "Error: returns wrong value list"
+Result   : bug
+Remark   : "returns wrong value list"
 
 Operator : >= alias GREATEREQUAL
 Number   : 9
@@ -586,7 +599,8 @@ Operator : >= alias GREATEREQUAL
 Number   : 12
 Signature: mreal x real -> mbool
 Example  : query distance(train1, mehringdamm) >= 1000.0
-Result   : "Error: returns wrong value list"
+Result   : bug
+Remark   : "returns wrong value list"
 
 
 Operator : abs
@@ -621,7 +635,8 @@ Operator : area
 Number   : 1
 Signature: mregion -> mreal
 Example  : query area(move(train1, Sehenswuerdreg feed extract[geoData]))
-Result   : "Error: returns negative value for the area"
+Result   : bug
+Remark   : "returns negative value for the area"
 
 
 Operator : concat
@@ -670,7 +685,8 @@ Operator : inside
 Number   : 2
 Signature: mpoint x line -> mbool
 Example  : query train7 inside train7sections
-Result   : "Error: returns wrong value list, maybe rounding errors."
+Result   : bug
+Remark   : "returns wrong value list, maybe rounding errors."
 
 
 Operator : inside
@@ -711,21 +727,24 @@ Result   : file
 Operator : intersection
 Number   : 4
 Signature: real x mreal -> mreal
-Example  : query intersection(3000.0, distance(train1, mehringdamm)) 
-Result   : "Error: returns wrong value list"
+Example  : query intersection(3000.0, distance(train1, mehringdamm))
+Result   : bug 
+Remark   : "returns wrong value list"
 
 
 Operator : intersection
 Number   : 5
 Signature: mint x mint -> mint
 Example  : query intersection(noAtCenter, noAtTiergarten) 
-Result   : "Error: returns sometimes units with undef values"
+Result   : bug
+Remark   : "returns sometimes units with undef values"
 
 Operator : intersection
 Number   : 6
 Signature: mbool x mbool -> mbool
-Example  : query intersection((train7 inside mrain2),(train7up inside mrain2)) 
-Result   : "Error: returns sometimes units with undef values"
+Example  : query intersection((train7 inside mrain2),(train7up inside mrain2))
+Result   : bug 
+Remark   : "returns sometimes units with undef values"
 
 
 Operator : intersection
@@ -739,13 +758,16 @@ Operator : intersection
 Number   : 8
 Signature: mreal x mreal -> mreal
 Example  : query intersection(distance(train7,mehringdamm), distance(train7down,mehringdamm))
-Result   : "Error: returns wrong value list"
+Result   : bug
+Remark   : "returns wrong value list"
+
 
 Operator : intersection
 Number   : 9
 Signature: mint x int -> mint
 Example  : query intersection(noAtCenter,2)
-Result   : file
+Result   : bug
+Remark   : "returns undef results"
 
 
 Operator : intersection
@@ -765,8 +787,9 @@ Result   : file
 Operator : intersection
 Number   : 12
 Signature: mreal x real -> mreal
-Example  : query intersection(distance(train1, mehringdamm), 3000.0) 
-Result   : "Error: returns wrong value list"
+Example  : query intersection(distance(train1, mehringdamm), 3000.0)
+Result   : bug 
+Remark   : "returns wrong value list"
 
 
 Operator : intersection
@@ -864,7 +887,8 @@ Operator : minus
 Number   : 7 
 Signature: mbool x bool -> mbool
 Example  : query (train7 inside mrain2) minus TRUE
-Result   : "Error: returns sometimes units with undef values"
+Result   : bug
+Remark   : "returns sometimes units with undef values"
 
 
 Operator : minus
@@ -892,14 +916,16 @@ Operator : minus
 Number   : 11
 Signature: mint x mint -> mint
 Example  : query noAtTiergarten minus noAtCenter
-Result   : "Error: returns sometimes units with undef values"
+Result   : bug
+Remark   : "returns sometimes units with undef values"
 
 
 Operator : minus
 Number   : 12 
 Signature: mbool x mbool -> mbool
 Example  : query (train7 inside mrain2) minus (train7down inside mrain2)
-Result   : "Error: returns sometimes units with undef values"
+Result   : bug
+Remark   : "returns sometimes units with undef values"
 
 
 Operator : minus
@@ -941,7 +967,8 @@ Operator : minus
 Number   : 18
 Signature: mregion x mpoint -> mregion
 Example  : query mrain2 minus train7down
-Result   : "Error: returns wrong value list"
+Result   : bug
+Remark   : "returns wrong value list"
 
 
 Operator : minus
