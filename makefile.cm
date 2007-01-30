@@ -389,6 +389,10 @@ cscope.files:
 			      -or -iname "makefile*" > $@
 
 
+.PHONY: backup-all
+backup-all:	
+	dir=$${PWD##*/}; tar -czf $$dir.tgz --exclude-from exclude.pat -C.. $$dir
+
 .PHONY: showtags
 showtags:
 	cvs log -h makefile 
