@@ -135,21 +135,33 @@ public RelInterval copy(){
    return res;
 }
 
+
+/** reads this interval from a list without any type information **/
+public boolean readFrom(ListExpr LE){
+   return readFrom(LE,false);
+}
+
 /** reads this interval from a LE.
   * if LE don't represent a valid interval, the value of this
   * will be unchanged and null is returned.
   */
-public boolean readFrom(ListExpr LE){
-  if(LE.listLength()!=2){
-     Reporter.debug("RelInterval.readFrom :: wrong list length ");
-     return false;
+public boolean readFrom(ListExpr LE,boolean typeIncluded){
+  ListExpr Value;
+  if(typeIncluded){
+      if(LE.listLength()!=2){
+         Reporter.debug("RelInterval.readFrom :: wrong list length ");
+         return false;
+      }
+      // check the type
+      if(LE.first().atomType()!=ListExpr.SYMBOL_ATOM || !LE.first().symbolValue().equals("rinterval")){
+         Reporter.debug("RelInterval.readFrom :: Typidentifier 'rinterval' not found");
+         return false;
+      }
+      Value = LE.second();
+  } else {
+    Value = LE;
   }
-  // check the type
-  if(LE.first().atomType()!=ListExpr.SYMBOL_ATOM || !LE.first().symbolValue().equals("rinterval")){
-     Reporter.debug("RelInterval.readFrom :: Typidentifier 'rinterval' not found");
-     return false;
-  }
-  ListExpr Value = LE.second();
+  
   if(Value.listLength()!=3){
      Reporter.debug("RelInterval.readFrom :: wrong list length of the value ");
      return false;
@@ -220,14 +232,26 @@ public String toString(){
   return res;
 }
 
+/** returns this r interval as list without type information **/
 public String getListExprString(){
+   return getListExprString(false);
+}
+
+public String getListExprString(boolean typeIncluded){
    String ts =" TRUE ";
    String fs =" FALSE ";
-   String res ="(rinterval (";
+   String res = "";
+   if(typeIncluded){
+      res +="(rinterval ";
+   }
+   res += "(";
    res += leftClosed? ts : fs;
    res += rightClosed? ts : fs;
    res+= length==null? " () " : length.getListExprString(false);
-   res += "))";
+   res += ")";
+   if(typeIncluded){
+       res += ")";
+   }
    return res;
 }
 

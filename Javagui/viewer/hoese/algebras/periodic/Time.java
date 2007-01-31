@@ -74,27 +74,36 @@ public int compareTo(Time T){
   return 0;
 }
 
+/** Reads this time from LE without type information. **/
+public boolean readFrom(ListExpr LE){
+   return readFrom(LE,false);
+}
+
 /** reads this Time from a List.
   */
-public boolean readFrom(ListExpr E){
-  if(E.listLength()!=2){
-    Reporter.debug("Time.readFrom: wrong ListLength");
-    return false;
+public boolean readFrom(ListExpr E, boolean typeIncluded){
+  ListExpr V;
+  if(typeIncluded){
+      if(E.listLength()!=2){
+        Reporter.debug("Time.readFrom: wrong ListLength");
+        return false;
+      }
+      if(E.first().atomType()!=ListExpr.SYMBOL_ATOM){
+         Reporter.debug("Time.readFrom: wrong list type of typedescriptor");
+         return false;
+      }
+      if(!E.first().symbolValue().equals("instant") &&
+         !E.first().symbolValue().equals("datetime") &&
+         !E.first().symbolValue().equals("duration")){
+        Reporter.debug("Time.readFrom wrong type value (expected" +
+                       " 'datetime | instant | duration', received" +
+                       (E.first().symbolValue())+")");
+        return false;
+      }
+      V = E.second();
+  } else {
+      V = E;
   }
-  if(E.first().atomType()!=ListExpr.SYMBOL_ATOM){
-     Reporter.debug("Time.readFrom: wrong list type of typedescriptor");
-     return false;
-  }
-  if(!E.first().symbolValue().equals("instant") &&
-     !E.first().symbolValue().equals("datetime") &&
-     !E.first().symbolValue().equals("duration")){
-    Reporter.debug("Time.readFrom wrong type value (expected" +
-                   " 'datetime | instant | duration', received" +
-                   (E.first().symbolValue())+")");
-    return false;
-  }
-  ListExpr V = E.second();
-
   if(V.atomType()==ListExpr.STRING_ATOM){
     long[] DM = DateTime.getDayMillis(V.stringValue());
     if(DM==null){
@@ -184,13 +193,26 @@ public Time mul(double factor){
    return res;
 }
 
-
-
+/** returns the string of the list representation withot type information. **/
 public String getListExprString(boolean absolute){
-   if(!absolute)
-      return "( duration ("+day +" "+milliseconds+"))";
-   else
-      return "(instant \""+this+"\")";
+   return getListExprString(absolute, false);
+}
+
+public String getListExprString(boolean absolute, boolean typeIncluded){
+   if(!absolute){
+      if(typeIncluded){
+          return "( duration ("+day +" "+milliseconds+"))";
+      } else {
+          return "("+day +" "+milliseconds+")";
+      }
+   }
+   else{
+      if(typeIncluded){
+         return "(instant \""+this+"\")";
+      } else {
+         return "\""+this+"\"";
+      }
+   }
 }
 
 

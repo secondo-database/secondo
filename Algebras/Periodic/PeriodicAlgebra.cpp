@@ -504,7 +504,7 @@ ListExpr.
 */
 bool PBBox::ReadFrom(const ListExpr LE){
     __TRACE__
- if(nl->IsEqual(LE,"undefined")){
+ if(nl->IsEqual(LE,"undefined") || nl->IsEqual(LE,"undef")){
       SetDefined(false);
       SetEmpty(true);
       return true;
@@ -1268,7 +1268,7 @@ This function computes the list representation of this RelInterval value.
 ListExpr RelInterval::ToListExpr(const bool typeincluded)const{
   __TRACE__
   ListExpr time;
-  time = length.ToListExpr(true);
+  time = length.ToListExpr(false);
   if(typeincluded)
        return nl->TwoElemList(nl->SymbolAtom("rinterval"),
                    nl->ThreeElemList(
@@ -1358,7 +1358,7 @@ bool RelInterval::ReadFrom(const ListExpr LE, const bool typeincluded){
      return false;
    }
    DateTime time(durationtype);
-   if(!(time.ReadFrom(nl->Third(V),true))){
+   if(!(time.ReadFrom(nl->Third(V),false))){
          if(DEBUG_MODE)
            cerr << __POS__ << ": error in reading length of interval" << endl;
          return false;
@@ -1969,8 +1969,8 @@ ListExpr PInterval::ToListExpr(const bool typeincluded)const {
    __TRACE__
   DateTime* EndTime = GetEnd();
    ListExpr result = nl->FourElemList(
-                            startTime.ToListExpr(true),
-                            EndTime->ToListExpr(true),
+                            startTime.ToListExpr(false),
+                            EndTime->ToListExpr(false),
                             nl->BoolAtom(IsLeftClosed()),
                             nl->BoolAtom(IsRightClosed()));
    delete EndTime;
@@ -2035,10 +2035,10 @@ bool PInterval::ReadFrom(const ListExpr LE, const bool typeincluded){
    }
    DateTime start(instanttype);
    DateTime end(instanttype);
-   if(!start.ReadFrom(nl->First(value),true)){
+   if(!start.ReadFrom(nl->First(value),false)){
       return false;
    }
-   if(!end.ReadFrom(nl->Second(value),true)){
+   if(!end.ReadFrom(nl->Second(value),false)){
       return false;
    }
    lc = nl->BoolValue(nl->Third(value));
@@ -2643,13 +2643,13 @@ ListExpr LinearConstantMove<T>::ToListExpr()const{
       return nl->TwoElemList(
                     nl->SymbolAtom("linear"),
                     nl->TwoElemList(
-                          interval.ToListExpr(true),
+                          interval.ToListExpr(false),
                           ToConstantListExpr(value)));
    } else {
       return nl->TwoElemList(
                      nl->SymbolAtom("linear"),
                      nl->TwoElemList(
-                             interval.ToListExpr(true),
+                             interval.ToListExpr(false),
                              nl->SymbolAtom("undefined")));
    }
 }
@@ -2673,7 +2673,7 @@ bool LinearConstantMove<T>::ReadFrom(const ListExpr value){
      }
      return false;
   }
-  if(!interval.ReadFrom(nl->First(value),true)){
+  if(!interval.ReadFrom(nl->First(value),false)){
       if(DEBUG_MODE){
          cerr << __POS__ << ": Can't read the interval" << endl;
       }
@@ -3292,7 +3292,7 @@ ListExpr MovingRealUnit::ToListExpr()const{
                              nl->SymbolAtom("undefined"));
  return nl->TwoElemList(nl->SymbolAtom("linear"),
                         nl->TwoElemList(
-                            interval.ToListExpr(true),
+                            interval.ToListExpr(false),
                             map.ToListExpr()));
       
 }
@@ -3316,7 +3316,7 @@ bool MovingRealUnit::ReadFrom(ListExpr le){
   if(nl->ListLength(v)!=2)
       return false;
   RelInterval tmpinterval;
-  if(!tmpinterval.ReadFrom(nl->First(v),true))
+  if(!tmpinterval.ReadFrom(nl->First(v),false))
       return false;
   if(!map.ReadFrom(nl->Second(v)))
      return false;
@@ -3947,7 +3947,7 @@ nested list representation.
 template <class T, class Unit>
 ListExpr PMSimple<T, Unit>::ToListExpr()const {
   __TRACE__
- ListExpr timelist = startTime.ToListExpr(true);
+ ListExpr timelist = startTime.ToListExpr(false);
  ListExpr SubMoveList = GetSubMoveList(submove);
      return nl->TwoElemList(timelist,SubMoveList);
 }
@@ -3990,7 +3990,7 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value){
      return false;
   }
 
-  if(!startTime.ReadFrom(nl->First(value),true)){
+  if(!startTime.ReadFrom(nl->First(value),false)){
      if(DEBUG_MODE){
         cerr << __POS__ << "reading of the start time failed" << endl;
         cerr << "The list is " << endl;
@@ -6583,7 +6583,7 @@ ListExpr LinearPointMove::ToListExpr()const{
         return nl->TwoElemList(
                       nl->SymbolAtom("linear"),
                       nl->ThreeElemList(
-                            interval.ToListExpr(true),
+                            interval.ToListExpr(false),
                             nl->TwoElemList(
                                  nl->RealAtom((float)startX),
                                  nl->RealAtom((float)startY)),
@@ -6594,7 +6594,7 @@ ListExpr LinearPointMove::ToListExpr()const{
        return nl->TwoElemList(
                       nl->SymbolAtom("linear"),
                       nl->TwoElemList(
-                                 interval.ToListExpr(true),
+                                 interval.ToListExpr(false),
                                  nl->SymbolAtom("undefined")));
    }
 
@@ -6613,7 +6613,7 @@ bool LinearPointMove::ReadFrom(const ListExpr value){
        int L = nl->ListLength(V);
        if(L<2 || L>3)
           return false;
-       if(!interval.ReadFrom(nl->First(V),true))
+       if(!interval.ReadFrom(nl->First(V),false))
           return false;
 
        if(L==2){ // potentially an undefined move
@@ -7475,7 +7475,7 @@ ListExpr LinearPointsMove::ToListExpr(const DBArray<TwoPoints> &Points) const{
    }
 
    ListExpr res = nl->TwoElemList(nl->SymbolAtom("linear"),
-                         nl->ThreeElemList( interval.ToListExpr(true),
+                         nl->ThreeElemList( interval.ToListExpr(false),
                                      starts,ends));        
    return res;             
 }
@@ -7515,7 +7515,7 @@ bool LinearPointsMove::ReadFrom(const ListExpr value, DBArray<TwoPoints> &Pts,
     return false;
  }   
  // read the Interval
- if(!interval.ReadFrom(nl->First(value),true)){
+ if(!interval.ReadFrom(nl->First(value),false)){
     if(DEBUG_MODE){
       cerr << "LinearPointsMove::ReadFFrom: error in reding interval" << endl;
     }
@@ -8199,7 +8199,7 @@ value list is returned or whether a list with structure
 */
 ListExpr PMPoint::ToListExpr(const bool typeincluded)const{
     __TRACE__
-  ListExpr timelist = startTime.ToListExpr(true);
+  ListExpr timelist = startTime.ToListExpr(false);
   ListExpr SubMoveList;
   if(defined)
      SubMoveList = GetSubMoveList(&submove);
@@ -8357,7 +8357,7 @@ bool PMPoint::ReadFrom(const ListExpr value){
      return false;
   }
 
-  if(!startTime.ReadFrom(nl->First(value),true)){
+  if(!startTime.ReadFrom(nl->First(value),false)){
      if(DEBUG_MODE){
         cerr << __POS__ << "reading of the start time failed" << endl;
         cerr << "The list is " << endl;
@@ -10472,7 +10472,7 @@ ListExpr PMPoints::ToListExpr(const bool typeincluded)const{
    if(!defined)
       value = nl->BoolAtom(false);
    else{   
-      ListExpr timelist = startTime.ToListExpr(true);
+      ListExpr timelist = startTime.ToListExpr(false);
       ListExpr SubMoveList = GetSubMoveList(submove);
       value = nl->TwoElemList(timelist,SubMoveList);
    }
@@ -10629,7 +10629,7 @@ if(nl->ListLength(value)!=2){
      return false;
   }
 
-  if(!startTime.ReadFrom(nl->First(value),true)){
+  if(!startTime.ReadFrom(nl->First(value),false)){
      if(DEBUG_MODE){
         cerr << __POS__ << "reading of the start time failed" << endl;
         cerr << "The list is " << endl;

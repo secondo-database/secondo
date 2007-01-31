@@ -11,14 +11,14 @@ Result   : (bool TRUE)
 Operator : atinstant
 Number   : 1
 Signature: pmobject x instant -> object
-Example  : query [const pmpoint value ((instant "2007-01-30-18:00") ( linear  (( rinterval( TRUE  FALSE ( duration ( 0  7000000   ))))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ] atinstant [const instant value "2007-01-30-18:56"] 
+Example  : query [const pmpoint value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE ( 0  7000000 ))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ] atinstant [const instant value "2007-01-30-18:56"] 
 Result   : (point (13424.4 10979.48))
 
 
 Operator : breakpoints
 Number   : 1
 Signature: pmpoint | pmpoints  -> points
-Example  : query breakpoints([const pmpoint value ((instant "2007-01-30-18:00") ( linear  (( rinterval( TRUE  FALSE ( duration ( 0  7000000   ))))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ]) 
+Example  : query breakpoints([const pmpoint value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE ( 0  7000000))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ]) 
 Result   : (points ()) 
 
 
@@ -46,28 +46,28 @@ Result   : file
 Operator : end
 Number   : 1
 Signature: pinterval -> instant
-Example  : query end([const pinterval value ((instant "2007-01-30") (instant "2007-01-31") TRUE TRUE)])
+Example  : query end([const pinterval value ( "2007-01-30" "2007-01-31" TRUE TRUE)])
 Result   : (instant "2007-01-31") 
 
 
 Operator : expand
 Number   : 1
 Signature: pmpoint -> mpoint
-Example  : query expand( [const pmpoint value ((instant "2007-01-30-18:00") ( linear  (( rinterval( TRUE  FALSE ( duration ( 0  7000000   ))))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ])
+Example  : query expand( [const pmpoint value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE ( 0  7000000 ))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ])
 Result   : (mpoint ( ( ("2007-01-30-18:00" "2007-01-30-19:56:40" TRUE FALSE) (13506.0 11159.0 13336.0 10785.0))))
 
 
 Operator : final
 Number   : 1
 Signature: pmobject -> object
-Example  : query final([const pmpoint value ((instant "2007-01-30-18:00") ( linear  (( rinterval( TRUE  FALSE ( duration (        0  7000000   ))))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ])
+Example  : query final([const pmpoint value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE (0  7000000))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ])
 Result   : (point (13336.0  10785.0 ))
 
 
 Operator : initial
 Number   : 1
 Signature: pmobject -> object
-Example  : query initial([const pmpoint value ((instant "2007-01-30-18:00") ( linear  (( rinterval( TRUE  FALSE ( duration (             0  7000000   ))))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ]) 
+Example  : query initial([const pmpoint value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE ( 0  7000000))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ]) 
 Result   : (point (13506.0 11159.0))
 
 
@@ -88,7 +88,7 @@ Result   : (bool TRUE)
 Operator : length
 Number   : 1
 Signature: pinterval -> duration
-Example  : query length([const pinterval value ((instant "2007-01-30") (instant "2007-01-31") TRUE TRUE)])
+Example  : query length([const pinterval value ("2007-01-30"  "2007-01-31" TRUE TRUE)])
 Result   : (duration (1 0))
 
 
@@ -130,28 +130,28 @@ Result   : (int 185)
 Operator : ptranslate
 Number   : 1
 Signature: pmobject x duration -> pmobject 
-Example  : query [const pmpoint value ((instant "2007-01-30-18:00") ( linear  (( rinterval( TRUE  FALSE ( duration ( 0  7000000   ))))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ] ptranslate [ [const duration value (1 0)] ] 
-Result   : (pmpoint ( (instant "2007-01-31-18:00") (linear ( (rinterval (TRUE FALSE (duration (0 7000000)))) (13506.0 11159.0) (13336.0 10785.0)))))
+Example  : query [const pmpoint value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE ( 0  7000000))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ] ptranslate [ [const duration value (1 0)] ] 
+Result   : (pmpoint ( "2007-01-31-18:00" (linear (  (TRUE FALSE (0 7000000)) (13506.0 11159.0) (13336.0 10785.0)))))
 
 
 
 Operator : start
 Number   : 1
 Signature: pinterval -> instant
-Example  : query start([const pinterval value ((instant "2007-01-30") (instant "2007-01-31") TRUE TRUE)]) 
+Example  : query start([const pinterval value ( "2007-01-30" "2007-01-31" TRUE TRUE)]) 
 Result   : (instant "2007-01-30")
 
 
 Operator : toprel
 Number   : 1
 Signature: pmobject x spatial[temporal] object -> pmint9m
-Example  : query toprel( [const pmpoint value ((instant "2007-01-30-18:00") ( linear  (( rinterval( TRUE  FALSE ( duration (        0  7000000   ))))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ], [const point value (0.0 0.0)]) 
-Result   : (pmint9m ( (instant "2007-01-30-18:00") (linear ( (rinterval (TRUE FALSE (duration (0 7000000)))) (FALSE FALSE TRUE FALSE FALSE FALSE TRUE FALSE TRUE))))) 
+Example  : query toprel( [const pmpoint value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE (0  7000000))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ], [const point value (0.0 0.0)]) 
+Result   : (pmint9m ( "2007-01-30-18:00" (linear ( (TRUE FALSE (0 7000000)) (FALSE FALSE TRUE FALSE FALSE FALSE TRUE FALSE TRUE))))) 
 
 Operator : trajectory
 Number   : 1
 Signature: pmpoint -> line
-Example  : query trajectory([const pmpoint value ((instant "2007-01-30-18:00") ( linear  (( rinterval( TRUE  FALSE ( duration (0  7000000))))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ])
+Example  : query trajectory([const pmpoint value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE (0  7000000))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ])
 Result   : (line ( (13336.0 10785.0 13506.0 11159.0))) 
 
 
