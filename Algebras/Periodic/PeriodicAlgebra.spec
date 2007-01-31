@@ -37,7 +37,7 @@ operator numberOfFlatUnits alias NUMBEROFFLATUNITS pattern op(_)
 operator numberOfNodes alias NUMBEROFNODES pattern op(_)
 operator numberOfPNodes alias NUMBEROFPNODES pattern op(_)
 operator numberOfUnits alias NUMBEROFUNITS pattern op(_)
-operator ptranslate alias PTRANSLATE pattern op(_)
+operator ptranslate alias PTRANSLATE pattern _ op [_]
 operator start alias START pattern op(_)
 operator toprel alias TOPREL pattern op(_)
 operator trajectory alias TRAJECTORY pattern op(_)
