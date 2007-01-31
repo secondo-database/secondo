@@ -33,7 +33,7 @@ Operator : equals
 Number   : 1
 Signature: picture x picture x int x int -> real
 Example  : query paper theater equals [ 5, 100 ]
-Result   : 85.4435073143313
+Result   : 0.0
 
 
 Operator : export
