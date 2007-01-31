@@ -39,7 +39,7 @@ Result   : 0.0
 Operator : export
 Number   : 1
 Signature: picture x text -> bool
-Example  : query theater export [ "../tmp/theater.jpg" ]
+Example  : query theater export [ "theater.jpg" ]
 Result   : TRUE
 
 
