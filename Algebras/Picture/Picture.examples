@@ -125,4 +125,10 @@ Signature: picture -> int
 Example  : query theater width
 Result   : 800
 
+Operator : contains
+Number   : 1
+Signature: picture x picture -> bool
+Example  : query theater contains (theater cut [100,100,200,200])
+Result   : bug
+Remark   : Due to the JPEG compression this operator does not work properly.
 
