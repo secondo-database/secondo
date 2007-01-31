@@ -41,4 +41,4 @@ operator ptranslate alias PTRANSLATE pattern op(_)
 operator start alias START pattern op(_)
 operator toprel alias TOPREL pattern op(_)
 operator trajectory alias TRAJECTORY pattern op(_)
-operator union alias UNION pattern op(_)
+operator union alias UNION pattern _ infixop _
