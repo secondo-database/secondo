@@ -19,7 +19,7 @@ Operator : memshuffle
 Number   : 1
 Signature: stream(ptuple(y)) -> stream(ptuple(y)), stream(tuple(y)) -> stream(tuple(y))
 Example  : query plz pfeed[1000] memshuffle pdelete count
-Result   : 41267
+Result   : crashes
 
 
 Operator : pcreate2
@@ -83,13 +83,13 @@ Operator : shuffle
 Number   : 1
 Signature: stream(tuple(y)) -> stream(tuple(y))
 Example  : query plz feed shuffle count
-Result   : 41267
+Result   : crashes
 
 
 Operator : shuffle
 Number   : 2
 Signature: stream(ptuple(y)) -> stream(ptuple(y))
 Example  : query plz pfeed[1000] shuffle pdelete count
-Result   : 41267
+Result   : crashes
 
 
