@@ -3198,12 +3198,16 @@ void Line::EndBulkLoad( bool sort, bool remDup,
 {
   if( sort )
     Sort();
+
   if( remDup )
     RemoveDuplicates();
+
   if( setPartnerNo )
     SetPartnerNo();
+
   if( setNoComponents )
     SetNoComponents();
+
   ordered = true;
 }
 
@@ -4189,9 +4193,16 @@ void Line::RemoveDuplicates()
 {
   assert( IsOrdered() );
   int size = line.Size();
-  if( size == 0 )
+  if( size == 0 ){
    // nothing to do
      return;
+  }
+
+  int newEdgeNumbers[size]; // mapping oldnumber -> newnumber
+  for(int i=0;i<size;i++){
+     newEdgeNumbers[i] = -1; 
+  } 
+  int newedge = 0;  // next unused edge number
 
   HalfSegment tmp;
   HalfSegment last;
@@ -4199,23 +4210,40 @@ void Line::RemoveDuplicates()
   int pos = 0;
   line.Get( 0, ptmp );
   last = *ptmp;
+  
+  newEdgeNumbers[last.attr.edgeno] = newedge;
+  last.attr.edgeno = newedge;
+  line.Put(0,last);
+  newedge++; 
 
   for( int i = 1; i < size; i++ )
   {
     line.Get( i, ptmp );
     tmp = *ptmp;
+    int edge = tmp.attr.edgeno;
     if( last != tmp )
       // new segment found
     {
       pos++;
-      if( pos != i )
-        line.Put( pos, tmp );
+      if(newEdgeNumbers[edge]<0){ // first 
+         newEdgeNumbers[edge] = newedge;
+         tmp.attr.edgeno = newedge;
+         newedge++; 
+      } else {
+         tmp.attr.edgeno = newEdgeNumbers[edge];
+      }
+      line.Put( pos, tmp );
       last = tmp;
+    } else { // duplicate found
+      newEdgeNumbers[edge] = newedge-1; // use the last edge number
     }
+     
+
   }
-  if( pos + 1 != size )
+  if( pos + 1 != size ){
     // duplicates found
     line.Resize( pos + 1 );
+  }
 }
 
 void Line::WindowClippingIn( const Rectangle<2> &window,

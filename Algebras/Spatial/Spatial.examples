@@ -47,8 +47,7 @@ Operator : atposition
 Number   : 2
 Signature: line x real x bool -> point
 Example  : query WFlaechen feed filter[.Name = "Spree"] UBahn feed {u} symmjoin[.geoData intersects_new ..geoData_u] extend[Schnitt: intersection_new(.geoData, .geoData_u)] project[Schnitt] extend[Start: atposition(.Schnitt, 0.0, TRUE)] consume
-Result   : crashes
-
+Result   : ( (rel  (tuple  ( (Schnitt line) (Start point)))) ( ( ( (13249.086214077468 10639.731361932529 13287.0 10675.0) (13287.0 10675.0 13327.978263860228 10766.992020910719)) (13249.086214077468 10639.731361932529)) ( ( (10937.38151739101 11996.246186182118 10942.72373477798 12125.716395795722)) (10937.38151739101 11996.246186182118)) ( ( (11348.772711690093 12044.687350017148 11357.221011973736 12126.002240247206)) (11348.772711690093 12044.687350017148)))) 
 
 Operator : bbox
 Number   : 1

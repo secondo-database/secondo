@@ -3539,6 +3539,8 @@ inline Point Line::EndPoint( bool startsSmaller ) const
 }
 inline void Line::Get( const int i, const HalfSegment*& hs ) const
 {
+  assert(i>=0);
+  assert(i<line.Size());
   line.Get( i, hs );
 }
 

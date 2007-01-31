@@ -1131,7 +1131,7 @@ template BinTree to insert the XEvents in the right node.
 
 int XEvent::Less (const XEvent& ev2, const Coord x) const
 {
-   //if ( Equal (ev2) )  { cout << "kommt tatsächlich vor" << endl; return 0;}
+   //if ( Equal (ev2) )  { cout << "kommt tatsï¿½hlich vor" << endl; return 0;}
    // ordered by x-value
    //else if (GetX() < ev2.GetX())  { return -1; }
    if (GetX() < ev2.GetX())  { return -1; }
@@ -1663,7 +1663,7 @@ bool StatusLine::innerInter( const HalfSegment& hs1,
       }
    }  // else if (Xl==Xr)
    else if (xl==xr) {    //only l is vertical
-// hier einfügen
+// hier einfgen
       if ( Xl==xl && Yl>yl && Yl<yr )
          {resp.Set(Xl,Yl); first = true; return true;}
       if ( Xr==xl && Yr>yl && Yr<yr )
@@ -2914,7 +2914,7 @@ int SEntry::Less (const SEntry& in2, const Coord x, const
 //          if (oldnode !=0 && oldnode->GetEntry().GetCHS() !=0)
 //             cout <<" alter Knoten "<< oldnode->GetEntry().GetCHS() ;
 //          if (oldnode != 0 && oldnode->GetPred() != 0 )
-//             cout << "  vorgänger von oldnode " <<
+//             cout << "  vorgï¿½ger von oldnode " <<
 //             oldnode->GetPred()->GetEntry().GetCHS();
 //          cout << endl;
             if  (oldnode!=0 &&  oldnode->GetEntry().GetCHS()
@@ -3913,7 +3913,7 @@ Line* MakeOp::Union(const Line* line1, const Line* line2)
    res2->Destroy(); delete res2;
    // VTA - I need to come back here
    unsigned int size = result->Size(); 
-   result->Resize(size*2);
+   if(size>0) {result->Resize(size*2);}
     const HalfSegment* hs_oldptr;
     for( unsigned int i=0; i< size; i++){ // scan all old halfsegments
          result->Get(i,hs_oldptr);
@@ -3925,7 +3925,7 @@ Line* MakeOp::Union(const Line* line1, const Line* line2)
          hsNew.SetLeftDomPoint(false);
          *result += hsNew;       
     }
-
+   
    result->EndBulkLoad();
    return result;
 }
