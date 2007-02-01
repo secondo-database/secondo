@@ -186,7 +186,7 @@ Translates the rectangle given the translate vector ~t~.
 /*
 Returns the intersection between this and the rectangle ~r~.
 
-This next funnctions are necessary for a ~rectangle~ be
+This next functions are necessary for a ~rectangle~ be
 an attribute in the Relational Algebra.
 
 */

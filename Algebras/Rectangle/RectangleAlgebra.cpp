@@ -767,8 +767,8 @@ int RectangleInside( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
   if ( ((Rectangle<dim>*)args[0].addr)->IsDefined() &&
-       ((Rectangle<dim>*)args[0].addr)->IsDefined() )
-  {
+       ((Rectangle<dim>*)args[1].addr)->IsDefined() )
+  { // A inside B <=> B contains A
     ((CcBool *)result.addr)->
       Set( true, ((Rectangle<dim>*)args[1].addr)->
       Contains( *((Rectangle<dim>*)args[0].addr) ) );
@@ -856,24 +856,24 @@ int RectangleValueMap( Word* args, Word& result, int message,
   double min[dim];
   double max[dim];
   bool alldefined = true, checkminmax = true;
-  
+
   result = qp->ResultStorage( s );
-  
+
   for(unsigned int i=0; i < dim*2-1; i++) {
     if ( !(((T*)(args[i].addr))->IsDefined()) ) alldefined = false;
   }
-    
+
   if ( alldefined )
   {
     for(unsigned int j=0; j < dim; j++) {
       min[j] = (double)(((T*)args[2*j].addr)->GetValue());
       max[j] = (double)(((T*)args[2*j+1].addr)->GetValue());
-    }   
-    
+    }
+
     for(unsigned int k=0; k < dim-1; k++) {
       if ( !(min[k] <= max[k]) ) checkminmax =false;
     }
-              
+
     if ( checkminmax )
       ((Rectangle<dim> *)result.addr)->Set( true, min, max );
     else assert(false);
@@ -896,12 +896,12 @@ int Rectangle8ValueMap( Word* args, Word& result, int message,
   double min[dim+1];
   double max[dim+1];
   bool alldefined = true;
-  
+
   result = qp->ResultStorage( s );
   for(unsigned int i=0; i <= dim; i++) {
     if ( !(((T*)(args[i].addr))->IsDefined()) ) alldefined = false;
   }
-    
+
   if ( alldefined )
   {
     for(unsigned int j=0; j < dim; j++) {
@@ -962,7 +962,7 @@ ValueMapping rectangleunionmap[] = { RectangleUnion<2>,
 ValueMapping rectangleintersectionmap[] = { RectangleIntersection<2>,
                                             RectangleIntersection<3>,
                                             RectangleIntersection<4> };
-                                            
+
 ValueMapping rectanglerectangle2map[] = { RectangleValueMap<CcInt, 2>,
                                           RectangleValueMap<CcReal, 2> };
 
@@ -971,7 +971,7 @@ ValueMapping rectanglerectangle3map[] = { RectangleValueMap<CcInt, 3>,
 
 ValueMapping rectanglerectangle4map[] = { RectangleValueMap<CcInt, 4>,
                                           RectangleValueMap<CcReal, 4> };
-                                          
+
 ValueMapping rectanglerectangle8map[] = { Rectangle8ValueMap<CcInt, 8>,
                                           Rectangle8ValueMap<CcReal, 8> };
 
@@ -1043,7 +1043,7 @@ const string RectangleSpecTranslate  =
   "<text> move the rectangle parallely for some distance.</text--->"
   "<text> query rect1 translate[3.5, 15.1]</text--->"
   ") )";
-  
+
 const string RectangleSpecRectangle2  =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
         "( <text>(int x int x int x int -> rect) or"
@@ -1055,7 +1055,7 @@ const string RectangleSpecRectangle2  =
         "(minx, maxx, miny, maxy) with (minx < maxx) and"
         " (miny < maxy).</text--->"
         ") )";
-        
+
 const string RectangleSpecRectangle3  =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
         "( <text>(int x int x int x int x int x int -> rect3) or"
@@ -1156,14 +1156,14 @@ Operator rectangletranslate( "translate",
                              rectangletranslatemap,
                              RectangleUnarySelect,
                              TranslateTypeMap );
-                             
+
 Operator rectanglerectangle2( "rectangle2",
                              RectangleSpecRectangle2,
                              2,
                              rectanglerectangle2map,
                              RectangleSelect<2>,
                              RectangleTypeMap<2> );
-                             
+
 Operator rectanglerectangle3( "rectangle3",
                              RectangleSpecRectangle3,
                              2,
@@ -1177,7 +1177,7 @@ Operator rectanglerectangle4( "rectangle4",
                              rectanglerectangle4map,
                              RectangleSelect<4>,
                              RectangleTypeMap<4> );
-                             
+
 Operator rectanglerectangle8( "rectangle8",
                              RectangleSpecRectangle8,
                              2,
@@ -1199,7 +1199,7 @@ class RectangleAlgebra : public Algebra
     AddTypeConstructor( &rect3 );
     AddTypeConstructor( &rect4 );
     AddTypeConstructor( &rect8 );
-    
+
     rect.AssociateKind("DATA");
     rect3.AssociateKind("DATA");
     rect4.AssociateKind("DATA");
