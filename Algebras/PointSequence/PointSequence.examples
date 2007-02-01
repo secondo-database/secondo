@@ -1,0 +1,45 @@
+Database: berlintest
+Restore : No
+
+Operator : c2line
+Number   : 1
+Signature: (pointsequence) -> line
+Example  : query c2line(mypointsequence)
+Result   : crashes
+
+
+Operator : c2point
+Number   : 1
+Signature: (pointsequence) -> point
+Example  : query c2point(mypointsequence)
+Result   : (point (7136.7330199643875 13075.318405368116))
+
+
+Operator : c2points
+Number   : 1
+Signature: (pointsequence) -> points
+Example  : query c2points(mypointsequence)
+Result   : file
+
+
+Operator : c2rect
+Number   : 1
+Signature: (pointsequence) -> rect
+Example  : query c2rect(mypointsequence2)
+Result   : crashes
+
+
+Operator : c2reg
+Number   : 1
+Signature: (pointsequence) -> region
+Example  : query c2reg(mypointsequence)
+Result   : file
+
+
+Operator : rect2ps
+Number   : 1
+Signature: (rect) -> pointsequence
+Example  : query rect2ps(bbox(tiergarten))
+Result   : (pointsequence ((5659.99999999 11434.99999999)(5659.99999999 12795.00000001)(8571.00000001 12795.00000001)(8571.00000001 11434.99999999)))
+
+
