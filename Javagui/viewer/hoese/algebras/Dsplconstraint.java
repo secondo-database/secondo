@@ -38,6 +38,7 @@ public class Dsplconstraint extends DisplayGraph {
   Rectangle2D.Double bounds;
   GeneralPath GPLines;
 
+  /** Returns the number of shapes **/
   public int numberOfShapes(){
      return 3;
   }
@@ -46,11 +47,14 @@ public boolean isPointType(int num){
     return (num==2);
 }
 
-  /** returns true because this type is a line **/
+  /** Returns true if the render object is a line **/
   public boolean isLineType(int num){
     return (num==1);
   }
 
+/**
+ * Returns the shape of the objects in order to render it
+ */
   public Shape getRenderObject(int num,AffineTransform at){
     if(num==0)
     {
@@ -59,7 +63,8 @@ public boolean isPointType(int num){
       return GPLines;
     } else if(num==2){
         Area res = null;
-        double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
+        double ps = Cat.getPointSize(renderAttribute,
+          CurrentState.ActualTime);
         double pixx = Math.abs(ps/at.getScaleX());
         double pixy = Math.abs(ps/at.getScaleY());
         for(int i=0; i< arrPoints.length;i++)
@@ -67,13 +72,15 @@ public boolean isPointType(int num){
           Area tmp = null;
           if(Cat.getPointasRect())
           {
-	         tmp=(new Area(new Rectangle2D.Double(arrPoints[i].x-pixx/2,
-	                                        arrPoints[i].y-pixy/2,pixx,pixy)));
+	         tmp=(new Area(new Rectangle2D.Double(
+	           arrPoints[i].x-pixx/2,
+	           arrPoints[i].y-pixy/2,pixx,pixy)));
           }
           else
           {
-            tmp=(new Area(new Ellipse2D.Double(arrPoints[i].x-pixx/2,
-	                                        arrPoints[i].y-pixy/2,pixx,pixy)));
+            tmp=(new Area(new Ellipse2D.Double(
+              arrPoints[i].x-pixx/2,
+	          arrPoints[i].y-pixy/2,pixx,pixy)));
           }
           if(res==null){
             res = tmp;
@@ -92,7 +99,7 @@ public boolean isPointType(int num){
 
 
   /**
-   * Scans the numeric representation of a constraint datatype
+   * Scans the external representation of a constraint datatype
   */
   private void ScanValue (ListExpr v) {
 
@@ -107,14 +114,10 @@ public boolean isPointType(int num){
      Vector vecPoints = new Vector();
 
      areaPolygons = new Area();
-     //Line2D.Double newSegment = null;
      GPLines = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
 
     if(!v.isAtom())
     {
-      //Shape currentShape;
-
-
       while(!symbolicTuplesNL.isEmpty())
       {
         linConstraintsNL = symbolicTuplesNL.first();
@@ -133,17 +136,30 @@ public boolean isPointType(int num){
             oneLinConstraintNL = linConstraintsNL.first();
             linConstraintsNL = linConstraintsNL.rest();
             if(oneLinConstraintNL.listLength() == 4  &&
-                oneLinConstraintNL.first().atomType() == ListExpr.REAL_ATOM &&
-                oneLinConstraintNL.second().atomType() == ListExpr.REAL_ATOM &&
-                oneLinConstraintNL.third().atomType() == ListExpr.REAL_ATOM &&
-                oneLinConstraintNL.fourth().atomType() == ListExpr.SYMBOL_ATOM)
+                oneLinConstraintNL.first().atomType() ==
+                  ListExpr.REAL_ATOM &&
+                oneLinConstraintNL.second().atomType() ==
+                  ListExpr.REAL_ATOM &&
+                oneLinConstraintNL.third().atomType() ==
+                  ListExpr.REAL_ATOM &&
+                oneLinConstraintNL.fourth().atomType() ==
+                  ListExpr.SYMBOL_ATOM)
             {
-              Double a1 = LEUtils.readNumeric(oneLinConstraintNL.first());
-              Double a2 = LEUtils.readNumeric(oneLinConstraintNL.second());
-              Double b = LEUtils.readNumeric(oneLinConstraintNL.third());
-              String strOp = oneLinConstraintNL.fourth().symbolValue();
+              Double a1 = LEUtils.readNumeric(
+                oneLinConstraintNL.first());
+              Double a2 = LEUtils.readNumeric(
+                oneLinConstraintNL.second());
+              Double b = LEUtils.readNumeric(
+                oneLinConstraintNL.third());
+              String strOp =
+                oneLinConstraintNL.fourth().symbolValue();
 
-              LinearConstraint2D linConstraint = new LinearConstraint2D(a1.doubleValue(), a2.doubleValue(), b.doubleValue(), strOp);
+              LinearConstraint2D linConstraint =
+                new LinearConstraint2D(
+                  a1.doubleValue(),
+                  a2.doubleValue(),
+                  b.doubleValue(),
+                  strOp);
               vLinConstraints.addElement(linConstraint);
               if(linConstraint.strOp.equals("eq"))
               {
@@ -158,56 +174,70 @@ public boolean isPointType(int num){
                 }
                 else
                 {
-                  // then there are more than 2 EQ-constraints, what is a contradiction to the normalization!
-                  Reporter.writeError("Error: Too many EQ-constraints in symbolic tuple (max 2)!");
+                  // then there are more than 2 EQ-constraints,
+                  // what is a contradiction to the normalization!
+                  Reporter.writeError("Error: Too many EQ-constraint!");
                 }
               }
             }
             else
             {
-              Reporter.writeError("Error: Fehlerhafter Aufbau von linearem Constraint!");
+              Reporter.writeError("Error: Wrong format"+
+                " of lin.constraint!");
             }
             currentIndex++;
           }
-          // The number of eq-constraints determines the type of the shape:
+          // The number of eq-constraints determines
+          // the type of the shape:
           if(nrOfCEQ==0)
           {
             // convex polygon:
             emptyPolygons = false;
-            GeneralPath GPPolygon = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
+            GeneralPath GPPolygon = new GeneralPath(
+              GeneralPath.WIND_EVEN_ODD);
             for(int i=0; i < vLinConstraints.size(); i++)
             {
               Point2D.Double point;
               if(i==0)
               {
-                point = GetIntersectionPoint((LinearConstraint2D)vLinConstraints.lastElement(), (LinearConstraint2D)vLinConstraints.firstElement());
+                point = GetIntersectionPoint((LinearConstraint2D)
+                          vLinConstraints.lastElement(),
+                (LinearConstraint2D)vLinConstraints.firstElement());
                 try{
-                  if(!ProjectionManager.project(point.x,point.y,aPoint)){
-                      Reporter.writeError("error in projection at ("+point.x+", "+point.y+")");
+                  if(!ProjectionManager.project(
+                    point.x,point.y,aPoint)){
+                      Reporter.writeError("error in projection at ("+
+                        point.x+", "+point.y+")");
                       err=true;
                       return;
                    }else{
       	              GPPolygon.moveTo((float)point.x, (float)point.y);
       	           }
                 }catch(Exception e){
-      	           Reporter.writeError("Error in Projection at ("+point.x+","+point.y+")");
+      	           Reporter.writeError("Error in Projection at ("+
+      	             point.x+","+point.y+")");
       		          err=true;
       		          return;
       	        }
               }
               else
               {
-                point = GetIntersectionPoint((LinearConstraint2D)vLinConstraints.elementAt(i-1), (LinearConstraint2D)vLinConstraints.elementAt(i));
+                point = GetIntersectionPoint(
+                  (LinearConstraint2D)vLinConstraints.elementAt(i-1),
+                  (LinearConstraint2D)vLinConstraints.elementAt(i));
                 try{
-                  if(!ProjectionManager.project(point.x,point.y,aPoint)){
-                      Reporter.writeError("error in projection at ("+point.x+", "+point.y+")");
+                  if(!ProjectionManager.project(
+                    point.x,point.y,aPoint)){
+                      Reporter.writeError("error in projection at ("+
+                        point.x+", "+point.y+")");
                       err=true;
                       return;
                    }else{
       	              GPPolygon.lineTo((float)point.x, (float)point.y);
       	           }
                 }catch(Exception e){
-      	           Reporter.writeError("Error in Projection at ("+point.x+","+point.y+")");
+      	           Reporter.writeError("Error in Projection at ("+
+      	             point.x+","+point.y+")");
       		          err=true;
       		          return;
       	        }
@@ -221,32 +251,44 @@ public boolean isPointType(int num){
             // line segment:
             emptyLines = false;
             // the EQ-constraint is the very first
-            Point2D.Double pointFirst = GetIntersectionPoint((LinearConstraint2D)vLinConstraints.elementAt(0), (LinearConstraint2D)vLinConstraints.elementAt(1));
-            Point2D.Double pointSecond = GetIntersectionPoint((LinearConstraint2D)vLinConstraints.elementAt(0), (LinearConstraint2D)vLinConstraints.elementAt(2));
+            Point2D.Double pointFirst = GetIntersectionPoint(
+              (LinearConstraint2D)vLinConstraints.elementAt(0),
+              (LinearConstraint2D)vLinConstraints.elementAt(1));
+            Point2D.Double pointSecond = GetIntersectionPoint(
+              (LinearConstraint2D)vLinConstraints.elementAt(0),
+              (LinearConstraint2D)vLinConstraints.elementAt(2));
             try{
-              if(!ProjectionManager.project(pointFirst.x,pointFirst.y,aPoint)){
-                  Reporter.writeError("error in projection at ("+pointFirst.x+", "+pointFirst.y+")");
+              if(!ProjectionManager.project(pointFirst.x,
+                pointFirst.y,aPoint)){
+                  Reporter.writeError("error in projection at ("+
+                    pointFirst.x+", "+pointFirst.y+")");
                   err=true;
                   return;
                }
                else{
-  	              GPLines.moveTo((float)pointFirst.x, (float)pointFirst.y);
+  	              GPLines.moveTo((float)pointFirst.x,
+  	                (float)pointFirst.y);
   	           }
             }catch(Exception e){
-  	           Reporter.writeError("Error in Projection at ("+pointFirst.x+","+pointFirst.y+")");
+  	           Reporter.writeError("Error in Projection at ("+
+  	             pointFirst.x+","+pointFirst.y+")");
   		          err=true;
   		          return;
   	        }
             try{
-              if(!ProjectionManager.project(pointSecond.x,pointSecond.y,aPoint)){
-                  Reporter.writeError("error in projection at ("+pointSecond.x+", "+pointSecond.y+")");
+              if(!ProjectionManager.project(pointSecond.x,
+                pointSecond.y,aPoint)){
+                  Reporter.writeError("error in projection at ("+
+                    pointSecond.x+", "+pointSecond.y+")");
                   err=true;
                   return;
                }else{
-  	              GPLines.lineTo((float)pointSecond.x, (float)pointSecond.y);
+  	              GPLines.lineTo((float)pointSecond.x,
+  	                             (float)pointSecond.y);
   	           }
             }catch(Exception e){
-  	           Reporter.writeError("Error in Projection at ("+pointSecond.x+","+pointSecond.y+")");
+  	           Reporter.writeError("Error in Projection at ("+
+  	             pointSecond.x+","+pointSecond.y+")");
   		          err=true;
   		          return;
   	        }
@@ -255,17 +297,21 @@ public boolean isPointType(int num){
           {
             // point:
             emptyPoints = false;
-            Point2D.Double point = GetIntersectionPoint((LinearConstraint2D)vLinConstraints.elementAt(0), (LinearConstraint2D)vLinConstraints.elementAt(1));
+            Point2D.Double point = GetIntersectionPoint(
+              (LinearConstraint2D)vLinConstraints.elementAt(0),
+              (LinearConstraint2D)vLinConstraints.elementAt(1));
             try{
               if(!ProjectionManager.project(point.x,point.y,aPoint)){
-                  Reporter.writeError("error in projection at ("+point.x+", "+point.y+")");
+                  Reporter.writeError("error in projection at ("+
+                    point.x+", "+point.y+")");
                   err=true;
                   return;
                }else{
                     vecPoints.addElement(point);
   	           }
             }catch(Exception e){
-  	           Reporter.writeError("Error in Projection at ("+point.x+","+point.y+")");
+  	           Reporter.writeError("Error in Projection at ("+
+  	             point.x+","+point.y+")");
   		          err=true;
   		          return;
   	        }
@@ -277,13 +323,14 @@ public boolean isPointType(int num){
         }
         else
         {
-          Reporter.writeError("Error: linConstraintsNL is atomic (shoud be a list!)");
+          Reporter.writeError("Error: linConstraintsNL is atomic");
         }
-      } // while
+      }
     }
     else
     {
-      Reporter.writeError("Error: instance is atomic (shoud be a list!)");
+      Reporter.writeError("Error: instance is atomic "+
+        "(shoud be a list!)");
     }
 
      if(emptyPolygons)
@@ -294,7 +341,8 @@ public boolean isPointType(int num){
      {
         GPLines = null;
      }
-     arrPoints = (Point2D.Double[])vecPoints.toArray(new Point2D.Double[0]);
+     arrPoints = (Point2D.Double[])vecPoints.toArray(
+       new Point2D.Double[0]);
   }
 
   /**
@@ -326,47 +374,65 @@ public boolean isPointType(int num){
         }
         else
         {
-          bounds = (Rectangle2D.Double)bounds.createUnion(GPLines.getBounds2D());
+          bounds = (Rectangle2D.Double)bounds.createUnion(
+            GPLines.getBounds2D());
         }
       }
       for(int i=0; i< arrPoints.length;i++)
       {
         if (bounds == null)
-          bounds = new Rectangle2D.Double(arrPoints[i].x, arrPoints[i].y, 0, 0);
+          bounds = new Rectangle2D.Double(arrPoints[i].x,
+            arrPoints[i].y, 0, 0);
         else
-          bounds = (Rectangle2D.Double)bounds.createUnion(new Rectangle2D.Double(arrPoints[i].x, arrPoints[i].y, 0, 0));
+          bounds = (Rectangle2D.Double)bounds.createUnion(
+            new Rectangle2D.Double(arrPoints[i].x,
+              arrPoints[i].y, 0, 0));
       }
 
     }
   }
 
+  /** Returns the minimum bounding box **/
   public Rectangle2D.Double getBounds () {
     return bounds;
   }
 
-  Point2D.Double GetIntersectionPoint(final LinearConstraint2D linConFirst, final LinearConstraint2D linConSecond)
-  {
-    // Input: two linear constraints
-    // prerequisite: not parallel or equal (otherwise they woudn't intersection in one point)
-    // Output: intersection point
 
+ /**
+ * Returns the intersection point of two linear constraints
+ * (seen as equivalation)
+ * Prerequisite: not parallel or equal
+ * (otherwise they woudn't intersection in one point)
+ */
+  Point2D.Double GetIntersectionPoint(
+    final LinearConstraint2D linConFirst,
+    final LinearConstraint2D linConSecond)
+  {
     boolean blnIsPoint;
     Point2D.Double pIntersection;
     double x, y;
 
     try {
-      x = (linConFirst.a2*linConSecond.b-linConSecond.a2*linConFirst.b)/(linConFirst.a1*linConSecond.a2-linConSecond.a1*linConFirst.a2);
-      y = (linConFirst.a1*linConSecond.b-linConSecond.a1*linConFirst.b)/(linConFirst.a2*linConSecond.a1-linConSecond.a2*linConFirst.a1);
+      x = (linConFirst.a2*linConSecond.b-
+        linConSecond.a2*linConFirst.b)/
+          (linConFirst.a1*linConSecond.a2-
+            linConSecond.a1*linConFirst.a2);
+      y = (linConFirst.a1*linConSecond.b-
+        linConSecond.a1*linConFirst.b)/
+          (linConFirst.a2*linConSecond.a1-
+            linConSecond.a2*linConFirst.a1);
       pIntersection = new Point2D.Double(x,y);
     }
     catch (Exception e) {
-      Reporter.writeError("Error: GetIntersectionPoint can't compute a single intersecting point - invalid input (lin. constraints describes parallel lines)!");
+      Reporter.writeError("Error: GetIntersectionPoint can't compute a "+
+      "single intersecting point - invalid input (lin. constraints "+
+      "describes parallel lines)!");
       pIntersection = new Point2D.Double(0,0);
     }
     return pIntersection;
   }
 
-
+  /** Datastructure for the internal repr. of a lin. constraint **/
   class LinearConstraint2D
   {
     public double a1;
