@@ -23,18 +23,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
 
-{\Large \bf Anhang B: Constraint-Template }
-
 [1] Header File of the Constraint Algebra
 
-July, 2006 Simon Muerner
+January, 2007 Simon Muerner
 
 [TOC]
 
 1 Overview
 
 This header file essentially contains the definition of the class Constraint.
-This class corresponds to the memory representation for the type constructor
+This class corresponds to the memory representation of the type constructor
 ~constraint~ which represents a 2-dimensional (potentially infinite) point set.
 
 
@@ -53,11 +51,11 @@ using namespace std;
 #include "./triangulation/interface.h"
 
 /*
-The header of the triangulation libary contains two important things:
+The header of the triangulation library contains two important things:
 
-  * Declaration of the function ~triangulate\_polygon~,
+  * Declaration of the function ~triangulate\_polygon~
 
-  * Definition of the max number of segments of the input (SEGSIZE\_TRIANGULATION).
+  * Definition of the max number of segments of the input (SEGSIZE\_TRIANGULATION)
 
 
 */
@@ -65,28 +63,42 @@ The header of the triangulation libary contains two important things:
 
 namespace Constraint {
 
-// Konstanten und Enumerationen:
+// constants:
 const string OP_EQ = "eq";
 const string OP_LEQ = "leq";
-// Word-Coordinates (arbitionary big):
 const Rectangle<2> WORLD(true, -10000.0, 10000.0, -10000.0, 10000.0);
+// Word-Coordinates (arbitionary big)
 const int X = 0;
 const int Y = 1;
 
 
 /*
-3 Auxilaries function, structures, classes
+3 Auxiliary functions and structures
 
 */
 
 // foreward declaration:
 class LinearConstraint;
 
+/*
+3.1 Function ~AlmostEqual~
+
+Returns ~true~ if ~d1~ and ~d2~ are nearly equal ( $\epsilon$-test with  $\epsilon$=FACTOR from the SpatialAlgebra).
+This functions should be used for the comparison of two doubles.
+
+*/
 inline bool AlmostEqual( const double d1, const double d2 )
 {
   return fabs(d1 - d2) < FACTOR;
 }
 
+/*
+3.2 Structure ~Point2D~
+
+This structure is used for all the computational geometry algorithms in the constraint algebra module and represents a simple point $P=(x,y)$.
+The associated functions are self-explaining.
+
+*/
 struct Point2D
 {
   Point2D( )
@@ -124,12 +136,14 @@ struct Point2D
             (!AlmostEqual(this->y, otherPoint.y)));
   }
 
-  // wichtig fuer sort(...)-Funktion:
+/*
+  The following function (operator) is important for the generic sort-function from the C++ STL:
+
+*/
   bool operator<( const Point2D& otherPoint ) const
   {
     if(AlmostEqual(this->x, otherPoint.x))
     {
-      // dann ist y-Koordinaten-Vergleich entschieden:
       if(AlmostEqual(this->y, otherPoint.y))
       {
         return false;
@@ -140,11 +154,16 @@ struct Point2D
       }
     }
     else
-    { // dann ist x-Koordinante-Vergleich entscheiden:
+    {
       return (this->x < otherPoint.x);
     }
   }
 
+/*
+  The following function returns ~true~ if the currenct point is on the same line
+  as the to points ~p1~ and ~p2~:
+
+*/
   bool OnSameLineAs( const Point2D& p1, const Point2D& p2 ) const
   {
     // Prerequisite: at minimum two of the points in {*this, p1, p2} are
@@ -157,7 +176,7 @@ struct Point2D
     else // if line, not a vertical line, {p1,p2,p3} doesn't have
          // all the same x-coordinates
     {
-      // in order to calculate a line, we have to have two diffrent points
+      // in order to calculate a line, we have to have two different points
       // pFirst, pSecond (different x-coordinates!)
       Point2D pFirst, pSecond, pThird;
       pFirst = p1;
@@ -177,7 +196,7 @@ struct Point2D
       {
         return true;
       }
-      else // there are 3 diffrent points!
+      else // there are 3 different points!
       {
 	    if(AlmostEqual(pThird.x,pFirst.x))
 		{
@@ -201,7 +220,11 @@ struct Point2D
     }
   }
 
+/*
+  The following function returns ~true~ if the currenct point is on the line segment
+  with the end points ~p1~ and ~p2~:
 
+*/
   bool OnSegment( const Point2D& p1, const Point2D& p2 ) const
   {
     // Prerequisite: the points in {p1, p2} are not equal
@@ -277,6 +300,13 @@ struct Point2D
   double y;
 };
 
+/*
+3.3 Structure ~VerticalTrapez~
+
+This structure is used for the CPI-algorithm (convex polyon intersection)
+and does define a vertical trapez with four points.
+
+*/
 struct VerticalTrapez
 {
   VerticalTrapez& operator=( const VerticalTrapez& otherVerticalTrapez )
@@ -295,6 +325,13 @@ struct VerticalTrapez
   bool IsEmpty;
 };
 
+/*
+3.4 Structure ~SymbolicTuple~
+
+This structure is used for the internal (class) representation of a symbolic relation.
+See also class ~SymbolicRelation~.
+
+*/
 struct SymbolicTuple
 {
   inline SymbolicTuple& operator=( const SymbolicTuple& symTup )
@@ -334,65 +371,230 @@ struct SymbolicTuple
           << (*this).isNormal << ") " <<  endl;
   }
 
-  // indexes to the DBArray of the linear Constraints:
+  // datastructure:
+
   int startIndex;
   int endIndex;
-  // other related data:
+/*
+The two indexes refer to certain elements of the DBArray with the linear constraints.
+
+*/
   Rectangle<2> mbbox;
+/*
+The minimum bounding box is used for fast computations.
+
+*/
   bool isNormal;
 };
 
-void ToConstraint(const Rectangle<2>&, vector<LinearConstraint>&);
-void ToConstraint(const vector<Point2D>&, vector<LinearConstraint>&);
-void ComputeXOrderedSequenceOfSlabs(const vector<Point2D>&,
-            vector<Point2D>&,
-            vector<Point2D>&);
-Rectangle<2> MinimumBoundingBox(const vector<Point2D>&);
-void ConvexPolygonIntersection(const vector<Point2D>&,
-        const vector<Point2D>&,
-        vector<Point2D>&);
-void HalfPlaneIntersection(const vector<LinearConstraint>& ,
-               vector<Point2D>&);
-void TriangulateRegion(const Region*,
-             vector<vector<double> >&,
-             vector<vector<int> >&);
-double GetTheta(Point2D&, Point2D&);
-double GetOrientedArea(double, double, double, double, double, double);
-void MergeTriangles2ConvexPolygons(const vector<vector<double> >&,
-    const vector<vector<int> >&,
-    vector<vector<Point2D> >&);
-Point2D GetIntersectionPoint(const LinearConstraint&,
-    const LinearConstraint&);
-Point2D GetPointFromSegment(const double,
-      const Point2D&, const Point2D&);
-void PrintSlab(VerticalTrapez);
+/*
+3.5 Function ~ToConstraint~ for a rectangle.
 
+This is just a wrapper-function that calls the real ToConstraint-function
+with the polygon that describes the rectangle ~mbbox~.
 
+*/
+void ToConstraint(const Rectangle<2>& mbbox,
+                  vector<LinearConstraint>& vLinConstraints);
 
 /*
-4 Class ~LinearConstraint~ ...
+3.5 Function ~ToConstraint~ for a poylgon.
+
+Transforms a convex polygon in boundary-representation (list of vertices in clockwise-order)
+to a list of linear constraints which describes the convex polygon in the same order.
+Degenerated cases are possible: segment, point; not possible is the empty set as input.
+
+*/
+void ToConstraint(const vector<Point2D>& vConvexPolygon,
+        vector<LinearConstraint>& vLinConstraints);
+
+/*
+3.6 Function ~ComputeXOrderedSequenceOfSlabs~
+
+Compute an $x$-ordered sequence of slabs for the vertices of ~vP~'s upper and lower boundary.
+This function is used for the CPI-algorithm (convex polygon intersection).
+
+*/
+void ComputeXOrderedSequenceOfSlabs(const vector<Point2D>& vP,
+            vector<Point2D>& vUpperBoundary,
+            vector<Point2D>& vLowerBoundary);
+
+/*
+3.7 Function ~MinimumBoundingBox~
+
+Computes and returns the minimum bounding box of the polygon ~vConvexPolygon~.
+
+*/
+Rectangle<2> MinimumBoundingBox(const vector<Point2D>& vConvexPolygon);
+
+/*
+3.8 Function ~ConvexPolygonIntersection~
+
+Computes the intersection of two polygons. ~vP~ and ~vQ~ are polygons,
+each given as a sequence of vertices in clockwise order.
+~vConvexPolygon~ is again in clockwise order.
+
+*/
+void ConvexPolygonIntersection(const vector<Point2D>& vP,
+        const vector<Point2D>& vQ,
+        vector<Point2D>& vPQIntersection);
+
+/*
+3.9 Function ~HalfPlaneIntersection~
+
+Computes the half plane intersection of a set of linear constraints
+(degenerated cases possible: unlimited objects, segment, point; not possible: empty set).
+Returns a (possibly degenared) polygon.
+
+*/
+void HalfPlaneIntersection(
+        const vector<LinearConstraint>& vLinConstraints,
+        vector<Point2D>& vConvexPolygon);
+
+/*
+3.10 Function ~TriangulateRegion~
+
+Computes a triangulation of the region (set of faces which are polygons).
+Returns a (not ordered) set of triangles indexing to a set of vertices.
+
+*/
+void TriangulateRegion(const Region* reg,
+  vector<vector<double> >& vVertices,
+  vector<vector<int> >& vTriangles);
+
+/*
+3.11 Function ~GetTheta~
+
+Computes a pseudo-angle $\theta$ between an anker point ~p1~ and another point ~p2~.
+Returns a value between 0 and 360 which is not the real angle but has the same
+order-relation.
+
+This function is used for a fast and stable computations in order to sort
+a set of objects by the pseudo-angle.
+
+*/
+double GetTheta(Point2D& p1, Point2D& p2);
+
+/*
+3.12 Function ~GetOrientedArea~
+
+Computes the oriented area of three points.
+
+*/
+double GetOrientedArea(double px, double py,
+             double vx, double vy,
+             double qx, double qy);
+
+/*
+3.13 Function ~MergeTriangles2ConvexPolygons~
+
+Given a triangulation of a polygon by its set of triangles, this function
+tries to delete diagonals (merge step) if the merged components are still convex.
+It's an implementation of the well-known Hertel-Melhorn algorithm.
+
+*/
+void MergeTriangles2ConvexPolygons(
+  const vector<vector<double> >& vVertices,
+  const vector<vector<int> >& vTriangles,
+  vector<vector<Point2D> >& vCWPoints);
+
+/*
+3.14 Function ~GetIntersectionPoint~
+
+Returns the intersection point of two linear constraints interpreted as
+EQ-Constraints (using = as comparator).
+
+Prerequisite: The constraints are not parallel or equal (otherwise they woudn't
+intersection in one point).
+
+*/
+Point2D GetIntersectionPoint(const LinearConstraint& linConFirst,
+  const LinearConstraint& linConSecond);
+
+/*
+3.15 Function ~GetPointFromSegment~
+
+Returns the point $P_{cut} = (x_{cut}, y_{cut})$
+with $x_{cut} = $ ~xCut~ and $P_{cut}$ is inside the segment defined with
+the two end points ~pLeft~ and ~pRight~.
+
+Prerequisite: ~pLeft.x~ $<$ ~xCut~ $<$ ~pRight.x~
+
+*/
+Point2D GetPointFromSegment(const double xCut,
+      const Point2D& pLeft, const Point2D& pRight);
+
+/*
+3.16 Function ~PrintSlab~
+
+Prints (standard-out) out a slab (just for debug-test).
+
+*/
+void PrintSlab(VerticalTrapez currentSlab);
+
+/*
+4 Class ~LinearConstraint~
+
+A linear constraint (in 2D) is a predicate of the form: $a_{1}x_{1} + a_2x_{2} + b = 0$ or of the form
+$a_{1}x_{1} + a_2x_{2} + b \leq 0$. Instances of this class are used by the class ~SymbolicRelation~.
 
 */
 class LinearConstraint
 {  public:
     LinearConstraint();
-    LinearConstraint(double, double, double, string);
+/*
+The empty constructor.
+
+*/
+    LinearConstraint(
+      double a1,
+      double a2,
+      double b,
+      string strOp);
+/*
+This constructor can be used for the definition of a linear constraint by its coefficients and the comparison operator ('eq' for $=$ and 'leq' for $\leq$).
+
+*/
     ~LinearConstraint();
+
     LinearConstraint* Clone();
-    LinearConstraint& operator=(const LinearConstraint&);
-    bool IsParallel(const LinearConstraint&);
-    bool IsEqual(const LinearConstraint&);
+    LinearConstraint& operator=(const LinearConstraint& linC);
+
+    bool IsParallel(const LinearConstraint& linC);
+/*
+Returns ~true~ if the current linear constraint interpreted as
+EQ-Constraints (using = as Comparator) is parallel to the linear constraint ~linC~.
+
+*/
+    bool IsEqual(const LinearConstraint& linC);
+/*
+Returns ~true~ if the current linear constraint does define the same pointset
+(half-plane or line) as the linear constraint ~linC~.
+
+*/
+
+/*
+Getter and Setter:
+
+*/
     double Get_a1() const;
     double Get_a2() const;
     double Get_b() const;
     string Get_Op() const;
-    void Set_a1(double);
-    void Set_a2(double);
-    void Set_b(double);
-    void Set_Op(string);
+    void Set_a1(double a1);
+    void Set_a2(double a2);
+    void Set_b(double b);
+    void Set_Op(string strOp);
     void PrintOut() const;
+/*
+Debug and Test-function
 
+*/
   private:
+/*
+Attributes of a linear constraints:
+
+*/
     bool defined;
     unsigned int dim;
     double a1;
@@ -403,45 +605,156 @@ class LinearConstraint
 
 
 /*
-5 Class ~SymbolicRelation~ ...
+5 Class ~SymbolicRelation~
+
+This class is used for the internal (class) representation of a ~constraint~ value.
+
+A ~constraint~ value is a disjunction of a set of symbolic tuples.
+A tuple is a conjunction of a set of linear constraints.
+See class ~LinearConstraint~ for a definition of a linear constraint.
 
 */
 class SymbolicRelation : public StandardSpatialAttribute<2>
 {
   public:
     inline SymbolicRelation() {}
+/*
+The empty constructor should not be used.
+
+*/
     SymbolicRelation(const int nConstraints, const int nTuple);
-    SymbolicRelation(const SymbolicRelation&);
-    SymbolicRelation& operator=( const SymbolicRelation&);
-    void Destroy();
-    void GetSymbolicTuples( const int, SymbolicTuple const*&) const;
+/*
+This constructor constructs empty sets of tuples and linear constraints but
+opens space for ~nConstraints~ linear Constraints and ~nTuple~ symbolic tuples.
+
+*/
+    SymbolicRelation(const SymbolicRelation& symRel);
+/*
+The copy constructor.
+
+*/
+	void Destroy();
+/*
+This function should be called before the destructor if one wants to destroy the
+persistent array of tupels and the persistent array of linear constraints.
+It marks the persistent array for destroying. The
+destructor will perform the real destroying.
+
+*/
+
+    SymbolicRelation& operator=( const SymbolicRelation& symRel);
+/*
+Assignment operator redefinition.
+
+*/
+    void GetSymbolicTuples( const int i,
+      SymbolicTuple const*& symbolicTuple) const;
+/*
+Retrieves the symbolic tuple at a position ~i~ in the set of symbolic tuples.
+
+*/
     int LinConstraintsSize() const;
+/*
+Returns the size of the set of linear constraints.
+
+*/
     int SymbolicTuplesSize() const;
-    void GetLinConstraints( const int, LinearConstraint const*&) const;
-    void AddSymbolicTuple(const vector<LinearConstraint>);
-    void AppendSymbolicRelation(const SymbolicRelation&);
-    void JoinSymbolicRelation(const SymbolicRelation&);
-    bool OverlapsSymbolicRelation(const SymbolicRelation&) const;
+/*
+Returns the size of the set of symbolic tuples.
+
+*/
+    void GetLinConstraints( const int i,
+      LinearConstraint const*& linearConstraint) const;
+/*
+Retrieves the linear constraint at a position ~i~ in the set of linear constraints.
+
+*/
+    void AddSymbolicTuple(const vector<LinearConstraint> vLinConstraints);
+/*
+Adds a symbolic tupel to the symbolic relation.
+This new tupel is described with the set of linear constraints in ~vLinConstraints~.
+
+*/
+    void AppendSymbolicRelation(const SymbolicRelation& otherSymRel);
+/*
+Adds the symbolic tuples and linear constraints from the symbolic relation ~otherSymRel~ to the current symbolic relation.
+
+*/
+    void JoinSymbolicRelation(const SymbolicRelation& otherSymRel);
+/*
+Computes the join-operation with another symbolic relation ~otherSymRel~.
+That means if the current symbolic relation does represent the set of points $P$
+and the symbolic relation ~otherSymRel~ does represent the set of points $P_{other}$
+then this function computes a symbolic relation $P := P \cap P_{other}$.
+
+*/
+    bool OverlapsSymbolicRelation(const SymbolicRelation& otherSymRel) const;
+/*
+Returns ~true~ if the current symbolic Relation does intersect with the symbolic relation ~otherSymRel~.
+It's implemented with the early-stop mechanism.
+
+*/
     void Normalize();
-    void ProjectToAxis(const bool, const bool);
-    // The following functions are needed for the SymbolicRelation class
-    // in order to act as an attribute of a relation:
+/*
+Transforms the current symbolic relation into the normal form:
+
+  * No tuple has any redundant linear constraint(s).
+
+  * The order of the linear constraints is clockwise
+  (two following linear constraints interpreted as EQ-Constraints (using = as Comparator) do intersect in a vertex of the described convex polygon for each tuple).
+
+  * Each tuple does represent a (convex) pointset $\subseteq$ WORLD.
+
+  * No tuple does represent the empty set.
+
+*/
+    void ProjectToAxis(const bool blnXAxis, const bool blnYAxis);
+/*
+Compute the projection to the x-axis (blnXAxis have to be ~true~) or to the y-axis (blnYAxis have to be ~true~).
+
+*/
+
+/*
+Functions needed to import the ~constraint~ data type to (relational) tuple
+
+There are totally 10 functions which are defined as virtual functions. They need
+to be defined here in order for the ~constraint~ data type to be used in Tuple definition
+as an attribute.
+
+*/
     int NumOfFLOBs() const;
     FLOB* GetFLOB(const int);
-    int Compare(const Attribute*) const;
-    bool Adjacent(const Attribute*) const;
+    int Compare(const Attribute* arg) const;
+    bool Adjacent(const Attribute* arg) const;
     SymbolicRelation* Clone() const;
     bool IsDefined() const;
-    void SetDefined(bool);
+    void SetDefined(bool Defined);
     size_t HashValue() const;
     size_t Sizeof() const;
-    void CopyFrom(const StandardAttribute*);
+    void CopyFrom(const StandardAttribute* right);
+
     const Rectangle<2> BoundingBox() const;
+/*
+Returns the minimum bounding box of the point set descibed by the symbolic relation.
+
+*/
 
   private:
     DBArray<LinearConstraint> linConstraints;
+/*
+The persistent array of linear constraints.
+
+*/
     DBArray<SymbolicTuple> symbolicTuples;
+/*
+The persistent array of symbolic tuples.
+
+*/
     Rectangle<2> mbbox;
+/*
+The minimum bounding box of the point set descibed by the symbolic relation.
+
+*/
 };
 
 

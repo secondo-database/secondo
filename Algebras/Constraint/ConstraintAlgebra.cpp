@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Implementation of the Constraint Algebra
 
-July, 2006. Simon Muerner
+January, 2007 Simon Muerner
 
 [TOC]
 
@@ -34,7 +34,7 @@ July, 2006. Simon Muerner
 This implementation file essentially contains the definitions and implementations of the type constructor ~constraint~ with its associated operations.
 
 
-2 Defines and Includes
+2 Defines and includes
 
 */
 using namespace std;
@@ -279,7 +279,7 @@ SymbolicRelation::SymbolicRelation(const SymbolicRelation& symRel):
   symbolicTuples(symRel.SymbolicTuplesSize()),
   mbbox(symRel.BoundingBox())
 {
-  // Kopieren des linConstraints-DBArrays:
+  // copy the DBArray linConstraints:
   int i;
   for(i = 0; i < symRel.LinConstraintsSize(); i++ )
   {
@@ -287,13 +287,19 @@ SymbolicRelation::SymbolicRelation(const SymbolicRelation& symRel):
     symRel.GetLinConstraints( i, linC );
     this->linConstraints.Put( i, *linC );
   }
-  // Kopieren des symbolicTuples-DBArrays:
+  // copy the DBArray symbolicTuples:
   for(i = 0; i < symRel.SymbolicTuplesSize(); i++ )
   {
     const SymbolicTuple *iPair;
     symRel.GetSymbolicTuples( i, iPair );
     this->symbolicTuples.Put( i, *iPair );
   }
+}
+
+void SymbolicRelation::Destroy()
+{
+  this->linConstraints.Destroy();
+  this->symbolicTuples.Destroy();
 }
 
 SymbolicRelation& SymbolicRelation::operator=(
@@ -305,14 +311,14 @@ SymbolicRelation& SymbolicRelation::operator=(
   {
     this->linConstraints.Resize(symRel.LinConstraintsSize());
   }
-  // Kopieren des linConstraints-DBArrays:
+  // copy the DBArray linConstraints:
   for(i = 0; i < symRel.LinConstraintsSize(); i++ )
   {
     const LinearConstraint *linC;
     symRel.GetLinConstraints( i, linC );
     this->linConstraints.Put( i, *linC );
   }
-  // Kopieren des symbolicTuples-DBArrays:
+  // copy the DBArray symbolicTuples:
   this->symbolicTuples.Clear();
   if(symRel.SymbolicTuplesSize()>0)
   {
@@ -324,21 +330,15 @@ SymbolicRelation& SymbolicRelation::operator=(
     symRel.GetSymbolicTuples( i, iPair );
     this->symbolicTuples.Put( i, *iPair );
   }
-  // Kopieren der MBBox:
+  // copy the minimum bounding box:
   this->mbbox = symRel.BoundingBox();
   return *this;
 }
 
-void SymbolicRelation::Destroy()
-{
-  this->linConstraints.Destroy();
-  this->symbolicTuples.Destroy();
-}
-
 void SymbolicRelation::GetSymbolicTuples(const int i,
-                          SymbolicTuple const*& SymbolicTuple) const
+                          SymbolicTuple const*& symbolicTuple) const
 {
-  this->symbolicTuples.Get(i, SymbolicTuple);
+  this->symbolicTuples.Get(i, symbolicTuple);
 }
 
 void SymbolicRelation::GetLinConstraints(const int i,
@@ -360,8 +360,6 @@ int SymbolicRelation::SymbolicTuplesSize() const
 void SymbolicRelation::AddSymbolicTuple(
       const vector<LinearConstraint> vLinConstraints)
 {
-  // Achtung: setzt mbbox vorerst auf <leer>,
-  // weil diese sowieso bei Normalisierung berechnet wird!
   int startIndex, endIndex;
   SymbolicTuple tuplePositionInArray;
   tuplePositionInArray.isNormal = false;
@@ -375,7 +373,7 @@ void SymbolicRelation::AddSymbolicTuple(
   }
   tuplePositionInArray.startIndex = startIndex;
   tuplePositionInArray.endIndex = --endIndex;
-  // mbbox wird erst bei Normalisierung genau berechnet!
+  // mbbox will be computed during normalisation (not yet)
   tuplePositionInArray.mbbox = Rectangle<2>(false);
   // append the tuple into the symbolicTuples-DBArray:
   this->symbolicTuples.Append(tuplePositionInArray);
@@ -745,7 +743,7 @@ void SymbolicRelation::Normalize()
     }
     else // vConvexPolygon.size() > 0
     {
-      // Fall: erfuellbares Tupel:
+      // Case: satis. tupel :
       blnRelIsEmptySet = false;
       ToConstraint(vConvexPolygon, vLinConstraints);
       iSymTuple.isNormal = true;
@@ -775,7 +773,7 @@ void SymbolicRelation::Normalize()
       vSymbolicTuples2Save.push_back(iSymTuple);
       lastEndIndex += vLinConstraints.size();
     }
-  } // end for
+  }
 
   this->linConstraints.Clear();
   this->symbolicTuples.Clear();
@@ -895,7 +893,7 @@ const Rectangle<2> SymbolicRelation::BoundingBox() const
 }
 
 /*
-5 Auxilary functions, structs and classes
+5 Implementation of auxiliary functions and structures
 
 */
 
@@ -914,14 +912,14 @@ void TriangulateRegion(const Region* reg,
   if(!reg->IsEmpty())
   {
     // if it is not empty:
-    Region* regionOriginal = new Region(*reg, false); // in memory  ;
+    Region* regionOriginal = new Region(*reg, false); // in memory
     Region* region2convert = new Region(*reg, true); // in memory,
                 // but only with neccessary halfsegments
 
 
     // how many faces?
     regionOriginal->LogicSort();
-    region2convert->LogicSort(); // neccessary? ja (ursprüngliche order)
+    region2convert->LogicSort();
     const HalfSegment *hs, *hsnext;
     int currFace, currFace2convert, currCycle, currEdge;
     Point outputP, leftoverP;
@@ -1134,9 +1132,9 @@ double GetOrientedArea(double px, double py,
 }
 
 /*
-5.3 ~MergeTriangles2ConvexPolygons~-function
+5.3 ~MergeTriangles2ConvexPolygons~-function and structure
 
-5.3.1 Additional datastructures for ~MergeTriangles2ConvexPolygons~-function
+Additional datastructure for the ~MergeTriangles2ConvexPolygons~-function
 
 */
 struct EdgeRef
@@ -1235,7 +1233,7 @@ class CWPointComparator
 };
 
 /*
-5.3.2 ~MergeTriangles2ConvexPolygons~-function impementation
+Implementation of the ~MergeTriangles2ConvexPolygons~-function
 
 */
 void MergeTriangles2ConvexPolygons(
@@ -1330,7 +1328,7 @@ void MergeTriangles2ConvexPolygons(
       vEdges[vEdgesRefSort[i].Edge][PARTNER] =
         vEdgesRefSort[i+1].Edge;
       // leave (vEdges[vEdgesRefSort[i+1].Edge][PARTNER] == -1),
-      //otherwise the step "remove uneccessary diagonals" is done
+      //otherwise the step "remove not neccessary diagonals" is done
       // twice for each diagonal!
     i++;
     }
@@ -1346,7 +1344,7 @@ void MergeTriangles2ConvexPolygons(
     {
     int iC1 = vEdges[i][COMPONENT];
     int iC2 = vEdges[vEdges[i][PARTNER]][COMPONENT];
-    // nur wenn Diagonale und nicht bereits betrachtete Diagonale
+	// only for (not already visited) diagonals:
 
       int iC1Edge = vComponents[iC1][FIRST];
       int iC1VertexAdjacent2From, iC1VertexAdjacent2To;
@@ -1456,7 +1454,6 @@ void MergeTriangles2ConvexPolygons(
     if(blnInnenWinkelFromOK && blnInnenWinkelToOK)
       {
         // then the diagonal is not neccessary: do a merge:
-        // Vekettung der Listen:
         int iSmallerComp, iBiggerComp;
         int iSmallerCompEdge, iSmallerCompLastEdge;
         if(vComponents[iC1][NO_EDGES] <= vComponents[iC2][NO_EDGES])
@@ -1562,20 +1559,13 @@ void MergeTriangles2ConvexPolygons(
   }
 }
 
-
-
 /*
-5.4 ~GetIntersectionPoint~-function
+5.4 ~GetIntersectionPoint~-function (with linear constraints)
 
 */
 Point2D GetIntersectionPoint(const LinearConstraint& linConFirst,
   const LinearConstraint& linConSecond)
 {
-  // Input: two linear constraints
-  // prerequisite: not parallel or equal (otherwise they woudn't
-  // intersection in one point)
-  // Output: intersection point
-
   double x = (linConFirst.Get_a2()*linConSecond.Get_b()-
       linConSecond.Get_a2()*linConFirst.Get_b())/
         (linConFirst.Get_a1()*linConSecond.Get_a2()-
@@ -1635,12 +1625,6 @@ Rectangle<2> MinimumBoundingBox(const vector<Point2D>& vConvexPolygon)
 void ToConstraint(const Rectangle<2>& mbbox,
       vector<LinearConstraint>& vLinConstraints)
 {
-  // Eingabe: 2-dimensionale MBB
-  //       (degenerierte Faelle moeglich:
-  //      Segment, Punkt; nicht moeglich: leere Menge)
-  //          gegeben als rectangle<2>-Objekt
-  // Ausgabe: Vektor mit lienearen Constraints,
-  //       welche die Eingabe beschreiben
   vLinConstraints.clear();
   if(mbbox.IsDefined())
   {
@@ -1664,14 +1648,6 @@ void ToConstraint(const Rectangle<2>& mbbox,
 void ToConstraint(const vector<Point2D>& vConvexPolygon,
         vector<LinearConstraint>& vLinConstraints)
 {
-  // Eingabe: konvexes Polygon (degenerierte Faelle moeglich:
-  //          Segment, Punkt; nicht moeglich: leere Menge)
-  //          gegeben als nicht-leerer Vektor von Point2D-Objekten in cw-o.
-  // Ausgabe: Vektor mit lienearen Constraints, welche die Eingabe beschr.
-  //          lineare Constraints in cw-order (!)
-  //          d.h. zwei nacheinander folgende Constraints schneiden
-  //          sich immer in einem Punkt!
-
   int i,j,k;
   bool blnAllEqual;
   bool blnAllOnSameLine;
@@ -1889,10 +1865,10 @@ void ToConstraint(const vector<Point2D>& vConvexPolygon,
         }
         else // pFirst.x!=pSecond.x
         {
-          double m,b; // Geradengleichung y = mx+b
-          //             fuehrt zu (mx -y +b = 0)
+          double m,b; // y = mx+b
+          //             => (mx -y +b = 0)
           m = (pSecond.y-pFirst.y)/(pSecond.x-pFirst.x);
-          // m definiert wegen (pFirst.x!=pSecond.x)
+          // m is defined because of (pFirst.x!=pSecond.x)
           b = pFirst.y - m*pFirst.x;
           if((m*pOther.x - pOther.y + b) < 0)
           {
@@ -1923,13 +1899,6 @@ void ComputeXOrderedSequenceOfSlabs(const vector<Point2D>& vP,
             vector<Point2D>& vUpperBoundary,
             vector<Point2D>& vLowerBoundary)
 {
-  // Eingabe: konvexes Polygon vP
-  //          (degenerierte Faelle nicht moeglich: Segment,Punkt,leere M.)
-  //          gegeben als nicht-leerer (mindestens 3 Elemente) Vektor
-  //          von Point2D-Objekten ohne Dublikate und
-  //          ohne redundante Punkte (cw-order!)
-  // Ausgabe: Vektoren von Point2D-Objekten mit jeweils oberen
-  //          und unteren Boundary
   int i;
 
   vUpperBoundary.clear();
@@ -1957,9 +1926,7 @@ void ComputeXOrderedSequenceOfSlabs(const vector<Point2D>& vP,
     }
     else if(AlmostEqual(vP[i].x,x_min_P))
     {
-      // darf nicht vorkommen !!!
-        ErrorReporter::ReportError("ERROR: reduntante Polygon-Punkte "
-          "auf linker Kante bei ComputeXOrderedSequenceOfSlabs");    }
+        ErrorReporter::ReportError("ERROR");    }
     if(AlmostEqual(vP[i].x,x_max_P) && i_x_maxFirst==-1)
     {
       i_x_maxFirst = i;
@@ -1970,9 +1937,7 @@ void ComputeXOrderedSequenceOfSlabs(const vector<Point2D>& vP,
     }
     else if(AlmostEqual(vP[i].x,x_max_P))
     {
-      // darf nicht vorkommen !!!
-        ErrorReporter::ReportError("ERROR: reduntante Polygon-Punkte "
-          "auf rechter Kante bei ComputeXOrderedSequenceOfSlabs");
+        ErrorReporter::ReportError("ERROR");
     }
   }
 
@@ -1980,9 +1945,7 @@ void ComputeXOrderedSequenceOfSlabs(const vector<Point2D>& vP,
   if(i_x_minSecond!=-1 && !(i_x_minSecond==i_x_minFirst+1 ||
           (i_x_minSecond==vP.size()-1 && i_x_minFirst==0)))
   {
-    // darf nicht vorkommen !!!
-        ErrorReporter::ReportError("ERROR: reduntante Polygon-Punkte "
-          "auf linker Kante bei ComputeXOrderedSequenceOfSlabs");
+        ErrorReporter::ReportError("ERROR");
   }
 
   // Compute vUpperBoundary:
@@ -2001,10 +1964,10 @@ void ComputeXOrderedSequenceOfSlabs(const vector<Point2D>& vP,
     i++;
     if(i_x_maxSecond==-1 || (vP[i_x_maxFirst].y > vP[i_x_maxSecond].y))
     {
-       // (d.h. nur First ODER First oben, Second unten)
+       // (only First OR First up, Second down)
       blnScanEnd = ((i % vP.size()) == ((i_x_maxFirst+1) % vP.size()));
     }
-    else // (d.h. First unten, Second oben)
+    else // (First down, Second up)
     {
       blnScanEnd = ((i % vP.size()) == ((i_x_maxSecond+1) % vP.size()));
     }
@@ -2026,10 +1989,10 @@ void ComputeXOrderedSequenceOfSlabs(const vector<Point2D>& vP,
     i++;
     if(i_x_minSecond==-1 || (vP[i_x_minFirst].y < vP[i_x_minSecond].y))
     {
-      // (d.h. nur First ODER First unten, Second oben)
+      // (only First ODER First down, Second up)
       blnScanEnd = ((i % vP.size()) == ((i_x_minFirst+1) % vP.size()));
     }
-    else // (d.h. First oben, Second unten)
+    else // (First up, Second down)
     {
       blnScanEnd = ((i % vP.size()) == ((i_x_minSecond+1) % vP.size()));
     }
@@ -2080,7 +2043,17 @@ Point2D GetPointFromSegment(const double xCut,
 }
 
 /*
-5.10 ~GetIntersectionPoint~-function
+5.10 ~GetIntersectionPoint~-function (with Segments)
+
+Input: two Segemnts
+
+Prerequisite: ~pSegment1First~ $\neq$ ~pSegment1Second~ and
+              ~pSegment2First~ $\neq$ ~pSegment2Second~
+
+Output:
+returns ~IsPoint~==~true~ if there is a single inters point pIntersection
+returns ~IsPoint~==~false~ if there is either no intersections point OR
+ more than one sinlge intersection point.
 
 */
 void GetIntersectionPoint(
@@ -2090,15 +2063,6 @@ void GetIntersectionPoint(
       const Point2D& pSegment2Second,
       bool& IsPoint, Point2D& pIntersection)
 {
-  // Input: two Segemnts
-  // prerequisite: pSegment1First != pSegment1Second &&
-  //               pSegment2First != pSegment2Second
-  // Output:
-  // returns IsPoint==true if there is a single inters point pIntersection
-  // returns IsPoint==false if there is either no intersections point OR
-  //  more than one sinlge intersection point
-
-
   bool blnSegment1Vertical;
   Point2D pSegment1Upp, pSegment1Low;
   Point2D pSegment1Left, pSegment1Right;
@@ -2292,18 +2256,8 @@ void ConvexPolygonIntersection(const vector<Point2D>& vP,
         const vector<Point2D>& vQ,
         vector<Point2D>& vPQIntersection)
 {
-  // Eingabe: konvexe Polygone vP und vQ (degenerierte Faelle moeglich:
-  //          Segment, Punkt; leere Menge)
-  //          gegeben als nicht-leerer Vektor von Point2D-Objekten
-  //          ohne Dublikate und
-  //          ohne redundante Punkte (cw-order!)
-  // Ausgabe: konvexes Polygon vPQIntersection
-  //        (ohne Dublikate und ohne redundante Punkte in cw-order),
-  //        welches den Durchschnitt von vP und vQ bildet.
-
-
   int i;
-  vector<Point2D> vPQIntersectionWD; // with possibly dublicates
+  vector<Point2D> vPQIntersectionWD; // with possibly duplicates
   vPQIntersection.clear();
   if(vP.size()==0 || vQ.size()==0)
   {
@@ -3199,16 +3153,6 @@ void HalfPlaneIntersection(
         const vector<LinearConstraint>& vLinConstraints,
         vector<Point2D>& vConvexPolygon)
 {
-  // Eingabe: Vektor mit lienearen Constraints, welche die Eingabe beschr.
-  //          gegeben als nicht-leerer Vektor von linearen Constraints
-  //          welche jeweils Half-Planes oder Mengen der Art
-  //          {1<=0}={}, {-1<=0}=R^2 definieren
-  //          (d.h. mit OP_LEQ-Vergleichsoperator)
-  //          (degenerierte Faelle moeglich: unbeschraenkte Objekte, Seg.,
-  //           Punkt; nicht moeglich: leere Menge)
-  // Ausgabe: konvexes Polygon (evt. auch nur ein Punkt,
-  //          zwei Punkte oder leer!!)
-  // Durchschnitt berechnen
   vConvexPolygon.clear();
   if(vLinConstraints.size()==0)
   {
@@ -3520,7 +3464,7 @@ void HalfPlaneIntersection(
 }
 
 /*
-6 Type Constructor ~constraint~
+6 Type Constructor ~constraint~ and its support functions
 
 A value of type ~constraint~ represents a 2-dimensional (possibly infinite) pointset.
 
@@ -3557,29 +3501,29 @@ ListExpr OutConstraint( ListExpr typeInfo, Word value )
         {
           if(j==pSymRelIP->startIndex)
           {
-            // bei der ersten Konjunktion der ersten Disjunktion:
+            // first conjunction, first disjunction
             tempRes = nl->OneElemList(nl->FourElemList(nl->RealAtom(a1),
               nl->RealAtom(a2), nl->RealAtom(b), nl->SymbolAtom(Op)));
             lastCon = tempRes;
           }
           if(j>pSymRelIP->startIndex)
           {
-            // bei den weiteren Konjunktionen der ersten Disjunktion:
+            // further conjunctions of the first disjunction
             lastCon = nl->Append(lastCon, nl->FourElemList(nl->RealAtom(a1),
               nl->RealAtom(a2), nl->RealAtom(b), nl->SymbolAtom(Op)));
           }
           if(j==pSymRelIP->endIndex)
           {
-            // bei der letzten Konjunktion der ersten Disjunktion:
+            // last conjunction of the first disjunction
             result = nl->OneElemList(tempRes);
             lastDis = result;
           }
         }
-        else // also i>0
+        else // => i>0
         {
           if(j==pSymRelIP->startIndex)
           {
-            // bei der ersten Konjunktion von einer weiteren Disjunktion:
+            // first conjunction
             tempRes = nl->OneElemList(
               nl->FourElemList(nl->RealAtom(a1),
                 nl->RealAtom(a2), nl->RealAtom(b), nl->SymbolAtom(Op)));
@@ -3587,15 +3531,13 @@ ListExpr OutConstraint( ListExpr typeInfo, Word value )
           }
           if(j>pSymRelIP->startIndex)
           {
-            // bei einer weiteren Konjunktion von einer
-            // weiteren Disjunktion:
             lastCon = nl->Append(lastCon, nl->FourElemList(
               nl->RealAtom(a1), nl->RealAtom(a2),
               nl->RealAtom(b), nl->SymbolAtom(Op)));
           }
           if(j==pSymRelIP->endIndex)
           {
-            // bei der letzten Konjunktion von einer weiteren Disjunktion:
+            // last conjunction
             lastDis = nl->Append(lastDis, tempRes);
           }
         }
@@ -3780,7 +3722,7 @@ void* CastConstraint(void* addr)
 }
 
 /*
-6.10 Kind Checking Function
+6.10 Kind Checking function
 
 This function checks whether the type constructor is applied correctly. Since
 type constructor ~constraint~ does not have arguments, this is trivial.
@@ -3811,15 +3753,11 @@ TypeConstructor constraint(
 
 
 /*
-7 Operators
-
-Definition of operators is similar to definition of type constructors. An operator is defined by creating an instance of class ~Operator~. Again we have to define some functions before we are able to create an ~Operator~ instance.
-
-7.1 Type mapping functions
+7 Operators: implementation of type mapping functions
 
 A type mapping function takes a nested list as argument. Its contents are type descriptions of an operator's input parameters. A nested list describing the output type of the operator is returned.
 
-7.1.1 Type mapping function ~CxC2CTypeMap~
+7.1 Type mapping function ~CxC2CTypeMap~
 
 */
 ListExpr CxC2CTypeMap( ListExpr args )
@@ -3851,7 +3789,7 @@ ListExpr CxC2CTypeMap( ListExpr args )
 
 
 /*
-7.1.2 Type mapping function ~C2CTypeMap~
+7.2 Type mapping function ~C2CTypeMap~
 
 */
 ListExpr C2CTypeMap( ListExpr args )
@@ -3880,7 +3818,7 @@ ListExpr C2CTypeMap( ListExpr args )
 
 
 /*
-7.1.3 Type mapping function ~projectionTypeMap~
+7.3 Type mapping function ~projectionTypeMap~
 
 */
 ListExpr projectionTypeMap( ListExpr args )
@@ -3915,7 +3853,7 @@ ListExpr projectionTypeMap( ListExpr args )
 }
 
 /*
-7.1.4 Type mapping function ~selectionTypeMap~
+7.4 Type mapping function ~selectionTypeMap~
 
 */
 ListExpr selectionTypeMap( ListExpr args )
@@ -3961,7 +3899,7 @@ ListExpr selectionTypeMap( ListExpr args )
 
 
 /*
-7.1.5 Type mapping function ~C2BoolTypeMap~
+7.5 Type mapping function ~C2BoolTypeMap~
 
 */
 ListExpr C2BoolTypeMap( ListExpr args )
@@ -3989,7 +3927,7 @@ ListExpr C2BoolTypeMap( ListExpr args )
 }
 
 /*
-7.1.6 Type mapping function ~CxC2BoolTypeMap~
+7.6 Type mapping function ~CxC2BoolTypeMap~
 
 */
 ListExpr CxC2BoolTypeMap( ListExpr args )
@@ -4019,7 +3957,7 @@ ListExpr CxC2BoolTypeMap( ListExpr args )
 }
 
 /*
-7.1.7 Type mapping function ~C2IntTypeMap~
+7.7 Type mapping function ~C2IntTypeMap~
 
 */
 ListExpr C2IntTypeMap( ListExpr args )
@@ -4049,7 +3987,7 @@ ListExpr C2IntTypeMap( ListExpr args )
 
 
 /*
-7.1.8 Type mapping function ~Point2CTypeMap~
+7.8 Type mapping function ~Point2CTypeMap~
 
 */
 ListExpr Point2CTypeMap( ListExpr args )
@@ -4079,7 +4017,7 @@ ListExpr Point2CTypeMap( ListExpr args )
 
 
 /*
-7.1.9 Type mapping function ~Points2CTypeMap~
+7.9 Type mapping function ~Points2CTypeMap~
 
 */
 ListExpr Points2CTypeMap( ListExpr args )
@@ -4108,7 +4046,7 @@ ListExpr Points2CTypeMap( ListExpr args )
 }
 
 /*
-7.1.10 Type mapping function ~Line2CTypeMap~
+7.10 Type mapping function ~Line2CTypeMap~
 
 */
 ListExpr Line2CTypeMap( ListExpr args )
@@ -4137,7 +4075,7 @@ ListExpr Line2CTypeMap( ListExpr args )
 
 
 /*
-7.1.11 Type mapping function ~Region2CTypeMap~
+7.11 Type mapping function ~Region2CTypeMap~
 
 */
 ListExpr RegionxBool2CTypeMap( ListExpr args )
@@ -4167,7 +4105,7 @@ ListExpr RegionxBool2CTypeMap( ListExpr args )
 }
 
 /*
-7.1.12 Type mapping function ~C2PointTypeMap~
+7.12 Type mapping function ~C2PointTypeMap~
 
 */
 ListExpr C2PointTypeMap( ListExpr args )
@@ -4196,7 +4134,7 @@ ListExpr C2PointTypeMap( ListExpr args )
 }
 
 /*
-7.1.13 Type mapping function ~C2PointsTypeMap~
+7.13 Type mapping function ~C2PointsTypeMap~
 
 */
 ListExpr C2PointsTypeMap( ListExpr args )
@@ -4225,7 +4163,7 @@ ListExpr C2PointsTypeMap( ListExpr args )
 }
 
 /*
-7.1.14 Type mapping function ~C2LineTypeMap~
+7.14 Type mapping function ~C2LineTypeMap~
 
 */
 ListExpr C2LineTypeMap( ListExpr args )
@@ -4254,7 +4192,7 @@ ListExpr C2LineTypeMap( ListExpr args )
 }
 
 /*
-7.1.15 Type mapping function ~CStream2RegionStreamTypeMap~
+7.15 Type mapping function ~CStream2RegionStreamTypeMap~
 
 */
 ListExpr CStream2RegionStreamTypeMap( ListExpr args )
@@ -4299,7 +4237,7 @@ ListExpr CStream2RegionStreamTypeMap( ListExpr args )
 
 
 /*
-7.1.16 Type mapping function ~C2RectTypeMap~
+7.16 Type mapping function ~C2RectTypeMap~
 
 */
 ListExpr C2RectTypeMap( ListExpr args )
@@ -4328,7 +4266,7 @@ ListExpr C2RectTypeMap( ListExpr args )
 }
 
 /*
-7.1.17 Type mapping function ~RegionStream2RegionStreamTypeMap~
+7.17 Type mapping function ~RegionStream2RegionStreamTypeMap~
 
 */
 ListExpr RegionStream2RegionStreamTypeMap( ListExpr args )
@@ -4371,9 +4309,9 @@ ListExpr RegionStream2RegionStreamTypeMap( ListExpr args )
 
 
 /*
-7.2 Value mapping functions
+8 Operators: implementation of value mapping functions
 
-7.2.1 Value mapping functions of operator ~cunion~
+8.1 Value mapping functions of operator ~cunion~
 
 */
 int unionValueMap( Word* args, Word& result, int message,
@@ -4387,9 +4325,6 @@ int unionValueMap( Word* args, Word& result, int message,
   if(symRelFirst->SymbolicTuplesSize() <
         symRelSecond->SymbolicTuplesSize())
   {
-    // dann mache noch einen Variablen-Umtausch,
-    // damit die Anzahl symbolischer Tupel, deren Inhalt
-    // veraendert werden muss (Index-Aktualisierung), minimiert wird:
     SymbolicRelation* symRelTemp = symRelFirst;
     symRelFirst = symRelSecond;
     symRelSecond = symRelTemp;
@@ -4402,7 +4337,7 @@ int unionValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.2 Value mapping functions of operator ~cintersection~ alias ~cjoin~
+8.2 Value mapping functions of operator ~cintersection~ alias ~cjoin~
 
 */
 int intersectionValueMap( Word* args, Word& result, int message,
@@ -4422,7 +4357,7 @@ int intersectionValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.3 Value mapping functions of operator ~cprojection~
+8.3 Value mapping functions of operator ~cprojection~
 
 */
 int projectionValueMap( Word* args, Word& result, int message,
@@ -4451,7 +4386,7 @@ int projectionValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.4 Value mapping functions of operator ~cselection~
+8.4 Value mapping functions of operator ~cselection~
 
 */
 int selectionValueMap( Word* args, Word& result, int message,
@@ -4483,7 +4418,7 @@ int selectionValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.5 Value mapping functions of operator ~csatisfy~
+8.5 Value mapping functions of operator ~csatisfy~
 
 */
 int satisfyValueMap( Word* args, Word& result, int message,
@@ -4496,7 +4431,7 @@ int satisfyValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.6 Value mapping functions of operator ~coverlaps~
+8.6 Value mapping functions of operator ~coverlaps~
 
 */
 int overlapsValueMap( Word* args, Word& result, int message,
@@ -4511,7 +4446,7 @@ int overlapsValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.7 Value mapping functions of operator ~no\_tuples~
+8.7 Value mapping functions of operator ~no\_tuples~
 
 */
 int no_tuplesValueMap( Word* args, Word& result, int message,
@@ -4524,7 +4459,7 @@ int no_tuplesValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.8 Value mapping functions of operator ~no\_constraints~
+8.8 Value mapping functions of operator ~no\_constraints~
 
 */
 int no_constraintsValueMap( Word* args, Word& result, int message,
@@ -4537,7 +4472,7 @@ int no_constraintsValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.9 Value mapping functions of operator ~bbox~
+8.9 Value mapping functions of operator ~bbox~
 
 */
 int bboxValueMap( Word* args, Word& result, int message,
@@ -4551,7 +4486,7 @@ int bboxValueMap( Word* args, Word& result, int message,
 
 
 /*
-7.2.10 Value mapping functions of operator ~triangulate~
+8.10 Value mapping functions of operator ~triangulate~
 
 */
 struct TriangulateLocalInfo
@@ -4576,7 +4511,6 @@ int triangulateValueMap( Word* args, Word& result, int message,
     Word elem;
     Region* reg;
     localInfo = (TriangulateLocalInfo*)local.addr;
-    // ist vektor mit triangles leer oder bereits vollständig verarbeitet?
     if(localInfo->triangles.size()==0 ||
       localInfo->iter == localInfo->triangles.end())
     {
@@ -4648,7 +4582,7 @@ int triangulateValueMap( Word* args, Word& result, int message,
 
 
 /*
-7.2.11 Value mapping functions of operator (import function) ~point2constraint~
+8.11 Value mapping functions of import operator ~point2constraint~
 
 */
 int point2constraintValueMap( Word* args, Word& result, int message,
@@ -4684,7 +4618,7 @@ int point2constraintValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.12 Value mapping functions of operator (import function) ~points2constraint~
+8.12 Value mapping functions of import operator ~points2constraint~
 
 */
 int points2constraintValueMap( Word* args, Word& result, int message,
@@ -4737,7 +4671,7 @@ int points2constraintValueMap( Word* args, Word& result, int message,
 
 
 /*
-7.2.13 Value mapping functions of operator (import function) ~line2constraint~
+8.13 Value mapping functions of import operator ~line2constraint~
 
 */
 int line2constraintValueMap( Word* args, Word& result, int message,
@@ -4799,7 +4733,7 @@ int line2constraintValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.14 Value mapping functions of operator (import function) ~region2constraint~
+8.14 Value mapping functions of import operator ~region2constraint~
 
 */
 int region2constraintValueMap( Word* args, Word& result, int message,
@@ -4835,7 +4769,6 @@ int region2constraintValueMap( Word* args, Word& result, int message,
     vector<vector<double> > vVertices;
     vector<vector<int> > vTriangles;
     TriangulateRegion(reg, vVertices, vTriangles);
-    // Vektor von nicht-leeren Vektoren von Point2D-Objekten in cw-order:
     vector<vector<Point2D> > vCWPoints2convert;
     if(blnMergeTriangles2ConvPoly)
     {
@@ -4914,7 +4847,7 @@ int region2constraintValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.15 Value mapping functions of operator (export function) ~constraint2point~
+8.15 Value mapping functions of export operator ~constraint2point~
 
 */
 int constraint2pointValueMap( Word* args, Word& result, int message,
@@ -4985,7 +4918,7 @@ int constraint2pointValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.16 Value mapping functions of operator (export function) ~constraint2points~
+8.16 Value mapping functions of export operator ~constraint2points~
 
 */
 int constraint2pointsValueMap( Word* args, Word& result, int message,
@@ -5023,7 +4956,7 @@ int constraint2pointsValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.17 Value mapping functions of operator (export function) ~constraint2line~
+8.17 Value mapping functions of export operator ~constraint2line~
 
 */
 int constraint2lineValueMap( Word* args, Word& result, int message,
@@ -5071,7 +5004,7 @@ int constraint2lineValueMap( Word* args, Word& result, int message,
 }
 
 /*
-7.2.18 Value mapping functions of operator (export function) ~constraint2region~
+8.18 Value mapping functions of export operator ~constraint2region~
 
 */
 struct constraint2regionLocalInfo
@@ -5098,8 +5031,6 @@ int constraint2regionValueMap( Word* args, Word& result, int message,
     Word elem;
     SymbolicRelation* sr;
     localInfo = (constraint2regionLocalInfo*)local.addr;
-    // ist vektor mit konvexen polygonen leer oder
-    // bereits vollständig verarbeitet?
     if(localInfo->convexPolygons.size()==0 ||
       localInfo->iter == localInfo->convexPolygons.end())
     {
@@ -5107,7 +5038,7 @@ int constraint2regionValueMap( Word* args, Word& result, int message,
       {
         localInfo->convexPolygons.clear();
       }
-      // neuer request an predecessor auslösen:
+      // new request:
       bool blnInputConstraintStreamIsEmpty = true;
       while(blnInputConstraintStreamIsEmpty)
       {
@@ -5222,11 +5153,11 @@ int constraint2regionValueMap( Word* args, Word& result, int message,
 
 
 /*
-7.3 Definition of operators
+9 Operators: specifications strings and final definition of operator
 
 Definition of operators is done in a way similar to definition of type constructors: an instance of class ~Operator~ is defined.
 
-7.3.1 Definition of specification strings
+9.1 Definition of specification strings
 
 */
 const string ConstraintSpecUnion  =
@@ -5411,7 +5342,7 @@ const string ConstraintSpecConstraint2Region  =
 
 
 /*
-7.3.2 Definition of the operators
+9.2 Definition of the operators
 
 */
 Operator constraintunion( "cunion",
@@ -5530,7 +5461,7 @@ Operator constraint2region( "constraint2region",
 
 
 /*
-8 Creating the Algebra
+10 Creating the Algebra
 
 */
 
@@ -5570,7 +5501,7 @@ class ConstraintAlgebra : public Algebra
 ConstraintAlgebra constraintAlgebra;
 
 /*
-9 Initialization
+11 Initialization
 
 ["]Each algebra module needs an initialization function. The algebra manager has a reference to this function if this algebra is included in the list of required algebras, thus forcing the linker to include this module.
 
@@ -5591,7 +5522,7 @@ InitializeConstraintAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 } // namespace
 
 /*
-10 References
+12 References
 
 [Point02] Algebra Module PointRectangleAlgebra. FernUniversit[ae]t Hagen, Praktische Informatik IV, Secondo System, Directory ["]Algebras/PointRectangle["], file ["]PointRectangleAlgebra.cpp["], since July 2002
 
