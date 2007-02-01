@@ -83,7 +83,6 @@ int SolvePoly(const double &a, const double &b, double &solution)
     cout<<"SolvePoly1 ends with 1 solution"<<endl;
     cout<<"solution = "<<solution<<"  "<<(a*solution)+b<<endl;
 #endif
-  cout << solution<< endl;
   return 1;
 }
 
@@ -127,7 +126,7 @@ int SolvePoly(const double &a, const double &b,
     }
   }
   else { //use SolvePoly1
-    number = SolvePoly(b, c, solution[1]);
+    number = SolvePoly(b, c, solution[0]);
   }
 #ifdef POLYSOLVERDEBUG
   cout<<"SolvePoly2 ends with  "<<number<<" solutions"<<endl;
