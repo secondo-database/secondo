@@ -145,11 +145,21 @@ void UReal::TemporalFunction( const Instant& t,
       DateTime T2(durationtype);
       T2 = t - timeInterval.start;
       double t2 = T2.ToDouble();
-//      double t2 = t.ToDouble() - timeInterval.start.ToDouble();
       double res = a * pow( t2, 2 ) +
         b * t2 +
         c;
-      if( r ) res = sqrt( res );
+      
+      if( r ){
+        if(res>=0.0){
+           res = sqrt( res );
+        } else {
+           if(AlmostEqual(res,0.0)){ // correction of rounding errors
+              res = 0.0;
+           } else { 
+             assert(false);
+           }
+        }
+      }
       result.Set( true, res );
     }
 
@@ -229,6 +239,25 @@ void UReal::TranslateParab(const double& t)
   c = a*pow(t,2) + b*t + c;
   b = 2*a*t      + b      ;
   // a = a;
+  if(timeInterval.start == timeInterval.end)
+  {
+    a = 0; b = 0;
+  }
+  if( r && (a==0.0) && (b==0.0) )
+  {
+    r = false;
+    if(c<0){
+       if( AlmostEqual(c,0.0) )
+       {
+          c = 0;
+       } else 
+       {
+         bool valid= false;
+         assert(valid);
+       }
+    }
+    c = sqrt(c); 
+  }
 }
 
 
@@ -473,7 +502,6 @@ void UReal::Linearize(UReal& result) const{
     TemporalFunction(timeInterval.end,V,true);
     double v2 = V.GetRealval();
     result = UReal(timeInterval,v1,v2);
-
 }
 
 /*
@@ -494,8 +522,6 @@ void UReal::Linearize(UReal& result1, UReal& result2) const{
       result2.SetDefined(false);
       return;
     }
-
-
 
     CcReal V;
     TemporalFunction(timeInterval.start,V,true);
@@ -528,8 +554,6 @@ void UReal::Linearize(UReal& result1, UReal& result2) const{
 
     TemporalFunction(ixst,V,true);
     double v3 = V.GetRealval();
-
-
 
     Interval<Instant> interval1(timeInterval.start,ixst,timeInterval.lc,true);
     Interval<Instant> interval2(ixst,timeInterval.end,false,timeInterval.rc);
@@ -565,7 +589,7 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
   times.Clear();
   if( !IsDefined() )
   {
-     cout << "UReal::PeriodsAtVal(): Undefined UReal -> 0 results." << endl;
+//      cout << "UReal::PeriodsAtVal(): Undefined UReal -> 0 results." << endl;
      return 0;
   }
 
@@ -585,7 +609,7 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
       }
       else // no result
       {
-     cout << "UReal::PeriodsAtVal(): constant UReal -> 0 results." << endl;
+//      cout << "UReal::PeriodsAtVal(): constant UReal -> 0 results." << endl;
         return 0;
       }
     }
@@ -606,7 +630,7 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
     else
       no_res = SolvePoly(a, b, (c-(value*value)), inst_d, true);
   }
-  times.Print(cout);
+//   times.Print(cout);
 //   cout << "SolvePoly found no_res=" << no_res << " results." << endl;
   for(int i=0; i<no_res; i++)
   {
@@ -622,7 +646,6 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
 //       cout << "\ttimes.IsValid()=" << times.IsValid() << endl;
       if( !times.Contains( t1 ) )
       {
-//         cout << "UReal::PeriodsAtVal(): add instant" << endl;
         iv = Interval<Instant>(t1, t1, true, true);
         times.StartBulkLoad();
         times.Add(iv); // add only once
@@ -810,13 +833,13 @@ double UReal::PeriodsAtMax(bool& correct, Periods& times) const
 Creates a vector of units, which are the restriction of this to
 the periods, where it takes its minimum value.
 
-Precondition: this[->]IsDefined()
+*Precondition*: this[->]IsDefined()
 
-Result: stores the resultununit into vector result and returns
-        the number of results (1-2) found.
+*Result*: stores the resultununit into vector result and returns
+          the number of results (1-2) found.
 
-WARNING: AtMin may return points, that are not inside this->timeInterval,
-         if a minimum is located at an open start/end instant.
+*WARNING*: AtMin may return points, that are not inside this[->]timeInterval,
+           if a minimum is located at an open start/end instant.
 
 */
 int UReal::AtMin(vector<UReal>& result) const
@@ -868,13 +891,13 @@ int UReal::AtMin(vector<UReal>& result) const
 Creates a vector of units, which are the restriction of this to
 the periods, where it takes its maximum value.
 
-Precondition: this[->]IsDefined()
+*Precondition*: this[->]IsDefined()
 
-Result: stores the resultununit into vector result and returns
-        the number of results (1-2) found.
+*Result*: stores the resultununit into vector result and returns
+          the number of results (1-2) found.
 
-WARNING: AtMax may return points, that are not inside this->timeInterval,
-         if a maximum is located at an open start/end instant.
+*WARNING*: AtMax may return points, that are not inside this[->]timeInterval,
+           if a maximum is located at an open start/end instant.
 
 */
 int UReal::AtMax( vector<UReal>& result) const
@@ -927,12 +950,13 @@ int UReal::AtMax( vector<UReal>& result) const
 Creates a vector of units, which are the restriction of this to
 the periods, where it takes a certain value.
 
-  Precondition: this[->]IsDefined() && value.IsDefined()
-Result: stores the resultununit into vector result and returns
-        the number of results (1-2) found.
+*Precondition*: this[->]IsDefined() AND value.IsDefined()
 
-WARNING: AtMax may return points, that are not inside this->timeInterval,
-         if a maximum is located at an open start/end instant.
+*Result*: stores the resultununit into vector result and returns
+          the number of results (1-2) found.
+
+*WARNING*: AtMax may return points, that are not inside this[->]timeInterval,
+           if a maximum is located at an open start/end instant.
 
 */
 int UReal::AtValue(CcReal value, vector<UReal>& result) const
@@ -1047,20 +1071,180 @@ int UReal::PeriodsAtEqual( const UReal& other, Periods& times) const
 
 /*
 Creates a vector of ubool, that cover the UReals common deftime and
-indicate wheter their temporal values are equal or not.
+indicate whether their temporal values are equal or not.
 
-Precondition: this[->]IsDefined() && value.IsDefined()
+*Precondition*: this[->]IsDefined() AND value.IsDefined()
 
-Result: stores the resultunit into vector result and returns
-        the number of results found.
+*Result*: stores the resultunit into vector result and returns
+          the number of results found.
 
 */
 
-int UReal::IsEqual(const UReal& other, vector<UBool> result) const
+int UReal::IsEqual(const UReal& other, vector<UBool>& result) const
 {
   result.clear();
+  cout << "UReal::IsEqual() Not Yet Implemented!" << endl;
   return 0;
 }
+
+/*
+Creates the absolute value for an UReal value.
+~result~ may contain 0-3 UReal values.
+
+*Precondition*: this[->]IsDefined()
+
+*Result*: stores the resultunits into vector result and returns
+          the number of results.
+
+*/
+int UReal::Abs(vector<UReal>& result) const
+{
+  assert( IsDefined() );
+  result.clear();
+
+  if( r )
+  { // return the complete unit, as it should be positive
+    result.push_back(UReal(timeInterval, a, b, c, r));
+    return 1;
+  } // else: r == false
+
+  UReal newunit(true);
+  Interval<Instant> 
+      iv(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false),
+      ivnew(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false);
+  const Interval<Instant> *actIntv;
+  Instant 
+      start(instanttype),
+      end(instanttype),
+      testInst(instanttype);
+  Periods *eqPeriods;
+  vector< Interval<DateTime> > resPeriods;
+  int i=0, numEq=0, cmpres=0;
+  bool lc, rc;
+  CcReal fccr1(true, 0.0), fccr2(true,0.0);
+
+  // get times of intersection with time-axis
+  // for each interval generated: if <0 invert all parameters
+  resPeriods.clear();
+  eqPeriods = new Periods(4);
+  eqPeriods->Clear();
+  PeriodsAtVal( 0.0, *eqPeriods);
+  numEq = eqPeriods->GetNoComponents();// 1 instant herein (start==end)
+//    cout << "  numEq=" << numEq << endl;
+
+  // divide deftime into a vector of intervals
+  if ( numEq == 0 )
+  { // single result: complete timeInterval
+    resPeriods.push_back(timeInterval);
+  }
+  else
+  { //otherwise: numEq > 0
+    //   create periods value for single result units
+    start = timeInterval.start;
+    end = timeInterval.start;
+    lc = true;
+    rc = false;
+    for(i=0; i<numEq; i++)
+    {
+      rc = false;
+      eqPeriods->Get(i, actIntv);
+      end = actIntv->start;
+      if(start == timeInterval.start)
+      { // truncate at beginning
+        lc = timeInterval.lc;
+      }
+      if(end == timeInterval.end)
+      { // truncate at right end
+        rc = timeInterval.rc;
+      }
+      if( (start == end) && !(lc && rc) )
+      { // invalid instant: skip
+        start = end;
+        lc = !rc;
+        continue;
+      }
+      ivnew = Interval<Instant>(start, end, lc, rc);
+      resPeriods.push_back(ivnew);
+      start = end;
+      lc = !rc;
+    }
+    // do last interval
+    if(end < timeInterval.end)
+    { // add last interval
+      ivnew = Interval<Instant>(end, timeInterval.end, lc, timeInterval.rc);
+      resPeriods.push_back(ivnew);
+    }
+    else if( (end == timeInterval.end) && 
+             !rc && 
+             timeInterval.rc && 
+             (resPeriods.size()>0)
+           )
+    { // close last interval
+        resPeriods[resPeriods.size()-1].rc = true;
+    }
+  }
+
+  // for each interval create one result unit
+  for(i=0; i< (int) resPeriods.size();i++)
+  { // for each interval test, whether one has to invert it
+    AtInterval(resPeriods[i], newunit);
+    testInst = resPeriods[i].start 
+        + ((resPeriods[i].end - resPeriods[i].start) / 2);
+    TemporalFunction(testInst, fccr1, false);
+    cmpres = fccr1.Compare( &fccr2 );
+    if( cmpres < 0 )
+    {
+      newunit.a *= -1.0; newunit.b *= -1.0; newunit.c *= -1.0;
+    }
+    result.push_back(newunit);
+  }
+
+  delete eqPeriods;
+  return result.size();
+}
+
+/*
+Creates the distance to an other UReal value.
+~result~ may contain 0-3 UReal values.
+
+*Precondition*: this[->]IsDefined() AND other.IsDefined()
+                this[->]r $==$ other.r $==$ false
+
+*Result*: stores the resultunits into vector result and returns
+          the number of results.
+
+*/
+int UReal::Distance(const UReal& other, vector<UReal>& result) const
+{
+  assert( IsDefined() );
+  assert( other.IsDefined() );
+  assert( !r );
+  assert( !other.r );
+
+  result.clear();
+
+  if( timeInterval.Intersects(other.timeInterval) )
+  {
+    UReal ur1(true);
+    UReal ur2(true);
+    UReal diff(true);
+    Interval<Instant> 
+        iv(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false);
+
+    timeInterval.Intersection(other.timeInterval, iv);
+    AtInterval(iv, ur1);
+    other.AtInterval(iv, ur2);
+    diff.timeInterval = iv;
+    diff.a = ur1.a - ur2.a;
+    diff.b = ur1.b - ur2.b;
+    diff.c = ur1.c - ur2.c;
+    diff.r = false;
+
+    diff.Abs(result);
+  }
+  return result.size();
+}
+
 
 /*
 3.1 Class ~UPoint~
@@ -1312,28 +1496,76 @@ void UPoint::Distance( const Point& p, UReal& result ) const
           result.b = 2*((x1-x0)*(x0-x)+(y1-y0)*(y0-y))/dt;
           result.c = pow(x0-x,2)+pow(y0-y,2);
           result.r = true;
-
-/*
-
-For the original representation of ureal, we need:
-
-----
-          double A = pow((x1-x0)/dt,2)+pow((y1-y0)/dt,2);
-          double B = 2*((x1-x0)*(x0-x)+(y1-y0)*(y0-y))/dt;
-          double C = pow(x0-x,2)+pow(y0-y,2);
-
-          result.a = A;
-          result.b = B-2*A*t0;
-          result.c = t0*(t0*A-B)+C;
-          result.r = true;
-
-----
-
-*/
-
         }
       result.SetDefined(true);
     }
+  return;
+}
+
+void UPoint::Distance( const UPoint& up, UReal& result ) const
+{
+  assert( IsDefined() && up.IsDefined() );
+  assert( timeInterval.Intersects(up.timeInterval) );
+
+  Interval<Instant>iv;
+  DateTime DT(durationtype);
+  Point rp10, rp11, rp20, rp21;
+  double
+    x10, x11, x20, x21,
+    y10, y11, y20, y21,
+    dx1, dy1,
+    dx2, dy2,
+    dx12, dy12,
+    dt;
+
+  timeInterval.Intersection(up.timeInterval, iv);
+  result.timeInterval = iv;
+  // ignore closedness for TemporalFunction:
+  TemporalFunction(   iv.start, rp10, true);
+  TemporalFunction(   iv.end,   rp11, true);
+  up.TemporalFunction(iv.start, rp20, true);
+  up.TemporalFunction(iv.end,   rp21, true);
+
+  if ( AlmostEqual(rp10,rp20) && AlmostEqual(rp11,rp21) )
+  { // identical points -> zero distance!
+    result.a = 0.0;
+    result.b = 0.0;
+    result.c = 0.0;
+    result.r = false;
+    return;
+  }
+
+  DT = iv.end - iv.start;
+  dt = DT.ToDouble();
+  x10 = rp10.GetX(); y10 = rp10.GetY();
+  x11 = rp11.GetX(); y11 = rp11.GetY();
+  x20 = rp20.GetX(); y20 = rp20.GetY();
+  x21 = rp21.GetX(); y21 = rp21.GetY();
+  dx1 = x11 - x10;   // x-difference final-initial for u1
+  dy1 = y11 - y10;   // y-difference final-initial for u1
+  dx2 = x21 - x20;   // x-difference final-initial for u2
+  dy2 = y21 - y20;   // y-difference final-initial for u2
+  dx12 = x10 - x20;  // x-distance at initial instant
+  dy12 = y10 - y20;  // y-distance at initial instant
+
+  if ( AlmostEqual(dt, 0) )
+  { // almost equal start and end time -> constant distance
+    result.a = 0.0;
+    result.b = 0.0;
+    result.c =   pow( ( (x11-x10) - (x21-x20) ) / 2, 2)
+        + pow( ( (y11-y10) - (y21-y20) ) / 2, 2);
+    result.r = true;
+    return;
+  }
+
+  double a1 = (pow((dx1-dx2),2)+pow(dy1-dy2,2))/pow(dt,2);
+  double b1 = dx12 * (dx1-dx2);
+  double b2 = dy12 * (dy1-dy2);
+
+  result.a = a1;
+  result.b = 2*(b1+b2)/dt;
+  result.c = pow(dx12,2) + pow(dy12,2);
+  result.r = true;
   return;
 }
 
@@ -2313,7 +2545,6 @@ void MPoint::Distance( const Point& p, MReal& result ) const
 {
   const UPoint *uPoint;
   UReal uReal(true);
-
   result.Clear();
   result.StartBulkLoad();
   for( int i = 0; i < GetNoComponents(); i++ )
@@ -2321,7 +2552,7 @@ void MPoint::Distance( const Point& p, MReal& result ) const
     Get( i, uPoint );
     uPoint->Distance( p, uReal );
     if ( uReal.IsDefined() )
-      result.Add( uReal );
+      result.MergeAdd( uReal );
   }
   result.EndBulkLoad( false );
 }

@@ -396,60 +396,6 @@ bool CompareValue(const ConstTemporalUnit<Alpha>& n, Alpha& i, int vers )
 }
 
 /*
-1.1 Method ~DistanceUPoint~
-
-Returns the distance between two UPoints in the given interval as UReal
-
-*/
-void DistanceUPoint( const UPoint& p1, const UPoint& p2, UReal&
- result, Interval<Instant> iv)
-{
-  if(TLA_DEBUG)
-      cout<< "DistanceUPoint() called" << endl;
-
-  Point rp0, rp1, rp2, rp3;
-  double x0, x1, x2, x3, y0, y1, y2, y3, dx1, dy1, dx2, dy2;
-  DateTime DT = iv.end - iv.start;
-  double dt = DT.ToDouble();
-
-  p1.TemporalFunction(iv.start, rp0, true);
-  p1.TemporalFunction(iv.end,   rp1, true);
-  p2.TemporalFunction(iv.start, rp2, true);
-  p2.TemporalFunction(iv.end,   rp3, true);
-  x0 = rp0.GetX(); y0 = rp0.GetY();
-  x1 = rp1.GetX(); y1 = rp1.GetY();
-  x2 = rp2.GetX(); y2 = rp2.GetY();
-  x3 = rp3.GetX(); y3 = rp3.GetY();
-
-  if (AlmostEqual(dt, 0.0))
-    { // the timeinterval is a single instant only
-      result.timeInterval = iv;
-      result.a = 0.0;
-      result.b = 0.0;
-      result.c = pow(x0-x2,2) + pow(y0-y2,2);
-      result.r = true;
-      result.SetDefined(true);
-    }
-  else
-    {
-      dx1 = (x1 - x0) / dt;
-      dy1 = (y1 - y0) / dt;
-      dx2 = (x3 - x2) / dt;
-      dy2 = (y3 - y2) / dt;
-
-      result.timeInterval = iv;
-      result.a = pow( (dx1 - dx2), 2 ) + pow( (dy1 - dy2), 2 );
-      result.b = 2 * ( (x0 - x2) * (dx1 - dx2) + (y0 - y2) * (dy1 - dy2) );
-      result.c = pow( x0 - x2, 2 ) + pow( y0 - y2, 2 );
-      result.r = true;
-      result.SetDefined(true);
-    }
-  if(TLA_DEBUG){
-    cout<<" ends with: "<<"a "<<result.a<<", b "<<result.b<<", c "
-        <<result.c<<", r "<<result.r<<endl;}
-}
-
-/*
 1.1 Method ~DistanceMPoint~
 
 Returns the distance between two MPoints as MReal
@@ -488,8 +434,9 @@ void DistanceMPoint( MPoint& p1, MPoint& p2, MReal& result)
       p1.Get(u1Pos, u1);
       p2.Get(u2Pos, u2);
     }
-    if(u1->IsDefined() && u2->IsDefined()){
-      DistanceUPoint( *u1, *u2, uReal, *iv );
+    if(u1->IsDefined() && u2->IsDefined())
+    { // do not need to test for overlapping deftimes anymore...
+      u1->Distance( *u2, uReal );
       result.MergeAdd( uReal );
     }
   }
@@ -683,10 +630,13 @@ static void MRealDistanceMM(MReal& op1, MReal& op2, MReal& result)
     const UReal *u2transfer;
     UReal u1(true);
     UReal u2(true);
+    int numPartRes = 0;
+    vector<UReal> partResVector;
+    bool resultIsValid = true;
 
     rp.Get(i, iv, u1Pos, u2Pos);
     if (u1Pos == -1 || u2Pos == -1)
-       continue;
+      continue;
     if(TLA_DEBUG){
       cout<<"Both operators existant in interval iv #"<<i<<" ["
       <<iv->start.ToString()<<"  "<<iv->end.ToString()
@@ -694,131 +644,30 @@ static void MRealDistanceMM(MReal& op1, MReal& op2, MReal& result)
     op1.Get(u1Pos, u1transfer);
     op2.Get(u2Pos, u2transfer);
     if(!(u1transfer->IsDefined() && u2transfer->IsDefined()))
-        continue;
+    {
+      resultIsValid = false;
+      break;
+    }
     u1 = *u1transfer;
     u2 = *u2transfer;
-    if (u1.r != u2.r)
-       continue;
+    if ( u1.r || u2.r )
+    {
+      resultIsValid = false;
+      break;
+    }
 
     ShiftUReal(u1, iv->start);
     ShiftUReal(u2, iv->start);
     u1.timeInterval = *iv;
     u2.timeInterval = *iv;
 
-    Instant t[2];
-    Instant mid;
-    double middle;
-    double value;
-    int number;
-    int counter = 0;
-    double sol2[2];
-
-    uReal = u1;
-    uReal.a = u1.a - u2.a;
-    uReal.b = u1.b - u2.b;
-    uReal.c = u1.c - u2.c;
-
-    number = SolvePoly(uReal.a, uReal.b, uReal.c, sol2, true);
-    for (int m = 0; m < number; m++) {
-       t[m].ReadFrom(sol2[m] + u1.timeInterval.start.ToDouble());
-       t[m].SetType(instanttype);
-       if (iv->Contains(t[m])) {
-         if(TLA_DEBUG)
-           cout<<m<<". crossing in iv"<<endl;
-         t[counter] = t[m];
-         counter += 1;
-      }
-      else {
-        if(TLA_DEBUG)
-          cout<<m<<". crossing not in iv"<<endl;
-      }
-    }
-    if (counter == 0) {
-      if(TLA_DEBUG)
-        cout<<"no crossings in iv"<<endl;
-      middle = (uReal.timeInterval.end.ToDouble()
-              - uReal.timeInterval.start.ToDouble()) / 2;
-      value = uReal.a * pow(middle, 2) + uReal.b * middle + uReal.c;
-      if (value < 0.0){
-        if(TLA_DEBUG)
-          cout<<"flip unit"<<endl;
-        uReal.a = -uReal.a;
-        uReal.b = -uReal.b;
-        uReal.c = -uReal.c;
-      }
-      if(TLA_DEBUG){
-        cout<<"1uReal "<<uReal.a<<" "<<uReal.b<<" "<<uReal.c
-        <<" "<<uReal.r<<" ["<<uReal.timeInterval.start.ToString()
-        <<"  "<<uReal.timeInterval.end.ToString()<<" "
-        <<uReal.timeInterval.lc<<" "<<uReal.timeInterval.rc<<"]"<<endl;}
-      result.MergeAdd(uReal);
-    }
-    else {
-      if(TLA_DEBUG){
-        cout<<"first crossing in iv2: t[0] "<<t[0].ToString()<<endl;}
-      if (u1.timeInterval.start < t[0]) {
-        uReal.timeInterval.end = t[0];
-        uReal.timeInterval.rc = false;
-        middle = (uReal.timeInterval.end.ToDouble()
-                - uReal.timeInterval.start.ToDouble()) / 2;
-        value = uReal.a * pow(middle, 2) + uReal.b * middle + uReal.c;
-        if (value < 0.0){
-          if(TLA_DEBUG)
-            cout<<"flip part of unit"<<endl;
-          uReal.a = -uReal.a;
-          uReal.b = -uReal.b;
-          uReal.c = -uReal.c;
-        }
-        if(TLA_DEBUG){
-          cout<<"uReal "<<uReal.a<<" "<<uReal.b<<" "<<uReal.c
-          <<" "<<uReal.r<<" ["<<uReal.timeInterval.start.ToString()
-          <<"  "<<uReal.timeInterval.end.ToString()<<" "
-          <<uReal.timeInterval.lc<<" "<<uReal.timeInterval.rc<<"]"<<endl;}
-        if(uReal.IsValid())
-          result.MergeAdd(uReal);
-      }
-      for (int m = 0; m < counter; m++){
-        if(TLA_DEBUG){
-          cout<<m<<". crossing in iv: t["<<m<<"] "<<t[m].ToString()<<endl;}
-        uReal = u1;
-        uReal.a = u1.a - u2.a;
-        uReal.b = u1.b - u2.b;
-        uReal.c = u1.c - u2.c;
-        ShiftUReal(uReal, t[m]);
-        uReal.timeInterval.lc = true;
-        if (u1.timeInterval.start == t[m]){
-          uReal.timeInterval.lc = iv->lc;
-        }
-        if (m < counter - 1){
-          uReal.timeInterval.end = t[m + 1];
-          uReal.timeInterval.rc = false;
-        }
-        else {
-          uReal.timeInterval.end = iv->end;
-          uReal.timeInterval.rc = iv->rc;
-        }
-        middle = (uReal.timeInterval.end.ToDouble()
-                - uReal.timeInterval.start.ToDouble()) / 2;
-        value = uReal.a * pow(middle, 2) + uReal.b * middle + uReal.c;
-        if (value < 0.0){
-          if(TLA_DEBUG)
-            cout<<"flip part of unit"<<endl;
-          uReal.a = -uReal.a;
-          uReal.b = -uReal.b;
-          uReal.c = -uReal.c;
-        }
-        if(TLA_DEBUG){
-          cout<<"uReal "<<uReal.a<<" "<<uReal.b<<" "<<uReal.c
-          <<" "<<uReal.r<<" ["<<uReal.timeInterval.start.ToString()
-          <<"  "<<uReal.timeInterval.end.ToString()<<" "
-          <<uReal.timeInterval.lc<<" "<<uReal.timeInterval.rc<<"]"<<endl;}
-        if(uReal.IsValid())
-          result.MergeAdd(uReal);
-      }
-    }
+    numPartRes = u1.Distance(u2, partResVector);
+    for(int j=0; j<numPartRes; j++)
+      result.MergeAdd(partResVector[j]);
   }
-  result.EndBulkLoad(false);
+  result.EndBulkLoad(false); // should already be sorted
 }
+
 
 /*
 1.1 Method ~MovingRealCompareMM~
@@ -3243,138 +3092,21 @@ Calculates the absolut value of a mReal.
 */
 static void MRealABS(MReal& op, MReal& result)
 {
-  UReal uReal(true);
+  vector<UReal> partResult;
+  int numPartResult = 0;
   result.Clear();
   result.StartBulkLoad();
   for(int i = 0; i < op.GetNoComponents(); i++)
   {
     const UReal *u1;
-
     op.Get(i, u1);
-    Interval<Instant> iv = u1->timeInterval;
-
-    if(TLA_DEBUG){
-      cout<< "MRealABS interval #"<< i<< ": "<< iv.start.ToString()<< " "
-      << iv.end.ToString()<< " "<< iv.lc<< " "<< iv.rc<<endl;
-      cout<<"u1.a "<<u1->a<<" u1.b "<<u1->b<<" u1.c "<<u1->c
-      <<" u1.r "<<u1->r<<endl;}
-
-    Instant t[2];
-    Instant mid(instanttype);
-    double middle;
-    CcReal value;
-    int number;
-    int counter = 0;
-    double sol2[2];
-
-    if (u1->a != 0.0) {
-      number = SolvePoly(u1->a, u1->b, u1->c, sol2, true);
-      for (int m = 0; m < number; m++) {
-         t[m].ReadFrom(sol2[m] + u1->timeInterval.start.ToDouble());
-         t[m].SetType(instanttype);
-         if (iv.Contains(t[m])) {
-           if(TLA_DEBUG)
-             cout<<m<<". crossing in iv"<<endl;
-           t[counter] = t[m];
-           counter += 1;
-        }
-        else {
-          if(TLA_DEBUG)
-            cout<<m<<". crossing not in iv"<<endl;
-        }
-      }
-    }
-    else if (u1->b != 0.0){
-      t[0].ReadFrom(-u1->c / u1->b + u1->timeInterval.start.ToDouble());
-      t[0].SetType(instanttype);
-      if (iv.Contains(t[0]))
-        counter = 1;
-      else
-        counter = 0;
-    }
-    else
-      counter = 0;
-    uReal = *u1;
-    if (counter == 0) {
-      if(TLA_DEBUG)
-        cout<<"no crossings in iv"<<endl;
-      mid =   uReal.timeInterval.start
-            + ((uReal.timeInterval.end - uReal.timeInterval.start) / 2);
-      uReal.TemporalFunction(mid,value,true);
-      if (value.GetRealval() < 0.0){
-        if(TLA_DEBUG)
-          cout<<"flip unit"<<endl;
-        uReal.a = -uReal.a;
-        uReal.b = -uReal.b;
-        uReal.c = -uReal.c;
-      }
-      if(TLA_DEBUG){
-        cout<<"1uReal "<<uReal.a<<" "<<uReal.b<<" "<<uReal.c
-        <<" "<<uReal.r<<" "<<endl;}
-      result.MergeAdd(uReal);
-    }
-    else {
-      if(TLA_DEBUG){
-        cout<<counter<<". crossing in iv2"<<endl;
-        cout<<"t[0] "<<t[0].ToString()<<endl;}
-      if (u1->timeInterval.start < t[0]) {
-        uReal.timeInterval.end = t[0];
-        uReal.timeInterval.rc = false;
-        middle = (uReal.timeInterval.start.ToDouble()
-                + uReal.timeInterval.end.ToDouble()) / 2;
-        mid.ReadFrom(middle);
-        uReal.TemporalFunction(mid,value,true);
-        if (value.GetRealval() < 0.0){
-          if(TLA_DEBUG)
-            cout<<"flip part unit"<<endl;
-          uReal.a = -uReal.a;
-          uReal.b = -uReal.b;
-          uReal.c = -uReal.c;
-        }
-        if(TLA_DEBUG){
-          cout<<"1uReal "<<uReal.a<<" "<<uReal.b<<" "<<uReal.c
-          <<" "<<uReal.r<<" "<<endl;}
-        if(uReal.IsValid())
-          result.MergeAdd(uReal);
-      }
-      for (int m = 0; m < counter; m++){
-        if(TLA_DEBUG){
-          cout<<m<<". crossing in iv"<<endl;
-          cout<<"t["<<m<<"] "<<t[m].ToString()<<endl;}
-        uReal = *u1;
-        ShiftUReal(uReal, t[m]);
-        uReal.timeInterval.lc = true;
-        if (u1->timeInterval.start == t[m])
-          uReal.timeInterval.lc = u1->timeInterval.lc;
-        if (m < counter - 1){
-          uReal.timeInterval.end = t[m + 1];
-          uReal.timeInterval.rc = false;
-        }
-        else {
-          uReal.timeInterval.end = iv.end;
-          uReal.timeInterval.rc = iv.rc;
-        }
-        middle = (uReal.timeInterval.start.ToDouble()
-               + uReal.timeInterval.end.ToDouble()) / 2;
-        mid.ReadFrom(middle);
-        uReal.TemporalFunction(mid,value,true);
-        if (value.GetRealval() < 0.0){
-          if(TLA_DEBUG)
-            cout<<"flip part of unit"<<endl;
-          uReal.a = -uReal.a;
-          uReal.b = -uReal.b;
-          uReal.c = -uReal.c;
-        }
-        if(TLA_DEBUG){
-          cout<<"1uReal "<<uReal.a<<" "<<uReal.b<<" "<<uReal.c
-          <<" "<<uReal.r<<" "<<endl;}
-        if(uReal.IsValid())
-          result.MergeAdd(uReal);
-      }
-    }
+    numPartResult = u1->Abs(partResult);
+    for(int j=0; j<numPartResult; j++)
+      result.MergeAdd(partResult[j]);
   }
   result.EndBulkLoad(false);
 }
+
 
 /*
 1.1 Method ~copyMRegion~

@@ -894,7 +894,7 @@ Otherwise (~ignoreLimits = false~, resp. unspecified) there will be following
 /*
 Checks if inside the unit the function passes by the value ~val~.
 
-*Precondition:* IsDefined() == true && val.IsDefined() == true
+*Precondition:* IsDefined() == true AND val.IsDefined() == true
 
 */
 
@@ -1640,8 +1640,8 @@ Precondition this[->]IsDefined() is true
 Sets the Periods value to the times, where this takes the
 specified value. Returns the number of results (0-2).
 
-WARNING: May return points, that are not inside this->timeInterval,
-         if a value is located at an open start/end instant.
+*WARNING*: May return points, that are not inside this->timeInterval,
+           if a value is located at an open start/end instant.
 
 */
 
@@ -1650,8 +1650,8 @@ WARNING: May return points, that are not inside this->timeInterval,
 Sets the Periods value to the times, where this takes the
 minimum value. Returns the minimum value.
 
-WARNING: May return points, that are not inside this->timeInterval,
-         if a value is located at an open start/end instant.
+*WARNING*: May return points, that are not inside this->timeInterval,
+           if a value is located at an open start/end instant.
 
 */
 
@@ -1660,8 +1660,8 @@ WARNING: May return points, that are not inside this->timeInterval,
 Sets the Periods value to the times, where this takes the
 minimum value. Returns the maximum value.
 
-WARNING: May return points, that are not inside this->timeInterval,
-         if a value is located at an open start/end instant.
+*WARNING*: May return points, that are not inside this->timeInterval,
+           if a value is located at an open start/end instant.
 
 */
 
@@ -1679,13 +1679,13 @@ same value. Returns the number of results (0-2).
 Creates a vector of units, which are the restriction of this to
 the periods, where it takes its minimum value.
 
-Precondition: this[->]IsDefined()
+*Precondition*: this[->]IsDefined()
 
-Result: stores the resultununit into vector result and returns
-        the number of results (1-2) found.
+*Result*: stores the resultununit into vector result and returns
+          the number of results (1-2) found.
 
-WARNING: AtMin may return points, that are not inside this->timeInterval,
-         if a minimum is located at an open start/end instant.
+*WARNING*: AtMin may return points, that are not inside this->timeInterval,
+           if a minimum is located at an open start/end instant.
 
 */
 
@@ -1695,13 +1695,13 @@ WARNING: AtMin may return points, that are not inside this->timeInterval,
 Creates a vector of units, which are the restriction of this to
 the periods, where it takes its maximum value.
 
-Precondition: this[->]IsDefined()
+*Precondition*: this[->]IsDefined()
 
-Result: stores the resultunit into vector result and returns
-        the number of results (1-2) found.
+*Result*: stores the resultunit into vector result and returns
+          the number of results (1-2) found.
 
-WARNING: AtMax may return points, that are not inside this->timeInterval,
-         if a maximum is located at an open start/end instant.
+*WARNING*: AtMax may return points, that are not inside this->timeInterval,
+           if a maximum is located at an open start/end instant.
 
 */
 
@@ -1710,25 +1710,50 @@ WARNING: AtMax may return points, that are not inside this->timeInterval,
 Creates a vector of units, which are the restriction of this to
 the periods, where it takes a certain value.
 
-*Precondition*: this[->]IsDefined() && value.IsDefined()
+*Precondition*: this[->]IsDefined() AND value.IsDefined()
 
-*Result*: stores the resultununit into vector result and returns
+*Result*: stores the resultunit into vector result and returns
           the number of results (1-2) found.
 
-WARNING: AtMax may return points, that are not inside this->timeInterval,
-         if a maximum is located at an open start/end instant.
+*WARNING*: AtMax may return points, that are not inside this->timeInterval,
+           if a maximum is located at an open start/end instant.
 
 */
 
-  int IsEqual(const UReal& other, vector<UBool> result) const;
+  int IsEqual(const UReal& other, vector<UBool>& result) const;
 /*
 Creates a vector of ubool, that cover the UReals common deftime and
-indicate wheter their temporal values are equal or not.
+indicate whether their temporal values are equal or not.
 
-Precondition: this[->]IsDefined() && value.IsDefined()
+*Precondition*: this[->]IsDefined() AND value.IsDefined()
 
-Result: stores the resultunit into vector result and returns
-        the number of results found.
+*Result*: stores the resultunit into vector result and returns
+          the number of results found.
+
+*/
+
+int Abs(vector<UReal>& result) const;
+/*
+Creates the absolute value for an UReal value.
+~result~ may contain 0-3 UReal values.
+
+*Precondition*: this[->]IsDefined()
+
+*Result*: stores the resultunits into vector result and returns
+          the number of results.
+
+*/
+
+  int Distance(const UReal& other, vector<UReal>& result) const;
+/*
+Creates the distance to an other UReal value.
+~result~ may contain 0-3 UReal values.
+
+*Preconditions*: this[->]IsDefined() AND other.IsDefined()
+                 this->r == other.r == false
+
+*Result*: stores the resultunits into vector result and returns
+          the number of results.
 
 */
 
@@ -1867,23 +1892,6 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 
 */
 
-/*
-
-----
-
-  inline virtual bool IsDefined() const
-  {
-    return true;
-  }
-
-  inline virtual void SetDefined( bool Defined )
-  {
-  }
-
-----
-
-*/
-
   inline virtual size_t Sizeof() const
   {
     return sizeof( *this );
@@ -1985,6 +1993,18 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
                                timeInterval.start.ToDouble(),
                                timeInterval.end.ToDouble() );
   }
+
+  void Distance( const UPoint& up, UReal& result ) const;
+
+/*
+
+Calculates the distance between 2 upoints as a real value.
+
+*Precondition*: intersecting timeIntervals.
+
+*Result*: the distance of two upoints as a ureal
+
+*/
 
 /*
 3.8.4 Attributes
@@ -6137,8 +6157,16 @@ of unit intervals in the respective ~Mapping~ instance.
 
 Runtime is $O(1)$.
 
-You can use ~void TemporalUnit<Alpha>::AtInterval(const Interval<Instant>
-&i, TemporalUnit<Alpha> &result)~ to access the broken-down units
+You can use 
+
+---- 
+
+void TemporalUnit<Alpha>::AtInterval(const Interval<Instant> &i, 
+                                     TemporalUnit<Alpha> &result)
+
+----
+
+ to access the broken-down units
 
 */
     void Get(unsigned int pos,

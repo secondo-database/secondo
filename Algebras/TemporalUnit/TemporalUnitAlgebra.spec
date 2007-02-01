@@ -36,6 +36,7 @@ operator atmin alias ATMIN pattern op ( _ )
 operator intersection alias INTERSECTION pattern op ( _ , _ )
 operator inside alias INSIDE pattern _ infixop _
 operator distance alias DISTANCE pattern op ( _ , _ )
+operator abs alias ABS pattern op ( _ )
 operator printstream alias PRINTSTREAM pattern _ op
 operator uint2ureal alias UINT2UREAL pattern op ( _ )
 operator the_unit alias THE_UNIT pattern op( _ , _ , _ , _ , _ , _ , _ )

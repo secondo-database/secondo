@@ -85,6 +85,27 @@ Example  : query ([const ubool value (("2010-11-11" "2011-01-03" TRUE FALSE) TRU
 Result   : (mbool((("2011-01-01" "2011-01-03" FALSE FALSE) FALSE)))
 
 
+Operator : abs
+Number   : 1
+Signature: uint -> uint
+Example  : query abs([const uint value (("2000-01-01" "2000-01-02" TRUE FALSE) -500)])
+Result   : (uint (("2000-01-01" "2000-01-02" TRUE FALSE) 500))
+
+
+Operator : abs
+Number   : 2
+Signature: ureal -> (stream ureal)
+Example  : query abs([const ureal value (("2000-01-01" "2000-01-04" TRUE TRUE) (-1.0 1.0 0.0 FALSE))]) the_mvalue
+Result   : (mreal ( ( ("2000-01-01" "2000-01-02" TRUE FALSE) (-1.0 1.0 0.0 FALSE)) ( ("2000-01-02" "2000-01-04" TRUE TRUE) (1.0 1.0 -0.0 FALSE))))
+
+
+Operator : abs
+Number   : 3
+Signature: uint -> uint
+Example  : query abs([const uint value undef])
+Result   : (uint undef)
+
+
 Operator : always
 Number   : 1
 Signature: ubool -> bool
@@ -144,7 +165,7 @@ Operator : atmax
 Number   : 2
 Signature: ureal -> (stream ureal)
 Example  : query atmax(the_unit(-3.0, 2.0, -1.0, FALSE, create_instant(0,0), create_instant(3,0), TRUE, TRUE)) the_mvalue
-Result   : (mreal ((("2000-01-03-08:00" "2000-01-03-08:00" TRUE TRUE)(-3.0 1.1102230246251565E-16 -0.6666666666666666 FALSE))))
+Result   : (mreal ((("2000-01-03-08:00" "2000-01-03-08:00" TRUE TRUE)(0.0 0.0 -0.6666666666666666 FALSE))))
 
 
 Operator : atmin
@@ -158,7 +179,7 @@ Operator : atmin
 Number   : 2
 Signature: ureal -> (stream ureal)
 Example  : query atmin(the_unit(3.0, -2.0, 1.0, FALSE, create_instant(0,0), create_instant(3,0), TRUE, TRUE)) the_mvalue
-Result   : (mreal ((("2000-01-03-08:00" "2000-01-03-08:00" TRUE TRUE)(3.0 -1.1102230246251565E-16 0.6666666666666666 FALSE))))
+Result   : (mreal ((("2000-01-03-08:00" "2000-01-03-08:00" TRUE TRUE)(0.0 0.0 0.6666666666666666 FALSE))))
 
 
 Operator : atperiods

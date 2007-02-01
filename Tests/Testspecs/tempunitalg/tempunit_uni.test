@@ -72,6 +72,7 @@ let ur3 = [const ureal value undef];
 let ur4 = [const ureal value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1.0 1.0 1.0 TRUE))];
 let ur5 = [const ureal value (("2000-01-01-00:00:00.000" "2000-01-05-00:00:00.000" TRUE TRUE) (1.0 0.0 -1.0 FALSE))];
 let ur6 = [const ureal value (("2000-01-01-00:00:00.000" "2000-01-05-00:00:00.000" TRUE TRUE) (-1.0 0.0 1.0 FALSE))];
+let ur7 = [const ureal value (("2000-01-01-00:00:00.000" "2000-01-05-00:00:00.000" TRUE TRUE) (-1.0 0.0 1.0 TRUE))];
 
 
 let r = [const real value 0.0];
@@ -321,12 +322,56 @@ query distance(ui1, i1)
 #yields (ureal undef)
 query distance(i1, ui3)
 
+
+
+#testcase distance_ur_ur def def
+#yields (mreal ( ( ("2000-01-02-23:59:59.900" "2000-01-03-00:00:00.100" TRUE TRUE) (2.0 4.999997685185186 3.999995370371709 FALSE))))
+query distance(ur1, ur2) the_mvalue
+
+#testcase distance_ur_ur undef def
+#yields (int 0)
+query distance(ur3, ur1) count
+
+#testcase distance_ur_ur def unfdef
+#yields (int 0)
+query distance(ur2, ur3) count
+
+#testcase distance_ur_ur radix2 
+#yields (int 0)
+query distance(ur6, ur7) count
+
+#testcase distance_ur_ur radix1
+#yields (int 0)
+query distance(ur7, ur6) count
+
+#testcase distance_ur_ur radix12 
+#yields (int 0)
+query distance(ur7, ur7) count
+
+
+#testcase distance_ur_r
+#yields (mreal ( ( ("2000-01-01" "2000-01-02" TRUE FALSE) (-1.0 -0.0 1.0 FALSE)) ( ("2000-01-02" "2000-01-05" TRUE TRUE) (1.0 2.0 0.0 FALSE))))
+query distance( ur1, 0.0 ) the_mvalue
+
+#testcase distance_u_ur 1
+#yields (mreal ( ( ("2000-01-01" "2000-01-02" TRUE FALSE) (-1.0 -0.0 1.0 FALSE)) ( ("2000-01-02" "2000-01-05" TRUE TRUE) (1.0 2.0 0.0 FALSE))))
+query distance( 0.0, ur1 ) the_mvalue
+
+#testcase distance_ur_r 2
+#yields (mreal ( ( ("2000-01-01" "2000-01-02-09:56:28.052" TRUE FALSE) (-1.0 -0.0 2.0 FALSE)) ( ("2000-01-02-09:56:28.052" "2000-01-05" TRUE TRUE) (1.0 2.82842712962963 6.906226701630658e-09 FALSE))))
+query distance( ur1, 1.0 ) the_mvalue
+
+#testcase distance_ur_r 3
+#yields (mreal ( ( ("2000-01-01" "2000-01-05" TRUE TRUE) (1.0 0.0 0.0 FALSE))))
+query distance( ur1, -1.0 ) the_mvalue
+
+
 #testcase atmax_ureal ur1
-#yields ((rel (tuple ((elem ureal))))(((("2000-01-05" "2000-01-05" TRUE TRUE)(1.0 8.0 15.0 FALSE)))))
+#yields ((rel (tuple ((elem ureal))))(((("2000-01-05" "2000-01-05" TRUE TRUE)(0.0 0.0 15.0 FALSE)))))
 query atmax(ur1) transformstream consume
 
 #testcase atmax_ureal ur2
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-02-23:59:59.900" "2000-01-02-23:59:59.900" TRUE TRUE) (-1.0 -1.0 -1.0 FALSE)))))
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-02-23:59:59.900" "2000-01-02-23:59:59.900" TRUE TRUE) (0.0 0.0 -1.0 FALSE)))))
 query atmax(ur2) transformstream consume
 
 #testcase atmax_ureal ur3
@@ -334,11 +379,11 @@ query atmax(ur2) transformstream consume
 query atmax(ur3) count
 
 #testcase atmin_ureal ur1
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (1.0 0.0 -1.0 FALSE)))))
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (0.0 0.0 -1.0 FALSE)))))
 query atmin(ur1) transformstream consume
 
 #testcase atmin_ureal ur2
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03-00:00:00.100" "2000-01-03-00:00:00.100" TRUE TRUE) (-1.0 -1.00000462962963 -1.000002314820173 FALSE)))))
+#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03-00:00:00.100" "2000-01-03-00:00:00.100" TRUE TRUE) (0.0 0.0 -1.000002314820173 FALSE)))))
 query atmin(ur2) transformstream consume
 
 #testcase atmin_ureal ur3
@@ -1360,6 +1405,43 @@ query (ui2 >= ui4) the_mvalue
 #yields (mbool ( ( ("2000-01-01" "2000-01-02" TRUE FALSE) FALSE) ( ("2000-01-02" "2000-01-05" TRUE TRUE) TRUE)))
 query (ur5 >= ur6) the_mvalue
 
+
+#testcase abs_uint pos
+#yields (uint (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) 1500))
+query abs(ui1)
+
+#testcase abs_uint neg
+#yields (uint (("2000-01-01" "2000-01-02" FALSE FALSE) 378351))
+query abs([const uint value (("2000-01-01" "2000-01-02" FALSE FALSE) -378351)])
+
+#testcase abs_uint undef
+#yields (uint undef)
+query abs(ui3)
+
+
+#testcase abs_ureal pos 1
+#yields (mreal ( ( ("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1.0 1.0 1.0 TRUE))))
+query abs(ur4) the_mvalue
+
+#testcase abs_ureal pos 2
+#yields (mreal ((("2000-01-01" "2000-01-02" TRUE FALSE)(1.0 -4.0 3.0 FALSE))(("2000-01-02" "2000-01-04" TRUE FALSE)(-1.0 2.0 -0.0 FALSE))(("2000-01-04" "2000-01-05" TRUE TRUE)(1.0 2.0 0.0 FALSE))))
+query abs([const ureal value (("2000-01-01" "2000-01-05" TRUE TRUE) (1.0 -4.0 3.0 FALSE))]) the_mvalue
+
+#restcase abs_ureal pos radix
+#yields (mreal ((("2000-01-01" "2000-01-05" FALSE FALSE)(1.0 4.0 3.0 TRUE))))
+query abs([const ureal value (("2000-01-01" "2000-01-05" FALSE FALSE) (1.0 4.0 3.0 TRUE))]) the_mvalue
+
+#testcase abs_ureal neg 1
+#yields (mreal ( ( ("2000-01-02-23:59:59.900" "2000-01-03-00:00:00.100" TRUE TRUE) (1.0 1.0 1.0 FALSE))))
+query abs(ur2) the_mvalue
+
+#testcase abs_ureal neg 2
+#yields (mreal ( ( ("2000-01-01" "2000-01-02" TRUE FALSE) (-1.0 1.0 0.0 FALSE)) ( ("2000-01-02" "2000-01-04" TRUE TRUE) (1.0 1.0 -0.0 FALSE))))
+query abs([const ureal value (("2000-01-01" "2000-01-04" TRUE TRUE) (-1.0 1.0 0.0 FALSE))]) the_mvalue
+
+#testcase abs_ureal undef
+#yields (mreal ())
+query abs(ur3) the_mvalue
 
 ############################
 #    Complex testcases     #

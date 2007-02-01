@@ -89,14 +89,20 @@ OK  +                                     uT --> (stream uT)
 OK  +                                     uT --> (stream uT)
 
       at:     For T in {bool, int, string, point, region*}
-OK  +       uT x       T --> (stream uT)       same as intersection: uT x T
-OK       ureal x    real --> (stream ureal)    same as intersection: ureal  x real
-OK  +   upoint x  region --> (stream upoint)   same as intersection: upoint x uregion
+OK  +       uT x       T --> (stream uT)     as intersection: uT x T
+OK       ureal x    real --> (stream ureal)  as intersection: ureal  x real
+OK  +   upoint x  region --> (stream upoint) as intersection: upoint x uregion
 
       distance:  T in {int, point}
-OK  -           uT x uT -> ureal
-OK  ?           uT x  T -> ureal
-OK  ?            T x uT -> ureal
+OK  -           uT x    uT --> ureal
+OK  ?           uT x     T --> ureal
+OK  ?            T x    uT --> ureal
+n/a +        ureal x ureal --> (stream ureal)
+n/a +        ureal x  real --> (stream ureal)
+n/a +         real x ureal --> (stream ureal)
+
+OK  + abs:           ureal --> (stream ureal)
+OK  + abs:            uint --> uint
 
      intersection: For T in {bool, int, string}:
 OK  +          uT x      uT --> (stream uT)
@@ -125,7 +131,8 @@ OK  + and, or: ubool x ubool --> ubool
 OK  +           bool x ubool --> ubool
 OK  +          ubool x  bool --> ubool
 
-      ==, ##, <<, >>, <<==, >>==: T in {bool, int, string, real, point, region}
+      ==, ##, <<, >>, <<==, >>==: 
+      For T in {bool, int, string, real, point, region}
 Test+                uT x uT --> bool
 
 =, #, <, >, <=, >=: T in {bool, int, string, real}
@@ -362,7 +369,7 @@ string TUPrintUReal( UReal* ureal )
 
 
 /*
-Auxiliary Method ~TU_GetMidwayInstant~
+Auxiliary Method ~TU\_GetMidwayInstant~
 
 Returns the instant at the middle of the interval defined by ~start~ and  ~end~.
 
@@ -889,7 +896,7 @@ Operator temporalunitget_duration( "get_duration",
                       PeriodsTypeMapGetDuration );
 
 /*
-5.5 Operators ~makemvalue~, ~the_mvalue~
+5.5 Operators ~makemvalue~, ~the\_mvalue~
 
 This operators create a moving object type mT from a stream of unit type
 objects uT. The operator does not expect the stream to be ordered by their
@@ -898,11 +905,13 @@ If the stream contains amindst 2 units with overlapping timeIntervals,
 the operator might crash. If the stream is empty, the result will be an
 empty mT.
 
-5.5.1 Type Mapping for ~makemvalue~, ~the_mvalue~
+5.5.1 Type Mapping for ~makemvalue~, ~the\_mvalue~
 
 Type mapping for ~makemvalue~ is
 
-----  stream (tuple ([x1:t1,x1:ubool,..,[xn:tn)))   ->  mbool
+----
+
+      stream (tuple ([x1:t1,x1:ubool,..,[xn:tn)))   ->  mbool
               APPEND (i ti)
       stream (tuple ([x1:t1,x1:uint,..,[xn:tn)))    ->  mint
               APPEND (i ti)
@@ -917,9 +926,10 @@ Type mapping for ~makemvalue~ is
 
 ----
 
-For ~the_mvalue~, it is
+For ~the\_mvalue~, it is
 
----- the_mvalue:  (stream uT) -->  mT
+----
+      the_mvalue:  (stream uT) -->  mT
 ----
 
 */
@@ -1054,7 +1064,7 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
 }
 
 /*
-5.5.2 Value Mapping for ~makemvalue~, ~the_mvalue~
+5.5.2 Value Mapping for ~makemvalue~, ~the\_mvalue~
 
 */
 
@@ -1212,7 +1222,7 @@ int MappingMakemvalue_mregionPlain(Word* args,Word& result,int message,
 }
 
 /*
-5.5.3 Specification for operators ~makemvalue~, ~the_mvalue~
+5.5.3 Specification for operators ~makemvalue~, ~the\_mvalue~
 
 */
 const string
@@ -1242,7 +1252,7 @@ TemporalSpecThemvalue  =
 "<text>query units(zug5) the_mvalue</text---> ) )";
 
 /*
-5.5.4 Selection Function of operators ~makemvalue~, ~the_mvalue~
+5.5.4 Selection Function of operators ~makemvalue~, ~the\_mvalue~
 
 */
 int
@@ -1324,7 +1334,7 @@ ValueMapping temporalthemvaluemap[] = {
       MappingMakemvalue_mregionPlain };
 
 /*
-5.5.5  Definition of operator ~makemvalue~
+5.5.5  Definition of operators ~makemvalue~, ~the\-mvalue~
 
 */
 Operator temporalunitmakemvalue( "makemvalue",
@@ -3257,23 +3267,17 @@ types ~int~ or ~point~. The distance is always a non-negative ~ureal~ value.
 
 ----
     For T in {int, point}
-    distance: uT x uT -> ureal
-              uT x  T -> ureal
-               T x uT -> ureal
+    distance:    uT x    uT -> ureal
+                 uT x     T -> ureal
+                  T x    uT -> ureal
+              ureal x ureal -> (stream ureal)
+               real x ureal -> (stream ureal)
+              ureal x  real -> (stream ureal)
 
 ----
 
 
 5.21.1 Type mapping function for ~distance~
-
-For signatures
-
-----
-           For T in {int, point}:
-              uT x  T -> ureal
-               T x uT -> ureal
-
-----
 
 typemapping appends the argument number of the argument containing
 the unitvalue (either 0 or 1).
@@ -3347,6 +3351,28 @@ TypeMapTemporalUnitDistance( ListExpr args )
                                nl->SymbolAtom( "ureal" ));
     }
 
+    if( nl->IsEqual(first, "ureal") && nl->IsEqual(second, "ureal") )
+    {
+      return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                              nl->SymbolAtom( "ureal" ));
+    }
+
+    if( nl->IsEqual(first, "ureal") && nl->IsEqual(second, "real") )
+    {
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                               nl->OneElemList(nl->IntAtom(0)),
+                               nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                                               nl->SymbolAtom( "ureal" )));
+    }
+
+    if( nl->IsEqual(first, "real") && nl->IsEqual(second, "ureal") )
+    {
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                               nl->OneElemList(nl->IntAtom(1)),
+                               nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                                               nl->SymbolAtom( "ureal" )));
+    }
+
   nl->WriteToString(outstr1, first);
   nl->WriteToString(outstr2, second);
   ErrorReporter::ReportError("Operator distance found wrong argument "
@@ -3367,116 +3393,7 @@ TypeMapTemporalUnitDistance( ListExpr args )
 
 ----
 
-Method ~UPointDistance~
-
-Returns the distance between two UPoints in their common interval as UReal
-
 */
-void UPointDistance( const UPoint& p1, const UPoint& p2,
-                     UReal& result, Interval<Instant>& iv)
-{
-#ifdef TUA_DEBUG
-      cout << "UPointDistance:" << endl;
-      cout << "  p1=" << TUPrintUPoint(p1) << endl;
-      cout << "  p2=" << TUPrintUPoint(p2) << endl;
-#endif
-  result.timeInterval = iv;
-
-  Point rp10, rp11, rp20, rp21;
-  double
-    x10, x11, x20, x21,
-    y10, y11, y20, y21,
-    dx1, dy1,
-    dx2, dy2,
-    dx12, dy12;
-
-  // for calculation of temporal function:
-  // ignore temporal limits
-  p1.TemporalFunction(iv.start, rp10, true);
-  p1.TemporalFunction(iv.end,   rp11, true);
-  p2.TemporalFunction(iv.start, rp20, true);
-  p2.TemporalFunction(iv.end,   rp21, true);
-
-#ifdef TUA_DEBUG
-      cout << "   iv=" << TUPrintTimeInterval(iv) << endl;
-      cout << "  rp10=" << TUPrintPoint(rp10) << ", rp11="
-           << TUPrintPoint(rp11) << endl;
-      cout << "  rp20=" << TUPrintPoint(rp20) << ", rp21="
-           << TUPrintPoint(rp21) << endl;
-#endif
-  if ( AlmostEqual(rp10,rp20) && AlmostEqual(rp11,rp21) )
-    { // identical points -> zero distance!
-#ifdef TUA_DEBUG
-        cout << "  identical points -> zero distance!" << endl;
-#endif
-      result.a = 0.0;
-      result.b = 0.0;
-      result.c = 0.0;
-      result.r = false;
-      return;
-    }
-
-  DateTime DT = iv.end - iv.start;
-  double   dt = DT.ToDouble();
-  //double   t0 = iv.start.ToDouble();
-  x10 = rp10.GetX(); y10 = rp10.GetY();
-  x11 = rp11.GetX(); y11 = rp11.GetY();
-  x20 = rp20.GetX(); y20 = rp20.GetY();
-  x21 = rp21.GetX(); y21 = rp21.GetY();
-  dx1 = x11 - x10;   // x-difference final-initial for u1
-  dy1 = y11 - y10;   // y-difference final-initial for u1
-  dx2 = x21 - x20;   // x-difference final-initial for u2
-  dy2 = y21 - y20;   // y-difference final-initial for u2
-  dx12 = x10 - x20;  // x-distance at initial instant
-  dy12 = y10 - y20;  // y-distance at initial instant
-
-  if ( AlmostEqual(dt, 0) )
-    { // almost equal start and end time -> constant distance
-#ifdef TUA_DEBUG
-      cout << "  almost equal start and end time -> constant distance!"<< endl;
-#endif
-      result.a = 0.0;
-      result.b = 0.0;
-      result.c =   pow( ( (x11-x10) - (x21-x20) ) / 2, 2)
-                 + pow( ( (y11-y10) - (y21-y20) ) / 2, 2);
-      result.r = true;
-      return;
-    }
-
-#ifdef TUA_DEBUG
-    cout << "  Normal distance calculation." << endl;
-#endif
-  double a1 = (pow((dx1-dx2),2)+pow(dy1-dy2,2))/pow(dt,2);
-  double b1 = dx12 * (dx1-dx2);
-  double b2 = dy12 * (dy1-dy2);
-
-  result.a = a1;
-  result.b = 2*(b1+b2)/dt;
-  result.c = pow(dx12,2) + pow(dy12,2);
-  result.r = true;
-
-/*
-For using the original ureal representation (without translation),
-use the following code instead:
-
-----
-
-  result.a = a1;
-  result.b = -2*(  (t0*a1)
-                 - ( b1 + b2 )/dt
-               );
-  result.c =   pow(t0,2) * a1
-             - 2*t0*(b1 + b2)/dt
-             + pow(dx12,2) + pow(dy12,2);
-  result.r = true;
-
-----
-
-*/
-
-
-}
-
 
 int TUDistance_UPoint_UPoint( Word* args, Word& result, int message,
                               Word& local, Supplier s )
@@ -3509,7 +3426,7 @@ int TUDistance_UPoint_UPoint( Word* args, Word& result, int message,
            << TUPrintTimeInterval(iv) << endl;
 #endif
       // calculate result
-      UPointDistance( *u1, *u2,  *res, iv);
+      u1->Distance( *u2, *res );
       res->SetDefined( true );
     }
   // pass on result
@@ -3663,9 +3580,9 @@ int TUDistance_UInt_Int( Word* args, Word& result, int message,
 
   if (!u->IsDefined() ||
       !i->IsDefined() )
-    { // return undefined ureal
+   { // return undefined ureal
       ((UReal*)(result.addr))->SetDefined( false );
-    }
+   }
   else
     { // calculate  result
       // (as the result is constant, no translation step is required)
@@ -3679,7 +3596,180 @@ int TUDistance_UInt_Int( Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+(c2) value mapping for
 
+---- ((ureal ureal) -> (stream ureal))
+
+----
+
+*/
+struct TUDistanceLocalInfo
+{
+  bool finished;
+  int NoOfResults;
+  int NoOfResultsDelivered;
+  vector<UReal> resultVector;
+};
+
+int TUDistance_UReal_UReal( Word* args, Word& result, int message,
+                            Word& local, Supplier s )
+{
+  UReal  *u1, *u2, utemp(true);
+  TUDistanceLocalInfo *localinfo = 0;
+
+  result = qp->ResultStorage( s );
+
+  switch( message )
+  {
+    case OPEN:
+
+      u1 = (UReal*)(args[0].addr);
+      u2 = (UReal*)(args[1].addr);
+
+      localinfo = new TUDistanceLocalInfo;
+      local = SetWord(localinfo);
+      localinfo->finished = true;
+      localinfo->NoOfResults = 0;
+      localinfo->NoOfResultsDelivered = 0;
+      localinfo->resultVector.clear();
+
+      if (!u1->IsDefined() ||
+          !u2->IsDefined() ||
+           u1->r           ||
+           u2->r
+         )
+      { // return empty stream
+        return 0;
+      }
+      else
+      { // calculate results
+        localinfo->NoOfResults = u1->Distance(*u2, localinfo->resultVector);
+        localinfo->finished = (localinfo->NoOfResults <= 0);
+        return 0;
+      }
+
+    case REQUEST:
+      if(local.addr == 0)
+        return CANCEL;
+      localinfo = (TUDistanceLocalInfo*) local.addr;
+      if( localinfo->finished ||
+          localinfo->NoOfResultsDelivered >= localinfo->NoOfResults )
+      {
+        localinfo->finished = true;
+        return CANCEL;
+      }
+      result = SetWord( 
+          localinfo->resultVector[localinfo->NoOfResultsDelivered].Clone() );
+      localinfo->NoOfResultsDelivered++;
+      return YIELD;
+
+    case CLOSE:
+      if(local.addr != 0)
+      {
+        localinfo = (TUDistanceLocalInfo*) local.addr;
+        delete localinfo;
+      }
+      return 0;
+  }
+  return 0;
+}
+
+/*
+(c2) value mapping for
+
+---- ((ureal real) -> (stream ureal)) and ((real ureal) -> (stream ureal))
+
+----
+
+*/
+int TUDistance_UReal_Real( Word* args, Word& result, int message,
+                         Word& local, Supplier s )
+{
+  Word  ii, ui;
+  int   argConfDescriptor2;
+  UReal  *u, utemp(true);
+  CcReal *i;
+  TUDistanceLocalInfo *localinfo = 0;
+
+  result = qp->ResultStorage( s );
+
+  switch( message )
+  {
+    case OPEN:
+
+    // get argument configuration
+    argConfDescriptor2 = ((CcInt*)args[2].addr)->GetIntval();
+    if (argConfDescriptor2 == 0)
+    {
+      ui = args[0];
+      ii = args[1];
+    }
+    else if (argConfDescriptor2 == 1)
+    {
+      ui = args[1];
+      ii = args[0];
+    }
+    else
+    {
+      cout << "\nWrong argument configuration in "
+          << "'TUDistance_UReal_Real'. argConfDescriptor2="
+          << argConfDescriptor2 << endl;
+      return 0;
+    }
+
+    u = (UReal*)(ui.addr);
+    i = (CcReal*)(ii.addr);
+
+    localinfo = new TUDistanceLocalInfo;
+    local = SetWord(localinfo);
+    localinfo->finished = true;
+    localinfo->NoOfResults = 0;
+    localinfo->NoOfResultsDelivered = 0;
+    localinfo->resultVector.clear();
+
+    if (!u->IsDefined() ||
+        !i->IsDefined() ||
+        u->r
+       )
+    { // return empty stream
+      return 0;
+    }
+    else
+    { // calculate  result
+      utemp = 
+        UReal(u->timeInterval, u->a, u->b, (u->c - i->GetRealval() ), false);
+      localinfo->NoOfResults = utemp.Abs(localinfo->resultVector);
+      localinfo->finished = (localinfo->NoOfResults <= 0);
+      return 0;
+    }
+
+    case REQUEST:
+      if(local.addr != 0)
+        localinfo = (TUDistanceLocalInfo*) local.addr;
+      else
+        return CANCEL;
+      if( localinfo->finished ||
+          localinfo->NoOfResultsDelivered >= localinfo->NoOfResults )
+      {
+        localinfo->finished = true;
+        return CANCEL;
+      }
+      result = SetWord( 
+          localinfo->resultVector[localinfo->NoOfResultsDelivered].Clone() );
+      localinfo->NoOfResultsDelivered++;
+      return YIELD;
+
+    case CLOSE:
+      if(local.addr != 0)
+      {
+        localinfo = (TUDistanceLocalInfo*) local.addr;
+        delete localinfo;
+      }
+      return 0;
+  }
+  return 0;
+}
 
 /*
 5.21.3 Specification for operator ~distance~
@@ -3692,11 +3782,16 @@ const string TemporalSpecDistance =
   "<text>For T in {point, int}:\n"
   "(uT uT) -> ureal\n"
   "(uT  T) -> ureal\n"
-  "( T uT) -> ureal</text--->"
+  "( T uT) -> ureal\n"
+  "(ureal ureal) -> (stream ureal)\n"
+  "(ureal  real) -> (stream ureal)\n"
+  "( real ureal) -> (stream ureal)</text--->"
   "<text>distance( _, _)</text--->"
   "<text>Calculates the distance of both arguments, "
   "whereof at least one is a unittype, "
-  "as a 'ureal' value. </text--->"
+  "as a 'ureal' value. For the ureal signatures, all "
+  "radix-flags must be FALSE, otherwise the result is "
+  "empty.</text--->"
   "<text>distance(upoint1,point1)</text--->"
   ") )";
 
@@ -3707,10 +3802,12 @@ const string TemporalSpecDistance =
 
 ValueMapping temporalunitdistancemap[] =
   {
-    TUDistance_UPoint_UPoint,
+    TUDistance_UPoint_UPoint,  // 0
     TUDistance_UPoint_Point,
     TUDistance_UInt_UInt,
-    TUDistance_UInt_Int
+    TUDistance_UInt_Int,
+    TUDistance_UReal_UReal,
+    TUDistance_UReal_Real      // 5
   };
 
 int temporalunitDistanceSelect( ListExpr args )
@@ -3736,6 +3833,15 @@ int temporalunitDistanceSelect( ListExpr args )
   else if( nl->IsEqual(first, "int") && nl->IsEqual(second, "uint") )
     return 3;
 
+  else if( nl->IsEqual(first, "ureal") && nl->IsEqual(second, "ureal") )
+    return 4;
+
+  else if( nl->IsEqual(first, "ureal") && nl->IsEqual(second, "real") )
+    return 5;
+
+  else if( nl->IsEqual(first, "real") && nl->IsEqual(second, "ureal") )
+    return 5;
+  
   else
     cout << "\nERROR in temporalunitDistanceSelect!" << endl;
 
@@ -3749,7 +3855,7 @@ int temporalunitDistanceSelect( ListExpr args )
 
 Operator temporalunitdistance( "distance",
                                TemporalSpecDistance,
-                               4,
+                               6,
                                temporalunitdistancemap,
                                temporalunitDistanceSelect,
                                TypeMapTemporalUnitDistance);
@@ -4117,34 +4223,209 @@ Moved to ~StreamAlgebra~ and remaned it to ~aggregateS~
 */
 
 /*
-5.25 Operator ~~
+5.25 Operator ~abs~
+
+The operator returns the absolute function derived from the 
+input ureal or uint.
 
 */
 
 /*
-5.25.1 Type mapping function for ~~
+5.25.1 Type mapping function for ~abs~
+
+The operator has signature
+
+----
+
+  abs: ureal --> (stream ureal)
+  abs:  uint --> uint
+
+----
 
 */
+
+ListExpr TU_TM_Abs( ListExpr args )
+{
+  ListExpr first;
+  string outstr1, outstr2;
+
+  if ( nl->IsAtom( args ) || nl->ListLength( args ) != 1 )
+  {
+    nl->WriteToString(outstr1, args);
+    ErrorReporter::ReportError("Operator abs expects a list of "
+        "length one, but gets '" + outstr1 +
+        "'.");
+    return nl->SymbolAtom( "typeerror" );
+  }
+
+  first = nl->First(args);
+
+  if( nl->IsEqual(first, "uint") )
+  {
+    return nl->SymbolAtom("uint");
+  }
+
+  if( nl->IsEqual(first, "ureal") )
+  {
+    return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                            nl->SymbolAtom( "ureal" ));
+  }
+
+  nl->WriteToString(outstr1, first);
+  ErrorReporter::ReportError("Operator abs found wrong argument "
+      + outstr1 + "'.");
+  return nl->SymbolAtom( "typeerror" );
+}
+
 
 /*
-5.25.2 Value mapping for operator ~~
+5.25.2 Value mapping for operator ~abs~
 
 */
+// value mapping for uint --> uint
+int TU_VM_Abs_UInt( Word* args, Word& result, int message,
+                    Word& local, Supplier s )
+{
+  Word a1;
+  UInt *u1;
+  long c1, c;
+
+  result = qp->ResultStorage( s );
+
+  a1 = args[0];
+
+  u1 = (UInt*)(a1.addr);
+
+  if ( !u1->IsDefined() )
+  { // return undefined ureal
+    ((UInt*)(result.addr))->SetDefined( false );
+  }
+  else
+  {
+    c1 = (long) u1->constValue.GetIntval();
+    c = abs(c1);
+    ((UInt*)(result.addr))->timeInterval = u1->timeInterval;
+    ((UInt*)(result.addr))->SetDefined( true );
+    ((UInt*)(result.addr))->constValue.Set(true,c);
+  }
+  return 0;
+}
+
+struct TUAbsLocalInfo
+{
+  bool finished;
+  int  NoOfResults;
+  int  NoOfResultsDelivered;
+  vector<UReal> resultVector;
+};
+
+// value mapping for ureal --> (stream ureal)
+int TU_VM_Abs_UReal( Word* args, Word& result, int message,
+                     Word& local, Supplier s )
+{
+  TUAbsLocalInfo *sli;
+  Word u1;
+  UReal *uv1;
+  Interval<Instant> iv;
+
+  switch( message )
+  {
+    case OPEN:
+
+      sli = new TUAbsLocalInfo;
+      local = SetWord(sli);
+      sli->resultVector.clear();
+      sli->finished = true;
+      sli->NoOfResults = 0;
+      sli->NoOfResultsDelivered = 0;
+
+      u1 = args[0];
+      uv1 = (UReal*) (u1.addr);
+
+      if ( uv1->IsDefined() )
+      {
+        sli->NoOfResults = uv1->Abs(sli->resultVector);
+        sli->finished = ( sli->NoOfResults <= 0 );
+      }
+      return 0;
+
+    case REQUEST:
+
+      if(local.addr == 0)
+      {
+        return CANCEL;
+      }
+      sli = (TUAbsLocalInfo*) local.addr;
+      if(sli->finished)
+      {
+        return CANCEL;
+      }
+      if(sli->NoOfResultsDelivered < sli->NoOfResults)
+      {
+        result = SetWord( 
+            sli->resultVector[sli->NoOfResultsDelivered].Clone() );
+        sli->NoOfResultsDelivered++;
+        return YIELD;
+      }
+      sli->finished = true;
+      return CANCEL;
+
+    case CLOSE:
+
+      if (local.addr != 0)
+      {
+        sli = (TUAbsLocalInfo*) local.addr;
+        delete sli;
+      }
+      return 0;
+  } // end switch
+
+  return 0;
+}
+
 
 /*
-5.24.3 Specification for operator ~s~
+5.24.3 Specification for operator ~abs~
 
 */
+const string TU_Spec_Abs  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>uint -> uint\n"
+    "ureal -> (stream ureal)</text--->"
+    "<text>abs( _ )</text--->"
+    "<text>Return the argument's absolute value.</text--->"
+    "<text>query speed(mp1)</text---> ) )";
+
 
 /*
-5.25.4 Selection Function of operator ~~
+5.25.4 Selection Function of operator ~abs~
 
 */
+  int TU_Select_Abs( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+
+  if( nl->SymbolValue( arg1 ) == "uint" )
+    return 0;
+
+  if( nl->SymbolValue( arg1 ) == "ureal" )
+    return 1;
+
+  return -1; // This point should never be reached
+}
+
+ValueMapping temporalunit_abs_map[] = { TU_VM_Abs_UInt, TU_VM_Abs_UReal };
 
 /*
-5.25.5 Definition of operator ~~
+5.25.5 Definition of operator ~abs~
 
 */
+  Operator temporalunitabs( "abs",
+                          TU_Spec_Abs,
+                          2,
+                          temporalunit_abs_map,
+                          TU_Select_Abs,
+                          TU_TM_Abs);
 
 
 /*
@@ -6216,7 +6497,7 @@ Operator temporalunitat( "at",
 
 
 /*
-5.31 Operator ~no_components~
+5.31 Operator ~no\_components~
 
 Return the number of components (units) contained by the object. For unit types,
 the result is either undef (for undef values) or a const unit with value=1
@@ -6230,7 +6511,7 @@ the result is either undef (for undef values) or a const unit with value=1
 */
 
 /*
-5.31.1 Type mapping function for ~no_components~
+5.31.1 Type mapping function for ~no\_components~
 
 */
 
@@ -6255,7 +6536,7 @@ static ListExpr TUNoComponentsTypeMap(ListExpr args) {
 }
 
 /*
-5.31.2 Value mapping for operator ~no_components~
+5.31.2 Value mapping for operator ~no\_components~
 
 */
 
@@ -6282,7 +6563,7 @@ int TUNoComponentsValueMap(Word* args, Word& result,
 }
 
 /*
-5.31.3 Specification for operator ~no_components~
+5.31.3 Specification for operator ~no\_components~
 
 */
 const string TUNoComponentsSpec  =
@@ -6296,7 +6577,7 @@ const string TUNoComponentsSpec  =
   ") )";
 
 /*
-5.31.4 Selection Function of operator ~no_components~
+5.31.4 Selection Function of operator ~no\_components~
 
 Uses ~UnitSimpleSelect( ListExpr args )~
 
@@ -6310,7 +6591,7 @@ ValueMapping temporalunitNoComponentsvaluemap[] = {
   TUNoComponentsValueMap<UString>,
   TUNoComponentsValueMap<URegion>};
 /*
-5.31.5 Definition of operator ~no_components~
+5.31.5 Definition of operator ~no\_components~
 
 */
 Operator temporalunitnocomponents
@@ -6767,8 +7048,18 @@ Operator temporalunitor
 5.35 Operator ~ComparePredicates~
 
 Here, we implement the binary comparison operators/predicates for (uT uT).
-The predicates are == (equality), ## (unequality), << (smaller than),
->> (bigger than), <<== (smaller than or equal to), >>== (bigger than or equal to).
+The predicates are:
+
+----
+
+  == (equality), 
+  ## (unequality), 
+  << (smaller than),
+  >> (bigger than),
+  <<== (smaller than or equal to),
+  >>== (bigger than or equal to).
+
+----
 
 The operators use the internat ~Compare~ function, which implements an ordering on the
 elements, but does not need to respect inuitive operator semantics (e.g. in case ureal).
@@ -6824,7 +7115,18 @@ ListExpr TUComparePredicatesTypeMap( ListExpr args )
 /*
 5.35.2 Value mapping for operator ~ComparePredicates~
 
-template parameter ~OPType~ gives the character of the operator: 0 =, 1 #, 2 <, 3 >, 4 <=, 5 >=
+template parameter ~OPType~ gives the character of the operator: 
+
+----
+
+  0  =,
+  1  #,
+  2  <,
+  3  >,
+  4 <=,
+  5 >=-
+
+----
 
 */
 
@@ -7740,7 +8042,7 @@ Operator temporalunitalways( "always",
                              TemporalUnitBoolAggrTypeMap);
 
 /*
-5.41 Operator ~the_upoint~
+5.41 Operator ~the\_unit~
 
 ----
 
@@ -7756,7 +8058,7 @@ Operator temporalunitalways( "always",
 */
 
 /*
-5.41.1 Type mapping function for ~the_unit~
+5.41.1 Type mapping function for ~the\_unit~
 
 */
 ListExpr TU_TM_TheUnit( ListExpr args )
@@ -7799,7 +8101,7 @@ ListExpr TU_TM_TheUnit( ListExpr args )
 }
 
 /*
-5.41.2 Value mapping for operator ~the_unit~
+5.41.2 Value mapping for operator ~the\_unit~
 
 */
 // point point instant instant bool bool --> ubool
@@ -7993,7 +8295,7 @@ int TU_VM_TheUnit_Tiibb(Word* args, Word& result,
 }
 
 /*
-5.41.3 Specification for operator ~the_unit~
+5.41.3 Specification for operator ~the\_unit~
 
 */
 const string  TU_Spec_TheUnit =
@@ -8017,7 +8319,7 @@ const string  TU_Spec_TheUnit =
   ") )";
 
 /*
-5.41.4 Selection Function of operator ~the_unit~
+5.41.4 Selection Function of operator ~the\_unit~
 
 */
 int TU_Select_TheUnit( ListExpr args )
@@ -8064,7 +8366,7 @@ ValueMapping TU_VMMap_TheUnit[] =
     TU_VM_TheUnit_iTdbb<CcString>   //8
   };
 /*
-5.41.5 Definition of operator ~the_unit~
+5.41.5 Definition of operator ~the\_unit~
 
 */
 Operator temporalunittheupoint( "the_unit",
@@ -8074,20 +8376,20 @@ Operator temporalunittheupoint( "the_unit",
                             TU_Select_TheUnit,
                             TU_TM_TheUnit);
 /*
-5.42 Operator ~the_ivalue~
+5.42 Operator ~the\_ivalue~
 
 This operator creates an intime value from an instant and a value.
 
 ----
       the_ivalue:  For T in {bool, int, string, real, point, region}
-n/a                              (instant T) --> iT
+OK                               (instant T) --> iT
 
 ----
 
 */
 
 /*
-5.42.1 Type mapping function for ~the_ivalue~
+5.42.1 Type mapping function for ~the\_ivalue~
 
 */
 ListExpr TU_TM_TheIvalue( ListExpr args )
@@ -8115,8 +8417,9 @@ ListExpr TU_TM_TheIvalue( ListExpr args )
      ", but it gets a list of type '" + argstr + "'.");
   return nl->SymbolAtom( "typeerror" );
 }
+
 /*
-5.42.2 Value mapping for operator ~the_ivalue~
+5.42.2 Value mapping for operator ~the\_ivalue~
 
 */
 
@@ -8142,7 +8445,7 @@ int TU_VM_TheIvalue(Word* args, Word& result,
 }
 
 /*
-5.42.3 Specification for operator ~the_ivalue~
+5.42.3 Specification for operator ~the\_ivalue~
 
 */
 const string  TU_Spec_TheIvalue =
@@ -8160,7 +8463,7 @@ const string  TU_Spec_TheIvalue =
   ") )";
 
 /*
-5.42.4 Selection Function of operator ~the_ivalue~
+5.42.4 Selection Function of operator ~the\_ivalue~
 
 */
 int TU_Select_TheIvalue( ListExpr args )
@@ -8194,7 +8497,7 @@ ValueMapping TU_VMMap_TheIvalue[] =
     TU_VM_TheIvalue<Region>
   };
 /*
-5.42.5 Definition of operator ~the_ivalue~
+5.42.5 Definition of operator ~the\_ivalue~
 
 */
 Operator temporalunittheivalue( "the_ivalue",
@@ -8208,8 +8511,18 @@ Operator temporalunittheivalue( "the_ivalue",
 5.41 Operator ~ComparePredicateValues~
 
 Here, we implement the binary comparison operators/predicates for (uT uT).
-The predicates are = (equality), # (unequality), < (smaller than),
-> (bigger than), <= (smaller than or equal to), >= (bigger than or equal to).
+The predicates are 
+
+----
+
+   = (equality), 
+   # (unequality), 
+   < (smaller than),
+   > (bigger than), 
+  <= (smaller than or equal to),
+  >= (bigger than or equal to).
+
+----
 
 The operators compare the values for each instant of time, so they will return
 a (stream ubool) for the intersection of arguments' deftimes.
@@ -8582,6 +8895,9 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
         if (iv.lc)
         {
 //        cout << " required." << endl;
+          un1.TemporalFunction(un1.timeInterval.start, fccr1, false);
+          un2.TemporalFunction(un2.timeInterval.start, fccr2, false);
+          cmpres = fccr1.Compare( &fccr2 );
           compresult = ( (opcode == 0 && cmpres == 0) ||
                          (opcode == 1 && cmpres != 0) ||
                          (opcode == 2 && cmpres  < 0) ||
@@ -9030,6 +9346,7 @@ public:
     AddOperator( &temporalunitget_duration );
     AddOperator( &temporalunittrajectory );
     AddOperator( &temporalunitdistance );
+    AddOperator( &temporalunitabs );
     AddOperator( &temporalspeed );
     AddOperator( &temporalvelocity );
     AddOperator( &temporalderivable );
