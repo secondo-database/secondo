@@ -797,7 +797,11 @@ SmiEnvironment::SetHomeDir(const string& parmFile)
         cerr << "Using default directory ..." << endl;
       }
     }
+    // Tests for a bug concerning assert, refer to 
+    // SecondoConfig.ini for details!
+    //assert(false); -> aborts as expected! 
     cerr << "Database directory: SecondoHome='" << secondoHome << "'." << endl;
+    //assert(false); ** call of __assert_fail causes a SIGSEGV!
     instance.impl->bdbHome = secondoHome;
     return true;
 }
@@ -938,8 +942,10 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
 
   if ( rc == 0 )
   {
+    //assert(false); **OK !
     if ( !SetHomeDir(parmFile) )
       return false;         
+    //assert(false);
     
     u_int32_t flags = 0;
     switch ( mode )
@@ -993,8 +999,10 @@ Transactions, logging and locking are enabled.
 */
         break;
     }
+    //assert(false);
     rc = dbenv->open( instance.impl->bdbHome.c_str(), flags, 0 );
 
+    //assert(false);
     // --- Open Database Catalog
 
     Db* dbctlg = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
