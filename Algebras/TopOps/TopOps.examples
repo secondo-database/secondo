@@ -1,0 +1,79 @@
+Database: berlintest
+Restore : No
+
+Operator : topops_get_stat
+Number   : 1
+Signature: -> text 
+Example  : query topops_get_stat() contains "point" 
+Result   : (bool TRUE)
+Remark   : some statistic information 
+
+
+Operator : topops_reset_stat
+Number   : 1
+Signature: -> bool 
+Example  : query topops_reset_stat() 
+Result   : (bool TRUE)
+Remark   : sets the statistic to the initial state
+
+Operator : toprel
+Number   : 1
+Signature: point x point -> int9m 
+Example  : query toprel(mehringdamm, mehringdamm) 
+Result   : (int9m (TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE TRUE))
+
+
+Operator : toprel
+Number   : 2
+Signature: point x points -> int9m 
+Example  : query toprel(mehringdamm, vertices(thecenter)) 
+Result   : (int9m (FALSE FALSE TRUE FALSE FALSE FALSE TRUE FALSE TRUE))
+
+
+Operator : toprel
+Number   : 3
+Signature: point x line -> int9m 
+Example  : query toprel(mehringdamm, trajectory(train7)) 
+Result   : (int9m (TRUE FALSE FALSE FALSE FALSE FALSE TRUE TRUE TRUE))
+
+
+Operator : toprel
+Number   : 4
+Signature: point x region -> int9m 
+Example  : query toprel(mehringdamm, thecenter) 
+Result   : (int9m (TRUE FALSE FALSE FALSE FALSE FALSE TRUE TRUE TRUE))
+
+
+Operator : toprel
+Number   : 5
+Signature: line x line -> int9m 
+Example  : query toprel(trajectory(train7),trajectory(train7))
+Result   : bug
+Remark   : not implemented yet 
+
+
+Operator : toprel
+Number   : 6
+Signature: line x region -> int9m 
+Example  : query toprel(trajectory(train7),thecenter)
+Result   : bug
+Remark   : not implemented yet 
+
+
+Operator : toprel
+Number   : 7
+Signature: region x region -> int9m 
+Example  : query toprel(thecenter,thecenter)
+Result   : bug
+Remark   : not implemented yet 
+
+
+Operator : toppred
+Number   : 1
+Signature: {point, points, line, region} x {point, points, line, region} x string x predicategroup -> bool 
+Example  : query toppred(mehringdamm, mehringdamm, "equal", stdpgroup())
+Result   : (bool TRUE)
+Remark   : Simple implementation using the toprel operation 
+
+
+

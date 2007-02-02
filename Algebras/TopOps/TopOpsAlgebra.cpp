@@ -62,6 +62,8 @@ many cases.
 #include "Algebra.h"
 #include "QueryProcessor.h"
 #include "LogMsg.h"
+#include "AvlTree.h"
+
 
 #define TOPOPS_USE_STATISTIC
 
@@ -90,6 +92,190 @@ Coord  EPSILON = 0.000001;
 
 using namespace toprel;
 
+
+
+/*
+3.3 Helper class for plane sweep algorithms
+
+This class can be used to store halfsegments whithin an
+AVL tree. It is possible to switch the functionality of
+the comparison operators. The make it possible to insert
+/ delete a halfsegment with an exact match but to search only 
+dor the y value.
+
+*/
+
+class AvlEntry{
+public:
+
+/*
+3.3.0 Standard Constructor
+This constructor does nothing but is required for an AVLTree entry.
+
+*/
+AvlEntry(){}
+
+
+/*
+3.3.1 Constructor
+
+This constructor creates an AvlEntry from a 
+halfsegment.
+
+*/
+  AvlEntry(HalfSegment const * const Hs){
+     Point p1 = Hs->GetLeftPoint();
+     Point p2 = Hs->GetRightPoint();
+     x1 = p1.GetX();
+     y1 = p1.GetY();
+     x2 = p2.GetX();
+     y2 = p2.GetY();
+     isVertical = x1==x2; 
+     if(!isVertical){
+        slope = (y2-y1)/(x2-x1);
+     } else{
+        slope = 1.0;
+     }
+     insideAbove = Hs->GetAttr().insideAbove;
+  }
+
+/*
+3.3.2 Constructor
+
+This constructor creates an AvlEntry from a 
+point.
+
+*/
+
+ AvlEntry(Point const * const P){
+    x1 = P->GetX();
+    x2 = x1;
+    y1 = P->GetY();
+    y2 = y1;
+   // set some dummy values 
+    isVertical = true;
+    slope = 0;
+    insideAbove = false; 
+ }
+
+
+
+/*
+3.3.2 Copy Constructor
+
+*/
+
+  AvlEntry(const AvlEntry& source){
+    this->x1 = source.x1;
+    this->x2 = source.x2;
+    this->y1 = source.y1;
+    this->y2 = source.y2;
+    this->isVertical = source.isVertical;
+    this->slope = source.slope;
+  }
+
+  
+/*
+3.3.3 Assignment Operator
+
+*/  
+   AvlEntry& operator=(const AvlEntry& source){
+     this->x1 = source.x1;
+     this->x2 = source.x2;
+     this->y1 = source.y1;
+     this->y2 = source.y2;
+     this->isVertical = source.isVertical;
+     this->insideAbove = source.insideAbove;
+     this->slope = source.slope;
+     return *this;
+   }
+
+/*
+3.3.4 Destructor
+
+*/
+   ~AvlEntry(){}
+
+
+/*
+3.3.5 Comparison Operators
+
+We have to distict between different modes of comparisons.
+If the compexact flag is set, we compare two segment as usual.
+Otherwise, we compute the y value at the current x value (defined 
+in the static member ~x~) and compare them. For vertical segments, we use
+the ~y1~ values for the comparison.
+
+
+
+*/
+
+   bool operator<(const AvlEntry& c)const{
+        if(compexact){
+            if(x1<c.x1){ return true; }
+            if(x1>c.x1){ return false; } 
+            if(y1<c.y1){ return true; }
+            if(y1>c.y1){ return false; } 
+            if(x2<c.x2){ return true; }
+            if(x2>c.x2){ return false; } 
+            return y2<c.y2;             
+        }    
+        double ty = isVertical? y1 : x1 + slope * (x-x1);
+        double cy = c.isVertical? c.y1 : c.x1 + c.slope*(x-c.x1);
+        return ty<cy;
+   }
+
+  bool operator>(const AvlEntry& c)const{
+        if(compexact){
+            if(x1<c.x1){ return false; }
+            if(x1>c.x1){ return true; } 
+            if(y1<c.y1){ return false; }
+            if(y1>c.y1){ return true; } 
+            if(x2<c.x2){ return false; }
+            if(x2>c.x2){ return true; } 
+            return y2>c.y2;             
+        }    
+        double ty = isVertical? y1 : x1 + slope * (x-x1);
+        double cy = c.isVertical? c.y1 : c.x1 + c.slope*(x-c.x1);
+        return ty>cy;
+  }
+  
+  bool operator==(const AvlEntry& c)const{
+        if(compexact){
+           return (x1==c.x1) && (x2==c.x2) && (y1==c.y1) && (y2==c.y2);
+        }    
+        double ty = isVertical? y1 : x1 + slope * (x-x1);
+        double cy = c.isVertical? c.y1 : c.x1 + c.slope*(x-c.x1);
+        return ty==cy;
+  }
+ 
+  static bool compexact;
+  static double x;
+private:
+  double x1;
+  double y1;
+  double x2;
+  double y2;
+  double slope; // redundant to avoid computations 
+  bool   isVertical;
+  bool   insideAbove;
+
+
+
+};
+
+/*
+3.3.5 Initialization of static members of AvlEntry
+
+
+*/
+
+bool AvlEntry::compexact=true;
+double AvlEntry::x = 0.0;
+
+
+
+
 /*
 3.3 Statistical information 
 
@@ -104,12 +290,16 @@ int GetCalls_ps_ps;
 int GetCalls_l_p;
 int GetCalls_l_ps;
 int GetCalls_l_l;
+int GetCalls_r_p;
+int GetCalls_r_ps;
 int bb_p_p;
 int bb_ps_p;
 int bb_ps_ps;
 int bb_l_p;
 int bb_l_ps;
 int bb_l_l;
+int bb_r_p;
+int bb_r_ps;
 #endif
 
 /*
@@ -128,12 +318,16 @@ static void ResetStatistic(){
  GetCalls_l_p=0;
  GetCalls_l_ps=0;
  GetCalls_l_l=0;
+ GetCalls_r_p=0;
+ GetCalls_r_ps=0;
  bb_p_p=0;
  bb_ps_p=0;
  bb_ps_ps=0;
  bb_l_p=0;
  bb_l_ps=0;
  bb_l_l=0;
+ bb_r_p=0;
+ bb_r_ps=0;
 }
 #endif
 
@@ -201,10 +395,15 @@ bool IsImplemented(ListExpr type1, ListExpr type2){
     if(((t1=="line") && (t2=="points"))){
       return true;
     }
+    if(((t1=="region") && (t2=="point"))) return true;
+    if(((t1=="point") && (t2=="region"))) return true;
+    if(((t1=="region") && (t2=="points"))) return true;
+    if(((t1=="points") && (t2=="region"))) return true;
+    
+
     cout << t1 << " x " << t2 << " is not implemented" << endl;
     return false;
 }
-
 
 /*
 3.3.4 TopPredTypeMap
@@ -809,6 +1008,7 @@ __line__ and a pointset as 9-intersection matrix.
 ~complexity~ O(n * (m+1))
 
 */
+
 void GetInt9M(Line const* const line, Points const* const ps, Int9M& res){
 
 #ifdef TOPOPS_USE_STATISTIC
@@ -817,7 +1017,7 @@ void GetInt9M(Line const* const line, Points const* const ps, Int9M& res){
    
    res.SetValue(0);
    res.SetEE(true);
-   /** special case empty line **/ 
+   // special case empty line 
    if(line->IsEmpty()){
 #ifdef TOPOPS_USE_STATISTIC
       bb_l_ps++;
@@ -832,7 +1032,7 @@ void GetInt9M(Line const* const line, Points const* const ps, Int9M& res){
    // exterior of the point (dimension difference)
    res.SetIE(true);
   
-   /** special case empty point set **/
+   // special case empty point set 
    if(ps->IsEmpty()){
      // non-empty line
      int num = NumberOfEndpoints(line,1);
@@ -880,7 +1080,7 @@ void GetInt9M(Line const* const line, Points const* const ps, Int9M& res){
       processed[i] = false;
    }
 
-   /* jump over all points left from dp **/
+   // jump over all points left from dp 
    int min = 0;
    int max = ps_size-1;
    int mid;
@@ -970,6 +1170,134 @@ void GetInt9M(Line const* const line, Points const* const ps, Int9M& res){
 
 }
 
+
+
+/*
+~GetInt9M~
+
+Computation of the 9 intersection matrix for a single point and a 
+region value. 
+
+*hacked* (should be changed to a single run
+
+[3] O(~m~) where m is the number of segments of the region parameter.
+
+*/
+void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
+
+#ifdef TOPOPS_USE_STATISTIC
+  GetCalls_r_p++;
+#endif
+
+  res.SetValue(0);
+  res.SetEE(true);
+  if(reg->IsEmpty()){
+     res.SetEI(true);
+     return;
+  }
+  res.SetIE(true); // the point can't cover an infinite set of points
+  res.SetBE(true); //  see above
+
+  Rectangle<2> bboxreg = reg->BoundingBox();
+  Rectangle<2> bboxp = p->BoundingBox();
+
+  if(!bboxreg.Intersects(bboxp)){
+     res.SetEI(true);
+#ifdef TOPOPS_USE_STATISTIC
+      bb_r_p++;
+#endif
+     return;
+  }
+  
+
+  if(reg->OnBorder(p)){
+     res.SetBI(true);
+  } else if (reg->InInterior(*p)){
+     res.SetII(true);
+  } else{
+     res.SetEI(true);
+  }
+}
+
+/*
+~GetInt9M~
+
+Computation of the 9 intersection matrix for a set of points and a 
+region value. 
+
+*hacked* should be changed to a plane sweep algorithm
+
+[3] O(~m~~n~) where m and n  are the sizes of the parameters .
+
+*/
+void GetInt9M(Region const* const reg, Points const* const ps, Int9M& res){
+#ifdef TOPOPS_USE_STATISTIC
+  GetCalls_r_ps++;
+#endif
+  res.SetValue(0); 
+  // test for emptyness
+   res.SetEE(true);
+   if(reg->IsEmpty()){
+      if(ps->IsEmpty()){
+#ifdef TOPOPS_USE_STATISTIC
+         bb_r_ps++;
+#endif
+         return; 
+      }
+      res.SetEI(true);
+#ifdef TOPOPS_USE_STATISTIC
+      bb_r_ps++;
+#endif
+      return;
+   } 
+   res.SetIE(true);
+   res.SetBE(true);
+   if(ps->IsEmpty()){ // no more intersections can be found
+#ifdef TOPOPS_USE_STATISTIC
+      bb_r_ps++;
+#endif
+      return;
+   }
+  // bounding box test
+  Rectangle<2> regbox = reg->BoundingBox();
+  Rectangle<2> pbox = ps->BoundingBox();
+  if(!regbox.Intersects(pbox)){ // disjoint objects
+    res.SetEI(true);
+#ifdef TOPOPS_USE_STATISTIC
+    bb_r_ps++;
+#endif
+    return;
+  }
+
+  // naive implementation 
+  int size = ps->Size();
+  Point const*   CurrentPoint;
+  bool ii = false;
+  bool ei = false;
+  bool bi = false;
+  bool done = ii && ei && bi;
+  for(int i=0;i<size && !done ;i++){
+     ps->Get(i,CurrentPoint);
+     pbox = CurrentPoint->BoundingBox();
+     if(!regbox.Intersects(pbox)){
+        res.SetEI(true),
+        ei = true;
+     } else {
+         if(!ii && reg->InnerContains(*CurrentPoint)){
+           res.SetII(true);
+           ii = true;
+         } else if(!bi && reg->OnBorder (*CurrentPoint)){
+           res.SetBI(true);
+           bi = true;
+         } else if(!ei && !reg->Contains(*CurrentPoint)){
+           ei = true;
+           res.SetEI(true);
+         }
+     }
+     done = ii && ei && bi;
+  }
+
+}
 
 /*
 ~GetInt9M~
@@ -1142,7 +1470,11 @@ int TopOpsGetStatVM(Word* args, Word& result, int message,
       << "#GetInt9M(line, points): " << GetCalls_l_ps << endl
       << "#BoxFilter(line, points): " << bb_l_ps << endl
       << "#GetInt9M(line, line): " << GetCalls_l_l << endl
-      << "#BoxFilter(line, line): " << bb_l_l << endl;
+      << "#BoxFilter(line, line): " << bb_l_l << endl
+      << "#GetInt9M(region, point): " << GetCalls_r_p << endl
+      << "#BoxFilter(region, point): " << bb_r_p << endl
+      << "#GetInt9M(region, points): " << GetCalls_r_ps << endl
+      << "#BoxFilter(region, points): " << bb_r_ps << endl;
    ((FText*)result.addr) ->Set(true,ts.str().c_str());
    return 0;
 }
@@ -1266,12 +1598,16 @@ operations.
 ValueMapping TopRelMap[] = {
        TopRel<Point,Point> , TopRel<Points,Point>,
        TopRelSym<Point,Points>, TopRel<Points,Points>, TopRel<Line,Point>,
-       TopRelSym<Point,Line>,TopRel<Line,Points>,TopRelSym<Points,Line>  };
+       TopRelSym<Point,Line>,TopRel<Line,Points>,TopRelSym<Points,Line>,
+       TopRel<Region,Point>,TopRelSym<Point,Region>,
+       TopRel<Region,Points>, TopRelSym<Points,Region>  };
 
 ValueMapping TopPredMap[] = {
        TopPred<Point,Point> , TopPred<Points,Point>,
        TopPredSym<Point,Points>, TopPred<Points,Points>, TopPred<Line,Point>,
-       TopPredSym<Point,Line>,TopPred<Line,Points>,TopPredSym<Points,Line> };
+       TopPredSym<Point,Line>,TopPred<Line,Points>,TopPredSym<Points,Line>,
+       TopPred<Region,Point>,TopPredSym<Point,Region>,
+       TopPred<Region,Points>, TopRelSym<Points,Region> };
 
 
 
@@ -1319,6 +1655,19 @@ static int TopOpsSelect(ListExpr args){
    if((type1=="points") && (type2=="line")){
        return 7;
    }
+   if((type1=="region") && (type2=="point")){
+       return 8;
+   }
+   if((type1=="point") && (type2=="region")){
+       return 9;
+   }
+   if( type1=="region" && (type2=="points")){
+       return  10;
+   }
+   if(type1=="points" && (type2=="regions")){
+       return 11;
+   }
+
    cerr << "selection function does not allow (" << type1 << " x " 
         << type2 << ")" << endl;
    
