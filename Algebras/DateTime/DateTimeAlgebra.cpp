@@ -220,6 +220,16 @@ DateTime::DateTime(const DateTime& DT){
 }
 
 /*
+~Assignment operator~
+
+*/
+DateTime& DateTime::operator=(const DateTime& DT){
+    Equalize(&DT);
+    return (*this);
+}
+
+
+/*
 ~Destructor~
 
 */
@@ -1564,6 +1574,18 @@ void DateTime::ReadFrom( const char *src )
 {
   ReadFrom( string(src) );
 }
+
+
+/*
+~Stream Operator~
+
+*/
+
+ostream& operator<<(ostream& o, const DateTime& DT){
+   o << DT.ToString();
+   return o;
+}
+
 
 
 /*

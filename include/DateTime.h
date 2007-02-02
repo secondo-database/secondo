@@ -48,6 +48,7 @@ will change the type of the this object to a {\tt duration}.
 
 
 #include <string>
+#include <ostream>
 #include "NestedList.h"
 #include "StandardAttribute.h"
 #include "BigInt.h"
@@ -119,6 +120,13 @@ argument.
 */
 
      DateTime(const DateTime& DT);
+
+/*
+~Assignment operator~
+
+*/
+    DateTime& operator=(const DateTime& DT);
+
 
 /*
 ~Destructor~
@@ -423,6 +431,7 @@ This Operator multiplies a DateTime by a int and double number
     bool operator<=(const DateTime T2)const;
     bool operator>=(const DateTime T2)const;
 
+
 /*
 ~Abs~
 
@@ -595,7 +604,11 @@ ListExpr OutDateTime( ListExpr typeInfo, Word value );
 
 }
 
+/*
+~ Stream operator~
 
+*/
 
+ostream& operator<<(ostream& o, const datetime::DateTime& DT);
 
 #endif
