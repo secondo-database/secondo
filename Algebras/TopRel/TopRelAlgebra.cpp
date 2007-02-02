@@ -222,7 +222,7 @@ By calling the Equalize function, the matrix gets its value from
 the argument.
 
 */
-void Int9M::Equalize(const Int9M value){
+void Int9M::Equalize(const Int9M& value){
       Equalize(&value);
 }
 
@@ -318,7 +318,7 @@ Int9M* Int9M::Clone() const
 This function creates the sting repreentation of a matrix.
 
 */
-  string Int9M::ToString(){
+  string Int9M::ToString() const{
      int ii = GetII()?1:0;
      int ib = GetIB()?1:0;
      int ie = GetIE()?1:0;
@@ -371,6 +371,25 @@ bool Cluster::ValueAt(const int pos) const{
        default : assert(false);
    }
 }
+
+/*
+2.2.2 ToString
+
+*/
+
+string Cluster::ToString() const{
+    stringstream o;
+    o << name << "(";
+    for(int i=0;i<512;i++){
+       if(ValueAt(i)){
+          o << i << " ";
+       }
+    }
+    o << ")";
+    return  o.str();
+
+}
+
 
 /*
 2.2.2 The Contains function
@@ -588,8 +607,7 @@ Aided by this functions the value of this cluster can be setted to the
 value of another existing cluster.
 
 */
-void Cluster::Equalize(const Cluster value){
-
+void Cluster::Equalize(const Cluster& value){
      Equalize(&value);
 }
 
@@ -606,12 +624,15 @@ The Compare function compares two clusters. Needed for to be an attribute of a t
 
 */
 int Cluster::CompareTo(const Cluster* C)const{
-   if(!defined && !C->defined)
+   if(!defined && !C->defined){
      return 0;
-   if(!defined)
+   }
+   if(!defined){
       return -1;
-   if(!C->defined)
+   }
+   if(!C->defined){
       return 1;
+   }
    for(int i=0;i<64;i++){
       if(BitVector[i]<C->BitVector[i])
           return -1;
@@ -798,8 +819,8 @@ bool Cluster::operator>(const Cluster C2)const{
 }
 
 static int ClusterCompare(const void *a, const void *b){
-   Cluster *ca = new ((void*)a) Cluster,
-           *cb = new ((void*)b) Cluster;
+   Cluster *ca = new ((void*)a) Cluster;
+   Cluster *cb = new ((void*)b) Cluster;
    return ca->CompareTo(cb);
 }
 
@@ -898,6 +919,28 @@ int PredicateGroup::Compare(const Attribute* right) const{
    }
    return 0;
 }
+
+/*
+2.3.4 ToString
+
+*/
+string PredicateGroup::ToString() const{
+   const Cluster* cc;
+   int size = theClusters.Size();
+   stringstream o;
+   o << "group {";
+   for(int i=0;i< size;i++){
+     theClusters.Get(i,cc);
+     if(i>0) {
+        o << ", ";
+     }
+     o << "[" << (*cc) << "]";
+   }
+   o << "}";
+   return o.str();
+
+}
+
 
 /*
 2.3.4 ToListExpr
@@ -1046,8 +1089,9 @@ DBArray. Remember to reorder the clusters after calling this function.
 
 */
 bool PredicateGroup::AddWithPriority(const Cluster *C){
-   if(C->IsEmpty())
+   if(C->IsEmpty()){
        return false;
+   }
    const STRING* name = C->GetName();
    if(strcmp(*name,UNSPECIFIED)==0){ // name conflict
       return false;
@@ -1060,7 +1104,7 @@ bool PredicateGroup::AddWithPriority(const Cluster *C){
             return false;
         }
    }
-   Cluster aux( *tmp );
+   Cluster aux(false);
    aux.Equalize(C);
    aux.Intersection(&unSpecified); // remove overlapping clusters
    if(aux.IsEmpty())
@@ -1100,6 +1144,89 @@ Cluster* PredicateGroup::GetClusterOf(const STRING* name)const{
    }
    return NULL;
 }
+
+/*
+~SetToDefault~
+
+Sets this predicate group to a default (constant) value.
+
+*/
+void PredicateGroup::SetToDefault(){
+     MakeEmpty(); // remove all old stuff
+     defined = true;
+     canDelete=false;
+     ListExpr nlCoveredBy = nl->TwoElemList(
+                              nl->StringAtom("coveredBy"),
+                              nl->TextAtom("ii & !ie & ei & bb")
+                            );
+     ListExpr nlDisjoint = nl->TwoElemList(
+                               nl->StringAtom("disjoint"),
+                               nl->TextAtom("!ii & !ib & !bi & !bb")
+                            );
+    
+     ListExpr nlEqual = nl->TwoElemList(
+                         nl->StringAtom("equal"),
+                         nl->TextAtom("!ib & !ie & !bi & !be & !ei & !eb")
+                      );
+     ListExpr nlInside =nl->TwoElemList(
+                       nl->StringAtom("inside"),
+                       nl->TextAtom("ii & !ie & ei & !bb")
+                      );
+     ListExpr nlMeet = nl->TwoElemList(
+                      nl->StringAtom("meet"),
+                      nl->TextAtom("!ii & (ib | bi | bb)")
+                    );
+     ListExpr nlOverlap = nl->TwoElemList(
+                      nl->StringAtom("overlap"),
+                      nl->TextAtom("ii & ie & ei")
+                    );
+     bool ok; 
+     Cluster clEqual(false);
+     ok = clEqual.ReadFrom(nlEqual);
+     assert(ok);
+     Cluster clInside(false);
+     ok = clInside.ReadFrom(nlInside);
+     assert(ok);
+     Cluster clMeet(false);
+     ok = clMeet.ReadFrom(nlMeet);
+     assert(ok);
+     Cluster clOverlap(false);
+     ok = clOverlap.ReadFrom(nlOverlap);
+     assert(ok);
+     Cluster clCoveredBy(false);
+     ok = clCoveredBy.ReadFrom(nlCoveredBy);
+     assert(ok);
+     Cluster clDisjoint(false);
+     ok = clDisjoint.ReadFrom(nlDisjoint);
+     assert(ok);
+     Cluster clContains(clInside);
+     clContains.Transpose();
+     clContains.SetName("contains");
+     Cluster clCovers(clCoveredBy);
+     clCovers.Transpose();
+     clCovers.SetName("covers");
+     
+     ok = AddWithPriority(&clEqual);
+     if(!ok) {cerr  << "Equal not included" << endl; }
+     ok = AddWithPriority(&clInside);
+     if(!ok) {cerr  << "Inside not included" << endl; }
+     ok = AddWithPriority(&clContains);
+     if(!ok) {cerr  << "Contains not included" << endl; }
+     ok = AddWithPriority(&clMeet);
+     if(!ok) {cerr  << "Meet  not included" << endl; }
+     ok = AddWithPriority(&clOverlap);
+     if(!ok) {cerr  << "Overlap not included" << endl; }
+     ok = AddWithPriority(&clDisjoint);
+     if(!ok) {cerr  << "Disjoint not included" << endl; }
+     ok = AddWithPriority(&clCoveredBy);
+     if(!ok) {cerr  << "CoveredBy  not included" << endl; }
+     ok = AddWithPriority(&clCovers);
+     if(!ok) {cerr  << "Covers not included" << endl; }
+     
+     theClusters.Sort(toprel::ClusterCompare);
+     sorted = true;
+}
+
 
 
 /*
@@ -1160,7 +1287,7 @@ InPredicateGroup(const ListExpr typeInfo, const ListExpr instance,
    }
    delete res;
    return SetWord(Address(0));
-}
+} 
 
 /*
 4.2 Functions for the creation of objects
@@ -1774,6 +1901,15 @@ ListExpr RestrictRelaxTM(ListExpr args){
 }
 
 
+ListExpr StdPGroup_TM(ListExpr args){
+  if(nl->ListLength(args)==0){
+     return nl->SymbolAtom("predicategroup");
+  }
+  ErrorReporter::ReportError("stdpgroup does not expect any argument.");
+  return nl->SymbolAtom("typeerror");
+}
+
+
 /*
 7.2 Value Mappings
 
@@ -2211,6 +2347,17 @@ int UnSpecified_Fun(Word* args, Word& result, int message,
    return 0;
 }
 
+
+int StdPGroup_Fun(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+     result= qp->ResultStorage(s);
+     ((PredicateGroup*) result.addr)->SetToDefault();
+     return 0;
+}
+
+
+
 /*
 7.3 Specification of operators
 
@@ -2411,6 +2558,12 @@ const string Relax_Spec =
       " the condition of the second argument to the cluster </text---> "
       " <text> query relax(c1,\" ee & ii\") </text--->))";
 
+const string StdPGroup_Spec =
+      "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      " ( \"  -> predicategroup  \""
+      " \" predicategroup()  \" "
+      " <text>Computes a default predicategroup.</text---> "
+      " <text> query stdpgroup()  </text--->))";
 
 /*
 
@@ -2696,7 +2849,35 @@ Operator clusterof(
          Operator::SimpleSelect,
          ClusterOfTM);
 
+Operator stdpgroup(
+         "stdpgroup", // name
+         StdPGroup_Spec, // specification
+         StdPGroup_Fun,
+         Operator::SimpleSelect,
+         StdPGroup_TM);
+
 } // namespace toprel
+
+/*
+STream operators
+
+*/
+
+ostream& operator<<(ostream& o, const toprel::Int9M& p){
+    o << p.ToString();
+    return o;
+}
+
+
+ostream& operator<<(ostream& o, const toprel::Cluster& c){
+   o << c.ToString(); 
+   return o;
+}
+
+ostream& operator<<(ostream& o, const toprel::PredicateGroup& p){
+   o << p.ToString();
+   return o;
+}
 
 /*
 7 Creating the Algebra
@@ -2740,6 +2921,7 @@ class TopRelAlgebra : public Algebra
     AddOperator(&toprel::pwdisjoint);
     AddOperator(&toprel::restrict_op);
     AddOperator(&toprel::relax_op);
+    AddOperator(&toprel::stdpgroup);
   }
   ~TopRelAlgebra() {};
 } toprelAlgebra;

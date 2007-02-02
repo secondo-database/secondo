@@ -181,6 +181,23 @@ matrix number leads not to an error, the number is just corrected to tak the las
            defined = true;
        }
 
+/*
+2.1.3 Copy Constructor 
+
+*/
+        Int9M(const Int9M& source){
+           Equalize(source);
+        }
+
+/*
+2.1.4 Assignement Operator 
+
+*/
+        Int9M& operator=(const Int9M& arg){
+           Equalize(arg);
+           return (*this);
+        }
+
 
 /*
 2.1.4 Constructor
@@ -193,16 +210,6 @@ In this constructor, all matrix entries can be explicitely set.
              const bool EI, const bool EB, const bool EE);
 
 
-/*
-2.1.5 Constructor
-
-The copy constructor
-
-*/
-       Int9M(const Int9M& m){
-          value = m.value;
-          defined = m.defined;
-       }
 
 
 
@@ -426,8 +433,11 @@ When calling one of the next functions, the values of this matrix are taken
 from the argument.
 
 */
-       void Equalize(const Int9M value);
+       void Equalize(const Int9M& value);
        void Equalize(const Int9M* value);
+
+
+
 
 /*
 2.1.19 ToString function
@@ -436,7 +446,7 @@ This function returns a string representation of this matrix.
 
 */
 
-     string ToString();
+     string ToString() const;
 
 
 /*
@@ -492,16 +502,6 @@ an attribute type within secondo relations.
           return CompareTo(I2)!=0;
        }
 
-/*
-2.1.24 Assignment Operator
-
-*/
-  inline Int9M operator=(const Int9M& m){
-      value = m.value;
-      defined = m.defined;
-      return *this;
-  }
- 
 
    private:
        // we use the appropriate bits of this value for the different
@@ -509,6 +509,8 @@ an attribute type within secondo relations.
        unsigned short value; 
        bool defined;
 };
+
+
 
 
 
@@ -553,6 +555,15 @@ ignored.
           defined = true;
       }
 
+/* 
+2.2.3 Copy Constructor 
+
+*/
+    Cluster(const Cluster& source){
+       Equalize(source);
+    }
+
+
 /*
 2.2.3 Destructor 
 
@@ -568,6 +579,17 @@ This function sets a new name for this cluster.
       void SetName(const STRING* newname){
            strcpy(name,*newname);
       }
+
+      void SetName(const string newname){
+          string s;
+          if(newname.length()>MAX_STRINGSIZE){
+              s = newname.substr(0,MAX_STRINGSIZE);
+          } else {
+              s = newname;
+          }
+          strcpy(name,s.c_str());
+      }
+
 
 /*
 2.2.5 Transpose
@@ -798,9 +820,17 @@ argument.
 
 */
 
-      void Equalize(const Cluster value);
+      void Equalize(const Cluster& value);
       void Equalize(const Cluster* value);
-      
+
+
+/*
+2.2.16 ToString function 
+
+*/
+      string ToString() const;
+
+
 /*
 2.2.16 Compare Function
 
@@ -911,6 +941,11 @@ clusters.
       bool operator==(const Cluster C2)const;
       bool operator>(const Cluster C2)const;
 
+      Cluster& operator=(const Cluster& arg){
+            Equalize(arg);
+            return (*this);
+      }
+
 
    private:
       unsigned char  BitVector[64];
@@ -919,9 +954,6 @@ clusters.
       void SetValueAt(const int pos, const bool value, 
                       unsigned char bitvector[]) const;
 };
-
-
-
 
 /*
 2.3 The Type PredicateGroup 
@@ -954,6 +986,26 @@ cluster named ''unspecified'' containing all 512 9-intersection matrices.
 
 */
     PredicateGroup(int size);
+
+
+/*
+2.3.3 Copy Constructor 
+
+*/
+    PredicateGroup(const PredicateGroup& source){
+       Equalize(source);
+    }
+
+/*
+2.3.4 Assignment Operator
+
+*/
+     PredicateGroup& operator=(const PredicateGroup& source){
+        Equalize(source);
+        return (*this);
+     }
+
+
 /*
 2.3.3. Destructor
 
@@ -974,9 +1026,17 @@ predicate cluster will be the same like this one of the argument.
 
     void Equalize(const PredicateGroup* PC);
 
-    void Equalize(const PredicateGroup PC){
+    void Equalize(const PredicateGroup& PC){
         Equalize(&PC);
     }
+
+
+/*
+2.3.5 ToString
+
+*/
+     string ToString() const;
+
 
 /*
 2.3.4 Functions for acting as an attribute type 
@@ -1195,6 +1255,13 @@ group, the result will be __NULL__.
 Cluster* GetClusterOf(const STRING* name) const;
    
 
+/*
+2.3.12 SetToDefault
+
+Function for easy creating a default predicate group.
+
+*/
+void SetToDefault();
 
 
 
@@ -1207,5 +1274,10 @@ private:
 };
 
 } // namespace toprel
+
+
+ostream& operator<<(ostream& o, const toprel::Int9M& p);
+ostream& operator<<(ostream& o, const toprel::Cluster& c);
+ostream& operator<<(ostream& o, const toprel::PredicateGroup& p);
 
 #endif

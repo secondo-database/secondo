@@ -6,6 +6,7 @@ Number   : 1
 Signature: cluster x int9m -> cluster
 Example  : query [const cluster value ("empty" )] + [const int9m value 1] 
 Result   : (cluster ("empty" 1)) 
+Remark   : adds a matrix into a cluster
 
 
 Operator : -
@@ -13,6 +14,7 @@ Number   : 1
 Signature: cluster x cluster -> cluster
 Example  : query [const cluster value ("c1"  1 2 3)] - [const cluster value ("c1" 2)]
 Result   : (cluster ("c1" 1 3))
+Remark   : computes the (set-) difference of the included matrices
 
 
 Operator : clustername_of
@@ -20,6 +22,7 @@ Number   : 1
 Signature: predicategroup x int9m -> string
 Example  : query clustername_of([const predicategroup value ( ("c1" 1 2 6) ("c2" 3 4 5))] , [const int9m value 2])
 Result   : "c1" 
+Remark   : returns the name of the cluster containing the given matrix  withn the group
 
 
 Operator : clusterof
@@ -27,6 +30,7 @@ Number   : 1
 Signature: predicategroup x int9m -> cluster
 Example  : query clusterof([const predicategroup value ( ("c1" 1 2 6) ("c2" 3 4 5))] , [const int9m value 2])
 Result   : (cluster ("c1" 1 2 6))
+Remark   : returns the cluster containing the given matrix within this group
 
 
 Operator : contains
@@ -34,6 +38,7 @@ Number   : 1
 Signature: cluster x int9m -> bool
 Example  : query [const cluster value ("c1" 4 511 2)] contains [const int9m value 16] 
 Result   : FALSE
+Remark   : checks if the matrix is part of the cluster
 
 
 Operator : createcluster
@@ -41,6 +46,7 @@ Number   : 1
 Signature:  string x {text, string} -> cluster  
 Example  :  query createcluster("test","ii & !ee & ib & bi & !bb")
 Result   : (cluster ("test" 416 418 420 422 424 426 428 430 480 482 484 486 488 490 492 494))
+Remark   : creates a cluster from the given name and matrices
 
 
 Operator : createpgroup
@@ -48,6 +54,7 @@ Number   : 1
 Signature: cluster x cluster x ... -> predicategroup
 Example  : query  createpgroup([const cluster value ("c1" 1 2)], [const cluster value ("c2" 6 7)]) 
 Result   : (predicategroup ( ("c1" 1 2) ("c2" 6 7)))
+Remark   : creates a predicate group from the clusters, clusters must be disjoint
 
 
 Operator : createprioritypgroup
@@ -55,6 +62,7 @@ Number   : 1
 Signature: cluster x cluster x ... -> predicategroup
 Example  : query  createprioritypgroup([const cluster value ("c1" 1 2 6 )], [const cluster value ("c2" 6 7)]) 
 Result   : (predicategroup ( ("c1" 1 2 6) ("c2"  7))) 
+Remark   : creates a group from the clusters, matrices of overlapping clusters are assigned to the first cluster in the list
 
 
 Operator : createvalidpgroup
@@ -62,6 +70,7 @@ Number   : 1
 Signature: cluster x cluster x ... -> predicategroup
 Example  : query  createvalidpgroup( [const cluster value ("valid" 1 2 3 4)], [const cluster value ("c1" 1 2 6)], [const cluster value ("c2" 4 5 6)]) 
 Result   :  (predicategroup ( ("c1" 1 2) ("c2" 4)))
+Remark   : creates a predicategroup from the given clusters restricted to the matrices of the first cluster
 
 
 Operator : disjoint
@@ -69,6 +78,7 @@ Number   : 1
 Signature: cluster x cluster -> bool
 Example  : query [const cluster value ("c1" 1 2 3)] disjoint [const  cluster value ("c2" 6 7 8)] 
 Result   : TRUE
+Remark   : checks if the matrices sets  within the clusters are disjoint
 
 
 Operator : intersection
@@ -76,13 +86,15 @@ Number   : 1
 Signature: int9m x int9m -> int9m 
 Example  : query number_of(intersection([const int9m value 6] , [const int9m value 5] ))
 Result   : (int 4)
+Remark   : only such intersections which are in both arguments are part of the result
 
 
 Operator : intersection
 Number   : 2
 Signature: cluster x cluster -> cluster 
-Example  :  query intersection([const cluster value ("c1" 1 2 3)] , [const cluster value ("c2" 2 5 8)])
+Example  : query intersection([const cluster value ("c1" 1 2 3)] , [const cluster value ("c2" 2 5 8)])
 Result   : (cluster ("c1" 2))
+Remark   : intersection betweent the matrices sets, the name is taken from the first cluster
 
 
 
@@ -91,6 +103,7 @@ Number   : 1
 Signature: int9m -> int9M 
 Example  :  query number_of(invert([const int9m value 511]))
 Result   : (int 0)
+Remark   : inverts the content of the matrix
 
 
 Operator : invert
@@ -98,6 +111,7 @@ Number   : 2
 Signature: cluster -> cluster 
 Example  :  query invert([const cluster  value ("c1" "!(ii & ib & ie & bi & bb & be & ei & eb & ee)")])
 Result   : (cluster ("c1" 511))
+Remark   : inverts the content of the cluster
 
 
 
@@ -106,6 +120,7 @@ Number   : 1
 Signature:  predicategroup -> bool  
 Example  :  query isComplete([const predicategroup value (("c1" "!ee")("c2" "ee"))]) 
 Result   : TRUE
+Remark   : Checks if the group covers all possible matrices
 
 
 Operator : multiintersection
@@ -113,18 +128,21 @@ Number   : 1
 Signature: int9m x int9m x ... -> int9m  
 Example  : query number_of(multiintersection( [const int9m value 511], [const int9m value 3], [const int9m value 5])) 
 Result   : (int 1) 
+Remark   : same as arg_1 intersection arg_2 intersection ... arg_n
 
 Operator : multiintersection
 Number   : 2
 Signature: cluster x cluster x ... -> cluster 
 Example  : query multiintersection([const cluster value ("c1" "!ee")], [const cluster value ("c2" "!bb")], [const cluster value("c3" "ii & ib & ie & bi & be & ei & eb")]) 
 Result   : (cluster ("c1" 494))
+Remark   : same as arg_1 intersection arg_2 intersection ... arg_n
 
 Operator : name_of
 Number   : 1
 Signature: cluster -> string
 Example  :  query name_of([const cluster value ("c1" "!ii")]) 
 Result   : (string "c1")
+Remark   : projection to the name of this cluster
 
 
 Operator : number_of
@@ -132,6 +150,7 @@ Number   : 1
 Signature: int9m -> int
 Example  : query number_of([const int9m value 3]) 
 Result   : (int 3)
+Remark   : interpretation of a matrix as bitstring
 
 
 Operator : pwdisjoint
@@ -139,6 +158,7 @@ Number   : 1
 Signature:  cluster x cluster x ... -> bool  
 Example  :  query pwdisjoint([const cluster value ("c1" "!ee")], [const cluster value ("c2" "ee")],[const cluster value("c3" "ii")]) 
 Result   : FALSE
+Remark   : checks if the arguments are pairwise disjoint
 
 
 Operator : relax
@@ -146,18 +166,21 @@ Number   : 1
 Signature:  cluster x string -> cluster  
 Example  : query relax([const cluster value ("c1" 511)]," ee & ei & ii & bi & bb & ib")
 Result   : (cluster ("c1" 437 439 445 447 501 503 509 511)) 
+Remark   : extends the cluster to all matrices fulfilling the given condition
 
 Operator : relax
 Number   : 2
 Signature:  cluster x text -> cluster  
 Example  : query relax([const cluster value ("c1" 511)],[const text value ' ee & ei & ii & bi & bb & ib'])
 Result   : (cluster ("c1" 437 439 445 447 501 503 509 511)) 
+Remark   : extends the cluster to all matrices fulfilling the given condition
 
 Operator : renamecluster
 Number   : 1
 Signature: cluster x string -> cluster 
 Example  : query [const cluster value ("c1" 511)]  renamecluster["c2"] 
 Result   : (cluster ("c2" 511))
+Remark   : gives the cluster a new name
 
 
 Operator : restrict
@@ -165,53 +188,70 @@ Number   : 1
 Signature: cluster x string -> cluster  
 Example  : query restrict([const cluster value ("c1" 511 510)] , "ee" )
 Result   : (cluster ("c1" 511))
+Remark   : Removes all matrices from the cluster which not fulfil the given condition
 
 Operator : restrict
 Number   : 2
 Signature: cluster x text -> cluster  
 Example  : query restrict([const cluster value ("c1" 511 510)] , [const text value 'ee'] )
 Result   : (cluster ("c1" 511))
+Remark   : Removes all matrices from the cluster which not fulfil the given condition
 
 Operator : sizeof
 Number   : 1
 Signature: cluster -> int 
 Example  : query sizeof([const cluster value ("c1" 500 501)]) 
 Result   : (int 2)
+Remark   : the number of contained matrices
 
 Operator : sizeof
 Number   : 2
 Signature: predicategroup  -> int 
 Example  : query sizeof([const predicategroup value (("c1" 45))]) 
 Result   : (int 2)
+Remark   : the number of contained clusters (+1 for the unspecified cluster)
 
 Operator : transpose
 Number   : 1
 Signature: int9m -> int9m   
 Example  : query number_of(transpose([const int9m value 200]))
 Result   : (int 38)
+Remark   : swaps rows and columns of the matrix
 
 Operator : transpose
 Number   : 2
 Signature: cluster x string -> cluster 
 Example  : query transpose([const cluster value ("c" 200)],"c2") 
 Result   : (cluster ("c2" 38))
+Remark   : transposes all contained matrices
 
 Operator : union
 Number   : 1
 Signature: int9m x int9m -> int9m 
 Example  : query number_of([const int9m value 1] union [const int9m value 4]) 
 Result   : (int 5)
+Remark   : the reuslt contains the intersections of both arguments
 
 Operator : union
 Number   : 2
 Signature: cluster x cluster -> cluster 
 Example  :  query [const cluster value ("c1" 1)] union [const cluster value ("c2" 2)] 
 Result   : (cluster ("c1" 1 2))
+Remark   : union of the matrices sets, the name is taken from the first argument
 
 Operator : unspecified
 Number   : 1
 Signature:  predicategroup -> cluster  
 Example  : query unspecified([const predicategroup value (("c1" "true"))]) 
 Result   : (cluster ("unspecified"))
+Remark   : the cluster containing all non-assigned matrices
 
+    
+Operator : stdpgroup
+Number   : 1
+Signature: -> predicategroup  
+Example  : query stdpgroup()
+Result   : file
+Remark   : Computes a default predicate group
+    
 
