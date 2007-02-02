@@ -48,7 +48,7 @@ for query processing.
 
 */
 
-
+#include <assert.h>
 #include <iostream>
 #include <sstream>
 #include <queue>
@@ -1578,7 +1578,7 @@ template<class StreamType>
   struct PJoinInfo {
   
     typedef enum { probe, eval } JoinState;
-   
+    
     // used to maintain the evaluation functions 
     FunVector* evalFuns;
 
@@ -1825,21 +1825,25 @@ The probe join will be stopped if
       } 
     } 
 
+    void showBufResetStates() {
+      SHOW(bufReset[0]);
+      SHOW(bufReset[1]);
+    } 
+    
     bool resetBuffer(const int no) {
 
       assert( (no == 1) || (no == 2) );
+      TRACE("resetBuffer: " << no)
       
-      if ( (no == 1) && !bufReset[1] ) {
-        leftBuf->reset(false);
-        bufReset[1] = true;
+      if ( bufReset[no-1] == false ) {
+        if (no == 1)
+          leftBuf->reset(false);
+        else
+          rightBuf->reset(false);
+        
+        bufReset[no-1] = true;
         return true;
       }  
-      
-      if ( (no == 2) && !bufReset[2] ) {
-        rightBuf->reset(false);
-        bufReset[2] = true;
-        return true;
-      }
       return false;  
        
     }
@@ -2050,7 +2054,7 @@ to be evaluated by the parameter function. If a marker is
       // to our input stream when requested by our parent node
 
       TRACE(pre << "Message 1*FUNMSG+CLOSE received")
-      pj->resetBuffer(1); 
+      pj->resetBuffer(1);
       return 0;
     }
 
@@ -2060,7 +2064,7 @@ to be evaluated by the parameter function. If a marker is
       // to our input stream when requested by our parent node
 
       TRACE(pre << "Message 2*FUNMSG+CLOSE received")
-      pj->resetBuffer(2); 
+      pj->resetBuffer(2);
       return 0;
     }
 
@@ -2517,7 +2521,15 @@ struct ShuffleBuf {
     freeMem(MaxMem),
     Lps(LogicalPageSize) 
   {}
-  ~ShuffleBuf() {}
+  ~ShuffleBuf() {
+   
+     TupleBuf::const_iterator it = buffer.begin();
+     while( it != buffer.end() ) {
+       (*it)->DecReference();
+       (*it)->DeleteIfAllowed();
+       it++;
+     } 
+  }
   
   void shuffle() { random_shuffle(buffer.begin(), buffer.end()); }
   
@@ -2540,6 +2552,7 @@ struct ShuffleBuf {
   
   void append(Tuple* t) 
   {
+    t->IncReference(); 
     if ( overFlow(t->GetExtSize()) )
       handleOverFlow(t);
     else
@@ -2553,6 +2566,7 @@ struct ShuffleBuf {
 
   inline Tuple* getNext() { 
     
+    //cout << "pos: " << pos << endl;
     if ( pos == 1 )
       return 0;
       
@@ -2579,7 +2593,7 @@ static int shuffle_vm( Word* args,
   {
     case OPEN :
     { 
-      const int M = 4096 * 4096;
+      const int M = 40 * 4096 * 4096;
       const int Lps = 32 * 1024;
       
       info = new ShuffleBuf(M, Lps);
@@ -2659,6 +2673,8 @@ class PartStreamAlgebra : public Algebra
     PartStreamAlgebra() : Algebra()
     {
 
+      //assert(false); 
+     
       ConstructorInfo ci;
       ci.name      =    "ptuple";
       ci.signature =    "(ident x DATA)+ -> PTUPLE";
