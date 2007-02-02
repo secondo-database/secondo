@@ -248,3 +248,54 @@ Default includes:
 
 #endif // SECONDO_CONFIG_H
 
+/*
+February 2006. M. Spiekermann
+
+I observed a strange error using SuSe-Linux 9.2, gcc 3.4.6. Under this
+environment failed assertions cause an "SIGSEGV"[4] error. Trying to detect the
+problem with valgrind turns out that "assert(fail)" (the function which will be
+called to report failed assertions, refer to "assert.h") reads data from invalid
+addresses (Adress "0xxxxxxxx" is not stacked, allocated or freed).
+   
+Hence it must be a bug which is not caused by illegal usage of pointers created
+by malloc or free but rather an array index which is out of range such that
+write operations corrupt data or program code. These kinds of bugs are hard to
+localize. 
+
+Before initialization of SecondoInterface "assert(fail)" works, but afterwards it
+crashes.  Since the parsing of example files makes frequent use of text atoms
+it could be an uncovered bug in the nested list representation of text atoms.
+But for the moment that is only a guess.  For two times I  could create code on
+different places which raised a "SIGSEGV" when processing "assert(fail)", e.g.:
+
+----
+  assert(true);
+  cerr << "some string" << endl;
+  assert(false); // the call of __assert_fail causes a SIGSEGV
+----
+
+But if in the first line true is changed to false, the call of "assert(fail)"
+works correctly.
+  
+One time this could be constructed somwhere in "Smi::Startup" and another time
+after some other code was probably changed, it could be observed in class
+ExampleReader. However, depending on the code the position where "assert(false)"
+turns from correct a correct abort into "SIGSEGV" crash changes :-(
+  
+As a work around you may activate the redefinition of assert as given below.
+This "does not fix the bug" but avoids the misguiding report of a "SIGSEGV"
+instead of a failed assertion.
+
+*/   
+
+//#define assertNEW
+#ifdef assertNEW
+#ifdef assert
+# undef assert
+# define assert(expr) \
+ { if (!(expr)) { \
+     std::cerr << std::endl << "Assertion '" \
+               << #expr << "' failed in " << __FILE__ \
+               << " (line " << __LINE__ << ")!" << std::endl; abort(); }}
+#endif
+#endif
