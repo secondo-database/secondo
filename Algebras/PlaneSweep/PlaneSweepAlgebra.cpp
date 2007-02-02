@@ -51,6 +51,13 @@ const double M_PI = acos( -1.0 );
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+enum realmkind { PLANESWEEP, QUADRATIC, OVERLAPPING };
+
+struct HalfSegmentCheck { bool splitsegment; list<Point> pointlist; };
+
+const bool PSA_DEBUG = false;
+const realmkind kindofrealm = QUADRATIC;
+
 /*
 3 Class Segment
 
@@ -2217,6 +2224,30 @@ void  VList::testStatusLine(StatusLine& sline, Segment segs[])
 }
 
 /*
+3.8 class is_greater_than
+
+*/
+
+class is_greater_than
+{
+public:
+   is_greater_than (Point p)
+     : value(p)
+   {}
+
+   bool operator() (const Point element) const
+   {
+     if ( (element.GetX() > value.GetX()) or ((element.GetX() == value.GetX())
+      and (element.GetY() > value.GetY())) )
+       return true;
+     return false;
+   }
+
+private:
+   Point value;
+};
+
+/*
 3.8 class MakeRealm
 
 In this class the realmisation prozess was worked out. For each possible  combination of line and region-objects a function exists.
@@ -2237,6 +2268,8 @@ public:
       Region* result2);
    void  REALM (const Line* reg1, const Line* reg2, Line* result1,
       Line* result2);
+   template <class T, class U, class V, class W> void REALM2(const T* , 
+                      const U*, V* , W*);
 
 private:
    void PerformPlaneSweep(PQueue& pq,Segment segs[],
@@ -2244,6 +2277,22 @@ private:
       const int counter);
    void PrepareCHS (bool No1, const HalfSegment& hs, PQueue& pqu,
       Segment segs[], int counter);
+   template<class T> void readhalfsegments(vector<HalfSegment>&, 
+                                             const T&) const;
+   void print(const HalfSegment&) const;
+   void printsegvector(const vector<HalfSegment>&) const;
+   void printlist(const list<Point>&);
+   void print(const HalfSegmentCheck&);
+   void printsegcheckvector(const vector<HalfSegmentCheck>&);
+   void dorealm(const vector<HalfSegment>&, const vector<HalfSegment>&,
+             vector<HalfSegmentCheck>&, vector<HalfSegmentCheck>&);
+   int intersects(const Point&, const Point&, const Point&, const Point&);
+   bool onsegment(const Point&, const Point&, const Point&);
+   double direction(const Point&, const Point&, const Point&);
+   void hsintersection(const HalfSegment&, const HalfSegment&, Point&);
+   void insertpoint(list<Point>&, const Point);
+   void createrealmedobject(const vector<HalfSegment>&, 
+                    vector<HalfSegmentCheck>&, vector<HalfSegment>&);
 };
 
 void MakeRealm::REALM( const Region* reg1, 
@@ -2485,6 +2534,455 @@ void MakeRealm::REALM(const Line* line1, const Line* line2,
    result2->EndBulkLoad();
    //cout << result1 << endl;
    //cout << result2 << endl;
+}
+
+template<class T> void MakeRealm::readhalfsegments(vector<HalfSegment>& v, 
+                                                     const T& obj) const
+{
+  const HalfSegment *hs;
+
+  for (int i=0; i<obj->Size(); i++)   
+  {
+    obj->Get(i,hs);
+    if (hs->IsLeftDomPoint() == true) v.push_back(*hs);
+  }
+}
+
+void MakeRealm::print(const HalfSegment& hs) const
+{
+  Coord xl, xr, yl, yr;
+  
+  xl=hs.GetLeftPoint().GetX();
+  yl=hs.GetLeftPoint().GetY();
+  xr=hs.GetRightPoint().GetX();
+  yr=hs.GetRightPoint().GetY();
+  cout << "HalfSegment: ";
+  cout << "(" << xl << ", " << yl << ") -> ";
+  cout << "(" << xr << ", " << yr << ")";
+  cout << endl;
+}
+
+void MakeRealm::printlist(const list<Point>& values)
+{
+  list<Point>::const_iterator it = values.begin();
+  cout << "[";
+  while ( it != values.end() )
+  {
+    //print(*it);
+    cout << *it;
+    it++;
+  }
+  cout << "]" << endl;
+}
+
+void MakeRealm::print(const HalfSegmentCheck& segcheck)
+{
+  if ( segcheck.splitsegment == true ) 
+    cout << "Split segment = yes; ";
+  else cout << "Split segment =  no; ";
+  printlist(segcheck.pointlist);
+}
+
+void MakeRealm::printsegcheckvector(const vector<HalfSegmentCheck>& scv)
+{
+  vector<HalfSegmentCheck>::const_iterator it = scv.begin();
+  cout << "----- Segment Check Vector" << endl;
+  while ( it != scv.end() )
+  {
+    print(*it);
+    it++;
+  }
+  cout << "-----" << endl;
+  cout << endl;
+}
+
+void MakeRealm::printsegvector(const vector<HalfSegment>& v) const
+{
+  vector<HalfSegment>::const_iterator it = v.begin();
+  cout << "----- Segment Vector" << endl;
+  while ( it != v.end() )
+  {
+    print(*it);
+    it++;
+  }
+  cout << "-----" << endl;
+  cout << endl;
+}
+
+bool MakeRealm::onsegment(const Point& pi, const Point& pj, 
+                const Point& pk)
+{  return ( ((min(pi.GetX(), pj.GetX()) <= pk.GetX()) and 
+              (pk.GetX() <= max(pi.GetX(), pj.GetX()))) and 
+              ((min(pi.GetY(), pj.GetY()) <= pk.GetY()) and 
+              (pk.GetY() <= max(pi.GetY(), pj.GetY()))) ); 
+}
+
+double MakeRealm::direction(const Point& pi, const Point& pj, const Point& pk)
+{
+  double cross1 = pk.GetX() - pi.GetX();
+  double cross2 = pj.GetY() - pi.GetY();
+  double cross3 = pj.GetX() - pi.GetX();
+  double cross4 = pk.GetY() - pi.GetY();
+
+  return cross1 * cross2 - cross3 * cross4;
+}
+
+int MakeRealm::intersects(const Point& p1, const Point& p2, 
+                const Point& p3, const Point& p4)
+{
+  double d1, d2, d3, d4;
+  
+  d1 = direction(p3, p4, p1);
+  d2 = direction(p3, p4, p2);
+  d3 = direction(p1, p2, p3);
+  d4 = direction(p1, p2, p4);
+
+  if ( (!(((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and
+     ((d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0)))) and (d1 != 0) 
+              and (d2 != 0) and (d3 != 0) and (d4 != 0) )
+    return 0;
+
+  if ( ((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and
+     ((d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0)) )
+    return 1;
+  
+  if ( (d1 == 0.0) and (d2 == 0.0) and (d3 == 0.0) and (d4 == 0.0) )
+  {
+    if ( (p1 == p3) and (p2 == p4) )
+      return 14; // case (11)
+
+    if ( p2 == p3 ) // case (1)
+      return 14;  
+
+    if (  (onsegment(p3, p4, p2)) and (onsegment(p1, p2, p3)) 
+          and (p2 != p3) and (p2 != p4) 
+          and (p1 != p3) and (p1 != p4) ) // case (2)
+      return 2; 
+
+    if ( (p1 == p3) and (onsegment(p3, p4, p2)) ) // case (3)
+      return 3;
+
+    if (  (onsegment(p3, p4, p1)) and (onsegment(p3, p4, p2)) 
+          and (p2 != p3) and (p2 != p4) 
+          and (p1 != p3) and (p1 != p4) ) // case (4)
+      return 4; 
+    
+    if ( (p2 == p4) and (onsegment(p3, p4, p1)) ) // case (5)
+      return 5;
+
+    if (  (onsegment(p3, p4, p1)) and (onsegment(p1, p2, p4)) 
+          and (p2 != p3) and (p2 != p4) 
+          and (p1 != p3) and (p1 != p4) ) // case (6)
+      return 6; 
+
+    if ( p1 == p4 ) // case (7)
+      return 14;  
+
+    if ( (p1 == p3) and (onsegment(p1, p2, p4)) ) // case (8)
+      return 7;
+    
+    if (  (onsegment(p1, p2, p3)) and (onsegment(p1, p2, p4)) 
+          and (p2 != p3) and (p2 != p4) 
+          and (p1 != p3) and (p1 != p4) ) // case (9)
+      return 8; 
+    
+    if ( (p2 == p4) and (onsegment(p1, p2, p3)) ) // case (10)
+      return 9;
+  }
+  
+  if ( ((d4 == 0.0) and (onsegment(p1, p2, p4))) and 
+     (p4 != p1) and (p4 != p2) )
+    return 10;
+
+  if ( ((d3 == 0.0) and (onsegment(p1, p2, p3))) and 
+    (p3 != p1) and (p3 != p2) )
+    return 11;
+
+  if ( ((d1 == 0.0) and (onsegment(p3, p4, p1))) and
+    (p3 != p1) and (p4 != p1) )
+    return 12;
+
+  if ( ((d2 == 0.0) and (onsegment(p3, p4, p2))) and 
+  (p3 != p2) and (p4 != p2) )
+    return 13;
+
+  return 14;
+}
+
+void MakeRealm::hsintersection(const HalfSegment& seg1, 
+                               const HalfSegment& seg2, Point& p)
+{
+  double m1, m2, a1, a2;
+  
+  //Precondition: the two half segments properly intersect
+  
+  if ( seg1.GetLeftPoint().GetX() == seg1.GetRightPoint().GetX() )
+  {
+      m2 = (seg2.GetRightPoint().GetY() - seg2.GetLeftPoint().GetY()) / 
+           (seg2.GetRightPoint().GetX() - seg2.GetLeftPoint().GetX());
+      a2 = seg2.GetLeftPoint().GetY() - (m2 * seg2.GetLeftPoint().GetX());
+      p.Set(seg1.GetLeftPoint().GetX(), m2 * seg1.GetLeftPoint().GetX() + a2);
+  }
+
+  if ( seg2.GetLeftPoint().GetX() == seg2.GetRightPoint().GetX() )
+  {
+      m1 = (seg1.GetRightPoint().GetY() - seg1.GetLeftPoint().GetY()) /
+           (seg1.GetRightPoint().GetX() - seg1.GetLeftPoint().GetX());
+      a1 = seg1.GetLeftPoint().GetY() - (m1 * seg1.GetLeftPoint().GetX());
+      p.Set(seg2.GetLeftPoint().GetX(), m1 * seg2.GetLeftPoint().GetX() + a1);
+  }
+                  
+  m1 = (seg1.GetRightPoint().GetY() - seg1.GetLeftPoint().GetY()) / 
+       (seg1.GetRightPoint().GetX() - seg1.GetLeftPoint().GetX());
+  m2 = (seg2.GetRightPoint().GetY() - seg2.GetLeftPoint().GetY()) / 
+       (seg2.GetRightPoint().GetX() - seg2.GetLeftPoint().GetX());
+  a1 = seg1.GetLeftPoint().GetY() - (m1 * seg1.GetLeftPoint().GetX());
+  a2 = seg2.GetLeftPoint().GetY() - (m2 * seg2.GetLeftPoint().GetX());
+  p.Set((a2 - a1) / (m1 - m2), ((m1 * a2) - (m2 * a1)) / (m1 - m2));
+}
+
+void MakeRealm::insertpoint(list<Point>& values, const Point p)
+{
+  list<Point>::iterator it, pred;
+
+  if ( values.empty() )
+    values.push_front(p);
+  else
+  {
+    it = find_if( values.begin(), values.end(), is_greater_than(p) );
+ 
+    pred = it;
+
+    if ( pred != values.begin() )
+    { 
+      if ( (*(--pred)) != p )
+      {
+        values.insert(it, p);
+      }
+    }
+    else
+        values.push_front(p);
+  }
+}
+
+void MakeRealm::dorealm(const vector<HalfSegment>& vs1, 
+                        const vector<HalfSegment>& vs2,
+             vector<HalfSegmentCheck>& vsc1, vector<HalfSegmentCheck>& vsc2)
+{ 
+  Point ispoint;
+  
+  for (unsigned int i = 0; i < vs1.size(); i++)
+  {
+    for (unsigned int j = 0; j < vs2.size(); j++)
+    {
+      switch ( intersects(vs1[i].GetLeftPoint(), vs1[i].GetRightPoint(), 
+                          vs2[j].GetLeftPoint(), vs2[j].GetRightPoint()) )
+      {
+        case 0: // cout << "Segments do not intersect, do nothing" << endl;
+                break;
+                
+        case 1: // cout << "Segments intersect properly" << endl;
+                hsintersection(vs1[i], vs2[j], ispoint);
+                vsc1[i].splitsegment = true;
+                insertpoint(vsc1[i].pointlist, ispoint);
+                vsc2[j].splitsegment = true;
+                insertpoint(vsc2[j].pointlist, ispoint);
+                break;
+                
+        // cases 2 - 9 cover overlapping halfsegments
+
+        case 2: // p1----p3----p2----p4 (2)
+                // cout << "Segments overlap case(2)" << endl;
+                vsc1[i].splitsegment = true;
+                insertpoint(vsc1[i].pointlist, vs2[j].GetLeftPoint());
+                vsc2[j].splitsegment = true;
+                insertpoint(vsc2[j].pointlist, vs1[i].GetRightPoint());
+                break;
+
+        case 3: // p1,p3----p2----p4 (3)
+                // cout << "Segments overlap case(3)" << endl;
+                vsc2[j].splitsegment = true;
+                insertpoint(vsc2[j].pointlist, vs1[i].GetRightPoint());
+                break;
+
+        case 4: // p3----p1----p2----p4 (4)
+                // cout << "Segments overlap case(4)" << endl;
+                vsc2[j].splitsegment = true;
+                insertpoint(vsc2[j].pointlist, vs1[i].GetLeftPoint());
+                insertpoint(vsc2[j].pointlist, vs1[i].GetRightPoint()); 
+                break;
+
+        case 5: // p3----p1----p2,p4 (5)
+                // cout << "Segments overlap case(5)" << endl;
+                vsc2[j].splitsegment = true;
+                insertpoint(vsc2[j].pointlist, vs1[i].GetLeftPoint());  
+                break;
+
+        case 6: // p3----p1----p4----p2 (6)
+                // cout << "Segments overlap case(6)" << endl;
+                vsc1[i].splitsegment = true;
+                insertpoint(vsc1[i].pointlist, vs2[j].GetRightPoint());
+                vsc2[j].splitsegment = true;
+                insertpoint(vsc2[j].pointlist, vs1[i].GetLeftPoint());  
+                break;
+
+        case 7: // p1,p3----p4----p2 (8)
+                // cout << "Segments overlap case(8)" << endl;
+                vsc1[i].splitsegment = true;
+                insertpoint(vsc1[i].pointlist, vs2[j].GetRightPoint()); 
+                break;
+
+        case 8: // p1----p3----p4----p2 (9)
+                // cout << "Segments overlap case(9)" << endl;
+                vsc1[i].splitsegment = true;
+                insertpoint(vsc1[i].pointlist, vs2[j].GetLeftPoint());
+                insertpoint(vsc1[i].pointlist, vs2[j].GetRightPoint()); 
+                break;
+
+        case 9: // p1----p3----p2,p4 (10)
+                // cout << "Segments overlap case(10)" << endl;
+                vsc1[i].splitsegment = true;
+                insertpoint(vsc1[i].pointlist, vs2[j].GetLeftPoint());  
+                break;
+
+        case 10: // p1---p4----p2 (12)
+                 //       |
+                 //      p3
+                 // cout << "Segments overlap case(12)" << endl;
+                 vsc1[i].splitsegment = true;
+                 insertpoint(vsc1[i].pointlist, vs2[j].GetRightPoint());        
+                 break;
+
+        case 11: //      p4 (13)
+                 //       |
+                 // p1---p3----p2               
+                 // cout << "Segments overlap case(13)" << endl;        
+                 vsc1[i].splitsegment = true;
+                 insertpoint(vsc1[i].pointlist, vs2[j].GetLeftPoint()); 
+                 break;
+
+        case 12: //      p2 (14)
+                 //       |
+                 // p3---p1----p4               
+                 // cout << "Segments overlap case(14)" << endl;
+                 vsc2[j].splitsegment = true;
+                 insertpoint(vsc2[j].pointlist, vs1[i].GetLeftPoint());
+                 break;
+
+        case 13: // p3---p2----p4 (15)
+                 //       |
+                 //      p1
+                 // cout << "Segments overlap case(15)" << endl;
+                 vsc2[j].splitsegment = true;
+                 insertpoint(vsc2[j].pointlist, vs1[i].GetRightPoint());
+                 break;
+
+        // case 14 covers overlapping half segments, where nothing 
+        // has to be done
+
+        case 14: // p1----p2,p3----p4 (1)
+                 // p3----p4,p1----p2 (7)
+                 // p1,p3----p2,p4 (11)
+                 // cout << "Do nothing case(1, 7, 11)" << endl;        
+                 break;
+                
+        default: cout << "should not happen " << endl;
+      }
+    }
+  }
+}
+
+void MakeRealm::createrealmedobject(const vector<HalfSegment>& s, 
+                    vector<HalfSegmentCheck>& sc, vector<HalfSegment>& res)
+{
+  HalfSegment rseg;
+  Point lp, rp;
+
+  for (unsigned int u = 0; u < s.size(); u++)
+  {  
+    if ( sc[u].splitsegment == false )
+            res.push_back(s[u]);
+    else
+    {
+      lp = s[u].GetLeftPoint();
+      list<Point>::iterator it;
+      for (it = sc[u].pointlist.begin(); it != sc[u].pointlist.end(); ++it)
+      {
+        rp = *it;
+        rseg.Set(true, lp, rp);
+        res.push_back(rseg);
+        lp = rp;
+      }
+      rp = s[u].GetRightPoint();
+      rseg.Set(true, lp, rp);
+      res.push_back(rseg); 
+    }
+  } 
+}
+ 
+template <class T, class U, class V, class W> 
+void MakeRealm::REALM2(const T* obj1, const U* obj2, V* result1, W* result2)
+{
+   vector<HalfSegment> vl1, vl2, vl1res, vl2res;
+   int counter;
+   
+   if ( !obj1->BoundingBox().Intersects(obj2->BoundingBox()) )
+   {
+     if ( PSA_DEBUG ) cout << "Bounding boxes do not intersect." << endl;
+     *result1 = *obj1;
+     *result2 = *obj2;
+   }
+   else 
+   {
+     if ( PSA_DEBUG ) cout << "Bounding boxes intersect." << endl;
+     readhalfsegments(vl1, obj1);
+     if ( PSA_DEBUG ) printsegvector(vl1);
+     readhalfsegments(vl2, obj2);
+     if ( PSA_DEBUG ) printsegvector(vl2);
+  
+     HalfSegmentCheck sc = { false, list<Point>() };
+     vector<HalfSegmentCheck> scl1(vl1.size(), sc), scl2(vl2.size(), sc);   
+     dorealm(vl1, vl2, scl1, scl2);
+     if ( PSA_DEBUG ) printsegcheckvector(scl1);
+     if ( PSA_DEBUG ) printsegcheckvector(scl2); 
+   
+     createrealmedobject(vl1, scl1, vl1res);  
+     if ( PSA_DEBUG ) printsegvector(vl1res);
+     createrealmedobject(vl2, scl2, vl2res);  
+     if ( PSA_DEBUG ) printsegvector(vl2res);
+
+     // create first region object
+     result1->Clear();
+     result1->StartBulkLoad();
+     counter=0;
+     while (! vl1res.empty() )  {
+        HalfSegment hs = vl1res.back();
+        hs.attr.edgeno = counter;
+        hs.SetLeftDomPoint(true);       
+        *result1 += hs;
+        hs.SetLeftDomPoint(false);      
+        *result1 += hs;
+        counter++;
+        vl1res.pop_back();
+     }
+     result1->EndBulkLoad();
+
+     //create second region object
+     result2->Clear();
+     result2->StartBulkLoad();
+     counter=0;
+     while (! vl2res.empty() )  {
+        HalfSegment hs = vl2res.back();
+        hs.attr.edgeno = counter;
+        hs.SetLeftDomPoint(true);       
+        *result2 += hs;
+        hs.SetLeftDomPoint(false);      
+        *result2 += hs;
+        counter++;
+        vl2res.pop_back();
+     }
+     result2->EndBulkLoad();
+   }
 }
 
 /*
@@ -4261,7 +4759,16 @@ static int realm_lr( Word* args, Word& result, int message,
       Line* test1 = new Line(0);
       Region* test2 = new Region(0);
       MakeRealm mr;
-      mr.REALM( l1, r2, test1 , test2 );
+      switch ( kindofrealm )
+      {
+        case PLANESWEEP: mr.REALM( l1, r2, test1 , test2 );
+                         break;
+        case QUADRATIC : mr.REALM2( l1, r2, test1 , test2 );
+                         break;
+        default: cout << "should not happen" << endl;
+      }       
+
+      mr.REALM2( l1, r2, test1 , test2 );
       result.addr = test1;
       return(0);
    }
@@ -4288,7 +4795,14 @@ static int realm_rl( Word* args, Word& result, int message,
       Line* test1 = new Line(0);
       Region* test2 = new Region(0);
       MakeRealm mr;
-      mr.REALM( l1, r2, test1 , test2 );
+      switch ( kindofrealm )
+      {
+        case PLANESWEEP: mr.REALM( l1, r2, test1 , test2 );
+                         break;
+        case QUADRATIC : mr.REALM2( l1, r2, test1 , test2 );
+                         break;
+        default: cout << "should not happen" << endl;
+      }       
       result.addr = test2;
       return(0);
    }
@@ -4314,7 +4828,14 @@ static int realm_ll( Word* args, Word& result, int message,
       Line* test1 = new Line(0);
       Line* test2 = new Line(0);
       MakeRealm mr;
-      mr.REALM( l1, l2, test1 , test2 );
+      switch ( kindofrealm )
+      {
+        case PLANESWEEP: mr.REALM( l1, l2, test1 , test2 );
+                         break;
+        case QUADRATIC : mr.REALM2( l1, l2, test1 , test2 );
+                         break;
+        default: cout << "should not happen" << endl;
+      }       
       result.addr = test1;
       return(0);
    }
@@ -4341,7 +4862,14 @@ static int realm_rr( Word* args, Word& result, int message,
       Region* test1 = new Region(0);
       Region* test2 = new Region(0);
       MakeRealm mr;
-      mr.REALM( r1, r2, test1 , test2 );
+      switch ( kindofrealm )
+      {
+        case PLANESWEEP: mr.REALM( r1, r2, test1 , test2 );
+                         break;
+        case QUADRATIC : mr.REALM2( r1, r2, test1 , test2 );
+                         break;
+        default: cout << "should not happen" << endl;
+      }       
       result.addr = test1;
       return(0);
    }
