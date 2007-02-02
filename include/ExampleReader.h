@@ -37,6 +37,7 @@ Moreover the parser reports more kind of errors.
 #include <sstream>
 #include <map>
 #include <list>
+#include <set>
 
 #include "CharTransform.h"
 #include "LogMsg.h"
@@ -72,6 +73,7 @@ struct ExampleInfo {
     signature="";
     example="";
     result="";
+    remark="";
     resultType=List;
   }
 
@@ -375,8 +377,8 @@ a*bc* with single characters a,b and c.
            info->result = lineRest;
            info->resultType = resultType(lineRest); 
            if (info->resultType == ExampleInfo::Invalid) {
-             cerr << errMsg()
-                  << "Result = [" << lineRest << "] is invalid" << endl;
+             cerr << "Result [" << lineRest << "] is invalid" << endl;
+             info->result = "";
            } 
           break;
        }
@@ -388,14 +390,15 @@ a*bc* with single characters a,b and c.
                    << "Expecting a remark field which describes "
                    << "the specified bug!"
                    << endl;
+              info->remark = "";
               return false;
             }
             else {
               switchAgain = true;
+              info->remark = lineRest;
             }
            }
            expected = Operator;
-           info->remark = lineRest;
           break;
        }
 
