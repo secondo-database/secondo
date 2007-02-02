@@ -2,5 +2,5 @@
 #
 # Startup script for running SECONDOTTY in optimizer mode
 
-../bin/SecondoBDB -pl $*
+../bin/SecondoBDB -pl -L8M -G8M $* 
 
