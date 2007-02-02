@@ -138,6 +138,25 @@ orderby
         ]
 ).
 
+tpcQuery(simple1, select
+	[ 
+          count(*) as count_order,
+          lreturnflag,
+          llinestatus,
+          sum(lquantity) as sum_qty,
+	  avg(ldiscount) as avg_disc
+        ]
+from
+	  lineitem 
+where
+lshipdate < theInstant(1998,9,2)
+groupby [
+	  lreturnflag,
+	  llinestatus
+        ] 
+).
+
+
 tpc(No) :- tpcQuery(No, X), sql(X).
 tpcAfterLookup(No) :- tpcQuery(No, X), callLookup(X,Y), !, write(Y).
 
