@@ -2021,12 +2021,16 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
     } 
     
     bool parseOk = false;
+    //static int ctr=0;
     ExampleReader examples(fileName, algName);
     if (fileExists) {
       parseOk = examples.parse();
       if (!parseOk) {
          cerr << "  File is not correct! Please repair." << endl << endl;
-      }   
+      }
+      //int n = atoi(getenv("MAX_PARSE"));
+      //ctr++;   
+      //assert(ctr <= n);
     } 
     
    
