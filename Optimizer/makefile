@@ -22,6 +22,10 @@ all: optimizer
 optimizer: optimizer.pl calloptimizer.pl database.pl operators.pl boundary.pl searchtree.pl
 	cat $^ > $@ 
 
+.PHONY: reset
+reset:
+	rm -f stored*.pl	
+
 .PHONY: clean
 clean:
 	rm -f optimizer
