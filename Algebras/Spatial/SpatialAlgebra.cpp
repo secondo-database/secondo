@@ -1075,10 +1075,12 @@ A ~points~ value is a finite set of points.
 5.1 Implementation of the class ~Points~
 
 */
-bool Points::Find( const Point& p, int& pos ) const
+bool Points::Find( const Point& p, int& pos, const bool& exact ) const
 {
   assert( IsOrdered() );
-  return points.Find( &p, PointCompare, pos );
+  if (exact)
+    return points.Find( &p, PointCompare, pos );
+  return points.Find( &p, PointCompareAlmost, pos );
 }
 
 Points& Points::operator=( const Points& ps )
@@ -1150,18 +1152,24 @@ bool Points::operator!=( const Points& ps ) const
 
 Points& Points::operator+=( const Point& p )
 {
-  if( IsEmpty() )
-    bbox = p.BoundingBox();
-  else
-    bbox = bbox.Union( p.BoundingBox() );
-
   if( !IsOrdered() )
+  { // DBArray is unsorted
+    if( IsEmpty() )
+      bbox = p.BoundingBox();
+    else
+      bbox = bbox.Union( p.BoundingBox() );
     points.Append(p);
+  }
   else
-  {
+  { // DBArray is sorted
     int pos;
-    if( !Find( p, pos ) )
-    {
+    if( !Find( p, pos, false ) ) 
+    { // no AlmostEqual point contained
+      if( IsEmpty() )
+        bbox = p.BoundingBox();
+      else
+        bbox = bbox.Union( p.BoundingBox() );
+      Find( p, pos, true ); // find exact insertion position
       for( int i = points.Size() - 1; i >= pos; i++ )
       {
         const Point *auxp;
@@ -1169,7 +1177,7 @@ Points& Points::operator+=( const Point& p )
         points.Put( i+1, *auxp );
       }
       points.Put( pos, p );
-    }
+    } // else: do not insert
   }
   return *this;
 }
@@ -1204,15 +1212,34 @@ Points& Points::operator-=( const Point& p )
 {
   assert( IsOrdered() );
 
-  int pos;
-  if( Find( p, pos ) )
-  {
+  int pos, posLow, posHigh;
+  if( Find( p, pos, false ) )
+  { // found an AlmostEqual point
     const Point *auxp;
-    for( int i = pos; i < Size(); i++ )
-    {
-      points.Get( i+1, auxp );
-      points.Put( i, *auxp );
+    posLow = pos;
+    while(posLow > 0)
+    { // find first pos with AlmostEqual point
+      points.Get( posLow-1, auxp );
+      if( AlmostEqual(p, *auxp) )
+      { posLow--; }
+      else 
+      { break; }
     }
+    posHigh = pos;
+    while(posHigh < Size())
+    { // find last pos with AlmostEqual point
+      points.Get( posHigh+1, auxp );
+      if( AlmostEqual(p, *auxp) )
+      { posHigh++; }
+      else 
+      { break; }
+    }
+    for( int i = 0; i < Size()-posHigh; i++ )
+    { // keep smaller and move down bigger points
+      points.Get( posHigh+i, auxp );
+      points.Put( posLow+i, *auxp );
+    }
+    points.Resize( Size()-(1+posHigh-posLow) );
 
     // Naive way to redo the bounding box.
     if( IsEmpty() )
@@ -1243,10 +1270,27 @@ ostream& operator<<( ostream& o, const Points& ps )
   return o;
 }
 
+// use this when adding and sorting the DBArray
 int PointCompare( const void *a, const void *b )
 {
   const Point *pa = (const Point*)a,
-                  *pb = (const Point*)b;
+              *pb = (const Point*)b;
+
+  if( *pa == *pb )
+    return 0;
+
+  if( *pa < *pb )
+    return -1;
+
+  return 1;
+}
+
+// use this when testing for containment or removing duplicates
+// in the DBArray
+int PointCompareAlmost( const void *a, const void *b )
+{
+  const Point *pa = (const Point*)a,
+              *pb = (const Point*)b;
 
   if( AlmostEqual( *pa, *pb ) )
     return 0;
@@ -1257,7 +1301,40 @@ int PointCompare( const void *a, const void *b )
   return 1;
 }
 
+// Old implementation, should be replaced by the following one
+// to avoid problems when sorting and removing duplicates
 int PointHalfSegmentCompare( const void *a, const void *b )
+{
+  const Point *pa = (const Point *)a;
+  const HalfSegment *hsb = (const HalfSegment *)b;
+
+  if( AlmostEqual( *pa, hsb->GetDomPoint() ) )
+    return 0;
+
+  if( *pa < hsb->GetDomPoint() )
+    return -1;
+
+  return 1;
+}
+
+// // use this when adding and sorting the DBArray
+// int PointHalfSegmentCompare( const void *a, const void *b )
+// {
+//   const Point *pa = (const Point *)a;
+//   const HalfSegment *hsb = (const HalfSegment *)b;
+// 
+//   if( *pa == hsb->GetDomPoint() )
+//     return 0;
+// 
+//   if( *pa < hsb->GetDomPoint() )
+//     return -1;
+// 
+//   return 1;
+// }
+
+// use this when testing for containment or removing duplicates
+// in the DBArray
+int PointHalfSegmentCompareAlmost( const void *a, const void *b )
 {
   const Point *pa = (const Point *)a;
   const HalfSegment *hsb = (const HalfSegment *)b;
@@ -1286,19 +1363,26 @@ void Points::RemoveDuplicates()
     return;
 
   const Point *p1, *p2;
-  int i = 0, j = 0;
-  Get( i++, p1 );
-  points.Put( j++, *p1 );
-  while( i < Size() )
+  int source = 0, target = 0;
+  int size = Size();
+
+  Get(source, p1);
+  points.Put(target, *p1);
+  source++;
+  target++;
+  p2 = p1;
+  while(source < size)
   {
-    Get( i++, p2 );
-    while( i < Size() &&
-           AlmostEqual( *p1, *p2 ) )
-      Get( i++, p2 );
-    p1 = p2;
-    points.Put( j++, *p1 );
+    Get(source, p1);
+    source++;
+    if( !AlmostEqual(*p1, *p2) )
+    {
+      points.Put(target, *p1);
+      target++;
+      p2 = p1;
+    }
   }
-  points.Resize( j );
+  points.Resize( target );
 }
 
 bool Points::Contains( const Point& p ) const
@@ -1312,7 +1396,7 @@ bool Points::Contains( const Point& p ) const
     return false;
 
   int pos;
-  return Find( p, pos );
+  return Find( p, pos, false ); // find using AlmostEqual
 }
 
 bool Points::Contains( const Points& ps ) const
@@ -1646,13 +1730,13 @@ void Points::Union( const Point& p, Points& result ) const
 
     if( !inserted && *pi > p )
     {
-      result += p;
+      result += p;      // += already avoids insertion of duplicates
       inserted = true;
     }
     result += *pi;
   }
   if( !inserted )
-    result += p;
+    result += p;        // += already avoids insertion of duplicates
 
   result.EndBulkLoad( false, false );
 }
@@ -1674,7 +1758,7 @@ void Points::Union( const Points& ps, Points& result ) const
       assert( GetPt( p ) );
     else if( obj == second )
       assert( ps.GetPt( p ) );
-    result += *p;
+    result += *p;              // += already avoids insertion of duplicates
     SelectNext_pp( *this, ps, obj, stat );
   }
   result.EndBulkLoad( false, false );
@@ -3592,7 +3676,7 @@ void Line::Crossings( const Line& l, Points& result ) const
       }
     }
   }
-  result.EndBulkLoad();
+  result.EndBulkLoad(true, true); // sort and remove duplicates
 }
 
 double Line::Distance( const Point& p ) const
@@ -3922,16 +4006,20 @@ void Line::Boundary(Points* result) const{
 }
 
 
-bool Line::Find( const HalfSegment& hs, int& pos ) const
+bool Line::Find( const HalfSegment& hs, int& pos, const bool& exact ) const
 {
   assert( IsOrdered() );
+  if( exact )
+    return line.Find( &hs, HalfSegmentCompare, pos );
   return line.Find( &hs, HalfSegmentCompare, pos );
 }
 
-bool Line::Find( const Point& p, int& pos ) const
+bool Line::Find( const Point& p, int& pos, const bool& exact ) const
 {
   assert( IsOrdered() );
-  return line.Find( &p, PointHalfSegmentCompare, pos );
+  if( exact )
+    return line.Find( &p, PointHalfSegmentCompare, pos );
+  return line.Find( &p, PointHalfSegmentCompareAlmost, pos );
 }
 
 bool Line::Find( const LRS& lrs, int& pos ) const

@@ -420,7 +420,13 @@ The ~y~ coordinate.
 */
 ostream& operator<<( ostream& o, const Point& p );
 ostream& operator<<( ostream& o, const Point& p );
+
+// for finding insert position and sorting the DBArray:
 int PointCompare( const void *a, const void *b );
+
+// for checking whether DBArray contains an element and 
+// removing duplicates:
+int PointCompareAlmost( const void *a, const void *b );
 
 /*
 5 Class Points
@@ -891,10 +897,15 @@ Sorts the persistent array of points.
 Remove duplicates in the (ordered) array of points.
 
 */
-    bool Find( const Point& p, int& pos ) const;
+    bool Find( const Point& p, int& pos, const bool& exact = true ) const;
 /*
 Searches (binary search algorithm) for a point in the point set and
 returns its position. Returns -1 if the point is not found.
+
+If exact is true, an exact search is done. If it is false, AlmostEqual
+will be used instead of Equality. Use the first to find insertion
+positions in the DBArray, the latter to just lookup keys to check if they
+are contained.
 
 5.8 Atrtibutes
 
@@ -1838,13 +1849,14 @@ Sorts (quick-sort algorithm) the persistent array of half segments in the line v
 Remove duplicates in the (ordered) array of half-segments.
 
 */
-    bool Find( const HalfSegment& hs, int& pos ) const;
+    bool Find( const HalfSegment& hs, int& pos, 
+               const bool& exact = false ) const;
 /*
 Searches (binary search algorithm) for a half segment in the line value and
 returns its position. Returns false if the half segment is not found.
 
 */
-    bool Find( const Point& p, int& pos ) const;
+    bool Find( const Point& p, int& pos, const bool& exact = false ) const;
 /*
 Searches (binary search algorithm) for a point in the line value and
 returns its position, i.e. the first half segment with dominating point
@@ -3082,8 +3094,8 @@ inline Point& Point::operator=( const Point& p )
 inline bool Point::operator==( const Point& p ) const
 {
   assert( defined && p.defined );
-//  return x == p.x && y == p.y; // changed by CD
-  return AlmostEqual(x, p.x) && AlmostEqual(y, p.y);
+  return x == p.x && y == p.y;
+//  return AlmostEqual(x, p.x) && AlmostEqual(y, p.y); // changed by CD
 }
 
 inline bool Point::operator!=( const Point& p ) const
@@ -3099,8 +3111,8 @@ inline bool Point::operator<=( const Point& p ) const
 inline bool Point::operator<( const Point& p ) const
 {
   assert( defined && p.defined );
-//  return x < p.x || (x == p.x && y < p.y);
-  return x < p.x || (AlmostEqual(x, p.x) && y < p.y); // changed by CD
+  return x < p.x || (x == p.x && y < p.y);
+//  return x < p.x || (AlmostEqual(x, p.x) && y < p.y); // changed by CD
 }
 
 inline bool Point::operator>=( const Point& p ) const
@@ -3111,8 +3123,8 @@ inline bool Point::operator>=( const Point& p ) const
 inline bool Point::operator>( const Point& p ) const
 {
   assert( defined && p.defined );
-//   return x > p.x || ( x == p.x && y > p.y );
-  return x > p.x || ( AlmostEqual(x, p.x) && y > p.y ); // changed by CD
+  return x > p.x || ( x == p.x && y > p.y );
+//  return x > p.x || ( AlmostEqual(x, p.x) && y > p.y ); // changed by CD
 }
 
 inline Point Point::operator+( const Point& p ) const
@@ -3687,17 +3699,19 @@ inline bool Region::GetHs( const HalfSegment*& hs ) const
 */
 inline bool AlmostEqual( const double d1, const double d2 )
 {
-  double i1, i2;
-  double dd1 = modf( d1, &i1 ),
-         dd2 = modf( d2, &i2 );
-  long ii1 = (long)i1,
-       ii2 = (long)i2;
+  double diff = fabs(d1-d2);
+  return ( diff < FACTOR );
+//   double i1, i2;
+//   double dd1 = modf( d1, &i1 ),
+//          dd2 = modf( d2, &i2 );
+//   long ii1 = (long)i1,
+//        ii2 = (long)i2;
+// 
+//   if( abs(ii1 - ii2) > 1 )
+//     return false;
 
-  if( abs(ii1 - ii2) > 1 )
-    return false;
-
-  int d = abs(ii1) - abs(ii2);
-  return fabs(dd1 - dd2 - d) < FACTOR;
+//   int d = abs(ii1) - abs(ii2);
+//   return fabs(dd1 - dd2 - d) < FACTOR;
 }
 
 inline bool AlmostEqual( const Point& p1, const Point& p2 )
