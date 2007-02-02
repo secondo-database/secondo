@@ -151,41 +151,69 @@ Application::Application( int argc, const char** argv )
   user2Flag = false;
 
 #ifndef SECONDO_WIN32
-  signalStr[SIGINT] = "SIGINT";
-  signalStr[SIGQUIT] = "SIGQUIT";
-  signalStr[SIGILL] = "SIGILL";
-  signalStr[SIGABRT] = "SIGABRT";
-  signalStr[SIGFPE] = "SIGFPE";
-  signalStr[SIGTERM] = "SIGTERM";
-  signalStr[SIGSEGV] = "SIGSEGV";
 
   // --- Trap all signals that would terminate the program by default anyway.
+  signalStr[SIGHUP] = "SIGINT";
   signal( SIGHUP,    Application::AbortOnSignalHandler );
+
+  signalStr[SIGINT] = "SIGINT";
   signal( SIGINT,    Application::AbortOnSignalHandler );
+
+  signalStr[SIGQUIT] = "SIGQUIT";
   signal( SIGQUIT,   Application::AbortOnSignalHandler );
+
+  signalStr[SIGILL] = "SIGILL";
   signal( SIGILL,    Application::AbortOnSignalHandler );
+
+  signalStr[SIGABRT] = "SIGABRT";
   signal( SIGABRT,   Application::AbortOnSignalHandler );
+
+  signalStr[SIGFPE] = "SIGFPE";
   signal( SIGFPE,    Application::AbortOnSignalHandler );
+
   signal( SIGPIPE,   Application::AbortOnSignalHandler );
   signal( SIGALRM,   Application::AbortOnSignalHandler );
+
+  signalStr[SIGTERM] = "SIGTERM";
   signal( SIGTERM,   Application::AbortOnSignalHandler );
+
+  signalStr[SIGSEGV] = "SIGSEGV";
   signal( SIGSEGV,   Application::AbortOnSignalHandler );
+  
+  signalStr[SIGUSR1] = "SIGUSR1";
   signal( SIGUSR1,   Application::UserSignalHandler );
+  
+  signalStr[SIGUSR2] = "SIGUSR2";
   signal( SIGUSR2,   Application::UserSignalHandler );
+  
+  signalStr[SIGTRAP] = "SIGTRAP";
   signal( SIGTRAP,   Application::AbortOnSignalHandler );
+  
+  signalStr[SIGBUS] = "SIGBUS";
   signal( SIGBUS,    Application::AbortOnSignalHandler );
 #ifdef SIGSTKFLT
+  signalStr[SIGSTKFLT] = "SIGSTKFLT";
   signal( SIGSTKFLT, Application::AbortOnSignalHandler );
 #endif
+  signalStr[SIGIO] = "SIGKIO";
   signal( SIGIO,     Application::AbortOnSignalHandler );
 #ifdef SIGPOLL
+  signalStr[SIGPOLL] = "SIGPOLL";
   signal( SIGPOLL,   Application::AbortOnSignalHandler );
 #endif
+  signalStr[SIGXCPU] = "SIGXCPU";
   signal( SIGXCPU,   Application::AbortOnSignalHandler );
+  
+  signalStr[SIGXFSZ] = "SIGXFSZ";
   signal( SIGXFSZ,   Application::AbortOnSignalHandler );
+  
+  signalStr[SIGVTALRM] = "SIGVTALRM";
   signal( SIGVTALRM, Application::AbortOnSignalHandler );
+  
+  signalStr[SIGPROF] = "SIGPROF";
   signal( SIGPROF,   Application::AbortOnSignalHandler );
 #ifdef SIGPWR
+  signalStr[SIGPWR] = "SIGPWR";
   signal( SIGPWR,    Application::AbortOnSignalHandler );
 #endif
 #else
@@ -240,21 +268,21 @@ This is the default signal handler for all signals that would
 abort the process if not handled otherwise.
 
 */
-  if ( sig == SIGABRT || sig == SIGSEGV || sig == SIGFPE )
-  { 
-  cout << endl << " ********************************************";
-  cout << endl << " **";
-  cout << endl << " ** Signal #" << signalStr[sig] 
-       << " caught! Printing Stack ...";
-  cout << endl << " **";
-  cout << endl << " ********************************************" << endl;
+  cout << endl << "*** Signal " << signalStr[sig] 
+       << " (" << sig << ") caught!";
+  
+  if ( sig == SIGSEGV || sig == SIGFPE )
+  {
+  cout << " Printing stack trace ...";
+  cout << endl << " ************ BEGIN STACKTRACE *******************" << endl;
   Application* ap = Application::Instance();
   string fullAppName = ap->GetApplicationPath() 
 		       + "/" + ap->GetApplicationName();
   WinUnix::stacktrace(fullAppName);
-  cout << endl << " *********** End Stack **********************" << endl;
-
+  cout << endl << " *********** END STACKTRACE **********************" 
+       << endl << endl;
   }
+  cout << " Calling default signal handler ..." << endl;
   signal( sig, SIG_DFL );
   raise(sig);
 }
