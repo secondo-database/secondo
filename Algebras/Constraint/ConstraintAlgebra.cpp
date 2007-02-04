@@ -366,7 +366,7 @@ void SymbolicRelation::AddSymbolicTuple(
   // append the lin. constraints into the linConstraints-DBArray:
   startIndex = linConstraints.Size();
   endIndex = startIndex;
-  for(int i = 0; i < vLinConstraints.size(); i++)
+  for(int i = 0; i < (int)vLinConstraints.size(); i++)
   {
     this->linConstraints.Append(vLinConstraints[i]);
     endIndex++;
@@ -454,7 +454,7 @@ void SymbolicRelation::JoinSymbolicRelation(
     this->linConstraints.Clear();
     this->symbolicTuples.Clear();
 
-    for(i = 0; i < vSymbolicTuplesOld.size(); i++)
+    for(i = 0; i < (int)vSymbolicTuplesOld.size(); i++)
     {
       for(j = 0; j < otherSymRel.SymbolicTuplesSize(); j++)
       {
@@ -543,7 +543,7 @@ bool SymbolicRelation::OverlapsSymbolicRelation(
           }
           if(vCEQ.size() > 0)
           {
-            for(k=0; k < vCEQ.size(); k++)
+            for(k=0; k < (int)vCEQ.size(); k++)
             {
               // Transformation of equation to equivalent unequations:
               // (a1*x+a2*y+b=0) <=> (a1*x+a2*y+b<=0) AND (-a1*x-a2*y-b<=0)
@@ -583,7 +583,7 @@ void SymbolicRelation::ProjectToAxis(const bool blnXAxis,
   }
   this->linConstraints.Clear();
   this->symbolicTuples.Clear();
-  for(i = 0; i < vSymbolicTuplesOld.size(); i++ )
+  for(i = 0; i < (int)vSymbolicTuplesOld.size(); i++ )
   {
     vector<LinearConstraint> vLinConstraints2Add;
     // each tuple will be treated here:
@@ -703,7 +703,7 @@ void SymbolicRelation::Normalize()
     {
       if(vCEQ.size() > 0)
       {
-        for(k=0; k < vCEQ.size(); k++)
+        for(k=0; k < (int)vCEQ.size(); k++)
         {
           // Transformation of equation to equivalent unequations:
           // (a1*x+a2*y+b=0) <=> (a1*x+a2*y+b<=0) AND (-a1*x-a2*y-b<=0)
@@ -766,7 +766,7 @@ void SymbolicRelation::Normalize()
         // do nothing (leave this->mbbox as it is)
       }
 
-      for(k=0; k < vLinConstraints.size(); k++)
+      for(k=0; k < (int)vLinConstraints.size(); k++)
       {
         vLinConstraints2Save.push_back(vLinConstraints[k]);
       }
@@ -782,13 +782,13 @@ void SymbolicRelation::Normalize()
   {
     // Now all lineare Constraints will be saved:
     this->linConstraints.Resize(vLinConstraints2Save.size());
-    for(i = 0; i < vLinConstraints2Save.size(); i++)
+    for(i = 0; i < (int)vLinConstraints2Save.size(); i++)
     {
       this->linConstraints.Append(vLinConstraints2Save[i]);
     }
     // Now all tuples will be saved:
     this->symbolicTuples.Resize(vSymbolicTuples2Save.size());
-    for(i = 0; i < vSymbolicTuples2Save.size(); i++)
+    for(i = 0; i < (int)vSymbolicTuples2Save.size(); i++)
     {
       this->symbolicTuples.Append(vSymbolicTuples2Save[i]);
     }
@@ -1048,7 +1048,7 @@ void TriangulateRegion(const Region* reg,
           }
 
           for(int iPoint=0;
-            iPoint < vFace2convert[iCycle].size(); iPoint++)
+            iPoint < (int)vFace2convert[iCycle].size(); iPoint++)
           {
             vertices[iVertice][X] =
               (double)vFace2convert[iCycle][iPoint].GetX();
@@ -1068,6 +1068,7 @@ void TriangulateRegion(const Region* reg,
 
         int ret = triangulate_polygon(noCyclesOfFace, cntr, vertices,
                         triangles);
+		assert(ret==0);
         for (int j = 0; j < noOfTriangles; j++)
         {
           // each triangle will be added to vector triangles:
@@ -1258,7 +1259,7 @@ void MergeTriangles2ConvexPolygons(
 
   // initialize vEdges, vEdgesRefSort, vComponents:
 
-  for(i=0; i<vTriangles.size(); i++)
+  for(i=0; i<(int)vTriangles.size(); i++)
   {
     // fill vEdges:
     vector<int> vEdgeInfo;
@@ -1321,7 +1322,7 @@ void MergeTriangles2ConvexPolygons(
   // set PARTNER of each diagonal in vEdges
   // (only one edge for each diagonal!)
   EdgeRefComparator cmpEdgeRef;
-  for(i=0; i<vEdgesRefSort.size()-1; i++)
+  for(i=0; i<(int)vEdgesRefSort.size()-1; i++)
   {
      if(cmpEdgeRef.IsEqual(vEdgesRefSort[i], vEdgesRefSort[i+1]))
     {
@@ -1337,7 +1338,7 @@ void MergeTriangles2ConvexPolygons(
   // check each edge if it's a diagonal or not
   //   if yes: check if it's not a neccessary diagonal
   //     if yes: delete the current diagonal
-  for(i=0; i<vEdges.size(); i++)
+  for(i=0; i<(int)vEdges.size(); i++)
   {
      if(vEdges[i][PARTNER]!=-1 &&
         vEdges[i][COMPONENT]!=vEdges[vEdges[i][PARTNER]][COMPONENT])
@@ -1496,7 +1497,7 @@ void MergeTriangles2ConvexPolygons(
 
   vCWPoints.clear();
 
-  for(i=0; i<vComponents.size(); i++)
+  for(i=0; i<(int)vComponents.size(); i++)
   {
     int iCompEdge = vComponents[i][FIRST];
     if(iCompEdge != -1)
@@ -1527,7 +1528,7 @@ void MergeTriangles2ConvexPolygons(
     int k;
     double x_s = 0;
     double y_s = 0;
-    for(k=0; k<vCWPointSet.size(); k++)
+    for(k=0; k<(int)vCWPointSet.size(); k++)
     {
         x_s +=  vCWPointSet[k].Point.x;
     y_s +=  vCWPointSet[k].Point.y;
@@ -1538,14 +1539,14 @@ void MergeTriangles2ConvexPolygons(
       Point2D ankerPoint(x_s, y_s);
 
     // compute theta of each point in linear time:
-      for(k=0; k<vCWPointSet.size(); k++)
+      for(k=0; k<(int)vCWPointSet.size(); k++)
       {
       vCWPointSet[k].Theta = GetTheta(ankerPoint, vCWPointSet[k].Point);
       }
       // sort in cw-order:
       sort(vCWPointSet.begin(), vCWPointSet.end(), CWPointComparator());
 
-      for(int k1=0; k1<vCWPointSet.size(); k1++)
+      for(int k1=0; k1<(int)vCWPointSet.size(); k1++)
       {
         Point2D nextCWPoint2D = vCWPointSet[k1].Point;
         if(k1==0 ||
@@ -1595,7 +1596,7 @@ Rectangle<2> MinimumBoundingBox(const vector<Point2D>& vConvexPolygon)
     x_max = vConvexPolygon[0].x;
     y_min = vConvexPolygon[0].y;
     y_max = vConvexPolygon[0].y;
-    for(int i=0; i < vConvexPolygon.size(); i++)
+    for(int i=0; i < (int)vConvexPolygon.size(); i++)
     {
       if(vConvexPolygon[i].x < x_min)
       {
@@ -1654,7 +1655,7 @@ void ToConstraint(const vector<Point2D>& vConvexPolygon,
 
   // Are they (the points defining the convex polygon) all the same?
   blnAllEqual = true;
-  for(i=0; i < vConvexPolygon.size(); i++)
+  for(i=0; i < (int)vConvexPolygon.size(); i++)
   {
     if(vConvexPolygon[i]!=vConvexPolygon[0])
     {
@@ -1685,7 +1686,7 @@ void ToConstraint(const vector<Point2D>& vConvexPolygon,
     y_min = vConvexPolygon[0].y;
     y_max = vConvexPolygon[0].y;
     blnAllOnSameLine = true;
-    for(i=j; i < vConvexPolygon.size(); i++)
+    for(i=j; i < (int)vConvexPolygon.size(); i++)
     {
       if(vConvexPolygon[i].OnSameLineAs(vConvexPolygon[0],
           vConvexPolygon[j]))
@@ -1767,7 +1768,7 @@ void ToConstraint(const vector<Point2D>& vConvexPolygon,
       vIndexOfVertexes.push_back(j);
       vIndexOfVertexes.push_back(k);
       j = 2;
-      for(i=k+1; i < vConvexPolygon.size(); i++)
+      for(i=k+1; i < (int)vConvexPolygon.size(); i++)
       {
         if(vConvexPolygon[i]!=vConvexPolygon[vIndexOfVertexes[j]])
         {
@@ -1812,11 +1813,11 @@ void ToConstraint(const vector<Point2D>& vConvexPolygon,
       // vConvexPolygon[vIndexOfVertexes[vIndexOfVertexes.size()]]
       // with vIndexOfVertexes.size() >= 3
       Point2D pFirst, pSecond, pOther;
-      for(i=0; i < vIndexOfVertexes.size(); i++)
+      for(i=0; i < (int)vIndexOfVertexes.size(); i++)
       {
         pFirst = vConvexPolygon[vIndexOfVertexes[i]];
         // determine pSecond:
-        if(i < (vIndexOfVertexes.size()-1))
+        if(i < ((int)vIndexOfVertexes.size()-1))
         {
           pSecond = vConvexPolygon[vIndexOfVertexes[i+1]];
         }
@@ -1825,13 +1826,13 @@ void ToConstraint(const vector<Point2D>& vConvexPolygon,
             pSecond = vConvexPolygon[vIndexOfVertexes[0]];
         }
         // determine pOther:
-        if(i < (vIndexOfVertexes.size()-2))
+        if(i < ((int)vIndexOfVertexes.size()-2))
         {
           pOther = vConvexPolygon[vIndexOfVertexes[i+2]];
         }
         else
         {
-          if(i == (vIndexOfVertexes.size()-2))
+          if(i == ((int)vIndexOfVertexes.size()-2))
           {
             pOther = vConvexPolygon[vIndexOfVertexes[0]];
           }
@@ -1914,7 +1915,7 @@ void ComputeXOrderedSequenceOfSlabs(const vector<Point2D>& vP,
   int i_x_maxFirst = -1;
   int i_x_maxSecond = -1;
 
-  for(i=0; i<vP.size(); i++)
+  for(i=0; i<(int)vP.size(); i++)
   {
     if(AlmostEqual(vP[i].x,x_min_P) && i_x_minFirst==-1)
     {
@@ -1943,7 +1944,7 @@ void ComputeXOrderedSequenceOfSlabs(const vector<Point2D>& vP,
 
 
   if(i_x_minSecond!=-1 && !(i_x_minSecond==i_x_minFirst+1 ||
-          (i_x_minSecond==vP.size()-1 && i_x_minFirst==0)))
+          (i_x_minSecond==(int)vP.size()-1 && i_x_minFirst==0)))
   {
         ErrorReporter::ReportError("ERROR");
   }
@@ -2378,7 +2379,7 @@ void ConvexPolygonIntersection(const vector<Point2D>& vP,
     ToConstraint(*vPolygon, vLinConstraints);
     blnSinglePointInside = true;
     //fuer Vektor vLinConstraints:" << endl;
-    for(i=0; i<vLinConstraints.size(); i++)
+    for(i=0; i<(int)vLinConstraints.size(); i++)
     {
       double dblSinglePoint =
        vLinConstraints[i].Get_a1()*pSinglePoint.x +
@@ -2423,7 +2424,7 @@ void ConvexPolygonIntersection(const vector<Point2D>& vP,
     ToConstraint(*vPolygon, vLinConstraints);
     blnSegmentFirstInside = true;
     blnSegmentSecondInside = true;
-    for(i=0; i<vLinConstraints.size(); i++)
+    for(i=0; i<(int)vLinConstraints.size(); i++)
     {
       double dblSegFirst =  vLinConstraints[i].Get_a1()*pSegmentFirst.x +
         vLinConstraints[i].Get_a2()*pSegmentFirst.y +
@@ -2476,7 +2477,7 @@ void ConvexPolygonIntersection(const vector<Point2D>& vP,
 
       Point2D pVertex1, pVertex2;
       int nrOfVertexes = 0;
-      for(i=0; i<(*vPolygon).size(); i++)
+      for(i=0; i<(int)((*vPolygon).size()); i++)
       {
         if(((Point2D)((*vPolygon)[i])).OnSegment(pSegmentFirst,
           pSegmentSecond))
@@ -2524,7 +2525,7 @@ void ConvexPolygonIntersection(const vector<Point2D>& vP,
         bool blnIntersectionEdgeFound;
         Point2D pIntersection;
         Point2D pPx1, pPx2;
-        for(i=0; i<(*vPolygon).size(); i++)
+        for(i=0; i<(int)((*vPolygon).size()); i++)
         {
           Point2D pPolygonVertex1, pPolygonVertex2;
           if(i==0)
@@ -2922,22 +2923,22 @@ void ConvexPolygonIntersection(const vector<Point2D>& vP,
       }
 
       if(AlmostEqual(vUppBoundP[iUppBoundP].x,next_x) &&
-        iUppBoundP < vUppBoundP.size()-1)
+        iUppBoundP < (int)vUppBoundP.size()-1)
       {
         iUppBoundP++;
       }
       if(AlmostEqual(vLowBoundP[iLowBoundP].x,next_x) &&
-        iLowBoundP < vLowBoundP.size()-1)
+        iLowBoundP < (int)vLowBoundP.size()-1)
       {
         iLowBoundP++;
       }
       if(AlmostEqual(vUppBoundQ[iUppBoundQ].x,next_x) &&
-        iUppBoundQ < vUppBoundQ.size()-1)
+        iUppBoundQ < (int)vUppBoundQ.size()-1)
       {
         iUppBoundQ++;
       }
       if(AlmostEqual(vLowBoundQ[iLowBoundQ].x,next_x) &&
-        iLowBoundQ < vLowBoundQ.size()-1)
+        iLowBoundQ < (int)vLowBoundQ.size()-1)
       {
         iLowBoundQ++;
       }
@@ -2958,7 +2959,7 @@ void ConvexPolygonIntersection(const vector<Point2D>& vP,
     bool blnDegeneratedCase;
     bool blnDegeneratedTrapezP;
     bool blnDegeneratedTrapezQ;
-    for(i=0; i < vTrapezP.size(); i++)
+    for(i=0; i < (int)vTrapezP.size(); i++)
     {
       if(!vTrapezP[i].IsEmpty && !vTrapezQ[i].IsEmpty)
       {
@@ -3118,7 +3119,7 @@ void ConvexPolygonIntersection(const vector<Point2D>& vP,
       }
     }
     vPQIntersectionWD.clear();
-    for(i=0; i < vPQIntersectionUppWD.size(); i++)
+    for(i=0; i < (int)vPQIntersectionUppWD.size(); i++)
     {
        vPQIntersectionWD.push_back(vPQIntersectionUppWD[i]);
     }
@@ -3133,7 +3134,7 @@ void ConvexPolygonIntersection(const vector<Point2D>& vP,
   if(vPQIntersectionWD.size()>0)
   {
     vPQIntersection.push_back(vPQIntersectionWD[0]);
-    for(i=1; i < vPQIntersectionWD.size(); i++)
+    for(i=1; i < (int)vPQIntersectionWD.size(); i++)
     {
       if(vPQIntersectionWD[i]!=vPQIntersectionWD[i-1] &&
         vPQIntersectionWD[i]!=vPQIntersectionWD[0])
@@ -3428,7 +3429,7 @@ void HalfPlaneIntersection(
       if(vConvexPolygonWD.size()>0)
       {
         vConvexPolygon.push_back(vConvexPolygonWD[0]);
-        for(i=1; i < vConvexPolygonWD.size(); i++)
+        for(i=1; i < (int)vConvexPolygonWD.size(); i++)
         {
           if(vConvexPolygonWD[i]!=vConvexPolygonWD[i-1] &&
              vConvexPolygonWD[i]!=vConvexPolygonWD[0])
@@ -3487,7 +3488,7 @@ ListExpr OutConstraint( ListExpr typeInfo, Word value )
   }
   else // symRel->SymbolicTuplesSize() > 0 (minimum: 1 Tuple)
   {
-    for(unsigned int i = 0; i < symRel->SymbolicTuplesSize(); i++)
+    for(int i = 0; i < symRel->SymbolicTuplesSize(); i++)
     {
       symRel->GetSymbolicTuples(i, pSymRelIP);
       for(int j = pSymRelIP->startIndex; j <= pSymRelIP->endIndex; j++)
@@ -4543,7 +4544,7 @@ int triangulateValueMap( Word* args, Word& result, int message,
       vector<vector<double> > vVertices;
       vector<vector<int> > vTriangles;
       TriangulateRegion(reg, vVertices, vTriangles);
-      for (int j = 0; j < vTriangles.size(); j++)
+      for (int j = 0; j < (int)vTriangles.size(); j++)
       {
         ListExpr resultNL =
       nl->ThreeElemList(
@@ -4775,7 +4776,7 @@ int region2constraintValueMap( Word* args, Word& result, int message,
       MergeTriangles2ConvexPolygons(vVertices,
                                     vTriangles,
                                     vCWPoints2convert);
-      for (int j = 0; j < vCWPoints2convert.size(); j++)
+      for (int j = 0; j < (int)vCWPoints2convert.size(); j++)
       {
         // each convex polygon will be converted individually:
 
@@ -4787,7 +4788,7 @@ int region2constraintValueMap( Word* args, Word& result, int message,
     else
     {
       // only triangles
-      for (int j = 0; j < vTriangles.size(); j++)
+      for (int j = 0; j < (int)vTriangles.size(); j++)
       {
         // each triangle will be converted individually:
         vector<Point2D> v3Points2convert;
@@ -5054,7 +5055,7 @@ int constraint2regionValueMap( Word* args, Word& result, int message,
           return CANCEL;
         }
       }
-      for(unsigned int iSymTuple = 0;
+      for(int iSymTuple = 0;
           iSymTuple < sr->SymbolicTuplesSize(); iSymTuple++)
       {
         const SymbolicTuple* symTuple;
