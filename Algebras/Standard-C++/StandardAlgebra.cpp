@@ -1924,7 +1924,7 @@ CcDivision_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() &&
+       ((CcReal*)args[1].addr)->IsDefined() &&
        ((CcReal*)args[1].addr)->GetRealval() )
   {
     ((CcReal *)result.addr)->
@@ -1942,7 +1942,7 @@ int
 CcDivision_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
+  if ( ((CcReal*)args[0].addr)->IsDefined() &&
        ((CcInt*)args[1].addr)->IsDefined() &&
        ((CcInt*)args[1].addr)->GetIntval() )
   {
@@ -1961,9 +1961,9 @@ int
 CcDivision_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[0].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->IsDefined() &&
-       ((CcInt*)args[1].addr)->GetIntval() )
+  if ( ((CcReal*)args[0].addr)->IsDefined() &&
+       ((CcReal*)args[1].addr)->IsDefined() &&
+       ((CcReal*)args[1].addr)->GetRealval() )
   {
     ((CcReal *)result.addr)->
       Set( true, ((CcReal*)args[0].addr)->GetRealval() /
@@ -4107,7 +4107,6 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccproduct );
     AddOperator( &ccdivision );
     AddOperator( &ccmod );
-    AddOperator( &ccdiv );
     AddOperator( &ccdiv );
     AddOperator( &ccsqrt );
     AddOperator( &ccrandint );
