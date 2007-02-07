@@ -11552,7 +11552,7 @@ SpatialGetX_p( Word* args, Word& result, int message,
   if( p->IsDefined() )
     ((CcReal*)result.addr)->Set( true, p->GetX() ) ;
   else
-    ((Point*)result.addr)->Set( false, 0.0 );
+    ((CcReal*)result.addr)->Set( false, 0.0 );
 
   return 0;
 }
@@ -11572,7 +11572,7 @@ SpatialGetY_p( Word* args, Word& result, int message,
   if( p->IsDefined() )
     ((CcReal*)result.addr)->Set( true, p->GetY() ) ;
   else
-    ((Point*)result.addr)->Set( false, 0.0 );
+    ((CcReal*)result.addr)->Set( false, 0.0 );
 
   return 0;
 }
