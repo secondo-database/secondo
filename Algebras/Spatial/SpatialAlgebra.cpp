@@ -1907,6 +1907,46 @@ int Points::Compare( const Attribute* arg ) const
   return 0;
 }
 
+int Points::CompareAlmost( const Attribute* arg ) const
+{
+  const Points* ps = (const Points*)arg;
+
+  if( !ps )
+    return (-2);
+
+  if( IsEmpty() && ps->IsEmpty() )
+    return 0;
+
+  if( IsEmpty() )
+    return -1;
+
+  if( ps->IsEmpty() )
+    return 1;
+
+  if( Size() > ps->Size() )
+    return 1;
+
+  if( Size() < ps->Size() )
+    return -1;
+
+  for( int i = 0; i < Size(); i++ )
+  {
+    const Point *p1, *p2;
+    Get( i, p1);
+    ps->Get( i, p2 );
+
+    if( !AlmostEqual(*p1, *p2) )
+    {
+      if( *p1 > *p2 )
+        return 1;
+      if( *p1 < *p2 )
+        return -1;
+    }
+  }
+  return 0;
+}
+
+
 bool Points::Adjacent( const Attribute* arg ) const
 {
   return 0;
@@ -4299,7 +4339,7 @@ void Line::RemoveDuplicates()
   int pos = 0;
   line.Get( 0, ptmp );
   last = *ptmp;
-  
+
   newEdgeNumbers[last.attr.edgeno] = newedge;
   last.attr.edgeno = newedge;
   line.Put(0,last);
@@ -4326,8 +4366,6 @@ void Line::RemoveDuplicates()
     } else { // duplicate found
       newEdgeNumbers[edge] = newedge-1; // use the last edge number
     }
-     
-
   }
   if( pos + 1 != size ){
     // duplicates found

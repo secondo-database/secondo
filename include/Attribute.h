@@ -59,6 +59,8 @@ derived attribute class must implement.
 #include "FLOB.h"
 #include <sstream>
 
+const double FACTOR = 0.00000001; // Precision factor, used within AlmostEqual
+
 /*
 3.5 Struct ~AttrDelete~
 
@@ -121,7 +123,10 @@ Sets the ~defined~ flag of the attribute.
 Returns the ~sizeof~ of the attribute class.
 
 */
+
+
     virtual int Compare( const Attribute *rhs ) const = 0;
+
 /*
 This function should define an order on the attribute values. 
 The implementation must also consider that values may be undefined.
@@ -143,23 +148,41 @@ The semantics for the other cases are defined below:
     01 -> -1: *this < *rhs
     00 ->  0: *this = *rhs
     10 ->  1: *this > *rhs
-----    
+----
 
 Thus the result of a comparison of attribute values is never undefined!
 
+*/
+    virtual int CompareAlmost( const Attribute *rhs ) const
+    {
+      return Compare(rhs);
+    }
+
+/*
+This function is for unprecise datatypes like ~real~ or ~point~, where one 
+needs to distinguish the ordinary ~Compare~, which will be used for sorting
+and precise comparison/lookup in DBArrays, and the fuzzy version, which employs
+~AlmostEqual~ instead of ~Equal~. It will be used to remove duplicates, gouping 
+etc.
+
+For unprecise datatypes, you should always overwrite ~CompareAlmost~.
+
+*/
+
+/*
 Below a generic compare function is implemented by means of templates.
 In order to use this implement the functions
 
----- 
+----
     inline operator==(const T& rhs) const
     inline operator<(const T& rhs) const
 ----
 
 in your class and instantiate it inside your ~Compare~ function implementation.
 For examples refer to the ~StandardAlgebra~.
-   
+
 */
-  
+
     template<class T>
     static inline int GenericCompare( const T* left, 
                                       const T* right,
@@ -176,13 +199,13 @@ For examples refer to the ~StandardAlgebra~.
       // compare only the defined flags
       if( !lDef ) {
         if ( !rDef )  // case 00
-          return 0;         
+          return 0;
         else          // case 01
           return -1;
       }
       return 1;       // case 10  
     }
-     
+
 /*
 In some cases it makes sense to offer more specialized comparisons since 
 some algorithms like sorting or duplicate removal need only $<$ or $=$.
@@ -190,14 +213,14 @@ some algorithms like sorting or duplicate removal need only $<$ or $=$.
 If it helps to increase performance one could think about to implement the
 virtual ~Equal~ or ~Less~ functions in the derived classes.
 
-*/   
+*/
 
-    
+
     inline virtual bool Equal(const Attribute* rhs) const
     {
       return Compare(rhs) == 0;
     } 
-    
+
     template<class T>
     static inline bool GenericEqual( const T* left, 
                                      const T* right,
@@ -214,7 +237,12 @@ virtual ~Equal~ or ~Less~ functions in the derived classes.
     {
       return Compare(rhs) < 0;
     } 
-    
+
+    inline virtual bool LessAlmost(const Attribute* rhs) const
+    {
+      return CompareAlmost(rhs) < 0;
+    } 
+
     template<class T>
     static inline bool GenericLess( const T* left, 
                                     const T* right,
@@ -227,7 +255,6 @@ virtual ~Equal~ or ~Less~ functions in the derived classes.
         return (rDef && !lDef);
     }
 
-    
     virtual bool Adjacent( const Attribute *attrib ) const = 0;
 /*
 This function checks if two attributes are adjacent. As an example,

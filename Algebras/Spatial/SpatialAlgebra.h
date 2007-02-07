@@ -88,7 +88,7 @@ Forward declarations.
 3 Auxiliary Functions
 
 */
-const double FACTOR = 0.00000001;
+// const double FACTOR = 0.00000001; // moved to Attribute.h
 
 inline double ApplyFactor( const double d );
 inline bool AlmostEqual( const double d1,
@@ -373,6 +373,24 @@ as an attribute.
         return -1;
       if( !p->defined )
         return 1;
+      if( *this > *p )
+        return 1;
+      if( *this < *p )
+        return -1;
+      return 0;
+    }
+
+    inline int CompareAlmost( const Attribute *arg ) const
+    {
+      const Point* p = (const Point*)arg;
+      if( !defined && !p->defined )
+        return 0;
+      if( !defined && p->defined )
+        return -1;
+      if( !p->defined )
+        return 1;
+      if( AlmostEqual( *this, *p ) )
+        return 0;
       if( *this > *p )
         return 1;
       if( *this < *p )
@@ -878,6 +896,7 @@ as an attribute.
     size_t HashValue() const;
     void CopyFrom( const StandardAttribute* right );
     int Compare( const Attribute *arg ) const;
+    int CompareAlmost( const Attribute *arg ) const;
     bool Adjacent( const Attribute *arg ) const;
     virtual Points* Clone() const;
     ostream& Print( ostream &os ) const;
@@ -1830,6 +1849,7 @@ as an attribute.
     size_t HashValue() const;
     void CopyFrom( const StandardAttribute* right );
     int Compare( const Attribute *arg ) const;
+//     int CompareAlmost( const Attribute *arg ) const;
     virtual Line *Clone() const;
     ostream& Print( ostream &os ) const;
     void Clear();
@@ -2495,6 +2515,7 @@ as an attribute.
     size_t HashValue() const;
     void CopyFrom( const StandardAttribute* right );
     int Compare( const Attribute *arg ) const;
+//     int CompareAlmost( const Attribute *arg ) const;
     ostream& Print( ostream &os ) const;
     virtual Region *Clone() const;
     void Clear();

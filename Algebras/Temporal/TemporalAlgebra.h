@@ -1774,7 +1774,7 @@ Creates the distance to an other UReal value.
   void Linearize(UReal& result) const;
 
 
-   void Linearize(UReal& result1, UReal& result2) const;
+  void Linearize(UReal& result1, UReal& result2) const;
    /*
      Stores a linear approximation of this UReal in result1 and result2.
      If the extremum is outside of the corresponding interval, result2 will
@@ -6445,6 +6445,5 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
 
     for (unsigned int i = 0; i < iv.size(); i++) delete iv[i];
 }
-
 
 #endif // _TEMPORAL_ALGEBRA_H_

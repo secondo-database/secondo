@@ -353,6 +353,21 @@ class CcReal : public StandardAttribute
     return Attribute::GenericCompare<CcReal>(this, rhs, defined, rhs->defined); 
   }
 
+  inline int CompareAlmost( const Attribute* arg ) const
+  {
+    const CcReal* rhs = static_cast<const CcReal*>( arg );
+    static long& ctr = Counter::getRef("CcReal::Compare");
+    ctr++;
+
+    double diff = fabs( GetRealval() - rhs->GetRealval() );
+    if (diff < FACTOR )
+      return 0;
+    else
+      return 
+        Attribute::GenericCompare<CcReal>(this, rhs, defined, rhs->defined);
+  }
+
+
   inline bool Adjacent( const Attribute *arg ) const
   {
     return( realval == ((const CcReal *)arg)->realval );

@@ -1806,7 +1806,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
                      Word& local, Supplier s)
 {
   Word tuple;
-  LexicographicalTupleCompare cmp;
+  LexicographicalTupleCompareAlmost cmp;
   Tuple* currentTuple;
   Tuple* lastOutputTuple;
 
@@ -4354,7 +4354,7 @@ int GroupByValueMapping
   switch(message)
   {
     case OPEN:
-    {  
+    {
       // Get the first tuple pointer and store it in the
       // GroupBylocalInfo structure
       qp->Open (args[0].addr);
@@ -4367,7 +4367,7 @@ int GroupByValueMapping
         gbli->resultTupleType = new TupleType( nl->Second( resultType ) );
         gbli->MAX_MEMORY = qp->MemoryAvailableForOperator();
         local = SetWord(gbli);
-      
+
         cmsg.info("ERA:ShowMemInfo") 
           << "GroupBy.MAX_MEMORY (" 
           << gbli->MAX_MEMORY / 1024 << " MB): = " 

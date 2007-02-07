@@ -734,6 +734,8 @@ This is a class used in the sort algorithm that specifies the
 lexicographical comparison function between two tuples.
 
 */
+
+// use this one for sorting
 class LexicographicalTupleCompare
 {
   public:
@@ -757,6 +759,29 @@ class LexicographicalTupleCompare
     }
 };
 
+// use this one to remove duplicates
+class LexicographicalTupleCompareAlmost
+{
+  public:
+    inline bool operator()( const Tuple* aConst, 
+                            const Tuple* bConst ) const
+    {
+      Tuple* a = (Tuple*)aConst;
+      Tuple* b = (Tuple*)bConst;
+
+      for( int i = 0; i < a->GetNoAttributes(); i++ )
+      {
+        int cmp = 
+          ((Attribute*)a->GetAttribute(i))->CompareAlmost(
+            ((Attribute*)b->GetAttribute(i)));
+        if( cmp < 0)
+          return true;
+        if( cmp > 0)
+          return false;
+      }
+      return false;
+    }
+};
 /*
 3.8 Class ~TupleCompareBy~
 
@@ -767,6 +792,8 @@ containing the index of the attribute and a boolean flag telling
 whether the ordering is ascendant or not (descendant).
 
 */
+
+// use this one to sort
 typedef vector< pair<int, bool> > SortOrderSpecification;
 
 class TupleCompareBy
@@ -780,27 +807,75 @@ class TupleCompareBy
     inline bool operator()( const Tuple* a, 
                             const Tuple* b ) const
     {
-      if (len > 1) {
-       
-      SortOrderSpecification::const_iterator iter = spec.begin();
-      while( iter != spec.end() )
+      if (len > 1) 
       {
-        const int pos = iter->first-1;
+
+        SortOrderSpecification::const_iterator iter = spec.begin();
+        while( iter != spec.end() )
+        {
+          const int pos = iter->first-1;
+          const Attribute* aAttr = (const Attribute*) a->GetAttribute(pos);
+          const Attribute* bAttr = (const Attribute*) b->GetAttribute(pos);
+          const int cmpValue = aAttr->Compare( bAttr );
+
+          if( cmpValue !=  0 ) 
+          {
+            // aAttr < bAttr ?
+            return (cmpValue < 0) ? iter->second : !(iter->second);
+          }
+          // the current attribute is equal
+          iter++;
+        }
+        // all attributes are equal  
+        return false;
+      }
+      else
+      {
+        const int pos = spec[0].first-1;
         const Attribute* aAttr = (const Attribute*) a->GetAttribute(pos);
         const Attribute* bAttr = (const Attribute*) b->GetAttribute(pos);
-        const int cmpValue = aAttr->Compare( bAttr );
+        return aAttr->Less(bAttr) ? spec[0].second : !spec[0].second;
+      } 
+  }
 
-        if( cmpValue !=  0 ) 
+  private:
+    SortOrderSpecification spec;
+    const size_t len;
+};
+
+// use this one to remove duplicates
+class TupleCompareByAlmost
+{
+  public:
+    TupleCompareByAlmost( const SortOrderSpecification &spec ):
+      spec( spec ),
+      len( spec.size() )
+      {}
+
+    inline bool operator()( const Tuple* a, 
+                            const Tuple* b ) const
+    {
+      if (len > 1) 
+      {
+
+        SortOrderSpecification::const_iterator iter = spec.begin();
+        while( iter != spec.end() )
         {
-          // aAttr < bAttr ?
-          return (cmpValue < 0) ? iter->second : !(iter->second);
-        }        
-        // the current attribute is equal
-        iter++;
-      }
-      // all attributes are equal  
-      return false;
-      
+          const int pos = iter->first-1;
+          const Attribute* aAttr = (const Attribute*) a->GetAttribute(pos);
+          const Attribute* bAttr = (const Attribute*) b->GetAttribute(pos);
+          const int cmpValue = aAttr->CompareAlmost( bAttr );
+
+          if( cmpValue !=  0 ) 
+          {
+            // aAttr < bAttr ?
+            return (cmpValue < 0) ? iter->second : !(iter->second);
+          }
+          // the current attribute is equal
+          iter++;
+        }
+        // all attributes are equal  
+        return false;
       }
       else
       {
