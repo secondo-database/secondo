@@ -38,8 +38,8 @@ State Operator/Signatures
 OK    makemvalue   (**)  stream (tuple ([x1:t1,xi:uT,..,xn:tn])) -->  mT
 OK    the_mvalue   (**)            stream uT --> mT
 OK    get_duration                   periods --> duration
-(OK)  point2d                        periods --> point
-(OK)  queryrect2d                    instant --> rect
+OK    point2d                        periods --> point
+OK    queryrect2d                    instant --> rect
 OK    circle              point x real x int --> region
 OK    uint2ureal:                       uint --> ureal
 
@@ -97,9 +97,9 @@ OK  +   upoint x  region --> (stream upoint) as intersection: upoint x uregion
 OK  -           uT x    uT --> ureal
 OK  ?           uT x     T --> ureal
 OK  ?            T x    uT --> ureal
-n/a +        ureal x ureal --> (stream ureal)
-n/a +        ureal x  real --> (stream ureal)
-n/a +         real x ureal --> (stream ureal)
+OK  +        ureal x ureal --> (stream ureal)
+OK  +        ureal x  real --> (stream ureal)
+OK  +         real x ureal --> (stream ureal)
 
 OK  + abs:           ureal --> (stream ureal)
 OK  + abs:            uint --> uint
@@ -8531,8 +8531,12 @@ WARNING: Do not confuse this operators with the ~ComparePredicates~, which
          compare the units as such.
 
 ----
-      =, #, <, >, <=, >=: For T in {int, bool, real, string, point, region}
-n/a +        uT x uT --> bool
+      =, #, <, >, <=, >=: For T in {int, bool, real, string, point*, region*}
+                             (*): {#, =} only
+Test +        uT x uT --> (stream ubool)
+Test +        uT x  T --> (stream ubool) (**)
+Test +         T x uT --> (stream ubool) +(**)
+                             (**): Not for T = region
 
 ----
 
@@ -8561,6 +8565,7 @@ ListExpr TUCompareValuePredicatesTypeMap( ListExpr args )
                                 nl->SymbolAtom( "ubool" ));
         }
     }
+  if(arg1)
   // Error case:
   nl->WriteToString(argstr1, arg1);
   nl->WriteToString(argstr2, arg2);
@@ -8594,13 +8599,26 @@ ListExpr TUCompareValueEqPredicatesTypeMap( ListExpr args )
                                 nl->SymbolAtom( "ubool" ));
         }
     }
-  // Error case:
+  
+
+    string argstr;
+    nl->WriteToString(argstr, args);
+    if (argstr == "(bool ubool)"     || argstr == "(ubool bool)"     ||
+        argstr == "(int uint)"       || argstr == "(unit int)"       ||
+        argstr == "(string ustring)" || argstr == "(ustring string)" ||
+        argstr == "(real ureal)"     || argstr == "(ureal real)"     ||
+        argstr == "(point upoint)"   || argstr == "(upoint point)")
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                             nl->SymbolAtom( "ubool" ));
+
+// Error case:
   nl->WriteToString(argstr1, arg1);
   nl->WriteToString(argstr2, arg2);
   ErrorReporter::ReportError(
     "CompareTemporalValueOperator (one of =, #) "
     "expects two arguments of "
-    "type 'uT', where T in {bool, int, real, string, point, region}. The "
+    "type 'uT x uT', 'T x uT' or 'uT x T', where T in "
+    "{bool, int, real, string, point}, or (uregion x uregion). The "
     "passed arguments have types '" + argstr1 + "' and '"
     + argstr2 + "'.");
   return nl->SymbolAtom("typeerror");
@@ -8661,6 +8679,84 @@ int TU_VM_ComparePredicateValue_Const(Word* args, Word& result,
       } // end switch (opcode)
       result = SetWord(
           new ConstTemporalUnit<CcBool>(iv, CcBool(true, compresult) ) );
+      *finished = true; // only one result!
+      return YIELD;
+
+    case CLOSE:
+      if( local.addr != 0 )
+      {
+        finished = (bool*) local.addr;
+        delete finished;
+      }
+      return 0;
+  } // end switch (message)
+  return -1; // should not be reached
+}
+
+template <class T, int opcode, int unit_arg>
+  int TU_VM_ComparePredicateValue_Const_T(Word* args, Word& result,
+                                          int message, Word& local, Supplier s)
+{
+  assert( (opcode >= 0) && (opcode <= 5));
+  assert( (unit_arg >=0) && (unit_arg <=1));
+
+  ConstTemporalUnit<T> *u1;
+  T *u2;
+
+  if (unit_arg == 0)
+  {
+    u1  = (ConstTemporalUnit<T> *) args[0].addr;
+    u2  = (T*) args[1].addr;
+  }
+  else // (unit_arg == 1)
+  {
+    u1  = (ConstTemporalUnit<T> *) args[1].addr;
+    u2  = (T*) args[0].addr;
+  }
+  bool *finished;
+  Interval<Instant> iv;
+  int p1;
+  bool compresult = false;
+
+  switch( message )
+  {
+    case OPEN:
+      finished = new bool(false); //
+      local = SetWord(finished);
+      return 0;
+
+    case REQUEST:
+      if( local.addr == 0 )
+        return CANCEL;
+      finished = (bool*) local.addr;
+      if ( *finished )
+        return CANCEL;
+      if ( !u1->IsDefined() || !u2->IsDefined() )
+      { *finished = true; return CANCEL; }
+
+      if(unit_arg == 0)
+        p1 = u1->constValue.Compare( u2 );
+      else
+        p1 = u2->Compare( &(u1->constValue) );
+
+      switch (opcode)
+      {
+        case 0: // is_equal
+          compresult = (p1 == 0);  break;
+        case 1: // is_not_equal
+          compresult =  (p1 != 0); break;
+        case 2: // less_than
+          compresult = (p1 == -1); break;
+        case 3: // bigger_than
+          compresult = (p1 == 1);  break;
+        case 4: // less_or_equal
+          compresult = (p1 < 1);   break;
+        case 5: // bigger_or_equal
+          compresult = (p1 > -1);  break;
+      } // end switch (opcode)
+      result = SetWord(
+          new ConstTemporalUnit<CcBool>(u1->timeInterval, 
+                                        CcBool(true, compresult) ) );
       *finished = true; // only one result!
       return YIELD;
 
@@ -8788,6 +8884,119 @@ int TU_VM_ComparePredicateValue_UPoint(Word* args, Word& result,
   } // end switch (message)
   return -1; // should not be reached
 }
+
+template <int opcode, int unit_arg>
+    int TU_VM_ComparePredicateValue_UPoint_Point(Word* args, Word& result,
+                          int message, Word& local, Supplier s)
+{
+  assert( (opcode >= 0) && (opcode <= 1));
+  assert( (unit_arg >= 0) && (unit_arg <= 1));
+
+  UPoint *u1;
+  Point *p;
+
+  if(unit_arg == 0)
+  {
+  u1  = (UPoint*) args[0].addr;
+  p   = (Point*)  args[1].addr;
+  }
+  else{
+    u1  = (UPoint*) args[1].addr;
+    p   = (Point*)  args[0].addr;
+  }
+  const UPoint u1i, u2i;
+  UPoint *u2, uinters(true);
+  const UBool* cu;
+  TUCompareValueLocalInfo *localinfo;
+  Interval<Instant> iv, ivBefore, ivInters, ivAfter;
+  bool compresult = false;
+
+  switch( message )
+  {
+    case OPEN:
+
+      localinfo = new TUCompareValueLocalInfo;
+      localinfo->finished = true;
+      localinfo->NoOfResults = 0;
+      localinfo->NoOfResultsDelivered = 0;
+      localinfo->intersectionBool = new MBool(5);
+      local = SetWord(localinfo);
+
+      if ( !u1->IsDefined() || !u2->IsDefined() )
+      {
+//           cerr << "Undef input" << endl; 
+        return 0;
+      }
+      iv = u1->timeInterval;
+      u2 = new UPoint(iv, *p, *p);
+      u1->Intersection(*u2, uinters);
+      delete u2;
+      ivInters = uinters.timeInterval;
+      compresult = (opcode == 0) ? uinters.IsDefined() : !uinters.IsDefined();
+
+      if (!uinters.IsDefined())
+      {// no intersection: result unit spans common interval totally
+//         cerr << "No intersection" << endl;
+        localinfo->intersectionBool->Add(UBool(iv,CcBool(true,compresult)));
+        localinfo->NoOfResults++;
+        localinfo->finished = false;
+        return 0;
+      }
+      if ( uinters.IsDefined() &&
+           !(iv.start == ivInters.start && iv.lc == ivInters.lc))
+      {// before intersection interval
+//         cerr << "Before intersection" << endl;
+        ivBefore=Interval<Instant>(iv.start,ivInters.start,iv.lc,!ivInters.lc);
+        localinfo->intersectionBool->Add(
+            ConstTemporalUnit<CcBool>(ivBefore, CcBool(true, !compresult)) );
+        localinfo->NoOfResults++;
+        localinfo->finished = false;
+      }
+      if (uinters.IsDefined())
+      { // at intersection interval
+//         cerr << "At intersection" << endl;
+        localinfo->intersectionBool->Add(
+            ConstTemporalUnit<CcBool>(ivInters, CcBool(true, compresult)) );
+        localinfo->NoOfResults++;
+        localinfo->finished = false;
+      }
+      if (uinters.IsDefined() && !(iv.end==ivInters.end && iv.rc==ivInters.rc))
+      {// after intersection interval
+//         cerr << "After intersection" << endl;
+        ivAfter = Interval<Instant>(ivInters.end,iv.end,!ivInters.rc,iv.rc);
+        localinfo->intersectionBool->Add(
+            ConstTemporalUnit<CcBool>(ivAfter, CcBool(true, !compresult)) );
+        localinfo->NoOfResults++;
+        localinfo->finished = false;
+      }
+      return 0;
+
+    case REQUEST:
+
+      if( local.addr == 0 )
+        return CANCEL;
+      localinfo = (TUCompareValueLocalInfo*) local.addr;
+      if ( localinfo->finished )
+        return CANCEL;
+      if ( localinfo->NoOfResultsDelivered >= localinfo->NoOfResults)
+      { localinfo->finished = true; return CANCEL; }
+      localinfo->intersectionBool->Get(localinfo->NoOfResultsDelivered, cu);
+      result = SetWord( cu->Clone() );
+      localinfo->NoOfResultsDelivered++;
+      return YIELD;
+
+    case CLOSE:
+      if( local.addr != 0 )
+      {
+        localinfo = (TUCompareValueLocalInfo*) local.addr;
+        delete localinfo->intersectionBool;
+        delete localinfo;
+      }
+      return 0;
+  } // end switch (message)
+  return -1; // should not be reached
+}
+
 
 template<int opcode>
 int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
@@ -9003,6 +9212,225 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
   return -1;
 }
 
+template<int opcode, int unit_arg>
+    int TU_VM_ComparePredicateValue_UReal_CcReal(Word* args, Word& result,
+                            int message, Word& local, Supplier s)
+{
+  assert(opcode>=0 && opcode<=5);
+  assert(unit_arg>=0 && unit_arg <=1);
+
+  UReal *u1;
+  CcReal *r;
+
+  if(unit_arg == 0)
+  {
+    u1  = (UReal*)  args[0].addr;
+    r   = (CcReal*) args[1].addr;
+  }
+  else
+  {
+    u1 = (UReal*)  args[1].addr;
+    r  = (CcReal*) args[0].addr;
+  }
+
+  const UBool* cu;
+  UBool newunit(true);
+  TUCompareValueLocalInfo *localinfo;
+  Interval<Instant> 
+      iv(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false),
+  ivnew(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false);
+  const Interval<Instant> *actIntv;
+  Instant 
+      start(instanttype),
+  end(instanttype),
+  testInst(instanttype);
+  Periods *eqPeriods;
+  int i, numEq, cmpres;
+  bool compresult, lc;
+  CcReal fccr1(true, 0.0), fccr2(true,0.0);
+
+  switch (message)
+  {
+    case OPEN:
+      localinfo = new TUCompareValueLocalInfo;
+      local = SetWord(localinfo);
+      localinfo->finished = true;
+      localinfo->NoOfResults = 0;
+      localinfo->NoOfResultsDelivered = 0;
+      localinfo->intersectionBool = new MBool(5);
+      localinfo->intersectionBool->Clear();
+
+      if ( !u1->IsDefined() || !r->IsDefined() ) 
+      { // no result
+//      cout << "TU_VM_ComparePredicateValue_UReal: No Result." << endl;
+        return 0;
+      }
+      iv = u1->timeInterval;
+      eqPeriods = new Periods(4);
+      u1->PeriodsAtVal(r->GetRealval(), *eqPeriods);// only intervals of length
+      numEq = eqPeriods->GetNoComponents();// 1 instant herein (start==end)
+//    cout << "  numEq=" << numEq << endl;
+      if ( numEq == 0 )
+      { // special case: no equality -> only one result unit
+//      cout << "TU_VM_ComparePredicateValue_UReal: Single Result." << endl;
+        testInst = TU_GetMidwayInstant(iv.start, iv.end);
+        u1->TemporalFunction(testInst, fccr1, false);
+        fccr2 = *r;
+        if(unit_arg == 0)
+          cmpres = fccr1.Compare( &fccr2 );
+        else
+          cmpres = fccr2.Compare( &fccr1 );
+
+        compresult = ( (opcode == 0 && cmpres == 0) ||   // ==
+            (opcode == 1 && cmpres != 0) ||   // #
+            (opcode == 2 && cmpres  < 0) ||   // <
+            (opcode == 3 && cmpres  > 0) ||   // >
+            (opcode == 4 && cmpres <= 0) ||   // <=
+            (opcode == 5 && cmpres >= 0)    );// >=
+        newunit = UBool(iv, CcBool(true, compresult));
+        localinfo->intersectionBool->StartBulkLoad();
+        localinfo->intersectionBool->Add(newunit);
+        localinfo->intersectionBool->EndBulkLoad();
+        localinfo->NoOfResults++;
+        localinfo->finished = false;
+        delete eqPeriods;
+        return 0;
+      }
+      // case: numEq > 0, at least one instant of equality
+      // iterate the Periods and create result units
+      // UBool::MergeAdd() will merge units with common value
+      // for <= and >=
+//    cout << "TU_VM_ComparePredicateValue_UReal: Multiple Results." << endl;
+      localinfo->intersectionBool->StartBulkLoad();
+      start = iv.start;   // the ending instant for the next interval
+      lc = iv.lc;
+      i = 0;              // counter for instants of equality
+      eqPeriods->Get(i, actIntv);
+      // handle special case: first equality in first instant
+      if (start == actIntv->start)
+      {
+//      cout << "TU_VM_ComparePredicateValue_UReal: Handling start...";
+        if (iv.lc)
+        {
+//        cout << " required." << endl;
+          u1->TemporalFunction(u1->timeInterval.start, fccr1, false);
+          fccr2 = *r;
+          if(unit_arg == 0)
+            cmpres = fccr1.Compare( &fccr2 );
+          else
+            cmpres = fccr2.Compare( &fccr1 );
+          compresult = ( (opcode == 0 && cmpres == 0) ||
+              (opcode == 1 && cmpres != 0) ||
+              (opcode == 2 && cmpres  < 0) ||
+              (opcode == 3 && cmpres  > 0) ||
+              (opcode == 4 && cmpres <= 0) ||
+              (opcode == 5 && cmpres >= 0)    );
+          ivnew = Interval<Instant>(start, start, true, true);
+          newunit = UBool(ivnew, CcBool(true, compresult));
+          localinfo->intersectionBool->Add(newunit);
+//        cout << "TU_VM_ComparePredicateValue_UReal: Added initial" 
+//             << i << endl;
+          lc = false;
+        } // else: equal instant not in interval!
+//      else
+//        cout << " not required." << endl;
+        i++;
+      }
+      while ( i < numEq )
+      {
+//      cout << "TU_VM_ComparePredicateValue_UReal: Pass i=" << i << endl;
+        eqPeriods->Get(i, actIntv);
+//      if(actIntv->start != actIntv->end)
+//      {
+//        cout << "Something's wrong with actIntv!" << endl;
+//      }
+        end = actIntv->start;
+//      cout << "  start=" << start.ToString() 
+//           << "  end="   << end.ToString()   << endl;
+        ivnew = Interval<Instant>(start, end, lc, false);
+        testInst = TU_GetMidwayInstant(start, end);
+        u1->TemporalFunction(testInst, fccr1, false);
+        fccr2 = *r;
+        if(unit_arg == 0)
+          cmpres = fccr1.Compare( &fccr2 );
+        else
+          cmpres = fccr2.Compare( &fccr1 );
+        compresult = ( (opcode == 0 && cmpres == 0) ||
+            (opcode == 1 && cmpres != 0) ||
+            (opcode == 2 && cmpres  < 0) ||
+            (opcode == 3 && cmpres  > 0) ||
+            (opcode == 4 && cmpres <= 0) ||
+            (opcode == 5 && cmpres >= 0)    );
+        newunit = UBool(ivnew, CcBool(true, compresult));
+        localinfo->intersectionBool->MergeAdd(newunit);
+//      cout << "TU_VM_ComparePredicateValue_UReal: Added regular" << i << endl;
+        if ( !(end == iv.end) || iv.rc )
+        {
+//        cout << "TU_VM_ComparePredicateValue_UReal: rc==true" << endl;
+          ivnew = Interval<Instant>(end, end, true, true);
+          compresult = (opcode == 0 || opcode == 4 || opcode == 5);
+          newunit = UBool(ivnew, CcBool(true, compresult));
+          localinfo->intersectionBool->MergeAdd(newunit);
+        }
+        start = end;
+        i++;
+        lc = false;
+      }
+      if ( start < iv.end )
+      { // handle teq[numEq-1] < iv.end
+        ivnew = Interval<Instant>(start, iv.end, false, iv.rc);
+        testInst = TU_GetMidwayInstant(start, iv.end);
+        u1->TemporalFunction(testInst, fccr1, false);
+        fccr2 = *r;
+        if(unit_arg == 0)
+          cmpres = fccr1.Compare( &fccr2 );
+        else
+          cmpres = fccr2.Compare( &fccr1 );
+        compresult = ( (opcode == 0 && cmpres == 0) ||
+            (opcode == 1 && cmpres != 0) ||
+            (opcode == 2 && cmpres  < 0) ||
+            (opcode == 3 && cmpres  > 0) ||
+            (opcode == 4 && cmpres <= 0) ||
+            (opcode == 5 && cmpres >= 0)    );
+        newunit = UBool(ivnew, CcBool(true, compresult));
+        localinfo->intersectionBool->MergeAdd(newunit);
+//      cout << "TU_VM_ComparePredicateValue_UReal: Added final res" 
+//           << i << endl;
+      }
+      localinfo->intersectionBool->EndBulkLoad(true);
+      localinfo->NoOfResults = localinfo->intersectionBool->GetNoComponents();
+      localinfo->finished = ( localinfo->NoOfResults <= 0 );
+      delete eqPeriods;
+      return 0;
+
+    case REQUEST:
+      if (local.addr == 0)
+        return CANCEL;
+      localinfo = (TUCompareValueLocalInfo*) local.addr;
+      if (localinfo->finished)
+        return CANCEL;
+      if (localinfo->NoOfResultsDelivered >= localinfo->NoOfResults)
+      {
+        localinfo->finished = true;
+        return CANCEL;
+      }
+      localinfo->intersectionBool->Get(localinfo->NoOfResultsDelivered, cu);
+      result = SetWord( cu->Clone() );
+      localinfo->NoOfResultsDelivered++;
+      return YIELD;
+
+    case CLOSE:
+      if( local.addr != 0 )
+      {
+        localinfo = (TUCompareValueLocalInfo*) local.addr;
+        delete localinfo->intersectionBool;
+        delete localinfo;
+      }
+  }
+  return -1;
+}
+
+
 template<int opcode>
 int TU_VM_ComparePredicateValue_URegion(Word* args, Word& result,
                                         int message, Word& local, Supplier s)
@@ -9023,7 +9451,9 @@ int TU_VM_ComparePredicateValue_URegion(Word* args, Word& result,
 const string TUEqVSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, string, real, point, region}\n"
-  "(uT uT) -> bool\n</text--->"
+  "(uT uT) -> (stream ubool)\n"
+  "(uT  T) -> (stream ubool)\n"
+  "( T uT) -> (stream ubool)</text--->"
   "<text>_ = _</text--->"
   "<text>The operator returns the value of the temporal predicate.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
@@ -9034,7 +9464,9 @@ const string TUEqVSpec  =
 const string TUNEqVSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, string, real, point, region}\n"
-  "(uT uT) -> (stream bool)\n</text--->"
+  "(uT uT) -> (stream ubool)\n"
+  "(uT  T) -> (stream ubool)\n"
+  "( T uT) -> (stream ubool)</text--->"
   "<text>_ # _</text--->"
   "<text>The operator returns the value of the temporal predicate.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
@@ -9045,7 +9477,9 @@ const string TUNEqVSpec  =
 const string TULtVSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, string, real}\n"
-  "(uT uT) -> (stream bool)\n</text--->"
+  "(uT uT) -> (stream ubool)\n"
+  "(uT  T) -> (stream ubool)\n"
+  "( T uT) -> (stream ubool)</text--->"
   "<text>_ < _</text--->"
   "<text>The operator returns the value of the temporal predicate.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
@@ -9056,7 +9490,9 @@ const string TULtVSpec  =
 const string TUBtVSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, string, real}\n"
-  "(uT uT) -> (stream bool)\n</text--->"
+  "(uT uT) -> (stream ubool)\n"
+  "(uT  T) -> (stream ubool)\n"
+  "( T uT) -> (stream ubool)</text--->"
   "<text>_ > _</text--->"
   "<text>The operator returns the value of the temporal predicate.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
@@ -9067,7 +9503,9 @@ const string TUBtVSpec  =
 const string TULtEqVSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, string, real}\n"
-  "(uT uT) -> (stream bool)\n</text--->"
+  "(uT uT) -> (stream ubool)\n"
+  "(uT  T) -> (stream ubool)\n"
+  "( T uT) -> (stream ubool)</text--->"
   "<text>_ <= _</text--->"
   "<text>The operator returns the value of the temporal predicate.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
@@ -9078,7 +9516,9 @@ const string TULtEqVSpec  =
 const string TUBtEqVSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, string, real}\n"
-  "(uT uT) -> (stream bool)\n</text--->"
+  "(uT uT) -> (stream ubool)\n"
+  "(uT  T) -> (stream ubool)\n"
+  "( T uT) -> (stream ubool)</text--->"
   "<text>_ >= _</text--->"
   "<text>The operator returns the value of the temporal predicate.</text--->"
   "<text>query [const ubool value ((\"2010-11-11\" "
@@ -9108,6 +9548,27 @@ int TU_Select_ComparePredicateValue ( ListExpr args )
     return 24 + opcode;
   if (argstr == "(uregion uregion)")
     return 26 + opcode;
+
+  if (argstr == "(bool ubool)")
+     return 28 + opcode;
+  if (argstr == "(ubool bool)")
+     return 34 + opcode;
+  if (argstr == "(int uint)")
+     return 40 + opcode;
+  if (argstr == "(unit int)")
+     return 46 + opcode;
+  if (argstr == "(string ustring)")
+     return 52 + opcode;
+  if (argstr == "(ustring string)")
+     return 58 + opcode;
+  if (argstr == "(real ureal)")
+     return 64 + opcode;
+  if (argstr == "(ureal real)")
+     return 70 + opcode;
+  if (argstr == "(point upoint)")
+     return 76 + opcode;
+  if (argstr == "(upoint point)")
+     return 78 + opcode;
 
   return -1; // should not be reached!
 }
@@ -9141,8 +9602,66 @@ ValueMapping TU_VMMap_ComparePredicateValue[] =
     TU_VM_ComparePredicateValue_UPoint<0>,         // 24
     TU_VM_ComparePredicateValue_UPoint<1>,         // 25
     TU_VM_ComparePredicateValue_URegion<0>,        // 26
-    TU_VM_ComparePredicateValue_URegion<1>         // 27
+    TU_VM_ComparePredicateValue_URegion<1>,        // 27
+
+    TU_VM_ComparePredicateValue_Const_T<CcBool,0,1>,// 28
+    TU_VM_ComparePredicateValue_Const_T<CcBool,1,1>,
+    TU_VM_ComparePredicateValue_Const_T<CcBool,2,1>,
+    TU_VM_ComparePredicateValue_Const_T<CcBool,3,1>,
+    TU_VM_ComparePredicateValue_Const_T<CcBool,4,1>,
+    TU_VM_ComparePredicateValue_Const_T<CcBool,5,1>,
+    TU_VM_ComparePredicateValue_Const_T<CcBool,0,0>,//34
+    TU_VM_ComparePredicateValue_Const_T<CcBool,1,0>,
+    TU_VM_ComparePredicateValue_Const_T<CcBool,2,0>,
+    TU_VM_ComparePredicateValue_Const_T<CcBool,3,0>,
+    TU_VM_ComparePredicateValue_Const_T<CcBool,4,0>,
+    TU_VM_ComparePredicateValue_Const_T<CcBool,5,0>,
+
+    TU_VM_ComparePredicateValue_Const_T<CcInt,0,1>,// 40
+    TU_VM_ComparePredicateValue_Const_T<CcInt,1,1>,
+    TU_VM_ComparePredicateValue_Const_T<CcInt,2,1>,
+    TU_VM_ComparePredicateValue_Const_T<CcInt,3,1>,
+    TU_VM_ComparePredicateValue_Const_T<CcInt,4,1>,
+    TU_VM_ComparePredicateValue_Const_T<CcInt,5,1>,
+    TU_VM_ComparePredicateValue_Const_T<CcInt,0,0>,// 46
+    TU_VM_ComparePredicateValue_Const_T<CcInt,1,0>,
+    TU_VM_ComparePredicateValue_Const_T<CcInt,2,0>,
+    TU_VM_ComparePredicateValue_Const_T<CcInt,3,0>,
+    TU_VM_ComparePredicateValue_Const_T<CcInt,4,0>,
+    TU_VM_ComparePredicateValue_Const_T<CcInt,5,0>,
+
+    TU_VM_ComparePredicateValue_Const_T<CcString,0,1>,// 52
+    TU_VM_ComparePredicateValue_Const_T<CcString,1,1>,
+    TU_VM_ComparePredicateValue_Const_T<CcString,2,1>,
+    TU_VM_ComparePredicateValue_Const_T<CcString,3,1>,
+    TU_VM_ComparePredicateValue_Const_T<CcString,4,1>,
+    TU_VM_ComparePredicateValue_Const_T<CcString,5,1>,
+    TU_VM_ComparePredicateValue_Const_T<CcString,0,0>,// 58
+    TU_VM_ComparePredicateValue_Const_T<CcString,1,0>,
+    TU_VM_ComparePredicateValue_Const_T<CcString,2,0>,
+    TU_VM_ComparePredicateValue_Const_T<CcString,3,0>,
+    TU_VM_ComparePredicateValue_Const_T<CcString,4,0>,
+    TU_VM_ComparePredicateValue_Const_T<CcString,5,0>,
+
+    TU_VM_ComparePredicateValue_UReal_CcReal<0,1>,    // 64
+    TU_VM_ComparePredicateValue_UReal_CcReal<1,1>,
+    TU_VM_ComparePredicateValue_UReal_CcReal<2,1>,
+    TU_VM_ComparePredicateValue_UReal_CcReal<3,1>,
+    TU_VM_ComparePredicateValue_UReal_CcReal<4,1>,
+    TU_VM_ComparePredicateValue_UReal_CcReal<5,1>,
+    TU_VM_ComparePredicateValue_UReal_CcReal<0,0>,    // 70
+    TU_VM_ComparePredicateValue_UReal_CcReal<1,0>,
+    TU_VM_ComparePredicateValue_UReal_CcReal<2,0>,
+    TU_VM_ComparePredicateValue_UReal_CcReal<3,0>,
+    TU_VM_ComparePredicateValue_UReal_CcReal<4,0>,
+    TU_VM_ComparePredicateValue_UReal_CcReal<5,0>,    // 75
+
+    TU_VM_ComparePredicateValue_UPoint_Point<0,1>,    // 76
+    TU_VM_ComparePredicateValue_UPoint_Point<1,1>,    // 77
+    TU_VM_ComparePredicateValue_UPoint_Point<0,0>,    // 78
+    TU_VM_ComparePredicateValue_UPoint_Point<1,0>     // 79
   };
+
 /*
 5.43.5 Definition of operator ~ComparePredicateValues~
 
@@ -9151,7 +9670,7 @@ Operator temporalunitvalisequal
 (
  "=",
  TUEqVSpec,
- 28,
+ 80,
  TU_VMMap_ComparePredicateValue,
  TU_Select_ComparePredicateValue<0>,
  TUCompareValueEqPredicatesTypeMap
@@ -9161,7 +9680,7 @@ Operator temporalunitvalisnotequal
 (
  "#",
  TUNEqVSpec,
- 28,
+ 80,
  TU_VMMap_ComparePredicateValue,
  TU_Select_ComparePredicateValue<1>,
  TUCompareValueEqPredicatesTypeMap
@@ -9171,7 +9690,7 @@ Operator temporalunitvalsmaller
 (
  "<",
  TULtVSpec,
- 24,
+ 80,
  TU_VMMap_ComparePredicateValue,
  TU_Select_ComparePredicateValue<2>,
  TUCompareValuePredicatesTypeMap
@@ -9181,7 +9700,7 @@ Operator temporalunitvalbigger
 (
  ">",
  TUBtVSpec,
- 24,
+ 80,
  TU_VMMap_ComparePredicateValue,
  TU_Select_ComparePredicateValue<3>,
  TUCompareValuePredicatesTypeMap
@@ -9191,7 +9710,7 @@ Operator temporalunitvalsmallereq
 (
  "<=",
  TULtEqVSpec,
- 24,
+ 80,
  TU_VMMap_ComparePredicateValue,
  TU_Select_ComparePredicateValue<4>,
  TUCompareValuePredicatesTypeMap
@@ -9201,7 +9720,7 @@ Operator temporalunitvalbiggereq
 (
  ">=",
  TUBtEqVSpec,
- 24,
+ 80,
  TU_VMMap_ComparePredicateValue,
  TU_Select_ComparePredicateValue<5>,
  TUCompareValuePredicatesTypeMap

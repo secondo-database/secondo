@@ -531,6 +531,7 @@ void UReal::Linearize(UReal& result1, UReal& result2) const{
 
     if( a==0 ) {  // sqrt of a linear function
         result1 = UReal(timeInterval,v1,v2);
+        result1.SetDefined(true);
         result2.SetDefined(false);
         return;
     }
@@ -544,8 +545,9 @@ void UReal::Linearize(UReal& result1, UReal& result2) const{
 
     if( (ixst <= timeInterval.start) || (ixst>=timeInterval.end) ||
         ixst.Adjacent(&timeInterval.end)){
-        // extremum outside or very closed to the bounds
+        // extremum outside or very close to the bounds
         result1 = UReal(timeInterval,v1,v2);
+        result1.SetDefined(true);
         result2.SetDefined(false);
         return;
     }
@@ -559,7 +561,9 @@ void UReal::Linearize(UReal& result1, UReal& result2) const{
     Interval<Instant> interval2(ixst,timeInterval.end,false,timeInterval.rc);
 
     result1 = UReal(interval1,v1,v3);
+    result1.SetDefined(true);
     result2 = UReal(interval2,v3,v2);
+    result2.SetDefined(true);
 }
 
 
@@ -2559,7 +2563,7 @@ void MPoint::Distance( const Point& p, MReal& result ) const
 
 
 /*
-This function checks whether the end point of the first unit is equals
+This function checks whether the end point of the first unit is equal
 to the start point of the second unit and if the time difference is
 at most a single instant
 
@@ -4989,10 +4993,12 @@ ListExpr TypeMapLinearize2(ListExpr args){
       return nl->SymbolAtom("typeerror");
    }
    ListExpr arg = nl->First(args);
-   if( nl->IsEqual(arg,"mreal")){
+   if( nl->IsEqual(arg,"mreal"))
       return nl->SymbolAtom(nl->SymbolValue(arg));
-   }
-   ErrorReporter::ReportError("mreal expected");
+   if( nl->IsEqual(arg,"ureal"))
+      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                             nl->SymbolAtom( "ureal" ));
+   ErrorReporter::ReportError("'mreal' or 'ureal' expected");
    return nl->SymbolAtom("typeerror");
 }
 
@@ -6295,6 +6301,83 @@ int Linearize2(Word* args, Word& result,
    return 0;
 }
 
+struct Linearize2_ureal_LocalInfo
+{
+  bool finished;
+  int NoOfResults;
+  int NoOfResultsDelivered;
+  vector<UReal> resultVector;
+};
+int Linearize2_ureal(Word* args, Word& result,
+                     int message, Word& local,
+                     Supplier s)
+{
+    result = qp->ResultStorage(s);
+    UReal *arg;
+    Linearize2_ureal_LocalInfo *localinfo;
+
+    switch( message )
+    {
+      case OPEN:
+
+        arg = (UReal*) args[0].addr;
+        localinfo = new(Linearize2_ureal_LocalInfo);
+        local = SetWord(localinfo);
+        localinfo->finished = true;
+        localinfo->NoOfResults = 0;
+        localinfo->NoOfResultsDelivered = 0;
+        localinfo->resultVector.clear();
+
+        if( !arg->IsDefined() )
+          return 0;
+        else
+        {
+          UReal res1, res2;
+          arg->Linearize(res1, res2);
+          if( res1.IsDefined() )
+          {
+            localinfo->resultVector.push_back(res1);
+            localinfo->NoOfResults++;
+          }
+          if( res2.IsDefined() )
+          {
+            localinfo->resultVector.push_back(res2);
+            localinfo->NoOfResults++;
+          }
+          localinfo->finished = (localinfo->NoOfResults <= 0);
+          return 0;
+        }
+        return 0;
+
+      case REQUEST:
+
+        if(local.addr == 0)
+          return CANCEL;
+        localinfo = (Linearize2_ureal_LocalInfo*) local.addr;
+        if( localinfo->finished ||
+            localinfo->NoOfResultsDelivered >= localinfo->NoOfResults )
+        {
+          localinfo->finished = true;
+          return CANCEL;
+        }
+        result = SetWord( 
+            localinfo->resultVector[localinfo->NoOfResultsDelivered].Clone() );
+        localinfo->NoOfResultsDelivered++;
+        return YIELD;
+
+      case CLOSE:
+
+        if(local.addr != 0)
+        {
+          localinfo = (Linearize2_ureal_LocalInfo*) local.addr;
+          delete localinfo;
+        }
+        return 0;
+    } // end switch
+    cout << "Linearize2_ureal(): Unknown message (" << message << ")" << endl;
+    return -1; // should not happen
+}
+
 /* 
 16.2.28 Value Mapping Functions for Approximate
 
@@ -6308,14 +6391,14 @@ int ApproximateMReal(Word* args, Word& result,
    MReal* res = (MReal*) result.addr;
    int index1 = ((CcInt*)args[3].addr)->GetIntval();
    int index2 = ((CcInt*)args[4].addr)->GetIntval();
-   
+
    res->Clear();
    res->SetDefined(true);
    Word actual;
 
    qp->Open(args[0].addr);
    qp->Request(args[0].addr, actual);
-   
+
    CcReal lastValue,currentValue;
    Instant lastInstant,currentInstant;
    bool first = true;
@@ -6359,14 +6442,14 @@ int ApproximateMPoint(Word* args, Word& result,
    MPoint* res = (MPoint*) result.addr;
    int index1 = ((CcInt*)args[3].addr)->GetIntval();
    int index2 = ((CcInt*)args[4].addr)->GetIntval();
-   
+
    res->Clear();
    res->SetDefined(true);
    Word actual;
 
    qp->Open(args[0].addr);
    qp->Request(args[0].addr, actual);
-   
+
    Point lastValue,currentValue;
    Instant lastInstant,currentInstant;
    bool first = true;
@@ -6396,7 +6479,7 @@ int ApproximateMPoint(Word* args, Word& result,
      tuple->DeleteIfAllowed();
      qp->Request(args[0].addr, actual);
    }
-   
+
    qp->Close(args[0].addr);
    return 0;
 }
@@ -7118,6 +7201,7 @@ ValueMapping simplifymap[] = { MPointSimplify, MPointSimplify2,
                                MRealSimplify };
 
 ValueMapping linearizemap[] = { Linearize<UReal>, Linearize<MReal> };
+ValueMapping linearize2map[] = { Linearize2_ureal, Linearize2 };
 ValueMapping integratemap[] = { Integrate<UReal>, Integrate<MReal> };
 
 ValueMapping approximatemap[] = { ApproximateMPoint, ApproximateMReal };
@@ -7423,7 +7507,8 @@ const string TemporalSpecApproximate =
 
 const string TemporalSpecLinearize2 =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text> mreal -> real</text--->"
+  "( <text> mreal -> real\n"
+  " ureal -> (stream urela)</text--->"
   "<text>linearize2( _ ) </text--->"
   "<text>computes a linear approximation of the argument</text--->"
   "<text>linearize2(distance(train7, train6))</text--->"
@@ -7818,8 +7903,9 @@ Operator temporallinearize( "linearize",
 
 Operator temporallinearize2( "linearize2",
                            TemporalSpecLinearize2,
-                           Linearize2,
-                           Operator::SimpleSelect,
+                           2,
+                           linearize2map,
+                           LinearizeSelect,
                            TypeMapLinearize2 );
 
 Operator temporalapproximate( "approximate",
