@@ -347,19 +347,17 @@ bool CompareValue(const ConstTemporalUnit<Alpha>& n,
    if(TLA_DEBUG)
      cout<<"ConstTemporalUnit<Alpha> CompareValue "<<vers<<endl;
    if (vers == -3)  //#
-     return !n.constValue.Compare( &i.constValue ) == 0;
+     return (n.constValue.Compare( &i.constValue ) != 0);
    if (vers == -2)  //<
-     return n.constValue.Compare( &i.constValue ) == -1;
+     return (n.constValue.Compare( &i.constValue ) <  0);
    if (vers == -1)  //<=
-     return ((n.constValue.Compare( &i.constValue ) == -1)
-     || (n.constValue.Compare( &i.constValue ) == 0));
+     return (n.constValue.Compare( &i.constValue ) <= 0);
    if (vers == 0)  //Equal
-     return n.constValue.Compare( &i.constValue ) == 0;
+     return (n.constValue.Compare( &i.constValue ) == 0);
    if (vers == 1)  //>=
-     return ((n.constValue.Compare( &i.constValue ) == 1)
-     || (n.constValue.Compare( &i.constValue ) == 0));
+     return (n.constValue.Compare( &i.constValue ) >= 0);
    if (vers == 2)  //<
-     return n.constValue.Compare( &i.constValue ) == 1;
+     return (n.constValue.Compare( &i.constValue ) >  0);
    //should not be reached
    return false;
 }
@@ -378,19 +376,17 @@ bool CompareValue(const ConstTemporalUnit<Alpha>& n, Alpha& i, int vers )
    if(TLA_DEBUG)
      cout<<"ConstTemporalUnit<Alpha> CompareValue "<<vers<<endl;
    if (vers == -3)  //#
-     return !n.constValue.Compare( &i) == 0;
+     return (n.constValue.Compare( &i ) != 0);
    if (vers == -2)  //<
-     return n.constValue.Compare( &i) == -1;
+     return (n.constValue.Compare( &i ) <  0);
    if (vers == -1)  //<=
-     return ((n.constValue.Compare( &i ) == -1)
-     or (n.constValue.Compare( &i ) == 0));
+     return (n.constValue.Compare( &i ) <= 0);
    if (vers == 0)  //Equal
-     return n.constValue.Compare( &i ) == 0;
+     return (n.constValue.Compare( &i ) == 0);
    if (vers == 1)  //>=
-     return ((n.constValue.Compare( &i ) == 1)
-     or (n.constValue.Compare( &i ) == 0));
+     return (n.constValue.Compare( &i ) >= 0);
    if (vers == 2)  //<
-     return n.constValue.Compare( &i ) == 1;
+     return (n.constValue.Compare( &i ) >  0);
    //should not be reached
    return false;
 }
