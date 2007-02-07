@@ -3280,6 +3280,7 @@ void Line::StartBulkLoad()
 void Line::EndBulkLoad( bool sort, bool remDup,
                         bool setPartnerNo, bool setNoComponents )
 {
+
   if( sort )
     Sort();
 
@@ -5616,12 +5617,20 @@ void Region::Boundary( Line* result ) const
     return;
   }
   const HalfSegment* hs;
-  for( int i = 0; i < Size(); i++ )
+  result->StartBulkLoad();
+  int size = Size();
+  for( int i = 0; i < size; i++ )
   {
     Get( i, hs );
-    *result += *hs;
+    if(hs->IsLeftDomPoint()){
+       HalfSegment h = *hs;
+       h.attr.edgeno = i;
+       *result += h;
+       h.SetLeftDomPoint(false);
+       *result += h;
+    }
   }
-  result->EndBulkLoad( false, true );
+  result->EndBulkLoad();
 }
 
 
