@@ -23,14 +23,14 @@ Result   : ((rel (tuple ((Id int)(Line int)(Up bool)(Trip mpoint))))((1 1 TRUE (
 
 Operator : windowintersects
 Number   : 1
-Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) rect||rect3||rect4) -> (stream (tuple ((x1 t1)...(xn tn))))
+Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti in {rect<d>} U SPATIAL2D U SPATIAL3D U SPATIAL4D
 Example  : query strassen_geoData strassen windowintersects[ bbox(thecenter) ] count
 Result   : 1266
 
 
 Operator : windowintersectsS
 Number   : 1
-Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti) rect<d> -> (stream (tuple ((key rect<d>)(id tid))))
+Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti) T -> (stream (tuple ((id tid)))), where T = ti in {rect<d>} U SPATIAL2D U SPATIAL3D U SPATIAL4D
 Example  : query strassen_geoData windowintersectsS[ bbox(thecenter) ] count
 Result   : 1266
 
