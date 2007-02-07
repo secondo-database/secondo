@@ -89,7 +89,7 @@ Operator : locations
 Number   : 1
 Signature: mpoint -> points
 Example  : query locations( train7 at mehringdamm )
-Result   : (points((9396.0 9871.0)(9396.0 9871.0)))
+Result   : (points((9396.0 9871.0)))
 
 
 Operator : mdirection
