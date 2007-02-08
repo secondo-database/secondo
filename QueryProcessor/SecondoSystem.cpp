@@ -507,9 +507,15 @@ Tests the syntax of the database file named ~filename~.
     {
       if ( !nl->IsEqual( nl->Second( list ), dbname, false ) )
       {
-        rc = ERR_DB_NAME_NEQ_IDENT; // Database name in file different
+//         rc = ERR_DB_NAME_NEQ_IDENT; // Database name in file different
+        string oldname;
+        nl->WriteToString(oldname, nl->Second(list));
+        cmsg.warning() << "Original database name '" 
+                       << oldname <<  "' was changed to '" 
+                       << dbname << "'!" << endl;
+        cmsg.send();
       }
-      else if ( nl->IsEqual( nl->First( list ), "DATABASE" ) )
+      if ( nl->IsEqual( nl->First( list ), "DATABASE" ) )
       {
         list = nl->Rest( nl->Rest( list ) ); 
 
