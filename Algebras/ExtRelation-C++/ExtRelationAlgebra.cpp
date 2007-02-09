@@ -2745,7 +2745,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
   Word t, value;
   Tuple* tup;
   Supplier supplier, supplier2, supplier3;
-  int nooffun, noofsons;
+  int nooffun;
   ArgVectorPointer funargs;
   TupleType *resultTupleType;
   ListExpr resultType;
@@ -2777,7 +2777,6 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
         for (int i=0; i < nooffun;i++)
         {
           supplier2 = qp->GetSupplier(supplier, i);
-          noofsons = qp->GetNoSons(supplier2);
           supplier3 = qp->GetSupplier(supplier2, 1);
           funargs = qp->Argument(supplier3);
           (*funargs)[0] = SetWord(tup);
@@ -3566,6 +3565,329 @@ Operator extrelextendstream (
          ExtendStreamTypeMap            // type mapping
 );
 
+/* 
+2.20 Operator ~projectextend~
+
+This operator does the same as a combination of ~extend~ with subsequent
+~project~, but in a single operation. This will saves a lot of time, because
+attributes are only copied once and attributes to be removed will not be 
+copied at all!
+
+The signature of the ~projectextend~ operation is as follows:
+
+----
+
+      stream(tuple((a1 t1) ... (an tn)))
+    x (ai1, ... aij)
+    x ( (bk1 (tuple((a1 t1) ... (an tn)) --> tk1)) 
+        ...
+        (bkm (tuple((a1 t1) ... (an tn)) --> tkm))
+      )
+ --> stream(tuple((ai1 ti1) ... (aij tij) (bk1 tk1) ... (bkm tkm)))
+
+    where ai, ..., aij in {a1, ..., an}.
+
+----
+
+For instance,
+
+----
+  query people feed 
+  projectextendstream[id; 
+                      wood_perimeter: perimeter(.wood), 
+                      wood_size: area(.wood)
+                     ]
+  consume;
+
+----
+
+*/
+
+/*
+2.20.1 Type Mapping for operator ~projectextend~
+
+*/
+ListExpr ExtProjectExtendTypeMap(ListExpr args)
+{
+  ListExpr first, second, third,
+           rest, errorInfo,
+           first2, second2, firstr, attrtype,
+           lastNewAttrList, lastNumberList,
+           numberList, newAttrList;
+  string   argstr, argstr2, attrname="";
+  int      noAttrs=0, j=0;
+  bool     firstcall = true;
+
+  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+
+  CHECK_COND(nl->ListLength(args) == 3,
+    "Operator produxtextend expects a list of length three.");
+
+  first = nl->First(args);
+  second = nl->Second(args);
+  third = nl->Third(args);
+
+  // check whether first is a tuplestream
+  nl->WriteToString(argstr, first);
+  CHECK_COND(nl->ListLength(first) == 2 &&
+             TypeOfRelAlgSymbol(nl->First(first)) == stream &&
+             nl->ListLength(nl->Second(first)) == 2 &&
+             TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple &&
+             nl->ListLength(nl->Second(nl->Second(first))) >0,
+    "Operator projecttextend expects a first list with structure "
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator projectextend gets a first list with structure '" 
+    + argstr + "'.");
+
+  // check whether second is a list of attribute names, that all occur in first
+  nl->WriteToString(argstr, second);
+  CHECK_COND( !nl->IsAtom(second) &&
+    nl->ListLength(second) >= 0,
+    "Operator projectextend expects as second argument a "
+    "list of attribute names\n"
+    "Operator projectextend gets as second argument '" + 
+    argstr + "'.\n" );
+
+  noAttrs = nl->ListLength(second);
+  while (!(nl->IsEmpty(second)))
+  {
+    first2 = nl->First(second);
+    second = nl->Rest(second);
+    if (nl->AtomType(first2) == SymbolType)
+    {
+      attrname = nl->SymbolValue(first2);
+    }
+    else
+    {
+      ErrorReporter::ReportError(
+        "Attributename in the list is not of symbol type.");
+      return nl->SymbolAtom("typeerror");
+    }
+    j = FindAttribute(nl->Second(nl->Second(first)), 
+                      attrname, attrtype);
+    if (j)
+    {
+      if (firstcall)
+      {
+        firstcall = false;
+        newAttrList = 
+          nl->OneElemList(nl->TwoElemList(first2, attrtype));
+        lastNewAttrList = newAttrList;
+        numberList = nl->OneElemList(nl->IntAtom(j));
+        lastNumberList = numberList;
+      }
+      else
+      {
+        lastNewAttrList =
+          nl->Append(lastNewAttrList, 
+                     nl->TwoElemList(first2, attrtype));
+        lastNumberList =
+          nl->Append(lastNumberList, nl->IntAtom(j));
+      }
+    }
+    else
+    {
+      ErrorReporter::ReportError(
+        "Operator projectextend: Attributename '" + attrname + 
+        "' is not a known attributename in the tuple stream.");
+          return nl->SymbolAtom("typeerror");
+    }
+  } 
+  // Now, we have all projection attrs in newAttrList and their 
+  // indexes within the tuple within *numberList
+
+  // check whether third is a list of pairs (attrname map), where attrname is 
+  // not in first and map has type (map T Ti) for T is the tupletype from first
+  CHECK_COND(!(nl->IsAtom(third)) &&
+             (nl->ListLength(third) >= 0),
+    "Operator projectextend: Third argument list may not "
+    "be an atom" );
+
+  // handle list of new attributes and mapping functions (3rd argument)
+  rest = third;
+  while (!(nl->IsEmpty(rest))) // for all new attrs
+  {
+    firstr = nl->First(rest);
+    rest = nl->Rest(rest);
+    first2 = nl->First(firstr);
+    second2 = nl->Second(firstr);
+
+    // check new attribute name
+    nl->WriteToString(argstr, first2);
+    CHECK_COND( (nl->IsAtom(first2)) &&
+                (nl->AtomType(first2) == SymbolType),
+      "Operator projectextend: Attribute name '" + argstr +
+      "' is not an atom or not of type SymbolType" );
+
+    // check mapping function for new attribute
+    nl->WriteToString(argstr, second2);
+    CHECK_COND( (nl->ListLength(second2) == 3) &&
+                (TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
+                (am->CheckKind("DATA", nl->Third(second2), errorInfo)),
+      "Operator projectextend expects a mapping function with list "
+      "structure (<attrname> (map tuple(X) ti) ).\n"
+      "Operator projectextend gets a list '" + argstr + "'.\n" 
+      "The third list element ('ti') for such a 'ccmap' must "
+      "be of kind 'DATA'.\n" );
+
+    // Do typechecking for first extension mapping function argument:
+    nl->WriteToString(argstr, nl->Second(second2));
+    nl->WriteToString(argstr2, nl->Second(first));
+    CHECK_COND( (nl->Equal(nl->Second((first)),nl->Second(second2))),
+      "Operator projectextend: The argument tuple type '" + argstr +
+      "' in a mapping function is wrong. It should be '" + argstr2 + "'.\n" );
+
+    // append new attribute (name type)
+    if (firstcall)
+    {
+      firstcall = false;
+      newAttrList = 
+        nl->OneElemList(nl->TwoElemList(first2, nl->Third(second2)));
+      lastNewAttrList = newAttrList;
+    }
+    else
+    { 
+      lastNewAttrList =
+      nl->Append(lastNewAttrList, 
+                  nl->TwoElemList(first2, nl->Third(second2)));
+    }
+  }
+
+  nl->WriteToString(argstr, newAttrList);
+  CHECK_COND( CompareNames(newAttrList),
+              "Operator projectextend: found doubly "
+              "defined attribute names in concatenated list.\n"
+              "The list is '" + argstr + "'\n" );
+
+  ListExpr reslist =
+    nl->ThreeElemList(
+      nl->SymbolAtom("APPEND"),
+      nl->TwoElemList(
+        nl->IntAtom(noAttrs),
+        numberList),
+      nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          newAttrList)));
+  nl->WriteToString(argstr, reslist);
+  cout << "ExtProjectExtendTypeMap(): " 
+       << "reslist = " << argstr << endl;
+  return reslist;
+}
+
+/*
+2.20.2 Value Mapping for operator ~projectextend~
+
+*/
+int
+ExtProjectExtendValueMap(Word* args, Word& result, int message, 
+                         Word& local, Supplier s)
+{
+  switch (message)
+  {
+    case OPEN :
+    {
+      ListExpr resultType = GetTupleResultType( s );
+      TupleType *tupleType = new TupleType(nl->Second(resultType));
+      local.addr = tupleType;
+      qp->Open(args[0].addr);
+      return 0;
+    }
+    case REQUEST :
+    {
+      Word elem1, elem2, value;
+      int i=0, noOfAttrs=0, index=0, nooffun=0;
+      Supplier son, supplier, supplier2, supplier3;
+      ArgVectorPointer extFunArgs;
+
+      qp->Request(args[0].addr, elem1);
+      if (qp->Received(args[0].addr))
+      {
+        TupleType *tupleType = (TupleType *)local.addr;
+        Tuple *currTuple     = (Tuple*) elem1.addr;
+        Tuple *resultTuple   = new Tuple( tupleType );
+
+        // copy attrs from projection list
+        noOfAttrs = ((CcInt*)args[3].addr)->GetIntval();
+        for(i = 0; i < noOfAttrs; i++)
+        {
+          son = qp->GetSupplier(args[4].addr, i);
+          qp->Request(son, elem2);
+          index = ((CcInt*)elem2.addr)->GetIntval();
+          resultTuple->CopyAttribute(index-1, currTuple, i);
+        }
+
+        // evaluate and add attrs from extension list
+        supplier = args[2].addr;           // get list of ext-functions
+        nooffun = qp->GetNoSons(supplier); // get num of ext-functions
+        for(i = 0; i< nooffun; i++)
+        {
+          supplier2 = qp->GetSupplier(supplier, i); // get an ext-function
+          supplier3 = qp->GetSupplier(supplier2, 1);
+          extFunArgs = qp->Argument(supplier3);
+          (*extFunArgs)[0] = SetWord(currTuple);     // pass argument
+          qp->Request(supplier3,value);              // call extattr mapping
+          resultTuple->PutAttribute( 
+            noOfAttrs + i,
+            ((StandardAttribute*)value.addr)->Clone() );
+          qp->ReInitResultStorage( supplier3 );
+        }
+        currTuple->DeleteIfAllowed();
+        result = SetWord(resultTuple);
+        return YIELD;
+      }
+      else return CANCEL;
+    }
+    case CLOSE :
+    {
+      ((TupleType *)local.addr)->DeleteIfAllowed();
+      qp->Close(args[0].addr);
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+2.20.3 Specification of operator ~projectextend~
+
+*/
+const string ExtProjectExtendSpec = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>"
+  "stream(tuple((a1 t1) ... (an tn))) \n"
+  "  x (ai1, ... aij)\n"
+  "  x ( (bk1 (tuple((a1 t1) ... (an tn)) --> tk1))\n"
+  "      ...\n"
+  "      (bkm (tuple((a1 t1) ... (an tn)) --> tkm))\n"
+  "    )\n"
+  " --> stream(tuple((ai1 ti1) ... (aij tij) (bk1 tk1) ... (bkm tkm)))\n"
+  " where ai, ..., aij in {a1, ..., an}"
+  "</text--->"
+  "<text>_ projectextend[ list; funlist ]</text--->"
+  "<text>Project tuple to list of attributes and extend with "
+  "new ones from funlist. The projection list may be empty, "
+  "but the extension list must contain at least one entry."
+  "You may even 'replace' an attribute (but be careful with that)."
+  "</text--->"
+  "<text>query Orte feed projectextend"
+  "[Ort, Vorwahl; BevT2: .BevT*2, BevT: (.BevT + 30)] consume</text--->"
+  ") )";
+
+/*
+2.20.4 Definition of operator ~projectextend~
+
+*/
+Operator extrelprojectextend (
+         "projectextend",           // name
+         ExtProjectExtendSpec,      // specification
+         ExtProjectExtendValueMap,  // value mapping
+         Operator::SimpleSelect,    // trivial selection function
+         ExtProjectExtendTypeMap    // type mapping
+);
+
 /*
 2.21 Operator ~projectextendstream~
 
@@ -3648,7 +3970,7 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
   secondFirst = attrType = newAttrList = numberList = nl->Empty();
   ListExpr lastNewAttrList, lastNumberList;
   lastNewAttrList = lastNumberList = nl->Empty();
-  
+
   string attrName = "";
   bool firstCall = true;
   while( !nl->IsEmpty(secondRest) )
@@ -5686,7 +6008,7 @@ SymmProductExtend(Word* args, Word& result,
 
 /*
 
-5.10.5.3 Specification of operator ~symmjoinextend~
+5.10.5.3 Specification of operator ~symmproductextend~
 
 */
 const string SymmProductExtendSpec  = 
@@ -5708,7 +6030,7 @@ const string SymmProductExtendSpec  =
 
 /*
 
-5.10.5.4 Definition of operator ~symmjoinextend~
+5.10.5.4 Definition of operator ~symmproductextend~
 
 */
 Operator extrelsymmproductextend (
@@ -6101,6 +6423,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelsymmjoin);
     AddOperator(&extrelsymmproductextend);
     AddOperator(&extrelsymmproduct);
+    AddOperator(&extrelprojectextend);
   }
   ~ExtRelationAlgebra() {};
 };

@@ -140,6 +140,12 @@ Example  : query Staedte feed min[Bev]
 Result   : 100000
 
 
+Operator : projectextend
+Number   : 1
+Signature: stream(tuple(T1)) x <attrname-list> x <(attrname2 fun)-list> -> stream(tuple(T2)), attrname-list in T1 and T2 = attrname-list + attrname2-list
+Example  : query Orte feed projectextend[Ort, Vorwahl; BevT2: .BevT*2, BevT: (.BevT + 30)] head[1] consume
+Result   : ( (rel (tuple ( (Ort string) (Vorwahl string) (BevT2 int) (BevT int)))) ( ("Aachen" "0241" 512 286)))
+
 Operator : projectextendstream
 Number   : 1
 Signature: ((stream tuple1) (ai1 ... aik) (map tuple1 stream(type))) -> (stream tuple1[ai1 ... aik]*type)

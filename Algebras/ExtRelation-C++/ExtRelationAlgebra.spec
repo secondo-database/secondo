@@ -30,6 +30,7 @@ operator cancel alias CANCEL pattern _ op [ fun ] implicit parameter tuple type 
 operator rdup alias RDUP pattern _ op
 operator sort alias SORT pattern _ op
 operator extend alias EXTEND pattern _ op [ funlist ] implicit parameter tuple type TUPLE
+operator projectextend alias PROJECTEXTEND pattern _ op [ list ; funlist ] implicit parameter tuple type TUPLE
 operator extendstream alias EXTENDSTREAM pattern _ op [funlist] implicit parameter tuple type TUPLE
 operator projectextendstream alias PROJECTEXTENDSTREAM pattern _ op [list; funlist] implicit parameter tuple type TUPLE
 
