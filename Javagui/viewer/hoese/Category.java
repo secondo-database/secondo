@@ -304,6 +304,14 @@ public class Category
 
   /** Returns the image representing the icon to paint*/
  public  BufferedImage getTextureImage(){
+  if((TextureImage==null) && !(IconName.equals(""))){
+      try{
+        TextureImage = javax.imageio.ImageIO.read(new java.io.File(getIconPath()));
+      }catch(Exception e){
+         Reporter.debug("problems in reading image from " +getIconPath());
+         TextureImage = null;
+      }
+  }
      return TextureImage;
   }
 
