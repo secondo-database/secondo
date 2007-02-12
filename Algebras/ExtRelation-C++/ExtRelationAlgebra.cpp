@@ -3770,9 +3770,9 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
         nl->TwoElemList(
           nl->SymbolAtom("tuple"),
           newAttrList)));
-  nl->WriteToString(argstr, reslist);
-  cout << "ExtProjectExtendTypeMap(): " 
-       << "reslist = " << argstr << endl;
+//   nl->WriteToString(argstr, reslist);
+//   cout << "ExtProjectExtendTypeMap(): " 
+//        << "reslist = " << argstr << endl;
   return reslist;
 }
 
