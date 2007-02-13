@@ -199,7 +199,9 @@ of the rectangle.
 */
 
     inline void SetDefined( bool Defined )
-      {}
+      {
+        defined = Defined;
+      }
 
     inline size_t Sizeof() const
     {
