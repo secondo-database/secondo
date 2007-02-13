@@ -57,6 +57,7 @@ TemporalLiftedAlgebra.
 Sept 2006 Christian D[ue]ntgen implemented ~defined~ flag for unit types
 
 Febr 2007 Christian D[ue]ntgen implemented ~bbox~ for mpoint and ipoint.
+          Added operator ~bbox2d~ to save time when creating spatial indexes
 
 [TOC]
 
@@ -5327,6 +5328,32 @@ ListExpr TemporalBBoxTypeMap( ListExpr args )
 }
 
 /*
+16.1.18 Type mapping function ~TemporalBBox2dTypeMap~
+
+For operator ~bbox2d~
+
+*/
+
+    ListExpr TemporalBBox2dTypeMap( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+
+    if( nl->IsEqual( arg1, "upoint" ) )
+      return (nl->SymbolAtom( "rect" ));
+
+    if( nl->IsEqual( arg1, "mpoint" ) )
+      return (nl->SymbolAtom( "rect" ));
+
+    if( nl->IsEqual( arg1, "ipoint" ) )
+      return (nl->SymbolAtom( "rect" ));
+
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+/*
 16.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -5737,6 +5764,26 @@ int TemporalBBoxSelect( ListExpr args )
   return -1; // This point should never be reached
 }
 
+/*
+Selection function for the bbox2d operator
+
+*/
+
+int TemporalBBox2dSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+
+  if( nl->SymbolValue( arg1 ) == "upoint" )
+    return 0;
+
+  if( nl->SymbolValue( arg1 ) == "mpoint" )
+    return 1;
+
+  if( nl->SymbolValue( arg1 ) == "ipoint" )
+    return 2;
+
+  return -1; // This point should never be reached
+}
 
 /*
 16.2.31 Selection function for extdeftime
@@ -6649,6 +6696,86 @@ int RangeBBox( Word* args, Word& result, int message, Word&
 }
 
 /*
+16.3.31 Value mapping functions of operator ~bbox2d~
+
+*/
+
+int IPointBBox2d(Word* args, Word& result, int message, Word& local,
+                 Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Rectangle<2>  *res = (Rectangle<2>*)  result.addr;
+  Intime<Point> *arg = (Intime<Point>*) args[0].addr;
+
+  if( !arg->IsDefined() )
+  {
+    res->SetDefined(false);
+  }
+  else
+  {
+    *res = arg->value.BoundingBox();
+  }
+  return 0;
+}
+
+int MPointBBox2d(Word* args, Word& result, int message, Word& local,
+                 Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Rectangle<2>* res = (Rectangle<2>*) result.addr;
+  MPoint*       arg = (MPoint*)       args[0].addr;
+  const UPoint *uPoint;
+  double min[2], max[2];
+  Rectangle<3> accubbox; 
+
+  if( !arg->IsDefined() || (arg->GetNoComponents() < 1) )
+  {
+    res->SetDefined(false);
+  }
+  else
+  {
+    arg->Get( 0, uPoint );
+    accubbox = uPoint->BoundingBox();
+    for( int i = 1; i < arg->GetNoComponents(); i++ )
+    { // calculate spatial bbox
+      arg->Get( i, uPoint );
+      accubbox = accubbox.Union( uPoint->BoundingBox() );
+    }
+    min[0] = accubbox.MinD(0); // minX
+    max[0] = accubbox.MaxD(0); // maxX
+    min[1] = accubbox.MinD(1); // minY
+    max[1] = accubbox.MaxD(1); // maxY
+    res->Set( true, min, max );
+  }
+  return 0;
+}
+
+int UPointBBox2d(Word* args, Word& result, int message, Word& local,
+               Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Rectangle<2>* res = (Rectangle<2>*) result.addr;
+  UPoint*       arg = (UPoint*)       args[0].addr;
+  Rectangle<3>  tmp;
+  double min[2], max[2];
+
+  if( !arg->IsDefined() )
+  {
+    res->SetDefined(false);
+  }
+  else
+  {
+    tmp = arg->BoundingBox();
+    min[0] = tmp.MinD(0); // minX
+    max[0] = tmp.MaxD(0); // maxX
+    min[1] = tmp.MinD(1); // minY
+    max[1] = tmp.MaxD(1); // maxY
+    res->Set(true, min, max);
+  }
+  return 0;
+}
+
+/*
 16.3.31 Value mapping functions of operator ~translate~
 
 */
@@ -7269,6 +7396,9 @@ ValueMapping temporalbboxmap[] = { UPointBBox,
                                    MPointBBox,
                                    IPointBBox };
 
+ValueMapping temporalbbox2dmap[] = { UPointBBox2d,
+                                     MPointBBox2d,
+                                     IPointBBox2d };
 
 ValueMapping temporalinstmap[] = { IntimeInst<CcBool>,
                                    IntimeInst<CcInt>,
@@ -7705,6 +7835,18 @@ const string TemporalSpecBBox  =
   "<text>query bbox( upoint1 )</text--->"
   ") )";
 
+const string TemporalSpecBBox2d  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>upoint -> rect,\n"
+    "mpoint -> rect,\n"
+    "ipoint -> rect"
+    "</text--->"
+    "<text>bbox2d ( _ )</text--->"
+    "<text>Returns the 2d bounding box of the spatio-temporal object."
+    "</text--->"
+    "<text>query bbox2d( upoint1 )</text--->"
+    ") )";
+
 const string MPointSpecTranslate  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint x duration x real x real -> mpoint</text--->"
@@ -8094,6 +8236,13 @@ Operator temporalbbox( "bbox",
                        TemporalBBoxSelect,
                        TemporalBBoxTypeMap );
 
+Operator temporalbbox2d( "bbox2d",
+                         TemporalSpecBBox2d,
+                         3,
+                         temporalbbox2dmap,
+                         TemporalBBox2dSelect,
+                         TemporalBBox2dTypeMap );
+
 Operator temporaltranslate( "translate",
                        MPointSpecTranslate,
                        MPointTranslate,
@@ -8255,6 +8404,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalfinal );
     AddOperator( &temporalunits );
     AddOperator( &temporalbbox );
+    AddOperator( &temporalbbox2d );
 
     AddOperator( &temporalat );
     AddOperator( &temporaldistance );

@@ -47,6 +47,7 @@ operator equal alias EQUAL pattern _ infixop _
 operator nonequal alias NONEQUAL pattern _ infixop _
 
 operator box2d alias BOX2D pattern op ( _ )
+operator bbox2d alias BBOX2D pattern op ( _ )
 operator simplify alias SIMPLIFY pattern op (_,_)
 operator breakpoints alias BREAKPOINTS pattern op(_,_)
 operator integrate alias INTEGRATE pattern op(_)
