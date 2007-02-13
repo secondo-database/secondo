@@ -11227,9 +11227,17 @@ int SpatialScale_p( Word* args, Word& result, int message,
   Point* p = (Point*) args[0].addr;
   CcReal*  factor = (CcReal*) args[1].addr;
   Point* res = (Point*) result.addr;
-  res->Set(p->GetX(),p->GetY());
-  double f = factor->GetRealval();
-  res->Scale(f);
+  if ( !p->IsDefined() || !factor->IsDefined() )
+  {
+    res->SetDefined(false);
+  }
+  else
+  {
+    res->SetDefined(true);
+    res->Set(p->GetX(),p->GetY());
+    double f = factor->GetRealval();
+    res->Scale(f);
+  }
   return 0;
 }
 
@@ -11239,23 +11247,31 @@ int SpatialScale_ps( Word* args, Word& result, int message,
   Points* p = (Points*) args[0].addr;
   CcReal*  factor = (CcReal*) args[1].addr;
   Points* res = (Points*) result.addr;
-  double f = factor->GetRealval();
-  // make res empty if it is not already
-  if(!res->IsEmpty()){
-     Points P(0);
-     (*res) = P;
+  if( !p->IsDefined() || !factor->IsDefined() )
+  {
+    res->SetDefined(false);
   }
-  if(!p->IsEmpty()){
-     res->StartBulkLoad();
-     int size = p->Size();
-     const Point *PTemp;
-     for(int i=0;i<size;i++){
-         p->Get(i,PTemp);
-         Point aux( *PTemp );
-         aux.Scale(f);
-         (*res) += aux;
-      }
-      res->EndBulkLoad();
+  else
+  {
+    res->SetDefined(true);
+    double f = factor->GetRealval();
+    // make res empty if it is not already
+    if(!res->IsEmpty()){
+       Points P(0);
+       (*res) = P;
+    }
+    if(!p->IsEmpty()){
+       res->StartBulkLoad();
+       int size = p->Size();
+       const Point *PTemp;
+       for(int i=0;i<size;i++){
+           p->Get(i,PTemp);
+           Point aux( *PTemp );
+           aux.Scale(f);
+           (*res) += aux;
+        }
+        res->EndBulkLoad();
+    }
   }
   return 0;
 }
@@ -11265,24 +11281,32 @@ int SpatialScale_l( Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   Line* L = (Line*) args[0].addr;
   CcReal* factor = (CcReal*) args[1].addr;
-  double f = factor->GetRealval();
   Line* res = (Line*) result.addr;
-  // delete result if not empty
-  if(!res->IsEmpty()){
-     Line Lempty(0);
-     (*res) = Lempty;
+  if( !L->IsDefined() || !factor->IsDefined() )
+  {
+    res->SetDefined(false);
   }
-  if(!L->IsEmpty()){
-     res->StartBulkLoad();
-     int size = L->Size();
-     const HalfSegment *hs;
-     for(int i=0;i<size;i++){
-       L->Get(i,hs);
-       HalfSegment aux( *hs );
-       aux.Scale(f);
-       (*res) += aux;
-     }
-     res->EndBulkLoad();
+  else
+  {
+    res->SetDefined(true);
+    double f = factor->GetRealval();
+    // delete result if not empty
+    if(!res->IsEmpty()){
+       Line Lempty(0);
+       (*res) = Lempty;
+    }
+    if(!L->IsEmpty()){
+       res->StartBulkLoad();
+       int size = L->Size();
+       const HalfSegment *hs;
+       for(int i=0;i<size;i++){
+         L->Get(i,hs);
+         HalfSegment aux( *hs );
+         aux.Scale(f);
+         (*res) += aux;
+       }
+       res->EndBulkLoad();
+    }
   }
   return 0;
 }
@@ -11292,24 +11316,32 @@ int SpatialScale_r( Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   Region* R = (Region*) args[0].addr;
   CcReal* factor = (CcReal*) args[1].addr;
-  double f = factor->GetRealval();
   Region* res = (Region*) result.addr;
-  // delete result if not empty
-  if(!res->IsEmpty()){
-     Region Rempty(0);
-     (*res) = Rempty;
+  if( !R->IsDefined() || !factor->IsDefined() )
+  {
+    res->SetDefined(false);
   }
-  if(!R->IsEmpty()){
-     res->StartBulkLoad();
-     int size = R->Size();
-     const HalfSegment *hs;
-     for(int i=0;i<size;i++){
-       R->Get(i,hs);
-       HalfSegment aux( *hs );
-       aux.Scale(f);
-       (*res) += aux;
-     }
-     res->EndBulkLoad();
+  else
+  {
+    res->SetDefined(true);
+    double f = factor->GetRealval();
+    // delete result if not empty
+    if(!res->IsEmpty()){
+       Region Rempty(0);
+       (*res) = Rempty;
+    }
+    if(!R->IsEmpty()){
+       res->StartBulkLoad();
+       int size = R->Size();
+       const HalfSegment *hs;
+       for(int i=0;i<size;i++){
+         R->Get(i,hs);
+         HalfSegment aux( *hs );
+         aux.Scale(f);
+         (*res) += aux;
+       }
+      res->EndBulkLoad();
+    }
   }
   return 0;
 }

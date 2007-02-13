@@ -45,8 +45,8 @@ of only one minimal interval, that contains all intervals from a range type
 Sept 2006 Christian D[ue]ntgen implemented ~defined~ flag for unit types
 [TOC]
 
-Dec 2006 Christian D[ue]ntgen: Moved RefimentPartition from MovingRegionAlgbera
-to here and replaced the error-prone implementation in TemporalLiftedAlgbra by
+Dec 2006 Christian D[ue]ntgen: Moved RefimentPartition from MovingRegionAlgebra
+here and replaced the error-prone implementation in TemporalLiftedAlgbra by
 this version.
 
 1 Overview

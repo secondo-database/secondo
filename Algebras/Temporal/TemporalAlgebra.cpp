@@ -56,6 +56,8 @@ TemporalLiftedAlgebra.
 
 Sept 2006 Christian D[ue]ntgen implemented ~defined~ flag for unit types
 
+Febr 2007 Christian D[ue]ntgen implemented ~bbox~ for mpoint and ipoint.
+
 [TOC]
 
 1 Overview
@@ -5313,6 +5315,13 @@ ListExpr TemporalBBoxTypeMap( ListExpr args )
 
     if( nl->IsEqual( arg1, "periods" ) )
       return (nl->SymbolAtom( "periods" ));
+
+    if( nl->IsEqual( arg1, "mpoint" ) )
+      return (nl->SymbolAtom( "rect3" ));
+
+    if( nl->IsEqual( arg1, "ipoint" ) )
+      return (nl->SymbolAtom( "rect3" ));
+
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -5718,6 +5727,12 @@ int TemporalBBoxSelect( ListExpr args )
 
   if( nl->SymbolValue( arg1 ) == "periods" )
     return 3;
+
+  if( nl->SymbolValue( arg1 ) == "mpoint" )
+    return 4;
+
+  if( nl->SymbolValue( arg1 ) == "ipoint" )
+    return 5;
 
   return -1; // This point should never be reached
 }
@@ -6533,13 +6548,90 @@ int MPointBreakPoints(Word* args, Word& result,
 16.3.31 Value mapping functions of operator ~bbox~
 
 */
-static int
-UPointBBox( Word* args, Word& result, int message, Word& local,
- Supplier s )
+
+int IPointBBox(Word* args, Word& result, int message, Word& local,
+               Supplier s )
 {
   result = qp->ResultStorage( s );
-  *((Rectangle<3>*)result.addr) = ((UPoint*)args[0].addr)->BoundingBox();
-  return (0);
+  Rectangle<3>  *res = (Rectangle<3>*)  result.addr;
+  Intime<Point> *arg = (Intime<Point>*) args[0].addr;
+  Rectangle<2> pbox;
+  double min[3], max[3];
+
+  if( !arg->IsDefined() )
+  {
+    res->SetDefined(false);
+  }
+  else
+  {
+    pbox = arg->value.BoundingBox();
+    if( !pbox.IsDefined() || !arg->instant.IsDefined() )
+    {
+      res->SetDefined(false);
+    }
+    else
+    {
+      min[0] = pbox.MinD(0);
+      min[1] = pbox.MinD(1);
+      min[2] = arg->instant.ToDouble();
+      max[0] = min[0];
+      max[1] = min[1];
+      max[2] = min[2];
+      res->Set( true, min, max );
+    }
+  }
+  return 0;
+}
+
+int MPointBBox(Word* args, Word& result, int message, Word& local,
+               Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Rectangle<3>* res = (Rectangle<3>*) result.addr;
+  MPoint*       arg = (MPoint*)       args[0].addr;
+  const UPoint *uPoint;
+  double min[3], max[3];
+  Rectangle<3> accubbox; 
+
+  if( !arg->IsDefined() || (arg->GetNoComponents() < 1) )
+  {
+    res->SetDefined(false);
+  }
+  else
+  {
+   arg->Get( 0, uPoint );
+   accubbox = uPoint->BoundingBox();
+   min[2] = uPoint->timeInterval.start.ToDouble(); // mintime
+   for( int i = 1; i < arg->GetNoComponents(); i++ )
+   { // calculate spatial bbox
+     arg->Get( i, uPoint );
+     accubbox = accubbox.Union( uPoint->BoundingBox() );
+   }
+   max[2] = uPoint->timeInterval.end.ToDouble(); // maxtime
+   min[0] = accubbox.MinD(0); // minX
+   max[0] = accubbox.MaxD(0); // maxX
+   min[1] = accubbox.MinD(1); // minY
+   max[1] = accubbox.MaxD(1); // maxY
+   res->Set( true, min, max );
+  }
+  return 0;
+}
+
+int UPointBBox(Word* args, Word& result, int message, Word& local,
+               Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Rectangle<3>* res = (Rectangle<3>*) result.addr;
+  UPoint*       arg = (UPoint*)       args[0].addr;
+  if( !arg->IsDefined() )
+  {
+    res->SetDefined(false);
+  }
+  else
+  {
+    *res = arg->BoundingBox();
+  }
+  return 0;
 }
 
 template <class Range>
@@ -6547,8 +6639,9 @@ int RangeBBox( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
   result = qp->ResultStorage( s );
+  Range* arg = (Range*)args[0].addr;
 
-  if( ((Range*)args[0].addr)->IsEmpty() )
+  if( !arg->IsDefined() || arg->IsEmpty() )
     ((Range*)result.addr)->SetDefined( false );
   else
     ((Range*)args[0].addr)->RBBox( *(Range*)result.addr);
@@ -6568,6 +6661,7 @@ MPointTranslate( Word* args, Word& result, int message, Word&
   DateTime* dd;
   const UPoint *uPoint;
   MPoint* mp, *mpResult;
+  CcReal *DX, *DY;
 
   result = qp->ResultStorage( s );
 
@@ -6580,14 +6674,20 @@ MPointTranslate( Word* args, Word& result, int message, Word&
 
   son = qp->GetSupplier( args[1].addr, 1 );
   qp->Request( son, t );
-  dx = ((CcReal *)t.addr)->GetRealval();
+  DX = (CcReal *)t.addr;
 
   son = qp->GetSupplier( args[1].addr, 2 );
   qp->Request( son, t );
-  dy = ((CcReal *)t.addr)->GetRealval();
+  DY = (CcReal *)t.addr;
 
-  if ( mp->IsDefined() )
+  if( DX->IsDefined() && 
+      DY->IsDefined() && 
+      dd->IsDefined() && 
+      mp->IsDefined()    )
   {
+    dx = DX->GetRealval();
+    dy = DY->GetRealval();
+    mpResult->SetDefined( true );
     mpResult->Clear();
     mpResult->StartBulkLoad();
     for( int i = 0; i < mp->GetNoComponents(); i++ )
@@ -6864,15 +6964,22 @@ int Box3d_rect( Word* args, Word& result, int message, Word&
    result = qp->ResultStorage(s);
    Rectangle<3>* res = (Rectangle<3>*) result.addr;
    Rectangle<2>* arg = (Rectangle<2>*) args[0].addr;
-   double min[3];
-   double max[3];
-   min[0] = arg->MinD(0);
-   min[1] = arg->MinD(1);
-   min[2] = MINDOUBLE;
-   max[0] = arg->MaxD(0);
-   max[1] = arg->MaxD(1);
-   max[2] = MAXDOUBLE;
-   res->Set(true,min,max);
+   if( !arg->IsDefined() )
+   {
+     res->SetDefined(false);
+   }
+   else
+   {
+     double min[3];
+     double max[3];
+     min[0] = arg->MinD(0);
+     min[1] = arg->MinD(1);
+     min[2] = MINDOUBLE;
+     max[0] = arg->MaxD(0);
+     max[1] = arg->MaxD(1);
+     max[2] = MAXDOUBLE;
+     res->Set(true,min,max);
+   }
    return 0;
 }
 
@@ -6881,16 +6988,23 @@ int Box3d_instant( Word* args, Word& result, int message, Word&
    result = qp->ResultStorage(s);
    Rectangle<3>* res = (Rectangle<3>*) result.addr;
    Instant* arg = (Instant*) args[0].addr;
-   double min[3];
-   double max[3];
-   min[0] = MINDOUBLE;
-   min[1] = MINDOUBLE;
-   max[0] = MAXDOUBLE;
-   max[1] = MAXDOUBLE;
-   double v = arg->ToDouble();
-   max[2] = v;
-   min[2] = v;
-   res->Set(true,min,max);
+   if( !arg->IsDefined() )
+   {
+     res->SetDefined(false);
+   }
+   else
+   {
+     double min[3];
+     double max[3];
+     double v = arg->ToDouble();
+     min[0] = MINDOUBLE;
+     min[1] = MINDOUBLE;
+     min[2] = v;
+     max[0] = MAXDOUBLE;
+     max[1] = MAXDOUBLE;
+     max[2] = v;
+     res->Set(true,min,max);
+   }
    return 0;
 }
 
@@ -6898,19 +7012,26 @@ int Box3d_instant( Word* args, Word& result, int message, Word&
 int Box3d_rect_instant( Word* args, Word& result, int message,
  Word& local, Supplier s ){
    result = qp->ResultStorage(s);
-   Rectangle<3>* res = (Rectangle<3>*) result.addr;
+   Rectangle<3>* res  = (Rectangle<3>*) result.addr;
    Rectangle<2>* arg1 = (Rectangle<2>*) args[0].addr;
-   Instant* arg2 = (Instant*) args[1].addr;
-   double v = arg2->ToDouble();
-   double min[3];
-   double max[3];
-   min[0] = arg1->MinD(0);
-   min[1] = arg1->MinD(1);
-   min[2] = v;
-   max[0] = arg1->MaxD(0);
-   max[1] = arg1->MaxD(1);
-   max[2] = v;
-   res->Set(true,min,max);
+   Instant*      arg2 = (Instant*)      args[1].addr;
+   if( !arg1->IsDefined() || !arg2->IsDefined() )
+   {
+     res->SetDefined(false);
+   }
+   else
+   {
+     double v = arg2->ToDouble();
+     double min[3];
+     double max[3];
+     min[0] = arg1->MinD(0);
+     min[1] = arg1->MinD(1);
+     min[2] = v;
+     max[0] = arg1->MaxD(0);
+     max[1] = arg1->MaxD(1);
+     max[2] = v;
+     res->Set(true,min,max);
+   }
    return 0;
 }
 
@@ -6919,21 +7040,28 @@ int Box3d_periods( Word* args, Word& result, int message, Word&
  local, Supplier s ){
    result = qp->ResultStorage(s);
    Rectangle<3>* res = (Rectangle<3>*) result.addr;
-   Periods* arg = (Periods*) args[0].addr;
-   Instant i;
-   arg->Minimum(i);
-   double v1 = i.ToDouble();
-   arg->Maximum(i);
-   double v2 = i.ToDouble();
-   double min[3];
-   double max[3];
-   min[0] = MINDOUBLE;
-   min[1] = MINDOUBLE;
-   min[2] = v1;
-   max[0] = MAXDOUBLE;
-   max[1] = MAXDOUBLE;
-   max[2] = v2;
-   res->Set(true,min,max);
+   Periods*      per = (Periods*)      args[0].addr;
+   if( !per->IsDefined() ) 
+   {
+     res->SetDefined(false);
+   }
+   else
+   {
+     Instant i1(0,0,instanttype), i2(0,0,instanttype);
+     per->Minimum(i1);
+     double v1 = i1.ToDouble();
+     per->Maximum(i2);
+     double v2 = i2.ToDouble();
+     double min[3];
+     double max[3];
+     min[0] = MINDOUBLE;
+     min[1] = MINDOUBLE;
+     min[2] = v1;
+     max[0] = MAXDOUBLE;
+     max[1] = MAXDOUBLE;
+     max[2] = v2;
+     res->Set(true,min,max);
+   }
    return 0;
 }
 
@@ -6942,21 +7070,28 @@ int Box3d_rect_periods( Word* args, Word& result, int message,
    result = qp->ResultStorage(s);
    Rectangle<3>* res = (Rectangle<3>*) result.addr;
    Rectangle<2>* arg1 = (Rectangle<2>*) args[0].addr;
-   Periods* arg2 = (Periods*) args[1].addr;
-   Instant i;
-   arg2->Minimum(i);
-   double v1 = i.ToDouble();
-   arg2->Maximum(i);
-   double v2 = i.ToDouble();
-   double min[3];
-   double max[3];
-   min[0] = arg1->MinD(0);
-   min[1] = arg1->MinD(1);
-   min[2] = v1;
-   max[0] = arg1->MaxD(0);
-   max[1] = arg1->MaxD(1);
-   max[2] = v2;
-   res->Set(true,min,max);
+   Periods*      arg2 = (Periods*)      args[1].addr;
+   if( !arg1->IsDefined() || !arg2->IsDefined() ) 
+   {
+     res->SetDefined(false);
+   }
+   else
+   {
+     Instant i1, i2;
+     arg2->Minimum(i1);
+     double v1 = i1.ToDouble();
+     arg2->Maximum(i2);
+     double v2 = i2.ToDouble();
+     double min[3];
+     double max[3];
+     min[0] = arg1->MinD(0);
+     min[1] = arg1->MinD(1);
+     min[2] = v1;
+     max[0] = arg1->MaxD(0);
+     max[1] = arg1->MaxD(1);
+     max[2] = v2;
+     res->Set(true,min,max);
+   }
    return 0;
 }
 
@@ -6972,13 +7107,19 @@ int TemporalBox2d( Word* args, Word& result, int message,
   Rectangle<2>* res = (Rectangle<2>*) result.addr;
   Rectangle<3>* arg = (Rectangle<3>*) args[0].addr;
 
-  double min[2], max[2];
-  min[0] = arg->MinD(0);
-  min[1] = arg->MinD(1);
-  max[0] = arg->MaxD(0);
-  max[1] = arg->MaxD(1);
-  res->Set( true, min, max );
-
+  if( !arg->IsDefined() ) 
+  {
+    res->SetDefined(false);
+  }
+  else
+  {
+    double min[2], max[2];
+    min[0] = arg->MinD(0);
+    min[1] = arg->MinD(1);
+    max[0] = arg->MaxD(0);
+    max[1] = arg->MaxD(1);
+    res->Set( true, min, max );
+  }
   return 0;
 }
 
@@ -7124,7 +7265,9 @@ ValueMapping temporalnocomponentsmap[] = { RangeNoComponents<RInt>,
 ValueMapping temporalbboxmap[] = { UPointBBox,
                                    RangeBBox<RInt>,
                                    RangeBBox<RReal>,
-                                   RangeBBox<Periods> };
+                                   RangeBBox<Periods>,
+                                   MPointBBox,
+                                   IPointBBox };
 
 
 ValueMapping temporalinstmap[] = { IntimeInst<CcBool>,
@@ -7552,11 +7695,13 @@ const string TemporalSpecUnits  =
 const string TemporalSpecBBox  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>upoint -> rect3,\n"
-  "   rT -> rT</text--->"
+  "mpoint -> rect3,\n"
+  "ipoint -> rect3,\n"
+  "rT -> rT</text--->"
   "<text>bbox ( _ )</text--->"
-  "<text>Returns the 3d bounding box of the unit (for upoint)\n"
-  "or the range value with the smallest closed interval that\n"
-  "contains all intervals of a range-value (for range-value).</text--->"
+  "<text>Returns the 3d bounding box of the spatio-temporal object, \n"
+  "resp. the range value with the smallest closed interval that contains "
+  "all intervals of a range-value (for range-value).</text--->"
   "<text>query bbox( upoint1 )</text--->"
   ") )";
 
@@ -7944,7 +8089,7 @@ Operator temporalunits( "units",
 
 Operator temporalbbox( "bbox",
                        TemporalSpecBBox,
-                       4,
+                       6,
                        temporalbboxmap,
                        TemporalBBoxSelect,
                        TemporalBBoxTypeMap );

@@ -43,12 +43,12 @@ OK    queryrect2d                    instant --> rect
 OK    circle              point x real x int --> region
 OK    uint2ureal:                       uint --> ureal
 
-the_unit:  For T in {bool, int, string, region*}
+      the_unit:  For T in {bool, int, string, region*}
            *: Crashed for T=region
 OK          point  point  instant instant bool bool --> ubool
 OK          ipoint ipoint bool    bool              --> ubool
 OK          real real real bool instant instant bool bool --> ureal
-OK          iT duration bool bool       --> uT
+OK          iT duration bool   bool     --> uT
 OK          T instant instant bool bool --> uT
 
       the_ivalue:  For T in {bool, int, string, real, point, region}
@@ -137,11 +137,11 @@ Test+                uT x uT --> bool
 
 =, #, <, >, <=, >=: T in {bool, int, string, real}
 OK   +                uT x      uT --> (stream ubool)
-n/a                    T x      uT --> (stream ubool)
-n/a                    T x      uT --> (stream ubool)
+OK   +                 T x      uT --> (stream ubool)
+OK   +                 T x      uT --> (stream ubool)
 OK   +            upoint x  upoint --> (stream ubool) for {=,#} only
-n/a  +             point x  upoint --> (stream ubool) for {=,#} only
-n/a  +            upoint x   point --> (stream ubool) for {=,#} only
+OK   +             point x  upoint --> (stream ubool) for {=,#} only
+OK   +            upoint x   point --> (stream ubool) for {=,#} only
 pre  +           uregion x uregion --> (stream ubool) for {=,#} only
 n/a  +            region x uregion --> (stream ubool) for {=,#} only
 n/a  +           uregion x  region --> (stream ubool) for {=,#} only
@@ -683,7 +683,7 @@ TemporalSpecQueryrect2d  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>(instant) -> rect</text--->"
 "<text>queryrect2d( _ )</text--->"
-"<text>Translate an instant object to a rect object to query the against "
+"<text>Translate an instant object to a rect object to query against "
 "a periods object translated to a point using operator 'point2d'. The "
 "undef instant is mapped to rect mininst^4</text--->"
 "<text>query queryrect2d(instant)</text---> ) )";
@@ -763,7 +763,7 @@ int Point2d( Word* args, Word& result, int message, Word& local, Supplier s )
           X = inf.ToDouble(); // Derives the minimum of all intervals.
         }
       else
-        {
+        { // empty periods -> set to (mininstant, mininstant)
           DateTime tmpinst = DateTime(0,0,instanttype);
           tmpinst.ToMinimum();
           X = tmpinst.ToDouble();
@@ -1452,20 +1452,19 @@ UnitTypeMapPeriods( ListExpr args )
 5.7.2 Value Mapping for ~deftime~
 
 */
-template <class Mapping>
+template <class Unit>
 int MappingUnitDefTime( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Periods* r = ((Periods*)result.addr);
-  Mapping* m = ((Mapping*)args[0].addr);
+  Periods* r = ((Periods*) result.addr);
+  Unit*    m = ((Unit*)    args[0].addr);
 
   if ( !m->IsDefined() )
     r->SetDefined( false );
   else
     {
-      assert( r->IsOrdered() );
-
+      r->SetDefined( true );
       r->Clear();
       r->StartBulkLoad();
       r->Add( m->timeInterval );
