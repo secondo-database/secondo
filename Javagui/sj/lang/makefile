@@ -44,7 +44,8 @@ SelectNL:
 	rm ListExpr.tmp
 
 langClasses: IntByReference.class ServerErrorCodes.class SecondoInterface.class \
-             ESInterface.class ListExpr.class MyDataInputStream.class MyDataOutputStream.class
+             ESInterface.class ListExpr.class MyDataInputStream.class MyDataOutputStream.class \
+             MessageListener.class
 
 CP:=$(CLASSPATH):$(JARS)
 

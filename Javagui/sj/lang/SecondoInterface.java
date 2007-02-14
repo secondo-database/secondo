@@ -40,6 +40,7 @@ package sj.lang;
 import java.net.*;
 import java.io.*;
 import java.util.StringTokenizer;
+import java.util.Vector;
 import tools.Reporter;
 
 /*
@@ -105,7 +106,8 @@ not accessible by the user code.
   // Connection's output writer (to secondoServerSocket).
   private MyBufferedOutputStream outSocketStream;
 
-
+  // a vector containing all messageListeners
+  private Vector messageListener = new Vector();
 
   public SecondoInterface()
   {
@@ -273,6 +275,80 @@ not accessible by the user code.
     }
   }
 
+  /** reads a List from the server.
+    * If there is an error, null is returned.
+     */
+  private ListExpr receiveList(String finalToken, IntByReference errorCode) throws IOException{
+     String line;
+     ListExpr answerList = new ListExpr();
+     if(!binaryLists){
+         StringBuffer result = new StringBuffer();
+         long t1 = System.currentTimeMillis();
+         do {
+            line = inSocketStream.readLine();
+            if(line!=null){
+               if (line.compareTo( finalToken ) != 0 ) {
+                    result.append(line);
+                    result.append("\n");
+                }
+             } else{
+                errorCode.value = 81;
+                return null; 
+             }
+         } while (!line.equals(finalToken));
+         long t2 = System.currentTimeMillis();
+         answerList.readFromString( result.toString() );
+         long t3 = System.currentTimeMillis();
+         long parsetime = t3-t2;
+         long receivetime = t2-t1;
+         long alltime = t3-t1;
+         if(gui.Environment.MEASURE_TIME){
+            Reporter.writeInfo("receive a nested list (textual) : "+receivetime+" milliseconds");
+            Reporter.writeInfo("parsing                         : "+parsetime+" milliseconds");
+            Reporter.writeInfo("sum                             : "+alltime+" milliseconds"); 
+         }
+     } else { // handle binary lists
+       long t1 = System.currentTimeMillis();
+        answerList = ListExpr.readBinaryFrom(inSocketStream);
+        if(answerList==null){
+             errorCode.value=81;
+             return null;
+         }
+         line = inSocketStream.readLine();
+         if(!line.equals(finalToken)){
+             Reporter.writeError("SecondoInterface: Missing"+finalToken);
+             Reporter.writeError("received :" +line);
+             errorCode.value=81;
+             return null;
+          }
+          long t = System.currentTimeMillis()-t1;
+          if(gui.Environment.MEASURE_TIME){
+               Reporter.writeInfo("receive and building a nested list (binary) :"+t+" milliseconds");
+          }
+     } // handle binary lists
+     // divide the answerlist
+     return answerList;
+  }
+
+  /** informs all currently messageListener. **/
+  private void informListener(ListExpr message){
+      for(int i=0;i<messageListener.size();i++){
+           ((MessageListener)messageListener.get(i)).processMessage(message);
+      }
+  }
+
+  /** removes ml */
+  public void removeMessageListener(MessageListener ml){
+     messageListener.remove(ml);
+  }
+  
+  /** adds ml  */
+  public void addMessageListener(MessageListener ml){
+     if(!messageListener.contains(ml)){
+        messageListener.add(ml);
+     }
+  }
+
 
 /** receives a response from the secondo server 
   * when send a command to it.
@@ -286,6 +362,20 @@ not accessible by the user code.
         errorCode.value=81; // network error
         return;
      }
+     while(line.equals("<message>")){
+        ListExpr messageList = receiveList("</message>",errorCode);
+        if(messageList==null){ // error
+           return;
+        }
+        informListener(messageList);
+        line = inSocketStream.readLine();
+        if(line==null){
+             errorCode.value =81; 
+             return;
+        }
+     }
+    
+
      // handle error
      if( line.equals("<SecondoError>" )) {
         errorCode.value = 80;
@@ -307,53 +397,11 @@ not accessible by the user code.
         errorCode.value=81;
         return;
      } 
-     ListExpr answerList = new ListExpr();
-     if(!binaryLists){
-         StringBuffer result = new StringBuffer();
-         long t1 = System.currentTimeMillis();
-         do {
-            line = inSocketStream.readLine();
-            if(line!=null){
-               if (line.compareTo( "</SecondoResponse>" ) != 0 ) {
-                    result.append(line);
-                    result.append("\n");
-                }
-             } else{
-                errorCode.value = 81;
-                return; 
-             }
-         } while (!line.equals("</SecondoResponse>"));
-         long t2 = System.currentTimeMillis();
-         answerList.readFromString( result.toString() );
-         long t3 = System.currentTimeMillis();
-         long parsetime = t3-t2;
-         long receivetime = t2-t1;
-         long alltime = t3-t1;
-         if(gui.Environment.MEASURE_TIME){
-            Reporter.writeInfo("receive a nested list (textual) : "+receivetime+" milliseconds");
-            Reporter.writeInfo("parsing                         : "+parsetime+" milliseconds");
-            Reporter.writeInfo("sum                             : "+alltime+" milliseconds"); 
-         }
-     } else { // handle binary lists
-       long t1 = System.currentTimeMillis();
-        answerList = ListExpr.readBinaryFrom(inSocketStream);
-        if(answerList==null){
-             errorCode.value=81;
-             return;
-         }
-         line = inSocketStream.readLine();
-         if(!line.equals("</SecondoResponse>")){
-             Reporter.writeError("SecondoInterface: Missing </SecondoResponse>");
-             Reporter.writeError("received :" +line);
-             errorCode.value=81;
-             return;
-          }
-          long t = System.currentTimeMillis()-t1;
-          if(gui.Environment.MEASURE_TIME){
-               Reporter.writeInfo("receive and building a nested list (binary) :"+t+" milliseconds");
-          }
-     } // handle binary lists
-     // divide the answerlist
+     // read the answerlist
+     ListExpr answerList = receiveList("</SecondoResponse>",errorCode);
+     if(answerList==null){
+         return;
+     }   
      errorCode.value = answerList.first().intValue();
      errorPos.value  = answerList.second().intValue();
      errorMessage.setLength( 0 );
