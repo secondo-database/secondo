@@ -68,6 +68,12 @@ public class CommandPanel extends JScrollPane {
     super();
     RV = aRV;
     Secondointerface = new ESInterface();
+    Secondointerface.addMessageListener(new MessageListener(){
+       public void processMessage(ListExpr message){
+          Reporter.writeInfo("Message" + message);
+       }
+    });
+
     SystemArea = new JTextArea();
     SystemArea.setLineWrap(true);
     SystemArea.setWrapStyleWord(true);
