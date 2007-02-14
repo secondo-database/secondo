@@ -6630,6 +6630,12 @@ int IPointBBox(Word* args, Word& result, int message, Word& local,
   return 0;
 }
 
+/*
+Since MPoint is not a subclass of ~SpatialAttribute~, it has no ~BoundingBox()~
+function. One could make it inherit from ~SpatialAttribute~, but than one had to
+restore all databases and adopt the Add, MergeAdd, +=, -=, etc.
+
+*/
 int MPointBBox(Word* args, Word& result, int message, Word& local,
                Supplier s )
 {

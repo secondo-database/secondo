@@ -1827,7 +1827,7 @@ void MovingRegionCompareMS( MRegion *mr, Region *r, MBool *result,
         <<uBool.timeInterval.lc<<" "<<uBool.timeInterval.rc<<"]"<<endl;}
       result->MergeAdd(uBool);
     }
-    else{ //the complicate way with not static mregions
+    else{ //the complicate way with not static movingregions
       const HalfSegment *chs;
       Periods* period  = new Periods(0);
       Periods* between = new Periods(0);
@@ -3118,7 +3118,7 @@ void copyMRegion(MRegion& res, MRegion& result) {
 /*
 1.1 Method ~copyRegionMPoint~
 
-Transform the region to a mregion and restrics it to deftime(mpoint).
+Transform the region to a movingregion and restrics it to deftime(mpoint).
 
 */
 
@@ -4273,7 +4273,7 @@ int TemporalSMPointCompare( Word* args, Word& result, int message,
 }
 
 /*
-16.3 Value mapping functions of operator ~=~ and ~\#~ for mregion/region
+16.3 Value mapping functions of operator ~=~ and ~\#~ for movingregion/region
 
 */
 template<int op>
@@ -4289,7 +4289,7 @@ int TemporalMSRegionCompare( Word* args, Word& result, int message,
 }
 
 /*
-16.3 Value mapping functions of operator ~=~ and ~\#~ for region/mregion
+16.3 Value mapping functions of operator ~=~ and ~\#~ for region/movingregion
 
 */
 template<int op>
@@ -4305,7 +4305,7 @@ int TemporalSMRegionCompare( Word* args, Word& result, int message,
 }
 
 /*
-16.3 Value mapping functions of operator ~=~ and ~\#~ for mregion/mregion
+16.3 Value mapping functions of operator ~=~ and ~\#~ for movingregion/movingregion
 
 */
 template<int op>
@@ -4360,7 +4360,7 @@ int TemporalSMCompare( Word* args, Word& result, int message,
 
 /*
 1.1 ValueMapping of operator ~isempty~ for mbool, mint, mreal, mpoint
-and mregion
+and movingregion
 
 */
 template<class Mapping1, class Unit1>
@@ -4488,10 +4488,10 @@ int MPointLineInside( Word* args, Word& result, int message,
 }
 
 /*
-1.1 ValueMapping ~MFalseValueMap~ is used in ~inside~ with mregion x points
+1.1 ValueMapping ~MFalseValueMap~ is used in ~inside~ with movingregion x points
 / line
 
-Creats false for every periode in mregion.
+Creats false for every periode in movingregion.
 
 */
 int MFalseValueMap(Word* args, Word& result, int message,
@@ -4957,7 +4957,7 @@ int TemporalSMPointIntercept( Word* args, Word& result, int message,
 }
 
 /*
-1.1 ValueMapping of operator ~rough\_center~ for mregion
+1.1 ValueMapping of operator ~rough\_center~ for movingregion
 
 */
 int RCenterValueMap(Word* args, Word& result, int message,
@@ -5015,7 +5015,7 @@ int MRMPMinusValueMap(Word* args, Word& result, int message,
 }
 
 /*
-1.1 ValueMapping of operator ~no\_components~ for mregion
+1.1 ValueMapping of operator ~no\_components~ for movingregion
 
 */
 int NComponentsValueMap(Word* args, Word& result, int message,
@@ -5029,7 +5029,7 @@ int NComponentsValueMap(Word* args, Word& result, int message,
 }
 
 /*
-1.1 ValueMapping of operator ~perimeter~ for mregion
+1.1 ValueMapping of operator ~perimeter~ for movingregion
 
 */
 int PerimeterValueMap(Word* args, Word& result, int message,
@@ -5043,7 +5043,7 @@ int PerimeterValueMap(Word* args, Word& result, int message,
 }
 
 /*
-1.1 ValueMapping of operator ~area~ for mregion
+1.1 ValueMapping of operator ~area~ for movingregion
 
 */
 int AreaValueMap(Word* args, Word& result, int message,
@@ -5728,8 +5728,8 @@ const string TemporalLiftSpecInside
            = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
             "\"Example\" ) "
             "( <text>mpoint x points -> mbool,"
-            " mpoint x line -> mbool, mregion x points ->"
-            " mbool, mregion x line -> mbool</text--->"
+            " mpoint x line -> mbool, movingregion x points ->"
+            " mbool, movingregion x line -> mbool</text--->"
             "<text>_ inside _</text--->"
             "<text>Inside.</text--->"
             "<text>query mp1 inside pts1</text--->"

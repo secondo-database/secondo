@@ -2721,7 +2721,7 @@ static ListExpr IRegionProperty() {
                 nl->StringAtom("Example List")),
             nl->FourElemList(
                 nl->StringAtom("-> UNIT"),
-                nl->StringAtom("(iregion)"),
+                nl->StringAtom("(intimeregion)"),
                 nl->StringAtom("(<instant> <region>)"),
                 example));
 }
@@ -2747,10 +2747,10 @@ static Word CreateIRegion(const ListExpr typeInfo) {
 }
 
 /*
-1.1.1 Type constructor ~iregion~
+1.1.1 Type constructor ~intimeregion~
 
 */
-static TypeConstructor iregion(
+static TypeConstructor intimeregion(
     "intimeregion",
     IRegionProperty,
     OutIntime<Region, OutRegion>,
@@ -7335,7 +7335,7 @@ static bool SaveMRegion(SmiRecord& rec,
 }
 
 /*
-1.1.1 Type constructor ~mregion~
+1.1.1 Type constructor ~movingregion~
 
 */
 static Word CreateMRegion(const ListExpr typeInfo) {
@@ -7366,7 +7366,7 @@ static int SizeOfMRegion() {
   return sizeof(MRegion);
 }
 
-static TypeConstructor mregion(
+static TypeConstructor movingregion(
     "movingregion",
     MRegionProperty,
     OutMRegion,
@@ -7646,7 +7646,41 @@ static ListExpr BboxTypeMap(ListExpr args) {
 
     if (nl->ListLength(args) == 1
         && nl->IsEqual(nl->First(args), "uregion"))
+      return nl->SymbolAtom("rect3");
+
+    if (nl->ListLength(args) == 1
+        && nl->IsEqual(nl->First(args), "intimeregion"))
         return nl->SymbolAtom("rect3");
+
+    if (nl->ListLength(args) == 1
+        && nl->IsEqual(nl->First(args), "movingregion"))
+      return nl->SymbolAtom("rect3");
+
+    else
+        return nl->SymbolAtom("typeerror");
+}
+
+/*
+Used by ~bbox2d~:
+
+*/
+
+static ListExpr Bbox2dTypeMap(ListExpr args) {
+    if (MRA_DEBUG)
+        cerr << "Bbox2dTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 1
+        && nl->IsEqual(nl->First(args), "uregion"))
+      return nl->SymbolAtom("rect");
+
+    if (nl->ListLength(args) == 1
+        && nl->IsEqual(nl->First(args), "intimeregion"))
+        return nl->SymbolAtom("rect");
+
+    if (nl->ListLength(args) == 1
+        && nl->IsEqual(nl->First(args), "movingregion"))
+        return nl->SymbolAtom("rect");
+
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -7874,6 +7908,23 @@ static int VertTrajectorySelect(ListExpr args){
 }
 
 /*
+Used by ~bbox~ and ~bbox2d~:
+
+*/
+
+static int BBoxSelect(ListExpr args){
+  ListExpr arg = nl->First(args);
+  if(nl->IsEqual(arg,"uregion"))
+    return 0;
+  if(nl->IsEqual(arg,"intimeregion"))
+    return 1;
+  if(nl->IsEqual(arg,"movingregion"))
+    return 2;
+  else
+    return -1;
+}
+
+/*
 1.1 Value mapping functions
 
 1.1.1 Normal value mapping functions
@@ -8090,11 +8141,11 @@ static int MraprecValueMap(Word* args,
 }
 #endif // MRA_PREC
 
-static int BboxValueMap(Word* args,
-                           Word& result,
-                           int message,
-                           Word& local,
-                           Supplier s) {
+static int BboxValueMapURegion(Word* args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier s) {
     if (MRA_DEBUG) cerr << "BBox() called" << endl;
 
     result = qp->ResultStorage(s);
@@ -8107,6 +8158,142 @@ static int BboxValueMap(Word* args,
     else
         *res = ur->BoundingBox();
 
+    return (0);
+}
+
+static int BboxValueMapIRegion(Word* args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier s) {
+    if (MRA_DEBUG) cerr << "BBox() called" << endl;
+
+    result = qp->ResultStorage(s);
+    Rectangle<3>* res = (Rectangle<3>*) result.addr;
+
+    Intime<Region>* ur = (Intime<Region>*) args[0].addr;
+
+    if (!ur->IsDefined())
+        res->SetDefined(false);
+    else
+    {
+      Rectangle<2> r = ur->value.BoundingBox();
+      double min[3], max[3];
+      min[0] = r.MinD(0);
+      min[1] = r.MinD(1);
+      min[2] = ur->instant.ToDouble();
+      max[0] = r.MaxD(0);
+      max[1] = r.MaxD(1);
+      max[3] = min[2];
+      res->Set(true, min, max);
+    }
+    return (0);
+}
+
+static int BboxValueMapMRegion(Word* args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier s) {
+    if (MRA_DEBUG) cerr << "BBox() called" << endl;
+
+    result = qp->ResultStorage(s);
+    Rectangle<3>* res = (Rectangle<3>*) result.addr;
+
+    MRegion* mr = (MRegion*) args[0].addr;
+
+    if (!mr->IsDefined() || (mr->GetNoComponents() < 1) )
+        res->SetDefined(false);
+    else
+    {
+      res->SetDefined(true);
+      const URegionEmb *ur;
+      mr->Get(0, ur);
+      *res = ur->BoundingBox();
+      for(int i=1; i<mr->GetNoComponents(); i++)
+      {
+        mr->Get(i, ur);
+        *res = res->Union( ur->BoundingBox() );
+      }
+    }
+    return (0);
+}
+
+static int Bbox2dValueMapURegion(Word* args,
+                                 Word& result,
+                                 int message,
+                                 Word& local,
+                                 Supplier s) {
+    if (MRA_DEBUG) cerr << "BBox2d() called" << endl;
+
+    result = qp->ResultStorage(s);
+    Rectangle<2>* res = (Rectangle<2>*) result.addr;
+
+    URegion* ur = (URegion*) args[0].addr;
+
+    if (!ur->IsDefined())
+        res->SetDefined(false);
+    else
+    {
+      Rectangle<3> bb3 = ur->BoundingBox();
+      double min[2] = {bb3.MinD(0), bb3.MinD(1)};
+      double max[2] = {bb3.MaxD(0), bb3.MaxD(1)};
+      res->Set( true, min, max );
+    }
+    return (0);
+}
+
+static int Bbox2dValueMapIRegion(Word* args,
+                                 Word& result,
+                                 int message,
+                                 Word& local,
+                                 Supplier s) {
+    if (MRA_DEBUG) cerr << "BBox2d() called" << endl;
+
+    result = qp->ResultStorage(s);
+    Rectangle<2>* res = (Rectangle<2>*) result.addr;
+
+    Intime<Region>* ur = (Intime<Region>*) args[0].addr;
+
+    if (!ur->IsDefined())
+        res->SetDefined(false);
+    else
+    {
+      res->SetDefined(true);
+      *res = ur->value.BoundingBox();
+    }
+    return (0);
+}
+
+static int Bbox2dValueMapMRegion(Word* args,
+                                 Word& result,
+                                 int message,
+                                 Word& local,
+                                 Supplier s) {
+    if (MRA_DEBUG) cerr << "BBox2d() called" << endl;
+
+    result = qp->ResultStorage(s);
+    Rectangle<2>* res = (Rectangle<2>*) result.addr;
+
+    MRegion* mr = (MRegion*) args[0].addr;
+
+    if (!mr->IsDefined() || (mr->GetNoComponents() < 1) )
+        res->SetDefined(false);
+    else
+    {
+      res->SetDefined(true);
+      const URegionEmb *ur;
+      mr->Get(0, ur);
+      Rectangle<3> bb3 = ur->BoundingBox();
+      for(int i=1; i<mr->GetNoComponents(); i++)
+      {
+        mr->Get(i, ur);
+        bb3 = bb3.Union( ur->BoundingBox() );
+      }
+      double min[2] = {bb3.MinD(0), bb3.MinD(1)};
+      double max[2] = {bb3.MaxD(0), bb3.MaxD(1)};
+      res->Set( true, min, max );
+    }
     return (0);
 }
 
@@ -8363,6 +8550,16 @@ static ValueMapping traversedvaluemap[] =
     { TraversedValueMap };
 #endif // MRA_TRAVERSED
 
+static ValueMapping BboxValueMap[] =
+{ BboxValueMapURegion, 
+  BboxValueMapIRegion, 
+  BboxValueMapMRegion };
+
+static ValueMapping Bbox2dValueMap[] =
+{ Bbox2dValueMapURegion, 
+  Bbox2dValueMapIRegion, 
+  Bbox2dValueMapMRegion };
+
 /*
 1.1 Operator specifications
 
@@ -8370,80 +8567,80 @@ static ValueMapping traversedvaluemap[] =
 
 static const string atinstantspec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>(mregion instant) -> iregion, "
-    "    (uregion instant) -> iregion,</text--->"
+    "  ( <text>(movingregion instant) -> intimeregion, "
+    "    (uregion instant) -> intimeregion,</text--->"
     "    <text>_ atinstant _ </text--->"
-    "    <text>Get the iregion value corresponding "
+    "    <text>Get the intimeregion value corresponding "
     "to the instant.</text--->"
-    "    <text>mregion1 atinstant instant1</text---> ) )";
+    "    <text>movingregion1 atinstant instant1</text---> ) )";
 
 static const string initialspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>mregion -> iregion</text--->"
+    "  ( <text>movingregion -> intimeregion</text--->"
     "    <text>initial( _ )</text--->"
-    "    <text>Get the iregion value corresponding to "
+    "    <text>Get the intimeregion value corresponding to "
     "the initial instant."
     "    </text--->"
-    "    <text>initial( mregion1 )</text---> ) )";
+    "    <text>initial( movingregion1 )</text---> ) )";
 
 static const string finalspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>mregion -> iregion</text--->"
+    "  ( <text>movingregion -> intimeregion</text--->"
     "    <text>final( _ )</text--->"
-    "    <text>Get the iregion value corresponding to "
+    "    <text>Get the intimeregion value corresponding to "
     "the final instant."
     "    </text--->"
-    "    <text>final( mregion1 )</text---> ) )";
+    "    <text>final( movingregion1 )</text---> ) )";
 
 static const string instspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>iregion -> instant</text--->"
+    "  ( <text>intimeregion -> instant</text--->"
     "    <text>inst ( _ )</text--->"
-    "    <text>iregion time instant.</text--->"
-    "    <text>inst ( iregion1 )</text---> ) )";
+    "    <text>intimeregion time instant.</text--->"
+    "    <text>inst ( intimeregion1 )</text---> ) )";
 
 static const string valspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>iregion -> region</text--->"
+    "  ( <text>intimeregion -> region</text--->"
     "    <text>val ( _ )</text--->"
     "    <text>Intime value.</text--->"
-    "    <text>val ( iregion1 )</text---> ) )";
+    "    <text>val ( intimeregion1 )</text---> ) )";
 
 static const string deftimespec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>mregion -> periods</text--->"
+    "  ( <text>movingregion -> periods</text--->"
     "    <text>deftime( _ )</text--->"
-    "    <text>Get the defined time of the mregion object.</text--->"
-    "    <text>deftime( mregion1 )</text---> ) )";
+    "    <text>Get the defined time of the movingregion object.</text--->"
+    "    <text>deftime( movingregion1 )</text---> ) )";
 
 static const string presentspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>(mregion instant) -> bool, "
-    "(mregion periods) -> bool</text--->"
+    "  ( <text>(movingregion instant) -> bool, "
+    "(movingregion periods) -> bool</text--->"
     "    <text>_ present _ </text--->"
     "    <text>Whether the object is present at the given instant or"
     "    period.</text--->"
-    "    <text>mregion1 present instant1</text---> ) )";
+    "    <text>movingregion1 present instant1</text---> ) )";
 
 static const string intersectionspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>(mpoint mregion) -> mpoint</text--->"
+    "  ( <text>(mpoint movingregion) -> mpoint</text--->"
     "    <text>intersection( _ , _ )</text--->"
-    "    <text>Intersection between mpoint and mregion.</text--->"
-    "    <text>intersection(mpoint1, mregion1)</text---> ) )";
+    "    <text>Intersection between mpoint and movingregion.</text--->"
+    "    <text>intersection(mpoint1, movingregion1)</text---> ) )";
 
 static const string insidespec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>(mpoint mregion) -> mbool</text--->"
+    "  ( <text>(mpoint movingregion) -> mbool</text--->"
     "    <text>_ inside _</text--->"
     "    <text>Calculates if and when mpoint is inside "
-    "mregion.</text--->"
-    "    <text>mpoint1 inside mregion1</text---> ) )";
+    "movingregion.</text--->"
+    "    <text>mpoint1 inside movingregion1</text---> ) )";
 
 static const string atspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remark\" ) "
     "  ( <text>(mpoint region) -> mpoint, "
-    "(mregion point) -> mpoint</text--->"
+    "(movingregion point) -> mpoint</text--->"
     "    <text>_ at _</text--->"
     "    <text>Restrict moving point to region or restrict moving region "
     "to point.</text--->"
@@ -8452,7 +8649,7 @@ static const string atspec =
 
 static const string movespec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>mpoint x region -> mregion</text--->"
+    "  ( <text>mpoint x region -> movingregion</text--->"
     "    <text>move( _ , _)</text--->"
     "    <text>Creates a moving region from the given region"
     "  using the mpoint speed and direction </text--->"
@@ -8461,11 +8658,11 @@ static const string movespec =
 #ifdef MRA_TRAVERSED
 static const string traversedspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>mregion -> region</text--->"
+    "  ( <text>movingregion -> region</text--->"
     "    <text>traversed( _ )</text--->"
     "    <text>Projection of a moving region into "
     "the plane.</text--->"
-    "    <text>traversed(mregion1)</text---> ) )";
+    "    <text>traversed(movingregion1)</text---> ) )";
 #endif // MRA_TRAVERSED
 
 #ifdef MRA_PREC
@@ -8487,17 +8684,30 @@ static const string mraprecspec =
 
 static const string bboxspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>(uregion) -> rect3</text--->"
+    "  ( <text>uregion -> rect3,\n"
+    "intimeregion -> rect3, \n"
+    "movingregion -> rect3</text--->"
     "    <text>bbox( _ )</text--->"
-    "    <text>Returns the 3d bounding box of the unit.</text--->"
-    "    <text>bbox(mregion1)</text---> ) )";
+    "    <text>Returns the 3d bounding box of the spatio-temporal "
+    "value.</text--->"
+    "    <text>bbox(movingregion1)</text---> ) )";
+
+static const string bbox2dspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>uregion -> rect,\n"
+    "intimeregion -> rect, \n"
+    "movingregion -> rect</text--->"
+    "    <text>bbox2d( _ )</text--->"
+    "    <text>Returns the 2d bounding box of the "
+    "spatio-temporal value.</text--->"
+    "    <text>bbox2d(movingregion1)</text---> ) )";
 
 static const string verttrajectoryspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>(uregion || mregion) -> line</text--->"
+    "  ( <text>(uregion || movingregion) -> line</text--->"
     "    <text>vertextrajectory( _ )</text--->"
     "    <text>Computes the trajectory of the vertices </text--->"
-    "    <text>vertextrajectory(mregion1)</text---> ) )";
+    "    <text>vertextrajectory(movingregion1)</text---> ) )";
 
 const string mraunitsspec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -8505,7 +8715,7 @@ const string mraunitsspec  =
   "<text>units( _ )</text--->"
   "<text>Create the stream of all uregions contained by "
   "the moving region.</text--->"
-  "<text>units( mregion1 )</text--->) )";
+  "<text>units( movingregion1 )</text--->) )";
 
 /*
 Used for unit testing only.
@@ -8615,9 +8825,17 @@ static Operator mraprec("mraprec",
 
 static Operator bbox("bbox",
                      bboxspec,
+                     3,
                      BboxValueMap,
-                     simpleSelect,
+                     BBoxSelect,
                      BboxTypeMap);
+
+static Operator bbox2d("bbox2d",
+                       bbox2dspec,
+                       3,
+                       Bbox2dValueMap,
+                       BBoxSelect,
+                       Bbox2dTypeMap);
 
 static Operator move("move",
                      movespec,
@@ -8670,18 +8888,18 @@ static Operator unittest3("unittest3",
 class MovingRegionAlgebra : public Algebra {
 public:
   MovingRegionAlgebra() : Algebra() {
-    AddTypeConstructor(&iregion);
+    AddTypeConstructor(&intimeregion);
     AddTypeConstructor(&uregion);
-    AddTypeConstructor(&mregion);
+    AddTypeConstructor(&movingregion);
 
-    iregion.AssociateKind("TEMPORAL");
-    iregion.AssociateKind("DATA");
+    intimeregion.AssociateKind("TEMPORAL");
+    intimeregion.AssociateKind("DATA");
 
     uregion.AssociateKind("TEMPORAL");
     uregion.AssociateKind("DATA");
 
-    mregion.AssociateKind("TEMPORAL");
-    mregion.AssociateKind("DATA");
+    movingregion.AssociateKind("TEMPORAL");
+    movingregion.AssociateKind("DATA");
 
     AddOperator(&atinstant);
     AddOperator(&initial);
@@ -8694,6 +8912,7 @@ public:
     AddOperator(&inside);
     AddOperator(&at);
     AddOperator(&bbox);
+    AddOperator(&bbox2d);
     AddOperator(&move);
     AddOperator(&vertextrajectory);
     AddOperator(&mraunits);

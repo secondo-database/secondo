@@ -23,6 +23,36 @@ Signature: uregion -> rect3
 Example  : query bbox(units(mrain) transformstream extract[elem])
 Result   : file
 
+Operator : bbox
+Number   : 2
+Signature: intimeregion -> rect3
+Example  : query bbox(final(msnow))
+Result   : file
+
+Operator : bbox
+Number   : 3
+Signature: movingregion -> rect3
+Example  : query bbox(msnow)
+Result   : file
+
+
+Operator : bbox2d
+Number   : 1
+Signature: uregion -> rect
+Example  : query bbox2d(units(mrain) transformstream extract[elem])
+Result   : file
+
+Operator : bbox2d
+Number   : 2
+Signature: intimeregion -> rect
+Example  : query bbox2d(final(mrain))
+Result   : file
+
+Operator : bbox2d
+Number   : 3
+Signature: movingregion -> rect
+Example  : query bbox2d(msnow)
+Result   : file
 
 Operator : deftime
 Number   : 1

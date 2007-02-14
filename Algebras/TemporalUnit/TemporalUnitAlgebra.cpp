@@ -1144,7 +1144,7 @@ int MappingMakemvaluePlain(Word* args,Word& result,int message,
 }
 // here comes the version for movingregion, where URegion has a rather
 // ugly implementation and thus needs a specialized treatment!
-int MappingMakemvalue_mregion(Word* args,Word& result,int message,
+int MappingMakemvalue_movingregion(Word* args,Word& result,int message,
                               Word& local,Supplier s)
 {
   MRegion* m;
@@ -1174,7 +1174,7 @@ int MappingMakemvalue_mregion(Word* args,Word& result,int message,
       if(currentAttr->IsDefined())
         {
           unit = (URegion*) currentAttr;
-          cout << "MappingMakemvalue_mregion: " << endl;
+          cout << "MappingMakemvalue_movingregion: " << endl;
           unit->Print(cout);
           m->AddURegion( *unit );
           currentTuple->DeleteIfAllowed();
@@ -1187,7 +1187,7 @@ int MappingMakemvalue_mregion(Word* args,Word& result,int message,
   return 0;
 }
 
-int MappingMakemvalue_mregionPlain(Word* args,Word& result,int message,
+int MappingMakemvalue_movingregionPlain(Word* args,Word& result,int message,
                               Word& local,Supplier s)
 {
   MRegion* m;
@@ -1208,7 +1208,7 @@ int MappingMakemvalue_mregionPlain(Word* args,Word& result,int message,
       unit = (URegion*) currentUnit.addr;
       if(unit->IsDefined())
         {
-          cout << "MappingMakemvalue_mregion: " << endl;
+          cout << "MappingMakemvalue_movingregion: " << endl;
           unit->Print(cout);
           m->AddURegion( *unit );
           unit->DeleteIfAllowed();
@@ -1323,7 +1323,7 @@ ValueMapping temporalmakemvaluemap[] = {
       MappingMakemvalue<MString, UString>,
       MappingMakemvalue<MReal, UReal>,
       MappingMakemvalue<MPoint, UPoint>,
-      MappingMakemvalue_mregion };
+      MappingMakemvalue_movingregion };
 
 ValueMapping temporalthemvaluemap[] = {
       MappingMakemvaluePlain<MBool, UBool>,
@@ -1331,7 +1331,7 @@ ValueMapping temporalthemvaluemap[] = {
       MappingMakemvaluePlain<MString, UString>,
       MappingMakemvaluePlain<MReal, UReal>,
       MappingMakemvaluePlain<MPoint, UPoint>,
-      MappingMakemvalue_mregionPlain };
+      MappingMakemvalue_movingregionPlain };
 
 /*
 5.5.5  Definition of operators ~makemvalue~, ~the\-mvalue~
@@ -8407,7 +8407,7 @@ ListExpr TU_TM_TheIvalue( ListExpr args )
   if (argstr == "(instant point)")
     return nl->SymbolAtom( "ipoint" );
   if (argstr == "(instant region)")
-    return nl->SymbolAtom( "iregion" );
+    return nl->SymbolAtom( "intimeregion" );
 
   ErrorReporter::ReportError
     ("Operator 'the_ivalue' expects a list with structure "
