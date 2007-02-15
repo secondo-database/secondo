@@ -3780,6 +3780,7 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
 2.20.2 Value Mapping for operator ~projectextend~
 
 */
+
 int
 ExtProjectExtendValueMap(Word* args, Word& result, int message, 
                          Word& local, Supplier s)
@@ -3829,8 +3830,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
           (*extFunArgs)[0] = SetWord(currTuple);     // pass argument
           qp->Request(supplier3,value);              // call extattr mapping
           resultTuple->PutAttribute( 
-            noOfAttrs + i,
-            ((StandardAttribute*)value.addr)->Clone() );
+            noOfAttrs + i, (StandardAttribute*)value.addr );
           qp->ReInitResultStorage( supplier3 );
         }
         currTuple->DeleteIfAllowed();
@@ -5874,8 +5874,7 @@ SymmProductExtend(Word* args, Word& result,
               resultTuple->PutAttribute( 
                 leftTuple->GetNoAttributes()
                 + pli->currTuple->GetNoAttributes()
-                + i,
-                ((StandardAttribute*)value.addr)->Clone() );
+                + i, (StandardAttribute*)value.addr);
               qp->ReInitResultStorage( supplier3 );
             }
             leftTuple->DeleteIfAllowed();
@@ -5955,8 +5954,7 @@ SymmProductExtend(Word* args, Word& result,
               resultTuple->PutAttribute( 
                 pli->currTuple->GetNoAttributes()
                 + rightTuple->GetNoAttributes()
-                + i,
-                ((StandardAttribute*)value.addr)->Clone() );
+                + i, (StandardAttribute*)value.addr);
               // extend effective left tuple
               qp->ReInitResultStorage( supplier3 );
             }
