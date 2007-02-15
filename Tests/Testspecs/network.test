@@ -38,7 +38,7 @@ open database networktest;
 
 (create j : (rel(tuple((r1id int)(meas1 real)(r2id int)(meas2 real)(cc int)))));
 (update j := ((rel(tuple((r1id int)(meas1 real)(r2id int)(meas2 real)(cc int))))(
-( 1 201.33542 2 153.06224 255 )
+( 1 201.33542 2 195.04230 255 )
 ( 1 351.36849 3 0.0 255 )
 ( 1 484.10884 4 0.0 255 )
 )));

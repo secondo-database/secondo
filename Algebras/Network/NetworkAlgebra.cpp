@@ -70,17 +70,14 @@ string Network::junctionsTypeInfo =
       "(meas2 int) (cc int))))";
 string Network::junctionsInternalTypeInfo =
       "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
-      "(meas2 real) (cc int) (pos point) (r1rc int) (r2rc int))))";
-string Network::junctionsAppendTypeInfo =
-      "(rel (tuple ((pos point) (r1rc int) (r2rc int))))";
+      "(meas2 real) (cc int) (pos point) (r1rc tid) (r2rc tid) "
+      "(s1rc tid) (s2rc tid) (partrc tid))))";
 string Network::sectionsTypeInfo =
       "(rel (tuple ((rid int) (meas1 real) (meas2 real) "
       "(dual bool) (curve line))))";
 string Network::sectionsInternalTypeInfo =
       "(rel (tuple ((rid int) (meas1 real) (meas2 real) "
       "(dual bool) (curve line) (rrc int))))";
-string Network::sectionsAppendTypeInfo =
-      "(rel (tuple ((rrc int))))";
 
 Network::Network():
 routes( 0 ),
@@ -123,6 +120,7 @@ void Network::Load( const Relation *routes, const Relation *junctions )
   FillRoutes( routes );
   FillJunctions( junctions );
   FillSections();
+  FillAdjacencyLists();
 }
 
 void Network::FillRoutes( const Relation *routes )
@@ -181,7 +179,7 @@ void Network::FillJunctions( const Relation *junctions )
     BTreeIterator *routesIter = routesBTree->ExactMatch( r1id );
     assert( routesIter->Next() );
 
-    CcInt *r1rc = new CcInt( true, routesIter->GetId() );
+    TupleIdentifier *r1rc = new TupleIdentifier( true, routesIter->GetId() );
     intJ->PutAttribute( POS_JR1RC, r1rc );
     
     Tuple *r = this->routes->GetTuple( routesIter->GetId() );
@@ -200,26 +198,54 @@ void Network::FillJunctions( const Relation *junctions )
 
     routesIter = routesBTree->ExactMatch( r2id );
     assert( routesIter->Next() );
-    CcInt *r2rc = new CcInt( true, routesIter->GetId() );
+    TupleIdentifier *r2rc = new TupleIdentifier( true, routesIter->GetId() );
     intJ->PutAttribute( POS_JR2RC, r2rc );
     delete routesIter;
 
+    intJ->PutAttribute( POS_JS1RC,
+                        new TupleIdentifier( false ) );
+    intJ->PutAttribute( POS_JS2RC,
+                        new TupleIdentifier( false ) );
+    intJ->PutAttribute( POS_JPARTRC,
+                        new TupleIdentifier( false ) );
 
     unJunctions->AppendTuple( intJ );
-  
-    CcInt *aux = (CcInt*)intJ->GetAttribute( POS_JR1ID )->Copy();
-    intJ->PutAttribute( POS_JR1ID, 
-                           intJ->GetAttribute( POS_JR2ID )->Copy() );
-    intJ->PutAttribute( POS_JR2ID, aux );
 
-    aux = (CcInt*)intJ->GetAttribute( POS_JMEAS1 )->Copy();
-    intJ->PutAttribute( POS_JMEAS1, 
-                           intJ->GetAttribute( POS_JMEAS2 )->Copy() );
-    intJ->PutAttribute( POS_JMEAS2, aux );
+    Tuple *invJ = new Tuple( nl->Second( junctionsNumInt ) );
 
-    unJunctions->AppendTuple( intJ );
+    invJ->PutAttribute( POS_JR1ID,
+                        intJ->GetAttribute( POS_JR2ID )->Copy() );
+    invJ->PutAttribute( POS_JMEAS1,
+                        intJ->GetAttribute( POS_JMEAS2 )->Copy() );
+    invJ->PutAttribute( POS_JR2ID,
+                        intJ->GetAttribute( POS_JR1ID )->Copy() );
+    invJ->PutAttribute( POS_JMEAS2,
+                        intJ->GetAttribute( POS_JMEAS1 )->Copy() );
+    invJ->PutAttribute( POS_JCC, 
+                        intJ->GetAttribute( POS_JCC )->Copy() );
+    invJ->PutAttribute( POS_JPOS,
+                        intJ->GetAttribute( POS_JPOS )->Copy() );
+    invJ->PutAttribute( POS_JR1RC, 
+                        intJ->GetAttribute( POS_JR2RC )->Copy() );
+    invJ->PutAttribute( POS_JR2RC,
+                        intJ->GetAttribute( POS_JR1RC )->Copy() );
+    invJ->PutAttribute( POS_JS1RC,
+                        intJ->GetAttribute( POS_JS1RC )->Copy() );
+    invJ->PutAttribute( POS_JS2RC,
+                        intJ->GetAttribute( POS_JS2RC )->Copy() );
+    invJ->PutAttribute( POS_JPARTRC,
+                        new TupleIdentifier( true, intJ->GetTupleId() ) ); 
+
+    unJunctions->AppendTuple( invJ );
+
+    vector<int> indices;
+    indices.push_back( POS_JPARTRC );
+    vector<Attribute*> attrs;
+    attrs.push_back( new TupleIdentifier( true, invJ->GetTupleId() ) );
+    unJunctions->UpdateTuple( intJ, indices, attrs );
 
     intJ->DeleteIfAllowed();
+    invJ->DeleteIfAllowed();
     j->DeleteIfAllowed();
   }
 
@@ -269,7 +295,9 @@ void Network::FillSections()
   while( (rTuple = routesIter->GetNextTuple()) != 0 )
   {
     CcReal *meas1 = new CcReal( true, 0 );
-    
+    Line *curve = (Line*)rTuple->GetAttribute( POS_RCURVE );
+    Tuple *lastJunction = 0;
+ 
     while( jTuple != 0 &&
            ((CcInt*)jTuple->GetAttribute( POS_JR1ID ))->GetIntval() == 
            ((CcInt*)rTuple->GetAttribute( POS_RID ))->GetIntval() )
@@ -289,26 +317,41 @@ void Network::FillSections()
         sTuple->PutAttribute( POS_SRRC, 
                               new CcInt( true, rTuple->GetTupleId() ) );
 
-        Line *l = new Line( 0 ),
-             *curve = (Line*)rTuple->GetAttribute( POS_RCURVE );
+        Line *l = new Line( 0 );
         curve->SubLine( meas1->GetRealval(),
                         ((CcReal*)jTuple->GetAttribute( POS_JMEAS1 ))->
                           GetRealval(),
-                        true,
+                        ((CcBool*)rTuple->GetAttribute( POS_RSTARTSSMALLER ))->
+                          GetBoolval(),
                         *l );
         sTuple->PutAttribute( POS_SCURVE, l );
-
+        
         this->sections->AppendTuple( sTuple );
+
+        if( lastJunction != 0 )
+        {
+          vector<int> indices;
+          indices.push_back( POS_JS2RC );
+          vector<Attribute*> attrs;
+          attrs.push_back( new TupleIdentifier( true, sTuple->GetTupleId() ) );
+          junctions->UpdateTuple( jTuple, indices, attrs );
+        }  
+
+        vector<int> indices;
+        indices.push_back( POS_JS1RC );
+        vector<Attribute*> attrs;
+        attrs.push_back( new TupleIdentifier( true, sTuple->GetTupleId() ) );
+        junctions->UpdateTuple( jTuple, indices, attrs );
+
         sTuple->DeleteIfAllowed();
 
         meas1 = (CcReal*)jTuple->GetAttribute( POS_JMEAS1 )->Clone();
       }
-      jTuple->DeleteIfAllowed();
+      lastJunction = jTuple;
       jTuple = junctionsIter->GetNextTuple();
     }
 
-    if( meas1->GetRealval() < 
-        ((CcReal*)rTuple->GetAttribute( POS_RLENGTH ))->GetRealval() )
+    if( meas1->GetRealval() < curve->Length() )
     {
       Tuple *sTuple = new Tuple( nl->Second( sectionsNumInt ) );
       sTuple->PutAttribute( POS_SRID, 
@@ -317,21 +360,31 @@ void Network::FillSections()
                             rTuple->GetAttribute( POS_RDUAL )->Clone() );
       sTuple->PutAttribute( POS_SMEAS1, meas1 );
       sTuple->PutAttribute( POS_SMEAS2, 
-                            rTuple->GetAttribute( POS_RLENGTH )->Clone() );
+                            new CcReal( true, curve->Length() ) );
       sTuple->PutAttribute( POS_SRRC, 
                             new CcInt( true, rTuple->GetTupleId() ) );
-      Line *l = new Line( 0 ),
-           *curve = (Line*)rTuple->GetAttribute( POS_RCURVE );
+      Line *l = new Line( 0 );
       curve->SubLine( meas1->GetRealval(),
-                      ((CcReal*)rTuple->GetAttribute( POS_RLENGTH ))->
-                        GetRealval(),
-                      true,
+                      curve->Length(),
+                      ((CcBool*)rTuple->GetAttribute( POS_RSTARTSSMALLER ))->
+                        GetBoolval(),
                       *l );
       sTuple->PutAttribute( POS_SCURVE, l );
 
       this->sections->AppendTuple( sTuple );
+
+      if( lastJunction != 0 )
+      {
+        vector<int> indices;
+        indices.push_back( POS_JS2RC );
+        vector<Attribute*> attrs;
+        attrs.push_back( new TupleIdentifier( true, sTuple->GetTupleId() ) );
+        junctions->UpdateTuple( jTuple, indices, attrs );
+      }       
+
       sTuple->DeleteIfAllowed();
     }
+
     rTuple->DeleteIfAllowed();
   }
   delete routesIter;
@@ -354,6 +407,272 @@ Relation *Network::GetSections()
   Word resultWord;
   assert( QueryProcessor::ExecuteQuery( querystring, resultWord ) );
   return (Relation *)resultWord.addr;
+}
+
+void Network::FillAdjacencyLists()
+{
+  adjacencyList.Resize( sections->GetNoTuples() * 2 );
+  for( int i = 0; i < sections->GetNoTuples() * 2; i++ )
+    adjacencyList.Put( i, AdjacencyListEntry( 0, -1 ) );
+
+  RelationIterator *junctionsIter = junctions->MakeScan();
+  Tuple *jTuple;
+
+  while( (jTuple = junctionsIter->GetNextTuple()) != 0 )
+  {
+    // Retrieve the connectivity code
+    ConnectivityCode 
+      cc( ((CcInt*)jTuple->GetAttribute( POS_JCC ))->GetIntval() );
+
+    // Retrieve the partner junction
+    Tuple *jPartTuple = junctions->GetTuple( 
+      ((TupleIdentifier*)jTuple->GetAttribute( POS_JPARTRC ))->GetTid() );
+    
+    // Retrieve the four sections, possibly less than four
+    vector<Tuple*> sTuples;
+    if( ((TupleIdentifier*)jTuple->GetAttribute( POS_JS1RC ))->GetTid() > 0 )
+      sTuples.push_back( sections->GetTuple( 
+        ((TupleIdentifier*)jTuple->GetAttribute( POS_JS1RC ))->GetTid() ) );
+    if( ((TupleIdentifier*)jTuple->GetAttribute( POS_JS2RC ))->GetTid() > 0 )
+      sTuples.push_back( sections->GetTuple( 
+        ((TupleIdentifier*)jTuple->GetAttribute( POS_JS2RC ))->GetTid() ) );
+    if( ((TupleIdentifier*)jPartTuple->GetAttribute( POS_JS1RC ))->GetTid()>0 )
+      sTuples.push_back( sections->GetTuple( 
+        ((TupleIdentifier*)jPartTuple->GetAttribute( POS_JS1RC ))->GetTid() ) );
+    if( ((TupleIdentifier*)jPartTuple->GetAttribute( POS_JS2RC ))->GetTid()>0 )
+      sTuples.push_back( sections->GetTuple( 
+        ((TupleIdentifier*)jPartTuple->GetAttribute( POS_JS2RC ))->GetTid() ) );
+
+    assert( sTuples.size() >= 3 );
+
+    // Retrieve the smallest point to be the starting point of section Aup
+    Point smPoint( numeric_limits<float>::min(), numeric_limits<float>::min() );
+    size_t a1 = sTuples.size(), 
+           a2 = sTuples.size(), 
+           b1 = sTuples.size(), 
+           b2 = sTuples.size();
+    bool a1up = true, a2up = false, 
+         b1up = true, b2up = false;
+
+    for( size_t i = 0; i < sTuples.size(); i++ )
+    {
+      Point p;
+      Line *l = (Line*)sTuples[i]->GetAttribute(POS_SCURVE);
+      if( AlmostEqual( *(Point*)jTuple->GetAttribute( POS_JPOS ),
+                       l->StartPoint(true) ) )
+        p = l->EndPoint(true);
+      else
+      {
+        assert( AlmostEqual( *(Point*)jTuple->GetAttribute( POS_JPOS ),
+                l->EndPoint(true) ) );
+        p = l->StartPoint(true);
+      }
+      if( p < smPoint )
+      {
+        smPoint = p;
+        a1 = i;
+      }
+    }
+    assert( a1 < sTuples.size() );
+  
+    // Retrieve the other section on the same route to be of section Adown
+    long aId = ((CcInt*)sTuples[a1]->GetAttribute(POS_SRID))->GetIntval();
+    for( size_t i = 0; i < sTuples.size(); i++ )
+    {
+      if( i != a1 && 
+          ((CcInt*)sTuples[i]->GetAttribute(POS_SRID))->GetIntval() == aId )
+      {
+        a2 = i;
+
+        Point p;
+        Line *l = (Line*)sTuples[i]->GetAttribute(POS_SCURVE);
+        if( AlmostEqual( *(Point*)jTuple->GetAttribute( POS_JPOS ),
+                         l->StartPoint(true) ) )
+          p = l->EndPoint(true);
+        else
+        {
+          assert( AlmostEqual( *(Point*)jTuple->GetAttribute( POS_JPOS ),
+                  l->EndPoint(true) ) );
+          p = l->StartPoint(true);
+        }
+        if( p < *(Point*)jTuple->GetAttribute( POS_JPOS ) )
+          a2up = true;
+
+        break;
+      }
+    }
+
+    // Retrieve the smaller point from the 2 (possibly less) 
+    // other sections to be the Bup
+    smPoint = Point( numeric_limits<float>::min(), 
+                     numeric_limits<float>::min() );
+    for( size_t i = 0; i < sTuples.size(); i++ )
+    {
+      if( i != a1 && i != a2 )
+      {
+        Point p;
+        Line *l = (Line*)sTuples[i]->GetAttribute(POS_SCURVE);
+        if( AlmostEqual( *(Point*)jTuple->GetAttribute( POS_JPOS ),
+                         l->StartPoint(true) ) )
+          p = l->EndPoint(true);
+        else
+        {
+          assert( AlmostEqual( *(Point*)jTuple->GetAttribute( POS_JPOS ),
+                  l->EndPoint(true) ) );
+          p = l->StartPoint(true);
+        }
+        if( p < smPoint )
+        {
+          smPoint = p;
+          b1 = i;
+        }
+      }
+    }
+    assert( b1 < sTuples.size() );
+ 
+    // Retrieve the other section on the same route to be section Bdown
+    long bId = ((CcInt*)sTuples[b1]->GetAttribute(POS_SRID))->GetIntval();
+    for( size_t i = 0; i < sTuples.size(); i++ )
+    {
+      if( i != a1 && i != a2 && i != b2 && 
+          ((CcInt*)sTuples[i]->GetAttribute(POS_SRID))->GetIntval() == bId )
+      {
+        b2 = i;
+
+        Point p;
+        Line *l = (Line*)sTuples[i]->GetAttribute(POS_SCURVE);
+        if( AlmostEqual( *(Point*)jTuple->GetAttribute( POS_JPOS ),
+                         l->StartPoint(true) ) )
+          p = l->EndPoint(true);
+        else
+        {
+          assert( AlmostEqual( *(Point*)jTuple->GetAttribute( POS_JPOS ),
+                  l->EndPoint(true) ) );
+          p = l->StartPoint(true);
+        }
+        if( p < *(Point*)jTuple->GetAttribute( POS_JPOS ) )
+          b2up = true;
+
+        break;
+      }
+    }
+  
+    // Retrieve the adjacent sections of aup 
+    int low = subAdjacencyList.Size();
+    if( cc.IsPossible( Aup_Aup ) )
+    {
+      assert( a2 < sTuples.size() );
+      subAdjacencyList.Append( DirectedSection( sTuples[a2]->GetTupleId(), 
+                                                !a2up ) );
+    }
+    if( cc.IsPossible( Aup_Adown ) )
+    {
+      subAdjacencyList.Append( DirectedSection( sTuples[a1]->GetTupleId(), 
+                                                !a1up ) );
+    }
+    if( cc.IsPossible( Aup_Bup ) )
+    {
+      assert( b2 < sTuples.size() );
+      subAdjacencyList.Append( DirectedSection( sTuples[b2]->GetTupleId(), 
+                                                !b2up ) );
+    }
+    if( cc.IsPossible( Aup_Bdown ) )
+    {
+      subAdjacencyList.Append( DirectedSection( sTuples[b1]->GetTupleId(), 
+                                                !b1up ) );
+    }
+    int high = subAdjacencyList.Size()-1;
+    if( high >= low )
+      adjacencyList.Put( 2 * (sTuples[a1]->GetTupleId() - 1),
+                         AdjacencyListEntry( low, high ) );   
+
+    // Retrieve the adjacent sections of adown 
+    low = subAdjacencyList.Size();
+    if( cc.IsPossible( Adown_Aup ) )
+    {
+      assert( a2 < sTuples.size() );
+      subAdjacencyList.Append( DirectedSection( sTuples[a2]->GetTupleId(), 
+                                                !a2up ) );
+    }
+    if( cc.IsPossible( Adown_Adown ) )
+    {
+      subAdjacencyList.Append( DirectedSection( sTuples[a1]->GetTupleId(), 
+                                                !a1up ) );
+    }
+    if( cc.IsPossible( Adown_Bup ) )
+    {
+      assert( b2 < sTuples.size() );
+      subAdjacencyList.Append( DirectedSection( sTuples[b2]->GetTupleId(), 
+                                                !b2up ) );
+    }
+    if( cc.IsPossible( Adown_Bdown ) )
+    {
+      subAdjacencyList.Append( DirectedSection( sTuples[b1]->GetTupleId(), 
+                                                !b1up ) );
+    }
+    high = subAdjacencyList.Size()-1;
+    if( high >= low )
+      adjacencyList.Put( 2 * (sTuples[a1]->GetTupleId() - 1) + 1,
+                         AdjacencyListEntry( low, high ) );
+
+    // Retrieve the adjacent sections of bup
+    low = subAdjacencyList.Size();
+    if( cc.IsPossible( Bup_Aup ) )
+    {
+      assert( a2 < sTuples.size() );
+      subAdjacencyList.Append( DirectedSection( sTuples[a2]->GetTupleId(), 
+                                                !a2up ) );
+    }
+    if( cc.IsPossible( Bup_Adown ) )
+    {
+      subAdjacencyList.Append( DirectedSection( sTuples[a1]->GetTupleId(), 
+                                                !a1up ) );
+    }
+    if( cc.IsPossible( Bup_Bup ) )
+    {
+      assert( b2 < sTuples.size() );
+      subAdjacencyList.Append( DirectedSection( sTuples[b2]->GetTupleId(), 
+                                                !b2up ) );
+    }
+    if( cc.IsPossible( Bup_Bdown ) )
+    {
+      subAdjacencyList.Append( DirectedSection( sTuples[b1]->GetTupleId(), 
+                                                !b1up ) );
+    }
+    high = subAdjacencyList.Size()-1;
+    if( high >= low )
+      adjacencyList.Put( 2 * (sTuples[b1]->GetTupleId() - 1),
+                         AdjacencyListEntry( low, high ) );
+
+    // Retrieve the adjacent sections of bdown 
+    low = subAdjacencyList.Size();
+    if( cc.IsPossible( Bdown_Aup ) )
+    {
+      assert( a2 < sTuples.size() );
+      subAdjacencyList.Append( DirectedSection( sTuples[a2]->GetTupleId(), 
+                                                !a2up ) );
+    }
+    if( cc.IsPossible( Bdown_Adown ) )
+    {
+      subAdjacencyList.Append( DirectedSection( sTuples[a1]->GetTupleId(), 
+                                                !a1up ) );
+    }
+    if( cc.IsPossible( Bdown_Bup ) )
+    {
+      assert( b2 < sTuples.size() );
+      subAdjacencyList.Append( DirectedSection( sTuples[b2]->GetTupleId(), 
+                                                !b2up ) );
+    }
+    if( cc.IsPossible( Bdown_Bdown ) )
+    {
+      subAdjacencyList.Append( DirectedSection( sTuples[b1]->GetTupleId(), 
+                                                !b1up ) );
+    }
+    high = subAdjacencyList.Size()-1;
+    if( high >= low )
+      adjacencyList.Put( 2 * (sTuples[b1]->GetTupleId() - 1) + 1,
+                         AdjacencyListEntry( low, high ) );
+  }
 }
 
 ListExpr Network::GetRoutesTypeInfo()
@@ -396,16 +715,6 @@ ListExpr Network::GetJunctionsIntTypeInfo()
   return 0;
 }
 
-ListExpr Network::GetJunctionsAppTypeInfo()
-{
-  ListExpr result;
-
-  if( nl->ReadFromString( junctionsAppendTypeInfo, result ) )
-    return result;
-
-  return 0;
-}
-
 ListExpr Network::GetSectionsTypeInfo()
 {
   ListExpr result;
@@ -421,16 +730,6 @@ ListExpr Network::GetSectionsInternalTypeInfo()
   ListExpr result;
 
   if( nl->ReadFromString( sectionsInternalTypeInfo, result ) )
-    return result;
-
-  return 0;
-}
-
-ListExpr Network::GetSectionsAppendTypeInfo()
-{
-  ListExpr result;
-
-  if( nl->ReadFromString( sectionsAppendTypeInfo, result ) )
     return result;
 
   return 0;
@@ -663,6 +962,174 @@ TypeConstructor network( "network",            NetworkProp,
                          CloseNetwork,         CloneNetwork,
                          CastNetwork,          SizeOfNetwork,
                          CheckNetwork );
+
+/*
+4 Type Constructor ~gpoint~
+
+4.1 List Representation
+
+The list representation of a graph point is
+
+----    (nid rid pos side)
+----
+
+3.3 ~Out~-function
+
+*/
+ListExpr OutGPoint( ListExpr typeInfo, Word value )
+{
+  GPoint *gp = (GPoint*)value.addr;
+
+  if( gp->IsDefined() )
+  {
+    return nl->FourElemList(
+      nl->IntAtom(gp->GetNetworkId()),
+      nl->IntAtom(gp->GetRouteId()),
+      nl->RealAtom(gp->GetPosition()),
+      nl->IntAtom(gp->GetSide()));
+  }
+  return nl->SymbolAtom("undef");
+}
+
+/*
+3.4 ~In~-function
+
+*/
+Word InGPoint( const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  if( nl->ListLength( instance ) == 4 )
+  {
+    if( nl->IsAtom( nl->First(instance) ) &&
+        nl->AtomType( nl->First(instance) ) == IntType && 
+        nl->IsAtom( nl->Second(instance) ) &&
+        nl->AtomType( nl->Second(instance) ) == IntType &&
+        nl->IsAtom( nl->Third(instance) ) &&
+        nl->AtomType( nl->Third(instance) ) == RealType &&
+        nl->IsAtom( nl->Fourth(instance) ) &&
+        nl->AtomType( nl->Fourth(instance) ) == IntType )
+    {
+      GPoint *gp = new GPoint( 
+        true,
+        nl->IntValue( nl->First(instance) ),
+        nl->IntValue( nl->Second(instance) ),
+        nl->RealValue( nl->Third(instance) ), 
+        (Side)nl->IntValue( nl->Fourth(instance) ) );
+      correct = true;
+      return SetWord( gp );
+    }
+  }
+
+  correct = false;
+  return SetWord( Address(0) );
+}
+
+/*
+5.1 ~Create~-function
+
+*/
+Word CreateGPoint( const ListExpr typeInfo )
+{
+  return SetWord( new GPoint( false ) );
+}
+
+/*
+5.2 ~Delete~-function
+
+*/
+void DeleteGPoint( const ListExpr typeInfo, Word& w )
+{
+  delete (GPoint*)w.addr;
+  w.addr = 0;
+}
+
+/*
+5.3 ~Close~-function
+
+*/
+void CloseGPoint( const ListExpr typeInfo, Word& w )
+{
+  delete (GPoint*)w.addr;
+  w.addr = 0;
+}
+
+/*
+5.4 ~Clone~-function
+
+*/
+Word CloneGPoint( const ListExpr typeInfo, const Word& w )
+{
+  return SetWord( ((GPoint*)w.addr)->Clone() ); 
+}
+
+/*
+5.5 ~Cast~-function
+
+*/
+void* CastGPoint( void* addr )
+{
+  return new (addr) GPoint;
+}
+
+/*
+3.11 ~SizeOf~-function
+
+*/
+int SizeOfGPoint()
+{
+  return sizeof(GPoint);
+}
+
+
+/*
+3.9 Function describing the signature of the type constructor
+
+*/
+ListExpr
+GPointProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                             nl->StringAtom("gpoint"),
+                             nl->StringAtom("(<nid> <rid> <pos> <side>)"),
+                             nl->StringAtom("(1 1 0.0 0)"))));
+}
+
+/*
+3.10 Kind Checking Function
+
+This function checks whether the type constructor is applied correctly. Since
+type constructor ~gpoint~ does not have arguments, this is trivial.
+
+*/
+bool
+CheckGPoint( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "gpoint" ));
+}
+
+/*
+3.12 Creation of the type constructor instance
+
+*/
+TypeConstructor gpoint(
+        "gpoint",                                //name
+        GPointProperty,                          //property function
+                                                 //describing signature
+        OutGPoint,           InGPoint,           //Out and In functions
+        0,                   0,                  //SaveToList and
+                                                 //RestoreFromList functions
+        CreateGPoint,        DeleteGPoint,       //object creation and deletion
+        0,                   0,                  //open and save functions
+        CloseGPoint,         CloneGPoint,        //object close, and clone
+        CastGPoint,                              //cast function
+        SizeOfGPoint,                            //sizeof function
+        CheckGPoint );                           //kind checking function
+
 
 /*
 4 Operators
@@ -942,6 +1409,7 @@ class NetworkAlgebra : public Algebra
   NetworkAlgebra() : Algebra()
   {
     AddTypeConstructor( &network );
+    AddTypeConstructor( &gpoint );
 
     AddOperator(&networkthenetwork);
     AddOperator(&networkroutes);
