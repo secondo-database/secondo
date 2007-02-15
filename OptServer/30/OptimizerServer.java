@@ -540,7 +540,7 @@ static {
                   return;
                }
              } // while
-             System.out.println("connection ended normaly");
+             System.out.println("connection ended normally");
              showPrompt();
            }catch(IOException e){
               System.out.println("error in socket-communication");
