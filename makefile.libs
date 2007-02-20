@@ -24,17 +24,10 @@
 
 include ./makefile.env
 
-#libsdbtool
-LIB_SDBTOOL_BASENAMES:=\
-	Tools/NestedLists/NestedList \
-	Tools/NestedLists/NLLex \
-	Tools/NestedLists/NLScanner \
-	Tools/NestedLists/NLParser \
-	Tools/NestedLists/NLParser.tab \
-	Tools/Parser/SecLex \
-	Tools/Parser/SecParser \
-	Tools/Parser/SecParser.tab \
-	Tools/Parser/SpecParser/NestedText
+# The code of the tools below should be independent
+# of any other Secondo-realted code such as the query processor,
+# storage manager, nested lists, etc. It should be useable for
+# any other kind of program.
 
 #libsdbutils
 LIB_SDBUTILS_BASENAMES:=\
@@ -48,6 +41,25 @@ LIB_SDBUTILS_BASENAMES:=\
 	Tools/Utilities/WinUnix \
 	Tools/Utilities/Base64 \
 	Tools/Utilities/PolySolver
+
+# The following libraries have interdependencies :-(
+# they are only usable in the framework of the Secondo
+# applications. For example the Nestedlist module uses
+# SMI-Records for implementing a persistent representation. 
+
+#libsdbtool
+LIB_SDBTOOL_BASENAMES:=\
+	Tools/NestedLists/NestedList \
+	Tools/NestedLists/NList \
+	Tools/NestedLists/NLLex \
+	Tools/NestedLists/NLScanner \
+	Tools/NestedLists/NLParser \
+	Tools/NestedLists/NLParser.tab \
+	Tools/Parser/SecLex \
+	Tools/Parser/SecParser \
+	Tools/Parser/SecParser.tab \
+	Tools/Parser/SpecParser/NestedText
+
 
 #libsdbsocket
 LIB_SDBSOCKET_BASENAMES:=\
