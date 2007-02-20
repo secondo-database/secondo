@@ -191,43 +191,51 @@ c)~.
   
 */  
   
-  NList() : 
+  NList(NestedList* ptr = nlGlobal) : 
+    nl(ptr),
     l(nl->Empty()), 
     e(nl->Empty()),
     len(0) 
   {}
-  NList(const NList& rhs) : 
+  NList(const NList& rhs) :
+    nl(rhs.nl), 
     l(rhs.l), 
     e(rhs.e),
     len(rhs.len) 
   {}
-  NList(const ListExpr list) : 
+  NList(const ListExpr list, NestedList* ptr = nlGlobal) : 
+    nl(ptr),
     l(list), 
     e(nl->Empty()),
     len(nl->ListLength(list)) 
   {}
-  NList(const ListExpr list, int knownLen) : 
+  NList(const ListExpr list, int knownLen, NestedList* ptr = nlGlobal) : 
+    nl(ptr),
     l(list), 
     e(nl->Empty()),
     len(knownLen) 
   {}  
   NList(const NList& a, const NList& b) : 
+    nl(nlGlobal),
     l( nl->TwoElemList(a.l, b.l) ),
     e( b.l ), 
     len(2)
   {}
   NList(const NList& a, const NList& b, const NList& c) : 
+    nl(nlGlobal),
     l( nl->ThreeElemList(a.l, b.l, c.l) ),
     e( c.l ), 
     len(3)
   {}
   NList(const NList& a, const NList& b, const NList& c, const NList& d) : 
+    nl(nlGlobal),
     l( nl->FourElemList(a.l, b.l, c.l, d.l) ),
     e( d.l ), 
     len(4)
   {}
 
   NList(const string& s, const bool isStr = false) :
+    nl(nlGlobal),
     e( nl->Empty() ),
     len(0)
   {
@@ -239,12 +247,14 @@ c)~.
   }
  
   NList(const int n) :
+    nl(nlGlobal),
     l( nl->IntAtom(n) ),
     e( nl->Empty() ),
     len(0)
   {}
 
   NList(const double d) :
+    nl(nlGlobal),
     l( nl->RealAtom(d) ),
     e( nl->Empty() ),
     len(0)
@@ -252,6 +262,7 @@ c)~.
     
   inline NList& intAtom(const int val) 
   {
+    nl = nlGlobal;
     len = 0;
     e = nl->Empty();
     l = nl->IntAtom(val);
@@ -260,6 +271,7 @@ c)~.
 
   inline NList& realAtom(const double val) 
   {
+    nl = nlGlobal;
     len = 0;
     e = nl->Empty();
     l = nl->RealAtom(val);
@@ -268,6 +280,7 @@ c)~.
 
   inline NList& stringAtom(const string& val) 
   {
+    nl = nlGlobal;
     len = 0;
     e = nl->Empty();
     l = nl->StringAtom(val);
@@ -276,6 +289,7 @@ c)~.
   
   inline NList& textAtom(const string& val) 
   {
+    nl = nlGlobal;
     len = 0;
     e = nl->Empty();
     l = nl->TextAtom(val);
@@ -284,6 +298,7 @@ c)~.
 
   inline NList& symbolAtom(const string& val) 
   {
+    nl = nlGlobal;
     len = 0;
     e = nl->Empty();
     l = nl->SymbolAtom(val);
@@ -292,6 +307,7 @@ c)~.
   
   inline NList& enclose() 
   {
+    nl = nlGlobal;
     len = 1;
     l = nl->OneElemList(l);
     e = l;
@@ -374,7 +390,7 @@ list stucture and to extract subexpressions or atom values.
   inline static ListExpr typeError(const string& msg)
   { 
     ErrorReporter::ReportError(msg); 
-    return nl->TypeError(); 
+    return nlGlobal->TypeError(); 
   }
 
   // interchange with type ~ListExpr~ 
@@ -442,7 +458,21 @@ Comparison between ~NList/NList~ and ~NList/string~ instances
     }
   }
  
-
+/*
+Write the text or binary representation of the nested list
+to a given ~ostream~ reference.
+   
+*/
+  
+  inline bool writeAsStringTo( ostream& os ) const 
+  { 
+    return nl->WriteStringTo(l,os); 
+  }
+  inline bool writeAsBinaryTo( ostream& os ) const 
+  { 
+    return nl->WriteBinaryTo(l,os); 
+  }
+  
 /*
 Construction of bigger lists
 
@@ -500,10 +530,22 @@ functions.
   }
 
 
- static void setNLRef(NestedList* ptr) { nl = ptr; } 
-  
+/*
+The function below resets the global nested list pointer. This
+is necessary to switch from Kernel-Instance to the Application-Instance.
+
+Use with care! Normally you will not need this. 
+   
+*/  
+ static void setNLRef(NestedList* ptr) { nlGlobal = ptr; } 
+ void showNLRefs() {
+    cerr << "nlGlobal:" << nlGlobal << endl;
+    cerr << "nl:" << nl << endl;
+ }   
+ 
  private:
-  static NestedList* nl;
+  static NestedList* nlGlobal;
+  NestedList* nl;
   ListExpr l; 
   ListExpr e; // points to the last element of a list
   Cardinal len;
