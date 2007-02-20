@@ -34,7 +34,9 @@ LATEX = latex -interaction=nonstopmode
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
 
+ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
+endif
 
 $(LIBOBJ): $(OBJECTS)
 ifeq ($(shared),yes)
