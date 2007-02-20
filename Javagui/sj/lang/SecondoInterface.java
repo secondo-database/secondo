@@ -362,8 +362,8 @@ not accessible by the user code.
         errorCode.value=81; // network error
         return;
      }
-     while(line.equals("<message>")){
-        ListExpr messageList = receiveList("</message>",errorCode);
+     while(line.equals("<Message>")){
+        ListExpr messageList = receiveList("</Message>",errorCode);
         if(messageList==null){ // error
            return;
         }
