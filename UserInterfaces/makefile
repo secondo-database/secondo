@@ -133,14 +133,18 @@ SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
 $(APP_LIB): $(TTY_OBJECTS) $(BDB_OBJECTS) 	
 	$(create-lib)
 
-
+# SecondoBDB, the stand alone application.
 $(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES)
 $(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(APP_LIB) $(ALG_LIST) $(PL_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
 
+
+# The TTY-Clients, they use special implementations of SecondoInterface and don't
+# need the algebra libs.
+# 
 $(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(PL_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS)
 
 
 ifneq ($(MAKECMDGOALS),clean)

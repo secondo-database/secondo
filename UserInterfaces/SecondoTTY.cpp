@@ -369,7 +369,12 @@ SecondoTTY::ProcessCommands()
   {
     if ( GetCommand() )
     {
-      ProcessCommand();
+      try {
+        ProcessCommand();
+      } 
+      catch (SecondoException e) {
+        cerr << "Exception caught: " << e.msg() << endl;
+      }  
     }
   }
 }
@@ -583,8 +588,20 @@ SecondoTTY::Execute()
     ofstream fileOutput;
 
     si = new SecondoInterface();
+    
+     
     if ( si->Initialize( user, pswd, host, port, parmFile ) )
     {
+    // Add message handlers
+    MessageCenter* msg = MessageCenter::GetInstance();
+    
+    // uncomment the lines below in order to 
+    // activate the example handler. The operator
+    // count2 demonstrates how to send messages.
+    SimpleHandler* sh = new SimpleHandler();
+    msg->AddHandler(sh);
+
+     
       if ( iFileName.length() > 0 )
       {
         fileInput.open( iFileName.c_str() );
