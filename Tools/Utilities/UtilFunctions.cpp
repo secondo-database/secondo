@@ -2,8 +2,8 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-Database Systems for New Applications.
+Copyright (C) 2002-2007, University in Hagen, Faculty of Mathematics of Computer
+Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -48,7 +48,6 @@ July 2004 M. Spiekermann, Implementation of showActiveFlags.
 #include "LogMsg.h"
 #include "Counter.h"
 #include "CharTransform.h"
-#include "NList.h"
 
 using namespace std;
 
@@ -702,17 +701,6 @@ bool removePrefix(const string& pre, string& s)
 
 
 
-/*
-6 Parts of class ~NList~
-
-*/
-
-NestedList* NList::nl = 0;
-
-ostream& operator<<(ostream& os, const NList& n) { 
-  os << n.convertToString(); 
-  return os;
-}
 
 
 /*
