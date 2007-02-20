@@ -393,6 +393,23 @@ cscope.files:
 backup-all:	
 	dir=$${PWD##*/}; tar -czf $$dir.tgz --exclude-from exclude.pat -C.. $$dir
 
+.PHONY: sync-test
+sync-test: 
+ifdef syncdir 
+	rsync -nvau --exclude-from exclude.pat * $$syncdir
+else
+	echo "Error: Variable syncdir undefined!"
+endif
+
+.PHONY: sync-now
+sync-now: 
+ifdef syncdir 
+	rsync -au --exclude-from exclude.pat * $$syncdir
+else
+	echo "Error: Variable syncdir undefined!"
+endif
+
+
 .PHONY: showtags
 showtags:
 	cvs log -h makefile 

@@ -4382,7 +4382,7 @@ countQuery(Query groupby _) :-
   countQuery(Query).
 
 countQuery(Query orderby _) :-
-  countQuery(Query).
+  countQuery(Query).distLINEITEM(lL
 
 countQuery(Query first _) :-
   countQuery(Query).
@@ -4584,10 +4584,11 @@ Optimize ~Query~ and print the best ~Plan~.
 */
 
 optimize(Query) :-
-  rewriteQuery(Query, RQuery),
-  callLookup(RQuery, Query2), !,
-  queryToPlan(Query2, Plan, Cost), !,
-  plan_to_atom(Plan, SecondoQuery),
+ %rewriteQuery(Query, RQuery),
+ % callLookup(RQuery, Query2), !,
+ % queryToPlan(Query2, Plan, Cost), !,
+ % plan_to_atom(Plan, SecondoQuery),
+  optimize(Query, SecondoQuery, Cost),
   write('The plan is: '), nl, nl,
   write(SecondoQuery), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl.

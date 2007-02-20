@@ -46,8 +46,9 @@ DEBUG = -ggdb
 # OPTIMIZE += -DNDEBUG  
 
 # Uncomment next lines to generate profiling data used by gprof
-#DEBUG += -pg
-#LDFLAGS += -pg
+# Run make realclean; make  
+DEBUG +=
+LDFLAGS +=
 
 # Set up default flags for the compiler
 DEFAULTCCFLAGS += $(DEBUG) $(OPTIMIZE) $(TEMPLATEFLAGS) -I. -I$(INCLUDEDIR)

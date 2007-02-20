@@ -10,8 +10,15 @@
 *.tab.*
 *.yy.*
 *.output
+*.swp
+*.lo
 cscope*
+
+TTYCS.bnl
+gmon.out
+
 tmp/*
+CVS/*
 
 bin/SecondoBDB
 bin/SecondoCS
@@ -40,7 +47,10 @@ Tests/bdbtest
 Tests/tpctable
 Tests/itlogmsg
 
-Tools/NestedList/NLLex.cpp
+Tools/Generators/TPC-H/dbgen
+Tools/Generators/TPC-H/qgen
+
+Tools/NestedLists/NLLex.cpp
 
 Tools/Parser/SecLex.cpp
 Tools/Parser/SecLex.l
@@ -61,4 +71,7 @@ Tools/pd/tabcheck
 Tools/pd/make*
 Tools/pd/docu*
 Tools/pd/line*
+
+Optimizer/stored*.pl
+Optimizer/sysDependent*.pl
 
