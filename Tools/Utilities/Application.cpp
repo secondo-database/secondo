@@ -63,6 +63,8 @@ using namespace std;
 #endif
 
 
+#include "Messages.h"
+MessageCenter* MessageCenter::msg = 0;
 
 Application* 
 Application::appPointer = 0;
@@ -210,8 +212,8 @@ Application::Application( int argc, const char** argv )
   signalStr[SIGVTALRM] = "SIGVTALRM";
   signal( SIGVTALRM, Application::AbortOnSignalHandler );
   
-  signalStr[SIGPROF] = "SIGPROF";
-  signal( SIGPROF,   Application::AbortOnSignalHandler );
+  //signalStr[SIGPROF] = "SIGPROF";
+  //signal( SIGPROF,   Application::AbortOnSignalHandler );
 #ifdef SIGPWR
   signalStr[SIGPWR] = "SIGPWR";
   signal( SIGPWR,    Application::AbortOnSignalHandler );
@@ -271,7 +273,7 @@ abort the process if not handled otherwise.
   cout << endl << "*** Signal " << signalStr[sig] 
        << " (" << sig << ") caught!";
   
-  if ( sig == SIGSEGV || sig == SIGFPE )
+  if ( sig == SIGABRT || sig == SIGSEGV || sig == SIGFPE )
   {
   cout << " Printing stack trace ...";
   cout << endl << " ************ BEGIN STACKTRACE *******************" << endl;
