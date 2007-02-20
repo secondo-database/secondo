@@ -2045,6 +2045,47 @@ TCountStream(Word* args, Word& result, int message,
   return 0;
 }
 
+
+/*
+5.11.3 Value mapping function for operator ~count2~ 
+
+This operator generates messages! Refer to "Messages.h".
+
+*/
+#include "Messages.h"
+int
+TCountStream2(Word* args, Word& result, int message, 
+              Word& local, Supplier s)
+{
+  Word elem;
+  int count = 0;
+
+  // Get a reference to the message center
+  static MessageCenter* msg = MessageCenter::GetInstance();
+  
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, elem);
+  while ( qp->Received(args[0].addr) )
+  {
+    if ((count % 100) == 0) {    
+      // build a two elem list (simple count)	    
+      NList msgList( NList("simple"), NList(count) );
+      // send the message, the message center will call 
+      // the registered handlers. Normally the client applications
+      // will register them. 
+      msg->Send(msgList);
+    }	      
+    ((Tuple*)elem.addr)->DeleteIfAllowed();
+    qp->Request(args[0].addr, elem);
+    count++;
+  }
+  result = qp->ResultStorage(s);
+  ((CcInt*) result.addr)->Set(true, count);
+  qp->Close(args[0].addr);
+  return 0;
+}
+
+
 int
 TCountRel(Word* args, Word& result, int message, 
           Word& local, Supplier s)
@@ -2061,16 +2102,16 @@ TCountRel(Word* args, Word& result, int message,
 
 */
 const string TCountSpec  = 
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>((stream/rel (tuple x))) -> int"
-  "</text--->"
-  "<text>_ count</text--->"
-  "<text>Count number of tuples within a stream "
-  "or a relation of tuples.</text--->"
-  "<text>query cities count or query cities "
-  "feed count</text--->"
-  ") )";
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
+"\"Example\" ) "
+"( <text>((stream/rel (tuple x))) -> int"
+"</text--->"
+"<text>_ count</text--->"
+"<text>Count number of tuples within a stream "
+"or a relation of tuples.</text--->"
+"<text>query cities count or query cities "
+"feed count</text--->"
+") )";
 
 /*
 5.11.4 Selection function of operator ~count~
@@ -2103,6 +2144,24 @@ Operator relalgcount (
          TCountTypeMap      // type mapping
 );
 
+
+const string TCountSpec2  = 
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
+"\"Example\" ) "
+"( '((stream (tuple x))) -> int'"
+"'_ count2'"
+"'Count number of tuples within a stream "
+"or a relation of tuples. During computation example messages are sent.'"
+"'query plz feed count2'"
+") )";
+
+Operator relalgcount2 (
+         "count2",                // name
+         TCountSpec2,             // specification
+         TCountStream2,           // value mapping function
+	 Operator::SimpleSelect,
+         TCountTypeMap            // type mapping
+);
 /*
 5.11 Operator ~roottuplesize~
 
@@ -3536,6 +3595,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgproject);
     AddOperator(&relalgproduct);
     AddOperator(&relalgcount);
+    AddOperator(&relalgcount2);
     AddOperator(&relalgroottuplesize);
     AddOperator(&relalgexttuplesize);
     AddOperator(&relalgtuplesize);

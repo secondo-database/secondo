@@ -42,6 +42,11 @@ Signature: ((stream/rel (tuple x))) -> int
 Example  : query plz count
 Result   : 41267
 
+Operator : count2
+Number   : 1
+Signature: ((stream (tuple x))) -> int
+Example  : query ten count2
+Result   : 10
 
 Operator : dumpstream
 Number   : 1
