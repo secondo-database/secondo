@@ -12,7 +12,7 @@
 # a subdirectory CVS will be created. All files passed by the cvs client
 # for a commit are copied (creating subdirectories if necessary). 
 
-prefix="/home/spieker/cvs-snapshot"
+prefix="/home/spieker/secondo"
 
 pdDir="$prefix/Tools/pd"
 scriptDir="$prefix/CM-Scripts"
