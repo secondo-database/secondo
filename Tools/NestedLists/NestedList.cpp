@@ -2262,8 +2262,8 @@ NestedList::GetText ( TextScan       textScan,
   unsigned int pos=0; // position in text
   TextRecord fragment;
   (*textTable).Get(textScan->currentFragment, fragment);
-  Cardinal fragmentRestLength;
-  unsigned int BytesToCopy;
+  Cardinal fragmentRestLength = 0;
+  unsigned int BytesToCopy = 0;
   while(fragment.next && pos<noChars){
       fragmentRestLength = TextFragmentSize-textScan->currentPosition;
       BytesToCopy = min(noChars-pos,fragmentRestLength);
@@ -2280,11 +2280,14 @@ NestedList::GetText ( TextScan       textScan,
       }
   }
   if(pos<noChars){ // copy the content of the last fragment into the buffer
-     fragmentRestLength = UsedBytesOfTextFragment(fragment) -
-                             textScan->currentPosition;
+     Cardinal used = UsedBytesOfTextFragment(fragment);
+     Cardinal curPos = textScan->currentPosition;
+     assert (used >= curPos);
+     fragmentRestLength = used - curPos;
+                             
      BytesToCopy = min(noChars-pos,fragmentRestLength);
-     textBuffer.append(&fragment.field[textScan->currentPosition],BytesToCopy);
-     textScan->currentPosition += BytesToCopy;
+     textBuffer.append(&fragment.field[curPos],BytesToCopy);
+     curPos += BytesToCopy;
   }
 }  
 
@@ -2414,6 +2417,7 @@ NestedList::GetNextText( const ListExpr textAtom,
   {
     GetText( textScan, textFragmentLength, textFragment );
     textLength -= textFragmentLength;
+    assert(textLength >= 0);
     return true;
   } else {
     GetText ( textScan, textLength, textFragment );
