@@ -916,7 +916,9 @@ Sets the debug level of the query processor.
   NestedList  *nl, *al;          // References of
                                  // nested list containers
   Socket*     server;            // used in C/S version only
-
+  
+  bool ServerInstance() { return !isCSImpl; }
+  
   static bool errMsgInitialized;
 
   DerivedObj* derivedObjPtr;

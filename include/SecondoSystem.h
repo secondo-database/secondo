@@ -93,6 +93,7 @@ The class ~SecondoSystem~ provides the following methods:
 
 #include "ErrorCodes.h"
 #include "NestedList.h"
+#include "Messages.h"
 #include "SecondoCatalog.h"
 #include "FLOBCache.h"
 
@@ -322,6 +323,8 @@ Returns the FLOB cache.
 
 */
 
+
+  
  protected:
   SecondoSystem( const SecondoSystem& );
   SecondoSystem& operator=( const SecondoSystem& );
