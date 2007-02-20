@@ -64,6 +64,60 @@ using namespace std;
 #include "StopWatch.h"
 
 #include "CSProtocol.h"
+#include "NList.h"
+
+namespace csp {
+
+void
+sendList(iostream& iosock, const NList list)
+{
+  if ( !RTFlag::isActive("Server:BinaryTransfer") ) {
+ 
+    //*** Send List as TEXT-Format ***// 
+    
+    StopWatch* sendTime = 0;
+    LOGMSG( "Server:SendTimeMsg",
+      sendTime = new StopWatch();
+      cerr << "Sending list as textual representation ... ";
+    )
+
+    //string resultStr;
+    //nl->WriteToString( resultStr, list );
+    //iosock << resultStr << endl;
+    list.writeAsStringTo(iosock);  
+    iosock << endl;
+
+    LOGMSG( "Server:SendTimeMsg",
+      cerr << sendTime->diffReal() << " " << sendTime->diffCPU() << endl;
+    )
+    if ( sendTime ) { delete sendTime; } 
+
+  } else {
+
+    //*** Send List in BINARY-Format ***//
+    
+    if ( RTFlag::isActive("Server:ResultFile") ) {
+      ofstream file("result.bnl", ios::out|ios::trunc|ios::binary);
+      list.writeAsBinaryTo(file);
+      file.close();
+    }
+    
+    StopWatch* sendTime = 0;
+    LOGMSG( "Server:SendTimeMsg",
+      sendTime = new StopWatch();
+      cerr << "Sending list as binary representation ... ";
+    )
+
+    list.writeAsBinaryTo(iosock);
+  
+    LOGMSG( "Server:SendTimeMsg",
+      cerr << sendTime->diffReal() << " " << sendTime->diffCPU() << endl;;
+    ) 
+    if ( sendTime ) { delete sendTime; } 
+  }
+}  
+
+} // end of namespace csp
 
 
 class SecondoServer;
@@ -109,6 +163,7 @@ class SecondoServer : public Application
   CSProtocol* csp;
 };
 
+
 void
 SecondoServer::WriteResponse( const int errorCode, const int errorPos,
                               const string& errorMessage, ListExpr resultList )
@@ -123,54 +178,10 @@ SecondoServer::WriteResponse( const int errorCode, const int errorPos,
                     resultList );
 
   iostream& iosock = client->GetSocketStream();
-  
-  iosock << "<SecondoResponse>" << endl;
-
-  if ( !RTFlag::isActive("Server:BinaryTransfer") ) {
  
-    //*** Send List as TEXT-Format ***// 
-    
-    StopWatch* sendTime = 0;
-    LOGMSG( "Server:SendTimeMsg",
-      sendTime = new StopWatch();
-      cerr << "Sending list as textual representation ... ";
-    )
-
-    //string resultStr;
-    //nl->WriteToString( resultStr, list );
-    //iosock << resultStr << endl;
-    nl->WriteStringTo(list,iosock);  
-    iosock << endl;
-
-    LOGMSG( "Server:SendTimeMsg",
-      cerr << sendTime->diffReal() << " " << sendTime->diffCPU() << endl;
-    )
-    if ( sendTime ) { delete sendTime; } 
-
-  } else {
-
-    //*** Send List in BINARY-Format ***//
-    
-    if ( RTFlag::isActive("Server:ResultFile") ) {
-      ofstream file("result.bnl", ios::out|ios::trunc|ios::binary);
-      nl->WriteBinaryTo(list,file);
-      file.close();
-    }
-    
-    StopWatch* sendTime = 0;
-    LOGMSG( "Server:SendTimeMsg",
-      sendTime = new StopWatch();
-      cerr << "Sending list as binary representation ... ";
-    )
-
-    nl->WriteBinaryTo(list,iosock);
-    
-    LOGMSG( "Server:SendTimeMsg",
-      cerr << sendTime->diffReal() << " " << sendTime->diffCPU() << endl;;
-    ) 
-    if ( sendTime ) { delete sendTime; } 
-
-  }
+  csp->IgnoreMsg(true); 
+  iosock << "<SecondoResponse>" << endl;
+  csp::sendList(iosock, NList(list));  
   iosock << "</SecondoResponse>" << endl;
   
 }
@@ -183,7 +194,7 @@ SecondoServer::CallSecondo()
   int type=0;
   iosock >> type;
   csp->skipRestOfLine();
-
+  csp->IgnoreMsg(false);
   bool ready=false;
   do
   {
@@ -201,6 +212,7 @@ SecondoServer::CallSecondo()
   string errorMessage="";
   si->Secondo( cmdText, commandLE, type, true, false, 
                resultList, errorCode, errorPos, errorMessage );
+  NList::setNLRef(nl);
   WriteResponse( errorCode, errorPos, errorMessage, resultList );
 }
 
@@ -344,6 +356,7 @@ SecondoServer::CallSave(const string& tag, bool database /*=false*/)
    
     si->Secondo( cmdText, commandLE, 0, true, false, 
                  resultList, errorCode, errorPos, errorMessage );
+    NList::setNLRef(nl); 
 
   } 
 
@@ -414,6 +427,7 @@ SecondoServer::CallRestore(const string& tag, bool database/*=false*/)
     
     si->Secondo( cmdText, commandLE, 0, true, false, 
                  resultList, errorCode, errorPos, errorMessage );
+    NList::setNLRef(nl);
     
     readLastLine=true;
   }
@@ -515,13 +529,15 @@ SecondoServer::Execute()
     RTFlag::initByString(logMsgList);
 
     nl = si->GetNestedList();
+    NList::setNLRef(nl);
     client = GetSocket();
     if ( client != 0 )
     {
       quit = false;
 
       iostream& iosock = client->GetSocketStream();
-      csp = new CSProtocol(iosock);
+      csp = new CSProtocol(nl, iosock, true);
+      //si->SetProtocolPtr(csp);
       
       ios_base::iostate s = iosock.exceptions();
       iosock.exceptions(ios_base::failbit|ios_base::badbit|ios_base::eofbit);

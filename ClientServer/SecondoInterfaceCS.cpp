@@ -134,7 +134,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
       if ( server != 0 && server->IsOk() )
       {
         iostream& iosock = server->GetSocketStream();
-        csp = new CSProtocol(iosock);
+        csp = new CSProtocol(nl, iosock);
         getline( iosock, line );
         if ( line == "<SecondoOk/>" )
         {
@@ -330,7 +330,7 @@ If value 0 is returned, the command was executed without error.
         // request for save database
         iosock << "<DbSave/>" << endl;
         
-        errorCode = csp->ReadResponse( nl, resultList, 
+        errorCode = csp->ReadResponse( resultList, 
                                        errorCode, errorPos, 
                                        errorMessage         );
 
@@ -378,7 +378,7 @@ If value 0 is returned, the command was executed without error.
                << objName << endl
                << "</ObjectSave>" << endl;
         
-        errorCode = csp->ReadResponse( nl, resultList, 
+        errorCode = csp->ReadResponse( resultList, 
                                        errorCode, errorPos, 
                                        errorMessage         );
 
@@ -431,7 +431,7 @@ If value 0 is returned, the command was executed without error.
         // send end tag
         iosock << csp->endObjectRestore << endl;
         
-        errorCode = csp->ReadResponse( nl, resultList, 
+        errorCode = csp->ReadResponse( resultList, 
                                        errorCode, errorPos, 
                                        errorMessage         );
       }
@@ -479,7 +479,7 @@ If value 0 is returned, the command was executed without error.
         // send end tag
         iosock << csp->endDbRestore << endl;
 
-        errorCode = csp->ReadResponse( nl, resultList, 
+        errorCode = csp->ReadResponse( resultList, 
                                        errorCode, errorPos, 
                                        errorMessage         );
       }
@@ -503,9 +503,9 @@ If value 0 is returned, the command was executed without error.
            << cmdText << endl
            << "</Secondo>" << endl;
     // Receive result
-    errorCode = csp->ReadResponse( nl, resultList, 
-                                       errorCode, errorPos, 
-                                       errorMessage         );
+    errorCode = csp->ReadResponse( resultList, 
+                                   errorCode, errorPos, 
+                                   errorMessage         );
   }
 
   iosock.exceptions(s);
