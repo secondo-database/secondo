@@ -26,14 +26,19 @@ else
   files=$*	
 fi
 
+
 declare -i err=0
 errFiles=""
 for f in $files; do
  $runCmd -i $f
  rc=$?
  if [ $rc -ne 0 ]; then
-   err=$[$err + 1]	 
-   errFiles=$errFiles"\n   $f ($rc errors)"
+   err=$[$err + 1]
+   errRC="($rc errors)"
+   if [ $rc -eq 139 ]; then
+     errRC="(aborted after receiving SIGSEGV)" 
+   fi  
+   errFiles=$errFiles"\n   $f $errRC"
  fi  
 done
 

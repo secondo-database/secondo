@@ -71,7 +71,7 @@ ifeq ($(platform),win32)
 
 $(REG_SEC_DLL): regSecondo.o $(LINKFILES) regSeg.def
 	$(CC) $(DLLFLAGS) -Wl,-soname,jpl.$(JNI_DLLEXT) -o $@  \
-	$^ $(LINK_FLAGS)  regSeg.def
+	$^ -lsdbnl $(LINK_FLAGS)  regSeg.def
 
 regSeg.def: regSecondo.o
 	dlltool -z $@.tmp $^
@@ -80,7 +80,7 @@ regSeg.def: regSecondo.o
 
 else
 $(REG_SEC_DLL): regSecondo.o $(LINKFILES)
-	$(LD) $(DLLFLAGS) $(EXEFLAGS) $(LDFLAGS) -o $@ $^ $(LINK_FLAGS)
+	$(LD) $(DLLFLAGS) $(EXEFLAGS) $(LDFLAGS) -o $@ $^ -lsdbnl $(LINK_FLAGS)
 endif
 
 .PHONY:clean
