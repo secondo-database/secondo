@@ -25,14 +25,20 @@ February 2007, M. Spiekermann: Code moved from Utifunctions.cpp into this
 file in order to avoid interdependencies of the Tools/Utilities code with
 other Secondo modules. See makefile.libs for details.
 
+*/
 
+#include <iostream>
+
+#include "StopWatch.h"
+#include "NList.h"
+
+
+/*
 1 Class ~NList~
 
 The private reference to a nested list instance.
 
 */
-
-#include "NList.h"
 
 NestedList* NList::nlGlobal = 0;
 
@@ -45,4 +51,61 @@ ostream& operator<<(ostream& os, const NList& n) {
   os << n.convertToString(); 
   return os;
 }
+
+/*
+2 Implementation of functions for namespace ~csp~
+
+*/
+
+namespace csp {
+
+void
+sendList(iostream& iosock, const NList list)
+{
+  if ( !RTFlag::isActive("Server:BinaryTransfer") ) {
  
+    //*** Send List as TEXT-Format ***// 
+    
+    StopWatch* sendTime = 0;
+    LOGMSG( "Server:SendTimeMsg",
+      sendTime = new StopWatch();
+      cerr << "Sending list as textual representation ... ";
+    )
+
+    //string resultStr;
+    //nl->WriteToString( resultStr, list );
+    //iosock << resultStr << endl;
+    list.writeAsStringTo(iosock);  
+    iosock << endl;
+
+    LOGMSG( "Server:SendTimeMsg",
+      cerr << sendTime->diffReal() << " " << sendTime->diffCPU() << endl;
+    )
+    if ( sendTime ) { delete sendTime; } 
+
+  } else {
+
+    //*** Send List in BINARY-Format ***//
+    
+    if ( RTFlag::isActive("Server:ResultFile") ) {
+      ofstream file("result.bnl", ios::out|ios::trunc|ios::binary);
+      list.writeAsBinaryTo(file);
+      file.close();
+    }
+    
+    StopWatch* sendTime = 0;
+    LOGMSG( "Server:SendTimeMsg",
+      sendTime = new StopWatch();
+      cerr << "Sending list as binary representation ... ";
+    )
+
+    list.writeAsBinaryTo(iosock);
+  
+    LOGMSG( "Server:SendTimeMsg",
+      cerr << sendTime->diffReal() << " " << sendTime->diffCPU() << endl;;
+    ) 
+    if ( sendTime ) { delete sendTime; } 
+  }
+}  
+
+} // end of namespace csp

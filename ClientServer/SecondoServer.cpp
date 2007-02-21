@@ -66,58 +66,6 @@ using namespace std;
 #include "CSProtocol.h"
 #include "NList.h"
 
-namespace csp {
-
-void
-sendList(iostream& iosock, const NList list)
-{
-  if ( !RTFlag::isActive("Server:BinaryTransfer") ) {
- 
-    //*** Send List as TEXT-Format ***// 
-    
-    StopWatch* sendTime = 0;
-    LOGMSG( "Server:SendTimeMsg",
-      sendTime = new StopWatch();
-      cerr << "Sending list as textual representation ... ";
-    )
-
-    //string resultStr;
-    //nl->WriteToString( resultStr, list );
-    //iosock << resultStr << endl;
-    list.writeAsStringTo(iosock);  
-    iosock << endl;
-
-    LOGMSG( "Server:SendTimeMsg",
-      cerr << sendTime->diffReal() << " " << sendTime->diffCPU() << endl;
-    )
-    if ( sendTime ) { delete sendTime; } 
-
-  } else {
-
-    //*** Send List in BINARY-Format ***//
-    
-    if ( RTFlag::isActive("Server:ResultFile") ) {
-      ofstream file("result.bnl", ios::out|ios::trunc|ios::binary);
-      list.writeAsBinaryTo(file);
-      file.close();
-    }
-    
-    StopWatch* sendTime = 0;
-    LOGMSG( "Server:SendTimeMsg",
-      sendTime = new StopWatch();
-      cerr << "Sending list as binary representation ... ";
-    )
-
-    list.writeAsBinaryTo(iosock);
-  
-    LOGMSG( "Server:SendTimeMsg",
-      cerr << sendTime->diffReal() << " " << sendTime->diffCPU() << endl;;
-    ) 
-    if ( sendTime ) { delete sendTime; } 
-  }
-}  
-
-} // end of namespace csp
 
 
 class SecondoServer;
