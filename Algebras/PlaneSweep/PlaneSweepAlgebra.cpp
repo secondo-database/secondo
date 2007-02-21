@@ -3377,7 +3377,7 @@ int SEntry::Less (const SEntry& in2, const Coord x, const
          else {  //the point are very close
             // tests if new CHS is in same cycle as CHS
             // from same object inserted before
-            cout << "very close" << endl;
+//             cout << "very close" << endl;
             if (GetCHS().attr.faceno==oldev.GetCHS().attr.faceno &&
             GetCHS().attr.cycleno==oldev.GetCHS().attr.cycleno &&
             ((GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==1 ||
@@ -3403,7 +3403,7 @@ int SEntry::Less (const SEntry& in2, const Coord x, const
          else if ( test > 0 )    return 1;
       }
       else {  //  |test| < 0.000001 very close
-         cout << " very close" << endl; ;
+//          cout << " very close" << endl; ;
          if (GetCHS().attr.faceno == oldev.GetCHS().attr.faceno &&
          GetCHS().attr.cycleno == oldev.GetCHS().attr.cycleno &&
          ((GetCHS().attr.edgeno-oldev.GetCHS().attr.edgeno)==1 ||
