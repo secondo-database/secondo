@@ -178,6 +178,11 @@ open database relalgtest;
                 ("Wuerzburg" 128000 8700 '932387399811123125657234' "WUE")
                 ("Wuppertal" 377000 5600 '2009809328735423498' "W"))));
 
+#testcase count2
+#yields (int 10)
+query ten feed count2;
+
+
 #testcase Filter1
 #yields (int 5)
 query ten feed filter[.no > 5] consume count;
