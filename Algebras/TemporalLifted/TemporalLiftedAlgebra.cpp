@@ -2987,7 +2987,7 @@ static void MovingIntersectionMM( Mapping1& op1, Mapping2& op2,
   if(TLA_DEBUG)
     cout<<"MovingIntersectionMM called"<<endl;
 
-  Unit1 un;  //part of the Result
+  Unit1 un(true);  //part of the Result
 
   RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
   rp(op1, op2);
@@ -3005,8 +3005,8 @@ static void MovingIntersectionMM( Mapping1& op1, Mapping2& op2,
     int u1Pos;
     int u2Pos;
 
-    Unit1 u1;
-    Unit2 u2;
+    Unit1 u1(true);
+    Unit2 u2(true);
 
     const Unit1 *u1transfer;
     const Unit2 *u2transfer;
