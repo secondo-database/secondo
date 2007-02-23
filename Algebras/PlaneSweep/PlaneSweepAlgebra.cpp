@@ -52,11 +52,12 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 enum realmkind { PLANESWEEP, QUADRATIC, OVERLAPPING };
+enum State {FIRST, SECOND, BOTH};
 
 struct HalfSegmentCheck { bool splitsegment; list<Point> pointlist; };
 
-const bool PSA_DEBUG = false;
-const realmkind kindofrealm = QUADRATIC;
+const bool PSA_DEBUG = true;
+const realmkind kindofrealm = OVERLAPPING;
 
 /*
 3 Class Segment
@@ -2269,7 +2270,7 @@ public:
    void  REALM (const Line* reg1, const Line* reg2, Line* result1,
       Line* result2);
    template <class T, class U, class V, class W> void REALM2(const T* , 
-                      const U*, V* , W*);
+                      const U*, const bool, const bool, V* , W*);
 
 private:
    void PerformPlaneSweep(PQueue& pq,Segment segs[],
@@ -2284,8 +2285,16 @@ private:
    void printlist(const list<Point>&);
    void print(const HalfSegmentCheck&);
    void printsegcheckvector(const vector<HalfSegmentCheck>&);
+   void checksegments(const HalfSegment&, const HalfSegment& hs2, const int,
+             const int, vector<HalfSegmentCheck>&, vector<HalfSegmentCheck>&);
+   void checksegmentsline(const HalfSegment&, const HalfSegment& hs2, const int,
+             const int, vector<HalfSegmentCheck>&);
+   bool xoverlaps(const HalfSegment&, const HalfSegment&);
    void dorealm(const vector<HalfSegment>&, const vector<HalfSegment>&,
              vector<HalfSegmentCheck>&, vector<HalfSegmentCheck>&);
+   void dorealm2(const vector<HalfSegment>&, const vector<HalfSegment>&, 
+                 const bool,const bool, vector<HalfSegmentCheck>&, 
+                 vector<HalfSegmentCheck>&);
    int intersects(const Point&, const Point&, const Point&, const Point&);
    bool onsegment(const Point&, const Point&, const Point&);
    double direction(const Point&, const Point&, const Point&);
@@ -2765,6 +2774,452 @@ void MakeRealm::insertpoint(list<Point>& values, const Point p)
   }
 }
 
+bool MakeRealm::xoverlaps(const HalfSegment& hs1, const HalfSegment& hs2)
+{
+  if ( ((hs2.GetLeftPoint() > hs1.GetLeftPoint()) && 
+        (hs2.GetLeftPoint() < hs1.GetRightPoint())) ||
+       ((hs1.GetLeftPoint() > hs2.GetLeftPoint()) && 
+        (hs1.GetLeftPoint() < hs2.GetRightPoint())) ||
+       ((hs1.GetRightPoint() > hs2.GetLeftPoint()) && 
+        (hs1.GetRightPoint() < hs2.GetRightPoint())) ||
+       ((hs2.GetRightPoint() > hs1.GetLeftPoint()) && 
+        (hs2.GetRightPoint() < hs1.GetRightPoint())) )
+      return true;
+    return false; 
+}
+
+void MakeRealm::checksegmentsline(const HalfSegment& hs1, 
+  const HalfSegment& hs2, const int i, const int j, 
+  vector<HalfSegmentCheck>& vsc1)
+{
+  Point ispoint;
+
+  switch ( intersects(hs1.GetLeftPoint(), hs1.GetRightPoint(), 
+                      hs2.GetLeftPoint(), hs2.GetRightPoint()) )
+  {
+    case 0: // cout << "Segments do not intersect, do nothing" << endl;
+            break;
+                
+    case 1: // cout << "Segments intersect properly" << endl;
+            hsintersection(hs1, hs2, ispoint);
+            vsc1[i].splitsegment = true;
+            insertpoint(vsc1[i].pointlist, ispoint);
+            vsc1[j].splitsegment = true;
+            insertpoint(vsc1[j].pointlist, ispoint);
+            break;
+                
+    // cases 2 - 9 cover overlapping halfsegments
+
+    case 2: // p1----p3----p2----p4 (2)
+            // cout << "Segments overlap case(2)" << endl;
+            vsc1[i].splitsegment = true;
+            insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());
+            vsc1[j].splitsegment = true;
+            insertpoint(vsc1[j].pointlist, hs1.GetRightPoint());
+            break;
+
+    case 3: // p1,p3----p2----p4 (3)
+            // cout << "Segments overlap case(3)" << endl;
+            vsc1[j].splitsegment = true;
+            insertpoint(vsc1[j].pointlist, hs1.GetRightPoint());
+            break;
+
+        case 4: // p3----p1----p2----p4 (4)
+                // cout << "Segments overlap case(4)" << endl;
+                vsc1[j].splitsegment = true;
+                insertpoint(vsc1[j].pointlist, hs1.GetLeftPoint());
+                insertpoint(vsc1[j].pointlist, hs1.GetRightPoint()); 
+                break;
+
+        case 5: // p3----p1----p2,p4 (5)
+                // cout << "Segments overlap case(5)" << endl;
+                vsc1[j].splitsegment = true;
+                insertpoint(vsc1[j].pointlist, hs1.GetLeftPoint());  
+                break;
+
+        case 6: // p3----p1----p4----p2 (6)
+                // cout << "Segments overlap case(6)" << endl;
+                vsc1[i].splitsegment = true;
+                insertpoint(vsc1[i].pointlist, hs2.GetRightPoint());
+                vsc1[j].splitsegment = true;
+                insertpoint(vsc1[j].pointlist, hs1.GetLeftPoint());  
+                break;
+
+        case 7: // p1,p3----p4----p2 (8)
+                // cout << "Segments overlap case(8)" << endl;
+                vsc1[i].splitsegment = true;
+                insertpoint(vsc1[i].pointlist, hs2.GetRightPoint()); 
+                break;
+
+        case 8: // p1----p3----p4----p2 (9)
+                // cout << "Segments overlap case(9)" << endl;
+                vsc1[i].splitsegment = true;
+                insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());
+                insertpoint(vsc1[i].pointlist, hs2.GetRightPoint()); 
+                break;
+
+        case 9: // p1----p3----p2,p4 (10)
+                // cout << "Segments overlap case(10)" << endl;
+                vsc1[i].splitsegment = true;
+                insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());  
+                break;
+
+        case 10: // p1---p4----p2 (12)
+                 //       |
+                 //      p3
+                 // cout << "Segments overlap case(12)" << endl;
+                 vsc1[i].splitsegment = true;
+                 insertpoint(vsc1[i].pointlist, hs2.GetRightPoint());        
+                 break;
+
+        case 11: //      p4 (13)
+                 //       |
+                 // p1---p3----p2               
+                 // cout << "Segments overlap case(13)" << endl;        
+                 vsc1[i].splitsegment = true;
+                 insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint()); 
+                 break;
+
+        case 12: //      p2 (14)
+                 //       |
+                 // p3---p1----p4               
+                 // cout << "Segments overlap case(14)" << endl;
+                 vsc1[j].splitsegment = true;
+                 insertpoint(vsc1[j].pointlist, hs1.GetLeftPoint());
+                 break;
+
+        case 13: // p3---p2----p4 (15)
+                 //       |
+                 //      p1
+                 // cout << "Segments overlap case(15)" << endl;
+                 vsc1[j].splitsegment = true;
+                 insertpoint(vsc1[j].pointlist, hs1.GetRightPoint());
+                 break;
+
+        // case 14 covers overlapping half segments, where nothing 
+        // has to be done
+
+        case 14: // p1----p2,p3----p4 (1)
+                 // p3----p4,p1----p2 (7)
+                 // p1,p3----p2,p4 (11)
+                 // cout << "Do nothing case(1, 7, 11)" << endl;        
+                 break;
+                
+        default: cout << "should not happen " << endl;
+      }
+}
+  
+
+void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2, 
+             const int i, const int j,
+             vector<HalfSegmentCheck>& vsc1, vector<HalfSegmentCheck>& vsc2)
+{
+  Point ispoint;
+  
+  switch ( intersects(hs1.GetLeftPoint(), hs1.GetRightPoint(), 
+                      hs2.GetLeftPoint(), hs2.GetRightPoint()) )
+  {
+    case 0: // cout << "Segments do not intersect, do nothing" << endl;
+            break;
+                
+    case 1: // cout << "Segments intersect properly" << endl;
+            hsintersection(hs1, hs2, ispoint);
+            vsc1[i].splitsegment = true;
+            insertpoint(vsc1[i].pointlist, ispoint);
+            vsc2[j].splitsegment = true;
+            insertpoint(vsc2[j].pointlist, ispoint);
+            break;
+                
+    // cases 2 - 9 cover overlapping halfsegments
+
+    case 2: // p1----p3----p2----p4 (2)
+            // cout << "Segments overlap case(2)" << endl;
+            vsc1[i].splitsegment = true;
+            insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());
+            vsc2[j].splitsegment = true;
+            insertpoint(vsc2[j].pointlist, hs1.GetRightPoint());
+            break;
+
+    case 3: // p1,p3----p2----p4 (3)
+            // cout << "Segments overlap case(3)" << endl;
+            vsc2[j].splitsegment = true;
+            insertpoint(vsc2[j].pointlist, hs1.GetRightPoint());
+            break;
+
+        case 4: // p3----p1----p2----p4 (4)
+                // cout << "Segments overlap case(4)" << endl;
+                vsc2[j].splitsegment = true;
+                insertpoint(vsc2[j].pointlist, hs1.GetLeftPoint());
+                insertpoint(vsc2[j].pointlist, hs1.GetRightPoint()); 
+                break;
+
+        case 5: // p3----p1----p2,p4 (5)
+                // cout << "Segments overlap case(5)" << endl;
+                vsc2[j].splitsegment = true;
+                insertpoint(vsc2[j].pointlist, hs1.GetLeftPoint());  
+                break;
+
+        case 6: // p3----p1----p4----p2 (6)
+                // cout << "Segments overlap case(6)" << endl;
+                vsc1[i].splitsegment = true;
+                insertpoint(vsc1[i].pointlist, hs2.GetRightPoint());
+                vsc2[j].splitsegment = true;
+                insertpoint(vsc2[j].pointlist, hs1.GetLeftPoint());  
+                break;
+
+        case 7: // p1,p3----p4----p2 (8)
+                // cout << "Segments overlap case(8)" << endl;
+                vsc1[i].splitsegment = true;
+                insertpoint(vsc1[i].pointlist, hs2.GetRightPoint()); 
+                break;
+
+        case 8: // p1----p3----p4----p2 (9)
+                // cout << "Segments overlap case(9)" << endl;
+                vsc1[i].splitsegment = true;
+                insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());
+                insertpoint(vsc1[i].pointlist, hs2.GetRightPoint()); 
+                break;
+
+        case 9: // p1----p3----p2,p4 (10)
+                // cout << "Segments overlap case(10)" << endl;
+                vsc1[i].splitsegment = true;
+                insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());  
+                break;
+
+        case 10: // p1---p4----p2 (12)
+                 //       |
+                 //      p3
+                 // cout << "Segments overlap case(12)" << endl;
+                 vsc1[i].splitsegment = true;
+                 insertpoint(vsc1[i].pointlist, hs2.GetRightPoint());        
+                 break;
+
+        case 11: //      p4 (13)
+                 //       |
+                 // p1---p3----p2               
+                 // cout << "Segments overlap case(13)" << endl;        
+                 vsc1[i].splitsegment = true;
+                 insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint()); 
+                 break;
+
+        case 12: //      p2 (14)
+                 //       |
+                 // p3---p1----p4               
+                 // cout << "Segments overlap case(14)" << endl;
+                 vsc2[j].splitsegment = true;
+                 insertpoint(vsc2[j].pointlist, hs1.GetLeftPoint());
+                 break;
+
+        case 13: // p3---p2----p4 (15)
+                 //       |
+                 //      p1
+                 // cout << "Segments overlap case(15)" << endl;
+                 vsc2[j].splitsegment = true;
+                 insertpoint(vsc2[j].pointlist, hs1.GetRightPoint());
+                 break;
+
+        // case 14 covers overlapping half segments, where nothing 
+        // has to be done
+
+        case 14: // p1----p2,p3----p4 (1)
+                 // p3----p4,p1----p2 (7)
+                 // p1,p3----p2,p4 (11)
+                 // cout << "Do nothing case(1, 7, 11)" << endl;        
+                 break;
+                
+        default: cout << "should not happen " << endl;
+      }
+}
+
+void MakeRealm::dorealm2(const vector<HalfSegment>& vs1, 
+        const vector<HalfSegment>& vs2,const bool isline1, const bool isline2,
+        vector<HalfSegmentCheck>& vsc1, vector<HalfSegmentCheck>& vsc2)
+{
+  unsigned int i = 0, j = 0, k, l, hscurrindex;
+  HalfSegment hs1, hs2, hscurr;
+  State status;
+  
+  //if ( true ) printsegvector(vs1);
+  //if ( true ) printsegvector(vs2);
+  while ( (i < vs1.size()) || (j < vs2.size()) ) 
+  {
+    if (i < vs1.size() && j < vs2.size() ) 
+    {
+      //cout << "if1" << endl;
+      hs1 = vs1[i];
+      hs2 = vs2[j];
+      if ( hs1.GetLeftPoint() == hs2.GetLeftPoint() && 
+           hs1.GetRightPoint() == hs2.GetRightPoint() )
+      {
+        i++;   
+	j++;   
+	hscurr = hs1;    
+	status = BOTH; 
+      }
+      else if ( hs1 < hs2) 
+      {
+        hscurrindex = i;
+        i++; 
+	hscurr = hs1; 
+	status = FIRST;
+      }
+      else if ( hs1 > hs2) 
+      {
+        hscurrindex = j;
+        j++;
+	hscurr = hs2; 
+	status = SECOND;
+      }
+      //cout << hscurr << endl;
+      //if (status == FIRST) cout << "FIRST1" << endl;
+      //else cout << "SECOND1" << endl;
+      if ( status == FIRST )
+      {
+        k = j;
+        /*while ( (jleft < vs2.size()) && (!(xoverlaps(hscurr, vs2[jleft]))) )
+	{
+	  cout << "move left pointer" << endl;
+	  jleft++;
+	}
+	
+	k = jleft;*/
+	
+	
+	//realm the lines
+	if ( isline1 )
+	{
+	  l = hscurrindex + 1;
+	  while ( (l < vs1.size()) && (xoverlaps(hscurr, vs1[l])) )
+	  {
+	    //cout << "realm the line first" << l << endl;
+	    checksegmentsline(hscurr, vs1[l], hscurrindex, l, vsc1);
+	    //printsegcheckvector(vsc1);
+	    //printsegcheckvector(vsc2);
+	    l++;
+	  }
+        }
+
+	while ( (k < vs2.size()) && (xoverlaps(hscurr, vs2[k])) )
+	{
+	  //cout << "realm the two segments " << k << endl;
+	  checksegments(hscurr, vs2[k], hscurrindex, k, vsc1, vsc2);
+	  //printsegcheckvector(vsc1);
+	  //printsegcheckvector(vsc2);
+	  k++;
+	}
+	//cout << endl;
+      }
+      else if ( status == SECOND )
+      {
+        k = i;
+        /*while ( (ileft < vs1.size()) && (!(xoverlaps(hscurr, vs1[ileft]))) )
+	{
+	  cout << "move left pointer" << endl;
+	  ileft++;
+	}
+	
+	k = ileft;*/
+	
+	//realm the lines
+	if ( isline2 )
+	{
+	  l = hscurrindex + 1;
+	  while ( (l < vs2.size()) && (xoverlaps(hscurr, vs2[l])) )
+	  {
+	    //cout << "realm the line second" << l << endl;
+	    checksegmentsline(hscurr, vs2[l], hscurrindex, l, vsc2);
+	    //printsegcheckvector(vsc1);
+	    //printsegcheckvector(vsc2);
+	    l++;
+	  }
+        }
+
+	while ( (k < vs1.size()) && (xoverlaps(hscurr, vs1[k])) )
+	{
+	  //cout << "realm the two segments " << k << endl;
+	  checksegments(vs1[k], hscurr, k, hscurrindex, vsc1, vsc2);
+	  //printsegcheckvector(vsc1);
+	  //printsegcheckvector(vsc2);
+	  k++;
+	}
+	//cout << endl;
+      }
+    }
+    else if ( i < vs1.size() ) 
+    {
+      //cout << "if2" << endl;
+      hscurr = vs1[i];
+      hscurrindex = i;
+      i++;
+      status = FIRST;
+      //cout << hscurr << endl;
+      //if (status == FIRST) cout << "FIRST2" << endl << endl;
+      //else cout << "SECOND2" << endl << endl;
+      
+	//realm the lines
+	if ( isline1 )
+	{
+	  l = hscurrindex + 1;
+	  while ( (l < vs1.size()) && (xoverlaps(hscurr, vs1[l])) )
+	  {
+	    //cout << "realm the line outside first " << endl;
+	    checksegmentsline(hscurr, vs1[l], hscurrindex, l, vsc1);
+	    //printsegcheckvector(vsc1);
+	    //printsegcheckvector(vsc2);
+	    l++;
+	  }
+	}
+
+      k = j;
+      while ( (k < vs2.size()) && (xoverlaps(hscurr, vs2[k])) )
+      {
+        //cout << "realm the two segments " << k << endl;
+	checksegments(hscurr, vs2[k], hscurrindex, k, vsc1, vsc2);
+	//printsegcheckvector(vsc1);
+	//printsegcheckvector(vsc2);
+	k++;
+      }
+      //cout << endl;
+    }
+    else if ( j < vs2.size() ) 
+    {
+      //cout << "if3" << endl;
+      hscurr = vs2[j];
+      hscurrindex = j;
+      j++;
+      status = SECOND;
+      //cout << hscurr << endl;
+      //if (status == FIRST) cout << "FIRST3" << endl << endl;
+      //else cout << "SECOND3" << endl << endl;
+      
+	//realm the lines
+	if ( isline2 )
+	{
+	  l = hscurrindex + 1;
+	  while ( (l < vs2.size()) && (xoverlaps(hscurr, vs2[l])) )
+	  {
+	    //cout << "realm the line outside" << l << endl;
+	    checksegmentsline(hscurr, vs2[l], hscurrindex, l, vsc2);
+	    //printsegcheckvector(vsc1);
+	    //printsegcheckvector(vsc2);
+	    l++;
+	  }
+	}
+
+      k = i;
+      while ( (k < vs1.size()) && (xoverlaps(hscurr, vs1[k])) )
+      {
+        //cout << "realm the two segments " << k << endl;
+	checksegments(vs1[k], hscurr, k, hscurrindex, vsc1, vsc2);
+	//printsegcheckvector(vsc1);
+	//printsegcheckvector(vsc2);
+	k++;
+      }
+      //cout << endl;
+    }
+  }   
+}
+
 void MakeRealm::dorealm(const vector<HalfSegment>& vs1, 
                         const vector<HalfSegment>& vs2,
              vector<HalfSegmentCheck>& vsc1, vector<HalfSegmentCheck>& vsc2)
@@ -2897,9 +3352,15 @@ void MakeRealm::createrealmedobject(const vector<HalfSegment>& s,
 {
   HalfSegment rseg;
   Point lp, rp;
+  int faceno, cycleno;
+  bool insideAbove;
 
   for (unsigned int u = 0; u < s.size(); u++)
-  {  
+  { 
+    faceno = s[u].attr.faceno;
+    cycleno = s[u].attr.cycleno;
+    insideAbove = s[u].attr.insideAbove;
+     
     if ( sc[u].splitsegment == false )
             res.push_back(s[u]);
     else
@@ -2910,18 +3371,25 @@ void MakeRealm::createrealmedobject(const vector<HalfSegment>& s,
       {
         rp = *it;
         rseg.Set(true, lp, rp);
+	rseg.attr.faceno = faceno;
+	rseg.attr.cycleno = cycleno;
+	rseg.attr.insideAbove = insideAbove;
         res.push_back(rseg);
         lp = rp;
       }
       rp = s[u].GetRightPoint();
       rseg.Set(true, lp, rp);
+      rseg.attr.faceno = faceno;
+      rseg.attr.cycleno = cycleno;
+      rseg.attr.insideAbove = insideAbove;
       res.push_back(rseg); 
     }
   } 
 }
  
 template <class T, class U, class V, class W> 
-void MakeRealm::REALM2(const T* obj1, const U* obj2, V* result1, W* result2)
+void MakeRealm::REALM2(const T* obj1, const U* obj2, const bool isline1, 
+                       const bool isline2, V* result1, W* result2)
 {
    vector<HalfSegment> vl1, vl2, vl1res, vl2res;
    int counter;
@@ -2941,8 +3409,10 @@ void MakeRealm::REALM2(const T* obj1, const U* obj2, V* result1, W* result2)
      if ( PSA_DEBUG ) printsegvector(vl2);
   
      HalfSegmentCheck sc = { false, list<Point>() };
-     vector<HalfSegmentCheck> scl1(vl1.size(), sc), scl2(vl2.size(), sc);   
-     dorealm(vl1, vl2, scl1, scl2);
+     vector<HalfSegmentCheck> scl1(vl1.size(), sc), scl2(vl2.size(), sc);
+     if ( kindofrealm == OVERLAPPING )
+       dorealm2(vl1, vl2, isline1, isline2, scl1, scl2);   
+     else dorealm(vl1, vl2, scl1, scl2);
      if ( PSA_DEBUG ) printsegcheckvector(scl1);
      if ( PSA_DEBUG ) printsegcheckvector(scl2); 
    
@@ -3582,7 +4052,6 @@ The algorithm computes segment classifications like described in ROSE-Algebra. T
 For both arguments the first segment was selected. If this segment is a left segment, it was inserted in sweep line. The segment classification was computed. If the segment belongs to a line, the segment was deleted at once. If the selected segment was a right segment of a region, it is deleted from the sweep line. If the segment classification has the searched vlaues it is added into result.
 
 */
-enum State {FIRST, SECOND, BOTH};
 
 class MakeOp
 {
@@ -3621,7 +4090,16 @@ Region* MakeOp::Intersection(const Region* reg1, const Region* reg2)
    Region* res1  = new Region(0);
    Region* res2 = new Region(0);
    MakeRealm mr;
-   mr.REALM( reg1, reg2, res1 , res2 );
+   switch ( kindofrealm )
+   {
+      case PLANESWEEP: mr.REALM( reg1, reg2, res1 , res2 );
+                         break;
+      case QUADRATIC:
+      case OVERLAPPING: 
+                       mr.REALM2( reg1, reg2, false, false, res1 , res2 );
+                         break;
+      default: cout << "should not happen" << endl;
+   }
    // initialisations
    SLine sweepline;
    int i = 0;   int j = 0;    int counter = 0;
@@ -3723,7 +4201,15 @@ Region* MakeOp::Intersection(const Region* reg1, const Region* reg2)
    Line* resline  = new Line(0);
    Region* resregion = new Region(0);
    MakeRealm mr;
-   mr.REALM( line, reg, resline , resregion );
+   switch ( kindofrealm )
+   {
+      case PLANESWEEP:  mr.REALM( line, reg, resline , resregion );
+                         break;
+      case QUADRATIC: 
+      case OVERLAPPING: mr.REALM2(line, reg, false, true, resline , resregion);
+                         break;
+      default: cout << "should not happen" << endl;
+   }
    // initialisations
    SLine sweepline;
    int i = 0;
@@ -3830,7 +4316,15 @@ Line* MakeOp::Intersection(const Line* line1, const Line* line2)
    Line* res1 = new Line(0);
    Line* res2 = new Line(0);
    MakeRealm mr;
-   mr.REALM( line1, line2, res1 , res2 );
+   switch ( kindofrealm )
+   {
+      case PLANESWEEP: mr.REALM( line1, line2, res1 , res2  );
+                         break;
+      case QUADRATIC: 
+      case OVERLAPPING: mr.REALM2( line1, line2, true, true, res1 , res2  );
+                         break;
+      default: cout << "should not happen" << endl;
+   }
    // initialisations
    int i = 0;
    int j = 0;
@@ -3881,7 +4375,15 @@ bool MakeOp::P_Intersects(const Region* reg1, const Region* reg2)
    Region* res1  = new Region(0);
    Region* res2 = new Region(0);
    MakeRealm mr;
-   mr.REALM( reg1, reg2, res1 , res2 );
+   switch ( kindofrealm )
+   {
+      case PLANESWEEP: mr.REALM( reg1, reg2, res1 , res2  );
+                         break;
+      case QUADRATIC:
+      case OVERLAPPING: mr.REALM2( reg1, reg2, false, false, res1 , res2  );
+                         break;
+      default: cout << "should not happen" << endl;
+   }
    // initialisations
    SLine sweepline;
    int i = 0;
@@ -3962,7 +4464,15 @@ bool MakeOp::P_Intersects(const Region* reg, const Line* line)
    Line* resline  = new Line(0);
    Region* resregion = new Region(0);
    MakeRealm mr;
-   mr.REALM( line, reg, resline , resregion );
+   switch ( kindofrealm )
+   {
+      case PLANESWEEP: mr.REALM( line, reg, resline , resregion  );
+                         break;
+      case QUADRATIC:
+      case OVERLAPPING: mr.REALM2(line, reg, false, true, resline , resregion);
+                         break;
+      default: cout << "should not happen" << endl;
+   }
    // initialisations
    SLine sweepline;
    int i = 0;
@@ -4039,7 +4549,15 @@ bool MakeOp::P_Intersects(const Line* line1, const Line* line2)
    Line* res1 = new Line(0);
    Line* res2 = new Line(0);
    MakeRealm mr;
-   mr.REALM( line1, line2, res1 , res2 );
+   switch ( kindofrealm )
+   {
+      case PLANESWEEP: mr.REALM( line1, line2, res1 , res2  );
+                         break;
+      case QUADRATIC:
+      case OVERLAPPING: mr.REALM2( line1, line2, true, true, res1 , res2 );
+                         break;
+      default: cout << "should not happen" << endl;
+   }
    // initialisations
    int i = 0;
    int j = 0;
@@ -4071,7 +4589,15 @@ bool MakeOp::Intersects(const Region* reg1, const Region* reg2)
    Region* res1  = new Region(0);
    Region* res2 = new Region(0);
    MakeRealm mr;
-   mr.REALM( reg1, reg2, res1 , res2 );
+   switch ( kindofrealm )
+   {
+      case PLANESWEEP: mr.REALM( reg1, reg2, res1 , res2 );
+                         break;
+      case QUADRATIC:
+      case OVERLAPPING: mr.REALM2( reg1, reg2, false, false, res1 , res2 );
+                         break;
+      default: cout << "should not happen" << endl;
+   }
    // initialisations
    SLine sweepline;
    int i = 0;
@@ -4146,7 +4672,15 @@ bool MakeOp::Intersects (const Region* reg, const Line* line) {
    Region* res1  = new Region(0);
    Line* res2 = new Line(0);
    MakeRealm mr;
-   mr.REALM( line, reg, res2 , res1 );
+   switch ( kindofrealm )
+   {
+      case PLANESWEEP: mr.REALM( line, reg, res2 , res1 );
+                         break;
+      case QUADRATIC:
+      case OVERLAPPING: mr.REALM2( line, reg, false, true, res2 , res1 );
+                         break;
+      default: cout << "should not happen" << endl;
+   }
    // initialisations
    SLine sweepline;
    int i = 0;
@@ -4223,7 +4757,15 @@ bool MakeOp::Intersects (const Line* line1, const Line* line2)
    Line* res1 = new Line(0);
    Line* res2 = new Line(0);
    MakeRealm mr;
-   mr.REALM( line1, line2, res1 , res2 );
+   switch ( kindofrealm )
+   {
+      case PLANESWEEP: mr.REALM( line1, line2, res1 , res2 );
+                         break;
+      case QUADRATIC:
+      case OVERLAPPING: mr.REALM2( line1, line2, true, true, res1 , res2 );
+                         break;
+      default: cout << "should not happen" << endl;
+   }
    // initialisations
    int i = 0;
    int j = 0;
@@ -4263,14 +4805,29 @@ Region* MakeOp::Union(const Region* reg1, const Region* reg2)
    SEntry oldEntry1, oldEntry2;
    BinTreeNode<SEntry>* oldnode1;
    BinTreeNode<SEntry>* oldnode2;
-   Region* res1, *res2, *result;
+   Region* res1, *res2, *result, *pres1, *pres2, *qres1, *qres2;
    MakeRealm mr;
    
    // first Realmisation of both regions
    res1 = new Region(0);
    res2 = new Region(0);
-   mr.REALM( reg1, reg2, res1 , res2 );
-   //cout << "realm ok" << endl;
+   pres1 = new Region(0);
+   pres2 = new Region(0);
+   qres1 = new Region(0);
+   qres2 = new Region(0);
+
+   switch ( kindofrealm )
+   {
+      case PLANESWEEP: mr.REALM( reg1, reg2, res1 , res2 );
+                         break;
+      case QUADRATIC:
+      case OVERLAPPING: mr.REALM2( reg1, reg2, false, false, res1 , res2 );
+                         break;
+      default: cout << "should not happen" << endl;
+   }
+   //cout << "realm ok" << *res1 << endl;
+   //cout << "realm ok" << *res2 << endl;
+
    // initialisations
    result = new Region(0);
    result ->Clear();
@@ -4366,7 +4923,7 @@ Region* MakeOp::Union(const Region* reg1, const Region* reg2)
    } // end while
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
-   result->EndBulkLoad();
+   result->EndBulkLoad(true,true,true,true);
    return result;
 }
 
@@ -4381,7 +4938,15 @@ Line* MakeOp::Union(const Line* line1, const Line* line2)
    Line* res1 = new Line(0);
    Line* res2 = new Line(0);
    MakeRealm mr;
-   mr.REALM( line1, line2, res1 , res2 );
+   switch ( kindofrealm )
+   {
+      case PLANESWEEP: mr.REALM( line1, line2, res1 , res2 );
+                         break;
+      case QUADRATIC:
+      case OVERLAPPING: mr.REALM2( line1, line2, true, true, res1 , res2 );
+                         break;
+      default: cout << "should not happen" << endl;
+   }
    // initialisations
    int i = 0;
    int j = 0;
@@ -4439,7 +5004,15 @@ Region* MakeOp::Minus(const Region* reg1, const Region* reg2)
    Region* res1 = new Region(0);
    Region* res2 = new Region(0);
    MakeRealm mr;
-   mr.REALM( reg1, reg2, res1 , res2 );
+   switch ( kindofrealm )
+   {
+      case PLANESWEEP: mr.REALM( reg1, reg2, res1 , res2 );
+                         break;
+      case QUADRATIC:
+      case OVERLAPPING: mr.REALM2( reg1, reg2, false, false, res1 , res2 );
+                         break;
+      default: cout << "should not happen" << endl;
+   }
    // initialisations
    SLine sweepline;
    int i = 0;   int j = 0;  int counter = 0;
@@ -4551,7 +5124,15 @@ Line* MakeOp::Minus(const Line* line, const Region* reg)
    Line* resLine = new Line(0);
    Region* resReg = new Region(0);
    MakeRealm mr;
-   mr.REALM( line, reg, resLine , resReg );
+   switch ( kindofrealm )
+   {
+      case PLANESWEEP: mr.REALM( line, reg, resLine , resReg );
+                         break;
+      case QUADRATIC:
+      case OVERLAPPING: mr.REALM2( line, reg, true, false, resLine , resReg );
+                         break;
+      default: cout << "should not happen" << endl;
+   }
    // initialisations
    SLine sweepline;
    int i = 0;
@@ -4636,7 +5217,15 @@ Line* MakeOp::Minus(const Line* line1, const Line* line2)
    Line* res1 = new Line(0);
    Line* res2 = new Line(0);
    MakeRealm mr;
-   mr.REALM( line1, line2, res1 , res2 );
+   switch ( kindofrealm )
+   {
+      case PLANESWEEP: mr.REALM( line1, line2, res1 , res2 );
+                         break;
+      case QUADRATIC:
+      case OVERLAPPING: mr.REALM2( line1, line2, true, true, res1 , res2 );
+                         break;
+      default: cout << "should not happen" << endl;
+   }
    // initialisations
    int i = 0;
    int j = 0;
@@ -4763,12 +5352,13 @@ static int realm_lr( Word* args, Word& result, int message,
       {
         case PLANESWEEP: mr.REALM( l1, r2, test1 , test2 );
                          break;
-        case QUADRATIC : mr.REALM2( l1, r2, test1 , test2 );
+        case QUADRATIC:
+	case OVERLAPPING: mr.REALM2( l1, r2, true, false, test1 , test2 );
                          break;
         default: cout << "should not happen" << endl;
       }       
 
-      mr.REALM2( l1, r2, test1 , test2 );
+      //mr.REALM2( l1, r2, test1 , test2 );
       result.addr = test1;
       return(0);
    }
@@ -4799,7 +5389,8 @@ static int realm_rl( Word* args, Word& result, int message,
       {
         case PLANESWEEP: mr.REALM( l1, r2, test1 , test2 );
                          break;
-        case QUADRATIC : mr.REALM2( l1, r2, test1 , test2 );
+        case QUADRATIC :
+	case OVERLAPPING: mr.REALM2( l1, r2, false, true, test1 , test2 );
                          break;
         default: cout << "should not happen" << endl;
       }       
@@ -4832,7 +5423,8 @@ static int realm_ll( Word* args, Word& result, int message,
       {
         case PLANESWEEP: mr.REALM( l1, l2, test1 , test2 );
                          break;
-        case QUADRATIC : mr.REALM2( l1, l2, test1 , test2 );
+        case QUADRATIC:
+	case OVERLAPPING: mr.REALM2( l1, l2, true, true, test1 , test2 );
                          break;
         default: cout << "should not happen" << endl;
       }       
@@ -4866,7 +5458,8 @@ static int realm_rr( Word* args, Word& result, int message,
       {
         case PLANESWEEP: mr.REALM( r1, r2, test1 , test2 );
                          break;
-        case QUADRATIC : mr.REALM2( r1, r2, test1 , test2 );
+        case QUADRATIC:
+	case OVERLAPPING: mr.REALM2( r1, r2, false, false, test1 , test2 );
                          break;
         default: cout << "should not happen" << endl;
       }       
