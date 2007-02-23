@@ -18,6 +18,7 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator creatertree alias CREATERTREE pattern _ op [ _ ]
+operator bulkloadrtree alias BULKLOADRTREE pattern _ op [ _ ]
 operator windowintersects alias WINDOWINTERSECTS pattern _ _ op [ _ ]
 operator windowintersectsS alias WINDOWINTERSECTSS pattern _ op [ _ ]
 operator gettuples alias GETTUPLES pattern _ _ op
