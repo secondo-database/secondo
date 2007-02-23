@@ -3052,23 +3052,23 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
            hs1.GetRightPoint() == hs2.GetRightPoint() )
       {
         i++;   
-	j++;   
-	hscurr = hs1;    
-	status = BOTH; 
+        j++;   
+        hscurr = hs1;    
+        status = BOTH; 
       }
       else if ( hs1 < hs2) 
       {
         hscurrindex = i;
         i++; 
-	hscurr = hs1; 
-	status = FIRST;
+        hscurr = hs1; 
+        status = FIRST;
       }
       else if ( hs1 > hs2) 
       {
         hscurrindex = j;
         j++;
-	hscurr = hs2; 
-	status = SECOND;
+        hscurr = hs2; 
+        status = SECOND;
       }
       //cout << hscurr << endl;
       //if (status == FIRST) cout << "FIRST1" << endl;
@@ -3077,72 +3077,72 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
       {
         k = j;
         /*while ( (jleft < vs2.size()) && (!(xoverlaps(hscurr, vs2[jleft]))) )
-	{
-	  cout << "move left pointer" << endl;
-	  jleft++;
-	}
-	
-	k = jleft;*/
-	
-	
-	//realm the lines
-	if ( isline1 )
-	{
-	  l = hscurrindex + 1;
-	  while ( (l < vs1.size()) && (xoverlaps(hscurr, vs1[l])) )
-	  {
-	    //cout << "realm the line first" << l << endl;
-	    checksegmentsline(hscurr, vs1[l], hscurrindex, l, vsc1);
-	    //printsegcheckvector(vsc1);
-	    //printsegcheckvector(vsc2);
-	    l++;
-	  }
+        {
+          cout << "move left pointer" << endl;
+          jleft++;
+        }
+        
+        k = jleft;*/
+        
+        
+        //realm the lines
+        if ( isline1 )
+        {
+          l = hscurrindex + 1;
+          while ( (l < vs1.size()) && (xoverlaps(hscurr, vs1[l])) )
+          {
+            //cout << "realm the line first" << l << endl;
+            checksegmentsline(hscurr, vs1[l], hscurrindex, l, vsc1);
+            //printsegcheckvector(vsc1);
+            //printsegcheckvector(vsc2);
+            l++;
+          }
         }
 
-	while ( (k < vs2.size()) && (xoverlaps(hscurr, vs2[k])) )
-	{
-	  //cout << "realm the two segments " << k << endl;
-	  checksegments(hscurr, vs2[k], hscurrindex, k, vsc1, vsc2);
-	  //printsegcheckvector(vsc1);
-	  //printsegcheckvector(vsc2);
-	  k++;
-	}
-	//cout << endl;
+        while ( (k < vs2.size()) && (xoverlaps(hscurr, vs2[k])) )
+        {
+          //cout << "realm the two segments " << k << endl;
+          checksegments(hscurr, vs2[k], hscurrindex, k, vsc1, vsc2);
+          //printsegcheckvector(vsc1);
+          //printsegcheckvector(vsc2);
+          k++;
+        }
+        //cout << endl;
       }
       else if ( status == SECOND )
       {
         k = i;
         /*while ( (ileft < vs1.size()) && (!(xoverlaps(hscurr, vs1[ileft]))) )
-	{
-	  cout << "move left pointer" << endl;
-	  ileft++;
-	}
-	
-	k = ileft;*/
-	
-	//realm the lines
-	if ( isline2 )
-	{
-	  l = hscurrindex + 1;
-	  while ( (l < vs2.size()) && (xoverlaps(hscurr, vs2[l])) )
-	  {
-	    //cout << "realm the line second" << l << endl;
-	    checksegmentsline(hscurr, vs2[l], hscurrindex, l, vsc2);
-	    //printsegcheckvector(vsc1);
-	    //printsegcheckvector(vsc2);
-	    l++;
-	  }
+        {
+          cout << "move left pointer" << endl;
+          ileft++;
+        }
+        
+        k = ileft;*/
+        
+        //realm the lines
+        if ( isline2 )
+        {
+          l = hscurrindex + 1;
+          while ( (l < vs2.size()) && (xoverlaps(hscurr, vs2[l])) )
+          {
+            //cout << "realm the line second" << l << endl;
+            checksegmentsline(hscurr, vs2[l], hscurrindex, l, vsc2);
+            //printsegcheckvector(vsc1);
+            //printsegcheckvector(vsc2);
+            l++;
+          }
         }
 
-	while ( (k < vs1.size()) && (xoverlaps(hscurr, vs1[k])) )
-	{
-	  //cout << "realm the two segments " << k << endl;
-	  checksegments(vs1[k], hscurr, k, hscurrindex, vsc1, vsc2);
-	  //printsegcheckvector(vsc1);
-	  //printsegcheckvector(vsc2);
-	  k++;
-	}
-	//cout << endl;
+        while ( (k < vs1.size()) && (xoverlaps(hscurr, vs1[k])) )
+        {
+          //cout << "realm the two segments " << k << endl;
+          checksegments(vs1[k], hscurr, k, hscurrindex, vsc1, vsc2);
+          //printsegcheckvector(vsc1);
+          //printsegcheckvector(vsc2);
+          k++;
+        }
+        //cout << endl;
       }
     }
     else if ( i < vs1.size() ) 
@@ -3156,28 +3156,28 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
       //if (status == FIRST) cout << "FIRST2" << endl << endl;
       //else cout << "SECOND2" << endl << endl;
       
-	//realm the lines
-	if ( isline1 )
-	{
-	  l = hscurrindex + 1;
-	  while ( (l < vs1.size()) && (xoverlaps(hscurr, vs1[l])) )
-	  {
-	    //cout << "realm the line outside first " << endl;
-	    checksegmentsline(hscurr, vs1[l], hscurrindex, l, vsc1);
-	    //printsegcheckvector(vsc1);
-	    //printsegcheckvector(vsc2);
-	    l++;
-	  }
-	}
+        //realm the lines
+        if ( isline1 )
+        {
+          l = hscurrindex + 1;
+          while ( (l < vs1.size()) && (xoverlaps(hscurr, vs1[l])) )
+          {
+            //cout << "realm the line outside first " << endl;
+            checksegmentsline(hscurr, vs1[l], hscurrindex, l, vsc1);
+            //printsegcheckvector(vsc1);
+            //printsegcheckvector(vsc2);
+            l++;
+          }
+        }
 
       k = j;
       while ( (k < vs2.size()) && (xoverlaps(hscurr, vs2[k])) )
       {
         //cout << "realm the two segments " << k << endl;
-	checksegments(hscurr, vs2[k], hscurrindex, k, vsc1, vsc2);
-	//printsegcheckvector(vsc1);
-	//printsegcheckvector(vsc2);
-	k++;
+        checksegments(hscurr, vs2[k], hscurrindex, k, vsc1, vsc2);
+        //printsegcheckvector(vsc1);
+        //printsegcheckvector(vsc2);
+        k++;
       }
       //cout << endl;
     }
@@ -3192,28 +3192,28 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
       //if (status == FIRST) cout << "FIRST3" << endl << endl;
       //else cout << "SECOND3" << endl << endl;
       
-	//realm the lines
-	if ( isline2 )
-	{
-	  l = hscurrindex + 1;
-	  while ( (l < vs2.size()) && (xoverlaps(hscurr, vs2[l])) )
-	  {
-	    //cout << "realm the line outside" << l << endl;
-	    checksegmentsline(hscurr, vs2[l], hscurrindex, l, vsc2);
-	    //printsegcheckvector(vsc1);
-	    //printsegcheckvector(vsc2);
-	    l++;
-	  }
-	}
+        //realm the lines
+        if ( isline2 )
+        {
+          l = hscurrindex + 1;
+          while ( (l < vs2.size()) && (xoverlaps(hscurr, vs2[l])) )
+          {
+            //cout << "realm the line outside" << l << endl;
+            checksegmentsline(hscurr, vs2[l], hscurrindex, l, vsc2);
+            //printsegcheckvector(vsc1);
+            //printsegcheckvector(vsc2);
+            l++;
+          }
+        }
 
       k = i;
       while ( (k < vs1.size()) && (xoverlaps(hscurr, vs1[k])) )
       {
         //cout << "realm the two segments " << k << endl;
-	checksegments(vs1[k], hscurr, k, hscurrindex, vsc1, vsc2);
-	//printsegcheckvector(vsc1);
-	//printsegcheckvector(vsc2);
-	k++;
+        checksegments(vs1[k], hscurr, k, hscurrindex, vsc1, vsc2);
+        //printsegcheckvector(vsc1);
+        //printsegcheckvector(vsc2);
+        k++;
       }
       //cout << endl;
     }
@@ -3371,9 +3371,9 @@ void MakeRealm::createrealmedobject(const vector<HalfSegment>& s,
       {
         rp = *it;
         rseg.Set(true, lp, rp);
-	rseg.attr.faceno = faceno;
-	rseg.attr.cycleno = cycleno;
-	rseg.attr.insideAbove = insideAbove;
+        rseg.attr.faceno = faceno;
+        rseg.attr.cycleno = cycleno;
+        rseg.attr.insideAbove = insideAbove;
         res.push_back(rseg);
         lp = rp;
       }
@@ -5353,7 +5353,7 @@ static int realm_lr( Word* args, Word& result, int message,
         case PLANESWEEP: mr.REALM( l1, r2, test1 , test2 );
                          break;
         case QUADRATIC:
-	case OVERLAPPING: mr.REALM2( l1, r2, true, false, test1 , test2 );
+        case OVERLAPPING: mr.REALM2( l1, r2, true, false, test1 , test2 );
                          break;
         default: cout << "should not happen" << endl;
       }       
@@ -5390,7 +5390,7 @@ static int realm_rl( Word* args, Word& result, int message,
         case PLANESWEEP: mr.REALM( l1, r2, test1 , test2 );
                          break;
         case QUADRATIC :
-	case OVERLAPPING: mr.REALM2( l1, r2, false, true, test1 , test2 );
+        case OVERLAPPING: mr.REALM2( l1, r2, false, true, test1 , test2 );
                          break;
         default: cout << "should not happen" << endl;
       }       
@@ -5424,7 +5424,7 @@ static int realm_ll( Word* args, Word& result, int message,
         case PLANESWEEP: mr.REALM( l1, l2, test1 , test2 );
                          break;
         case QUADRATIC:
-	case OVERLAPPING: mr.REALM2( l1, l2, true, true, test1 , test2 );
+        case OVERLAPPING: mr.REALM2( l1, l2, true, true, test1 , test2 );
                          break;
         default: cout << "should not happen" << endl;
       }       
@@ -5459,7 +5459,7 @@ static int realm_rr( Word* args, Word& result, int message,
         case PLANESWEEP: mr.REALM( r1, r2, test1 , test2 );
                          break;
         case QUADRATIC:
-	case OVERLAPPING: mr.REALM2( r1, r2, false, false, test1 , test2 );
+        case OVERLAPPING: mr.REALM2( r1, r2, false, false, test1 , test2 );
                          break;
         default: cout << "should not happen" << endl;
       }       
