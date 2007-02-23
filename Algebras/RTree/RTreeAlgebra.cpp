@@ -2237,6 +2237,391 @@ Operator gettuplesdbl (
 );
 
 
+/*
+5.2 Operator ~creatertree_bulkload~
+
+This operator will create a new r-tree from the scratch, applying a 
+simple bulkload mechanism. The input relation/stream is read and partition 
+them into $p =\lceil \frac{N}{c} }\rceil$ leaf pages. Then start aggregating 
+the leafnodes into $p :=\lceil \frac{p}{c} }\rceil$ internal nodes until only 
+a single node, the root, remains.
+
+Problems: There may be many nodes to be handled, so we need to store the current working set of nodes and within a persistent buffer.
+
+Sorting is not implemented within this algorithm. The input should already be sorted
+with respect to the center or lower left corner of the input bounding boxes, e.g. using
+a Z-order. You can apply other kinds of orderings to take some influence on the 
+overlapping within the r-tree.
+
+*/
+
+/*
+5.2. TypeMapping for Operator ~creatertree_bulkload<D>~
+
+Signature is
+
+----
+         creatertree_bulkload<D>: stream 
+----
+
+*/
+ListExpr CreateRTreeBulkLoadTypeMap(ListExpr args)
+{
+  string attrName, relDescriptionStr, argstr;
+  string errmsg = "Incorrect input for operator creatertree_bulkload.";
+  int attrIndex;
+  ListExpr attrType;
+  AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+
+  CHECK_COND(!nl->IsEmpty(args) &&
+      nl->ListLength(args) == 2,
+  errmsg + "\nOperator creatertree_bulkload expects two arguments.");
+
+  ListExpr relDescription = nl->First(args),
+  attrNameLE = nl->Second(args);
+
+  CHECK_COND(nl->IsAtom(attrNameLE) &&
+      nl->AtomType(attrNameLE) == SymbolType,
+  errmsg + "\nThe second argument must be the name of "
+      "the attribute to index.");
+  attrName = nl->SymbolValue(attrNameLE);
+
+  nl->WriteToString (relDescriptionStr, relDescription);
+  CHECK_COND(!nl->IsEmpty(relDescription) &&
+      nl->ListLength(relDescription) == 2,
+  errmsg +
+      "\nOperator creatertree expects a first argument with structure "
+      "(stream (tuple ((a1 t1)...(an tn))))\n"
+      "but gets it with structure '" + relDescriptionStr + "'.");
+
+  ListExpr tupleDescription = nl->Second(relDescription);
+
+  CHECK_COND( (nl->IsEqual(nl->First(relDescription), "stream")) &&
+      nl->ListLength(tupleDescription) == 2,
+  errmsg +
+      "\nOperator creatertree_bulkload expects a first argument with "
+      "structure (stream (tuple ((a1 t1)...(an tn))))\n"
+      "but gets it with structure '" + relDescriptionStr + "'.");
+
+  ListExpr attrList = nl->Second(tupleDescription);
+  CHECK_COND(nl->IsEqual(nl->First(tupleDescription), "tuple") &&
+      IsTupleDescription(attrList),
+  errmsg +
+      "\nOperator creatertree_bulkload expects a first argument with "
+      "structure (stream (tuple ((a1 t1)...(an tn))))\n"
+      "but gets it with structure '" + relDescriptionStr + "'.");
+
+  CHECK_COND(
+      (attrIndex = FindAttribute(attrList, attrName, attrType)) > 0,
+  errmsg +
+      "\nOperator creatertree_bulkload expects that the attribute " +
+      attrName + "\npassed as second argument to be part of "
+      "the stream description\n'" +
+      relDescriptionStr + "'.");
+
+  CHECK_COND(algMgr->CheckKind("SPATIAL2D", attrType, errorInfo)||
+      algMgr->CheckKind("SPATIAL3D", attrType, errorInfo)||
+      algMgr->CheckKind("SPATIAL4D", attrType, errorInfo)||
+      algMgr->CheckKind("SPATIAL8D", attrType, errorInfo)||
+      nl->IsEqual(attrType, "rect")||
+      nl->IsEqual(attrType, "rect3")||
+      nl->IsEqual(attrType, "rect4")||
+      nl->IsEqual(attrType, "rect8"),
+  errmsg +
+      "\nOperator creatertree_bulkload expects that attribute "+attrName+"\n"
+      "belongs to kinds SPATIAL2D, SPATIAL3D, Spatial4D or SPATIAL8D\n"
+      "or rect, rect3, rect4 and rect8.");
+
+  string rtreetype;
+
+  if ( algMgr->CheckKind("SPATIAL2D", attrType, errorInfo) ||
+       nl->IsEqual( attrType, "rect" ) )
+    rtreetype = "rtree";
+  else if ( algMgr->CheckKind("SPATIAL3D", attrType, errorInfo) ||
+            nl->IsEqual( attrType, "rect3" ) )
+    rtreetype = "rtree3";
+  else if ( algMgr->CheckKind("SPATIAL4D", attrType, errorInfo) ||
+            nl->IsEqual( attrType, "rect4" ) )
+    rtreetype = "rtree4";
+  else if ( algMgr->CheckKind("SPATIAL8D", attrType, errorInfo) ||
+            nl->IsEqual( attrType, "rect8" ) )
+    rtreetype = "rtree8";
+
+/*
+Now we have two possibilities:
+
+- multi-entry indexing, or
+- double indexing
+
+For multi-entry indexing, one and only one of the attributes
+must be a tuple identifier. In the latter, together with
+a tuple identifier, the last two attributes must be of
+integer type (~int~).
+
+In the first case, a standard R-Tree is created possibly
+containing several entries to the same tuple identifier, and
+in the latter, a double index R-Tree is created using as low
+and high parameters these two last integer numbers.
+
+*/
+
+    ListExpr first, rest, newAttrList, lastNewAttrList;
+    int tidIndex = 0;
+    string type;
+    bool firstcall = true,
+    doubleIndex = false;
+
+    int nAttrs = nl->ListLength( attrList );
+    rest = attrList;
+    int j = 1;
+    while (!nl->IsEmpty(rest))
+    {
+      first = nl->First(rest);
+      rest = nl->Rest(rest);
+
+      type = nl->SymbolValue(nl->Second(first));
+      if (type == "tid")
+      {
+        CHECK_COND( tidIndex == 0,
+                    "Operator creatertree_bulkload expects as first "
+                    "argument a stream "
+                    "with\none and only one attribute of type 'tid'\n'"
+                    "but gets\n'" + relDescriptionStr + "'.");
+
+        tidIndex = j;
+      }
+      else if( j == nAttrs - 1 && type == "int" &&
+               nl->SymbolValue(
+               nl->Second(nl->First(rest))) == "int" )
+      { // the last two attributes are integers
+        doubleIndex = true;
+      }
+      else
+      {
+        if (firstcall)
+        {
+          firstcall = false;
+          newAttrList = nl->OneElemList(first);
+          lastNewAttrList = newAttrList;
+        }
+        else
+        {
+          lastNewAttrList = nl->Append(lastNewAttrList, first);
+        }
+      }
+      j++;
+    }
+    CHECK_COND( tidIndex != 0,
+                "Operator creatertree_bulkload expects as first "
+                "argument a stream "
+                "with\none and only one attribute of type 'tid'\n'"
+                "but gets\n'" + relDescriptionStr + "'.");
+
+    return
+        nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+    nl->TwoElemList(
+        nl->IntAtom(attrIndex),
+    nl->IntAtom(tidIndex)),
+    nl->FourElemList(
+        nl->SymbolAtom(rtreetype),
+    nl->TwoElemList(
+        nl->SymbolAtom("tuple"),
+    newAttrList),
+    attrType,
+    nl->BoolAtom(doubleIndex)));
+}
+
+/*
+5.2. Value Mapping for Operator ~creatertree_bulkload<D>~
+
+*/
+template<unsigned dim>
+int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
+                  Word& local, Supplier s )
+{
+// Step 0 - Initialization
+  Word wTuple;
+  R_Tree<dim, TupleId> *rtree =
+      (R_Tree<dim, TupleId>*)qp->ResultStorage(s).addr;
+  result = SetWord( rtree );
+
+  int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
+  tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
+
+  assert(rtree->InitializeBulkLoad());
+
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, wTuple);
+  while (qp->Received(args[0].addr))
+  {
+     Tuple* tuple = (Tuple*)wTuple.addr;
+
+     if( ((StandardSpatialAttribute<dim>*)tuple->
+              GetAttribute(attrIndex))->IsDefined() &&
+              ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->
+              IsDefined() )
+     {
+        BBox<dim> box = ((StandardSpatialAttribute<dim>*)tuple->
+              GetAttribute(attrIndex))->BoundingBox();
+        R_TreeLeafEntry<dim, TupleId> 
+              e( box,
+                 ((TupleIdentifier *)tuple->
+                     GetAttribute(tidIndex))->GetTid() );
+        rtree->InsertBulkLoad(e);
+     }
+     tuple->DeleteIfAllowed();
+     qp->Request(args[0].addr, wTuple);
+  }
+  qp->Close(args[0].addr);
+  assert( rtree->FinalizeBulkLoad() );
+  return 0;
+}
+
+template<unsigned dim>
+    int CreateRTreeBulkLoadStreamRect( Word* args, Word& result, int message,
+                                          Word& local, Supplier s )
+{
+  Word wTuple;
+  R_Tree<dim, TupleId> *rtree =
+      (R_Tree<dim, TupleId>*)qp->ResultStorage(s).addr;
+  result = SetWord( rtree );
+
+  int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
+  tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
+
+  assert(rtree->InitializeBulkLoad());
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, wTuple);
+  while (qp->Received(args[0].addr))
+  {
+    Tuple* tuple = (Tuple*)wTuple.addr;
+
+    BBox<dim> *box = (BBox<dim>*)tuple->GetAttribute(attrIndex);
+    if( box->IsDefined() &&
+        ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->IsDefined() 
+      )
+    {
+      R_TreeLeafEntry<dim, TupleId> 
+          e( *box,
+             ((TupleIdentifier *)tuple->
+                 GetAttribute(tidIndex))->GetTid() );
+          rtree->InsertBulkLoad(e);
+    }
+    tuple->DeleteIfAllowed();
+    qp->Request(args[0].addr, wTuple);
+  }
+  qp->Close(args[0].addr);
+  assert( rtree->FinalizeBulkLoad() );
+  return 0;
+}
+
+/*
+5.2. Selection Function for Operator ~creatertree_bulkload<D>~
+
+*/
+int CreateRTreeBulkLoadSelect (ListExpr args)
+{
+    ListExpr relDescription = nl->First(args),
+             attrNameLE = nl->Second(args),
+             tupleDescription = nl->Second(relDescription),
+             attrList = nl->Second(tupleDescription);
+             string attrName = nl->SymbolValue(attrNameLE);
+    int attrIndex;
+    ListExpr attrType;
+    attrIndex = FindAttribute(attrList, attrName, attrType);
+    AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
+    ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+    int result;
+
+    if ( algMgr->CheckKind("SPATIAL2D", attrType, errorInfo) )
+             result = 0;
+    else if ( algMgr->CheckKind("SPATIAL3D", attrType, errorInfo) )
+             result = 1;
+    else if ( algMgr->CheckKind("SPATIAL4D", attrType, errorInfo) )
+             result = 2;
+    else if ( algMgr->CheckKind("SPATIAL8D", attrType, errorInfo) )
+             result = 3;
+    else if( nl->SymbolValue(attrType) == "rect" )
+             result = 4;
+    else if( nl->SymbolValue(attrType) == "rect3" )
+             result = 5;
+    else if( nl->SymbolValue(attrType) == "rect4" )
+             result = 6;
+    else if( nl->SymbolValue(attrType) == "rect8" )
+             result = 7;
+    else
+             return -1; /* should not happen */
+
+    if( nl->SymbolValue(nl->First(relDescription)) == "stream")
+    {
+       ListExpr first,
+       rest = attrList;
+       while (!nl->IsEmpty(rest))
+       {
+          first = nl->First(rest);
+          rest = nl->Rest(rest);
+       }
+       if( nl->IsEqual( nl->Second( first ), "int" ) )
+          // Double indexing
+          // return result + 8;
+          return -1;
+       else
+          // Multi-entry indexing
+          return result + 0;
+    }
+    return -1;
+}
+
+ValueMapping CreateRTreeBulkLoad [] =
+{ CreateRTreeBulkLoadStreamSpatial<2>,
+  CreateRTreeBulkLoadStreamSpatial<3>,
+  CreateRTreeBulkLoadStreamSpatial<4>,
+  CreateRTreeBulkLoadStreamSpatial<8>,
+  CreateRTreeBulkLoadStreamRect<2>,
+  CreateRTreeBulkLoadStreamRect<3>,
+  CreateRTreeBulkLoadStreamRect<4>,
+  CreateRTreeBulkLoadStreamRect<8> 
+};
+
+
+/*
+5.2. Specification for Operator ~creatertree_bulkload~
+
+*/
+const string CreateRTreeBulkLoadSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" \"Comment\" ) "
+  "(<text>(stream (tuple (x1 t1)...(xn tn) (id tid))) xi)"
+  " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false)/n"
+  "</text--->"
+  "<text>bulkloadrtree [ _ ]</text--->"
+  "<text>Creates an rtree<D> applying bulk loading. This means, "
+  "the operator expects the input stream of tuples to be ordered "
+  "in some meaningful way in order to reduce overlapping of "
+  "bounding boxes (e.g. a Z-ordering on the bounding boxes). "
+  "The R-Tree is created bottom up by gouping as many entries as "
+  "possible into the leaf nodes and then creating the higher levels. "
+  "The key type ti must be of kind SPATIAL2D, SPATIAL3D, SPATIAL4D "
+  "or Spatial8D, or of type rect, rect2, rect3, rect4 or rect8.</text--->"
+  "<text>let myrtree = Kreis feed projectextend[ ; TID: tupleid(.), "
+  "MBR: bbox(.Gebiet)] sortby[MBR asc] bulkloadrtree[MBR]</text--->"
+  "<text></text--->"
+  ") )";
+/*
+5.2. Definition of Operator ~creatertree_bulkload<D>~
+
+*/
+Operator bulkloadrtree(
+         "bulkloadrtree",       // name
+         CreateRTreeBulkLoadSpec,      // specification
+         8,
+         CreateRTreeBulkLoad,          // value mapping
+         CreateRTreeBulkLoadSelect,    // selection function
+         CreateRTreeBulkLoadTypeMap    // type mapping
+);
+
 
 /*
 6 Definition and initialization of RTree Algebra
@@ -2253,6 +2638,7 @@ class RTreeAlgebra : public Algebra
     AddTypeConstructor( &rtree8 );
 
     AddOperator( &creatertree );
+    AddOperator( &bulkloadrtree );
     AddOperator( &windowintersects );
     AddOperator( &windowintersectsS );
     AddOperator( &gettuples );
