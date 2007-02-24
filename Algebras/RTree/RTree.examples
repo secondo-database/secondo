@@ -7,6 +7,14 @@ Signature: ((rel (tuple (x1 t1)...(xn tn)))) xi) -> (rtree<d> (tuple ((x1 t1)...
 Example  : query strassen creatertree[geoData]
 Result   : file_platform
 
+
+Operator : bulkloadrtree
+Number   : 1
+Signature: (stream (tuple (x1 t1)...(xn tn) (id tid))) xi) -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false)/n
+Example  : query Flaechen feed projectextend[ ; TID: tupleid(.), MBR: bbox(.geoData)] sortby[MBR asc] bulkloadrtree[MBR]
+Result   : crashes
+
+
 Operator : gettuples
 Number   : 1
 Signature: (stream (tuple ((id tid) (x1 t1)...(xn tn)))) x (rel (tuple ((y1 t1)...(yn tn)))) -> (stream (tuple ((x1 t1)...(xn tn) (y1 t1)...(yn tn))))
