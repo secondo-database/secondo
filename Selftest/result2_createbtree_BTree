@@ -1,0 +1,11 @@
+
+(
+   ( btree 
+      ( tuple 
+         (
+            ( SName  string )
+            ( Bev  int )
+            ( PLZ  int )
+            ( Vorwahl  string )
+            ( Kennzeichen  string ))) string )
+   ())

@@ -1,0 +1,21 @@
+
+(
+   ( rel 
+      ( tuple 
+         (
+            ( SName  string )
+            ( Bev  int )
+            ( PLZ  int )
+            ( Vorwahl  string )
+            ( Kennzeichen  string ))))
+   (
+      ( "Mainz"  189000  6500  "06131"  "MZ" )
+      ( "Mannheim"  295000  6800  "0621"  "MA" )
+      ( "Moenchengladbach"  254000  4050  "02161"  "MG" )
+      ( "Muehlheim(Ruhr)"  172000  4330  "0208"  "MH" )
+      ( "Muenchen"  1267000  8000  "089"  "M" )
+      ( "Muenster"  270000  4400  "0251"  "MS" )
+      ( "Nuernberg"  465000  8500  "0911"  "N" )
+      ( "Offenbach(Main)"  107000  6050  "069"  "OF" )
+      ( "Oldenburg"  138000  2900  "0441"  "OL" )
+      ( "Osnabrueck"  153000  4500  "0541"  "OS" )))

@@ -1,0 +1,12 @@
+
+(
+   ( rel 
+      ( tuple 
+         (
+            ( SName  string )
+            ( Bev  int )
+            ( PLZ  int )
+            ( Vorwahl  string )
+            ( Kennzeichen  string ))))
+   (
+      ( "Bochum"  382000  4630  "0234"  "BO" )))
