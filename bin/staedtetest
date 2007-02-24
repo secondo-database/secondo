@@ -503,7 +503,13 @@
                     <text>( Kinos )</text--->) 
                 ("Kinos2_Ort" 
                     <text>(creatertree Kinos2 Ort)</text---> 
-                    <text>( Kinos2 )</text--->))) 
+                    <text>( Kinos2 )</text--->) 
+                ("staedte_SName" 
+                    <text>(createbtree Staedte SName)</text---> 
+                    <text>( Staedte )</text--->) 
+                ("staedte_Bev" 
+                    <text>(createbtree Staedte Bev)</text---> 
+                    <text>( Staedte )</text--->))) 
         (OBJECT Staedte 
             (StaedteRel) 
             (rel 
