@@ -1,248 +1,249 @@
-Database: berlintest
+Database: staedtememtest
 Restore : No
 
 Operator : GROUP
 Number   : 1
 Signature: ((stream x)) -> (mrel x)
-Example  : query ten feed groupby[no; Sum: fun(g1: GROUP) g1 count] count
-Result   : 10 
+Example  : query Orte feed groupby[BevT; Number: fun(g1: GROUP) g1 count] consume
+Result   : crashes 
 
 
 Operator : TUPLE2
 Number   : 1
 Signature: ((stream x) (stream y) ...) -> y, ((mrel x) (mrel y) ...) -> y
-Example  : query ten feed ten feed {B} symmjoin[ fun(t1: TUPLE, t2: TUPLE2) attr(t1,no) = attr(t2,no_B)] count
-Result   : 10 
+Example  : query ten feed ten feed {B} symmjoin[ fun(t1: TUPLE, t2: TUPLE2) attr(t1, no) = attr(t2, no_B)] count
+Result   : bug
+Remark   : not clear for what the operator can be used 
 
 
 Operator : TUPLE
 Number   : 1
 Signature: ((stream x)...) -> x, ((mrel x)...) -> x
-Example  : query ten feed extend[No2: fun(t1: TUPLE) attr(t1,no) * 2] count
-Result   : 10 
+Example  : query ten feed extend[No2: fun(t1: TUPLE) attr(t1, no) * 2] consume
+Result   : file 
 
 
 Operator : attr
 Number   : 1
 Signature: ((tuple ((x1 t1)...(xn tn))) xi)  -> ti)
-Example  : query ten feed extend[No2: fun(t1: TUPLE) attr(t1,no)] count
+Example  : query ten feed extend[No2: fun(t1: TUPLE) attr(t1, no)] count
 Result   : 10 
 
 
 Operator : avg
 Number   : 1
 Signature: ((stream (mtuple([a1:d1, ... ,an:dn]))) x ai) -> real
-Example  : query cities feed avg [population]
-Result   : 0
+Example  : query Staedte feed avg[Bev]
+Result   : 325017.2413793103
 
 
 Operator : cancel
 Number   : 1
 Signature: ((stream x) (map x bool)) -> (stream x)
-Example  : query cities feed cancel [.cityname = "Dortmund"] consume
-Result   : 0
+Example  : query Staedte feed cancel [.SName = "Dortmund"] consume
+Result   : file
 
 
 Operator : concat
 Number   : 1
 Signature: ((stream (mtuple (a1:d1 ... an:dn))) (stream (mtuple (b1:d1 ... bn:dn)))) -> (stream (mtuple (a1:d1 ... an:dn)))
-Example  : query ten feed five feed concat consume
-Result   : 0
+Example  : query ten feed ten feed concat consume
+Result   : file
 
 
 Operator : consume
 Number   : 1
 Signature: (stream x) -> (mrel x)
-Example  : query cities feed consume
-Result   : 0
+Example  : query ten feed consume
+Result   : file
 
 
 Operator : count
 Number   : 1
 Signature: ((stream/mrel (mtuple x))) -> int
-Example  : query cities count 
-Result   : 0
+Example  : query Orte count 
+Result   : 506
 
 
 Operator : extend
 Number   : 1
 Signature: (stream(mtuple(x)) x [(a1, (mtuple(x) -> d1)) ... (an, (mtuple(x) -> dn))] -> stream(mtuple(x@[a1:d1, ... , an:dn])))
-Example  : query ten feed extend [mult5 : .nr * 5, mod2 : .nr mod 2] consume
-Result   : 0
+Example  : query ten feed extend [mult5 : .no * 5, mod2 : .no mod 2] consume
+Result   : file
 
 
 Operator : extract
 Number   : 1
 Signature: ((stream (mtuple([a1:d1, ... ,an:dn]))) x ai) -> di
-Example  : query cities feed extract [population]
-Result   : 0
+Example  : query Staedte feed filter[.SName = "Dortmund"] extract[Bev]
+Result   : 572000
 
 
 Operator : feed
 Number   : 1
 Signature: (mrel x) -> (stream x)
-Example  : query cities feed consume
-Result   : 0
+Example  : query Staedte feed count
+Result   : 58
 
 
 Operator : filter
 Number   : 1
 Signature: ((stream x) (map x bool)) -> (stream x)
-Example  : query cities feed filter [.population > 500000] consume
-Result   : 0
+Example  : query Staedte feed filter [.Bev > 500000] consume
+Result   : file
 
 
 Operator : groupby
 Number   : 1
 Signature: ((stream (mtuple (a1:d1 ... an:dn))) (ai1 ... aik) ((bj1 (fun (mrel (mtuple (a1:d1 ... an:dn))) (_))) ... (bjl (fun (mrel (mtuple (a1:d1 ... an:dn))) (_))))) -> (stream (mtuple (ai1:di1 ... aik:dik bj1 ... bjl)))
-Example  : query Employee feed sortby[DeptNr asc] groupby[DeptNr; anz : group feed count] consume
-Result   : 0
+Example  : query Orte feed sortby[BevT asc] groupby[BevT; Anzahl: group count] consume
+Result   : crashes
 
 
 Operator : hashjoin
 Number   : 1
 Signature: ((stream (mtuple ((x1 t1) ... (xn tn)))) (stream (mtuple ((y1 d1) ... (ym dm)))) xi yj nbuckets) -> (stream (mtuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
-Example  : query Employee feed Dept feed rename[A] hashjoin[DeptNr, DeptNr_A, 17] sort consume
-Result   : 0
+Example  : query Staedte feed {s} Orte feed {o} hashjoin[SName_s, Ort_o, 99997] count
+Result   : 44
 
 
 Operator : head
 Number   : 1
 Signature: ((stream (mtuple([a1:d1, ... ,an:dn]))) x int) -> (stream (mtuple([a1:d1, ... ,an:dn])))
-Example  : query cities feed head[10] consume
-Result   : 0
+Example  : query Staedte feed head[10] consume
+Result   : file
 
 
 Operator : loopjoin
 Number   : 1
 Signature: ((stream mtuple1) (map mtuple1 mrel(mtuple2))) -> (stream mtuple1*mtuple2)
-Example  : query cities feed loopjoin [five feed filter [.no > 2]] consume
-Result   : 0
+Example  : query Staedte feed {s} loopjoin [fun(t:TUPLE) Orte feed filter [.Ort = attr(t, SName_s)]] count
+Result   : 44
 
 
 Operator : loopjoinrel
 Number   : 1
 Signature: ((stream mtuple1) (map mtuple1 mrel(mtuple2))) -> (stream mtuple1*mtuple2)
-Example  : query cities feed loopjoin [ five ] consume
-Result   : 0
+Example  : query Staedte feed {s} loopjoinrel [fun(t:TUPLE) Orte feed filter [.Ort = attr(t, SName_s)] consume] consume
+Result   : crashes
 
 
 Operator : loopsel
 Number   : 1
 Signature: ((stream mtuple1) (map mtuple1 mrel(mtuple2))) -> (stream mtuple2)
-Example  : query cities feed loopsel [five feed filter [.no > 2]] consume
-Result   : 0
+Example  : query Staedte feed {s} loopsel [fun(t:TUPLE) Orte feed filter [.Ort = attr(t, SName_s)]] consume
+Result   : file
 
 
 Operator : max
 Number   : 1
 Signature: ((stream (mtuple([a1:d1, ... ,an:dn]))) x ai) -> di
-Example  : query cities feed max [ cityname ]
-Result   : 0
+Example  : query Staedte feed max[Bev]
+Result   : 1859000
 
 
 Operator : mergediff
 Number   : 1
 Signature: ((stream (mtuple ((x1 t1) ... (xn tn)))) stream (mtuple ((x1 t1) ... (xn tn))))) -> (stream (mtuple ((x1 t1) ... (xn tn))))
-Example  : query twenty feed oddtwenty feed mergediff consume
-Result   : 0
+Example  : query thousand feed ten feed mergediff count
+Result   : 990
 
 
 Operator : mergejoin
 Number   : 1
 Signature: ((stream (mtuple ((x1 t1) ... (xn tn)))) (stream (mtuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (mtuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
-Example  : query duplicates feed ten feed rename[A] mergejoin[no, no_A] sort rdup consume
-Result   : 0
+Example  : query Staedte feed sortby[SName asc] Orte feed sortby[Ort asc] {o} mergejoin[SName,Ort_o] count
+Result   : 44
 
 
 Operator : mergesec
 Number   : 1
 Signature: ((stream (mtuple ((x1 t1) ... (xn tn)))) stream (mtuple ((x1 t1) ... (xn tn))))) -> (stream (mtuple ((x1 t1) ... (xn tn))))
-Example  : query twenty feed oddtwenty feed mergesec consume
-Result   : 0
+Example  : query ten feed thousand feed mergesec count
+Result   : 10
 
 
 Operator : mergeunion
 Number   : 1
 Signature: ((stream (mtuple ((x1 t1) ... (xn tn))))stream (mtuple ((x1 t1) ... (xn tn))))) -> (stream (mtuple ((x1 t1) ... (xn tn))))
-Example  : query twenty feed oddtwenty feed mergeunion consume
-Result   : 0
+Example  : query thousand feed thousand feed mergeunion count
+Result   : 1000
 
 
 Operator : min
 Number   : 1
 Signature: ((stream (mtuple([a1:d1, ... ,an:dn]))) x ai) -> di
-Example  : query cities feed min [ cityname ]
-Result   : 0
+Example  : query Staedte feed min[Bev]
+Result   : 100000
 
 
 Operator : product
 Number   : 1
 Signature: ((stream (mtuple (x1 ... xn))) (stream (mtuple (y1 ... ym)))) -> (stream (mtuple (x1 ... xn y1 ... ym)))
-Example  : query ten feed twenty feed product count
-Result   : 0
+Example  : query ten feed thousand feed {t2} product count
+Result   : 10000
 
 
 Operator : project
 Number   : 1
 Signature: ((stream (mtuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream (mtuple ((ai1 Ti1) ... (aik Tik))))
-Example  : query cities feed project[cityname, population] consume
-Result   : 0
+Example  : query Staedte feed project[SName, Bev] consume
+Result   : file
 
 
 Operator : rdup
 Number   : 1
 Signature: ((stream (mtuple([a1:d1, ... ,an:dn])))) -> (stream (mtuple([a1:d1, ... ,an:dn])))
-Example  : query twenty feed ten feed concat sort rdup consume
-Result   : 0
+Example  : query ten feed ten feed concat sort rdup count
+Result   : 10
 
 
 Operator : remove
 Number   : 1
 Signature: ((stream (mtuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream (mtuple ((aj1 Tj1) ... (ajn-k Tjn-k))))
-Example  : query cities feed remove[zipcode] consume
-Result   : 0
+Example  : query Staedte feed remove[Vorwahl, Kennzeichen] consume
+Result   : file
 
 
 Operator : rename
 Number   : 1
 Signature: ((stream (mtuple([a1:d1, ... ,an:dn)))ar) -> (stream (mtuple([a1ar:d1, ... ,anar:dn)))
 Example  : query ten feed rename [r1] consume
-Result   : 0
+Result   : file
 
 
 Operator : sample
 Number   : 1
 Signature: (mrel x) int real -> (stream x)
-Example  : query cities sample[0, 0.45] count
-Result   : 0
+Example  : query Orte sample[0, 0.1] count
+Result   : 50
 
 
 Operator : sort
 Number   : 1
 Signature: ((stream (mtuple([a1:d1, ... ,an:dn])))) -> (stream (mtuple([a1:d1, ... ,an:dn])))
-Example  : query cities feed sort consume
-Result   : 0
+Example  : query Staedte feed sort consume
+Result   : file
 
 
 Operator : sortby
 Number   : 1
 Signature: ((stream (mtuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> (stream (mtuple([a1:d1, ... ,an:dn])))
-Example  : query employee feed sortby[DeptNo asc] consume
-Result   : 0
+Example  : query Orte feed sortby[BevT desc] consume
+Result   : file
 
 
 Operator : sortmergejoin
 Number   : 1
 Signature: ((stream (mtuple ((x1 t1) ... (xn tn)))) (stream (mtuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (mtuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
-Example  : query duplicates feed ten feed mergejoin[no, nr] consume
-Result   : 0
+Example  : query Staedte feed Orte feed {o} sortmergejoin[SName, Ort_o] count
+Result   : 44
 
 
 Operator : sum
 Number   : 1
 Signature: ((stream (mtuple([a1:d1, ... ,an:dn]))) x ai) -> di
-Example  : query cities feed sum[population]
-Result   : 0
+Example  : query Staedte feed sum[Bev]
+Result   : 18851000
 
 
