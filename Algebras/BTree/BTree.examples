@@ -1,93 +1,93 @@
-Database: opttest
+Database: staedtetest
 Restore : YES
 
 Operator : createbtree
 Number   : 1
 Signature: (((rel (tuple (x1 t1)...(xn tn)))) xi) -> (btree (tuple ((x1 t1)...(xn tn))) ti)
-Example  : query plz createbtree[Ort] 
+Example  : query Staedte createbtree[SName] 
 Result   : file
 
 Operator : createbtree
 Number   : 2
 Signature: ((stream (tuple (x1 t1)...(xn tn) (id tid))) xi) -> (btree (tuple ((x1 t1)...(xn tn))) ti)
-Example  : query plz feed extend[ID: tupleid(.)] sortby[Ort asc] createbtree[Ort]
+Example  : query Staedte feed extend[ID: tupleid(.)] sortby[SName asc] createbtree[SName]
 Result   : file
 
 
 Operator : deletebtree
 Number   : 1
 Signature: stream(tuple(x@[TID tid])) x (btree(tuple(x) ti) xi) -> stream(tuple(x@[TID tid]))] 
-Example  : query plz feed filter[.Ort = "Bochum"] plz deletedirect plz_Ort deletebtree[Ort] plz_PLZ deletebtree[PLZ] consume
+Example  : query Staedte feed filter[.Bev < 200000] Staedte deletedirect staedte_SName deletebtree[SName] staedte_Bev deletebtree[Bev] consume
 Result   : crashes
 
 
 Operator : exactmatch
 Number   : 1
 Signature: ((btree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) ti) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query plz_Ort plz exactmatch["Dortmund"] count
-Result   : 165
+Example  : query staedte_SName Staedte exactmatch["Dortmund"] count
+Result   : 1
 
 
 Operator : exactmatchS
 Number   : 1
 Signature: (btree( (tuple(X))) ti) ti->)(stream((id tid)))
-Example  : query plz_Ort exactmatchS["Unna"] plz gettuples consume
+Example  : query staedte_SName exactmatchS["Bochum"] Staedte gettuples consume
 Result   : file
 
 
 Operator : insertbtree
 Number   : 1
 Signature: stream(tuple(x@[TID tid])) x (btree(tuple(x) ti) xi) -> stream(tuple(x@[TID tid]))] 
-Example  : query HerneRel feed plz insert plz_Ort insertbtree[Ort] plz_PLZ insertbtree[PLZ] consume 
+Example  : query Kleinstaedte feed Staedte insert staedte_SName insertbtree[SName] staedte_Bev insertbtree[Bev] consume 
 Result   : crashes
 
 
 Operator : leftrange
 Number   : 1
 Signature: ((btree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) ti) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query plz_Ort plz leftrange["B"] count
-Result   : 1385
+Example  : query staedte_SName Staedte leftrange["G"] count
+Result   : 16
 
 
 Operator : leftrangeS
 Number   : 1
 Signature: ((btree (tuple (X)) ti) ti) -> (stream (tuple ((ti tid))))
-Example  : query plz_Ort leftrangeS["B"] plz gettuples count
-Result   : 1385
+Example  : query staedte_SName leftrangeS["H"] Staedte gettuples count
+Result   : 18
 
 
 Operator : range
 Number   : 1
 Signature: ((btree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) ti ti) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query plz_PLZ plz range[50000, 51000] count
-Result   : 445
+Example  : query staedte_Bev Staedte range[500000, 600000] count
+Result   : 7
 
 
 Operator : rangeS
 Number   : 1
 Signature: ((btree (tuple (X)) ti) ti ti) -> (stream (tuple ((ti tid))))
-Example  : query plz_PLZ rangeS[50000, 51000] head[5] consume 
-Result   : ((rel (tuple ((id tid)))) ( (21471)(21472)(21473) (21474) (21475)))
+Example  : query staedte_Bev rangeS[500000, 600000] head[5] consume 
+Result   : ((rel (tuple ((id tid)))) ( (22)(12)(7) (11) (54)))
 
 
 Operator : rightrange
 Number   : 1
 Signature: ((btree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) ti) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query plz_Ort plz rightrange["U"] count
-Result   : 4002
+Example  : query staedte_SName Staedte rightrange["U"] count
+Result   : 4
 
 
 Operator : rightrangeS
 Number   : 1
 Signature: ((btree (tuple (X)) ti) ti) -> (stream (tuple ((id tid))))
-Example  : query plz_Ort rightrangeS["U"] head[10] plz gettuples consume
+Example  : query staedte_SName rightrangeS["M"] head[10] Staedte gettuples consume
 Result   : file
 
 
 Operator : updatebtree
 Number   : 1
 Signature: stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)])) x (btree(tuple(x) ti) xi) -> stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)]))] 
-Example  : query plz feed filter [.Ort = "Muenster"] plz updatedirect [Ort: "Münster"] plz_Ort updatebtree[Ort] count
+Example  : query Staedte feed filter [.SName = "Saarbruecken"] Staedte updatedirect [SName: "Saarbrücken"] staedte_Bev updatebtree[Bev] staedte_SName updatebtree[SName] count
 Result   : crashes
 
 
