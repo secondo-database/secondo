@@ -33,21 +33,21 @@ Operator : atpoint
 Number   : 1
 Signature: line x point x bool -> real
 Example  : query atpoint(trajectory(train7), mehringdamm, TRUE)
-Result   : 18852.027945347138
+Result   : 18380.673536405186
 
 
 Operator : atposition
 Number   : 1
 Signature: line x real x bool -> point
-Example  : query atposition(trajectory(train7), 18852.027945347138, TRUE)
-Result   : bug
-Remark   : result point appears at wrong position
+Example  : query atposition(trajectory(train7), 18380.673536405186, TRUE) = mehringdamm
+Result   : TRUE
+
 
 Operator : atposition
 Number   : 2
 Signature: line x real x bool -> point
 Example  : query WFlaechen feed filter[.Name = "Spree"] UBahn feed {u} symmjoin[.geoData intersects_new ..geoData_u] extend[Schnitt: intersection_new(.geoData, .geoData_u)] project[Schnitt] extend[Start: atposition(.Schnitt, 0.0, TRUE)] consume
-Result   : ( (rel  (tuple  ( (Schnitt line) (Start point)))) ( ( ( (13249.086214077468 10639.731361932529 13287.0 10675.0) (13287.0 10675.0 13327.978263860228 10766.992020910719)) (13249.086214077468 10639.731361932529)) ( ( (10937.38151739101 11996.246186182118 10942.72373477798 12125.716395795722)) (10937.38151739101 11996.246186182118)) ( ( (11348.772711690093 12044.687350017148 11357.221011973736 12126.002240247206)) (11348.772711690093 12044.687350017148)))) 
+Result   : file 
 
 Operator : bbox
 Number   : 1
@@ -59,7 +59,7 @@ Operator : boundary
 Number   : 1
 Signature: line -> points
 Example  : query boundary(train7sections)
-Result   : (points ((-3560.0 14235.0)(-1288.0 14532.0)(3472.0 13427.0)(3853.0 10396.0)(3857.0 10315.0)(3883.0 10683.0)(8023.0 9608.0)(9883.0 9494.0)(13534.0 3734.0)(13536.0 4156.0)(13552.0 5740.0)(14780.0 2104.0)(16097.0 2018.0)(16821.0 1252.0)))
+Result   : file
 
 Operator : boundary
 Number   : 2
@@ -114,143 +114,179 @@ Example  : query distance(mehringdamm, alexanderplatz)
 Result   : 3455.4536605198455
 
 
+Operator : getx
+Number   : 1
+Signature: point -> real
+Example  : query getx([const point value (0.0 -1.2)])
+Result   : (real 0.0)
+
+
+Operator : gety
+Number   : 1
+Signature: point -> real
+Example  : query gety([const point value (0.0 -1.2)])
+Result   : (real -1.2)
+
+
 Operator : ininterior
 Number   : 1
 Signature: (point x line||region) -> bool
 Example  : query mehringdamm ininterior trajectory(train7)
-Result   : crashes
+Result   : bug
+Remark   : should return true
 
 
 Operator : inside
 Number   : 1
 Signature: (point||points||line||region x points||line||region) -> bool
-Example  : query point1 inside line1
-Result   : 
+Example  : query mehringdamm inside thecenter
+Result   : TRUE
 
 
 Operator : intersection
 Number   : 1
 Signature:  (point||points||line||region x point||points||line||region)-> points||line||region
-Example  : query points intersection region
-Result   : 
+Example  : query intersection(vertices(trajectory(train7)), thecenter)
+Result   : file
 
 
 Operator : intersects
 Number   : 1
 Signature: (points||line||region x points||line||region) -> bool 
-Example  : query region1 intersects region2
-Result   : 
+Example  : query trajectory(train7) intersects thecenter
+Result   : TRUE
 
 
 Operator : isempty
 Number   : 1
 Signature: point -> bool, points -> bool, line -> bool,region -> bool
-Example  : query isempty ( line1 )
-Result   : 
+Example  : query isempty(mehringdamm)
+Result   : FALSE
+
+
+Operator : line2region
+Number   : 1
+Signature: line -> region
+Example  : query commonborder(tiergarten, tiergarten) line2region = tiergarten 
+Result   : TRUE
 
 
 Operator : minus
 Number   : 1
 Signature: (point||points||line||region x point||points||line||region) -> point||points||line||region
-Example  : query points minus point
-Result   : crashes
+Example  : query no_components(vertices(trajectory(train7)) minus mehringdamm)
+Result   : 146
 
 
 Operator : no_components
 Number   : 1
 Signature: (points||line||region) -> int
-Example  : query no_components(region)
-Result   : 
+Example  : query no_components(vertices(trajectory(train7)))
+Result   : 147
 
 
 Operator : no_segments
 Number   : 1
 Signature: (region) -> int
-Example  : query no_segments(region)
-Result   : 
+Example  : query no_segments(tiergarten)
+Result   : 70
 
 
 Operator : onborder
 Number   : 1
 Signature: (point x line||region) -> bool
-Example  : query point onborder line
-Result   : crashes
+Example  : query WFlaechen feed UBahn feed {u} symmjoin[.geoData intersects ..geoData_u] extend[Stretch: intersection_new(.geoData, .geoData_u)] project[geoData, Stretch] extend[Start: atposition(.Stretch, 0.0, TRUE), Middle: atposition(.Stretch, size(.Stretch)/2, TRUE)] extend[Onborder: .Start onborder .geoData, NotOnBorder: .Middle onborder .geoData] consume
+Result   : file
 
 
 Operator : overlaps
 Number   : 1
 Signature: (points||line||region x points||line||region) -> bool
-Example  : query line overlap region
-Result   : 
+Example  : query trajectory(train7) overlaps thecenter
+Result   : crashes
 
 
 Operator : scale
 Number   : 1
 Signature: for T in {point, points, line, region}: T x real -> T
-Example  :  query region1 scale[1000.0]
-Result   : 
+Example  : query tiergarten scale[10.0]
+Result   : file
 
 
 Operator : single
 Number   : 1
 Signature: (points) -> point
-Example  : query single(points)
-Result   : 
+Example  : query single(vertices(thecenter))
+Result   : (point undef)
 
 
 Operator : size
 Number   : 1
 Signature: (line) -> real
-Example  :  query size(line)
-Result   : 
+Example  : query size(trajectory(train7))
+Result   : 31662.126023561887
 
 
 Operator : subline
 Number   : 1
 Signature: line x real x real x bool -> line
-Example  : query subline(l, 0.0, size(.l), TRUE)
-Result   : 
+Example  : query trajectory(train7) within [fun(traj:ANY) subline(traj, 0.5 * size(traj), 0.6 * size(traj), TRUE)]
+Result   : file
 
 
 Operator : touchpoints
 Number   : 1
 Signature: (line||region x region) -> points
-Example  :  query touchpoints(line, region)
-Result   : crashes
+Example  : query touchpoints(tiergarten, tiergarten)
+Result   : file
+
+
+Operator : touchpoints
+Number   : 2
+Signature: (line||region x region) -> points
+Example  : query WFlaechen feed {w} Flaechen feed {f} symmjoin[.geoData_w adjacent ..geoData_f] extend[Touch: touchpoints(.geoData_w, .geoData_f)] consume
+Result   : file
 
 
 Operator : translate
 Number   : 1
 Signature: (point||points||line||region x real x real) -> point||points||line||region
-Example  :  query region1 translate[3.5, 15.1]
-Result   : 
+Example  : query trajectory(train7) translate[100.0, 0.0]
+Result   : file
 
 
 Operator : union
 Number   : 1
 Signature: (point x points) -> points, (points x point) -> points, (points x points) -> points
-Example  : query points union point
-Result   : crashes
+Example  : query Kinos feed extend[Pos: [const points value ()] union .geoData] remove[geoData] aggregateB[Pos; fun(p1:points, p2:points) p1 union p2; [const points value ()]]
+Result   : file
 
 
 Operator : vertices
 Number   : 1
 Signature: (region -> points) or (line -> points)
-Example  : query vertices(r1)
-Result   : 
+Example  : query vertices(thecenter)
+Result   : file
 
 
 Operator : windowclippingin
 Number   : 1
 Signature: (line x rect) -> line, (region x rect) --> region
-Example  :  query windowclippingin(line1, window)
-Result   : 
+Example  : query Flaechen feed extend[InWindow: windowclippingin(.geoData, bbox(thecenter))] project[InWindow] filter[not(isempty(.InWindow))] consume
+Result   : crashes
+
+
+Operator : windowclippingin
+Number   : 2
+Signature: (line x rect) -> line, (region x rect) --> region
+Example  : query windowclippingin(trajectory(train7), bbox(thecenter))
+Result   : crashes
 
 
 Operator : windowclippingout
 Number   : 1
 Signature: (line x rect) -> line, (region x rect) --> region
-Example  :  query windowclippingout(line1, rect)
-Result   : 
+Example  : query windowclippingout(trajectory(train7), bbox(thecenter))
+Result   : file
 
 
