@@ -1,0 +1,21 @@
+
+(
+   ( mrel 
+      ( mtuple 
+         (
+            ( SName  string )
+            ( Bev  int )
+            ( PLZ  int )
+            ( Vorwahl  string )
+            ( Kennzeichen  string ))))
+   (
+      ( "Aachen"  239000  5100  "0241"  "AC" )
+      ( "Berlin"  1859000  1000  "030"  "B" )
+      ( "Bielefeld"  300000  4800  "0521"  "BI" )
+      ( "Bochum"  382000  4630  "0234"  "BO" )
+      ( "Bonn"  291000  5300  "0228"  "BN" )
+      ( "Braunschweig"  248000  3300  "0531"  "BS" )
+      ( "Bremen"  526000  2800  "0421"  "HB" )
+      ( "Bremerhaven"  134000  2850  "0471"  "HB" )
+      ( "Darmstadt"  134000  6100  "06151"  "DA" )
+      ( "Dortmund"  572000  4600  "0231"  "DO" )))
