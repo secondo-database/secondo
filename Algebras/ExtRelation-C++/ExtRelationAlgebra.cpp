@@ -3593,10 +3593,10 @@ For instance,
 
 ----
   query people feed 
-  projectextendstream[id; 
-                      wood_perimeter: perimeter(.wood), 
-                      wood_size: area(.wood)
-                     ]
+  projectext[id; 
+             wood_perimeter: perimeter(.wood), 
+             wood_size: area(.wood)
+            ]
   consume;
 
 ----
@@ -3648,51 +3648,59 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
     "Operator projectextend gets as second argument '" + 
     argstr + "'.\n" );
 
-  noAttrs = nl->ListLength(second);
-  while (!(nl->IsEmpty(second)))
+  if( nl->IsEmpty(second) )
   {
-    first2 = nl->First(second);
-    second = nl->Rest(second);
-    if (nl->AtomType(first2) == SymbolType)
+    noAttrs = 0;
+    numberList = nl->TheEmptyList();
+  }
+  else
+  {
+    noAttrs = nl->ListLength(second);
+    while ( (noAttrs>0) && !(nl->IsEmpty(second)) )
     {
-      attrname = nl->SymbolValue(first2);
-    }
-    else
-    {
-      ErrorReporter::ReportError(
-        "Attributename in the list is not of symbol type.");
-      return nl->SymbolAtom("typeerror");
-    }
-    j = FindAttribute(nl->Second(nl->Second(first)), 
-                      attrname, attrtype);
-    if (j)
-    {
-      if (firstcall)
+      first2 = nl->First(second);
+      second = nl->Rest(second);
+      if (nl->AtomType(first2) == SymbolType)
       {
-        firstcall = false;
-        newAttrList = 
-          nl->OneElemList(nl->TwoElemList(first2, attrtype));
-        lastNewAttrList = newAttrList;
-        numberList = nl->OneElemList(nl->IntAtom(j));
-        lastNumberList = numberList;
+        attrname = nl->SymbolValue(first2);
       }
       else
       {
-        lastNewAttrList =
-          nl->Append(lastNewAttrList, 
-                     nl->TwoElemList(first2, attrtype));
-        lastNumberList =
-          nl->Append(lastNumberList, nl->IntAtom(j));
+        ErrorReporter::ReportError(
+          "Attributename in the list is not of symbol type.");
+        return nl->SymbolAtom("typeerror");
       }
-    }
-    else
-    {
-      ErrorReporter::ReportError(
-        "Operator projectextend: Attributename '" + attrname + 
-        "' is not a known attributename in the tuple stream.");
-          return nl->SymbolAtom("typeerror");
-    }
-  } 
+      j = FindAttribute(nl->Second(nl->Second(first)), 
+                        attrname, attrtype);
+      if (j)
+      {
+        if (firstcall)
+        {
+          firstcall = false;
+          newAttrList = 
+            nl->OneElemList(nl->TwoElemList(first2, attrtype));
+          lastNewAttrList = newAttrList;
+          numberList = nl->OneElemList(nl->IntAtom(j));
+          lastNumberList = numberList;
+        }
+        else
+        {
+          lastNewAttrList =
+            nl->Append(lastNewAttrList, 
+                       nl->TwoElemList(first2, attrtype));
+          lastNumberList =
+            nl->Append(lastNumberList, nl->IntAtom(j));
+        }
+      }
+      else
+      {
+        ErrorReporter::ReportError(
+          "Operator projectextend: Attributename '" + attrname + 
+          "' is not a known attributename in the tuple stream.");
+            return nl->SymbolAtom("typeerror");
+      }
+    } 
+  }
   // Now, we have all projection attrs in newAttrList and their 
   // indexes within the tuple within *numberList
 
@@ -3702,6 +3710,7 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
              (nl->ListLength(third) >= 0),
     "Operator projectextend: Third argument list may not "
     "be an atom" );
+
 
   // handle list of new attributes and mapping functions (3rd argument)
   rest = third;
@@ -3759,6 +3768,7 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
               "defined attribute names in concatenated list.\n"
               "The list is '" + argstr + "'\n" );
 
+
   ListExpr reslist =
     nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),
@@ -3770,9 +3780,9 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
         nl->TwoElemList(
           nl->SymbolAtom("tuple"),
           newAttrList)));
-//   nl->WriteToString(argstr, reslist);
-//   cout << "ExtProjectExtendTypeMap(): " 
-//        << "reslist = " << argstr << endl;
+  //   nl->WriteToString(argstr, reslist);
+  //   cout << "ExtProjectExtendTypeMap(): " 
+  //        << "reslist = " << argstr << endl;
   return reslist;
 }
 
@@ -3785,6 +3795,7 @@ int
 ExtProjectExtendValueMap(Word* args, Word& result, int message, 
                          Word& local, Supplier s)
 {
+  //  cout << "ExtProjectExtendValueMap() called." << endl;
   switch (message)
   {
     case OPEN :
