@@ -1,0 +1,31 @@
+Database: networktest
+Restore : No
+
+Operator : junctions
+Number   : 1
+Signature: network -> rel
+Example  : query junctions(Net)
+Result   : 0
+
+
+Operator : routes
+Number   : 1
+Signature: network -> rel
+Example  : query routes(Net)
+Result   : 0
+
+
+Operator : sections
+Number   : 1
+Signature: network -> rel
+Example  : query sections(Net)
+Result   : 0
+
+
+Operator : thenetwork
+Number   : 1
+Signature: rel x rel -> network
+Example  : query thenetwork(Routes, Junctions)
+Result   : crashes
+
+
