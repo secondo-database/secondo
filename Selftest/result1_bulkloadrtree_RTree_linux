@@ -1,0 +1,12 @@
+
+(
+   ( rtree 
+      ( tuple 
+         (
+            ( MBR  rect ))) rect  FALSE )
+   ( "R-Tree statistics" 
+      ( "Height"  1 )
+      ( "# of (leaf) entries"  1139 )
+      ( "# of nodes"  15 )
+      ( "Bounding Box" 
+         ( -104081.00000001  100909.00000001  -78952.00000001  87100.00000001 ))))
