@@ -5,21 +5,24 @@ Operator : junctions
 Number   : 1
 Signature: network -> rel
 Example  : query junctions(Net)
-Result   : 0
+Result   : bug
+Remark   : impossible to create a network
 
 
 Operator : routes
 Number   : 1
 Signature: network -> rel
 Example  : query routes(Net)
-Result   : 0
+Result   : bug
+Remark   : impossible to create a network
 
 
 Operator : sections
 Number   : 1
 Signature: network -> rel
 Example  : query sections(Net)
-Result   : 0
+Result   : bug
+Remark   : impossible to create a network
 
 
 Operator : thenetwork
