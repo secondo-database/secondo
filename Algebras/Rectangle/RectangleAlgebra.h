@@ -176,6 +176,11 @@ Returns the bounding box that contains both this and the rectangle ~r~.
 
 */
 
+    inline double Distance(const Rectangle<dim>& r) const;
+/*
+Returns the Euclidean distance between two rectangles
+
+*/
     inline Rectangle<dim>& Translate( const double t[dim] );
 /*
 Translates the rectangle given the translate vector ~t~.
@@ -648,6 +653,40 @@ inline bool Rectangle<dim>::Proper() const
            return false;
   }
   return true;
+}
+
+
+/*
+Distance: returns the Euclidean distance between two rectangles
+
+*/
+
+template <unsigned dim>
+inline double Rectangle<dim>::Distance(const Rectangle<dim>& r) const
+{
+  assert( defined && r.defined );
+  double sum = 0;
+
+  for( unsigned i = 0; i < dim; i++ )
+  {
+    if(r.min[i] >= max[i])
+      sum += pow( (max[i] - r.min[i]), 2 );
+    else if(r.max[i] <= min[i])
+      sum += pow( (min[i] - r.max[i]), 2 );
+    else if( (min[i] <= r.min[i] && r.min[i] <= max[i]) ||
+             (r.min[i] <= min[i] && min[i] <= r.max[i]) )
+      sum += 0;
+    else
+    {
+      cout << "Rectangle<dim>::Distance(): Missing case!" << endl
+          << "   min[" << i << "] = " <<   min[i] 
+          << "   max[" << i << "] = " <<   max[i] << endl
+          << " r.min[" << i << "] = " << r.min[i] 
+          << " r.max[" << i << "] = " << r.max[i] << endl;
+      assert( 0 );
+    }
+  }
+  return sqrt(sum);
 }
 
 /*

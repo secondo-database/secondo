@@ -375,7 +375,7 @@ RectangleTypeMapBool( ListExpr args )
 }
 
 /*
-4.1.3 Type mapping function ~RectangleTypeMapBool1~
+4.1.2 Type mapping function ~RectangleTypeMapBool1~
 
 It is for the operator ~isempty~ which have ~rect~, ~rect3~, or ~rect4~
 as input and ~bool~ as result type.
@@ -460,7 +460,7 @@ ListExpr TranslateTypeMap( ListExpr args )
 }
 
 /*
-4.1.4 Type mapping function ~rectanglex~
+4.1.5 Type mapping function ~rectanglex~
 
 It is used for the ~rectanglex~ operator.
 
@@ -499,7 +499,7 @@ ListExpr RectangleTypeMap( ListExpr args )
 }
 
 /*
-4.1.4 Type mapping function ~rectangle8size~
+4.1.6 Type mapping function ~rectangle8size~
 
 It is used for the ~rectangle8size~ operator.
 
@@ -509,7 +509,7 @@ ListExpr Rectangle8TypeMap( ListExpr args )
 {
   ListExpr arg[dim+1];
   bool checkint = true, checkreal = true;
-    
+
   if( (nl->ListLength( args ) == dim+1) )
   {
     for(unsigned int i = 1; i <= dim+1; i++) {
@@ -523,11 +523,33 @@ ListExpr Rectangle8TypeMap( ListExpr args )
     for(int k = 0; k < dim; k++) { 
      if( !(nl->IsEqual( arg[k], "real" )) ) { checkreal = false; break; }
    }
-   
+
    if ( (checkint ||  checkreal) && nl->IsEqual( arg[dim], "real" ) ) 
      return nl->SymbolAtom( "rect8" );
    else ErrorReporter::ReportError("All argument types must be either"
-                                    " int or real!");
+                                   " int or real!");
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+4.1.7 Type mapping function ~RectRectTypeMapReal~
+
+Used for ~distance~.
+
+*/
+ListExpr
+RectRectTypeMapReal( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if( ( nl->IsEqual( arg1,  "rect" ) && nl->IsEqual( arg2,  "rect" ) ) ||
+        ( nl->IsEqual( arg1, "rect3" ) && nl->IsEqual( arg2, "rect3" ) ) ||
+        ( nl->IsEqual( arg1, "rect4" ) && nl->IsEqual( arg2, "rect4" ) )   )
+    return nl->SymbolAtom( "real" );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -919,6 +941,28 @@ int Rectangle8ValueMap( Word* args, Word& result, int message,
 }
 
 /*
+4.4.6 Value mapping functions of operator ~distance~
+
+*/
+template<unsigned int dim>
+int RectangleDistanceValueMap( Word* args, Word& result, int message, 
+                               Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcReal *res = (CcReal*) result.addr;
+  Rectangle<dim> *r1, *r2;
+  r1 = (Rectangle<dim> *) args[0].addr;
+  r2 = (Rectangle<dim> *) args[1].addr;
+
+  if( !r1->IsDefined() || !r2->IsDefined() )
+    res->Set( false, 0.0 );
+  else
+  {
+     res->Set( true, r1->Distance(*r2) );
+  }
+  return 0;
+}
+/*
 4.5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -974,6 +1018,10 @@ ValueMapping rectanglerectangle4map[] = { RectangleValueMap<CcInt, 4>,
 
 ValueMapping rectanglerectangle8map[] = { Rectangle8ValueMap<CcInt, 8>,
                                           Rectangle8ValueMap<CcReal, 8> };
+
+ValueMapping rectangledistancemap[] = { RectangleDistanceValueMap<2>,
+                                        RectangleDistanceValueMap<3>,
+                                        RectangleDistanceValueMap<4> };
 
 /*
 4.5.2 Definition of specification strings
@@ -1097,6 +1145,15 @@ const string RectangleSpecRectangle8  =
         "(minxd+size) of the respective axis intervals.</text--->"
         ") )";
 
+const string RectangleSpecDistance  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+        "( <text>(rect<d> x rect<d>) -> real</text--->"
+        "<text>distance( _ , _ )</text--->"
+        "<text>return the euclidean distance of two rectangles.</text--->"
+        "<text>query distance(rect1, rect2)</text--->"
+        "<text></text--->"
+        ") )";
+
 /*
 4.5.3 Definition of the operators
 
@@ -1185,6 +1242,13 @@ Operator rectanglerectangle8( "rectangle8",
                              Rectangle8Select<8>,
                              Rectangle8TypeMap<8> );
 
+Operator rectangledistance( "distance",
+                          RectangleSpecDistance,
+                          3,
+                          rectangledistancemap,
+                          RectangleBinarySelect,
+                          RectRectTypeMapReal );
+
 /*
 5 Creating the Algebra
 
@@ -1213,6 +1277,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectangleunion );
     AddOperator( &rectangleintersection );
     AddOperator( &rectangletranslate );
+    AddOperator( &rectangledistance );
     AddOperator( &rectanglerectangle2 );
     AddOperator( &rectanglerectangle3 );
     AddOperator( &rectanglerectangle4 );

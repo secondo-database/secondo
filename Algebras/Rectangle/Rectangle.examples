@@ -15,6 +15,13 @@ Example  : query [const rect value (0.0 2.0 0.0 3.0)] = [const rect value (0.0 2
 Result   : TRUE
 
 
+Operator : distance
+Number   : 1
+Signature: (rect<d> x rect<d>) -> real
+Example  : query distance([const rect value (0.0 10.0 0.0 10.0)], [const rect value (12.0 20.0 12.0 20.0)])
+Result   : 2.828427124746190098
+
+
 Operator : inside
 Number   : 1
 Signature: (rect<d> x rect<d>) -> bool
