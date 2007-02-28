@@ -83,13 +83,22 @@ protected String changeImgTag(String orig){
    return orig.replaceAll(src,"src=\"dummy\"");
 }
 
+protected String changeLinkTag(String orig){
+   String attr = "(("+pattern_string +")|("+pattern_symbol+"))";
+   String src = "[hH][Rr][eE][fF]\\s*=\\s*"+attr;
+   return orig.replaceAll(src,"src=\"dummy\"");
+}
 
 protected String changeTag(String orig){
-   if(orig.startsWith("<meta ")){
-       return changeMetaTag(orig);
+   if(orig.matches("<[mM][eE][tT][Aa]\\s([^a]|[a])*")){
+       String res =  changeMetaTag(orig);
+       return res;
    }
-   if(orig.startsWith("<img ")){
+   if(orig.matches("<[iI][mM][gG]\\s([^a]|[a])*")){
        return changeImgTag(orig);
+   }
+   if(orig.matches("<[lL][iI][nN][kK]\\s([^a]|[a])*")){
+       return changeLinkTag(orig);
    }
    // insert further known tags to change
 
@@ -100,22 +109,24 @@ protected String changeTags(String content){
     StringBuffer result = new StringBuffer();
     int lastPos = 0;
 
-    String pattern_tag = "<[a-zA-Z]* (([^>])|("+pattern_string+"))*>"; // ignore comments
+    String pattern_tag = "<[a-zA-Z!]*\\s((\\s|[^>])|("+pattern_string+"))*>"; 
 
     Pattern p = Pattern.compile(pattern_tag);
     Matcher m = p.matcher(content);
     while(m.find()){
-        result.append(content.substring(lastPos,m.start()));
+        String rest = content.substring(lastPos,m.start());
+        result.append(rest);
+        
+
         String orig = m.group();
         String changedTag = changeTag(orig);
-       // if(!orig.equals(changedTag)){
-       //   System.out.println("change " + orig + " to " + changedTag+"\n\n\n");
-       // }
-
         result.append(changedTag);
         lastPos = m.end(); 
     }
-    result.append(content.substring(lastPos,content.length()));
+
+    String rest = content.substring(lastPos,content.length());
+
+    result.append(rest);
 
     String res = result.toString();
     return res;
@@ -140,8 +151,6 @@ protected boolean  scanValue(ListExpr value){
     }
     this.url= new Dsplurl.Url();
     url.readFrom(value.third());
-    System.out.println("url is " +this.url);
-    System.out.println("read from " + value.third());
 
 
 
@@ -161,7 +170,7 @@ protected boolean  scanValue(ListExpr value){
     }
 
     content = changeTags(content);
-    
+
     return true;    
 
 }
@@ -276,15 +285,42 @@ public HTMLViewerFrame(){
         }
      }
   });
-  
+  FormatBtn.addActionListener(new ActionListener(){
+      public void actionPerformed(ActionEvent evt){
+          String s = ((JButton)evt.getSource()).getText();
+          switchFormat(!s.equals(TXT_SOURCE));
+      }
+  });
 
   JPanel ControlPanel = new JPanel();
   ControlPanel.add(CloseBtn);
   ControlPanel.add(SaveBtn);
+  ControlPanel.add(FormatBtn);
 
   getContentPane().add(ControlPanel,BorderLayout.SOUTH);
   setSize(640,480); 
 }
+
+
+public void switchFormat(boolean toHTML){
+   if(toHTML){
+     try{
+       FormatBtn.setText(TXT_SOURCE);
+       Display.setContentType("text/html");
+       Display.setText(TheText);
+       Display.setCaretPosition(0);
+     }catch(Exception e){
+       Reporter.showError("Error in rendering html ");
+       switchFormat(false);
+     } 
+   } else {
+     FormatBtn.setText(TXT_HTML);
+     Display.setContentType("text/plain");
+     Display.setText(TheText);
+     Display.setCaretPosition(0);
+   }
+}
+
 
 /** searchs the text in the textfield in the document and
   * marks its if found
@@ -355,6 +391,9 @@ private static JPanel TextPanel;
 private JCheckBox CaseSensitive = new JCheckBox("case sensitive");
 private JTextField SearchField = new JTextField(20);
 private JButton SearchBtn = new JButton("search");
+private static final String TXT_SOURCE = "source";
+private static final String TXT_HTML="html";
+private JButton FormatBtn = new JButton(TXT_SOURCE);
 private int LastSearchPos=0;
 
 }

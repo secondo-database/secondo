@@ -79,7 +79,6 @@ protected String changeImgTag(String orig){
       source = source.substring(1,source.length()-1);
    }
 
-   System.out.println("read url from " + source + " and " + this.url);
    url.readFrom(source,this.url);
 
 
@@ -93,10 +92,44 @@ protected String changeImgTag(String orig){
    String fname ="tmp/file"+count+ext;
    count++;
    map.put(url,fname); 
-   System.out.println("map " + url + " to " + fname);
    File f = new File(fname);
    return orig.replaceAll(src+attr,"src=\"file://"+f.getAbsolutePath()+"\"");
 }
+
+
+protected String changeLinkTag(String orig){
+   String attr = "(("+pattern_string +")|("+pattern_symbol+"))";
+   String src = "[hH][rR][eE][fF]\\s*=\\s*";
+   Pattern p = Pattern.compile(src+attr);
+   Matcher m = p.matcher(orig);
+   if(!m.find()){
+       return orig;
+   } 
+   String source = m.group();
+   source = source.replaceAll("^"+src,"");
+   Dsplurl.Url url = new Dsplurl.Url();
+   source = source.trim();
+   if(source.matches(pattern_string)){
+      source = source.substring(1,source.length()-1);
+   }
+
+   url.readFrom(source,this.url);
+
+
+   int pos = source.lastIndexOf(".");
+   String ext;
+   if(pos<0){
+       ext = "";
+   } else {
+       ext = source.substring(pos);
+   }
+   String fname ="tmp/file"+count+ext;
+   count++;
+   map.put(url,fname); 
+   File f = new File(fname);
+   return orig.replaceAll(src+attr,"src=\"file://"+f.getAbsolutePath()+"\"");
+}
+
 
 
 protected boolean  scanValue(ListExpr value){
@@ -113,7 +146,6 @@ protected boolean  scanValue(ListExpr value){
         files = null;
         return false;
     }
-    System.out.println("base url = " + url);
     files = value.rest();
     return true;
 }
@@ -122,7 +154,6 @@ protected boolean  scanValue(ListExpr value){
 public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
 
-     System.out.println("page-init called");
      String T = new String(type.symbolValue());
      String V;
      defined = !isUndefined(value);
@@ -226,13 +257,41 @@ public HTMLViewerFrame(){
      }
   });
   
+  FormatBtn.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+          switchView(FormatBtn.getText().equals(TXT_SOURCE));
+       }
+  });
+
 
   JPanel ControlPanel = new JPanel();
   ControlPanel.add(CloseBtn);
   ControlPanel.add(SaveBtn);
+  ControlPanel.add(FormatBtn);
 
   getContentPane().add(ControlPanel,BorderLayout.SOUTH);
   setSize(640,480); 
+}
+
+
+public void switchView(boolean toSrc){
+   if(toSrc){
+        FormatBtn.setText(TXT_HTML);
+        Display.setContentType("text/plain");
+        Display.setText(TheText); 
+        Display.setCaretPosition(0);// go to top 
+    } else {
+        try{
+           FormatBtn.setText(TXT_SOURCE);
+           Display.setContentType("text/html");
+           Display.setText(TheText); 
+           Display.setCaretPosition(0);// go to top 
+        }catch(Exception e){
+            Reporter.debug(e);
+            Reporter.showError("error in rendering html content");
+             switchView(true);
+        }
+    }
 }
 
 /** searchs the text in the textfield in the document and
@@ -280,6 +339,7 @@ public void setSource(Dsplpage S){
     TheText = S.content;
     try{
        Display.setText(TheText);
+       switchView(false); // show html if possible
     } catch(Exception e){
        Reporter.debug("Error in setting text");
        Display.setText(""); 
@@ -291,7 +351,6 @@ public void setSource(Dsplpage S){
 }
 
 private void deleteFiles(Dsplpage source){
-   System.out.println("delete files called");
    if(source ==null){
       return;
    }
@@ -304,9 +363,12 @@ private void deleteFiles(Dsplpage source){
       } else {
           File F = new File(name);
           if(F.exists()){
-             System.out.println("delete File " + F);
+             boolean succ = F.delete();
+             if(!succ){
+                 Reporter.writeError("cannot delete the file "+F);
+             }
           } else{
-             System.out.println("file " +F + " does not exist");
+             Reporter.writeError("try to delete the file " +F + ", but it does not exist");
           }
      }
    }
@@ -318,11 +380,6 @@ private void createFiles(ListExpr files, TreeMap map){
         return;
    }
    
-   Iterator s = map.keySet().iterator();
-   System.out.println("Mapped urls");
-   while(s.hasNext()){
-       System.out.println(s.next());
-   }
 
    while(!files.isEmpty()){
       ListExpr file = files.first();
@@ -346,7 +403,6 @@ private void createFiles(ListExpr files, TreeMap map){
                 try{
                    String text = file.second().textValue();
                    byte[] content = Base64Decoder.decode(text);
-                   System.out.println("create " + fName);
                    FileOutputStream out = new FileOutputStream(fName);
                    for(int i=0;i<content.length;i++){
                        out.write(content[i]);
@@ -383,6 +439,9 @@ private static JPanel TextPanel;
 private JCheckBox CaseSensitive = new JCheckBox("case sensitive");
 private JTextField SearchField = new JTextField(20);
 private JButton SearchBtn = new JButton("search");
+private final static String TXT_SOURCE = "source";
+private final static String TXT_HTML = "html";
+private JButton FormatBtn = new JButton(TXT_SOURCE);
 private int LastSearchPos=0;
 
 }
