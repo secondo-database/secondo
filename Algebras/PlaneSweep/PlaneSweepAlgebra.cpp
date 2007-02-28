@@ -56,7 +56,7 @@ enum State {FIRST, SECOND, BOTH};
 
 struct HalfSegmentCheck { bool splitsegment; list<Point> pointlist; };
 
-const bool PSA_DEBUG = true;
+const bool PSA_DEBUG = false;
 const realmkind kindofrealm = OVERLAPPING;
 
 /*
@@ -2731,23 +2731,21 @@ void MakeRealm::hsintersection(const HalfSegment& seg1,
            (seg2.GetRightPoint().GetX() - seg2.GetLeftPoint().GetX());
       a2 = seg2.GetLeftPoint().GetY() - (m2 * seg2.GetLeftPoint().GetX());
       p.Set(seg1.GetLeftPoint().GetX(), m2 * seg1.GetLeftPoint().GetX() + a2);
-  }
-
-  if ( seg2.GetLeftPoint().GetX() == seg2.GetRightPoint().GetX() )
+  } else if ( seg2.GetLeftPoint().GetX() == seg2.GetRightPoint().GetX() )
   {
       m1 = (seg1.GetRightPoint().GetY() - seg1.GetLeftPoint().GetY()) /
            (seg1.GetRightPoint().GetX() - seg1.GetLeftPoint().GetX());
       a1 = seg1.GetLeftPoint().GetY() - (m1 * seg1.GetLeftPoint().GetX());
       p.Set(seg2.GetLeftPoint().GetX(), m1 * seg2.GetLeftPoint().GetX() + a1);
+  } else {
+      m1 = (seg1.GetRightPoint().GetY() - seg1.GetLeftPoint().GetY()) / 
+           (seg1.GetRightPoint().GetX() - seg1.GetLeftPoint().GetX());
+      m2 = (seg2.GetRightPoint().GetY() - seg2.GetLeftPoint().GetY()) / 
+           (seg2.GetRightPoint().GetX() - seg2.GetLeftPoint().GetX());
+      a1 = seg1.GetLeftPoint().GetY() - (m1 * seg1.GetLeftPoint().GetX());
+      a2 = seg2.GetLeftPoint().GetY() - (m2 * seg2.GetLeftPoint().GetX());
+      p.Set((a2 - a1) / (m1 - m2), ((m1 * a2) - (m2 * a1)) / (m1 - m2));
   }
-                  
-  m1 = (seg1.GetRightPoint().GetY() - seg1.GetLeftPoint().GetY()) / 
-       (seg1.GetRightPoint().GetX() - seg1.GetLeftPoint().GetX());
-  m2 = (seg2.GetRightPoint().GetY() - seg2.GetLeftPoint().GetY()) / 
-       (seg2.GetRightPoint().GetX() - seg2.GetLeftPoint().GetX());
-  a1 = seg1.GetLeftPoint().GetY() - (m1 * seg1.GetLeftPoint().GetX());
-  a2 = seg2.GetLeftPoint().GetY() - (m2 * seg2.GetLeftPoint().GetX());
-  p.Set((a2 - a1) / (m1 - m2), ((m1 * a2) - (m2 * a1)) / (m1 - m2));
 }
 
 void MakeRealm::insertpoint(list<Point>& values, const Point p)
