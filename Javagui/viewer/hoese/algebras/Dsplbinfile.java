@@ -25,13 +25,16 @@ import  viewer.*;
 import viewer.hoese.*;
 import java.io.*;
 import tools.Reporter;
+import tools.Base64Decoder;
 
 
 /**
  * A displayclass for the string-type, alphanumeric only
  */
-public class Dsplbinfile extends DsplGeneric implements DsplSimple{
+public class Dsplbinfile extends DsplGeneric implements DsplSimple,Writable{
   boolean defined;
+  ListExpr theList;
+  String entry="";
 
   /**
    * This method is used to analyse the type and value in NestedList format and build
@@ -69,12 +72,42 @@ public class Dsplbinfile extends DsplGeneric implements DsplSimple{
      }
      T=extendString(T,typewidth);
      V=extendString(V,valuewidth);
-     qr.addEntry(T + " : " + V);
+     entry =T+" : " + V;
+     if(!defined){
+         qr.addEntry(entry);
+     } else {
+         theList=value;
+         qr.addEntry(this);
+     }
      return;
 
   }
 
+  public String toString(){
+      return entry;
+  }  
 
+
+  /** implemnting the writable interface **/
+  public boolean writeTo(File f){
+      try{
+        byte[] data = Base64Decoder.decode(theList.textValue());
+        if(data==null){
+           Reporter.debug("cannot decode base64 encoded binary file content");
+           return false;
+        } 
+        BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(f));
+        out.write(data);
+        out.flush();
+        out.close();
+        data=null; 
+        return true;
+      }catch(Exception e){
+         Reporter.debug(e);
+         return false;
+      }
+
+  }
 
 }
 
