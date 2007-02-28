@@ -26,6 +26,7 @@ import java.awt.*;
 import java.awt.event.*;
 import viewer.HoeseViewer;
 import tools.Reporter;
+import java.io.*;
 
 
 /**
@@ -41,6 +42,8 @@ public class QueryResult extends JList {
   private Vector GraphObjects;
 /** No. of tuples, no. of attributes of a tuple   */
   private int TupelCount, AttrCount;
+/** FileChosser for storing a file **/
+  private JFileChooser filechooser = new JFileChooser();
   
 
 
@@ -68,6 +71,34 @@ public class QueryResult extends JList {
     // processing double clicks
     addMouseListener(new MouseAdapter() {
       public void mouseClicked (MouseEvent e) {
+        if(e.getButton()!=MouseEvent.BUTTON1 && e.getClickCount()==1){
+            int index = QueryResult.this.locationToIndex(e.getPoint());
+            if(index<0){
+              return;
+            }
+            Object o = QueryResult.this.getModel().getElementAt(index);
+            if(o!=null && (o instanceof Writable)){
+                if(filechooser.showSaveDialog(null)==JFileChooser.APPROVE_OPTION){
+                     File F = filechooser.getSelectedFile();
+                     if(F.exists()){
+                        if(Reporter.showQuestion("File " + F+ " already exists,\n Overwrite It?")!=Reporter.YES){
+                           return;
+                        } 
+                     }
+                     boolean ok = false;
+                     try{
+                        ok = ((Writable)o).writeTo(F);
+                     }catch(Exception e4){
+                        Reporter.debug(e4);
+                     }
+                     if(ok){
+                         Reporter.showInfo("File "+F+" has been written");
+                     } else{
+                         Reporter.showError("error in writing file " + F);
+                     }
+                }
+            }
+        }  
         if (e.getClickCount() != 2){
           return;
         }
