@@ -3368,19 +3368,24 @@ void MakeRealm::createrealmedobject(const vector<HalfSegment>& s,
       for (it = sc[u].pointlist.begin(); it != sc[u].pointlist.end(); ++it)
       {
         rp = *it;
-        rseg.Set(true, lp, rp);
-        rseg.attr.faceno = faceno;
-        rseg.attr.cycleno = cycleno;
-        rseg.attr.insideAbove = insideAbove;
-        res.push_back(rseg);
-        lp = rp;
+        if(!AlmostEqual(lp,rp)){
+           rseg.Set(true, lp, rp);
+           rseg.attr.faceno = faceno;
+           rseg.attr.cycleno = cycleno;
+           rseg.attr.insideAbove = insideAbove;
+           res.push_back(rseg);
+           lp = rp;
+        }
       }
       rp = s[u].GetRightPoint();
-      rseg.Set(true, lp, rp);
-      rseg.attr.faceno = faceno;
-      rseg.attr.cycleno = cycleno;
-      rseg.attr.insideAbove = insideAbove;
-      res.push_back(rseg); 
+
+      if(!AlmostEqual(lp,rp)){
+          rseg.Set(true, lp, rp);
+          rseg.attr.faceno = faceno;
+          rseg.attr.cycleno = cycleno;
+          rseg.attr.insideAbove = insideAbove;
+          res.push_back(rseg); 
+      }
     }
   } 
 }
