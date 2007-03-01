@@ -6,6 +6,16 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+2007-01-02  R-Trees
+===============================================================================
+I have implemented bulkloading for RTrees. Also, using the nodes(_) operator, 
+you can inspect your RTrees now.
+
+As changes were done in the TRee implementation, you may need to restore your 
+RTree-Indices, if you run into problems.
+
+Christian
+
 
 2007-05-01  Example Queries 
 ===============================================================================
@@ -877,7 +887,7 @@ Markus
 Dear all,
 
 since Zhiming had problems with nested lists containing German "Umlaute" like
-ä ü ö etc. I revised the scanner specifications in order to make them more 
+ï¿½ ï¿½etc. I revised the scanner specifications in order to make them more 
 secure. However, the problem with "Umlaute" seems to be only a problem
 of the Java based nested list scanner and is still present. Besides some 
 other improvements to the nested list parsing were done and explained below: 

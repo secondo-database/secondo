@@ -344,6 +344,54 @@ Writes an entry to the buffer. Offset is increased.
 
 };
 
+template<unsigned dim>
+class IntrospectResult
+{
+  public:
+
+    int level;
+    long nodeId;
+    BBox<dim> MBR;
+    long fatherId;
+    bool isLeaf;
+    int minEntries;
+    int maxEntries;
+    int countEntries;
+
+    IntrospectResult():
+      level( -1 ),
+      nodeId( -1 ),
+      fatherId( -1 ),
+      isLeaf( true ),
+      minEntries( -1 ),
+      maxEntries( -1 ),
+      countEntries( -1 )
+      {
+        double dmin[dim], dmax[dim];
+        for(unsigned int i=0; i < dim; i++)
+        {
+          dmin[i] = 0.0;
+          dmax[i] = 0.0;
+        }
+        MBR = Rectangle<dim>(true, dmin, dmax);
+      }
+
+    IntrospectResult( int lev,  int node, BBox<dim> box, 
+                      long father, bool leaf, 
+                      int minE, int maxE, int countE ):
+      level( lev ),
+      nodeId( node ),
+      MBR( box ),
+      fatherId( father ),
+      isLeaf( leaf ),
+      minEntries( minE ),
+      maxEntries( maxE ),
+      countEntries( countE )
+    {}
+
+    virtual ~IntrospectResult()
+    {}
+};
 
 /*
 4 Class ~R\_TreeNode~
@@ -351,6 +399,7 @@ Writes an entry to the buffer. Offset is increased.
 This is a node in the R-Tree.
 
 */
+
 template<unsigned dim, class LeafInfo>
 class R_TreeNode
 {
@@ -1306,12 +1355,17 @@ class BulkLoadInfo
 {
   public:
     R_TreeNode<dim, LeafInfo> *node[MAX_PATH_SIZE];
+    bool skipLeaf; 
     int currentLevel;
     int currentHeight;
     int nodeCount;
     int entryCount;
+    long levelEntryCounter[MAX_PATH_SIZE];
+    double levelDistanceSum[MAX_PATH_SIZE];
+    BBox<dim> levelLastBox[MAX_PATH_SIZE];
 
-    BulkLoadInfo() :
+    BulkLoadInfo(const bool &leafSkipping = false) :
+      skipLeaf( leafSkipping ),
       currentLevel( 0 ), 
       currentHeight( 0 ),
       nodeCount( 0 ),
@@ -1320,6 +1374,9 @@ class BulkLoadInfo
       for(int i=0; i < MAX_PATH_SIZE; i++)
       {
         node[i] = NULL;
+        levelEntryCounter[i] = 0;
+        levelDistanceSum[i] = 0.0;
+        levelLastBox[i] = BBox<dim>(false);
       }
     };
 
@@ -1469,7 +1526,7 @@ Loads ~nodePtr~ with the root node and returns it.
 
 */
 
-    bool InitializeBulkLoad();
+    bool InitializeBulkLoad(const bool &leafSkipping = false);
 
 /*
 Verifies, that the R-tree is empty. Use this before calling
@@ -1493,6 +1550,15 @@ The root will be changed to point to the constructed R-tree.
 Data structures used during bulk loading will be deleted.
 
 */
+
+    bool R_Tree<dim, LeafInfo>::IntrospectFirst(IntrospectResult<dim>& result);
+    bool R_Tree<dim, LeafInfo>::IntrospectNext(IntrospectResult<dim>& result);
+/*
+The last two methods are used to produce a sequence of node decriptions, that
+can be used to inspect the R-tree structure.
+
+*/
+
 
   private:
     SmiRecordFile file;
@@ -1663,7 +1729,7 @@ Loads the child node of the current node given by ~entryno~.
 
     void UpLevel();
 /*
-Loads the father node.
+Loads the father node. 
 
 */
 
@@ -1687,6 +1753,18 @@ Info maintained during bulk loading
 
 */
 
+    long nodeIdCounter;
+/*
+A counter used in ~Introspect~ routines
+
+*/
+
+    long nodeId[ MAX_PATH_SIZE ];
+/*
+An array to save the nodeIds of the path during the ~Introspect~ routines
+
+*/
+
 };
 
 /*
@@ -1704,7 +1782,8 @@ R_Tree<dim, LeafInfo>::R_Tree( const int pageSize ) :
   searchBox( false ),
   scanFlag( false ),
   bulkMode( false ),
-  bli( NULL )
+  bli( NULL ),
+  nodeIdCounter( 0 )
 {
   file.Create();
 
@@ -1729,7 +1808,10 @@ R_Tree<dim, LeafInfo>::R_Tree( const int pageSize ) :
 
   // initialize overflowflag array
   for( int i = 0; i < MAX_PATH_SIZE; i++ )
+  {
     overflowFlag[ i ] = 0;
+    nodeId[ i ] = 0;
+  }
 
   nodePtr = new R_TreeNode<dim, LeafInfo>( true, 
                                            MinEntries( 0 ), 
@@ -1761,13 +1843,17 @@ currLevel( -1 ),
 currEntry( -1 ),
 reportLevel( -1 ),
 searchBox(),
-scanFlag( false )
+scanFlag( false ),
+nodeIdCounter( 0 )
 {
   file.Open( fileid );
 
   // initialize overflowflag array
   for( int i = 0; i < MAX_PATH_SIZE; i++ )
+  {
     overflowFlag[ i ] = 0;
+    nodeId[ i ] = 0;
+  }
 
   ReadHeader();
 
@@ -2037,6 +2123,7 @@ void R_Tree<dim, LeafInfo>::GotoLevel( int level )
   }
 }
 
+
 /*
 5.10 Method DownLevel
 
@@ -2058,6 +2145,7 @@ void R_Tree<dim, LeafInfo>::DownLevel( int entryNo )
                      MinEntries(currLevel), 
                      MaxEntries(currLevel) );
 }
+
 
 /*
 5.11 Method InsertEntry
@@ -2249,6 +2337,7 @@ void R_Tree<dim, LeafInfo>::UpLevel()
                      MaxEntries(currLevel) );
 }
 
+
 /*
 5.13 Method UpdateBox
 
@@ -2405,6 +2494,122 @@ bool R_Tree<dim, LeafInfo>::Next( R_TreeLeafEntry<dim, LeafInfo>& result )
 }
 
 /*
+Variants of ~First~ and ~Next~ for introspection into the R-tree.
+
+The complete r-tree will be iterated, but only all entries on replevel 
+will be returned, unless replevel == -1.
+
+*/
+
+template <unsigned dim, class LeafInfo>
+bool R_Tree<dim, LeafInfo>::IntrospectFirst( IntrospectResult<dim>& result)
+{
+  // create result for root
+  result = IntrospectResult<dim>
+    (
+      0,
+      0,
+      BoundingBox(),
+      -1,
+      nodePtr->IsLeaf(),
+      nodePtr->MinEntries(),
+      nodePtr->MaxEntries(),
+      nodePtr->EntryCount()
+    );
+
+  // Load root node
+  GotoLevel( 0 );
+  nodeIdCounter = 0;
+  nodeId[currLevel] = 0;
+
+  // Remember that we have started a scan of the R_Tree
+  scanFlag = true;
+  currEntry = -1;
+  for(int i=0; i<MAX_PATH_SIZE; i++)
+  {
+    pathEntry[i] = -1;
+    nodeId[i]    = -1;
+  }
+
+  return true;
+}
+
+template <unsigned dim, class LeafInfo>
+    bool R_Tree<dim, LeafInfo>::IntrospectNext( IntrospectResult<dim>& result )
+{
+  // Next can be called only after a 'IntrospectFirst' 
+  // or a 'IntrospectNext' operation
+  assert( scanFlag );
+
+  bool retcode = false;
+
+  pathEntry[currLevel]++;
+  while( pathEntry[currLevel] < nodePtr->EntryCount() || currLevel > 0 )
+  {
+    if( pathEntry[currLevel] >= nodePtr->EntryCount())
+    { // All entries in this node were examined. Go up the tree
+        // Find entry in father node corresponding to this node.
+      nodeId[currLevel] = -1;
+      pathEntry[ currLevel ] = -1;
+      UpLevel();
+      assert( pathEntry[ currLevel ] < nodePtr->EntryCount() );
+      pathEntry[currLevel]++;
+    }
+    else
+    { // Search next entry / subtree in this node
+//      pathEntry[currLevel]++;
+      if( nodeId[ currLevel ] < 0)
+        nodeId[ currLevel ] = nodeIdCounter;
+      if( pathEntry[currLevel] < nodePtr->EntryCount() )
+      { // produce result
+          if( nodePtr->IsLeaf() )
+          { // Found leaf node
+            // get complete node
+            R_TreeLeafEntry<dim, LeafInfo> entry = 
+                (R_TreeLeafEntry<dim, LeafInfo>&) 
+                    (*nodePtr)[ pathEntry[ currLevel ] ];
+            result = IntrospectResult<dim>
+                (
+                  currLevel,
+                  ++nodeIdCounter,
+                  entry.box,
+                  nodeId[currLevel],
+                  true,
+                  1,
+                  1,
+                  1
+                );
+          }
+          else // internal node
+          { // Found internal node
+            DownLevel( pathEntry[currLevel] );
+            nodeId[currLevel] = ++nodeIdCounter; // set nodeId
+            R_TreeInternalEntry<dim> entry = 
+                (R_TreeInternalEntry<dim>&) (*nodePtr)[ 0 ];
+            result = IntrospectResult<dim>
+                (
+                  currLevel,
+                  nodeIdCounter,
+                  nodePtr->BoundingBox(),
+                  nodeId[currLevel-1], // currLevel >= 1 (DownLevel)
+                  false,
+                  nodePtr->MinEntries(),
+                  nodePtr->MaxEntries(),
+                  nodePtr->EntryCount()
+                );
+//             pathEntry[currLevel] = -1; // reset for next iteration
+          } // end else
+          retcode = true;
+          break;
+        } //end if
+    } // end else
+  } // end while
+  return retcode;
+}
+
+
+
+/*
 5.17 Method Remove
 
 */
@@ -2520,7 +2725,7 @@ R_TreeNode<dim, LeafInfo>& R_Tree<dim, LeafInfo>::Root()
 }
 
 template <unsigned dim, class LeafInfo>
-bool R_Tree<dim, LeafInfo>::InitializeBulkLoad()
+bool R_Tree<dim, LeafInfo>::InitializeBulkLoad(const bool &leafSkipping)
 {
   assert( NodeCount() == 1 );
 
@@ -2529,7 +2734,8 @@ bool R_Tree<dim, LeafInfo>::InitializeBulkLoad()
     return false;
   }
   bulkMode = true;
-  bli = new BulkLoadInfo<dim, LeafInfo>();
+//   bli = new BulkLoadInfo<dim, LeafInfo>(leafSkipping); 
+  bli = new BulkLoadInfo<dim, LeafInfo>(true);
   return true;
 };
 
@@ -2557,13 +2763,43 @@ void R_Tree<dim, LeafInfo>::InsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
 {
   assert( bulkMode == true );
   assert( node != NULL );
-  if( bli->node[bli->currentLevel]->EntryCount() <
-      bli->node[bli->currentLevel]->MaxEntries() )
+  const double TOLERANCE = 4.0;
+
+  if( !bli->levelLastBox[bli->currentLevel].IsDefined() )
+  { // initialize when called for the first time
+    bli->levelLastBox[bli->currentLevel] = entry.box;
+  }
+  double dist    = entry.box.Distance(bli->levelLastBox[bli->currentLevel]);
+  bli->levelEntryCounter[bli->currentLevel]++;
+  bli->levelDistanceSum[bli->currentLevel] += dist;
+  bli->levelLastBox[bli->currentLevel] = entry.box;
+  double avgDist =   bli->levelDistanceSum[bli->currentLevel] 
+                   / (MAX(bli->levelEntryCounter[bli->currentLevel],2) - 1);
+
+  cout << "Level = " << bli->currentLevel << endl
+      << "  dist = " << dist
+      << "  avgDist = " << avgDist 
+      << "  #Entries =" << bli->node[bli->currentLevel]->EntryCount()
+      << "/" << bli->node[bli->currentLevel]->MaxEntries()
+      << endl;
+
+  if(  ( bli->node[bli->currentLevel]->EntryCount() <
+         bli->node[bli->currentLevel]->MaxEntries()         // fits into node
+       )
+       &&
+       (    !bli->skipLeaf                                  // standard case
+         || (   dist <= (avgDist * TOLERANCE) )             // distance OK
+         || (   bli->node[bli->currentLevel]->EntryCount() <=
+                bli->node[bli->currentLevel]->MinEntries() )// too few entries
+       )
+    )
   {
+    cout << "  --> Inserting here!" << endl;
     bli->node[bli->currentLevel]->Insert(entry);
     return;
-  } // else: node is already full...
+  } // else: node is already full (or distance to large)...
 
+  cout << "  --> Passing upwards..." << endl;
   //  Write node[currentLevel] to disk
   assert(file.IsOpen());
   SmiRecordId recId;

@@ -2521,6 +2521,7 @@ template<unsigned dim>
   return 0;
 }
 
+
 /*
 5.2. Selection Function for Operator ~creatertree_bulkload<D>~
 
@@ -2626,6 +2627,303 @@ Operator bulkloadrtree(
          CreateRTreeBulkLoadTypeMap    // type mapping
 );
 
+/*
+5.10 Operator ~nodes~
+
+This operator allows introspection of an R-tree. It creates a stream
+of tuples, each of which describe one node or entry of the R-Tree.
+
+Signature is 
+
+----
+    nodes: (rtree) --> stream(tuple((level int) (nodeId int) (MBR rect<D>) 
+                                    (fatherId int) (isLeaf bool) 
+                                    (minEntries int) (maxEntries int) 
+                                    (countEntries int)))
+
+----
+
+*/
+
+/*
+5.10.1 TypeMapping for Operator ~nodes~
+
+*/
+
+ListExpr RTreeNodesTypeMap(ListExpr args)
+{
+  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+
+  char* errmsg = "Incorrect input for operator nodes.";
+  string rtreeDescriptionStr;
+
+  CHECK_COND(!nl->IsEmpty(args), errmsg);
+  CHECK_COND(!nl->IsAtom(args), errmsg);
+  CHECK_COND(nl->ListLength(args) == 1, errmsg);
+
+  /* handle rtree part of argument */
+  ListExpr rtreeDescription = nl->First(args);
+  nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
+  CHECK_COND(!nl->IsEmpty(rtreeDescription) &&
+      !nl->IsAtom(rtreeDescription) &&
+      nl->ListLength(rtreeDescription) == 4,
+  "Operator nodes expects a R-Tree with structure "
+      "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
+      "bool)\nbut gets a R-Tree list with structure '"
+      +rtreeDescriptionStr+"'.");
+
+  ListExpr rtreeSymbol = nl->First(rtreeDescription),
+  rtreeTupleDescription = nl->Second(rtreeDescription),
+  rtreeKeyType = nl->Third(rtreeDescription),
+  rtreeTwoLayer = nl->Fourth(rtreeDescription);
+
+  CHECK_COND(nl->IsAtom(rtreeKeyType) &&
+      nl->AtomType(rtreeKeyType) == SymbolType &&
+      (algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo)||
+      algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo)||
+      algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo)||
+      nl->IsEqual(rtreeKeyType, "rect")||
+      nl->IsEqual(rtreeKeyType, "rect3")||
+      nl->IsEqual(rtreeKeyType, "rect4")),
+  "Operator nodes expects a R-Tree with key type\n"
+      "of kind SPATIAL2D, SPATIAL3D, and SPATIAL4D\n"
+      "or rect, rect3, and rect4.");
+
+  ListExpr MBR_ATOM;
+  if(         nl->IsEqual(rtreeKeyType, "rect")
+           || algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo))
+    MBR_ATOM = nl->SymbolAtom("rect");
+  else if(    nl->IsEqual(rtreeKeyType, "rect3") 
+           || algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo))
+    MBR_ATOM = nl->SymbolAtom("rect3");
+  else if(    nl->IsEqual(rtreeKeyType, "rect4")
+           || algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo))
+    MBR_ATOM = nl->SymbolAtom("rect4");
+  else if(    nl->IsEqual(rtreeKeyType, "rect8")
+           || algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo))
+    MBR_ATOM = nl->SymbolAtom("rect8");
+
+  /* handle rtree type constructor */
+  CHECK_COND(nl->IsAtom(rtreeSymbol) &&
+      nl->AtomType(rtreeSymbol) == SymbolType &&
+      (nl->SymbolValue(rtreeSymbol) == "rtree"  ||
+      nl->SymbolValue(rtreeSymbol) == "rtree3" ||
+      nl->SymbolValue(rtreeSymbol) == "rtree4") ,
+  "Operator nodes expects a R-Tree \n"
+      "of type rtree, rtree3 or rtree4.");
+
+  CHECK_COND(!nl->IsEmpty(rtreeTupleDescription) &&
+      !nl->IsAtom(rtreeTupleDescription) &&
+      nl->ListLength(rtreeTupleDescription) == 2,
+  "Operator nodes expects a R-Tree with structure "
+      "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
+      "bool)\nbut gets a first list with wrong tuple description in "
+      "structure \n'"+rtreeDescriptionStr+"'.");
+
+  ListExpr rtreeTupleSymbol = nl->First(rtreeTupleDescription);
+  ListExpr rtreeAttrList = nl->Second(rtreeTupleDescription);
+
+  CHECK_COND(nl->IsAtom(rtreeTupleSymbol) &&
+      nl->AtomType(rtreeTupleSymbol) == SymbolType &&
+      nl->SymbolValue(rtreeTupleSymbol) == "tuple" &&
+      IsTupleDescription(rtreeAttrList),
+  "Operator nodes expects a R-Tree with structure "
+      "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
+      "bool)\nbut gets a first list with wrong tuple description in "
+      "structure \n'"+rtreeDescriptionStr+"'.");
+
+  CHECK_COND(nl->IsAtom(rtreeTwoLayer) &&
+      nl->AtomType(rtreeTwoLayer) == BoolType,
+  "Operator nodes expects a R-Tree with structure "
+      "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
+      "bool)\nbut gets a first list with wrong tuple description in "
+      "structure \n'"+rtreeDescriptionStr+"'.");
+
+  ListExpr reslist = 
+   nl->TwoElemList(
+    nl->SymbolAtom("stream"),
+    nl->TwoElemList(
+     nl->SymbolAtom("tuple"),
+     nl->Cons(
+      nl->TwoElemList(nl->SymbolAtom("level"), nl->SymbolAtom("int")),
+      nl->Cons(
+       nl->TwoElemList(nl->SymbolAtom("nodeId"), nl->SymbolAtom("int")),
+       nl->SixElemList(
+        nl->TwoElemList(nl->SymbolAtom("MBR"), MBR_ATOM),
+        nl->TwoElemList(nl->SymbolAtom("fatherID"), nl->SymbolAtom("int")),
+        nl->TwoElemList(nl->SymbolAtom("isLeaf"), nl->SymbolAtom("bool")),
+        nl->TwoElemList(nl->SymbolAtom("minEntries"), nl->SymbolAtom("int")),
+        nl->TwoElemList(nl->SymbolAtom("maxEntries"), nl->SymbolAtom("int")),
+        nl->TwoElemList(nl->SymbolAtom("countEntries"), nl->SymbolAtom("int"))
+       )
+      )
+     )
+    )
+   );
+//   string resstring;
+//   nl->WriteToString (resstring, reslist);
+//   cout << "RTreeNodesTypeMap(): reslist = " << resstring << endl;
+  return reslist;
+}
+
+
+/*
+5.10.2 Value Mapping for Operator ~nodes~
+
+*/
+
+template<unsigned dim>
+struct RTreeNodesLocalInfo {
+  bool firstCall;
+  bool finished;
+  TupleType *resultTupleType;
+  R_Tree<dim, TupleId> *rtree;
+};
+
+template<unsigned dim>
+int RTreeNodesVM( Word* args, Word& result, int message,
+                  Word& local, Supplier s )
+{
+  RTreeNodesLocalInfo<dim> *lci;
+
+  switch( message )
+  {
+    case OPEN:
+    {
+      lci = new RTreeNodesLocalInfo<dim>;
+      local = SetWord(lci);
+      lci->firstCall = true;
+      lci->finished = false;
+      lci->resultTupleType =
+          new TupleType(nl->Second(GetTupleResultType(s)));
+      lci->rtree = (R_Tree<dim, TupleId>*) args[0].addr;
+
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      if(local.addr == NULL)
+        return CANCEL;
+      lci = (RTreeNodesLocalInfo<dim> *)local.addr;
+      if(lci->finished) 
+        return CANCEL;
+
+      IntrospectResult<dim> node;
+      if(lci->firstCall)
+      {
+        lci->firstCall = false;
+        lci->finished = !lci->rtree->IntrospectFirst(node);
+      }
+      else
+      {
+        lci->finished = !lci->rtree->IntrospectNext(node);
+      }
+      if( lci->finished )
+      {
+        return CANCEL;
+      }
+      else
+      {
+        Tuple *tuple = new Tuple( lci->resultTupleType );
+        tuple->PutAttribute(0, new CcInt(true, node.level));
+        tuple->PutAttribute(1, new CcInt(true, node.nodeId));
+        tuple->PutAttribute(2, new Rectangle<dim>(node.MBR));
+        tuple->PutAttribute(3, new CcInt(true, node.fatherId));
+        tuple->PutAttribute(4, new CcBool(true, node.isLeaf));
+        tuple->PutAttribute(5, new CcInt(true, node.minEntries));
+        tuple->PutAttribute(6, new CcInt(true, node.maxEntries));
+        tuple->PutAttribute(7, new CcInt(true, node.countEntries));
+        result = SetWord(tuple);
+        return YIELD;
+      }
+    }
+
+    case CLOSE :
+    {
+      lci = (RTreeNodesLocalInfo<dim> *)local.addr;
+      lci->resultTupleType->DeleteIfAllowed();
+      delete lci;
+      return 0;
+    }
+  } // end switch
+  cout << "RTreeNodesVM(): Received UNKNOWN message!" << endl;
+  return 0;
+}
+
+/*
+5.10.3 Specification for Operator ~nodes~
+
+*/
+
+const string RTreeNodesSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>(rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) "
+    "-> stream(tuple((level int) (nodeId int) (MBR rect<D>) \n" 
+    "                (fatherId int) (isLeaf bool) \n"
+    "                (minEntries int) (maxEntries int) \n" 
+    "                (countEntries int)))</text--->"
+    "<text>nodes( _ )</text--->"
+    "<text>Iterates the complete R-tree creating a stream of tuples"
+    "describing all nodes and leaf entries.</text--->"
+    "<text></text--->"
+    "<text></text--->"
+    ") )";
+
+/*
+5.10.4 Selection Function for Operator ~nodes~
+
+*/
+
+int RTreeNodesSelect (ListExpr args)
+{
+  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+
+  string rtreeDescriptionStr;
+
+  /* handle rtree part of argument */
+  ListExpr rtreeDescription = nl->First(args);
+  ListExpr rtreeKeyType = nl->Third(rtreeDescription);
+
+  if(         nl->IsEqual(rtreeKeyType, "rect")
+           || algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo))
+    return 0;
+  else if(    nl->IsEqual(rtreeKeyType, "rect3") 
+           || algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo))
+    return 1;
+  else if(    nl->IsEqual(rtreeKeyType, "rect4")
+           || algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo))
+    return 2;
+  else if(    nl->IsEqual(rtreeKeyType, "rect8")
+           || algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo))
+    return 3;
+
+  return -1;
+}
+
+ValueMapping RTreeNodes [] =
+{ RTreeNodesVM<2>,  // 0
+  RTreeNodesVM<3>,  // 1
+  RTreeNodesVM<4>,  // 2
+  RTreeNodesVM<8>   // 3 
+};
+
+
+/*
+5.10.2 Definition of Operator ~nodes~
+
+*/
+Operator rtreenodes(
+         "nodes",             // name
+         RTreeNodesSpec,      // specification
+         4,
+         RTreeNodes,          // value mapping
+         RTreeNodesSelect,    // selection function
+         RTreeNodesTypeMap    // type mapping
+        );
 
 /*
 6 Definition and initialization of RTree Algebra
@@ -2647,6 +2945,7 @@ class RTreeAlgebra : public Algebra
     AddOperator( &windowintersectsS );
     AddOperator( &gettuples );
     AddOperator( &gettuplesdbl );
+    AddOperator( &rtreenodes );
   }
   ~RTreeAlgebra() {};
 };
