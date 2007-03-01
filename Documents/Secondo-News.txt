@@ -11,7 +11,7 @@
 I have implemented bulkloading for RTrees. Also, using the nodes(_) operator, 
 you can inspect your RTrees now.
 
-As changes were done in the TRee implementation, you may need to restore your 
+As changes were done in the RTree implementation, you may need to restore your 
 RTree-Indices, if you run into problems.
 
 Christian

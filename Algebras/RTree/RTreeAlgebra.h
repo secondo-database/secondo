@@ -2776,12 +2776,12 @@ void R_Tree<dim, LeafInfo>::InsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
   double avgDist =   bli->levelDistanceSum[bli->currentLevel] 
                    / (MAX(bli->levelEntryCounter[bli->currentLevel],2) - 1);
 
-  cout << "Level = " << bli->currentLevel << endl
-      << "  dist = " << dist
-      << "  avgDist = " << avgDist 
-      << "  #Entries =" << bli->node[bli->currentLevel]->EntryCount()
-      << "/" << bli->node[bli->currentLevel]->MaxEntries()
-      << endl;
+//   cout << "Level = " << bli->currentLevel << endl
+//       << "  dist = " << dist
+//       << "  avgDist = " << avgDist 
+//       << "  #Entries =" << bli->node[bli->currentLevel]->EntryCount()
+//       << "/" << bli->node[bli->currentLevel]->MaxEntries()
+//       << endl;
 
   if(  ( bli->node[bli->currentLevel]->EntryCount() <
          bli->node[bli->currentLevel]->MaxEntries()         // fits into node
@@ -2794,12 +2794,12 @@ void R_Tree<dim, LeafInfo>::InsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
        )
     )
   {
-    cout << "  --> Inserting here!" << endl;
+//     cout << "  --> Inserting here!" << endl;
     bli->node[bli->currentLevel]->Insert(entry);
     return;
   } // else: node is already full (or distance to large)...
 
-  cout << "  --> Passing upwards..." << endl;
+//   cout << "  --> Passing upwards..." << endl;
   //  Write node[currentLevel] to disk
   assert(file.IsOpen());
   SmiRecordId recId;
