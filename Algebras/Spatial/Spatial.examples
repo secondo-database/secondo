@@ -97,7 +97,8 @@ Operator : crossings
 Number   : 1
 Signature: (line x line) -> points
 Example  : query strassen feed {s1} strassen feed {s2} spatialjoin[geoData_s1, geoData_s2] filter[.Name_s1 < .Name_s2] filter[.geoData_s1 intersects .geoData_s2] projectextendstream[Name_s1, Name_s2; Cross: components(crossings(.geoData_s1, .geoData_s2))] project[Cross] consume
-Result   : file
+Result   : bug 
+Remark   : some points are in the result which are not crossings of streets
 
 
 Operator : direction
