@@ -41,7 +41,7 @@ Operator : cancel
 Number   : 1
 Signature: ((stream x) (map x bool)) -> (stream x)
 Example  : query Staedte feed cancel [.SName = "Dortmund"] consume
-Result   : file
+Result   : crashes 
 
 
 Operator : concat
