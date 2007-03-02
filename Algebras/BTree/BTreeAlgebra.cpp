@@ -2032,7 +2032,7 @@ int insertBTreeValueMap(Word* args, Word& result, int message,
 
     case CLOSE :
       qp->Close(args[0].addr);
-      qp->SetModified(args[1].addr);
+      qp->SetModified(qp->GetSon(s,1));  
       return 0;
   }
   return 0;
@@ -2134,7 +2134,7 @@ int deleteBTreeValueMap(Word* args, Word& result, int message,
 
     case CLOSE :
       qp->Close(args[0].addr);
-      qp->SetModified(args[1].addr);
+      qp->SetModified(qp->GetSon(s,1));
       return 0;
   }
   return 0;
@@ -2244,7 +2244,7 @@ int updateBTreeValueMap(Word* args, Word& result, int message,
 
     case CLOSE :
       qp->Close(args[0].addr);
-      qp->SetModified(args[1].addr);
+      qp->SetModified(qp->GetSon(s,1));
       return 0;
   }
   return 0;
