@@ -8969,6 +8969,27 @@ SpatialLine2RegionMap( ListExpr args )
 }
 
 /*
+10.1.7 Type mapping function for the operators ~rect2region~
+
+This type mapping function is the one for the ~rect2region~ operator.
+The result type is a region.
+
+*/
+ListExpr
+    SpatialRect2RegionMap( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+
+    if ( SpatialTypeOfSymbol( arg1 ) == stbox )
+      return (nl->SymbolAtom( "region" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
 10.3 Selection functions
 
 A selection function is quite similar to a type mapping function. The only
@@ -11106,6 +11127,77 @@ SpatialLine2Region( Word* args, Word& result, int message,
   return 0;
 }
 
+int SpatialRect2Region( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  Rectangle<2> *rect = (Rectangle<2> *)args[0].addr;
+  Region *res = (Region *)result.addr;
+
+  res->Clear();
+  if(  rect->IsDefined() )
+  {
+    HalfSegment hs;
+    int partnerno = 0;
+    double min0 = rect->MinD(0), max0 = rect->MaxD(0), 
+           min1 = rect->MinD(1), max1 = rect->MaxD(1);
+    Point v1(true, max0, min1), 
+          v2(true, max0, max1), 
+          v3(true, min0, max1), 
+          v4(true, min0, min1);
+
+    res->StartBulkLoad();
+
+    hs.Set(true, v1, v2);
+    hs.attr.faceno = 0;         // only one face
+    hs.attr.cycleno = 0;        // only one cycle
+    hs.attr.edgeno = partnerno;
+    hs.attr.partnerno = partnerno++;
+    hs.attr.insideAbove = (hs.GetLeftPoint() == v1);
+    *res += hs;
+    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+    *res += hs;
+
+    hs.Set(true, v2, v3);
+    hs.attr.faceno = 0;         // only one face
+    hs.attr.cycleno = 0;        // only one cycle
+    hs.attr.edgeno = partnerno;
+    hs.attr.partnerno = partnerno++;
+    hs.attr.insideAbove = (hs.GetLeftPoint() == v1);
+    *res += hs;
+    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+    *res += hs;
+
+    hs.Set(true, v3, v4);
+    hs.attr.faceno = 0;         // only one face
+    hs.attr.cycleno = 0;        // only one cycle
+    hs.attr.edgeno = partnerno;
+    hs.attr.partnerno = partnerno++;
+    hs.attr.insideAbove = (hs.GetLeftPoint() == v1);
+    *res += hs;
+    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+    *res += hs;
+
+    hs.Set(true, v4, v1);
+    hs.attr.faceno = 0;         // only one face
+    hs.attr.cycleno = 0;        // only one cycle
+    hs.attr.edgeno = partnerno;
+    hs.attr.partnerno = partnerno++;
+    hs.attr.insideAbove = (hs.GetLeftPoint() == v1);
+    *res += hs;
+    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+    *res += hs;
+
+    res->EndBulkLoad();
+    res->SetDefined( true );
+  }
+  else
+    res->SetDefined( false );
+
+  return 0;
+}
+
 int
 SpatialTranslate_r( Word* args, Word& result, int message,
                     Word& local, Supplier s )
@@ -11610,6 +11702,12 @@ SpatialGetY_p( Word* args, Word& result, int message,
 }
 
 /*
+10.4.29 Value mapping function of operator ~rect2region~
+
+*/
+
+
+/*
 10.5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -12090,6 +12188,14 @@ const string SpatialSpecLine2Region  =
   "<text> query gety([const point value (0.0 -1.2)])</text--->"
   ") )";
 
+const string SpatialSpecRect2Region  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>rect -> region</text--->"
+    "<text>_ rect2region</text--->"
+    "<text>Converts a rect object to a region object.</text--->"
+    "<text> query </text--->"
+    ") )";
+
 /*
 10.5.3 Definition of the operators
 
@@ -12370,6 +12476,14 @@ Operator spatialline2region (
   Operator::SimpleSelect,
   SpatialLine2RegionMap );
 
+Operator spatialrect2region (
+    "rect2region",
+  SpatialSpecRect2Region,
+  SpatialRect2Region,
+  Operator::SimpleSelect,
+  SpatialRect2RegionMap );
+
+
 /*
 11 Creating the Algebra
 
@@ -12431,6 +12545,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialgetx );
     AddOperator( &spatialgety );
     AddOperator( &spatialline2region );
+    AddOperator( &spatialrect2region );
   }
   ~SpatialAlgebra() {};
 };

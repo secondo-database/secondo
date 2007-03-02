@@ -207,6 +207,13 @@ Example  : query trajectory(train7) overlaps thecenter
 Result   : crashes
 
 
+Operator : rect2region
+Number   : 1
+Signature: rect -> region
+Example  : query [const rect value (-100.0 200.0 -50.0 500.0)] rect2region
+Result   : (region ( ( ( (200.0 -50.0) (-100.0 -50.0) (-100.0 500.0) (200.0 500.0)))))
+
+
 Operator : scale
 Number   : 1
 Signature: for T in {point, points, line, region}: T x real -> T
