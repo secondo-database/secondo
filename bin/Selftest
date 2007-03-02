@@ -37,7 +37,10 @@ for f in $files; do
    errRC="($rc errors)"
    if [ $rc -eq 139 ]; then
      errRC="(aborted after receiving SIGSEGV)" 
-   fi  
+   fi 
+   if [ $rc -eq 134 ]; then
+     errRC="(aborted after receiving SIGABRT)" 
+   fi 
    errFiles=$errFiles"\n   $f $errRC"
  fi  
 done
@@ -46,6 +49,8 @@ if [ $err -ne 0 ]; then
   echo -e "\n\n Selftest failed! The algebra(s)"
   echo -e "$errFiles"
   echo -e "\n return with errors."
+else
+  echo -e "Selftest finished successfully "
 fi
 
 exit $err
