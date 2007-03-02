@@ -18,7 +18,7 @@ Operator : deletebtree
 Number   : 1
 Signature: stream(tuple(x@[TID tid])) x (btree(tuple(x) ti) xi) -> stream(tuple(x@[TID tid]))] 
 Example  : query Staedte feed filter[.Bev < 200000] Staedte deletedirect staedte_SName deletebtree[SName] staedte_Bev deletebtree[Bev] consume
-Result   : crashes
+Result   : file 
 
 
 Operator : exactmatch
@@ -39,7 +39,7 @@ Operator : insertbtree
 Number   : 1
 Signature: stream(tuple(x@[TID tid])) x (btree(tuple(x) ti) xi) -> stream(tuple(x@[TID tid]))] 
 Example  : query Kleinstaedte feed Staedte insert staedte_SName insertbtree[SName] staedte_Bev insertbtree[Bev] consume 
-Result   : crashes
+Result   : file 
 
 
 Operator : leftrange
@@ -88,6 +88,6 @@ Operator : updatebtree
 Number   : 1
 Signature: stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)])) x (btree(tuple(x) ti) xi) -> stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)]))] 
 Example  : query Staedte feed filter [.SName = "Saarbruecken"] Staedte updatedirect [SName: "Saarbrücken"] staedte_Bev updatebtree[Bev] staedte_SName updatebtree[SName] count
-Result   : crashes
+Result   : 1
 
 
