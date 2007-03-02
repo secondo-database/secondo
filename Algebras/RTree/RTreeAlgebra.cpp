@@ -2677,6 +2677,7 @@ ListExpr RTree2RectTypeMap(ListExpr args)
   CHECK_COND(nl->ListLength(args) == 1, errmsg);
 
   ListExpr rtreeDescription = nl->First(args);
+  CHECK_COND(nl->ListLength(rtreeDescription) == 4, errmsg);
   nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
 
   ListExpr rtreeSymbol = nl->First(rtreeDescription);
