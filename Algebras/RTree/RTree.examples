@@ -1,6 +1,12 @@
 Database: berlintest
 Restore : No
 
+Operator : bbox
+Number   : 1
+Signature: rtree<D> -> rect<D>
+Example  : query bbox(strassen_geoData)
+Result   : (rect (-10836.00000001 33575.00000001 -6686.00000001 28095.00000001))
+
 
 Operator : bulkloadrtree
 Number   : 1
@@ -32,8 +38,29 @@ Result   : ((rel (tuple ((Id int)(Line int)(Up bool)(Trip mpoint))))((1 1 TRUE (
 Operator : nodes
 Number   : 1
 Signature: rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) -> stream(tuple((level int) (nodeId int) (MBR rect<D>) (fatherId int) (isLeaf bool) (minEntries int) (maxEntries int) (countEntries int)))
-Example  : query nodes(strassen_geoData) consume
+Example  : query no_nodes(strassen_geoData)
 Result   : file_platform
+
+Operator : no_entries
+Number   : 1
+Signature: rtree<D> -> int
+Example  : query no_entries(strassen_geoData)
+Result   : 3212
+
+
+Operator : no_nodes
+Number   : 1
+Signature: rtree<D> -> int
+Example  : query no_nodes(strassen_geoData)
+Result   : file_platform
+
+
+Operator : treeheight
+Number   : 1
+Signature: rtree<D> -> int
+Example  : query treeheight(strassen_geoData)
+Result   : 1
+
 
 Operator : windowintersects
 Number   : 1

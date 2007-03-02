@@ -141,6 +141,28 @@ const int do_axis_split = 1;
 /*
 If set, Krigel et al's axis split algorithm is performed.
 
+*/
+
+const double BULKLOAD_TOLERANCE = 4.0;
+/*
+Tolerance for leaf stripping in bulkload mechanism.
+The tolerance specifies, which multiple of the average distance
+of bounding boxes is acceptable within a single node.
+
+Value must be >0.
+
+*/
+
+const double BULKLOAD_MIN_ENTRIES_FACTOR = 1.0;
+/*
+Specifies a multiple of MinEntries, that must be reached, before
+leaf stripping is performed during a bulkload.
+
+Value should be between 0.0 and 1.0.
+
+*/
+
+/*
 3 Struct ~R\_TreeEntry~
 
 */
@@ -2570,14 +2592,14 @@ template <unsigned dim, class LeafInfo>
                     (*nodePtr)[ pathEntry[ currLevel ] ];
             result = IntrospectResult<dim>
                 (
-                  currLevel,
-                  ++nodeIdCounter,
+                  currLevel+1,       // the entries shall have bigger levels
+                  ++nodeIdCounter,   // and get their own node numbers
                   entry.box,
                   nodeId[currLevel],
-                  true,
-                  1,
-                  1,
-                  1
+                  true,              // use some
+                  1,                 // resonable standard
+                  1,                 // values for
+                  1                  // these attributes
                 );
           }
           else // internal node
@@ -2592,7 +2614,7 @@ template <unsigned dim, class LeafInfo>
                   nodeIdCounter,
                   nodePtr->BoundingBox(),
                   nodeId[currLevel-1], // currLevel >= 1 (DownLevel)
-                  false,
+                  nodePtr->IsLeaf(),
                   nodePtr->MinEntries(),
                   nodePtr->MaxEntries(),
                   nodePtr->EntryCount()
@@ -2763,7 +2785,6 @@ void R_Tree<dim, LeafInfo>::InsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
 {
   assert( bulkMode == true );
   assert( node != NULL );
-  const double TOLERANCE = 4.0;
 
   if( !bli->levelLastBox[bli->currentLevel].IsDefined() )
   { // initialize when called for the first time
@@ -2788,9 +2809,10 @@ void R_Tree<dim, LeafInfo>::InsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
        )
        &&
        (    !bli->skipLeaf                                  // standard case
-         || (   dist <= (avgDist * TOLERANCE) )             // distance OK
+         || (   dist <= (avgDist * BULKLOAD_TOLERANCE) )    // distance OK
          || (   bli->node[bli->currentLevel]->EntryCount() <=
-                bli->node[bli->currentLevel]->MinEntries() )// too few entries
+                bli->node[bli->currentLevel]->MinEntries() *
+                               BULKLOAD_MIN_ENTRIES_FACTOR )// too few entries
        )
     )
   {

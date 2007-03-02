@@ -2627,6 +2627,295 @@ Operator bulkloadrtree(
          CreateRTreeBulkLoadTypeMap    // type mapping
 );
 
+
+/*
+5.9 Inquiry Operators ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+
+This operators can be used to inquire some basic R-tree statistics.
+
+*/
+
+/*
+5.9.1 Type Mapping Functions for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+
+*/
+ListExpr RTree2IntTypeMap(ListExpr args)
+{
+  char* errmsg = "Incorrect input for rtree inquiry operator.";
+  string rtreeDescriptionStr;
+
+  CHECK_COND(!nl->IsEmpty(args), errmsg);
+  CHECK_COND(!nl->IsAtom(args), errmsg);
+  CHECK_COND(nl->ListLength(args) == 1, errmsg);
+
+  ListExpr rtreeDescription = nl->First(args);
+  nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
+
+  ListExpr rtreeSymbol = nl->First(rtreeDescription);
+
+  /* handle rtree type constructor */
+  CHECK_COND( 
+      nl->IsAtom(rtreeSymbol) &&
+      nl->AtomType(rtreeSymbol) == SymbolType &&
+      (nl->SymbolValue(rtreeSymbol) == "rtree"  ||
+      nl->SymbolValue(rtreeSymbol) == "rtree3" ||
+      nl->SymbolValue(rtreeSymbol) == "rtree4" ||
+      nl->SymbolValue(rtreeSymbol) == "rtree8") ,
+  "Rtree inquiry operator expects a R-Tree \n"
+      "of type rtree, rtree3, rtree4 or rtree8.");
+
+  return nl->SymbolAtom("int");
+}
+
+ListExpr RTree2RectTypeMap(ListExpr args)
+{
+  char* errmsg = "Incorrect input for rtree inquiry operator.";
+  string rtreeDescriptionStr;
+
+  CHECK_COND(!nl->IsEmpty(args), errmsg);
+  CHECK_COND(!nl->IsAtom(args), errmsg);
+  CHECK_COND(nl->ListLength(args) == 1, errmsg);
+
+  ListExpr rtreeDescription = nl->First(args);
+  nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
+
+  ListExpr rtreeSymbol = nl->First(rtreeDescription);
+
+  /* handle rtree type constructor */
+  CHECK_COND(nl->IsAtom(rtreeSymbol) &&
+      nl->AtomType(rtreeSymbol) == SymbolType &&
+      (nl->SymbolValue(rtreeSymbol) == "rtree"  ||
+      nl->SymbolValue(rtreeSymbol) == "rtree3" ||
+      nl->SymbolValue(rtreeSymbol) == "rtree4" ||
+      nl->SymbolValue(rtreeSymbol) == "rtree8") ,
+  "Rtree inquiry operator expects a R-Tree \n"
+      "of type rtree, rtree3, rtree4 or rtree8.");
+
+  if(nl->SymbolValue(rtreeSymbol) == "rtree") 
+    return nl->SymbolAtom("rect");
+  if(nl->SymbolValue(rtreeSymbol) == "rtree3")
+    return nl->SymbolAtom("rect3");
+  if(nl->SymbolValue(rtreeSymbol) == "rtree4")
+    return nl->SymbolAtom("rect4");
+  if(nl->SymbolValue(rtreeSymbol) == "rtree8")
+    return nl->SymbolAtom("rect8");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+5.9.2 Value Mapping Functions for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+
+*/
+template<unsigned dim, class LeafInfo>
+int RTreeTreeHeightVM( Word* args, Word& result, int message,
+                   Word& local, Supplier s )
+{
+  R_Tree<dim, LeafInfo> *rtree = (R_Tree<dim, LeafInfo>*) args[0].addr;
+  result = qp->ResultStorage( s );
+  CcInt *res = (CcInt*) result.addr;
+  res->Set( true, rtree->Height() );
+  return 0;
+}
+
+template<unsigned dim, class LeafInfo>
+int RTreeNoOfNodesVM( Word* args, Word& result, int message,
+                      Word& local, Supplier s )
+{
+  R_Tree<dim, LeafInfo> *rtree = (R_Tree<dim, LeafInfo>*) args[0].addr;
+  result = qp->ResultStorage( s );
+  CcInt *res = (CcInt*) result.addr;
+  res->Set( true, rtree->NodeCount() );
+  return 0;
+}
+
+template<unsigned dim, class LeafInfo>
+int RTreeNoOfEntriesVM( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
+{
+  R_Tree<dim, LeafInfo> *rtree = (R_Tree<dim, LeafInfo>*) args[0].addr;
+  result = qp->ResultStorage( s );
+  CcInt *res = (CcInt*) result.addr;
+  res->Set( true, rtree->EntryCount() );
+  return 0;
+}
+
+template<unsigned dim, class LeafInfo>
+int RTreeBboxVM( Word* args, Word& result, int message,
+                       Word& local, Supplier s )
+{
+  R_Tree<dim, LeafInfo> *rtree = (R_Tree<dim, LeafInfo>*) args[0].addr;
+  result = qp->ResultStorage( s );
+  Rectangle<dim> *res = (Rectangle<dim> *) result.addr;
+  *res = rtree->BoundingBox();
+  return 0;
+}
+
+/*
+5.9.3 Selection Function for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+
+*/
+int RTreeInquirySelect (ListExpr args)
+{
+  int result = -100;
+  ListExpr rtreeDescription = nl->First(args);
+  ListExpr rtreeSymbol = nl->First(rtreeDescription),
+           rtreeTwoLayer = nl->Fourth(rtreeDescription);
+
+  if(nl->SymbolValue(rtreeSymbol) == "rtree") 
+    result = 0;
+  else if(nl->SymbolValue(rtreeSymbol) == "rtree3")
+    result = 1;
+  else if(nl->SymbolValue(rtreeSymbol) == "rtree4")
+    result = 2;
+  else if(nl->SymbolValue(rtreeSymbol) == "rtree8")
+    result = 3;
+
+  if( nl->BoolValue(rtreeTwoLayer) == true )
+    result += 4;
+
+  return result;
+}
+
+/*
+5.9.3 Value Mapping Arrays for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+
+*/
+
+ValueMapping RTreeTreeHeight [] =
+{ RTreeTreeHeightVM<2, TupleId>,  // 0
+  RTreeTreeHeightVM<3, TupleId>,  // 1
+  RTreeTreeHeightVM<4, TupleId>,  // 2
+  RTreeTreeHeightVM<8, TupleId>,  // 3 
+  RTreeTreeHeightVM<2, TwoLayerLeafInfo>,  // 4
+  RTreeTreeHeightVM<3, TwoLayerLeafInfo>,  // 5
+  RTreeTreeHeightVM<4, TwoLayerLeafInfo>,  // 6
+  RTreeTreeHeightVM<8, TwoLayerLeafInfo>   // 7 
+  };
+
+ValueMapping RTreeNoOfEntries [] =
+{ RTreeNoOfEntriesVM<2, TupleId>,  // 0
+  RTreeNoOfEntriesVM<3, TupleId>,  // 1
+  RTreeNoOfEntriesVM<4, TupleId>,  // 2
+  RTreeNoOfEntriesVM<8, TupleId>,  // 3 
+  RTreeNoOfEntriesVM<2, TwoLayerLeafInfo>,  // 4
+  RTreeNoOfEntriesVM<3, TwoLayerLeafInfo>,  // 5
+  RTreeNoOfEntriesVM<4, TwoLayerLeafInfo>,  // 6
+  RTreeNoOfEntriesVM<8, TwoLayerLeafInfo>   // 7 
+};
+
+ValueMapping RTreeNoOfNodes [] =
+{ RTreeNoOfNodesVM<2, TupleId>,  // 0
+  RTreeNoOfNodesVM<3, TupleId>,  // 1
+  RTreeNoOfNodesVM<4, TupleId>,  // 2
+  RTreeNoOfNodesVM<8, TupleId>,  // 3 
+  RTreeNoOfNodesVM<2, TwoLayerLeafInfo>,  // 4
+  RTreeNoOfNodesVM<3, TwoLayerLeafInfo>,  // 5
+  RTreeNoOfNodesVM<4, TwoLayerLeafInfo>,  // 6
+  RTreeNoOfNodesVM<8, TwoLayerLeafInfo>   // 7 
+};
+
+ValueMapping RTreeBbox [] =
+{ RTreeBboxVM<2, TupleId>,  // 0
+  RTreeBboxVM<3, TupleId>,  // 1
+  RTreeBboxVM<4, TupleId>,  // 2
+  RTreeBboxVM<8, TupleId>,  // 3 
+  RTreeBboxVM<2, TwoLayerLeafInfo>,  // 4
+  RTreeBboxVM<3, TwoLayerLeafInfo>,  // 5
+  RTreeBboxVM<4, TwoLayerLeafInfo>,  // 6
+  RTreeBboxVM<8, TwoLayerLeafInfo>   // 7 
+};
+
+
+
+/*
+5.9.5 Specification Strings for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+
+*/
+const string RTreeTreeHeightSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>(rtree<D> -> int</text--->"
+    "<text>treeheight( _ )</text--->"
+    "<text>Returns the height of the R-tree.</text--->"
+    "<text>query treeheight(strassen_geoData)</text--->"
+    "<text>Always defined. Counting starts with level "
+    "'0' for the root node level.</text--->"
+    ") )";
+
+const string RTreeNoOfEntriesSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>(rtree<D> -> int</text--->"
+    "<text>no_entries( _ )</text--->"
+    "<text>Returns the R-tree's number of entries (stored objects).</text--->"
+    "<text>query no_entries(strassen_geoData)</text--->"
+    "<text>Always defined.</text--->"
+    ") )";
+
+const string RTreeNoOfNodesSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>(rtree<D> -> int</text--->"
+    "<text>no_nodes( _ )</text--->"
+    "<text>Returns the R-tree's number of nodes.</text--->"
+    "<text>query no_nodes(strassen_geoData)</text--->"
+    "<text>Always defined.</text--->"
+    ") )";
+
+const string RTreeBboxSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>(rtree<D> -> rect<D></text--->"
+    "<text>bbox( _ )</text--->"
+    "<text>Returns the minimum bounding rectangle for "
+    "the complete R-tree.</text--->"
+    "<text>query bbox(strassen_geoData)</text--->"
+    "<text>Rectangle will be undefined for an empty R-tree.</text--->"
+    ") )";
+
+/*
+5.9.6 Definitions of ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+
+*/
+
+Operator rtreetreeheight(
+                     "treeheight",          // name
+                      RTreeTreeHeightSpec,  // specification
+                      8,
+                      RTreeTreeHeight,      // value mapping
+                      RTreeInquirySelect,   // selection function
+                      RTree2IntTypeMap      // type mapping
+                     );
+
+Operator rtreenoofnodes(
+                      "no_nodes",              // name
+                      RTreeNoOfNodesSpec,      // specification
+                      8,
+                      RTreeNoOfNodes,          // value mapping
+                      RTreeInquirySelect,      // selection function
+                      RTree2IntTypeMap         // type mapping
+                    );
+
+Operator rtreenoofentries(
+                      "no_entries",             // name
+                      RTreeNoOfEntriesSpec,     // specification
+                      8,
+                      RTreeNoOfEntries,         // value mapping
+                      RTreeInquirySelect,       // selection function
+                      RTree2IntTypeMap          // type mapping
+                    );
+
+Operator rtreebbox(
+                      "bbox",             // name
+                      RTreeBboxSpec,      // specification
+                      8,
+                      RTreeBbox,          // value mapping
+                      RTreeInquirySelect, // selection function
+                      RTree2RectTypeMap    // type mapping
+                    );
+
+
 /*
 5.10 Operator ~nodes~
 
@@ -2912,6 +3201,7 @@ ValueMapping RTreeNodes [] =
 };
 
 
+
 /*
 5.10.2 Definition of Operator ~nodes~
 
@@ -2946,6 +3236,10 @@ class RTreeAlgebra : public Algebra
     AddOperator( &gettuples );
     AddOperator( &gettuplesdbl );
     AddOperator( &rtreenodes );
+    AddOperator( &rtreetreeheight );
+    AddOperator( &rtreenoofnodes );
+    AddOperator( &rtreenoofentries );
+    AddOperator( &rtreebbox );
   }
   ~RTreeAlgebra() {};
 };
