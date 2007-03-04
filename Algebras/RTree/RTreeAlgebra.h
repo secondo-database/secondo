@@ -1591,14 +1591,14 @@ The record file of the R-Tree.
 
     struct Header
     {
-      SmiRecordId rootRecordId;	// Root node address (Path[ 0 ]).
-      int minLeafEntries;      	// min # of entries per leaf node.
-      int maxLeafEntries;      	// max # of entries per leaf node.
-      int minInternalEntries;  	// min # of entries per internal node.
-      int maxInternalEntries;  	// max # of entries per internal node.
-      int nodeCount;          	// number of nodes in this tree.
-      int entryCount;      	    // number of entries in this tree.
-      int height;          	    // height of the tree.
+      SmiRecordId rootRecordId; // Root node address (Path[ 0 ]).
+      int minLeafEntries;       // min # of entries per leaf node.
+      int maxLeafEntries;       // max # of entries per leaf node.
+      int minInternalEntries;   // min # of entries per internal node.
+      int maxInternalEntries;   // max # of entries per internal node.
+      int nodeCount;            // number of nodes in this tree.
+      int entryCount;           // number of entries in this tree.
+      int height;               // height of the tree.
 
       Header() :
         rootRecordId( 0 ), minLeafEntries( 0 ), maxLeafEntries( 0 ),
