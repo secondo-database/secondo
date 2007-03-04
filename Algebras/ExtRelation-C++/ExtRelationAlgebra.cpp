@@ -4696,6 +4696,7 @@ int GroupByValueMapping
       {
         gbli = new GroupByLocalInfo;
         gbli->t = (Tuple*)sWord.addr;
+        gbli->t->IncReference();
         ListExpr resultType = GetTupleResultType( supplier );
         gbli->resultTupleType = new TupleType( nl->Second( resultType ) );
         gbli->MAX_MEMORY = qp->MemoryAvailableForOperator();
@@ -4727,7 +4728,6 @@ int GroupByValueMapping
 
         tp = new TupleBuffer(gbli->MAX_MEMORY);
         tp->AppendTuple(gbli->t);
-        gbli->t->DeleteIfAllowed();
       }
 
       // get number of attributes
@@ -4755,19 +4755,25 @@ int GroupByValueMapping
 
         if (ifequal) // store in tuple buffer
         {
-          tp->AppendTuple( s );
+          tp->AppendTuple(s);
           s->DeleteIfAllowed();
           qp->Request(args[0].addr, sWord); 
           // get next tuple
         }
         else
+        { 
           // store tuple pointer in local info
-          gbli->t = (Tuple *)sWord.addr; 
+          gbli->t->DecReference();
+          gbli->t->DeleteIfAllowed();
+          gbli->t = s; 
           gbli->t->IncReference();
+        }
       }
       if (ifequal) 
       // last group finished, stream ends
       {
+        gbli->t->DecReference();
+        gbli->t->DeleteIfAllowed();
         gbli->t = 0;
       }
 
@@ -4815,6 +4821,11 @@ int GroupByValueMapping
         gbli = (GroupByLocalInfo *)local.addr;
         if( gbli->resultTupleType != 0 )
           gbli->resultTupleType->DeleteIfAllowed();
+        if( gbli->t != 0 )
+        {
+          gbli->t->DecReference();
+          gbli->t->DeleteIfAllowed();
+        }
         delete gbli;
       }
       qp->Close(args[0].addr);
