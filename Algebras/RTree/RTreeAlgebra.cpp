@@ -77,6 +77,7 @@ using namespace std;
 #include "RTreeAlgebra.h"
 #include "CPUTimeMeasurer.h"
 #include "TupleIdentifier.h"
+#include "Messages.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -2454,19 +2455,32 @@ int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
   int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
   tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
 
+  // Get a reference to the message center
+  static MessageCenter* msg = MessageCenter::GetInstance();
+  int count = 0; // counter for progress indicator
+
   assert(rtree->InitializeBulkLoad());
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, wTuple);
   while (qp->Received(args[0].addr))
   {
-     Tuple* tuple = (Tuple*)wTuple.addr;
+    if ((count++ % 10000) == 0) 
+    {
+      // build a two elem list (simple count)
+      NList msgList( NList("simple"), NList(count) );
+      // send the message, the message center will call 
+      // the registered handlers. Normally the client applications
+      // will register them. 
+      msg->Send(msgList);
+    }
+    Tuple* tuple = (Tuple*)wTuple.addr;
 
-     if( ((StandardSpatialAttribute<dim>*)tuple->
+    if( ((StandardSpatialAttribute<dim>*)tuple->
               GetAttribute(attrIndex))->IsDefined() &&
               ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->
               IsDefined() )
-     {
+    {
         BBox<dim> box = ((StandardSpatialAttribute<dim>*)tuple->
               GetAttribute(attrIndex))->BoundingBox();
         R_TreeLeafEntry<dim, TupleId> 
@@ -2474,12 +2488,20 @@ int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
                  ((TupleIdentifier *)tuple->
                      GetAttribute(tidIndex))->GetTid() );
         rtree->InsertBulkLoad(e);
-     }
-     tuple->DeleteIfAllowed();
-     qp->Request(args[0].addr, wTuple);
+    }
+    tuple->DeleteIfAllowed();
+    qp->Request(args[0].addr, wTuple);
   }
   qp->Close(args[0].addr);
   assert( rtree->FinalizeBulkLoad() );
+
+  // build a two elem list (simple count)
+  NList msgList( NList("simple"), NList(count) );
+      // send the message, the message center will call 
+      // the registered handlers. Normally the client applications
+      // will register them. 
+  msg->Send(msgList);
+
   return 0;
 }
 
@@ -2495,11 +2517,24 @@ template<unsigned dim>
   int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
   tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
 
+  // Get a reference to the message center
+  static MessageCenter* msg = MessageCenter::GetInstance();
+  int count = 0; // counter for progress indicator
+
   assert(rtree->InitializeBulkLoad());
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, wTuple);
   while (qp->Received(args[0].addr))
   {
+    if ((count++ % 10000) == 0) 
+    {
+      // build a two elem list (simple count)
+      NList msgList( NList("simple"), NList(count) );
+      // send the message, the message center will call 
+      // the registered handlers. Normally the client applications
+      // will register them. 
+      msg->Send(msgList);
+    }
     Tuple* tuple = (Tuple*)wTuple.addr;
 
     BBox<dim> *box = (BBox<dim>*)tuple->GetAttribute(attrIndex);
@@ -2517,7 +2552,15 @@ template<unsigned dim>
     qp->Request(args[0].addr, wTuple);
   }
   qp->Close(args[0].addr);
+
   assert( rtree->FinalizeBulkLoad() );
+        // build a two elem list (simple count)
+  NList msgList( NList("simple"), NList(count) );
+      // send the message, the message center will call 
+      // the registered handlers. Normally the client applications
+      // will register them. 
+  msg->Send(msgList);
+
   return 0;
 }
 

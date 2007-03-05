@@ -143,9 +143,19 @@ If set, Krigel et al's axis split algorithm is performed.
 
 */
 
-const double BULKLOAD_TOLERANCE = 4.0;
+#define BULKLOAD_LEAF_SKIPPING true
 /*
-Tolerance for leaf stripping in bulkload mechanism.
+If set to 'true', ~leaf shipping~ is activated within the bulk 
+loading mechanism. Otherwise, set to 'false'.
+
+Leaf skipping will result in more nodes, but with smaller bounding boxes,
+when bulkloading an R-tree.
+
+*/
+
+const double BULKLOAD_TOLERANCE = 8.0;
+/*
+Tolerance for ~leaf skipping~ in bulkload mechanism.
 The tolerance specifies, which multiple of the average distance
 of bounding boxes is acceptable within a single node.
 
@@ -153,12 +163,20 @@ Value must be >0.
 
 */
 
-const double BULKLOAD_MIN_ENTRIES_FACTOR = 1.0;
+const double BULKLOAD_MIN_ENTRIES_FACTOR = 0.0;
 /*
 Specifies a multiple of MinEntries, that must be reached, before
-leaf stripping is performed during a bulkload.
+~leaf skipping~ is performed during a bulkload.
 
 Value should be between 0.0 and 1.0.
+
+*/
+
+const int BULKLOAD_INITIAL_SEQ_LENGTH = 20;
+/*
+Specifies the minimum number of the first N entries, that will be inserted 
+without ~leaf skipping~. This holds only for the first N entries on each level.
+After that, ~BULKLOAD_MIN_ENTRIES_FACTOR~ will control the skipping behaviour.
 
 */
 
@@ -1548,7 +1566,7 @@ Loads ~nodePtr~ with the root node and returns it.
 
 */
 
-    bool InitializeBulkLoad(const bool &leafSkipping = false);
+    bool InitializeBulkLoad(const bool &leafSkipping = BULKLOAD_LEAF_SKIPPING);
 
 /*
 Verifies, that the R-tree is empty. Use this before calling
@@ -1573,8 +1591,8 @@ Data structures used during bulk loading will be deleted.
 
 */
 
-    bool IntrospectFirst(IntrospectResult<dim>& result);
-    bool IntrospectNext(IntrospectResult<dim>& result);
+    bool R_Tree<dim, LeafInfo>::IntrospectFirst(IntrospectResult<dim>& result);
+    bool R_Tree<dim, LeafInfo>::IntrospectNext(IntrospectResult<dim>& result);
 /*
 The last two methods are used to produce a sequence of node decriptions, that
 can be used to inspect the R-tree structure.
@@ -1591,14 +1609,14 @@ The record file of the R-Tree.
 
     struct Header
     {
-      SmiRecordId rootRecordId; // Root node address (Path[ 0 ]).
-      int minLeafEntries;       // min # of entries per leaf node.
-      int maxLeafEntries;       // max # of entries per leaf node.
-      int minInternalEntries;   // min # of entries per internal node.
-      int maxInternalEntries;   // max # of entries per internal node.
-      int nodeCount;            // number of nodes in this tree.
-      int entryCount;           // number of entries in this tree.
-      int height;               // height of the tree.
+      SmiRecordId rootRecordId;	// Root node address (Path[ 0 ]).
+      int minLeafEntries;      	// min # of entries per leaf node.
+      int maxLeafEntries;      	// max # of entries per leaf node.
+      int minInternalEntries;  	// min # of entries per internal node.
+      int maxInternalEntries;  	// max # of entries per internal node.
+      int nodeCount;          	// number of nodes in this tree.
+      int entryCount;      	    // number of entries in this tree.
+      int height;          	    // height of the tree.
 
       Header() :
         rootRecordId( 0 ), minLeafEntries( 0 ), maxLeafEntries( 0 ),
@@ -2756,8 +2774,7 @@ bool R_Tree<dim, LeafInfo>::InitializeBulkLoad(const bool &leafSkipping)
     return false;
   }
   bulkMode = true;
-//   bli = new BulkLoadInfo<dim, LeafInfo>(leafSkipping); 
-  bli = new BulkLoadInfo<dim, LeafInfo>(true);
+  bli = new BulkLoadInfo<dim, LeafInfo>(leafSkipping);
   return true;
 };
 
@@ -2812,7 +2829,9 @@ void R_Tree<dim, LeafInfo>::InsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
          || (   dist <= (avgDist * BULKLOAD_TOLERANCE) )    // distance OK
          || (   bli->node[bli->currentLevel]->EntryCount() <=
                 bli->node[bli->currentLevel]->MinEntries() *
-                               BULKLOAD_MIN_ENTRIES_FACTOR )// too few entries
+                              BULKLOAD_MIN_ENTRIES_FACTOR ) // too few entries
+         || ( bli->levelEntryCounter[bli->currentLevel] <=
+                               BULKLOAD_INITIAL_SEQ_LENGTH) 
        )
     )
   {
