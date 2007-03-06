@@ -18,10 +18,10 @@ tpcQuery(10, select
       ]
 from
       [
-        customertbl,
-        orderstbl,
-        lineitemtbl,
-        nationtbl
+        customer,
+        orders,
+        lineitem,
+        nation
       ]
 where
       [
@@ -53,12 +53,12 @@ tpcQuery(5, select
        ]
 from
        [
-        customertbl,
-        orderstbl,
-        lineitemtbl,
-        suppliertbl,
-        nationtbl,
-        regiontbl
+        customer,
+        orders,
+        lineitem,
+        supplier,
+        nation,
+        region
        ]
 where
        [
@@ -86,9 +86,9 @@ tpcQuery(3, select
   ]
 from
 	[ 
-    customertbl,
-    orderstbl,
-    lineitemtbl
+    customer,
+    orders,
+    lineitem
   ]
 where
 	[
@@ -124,7 +124,7 @@ tpcQuery(1, select
 	  avg(ldiscount) as avg_disc
         ]
 from
-	  lineitemtbl 
+	  lineitem 
 where
 lshipdate < theInstant(1998,9,2)
 groupby [
@@ -147,7 +147,7 @@ tpcQuery(simple1, select
 	    avg(ldiscount) as avg_disc
   ]
 from
-	  lineitemtbl 
+	  lineitem 
 where
     lshipdate < theInstant(1998,9,2)
 groupby [
@@ -168,9 +168,9 @@ tpcCorrelated(1, select
   ]
 from
 	[ 
-    customertbl,
-	  orderstbl,
-	  lineitemtbl 
+    customer,
+	  orders,
+	  lineitem 
   ]
 where
 	[
