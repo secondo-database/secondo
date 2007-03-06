@@ -2767,6 +2767,13 @@ is a hole of an existing face, or if it is a cycle of a new face.
 */
    int GetNewFaceNo(HalfSegment &chsS,bool *cycle);
 
+   double Area() const;
+/*
+Returns the region's area.
+The region must be defined!
+
+*/
+
   private:
 /*
 7.17 Private member functions

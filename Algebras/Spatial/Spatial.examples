@@ -29,6 +29,13 @@ Example  : query WFlaechen feed filter[.geoData adjacent grunewald] consume
 Result   : file
 
 
+Operator : area
+Number   : 1
+Signature: region -> real
+Example  : query area([const rect value (-1000.0 -900.0 100000.0 100010.0)] rect2region)
+Result   : 1000.0
+
+
 Operator : atpoint
 Number   : 1
 Signature: line x point x bool -> real

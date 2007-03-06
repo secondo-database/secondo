@@ -5371,6 +5371,47 @@ double Region::Distance( const Point& p ) const
   return result;
 }
 
+double Region::Area() const
+{
+  assert( IsDefined() );
+  int n = Size();
+  double area = 0.0,
+         x0 = 0.0, y0 = 0.0,
+         x1 = 0.0, y1 = 0.0;
+
+  // get minimum with respect to Y-dimension
+  double minY = MIN(BoundingBox().MinD(1), +0.0);
+
+  for(int i=0; i<n; i++)
+  {
+    const HalfSegment *hs;
+    Get( i, hs );
+    if( hs->IsLeftDomPoint() )
+    { // use only one halfsegment
+      x0 = hs->GetLeftPoint().GetX();
+      x1 = hs->GetRightPoint().GetX();
+      // y0, y1 must be >= 0, so we correct them
+      y0 = hs->GetLeftPoint().GetY() - minY;
+      y1 = hs->GetRightPoint().GetY() - minY;
+//       cout << "HSegment #" << i 
+//           << ": ( (" << x0 << "," << y0 
+//           << ") (" << x1 << "," << y1 << ") )" 
+//           << hs->attr.insideAbove << endl;
+//       double dx = (x1-x0);
+//       double ay = (y1+y0) * 0.5;
+      double a = (x1-x0) * ((y1+y0) * 0.5);
+      if ( hs->attr.insideAbove )
+//    if ( (hs->attr.insideAbove && (hs->attr.cycleno == 0 )) ||
+//          (!hs->attr.insideAbove && (hs->attr.cycleno > 0 ))   )
+        a = -a;
+//       cout << "  dx=" << dx << " ay=" << ay << " a=" << a << endl;
+      area += a;
+    }
+  }
+
+  return area;
+}
+
 double Region::Distance( const Points& ps ) const
 {
   assert( IsOrdered() && !IsEmpty() &&
@@ -8969,7 +9010,7 @@ SpatialLine2RegionMap( ListExpr args )
 }
 
 /*
-10.1.7 Type mapping function for the operators ~rect2region~
+10.1.7 Type mapping function for the operator ~rect2region~
 
 This type mapping function is the one for the ~rect2region~ operator.
 The result type is a region.
@@ -8989,6 +9030,26 @@ ListExpr
   return (nl->SymbolAtom( "typeerror" ));
 }
 
+/*
+10.1.8 Type mapping function for the operator ~area~
+
+This type mapping function is the one for the ~area~ operator.
+The result type is a real.
+
+*/
+ListExpr
+    SpatialAreaMap( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+
+    if ( SpatialTypeOfSymbol( arg1 ) == stregion )
+      return (nl->SymbolAtom( "real" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
 /*
 10.3 Selection functions
 
@@ -11127,6 +11188,11 @@ SpatialLine2Region( Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+10.4.29 Value mapping function of operator ~rect2region~
+
+*/
+
 int SpatialRect2Region( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
@@ -11164,7 +11230,7 @@ int SpatialRect2Region( Word* args, Word& result, int message,
     hs.attr.cycleno = 0;        // only one cycle
     hs.attr.edgeno = partnerno;
     hs.attr.partnerno = partnerno++;
-    hs.attr.insideAbove = (hs.GetLeftPoint() == v1);
+    hs.attr.insideAbove = (hs.GetLeftPoint() == v2);
     *res += hs;
     hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
     *res += hs;
@@ -11174,7 +11240,7 @@ int SpatialRect2Region( Word* args, Word& result, int message,
     hs.attr.cycleno = 0;        // only one cycle
     hs.attr.edgeno = partnerno;
     hs.attr.partnerno = partnerno++;
-    hs.attr.insideAbove = (hs.GetLeftPoint() == v1);
+    hs.attr.insideAbove = (hs.GetLeftPoint() == v3);
     *res += hs;
     hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
     *res += hs;
@@ -11184,7 +11250,7 @@ int SpatialRect2Region( Word* args, Word& result, int message,
     hs.attr.cycleno = 0;        // only one cycle
     hs.attr.edgeno = partnerno;
     hs.attr.partnerno = partnerno++;
-    hs.attr.insideAbove = (hs.GetLeftPoint() == v1);
+    hs.attr.insideAbove = (hs.GetLeftPoint() == v4);
     *res += hs;
     hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
     *res += hs;
@@ -11194,6 +11260,24 @@ int SpatialRect2Region( Word* args, Word& result, int message,
   }
   else
     res->SetDefined( false );
+
+  return 0;
+}
+
+int SpatialArea( Word* args, Word& result, int message,
+                 Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  Region *reg = (Region *)args[0].addr;
+  CcReal *res = (CcReal *)result.addr;
+
+  if(  reg->IsDefined() )
+  {
+    res->Set( true, reg->Area() );
+  }
+  else
+    res->Set( false, 0.0 );
 
   return 0;
 }
@@ -11701,11 +11785,6 @@ SpatialGetY_p( Word* args, Word& result, int message,
   return 0;
 }
 
-/*
-10.4.29 Value mapping function of operator ~rect2region~
-
-*/
-
 
 /*
 10.5 Definition of operators
@@ -12196,6 +12275,14 @@ const string SpatialSpecRect2Region  =
     "<text> query </text--->"
     ") )";
 
+const string SpatialSpecArea  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>reagion -> real</text--->"
+    "<text>area( _ )</text--->"
+    "<text>Returns the area of a region object as a real value.</text--->"
+    "<text> query area( tiergarten )</text--->"
+    ") )";
+
 /*
 10.5.3 Definition of the operators
 
@@ -12483,6 +12570,12 @@ Operator spatialrect2region (
   Operator::SimpleSelect,
   SpatialRect2RegionMap );
 
+Operator spatialarea (
+    "area",
+  SpatialSpecArea,
+  SpatialArea,
+  Operator::SimpleSelect,
+  SpatialAreaMap );
 
 /*
 11 Creating the Algebra
@@ -12546,6 +12639,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialgety );
     AddOperator( &spatialline2region );
     AddOperator( &spatialrect2region );
+    AddOperator( &spatialarea );
   }
   ~SpatialAlgebra() {};
 };
