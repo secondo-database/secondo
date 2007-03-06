@@ -7,70 +7,70 @@
 
 tpcQuery(10, select
       [
-	ccustkey,
-	cname,
-	sum(lextendedprice * (1 - ldiscount)) as revenue,
-	cacctbal,
-	nname,
-	caddress,
-	cphone,
-	ccomment
+        ccustkey,
+        cname,
+        sum(lextendedprice * (1 - ldiscount)) as revenue,
+        cacctbal,
+        nname,
+        caddress,
+        cphone,
+        ccomment
       ]
 from
       [
-	customer,
-	orders,
-	lineitem,
-	nation
+        customertbl,
+        orderstbl,
+        lineitemtbl,
+        nationtbl
       ]
 where
       [
-	ccustkey = ocustkey,
-	lorderkey = oorderkey,
-	not(oorderdate < theInstant(1993,10,1)),
-	oorderdate < theInstant(1994,1,1),
-	lreturnflag = "R",
-	cnationkey = nnationkey
+        ccustkey = ocustkey,
+        lorderkey = oorderkey,
+        not(oorderdate < theInstant(1993,10,1)),
+        oorderdate < theInstant(1994,1,1),
+        lreturnflag = "R",
+        cnationkey = nnationkey
       ]
 groupby
       [
-	ccustkey,
-	cname,
-	cacctbal,
-	cphone,
-	nname,
-	caddress,
-	ccomment
-       ]
+        ccustkey,
+        cname,
+        cacctbal,
+        cphone,
+        nname,
+        caddress,
+        ccomment
+      ]
 orderby [ revenue desc]
 first 20 
 ).
 
 tpcQuery(5, select
        [
-	nname,
-	sum(lextendedprice * (1 - ldiscount)) as revenue
+        nname,
+        sum(lextendedprice * (1 - ldiscount)) as revenue
        ]
 from
        [
-        customer,
-	orders,
-	lineitem,
-	supplier,
-	nation,
-	region
+        customertbl,
+        orderstbl,
+        lineitemtbl,
+        suppliertbl,
+        nationtbl,
+        regiontbl
        ]
 where
        [
-	ccustkey = ocustkey,
-	lorderkey = oorderkey,
-	lsuppkey = ssuppkey,
-	cnationkey = snationkey,
-	snationkey = nnationkey,
-	nregionkey = rregionkey,
+        ccustkey = ocustkey,
+        lorderkey = oorderkey,
+        lsuppkey = ssuppkey,
+        cnationkey = snationkey,
+        snationkey = nnationkey,
+        nregionkey = rregionkey,
         rname = "ASIA", 
-	not(oorderdate < theInstant(1994,1,1)),
-	oorderdate < theInstant(1995,1,1) 
+        not(oorderdate < theInstant(1994,1,1)),
+        oorderdate < theInstant(1995,1,1) 
        ]
 groupby [ nname ]
 orderby [ revenue desc ]
@@ -78,35 +78,35 @@ orderby [ revenue desc ]
 
 
 tpcQuery(3, select
-	[ 
-          lorderkey,
-          sum(lextendedprice * (1 - ldiscount)) as revenue,
-	  oorderdate,
-	  oshippriority 
-        ]
+  [ 
+    lorderkey,
+    sum(lextendedprice * (1 - ldiscount)) as revenue,
+    oorderdate,
+    oshippriority 
+  ]
 from
 	[ 
-          customer,
-	  orders,
-	  lineitem 
-        ]
+    customertbl,
+    orderstbl,
+    lineitemtbl
+  ]
 where
 	[
-          cmktsegment = "BUILDING", 
-          ccustkey = ocustkey,
-	  lorderkey = oorderkey 
-        ]
+    cmktsegment = "BUILDING", 
+    ccustkey = ocustkey,
+    lorderkey = oorderkey 
+  ]
 groupby
-	[ 
-          lorderkey,
-	  oorderdate,
-	  oshippriority 
-        ]
+  [ 
+    lorderkey,
+    oorderdate,
+    oshippriority 
+  ]
 orderby
-	[ 
-          revenue desc,
-	  oorderdate asc 
-        ]
+  [ 
+    revenue desc,
+    oorderdate asc 
+  ]
 first 10
 ).
 
@@ -124,35 +124,35 @@ tpcQuery(1, select
 	  avg(ldiscount) as avg_disc
         ]
 from
-	  lineitem 
+	  lineitemtbl 
 where
 lshipdate < theInstant(1998,9,2)
 groupby [
-	  lreturnflag,
-	  llinestatus
+          lreturnflag,
+          llinestatus
         ] 
 orderby
 	[ 
-          lreturnflag asc,
-	  llinestatus asc 
-        ]
+    lreturnflag asc,
+    llinestatus asc 
+  ]
 ).
 
 tpcQuery(simple1, select
 	[ 
-          count(*) as count_order,
-          lreturnflag,
-          llinestatus,
-          sum(lquantity) as sum_qty,
-	  avg(ldiscount) as avg_disc
-        ]
+      count(*) as count_order,
+      lreturnflag,
+      llinestatus,
+      sum(lquantity) as sum_qty,
+	    avg(ldiscount) as avg_disc
+  ]
 from
-	  lineitem 
+	  lineitemtbl 
 where
-lshipdate < theInstant(1998,9,2)
+    lshipdate < theInstant(1998,9,2)
 groupby [
-	  lreturnflag,
-	  llinestatus
+          lreturnflag,
+          llinestatus
         ] 
 ).
 
@@ -165,27 +165,27 @@ tpcCorrelated(1, select
 	[ 
           cnationkey,
           count(*) as sumX
-        ]
+  ]
 from
 	[ 
-          customer,
-	  orders,
-	  lineitem 
-        ]
+    customertbl,
+	  orderstbl,
+	  lineitemtbl 
+  ]
 where
 	[
-          lreceiptdate < (lshipdate + create_duration(30.0)),
-          lcommitdate < (lshipdate + create_duration(30.0)),
-          lcommitdate < (lreceiptdate + create_duration(30.0)),
-          lreceiptdate > (theInstant(1996,1,1) + create_duration(30.0)),
-          lcommitdate > (theInstant(1996,1,1) + create_duration(30.0)),
-          lshipdate >  (theInstant(1996,1,1) + create_duration(30.0)),
-          lquantity > 25, 
-          ccustkey = ocustkey,
-	  lorderkey = oorderkey 
-        ]
+    lreceiptdate < (lshipdate + create_duration(30.0)),
+    lcommitdate < (lshipdate + create_duration(30.0)),
+    lcommitdate < (lreceiptdate + create_duration(30.0)),
+    lreceiptdate > (theInstant(1996,1,1) + create_duration(30.0)),
+    lcommitdate > (theInstant(1996,1,1) + create_duration(30.0)),
+    lshipdate >  (theInstant(1996,1,1) + create_duration(30.0)),
+    lquantity > 25, 
+    ccustkey = ocustkey,
+    lorderkey = oorderkey 
+  ]
 groupby [
-	  cnationkey 
+          cnationkey 
         ] 
 
 ).

@@ -12,4 +12,4 @@ else
   JAVA="java"
 fi
 
-$JAVA  -Xmx580M -Djava.library.path=lib  -classpath $CP gui.MainWindow $*
+$JAVA  -Xmx1024M -Djava.library.path=lib  -classpath $CP gui.MainWindow $*
