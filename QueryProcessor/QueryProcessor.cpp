@@ -3371,6 +3371,12 @@ QueryProcessor::Open( const Supplier s )
   Eval( tree, result, OPEN );
 }
 
+void QueryProcessor::SetEvaluable(Supplier s, bool value){
+    OpNode* tree = static_cast<OpNode*>(s);
+    tree->evaluable=false;
+}
+
+
 /*
 ~Close~ changes state of the supplier stream to ~closed~. No effect, if the
 stream is closed already. 

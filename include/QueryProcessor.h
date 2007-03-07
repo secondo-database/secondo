@@ -311,6 +311,10 @@ Changes state of the supplier stream to ~closed~. No effect, if the stream
 is closed already.
 
 */
+
+  void SetEvaluable(Supplier s, bool value);
+
+
   Supplier GetSupplier( const Supplier s, const int no );
 /*
 From a given supplier ~s~ that must represent an argument list, get its son

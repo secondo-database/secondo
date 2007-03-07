@@ -1058,6 +1058,9 @@ Consume(Word* args, Word& result, int message,
     qp->Request(args[0].addr, actual);
   }
   result = SetWord(rel);
+  // work around to avoid evaluation of the node several times
+  qp->SetEvaluable(s,false);
+  
   qp->Close(args[0].addr);
   return 0;
 }
@@ -3532,6 +3535,7 @@ MConsume(Word* args, Word& result, int message,
   }
 
   result = SetWord((void*) rel);
+
 
   qp->Close(args[0].addr);
 
