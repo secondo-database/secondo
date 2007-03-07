@@ -456,6 +456,10 @@ public void showAll(){
   * @return number of loaded Objects
   */
 public int loadObject(){
+       if(Environment.MEASURE_MEMORY){ 
+          Reporter.writeInfo("Memory used before loading object ");
+          Environment.printMemoryUsage();
+       }
        int number = 0;
        File CurrentDir = FileChooser.getCurrentDirectory();
        FileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
@@ -473,6 +477,10 @@ public int loadObject(){
                  Reporter.showError("cannot load the file:"+F.getName());
               }
            }
+       }
+       if(Environment.MEASURE_MEMORY){ 
+          Reporter.writeInfo("Memory used after loading object ");
+          Environment.printMemoryUsage();
        }
        return number;
 }
@@ -642,6 +650,10 @@ public boolean saveSelectedObject(){
  // delete the selected object from list **/
  public boolean removeSelectedObject(){
    boolean removed = false;
+   if(Environment.MEASURE_MEMORY){ 
+       Reporter.writeInfo("Memory used before deleting objects ");
+       Environment.printMemoryUsage();
+   }
    int[] indices = Content.getSelectedIndices();
    if (indices.length==0){
       Reporter.showWarning("no item selected");
@@ -657,15 +669,27 @@ public boolean saveSelectedObject(){
        removed = true;
     }
    }
+   if(Environment.MEASURE_MEMORY){ 
+       Reporter.writeInfo("Memory used after deleting objects ");
+       Environment.printMemoryUsage();
+   }
    return removed;
  }
 
  // remove the given Object
  public void removeObject(SecondoObject SO){
+   if(Environment.MEASURE_MEMORY){ 
+       Reporter.writeInfo("Memory used before deleting object ");
+       Environment.printMemoryUsage();
+   }
    int index = Objects.indexOf(SO);
    if(index>=0){
       myListModel.remove(index);
       Objects.remove(index);
+   }
+   if(Environment.MEASURE_MEMORY){ 
+       Reporter.writeInfo("Memory used after deleting object ");
+       Environment.printMemoryUsage();
    }
  }
 
@@ -736,6 +760,10 @@ public boolean storeSelectedObject(){
 
 
 public void addEntry(SecondoObject SO){
+ if(Environment.MEASURE_MEMORY){ 
+       Reporter.writeInfo("Memory used before adding object ");
+       Environment.printMemoryUsage();
+ }
   if(SO!=null){
      if (Objects.indexOf(SO)<0){   // object not in list
           Objects.add(SO); 
@@ -762,6 +790,10 @@ public void addEntry(SecondoObject SO){
             markAsNoDisplayed(SO);
      }
   }   
+ if(Environment.MEASURE_MEMORY){ 
+       Reporter.writeInfo("Memory used after adding object ");
+       Environment.printMemoryUsage();
+ }
 }
 
 
