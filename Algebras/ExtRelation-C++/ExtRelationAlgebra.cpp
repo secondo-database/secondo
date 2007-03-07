@@ -1629,33 +1629,58 @@ ListExpr SortByTypeMap( ListExpr args )
     rest = nl->Rest(rest);
 
     nl->WriteToString(argstr, attributeSpecification);
-    CHECK_COND(nl->ListLength(attributeSpecification) == 2  &&
-      (nl->IsAtom(nl->First(attributeSpecification))) &&
-      (nl->AtomType(nl->First(attributeSpecification)) == SymbolType) &&
-      (nl->IsAtom(nl->Second(attributeSpecification))) &&
-      (nl->AtomType(nl->Second(attributeSpecification)) == SymbolType),
-      "Operator sortby expects as second argument a list "
-      "((ai asc/desc)+)\n"
-      "Operator sortby gets a list '" + argstr + "'.");
 
-    attrname = nl->SymbolValue(nl->First(attributeSpecification));
+    int length = nl->ListLength(attributeSpecification);
+
+    CHECK_COND( (nl->IsAtom(attributeSpecification)) || (length == 2),
+                 "sortby expects as second argument a list"
+                 " of (attrname [asc, desc])|attrname .");
+
+    if(length==2)
+    {    
+       CHECK_COND((nl->IsAtom(nl->First(attributeSpecification))) &&
+           (nl->AtomType(nl->First(attributeSpecification)) == SymbolType) &&
+           (nl->IsAtom(nl->Second(attributeSpecification))) &&
+           (nl->AtomType(nl->Second(attributeSpecification)) == SymbolType),
+           "sortby expects as second argument a list"
+           " of (attrname [asc, desc])|attrname .\n"
+           "Operator sortby gets a list '" + argstr + "'.");
+       attrname = nl->SymbolValue(nl->First(attributeSpecification));
+    } else 
+    {
+         CHECK_COND((nl->AtomType(attributeSpecification) == SymbolType),
+            "sortby expects as second argument a list"
+            " of (attrname [asc, desc])|attrname .\n"
+            "Operator sortby gets a list '" + argstr + "'.");
+         attrname = nl->SymbolValue(attributeSpecification);
+    }
+
     int j = FindAttribute(nl->Second(nl->Second(streamDescription)), 
                           attrname, attrtype);
     if (j > 0)
     {
-      nl->WriteToString(argstr, nl->Second(attributeSpecification));
-      CHECK_COND( 
-        ((nl->SymbolValue(nl->Second(attributeSpecification)) == 
-          sortAscending) || 
-        (nl->SymbolValue(nl->Second(attributeSpecification)) == 
-          sortDescending)),
-        "Operator sortby: sorting criteria must be asc or desc, not '" + 
-        argstr + "'!" );
+      if(length==2)
+      {
+         nl->WriteToString(argstr, nl->Second(attributeSpecification));
+         CHECK_COND( 
+           ((nl->SymbolValue(nl->Second(attributeSpecification)) == 
+             sortAscending) || 
+            (nl->SymbolValue(nl->Second(attributeSpecification)) == 
+             sortDescending)),
+            "Operator sortby: sorting criteria must be asc or desc, not '" + 
+            argstr + "'!" );
+      }
 
       sortOrderDescriptionLastElement =
         nl->Append(sortOrderDescriptionLastElement, nl->IntAtom(j));
-      bool isAscending =
-        nl->SymbolValue(nl->Second(attributeSpecification)) == sortAscending;
+      bool isAscending=true;
+      if(length==2)
+      {
+        isAscending =
+          nl->SymbolValue(nl->Second(attributeSpecification)) == sortAscending;
+      } else {
+         isAscending = true;
+      }
       sortOrderDescriptionLastElement =
         nl->Append(sortOrderDescriptionLastElement,
         nl->BoolAtom(isAscending));
@@ -1697,11 +1722,13 @@ respectively.
 const string SortBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                            "\"Example\" ) "
                            "( <text>((stream (tuple([a1:d1, ... ,an:dn])))"
-                           " ((xi1 asc/desc) ... (xij asc/desc))) -> "
+                           " ((xi1 asc/desc) ... (xij [asc/desc]))) -> "
                            "(stream (tuple([a1:d1, ... ,an:dn])))</text--->"
                            "<text>_ sortby [list]</text--->"
                            "<text>Sorts input stream according to a list "
-                           "of attributes ai1 ... aij.</text--->"
+                           "of attributes ai1 ... aij. \n"
+                           "If no order is specified, ascending is assumed."
+                           "</text--->"
                            "<text>query employee feed sortby[DeptNo asc] "
                            "consume</text--->"
                               ") )";
