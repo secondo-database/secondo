@@ -75,7 +75,8 @@ struct PrivateTuple
     tupleFile( 0 ),
     memoryTuple( 0 ),
     extensionTuple( 0 ),
-    state( Fresh )
+    state( Fresh ),
+    NumOfAttr(tupleType->GetNoAttributes())
     {
       if (debug)	    
         cerr << "Tuple " << (void*)this 
@@ -94,7 +95,8 @@ The first constructor. It creates a fresh tuple from a ~tupleType~.
     tupleFile( 0 ),
     memoryTuple( 0 ),
     extensionTuple( 0 ),
-    state( Fresh )
+    state( Fresh ),
+    NumOfAttr(tupleType->GetNoAttributes())
     {
       if (debug)	    
         cerr << "Tuple " << (void*)this 
@@ -115,7 +117,7 @@ The second constructor. It creates a fresh tuple from a ~typeInfo~.
     {
     	    
       assert( memoryTuple != 0 );
-      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+      for( int i = 0; i < NumOfAttr; i++ )
       {
         attributes[i]->Finalize();
         for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
@@ -131,7 +133,7 @@ The second constructor. It creates a fresh tuple from a ~typeInfo~.
     }
     else
     {
-      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+      for( int i = 0; i < NumOfAttr; i++ )
         if( attributes[i] != 0 )
           attributes[i]->DeleteIfAllowed();
     }
@@ -239,7 +241,16 @@ State of the tuple (Fresh, Solid).
 
 The members below are useful for debugging:
 
+Profiling turned out that a separate member storing the number
+of attributes makes sense since it reduces calls for TupleType::NoAttributes
+
 */
+  int NumOfAttr;
+  
+/*
+Debugging stuff
+
+*/  
 #ifdef MALLOC_CHECK_  
   void free (void* ptr) { cerr << "freeing ptr " << ptr << endl; ::free(ptr); }
 #endif

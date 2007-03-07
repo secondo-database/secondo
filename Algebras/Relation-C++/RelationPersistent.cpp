@@ -168,7 +168,7 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
   extSize += tupleType->GetTotalSize();
   size += tupleType->GetTotalSize();
 
-  for( int i = 0; i < tupleType->GetNoAttributes(); i++)
+  for( int i = 0; i < NumOfAttr; i++)
   {
     assert( i >= 0 && (size_t)i < attrExtSize.size() );
     attrExtSize[i] += tupleType->GetAttributeType(i).size;
@@ -203,7 +203,7 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
     assert( (extensionSize == 0 && extensionTuple == 0 ) || 
             (extensionSize != 0 && extensionTuple != 0 ) );
 
-    for( int i = 0; i < tupleType->GetNoAttributes(); i++)
+    for( int i = 0; i < NumOfAttr; i++)
     {
       for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
       {
@@ -216,7 +216,7 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
   else if( state == Fresh )
   { 
     // Create a structure to store the old attributes
-    Attribute **oldAttributes = new Attribute*[tupleType->GetNoAttributes()];
+    Attribute **oldAttributes = new Attribute*[NumOfAttr];
 
     // Move FLOB data to extension tuple.
     if( hasFLOBs )
@@ -225,7 +225,7 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
         extensionTuple = (char *)malloc(extensionSize);
 
       char *extensionPtr = extensionTuple;
-      for( int i = 0; i < tupleType->GetNoAttributes(); i++)
+      for( int i = 0; i < NumOfAttr; i++)
       {
         for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
         {
@@ -243,7 +243,7 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
     assert( memoryTuple == 0 );
     memoryTuple = (char*)malloc( tupleType->GetTotalSize() );
     int offset = 0;
-    for( int i = 0; i < tupleType->GetNoAttributes(); i++)
+    for( int i = 0; i < NumOfAttr; i++)
     {
       memcpy( &memoryTuple[offset], attributes[i], 
               tupleType->GetAttributeType(i).size );
@@ -258,7 +258,7 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
 	 << endl;
 
     // Delete (if allowed) the old attributes.
-    for( int i = 0; i < tupleType->GetNoAttributes(); i++)
+    for( int i = 0; i < NumOfAttr; i++)
       oldAttributes[i]->DeleteIfAllowed();
 
     delete [] oldAttributes;
@@ -313,7 +313,7 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
   // Set the lobFile for all LOBs.
   size_t extensionSize = 0;
   char *valuePtr = memoryTuple;
-  for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+  for( int i = 0; i < NumOfAttr; i++ )
   {
     int algId = tupleType->GetAttributeType(i).algId,
         typeId = tupleType->GetAttributeType(i).typeId;
@@ -347,7 +347,7 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
     }
 
     char *extensionPtr = extensionTuple;
-    for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+    for( int i = 0; i < NumOfAttr; i++ )
     {
       for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
       {
@@ -362,7 +362,7 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
   }
 
   // Call the Initialize function for every attribute
-  for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+  for( int i = 0; i < NumOfAttr; i++ )
     attributes[i]->Initialize();
 
   tupleRecord->Finish();
@@ -397,7 +397,7 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
   // Set the lobFile for all LOBs.
   size_t extensionSize = 0;
   char *valuePtr = memoryTuple;
-  for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+  for( int i = 0; i < NumOfAttr; i++ )
   {
     int algId = tupleType->GetAttributeType(i).algId,
         typeId = tupleType->GetAttributeType(i).typeId;
@@ -431,7 +431,7 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
     }
 
     char *extensionPtr = extensionTuple;
-    for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+    for( int i = 0; i < NumOfAttr; i++ )
     {
       for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
       {
@@ -446,7 +446,7 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
   }
 
   // Call the Initialize function for every attribute
-  for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+  for( int i = 0; i < NumOfAttr; i++ )
     attributes[i]->Initialize();
 
   state = Solid;
@@ -485,7 +485,7 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
   // Set the lobFile for all LOBs.
   size_t extensionSize = 0;
   char *valuePtr = memoryTuple;
-  for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+  for( int i = 0; i < NumOfAttr; i++ )
   {
     int algId = tupleType->GetAttributeType(i).algId,
         typeId = tupleType->GetAttributeType(i).typeId;
@@ -518,7 +518,7 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
     }
 
     char *extensionPtr = extensionTuple;
-    for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+    for( int i = 0; i < NumOfAttr; i++ )
     {
       for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
       {
@@ -533,7 +533,7 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
   }
 
   // Call the Initialize function for every attribute
-  for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+  for( int i = 0; i < NumOfAttr; i++ )
     attributes[i]->Initialize();
 
   state = Solid;
