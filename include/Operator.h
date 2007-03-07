@@ -169,6 +169,14 @@ the argument types ~argtypes~.
     return (*valueMap[index])( args, result, message, local, s );
   }
 
+  ValueMapping GetValueMapping( const int index ) const
+  {
+    assert((0 <= index) && (index < numOfFunctions));
+    return valueMap[index];
+  }
+
+
+  
 /*
 Calls the value mapping function of the operator.
 
@@ -222,7 +230,7 @@ Adds a value mapping function to the list of overloaded operator functions.
     OperatorInfo   spec;
     int            numOfFunctions; // No. overloaded functions
     SelectFunction selectFunc;
-    ValueMapping*  valueMap; // Array of size numOfFunctions
+    ValueMapping*  valueMap;       // Array of size numOfFunctions
     TypeMapping    typeMap;
 };
 
