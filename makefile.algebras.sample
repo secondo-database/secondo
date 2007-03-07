@@ -9,7 +9,7 @@
 
 # Master switch to compile the minimal set
 # of interdependet algebras.
-#SECONDO_MIN_ALGEBRA_SET := true
+SECONDO_MIN_ALGEBRA_SET := true
 
 # never change this
 ALGEBRA_DIRS := Standard-C++
@@ -28,6 +28,12 @@ ALGEBRAS     += RelationAlgebra
 
 ALGEBRA_DIRS += ExtRelation-C++
 ALGEBRAS     += ExtRelationAlgebra
+
+ALGEBRA_DIRS += BTree
+ALGEBRAS     += BTreeAlgebra
+
+ALGEBRA_DIRS += TupleIdentifier
+ALGEBRAS     += TupleIdentifierAlgebra
 
 # comment out or add new algebras in this file.
 # You have to define an algebra name and a directory
@@ -83,8 +89,6 @@ ALGEBRAS     += BinaryFileAlgebra
 ALGEBRA_DIRS += Date
 ALGEBRAS     += DateAlgebra
 
-ALGEBRA_DIRS += BTree
-ALGEBRAS     += BTreeAlgebra
 
 ALGEBRA_DIRS += RTree
 ALGEBRAS     += RTreeAlgebra
@@ -119,8 +123,6 @@ ALGEBRAS     += NetworkAlgebra
 ALGEBRA_DIRS += PlugJoin
 ALGEBRAS     += PlugJoinAlgebra
 
-ALGEBRA_DIRS += TupleIdentifier
-ALGEBRAS     += TupleIdentifierAlgebra
 
 ALGEBRA_DIRS += UpdateRel
 ALGEBRAS     += UpdateRelationAlgebra
