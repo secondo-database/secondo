@@ -364,7 +364,7 @@ struct SampleLocalInfo
   vector<int> sampleIndices;
   vector<int>::iterator iter;
   int lastIndex;
-  RelationIterator* relIter;
+  RandomRelationIterator* relIter;
 };
 
 int Sample(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -389,7 +389,7 @@ int Sample(Word* args, Word& result, int message, Word& local, Supplier s)
 
       rel = (Relation*)args[0].addr;
       relSize = rel->GetNoTuples();
-      localInfo->relIter = rel->MakeScan();
+      localInfo->relIter = rel->MakeRandomScan();
       
       sampleSize = StdTypes::GetInt(args[1]);
       sampleRate = StdTypes::GetReal(args[2]);
@@ -435,19 +435,10 @@ int Sample(Word* args, Word& result, int message, Word& local, Supplier s)
       else
       {
         currentIndex = *(localInfo->iter);
-        if(!(tuple = localInfo->relIter->GetNextTuple()))
+        int step = currentIndex - localInfo->lastIndex;
+        if(!(tuple = localInfo->relIter->GetNextTuple(step)))
         {
           return CANCEL;
-        }
-
-        // Advance iterator to the the next tuple belonging to the sample 
-        for(i = 1; i < currentIndex - localInfo->lastIndex; ++i)
-        {
-          tuple->DeleteIfAllowed();
-          if(!(tuple = localInfo->relIter->GetNextTuple()))
-          {
-            return CANCEL;
-          }
         }
 
         result = SetWord(tuple);

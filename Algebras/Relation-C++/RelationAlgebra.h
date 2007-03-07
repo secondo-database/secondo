@@ -1223,6 +1223,46 @@ The private attributes of the class ~RelationIterator~.
 */
 };
 
+
+class RandomRelationIterator
+{
+  public:
+    RandomRelationIterator( const Relation& relation );
+/*
+The constructor. Creates a ~RandomRelationIterator~ for a given ~relation~
+and positions the cursor in the first tuple, if exists.
+
+*/
+    ~RandomRelationIterator();
+/*
+The destructor.
+
+*/
+    Tuple *GetNextTuple(int step=1);
+/*
+Retrieves the tuple in the current position of the iterator and moves
+the cursor forward to the next tuple. Returns 0 if the cursor is in 
+the end of a relation.
+
+*/
+    TupleId GetTupleId() const;
+/*
+Returns the tuple identifier of the current tuple.
+
+*/
+    bool EndOfScan();
+/*
+Tells whether the cursor is in the end of a relation.
+
+*/
+  private:
+    PrivateRelationIterator *privateRelationIterator;
+/*
+The private attributes of the class ~RelationIterator~.
+
+*/
+};
+
 /*
 4.1 Class ~Relation~
 
@@ -1445,8 +1485,9 @@ of the relation in bytes.
 
 */
     RelationIterator *MakeScan() const;
+    RandomRelationIterator *MakeRandomScan() const;
 /*
-Returns a ~RelationIterator~ for a relation scan.
+Returns a ~RelationIterator~ or a ~RandomRelationIterator~ for a relation scan.
 
 */
     inline PrivateRelation *GetPrivateRelation()
@@ -1460,6 +1501,7 @@ relation class.
 */
 
     friend class RelationIterator;
+    friend class RandomRelationIterator;
     friend struct PrivateRelationIterator;
 
   private:

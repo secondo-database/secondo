@@ -1221,6 +1221,11 @@ RelationIterator *Relation::MakeScan() const
   return new RelationIterator( *this );
 }
 
+RandomRelationIterator *Relation::MakeRandomScan() const
+{
+  return new RandomRelationIterator( *this );
+}
+
 #ifdef _PREFETCHING_
 /*
 4.3 Struct ~PrivateRelationIterator~ (using ~PrefetchingIterator~)
@@ -1320,6 +1325,59 @@ bool RelationIterator::EndOfScan()
 {
   return privateRelationIterator->endOfScan;
 }
+
+
+/*
+4.5 Implementation of the class ~RandomRelationIterator~ 
+(using ~PrefetchingIterator~)
+
+This class is used for scanning (iterating through) relations.
+
+*/
+RandomRelationIterator::RandomRelationIterator( const Relation& relation ):
+  privateRelationIterator( new PrivateRelationIterator( relation ) )
+  {}
+
+RandomRelationIterator::~RandomRelationIterator()
+{
+  delete privateRelationIterator;
+}
+
+Tuple* RandomRelationIterator::GetNextTuple(int step/*=1*/)
+{
+//#define TRACE_ON
+//  NTRACE(10000, "GetNextTuple()")
+//#undef TRACE_ON 
+  for (; step > 0; step--) {
+  if( !privateRelationIterator->iterator->Next() )
+  {
+    privateRelationIterator->endOfScan = true;
+    privateRelationIterator->currentTupleId = -1;
+    return 0;
+  }
+  }
+
+  Tuple *result = new Tuple( 
+    privateRelationIterator->relation.privateRelation->relDesc.tupleType );
+  result->GetPrivateTuple()->Open( 
+    &privateRelationIterator->relation.privateRelation->tupleFile,
+    privateRelationIterator->relation.
+      privateRelation->relDesc.lobFileId,
+    privateRelationIterator->iterator );
+  privateRelationIterator->currentTupleId = result->GetTupleId();
+  return result;
+}
+
+TupleId RandomRelationIterator::GetTupleId() const
+{
+  return privateRelationIterator->currentTupleId;
+}
+
+bool RandomRelationIterator::EndOfScan()
+{
+  return privateRelationIterator->endOfScan;
+}
+
 #else
 /*
 4.5 Struct ~PrivateRelationIterator~ (using ~SmiRecordFileIterator~)
