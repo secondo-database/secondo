@@ -120,7 +120,10 @@ SmiEnvironment::GetLastErrorCode( string& errorMessage )
 void 
 SmiEnvironment::SetError( const SmiError smiErr )
 { 
-  SetError(smiErr, Err2Msg(smiErr));
+  if (smiErr == E_SMI_OK)
+    SetError(smiErr, "E_SMI_OK");
+  else
+    SetError(smiErr, Err2Msg(smiErr));
 }
                         
 void 

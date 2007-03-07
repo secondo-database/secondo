@@ -753,7 +753,10 @@ SmiEnvironment::SetError( const SmiError smiErr, const int sysErr /* = 0 */ )
     }
     SetError(smiErr, DbEnv::strerror( sysErr ));
   }
-  SetError(smiErr, Err2Msg(smiErr));
+  if (smiErr == E_SMI_OK)
+    SetError(smiErr, "E_SMI_OK");
+  else
+    SetError(smiErr, Err2Msg(smiErr));
 }
 
 bool
