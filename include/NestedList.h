@@ -445,7 +445,7 @@ struct Tolerance
     value = v;
   }
 
-  // double values have only 16 correct decimal digits thus there
+  // double values have only 16 correct decimal digits thus their
   // ~natural~ relative error is about 1e-15  = 2^(-50)
   inline static const double minErr() { return 1e-15; }
 
