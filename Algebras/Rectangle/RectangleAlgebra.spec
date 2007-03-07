@@ -28,3 +28,4 @@ operator inside alias INSIDE pattern _ infixop _
 operator intersects alias INTERSECTS pattern _ infixop _
 operator intersection alias INTERSECTION pattern op ( _ , _)
 operator distance alias DISTANCE pattern op ( _ , _ )
+operator rectproject alias RECTPROJECT pattern op ( _ , _ , _ )

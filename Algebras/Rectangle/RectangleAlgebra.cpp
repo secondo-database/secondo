@@ -554,6 +554,49 @@ RectRectTypeMapReal( ListExpr args )
   return nl->SymbolAtom( "typeerror" );
 }
 
+
+/*
+4.1.7 Type mapping function ~RectProjectTypeMap~
+
+Used for ~rectproject~.
+
+*/
+ListExpr
+RectProjectTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2, arg3;
+  string argstr;
+  int dim = -1;
+  if ( !( nl->ListLength( args ) == 3 ) )
+  {
+    nl->WriteToString (argstr, args);
+    ErrorReporter::ReportError("operator rectproject expects a list "
+        "a list of length 3, but gets '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");\
+  }
+  arg1 = nl->First( args );
+  arg2 = nl->Second( args );
+  arg3 = nl->Third( args );
+  if( nl->IsEqual( arg1,  "rect" ) ) dim = 2;
+  else if( nl->IsEqual( arg1, "rect3" ) ) dim = 3;
+  else if( nl->IsEqual( arg1, "rect4" ) ) dim = 4;
+  else if( nl->IsEqual( arg1, "rect8" ) ) dim = 8;
+  else dim = -1;
+  if ( !(dim > 0) || 
+       !nl->IsEqual( arg2,  "int" ) ||
+       !nl->IsEqual( arg3,  "int" )
+     )
+  {
+    nl->WriteToString (argstr, args);
+    ErrorReporter::ReportError("operator rectproject expects a list "
+        "'(rect<D> int int)' as input, but gets a list '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");\
+  }
+
+  return nl->SymbolAtom( "rect" );
+}
+
+
 /*
 4.2 Selection functions
 
@@ -638,7 +681,7 @@ int RectangleSelect( ListExpr args )
   { 
     if( !(nl->IsEqual( arg[k], "real" )) ) { checkreal = false; break; }
   }
-                     
+
   if( checkint ) return 0;
 
   if( checkreal ) return 1;
@@ -658,7 +701,7 @@ int Rectangle8Select( ListExpr args )
 {
   ListExpr arg[dim];
   bool checkint = true, checkreal = true;
-  
+
   for(unsigned int i = 1; i <= dim; i++)
   {
     arg[i-1] = nl->Nth(i,args);
@@ -673,12 +716,30 @@ int Rectangle8Select( ListExpr args )
   { 
     if( !(nl->IsEqual( arg[k], "real" )) ) { checkreal = false; break; }
   }
-                     
+
   if( checkint ) return 0;
 
   if( checkreal ) return 1;
 
   return -1; // should never occur 
+}
+
+/*
+
+4.3.2 Selection function ~Rectangle8Select~
+
+Is used for the ~rectangle8size~ operator.
+
+*/
+int RectangleRectprojectSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "rect" )) return 0;
+  if(nl->IsEqual(arg1, "rect3")) return 1;
+  if(nl->IsEqual(arg1, "rect4")) return 2;
+  if(nl->IsEqual(arg1, "rect8")) return 3;
+
+  return -1; // should never occur
 }
 
 /*
@@ -962,6 +1023,47 @@ int RectangleDistanceValueMap( Word* args, Word& result, int message,
   }
   return 0;
 }
+
+/*
+4.4.7 Value mapping functions of operator ~rectproject~
+
+*/
+template<unsigned int dim>
+int RectangleRectprojectValueMap( Word* args, Word& result, int message, 
+                                  Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Rectangle<2> *res = (Rectangle<2> *) result.addr;
+  Rectangle<dim> *r;
+  CcInt *ci1, *ci2;
+
+  r = (Rectangle<dim> *) args[0].addr;
+  ci1 = (CcInt*) args[1].addr;
+  ci2 = (CcInt*) args[2].addr;
+
+  if( !r->IsDefined() || !ci1->IsDefined() || !ci1->IsDefined())
+    res->SetDefined( false );
+  else
+  {
+     unsigned int i1 = ci1->GetIntval();
+     unsigned int i2 = ci2->GetIntval();
+
+     if( i1 <= dim && i1>0 && i2 <= dim && i2>0 )
+     {
+       double min[2] = {r->MinD(i1-1), r->MinD(i2-1)};
+       double max[2] = {r->MaxD(i1-1), r->MaxD(i2-1)};
+       res->Set( true, min, max );
+     }
+     else
+     {
+       ErrorReporter::ReportError("operator rectproject: dimension index "
+           "out of bound!\n");
+       res->SetDefined( false );
+     }
+  }
+  return 0;
+}
+
 /*
 4.5 Definition of operators
 
@@ -1022,6 +1124,11 @@ ValueMapping rectanglerectangle8map[] = { Rectangle8ValueMap<CcInt, 8>,
 ValueMapping rectangledistancemap[] = { RectangleDistanceValueMap<2>,
                                         RectangleDistanceValueMap<3>,
                                         RectangleDistanceValueMap<4> };
+
+ValueMapping rectanglerectprojectmap[] = { RectangleRectprojectValueMap<2>,
+                                           RectangleRectprojectValueMap<3>,
+                                           RectangleRectprojectValueMap<4>,
+                                           RectangleRectprojectValueMap<8>};
 
 /*
 4.5.2 Definition of specification strings
@@ -1154,6 +1261,18 @@ const string RectangleSpecDistance  =
         "<text></text--->"
         ") )";
 
+const string RectangleSpecRectproject  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+        "( <text>(rect<d> x int x int) -> rect</text--->"
+        "<text>rectproject( rect , d1 , d2 )</text--->"
+        "<text>projects the rectangle 'rect' to its dimensions "
+        "'d1' and 'd2'. 1 <= d1, d2 <= D.</text--->"
+        "<text>query rectproject([const rect3 value "
+        "(1.0 2.0 3.0 4.0 5.0 6.0) ], 1, 3)</text--->"
+        "<text></text--->"
+        ") )";
+
+
 /*
 4.5.3 Definition of the operators
 
@@ -1249,6 +1368,14 @@ Operator rectangledistance( "distance",
                           RectangleBinarySelect,
                           RectRectTypeMapReal );
 
+Operator rectanglerectproject( "rectproject",
+                          RectangleSpecRectproject,
+                          4,
+                          rectanglerectprojectmap,
+                          RectangleRectprojectSelect,
+                          RectProjectTypeMap );
+
+
 /*
 5 Creating the Algebra
 
@@ -1282,6 +1409,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectanglerectangle3 );
     AddOperator( &rectanglerectangle4 );
     AddOperator( &rectanglerectangle8 );
+    AddOperator( &rectanglerectproject );
   }
   ~RectangleAlgebra() {};
 };
