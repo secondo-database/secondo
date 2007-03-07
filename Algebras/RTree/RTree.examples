@@ -10,7 +10,7 @@ Result   : (rect (-10836.00000001 33575.00000001 -6686.00000001 28095.00000001))
 
 Operator : bulkloadrtree
 Number   : 1
-Signature: stream (tuple (x1 t1)...(xn tn) (id tid))) xi) -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false)
+Signature: stream (tuple (x1 t1)...(xn tn) (id tid))) xi) -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false), (id tid)(low int)(high int))) xi) -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti true) (id tid)(low int)(high int))) xi) -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti true)
 Example  : query Landstrassen feed projectextend[ ; TID: tupleid(.), MBR: bbox(.geoData)] sortby[MBR asc] bulkloadrtree[MBR]
 Result   : file_platform
 

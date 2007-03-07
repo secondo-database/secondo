@@ -184,6 +184,20 @@ After that, ~BULKLOAD_MIN_ENTRIES_FACTOR~ will control the skipping behaviour.
 3 Struct ~R\_TreeEntry~
 
 */
+
+struct TwoLayerLeafInfo
+{
+  TupleId tupleId;
+  int low;
+  int high;
+
+  TwoLayerLeafInfo() {}
+
+  TwoLayerLeafInfo( TupleId tupleId, int low, int high ):
+      tupleId( tupleId ), low( low ), high( high )
+      {}
+};
+
 template<unsigned dim>
 struct R_TreeEntry
 {
@@ -2928,8 +2942,17 @@ bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
         if(i == 0)
         {// leaf level
           assert( bli->node[i]->IsLeaf() == true );
-          R_TreeLeafEntry<dim, LeafInfo> entry( bli->node[i]->BoundingBox(), 
-                                                recId );
+// Original implementation:
+//
+//           R_TreeLeafEntry<dim, LeafInfo> entry( bli->node[i]->BoundingBox(), 
+//                                                 recId );
+//
+// This is strange. If it's a leafnode, we also need a pair 
+// (Rectange<dim>, LeafInfo) to create an *internal* entry within the father. 
+// It worked, because both, 'TupleId' and 'SniRecordId' are defined as 'long'.
+// Correctly, it should be:
+          R_TreeInternalEntry<dim> entry( bli->node[i]->BoundingBox(), 
+                                          recId );
           assert( bli->node[i+1]->Insert(entry) );
         }
         else
@@ -2993,19 +3016,6 @@ bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
   path[ 0 ] = header.rootRecordId;
 
   return true;
-};
-
-struct TwoLayerLeafInfo
-{
-  TupleId tupleId;
-  int low;
-  int high;
-
-  TwoLayerLeafInfo() {}
-
-  TwoLayerLeafInfo( TupleId tupleId, int low, int high ):
-  tupleId( tupleId ), low( low ), high( high )
-  {}
 };
 
 

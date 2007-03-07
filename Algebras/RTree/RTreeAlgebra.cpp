@@ -2505,9 +2505,83 @@ int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
   return 0;
 }
 
+// VM for double layer indexing
 template<unsigned dim>
-    int CreateRTreeBulkLoadStreamRect( Word* args, Word& result, int message,
-                                          Word& local, Supplier s )
+    int CreateRTreeBulkLoadStreamL2Spatial(Word* args, Word& result, 
+                                           int message,
+                                           Word& local, Supplier s)
+{
+  Word wTuple;
+  R_Tree<dim, TwoLayerLeafInfo> *rtree =
+      (R_Tree<dim, TwoLayerLeafInfo>*)qp->ResultStorage(s).addr;
+  result = SetWord( rtree );
+
+  int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
+  tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
+
+  // Get a reference to the message center
+  static MessageCenter* msg = MessageCenter::GetInstance();
+  int count = 0; // counter for progress indicator
+
+  assert(rtree->InitializeBulkLoad());
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, wTuple);
+  while (qp->Received(args[0].addr))
+  {
+    if ((count++ % 10000) == 0) 
+    {
+      // build a two elem list (simple count)
+      NList msgList( NList("simple"), NList(count) );
+      // send the message, the message center will call 
+      // the registered handlers. Normally the client applications
+      // will register them. 
+      msg->Send(msgList);
+    }
+    Tuple* tuple = (Tuple*)wTuple.addr;
+
+    if( ((StandardSpatialAttribute<dim>*)tuple->
+          GetAttribute(attrIndex))->IsDefined() &&
+          ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->
+          IsDefined() &&
+          ((CcInt*)tuple->GetAttribute(tuple->GetNoAttributes()-2))->
+          IsDefined() &&
+          ((CcInt*)tuple->GetAttribute(tuple->GetNoAttributes()-1))->
+          IsDefined() )
+    {
+      BBox<dim> box =
+          ((StandardSpatialAttribute<dim>*)tuple->
+          GetAttribute(attrIndex))->BoundingBox();
+      R_TreeLeafEntry<dim, TwoLayerLeafInfo> e(
+          box,
+          TwoLayerLeafInfo(
+              ((TupleIdentifier *)tuple->
+              GetAttribute(tidIndex))->GetTid(),
+          ((CcInt*)tuple->
+              GetAttribute(tuple->GetNoAttributes()-2))->GetIntval(),
+          ((CcInt*)tuple->
+              GetAttribute(tuple->GetNoAttributes()-1))->GetIntval()));
+          rtree->InsertBulkLoad(e);
+    }
+    tuple->DeleteIfAllowed();
+    qp->Request(args[0].addr, wTuple);
+  }
+  qp->Close(args[0].addr);
+  assert( rtree->FinalizeBulkLoad() );
+
+  // build a two elem list (simple count)
+  NList msgList( NList("simple"), NList(count) );
+      // send the message, the message center will call 
+      // the registered handlers. Normally the client applications
+      // will register them. 
+  msg->Send(msgList);
+
+  return 0;
+}
+
+template<unsigned dim>
+    int CreateRTreeBulkLoadStreamRect( Word* args, Word& result, 
+                                       int message,
+                                       Word& local, Supplier s )
 {
   Word wTuple;
   R_Tree<dim, TupleId> *rtree =
@@ -2564,73 +2638,152 @@ template<unsigned dim>
   return 0;
 }
 
+// VM for double layer indexing
+template<unsigned dim>
+int CreateRTreeBulkLoadStreamL2Rect(Word* args, Word& result, int message,
+                                    Word& local, Supplier s)
+{
+  Word wTuple;
+  R_Tree<dim, TwoLayerLeafInfo> *rtree =
+      (R_Tree<dim, TwoLayerLeafInfo>*)qp->ResultStorage(s).addr;
+  result = SetWord( rtree );
 
+  int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
+  tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
+
+        // Get a reference to the message center
+  static MessageCenter* msg = MessageCenter::GetInstance();
+  int count = 0; // counter for progress indicator
+
+  assert(rtree->InitializeBulkLoad());
+
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, wTuple);
+  while (qp->Received(args[0].addr))
+  {
+    if ((count++ % 10000) == 0) 
+    {
+      // build a two elem list (simple count)
+      NList msgList( NList("simple"), NList(count) );
+      // send the message, the message center will call 
+      // the registered handlers. Normally the client applications
+      // will register them. 
+      msg->Send(msgList);
+    }
+    Tuple* tuple = (Tuple*)wTuple.addr;
+
+    if( ((StandardSpatialAttribute<dim>*)tuple->
+          GetAttribute(attrIndex))->IsDefined() &&
+          ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->
+          IsDefined() &&
+          ((CcInt*)tuple->GetAttribute(tuple->GetNoAttributes()-2))->
+          IsDefined() &&
+          ((CcInt*)tuple->GetAttribute(tuple->GetNoAttributes()-1))->
+          IsDefined() )
+    {
+      BBox<dim> *box = (BBox<dim>*)tuple->GetAttribute(attrIndex);
+      if( box->IsDefined() )
+      {
+        R_TreeLeafEntry<dim, TwoLayerLeafInfo>
+            e( *box,
+                TwoLayerLeafInfo(
+                    ((TupleIdentifier *)tuple->
+                    GetAttribute(tidIndex))->GetTid(),
+                ((CcInt*)tuple->GetAttribute(
+                    tuple->GetNoAttributes()-2))->GetIntval(),
+                ((CcInt*)tuple->GetAttribute(
+                    tuple->GetNoAttributes()-1))->GetIntval() ) );
+            rtree->InsertBulkLoad(e);
+      }
+    }
+    tuple->DeleteIfAllowed();
+    qp->Request(args[0].addr, wTuple);
+  }
+  qp->Close(args[0].addr);
+
+  assert( rtree->FinalizeBulkLoad() );
+        // build a two elem list (simple count)
+  NList msgList( NList("simple"), NList(count) );
+      // send the message, the message center will call 
+      // the registered handlers. Normally the client applications
+      // will register them. 
+  msg->Send(msgList);
+
+  return 0;
+}
 /*
 5.2. Selection Function for Operator ~creatertree_bulkload<D>~
 
 */
 int CreateRTreeBulkLoadSelect (ListExpr args)
 {
-    ListExpr relDescription = nl->First(args),
-             attrNameLE = nl->Second(args),
-             tupleDescription = nl->Second(relDescription),
-             attrList = nl->Second(tupleDescription);
-             string attrName = nl->SymbolValue(attrNameLE);
-    int attrIndex;
-    ListExpr attrType;
-    attrIndex = FindAttribute(attrList, attrName, attrType);
-    AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-    ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-    int result;
+  ListExpr relDescription = nl->First(args),
+  attrNameLE = nl->Second(args),
+  tupleDescription = nl->Second(relDescription),
+  attrList = nl->Second(tupleDescription);
+  string attrName = nl->SymbolValue(attrNameLE);
+  int attrIndex;
+  ListExpr attrType;
+  attrIndex = FindAttribute(attrList, attrName, attrType);
+  AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  int result;
 
-    if ( algMgr->CheckKind("SPATIAL2D", attrType, errorInfo) )
-             result = 0;
-    else if ( algMgr->CheckKind("SPATIAL3D", attrType, errorInfo) )
-             result = 1;
-    else if ( algMgr->CheckKind("SPATIAL4D", attrType, errorInfo) )
-             result = 2;
-    else if ( algMgr->CheckKind("SPATIAL8D", attrType, errorInfo) )
-             result = 3;
-    else if( nl->SymbolValue(attrType) == "rect" )
-             result = 4;
-    else if( nl->SymbolValue(attrType) == "rect3" )
-             result = 5;
-    else if( nl->SymbolValue(attrType) == "rect4" )
-             result = 6;
-    else if( nl->SymbolValue(attrType) == "rect8" )
-             result = 7;
-    else
-             return -1; /* should not happen */
+  if ( algMgr->CheckKind("SPATIAL2D", attrType, errorInfo) )
+    result = 0;
+  else if ( algMgr->CheckKind("SPATIAL3D", attrType, errorInfo) )
+    result = 1;
+  else if ( algMgr->CheckKind("SPATIAL4D", attrType, errorInfo) )
+    result = 2;
+  else if ( algMgr->CheckKind("SPATIAL8D", attrType, errorInfo) )
+    result = 3;
+  else if( nl->SymbolValue(attrType) == "rect" )
+    result = 4;
+  else if( nl->SymbolValue(attrType) == "rect3" )
+    result = 5;
+  else if( nl->SymbolValue(attrType) == "rect4" )
+    result = 6;
+  else if( nl->SymbolValue(attrType) == "rect8" )
+    result = 7;
+  else
+    return -1; /* should not happen */
 
-    if( nl->SymbolValue(nl->First(relDescription)) == "stream")
+  if( nl->SymbolValue(nl->First(relDescription)) == "stream")
+  {
+    ListExpr first,
+    rest = attrList;
+    while (!nl->IsEmpty(rest))
     {
-       ListExpr first,
-       rest = attrList;
-       while (!nl->IsEmpty(rest))
-       {
-          first = nl->First(rest);
-          rest = nl->Rest(rest);
-       }
-       if( nl->IsEqual( nl->Second( first ), "int" ) )
-          // Double indexing
-          // return result + 8;
-          return -1;
-       else
-          // Multi-entry indexing
-          return result + 0;
+      first = nl->First(rest);
+      rest = nl->Rest(rest);
     }
-    return -1;
+    if( nl->IsEqual( nl->Second( first ), "int" ) )
+          // Double indexing
+      return result + 8;
+    else
+          // Multi-entry indexing
+      return result + 0;
+  }
+  return -1;
 }
 
 ValueMapping CreateRTreeBulkLoad [] =
-{ CreateRTreeBulkLoadStreamSpatial<2>,
+{ CreateRTreeBulkLoadStreamSpatial<2>,   //0
   CreateRTreeBulkLoadStreamSpatial<3>,
   CreateRTreeBulkLoadStreamSpatial<4>,
   CreateRTreeBulkLoadStreamSpatial<8>,
-  CreateRTreeBulkLoadStreamRect<2>,
+  CreateRTreeBulkLoadStreamRect<2>,      //4
   CreateRTreeBulkLoadStreamRect<3>,
   CreateRTreeBulkLoadStreamRect<4>,
-  CreateRTreeBulkLoadStreamRect<8> 
+  CreateRTreeBulkLoadStreamRect<8>,
+  CreateRTreeBulkLoadStreamL2Spatial<2>, // 8
+  CreateRTreeBulkLoadStreamL2Spatial<3>,
+  CreateRTreeBulkLoadStreamL2Spatial<4>,
+  CreateRTreeBulkLoadStreamL2Spatial<8>,
+  CreateRTreeBulkLoadStreamL2Rect<2>,    // 12
+  CreateRTreeBulkLoadStreamL2Rect<3>,
+  CreateRTreeBulkLoadStreamL2Rect<4>,
+  CreateRTreeBulkLoadStreamL2Rect<8>     // 15
 };
 
 
@@ -2643,7 +2796,9 @@ const string CreateRTreeBulkLoadSpec  =
   "\"Example\" \"Comment\" ) "
   "(<text>(stream (tuple (x1 t1)...(xn tn) (id tid))) xi)"
   " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false)/n"
-  "</text--->"
+  "((stream (tuple (x1 t1)...(xn tn) "
+  "(id tid)(low int)(high int))) xi)"
+  " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti true)</text--->"
   "<text>bulkloadrtree [ _ ]</text--->"
   "<text>Creates an rtree<D> applying bulk loading. This means, "
   "the operator expects the input stream of tuples to be ordered "
@@ -2664,7 +2819,7 @@ const string CreateRTreeBulkLoadSpec  =
 Operator bulkloadrtree(
          "bulkloadrtree",       // name
          CreateRTreeBulkLoadSpec,      // specification
-         8,
+         16,
          CreateRTreeBulkLoad,          // value mapping
          CreateRTreeBulkLoadSelect,    // selection function
          CreateRTreeBulkLoadTypeMap    // type mapping
