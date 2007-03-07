@@ -151,6 +151,10 @@ arguments to parameter functions. Additionally the documentation of the ~Eval~
 function was revised. Further the output of type map errors and the debug modes
 has been improved.
 
+March 2007, M. Spiekermann. Operator nodes will now have a member which store a
+pointer to its value mapping function. Example implementation of progress
+interruption in the ~eval~ method which must be uncommented in order to use it.
+
 
 \tableofcontents
 
@@ -499,6 +503,7 @@ arguments. In this case the operator must
       int algebraId;
       int opFunId;
       int noSons;
+      ValueMapping valueMap;
       ArgVector sons;
       bool isFun;
       ArgVectorPointer funArgs;
@@ -557,6 +562,7 @@ OpNode(OpNodeType type = Operator) :
       u.op.algebraId = 0;
       u.op.opFunId = 0;
       u.op.noSons = 0;
+      u.op.valueMap = 0;
       u.op.isFun = false;
       u.op.funArgs = 0;
       u.op.funNo  = 0;    
@@ -672,8 +678,8 @@ ostream& operator<<(ostream& os, const OpNode& node) {
            << node.u.op.opFunId << endl
            << tab(f) << "isFun = " 
            << node.u.op.isFun
-           << t2 << "funArgs = " 
-           << node.u.op.funArgs
+           << tab(f) << "valueMap = " 
+           << (void*) node.u.op.valueMap << endl
            << t2 << "funNo = " 
            << node.u.op.funNo << endl
            << tab(f) << "isStream = " 
@@ -2623,10 +2629,21 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->nodetype = Operator;
       node->isRoot = oldfirst;  
       node->u.op.symbol = symbolForOperatorOrObject;
-      node->u.op.algebraId = 
-        nl->IntValue(nl->Third(nl->First(expr)));
-      node->u.op.opFunId = nl->IntValue(nl->Fourth(nl->First(expr)));
-        /* next fields may be overwritten later */
+     
+      // Store Pointer to valuemapping function 
+      int algebraId = nl->IntValue(nl->Third(nl->First(expr)));
+      int opFunId = nl->IntValue(nl->Fourth(nl->First(expr)));
+      
+      int opId  = opFunId % 65536;
+      int funId = opFunId / 65536;
+     
+      node->u.op.algebraId = algebraId; 
+      node->u.op.opFunId =  opFunId; 
+      node->u.op.valueMap =
+                  algebraManager->getOperator(algebraId, opId)
+                                           ->GetValueMapping(funId);
+
+      /* next fields may be overwritten later */
       node->u.op.noSons = 0;
       node->u.op.isFun = false;
       node->u.op.funNo = 0;
@@ -2681,7 +2698,19 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
       node->isRoot = oldfirst;  
-      node->u.op.opFunId = nl->IntValue( nl->Third( expr ));
+      // set the number of the function which was determined
+      // by testing overloaded operators.
+      // 
+      int opFunId = nl->IntValue( nl->Third( expr ));
+
+      int opId  = opFunId % 65536;
+      int funId = opFunId / 65536;
+     
+      node->u.op.opFunId =  opFunId; 
+      node->u.op.valueMap =
+                  algebraManager->getOperator(node->u.op.algebraId, opId)
+                                                      ->GetValueMapping(funId);
+
       node->u.op.noSons = 0;
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
       while ( !nl->IsEmpty( list ) )
@@ -3114,6 +3143,8 @@ Note: This function still needs to be adapted to handle the special operators
 the moment. 
 
 */
+
+  
   OpNode* tree = static_cast<OpNode*>( node );
  
   static string fn("QP:Eval ");
@@ -3248,6 +3279,40 @@ operator's value mapping function.
         }
         else 
         { 
+
+//#define CHECK_PROGRESS
+#ifdef CHECK_PROGRESS 
+  
+  // Example code which interrupts the evaluation of the
+  // query tree in order to propagate a progress message.       
+  
+  // For timer based interrupts we will use the clock() function
+  // which returns an approximation of CPU time used by this program.
+  // On a multitasking system with much CPU load the time may be
+  // a multiple of the one defined here.      
+  static clock_t clockDelta = CLOCKS_PER_SEC; 
+  static clock_t lastClock = clock();
+  
+  // Do a clock check only after some calls of this code
+  // branch.
+  static const int progressDelta = 100;
+  static int progressCtr = progressDelta;
+  static bool allowProgress = true;
+
+  progressCtr--;
+  if (allowProgress && progressCtr == 0) {
+    if ( (clock() - lastClock) > clockDelta ) {
+     
+       allowProgress = false;
+       // call eval(root, msg=progress) ...
+       cerr << "Timeout for Progress clock = " << lastClock << endl;
+       allowProgress = true;
+       lastClock = clock();
+    }
+    progressCtr = progressDelta; 
+  }
+#endif 
+         
           if ( traceNodes ) 
           { 
             it = argsPrinted.find(tree->id);
@@ -3266,10 +3331,8 @@ operator's value mapping function.
                  << nl->SymbolValue(tree->u.op.symbol) << endl;
           }
           status =
-            algebraManager->Execute( tree->u.op.algebraId, 
-                                     tree->u.op.opFunId, 
-                                     arg, result, message, 
-                                     tree->u.op.local, tree );
+            (*(tree->u.op.valueMap))( arg, result, message, 
+                                      tree->u.op.local, tree );
 
           if ( tree->u.op.isStream )
             tree->u.op.received = (status == YIELD);
