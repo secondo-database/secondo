@@ -3858,9 +3858,13 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
           extFunArgs = qp->Argument(supplier3);
           (*extFunArgs)[0] = SetWord(currTuple);     // pass argument
           qp->Request(supplier3,value);              // call extattr mapping
-          resultTuple->PutAttribute( 
-            noOfAttrs + i, (StandardAttribute*)value.addr );
-          qp->ReInitResultStorage( supplier3 );
+//  The original implementation tried to avoid copying the function result,
+//  but somehow, this results in a strongly growing tuplebuffer on disk:
+//           resultTuple->PutAttribute( 
+//             noOfAttrs + i, (StandardAttribute*)value.addr );
+//           qp->ReInitResultStorage( supplier3 );
+          resultTuple->PutAttribute( noOfAttrs + i, 
+                ((StandardAttribute*)value.addr)->Clone() );
         }
         currTuple->DeleteIfAllowed();
         result = SetWord(resultTuple);
@@ -5911,10 +5915,17 @@ SymmProductExtend(Word* args, Word& result,
               (*extFunArgs)[0] = SetWord(leftTuple);     // pass first argument
               (*extFunArgs)[1] = SetWord(pli->currTuple);// pass second argument
               qp->Request(supplier3,value);              // call extattr mapping
+//  The original implementation tried to avoid copying the function result,
+//  but somehow, this results in a strongly growing tuplebuffer on disk:
+//               resultTuple->PutAttribute( 
+//                 leftTuple->GetNoAttributes()
+//                 + pli->currTuple->GetNoAttributes()
+//                 + i, (StandardAttribute*)value.addr);
+//               qp->ReInitResultStorage( supplier3 );
               resultTuple->PutAttribute( 
                 leftTuple->GetNoAttributes()
                 + pli->currTuple->GetNoAttributes()
-                + i, (StandardAttribute*)value.addr);
+                + i, ((StandardAttribute*)value.addr)->Clone() );
               qp->ReInitResultStorage( supplier3 );
             }
             leftTuple->DeleteIfAllowed();
@@ -5991,12 +6002,20 @@ SymmProductExtend(Word* args, Word& result,
               (*extFunArgs)[0] = SetWord(pli->currTuple);// pass 1st argument
               (*extFunArgs)[1] = SetWord(rightTuple);    // pass 2nd argument
               qp->Request(supplier3,value);              // call extattr mapping
+//  The original implementation tried to avoid copying the function result,
+//  but somehow, this results in a strongly growing tuplebuffer on disk:
+//               resultTuple->PutAttribute( 
+//                 pli->currTuple->GetNoAttributes()
+//                 + rightTuple->GetNoAttributes()
+//                 + i, (StandardAttribute*)value.addr);
+//               // extend effective left tuple
+//               qp->ReInitResultStorage( supplier3 );
+
               resultTuple->PutAttribute( 
                 pli->currTuple->GetNoAttributes()
                 + rightTuple->GetNoAttributes()
-                + i, (StandardAttribute*)value.addr);
+                + i, ((StandardAttribute*)value.addr)->Clone() );
               // extend effective left tuple
-              qp->ReInitResultStorage( supplier3 );
             }
             rightTuple->DeleteIfAllowed();
             rightTuple = 0;
