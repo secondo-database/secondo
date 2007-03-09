@@ -138,10 +138,9 @@ Result   : (real -1.2)
 
 Operator : ininterior
 Number   : 1
-Signature: (point x line||region) -> bool
-Example  : query mehringdamm ininterior trajectory(train7)
-Result   : bug
-Remark   : should return true
+Signature: (point x region) -> bool
+Example  : query mehringdamm ininterior thecenter 
+Result   : TRUE
 
 
 Operator : inside
@@ -209,9 +208,9 @@ Result   : file
 
 Operator : overlaps
 Number   : 1
-Signature: (points||line||region x points||line||region) -> bool
-Example  : query trajectory(train7) overlaps thecenter
-Result   : crashes
+Signature: (region x region) -> bool
+Example  : query koepenick overlaps thecenter
+Result   : FALSE
 
 
 Operator : rect2region

@@ -8185,6 +8185,197 @@ GeoGeoMapBool( ListExpr args )
 }
 
 /*
+10.1.2 Type Mapping setsetmapbool
+
+It is for all combinations of spatial types which are represented as
+sets, .i.e all types except point.
+
+*/
+
+ListExpr
+SetSetMapBool( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if (((SpatialTypeOfSymbol( arg1 ) == stpoints) ||
+         (SpatialTypeOfSymbol( arg1 ) == stline)     ||
+         (SpatialTypeOfSymbol( arg1 ) == stregion)) &&
+        ((SpatialTypeOfSymbol( arg2 ) == stpoints) ||
+         (SpatialTypeOfSymbol( arg2 ) == stline)     ||
+         (SpatialTypeOfSymbol( arg2 ) == stregion)))
+    {
+      return (nl->SymbolAtom( "bool" ));
+    } else {
+      ErrorReporter::ReportError(" t_1 x t_2 expected,"
+                                 " with t_1, t_2 in {points,line,region}");
+    }    
+  } else {
+      ErrorReporter::ReportError("two arguments expected");
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/* 
+10.1.2 PointsRegionMapBool
+
+*/
+ListExpr
+PointsRegionMapBool( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if (((SpatialTypeOfSymbol( arg1 ) == stpoints) ) &&
+        ((SpatialTypeOfSymbol( arg2 ) == stregion))){
+      return (nl->SymbolAtom( "bool" ));
+    } else {
+      ErrorReporter::ReportError("points x region expected");
+    }
+  } else {
+      ErrorReporter::ReportError("Two arguments expected");
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+10.1.2 RegionRegionMapBool
+
+*/
+ListExpr
+RegionRegionMapBool( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if (((SpatialTypeOfSymbol( arg1 ) == stregion) ) &&
+        ((SpatialTypeOfSymbol( arg2 ) == stregion)))
+      return (nl->SymbolAtom( "bool" ));
+    else {
+      ErrorReporter::ReportError("region x region expected");
+    }
+  } else{
+      ErrorReporter::ReportError("two arguments expected");
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/* 
+10.1.2 PointRegionMapBool
+
+*/
+ListExpr
+PointRegionMapBool( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if (((SpatialTypeOfSymbol( arg1 ) == stpoint) ) &&
+        ((SpatialTypeOfSymbol( arg2 ) == stregion)))
+      return (nl->SymbolAtom( "bool" ));
+    else {
+      ErrorReporter::ReportError("points x region expected");
+    }
+  } else {
+      ErrorReporter::ReportError("two arguments expected");
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+
+/* 
+10.1.2 AdjacentTypeMap
+
+*/
+ListExpr
+AdjacentTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if( 
+      ((SpatialTypeOfSymbol(arg1)==stpoints) && 
+       (SpatialTypeOfSymbol(arg2)==stregion)) ||
+      ((SpatialTypeOfSymbol(arg1)==stline) && 
+       (SpatialTypeOfSymbol(arg2)==stregion)) ||
+      ((SpatialTypeOfSymbol(arg1)==stregion) && 
+       (SpatialTypeOfSymbol(arg2)==stpoints)) ||
+      ((SpatialTypeOfSymbol(arg1)==stregion) && 
+       (SpatialTypeOfSymbol(arg2)==stline)) ||
+      ((SpatialTypeOfSymbol(arg1)==stregion) && 
+       (SpatialTypeOfSymbol(arg2)==stregion))){
+      return nl->SymbolAtom("bool");
+    } else {
+      ErrorReporter::ReportError("points x region expected");
+    }
+  } else {
+      ErrorReporter::ReportError("two arguments expected");
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+
+/* 
+10.1.2 InsideTypeMap
+
+*/
+ListExpr
+InsideTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if( 
+      ((SpatialTypeOfSymbol(arg1)==stpoint) && 
+       (SpatialTypeOfSymbol(arg2)==stpoints)) ||
+
+      ((SpatialTypeOfSymbol(arg1)==stpoint) && 
+       (SpatialTypeOfSymbol(arg2)==stline)) ||
+
+      ((SpatialTypeOfSymbol(arg1)==stpoint) && 
+       (SpatialTypeOfSymbol(arg2)==stregion)) ||
+
+      ((SpatialTypeOfSymbol(arg1)==stpoints) && 
+       (SpatialTypeOfSymbol(arg2)==stpoints)) ||
+
+      ((SpatialTypeOfSymbol(arg1)==stpoints) && 
+       (SpatialTypeOfSymbol(arg2)==stline))||
+
+      ((SpatialTypeOfSymbol(arg1)==stpoints) && 
+       (SpatialTypeOfSymbol(arg2)==stregion)) ||
+
+      ((SpatialTypeOfSymbol(arg1)==stline) && 
+       (SpatialTypeOfSymbol(arg2)==stline)) ||
+
+      ((SpatialTypeOfSymbol(arg1)==stline) && 
+       (SpatialTypeOfSymbol(arg2)==stregion)) ||
+
+      ((SpatialTypeOfSymbol(arg1)==stregion) && 
+       (SpatialTypeOfSymbol(arg2)==stregion)) ){
+      return nl->SymbolAtom("bool");
+    } else {
+      ErrorReporter::ReportError("points x region expected");
+    }
+  } else {
+      ErrorReporter::ReportError("two arguments expected");
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+
+/*
 10.1.3 Type mapping function SpatialTypeMapBool1
 
 It is for the operator ~isempty~ which have ~point~, ~points~, ~line~, and ~region~ as input and ~bool~ resulttype.
@@ -11995,7 +12186,7 @@ const string SpatialSpecIntersects  =
 
 const string SpatialSpecInside  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>(point||points||line||region x points||line||region) "
+  "( <text>(points||line||region x points||line||region) "
   "-> bool</text--->"
   "<text>_ inside _</text--->"
   "<text>Inside.</text--->"
@@ -12012,7 +12203,7 @@ const string SpatialSpecAdjacent  =
 
 const string SpatialSpecOverlaps  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>(points||line||region x points||line||region) -> bool</text--->"
+  "( <text>(region x region) -> bool</text--->"
   "<text>_ overlaps _</text--->"
   "<text>two spatial objects overlap each other.</text--->"
   "<text>query line overlap region</text--->"
@@ -12020,7 +12211,7 @@ const string SpatialSpecOverlaps  =
 
 const string SpatialSpecOnBorder  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point x line||region) -> bool</text--->"
+  "( <text>(point x region) -> bool</text--->"
   "<text>_ onborder _</text--->"
   "<text>on endpoints or on border edges.</text--->"
   "<text>query point onborder line</text--->"
@@ -12028,7 +12219,7 @@ const string SpatialSpecOnBorder  =
 
 const string SpatialSpecInInterior  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point x line||region) -> bool</text--->"
+  "( <text>(point x region) -> bool</text--->"
   "<text>_ ininterior _</text--->"
   "<text>in interior of a line or region.</text--->"
   "<text>query point ininterior region</text--->"
@@ -12317,7 +12508,7 @@ Operator spatialintersects (
   9,
   spatialintersectsmap,
   SpatialSelectIntersects,
-  GeoGeoMapBool );
+  SetSetMapBool );
 
 Operator spatialinside (
   "inside",
@@ -12325,7 +12516,7 @@ Operator spatialinside (
   9,
   spatialinsidemap,
   SpatialSelectInside,
-  GeoGeoMapBool );
+  InsideTypeMap );
 
 Operator spatialadjacent (
   "adjacent",
@@ -12333,28 +12524,28 @@ Operator spatialadjacent (
   5,
   spatialadjacentmap,
   SpatialSelectAdjacent,
-  GeoGeoMapBool );
+  AdjacentTypeMap );
 
 Operator spatialoverlaps (
   "overlaps",
   SpatialSpecOverlaps,
   SpatialOverlaps_rr,
   Operator::SimpleSelect,
-  GeoGeoMapBool );
+  RegionRegionMapBool );
 
 Operator spatialonborder (
   "onborder",
   SpatialSpecOnBorder,
   SpatialOnBorder_pr,
   Operator::SimpleSelect,
-  GeoGeoMapBool );
+  PointRegionMapBool );
 
 Operator spatialininterior (
   "ininterior",
   SpatialSpecOnBorder,
   SpatialInInterior_pr,
   Operator::SimpleSelect,
-  GeoGeoMapBool );
+  PointRegionMapBool );
 
 Operator spatialintersection (
   "intersection",
