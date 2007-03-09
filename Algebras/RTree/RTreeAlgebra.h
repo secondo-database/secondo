@@ -1605,8 +1605,8 @@ Data structures used during bulk loading will be deleted.
 
 */
 
-    bool R_Tree<dim, LeafInfo>::IntrospectFirst(IntrospectResult<dim>& result);
-    bool R_Tree<dim, LeafInfo>::IntrospectNext(IntrospectResult<dim>& result);
+    bool IntrospectFirst(IntrospectResult<dim>& result);
+    bool IntrospectNext(IntrospectResult<dim>& result);
 /*
 The last two methods are used to produce a sequence of node decriptions, that
 can be used to inspect the R-tree structure.
