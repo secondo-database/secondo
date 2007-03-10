@@ -1070,7 +1070,7 @@ recursion terminates whereas case (iv) results in recursive calls.
 
 Case (i): ~s~ is an empty list. This is interpreted as an empty list of arguments.
 
-----	()	->	((none arglist ()) ())
+----    ()      ->      ((none arglist ()) ())
 ----
 
 Case (ii): ~s~ is an atom of type integer, real, boolean, string or text (a constant). 
@@ -1079,9 +1079,9 @@ The ~In~ function associated with the type constructors ~int~,
 ~real~, ~string~, and ~bool~ (provided by some algebra) is called to
 create a constant of the respective type. 
 
-----	7	->	((7 constant 1)        int)
+----    7       ->      ((7 constant 1)        int)
 
-        <value>	->	((<value> constant <index>) <type>)
+        <value> ->      ((<value> constant <index>) <type>)
 ----
 
         Here ~index~ is an index into array ~values~ containing
@@ -1090,9 +1090,9 @@ enters the value into that array.
 
 Case (iii): ~s~ is a symbol atom: an operator
 
-----	add	->	((add operator 1 4) typeerror)
+----    add     ->      ((add operator 1 4) typeerror)
 
-        <op>	->	((<op> operator <algebraId> <operatorId>) typeerror)
+        <op>    ->      ((<op> operator <algebraId> <operatorId>) typeerror)
 ----
 
         Here, once the operators can be overloaded between different algebras, 
@@ -1100,7 +1100,7 @@ the construction of the operator list inside the ~Annotate~ function need to
 have more than one entry to the tuple (algebraId, operatorId). In this way, its
 representation internally in the function is done with a sublist of this tuples.
 
-----    <op>	->	((<op> operator ((<alId1> <opId1>) ... (<alIdN>
+----    <op>    ->      ((<op> operator ((<alId1> <opId1>) ... (<alIdN>
                                 <opIdN>)) ) typeerror)
 ----
 
@@ -1108,19 +1108,19 @@ representation internally in the function is done with a sublist of this tuples.
 using the ~TranformType~ function, it comes back to the representation with only
 one pair (algebraId, operatorId) repeated below.
 
-----	add	->	((add operator 1 4) typeerror)
+----    add     ->      ((add operator 1 4) typeerror)
 
-        <op>	->	((<op> operator <algebraId> <operatorId>) typeerror)
+        <op>    ->      ((<op> operator <algebraId> <operatorId>) typeerror)
 ----
 
 Case (iii-a): ~s~ is a symbol atom: an object of the database, that ~is not itself
 a function~, which means the type of the object does not start ``(map
 ...)''. 
 
-----	cities		->	((cities object 7)
+----    cities          ->      ((cities object 7)
                                 (rel (tuple ((name string) (pop int)))) )
 
-        <object name>	->	((<object name> object <index>) <type>)
+        <object name>   ->      ((<object name> object <index>) <type>)
 ----
 
         Here ~index~ again refers to the array ~values~.
@@ -1129,10 +1129,10 @@ Case (iii-b): ~s~ is a symbol atom: a function object of the database -- type ha
 the form ``(map ...)''. The corresponding function definition
 (abstraction) is retrieved from the database and annotated recursively. 
 
-----	double		->	Annotate((fun (x int) (add x x)))	
+----    double          ->      Annotate((fun (x int) (add x x)))       
                                 
 
-        <function name>	-> 	Annotate(<abstraction>)
+        <function name> ->      Annotate(<abstraction>)
                                         
 ----
 
@@ -1140,9 +1140,9 @@ Case (iii-c): ~s~ is a symbol atom: neither operator nor object, but a variable
 defined in some enclosing function definition (= abstraction), which
 means it can be found in the table ~variableNames~. 
 
-----	x		->	((x variable 3 5) real)
+----    x               ->      ((x variable 3 5) real)
 
-        <var name>	->	((<var name> variable <position> 
+        <var name>      ->      ((<var name> variable <position> 
                                 <functionno>) <type>) 
 ----
 
@@ -1153,9 +1153,9 @@ function numbers).
 
 Case (iii-d): ~s~ is a symbol atom: neither operator nor object nor variable
 
-----	pop		->	((pop identifier) pop)
+----    pop             ->      ((pop identifier) pop)
 
-        <ident>		->	((<ident> identifier) <ident>)
+        <ident>         ->      ((<ident> identifier) <ident>)
 ----
 
         This is some unidentified name which must be interpreted by a
@@ -1165,7 +1165,7 @@ returned as a second component.
 
 Case (iii-e): ~s~ is a symbol atom: none of the forms before, but equal to ``counter''.
 
-----	counter		->	((counter counter) typeerror)
+----    counter         ->      ((counter counter) typeerror)
 ----
 
 Case (iv-a): ~s~ is a nonempty list: first element is the symbol ~fun~.
@@ -1180,7 +1180,7 @@ the form
 which enters the variable definitions into tables and then calls
 ~Annotate~ again to annotate the expression ~expr~. The result is 
 
----- 	->        ((none abstraction Annotate(expr) <functionno>) <type>)
+----    ->        ((none abstraction Annotate(expr) <functionno>) <type>)
 ----
 
         Note that here ~type~ is the corresponding functional type (map
@@ -1204,12 +1204,12 @@ the pointer is directly copied as a ~Word~ into the array ~values~.
 
         Hence the annotation is as for constants: 
 
-----	(int 7) 		-> (((int 7) constant 1) int)
+----    (int 7)                 -> (((int 7) constant 1) int)
 
-        (int (ptr 72638362))	-> (((int (pointer 72638362)) constant 1) 
+        (int (ptr 72638362))    -> (((int (pointer 72638362)) constant 1) 
                                         int)
 
-        <value>			-> ((<value> constant <index>) <type>)
+        <value>                 -> ((<value> constant <index>) <type>)
 ----
 
 Case (iv-c): ~s~ is a nonempty list: first element is neither the symbol ~fun~,
@@ -1238,7 +1238,7 @@ the operator number (~opId~) for overloaded operators.
 
 The result is:
 
-----        ( 	(none applyop (ann(op) ann(arg1) ... ann(argn)))
+----        (   (none applyop (ann(op) ann(arg1) ... ann(argn)))
                 <resulttype> 
                 <opFunId>)
 ----
@@ -1287,7 +1287,7 @@ query processor to add the index of the attribute to the arguments. For
 example, assume that the attribute name refers to the first attribute
 and this is of type ~string~. Then the type mapping returns: 
 
-----	(APPEND (1) string)
+----    (APPEND (1) string)
 ----
 
 The query processor, more precisely the procedure ~Annotate~, will
@@ -1300,7 +1300,7 @@ argument types of the function object are checked against the types of
 the actual arguments and the result type of the function is returned.
 The result is 
 
-----	((none applyfun (ann(function) ann(arg1) ... ann(argn))) 
+----    ((none applyfun (ann(function) ann(arg1) ... ann(argn))) 
                 <resulttype>)
 ----
 
@@ -1309,19 +1309,19 @@ Case (3): This is an application of an abstraction. Like the previous
 case, argument types are checked and the result type of the abstraction
 is returned. 
 
-----	((none applyabs (ann(abstraction) ann(arg1) ... ann(argn)))
+----    ((none applyabs (ann(abstraction) ann(arg1) ... ann(argn)))
         <resulttype>)
 ----
 
 Case (4): This is a definition of a counter associated with the subexpressions.
 A counter is defined in a query in the form
 
-----	(counter 5 <subexpr>)
+----    (counter 5 <subexpr>)
 ----
 
 Hence after annotation it is
 
-----	(
+----    (
           ((counter counter) typeerror)
           ((5 constant 1) int)
           ann(subexpr)
@@ -1330,11 +1330,11 @@ Hence after annotation it is
 
 The result is
 
-----	(
+----    (
           (none counterdef n ann(subexpr)) 
           <resulttype>
         )
-----	
+----    
 
 where ~n~ is the counter number. The result type is taken from the
 subexpression.
@@ -1342,7 +1342,7 @@ subexpression.
 Case (5): The whole list is then just a list of expressions (terms). The
 result type is just the list of types of the expressions. 
 
-----	(t1 t2 ... tn)   ->  ((none arglist (ann(t1) ann(t2) ... ann(tn)))
+----    (t1 t2 ... tn)   ->  ((none arglist (ann(t1) ann(t2) ... ann(tn)))
                                         (type(t1) type(t2) ... type(tn)))
 ----
 
@@ -3145,8 +3145,8 @@ Code just needed for tracing and error eporting is shown indented.
   
   OpNode* tree = static_cast<OpNode*>( node );
  
-  			static string fn("QP:Eval ");
-  			static map<int, bool>::const_iterator it;
+                        static string fn("QP:Eval ");
+                        static map<int, bool>::const_iterator it;
  
   int i = 0;
   int status = 0;
@@ -3155,16 +3155,16 @@ Code just needed for tracing and error eporting is shown indented.
 
   if ( tree == 0 )
   {
-    			cerr << fn << "Called with tree == 0!" << endl;
+                        cerr << fn << "Called with tree == 0!" << endl;
     abort();
   }
   else
   {
-    			if ( traceNodes ) 
-      			cerr << fn << "*** Eval( Node " << tree->id 
-                 	<< ", result = " << (void*)result.addr 
-                 	<< ", msg = " << MsgToStr(message) 
-                 	<< "(" << message << ") ) ***" << endl;
+                        if ( traceNodes ) 
+                        cerr << fn << "*** Eval( Node " << tree->id 
+                        << ", result = " << (void*)result.addr 
+                        << ", msg = " << MsgToStr(message) 
+                        << "(" << message << ") ) ***" << endl;
 
 
 /* 
@@ -3189,9 +3189,9 @@ must be handled.
       {
         result = tree->u.dobj.value;
 
-        		if (traceNodes)  
-          		cerr << fn << "{Object | Pointer} return [" 
-               		<< (void*)result.addr << "]" << endl;
+                        if (traceNodes)  
+                        cerr << fn << "{Object | Pointer} return [" 
+                        << (void*)result.addr << "]" << endl;
         return;
       }
 /* 
@@ -3215,12 +3215,12 @@ request the next element.
         {
           // A stream! Request next element 
           OpTree caller = 
-	    (OpTree) (*tree->u.iobj.vector)[MAXARG-argIndex].addr;
+            (OpTree) (*tree->u.iobj.vector)[MAXARG-argIndex].addr;
 
-          		if (traceNodes) 
-           		cerr << fn << 
-			"Parameter function's caller node = " 
-                 	<< caller->id << endl;
+                        if (traceNodes) 
+                        cerr << fn << 
+                        "Parameter function's caller node = " 
+                        << caller->id << endl;
 
           status = algebraManager->Execute( caller->u.op.algebraId, 
                                             caller->u.op.opFunId,
@@ -3231,11 +3231,11 @@ request the next element.
         
           tree->u.iobj.received = (status == YIELD); 
         } 
-        		if (traceNodes) 
-         		cerr << fn << 
-			"{IndirectObject with Argindex = " 
-			<< argIndex  << "} return [" 
-			<< (void*)result.addr << "]" << endl;
+                        if (traceNodes) 
+                        cerr << fn << 
+                        "{IndirectObject with Argindex = " 
+                        << argIndex  << "} return [" 
+                        << (void*)result.addr << "]" << endl;
         return; 
       }
 /* 
@@ -3256,9 +3256,9 @@ operator's value mapping function.
             if ( ((OpNode*)(tree->u.op.sons[i].addr))->evaluable  ) 
             {
 
-            		if ( traceNodes ) 
-              		cerr << fn << "Compute result for son[" << i << 
-			"]" << endl;
+                        if ( traceNodes ) 
+                        cerr << fn << "Compute result for son[" << i << 
+                        "]" << endl;
 
               Eval( tree->u.op.sons[i].addr, arg[i], message );
             }
@@ -3266,9 +3266,9 @@ operator's value mapping function.
             {
               arg[i].addr = tree->u.op.sons[i].addr;
 
-            		if ( traceNodes ) 
-              		cerr << fn << "Argument son[" << i << 
-			"] is a stream" << endl;
+                        if ( traceNodes ) 
+                        cerr << fn << "Argument son[" << i << 
+                        "] is a stream" << endl;
             }
           }
 
@@ -3278,23 +3278,23 @@ operator's value mapping function.
         { 
           ArgVectorPointer absArgs;
 
-          		if ( traceNodes )
-          		{
-            		cerr << fn << 
-			"*** Abstraction application " << endl;
-            		nl->WriteListExpr( ListOfTree( tree, cerr ), 
-				cout, 2 );
-            		cerr << endl;
-          		}
+                        if ( traceNodes )
+                        {
+                        cerr << fn << 
+                        "*** Abstraction application " << endl;
+                        nl->WriteListExpr( ListOfTree( tree, cerr ), 
+                                cout, 2 );
+                        cerr << endl;
+                        }
 
           absArgs = Argument(tree->u.op.sons[0].addr );
           for ( i = 1; i < tree->u.op.noSons; i++ )
           {
             (*absArgs)[i-1] = arg[i];
 
-            		if ( traceNodes )
-              		cerr << fn << "absArgs[" << i-1 << "] = " 
-                   	<< (void*)arg[i].addr << endl;
+                        if ( traceNodes )
+                        cerr << fn << "absArgs[" << i-1 << "] = " 
+                        << (void*)arg[i].addr << endl;
           }
           Eval( tree->u.op.sons[0].addr, result, message );
         }
@@ -3335,23 +3335,23 @@ operator's value mapping function.
   }
 #endif 
 
-          		if ( traceNodes ) 
-          		{ 
-            		  it = argsPrinted.find(tree->id);
-            		  if ( (it == argsPrinted.end())) 
-            		  {
-              		    cerr << fn << 
-			    "*** Value mapping function's args" << endl;
-              		    for ( i = 0; i < tree->u.op.noSons; i++ ) 
-              		    {
-                	      cerr << fn << "arg[" << i << "].addr = " 
-                     	      << arg[i].addr << endl;
-              		    }
-              		    argsPrinted[tree->id] = true;
-            		  }
-            		  cerr << fn << "*** Call value mapping for "
-                 	  << nl->SymbolValue(tree->u.op.symbol) << endl;
-          		}
+                        if ( traceNodes ) 
+                        { 
+                          it = argsPrinted.find(tree->id);
+                          if ( (it == argsPrinted.end())) 
+                          {
+                            cerr << fn << 
+                            "*** Value mapping function's args" << endl;
+                            for ( i = 0; i < tree->u.op.noSons; i++ ) 
+                            {
+                              cerr << fn << "arg[" << i << "].addr = " 
+                              << arg[i].addr << endl;
+                            }
+                            argsPrinted[tree->id] = true;
+                          }
+                          cerr << fn << "*** Call value mapping for "
+                          << nl->SymbolValue(tree->u.op.symbol) << endl;
+                        }
          
           status =
             (*(tree->u.op.valueMap))( arg, result, message, 
@@ -3361,15 +3361,15 @@ operator's value mapping function.
             tree->u.op.received = (status == YIELD);
           else if ( status != 0 )
           {
-            		cerr << fn << "Evaluation of operator failed." 
-			<< endl;
+                        cerr << fn << "Evaluation of operator failed." 
+                        << endl;
             exit( 0 ); 
           }
         }
         return;
-        		if (traceNodes) 
-          		cerr << fn << "Operator return status =" 
-			<< status << endl;
+                        if (traceNodes) 
+                        cerr << fn << "Operator return status =" 
+                        << status << endl;
       }
     }
   }
