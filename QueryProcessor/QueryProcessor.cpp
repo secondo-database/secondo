@@ -3138,17 +3138,15 @@ Traverses the operator tree ~tree~ calling operator implementations for
 each node, and returns the result in ~result~. The ~message~ could be OPEN,
 REQUEST, or CLOSE and is used only if the root node produces a stream. 
 
-Note: This function still needs to be adapted to handle the special operators
-[0, 1] (arglist) and [0, 0] (abstraction application). These lead to errors at
-the moment. 
+Code just needed for tracing and error eporting is shown indented.
 
 */
 
   
   OpNode* tree = static_cast<OpNode*>( node );
  
-  static string fn("QP:Eval ");
-  static map<int, bool>::const_iterator it;
+  			static string fn("QP:Eval ");
+  			static map<int, bool>::const_iterator it;
  
   int i = 0;
   int status = 0;
@@ -3157,25 +3155,27 @@ the moment.
 
   if ( tree == 0 )
   {
-    cerr << fn << "Called with tree == 0!" << endl;
+    			cerr << fn << "Called with tree == 0!" << endl;
     abort();
   }
   else
   {
-    if ( traceNodes ) 
-    {
-      cerr << fn << "*** Eval( Node " << tree->id 
-                 << ", result = " << (void*)result.addr 
-                 << ", msg = " << MsgToStr(message) 
-                 << "(" << message << ") ) ***" << endl;
-    }
+    			if ( traceNodes ) 
+      			cerr << fn << "*** Eval( Node " << tree->id 
+                 	<< ", result = " << (void*)result.addr 
+                 	<< ", msg = " << MsgToStr(message) 
+                 	<< "(" << message << ") ) ***" << endl;
+
 
 /* 
-While evaluating the query the cases
+While evaluating the query, the cases
 
   * Object
+
   * Pointer
+
   * Indirect Object (parameter functions)
+
   * Operator (normal / stream / abstraction)
 
 must be handled.  
@@ -3188,18 +3188,19 @@ must be handled.
       case Pointer:
       {
         result = tree->u.dobj.value;
-        if (traceNodes)  
-          cerr << fn << "{Object | Pointer} return [" 
-               << (void*)result.addr << "]" << endl;
+
+        		if (traceNodes)  
+          		cerr << fn << "{Object | Pointer} return [" 
+               		<< (void*)result.addr << "]" << endl;
         return;
       }
 /* 
 
-*Indirect Object:* This case handles ~Indirect Objects~ which represent
+*Indirect Object:* This case handles ~indirect objects~ which represent
 arguments of a parameter function. In order to support also streams as arguments
-for a parameter function an indirect object could be also an operator. 
+for a parameter function, an indirect object can also be an operator. 
 
-if the indirect object represents a stream the argument vector contains at
+If the indirect object represents a stream, the argument vector contains at
 position MAXARG-argIndex the node of the operator which will then be used to
 request the next element.
 
@@ -3213,10 +3214,14 @@ request the next element.
         else 
         {
           // A stream! Request next element 
-          OpTree caller = (OpTree) (*tree->u.iobj.vector)[MAXARG-argIndex].addr;
-          if (traceNodes) 
-            cerr << fn << "Parameter function's caller node = " 
-                 << caller->id << endl;
+          OpTree caller = 
+	    (OpTree) (*tree->u.iobj.vector)[MAXARG-argIndex].addr;
+
+          		if (traceNodes) 
+           		cerr << fn << 
+			"Parameter function's caller node = " 
+                 	<< caller->id << endl;
+
           status = algebraManager->Execute( caller->u.op.algebraId, 
                                             caller->u.op.opFunId,
                                             caller->u.op.sons, result, 
@@ -3226,59 +3231,76 @@ request the next element.
         
           tree->u.iobj.received = (status == YIELD); 
         } 
-        if (traceNodes) 
-         cerr << fn << "{IndirectObject with Argindex = " << argIndex 
-                    << "} return [" << (void*)result.addr << "]" << endl;
+        		if (traceNodes) 
+         		cerr << fn << 
+			"{IndirectObject with Argindex = " 
+			<< argIndex  << "} return [" 
+			<< (void*)result.addr << "]" << endl;
         return; 
       }
 /* 
  
-*Operator:* Here we need to distinguish between operators which map to a stream
+*Operator:* Here we need to distinguish between operators which return a stream
 and those which compute an object. If an operator is not itself a stream
-operator, then evaluate all subtrees that are not functions or streams. Other
+operator, or if it is a stream operator to which the ``open'' message is sent, then evaluate all subtrees that are not functions or streams. Other
 subtrees are not evaluated, just copied to the argument vector. Then call the
 operator's value mapping function. 
 
 */      
       case Operator:         
       {
-        for ( i = 0; i < tree->u.op.noSons; i++ )
-        {
-          if ( ((OpNode*)(tree->u.op.sons[i].addr))->evaluable ) 
+
+
+          for ( i = 0; i < tree->u.op.noSons; i++ )
           {
-            if ( traceNodes ) 
-              cerr << fn << "Compute result for son[" << i << "]" << endl;
-            Eval( tree->u.op.sons[i].addr, arg[i], message );
+            if ( ((OpNode*)(tree->u.op.sons[i].addr))->evaluable  ) 
+            {
+
+            		if ( traceNodes ) 
+              		cerr << fn << "Compute result for son[" << i << 
+			"]" << endl;
+
+              Eval( tree->u.op.sons[i].addr, arg[i], message );
+            }
+            else
+            {
+              arg[i].addr = tree->u.op.sons[i].addr;
+
+            		if ( traceNodes ) 
+              		cerr << fn << "Argument son[" << i << 
+			"] is a stream" << endl;
+            }
           }
-          else
-          {
-            arg[i].addr = tree->u.op.sons[i].addr;
-            if ( traceNodes ) 
-              cerr << fn << "Argument son[" << i << "] is a stream" << endl;
-          }
-        }
+
+
 
         if ( tree->u.op.algebraId == 0 && tree->u.op.opFunId == 0 )
         { 
           ArgVectorPointer absArgs;
-          if ( traceNodes )
-          {
-            cerr << fn << "*** Abstraction application " << endl;
-            nl->WriteListExpr( ListOfTree( tree, cerr ), cout, 2 );
-            cerr << endl;
-          }
+
+          		if ( traceNodes )
+          		{
+            		cerr << fn << 
+			"*** Abstraction application " << endl;
+            		nl->WriteListExpr( ListOfTree( tree, cerr ), 
+				cout, 2 );
+            		cerr << endl;
+          		}
+
           absArgs = Argument(tree->u.op.sons[0].addr );
           for ( i = 1; i < tree->u.op.noSons; i++ )
           {
             (*absArgs)[i-1] = arg[i];
-            if ( traceNodes )
-              cerr << fn << "absArgs[" << i-1 << "] = " 
-                   << (void*)arg[i].addr << endl;
+
+            		if ( traceNodes )
+              		cerr << fn << "absArgs[" << i-1 << "] = " 
+                   	<< (void*)arg[i].addr << endl;
           }
           Eval( tree->u.op.sons[0].addr, result, message );
         }
         else 
         { 
+
 
 //#define CHECK_PROGRESS
 #ifdef CHECK_PROGRESS 
@@ -3312,24 +3334,25 @@ operator's value mapping function.
     progressCtr = progressDelta; 
   }
 #endif 
+
+          		if ( traceNodes ) 
+          		{ 
+            		  it = argsPrinted.find(tree->id);
+            		  if ( (it == argsPrinted.end())) 
+            		  {
+              		    cerr << fn << 
+			    "*** Value mapping function's args" << endl;
+              		    for ( i = 0; i < tree->u.op.noSons; i++ ) 
+              		    {
+                	      cerr << fn << "arg[" << i << "].addr = " 
+                     	      << arg[i].addr << endl;
+              		    }
+              		    argsPrinted[tree->id] = true;
+            		  }
+            		  cerr << fn << "*** Call value mapping for "
+                 	  << nl->SymbolValue(tree->u.op.symbol) << endl;
+          		}
          
-          if ( traceNodes ) 
-          { 
-            it = argsPrinted.find(tree->id);
-            if ( (it == argsPrinted.end())) 
-            {
-              cerr << fn << "*** Value mapping function's args" 
-                   << endl;
-              for ( i = 0; i < tree->u.op.noSons; i++ ) 
-              {
-                cerr << fn << "arg[" << i << "].addr = " 
-                     << arg[i].addr << endl;
-              }
-              argsPrinted[tree->id] = true;
-            }
-            cerr << fn << "*** Call value mapping for "
-                 << nl->SymbolValue(tree->u.op.symbol) << endl;
-          }
           status =
             (*(tree->u.op.valueMap))( arg, result, message, 
                                       tree->u.op.local, tree );
@@ -3338,13 +3361,15 @@ operator's value mapping function.
             tree->u.op.received = (status == YIELD);
           else if ( status != 0 )
           {
-            cerr << fn << "Evaluation of operator failed." << endl;
+            		cerr << fn << "Evaluation of operator failed." 
+			<< endl;
             exit( 0 ); 
           }
         }
         return;
-        if (traceNodes) 
-          cerr << fn << "Operator return status =" << status << endl;
+        		if (traceNodes) 
+          		cerr << fn << "Operator return status =" 
+			<< status << endl;
       }
     }
   }
