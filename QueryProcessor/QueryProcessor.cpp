@@ -124,7 +124,7 @@ February 2004, Hoffmann added static method ~ExecuteQuery~. This method
 executes Secondo queries, given in nested list syntax of C++-type ~string~,
 and returns a result of type ~Word~.
 
-July 2004, M. Spiekermann added a consistence check for the result type
+July 2004, M. Spiekermann added a consistency check for the result type
 calculated by annotate. There should be no typeerror symbol in it. The groupby
 operators type mapping caused Secondo to crash since objects of type typeerror
 should be created due to a bug in the type mapping. Now a warning will appear
@@ -136,10 +136,10 @@ Sept 2004, M. Spiekermann. Bugfix of a segmentation fault arising sometimes in t
 ~QueryProcessor::Request~ method which was caused by an uninitalized counter number 
 for applying abstractions or functions in the construction of the operator tree.
 
-June-July 2005, M. Spiekermann. Output operator "<<" for type ~OpNode~ implemented.
+June-July 2005, M. Spiekermann. Output operator ``<<'' for type ~OpNode~ implemented.
 This will be used to print out a human readable version of the operator tree in
 debug mode 2. Moreover GetType() was changed to return in case of a function
-Supplier only it's result type which may be needed by the operator which is the
+supplier only it's result type which may be needed by the operator which is the
 root of the function. (For details see comments in the implementation below).
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
@@ -149,11 +149,13 @@ level remains. Models are also removed from type constructors.
 January - March 2006, M. Spiekermann. Changes for supporting ~streams~ as
 arguments to parameter functions. Additionally the documentation of the ~Eval~
 function was revised. Further the output of type map errors and the debug modes
-has been improved.
+have been improved.
 
-March 2007, M. Spiekermann. Operator nodes will now have a member which store a
+March 2007, M. Spiekermann. Operator nodes will now have a member which stores a
 pointer to its value mapping function. Example implementation of progress
 interruption in the ~eval~ method which must be uncommented in order to use it.
+
+March 2007, RHG Changed the ~eval~ function so that simple arguments (no stream or function) to a stream operator are evaluated only once, for the OPEN message.
 
 
 \tableofcontents
@@ -505,6 +507,7 @@ arguments. In this case the operator must
       int noSons;
       ValueMapping valueMap;
       ArgVector sons;
+      ArgVector sonresults;
       bool isFun;
       ArgVectorPointer funArgs;
       int funNo; // needed for testing only 
@@ -756,6 +759,8 @@ Finally, the node can represent an operator:
   * ~noSons~: number of arguments for this operator,
 
   * ~sons~: pointers to the sons,
+
+  * ~sonresults~: an argument vector used to store results computed by stream operators on the OPEN message, 
 
   * ~isFun~: true iff the node is the root of a function argument,
 
@@ -3240,27 +3245,47 @@ request the next element.
       }
 /* 
  
-*Operator:* Here we need to distinguish between operators which return a stream
-and those which compute an object. If an operator is not itself a stream
-operator, or if it is a stream operator to which the ``open'' message is sent, then evaluate all subtrees that are not functions or streams. Other
-subtrees are not evaluated, just copied to the argument vector. Then call the
-operator's value mapping function. 
+*Operator:* Here we need to distinguish between operators which return a stream (called ~stream operator~) and those which compute an object. 
+
+  * If an operator is not a stream operator, then evaluate all subtrees that are not functions or streams and copy the results to the argument vector.
+
+  * If it is a stream operator, then evaluate all subtrees that are not functions or streams ~only on the OPEN message~. Store the results in a vector ~sonresults~ and copy them to the argument vector.
+
+  * If it is a stream operator with messages REQUEST or CLOSE, just copy the results computed earlier with the OPEN message from vector ~sonresults~ to the argument vector.
+
+Other subtrees are not evaluated, just copied to the argument vector.
+
+Then call the operator's value mapping function. 
 
 */      
       case Operator:         
       {
-
-
           for ( i = 0; i < tree->u.op.noSons; i++ )
           {
-            if ( ((OpNode*)(tree->u.op.sons[i].addr))->evaluable  ) 
+            if ( ((OpNode*)(tree->u.op.sons[i].addr))->evaluable ) 
             {
+              if ( !tree->u.op.isStream )  //no stream operator
+              {
+                        if ( traceNodes ) 
+                        cerr << fn << "Simple op: compute result for son[" 
+                        << i << "]" << endl;
+
+                Eval( tree->u.op.sons[i].addr, arg[i], message );
+              }
+              else // a stream operator
+              {
+                if ( message == OPEN )
+                {
+                  Eval( tree->u.op.sons[i].addr, 
+                    tree->u.op.sonresults[i], message );
 
                         if ( traceNodes ) 
-                        cerr << fn << "Compute result for son[" << i << 
-                        "]" << endl;
+                        cerr << fn << "Stream op: Compute result for son[" 
+                        << i << "]" << endl;
 
-              Eval( tree->u.op.sons[i].addr, arg[i], message );
+                }
+                arg[i] = tree->u.op.sonresults[i];
+              }
             }
             else
             {
@@ -3271,7 +3296,6 @@ operator's value mapping function.
                         "] is a stream" << endl;
             }
           }
-
 
 
         if ( tree->u.op.algebraId == 0 && tree->u.op.opFunId == 0 )
