@@ -338,3 +338,18 @@ Number   : 1
 Signature: real -> real
 Example  : query floor(-1.2)
 Result   : -2.0
+
+
+Operator : num2string
+Number   : 1
+Signature: int -> string
+Example  : query num2string(-684)
+Result   : "-684"
+
+
+Operator : num2string
+Number   : 2
+Signature:  real -> string
+Example  : query num2string(-684.25)
+Result   : "-684.25"
+

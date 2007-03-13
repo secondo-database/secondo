@@ -226,6 +226,7 @@ using namespace std;
 
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <algorithm>
 
 #include <math.h>
@@ -1483,6 +1484,33 @@ CcRoundTypeMap( ListExpr args )
 }
 
 /*
+4.2.17 Type mappig function ~NumStringTypeMap~
+
+For operator ~num2string~
+
+*/
+ListExpr
+NumStringTypeMap( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if ( TypeOfSymbol( arg1 ) == ccreal || TypeOfSymbol( arg1 ) == ccint )
+      return (nl->SymbolAtom( "string" ));
+    else
+    {
+       ErrorReporter::ReportError("Operator num2string expects an argument "
+                                  "of type 'int' or 'real'");
+    }
+  }
+  else
+    ErrorReporter::ReportError("Operator num2string expects an argument "
+                               "list of length 1.");
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
 4.3 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -1623,6 +1651,22 @@ CcBetweenSelect( ListExpr args )
   }
   return ( -1 );
 }
+
+int
+ccnum2stringSelect( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if ( TypeOfSymbol( arg1 ) == ccreal )
+      return ( 0 );
+    if ( TypeOfSymbol( arg1 ) == ccint )
+      return ( 1 );
+  }
+  return ( -1 );
+}
+
 
 /*
 4.4 Value mapping functions of operator ~+~
@@ -3413,6 +3457,33 @@ CcCeilValueMap( Word* args, Word& result, int message,
       res->Set( true, ceil(arg->GetRealval()));
     return 0;
 }
+
+/*
+4.24 Operator ~num2string~
+
+*/
+template<class T>
+int CcNum2String( Word* args, Word& result, int message,
+                    Word& local, Supplier s )
+{
+    T* arg = (T*) args[0].addr;
+    result = qp->ResultStorage( s );
+    CcString* res = (CcString*) result.addr;
+
+    if ( !arg->IsDefined() )
+      res->SetDefined( false );
+    else{
+      ostringstream os;
+      os.precision(47);
+      os << arg->GetValue();
+      string s = os.str().substr(0,48);
+      STRING S;
+      strcpy(S,s.c_str());
+      res->Set( true, &S);
+    }
+    return 0;
+}
+
 /*
 5 Definition of operators
 
@@ -3522,6 +3593,10 @@ ValueMapping ccbool2intvaluemap[] = { CcBool2intValueMap };
 ValueMapping ccfloorvaluemap[] = { CcFloorValueMap };
 ValueMapping ccceilvaluemap[] = { CcCeilValueMap };
 
+ValueMapping ccnum2stringvaluemap[] = 
+{ CcNum2String<CcReal>, 
+  CcNum2String<CcInt> 
+};
 
 const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
@@ -3932,6 +4007,16 @@ const string CCceilSpec =
              "<text>query ceil(12.345)</text--->"
              ") )";
 
+const string CCnum2stringSpec =
+             "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+             "( <text>real -> string\n int -> string</text--->"
+             "<text>num2string( num )</text--->"
+             "<text>Returns the string representation of numeric argument "
+             "'num'.</text--->"
+             "<text>query num2string(12.345)</text--->"
+             ") )";
+
+
 Operator ccplus( "+", CCSpecAdd, 5, ccplusmap,
                  CcMathSelectCompute, CcMathTypeMap );
 
@@ -4064,6 +4149,9 @@ Operator ccceil( "ceil", CCceilSpec, 1, ccceilvaluemap,
 Operator ccfloor( "floor", CCfloorSpec, 1, ccfloorvaluemap,
                  Operator::SimpleSelect, RealReal);
 
+Operator ccnum2string( "num2string", CCnum2stringSpec, 2, ccnum2stringvaluemap,
+                 ccnum2stringSelect, NumStringTypeMap);
+
 /*
 6 Class ~CcAlgebra~
 
@@ -4150,6 +4238,7 @@ class CcAlgebra1 : public Algebra
                                   setoption_vm,
                                   setoption_tm );
     AddOperator(&setoption_op);
+    AddOperator( &ccnum2string );
 
 
 
