@@ -447,7 +447,7 @@ ListExpr TranslateTypeMap( ListExpr args )
         nl->IsEqual( nl->Second( arg2 ), "real" ) &&
         nl->IsEqual( nl->Third( arg2 ), "real" ) )
       return nl->SymbolAtom( "rect3" );
-    
+
     if( nl->IsEqual( arg1, "rect4" ) &&
         nl->ListLength( arg2 ) == 4 &&
         nl->IsEqual( nl->First( arg2 ), "real" ) &&
@@ -470,7 +470,7 @@ ListExpr RectangleTypeMap( ListExpr args )
 {
   ListExpr arg[2*dim];
   bool checkint = true, checkreal = true;
-    
+
   if( (nl->ListLength( args ) == 2*dim) )
   {
     for(unsigned int i = 1; i <= 2*dim; i++) {
@@ -596,6 +596,52 @@ RectProjectTypeMap( ListExpr args )
   return nl->SymbolAtom( "rect" );
 }
 
+/*
+4.1.7 Type mapping function ~RectangleMinMaxTypeMap~
+
+Used for ~minD~, ~maxD~.
+
+*/
+ListExpr
+    RectangleMinMaxTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  string argstr;
+  int dim = -1;
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+
+  if ( !( nl->ListLength( args ) == 2 ) )
+  {
+    nl->WriteToString (argstr, args);
+    ErrorReporter::ReportError("operator minD/MaxD expects a list "
+        "a list of length 2, but gets '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");\
+  }
+  arg1 = nl->First( args );
+  arg2 = nl->Second( args );
+  if( nl->IsEqual( arg1,  "rect" ) || 
+      am->CheckKind("SPATIAL2D", arg1, errorInfo) ) dim = 2;
+  else if( nl->IsEqual( arg1, "rect3" ) ||
+           am->CheckKind("SPATIAL2D", arg1, errorInfo) ) dim = 3;
+  else if( nl->IsEqual( arg1, "rect4" ) || 
+           am->CheckKind("SPATIAL2D", arg1, errorInfo) ) dim = 4;
+  else if( nl->IsEqual( arg1, "rect8" ) ||
+           am->CheckKind("SPATIAL2D", arg1, errorInfo)) dim = 8;
+  else dim = -1;
+  if ( !(dim > 0) || 
+         !nl->IsEqual( arg2,  "int" ) 
+     )
+  {
+    nl->WriteToString (argstr, args);
+    ErrorReporter::ReportError("operator minD/maxD expects a list "
+        "'(T int)' as input, where T in {rect<D>, SPATIAL<D>D}, "
+        "but gets a list '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");\
+  }
+
+  return nl->SymbolAtom( "real" );
+}
 
 /*
 4.2 Selection functions
@@ -738,6 +784,30 @@ int RectangleRectprojectSelect( ListExpr args )
   if(nl->IsEqual(arg1, "rect3")) return 1;
   if(nl->IsEqual(arg1, "rect4")) return 2;
   if(nl->IsEqual(arg1, "rect8")) return 3;
+
+  return -1; // should never occur
+}
+
+/*
+
+4.3.3 Selection function ~RectangleMinMaxDSelect~
+
+Is used for the ~minD~ and ~maxD~ operators.
+
+*/
+int RectangleMinMaxDSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First(args);
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  if(nl->IsEqual(arg1, "rect" ) || 
+     am->CheckKind("SPATIAL2D", arg1, errorInfo) ) return 0;
+  if(nl->IsEqual(arg1, "rect3") || 
+     am->CheckKind("SPATIAL3D", arg1, errorInfo) ) return 1;
+  if(nl->IsEqual(arg1, "rect4") || 
+     am->CheckKind("SPATIAL4D", arg1, errorInfo) ) return 2;
+  if(nl->IsEqual(arg1, "rect8") || 
+     am->CheckKind("SPATIAL8D", arg1, errorInfo) ) return 3;
 
   return -1; // should never occur
 }
@@ -953,18 +1023,17 @@ int RectangleValueMap( Word* args, Word& result, int message,
       max[j] = (double)(((T*)args[2*j+1].addr)->GetValue());
     }
 
-    for(unsigned int k=0; k < dim-1; k++) {
+    for(unsigned int k=0; k < dim; k++) {
       if ( !(min[k] <= max[k]) ) checkminmax =false;
     }
 
     if ( checkminmax )
+    {
       ((Rectangle<dim> *)result.addr)->Set( true, min, max );
-    else assert(false);
+      return 0;
+    }
   }
-  else
-  {
-    ((Rectangle<dim> *)result.addr)->Set( false, min, max );
-  }
+  ((Rectangle<dim> *)result.addr)->SetDefined( false );
   return (0);
 }
 
@@ -1065,6 +1134,69 @@ int RectangleRectprojectValueMap( Word* args, Word& result, int message,
 }
 
 /*
+4.4.8 Value mapping functions of operator ~minD~
+
+*/
+template<unsigned int dim>
+    int RectangleMinDValueMap( Word* args, Word& result, int message, 
+                                      Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcReal *res = (CcReal *) result.addr;
+  StandardSpatialAttribute<dim> *r 
+      = (StandardSpatialAttribute<dim> *) args[0].addr;
+  CcInt *ci1 = (CcInt*) args[1].addr;
+
+  if( !r->IsDefined() || !ci1->IsDefined() )
+    res->SetDefined( false );
+  unsigned int i1 = ci1->GetIntval();
+  if ( i1 <= dim && i1>0 )
+  {
+    Rectangle<dim> bbx = r->BoundingBox();
+    res->Set( true, bbx.MinD(i1-1) );
+  }
+  else
+  {
+    ErrorReporter::ReportError("operator minD: dimension index "
+        "out of bounds!\n");
+    res->SetDefined( false );
+  }
+  return 0;
+}
+
+/*
+4.4.9 Value mapping functions of operator ~maxD~
+
+*/
+template<unsigned int dim>
+    int RectangleMaxDValueMap( Word* args, Word& result, int message, 
+                                      Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcReal *res = (CcReal *) result.addr;
+  StandardSpatialAttribute<dim> *r 
+      = (StandardSpatialAttribute<dim> *) args[0].addr;
+  CcInt *ci1 = (CcInt*) args[1].addr;
+
+  if( !r->IsDefined() || !ci1->IsDefined() )
+    res->SetDefined( false );
+  unsigned int i1 = ci1->GetIntval();
+  if ( i1 <= dim && i1>0 )
+  {
+    Rectangle<dim> bbx = r->BoundingBox();
+    res->Set( true, bbx.MaxD(i1-1) );
+  }
+  else
+  {
+    ErrorReporter::ReportError("operator maxD: dimension index "
+        "out of bounds!\n");
+    res->SetDefined( false );
+  }
+  return 0;
+}
+
+
+/*
 4.5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -1125,10 +1257,29 @@ ValueMapping rectangledistancemap[] = { RectangleDistanceValueMap<2>,
                                         RectangleDistanceValueMap<3>,
                                         RectangleDistanceValueMap<4> };
 
-ValueMapping rectanglerectprojectmap[] = { RectangleRectprojectValueMap<2>,
-                                           RectangleRectprojectValueMap<3>,
-                                           RectangleRectprojectValueMap<4>,
-                                           RectangleRectprojectValueMap<8>};
+ValueMapping rectanglerectprojectmap[] = 
+{ 
+  RectangleRectprojectValueMap<2>,
+  RectangleRectprojectValueMap<3>,
+  RectangleRectprojectValueMap<4>,
+  RectangleRectprojectValueMap<8>};
+
+ValueMapping rectangleMaxDmap[] = 
+{ 
+  RectangleMaxDValueMap<2>,
+  RectangleMaxDValueMap<3>,
+  RectangleMaxDValueMap<4>,
+  RectangleMaxDValueMap<8>
+};
+
+ValueMapping rectangleMinDmap[] = 
+{ 
+  RectangleMinDValueMap<2>,
+  RectangleMinDValueMap<3>,
+  RectangleMinDValueMap<4>,
+  RectangleMinDValueMap<8>
+};
+
 
 /*
 4.5.2 Definition of specification strings
@@ -1272,6 +1423,28 @@ const string RectangleSpecRectproject  =
         "<text></text--->"
         ") )";
 
+const string RectangleSpecMinD  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+    "( <text>(rect<d> x int) -> real</text--->"
+    "<text>minD( rect , d )</text--->"
+    "<text>Return the minimum value with respect to the Dth dimension. "
+    "1 <= d <= D.</text--->"
+    "<text>query minD([const rect3 value "
+    "(1.0 2.0 3.0 4.0 5.0 6.0) ], 2)</text--->"
+    "<text></text--->"
+    ") )";
+
+const string RectangleSpecMaxD  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+    "( <text>(rect<d> x int) -> real</text--->"
+    "<text>maxD( rect , d )</text--->"
+    "<text>Return the maximum value with respect to the Dth dimension. "
+    "1 <= d <= D.</text--->"
+    "<text>query maxD([const rect3 value "
+    "(1.0 2.0 3.0 4.0 5.0 6.0) ], 2)</text--->"
+    "<text></text--->"
+    ") )";
+
 
 /*
 4.5.3 Definition of the operators
@@ -1375,6 +1548,19 @@ Operator rectanglerectproject( "rectproject",
                           RectangleRectprojectSelect,
                           RectProjectTypeMap );
 
+Operator rectangleminD( "minD",
+                         RectangleSpecMinD,
+                         2,
+                         rectangleMinDmap,
+                         RectangleMinMaxDSelect,
+                         RectangleMinMaxTypeMap );
+
+Operator rectanglemaxD( "maxD",
+                        RectangleSpecMaxD,
+                        2,
+                        rectangleMaxDmap,
+                        RectangleMinMaxDSelect,
+                        RectangleMinMaxTypeMap );
 
 /*
 5 Creating the Algebra
@@ -1410,6 +1596,9 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectanglerectangle4 );
     AddOperator( &rectanglerectangle8 );
     AddOperator( &rectanglerectproject );
+    AddOperator( &rectangleminD );
+    AddOperator( &rectanglemaxD );
+
   }
   ~RectangleAlgebra() {};
 };

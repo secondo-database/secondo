@@ -50,6 +50,34 @@ Example  : query isempty ([const rect value(0.0 1.0 0.0 1.0)])
 Result   : FALSE
 
 
+Operator : minD
+Number   : 1
+Signature: rect<d> x int -> real
+Example  : query minD([const rect3 value (1.0 2.0 3.0 4.0 5.0 6.0) ], 2)
+Result   : 3.0
+
+
+Operator : minD
+Number   : 2
+Signature: point -> real
+Example  : query minD([const point value (1.0 2.0) ], 2)
+Result   : 2.0
+
+
+Operator : maxD
+Number   : 1
+Signature: rect<d> x int -> real
+Example  : query maxD([const rect3 value (1.0 2.0 3.0 4.0 5.0 6.0) ], 3)
+Result   : 6.0
+
+
+Operator : maxD
+Number   : 2
+Signature: point x int -> real
+Example  : query maxD([const point value (1.0 2.0) ], 1)
+Result   : 1.0
+
+
 Operator : rectangle2
 Number   : 1
 Signature: (int x int x int x int -> rect) or (real x real x real x real -> rect)

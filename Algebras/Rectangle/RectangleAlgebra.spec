@@ -29,3 +29,5 @@ operator intersects alias INTERSECTS pattern _ infixop _
 operator intersection alias INTERSECTION pattern op ( _ , _)
 operator distance alias DISTANCE pattern op ( _ , _ )
 operator rectproject alias RECTPROJECT pattern op ( _ , _ , _ )
+operator minD alias MIND pattern op ( _ , _ )
+operator maxD alias MAXD pattern op ( _ , _ )
