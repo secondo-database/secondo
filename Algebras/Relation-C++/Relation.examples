@@ -35,6 +35,11 @@ Signature: (stream x) -> (rel x)
 Example  : query Orte feed consume count
 Result   : 506
 
+Operator : consume
+Number   : 2
+Signature: (stream x) -> (rel x)
+Example  : query plz feed consume feed filter[.Ort = "Unna"] count
+Result   : 16
 
 Operator : count
 Number   : 1

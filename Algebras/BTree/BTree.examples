@@ -7,11 +7,19 @@ Signature: (((rel (tuple (x1 t1)...(xn tn)))) xi) -> (btree (tuple ((x1 t1)...(x
 Example  : query Staedte createbtree[SName] 
 Result   : file
 
+
 Operator : createbtree
 Number   : 2
 Signature: ((stream (tuple (x1 t1)...(xn tn) (id tid))) xi) -> (btree (tuple ((x1 t1)...(xn tn))) ti)
 Example  : query Staedte feed extend[ID: tupleid(.)] sortby[SName asc] createbtree[SName]
 Result   : file
+
+
+Operator : createbtree
+Number   : 3
+Signature: ((stream (tuple (x1 t1)...(xn tn) (id tid))) xi) -> (btree (tuple ((x1 t1)...(xn tn))) ti)
+Example  : query Staedte createbtree[SName] Staedte exactmatch["Bremen"] count
+Result   : 1
 
 
 Operator : deletebtree
