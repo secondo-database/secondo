@@ -80,7 +80,7 @@ Result   : 10052
 
 Operator : head
 Number   : 1
-Signature: ExtRelationAlgebra
+Signature: stream(T) x int -> stream(T)
 Example  : query Trains feed head[7] count
 Result   : 7
 

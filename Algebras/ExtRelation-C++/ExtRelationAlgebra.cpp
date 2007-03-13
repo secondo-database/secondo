@@ -1090,9 +1090,9 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
 2.8.4 Specification of operator ~head~
 
 */
-const string HeadSpec  = "( ( \"Algebra\" \"Signature\" \"Syntax\" \"Meaning\" "
+const string HeadSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
-                         "( <text>ExtRelationAlgebra</text--->"
+                         "( "
                          "<text>((stream (tuple([a1:d1, ... ,an:dn]"
                          "))) x int) -> (stream (tuple([a1:d1, ... ,"
                          "an:dn]))) or \n"
