@@ -5353,6 +5353,65 @@ For operator ~bbox2d~
   }
   return nl->SymbolAtom( "typeerror" );
 }
+
+/*
+16.1.19 Type mapping function ~TemporalTheRangeTM~
+
+For operator ~theRange~
+
+*/
+
+ListExpr TemporalTheRangeTM( ListExpr args )
+{
+  ListExpr arg1, arg2, arg3, arg4;
+  string argstr;
+  nl->WriteToString(argstr, args);
+
+  if ( nl->ListLength( args ) == 4 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    arg3 = nl->Third( args );
+    arg4 = nl->Fourth( args );
+
+    if( !nl->Equal(arg1, arg2) )
+    {
+      ErrorReporter::ReportError("Operator theRange: First two arguments"
+          "must have the same type, but argument list is '" + argstr + "'.");
+      return nl->SymbolAtom( "typeerror" );
+    }
+    if( !nl->IsEqual( arg3, "bool") || !nl->IsEqual( arg4, "bool") )
+    {
+      ErrorReporter::ReportError("Operator theRange: Third and fourth "
+          "arguments must have type 'bool', but argument list is '" 
+          + argstr + "'.");
+      return nl->SymbolAtom( "typeerror" );
+    }
+    if( nl->IsEqual( arg1, "instant" ) )
+      return (nl->SymbolAtom( "periods" ));
+
+    if( nl->IsEqual( arg1, "int" ) )
+      return (nl->SymbolAtom( "rint" ));
+
+    if( nl->IsEqual( arg1, "bool" ) )
+      return (nl->SymbolAtom( "rbool" ));
+
+    if( nl->IsEqual( arg1, "real" ) )
+      return (nl->SymbolAtom( "rreal" ));
+
+    if( nl->IsEqual( arg1, "string" ) )
+      return (nl->SymbolAtom( "rstring" ));
+
+    ErrorReporter::ReportError("Operator theRange expects as first and "
+        "second argument one of {instant, int, bool, real, string}, but "
+        "gets a list '" + argstr + "'.");
+    return nl->SymbolAtom( "typeerror" );
+  }
+  ErrorReporter::ReportError("Operator theRange expects an argument "
+      "list of length 4, but gets a list '" + argstr + "'.");
+  return nl->SymbolAtom( "typeerror" );
+}
+
 /*
 16.2 Selection function
 
@@ -5864,8 +5923,6 @@ int ApproximateSelect(ListExpr args){
      return 1;
   }
   return -1;
-  
-
 }
 
 
@@ -5883,6 +5940,28 @@ int MinMaxSelect(ListExpr args){
        return 1;
    }
    return -1; // should never occur
+}
+
+/*
+16.2.33 Selection function for ~theRange~
+
+*/
+int TemporalTheRangeSelect(ListExpr args)
+{
+  ListExpr arg = nl->First(args);
+
+  if(nl->IsEqual(arg,"instant"))
+    return 0;
+  if(nl->IsEqual(arg,"int"))
+    return 1;
+  if(nl->IsEqual(arg,"bool"))
+    return 2;
+  if(nl->IsEqual(arg,"real"))
+    return 3;
+  if(nl->IsEqual(arg,"string"))
+    return 4;
+
+  return -1; // should never occur
 }
 
 
@@ -7229,7 +7308,7 @@ int Box3d_rect_periods( Word* args, Word& result, int message,
 }
 
 /*
-16.3.39 Value Mapping function for box2d
+16.3.40 Value Mapping function for box2d
 
 */
 
@@ -7257,7 +7336,7 @@ int TemporalBox2d( Word* args, Word& result, int message,
 }
 
 /*
-16.3.40 Value Mapping function for ExtDefTime
+16.3.41 Value Mapping function for ExtDefTime
 
 */
 template <class Unit,class Alpha>
@@ -7273,7 +7352,7 @@ int TemporalExtDeftime( Word* args, Word& result, int message,
 }
 
 /*
-16.3.41 Value Mapping function for ~at~
+16.3.42 Value Mapping function for ~at~
 
 Here, we only implement the VM for ~mreal x real [->] mreal~. All other
 VMs are implemented using a template function from ~TemporalAlgebra.h~.
@@ -7296,6 +7375,71 @@ int MappingAt_MReal_CcReal( Word* args, Word& result, int message,
   if( !mr->IsDefined() || !r->IsDefined() )
     return 0; // return with empty MReal
   mr->AtValue( *r, *res );
+  return 0;
+}
+
+/*
+16.3.43 Value mapping function for operator ~theRange~
+
+*/
+
+template<class T>
+int TemporalTheRangeTM( Word* args, Word& result, int message, Word&
+    local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Range<T> *pResult = (Range<T> *)result.addr;
+  T      *t1 = ((T*)args[0].addr),
+         *t2 = ((T*)args[1].addr);
+  CcBool *b1 = ((CcBool*)args[2].addr),
+         *b2 = ((CcBool*)args[3].addr);
+
+  pResult->Clear();
+
+  if( !t1->IsDefined() || !t2->IsDefined() || 
+      !b1->IsDefined() || !b2->IsDefined() 
+    )
+  {
+    pResult->SetDefined(false); // not effective by now
+  }
+  else
+  {
+    Interval<T> interval;
+    int cmp = t1->Compare( t2 );
+    bool bb1 = b1->GetBoolval(),
+         bb2 = b2->GetBoolval();
+
+    if( t1->Adjacent( t2 ) && !bb1 && !bb2 )
+    {
+      pResult->SetDefined( false );
+      return 0;
+    }
+
+    if( cmp < 0 )
+    { // t1 < t2
+    interval = Interval<T>( *t1, *t2, bb1, bb2 );
+    }
+    else if ( cmp > 0 )
+    { // t1 > t2, swap arguments
+      interval = Interval<T>( *t2, *t1, bb2, bb1 );
+    }
+    else
+    { // t1 == t2, enforce left and right closedness
+      if( !bb1 || !bb2 )
+      {
+        pResult->SetDefined( false );
+        return 0;
+      }
+      else
+      {
+        interval = Interval<T>( *t1, *t1, true, true );
+      }
+    }
+    pResult->StartBulkLoad();
+    pResult->Add( interval );
+    pResult->EndBulkLoad( false );
+    pResult->SetDefined( true );
+  }
   return 0;
 }
 
@@ -7488,6 +7632,14 @@ ValueMapping approximatemap[] = { ApproximateMPoint, ApproximateMReal };
 ValueMapping minmap[] = { VM_Min<UReal>, VM_Min<MReal> };
 
 ValueMapping maxmap[] = { VM_Max<UReal>, VM_Max<MReal> };
+
+ValueMapping temporaltherangemap[] = {
+  TemporalTheRangeTM<Instant>, // 0 
+  TemporalTheRangeTM<CcInt>,
+  TemporalTheRangeTM<CcBool>,
+  TemporalTheRangeTM<CcReal>,
+  TemporalTheRangeTM<CcString> // 4
+};
 
 
 /*
@@ -7958,6 +8110,18 @@ const string TemporalExtDeftimeSpec =
   "<text>query extdeftime(mb ub)</text--->"
   ") )";
 
+const string TemporalTheRangeSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>T x T x bool x bool -> rT with T in {bool, int, real, string}\n"
+    "instant x instant x bool x bool -> periods</text--->"
+    "<text>theRange( left, right, lc, rc ) </text--->"
+    "<text>Creates a rangetype value with a single interval having "
+    "boundaries 'left' and 'right'. "
+    "'lc' and 'rc' specify the left/right closedness of the interval.\n"
+    "If 'left' > 'right, both pairs of arguments are swapped.</text--->"
+    "<text>query theRange(mb ub)</text--->"
+    ") )";
+
 /*
 16.4.3 Operators
 
@@ -8316,6 +8480,13 @@ Operator extdeftime( "extdeftime",
                       ExtDeftimeSelect,
                       ExtDeftimeTypeMap );
 
+Operator temporaltherange( "theRange",
+                     TemporalTheRangeSpec,
+                     5,
+                     temporaltherangemap,
+                     TemporalTheRangeSelect,
+                     TemporalTheRangeTM );
+
 /*
 6 Creating the Algebra
 
@@ -8431,12 +8602,12 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporaltheminute );
     AddOperator( &temporalthesecond );
     AddOperator( &temporaltheperiod );
+    AddOperator( &temporaltherange );
 
     AddOperator(&temporalbox3d);
     AddOperator(&temporalbox2d);
     AddOperator(&mbool2mint);
     AddOperator(&extdeftime);
-
   }
   ~TemporalAlgebra() {};
 };

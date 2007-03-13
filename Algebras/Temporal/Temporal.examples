@@ -287,6 +287,20 @@ Example  : query theperiod(theyear(2002), theyear(2004))
 Result   : (periods (("2002-01-01" "2005-01-01" TRUE FALSE)))
 
 
+Operator : theRange
+Number   : 1
+Signature: T x T x bool x bool -> rT (for T in {int bool real string})
+Example  : query theRange(-96, 17, FALSE, TRUE)
+Result   : (rint ((-96 17 FALSE TRUE)))
+
+
+Operator : theRange
+Number   : 2
+Signature: instant x instant x bool x bool -> periods
+Example  : query theRange(six30, six30, TRUE, TRUE)
+Result   : (periods (("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)))
+
+
 Operator : thesecond
 Number   : 1
 Signature: int x int x int x int x int x int -> periods

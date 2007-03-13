@@ -42,6 +42,7 @@ operator thehour alias THEHOUR pattern op ( _, _, _ ,_ )
 operator theminute alias THEMINUTE pattern op ( _, _, _ ,_ , _ )
 operator thesecond alias THESECOND pattern op ( _, _, _ ,_ , _, _ )
 operator theperiod alias THEPERIOD pattern op ( _, _ )
+operator theRange alias THERANGE pattern op( _ , _, _, _ )
 
 operator equal alias EQUAL pattern _ infixop _
 operator nonequal alias NONEQUAL pattern _ infixop _
