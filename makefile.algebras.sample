@@ -9,7 +9,7 @@
 
 # Master switch to compile the minimal set
 # of interdependet algebras.
-SECONDO_MIN_ALGEBRA_SET := true
+#SECONDO_MIN_ALGEBRA_SET := true
 
 # never change this
 ALGEBRA_DIRS := Standard-C++
