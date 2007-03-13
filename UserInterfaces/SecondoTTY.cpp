@@ -668,7 +668,9 @@ char* keywords[] = { "abort", "algebra", "algebras", "begin", "commit",
                      "extend", "feed", "filter", "from",  "let", "list",
                      "objects", "open", "operators", "query",
                      "restore", "save", "SHOW", "transaction", "type",
-                     "types", "update",
+                     "types", "update","SEC2TYPEINFO","SEC2OPERATORUSAGE",
+                     "SEC2OPERATORINFO","SEC2FILEINFO","SEC2COUNTERS",
+                     "SEC2COMMANDS","SEC2CACHEINFO",
                      (char *)0 };
 
 
