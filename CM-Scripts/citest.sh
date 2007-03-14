@@ -32,7 +32,7 @@ for f in $textFiles; do
 done
 
 
-# for test purposes
+## for test purposes
 echo -e "cvs server: Running pre-commit check for \n"
 for f in $files; do
   echo -e "  $f\n"
