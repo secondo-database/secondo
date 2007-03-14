@@ -61,7 +61,7 @@ Operator : minD
 Number   : 2
 Signature: point -> real
 Example  : query minD([const point value (1.0 2.0) ], 2)
-Result   : 2.0
+Result   : 1.99999998
 
 
 Operator : maxD
@@ -75,7 +75,7 @@ Operator : maxD
 Number   : 2
 Signature: point x int -> real
 Example  : query maxD([const point value (1.0 2.0) ], 1)
-Result   : 1.0
+Result   : 1.00000001
 
 
 Operator : rectangle2
