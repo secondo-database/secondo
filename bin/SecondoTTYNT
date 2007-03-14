@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# TestRunner Startup Script
+#
+# 07.03.2007, M. Spiekermann
+
+export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,SMI:NoTransactions"
+
+# check if nice command is present
+ncmd=$(which nice)
+if [ $? -ne 0 ]; then
+   SecondoBDB $*
+else
+  nice -n 19  SecondoBDB $*
+fi
+
+rc=$?
+
+exit $rc
