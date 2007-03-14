@@ -295,7 +295,7 @@ a*bc* with single characters a,b and c.
       pos=0;
       nextLine(stream, line);
       while ( isSpaceStr(line) && !stream.eof()) {
-	line="";
+        line="";
         nextLine(stream, line);
       }
       if (debug)
@@ -332,8 +332,8 @@ a*bc* with single characters a,b and c.
        case Operator: { 
         
           if (stream.eof())
-	    return true;
-		       
+              return true;
+
           if (!match(Operator))
             return false;
           expected = Number;
@@ -344,7 +344,7 @@ a*bc* with single characters a,b and c.
           if ( pos != string::npos )
             info->aliasName = trim( lineRest.substr(pos+6) );
           else 
-            pos = lineRest.length(); 	  
+            pos = lineRest.length();
 
           key = trim( lineRest.substr(0,pos) );
           info->opName = key;
