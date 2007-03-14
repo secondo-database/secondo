@@ -12,12 +12,12 @@
 # a subdirectory CVS will be created. All files passed by the cvs client
 # for a commit are copied (creating subdirectories if necessary). 
 
-prefix="/home/spieker/secondo"
+prefix="/home/spieker/cvs-snapshot"
 
 pdDir="$prefix/Tools/pd"
 scriptDir="$prefix/CM-Scripts"
 
-export PATH="$pdDir:$scriptDir:$PATH"
+export PATH="$pdDir:$scriptDir:$PATH:."
 export PD_HEADER="$pdDir/pd.header"
 
 files=$(find $PWD -path "*CVS" -prune -o -type f -print)

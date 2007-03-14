@@ -38,7 +38,7 @@ printf "%s\n" "Backing up $SourceDir -> ${BackupDir}/$LastName ..."
 if [ $1 == "-f" ]; then
 
   printSep "Starting full backup of $SourceDir ..."
-  tar -cjf ${BackupDir}/${date_ymd}_FULL_BACKUP_OF_${LastName}.tar.bz2 --exclude secondo-data $SourceDir
+  nice -n19 tar -cjf ${BackupDir}/${date_ymd}_FULL_BACKUP_OF_${LastName}.tar.bz2 --exclude secondo-data $SourceDir
   checkErr $?
   
 fi
@@ -46,6 +46,7 @@ fi
 printSep "Mirroring zeppelin:/home/cvsroot to vieta:CVS_Backup ..."
 
 rsync -vuac --exclude secondo-data /home/cvsroot /www/CVS_Backup/
+rsync -vua /home/cvsroot/secondo-data /www/CVS_Backup/cvsroot
 checkErr $?
 
 exit $err
