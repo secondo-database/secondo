@@ -58,6 +58,8 @@ struct ExampleInfo {
   string example;
   string result;
   string remark;
+  double tolerance;
+  bool   relativeTolerance;
   Type resultType;
   
 
@@ -75,6 +77,12 @@ struct ExampleInfo {
     result="";
     remark="";
     resultType=List;
+    setDefaultTolerance();
+  }
+
+  void setDefaultTolerance(){
+     tolerance = 0;
+     relativeTolerance = false;
   }
 
   void print(ostream& os) const
@@ -87,6 +95,10 @@ struct ExampleInfo {
       os << "query ";
     os << example << endl;
     os << "Result   : " << result << endl;
+    if(tolerance>0){
+       os << "Tolerance:" << tolerance << endl;
+       os << "relative :" <<(relativeTolerance?"true":"false") << endl;
+    }
   } 
 }; 
 
@@ -95,7 +107,7 @@ struct ExampleInfo {
 class ExampleReader {
 
   typedef enum { Database, Restore, Operator, 
-                 Number, Signature, Example, Result, Remark} Token; 
+                 Number, Signature, Example, Result, Remark,Tolerance} Token; 
 
   bool debug;
   int lineCtr;
@@ -240,6 +252,7 @@ a*bc* with single characters a,b and c.
     tokendef[Example]   = "Example";
     tokendef[Result]    = "Result";
     tokendef[Remark]    = "Remark";
+    tokendef[Tolerance] = "Tolerance";
 
     examples.clear();
     scan=begin();
@@ -398,10 +411,50 @@ a*bc* with single characters a,b and c.
               info->remark = lineRest;
             }
            }
-           expected = Operator;
+           expected = Tolerance;
           break;
        }
 
+      case Tolerance: {
+          if(match(Tolerance,false)){
+             string tol = lineRest;
+             if(tol.size()<1){
+                 cerr << errMsg()
+                      << "invalid value for tolerance"
+                      << endl;
+                 return false;
+             }
+             if(tol[0]=='%'){
+                info->relativeTolerance=true;
+                tol = tol.substr(1);
+             } else {
+                info->relativeTolerance=false;
+             }
+
+             // double value = parse<double>(tol);
+             istringstream is(tol);
+             double value;
+             is >> value;
+             if(info->relativeTolerance){
+                  value = value / 100;
+             }
+             if(value<0){
+               cerr << errMsg() 
+                    << "negative tolerance not allowed"
+                    << endl;
+               return false;
+             }
+             info->tolerance = value; 
+
+          } else {
+              switchAgain = true;
+              info->setDefaultTolerance();
+
+          }
+          expected = Operator;
+          break;
+
+      }
 
        default: // never reached
          cerr << errMsg() << endl; 

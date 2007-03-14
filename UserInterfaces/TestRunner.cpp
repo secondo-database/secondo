@@ -838,7 +838,13 @@ TestRunner::ProcessExamples()
      expectedResult = nl->Empty();
      ListExpr tmpList = nl->Empty();
      bool resultOk = false;
-     realValTolerance.relative();
+     if(info.tolerance<=0){
+        realValTolerance.relative();
+     } else {
+        realValTolerance.isRelative = info.relativeTolerance;
+        realValTolerance.value = info.tolerance;  
+     }
+     
 
     
      if ( info.resultType == ExampleInfo::Atom ) 
@@ -894,11 +900,11 @@ TestRunner::ProcessExamples()
        string file = info.result;
        string opIdent = info.opName;
        if (info.aliasName != "")
-	 opIdent = info.aliasName;
+          opIdent = info.aliasName;
 
        stringstream ss;
        ss << "result" << info.number 
-	  << "_" << opIdent << "_" << algebraShort;
+          << "_" << opIdent << "_" << algebraShort;
        if (platformFile) {
          ss << "_" << WinUnix::getPlatformStr(); 
        }
@@ -911,20 +917,20 @@ TestRunner::ProcessExamples()
        resultOk = nl->ReadFromFile(resultFile, objList);
        if (resultOk)
        {
-	 expectedResult = objList;
-	 if ( nl->ListLength(objList) == 5 
-	      && nl->IsEqual(nl->First(objList),"OBJECT") ) 
-	 {
-	   ListExpr fourth = nl->Fourth(objList);
-	   ListExpr fifth = nl->Fifth(objList);
-	   expectedResult = nl->TwoElemList(fourth, fifth);
-	 }  
+          expectedResult = objList;
+          if ( nl->ListLength(objList) == 5 
+               && nl->IsEqual(nl->First(objList),"OBJECT") ) 
+          {
+              ListExpr fourth = nl->Fourth(objList);
+              ListExpr fifth = nl->Fifth(objList);
+              expectedResult = nl->TwoElemList(fourth, fifth);
+          }  
        }
        else
        {
-	 cerr << "File " << resultFile << " contains not a "
-	      << " correct nested list!" 
-	      << endl;
+         cerr << "File " << resultFile << " contains not a "
+              << " correct nested list!" 
+              << endl;
        }
      }
 
@@ -1021,7 +1027,7 @@ TestRunner::VerifyResult(ListExpr outList, ListExpr expectedResult)
     if (realValTolerance.isRelative)
       cout << " (relative) ";
     else
-      cout << " (relative) ";
+      cout << " (absolute) ";
     cout << endl;
     }
 
