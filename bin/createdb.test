@@ -57,7 +57,7 @@ create database berlintest;
 
 #testcase berlintest2
 #yields success
-restore database berlintest from '$(HOME)/secondo-data/Databases/berlintest';
+restore database berlintest from berlintest;
 
 #test case berlintest3 
 #yields success
