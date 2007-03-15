@@ -11,5 +11,5 @@ CREATE TABLE PLZ10 (
   P10_NR   int4
 );
 
-\copy PLZ FROM '/home-local/pgadmin/datasets/plz.tbl.pg' WITH DELIMITER AS '|'
-\copy PLZ10 FROM '/home-local/pgadmin/datasets/plz10.tbl.pg' WITH DELIMITER AS '|'
+\copy PLZ FROM '/home/spieker2/datasets/plz.tbl.pg' WITH DELIMITER AS '|'
+\copy PLZ10 FROM '/home/spieker2/datasets/plz10.tbl.pg' WITH DELIMITER AS '|'
