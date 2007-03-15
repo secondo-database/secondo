@@ -2839,8 +2839,10 @@ This operators can be used to inquire some basic R-tree statistics.
 */
 ListExpr RTree2IntTypeMap(ListExpr args)
 {
-  char* errmsg = "Incorrect input for rtree inquiry operator.";
-  string rtreeDescriptionStr;
+  string rtreeDescriptionStr, argstr;
+  nl->WriteToString (argstr, args);
+  string errmsg = "Incorrect input '" + argstr + 
+                  "' for rtree inquiry operator.";
 
   CHECK_COND(!nl->IsEmpty(args), errmsg);
   CHECK_COND(!nl->IsAtom(args), errmsg);
@@ -2849,6 +2851,8 @@ ListExpr RTree2IntTypeMap(ListExpr args)
   ListExpr rtreeDescription = nl->First(args);
   nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
 
+  CHECK_COND(!nl->IsEmpty(rtreeDescription), errmsg); // X
+  CHECK_COND(!nl->IsAtom(rtreeDescription), errmsg);  // X
   ListExpr rtreeSymbol = nl->First(rtreeDescription);
 
   /* handle rtree type constructor */
@@ -2867,8 +2871,10 @@ ListExpr RTree2IntTypeMap(ListExpr args)
 
 ListExpr RTree2RectTypeMap(ListExpr args)
 {
-  char* errmsg = "Incorrect input for rtree inquiry operator.";
-  string rtreeDescriptionStr;
+  string rtreeDescriptionStr, argstr;
+  nl->WriteToString (argstr, args);
+  string errmsg = "Incorrect input '" + argstr + 
+      "' for rtree inquiry operator.";
 
   CHECK_COND(!nl->IsEmpty(args), errmsg);
   CHECK_COND(!nl->IsAtom(args), errmsg);
@@ -2878,6 +2884,8 @@ ListExpr RTree2RectTypeMap(ListExpr args)
   CHECK_COND(nl->ListLength(rtreeDescription) == 4, errmsg);
   nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
 
+  CHECK_COND(!nl->IsEmpty(rtreeDescription), errmsg); // X
+  CHECK_COND(!nl->IsAtom(rtreeDescription), errmsg);  // X
   ListExpr rtreeSymbol = nl->First(rtreeDescription);
 
   /* handle rtree type constructor */
