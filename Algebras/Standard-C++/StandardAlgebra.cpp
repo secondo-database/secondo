@@ -1893,10 +1893,7 @@ CcProduct_ii( Word* args, Word& result, int message, Word& local, Supplier s )
     int a = ((CcInt*)args[0].addr)->GetIntval();
     int b = ((CcInt*)args[1].addr)->GetIntval();
     int prod = a*b;
-    if(( a>0 && b>0 && prod<0) ||
-       ( a<0 && b<0 && prod<0) ||
-       ( a>0 && b<0 && prod>0) ||
-       ( a<0 && b>0 && prod>0)) 
+    if( (b!=0) && ((prod/b)!=a)) 
     {
         ((CcInt *)result.addr)->Set( false, 0 );
     }
