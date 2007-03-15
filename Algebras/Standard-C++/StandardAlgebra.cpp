@@ -1690,8 +1690,15 @@ CcPlus_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( ((CcInt*)args[0].addr)->IsDefined() &&
        ((CcInt*)args[1].addr)->IsDefined() )
   {
-    ((CcInt *)result.addr)->Set( true, ((CcInt*)args[0].addr)->GetIntval() +
-                                   ((CcInt*)args[1].addr)->GetIntval() );
+    // overflow save implementation
+    int a = ((CcInt*)args[0].addr)->GetIntval();
+    int b = ((CcInt*)args[1].addr)->GetIntval();
+    int sum = a+b;
+    if( ((b>0 ) && (sum<a)) || ((b<0) && (sum)>a)){
+           ((CcInt*)result.addr)->Set(false,0);
+    } else {
+        ((CcInt *)result.addr)->Set( true, sum);
+    }
   }
   else
   {
@@ -1794,9 +1801,18 @@ CcMinus_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( ((CcInt*)args[0].addr)->IsDefined() &&
        ((CcInt*)args[1].addr)->IsDefined() )
   {
-    ((CcInt *)result.addr)->
-      Set( true, ((CcInt*)args[0].addr)->GetIntval() -
-                 ((CcInt*)args[1].addr)->GetIntval() );
+    int a = ((CcInt*)args[0].addr)->GetIntval();
+    int b = ((CcInt*)args[1].addr)->GetIntval();
+    int diff = a-b;
+    if( ((b>0) && (diff>a) ) || ((b<0) && (diff<a)))
+    {
+       ((CcInt *)result.addr)->Set(false, 0);
+    } 
+    else
+    {
+       ((CcInt *)result.addr)->Set(true, diff);
+    }
+     
   }
   else
   {
@@ -1874,9 +1890,20 @@ CcProduct_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( ((CcInt*)args[0].addr)->IsDefined() &&
        ((CcInt*)args[1].addr)->IsDefined() )
   {
-    ((CcInt *)result.addr)->
-      Set( true, ((CcInt*)args[0].addr)->GetIntval() *
-                 ((CcInt*)args[1].addr)->GetIntval() );
+    int a = ((CcInt*)args[0].addr)->GetIntval();
+    int b = ((CcInt*)args[1].addr)->GetIntval();
+    int prod = a*b;
+    if(( a>0 && b>0 && prod<0) ||
+       ( a<0 && b<0 && prod<0) ||
+       ( a>0 && b<0 && prod>0) ||
+       ( a<0 && b>0 && prod>0)) 
+    {
+        ((CcInt *)result.addr)->Set( false, 0 );
+    }
+    else
+    {
+        ((CcInt *)result.addr)->Set( true, prod );
+    }
   }
   else
   {
@@ -3378,7 +3405,18 @@ CcReal2intValueMap( Word* args, Word& result, int message,
     if ( !arg->IsDefined() )
       res->SetDefined( false );
     else
-      res->Set( true, (int) arg->GetRealval() );
+    {
+      double val = arg->GetRealval();
+      int ival = (int) val;
+      if( abs((double)ival - val) >2)
+      {
+          res->Set(false,0);
+      } 
+      else
+      {
+          res->Set( true, ival );
+      }
+    }
     return 0;
 }
 
