@@ -1,0 +1,197 @@
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [1]  Title:         [{\Large \bf \begin{center}] [\end{center}}]
+//paragraph [2]  Center:        [{\begin{center}] [\end{center}}]
+//paragraph [10] Footnote:      [{\footnote{] [}}]
+//paragraph [44] table4columns: [\begin{quote}\begin{tabular}{llll}]    [\end{tabular}\end{quote}]
+
+//characters    [20]    verbatim:   [\verb@]    [@]
+//characters    [21]    formula:    [$]         [$]
+//characters    [22]    capital:    [\textsc{]  [}]
+//characters    [23]    teletype:   [\texttt{]  [}]
+
+//[--------]    [\hline]
+//[TOC]         [\tableofcontents]
+//[p]           [\par]
+//[@]           [\@]
+//[LISTING-SH]  [\lstsetSH]
+
+[1] A quick introduction into the PostgreSQL DBMS
+
+
+[2]        Database Systems for new Applications           [p] 
+                  University of Hagen                      [p] 
+	http://www.informatik.fernuni-hagen.de/secondo     [p]
+
+
+Author: M. Spiekermann, Last Changes: 2007-02-13
+
+[TOC]
+
+1 Introduction
+
+PostgreSQL is a popular open source DBMS which is the successor of INGRES and
+POSTGRES. Sometimes it may be interesting to compare it with Secondo. Hence we
+will give a short overview how to install it on a Linux system, how to create databases and how
+to create objects and populate it with data. However, its just a rough
+introduction for further details consult the Postgres documentation which is
+available as HTML-files below /usr/share/doc/packages/postgresql/html.
+
+
+2 Installation on Linux
+
+Start the package manager (on SuSe-Linux its called YAST) and select all
+packages whose name starts with postgres. 
+
+3 Environment Setup
+
+Before you can create a database you need to define and initialize a so called
+data storage area or database cluster. The location of this directory should be
+defined in the environment variable "PGDATA"[20]. The directory must be only
+readable and writeable by the Linux user which is the database administrator.
+
+In order to set up the storage area run the following commands:
+
+[LISTING-SH]
+
+*/
+  export PGDATA=/data/postgres-databases
+  mkdir $PGDATA
+  chmod go-rwx $PDATA
+  initdb -D$PGDATA
+
+/* 
+
+Afterwards the directory "$PGDATA" contains about 26MB data. The definition of
+"PGDATA" should be done in the shells startup script (".bashrc") otherwise you
+have to define it in every new shell. Now we can startup
+up the database server process which is called "postmaster".
+
+*/
+  postmaster [-D$PGDATA]
+/*
+
+It will print messages to the standard output.
+
+4 Creating Databases
+
+The utility "createdb" can be used to create a database, e.g. the
+command
+
+*/
+  createdb tpch
+/*
+
+will create a database called "tpch" which adds 31MB to the storage area. The
+text based database client is called "psql", client internal commands start with
+a "\" symbol, for example "\?" will list all client internal commands and "\q"
+will quit the session. The command 
+
+*/
+  psql -dtpch 
+/*
+
+establishes a connection to the "tpch" database. The command prompt now
+includes the used database: 
+
+*/
+  tpch# \dt     % display tables
+  tpch# \di     % display indexes
+  tpch# \q      % disconnect and exit
+/*  
+
+5 Creating Objects
+
+If you are connected with a database the create command can be used to
+define a relation.
+
+*/
+create table customer (
+  C_CUSTKEY     int4,
+  C_NAME        varchar(25),
+  C_ADDRESS     varchar(40),
+  C_NATIONKEY   int4,
+  C_PHONE       char(15),
+  C_ACCTBAL     float4,
+  C_MKTSEGMENT  char(10),
+  C_COMMENT     varchar(117)
+);
+/*
+
+Afterwards you can populate it with tuples by importing a text file. Each line
+will be interpreted as a tuple. A field separator can be specified which marks
+the end of an attribute value. This is a special client command, e.g.
+
+*/
+  \copy customer FROM 's05pp/customer.tbl.pg' WITH DELIMITER AS '|';
+/*
+
+reads the tuple data from the file "s05pp/customer.tbl.pg". An index can be
+created by
+
+*/
+  create index customer_c_custkey on cutomer(c_custkey);
+/*
+
+Another kind of objects are sequences. The commands
+
+*/
+  create sequence serial starts 1;
+  select nextval('serial);          % will return 2
+/*
+
+Sometimes it is necessary to store query results as new relations. This can be
+done by the "create table <ident> as" command. Moreover new attribute values can
+be computed by the existing tuple values by just writing expressions of the
+available functions and operations, e.g.
+
+*/
+  create table customer_s100
+    as select C_CUSTKEY, C_NAME, nextval('serial') % 100 as C_NUM
+    from customer; 
+/*
+
+
+6 Investigating Query Plans
+
+If a query is introduced by "explain" or "explain analyze" the used query plan
+will be printed. The second variant runs the query and displays estimated costs
+and tuple cardinalities with actual runtimes.
+
+*/
+  explain <query>
+  explain analyze <query>
+/*
+
+7 Maintenance
+
+The query planner needs accurate statistics about the data. It will use samples
+of the data to estimate the frequency distribution of a table attribute's
+values. The internal estimates will be updated by the command "analyze"
+it collects statistics about the contents of tables in the database, and
+stores the results in the system table "pg_statistic".
+
+In normal PostgreSQL operation, tuples that are deleted or obsoleted by an
+update are not physically removed from their table; they remain present until
+the command "vaccum" is called.  This procedure reclaims storage occupied by deleted
+tuples.
