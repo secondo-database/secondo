@@ -31,7 +31,7 @@ import java.awt.geom.*;
   **/
 
 
-interface DisplayComplex{
+public interface DisplayComplex{
   
 
   /** Draw this object to g.
