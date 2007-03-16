@@ -107,7 +107,7 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute,DsplSimple
    * @see sj.lang.ListExpr
    * @see <a href="Dsplpointsrc.html#ScanValue">Source</a>
    */
-  private void ScanValue (ListExpr v) {
+  protected void ScanValue (ListExpr v) {
     if(isUndefined(v)){
         err=false;
         point=null;
