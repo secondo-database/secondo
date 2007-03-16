@@ -62,7 +62,7 @@ dependent macros are defined.
 // The numbers below should correspond to a cvs tag named 
 // release-0<MAJOR>0<MINOR>
 #define SECONDO_VERSION_MAJOR      2
-#define SECONDO_VERSION_MINOR      2
+#define SECONDO_VERSION_MINOR      4
 #define SECONDO_VERSION_REVISION   0	
 
 #define SECONDO_LITTLE_ENDIAN
