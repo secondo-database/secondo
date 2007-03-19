@@ -7786,7 +7786,7 @@ const string  TemporalUnitSometimesSpec =
   "("
   "<text>"
   "ubool -> bool\n"
-  "ubool -> bool\n"
+  "(stream ubool) -> bool\n"
   "</text--->"
   "<text>sometimes( _ )</text--->"
   "<text>Returns 'true', iff the ubool/stream of ubool is 'true'"

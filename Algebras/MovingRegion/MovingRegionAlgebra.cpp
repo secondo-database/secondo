@@ -8638,14 +8638,13 @@ static const string insidespec =
     "    <text>mpoint1 inside movingregion1</text---> ) )";
 
 static const string atspec =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remark\" ) "
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>(mpoint region) -> mpoint, "
     "(movingregion point) -> mpoint</text--->"
     "    <text>_ at _</text--->"
     "    <text>Restrict moving point to region or restrict moving region "
     "to point.</text--->"
-    "    <text>mpoint1 at region1</text---> "
-    "    <text>NOT YET IMPLEMENTED!</text--->) )";
+    "    <text>mpoint1 at region1</text---> ) )";
 
 static const string movespec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
