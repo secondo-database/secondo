@@ -86,7 +86,7 @@ public class Dsplintimepoint extends Dsplpoint
    * @see sj.lang.ListExpr
    * @see <a href="Dsplintimepointsrc.html#ScanValue">Source</a>
    */
-  private void ScanValue (ListExpr v) {
+  protected void ScanValue (ListExpr v) {
     double koord[] = new double[2];
     Double d;
     if (v.listLength() != 3) {                  //perhaps changes later
