@@ -22,6 +22,7 @@ operator bulkloadrtree alias BULKLOADRTREE pattern _ op [ _ ]
 operator windowintersects alias WINDOWINTERSECTS pattern _ _ op [ _ ]
 operator windowintersectsS alias WINDOWINTERSECTSS pattern _ op [ _ ]
 operator gettuples alias GETTUPLES pattern _ _ op
+operator gettuples2 alias GETTUPLES2 pattern _ _ op[ _ ]
 operator gettuplesdbl alias GETTUPLESDBL pattern _ _ op[ _ ]
 operator nodes alias NODES pattern op ( _ )
 operator treeheight alias TREEHEIGHT pattern op ( _ )

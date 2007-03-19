@@ -36,6 +36,27 @@ Example  : query unitTrains_Line exactmatchS[1] UnitTrains gettuples count
 Result   : 6554
 
 
+Operator : gettuples2
+Number   : 1
+Signature: (stream (tuple ((id tid) (x1 t1)...(xn tn)))) x (rel (tuple ((y1 t1)...(yn tn)))) -> (stream (tuple ((x1 t1)...(xn tn) (y1 t1)...(yn tn))))
+Example  : query unitTrains_Line exactmatchS[1] UnitTrains gettuples2[id] count
+Result   : 6554
+
+
+Operator : gettuples2
+Number   : 2
+Signature: (stream (tuple ((id tid) (x1 t1)...(xn tn)))) x (rel (tuple ((y1 t1)...(yn tn)))) -> (stream (tuple ((x1 t1)...(xn tn) (y1 t1)...(yn tn))))
+Example  : query unitTrains_Line exactmatchS[1] {S} extend[id2: .id_S] UnitTrains gettuples2[id2] count
+Result   : crashes
+
+
+Operator : gettuples2
+Number   : 3
+Signature: (stream (tuple ((id tid) (x1 t1)...(xn tn)))) x (rel (tuple ((y1 t1)...(yn tn)))) -> (stream (tuple ((x1 t1)...(xn tn) (y1 t1)...(yn tn))))
+Example  : query ten feed extend[tenid: tupleid(.)] unitTrains_Line exactmatchS[1] {S} product UnitTrains gettuples2[id_S] count
+Result   : crashes
+
+
 Operator : gettuplesdbl
 Number   : 1
 Signature: (stream (tuple ((id tid) (x1 t1)...(xn tn)))) x (rel (tuple ((y1 t1)...(yn tn)))) x yk -> (stream (tuple ((x1 t1)...(xn tn) (y1 t1)...(yn tn))))
@@ -71,14 +92,14 @@ Result   : 1
 
 Operator : windowintersects
 Number   : 1
-Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti in {rect<d>} U SPATIAL2D U SPATIAL3D U SPATIAL4D
+Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti in {rect<d>} U SPATIAL2D U SPATIAL3D U SPATIAL4D U SPATIAL8D
 Example  : query strassen_geoData strassen windowintersects[ bbox(thecenter) ] count
 Result   : 1266
 
 
 Operator : windowintersectsS
 Number   : 1
-Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti) T -> (stream (tuple ((id tid)))), where T = ti in {rect<d>} U SPATIAL2D U SPATIAL3D U SPATIAL4D
+Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti) T -> (stream (tuple ((id tid)))), where T = ti in {rect<d>} U SPATIAL2D U SPATIAL3D U SPATIAL4D U SPATIAL8D
 Example  : query strassen_geoData windowintersectsS[ bbox(thecenter) ] count
 Result   : 1266
 
