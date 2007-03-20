@@ -54,6 +54,7 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
+#include "SecondoConfig.h"
 #include <vector>
 #include <iostream>
 #include <string.h>
@@ -7053,7 +7054,15 @@ void Region::ComputeRegion()
    //Insert in the vector the first cycle of the first face
   face.push_back(0);
   cycle = new bool[Size()];
+#ifdef SECONDO_MAC_OSX 
+  // something goes wrong at mac osx and the memset function
+  int size = Size();
+  for(int i=0;i<size;i++){
+    cycle[i] = false;
+  }
+#else
   memset( cycle, false, Size() );
+#endif
   for ( int i=0; i<Size(); i++)
   {
     Get(i,hs);
