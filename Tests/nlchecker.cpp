@@ -103,7 +103,7 @@ main(int argc, char *argv[]) {
    string inFileStr(argv[optind]);
    string modeStr = "";
 
-   NestedList nl(0,10,10,10,10);
+   NestedList nl(0);
 
    modeStr = binary ? "binary" : "text";
    cout << endl << "Reading " << modeStr << "-file " << inFileStr << endl;

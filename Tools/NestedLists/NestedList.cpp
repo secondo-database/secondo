@@ -92,6 +92,7 @@ A nested list is represented by four stable tables called ~Nodes~, ~Ints~,
 
 using namespace std;
 
+#include <string.h>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -143,19 +144,19 @@ you comment out the line below.
 //#define COMPILE_DESTROY
 
 
-NestedList::NestedList( SmiRecordFile* ptr2RecFile, 
-                        Cardinal NodeEntries, Cardinal ConstEntries,
-                        Cardinal StringEntries, Cardinal TextEntries )
+NestedList::NestedList( SmiRecordFile* ptr2RecFile )
 {
   assert( sizeof(float) == 4); 
   // How can we convert a N byte floating point representation 
   // to a M byte representation? 
   
-   stringTable = 0;
-   nodeTable = 0;
-   textTable = 0;
-   initializeListMemory(NodeEntries, ConstEntries, StringEntries, TextEntries);
-   typeError = SymbolAtom("typeerror");
+  stringTable = 0;
+  nodeTable = 0;
+  textTable = 0;
+
+  setMem(1024, 512, 512);
+  initializeListMemory();
+  typeError = SymbolAtom("typeerror");
 }
 
 
@@ -180,15 +181,23 @@ NestedList::DeleteListMemory()
 
 
 void
-NestedList::initializeListMemory( Cardinal NodeEntries, Cardinal ConstEntries,
-                                  Cardinal StringEntries, Cardinal TextEntries )
+NestedList::setMem( Cardinal nodeMem, Cardinal strMem, Cardinal textMem)
+{	
+  nodeEntries = nodeMem * 1024 / sizeof(NodeRecord);
+  stringEntries = nodeMem * 1024 / sizeof(StringRecord);
+  textEntries = nodeMem * 1024 / sizeof(TextRecord);	
+}	
+
+
+void
+NestedList::initializeListMemory()
 {
    //cout << endl << "### NestedList::initializeListMemory" << endl;
    DeleteListMemory();
 
-   nodeTable   = new CTable<NodeRecord>(NodeEntries);
-   stringTable = new CTable<StringRecord>(StringEntries);
-   textTable   = new CTable<TextRecord>(TextEntries);
+   nodeTable   = new CTable<NodeRecord>(nodeEntries);
+   stringTable = new CTable<StringRecord>(stringEntries);
+   textTable   = new CTable<TextRecord>(textEntries);
    typeError = SymbolAtom("typeerror");
 }
 
@@ -207,10 +216,8 @@ NestedList::SizeOfStructs() {
   sizes << "NodeRecord: " << sizeof(NodeRecord) << endl;
   sizes << "TextRecord: " << sizeof(TextRecord) << endl;
   sizes << "StringRec.: " << sizeof(StringRecord) << endl;
-  sizes << "Constant  : " << sizeof(Constant) << endl;
   
   return sizes.str();
-
 }
 
 
