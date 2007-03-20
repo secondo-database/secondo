@@ -282,17 +282,52 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
       return false;
     }
   }
+
+  // set list memory
+  long nodeMem = 2048;
+  nodeMem =
+    SmiProfile::GetParameter("QueryProcessor", "NodeMem", 
+                             nodeMem, parmFile);
+
+  long stringMem = 1024;
+  stringMem =
+    SmiProfile::GetParameter("QueryProcessor", "StringMem", 
+                             stringMem, parmFile);
+
+  long textMem = 1024;
+  textMem =
+    SmiProfile::GetParameter("QueryProcessor", "TextMem", 
+                             textMem, parmFile);
+
+
+
   if (ok)
   {
     cout << "Initializing the SECONDO System ... " << endl;
     ss = new SecondoSystem( &GetAlgebraEntry );
+
     nl = SecondoSystem::GetNestedList();
+    nl->setMem(nodeMem, stringMem, textMem);
+    nl->initializeListMemory();
+
+    cmsg.info() << "Kernels List Memory:" << endl
+              << "  NodeMem = " << nodeMem 
+	      << " / slots = " << nl->nodeEntries << endl
+              << "  StringMem = " << stringMem 
+	      << " / slots = " << nl->stringEntries << endl
+              << "  TextMem = " << textMem 
+	      << " / slots = " << nl->textEntries << endl
+	      << endl;
+    cmsg.send();
+
     al = SecondoSystem::GetAppNestedList();
     ok = SecondoSystem::StartUp();
   }
 
+
   // set the maximum memory which may be allocated by operators
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
+
 
   long keyVal = 
     SmiProfile::GetParameter("QueryProcessor", "MaxMemPerOperator", 
