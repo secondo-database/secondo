@@ -242,10 +242,6 @@ public class Layer extends JComponent {
        Reporter.writeError("try to draw nmull");
        return;
     }
-    // special treatment for non shape objects
-    if(dg instanceof DisplayComplex){
-      ((DisplayComplex)dg).draw(g,time,af2);
-    }
 
     Shape sh=null; // transformed renderobject
     Rectangle2D bounds=null;
@@ -304,6 +300,20 @@ public class Layer extends JComponent {
     if(bounds!=null){
        drawLabel(dg,g2, bounds,time,af2);
     }
+
+    // special treatment for non shape objects
+    if(dg instanceof DisplayComplex){
+      ((DisplayComplex)dg).draw(g,time,af2);
+    }
+
+  }
+
+
+  
+  public static  void drawLabel (DsplGraph dg, Graphics g, Rectangle2D r, 
+                                 double time, AffineTransform af2) {
+
+   drawLabel(dg,g,r,time,af2,null);
   }
 
   /**
@@ -312,7 +322,7 @@ public class Layer extends JComponent {
    * @param r  The bounding box of the object to label.
    */
   public static  void drawLabel (DsplGraph dg, Graphics g, Rectangle2D r, 
-                                 double time, AffineTransform af2) {
+                                 double time, AffineTransform af2,Color C) {
     if(r==null){
        Reporter.writeError("drawLabel with null-bounding box called !!");
        return; 
@@ -321,6 +331,14 @@ public class Layer extends JComponent {
     if (LabelText == null || LabelText.trim().equals("")){ // no label
       return;
     }
+    drawLabel(dg,g,r,time,af2,C,LabelText);
+  }
+
+
+
+  public static  void drawLabel (DsplGraph dg, Graphics g, Rectangle2D r, 
+                                 double time, AffineTransform af2,Color C,
+                                 String LabelText) {
 
     Graphics2D g2 = (Graphics2D)g;
     Point2D.Double p = new Point2D.Double(r.getX() + r.getWidth()/2, r.getY()
@@ -338,12 +356,14 @@ public class Layer extends JComponent {
       g2.fill3DRect((int)x,(int)(y+re.getY()),(int)re.getWidth(), (int)re.getHeight(),
           true);
     }
-    Category cat = dg.getCategory();
-    g2.setPaint(cat.getLineColor());
+    if(C==null){
+        Category cat = dg.getCategory();
+        g2.setPaint(cat.getLineColor());
+    } else {
+        g2.setPaint(C);
+    }
     g2.drawString(LabelText, x,y);
   }
-
-
 
   /**
     * Sets a new Category to paint the next object to the graphics context.
