@@ -67,6 +67,7 @@ extern "C" {
 #include "UnixSocket.h"
 #include <cstdio>
 #include <signal.h>
+#include <string.h>
 #include <string>
 #include <iostream>
 #include <cassert>

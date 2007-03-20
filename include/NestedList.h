@@ -79,12 +79,13 @@ compact tables could be removed. All in all in the average case (no big text
 atoms) the memory representation of a nested list will only take about 50
 percent compared to the implementation before.
 
-July 2005, M. Spiekermann. Function ~TextAtom~ overloaded. Now a string can be passed
-directly in order to set a value.
+July 2005, M. Spiekermann. Function ~TextAtom~ overloaded. Now a string can be
+passed directly in order to set a value.
 
-February 2006, M. Spiekermann. All value reading functions are now declared as ~fn() const~.
-Moreover, some code was moved between the ".h" and ".cpp" files and a new function ~Empty()~
-as alternative for ~TheEmptyList()~ was introduced.
+February 2006, M. Spiekermann. All value reading functions are now declared as
+~fn() const~.  Moreover, some code was moved between the ".h" and ".cpp" files
+and a new function ~Empty()~ as alternative for ~TheEmptyList()~ was
+introduced.
 
 1.1 Overview
 
@@ -506,15 +507,9 @@ $d1 - err < d2  or d2 - err < d1$
 class NestedList
 {
  public:
-  NestedList( SmiRecordFile* ptr2RecFile = 0,
-              Cardinal NodeEntries = 2*INITIAL_ENTRIES,
-              Cardinal ConstEntries = INITIAL_ENTRIES, 
-              Cardinal StringEntries = INITIAL_ENTRIES,
-              Cardinal TextEntries = INITIAL_ENTRIES / 10 );
+  NestedList( SmiRecordFile* ptr2RecFile = 0 );
 /*
-Creates an instance of a nested list container. The compact tables which
-store the nodes of nested lists reserve initially memory for holding at
-least ~initialEntries~ nodes.
+Creates an instance of a nested list container.
 
 */
 
@@ -1042,16 +1037,20 @@ returns the memory used for some of the structs defined above.
 
 */
 
-  void initializeListMemory(
-                             Cardinal NodeEntries = 2*INITIAL_ENTRIES,
-                             Cardinal ConstEntries = INITIAL_ENTRIES,
-                             Cardinal StringEntries = INITIAL_ENTRIES,
-                             Cardinal TextEntries = INITIAL_ENTRIES / 10 );
+  void setMem( Cardinal nodeMem, Cardinal strMem, Cardinal textMem);
+
+  void initializeListMemory();
 
 /*
-Creates new ~CTable~ objects with the given size and deletes the old ones.
-The default values are tuning parameters and reflect values which are
-useful in the present development state of SECONDO.
+ 
+The first reserves memory for three different kinds of data structures which
+hold the data of a nested list atom. The sizes are interpreted as kilobytes.
+The compact tables which store the nodes of nested lists reserve initially a
+number of slots corresponding to the given memory sizes.
+
+The second creates new ~CTable~ objects with the given size and deletes the old
+ones.
+
 
 1.3.13 Copying of Lists
 
@@ -1066,6 +1065,11 @@ useful in the present development state of SECONDO.
 Copies a nested list from ~this~ instance to the target instance.
 
 */
+
+  // number of entries for each type of node records
+  Cardinal nodeEntries;  
+  Cardinal stringEntries;  
+  Cardinal textEntries;  
 
  private:
   

@@ -220,6 +220,7 @@ The following groups of test cases are available:
 
 */
 
+#include <string.h>
 #include <queue>
 #include <stdexcept>
 

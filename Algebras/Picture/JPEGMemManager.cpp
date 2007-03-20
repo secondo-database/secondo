@@ -31,6 +31,7 @@ extern "C" {
 #include <jpeglib.h>
 }
 #include <jerror.h>
+#include <string.h>
 
 /* 
 Expanded data source object for mem input

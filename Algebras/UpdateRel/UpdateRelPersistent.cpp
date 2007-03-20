@@ -39,13 +39,14 @@ Relational Algebra and fixed some memory leaks.
 */
 #ifdef RELALG_PERSISTENT
 
+#include <string.h>
+#include <vector>
+
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
 #include "QueryProcessor.h"
 #include "SecondoInterface.h"
 #include "RelationPersistent.h"
-
-#include <vector>
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

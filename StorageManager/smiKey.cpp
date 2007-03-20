@@ -27,6 +27,7 @@ May 2002 Ulrich Telle
 */
 using namespace std;
 
+#include <string.h>
 #include <string>
 #include <algorithm>
 #include <cctype>

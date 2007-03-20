@@ -55,6 +55,7 @@ either inside the tuple representation or in a separate storage location.
 #ifndef FLOB_H
 #define FLOB_H
 
+#include "string.h"
 #include "SecondoSMI.h"
 #include "QueryProcessor.h"
 

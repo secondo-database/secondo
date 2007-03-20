@@ -44,6 +44,7 @@ This code also compiles with version 4.1.25 of Berkeley-DB.
 
 using namespace std;
 
+#include <string.h>
 #include <string>
 #include <algorithm>
 #include <cctype>

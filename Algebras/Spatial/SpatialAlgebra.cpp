@@ -56,6 +56,7 @@ using namespace std;
 #include "SpatialAlgebra.h"
 #include <vector>
 #include <iostream>
+#include <string.h>
 #include <string>
 #include <cmath>
 

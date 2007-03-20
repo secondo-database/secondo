@@ -79,6 +79,7 @@ elements of type ~T~.
 #ifndef PAGED_ARRAY_H
 #define PAGED_ARRAY_H
 
+#include <stdlib.h>
 #include <iostream> 
 #include <iomanip>
 #include <sstream> 
@@ -120,8 +121,11 @@ public:
     assert( REC_SIZE >= BUF_SIZE );
     assert( MAX_BUFFERS >= 1 );
 
-    if (trace)
-      cout << "BufSize: " << BUF_SIZE << endl;
+    if (trace) {
+      SHOW(REC_SIZE);	    
+      SHOW(BUF_SIZE);	    
+      SHOW(MAX_BUFFERS);	    
+    }
 
     for (int i=0; i < MAX_BUFFERS; i++) { // initialize the buffer
 
@@ -185,6 +189,8 @@ public:
        // if no record file was created, open a file.
        if ( filePtr == 0 ) {
 	     bool ok = false;
+	     if (trace)
+               cerr << "NL: creating record file for persistent storage!" << endl; 
 	     filePtr = new SmiRecordFile(true,REC_SIZE,true);
 	     ok = filePtr->Create();
 	     assert( ok == true ); 
@@ -482,7 +488,9 @@ writeable( true ),
 canDelete( false ),
 size( 0 ),
 pageRecord( recSize ),
-recordBuf( recSize, recSize, (2*buffers)/pageRecord.slots + 1 ),
+recordBuf( recSize, recSize, 
+           (2*buffers)/pageRecord.slots + 1, 
+	   getenv("SEC_RecordBuf_Trace") != 0 ),
 bufPtr(0),
 log( logOn )
 {

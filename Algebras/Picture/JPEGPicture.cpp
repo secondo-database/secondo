@@ -28,6 +28,7 @@ to manipulate the Image like cut, scale, mirror and flipleft.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 //#include "stdafx.h"
 

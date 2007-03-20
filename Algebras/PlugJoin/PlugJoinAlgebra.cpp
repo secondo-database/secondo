@@ -51,6 +51,7 @@ relations.
 
 using namespace std;
 
+#include <string.h>
 #include "PlugJoinAlgebra.h"
 
 extern NestedList* nl;

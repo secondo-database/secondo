@@ -49,6 +49,7 @@
 #endif
 
 #include <stdio.h>
+#include <string.h>
 
  /*
   * We need memory copying and zeroing functions, plus strncpy().

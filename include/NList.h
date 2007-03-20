@@ -104,6 +104,9 @@ struct Symbols {
     static const string& REAL() { 
        static string s("real"); return s; 
     }  
+    static const string& real() { 
+       static string s("real"); return s; 
+    }  
     static const string& BOOL() { 
        static string s("bool"); return s; 
     }  

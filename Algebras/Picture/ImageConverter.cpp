@@ -34,6 +34,8 @@ extern "C" {
 #include "JPEGMemManager.h"
 #include "ImageConverter.h"
 
+#include <string.h>
+
 #define RGB_BYTES	3
 
 // Definition of the header structures of the image types

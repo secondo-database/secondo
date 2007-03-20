@@ -67,6 +67,7 @@ topological predicates.
 
 
 
+#include <string.h>
 #include <string>
 #include <iostream>
 #include <sstream>

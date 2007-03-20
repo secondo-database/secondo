@@ -130,6 +130,7 @@ memory version will be compiled.
 
 using namespace std;
 
+#include <string.h>
 #include "QueryProcessor.h"
 #include "NestedList.h"
 #include "RelationAlgebra.h"

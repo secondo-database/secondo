@@ -76,6 +76,7 @@ An instance of the class is a handle to a persistent array of fixed size.
 #ifndef DBARRAY_H
 #define DBARRAY_H
 
+#include <string.h>
 #include <vector>
 #include <algorithm>
 #include "SecondoSystem.h"

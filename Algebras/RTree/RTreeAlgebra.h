@@ -53,6 +53,7 @@ dimensions. The desired dimensions are passed as a parameter to the template.
 #include <iostream>
 #include <stack>
 #include <limits>
+#include <string.h>
 
 using namespace std;
 

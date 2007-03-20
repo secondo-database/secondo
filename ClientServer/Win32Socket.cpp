@@ -37,6 +37,7 @@ For a description of the public interface see the ~SocketIO~ header file.
 
 #include "Win32Socket.h"
 #include <cstdio>
+#include <string.h>
 #include <string>
 
 #define MAX_HOST_NAME         256

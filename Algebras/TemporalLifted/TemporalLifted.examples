@@ -651,20 +651,21 @@ Number   : 1
 Signature: mreal x real -> mreal
 Example  : query distance(linearize2(distance(train7, mehringdamm)), 200.0)
 Result   : file
-
+Tolerance: %0.0001
 
 Operator : distance
 Number   : 2
 Signature: mreal x mreal -> mreal
 Example  : query distance(linearize2(distance(train1, mehringdamm)), linearize2(distance(train7, mehringdamm)))
 Result   : file
-
+Tolerance: %0.0001
 
 Operator : distance
 Number   : 3
 Signature: real x mreal -> mreal
 Example  : query distance(200.0, linearize2(distance(train7, mehringdamm)))
 Result   : file
+Tolerance: %0.0001
 
 
 Operator : distance
@@ -1039,7 +1040,7 @@ Number   : 1
 Signature: mregion -> mpoint
 Example  : query rough_center(mrain)
 Result   : file
-
+Tolerance: %0.0001
 
 Operator : union
 Number   : 1

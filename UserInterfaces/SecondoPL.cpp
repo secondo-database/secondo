@@ -37,6 +37,7 @@ support for calling Secondo from PROLOG.
 
 */
 
+#include <string.h>
 #include <iostream>
 #include <list>
 
