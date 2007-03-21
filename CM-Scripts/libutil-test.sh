@@ -122,6 +122,7 @@ fi
 
 if [ "$1" == "sendMail" ]; then  
 
+LU_SENDMAIL_FROM="spieker@bassi"
 LU_SENDMAIL="$2"
 XmailBody="This is a generated message!  
 
@@ -130,7 +131,7 @@ XmailBody="This is a generated message!
   You will find the output of make in the attached file.
   Please fix the problem as soon as possible."
 
-sendMail "Test Mail!" "spieker root" "$XmailBody" "$3" "$4"
+sendMail "Test Mail!" "spieker@bassi markus.spiekermann@gmx.de" "$XmailBody" "$3" "$4"
 
 fi
 

@@ -204,8 +204,11 @@ showValue opt_coTag
 showValue opt_coDir
 showValue opt_coModule
 
+
+LU_SENDMAIL_FROM="spieker@bassi"
 showValue opt_waitMax
 showValue LU_SENDMAIL
+showValue LU_SENDMAIL_FROM
 
 showValue cvsDir
 

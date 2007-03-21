@@ -74,6 +74,15 @@ function showValue
   echo "$var = <"$(eval echo '$'$var)">"
 }
 
+
+# $1 variable name
+# $2 value
+function showValue2
+{
+  local var=$1
+  echo "$var = <$2>"
+}
+
 # print to log-file
 #
 function printl {
@@ -490,7 +499,10 @@ function sendMail() {
     echo -e "\n ${FUNCNAME}: Error, 2nd argument is empty!\n"
     return 1
   fi
- 
+
+  local subject=$1 
+  local recipients=$2 
+  local body=$3 
   # check optional arguments 
   if [ "$4" != "" ]; then
     local backupDir="$4"
@@ -500,13 +512,23 @@ function sendMail() {
     local attachFile="$5"
   fi
 
+  # build a comma separated list of recipients
+  local reclist=""
+  for name in $recipients; do
+    reclist="$reclist"$name","
+  done	  
+  reclist=${reclist%,*}
+
+  if [ "$LU_SENDMAIL_FROM" != "" ]; then
+    local ropt="-r$LU_SENDMAIL_FROM"
+  fi      
 
   # send mail
   if [ "$LU_SENDMAIL" == "true" ]; then
 
-    printf "%s\n"   "${FUNCNAME}:  mail -s \"$1\" $attachOpt \"$2\" <body>"
-    mail -s"$1" ${attachOpt} "$2" <<-EOFM
-$3
+    printf "%s\n"   "${FUNCNAME}:  mail $ropt -s \"$subject\" $attachOpt \"$reclist\" <body>"
+    mail $ropt -s"$subject" ${attachOpt} "$reclist" <<-EOFM
+$body
 EOFM
  
     if [ "$backupDir" != "" ]; then
@@ -519,13 +541,13 @@ EOFM
        exec 6>&1
        exec >> "$backupDir/Mails.txt"
 
-       echo -e "Subject    : $1"
-       echo -e "Recipients : $2"
+       echo -e "Subject    : $subject"
+       echo -e "Recipients : $reclist"
        if [ "$attachFile" != "" ]; then
          echo -e "Attachments: $attachFile"
          cp $attachFile $backupDir 
        fi
-       echo -e "$3"
+       echo -e "$body"
        echo -e "------------------------------"
 
        # restore stdout   
@@ -535,9 +557,15 @@ EOFM
   else
     printf "%s\n"   "${FUNCNAME}: Test mode!"
     printf "%s\n"   "----------------------"
-    printf "%s\n"   "  Command   : mail -s \"$1\" $attachOpt \"$2\""
-    printf "%s\n"   "  backup Dir: $4"
-    printf "%s\n"   "  Mail body : $3"
+
+    showValue2 subject    "$subject"
+    showValue2 recipients "$recipients" 
+    showValue2 reclist    "$reclist" 
+    showValue2 body       "$body"
+    showValue2 backupDir  "$backupDir"
+    showValue2 attachFile "$attachFile"
+
+    printf "%s\n" "cmd:  mail $ropt -s \"$subject\" $attachOpt \"$reclist\" <body>"
     printf "%s\n\n" "----------------------"
   fi 
  
@@ -550,7 +578,7 @@ EOFM
 
 function showGPL() {
 
-  printf "%s\n"   "Copyright (C) 2004, University in Hagen,"
+  printf "%s\n"   "Copyright (C) 2004-2007, University in Hagen,"
   printf "%s\n"   "Department of Computer Science,"
   printf "%s\n\n" "Database Systems for New Applications."
   printf "%s\n"   "This is free software; see the source for copying conditions."
