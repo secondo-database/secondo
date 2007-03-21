@@ -1990,59 +1990,65 @@ void
 SecondoCatalog::Initialize(OperatorInfoRel* r)
 {
   int algId = 0;
-  bool traceExpl = false;
-
-  if ( RTFlag::isActive("Catalog:TraceExamples") )
-    traceExpl = true;
+  bool traceExpl = RTFlag::isActive("CTLG:TraceExamples");
+  bool skipExamples = RTFlag::isActive("CTLG:SkipExamples");
 
   cout << endl
        << "Initializing operator specs ..." << endl;
 
-  
-
   while ( am->NextAlgebraId(algId))
   {
-    
     string algName =  am->GetAlgebraName(algId);
     int n = am->OperatorNumber(algId);
 
-    cout << "Processing '" << algName << "'";
-    cout << " (" << n << " operators)" << endl;
-    string algShort = algName; 
-    removeSuffix("Algebra", algShort);
-    string fileName = "tmp/"+algShort+".examples";
-    CFile expectedFile(fileName);
-
     bool fileExists = true;
-    if (!expectedFile.exists()) 
-    {
-       cerr << "  Missing file " << fileName << "!" << endl;
-       fileExists = false; 
-    } 
-    
     bool parseOk = false;
-    //static int ctr=0;
-    ExampleReader examples(fileName, algName);
-    if (fileExists) {
-      parseOk = examples.parse();
-      if (!parseOk) {
-         cerr << "  File is not correct! Please repair." << endl << endl;
-      }
-      //int n = atoi(getenv("MAX_PARSE"));
-      //ctr++;   
-      //assert(ctr <= n);
-    } 
-    
+
+    string fileName = "";
+    // dummy initialization! will be overwritten later
+    ExampleReader examples(fileName, "");
+
+    if (!skipExamples) 
+    {
+      cout << "Processing '" << algName << "'";
+      cout << " (" << n << " operators)" << endl;
+      string algShort = algName; 
+      removeSuffix("Algebra", algShort);
+      fileName = "tmp/"+algShort+".examples";
+      CFile expectedFile(fileName);
+
+      if (!expectedFile.exists()) 
+      {
+	 cerr << "  Missing file " << fileName << "!" << endl;
+	 fileExists = false; 
+      } 
+      
+      //static int ctr=0;
+      examples = ExampleReader(fileName, algName);
+      if (fileExists) {
+	parseOk = examples.parse();
+	if (!parseOk) {
+	   cerr << "  File is not correct! Please repair." << endl << endl;
+	}
+	//int n = atoi(getenv("MAX_PARSE"));
+	//ctr++;   
+	//assert(ctr <= n);
+      } 
+    }
    
     int opId=0;
     while ( opId < n)
     {
-
-      if (traceExpl)
+      if (! skipExamples && traceExpl)
         cout << am->getOperator( algId, opId )->GetName() << endl;
+      
       OperatorInfo oi = am->getOperator( algId, opId )->GetOpInfo();
  
-      if (!fileExists) {
+      if (skipExamples)
+        fileExists=false;
+
+      if (!fileExists) 
+      {
 	// copy to Example Info
 	ExampleInfo ex;
 	ex.opName = oi.name;
@@ -2055,82 +2061,82 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
       else
       {
 
-      ExampleInfo ex2;
-      ExampleReader::ExampleList list;
-      ExampleReader::ExampleList::const_iterator it;
+	ExampleInfo ex2;
+	ExampleReader::ExampleList list;
+	ExampleReader::ExampleList::const_iterator it;
 
-      bool specFound = false;
-      if (parseOk) {
-        specFound = examples.find(oi.name, ex2);
+	bool specFound = false;
+	if (parseOk) {
+	  specFound = examples.find(oi.name, ex2);
 
-      if ( !specFound ) {
-        cerr << "  Missing spec for operator " << oi.name << endl;
-        // to do: punishment, e.g. removing the operator from the
-        // algebra manager.
-      }
-      else {
+	if ( !specFound ) {
+	  cerr << "  Missing spec for operator " << oi.name << endl;
+	  // to do: punishment, e.g. removing the operator from the
+	  // algebra manager.
+	}
+	else {
 
-      // examples for the current operator are available 
+	// examples for the current operator are available 
 
-      list = examples.find(oi.name);
+	list = examples.find(oi.name);
 
-      int i = 0;
-      for (it = list.begin(); it != list.end(); it++)
-      {
-      OperatorInfoTuple& t = *(new OperatorInfoTuple());
-      ex2 = **it;
-      
-      if (traceExpl)
-        cout << ex2.example << endl;
-     
-      bool secOk = false;
-      SecParser sp;            
-      string exList = ""; 
-      int rc = sp.Text2List( ex2.example, exList );
-      secOk = (rc == 0);       
-      if ( !secOk )      
-      {
-	t.remark = "Return Secondo Parse Error!";
+	int i = 0;
+	for (it = list.begin(); it != list.end(); it++)
+	{
+	OperatorInfoTuple& t = *(new OperatorInfoTuple());
+	ex2 = **it;
+	
+	if (traceExpl)
+	  cout << ex2.example << endl;
+       
+	bool secOk = false;
+	SecParser sp;            
+	string exList = ""; 
+	int rc = sp.Text2List( ex2.example, exList );
+	secOk = (rc == 0);       
+	if ( !secOk )      
+	{
+	  t.remark = "Return Secondo Parse Error!";
 
-	  cerr << "Operator: " << ex2.opName << endl
-	       << "Example : " << ex2.example << endl 
-	       << "In line : " << ex2.lineNo << endl << endl;
-      }
-  
-      t.name = oi.name;
-      t.algebra = algName;
-      t.signature = oi.signature;
-      t.syntax = oi.syntax;
-      t.meaning = oi.meaning;
-      t.result = ex2.result;
+	    cerr << "Operator: " << ex2.opName << endl
+		 << "Example : " << ex2.example << endl 
+		 << "In line : " << ex2.lineNo << endl << endl;
+	}
+    
+	t.name = oi.name;
+	t.algebra = algName;
+	t.signature = oi.signature;
+	t.syntax = oi.syntax;
+	t.meaning = oi.meaning;
+	t.result = ex2.result;
 
-      if (ex2.remark != "")
-        t.remark = ex2.remark;
-      else
-        t.remark = oi.remark;
+	if (ex2.remark != "")
+	  t.remark = ex2.remark;
+	else
+	  t.remark = oi.remark;
 
 
-      // define example values
-      t.example = ex2.example;
+	// define example values
+	t.example = ex2.example;
 
-      if (i==0) {
-      // overrule operator spec of the .cpp file.
-      oi. example = ex2.example;
-      am->getOperator( algId, opId )->SetOpInfo(oi);
-      }
-      i++;
+	if (i==0) {
+	// overrule operator spec of the .cpp file.
+	oi. example = ex2.example;
+	am->getOperator( algId, opId )->SetOpInfo(oi);
+	}
+	i++;
 
-      r->append(&t, false);
+	r->append(&t, false);
 
-      } // end for 
-      } // end !specFound
-      } // end parseOk 
+	} // end for 
+	} // end !specFound
+	} // end parseOk 
 
       } // end file exists
       opId++;
     
     } // end of operator iteration
-    if (!fileExists) {
+    if (!skipExamples && !fileExists) {
       cerr << "  Generating example file " << fileName << endl; 
       examples.write();
     }  
