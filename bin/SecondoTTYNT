@@ -6,6 +6,12 @@
 
 export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,SMI:NoTransactions"
 
+# adjust the defaults if you have more
+# memory available
+export SECONDO_PARAM_NodeMem=32000
+export SECONDO_PARAM_StringMem=8000
+export SECONDO_PARAM_TextMem=8000
+
 # check if nice command is present
 ncmd=$(which nice)
 if [ $? -ne 0 ]; then
