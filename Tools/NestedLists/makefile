@@ -33,13 +33,8 @@ PARSER := NLParser.tab.cpp
 
 DEP_FILES += NLParser.tab.dep
 
-ifeq ($(NL_PERSISTENT),"true")
-DEFAULTCCFLAGS += -DNL_PERSISTENT
-endif
-
 GENSRC := $(TOKENDEF) $(PARSER) $(SCANNER)
 OBJECTS += NLLex.$(OBJEXT) NLParser.tab.o NLParser.o
-
 
 .PHONY: all
 all: $(GENSRC) $(OBJECTS)
