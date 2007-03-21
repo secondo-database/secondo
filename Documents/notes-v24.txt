@@ -1,0 +1,39 @@
+
+2007-03-21 Notes on Release 2.4 
+===============================================================================
+
+The release deployed at March 14 runs into compiler errors. As work around you
+need to delete two files, please execute the commands below: 
+
+  cd Javagui/tools
+  rm *Disturber*
+
+If you plan to set up an SDK using "openSuSe 10.2" you can use the system's gcc
+(e.g. installsdk -s) which reports the version 
+
+  gcc (GCC) 4.1.2 20061115 (prerelease) (SUSE Linux).
+
+Please refer to the Installation-Guide for detailed explanations.
+
+New features:
+-------------
+
+ * Many bug fixes of operators in various algebra modules.
+
+ * Provision of a test database called "berlintest".
+
+ * The example queries for operators are now working on database berlintest.
+   They are collected in a system table called SEC2OPERATORINFO. This may
+   help you to find "running" examples and to learn more quickly about the
+   capabilities of the implemented algebra modules.  
+
+ * Implementation of a quick regression test called "Selftest". It runs all 
+   examples on berlintest and compares them with result sets. We decided to
+   put the database and the results into the source tree. This blowed up the
+   archive's size but gives all users the chance to test whether their own
+   implementations make the system instable or not.
+
+
+Best Regards
+
+M. Spiekermann
