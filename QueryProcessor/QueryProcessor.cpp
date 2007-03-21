@@ -208,7 +208,6 @@ to determine selectivities of predicates while processing a query.
 
 using namespace std;
 
-#include "MemCTable.h"
 #include "NameIndex.h"
 #include "NestedList.h"
 #include "NList.h"
@@ -356,11 +355,13 @@ tables ~varnames~ and ~vartable~.
 *Precondition*: NOT ~IsVariable(name, varnames)~.
 
 */
-  Cardinal j = vartable.EmptySlot();
-  VarEntry& variable = vartable[j];
+  VarEntry variable;
   variable.position = position;
   variable.funindex = funindex;
   variable.typeexpr = typeexpr;
+
+  vartable.push_back(variable);
+  Cardinal j = vartable.size() - 1; 
   varnames[name] = j;
 }
 
@@ -982,7 +983,7 @@ all objects mentioned in the expression have defined values.
 
 */
   NameIndex varnames;
-  VarEntryTable vartable(20);
+  VarEntryTable vartable;
   ListExpr list = nl->TheEmptyList();
 
   defined = true;
@@ -1593,7 +1594,7 @@ function index.
               // case (iii-c): function object, 
               // return Annotate(<abstraction>)
               NameIndex newvarnames;
-              VarEntryTable newvartable(20); 
+              VarEntryTable newvartable; 
               functionList = 
                 values[valueno-1].value.list;
               if (traceMode) {

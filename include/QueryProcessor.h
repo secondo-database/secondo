@@ -166,7 +166,6 @@ such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 */
 #include "SecondoCatalog.h"
 #include "SecondoSystem.h"
-#include "MemCTable.h"
 #include "LogMsg.h"
 #include "StopWatch.h"
 #include "FLOBCache.h"
@@ -183,7 +182,7 @@ struct VarEntry
   ListExpr typeexpr;
 };
 
-typedef MemCTable<VarEntry>  VarEntryTable;
+typedef vector<VarEntry>  VarEntryTable;
 
 /************************************************************************** 
 3.2 Class "QueryProcessor"[1]
