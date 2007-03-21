@@ -72,6 +72,7 @@ Only enable debug output if you know what you are doing!
 
 */
 const bool TLA_DEBUG = false;
+
 //const bool TLA_DEBUG = true;
 
 /*
@@ -175,7 +176,8 @@ void MArea(MRegion& reg, MReal& res) {
       }
       ures.a = at;
       ures.b = bt;
-      ures.c = ct;
+      if ( ct >= 0 ) ures.c = ct;
+      else ures.c = -ct;
       ures.r = false;
       if(TLA_DEBUG){
         cout<<" ends with: a "<<ures.a<<", b "<<ures.b<<", c "
@@ -663,7 +665,176 @@ static void MRealDistanceMM(MReal& op1, MReal& op2, MReal& result)
   }
   result.EndBulkLoad(false); // should already be sorted
 }
+/*
+1.1 Method ~MovingRealCompareMM2~
 
+Returns true if the value of these two mReals holds the comparison.
+The comparisons are -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
+
+*/
+static void MovingRealCompareMM2(MReal& op1, MReal& op2, MBool&
+ result, int op)
+{
+  if(TLA_DEBUG)
+    cout<<"MovingRealCompareMM called"<<endl;
+  UBool uBool(true);
+  //cout << "was in new method " << op << endl;
+  RefinementPartition<MReal, MReal, UReal, UReal> rp(op1, op2);
+  if(TLA_DEBUG)
+    cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
+  //cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
+  result.Clear();
+  result.StartBulkLoad();
+  
+  for(unsigned int i = 0; i < rp.Size(); i++)
+  {
+    Interval<Instant>* iv;
+    int u1Pos;
+    int u2Pos;
+    const UReal *u1transfer;
+    const UReal *u2transfer;
+    UReal u1(true);
+    UReal u2(true);
+
+    rp.Get(i, iv, u1Pos, u2Pos);
+    if (u1Pos == -1 || u2Pos == -1)
+      continue;
+    if(TLA_DEBUG)
+      cout<<"Both operators existant in interval iv # "<<i<< " ["
+      <<iv->start.ToString()<<" "<<iv->end.ToString()<<" "<<iv->lc<< " "
+      <<iv->rc<<"] "<<u1Pos<< " "<<u2Pos<<"  op "<<op<<endl;
+    op1.Get(u1Pos, u1transfer);
+    op2.Get(u2Pos, u2transfer);
+    if(!(u1transfer->IsDefined() && u2transfer->IsDefined()))
+        continue;
+    u1 = *u1transfer;
+    u2 = *u2transfer;
+    ShiftUReal(u1, iv->start);
+    ShiftUReal(u2, iv->start);
+    u1.timeInterval = *iv;
+    u2.timeInterval = *iv;
+    //new
+    Periods p(2);
+    UBool uBool(true);
+    CcReal u1real, u2real;
+    const Interval<Instant>* ivt;
+    //cout << u1.a << " " << u1.b << " " << u1.c << endl;
+    //cout << u2.a << " " << u2.b << " " << u2.c << endl;
+    //if ( (u1.a == u2.a) && (u1.b == u2.b) && (u1.c == u2.c) )
+    if ( u1 == u2 )
+    {
+      cout << "equalureal" << endl;
+      uBool.timeInterval.start = iv->start;
+      uBool.timeInterval.end = iv->end;
+      uBool.timeInterval.lc = iv->lc;
+      uBool.timeInterval.rc = iv->rc;
+      if ( (op == 0) || (op == -1) ||(op == 1) )
+        uBool.constValue.Set(true, true);
+      else
+        uBool.constValue.Set(true, false);     
+      result.MergeAdd(uBool);
+    }
+    else 
+    {    
+      int number2 = u1.PeriodsAtEqual( u2, p);
+      //cout << "number2= " << number2 << endl;
+      //cout << "iv.lc= " << iv->lc << endl;
+      //cout << "iv.rc= " << iv->rc << endl;
+      const Interval<Instant>* iv2;
+      //p.Get(0, iv2);
+      //cout << "iv2end " << iv2->end.ToString() << endl;
+      //cout << "iv2start " << iv2->start.ToString() << endl;
+      //cout << "ivend " << iv->end.ToString() << endl;
+      //cout << "ivstart " << iv->start.ToString() << endl;
+
+      uBool.timeInterval.start = iv->start;
+      uBool.timeInterval.lc = iv->lc;
+      if ( number2 > 0 )
+      {
+        p.Get(0, ivt);
+        //cout << "number > 2 " << ivt->lc << endl;
+        if ( !(((ivt->end == iv->end) && (iv->rc == false)) || 
+           (    (ivt->end == iv->start) && (iv->lc == true))) ) 
+        {
+          //cout << "number > 2 (inner)" << endl;
+          uBool.timeInterval.end = ivt->start;
+          uBool.timeInterval.rc = false;
+          if ( op == 0 )
+            uBool.constValue.Set(true, false);
+          if (op == -3 )
+            uBool.constValue.Set(true, true);
+          if ( (op == -2) || (op == -1) )
+          {
+            u1.TemporalFunction(iv->start, u1real);
+            u2.TemporalFunction(iv->start, u2real);
+            if ( u1real.GetRealval() < u2real.GetRealval() ) 
+              uBool.constValue.Set(true, true); 
+            else
+              uBool.constValue.Set(true, false);
+          }
+          if ( (op == 2) || (op == 1) )
+          {
+            u1.TemporalFunction(iv->start, u1real);
+            u2.TemporalFunction(iv->start, u2real);
+            if ( u1real.GetRealval() > u2real.GetRealval() )
+              uBool.constValue.Set(true, true); 
+            else
+              uBool.constValue.Set(true, false);
+          }
+          result.MergeAdd(uBool);
+          uBool.timeInterval.start = ivt->start;
+          uBool.timeInterval.end = ivt->end;
+          uBool.timeInterval.lc = true;
+          uBool.timeInterval.rc = true;
+          if ( (op == 0) || (op == -1) || (op == 1) )
+            uBool.constValue.Set(true, true);
+          if ( (op == -3) || (op == -2) || (op == 2) )
+          uBool.constValue.Set(true, false);
+          result.MergeAdd(uBool);
+          if ( number2 > 1 )
+          {
+            //not yet implemented
+            assert(true);
+          }
+          uBool.timeInterval.start = ivt->end;
+          uBool.timeInterval.lc = false;
+        }
+      } //if number2 > 0
+      uBool.timeInterval.end = iv->end;
+      uBool.timeInterval.rc = iv->rc;
+      if ( op == 0 )
+        uBool.constValue.Set(true, false);
+      if (op == -3 )
+        uBool.constValue.Set(true, true);
+      //vector<UReal> vureal;
+      if ( (op == -2) || (op == -1) )
+      {
+        //u1.AtMin(vureal);
+        //cout << "was i here ? " << endl;
+        u1.TemporalFunction(iv->end, u1real, true);
+        u2.TemporalFunction(iv->end, u2real, true);
+        //cout << u1real.GetRealval() << " < " << u2real.GetRealval() << endl;
+        if ( u1real.GetRealval() < u2real.GetRealval() ) 
+        uBool.constValue.Set(true, true); 
+        else
+          uBool.constValue.Set(true, false);
+      }
+      if ( (op == 2) || (op == 1) )
+      {
+        u1.TemporalFunction(iv->end, u1real, true);
+        u2.TemporalFunction(iv->end, u2real, true);
+        if ( u1real.GetRealval() > u2real.GetRealval() ) 
+          uBool.constValue.Set(true, true); 
+        else
+          uBool.constValue.Set(true, false);
+      }
+      result.MergeAdd(uBool);
+      //cout << ivt->start.ToString() << endl;
+      //cout << ivt->end.ToString() << endl;
+    }
+  }
+  result.EndBulkLoad(false);
+}
 
 /*
 1.1 Method ~MovingRealCompareMM~
@@ -717,7 +888,89 @@ static void MovingRealCompareMM(MReal& op1, MReal& op2, MBool&
     int counter = 0;
 
     int number = FindEqualTimes4Real(u1, u2, t);
-
+    
+    
+    //new
+    Periods p(2);
+    UBool uBool2(true);
+    CcReal u1real, u2real;
+    const Interval<Instant>* ivt;
+    int number2 = u1.PeriodsAtEqual( u2, p);
+    uBool2.timeInterval.start = iv->start;
+    uBool2.timeInterval.lc = true;
+    if ( number2 > 0 )
+    {
+      p.Get(0, ivt);
+      uBool2.timeInterval.end = ivt->start;
+      uBool2.timeInterval.rc = false;
+      if ( op == 0 )
+        uBool2.constValue.Set(true, false);
+      if (op == -3 )
+        uBool2.constValue.Set(true, true);
+      if ( (op == -2) || (op == -1) )
+      {
+        u1.TemporalFunction(iv->start, u1real);
+        u2.TemporalFunction(iv->start, u2real);
+        if ( u1real.GetRealval() < u2real.GetRealval() ) 
+          uBool2.constValue.Set(true, true); 
+        else
+          uBool2.constValue.Set(true, false);
+      }
+      if ( (op == 2) || (op == 1) )
+      {
+        u1.TemporalFunction(iv->start, u1real);
+        u2.TemporalFunction(iv->start, u2real);
+        if ( u1real.GetRealval() < u2real.GetRealval() ) 
+          uBool2.constValue.Set(true, false); 
+        else
+          uBool2.constValue.Set(true, true);
+      }
+      result.MergeAdd(uBool2);
+      uBool2.timeInterval.start = ivt->start;
+      uBool2.timeInterval.end = ivt->end;
+      uBool2.timeInterval.lc = true;
+      uBool2.timeInterval.rc = true;
+      if ( (op == 0) || (op == -1) || (op == 1) )
+        uBool2.constValue.Set(true, true);
+      if ( (op == -3) || (op == -2) || (op == 2) )
+        uBool2.constValue.Set(true, false);
+      result.MergeAdd(uBool2);
+      if ( number2 > 1 )
+      {
+      }
+      uBool2.timeInterval.start = ivt->start;
+      uBool2.timeInterval.lc = false;
+    }
+    uBool2.timeInterval.end = iv->end;
+    uBool2.timeInterval.rc = true;
+    if ( op == 0 )
+      uBool2.constValue.Set(true, false);
+    if (op == -3 )
+      uBool2.constValue.Set(true, true);
+    if ( (op == -2) || (op == -1) )
+    {
+      u1.TemporalFunction(iv->end, u1real);
+      u2.TemporalFunction(iv->end, u2real);
+      if ( u1real.GetRealval() < u2real.GetRealval() ) 
+        uBool2.constValue.Set(true, true); 
+      else
+        uBool2.constValue.Set(true, false);
+    }
+    if ( (op == 2) || (op == 1) )
+    {
+      u1.TemporalFunction(iv->end, u1real);
+      u2.TemporalFunction(iv->end, u2real);
+      if ( u1real.GetRealval() < u2real.GetRealval() ) 
+        uBool2.constValue.Set(true, false); 
+      else
+        uBool2.constValue.Set(true, true);
+    }
+    result.MergeAdd(uBool2);
+    cout << ivt->start.ToString() << endl;
+    cout << ivt->end.ToString() << endl;
+    //
+    
+    
     for (int m = 0; m < number; m++) {
       t[m].SetType(instanttype);
       if ((*iv).Contains(t[m])) {
@@ -950,7 +1203,7 @@ The comparisons are -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
 
 */
 static void MovingRealCompareMS(MReal& op1,CcReal& op2, MBool&
- result, int op)
+ result, int op, bool ms)
 {
   if(TLA_DEBUG)
     cout<<"MovingRealCompareMS called"<<endl;
@@ -969,7 +1222,10 @@ static void MovingRealCompareMS(MReal& op1,CcReal& op2, MBool&
     delete up2;
   }
   mop2->EndBulkLoad(false);
-  MovingRealCompareMM(op1, *mop2, result, op);
+  if ( ms )
+    MovingRealCompareMM2(op1, *mop2, result, op);
+  else
+    MovingRealCompareMM2(*mop2, op1, result, op);  
 
   delete mop2;
 
@@ -4182,7 +4438,7 @@ int TemporalMMRealCompare( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
 
-  MovingRealCompareMM(*((MReal*)args[0].addr),
+  MovingRealCompareMM2(*((MReal*)args[0].addr),
    *((MReal*)args[1].addr), *((MBool*)result.addr), op);
 
   return 0;
@@ -4200,7 +4456,7 @@ int TemporalMSRealCompare( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
 
   MovingRealCompareMS(*((MReal*)args[0].addr),
-   *((CcReal*)args[1].addr), *((MBool*)result.addr), op);
+   *((CcReal*)args[1].addr), *((MBool*)result.addr), op, true);
 
   return 0;
 }
@@ -4215,11 +4471,11 @@ int TemporalSMRealCompare( Word* args, Word& result, int message,
  Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  int newop = op;
-  if (op > -3 && op < 3) newop = -op;
+  //int newop = op;
+  //if (op > -3 && op < 3) newop = -op;
 
   MovingRealCompareMS(*((MReal*)args[1].addr),
-   *((CcReal*)args[0].addr), *((MBool*)result.addr), newop);
+   *((CcReal*)args[0].addr), *((MBool*)result.addr), op, false);
 
   return 0;
 }
