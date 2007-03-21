@@ -29,3 +29,5 @@ This file defines a single CMsg instance with global scope
 #include "LogMsg.h"
 
 CMsg cmsg;
+
+ostream* traceOS = &cout;

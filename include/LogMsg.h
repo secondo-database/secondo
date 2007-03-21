@@ -127,6 +127,8 @@ with the ~send~ method.
 #define TRACE(a) 
 #define NTRACE(n,a) 
 #define SHOW(a) 
+#define TRACE_FILE(n)
+#define TRACE_OS(os)                      
 #endif
 
 

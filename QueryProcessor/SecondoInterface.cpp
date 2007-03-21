@@ -166,7 +166,6 @@ static SecondoSystem* ss = 0;
 
 Symbols sym;
 
-ostream* traceOS = &cout;
 
 /**************************************************************************
 
@@ -497,7 +496,7 @@ separate functions which should be named Command\_<name>.
 */
 
   //assert( SmiEnvironment::GetNumOfErrors() == 0 );
- 
+
   // reset errors 
   SmiEnvironment::ResetErrors(); 
   cmsg.resetErrors();
