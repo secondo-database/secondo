@@ -116,15 +116,16 @@ public:
     maxPageNr(0),
     BufInfo(MAX_BUFFERS),
     bufferReplacements(0),
-    trace(traceOn)
+    trace(traceOn),
+    os(*(new ofstream("tmp/recbuf.log", ios_base::out | ios_base::app)))	
   {
     assert( REC_SIZE >= BUF_SIZE );
     assert( MAX_BUFFERS >= 1 );
 
     if (trace) {
-      SHOW(REC_SIZE);	    
-      SHOW(BUF_SIZE);	    
-      SHOW(MAX_BUFFERS);	    
+      cerr << "REC_SIZE = " << REC_SIZE << endl;	    
+      cerr << "BUF_SIZE = " << BUF_SIZE << endl;	    
+      cerr << "MAX_BUFFERS = " << MAX_BUFFERS << endl;	    
     }
 
     for (int i=0; i < MAX_BUFFERS; i++) { // initialize the buffer
@@ -155,23 +156,23 @@ public:
   void* GetBufPtr(const Cardinal& pageNr, bool &pageChange) {
    
      if (trace) {
-       cout << "==========================" << endl;
-       cout << "pageNr: " << pageNr << endl; 
+       os << "==========================" << endl;
+       os << "pageNr: " << pageNr << endl; 
        int k=0;
        for ( vector<BufInfoRec>::iterator it = BufInfo.begin(); 
              it != BufInfo.end(); it++                          ) 
        {
-          cout << k << ": ";
-          it->print(cout);
+          os << k << ": ";
+          it->print(os);
           k++;
        }
-       cout << "--------------------------" << endl;
+       os << "--------------------------" << endl;
        k=0;
        for ( vector<RecordInfo>::iterator it = recidVec.begin(); 
              it != recidVec.end(); it++                          ) 
        {
-          cout << k << ": ";
-          it->print(cout);
+          os << k << ": ";
+          it->print(os);
           k++;
        }
        
@@ -190,7 +191,8 @@ public:
        if ( filePtr == 0 ) {
 	     bool ok = false;
 	     if (trace)
-               cerr << "NL: creating record file for persistent storage!" << endl; 
+               os << "NL: creating record file " 
+		  << "for persistent storage!" << endl;
 	     filePtr = new SmiRecordFile(true,REC_SIZE,true);
 	     ok = filePtr->Create();
 	     assert( ok == true ); 
@@ -231,6 +233,7 @@ private:
   };
   vector<RecordInfo> recidVec;
   Cardinal maxPageNr;
+
 
   struct BufInfoRec {
 
@@ -302,8 +305,8 @@ private:
     }
 
     if (trace) {
-      cout << "MaxPageNr: " << maxPageNr 
-           << ", pageNr: " << pageNr << ", index: " << bufNr << endl; 
+      os << "MaxPageNr: " << maxPageNr 
+         << ", pageNr: " << pageNr << ", index: " << bufNr << endl; 
     }
  
     bufferReplacements++;
@@ -319,6 +322,8 @@ private:
     return nextBuf;
   }
 
+  // trace file
+  ostream& os;
 };
 
 
