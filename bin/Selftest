@@ -4,7 +4,7 @@
 #
 # 12.12.2006, M. Spiekermann
 
-export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color"
+export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,CTLG:SkipExamples"
 
 # On linux the variable below will use a less efficient
 # malloc implementation which does error detection and aborts
@@ -27,10 +27,14 @@ else
 fi
 
 
+
 declare -i err=0
 errFiles=""
+logFile="Selftest.out"
+rm -f $logFile
+
 for f in $files; do
- $runCmd -i $f
+ $runCmd -i $f | tee -a $logFile
  rc=$?
  if [ $rc -ne 0 ]; then
    err=$[$err + 1]
@@ -52,5 +56,7 @@ if [ $err -ne 0 ]; then
 else
   echo -e "Selftest finished successfully "
 fi
+
+echo "The output was stored in $logFile."
 
 exit $err
