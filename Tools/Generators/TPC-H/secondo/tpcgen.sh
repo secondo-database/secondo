@@ -90,7 +90,7 @@ assert cd $tempDir
 
 
 export SECONDO_PARAM_SecondoHome=$bdbHome
-export SECONDO_PARAM_RTFlags="SMI:NoTransactions,DEBUG:DemangleStackTrace,CMSG:Color"
+#export SECONDO_PARAM_RTFlags="SMI:NoTransactions,DEBUG:DemangleStackTrace,CMSG:Color"
 
 ncmd=$(which nice)
 niceOpt="nice -n19"
@@ -98,7 +98,7 @@ if [ $? -ne 0 ]; then
   niceOpt=""    
 fi
 
-$niceOpt SecondoTTYBDB <<< "create database ${dbName};
+$niceOpt SecondoTTYNT <<< "create database ${dbName};
 open database ${dbName};
 @${tpcDir}/secondo/restore_objs
 q;"
