@@ -32,8 +32,21 @@
 # then be processed by the SecondoInterface::Secondo(). 
 #
 
-
 include ../../makefile.env
+
+ALL_ALGEBRA_DIRS := $(shell find ../../Algebras -maxdepth 1 -type d ! -name "Algebras" ! -name "Management" ! -name "CVS" -printf "%p ")
+
+SPECFILES := $(wildcard $(addsuffix /*.spec, $(ALL_ALGEBRA_DIRS) ))
+
+ifdef WINE
+# wine has problem to execute the Specparser
+# as work around it will be compiled with the
+# native compiler from linux using the shell script
+# wmake.sh
+PARSEREXT := .linux
+else
+PARSEREXT := $(EXEEXT) 
+endif
 
 OBJECTS =\
 	SecLex.$(OBJEXT) \
@@ -54,20 +67,19 @@ GENFILES := $(SCANNER_DEF) $(PARSER_DEF) $(TOKEN_DEF) $(SCANNER) $(PARSER) \
 CC := g++
 CCFLAGS = $(DEFAULTCCFLAGS)
 
-all: subdir1 subdir2 $(GENFILES) $(OBJECTS)
+SPECPARSER := SpecParser/Parser$(PARSEREXT)
+SPECFILE := ../../Algebras/specs 
 
-.PHONY: subdir1
-subdir1:
+all: SpecParser/Parser$(PARSEREXT) $(SPECFILE) $(GENFILES) $(OBJECTS)
+#	echo $(ALL_ALGEBRA_DIRS)
+#	echo "---------------"
+#	echo $(SPECFILES)
+
+$(SPECPARSER):
 	$(MAKE) -C SpecParser
 
-.PHONY: subdir2
-subdir2:
+$(SPECFILE): $(SPECPARSER) $(SPECFILES) 
 	$(MAKE) -C ../../Algebras specs
-
-
-SpecParser/Parser$(PARSEREXT): subdir1
-
-../../Algebras/specs: subdir1 subdir2
 
 SecLex.cpp: SecLex.l
 	$(LEX) -d -+ -o$@ -Pxx $<
@@ -81,22 +93,13 @@ SecLex.l: SecLex.l.1 lexrules SecLex.l.2
 SecParser.y: SecParser.y.1 tokens SecParser.y.2 yaccrules1 yaccrules2 SecParser.y.3
 	cat $^ > $@
 
-ifdef WINE
-# wine has problem to execute the Specparser
-# as work around it will be compiled with the
-# native compiler from linux using the shell script
-# wmake.sh
-PARSEREXT := .linux
-else
-PARSEREXT := $(EXEEXT) 
-endif
 
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
-lexrules tokens yaccrules1 yaccrules2: ../../Algebras/specs SpecParser/Parser$(PARSEREXT)
-	SpecParser/Parser$(PARSEREXT) < $< 
+lexrules tokens yaccrules1 yaccrules2: $(SPECFILE) $(SPECPARSER) 
+	$(SPECPARSER) < $< 
 
 .PHONY: clean
 clean:

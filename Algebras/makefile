@@ -41,15 +41,16 @@ all: examples buildlibs
 ../makefile.algebras: ../makefile.algebras.sample
 	$(cp-config-file)
 
-SPECFILES := $(wildcard $(addsuffix /*.spec, $(USED_ALGEBRA_DIRS) ))
-EXAMPLEFILES := $(wildcard $(addsuffix /*.examples, $(USED_ALGEBRA_DIRS) ))
+SPECFILES := $(wildcard $(addsuffix /*.spec, $(ALL_ALGEBRA_DIRS) ))
+EXAMPLEFILES := $(wildcard $(addsuffix /*.examples, $(ALL_ALGEBRA_DIRS) ))
 
 .PHONY: examples
 examples:
+	@echo "Copying example files to ../bin/tmp and ../Optimizer/tmp"
 	@if [ ! -d ../bin/tmp ]; then mkdir -p ../bin/tmp; fi
 	@if [ ! -d ../Optimizer/tmp ]; then mkdir -p ../Optimizer/tmp; fi
-	cp $(EXAMPLEFILES) ../bin/tmp 
-	cp $(EXAMPLEFILES) ../Optimizer/tmp 
+	@cp $(EXAMPLEFILES) ../bin/tmp 
+	@cp $(EXAMPLEFILES) ../Optimizer/tmp 
 
 specs: specs.test
 	@chmod u+x *.awk
