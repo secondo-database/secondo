@@ -53,8 +53,11 @@ Javagui/viewer/hoese/algebras/Dsplpmpoints.java
 Javagui/viewer/hoese/algebras/Dsplpmreal.java
 Javagui/viewer/hoese/algebras/Dsplpmrect.java
 Javagui/viewer/hoese/algebras/Dsplpmregion.java
+
 Javagui/tools/MovingPointBuilder.java
 Javagui/tools/PeriodicPointBuilder.java
+Javagui/tools/DisturberGui.java
+Javagui/tools/PointDataDisturber.java
 
 Documents/JavaWrapper.pdf
 Documents/Secondo-Ideas.txt
