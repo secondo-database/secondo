@@ -117,11 +117,12 @@ public:
     BufInfo(MAX_BUFFERS),
     bufferReplacements(0),
     trace(traceOn),
-    os(*(new ofstream("tmp/recbuf.log", ios_base::out | ios_base::app)))	
+    os(cmsg.file("recbuf.log"))
   {
     assert( REC_SIZE >= BUF_SIZE );
     assert( MAX_BUFFERS >= 1 );
 
+    // will be used if variable SEC_Rebuf_Trace is set
     if (trace) {
       cerr << "REC_SIZE = " << REC_SIZE << endl;	    
       cerr << "BUF_SIZE = " << BUF_SIZE << endl;	    
@@ -150,7 +151,6 @@ public:
        delete [] (char*) BufInfo[i].bufPtr;
     }
     recidVec.clear(); 
- 
   }
 
   void* GetBufPtr(const Cardinal& pageNr, bool &pageChange) {
