@@ -41,7 +41,7 @@ class BinaryFile : public StandardAttribute
 This constructor should not be used.
 
 */
-    inline BinaryFile( const int size );
+    BinaryFile( const int size );
     inline ~BinaryFile();
     inline void Destroy();
 
