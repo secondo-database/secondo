@@ -43,7 +43,7 @@ opt_waitMax=900
 
 # options for automatic mails  
 LU_SENDMAIL="true"
-failedBuild_DefaultRecipients="spieker@zeppelin behr@zeppelin"
+failedBuild_DefaultRecipients="spieker@bassi  behr@bassi"
 
 # define mail bodys
 mailHeader="
