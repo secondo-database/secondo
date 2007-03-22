@@ -939,7 +939,7 @@ class HTML : public StandardAttribute
   URL getUrlHosts(int i, string hosts, bool& contains);
   bool containsURL( const URL*);
   datetime::DateTime getLastModified() const;
-  string HTML::getMetaInfo(string name);
+  string getMetaInfo(string name);
   int getNumberOfMetainfos() const;
   string getMetainfo( int ii, string& pContent) const;
   int getNumberOf(string);
@@ -980,7 +980,7 @@ class HTML : public StandardAttribute
 
    URL findNextURI(WebLex& lexer, flobindex& i, const string&, URL& url);
 
-  void HTML::analyseStructure(WebLex& lexer, int maxdepth, int& depth,
+  void analyseStructure(WebLex& lexer, int maxdepth, int& depth,
                               AnalyseList& al, int& error, int& symbol);
   bool checkURI(string value,URL& url);
   void getMetaInfos(const string&);

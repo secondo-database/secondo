@@ -93,7 +93,7 @@ class WebLex : public yyFlexLexer {
         int yylex (void);
         void switchStartCond(int);
         bool findAttribute(string attribute, string& value);
-        bool WebLex::findAttribute(vector<string>& attributes, 
+        bool findAttribute(vector<string>& attributes, 
                                    string& value, string & attribute);
         int startElement (string& element);
         flobindex setPos(string value, const string& content);
