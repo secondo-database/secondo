@@ -301,6 +301,42 @@ Is a display function for url.
 
 */
 
+   static void DisplayVertex( ListExpr type,
+                              ListExpr numType,
+                              ListExpr value );
+
+/*
+Is a display function for vertex.
+
+*/
+
+  static void DisplayEdge( ListExpr type,
+                           ListExpr numType,
+                           ListExpr value );
+
+/*
+ Is a display function for vertex.
+
+*/
+
+  static void DisplayPath( ListExpr type,
+                           ListExpr numType,
+                           ListExpr value );
+
+/*
+Is a display function for path.
+
+*/
+
+  static void DisplayGraph( ListExpr type,
+                            ListExpr numType,
+                            ListExpr value );
+
+/*
+Is a display function for graph.
+
+*/
+
 
   static SecondoInterface* si; // Ref. to Secondo interface
   static NestedList*       nl; // Ref. to nested list container

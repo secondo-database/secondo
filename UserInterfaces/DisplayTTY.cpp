@@ -1001,6 +1001,233 @@ DisplayTTY::DisplayUrl( ListExpr type, ListExpr numType, ListExpr value)
       }
 }
 
+void
+DisplayTTY::DisplayVertex( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
+  {
+    cout << "UNDEFINED";
+  }
+  else if(nl->ListLength(value)!=2)
+     cout << "Incorrect Data Format";
+  else{
+     bool err=false;
+     int key = (int) getNumeric(nl->First(value),err);
+     if(err){
+       cout << "Incorrect Data Format";
+       return;
+     }
+     if( nl->IsAtom( nl->Second(value) )  &&
+         nl->SymbolValue(  nl->Second(value) ) == "undef" )
+      {
+         cout << "vertex "<<key<<": no point defined";
+         return;
+      }
+      double x = getNumeric(nl->First(nl->Second(value)),err);
+      if(err){
+        cout << "Incorrect Data Format";
+        return;
+      }
+      double y = getNumeric(nl->Second(nl->Second(value)),err);
+      if(err){
+        cout << "Incorrect Data Format";
+        return;
+      }
+      cout << "vertex "<<key<<": (" << x << "," << y << ")";
+   }
+ }
+
+void
+DisplayTTY::DisplayEdge( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
+  {
+    cout << "UNDEFINED";
+  }
+  else if(nl->ListLength(value)!=3)
+     cout << "Incorrect Data Format";
+  else{
+     bool err=false;
+     int key1 = (int) getNumeric(nl->First(value),err);
+     if(err){
+       cout << "Incorrect Data Format";
+       return;
+     }
+
+     int key2 = (int) getNumeric(nl->Second(value),err);
+     if(err){
+       cout << "Incorrect Data Format";
+       return;
+     }
+     double cost = getNumeric(nl->Third(value),err);
+     if(err){
+       cout << "Incorrect Data Format";
+       return;
+     }
+     cout << "edge "<<key1<<"---" << cost << "---->" << key2;
+  }
+}
+
+void
+DisplayTTY::DisplayPath( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
+  {
+    cout << "UNDEFINED";
+  }
+  else if(nl->ListLength(value)!=1&&(nl->ListLength(value)-1)%2!=0)
+     cout << "Incorrect Data Format" ;
+  else{
+     cout <<"*******************BEGIN PATH***************************"<<endl;
+     bool err=false;
+     int key = (int) getNumeric(nl->First(nl->First(value)),err);
+     if(err){
+        cout << "Incorrect Data Format";
+        return;
+     }
+     if( nl->IsAtom( nl->Second(nl->First(value)) )  &&
+         nl->SymbolValue(  nl->Second(nl->First(value)) ) == "undef" )
+     {
+         cout << "vertex "<<key<<": no point defined";
+
+     }
+     else{
+       double x = getNumeric(nl->First(nl->Second(nl->First(value))),err);
+       if(err){
+          cout << "Incorrect Data Format";
+          return;
+       }
+       double y = getNumeric(nl->Second(nl->Second(nl->First(value))),err);
+       if(err){
+         cout << "Incorrect Data Format";
+         return;
+       }
+       cout << "vertex "<<key<<": (" << x << "," << y << ")"<<endl;
+       }
+       value=nl->Rest(value);
+       while (!nl->IsEmpty( value ))
+       {
+
+        double cost =  getNumeric(nl->First(value),err);
+        if(err){
+          cout << "Incorrect Data Format";
+          return;
+        }
+        cout <<"---"<<cost<<"--->"<<endl;
+ 
+        int key = (int) getNumeric(nl->First(nl->Second(value)),err);
+        if(err){
+           cout << "Incorrect Data Format";
+           return;
+        }
+        if( nl->IsAtom( nl->Second(nl->Second(value)) )  &&
+            nl->SymbolValue(  nl->Second(nl->Second(value)) ) == "undef" )
+        {
+            cout << "vertex "<<key<<": no point defined";
+        }
+        else
+        {
+          double x = getNumeric(nl->First(nl->Second(nl->Second(value))),err);
+          if(err){
+            cout << "Incorrect Data Format";
+            return;
+        }
+        double y = getNumeric(nl->Second(nl->Second(nl->Second(value))),err);
+        if(err){
+           cout << "Incorrect Data Format";
+           return;
+        }
+        cout << "vertex "<<key<<": (" << x << "," << y << ")"<<endl;
+      }
+      value = nl->Rest(nl->Rest( value ));
+   }
+   cout <<"********************END PATH****************************"<<endl;
+  }
+}
+
+void
+DisplayTTY::DisplayGraph( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
+  {
+     cout << "UNDEFINED";
+  }
+  else if(nl->ListLength(value)!=2)
+     cout << "Incorrect Data Format ";
+  else{
+     ListExpr vertices=nl->First(value);
+     ListExpr edges=nl->Second(value);
+     cout <<"*******************BEGIN GRAPH***************************"<<endl;
+     bool err=false;
+     cout <<"********************VERTICES*****************************"<<endl;
+     while (!nl->IsEmpty( vertices ))
+     {
+
+        int key = (int) getNumeric(nl->First(nl->First(vertices)),err);
+        if(err){
+          cout << "Incorrect Data Format";
+          return;
+        }
+        if( nl->IsAtom( nl->Second(nl->First(vertices)) )  &&
+            nl->SymbolValue(  nl->Second(nl->First(vertices)) ) == "undef" )
+        {
+            cout << key<<": no point defined"<<endl;;
+
+        }
+        else
+        {
+         double x = getNumeric(nl->First(nl->Second(nl->First(vertices))),err);
+         if(err){
+            cout << "Incorrect Data Format";
+            return;
+         }
+         double y = getNumeric(nl->Second(nl->Second(nl->First(vertices))),err);
+        if(err){
+           cout << "Incorrect Data Format";
+           return;
+        }
+        cout << key<<": (" << x << "," << y << ")"<<endl;
+        }
+        vertices = nl->Rest(vertices);
+  
+     }
+     cout <<"**********************EDGES******************************"<<endl;
+     while (!nl->IsEmpty( edges ))
+     {
+        if(nl->ListLength(nl->First(edges))!=3)
+            cout << "Incorrect Data Format";
+         else{
+            bool err=false;
+            int key1 = (int)getNumeric(nl->First(nl->First(edges)),err);
+            if(err){
+               cout << "Incorrect Data Format";
+               return;
+            }
+ 
+            int key2 = (int)getNumeric(nl->Second(nl->First(edges)),err);
+            if(err){
+               cout << "Incorrect Data Format";
+               return;
+            }
+            double cost = getNumeric(nl->Third(nl->First(edges)),err);
+            if(err){
+              cout << "Incorrect Data Format";
+              return;
+            }
+            cout << key1<<"---" << cost << "---->" << key2<<endl;
+         }
+         edges = nl->Rest(edges);
+
+      }
+     cout <<"********************END GRAPH****************************"<<endl;
+  }
+}
+
+
 
 void
 DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
@@ -1302,5 +1529,10 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "html",     &DisplayHtml);
   InsertDisplayFunction( "page",     &DisplayPage);
   InsertDisplayFunction( "url",     &DisplayUrl);
+  InsertDisplayFunction( "vertex",  &DisplayVertex);
+  InsertDisplayFunction( "edge",  &DisplayEdge);
+  InsertDisplayFunction( "path",  &DisplayPath);
+  InsertDisplayFunction( "graph",  &DisplayGraph);
+
 }
 
