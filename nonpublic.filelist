@@ -12,7 +12,7 @@ PeriodicAlgebra Periodic
 RoseAlgebra Rose
 RemoteStreamAlgebra RemoteStream
 PartitionedStreamAlgebra PartitionedStream
-
+WebAlgebra Web
 
 # Directories
 
