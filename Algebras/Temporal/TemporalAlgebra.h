@@ -1887,6 +1887,12 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
            AlmostEqual( p1, i.p1 );
   }
 
+  void Translate(const double x, const double y, 
+                 const DateTime& duration);
+      
+  
+
+
 /*
 3.8.3 Functions to be part of relations
 
@@ -2578,6 +2584,28 @@ The constructor. Initializes space for ~n~ elements.
 
 */
     void BreakPoints(Points& result, const DateTime& dur) const;
+
+/*
+3.10.5.6 Operation ~TranslateAppend~
+
+Appends the mpoint argument to this moving point. The point will stay on its
+last position for an interval of length dur. If dur is smaller or equals to
+zero, the new movement starts directly after the definition time of the 
+original object. The movement is continued at the last position of this mpoint. 
+
+*/
+
+void TranslateAppend(MPoint& mp, const DateTime& dur);
+
+
+/*
+3.10.5.7 Reverse
+
+Store the reverse of the movement of this instance of a mpoint into result.
+
+*/
+void Reverse(MPoint& result);
+
 
 
 private:

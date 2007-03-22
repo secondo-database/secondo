@@ -1820,6 +1820,17 @@ where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
       return;
 }
 
+void UPoint::Translate(const double xdiff, const double ydiff, 
+                       const DateTime& timediff){
+
+   p0.Set(p0.GetX()+xdiff,p0.GetY()+ydiff);
+   p1.Set(p1.GetX()+xdiff, p1.GetY()+ydiff);
+   timeInterval.start = timeInterval.start + timediff;
+   timeInterval.end = timeInterval.end + timediff;
+}
+
+
+
 
 /*
 3.2 Class ~MInt~
@@ -2796,6 +2807,104 @@ void MPoint::BreakPoints(Points& result, const DateTime& dur) const{
         }
     }
     result.EndBulkLoad();
+}
+
+void MPoint::TranslateAppend(MPoint& mp, const DateTime& dur){
+   if(!mp.IsDefined()){
+       Clear();
+       SetDefined(false);
+       return;
+   }
+   if(mp.GetNoComponents()==0){ // nothing to do
+       return;
+   }
+   if(!IsDefined()){
+      return; 
+   }
+   if(GetNoComponents()==0){
+       this->CopyFrom(&mp);
+       return;
+   }
+
+   int newSize = GetNoComponents()+mp.GetNoComponents(); 
+   Resize(newSize);
+   const UPoint* lastUnit;
+   
+   StartBulkLoad();
+
+   const UPoint* firstUnit;
+   mp.Get(0,firstUnit);
+  
+   // add a staying unit 
+   if(!dur.IsZero() && !dur.LessThanZero()){
+     Get(GetNoComponents()-1,lastUnit);
+     Interval<Instant> interval = lastUnit->timeInterval;
+     Point lastPoint = lastUnit->p1;
+     // append a unit of staying
+     Interval<Instant> gapInterval(interval.end,interval.end +dur,
+                                   !interval.rc,!firstUnit->timeInterval.lc);
+     UPoint gap(gapInterval,lastPoint,lastPoint);
+     Add(gap);    
+   }
+   
+   Get(GetNoComponents()-1,lastUnit);
+   Instant end = lastUnit->timeInterval.end;
+   DateTime timediff = end - firstUnit->timeInterval.start;
+   double xdiff  = lastUnit->p1.GetX() - firstUnit->p0.GetX();
+   double ydiff  = lastUnit->p1.GetY() - firstUnit->p0.GetY();
+
+   const UPoint* Punit;
+   mp.Get(0,Punit);
+   UPoint unit = *Punit;
+   unit.Translate(xdiff,ydiff,timediff);
+   if(!(lastUnit->timeInterval.rc)){
+       unit.timeInterval.lc = true;
+   } else {
+       unit.timeInterval.lc = false;
+   }
+   Add(unit);
+
+   for(int i=1; i< mp.GetNoComponents(); i++){
+      mp.Get(i,Punit);
+      unit = *Punit;
+      unit.Translate(xdiff,ydiff,timediff);
+      Add(unit);
+   }
+   EndBulkLoad(false);
+}
+
+
+void MPoint::Reverse(MPoint& result){
+    result.Clear();
+    if(!IsDefined()){
+       result.SetDefined(false);
+       return;
+    }
+    int size = GetNoComponents();
+    if(size==0){
+       return;
+    }
+
+    const UPoint* unit;
+    Get(size-1,unit);
+    Instant end = unit->timeInterval.end;
+    Get(0,unit);
+    Instant start = unit->timeInterval.start;
+
+    result.StartBulkLoad();
+
+    for(int i=size-1; i>=0; i--){
+       Get(i,unit);
+       Instant newEnd = (end - unit->timeInterval.start) + start;     
+       Instant newStart = (end - unit->timeInterval.end) + start; 
+      Interval<Instant> interval(newStart,newEnd,
+                                  unit->timeInterval.rc,  
+                                  unit->timeInterval.lc);
+       UPoint newUnit(interval,unit->p1,unit->p0);
+
+       result.Add(newUnit); 
+    }
+    result.EndBulkLoad(false);
 }
 
 
@@ -5412,6 +5521,143 @@ ListExpr TemporalTheRangeTM( ListExpr args )
   return nl->SymbolAtom( "typeerror" );
 }
 
+
+ListExpr TranslateAppendTM(ListExpr args){
+  if(nl->ListLength(args)!=3){
+      ErrorReporter::ReportError("two arguments expected");
+      return nl->SymbolAtom( "typeerror" );
+  }
+  if(nl->IsEqual(nl->First(args),"mpoint") &&
+     nl->IsEqual(nl->Second(args),"mpoint") &&
+     nl->IsEqual(nl->Third(args),"duration")){
+     return nl->SymbolAtom("mpoint");
+  }
+  ErrorReporter::ReportError("mpoint x mpoint x duration expected");
+  return nl->SymbolAtom( "typeerror" );
+}
+
+ListExpr ReverseTM(ListExpr args){
+   if(nl->ListLength(args)!=1){
+      ErrorReporter::ReportError("1 argument expected");
+      return nl->SymbolAtom( "typeerror" );
+   }
+   if(nl->IsEqual(nl->First(args),"mpoint")){
+      return nl->SymbolAtom("mpoint"); 
+   }
+   ErrorReporter::ReportError("mpoint expected");
+   return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+16.1.20 TranslateAppendS
+
+This operator consumes a stream of tuples having an attribute
+x of type mpoint. The attribute name must be given in the second
+argument. As third argument, a suration is given which determines 
+a break between the two movements.
+
+*/
+
+ListExpr TranslateAppendSTM(ListExpr args){
+
+
+  int len = nl->ListLength(args);
+  if(len != 3 ){
+      ErrorReporter::ReportError("three arguments expected");
+      return nl->SymbolAtom("typeerror");
+  }
+  // check the third argument to be of type duration
+  if(!nl->IsEqual(nl->Third(args),"duration")){
+    ErrorReporter::ReportError("the third argument has to be a duration");
+    return nl->SymbolAtom("typeerror");
+  } 
+
+  // extract the attribute name
+  ListExpr attrlist = nl->Second(args);
+
+  if(nl->AtomType(attrlist)!=SymbolType){
+      ErrorReporter::ReportError("the second argument has to be a symbol");
+      return nl->SymbolAtom("typeerror");
+  }
+  string a1 = nl->SymbolValue(attrlist);
+
+  int a1index = -1;
+
+  // search for attrname in stream definition
+  ListExpr stype = nl->First(args);
+  if(nl->AtomType(stype)!=NoAtom){
+     ErrorReporter::ReportError("stream(tuple(...))"
+                                " expected as the first argument");
+     return nl->SymbolAtom("typeerror");
+  }
+
+  if((nl->ListLength(stype)!=2) || 
+     (!nl->IsEqual(nl->First(stype),"stream" ))){
+     ErrorReporter::ReportError("stream(tuple(...))"
+                                " expected as the first argument");
+     return nl->SymbolAtom("typeerror");
+  }
+
+  ListExpr ttype = nl->Second(stype);
+
+  if((nl->ListLength(ttype)!=2) || 
+     (!nl->IsEqual(nl->First(ttype),"tuple" ))){
+     ErrorReporter::ReportError("stream(tuple(...))"
+                                " expected as the first argument");
+     return nl->SymbolAtom("typeerror");
+  }
+
+  ListExpr attributes = nl->Second(ttype);
+  if(nl->AtomType(attributes)!=NoAtom){
+      ErrorReporter::ReportError("invalid tuple type");
+      return nl->SymbolAtom("typeerror");
+  }
+  int pos = 0;
+  while(!nl->IsEmpty(attributes)){
+     ListExpr attr = nl->First(attributes);
+     if( (nl->AtomType(attr)!=NoAtom) ||
+         (nl->ListLength(attr)!=2)){
+         ErrorReporter::ReportError("invalid tuple type");
+         return nl->SymbolAtom("typeerror");
+     }
+     ListExpr anl = nl->First(attr);
+     ListExpr atl = nl->Second(attr);
+     if( (nl->AtomType(anl)!=SymbolType) ||
+         (nl->AtomType(atl)!=SymbolType)){
+         ErrorReporter::ReportError("invalid tuple type");
+         return nl->SymbolAtom("typeerror");
+     }
+     string aname = nl->SymbolValue(anl);
+     if(aname==a1){
+        if(a1index>=0){
+           ErrorReporter::ReportError("attr name occurs twice");
+           return nl->SymbolAtom("typeerror");
+        }
+        if(!nl->IsEqual(atl,"mpoint")){
+            ErrorReporter::ReportError("the attribute"
+                                       " has to be of type mpoint");
+            return nl->SymbolAtom("typeerror");
+        }      
+        a1index = pos;
+     }
+     pos++; 
+     attributes = nl->Rest(attributes);
+  }
+
+  if(a1index<0){
+     ErrorReporter::ReportError("first attr name does"
+                                " not occur in the typle");
+     return nl->SymbolAtom("typeerror");
+  }
+  // all is correct
+  ListExpr ind = nl->OneElemList(nl->IntAtom(a1index));
+
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                           ind,
+                           nl->SymbolAtom("mpoint"));
+}
+
+
 /*
 16.2 Selection function
 
@@ -7443,6 +7689,71 @@ int TemporalTheRangeTM( Word* args, Word& result, int message, Word&
   return 0;
 }
 
+
+/*
+16.3.44 Value mapping function for operator ~translateappend~
+
+*/
+
+int TranslateAppendVM( Word* args, Word& result, int message, Word&
+    local, Supplier s ){
+    
+   result = qp->ResultStorage(s); 
+   MPoint* res = (MPoint*) result.addr;
+   res->CopyFrom( (MPoint*) args[0].addr);
+   res->TranslateAppend(*((MPoint*) args[1].addr), 
+                        *((DateTime*) args[2].addr));
+   return 0;
+
+}
+
+/*
+16.3.45 Value mapping function for ~translateAppendS~
+
+*/
+
+int TranslateAppendSVM(Word* args, Word& result,
+                      int message, Word& local,
+                      Supplier s){
+   result = qp->ResultStorage(s);
+   MPoint* res = (MPoint*) result.addr;
+   int index = ((CcInt*)args[3].addr)->GetIntval();
+
+   DateTime* duration = (DateTime*) args[2].addr;
+
+   res->Clear();
+   res->SetDefined(true);
+   Word current;
+   MPoint* mpoint=NULL;
+   qp->Open(args[0].addr);
+   qp->Request(args[0].addr, current);
+   while (qp->Received(args[0].addr)) {
+      Tuple* tuple = (Tuple*)current.addr;
+      mpoint =  (MPoint*)(tuple->GetAttribute(index)); 
+      res->TranslateAppend(*mpoint,*duration);
+      tuple->DeleteIfAllowed();
+      qp->Request(args[0].addr, current);
+   }
+   qp->Close(args[0].addr);
+   return 0;
+}
+
+/*
+16.3.44 Value mapping function for operator ~reverse~
+
+*/
+
+int ReverseVM( Word* args, Word& result, int message, Word&
+    local, Supplier s ){
+    
+   result = qp->ResultStorage(s); 
+   MPoint* res = (MPoint*) result.addr;
+   ((MPoint*)args[0].addr)->Reverse(*res);
+   return 0;
+
+}
+
+
 /*
 16.4 Definition of operators
 
@@ -8122,6 +8433,37 @@ const string TemporalTheRangeSpec =
     "<text>query theRange(mb ub)</text--->"
     ") )";
 
+const string TranslateAppendSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint x mpoint x duration -> mpoint</text--->"
+    "<text> _ translateappend [ _ _ ]<text--->"
+    "<text>appends the second argument to the first one \n"
+    " waiting a a duration given by the third argument at the\n"
+    " last position </text--->"
+    "<text>query mp1 translateappend[mp2 "
+    "[const duration value(0 10000)]]</text--->"
+    ") )";
+
+const string TranslateAppendSSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>stream(tuple((a1 t1)...(an tn))) x ai x durationi"
+    " -> mpoint</text--->"
+    "<text> _ translateappendS[ _ _ ]<text--->"
+    "<text>Builds a single moving point from all mpoint in the stream \n"
+    " tranlating the mpoints in such way that a connected movement\n"
+    " is created (except 'jumps' are in the sources </text--->"
+    "<text>query Trains feed translateappendS[Trip [const"
+    " duration value(0 10000)]]</text--->"
+    ") )";
+
+const string ReverseSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint -> mpoint</text--->"
+    "<text> reverse( _ )<text--->"
+    "<text>computes the reverse movment of the argument</text--->"
+    "<text>query reverse(Train6) </text--->"
+    ") )";
+
 /*
 16.4.3 Operators
 
@@ -8487,6 +8829,24 @@ Operator temporaltherange( "theRange",
                      TemporalTheRangeSelect,
                      TemporalTheRangeTM );
 
+Operator temporaltranslateappend( "translateappend",
+                       TranslateAppendSpec,
+                       TranslateAppendVM,
+                       Operator::SimpleSelect,
+                       TranslateAppendTM );
+
+Operator temporaltranslateappendS( "translateappendS",
+                       TranslateAppendSSpec,
+                       TranslateAppendSVM,
+                       Operator::SimpleSelect,
+                       TranslateAppendSTM );
+
+Operator temporalreverse("reverse",
+                       ReverseSpec,
+                       ReverseVM,
+                       Operator::SimpleSelect,
+                       ReverseTM );
+
 /*
 6 Creating the Algebra
 
@@ -8608,6 +8968,9 @@ class TemporalAlgebra : public Algebra
     AddOperator(&temporalbox2d);
     AddOperator(&mbool2mint);
     AddOperator(&extdeftime);
+    AddOperator(&temporaltranslateappend);
+    AddOperator(&temporaltranslateappendS);
+    AddOperator(&temporalreverse);
   }
   ~TemporalAlgebra() {};
 };
