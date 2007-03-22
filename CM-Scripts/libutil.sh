@@ -23,6 +23,9 @@ shopt -s expand_aliases
 LU_LOG=""
 LU_LOG_INIT=""
 
+# write to screen if a log file can not be accessed 
+LU_LOG_SCREEN="true"
+
 LU_VARVALUE=""
 
 LU_TMP=""
@@ -88,7 +91,10 @@ function showValue2
 function printl {
   if [ -n "$LU_LOG_INIT" ]; then
     printf "$1" "$2" >> $LU_LOG
-  fi
+  fi  
+  if [ "$LU_LOG_SCREEN" != "false" ]; then
+    printf "$1" "$2"
+  fi  
 }
 
 # print to screen and into log-file if $LU_LOG is nonzero
