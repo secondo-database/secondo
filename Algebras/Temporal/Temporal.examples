@@ -370,3 +370,24 @@ Signature: stream(tuple(a1 t1) ...(an tn) ) x ai x aj -> mreal, ti = instant, tj
 Example  : query intstream(0, 3) transformstream extend[D: int2real(.elem)] extend[ I: create_instant(.D), V : .D * .D] approximate[I,V]
 Result   : (mreal ( ( ("2000-01-03" "2000-01-04" TRUE FALSE) (0.0 1.0 0.0 FALSE)) ( ("2000-01-04" "2000-01-05" TRUE FALSE) (0.0 3.0 1.0 FALSE)) ( ("2000-01-05" "2000-01-06" TRUE FALSE) (0.0 5.0 4.0 FALSE)))) 
 
+
+
+Operator : translateappend 
+Number   : 1
+Signature: mpoint x mpoint x duration -> mpoint
+Example  : query train5 translateappend[ train6 , [const duration value (0 30000)]]
+Result   : file 
+
+
+Operator : translateappendS 
+Number   : 1
+Signature: stream(tuple([a1 : t1, ...an : tn])) x ai x duration -> mpoint, with ti = mpoint
+Example  : query Trains feed head[3] translateappendS[Trip, [const duration value(0 40000)]] 
+Result   : file 
+
+Operator : reverse
+Number   : 1
+Signature: mpoint -> mpoint
+Example  : query reverse(train5)
+Result   : file
+
