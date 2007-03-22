@@ -25,6 +25,7 @@ operator / alias DIVIDEDBY pattern _ infixop _
 operator div alias DIV pattern _ infixop _
 operator mod alias MOD pattern _ infixop _
 operator randint alias RANDINT pattern op ( _ )
+operator randseed alias RANDSEED pattern op ( _ )
 operator log alias LOG pattern op ( _ )
 
 operator > alias GT pattern _ infixop _

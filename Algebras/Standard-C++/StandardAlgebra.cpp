@@ -2127,6 +2127,24 @@ RandInt( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
+
+int
+RandSeed( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( ((CcInt*)args[0].addr)->IsDefined() )
+  {
+    srand(((CcInt*)args[0].addr)->GetIntval());
+    ((CcBool *)result.addr)->
+      Set( true, true);
+  }
+  else
+  {
+    ((CcBool*)result.addr)->Set( false, false );
+  }
+  return (0);
+}
+
 int
 MaxRand( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -3708,6 +3726,16 @@ const string CCSpecRandInt  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                "<text>query randint (9)</text--->"
                               ") )";
 
+
+const string CCSpecRandSeed = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                              "\"Example\" )"
+                             "( <text>int -> bool </text--->"
+                           "<text>randseed ( _ )</text--->"
+                           "<text>initializes the randon number generator with "
+                           "a defined value. </text--->"
+                               "<text>query randseed(8000)</text--->"
+                              ") )";
+
 const string CCSpecMaxRand  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               "\"Example\" )"
                              "( <text> -> int </text--->"
@@ -4076,6 +4104,9 @@ Operator ccsqrt( "sqrt", CCSpecSqrt, 1, ccsqrtmap,
 Operator ccrandint( "randint", CCSpecRandInt, RandInt,
                     Operator::SimpleSelect, IntInt );
 
+Operator ccrandseed( "randseed", CCSpecRandSeed, RandSeed,
+                    Operator::SimpleSelect, IntBool );
+
 Operator ccrandmax( "randmax", CCSpecMaxRand, MaxRand,
                     Operator::SimpleSelect, EmptyInt );
 
@@ -4233,6 +4264,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccdiv );
     AddOperator( &ccsqrt );
     AddOperator( &ccrandint );
+    AddOperator( &ccrandseed );
     AddOperator( &ccrandmax );
     AddOperator( &ccseqinit );
     AddOperator( &ccseqnext );

@@ -211,6 +211,11 @@ Signature:  -> int
 Example  : query randmax() > 32766
 Result   : TRUE
 
+Operator : randseed
+Number   : 1
+Signature: int -> bool
+Example  : query randseed(8000)
+Result   : TRUE
 
 Operator : relcount
 Number   : 1
