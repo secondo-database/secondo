@@ -21,7 +21,7 @@ fi
 # the process as soon as an error is recognized.
 export MALLOC_CHECK_=2
 
-export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color"
+export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,CTLG:SkipExamples"
 
 runner="$(which SecondoBDB) -test"
 # check if nice command is present
