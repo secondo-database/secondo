@@ -277,6 +277,30 @@ Is a display function for functions.
 Is a display function for date.
 
 */
+ static void DisplayHtml( ListExpr type,
+                          ListExpr numType,
+                          ListExpr value );
+/*
+Is a display function for html.
+
+*/
+
+ static void DisplayPage( ListExpr type,
+                          ListExpr numType,
+                          ListExpr value );
+/*
+ Is a display function for page.
+
+*/
+
+  static void DisplayUrl( ListExpr type,
+                          ListExpr numType,
+                          ListExpr value );
+/*
+Is a display function for url.
+
+*/
+
 
   static SecondoInterface* si; // Ref. to Secondo interface
   static NestedList*       nl; // Ref. to nested list container

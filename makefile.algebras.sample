@@ -159,6 +159,9 @@ ALGEBRA_DEPS += jpeg
 #ALGEBRA_DIRS  += Midi
 #ALGEBRAS      += MidiAlgebra
 
+#ALGEBRA_DIRS  += Web
+#ALGEBRAS      += WebAlgebra
+
 #ALGEBRA_DIRS  += Cluster
 #ALGEBRAS      += ClusterAlgebra
 

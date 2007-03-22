@@ -906,6 +906,100 @@ DisplayTTY::DisplayTid( ListExpr type, ListExpr numType, ListExpr value )
   }
 }
 
+void
+DisplayTTY::DisplayHtml( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if(nl->ListLength(value)!=3)
+    cout << "Incorrect Data Format";
+  else{
+    string out;
+    nl->WriteToString(out, type);
+    cout << "Type: " << out << endl;
+
+    cout << "Date of last modification: ";
+    ListExpr First = nl->First(value);              //DateTime
+    ListExpr Second = nl->Second(value);    //Text (FLOB)
+    ListExpr Third = nl->Third(value);              //URL
+    DisplayResult( nl->First(First), nl->Second(First) );
+    DisplayResult( nl->First(Third), nl->Second(Third) );
+    Base64 b;
+    string text = nl->Text2String(Second);
+    int sizeDecoded = b.sizeDecoded( text.size() );
+    char *bytes = (char *)malloc( sizeDecoded );
+    int result = b.decode( text, bytes );
+    assert( result <= sizeDecoded );
+    bytes[result] = 0;
+    text = bytes;
+    free( bytes );
+    cout << "-------------Start of html content:" << endl;
+    cout << text << endl;
+    cout << "-------------End of html content:" << endl;
+    }
+}
+
+void
+DisplayTTY::DisplayPage( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if(nl->ListLength(value)<1)
+     cout << "Incorrect Data Format";
+  else{
+     string out;
+     nl->WriteToString(out, type);
+     cout << "Type: " << out << endl;
+
+     ListExpr First = nl->First(value);              //html
+     nl->WriteToString(out, First);
+     int nrOfEmb = nl->ListLength(value) - 1;
+     DisplayResult( nl->First(First), nl->Second(First) );
+
+     First = nl->Rest(value);
+     //now lists of (url text)
+     cout << "----Start of embedded objects" << endl;
+     for( int ii=0; ii < nrOfEmb; ii++)
+     {
+        ListExpr emblist = nl->First(First);
+        First = nl->Rest(First);
+
+        if ( nl->ListLength( emblist ) == 3)
+        {
+            cout << endl << ii+1 << ". embedded object:" << endl;
+            ListExpr embFirst = nl->First(emblist);         //url
+            DisplayResult( nl->First(embFirst), nl->Second(embFirst) );
+            cout << "The content is binary coded, no display here" << endl;
+            string mime = nl->StringValue(nl->Third(emblist));
+            cout << "Mimetype: " << mime << endl;
+        }
+        else
+        {
+            cout << "Incorrect Data Format";
+            return;
+        }
+     }
+     cout << "----End of embedded objects" << endl;
+  }
+}
+
+void
+DisplayTTY::DisplayUrl( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if(nl->ListLength(value)!=3)
+     cout << "Incorrect Data Format";
+  else{
+      string out;
+      nl->WriteToString(out, type);
+      cout << "Type: " << out << endl;
+
+      ListExpr First = nl->First(value);              //protocol
+      ListExpr Second = nl->Second(value);    //host
+      ListExpr Third = nl->Third(value);              //path
+      string prot = nl->StringValue(First);
+      string host = nl->Text2String(Second);
+      string path = nl->Text2String(Third);
+      cout << "- Protocol: " << prot << endl;
+      cout << "- Host: " << host << endl;
+      cout << "- Path: " << path << endl;
+      }
+}
 
 
 void
@@ -1205,5 +1299,8 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "instant", &DisplayInstant);
   InsertDisplayFunction( "duration",&DisplayDuration);
   InsertDisplayFunction( "tid",     &DisplayTid);
+  InsertDisplayFunction( "html",     &DisplayHtml);
+  InsertDisplayFunction( "page",     &DisplayPage);
+  InsertDisplayFunction( "url",     &DisplayUrl);
 }
 
