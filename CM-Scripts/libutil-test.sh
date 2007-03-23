@@ -131,7 +131,7 @@ XmailBody="This is a generated message!
   You will find the output of make in the attached file.
   Please fix the problem as soon as possible."
 
-sendMail "Test Mail!" "spieker@bassi markus.spiekermann@gmx.de" "$XmailBody" "$3" "$4"
+sendMail "Test Mail!" "$3" "$XmailBody" "/tmp" "$4"
 
 fi
 

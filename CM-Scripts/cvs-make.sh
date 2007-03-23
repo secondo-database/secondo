@@ -25,6 +25,8 @@
 #   was implemented. 
 #
 # October 2006, M. Spiekermann: Support for multiple SDKs and cvs modules added.
+#
+# March 2007, M. Spiekermann: Support for tar files and module options implemented.
 
 # Configuration Options
 
@@ -38,16 +40,16 @@ opt_gccVersion=".undefined"
 cvsDir=/home/cvsroot
 opt_coTag="HEAD"
 opt_cvsServer="zeppelin"
-#opt_logRoot="/tmp/spieker/testrun-errors"
-opt_logRoot="/home/secondo/testrun-errors"
+#opt_logRoot="/home/secondo/testrun-errors"
 opt_logRoot="/var/tmp/cvs-make"
 
 opt_waitMax=900
 opt_tarFile="none"
+opt_tarMail="spieker@bassi"
 
-opt_compileAll="yes"
+opt_runTests="yes"
 opt_mkStable="yes"
-opt_earlyExit="false"
+opt_earlyExit="no"
 
 # options for automatic mails  
 LU_SENDMAIL="true"
@@ -107,6 +109,7 @@ A new public version was created as tar file in
 opt_sdkRootDir="$HOME"
 opt_sdkDir="secondo-sdk"
 opt_coModule="secondo"
+opt_coModuleOpt="std"
 
 baseDir=$HOME/${0%/*}
 
@@ -225,6 +228,27 @@ fi
 
 }
 
+
+function cleanModule 
+{
+  if [ "$opt_tarFile" == "none" ]; then
+    return 0
+  fi  
+
+  printSep "Cleaning $opt_coModule"
+  local logFile=$tmpDir/make-realclean.log
+  checkCmd "make realclean" > $logFile 2>&1
+  mk_rc=$?
+
+  printf "\n%s\n" "files unkown to CVS:"
+  local leftFiles=$(cvs -nQ update | grep "^? ") 
+  if [ "$leftFiles" != "" ]; then 
+    mkMailStr "$mailBody3 $leftFiles"
+    sendMail "make realclean has left some files! $gccMailSubject" "$mailRecipients" "$MAIL_STR" "$cvsHistMailBackupDir" "$logFile"
+  fi
+  return $mk_rc
+}
+
 ###
 ### MAIN PART
 ###
@@ -254,18 +278,19 @@ while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
       printf "%s\n"   "  -n send no mails. Just print the message to stdout."
       printf "%s\n"   "  -e exit before compile (for testing only)"
       printf "%s\n"   "SDK-Settings:"
-      printf "%s\n"   "  -s<sdk-root> => \"${opt_sdkRootDir}\" "
-      printf "%s\n"   "  -d<sdk-dir> => \"${opt_sdkDir}\" "
-      printf "%s\n"   "  -g<gcc-version> => \"${opt_gccVersion}\" "
-      printf "%s\n"   "  -t<version-tag> => \"${opt_coTag}\" "
+      printf "%s\n"   "  -s<sdk-root>      => \"${opt_sdkRootDir}\" "
+      printf "%s\n"   "  -d<sdk-dir>       => \"${opt_sdkDir}\" "
+      printf "%s\n"   "  -g<gcc-version>   => \"${opt_gccVersion}\" "
+      printf "%s\n"   "  -t<version-tag>   => \"${opt_coTag}\" "
       printf "%s\n"   "Source-Definitions:"
-      printf "%s\n"   "  -m<cvs-module> => \"${opt_coModule}\" "
-      printf "%s\n"   "  -f<tar-file> => \"${opt_tarFile}\" "
-      printf "%s\n"   "  -r<build-root> => \"${opt_rootDir}\" "
-      printf "%s\n"   "  -c<checkout-dir> => \"tmp_secondo_<date>\""
+      printf "%s\n"   "  -m<cvs-module>    => \"${opt_coModule}\" "
+      printf "%s\n"   "  -o<module-option> => \"${opt_coModuleOpt}\" "
+      printf "%s\n"   "  -f<tar-file>      => \"${opt_tarFile}\" "
+      printf "%s\n"   "  -r<build-root>    => \"${opt_rootDir}\" "
+      printf "%s\n"   "  -c<checkout-dir>  => \"tmp_secondo_<date>\""
       printf "%s\n"   "Test-Run Options:"
       printf "%s\n"   "  -w<seconds> (timeout for tests!) => \"${opt_waitMax}\" "
-      printf "%s\n"   "  -l<log-root> => \"${opt_logRoot}\" "
+      printf "%s\n"   "  -l<log-root>                     => \"${opt_logRoot}\" "
       printf "%s\n\n" "The script checks out a local copy of <cvs-module> into the directoy"
       printf "%s\n"   "into <build-root>/<checkout-dir> and runs make, various tests, etc."
       printf "%s\n\n" "In case of a failure an email will be sent to the CVS users."
@@ -309,14 +334,14 @@ showValue opt_gccVersion
 showValue opt_coTag
 showValue opt_coDir
 showValue opt_coModule
+showValue opt_coModuleOpt
 showValue opt_tarFile
+showValue opt_tarMail
 
 if [ "$opt_tarFile" != "none" ]; then
-  opt_compileAll="no"
   opt_mkStable="no"
 fi
 
-showValue opt_compileAll
 showValue opt_mkStable
 showValue opt_earlyExit
 
@@ -426,6 +451,7 @@ else
 fi
 
 else
+  mailRecipients=$opt_tarMail
   cvsChanges="Testing $opt_tarFile"	
 fi
 
@@ -455,46 +481,43 @@ cd $opt_rootDir/$opt_coDir
 checkCmd "tar -xzf $opt_tarFile"
 fi	
 
-if [ "$opt_earlyExit" == "true" ]; then
+if [ "$opt_earlyExit" == "yes" ]; then
   exit 0
 fi  
 
-## run make
-printSep "Compiling $opt_coModule"
+##
+## Build the specified module 
+##
 
 declare -i errors=0
 cd $cbuildDir
 printf "\n%s\n" "Entering directory $PWD"
+printSep "Compile $coModule with option $opt_coModule"
 
-if [ "$opt_compileAll" == "yes" ]; then
-export SECONDO_ACTIVATE_ALL_ALGEBRAS="true"
-#export SECONDO_YACC="/usr/bin/bison"
+if [ "$opt_coModuleOpt" == "all" ]; then
 
-logFile=$tmpDir/make-all-algebras.log
-makeModule "$logFile" "Building $opt_coModule with all algebras failed!"
-
-printSep "Cleaning $opt_coModule"
-logFile=$tmpDir/make-realclean.log
-checkCmd "make realclean" > $logFile 2>&1
-
-printf "\n%s\n" "files unkown to CVS:"
-leftFiles=$(cvs -nQ update | grep "^? ") 
-if [ "$leftFiles" != "" ]; then 
-  mkMailStr "$mailBody3 $leftFiles"
-  sendMail "make realclean has left some files! $gccMailSubject" "$mailRecipients" "$MAIL_STR" "$cvsHistMailBackupDir" "$logFile"
-  fi
+  export SECONDO_ACTIVATE_ALL_ALGEBRAS="true"
+  #export SECONDO_YACC="/usr/bin/bison"
+  logFile=$tmpDir/make-all-algebras.log
+  subject="Building $opt_coModule with all algebras failed!"
+  opt_runTests="no"
 
 fi
 
-printSep "Compile with standard algebras"
-logFile=$tmpDir/make-default-algebras.log
-unset SECONDO_ACTIVATE_ALL_ALGEBRAS
-makeModule "$logFile" "Building $opt_coModule failed!"
+if [ "$opt_coModuleOpt" == "std" ]; then
 
+  unset SECONDO_ACTIVATE_ALL_ALGEBRAS
+  logFile=$tmpDir/make-default-algebras.log
+  subject="Building $opt_coModule failed!"
+
+fi
+
+makeModule "$logFile" "$subject"  
+mk_rc=$?
 
 ## run tests
 
-if [ $? == 0 ]; then
+if [[ ($mk_rc -ne 0) && ($opt_runTests == "yes") ]]; then
 
   printSep "Running automatic tests"
   cd $scriptDir
@@ -522,39 +545,38 @@ $(find $opt_logRoot -name "_failed_*" -exec cat {} \;)
 
 fi
 
-
 if [ $[errors] != 0 ]; then
 
   printf "\n *** There were $errors errors in the automatic tests! ***\n"
+  
+fi
 
-else
+cleanModule
 
-  if [ "$opt_mkStable" == "yes" ]; then	
+if [[ ($[errors] == 0) && ("$opt_mkStable" == "yes") ]]; then	
 
-    # Move label for stable version
-    cd $cbuildDir
-    tagSym="LAST_STABLE"
-    tagMsg="Moving CVS tag $tagSym"
-    printSep $tagMsg
-    echo -e "Automatic regression test was successful. ${tagMsg}!" >> $cvsHistFile
-    cvs -Q tag -d $tagSym 
-    cvs -Q tag $tagSym
-    make tag=$tagSym src-archives
-    #Backup to /www switched of since the server has problems
-    #cp /tmp/make-$USER/secondo-$tagSym* $HOME/Backup 
+  # Move label for stable version
+  cd $cbuildDir
+  tagSym="LAST_STABLE"
+  tagMsg="Moving CVS tag $tagSym"
+  printSep $tagMsg
+  echo -e "Automatic regression test was successful. ${tagMsg}!" >> $cvsHistFile
+  cvs -Q tag -d $tagSym 
+  cvs -Q tag $tagSym
+  make tag=$tagSym src-archives
+  #Backup to /www switched of since the server has problems
+  #cp /tmp/make-$USER/secondo-$tagSym* $HOME/Backup 
 
-    # send a notification
-    stableArchives="/tmp/make-$USER/secondo-$tagSym.tar.gz"
-    cvsChanges="" 
-    mkMailStr "$mailBody4"
-    sendMail "New public version source archives created" "$mailRecipients" "$MAIL_STR"
+  # send a notification
+  stableArchives="/tmp/make-$USER/secondo-$tagSym.tar.gz"
+  cvsChanges="" 
+  mkMailStr "$mailBody4"
+  sendMail "New public version source archives created" "$mailRecipients" "$MAIL_STR"
 
-    # clean up
-    rm -rf $cbuildDir
-    rm -rf $tmpDir
-    rm -rf /tmp/make-$USER
-  fi
-
+  # clean up
+  rm -rf $cbuildDir
+  rm -rf $tmpDir
+  rm -rf /tmp/make-$USER
 fi
 
 exit $errors
