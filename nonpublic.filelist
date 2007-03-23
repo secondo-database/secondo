@@ -13,6 +13,7 @@ RoseAlgebra Rose
 RemoteStreamAlgebra RemoteStream
 PartitionedStreamAlgebra PartitionedStream
 WebAlgebra Web
+GraphAlgebra Graph
 
 # Directories
 
