@@ -672,8 +672,7 @@ Operator : inside
 Number   : 2
 Signature: mpoint x line -> mbool
 Example  : query train7 inside train7sections
-Result   : bug
-Remark   : "returns wrong value list, if upoint does not move."
+Result   : file
 
 
 Operator : inside
@@ -945,8 +944,7 @@ Operator : minus
 Number   : 18
 Signature: mregion x mpoint -> mregion
 Example  : query mrain2 minus train7down
-Result   : bug
-Remark   : "returns wrong value list"
+Result   : file
 
 
 Operator : minus
