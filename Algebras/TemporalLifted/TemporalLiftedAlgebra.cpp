@@ -740,7 +740,7 @@ static void MovingRealCompareMM2(MReal& op1, MReal& op2, MBool&
       //cout << "number2= " << number2 << endl;
       //cout << "iv.lc= " << iv->lc << endl;
       //cout << "iv.rc= " << iv->rc << endl;
-      const Interval<Instant>* iv2;
+      //const Interval<Instant>* iv2;
       //p.Get(0, iv2);
       //cout << "iv2end " << iv2->end.ToString() << endl;
       //cout << "iv2start " << iv2->start.ToString() << endl;
@@ -843,7 +843,7 @@ Returns true if the value of these two mReals holds the comparison.
 The comparisons are -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
 
 */
-static void MovingRealCompareMM(MReal& op1, MReal& op2, MBool&
+/*static void MovingRealCompareMM(MReal& op1, MReal& op2, MBool&
  result, int op)
 {
   if(TLA_DEBUG)
@@ -1031,7 +1031,7 @@ static void MovingRealCompareMM(MReal& op1, MReal& op2, MBool&
     }
   }
   result.EndBulkLoad(false);
-}
+}*/
 
 /*
 1.1 Method ~MovingRealIntersectionMM~
@@ -1255,6 +1255,7 @@ static void MPointInsideLine(MPoint& mp, Line& ln, Periods& pResult)
   {
 
     mp.Get(i, up);
+    
     if(TLA_DEBUG){
       cout<<"UPoint # "<<i<<" ["<<up->timeInterval.start.ToString()<<" "
       <<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc<<" "
@@ -1265,6 +1266,7 @@ static void MPointInsideLine(MPoint& mp, Line& ln, Periods& pResult)
     {
       Instant t;
       ln.Get(n, l);
+      
       if(TLA_DEBUG){
         cout<<"UPoint # "<<i<<" ["<<up->timeInterval.start.ToString()
         <<" "<<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc
@@ -1298,7 +1300,7 @@ static void MPointInsideLine(MPoint& mp, Line& ln, Periods& pResult)
       }
       double al, bl, aup, bup;
       bool vl, vup;
-      vl = l->GetRightPoint().GetX() == l->GetLeftPoint().GetX();
+      vl = AlmostEqual( l->GetRightPoint().GetX(), l->GetLeftPoint().GetX() );
       if(!vl){
         al = (l->GetRightPoint().GetY() - l->GetLeftPoint().GetY())
            / (l->GetRightPoint().GetX() - l->GetLeftPoint().GetX());
@@ -1309,7 +1311,7 @@ static void MPointInsideLine(MPoint& mp, Line& ln, Periods& pResult)
       else
         if(TLA_DEBUG)
           cout<<"l is vertical"<<endl;
-      vup = up->p1.GetX() == up->p0.GetX();
+      vup = AlmostEqual( up->p1.GetX(), up->p0.GetX() );
       if(!vup){
         aup = (up->p1.GetY() - up->p0.GetY())
             / (up->p1.GetX() - up->p0.GetX());
@@ -1323,7 +1325,7 @@ static void MPointInsideLine(MPoint& mp, Line& ln, Periods& pResult)
       if(vl && vup){
         if(TLA_DEBUG)
           cout<<"both elements are vertical!"<<endl;
-        if(up->p1.GetX() != l->GetLeftPoint().GetX()){
+        if( !(AlmostEqual(up->p1.GetX(), l->GetLeftPoint().GetX())) ){
         if(TLA_DEBUG)
           cout<<"elements are vertical but not at same line"<<endl;
           continue;
@@ -1473,7 +1475,7 @@ static void MPointInsideLine(MPoint& mp, Line& ln, Periods& pResult)
       else if(vup){
         if(TLA_DEBUG)
           cout<<"vup is vertical vl not"<<endl;
-        if(up->p1.GetY() != up->p0.GetY()) {
+        if( !(AlmostEqual(up->p1.GetY(), up->p0.GetY())) ) {
           t.ReadFrom((up->p0.GetX() * al + bl - up->p0.GetY())
                   / (up->p1.GetY() - up->p0.GetY())
                   * (up->timeInterval.end.ToDouble()
@@ -1514,7 +1516,7 @@ static void MPointInsideLine(MPoint& mp, Line& ln, Periods& pResult)
         else {
           if(TLA_DEBUG)
             cout<<"up is not moving"<<endl;
-          if(al * up->p1.GetX() + bl == up->p1.GetY()){
+          if( AlmostEqual( al * up->p1.GetX() + bl, up->p1.GetY() ) ){
             if(TLA_DEBUG)
               cout<<"Point lies on line"<<endl;
             newper = up->timeInterval;
@@ -1526,10 +1528,10 @@ static void MPointInsideLine(MPoint& mp, Line& ln, Periods& pResult)
           }
         }
       }
-      else if(aup == al){
+      else if( AlmostEqual(aup, al) ){
         if(TLA_DEBUG)
           cout<<"both lines have same gradient"<<endl;
-        if(bup != bl){
+        if( !(AlmostEqual(bup, bl)) ){
           if(TLA_DEBUG)
             cout<<"colinear but not equal"<<endl;
           continue;
