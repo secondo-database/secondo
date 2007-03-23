@@ -71,6 +71,9 @@ class since Windows defines an API function 'Polygon'.
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
+
+namespace polygonalg{
+
 /*
 
 2 Data structures
@@ -731,4 +734,4 @@ InitializePolygonAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
   return (&polygonAlgebra);
 }
 
-
+} // end of namespace
