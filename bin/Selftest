@@ -27,14 +27,10 @@ else
 fi
 
 
-
 declare -i err=0
 errFiles=""
-logFile="Selftest.out"
-rm -f $logFile
-
 for f in $files; do
- $runCmd -i $f | tee -a $logFile
+ $runCmd -i $f
  rc=$?
  if [ $rc -ne 0 ]; then
    err=$[$err + 1]
@@ -56,7 +52,5 @@ if [ $err -ne 0 ]; then
 else
   echo -e "Selftest finished successfully "
 fi
-
-echo "The output was stored in $logFile."
 
 exit $err
