@@ -37,6 +37,7 @@ public class Dsplpath extends DisplayGraph implements DsplSimple
 	/** The internal datatype representation */
 	private Vector verticies;
 	private Vector edges;
+  private boolean defined;
 
 	/**
 	 * Scans the numeric representation of a point datatype
@@ -49,6 +50,14 @@ public class Dsplpath extends DisplayGraph implements DsplSimple
 	{
 		int maxLabelLen=5;
 		boolean romanNumbers=true;
+        
+    if(isUndefined(v)){
+        err = false;
+        defined = false;
+        return;
+    }
+    defined = true;
+
 		verticies = new Vector(v.listLength());
 		float cost;
 		edges = new Vector(v.listLength());
@@ -160,8 +169,11 @@ public class Dsplpath extends DisplayGraph implements DsplSimple
 			Reporter.writeError("Error in ListExpr :parsing aborted");
 			qr.addEntry(new String("(" + AttrName + ": GA(graph))"));
 			return;
-		} else
+		} else if(!defined){
+      qr.addEntry("undefined");
+    } else {
 			qr.addEntry(this);
+    }
 	}
 
 }
