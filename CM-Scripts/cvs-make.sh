@@ -95,9 +95,6 @@ mailBody4="
 $mailHeader
 
 A new public version was created as tar file in
-
-  $stableArchives
-
 "
 
 
@@ -195,6 +192,19 @@ $cvsChanges
 $1"
 }
 
+
+# mkMailStr2
+# $1 body
+# $2 variable text
+function mkMailStr2 {
+
+  MAIL_STR="SECONDO_SDK=<"$SECONDO_SDK">
+SECONDO_BUILD_DIR=<"$SECONDO_BUILD_DIR">
+
+$1
+
+$2"
+}
 
 # makeModule $1 $2
 #
@@ -344,6 +354,7 @@ fi
 
 showValue opt_mkStable
 showValue opt_earlyExit
+showValue opt_runTests
 
 showValue opt_waitMax
 showValue LU_SENDMAIL
@@ -492,7 +503,7 @@ fi
 declare -i errors=0
 cd $cbuildDir
 printf "\n%s\n" "Entering directory $PWD"
-printSep "Compile $coModule with option $opt_coModule"
+printSep "Compile $opt_coModule with option $opt_coModuleOpt"
 
 if [ "$opt_coModuleOpt" == "all" ]; then
 
@@ -517,7 +528,7 @@ mk_rc=$?
 
 ## run tests
 
-if [[ ($mk_rc -ne 0) && ($opt_runTests == "yes") ]]; then
+if [[ ($mk_rc -eq 0) && ($opt_runTests == "yes") ]]; then
 
   printSep "Running automatic tests"
   cd $scriptDir
@@ -568,9 +579,8 @@ if [[ ($[errors] == 0) && ("$opt_mkStable" == "yes") ]]; then
   #cp /tmp/make-$USER/secondo-$tagSym* $HOME/Backup 
 
   # send a notification
-  stableArchives="/tmp/make-$USER/secondo-$tagSym.tar.gz"
-  cvsChanges="" 
-  mkMailStr "$mailBody4"
+  archive="/tmp/make-$USER/secondo-$tagSym.tar.gz"
+  mkMailStr2 "$mailBody4" $archive
   sendMail "New public version source archives created" "$mailRecipients" "$MAIL_STR"
 
   # clean up
