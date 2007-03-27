@@ -3080,7 +3080,7 @@ bool HalfSegment::RayAbove( const Point& p, double &abovey0 ) const
       abovey0 = yl;
       return true;
     }
-    else if( xl < x && x < xr )
+    else if( xl < x && x <= xr )
     {
       double k = (yr - yl) / (xr - xl),
              a = (yl - k * xl),
