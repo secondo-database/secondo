@@ -11401,7 +11401,7 @@ int SpatialRect2Region( Word* args, Word& result, int message,
 
   Rectangle<2> *rect = (Rectangle<2> *)args[0].addr;
   Region *res = (Region *)result.addr;
-
+  res->SetDefined(true);
   res->Clear();
   if(  rect->IsDefined() )
   {
@@ -11409,10 +11409,20 @@ int SpatialRect2Region( Word* args, Word& result, int message,
     int partnerno = 0;
     double min0 = rect->MinD(0), max0 = rect->MaxD(0), 
            min1 = rect->MinD(1), max1 = rect->MaxD(1);
+
     Point v1(true, max0, min1), 
           v2(true, max0, max1), 
           v3(true, min0, max1), 
           v4(true, min0, min1);
+
+    if( AlmostEqual(v1, v2) || 
+        AlmostEqual(v2, v3) || 
+        AlmostEqual(v3, v4) || 
+        AlmostEqual(v4, v1) )
+    { // one interval is (almost) empty, so will be the region
+      res->SetDefined( true );
+      return 0;
+    }
 
     res->StartBulkLoad();
 
