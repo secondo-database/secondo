@@ -24,7 +24,7 @@ August 4, 2000 RHG. Changed the definition of ~ident~ to include the underscore 
 
 March 2002 Ulrich Telle Port to C++, using ~flex~ and ~bison~ instead of ~lex~ and ~yacc~.
 
-*/			
+*/
 
 %{
 #include "SpecParser.tab.hpp"
@@ -37,35 +37,35 @@ March 2002 Ulrich Telle Port to C++, using ~flex~ and ~bison~ instead of ~lex~ a
 letter         [a-zA-Z]
 digit          [0-9]
 ident          {letter}({letter}|{digit}|_)*  
-otherChar      [^\(\)\"A-Za-z0-9 \[\]\_\,\;\n\t]
+otherChar      [^\(\)\"A-Za-z0-9 \[\]\_\,\;\n  ]
 math           {otherChar}{1,20}
 comment        ^#.*
-space	       [ \t\n]+
+space          [   \n]+
 
 %option yylineno
 
 %%
 
 {comment}       {return ZZCOMMENT;} 
-{space}  	; /* ignore spaces */
+{space}    ; /* ignore spaces */
 
-fun		      {yylval.text = strdup(yytext); return ZZFUN;}
-operator	  {return ZZOPERATOR;}
-pattern		  {return ZZPATTERN;}
-op		      {return ZZOP;}
-infixop		  {return ZZINFIXOP;}
-alias		    {return ZZALIAS;}
-list		    {return ZZLIST;}
-implicit	  {return ZZIMPLICIT;}
-parameter	  {return ZZPARAMETER;}
-parameters	{return ZZPARAMETERS;}
-type		    {return ZZTYPE;}
-types		    {return ZZTYPES;}
-funlist		  {return ZZFUNLIST;}
+fun          {yylval.text = strdup(yytext); return ZZFUN;}
+operator     {return ZZOPERATOR;}
+pattern      {return ZZPATTERN;}
+op           {return ZZOP;}
+infixop      {return ZZINFIXOP;}
+alias        {return ZZALIAS;}
+list         {return ZZLIST;}
+implicit     {return ZZIMPLICIT;}
+parameter    {return ZZPARAMETER;}
+parameters   {return ZZPARAMETERS;}
+type         {return ZZTYPE;}
+types        {return ZZTYPES;}
+funlist      {return ZZFUNLIST;}
 
-{ident}		  {yylval.text = strdup(yytext); return ZZIDENTIFIER;}
-{math}		  {yylval.text = strdup(yytext); return ZZSYMBOL;}
-.           {yylval.text = strdup(yytext); return yytext[0];}
+{ident}      {yylval.text = strdup(yytext); return ZZIDENTIFIER;}
+{math}       {yylval.text = strdup(yytext); return ZZSYMBOL;}
+.            {yylval.text = strdup(yytext); return yytext[0];}
 
 
 

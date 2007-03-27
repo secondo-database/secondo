@@ -1,3 +1,29 @@
+/*
+---- 
+This file is part of SECONDO.
+
+Copyright (C) 2004-2007, 
+University in Hagen, 
+Faculty of Mathematics and Computer Science, 
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+*/
+
 %{
 
 
@@ -32,6 +58,8 @@ ofstream* lexrules;
 ofstream* yaccrules1;
 ofstream* yaccrules2;
 ofstream* tokens;
+int tokenslength; // length of the current tokens line
+int maxtokenslength = 70;
 
 /* 
 1.3 A set containing tokens for simple postfix operators 
@@ -113,7 +141,7 @@ defined values.
 */
 bool init(){
   // set the translation to be empty
-	currenttranslation.token = new ostringstream();
+  currenttranslation.token = new ostringstream();
   currenttranslation.opname = new ostringstream();
   currenttranslation.arguments1 = new vector<string>;
   currenttranslation.arguments2 = new vector<string>;
@@ -134,13 +162,16 @@ bool init(){
   yaccrules2 = new ofstream("yaccrules2"); 
   if(yaccrules2==NULL)
      return false;
-  tokens = new ofstream("tokens"); 
+  tokens = new ofstream("tokens");
+  tokenslength=0; // nothing written to tokens   
   if(tokens==NULL)
      return false;
   processedSpecifications=0;
  
-  // we need the "=" operator undepending on any algebras so it is defined fix in 
-  // the parser. But we have to ignore it and we have to detect specification 
+  // we need the "=" operator undepending on any algebras 
+  // so it is defined fix in 
+  // the parser. But we have to ignore it and we have to detect 
+  //  specification 
   // different to a standard infix operator
   operatornames.insert("=");
   opnamesWithPattern.insert("= _infixop_");
@@ -168,10 +199,13 @@ This function closes all open files.
 
 */
 bool finalize(){
-   (*yaccrules1) << "\n\t;\n\n";
+   (*lexrules) << endl;
    lexrules->close();
+   (*yaccrules1) << "\n  ;\n\n";
    yaccrules1->close();
+   (*yaccrules2) << endl; 
    yaccrules2->close();
+   (*tokens) << endl << endl;
    tokens->close();
    return true;
 }
@@ -237,54 +271,70 @@ void print_simple_postfix(){
      token = token + "_a";
   }
   
-	if(simplepostfixtokens.find(token)==simplepostfixtokens.end()){
-		/*
-			The rule is not create in this case, we make entries in the
-			files rules and yaccrules1.
-		*/
-		simplepostfixtokens.insert(token);
-		// write token
-		(*tokens) << token << " ";
-		// write rule
-		(*yaccrules1) << "\n\t| " ;
-		int size = currenttranslation.arguments1->size();
-		for(int i=0;i<size;i++){
-			 string arg = (*currenttranslation.arguments1)[i];
-			 (*yaccrules1) << arg << " ";
-		}
+  if(simplepostfixtokens.find(token)==simplepostfixtokens.end()){
+    /*
+      The rule is not created in this case, we make entries in the
+      files rules and yaccrules1.
+    */
+    simplepostfixtokens.insert(token);
+    // write token
+    int len = token.size();
+    if(tokenslength + len > maxtokenslength){
+        (*tokens) << endl;
+        tokenslength = 0; 
+    }
+    tokenslength += len;
+
+    (*tokens) << token << " ";
+    // write rule
+    (*yaccrules1) << endl << "/*" << endl
+                  << "~" << token << "~" << endl
+                  << endl << "*/" << endl;
+
+    (*yaccrules1) << "\n  | " ;
+    int size = currenttranslation.arguments1->size();
+    for(int i=0;i<size;i++){
+       string arg = (*currenttranslation.arguments1)[i];
+       (*yaccrules1) << arg << " " << endl;
+    }
     (*yaccrules1) << token ;
     if(size2!=0){
-     	(*yaccrules1) << "'[' simplearguments ']'\n" ;
+       (*yaccrules1) << "'[' simplearguments ']'\n" ;
     }
-		/* write the translation  */
-		string space = "NestedText::AtomC(\" \")";
-		(*yaccrules1) << " \t\t{ $$ =";
-		(*yaccrules1) << "\t\t NestedText::Concat( ";
-		(*yaccrules1) << " \t\t NestedText::AtomC(\"(\"),"; 
-		(*yaccrules1) << "\t\t NestedText::Concat( $" << (size+1) << "," << endl;
+    /* write the translation  */
+    string space = "NestedText::AtomC(\" \")";
+    (*yaccrules1) << "     { $$ =" << endl;
+    (*yaccrules1) << "          NestedText::Concat( " << endl;
+    (*yaccrules1) << "          NestedText::AtomC(\"(\")," << endl; 
+    (*yaccrules1) << "          NestedText::Concat( $" 
+                  << (size+1) 
+                  << "," << endl;
     // write the arguments before the operator
-		for(int i=0; i<size;i++){
-				(*yaccrules1) << "\t\t NestedText::Concat(" << space << "," << endl;
-				(*yaccrules1) << "\t\t NestedText::Concat( $" << (i+1) << ",";
-		}
-    if(size2>0){
-       (*yaccrules1) << "\t\t NestedText::Concat(NestedText::AtomC(\" \")," << endl;
-  	   	(*yaccrules1) << "\t\tNestedText::Concat( $" << (size+3) << "," << endl;
+    for(int i=0; i<size;i++){
+        (*yaccrules1) << "     NestedText::Concat(" << space << "," << endl;
+        (*yaccrules1) << "     NestedText::Concat( $" << (i+1) << ","
+                      << endl;
     }
-		(*yaccrules1) << " \t\t NestedText::AtomC(\")\")"; 
-		for(int i=0;i< size;i++){
-				(*yaccrules1) << "))";
-		}
+    if(size2>0){
+       (*yaccrules1)  << "      NestedText::Concat(NestedText::AtomC(\" \"),"
+                      << endl;
+         (*yaccrules1) << "     NestedText::Concat( $" << (size+3) << "," 
+                      << endl;
+    }
+    (*yaccrules1) << "      NestedText::AtomC(\")\")"; 
+    for(int i=0;i< size;i++){
+        (*yaccrules1) << "))";
+    }
     if(size2>0){
         (*yaccrules1) << "))";
     }
-		(*yaccrules1) << "));";
-		(*yaccrules1) << "\t\t  }\n";
-	}
-	// write the rule for lex
-	(*lexrules) << "\"" << opname << "\" ";
-	(*lexrules) << " { yylval=NestedText::Atom(yytext,yyleng); return ";
-	(*lexrules) << token << ";}"  << endl; 
+    (*yaccrules1) << "));";
+    (*yaccrules1) << "      }\n";
+  }
+  // write the rule for lex
+  (*lexrules) << "\"" << opname << "\" ";
+  (*lexrules) << " { yylval=NestedText::Atom(yytext,yyleng); return ";
+  (*lexrules) << token << ";}"  << endl; 
 }
 
 /* 
@@ -300,63 +350,81 @@ void print_complex_postfix_without_implicit_parameters(){
   /* Found an operator with function arguments */
   // define a new token from the alias
   string newtoken = currenttranslation.alias;
-	newtoken = "ZZ"+newtoken;
-	// write it into the tokens file
-	(*tokens) << newtoken << " ";
-	// write a lexrule 
-	(*lexrules) << "\"" << opname << "\" ";
-	(*lexrules) << " { yylval=NestedText::Atom(yytext,yyleng); return ";
-	(*lexrules) << newtoken << ";}"  << endl;
-	
-  // write the pattern for this function
-  (*yaccrules1)  << "\n\t| ";
-	int size1 = currenttranslation.arguments1->size();
-  // write the leading (simple) arguments
-	for(int i=0;i<size1;i++)
-			(*yaccrules1)  << ((*currenttranslation.arguments1)[i]) << " ";
-	(*yaccrules1) <<  newtoken << "'[' ";
-	int size2 = currenttranslation.arguments2->size();
+  newtoken = "ZZ"+newtoken;
 
-  int positions[currenttranslation.arguments2->size()]; // position of this argument in the pattern
+  int len = newtoken.size()+1;
+  if(tokenslength+len > maxtokenslength){
+     tokenslength = 0;
+     (*tokens) << endl;
+  }
+  tokenslength += len;
+
+  // write it into the tokens file
+  (*tokens) << newtoken << " ";
+  // write a lexrule 
+  (*lexrules) << "\"" << opname << "\" ";
+  (*lexrules) << " { yylval=NestedText::Atom(yytext,yyleng); return ";
+  (*lexrules) << newtoken << ";}"  << endl;
+  
+  // write the pattern for this function
+  (*yaccrules1) << endl << "/*" << endl
+                << "~" + newtoken << "~" << endl
+                << endl << "*/" << endl;
+
+
+  (*yaccrules1)  << "\n  | ";
+  int size1 = currenttranslation.arguments1->size();
+  // write the leading (simple) arguments
+  for(int i=0;i<size1;i++)
+      (*yaccrules1)  << ((*currenttranslation.arguments1)[i]) 
+                     << " " << endl;
+  (*yaccrules1) <<  newtoken << "'[' ";
+  int size2 = currenttranslation.arguments2->size();
+
+  // position of this argument in the pattern
+  int positions[currenttranslation.arguments2->size()];
   int separators = 0; // number of ';'
-  int nextseparator = (*currenttranslation.sublistlengths)[0]; // = length of the first sublist
-	for(int i=0;i<size2;i++){
+  // = length of the first sublist
+  int nextseparator = (*currenttranslation.sublistlengths)[0]; 
+  for(int i=0;i<size2;i++){
       if(i==nextseparator){ // end of this sublist
         // write separator into the pattern
-       (*yaccrules1) << " ';' ";
+       (*yaccrules1) << " ';' " << endl;
        separators++;
        nextseparator = i+(*currenttranslation.sublistlengths)[separators];
       }
       positions[i] = size1+3+ i*2;
-			string arg =((*currenttranslation.arguments2)[i]);
-			if(arg=="funlist")
-				arg = "list";
-			(*yaccrules1)  << arg;
+      string arg =((*currenttranslation.arguments2)[i]);
+      if(arg=="funlist")
+        arg = "list";
+      (*yaccrules1)  << arg << endl;
       if(i!=nextseparator-1) 
-        (*yaccrules1) << "',' ";
-	}
-	(*yaccrules1) << " ']'" << endl;
-	// write the translation
-	string space = "NestedText::AtomC(\" \")";
-	(*yaccrules1) << " \t\t{ $$ =";
-	(*yaccrules1) << "\t\t NestedText::Concat( ";
-	(*yaccrules1) << " \t\t NestedText::AtomC(\"(\"),"; 
-	(*yaccrules1) << "\t\t NestedText::Concat( $" << (size1+1+separators) << "," << endl; // operatortoken
-	for(int i=0; i<size1;i++){ // arguments before operator
-			(*yaccrules1) << "\t\t NestedText::Concat(" << space << "," << endl;
-			(*yaccrules1) << "\t\t NestedText::Concat( $" << (i+1) << ",";
-	}
-	for(int i=0; i<size2; i++){
-			(*yaccrules1) << "\t\t NestedText::Concat(" << space << "," << endl;
-			(*yaccrules1) << "\t\t NestedText::Concat( $" << positions[i] << ",";
-	}
+        (*yaccrules1) << "',' " << endl << "          ";
+  }
+  (*yaccrules1) << " ']'" << endl;
+  // write the translation
+  string space = "NestedText::AtomC(\" \")";
+  (*yaccrules1) << "     { $$ =";
+  (*yaccrules1) << "     NestedText::Concat( " << endl;
+  (*yaccrules1) << "     NestedText::AtomC(\"(\")," << endl; 
+  (*yaccrules1) << "     NestedText::Concat( $" 
+                << (size1+1+separators) 
+                << "," << endl; // operatortoken
+  for(int i=0; i<size1;i++){ // arguments before operator
+      (*yaccrules1) << "     NestedText::Concat(" << space << "," << endl;
+      (*yaccrules1) << "     NestedText::Concat( $" << (i+1) << "," << endl;
+  }
+  for(int i=0; i<size2; i++){
+      (*yaccrules1) << "     NestedText::Concat(" << space << "," << endl;
+      (*yaccrules1) << "     NestedText::Concat( $" << positions[i] << ",";
+  }
 
-	(*yaccrules1) << " \t\t NestedText::AtomC(\")\"))"; 
-	for(int i=0;i< size1+size2;i++){
-			(*yaccrules1) << "))";
-	}
-	(*yaccrules1) << ");";
-	(*yaccrules1) << "\t\t  }\n";
+  (*yaccrules1) << "      NestedText::AtomC(\")\"))"; 
+  for(int i=0;i< size1+size2;i++){
+      (*yaccrules1) << "))";
+  }
+  (*yaccrules1) << ");";
+  (*yaccrules1) << "      }\n";
 }
 
 /*
@@ -371,17 +439,24 @@ void print_complex_postfix(){
   string token = "ZZ" + currenttranslation.alias;
   string opname = currenttranslation.opname->str();
   // write to the tokens file
+  int len = token.size()+1;
+  if(tokenslength+len>maxtokenslength){
+     tokenslength = 0;
+     (*tokens) << endl;
+  }
+  tokenslength += len;
   (*tokens) << token << " ";
   // write  rule for lex
-	(*lexrules) << "\"" << opname << "\" ";
-	(*lexrules) << " { yylval=NestedText::Atom(yytext,yyleng); return ";
-	(*lexrules) << token << ";}"  << endl;
+  (*lexrules) << "\"" << opname << "\" ";
+  (*lexrules) << " { yylval=NestedText::Atom(yytext,yyleng); return ";
+  (*lexrules) << token << ";}"  << endl;
 
 
     // build the string for functions from the implicit parameters
    int sizei = currenttranslation.implicitNames->size();
    if(sizei>2){
-      cerr << " Error: too many implicit parameters at line " << yylineno <<  endl;
+      cerr << " Error: too many implicit parameters at line " 
+           << yylineno <<  endl;
       cerr << " allowed numbe is 2, found " << sizei << " ones " << endl;
       cerr << " The operator is " << opname << endl; 
       exit(-1);
@@ -390,11 +465,15 @@ void print_complex_postfix(){
    string funname = currenttranslation.alias+"_fun";
    string funlistname = funname+"list";
    // write the rule for yacc
-   (*yaccrules1) << "\n\t| ";
+   (*yaccrules1) << endl << "/*" << endl
+                 << "~" << token << "~" << endl
+                 << endl << "*/" << endl; 
+
+   (*yaccrules1) << "\n  | ";
    // write leading arguments
    int size1 = currenttranslation.arguments1->size();
    for(int i=0;i<size1;i++){
-     (*yaccrules1) << (*currenttranslation.arguments1)[i] << " ";
+     (*yaccrules1) << (*currenttranslation.arguments1)[i] << " " << endl;
    }
    // write the operatortoken
    (*yaccrules1) << token << " ";
@@ -410,7 +489,7 @@ void print_complex_postfix(){
 
    for(int i=0;i<size2;i++){
       if(i==nextseparator) { // end of a sublist
-         (*yaccrules1) << "';' ";
+         (*yaccrules1) << "';' " << endl;
          separators++;
          nextseparator=i+(*currenttranslation.sublistlengths)[separators];
       }
@@ -423,105 +502,142 @@ void print_complex_postfix(){
          funlist_used=true;
          arg = funlistname;
       }
-      (*yaccrules1) << arg ;
+      (*yaccrules1) << arg  << endl;
       if( (i+1) != nextseparator)
-        (*yaccrules1) << "',' ";
+        (*yaccrules1) << "',' " << endl;
    }
    (*yaccrules1) << " ']' \n ";
    // write the translation scheme
-	string space = "NestedText::AtomC(\" \")";
-	(*yaccrules1) << " \t\t{ $$ =";
-	(*yaccrules1) << "\t\t NestedText::Concat( ";
-	(*yaccrules1) << " \t\t NestedText::AtomC(\"(\"),"; 
-	(*yaccrules1) << "\t\t NestedText::Concat( $" << (size1+1) << "," << endl; // operatortoken
-	for(int i=0; i<size1;i++){ // arguments before operator
-			(*yaccrules1) << "\t\t NestedText::Concat(" << space << "," << endl;
-			(*yaccrules1) << "\t\t NestedText::Concat( $" << (i+1) << ",";
-	}
-	for(int i=0; i<size2; i++){
-			(*yaccrules1) << "\t\t NestedText::Concat(" << space << "," << endl;
-			(*yaccrules1) << "\t\t NestedText::Concat( $" << positions[i] << ",";
-	}
+  string space = "NestedText::AtomC(\" \")";
+  (*yaccrules1) << "     { $$ =";
+  (*yaccrules1) << "     NestedText::Concat( " << endl;
+  (*yaccrules1) << "      NestedText::AtomC(\"(\")," << endl; 
+  (*yaccrules1) << "     NestedText::Concat( $" << (size1+1) << "," << endl; 
+  for(int i=0; i<size1;i++){ // arguments before operator
+      (*yaccrules1) << "     NestedText::Concat(" << space << "," << endl;
+      (*yaccrules1) << "     NestedText::Concat( $" << (i+1) << "," << endl;
+  }
+  for(int i=0; i<size2; i++){
+      (*yaccrules1) << "     NestedText::Concat(" << space << "," << endl;
+      (*yaccrules1) << "     NestedText::Concat( $" << positions[i] << ","
+                    << endl;
+  }
 
-	(*yaccrules1) << " \t\t NestedText::AtomC(\")\"))"; 
-	for(int i=0;i< size1+size2;i++){
-			(*yaccrules1) << "))";
-	}
-	(*yaccrules1) << ");";
-	(*yaccrules1) << "\t\t  }\n";
+  (*yaccrules1) << "      NestedText::AtomC(\")\"))" << endl; 
+  for(int i=0;i< size1+size2;i++){
+      (*yaccrules1) << "))";
+  }
+  (*yaccrules1) << ");";
+  (*yaccrules1) << "      }\n";
 
-  if(funlist_used) { // without a function list wo don't allow naming of functions 
-		// print the rule for the function to yaccrules 2
-		(*yaccrules2) << funname << ":   naming "<< funname << "_1" <<  endl;
-		(*yaccrules2) << "\t\t  {$$ = NestedText::Concat(NestedText::AtomC(\"(\"), " << endl;
-		(*yaccrules2) << "\t\t        NestedText::Concat($1, " << endl;
-		(*yaccrules2) << "\t\t        NestedText::Concat(NestedText::AtomC(\" \")," << endl;
-		(*yaccrules2) << "\t\t        NestedText::Concat($2, " << endl;
-		(*yaccrules2) << "\t\t        NestedText::AtomC(\")\")  ))));} " << endl;
-		(*yaccrules2) << "\t\t  | " << funname << "_1   {$$ = $1;} " << endl;
-		(*yaccrules2) << "\t\t ; " << endl;
+  if(funlist_used) { // without a function list wo 
+                     // don't allow naming of functions 
+    // print the rule for the function to yaccrules 2
+    (*yaccrules2) << endl << "/*" << endl
+                  << "~" << funname << "~" << endl
+                  << endl << "*/" << endl;
+    (*yaccrules2) << funname << ":   naming "<< funname << "_1" <<  endl;
+    (*yaccrules2) << "      "
+                  << "{$$ = NestedText::Concat(NestedText::AtomC(\"(\"), " 
+                  << endl;
+    (*yaccrules2) << "            NestedText::Concat($1, " << endl;
+    (*yaccrules2) << "            " 
+                  << "NestedText::Concat(NestedText::AtomC(\" \")," 
+                  << endl;
+    (*yaccrules2) << "            NestedText::Concat($2, " << endl;
+    (*yaccrules2) << "            NestedText::AtomC(\")\")  ))));} " << endl;
+    (*yaccrules2) << "      | " << funname << "_1   {$$ = $1;} " << endl;
+    (*yaccrules2) << "     ; " << endl;
   }
 
   string extension = funlist_used? "_1":"";
 
   // write the real function scheme
+  (*yaccrules2) << endl << "/*" << endl
+                << "~" << funname << extension << "~" << endl
+                << endl << "*/" << endl;
   (*yaccrules2) << funname << extension << " :  { " << endl;
   for(int i=0;i<sizei;i++){
-       (*yaccrules2) << "\t\t paramno++; " << endl;
-       (*yaccrules2) << "\t\t strcpy(paramname,\"";
-       (*yaccrules2) << (*currenttranslation.implicitNames)[i] << "\");" << endl;
-       (*yaccrules2) << "\t\t sprintf(param" << (i+1) << ", \"%s%d\",paramname,paramno);" << endl;
-       (*yaccrules2) << "\t\t paramstack.push(param" << (i+1) << ");" << endl;
+       (*yaccrules2) << "     paramno++; " << endl;
+       (*yaccrules2) << "     strcpy(paramname,\"";
+       (*yaccrules2) << (*currenttranslation.implicitNames)[i] << "\");" 
+                     << endl;
+       (*yaccrules2) << "     sprintf(param" << (i+1) 
+                     << ", \"%s%d\",paramname,paramno);" 
+                     << endl;
+       (*yaccrules2) << "     paramstack.push(param" << (i+1) << ");" 
+                     << endl;
   }   
-  (*yaccrules2) << "\t\t }" << endl;  
-  (*yaccrules2) << "\t valueexpr" << endl;
-  (*yaccrules2) << "\t\t { " << endl;
+  (*yaccrules2) << "     }" << endl;  
+  (*yaccrules2) << "   valueexpr" << endl;
+  (*yaccrules2) << "     { " << endl;
   for(int i=sizei;i>0;i--){
-     (*yaccrules2) << "\t\t strcpy(param" << (i) << ",paramstack.top().c_str());" << endl;
-     (*yaccrules2) << "\t\t paramstack.pop();" << endl;
+     (*yaccrules2) << "     strcpy(param" << (i) 
+                   << ",paramstack.top().c_str());" 
+                   << endl;
+     (*yaccrules2) << "     paramstack.pop();" << endl;
   }
   
-  (*yaccrules2) << "\t\t $$ = NestedText::Concat( NestedText::AtomC(\"(fun \"),"  << endl;
+  (*yaccrules2) << "     "
+                << "$$ = NestedText::Concat( NestedText::AtomC(\"(fun \"),"
+                << endl;
   for(int i=0; i< sizei ; i++){
-     (*yaccrules2)  << "\t\t\t  NestedText::Concat( NestedText::AtomC(\"(\"),"  << endl;
-     (*yaccrules2)  << "\t\t\t  NestedText::Concat( NestedText::AtomC(param" << (i+1) << ")," << endl;
-     (*yaccrules2)  << "\t\t\t NestedText::Concat( NestedText::AtomC(\""; 
-     (*yaccrules2)  << " " << ((*currenttranslation.implicitTypes)[i]) << "\")," << endl;
-     (*yaccrules2)  << "\t\t\t NestedText::Concat(NestedText::AtomC(\")\")," << endl;
+     (*yaccrules2)  << "      NestedText::Concat( NestedText::AtomC(\"(\"),"
+                    << endl;
+     (*yaccrules2)  << "      NestedText::Concat( NestedText::AtomC(param" 
+                    << (i+1) << ")," 
+                    << endl;
+     (*yaccrules2)  << "     NestedText::Concat( NestedText::AtomC(\""; 
+     (*yaccrules2)  << " " << ((*currenttranslation.implicitTypes)[i]) 
+                    << "\")," << endl;
+     (*yaccrules2)  << "     NestedText::Concat(NestedText::AtomC(\")\"),"
+                    << endl;
   }
-  (*yaccrules2) << "\t\t\t   NestedText::Concat( $2, NestedText::AtomC(\")\")))";
+  (*yaccrules2) << "         "
+                << "NestedText::Concat( $2, NestedText::AtomC(\")\")))";
   for(int i=0;i<sizei;i++){
       (*yaccrules2) << " ))))";
   }
   (*yaccrules2) << ";" << endl;
   // delete values of all paramameters
   for(int i=0;i<sizei;i++){
-     (*yaccrules2) << "\t\tsprintf(param"<<(i+1)<<",\"%s\",\"\");"<< endl;
+     (*yaccrules2) << "    sprintf(param"<<(i+1)<<",\"%s\",\"\");"<< endl;
   }
 
-  (*yaccrules2) << "\t\t }" << endl;
-  (*yaccrules2) << "\t\t | function { $$ = $1; } " << endl;
-  (*yaccrules2) << "\t\t ;\n";
+  (*yaccrules2) << "     }" << endl;
+  (*yaccrules2) << "     | function { $$ = $1; } " << endl;
+  (*yaccrules2) << "     ;\n";
   
   if(funlist_used) {
      // rule for making bracket around the funlist
+     (*yaccrules2) << endl << "/*" << endl
+                   << "~" << funlistname << "~" << endl
+                   << endl << "*/" << endl;
      (*yaccrules2) << funlistname << ": " << funlistname << "_1 " << endl;
-     (*yaccrules2) << "\t\t { $$=NestedText::Concat(NestedText::AtomC(\"( \")," << endl;
-     (*yaccrules2) << "\t\t           NestedText::Concat($1, " << endl;
-     (*yaccrules2) << "\t\t           NestedText::AtomC(\" ) \")));" << endl;
-     (*yaccrules2) << " \t\t } " << endl;
-     (*yaccrules2) << "\t\t ; " << endl;
+     (*yaccrules2) << "     " 
+                   << "{ $$=NestedText::Concat(NestedText::AtomC(\"( \")," 
+                   << endl;
+     (*yaccrules2) << "               NestedText::Concat($1, " << endl;
+     (*yaccrules2) << "               NestedText::AtomC(\" ) \")));" 
+                   << endl;
+     (*yaccrules2) << "      } " << endl;
+     (*yaccrules2) << "     ; " << endl;
      // the funlist itself
-     (*yaccrules2) << funlistname << "_1  : "<< funname << "{$$ = $1;}" << endl; // one elem list
-     (*yaccrules2) << "\t\t | " << funlistname << "_1 ',' " << funname << endl; // composite list
-     (*yaccrules2) << "\t\t  { $$ = NestedText::Concat($1," << endl;
-     (*yaccrules2) << "\t\t        NestedText::Concat(NestedText::AtomC(\" \"), $3));" << endl;
-     (*yaccrules2) << "\t\t }" << endl;
-     (*yaccrules2) << " \t\t ; \n";
+     (*yaccrules2) << endl << "/*" << endl
+                   << "~" << funlistname << "_1~" << endl
+                   << endl << "*/" << endl;
+     (*yaccrules2) << funlistname << "_1  : "<< funname << "{$$ = $1;}" 
+                   << endl; // one elem list
+     (*yaccrules2) << "     | " << funlistname << "_1 ',' " 
+                   << funname << endl; // composite list
+     (*yaccrules2) << "      { $$ = NestedText::Concat($1," << endl;
+     (*yaccrules2) << "            "
+                   << "NestedText::Concat(NestedText::AtomC(\" \"), $3));" 
+                   << endl;
+     (*yaccrules2) << "     }" << endl;
+     (*yaccrules2) << "      ; \n";
    }
- 
-
-}
+} 
 
 
 /*
@@ -541,21 +657,21 @@ void printtranslation(){
      print_simple_postfix();    
  }
  else{
-	int implicitNamesSize = currenttranslation.implicitNames->size();
-	int implicitTypesSize = currenttranslation.implicitTypes->size();
-	if(implicitNamesSize!=implicitTypesSize){
+  int implicitNamesSize = currenttranslation.implicitNames->size();
+  int implicitTypesSize = currenttranslation.implicitTypes->size();
+  if(implicitNamesSize!=implicitTypesSize){
        cerr << " error in line " << yylineno << endl;
-			 cerr << ("Different sizes for implicit names and types ");
-			 cerr << " Names : ";
-			 for(int i=0;i<implicitNamesSize;i++)
-						cerr << ((*currenttranslation.implicitNames)[i]) << endl;
-			 cout << " Types : ";
-			 for(int i=0;i<implicitTypesSize;i++)
-						cerr << ((*currenttranslation.implicitTypes)[i]) << endl;
-			finalize();
-			 exit(-1);
-	}
-	if(implicitNamesSize==0){ // without implicite parameters
+       cerr << ("Different sizes for implicit names and types ");
+       cerr << " Names : ";
+       for(int i=0;i<implicitNamesSize;i++)
+            cerr << ((*currenttranslation.implicitNames)[i]) << endl;
+       cout << " Types : ";
+       for(int i=0;i<implicitTypesSize;i++)
+            cerr << ((*currenttranslation.implicitTypes)[i]) << endl;
+      finalize();
+       exit(-1);
+  }
+  if(implicitNamesSize==0){ // without implicite parameters
      print_complex_postfix_without_implicit_parameters();     
   } else{ // operator with implicit parameters
      print_complex_postfix();
@@ -570,25 +686,26 @@ void printtranslation(){
   int   len;
 }
 
-%token 	ZZOPERATOR ZZPATTERN ZZFUN ZZOP ZZINFIXOP  ZZLIST
-       	ZZIMPLICIT ZZPARAMETER ZZPARAMETERS ZZTYPE ZZTYPES ZZFUNLIST ZZCOMMENT
+%token   ZZOPERATOR ZZPATTERN ZZFUN ZZOP ZZINFIXOP  ZZLIST
+         ZZIMPLICIT ZZPARAMETER ZZPARAMETERS ZZTYPE ZZTYPES ZZFUNLIST 
+        ZZCOMMENT
 
-%token<text> ZZIDENTIFIER	ZZSYMBOL ZZALIAS
+%token<text> ZZIDENTIFIER  ZZSYMBOL ZZALIAS
 
 %type<text> name
 %type<len> argscomma simpleargscomma simpleargsblank
 
 %%
 
-specfile	:  specs
-		      |
-		      ;
+specfile  :  specs
+          |
+          ;
 
-specs		  : spec
-		      | ZZCOMMENT
-		      | specs spec
-		      | specs ZZCOMMENT
-	        ;
+specs      : spec
+          | ZZCOMMENT
+          | specs spec
+          | specs ZZCOMMENT
+          ;
 
 spec      :  ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN pattern implicit
             {   processedSpecifications++;
@@ -596,33 +713,36 @@ spec      :  ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN pattern implicit
                 currenttranslation.alias = $4;
                 // check for new operator
                 string op = string($2);
-                string opWithPattern= op+" "+currenttranslation.pattern->str();
+                string opWithPattern= op+" " + 
+                                      currenttranslation.pattern->str();
                 if(operatornames.find(op)==operatornames.end()){   
                     operatornames.insert(op);
                     opnamesWithPattern.insert(opWithPattern);
                     printtranslation(); // print out the current translation
                 } else{
                   // operator already exists check for different pattern
-                  if(opnamesWithPattern.find(opWithPattern)==opnamesWithPattern.end()){
-                      cerr << " Conficting definition of operator " << op << endl;
+                  if(opnamesWithPattern.find(opWithPattern)==
+                     opnamesWithPattern.end()){
+                      cerr << " Conficting definition of operator " 
+                           << op << endl;
                       cerr << " Line in spec file is " << yylineno << endl;
                       exit(-1);
                   }
                 }
                 reset(); // make clean 
              }
-		      ;
+          ;
 
-name		  : ZZIDENTIFIER	
+name      : ZZIDENTIFIER  
             { $$ = $1; }
-		      | ZZSYMBOL
-            { $$ = $1; }	
-		      ;
+          | ZZSYMBOL
+            { $$ = $1; }  
+          ;
 
 
-pattern		: prefix
+pattern    : prefix
           | infix    
-		      | postfix{
+          | postfix{
               currenttranslation.isPostfix=true;
             }
           ;
@@ -634,7 +754,7 @@ infix     : '_' ZZINFIXOP '_'
             }
           ;
 
-prefix		: ZZOP '('simpleargscomma')'		
+prefix    : ZZOP '('simpleargscomma')'    
             {  currenttranslation.isSimple = true;
                (*currenttranslation.token) << "ZZPREFIXOP";
                (*currenttranslation.pattern) << "op(_";
@@ -650,18 +770,20 @@ prefix		: ZZOP '('simpleargscomma')'
                (*currenttranslation.pattern) << ")";
             }
             
-		      ;
+          ;
 
-postfix		: simpleargsblank ZZOP
+postfix    : simpleargsblank ZZOP
           {   currenttranslation.isSimple=true;           
-              (*currenttranslation.token) << "ZZPOSTFIXOP" << (currenttranslation.arguments1->size());
+              (*currenttranslation.token) << "ZZPOSTFIXOP" 
+                       << (currenttranslation.arguments1->size());
               for(int i=0;i<$1;i++){
                  (*currenttranslation.pattern) << "_";
               } 
              (*currenttranslation.pattern) << "op";
-          }		
-		      | simpleargsblank ZZOP '[' 	arguments ']'
-          {    (*currenttranslation.token) << "ZZPOSTFIXOP" << (currenttranslation.arguments1->size());
+          }    
+          | simpleargsblank ZZOP '['   arguments ']'
+          {    (*currenttranslation.token) << "ZZPOSTFIXOP" 
+                      << (currenttranslation.arguments1->size());
              for(int i=0;i<$1;i++){
                 (*currenttranslation.pattern) << "_";
              } 
@@ -669,88 +791,92 @@ postfix		: simpleargsblank ZZOP
              int lists = 0;
              int nextlist = (*currenttranslation.sublistlengths)[0];
              int size = currenttranslation.arguments2->size();
-             (*currenttranslation.pattern) << (*currenttranslation.arguments2)[0];
+             (*currenttranslation.pattern) <<
+                       (*currenttranslation.arguments2)[0];
              for(int i=1;i< size;i++){
                 if(i==nextlist){
                    lists++;
                    nextlist=(*currenttranslation.sublistlengths)[lists];
-                   (*currenttranslation.pattern ) << ";";
+                   (*currenttranslation.pattern ) << ";" << endl;
                 }else{
-                   (*currenttranslation.pattern) << ",";
+                   (*currenttranslation.pattern) << "," << endl;
                 }
-                (*currenttranslation.pattern) << (*currenttranslation.arguments2)[i];
+                (*currenttranslation.pattern) 
+                       << (*currenttranslation.arguments2)[i];
              }
              (*currenttranslation.pattern) << "]";
-          }		
+          }    
           ;
 
 
-simpleargscomma	: '_'
+simpleargscomma  : '_'
                  {$$ = 1; }
-		            | simpleargscomma ',' '_'
+                | simpleargscomma ',' '_'
                  {$$ = $1 + 1;}
-		            ;
+                ;
 
-simpleargsblank	: '_'
+simpleargsblank  : '_'
                 {   currenttranslation.arguments1->push_back("valueexpr");
                     $$ = 1;
                 }
-		            | simpleargsblank '_'
+                | simpleargsblank '_'
                 {   currenttranslation.arguments1->push_back("valueexpr");
                     $$ = $1 + 1;
                 }
-		            ;
+                ;
 
-arguments	: sublist
-		      | arguments ';' sublist
-	       	;
+arguments  : sublist
+          | arguments ';' sublist
+           ;
 
-sublist		: argscomma
+sublist    : argscomma
           { currenttranslation.sublistlengths->push_back($1);
           }
-		      | ZZLIST
+          | ZZLIST
           { currenttranslation.arguments2->push_back("list");
             currenttranslation.isSimple = false;
             currenttranslation.sublistlengths->push_back(1);
           } 
-		      | ZZFUNLIST{
+          | ZZFUNLIST{
             currenttranslation.arguments2->push_back("funlist");
             currenttranslation.isSimple = false;
             currenttranslation.sublistlengths->push_back(1);
           }
-		      ;
+          ;
 
-argscomma	: arg
+argscomma  : arg
           { $$ = 1; }
-		      | argscomma ',' arg
+          | argscomma ',' arg
           { $$ = $1 + 1; }
-		      ;
+          ;
 
-arg		: '_'
+arg    : '_'
       { currenttranslation.arguments2->push_back("valueexpr");
       }
-		  | ZZFUN
+      | ZZFUN
       { currenttranslation.arguments2->push_back("fun");
         currenttranslation.isSimple=false;
       }
-		  ;
+      ;
 
-implicit	: ZZIMPLICIT rest
+implicit  : ZZIMPLICIT rest
            { (*currenttranslation.pattern) << "implicit ";
              int size = currenttranslation.implicitNames->size();
              for(int i=0;i<size;i++){
-               (*currenttranslation.pattern) << (*currenttranslation.implicitNames)[i] << " ";
+               (*currenttranslation.pattern) 
+                      << (*currenttranslation.implicitNames)[i] << " ";
              }
              (*currenttranslation.pattern) << "types ";
              size = currenttranslation.implicitTypes->size();
              for(int i=0;i<size;i++){
-               (*currenttranslation.pattern) << (*currenttranslation.implicitTypes)[i] << " ";
+               (*currenttranslation.pattern) 
+                       << (*currenttranslation.implicitTypes)[i] << " ";
              }
            }
-		      |
-		      ;
+          |
+          ;
 
-rest		: ZZPARAMETER parameterlist ZZTYPE typelist
+rest    : ZZPARAMETER parameterlist ZZTYPE typelist
         |  ZZPARAMETERS parameterlist ZZTYPES typelist
         ;
 parameterlist : ZZIDENTIFIER
