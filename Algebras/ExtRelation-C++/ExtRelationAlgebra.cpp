@@ -1563,6 +1563,284 @@ Operator extrelsum (
          AvgSumTypeMap<false>         // type mapping
 );
 
+
+/*
+2.10 Operator ~krdup~
+
+This operator removes duplicates from a tuple stream. In contrast
+to the usual rdup operator, the test of equality of tuples is 
+done using only the attributes from the given attribute list.
+
+2.10.1 Type mapping of the operator ~krdup~
+
+*/
+
+ListExpr krdupTM(ListExpr args){
+  if(nl->ListLength(args)<2){
+    ErrorReporter::ReportError("minimum of 2 arguments required");
+    return nl->TypeError(); 
+  }
+
+  ListExpr streamList = nl->First(args);
+  ListExpr attrnameList = nl->Second(args);
+  if(nl->ListLength(attrnameList)<1){
+     ErrorReporter::ReportError("invalid number of attribute names");
+     return nl->TypeError();
+  }
+
+  // extract the attribute names
+  set<string> names;
+  int pos = 0;
+  while(!nl->IsEmpty(attrnameList)){
+      ListExpr attr = nl->First(attrnameList);
+      pos++;
+      attrnameList = nl->Rest(attrnameList);
+      if(!nl->AtomType(attr)==SymbolType){
+        ErrorReporter::ReportError("argument is not "
+                                   " an attribute name");
+        return nl->TypeError();
+      }
+      string n = nl->SymbolValue(attr);
+      // insert the name into the set of names
+      names.insert(nl->SymbolValue(attr));
+  }
+
+  // check the stream argument
+  if(nl->ListLength(streamList)!=2 ||
+     !nl->IsEqual(nl->First(streamList),"stream")){
+     ErrorReporter::ReportError("(stream (tuple(...)) "
+                                " expected as first argument");
+     return nl->TypeError();
+  }
+
+  ListExpr tupleList = nl->Second(streamList);
+  if(nl->ListLength(tupleList)!=2 ||
+     !nl->IsEqual(nl->First(tupleList),"tuple")){
+     ErrorReporter::ReportError("(stream (tuple(...)) "
+                                " expected as first argument");
+     return nl->TypeError();
+  }
+  ListExpr attrList = nl->Second(tupleList);
+ 
+  if(names.empty()){ // should never occur
+    ErrorReporter::ReportError("internal error, no attr names found.");
+    return nl->TypeError();
+  }
+
+  pos = 0;
+  
+  ListExpr PosList = nl->TheEmptyList();
+  ListExpr Last;
+  bool first = true;
+
+  while(!nl->IsEmpty(attrList)){
+     ListExpr pair = nl->First(attrList);
+     if((nl->ListLength(pair)!= 2) ||
+        (nl->AtomType(nl->First(pair))!=SymbolType)){
+        ErrorReporter::ReportError("Error in tuple definition ");
+        return nl->TypeError();
+     }
+     string name = nl->SymbolValue(nl->First(pair));
+     if(names.find(name)!= names.end()){
+         if(first){
+           first = false;
+           PosList = nl->OneElemList(nl->IntAtom(pos));
+           Last = PosList;
+           first = false;
+         } else {
+           Last = nl->Append(Last,nl->IntAtom(pos));
+         }
+         names.erase(name);
+     } 
+     pos++;
+     attrList = nl->Rest(attrList);
+  }
+
+  if(!names.empty()){
+    ErrorReporter::ReportError("at least one given attribute name is "
+                               "not part of the stream");
+    return nl->TypeError();
+  }  
+
+  
+  ListExpr result =  nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                                      nl->OneElemList(PosList),
+                                      streamList);
+  return result;
+}
+
+/*
+2.10.2 Value Mapping of the ~krdup~ operator
+
+This value mapping is very similar the this one of the 
+rdup operator. The only difference is, only specified
+attributes are used for the check of equality.
+
+*/ 
+
+
+class KrdupLocalInfo{
+public:
+/*
+~Constructor~
+
+Creates a localinfo for the krdup operator from the Supplier
+containing the information about the indexes which should be used 
+for the comparison.
+
+*/
+  KrdupLocalInfo(Supplier s):indexes(){
+       lastTuple=0;
+       int count = qp->GetNoSons(s);
+       Word elem;
+       for(int i=0;i<count; i++){
+          Supplier son = qp->GetSon(s,i);
+          qp->Request(son,elem); 
+          int index = ((CcInt*)elem.addr)->GetIntval();
+          indexes.push_back(index);
+       } 
+   }
+
+/*
+~Destructor~
+
+Destroy this instance.
+
+*/
+
+   ~KrdupLocalInfo(){
+       if(lastTuple!=0){
+          lastTuple->DecReference();
+          lastTuple->DeleteIfAllowed();
+       }
+       lastTuple = 0; 
+   }
+
+/*
+~ReplaceIfNonEqual~
+
+If the argument differs from the last stored tuple, the old tuple
+is replaced by the argument and the return value is true. Otherwise,
+this instance is keep unchanged and the reuslt of the call is false.
+The old tuple is removed automatically.
+
+*/
+inline bool  ReplaceIfNonEqual(Tuple* newTuple){
+   if(lastTuple==0){ // first call
+      newTuple->IncReference();
+      lastTuple = newTuple;
+      return true;
+   }
+
+   if(Equals(newTuple)){
+     return false;
+   } else{ // replace the tuple
+     lastTuple->DecReference();
+     lastTuple->DeleteIfAllowed();
+     newTuple->IncReference();
+     lastTuple = newTuple;
+     return true;
+   }
+}
+
+private:
+/*
+~equals~
+
+Checks the equality of the last tuple with the argument where only the
+attributes stored in the vector are of interest.
+
+*/
+inline bool Equals(Tuple* tuple){
+ int size = indexes.size();
+ for(int i=0;i<size;i++){
+	 int pos = indexes[i];
+	 int cmp = ( ((Attribute*)lastTuple->GetAttribute(pos))->CompareAlmost(
+		        	 ((Attribute*)tuple->GetAttribute(pos))));
+   if(cmp!=0){
+			 return false;
+	 }
+ }
+ return true;
+}   
+
+
+   Tuple* lastTuple;
+   vector<int> indexes;
+};
+
+
+int KrdupVM(Word* args, Word& result, int message, 
+                     Word& local, Supplier s)
+{
+  Word tuple;
+
+  switch(message)
+  {
+    case OPEN:
+      qp->Open(args[0].addr);
+      local = SetWord(new KrdupLocalInfo(qp->GetSon(s,2)));
+      return 0;
+    case REQUEST:
+      qp->Request(args[0].addr,tuple);
+      if(qp->Received(args[0].addr)){
+         KrdupLocalInfo* localinfo = (KrdupLocalInfo*) local.addr;
+         while(!localinfo->ReplaceIfNonEqual((Tuple*)tuple.addr)){
+            ((Tuple*)tuple.addr)->DeleteIfAllowed();
+            qp->Request(args[0].addr,tuple);
+            if(!qp->Received(args[0].addr)){
+                return CANCEL;
+            }
+         }
+         result.addr = tuple.addr;
+         return YIELD;
+
+      } else {
+        return CANCEL;
+      }
+    case CLOSE:
+      KrdupLocalInfo* localinfo = (KrdupLocalInfo*) local.addr;
+      delete localinfo;
+      local = SetWord(0); 
+      qp->Close(args[0].addr);
+      return 0;
+  }
+  return 0;
+}
+
+
+/*
+2.13.2 Specification of operator ~krdup~
+
+*/
+const string KrdupSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
+                            " x ai1 .. ain))))"
+                         " -> (stream (tuple([a1:d1, ... ,an:dn])))"
+                         "</text--->"
+                         "<text>_ krdup[ _ , _ , ...]</text--->"
+                         "<text>Removes duplicates from a sorted "
+                         "stream with respect to the attributes "
+                         "given as arguments.</text--->"
+                         "<text>query plz feed sortby [Ort] "
+                         "krdup[Ort]  consume</text--->"
+                              ") )";
+
+/*
+2.13.3 Definition of operator ~rdup~
+
+*/
+Operator krdup (
+         "krdup",             // name
+         KrdupSpec,           // specification
+         KrdupVM,               // value mapping
+         Operator::SimpleSelect,          // trivial selection function
+         krdupTM         // type mapping
+);
+
+
+
 /*
 2.11 Operator ~sortBy~
 
@@ -1889,8 +2167,11 @@ int RdupValueMapping(Word* args, Word& result, int message,
         }
       }
     case CLOSE:
-      if( local.addr != 0 )
-        assert(false);
+      if( local.addr != 0 ){
+         ((Tuple*)local.addr)->DecReference();
+         ((Tuple*)local.addr)->DeleteIfAllowed();
+         local = SetWord(0);
+      }
       qp->Close(args[0].addr);
       return 0;
   }
@@ -6481,6 +6762,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelsymmproductextend);
     AddOperator(&extrelsymmproduct);
     AddOperator(&extrelprojectextend);
+    AddOperator(&krdup);
   }
   ~ExtRelationAlgebra() {};
 };

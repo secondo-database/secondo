@@ -223,3 +223,9 @@ Example  : query ten feed {a} ten feed {b} symmproductextend[prod: .no_a * ..no_
 Result   : file
 
 
+Operator : krdup 
+Number   : 1
+Signature: stream(tuple((a1 t1)(a2 t2)...(an tn))) x ai1 x ai2 x ... -> stream(tuple((a1 t1)...(an tn))) 
+Example  : query plz feed sortby[Ort] krdup[Ort] count
+Result   : 16788
+
