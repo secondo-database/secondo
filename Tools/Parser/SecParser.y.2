@@ -1,3 +1,5 @@
+
+
 /*
 ---- 
 This file is part of SECONDO.
@@ -376,6 +378,16 @@ valueexpr	: ZZIDENTIFIER				{$$ = $1;}
 				NestedText::Concat(NestedText::AtomC(" "), 
 				NestedText::Concat($1,
 				NestedText::AtomC(")")     )))));}
+
+		| valueexpr '{' ZZREAL ',' ZZREAL '}'
+			{$$ = NestedText::Concat(NestedText::AtomC("(predinfo "), 
+				NestedText::Concat($3, 
+				NestedText::Concat(NestedText::AtomC(" "), 
+				NestedText::Concat($5,
+				NestedText::Concat(NestedText::AtomC(" "), 
+				NestedText::Concat($1,
+				NestedText::AtomC(")")     ))))));}
+
     | valueexpr ZZINFIXOP valueexpr
 			{$$ = NestedText::Concat(NestedText::AtomC("("), 
 				NestedText::Concat($2, 
