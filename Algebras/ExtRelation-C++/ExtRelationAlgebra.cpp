@@ -1754,12 +1754,12 @@ attributes stored in the vector are of interest.
 inline bool Equals(Tuple* tuple){
  int size = indexes.size();
  for(int i=0;i<size;i++){
-	 int pos = indexes[i];
-	 int cmp = ( ((Attribute*)lastTuple->GetAttribute(pos))->CompareAlmost(
-		        	 ((Attribute*)tuple->GetAttribute(pos))));
+   int pos = indexes[i];
+   int cmp = ( ((Attribute*)lastTuple->GetAttribute(pos))->CompareAlmost(
+               ((Attribute*)tuple->GetAttribute(pos))));
    if(cmp!=0){
-			 return false;
-	 }
+       return false;
+   }
  }
  return true;
 }   
