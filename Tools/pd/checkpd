@@ -99,6 +99,7 @@ do
           cat "$PD_HEADER"
           pdtabs <$F | maketex | linebreaks
         } >"$TEMPDIR"/tmp.tex
+
         latex -interaction=nonstopmode "$TEMPDIR"/tmp.tex >/dev/null
         LATEXRET=$?
         LATEXOK=0
@@ -106,11 +107,11 @@ do
            if [ -n "$IGNORE_INCLUDES" ]; then
               TEXLOG="$TEMPDIR"/tmp.log
               # file errors: ignore them
-              LEF1=$(cat "$TEXLOG" | grep -i '^! latex error' | grep -i "cannot determine size of" | wc -l)
-              LEF2=$(cat "$TEXLOG" | grep -i '^! latex error' | grep -i 'file .* not found' | wc -l)
+              LEF1=$(cat "$TEXLOG" | grep -i '^! ' | grep -i "cannot determine size of" | wc -l)
+              LEF2=$(cat "$TEXLOG" | grep -i '^! ' | grep -i 'file .* not found' | wc -l)
               LEF=$(expr $LEF1 + $LEF2)
               # all latex errors
-              LATERR=$(cat "$TEXLOG" | grep '^! latex error' | wc -l)
+              LATERR=$(cat "$TEXLOG" | grep '^! ' | wc -l)
               # non file errors
               LE=$(expr $LATERR - $LEF)
 
