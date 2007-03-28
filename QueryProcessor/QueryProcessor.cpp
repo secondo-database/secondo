@@ -157,6 +157,8 @@ interruption in the ~eval~ method which must be uncommented in order to use it.
 
 March 2007, RHG Changed the ~eval~ function so that simple arguments (no stream or function) to a stream operator are evaluated only once, for the OPEN message.
 
+March 2007, RHG. Added fields ~selectivity~ and ~predCost~ to the operator tree and ~predinfo~ annotation to set these fields for an operator.
+
 
 \tableofcontents
 
@@ -200,7 +202,7 @@ with the query processor (that is, ~eval~).
 
   4 More recently, support for ~counters~ has been added. At any node of an
 operator tree returning a stream, a counter can be switched on. This allows one
-to determine selectivities of predicates while processing a query.
+to determine selectivities of predicates while processing a query. Furthermore selectivity and cost for evaluating predicates can be stored in nodes of the operator tree, and set for queries using a ~predinfo~ annotation.
 
 1.1 Imports
 
@@ -1344,11 +1346,6 @@ The result is
 The result type is taken from the subexpression.
 
 
-
-
-
-
-
 Case (5): This is a definition of a predinfo pseudo operator associated with the subexpressions. A predinfo is defined in a query in the form
 
 ----    (predinfo 0.012 0.1442 <subexpr>)
@@ -1373,14 +1370,6 @@ The result is
 ----    
 
 The result type is taken from the subexpression.
-
-
-
-
-
-
-
-
 
 Case (6): The whole list is then just a list of expressions (terms). The
 result type is just the list of types of the expressions. 
@@ -2141,7 +2130,6 @@ will be processed.
               }
             }
 
-
             case QP_PREDINFO:
             {
               if (traceMode)
@@ -2156,7 +2144,6 @@ will be processed.
                            nl->Fourth(list)),
                          nl->Second(nl->Fourth(list)));
             }
-
 
 
             default:
