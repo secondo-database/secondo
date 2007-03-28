@@ -217,32 +217,41 @@ graph x vertex x real $\to$ graph
 ListExpr shortestPathMap ( ListExpr args ) {
 
     if (nl->ListLength(args) == 3) {
-
         ListExpr arg1 = nl->First(args);
         ListExpr arg2 = nl->Second(args);
         ListExpr arg3 = nl->Third(args);
 
-        if (nl->IsEqual(arg1, "graph") &&
-            nl->IsEqual(arg2, "vertex") && 
-            nl->IsEqual(arg3, "vertex"))
-            return nl->SymbolAtom("path");
-
-        if ((nl->AtomType(arg1) == SymbolType) && 
-            (nl->AtomType(arg2) == SymbolType) && 
-            (nl->AtomType(arg3) == SymbolType))
+        if (!nl->IsEqual(arg1, "graph")){
+          ErrorReporter::ReportError("first argument must be of type graph");
+          return nl->TypeError();
+        }
+        if( (nl->AtomType(arg2)!=SymbolType) ||
+            (nl->AtomType(arg3)!=SymbolType)){
+          ErrorReporter::ReportError(
+                 "graph x {int, vertex} x {int, vertex} expected");
+          return nl->TypeError();
+        }       
+        string arg2s = nl->SymbolValue(arg2);
+        string arg3s = nl->SymbolValue(arg3);
+        if( (arg2s != "vertex") && (arg2s!="int")){
             ErrorReporter::ReportError(
-                 "Type mapping function got parameters of type "
-                 + nl->SymbolValue(arg1) + ", " + nl->SymbolValue(arg2) + 
-                 " and " + nl->SymbolValue(arg3));
-        else
+                 "graph x {int, vertex} x {int, vertex} expected");
+            return nl->TypeError();
+        }
+        if( (arg3s != "vertex") && (arg3s!="int")){
             ErrorReporter::ReportError(
-                 "Type mapping function got wrong types as parameters.");
+                 "graph x {int, vertex} x {int, vertex} expected");
+            return nl->TypeError();
+        }
+        return nl->SymbolAtom("path");
 
-    } else
+
+    } else {
         ErrorReporter::ReportError(
-                "Type mapping function got a parameter of length != 3.");
+                "Three arguments expected");
+    }
 
-   return nl->SymbolAtom("typeerror");
+   return nl->TypeError();
 }
 
 
@@ -686,6 +695,23 @@ int edgesVerticesSelect(ListExpr args) {
 
 
 /*
+4.2.2 Selection function for the ~shortestPath~ Operator 
+
+*/
+int shortestPathSelect(ListExpr args){
+   string arg2 = nl->SymbolValue(nl->Second(args));
+   string arg3 = nl->SymbolValue(nl->Third(args));
+   if(arg2=="vertex" && arg3=="vertex") return 0;
+   if(arg2=="vertex" && arg3=="int") return 1;
+   if(arg2=="int" && arg3=="vertex") return 2;
+   if(arg2=="int" && arg3=="int") return 3;
+   return -1;
+}
+
+
+
+
+/*
 4.3 Value Mapping Functions
 
 */
@@ -831,19 +857,21 @@ int circleFun (Word* args, Word& result, int message,
 
 */
 
+template <class T1, class T2>
 int shortestPathFun (Word* args, Word& result, 
                     int message, Word& local, Supplier s)
 {
     Graph* g = ((Graph*)args[0].addr);
-    Vertex* pa = ((Vertex*)args[1].addr);
-    Vertex* pe = ((Vertex*)args[2].addr);
-
+    T1* source = ((T1*)args[1].addr);
+    T2* target = ((T2*)args[2].addr);
     result = qp->ResultStorage(s);
 
-    Path* path = g->GetShortestPath(pa->GetKey(), pe->GetKey());
+    Path* path = g->GetShortestPath(source->GetIntval(), 
+                                    target->GetIntval());
 
     ((Path*)result.addr)->CopyFrom(path);
-
+    delete path;
+    path = 0;
     return 0;
 }
 
@@ -1377,7 +1405,7 @@ const string SpecCircle  =
 
 const string SpecShortestPath  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>graph x vertex x vertex -> path</text---> "
+     "( <text>graph x {vertex, int} x {vertex, int} -> path</text---> "
        "<text>shortestPath ( _, _, _ )</text--->"
        "<text>Returns the sportest path from the first to"
         " the second vertex.</text--->"
@@ -1479,6 +1507,11 @@ ValueMapping verticesValueMap[] = { verticesFun<false>, verticesFun<true> };
 
 ValueMapping edgesValueMap[] = { edgesFun<false>, edgesFun<true> };
 
+ValueMapping shortestPathValueMap[] = {
+            shortestPathFun<Vertex,Vertex>, shortestPathFun<Vertex,CcInt>,
+            shortestPathFun<CcInt,Vertex>, shortestPathFun<CcInt,CcInt>};
+
+
 /*
 4.5.2  Operator definitions
 
@@ -1526,8 +1559,9 @@ Operator circle (
 Operator shortestPath (
   "shortestpath",
   SpecShortestPath,
-  shortestPathFun, 
-  Operator::SimpleSelect,
+  4,
+  shortestPathValueMap, 
+  shortestPathSelect,
   shortestPathMap
 );
 

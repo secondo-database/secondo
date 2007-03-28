@@ -70,8 +70,8 @@ class Vertex: public StandardAttribute
 3.1 Constructors and Destructor
 
 */        
-                Vertex();
-                Vertex(bool d) : defined(d) {}
+        Vertex();
+        Vertex(bool d) : defined(d) {}
         Vertex(int nKey, Point const & pntPos);
         Vertex(int nKey, Coord coordX, Coord coordY);
         ~Vertex();
@@ -82,6 +82,8 @@ class Vertex: public StandardAttribute
 
 */    
         int GetKey() const{return key;}
+
+        int GetIntval() const {return key;}
 /*
 3.2.2 GetPos
 
