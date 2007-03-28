@@ -447,6 +447,8 @@ one of these symbols, then the value ~error~ is returned.
     else if ( s == "undefined"   ) return (QP_UNDEFINED);
     else if ( s == "counter"     ) return (QP_COUNTER);
     else if ( s == "counterdef"  ) return (QP_COUNTERDEF);
+    else if ( s == "predinfo"    ) return (QP_PREDINFO);
+    else if ( s == "predinfodef" ) return (QP_PREDINFODEF);
     else if ( s == "pointer"     ) return (QP_POINTER);
     else                           return (QP_ERROR);
   }
@@ -1078,7 +1080,7 @@ create a constant of the respective type.
 constants which are interpreted as {~algId~, ~typeId~, ~value~}.  ~Annotate~ 
 enters the value into that array. 
 
-Case (iii): ~s~ is a symbol atom: an operator
+Case (iii-a): ~s~ is a symbol atom: an operator
 
 ----    add     ->      ((add operator 1 4) typeerror)
 
@@ -1103,7 +1105,7 @@ one pair (algebraId, operatorId) repeated below.
         <op>    ->      ((<op> operator <algebraId> <operatorId>) typeerror)
 ----
 
-Case (iii-a): ~s~ is a symbol atom: an object of the database, that ~is not itself
+Case (iii-b): ~s~ is a symbol atom: an object of the database, that ~is not itself
 a function~, which means the type of the object does not start ``(map
 ...)''. 
 
@@ -1115,7 +1117,7 @@ a function~, which means the type of the object does not start ``(map
 
         Here ~index~ again refers to the array ~values~.
 
-Case (iii-b): ~s~ is a symbol atom: a function object of the database -- type has
+Case (iii-c): ~s~ is a symbol atom: a function object of the database -- type has
 the form ``(map ...)''. The corresponding function definition
 (abstraction) is retrieved from the database and annotated recursively. 
 
@@ -1126,7 +1128,7 @@ the form ``(map ...)''. The corresponding function definition
                                         
 ----
 
-Case (iii-c): ~s~ is a symbol atom: neither operator nor object, but a variable
+Case (iii-d): ~s~ is a symbol atom: neither operator nor object, but a variable
 defined in some enclosing function definition (= abstraction), which
 means it can be found in the table ~variableNames~. 
 
@@ -1141,7 +1143,21 @@ list of arguments of the defining function, and ~functionno~ is a number
 identifying that function (see below the strategy for maintaining
 function numbers). 
 
-Case (iii-d): ~s~ is a symbol atom: neither operator nor object nor variable
+
+
+Case (iii-e): ~s~ is a symbol atom: none of the forms before, but equal to ``counter''.
+
+----    counter         ->      ((counter counter) typeerror)
+----
+
+
+Case (iii-f): ~s~ is a symbol atom: none of the forms before, but equal to ``predinfo''.
+
+----    predinfo         ->      ((predinfo predinfo) typeerror)
+----
+
+
+Case (iii-g): ~s~ is a symbol atom: neither operator nor object nor variable nor any other form before
 
 ----    pop             ->      ((pop identifier) pop)
 
@@ -1153,10 +1169,7 @@ type checking function, something like an attribute name. For this
 reason, ~not the type, but the actual value~ of the identifier is
 returned as a second component. 
 
-Case (iii-e): ~s~ is a symbol atom: none of the forms before, but equal to ``counter''.
 
-----    counter         ->      ((counter counter) typeerror)
-----
 
 Case (iv-a): ~s~ is a nonempty list: first element is the symbol ~fun~.
 
@@ -1217,7 +1230,9 @@ result. The first element of the result list can be:
 
   4 a counter definition ((. counter) .)
 
-  5 something else ((. [constant|object|variable|identifier] .) .), that is a constant, a database object, a variable, an identifier, or an empty list. 
+  5 a predinfo definition ((. predinfo) .)
+
+  6 something else ((. [constant|object|variable|identifier] .) .), that is a constant, a database object, a variable, an identifier, or an empty list. 
 
 Case (1): In the first case we have an operator application (~op~ ~arg1~
 ... ~argn~). We first compute the ~resulttype~ by applying the
@@ -1321,15 +1336,53 @@ Hence after annotation it is
 The result is
 
 ----    (
-          (none counterdef n ann(subexpr)) 
+          (none counterdef 5 ann(subexpr)) 
           <resulttype>
         )
 ----    
 
-where ~n~ is the counter number. The result type is taken from the
-subexpression.
+The result type is taken from the subexpression.
 
-Case (5): The whole list is then just a list of expressions (terms). The
+
+
+
+
+
+
+Case (5): This is a definition of a predinfo pseudo operator associated with the subexpressions. A predinfo is defined in a query in the form
+
+----    (predinfo 0.012 0.1442 <subexpr>)
+----
+
+Hence after annotation it is
+
+----    (
+          ((predinfo predinfo) typeerror)
+          ((0.012 constant 1) real)
+          ((0.1442 constant 2) real)
+          ann(subexpr)
+        )
+----
+
+The result is
+
+----    (
+          (none predinfodef 0.012 0.1442 ann(subexpr)) 
+          <resulttype>
+        )
+----    
+
+The result type is taken from the subexpression.
+
+
+
+
+
+
+
+
+
+Case (6): The whole list is then just a list of expressions (terms). The
 result type is just the list of types of the expressions. 
 
 ----    (t1 t2 ... tn)   ->  ((none arglist (ann(t1) ann(t2) ... ann(tn)))
@@ -1648,7 +1701,7 @@ function index.
         }
         else if ( TypeOfSymbol( expr ) == QP_COUNTER )
         {
-          // case (iii-f): a counter, 
+          // case (iii-e): a counter, 
           // return ((counter counter) typeerror)
           return nl->TwoElemList(
                    nl->TwoElemList(
@@ -1656,9 +1709,19 @@ function index.
                      nl->SymbolAtom( "counter" ) ),
                    nl->SymbolAtom( "typeerror" ) );
         }
+        else if ( TypeOfSymbol( expr ) == QP_PREDINFO )
+        {
+          // case (iii-f): a predinfo pseudo operator, 
+          // return ((predinfo predinfo) typeerror)
+          return nl->TwoElemList(
+                   nl->TwoElemList(
+                     expr,
+                     nl->SymbolAtom( "predinfo" ) ),
+                   nl->SymbolAtom( "typeerror" ) );
+        }
         else
         {
-          // case (iii-e): nothing of the above => identifier 
+          // case (iii-g): nothing of the above => identifier 
           // return ((<ident> identifier) <ident>)
           return (nl->TwoElemList(
                     nl->TwoElemList(
@@ -2078,8 +2141,26 @@ will be processed.
               }
             }
 
+
+            case QP_PREDINFO:
+            {
+              if (traceMode)
+                cout << "Case 5: A predinfo definition." << endl;        
+ 
+              return nl->TwoElemList(
+                         nl->FiveElemList(
+                           nl->SymbolAtom("none"),
+                           nl->SymbolAtom("predinfodef"),
+                           nl->First(nl->First(nl->Second(list))), 
+                           nl->First(nl->First(nl->Third(list))), 
+                           nl->Fourth(list)),
+                         nl->Second(nl->Fourth(list)));
+            }
+
+
+
             default:
-            {  /* we have a list of terms, case (5) above) 
+            {  /* we have a list of terms, case (6) above) 
                   Again extract the list of types. We know the 
                   list "list" is not empty */
               if (traceMode) {
@@ -2832,6 +2913,23 @@ QueryProcessor::Subtree( const ListExpr expr,
       if (traceNodes) 
       {
         cout << "QP_COUNTERDEF:" << endl;
+        cout << *node << endl;
+      }
+      return(node);
+    }
+    case QP_PREDINFODEF:
+    {
+      node = Subtree( nl->Fifth( nl->First( expr )), first, node);
+      
+      if ( node->nodetype == Operator )
+        node->u.op.selectivity = 
+          nl->RealValue(nl->Third(nl->First(expr)));
+        node->u.op.predCost = 
+          nl->RealValue(nl->Fourth(nl->First(expr)));
+
+      if (traceNodes) 
+      {
+        cout << "QP_PREDINFODEF:" << endl;
         cout << *node << endl;
       }
       return(node);
