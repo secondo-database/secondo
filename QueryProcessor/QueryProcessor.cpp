@@ -1427,7 +1427,7 @@ function index.
   ListExpr firstSig, firstType, result, functionList; 
   firstSig = firstType = result = functionList = nl->TheEmptyList();
   
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  ListExpr& errorInfo = nl->GetErrorList();
   
   string name="", typeName=""; 
   
@@ -2470,7 +2470,7 @@ arguments preceding this function argument in an operator application.
 bool
 QueryProcessor::IsCorrectTypeExpr( const ListExpr expr )
 {
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  ListExpr& errorInfo = nl->GetErrorList();
   return (GetCatalog()->KindCorrect( expr, errorInfo ));
 }
 
