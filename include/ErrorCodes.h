@@ -172,6 +172,7 @@ const SmiError E_SMI_DB_REGISTER       = -1018;
 const SmiError E_SMI_DB_UNREGISTER     = -1019;
 const SmiError E_SMI_DB_LOCK           = -1020;
 const SmiError E_SMI_DB_UNLOCK         = -1021;
+const SmiError E_SMI_DB_LOCK_DEADLOCK  = -1022;
 
 const SmiError E_SMI_TXN_BEGIN         = -1051;
 const SmiError E_SMI_TXN_COMMIT        = -1052;
