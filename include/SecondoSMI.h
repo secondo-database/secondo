@@ -735,10 +735,16 @@ error code while the other functions reset the internal error code.
 Optionally the accompanying error message is returned.
 
 */
-  static void SetError( const SmiError smiErr ); 
-  static void SetError( const SmiError smiErr, const int sysErr ); 
-  static void SetError( const SmiError smiErr, const string& errMsg );
-  static void ResetErrors();
+  static void SetSmiError( const SmiError smiErr, 
+		              const string& file, int pos ); 
+  static void SetSmiError( const SmiError smiErr, 
+		              const int sysErr, const string& file, int pos ); 
+  static void ResetSmiErrors();
+
+#define SetError(code) SetSmiError(code, __FILE__, __LINE__)  
+#define SetError2(code, msg) SetSmiError(code, msg, __FILE__, __LINE__)  
+#define SetBDBError(code, sys) SetSmiError(code, sys, __FILE__, __LINE__)
+
 /*
 Allows to set an SmiError code and a system error code or an error message.
 
@@ -813,6 +819,9 @@ The function returns "true"[4], if the lock could be released successfully
 or if the application runs in single user mode.
 
 */
+  static void SetSmiError( const SmiError smiErr, 
+		            const string& errMsg, const string& file, int pos );
+
   static const string Err2Msg( SmiError code );
 /*
 Translate an SMI error code into a message!
