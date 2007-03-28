@@ -143,7 +143,6 @@ SecondoTTY::SecondoTTY( const TTYParameter& t )
   iFileName = t.iFileName;
   oFileName = t.oFileName;
 
-  string cmd    = "";
   isStdInput    = true;
   quit          = false;
   nl            = 0;
@@ -280,9 +279,6 @@ SecondoTTY::IsInternalCommand( const string& line )
              ToUpperProperFunction );
 
   return ( cmdWord == "?" || cmdWord == "HELP"        ||
-           cmdWord == "D" || cmdWord == "DESCRIPTIVE" ||
-           cmdWord == "E" || cmdWord == "EXECUTABLE"  ||
-           cmdWord == "H" || cmdWord == "HYBRID"      ||
            cmdWord == "Q" || cmdWord == "QUIT"        ||
            cmdWord == "DEBUG" || cmdWord == "SHOW" || cmdWord[0] == '@' );
 }
