@@ -4,7 +4,7 @@
 #
 # 07.03.2007, M. Spiekermann
 
-export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,SMI:NoTransactions"
+export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,SMI:NoTransactions,CTLG:SkipExamples"
 
 # adjust the defaults if you have more
 # memory available
