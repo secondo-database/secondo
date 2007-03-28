@@ -866,12 +866,9 @@ int shortestPathFun (Word* args, Word& result,
     T2* target = ((T2*)args[2].addr);
     result = qp->ResultStorage(s);
 
-    Path* path = g->GetShortestPath(source->GetIntval(), 
-                                    target->GetIntval());
-
-    ((Path*)result.addr)->CopyFrom(path);
-    delete path;
-    path = 0;
+    g->GetShortestPath(source->GetIntval(), 
+                       target->GetIntval(),
+                       (Path*)result.addr);
     return 0;
 }
 

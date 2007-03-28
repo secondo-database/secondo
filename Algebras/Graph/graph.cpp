@@ -1022,14 +1022,23 @@ int FirstSourceEdge(vector<Edge>* graphEdges, int count, int key) {
     return pos;
 }
 
-Path* Graph::GetShortestPath(int start, int target) const { 
+
+Path* Graph::GetShortestPath(int start, int target) const{
+   Path* res = new Path(true);
+   GetShortestPath(start, target, res);
+   return res;   
+}
+
+
+void Graph::GetShortestPath(int start, int target, 
+                            Path* solution) const { 
 
     BinTree parts;
     MinTree edges;
     vector<pathStruct> wayPoint;
     vector<Edge>* graphEdges = GetEdges(); 
     vector<Vertex>* graphVertex = GetVertices(); 
-    Path* solution = new Path(true);
+    solution->Clear();
 
 
     bool found = false;
@@ -1050,13 +1059,13 @@ Path* Graph::GetShortestPath(int start, int target) const {
                 solution->Append(loneSome);
                 delete graphEdges;
                 delete graphVertex;
-                return solution;
+                return;
             }
         // if not in graph return an undefined path
         solution->SetDefined(false);
         delete graphEdges;
         delete graphVertex;
-        return solution;
+        return;
     } else { // search for all edges beginning at the start key
         for(int i = 0; i < GetNumEdges(); i++) { // EdgeSize of Graph !!!
             if ((*graphEdges) [i].GetSource() == start) { 
@@ -1170,7 +1179,6 @@ Path* Graph::GetShortestPath(int start, int target) const {
     }
     delete graphEdges;
     delete graphVertex;
-    return solution;
 };
 
 bool Graph::PartOf(const Graph* part) const {

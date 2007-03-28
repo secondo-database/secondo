@@ -241,6 +241,20 @@ class Path: public StandardAttribute
 
 */        
         bool IsEmpty() const{return myPath.Size() == 0;}
+
+
+/*
+5.2.2 Clear
+
+This function removes all vertices from the path.
+
+*/
+  void Clear(){ 
+      myPath.Clear(); 
+      cost = 0.0;
+      defined = true;
+  }
+
 /*
 5.2.2 GetCost
 
@@ -1250,6 +1264,8 @@ Returns a vector with all strongly connected components of the graph.
 
 */
      Path* GetShortestPath(const int from, const int to) const;
+     void GetShortestPath(int start, int target, 
+                            Path* solution) const; 
 /*
 
 
