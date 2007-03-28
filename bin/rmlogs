@@ -3,9 +3,14 @@
 # rmlogs [dbDir] - removes BERKELEY-DB log files
 #
 
-dbDir=.; 
+dbDir=../../secondo-databases;
 if [ "$1" != "" ]; then
  dbDir="$1" 
+fi
+if [ -d $dbDir ]; then
+  echo "Cleaning $dbDir ..."
+else
+  echo "Directory $dbDir does not exist."	
 fi
 
 cd $dbDir >& /dev/null
