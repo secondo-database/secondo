@@ -49,5 +49,5 @@ clean:
 	rm -f *.class
 	rm -f *.o
 	rm -f *.so
-	rm -f *.dll
+	#rm -f *.dll
 	make -f $(MAKEMESH) clean
