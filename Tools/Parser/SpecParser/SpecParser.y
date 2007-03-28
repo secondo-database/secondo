@@ -22,6 +22,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//[_] [\_]
+
 */
 
 %{
@@ -254,7 +256,7 @@ void print_simple_nonpostfix(){
 }
 
 /*
-1.9.2 print_simple_postfix
+1.9.2 print[_]simple[_]postfix
 
 This function prints out a postfix function.  
 For each different number of arguments (before the operator),
@@ -288,7 +290,7 @@ void print_simple_postfix(){
     (*tokens) << token << " ";
     // write rule
     (*yaccrules1) << endl << "/*" << endl
-                  << "~" << token << "~" << endl
+                  << "~token~" << endl
                   << endl << "*/" << endl;
 
     (*yaccrules1) << "\n  | " ;
@@ -338,7 +340,7 @@ void print_simple_postfix(){
 }
 
 /* 
-1.9.3 print_complex_postfix_without implicit parameters
+1.9.3 print[_]complex[_]postfix[_]without implicit parameters
 
 This function is called when a postfix operator including 'fun' or
 'funlist' is be found and the implicit parameter list is empty.
@@ -368,7 +370,7 @@ void print_complex_postfix_without_implicit_parameters(){
   
   // write the pattern for this function
   (*yaccrules1) << endl << "/*" << endl
-                << "~" + newtoken << "~" << endl
+                << "~token~" << endl
                 << endl << "*/" << endl;
 
 
@@ -428,7 +430,7 @@ void print_complex_postfix_without_implicit_parameters(){
 }
 
 /*
-1.9.4 print_complex_postfix
+1.9.4 print[_]complex[_]postfix
 
 This function handles postfix operators including functions 
 and implicit parameters. We build a new token as well as one 
@@ -466,7 +468,7 @@ void print_complex_postfix(){
    string funlistname = funname+"list";
    // write the rule for yacc
    (*yaccrules1) << endl << "/*" << endl
-                 << "~" << token << "~" << endl
+                 << "~token~" << endl
                  << endl << "*/" << endl; 
 
    (*yaccrules1) << "\n  | ";
@@ -534,7 +536,7 @@ void print_complex_postfix(){
                      // don't allow naming of functions 
     // print the rule for the function to yaccrules 2
     (*yaccrules2) << endl << "/*" << endl
-                  << "~" << funname << "~" << endl
+                  << "~Function~" << endl
                   << endl << "*/" << endl;
     (*yaccrules2) << funname << ":   naming "<< funname << "_1" <<  endl;
     (*yaccrules2) << "      "
@@ -554,7 +556,7 @@ void print_complex_postfix(){
 
   // write the real function scheme
   (*yaccrules2) << endl << "/*" << endl
-                << "~" << funname << extension << "~" << endl
+                << "~function~" << endl
                 << endl << "*/" << endl;
   (*yaccrules2) << funname << extension << " :  { " << endl;
   for(int i=0;i<sizei;i++){
@@ -611,7 +613,7 @@ void print_complex_postfix(){
   if(funlist_used) {
      // rule for making bracket around the funlist
      (*yaccrules2) << endl << "/*" << endl
-                   << "~" << funlistname << "~" << endl
+                   << "~funlist~" << endl
                    << endl << "*/" << endl;
      (*yaccrules2) << funlistname << ": " << funlistname << "_1 " << endl;
      (*yaccrules2) << "     " 
@@ -624,7 +626,7 @@ void print_complex_postfix(){
      (*yaccrules2) << "     ; " << endl;
      // the funlist itself
      (*yaccrules2) << endl << "/*" << endl
-                   << "~" << funlistname << "_1~" << endl
+                   << "~funlist~" << endl
                    << endl << "*/" << endl;
      (*yaccrules2) << funlistname << "_1  : "<< funname << "{$$ = $1;}" 
                    << endl; // one elem list
