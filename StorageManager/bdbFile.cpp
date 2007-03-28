@@ -258,7 +258,7 @@ SmiFile::Create( const string& context /* = "Default" */ )
       }
       else
       {
-        SmiEnvironment::SetError( E_SMI_FILE_CREATE, rc );
+        SmiEnvironment::SetBDBError( E_SMI_FILE_CREATE, rc );
       }
     }
     else
@@ -400,7 +400,7 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
       }
       else
       {
-        SmiEnvironment::SetError( E_SMI_FILE_CREATE, rc );
+        SmiEnvironment::SetBDBError( E_SMI_FILE_CREATE, rc );
       }
     }
     else
@@ -512,7 +512,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
       }
       else
       {
-        SmiEnvironment::SetError( E_SMI_FILE_OPEN, rc );
+        SmiEnvironment::SetBDBError( E_SMI_FILE_OPEN, rc );
       }
     }
     else
@@ -803,7 +803,7 @@ SmiFileIterator::Next( SmiRecord& record )
     }
     else
     {
-      SmiEnvironment::SetError( E_SMI_CURSOR_NEXT, rc );
+      SmiEnvironment::SetBDBError( E_SMI_CURSOR_NEXT, rc );
     }
   }
   else
@@ -826,7 +826,7 @@ SmiFileIterator::DeleteCurrent()
     }
     else
     {
-      SmiEnvironment::SetError( E_SMI_CURSOR_DELETE, rc );
+      SmiEnvironment::SetBDBError( E_SMI_CURSOR_DELETE, rc );
     }
     ok = (rc == 0);
   }
@@ -865,7 +865,7 @@ SmiFileIterator::Finish()
     }
     else
     {
-      SmiEnvironment::SetError( E_SMI_CURSOR_FINISH, rc );
+      SmiEnvironment::SetBDBError( E_SMI_CURSOR_FINISH, rc );
     }
     ok = (rc == 0);
   }
@@ -979,7 +979,7 @@ bool PrefetchingIteratorImpl::NewPrefetch()
     }
     else
     {
-      SmiEnvironment::SetError(E_SMI_CURSOR_NEXT, errorCode);    
+      SmiEnvironment::SetBDBError(E_SMI_CURSOR_NEXT, errorCode);    
     };
     
     state = BROKEN;

@@ -134,12 +134,15 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
 bool
 SmiRecordFile::SelectAll( SmiRecordFileIterator& iterator,
                           const SmiFile::AccessType accessType
-                            /* = SmiFile::ReadOnly */ )
+                                                    /*= SmiFile::ReadOnly */)
 {
-  int rc;
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
-  Dbc* dbc;
-  rc = impl->bdbFile->cursor( tid, &dbc, 0 );
+  Dbc* dbc = 0;
+  
+  DbTxn* tid = 0;
+  if ( !impl->isTemporaryFile ) 
+    tid = SmiEnvironment::instance.impl->usrTxn;
+
+  int rc = impl->bdbFile->cursor( tid, &dbc, 0 );
   if ( rc == 0 )
   {
     iterator.smiFile          = this;
@@ -154,7 +157,7 @@ SmiRecordFile::SelectAll( SmiRecordFileIterator& iterator,
   }
   else
   {
-    SmiEnvironment::SetError( E_SMI_RECORD_SELECTALL, rc );
+    SmiEnvironment::SetBDBError( E_SMI_RECORD_SELECTALL, rc );
   }
   return (rc == 0);
 }
@@ -162,10 +165,9 @@ SmiRecordFile::SelectAll( SmiRecordFileIterator& iterator,
 PrefetchingIterator* 
 SmiRecordFile::SelectAllPrefetched()
 {
-  int rc;
   DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
-  Dbc* dbc;
-  rc = impl->bdbFile->cursor(tid, &dbc, 0);
+  Dbc* dbc = 0;
+  int rc = impl->bdbFile->cursor(tid, &dbc, 0);
   if(rc == 0)
   {
     SmiEnvironment::SetError(E_SMI_OK);
@@ -174,7 +176,7 @@ SmiRecordFile::SelectAllPrefetched()
   }
   else
   {
-    SmiEnvironment::SetError(E_SMI_RECORD_SELECTALL, rc);
+    SmiEnvironment::SetBDBError(E_SMI_RECORD_SELECTALL, rc);
     return 0;
   }
 }
@@ -210,7 +212,7 @@ SmiRecordFile::AppendRecord( SmiRecordId& recno, SmiRecord& record )
   }
   else
   {
-    SmiEnvironment::SetError( E_SMI_RECORD_APPEND, rc );
+    SmiEnvironment::SetBDBError( E_SMI_RECORD_APPEND, rc );
     record.initialized     = false;
   }
 
@@ -227,7 +229,7 @@ bool SmiRecordFile::DeleteRecord( SmiRecordId recno )
   if ( rc == 0 )
     SmiEnvironment::SetError( E_SMI_OK );
   else
-    SmiEnvironment::SetError( E_SMI_RECORD_DELETE, rc );
+    SmiEnvironment::SetBDBError( E_SMI_RECORD_DELETE, rc );
   
   return (rc == 0);  
 }

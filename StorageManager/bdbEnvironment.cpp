@@ -290,7 +290,7 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
 }
 
 bool
-SmiEnvironment::Implementation::LookUpCatalog( const string& fileName,
+SmiEnvironment::Implementation::LookUpCatalog( Dbt& key,
                                                SmiCatalogEntry& entry )
 {
   if ( !dbOpened )
@@ -306,7 +306,6 @@ SmiEnvironment::Implementation::LookUpCatalog( const string& fileName,
   if ( dbidx )
   {
     DbTxn* tid = 0;
-    Dbt key( (void*) fileName.c_str(), fileName.length() );
     Dbt data;
 
     data.set_flags( DB_DBT_USERMEM );
@@ -316,125 +315,63 @@ SmiEnvironment::Implementation::LookUpCatalog( const string& fileName,
     if ( useTransactions )
     {
       rc = dbenv->txn_begin( 0, &tid, 0 );
+      SetBDBError( E_SMI_TXN_BEGIN, rc );
     }
 
+    // transaction initialized, lookup file 
     if ( rc == 0 )
     {
       rc = dbidx->get( tid, &key, &data, 0 );
+
+      // valid return codes
       if ( rc == 0 || rc == DB_NOTFOUND || rc == DB_KEYEMPTY )
       {
-        if ( useTransactions )
-        {
-          tid->commit( 0 );
-        }
-        if ( rc == 0 )
-        {
-          SetError( E_SMI_OK );
-        }
-        else
-        {
-          SetError( E_SMI_CATALOG_NOTFOUND );
+        if (useTransactions) {
+          int rc_tid = tid->commit( 0 );
+          SetBDBError( E_SMI_TXN_COMMIT, rc_tid );
         }
       }
       else
       {
-        if ( useTransactions )
-        {
-          tid->abort();
+        if ( useTransactions ) {
+          int rc_tid = tid->abort();
+          SetBDBError( E_SMI_TXN_ABORT, rc_tid );
         }
-        SetError( E_SMI_CATALOG_LOOKUP, rc );
+        SetBDBError( E_SMI_CATALOG_LOOKUP, rc );
       }
     }
-    else
+    else // initialization of transaction failed
     {
-      if ( tid != 0 )
-      {
-        tid->abort();
+      if ( tid != 0 ) { // abort if necessary
+        rc = tid->abort();
       }
-      SetError( E_SMI_CATALOG_LOOKUP, rc );
+      SetBDBError( E_SMI_TXN_ABORT, rc );
     }
   }
-  else
+  else 
   {
-    SetError( E_SMI_CATALOG_LOOKUP );
+    SetError2( E_SMI_CATALOG_LOOKUP, "Catalog Index not present!" );
     rc = E_SMI_CATALOG_LOOKUP;
   }
 
   return (rc == 0);
 }
 
+
+bool
+SmiEnvironment::Implementation::LookUpCatalog( const string& fileName,
+                                               SmiCatalogEntry& entry )
+{
+  Dbt key( (void*) fileName.c_str(), fileName.length() );
+  return LookUpCatalog(key, entry);
+}    
+
 bool
 SmiEnvironment::Implementation::LookUpCatalog( const SmiFileId fileId,
                                                SmiCatalogEntry& entry )
 {
-  if ( !dbOpened )
-  {
-    SetError( E_SMI_DB_NOTOPEN );
-    return (false);
-  }
-
-  int    rc = 0;
-  DbEnv* dbenv = instance.impl->bdbEnv;
-  Db*    dbctl = instance.impl->bdbCatalog;
-
-  if ( dbctl )
-  {
-    DbTxn* tid = 0;
-    Dbt key( (void*) &fileId, sizeof( fileId ) );
-    Dbt data;
-
-    data.set_flags( DB_DBT_USERMEM );
-    data.set_data( &entry );
-    data.set_ulen( sizeof( entry ) );
-
-    if ( useTransactions )
-    {
-      rc = dbenv->txn_begin( 0, &tid, 0 );
-    }
-
-    if ( rc == 0 )
-    {
-      rc = dbctl->get( tid, &key, &data, 0 );
-      if ( rc == 0 || rc == DB_NOTFOUND || rc == DB_KEYEMPTY )
-      {
-        if ( useTransactions )
-        {
-          tid->commit( 0 );
-        }
-        if ( rc == 0 )
-        {
-          SetError( E_SMI_OK );
-        }
-        else
-        {
-          SetError( E_SMI_CATALOG_NOTFOUND );
-        }
-      }
-      else
-      {
-        if ( useTransactions )
-        {
-          tid->abort();
-        }
-        SetError( E_SMI_CATALOG_LOOKUP, rc );
-      }
-    }
-    else
-    {
-      if ( tid != 0 )
-      {
-        tid->abort();
-      }
-      SetError( E_SMI_CATALOG_LOOKUP, rc );
-    }
-  }
-  else
-  {
-    SetError( E_SMI_CATALOG_LOOKUP );
-    rc = E_SMI_CATALOG_LOOKUP;
-  }
-
-  return (rc == 0);
+  Dbt key( (void*) &fileId, sizeof( fileId ) );
+  return LookUpCatalog(key, entry);
 }
 
 bool
@@ -469,7 +406,7 @@ SmiEnvironment::Implementation::InsertIntoCatalog(
     }
     else
     {
-      SetError( E_SMI_CATALOG_INSERT, rc );
+      SetBDBError( E_SMI_CATALOG_INSERT, rc );
     }
   }
   else
@@ -513,7 +450,7 @@ SmiEnvironment::Implementation::DeleteFromCatalog( const string& fileName,
     }
     else
     {
-      SetError( E_SMI_CATALOG_DELETE, rc );
+      SetBDBError( E_SMI_CATALOG_DELETE, rc );
     }
   }
   else
@@ -579,7 +516,7 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
     {
       tid->abort();
     }
-    SetError( E_SMI_DB_UPDATE_CATALOG, rc );
+    SetBDBError( E_SMI_DB_UPDATE_CATALOG, rc );
   }
   return (ok);
 }
@@ -743,20 +680,29 @@ SmiEnvironment::~SmiEnvironment()
 }
 
 void
-SmiEnvironment::SetError( const SmiError smiErr, const int sysErr /* = 0 */ )
+SmiEnvironment::SetSmiError( const SmiError smiErr, 
+		             const int sysErr, const string& file, int pos )
 {
+  static bool abortOnError = RTFlag::isActive("SMI:abortOnError");
   if ( sysErr != 0 )
   {
     if ( sysErr == DB_LOCK_DEADLOCK && instance.impl->txnStarted )
     {
       instance.impl->txnMustAbort = true;
     }
-    SetError(smiErr, DbEnv::strerror( sysErr ));
+    string bdbMsg = string("[Berkeley-DB Error = ") 
+	                + DbEnv::strerror( sysErr ) + "]";
+
+    if (abortOnError) {
+      cerr << bdbMsg << endl; 	    
+      abort();	    
+    }	    
+
+    if (smiErr == E_SMI_OK)
+      SetSmiError(smiErr, "E_SMI_OK but" + bdbMsg, file, pos);
+    else
+      SetSmiError(smiErr, Err2Msg(smiErr) + " " + bdbMsg, file, pos);
   }
-  if (smiErr == E_SMI_OK)
-    SetError(smiErr, "E_SMI_OK");
-  else
-    SetError(smiErr, Err2Msg(smiErr));
 }
 
 bool
@@ -1046,7 +992,7 @@ Transactions, logging and locking are enabled.
   else
   {
     smiStarted = false;
-    SetError( E_SMI_STARTUP, rc );
+    SetBDBError( E_SMI_STARTUP, rc );
   }
 
   return (rc == 0);
@@ -1104,7 +1050,7 @@ SmiEnvironment::ShutDown()
   }
   else
   {
-    SetError( E_SMI_SHUTDOWN, rc );
+    SetBDBError( E_SMI_SHUTDOWN, rc );
   }
 
   return (rc == 0);
@@ -1227,23 +1173,27 @@ SmiEnvironment::CloseDatabase()
 
   if ( dbseq )
   {
-    dbseq->close( 0 );
+    rc = dbseq->close( 0 );
+    SetBDBError( E_SMI_DB_CLOSE, rc );
     delete dbseq;
     instance.impl->bdbSeq = 0;
   }
+  
 
   // --- Close Berkely DB filecatalog and associated index
 
   if ( dbctl )
   {
-    dbctl->close( 0 );
+    rc = dbctl->close( 0 );
+    SetBDBError( E_SMI_DB_CLOSE, rc );
     delete dbctl;
     instance.impl->bdbCatalog = 0;
   }
 
   if ( dbidx )
   {
-    dbidx->close( 0 );
+    rc = dbidx->close( 0 );
+    SetBDBError( E_SMI_DB_CLOSE, rc );
     delete dbidx;
     instance.impl->bdbCatalogIndex = 0;
   }
@@ -1251,14 +1201,6 @@ SmiEnvironment::CloseDatabase()
   UnregisterDatabase( database );
   dbOpened = false;
 
-  if ( rc == 0)
-  {
-    SetError( E_SMI_OK );
-  }
-  else
-  {
-    SetError( E_SMI_DB_CLOSE, rc );
-  }
   return (rc == 0);
 }
 
@@ -1351,7 +1293,7 @@ SmiEnvironment::BeginTransaction()
     }
     else
     {
-      SetError( E_SMI_TXN_BEGIN, rc );
+      SetBDBError( E_SMI_TXN_BEGIN, rc );
     }
   }
   else
@@ -1377,6 +1319,7 @@ SmiEnvironment::CommitTransaction()
       {
         instance.impl->usrTxn->abort();
         rc = DB_LOCK_DEADLOCK;
+        SetBDBError( E_SMI_DB_LOCK_DEADLOCK, rc );
       }
       else
       {
@@ -1399,7 +1342,7 @@ SmiEnvironment::CommitTransaction()
     {
       SmiEnvironment::Implementation::CloseDbHandles();
       SmiEnvironment::Implementation::EraseFiles( false );
-      SetError( E_SMI_TXN_COMMIT, rc );
+      SetBDBError( E_SMI_TXN_COMMIT, rc );
     }
                 
     LOGMSG( "SMI:DbHandles",
@@ -1443,7 +1386,7 @@ SmiEnvironment::AbortTransaction()
     }
     else
     {
-      SetError( E_SMI_TXN_ABORT, rc );
+      SetBDBError( E_SMI_TXN_ABORT, rc );
     }
     instance.impl->txnStarted = false;
     instance.impl->txnMustAbort = false;

@@ -130,7 +130,7 @@ SmiRecord::Read( void* buffer,
     }
     else
     {
-      SmiEnvironment::SetError( E_SMI_RECORD_READ, rc );
+      SmiEnvironment::SetBDBError( E_SMI_RECORD_READ, rc );
     }
   }
   else
@@ -185,7 +185,7 @@ SmiRecord::Write( const void*   buffer,
     }
     else
     {
-      SmiEnvironment::SetError( E_SMI_RECORD_WRITE, rc );
+      SmiEnvironment::SetBDBError( E_SMI_RECORD_WRITE, rc );
     }
   }
   else
@@ -251,7 +251,7 @@ SmiRecord::Truncate( const SmiSize newSize )
       }
       else
       {
-        SmiEnvironment::SetError( E_SMI_RECORD_TRUNCATE, rc );
+        SmiEnvironment::SetBDBError( E_SMI_RECORD_TRUNCATE, rc );
       }
     }
     else

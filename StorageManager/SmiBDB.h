@@ -336,6 +336,11 @@ catalog. The function returns "true"[4] if the deletion was successful.
   Implementation();
   ~Implementation();
  private:
+
+  static bool LookUpCatalog( Dbt& key,
+                             SmiCatalogEntry& entry );
+
+
   string    bdbHome;         // Home directory
   string    tmpHome;         // Temporary environment subdirectory
   u_int32_t minutes;         // Time between checkpoints 

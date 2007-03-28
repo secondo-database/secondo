@@ -89,7 +89,7 @@ SmiEnvironment::CurrentDatabase()
 
 
 void
-SmiEnvironment::ResetErrors()
+SmiEnvironment::ResetSmiErrors()
 {
   numOfErrors=0;
   lastError = E_SMI_OK;
@@ -111,30 +111,33 @@ SmiEnvironment::GetLastErrorCode()
 SmiError
 SmiEnvironment::GetLastErrorCode( string& errorMessage )
 {
-  errorMessage = "SecondoSMI: " + lastMessage;
+  errorMessage = "SecondoSMI: Error stack \n" + lastMessage;
   lastMessage = "";
   return lastError;
 }
 
 
 void 
-SmiEnvironment::SetError( const SmiError smiErr )
+SmiEnvironment::SetSmiError( const SmiError smiErr, const string& file, int pos )
 { 
   if (smiErr == E_SMI_OK)
-    SetError(smiErr, "E_SMI_OK");
+    SetSmiError(smiErr, "E_SMI_OK", file, pos);
   else
-    SetError(smiErr, Err2Msg(smiErr));
+    SetSmiError(smiErr, Err2Msg(smiErr), file, pos);
 }
                         
 void 
-SmiEnvironment::SetError( const SmiError smiErr, const string& errMsg )
+SmiEnvironment::SetSmiError( const SmiError smiErr, 
+		             const string& errMsg, const string& file, int pos )
 { 
   lastError = smiErr;
   if (smiErr != E_SMI_OK)
   { 
     if ( numOfErrors > 0 )
-      lastMessage += "\n";	  
-    lastMessage += errMsg;
+      lastMessage += "\n";
+    stringstream msg;
+    msg << errMsg << " at " << file << " (" << pos << ")";   
+    lastMessage += msg.str();
     numOfErrors++;	
   }  
 }                      
@@ -196,7 +199,7 @@ SmiEnvironment::RegisterDatabase( const string& dbname )
     }
     else
     {
-      SetError( E_SMI_DB_REGISTER, answer );
+      SetError2( E_SMI_DB_REGISTER, answer );
       ok = false;
     }
   }
@@ -227,7 +230,7 @@ SmiEnvironment::UnregisterDatabase( const string& dbname )
     }
     else
     {
-      SetError( E_SMI_DB_UNREGISTER, answer );
+      SetError2( E_SMI_DB_UNREGISTER, answer );
       ok = false;
     }
   }
@@ -244,7 +247,7 @@ SmiEnvironment::LockDatabase( const string& dbname )
     string answer;
     string msg = string( "LOCK " ) + dbname;
     if ( uid != "" )
-    {
+    { 
       msg += string( " " ) + uid;
     }
     else
@@ -258,7 +261,7 @@ SmiEnvironment::LockDatabase( const string& dbname )
     }
     else
     {
-      SetError( E_SMI_DB_LOCK, answer );
+      SetError2( E_SMI_DB_LOCK, answer );
       ok = false;
     }
   }
@@ -289,7 +292,7 @@ SmiEnvironment::UnlockDatabase( const string& dbname )
     }
     else
     {
-      SetError( E_SMI_DB_UNLOCK, answer );
+      SetError2( E_SMI_DB_UNLOCK, answer );
       ok = false;
     }
   }
