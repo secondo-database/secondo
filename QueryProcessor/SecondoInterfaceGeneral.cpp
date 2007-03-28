@@ -297,7 +297,7 @@ SecondoInterface::WriteErrorList ( ListExpr list, ostream& os /* = cerr */ )
       }  
       errorCode = nl->IntValue( listErrorCode );
       errorText = GetErrorMessage( errorCode );
-      os << "=> " << errorText << endl;
+      os << endl << "=> " << errorText << endl;
       list = nl->Rest( list );
     }
   }
