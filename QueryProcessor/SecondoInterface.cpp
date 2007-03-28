@@ -498,7 +498,7 @@ separate functions which should be named Command\_<name>.
   //assert( SmiEnvironment::GetNumOfErrors() == 0 );
 
   // reset errors 
-  SmiEnvironment::ResetErrors(); 
+  SmiEnvironment::ResetSmiErrors(); 
   cmsg.resetErrors();
   errorMessage = "";
   errorCode    = 0;
@@ -518,7 +518,7 @@ separate functions which should be named Command\_<name>.
   }
 
   // The error list which may be extended by some catalog commands
-  ListExpr errorList    = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  ListExpr errorList    = nl->GetErrorList();
   ListExpr errorInfo    = errorList;
 
   // the next variable stores the command as a nested list data structure
@@ -822,17 +822,26 @@ separate functions which should be named Command\_<name>.
           default: 
           {       
             cmsg.info()  
-              << "Error during restore detected. Closing database " 
+              << "Error during restore detected. Trying to create "
+	      << "derived objects ..." << endl;
+            cmsg.send();
+
+            delete derivedObjPtr;            
+            derivedObjPtr = new DerivedObj();
+            derivedObjPtr->rebuildObjs(); 
+
+	    cmsg.info()
+	      << "About to close the database " 
               << dbName << " ... ";
             cmsg.send();
         
             if ( !sys.CloseDatabase() ) 
             {
-              cmsg.info() << " failed!" << endl;
+              cmsg.info() << " [ERROR]!" << endl;
             } 
             else 
             {
-              cmsg.info() << " finished!" << endl;
+              cmsg.info() << " [OK]!" << endl;
             }
             cmsg.info() << endl;
             cmsg.send();
