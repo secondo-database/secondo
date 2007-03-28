@@ -42,15 +42,18 @@ all: examples buildlibs
 	$(cp-config-file)
 
 SPECFILES := $(wildcard $(addsuffix /*.spec, $(ALL_ALGEBRA_DIRS) ))
-EXAMPLEFILES := $(wildcard $(addsuffix /*.examples, $(ALL_ALGEBRA_DIRS) ))
+EXAMPLEFILES := $(wildcard $(addsuffix /*.examples, $(USED_ALGEBRA_DIRS) ))
 
 .PHONY: examples
 examples:
-	@echo "Copying example files to ../bin/tmp and ../Optimizer/tmp"
-	@if [ ! -d ../bin/tmp ]; then mkdir -p ../bin/tmp; fi
-	@if [ ! -d ../Optimizer/tmp ]; then mkdir -p ../Optimizer/tmp; fi
-	@cp $(EXAMPLEFILES) ../bin/tmp 
-	@cp $(EXAMPLEFILES) ../Optimizer/tmp 
+	@for dir in "../bin/tmp" "../Optimizer/tmp"; do \
+	  mkdir -p $$dir; \
+	  echo "Removing old examples in $$dir"; \
+	  rm -rf $$dir/*.examples; \
+          echo "Copying example files to $$dir"; \
+	  echo $(EXAMPLEFILES) $$dir; \
+	  cp $(EXAMPLEFILES) $$dir; \
+	done 
 
 specs: specs.test
 	@chmod u+x *.awk
@@ -103,7 +106,9 @@ clean:
 realclean:
 	rm -f specs specs.test
 	for dir in $(ALL_ALGEBRA_DIRS); do \
-          cd $$dir; if !($(MAKE) clean) then \
-            exit 1; \
-          fi; cd ..; \
+	  if [ -e $$dir/makefile ]; then \
+            cd $$dir; if !($(MAKE) clean) then \
+              exit 1; \
+            fi; cd ..; \
+	  fi; \
         done
