@@ -519,6 +519,7 @@ enum QueryProcessorType
          QP_ARGLIST, QP_APPLYABS, QP_APPLYFUN,
          QP_TYPEERROR, QP_ERROR, QP_APPEND,
          QP_UNDEFINED, QP_COUNTER, QP_COUNTERDEF,
+         QP_PREDINFO, QP_PREDINFODEF,
          QP_POINTER };
 /*
 enumerates the types a symbol may have while annotating an expression.
