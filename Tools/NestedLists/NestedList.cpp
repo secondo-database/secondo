@@ -156,7 +156,6 @@ NestedList::NestedList( SmiRecordFile* ptr2RecFile )
 
   setMem(1024, 512, 512);
   initializeListMemory();
-  typeError = SymbolAtom("typeerror");
 }
 
 
@@ -199,6 +198,7 @@ NestedList::initializeListMemory()
    stringTable = new CTable<StringRecord>(stringEntries);
    textTable   = new CTable<TextRecord>(textEntries);
    typeError = SymbolAtom("typeerror");
+   errorList = OneElemList( SymbolAtom("ERRORS") );
 }
 
 

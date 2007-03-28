@@ -922,6 +922,7 @@ There are corresponding procedures to get typed values from atoms:
 */
 
  const ListExpr TypeError() const { return typeError; }
+ ListExpr& GetErrorList() { return errorList; }
 
 /*
 Again, the treatment of ~Text~ values is a little more difficult.
@@ -1209,6 +1210,7 @@ prototypes for functions used for the binary encoding/decoding of lists
   static bool          doDestroy;
   static const bool    isPersistent;
   ListExpr typeError; 
+  ListExpr errorList;
   
 
 /*
