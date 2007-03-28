@@ -53,7 +53,7 @@ placenodes operator
 2 consts
 
 Try to place the nodes in a way, that the angle between two edges is larger 
-than c_dMinAngleDiff (about 5 Degrees)
+than c[_]dMinAngleDiff (about 5 Degrees)
 
 */
 double const c_dMinAngleDiff = 0.1;
