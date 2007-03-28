@@ -1,9 +1,10 @@
 
 %{
 	#include <iostream>
+
+	#define YY_DECL int WebLex::yylex(int switchcond)
 	#include "web.h"
 	#include "string.h"
-	#define YY_DECL int WebLex::yylex(int switchcond)
 
 	
 	using namespace std;

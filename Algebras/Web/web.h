@@ -7,12 +7,20 @@
 1.1 Includes
 
 */
+
+#ifndef SEC_WEBLEX_H
+#define SEC_WEBLEX_H
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <set>
 #include <list>
+
+#ifndef yyFlexLexer
+#define yyFlexLexer webFlexLexer
 #include <FlexLexer.h>
+#endif
 #include <string>
 #include <vector>
 #include <list>
@@ -221,4 +229,6 @@ class AnalyseList : public list<AnalyseElement> {
 1.6 
 
 */
+
+#endif
 
