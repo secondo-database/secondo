@@ -126,66 +126,89 @@ size_t Path::Sizeof() const
     return sizeof(*this);
 }
 
+/*
+~EqualWay~
+
+This function checks the equality of this path with the
+argument with respect to the key in the path, i.e. ignoring
+costs and positions.
+
+*/
+
+void Path::EqualWay(const Path* p, CcBool& result) const{
+  if(!IsDefined() || !p->IsDefined()){
+      result.SetDefined(false);
+      return; 
+  }
+  int mysize = this->GetNoPathStructs();
+  int psize = p->GetNoPathStructs();
+  if(mysize!=psize){
+     result.Set(true,false);
+     return;
+  }
+  const pathStruct* mps = 0;
+  const pathStruct* pps = 0;
+  for(int i=0; i<mysize;i++){
+     this->myPath.Get(i,mps);
+     p->myPath.Get(i,pps);
+     if(mps->key != pps->key){
+        result.Set(true,false);
+        return;
+     }  
+  }
+  result.Set(true,true);
+}
+
 int Path::Compare(const Attribute* arg) const
-{
-    int nRet = 0;
-    Path const * pArg = dynamic_cast<Path const *>(arg);
-    if (pArg->IsDefined())
-    {
-        if (defined)
-        {
-            int nCount = min(GetNoPathStructs(), pArg->GetNoPathStructs());
-            for (int i = 0; i < nCount; ++i)
-            {
-                pathStruct const * p1 = GetPathStruct(i);
-                pathStruct const * p2 = pArg->GetPathStruct(i);
-                if (p1->key > p2->key)
-                {
-                    nRet = 1;
-                    break;
-                }
-                else if (p1->key < p2->key)
-                {
-                    nRet = -1;
-                    break;
-                }
-                
-                if (p1->cost < p2->cost)
-                {
-                    nRet = 1;
-                    break;
-                }
-                else if (p1->cost < p2->cost)
-                {
-                    nRet = -1;
-                    break;
-                }
-                
-            }
-            
-            if (nRet == 0)
-            {
-                if (GetNoPathStructs() > nCount)
-                {
-                    nRet = 1;
-                }
-                else if (pArg->GetNoPathStructs() > nCount)
-                {
-                    nRet = -1;
-                }
-            }
-        }
-        else
-        {
-            nRet = -1; 
-        }
+{ 
+    Path const * p = dynamic_cast<Path const *>(arg);
+    if(!defined || !p->defined){
+      return -1; 
     }
-    else if (defined)
-    {
-        nRet = 1;
+    // first criterion is the length of the path
+    int mlength = myPath.Size();
+    int plength = p->myPath.Size();
+    if(mlength<plength){
+       return -1;
     }
-    
-    return nRet;    
+    if(mlength>plength){
+       return 1;
+    }
+    // second criterion are the costs
+    if(this->cost < p->cost){
+       return -1;
+    }
+    if(this->cost > p->cost){
+       return 1;
+    }
+
+    // both paths have the same length
+    // and the same costs
+    // scan both path in parallel
+    const pathStruct* mps=0;
+    const pathStruct* pps=0;
+    for(int i=0;i<mlength;i++){
+       myPath.Get(i,mps);
+       p->myPath.Get(i,pps);
+       if(mps->key < pps->key){
+          return -1;
+       }
+       if(mps->key > pps->key){
+          return 1;
+       }
+       int cmp = mps->pos.Compare(&(pps->pos));
+       if(cmp!=0){
+          return cmp;
+       }
+       if(!AlmostEqual(mps->cost,pps->cost)){
+          if(mps->cost < pps->cost){
+             return -1;
+          } else {
+             return 1;
+          }
+       }
+    }
+    return 0;
 }
 
 

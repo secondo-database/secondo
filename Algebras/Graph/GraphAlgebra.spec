@@ -13,6 +13,7 @@ operator placenodes alias PLACENODES pattern op ( _ )
 operator vertices alias VERTICES pattern op (_)
 operator merge alias MERGE pattern op (_, _)
 operator partof alias PARTOF pattern _ infixop _
-operator equal alias EQUAL pattern _ infixop _
+operator = alias EQUAL pattern _ infixop _
+operator equalway alias EQUALWAY pattern _ infixop _
 operator constgraph alias CONSTGRAPH pattern _ op [ _, _, fun ] implicit parameter tuple type TUPLE
 operator constgraphpoints alias CONSTGRAPHPOINTS pattern _ op [ _, _, fun, _, _ ] implicit parameter tuple type TUPLE

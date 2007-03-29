@@ -294,6 +294,18 @@ This function removes all vertices from the path.
 
 */        
         void Destroy(){myPath.Destroy();}
+
+
+/*
+5.3.3 EqualWay
+
+This function checks the equality of two path instances
+ignoring the costs for the edges and positions of the vertices.
+
+*/
+        void EqualWay(const Path* P, CcBool& result) const;
+
+
 /*
 5.4   Functions needed to import the ~path~ data type to tuple
 

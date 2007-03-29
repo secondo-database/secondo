@@ -668,6 +668,56 @@ ListExpr GraphGraphBoolTypeMap(ListExpr args)
 }
 
 /*
+4.1.12 Type mapping function for the '=' operator
+
+  t x t -> bool with t in {vertex, path, edge, graph}
+
+*/
+ListExpr EqualTypeMap(ListExpr args){
+ if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("two arguments expected");
+    return nl->TypeError();
+ }
+ ListExpr arg1 = nl->First(args);
+ ListExpr arg2 = nl->Second(args);
+ if( (nl->AtomType(arg1)!=SymbolType) || (nl->AtomType(arg2)!=SymbolType)){
+   ErrorReporter::ReportError("two simple types expected");
+   return nl->TypeError();
+ }
+ string arg1s = nl->SymbolValue(arg1);
+ string arg2s = nl->SymbolValue(arg2);
+ if(arg1s!=arg2s){
+   ErrorReporter::ReportError("both arguments must have the same type");
+   return nl->TypeError();
+ } 
+ if( (arg1s!="vertex") && (arg1s!="edge") && 
+     (arg1s!="path") && (arg1s!="graph")){
+   ErrorReporter::ReportError("only arguments vertex, edge,"
+                              " path, and graph are allowed");
+   return nl->TypeError();
+ }
+ return nl->SymbolAtom("bool");
+}
+
+/*
+4.1.13 Type mapping for the ~equalway~ operator
+
+*/
+ListExpr EqualWayTypeMap(ListExpr args){
+  if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("two arguments expected");
+     return nl->TypeError();
+  }
+  if(!nl->IsEqual(nl->First(args),"path") ||
+     !nl->IsEqual(nl->Second(args),"path")){
+     ErrorReporter::ReportError("path x path expected");
+     return nl->TypeError(); 
+  }
+  return nl->SymbolAtom("bool");
+}
+
+
+/*
 4.2 Selection functions
 
 A selection function is quite similar to a type mapping function. The only
@@ -709,6 +759,17 @@ int shortestPathSelect(ListExpr args){
 }
 
 
+/*
+4.2.3 Selection function for the '=' operator
+
+*/
+int EqualSelect(ListExpr args){
+  if(nl->IsEqual(nl->First(args),"graph")){
+     return  0;
+  } else {
+    return 1;
+  }
+}
 
 
 /*
@@ -871,6 +932,9 @@ int shortestPathFun (Word* args, Word& result,
                        (Path*)result.addr);
     return 0;
 }
+
+
+
 
 /*
 4.3.7 Value mapping function for operator ~edges~
@@ -1334,18 +1398,48 @@ int graphmerge(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 /*
-4.3.13 Value mapping function of operator ~equal~
+4.3.13 Value mappings function of operator ~equal~
 
 */
-int equalfun(Word* args, Word& result, int message, Word& local, Supplier s)
+int EqualFun(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Attribute* arg1 = (Attribute*)(args[0].addr);
+  Attribute* arg2 = (Attribute*)(args[1].addr);
+  result = qp->ResultStorage(s);
+  if(!arg1->IsDefined() || !arg2->IsDefined()){
+     ((CcBool*)result.addr)->SetDefined(false);
+  } else {
+     bool res = arg1->Compare(arg2)==0;
+     ((CcBool*)result.addr)->Set(true,res);   
+  }       
+  return 0;
+}
+
+int EqualGraphFun(Word* args, Word& result, 
+                 int message, Word& local, Supplier s)
 {
   Graph* pGraph1 = (Graph*)(args[0].addr);
   Graph* pGraph2 = (Graph*)(args[1].addr);
   result = qp->ResultStorage(s);
-  ((CcBool*)result.addr)->Set(true,pGraph1->EqualsWith(pGraph2));          
+  ((CcBool*)result.addr)->Set(true,pGraph1->EqualsWith(pGraph2));
 
   //todo
-  
+
+  return 0;
+}
+
+/*
+4.3.14 Value mapping for the ~equalway~ operator
+
+*/
+
+int EqualWayFun(Word* args, Word& result, int message, 
+                Word& local, Supplier s)
+{
+  Path* arg1 = (Path*)(args[0].addr);
+  Path* arg2 = (Path*)(args[1].addr);
+  result = qp->ResultStorage(s);
+  arg1->EqualWay(arg2,*((CcBool*)result.addr));
   return 0;
 }
 
@@ -1470,13 +1564,23 @@ const string constGraphPointsSpec  =
     "(Works on the database OSNABRUECK)</text--->"
     ") )";
 
-const string equalSpec  = 
+const string EqualSpec  = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
    "\"Example\" ) "
-    "( <text>(graph x graph) -> bool </text---> "
-    "<text>g1 equal g2</text--->"
-    "<text>Check if two graphes are equal</text--->"
+    "( <text> T x T  -> bool , T in {vertex, edge, path, graph}</text---> "
+    "<text>g1 =  g2</text--->"
+    "<text>Check if the arguments are equal</text--->"
     "<text> query g1 equal g1; results TRUE</text--->"
+    ") )";
+
+const string EqualWaySpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+   "\"Example\" ) "
+    "( <text> path x path -> bool</text---> "
+    "<text>p1 equalway p2</text--->"
+    "<text>Check if the arguments have the same way "
+          "with repect to the key of the vertices</text--->"
+    "<text> query p1 equalway p2</text--->"
     ") )";
 
 string const placenodesSpec = 
@@ -1507,6 +1611,9 @@ ValueMapping edgesValueMap[] = { edgesFun<false>, edgesFun<true> };
 ValueMapping shortestPathValueMap[] = {
             shortestPathFun<Vertex,Vertex>, shortestPathFun<Vertex,CcInt>,
             shortestPathFun<CcInt,Vertex>, shortestPathFun<CcInt,CcInt>};
+
+ValueMapping EqualValueMap[] = {EqualGraphFun, EqualFun };
+
 
 
 /*
@@ -1624,13 +1731,24 @@ Operator graph_merge(
   GraphGraphGraphTypeMap
 );
 
-Operator equals(
-  "equal", 
-  equalSpec, 
-  equalfun, 
+Operator equalway(
+  "equalway", 
+  EqualWaySpec, 
+  EqualWayFun, 
   Operator::SimpleSelect, 
-  GraphGraphBoolTypeMap
+  EqualWayTypeMap
 );
+
+
+Operator equalop (
+  "=",
+  EqualSpec,
+  2,
+  EqualValueMap, 
+  EqualSelect,
+  EqualTypeMap
+);
+
 /*
 5 Creating the Algebra
 
@@ -1670,7 +1788,9 @@ class GraphAlgebra : public Algebra
     AddOperator(&graph_merge);
     AddOperator(&constGraph);
     AddOperator(&constGraphPoints);
-    AddOperator(&equals);
+    AddOperator(&equalop);
+    AddOperator(&equalway);
+
   }
   ~GraphAlgebra() {};
 };
