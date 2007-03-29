@@ -533,6 +533,13 @@ class CcString : public StandardAttribute
     stringsCreated++; 
   }
 
+  inline CcString( const bool d, const string v )
+  {
+    defined = d;
+    memset ( stringval,'\0',      MAX_STRINGSIZE+1);
+    strncpy( stringval, v.data(), MAX_STRINGSIZE  );
+  }
+
   inline ~CcString() 
   { 
     stringsDeleted++; 
@@ -571,7 +578,6 @@ class CcString : public StandardAttribute
     return stringval; 
   }
 
-  
   inline CcString* Clone() const
   { 
     return (new CcString( this->defined, &this->stringval )); 
@@ -581,6 +587,13 @@ class CcString : public StandardAttribute
   { 
     defined = d; 
     strcpy( stringval, *v); 
+  }
+
+  inline void Set( const bool d, const string v ) 
+  { 
+    defined = d;
+    memset ( stringval, '\0',     MAX_STRINGSIZE+1);
+    strncpy( stringval, v.data(), MAX_STRINGSIZE  );
   }
 
   inline size_t HashValue() const
