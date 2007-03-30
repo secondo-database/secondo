@@ -124,6 +124,26 @@ fi
 ##
 
 
+# checkOpt
+# 
+function checkOpt() 
+{
+  local optName=$1
+  local val="$2"
+  shift
+  shift
+
+  for opt in $*; do
+    if [ "$val" == "$opt" ]; then
+      return 0		
+    fi    
+  done
+
+  echo "Error: Option \"$optName = $val\" is invalid. I must be one of [$*]."
+  exit 1 
+}
+
+
 # cvsChanges
 #
 # $1 file last date
@@ -241,7 +261,7 @@ fi
 
 function cleanModule 
 {
-  if [ "$opt_tarFile" == "none" ]; then
+  if [ "$opt_tarFile" != "none" ]; then
     return 0
   fi  
 
@@ -251,11 +271,14 @@ function cleanModule
   mk_rc=$?
 
   printf "\n%s\n" "files unkown to CVS:"
-  local leftFiles=$(cvs -nQ update | grep "^? ") 
+  grepCmd='cvs -nQ update | grep "^? "'
+  local leftFiles=$($grepCmd)
   if [ "$leftFiles" != "" ]; then 
     mkMailStr "$mailBody3 $leftFiles"
     sendMail "make realclean has left some files! $gccMailSubject" "$mailRecipients" "$MAIL_STR" "$cvsHistMailBackupDir" "$logFile"
-  fi
+  else
+    echo "The command $grepCmd returned no files!"
+  fi  
   return $mk_rc
 }
 
@@ -264,17 +287,14 @@ function cleanModule
 ###
 
 tmpDir=/tmp/cvs-make-$USER
-
-if [ ! -d $tmpDir ]; then
-  mkdir $tmpDir
-fi
+mkdir -p $tmpDir
 
 declare -i numOfArgs=$#
 let numOfArgs++
 
 while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
 
-  getopts "ehnm:r:w:c:s:t:d:g:f:" optKey
+  getopts "ehnm:r:w:c:s:t:d:g:f:o:" optKey
   if [ "$optKey" == "?" ]; then
     optKey="h"
   fi
@@ -320,6 +340,8 @@ while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
    
    c) opt_coDir=$OPTARG;;
 
+   o) opt_coModuleOpt=$OPTARG;;
+
    m) opt_coModule=$OPTARG;;
 
    f) opt_tarFile=$OPTARG;;
@@ -331,6 +353,8 @@ while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
   esac
 
 done
+
+checkOpt "-o" "$opt_coModuleOpt" "all" "std"
 
 printSep "Variable values"
 
@@ -361,6 +385,7 @@ showValue LU_SENDMAIL
 showValue LU_SENDMAIL_FROM
 
 showValue cvsDir
+showValue tmpDir
 
 if [ "$opt_coModule" == "" ]; then
   echo -e "Error: a module needs to be specified!"
@@ -502,26 +527,40 @@ fi
 
 declare -i errors=0
 cd $cbuildDir
-printf "\n%s\n" "Entering directory $PWD"
+printf "\n%s\n" "Changed to directory $PWD"
 printSep "Compile $opt_coModule with option $opt_coModuleOpt"
+
+moduleOptInit="false"
 
 if [ "$opt_coModuleOpt" == "all" ]; then
 
+  echo "Setting Options for $opt_coModuleOpt ..."
   export SECONDO_ACTIVATE_ALL_ALGEBRAS="true"
   #export SECONDO_YACC="/usr/bin/bison"
   logFile=$tmpDir/make-all-algebras.log
   subject="Building $opt_coModule with all algebras failed!"
   opt_runTests="no"
+  opt_mkStable="no"
+  moduleOptInit="true"
 
 fi
 
 if [ "$opt_coModuleOpt" == "std" ]; then
 
+  echo "Setting Options for $opt_coModuleOpt ..."
   unset SECONDO_ACTIVATE_ALL_ALGEBRAS
   logFile=$tmpDir/make-default-algebras.log
   subject="Building $opt_coModule failed!"
+  moduleOptInit="true"
 
 fi
+
+if [ "$moduleOptInit" == "false" ]; then
+  echo "Error: Options are not initialized."
+  exit 1
+fi  
+showValue logFile
+showValue subject
 
 makeModule "$logFile" "$subject"  
 mk_rc=$?
@@ -564,7 +603,8 @@ fi
 
 cleanModule
 
-if [[ ($[errors] == 0) && ("$opt_mkStable" == "yes") ]]; then	
+if [[ ($[errors] == 0) 
+      && $("$opt_runTest" == yes) && ("$opt_mkStable" == "yes") ]]; then	
 
   # Move label for stable version
   cd $cbuildDir
@@ -588,5 +628,7 @@ if [[ ($[errors] == 0) && ("$opt_mkStable" == "yes") ]]; then
   rm -rf $tmpDir
   rm -rf /tmp/make-$USER
 fi
+
+echo "*** The regression test finished with  $errors errors."
 
 exit $errors
