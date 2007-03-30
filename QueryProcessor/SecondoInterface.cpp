@@ -731,12 +731,8 @@ separate functions which should be named Command\_<name>.
         else
         {
           dbName = nl->SymbolValue( nl->Third( list ) );
-          if ( !sys.OpenDatabase( dbName ) )
-          {
-           // identifier not a known database name
-            errorCode = ERR_IDENT_UNKNOWN_DB_NAME; 
-          } 
-          else if ( !derivedObjPtr )
+	  errorCode = sys.OpenDatabase( dbName ); 
+          if ( errorCode == ERR_NO_ERROR )
           {
             // create new instance if necessary
             derivedObjPtr = new DerivedObj();
@@ -1265,10 +1261,7 @@ separate functions which should be named Command\_<name>.
     } 
   }
 
-  
-  if(errorCode!=0){
-      constructErrMsg(errorCode, errorMessage);
-  }
+  constructErrMsg(errorCode, errorMessage);
   
   //*** END COMMAND RECOGNITION ***//
   
@@ -1380,8 +1373,19 @@ separate functions which should be named Command\_<name>.
 
 
 void
-SecondoInterface::constructErrMsg(int errorCode, string& errorMessage)
+SecondoInterface::constructErrMsg(int& errorCode, string& errorMessage)
 {
+
+  // Check if there were SMI errors
+  if ( SmiEnvironment::GetNumOfErrors() != 0) { 
+    
+    if (errorCode == 0)
+      errorCode = ERR_SYSTEM_ERROR; 	    
+    string err;
+    SmiEnvironment::GetLastErrorCode(err);
+    errorMessage += err + "\n"; 
+  }  
+
   if ( errorCode != 0) {
     // translate error code into text
     // check if the queryprocessor reports errors
@@ -1390,13 +1394,6 @@ SecondoInterface::constructErrMsg(int errorCode, string& errorMessage)
     ErrorReporter::Reset();
     errorMessage += repMsg + "\n";
 
-    // Check if there were SMI errors
-    if ( SmiEnvironment::GetNumOfErrors() != 0) { 
-      string err;
-      SmiEnvironment::GetLastErrorCode(err);
-      errorMessage += err + "\n"; 
-    }  
-  
     cmsg.error() << "" ; // be sure to use the error channel 
     cmsg.send(); // flush cmsg buffer
     errorMessage += cmsg.getErrorMsg();

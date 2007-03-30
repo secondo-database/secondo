@@ -157,7 +157,7 @@ SmiRecordFile::SelectAll( SmiRecordFileIterator& iterator,
   }
   else
   {
-    SmiEnvironment::SetBDBError( E_SMI_RECORD_SELECTALL, rc );
+    SmiEnvironment::SetBDBError( rc );
   }
   return (rc == 0);
 }
@@ -176,7 +176,7 @@ SmiRecordFile::SelectAllPrefetched()
   }
   else
   {
-    SmiEnvironment::SetBDBError(E_SMI_RECORD_SELECTALL, rc);
+    SmiEnvironment::SetBDBError(rc);
     return 0;
   }
 }
@@ -212,7 +212,7 @@ SmiRecordFile::AppendRecord( SmiRecordId& recno, SmiRecord& record )
   }
   else
   {
-    SmiEnvironment::SetBDBError( E_SMI_RECORD_APPEND, rc );
+    SmiEnvironment::SetBDBError( rc );
     record.initialized     = false;
   }
 
@@ -229,7 +229,7 @@ bool SmiRecordFile::DeleteRecord( SmiRecordId recno )
   if ( rc == 0 )
     SmiEnvironment::SetError( E_SMI_OK );
   else
-    SmiEnvironment::SetBDBError( E_SMI_RECORD_DELETE, rc );
+    SmiEnvironment::SetBDBError( rc );
   
   return (rc == 0);  
 }

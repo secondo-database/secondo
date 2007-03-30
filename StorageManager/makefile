@@ -32,8 +32,7 @@ LIBNAME = libsmi$(SMILOW)
 .PHONY: buildlibs
 buildlibs: $(LIBNAME).$(LIBEXT)
 
-AR := ar 
-LD := libtool -shared
+#CCFLAGS += -DTRACE_ON
 
 # --- Storage Management Interface library ---
 

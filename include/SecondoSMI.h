@@ -667,7 +667,7 @@ it returns "false"[4], if a database with the given name already
 exists or if an error occured.
 
 */
-  static bool OpenDatabase( const string& dbname );
+  static SI_Error OpenDatabase( const string& dbname );
 /*
 Opens an existing "Secondo"[3] database having the name ~dbname~.
 The functions returns "true"[4], if the database could be opened,
@@ -743,7 +743,7 @@ Optionally the accompanying error message is returned.
 
 #define SetError(code) SetSmiError(code, __FILE__, __LINE__)  
 #define SetError2(code, msg) SetSmiError(code, msg, __FILE__, __LINE__)  
-#define SetBDBError(code, sys) SetSmiError(code, sys, __FILE__, __LINE__)
+#define SetBDBError(code) SetSmiError(E_SMI_BDB, code, __FILE__, __LINE__)
 
 /*
 Allows to set an SmiError code and a system error code or an error message.

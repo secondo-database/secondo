@@ -231,6 +231,9 @@ SecondoInterface::GetErrorMessage( const int errorCode )
  errors[ERR_UNKNOWN_RETURN_CODE]
   = "A function call returned with an unknown message. ";
 
+ errors[ERR_SYSTEM_ERROR]
+  = "Unexpected fatal system error.";
+
   ErrorMap::const_iterator errPos = errors.find( errorCode );
   if ( errPos != errors.end() )
   {
@@ -239,7 +242,6 @@ SecondoInterface::GetErrorMessage( const int errorCode )
   
   cerr  << " Unknown Error! No message for error code No. " 
         << errorCode << "found."; 
-  assert( false );
   return "";
 }
 

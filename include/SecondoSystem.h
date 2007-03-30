@@ -141,7 +141,7 @@ Returns "false"[4] if the database ~dbname~ is not known.
 *Precondition*: No database is open.
 
 */
-  bool OpenDatabase( const string& dbname );
+  SI_Error OpenDatabase( const string& dbname );
 /*
 Opens a database with name ~dbname~.
 Returns "false"[4] if database ~dbname~ is unknown.

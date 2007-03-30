@@ -258,7 +258,7 @@ SmiFile::Create( const string& context /* = "Default" */ )
       }
       else
       {
-        SmiEnvironment::SetBDBError( E_SMI_FILE_CREATE, rc );
+        SmiEnvironment::SetBDBError( rc );
       }
     }
     else
@@ -400,7 +400,7 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
       }
       else
       {
-        SmiEnvironment::SetBDBError( E_SMI_FILE_CREATE, rc );
+        SmiEnvironment::SetBDBError( rc );
       }
     }
     else
@@ -512,7 +512,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
       }
       else
       {
-        SmiEnvironment::SetBDBError( E_SMI_FILE_OPEN, rc );
+        SmiEnvironment::SetBDBError( rc );
       }
     }
     else
@@ -803,7 +803,7 @@ SmiFileIterator::Next( SmiRecord& record )
     }
     else
     {
-      SmiEnvironment::SetBDBError( E_SMI_CURSOR_NEXT, rc );
+      SmiEnvironment::SetBDBError( rc );
     }
   }
   else
@@ -826,7 +826,7 @@ SmiFileIterator::DeleteCurrent()
     }
     else
     {
-      SmiEnvironment::SetBDBError( E_SMI_CURSOR_DELETE, rc );
+      SmiEnvironment::SetBDBError( rc );
     }
     ok = (rc == 0);
   }
@@ -865,7 +865,7 @@ SmiFileIterator::Finish()
     }
     else
     {
-      SmiEnvironment::SetBDBError( E_SMI_CURSOR_FINISH, rc );
+      SmiEnvironment::SetBDBError( rc );
     }
     ok = (rc == 0);
   }
@@ -972,15 +972,12 @@ bool PrefetchingIteratorImpl::NewPrefetch()
         return true;  
       }
     }
-    
-    if(errorCode == DB_NOTFOUND)
+   
+    // return code DB_NOTFOUND indicates an end of scan!
+    if(errorCode != DB_NOTFOUND)
     {
-      SmiEnvironment::SetError(E_SMI_CURSOR_ENDOFSCAN);    
+      SmiEnvironment::SetBDBError(errorCode);    
     }
-    else
-    {
-      SmiEnvironment::SetBDBError(E_SMI_CURSOR_NEXT, errorCode);    
-    };
     
     state = BROKEN;
     //cerr << "PrefetchingIterator - Warning: state==BROKEN" << endl;
@@ -1043,7 +1040,7 @@ bool PrefetchingIteratorImpl::RightBoundaryExceeded()
       memcpy(&boundaryLong, rightBoundary, keyLength);
       if(keyLong > boundaryLong)
       {
-        SmiEnvironment::SetError(E_SMI_CURSOR_ENDOFSCAN);
+        // end of scan
         return true;
       }
       else
@@ -1076,7 +1073,8 @@ bool PrefetchingIteratorImpl::RightBoundaryExceeded()
       rc = memcmp(key, rightBoundary, cmpLength);
       if(rc > 0 || (rc == 0 && keyLength > rightBoundaryLength))
       {
-        SmiEnvironment::SetError(E_SMI_CURSOR_ENDOFSCAN);
+        // the first cmpLength bytes of key are greater than rightBoundary
+	// or they are equal but the keyLength is greater
         return true;
       }
       else
@@ -1264,25 +1262,25 @@ bool PrefetchingIteratorImpl::Next()
     
     if(p != 0  && !RightBoundaryExceeded())
     {
-      SmiEnvironment::SetError(E_SMI_OK);    
       return true;
     }
     else
     {
-      SmiEnvironment::SetError(E_SMI_CURSOR_ENDOFSCAN);    
-      return false;
+      if (p != 0) // out of range error
+        SmiEnvironment::SetError(E_SMI_PREFETCH_RANGE);
+      // end of scan
+      return false; 
     }
   }
   else
   {
     if(RightBoundaryExceeded())
     {
-      SmiEnvironment::SetError(E_SMI_CURSOR_ENDOFSCAN);    
+      //end of scan 
       return false;
     }
     else
     {
-      SmiEnvironment::SetError(E_SMI_OK);    
       return true;
     }
   }

@@ -190,7 +190,7 @@ SmiKeyedFile::SelectRange( const SmiKey& fromKey,
   }
   else
   {
-    SmiEnvironment::SetBDBError( E_SMI_RECORD_SELECT, rc );
+    SmiEnvironment::SetBDBError( rc );
   }
   return (rc == 0);
 }
@@ -212,7 +212,7 @@ SmiKeyedFile::SelectRangePrefetched(const SmiKey& fromKey, const SmiKey& toKey)
   }
   else
   {
-    SmiEnvironment::SetBDBError(E_SMI_RECORD_SELECT, rc);
+    SmiEnvironment::SetBDBError(rc);
     return 0;
   }
 }
@@ -251,7 +251,7 @@ SmiKeyedFile::SelectLeftRange( const SmiKey& toKey,
   }
   else
   {
-    SmiEnvironment::SetBDBError( E_SMI_RECORD_SELECT, rc );
+    SmiEnvironment::SetBDBError( rc );
   }
   return (rc == 0);
 }
@@ -272,7 +272,7 @@ SmiKeyedFile::SelectLeftRangePrefetched(const SmiKey& toKey)
   }
   else
   {
-    SmiEnvironment::SetBDBError(E_SMI_RECORD_SELECT, rc);
+    SmiEnvironment::SetBDBError(rc);
     return 0;
   }
 }
@@ -312,7 +312,7 @@ SmiKeyedFile::SelectRightRange( const SmiKey& fromKey,
   }
   else
   {
-    SmiEnvironment::SetBDBError( E_SMI_RECORD_SELECT, rc );
+    SmiEnvironment::SetBDBError( rc );
   }
   return (rc == 0);
 }
@@ -333,7 +333,7 @@ SmiKeyedFile::SelectRightRangePrefetched(const SmiKey& fromKey)
   }
   else
   {
-    SmiEnvironment::SetBDBError(E_SMI_RECORD_SELECT, rc);
+    SmiEnvironment::SetBDBError(rc);
     return 0;
   }
 }
@@ -372,7 +372,7 @@ SmiKeyedFile::SelectAll( SmiKeyedFileIterator& iterator,
   }
   else
   {
-    SmiEnvironment::SetBDBError( E_SMI_RECORD_SELECT, rc );
+    SmiEnvironment::SetBDBError( rc );
   }
   return (rc == 0);
 }
@@ -391,7 +391,7 @@ PrefetchingIterator* SmiKeyedFile::SelectAllPrefetched()
   }
   else
   {
-    SmiEnvironment::SetBDBError(E_SMI_RECORD_SELECTALL, rc);
+    SmiEnvironment::SetBDBError(rc);
     return 0;
   }
 }
@@ -454,7 +454,7 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
   }
   else
   {
-    SmiEnvironment::SetBDBError( E_SMI_RECORD_INSERT, rc );
+    SmiEnvironment::SetBDBError( rc );
     record.initialized = false;
   }
   return (record.initialized);
@@ -477,7 +477,7 @@ SmiKeyedFile::DeleteRecord( const SmiKey& key, const bool all, const SmiRecordId
     }
     else
     {
-      SmiEnvironment::SetBDBError( E_SMI_RECORD_DELETE, rc );
+      SmiEnvironment::SetBDBError( rc );
     }
 
     return (rc == 0);

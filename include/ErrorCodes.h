@@ -137,6 +137,8 @@ const SI_Error ERR_OBJ_NAME_IN_FILE_NEQ_IDENT = 83;
 const SI_Error ERR_IDENT_ALREADY_KNOWN_IN_DB = 84;
 const SI_Error ERR_ALGEBRA_UNKNOWN = 85;
 
+const SI_Error ERR_SYSTEM_ERROR = 100;
+
 const SI_Error ERR_UNKNOWN_RETURN_CODE = -1;
 
 
@@ -151,6 +153,8 @@ The codes will be mapped to a message string by function
 typedef long SmiError;
 
 const SmiError E_SMI_OK                = 0;
+const SmiError E_SMI_BDB               = -999;
+
 const SmiError E_SMI_STARTUP           = -1001;
 const SmiError E_SMI_SHUTDOWN          = -1002;
 const SmiError E_SMI_DB_CREATE         = -1003;
@@ -213,4 +217,5 @@ const SmiError E_SMI_CURSOR_ENDOFSCAN  = -1273;
 const SmiError E_SMI_CURSOR_DELETE     = -1274;
 const SmiError E_SMI_CURSOR_FINISH     = -1275;
 
+const SmiError E_SMI_PREFETCH_RANGE    = -1290;
 #endif

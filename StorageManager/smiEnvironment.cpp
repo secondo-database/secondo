@@ -48,6 +48,7 @@ using namespace std;
 #include "FileSystem.h"
 #include "Messenger.h"
 #include "CharTransform.h"
+#include "LogMsg.h"
 
 map<SmiError, string> SmiEnvironment::errorMap;
 bool SmiEnvironment::errorMapInitialized = false;
@@ -111,7 +112,7 @@ SmiEnvironment::GetLastErrorCode()
 SmiError
 SmiEnvironment::GetLastErrorCode( string& errorMessage )
 {
-  errorMessage = "SecondoSMI: Error stack \n" + lastMessage;
+  errorMessage = "Secondo-SMI error stack: \n" + lastMessage;
   lastMessage = "";
   return lastError;
 }
@@ -130,15 +131,21 @@ void
 SmiEnvironment::SetSmiError( const SmiError smiErr, 
 		             const string& errMsg, const string& file, int pos )
 { 
+  static bool abortOnError = RTFlag::isActive("SMI:abortOnError");
   lastError = smiErr;
   if (smiErr != E_SMI_OK)
   { 
     if ( numOfErrors > 0 )
       lastMessage += "\n";
     stringstream msg;
-    msg << errMsg << " at " << file << " (" << pos << ")";   
+    msg << errMsg << " -> [" << file << ":" << pos << "]";   
     lastMessage += msg.str();
     numOfErrors++;	
+
+    if (abortOnError) {
+      cerr << msg.str() << endl; 	    
+      abort();	    
+    }	    
   }  
 }                      
 
@@ -309,6 +316,7 @@ SmiEnvironment::Err2Msg( SmiError code)
   if( !errorMapInitialized )
   {
     errorMap[E_SMI_OK] = "Ok!";
+    errorMap[E_SMI_BDB] = "[Berkeley-DB Error]";
     errorMap[E_SMI_STARTUP] = "E_SMI_STARTUP";
     errorMap[E_SMI_SHUTDOWN] = "E_SMI_SHUTDOWN";
     errorMap[E_SMI_DB_CREATE] = "E_SMI_DB_CREATE";
@@ -376,6 +384,9 @@ SmiEnvironment::Err2Msg( SmiError code)
     errorMap[E_SMI_CURSOR_ENDOFSCAN] = "E_SMI_CURSOR_ENDOFSCAN";
     errorMap[E_SMI_CURSOR_DELETE] = "E_SMI_CURSOR_DELETE";
     errorMap[E_SMI_CURSOR_FINISH] = "E_SMI_CURSOR_FINISH";
+
+    errorMap[E_SMI_PREFETCH_RANGE] = 
+	         "Call to PrefetchIterator::Next() exceeds range";
     errorMapInitialized = true;
   }
 

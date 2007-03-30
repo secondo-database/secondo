@@ -205,36 +205,38 @@ Precondition: dbState = dbClosed.
   return (ok);
 }
 
-bool
+SI_Error
 SecondoSystem::OpenDatabase( const string& dbname )
 {
 /*
-Opens a database with name ~dbname~. Returns error 1 if ~dbname~ is unknown.
+Opens a database with name ~dbname~. 
 
 Precondition: dbState = dbClosed.
 
 */
-  bool ok = false;
+  SI_Error ok = ERR_NO_ERROR;
   if ( testMode && SmiEnvironment::IsDatabaseOpen() )
   {
     cerr << " OpenDatabase: database is already open!" << endl;
     exit( 0 );
   }
-  if ( SmiEnvironment::OpenDatabase( dbname ) )
+  
+  ok = SmiEnvironment::OpenDatabase( dbname );
+  if ( ok == ERR_NO_ERROR )
   {
     SmiEnvironment::BeginTransaction();
     if ( catalog->Open() )
     {
-      ok = true;
       SmiEnvironment::CommitTransaction();
     }
     else
-    {
+    { 
       SmiEnvironment::AbortTransaction();
       SmiEnvironment::CloseDatabase();
+      ok = ERR_SYSTEM_ERROR;
     }
   }
-  return (ok);
+  return ok;
 }
 
 bool
