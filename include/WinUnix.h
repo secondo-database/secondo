@@ -46,6 +46,7 @@ public:
    ~WinUnix(){};
 
    static int getPageSize( void );
+   static int getpid( void );
  
    static inline bool isLittleEndian() { return *(char *)&endian_detect == 1;}
 

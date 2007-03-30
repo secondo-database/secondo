@@ -75,6 +75,21 @@ WinUnix::getPageSize() {
 #endif
 }
 
+
+int
+WinUnix::getpid() { 
+
+#ifdef SECONDO_WIN32
+  return ::GetCurrentProcessId();
+#else
+  return ::getpid();
+#endif
+}
+
+
+
+
+
 string
 WinUnix::getPlatformStr() { 
 
