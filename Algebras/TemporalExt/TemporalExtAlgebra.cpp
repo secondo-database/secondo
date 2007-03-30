@@ -206,6 +206,23 @@ Return:
 
 */
 
+bool timeIntervalOfRealInUReal2(double value, const UReal* ur, double& t_value)
+{
+  Periods times;
+  const Interval<Instant>* invinst;
+  
+  cout << "was here 2 " << value << endl;
+  ur->PeriodsAtVal(value, times);
+  cout << "was in timeIntervalOfRealInUReal2 " << endl;
+  if ( times.GetNoComponents() < 2 )
+  {
+    times.Get(0, invinst);
+    cout << "start " << invinst->start.ToString() << endl;
+    cout << "end " << invinst->end.ToString() << endl;
+    return true;
+  }
+}
+  
 bool timeIntervalOfRealInUReal(
     double value,
     const UReal* ur,
@@ -1203,6 +1220,7 @@ void MappingExt<Unit, Alpha>::AtMin( Mapping<Unit, Alpha> &result ) const
       if(compRes < 0)
         {
           result.Clear();
+          result.StartBulkLoad();
           result.Add( *unit );
           umin = unit;
         }
@@ -1249,6 +1267,7 @@ void MappingExt<Unit, Alpha>::AtMax( Mapping<Unit, Alpha> &result ) const
       if(compRes > 0)
         {
           result.Clear();
+          result.StartBulkLoad();
           result.Add( *unit );
           umin = unit;
         }
@@ -1583,25 +1602,42 @@ Return: nothing
 
 */
 
-void MRealExt::At( RReal* inv, MReal &result ) const
+void MRealExt::At(RReal* inv, MReal &result ) const
 {
     const UReal* utemp;
     UReal uresult(true);
     double unit_min, unit_max;
+    
+    vector<UReal> minintervals, maxintervals;   
 
     result.Clear();
     result.StartBulkLoad();
     for( int i=0; i<GetNoComponents(); i++ )
     {
         Get( i, utemp );
-        MinMaxValueFunction( utemp, unit_min, unit_max );
-        ((URealExt*)utemp)->SetUnitMin( unit_min );
-        ((URealExt*)utemp)->SetUnitMax( unit_max );
+        //mr->Get(i, utemp);
+        cout << "got ureal no " << i << endl;
+        
+        //MinMaxValueFunction( utemp, unit_min, unit_max );
+        //((URealExt*)utemp)->SetUnitMin( unit_min );
+        //((URealExt*)utemp)->SetUnitMax( unit_max );
+        
+        //utemp->AtMin(minintervals);
+        //utemp->AtMax(maxintervals);
+        cout << "\ta=" << utemp->a << " b=" << utemp->b << " c=" 
+        << utemp->c << " r=" << utemp->r << endl;
+        bool correct = true;
+        unit_min = utemp->Min(correct);
+        unit_max = utemp->Max(correct);
+        
         Interval<CcReal> minmax;
         minmax.start.Set( unit_min );
         minmax.end.Set( unit_max );
         minmax.lc = true;
         minmax.rc = true;
+        cout << "(min max)[ " << minmax.start.GetValue()
+           << ", " << minmax.end.GetValue() << " ] " << endl;
+
         for(int j=0;j<inv->GetNoComponents();j++)
         {
             const Interval<CcReal>* inv_tmp;
@@ -1620,6 +1656,8 @@ void MRealExt::At( RReal* inv, MReal &result ) const
                     cout << " = [ " << inv_result.start.GetValue()
                         << ", " << inv_result.end.GetValue() << " ] " << endl;
                 }
+                cout << "\ta=" << utemp->a << " b=" << utemp->b << " c=" 
+                << utemp->c << " r=" << utemp->r << endl;
                 double t_value, t_value2;
                 uresult.a = utemp->a;
                 uresult.b = utemp->b;
@@ -1632,12 +1670,15 @@ void MRealExt::At( RReal* inv, MReal &result ) const
                 }
                 else
                 {
-                    if( timeIntervalOfRealInUReal(
+                    //uresult.timeInterval = utemp->timeInterval;
+                    //result.Add( uresult );
+
+                    if( timeIntervalOfRealInUReal2(
                         inv_result.start.GetValue(),
                         utemp,
                         t_value) )
                     {
-                        if( timeIntervalOfRealInUReal(
+                        if( timeIntervalOfRealInUReal2(
                             inv_result.end.GetValue(),
                             utemp,
                             t_value2) )
@@ -3220,6 +3261,7 @@ int MappingRRealAtExt(
 {
     result = qp->ResultStorage( s );
     MRealExt *m = ((MRealExt*)args[0].addr);
+    MReal *m2 = ((MReal*)args[0].addr);
     RReal* rng = ((RReal*)args[1].addr);
     MReal* pResult = ((MReal*)result.addr);
     pResult->Clear();
@@ -3854,7 +3896,7 @@ Steps for the first Unit
 
 */
             myValue.Set(true, !unitin->r);
-	    unitout.SetDefined(true);
+            unitout.SetDefined(true);
             unitout.constValue.CopyFrom(&myValue);
 
             if(m->GetNoComponents()==1)
@@ -3950,20 +3992,20 @@ int MovingSpeedExt(
     {
         m->Get(i, unitin);
         distance = (unitin->p0.Distance(unitin->p1)) * FactorForUnitOfDistance;
-	t = (((unitin->timeInterval.end) -
-	      (unitin->timeInterval.start)).ToDouble()) * FactorForUnitOfTime;
+        t = (((unitin->timeInterval.end) -
+              (unitin->timeInterval.start)).ToDouble()) * FactorForUnitOfTime;
 
         if (t != 0.0)
-	{
+        {
           speed = distance / t;
           unitout.a = 0.0;
           unitout.b = 0.0;
           unitout.c = speed;
           unitout.r = false;
           unitout.timeInterval = unitin->timeInterval;
-	  unitout.SetDefined(true);
+          unitout.SetDefined(true);
           pResult->Add(unitout);
-	}
+        }
     }
 
     cout << endl << endl;
