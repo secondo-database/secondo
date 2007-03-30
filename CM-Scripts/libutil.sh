@@ -74,7 +74,7 @@ function getTimeStamp {
 function showValue
 {
   local var=$1
-  echo "$var = <"$(eval echo '$'$var)">"
+  eval echo $var' = \<$'$var'\>'
 }
 
 
