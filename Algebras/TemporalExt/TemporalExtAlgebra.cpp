@@ -208,19 +208,20 @@ Return:
 
 bool timeIntervalOfRealInUReal2(double value, const UReal* ur, double& t_value)
 {
-  Periods times;
+  Periods times(2);
   const Interval<Instant>* invinst;
   
-  cout << "was here 2 " << value << endl;
   ur->PeriodsAtVal(value, times);
-  cout << "was in timeIntervalOfRealInUReal2 " << endl;
   if ( times.GetNoComponents() < 2 )
   {
     times.Get(0, invinst);
-    cout << "start " << invinst->start.ToString() << endl;
-    cout << "end " << invinst->end.ToString() << endl;
-    return true;
+    if ( invinst->start == invinst->end )
+    {
+      t_value = invinst->start.ToDouble();
+      return true;
+    }
   }
+  return false;
 }
   
 bool timeIntervalOfRealInUReal(
@@ -1616,7 +1617,7 @@ void MRealExt::At(RReal* inv, MReal &result ) const
     {
         Get( i, utemp );
         //mr->Get(i, utemp);
-        cout << "got ureal no " << i << endl;
+        //cout << "got ureal no " << i << endl;
         
         //MinMaxValueFunction( utemp, unit_min, unit_max );
         //((URealExt*)utemp)->SetUnitMin( unit_min );
@@ -1624,8 +1625,8 @@ void MRealExt::At(RReal* inv, MReal &result ) const
         
         //utemp->AtMin(minintervals);
         //utemp->AtMax(maxintervals);
-        cout << "\ta=" << utemp->a << " b=" << utemp->b << " c=" 
-        << utemp->c << " r=" << utemp->r << endl;
+        //cout << "\ta=" << utemp->a << " b=" << utemp->b << " c=" 
+        //<< utemp->c << " r=" << utemp->r << endl;
         bool correct = true;
         unit_min = utemp->Min(correct);
         unit_max = utemp->Max(correct);
@@ -1635,8 +1636,8 @@ void MRealExt::At(RReal* inv, MReal &result ) const
         minmax.end.Set( unit_max );
         minmax.lc = true;
         minmax.rc = true;
-        cout << "(min max)[ " << minmax.start.GetValue()
-           << ", " << minmax.end.GetValue() << " ] " << endl;
+        //cout << "(min max)[ " << minmax.start.GetValue()
+           //<< ", " << minmax.end.GetValue() << " ] " << endl;
 
         for(int j=0;j<inv->GetNoComponents();j++)
         {
@@ -1646,7 +1647,7 @@ void MRealExt::At(RReal* inv, MReal &result ) const
             if(minmax.Intersects( *inv_tmp ))
             {
                 minmax.Intersection( *inv_tmp, inv_result );
-                if(1)
+                if(0)
                 {
                     cout << "(min max)[ " << minmax.start.GetValue()
                         << ", " << minmax.end.GetValue() << " ] "
@@ -1656,8 +1657,8 @@ void MRealExt::At(RReal* inv, MReal &result ) const
                     cout << " = [ " << inv_result.start.GetValue()
                         << ", " << inv_result.end.GetValue() << " ] " << endl;
                 }
-                cout << "\ta=" << utemp->a << " b=" << utemp->b << " c=" 
-                << utemp->c << " r=" << utemp->r << endl;
+                //cout << "\ta=" << utemp->a << " b=" << utemp->b << " c=" 
+                //<< utemp->c << " r=" << utemp->r << endl;
                 double t_value, t_value2;
                 uresult.a = utemp->a;
                 uresult.b = utemp->b;
@@ -3261,7 +3262,6 @@ int MappingRRealAtExt(
 {
     result = qp->ResultStorage( s );
     MRealExt *m = ((MRealExt*)args[0].addr);
-    MReal *m2 = ((MReal*)args[0].addr);
     RReal* rng = ((RReal*)args[1].addr);
     MReal* pResult = ((MReal*)result.addr);
     pResult->Clear();
