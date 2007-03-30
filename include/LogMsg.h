@@ -122,13 +122,17 @@ with the ~send~ method.
                       if ( (ctr % n)  == 0) \
                        {*traceOS << ctr << " - " << a << endl; }}
 #define SHOW(a) {*traceOS << "  " << #a << " = " << a << endl;} 
+#define TRACE_ENTER {*traceOS << "* Entering " << __FUNCTION__ << endl;}
+#define TRACE_LEAVE {*traceOS << "* Leaving  " << __FUNCTION__ << endl;}
 #else
 #define ETRACE(a)
-#define TRACE(a) 
-#define NTRACE(n,a) 
-#define SHOW(a) 
+#define TRACE(a)
+#define NTRACE(n,a)
+#define SHOW(a)
 #define TRACE_FILE(n)
-#define TRACE_OS(os)                      
+#define TRACE_OS(os)
+#define TRACE_ENTER
+#define TRACE_LEAVE
 #endif
 
 
@@ -268,10 +272,12 @@ public:
       stdOutput = 0; return devnull; 
     }
   }
+  // should be declared private in the future
   inline ostream& info()    { stdOutput = 1; return buffer; }
   inline ostream& warning() { stdOutput = 1; return buffer; }
   inline ostream& error()   { stdOutput = 2; return buffer; } 
   
+  // More specific error channels
   void typeError(const string& msg)   { ErrorReporter::ReportError(msg);     }
   void inFunError(const string& msg)  { error() << "InFun: " << msg << endl; }
   void otherError(const string& msg)  { error() << "Other: " << msg << endl; }
