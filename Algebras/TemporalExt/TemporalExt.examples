@@ -10,20 +10,90 @@ Result   : FALSE
 
 Operator : at
 Number   : 1
-Signature: mpoint x point -> mpoint
-Example  : query train7 at mehringdamm
+Signature: mstring x string -> mstring
+Example  : query train7upsights at "Zitadelle";
 Result   : file
+
+
+Operator : at
+Number   : 2
+Signature: mreal x real -> mreal
+Example  : query (distance(train7,mehringdamm)) at 3000.0
+Result   : file
+
+
+Operator : at
+Number   : 3
+Signature: mint x rint -> mint
+Example  : query noAtCenter at [const rint value((1 2 TRUE TRUE))];
+Result   : file
+
+
+Operator : at
+Number   : 4
+Signature: mbool x rbool -> mbool
+Example  : query (train7 inside train7sections) at [const rbool value((TRUE TRUE TRUE TRUE))];
+Result   : file
+
+
+Operator : at
+Number   : 5
+Signature: mstring x rstring -> mstring
+Example  : query train7upsights at [const rstring value(("Rathaus Charlottenburg" "Rathaus Spandau" TRUE TRUE))];
+Result   : file
+
+
+Operator : at
+Number   : 6
+Signature: mreal x rreal -> mreal
+Example  : query (distance(train7,mehringdamm)) at ([const rreal value((3000.0 3050.0 TRUE TRUE))]);
+Result   : file
+
+
+Operator : at
+Number   : 7
+Signature: mpoint x points -> mpoint
+Example  : query train7 at train7stations
+Result   : file
+
+
+Operator : at
+Number   : 8
+Signature: mpoint x line -> mpoint
+Example  : query train7 at train7sections
+Result   : crashes
+Remark   : Returns invalid unit.
 
 
 Operator : atinstant
 Number   : 1
-Signature: mint x instant -> iint
-Example  : query val(noAtCenter atinstant six30)
-Result   : 1
+Signature: mstring x instant -> istring
+Example  : query val(train7upsights atinstant six30)
+Result   : "Hebbeltheater"
 
 
 Operator : atmax
 Number   : 1
+Signature: mint -> mint
+Example  : query atmax ( noAtCenter )
+Result   : file
+
+
+Operator : atmax
+Number   : 2
+Signature: mbool -> mbool
+Example  : query atmax(train7 inside train7stations)
+Result   : file
+
+Operator : atmax
+Number   : 3
+Signature: mstring -> mstring
+Example  : query atmax(train7upsights)
+Result   : file
+
+
+Operator : atmax
+Number   : 4
 Signature: mreal -> mreal
 Example  : query atmax ( distance(train7, mehringdamm) )
 Result   : file
@@ -31,6 +101,27 @@ Result   : file
 
 Operator : atmin
 Number   : 1
+Signature: mint -> mint
+Example  : query atmin ( noAtCenter )
+Result   : file
+
+
+Operator : atmin
+Number   : 2
+Signature: mbool -> mbool
+Example  : query atmin(train7 inside train7stations)
+Result   : file
+
+
+Operator : atmin
+Number   : 3
+Signature: mstring -> mstring
+Example  : query atmin(train7upsights)
+Result   : file
+
+
+Operator : atmin
+Number   : 4
 Signature: mreal -> mreal
 Example  : query atmin ( distance(train7, mehringdamm) )
 Result   : file
@@ -38,22 +129,29 @@ Result   : file
 
 Operator : atperiods
 Number   : 1
-Signature: mpoint x periods -> mpoint
-Example  : query train7 atperiods (deftime(train7 at thecenter))
+Signature: mstring x periods -> mstring
+Example  : query train7upsights atperiods (deftime(train7up at thecenter))
+Result   : file
+
+
+Operator : atperiods
+Number   : 2
+Signature: mregion x periods -> mregion
+Example  : query mrain2 atperiods [const periods value(("2003-11-20-06:32" "2003-11-20-06:33" TRUE TRUE))];
 Result   : file
 
 
 Operator : deftime
 Number   : 1
-Signature: mpoint -> periods
-Example  : query deftime( train7 at thecenter )
-Result   : file
+Signature: mstring -> periods
+Example  : query deftime(train7upsights);
+Result   : (periods(("2003-11-20-06:06" "2003-11-20-07:02" TRUE FALSE)))
 
 
 Operator : derivable_new
 Number   : 1
 Signature: mreal -> mbool
-Example  : query derivable_new([const mreal value((("2005-10-10" "2005-10-20" TRUE TRUE)(2.0 3.0 4.0 FALSE)))])
+Example  : query derivable_new([const mreal value((("2005-10-10" "2005-10-20" TRUE TRUE)(2.0 3.0 4.0 FALSE)))]);
 Result   : (mbool((("2005-10-10" "2005-10-20" TRUE TRUE) TRUE)))
 
 
@@ -66,23 +164,23 @@ Result   : (mreal((("2005-10-10" "2005-10-20" TRUE TRUE)(0.0 4.0 3.0 FALSE))))
 
 Operator : final
 Number   : 1
-Signature: mint -> iint
-Example  : query val(final(noAtCenter))
-Result   : 0
+Signature: mstring -> istring        
+Example  : query val(final([const mstring value ((("2003-11-20" "2003-11-21" TRUE TRUE)"Zitadelle"))]));
+Result   : "Zitadelle"
 
 
 Operator : initial
 Number   : 1
-Signature: mint -> iint
-Example  : query val(initial(noAtCenter))
-Result   : 0
+Signature: mstring -> istring
+Example  : query val(initial(train7upsights))
+Result   : "Flughafen Schönefeld"
 
 
 Operator : inst
 Number   : 1
-Signature: ipoint -> instant
-Example  : query inst(initial(train7 at thecenter))
-Result   : (instant "2003-11-20-06:18:16.027")
+Signature: istring -> instant
+Example  : query inst(initial(train7upsights))
+Result   : (instant "2003-11-20-06:06")
 
 
 Operator : locations
@@ -108,8 +206,42 @@ Result   : TRUE
 
 Operator : passes
 Number   : 1
-Signature: mpoint  x point -> bool
-Example  : query train7 passes mehringdamm
+Signature: mstring  x string -> bool
+Example  : query train7upsights passes "Deutsche Oper Berlin"
+Result   : TRUE
+
+Operator : passes
+Number   : 2
+Signature: mreal  x real -> bool
+Example  : query distance(train7,mehringdamm) passes 3000.0
+Result   : TRUE
+
+
+Operator : passes
+Number   : 3
+Signature: mregion  x point -> bool
+Example  : query mrain2 passes mehringdamm
+Result   : TRUE
+
+
+Operator : passes
+Number   : 4
+Signature: mregion  x points -> bool
+Example  : query mrain2 passes train7stations
+Result   : TRUE
+
+
+Operator : passes
+Number   : 5
+Signature: mpoint  x points -> bool
+Example  : query train7 passes train7stations
+Result   : TRUE
+
+
+Operator : passes
+Number   : 6
+Signature: mpoint  x line -> bool
+Example  : query train7 passes trajectory(train7)
 Result   : TRUE
 
 
@@ -120,11 +252,41 @@ Example  : query train7upsights present six30
 Result   : TRUE
 
 
+Operator : present
+Number   : 2
+Signature: mstring x periods -> bool
+Example  : query train7upsights present [const periods value(("2003-11-20-06:30" "2003-11-20-06:35" TRUE TRUE))]
+Result   : TRUE
+
+
 Operator : rangevalues
 Number   : 1
 Signature: mint -> rint
 Example  : query rangevalues(noAtCenter)
 Result   : (rint((0 2 TRUE TRUE)))
+
+
+Operator : rangevalues
+Number   : 2
+Signature: mbool -> rbool
+Example  : query rangevalues(train7 inside train7sections)
+Result   : (rbool((FALSE TRUE TRUE TRUE)))
+
+
+Operator : rangevalues
+Number   : 3
+Signature: mstring -> rstring
+Example  : query rangevalues(train7upsights)
+Result   : bug
+Remark   : returns list with invalid characters
+
+
+Operator : rangevalues
+Number   : 4
+Signature: mreal -> rreal
+Example  : query rangevalues(distance(train7,mehringdamm))
+Result   : crashes
+Remark   : Assertion failed: IsValid() && i.IsValid(), file TemporalAlgebra.h, line 2783
 
 
 Operator : setunitofdistance
