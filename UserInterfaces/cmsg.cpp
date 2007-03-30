@@ -30,4 +30,4 @@ This file defines a single CMsg instance with global scope
 
 CMsg cmsg;
 
-ostream* traceOS = &cout;
+ostream* traceOS = &cerr;
