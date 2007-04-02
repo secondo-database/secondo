@@ -80,6 +80,9 @@ The names of existing databases are stored in a list ~DBTable~.
 
 using namespace std;
 
+//#define TRACE_ON 1
+#include "LogMsg.h"
+
 #include "ErrorCodes.h"
 #include "SecondoSystem.h"
 #include "QueryProcessor.h"
@@ -88,7 +91,6 @@ using namespace std;
 #include "NestedList.h"
 #include "NList.h"
 
-#include "LogMsg.h"
 
 SecondoSystem* SecondoSystem::secondoSystem = 0;
 
@@ -871,21 +873,27 @@ SecondoSystem::GetAppNestedList()
 bool
 SecondoSystem::BeginTransaction()
 {
+  TRACE_ENTER
+  TRACE_LEAVE
   return (SmiEnvironment::BeginTransaction());
 }
 
 bool
 SecondoSystem::CommitTransaction()
 {
+  TRACE_ENTER
   secondoSystem->catalog->CleanUp( false );
   secondoSystem->flobCache->Clean();
+  TRACE_LEAVE
   return (SmiEnvironment::CommitTransaction());
 }
 
 bool
 SecondoSystem::AbortTransaction()
 {
+  TRACE_ENTER
   secondoSystem->catalog->CleanUp( true );
+  TRACE_LEAVE
   return (SmiEnvironment::AbortTransaction());
 }
 
