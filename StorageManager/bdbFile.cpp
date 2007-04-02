@@ -250,7 +250,6 @@ SmiFile::Create( const string& context /* = "Default" */ )
         entry.fileId = fileId;
         entry.dropOnCommit = false;
         SmiEnvironment::instance.impl->bdbFilesToDrop.push( entry );
-        SmiEnvironment::SetError( E_SMI_OK );
         opened      = true;
         fileName    = "";
         fileContext = context;
@@ -392,7 +391,6 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
                                                            = catalogEntry;
         }
         ctr++;
-        SmiEnvironment::SetError( E_SMI_OK );
         opened      = true;
         fileName    = name;
         fileContext = context;
@@ -504,15 +502,11 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
                             DB_DIRTY_READ | commitFlag : 0;
 
       rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, flags, 0 );
+      SmiEnvironment::SetBDBError( rc );
       if ( rc == 0 )
       {
-        SmiEnvironment::SetError( E_SMI_OK );
         opened = true;
         impl->isSystemCatalogFile = (fileContext == "SecondoCatalog");
-      }
-      else
-      {
-        SmiEnvironment::SetBDBError( rc );
       }
     }
     else
@@ -560,11 +554,6 @@ SmiFile::Close()
                               DB_CXX_NO_EXCEPTIONS );
     }
     impl->isSystemCatalogFile = false;
-    SmiEnvironment::SetError( E_SMI_OK );
-  }
-  else
-  {
-    SmiEnvironment::SetError( E_SMI_OK );
   }
 
   return (rc == 0);
@@ -597,8 +586,6 @@ SmiFile::Drop()
       catalogEntry.updateOnCommit = false;
       SmiEnvironment::instance.impl->bdbFilesToCatalog[newName] = catalogEntry;
     }*/
-    
-    SmiEnvironment::SetError( E_SMI_OK );
   }
   return (ok);
 }
@@ -763,6 +750,7 @@ SmiFileIterator::Next( SmiRecord& record )
     restart   = false;
     endOfScan = false;
     int rc = impl->bdbCursor->get( &key, &data, flags );
+    SmiEnvironment::SetBDBError(rc);	    
     if ( rc == 0 )
     {
       flags = DB_CURRENT;
@@ -779,6 +767,9 @@ SmiFileIterator::Next( SmiRecord& record )
     if ( rc == ENOMEM )
 #endif
     {
+      // the size 	    
+      assert( data.get_size() <= SMI_MAX_KEYLEN);	    
+
       if ( record.initialized )
       {
         record.Finish();
@@ -793,13 +784,11 @@ SmiFileIterator::Next( SmiRecord& record )
       record.impl->closeCursor = false;
       record.impl->bdbCursor   = impl->bdbCursor;
       record.initialized       = true;
-      SmiEnvironment::SetError( E_SMI_OK );
       ok = true;
     }
     else if ( rc == DB_NOTFOUND )
     {
       endOfScan = true;
-      SmiEnvironment::SetError( E_SMI_CURSOR_ENDOFSCAN );
     }
     else
     {
@@ -820,14 +809,7 @@ SmiFileIterator::DeleteCurrent()
   if ( opened )
   {
     int rc = impl->bdbCursor->del( 0 );
-    if ( rc == 0 )
-    {
-      SmiEnvironment::SetError( E_SMI_OK );
-    }
-    else
-    {
-      SmiEnvironment::SetBDBError( rc );
-    }
+    SmiEnvironment::SetBDBError( rc );
     ok = (rc == 0);
   }
   else
@@ -841,7 +823,6 @@ SmiFileIterator::DeleteCurrent()
 bool
 SmiFileIterator::EndOfScan()
 {
-  SmiEnvironment::SetError( E_SMI_OK );
   return (endOfScan);
 }
 
@@ -859,14 +840,7 @@ SmiFileIterator::Finish()
     solelyDuplicates = false;
     ignoreDuplicates = false;
     int rc = impl->bdbCursor->close();
-    if ( rc == 0 )
-    {
-      SmiEnvironment::SetError( E_SMI_OK );
-    }
-    else
-    {
-      SmiEnvironment::SetBDBError( rc );
-    }
+    SmiEnvironment::SetBDBError( rc );
     ok = (rc == 0);
   }
   else
@@ -886,7 +860,6 @@ SmiFileIterator::Restart()
     restart   = true;
     endOfScan = false;
     ok        = true;
-    SmiEnvironment::SetError( E_SMI_OK );
   }
   else
   {
@@ -965,10 +938,9 @@ bool PrefetchingIteratorImpl::NewPrefetch()
              << endl;
 				
         if(!isBTreeIterator)
-	      {
+	{
           recordNumber = *((db_recno_t*)keyBuffer);
-	      };
-	      SmiEnvironment::SetError(E_SMI_OK);
+	};
         return true;  
       }
     }
@@ -1040,7 +1012,6 @@ bool PrefetchingIteratorImpl::RightBoundaryExceeded()
       memcpy(&boundaryLong, rightBoundary, keyLength);
       if(keyLong > boundaryLong)
       {
-        // end of scan
         return true;
       }
       else
@@ -1055,7 +1026,6 @@ bool PrefetchingIteratorImpl::RightBoundaryExceeded()
       memcpy(&boundaryDouble, rightBoundary, keyLength);
       if(keyDouble > boundaryDouble)
       {
-        SmiEnvironment::SetError(E_SMI_CURSOR_ENDOFSCAN);
         return true;
       }
       else
@@ -1078,7 +1048,7 @@ bool PrefetchingIteratorImpl::RightBoundaryExceeded()
         return true;
       }
       else
-      {
+      { 
 	return false;
       };
       

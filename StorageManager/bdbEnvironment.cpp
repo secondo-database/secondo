@@ -1321,30 +1321,28 @@ SmiEnvironment::CommitTransaction()
       {
         rc = instance.impl->usrTxn->abort();
         // possibly DB_LOCK_DEADLOCK;
-        SetBDBError( rc );
       }
       else
       {
         rc = instance.impl->usrTxn->commit( 0 );
       }
+      SetBDBError( rc );
     }
                 
-                StopWatch closeTime; // measure time for closing DbHandles
-          LOGMSG( "SMI:DbHandles",
-            cerr << "Calling CloseDbHandles() ..." << endl;
-                )
+    StopWatch closeTime; // measure time for closing DbHandles
+    LOGMSG( "SMI:DbHandles",
+           cerr << "Calling CloseDbHandles() ..." << endl;
+    )
                 
     if ( rc == 0 )
     {
       SmiEnvironment::Implementation::CloseDbHandles();
       SmiEnvironment::Implementation::EraseFiles( true );
-      SetError( E_SMI_OK );
     }
     else
     {
       SmiEnvironment::Implementation::CloseDbHandles();
       SmiEnvironment::Implementation::EraseFiles( false );
-      SetBDBError( rc );
     }
                 
     LOGMSG( "SMI:DbHandles",
@@ -1356,7 +1354,8 @@ SmiEnvironment::CommitTransaction()
     instance.impl->usrTxn = 0;
     if ( singleUserMode && useTransactions )
     {
-      instance.impl->bdbEnv->txn_checkpoint( 0, 0, 0 );
+      rc = instance.impl->bdbEnv->txn_checkpoint( 0, 0, 0 );
+      SetBDBError( rc );
     }
   }
   else
@@ -1379,23 +1378,19 @@ SmiEnvironment::AbortTransaction()
     if ( useTransactions )
     {
       rc = instance.impl->usrTxn->abort();
+      SetBDBError( rc );
     }
     SmiEnvironment::Implementation::CloseDbHandles();
     SmiEnvironment::Implementation::EraseFiles( false );
-    if ( rc == 0 )
-    {
-      SetError( E_SMI_OK );
-    }
-    else
-    {
-      SetBDBError( rc );
-    }
+
     instance.impl->txnStarted = false;
     instance.impl->txnMustAbort = false;
     instance.impl->usrTxn = 0;
     if ( singleUserMode && useTransactions )
+    
     {
-      instance.impl->bdbEnv->txn_checkpoint( 0, 0, 0 );
+      rc = instance.impl->bdbEnv->txn_checkpoint( 0, 0, 0 );
+      SetBDBError( rc );
     }
   }
   else
