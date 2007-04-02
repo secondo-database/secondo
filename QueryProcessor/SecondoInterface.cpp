@@ -100,6 +100,9 @@ codes are mapped to strings.
 September 2006, M. Spiekermann. System tables excluded into a separate file
 called SystemTables.h.
 
+April 2007, M. Spiekermann. Fixed bug concerning transaction management. Started
+transactions of errorneous queries were not aborted.
+
 \tableofcontents
 
 */
@@ -108,6 +111,9 @@ using namespace std;
 
 #include <iostream>
 #include <fstream>
+
+//#define TRACE_ON 1
+#include "LogMsg.h"
 
 #include "SecondoInterface.h"
 #include "SecondoSystem.h"
@@ -125,7 +131,6 @@ using namespace std;
 #include "SecParser.h"
 
 #include "StopWatch.h"
-#include "LogMsg.h"
 #include "Counter.h"
 #include "DerivedObj.h"
 #include "NList.h"
@@ -496,6 +501,7 @@ separate functions which should be named Command\_<name>.
 */
 
   //assert( SmiEnvironment::GetNumOfErrors() == 0 );
+  SHOW(activeTransaction)
 
   // reset errors 
   SmiEnvironment::ResetSmiErrors(); 
@@ -636,7 +642,7 @@ separate functions which should be named Command\_<name>.
             errorCode = ERR_BEGIN_TRANSACTION_FAILED;
           }
         }
-        else
+        else // nested transactions are not supported
         {
           errorCode = ERR_TRANSACTION_ACTIVE;
         }
@@ -1450,12 +1456,17 @@ SecondoInterface::Command_Query( const ListExpr list,
 
   if ( !defined ) // Undefined object value
   {
-    return ERR_UNDEF_OBJ_VALUE;  
+    errorCode = ERR_UNDEF_OBJ_VALUE;  
   }
   
   if ( !correct ) // Error in query
   {
-    return ERR_IN_QUERY_EXPR; 
+    errorCode = ERR_IN_QUERY_EXPR; 
+  }
+
+  if ( !evaluable && !isFunction )
+  {
+    errorCode = ERR_EXPR_NOT_EVALUABLE;  // Query not evaluable   
   }
 
   if ( evaluable )
@@ -1505,7 +1516,8 @@ SecondoInterface::Command_Query( const ListExpr list,
      }
 
   }
-  else if ( isFunction ) // abstraction or function object
+
+  if ( isFunction ) // abstraction or function object
   {
     ListExpr second = nl.Second( list );
     if ( nl.IsAtom( second ) )  // function object
@@ -1517,10 +1529,6 @@ SecondoInterface::Command_Query( const ListExpr list,
     {
       resultList = nl.TwoElemList( resultType, second );
     }
-  }
-  else
-  {
-    errorCode = ERR_EXPR_NOT_EVALUABLE;  // Query not evaluable   
   }
   
   qp.Destroy( tree, true ); 
