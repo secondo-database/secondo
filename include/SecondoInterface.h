@@ -253,8 +253,10 @@ Finally, the procedure returns an ~errorCode~ and error message. All error codes
 are defined in file ~ErrorCodes.h~. They are explained below together with the
 commands that may produce them. If an error occurred (~errorCode~ different from
 0), then the complete error message will be given in parameter ~errorMessage~.
-Possibly additional information about the error is given in the ~resultList~
-which is then a list of errors in the form explained below. 
+Possibly additional information about errors is given in the ~resultList~
+which is then a list of errors with structure (ERRORS (e1 ...) ... (eN ...)) where
+ej is an integer atom with an valid error code, refer to function ~WriteErrorList~
+for details.
 
 Furthermore, ~errorPos~ contains a position within the ~commandBuffer~
 where the error was detected (only when the command was given in the
@@ -810,8 +812,23 @@ the second initializes the RTFlags found in the configuration file.
 The function below returns a message string for a specific error message.
 
 */
-  static string GetErrorMessage( const int errorCode );
+  static string GetErrorMessage( const int errorCode, 
+		                 const ListExpr params = 0 );
 /*
+
+For a detailed explanation of all error code refer to the implementation in
+file "SecondoInterfaceGeneral.cpp"[4].
+
+For example the error codes  "ERR\_SPECIFIC\_KIND\_CHECKING\_ERROR"[4] and
+"ERR\_SPECIFIC\_FOR\_TYPE\_CONSTRUCTOR" allow a kind checking procedure or an
+~In~ procedure to introduce its own specific error codes (just numbered 1, 2,
+3, ...). These error messages may then have further parameters. To interpret
+such error messages (and return information to the user) one needs to add code
+branching on these specific error code numbers. Such code should be provided in
+the implementation of this function. 
+
+
+Background:
 
 Some procedures which generate their own error messages have a
 parameter ~errorInfo~ containing a pointer to the current last element
@@ -831,48 +848,16 @@ of procedure ~Secondo~. This currently happens for the commands
 ----
 
 since these commands involve kind checking and checking of value list
-representations for objects. 
+representations for objects. The messages that are appended to ~errorList~
+usually have further parameters in addition to the error code number.
 
-The messages that are appended to ~errorList~ usually have further
-parameters in addition to the error code number. The list following the
-error message below describes the error entry appended. The parameters
-after the error number have the following meaning: 
-
-  * ~i~: number of type definition or object definition in database file (the ~i~-th type definition, the ~i~-th object definition),
-
-  * ~n~: type name or object name in that definition,
-
-  * ~k~: kind name,
-
-  * ~t~: type expression,
-
-  * ~j~: error number specific to a given kind ~k~ or type constructor ~tc~,
-
-  * ~tc~: a type constructor,
-
-  * ~v~: value list, list structure representing a value for a given type constructor.
-
-*/
-
-
-/*
-The next function writes an ~error list~ as returned by 
-a call to ~Secondo()~ into an ostream. 
+The next function expects a list of structure "(ERRORS (e1 ...) ... (en ...))"[4]
+and translates error codes "ej" into messages. The result is written to
+parameter ~ostr~.
 
 */
   void WriteErrorList ( ListExpr list, ostream& ostr = cerr );
 
-/*
-
-The error code  ERR\_SPECIFIC\_KIND\_CHECKING\_ERROR and 
-ERR\_SPECIFIC\_FOR\_TYPE\_CONSTRUCTOR allow a kind checking procedure or an ~In~
-procedure to introduce its own specific error codes (just numbered 1, 2,
-3, ...). These error messages may then have further parameters. To
-interpret such error messages (and return information to the user) one
-needs to add code branching on these specific error code numbers. Such
-code may or may not be supplied with an algebra. 
-
-*/
 
   ListExpr DerivedObjValueExpr();
 /*

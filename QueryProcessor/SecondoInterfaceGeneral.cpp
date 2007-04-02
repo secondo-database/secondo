@@ -29,7 +29,10 @@ SecondoInterfaceGeneral.o
 
 February 2006, M. Spiekermann. Function ~WriteErrorList~ was moved into
 this implementation file since it was implemented in the SecondoTTY and in
-th TestRunner applicaton.
+the TestRunner applicaton.
+
+April 2007, M. Spiekermann. Bug fix for WriteErrorList. Moreover, GetError was
+extend to support additional parameters for error messages. 
 
 */
 
@@ -64,9 +67,12 @@ SecondoInterface::InitRTFlags(const string& configFile) {
 /*
 1.4 Procedure ~GetErrorMessage~
 
+Todo: Translation of the ~params~ list.
+
 */
 string
-SecondoInterface::GetErrorMessage( const int errorCode )
+SecondoInterface::GetErrorMessage( const int errorCode, 
+		                   const ListExpr params /* = 0*/ )
 {
 
   typedef map<int,string> ErrorMap;
@@ -167,6 +173,28 @@ SecondoInterface::GetErrorMessage( const int errorCode )
                            
   errors[ERR_CMD_NOT_IMPL_AT_THIS_LEVEL] 
    = "Command not yet implemented at this level.";
+
+/*
+
+The parameters
+after the error number have the following meaning: 
+
+  * ~i~: number of type definition or object definition in database file 
+    (the ~i~-th type definition, the ~i~-th object definition),
+
+  * ~n~: type name or object name in that definition,
+
+  * ~k~: kind name,
+
+  * ~t~: type expression,
+
+  * ~j~: error number specific to a given kind ~k~ or type constructor ~tc~,
+
+  * ~tc~: a type constructor,
+
+  * ~v~: value list, list structure representing a value for a given type constructor.
+
+*/
 
   errors[ERR_IN_TYPE_DEFINITION] 
    = "Error in type definition. ";   // (40 i)
@@ -269,6 +297,15 @@ SecondoInterface::WriteErrorList ( ListExpr list, ostream& os /* = cerr */ )
   
   if ( !nl->IsEmpty( list ) )
   {
+    if ( !nl->IsEqual(nl->First(list), "ERRORS") )
+    { 	    
+      os << "Error: The error list has not the expected format!" << endl;
+      os << "Received list: " << endl; 
+      nl->WriteListExpr( list, os );
+      return;
+    }   
+    
+    os << "Kind check and In-Function errors:" << endl;
     list = nl->Rest( list );
     while (!nl->IsEmpty( list ))
     {
@@ -279,11 +316,12 @@ SecondoInterface::WriteErrorList ( ListExpr list, ostream& os /* = cerr */ )
       } 
       else
       { 
-        os << "Error: The list has not the expected format!" << endl;
+        os << "Error: The error list has not the expected format!" << endl;
         ok = false;
         break;
       }
       nl->WriteListExpr( first, os );
+      ListExpr params = nl->Rest(first);
 
       ListExpr listErrorCode = nl->Empty();
       if (!nl->IsAtom(first))
@@ -298,7 +336,7 @@ SecondoInterface::WriteErrorList ( ListExpr list, ostream& os /* = cerr */ )
         break;
       }  
       errorCode = nl->IntValue( listErrorCode );
-      errorText = GetErrorMessage( errorCode );
+      errorText = GetErrorMessage( errorCode, params );
       os << endl << "=> " << errorText << endl;
       list = nl->Rest( list );
     }
