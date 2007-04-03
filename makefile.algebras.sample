@@ -155,6 +155,10 @@ ALGEBRA_DIRS += Picture
 ALGEBRAS     += PictureAlgebra
 ALGEBRA_DEPS += jpeg
 
+#ALGEBRA_DIRS += GSL
+#ALGEBRAS     += GSLAlgebra
+#ALGEBRA_DEPS += gsl gslcblas
+
 
 #ALGEBRA_DIRS  += Midi
 #ALGEBRAS      += MidiAlgebra

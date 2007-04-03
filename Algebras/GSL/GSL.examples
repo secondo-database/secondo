@@ -1,0 +1,143 @@
+Database: berlintest
+Restore : No
+
+Operator : rng_GeneratorMaxRand
+Number   : 1
+Signature:  int -> int
+Example  : query rng_GeneratorMaxRand( 1 )
+Result   : 0
+
+
+Operator : rng_GeneratorMinRand
+Number   : 1
+Signature:  int -> int
+Example  : query rng_GeneratorMinRand( 1 )
+Result   : 2147483646
+
+
+Operator : rng_GeneratorName
+Number   : 1
+Signature:  int -> string
+Example  : query rng_GeneratorName( 1 )
+Result   : "cmrg"
+
+
+Operator : rng_NoGenerators
+Number   : 1
+Signature:  -> int
+Example  : query rng_NoGenerators()
+Result   : 61
+
+
+Operator : rng_init
+Number   : 1
+Signature: int x int -> bool
+Example  : query rng_init(5, 17) and (rng_getType() = 5) and (rng_getSeed() = 17)
+Result   : TRUE
+
+
+Operator : rng_binomial
+Number   : 1
+Signature:  int x real -> int
+Example  : query intstream(1, 100000) use[fun(i:int) rng_binomial( 10, 0.5 )] transformstream filter[(.elem >= 0) and (.elem<=10) ] count
+Result   : 100000
+
+
+Operator : rng_exponential
+Number   : 1
+Signature:  real -> real
+Example  : query intstream(1, 100000) use[fun(i1:int) round(rng_exponential( 0.75 ), 0)] transformstream sort groupby[elem; cnt: group count] filter[.elem = 0] intstream(1, 100000) use[fun(i2:int) round(rng_exponential( 0.75 ), 0)] transformstream sort groupby[elem; cnt: group count] filter[.elem = 1] {g} symmjoin[.elem < ..elem_g] count
+Result   : 1
+
+
+Operator : rng_flat
+Number   : 1
+Signature:  real x real -> real
+Example  : query intstream(1, 100000) use[fun(i:int) rng_flat( -10.0, 10.0 )] transformstream filter[(.elem < -10.0) or (.elem > 10.0) ] count
+Result   : 0
+
+
+Operator : rng_gaussian
+Number   : 1
+Signature:  real -> real
+Example  : query intstream(1, 100000) use[fun(i1:int) round(rng_gaussian( 0.75 ), 0)] transformstream filter[(.elem > 4) or (.elem < -4) ] count <= 2
+Result   : TRUE
+
+
+Operator : rng_geometric
+Number   : 1
+Signature:  real x real -> real
+Example  : query intstream(1, 900000) use[fun(i1:int) rng_geometric( 0.75 )] transformstream filter[(.elem > 13) or (.elem < 1) ] count <= 2
+Result   : TRUE
+
+
+Operator : rng_getMax
+Number   : 1
+Signature:    -> int
+Example  : query rng_getMax()
+Result   : -1
+
+
+Operator : rng_getMin
+Number   : 1
+Signature:    -> int
+Example  : query rng_getMin()
+Result   : 0
+
+
+Operator : rng_getSeed
+Number   : 1
+Signature:     -> int
+Example  : query ( rng_init(53, 3544) ) and ( rng_getSeed() = 3544 )
+Result   : TRUE
+
+
+Operator : rng_getType
+Number   : 1
+Signature:     -> int
+Example  : query ( rng_init(19, 12) ) and ( rng_getType() = 19 )
+Result   : TRUE
+
+
+Operator : rng_int
+Number   : 1
+Signature:    -> int
+Example  : query isempty(rng_int())
+Result   : FALSE
+
+
+Operator : rng_intN
+Number   : 1
+Signature:  int -> int
+Example  : query ( rng_intN(6) + 1 ) <= 6
+Result   : TRUE
+
+
+Operator : rng_poisson
+Number   : 1
+Signature:  real -> int
+Example  : query intstream(1, 900000) use[fun(i1:int) rng_poisson( 0.75 )] transformstream filter[(.elem > 8) or (.elem < 0) ] count <= 2
+Result   : TRUE
+
+
+Operator : rng_real
+Number   : 1
+Signature:     -> real
+Example  : query (floor((rng_real()*6)) + 1) <= 6
+Result   : TRUE
+
+
+Operator : rng_realpos
+Number   : 1
+Signature:    -> real
+Example  : query (floor((rng_realpos()*6)) + 1) <= 6
+Result   : TRUE
+
+
+Operator : rng_setSeed
+Number   : 1
+Signature:  int -> bool
+Example  : query rng_setSeed(368146) and (rng_getSeed() = 368146)
+Result   : TRUE
+
+
