@@ -70,6 +70,8 @@ and type constructors. Values for examples queries provided as online help are
 stored in .examples files in the algebra directories. These queries will be used
 now. 
 
+April 2007, M. Spiekermann. Bugfix for uninitialized data. Default constructors
+for the structs ~ObjectsCatalogEntry~ and ~TypesCatalogEntry~ implemented.
 
 
 This module implements the module *SecondoCatalog*. It consists of six
@@ -95,6 +97,10 @@ The names of existing databases are stored in a list ~DBTable~.
 */
 
 #include <string>
+#include <iostream>
+
+//#define TRACE_ON 1
+#include "LogMsg.h"
 
 #include "SecondoSystem.h"
 #include "DerivedObj.h"
@@ -104,7 +110,6 @@ The names of existing databases are stored in a list ~DBTable~.
 #include "SystemTables.h"
 #include "ExampleReader.h"
 #include "SecParser.h"
-#include "LogMsg.h"
 
 
 using namespace std;
@@ -234,8 +239,9 @@ Precondition: dbState = dbOpen.
                        typeExpr ) );
       }
     }
+    typeIterator.Finish();
   }
-  typeIterator.Finish();
+
   for ( tPos = types.begin(); tPos != types.end(); tPos++ )
   {
     if ( tPos->second.state == EntryInsert ||
@@ -768,7 +774,9 @@ Precondition: dbState = dbOpen.
   }
 
   objectsList = nl->TheEmptyList();
-  if ( objCatalogFile.SelectAll( oIterator ) )
+  bool iterInit = objCatalogFile.SelectAll( oIterator ); 
+
+  if ( iterInit )
   {
     while (oIterator.Next( oKey, oRec ))
     {
@@ -806,8 +814,9 @@ Precondition: dbState = dbOpen.
       appendEntry( objectsList, lastElem, 
                    objEntry(objectName, typeName, typeExpr) );
     }
+    oIterator.Finish();
   }
-  oIterator.Finish();
+
   for ( oPos = objects.begin(); oPos != objects.end(); oPos++ )
   {
     if ( oPos->second.state == EntryInsert ||
@@ -930,8 +939,8 @@ Precondition: dbState = dbOpen.
       }
       cout << msgSaved << endl;
     }
+    oIterator.Finish();
   }
-  oIterator.Finish();
   for ( oPos = objects.begin(); oPos != objects.end(); oPos++ )
   {    
     if ( oPos->second.state == EntryInsert ||
@@ -2573,14 +2582,21 @@ SecondoCatalog::Close()
 bool
 SecondoCatalog::CleanUp( const bool revert )
 {
+  TRACE_ENTER	
+
+  SHOW(revert)
+
   bool ok = true;
   if ( !revert )
   {
+    TRACE("Case !revert:")	  
     SmiRecord tRec;
     for ( TypesCatalog::iterator tPos = types.begin();
           tPos != types.end(); 
 	  tPos++ )
     {
+      ETRACE(tPos->second.print(cout);) 	    
+      TRACE("---------")	      
       switch (tPos->second.state)
       {
         case EntryInsert:
@@ -2627,6 +2643,9 @@ SecondoCatalog::CleanUp( const bool revert )
           ok = typeCatalogFile.DeleteRecord( SmiKey( tPos->first ) );
           break;
         }
+        case Undefined:
+        default: 
+        { assert(false); }
       }
     }
   }
@@ -2639,10 +2658,13 @@ In this first iteration:
  * In the deletion, only the catalog part of the object is deleted.
 
 */
+  TRACE("First iteration:")	  
   for ( ObjectsCatalog::iterator oPos = objects.begin(); 
         oPos != objects.end(); 
 	oPos++ )
   {
+    ETRACE(oPos->second.print(cout);)  
+    TRACE("---------")	      
     switch (oPos->second.state)
     {
       case EntryInsert:
@@ -2727,6 +2749,9 @@ In this first iteration:
         }
         break;
       }
+      case Undefined:
+      default: 
+      {  assert(false); }
     }
   }
 
@@ -2744,10 +2769,13 @@ save process. Then, if it occurs, the database state will be
 preserved and the objects are created with undefined values.
 
 */
+  TRACE("Second iteration:")	  
   for ( ObjectsCatalog::iterator oPos = objects.begin();
         oPos != objects.end(); 
 	oPos++ )
   {
+    ETRACE(oPos->second.print(cout);)
+    TRACE("---------")	      
     switch (oPos->second.state)
     {
       case EntryInsert:
@@ -2856,11 +2884,16 @@ preserved and the objects are created with undefined values.
         }
         break;
       }
+      case Undefined:
+      default: 
+      { assert(false); }
     }
   }
 
   types.clear();
   objects.clear();
+
+  TRACE_LEAVE	
   return (ok);
 }
 
