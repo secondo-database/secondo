@@ -472,7 +472,9 @@ two groups with bounding boxes ~b1~ and ~b2~, respectively.
 
 */
 template<unsigned dim>
-R_TreeNodePnJ<dim>::R_TreeNodePnJ( const bool leaf, const int min, const int max ) :
+R_TreeNodePnJ<dim>::R_TreeNodePnJ( const bool leaf, 
+                                   const int min, 
+                                   const int max ) :
 leaf( leaf ),
 minEntries( min ),
 maxEntries( max ),
@@ -534,7 +536,8 @@ int R_TreeNodePnJ<dim>::Size() const
 */
 
 template<unsigned dim>
-R_TreeNodePnJ<dim>& R_TreeNodePnJ<dim>::operator = ( const R_TreeNodePnJ<dim>& node )
+R_TreeNodePnJ<dim>& 
+     R_TreeNodePnJ<dim>::operator = ( const R_TreeNodePnJ<dim>& node )
 {
   assert( minEntries == node.minEntries && maxEntries == node.maxEntries );
   assert( count >= 0 && count <= maxEntries + 1 );
@@ -635,7 +638,8 @@ void R_TreeNodePnJ<dim>::LinearPickSeeds( int& seed1, int& seed2 ) const
   {
     assert( maxMinNode[ d ] != -1 && minMaxNode[ d ] != -1 );
     assert( maxVal[ d ] > minVal[ d ] );
-    sep[ d ] = double( maxMinVal[ d ] - minMaxVal[ d ] ) / (maxVal[ d ] - minVal[ d ]);
+    sep[ d ] = double( maxMinVal[ d ] - minMaxVal[ d ] ) / 
+                     (maxVal[ d ] - minVal[ d ]);
     if( sep[ d ] > maxSep )
     {
       bestD = d;
@@ -699,7 +703,8 @@ void R_TreeNodePnJ<dim>::QuadraticPickSeeds( int& seed1, int& seed2 ) const
 
 */
 template<unsigned dim>
-int R_TreeNodePnJ<dim>::QuadraticPickNext( BBox<dim>& b1, BBox<dim>& b2 ) const
+int R_TreeNodePnJ<dim>::QuadraticPickNext( BBox<dim>& b1, 
+                                           BBox<dim>& b2 ) const
 {
   double area1 = b1.Area();
   double area2 = b2.Area();
@@ -792,15 +797,18 @@ inline void SortedArray::push( int index, double pri )
 
 */
 template<unsigned dim>
-void R_TreeNodePnJ<dim>::Split( R_TreeNodePnJ<dim>& n1, R_TreeNodePnJ<dim>& n2 )
+void R_TreeNodePnJ<dim>::Split( R_TreeNodePnJ<dim>& n1, 
+                                R_TreeNodePnJ<dim>& n2 )
 // Splits this node in two: n1 and n2, which should be empty nodes.
 {
   assert( EntryCount() == MaxEntries() + 1 );
     // Make sure this node is ready to be split
 
   assert( n1.EntryCount() == 0 && n2.EntryCount() == 0  );
-  assert( n1.MinEntries() == MinEntries() && n1.MaxEntries() == MaxEntries() );
-  assert( n2.MinEntries() == MinEntries() && n2.MaxEntries() == MaxEntries() );
+  assert( n1.MinEntries() == MinEntries() && 
+          n1.MaxEntries() == MaxEntries() );
+  assert( n2.MinEntries() == MinEntries() && 
+          n2.MaxEntries() == MaxEntries() );
     // Make sure n1 and n2 are ok
 
   if( do_axis_split )
@@ -817,8 +825,10 @@ void R_TreeNodePnJ<dim>::Split( R_TreeNodePnJ<dim>& n1, R_TreeNodePnJ<dim>& n2 )
     int minMarginAxis = -1;
 
     for( unsigned d = 0; d < dim; d++ )
-    { // Compute sorted lists. Sort entry numbers by minimum value of axis 'd'.
-      int* psort = sortedEntry[ 2*d ] = new int[ MaxEntries() + 1 ];
+    { // Compute sorted lists.
+      // Sort entry numbers by minimum value of axis 'd'.
+      int* psort =  new int[ MaxEntries() + 1 ];
+      sortedEntry[ 2*d ] = psort;
       SortedArray sort( MaxEntries() + 1 );
       int i;
 
@@ -831,7 +841,8 @@ void R_TreeNodePnJ<dim>::Split( R_TreeNodePnJ<dim>& n1, R_TreeNodePnJ<dim>& n2 )
       assert( sort.empty() );
 
       // Sort entry numbers by maximum value of axis 'd'
-      psort = sortedEntry[ 2*d + 1 ] = new int[ MaxEntries() + 1 ];
+      psort =new int[ MaxEntries() + 1 ];
+      sortedEntry[ 2*d + 1 ] = psort; 
       for( i = 0; i <= MaxEntries(); i++ )
         sort.push( i, entry[ i ].box.MaxD( d ) );
 
@@ -861,7 +872,8 @@ void R_TreeNodePnJ<dim>::Split( R_TreeNodePnJ<dim>& n1, R_TreeNodePnJ<dim>& n2 )
         for( i = 1; i <= MaxEntries(); i++ )
         {
           b1[ i ] = b1[ i - 1 ].Union( entry[ psort[ i ] ].box );
-          b2[ i ] = b2[ i - 1 ].Union( entry[ psort[ MaxEntries() - i ] ].box );
+          b2[ i ] = b2[ i - 1 ].Union( entry[ psort[ 
+                                       MaxEntries() - i ] ].box );
         }
 
         // Now compute the statistics for the
@@ -879,7 +891,8 @@ void R_TreeNodePnJ<dim>::Split( R_TreeNodePnJ<dim>& n1, R_TreeNodePnJ<dim>& n2 )
           marginSum += pstat->margin;
           pstat += 1;
 
-          assert( pstat - stat <= (int)(dim*dim*(MaxEntries() + 2 - 2*MinEntries())) );
+          assert( pstat - stat <= (int)(dim*dim*(MaxEntries() + 
+                                        2 - 2*MinEntries())) );
         }
 
         delete [] b2;
@@ -935,11 +948,12 @@ void R_TreeNodePnJ<dim>::Split( R_TreeNodePnJ<dim>& n1, R_TreeNodePnJ<dim>& n2 )
       for( int i = minSplitPoint + 1; i <= MaxEntries(); i++ )
         n2.Insert( entry[ sort[ i ] ] );
 
-      assert( n1.BoundingBox().Intersection( n2.BoundingBox() ).Area() == minOverlap );
+      assert( n1.BoundingBox().Intersection( n2.BoundingBox() ).Area() 
+              == minOverlap );
 
       // Deallocate the sortedEntry arrays
       for( unsigned i = 0; i < 2*dim; i++)
-        delete sortedEntry[ i ];
+        delete [] sortedEntry[ i ];
 
       delete [] stat;
     }
@@ -1064,7 +1078,8 @@ BBox<dim> R_TreeNodePnJ<dim>::BoundingBox() const
 
 */
 template<unsigned dim>
-BBox<dim> R_TreeNodePnJ<dim>::BoundingBoxOfEntry(const ArrayIndex& pointer) const
+BBox<dim> 
+R_TreeNodePnJ<dim>::BoundingBoxOfEntry(const ArrayIndex& pointer) const
 {
   if ( count == 0)
      return BBox<dim> ( false );
@@ -1299,12 +1314,12 @@ The array for the R-Tree.
 
     struct Header
     {
-      int minEntries;      	// min # of entries per node.
-      int maxEntries;      	// max # of entries per node.
-      int nodeCount;       	// number of nodes in this tree.
-      int entryCount;      	// number of entries in this tree.
-      int height;          	// actual height of the tree.
-      int maxNodeCount;		// max # of nodes in this tree.
+      int minEntries;        // min # of entries per node.
+      int maxEntries;        // max # of entries per node.
+      int nodeCount;         // number of nodes in this tree.
+      int entryCount;        // number of entries in this tree.
+      int height;            // actual height of the tree.
+      int maxNodeCount;    // max # of nodes in this tree.
       int leavesCount;          // actual # of leaves
       int estimatedLeaves;      // estimated # of leaves in the tree
 
@@ -1569,8 +1584,8 @@ R_TreeNodePnJ<dim>* R_TreePnJ<dim>::FlushLeave( const ArrayIndex& address )
 template<unsigned dim>
 int R_TreePnJ<dim>::SizeOfRTree() const
 {
-  return (rtree[0]->Size() * header.maxNodeCount) +  //sizeof (root-node) * max#
-         SizeOfRTreeHeader();                        //SizeOfHeader
+  return (rtree[0]->Size() * header.maxNodeCount) +//sizeof (root-node) * max#
+         SizeOfRTreeHeader();                      //SizeOfHeader
 }
 
 /*
@@ -1600,7 +1615,9 @@ BBox<dim> R_TreePnJ<dim>::BoundingBox()
 
 */
 template <unsigned dim>
-bool R_TreePnJ<dim>::Insert( const R_TreeEntryPnJ<dim>& entry, ArrayIndex& leaveNo )
+bool 
+R_TreePnJ<dim>::Insert( const R_TreeEntryPnJ<dim>& entry, 
+                        ArrayIndex& leaveNo )
 {
   scanFlag = false;
 
@@ -1644,7 +1661,8 @@ bool R_TreePnJ<dim>::Insert( const R_TreeEntryPnJ<dim>& entry, ArrayIndex& leave
 
 */
 template <unsigned dim>
-void R_TreePnJ<dim>::LocateBestNode( const R_TreeEntryPnJ<dim>& entry, int level )
+void R_TreePnJ<dim>::LocateBestNode( const R_TreeEntryPnJ<dim>& entry, 
+                                     int level )
 {
   GotoLevel( 0 );
 
@@ -1663,11 +1681,13 @@ void R_TreePnJ<dim>::LocateBestNode( const R_TreeEntryPnJ<dim>& entry, int level
       for( i = 0; i < nodePtr->EntryCount(); i++ )
       {
         R_TreeEntryPnJ<dim> &son = (*nodePtr)[ i ];
-        enlargeList.push( i, son.box.Union( entry.box ).Area() - son.box.Area() );
+        enlargeList.push( i, 
+                      son.box.Union( entry.box ).Area() - son.box.Area() );
       }
 
       if( enlargeList.headPri() == 0.0 )
-        bestNode = enlargeList.pop(); // No need to do the overlap enlargement tests
+        bestNode = enlargeList.pop(); // No need to 
+                                     //do the overlap enlargement tests
       else
       {
         double bestEnlargement = DOUBLE_MAX,
@@ -1714,7 +1734,8 @@ void R_TreePnJ<dim>::LocateBestNode( const R_TreeEntryPnJ<dim>& entry, int level
       for( i = 0; i < nodePtr->EntryCount(); i++ )
       {
         R_TreeEntryPnJ<dim> &son = (*nodePtr)[ i ];
-        double enlargement = son.box.Union( entry.box ).Area() - son.box.Area();
+        double enlargement = son.box.Union( entry.box ).Area() - 
+                                            son.box.Area();
 
         if( enlargement < bestEnlargement )
         {
@@ -1788,8 +1809,14 @@ void R_TreePnJ<dim>::InsertEntry( const R_TreeEntryPnJ<dim>& entry )
     if( !do_forced_reinsertion || currLevel == 0 ||
         overflowFlag[ header.height - currLevel ] )
     { // Node splitting is necessary
-      R_TreeNodePnJ<dim> *n1 = new R_TreeNodePnJ<dim>( nodePtr->IsLeaf(), MinEntries(), MaxEntries() );
-      R_TreeNodePnJ<dim> *n2 = new R_TreeNodePnJ<dim>( nodePtr->IsLeaf(), MinEntries(), MaxEntries() );
+      R_TreeNodePnJ<dim> *n1 = new 
+                        R_TreeNodePnJ<dim>( nodePtr->IsLeaf(),
+                                            MinEntries(), 
+                                            MaxEntries() );
+      R_TreeNodePnJ<dim> *n2 = new 
+                        R_TreeNodePnJ<dim>( nodePtr->IsLeaf(), 
+                                            MinEntries(), 
+                                            MaxEntries() );
 
       if ( nodePtr->IsLeaf() )
         header.leavesCount += 1;
@@ -2046,7 +2073,8 @@ bool R_TreePnJ<dim>::FindEntry( const R_TreeEntryPnJ<dim>& entry )
       currEntry++;
     }
     else // Try another subtree or entry
-      if( currLevel == header.height ) // This is a leaf node. Search all entries
+      if( currLevel == header.height ) 
+                   // This is a leaf node. Search all entries
         while( currEntry < nodePtr->EntryCount() )
         {
           if( (*nodePtr)[ currEntry ].box == entry.box &&
@@ -2093,7 +2121,8 @@ void R_TreePnJ<dim>::ComputeMaxNodesInInsert()
   for (int l = 1; l <= header.height; l++)
   {
      maxNodesInLevel = (int) pow ((double) header.maxEntries, (double) l);
-     maxNodesReinforced = (int) pow ((double) header.minEntries, (double) (header.height+1-l));
+     maxNodesReinforced = (int) pow ((double) header.minEntries,
+                                (double) (header.height+1-l));
 
      if (maxNodesInLevel <= maxNodesReinforced)
        { maxNodesInReinforcedInsertion += maxNodesInLevel; }
@@ -2109,7 +2138,8 @@ void R_TreePnJ<dim>::ComputeMaxNodesInInsert()
 */
 template <unsigned dim>
 bool R_TreePnJ<dim>::First (const BBox<dim>& box, R_TreeEntryPnJ<dim>& result,
-                            vector <ArrayIndex>& leavesOverflowed, int replevel)
+                            vector <ArrayIndex>& leavesOverflowed, 
+                            int replevel)
 {
   //Remember that we have started a scan of the R-Tree
   scanFlag = true;
@@ -2227,20 +2257,24 @@ void R_TreePnJ<dim>::Info()
   cout << "OverflowedLeaves:    " << emptyLeavesNo << endl << endl;
 
   cout << "CurrentEntriesInTree:" << EntryCount() -
-                                         (MaxEntries() * emptyLeavesNo) << endl
-                                                                        << endl;
+                                         (MaxEntries() * emptyLeavesNo) 
+                                  << endl
+                                  << endl;
 
   cout << "SplittingMethod:     ";
     if (do_linear_split) cout << "do_linear_split" << endl << endl;
     if (do_quadratic_split) cout << "do_quadratic_split" << endl << endl;
     if (do_axis_split) cout << "do_axis_split" << endl << endl;
 
-  cout << "SizeOfRTreeEntry:    " << sizeof( R_TreeEntryPnJ<dim> ) << " Bytes" << endl;
+  cout << "SizeOfRTreeEntry:    " << sizeof( R_TreeEntryPnJ<dim> ) 
+                                  << " Bytes" << endl;
   cout << "SizeOfRTreeNode:     " << rtree[0]->Size() << " Bytes" << endl;
   cout << "SizeOfRTree:         " << SizeOfRTree ()
                                   <<" = "<<SizeOfRTree()/1024<<" kBytes"
-                                  <<" = "<<SizeOfRTree()/1048576<<" MBytes"<<endl;
-  cout << "SizeOfHeader:        " <<SizeOfRTreeHeader()<<" Bytes"<<endl<<endl;
+                                  <<" = "<<SizeOfRTree()/1048576
+                                  <<" MBytes"<<endl;
+  cout << "SizeOfHeader:        " <<SizeOfRTreeHeader()<<" Bytes"
+                                  <<endl<<endl;
 
 }
 
