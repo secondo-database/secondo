@@ -84,7 +84,9 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
   Dbt data;
   data.set_ulen( 0 );
   data.set_flags( DB_DBT_USERMEM );
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = !impl->isTemporaryFile ? 
+	                SmiEnvironment::instance.impl->usrTxn : 0;
+
   key.set_data( (void*) &recno );
   key.set_size( sizeof( SmiRecordId ) );
   if ( accessType == SmiFile::Update )
@@ -125,6 +127,8 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
   }
   else
   {
+    if (rc != DB_NOTFOUND)
+      SmiEnvironment::SetBDBError(rc);	    
     record.initialized     = false;
   }
 
@@ -143,6 +147,8 @@ SmiRecordFile::SelectAll( SmiRecordFileIterator& iterator,
     tid = SmiEnvironment::instance.impl->usrTxn;
 
   int rc = impl->bdbFile->cursor( tid, &dbc, 0 );
+  SmiEnvironment::SetBDBError( rc );
+
   if ( rc == 0 )
   {
     iterator.smiFile          = this;
@@ -153,11 +159,6 @@ SmiRecordFile::SelectAll( SmiRecordFileIterator& iterator,
     iterator.solelyDuplicates = false;
     iterator.ignoreDuplicates = false;
     iterator.rangeSearch      = false;
-    SmiEnvironment::SetError( E_SMI_OK );
-  }
-  else
-  {
-    SmiEnvironment::SetBDBError( rc );
   }
   return (rc == 0);
 }
@@ -165,20 +166,20 @@ SmiRecordFile::SelectAll( SmiRecordFileIterator& iterator,
 PrefetchingIterator* 
 SmiRecordFile::SelectAllPrefetched()
 {
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   Dbc* dbc = 0;
+  DbTxn* tid = !impl->isTemporaryFile ? 
+	          SmiEnvironment::instance.impl->usrTxn : 0;
+
   int rc = impl->bdbFile->cursor(tid, &dbc, 0);
+  SmiEnvironment::SetBDBError( rc );
+
   if(rc == 0)
   {
-    SmiEnvironment::SetError(E_SMI_OK);
-    return new PrefetchingIteratorImpl(dbc, SmiKey::RecNo, 
-      PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH, false);
+    return 
+      new PrefetchingIteratorImpl(dbc, SmiKey::RecNo, 
+                         PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH, false);
   }
-  else
-  {
-    SmiEnvironment::SetBDBError(rc);
-    return 0;
-  }
+  return 0;
 }
 
 bool
@@ -190,8 +191,13 @@ SmiRecordFile::AppendRecord( SmiRecordId& recno, SmiRecord& record )
   Dbt data( &buffer, 0 );
   data.set_flags( DB_DBT_PARTIAL );
   data.set_dlen( 0 );
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
+
+  DbTxn* tid = !impl->isTemporaryFile ? 
+	          SmiEnvironment::instance.impl->usrTxn : 0;
+
   rc = impl->bdbFile->put( tid, &key, &data, DB_APPEND );
+  SmiEnvironment::SetBDBError( rc );
+
   if ( rc == 0 )
   {
     if ( record.initialized )
@@ -208,11 +214,9 @@ SmiRecordFile::AppendRecord( SmiRecordId& recno, SmiRecord& record )
     record.impl->useCursor = false;
     record.impl->bdbCursor = 0;
     record.initialized     = true;
-    SmiEnvironment::SetError( E_SMI_OK );
   }
   else
   {
-    SmiEnvironment::SetBDBError( rc );
     record.initialized     = false;
   }
 
@@ -223,13 +227,11 @@ bool SmiRecordFile::DeleteRecord( SmiRecordId recno )
 {
   int rc = 0;
   Dbt key( &recno, sizeof( recno ) );
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = !impl->isTemporaryFile ? 
+	                SmiEnvironment::instance.impl->usrTxn : 0;
   
   rc = impl->bdbFile->del( tid, &key, 0 );
-  if ( rc == 0 )
-    SmiEnvironment::SetError( E_SMI_OK );
-  else
-    SmiEnvironment::SetBDBError( rc );
+  SmiEnvironment::SetBDBError( rc );
   
   return (rc == 0);  
 }

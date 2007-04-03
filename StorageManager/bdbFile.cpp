@@ -52,6 +52,9 @@ using namespace std;
 #include <sstream>
 #include <cassert>
 
+//#define TRACE_ON 1
+#include "LogMsg.h"
+
 #include <db_cxx.h>
 #include "SecondoSMI.h"
 #include "SmiBDB.h"
@@ -113,7 +116,8 @@ of the enclosing transaction the handle will be closed.
   }
   else
   {
-    bdbFile->close( 0 );
+    int rc = bdbFile->close( 0 );
+    SmiEnvironment::SetBDBError(rc);
   }
 }
 
@@ -203,20 +207,24 @@ SmiFile::Create( const string& context /* = "Default" */ )
           bdbType = DB_BTREE;
           if ( !uniqueKeys )
           {
-            impl->bdbFile->set_flags( DB_DUP );
+            rc = impl->bdbFile->set_flags( DB_DUP );
+	    SmiEnvironment::SetBDBError(rc);
           }
           if ( keyDataType == SmiKey::Integer )
           {
-            impl->bdbFile->set_bt_compare( BdbCompareInteger );
+            rc = impl->bdbFile->set_bt_compare( BdbCompareInteger );
+	    SmiEnvironment::SetBDBError(rc);
           }
           else if ( keyDataType == SmiKey::Float )
           {
-            impl->bdbFile->set_bt_compare( BdbCompareFloat );
+            rc = impl->bdbFile->set_bt_compare( BdbCompareFloat );
+	    SmiEnvironment::SetBDBError(rc);
           }
           break;
         case FixedLength:
           bdbType = DB_QUEUE;
-          impl->bdbFile->set_re_len( fixedRecordLength );
+          rc = impl->bdbFile->set_re_len( fixedRecordLength );
+	  SmiEnvironment::SetBDBError(rc);
           break;
         case VariableLength:
         default:
@@ -231,7 +239,9 @@ SmiFile::Create( const string& context /* = "Default" */ )
                                   SmiEnvironment::configFile );
       if ( pagesize > 0 )
       {
-        impl->bdbFile->set_pagesize( pagesize );
+        rc = impl->bdbFile->set_pagesize( pagesize );
+	SmiEnvironment::SetBDBError(rc);
+
 	cout << "Setting page size for SmiFile to " 
              << pagesize << " !" << endl;
       }
@@ -333,20 +343,24 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
           bdbType = DB_BTREE;
           if ( !uniqueKeys )
           {
-            impl->bdbFile->set_flags( DB_DUP );
+            rc = impl->bdbFile->set_flags( DB_DUP );
+            SmiEnvironment::SetBDBError( rc );
           }
           if ( keyDataType == SmiKey::Integer )
           {
-            impl->bdbFile->set_bt_compare( BdbCompareInteger );
+            rc = impl->bdbFile->set_bt_compare( BdbCompareInteger );
+            SmiEnvironment::SetBDBError( rc );
           }
           else if ( keyDataType == SmiKey::Float )
           {
-            impl->bdbFile->set_bt_compare( BdbCompareFloat );
+            rc = impl->bdbFile->set_bt_compare( BdbCompareFloat );
+            SmiEnvironment::SetBDBError( rc );
           }
           break;
         case FixedLength:
           bdbType = DB_QUEUE;
-          impl->bdbFile->set_re_len( fixedRecordLength );
+          rc = impl->bdbFile->set_re_len( fixedRecordLength );
+          SmiEnvironment::SetBDBError( rc );
           break;
         case VariableLength:
         default:
@@ -361,7 +375,8 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
                                   SmiEnvironment::configFile );
       if ( pagesize > 0 )
       {
-        impl->bdbFile->set_pagesize( pagesize );
+        rc = impl->bdbFile->set_pagesize( pagesize );
+        SmiEnvironment::SetBDBError( rc );
       }
 
       // --- Open Berkeley DB file
@@ -464,20 +479,24 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
           bdbType = DB_BTREE;
           if ( !uniqueKeys )
           {
-            impl->bdbFile->set_flags( DB_DUP );
+            rc = impl->bdbFile->set_flags( DB_DUP );
+            SmiEnvironment::SetBDBError( rc );
           }
           if ( keyDataType == SmiKey::Integer )
           {
-            impl->bdbFile->set_bt_compare( BdbCompareInteger );
+            rc = impl->bdbFile->set_bt_compare( BdbCompareInteger );
+            SmiEnvironment::SetBDBError( rc );
           }
           else if ( keyDataType == SmiKey::Float )
           {
-            impl->bdbFile->set_bt_compare( BdbCompareFloat );
+            rc = impl->bdbFile->set_bt_compare( BdbCompareFloat );
+            SmiEnvironment::SetBDBError( rc );
           }
           break;
         case FixedLength:
           bdbType = DB_QUEUE;
-          impl->bdbFile->set_re_len( fixedRecordLength );
+          rc = impl->bdbFile->set_re_len( fixedRecordLength );
+          SmiEnvironment::SetBDBError( rc );
           break;
         case VariableLength:
         default:
@@ -492,7 +511,8 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
                                   SmiEnvironment::configFile );
       if ( pagesize > 0 )
       {
-        impl->bdbFile->set_pagesize( pagesize );
+        rc = impl->bdbFile->set_pagesize( pagesize );
+        SmiEnvironment::SetBDBError( rc );
       }
 
       // --- Open Berkeley DB file
@@ -595,8 +615,11 @@ SmiFile::Truncate()
 {
   DbTxn* tid = !impl->isTemporaryFile ? 
                   SmiEnvironment::instance.impl->usrTxn : 0;
-  u_int32_t countp;
-  return impl->bdbFile->truncate( tid, &countp, 0 ) == 0;
+
+  u_int32_t countp = 0;
+  int rc = impl->bdbFile->truncate( tid, &countp, 0 );
+  SmiEnvironment::SetBDBError(rc);	  
+  return rc == 0;
 }
 
 string
@@ -699,7 +722,8 @@ SmiFileIterator::SmiFileIterator()
 
 SmiFileIterator::~SmiFileIterator()
 {
-  Finish();
+  if (opened) // close cursor if necessary	
+    Finish();
   delete impl;
 }
 
@@ -711,6 +735,8 @@ SmiFileIterator::Next( SmiRecord& record )
    
   static char keyData[SMI_MAX_KEYLEN];
   bool ok = false;
+
+  SHOW(opened)
   if ( opened )
   {
     Dbt key( keyData, SMI_MAX_KEYLEN );
@@ -750,7 +776,6 @@ SmiFileIterator::Next( SmiRecord& record )
     restart   = false;
     endOfScan = false;
     int rc = impl->bdbCursor->get( &key, &data, flags );
-    SmiEnvironment::SetBDBError(rc);	    
     if ( rc == 0 )
     {
       flags = DB_CURRENT;
@@ -805,7 +830,7 @@ SmiFileIterator::Next( SmiRecord& record )
 bool
 SmiFileIterator::DeleteCurrent()
 {
-  bool ok;
+  bool ok = false;
   if ( opened )
   {
     int rc = impl->bdbCursor->del( 0 );
@@ -814,7 +839,6 @@ SmiFileIterator::DeleteCurrent()
   }
   else
   {
-    ok = false;
     SmiEnvironment::SetError( E_SMI_CURSOR_NOTOPEN );
   }
   return (ok);
@@ -829,7 +853,7 @@ SmiFileIterator::EndOfScan()
 bool
 SmiFileIterator::Finish()
 {
-  bool ok;
+  bool ok = false;
   if ( opened )
   {
     opened    = false;
@@ -845,7 +869,6 @@ SmiFileIterator::Finish()
   }
   else
   {
-    ok = false;
     SmiEnvironment::SetError( E_SMI_CURSOR_NOTOPEN );
   }
   return (ok);
@@ -854,7 +877,7 @@ SmiFileIterator::Finish()
 bool
 SmiFileIterator::Restart()
 {
-  bool ok;
+  bool ok = false;
   if ( opened )
   {
     restart   = true;
@@ -863,7 +886,6 @@ SmiFileIterator::Restart()
   }
   else
   {
-    ok = false;
     SmiEnvironment::SetError( E_SMI_CURSOR_NOTOPEN );
   }
   return (ok);
@@ -875,8 +897,8 @@ PrefetchingIterator::~PrefetchingIterator()
 
 void PrefetchingIterator::CurrentKey(SmiKey& smiKey)
 {
-  void* addr;
-  SmiSize length;
+  void* addr = 0;
+  SmiSize length = 0;
   
   GetKeyAddressAndLength(&addr, length);
   smiKey.SetKey(keyType, addr, length);
@@ -1171,12 +1193,12 @@ PrefetchingIteratorImpl::PrefetchingIteratorImpl
 
 PrefetchingIteratorImpl::~PrefetchingIteratorImpl()
 {
-  char* bufferPtr;
-  
-  bufferPtr = (char*)buffer.get_data();
+  char* bufferPtr = (char*)buffer.get_data();
   delete[] bufferPtr;
 
-  assert(dbc->close() != DB_LOCK_DEADLOCK);
+  int rc = dbc->close();
+  SmiEnvironment::SetBDBError(rc);
+  assert(rc != DB_LOCK_DEADLOCK);
 }
 
 bool PrefetchingIteratorImpl::Next()

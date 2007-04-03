@@ -119,11 +119,10 @@ SmiEnvironment::GetLastErrorCode( string& errorMessage )
 
 
 void 
-SmiEnvironment::SetSmiError( const SmiError smiErr, const string& file, int pos )
+SmiEnvironment::SetSmiError( const SmiError smiErr, 
+		             const string& file, int pos )
 { 
-  if (smiErr == E_SMI_OK)
-    SetSmiError(smiErr, "E_SMI_OK", file, pos);
-  else
+  if (smiErr != E_SMI_OK)
     SetSmiError(smiErr, Err2Msg(smiErr), file, pos);
 }
                         

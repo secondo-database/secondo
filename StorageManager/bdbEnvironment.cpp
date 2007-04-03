@@ -120,8 +120,10 @@ SmiEnvironment::Implementation::~Implementation()
   if ( !envClosed )
   {
     CloseDbHandles();
-    bdbEnv->close( 0 );
-    tmpEnv->close( 0 );
+    int rc = bdbEnv->close( 0 );
+    SetBDBError(rc);
+    rc = tmpEnv->close( 0 );
+    SetBDBError(rc);
   }
   delete bdbEnv;
   delete tmpEnv;
@@ -242,6 +244,7 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
     if ( useTransactions )
     {
       rc = dbenv->txn_begin( 0, &tid, 0 );
+      SetBDBError(rc);
     }
 
     if ( rc == 0 )
@@ -264,13 +267,16 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
           if ( useTransactions )
           {
             rc = tid->commit( 0 );
+            SetBDBError(rc);
           }
         }
         else
         {
+          SetBDBError(rc);
           if ( useTransactions )
           {
-            tid->abort();
+            rc = tid->abort();
+            SetBDBError(rc);
           }
         }
         if ( rc != 0 )
@@ -281,7 +287,8 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
     }
     else if ( tid != 0 )
     {
-      tid->abort();
+      rc = tid->abort();
+      SetBDBError(rc);
     }
   }
 
@@ -437,19 +444,7 @@ SmiEnvironment::Implementation::DeleteFromCatalog( const string& fileName,
     Dbt key( (void*) fileName.c_str(), fileName.length() );
 
     rc = dbidx->del( tid, &key, 0 );
-    if ( rc == 0 || rc == DB_NOTFOUND )
-    {
-      if ( rc == 0 )
-      {
-        SetError( E_SMI_OK );
-      }
-      else
-      {
-        SetError( E_SMI_CATALOG_NOTFOUND );
-      }
-      rc = 0;
-    }
-    else
+    if ( rc != 0 && rc != DB_NOTFOUND )
     {
       SetBDBError( rc );
     }
@@ -481,6 +476,7 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
   if ( useTransactions )
   {
     rc = dbenv->txn_begin( ptid, &tid, 0 );
+    SetBDBError( rc );
   }
 
   if ( rc == 0 )
@@ -503,11 +499,13 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
     {
       if ( ok )
       {
-        tid->commit( 0 );
+        rc = tid->commit( 0 );
+        SetBDBError( rc );
       }
       else
       {
-        tid->abort();
+        rc = tid->abort();
+        SetBDBError( rc );
       }
     }
   }
@@ -515,9 +513,9 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
   {
     if ( tid != 0 )
     {
-      tid->abort();
+      rc = tid->abort();
+      SetBDBError( rc );
     }
-    SetBDBError( rc );
   }
   return (ok);
 }
@@ -546,6 +544,7 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit )
       if ( (ret = dbp->remove( ConstructFileName( 
                                      entry.fileId ).c_str(), 0, 0 )) != 0 )
       {
+	SetBDBError(ret);
         rc = ret;
       }
       delete dbp;
@@ -567,7 +566,8 @@ SmiEnvironment::ListDatabases( string& dbname )
     try {
       // Acquire a cursor for the table.
       Dbc *dbcp;
-      dbctl->cursor(NULL, &dbcp, 0);
+      int rc = dbctl->cursor(NULL, &dbcp, 0);
+      SetBDBError(rc);
       // Walk through the table, getting the key/data pairs.
       Dbt key;
       Dbt data;
@@ -576,7 +576,8 @@ SmiEnvironment::ListDatabases( string& dbname )
         dbname += (char *)key.get_data();
         dbname += "#";
       }
-      dbcp->close();
+      rc = dbcp->close();
+      SetBDBError(rc);
     }
     catch (DbException &dbe) {
       cerr << "Error: " << dbe.what() << "\n";
@@ -1238,6 +1239,7 @@ SmiEnvironment::EraseDatabase( const string& dbname )
               Db*    dbp   = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
               int ret;
               ret = dbp->remove( (*iter).c_str(), 0, 0 );
+              SetBDBError( ret );
               delete dbp;
               iter++;
             }
@@ -1252,24 +1254,15 @@ folders should be removed.
         FileSystem::SetCurrentFolder( oldHome );
         }
         UnlockDatabase( database );
-        if ( ok )
-        {
-          SetError( E_SMI_OK );
-        }
-        else
-        {
+        if ( !ok )
           SetError( E_SMI_DB_ERASE );
-        }
       }
       else
       {
         SetError( E_SMI_DB_NOTLOCKED );
       }
     }
-    else
-    {
-      SetError( E_SMI_DB_NOTEXISTING );
-    }
+    // else database does not exist!
   }
   else
   {

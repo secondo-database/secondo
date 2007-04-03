@@ -32,6 +32,9 @@ April 2003 Ulrich Telle, implemented temporary SmiFiles
 
 using namespace std;
 
+//#define TRACE_ON 1
+#include "LogMsg.h"
+
 #include <string>
 #include <algorithm>
 #include <cctype>
@@ -72,8 +75,10 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
                               /* = SmiFile::ReadOnly */ )
 {
   int rc=0;
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   Dbc* dbc = 0;
+  DbTxn* tid = !impl->isTemporaryFile ? 
+	                SmiEnvironment::instance.impl->usrTxn : 0;
+
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
     rc = impl->bdbFile->cursor( tid, &dbc, 0 );
@@ -94,6 +99,9 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
     iterator.firstKey         = key;
     iterator.searchKey        = &iterator.firstKey;
   }
+
+  if (rc != DB_NOTFOUND)	  
+    SmiEnvironment::SetBDBError(rc);
   return (rc == 0);
 }
 
@@ -110,7 +118,9 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   Dbt data;
   data.set_ulen( 0 );
   data.set_flags( DB_DBT_USERMEM );
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = !impl->isTemporaryFile ? 
+	                 SmiEnvironment::instance.impl->usrTxn : 0;
+
   if ( uniqueKeys && accessType == SmiFile::Update )
   {
     u_int32_t flags = (!impl->isTemporaryFile) ? DB_RMW : 0;
@@ -149,6 +159,8 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   }
   else
   {
+    if (rc != DB_NOTFOUND)	  
+      SmiEnvironment::SetBDBError(rc);
     record.initialized     = false;
   }
 
@@ -163,9 +175,11 @@ SmiKeyedFile::SelectRange( const SmiKey& fromKey,
                              /* = SmiFile::ReadOnly */,
                            const bool reportDuplicates /* = false */ )
 {
-  int rc;
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
-  Dbc* dbc;
+  int rc = 0;
+  Dbc* dbc = 0;
+  DbTxn* tid = !impl->isTemporaryFile ? 
+	                SmiEnvironment::instance.impl->usrTxn : 0;
+
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
     rc = impl->bdbFile->cursor( tid, &dbc, 0 );
@@ -186,25 +200,25 @@ SmiKeyedFile::SelectRange( const SmiKey& fromKey,
     iterator.firstKey         = fromKey;
     iterator.lastKey          = toKey;
     iterator.searchKey        = &iterator.firstKey;
-    SmiEnvironment::SetError( E_SMI_OK );
   }
-  else
-  {
+
+  if (rc != DB_NOTFOUND)
     SmiEnvironment::SetBDBError( rc );
-  }
+
   return (rc == 0);
 }
 
 PrefetchingIterator* 
 SmiKeyedFile::SelectRangePrefetched(const SmiKey& fromKey, const SmiKey& toKey)
 {
-  int rc;
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
-  Dbc* dbc;
+  int rc = 0;
+  Dbc* dbc = 0;
+  DbTxn* tid = !impl->isTemporaryFile ? 
+	                SmiEnvironment::instance.impl->usrTxn : 0;
+
   rc = impl->bdbFile->cursor(tid, &dbc, 0);
   if(rc == 0)
   {
-    SmiEnvironment::SetError(E_SMI_OK);
     return new PrefetchingIteratorImpl(dbc, keyDataType, 
       (const char*)fromKey.GetAddr(), fromKey.keyLength, 
       (const char*)toKey.GetAddr(), toKey.keyLength, 
@@ -224,9 +238,11 @@ SmiKeyedFile::SelectLeftRange( const SmiKey& toKey,
                                  /* = SmiFile::ReadOnly */,
                                const bool reportDuplicates /* = false */ )
 {
-  int rc;
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
-  Dbc* dbc;
+  int rc = 0;
+  Dbc* dbc = 0;
+  DbTxn* tid = !impl->isTemporaryFile ? 
+	                SmiEnvironment::instance.impl->usrTxn : 0;
+
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
     rc = impl->bdbFile->cursor( tid, &dbc, 0 );
@@ -247,7 +263,6 @@ SmiKeyedFile::SelectLeftRange( const SmiKey& toKey,
     iterator.firstKey         = SmiKey();
     iterator.lastKey          = toKey;
     iterator.searchKey        = &iterator.firstKey;
-    SmiEnvironment::SetError( E_SMI_OK );
   }
   else
   {
@@ -259,13 +274,13 @@ SmiKeyedFile::SelectLeftRange( const SmiKey& toKey,
 PrefetchingIterator* 
 SmiKeyedFile::SelectLeftRangePrefetched(const SmiKey& toKey)
 {
-  int rc;
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
-  Dbc* dbc;
+  int rc = 0;
+  Dbc* dbc = 0;
+  DbTxn* tid = !impl->isTemporaryFile ? 
+	                SmiEnvironment::instance.impl->usrTxn : 0;
   rc = impl->bdbFile->cursor(tid, &dbc, 0);
   if(rc == 0)
   {
-    SmiEnvironment::SetError(E_SMI_OK);
     return new PrefetchingIteratorImpl(dbc, keyDataType, 
       0, 0, (const char*)toKey.GetAddr(), toKey.keyLength, 
       PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH);
@@ -285,9 +300,11 @@ SmiKeyedFile::SelectRightRange( const SmiKey& fromKey,
                                   /* = SmiFile::ReadOnly */,
                                 const bool reportDuplicates /* = false */ )
 {
-  int rc;
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
-  Dbc* dbc;
+  int rc = 0;
+  Dbc* dbc = 0;
+  DbTxn* tid = !impl->isTemporaryFile ? 
+	                SmiEnvironment::instance.impl->usrTxn : 0;
+
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
     rc = impl->bdbFile->cursor( tid, &dbc, 0 );
@@ -308,7 +325,6 @@ SmiKeyedFile::SelectRightRange( const SmiKey& fromKey,
     iterator.firstKey         = fromKey;
     iterator.lastKey          = SmiKey();
     iterator.searchKey        = &iterator.firstKey;
-    SmiEnvironment::SetError( E_SMI_OK );
   }
   else
   {
@@ -320,13 +336,14 @@ SmiKeyedFile::SelectRightRange( const SmiKey& fromKey,
 PrefetchingIterator* 
 SmiKeyedFile::SelectRightRangePrefetched(const SmiKey& fromKey)
 {
-  int rc;
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
-  Dbc* dbc;
+  int rc = 0;
+  Dbc* dbc = 0;
+  DbTxn* tid = !impl->isTemporaryFile ? 
+	                SmiEnvironment::instance.impl->usrTxn : 0;
+
   rc = impl->bdbFile->cursor(tid, &dbc, 0);
   if(rc == 0)
   {
-    SmiEnvironment::SetError(E_SMI_OK);
     return new PrefetchingIteratorImpl(dbc, keyDataType, 
       (const char*)fromKey.GetAddr(), fromKey.keyLength, 0, 0, 
       PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH);
@@ -344,9 +361,14 @@ SmiKeyedFile::SelectAll( SmiKeyedFileIterator& iterator,
                            /* = SmiFile::ReadOnly */,
                          const bool reportDuplicates /* = false */ )
 {
-  int rc;
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
-  Dbc* dbc;
+  TRACE_ENTER
+
+  int rc = 0;
+  Dbc* dbc = 0;
+
+  DbTxn* tid = !impl->isTemporaryFile ? 
+	                SmiEnvironment::instance.impl->usrTxn : 0;
+  
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
     rc = impl->bdbFile->cursor( tid, &dbc, 0 );
@@ -364,28 +386,32 @@ SmiKeyedFile::SelectAll( SmiKeyedFileIterator& iterator,
     iterator.solelyDuplicates = false;
     iterator.ignoreDuplicates = !reportDuplicates;
     iterator.rangeSearch      = false;
+    
     SmiKey dummy;
     iterator.firstKey         = dummy;
     iterator.lastKey          = dummy;
     iterator.searchKey        = &iterator.firstKey;
-    SmiEnvironment::SetError( E_SMI_OK );
   }
   else
   {
     SmiEnvironment::SetBDBError( rc );
   }
+
+  SHOW(iterator.opened);
+  TRACE_LEAVE
   return (rc == 0);
 }
 
 PrefetchingIterator* SmiKeyedFile::SelectAllPrefetched()
 {
-  int rc;
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
-  Dbc* dbc;
+  int rc = 0;
+  Dbc* dbc = 0;
+  DbTxn* tid = !impl->isTemporaryFile ? 
+	                 SmiEnvironment::instance.impl->usrTxn : 0;
+
   rc = impl->bdbFile->cursor(tid, &dbc, 0);
   if(rc == 0)
   {
-    SmiEnvironment::SetError(E_SMI_OK);
     return new PrefetchingIteratorImpl(dbc, keyDataType, 
       PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH, true);
   }
@@ -401,11 +427,13 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
 {
   int rc = 0;
   char buffer = 0;
+  Dbc* dbc = 0;
+  
   Dbt bdbKey( (void*) key.GetAddr(), key.keyLength );
   Dbt data( &buffer, 0 );
   data.set_dlen( 0 );
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
-  Dbc* dbc;
+  DbTxn* tid = !impl->isTemporaryFile ? 
+	                SmiEnvironment::instance.impl->usrTxn : 0;
 
   if ( uniqueKeys )
   {
@@ -415,6 +443,7 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
   {
     // --- Use of a cursor is required when duplicates are allowed
     rc = impl->bdbFile->cursor( tid, &dbc, 0 );
+    SmiEnvironment::SetBDBError( rc );
     if ( rc == 0 )
     {
       rc = dbc->put( &bdbKey, &data, DB_KEYLAST );
@@ -445,7 +474,6 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
       record.impl->bdbCursor   = dbc;
     }
     record.initialized = true;
-    SmiEnvironment::SetError( E_SMI_OK );
   }
   else if ( rc == DB_KEYEXIST )
   {
@@ -461,25 +489,19 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
 }
  
 bool
-SmiKeyedFile::DeleteRecord( const SmiKey& key, const bool all, const SmiRecordId recordId )
+SmiKeyedFile::DeleteRecord( const SmiKey& key, 
+		            const bool all, const SmiRecordId recordId )
 {
   if( all )
   {
     int rc = 0;
 
     Dbt bdbKey( (void *) key.GetAddr(), key.keyLength );
-    DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
+    DbTxn* tid = !impl->isTemporaryFile ? 
+	                   SmiEnvironment::instance.impl->usrTxn : 0;
 
     rc = impl->bdbFile->del( tid, &bdbKey, 0 );
-    if ( rc == 0 )
-    {
-      SmiEnvironment::SetError( E_SMI_OK );
-    }
-    else
-    {
-      SmiEnvironment::SetBDBError( rc );
-    }
-
+    SmiEnvironment::SetBDBError( rc );
     return (rc == 0);
   }
   else
@@ -509,7 +531,7 @@ SmiKeyedFile::DeleteRecord( const SmiKey& key, const bool all, const SmiRecordId
 /* --- Implementation of class  --- */
 
 SmiKeyedFileIterator::SmiKeyedFileIterator( bool reportDuplicates )
-  : firstKey(), lastKey()
+  : SmiFileIterator(), firstKey(), lastKey()
 {
 }
 
@@ -530,7 +552,6 @@ SmiKeyedFileIterator::Next( SmiKey& key, SmiRecord& record )
       if ( !ok )
       {
         endOfScan = true;
-        SmiEnvironment::SetError( E_SMI_CURSOR_ENDOFSCAN );
       }
     }
   }
@@ -547,7 +568,6 @@ SmiKeyedFileIterator::Next( SmiRecord& record )
     if ( !ok )
     {
       endOfScan = true;
-      SmiEnvironment::SetError( E_SMI_CURSOR_ENDOFSCAN );
     }
   }
   return (ok);

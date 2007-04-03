@@ -100,6 +100,7 @@ SmiRecord::Read( void* buffer,
     if ( impl->useCursor )
     {
       rc = impl->bdbCursor->get( &key, &data, DB_CURRENT );
+      SmiEnvironment::SetBDBError( rc );
     }
     else
     {
@@ -113,11 +114,13 @@ SmiRecord::Read( void* buffer,
       if ( writable || !smiFile->impl->isSystemCatalogFile )
       {
         rc = impl->bdbFile->get( tid, &key, &data, flags );
+        SmiEnvironment::SetBDBError( rc );
       }
       else
       {
         flags = (!smiFile->impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
         rc = impl->bdbFile->get( 0, &key, &data, flags );
+        SmiEnvironment::SetBDBError( rc );
       }
     }
 
@@ -126,11 +129,6 @@ SmiRecord::Read( void* buffer,
       actRead = data.get_size();
       byteCtr += actRead;
       pageCtr = byteCtr / pageSize;
-      SmiEnvironment::SetError( E_SMI_OK );
-    }
-    else
-    {
-      SmiEnvironment::SetBDBError( rc );
     }
   }
   else
@@ -164,6 +162,7 @@ SmiRecord::Write( const void*   buffer,
     if ( impl->useCursor )
     {
       rc = impl->bdbCursor->put( &key, &data, DB_CURRENT );
+      SmiEnvironment::SetBDBError( rc );
     }
     else
     {
@@ -172,20 +171,17 @@ SmiRecord::Write( const void*   buffer,
       key.set_data( (void*) recordKey.GetAddr() );
       key.set_size( recordKey.keyLength );
       rc = impl->bdbFile->put( tid, &key, &data, 0 );
+      SmiEnvironment::SetBDBError( rc );
     }
+
     if ( rc == 0 )
     {
       if ( offset + numberOfBytes > recordSize )
       {
         recordSize = offset + numberOfBytes;
       }
-      SmiEnvironment::SetError( E_SMI_OK );
       byteCtr += numberOfBytes;
       pageCtr = byteCtr / pageSize;
-    }
-    else
-    {
-      SmiEnvironment::SetBDBError( rc );
     }
   }
   else
@@ -234,6 +230,7 @@ SmiRecord::Truncate( const SmiSize newSize )
       if ( impl->useCursor )
       {
         rc = impl->bdbCursor->put( &key, &data, DB_CURRENT );
+        SmiEnvironment::SetBDBError( rc );
       }
       else
       {
@@ -242,16 +239,12 @@ SmiRecord::Truncate( const SmiSize newSize )
         key.set_data( (void*) recordKey.GetAddr() );
         key.set_size( recordKey.keyLength );
         rc = impl->bdbFile->put( tid, &key, &data, 0 );
+        SmiEnvironment::SetBDBError( rc );
       }
 
       if ( rc == 0 )
       {
         recordSize = newSize;
-        SmiEnvironment::SetError( E_SMI_OK );
-      }
-      else
-      {
-        SmiEnvironment::SetBDBError( rc );
       }
     }
     else
@@ -273,7 +266,8 @@ SmiRecord::Finish()
 {
   if ( impl->useCursor && impl->closeCursor && impl->bdbCursor != 0 )
   {
-    impl->bdbCursor->close();
+    int rc = impl->bdbCursor->close();
+    SmiEnvironment::SetBDBError( rc );
     impl->bdbCursor   = 0;
     impl->useCursor   = false;
     impl->closeCursor = false;
