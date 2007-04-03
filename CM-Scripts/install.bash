@@ -9,6 +9,8 @@
 # 05/18/10 M. Spiekermann, Code restructured into many new functions. Easier to test and maintain.   
 # 06/27/09 M. Spiekermann, tools version check implemented and new packages
 #                          added in order to support Mac-OSX.   
+# 07/02/04 C. Duentgen,    Added Package GSL - GNU Scientific Library, which is needed by the new
+#                          GSL-Algebra
 
 startDir=$PWD
 
@@ -714,6 +716,7 @@ fi
 installPackage "Lib curses"   aux $platformdir/gnu/ncurses-*     $temp/ncurses-*  "all install"
 installPackage "Lib readline" aux $platformdir/gnu/readline-*    $temp/readline-* "all install" --with-curses
 installPackage "Lib jpeg"     aux $platformdir/non-gnu/jpeg*     $temp/jpeg*      "all install install-lib" 
+installPackage "Lib gsl"      aux $platformdir/gnu/gsl-*         $temp/gsl-*      "all install"
 installPackage "Berkeley-DB"  bdb $platformdir/non-gnu/db-*      $temp/db-*/build_unix "all install" --enable-cxx ../dist/configure
 installPackage "SWI-Prolog"   swi $platformdir/prolog/pl-*       $temp/pl-*       "all install"
 

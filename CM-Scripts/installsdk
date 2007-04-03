@@ -6,9 +6,12 @@
 # 04/22/09 M. Spiekermann, error handling for starting xterm &
 # 05/16/02 M. Spiekermann, MSYS-Mingw and Linux script merged into this version
 # 05/12/10 M. Spiekermann, Compilation of 3rd party packages improved and un-install function added  
-# 05/18/10 M. Spiekermann, Code restructured into many new functions. Easier to test and maintain.   
+# 05/18/10 M. Spiekermann, Code restructured into many new functions. Easier to test and maintain.
+
 # 06/27/09 M. Spiekermann, tools version check implemented and new packages
 #                          added in order to support Mac-OSX.   
+# 07/02/04 C. Duentgen,    Added Package GSL - GNU Scientific Library, which is needed by the new
+#                          GSL-Algebra
 
 startDir=$PWD
 
@@ -744,6 +747,8 @@ printSep "Compiling auxiliary packages ..."
 installPackage "Lib curses"   auxtools $platformdir/gnu/ncurses-*     $temp/ncurses-*  "all install"
 installPackage "Lib readline" auxtools $platformdir/gnu/readline-*    $temp/readline-* "all install" --with-curses
 installPackage "Lib jpeg"     auxtools $platformdir/non-gnu/jpeg*     $temp/jpeg*      "all install install-lib" 
+installPackage "Lib gsl"      auxtools $platformdir/gnu/gsl-*         $temp/gsl-*      "all install"
+
 if [ "$opt_platform" == "mac_osx" ]; then
  installPackage "Findutils" auxtools $platformdir/gnu/findutils-* $temp/findutils-* "all install"
 fi 
