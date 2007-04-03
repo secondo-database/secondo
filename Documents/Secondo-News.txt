@@ -6,6 +6,19 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+2007-04-03  New dependency
+===============================================================================
+I have implemented and added a new algbery module, the GSL-Algebra. It uses
+functions imported from the GNU Scientific Algebra (GSL) and therefor depends
+on this library. I have included the GSL into the installsdk script and the 
+gsl sources/binaries into the gnu-folder of the SECONDO_SDK_INSTALLATION_KIT.
+
+If you run into problems, please install GSL 1.8 manually or by re-running 
+the recent installsdk script.
+
+Christian
+
+
 2007-01-02  R-Trees
 ===============================================================================
 I have implemented bulkloading for RTrees. Also, using the nodes(_) operator, 
