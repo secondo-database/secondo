@@ -305,15 +305,16 @@ SecondoInterface::WriteErrorList ( ListExpr list, ostream& os /* = cerr */ )
       return;
     }   
     
-    os << "Kind check and In-Function errors:" << endl;
     list = nl->Rest( list );
+    if ( !nl->IsEmpty( list ) )
+      os << "Kind check and In-Function errors:" << endl;
+
     while (!nl->IsEmpty( list ))
     {
       ListExpr first;
       if (!nl->IsAtom( list)) 
       {
         first=nl->First(list);
-      } 
       else
       { 
         os << "Error: The error list has not the expected format!" << endl;
