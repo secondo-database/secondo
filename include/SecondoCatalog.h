@@ -112,6 +112,7 @@ The class ~SecondoCatalog~ provides the following methods:
 
 #include <vector>
 #include <set>
+#include <iostream>
 
 #include "AlgebraManager.h"
 #include "NestedList.h"
@@ -601,7 +602,7 @@ The function below test if a name is reserved for system use.
   LocalConstructorCatalog constructors;
   LocalOperatorCatalog operators;
 
-  enum EntryState { EntryInsert, EntryUpdate, EntryDelete };
+  enum EntryState { EntryInsert, EntryUpdate, EntryDelete, Undefined };
 
   struct TypesCatalogEntry
   {
@@ -609,6 +610,18 @@ The function below test if a name is reserved for system use.
     int        typeId;
     string     typeExpr;
     EntryState state;
+
+    TypesCatalogEntry() : 
+      algebraId(0), typeId(0), typeExpr(""), state(Undefined) {}
+
+    ostream& print(ostream& os) const {
+      os << "algId  :" << algebraId << endl;	    
+      os << "typId  :" << typeId << endl;	    
+      os << "typExpr:" << typeExpr << endl;	    
+      os << "state  :" << state << endl;	    
+      return os;
+    }	    
+
   };
   typedef map<string,TypesCatalogEntry> TypesCatalog;
   TypesCatalog types;
@@ -624,7 +637,25 @@ The function below test if a name is reserved for system use.
     bool        valueDefined;
     SmiRecordId valueRecordId;
     EntryState  state;
+
+    ObjectsCatalogEntry() : 
+      algebraId(0), typeId(0), typeName(""), typeExpr(""), 
+      value(SetWord(0)), valueDefined(false), valueRecordId(0), 
+      state(Undefined) {}
+
+    ostream& print(ostream& os) const {
+      os << "algId       :" << algebraId << endl;	    
+      os << "typId       :" << typeId << endl;	    
+      os << "typName     :" << typeName << endl;	    
+      os << "typExpr     :" << typeExpr << endl;	    
+      os << "value       :" << (void*) value.addr << endl;	    
+      os << "valueDefined:" << valueDefined << endl;	    
+      os << "valueRecId  :" << valueRecordId << endl;	    
+      os << "state       :" << state << endl;	    
+      return os;
+    }	    
   };
+
   typedef map<string,ObjectsCatalogEntry> ObjectsCatalog;
   ObjectsCatalog objects;
   SmiKeyedFile   objCatalogFile;
