@@ -928,6 +928,16 @@ ListExpr FeedTypeMap(ListExpr args)
 5.5.2 Value mapping function of operator ~feed~
 
 */
+
+#define USE_PROGRESS
+
+//comment out to not use progress
+
+
+#ifndef USE_PROGRESS
+
+// standard version of code
+
 int
 Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -963,6 +973,126 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   return 0;
 }
+
+
+#else
+
+// version with support for progress queries
+
+
+
+struct FeedLocalInfo
+{
+  int state;	    	//0 = working, 1 = finished
+  int current;        	//current number of tuples processed
+  int total;          	//total number of tuples in argument relation
+  double tuplesize;
+  GenericRelationIterator* rit;
+};
+
+
+int
+Feed(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  GenericRelation* r;
+  FeedLocalInfo* fli;
+
+
+  switch (message)
+  {
+    case OPEN :
+      r = (GenericRelation*)args[0].addr;
+      fli = new FeedLocalInfo;
+        fli->state = 0;
+        fli->current = 0;
+        fli->total = r->GetNoTuples();
+        fli->tuplesize =  r->GetTotalSize() / (fli->total + 1);
+        fli->rit = r->MakeScan();
+      local = SetWord(fli);
+      return 0;
+
+    case REQUEST :
+      fli = (FeedLocalInfo*) local.addr;
+      Tuple *t;
+      if ((t = fli->rit->GetNextTuple()) != 0)
+      {
+        fli->current++;
+        result = SetWord(t);
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+
+    case CLOSE :
+      fli = (FeedLocalInfo*) local.addr;
+      delete fli->rit;
+      fli->state = 1;
+      return 0;
+
+    case PROGRESS :
+
+      ProgressInfo p1;
+      ProgressInfo *pRes;
+      const double uFeed = 1100.0 / (412670.0 * 80.0);    //seconds per byte
+      Supplier sonOfFeed;
+
+     		//cout << "feed was asked for progress" << endl;
+ 
+      pRes = (ProgressInfo*) result.addr;
+      fli = (FeedLocalInfo*) local.addr;
+      sonOfFeed = qp->GetSupplierSon(s, 0);
+
+      if ( qp->IsObjectNode(sonOfFeed) )
+      {
+        if ( fli )
+        {
+          pRes->Card = (double) fli->total;
+          pRes->Size = fli->tuplesize;
+          pRes->Time = (fli->total + 1) * fli->tuplesize * uFeed; 
+ 
+		//any time value created must be > 0; so we add 1 to the total
+
+          pRes->Progress = (fli->current * fli->tuplesize * uFeed) / pRes->Time;
+          return YIELD;
+	}
+	else return CANCEL;
+      }
+      else  	//son is an operator, most likely consume
+      {
+
+	if ( qp->RequestProgress(sonOfFeed, &p1) )
+        {
+	  if ( fli == 0 )		//son evaluation not yet finished
+          {
+            pRes->Card = p1.Card;
+            pRes->Size = p1.Size;
+            pRes->Time = p1.Time + p1.Card * p1.Size * uFeed;
+	    pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
+            return YIELD;
+          }
+          else				//son evaluation is complete
+          {       
+            pRes->Card = (double) fli->total;
+            pRes->Size = fli->tuplesize;
+            pRes->Time = p1.Time + fli->total * fli->tuplesize * uFeed;
+            pRes->Progress = 
+              (p1.Time + fli->current * fli->tuplesize * uFeed) / pRes->Time;
+            return YIELD;
+          }
+        }
+        else return CANCEL;
+      }
+                 
+  }
+  return 0;
+}
+
+#endif
+
+
+
 /*
 
 5.5.3 Specification of operator ~feed~
@@ -1036,6 +1166,11 @@ ListExpr ConsumeTypeMap(ListExpr args)
 5.6.2 Value mapping function of operator ~consume~
 
 */
+
+#ifndef USE_PROGRESS
+
+// standard version
+
 int
 Consume(Word* args, Word& result, int message, 
         Word& local, Supplier s)
@@ -1062,6 +1197,99 @@ Consume(Word* args, Word& result, int message,
   qp->Close(args[0].addr);
   return 0;
 }
+
+#else 
+
+// Version with support for progress queries
+
+struct consumeLocalInfo
+{
+  int state; 		//0 = working, 1 = finished
+  int current;		//current no of tuples read
+};
+
+
+int
+Consume(Word* args, Word& result, int message,
+       Word& local, Supplier s)
+{
+  Word actual;
+  consumeLocalInfo* cli;
+
+  if (message != PROGRESS)     //normal evaluation
+  {
+
+    cli = new consumeLocalInfo;
+      cli->state = 0;
+      cli->current = 0;
+    local = SetWord(cli);
+
+    GenericRelation* rel = (Relation*)((qp->ResultStorage(s)).addr);
+    if(rel->GetNoTuples() > 0)
+    {
+      rel->Clear();
+    }
+
+    qp->Open(args[0].addr);
+    qp->Request(args[0].addr, actual);
+    while (qp->Received(args[0].addr))
+    {
+      Tuple* tuple = (Tuple*)actual.addr;
+      rel->AppendTuple(tuple);
+      tuple->DeleteIfAllowed();
+      cli->current++;
+      qp->Request(args[0].addr, actual);
+    }
+    result = SetWord(rel);
+
+    qp->Close(args[0].addr);
+    cli->state = 1;
+    return 0;
+  }
+
+  else //message == PROGRESS
+  {
+
+    	//cout << "consume was asked for progress" << endl;
+
+    ProgressInfo p1;
+    ProgressInfo* pRes;
+    const double uConsume = 28000.0 / (412670.0 * 80.0); //milliseconds per byte
+
+    cli = (consumeLocalInfo*) local.addr;
+    pRes = (ProgressInfo*) result.addr;    
+
+
+    if ( qp->RequestProgress(args[0].addr, &p1) )
+    {
+      pRes->Card = p1.Card;
+      pRes->Size = p1.Size;
+      pRes->Time = p1.Time + p1.Card * p1.Size * uConsume;
+
+      if ( cli == 0 )		//not yet working
+      {
+        pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
+      }
+      else 
+        if ( cli->state == 0 )	//working
+        {
+          pRes->Progress = 
+            (p1.Progress * p1.Time + cli->current * p1.Size * uConsume ) 
+            / pRes->Time;
+        }
+        else 			//finished
+        {
+          pRes->Progress = 1.0;
+        }
+  
+      return YIELD;			//successful
+    }
+    else return CANCEL;			//no progress available
+  }
+}
+
+#endif
+
 
 /*
 5.6.3 Specification of operator ~consume~
@@ -1271,6 +1499,12 @@ ListExpr FilterTypeMap(ListExpr args)
 5.8.2 Value mapping function of operator ~filter~
 
 */
+
+
+#ifndef USE_PROGRESS
+
+// standard version
+
 int
 Filter(Word* args, Word& result, int message, 
        Word& local, Supplier s)
@@ -1323,6 +1557,113 @@ Filter(Word* args, Word& result, int message,
   }
   return 0;
 }
+
+#else
+
+// progress version
+
+struct FilterLocalInfo
+{
+  int current;		//tuples read
+  int returned;		//tuples returned
+};
+
+
+int
+Filter(Word* args, Word& result, int message, 
+       Word& local, Supplier s)
+{
+  bool found = false;
+  Word elem, funresult;
+  ArgVectorPointer funargs;
+  Tuple* tuple = 0;
+  FilterLocalInfo* fli;
+
+  switch ( message )
+  {
+
+    case OPEN:
+
+      fli = new FilterLocalInfo;
+        fli->current = 0;
+        fli->returned = 0;
+      local = SetWord(fli);
+
+      qp->Open (args[0].addr);
+      return 0;
+
+    case REQUEST:
+
+      fli = (FilterLocalInfo*) local.addr;
+
+      funargs = qp->Argument(args[1].addr);
+      qp->Request(args[0].addr, elem);
+      found = false;
+      while (qp->Received(args[0].addr) && !found)
+      {
+        fli->current++;
+        tuple = (Tuple*)elem.addr;
+        (*funargs)[0] = elem;
+        qp->Request(args[1].addr, funresult);
+        if (((StandardAttribute*)funresult.addr)->IsDefined())
+        {
+          found = ((CcBool*)funresult.addr)->GetBoolval();
+        }
+        if (!found)
+        {
+          tuple->DeleteIfAllowed();
+          qp->Request(args[0].addr, elem);
+        }
+      }
+      if (found)
+      {
+        fli->returned++;
+        result = SetWord(tuple);
+        return YIELD;
+      }
+      else
+        return CANCEL;
+
+    case CLOSE:
+
+      qp->Close(args[0].addr);
+      return 0;
+
+    case PROGRESS:
+
+      ProgressInfo p1;
+      ProgressInfo* pRes;
+      double uFilter = 600.0 /  (412670.0 * 0.1);	//to be measured
+
+      pRes = (ProgressInfo*) result.addr;
+      fli = (FilterLocalInfo*) local.addr;
+
+      if ( qp->RequestProgress(args[0].addr, &p1) )
+      {
+        pRes->Size = p1.Size;
+        pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter;
+
+        if ( fli )		//filter was started
+        {
+          pRes->Card = (double) p1.Card * 
+            ( (double) fli->returned / (double) (fli->current + 1)); //is > 0 
+          pRes->Progress = (p1.Progress * p1.Time 
+            + fli->current * qp->GetPredCost(s) * uFilter) / pRes->Time;
+        }
+        else			//filter not yet started
+        {
+	  pRes->Card = p1.Card * qp->GetSelectivity(s);
+          pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
+        }
+        return YIELD;
+      }
+      else return CANCEL;
+  }
+  return 0;
+}
+
+#endif
+
 
 /*
 5.8.3 Specification of operator ~filter~
@@ -2025,6 +2366,11 @@ TCountTypeMap(ListExpr args)
 5.11.2 Value mapping functions of operator ~count~
 
 */
+
+#ifndef USE_PROGRESS
+
+// standard version
+
 int
 TCountStream(Word* args, Word& result, int message, 
              Word& local, Supplier s)
@@ -2045,6 +2391,108 @@ TCountStream(Word* args, Word& result, int message,
   qp->Close(args[0].addr);
   return 0;
 }
+
+int
+TCountRel(Word* args, Word& result, int message, 
+          Word& local, Supplier s)
+{
+  Relation* rel = (Relation*)args[0].addr;
+  result = qp->ResultStorage(s);
+  ((CcInt*) result.addr)->Set(true, rel->GetNoTuples());
+  return 0;
+}
+
+#else
+
+int
+TCountStream(Word* args, Word& result, int message, 
+             Word& local, Supplier s)
+{
+  Word elem;
+  int count = 0;
+
+
+  if (message != PROGRESS)
+  {
+
+    qp->Open(args[0].addr);
+    qp->Request(args[0].addr, elem);
+    while ( qp->Received(args[0].addr) )
+    {
+      ((Tuple*)elem.addr)->DeleteIfAllowed();
+      count++;
+      qp->Request(args[0].addr, elem);
+    }
+    result = qp->ResultStorage(s);
+    ((CcInt*) result.addr)->Set(true, count);
+    qp->Close(args[0].addr);
+    return 0;
+  }
+  else  //message == PROGRESS
+  {
+    		//cout << "count was asked for progress" << endl;
+
+    ProgressInfo p1;
+    ProgressInfo* pRes;
+
+    pRes = (ProgressInfo*) result.addr; 
+
+    if ( qp->RequestProgress(args[0].addr, &p1) )
+    {
+      pRes->Card = p1.Card;
+      pRes->Size = p1.Size;
+      pRes->Time = p1.Time;
+      pRes->Progress =  p1.Progress; 
+      return YIELD;			//successful
+    }
+    else return CANCEL;			//no progress available
+  }
+}
+
+
+
+int
+TCountRel(Word* args, Word& result, int message, 
+          Word& local, Supplier s)
+{
+  if ( message != PROGRESS ) 		//normal evaluation
+  {
+    Relation* rel = (Relation*)args[0].addr;
+    result = qp->ResultStorage(s);
+    ((CcInt*) result.addr)->Set(true, rel->GetNoTuples());
+    return 0;
+  }
+
+  else	//message == PROGRESS
+  {
+    Supplier sonOfCount;
+    ProgressInfo p1;
+    ProgressInfo* pRes;
+    
+    pRes = (ProgressInfo*) result.addr; 
+    sonOfCount = qp->GetSupplierSon(s, 0);
+
+    if ( qp->IsObjectNode(sonOfCount) )
+    {
+      return CANCEL;
+    }
+    else
+    { 
+      if ( qp->RequestProgress(sonOfCount, &p1) )
+      {
+        pRes->Card = p1.Card;
+        pRes->Size = p1.Size;
+        pRes->Time = p1.Time;
+        pRes->Progress = p1.Progress;
+        return YIELD;
+      }
+      else return CANCEL;
+    }
+  }
+}
+
+#endif
+
 
 
 /*
@@ -2087,15 +2535,6 @@ TCountStream2(Word* args, Word& result, int message,
 }
 
 
-int
-TCountRel(Word* args, Word& result, int message, 
-          Word& local, Supplier s)
-{
-  Relation* rel = (Relation*)args[0].addr;
-  result = qp->ResultStorage(s);
-  ((CcInt*) result.addr)->Set(true, rel->GetNoTuples());
-  return 0;
-}
 
 
 /*
@@ -3588,6 +4027,10 @@ class RelationAlgebra : public Algebra
     AddTypeConstructor( &cpptuple );
     AddTypeConstructor( &cpprel );
 
+#ifndef USE_PROGRESS
+
+// no support for progress queries
+
     AddOperator(&relalgfeed);
     AddOperator(&relalgconsume);
     AddOperator(&relalgTUPLE);
@@ -3606,6 +4049,31 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgattrsize);
     AddOperator(&relalgrename);
     AddOperator(&relalgmconsume);
+
+#else
+
+// support for progress queries
+
+    AddOperator(&relalgfeed);		relalgfeed.EnableProgress();
+    AddOperator(&relalgconsume);	relalgconsume.EnableProgress();
+    AddOperator(&relalgTUPLE);
+    AddOperator(&relalgTUPLE2);
+    AddOperator(&relalgattr);
+    AddOperator(&relalgfilter);		relalgfilter.EnableProgress();
+    AddOperator(&relalgproject);
+    AddOperator(&relalgproduct);
+    AddOperator(&relalgcount);		relalgcount.EnableProgress();
+    AddOperator(&relalgcount2);
+    AddOperator(&relalgroottuplesize);
+    AddOperator(&relalgexttuplesize);
+    AddOperator(&relalgtuplesize);
+    AddOperator(&relalgrootattrsize);
+    AddOperator(&relalgextattrsize);
+    AddOperator(&relalgattrsize);
+    AddOperator(&relalgrename);
+    AddOperator(&relalgmconsume);
+
+#endif
 
 /*
 its important to declare the Operator variable below
