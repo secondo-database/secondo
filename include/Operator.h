@@ -54,6 +54,8 @@ An operator instance consists of
   * a selection function calculating the index of a value mapping function
     with respect to input parameter types
 
+  * a boolean telling whether this operator supports progress queries, default is false.
+
 All properties of operators are set in the constructor. Only the value mapping
 functions have to be registered later on since their number is arbitrary. This
 number is set in the constructor (~noF~).
@@ -123,6 +125,11 @@ Constructs an operator with ~noF~ overloaded evaluation functions.
             SelectFunction sf,
             TypeMapping tm );
 
+/*
+Constructs an operator with *one* evaluation functions.
+
+*/
+
   Operator( const OperatorInfo& oi,
             ValueMapping vm,
             TypeMapping tm );
@@ -132,11 +139,13 @@ Constructs an operator with ~noF~ overloaded evaluation functions.
             SelectFunction sf,
             TypeMapping tm );
 
-  
 /*
-Constructs an operator with *one* evaluation functions.
+Versions using ~OperatorInfo~.
 
 */
+
+  
+
   virtual ~Operator()
   {
     delete[] valueMap;
@@ -218,6 +227,24 @@ Returns the specification string of the operator.
 
 */
 
+
+
+
+  void EnableProgress() { supportsProgress = true; }
+/*
+Sets the ~supportsProgress~ field.
+
+*/
+
+
+
+  bool SupportsProgress() { return supportsProgress; }
+/*
+Checks the ~supportsProgress~ field.
+
+*/
+
+
     private:
 
     bool AddValueMapping( const int index, ValueMapping f );
@@ -232,6 +259,7 @@ Adds a value mapping function to the list of overloaded operator functions.
     SelectFunction selectFunc;
     ValueMapping*  valueMap;       // Array of size numOfFunctions
     TypeMapping    typeMap;
+    bool           supportsProgress; //Operator supports progress queries.
 };
 
 #endif
