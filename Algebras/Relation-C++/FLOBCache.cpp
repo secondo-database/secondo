@@ -253,7 +253,7 @@ bool FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId,
     file->SelectRecord( key.recordId, record );
 
     if( pageno == -1 )
-      assert( record.Read( buf, key.size, 0 ) == key.size );
+      assert( record.Read( buf, key.size, 0 ) == (unsigned int)key.size );
     else
       assert( record.Read( buf, 
                            FLOB::PAGE_SIZE, 
