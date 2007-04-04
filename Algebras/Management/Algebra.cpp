@@ -129,6 +129,7 @@ Operator::Operator( const string& nm,
   selectFunc     = sf;
   valueMap       = new ValueMapping[numOfFunctions];
   typeMap        = tm;
+  supportsProgress = false;
 
   for ( int i = 0; i < numOfFunctions; i++ )
     AddValueMapping( i, vms[i] );
@@ -146,6 +147,7 @@ Operator::Operator( const string& nm,
   selectFunc     = sf;
   valueMap       = new ValueMapping[1];
   typeMap        = tm;
+  supportsProgress = false;
 
   AddValueMapping( 0, vm );
 }
@@ -162,6 +164,7 @@ Operator::Operator( const OperatorInfo& oi,
   selectFunc     = SimpleSelect;
   valueMap       = new ValueMapping[1];
   typeMap        = tm;
+  supportsProgress = false;
 
   AddValueMapping( 0, vm );
 }
@@ -182,6 +185,7 @@ Operator::Operator( const OperatorInfo& oi,
   selectFunc     = sf;
   valueMap       = new ValueMapping[max];
   typeMap        = tm;
+  supportsProgress = false;
 
   for ( int i = 0; i < max; i++ ) {
     //cout << "Adding " << i << endl;
