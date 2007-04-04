@@ -315,6 +315,7 @@ SecondoInterface::WriteErrorList ( ListExpr list, ostream& os /* = cerr */ )
       if (!nl->IsAtom( list)) 
       {
         first=nl->First(list);
+      }
       else
       { 
         os << "Error: The error list has not the expected format!" << endl;
