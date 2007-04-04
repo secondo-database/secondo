@@ -184,6 +184,14 @@ struct VarEntry
 
 typedef vector<VarEntry>  VarEntryTable;
 
+struct ProgressInfo
+{
+  double Card;
+  double Size;
+  double Time;
+  double Progress;
+};
+
 /************************************************************************** 
 3.2 Class "QueryProcessor"[1]
 
@@ -205,6 +213,16 @@ and algebra manager.
 Destroys a query processor instance.
 
 */
+
+  OpTree QueryTree;
+
+/*
+Stores the current tree during query evaluation.
+
+*/
+
+
+
 /************************************************************************** 
 3.2.1 Construction and Execution of an Operator Tree
 
@@ -314,9 +332,65 @@ is closed already.
   void SetEvaluable(Supplier s, bool value);
 
 
+
+
+
+  bool RequestProgress( const Supplier s, ProgressInfo* p );
+/*
+~RequestProgress~ evaluates the subtree ~s~ for a PROGRESS message. It returns true iff a progress info has been received. In ~p~ the address of a ProgressInfo must be passed.
+
+*/
+
+
+  double GetSelectivity( const Supplier s);
+/*
+>From a given supplier ~s~ get its Selectivity
+
+*/
+
+  double GetPredCost( const Supplier s);
+/*
+>From a given supplier ~s~ get its Predicate Cost
+
+*/
+
+  void SetSelectivity( const Supplier s, const double selectivity);
+/*
+For a given supplier ~s~ set its Selectivity ~selectivity~
+
+*/
+
+  void SetPredCost( const Supplier s, const double predCost);
+/*
+For a given supplier ~s~ set its Predicate Cost ~predCost~
+
+*/
+
+  Supplier GetSupplierSon( const Supplier s, const int no );
+/*
+>From a given supplier ~s~ that must not represent an argument list,
+get its son number ~no~.
+
+*/
+
+ bool IsObjectNode( const Supplier s );
+/*
+Check whether an argument node is of type OBJECT.
+
+*/
+
+
+
+
+
+
+
+
+
+
   Supplier GetSupplier( const Supplier s, const int no );
 /*
-From a given supplier ~s~ that must represent an argument list, get its son
+>From a given supplier ~s~ that must represent an argument list, get its son
 number ~no~. Can be used to traverse the operator tree in order to access
 arguments within (nested) argument lists. Values or function or stream
 evaluation can then be obtained from the returned supplier by the usual
