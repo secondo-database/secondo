@@ -9262,12 +9262,13 @@ this operator is line -> stream(line)
 
 */
 ListExpr PolylinesMap(ListExpr args){
-  if(nl->ListLength(args)!=1){
-     ErrorReporter::ReportError("one single argument expected");
+  if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("line x bool expected");
      return nl->TypeError();
   }
-  if(!nl->IsEqual(nl->First(args),"line")){
-     ErrorReporter::ReportError("line expected");
+  if(!nl->IsEqual(nl->First(args),"line") ||
+     !nl->IsEqual(nl->Second(args),"bool")){
+     ErrorReporter::ReportError("line  x bool expected");
      return nl->TypeError();
   }
   return nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -12029,12 +12030,13 @@ SpatialGetY_p( Word* args, Word& result, int message,
 
 class LineSplitter{
 public:   
-   LineSplitter(Line* line){
+   LineSplitter(Line* line, bool ignoreCriticalPoints){
         this->theLine = line;
         size = line->Size();
         lastPos =0;
         used = new bool[size];
         memset(used,false,size);
+        this->ignoreCriticalPoints = ignoreCriticalPoints;
    }
 
    ~LineSplitter(){
@@ -12127,10 +12129,15 @@ public:
                   sp ++; // search next
                }
            }
-        } 
-        if(found){
-          pos = sp;
-        }  else {
+        }
+ 
+        if(found){ // sp is a potential extension of the line
+          if(ignoreCriticalPoints || !isCriticalPoint(partnerpos)){ 
+             pos = sp;
+          } else {
+                done = true;
+          }
+        }  else { // no extension found
            done = true;
         }
         if(done && !seconddir && (lastPos < (size-1))){
@@ -12150,8 +12157,10 @@ public:
               Point p2 = hs->GetDomPoint();
               if(AlmostEqual(p,p2)){
                  if(pointset.find(hs->GetSecPoint())==pointset.end()){
-                    pos = lastPos;
-                    done = false;
+                    if(ignoreCriticalPoints || !isCriticalPoint(lastPos)){
+                       pos = lastPos;
+                       done = false;
+                    }
                   }
                } 
            }
@@ -12161,10 +12170,36 @@ public:
       return result;
     }
 private:
+/*
+~isCriticalPoint~
+
+Checks whether the dominating point of the halfsegment at
+position index is a critical one meaning a junction within the 
+line.
+
+*/
+   bool isCriticalPoint(int index){
+      // check for critical point
+      const HalfSegment* hs;
+      theLine->Get(index,hs);
+      Point  cpoint = hs->GetDomPoint();
+      int count = 0;
+      for(int i=index-2; i<= index+2 ; i++){
+           if(i>=0 && i<size){
+              theLine->Get(i,hs);
+              if(AlmostEqual(cpoint, hs->GetDomPoint())){
+                  count++;
+              }
+           }
+       }
+       return count>2;
+   }
+  
    bool* used;
    Line* theLine;
    int lastPos;
    int size;
+   bool ignoreCriticalPoints;
 };
 
 int SpatialPolylines(Word* args, Word& result, int message,
@@ -12176,7 +12211,8 @@ int SpatialPolylines(Word* args, Word& result, int message,
    result = qp->ResultStorage(s);
    switch (message){
       case OPEN:
-          local = SetWord(new LineSplitter((Line*)args[0].addr));
+          local = SetWord(new LineSplitter((Line*)args[0].addr,
+                                ((CcBool*)args[1].addr)->GetBoolval()));
           return 0;
       case REQUEST:
            localinfo = (LineSplitter*) local.addr; 
@@ -12698,10 +12734,11 @@ const string SpatialSpecArea  =
 const string SpatialSpecPolylines  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>line  -> stream( line ) </text--->"
-    "<text> _  polylines </text--->"
+    "<text> _  polylines [ _ ] </text--->"
     "<text>Returns a stream of simple line objects "
-    " whose union is the original line</text--->"
-    "<text> query trajectory(train1) polylines count</text--->"
+    " whose union is the original line. The boolean parameter"
+    "indicates to ignore critical points as splitpoints.</text--->"
+    "<text> query trajectory(train1) polylines [TRUE]  count</text--->"
     ") )";
 
 /*

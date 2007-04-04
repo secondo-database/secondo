@@ -306,6 +306,6 @@ Result   : file
 Operator : polylines 
 Number   : 1
 Signature: line  -> stream (line)
-Example  : query BGrenzenLine polylines count
+Example  : query BGrenzenLine polylines [FALSE]  count
 Result   : (int 2)
 

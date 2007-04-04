@@ -42,7 +42,7 @@ operator gety alias GETY pattern op(_)
 operator line2region alias LINE2REGION pattern _ op
 operator rect2region alias RECT2REGION pattern _ op
 operator area alias AREA pattern op ( _ )
-operator polylines alias POLYLINES pattern _ op
+operator polylines alias POLYLINES pattern _ op [ _ ]
 
 
 
