@@ -8,13 +8,15 @@
 
 2007-04-03  New dependency
 ===============================================================================
-I have implemented and added a new algbery module, the GSL-Algebra. It uses
-functions imported from the GNU Scientific Algebra (GSL) and therefor depends
-on this library. I have included the GSL into the installsdk script and the 
-gsl sources/binaries into the gnu-folder of the SECONDO_SDK_INSTALLATION_KIT.
+I have implemented and added a new algbera module, the 'GSLAlgebra'. It uses
+functions imported from the GNU Scientific Library (GSL) and therefore depends
+on this library. I have included the GSL into the installsdk script and copied 
+the gsl sources/binaries into the gnu-folders of the 
+SECONDO_SDK_INSTALLATION_KIT.
 
-If you run into problems, please install GSL 1.8 manually or by re-running 
-the recent installsdk script.
+If you get problems compiling Secondo, please install GSL 1.8 manually (e.g. 
+using yast) or by getting the recent SECONDO_SDK_INSTALLATION_KIT and 
+re-running the 'installsdk' script.
 
 Christian
 
