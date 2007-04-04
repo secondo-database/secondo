@@ -528,6 +528,7 @@ arguments. In this case the operator must
       double selectivity;       //these two fields can be used by operators
       double predCost;          //implementing predicates to get and set 
                                 //such properties, e.g. for progress est.
+      bool supportsProgress;
     } op;
   } u;
 
@@ -586,7 +587,8 @@ OpNode(OpNodeType type = Operator) :
       u.op.deleteFun = 0;
       u.op.counterNo = 0;
       u.op.selectivity = 0.1;
-      u.op.predCost = 0.1;      
+      u.op.predCost = 0.1;   
+      u.op.supportsProgress = false;   
       break;
     }
     default :
@@ -714,7 +716,9 @@ ostream& operator<<(ostream& os, const OpNode& node) {
            << t2 << "selectivity = "
            << node.u.op.selectivity
            << t1 << "predCost = "
-           << node.u.op.predCost << endl;
+           << node.u.op.predCost << endl
+           << tab(f) << "supportsProgress = " 
+           << node.u.op.supportsProgress << endl;
 
         break;
       }
@@ -805,6 +809,8 @@ the selectivity of that predicate. Can be used to observe selectivity during
 query processing, e.g. for progress estimation. 
 
   * ~predCost~: similarly the predicate cost, in milliseconds. Selectivity and predicate cost are, for example, obtained by the optimizer in evaluating a sample query. 
+
+  * ~supportsProgress~: whether this operator replies to PROGRESS messages. Can be set by an operator's evaluation function via ~enableProgress~.
 
 
 The three kinds of nodes will be represented graphically as follows:
@@ -2674,6 +2680,9 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->u.op.isStream = false;
       node->u.op.resultAlgId = 0;
       node->u.op.counterNo = 0;
+      node->u.op.supportsProgress = 
+	algebraManager->getOperator(algebraId, opId)->SupportsProgress();
+
       if (traceNodes) 
       {
         cout << "QP_OPERATOR:" << endl;
@@ -3192,7 +3201,7 @@ Code just needed for tracing and error eporting is shown indented.
   int i = 0;
   int status = 0;
   ArgVector arg;
-  result.addr = 0;
+  //result.addr = 0;
 
   if ( tree == 0 )
   {
@@ -3283,7 +3292,7 @@ request the next element.
  
 *Operator:* Here we need to distinguish between operators which return a stream (called ~stream operator~) and those which compute an object. 
 
-  * If an operator is not a stream operator, then evaluate all subtrees that are not functions or streams and copy the results to the argument vector.
+  * If an operator is not a stream operator and the message is not a PROGRESS message, then evaluate all subtrees that are not functions or streams and copy the results to the argument vector.
 
   * If it is a stream operator, then evaluate all subtrees that are not functions or streams ~only on the OPEN message~. Store the results in a vector ~sonresults~ and copy them to the argument vector.
 
@@ -3300,7 +3309,8 @@ Then call the operator's value mapping function.
           {
             if ( ((OpNode*)(tree->u.op.sons[i].addr))->evaluable ) 
             {
-              if ( !tree->u.op.isStream )  //no stream operator
+              if ( !tree->u.op.isStream && message != PROGRESS)  
+			//no stream operator, no PROGRESS query
               {
                         if ( traceNodes ) 
                         cerr << fn << "Simple op: compute result for son[" 
@@ -3362,7 +3372,7 @@ Then call the operator's value mapping function.
         { 
 
 
-//#define CHECK_PROGRESS
+#define CHECK_PROGRESS
 #ifdef CHECK_PROGRESS 
   
   // Example code which interrupts the evaluation of the
@@ -3372,7 +3382,7 @@ Then call the operator's value mapping function.
   // which returns an approximation of CPU time used by this program.
   // On a multitasking system with much CPU load the time may be
   // a multiple of the one defined here.      
-  static clock_t clockDelta = CLOCKS_PER_SEC; 
+  static clock_t clockDelta = CLOCKS_PER_SEC ; 
   static clock_t lastClock = clock();
   
   // Do a clock check only after some calls of this code
@@ -3380,16 +3390,26 @@ Then call the operator's value mapping function.
   static const int progressDelta = 100;
   static int progressCtr = progressDelta;
   static bool allowProgress = true;
+  ProgressInfo progress;
 
   progressCtr--;
   if (allowProgress && progressCtr == 0) {
-    if ( (clock() - lastClock) > clockDelta ) {
+    if ( (clock() - lastClock) > clockDelta / 10) {
      
-       allowProgress = false;
-       // call eval(root, msg=progress) ...
-       cerr << "Timeout for Progress clock = " << lastClock << endl;
-       allowProgress = true;
-       lastClock = clock();
+      allowProgress = false;
+      // call eval(root, msg=progress) ...
+
+      if ( RequestProgress(QueryTree, &progress) )
+      {
+        // cout << "Clock = " << lastClock; 
+        cout << "   Progress: " << progress.Progress << endl;
+        //cout << "   Card: " << progress.Card;
+        //cout << "   Time: " << progress.Time;
+        //cout << "   Size: " << progress.Size << endl;
+      }
+
+      allowProgress = true;
+      lastClock = clock();
     }
     progressCtr = progressDelta; 
   }
@@ -3417,14 +3437,14 @@ Then call the operator's value mapping function.
             (*(tree->u.op.valueMap))( arg, result, message, 
                                       tree->u.op.local, tree );
 
-          if ( tree->u.op.isStream )
-            tree->u.op.received = (status == YIELD);
-          else if ( status != 0 )
+          tree->u.op.received = (status == YIELD);
+          if ( status == FAILURE )	//new error code
           {
                         cerr << fn << "Evaluation of operator failed." 
                         << endl;
             exit( 0 ); 
           }
+
         }
         return;
                         if (traceNodes) 
@@ -3537,10 +3557,127 @@ QueryProcessor::Close( const Supplier s )
   Eval( (OpTree) s, result, CLOSE );
 }
 
+
+
+/*
+~RequestProgress~ evaluates the subtree ~s~ for a PROGRESS message. It returns true iff a progress info has been received. In ~p~ the address of a ProgressInfo must be passed.
+
+*/
+bool
+QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
+{
+  Word result;
+  OpTree tree = (OpTree) s;
+  bool trace = false;	//set to true for tracing
+
+	if ( trace ) cout << "RequestProgress called with Supplier = " << 
+        (void*) s << "  ProgressInfo* = " << (void*) p << endl;
+
+  if ( tree->nodetype == Operator )
+  {
+    if ( !tree->u.op.supportsProgress ) return false;
+    else
+    {
+      result = SetWord(p);
+      Eval(tree, result, PROGRESS);
+
+	if (tree->u.op.received && trace)
+        {
+	  cout << "Return from supplier " << (void*) s << endl;
+	  cout << "Cardinality = " << p->Card << endl;
+	  cout << "Size = " << p->Size << endl;
+	  cout << "Time = " << p->Time << endl;
+	  cout << "Progress = " << p->Progress << endl;
+          cout << "=================" << endl;
+        }
+
+      return (tree->u.op.received);
+    }
+  }
+  else return false;
+}
+
+
+
+
+
+/*
+>From a given supplier ~s~ get its Selectivity
+
+*/
+double
+QueryProcessor::GetSelectivity( const Supplier s)
+{
+  OpTree node = (OpTree) s;
+  return node->u.op.selectivity;
+}
+
+/*
+>From a given supplier ~s~ get its Predicate Cost
+
+*/
+double
+QueryProcessor::GetPredCost( const Supplier s)
+{
+  OpTree node = (OpTree) s;
+  return node->u.op.predCost;
+}
+
+/*
+For a given supplier ~s~ set its Selectivity ~selectivity~
+
+*/
+void
+QueryProcessor::SetSelectivity( const Supplier s, const double selectivity)
+{
+  OpTree node = (OpTree) s;
+  node->u.op.selectivity = selectivity;
+}
+
+/*
+For a given supplier ~s~ set its Predicate Cost ~predCost~
+
+*/
+void
+QueryProcessor::SetPredCost( const Supplier s, const double predCost)
+{
+  OpTree node = (OpTree) s;
+  node->u.op.predCost = predCost;
+}
+
+/*
+>From a given supplier ~s~ that must not represent an argument list,
+get its son number ~no~.
+
+*/
+Supplier
+QueryProcessor::GetSupplierSon( const Supplier s, const int no )
+{
+  OpTree node = (OpTree) s;
+  return (node->u.op.sons[no].addr);
+}
+
+
+/*
+Check whether an argument is an object.
+
+*/
+bool
+QueryProcessor::IsObjectNode( const Supplier s )
+{
+  OpTree tree = (OpTree) s;
+  return (tree->nodetype == Object);
+}
+
+
+
+
+
+
 /*
 Function ~GetSupplier~
 
-From a given supplier ~s~ that represents an argument list, get its son
+>From a given supplier ~s~ that represents an argument list, get its son
 number ~no~. Can be used to traverse the operator tree in order to
 access arguments within (nested) argument lists. Values or function or
 stream evaluation can then be obtained from the returned supplier by the
@@ -3856,8 +3993,10 @@ QueryProcessor::ExecuteQuery( const string& queryListStr,
     if ( evaluable )
     {
       // evaluate the operator tree
+
       qpp->Eval( tree, queryResult, OPEN );
       qpp->Destroy( tree, false );
+
     }
     else 
     {
