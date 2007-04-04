@@ -41,6 +41,8 @@
 %x _RSCRIPT
 %option stack
 %option noyywrap
+%option prefix="web"
+
 
 hexdig		[0-9a-fA-F]
 alpha			[a-zA-Z]
