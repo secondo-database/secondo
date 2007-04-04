@@ -78,7 +78,7 @@ struct PrivateTuple
     state( Fresh ),
     NumOfAttr(tupleType->GetNoAttributes())
     {
-      if (debug)	    
+      if (debug)    
         cerr << "Tuple " << (void*)this 
              << ": Constructed by 1st function."  << endl;
       tupleType->IncReference();
@@ -98,7 +98,7 @@ The first constructor. It creates a fresh tuple from a ~tupleType~.
     state( Fresh ),
     NumOfAttr(tupleType->GetNoAttributes())
     {
-      if (debug)	    
+      if (debug)   
         cerr << "Tuple " << (void*)this 
              << ": Constructed by 2nd function."  << endl;
     }
@@ -108,15 +108,16 @@ The second constructor. It creates a fresh tuple from a ~typeInfo~.
 */
   ~PrivateTuple()
   {
-    if (debug)	   
+    if (debug)  
       cerr << "Tuple " << (void*)this 
-	   << ": about to destruct. state = " << state 
+           << ": about to destruct. state = " << state
            << " mem = " << (void*)memoryTuple 
            << " ext = " << (void*)extensionTuple << endl;   
     if( state == Solid )
     {
-    	    
+
       assert( memoryTuple != 0 );
+      int refcount =0;
       for( int i = 0; i < NumOfAttr; i++ )
       {
         attributes[i]->Finalize();
@@ -126,10 +127,24 @@ The second constructor. It creates a fresh tuple from a ~typeInfo~.
           if( flob->GetType() != Destroyed )
             flob->Clean();
         }
+        if(attributes[i]->NoRefs()>0){
+             refcount += attributes[i]->NoRefs() -1;
+        }
       }
       free( memoryTuple );
-      if( extensionTuple != 0 )
-        free( extensionTuple );
+      if( extensionTuple != 0 ){
+        if(refcount>0){
+            cout << "try to delete the extensiontuple but " << refcount 
+                 << " external attribute references exist" 
+                 << endl
+                 << "skip deleting (results in a memory hole) in: " 
+                 << __FILE__  << "@" << __LINE__ 
+                 << endl;
+        } else {
+           free( extensionTuple );
+        }
+        extensionTuple=0;
+      }
     }
     else
     {
@@ -148,9 +163,9 @@ The destructor.
                                int destIndex )
     {
       assert( state == Fresh );
-      if( attributes[destIndex] != 0 )
-        attributes[destIndex]->DeleteIfAllowed();
-
+      if( attributes[destIndex] != 0 ){
+        (attributes[destIndex]->DeleteIfAllowed()); 
+      }
       if( source->state == Fresh )
         attributes[destIndex] = source->attributes[sourceIndex]->Copy();
       else
