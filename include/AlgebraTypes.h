@@ -117,11 +117,17 @@ Is the maximal number of arguments for one operator
 
 */
 
-const int OPEN    = 1;
-const int REQUEST = 2;
-const int CLOSE   = 3;
-const int YIELD   = 4;
-const int CANCEL  = 5;
+const int OPEN        = 1;
+const int REQUEST     = 2;
+const int CLOSE       = 3;
+const int YIELD       = 4;
+const int CANCEL      = 5;
+const int CARDINALITY = 6;    //unused at the moment
+const int PROGRESS    = 7;
+
+const int FAILURE = 10;
+
+
 /*
 Are constants for stream processing.
 
