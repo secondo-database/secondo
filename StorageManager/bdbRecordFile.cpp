@@ -127,7 +127,7 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
   }
   else
   {
-    if (rc != DB_NOTFOUND)
+    if (rc != DB_NOTFOUND && rc != DB_KEYEMPTY)
       SmiEnvironment::SetBDBError(rc);	    
     record.initialized     = false;
   }
