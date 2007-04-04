@@ -1477,6 +1477,8 @@ SecondoInterface::Command_Query( const ListExpr list,
      }  
 
      qp.ResetTimer();
+
+     qp.QueryTree = tree;
      qp.Eval( tree, result, 1 );
      
      queryReal = queryTime.diffSecondsReal();
@@ -1500,10 +1502,14 @@ SecondoInterface::Command_Query( const ListExpr list,
      
      StopWatch destroyTime;
      qp.Destroy( tree, true );
+     qp.QueryTree = 0;
      if ( RTFlag::isActive("SI:DestroyOpTreeTime") ) {
        cmsg.info() << "Destroy " << destroyTime.diffTimes() << endl;
        cmsg.send();
      }
+
+
+
 
      if (RTFlag::isActive("NL:MemInfo")) 
      {
@@ -1532,6 +1538,7 @@ SecondoInterface::Command_Query( const ListExpr list,
   }
   
   qp.Destroy( tree, true ); 
+  qp.QueryTree = 0;
   SmiEnvironment::SetFlag_NOSYNC(true);
   FinishCommand( errorCode, errorMessage );
   SmiEnvironment::SetFlag_NOSYNC(false);
@@ -1649,17 +1656,20 @@ SecondoInterface::Command_Let( const ListExpr list, string& errorMessage  )
           }
           if ( evaluable )
           {
+            qp.QueryTree = tree;
             qp.Eval( tree, result, 1 );
 
             if( IsRootObject( tree ) && !IsConstantObject( tree ) )
             {
               ctlg.CloneObject( objName, result );
               qp.Destroy( tree, true );
+              qp.QueryTree = 0;
             }
             else
             {
               ctlg.UpdateObject( objName, result );
               qp.Destroy( tree, false );
+              qp.QueryTree = 0;
             }
           }
           else if ( isFunction ) // abstraction or function object
@@ -1761,17 +1771,20 @@ SecondoInterface::Command_Update( const ListExpr list, string& errorMessage )
             errorCode = ERR_EXPR_TYPE_NEQ_OBJ_TYPE;   
           }
           else if ( evaluable )
-          {
+          { 
+            qp.QueryTree = tree;
             qp.Eval( tree, result, 1 );
             if ( IsRootObject( tree ) && !IsConstantObject( tree ) )
             {
                ctlg.CloneObject( objName, result );
                qp.Destroy( tree, true );
+               qp.QueryTree = 0;
             }
             else
             {
                ctlg.UpdateObject( objName, result );
                qp.Destroy( tree, false );
+               qp.QueryTree = 0;
             }
           }
           else if ( isFunction )   // abstraction or function object
