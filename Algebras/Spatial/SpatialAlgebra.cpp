@@ -9251,6 +9251,31 @@ ListExpr
   }
   return (nl->SymbolAtom( "typeerror" ));
 }
+
+
+/*
+10.1.9 Type mapping for the ~polylines~ operator
+
+The ~polylines~ operator takes a complex line and creates
+a set of simple polylines from it. Thus, the signature of 
+this operator is line -> stream(line)
+
+*/
+ListExpr PolylinesMap(ListExpr args){
+  if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError("one single argument expected");
+     return nl->TypeError();
+  }
+  if(!nl->IsEqual(nl->First(args),"line")){
+     ErrorReporter::ReportError("line expected");
+     return nl->TypeError();
+  }
+  return nl->TwoElemList(nl->SymbolAtom("stream"),
+                         nl->SymbolAtom("line"));
+}
+
+
+
 /*
 10.3 Selection functions
 
@@ -11998,6 +12023,182 @@ SpatialGetY_p( Word* args, Word& result, int message,
 
 
 /*
+10.4.29 Value mapping function for the ~polylines~ operator 
+
+*/
+
+class LineSplitter{
+public:   
+   LineSplitter(Line* line){
+        this->theLine = line;
+        size = line->Size();
+        lastPos =0;
+        used = new bool[size];
+        memset(used,false,size);
+   }
+
+   ~LineSplitter(){
+      delete [] used;
+    }
+
+    Line* NextLine(){
+      // go to the first nonused halfsegment
+      while(lastPos<size && used[lastPos]){
+        lastPos++;
+      }     
+      if(lastPos>=size){
+         return 0;
+      }
+      // construct a new Line
+      int maxSize = size - lastPos;
+      Line* result = new Line(maxSize);
+      set<Point> pointset;
+      int pos = lastPos;
+      bool done = false;
+      result->StartBulkLoad();
+      const HalfSegment* hs1;
+      const HalfSegment* hs2; // partner of hs1
+      int edgeno = 0;
+      bool seconddir = false;
+      while(!done){
+        theLine->Get(pos,hs1);
+        int partnerpos = hs1->GetAttr().partnerno;
+        theLine->Get(partnerpos, hs2);
+        Point p1 = hs1->GetDomPoint();
+        pointset.insert(p1);
+        Point p = hs2->GetDomPoint();
+        pointset.insert(p);
+        // add the halfsegments to the result
+        HalfSegment Hs1 = *hs1;
+        HalfSegment Hs2 = *hs2;
+        AttrType attr1 = Hs1.GetAttr();
+        attr1.edgeno = edgeno;
+        Hs1.SetAttr(attr1);
+        AttrType attr2 = Hs2.GetAttr();
+        attr2.edgeno=edgeno;         
+        Hs2.SetAttr(attr2);
+        edgeno++;
+        (*result) += (Hs1);
+        (*result) += (Hs2);
+        // mark as used
+        used[pos] = true;
+        used[partnerpos] = true;  
+        // search for extension of the polyline
+        int sp = partnerpos-1;
+        bool found = false;
+
+        // search backwards
+        while(sp>0 && !found){
+          const HalfSegment* hs3;
+          if(!used[sp]){
+             theLine->Get(sp,hs3);
+             if(AlmostEqual(p,hs3->GetDomPoint())){
+               Point p3 = hs3->GetSecPoint(); // avoid cycles
+               if(pointset.find(p3)==pointset.end()){
+                   found = true;
+               } else {
+                   sp--;
+               }
+             } else {
+                sp = -1; // stop searching
+             }
+           } else {
+             sp --; // search next
+          }
+        } 
+        if(!found){
+           sp = partnerpos + 1;
+           // search forwards
+           while(sp<size && !found){
+              if(!used[sp]){
+                  const HalfSegment* hs3;
+                  theLine->Get(sp,hs3);
+                  if(AlmostEqual(p,hs3->GetDomPoint())){
+                     Point p3 = hs3->GetSecPoint(); // avoid cycles
+                     if(pointset.find(p3)==pointset.end()){
+                        found = true;
+                     } else {
+                       sp++;
+                     }
+                  } else {
+                     sp = size; // stop searching
+                  }
+               } else {
+                  sp ++; // search next
+               }
+           }
+        } 
+        if(found){
+          pos = sp;
+        }  else {
+           done = true;
+        }
+        if(done && !seconddir && (lastPos < (size-1))){
+           // done means at this point, the line can't be extended
+           // in the direction start from the first selected halfsegment.
+           // but is is possible the extend the line by going into the
+           // reverse direction 
+           seconddir = true;
+           const HalfSegment* hs;
+           theLine->Get(lastPos,hs);
+           Point p = hs->GetDomPoint();
+           while(lastPos<size && used[lastPos]){
+             lastPos ++;
+           } 
+           if(lastPos <size){
+              theLine->Get(lastPos,hs);
+              Point p2 = hs->GetDomPoint();
+              if(AlmostEqual(p,p2)){
+                 if(pointset.find(hs->GetSecPoint())==pointset.end()){
+                    pos = lastPos;
+                    done = false;
+                  }
+               } 
+           }
+        }
+      } // while
+      result->EndBulkLoad();
+      return result;
+    }
+private:
+   bool* used;
+   Line* theLine;
+   int lastPos;
+   int size;
+};
+
+int SpatialPolylines(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+
+   LineSplitter* localinfo;
+   Line* res;
+
+   result = qp->ResultStorage(s);
+   switch (message){
+      case OPEN:
+          local = SetWord(new LineSplitter((Line*)args[0].addr));
+          return 0;
+      case REQUEST:
+           localinfo = (LineSplitter*) local.addr; 
+           res = localinfo->NextLine();
+           if(res==0){
+              return CANCEL;
+           } else {
+              result = SetWord(res);
+              return YIELD;
+           }
+      case CLOSE:
+           localinfo = (LineSplitter*) local.addr; 
+           if(localinfo!=0){
+              delete localinfo;
+           }   
+           return 0;        
+   }
+   return 0; // ignore unknown message
+}
+
+
+/*
 10.5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -12494,6 +12695,15 @@ const string SpatialSpecArea  =
     "<text> query area( tiergarten )</text--->"
     ") )";
 
+const string SpatialSpecPolylines  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>line  -> stream( line ) </text--->"
+    "<text> _  polylines </text--->"
+    "<text>Returns a stream of simple line objects "
+    " whose union is the original line</text--->"
+    "<text> query trajectory(train1) polylines count</text--->"
+    ") )";
+
 /*
 10.5.3 Definition of the operators
 
@@ -12788,6 +12998,14 @@ Operator spatialarea (
   Operator::SimpleSelect,
   SpatialAreaMap );
 
+
+Operator spatialpolylines (
+  "polylines",
+  SpatialSpecPolylines,
+  SpatialPolylines,
+  Operator::SimpleSelect,
+  PolylinesMap );
+
 /*
 11 Creating the Algebra
 
@@ -12851,6 +13069,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialline2region );
     AddOperator( &spatialrect2region );
     AddOperator( &spatialarea );
+    AddOperator( &spatialpolylines );
   }
   ~SpatialAlgebra() {};
 };

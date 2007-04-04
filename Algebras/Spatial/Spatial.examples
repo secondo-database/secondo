@@ -303,4 +303,9 @@ Signature: (line x rect) -> line, (region x rect) --> region
 Example  : query windowclippingout(trajectory(train7), bbox(thecenter))
 Result   : file
 
+Operator : polylines 
+Number   : 1
+Signature: line  -> stream (line)
+Example  : query BGrenzenLine polylines count
+Result   : (int 2)
 
