@@ -59,6 +59,9 @@ derived attribute class must implement.
 #include "FLOB.h"
 #include <sstream>
 
+
+#include "WinUnix.h"
+
 const double FACTOR = 0.00000001; // Precision factor, used within AlmostEqual
 
 /*
@@ -392,8 +395,9 @@ Default save function.
 Default open function.
 
 */
-    inline void DeleteIfAllowed()
+    inline bool DeleteIfAllowed()
     {
+     
       assert( del.refs > 0 );
       del.refs--;
       if( del.refs == 0 )
@@ -403,6 +407,7 @@ Default open function.
           delete this;
         else
           free( this );
+        return true;
       }
       else
       {
@@ -410,7 +415,8 @@ Default open function.
         for (int i = 0; i < n; i++ )
         {
           GetFLOB(i)->ReuseMemBuffer();
-        } 
+        }
+        return false; 
       } 
     }
 /*
@@ -456,6 +462,16 @@ However, this makes only sense for types which have a simple internal
 value like int, float, etc.
 
 */
+
+
+    int NoRefs() const{
+        return del.refs;
+    }
+/*
+Returns the number of references for this attribute.
+
+*/
+
 
     template<class S, class T>
     static T GetValue(Word w) 
