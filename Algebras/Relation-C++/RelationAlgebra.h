@@ -229,12 +229,16 @@ expression. It sets all member variables, including the total size.
 The destructor.
 
 */
-    inline void DeleteIfAllowed() 
+    inline bool DeleteIfAllowed() 
     {
       assert( refs > 0 );
       refs--;
-      if( refs == 0 )
+      if( refs == 0 ){
         delete this;
+        return true;
+      } else {
+         return false;
+      }
     }
 /*
 Deletes the tuple type if allowed, i.e. there are no more 
@@ -567,10 +571,14 @@ Create a new tuple which is a clone of this tuple.
 Creates a new memory tuple which is a clone of this tuple.
 
 */
-    inline void DeleteIfAllowed() 
+    inline bool DeleteIfAllowed() 
     {
-      if( refs == 0 )
+      if( refs == 0 ){
         delete this;
+        return true;
+      } else{
+        return false;
+      }
     }
 /*
 Deletes the tuple if it is allowed, i.e., there are no references
