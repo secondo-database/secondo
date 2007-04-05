@@ -125,6 +125,7 @@ This file contains the implementation of the stream operators.
 #include "Algebra.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
+#include "SecondoSystem.h"
 
 
 extern NestedList* nl;
@@ -2183,7 +2184,12 @@ ListExpr NamedtransformstreamTypemap(ListExpr args){
      return nl->TypeError();
   } 
   string name = nl->SymbolValue(nl->Second(args));
-  //todo: check for a valid name (not an type or operator name)
+  if(SecondoSystem::GetCatalog()->IsTypeName(name)){
+      ErrorReporter::ReportError(""+name+" is a type and can't be "
+                                 "used as an attribute name ");
+      return nl->TypeError();
+  } 
+ 
   return nl->TwoElemList(nl->SymbolAtom("stream"),
                          nl->TwoElemList(
                             nl->SymbolAtom("tuple"),
