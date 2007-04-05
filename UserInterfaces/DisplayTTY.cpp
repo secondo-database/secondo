@@ -188,7 +188,7 @@ DisplayTTY::MaxAttributLength( ListExpr type )
   string s="";
   while (!nl->IsEmpty( type ))
   {
-    s = nl->SymbolValue( nl->First( nl->First( type ) ) );
+    s = nl->ToString( nl->First( nl->First( type ) ) );
     len = s.length();
     if ( len > max )
     {
@@ -206,7 +206,7 @@ DisplayTTY::DisplayTuple( ListExpr type, ListExpr numType,
   while (!nl->IsEmpty( value ))
   {
     cout << endl;
-    string s = nl->SymbolValue( nl->First( nl->First( numType ) ) );
+    string s = nl->ToString( nl->First( nl->First( numType ) ) );
     string attr = string( maxNameLen-s.length() , ' ' ) + s + string(":");
     cout << attr;
     maxIndent = attr.length();
