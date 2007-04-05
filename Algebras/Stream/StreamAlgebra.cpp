@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[ue] [\"u]
 //[ae] [\"a]
-
+//[_] [\_]
 //[TOC] [\tableofcontents]
 
 [1] StreamAlgebra - Implementing Generalized (non-tuple) Streams of Objects
@@ -2143,6 +2143,58 @@ ListExpr StreamTransformstreamTypeMap(ListExpr args)
   return nl->SymbolAtom("typeerror");
 }
 
+
+/*
+5.27.3 Type Mapping for the ~namedtransformstream~ operator
+
+This operator works as the transformstream operator. It takes a stream 
+of elements with kind data and produces a tuple stream, from it.
+So, the value mapping is Transformstream[_]S[_]TS which is alos used by the
+transformstream operator. The only difference is, additional to the
+stream argument, this operator receives also a name for the attribute instead
+using the defaul name 'elem'.
+
+*/
+ListExpr NamedtransformstreamTypemap(ListExpr args){
+
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("two arguments required");
+    return nl->TypeError();
+  }
+  ListExpr stream = nl->First(args);
+  if(nl->ListLength(stream)!=2){
+    ErrorReporter::ReportError("first argument shouzld be stream(t)");
+    return nl->TypeError();
+  }
+  if(!nl->IsEqual(nl->First(stream),"stream")){
+     ErrorReporter::ReportError("First argument must be a stream");
+     return nl->TypeError();
+  }
+  ListExpr streamType = nl->Second(stream);
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+
+  if(!am->CheckKind("DATA", streamType, errorInfo)){
+     ErrorReporter::ReportError("stream type not of kind DATA");
+     return nl->TypeError();
+  }
+  // stream is korrekt, check attributename
+  if(nl->AtomType(nl->Second(args))!=SymbolType){
+     ErrorReporter::ReportError("wrong syntax for an attribute name");
+     return nl->TypeError();
+  } 
+  string name = nl->SymbolValue(nl->Second(args));
+  //todo: check for a valid name (not an type or operator name)
+  return nl->TwoElemList(nl->SymbolAtom("stream"),
+                         nl->TwoElemList(
+                            nl->SymbolAtom("tuple"),
+                            nl->OneElemList(
+                              nl->TwoElemList(
+                                nl->SymbolAtom(name),
+                                streamType
+                              )
+                            )));
+}
+
 /*
 5.27.2 Value mapping for operator ~transformstream~
 
@@ -2326,6 +2378,18 @@ const string StreamTransformstreamSpec =
   "have only a single attribute.</text--->"
   "<text>query intstream(1,5) transformstream consume\n "
   "query ten feed transformstream printstream count</text--->"
+  ") )";
+
+const string NamedtransformstreamSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "("
+  "<text>stream(t) x name  -> stream (tuple(t name)))</text--->"
+  "<text> _ namedtransformstream [ _ ] </text--->"
+  "<text> Converts a stream to a tuple stream with"
+  " given attribute name </text--->"
+  "<text>query intsteam(0,100)"
+       " namedtransformstream [Number] consume</text--->"
   ") )";
 
 /*
@@ -2515,6 +2579,14 @@ Operator projecttransformstream (
   Projecttransformstream,    //value mapping
   Operator::SimpleSelect, //trivial selection function
   ProjecttransformstreamTM    //type mapping
+);
+
+Operator namedtransformstream (
+  "namedtransformstream",     //name
+  NamedtransformstreamSpec,   //specification
+  Transformstream_S_TS,    //value mapping
+  Operator::SimpleSelect, //trivial selection function
+  NamedtransformstreamTypemap    //type mapping
 );
 
 
@@ -3197,6 +3269,7 @@ public:
     AddOperator( &streamprintstream );
     AddOperator( &streamtransformstream );
     AddOperator( &projecttransformstream );
+    AddOperator( &namedtransformstream );
     AddOperator( &streamfeed );
     AddOperator( &streamuse );
     AddOperator( &streamuse2 );

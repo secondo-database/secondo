@@ -42,6 +42,11 @@ Signature:((stream T) (map T bool)) -> (stream T)
 Example  : query intstream (1,10) filter[. > 7] count
 Result   : 3
 
+Operator : namedtransformstream
+Number   : 1
+Signature: (stream T) x attrname  -> stream(tuple((attrname T)))
+Example  : query intstream(1,5) namedtransformstream [Number] count
+Result   : 5
 
 Operator : printstream
 Number   : 1
