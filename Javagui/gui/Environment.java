@@ -20,6 +20,7 @@
 package gui;
 
 import tools.Reporter;
+import java.util.Vector;
 
 /* This class provides some variables for globale use.
  *
@@ -110,7 +111,23 @@ public static void printMemoryUsage(){
     Reporter.writeInfo("free Memory  :"+" "+formatMemory(rt.freeMemory()));
 }
 
+/** inserts a tab-extension **/
+public static void insertExtension(String word){
+   extensions.insert(word);
+}
+
+/** removes a tab-extension **/
+public static void removeExtension(String word){
+   extensions.deleteEntry(word);
+}
+
+/** returns all extension for the given prefix **/
+public static Vector getExtensions(String prefix){
+    return extensions.getExtensions(prefix);
+}
+
 
 private static Runtime rt = Runtime.getRuntime();
+private static Trie extensions = new Trie();
 
 }

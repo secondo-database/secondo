@@ -138,3 +138,8 @@ SCRIPT_STYLE TTY
 # lead to the execution of the current command. A linebreak
 # can be inserted by pressing [shift]+[return] in common.
 COMMAND_STYLE GUI
+
+
+# a set of useful extensions (use (shift + tab) to extend a word)
+EXTENSIONS abort algebra algebras begin commit close constructors consumecount create database databases DEBUG delete extend feed filter from  let list objects open operators query restore save SHOW transaction type types updateSEC2TYPEINFOSEC2OPERATORUSAGE SEC2OPERATORINFOSEC2FILEINFOSEC2COUNTERS SEC2COMMANDSSEC2CACHEINFO berlintest 
+

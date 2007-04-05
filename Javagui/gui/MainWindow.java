@@ -307,6 +307,16 @@ public MainWindow(String Title){
           Environment.TTY_STYLED_SCRIPT=false;
         }
      }
+
+     String extensions = Config.getProperty("EXTENSIONS");
+     if(extensions!=null){
+        StringTokenizer st = new StringTokenizer(extensions);
+        while(st.hasMoreTokens()){
+            Environment.insertExtension(st.nextToken());  
+        }  
+     }
+
+
      String CommandStyle = Config.getProperty("COMMAND_STYLE");
      if(CommandStyle!=null){
        if(CommandStyle.trim().toUpperCase().equals("TTY")){
@@ -1097,6 +1107,8 @@ private void setViewer(SecondoViewer SV){
   * showAll
   * hideAll
   * executeFile [-i] <FileName>
+  * insertExtensions ext_1 ... ext_n
+  * deleteExtensions ext_1 ... ext_n
   */
 public boolean execGuiCommand(String command){
   ComPanel.appendText("\n");
@@ -1325,7 +1337,21 @@ public boolean execGuiCommand(String command){
          ComPanel.appendText("not connected");
        }
        ComPanel.showPrompt();
-  } else if(command.startsWith("set")){
+  } else if(command.startsWith("insertExtensions")){
+     command = command.substring(16).trim();
+     StringTokenizer st = new StringTokenizer(command);
+     while(st.hasMoreTokens()){
+        Environment.insertExtension(st.nextToken());
+     }
+     ComPanel.showPrompt();
+  } else if(command.startsWith("deleteExtensions")){
+     command = command.substring(16).trim();
+     StringTokenizer st = new StringTokenizer(command);
+     while(st.hasMoreTokens()){
+        Environment.removeExtension(st.nextToken());
+     }
+     ComPanel.showPrompt();
+  }else if(command.startsWith("set")){
      command = command.substring(3).trim().toLowerCase();
      StringTokenizer st = new StringTokenizer(command," \n\t=");
      if(st.countTokens()!=2){ // format set xxx = yyy 

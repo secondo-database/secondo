@@ -1189,6 +1189,57 @@ public class CommandPanel extends JScrollPane {
          return;
       }
 
+      // pressing tab without any modifiers
+      if((keyCode==KeyEvent.VK_TAB) &&  
+         (mod&KeyEvent.SHIFT_DOWN_MASK)!=0){
+            String query = SystemArea.getText().substring(aktPos);
+            e.setKeyCode(0);
+            if(query.length()==0){
+               return;
+            }            
+            int pos1 = query.lastIndexOf(' ');
+            if(pos1<0){
+              pos1 = 0;
+            }else{
+              pos1++;
+            }
+            int pos2 = query.lastIndexOf('\t');
+            if(pos2<0){
+              pos2 = 0;
+            } else {
+              pos2++;
+            }
+            // handle more separators here
+            String word = query.substring(Math.max(pos1,pos2));
+            Vector ext = Environment.getExtensions(word);
+            int size = ext.size();
+            if(size==0){ // no extension found 
+               return;
+            } 
+            if(size==1){ // a unique extension found
+               String complete = (String) ext.get(0);
+               String rest = complete.substring(word.length());
+               if(rest.length()==0){ // word is an entry
+                 rest = " "; // insert a space
+               }
+               appendText(rest);
+               return;
+            }
+            String common = commonprefix(ext);
+            common = common.substring(word.length());
+            if(common.length()>0){ // extend so far as possible
+                appendText(common);
+                return;
+            } 
+            // no common part found, show extensionlist
+            String allExt = "";
+            for(int i=0;i<ext.size();i++){
+               allExt += ext.get(i)+"\n";
+            } 
+            Reporter.showInfo("possible extensions:\n"+allExt);
+      }
+
+
       // do not allow selection using the keyboard
       if((mod&KeyEvent.SHIFT_DOWN_MASK)!=0){
          if(keyCode==KeyEvent.VK_DOWN || keyCode==KeyEvent.VK_PAGE_DOWN ||
@@ -1223,6 +1274,15 @@ public class CommandPanel extends JScrollPane {
  
 
     }
+
+    private String commonprefix(Vector strings){
+      Trie t = new Trie();
+      for(int i=0;i<strings.size();i++){
+         t.insert((String)strings.get(i));
+      }
+      return t.commonPrefix();
+    }
+
 
     /** processes a key event e. 
       * Returns true if a command was executed 
