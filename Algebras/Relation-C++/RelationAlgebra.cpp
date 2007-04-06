@@ -983,10 +983,10 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
 struct FeedLocalInfo
 {
-  int state;	    	//0 = working, 1 = finished
   int current;        	//current number of tuples processed
   int total;          	//total number of tuples in argument relation
-  double tuplesize;
+  double tuplesize;	//total tuplesize
+  double tuplesizeCE;	//size of core and extension part of tuple
   GenericRelationIterator* rit;
 };
 
@@ -1003,10 +1003,10 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN :
       r = (GenericRelation*)args[0].addr;
       fli = new FeedLocalInfo;
-        fli->state = 0;
         fli->current = 0;
         fli->total = r->GetNoTuples();
         fli->tuplesize =  r->GetTotalSize() / (fli->total + 1);
+        fli->tuplesizeCE =  r->GetTotalExtSize() / (fli->total + 1);
         fli->rit = r->MakeScan();
       local = SetWord(fli);
       return 0;
@@ -1028,7 +1028,6 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSE :
       fli = (FeedLocalInfo*) local.addr;
       delete fli->rit;
-      fli->state = 1;
       return 0;
 
     case PROGRESS :
@@ -1050,11 +1049,13 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
         {
           pRes->Card = (double) fli->total;
           pRes->Size = fli->tuplesize;
-          pRes->Time = (fli->total + 1) * fli->tuplesize * uFeed; 
+          pRes->SizeCE = fli->tuplesizeCE;
+          pRes->Time = (fli->total + 1) * fli->tuplesizeCE * uFeed; 
  
 		//any time value created must be > 0; so we add 1 to the total
 
-          pRes->Progress = (fli->current * fli->tuplesize * uFeed) / pRes->Time;
+          pRes->Progress = (fli->current * fli->tuplesizeCE * uFeed) 
+            / pRes->Time;
           return YIELD;
 	}
 	else return CANCEL;
@@ -1068,7 +1069,8 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
           {
             pRes->Card = p1.Card;
             pRes->Size = p1.Size;
-            pRes->Time = p1.Time + p1.Card * p1.Size * uFeed;
+            pRes->SizeCE = p1.SizeCE;
+            pRes->Time = p1.Time + p1.Card * p1.SizeCE * uFeed;
 	    pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
             return YIELD;
           }
@@ -1076,9 +1078,10 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
           {       
             pRes->Card = (double) fli->total;
             pRes->Size = fli->tuplesize;
-            pRes->Time = p1.Time + fli->total * fli->tuplesize * uFeed;
+            pRes->SizeCE = fli->tuplesizeCE;
+            pRes->Time = p1.Time + fli->total * fli->tuplesizeCE * uFeed;
             pRes->Progress = 
-              (p1.Time + fli->current * fli->tuplesize * uFeed) / pRes->Time;
+              (p1.Time + fli->current * fli->tuplesizeCE * uFeed) / pRes->Time;
             return YIELD;
           }
         }
@@ -1264,6 +1267,7 @@ Consume(Word* args, Word& result, int message,
     {
       pRes->Card = p1.Card;
       pRes->Size = p1.Size;
+      pRes->SizeCE = p1.SizeCE;
       pRes->Time = p1.Time + p1.Card * p1.Size * uConsume;
 
       if ( cli == 0 )		//not yet working
@@ -1641,6 +1645,7 @@ Filter(Word* args, Word& result, int message,
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
         pRes->Size = p1.Size;
+        pRes->SizeCE = p1.SizeCE;
         pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter;
 
         if ( fli )		//filter was started
@@ -2441,6 +2446,7 @@ TCountStream(Word* args, Word& result, int message,
     {
       pRes->Card = p1.Card;
       pRes->Size = p1.Size;
+      pRes->SizeCE = p1.SizeCE;
       pRes->Time = p1.Time;
       pRes->Progress =  p1.Progress; 
       return YIELD;			//successful
@@ -2482,6 +2488,7 @@ TCountRel(Word* args, Word& result, int message,
       {
         pRes->Card = p1.Card;
         pRes->Size = p1.Size;
+        pRes->SizeCE = p1.SizeCE;
         pRes->Time = p1.Time;
         pRes->Progress = p1.Progress;
         return YIELD;
