@@ -1034,7 +1034,9 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
       ProgressInfo p1;
       ProgressInfo *pRes;
-      const double uFeed = 1100.0 / (412670.0 * 80.0);    //seconds per byte
+      const double uFeed = 0.000036;    //milliseconds per byte
+	//plz10 feed count: 1188 / (412670 * 80) = 0.000036
+
       Supplier sonOfFeed;
 
      		//cout << "feed was asked for progress" << endl;
@@ -1257,7 +1259,9 @@ Consume(Word* args, Word& result, int message,
 
     ProgressInfo p1;
     ProgressInfo* pRes;
-    const double uConsume = 28000.0 / (412670.0 * 80.0); //milliseconds per byte
+    const double uConsume = 0.0005; //milliseconds per byte
+	//plz10 feed consume: 28000.0 / (412670.0 * 80.0) = 0.000848
+	//Kreis feed consume: 30000.0 / (439 * 59642) = 0.00114
 
     cli = (consumeLocalInfo*) local.addr;
     pRes = (ProgressInfo*) result.addr;    
@@ -1637,7 +1641,7 @@ Filter(Word* args, Word& result, int message,
 
       ProgressInfo p1;
       ProgressInfo* pRes;
-      double uFilter = 600.0 /  (412670.0 * 0.1);	//to be measured
+      const double uFilter = 0.01; 
 
       pRes = (ProgressInfo*) result.addr;
       fli = (FilterLocalInfo*) local.addr;
@@ -1646,20 +1650,24 @@ Filter(Word* args, Word& result, int message,
       {
         pRes->Size = p1.Size;
         pRes->SizeCE = p1.SizeCE;
-        pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter;
 
         if ( fli )		//filter was started
         {
-          pRes->Card = (double) p1.Card * 
-            ( (double) fli->returned / (double) (fli->current + 1)); //is > 0 
-          pRes->Progress = (p1.Progress * p1.Time 
-            + fli->current * qp->GetPredCost(s) * uFilter) / pRes->Time;
+          if ( fli->returned > 50 ) 	//stable state assumed now
+          {
+            pRes->Card = (double) p1.Card * 
+              ( (double) fli->returned / (double) (fli->current + 1)); //is > 0
+            pRes->Time = p1.Time + pRes->Card * qp->GetPredCost(s) * uFilter; 
+            pRes->Progress = (p1.Progress * p1.Time 
+              + fli->current * qp->GetPredCost(s) * uFilter) / pRes->Time;
+            return YIELD;
+          }
         }
-        else			//filter not yet started
-        {
-	  pRes->Card = p1.Card * qp->GetSelectivity(s);
-          pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
-        }
+			//filter not yet started
+ 
+	pRes->Card = p1.Card * qp->GetSelectivity(s);
+        pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter;
+        pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
         return YIELD;
       }
       else return CANCEL;
