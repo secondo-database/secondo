@@ -3586,6 +3586,7 @@ QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
 	  cout << "Return from supplier " << (void*) s << endl;
 	  cout << "Cardinality = " << p->Card << endl;
 	  cout << "Size = " << p->Size << endl;
+	  cout << "SizeCE = " << p->SizeCE << endl;
 	  cout << "Time = " << p->Time << endl;
 	  cout << "Progress = " << p->Progress << endl;
           cout << "=================" << endl;
