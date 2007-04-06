@@ -186,11 +186,13 @@ typedef vector<VarEntry>  VarEntryTable;
 
 struct ProgressInfo
 {
-  double Card;
-  double Size;
-  double Time;
-  double Progress;
-};
+  double Card;		//expected cardinality
+  double Size;		//expected total tuple size (including FLOBs)
+  double SizeCE;	//expected size of tuple core and extension part 
+    			//   (no FLOBs)
+  double Time;		//expected time, in millisecond
+  double Progress;	//a number between 0 and 1
+};	
 
 /************************************************************************** 
 3.2 Class "QueryProcessor"[1]
