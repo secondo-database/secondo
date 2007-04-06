@@ -995,7 +995,7 @@ int
 Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   GenericRelation* r;
-  FeedLocalInfo* fli;
+  FeedLocalInfo* fli;   
 
 
   switch (message)
@@ -3874,6 +3874,25 @@ Rename(Word* args, Word& result, int message,
 
       qp->Close(args[0].addr);
       return 0;
+
+    case PROGRESS:
+
+      ProgressInfo p1;
+      ProgressInfo *pRes;
+
+      pRes = (ProgressInfo*) result.addr;
+
+      if ( qp->RequestProgress(args[0].addr, &p1) )
+      {
+        pRes->Card = p1.Card;
+        pRes->Size = p1.Size;
+        pRes->SizeCE = p1.SizeCE;
+        pRes->Time = p1.Time;
+        pRes->Progress = p1.Progress;
+        return YIELD;
+      }
+      else return CANCEL;
+
   }
   return 0;
 }
@@ -4085,7 +4104,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgrootattrsize);
     AddOperator(&relalgextattrsize);
     AddOperator(&relalgattrsize);
-    AddOperator(&relalgrename);
+    AddOperator(&relalgrename);		relalgrename.EnableProgress();
     AddOperator(&relalgmconsume);
 
 #endif
