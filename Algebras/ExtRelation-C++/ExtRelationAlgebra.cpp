@@ -3222,6 +3222,11 @@ request on a NULL pointer.
 
 */
 
+#define USE_PROGRESS
+#ifndef USE_PROGRESS
+
+// standard version
+
 struct LoopjoinLocalInfo
 {
   Word tuplex;
@@ -3242,6 +3247,8 @@ int Loopjoin(Word* args, Word& result, int message,
   Tuple* ctuplex = 0;
   Tuple* ctupley = 0;
   Tuple* ctuplexy = 0;
+
+  wrong
 
   LoopjoinLocalInfo *localinfo = 0;
 
@@ -3338,6 +3345,205 @@ int Loopjoin(Word* args, Word& result, int message,
 
   return 0;
 }
+
+
+#else
+
+// with support for progress queries
+
+
+
+struct LoopjoinLocalInfo
+{
+  Word tuplex;
+  Word streamy;
+  TupleType *resultTupleType;
+  int k1;		//no of tuples read from first argument
+  int kRes;		//no of tuples returned
+  int startPhase;	//during the start phase, tuple sizes are measured.
+                        //Decremented for each result tuple. 
+                        //Init with STARTPHASE.
+  int aggSize;	        //aggregated total size over tuples in start phase
+  int aggSizeCE;	//aggregated core and extension size over such tuples
+  clock_t startTime;	//time at open
+};
+
+const int STARTPHASE = 50;
+
+int Loopjoin(Word* args, Word& result, int message, 
+             Word& local, Supplier s)
+{
+  ArgVectorPointer funargs = 0;
+
+  Word tuplex = SetWord(Address(0));
+  Word tupley = SetWord(Address(0));
+  Word tuplexy = SetWord(Address(0));
+  Word streamy = SetWord(Address(0));
+
+  Tuple* ctuplex = 0;
+  Tuple* ctupley = 0;
+  Tuple* ctuplexy = 0;
+
+  ListExpr resultType;
+
+  LoopjoinLocalInfo *localinfo = 0;
+
+  switch ( message )
+  {
+    case OPEN:
+
+      localinfo = new LoopjoinLocalInfo;
+        resultType = GetTupleResultType( s );
+        localinfo->resultTupleType = 
+          new TupleType( nl->Second( resultType ) );
+        localinfo->k1 = 0;
+        localinfo->kRes = 0;
+        localinfo->startPhase = STARTPHASE;
+        localinfo->aggSize = 0;
+        localinfo->aggSizeCE = 0;
+        localinfo->startTime = clock();
+
+      local = SetWord(localinfo);
+
+      qp->Open (args[0].addr);
+      qp->Request(args[0].addr, tuplex);
+      if (qp->Received(args[0].addr))
+      {
+        localinfo->k1++;
+        funargs = qp->Argument(args[1].addr);
+        (*funargs)[0] = tuplex;
+        streamy=args[1];
+        qp->Open (streamy.addr);
+
+        localinfo->tuplex = tuplex;
+        localinfo->streamy = streamy;
+
+      }
+      else
+      {
+        localinfo->tuplex = SetWord(Address(0));
+        localinfo->streamy = SetWord(Address(0));
+      }
+      return 0;
+
+    case REQUEST:
+
+      localinfo=(LoopjoinLocalInfo *) local.addr;
+
+      if ( localinfo->tuplex.addr == 0) return CANCEL;
+
+      tuplex=localinfo->tuplex;
+      ctuplex=(Tuple*)tuplex.addr;
+      streamy=localinfo->streamy;
+      tupley=SetWord(Address(0));
+      while (tupley.addr==0)
+      {
+        qp->Request(streamy.addr, tupley);
+        if (!(qp->Received(streamy.addr)))
+        {
+          qp->Close(streamy.addr);
+          ((Tuple*)tuplex.addr)->DeleteIfAllowed();
+          qp->Request(args[0].addr, tuplex);
+          if (qp->Received(args[0].addr))
+          {
+            localinfo->k1++;
+            funargs = qp->Argument(args[1].addr);
+            ctuplex=(Tuple*)tuplex.addr;
+            (*funargs)[0] = tuplex;
+            streamy=args[1];
+            qp->Open (streamy.addr);
+            tupley=SetWord(Address(0));
+
+            localinfo->tuplex=tuplex;
+            localinfo->streamy=streamy;
+            local =  SetWord(localinfo);
+          }
+          else
+          {
+            localinfo->streamy = SetWord(0);
+            localinfo->tuplex = SetWord(0);
+            return CANCEL;
+          }
+        }
+        else
+        {
+          ctupley=(Tuple*)tupley.addr;
+        }
+      }
+      ctuplexy = new Tuple( localinfo->resultTupleType );
+      tuplexy = SetWord(ctuplexy);
+      Concat(ctuplex, ctupley, ctuplexy);
+      ctupley->DeleteIfAllowed();
+      localinfo->kRes++;
+      if ( localinfo->startPhase )
+      {
+        localinfo->aggSize += ctuplexy->GetSize();
+        localinfo->aggSizeCE += ctuplexy->GetExtSize();
+        localinfo->startPhase--;
+      }
+      result = tuplexy;
+      return YIELD;
+
+    case CLOSE:
+
+      localinfo=(LoopjoinLocalInfo *) local.addr;
+
+      if ( localinfo->tuplex.addr != 0 )
+      {
+        if( localinfo->streamy.addr != 0 )
+          qp->Close( localinfo->streamy.addr );
+
+        if( localinfo->tuplex.addr != 0 )
+          ((Tuple*)localinfo->tuplex.addr)->DeleteIfAllowed();
+
+        if( localinfo->resultTupleType != 0 )
+          localinfo->resultTupleType->DeleteIfAllowed();
+
+        //delete localinfo;   *not done in the progress case!*
+      }
+
+      qp->Close(args[0].addr);
+      return 0;
+
+
+    case PROGRESS:
+
+      ProgressInfo p1;
+      ProgressInfo *pRes;
+      static clock_t clocksPerMilliSecond = CLOCKS_PER_SEC / 1000 ; 
+
+      pRes = (ProgressInfo*) result.addr;
+      localinfo=(LoopjoinLocalInfo *) local.addr;
+
+      if ( localinfo ) 
+      {
+        if ( !localinfo->startPhase ) 		//stable state assumed
+        {
+          if ( qp->RequestProgress(args[0].addr, &p1) )
+          {
+            pRes->Card = ((double) localinfo->kRes) * 
+              (p1.Card / (double) localinfo->k1);
+	    pRes->Size = localinfo->aggSize / STARTPHASE;
+	    pRes->SizeCE = localinfo->aggSizeCE / STARTPHASE;
+            pRes->Time = 
+              ((clock() - localinfo->startTime) / clocksPerMilliSecond)
+              * (p1.Card / localinfo->k1);
+            pRes->Progress =  localinfo->k1 / p1.Card;
+            return YIELD;
+          }
+        }
+      }
+        
+      return CANCEL;
+  }
+
+  return 0;
+}
+
+
+#endif
+
+
 
 /*
 2.19.3 Specification of operator ~loopjoin~
@@ -6752,6 +6958,11 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelsortmergejoin);
     AddOperator(&extrelhashjoin);
     AddOperator(&extrelloopjoin);
+
+#ifdef USE_PROGRESS 
+    extrelloopjoin.EnableProgress();
+#endif
+
     AddOperator(&extrelextendstream);
     AddOperator(&extrelprojectextendstream);
     AddOperator(&extrelloopsel);
