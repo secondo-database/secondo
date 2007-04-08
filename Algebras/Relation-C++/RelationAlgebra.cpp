@@ -985,9 +985,15 @@ struct FeedLocalInfo
 {
   int current;        	//current number of tuples processed
   int total;          	//total number of tuples in argument relation
-  double tuplesize;	//total tuplesize
-  double tuplesizeCE;	//size of core and extension part of tuple
   GenericRelationIterator* rit;
+  bool progressInitialized;
+
+			//the following only defined if progressInitialized
+  double tuplesize;	//total tuplesize
+  double tuplesizeExt;	//size of root and extension part of tuple
+  int noAttrs;		//no of attributes
+  double *attrSize;	//full size of each attribute
+  double *attrSizeExt;	//size of root and ext. part of each attribute
 };
 
 
@@ -1005,9 +1011,8 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       fli = new FeedLocalInfo;
         fli->current = 0;
         fli->total = r->GetNoTuples();
-        fli->tuplesize =  r->GetTotalSize() / (fli->total + 1);
-        fli->tuplesizeCE =  r->GetTotalExtSize() / (fli->total + 1);
         fli->rit = r->MakeScan();
+        fli->progressInitialized = false;
       local = SetWord(fli);
       return 0;
 
@@ -1032,6 +1037,9 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case PROGRESS :
 
+      Relation* rr;
+      rr = (Relation*)args[0].addr;
+
       ProgressInfo p1;
       ProgressInfo *pRes;
       const double uFeed = 0.000036;    //milliseconds per byte
@@ -1045,51 +1053,92 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       fli = (FeedLocalInfo*) local.addr;
       sonOfFeed = qp->GetSupplierSon(s, 0);
 
-      if ( qp->IsObjectNode(sonOfFeed) )
+      if ( fli )
       {
-        if ( fli )
+        if ( !fli->progressInitialized )
         {
+          fli->tuplesize =  0;
+          fli->tuplesizeExt =  0;
+
+          fli->noAttrs = nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
+          fli->attrSize = new double[fli->noAttrs];
+          fli->attrSizeExt = new double[fli->noAttrs];
+          for ( int i = 0;  i < fli->noAttrs; i++)
+          {
+            fli->attrSize[i] = rr->GetTotalSize(i) / (fli->total + 0.001); 
+            fli->attrSizeExt[i] = rr->GetTotalExtSize(i) / (fli->total + 0.001);
+
+            fli->tuplesize += fli->attrSize[i];
+            fli->tuplesizeExt += fli->attrSizeExt[i];
+          }
+          fli->progressInitialized = true;
+        }
+
+        if ( qp->IsObjectNode(sonOfFeed) )
+        {
+			//fli defined, an object node
+
           pRes->Card = (double) fli->total;
-          pRes->Size = fli->tuplesize;
-          pRes->SizeCE = fli->tuplesizeCE;
-          pRes->Time = (fli->total + 1) * fli->tuplesizeCE * uFeed; 
+
+          pRes->Size = fli->tuplesize;			//copy all sizes
+          pRes->SizeExt = fli->tuplesizeExt;
+          pRes->noAttrs = fli->noAttrs;
+          pRes->attrSize = fli->attrSize;
+          pRes->attrSizeExt = fli->attrSizeExt;
+
+          pRes->Time = (fli->total + 1) * fli->tuplesizeExt * uFeed; 
  
 		//any time value created must be > 0; so we add 1 to the total
 
-          pRes->Progress = (fli->current * fli->tuplesizeCE * uFeed) 
+          pRes->Progress = (fli->current * fli->tuplesizeExt * uFeed) 
             / pRes->Time;
           return YIELD;
 	}
-	else return CANCEL;
-      }
-      else  	//son is an operator, most likely consume
-      {
-
-	if ( qp->RequestProgress(sonOfFeed, &p1) )
+        else		//fli defined, not an object node
         {
-	  if ( fli == 0 )		//son evaluation not yet finished
+	  if ( qp->RequestProgress(sonOfFeed, &p1) )
+          {
+            pRes->Card = (double) fli->total;
+
+            pRes->Size = fli->tuplesize;
+            pRes->SizeExt = fli->tuplesizeExt;
+            pRes->noAttrs = fli->noAttrs;
+            pRes->attrSize = fli->attrSize;
+            pRes->attrSizeExt = fli->attrSizeExt;
+
+            pRes->Time = p1.Time + fli->total * fli->tuplesizeExt * uFeed;
+            pRes->Progress = 
+              (p1.Time + fli->current * fli->tuplesizeExt * uFeed) / pRes->Time;
+            return YIELD;
+          }
+          else return CANCEL;
+        }
+      }
+      else 		//fli not defined
+      {
+        if ( qp->IsObjectNode(sonOfFeed) )
+        {
+          return CANCEL;
+        }
+        else 		//fli not defined, not an object node
+        {
+	  if ( qp->RequestProgress(sonOfFeed, &p1) )
           {
             pRes->Card = p1.Card;
+
             pRes->Size = p1.Size;
-            pRes->SizeCE = p1.SizeCE;
-            pRes->Time = p1.Time + p1.Card * p1.SizeCE * uFeed;
+            pRes->SizeExt = p1.SizeExt;
+            pRes->noAttrs = p1.noAttrs;
+            pRes->attrSize = p1.attrSize;
+            pRes->attrSizeExt = p1.attrSizeExt;
+
+            pRes->Time = p1.Time + p1.Card * p1.SizeExt * uFeed;
 	    pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
             return YIELD;
           }
-          else				//son evaluation is complete
-          {       
-            pRes->Card = (double) fli->total;
-            pRes->Size = fli->tuplesize;
-            pRes->SizeCE = fli->tuplesizeCE;
-            pRes->Time = p1.Time + fli->total * fli->tuplesizeCE * uFeed;
-            pRes->Progress = 
-              (p1.Time + fli->current * fli->tuplesizeCE * uFeed) / pRes->Time;
-            return YIELD;
-          }
+          else return CANCEL;
         }
-        else return CANCEL;
-      }
-                 
+      }                 
   }
   return 0;
 }
@@ -1270,8 +1319,14 @@ Consume(Word* args, Word& result, int message,
     if ( qp->RequestProgress(args[0].addr, &p1) )
     {
       pRes->Card = p1.Card;
-      pRes->Size = p1.Size;
-      pRes->SizeCE = p1.SizeCE;
+
+      pRes->Size = p1.Size;		//copy all sizes
+      pRes->SizeExt = p1.SizeExt;
+      pRes->noAttrs = p1.noAttrs;
+      pRes->attrSize = p1.attrSize;
+      pRes->attrSizeExt = p1.attrSizeExt;
+     
+
       pRes->Time = p1.Time + p1.Card * p1.Size * uConsume;
 
       if ( cli == 0 )		//not yet working
@@ -1649,8 +1704,11 @@ Filter(Word* args, Word& result, int message,
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
         pRes->Size = p1.Size;
-        pRes->SizeCE = p1.SizeCE;
-
+        pRes->SizeExt = p1.SizeExt;
+        pRes->noAttrs = p1.noAttrs;
+        pRes->attrSize = p1.attrSize;
+        pRes->attrSizeExt = p1.attrSizeExt;
+        
         if ( fli )		//filter was started
         {
           if ( fli->returned > 50 ) 	//stable state assumed now
@@ -2417,6 +2475,8 @@ TCountRel(Word* args, Word& result, int message,
 
 #else
 
+// progress version
+
 int
 TCountStream(Word* args, Word& result, int message, 
              Word& local, Supplier s)
@@ -2453,8 +2513,13 @@ TCountStream(Word* args, Word& result, int message,
     if ( qp->RequestProgress(args[0].addr, &p1) )
     {
       pRes->Card = p1.Card;
-      pRes->Size = p1.Size;
-      pRes->SizeCE = p1.SizeCE;
+
+      pRes->Size = p1.Size;		//copy all sizes
+      pRes->SizeExt = p1.SizeExt;
+      pRes->noAttrs = p1.noAttrs;
+      pRes->attrSize = p1.attrSize;
+      pRes->attrSizeExt = p1.attrSizeExt;
+
       pRes->Time = p1.Time;
       pRes->Progress =  p1.Progress; 
       return YIELD;			//successful
@@ -2495,8 +2560,13 @@ TCountRel(Word* args, Word& result, int message,
       if ( qp->RequestProgress(sonOfCount, &p1) )
       {
         pRes->Card = p1.Card;
-        pRes->Size = p1.Size;
-        pRes->SizeCE = p1.SizeCE;
+
+        pRes->Size = p1.Size;		//copy all sizes
+        pRes->SizeExt = p1.SizeExt;
+        pRes->noAttrs = p1.noAttrs;
+        pRes->attrSize = p1.attrSize;
+        pRes->attrSizeExt = p1.attrSizeExt;
+
         pRes->Time = p1.Time;
         pRes->Progress = p1.Progress;
         return YIELD;
@@ -3885,8 +3955,13 @@ Rename(Word* args, Word& result, int message,
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
         pRes->Card = p1.Card;
-        pRes->Size = p1.Size;
-        pRes->SizeCE = p1.SizeCE;
+
+        pRes->Size = p1.Size;		//copy all sizes
+        pRes->SizeExt = p1.SizeExt;
+        pRes->noAttrs = p1.noAttrs;
+        pRes->attrSize = p1.attrSize;
+        pRes->attrSizeExt = p1.attrSizeExt;
+
         pRes->Time = p1.Time;
         pRes->Progress = p1.Progress;
         return YIELD;

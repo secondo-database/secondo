@@ -3248,8 +3248,6 @@ int Loopjoin(Word* args, Word& result, int message,
   Tuple* ctupley = 0;
   Tuple* ctuplexy = 0;
 
-  wrong
-
   LoopjoinLocalInfo *localinfo = 0;
 
   switch ( message )
@@ -3363,8 +3361,14 @@ struct LoopjoinLocalInfo
   int startPhase;	//during the start phase, tuple sizes are measured.
                         //Decremented for each result tuple. 
                         //Init with STARTPHASE.
-  int aggSize;	        //aggregated total size over tuples in start phase
-  int aggSizeCE;	//aggregated core and extension size over such tuples
+  int Size;	        //aggregated total size over tuples in start phase
+  int SizeExt;	        //aggregated root and ext. size over such tuples
+  int noAttrs;		//no of attributes
+  int *attrSize;	//for each attribute, the size
+  int *attrSizeExt;	//for each attribute, the root and extension size
+  double *attrSizeD;	//to be returned to RequestProgress
+  double *attrSizeExtD;
+
   clock_t startTime;	//time at open
 };
 
@@ -3399,8 +3403,19 @@ int Loopjoin(Word* args, Word& result, int message,
         localinfo->k1 = 0;
         localinfo->kRes = 0;
         localinfo->startPhase = STARTPHASE;
-        localinfo->aggSize = 0;
-        localinfo->aggSizeCE = 0;
+        localinfo->Size = 0;
+        localinfo->SizeExt = 0;
+        localinfo->noAttrs = localinfo->resultTupleType->GetNoAttributes();
+        localinfo->attrSize = new int[localinfo->noAttrs];
+        localinfo->attrSizeExt = new int[localinfo->noAttrs];
+        for ( int i = 0; i < localinfo->noAttrs; i++ )
+        {
+          localinfo->attrSize[i] = 0;
+          localinfo->attrSizeExt[i] = 0;
+        }
+        localinfo->attrSizeD = new double[localinfo->noAttrs];
+        localinfo->attrSizeExtD = new double[localinfo->noAttrs];
+
         localinfo->startTime = clock();
 
       local = SetWord(localinfo);
@@ -3477,8 +3492,13 @@ int Loopjoin(Word* args, Word& result, int message,
       localinfo->kRes++;
       if ( localinfo->startPhase )
       {
-        localinfo->aggSize += ctuplexy->GetSize();
-        localinfo->aggSizeCE += ctuplexy->GetExtSize();
+        localinfo->Size += ctuplexy->GetSize();
+        localinfo->SizeExt += ctuplexy->GetExtSize();
+        for ( int i = 0; i < localinfo->noAttrs; i++ )
+        {
+          localinfo->attrSize[i] += ctuplexy->GetSize(i);
+          localinfo->attrSizeExt[i] += ctuplexy->GetExtSize(i);
+        }
         localinfo->startPhase--;
       }
       result = tuplexy;
@@ -3523,8 +3543,19 @@ int Loopjoin(Word* args, Word& result, int message,
           {
             pRes->Card = ((double) localinfo->kRes) * 
               (p1.Card / (double) localinfo->k1);
-	    pRes->Size = localinfo->aggSize / STARTPHASE;
-	    pRes->SizeCE = localinfo->aggSizeCE / STARTPHASE;
+
+	    pRes->Size = localinfo->Size / STARTPHASE;
+	    pRes->SizeExt = localinfo->SizeExt / STARTPHASE;
+            pRes->noAttrs = localinfo->noAttrs;
+            for ( int i = 0; i < localinfo->noAttrs; i++ )
+            {
+              localinfo->attrSizeD[i] = localinfo->attrSize[i] / STARTPHASE;
+              localinfo->attrSizeExtD[i] = localinfo->attrSizeExt[i] 
+                / STARTPHASE;
+            }
+            pRes->attrSize = localinfo->attrSizeD;
+            pRes->attrSizeExt = localinfo->attrSizeExtD;
+
             pRes->Time = 
               ((clock() - localinfo->startTime) / clocksPerMilliSecond)
               * (p1.Card / localinfo->k1);
