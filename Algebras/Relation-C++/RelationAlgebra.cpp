@@ -1042,8 +1042,12 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
       ProgressInfo p1;
       ProgressInfo *pRes;
-      const double uFeed = 0.000036;    //milliseconds per byte
-	//plz10 feed count: 1188 / (412670 * 80) = 0.000036
+      const double uFeed = 0.00194;    //milliseconds per tuple
+      const double vFeed = 0.0000106;  //milliseconds per Byte
+	//plz10 feed count: 1188 (412670 tuples, 80 Bytes)
+        //plz10A feed count: 1499 (412670 tuples, 160 Bytes)
+        //plz10B feed count: 1856 (412670 tuples, 240 Bytes)
+
 
       Supplier sonOfFeed;
 
@@ -1086,11 +1090,11 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
           pRes->attrSize = fli->attrSize;
           pRes->attrSizeExt = fli->attrSizeExt;
 
-          pRes->Time = (fli->total + 1) * fli->tuplesizeExt * uFeed; 
- 
-		//any time value created must be > 0; so we add 1 to the total
+          pRes->Time = (fli->total + 1) * (uFeed + fli->tuplesizeExt * vFeed);
+            
+ 		//any time value created must be > 0; so we add 1 to the total
 
-          pRes->Progress = (fli->current * fli->tuplesizeExt * uFeed) 
+          pRes->Progress = fli->current * (uFeed + fli->tuplesizeExt * vFeed) 
             / pRes->Time;
           return YIELD;
 	}
@@ -1106,9 +1110,12 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
             pRes->attrSize = fli->attrSize;
             pRes->attrSizeExt = fli->attrSizeExt;
 
-            pRes->Time = p1.Time + fli->total * fli->tuplesizeExt * uFeed;
+            pRes->Time = p1.Time + 
+              (fli->total + 1) * (uFeed + fli->tuplesizeExt * vFeed);
             pRes->Progress = 
-              (p1.Time + fli->current * fli->tuplesizeExt * uFeed) / pRes->Time;
+              (p1.Progress * p1.Time 
+                + fli->current * (uFeed + fli->tuplesizeExt * vFeed)) 
+                / pRes->Time;
             return YIELD;
           }
           else return CANCEL;
@@ -1132,7 +1139,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
             pRes->attrSize = p1.attrSize;
             pRes->attrSizeExt = p1.attrSizeExt;
 
-            pRes->Time = p1.Time + p1.Card * p1.SizeExt * uFeed;
+            pRes->Time = p1.Time + p1.Card * (uFeed + p1.SizeExt * vFeed);
 	    pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
             return YIELD;
           }
@@ -1308,9 +1315,11 @@ Consume(Word* args, Word& result, int message,
 
     ProgressInfo p1;
     ProgressInfo* pRes;
-    const double uConsume = 0.0005; //milliseconds per byte
-	//plz10 feed consume: 28000.0 / (412670.0 * 80.0) = 0.000848
-	//Kreis feed consume: 30000.0 / (439 * 59642) = 0.00114
+    const double uConsume = 0.024; 	//millisecs per tuple
+    const double vConsume = 0.0003;	//millisecs per byte in 
+                                        //  root/extension
+    const double wConsume = 0.001338;	//millisecs per byte in FLOB
+
 
     cli = (consumeLocalInfo*) local.addr;
     pRes = (ProgressInfo*) result.addr;    
@@ -1327,7 +1336,9 @@ Consume(Word* args, Word& result, int message,
       pRes->attrSizeExt = p1.attrSizeExt;
      
 
-      pRes->Time = p1.Time + p1.Card * p1.Size * uConsume;
+      pRes->Time = p1.Time + 
+        p1.Card * (uConsume + p1.SizeExt * vConsume 
+          + (p1.Size - p1.SizeExt) * wConsume);
 
       if ( cli == 0 )		//not yet working
       {
@@ -1337,8 +1348,10 @@ Consume(Word* args, Word& result, int message,
         if ( cli->state == 0 )	//working
         {
           pRes->Progress = 
-            (p1.Progress * p1.Time + cli->current * p1.Size * uConsume ) 
-            / pRes->Time;
+            (p1.Progress * p1.Time + 
+              cli->current *  (uConsume + p1.SizeExt * vConsume 
+                  + (p1.Size - p1.SizeExt) * wConsume) ) 
+                / pRes->Time;
         }
         else 			//finished
         {
@@ -2072,6 +2085,12 @@ ListExpr ProjectTypeMap(ListExpr args)
 5.9.2 Value mapping function of operator ~project~
 
 */
+
+#ifndef USE_PROGRESS
+
+// standard version
+
+
 int
 Project(Word* args, Word& result, int message, 
         Word& local, Supplier s)
@@ -2124,6 +2143,145 @@ Project(Word* args, Word& result, int message,
   }
   return 0;
 }
+
+# else 
+
+// progress version
+
+struct ProjectLocalInfo
+{
+  TupleType *tupleType;
+  int k;		//the current no of tuples read.
+  bool progressInitialized;
+
+  double Size;		//these fields as in ProgressInfo
+  double SizeExt;
+  int noAttrs;
+  double *attrSize;
+  double *attrSizeExt;
+};
+
+int
+Project(Word* args, Word& result, int message, 
+        Word& local, Supplier s)
+{
+  ProjectLocalInfo *pli;
+  Word elem1, elem2;
+  int noOfAttrs, index;
+  Supplier son;
+
+  switch (message)
+  {
+    case OPEN:
+
+      pli = new ProjectLocalInfo;
+        pli->tupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+        pli->k = 0;
+        pli->progressInitialized = false;
+      local = SetWord(pli);
+
+      qp->Open(args[0].addr);
+      return 0;
+
+    case REQUEST:
+
+      pli = (ProjectLocalInfo*) local.addr;
+
+
+      qp->Request(args[0].addr, elem1);
+      if (qp->Received(args[0].addr))
+      {
+        pli->k++;
+        Tuple *t = new Tuple( pli->tupleType );
+
+        noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
+        assert( t->GetNoAttributes() == noOfAttrs );
+
+        for( int i = 0; i < noOfAttrs; i++)
+        {
+          son = qp->GetSupplier(args[3].addr, i);
+          qp->Request(son, elem2);
+          index = ((CcInt*)elem2.addr)->GetIntval();
+          t->CopyAttribute(index-1, (Tuple*)elem1.addr, i);
+        }
+        ((Tuple*)elem1.addr)->DeleteIfAllowed();
+        result = SetWord(t);
+        return YIELD;
+      }
+      else return CANCEL;
+
+    case CLOSE:
+
+      pli = (ProjectLocalInfo*) local.addr;
+      pli->tupleType->DeleteIfAllowed();
+      qp->Close(args[0].addr);
+      return 0;
+
+    case PROGRESS:
+
+      ProgressInfo p1;
+      ProgressInfo *pRes;
+      const double uProject = 0.00073;	//millisecs per tuple
+      const double vProject = 0.0004;	//millisecs per tuple and attribute
+
+
+      pRes = (ProgressInfo*) result.addr;
+      pli = (ProjectLocalInfo*) local.addr;
+
+      if ( !pli ) return CANCEL;
+
+      if ( qp->RequestProgress(args[0].addr, &p1) )
+      {
+        if ( !pli->progressInitialized )
+        {
+          pli->Size = 0;
+          pli->SizeExt = 0;
+          pli->noAttrs = ((CcInt*)args[2].addr)->GetIntval();
+          pli->attrSize = new double[pli->noAttrs];
+          pli->attrSizeExt = new double[pli->noAttrs];
+
+          for( int i = 0; i < pli->noAttrs; i++)
+          {
+            son = qp->GetSupplier(args[3].addr, i);
+            qp->Request(son, elem2);
+            index = ((CcInt*)elem2.addr)->GetIntval();
+            pli->attrSize[i] = p1.attrSize[index-1];
+            pli->attrSizeExt[i] = p1.attrSizeExt[index-1];
+            pli->Size += pli->attrSize[i];
+            pli->SizeExt += pli->attrSizeExt[i];
+          }
+          pli->progressInitialized = true;
+        }
+
+        pRes->Card = p1.Card;
+
+        pRes->Size = pli->Size;
+        pRes->SizeExt = pli->SizeExt;
+        pRes->noAttrs = pli->noAttrs;
+        pRes->attrSize = pli->attrSize;
+        pRes->attrSizeExt = pli->attrSizeExt;
+
+        pRes->Time = p1.Time + p1.Card * (uProject + pli->noAttrs * vProject);
+
+		//only pointers are copied; therefore the tuple sizes do not
+		//matter
+
+        pRes->Progress = 
+          (p1.Progress * p1.Time +  
+            pli->k * (uProject + pli->noAttrs * vProject)) 
+          / pRes->Time;
+
+        return YIELD;
+      }
+      else return CANCEL;
+
+  }
+  return 0;
+}
+
+#endif
+
+
 
 /*
 5.9.3 Specification of operator ~project~
@@ -4169,7 +4327,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgTUPLE2);
     AddOperator(&relalgattr);
     AddOperator(&relalgfilter);		relalgfilter.EnableProgress();
-    AddOperator(&relalgproject);
+    AddOperator(&relalgproject);	relalgproject.EnableProgress();
     AddOperator(&relalgproduct);
     AddOperator(&relalgcount);		relalgcount.EnableProgress();
     AddOperator(&relalgcount2);
