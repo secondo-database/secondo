@@ -196,6 +196,23 @@ struct ProgressInfo
 
   double Time;		//expected time, in millisecond
   double Progress;	//a number between 0 and 1
+
+  void CopySizes(ProgressInfo p)	//copy the size fields
+  {
+    Size = p.Size;
+    SizeExt = p.SizeExt;
+    noAttrs = p.noAttrs;
+    attrSize = p.attrSize;
+    attrSizeExt = p.attrSizeExt;
+  }
+
+  void Copy(ProgressInfo p)		//copy all fields
+  {
+    Card = p.Card;
+    CopySizes(p);
+    Time = p.Time;
+    Progress = p.Progress;
+  }
 };	
 
 
