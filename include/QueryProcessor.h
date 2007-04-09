@@ -169,6 +169,7 @@ such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 #include "LogMsg.h"
 #include "StopWatch.h"
 #include "FLOBCache.h"
+#include "ProgressView.h"
 
 struct OpNode;
 typedef OpNode* OpTree;
@@ -242,6 +243,13 @@ Destroys a query processor instance.
 
 /*
 Stores the current tree during query evaluation.
+
+*/
+
+  ProgressView* progressView;
+
+/*
+Stores a ~ProgressView~ instance pointer to show progress.
 
 */
 
