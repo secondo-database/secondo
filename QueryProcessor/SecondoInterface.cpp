@@ -1479,7 +1479,12 @@ SecondoInterface::Command_Query( const ListExpr list,
      qp.ResetTimer();
 
      qp.QueryTree = tree;
+
+     qp.progressView = new ProgressView();
      qp.Eval( tree, result, 1 );
+     qp.progressView->FinishProgressView();
+     delete qp.progressView;
+
      
      queryReal = queryTime.diffSecondsReal();
      queryCPU = queryTime.diffSecondsCPU();
@@ -1657,7 +1662,10 @@ SecondoInterface::Command_Let( const ListExpr list, string& errorMessage  )
           if ( evaluable )
           {
             qp.QueryTree = tree;
+            qp.progressView = new ProgressView();
             qp.Eval( tree, result, 1 );
+            qp.progressView->FinishProgressView();
+            delete qp.progressView;
 
             if( IsRootObject( tree ) && !IsConstantObject( tree ) )
             {
@@ -1773,7 +1781,10 @@ SecondoInterface::Command_Update( const ListExpr list, string& errorMessage )
           else if ( evaluable )
           { 
             qp.QueryTree = tree;
+            qp.progressView = new ProgressView();
             qp.Eval( tree, result, 1 );
+            qp.progressView->FinishProgressView();
+            delete qp.progressView;
             if ( IsRootObject( tree ) && !IsConstantObject( tree ) )
             {
                ctlg.CloneObject( objName, result );

@@ -597,6 +597,9 @@ SecondoTTY::Execute()
     SimpleHandler* sh = new SimpleHandler();
     msg->AddHandler(sh);
 
+    ProgMesHandler* pmh = new ProgMesHandler();
+    msg->AddHandler(pmh);
+
      
       if ( iFileName.length() > 0 )
       {
