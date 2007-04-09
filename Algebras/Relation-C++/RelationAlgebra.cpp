@@ -1044,14 +1044,8 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       ProgressInfo *pRes;
       const double uFeed = 0.00194;    //milliseconds per tuple
       const double vFeed = 0.0000106;  //milliseconds per Byte
-	//plz10 feed count: 1188 (412670 tuples, 80 Bytes)
-        //plz10A feed count: 1499 (412670 tuples, 160 Bytes)
-        //plz10B feed count: 1856 (412670 tuples, 240 Bytes)
-
 
       Supplier sonOfFeed;
-
-     		//cout << "feed was asked for progress" << endl;
  
       pRes = (ProgressInfo*) result.addr;
       fli = (FeedLocalInfo*) local.addr;
@@ -1133,11 +1127,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
           {
             pRes->Card = p1.Card;
 
-            pRes->Size = p1.Size;
-            pRes->SizeExt = p1.SizeExt;
-            pRes->noAttrs = p1.noAttrs;
-            pRes->attrSize = p1.attrSize;
-            pRes->attrSizeExt = p1.attrSizeExt;
+            pRes->CopySizes(p1);
 
             pRes->Time = p1.Time + p1.Card * (uFeed + p1.SizeExt * vFeed);
 	    pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
@@ -1328,14 +1318,8 @@ Consume(Word* args, Word& result, int message,
     if ( qp->RequestProgress(args[0].addr, &p1) )
     {
       pRes->Card = p1.Card;
-
-      pRes->Size = p1.Size;		//copy all sizes
-      pRes->SizeExt = p1.SizeExt;
-      pRes->noAttrs = p1.noAttrs;
-      pRes->attrSize = p1.attrSize;
-      pRes->attrSizeExt = p1.attrSizeExt;
-     
-
+      pRes->CopySizes(p1);
+    
       pRes->Time = p1.Time + 
         p1.Card * (uConsume + p1.SizeExt * vConsume 
           + (p1.Size - p1.SizeExt) * wConsume);
@@ -1716,11 +1700,7 @@ Filter(Word* args, Word& result, int message,
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
-        pRes->Size = p1.Size;
-        pRes->SizeExt = p1.SizeExt;
-        pRes->noAttrs = p1.noAttrs;
-        pRes->attrSize = p1.attrSize;
-        pRes->attrSizeExt = p1.attrSizeExt;
+        pRes->CopySizes(p1);
         
         if ( fli )		//filter was started
         {
@@ -2661,8 +2641,6 @@ TCountStream(Word* args, Word& result, int message,
   }
   else  //message == PROGRESS
   {
-    		//cout << "count was asked for progress" << endl;
-
     ProgressInfo p1;
     ProgressInfo* pRes;
 
@@ -2670,19 +2648,10 @@ TCountStream(Word* args, Word& result, int message,
 
     if ( qp->RequestProgress(args[0].addr, &p1) )
     {
-      pRes->Card = p1.Card;
-
-      pRes->Size = p1.Size;		//copy all sizes
-      pRes->SizeExt = p1.SizeExt;
-      pRes->noAttrs = p1.noAttrs;
-      pRes->attrSize = p1.attrSize;
-      pRes->attrSizeExt = p1.attrSizeExt;
-
-      pRes->Time = p1.Time;
-      pRes->Progress =  p1.Progress; 
-      return YIELD;			//successful
+      pRes->Copy(p1);
+      return YIELD;		
     }
-    else return CANCEL;			//no progress available
+    else return CANCEL;			
   }
 }
 
@@ -2717,16 +2686,7 @@ TCountRel(Word* args, Word& result, int message,
     { 
       if ( qp->RequestProgress(sonOfCount, &p1) )
       {
-        pRes->Card = p1.Card;
-
-        pRes->Size = p1.Size;		//copy all sizes
-        pRes->SizeExt = p1.SizeExt;
-        pRes->noAttrs = p1.noAttrs;
-        pRes->attrSize = p1.attrSize;
-        pRes->attrSizeExt = p1.attrSizeExt;
-
-        pRes->Time = p1.Time;
-        pRes->Progress = p1.Progress;
+        pRes->Copy(p1);
         return YIELD;
       }
       else return CANCEL;
@@ -4112,16 +4072,7 @@ Rename(Word* args, Word& result, int message,
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
-        pRes->Card = p1.Card;
-
-        pRes->Size = p1.Size;		//copy all sizes
-        pRes->SizeExt = p1.SizeExt;
-        pRes->noAttrs = p1.noAttrs;
-        pRes->attrSize = p1.attrSize;
-        pRes->attrSizeExt = p1.attrSizeExt;
-
-        pRes->Time = p1.Time;
-        pRes->Progress = p1.Progress;
+        pRes->Copy(p1);
         return YIELD;
       }
       else return CANCEL;
