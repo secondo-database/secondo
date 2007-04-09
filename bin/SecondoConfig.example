@@ -153,12 +153,37 @@ RTFlags +=  Server:BinaryTransfer
 # Note: The stack trace is not available on windows!
 RTFlags += DEBUG:DemangleStackTrace
 
+
 # --- QueryProcessor Section ---
 [QueryProcessor]
 
 # Max memory in kb available for an operator (e.g. hashjoin or sort)
 # default is 16348
 #MaxMemPerOperator=4096
+
+
+# --- ProgressEstimation Section ---
+[ProgressEstimation]
+
+# ProgNorm normalizes the progressbar to n points
+# Example: ProgNorm=50
+ProgNorm=50
+
+# PogProt controls the verbose TTY-Output (1 enables, 0 disables)
+ProgProt=0
+
+# PogLog controls the Log-Output to files proglog.csv and proglogt.csv
+# in the bin-folder (1 enables, 0 disables)
+ProgLog=1
+
+# ProgTypeCard controls the progress estimation by using the message 
+# CARDINALITY (1 enables, 0 disables)
+ProgTypeCard = 0
+
+# ProgTypeProg controls the progress estimation by using the message 
+# PROGRESS (1 enables, 0 disables)
+ProgTypeProg = 1
+
 
 # --- Berkeley DB Section ---
 #
