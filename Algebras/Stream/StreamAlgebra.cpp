@@ -2189,6 +2189,11 @@ ListExpr NamedtransformstreamTypemap(ListExpr args){
                                  "used as an attribute name ");
       return nl->TypeError();
   } 
+  if(SecondoSystem::GetCatalog()->IsOperatorName(name)){
+      ErrorReporter::ReportError(""+name+" is an operator and can't be "
+                                 "used as an attribute name ");
+      return nl->TypeError();
+  }
  
   return nl->TwoElemList(nl->SymbolAtom("stream"),
                          nl->TwoElemList(
