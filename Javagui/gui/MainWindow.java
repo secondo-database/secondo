@@ -174,6 +174,8 @@ private MenuListener BlendOutList; // a Menu cannot overlap a List ??
 
 private String ObjectDirectory ="./"; // where search for Objects
 
+private ProgressView progressView;
+
 
 
 private JFileChooser FC_History = new JFileChooser();
@@ -212,7 +214,12 @@ public MainWindow(String Title){
   HSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,false,
                               ComPanel,OList);
 
-  this.getContentPane().add(VSplitPane);     // add the splitpanes
+  this.setLayout(new BorderLayout());  
+  this.getContentPane().add(VSplitPane,BorderLayout.CENTER); // add the splitpanes
+  progressView = new ProgressView();
+  this.getContentPane().add(progressView,BorderLayout.EAST);
+  ComPanel.addMessageListener(progressView);
+
   PanelTop.add(HSplitPane);
 
 
