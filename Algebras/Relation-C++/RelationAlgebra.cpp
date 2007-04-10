@@ -1706,9 +1706,9 @@ Filter(Word* args, Word& result, int message,
         {
           if ( fli->returned > 50 ) 	//stable state assumed now
           {
-            pRes->Card = (double) p1.Card * 
-              ( (double) fli->returned / (double) (fli->current + 1)); //is > 0
-            pRes->Time = p1.Time + pRes->Card * qp->GetPredCost(s) * uFilter; 
+            pRes->Card =  p1.Card * 
+              ( (double) fli->returned / (double) (fli->current)); 
+            pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter; 
             pRes->Progress = (p1.Progress * p1.Time 
               + fli->current * qp->GetPredCost(s) * uFilter) / pRes->Time;
             return YIELD;
