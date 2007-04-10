@@ -35,7 +35,7 @@ public void paint(Graphics g){
  int height = getHeight();
  int width = getWidth();
  g.drawRect(0,0,width-1,height-1);
- if(current>0){
+ if(current>0 && max>=0){
     int h = ((height*current) / max);
     g.setColor(getColor());
     g.fillRect(0,height-h,width,h);
@@ -68,8 +68,8 @@ public void processMessage(ListExpr message){
   }
   int tmpcurrent = message.first().intValue();
   int tmpmax = message.second().intValue();
-  if(tmpcurrent!=this.current ||
-     tmpmax!=this.max){
+  if((tmpcurrent!=this.current ||
+     tmpmax!=this.max ) && (tmpcurrent<=tmpmax)){
      this.current = tmpcurrent;
      this.max = tmpmax;
      paintImmediately(0,0,getWidth(),getHeight());
