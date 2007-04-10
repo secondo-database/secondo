@@ -214,7 +214,7 @@ public MainWindow(String Title){
   HSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,false,
                               ComPanel,OList);
 
-  this.setLayout(new BorderLayout());  
+  this.getContentPane().setLayout(new BorderLayout());  
   this.getContentPane().add(VSplitPane,BorderLayout.CENTER); // add the splitpanes
   progressView = new ProgressView();
   this.getContentPane().add(progressView,BorderLayout.EAST);
