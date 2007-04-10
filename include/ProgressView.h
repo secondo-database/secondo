@@ -57,7 +57,7 @@ class ProgressView
 {
   public:
 
-  ProgressView::ProgressView()
+  ProgressView()
   {
     parmFile = "SecondoConfig.ini";
     PROGRESS_NORM = SmiProfile::GetParameter("ProgressEstimation", 
@@ -78,12 +78,12 @@ class ProgressView
     }
   }
 
-  ProgressView::~ProgressView()
+  ~ProgressView()
   {
   }
 
   void
-  ProgressView::InitProgressView()
+  InitProgressView()
   {
 
     if (PROGTYPEPROG)
@@ -101,7 +101,7 @@ class ProgressView
   }
 
   void
-  ProgressView::ModifyProgressView(const double progress)
+  ModifyProgressView(const double progress)
   {
     if (PROGTYPEPROG)
     {
@@ -128,7 +128,7 @@ class ProgressView
   }
 
   void
-  ProgressView::FinishProgressView()
+  FinishProgressView()
   {
     if (PROGTYPEPROG && initialized)
     {
