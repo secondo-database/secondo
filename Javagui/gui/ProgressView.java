@@ -73,6 +73,9 @@ public void processMessage(ListExpr message){
      this.current = tmpcurrent;
      this.max = tmpmax;
      paintImmediately(0,0,getWidth(),getHeight());
+  } else{
+     current = -1;
+     paintImmediately(0,0,getWidth(),getHeight());
   }
 }
 
