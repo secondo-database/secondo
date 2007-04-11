@@ -4,12 +4,14 @@ package gui;
 
 import javax.swing.*;
 import sj.lang.*;
+import java.awt.Color;
 
 public class ProgressTimer extends JLabel implements MessageListener{
 
 
 public ProgressTimer(){
    super(empty);
+   setForeground(Color.BLUE);
 }
 
 
