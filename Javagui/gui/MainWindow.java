@@ -175,6 +175,7 @@ private MenuListener BlendOutList; // a Menu cannot overlap a List ??
 private String ObjectDirectory ="./"; // where search for Objects
 
 private ProgressView progressView;
+private ProgressTimer progressTimer;
 
 
 
@@ -219,6 +220,11 @@ public MainWindow(String Title){
   progressView = new ProgressView();
   this.getContentPane().add(progressView,BorderLayout.EAST);
   ComPanel.addMessageListener(progressView);
+
+  progressTimer = new ProgressTimer();
+  ComPanel.addMessageListener(progressTimer);
+  
+
 
   PanelTop.add(HSplitPane);
 
@@ -1024,22 +1030,6 @@ public SecondoViewer[] getViewers(){
 }
 
 
-
-/** removes the current Viewer and shows nothing
-  * use it with setViewer
- **/
-private void removeCurrentViewer(){
-      cleanMenu();
-      CurrentMenuVector = null;
-      MainMenu.revalidate();
-      if(onlyViewerShow)
-        getContentPane().removeAll();
-      else
-        VSplitPane.setRightComponent(PanelTopRight);
-
-}
-
-
 /** set the current Viewer to AllViewers[index]); */
 private void setViewerindex(int index){
  SecondoViewer SV;
@@ -1054,21 +1044,32 @@ private void setViewerindex(int index){
 /** set the current viewer to SV **/
 private void setViewer(SecondoViewer SV){
  if (SV!=null) {
-    removeCurrentViewer();
+    cleanMenu(false);
+    CurrentMenuVector = null;
+    MainMenu.revalidate();
+    if(onlyViewerShow){
+       getContentPane().removeAll();
+    } else {
+       VSplitPane.setRightComponent(PanelTopRight);
+    }
     if (onlyViewerShow){
        getContentPane().removeAll();
        getContentPane().add(SV);
     }
-    else
+    else{
        VSplitPane.setRightComponent(SV);
+    }
+
     // extend the Menu
     MenuVector MenuExtension = SV.getMenuVector();
     CurrentMenuVector = MenuExtension; 
-    if (MenuExtension!=null)
+    if (MenuExtension!=null){
        for(int i=0;i<MenuExtension.getSize();i++){
            MenuExtension.get(i).addMenuListener(BlendOutList);     
            MainMenu.add(MenuExtension.get(i));
        } 
+    }
+    MainMenu.add(progressTimer);
 
     invalidate();
     validate();
@@ -1891,7 +1892,7 @@ private int executeTestFile(String fileName, boolean haltOnErrors,
 
 /** make Menu appropriate to MenuVector from CurrentViewer */
 public void updateMenu(){
-   cleanMenu();
+   cleanMenu(false);
    CurrentMenuVector = null;
    // add the new Menu
    if (CurrentViewer!=null){  
@@ -1910,7 +1911,8 @@ public void updateMenu(){
         Reporter.debug(e);
         Reporter.showError("error when update the menu");
      }
-   }  
+   }
+   MainMenu.add(progressTimer); 
 }
 
 /** if So exists in the Objectlist (identified by name) then 
@@ -2176,7 +2178,6 @@ public void selectObject(Object Sender,SecondoObject SO){
 private void createMenuBar(){
    MainMenu = new JMenuBar();
    ProgramMenu = new JMenu("Program");
-   MainMenu.add(ProgramMenu);
 
    JMenuItem MI_Clear = ProgramMenu.add("New ");
    MI_Clear.addActionListener(new ActionListener(){
@@ -2348,7 +2349,6 @@ private void createMenuBar(){
 
 
 
-   MainMenu.add(ServerMenu);
    MI_Connect = ServerMenu.add("Connect");
    MI_Disconnect = ServerMenu.add("Disconnect");
    MI_Settings = ServerMenu.add("Settings");
@@ -2453,11 +2453,9 @@ private void createMenuBar(){
     MI_OptimizerSettings.addActionListener(OptimizerListener);
     MI_OptimizerDisable.addActionListener(OptimizerListener);
 
-    MainMenu.add(OptimizerMenu);
 
 
    Menu_ServerCommand = new JMenu("Command");
-   MainMenu.add(Menu_ServerCommand);
    // commands are only possible if connected
    Menu_ServerCommand.setEnabled(false);
    Menu_BasicCommands = new JMenu("Basic Commands");
@@ -2564,7 +2562,6 @@ private void createMenuBar(){
            }
         });
 
-   MainMenu.add(HelpMenu);
 
    Viewers = new JMenu("Viewers");
    Viewers.addSeparator();
@@ -2627,7 +2624,7 @@ private void createMenuBar(){
      }
    });
 
-   MainMenu.add(Viewers);
+   updateMenu(); // insert all stuff
    setJMenuBar(MainMenu);
 }
 
@@ -2839,7 +2836,7 @@ private void saveHistory(File F,boolean showMessage,int length){
 }
 
 /* cleans the MenuBar (MenuBar without Viewer-Extension */
-private void cleanMenu(){
+private void cleanMenu( boolean addProgress){
    MainMenu.removeAll();
    MainMenu.add(ProgramMenu);
    MainMenu.add(ServerMenu);
@@ -2847,6 +2844,9 @@ private void cleanMenu(){
    MainMenu.add(Menu_ServerCommand);
    MainMenu.add(HelpMenu);
    MainMenu.add(Viewers);
+   if(addProgress){
+     MainMenu.add(progressTimer);
+   }
 }
 
 
