@@ -326,7 +326,6 @@ not accessible by the user code.
                Reporter.writeInfo("receive and building a nested list (binary) :"+t+" milliseconds");
           }
      } // handle binary lists
-     // divide the answerlist
      return answerList;
   }
 
