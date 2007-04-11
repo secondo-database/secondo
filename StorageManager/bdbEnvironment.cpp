@@ -1012,6 +1012,7 @@ SmiEnvironment::ShutDown()
   }
 
   int rc = 0;
+  int errs = GetNumOfErrors();
   DbEnv* dbenv  = instance.impl->bdbEnv;
   DbEnv* dbtmp  = instance.impl->tmpEnv;
   Db*    dbctlg = instance.impl->bdbDatabases;
@@ -1028,7 +1029,8 @@ SmiEnvironment::ShutDown()
 
   if ( dbctlg )
   {
-    dbctlg->close( 0 );
+    rc = dbctlg->close( 0 );
+    SetBDBError( rc );
     delete dbctlg;
     instance.impl->bdbDatabases = 0;
   }
@@ -1036,6 +1038,7 @@ SmiEnvironment::ShutDown()
   // --- Close and destroy temporary environment
 
   rc = dbtmp->close( 0 );
+  SetBDBError( rc );
   string oldHome = FileSystem::GetCurrentFolder();
   FileSystem::SetCurrentFolder( instance.impl->bdbHome );
   FileSystem::EraseFolder( instance.impl->tmpHome );
@@ -1044,21 +1047,14 @@ SmiEnvironment::ShutDown()
   // --- Close Berkeley DB environment
 
   rc = dbenv->close( 0 );
+  SetBDBError( rc );
   instance.impl->envClosed = true;
   smiStarted = false;
 
   // --- Check error condition
 
-  if ( rc == 0 )
-  {
-    SetError( E_SMI_OK );
-  }
-  else
-  {
-    SetBDBError( rc );
-  }
-
-  return (rc == 0);
+  bool ok = ( errs == GetNumOfErrors() );
+  return ok;
 }
 
 bool

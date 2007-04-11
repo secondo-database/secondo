@@ -437,6 +437,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
   assert ( !opened );
 	
   static long& ctr = Counter::getRef("SmiFile::Open");
+  TRACE("SmiFile::Open")
   int rc = 0;
   impl->CheckDbHandles();
 	
@@ -554,6 +555,7 @@ bool
 SmiFile::Close()
 {
   static long& ctr = Counter::getRef("SmiFile::Close");
+  TRACE("SmiFile::Close")
   int rc = 0;
 
   if ( opened )
@@ -722,9 +724,13 @@ SmiFileIterator::SmiFileIterator()
 
 SmiFileIterator::~SmiFileIterator()
 {
+  TRACE_ENTER
+  SHOW(opened)	  
   if (opened) // close cursor if necessary	
     Finish();
   delete impl;
+  impl = 0;
+  TRACE_LEAVE	 
 }
 
 bool
