@@ -4271,12 +4271,12 @@ The SQL-syntax is as follows:
   function. The operator must have signature TYPE x TYPE [->] TYPE. It must 
   be a commutative and associative function. If you want to use
   an infix operator, you must enclose it in round parentheses, eg. ([star]) for
-  the multiplication *: TYPE x TYPE [->] TYPE.
+  the multiplication [star]: TYPE x TYPE [->] TYPE.
   
   TYPE is the datatype processed by the aggregation function.
-  
+
   DEFAULTVALUE is a value of type TYPE. If you give a constant expression,
-  you should enclose the list expression in single quotes, eg. 
+  you should enclose the list expression in single quotes, eg.
   '[const region value ()]'.
   
   Otherwise, you can use user defined aggregation in the select clause of 
@@ -4382,7 +4382,7 @@ countQuery(Query groupby _) :-
   countQuery(Query).
 
 countQuery(Query orderby _) :-
-  countQuery(Query).distLINEITEM(lL
+  countQuery(Query).
 
 countQuery(Query first _) :-
   countQuery(Query).
