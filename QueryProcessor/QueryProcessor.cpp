@@ -3401,12 +3401,12 @@ Then call the operator's value mapping function.
       if ( RequestProgress(QueryTree, &progress) )
       {
         //cout << "Clock = " << lastClock; 
-        cout << "   Progress: " << progress.Progress << endl;
+        //cout << "   Progress: " << progress.Progress << endl;
         //cout << "   Card: " << progress.Card;
         //cout << "   Time: " << progress.Time;
         //cout << "   Size: " << progress.Size << endl;
 
-        //progressView->ModifyProgressView(progress.Progress);
+        progressView->ModifyProgressView(progress.Progress);
       }
 
       allowProgress = true;
