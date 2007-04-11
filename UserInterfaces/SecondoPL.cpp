@@ -48,6 +48,8 @@ support for calling Secondo from PROLOG.
 
 using namespace std;
 
+#include "NestedList.h"
+#include "NList.h"
 #include "SecondoInterface.h"
 #include "Profiles.h"
 #include "LogMsg.h"
@@ -560,6 +562,9 @@ pl_call_secondo(term_t command, term_t result)
               errorPos,
               lastErrorMessage);
 
+  // reset NestedList pointer for the NList interface
+  NList::setNLRef(plnl);
+
   if(lastErrorCode != 0)
   {
       PL_fail;
@@ -720,6 +725,7 @@ StartSecondoC(char* configFileName)
   if(si->Initialize(user, pswd, host, port, configFile))
   {
     plnl = si->GetNestedList();
+    NList::setNLRef(plnl);
     return true;
   }
   else

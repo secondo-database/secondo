@@ -48,6 +48,7 @@ TestRunnerCS
 #include "License.h"
 #include "Application.h"
 #include "LogMsg.h"
+#include "Messages.h"
 
 using namespace std;
 
@@ -64,11 +65,23 @@ int
 main( const int argc, char* argv[] )
 {
   TTYParameter tp(argc,argv);
-  
+ 
 #ifndef SEC_TTYCS
   if ( tp.isServerMode() )
     return SecondoServerMode(tp.numArgs, (const char**)tp.argValues);
 #endif
+
+  // Add message handlers
+  MessageCenter* msg = MessageCenter::GetInstance();
+    
+  // uncomment the lines below in order to 
+  // activate the example handler. The operator
+  // count2 demonstrates how to send messages.
+  SimpleHandler* sh = new SimpleHandler();
+  msg->AddHandler(sh);
+
+  ProgMesHandler* pmh = new ProgMesHandler();
+  msg->AddHandler(pmh);
 
 #ifdef SECONDO_PL 
   if ( tp.isPLMode() )
@@ -77,7 +90,7 @@ main( const int argc, char* argv[] )
 
   cout << License::getStr() << endl;
   
-  // Testrunner or TTY
+  // Testrunner or TTY or TTYCS
   if ( !tp.CheckConfiguration() )
     return 1;
   

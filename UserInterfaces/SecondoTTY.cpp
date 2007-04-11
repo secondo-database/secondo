@@ -588,19 +588,6 @@ SecondoTTY::Execute()
      
     if ( si->Initialize( user, pswd, host, port, parmFile ) )
     {
-    // Add message handlers
-    MessageCenter* msg = MessageCenter::GetInstance();
-    
-    // uncomment the lines below in order to 
-    // activate the example handler. The operator
-    // count2 demonstrates how to send messages.
-    SimpleHandler* sh = new SimpleHandler();
-    msg->AddHandler(sh);
-
-    ProgMesHandler* pmh = new ProgMesHandler();
-    msg->AddHandler(pmh);
-
-     
       if ( iFileName.length() > 0 )
       {
         fileInput.open( iFileName.c_str() );
