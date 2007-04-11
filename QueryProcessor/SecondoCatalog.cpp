@@ -99,7 +99,7 @@ The names of existing databases are stored in a list ~DBTable~.
 #include <string>
 #include <iostream>
 
-//#define TRACE_ON 1
+#define TRACE_ON 1
 #include "LogMsg.h"
 
 #include "SecondoSystem.h"
@@ -905,11 +905,14 @@ Precondition: dbState = dbOpen.
       }	 
       
 
+      TRACE("ENTER GetObjectExpr")
       GetObjectExpr( objectName, typeName, typeExpr,
                      value, defined, hasTypeName );
+      TRACE("LEAVE GetObjectExpr")
       if ( defined )
       {
         valueList = OutObject( typeExpr, value );
+        CloseObject( typeExpr, value ); 
       }
       else
       {
@@ -1479,9 +1482,13 @@ and the procedure returns an empty string as ~typeName~.
 Precondition: ~IsObjectName(objectName)~ delivers TRUE.
 
 */
+
   bool ok = false;
 
   const SystemInfoRel* table = systemTable(objectName);
+
+  SHOW(objectName)	
+  SHOW(table) 
   if (  table != 0 )
   { 
     value = createRelation(objectName);
