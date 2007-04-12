@@ -1904,48 +1904,54 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
     qp->Open( args[0].addr );                      // open stream of units
     qp->Request( args[0].addr, localinfo->uWord ); // request first unit
     if ( !( qp->Received( args[0].addr) ) )
-      {result.addr = 0; return CANCEL; }
+      {localinfo->uWord.addr = 0; result.addr = 0; return CANCEL; }
     local = SetWord(localinfo);                    // pass up link to localinfo
     return 0;
 
-  case REQUEST:
-    if ( local.addr == 0 )
-      return CANCEL;
-    localinfo = (AtPeriodsLocalInfoUS *) local.addr; // restore local data
-    if ( localinfo->uWord.addr == 0 )
+    case REQUEST:
+      if ( local.addr == 0 )
+        return CANCEL;
+      localinfo = (AtPeriodsLocalInfoUS *) local.addr; // restore local data
+      if ( localinfo->uWord.addr == 0 )
       { result.addr = 0; return CANCEL; }
-    unit = (Alpha *) localinfo->uWord.addr;
-    if ( localinfo->pWord.addr == 0 )
+      unit = (Alpha *) localinfo->uWord.addr;
+      if ( localinfo->pWord.addr == 0 )
       { result.addr = 0; return CANCEL; }
-    periods = (Periods *) localinfo->pWord.addr;
+      periods = (Periods *) localinfo->pWord.addr;
 
-    if( !periods->IsDefined() ||   // by now, periods cannot be undefined
-        periods->IsEmpty()       ) // only empty
-      return CANCEL;
+      if( !periods->IsDefined() ||   // by now, periods cannot be undefined
+           periods->IsEmpty()       ) // only empty
+        return CANCEL;
 
     // search for a pair of overlapping unit/interval:
     while (1)
+    {
+      if ( localinfo->j == periods->GetNoComponents() ) // redo first interval
       {
-        if ( localinfo->j == periods->GetNoComponents() ) // redo first interval
-          { localinfo->j = 0;
-            unit->DeleteIfAllowed();                // delete original unit?
-            foundUnit = false;
-            while(!foundUnit)
-              {
-                qp->Request(args[0].addr, localinfo->uWord);  // get new unit
-                if( qp->Received( args[0].addr ) )
-                  unit = (Alpha *) localinfo->uWord.addr;
-                else
-                  { result.addr = 0; return CANCEL; }   // end of unit stream
-                foundUnit = unit->IsDefined();
-              }
-          }
-        periods->Get(localinfo->j, interval);       // get an interval
-        if (    !( interval->Before( unit->timeInterval ) )
-                && !( unit->timeInterval.Before( *interval) ) )
-          break;                           // found candidate, break while
-        localinfo->j++;                             // next interval, loop
+        localinfo->j = 0;
+        unit->DeleteIfAllowed();                // delete original unit?
+        localinfo->uWord.addr = 0;
+        foundUnit = false;
+        while(!foundUnit)
+        {
+          qp->Request(args[0].addr, localinfo->uWord);  // get new unit
+          if( qp->Received( args[0].addr ) )
+            unit = (Alpha *) localinfo->uWord.addr;
+          else
+          {
+            localinfo->uWord.addr = 0;
+            result.addr = 0;
+            return CANCEL;
+          }   // end of unit stream
+          foundUnit = unit->IsDefined();
+        }
       }
+      periods->Get(localinfo->j, interval);       // get an interval
+      if (    !( interval->Before( unit->timeInterval ) )
+                 && !( unit->timeInterval.Before( *interval) ) )
+        break;                           // found candidate, break while
+      localinfo->j++;                             // next interval, loop
+    }
 
     // We have an interval possibly overlapping the unit's interval now
     // Return unit restricted to overlapping part of both intervals
