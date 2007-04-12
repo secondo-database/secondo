@@ -61,8 +61,7 @@ Operator : at
 Number   : 8
 Signature: mpoint x line -> mpoint
 Example  : query train7 at train7sections
-Result   : crashes
-Remark   : Returns invalid unit.
+Result   : file
 
 
 Operator : atinstant
@@ -277,16 +276,14 @@ Operator : rangevalues
 Number   : 3
 Signature: mstring -> rstring
 Example  : query rangevalues(train7upsights)
-Result   : bug
-Remark   : returns list with invalid characters
+Result   : file
 
 
 Operator : rangevalues
 Number   : 4
 Signature: mreal -> rreal
 Example  : query rangevalues(distance(train7,mehringdamm))
-Result   : crashes
-Remark   : Assertion failed: IsValid() && i.IsValid(), file TemporalAlgebra.h, line 2783
+Result   : (rreal((0.0 13680.865506246306 TRUE TRUE)))
 
 
 Operator : setunitofdistance
