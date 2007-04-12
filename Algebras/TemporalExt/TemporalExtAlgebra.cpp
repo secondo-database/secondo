@@ -725,237 +725,339 @@ and each HalfSegment in ln. Actually intersections in a point
 are supported.
 
 */
+bool checkunits( const UPoint& u1, const UPoint& u2 )
+{
+  bool res= ( (u1.timeInterval.end.Compare( &u2.timeInterval.start ) < 0) ||
+               (u1.timeInterval.end.Compare( &u2.timeInterval.start ) == 0 &&
+                !( u1.timeInterval.rc && u2.timeInterval.lc )) ||
+                ((u1.timeInterval.end == u2.timeInterval.start) && 
+                (u2.timeInterval.start < u2.timeInterval.end) &&
+                 u1.timeInterval.rc && u2.timeInterval.lc) );
+  return res;
+}
+
 void MPointExt::At( Line* ln, MPoint &result ) const
 {
-    cout << "MPointExt::At called" << endl;
-    const UPoint* unitin;
-    clock_t clock1, clock2, clock3, clock4, clock_ges;
-    double time1, time2;
+  const UPoint* unitin;
+  UPoint unitincopy, lastunit(true);
+  clock_t clock1, clock2, clock3, clock4, clock_ges;
+  double time1, time2;
 
-    result.Clear();
-    result.StartBulkLoad();
-    clock1 = clock();
-    clock_ges = 0;
-    for(int i=0;i<GetNoComponents();i++)
+  result.Clear();
+  result.StartBulkLoad();
+  clock1 = clock();
+  clock_ges = 0;
+  for(int i=0;i<GetNoComponents();i++)
+  {
+    clock3 = clock();
+    Get(i, unitin);
+    unitincopy = *unitin;
+    const Rectangle<3> temp_pbb = (Rectangle<3>)unitin->BoundingBox();
+    Rectangle<2> unit_pbb;
+    const Rectangle<2> obj_pbb = (Rectangle<2>)ln->BoundingBox();
+    if(0)
     {
-        clock3 = clock();
-        Get(i, unitin);
-        const Rectangle<3> temp_pbb = (Rectangle<3>)unitin->BoundingBox();
-        Rectangle<2> unit_pbb;
-        const Rectangle<2> obj_pbb = (Rectangle<2>)ln->BoundingBox();
-        if(1)
-        {
-            cout << "Boundingbox of points: "
-                    << "MinD(0): " << obj_pbb.MinD(0)
-                    << ", MinD(1): " << obj_pbb.MinD(1)
-                    << ", MaxD(0): " << obj_pbb.MaxD(0)
-                    << ", MaxD(1): " << obj_pbb.MaxD(1) << endl;
-
-        }
-        double min[2] = { temp_pbb.MinD(0), temp_pbb.MinD(1) };
-        double max[2] = { temp_pbb.MaxD(0), temp_pbb.MaxD(1) };
-
-        unit_pbb.Set(true, min, max);
+      cout << "Boundingbox of points: "
+           << "MinD(0): " << obj_pbb.MinD(0)
+           << ", MinD(1): " << obj_pbb.MinD(1)
+           << ", MaxD(0): " << obj_pbb.MaxD(0)
+           << ", MaxD(1): " << obj_pbb.MaxD(1) << endl;
+    }
+    double min[2] = { temp_pbb.MinD(0), temp_pbb.MinD(1) };
+    double max[2] = { temp_pbb.MaxD(0), temp_pbb.MaxD(1) };
+    unit_pbb.Set(true, min, max);
 /*
 Raw intersection with Bounding Boxes
 
 */
-        if(unit_pbb.Intersects( obj_pbb ))
+    if(unit_pbb.Intersects( obj_pbb ))
+    {
+      HalfSegment up_chs;
+      if ( unitin->p0 != unitin->p1 )
+        up_chs.Set( false, unitin->p0, unitin->p1 );
+        if(0)
         {
-            HalfSegment up_chs;
-            up_chs.Set( false, unitin->p0, unitin->p1 );
-            if(1)
-            {
-                cout << "No of HS: " << ln->Size() << endl;
-            }
-            for(int j=0;j<ln->Size();j++)
-            {
-                const HalfSegment* ln_chs;
-                ln->Get( j, ln_chs );
+          cout << "No of HS: " << ln->Size() << endl;
+        }
+        for(int j=0;j<ln->Size();j++)
+        {
+          const HalfSegment* ln_chs;
+          ln->Get( j, ln_chs );
 /*
 Scanning of one 1 of 2 HalfSegment
 
 */
-                if( ln_chs->GetRightPoint() == ln_chs->GetDomPoint() )
-                {
-                    if(1)
-                    {
-                        cout << "P0.X = " << ln_chs->GetLeftPoint().GetX()
-                            << " P0.Y = " << ln_chs->GetLeftPoint().GetY()
-                            << " P1.X = " << ln_chs->GetRightPoint().GetX()
-                            << " P1.Y = " << ln_chs->GetRightPoint().GetY()
-                            << " D0.X = " << ln_chs->GetDomPoint().GetX()
-                            << " D0.Y = " << ln_chs->GetDomPoint().GetY()
-                            << " S1.X = " << ln_chs->GetSecPoint().GetX()
-                            << " S1.Y = " << ln_chs->GetSecPoint().GetY()
-                            << endl;
-                    }
+          if( ln_chs->GetRightPoint() == ln_chs->GetDomPoint() )
+          {
+              if(0)
+              {
+                cout << "P0.X = " << ln_chs->GetLeftPoint().GetX()
+                     << " P0.Y = " << ln_chs->GetLeftPoint().GetY()
+                     << " P1.X = " << ln_chs->GetRightPoint().GetX()
+                     << " P1.Y = " << ln_chs->GetRightPoint().GetY()
+                     << " D0.X = " << ln_chs->GetDomPoint().GetX()
+                     << " D0.Y = " << ln_chs->GetDomPoint().GetY()
+                     << " S1.X = " << ln_chs->GetSecPoint().GetX()
+                     << " S1.Y = " << ln_chs->GetSecPoint().GetY()
+                     << endl;
+              }
 /*
 For unit points which do not have any motion
 
 */
-                    if( unitin->p0 == unitin->p1 )
+              if( unitin->p0 == unitin->p1 )
+              {
+                if( ln_chs->Contains( unitin->p0 ) )
+                {
+                  if(0)
+                  {
+                    cout << "Intersects up " << i
+                         << " as a point at " << j << "!!" << endl
+                         << "HS: ( " << ln_chs->GetLeftPoint().GetX()
+                         << ", " << ln_chs->GetLeftPoint().GetY()
+                         << " ; " << ln_chs->GetRightPoint().GetX()
+                         << ", " << ln_chs->GetRightPoint().GetY()
+                         << "p0: " << unitin->p0 << " p1: " << unitin->p1
+                         << " unitstart: " 
+                         << unitin->timeInterval.start.ToString()
+                         << " unitend: " << unitin->timeInterval.end.ToString()
+                         << " )" << endl;
+                  }
+                  UPoint res(true);
+                  const UPoint* uttmp;
+                  res.CopyFrom( unitin );
+                  bool unit_present = false;
+                  for(int z=0;z<result.GetNoComponents();z++)
+                  {
+                    result.Get( z, uttmp );
+                    if( res == *uttmp )
+                      unit_present = true;
+                  }
+                  if( !unit_present )
+                  {
+                    if ( i == 0 )
                     {
-                        if( ln_chs->Contains( unitin->p0 ) )
-                        {
-                            if(1)
-                            {
-                                cout << "Intersects up " << i
-                                    << " as a point at " << j << "!!" << endl
-                                    << "HS: ( " << ln_chs->GetLeftPoint().GetX()
-                                    << ", " << ln_chs->GetLeftPoint().GetY()
-                                    << " ; " << ln_chs->GetRightPoint().GetX()
-                                    << ", " << ln_chs->GetRightPoint().GetY()
-                                    << " )" << endl;
-                            }
-                            UPoint res(true);
-                            const UPoint* uttmp;
-                            res.CopyFrom( unitin );
-                            bool unit_present = false;
-                            for(int z=0;z<result.GetNoComponents();z++)
-                            {
-                                result.Get( z, uttmp );
-                                if( res == *uttmp )
-                                    unit_present = true;
-                            }
-                            if( !unit_present )
-                                result.Add( res );
-                        }
+                      result.MergeAdd( res );
+                      lastunit = res;
                     }
                     else
-                    {
-                        if( up_chs.Intersects( *ln_chs ) )
+                    { 
+                      if ( checkunits(lastunit, res) )
+                      {
+                        if ( (lastunit.timeInterval.end == 
+                              res.timeInterval.start) && 
+                             (res.timeInterval.start < res.timeInterval.end) &&
+                             lastunit.timeInterval.rc && res.timeInterval.lc )
                         {
-                            if(1)
-                            {
-                                cout << "In unit " << i << " ..." << endl;
-                                cout << "( " << up_chs.GetLeftPoint().GetX()
-                                        << ", "
-                                        << up_chs.GetLeftPoint().GetY()
-                                        << "; "
-                                        << up_chs.GetRightPoint().GetX()
-                                        << ", "
-                                        << up_chs.GetRightPoint().GetY()
-                                        << " )" << endl;
-                                cout << "intersects ( "
-                                        << ln_chs->GetLeftPoint().GetX()
-                                        << ", "
-                                        << ln_chs->GetLeftPoint().GetY()
-                                        << "; "
-                                        << ln_chs->GetRightPoint().GetX()
-                                        << ", "
-                                        << ln_chs->GetRightPoint().GetY()
-                                        << " ) at " << j << endl;
-                            }
+                          res.timeInterval.lc = false;
+                        }
+                        lastunit = res;
+                        result.MergeAdd( res );
+                      }
+                    }
+                  }
+                }
+              }
+              else
+              {
+              if( up_chs.Intersects( *ln_chs ) )
+              {
+                if(0)
+                {
+                  cout << "In unit " << i << " ..." << endl;
+                  cout << "( " << up_chs.GetLeftPoint().GetX()
+                       << ", "
+                       << up_chs.GetLeftPoint().GetY()
+                       << "; "
+                       << up_chs.GetRightPoint().GetX()
+                       << ", "
+                       << up_chs.GetRightPoint().GetY()
+                       << " )" << endl;
+                  cout << "intersects ( "
+                       << ln_chs->GetLeftPoint().GetX()
+                       << ", "
+                       << ln_chs->GetLeftPoint().GetY()
+                       << "; "
+                       << ln_chs->GetRightPoint().GetX()
+                       << ", "
+                       << ln_chs->GetRightPoint().GetY()
+                       << " ) at " << j << endl;
+                }
+                Point inter_p;
+                HalfSegment inter_chs;
+                if( up_chs.Intersection( *ln_chs, inter_chs ) )
+                {
+                  if(0)
+                  {
+                    cout << "Intersection is a line!!" << endl
+                         << "2inter_chs: ( "
+                         << inter_chs.GetLeftPoint().GetX()
+                         << ", "
+                         << inter_chs.GetLeftPoint().GetY()
+                         << "; "
+                         << inter_chs.GetRightPoint().GetX()
+                         << ", "
+                         << inter_chs.GetRightPoint().GetY()
+                         << " )" << endl;
+                  }
+                  UPoint trash1(true);
+                  UPoint trash2(true);
+                  bool tmpunitlc = true; 
+                  if ( (AlmostEqual(ln_chs->GetLeftPoint(), unitin->p0) || 
+                        AlmostEqual(ln_chs->GetRightPoint(), unitin->p0))
+                        && !unitin->timeInterval.lc )
+                  {
+                    tmpunitlc = false;
+                    unitincopy.timeInterval.lc = true;
+                  }
+                  bool tmpunitrc = true;    
+                  if ( (AlmostEqual(ln_chs->GetRightPoint(), unitin->p1) || 
+                        AlmostEqual(ln_chs->GetLeftPoint(), unitin->p1))
+                        && !unitin->timeInterval.rc )
+                  {
+                    tmpunitrc = false;
+                    unitincopy.timeInterval.rc = true;
+                  }
+                  unitincopy.At( inter_chs.GetLeftPoint(), trash1 );
+                  unitincopy.At( inter_chs.GetRightPoint(), trash2 );
+                  bool inv_def = true, ls = true, rs = true;
+                                                
+                  if(!trash1.timeInterval.lc && !trash1.timeInterval.rc)
+                    inv_def = false;
 
-                            Point inter_p;
-                            HalfSegment inter_chs;
+                  if(!trash2.timeInterval.rc && trash2.timeInterval.lc)
+                    inv_def = false;
 
-                            if( up_chs.Intersection( *ln_chs, inter_chs ) )
-                            {
-                                if(1)
-                                {
-                                    cout << "Intersection is a line!!" << endl
-                                    << "inter_chs: ( "
-                                            << ln_chs->GetLeftPoint().GetX()
-                                            << ", "
-                                            << ln_chs->GetLeftPoint().GetY()
-                                            << "; "
-                                            << ln_chs->GetRightPoint().GetX()
-                                            << ", "
-                                            << ln_chs->GetRightPoint().GetY()
-                                            << " )" << endl;
-                                }
-                                UPoint trash1(true);
-                                UPoint trash2(true);
+                  if(inv_def && trash1.timeInterval.lc && 
+                     trash2.timeInterval.rc)
+                  {
 
-                                unitin->At( ln_chs->GetLeftPoint(), trash1 );
-                                unitin->At( ln_chs->GetRightPoint(), trash2 );
-                                bool inv_def = true, ls = true, rs = true;
+                    if(!trash1.timeInterval.lc)
+                      ls = false;
 
-                                if(!trash1.timeInterval.lc
-                                    && !trash1.timeInterval.rc)
-                                    inv_def = false;
+                    if(!trash2.timeInterval.rc)
+                      rs = false;
 
-                                if(!trash2.timeInterval.rc
-                                    && trash2.timeInterval.lc)
-                                    inv_def = false;
-
-
-                                if(inv_def
-                                   && trash1.timeInterval.lc
-                                   && trash2.timeInterval.rc)
-                                {
-
-                                    if(!trash1.timeInterval.lc)
-                                        ls = false;
-
-                                    if(!trash2.timeInterval.rc)
-                                        rs = false;
-                                    Interval<Instant>* ii =
-                                        new Interval<Instant>(
-                                        !ls
-                                        ? trash1.timeInterval.end
-                                        : trash1.timeInterval.start,
-                                        !rs
-                                        ? trash2.timeInterval.start
-                                        : trash2.timeInterval.end,
-                                        true, true
-                                    );
-
-                                    UPoint* res = new UPoint(
-                                        *ii,
-                                        ln_chs->GetLeftPoint(),
-                                        ln_chs->GetRightPoint()
-                                    );
-                                    if(1)
-                                    {
-                                        cout << "UPoint created!" << endl
-                                        << "P0.X: " << res->p0.GetX() << endl
-                                        << "P0.Y: " << res->p0.GetY() << endl
-                                        << "P1.X: " << res->p1.GetX() << endl
-                                        << "P1.Y: " << res->p1.GetY() << endl;
-                                        cout << "( "
-                                        << res->timeInterval.start.ToString()
-                                        << " "
-                                        << res->timeInterval.end.ToString()
-                                        << " )" << endl;
-                                    }
-                                    result.Add( *res );
-                                }
-                            }
-                            else
-                            {
+                    Interval<Instant>* ii =
+                    new Interval<Instant>(
+                      trash1.timeInterval.start > trash2.timeInterval.start
+                      ? trash2.timeInterval.start
+                      : trash1.timeInterval.start,
+                      trash1.timeInterval.start > trash2.timeInterval.start
+                      ? trash1.timeInterval.start
+                      : trash2.timeInterval.start,
+                      tmpunitlc, tmpunitrc);
+                                        
+                    UPoint* res = new UPoint(
+                      *ii,
+                      unitin->p0 > unitin->p1
+                      ? inter_chs.GetRightPoint()
+                      : inter_chs.GetLeftPoint(),
+                      unitin->p0 > unitin->p1
+                      ? inter_chs.GetLeftPoint()
+                      : inter_chs.GetRightPoint()       
+                    );
+                    if(0)
+                    {
+                      cout << "UPoint created!" << endl
+                           << "P0.X: " << res->p0.GetX() << endl
+                           << "P0.Y: " << res->p0.GetY() << endl
+                           << "P1.X: " << res->p1.GetX() << endl
+                           << "P1.Y: " << res->p1.GetY() << endl;
+                      cout << "( "
+                           << res->timeInterval.start.ToString()
+                           << " "
+                           << res->timeInterval.end.ToString()
+                           << " )" << res->timeInterval.lc << " " 
+                                   << res->timeInterval.rc << endl;
+                    }
+                    if ( i == 0 )
+                    {
+                      result.MergeAdd( *res );
+                      lastunit = *res;
+                    }
+                    else
+                    { 
+                      if ( checkunits(lastunit, *res) )
+                      {
+                        if ( (lastunit.timeInterval.end == 
+                              res->timeInterval.start) && 
+                             (res->timeInterval.start < res->timeInterval.end)
+                              && lastunit.timeInterval.rc && 
+                              res->timeInterval.lc )
+                        {
+                          res->timeInterval.lc = false;
+                        }
+                        lastunit = *res;
+                        result.MergeAdd( *res );
+                      }
+                    }
+                  }
+                }
+                else
+                {
 /*
 Looks for intersections in a point
 
 */
-                                if( up_chs.Intersection( *ln_chs, inter_p ) )
-                                {
-                                    if(1)
-                                    {
-                                        cout << "Intersection is a point!!"
-                                        << endl;
-                                    }
-                                    UPoint res(true);
-                                    unitin->At( inter_p, res );
-                                    result.Add( res );
-                                }
-                            }
-                        }
+                  if( up_chs.Intersection( *ln_chs, inter_p ) )
+                  {
+                    if(0)
+                    {
+                      cout << "Intersection is a point!! " << inter_p << endl;
                     }
+                    UPoint res(true);
+                    if ( (AlmostEqual(unitin->p0, inter_p) && 
+                          unitin->timeInterval.lc) ||
+                         (AlmostEqual(unitin->p1, inter_p) && 
+                          unitin->timeInterval.rc) ||
+                         ((inter_p > unitin->p0) && (inter_p < unitin->p1)) ||
+                         ((inter_p < unitin->p0) && (inter_p > unitin->p1)) )
+                    {
+                      unitin->At( inter_p, res );
+                      if ( i == 0 )
+                      {
+                        result.MergeAdd( res );
+                        lastunit = res;
+                      }
+                      else
+                      { 
+                        if ( checkunits(lastunit, res) )
+                        {
+                          if ( (lastunit.timeInterval.end == 
+                                res.timeInterval.start) &&
+                                (res.timeInterval.start < 
+                                res.timeInterval.end) &&
+                                lastunit.timeInterval.rc && 
+                                res.timeInterval.lc )
+                          {
+                            res.timeInterval.lc = false;
+                          }
+                          lastunit = res;
+                          result.MergeAdd( res );
+                        }
+                      }
+                    }
+                  }
                 }
+              }
             }
+          }
         }
-        clock4 = clock();
-        clock_ges = clock_ges + (clock4 - clock3);
+      }
+      clock4 = clock();
+      clock_ges = clock_ges + (clock4 - clock3);
     }
-    clock2 = clock();
-    time2 = ((double)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
-    time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
-    cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
-    cout << "Total computing time : " << time1 << " ms" << endl;
-    result.EndBulkLoad( false );
+      clock2 = clock();
+      time2 = ((double)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
+      time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+      if ( 0 )
+      {
+        cout << "Average computing time per unit: " 
+             << time2 << " ms/unit" << endl;
+        cout << "Total computing time : " << time1 << " ms" << endl;
+      }
+      result.EndBulkLoad( false );
 }
 
 /*
@@ -4191,8 +4293,10 @@ int RangeRangevaluesStringExt(
     for(iter=BTree.begin(); iter!=BTree.end(); ++iter)
     {
       temp = *iter;
+      cout << "temp.size: " << temp.size() << endl;
       for(size_t i=0;i<temp.size();++i)
         minmax[i] = temp[i];
+      minmax[temp.size()] = '\0';
       minmaxcc.Set(true, &minmax);
       inter.start = minmaxcc;
       inter.end = minmaxcc;
@@ -4233,10 +4337,18 @@ int RangeRangevaluesRealExt(
     multimap< double,const Interval<CcReal> > intermap;
 
     clock1 = clock();
+    vector<UReal> resvector;
     for(int i=0;i<m->GetNoComponents();i++)
     {
         m->Get(i, utemp);
-        MinMaxValueFunction(utemp, min, max);
+        //MinMaxValueFunction(utemp, min, max); 
+        //yields wrong min and max values
+        
+        utemp->AtMin(resvector);
+        min = resvector[0].c;
+        utemp->AtMax(resvector);
+        max = resvector[0].c;
+
         mincc.Set(true, min);
         maxcc.Set(true, max);
         inter.start = mincc;
@@ -4247,8 +4359,8 @@ int RangeRangevaluesRealExt(
     }
     clock2 = clock();
     time1 = ((clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
-    cout << endl << "Time to insert values: "
-          << time1 << " milliseconds" << endl;
+    //cout << endl << "Time to insert values: "
+          //<< time1 << " milliseconds" << endl;
 
     multimap< double,const Interval<CcReal> >::iterator iter = intermap.end();
     pResult->Clear();
@@ -4265,7 +4377,7 @@ int RangeRangevaluesRealExt(
         }
         else
         {
-            if(1)
+            if(0)
             {
                 cout << "[" << (((*iter).second).start).GetValue();
                 cout << "," << (((*iter).second).end).GetValue() << "]";
@@ -4275,11 +4387,11 @@ int RangeRangevaluesRealExt(
             }
             if(inter.Intersects((*iter).second))
             {
-                cout << "Yes" << endl;
+                //cout << "Yes" << endl;
                 if(inter.start.GetValue() > ((*iter).second).start.GetValue())
                 {
                     inter.start = ((*iter).second).start;
-                    if(1)
+                    if(0)
                     {
                         cout << endl << "... expanding interval" << endl;
                     }
@@ -4289,7 +4401,7 @@ int RangeRangevaluesRealExt(
             {
                 pResult->Add(inter);
                 inter = (*iter).second;
-                if(1)
+                if(0)
                 {
                     cout << endl << "... creating new interval" << endl;
                 }
@@ -4297,16 +4409,19 @@ int RangeRangevaluesRealExt(
         }
         --iter;
     }
-    if(inter.Intersects((*iter).second))
+    if ( inter.IsValid() && (*iter).second.IsValid() ) 
     {
-        if(inter.start.GetValue() > ((*iter).second).start.GetValue())
-            inter.start = ((*iter).second).start;
+      if(inter.Intersects((*iter).second))
+      {
+          if(inter.start.GetValue() > ((*iter).second).start.GetValue())
+              inter.start = ((*iter).second).start;
+      }
     }
     pResult->Add(inter);
     clock4 = clock();
     time2 = ((clock4-clock3)/CLOCKS_PER_SEC) * 1000.;
-    cout << "Time to scan and build intervals: "
-          << time2 << " milliseconds" << endl;
+    //cout << "Time to scan and build intervals: "
+          //<< time2 << " milliseconds" << endl;
 
     pResult->EndBulkLoad( false );
 
