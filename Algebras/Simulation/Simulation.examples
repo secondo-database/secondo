@@ -1,0 +1,31 @@
+Database: berlintest
+Restore : No
+
+Operator : sim_create_trip
+Number   : 1
+Signature: stream(tuple(a1: t1) ... (an,tn) x ai x aj x instant x point -> mpoint, for ti = line, tj = real, tk = point
+Example  : query TRUE
+Result   : bug
+Remark   : Example still missing!
+
+Operator : sim_set_dest_params
+Number   : 1
+Signature:  real x real x real x real x real x real x  real x real x real x real -> bool
+Example  : query sim_set_dest_params( 32.2, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 )
+Result   : TRUE
+
+
+Operator : sim_set_event_params
+Number   : 1
+Signature:  real x real x real x real -> bool
+Example  : query sim_set_event_params( 32.2, 0.1, 0.2, 0.3 )
+Result   : TRUE
+
+
+Operator : sim_set_rng
+Number   : 1
+Signature:    int x int -> bool
+Example  : query sim_set_rng( 5, 54677 )
+Result   : TRUE
+
+
