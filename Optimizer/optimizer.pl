@@ -1274,6 +1274,13 @@ plan_to_atom(rename(X, Y), Result) :-
   !.
 
 
+plan_to_atom(predinfo(Sel, Cost, X), Result) :-
+  plan_to_atom(X, XAtom),
+  concat_atom([XAtom, '{', Sel, ', ', Cost, '} '], '', Result),
+  !.
+
+
+
 plan_to_atom(fun(Params, Expr), Result) :-
   params_to_atom(Params, ParamAtom),
   plan_to_atom(Expr, ExprAtom),
@@ -2315,20 +2322,22 @@ assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
 assignSize(Source, Target, select(Arg, Pred), Result) :-
   not(optimizerOption(nawracosts)),
   resSize(Arg, Card),
-  selectivity(Pred, Sel),
+  selectivity(Pred, Sel, BBoxSel, _, ExpPET),
   Size is Card * Sel,
   setNodeSize(Result, Size),
   assert(edgeSelectivity(Source, Target, Sel)),
+  assert(edgeInfoProgress(Source, Target, BBoxSel, ExpPET)),
   !.
 
 assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   not(optimizerOption(nawracosts)),
   resSize(Arg1, Card1),
   resSize(Arg2, Card2),
-  selectivity(Pred, Sel),
+  selectivity(Pred, Sel, BBoxSel, _, ExpPET),
   Size is Card1 * Card2 * Sel,
   setNodeSize(Result, Size),
   assert(edgeSelectivity(Source, Target, Sel)),
+  assert(edgeInfoProgress(Source, Target, BBoxSel, ExpPET)),
   !.
 
 
@@ -2562,6 +2571,7 @@ Delete node sizes and selectivities of edges.
 deleteSizes :-
   retractall(resultSize(_, _)),
   retractall(edgeSelectivity(_, _, _)),
+  retractall(edgeInfoProgress(_, _, _, _)),
   retractall(nodeTupleSize(_, _)),
   retractall(nodeSizeCounter(_, _, _, _)),
   retractall(nodeSizeCounter(_, _)),
@@ -3251,10 +3261,46 @@ traversePath(Path) :-
 % default 
 traversePath([]).
 
-traversePath([costEdge(_, _, Term, Result, _, _) | Path]) :-
-  embedSubPlans(Term, Term2),
-  assert(nodePlan(Result, Term2)),
+traversePath([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
+  edgeSelectivity(Source, Target, Sel),
+  edgeInfoProgress(Source, Target, BBoxSel, ExpPET),
+  markupProgress(Term, Sel, BBoxSel, ExpPET, Term2),  
+  embedSubPlans(Term2, Term3),
+  assert(nodePlan(Result, Term3)),
   traversePath(Path).
+
+
+/*
+----	markupProgress(Term+, Sel+, BBoxSel+, ExpPET+, Term2-) :-
+----
+
+*/
+
+
+markupProgress(project(Stream, Attrs), Sel, BBoxSel, ExpPET, 
+	project(Stream2, Attrs)) :-
+  markupProgress(Stream, Sel, BBoxSel, ExpPET, Stream2),
+  !.
+
+markupProgress(filter(windowintersects(Index, Rel, Range), Pred), 
+  Sel, BBoxSel, ExpPET,
+ 
+  predinfo(Sel2, ExpPET, 
+    filter(
+      predinfo(BBoxSel, 0.1, 
+        windowintersects(Index, Rel, Range)),
+      Pred)
+  )) :-
+  Sel2 is (Sel / BBoxSel) * 0.999.  %must be real
+  
+markupProgress(Stream, Sel, _, ExpPET, predinfo(Sel2, ExpPET, Stream)) :-
+  Sel2 is Sel * 0.999.              %must be real
+
+
+
+
+
+
 
 traversePathX([]).
 
