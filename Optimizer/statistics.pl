@@ -20,11 +20,17 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-1 Information about Selectivity of Predicates
+//paragraph [10] title: [{\Large \bf ]  [}]
+//[toc] [\tableofcontents]
+
+
+[10] Statistics
 
 [File ~statistics.pl~]
 
+[toc]
 
+1 Information about Selectivity of Predicates
 
 1.1 Rules about Commutativity of Predicates
 
@@ -183,7 +189,8 @@ If ~Pred~ has a predicate operator that performs checking of overlapping minimal
 
 */
 
-selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard, FilterResCard) :-
+selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard, 
+        FilterResCard) :-
   Pred =.. [OP, Arg1, Arg2],
   isBBoxPredicate(OP),     % spatial predicate with bbox-checking
   BBoxPred =.. [intersects, bbox(Arg1), bbox(Arg2)],
@@ -217,7 +224,8 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
   getTime(secondo(QueryAtom, [int, ResCard]),QueryTime),
   dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']), !.
 
-selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterResCard) :-
+selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, 
+	FilterResCard) :-
   Pred =.. [OP|_],
   isBBoxPredicate(OP),     % spatial predicate with bbox-checking
   transformPred(Pred, t, 1, Pred2),
@@ -226,8 +234,8 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterResCard) :-
   ( optimizerOption(dynamicSample)
     -> ( dynamicPossiblyRenameJ(Rel1, Rel1Query),
          dynamicPossiblyRenameJ(Rel2, Rel2Query),
-         Query = count(filter(counter(loopjoin(Rel1Query, fun([param(t, tuple)], 
-                       filter(Rel2Query, Pred3))),1),Pred2) )
+         Query = count(filter(counter(loopjoin(Rel1Query, 
+           fun([param(t, tuple)], filter(Rel2Query, Pred3))),1),Pred2) )
        )
     ;  ( sampleS(Rel1, Rel1S),
          sampleJ(Rel2, Rel2S),
@@ -263,8 +271,8 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
          possiblyRename(Rel1S, Rel1Query),
          possiblyRename(Rel2S, Rel2Query),
          card(BaseName, JoinSize),
-         Query = count(loopsel(head(Rel1Query, JoinSize), fun([param(t, tuple)],
-                       filter(Rel2Query, Pred2))))
+         Query = count(loopsel(head(Rel1Query, JoinSize), 
+           fun([param(t, tuple)], filter(Rel2Query, Pred2))))
        )
    ),
   plan_to_atom(Query, QueryAtom1),
@@ -374,11 +382,28 @@ sels(Pred, Sel, CalcPET, ExpPET) :-
 selectivity(Pred, Sel) :-
   selectivity(Pred, Sel, _, _).
 
-selectivity(P, _) :- write('Error in optimizer: cannot find selectivity for '),
+selectivity(P, _) :- 
+  write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl, 
   write('Call: selectivity('), write(P), write(',Sel)\n'),
   throw(sql_ERROR(statistics_selectivity(P, undefined))), 
   fail, !.
+
+
+
+% Wrapper to get also bbox selectivity
+
+selectivity(Pred, Sel, BBoxSel, CalcPET, ExpPET) :-
+  selectivity(Pred, Sel, CalcPET, ExpPET),
+  simplePred(Pred, PSimple),
+  databaseName(DB),
+  storedBBoxSel(DB, PSimple, BBoxSel),
+  !.
+
+selectivity(Pred, Sel, noBBox, CalcPET, ExpPET) :-
+  selectivity(Pred, Sel, CalcPET, ExpPET).
+
+
 
 
 % handle 'pseudo-joins' (2 times the same argument) as selections
@@ -401,11 +426,12 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   card(SampleName2, SampleCard2),
   selectivityQueryJoin(Pred, Rel1, Rel2, MSs, BBoxResCard, ResCard),
   nonzero(ResCard, NonzeroResCard), 
-  Sel is NonzeroResCard / (SampleCard1 * SampleCard2),	% must not be 0
+  Sel is NonzeroResCard / (SampleCard1 * SampleCard2), % must not be 0
   tupleSizeSplit(BaseName1,TupleSize1),
   tupleSizeSplit(BaseName2,TupleSize2),
   calcExpPET(MSs, SampleCard1, TupleSize1, 
-                  SampleCard2, TupleSize2, NonzeroResCard, MSsRes), % correct PET
+                  SampleCard2, TupleSize2, NonzeroResCard, MSsRes), 
+                                         % correct PET
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
   predCost(PSimple, CalcPET), % calculated PET
   ExpPET is MSsRes / max(SampleCard1 * SampleCard2, 1),
@@ -467,7 +493,8 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   tupleSizeSplit(BaseName1,TupleSize1),
   tupleSizeSplit(BaseName2,TupleSize2),
   calcExpPET(MSs, SampleCard1, TupleSize1, 
-                  SampleCard2, TupleSize2, NonzeroResCard, MSsRes), % correct PET
+                  SampleCard2, TupleSize2, NonzeroResCard, MSsRes), 
+                                     % correct PET
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
   predCost(PSimple,CalcPET), % calculated PET
   ExpPET is MSsRes / max(SampleCard1 * SampleCard2,1),
@@ -514,10 +541,12 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   ),!.
 
 % handle ERRORs
-selectivity(P, _, _, _) :- write('Error in optimizer: cannot find selectivity for '),
+selectivity(P, _, _, _) :- 
+  write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl, 
   write('Call: selectivity('), write(P), write(', _, _, _)\n'),
-  throw(sql_ERROR(statistics_selectivity(P, undefined, undefined, undefined))), 
+  throw(sql_ERROR(statistics_selectivity(P, undefined, 
+    undefined, undefined))), 
   fail, !.
 
 
@@ -581,7 +610,8 @@ replaceCharList(X, X).
 
 writeStoredSels :-
   open('storedSels.pl', write, FD),
-  write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
+  write(FD, 
+    '/* Automatically generated file, do not edit by hand. */\n'),
   findall(_, writeStoredSel(FD), _),
   close(FD).
 
@@ -625,7 +655,8 @@ readStoredPETs :-
 
 writeStoredPETs :-
   open('storedPETs.pl', write, FD),
-  write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
+  write(FD, 
+    '/* Automatically generated file, do not edit by hand. */\n'),
   findall(_, writeStoredPET(FD), _),
   close(FD).
 
@@ -702,7 +733,8 @@ showSingleRelationTuplesize(DB, Rel) :-
   lowerfl(RelExternal, RelExternalL),
   storedTupleSize(DB, RelExternalL, Size),
   tupleSizeSplit(Rel, Size2),
-  write('\tAvg.TupleSize: '), write(Size), write(' = '), write(Size2), nl, !.
+  write('\tAvg.TupleSize: '), write(Size), write(' = '), 
+    write(Size2), nl, !.
 
 showSingleRelationTuplesize(_, _) :-
   write('\tAvg.TupleSize: *'), nl, !.
@@ -730,10 +762,12 @@ showSingleAttribute(Rel,Attr) :-
   databaseName(DB),
   storedAttrSize(DB, Rel, Attr, Type, CoreTupleSize, InFlobSize, ExtFlobSize),
   secAttr(Rel, Attr, AttrS),
-  format('\t~p~35|~p~49|~p~60|~p~69|~p~n',[AttrS,Type,CoreTupleSize,InFlobSize,ExtFlobSize]).
+  format('\t~p~35|~p~49|~p~60|~p~69|~p~n',
+  [AttrS, Type, CoreTupleSize, InFlobSize, ExtFlobSize]).
 
 showAllAttributes(Rel) :-
-  format('\t~p~35|~p~49|~p~60|~p~69|~p~n',['AttributeName','Type','CoreSz','IFlobSz','ExtFlobSz']),
+  format('\t~p~35|~p~49|~p~60|~p~69|~p~n',
+  ['AttributeName','Type','CoreSz','IFlobSz','ExtFlobSz']),
   findall(_, showSingleAttribute(Rel, _), _).
 
 showAllIndices(Rel) :-
@@ -742,12 +776,15 @@ showAllIndices(Rel) :-
 
 showDatabase :-
   databaseName(DB),
-  write('\nCollected information for database \''), write(DB), write('\':\n'),
+  write('\nCollected information for database \''), write(DB), 
+    write('\':\n'),
   findall(_, showSingleRelation, _),
-  write('\n(Type \'showDatabaseSchema.\' to view the complete database schema.)\n').
+  write('\n(Type \'showDatabaseSchema.\' to view the complete '), 
+  write('database schema.)\n').
 
 showDatabase :-
-  write('\nNo database open. Use open \'database <name>\' to open an existing database.\n'),
+  write('\nNo database open. Use open \'database <name>\' to'),
+  write(' open an existing database.\n'),
   fail. 
 
 
@@ -979,7 +1016,8 @@ predCost(X = Y, PredCost, ArgTypeX, ArgSize, predArg(PA)) :- !,
   predCost(X, PredCostX, ArgTypeX, ArgSizeX, predArg(PA)),
   predCost(Y, PredCostY, ArgTypeY, ArgSizeY, predArg(PA)),
   biggerArg(ArgSizeX, ArgSizeY, ArgSize),
-  equalTCnew(ArgTypeX,  ArgTypeY, OperatorTC), % should somehow depend on ArgSize
+  equalTCnew(ArgTypeX,  ArgTypeY, OperatorTC), 
+                                   % should somehow depend on ArgSize
   PredCost is PredCostX + PredCostY + OperatorTC. 
 
 predCost(X < Y, PredCost, ArgTypeX, ArgSize, predArg(PA)) :- !,
