@@ -143,7 +143,7 @@ The destructor.
 4.2 Member functions
 
 */
-    inline const Coord& GetX() const
+    inline const Coord& (GetX)() const
     {
       return x;
     }
@@ -1854,9 +1854,43 @@ as an attribute.
     ostream& Print( ostream &os ) const;
     void Clear();
 
+/*
+
+6.9 Functions for accessing a simple line's segments in linear order
+
+*/
+
+    inline bool SelectInitialSegment( const Point &startPoint,
+                                      const double tolerance = -1.0 );
+/*
+Selects the segment, that starts with the given point (whose dominating
+point equals ~startPoint~). Returns ~true~ if such a segement exists, ~false~
+otherwise.
+
+If tolerance is >0 and ~startPoint~ is not found, the point with the minimum
+distance ~d~ to ~startPoint~ will be used as startimg point,
+if ~d~ <= ~tolerance~.
+
+*/
+
+    inline bool SelectSubsequentSegment() ;
+/*
+Selects the segment, that is subsequent to the currently selected Segment.
+Returns ~true~, if such a segment exists, rezurns ~false~ otherwise.
+
+*/
+
+    inline bool getWaypoint( Point &destination ) const;
+/*
+Returns ~true~, iff there is a selected segment.  In this case,
+~destination~ is set to the non-dominating point of the half segment.
+
+*/
+
+
   private:
 /*
-6.9 Private member functions
+6.10 Private member functions
 
 */
     void Sort();
@@ -1921,7 +1955,7 @@ ramification that the segment belongs, and edgeno contains the segment number.
 The method ~VisitHalfSegments~ is a recursive function that does the job for
 ~SetNoComponents~.
 
-6.10 Atrtibutes
+6.11 Attributes
 
 */
     DBArray<HalfSegment> line;
@@ -1977,10 +2011,17 @@ For simple lines without cycles, tells whether the starting point of the linear
 referencing system is smaller (lexicographic order) than the end point.
 
 */
+
+    int currentHS;
+/*
+Contains the number of the current HalfSegment for linear iteration of
+a ~simple~ line.
+
+*/
 };
 
 /*
-6.11 overloaded output operator
+6.12 overloaded output operator
 
 */
 ostream& operator<<( ostream& o, const Line& cl );
@@ -3451,7 +3492,8 @@ noComponents( 0 ),
 length( 0.0 ),
 simple( true ),
 cycle( false ),
-startsSmaller( false )
+startsSmaller( false ),
+currentHS( -1 )
 {}
 
 inline Line::Line( const Line& cl ) :
@@ -3463,7 +3505,8 @@ noComponents( cl.noComponents ),
 length( cl.length ),
 simple( cl.simple ),
 cycle( cl.cycle ),
-startsSmaller( cl.startsSmaller )
+startsSmaller( cl.startsSmaller ),
+currentHS ( cl.currentHS)
 {
   assert( cl.IsOrdered());
 
@@ -3632,6 +3675,106 @@ inline bool Line::GetHs( const HalfSegment*& hs ) const
     return true;
   }
   return false;
+}
+
+inline bool Line::SelectInitialSegment( const Point &startPoint,
+                                        const double tolerance )
+{
+  assert( IsDefined() );
+  assert( startPoint.IsDefined() );
+  if( !simple || cycle )
+    return false;
+  bool success = Find(startPoint, currentHS, false);
+  if ( !success || currentHS < 0 || currentHS >= Size() )
+  {
+    currentHS = -1;
+    if (tolerance > 0.0)
+    { // try to find the point with minimum distance to startPoint,
+      // where the distance is smaller than tolerance
+      double minDist = tolerance; // currentHS is -1
+      double distance = 0.0;
+      for(int pos=0; pos<Size(); pos++)
+      { // scan all dominating point, save the index of the HalfSegment with
+        // the currently smallest distance to startPoint to currentHS and the
+        // current minimum distance to minDist
+        const HalfSegment* hs;
+        line.Get( pos, hs );
+        distance = hs->GetDomPoint().Distance(startPoint);
+        if (distance <= minDist)
+        {
+          minDist   = distance;
+          currentHS = pos;
+        }
+      }
+      if (currentHS != -1)
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+  return true;
+}
+
+inline bool Line::SelectSubsequentSegment()
+{
+  assert( IsDefined() );
+
+  const HalfSegment* hs;
+
+  if( !simple || cycle || currentHS < 0 )
+    return false;
+  Get(currentHS, hs);
+  //  Point p( true, 0.0, 0.0 );
+  // The naive approach requires O(n) time to find the subsequnet HalfSegment:
+  //   p = hs->GetSecPoint();
+  //   return SelectInitialSegment( p );
+
+  // test both neighbours of the partner. As the line is simple and acyclic,
+  // one of both must be the subsequent HalfSegment!
+  // this requires only O(1) time:
+  int partner = hs->attr.partnerno;
+  const HalfSegment* nexths;
+
+  // look at position before currentHS's partner
+  if( partner>0 )
+  {
+    currentHS = partner - 1;
+    Get(currentHS, nexths);
+    if ( AlmostEqual(nexths->GetDomPoint(), hs->GetSecPoint()) )
+    {
+      return true;
+    }
+  }
+  // look at position after currentHS's partner
+  if( partner < Size()-1 )
+  {
+    currentHS = partner + 1;
+    Get(currentHS, nexths);
+    if ( AlmostEqual(nexths->GetDomPoint(), hs->GetSecPoint()) )
+    {
+      return true;
+    }
+  }
+  // No subsequent HalfSegment found:
+  currentHS = -1;
+  return false;
+}
+
+inline bool Line::getWaypoint( Point &destination ) const
+{
+  assert( IsDefined() );
+  if( !simple || cycle || currentHS < 0 || currentHS >= Size() )
+  {
+    destination.SetDefined( false );
+    return false;
+    cout << "Line::getWaypoint(): Illegal kind of line!";
+  }
+  const HalfSegment* hs;
+  Get(currentHS, hs);
+  destination = hs->GetSecPoint();
+  destination.SetDefined( true );
+  return true;
 }
 
 /*

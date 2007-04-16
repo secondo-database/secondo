@@ -3371,6 +3371,7 @@ Line& Line::operator=( const Line& l )
   cycle = l.cycle;
   startsSmaller = l.startsSmaller;
   ordered = true;
+  currentHS = l.currentHS;
   return *this;
 }
 
@@ -4552,7 +4553,13 @@ Line* Line::Clone() const
 
 ostream& Line::Print( ostream &os ) const
 {
-  return os << *this;
+  ios_base::fmtflags oldOptions = os.flags();
+  os.setf(ios_base::fixed,ios_base::floatfield);
+  os.precision(8);
+  os << *this;
+  os.flags(oldOptions);
+  return os;
+  
 }
 
 /*
