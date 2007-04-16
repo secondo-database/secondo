@@ -1044,6 +1044,17 @@ The destructor.
 };
 
 /*
+The output operator:
+
+*/
+
+template<class Alpha>
+ostream& operator<<(ostream& o, const StandardTemporalUnit<Alpha> u)
+{
+  return  u.Print(o);
+}
+
+/*
 3.7 SpatialTemporalUnit
 
 This class inherits from ~SpatialStandardAttribute~ and allows temporal units
@@ -1140,6 +1151,16 @@ The destructor.
     virtual size_t Sizeof() const = 0;
     virtual const Rectangle<dim> BoundingBox() const = 0;
 };
+
+/*
+The output operator
+
+*/
+template<class Alpha, unsigned dim>
+ostream& operator<<(ostream& o, const SpatialTemporalUnit<Alpha, dim> u)
+{
+  return  u.Print(o);
+}
 
 /*
 3.6 Class ~RInt~
@@ -2335,6 +2356,7 @@ ConstTempralUnit - Mappings.
 
 */
     void ExtendDefTime(Unit u, Mapping<Unit, Alpha>& result);
+
 
 /*
 3.10.7 Attributes
@@ -4605,7 +4627,20 @@ inline Mapping<Unit, Alpha>* Mapping<Unit, Alpha>::Clone() const
 template <class Unit, class Alpha>
 inline ostream& Mapping<Unit, Alpha>::Print( ostream &os ) const
 {
-  return os << "Temporal Algebra---Mapping" << endl;
+  if( !IsDefined() )
+  {
+    return os << "(Mapping: undefined)";
+  }
+  os << "( Mapping: defined, contains " << GetNoComponents() << " units )";
+//   os << "(Mapping : (";
+//   for(int i=0; i<GetNoComponents(); i++)
+//   {
+//     const Unit *unit;
+//     Get( i , unit );
+//     os << "\n\t" << *unit;
+//   }
+//   os << ") )" << endl;
+  return os;
 }
 
 template <class Unit, class Alpha>
@@ -5057,7 +5092,6 @@ void Mapping<Unit, Alpha>::ExtendDefTime(Unit u,
    }
    result.EndBulkLoad(false);
 }
-
 
 /*
 5 Type Constructor template functions
