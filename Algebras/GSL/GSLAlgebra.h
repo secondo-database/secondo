@@ -121,7 +121,6 @@ class GslRandomgen //: public Attribute
     unsigned long mySeed;
     int myType;
     gsl_rng *me;
-    
     static void InitializeTables();
     static int gslalg_randomgeneratorTableSize;
     static const gsl_rng_type* GetRngType(int index);

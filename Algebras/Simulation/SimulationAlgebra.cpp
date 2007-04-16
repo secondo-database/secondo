@@ -92,7 +92,7 @@ int           simRngType = 0; // index of random number generator to use
 static GslRandomgen simRNG( simRngType, simRngSeed );
 
 // parameter set for waiting at destination node
-double sim_dest_param_mu = 15.0;  // mean for exponential [ms]
+double sim_dest_param_mu = 15000; // mean for exponential [ms]
                                   //   distribution [ms]
 double sim_dest_param_ss =  0.33; // probabilities for forced stops
 double sim_dest_param_sm =  0.66; //   at crossings...
@@ -119,6 +119,11 @@ double sim_event_param_probstop         = 0.1; // prob.(event == forced stop)
 double sim_event_param_acceleration     =12.0; // acceleration constant:
                                                //   increase step [m/s]
                                                //   within a single subsegment
+
+// further parameters
+double sim_startpoint_tolerance = 0.5; // tolerance for search of a line's
+                                       // starting point. Set to negative value
+                                       // for exact matching.
 
 /*
 4. General Typemapping Functions
@@ -592,6 +597,8 @@ int sim_create_trip_VM ( Word* args, Word& result,
   Instant* instStart = (Instant*) args[3].addr;
   Point*  pointStart = (Point*) args[4].addr;
   CcReal*    cVstart = (CcReal*) args[5].addr;
+  long    tuplesReceived = 0;
+  long    tuplesAccepted = 0;
 
   cout << "sim_create_trip_VM called with" << endl;
   cout << "cLineIndex = \t"; cLineIndex->Print(cout); cout << endl;
@@ -612,7 +619,7 @@ int sim_create_trip_VM ( Word* args, Word& result,
     vector<Subsegment> subsegments(0);
     int          lineIndex = cLineIndex->GetIntval();
     int          VmaxIndex = cVmaxIndex->GetIntval();
-    Instant            currentInst = *instStart;
+    Instant    currentInst = *instStart;
     double     currentVmax = 0.0;
     Instant    currentTime = *instStart;
     Point  currentPosition = *pointStart;
@@ -624,19 +631,21 @@ int sim_create_trip_VM ( Word* args, Word& result,
     Point       startPoint(true,0,0);
     Point         endPoint(true,0,0);
     DateTime dummyDuration(0,0,durationtype);
-    Line*   currentLine = NULL;
-    Word    wActualTuple;
+    Line*      currentLine = NULL;
+    Word      wActualTuple;
     qp->Open(args[0].addr);
     qp->Request(args[0].addr, wActualTuple);
     while (qp->Received(args[0].addr))
     {
-      cout << "sim_create_trip_VM: Received tuple." << endl;
+      tuplesReceived++;
+      cout << "sim_create_trip_VM: Received tuple "
+          << tuplesReceived
+          << ":" << endl;
       // speed == 0.0 signals to wait for a random duration before the
       // movement may be continued!
       Tuple* tuple         = (Tuple*) (wActualTuple.addr);
       currentLine          = (Line*)  (tuple->GetAttribute(lineIndex));
       CcReal *CcurrentVmax = (CcReal*)(tuple->GetAttribute(VmaxIndex));
-      cout << "New Tuple: " << endl;
       cout << " currentLine = "; currentLine->Print(cout); cout << endl;
 
       // search for the first segment (starts with point currentPosition)
@@ -644,9 +653,11 @@ int sim_create_trip_VM ( Word* args, Word& result,
       if( currentLine->IsDefined()  &&
           CcurrentVmax->IsDefined() &&
           !currentLine->IsEmpty()   &&
-          currentLine->SelectInitialSegment(currentPosition) )
+          currentLine->SelectInitialSegment(currentPosition,
+                                            sim_startpoint_tolerance) )
       {// all args defined and current position found in currentLine
-        cout << "New Tuple OK!" << endl;
+        tuplesAccepted++;
+        cout << "New Tuple OK!" << tuplesAccepted << endl;
         currentVmax = CcurrentVmax->GetRealval();
         cout << " currentVmax = " << currentVmax << endl;
         cout << " current position (= " ;
@@ -656,9 +667,6 @@ int sim_create_trip_VM ( Word* args, Word& result,
         endPoint = currentPosition;
         while( currentLine->getWaypoint(endPoint) )
         { // for each line segment:
-          cout << "sim_create_trip_VM: Processing segment..." << endl;
-          cout << "  startPoint = \t"; startPoint.Print(cout); cout << endl;
-          cout << "  endPoint   = \t"; endPoint.Print(cout); cout << endl;
           assert( endPoint.IsDefined() );
           Subsegment s;
           double l =  startPoint.Distance(endPoint);
@@ -673,45 +681,31 @@ int sim_create_trip_VM ( Word* args, Word& result,
           }
           Point interimStart = startPoint;
           Point interimEnd   = startPoint;
-          cout << "  Start (1) = \t"; interimStart.Print(cout); cout << endl;
-          cout << "  End   (1) = \t"; interimEnd.Print(cout); cout << endl;
-          cout << "  Distance = " << interimStart.Distance(endPoint) << endl;
           while( interimEnd.Distance(endPoint) >=
                  sim_event_param_subsegmentlength )
           { // divide the remaining segment into subsegments
-            cout << "  created subsegment from segment." << endl;
             interimEnd.Translate(incrX,incrY);
             s.start    = interimStart;
             s.end      = interimEnd;
-            cout << "  Start (2) = \t"; interimStart.Print(cout); cout << endl;
-            cout << "  End   (2) = \t"; interimEnd.Print(cout); cout << endl;
             subsegments.push_back(s);
             interimStart = interimEnd;
-            cout << "  Distance = " << interimStart.Distance(endPoint) << endl;
           }
           // add the last subsegment
-          cout << "  Created last subsegment from segment." << endl;
           s.start    = interimStart;
           s.end      = endPoint;
-          cout << "  Start (3) = \t"; interimStart.Print(cout); cout << endl;
-          cout << "  End   (3) = \t"; endPoint.Print(cout); cout << endl;
           assert( endPoint.IsDefined() );
           subsegments.push_back(s);
           startPoint = endPoint;
           currentLine->SelectSubsequentSegment();
         }
-        cout <<
-            "\n=-=-=-=-=-=- Partition to sugsegments finished! -=-=-=-=-=-=\n"
-            << endl;
         // iterate vector to determine the speed at the end of each subsegment:
         for(unsigned int i=0 ; i<subsegments.size(); i++)
         {
-          cout << "Process subsegments[" << i << "]..."<< endl;
           localVmax = currentVmax; // base for further calculations
           if ( lastMaxSpeed >= 0.0 )
           { // Special Case:
             // Handle last subsegment of preceeding line:
-            cout << "  Handle crossing..."<< endl;
+            cout << "\tAt Crossing: ";
             localVmax = lastMaxSpeed; // recall lastMaxSpeed for
                                       // reenqueued subsegment
             // check whether to stop at the crossing
@@ -719,42 +713,49 @@ int sim_create_trip_VM ( Word* args, Word& result,
             if ( AlmostEqual(lastMaxSpeed,sim_vmax_sidestreet) )
             {
               if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) )
-                pWait = sim_dest_param_ss;
+              { cout << " S->S "; pWait = sim_dest_param_ss;}
               else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
-                pWait = sim_dest_param_sm;
+              { cout << " S->M "; pWait = sim_dest_param_sm;}
               else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
-                pWait = sim_dest_param_sf;
+              { cout << " S->F "; pWait = sim_dest_param_sf;}
               else
-                pWait = 0.0;
+              { cout << " S->??? "; pWait = 0.0;}
             }
             else if ( AlmostEqual(lastMaxSpeed,sim_vmax_mainstreet) )
             {
               if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) )
-                pWait = sim_dest_param_ms;
+              { cout << " M->S "; pWait = sim_dest_param_ms;}
               else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
-                pWait = sim_dest_param_mm;
+              { cout << " M->M "; pWait = sim_dest_param_mm;}
               else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
-                pWait = sim_dest_param_mf;
+              { cout << " M->F "; pWait = sim_dest_param_mf;}
               else
-                pWait = 0.0;
+              { cout << " M->? "; pWait = 0.0;}
             }
             else if ( AlmostEqual(lastMaxSpeed,sim_vmax_freeway) )
             {
               if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) )
-                pWait = sim_dest_param_fs;
+              { cout << " F->S "; pWait = sim_dest_param_fs;}
               else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
-                pWait = sim_dest_param_fm;
+              { cout << " F->M "; pWait = sim_dest_param_fm;}
               else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
-                pWait = sim_dest_param_ff;
+              { cout << " F->F "; pWait = sim_dest_param_ff;}
               else
-                pWait = 0.0;
+              { cout << " F->? "; pWait = 0.0; }
             }
             else
+            {
+              cout << " ?->? ";
               pWait = 0.0;
+            }
             if(simRNG.NextReal() <= pWait)
             { // Force waiting at the crossing...
-              cout << "  ...Force waiting at the crossing!"<< endl;
+              cout << "\tStopping (after next)."<< endl;
               stopAfterThis = true;
+            }
+            else
+            {
+              cout << "\tPassing (after next)."<< endl;
             }
             lastMaxSpeed = -1.0; // avoid double waits
           }
@@ -762,66 +763,68 @@ int sim_create_trip_VM ( Word* args, Word& result,
           { // speed == 0.0 indicates, that we have to wait,
             // before we may continue the voyage:
             // Determine waiting duration using exponential distribution:
-            cout << "  Waiting (currentSpeed==0.0)."<< endl;
             double waittime =
                   gsl_ran_exponential(simRNG.GetGenerator(),
                                       sim_dest_param_mu/86400000.0);
             dummyDuration.ReadFrom(waittime);
-            const Interval<Instant>
-                interval( currentInst,
-                          currentInst + dummyDuration,
-                          true,
-                          false );
-            UPoint up( interval, subsegments[i].start, subsegments[i].start);
-            res->MergeAdd(up);
-            cout << "  Created Waiting-Unit\n  up = "; up.Print(cout); cout
-                << endl;
-            cout << "    currentSpeed = " << currentSpeed << endl;
-            currentInst += dummyDuration;
+            if( dummyDuration > DateTime(0,0,durationtype) )
+            {
+              const Interval<Instant>
+                  interval( currentInst,
+                            currentInst + dummyDuration,
+                            true,
+                            false );
+              UPoint up( interval, subsegments[i].start, subsegments[i].start);
+              res->MergeAdd(up);
+              currentInst += dummyDuration;
+              cout << "\tWaiting for " 
+                   << dummyDuration.GetAllMilliSeconds()/1000 << " sec."
+                   << endl;
+            }
           }
           if (i<subsegments.size()-1)
           { // This is not the last subsegment for this line
             if( simRNG.NextReal() <= (sim_event_param_propconst/currentVmax) )
             {// An event occurrs
-              cout << "  Event generated:"<< endl;
               if( simRNG.NextReal() <= (sim_event_param_probstop) )
               { // forced stop after this sub-segment
-                cout << "                    Forced stop!"<< endl;
+                cout << "\tEvent: Forced stop!";
                 stopAfterThis = true;
               }
               else
               { // forced deceleration. Use binomial distrib.
                 // to determine amount of speed loss
-                cout << "                    Deceleration!"<< endl;
                 localVmax =
                     localVmax * gsl_ran_binomial(simRNG.GetGenerator(),
                                                 0.5,
                                                 20)
                     /20.0;
                 localVmax = MAX(localVmax, 1.0);
+                cout << "\tEvent: Decelerate to "
+                    << localVmax;
               }
             }
             else
             { // no event: accelerate up to localVmax
-              cout << "  No event, possibly accelerate:"<< endl;
               localVmax =
                   MIN(currentSpeed+sim_event_param_acceleration, currentVmax);
+              cout << "\tNo event: Accelerate to " << localVmax;
             }
             // calculate steepness of curves
             double alpha = subsegments[i].end.Direction(subsegments[i+1].end);
-            localVmax = MIN( localVmax,
-                currentVmax*(1.0-( fmod(fabs(lastAlpha-alpha), 180.0) )/
-                    180.0) );
+            double curveMax =
+                  (1.0-( fmod(fabs(lastAlpha-alpha), 180.0) )/180.0)
+                  * currentVmax;
+            localVmax = MIN( localVmax, curveMax );
             lastAlpha = alpha;
             currentSpeed = localVmax;
-            cout << "  Steepness of curve: = "
-                << fmod(fabs(lastAlpha-alpha), 180.0) << endl;
+            cout << "\t alpha=" << alpha
+                << " curveMax=" << curveMax
+                << " currentSpeed = " << currentSpeed << endl;
           }
           else if (i == subsegments.size()-1 )
           { // This is the last subsegment. Delete all subsegments,
             // but the last one
-            cout << "  Special case: Last subsegment (requeue subsegment)."
-                << endl;
             Subsegment lastSubSeg = subsegments[i];
             subsegments.clear();
             subsegments.push_back(lastSubSeg);
@@ -833,7 +836,7 @@ int sim_create_trip_VM ( Word* args, Word& result,
           }
           // Create a unit for the current subsegment
           double dist = subsegments[i].start.Distance(subsegments[i].end);
-          dummyDuration.ReadFrom(dist/currentSpeed/3.6); // time used to travel
+          dummyDuration.ReadFrom(dist*3.6/currentSpeed); // time used to travel
                                                         // the subsegment t=s/v
           const Interval<Instant>
                 interval( currentInst,
@@ -842,8 +845,6 @@ int sim_create_trip_VM ( Word* args, Word& result,
                           false );
           UPoint up( interval, subsegments[i].start, subsegments[i].end);
           res->MergeAdd(up);
-          cout << "  Created Unit\n   up = "; up.Print(cout); cout << endl;
-          cout << "    currentSpeed = " << currentSpeed << endl;
           currentInst += dummyDuration;
           currentPosition = subsegments[i].end;
           if (stopAfterThis)
@@ -852,9 +853,6 @@ int sim_create_trip_VM ( Word* args, Word& result,
             stopAfterThis = false;
           }
         } // endfor(unsigned int i=0 ; i<subsegments.size(); i++)
-//         currentPosition = subsegments.back().end; // set currentPosition to
-//                                                 // end of currentLine
-        cout << " >currentPosition = ";
         currentPosition.Print(cout);
         cout << endl;
         assert( currentPosition.IsDefined() );
@@ -862,21 +860,19 @@ int sim_create_trip_VM ( Word* args, Word& result,
       else
       { // undef/empty/complex/cyclic line or undef vmax or cuppentPos
         //            not found: do nothing
-        cout << "sim_create_trip_VM: current position (= " ;
+        cout << "current position (= " ;
         currentPosition.Print(cout);
         cout << " ) NOT found in currentLine" << endl;
       }
       tuple->DeleteIfAllowed();
       qp->Request(args[0].addr, wActualTuple);
     }
-    cout << "Finished stream!" << endl;
     // create and append the final unit
     if( subsegments.size() == 1 )
     { // there is a subsegment left. Nothing happens here.
-      cout << "Processing final subsegment." << endl;
       currentSpeed = MAX(currentSpeed, 5.0);
       double dist = subsegments[0].start.Distance(subsegments[0].end);
-      dummyDuration.ReadFrom(dist/currentSpeed/3.6); // time used to travel
+      dummyDuration.ReadFrom(dist*3.6/currentSpeed); // time used to travel
                                                      // the subsegment t=s/v
       const Interval<Instant>
           interval( currentInst,
@@ -885,8 +881,6 @@ int sim_create_trip_VM ( Word* args, Word& result,
                     false );
       UPoint up( interval, subsegments[0].start, subsegments[0].end);
       res->MergeAdd(up);
-      cout << "  Created Unit\n   up = "; up.Print(cout); cout << endl;
-      cout << "    currentSpeed = " << currentSpeed << endl;
       currentInst += dummyDuration;
       currentPosition = subsegments.back().end; // set currentPosition to
     } // endwhile (qp->Received(args[0].addr))
@@ -902,7 +896,12 @@ int sim_create_trip_VM ( Word* args, Word& result,
     res->SetDefined( false );
   }
   res->EndBulkLoad();
+  qp->Close(args[0].addr);
   cout << "sim_create_trip_VM: Finished!" << endl;
+  cout << "  tuplesReceived = " << tuplesReceived << endl;
+  cout << "  tuplesAccepted = " << tuplesAccepted << endl;
+  cout << "  units created  = " << res->GetNoComponents() << endl;
+  cout << *res << endl;
   return 0;
 }
 

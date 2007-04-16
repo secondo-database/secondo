@@ -236,14 +236,14 @@ inline unsigned long int GslRandomgen::MaxRand() const
   return gsl_rng_max(me);
 }
 
-inline double GslRandomgen::NextReal() 
+inline double GslRandomgen::NextReal()
 { // returns a double precision floating point number 
       // uniformly distributed in the range [0,1)
   assert( defined && me != NULL );
   return gsl_rng_uniform(me);
 }
 
-inline double GslRandomgen::NextRealPos() 
+inline double GslRandomgen::NextRealPos()
 { // returns a double precision floating point number 
       // uniformly distributed in the range (0,1)
   assert( defined && me != NULL );
@@ -315,6 +315,17 @@ string GslRandomgen::rngType_getName(const int index)
   string res(GslRandomgen::gslalg_randomgeneratorTable[index]->name);
   return res;
 }
+
+
+/*
+Define static variables
+
+*/
+
+bool GslRandomgen::initialized = false;
+int GslRandomgen::gslalg_randomgeneratorTableSize = 0;
+int GslRandomgen::gsl_rng_defaultIndex = 0;
+const gsl_rng_type** GslRandomgen::gslalg_randomgeneratorTable = NULL;
 
 /*
 4 Secondo Datatypes
@@ -548,11 +559,6 @@ Always returns `TRUE'.
 */
 
 // define static variables
-bool GslRandomgen::initialized = false;
-const gsl_rng_type **GslRandomgen::gslalg_randomgeneratorTable = NULL;
-int GslRandomgen::gslalg_randomgeneratorTableSize = 0;
-int GslRandomgen::gsl_rng_defaultIndex = 0;
-
 // the static generator instance - initialize with defaults
 static GslRandomgen the_gsl_randomgenerator( true );
 
@@ -1451,12 +1457,12 @@ class GSLAlgebra : public Algebra
     }
   ~GSLAlgebra() {};
 
-  private:
-    bool initialized;
-    const gsl_rng_type **gslalg_randomgeneratorTable;
-    // number of generator types available:
-    int gslalg_randomgeneratorTableSize;
-    int gsl_rng_defaultIndex;
+//   private:
+//     bool initialized;
+//     const gsl_rng_type **gslalg_randomgeneratorTable;
+// // number of generator types available:
+//     int gslalg_randomgeneratorTableSize;
+//     int gsl_rng_defaultIndex;
 
     
 };
