@@ -836,8 +836,8 @@ int sim_create_trip_VM ( Word* args, Word& result,
           }
           // Create a unit for the current subsegment
           double dist = subsegments[i].start.Distance(subsegments[i].end);
-          dummyDuration.ReadFrom(dist*3.6/currentSpeed); // time used to travel
-                                                        // the subsegment t=s/v
+          dummyDuration.ReadFrom(dist/currentSpeed/24000L);
+          // ^^^^ time used to travel the subsegment t=s/v ^^^
           const Interval<Instant>
                 interval( currentInst,
                           currentInst + dummyDuration,
@@ -872,7 +872,7 @@ int sim_create_trip_VM ( Word* args, Word& result,
     { // there is a subsegment left. Nothing happens here.
       currentSpeed = MAX(currentSpeed, 5.0);
       double dist = subsegments[0].start.Distance(subsegments[0].end);
-      dummyDuration.ReadFrom(dist*3.6/currentSpeed); // time used to travel
+      dummyDuration.ReadFrom(dist/currentSpeed/24000); // time used to travel
                                                      // the subsegment t=s/v
       const Interval<Instant>
           interval( currentInst,
