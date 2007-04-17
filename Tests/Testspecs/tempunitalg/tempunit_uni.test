@@ -980,14 +980,12 @@ query intersection(up1, spiral) the_mvalue
 query intersection(spiral, up2) the_mvalue
 
 #testcase intersection_upoint_uregion
-#yields (mpoint ((("2003-11-20-06:00" "2003-11-20-06:01:30" TRUE TRUE)(0.0 0.0 0.0 0.0))(("2003-11-20-06:02:06" "2003-11-20-06:03:54" TRUE TRUE)(0.0 0.0 0.0 0.0))(("2003-11-20-06:04:30" "2003-11-20-06:06" TRUE TRUE)(0.0 0.0 0.0 0.0))(("2003-11-20-06:12" "2003-11-20-06:24" TRUE TRUE)(0.0 0.0 0.0 0.0))))
-query intersection(up9, uspiral) the_mvalue
+#yields (mpoint ( ( ("2003-11-20-06:00" "2003-11-20-06:00" TRUE TRUE) (1500.0 1500.0 1500.0 1500.0)) ( ("2003-11-20-06:06" "2003-11-20-06:12" TRUE TRUE) (1500.0 1500.0 1500.0 1500.0))))
+query intersection(up6, uspiral) the_mvalue
 
-#testcase intersection_uregion_upoint
-#yields (mpoint ((("2003-11-20-06:00" "2003-11-20-06:01:30" TRUE TRUE)(0.0 0.0 0.0 25.0))(("2003-11-20-06:02:15" "2003-11-20-06:06" TRUE TRUE)(0.0 37.5 0.0 99.99999999999999))(("2003-11-20-06:12" "2003-11-20-06:15" TRUE TRUE)(0.0 200.0 0.0 250.0))))
+#testcase intersection_uregion_upoint_empty
+#yields (mpoint () )
 query intersection(uspiral, up4) the_mvalue
-
-
 
 #testcase the_mvalue mpoint
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5AsResult
