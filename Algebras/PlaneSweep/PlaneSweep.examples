@@ -4,42 +4,180 @@ Restore : NO
 Operator : intersection_new
 Number   : 1
 Signature: region x region -> region
-Example  : query intersection_new(val(mrain atinstant six30), val(mrain3 atinstant six30))
+Example  : query intersection_new(thecenter,westhafen)
+Result   : file
+
+
+Operator : intersection_new
+Number   : 2
+Signature: region x line -> line
+Example  : query intersection_new(thecenter,trajectory(train7))
+Result   : file
+
+
+Operator : intersection_new
+Number   : 3
+Signature: line x region -> line
+Example  : query intersection_new(trajectory(train1),thecenter)
+Result   : file
+
+
+Operator : intersection_new
+Number   : 4
+Signature: line x line -> line
+Example  : query intersection_new(trajectory(train7),train7sections)
 Result   : file
 
 
 Operator : intersects_new
 Number   : 1
 Signature: region x region -> bool
-Example  : query (val(mrain atinstant six30)) intersects_new (val(mrain3 atinstant six30))
-Result   : file
+Example  : query thecenter intersects_new tiergarten
+Result   : TRUE
+
+
+Operator : intersects_new
+Number   : 2
+Signature: region x line -> bool
+Example  : query thecenter intersects_new trajectory(train7)
+Result   : TRUE
+
+
+Operator : intersects_new
+Number   : 3
+Signature: line x region -> bool
+Example  : query trajectory(train6) intersects_new thecenter
+Result   : TRUE
+
+
+Operator : intersects_new
+Number   : 4
+Signature: line x line -> bool
+Example  : query trajectory(train7) intersects_new trajectory(train1)
+Result   : TRUE
 
 
 Operator : minus_new
 Number   : 1
 Signature: region x region -> region
-Example  : query minus_new(val(mrain atinstant six30), val(mrain3 atinstant six30))
+Example  : query minus_new(thecenter,tiergarten)
+Result   : file
+
+
+Operator : minus_new
+Number   : 2
+Signature: region x line -> region
+Example  : query minus_new(thecenter,trajectory(train1))
+Result   : file
+
+
+Operator : minus_new
+Number   : 3
+Signature: line x region-> line
+Example  : query minus_new(trajectory(train7),thecenter)
+Result   : file
+
+
+Operator : minus_new
+Number   : 4
+Signature: line x line -> line
+Example  : query minus_new(trajectory(train7),train7sections)
 Result   : file
 
 
 Operator : p_intersects
 Number   : 1
-Signature: region x region -> bool 
-Example  : query (val(mrain atinstant six30)) p_intersects (val(mrain3 atinstant six30))
-Result   : file
+Signature: region x region -> bool
+Example  : query thecenter p_intersects tiergarten
+Result   : TRUE
+
+
+Operator : p_intersects
+Number   : 2
+Signature: region x line -> bool
+Example  : query thecenter p_intersects trajectory(train7)
+Result   : TRUE
+
+
+Operator : p_intersects
+Number   : 3
+Signature: line x region -> bool
+Example  : query trajectory(train6) p_intersects thecenter
+Result   : TRUE
+
+
+Operator : p_intersects
+Number   : 4
+Signature: line x line -> bool
+Example  : query trajectory(train7) p_intersects trajectory(train1)
+Result   : FALSE
 
 
 Operator : realm
 Number   : 1
 Signature: region x region -> region
-Example  : query realm(val(mrain atinstant six30), val(mrain3 atinstant six30))
+Example  : query realm(westhafen,thecenter)
+Result   : file
+
+
+Operator : realm
+Number   : 2
+Signature: region x region -> region
+Example  : query realm(thecenter,westhafen)
+Result   : file
+
+
+Operator : realm
+Number   : 3
+Signature: region x line -> region
+Example  : query realm(thecenter,trajectory(train7))
+Result   : file
+
+
+Operator : realm
+Number   : 4
+Signature: line x region -> region
+Example  : query realm(trajectory(train7),thecenter)
+Result   : file
+
+
+Operator : realm
+Number   : 5
+Signature: line x line -> line
+Example  : query realm(trajectory(train7),trajectory(train1))
+Result   : file
+
+
+Operator : realm
+Number   : 6
+Signature: line x line -> line
+Example  : query realm(trajectory(train1),trajectory(train7))
 Result   : file
 
 
 Operator : union_new
 Number   : 1
 Signature: region x region -> region
-Example  : query union_new(val(mrain atinstant six30), val(mrain3 atinstant six30))
+Example  : query union_new(thecenter,westhafen)
 Result   : file
 
 
+Operator : union_new
+Number   : 2
+Signature: line x region -> region
+Example  : query union_new(trajectory(train7),thecenter)
+Result   : file
+
+
+Operator : union_new
+Number   : 3
+Signature: region x line -> region
+Example  : query union_new(thecenter,trajectory(train7))
+Result   : file
+
+
+Operator : union_new
+Number   : 4
+Signature: line x line -> line
+Example  : query union_new(trajectory(train7),trajectory(train1))
+Result   : file
