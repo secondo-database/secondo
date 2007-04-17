@@ -52,7 +52,7 @@ Result   : crashes
 
 Operator : gettuples2
 Number   : 3
-Signature: (stream (tuple ((id tid) (x1 t1)...(xn tn)))) x (rel (tuple ((y1 t1)...(yn tn)))) -> (stream (tuple ((x1 t1)...(xn tn) (y1 t1)...(yn tn))))
+Signature: (stream (tuple ((id tid) (x1 t1)...(xn tn)))) x (rel (tuple ((y1 t1)...(yn tn)))) x id -> (stream (tuple ((x1 t1)...(xn tn) (y1 t1)...(yn tn))))
 Example  : query ten feed extend[tenid: tupleid(.)] unitTrains_Line exactmatchS[1] {S} product UnitTrains gettuples2[id_S] count
 Result   : crashes
 

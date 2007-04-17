@@ -970,7 +970,7 @@ const string CreateRTreeSpec  =
 Operator creatertree (
           "creatertree",       // name
           CreateRTreeSpec,     // specification
-          24,                  //Number of overloaded functions
+          24,                  // Number of overloaded functions
           rtreecreatertreemap, // value mapping
           CreateRTreeSelect,   // trivial selection function
           CreateRTreeTypeMap   // type mapping
@@ -2097,14 +2097,14 @@ The same as for ~gettuples~, but template parameter is ~3~.
 const string gettuples2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>(stream (tuple ((id tid) (x1 t1)...(xn tn)))) x"
-    " (rel (tuple ((y1 t1)...(yn tn)))) ->"
+    " (rel (tuple ((y1 t1)...(yn tn)))) x id ->"
     " (stream (tuple ((x1 t1)...(xn tn) (y1 t1)...(yn tn))))"
     "</text--->"
     "<text>_ _  gettuples2[ attr ] </text--->"
     "<text>Retrieves the tuples in the relation 'rel' in the second "
     "argument given by the tuple id in argument 'attr' in the stream. "
     "(first argument). The result tuple type is a concatenation of both types "
-    "without the tid attribute.</text--->"
+    "without the 'id' attribute.</text--->"
     "<text>query citiesInd windowintersectsS[r] cities gettuples2[id]; "
     "where citiesInd is e.g. created with 'let citiesInd = "
     "cities creatertree [pos]'</text--->"
@@ -2459,12 +2459,12 @@ Operator gettuplesdbl (
 
 
 /*
-5.2 Operator ~creatertree_bulkload~
+5.2 Operator ~creatertree\_bulkload~
 
 This operator will create a new r-tree from the scratch, applying a 
 simple bulkload mechanism. The input relation/stream is read and partition 
-them into $p =\lceil \frac{N}{c} }\rceil$ leaf pages. Then start aggregating 
-the leafnodes into $p :=\lceil \frac{p}{c} }\rceil$ internal nodes until only 
+them into $p =\lceil \frac{N}{c} \rceil$ leaf pages. Then start aggregating
+the leafnodes into $p :=\lceil \frac{p}{c} \rceil$ internal nodes until only
 a single node, the root, remains.
 
 Problems: There may be many nodes to be handled, so we need to store the current working set of nodes and within a persistent buffer.
@@ -2477,12 +2477,12 @@ overlapping within the r-tree.
 */
 
 /*
-5.2. TypeMapping for Operator ~creatertree_bulkload<D>~
+5.2. TypeMapping for Operator ~creatertree\_bulkload<D>~
 
 Signature is
 
 ----
-         creatertree_bulkload<D>: stream 
+         creatertree_bulkload<D>: stream
 ----
 
 */
@@ -2655,7 +2655,7 @@ and high parameters these two last integer numbers.
 }
 
 /*
-5.2. Value Mapping for Operator ~creatertree_bulkload<D>~
+5.2. Value Mapping for Operator ~creatertree\_bulkload<D>~
 
 */
 template<unsigned dim>
@@ -2928,7 +2928,7 @@ int CreateRTreeBulkLoadStreamL2Rect(Word* args, Word& result, int message,
   return 0;
 }
 /*
-5.2. Selection Function for Operator ~creatertree_bulkload<D>~
+5.2. Selection Function for Operator ~creatertree\_bulkload<D>~
 
 */
 int CreateRTreeBulkLoadSelect (ListExpr args)
@@ -3004,14 +3004,14 @@ ValueMapping CreateRTreeBulkLoad [] =
 
 
 /*
-5.2. Specification for Operator ~creatertree_bulkload~
+5.2. Specification for Operator ~creatertree\_bulkload~
 
 */
 const string CreateRTreeBulkLoadSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" \"Comment\" ) "
   "(<text>(stream (tuple (x1 t1)...(xn tn) (id tid))) xi)"
-  " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false)/n"
+  " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false)\n"
   "((stream (tuple (x1 t1)...(xn tn) "
   "(id tid)(low int)(high int))) xi)"
   " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti true)</text--->"
@@ -3029,7 +3029,7 @@ const string CreateRTreeBulkLoadSpec  =
   "<text></text--->"
   ") )";
 /*
-5.2. Definition of Operator ~creatertree_bulkload<D>~
+5.2. Definition of Operator ~creatertree\_bulkload<D>~
 
 */
 Operator bulkloadrtree(
