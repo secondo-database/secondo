@@ -87,8 +87,9 @@ You can change most of the parameters at runtime using operators
 */
 
 // setting up the RNG
-unsigned long simRngSeed = 0; // 0 = use standard random seed
-int           simRngType = 0; // index of random number generator to use
+unsigned long simRngSeed =  0; // 0 = use standard random seed
+int           simRngType = 14; // index of random number generator to use
+                               // is gsl_rng_mt19937
 static GslRandomgen simRNG( simRngType, simRngSeed );
 
 // parameter set for waiting at destination node
@@ -134,27 +135,30 @@ double sim_startpoint_tolerance = 0.5; // tolerance for search of a line's
 template<int N>
     ListExpr sim_realN2bool_TM ( ListExpr args )
 {
-  ListExpr arg1, args2 = args;
+  ListExpr arg1, args2;
   std::ostringstream oss;
   oss << N;
+  cout << "sim_realN2bool_TM<" << N << "> called." << endl;
   if ( nl->ListLength( args ) == N )
   {
+    args2 = args;
     for(int i=0; i<N; i++)
     {
+      cout << "\targs[" << i << "] " << endl;
       arg1 = nl->First( args2 );
       args2 = nl->Rest( args );
       if ( !(nl->AtomType( arg1 ) == SymbolType) || 
              !(nl->SymbolValue( arg1 ) == "real") 
          )
       {
-        ErrorReporter::ReportError("SimulationAlgebra::sim_set_dest_params "
+        ErrorReporter::ReportError("SimulationAlgebra::sim_realN2bool_TM "
             "expects (real)^" + oss.str() + "." );
         return (nl->SymbolAtom( "typeerror" ));
       }
     }
     return (nl->SymbolAtom( "bool" ));
   }
-  ErrorReporter::ReportError("SimulationAlgebra::sim_set_dest_params "
+  ErrorReporter::ReportError("SimulationAlgebra::sim_realN2bool_TM "
       "expects a list of length " + oss.str() + ".");
   return (nl->SymbolAtom( "typeerror" ));
 }
@@ -169,7 +173,8 @@ We will define the following operators:
 
  sim_set_rng:                int x int -> bool
  sim_set_dest_params:        real x real x real x real x real x real
-                                         x real x real x real x real -> bool
+                                  x real x real x real x real x real
+                                  x real x real x real -> bool
  sim_set_event_params:       real x real x real x real -> bool
  sim_create_trip:            stream(tuple( ... (a_m line) ... (a_n real) ... ))
                                   x instant -> mpoint
@@ -238,7 +243,7 @@ const string sim_set_rng_Spec  =
     "<text>sim_set_rng( Type , Seed )</text--->"
     "<text>Initialize the random number generator to be "
     "of type 'Type' and use a random seed 'Seed'.</text--->"
-    "<text>query sim_set_rng( 5, 54677 )</text--->"
+    "<text>query sim_set_rng( 14, 0 )</text--->"
     ") )";
 
 Operator sim_set_rng( 
@@ -260,9 +265,9 @@ int sim_set_dest_params_VM ( Word* args, Word& result,
 {
   result = qp->ResultStorage( s );
   CcBool *res = ((CcBool*)result.addr);
-  CcReal* cArgs[10];
-  double dArgs[10];
-  for(int i=0; i<10; i++)
+  CcReal* cArgs[14];
+  double dArgs[14];
+  for(int i=0; i<14; i++)
   {
     cArgs[i] = (CcReal*) args[i].addr;
     if ( !cArgs[i]->IsDefined() )
@@ -273,7 +278,7 @@ int sim_set_dest_params_VM ( Word* args, Word& result,
       return 0;
     }
     dArgs[i] = cArgs[i]->GetRealval();
-    if ( i>0 && (dArgs[i] < 0.0 || dArgs[i] > 1.0 ) )
+    if ( i>0 && (dArgs[i] < 0.0 || ( i<10 && dArgs[i] > 1.0 ) ) )
     {
       res->Set(true, false);
       ErrorReporter::ReportError("SimulationAlgebra::sim_set_dest_params: "
@@ -291,25 +296,33 @@ int sim_set_dest_params_VM ( Word* args, Word& result,
   sim_dest_param_fs = dArgs[7];
   sim_dest_param_fm = dArgs[8];
   sim_dest_param_ff = dArgs[9];
+  sim_vmax_sidestreet = dArgs[10];
+  sim_vmax_mainstreet = dArgs[11];
+  sim_vmax_freeway    = dArgs[12];
+  sim_startpoint_tolerance = dArgs[13];
   res->Set(true, true);
   return 0;
 }
 
 const string sim_set_dest_params_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "( <text> real x real x real x real x real x real x "
-    " real x real x real x real -> bool</text--->"
-    "<text>sim_set_dest_params( ExpMu, SS, SM, SF, MS, MM, MF, FS, FM, FF)"
+    "( <text> real x real x real x real x real x real x real x "
+    " real x real x real x real x real x real x real -> bool</text--->"
+    "<text>sim_set_dest_params( ExpMu, SS, SM, SF, MS, MM, MF, FS, FM, "
+    "FF, VmaxS, VmaxM, VmaxF, SPT)"
     "</text--->"
     "<text>Set the parameters for stops at destination nodes: Set mean of "
     "exponential distribution of waiting times to 'ExpMu' (in milliseconds). "
     "Set probabilities "
-    "for forced stops when transitions between street types. 'XY' means "
+    "for forced stops at transitions between street types. 'XY' means "
     "transition X -> Y, where S= small street, M= main street F= freeway. "
-    "Observe 0.0 <= p <= 1.0 for all probabilities p. Returns 'TRUE', iff "
-    "the parameters have been set correctly.</text--->"
-    "<text>query sim_set_dest_params( 32.2, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, "
-    "0.7, 0.8, 0.9 )</text--->"
+    "Observe 0.0 <= p <= 1.0 for all probabilities p. "
+    "Set maximum allpwed velocities for sidestreets (VmaxS), mainstreets "
+    "(VmaxM) and freewayf (VmaxF) [1000/h]. Set the startpoint tolerance "
+    "to SPT [1]. Returns 'TRUE', iff the parameters have been set "
+    "correctly.</text--->"
+    "<text>query sim_set_dest_params( 1500.0, 0.33, 0.66, 1.0, 0.33, 0.5, "
+    "0.66, 0.05, 0.33, 0.10, 30.0, 50.0, 70.0, 0.5 )</text--->"
     ") )";
 
 Operator sim_set_dest_params( 
@@ -317,7 +330,7 @@ Operator sim_set_dest_params(
     sim_set_dest_params_Spec,
     sim_set_dest_params_VM,
     Operator::SimpleSelect,
-    sim_realN2bool_TM<10>) ;
+    sim_realN2bool_TM<14>) ;
 
 /*
 5.3 Operator ~sim\_set\_event\_params~
@@ -367,9 +380,9 @@ int sim_set_event_params_VM ( Word* args, Word& result,
     }
   }
   sim_event_param_subsegmentlength = dArgs[0]; // maximum length of subsections
-  sim_event_param_propconst = dArgs[1];        // constant of proportionality
-  sim_event_param_probstop  = dArgs[2];        // prob. for event = forced stop
-  sim_event_param_acceleration = dArgs[3];     // acceleration rate
+  sim_event_param_propconst        = dArgs[1]; // constant of proportionality
+  sim_event_param_probstop         = dArgs[2]; // prob. for event = forced stop
+  sim_event_param_acceleration     = dArgs[3]; // acceleration rate
                                     // [km/h/sim_event_param_subsegmentlength]
   res->Set(true, true);
   return 0;
@@ -386,7 +399,7 @@ const string sim_set_event_params_Spec  =
     "stop is given by 0.0 <= P <= 1.0 (the balance, 1-P, is meant to trigger "
     "deceleration events). Acceleration is set to 'Acc'."
     "Returns 'TRUE', iff the parameters have been set correctly.</text--->"
-    "<text>sim_set_event_params( 32.2, 1.0, 0.2, 15.3 )</text--->"
+    "<text>sim_set_event_params( 5.0, 1.0, 0.1, 12.0 )</text--->"
     ") )";
 
 Operator sim_set_event_params( 
@@ -931,6 +944,87 @@ Operator sim_create_trip(
     Operator::SimpleSelect,
     sim_create_trip_TM) ;
 
+
+/*
+5.4 Operator ~sim\_print\_params~
+
+Prints the parameter settings to the console.
+
+*/
+
+ListExpr sim_empty2bool_TM ( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 0 )
+  {
+    return (nl->SymbolAtom( "bool" ));
+  }
+  ErrorReporter::ReportError("SimulationAlgebra::sim_empty2bool_TM "
+      "expects a list of length 0.");
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+
+int sim_print_params_VM ( Word* args, Word& result,
+                              int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcBool *res = ((CcBool*)result.addr);
+  
+  cout << endl;
+  cout << "***********************************************************" <<endl;
+  cout << "* SimulationAlgera   Parameter Settings *" << endl;
+  cout << "***********************************************************" <<endl;
+  cout << "* RANDOM NUMBER GENERATOR:" << endl;
+  cout << "* simRngSeed = " << simRngSeed << endl;
+  cout << "* simRngType = " << simRngType << endl;
+  cout << "***********************************************************" <<endl;
+  cout << "* CROSSING PARAMETERS" << endl;
+  cout << "* sim_dest_param_mu = " << sim_dest_param_mu << "[ms]" << endl;
+  cout << "* sim_dest_param_ss = " << sim_dest_param_ss<< "[0,1]" << endl;
+  cout << "* sim_dest_param_sm = " << sim_dest_param_sm<< "[0,1]" << endl;
+  cout << "* sim_dest_param_sf = " << sim_dest_param_sf<< "[0,1]" << endl;
+  cout << "* sim_dest_param_ms = " << sim_dest_param_ms<< "[0,1]" << endl;
+  cout << "* sim_dest_param_mm = " << sim_dest_param_mm<< "[0,1]" << endl;
+  cout << "* sim_dest_param_ms = " << sim_dest_param_mf<< "[0,1]" << endl;
+  cout << "* sim_dest_param_fs = " << sim_dest_param_fs<< "[0,1]" << endl;
+  cout << "* sim_dest_param_fm = " << sim_dest_param_fm<< "[0,1]" << endl;
+  cout << "* sim_dest_param_ff = " << sim_dest_param_ff<< "[0,1]" << endl;
+  cout << "* sim_vmax_sidestreet = " << sim_vmax_sidestreet<< "[km/h]" <<endl;
+  cout << "* sim_vmax_mainstreet = " << sim_vmax_mainstreet<< "[km/h]" <<endl;
+  cout << "* sim_vmax_freeway    = " << sim_vmax_freeway<< "[km/h]" << endl;
+  cout << "* sim_startpoint_tolerance = " << sim_vmax_freeway<< "[>0.0]"
+      << endl;
+  cout << "***********************************************************" <<endl;
+  cout << "* SUBSEGMENT PARAMETERS" << endl;
+  cout << "* sim_event_param_subsegmentlength = "
+      << sim_event_param_subsegmentlength<< "[m]" << endl;
+  cout << "* sim_event_param_propconst        = " << sim_event_param_propconst
+      << "[>0]" << endl;
+  cout << "* sim_event_param_acceleration     = "
+      << sim_event_param_acceleration << "[m/s^2]" << endl;
+  cout << "***********************************************************" <<endl;
+  res->Set(true, true);
+  return 0;
+}
+
+const string sim_print_params_Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> -> bool</text--->"
+    "<text>sim_print_params( )"
+    "</text--->"
+    "<text>Prints the paramter settings to the console. Always "
+    "return 'TRUE'</text--->"
+    "<text>sim_print_params()</text--->"
+    ") )";
+
+Operator sim_print_params( 
+    "sim_print_params",
+    sim_print_params_Spec,
+    sim_print_params_VM,
+    Operator::SimpleSelect,
+    sim_empty2bool_TM) ;
+
+
 /*
 6 Class ~SimulationAlgebra~
 
@@ -960,6 +1054,7 @@ class SimulationAlgebra : public Algebra
       AddOperator( &sim_set_event_params );
       AddOperator( &sim_set_dest_params );
       AddOperator( &sim_create_trip );
+      AddOperator( &sim_print_params );
     }
   ~SimulationAlgebra() {};
 

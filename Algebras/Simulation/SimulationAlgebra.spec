@@ -17,6 +17,7 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator sim_set_dest_params alias SIM_SET_DEST_PARAMS pattern op ( _ , _ , _ , _ , _ , _ , _ , _ , _ , _ )
+operator sim_set_dest_params alias SIM_SET_DEST_PARAMS pattern op ( _ , _ , _ , _ , _ , _ , _ , _ , _ , _ , _, _, _, _ )
 operator sim_set_event_params alias SIM_SET_EVENT_PARAMS pattern op ( _ , _ , _ )
 operator sim_create_trip alias SIM_CREATE_TRIP pattern _ op[ _ ]
+operator sim_print_params alias SIM_PRINT_PARAMS pattern op ( _ )
