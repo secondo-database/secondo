@@ -5850,6 +5850,12 @@ ListExpr SymmJoinTypeMap(ListExpr args)
 5.10.2 Value mapping function of operator ~symmjoin~
 
 */
+
+#ifndef USE_PROGRESS
+
+// standard version
+
+
 struct SymmJoinLocalInfo
 {
   TupleType *resultTupleType;
@@ -6096,6 +6102,338 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   return 0;
 }
+
+
+#else
+
+// with support for progress queries
+
+struct SymmJoinLocalInfo
+{
+  TupleType *resultTupleType;
+
+  TupleBuffer *rightRel;
+  TupleBufferIterator *rightIter;
+  TupleBuffer *leftRel;
+  TupleBufferIterator *leftIter;
+  bool right;
+  Tuple *currTuple;
+  bool rightFinished;
+  bool leftFinished;
+  int currentL, currentR, returned;
+  bool progressInitialized;
+  int noAttrs;
+  double *attrSize;
+  double *attrSizeExt;
+};
+
+int
+SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word r, l;
+  SymmJoinLocalInfo* pli;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      long MAX_MEMORY = qp->MemoryAvailableForOperator();
+      cmsg.info("ERA:ShowMemInfo") << "SymmJoin.MAX_MEMORY ("
+                                   << MAX_MEMORY/1024 << " MB): " << endl;
+      cmsg.send();
+      pli = new SymmJoinLocalInfo;
+      pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
+      pli->rightIter = 0;
+      pli->leftRel = new TupleBuffer( MAX_MEMORY / 2 );
+      pli->leftIter = 0;
+      pli->right = true;
+      pli->currTuple = 0;
+      pli->rightFinished = false;
+      pli->leftFinished = false;
+
+      ListExpr resultType = GetTupleResultType( s );
+      pli->resultTupleType = new TupleType( nl->Second( resultType ) );
+
+      qp->Open(args[0].addr);
+      qp->Open(args[1].addr);
+
+      pli->currentL = 0;
+      pli->currentR = 0;
+      pli->returned = 0;
+      pli->progressInitialized = false;
+
+      local = SetWord(pli);
+      return 0;
+    }
+    case REQUEST :
+    {
+      pli = (SymmJoinLocalInfo*)local.addr;
+
+      while( 1 )
+        // This loop will end in some of the returns.
+      {
+        if( pli->right )
+          // Get the tuple from the right stream and match it with the
+          // left stored buffer
+        {
+          if( pli->currTuple == 0 )
+          {
+            qp->Request(args[0].addr, r);
+            if( qp->Received( args[0].addr ) )
+            {
+              pli->currTuple = (Tuple*)r.addr;
+              pli->leftIter = pli->leftRel->MakeScan();
+              pli->currentL++;
+            }
+            else
+            {
+              pli->rightFinished = true;
+              if( pli->leftFinished )
+                return CANCEL;
+              else
+              {
+                pli->right = false;
+                continue; // Go back to the loop
+              }
+            }
+          }
+
+          // Now we have a tuple from the right stream in currTuple
+          // and an open iterator on the left stored buffer.
+          Tuple *leftTuple = pli->leftIter->GetNextTuple();
+
+          if( leftTuple == 0 )
+            // There are no more tuples in the left iterator. We then
+            // store the current tuple in the right buffer and close the
+            // left iterator.
+          {
+            if( !pli->leftFinished )
+              // We only need to keep track of the right tuples if the
+              // left stream is not finished.
+            {
+              pli->rightRel->AppendTuple( pli->currTuple );
+              pli->right = false;
+            }
+
+            pli->currTuple->DeleteIfAllowed();
+            pli->currTuple = 0;
+
+            delete pli->leftIter;
+            pli->leftIter = 0;
+
+            continue; // Go back to the loop
+          }
+          else
+            // We match the tuples.
+          {
+            ArgVectorPointer funArgs = qp->Argument(args[2].addr);
+            (*funArgs)[0] = SetWord( pli->currTuple );
+            (*funArgs)[1] = SetWord( leftTuple );
+            Word funResult;
+            qp->Request(args[2].addr, funResult);
+            CcBool *boolFunResult = (CcBool*)funResult.addr;
+
+            if( boolFunResult->IsDefined() &&
+                boolFunResult->GetBoolval() )
+            {
+              Tuple *resultTuple = new Tuple( pli->resultTupleType );
+              Concat( pli->currTuple, leftTuple, resultTuple );
+              leftTuple->DeleteIfAllowed();
+              leftTuple = 0;
+              result = SetWord( resultTuple );
+              pli->returned++;
+              return YIELD;
+            }
+            else
+            {
+              leftTuple->DeleteIfAllowed();
+              leftTuple = 0;
+              continue; // Go back to the loop
+            }
+          }
+        }
+        else
+          // Get the tuple from the left stream and match it with the
+          // right stored buffer
+        {
+          if( pli->currTuple == 0 )
+          {
+            qp->Request(args[1].addr, l);
+            if( qp->Received( args[1].addr ) )
+            {
+              pli->currTuple = (Tuple*)l.addr;
+              pli->rightIter = pli->rightRel->MakeScan();
+              pli->currentR++;
+            }
+            else
+            {
+              pli->leftFinished = true;
+              if( pli->rightFinished )
+                return CANCEL;
+              else
+              {
+                pli->right = true;
+                continue; // Go back to the loop
+              }
+            }
+          }
+
+          // Now we have a tuple from the left stream in currTuple and
+          // an open iterator on the right stored buffer.
+          Tuple *rightTuple = pli->rightIter->GetNextTuple();
+
+          if( rightTuple == 0 )
+            // There are no more tuples in the right iterator. We then
+            // store the current tuple in the left buffer and close
+            // the right iterator.
+          {
+            if( !pli->rightFinished )
+              // We only need to keep track of the left tuples if the
+              // right stream is not finished.
+            {
+              pli->leftRel->AppendTuple( pli->currTuple );
+              pli->right = true;
+            }
+
+            pli->currTuple->DeleteIfAllowed();
+            pli->currTuple = 0;
+
+            delete pli->rightIter;
+            pli->rightIter = 0;
+
+            continue; // Go back to the loop
+          }
+          else
+            // We match the tuples.
+          {
+            ArgVectorPointer funArgs = qp->Argument(args[2].addr);
+            (*funArgs)[0] = SetWord( rightTuple );
+            (*funArgs)[1] = SetWord( pli->currTuple );
+            Word funResult;
+            qp->Request(args[2].addr, funResult);
+            CcBool *boolFunResult = (CcBool*)funResult.addr;
+
+            if( boolFunResult->IsDefined() &&
+                boolFunResult->GetBoolval() )
+            {
+              Tuple *resultTuple = new Tuple( pli->resultTupleType );
+              Concat( rightTuple, pli->currTuple, resultTuple );
+              rightTuple->DeleteIfAllowed();
+              rightTuple = 0;
+              result = SetWord( resultTuple );
+              pli->returned++;
+              return YIELD;
+            }
+            else
+            {
+              rightTuple->DeleteIfAllowed();
+              rightTuple = 0;
+              continue; // Go back to the loop
+            }
+          }
+        }
+      }
+    }
+    case CLOSE :
+    {
+      pli = (SymmJoinLocalInfo*)local.addr;
+
+      if( pli->currTuple != 0 )
+        pli->currTuple->DeleteIfAllowed();
+
+      delete pli->leftIter;
+      delete pli->rightIter;
+      if( pli->resultTupleType != 0 )
+        pli->resultTupleType->DeleteIfAllowed();
+
+      if( pli->rightRel != 0 )
+      {
+        pli->rightRel->Clear();
+        delete pli->rightRel;
+      }
+
+      if( pli->leftRel != 0 )
+      {
+        pli->leftRel->Clear();
+        delete pli->leftRel;
+      }
+
+      qp->Close(args[0].addr);
+      qp->Close(args[1].addr);
+
+      return 0;
+    }
+
+    case PROGRESS :
+    {
+      ProgressInfo p1, p2;
+      ProgressInfo *pRes;
+      const double uSymmJoin = 1.0;   	//millisecs per tuple
+      const double vSymmJoin = 0.0001;	//millisecs per tuple and byte
+      int i;
+      pli = (SymmJoinLocalInfo*)local.addr;
+      pRes = (ProgressInfo*) result.addr;
+
+      if (!pli) return CANCEL;
+
+      if (qp->RequestProgress(args[0].addr, &p1)
+       && qp->RequestProgress(args[1].addr, &p2))
+      {
+        if ( !pli->progressInitialized )
+        {
+          pli->noAttrs = p1.noAttrs + p2.noAttrs;
+          pli->attrSize = new double[pli->noAttrs];
+          pli->attrSizeExt = new double[pli->noAttrs];
+          for (i = 0; i < p1.noAttrs; i++)
+          {
+            pli->attrSize[i] = p1.attrSize[i];
+            pli->attrSizeExt[i] = p1.attrSizeExt[i];
+          }
+          for (int j = 0; j < p2.noAttrs; j++)
+          {
+            pli->attrSize[j+i] = p2.attrSize[j];
+            pli->attrSizeExt[j+i] = p2.attrSizeExt[j];
+          }
+          pli->progressInitialized = true;
+        }
+
+        pRes->Size = p1.Size + p2.Size;
+        pRes->SizeExt = p1.SizeExt + p2.SizeExt;
+        pRes->noAttrs = pli->noAttrs;
+        pRes->attrSize = pli->attrSize;
+        pRes->attrSizeExt = pli->attrSizeExt;
+        pRes->Time = p1.Time + p2.Time +
+          p1.Card * p2.Card * qp->GetPredCost(s) * uSymmJoin;
+
+        pRes->Progress =
+          (p1.Progress * p1.Time + p2.Progress * p2.Time +
+          pli->currentL * pli->currentR *
+          qp->GetPredCost(s) * uSymmJoin)
+          / pRes->Time;
+
+        if (pli->returned > 50 ) 	// stable state assumed now
+        {
+          pRes->Card = p1.Card * p2.Card *
+            ((double) pli->returned / (double) (pli->currentL * pli->currentR));
+        }
+        else
+        {
+          pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
+        }
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+    }
+  }
+  return 0;
+}
+
+#endif
+
+
 
 /*
 
@@ -7001,6 +7339,11 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelaggregate);
     AddOperator(&extrelaggregateB);
     AddOperator(&extrelsymmjoin);
+
+#ifdef USE_PROGRESS
+    extrelsymmjoin.EnableProgress();
+#endif
+
     AddOperator(&extrelsymmproductextend);
     AddOperator(&extrelsymmproduct);
     AddOperator(&extrelprojectextend);
