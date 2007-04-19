@@ -243,6 +243,33 @@ RTFlag::initByString( const string &keyList ) {
    delete [] pbuf;
 }
 
+bool 
+RTFlag::isActive( const string& key ) { 
+    
+  if ( (it=flagMap.find( key )) != flagMap.end() ) { 
+
+    return it->second;  
+  } 
+  else { 
+
+    return false; 
+  }
+}
+
+void 
+RTFlag::setFlag( const string& key, const bool value ) {
+
+  if ( (it=flagMap.find( key )) != flagMap.end() ) { 
+
+    it->second = value;
+  } 
+  else { 
+
+    flagMap[key] = value;
+    cerr << "New Flag added!" << endl;
+    showActiveFlags(cout);
+  }
+}
 
 /*
 3 Implementation of Class Counter
@@ -682,6 +709,7 @@ bool removeSuffix(const string& suf, string& s)
   return false;
 }  
 
+
 bool hasPrefix(const string& pre, const string& s)
 {
   return (s.rfind(pre) == 0);
@@ -697,29 +725,4 @@ bool removePrefix(const string& pre, string& s)
   }
   return false;
 }  
-
-
-
-
-
-
-/*
-Static members of class ~CMsg~.
-
-*/
-
-void CMsg::init()
-{
-  { 
-    stdOutput = 1; 
-    fp = new ofstream();
-    logFileStr = "secondo.log";
-    prefix = "tmp/";
-    files[logFileStr] = fp;
-    fp->open((prefix + logFileStr).c_str()); 
-    buffer.str("");
-    allErrors.str("");
-    devnull.str("");
-  }
-}
 
