@@ -68,6 +68,7 @@ using namespace std;
 #include "SecondoInterface.h"
 #include "AlgebraTypes.h"
 #include "Base64.h"
+#include "CharTransform.h"
 
 #define LINELENGTH 80
 /*
