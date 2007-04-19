@@ -2358,7 +2358,11 @@ ListExpr ProductTypeMap(ListExpr args)
 5.10.2 Value mapping function of operator ~product~
 
 */
-class NoOrder;
+
+#ifndef USE_PROGRESS
+
+// standard version
+
 
 struct ProductLocalInfo
 {
@@ -2501,6 +2505,226 @@ Product(Word* args, Word& result, int message,
   }
   return 0;
 }
+
+# else
+
+// progress version
+
+
+struct ProductLocalInfo
+{
+  TupleType *resultTupleType;
+  Tuple* currentTuple;
+  TupleBuffer *rightRel;
+  TupleBufferIterator *iter;
+  int currentA, currentB;
+  bool progressInitialized;
+  int noAttrs;
+  double *attrSize;
+  double *attrSizeExt;
+};
+
+int
+Product(Word* args, Word& result, int message,
+        Word& local, Supplier s)
+{
+  Word r, u;
+  ProductLocalInfo* pli;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      long MAX_MEMORY = qp->MemoryAvailableForOperator();
+      cmsg.info("RA:ShowMemInfo")
+        << "Product.MAX_MEMORY ("
+        << MAX_MEMORY/1024 << " MB): " << endl;
+      cmsg.send();
+
+      qp->Open(args[0].addr);
+      qp->Request(args[0].addr, r);
+      pli = new ProductLocalInfo;
+
+      pli->currentTuple =
+        qp->Received(args[0].addr) ? (Tuple*)r.addr : 0;
+
+      /* materialize right stream */
+      qp->Open(args[1].addr);
+      qp->Request(args[1].addr, u);
+
+      if(qp->Received(args[1].addr))
+      {
+        pli->rightRel = new TupleBuffer( MAX_MEMORY );
+      }
+      else
+      {
+        pli->rightRel = 0;
+      }
+
+      pli->currentA = 0;
+      pli->currentB = 0;
+      pli->progressInitialized = false;
+      local = SetWord(pli);
+
+      while(qp->Received(args[1].addr))
+      {
+        Tuple *t = (Tuple*)u.addr;
+        pli->rightRel->AppendTuple( t );
+        t->DeleteIfAllowed();
+        qp->Request(args[1].addr, u);
+        pli->currentA++;
+      }
+      if( pli->rightRel )
+      {
+        pli->iter = pli->rightRel->MakeScan();
+      }
+      else
+      {
+        pli->iter = 0;
+      }
+
+      ListExpr resultType = GetTupleResultType( s );
+      pli->resultTupleType = new TupleType(nl->Second(resultType));
+
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      Tuple *resultTuple, *rightTuple;
+      pli = (ProductLocalInfo*)local.addr;
+
+      if (pli->currentTuple == 0)
+      {
+        return CANCEL;
+      }
+      else
+      {
+        if( pli->rightRel == 0 ) // second stream is empty
+        {
+          return CANCEL;
+        }
+        else if( (rightTuple = pli->iter->GetNextTuple()) != 0 )
+        {
+          resultTuple = new Tuple( pli->resultTupleType );
+          Concat(pli->currentTuple, rightTuple, resultTuple);
+          rightTuple->DeleteIfAllowed();
+          result = SetWord(resultTuple);
+          pli->currentB++;
+          return YIELD;
+        }
+        else
+        {
+          /* restart iterator for right relation and
+             fetch a new tuple from left stream */
+          pli->currentTuple->DeleteIfAllowed();
+          pli->currentTuple = 0;
+          delete pli->iter;
+          pli->iter = 0;
+          qp->Request(args[0].addr, r);
+          if (qp->Received(args[0].addr))
+          {
+            pli->currentTuple = (Tuple*)r.addr;
+            pli->iter = pli->rightRel->MakeScan();
+            assert( (rightTuple = pli->iter->GetNextTuple()) != 0 );
+            resultTuple = new Tuple( pli->resultTupleType );
+            Concat(pli->currentTuple, rightTuple, resultTuple);
+            rightTuple->DeleteIfAllowed();
+            result = SetWord(resultTuple);
+            pli->currentB++;
+            return YIELD;
+          }
+          else
+          {
+            return CANCEL; // left stream exhausted
+          }
+        }
+      }
+    }
+
+    case CLOSE :
+    {
+      pli = (ProductLocalInfo*)local.addr;
+      if(pli->currentTuple != 0)
+        pli->currentTuple->DeleteIfAllowed();
+      if( pli->iter != 0 )
+        delete pli->iter;
+      pli->resultTupleType->DeleteIfAllowed();
+      if( pli->rightRel )
+      {
+        pli->rightRel->Clear();
+        delete pli->rightRel;
+      }
+      qp->Close(args[0].addr);
+      qp->Close(args[1].addr);
+
+      return 0;
+    }
+
+    case PROGRESS :
+    {
+      ProgressInfo p1, p2;
+      ProgressInfo *pRes;
+      const double uProduct = 0.000006; //millisecs per byte (right input)
+      const double vProduct = 0.000009; //millisecs per byte (total output)
+      int i;
+      pli = (ProductLocalInfo*)local.addr;
+      pRes = (ProgressInfo*) result.addr;
+
+      if (!pli) return CANCEL;
+
+      if (qp->RequestProgress(args[0].addr, &p1)
+       && qp->RequestProgress(args[1].addr, &p2))
+      {
+        pRes->Card = p1.Card * p2.Card;
+        pRes->Size = p1.Size + p2.Size;
+        pRes->SizeExt = p1.SizeExt + p2.SizeExt;
+
+        if ( !pli->progressInitialized )
+        {
+          pli->noAttrs = p1.noAttrs + p2.noAttrs;
+          pli->attrSize = new double[pli->noAttrs];
+          pli->attrSizeExt = new double[pli->noAttrs];
+          for (i = 0; i < p1.noAttrs; i++)
+          {
+            pli->attrSize[i] = p1.attrSize[i];
+            pli->attrSizeExt[i] = p1.attrSizeExt[i];
+          }
+          for (int j = 0; j < p2.noAttrs; j++)
+          {
+            pli->attrSize[j+i] = p2.attrSize[j];
+            pli->attrSizeExt[j+i] = p2.attrSizeExt[j];
+          }
+          pli->progressInitialized = true;
+        }
+
+        pRes->noAttrs = pli->noAttrs;
+        pRes->attrSize = pli->attrSize;
+        pRes->attrSizeExt = pli->attrSizeExt;
+
+        pRes->Time = p1.Time + p2.Time +
+          p2.Card * p2.Size * uProduct +
+          p1.Card * p2.Card * pRes->Size * vProduct;
+
+        pRes->Progress =
+          (p1.Progress * p1.Time + p2.Progress * p2.Time +
+           pli->currentA * p2.Size * uProduct +
+           pli->currentB * pRes->Size * vProduct)
+          / pRes->Time;
+
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+    }
+  }
+  return 0;
+}
+
+#endif
+
 
 /*
 5.10.3 Specification of operator ~product~
@@ -4279,7 +4503,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgattr);
     AddOperator(&relalgfilter);		relalgfilter.EnableProgress();
     AddOperator(&relalgproject);	relalgproject.EnableProgress();
-    AddOperator(&relalgproduct);
+    AddOperator(&relalgproduct);	relalgproduct.EnableProgress();
     AddOperator(&relalgcount);		relalgcount.EnableProgress();
     AddOperator(&relalgcount2);
     AddOperator(&relalgroottuplesize);
