@@ -40,6 +40,8 @@ using namespace std;
 SmiKey::SmiKey()
 {
   keyType = SmiKey::Unknown;
+  keyLength = 0;
+  integerKey = 0;
 }
 
 SmiKey::SmiKey( const SmiRecordId key )

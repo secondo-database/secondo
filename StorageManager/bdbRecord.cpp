@@ -38,8 +38,10 @@ using namespace std;
 #include <string>
 #include <algorithm>
 #include <cctype>
-
 #include <db_cxx.h>
+
+#undef TRACE_ON 
+#include "LogMsg.h"
 #include "SecondoSMI.h"
 #include "SmiBDB.h"
 #include "SmiCodes.h"
@@ -148,6 +150,7 @@ SmiRecord::Write( const void*   buffer,
   static long int& ctr = Counter::getRef("SmiRecord::Write:Calls");
   static long int& byteCtr = Counter::getRef("SmiRecord::Write:Bytes");
   static long int& pageCtr = Counter::getRef("SmiRecord::Write:Pages");
+
   ctr++;
 
   int rc = 0;
@@ -161,15 +164,21 @@ SmiRecord::Write( const void*   buffer,
 
     if ( impl->useCursor )
     {
+      TRACE("SmiRecord:.Write -> Using Dbc::put")	    
       rc = impl->bdbCursor->put( &key, &data, DB_CURRENT );
       SmiEnvironment::SetBDBError( rc );
     }
     else
     {
+      TRACE("SmiRecord:.Write -> Using Db::put")	    
       DbTxn* tid = !smiFile->impl->isTemporaryFile ? 
                         SmiEnvironment::instance.impl->usrTxn : 0;
       key.set_data( (void*) recordKey.GetAddr() );
       key.set_size( recordKey.keyLength );
+      SHOW((void*)recordKey.GetAddr())
+      SHOW(*(long*)recordKey.GetAddr())
+      SHOW(recordKey.keyLength)
+      SHOW(recordKey.keyType)
       rc = impl->bdbFile->put( tid, &key, &data, 0 );
       SmiEnvironment::SetBDBError( rc );
     }
