@@ -26,6 +26,8 @@ Last change: Nov. 2004, M. Spiekermann
 
 #include <iostream>
 #include <string>
+#include <assert.h>
+
 #include "SecondoSMI.h"
 
 #include "StopWatch.h"
