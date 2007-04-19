@@ -218,6 +218,19 @@ Returns the element ~index~ of the array.
       return nElements;
     }
 
+
+    void TrimToSize() 
+    {
+      if (maxElements > nElements) { 	    
+	if (nElements == 0) {
+	  FLOB::Clean();	
+	} else { 	
+          FLOB::Resize(nElements * sizeof(DBArrayElement));	    
+	}  
+      }
+
+      maxElements = nElements;
+    }	    
 /*
 Returns the number of components of this array.
 
@@ -379,7 +392,7 @@ Returns how many pages are necessary to store the whole DBArray.
                      FLOB::PAGE_SIZE, false, pageBuf );
 
           // clear the buffer
-          if( FLOB::fd.inMemory.canDelete )
+          //if( FLOB::fd.inMemory.canDelete )
             free( FLOB::fd.inMemory.buffer );
           free( pageBuf );
         }
@@ -421,7 +434,6 @@ is divided into several pages with padding.
         newSize += ( ( i->second - i->first ) + 1 ) * sizeof( DBArrayElement );
       }
       assert( newSize <= size );
-      if( newSize < size );
       {
         if( newSize > 0 )
         {
@@ -455,13 +467,13 @@ is divided into several pages with padding.
 
           type = InMemory;
           FLOB::fd.inMemory.buffer = buffer;
-          FLOB::fd.inMemory.canDelete = true;
+          //FLOB::fd.inMemory.canDelete = true;
         }
         else
         {
           type = InMemory;
           FLOB::fd.inMemory.buffer = 0;
-          FLOB::fd.inMemory.canDelete = false;
+          //FLOB::fd.inMemory.canDelete = false;
         }
         assert( newSize % sizeof( DBArrayElement ) == 0 );
         nElements = newSize / sizeof( DBArrayElement );
@@ -475,6 +487,27 @@ Restricts the DBArray to the interval set of indices passed as argument.
 */
 #endif
     
+/*
+Retrieval of internal resources
+
+*/    
+ 
+    size_t GetFLOBSize() const {
+      return FLOB::Size();
+    }       
+
+    size_t GetUsedSize() const {
+      return nElements * sizeof(DBArrayElement);
+    }       
+
+    size_t GetElemSize() const {
+      return sizeof(DBArrayElement);
+    }       
+
+    size_t GetCapacity() const {
+      return maxElements;
+    }       
+
   private:
 
     int nElements;

@@ -2,8 +2,8 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-Database Systems for New Applications.
+Copyright (C) 2004-2007, University in Hagen, Faculty of Mathematics and
+Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -55,15 +55,12 @@ derived attribute class must implement.
 #include "SecondoSystem.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "AlgebraManager.h"
+//#include "AlgebraManager.h"
 #include "FLOB.h"
-#include <sstream>
+//#include "WinUnix.h"
 
 
-#include "WinUnix.h"
-
-const double FACTOR = 0.00000001; // Precision factor, used within AlmostEqual
-
+extern const double FACTOR;
 /*
 3.5 Struct ~AttrDelete~
 
@@ -95,9 +92,16 @@ struct AttrDelete
 4 Class ~Attribute~
 
 */
+// forward declaration
+struct PrivateTuple; 
+
 class Attribute
 {
+  // allow a PrivateTuple to manipulate the reference counter
+  // directly
+  friend struct PrivateTuple;
   public:
+
     inline Attribute()
     {}
 /*
@@ -315,121 +319,24 @@ functions.
 Prints the attribute. Used for debugging purposes.
 
 */
-    inline static void Save( SmiRecord& valueRecord, size_t& offset, 
-                             const ListExpr typeInfo, Attribute *elem )
-    {
-      NestedList *nl = SecondoSystem::GetNestedList();
-      AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-
-      int algId = nl->IntValue( nl->First( typeInfo ) ),
-          typeId = nl->IntValue( nl->Second( typeInfo ) ),
-          size = (algMgr->SizeOfObj(algId, typeId))();
-
-      // Calculate the extension size
-      int extensionSize = 0;
-      for( int i = 0; i < elem->NumOfFLOBs(); i++ )
-      {
-        FLOB *tmpFLOB = elem->GetFLOB(i);
-        extensionSize += tmpFLOB->Size();
-      }
-
-      // Move FLOB data to extension tuple
-      char *extensionElement = 0;
-      if( extensionSize > 0 )
-        extensionElement = (char *)malloc( extensionSize );
-
-      char *extensionPtr = extensionElement;
-      for( int i = 0; i < elem->NumOfFLOBs(); i++ )
-      {
-        FLOB *tmpFLOB = elem->GetFLOB(i);
-        tmpFLOB->SaveToExtensionTuple( extensionPtr );
-        extensionPtr += tmpFLOB->Size();
-      }
-
-      // Write the element
-      valueRecord.Write( elem, size, offset );
-      offset += size;
-
-      // Write the extension element
-      if( extensionSize > 0 )
-      {
-        valueRecord.Write( extensionElement, extensionSize, offset );
-        free( extensionElement );
-      }
-    }
+    static void Save( SmiRecord& valueRecord, size_t& offset, 
+                      const ListExpr typeInfo, Attribute *elem );
 /*
 Default save function.
 
 */
-    inline static Attribute *Open( SmiRecord& valueRecord, 
-                                   size_t& offset, const ListExpr typeInfo )
-    {
-      NestedList *nl = SecondoSystem::GetNestedList();
-      AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-      int algId = nl->IntValue( nl->First( typeInfo ) ),
-          typeId = nl->IntValue( nl->Second( typeInfo ) );
-      size_t size = (algMgr->SizeOfObj(algId, typeId))();
-
-      Attribute*
-        elem = (Attribute*)(algMgr->CreateObj(algId, typeId))( typeInfo ).addr;
-      // Read the element
-      valueRecord.Read( elem, size, offset );
-      elem = (Attribute*)(algMgr->Cast(algId, typeId))( elem );
-      elem->del.refs = 1;
-      elem->del.isDelete = true;
-      offset += size;
-
-      // Open the FLOBs
-      for( int i = 0; i < elem->NumOfFLOBs(); i++ )
-      {
-        FLOB *tmpFLOB = elem->GetFLOB(i);
-        char *flob = (char*)malloc( tmpFLOB->Size() );
-        valueRecord.Read( flob, tmpFLOB->Size(), offset );
-        tmpFLOB->ReadFromExtensionTuple( flob );
-        offset += tmpFLOB->Size();
-      }
-
-      return elem;
-    }
+    static Attribute *Open( SmiRecord& valueRecord, 
+                            size_t& offset, const ListExpr typeInfo );
 /*
 Default open function.
 
 */
-    inline bool DeleteIfAllowed()
-    {
-     
-      assert( del.refs > 0 );
-      del.refs--;
-      if( del.refs == 0 )
-      {
-        Finalize();
-        if( del.isDelete )
-          delete this;
-        else
-          free( this );
-        return true;
-      }
-      else
-      {
-        int n = NumOfFLOBs();
-        for (int i = 0; i < n; i++ )
-        {
-          GetFLOB(i)->ReuseMemBuffer();
-        }
-        return false; 
-      } 
-    }
+    bool DeleteIfAllowed();
 /*
 Deletes an attribute if allowed, i.e. if ~refs~ = 0.
 
 */
-    inline Attribute* Copy()
-    {
-      if( del.refs == numeric_limits<unsigned char>::max() )
-        return Clone();
-      del.refs++;
-      return this;
-    }
+    Attribute* Copy();
 /*
 Copies this element if it is possible, otherwise
 clones it.
@@ -463,8 +370,7 @@ value like int, float, etc.
 
 */
 
-
-    int NoRefs() const{
+    inline int NoRefs() const{
         return del.refs;
     }
 /*
@@ -480,22 +386,7 @@ Returns the number of references for this attribute.
       return ptr->GetValue(); 
     } 
 
-    inline string AttrDelete2string()
-    {
-      std::string Result, str;
-      std::stringstream ss;
-      ss << ((int) del.refs);
-      ss >> str;
-
-      Result += " del.Refs=";
-      Result += str;
-      Result += ", del.IsDelete=";
-      if (del.isDelete)
-        Result += "true";
-      else 
-        Result +="false";
-      return Result;
-    }
+    string AttrDelete2string();
 /*
 Print the delete reference info to a string (for debugging)
 
@@ -508,6 +399,17 @@ Print the delete reference info to a string (for debugging)
 Stores the way this attribute is deleted.
 
 */
+
+  private:
+     inline void InitRefs(){
+          del.refs=1;
+     }
+/* 
+Set the reference counter to 1
+
+*/
+
+
 };
 
 #endif

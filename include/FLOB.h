@@ -42,6 +42,10 @@ were removed, since the code is stable.
 August 2006, M. Spiekermann. Adding more comprehensive documentation (state-transitions) 
 and some auxiliary debugging functions.
 
+April 2007, M. Spiekermann. Implementations of many functions moved to the cpp-file. The functions
+~SaveTo-~ and ~ReadFromExtensionTuple~ were replaced by ~ReadFrom~ and ~writeTo~. From now on the
+FLOB class will be the ~only~ instance which ~frees~ the buffer allocated for inline flobs.
+
 1  Overview
 
 FLOB is a shortcut for ~faked larged object~ which is a concept for implementing
@@ -49,6 +53,11 @@ datatypes such as regions which may vary strongly in size. The idea of FLOBs has
 been studied in [1] (The current implementation differs in some aspects). The
 basic idea is to store data of an attribute value depending on a threshold size
 either inside the tuple representation or in a separate storage location.  
+
+FLOBs can be used in implementations of secondo data types. Therefore typically the
+subclass ~DBArray~ might be used. Since the persistent storage of tuples is organized by
+class tuple this class will allocate memory for inline FLOBs. But the memory will be
+released by the FLOBs destructor.
 
 */
 
@@ -64,20 +73,22 @@ A FLOB has one of the following states
    
 */
 
-enum FLOB_Type { Destroyed, InMemory, InMemoryCached, 
-                 InMemoryPagedCached, InDiskSmall, InDiskLarge };
+enum FLOB_Type { Destroyed, 
+                 InMemory, 
+		 InMemoryCached, 
+                 InMemoryPagedCached, 
+		 InDiskLarge          };
 
 /*
-The possible state transitions are presented below (Any denotes the set of all possible states and S is a state variable):
+ 
+The possible state transitions are presented below (Any denotes the set of all
+possible states and S is a state variable):
 
 -----
- ReInit: S in Any -> InDiskLarge
-
  GetPage: InDiskLarge -> InMemoryPagedCached 
           InMemoryPagedCached -> InMemoryPagedCached
  
  Get: InDiskLarge -> InMemory, InMemoryCached, InMemoryPagedCached
-      InDiskSmall -> InMemory
       InMemory -> InMemory
       InMemoryCached -> InMemoryCached 
       InMemoryPagedCached -> InMemoryPagedCached
@@ -85,23 +96,21 @@ The possible state transitions are presented below (Any denotes the set of all p
  Put: InMemory -> InMemory
       
  BringToMemory: InDiskLarge -> InMemory, InMemoryCached
-                InDiskSmall -> InMemory
                 InMemoryPagedCached -> InDiskLarge -> InMemory, InMemoryCached
                 InMemory -> InMemory
                 InMemoryCached -> InMemoryCached                
 
- SaveToExtensionTuple: InMemory -> InDiskSmall
- ReadFromExtensionTuple: InDiskSmall -> InMemory
 
  SaveToLob: InMemory, InMemoryCached, InDiskLarge -> InDiskLarge
  
  Resize: InMemory -> InMemory 
  
- Clean: S in Any \ {Destroyed} -> InMemory 
-
+ ReadFrom: InMemory -> InMemory 
+ 
+ WriteTo: InMemory -> InMemory 
+ 
  Destroy: S in Any \ {Destroyed} -> Destroyed
 
- ReuseMemBuffer: S in {InDiskSmall} -> InMemory
 ----
 
    
@@ -137,30 +146,23 @@ The page size for paged access.
 
 */
 
+    static bool debug; 
+/*
+A debug flag. If true some trace messages are printed
+
+*/
+
+
     inline FLOB() {}
 /*
 This constructor should not be used.
 
 3.1 Constructor
 
-Create a new FLOB from scratch.
+Create a new FLOB from scratch with the given size.
 
 */
-    inline FLOB( size_t sz ):
-    type( InMemory )
-    {
-      size = sz;
-      if( sz > 0 )
-        fd.inMemory.buffer = (char*)malloc( sz );
-      else
-        fd.inMemory.buffer = 0;
-      fd.inMemory.canDelete = true;
-      fd.inMemory.freezed = false;
-      
-      if (debug)
-	cerr << "FLOB " << (void*)this << ": Contructed. size = " << size
-	     << " inMemory.buffer = " << (void*)fd.inMemory.buffer << endl;
-    }
+    FLOB( size_t size );
 
 /*
 3.3 Destructor
@@ -168,126 +170,8 @@ Create a new FLOB from scratch.
 Deletes the FLOB instance.
 
 */
-    virtual inline ~FLOB()
-    {
-      if (debug)
-	cerr << "FLOB " << (void*)this 
-	     << ": About to destruct. type = " << stateStr(type)
-	     << " inMemory.buffer = " << (void*)fd.inMemory.buffer << endl;
-      if( type == InMemoryCached )
-        SecondoSystem::GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
-                                                fd.inMemoryCached.lobId );
-      else if( type == InMemoryPagedCached )
-      {
-        assert( fd.inMemoryPagedCached.buffer != 0 );
-        if( fd.inMemoryPagedCached.cached )
-          SecondoSystem::GetFLOBCache()->
-            Release( fd.inMemoryPagedCached.lobFileId,
-                     fd.inMemoryPagedCached.lobId,
-                     fd.inMemoryPagedCached.pageno );
-        else
-          free( fd.inMemoryPagedCached.buffer );
-      }
-      else if( type == InMemory && 
-               fd.inMemory.canDelete && 
-	       !fd.inMemory.freezed &&
-               fd.inMemory.buffer != 0 )
-        free( fd.inMemory.buffer );
-    }
+    virtual ~FLOB();
 
-/*
-3.4 ReInit
-
-Re-initializes the FLOB and changes its state to ~InDiskLarge~.
-
-*/
-    inline void ReInit()
-    {
-      assert( IsLob() );
-      SmiFileId lobFileId;
-      SmiRecordId lobId;
-
-      if( type == InMemoryCached )
-      {
-        lobFileId = fd.inMemoryCached.lobFileId;
-        lobId = fd.inMemoryCached.lobId;   
-        SecondoSystem::GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
-                                                fd.inMemoryCached.lobId ); 
-      }
-      else if( type == InMemoryPagedCached )
-      {
-        lobFileId = fd.inMemoryPagedCached.lobFileId;
-        lobId = fd.inMemoryPagedCached.lobId;
-        assert( fd.inMemoryPagedCached.buffer != 0 );
-        if( fd.inMemoryPagedCached.cached )
-          SecondoSystem::GetFLOBCache()->
-            Release( fd.inMemoryPagedCached.lobFileId,
-                     fd.inMemoryPagedCached.lobId,
-                     fd.inMemoryPagedCached.pageno );
-        else
-          free( fd.inMemoryPagedCached.buffer );
-      }
-
-      type = InDiskLarge;
-      fd.inDiskLarge.lobFileId = lobFileId;
-      fd.inDiskLarge.lobId = lobId;
-    }
-
-/*
-3.4 BringToMemory
-
-Reads a disk LOB to memory, i.e., converts a FLOB in ~InDiskLarge~
-state to a ~InMemory~ state.
-
-*/
-    virtual const char *BringToMemory() const;
-
-/*
-3.5 GetPage
-
-*/
-    inline void GetPage( size_t page ) const
-    {
-      assert( type == InDiskLarge ||
-              type == InMemoryPagedCached );
-
-      if( type == InDiskLarge )
-      {
-        SmiFileId lobFileId = fd.inDiskLarge.lobFileId;
-        SmiRecordId lobId = fd.inDiskLarge.lobId;
-        type = InMemoryPagedCached;
-        fd.inMemoryPagedCached.lobFileId = lobFileId;
-        fd.inMemoryPagedCached.lobId = lobId;
-      }
-      else if( type == InMemoryPagedCached )
-      {
-        if( fd.inMemoryPagedCached.pageno == page )
-          return;
-
-        if( fd.inMemoryPagedCached.buffer != 0 )
-        {
-          if( fd.inMemoryPagedCached.cached )
-            SecondoSystem::GetFLOBCache()->
-              Release( fd.inMemoryPagedCached.lobFileId,
-                       fd.inMemoryPagedCached.lobId,
-                       fd.inMemoryPagedCached.pageno );
-          else
-            free( fd.inMemoryPagedCached.buffer );
-        }
-      }  
-      
-      const char *buffer;
-      bool cached =
-        SecondoSystem::GetFLOBCache()->
-          GetFLOB( fd.inMemoryPagedCached.lobFileId,
-                   fd.inMemoryPagedCached.lobId,
-                   page,
-                   PAGE_SIZE, false, buffer );
-
-      fd.inMemoryPagedCached.buffer = const_cast<char*>(buffer);
-      fd.inMemoryPagedCached.pageno = page;
-      fd.inMemoryPagedCached.cached = cached;
-    }
 
 /*
 3.5 Get
@@ -296,47 +180,8 @@ Returns a pointer to a memory block of the FLOB data with
 offset ~offset~.
 
 */
-    inline void Get( size_t offset, const char **target, 
-                     const bool paged = false ) const
-    {
-      assert( type != Destroyed );
-
-      if( type == InMemory )
-        *target = fd.inMemory.buffer + offset;
-      else if( type == InMemoryCached )
-      {
-        assert( paged == false );
-        *target = fd.inMemoryCached.buffer + offset;
-      }
-      else if( type == InMemoryPagedCached )
-      {
-        assert( paged == true );
-        if( offset >= fd.inMemoryPagedCached.pageno * PAGE_SIZE &&
-            offset < fd.inMemoryPagedCached.pageno * PAGE_SIZE + PAGE_SIZE ) 
-        {
-          *target = fd.inMemoryPagedCached.buffer + (offset % PAGE_SIZE);
-        }
-        else
-        {
-          GetPage( offset / PAGE_SIZE );
-          Get( offset, target, true );
-        }
-      }
-      else if( type == InDiskLarge )
-      {
-        if( paged )
-          GetPage( offset / PAGE_SIZE );
-        else
-          BringToMemory();
-
-        Get( offset, target, paged );
-      }
-      else if( type == InDiskSmall )
-      {
-        BringToMemory();
-        Get( offset, target, false );
-      }
-    }
+    void Get( size_t offset, const char **target, 
+                     const bool paged = false ) const;
 
 /*
 3.6 Put
@@ -362,49 +207,17 @@ Returns the size of a FLOB.
     }
 
 /*
-3.8 Resize
+3.8 Resize and Clean
 
-Resizes the FLOB.
+Resizes the FLOB. A resize of 0 is not allowed. In order
+to remove the memory representation the function ~Clean~
+must be used.
 
 */
     void Resize( size_t size );
 
-/*
-3.8 Clean
+    void Clean();
 
-Cleans the FLOB, removing it from memory. If it is cached, then a
-reference in the cache is removed. Afterwards the state will be ~InMemory~.
-
-*/
-    inline void Clean()
-    {
-      if (debug)
-	cerr << "FLOB " << (void*)this 
-	     << ": About to clean. type = " << stateStr(type)
-	     << " inMemory.buffer = " << (void*)fd.inMemory.buffer << endl;
-      assert( type != Destroyed );
-      if( type == InMemory && fd.inMemory.canDelete && size > 0 )
-        free( fd.inMemory.buffer );
-      else if( type == InMemoryCached )
-        SecondoSystem::GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
-                                                fd.inMemoryCached.lobId );
-      else if( type == InMemoryPagedCached )
-      {
-        assert( fd.inMemoryPagedCached.buffer != 0 );
-        if( fd.inMemoryPagedCached.cached )
-          SecondoSystem::GetFLOBCache()->
-            Release( fd.inMemoryPagedCached.lobFileId,
-                     fd.inMemoryPagedCached.lobId,
-                     fd.inMemoryPagedCached.pageno );
-        else
-          free( fd.inMemoryPagedCached.buffer );
-      }
-
-      type = InMemory;
-      fd.inMemory.buffer = 0;
-      fd.inMemory.canDelete = true;
-      size = 0;
-    }
 
 /*
 3.8 Destroy
@@ -447,93 +260,12 @@ Sets the LOB file. The FLOB must be a LOB.
 
 
 /*
-3.11 SaveToExtensionTuple
-
-Saves the FLOB to a buffer of an extension tuple and sets its type 
-to ~InDiskSmall~.
-
-*/
-    inline void SaveToExtensionTuple( void *extensionTuple ) const
-    {
-      assert( checkState( InMemory ) );
-      if( type == InMemory && size > 0 )
-      {
-        if( extensionTuple != 0 )
-        {
-          memcpy( extensionTuple, fd.inMemory.buffer, size );
-          fd.inDiskSmall.buffer = (char*)extensionTuple;
-        }
-        else
-        {
-          char *buffer = fd.inMemory.buffer;
-          fd.inDiskSmall.buffer = buffer;
-        }
-      }
-      else {
-        fd.inDiskSmall.buffer = 0;
-      }
-      //Avoid that the inMemory buffer will be deleted.
-      fd.inMemory.freezed = true;
-
-      changeState( type, InDiskSmall );
-    }
-
-/*
-Flobs of type InDiskSmall will be copied into the extension tuple before the tuple is
-written to disk. 
-The function below will be called by Attribute::DeleteIfAllowed. It puts flobs which are part
-of an attribute instance which could not be deleted since they are still used by other tuples back
-from state ~InDiskSmall~ to ~InMemory~. For other states the function will have no effect.
-
-*/
-    
-   void ReuseMemBuffer();
-    
-/*
-3.12 ReadFromExtensionTuple
-
-Reads the FLOB value from an extension tuple. There are two ways of 
-reading, one uses a Prefetching Iterator and the other reads 
-directly from the SMI Record.
-
-The FLOB must be small.
-
-*/
-    inline void ReadFromExtensionTuple( char *extensionPtr )
-    {
-      assert( type == InDiskSmall );
-      type = InMemory;
-      if( size > 0 )
-      {
-        fd.inMemory.buffer = extensionPtr;
-        fd.inMemory.canDelete = false;
-      }
-      else
-      {
-        fd.inMemory.buffer = 0;
-        fd.inMemory.canDelete = true;
-      }
-    }
-
-/*
 3.10 IsLob
 
 Returns true, if value stored in underlying LOB, otherwise false.
 
 */
-    inline bool IsLob() const
-    {
-      assert( type != Destroyed );
-      if( type == InDiskLarge || 
-          type == InMemoryCached || 
-          type == InMemoryPagedCached )
-        return true;
-      else if( type == InMemory && 
-               size > SWITCH_THRESHOLD )
-        return true;
-      return false;
-    }
-
+    bool IsLob() const;
 
 /*
 3.11 GetType
@@ -546,18 +278,61 @@ return the FLOB's internal state.
       return type;
     }
 
+
 /*
-Declariont of a flag for debugging
+3.12 Input output for ~inline~ FLOBs
+  
+Write or read the internal buffer of an ~InMemory~ FLOB to or from
+the given ~dest~ or ~src~ pointer. 
+
+Function ~ReadFrom~ allocates memory of the sufficient size and stores this
+pointer in ~fd.inMemory.buffer~.  The current value of ~fd.inMemory.buffer~
+will be ignored since it might be an address which was stored when the
+attribute using this FLOB was written to disk. Afterwards it copies the buffer
+pointed to by ~src~ into this new internal buffer. 
+
+The Function ~WriteTo~ simply copies the internal buffer to a buffer pointed
+to by ~dest~.
 
 */
-    static bool debug; 
+
     
+    unsigned int ReadFrom(void* src);
+    unsigned int WriteTo(void* dest) const;
+
+/*
+3.13 Allocation of the FLOB's internal buffer
+
+The function below will allocate memory of sufficent size for the internal
+buffer and stores a pointer to it in member ~fd.inMemory.buffer~
+
+*/    
+    void* Malloc(size_t newSize = 0);
+
+
   protected:
+
+/*
+4.1 BringToMemory
+
+Reads a disk LOB to memory, i.e., converts a FLOB in ~InDiskLarge~
+state to a ~InMemory~ state.
+
+*/
+    virtual const char *BringToMemory() const;
+
+    
+/*
+4.2 GetPage
+
+*/
+    void GetPage( size_t page ) const;
 
 /*
 3.12 Attributes
 
 */
+
     mutable FLOB_Type type;
     size_t size;
 
@@ -566,9 +341,8 @@ Declariont of a flag for debugging
     {
       struct InMemory
       {
-        char *buffer;
-	bool freezed;
-        bool canDelete;
+        char *buffer; 
+	// a pointer to the memory representation of a flob
       } inMemory;
 
       struct InMemoryCached
@@ -587,11 +361,6 @@ Declariont of a flag for debugging
         SmiRecordId lobId;
       } inMemoryPagedCached;
 
-      struct InDiskSmall
-      { 
-        char *buffer;
-      } inDiskSmall;
-
       struct InDiskLarge
       {
         SmiFileId lobFileId;
@@ -600,23 +369,34 @@ Declariont of a flag for debugging
 
     } fd;
 
-  
     private:
 
 /*
-Auxiliary functions for checking and changing states
+
+4 Internal Functions   
+
+
+4.3 Handling States
    
 */    
     bool checkState(const FLOB_Type f) const;
 	    
     bool checkState(const FLOB_Type f[], const int n) const;
 
-    void changeState(FLOB_Type& from, const FLOB_Type to) const;
-    
     const string stateStr(const FLOB_Type& f) const;
-    
-};
+   
+    inline void setState(const FLOB_Type state) const
+    {
+      if (debug)
+      { 
+	cerr << "Flob " << (const void*)this << ": " 
+	     << stateStr(type) << " -> " << stateStr(state) << endl;
+      }  
+      type = state;
+      memset(&fd, sizeof(FLOB_Descriptor), 0);
+    } 
 
+};
 
 #endif
 

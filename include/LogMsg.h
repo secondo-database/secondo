@@ -49,13 +49,18 @@ whitespace) in nested list text atoms since value 0 is the only one which is
 used internally in text records to distinguish between empty and non empty
 space. 
 
-May 2005, M. Spiekermann. cmsg.info overloaded.
+May 2005, M. Spiekermann. Function CMsg::info overloaded.
 
 August 2005, M. Spiekermann. Redirection of output corrected. Moreover, strings
 containing only white spaces will be ignored. Errors will be printed in color,
 if the appropriate flag is set.
 
+April 2007, M. Spiekermann. Implementation parts moved to .cpp files.
+
 1.1 Overview
+
+This file should collect all methods or techniques used in SECONDO for managing
+errors and trace messages. This is still work in progress! 
 
 This file declares a class ~RTFlag~ (Runtime Flag) and a preprocessor Macro
 ~LOGMSG~. It can be used to identify a bool value with a string constant. The
@@ -106,8 +111,8 @@ with the ~send~ method.
 */
 
 
-#ifndef CLASS_RTFLAG_H
-#define CLASS_RTFLAG_H
+#ifndef CLASS_LOGMSG_H
+#define CLASS_LOGMSG_H
 
 
 // some macros which may be useful for tracing the program execution
@@ -136,23 +141,18 @@ with the ~send~ method.
 #endif
 
 
+#ifndef LOGMSG_OFF
+#define LOGMSG(a, b) if ( RTFlag::isActive(a) ) { b }
+#endif
 
 #include <map>
-#include <vector>
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 
-#include <CharTransform.h>
-
-#include "FileSystem.h"
-
 using namespace std;
 
-#ifndef LOGMSG_OFF
-#define LOGMSG(a, b) if ( RTFlag::isActive(a) ) { b }
-#endif
 
 extern ostream* traceOS;
 
@@ -164,31 +164,9 @@ public:
 
   static void showActiveFlags(ostream& os);
 
-  inline static bool isActive( const string& key ) { 
-    
-    if ( (it=flagMap.find( key )) != flagMap.end() ) { 
+  static bool isActive( const string& key );
 
-      return it->second;  
-    } 
-    else { 
-
-      return false; 
-    }
-  }
-
-  inline static void setFlag( const string& key, const bool value ) {
-
-    if ( (it=flagMap.find( key )) != flagMap.end() ) { 
-
-      it->second = value;
-    } 
-    else { 
-
-      flagMap[key] = value;
-      cerr << "New Flag added!" << endl;
-      showActiveFlags(cout);
-    }
-  }
+  static void setFlag( const string& key, const bool value );
 
 private:
 
@@ -233,46 +211,19 @@ public:
 };
 
 
-
-
 class CMsg {
 
 public:
   
-  inline ostream& file() 
-  {
-    fp = files[logFileStr]; 
-    stdOutput = 3;  
-    return buffer; 
-  }
+  CMsg();
+  ~CMsg(); 
 
-  inline ostream& file(const string& fileName) 
-  { 
-    map<string,ofstream*>::iterator it = files.find(fileName);
-    
-    if  ( it != files.end() ) {
-    
-      fp = it->second;
-      
-    } else {
-    
-      fp = new ofstream();
-      files[fileName] = fp;
-      fp->open((prefix + fileName).c_str());
-    }
-    //stdOutput = 3;    
-    return *fp; 
-  }
+  ostream& file(); 
+  ostream& file(const string& fileName); 
 
-  inline ostream& info(const string& key) {
-  
-    if (RTFlag::isActive(key)) {
-      stdOutput = 1; return buffer;
-    } else { 
-      stdOutput = 0; return devnull; 
-    }
-  }
-  // should be declared private in the future
+  // condintinal output of messages
+  ostream& info(const string& key);
+
   inline ostream& info()    { stdOutput = 1; return buffer; }
   inline ostream& warning() { stdOutput = 1; return buffer; }
   inline ostream& error()   { stdOutput = 2; return buffer; } 
@@ -282,93 +233,22 @@ public:
   void inFunError(const string& msg)  { error() << "InFun: " << msg << endl; }
   void otherError(const string& msg)  { error() << "Other: " << msg << endl; }
 
-  inline void send() {
-    
-    if ( isSpaceStr( buffer.str() ) ) {
-      buffer.str("");
-      buffer.clear();
-      return;
-    }
+/*
+ 
+The send method will flush the stored messages to the underlying stream.  In
+the future it may also send the message to clients using socket communication.
 
-    switch (stdOutput) { 
-
-    case 3:
-    {
-      (*fp) << buffer.str();
-       break;
-    }
-    case 2: 
-    {
-      cerr << color(red) << "Error: " << buffer.str() << color(normal);
-      cerr.flush();
-      allErrors << "Error: " << buffer.str();
-      break;
-    }
-    case 1: 
-    {
-      cout << buffer.str();
-      cout.flush();
-      break;
-    }
-    case 0:
-    {
-      devnull.str("");
-      devnull.clear();
-      break;
-    } 
-    default :
-    {
-      allErrors << buffer.str();
-    }
-    }
-
-    buffer.str("");
-    buffer.clear();
-  }
-
-  inline string getErrorMsg() {
-
-    string result = allErrors.str();
-  //  allErrors.str("");
-  //  allErrors.clear(); 
-  
-    if ( isSpaceStr(result) ) {
-      result = "";
-    }
-
-    return result;
-  }
-
-  inline void resetErrors(){
-       allErrors.str("");
-       allErrors.clear();
-  }
-
+*/   
+  void send();
 
 /*
-We will use a global instance named ~cmsg~. Unfortunately, it is not
-clear when the constructor will be called (We had problems on Mac OSX witg gcc 4.0). 
-In order to ensure that the instance works we will call the initialize function at startup
-of the applications.
+Retrieving and cleaning stored errors.
 
-*/
- 
-  CMsg()
-  {
-    init(); 
-  }
-  
-  ~CMsg() // close open files
-  {
-    for ( map<string,ofstream*>::iterator it = files.begin();
-          it != files.end();
-          it++ )
-    {
-       it->second->close();
-       delete it->second;
-    }
-  }
-  
+*/  
+  string getErrorMsg();
+
+  void resetErrors();
+
 private:
 
   void init();
@@ -383,10 +263,8 @@ private:
   
 };
 
-
-// defined in Application.cpp
+// defined in cmsg.cpp
 extern CMsg cmsg;
-
 
 
 /*
