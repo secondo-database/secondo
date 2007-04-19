@@ -6,6 +6,35 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+2007-04-19  Revised Organization of Tuples
+===============================================================================
+
+Due to inconsistent management of allocated management and some contradictions
+in the concept of fresh and solid tuples we changed the concept and
+implementation of the tuple representation. Now tuples are always handled like
+the former "fresh" tuples and writing them to disk has no effect for their
+current memory organization. 
+
+The folowing major changes happend:
+
+(1) The solid state of tuples is removed, thus tuples are stateless now.
+(3) The FLOB class has been revised. 
+(4) The DBArray class has a new function "TrimToSize", which resizes the array
+    and the underlying FLOB to hold exactly the number of elements which are
+    stored in it.
+(5) Some bug fixes in operator implementations concerning reference counting.
+
+Moreover, the optional "Main Memory" relational algebra implementation files 
+are removed.
+
+If make fails, please try "make clean; make". Afterwards you should rebuild
+your databases.
+
+
+Best Regards
+
+Thomas and Markus
+
 2007-04-03  New dependency
 ===============================================================================
 I have implemented and added a new algbera module, the 'GSLAlgebra'. It uses
