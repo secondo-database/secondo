@@ -63,10 +63,6 @@ DEFAULTCCFLAGS += -Wall
 DEFAULTCCFLAGS += -D_REENTRANT -D_GLIBCPP_DEPRECATED 
 
 
-# Flag for the persistent relational algebra implementation. Comment the line below 
-# to compile the implementation of the main memory relational algebra.
-DEFAULTCCFLAGS += -DRELALG_PERSISTENT
-
 # Flag for a persistent implementation of class NestedList. Remove the comment
 # in the line below to use temporary Berkeley-DB record files instead of main
 # memory. This is needed if you want to restore large objects. 

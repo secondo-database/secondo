@@ -257,12 +257,6 @@ Precondition: dbState = dbOpen.
   }
   catalog->Close();
 
-#ifndef RELALG_PERSISTENT
-  // clears the cache of relations
-  extern RelationCache cache;
-  cache.Clear();
-#endif
-
   return (SmiEnvironment::CloseDatabase());
 }
 
