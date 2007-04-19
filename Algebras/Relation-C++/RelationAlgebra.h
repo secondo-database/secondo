@@ -57,7 +57,9 @@ tested and determining one of the remaining cases needs only one extra
 comparison. Hence in the average we will use less ${=,<}$ operations than 
 before.
 
-
+April 2007, T. Behr, M. Spiekermann. Removal of the main memory implementation
+of this algebmain memory implementation
+of this algebra module.
 [TOC]
 
 
@@ -114,12 +116,6 @@ for the Relational Algebra, such as ~TupleId~, ~RelationIterator~,
 ~TupleType~, ~Attribute~ (which is defined inside the file 
 Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 
-It is intended to have two implementation of these classes, one 
-with a persistent representation and another with a main memory 
-representation. We will call these two Persistent Relation Algebra 
-and Main Memory Relational Algebra, respectively. This can be seen 
-in the architecture of the Relational Algebra implementation 
-figure below.
 
                 Figure 1: Relational Algebra implementation 
                 architecture. [RelationAlgebraArchitecture.eps]
@@ -141,6 +137,7 @@ figure below.
 #define MAX_NUM_OF_ATTR 10 
 
 class CcTuple;
+extern AlgebraManager* am;
 
 /*
 3 Type Constructor ~tuple~
@@ -310,24 +307,452 @@ A reference counter.
 */
 };
 
+
+
+
+/*
+3 Type constructor ~tuple~
+
+3.2 Struct ~PrivateTuple~
+
+This struct contains the private attributes of the class ~Tuple~.
+
+*/
+
+struct PrivateTuple
+{
+/*
+3.2.1 Constructors 
+
+*/
+  PrivateTuple( TupleType *tupleType );
+  PrivateTuple( const ListExpr typeInfo );
+
+/*
+3.2.2. Destructor 
+
+*/
+  ~PrivateTuple();
+
+/*
+~CopyAttribute~
+
+This function is used to copy attributes from tuples to tuples 
+without cloning attributes.
+
+*/
+  inline void CopyAttribute( int sourceIndex, 
+                             const PrivateTuple *source, 
+                             int destIndex )
+  {
+    if( attributes[destIndex] != 0 ){ 
+      // remove reference from an old attribute
+      (attributes[destIndex]->DeleteIfAllowed()); 
+    }
+    attributes[destIndex] = source->attributes[sourceIndex]->Copy();
+  }
+
+/*
+Saves a tuple into ~tuplefile~ and ~lobfile~. Returns the 
+sizes of the tuple saved.
+
+*/
+
+  void Save( SmiRecordFile *tuplefile, SmiFileId& lobFileId,
+             double& extSize, double& size,
+             vector<double>& attrExtSize, vector<double>& attrSize );
+
+/*
+Saves a tuple with updated attributes and reuses the old 
+record. 
+
+*/
+  void UpdateSave( const vector<int>& changedIndices,
+                   double& extSize, double& size,
+                   vector<double>& attrExtSize,
+                   vector<double>& attrSize );
+
+/*
+Opens a tuple from ~tuplefile~(~rid~) and ~lobfile~.
+
+*/
+  bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
+             SmiRecordId rid );
+
+/*
+Opens a tuple from ~tuplefile~ and ~lobfile~ reading the 
+current record of ~iter~.
+
+*/
+  bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
+             PrefetchingIterator *iter );
+
+/*
+Opens a tuple from ~tuplefile~ and ~lobfile~ reading from 
+~record~.
+
+*/
+  bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
+             SmiRecord *record );                
+
+
+/*
+The unique identification of the tuple inside a relation.
+
+*/
+  SmiRecordId tupleId;
+
+/*
+Stores the tuple type.
+
+*/
+  mutable TupleType *tupleType;
+
+/*
+The attributes pointer array. The tuple information is kept in 
+memory.
+
+*/
+  Attribute **attributes;
+/*
+Reference to an ~SmiRecordFile~ which contains LOBs.
+
+*/
+  SmiFileId lobFileId;
+/*
+Reference to an ~SmiRecordFile~ which contains the tuple.
+
+*/
+  SmiRecordFile* tupleFile;
+
+/*
+The members below are useful for debugging:
+
+Profiling turned out that a separate member storing the number
+of attributes makes sense since it reduces calls for TupleType::NoAttributes
+
+*/
+  int NumOfAttr;
+  
+/*
+Debugging stuff
+
+*/  
+#ifdef MALLOC_CHECK_  
+  void free (void* ptr) { cerr << "freeing ptr " << ptr << endl; ::free(ptr); }
+#endif
+  static bool debug;
+
+
+};
+
+/*
+4.2 Struct ~RelationDescriptor~
+
+This struct contains necessary information for opening a relation.
+
+*/
+struct RelationDescriptor
+{
+  inline
+  RelationDescriptor( TupleType* tupleType ):
+    tupleType( tupleType ),
+    noTuples( 0 ),
+    totalExtSize( 0.0 ),
+    totalSize( 0.0 ),
+    attrExtSize( tupleType->GetNoAttributes() ),
+    attrSize( tupleType->GetNoAttributes() ),
+    tupleFileId( 0 ),
+    lobFileId( 0 )
+    {
+      tupleType->IncReference();
+      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+      {
+        attrExtSize[i] = 0.0;
+        attrSize[i] = 0.0;
+      }
+    }
+
+  inline
+  RelationDescriptor( const ListExpr typeInfo ):
+    tupleType( new TupleType( nl->Second( typeInfo ) ) ),
+    noTuples( 0 ),
+    totalExtSize( 0.0 ),
+    totalSize( 0.0 ),
+    attrExtSize( 0 ),
+    attrSize( 0 ),
+    tupleFileId( 0 ),
+    lobFileId( 0 )
+    {
+      attrExtSize.resize( tupleType->GetNoAttributes() );
+      attrSize.resize( tupleType->GetNoAttributes() );
+      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+      {
+        attrExtSize[i] = 0.0;
+        attrSize[i] = 0.0;
+      }
+    }
+/*
+The simple constructors.
+
+*/
+  inline
+  RelationDescriptor( TupleType *tupleType,
+                      int noTuples,
+                      double totalExtSize, double totalSize,
+                      const vector<double>& attrExtSize,
+                      const vector<double>& attrSize,
+                      const SmiFileId tId, const SmiFileId lId ):
+    tupleType( tupleType ),
+    noTuples( noTuples ),
+    totalExtSize( totalExtSize ),
+    totalSize( totalSize ),
+    attrExtSize( attrExtSize ),
+    attrSize( attrSize ),
+    tupleFileId( tId ),
+    lobFileId( lId )
+    {
+      tupleType->IncReference();
+    }
+
+  inline
+  RelationDescriptor( const ListExpr typeInfo,
+                      int noTuples,
+                      double totalExtSize, double totalSize,
+                      const vector<double>& attrExtSize,
+                      const vector<double>& attrSize,
+                      const SmiFileId tId, const SmiFileId lId ):
+    tupleType( new TupleType( nl->Second( typeInfo ) ) ),
+    noTuples( noTuples ),
+    totalExtSize( totalExtSize ),
+    totalSize( totalSize ),
+    attrExtSize( attrExtSize ),
+    attrSize( attrSize ),
+    tupleFileId( tId ),
+    lobFileId( lId )
+    {
+    }
+
+/*
+The first constructor.
+
+*/
+  inline
+  RelationDescriptor( const RelationDescriptor& desc ):
+    tupleType( desc.tupleType ),
+    noTuples( desc.noTuples ),
+    totalExtSize( desc.totalExtSize ),
+    totalSize( desc.totalSize ),
+    attrExtSize( desc.attrExtSize ),
+    attrSize( desc.attrSize ),
+    tupleFileId( desc.tupleFileId ),
+    lobFileId( desc.lobFileId )
+    {
+      tupleType->IncReference();
+    }
+/*
+The copy constructor.
+
+*/
+  inline
+  ~RelationDescriptor()
+  {
+    tupleType->DeleteIfAllowed();
+  }
+/*
+The destructor.
+
+*/
+  inline RelationDescriptor& operator=( const RelationDescriptor& d )
+  {
+    tupleType->DeleteIfAllowed();
+    tupleType = d.tupleType;
+    tupleType->IncReference();
+    noTuples = d.noTuples;
+    totalExtSize = d.totalExtSize;
+    totalSize = d.totalSize;
+    tupleFileId = d.tupleFileId;
+    lobFileId = d.lobFileId;
+    attrExtSize = d.attrExtSize;
+    attrSize = d.attrSize;
+
+    return *this;
+  }
+/*
+Redefinition of the assignement operator.
+
+*/
+
+  TupleType *tupleType;
+/*
+Stores the tuple type of every tuple in the relation.
+
+*/
+  int noTuples;
+/*
+The quantity of tuples inside the relation.
+
+*/
+  double totalExtSize;
+/*
+The total size occupied by the tuples in the relation taking
+into account the small FLOBs, i.e. the extension part of
+the tuples.
+
+*/
+  double totalSize;
+/*
+The total size occupied by the tuples in the relation taking
+into account all parts of the tuples, including the FLOBs.
+
+*/
+  vector<double> attrExtSize;
+/*
+The total size occupied by the attributes in the relation
+taking into account the small FLOBs, i.e. the extension part
+of the tuples.
+
+*/
+  vector<double> attrSize;
+/*
+The total size occupied by the attributes in the relation
+taking into account all parts of the tuples, including the
+FLOBs.
+
+*/
+  SmiFileId tupleFileId;
+/*
+The tuple's file identification.
+
+*/
+  SmiFileId lobFileId;
+/*
+The LOB's file identification.
+
+*/
+};
+
+/*
+4.2 Class ~RelationDescriptorCompare~
+
+*/
+class RelationDescriptorCompare
+{
+  public:
+    inline bool operator()( const RelationDescriptor& d1, 
+                            const RelationDescriptor d2 )
+    {
+      if( d1.tupleFileId < d2.tupleFileId )
+        return true;
+      else if( d1.tupleFileId == d2.tupleFileId &&
+               d1.lobFileId == d2.lobFileId )
+        return true;
+      else
+        return false;
+    }
+};
+
+/*
+4.1 Struct ~PrivateRelation~
+
+This struct contains the private attributes of the class ~Relation~.
+
+*/
+struct PrivateRelation
+{
+  PrivateRelation( const ListExpr typeInfo, bool isTemp ):
+    relDesc( new TupleType( nl->Second( typeInfo ) ) ),
+    tupleFile( false, 0, isTemp ),
+    isTemp( isTemp )
+    {
+      if( !tupleFile.Create() )
+      {
+        string error;
+        SmiEnvironment::GetLastErrorCode( error );
+        cout << error << endl;
+        assert( false );
+      }
+      relDesc.tupleFileId = tupleFile.GetFileId();
+    }
+/*
+The first constructor. Creates an empty relation from a ~typeInfo~.
+
+*/
+  PrivateRelation( TupleType *tupleType, bool isTemp ):
+    relDesc( tupleType ),
+    tupleFile( false, 0, isTemp ),
+    isTemp( isTemp )
+    {
+      tupleType->IncReference();
+      if( !tupleFile.Create() )
+      {
+        string error;
+        SmiEnvironment::GetLastErrorCode( error );
+        cout << error << endl;
+        assert( false );
+      }
+      relDesc.tupleFileId = tupleFile.GetFileId();
+    }
+/*
+The second constructor. Creates an empty relation from a ~tupleType~.
+
+*/
+  PrivateRelation( const RelationDescriptor& relDesc, 
+                   bool isTemp ):
+    relDesc( relDesc ),
+    tupleFile( false, 0, isTemp ),
+    isTemp( isTemp )
+    {
+      if( !tupleFile.Open( relDesc.tupleFileId ) )
+      {
+        string error;
+        SmiEnvironment::GetLastErrorCode( error );
+        cout << error << endl;
+        assert( false );
+      }
+      this->relDesc.tupleFileId = tupleFile.GetFileId();
+    }
+/*
+The third constructor. Opens a previously created relation.
+
+*/
+  ~PrivateRelation()
+  {
+    tupleFile.Close();
+  }
+/*
+The destuctor.
+
+*/
+  RelationDescriptor relDesc;
+/*
+Stores the descriptor of the relation.
+
+*/
+  SmiRecordFile tupleFile;
+/*
+Stores a handle to the tuple file.
+
+*/
+  bool isTemp;
+/*
+A flag telling whether the relation is temporary.
+
+*/
+};
+
+
 /*
 3.5 Class ~Tuple~
 
-This class implements the memory representation of the type 
+This class implements the representation of the type 
 constructor ~tuple~.
 
 */
 
-#ifdef RELALG_PERSISTENT 
-#include "RelationPersistent.h"
-#else
-#include "RelationMainMemory.h"
-#endif
 /*
 Declaration of the struct ~PrivateTuple~. This struct contains the
-private attributes of the class ~Tuple~ and is defined differently
-for the Main Memory Relational Algebra (RelationMainMemory.h)
-and for the Persistent Relational Algebra (RelationPersistent.h).
+private attributes of the class ~Tuple~.
 
 */
 
@@ -568,7 +993,7 @@ Create a new tuple which is a clone of this tuple.
 */
     CcTuple* CloneToMemoryTuple() const;
 /*
-Creates a new memory tuple which is a clone of this tuple.
+Creates a new memory tuple as used by module ~OldRelationAlgebra~.
 
 */
     inline bool DeleteIfAllowed() 
@@ -1019,9 +1444,7 @@ struct PrivateTupleBufferIterator;
 /*
 Forward declaration of the struct ~PrivateTupleBufferIterator~. 
 This struct will contain the private attributes of the class 
-~TupleBufferIterator~ and will be defined later differently for 
-the Main Memory Relational Algebra and for the Persistent Relational
-Algebra.
+~TupleBufferIterator~. 
 
 */
 class TupleBufferIterator : public GenericRelationIterator
@@ -1065,18 +1488,12 @@ This class is a collection of tuples in memory, if they fit.
 Otherwise it acts like a relation. The size of memory used is
 passed in the constructor.
 
-This concept is only interesting in the Persistent Relational
-Algebra, where a relation is stored on disk. In the Main Memory
-Relation Algebra it acts like a relation anyway and the maximum
-memory utilization is ignored.
 
 */
 struct PrivateTupleBuffer;
 /*
 Forward declaration of the struct ~PrivateTupleBuffer~. This struct 
-will contain the private attributes of the class ~TupleBuffer~ and 
-will be defined later differently for the Main Memory Relational 
-Algebra and for the Persistent Relational Algebra.
+will contain the private attributes of the class ~TupleBuffer~.
 
 */
 class TupleBuffer : public GenericRelation
@@ -1186,9 +1603,7 @@ struct PrivateRelationIterator;
 /*
 Forward declaration of the struct ~PrivateRelationIterator~. This 
 struct will contain the private attributes of the class 
-~RelationIterator~ and will be defined later differently
-for the Main Memory Relational Algebra and for the Persistent 
-Relational Algebra.
+~RelationIterator~.
 
 */
 
@@ -1291,9 +1706,7 @@ contain the necessary information for opening a relation.
 struct PrivateRelation;
 /*
 Forward declaration of the struct ~PrivateRelation~. This struct 
-will contain the private attributes of the class ~Relation~ and will 
-be defined later differently for the Main Memory Relational Algebra 
-and for the Persistent Relational Algebra.
+will contain the private attributes of the class ~Relation~.
 
 */
 class Relation : public GenericRelation
@@ -1328,10 +1741,11 @@ The destructor.
 */
     static Relation *GetRelation( const RelationDescriptor& d );
 /*
-Given a relation descriptor, finds if there is an opened relation 
-with that descriptor and retrieves its memory representation pointer.This function is used to avoid opening several times the same 
-relation. A table indexed by descriptors containing the relations
-is used for this purpose. 
+
+Given a relation descriptor, finds if there is an opened relation with that
+descriptor and retrieves its memory representation pointer.This function is
+used to avoid opening several times the same relation. A table indexed by
+descriptors containing the relations is used for this purpose. 
 
 */
     static Relation *In( ListExpr typeInfo, ListExpr value, 

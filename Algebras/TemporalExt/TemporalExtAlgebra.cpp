@@ -4344,7 +4344,8 @@ int RangeRangevaluesRealExt(
         //MinMaxValueFunction(utemp, min, max); 
         //yields wrong min and max values
         
-        utemp->AtMin(resvector);
+        size_t size = utemp->AtMin(resvector);
+        assert(size>0);
         min = resvector[0].c;
         utemp->AtMax(resvector);
         max = resvector[0].c;

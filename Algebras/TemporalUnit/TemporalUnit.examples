@@ -361,15 +361,16 @@ Operator : intersection
 Number   : 4
 Signature: (line upoint) -> (stream upoint)
 Example  : query intersection(strassen feed head[105] aggregateB[geoData; fun(l1:line, l2:line) union_new(l1, l2); [const line value ()] ], the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE)) the_mvalue
-Result   : (mpoint ((("2003-11-20-06:36:41.132" "2003-11-20-06:36:41.132" TRUE TRUE)(9470.521411555555 10005.780352 9470.521411555555 10005.780352))(("2003-11-20-06:45:12.127" "2003-11-20-06:45:12.127" TRUE TRUE)(9565.452927111111 10177.474672 9565.452927111111 10177.474672))(("2003-11-20-06:47:39.480" "2003-11-20-06:47:39.480" TRUE TRUE)(9592.82784 10226.98528 9592.82784 10226.98528))))
+Result   : crashes
+Remark   : Error in aggregateB
 
 
 Operator : intersection
 Number   : 5
 Signature: (upoint line) -> (stream upoint)
 Example  : query intersection(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE), strassen feed head[105] aggregateB[geoData; fun(l1:line, l2:line) union_new(l1, l2); [const line value ()] ]) the_mvalue
-Result   : (mpoint ((("2003-11-20-06:36:41.132" "2003-11-20-06:36:41.132" TRUE TRUE)(9470.521411555555 10005.780352 9470.521411555555 10005.780352))(("2003-11-20-06:45:12.127" "2003-11-20-06:45:12.127" TRUE TRUE)(9565.452927111111 10177.474672 9565.452927111111 10177.474672))(("2003-11-20-06:47:39.480" "2003-11-20-06:47:39.480" TRUE TRUE)(9592.82784 10226.98528 9592.82784 10226.98528))))
-
+Result   : crashes
+Remark   : Error in aggregateB
 
 Operator : intersection
 Number   : 6

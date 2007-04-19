@@ -46,7 +46,6 @@ stable.
 1 Includes and defines
 
 */
-#ifdef RELALG_PERSISTENT
 
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
@@ -1248,9 +1247,6 @@ bucket that the tuple coming from A hashes is also initialized.
   {
     ClearBucketsB();
 
-    if( wTupleB.addr != 0 )
-      ((Tuple*)wTupleB.addr)->DeleteIfAllowed();
-
     // delete tuple buffer and its iterator if necessary
     if( !bFitsInMemory )
     {
@@ -1259,8 +1255,6 @@ bucket that the tuple coming from A hashes is also initialized.
       relA->Clear();
       delete relA;
     }
-    if( tupleA != 0 )
-      tupleA->DeleteIfAllowed();
 
     // close open streams if necessary
     if ( !streamAClosed )
@@ -1275,8 +1269,9 @@ bucket that the tuple coming from A hashes is also initialized.
   {
     if( tupleA != 0 )
     {
-      if( firstPassA && !bFitsInMemory )
+      if( firstPassA && !bFitsInMemory ) {
         relA->AppendTuple( tupleA );
+      }	
       tupleA->DeleteIfAllowed();
     }
 
@@ -1399,4 +1394,3 @@ template int
 MergeJoin<false>(Word* args, Word& result, int message, 
                  Word& local, Supplier s);
 
-#endif // RELALG_PERSISTENT

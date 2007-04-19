@@ -1980,10 +1980,6 @@ values for the second sort attribute  and so on.
 template<bool lexicographically> int
 SortBy(Word* args, Word& result, int message, Word& local, Supplier s);
 /*
-This function will be implemented differently for the persistent and for
-the main memory relational algebra. Its implementation can be found in
-the files ExtRelAlgPersistent.cpp and ExtRelAlgMainMemory.cpp,
-respectively.
 
 2.11.3 Specification of operator ~sortBy~
 
@@ -2813,10 +2809,6 @@ ListExpr JoinTypeMap (ListExpr args)
 template<bool expectSorted> int
 MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s);
 /*
-This function will be implemented differently for the persistent and for
-the main memory relational algebra. Its implementation can be found in
-the files ExtRelAlgPersistent.cpp and ExtRelAlgMainMemory.cpp,
-respectively.
 
 2.15.3 Specification of operator ~mergejoin~
 
@@ -2917,10 +2909,6 @@ const string HashJoinSpec  = "( ( \"Signature\" \"Syntax\" "
 */
 int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s);
 /*
-This function will be implemented differently for the persistent and for
-the main memory relational algebra. Its implementation can be found in
-the files ExtRelAlgPersistent.cpp and ExtRelAlgMainMemory.cpp,
-respectively.
 
 2.17.3 Definition of Operator ~hashjoin~
 
@@ -5566,29 +5554,64 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 /*
-2.18.2 Value mapping function of operator ~aggregate\_new~
+2.18.2 Value mapping function of operator ~aggregateB~
+
+The ~aggregateB~ operator uses a stack to compute the aggregation
+balanced. This will have advantages in geomatric aggregation.
+It may also help to reduce numeric errors in aggregation using
+double values.
+
+
+2.18.2.1 ~StackEntry~
+
+A stack entry consist of the level within the (simulated)
+balanced tree and the corresponding value.
+Note:
+  The attributes at level 0 come directly from the input stream.
+  We have to free them using the deleteIfAllowed function.
+  On all other levels, the attribute is computes using the
+  parameter function. Because this is outside of stream and
+  tuples, no reference counting is available and we have to delete
+  them using the usual delete function.
 
 */
-struct AggrStruct
+struct AggrStackEntry
 {
-  inline AggrStruct( long level, Word value ):
-  level( level ), value( value )
-  {}
+  inline AggrStackEntry(): level(-1),value(0)
+  { }
 
-  inline AggrStruct( const AggrStruct& a ):
-  level( a.level ), value( a.value )
-  {}
+  inline AggrStackEntry( long level, Attribute* value):
+  level( level )
+  { this->value = value;}
 
-  inline AggrStruct& operator=( const AggrStruct& a )
+  inline AggrStackEntry( const AggrStackEntry& a ):
+  level( a.level )
+  { this->value = a.value;}
+
+  inline AggrStackEntry& operator=( const AggrStackEntry& a )
   { level = a.level; value = a.value; return *this; }
 
+  inline ~AggrStackEntry(){ } // use destroy !!
+
+
+  inline void destroy(){
+     if(level<0){
+        return;
+     }
+     if(level==0){ // original from tuple
+        value->DeleteIfAllowed();
+     } else {
+        delete value;
+     }
+     value = 0;
+     level = -1;
+  }
+
   long level;
-  Word value;
-    // if the level is 0 then value contains a tuple pointer, otherwise
-    // it contains a previous result of the aggregate operator
+  Attribute* value;
 };
 
-int AggregateB(Word* args, Word& result, int message, 
+int AggregateB(Word* args, Word& result, int message,
                Word& local, Supplier s)
 {
   // The argument vector contains the following values:
@@ -5598,7 +5621,7 @@ int AggregateB(Word* args, Word& result, int message,
   // args[3] = zero value
   // args[4] = attribute index added by APPEND
 
-  Word t1, t2, iterWord, resultWord;
+  Word t1,resultWord;
   ArgVectorPointer vector = qp->Argument(args[2].addr);
 
   qp->Open(args[0].addr);
@@ -5607,114 +5630,74 @@ int AggregateB(Word* args, Word& result, int message,
 
   // read the first tuple
   qp->Request( args[0].addr, t1 );
-  if( !qp->Received( args[0].addr ) )
+
+
+  if( !qp->Received( args[0].addr ) ){
+    // special case: stream is empty
+    // use the third argument as result
     ((StandardAttribute*)result.addr)->
       CopyFrom( (const StandardAttribute*)args[3].addr );
-  else
-  {
-    stack<AggrStruct> aggrStack;
 
-    // read the second tuple
-    qp->Request( args[0].addr, t2 );
-    if( !qp->Received( args[0].addr ) )
-    {
-      ((StandardAttribute*)result.addr)->
-        CopyFrom( (StandardAttribute*)((Tuple*)t1.addr)->
-          GetAttribute( index-1 ) );
-      ((Tuple*)t1.addr)->DeleteIfAllowed();
-    }
-    else
-    {
-      // match both tuples and put the result into the stack
-      (*vector)[0] = SetWord( ((Tuple*)t1.addr)->GetAttribute( index-1 ) );
-      (*vector)[1] = SetWord( ((Tuple*)t2.addr)->GetAttribute( index-1 ) );
-      qp->Request( args[2].addr, resultWord );
-      aggrStack.push( AggrStruct( 1, resultWord ) ); 
-        // level 1 because we matched a level 0 tuple
-      qp->ReInitResultStorage( args[2].addr );
-      ((Tuple*)t1.addr)->DeleteIfAllowed();
-      ((Tuple*)t2.addr)->DeleteIfAllowed();
-
-      // process the rest of the tuples
-      qp->Request( args[0].addr, t1 );
-      while( qp->Received( args[0].addr ) )
-      {
-        long level = 0;
-        iterWord = 
-          SetWord( ((Tuple*)t1.addr)->GetAttribute( index-1 )->Copy() );
-        while( !aggrStack.empty() && aggrStack.top().level == level )
-        {
-          (*vector)[0] = aggrStack.top().level == 0 ? 
-            SetWord(((Tuple*)aggrStack.top().value.addr)->
-              GetAttribute(index-1)):
-            aggrStack.top().value;
-          (*vector)[1] = iterWord;
-          qp->Request(args[2].addr, resultWord);
-          ((Attribute*)iterWord.addr)->DeleteIfAllowed();
-          iterWord = resultWord;
-          qp->ReInitResultStorage( args[2].addr );
-          if( aggrStack.top().level == 0 )
-            ((Tuple*)aggrStack.top().value.addr)->DeleteIfAllowed();
-          else
-            ((StandardAttribute*)aggrStack.top().value.addr)->DeleteIfAllowed();
-          aggrStack.pop();
-          level++;
-        }
-        if( level == 0 )
-          aggrStack.push( AggrStruct( level, t1 ) );
-        else
-        {
-          aggrStack.push( AggrStruct( level, iterWord ) );
-          ((Tuple*)t1.addr)->DeleteIfAllowed();
-        }
-        qp->Request( args[0].addr, t1 );
-      }
-  
-      // if the stack contains only one entry, then we are done
-      if( aggrStack.size() == 1 )
-      {
-        result.addr = ((Attribute*)aggrStack.top().value.addr)->Copy();
-        ((Attribute*)aggrStack.top().value.addr)->DeleteIfAllowed();
-      }
-      else
-        // the stack must contain more elements and we call the 
-        // aggregate function for them
-      {
-        iterWord = aggrStack.top().value;
-        int level = aggrStack.top().level;
-        aggrStack.pop();
-  
-        while( !aggrStack.empty() )
-        {
-          (*vector)[0] = level == 0 ? 
-            SetWord( ((Tuple*)iterWord.addr)->GetAttribute( index-1 ) ) :
-            iterWord;
-          (*vector)[1] = aggrStack.top().value;
-          qp->Request( args[2].addr, resultWord );
-  
-          if( level == 0 )
-            ((Tuple*)iterWord.addr)->DeleteIfAllowed();
-          else
-            ((Attribute*)iterWord.addr)->DeleteIfAllowed();
-  
-          ((Attribute*)aggrStack.top().value.addr)->DeleteIfAllowed();
-  
-          iterWord = resultWord;
-          qp->ReInitResultStorage( args[2].addr );
-          level++;
-  
-          aggrStack.pop();
-        }
-  
-        result.addr = ((Attribute*)iterWord.addr)->Copy();
-        ((Attribute*)iterWord.addr)->DeleteIfAllowed();
-      }
-    }
+  } else {
+    // nonempty stream, consume it
+    stack<AggrStackEntry> theStack;
+    while( qp->Received(args[0].addr)){
+       // get the attribute from the current tuple
+       Attribute* attr = ((Tuple*)t1.addr)->GetAttribute(index-1)->Copy();
+       // the tuple is not longer needed here
+       ((Tuple*)t1.addr)->DeleteIfAllowed();
+       // put the attribute on the stack merging with existing entries
+       // while possible
+       int level = 0;
+       while(!theStack.empty() && level==theStack.top().level){
+         // merging is possible
+         AggrStackEntry top = theStack.top();
+         theStack.pop();
+         // call the parameter function
+         (*vector)[0] = SetWord(top.value);
+         (*vector)[1] = SetWord(attr);
+         qp->Request(args[2].addr, resultWord);
+         qp->ReInitResultStorage(args[2].addr);
+         top.destroy();  // remove stack content
+         if(level==0){ // delete attr;
+            attr->DeleteIfAllowed();
+         } else {
+            delete attr;
+         }
+         attr = (Attribute*) resultWord.addr;
+         level++;
+       }
+       AggrStackEntry entry(level,attr);
+       theStack.push(entry);
+       qp->Request(args[0].addr,t1);
+   }
+   // stream ends, merge stack elements regardless of their level
+   assert(!theStack.empty()); // at least one element must be exist
+   AggrStackEntry tmpResult = theStack.top();
+   theStack.pop();
+   while(!theStack.empty()){
+     AggrStackEntry top = theStack.top();
+     theStack.pop();
+     (*vector)[0] = SetWord(tmpResult.value);
+     (*vector)[1] = SetWord(top.value);
+     qp->Request(args[2].addr, resultWord);
+     qp->ReInitResultStorage(args[2].addr);
+     tmpResult.destroy(); // destroy temporarly result
+     tmpResult.level = 1; // mark as computed
+     tmpResult.value = (Attribute*) resultWord.addr;
+     top.destroy();
+   }
+   ((StandardAttribute*)result.addr)->
+                          CopyFrom((StandardAttribute*)tmpResult.value);
+   tmpResult.destroy();
   }
+  // close input stream
   qp->Close(args[0].addr);
-
   return 0;
+
 }
+
+
 
 /*
 2.18.3 Specification of operator ~aggregate~

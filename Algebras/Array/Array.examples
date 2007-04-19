@@ -60,7 +60,8 @@ Operator : loopselect
 Number   : 1
 Signature: ((array t) ((name1 (map t r)) ... (namen (map t r))) int real) -> (array r)
 Example  : query plz_a20 loopselect[ f1: . feed plz feed {ren1} hashjoin[PLZ, PLZ_ren1, 997] count, f2: . feed plz feed {ren1} sortmergejoin[PLZ, PLZ_ren1] count; 5, 0.2 ] tie[. + ..]
-Result   : 248793
+Result   : crashes
+Remark   : Unknown reason 
 
 
 Operator : loopselecta
@@ -82,7 +83,8 @@ Operator : loopswitch
 Number   : 1
 Signature: ((array t) ((name1 (map t r)) ... (namen (map t r)))) -> (array r)
 Example  : query plz_a20 loopswitch[ f1: . feed plz feed {ren1} hashjoin[PLZ, PLZ_ren1, 997] count, f2: . feed plz feed {ren1} sortmergejoin[PLZ, PLZ_ren1] count ] tie[. + ..]
-Result   : 248793
+Result   : crashes
+Remark   : Unknown reason 
 
 
 Operator : loopswitcha
@@ -103,7 +105,8 @@ Operator : loopswitchb
 Number   : 1
 Signature: ((array t) (array u) ((name1 (map t u r)) ... (namen (map t u r)))) -> (array r)
 Example  : query plz_a20 plz_a20 loopswitchb[ f1: . feed .. feed {ren1} hashjoin[PLZ, PLZ_ren1, 997] count, f2: . feed .. feed {ren1} sortmergejoin[PLZ, PLZ_ren1] count ] tie[. + ..]
-Result   : 248793 
+Result   : crashes
+Remark   : Unknown reason 
 
 
 Operator : makearray

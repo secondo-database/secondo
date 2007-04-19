@@ -37,7 +37,6 @@ Relational Algebra and fixed some memory leaks.
 1 Includes and defines
 
 */
-#ifdef RELALG_PERSISTENT
 
 #include <string.h>
 #include <vector>
@@ -46,7 +45,6 @@ Relational Algebra and fixed some memory leaks.
 #include "RelationAlgebra.h"
 #include "QueryProcessor.h"
 #include "SecondoInterface.h"
-#include "RelationPersistent.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -90,16 +88,8 @@ void Tuple::UpdateAttributes( const vector<int>& changedIndices,
       tmpFLOB->Destroy();
     }
 
-    if( privateTuple->state == Fresh )
-    {
-      privateTuple->attributes[index]->DeleteIfAllowed();
-      privateTuple->attributes[index] = newAttrs[i];
-    }
-    else
-    { 
-      memcpy( privateTuple->attributes[index], newAttrs[i], 
-              privateTuple->tupleType->GetAttributeType(index).size );
-    }
+    privateTuple->attributes[index]->DeleteIfAllowed();
+    privateTuple->attributes[index] = newAttrs[i];
   }
   privateTuple->UpdateSave( changedIndices,
                             extSize, size, 
@@ -109,157 +99,6 @@ void Tuple::UpdateAttributes( const vector<int>& changedIndices,
   recomputeSize = true;
 }
 
-/*
-2 Class ~PrivateTuple~
-
-Saves the updated tuple to disk. Only for the new attributes the real 
-LOBs are saved to the lobfile. The memorytuple and extensiontuple are 
-again computed and saved to the corresponding tuplerecord.
-
-*/
-void PrivateTuple::UpdateSave( const vector<int>& changedIndices,
-                               double& extSize, double& size,
-                               vector<double>& attrExtSize,
-                               vector<double>& attrSize )
-{
-  long extensionSize = 0;
-  bool hasFLOBs = false;
-
-  // Calculate the size of the small FLOB data which will be
-  // saved together with the tuple attributes and save the LOBs
-  // in the lobFile.
-  for( int i = 0; i < tupleType->GetNoAttributes(); i++)
-  {
-    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
-    {
-      hasFLOBs = true;
-      FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-
-      assert( i >= 0 && (size_t)i < attrSize.size() );
-      attrSize[i] += tmpFLOB->Size();
-      size += tmpFLOB->Size();
-
-      if( !tmpFLOB->IsLob() )
-      {
-        assert( i >= 0 && (size_t)i < attrExtSize.size() );
-        attrExtSize[i] += tmpFLOB->Size();
-        extSize += tmpFLOB->Size();
-
-        extensionSize += tmpFLOB->Size();
-      }
-      else
-      {
-        tmpFLOB->BringToMemory();
-        tmpFLOB->SaveToLob( lobFileId );
-      }
-    }
-  }
-
-  if( state == Solid && hasFLOBs && extensionSize > 0 )
-  {
-    assert( memoryTuple != 0 );
-
-    if( extensionTuple != 0 )
-      free( extensionTuple );
-    if( extensionSize > 0 )
-      extensionTuple = (char*)malloc( extensionSize );
-
-    char *extensionPtr = extensionTuple;
-    for( int i = 0; i < tupleType->GetNoAttributes(); i++)
-    {
-      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
-      {
-        FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-        if( !tmpFLOB->IsLob() )
-        {
-          tmpFLOB->SaveToExtensionTuple( extensionPtr );
-          extensionPtr += tmpFLOB->Size();
-        }
-      }
-    }
-  }
-  else if( state == Fresh )
-  {
-    // Create a structure to store the old attributes
-    Attribute **oldAttributes = new Attribute*[tupleType->GetNoAttributes()];
-
-    // Move external attributes to memory tuple
-    assert( memoryTuple == 0 );
-    memoryTuple = (char*)malloc( tupleType->GetTotalSize() );
-    int offset = 0;
-    for( int i = 0; i < tupleType->GetNoAttributes(); i++)
-    {
-      memcpy( &memoryTuple[offset], attributes[i],
-              tupleType->GetAttributeType(i).size );
-      oldAttributes[i] = attributes[i];
-      attributes[i] = (Attribute*) &memoryTuple[offset];
-      offset += tupleType->GetAttributeType(i).size;
-    }
-
-    // Move FLOB data to extension tuple.
-    if( hasFLOBs )
-    {
-      if( extensionSize > 0 )
-        extensionTuple = (char *)malloc(extensionSize);
-
-      char *extensionPtr = extensionTuple;
-      for( int i = 0; i < tupleType->GetNoAttributes(); i++)
-      {
-        for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
-        {
-          FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-          if( !tmpFLOB->IsLob() )
-          {
-            tmpFLOB->SaveToExtensionTuple( extensionPtr );
-            extensionPtr += tmpFLOB->Size();
-          }
-        }
-      }
-    }
-
-    // Delete (if allowed) the old attributes.
-    for( int i = 0; i < tupleType->GetNoAttributes(); i++)
-      oldAttributes[i]->DeleteIfAllowed();
-
-    delete []oldAttributes;
-  }
-
-  SmiRecord *tupleRecord = new SmiRecord();
-  bool ok = tupleFile->SelectRecord( tupleId, *tupleRecord,
-                                     SmiFile::Update );
-  if (! ok)
-  {
-    cout << "UpdateSave: there was no record for the tuple with "
-         << "tupleId: " << tupleId << " found" << endl;
-    assert (false);
-  }
-  int oldRecordSize = tupleRecord->Size();
-  int newRecordSize = sizeof(int) + 
-                      tupleType->GetTotalSize() + 
-                      extensionSize;
-  bool rc = true;
-
-  // Now write the attributes
-  rc = tupleRecord->Write( memoryTuple, 
-                           tupleType->GetTotalSize(), 
-                           0 ) && rc;
-
-  // The whole extension tuple must be rewritten.
-  if( extensionSize > 0 )
-    rc = tupleRecord->Write( extensionTuple, 
-                             extensionSize, 
-                             tupleType->GetTotalSize() ) && rc;
-
-  // The record must be truncated in case the size of a small 
-  // FLOB has decreased.
-  if( newRecordSize < oldRecordSize )
-    tupleRecord->Truncate( newRecordSize );
-
-  tupleRecord->Finish();
-  delete tupleRecord;
-
-  state = Solid;
-}
 
 /*
 4 Class ~Relation~
@@ -326,5 +165,3 @@ bool Relation::DeleteTuple( Tuple *tuple )
 
   return false;
 }
-
-#endif

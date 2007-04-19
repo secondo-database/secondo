@@ -68,6 +68,8 @@ deleting the tuple pointer directly.
 
 January 2007, M. Spiekermann. Fixed a memory leak in ~PrivateTupleBuffer~.
 
+April 2007, T Behr, Concept of solid tuples has been removed.
+
 
 [TOC]
 
@@ -86,66 +88,39 @@ secondary memory.
 A relation has two files: the tuple file and the LOB file, for 
 storing tuples and LOBs respectively.
 
-The tuples can be in two states, namely ~fresh~ and ~solid~. A 
-fresh tuple is a tuple created by the ~in~-function of the ~tuple~ 
-type constructor. It is stored in memory and looks like the tuple 
-in the Main Memory Relational Algebra. An example schema of such 
-tuple can be viewed in Figure 1. Attributes in fresh tuples are
-created with ~new~ and therefore must be deleted with ~delete~.
-
-                Figure 1: Example schema of a fresh 
-                tuple. [FreshTuple.eps]
-
-A solid tuple is created when a fresh tuple is saved on disk, or 
-when a tuple is read from disk. The tuple representation on disk 
-has two basic parts: the attributes and the tuple extension for 
-small FLOBs. Large FLOBs are written in the LOB file of the 
-relation. An example schema of two tuples of the same type as 
-the one in Figure 1 can be viewed in Figure 2. The first tuple
-contains a small region, and the second contains a big one, 
-which is saved separately on the LOB file. Attributes of
-solid tuples when opened are created with ~malloc~ and must be
-delete with ~free~.
-
-                Figure 2: Example schema of two solid tuples 
-                with a small FLOB (a) and with a big one (b).
-                [SolidTuple.eps]
-
-The state diagram of tuples can be seen in the Figure 3.
-
-                Figure 3: State diagram of tuples.
-                [TupleStateDiagram.eps]
 
 2 Includes, Constants, Globals, Enumerations
-
-*/
-#ifdef RELALG_PERSISTENT
-/*
-This ~RELALG\_PERSISTENT~ defines which kind of relational algebra 
-is to be compiled. If it is set, the persistent version of the 
-relational algebra will be compiled, and otherwise, the main 
-memory version will be compiled.
 
 */
 
 using namespace std;
 
 #include <string.h>
+
 #include "QueryProcessor.h"
 #include "NestedList.h"
-#include "RelationAlgebra.h"
 #include "SecondoSystem.h"
 #include "SecondoSMI.h"
 #include "FLOB.h"
-#include "RelationPersistent.h"
-#include "LogMsg.h"
 #include "FLOBCache.h"
+#include "RelationAlgebra.h"
+#include "LogMsg.h"
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
 bool PrivateTuple::debug = false;
+
+#undef TRACE
+#define TRACE(ptr, msg) { \
+	    cerr << (void*)this \
+	         << " " << __FUNCTION__ << ": " \
+	         << msg << endl; }
+
+#undef DEBUG
+#define DEBUG(ptr, msg) if (debug) TRACE(ptr, msg)
+
 
 /*
 3 Type constructor ~tuple~
@@ -155,6 +130,63 @@ bool PrivateTuple::debug = false;
 This struct contains the private attributes of the class ~Tuple~.
 
 */
+
+
+/*
+The first constructor. It creates a tuple from a ~tupleType~.
+
+*/
+PrivateTuple::PrivateTuple(TupleType *tupleType):
+    tupleId( 0 ),
+    tupleType( tupleType ),
+    attributes( 0 ),
+    lobFileId( 0 ),
+    tupleFile( 0 ),
+    NumOfAttr(tupleType->GetNoAttributes())
+    {
+      DEBUG(this, "Constructor PrivateTuple(TupleType *tupleType) called.")
+      tupleType->IncReference();
+    }
+/*
+The second constructor. It creates tuple from a ~typeInfo~.
+
+*/
+  PrivateTuple::PrivateTuple( const ListExpr typeInfo ):
+    tupleId( 0 ),
+    tupleType( new TupleType( typeInfo ) ),
+    attributes( 0 ),
+    lobFileId( 0 ),
+    tupleFile( 0 ),
+    NumOfAttr(tupleType->GetNoAttributes())
+    {
+      DEBUG(this, "Constructor PrivateTuple(const ListExpr typeInfo) called.")
+    }
+
+
+  PrivateTuple::~PrivateTuple() 
+  {
+    DEBUG(this, "Destructor called.")
+    // delete all attributes if no further references exist 
+    for( int i = 0; i < NumOfAttr; i++ ){
+      if( attributes[i] != 0 )
+      {
+	DEBUG(this, "call attributes[" << i << "]->DeleteIfAllowed() with"
+                    << " del.refs = " << (int)attributes[i]->del.refs)
+
+        attributes[i]->DeleteIfAllowed();
+      } 
+      else {
+	DEBUG(this, "attributes[" << i << "] == 0")
+      }	      
+    }
+    tupleType->DeleteIfAllowed();
+  }
+/*
+The destructor.
+
+*/
+
+
 void PrivateTuple::Save( SmiRecordFile *tuplefile, 
                          SmiFileId& lobFileId,
                          double& extSize, double& size,
@@ -163,6 +195,11 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
   long extensionSize = 0;
   bool hasFLOBs = false;
 
+  long& saveCtr = Counter::getRef("RA:PrivateTuple::Save");
+  long& flobCtr = Counter::getRef("RA:PrivateTuple::Save.FLOBs");
+  long& lobCtr  = Counter::getRef("RA:PrivateTuple::Save.LOBs");
+
+  saveCtr++;
   // Calculate the size of the small FLOB data which will be 
   // saved together with the tuple attributes and save the LOBs 
   // in the lobFile.
@@ -186,6 +223,116 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
 
       if( !tmpFLOB->IsLob() )
       {
+	flobCtr++;      
+        attrExtSize[i] += tmpFLOB->Size();
+        extSize += tmpFLOB->Size();
+
+        extensionSize += tmpFLOB->Size();
+      }
+      else
+      {
+	lobCtr++;      
+        tmpFLOB->SaveToLob( lobFileId );
+      }
+    }
+  }
+
+  // Copy FLOB data to a single block (extensionTuple).
+  char* extensionTuple=0;
+  if( hasFLOBs )
+  {
+    if( extensionSize > 0 )
+      extensionTuple = (char *)malloc(extensionSize);
+
+     char *extensionPtr = extensionTuple;
+     for( int i = 0; i < NumOfAttr; i++)
+     {
+       for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
+       {
+         FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
+         if( !tmpFLOB->IsLob() )
+         {
+           extensionPtr += tmpFLOB->WriteTo(extensionPtr);
+         }
+       }
+     } 
+       DEBUG(this, "extPtr = " << (void*) extensionPtr 
+		   << " extSize = " << extensionSize 
+		   << " extTuple = " << (void*) extensionTuple )
+   }
+  
+
+  // Move external attributes to another single block (memorytuple)
+  char* memoryTuple;
+  memoryTuple = (char*)malloc( tupleType->GetTotalSize() );
+  int offset = 0;
+  for( int i = 0; i < NumOfAttr; i++)
+  {
+     memcpy( &memoryTuple[offset], attributes[i], 
+              tupleType->GetAttributeType(i).size );
+      offset += tupleType->GetAttributeType(i).size;
+  }
+  DEBUG(this, "offset = " << offset 
+	      << "totalsize = " << tupleType->GetTotalSize()) 
+  DEBUG(this, "Writing tuple to disk!")
+
+  // Write the data 
+  tupleFile = tuplefile;
+  SmiRecord *tupleRecord = new SmiRecord();
+  tupleId = 0;
+  bool rc = tupleFile->AppendRecord( tupleId, *tupleRecord );
+  assert(rc == true);
+  rc = 
+    tupleRecord->Write(memoryTuple, tupleType->GetTotalSize(), 0) && 
+    rc;
+
+  assert(rc == true);
+  if( extensionSize > 0 )
+    rc = tupleRecord->Write( extensionTuple, extensionSize, 
+                             tupleType->GetTotalSize() ) && rc;
+
+  assert(rc == true);
+  tupleRecord->Finish();
+  delete tupleRecord;
+  // free the blocks
+  if(extensionTuple){
+     free(extensionTuple);
+  }
+  free(memoryTuple);
+}
+
+/*
+
+Saves the updated tuple to disk. Only for the new attributes the real 
+LOBs are saved to the lobfile.
+
+*/
+void PrivateTuple::UpdateSave( const vector<int>& changedIndices,
+                               double& extSize, double& size,
+                               vector<double>& attrExtSize,
+                               vector<double>& attrSize )
+{
+
+  long extensionSize = 0;
+  bool hasFLOBs = false;
+
+  // Calculate the size of the small FLOB data which will be
+  // saved together with the tuple attributes and save the LOBs
+  // in the lobFile.
+  for( int i = 0; i < tupleType->GetNoAttributes(); i++)
+  {
+    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
+    {
+      hasFLOBs = true;
+      FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
+
+      assert( i >= 0 && (size_t)i < attrSize.size() );
+      attrSize[i] += tmpFLOB->Size();
+      size += tmpFLOB->Size();
+
+      if( !tmpFLOB->IsLob() )
+      {
+        assert( i >= 0 && (size_t)i < attrExtSize.size() );
         attrExtSize[i] += tmpFLOB->Size();
         extSize += tmpFLOB->Size();
 
@@ -198,91 +345,80 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
     }
   }
 
-  if( state == Solid && hasFLOBs && extensionSize > 0 )
+  // Copy external attributes to memory tuple
+  char* memoryTuple;
+  memoryTuple = (char*)malloc( tupleType->GetTotalSize() );
+  int offset = 0;
+  for( int i = 0; i < tupleType->GetNoAttributes(); i++)
   {
-    assert( memoryTuple != 0 );
-    assert( (extensionSize == 0 && extensionTuple == 0 ) || 
-            (extensionSize != 0 && extensionTuple != 0 ) );
+     memcpy( &memoryTuple[offset], attributes[i],
+              tupleType->GetAttributeType(i).size );
+     offset += tupleType->GetAttributeType(i).size;
+   }
 
-    for( int i = 0; i < NumOfAttr; i++)
-    {
-      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
-      {
-        FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-        if( !tmpFLOB->IsLob() )
-          tmpFLOB->SaveToExtensionTuple( 0 );
-      }
-    }   
-  }
-  else if( state == Fresh )
-  { 
-    // Create a structure to store the old attributes
-    Attribute **oldAttributes = new Attribute*[NumOfAttr];
-
-    // Move FLOB data to extension tuple.
-    if( hasFLOBs )
-    {
-      if( extensionSize > 0 )
+   // Copy FLOB data to extension tuple.
+   char* extensionTuple=0; 
+   if( hasFLOBs )
+   {
+     if( extensionSize > 0 )
         extensionTuple = (char *)malloc(extensionSize);
 
       char *extensionPtr = extensionTuple;
-      for( int i = 0; i < NumOfAttr; i++)
+      for( int i = 0; i < tupleType->GetNoAttributes(); i++)
       {
         for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
         {
           FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
           if( !tmpFLOB->IsLob() )
           {
-            tmpFLOB->SaveToExtensionTuple( extensionPtr );
-            extensionPtr += tmpFLOB->Size();
+            extensionPtr += tmpFLOB->WriteTo( extensionPtr );
           }
         }
-      } 
+      }
     }
 
-    // Move external attributes to memory tuple
-    assert( memoryTuple == 0 );
-    memoryTuple = (char*)malloc( tupleType->GetTotalSize() );
-    int offset = 0;
-    for( int i = 0; i < NumOfAttr; i++)
+    SmiRecord *tupleRecord = new SmiRecord();
+    bool ok = tupleFile->SelectRecord( tupleId, *tupleRecord,
+                                      SmiFile::Update );
+    if (! ok)
     {
-      memcpy( &memoryTuple[offset], attributes[i], 
-              tupleType->GetAttributeType(i).size );
-      oldAttributes[i] = attributes[i];
-      attributes[i] = (Attribute*) &memoryTuple[offset];
-      offset += tupleType->GetAttributeType(i).size;
+       TRACE(this, "There was no record for the tuple with "
+                       << "tupleId: " << tupleId << " found" )
+       assert (false);
     }
-    if (debug)
-      std::cerr 
-	 << "Tuple " << (void*)this 
-  	 << " : fresh tuple ready for writing! Deleting old attributes ..." 
-	 << endl;
+    int oldRecordSize = tupleRecord->Size();
+    int newRecordSize = sizeof(int) + 
+                      tupleType->GetTotalSize() + 
+                      extensionSize;
+    bool rc = true;
 
-    // Delete (if allowed) the old attributes.
-    for( int i = 0; i < NumOfAttr; i++)
-      oldAttributes[i]->DeleteIfAllowed();
+    // Now write the attributes
+    rc = tupleRecord->Write( memoryTuple, 
+                             tupleType->GetTotalSize(), 
+                              0 ) && rc;
 
-    delete [] oldAttributes;
-  }
-
-  // Write the tuple
-  tupleFile = tuplefile;
-  SmiRecord *tupleRecord = new SmiRecord();
-  tupleId = 0;
-  bool rc = tupleFile->AppendRecord( tupleId, *tupleRecord );
-  rc = 
-    tupleRecord->Write(memoryTuple, tupleType->GetTotalSize(), 0) && 
-    rc;
-  if( extensionSize > 0 )
-    rc = tupleRecord->Write( extensionTuple, extensionSize, 
+    // The whole extension tuple must be rewritten.
+    if( extensionSize > 0 ){
+        rc = tupleRecord->Write( extensionTuple, 
+                             extensionSize, 
                              tupleType->GetTotalSize() ) && rc;
+    }
 
-  tupleRecord->Finish();
-  delete tupleRecord;
+    // The record must be truncated in case the size of a small 
+    // FLOB has decreased.
+    if( newRecordSize < oldRecordSize ){
+      tupleRecord->Truncate( newRecordSize );
+    }
+    tupleRecord->Finish();
+    delete tupleRecord;
+    free(memoryTuple);
+    if(extensionTuple){
+       free(extensionTuple);
+    }
 
-  state = Solid;
-  this->lobFileId = lobFileId;
 }
+
+
 
 bool PrivateTuple::Open( SmiRecordFile *tuplefile, 
                          SmiFileId lobfileId, SmiRecordId rid )
@@ -298,9 +434,15 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
   }
 
   size_t offset = 0;
+
+
+  // we read all attributes within a single block to
+  // avoid frequently getting of small data sizes
+  char* memoryTuple=0;
   memoryTuple = (char *)malloc( tupleType->GetTotalSize() );
+
   if( (int)tupleRecord->Read( memoryTuple, tupleType->GetTotalSize(),
-                               offset ) != tupleType->GetTotalSize() )
+                              offset ) != tupleType->GetTotalSize() )
   {
     tupleRecord->Finish();
     delete tupleRecord;
@@ -316,10 +458,13 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
   char *valuePtr = memoryTuple;
   for( int i = 0; i < NumOfAttr; i++ )
   {
-    int algId = tupleType->GetAttributeType(i).algId,
-        typeId = tupleType->GetAttributeType(i).typeId;
-    attributes[i] = 
-      (Attribute*)(*(am->Cast(algId, typeId)))(valuePtr);
+    int algId  = tupleType->GetAttributeType(i).algId;
+    int typeId = tupleType->GetAttributeType(i).typeId;
+    // cast the attribute
+    attributes[i] = (Attribute*)(*(am->Cast(algId, typeId)))(valuePtr);
+    attributes[i] = (Attribute*)malloc(tupleType->GetAttributeType(i).size);
+    memcpy(attributes[i], valuePtr, tupleType->GetAttributeType(i).size);
+    attributes[i]->SetFreeAttr(); // mark as created using malloc
     valuePtr += tupleType->GetAttributeType(i).size;
 
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
@@ -332,11 +477,16 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
     }
   }
 
+  free(memoryTuple);
+
   // Read the small FLOBs. The read of LOBs is postponed to its 
-  // usage. 
+  // usage.
+  // as for the memorytuple read all small FLOBS into a 
+  // single block and than distribute them free in memory
+ 
   if( extensionSize > 0 )
   {
-    extensionTuple = (char*)malloc( extensionSize );
+    char* extensionTuple = (char*)malloc( extensionSize );
     if( tupleRecord->Read( extensionTuple, extensionSize,
                            offset ) != extensionSize )
     {
@@ -355,21 +505,24 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
         FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
         if( !tmpFLOB->IsLob() )
         {
-          tmpFLOB->ReadFromExtensionTuple( extensionPtr );
+          tmpFLOB->ReadFrom( extensionPtr );
           extensionPtr += tmpFLOB->Size();
         }
       }
     }
+    free(extensionTuple);
   }
 
   // Call the Initialize function for every attribute
-  for( int i = 0; i < NumOfAttr; i++ )
+  // and sets the references to 1
+  for( int i = 0; i < NumOfAttr; i++ ){
     attributes[i]->Initialize();
+    attributes[i]->InitRefs();
+  }
 
   tupleRecord->Finish();
   delete tupleRecord;
 
-  state = Solid;
   return true;
 }
 
@@ -381,76 +534,78 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
   this->tupleFile = tuplefile;
   this->lobFileId = lobfileId;
 
-  size_t offset = 0;
-  memoryTuple = (char *)malloc( tupleType->GetTotalSize() );
-  if( (int)iter->ReadCurrentData( memoryTuple, 
-                                  tupleType->GetTotalSize(), 
-                                  offset ) != 
-      tupleType->GetTotalSize() )
-  {
-    free( memoryTuple ); memoryTuple = 0;
-    return false;
-  }
-  offset += tupleType->GetTotalSize();
 
-  // Read attribute values from memoryTuple.
-  // Calculate the size of the extension tuple.
-  // Set the lobFile for all LOBs.
-  size_t extensionSize = 0;
-  char *valuePtr = memoryTuple;
+  /* In case of the prefetching iterator, we don't need
+   *  to read the data first into a single block.
+   *  Indeed, we can read each attribute by a single call.
+   **/ 
+
+  size_t offset = 0;
+
   for( int i = 0; i < NumOfAttr; i++ )
   {
-    int algId = tupleType->GetAttributeType(i).algId,
-        typeId = tupleType->GetAttributeType(i).typeId;
-    attributes[i] =
-      (Attribute*)(*(am->Cast(algId, typeId)))(valuePtr);
-    valuePtr += tupleType->GetAttributeType(i).size;
+    int algId = tupleType->GetAttributeType(i).algId;
+    int typeId = tupleType->GetAttributeType(i).typeId;
+    int size = tupleType->GetAttributeType(i).size;
 
-    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
-    {
-      FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
-      if( !tmpFLOB->IsLob() )
-        extensionSize += tmpFLOB->Size();
-      else
-        tmpFLOB->SetLobFileId( lobFileId );
+    attributes[i] = (Attribute*)malloc(size);
+    if( (int)iter->ReadCurrentData(attributes[i],
+                              size, offset)!=size){
+       // problem in reading, delete all attributes allocated
+       // before
+       for(int k=0;k<=i;k++){
+          free(attributes[k]);
+       }
+       return false;
     }
+    offset += size;
+    // all fine, cast the attribute
+    attributes[i] = (Attribute*)(*(am->Cast(algId, typeId)))(attributes[i]);
+    attributes[i]->SetFreeAttr();
+
   }
 
   // Read the small FLOBs. The read of LOBs is postponed to its
   // usage.
-  if( extensionSize > 0 )
-  {
-    extensionTuple = (char*)malloc( extensionSize );
-    if( iter->ReadCurrentData( extensionTuple,
-                               extensionSize,
-                               offset ) !=
-        extensionSize )
+  
+  for(int i=0; i< NumOfAttr; i++){
+    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
     {
-      free( memoryTuple ); memoryTuple = 0;
-      free( extensionTuple ); extensionTuple = 0;
-      return false;
-    }
-
-    char *extensionPtr = extensionTuple;
-    for( int i = 0; i < NumOfAttr; i++ )
-    {
-      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
-      {
-        FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
-        if( !tmpFLOB->IsLob() )
-        {
-          tmpFLOB->ReadFromExtensionTuple( extensionPtr );
-          extensionPtr += tmpFLOB->Size();
+      FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
+      if( !tmpFLOB->IsLob()){
+        void* ptr = tmpFLOB->Malloc(); 
+        if(ptr){
+           int size = tmpFLOB->Size();
+           if((int)iter->ReadCurrentData( ptr, 
+                                          size,
+                                          offset)!=size){
+             // error in getting the data
+             // free all mallocs
+             for(int k=0;k<NumOfAttr;k++){
+                for(int m=0;m<attributes[i]->NumOfFLOBs();m++){
+                  FLOB* victim = attributes[k]->GetFLOB(m);
+                  if(k<=i || m<=j){ // FLOB buffer already allocated
+                     delete victim;
+                  }
+                }
+                free(attributes[k]);
+             }
+             return false;
+           }
+           offset += size; 
         }
-      }
+     } else{
+        tmpFLOB->SetLobFileId( lobFileId );
+     }
     }
+  }  
+  // Call the Initialize function for every attribute
+  // and initialize the reference counter
+  for( int i = 0; i < NumOfAttr; i++ ){
+    attributes[i]->Initialize();
+    attributes[i]->InitRefs();
   }
 
-  // Call the Initialize function for every attribute
-  for( int i = 0; i < NumOfAttr; i++ )
-    attributes[i]->Initialize();
-
-  state = Solid;
   return true;
 }
 
@@ -470,7 +625,8 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
   }
 
   size_t offset = 0;
-  memoryTuple = (char *)malloc( tupleType->GetTotalSize() );
+  // read a single block and copy the data to be faster
+  char* memoryTuple = (char *)malloc( tupleType->GetTotalSize() );
   if( (int)record->Read( memoryTuple, 
                               tupleType->GetTotalSize(), offset ) != 
       tupleType->GetTotalSize() )
@@ -488,10 +644,14 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
   char *valuePtr = memoryTuple;
   for( int i = 0; i < NumOfAttr; i++ )
   {
-    int algId = tupleType->GetAttributeType(i).algId,
-        typeId = tupleType->GetAttributeType(i).typeId;
-    attributes[i] =
-      (Attribute*)(*(am->Cast(algId, typeId)))(valuePtr);
+    int algId  = tupleType->GetAttributeType(i).algId;
+    int typeId = tupleType->GetAttributeType(i).typeId;
+    // cast the attribute
+    attributes[i] = (Attribute*)(*(am->Cast(algId, typeId)))(valuePtr);
+
+    attributes[i] = (Attribute*)malloc(tupleType->GetAttributeType(i).size);
+    memcpy(attributes[i], valuePtr, tupleType->GetAttributeType(i).size);
+    attributes[i]->SetFreeAttr();
     valuePtr += tupleType->GetAttributeType(i).size;
 
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
@@ -504,20 +664,24 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
     }
   }
 
-  // Read the small FLOBs. The read of LOBs is postponed to its
+  free(memoryTuple);
+
+
+  // Read the small FLOBs. The read of LOBs is postponed to its 
   // usage.
+  // as for the memorytuple read all small FLOBS into a 
+  // single block and than distribute them free in memory
+ 
   if( extensionSize > 0 )
   {
-    extensionTuple = (char*)malloc( extensionSize );
-    if( record->Read( extensionTuple, extensionSize,
+    char* extensionTuple = (char*)malloc( extensionSize );
+   if( record->Read( extensionTuple, extensionSize,
                       offset ) != extensionSize )
     {
       record->Finish();
-      free( memoryTuple ); memoryTuple = 0;
       free( extensionTuple ); extensionTuple = 0;
       return false;
     }
-
     char *extensionPtr = extensionTuple;
     for( int i = 0; i < NumOfAttr; i++ )
     {
@@ -526,18 +690,21 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
         FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
         if( !tmpFLOB->IsLob() )
         {
-          tmpFLOB->ReadFromExtensionTuple( extensionPtr );
+          tmpFLOB->ReadFrom( extensionPtr );
           extensionPtr += tmpFLOB->Size();
         }
       }
     }
+    free(extensionTuple);
   }
 
-  // Call the Initialize function for every attribute
-  for( int i = 0; i < NumOfAttr; i++ )
-    attributes[i]->Initialize();
 
-  state = Solid;
+  // Call the Initialize function for every attribute
+  // and initialize the reference counter
+  for( int i = 0; i < NumOfAttr; i++ ){
+    attributes[i]->Initialize();
+    attributes[i]->InitRefs();
+  }
   return true;
 }
 
@@ -1495,5 +1662,3 @@ void Concat( Tuple *r, Tuple *s, Tuple *t )
   for (int j = 0; j < snoattrs; j++)
     t->CopyAttribute( j, s, rnoattrs + j );
 }
-
-#endif // RELALG_PERSISTENT

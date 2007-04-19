@@ -775,7 +775,7 @@ ListExpr TUPLETypeMap(ListExpr args)
   ListExpr first;
   string argstr;
 
-  CHECK_COND(!nl->IsAtom(args),
+  CHECK_COND(!nl->IsAtom(args) && !nl->IsEmpty(args),
   "Type operator TUPLE expects a list and not an atom.");
     
   first = nl->First(args);
@@ -4574,9 +4574,9 @@ extern "C"
 Algebra*
 InitializeRelationAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
-  if ( RTFlag::isActive("RA:ShowFLOBstates") )
+  if ( RTFlag::isActive("RA:FLOB_Trace") )
     FLOB::debug = true;
-  if ( RTFlag::isActive("RA:ShowTUPLEstates") )
+  if ( RTFlag::isActive("RA:TUPLE_Trace") )
     PrivateTuple::debug = true;
  
   nl = nlRef;

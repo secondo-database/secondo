@@ -664,18 +664,6 @@ void* CastPolygon(void* addr)
 3.11 Creation of the Type Constructor Instance
 
 */
-/*
-3.11 Creation of the Type Constructor Instance
-
-The ~\#ifdef RELALG\_PERSISTENT~ is necessary becuase if the
-persistent relational algebra is not being used, then the
-polygon will use the default functions for Open and Save.
-Otherwise, Open and Save functions for the polygon type
-constructors are implemented and used.
-
-*/
-
-#ifdef RELALG_PERSISTENT
 TypeConstructor polygon(
         "polygon",                      //name
         PolygonProperty,                //property function describing signature
@@ -687,19 +675,6 @@ TypeConstructor polygon(
         CastPolygon,                    //cast function
         SizeOfPolygon,                  //sizeof function
         CheckPolygon );                 //kind checking function
-#else
-TypeConstructor polygon(
-        "polygon",                      //name
-        PolygonProperty,                //property function describing signature
-        OutPolygon,     InPolygon,      //Out and In functions
-        0,              0,              //SaveTo and RestoreFrom List functions
-        CreatePolygon,  DeletePolygon,  //object creation and deletion
-        0,              0,              //object open and save
-        ClosePolygon,   ClonePolygon,   //object close and clone
-        CastPolygon,                    //cast function
-        SizeOfPolygon,                  //sizeof function
-        CheckPolygon );                 //kind checking function
-#endif //RELALG_PERSISTENT
 
 /*
 4 PolygonAlgebra
