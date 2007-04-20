@@ -3338,6 +3338,10 @@ void Line::EndBulkLoad( bool sort, bool remDup,
     SetNoComponents();
 
   ordered = true;
+
+   
+
+
 }
 
 Line& Line::operator=( const Line& l )
@@ -12039,7 +12043,13 @@ SpatialGetY_p( Word* args, Word& result, int message,
 */
 
 class LineSplitter{
-public:   
+public:  
+/*
+~Constructor~
+
+Creates a LineSplitter from the given line. 
+  
+*/ 
    LineSplitter(Line* line, bool ignoreCriticalPoints){
         this->theLine = line;
         size = line->Size();
@@ -12049,10 +12059,25 @@ public:
         this->ignoreCriticalPoints = ignoreCriticalPoints;
    }
 
+/*
+~Destroys~ the lineSplitter
+
+*/
+
    ~LineSplitter(){
       delete [] used;
     }
 
+/*
+~NextLine~
+
+This function extracts the next simple part of the line.
+If the line is processed completely, the result will be 
+0. This function creates a new line instance via the new 
+operator. The caller of this function has to ensure the 
+deletion of this object.
+
+*/
     Line* NextLine(){
       // go to the first nonused halfsegment
       while(lastPos<size && used[lastPos]){
