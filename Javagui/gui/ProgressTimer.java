@@ -5,12 +5,14 @@ package gui;
 import javax.swing.*;
 import sj.lang.*;
 import java.awt.Color;
+import java.awt.Font;
 
 public class ProgressTimer extends JLabel implements MessageListener{
 
 
 public ProgressTimer(){
    super(empty);
+   setFont(new Font("Monospaced",Font.PLAIN,12));
    setForeground(Color.BLUE);
 }
 
@@ -56,11 +58,12 @@ public void processMessage(ListExpr message){
        } else if (hours>0){
          text = hours +"."+ ((10*minutes)/60) + "hours";
        } else if(minutes>0){
-         text = minutes+"."+((10*seconds)/60)+ "min";
+         String sec = seconds<10 ? "0"+seconds : ""+seconds;
+         text = minutes+":"+sec+ "min";
        } else if(seconds>0 || millies>0){
           text = seconds+"."+(millies/100)+"sec";
        }
-       setText(text);
+       setText("  "+text);
 
    }
    paintImmediately(0,0,getWidth(),getHeight());
