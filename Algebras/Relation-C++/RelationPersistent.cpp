@@ -190,16 +190,17 @@ The destructor.
 void PrivateTuple::Save( SmiRecordFile *tuplefile, 
                          SmiFileId& lobFileId,
                          double& extSize, double& size,
-                         vector<double>& attrExtSize, vector<double>& attrSize )
+                         vector<double>& attrExtSize, vector<double>& attrSize,
+                         bool ignoreLOBs /*=false*/)
 {
   long extensionSize = 0;
-  bool hasFLOBs = false;
 
-  long& saveCtr = Counter::getRef("RA:PrivateTuple::Save");
-  long& flobCtr = Counter::getRef("RA:PrivateTuple::Save.FLOBs");
-  long& lobCtr  = Counter::getRef("RA:PrivateTuple::Save.LOBs");
+// static   long& saveCtr = Counter::getRef("RA:PrivateTuple::Save");
+// static  long& flobCtr = Counter::getRef("RA:PrivateTuple::Save.FLOBs");
+// static   long& lobCtr  = Counter::getRef("RA:PrivateTuple::Save.LOBs");
 
-  saveCtr++;
+//  saveCtr++;
+
   // Calculate the size of the small FLOB data which will be 
   // saved together with the tuple attributes and save the LOBs 
   // in the lobFile.
@@ -215,7 +216,6 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
 
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
     {
-      hasFLOBs = true;
       FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
 
       attrSize[i] += tmpFLOB->Size();
@@ -223,7 +223,7 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
 
       if( !tmpFLOB->IsLob() )
       {
-	flobCtr++;      
+        // flobCtr++;      
         attrExtSize[i] += tmpFLOB->Size();
         extSize += tmpFLOB->Size();
 
@@ -231,20 +231,40 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
       }
       else
       {
-	lobCtr++;      
-        tmpFLOB->SaveToLob( lobFileId );
+        //lobCtr++;  
+        if(!ignoreLOBs){
+           tmpFLOB->SaveToLob( lobFileId );
+        }
       }
     }
   }
 
-  // Copy FLOB data to a single block (extensionTuple).
-  char* extensionTuple=0;
-  if( hasFLOBs )
-  {
-    if( extensionSize > 0 )
-      extensionTuple = (char *)malloc(extensionSize);
+  
 
-     char *extensionPtr = extensionTuple;
+  // create a single block able to pick up the roots of the
+  // attributes and all small FLOBs
+  
+  char* tupleData = (char*) malloc( tupleType->GetTotalSize() +
+                                    extensionSize);
+  int offset = 0;
+
+  // collect all attributes into the memory block
+  for( int i = 0; i < NumOfAttr; i++)
+  {
+     memcpy( &tupleData[offset], attributes[i], 
+              tupleType->GetAttributeType(i).size );
+      offset += tupleType->GetAttributeType(i).size;
+  }
+  
+  DEBUG(this, "offset = " << offset 
+	      << "totalsize = " << tupleType->GetTotalSize()) 
+  DEBUG(this, "Writing tuple to disk!")
+  
+
+  // Copy FLOB data to behind the attributes
+  if( extensionSize>0) // there are small FLOBs
+  {
+     char *extensionPtr = &tupleData[offset];
      for( int i = 0; i < NumOfAttr; i++)
      {
        for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
@@ -257,24 +277,8 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
        }
      } 
        DEBUG(this, "extPtr = " << (void*) extensionPtr 
-		   << " extSize = " << extensionSize 
-		   << " extTuple = " << (void*) extensionTuple )
-   }
-  
-
-  // Move external attributes to another single block (memorytuple)
-  char* memoryTuple;
-  memoryTuple = (char*)malloc( tupleType->GetTotalSize() );
-  int offset = 0;
-  for( int i = 0; i < NumOfAttr; i++)
-  {
-     memcpy( &memoryTuple[offset], attributes[i], 
-              tupleType->GetAttributeType(i).size );
-      offset += tupleType->GetAttributeType(i).size;
-  }
-  DEBUG(this, "offset = " << offset 
-	      << "totalsize = " << tupleType->GetTotalSize()) 
-  DEBUG(this, "Writing tuple to disk!")
+		   << " extSize = " << extensionSize )
+ }
 
   // Write the data 
   tupleFile = tuplefile;
@@ -282,23 +286,14 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
   tupleId = 0;
   bool rc = tupleFile->AppendRecord( tupleId, *tupleRecord );
   assert(rc == true);
-  rc = 
-    tupleRecord->Write(memoryTuple, tupleType->GetTotalSize(), 0) && 
-    rc;
-
-  assert(rc == true);
-  if( extensionSize > 0 )
-    rc = tupleRecord->Write( extensionTuple, extensionSize, 
-                             tupleType->GetTotalSize() ) && rc;
-
+  rc = tupleRecord->Write(tupleData, 
+                          tupleType->GetTotalSize()+extensionSize,
+                          0);
   assert(rc == true);
   tupleRecord->Finish();
   delete tupleRecord;
-  // free the blocks
-  if(extensionTuple){
-     free(extensionTuple);
-  }
-  free(memoryTuple);
+  // free the block
+  free(tupleData);
 }
 
 /*

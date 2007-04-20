@@ -360,7 +360,8 @@ sizes of the tuple saved.
 
   void Save( SmiRecordFile *tuplefile, SmiFileId& lobFileId,
              double& extSize, double& size,
-             vector<double>& attrExtSize, vector<double>& attrSize );
+             vector<double>& attrExtSize, vector<double>& attrSize,
+             bool ignoreLOBs=false );
 
 /*
 Saves a tuple with updated attributes and reuses the old 
