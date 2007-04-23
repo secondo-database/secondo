@@ -12760,7 +12760,7 @@ const string SpatialSpecRect2Region  =
 
 const string SpatialSpecArea  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>reagion -> real</text--->"
+    "( <text>region -> real</text--->"
     "<text>area( _ )</text--->"
     "<text>Returns the area of a region object as a real value.</text--->"
     "<text> query area( tiergarten )</text--->"
