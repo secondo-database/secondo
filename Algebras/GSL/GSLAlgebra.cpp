@@ -252,7 +252,7 @@ inline double GslRandomgen::NextRealPos()
 
 inline unsigned long int GslRandomgen::NextIntN(const unsigned long int n) 
 { // returns a random integer from 0 to n-1
-  assert( defined && me != NULL );
+  assert( defined && me != NULL && n >= 1 );
   return gsl_rng_uniform_int (me, n);
 }
 
@@ -653,7 +653,7 @@ int gslalg_rng_intN_VM ( Word* args, Word& result,
   CcInt *res = ((CcInt*) result.addr);
   CcInt *cN = ((CcInt*) args[0].addr);
   long resL = 0;
-  if( cN->IsDefined() )
+  if( cN->IsDefined() && cN->GetIntval() >= 1)
   {
     long N = cN->GetIntval();
     resL = the_gsl_randomgenerator.NextIntN( N ); // implicit conversion!
@@ -669,7 +669,8 @@ const string gslalg_rng_intN_Spec  =
     "( <text> int -> int</text--->"
     "<text>rng_intN( N )</text--->"
     "<text>Draw a uniformly distributed integer variate from [0,N-1] using "
-    "the GSL random number generator.</text--->"
+    "the GSL random number generator. For N<1, undef will be returned."
+    "</text--->"
     "<text>query rng_intN(6)+1</text--->"
     ") )";
 
