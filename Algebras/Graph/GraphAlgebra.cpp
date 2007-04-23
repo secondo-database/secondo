@@ -328,15 +328,15 @@ ListExpr verticesMap ( ListExpr args ) {
 
         if ((nl->AtomType(arg1) == SymbolType))
             ErrorReporter::ReportError(
-                   "Type mapping function got parameter of type " + 
+                   "Operator 'vertices' got parameter of type " +
                    nl->SymbolValue(arg1));
         else
             ErrorReporter::ReportError(
-                    "Type mapping function got wrong types as parameters.");
+                    "Operator 'vertices' got wrong types as parameters.");
 
     } else
         ErrorReporter::ReportError(
-                   "Type mapping function got a parameter of length != 1.");
+            "Operator 'vertices'  got a parameter of length != 1.");
 
    return nl->SymbolAtom("typeerror");
 }
@@ -558,16 +558,16 @@ ListExpr circleMap ( ListExpr args ) {
          (nl->AtomType(arg2) == SymbolType) && 
          (nl->AtomType(arg3) == SymbolType))
        ErrorReporter::ReportError(
-              "Type mapping function got parameters of type "
+              "Operator 'circle' got parameters of type "
               +nl->SymbolValue(arg1)+
               ", " +nl->SymbolValue(arg2)+ " and "+nl->SymbolValue(arg3));
      else
        ErrorReporter::ReportError(
-              "Type mapping function got wrong types as parameters.");
+           "Operator 'circle' got wrong types as parameters.");
    }
    else
      ErrorReporter::ReportError(
-             "Type mapping function got a parameter of length != 3.");
+         "Operator 'circle' got a parameter of length != 3.");
    
    return nl->SymbolAtom("typeerror");
 }
@@ -591,14 +591,14 @@ ListExpr GraphGraphTypeMap(ListExpr args)
     else
     {
       ErrorReporter::ReportError(
-        "Type mapping function got paramater of type " +
+        "Operator 'placenodes' got paramater of type " +
         nl->SymbolValue(arg));
     }
   }
   else
   {
     ErrorReporter::ReportError(
-      "Type mapping function got a parameter of length != 1.");
+        "Operator 'placenodes' got a parameter of length != 1.");
   }
   return nl->SymbolAtom("typeerror");
 }
@@ -623,14 +623,14 @@ ListExpr GraphGraphGraphTypeMap(ListExpr args)
     else
     {
       ErrorReporter::ReportError(
-        "Type mapping function got paramaters of type " +
+          "GraphGraphGraphTypeMap got paramaters of type " +
         nl->SymbolValue(arg1) + " and " + nl->SymbolValue(arg2));
     }
   }
   else
   {
     ErrorReporter::ReportError(
-      "Type mapping function got a parameter of length != 2.");
+        "GraphGraphGraphTypeMap got a parameter of length != 2.");
   }
   return nl->SymbolAtom("typeerror");
 }
@@ -655,14 +655,14 @@ ListExpr GraphGraphBoolTypeMap(ListExpr args)
     else
     {
       ErrorReporter::ReportError(
-        "Type mapping function got paramaters of type " +
+          "GraphGraphBoolTypeMap got paramaters of type " +
         nl->SymbolValue(arg1) + " and " + nl->SymbolValue(arg2));
     }
   }
   else
   {
     ErrorReporter::ReportError(
-        "Type mapping function got a parameter of length != 2.");
+        "GraphGraphBoolTypeMap got a parameter of length != 2.");
   }
   return nl->SymbolAtom("typeerror");
 }
@@ -675,24 +675,25 @@ ListExpr GraphGraphBoolTypeMap(ListExpr args)
 */
 ListExpr EqualTypeMap(ListExpr args){
  if(nl->ListLength(args)!=2){
-    ErrorReporter::ReportError("two arguments expected");
+   ErrorReporter::ReportError("EqualTypeMap: two arguments expected");
     return nl->TypeError();
  }
  ListExpr arg1 = nl->First(args);
  ListExpr arg2 = nl->Second(args);
  if( (nl->AtomType(arg1)!=SymbolType) || (nl->AtomType(arg2)!=SymbolType)){
-   ErrorReporter::ReportError("two simple types expected");
+   ErrorReporter::ReportError("EqualTypeMap: two simple types expected");
    return nl->TypeError();
  }
  string arg1s = nl->SymbolValue(arg1);
  string arg2s = nl->SymbolValue(arg2);
  if(arg1s!=arg2s){
-   ErrorReporter::ReportError("both arguments must have the same type");
+   ErrorReporter::ReportError(
+       "EqualTypeMap: both arguments must have the same type");
    return nl->TypeError();
  } 
  if( (arg1s!="vertex") && (arg1s!="edge") && 
      (arg1s!="path") && (arg1s!="graph")){
-   ErrorReporter::ReportError("only arguments vertex, edge,"
+   ErrorReporter::ReportError("EqualTypeMap: only arguments vertex, edge,"
                               " path, and graph are allowed");
    return nl->TypeError();
  }
@@ -705,12 +706,12 @@ ListExpr EqualTypeMap(ListExpr args){
 */
 ListExpr EqualWayTypeMap(ListExpr args){
   if(nl->ListLength(args)!=2){
-     ErrorReporter::ReportError("two arguments expected");
+    ErrorReporter::ReportError("Operator equalway: two arguments expected");
      return nl->TypeError();
   }
   if(!nl->IsEqual(nl->First(args),"path") ||
      !nl->IsEqual(nl->Second(args),"path")){
-     ErrorReporter::ReportError("path x path expected");
+    ErrorReporter::ReportError("Operator equalway: path x path expected");
      return nl->TypeError(); 
   }
   return nl->SymbolAtom("bool");
@@ -1477,7 +1478,7 @@ const string SpecMinDegree  =
 
 const string SpecConnectedComp  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>graph -> stream graph</text---> "
+     "( <text>graph -> stream(tuple(Graph: graph))</text---> "
        "<text>connectedcomponents ( _ )</text--->"
        "<text>Returns all strong connected components"
        " of the graph as graph stream.</text--->"
@@ -1505,7 +1506,8 @@ const string SpecShortestPath  =
 
 const string SpecEdges  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>path -> stream edge, graph -> stream edge</text---> "
+     "( <text>path -> stream(tuple(Edge: edge)), "
+     "graph -> stream(tuple(Edge: edge))</text---> "
        "<text>edges ( _ )</text--->"
        "<text>Returns a tuple stream of all edges of the path or"
        " graph in ascending order.</text--->"
@@ -1514,7 +1516,8 @@ const string SpecEdges  =
 
 const string SpecVertices  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>path -> stream vertex, graph -> stream edge</text---> "
+     "( <text>path -> stream(tuple(Vertex: vertex)), "
+     "graph -> stream(tuple(Vertex: vertex))</text---> "
        "<text>vertices ( _ )</text--->"
        "<text>Returns a tuple stream of all vertices of the path or "
        "graph in ascending order.</text--->"
