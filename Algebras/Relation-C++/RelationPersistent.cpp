@@ -192,7 +192,7 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
                          SmiFileId& lobFileId,
                          double& extSize, double& size,
                          vector<double>& attrExtSize, vector<double>& attrSize,
-                         bool ignoreLOBs /*=false*/)
+                         bool ignorePersistentLOBs /*=false*/)
 {
   TRACE_ENTER	
   long extensionSize = 0;
@@ -234,9 +234,12 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
       else
       {
         //lobCtr++;  
-        if(!ignoreLOBs){
+        if(ignorePersistentLOBs) {
+          if (!tmpFLOB->IsPersistentLob())
+            tmpFLOB->SaveToLob( lobFileId );
+        } else {
            tmpFLOB->SaveToLob( lobFileId );
-        }
+	}   
       }
     }
   }
@@ -845,7 +848,7 @@ privateTupleBuffer( new PrivateTupleBuffer( maxMemorySize ) )
   if (RTFlag::isActive("RA:TupleBufferInfo")) 
   {
     cmsg.info() << "New Instance of TupleBuffer with size " 
-                << maxMemorySize/1024 
+                << maxMemorySize / 1024 << "kb " 
                 << " address = " << (void*)this << endl;
     cmsg.send();
   }
@@ -973,7 +976,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
         privateTupleBuffer->memoryBuffer.begin();
       while( iter != privateTupleBuffer->memoryBuffer.end() )
       {
-        privateTupleBuffer->diskBuffer->AppendTuple( *iter );
+        privateTupleBuffer->diskBuffer->AppendTupleNoLOBs( *iter );
         (*iter)->DecReference();
         (*iter)->DeleteIfAllowed();
         iter++;
@@ -981,13 +984,13 @@ void TupleBuffer::AppendTuple( Tuple *t )
       privateTupleBuffer->memoryBuffer.clear();
       privateTupleBuffer->totalExtSize = 0;
       privateTupleBuffer->totalSize = 0;
-      privateTupleBuffer->diskBuffer->AppendTuple( t );
+      privateTupleBuffer->diskBuffer->AppendTupleNoLOBs( t );
       privateTupleBuffer->inMemory = false;
     }
   }
   else
   {
-    return privateTupleBuffer->diskBuffer->AppendTuple( t );
+    return privateTupleBuffer->diskBuffer->AppendTupleNoLOBs( t );
   }
 }
 
@@ -1349,7 +1352,21 @@ void Relation::AppendTuple( Tuple *tuple )
 
   privateRelation->relDesc.noTuples += 1;
 }
- 
+
+
+void Relation::AppendTupleNoLOBs( Tuple *tuple )
+{
+  tuple->GetPrivateTuple()->Save( 
+    &privateRelation->tupleFile, 
+    privateRelation->relDesc.lobFileId,
+    privateRelation->relDesc.totalExtSize,
+    privateRelation->relDesc.totalSize,
+    privateRelation->relDesc.attrExtSize,
+    privateRelation->relDesc.attrSize, true );
+
+  privateRelation->relDesc.noTuples += 1;
+}
+
 void Relation::Clear()
 {
   privateRelation->relDesc.noTuples = 0;

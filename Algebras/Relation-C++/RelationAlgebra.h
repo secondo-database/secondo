@@ -361,7 +361,7 @@ sizes of the tuple saved.
   void Save( SmiRecordFile *tuplefile, SmiFileId& lobFileId,
              double& extSize, double& size,
              vector<double>& attrExtSize, vector<double>& attrSize,
-             bool ignoreLOBs=false );
+             bool ignorePersistentLOBs=false );
 
 /*
 Saves a tuple with updated attributes and reuses the old 
@@ -1854,6 +1854,13 @@ Returns the tuple type of the tuples of the relation.
 Inherited ~virtual~ functions
 
 */
+
+    void AppendTupleNoLOBs( Tuple *tuple );
+
+/*
+A special variant of ~AppendTuple~ which does not copy the LOBs.
+
+*/    
 
     RandomRelationIterator *MakeRandomScan() const;
 /*
