@@ -239,12 +239,7 @@ Destroys a query processor instance.
 
 */
 
-  OpTree QueryTree;
 
-/*
-Stores the current tree during query evaluation.
-
-*/
 
   ProgressView* progressView;
 
@@ -761,6 +756,15 @@ of the type constructor associated with the ~value~.
 The maximum memory available per operator.
 
 */
+
+  OpTree QueryTree;
+
+/*
+Stores the current tree during query evaluation. Used for progress evaluation.
+
+*/
+
+
 
 };
 
