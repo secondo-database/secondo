@@ -221,12 +221,12 @@ class SortByLocalInfo : protected ProgressWrapper
           c++; // tuple counter;
           Tuple *t = static_cast<Tuple*>( wTuple.addr );
           TupleAndRelPos nextTuple(t, tupleCmpBy); 
-          if( MAX_MEMORY > (size_t)t->GetExtSize() )
+          if( MAX_MEMORY > (size_t)t->GetSize() )
           {
             nextTuple.tuple->IncReference();
             currentRun->push(nextTuple);
             i++; // increment Tuples in memory counter
-            MAX_MEMORY -= t->GetExtSize();
+            MAX_MEMORY -= t->GetSize();
           }
           else 
           { // memory is completely used 
@@ -285,7 +285,7 @@ class SortByLocalInfo : protected ProgressWrapper
                   TupleQueue *helpRun = currentRun;
                   currentRun = nextRun;
                   nextRun = helpRun;
-                  ShowPartitionInfo(c,a,n,m,r);
+                  ShowPartitionInfo(c,a,n,m,r,rel);
                   i=n;
                   a=0;
                   n=0;
@@ -305,7 +305,7 @@ class SortByLocalInfo : protected ProgressWrapper
           
           qp->Request(stream.addr, wTuple);
         }
-        ShowPartitionInfo(c,a,n,m,r);
+        ShowPartitionInfo(c,a,n,m,r,rel);
 
         // delete lastTuple and minTuple if allowed
         if ( lastTuple.tuple ) 
@@ -319,7 +319,7 @@ class SortByLocalInfo : protected ProgressWrapper
 
         qp->Close(stream.addr);
 
-        // the lastRun and NextRun partitions in memory having 
+        // the lastRun and NextRun runs in memory having 
         // less than MAX_TUPLE elements
         if( !queue[0].empty() ) 
         {
@@ -415,7 +415,7 @@ In this case we need to delete also all tuples stored in memory.
         }
 
         if( t != 0 ) 
-        { // partition not finished
+        { // run not finished
           p.tuple = t;
           t->IncReference();
           mergeTuples.push( p );
@@ -426,16 +426,20 @@ In this case we need to delete also all tuples stored in memory.
 
   private:
 
-    void ShowPartitionInfo(int c, int a, int n, int m, int r) 
+    void ShowPartitionInfo( int c, int a, int n, 
+		            int m, int r, GenericRelation* rel ) 
     {
+      int rs = (rel != 0) ? rel->GetNoTuples() : 0; 
       if ( RTFlag::isActive("ERA:Sort:PartitionInfo") ) 
       {
-        cmsg.info() << "Partition finished: processed tuples=" << c 
+        cmsg.info() << "Current run finished: " 
+		    << "  processed tuples=" << c 
                     << ", append minimum=" << m 
-                    << ", append next=" << n << "," << endl << "  "
-                    << "materialized partitions=" << r
-                    << ", queue1: " << queue[0].size() 
-                    << ", queue2: " << queue[1].size() << endl;
+                    << ", append next=" << n << endl
+                    << "  materialized runs=" << r
+                    << ", last partition's tuples=" << rs << endl 
+                    << "  Runs in memory: queue1= " << queue[0].size() 
+                    << ", queue2= " << queue[1].size() << endl;
         cmsg.send();  
       }
     }
