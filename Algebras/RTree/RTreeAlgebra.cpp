@@ -668,7 +668,7 @@ int CreateRTreeRelSpatial(Word* args, Word& result, int message,
 {
   Relation* relation;
   int attrIndex;
-  RelationIterator* iter;
+  GenericRelationIterator* iter;
   Tuple* tuple;
 
   R_Tree<dim, TupleId> *rtree =
@@ -741,7 +741,7 @@ int CreateRTreeRelRect(Word* args, Word& result, int message,
 {
   Relation* relation;
   int attrIndex;
-  RelationIterator* iter;
+  GenericRelationIterator* iter;
   Tuple* tuple;
 
   R_Tree<dim, TupleId> *rtree =

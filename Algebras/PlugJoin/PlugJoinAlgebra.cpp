@@ -508,7 +508,9 @@ Algorithm.
     bool GetNextEntry_readFirst;    //controls for GetNextEntry
     bool GetNextEntry_read;
 
-    TupleBufferIterator *outerIter; //iterates OuterRelation in NextResultTuple
+    GenericRelationIterator *outerIter; 
+    //iterates OuterRelation in NextResultTuple
+
     SmiRecordId outerActualTupleId; //RecordId of actual Tuple in
                                     //NextResultTuple
     R_TreeEntryPnJ<dim> outerEntry;
@@ -843,7 +845,7 @@ Building the initial R-Tree and gathering overflowed entries in partiton.
 */
 
     //iterator of the inner relation for building initial R-Tree
-    TupleBufferIterator *innerIter = hdr.innerRelation->MakeScan();
+    GenericRelationIterator *innerIter = hdr.innerRelation->MakeScan();
 
     //computing the number of nodes to use for initial R-Tree
     int nodesToUse = UseNodesInTree (hdr.outerRelation->GetNoTuples(),

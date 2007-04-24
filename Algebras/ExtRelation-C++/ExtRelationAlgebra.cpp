@@ -5188,7 +5188,7 @@ int GroupByValueMapping
   Tuple *s = 0;
   Word sWord =SetWord(Address(0));
   TupleBuffer* tp = 0;
-  TupleBufferIterator* relIter = 0;
+  GenericRelationIterator* relIter = 0;
   int i = 0, j = 0, k = 0;
   int numberatt = 0;
   bool ifequal = false;
@@ -5844,9 +5844,9 @@ struct SymmJoinLocalInfo
   TupleType *resultTupleType;
 
   TupleBuffer *rightRel;
-  TupleBufferIterator *rightIter;
+  GenericRelationIterator *rightIter;
   TupleBuffer *leftRel;
-  TupleBufferIterator *leftIter;
+  GenericRelationIterator *leftIter;
   bool right;
   Tuple *currTuple;
   bool rightFinished;
@@ -6096,9 +6096,9 @@ struct SymmJoinLocalInfo
   TupleType *resultTupleType;
 
   TupleBuffer *rightRel;
-  TupleBufferIterator *rightIter;
+  GenericRelationIterator *rightIter;
   TupleBuffer *leftRel;
-  TupleBufferIterator *leftIter;
+  GenericRelationIterator *leftIter;
   bool right;
   Tuple *currTuple;
   bool rightFinished;
@@ -6631,9 +6631,9 @@ struct SymmProductExtendLocalInfo
 {
   TupleType *resultTupleType;
   TupleBuffer *rightRel;
-  TupleBufferIterator *rightIter;
+  GenericRelationIterator *rightIter;
   TupleBuffer *leftRel;
-  TupleBufferIterator *leftIter;
+  GenericRelationIterator *leftIter;
   bool right;
   Tuple *currTuple;
   bool rightFinished;
@@ -7026,9 +7026,9 @@ struct SymmProductLocalInfo
   TupleType *resultTupleType;
 
   TupleBuffer *rightRel;
-  TupleBufferIterator *rightIter;
+  GenericRelationIterator *rightIter;
   TupleBuffer *leftRel;
-  TupleBufferIterator *leftIter;
+  GenericRelationIterator *leftIter;
   bool right;
   Tuple *currTuple;
   bool rightFinished;

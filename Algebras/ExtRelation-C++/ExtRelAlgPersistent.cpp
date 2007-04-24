@@ -47,20 +47,20 @@ stable.
 
 */
 
+#include <vector>
+#include <list>
+#include <set>
+#include <queue>
+
+#include "LogMsg.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
 #include "CPUTimeMeasurer.h"
 #include "QueryProcessor.h"
 #include "SecondoInterface.h"
 #include "StopWatch.h"
-
-#include <vector>
-#include <list>
-#include <set>
-#include <queue>
-
 #include "Counter.h"
-#include "LogMsg.h"
+#include "Progress.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -173,10 +173,12 @@ This algorithm will adapt to sorted streams and will only need N (already sorted
 or 2N (sorted in opposite order) comparisons in that case.  
 
 */
-class SortByLocalInfo
+class SortByLocalInfo : protected ProgressWrapper
 {
   public:
-    SortByLocalInfo( Word stream, const bool lexicographic, void *tupleCmp ):
+    SortByLocalInfo( Word stream, const bool lexicographic, 
+		     void *tupleCmp, Progress* p            ):
+      ProgressWrapper(p),	    
       stream( stream ),
       currentIndex( 0 ),
       lexiTupleCmp( lexicographic ? 
@@ -213,6 +215,9 @@ class SortByLocalInfo
         TupleAndRelPos minTuple(0, tupleCmpBy);
         while(qp->Received(stream.addr)) // consume the stream completely
         {
+          // set progress counter
+	  progress->setCtr(10);
+
           c++; // tuple counter;
           Tuple *t = static_cast<Tuple*>( wTuple.addr );
           TupleAndRelPos nextTuple(t, tupleCmpBy); 
@@ -229,7 +234,7 @@ class SortByLocalInfo
             { // create new relation
               r++;
               rel = new TupleBuffer( 0 );
-              TupleBufferIterator *iter = 0;
+              GenericRelationIterator *iter = 0;
               relations.push_back( make_pair( rel, iter ) );
               newRelation = false;
               
@@ -445,7 +450,7 @@ In this case we need to delete also all tuples stored in memory.
 
     // sorted runs created by in memory heap filtering 
     size_t MAX_MEMORY;
-    typedef pair<TupleBuffer*, TupleBufferIterator*> SortedRun;
+    typedef pair<TupleBuffer*, GenericRelationIterator*> SortedRun;
     vector< SortedRun > relations;
 
     typedef priority_queue<TupleAndRelPos> TupleQueue;
@@ -493,22 +498,33 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
         tupleCmp = new TupleCompareBy( spec );
       }
 
-      local = SetWord(new SortByLocalInfo( args[0], 
-                                           lexicographically,  
-                                           tupleCmp ));
+      // create a ~Progress~ instance
+      LocalInfo<SortByLocalInfo>* li = new LocalInfo<SortByLocalInfo>();
+      local.addr = li;
+
+      // at this point the local value is well defined
+      // afterwards QueryProcessor request calls are
+      // allowed.
+
+      li->ptr = new SortByLocalInfo( args[0], 
+		                     lexicographically,  
+                                     tupleCmp, li       );
       return 0;
     }
     case REQUEST:
     {
-      SortByLocalInfo *localInfo = (SortByLocalInfo*)local.addr;
-      result = SetWord( localInfo->NextResultTuple() );
+      SortByLocalInfo *sli = LocalInfo<SortByLocalInfo>::getPtr( local.addr );
+      result = SetWord( sli->NextResultTuple() );
       return result.addr != 0 ? YIELD : CANCEL;
     }
 
     case CLOSE:
     {
-      SortByLocalInfo *localInfo = (SortByLocalInfo*)local.addr;
-      delete localInfo;
+      SortByLocalInfo *sli = LocalInfo<SortByLocalInfo>::getPtr( local.addr );
+      delete sli;
+      // The ~Progress~ part of the local value will not be deleted
+      // this is an accepted memory leak introduced by progress  
+      // delete local.addr !!!!
       return 0;
     }
   }
@@ -541,10 +557,10 @@ private:
   size_t indexB;
 
   TupleBuffer *relationA;
-  TupleBufferIterator *iterRelationA;
+  GenericRelationIterator *iterRelationA;
 
   TupleBuffer *relationB;
-  TupleBufferIterator *iterRelationB;
+  GenericRelationIterator *iterRelationB;
 
   Word streamALocalInfo;
   Word streamBLocalInfo;
@@ -659,7 +675,7 @@ private:
     bucket.clear();
   }
 
-  void ReadFrom( TupleBufferIterator *iter, vector<Tuple*>& bucket )
+  void ReadFrom( GenericRelationIterator *iter, vector<Tuple*>& bucket )
   {
     size_t memory = 0;
     Tuple *t = 0;
@@ -1072,7 +1088,7 @@ private:
 
   Tuple *tupleA;
   TupleBuffer* relA;
-  TupleBufferIterator* iterTuplesRelA;
+  GenericRelationIterator* iterTuplesRelA;
   size_t relA_Mem;
   bool firstPassA;
   bool memInfoShown;

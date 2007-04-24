@@ -163,7 +163,7 @@ void Network::FillJunctions( const Relation *junctions )
 
   Relation *unJunctions = new Relation( junctionsNumInt, true );
 
-  RelationIterator *junctionsIter = junctions->MakeScan();
+  GenericRelationIterator *junctionsIter = junctions->MakeScan();
   Tuple *j;
 
   while( (j = junctionsIter->GetNextTuple()) != 0)
@@ -284,7 +284,7 @@ Relation *Network::GetJunctions()
 
 void Network::FillSections()
 {
-  RelationIterator *routesIter = routes->MakeScan(),
+  GenericRelationIterator *routesIter = routes->MakeScan(),
                    *junctionsIter = junctions->MakeScan();
   Tuple *rTuple, *jTuple = junctionsIter->GetNextTuple();
 
@@ -415,7 +415,7 @@ void Network::FillAdjacencyLists()
   for( int i = 0; i < sections->GetNoTuples() * 2; i++ )
     adjacencyList.Put( i, AdjacencyListEntry( 0, -1 ) );
 
-  RelationIterator *junctionsIter = junctions->MakeScan();
+  GenericRelationIterator *junctionsIter = junctions->MakeScan();
   Tuple *jTuple;
 
   while( (jTuple = junctionsIter->GetNextTuple()) != 0 )

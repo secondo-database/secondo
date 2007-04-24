@@ -957,7 +957,7 @@ CreateBTreeValueMapping_Rel(Word* args, Word& result, int message,
     return CANCEL;
   btree->Truncate();
 
-  RelationIterator *iter = relation->MakeScan();
+  GenericRelationIterator *iter = relation->MakeScan();
   Tuple* tuple;
   while( (tuple = iter->GetNextTuple()) != 0 )
   {
