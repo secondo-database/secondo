@@ -11,7 +11,13 @@ export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,CTLG:SkipExamp
 # the process as soon as an error is recognized.
 export MALLOC_CHECK_=2
 
-runner="$(which SecondoBDB) -test -e"
+if [ "$1" == "-valgrind" ]; then
+  shift
+  runner="valgrind --num-callers=25 $(which SecondoBDB) -test -e"
+else  
+  runner="$(which SecondoBDB) -test -e"
+fi  
+
 # check if nice command is present
 ncmd=$(which nice)
 if [ $? -ne 0 ]; then
