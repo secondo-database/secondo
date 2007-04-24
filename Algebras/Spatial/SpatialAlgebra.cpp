@@ -1113,11 +1113,11 @@ void Points::StartBulkLoad()
 
 void Points::EndBulkLoad( bool sort, bool remDup )
 {
-  points.TrimToSize();
   if( sort )
     Sort();
   if( remDup )
     RemoveDuplicates();
+  points.TrimToSize();	
   ordered = true;
 }
 
@@ -3323,8 +3323,6 @@ void Line::StartBulkLoad()
 void Line::EndBulkLoad( bool sort, bool remDup,
                         bool setPartnerNo, bool setNoComponents )
 {
-  line.TrimToSize();
-  lrsArray.TrimToSize();
   if( sort )
     Sort();
 
@@ -3337,6 +3335,8 @@ void Line::EndBulkLoad( bool sort, bool remDup,
   if( setNoComponents )
     SetNoComponents();
 
+  line.TrimToSize();
+  lrsArray.TrimToSize();
   ordered = true;
 
    
@@ -5109,7 +5109,6 @@ void Region::StartBulkLoad()
 void Region::EndBulkLoad( bool sort, bool setCoverageNo,
                           bool setPartnerNo, bool computeRegion )
 {
-  region.TrimToSize();
   if( sort )
     Sort();
 
@@ -5140,6 +5139,7 @@ void Region::EndBulkLoad( bool sort, bool setCoverageNo,
   if( computeRegion )
     ComputeRegion();
 
+  region.TrimToSize(); 	
   ordered = true;
 }
 
