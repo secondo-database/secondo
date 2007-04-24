@@ -582,7 +582,7 @@ The function below test if a name is reserved for system use.
 */
   
   inline bool IsSystemObject(const string& s) {
-    return (systemTable(s) != 0);
+    return (GetSystemTable(s) != 0);
   }
 
  protected:
@@ -674,32 +674,10 @@ an error it should always be reported to the client.
 */
   
   // check if name is a sytem table 
-  inline const SystemInfoRel* systemTable(const string& name) const 
-  {
-    const SystemInfoRel* r = SystemTables::getInstance().getInfoRel(name);
-    if (r && !r->isPersistent)
-      return r;
-    else
-      return 0;
-  } 
+  const SystemInfoRel* GetSystemTable(const string& name) const;
 
-  Word createRelation(const string& name)
-  {  
-    // create a relation object for the system table
-    const SystemInfoRel* table = systemTable(name);
-    if (table == 0)
-       return SetWord(0);
-    
-    ListExpr typeInfo = table->relSchema().listExpr();
-    ListExpr value = table->relValues().listExpr();
-    ListExpr errorInfo = nl->Empty();
-    int errorPos = 0;
-    bool ok = false;
-    
-    Word w = InObject(typeInfo, value, errorPos, errorInfo, ok);
-    assert(ok);
-    return w;
-  }    
+  // create a ~trel~ object representing a system table.
+  Word CreateRelation(const string& name);
 
   friend class SecondoSystem;
 };

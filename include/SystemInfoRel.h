@@ -186,7 +186,7 @@ class SystemInfoRel
        it++;
      }   
      
-     NList relSchema = NList( NList("rel"), NList(NList("tuple"), types) ); 
+     NList relSchema = NList( NList("trel"), NList(NList("tuple"), types) ); 
      //cout << "Schema: " << relSchema << endl;
      return relSchema;
   } 

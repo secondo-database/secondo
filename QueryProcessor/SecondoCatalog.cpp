@@ -61,7 +61,7 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
-April 2006, M. Spiekermann. New methods ~systemTable~ and ~createRelation~ added.
+April 2006, M. Spiekermann. New methods ~GetSystemTable~ and ~CreateRelation~ added.
 These will be used to check if a given object name is a system table and if a
 relation should be created on the fly by calling ~InObject~.
 
@@ -1356,7 +1356,7 @@ Precondition: dbState = dbOpen.
 */
   bool found = false;
 
-  if ( systemTable(objectName) != 0 )
+  if ( GetSystemTable(objectName) != 0 )
     return true;
   
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
@@ -1377,6 +1377,34 @@ Precondition: dbState = dbOpen.
   return (found);
 }
 
+
+  const SystemInfoRel* SecondoCatalog::GetSystemTable(const string& name) const 
+  {
+    const SystemInfoRel* r = SystemTables::getInstance().getInfoRel(name);
+    if (r && !r->isPersistent)
+      return r;
+    else
+      return 0;
+  } 
+
+  Word SecondoCatalog::CreateRelation(const string& name)
+  {  
+    // create a relation object for the system table
+    const SystemInfoRel* table = GetSystemTable(name);
+    if (table == 0)
+       return SetWord(0);
+    
+    ListExpr typeInfo = table->relSchema().listExpr();
+    ListExpr value = table->relValues().listExpr();
+    ListExpr errorInfo = nl->Empty();
+    int errorPos = 0;
+    bool ok = false;
+    
+    Word w = InObject(typeInfo, value, errorPos, errorInfo, ok);
+    assert(ok);
+    return w;
+  }    
+
 bool
 SecondoCatalog::GetObject( const string& objectName,
                            Word& value, bool& defined )
@@ -1388,14 +1416,15 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
 
 */
  
-  const SystemInfoRel* table = systemTable(objectName);
+  const SystemInfoRel* table = GetSystemTable(objectName);
   if (  table != 0 )
   { 
-    value = createRelation(objectName);
+    value = CreateRelation(objectName);
     defined = true;
     return true;
   }  
-    
+   
+
  
  
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
@@ -1485,13 +1514,13 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
 
   bool ok = false;
 
-  const SystemInfoRel* table = systemTable(objectName);
+  const SystemInfoRel* table = GetSystemTable(objectName);
 
   SHOW(objectName)	
   SHOW(table) 
   if (  table != 0 )
   { 
-    value = createRelation(objectName);
+    value = CreateRelation(objectName);
     typeExpr = table->relSchema().listExpr();
     typeName= "rel";
     hasTypeName = true;
@@ -1642,7 +1671,7 @@ Returns the type expression of an object with identifier ~objectName~.
 */
   ListExpr typeExpr = nl->Empty();
 
-  const SystemInfoRel* table = systemTable(objectName);
+  const SystemInfoRel* table = GetSystemTable(objectName);
   if (  table != 0 )
   {
     return table->relSchema().listExpr();
