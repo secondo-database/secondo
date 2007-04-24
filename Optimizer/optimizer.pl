@@ -3276,6 +3276,10 @@ traversePath([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
 
 */
 
+:- dynamic 
+  noProgress/0.
+
+markupProgress(Term, _, _, _, Term) :- noProgress.
 
 markupProgress(project(Stream, Attrs), Sel, BBoxSel, ExpPET, 
 	project(Stream2, Attrs)) :-
