@@ -260,12 +260,15 @@ Sets the LOB file. The FLOB must be a LOB.
 
 
 /*
-3.10 IsLob
+3.10 IsLob and variants
 
 Returns true, if value stored in underlying LOB, otherwise false.
 
 */
     bool IsLob() const;
+    bool IsMemoryLob() const;
+    bool IsCachedLob() const;
+    bool IsPersistentLob() const;
 
 /*
 3.11 GetType

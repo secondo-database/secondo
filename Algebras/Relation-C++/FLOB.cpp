@@ -323,14 +323,29 @@ bool
 FLOB::IsLob() const
 {
   assert( type != Destroyed );
-  if( type == InDiskLarge || 
-      type == InMemoryCached || 
-      type == InMemoryPagedCached )
-    return true;
-  else if( type == InMemory && 
-	   size > SWITCH_THRESHOLD )
-    return true;
-  return false;
+  return ( IsPersistentLob() 
+	   || IsMemoryLob() || IsCachedLob() );
+}
+
+bool 
+FLOB::IsMemoryLob() const
+{
+  return ( type == InMemory && 
+	   size > SWITCH_THRESHOLD );
+}
+
+bool 
+FLOB::IsPersistentLob() const
+{
+  return ( type == InDiskLarge ); 
+}
+
+
+bool 
+FLOB::IsCachedLob() const
+{
+  return ( type == InMemoryCached || 
+           type == InMemoryPagedCached );
 }
 
 
