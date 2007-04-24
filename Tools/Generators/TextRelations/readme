@@ -118,8 +118,10 @@ The script creates for each pdf file a subdirectory containing the splitted pdf 
 Remember to copy these subdirectories when moving the relation.
 
 
+5 The file createText.cpp
 
-
-
+Run make in order to get a simple tool called ~createText~ which creates a
+simple relation containg an attribute of type "text". This is useful for
+generating synthetic data which has attributes using FLOBs.
 
 
