@@ -3038,6 +3038,7 @@ the function in a database object.
       correct = true;
 
       tree = SubtreeX( list );
+      QueryTree = tree;
       ResetCounters();
 
       evaluable = tree->evaluable;
@@ -3058,6 +3059,7 @@ QueryProcessor::Destroy( void*& node, bool destroyRootValue )
 {
   OpTree aux = static_cast<OpTree>(node);
   Destroy( aux, destroyRootValue );
+  QueryTree = 0;
 } 
 
 void
