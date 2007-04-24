@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -78,7 +78,7 @@ sos-syntax.
 August 2004, M. Spiekermann. Function ~distributeFun~ has been modified. Due to the
 fact that a relation creates two files the size of the array is limited by the operatings
 systems capability of open files per process. Currently it is possible to create approximately
-400 relations. 
+400 relations.
 
 August 24, 2004. M. Spiekermann removed a memory leak in the function ~distributeFun~
 
@@ -92,7 +92,7 @@ value mapping of the ~summarize~ operator.
 June 2006, V. Almeida moved some code to the FunVector.h and FunVector.cpp files
 
 Januar 2007, Some bug fixes. However, loopswitcha and loopselect a do not work for arrays
-of btree. 
+of btree.
 
 
 1 Preliminaries
@@ -336,7 +336,7 @@ The list representation of an array is:
 
 ---- (a1 a2 ... an)
 ----
-The representation of the elements of the array depends from their type. 
+The representation of the elements of the array depends from their type.
 So a1 ... an may be nested lists themselves.
 
 2.3 Object ~In~ and ~Out~ Functions
@@ -506,7 +506,7 @@ have a list representation (for input and output), but which do have an
 
 */
 bool
-OpenArray( SmiRecord& valueRecord, size_t& offset,  
+OpenArray( SmiRecord& valueRecord, size_t& offset,
            const ListExpr typeInfo, Word& value )
 {
   ListExpr valueList = 0;
@@ -525,8 +525,8 @@ OpenArray( SmiRecord& valueRecord, size_t& offset,
   delete []buffer;
   nl->ReadFromString( valueString, valueList );
 
-  value = RestoreFromListArray( typeInfo, 
-                                nl->First(valueList), 
+  value = RestoreFromListArray( typeInfo,
+                                nl->First(valueList),
                                 1, errorInfo, correct );
 
   if (errorInfo != 0)
@@ -614,7 +614,7 @@ CloneArray( const ListExpr typeInfo, const Word& w )
   Word a[array->getSize()];
 
   for (int i=0; i < n; i++) {
-    a[i] = (am->CloneObj(algebraId, typeId))( nl->TheEmptyList(), 
+    a[i] = (am->CloneObj(algebraId, typeId))( nl->TheEmptyList(),
                                               array->getElement(i) );
 
     // Check whether cloning was successful
@@ -1395,7 +1395,7 @@ cumulateFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
       if (funresult.addr != cumResult.addr) {
         //(am->DeleteObj(algebraId, typeId))(typeOfElement, cumResult);
-        // SPM: will be deleted by the QP's destroy function. 
+        // SPM: will be deleted by the QP's destroy function.
         cumResult = genericClone(algebraId, typeId, typeOfElement, funresult);
       }
     }
@@ -1462,7 +1462,7 @@ distributeTypeMap( ListExpr inArgs )
     NList streamDesc = args.first();
     ListExpr attrNameLE = args.second().listExpr();
 
-    if ( streamDesc.isList() && streamDesc.first().isSymbol("stream") 
+    if ( streamDesc.isList() && streamDesc.first().isSymbol("stream")
          && (streamDesc.length() == 2)
          && (nl->AtomType(attrNameLE) == SymbolType)          )
     {
@@ -1530,10 +1530,10 @@ The operating system has an limitation of simultaneously
 opend files per process (Linux 1024). Currently each created relation will
 open two SMI-Files.
 
-Creating an array containing 512 relations will break these limits. 
+Creating an array containing 512 relations will break these limits.
 However, this limitation can only be removed with a redesign of the relation
-class and/or SmiFile. It should be changed to allow multiple relations stored 
-in one file. 
+class and/or SmiFile. It should be changed to allow multiple relations stored
+in one file.
 
 */
 
@@ -1576,7 +1576,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
     // Copy all attributes except the package number from tuple to tuple2.
     int j = 0;
     for (int i=0; i<tuple->GetNoAttributes(); i++) {
-      if (i!=pkgAttr) 
+      if (i!=pkgAttr)
         tuple2->CopyAttribute(i, tuple, j++);
     }
 
@@ -1588,15 +1588,15 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
    
     if ( pkgNr > (MAX_OPEN_RELATIONS - 1) ) { // check if pckNr is valid
 
-      if ( !msgPrinted ) 
+      if ( !msgPrinted )
       {
          cerr << "Warning: Package number out of Range. "
               << "Open files per process are limited! "
               << "Since every open relation needs to open files "
               << "it is only possible to create at most an array "
               << "with " << MAX_OPEN_RELATIONS << " relations." << endl;
-               msgPrinted = true;  
-      }   
+               msgPrinted = true;
+      }
            
       pkgNr = outOfRangePkgNr % MAX_OPEN_RELATIONS;
       outOfRangePkgNr++;
@@ -1605,8 +1605,8 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
     while ( n < pkgNr ) { // enlarge the array if necessary
       
       relPkg.push_back( new Relation(relType) );
-      n++;  
-    } 
+      n++;
+    }
     
     relPkg[pkgNr]->AppendTuple(tuple2);
     
@@ -1714,7 +1714,7 @@ summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
   struct ArrayIterator
   {
     private:
-    int current; 
+    int current;
     Array* array;
     GenericRelationIterator* rit;
    
@@ -1724,7 +1724,7 @@ summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
       if (rit)
         delete rit;
       
-      if ( current < array->getSize() ) 
+      if ( current < array->getSize() )
       {
         Relation* r = static_cast<Relation*>( array->getElement(current).addr );
         current++;
@@ -1732,8 +1732,8 @@ summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
         return true;
       }
       rit=0;
-      return false;  
-    } 
+      return false;
+    }
 
     public:
     ArrayIterator(Array* a, const int pos=0) : current(pos), array(a), rit(0)
@@ -1745,7 +1745,7 @@ summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
     {
       if (rit)
         delete rit;
-    }  
+    }
     
     Tuple* getNextTuple() // try to get next tuple
     {
@@ -1754,14 +1754,14 @@ summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
       
       Tuple* t = rit->GetNextTuple();
       if ( !t )
-      { 
+      {
          if (!makeNextRelIter())
            return 0;
          else
            return rit->GetNextTuple();
-      }   
-      return t; 
-    } 
+      }
+      return t;
+    }
   };
  
   ArrayIterator* ait = 0;
@@ -1781,15 +1781,15 @@ summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
         return YIELD;
       }
       return CANCEL;
-    }  
+    }
     case CLOSE : {
       ait = (ArrayIterator*)local.addr;
       delete ait;
       return 0;
-    }  
+    }
     default : {
-      return 0;              
-    }                
+      return 0;
+    }
   }
   return 0;
 }
@@ -2536,7 +2536,7 @@ loopselectFun( Word* args, Word& result, int message, Word& local, Supplier s )
   string info;
 
   
-  cout << "Processing elements ..." << endl; 
+  cout << "Processing elements ..." << endl;
   for (int i=0; i<n; i++) {
     info = toString(i);
 
@@ -2802,9 +2802,9 @@ appendToRel( Word& relation, Word append )
   GenericRelationIterator* rit = part->MakeScan();
   Tuple* tuple;
 
-  while ((tuple = rit->GetNextTuple()) != 0) 
+  while ((tuple = rit->GetNextTuple()) != 0)
   {
-    if (rel == 0) 
+    if (rel == 0)
     {
       rel = new Relation(tuple->GetTupleType());
       rel->Clear();
@@ -2945,7 +2945,7 @@ partjoinFun( Word* args, Word& result, int message, Word& local, Supplier s )
   // the step by step summarization and evaluation of larger parts of the
   // participating arrays of relations.
 
-  cout << "Processing (phase 2):" << endl; 
+  cout << "Processing (phase 2):" << endl;
   while (i < n) {
     appendToRel(Acum, firstArray->getElement(i-1));
     appendToRel(Bcum, secondArray->getElement(j));
@@ -3495,6 +3495,85 @@ Operator ELEMENT2 (
       ELEMENT2TypeMap );
 
 /*
+4.24 Operator ~makearrayn~
+
+This operator creates an array containing N clones of the element given.
+
+The type mapping is:
+
+---- (t int) -> (array t)
+----
+
+*/
+static ListExpr
+makearrayNTypeMap( ListExpr args )
+{
+  if (nl->ListLength(args) == 2)
+  {
+    ListExpr typeOfElement = nl->First(args);
+    ListExpr noIfClones = nl->Second(args);
+    if ( nl->IsEqual(noIfClones, "int") ){
+      return nl->TwoElemList(nl->SymbolAtom("array"), typeOfElement);
+    }
+  }
+  ErrorReporter::ReportError("Operator 'makearrayN' expects a list "
+      "(elem int).");
+  return nl->SymbolAtom("typeerror");
+}
+
+static int
+    makearrayNFun( Word* args, Word& result, int message,
+                   Word& local, Supplier s )
+{
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+
+  ListExpr type = qp->GetType(s);
+  ListExpr typeOfElement = sc->NumericType(nl->Second(type));
+
+  int algebraId;
+  int typeId;
+  int n = 0;
+
+  extractIds(typeOfElement, algebraId, typeId);
+
+  CcInt* cN = (CcInt*) args[1].addr;
+  if ( !cN->IsDefined() || cN->GetIntval()<1 ){
+    ErrorReporter::ReportError("ArrayAlgebra::makearrayN: "
+        "Illegeal or undefined Array size.");
+    n = 0;
+  }
+  else{
+    n = cN->GetIntval();
+  }
+
+  Word a[n];
+
+  for (int i=0; i<n; i++) {
+    a[i] = genericClone(algebraId, typeId, typeOfElement, args[0]);
+  }
+
+  result = qp->ResultStorage(s);
+
+  ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
+
+  return 0;
+}
+
+const string makearrayNSpec =
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>(t int) -> (array t)</text--->"
+    "<text>makearrayN ( Element, N )</text--->"
+    "<text>Creates an array containing N clones of a given Element."
+    "</text--->"
+    "<text>let ai = makearrayN (3, 4)</text---> ))";
+
+Operator makearrayN(
+    "makearrayN",
+      makearrayNSpec,
+      makearrayNFun,
+      Operator::SimpleSelect,
+      makearrayNTypeMap );
+/*
 5 Creating the Algebra
 
 */
@@ -3511,6 +3590,7 @@ class ArrayAlgebra : public Algebra
     AddOperator( &get );
     AddOperator( &put );
     AddOperator( &makearray );
+    AddOperator( &makearrayN );
 
     AddOperator( &sortarray );
     AddOperator( &tie );
@@ -3555,8 +3635,8 @@ The function has a C interface to make it possible to load the algebra dynamical
 */
 extern "C"
 Algebra*
-InitializeArrayAlgebra( NestedList* nlRef, 
-                        QueryProcessor* qpRef, 
+InitializeArrayAlgebra( NestedList* nlRef,
+                        QueryProcessor* qpRef,
                         AlgebraManager* amRef )
 {
   nl = nlRef;

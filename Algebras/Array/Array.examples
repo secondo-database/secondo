@@ -116,6 +116,13 @@ Example  : query size( makearray( 0, 1, 2, 3 ) )
 Result   : 4
 
 
+Operator : makearrayN
+Number   : 1
+Signature: (t int) -> (array t)
+Example  : query size( makearrayN( 333, 4 ) )
+Result   : 4
+
+
 Operator : partjoin
 Number   : 1
 Signature: ((array (rel t)) (array (rel u)) (map (rel t) (rel u) r)) -> (array r)

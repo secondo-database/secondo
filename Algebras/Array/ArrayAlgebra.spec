@@ -23,6 +23,8 @@
 operator makearray alias MAKEARRAY pattern op ( _, _ )
 # Note: ( _, _ ) means also a comma separated list of arbitrary length 
 
+operator makearrayN alias MAKEARRAYN pattern op ( _, _ )
+
 operator get alias GET pattern op ( _, _ )
 
 operator put alias PUT pattern op ( _, _, _ )
