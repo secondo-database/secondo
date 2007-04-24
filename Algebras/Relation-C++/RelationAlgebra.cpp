@@ -79,6 +79,8 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager *am;
 
+
+
 /*
 3 Type constructor ~tuple~
 
@@ -513,8 +515,12 @@ ListExpr RelProp ()
 ListExpr
 OutRel(ListExpr typeInfo, Word  value)
 {
-  return ((Relation *)value.addr)->Out( typeInfo );
+  Relation* rel = ((Relation *)value.addr);	
+  return rel->Out( typeInfo, rel->MakeScan() );
 }
+
+
+
 
 /*
 4.3 ~SaveToList~-function of type constructor ~rel~
@@ -575,6 +581,8 @@ InRel(ListExpr typeInfo, ListExpr value,
   return SetWord( Relation::In( typeInfo, value, errorPos, 
                                 errorInfo, correct ) );
 }
+
+
 
 /*
 4.3 ~RestoreFromList~-function of type constructor ~rel~
@@ -739,8 +747,70 @@ TypeConstructor cpprel( "rel",           RelProp,
                         CastRel,         SizeOfRel,
                         CheckRel );
 
+
+
+
 /*
 
+4 Type constructor ~trel~
+
+A ~trel~ is represented as a tuple buffer. It re-uses the in and out functions of class
+relation.
+
+*/
+
+class TmpRel {
+
+  public:	
+  TmpRel(){ trel = 0; };
+  ~TmpRel(){}; 
+
+  static GenericRelation* In( ListExpr typeInfo, 
+	                      ListExpr value, 
+                              int errorPos, 
+	                      ListExpr& errorInfo, 
+                              bool& correct       ) {
+
+    // the last parameter of Relation::In indicates that a 
+    // TupleBuffer instance should be created. 
+    GenericRelation* r 	= 
+	    (GenericRelation*)Relation::In( typeInfo, value,
+		                            errorPos, errorInfo, 
+					    correct, true); 
+    return r; 
+  }
+
+  TupleBuffer* trel; 
+};	
+
+
+ListExpr
+OutTmpRel(ListExpr typeInfo, Word  value)
+{
+  GenericRelation* rel = ((Relation *)value.addr);	
+  return Relation::Out( typeInfo, rel->MakeScan() );
+}
+
+Word
+InTmpRel(ListExpr typeInfo, ListExpr value,
+         int errorPos, ListExpr& errorInfo, bool& correct)
+{
+  return SetWord( TmpRel::In( typeInfo, value, errorPos, 
+                                errorInfo, correct ) );
+}
+
+Word CreateTmpRel( const ListExpr typeInfo )
+{
+  return (SetWord( new TupleBuffer() ));
+}
+
+void DeleteTmpRel( const ListExpr, Word& w )
+{
+  delete (TupleBuffer *)w.addr;
+  w.addr = 0;
+}
+
+/*
 5 Operators
 
 5.2 Selection function for type operators
@@ -911,11 +981,11 @@ ListExpr FeedTypeMap(ListExpr args)
   first = nl->First(args);
   nl->WriteToString(argstr, first);
   CHECK_COND( 
-    nl->ListLength(first) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(first)) == rel &&
-    (!(nl->IsAtom(nl->Second(first)) ||
-    nl->IsEmpty(nl->Second(first))) &&    
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
+    nl->ListLength(first) == 2 
+      && ( TypeOfRelAlgSymbol(nl->First(first)) == rel 
+           || TypeOfRelAlgSymbol(nl->First(first)) == trel )
+      && ( !(nl->IsAtom(nl->Second(first)) || nl->IsEmpty(nl->Second(first))) 
+	   && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) ),
   "Operator feed expects an argument of type relation, "
   "(rel(tuple((a1 t1)...(an tn)))).\n"
   "Operator feed gets an argument of type '" + argstr + "'."
@@ -1037,8 +1107,8 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case PROGRESS :
 
-      Relation* rr;
-      rr = (Relation*)args[0].addr;
+      GenericRelation* rr;
+      rr = (GenericRelation*)args[0].addr;
 
       ProgressInfo p1;
       ProgressInfo *pRes;
@@ -1213,6 +1283,8 @@ ListExpr ConsumeTypeMap(ListExpr args)
   return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
 }
 
+
+
 /*
 5.6.2 Value mapping function of operator ~consume~
 
@@ -1250,6 +1322,7 @@ Consume(Word* args, Word& result, int message,
 }
 
 #else 
+
 
 // Version with support for progress queries
 
@@ -2369,7 +2442,7 @@ struct ProductLocalInfo
   TupleType *resultTupleType;
   Tuple* currentTuple;
   TupleBuffer *rightRel;
-  TupleBufferIterator *iter;
+  GenericRelationIterator *iter;
 };
 
 int
@@ -2516,7 +2589,7 @@ struct ProductLocalInfo
   TupleType *resultTupleType;
   Tuple* currentTuple;
   TupleBuffer *rightRel;
-  TupleBufferIterator *iter;
+  GenericRelationIterator *iter;
   int currentA, currentB;
   bool progressInitialized;
   int noAttrs;
@@ -2783,8 +2856,9 @@ TCountTypeMap(ListExpr args)
   nl->WriteToString(argstr, first);    
   CHECK_COND( nl->ListLength(first) == 2 && 
     nl->ListLength(nl->Second(first)) == 2 &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
-    TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
+    ( TypeOfRelAlgSymbol(nl->First(first)) == stream ||
+      TypeOfRelAlgSymbol(nl->First(first)) == rel || 
+      TypeOfRelAlgSymbol(nl->First(first)) == trel )  &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
     "Operator count expects a list with structure " 
     "(stream (tuple ((a1 t1)...(an tn)))) or "
@@ -2829,7 +2903,7 @@ int
 TCountRel(Word* args, Word& result, int message, 
           Word& local, Supplier s)
 {
-  Relation* rel = (Relation*)args[0].addr;
+  GenericRelation* rel = (GenericRelation*)args[0].addr;
   result = qp->ResultStorage(s);
   ((CcInt*) result.addr)->Set(true, rel->GetNoTuples());
   return 0;
@@ -2887,7 +2961,7 @@ TCountRel(Word* args, Word& result, int message,
 {
   if ( message != PROGRESS ) 		//normal evaluation
   {
-    Relation* rel = (Relation*)args[0].addr;
+    GenericRelation* rel = (GenericRelation*)args[0].addr;
     result = qp->ResultStorage(s);
     ((CcInt*) result.addr)->Set(true, rel->GetNoTuples());
     return 0;
@@ -2990,7 +3064,8 @@ TCountSelect( ListExpr args )
   ListExpr first = nl->First(args);
   if (TypeOfRelAlgSymbol(nl->First(first)) == stream)
     return 0;
-  else if(TypeOfRelAlgSymbol(nl->First(first)) == rel)
+  else if( TypeOfRelAlgSymbol(nl->First(first)) == rel 
+           || TypeOfRelAlgSymbol(nl->First(first)) == trel )
     return 1;
   return -1;
 }
@@ -4022,6 +4097,7 @@ static int sizecounters_vm( Word* args, Word& result, int message,
   return 0;
 }   
 
+
 /*
 5.13 Operator ~dumpstream~
 
@@ -4176,6 +4252,99 @@ static int dumpstream_vm( Word* args, Word& result, int message,
   return 0;
 }   
 
+
+/*
+5.13 Operator ~tconsume~
+
+This operator maps
+
+----   (stream (tuple y)) x string -> (trel (tuple y))
+----
+
+It append the tuples into the tuple buffer which is returned in the
+create function of ~trel~.
+
+5.12.0 Specification 
+
+*/
+
+struct TConsumeInfo : OperatorInfo {
+ 
+  TConsumeInfo() : OperatorInfo()
+  { 
+    name =      "tconsume";
+    signature = "stream(tuple(y)) x string -> trel(tuple(y))";
+    syntax =    "_ tconsume";
+    meaning =   "Appends the tuples' values into a tuple buffer."
+                "The result cant be materialized, thus don't "
+		"use it in let commands.";
+    example =   "plz feed tconsume";
+  }
+
+};
+
+
+/*
+5.12.1 Type mapping 
+
+*/
+
+
+ListExpr tconsume_tm(ListExpr args)
+{
+  ListExpr first ;
+  string argstr;
+  
+  CHECK_COND(nl->ListLength(args) == 1,
+  "Operator tconsume expects a list of length one.");
+  
+  first = nl->First(args);
+  nl->WriteToString(argstr, first);
+  CHECK_COND(
+    ((nl->ListLength(first) == 2) &&
+    (TypeOfRelAlgSymbol(nl->First(first)) == stream)) &&
+    (!(nl->IsAtom(nl->Second(first)) ||
+       nl->IsEmpty(nl->Second(first))) &&    
+    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
+  "Operator tconsume expects an argument of type (stream(tuple"
+  "((a1 t1)...(an tn)))).\n"
+  "Operator tconsume gets an argument of type '" + argstr + "'.");
+  
+  return nl->Cons(nl->SymbolAtom("trel"), nl->Rest(first));
+}
+
+/*
+5.12.1 Value mapping 
+
+*/
+
+
+int
+tconsume_vm( Word* args, Word& result, int message, 
+             Word& local, Supplier s)
+{
+  Word actual;
+
+  GenericRelation* rel = (GenericRelation*)((qp->ResultStorage(s)).addr);
+  if(rel->GetNoTuples() > 0)
+  {
+    rel->Clear();
+  }
+
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, actual);
+  while (qp->Received(args[0].addr))
+  {
+    Tuple* tuple = (Tuple*)actual.addr;
+    rel->AppendTuple(tuple);
+    tuple->DeleteIfAllowed();
+    qp->Request(args[0].addr, actual);
+  }
+  result = SetWord(rel);
+  
+  qp->Close(args[0].addr);
+  return 0;
+}
 
 /*
 5.12 Operator ~rename~
@@ -4466,8 +4635,25 @@ class RelationAlgebra : public Algebra
  public:
   RelationAlgebra() : Algebra()
   {
+    ConstructorFunctions<TmpRel> cf;
+    cf.in = InTmpRel;
+    cf.out = OutTmpRel;
+    cf.create = CreateTmpRel;
+    cf.deletion = DeleteTmpRel;
+
+    ConstructorInfo ci;
+    ci.name = "trel";
+    ci.signature = "->trel";
+    ci.typeExample = "query plz feed tconsume";
+    ci.listRep = "A list of tuples";
+    ci.valueExample = "(trel(tuple(Nr int))((1) (2) (3)))";
+    ci.remarks = "Type trel represents a tuple buffer.";
+
+    static TypeConstructor cpptrel(ci,cf);
+
     AddTypeConstructor( &cpptuple );
     AddTypeConstructor( &cpprel );
+    AddTypeConstructor( &cpptrel );
 
 #ifndef USE_PROGRESS
 
@@ -4542,9 +4728,17 @@ cannot be accessed by the algebra manager.
                                reduce_tm );
     AddOperator(&reduce_op);
 
+
+    static TConsumeInfo tconsume_oi;
+    static Operator tconsume_op( tconsume_oi, 
+                                 tconsume_vm, 
+                                 tconsume_tm );
+    AddOperator(&tconsume_op);
     
+
     cpptuple.AssociateKind( "TUPLE" );
     cpprel.AssociateKind( "REL" );
+    cpptrel.AssociateKind( "REL" );
 
   }
   ~RelationAlgebra() {};

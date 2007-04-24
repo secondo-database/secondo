@@ -372,12 +372,12 @@ Tuple *Relation::GetTuple( const TupleId& id,
   return t;
 }
 
-Relation *Relation::In( ListExpr typeInfo, ListExpr value, 
+GenericRelation *Relation::In( ListExpr typeInfo, ListExpr value, 
                         int errorPos, ListExpr& errorInfo, 
-                        bool& correct )
+                        bool& correct, bool tupleBuf /*=false*/)
 {
   ListExpr tuplelist, TupleTypeInfo, first;
-  Relation* rel;
+  GenericRelation* rel;
   Tuple* tupleaddr;
   int tupleno, count;
   bool tupleCorrect;
@@ -385,7 +385,11 @@ Relation *Relation::In( ListExpr typeInfo, ListExpr value,
   correct = true;
   count = 0;
 
-  rel = new Relation( typeInfo );
+  if (tupleBuf)
+    rel = new TupleBuffer;
+  else
+    rel = new Relation( typeInfo );
+
 
   tuplelist = value;
   TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
@@ -431,7 +435,7 @@ Relation *Relation::In( ListExpr typeInfo, ListExpr value,
           nl->TwoElemList(
           nl->IntAtom(72), 
           nl->SymbolAtom("rel")));
-      rel->Delete();
+      delete rel;
       return 0;
     }
     else
@@ -439,13 +443,13 @@ Relation *Relation::In( ListExpr typeInfo, ListExpr value,
   }
 }
 
-ListExpr Relation::Out( ListExpr typeInfo )
+ListExpr Relation::Out( ListExpr typeInfo, GenericRelationIterator* rit )
 {
   Tuple* t=0;
   ListExpr l=nl->TheEmptyList();
   ListExpr lastElem=l, tlist=l, tupleTypeInfo=l;
 
-  RelationIterator* rit = MakeScan();
+  //RelationIterator* rit = MakeScan();
 
   //cerr << "OutRel " << endl;
   while ( (t = rit->GetNextTuple()) != 0 )
@@ -499,6 +503,7 @@ RelationType TypeOfRelAlgSymbol (ListExpr symbol)
   {
     s = nl->SymbolValue(symbol);
     if (s == "rel"   ) return rel;
+    if (s == "trel"  ) return trel;
     if (s == "tuple" ) return tuple;
     if (s == "stream") return stream;
     if (s == "map"   ) return ccmap;

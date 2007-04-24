@@ -97,6 +97,8 @@ using namespace std;
 
 #include <string.h>
 
+//#define TRACE_ON 1
+#include "LogMsg.h"
 #include "QueryProcessor.h"
 #include "NestedList.h"
 #include "SecondoSystem.h"
@@ -104,7 +106,6 @@ using namespace std;
 #include "FLOB.h"
 #include "FLOBCache.h"
 #include "RelationAlgebra.h"
-#include "LogMsg.h"
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -193,6 +194,7 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
                          vector<double>& attrExtSize, vector<double>& attrSize,
                          bool ignoreLOBs /*=false*/)
 {
+  TRACE_ENTER	
   long extensionSize = 0;
 
 // static   long& saveCtr = Counter::getRef("RA:PrivateTuple::Save");
@@ -276,7 +278,7 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
          }
        }
      } 
-       DEBUG(this, "extPtr = " << (void*) extensionPtr 
+     DEBUG(this, "extPtr = " << (void*) extensionPtr 
 		   << " extSize = " << extensionSize )
  }
 
@@ -284,16 +286,20 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
   tupleFile = tuplefile;
   SmiRecord *tupleRecord = new SmiRecord();
   tupleId = 0;
+
   bool rc = tupleFile->AppendRecord( tupleId, *tupleRecord );
   assert(rc == true);
   rc = tupleRecord->Write(tupleData, 
                           tupleType->GetTotalSize()+extensionSize,
                           0);
   assert(rc == true);
+
   tupleRecord->Finish();
   delete tupleRecord;
+
   // free the block
   free(tupleData);
+  TRACE_LEAVE
 }
 
 /*
@@ -863,10 +869,22 @@ double TupleBuffer::GetTotalRootSize() const
   if( IsEmpty() )
     return 0;
 
-  return GetNoTuples() * 
-    ( privateTupleBuffer->inMemory ?
-      privateTupleBuffer->memoryBuffer[0]->GetRootSize() :
-      privateTupleBuffer->diskBuffer->GetTupleType()->GetTotalSize() ); 
+  if (privateTupleBuffer->inMemory) 
+    return GetNoTuples() * privateTupleBuffer->memoryBuffer[0]->GetRootSize();
+  else	
+    return privateTupleBuffer->diskBuffer->GetTupleType()->GetTotalSize(); 
+}
+
+
+double TupleBuffer::GetTotalRootSize(int i) const
+{
+  if( IsEmpty() )
+    return 0;
+
+  if (privateTupleBuffer->inMemory) 
+    return privateTupleBuffer->memoryBuffer[0]->GetRootSize(i);
+  else	
+    return privateTupleBuffer->diskBuffer->GetTupleType()->GetTotalSize(); 
 }
 
 double TupleBuffer::GetTotalExtSize() const
@@ -877,10 +895,33 @@ double TupleBuffer::GetTotalExtSize() const
     return privateTupleBuffer->diskBuffer->GetTotalExtSize();
 }
 
+double TupleBuffer::GetTotalExtSize(int i) const
+{
+  if( IsEmpty() )
+    return 0;
+
+  if( privateTupleBuffer->inMemory )
+    return privateTupleBuffer->memoryBuffer[0]->GetExtSize(i);
+  else
+    return privateTupleBuffer->diskBuffer->GetTotalExtSize();
+}
+
+
 double TupleBuffer::GetTotalSize() const
 {
   if( privateTupleBuffer->inMemory )
     return privateTupleBuffer->totalSize;
+  else
+    return privateTupleBuffer->diskBuffer->GetTotalSize();
+}
+
+double TupleBuffer::GetTotalSize(int i) const
+{
+  if( IsEmpty() )
+    return 0;
+
+  if( privateTupleBuffer->inMemory )
+    return privateTupleBuffer->memoryBuffer[0]->GetSize(i);
   else
     return privateTupleBuffer->diskBuffer->GetTotalSize();
 }
@@ -964,7 +1005,7 @@ Tuple *TupleBuffer::GetTuple( const TupleId& id ) const
     return privateTupleBuffer->diskBuffer->GetTuple( id );
 }
 
-TupleBufferIterator *TupleBuffer::MakeScan() const
+GenericRelationIterator *TupleBuffer::MakeScan() const
 {
   return new TupleBufferIterator( *this );
 }
@@ -1006,7 +1047,7 @@ A pointer to the tuple buffer.
 The current tuple if it is in memory.
 
 */
-  RelationIterator *diskIterator;
+  GenericRelationIterator *diskIterator;
 /*
 The iterator if it is not in memory.
 
@@ -1285,7 +1326,7 @@ Relation *Relation::Clone()
   Relation *r = new Relation( privateRelation->relDesc.tupleType );
 
   Tuple *t;
-  RelationIterator *iter = MakeScan();
+  GenericRelationIterator *iter = MakeScan();
   while( (t = iter->GetNextTuple()) != 0 )
   {
     r->AppendTuple( t );
@@ -1379,7 +1420,7 @@ double Relation::GetTotalSize( int i ) const
   return privateRelation->relDesc.attrSize[i];
 }
 
-RelationIterator *Relation::MakeScan() const
+GenericRelationIterator *Relation::MakeScan() const
 {
   return new RelationIterator( *this );
 }

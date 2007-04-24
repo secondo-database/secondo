@@ -1351,6 +1351,9 @@ The function to retrieve the next tuple.
 The function to retrieve the current tuple ~id~.
 
 */
+
+
+
 };
 
 /*
@@ -1381,6 +1384,13 @@ in bytes, taking into account only the root part of the
 tuples.
 
 */
+    virtual double GetTotalRootSize(int i) const = 0;
+/*
+The function to return the total size of and attribute
+of the relation in bytes, taking into account only the
+root part of the tuples.
+
+*/
     virtual double GetTotalExtSize() const = 0;
 /*
 The function to return the total size of the relation
@@ -1388,10 +1398,26 @@ in bytes, taking into account the root part of the
 tuples and the extension part, i.e. the small FLOBs. 
 
 */
+    virtual double GetTotalExtSize( int i ) const = 0;
+/*
+The function to return the total size of an attribute
+of the relation in bytes, taking into account the root
+part of the tuples and the extension part, i.e. the
+small FLOBs.
+
+*/
     virtual double GetTotalSize() const = 0;
 /*
 The function to return the total size of the relation
 in bytes.
+
+*/
+    virtual double GetTotalSize( int i ) const = 0;
+/*
+The function to return the total size of an attribute
+of the relation in bytes, taking into account the root
+part of the tuples and the extension part, i.e. the
+small FLOBs.
 
 */
     virtual void Clear() = 0;
@@ -1510,66 +1536,37 @@ The constructor. Creates an empty tuple buffer.
 The destructor. Deletes (if allowed) all tuples.
 
 */
-    int GetNoTuples() const;
+
+    virtual Tuple* GetTuple( const TupleId& tupleId ) const;
+
+    virtual Tuple *GetTuple( const TupleId& id,
+                     const int attrIndex,
+                     const vector< pair<int, int> >& intervals ) const;
+
+    virtual void   Clear();
+    virtual int    GetNoTuples() const;
+    virtual double GetTotalRootSize() const;
+    virtual double GetTotalRootSize(int i) const;
+    virtual double GetTotalExtSize() const;
+    virtual double GetTotalExtSize( int i ) const;
+    virtual double GetTotalSize() const;
+    virtual double GetTotalSize( int i ) const;
+    virtual void   AppendTuple( Tuple *t );
+
+    virtual GenericRelationIterator *MakeScan() const;
+
 /*
-Returns the number of tuples in the buffer.
+inherited ~virtual~ functions. 
+
+Note: The function ~AppendTuple~ does not copy the physical representation of
+FLOBS which are in state "InDiskLarge", since TupleBuffers should only be used
+for intermediate result sets needed in operator implementations.
 
 */
-    double GetTotalRootSize() const;
-/*
-The function to return the total size of the buffer
-in bytes, taking into account only the root part of the
-tuples.
 
-*/
-    double GetTotalExtSize() const;
-/*
-The function to return the total size of the buffer
-in bytes, taking into account the root part of the
-tuples and the extension part, i.e. the small FLOBs.
-
-*/
-    double GetTotalSize() const;
-/*
-The function to return the total size of the buffer
-in bytes.
-
-*/
     bool IsEmpty() const;
 /*
 Checks if the tuple buffer is empty or not.
-
-*/
-    void Clear();
-/*
-Deletes (if allowed) all tuples and also clears the buffer.
-
-*/
-    void AppendTuple( Tuple *t );
-/*
-Appends a tuple to the buffer. Returns the size in bytes occupied 
-by the tuple.
-
-*/
-    Tuple* GetTuple( const TupleId& tupleId ) const;
-/*
-Returns the tuple identified by ~tupleId~.
-
-*/
-    Tuple *GetTuple( const TupleId& id,
-                     const int attrIndex,
-                     const vector< pair<int, int> >& intervals ) const;
-/*
-The function is similar to the last one, but instead of only
-retrieving the tuple, it restricts the first FLOB (or DBArray)
-of the attribute indexed by ~attrIndex~ to the positions given
-by ~intervals~. This function is used in Double Indexing
-(operator ~gettuplesdbl~).
-
-*/
-    TupleBufferIterator *MakeScan() const;
-/*
-Returns a ~TupleBufferIterator~ for a new scan.
 
 */
 
@@ -1749,9 +1746,9 @@ used to avoid opening several times the same relation. A table indexed by
 descriptors containing the relations is used for this purpose. 
 
 */
-    static Relation *In( ListExpr typeInfo, ListExpr value, 
+    static GenericRelation *In( ListExpr typeInfo, ListExpr value, 
                          int errorPos, ListExpr& errorInfo, 
-                         bool& correct );
+                         bool& correct, bool tupleBuf = false );
 /*
 Creates a relation from the ~typeInfo~ and ~value~ information.
 Corresponds to the ~In~-function of type constructor ~rel~.
@@ -1767,7 +1764,7 @@ the objects. Corresponds to the ~RestoreFromList~-function of type
 constructor ~rel~.
 
 */
-    ListExpr Out( ListExpr typeInfo );
+    static ListExpr Out( ListExpr typeInfo, GenericRelationIterator* rit );
 /*
 Writes a relation into a ~ListExpr~ format.
 Corresponds to the ~Out~-function of type constructor ~rel~.
@@ -1812,12 +1809,6 @@ Clones a relation.
 Corresponds to the ~Clone~-function of type constructor ~rel~.
 
 */
-    void AppendTuple( Tuple *tuple );
-/*
-Appends a tuple to the relation. Returns the size in bytes occupied 
-by the tuple.
-
-*/
     bool DeleteTuple( Tuple *tuple );
 /*
 Deletes the tuple from the relation. Returns false if the tuple 
@@ -1835,82 +1826,41 @@ The implementation of this function belongs to the Update
 Relational Algebra.
 
 */
-    Tuple* GetTuple( const TupleId& tupleId ) const;
-/*
-Returns the tuple identified by ~tupleId~.
-
-*/
-    Tuple *GetTuple( const TupleId& id,
-                     const int attrIndex,
-                     const vector< pair<int, int> >& intervals ) const;
-/*
-The function is similar to the last one, but instead of only
-retrieving the tuple, it restricts the first FLOB (or DBArray)
-of the attribute indexed by ~attrIndex~ to the positions given
-by ~intervals~. This function is used in Double Indexing
-(operator ~gettuplesdbl~).
-
-*/
     TupleType *GetTupleType() const;
 /*
 Returns the tuple type of the tuples of the relation.
 
 */
-    void Clear();
+
+    virtual Tuple* GetTuple( const TupleId& tupleId ) const;
+
+    virtual Tuple *GetTuple( const TupleId& id,
+                     const int attrIndex,
+                     const vector< pair<int, int> >& intervals ) const;
+
+    virtual void   Clear();
+    virtual int    GetNoTuples() const;
+    virtual double GetTotalRootSize() const;
+    virtual double GetTotalRootSize(int i) const;
+    virtual double GetTotalExtSize() const;
+    virtual double GetTotalExtSize( int i ) const;
+    virtual double GetTotalSize() const;
+    virtual double GetTotalSize( int i ) const;
+    virtual void   AppendTuple( Tuple *tuple );
+
+    virtual GenericRelationIterator *MakeScan() const;
+
 /*
-Clears (empties) a relation removing all its tuples.
+Inherited ~virtual~ functions
 
 */
-    int GetNoTuples() const;
-/*
-Gets the number of tuples in the relation.
 
-*/
-    double GetTotalRootSize() const;
-/*
-The function to return the total size of the relation
-in bytes, taking into account only the root part of the
-tuples.
-
-*/
-    double GetTotalRootSize(int i) const;
-/*
-The function to return the total size of and attribute
-of the relation in bytes, taking into account only the
-root part of the tuples.
-
-*/
-    double GetTotalExtSize() const;
-/*
-The function to return the total size of the relation
-in bytes, taking into account the root part of the
-tuples and the extension part, i.e. the small FLOBs.
-
-*/
-    double GetTotalExtSize( int i ) const;
-/*
-The function to return the total size of an attribute
-of the relation in bytes, taking into account the root
-part of the tuples and the extension part, i.e. the
-small FLOBs.
-
-*/
-    double GetTotalSize() const;
-/*
-The function to return the total size of the relation
-in bytes.
-
-*/
-    double GetTotalSize( int i ) const;
-/*
-The function to return the total size of an attribute
-of the relation in bytes.
-
-*/
-    RelationIterator *MakeScan() const;
     RandomRelationIterator *MakeRandomScan() const;
 /*
-Returns a ~RelationIterator~ or a ~RandomRelationIterator~ for a relation scan.
+Returns a ~RandomRelationIterator~ which returns tuples in random order.
+Currently this is not implemented, but first of all it this iterator skips
+some tuples in the scan, hence it can iterate faster. It is used by the
+sample operator.
 
 */
     inline PrivateRelation *GetPrivateRelation()
@@ -1953,7 +1903,7 @@ type ~RelationType~. ~Symbol~ is allowed to be any list. If it is
 not one of these symbols, then the value ~error~ is returned.
 
 */
-enum RelationType { rel, tuple, stream, ccmap, ccbool, error };
+enum RelationType { rel, trel, tuple, stream, ccmap, ccbool, error };
 RelationType TypeOfRelAlgSymbol (ListExpr symbol);
 
 /*
