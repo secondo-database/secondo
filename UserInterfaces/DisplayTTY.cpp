@@ -1506,6 +1506,7 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "bool",    &DisplayBoolean );
   InsertDisplayFunction( "string",  &DisplayString );
   InsertDisplayFunction( "rel",     &DisplayRelation );
+  InsertDisplayFunction( "trel",    &DisplayRelation );
   InsertDisplayFunction( "mrel",    &DisplayRelation );
   InsertDisplayFunction( "tuple",   &DisplayTuples );
   InsertDisplayFunction( "mtuple",  &DisplayTuples );
