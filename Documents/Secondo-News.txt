@@ -6,6 +6,37 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+2007-04-24  Changes in the RelationAlgebra 
+===============================================================================
+
+The base class GenericRelation was revised in order to make it compatible with
+class TupleBuffer, e.g. some member functions of class Relation were declared
+as virtual functions in class GenericRelation.
+
+Moreover, the TupleBuffer was made available as secondo type trel. You can
+create a trel by consuming a stream(tuple(..)) using operator tconsume, e.g.
+
+   > plz feed tconsume;
+   --------------------
+
+Currently this type is intended to be used only for temporary results, the save
+and open function are not implemented. Since the TupleBuffer creates its
+Berkeley-DB files in a separate directory without transaction control you can
+save many megabytes of log files if you run queries with a quite big temporary
+relation as result.
+
+Moreover, the TupleBuffer now ignores to copy persistent LOBs (LOBs which are
+stored on disk). This saves again much processing time since LOBs on disk have
+their own lob-file and record-id which are stable during the query. Only LOBs
+which are created in the query itself need to be written to the lob-file of 
+temporary result relations. 
+
+
+Best Regards
+
+Markus
+
+
 2007-04-19  Revised Organization of Tuples
 ===============================================================================
 
