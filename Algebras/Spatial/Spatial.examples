@@ -309,3 +309,15 @@ Signature: line  -> stream (line)
 Example  : query BGrenzenLine polylines [FALSE]  count
 Result   : (int 2)
 
+Operator : simplify 
+Number   : 1
+Signature: line x real  -> line
+Example  : query no_segments(simplify(BGrenzenLine,2000.0))  
+Result   : (int 24)
+
+Operator : simplify
+Number   : 2
+Signature: line x real x points -> line
+Example  : query no_segments(simplify(BGrenzenLine,2000.0, vertices(BGrenzenLine) )) = no_segments(BGrenzenLine) 
+Result   : (bool TRUE)
+ 

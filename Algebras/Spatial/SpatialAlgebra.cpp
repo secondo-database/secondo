@@ -1113,7 +1113,7 @@ void Points::StartBulkLoad()
 
 void Points::EndBulkLoad( bool sort, bool remDup )
 {
-  points.TrimToSize();	
+  points.TrimToSize();
   if( sort )
     Sort();
   if( remDup )
@@ -3849,6 +3849,249 @@ void Line::Transform( Region& result ) const
   result.EndBulkLoad();
 }
 
+
+
+/*
+Simple function marking some elements between min and  max as used to avoid
+segments degenerated to single points.
+
+*/
+static double maxDist(vector<Point>& orig, // points
+                      int min, int max, // range
+                      int& index){  // resultindex
+
+// search the point with the largest distance to the segment between
+// orig[min] and orig[max]
+ double maxdist = 0.0;
+ int maxindex = -1;
+ if(!AlmostEqual(orig[min],orig[max])){
+     HalfSegment hs(true,orig[min],orig[max]);
+     for(int i=min+1; i<max; i++){
+        double dist = hs.Distance(orig[i]);
+        if(dist>maxdist){
+          maxdist = dist;
+          maxindex = i;
+      }
+     }
+ } else { // special case of a cycle
+   Point p = orig[min];
+   for(int i=min+1; i<max; i++){
+      double dist = p.Distance(orig[i]);
+      if(dist>maxdist){
+        maxdist = dist;
+        maxindex = i;
+      }
+   }
+ }
+ index = maxindex;
+ return maxdist;
+}
+                 
+
+/*
+Implementation of the Douglas Peucker algorithm.
+
+The return indoicates whether between min and max further points was
+used.
+
+*/
+
+static bool douglas_peucker(vector<Point>& orig, // original line
+                       const double epsilon, // maximum derivation
+                       bool* use, // result
+                       int min, int max,
+                       bool force = false){ // current range
+// always use the endpoints
+use[min] = true;
+use[max] = true;
+if(min+1>=max){ // no inner points, nothing to do
+  return false;
+}
+ int index;
+ double maxdist = maxDist(orig,min,max,index);
+ bool cycle = AlmostEqual(orig[min], orig[max]);
+ if((maxdist<=epsilon) &&  // line closed enough
+     !cycle &&  // no degenerated segment
+     !force){
+       return false; // all ok, stop recursion
+   } else {
+     bool ins = douglas_peucker(orig,epsilon,use,min,index,cycle);
+     douglas_peucker(orig,epsilon,use,index,max,cycle && !ins);
+     return true;
+   }
+}
+
+
+
+static void  douglas_peucker(vector<Point>& orig, // original chain of points
+                             const double epsilon, // maximum derivation
+                             bool* use){ // result
+  for(unsigned int i=0;i<orig.size();i++){
+     use[i] = false;
+  }
+  // call the recursive implementation
+  douglas_peucker(orig,epsilon, use, 0, orig.size()-1);  
+}
+
+
+
+void Line::Simplify(Line& result, const double epsilon,
+                    const Points& importantPoints /*= Points(0)*/ ) const{
+   result.Clear(); // remove old stuff
+   
+   if(!IsDefined()){ // this is not defined
+      result.SetDefined(false);
+      return;
+   }
+   result.SetDefined(true);
+   if(epsilon<=0){ // maximum derivation reached in each case
+       result.CopyFrom(this);
+       return;
+   }
+   // at least one immediate point is required to simplify 
+   // the line, thus at leat 4 halfsegments are needed.
+   if(Size()<4){
+      result.CopyFrom(this);
+      return;
+   }
+   // an array with the used halfsegments
+   bool used[Size()];  
+   for(int i=0;i<Size();i++){
+      used[i] = false;
+   }
+
+   vector<Point> forward;
+   vector<Point> backward;
+   vector<Point> complete;
+
+   const HalfSegment* hs; // current halfsegment
+  
+   result.StartBulkLoad(); 
+   int pos = 0;
+   int size = Size();
+   int egdeno=0;
+   while(pos<size){
+    // skip all halfsegments in prior runs
+    while(pos<size && used[pos]){
+      pos++;
+    }
+    
+    if(pos<size){
+       // unused halfsegment found
+       forward.clear();
+       backward.clear();
+       int next = pos;
+       // trace the polyline until it ends or critical point is reached
+       bool done = false;
+       while(!done){
+          used[next]= true;
+          Get(next,hs);
+          forward.push_back(hs->GetDomPoint());
+          int partner = hs->attr.partnerno;
+          used[partner] = true;
+          Get(partner,hs);
+          Point p = hs->GetDomPoint();
+          if(importantPoints.Contains(p)){
+            done = true;
+          }else {
+             int s = max(0,partner-2);
+             int e = min(partner+3,Size());
+             int count =0;
+             const HalfSegment* tmp;
+       
+             // search around partner for segments with an
+             // equal dominating point. 
+            for(int k=s; (k<e) && (count < 2); k++){
+               if(k!=partner){
+                  Get(k,tmp);
+                  Point p2 = tmp->GetDomPoint();
+                  if(AlmostEqual(p,p2)){
+                     count++;
+                     next = k;
+                  }
+               }
+             }
+             done = (count != 1) || used[next]; 
+          }
+       }
+       forward.push_back(hs->GetDomPoint());
+
+       // check possible enlargement into the other direction
+       next = pos; // start again at pos
+       done = false;
+       do{
+          Get(next,hs);
+          Point p = hs->GetDomPoint();
+          // check whether next has an unique connected segment
+          int s = max(0, next-2);
+          int e = min(next+3,Size());
+          int count = 0;
+          const HalfSegment* tmp;
+          int partner = 0;
+          // search around next
+          if(importantPoints.Contains(p)){
+            done = true;
+          } else {
+             for(int k=s; (k<e) && (count <2); k++){
+                if(k!=next){
+                   Get(k,tmp);
+                   Point p2 = tmp->GetDomPoint();
+                   if(AlmostEqual(p,p2)){
+                     count++;
+                     partner = k;
+                   }
+                }
+             }
+             done = (count!=1) || used[partner];
+             if(!done){ // extension found
+                 used[partner] = true;
+                 Get(partner,hs);
+                 next = hs->attr.partnerno;
+                 used[next] = true;
+                 Get(next,hs);
+                 backward.push_back(hs->GetDomPoint());
+             }
+         }
+       } while(!done);
+       // connect backward and forward into complete 
+       complete.clear();
+       for(int i=backward.size()-1; i>=0; i--){
+         complete.push_back(backward[i]);
+       }
+       for(unsigned int i=0;i<forward.size(); i++){
+         complete.push_back(forward[i]);
+       }
+
+
+       // determine all segments to use and copy them into the result 
+       bool use[complete.size()];
+       douglas_peucker(complete,epsilon,use);
+       int size = complete.size();
+       Point last = complete[0];
+       for(int i=1;i<size;i++){
+          if(use[i]){
+             Point p = complete[i];
+             HalfSegment nhs(true,last,p);
+             nhs.attr.edgeno=egdeno;
+             result += nhs;
+             nhs.SetLeftDomPoint(false);
+             result += nhs;
+             egdeno++;
+             last = p;
+          }
+       } 
+ 
+     }
+   }   
+   result.EndBulkLoad();
+
+   // TODO:
+   // recomputing realmization to avoid selfcuts
+}
+
+
+
+
 bool Line::AtPosition( double pos, bool startsSmaller, Point& p ) const
 {
   if( startsSmaller != this->startsSmaller )
@@ -4866,7 +5109,7 @@ void Region::StartBulkLoad()
 void Region::EndBulkLoad( bool sort, bool setCoverageNo,
                           bool setPartnerNo, bool computeRegion )
 {
-  region.TrimToSize(); 	
+  region.TrimToSize();
   if( sort )
     Sort();
 
@@ -6915,7 +7158,18 @@ void Region::ComputeCycle( HalfSegment &hs,
                                      -1);
        adjacentPointFound = s->goToCHS2Left;
      }
-     assert(adjacentPointFound);
+ 
+     if(!adjacentPointFound){
+         cerr << "Problem in rebuilding cycle in a region " << endl;
+         cerr << "no adjacent point found" << endl;
+         cerr << "Halfsegments : ---------------     " << endl;
+         const HalfSegment* hs;
+         for(int i=0;i<Size();i++){
+            Get(i,hs);
+            cerr << i << " : " << (*hs) << endl;
+         }
+         assert(adjacentPointFound); // assert(false)
+     }
      sCycleVector.push_back(*s);
 
      if ( (currentCriticalPoint!=NULL) && (*currentCriticalPoint==nextPoint) )
@@ -9289,6 +9543,31 @@ ListExpr PolylinesMap(ListExpr args){
                          nl->SymbolAtom("line"));
 }
 
+/*
+10.1.10 Type mapping for the ~simplify~ operator
+
+*/
+ListExpr SimplifyTypeMap(ListExpr args){
+   int len = nl->ListLength(args);
+   if((len!=2) && (len!=3)){
+      ErrorReporter::ReportError("invalid number of"
+                                 " arguments (has to be 2 or 3 )");
+      return nl->TypeError();
+   }
+   if(!nl->IsEqual(nl->First(args),"line") ||
+      !nl->IsEqual(nl->Second(args),"real")){
+      ErrorReporter::ReportError("line x real [x points] expected");
+      return nl->TypeError();
+   }
+   if( (len==3) && 
+       !(nl->IsEqual(nl->Third(args),"points"))){
+       ErrorReporter::ReportError("line x real [ x points] expected");
+       return nl->TypeError();
+   }
+   return nl->SymbolAtom("line");
+}
+
+
 
 
 /*
@@ -9974,6 +10253,21 @@ int SpatialBoundarySelect( ListExpr args )
 
   return -1; // This point should never be reached
 }
+
+/*
+10.3.20 Selection function for the simplify operator
+
+*/
+int SpatialSimplifySelect(ListExpr args){
+   if(nl->ListLength(args)==2){ // line x real
+      return 0;
+   } else {
+      return 1; // line x real x points
+   }
+
+}
+
+
 
 /*
 10.4 Value mapping functions
@@ -12269,6 +12563,26 @@ int SpatialPolylines(Word* args, Word& result, int message,
 }
 
 
+int SpatialSimplify_LReal(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   Line* line = (Line*) args[0].addr;
+   double epsilon = ((CcReal*)args[1].addr)->GetRealval();
+   line->Simplify(* ((Line*)result.addr),epsilon);
+   return 0;
+}
+
+int SpatialSimplify_LRealPs(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   Line* line = (Line*) args[0].addr;
+   double epsilon = ((CcReal*)args[1].addr)->GetRealval();
+   Points* ps = (Points*) args[2].addr;
+   line->Simplify(* ((Line*)result.addr),epsilon,*ps);
+   return 0;
+}
+
+
 /*
 10.5 Definition of operators
 
@@ -12437,6 +12751,9 @@ ValueMapping spatialaddmap[] = { SpatialAdd_p };
 ValueMapping spatialgetxmap[] = { SpatialGetX_p };
 
 ValueMapping spatialgetymap[] = { SpatialGetY_p };
+
+ValueMapping spatialsimplifymap[] = { SpatialSimplify_LReal, 
+                                      SpatialSimplify_LRealPs };
 
 /*
 10.5.2 Definition of specification strings
@@ -12776,6 +13093,15 @@ const string SpatialSpecPolylines  =
     "<text> query trajectory(train1) polylines [TRUE]  count</text--->"
     ") )";
 
+const string SpatialSpecSimplify  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>line  x real [x points] -> line </text--->"
+    "<text> simplify(_,_) </text--->"
+    "<text>Simplifies a line value, the points value marks"
+    " important points </text--->"
+    "<text> query simplify(trajectory(train1),10.0) count</text--->"
+    ") )";
+
 /*
 10.5.3 Definition of the operators
 
@@ -13012,6 +13338,14 @@ Operator spatialboundary (
   SpatialBoundarySelect,
   SpatialBoundaryMap);
 
+Operator spatialsimplify (
+  "simplify",
+  SpatialSpecSimplify,
+  2,
+  spatialsimplifymap,
+  SpatialSimplifySelect,
+  SimplifyTypeMap );
+
 Operator spatialatpoint (
   "atpoint",
   SpatialSpecAtPoint,
@@ -13078,6 +13412,7 @@ Operator spatialpolylines (
   Operator::SimpleSelect,
   PolylinesMap );
 
+
 /*
 11 Creating the Algebra
 
@@ -13142,6 +13477,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialrect2region );
     AddOperator( &spatialarea );
     AddOperator( &spatialpolylines );
+    AddOperator( &spatialsimplify);
   }
   ~SpatialAlgebra() {};
 };

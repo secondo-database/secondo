@@ -1691,6 +1691,27 @@ is the ~points~ result size.
 
 */
     void Transform( Region& r ) const;
+
+/*
+6.4.6 ~Simplify~
+
+This function stores a simplified version into the argument __result__.
+The simplification is performed within three steps.
+In an initial step, simple lines are extracted from the original one.
+The reason is, that junctions within the line should be kept.
+In the second step. each simple line is simplified by removing 
+sampling points using the well known Douglas Peucker algorithm. By using this
+algorithm, it's guarantet that the maximum derivation from the original line
+is smaller or equal to epsilon (or zero if epsilon is smaller than zero).
+Unfortunately by simplifying the line, new selfintersections can be
+created. We remove them in a final step. 
+
+
+*/
+    void Simplify(Line& result, const double epsilon, 
+                  const Points& importantPoint = Points(0)) const;
+
+
 /*
 
 6.4.6 Operation ~atposition~
