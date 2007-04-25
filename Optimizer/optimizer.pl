@@ -3033,7 +3033,8 @@ dijkstra(Source, Dest, Path, Length) :-
   b_empty(Boundary),
   b_insert(Boundary, node(Source, 0, []), Boundary1),
   dijkstra1(Boundary1, Dest, 0, notfound),
-  center(Dest, node(Dest, Length, Path)).
+  center(Dest, node(Dest, Length, Path)),
+  !. % Cut inserted to avoid doubled solutions
 
 emptyCenter :- retractall(center(_, _)).
 
