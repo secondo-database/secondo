@@ -68,6 +68,11 @@ DEFAULTCCFLAGS += -D_REENTRANT -D_GLIBCPP_DEPRECATED
 # memory. This is needed if you want to restore large objects. 
 DEFAULTCCFLAGS += -DNL_PERSISTENT
 
+# Flag for compiling code of operator value mappings which supports progress measurement. 
+DEFAULTCCFLAGS += -DUSE_PROGRESS
+
+# The next flag activates trace messages. Alternatively you may define it
+# only in some subordinated makefiles to avoid to much messages.
 #DEFAULTCCFLAGS += -DTRACE_ON
 
 INC_FILES := $(shell ls $(SECONDO_BUILD_DIR)/makefile.n*c 2>/dev/null)
