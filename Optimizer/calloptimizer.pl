@@ -264,6 +264,9 @@ optimizerOptionInfo(debug, none, no,
 optimizerOptionInfo(autosave, none, no,            
                     'Autosave option settings on \'halt.\'.',
                     true, true).
+optimizerOptionInfo(progress, none, no,
+                    'Send predicate data for progress estimation.',
+                    true, true).
 
 :- [calloptimizer_sec]. % include more options
 
@@ -595,6 +598,7 @@ defaultOptions :-
   delOption(useCounters),
   setOption(debug),
   debugLevel(selectivity),
+  setOption(progress),
   setOption(autosave).
 
 
