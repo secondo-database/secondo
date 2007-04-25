@@ -3323,7 +3323,7 @@ void Line::StartBulkLoad()
 void Line::EndBulkLoad( bool sort, bool remDup,
                         bool setPartnerNo, bool setNoComponents )
 {
-  if( sort )
+ if( sort )
     Sort();
 
   if( remDup )
@@ -3338,10 +3338,6 @@ void Line::EndBulkLoad( bool sort, bool remDup,
   line.TrimToSize();
   lrsArray.TrimToSize();
   ordered = true;
-
-   
-
-
 }
 
 Line& Line::operator=( const Line& l )
@@ -5936,7 +5932,6 @@ void Region::Vertices( Points* result ) const
     Point p = hs->GetDomPoint();
     *result += p;
   }
-  cout << size << "points included, remove possible duplicates" << endl;
   result->EndBulkLoad( false, true );
 }
 
