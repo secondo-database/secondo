@@ -282,14 +282,22 @@ abstraction. In this case, it is not evaluable, but we may want to store
 the function in a database object. 
 
 */
-  void Eval( void* node, Word& result,
+  void EvalP( void* node, Word& result,
              const int message );
 /*
-Traverses the operator tree ~tree~ calling operator implementations for
-each node, and returns the result in ~result~. The ~message~ is "OPEN"[4],
-"REQUEST"[4], or "CLOSE"[4] and is used only if the root node produces a stream.
+Calls ~Eval~ to evaluate the tree rooted at ~node~. ~EvalP~ includes management of a progress view. 
+ 
+*/
+
+  void EvalS( void* node,  Word& result, 
+            const int message);
+
+/*
+Calls ~Eval~ to evaluate the tree rooted at ~node~. To be used for subqueries within operator implementations.
 
 */
+
+
   void Destroy( OpTree& node, bool destroyRootValue );
   void Destroy( void*& node, bool destroyRootValue );  
   
@@ -703,6 +711,17 @@ Construct operator tree recursively for a given annotated ~expr~. See
 ~Annotate~ and ~AnnotateFunction~ for the possible structures to be processed.
 
 */
+
+
+  void Eval( void* node, Word& result,
+             const int message );
+/*
+Traverses the operator tree ~tree~ calling operator implementations for
+each node, and returns the result in ~result~. The ~message~ is "OPEN"[4],
+"REQUEST"[4], or "CLOSE"[4] and is used only if the root node produces a stream.
+ 
+*/
+
   void AllocateValues( int idx );
   void AllocateArgVectors( int idx );
   SecondoCatalog* GetCatalog()

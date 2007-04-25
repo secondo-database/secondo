@@ -3156,7 +3156,7 @@ Deletes an operator tree object.
 }
 
 /*
-Translate a message code int its name
+Translate a message code into its name
    
 */
 
@@ -3177,7 +3177,34 @@ QueryProcessor::MsgToStr(const int msg) {
 /*
 6.3 Evaluating an Operator Tree: Procedure ~eval~
 
+~EvalP~ is a wrapper for ~Eval~ to include progressview management. ~EvalS~ is a wrapper to be used if no progress management is desired, especially for subqueries evaluated within an operator implementation.
+
 */
+
+
+void
+QueryProcessor::EvalP( void* node, 
+                      Word& result, 
+                      const int message)
+{
+  progressView = new ProgressView();
+  Eval( node, result, 1 );
+  progressView->FinishProgressView();
+  delete progressView;
+}
+
+
+void
+QueryProcessor::EvalS( void* node, 
+                      Word& result, 
+                      const int message)
+{
+  progressView = 0;
+  Eval( node, result, 1 );
+}
+
+
+
 
 
 void
@@ -3408,7 +3435,7 @@ Then call the operator's value mapping function.
         //cout << "   Time: " << progress.Time;
         //cout << "   Size: " << progress.Size << endl;
 
-        progressView->ModifyProgressView(progress.Progress);
+        if ( progressView ) progressView->ModifyProgressView(progress.Progress);
       }
 
       allowProgress = true;
