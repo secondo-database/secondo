@@ -222,7 +222,7 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
 
       attrSize[i] += tmpFLOB->Size();
       size += tmpFLOB->Size();
-
+  
       if( !tmpFLOB->IsLob() )
       {
         // flobCtr++;      
@@ -235,8 +235,9 @@ void PrivateTuple::Save( SmiRecordFile *tuplefile,
       {
         //lobCtr++;  
         if(ignorePersistentLOBs) {
-          if (!tmpFLOB->IsPersistentLob())
+          if (!tmpFLOB->IsPersistentLob()){
             tmpFLOB->SaveToLob( lobFileId );
+          }
         } else {
            tmpFLOB->SaveToLob( lobFileId );
 	}   
@@ -474,10 +475,11 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
     {
       FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
-      if( !tmpFLOB->IsLob() )
+      if( !tmpFLOB->IsLob() ){
         extensionSize += tmpFLOB->Size();
-      else
-        tmpFLOB->SetLobFileId( lobFileId );
+      } else {
+        //tmpFLOB->SetLobFileId( lobFileId );
+      }
     }
   }
 
@@ -599,7 +601,7 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
            offset += size; 
         }
      } else{
-        tmpFLOB->SetLobFileId( lobFileId );
+        //tmpFLOB->SetLobFileId( lobFileId );
      }
     }
   }  
@@ -661,10 +663,11 @@ bool PrivateTuple::Open( SmiRecordFile *tuplefile,
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
     {
       FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
-      if( !tmpFLOB->IsLob() )
+      if( !tmpFLOB->IsLob() ){
         extensionSize += tmpFLOB->Size();
-      else
-        tmpFLOB->SetLobFileId( lobFileId );
+      } else {
+       // tmpFLOB->SetLobFileId( lobFileId );
+      }
     }
   }
 
