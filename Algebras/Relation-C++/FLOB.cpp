@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include <stdlib.h>
 #include <string.h>
+#include <sstream>
 
 #include <iostream>
 #include <cassert>
@@ -268,6 +269,40 @@ FLOB::Malloc(size_t newSize /*= 0*/) {
   return fd.inMemory.buffer; 
 }	
 
+string FLOB::ToString() const{
+   stringstream s;
+   s << "FLOB:" 
+     << "  type(" << stateStr(type) <<")"
+     << "  size(" << size << ")" ;
+  if(type==Destroyed) {
+      ; 
+  } else if(type == InMemory){
+    s << "buffer("<< (void*) fd.inMemory.buffer  <<")" ; 
+  } else if( type == InMemoryCached) { 
+    s << "buffer(" << (void*) fd.inMemoryCached.buffer  <<")"  
+      << "lobFileId(" << fd.inMemoryCached.lobFileId << ")"
+      << "lobId(" << fd.inMemoryCached.lobId << ")";
+  } else if( type == InMemoryPagedCached){ 
+    s << "buffer("
+      << (void*) fd.inMemoryPagedCached.buffer << ")"
+      << " chached (" << fd.inMemoryPagedCached.cached << ")"
+      << " pageno(" << fd.inMemoryPagedCached.pageno << ")" 
+      << " lobFileId(" << fd.inMemoryPagedCached.lobFileId << ")"
+      << " lobId(" << fd.inMemoryPagedCached.lobId << ")";
+  } else if (type==InDiskLarge){
+    s << " lobFileId(" << fd.inDiskLarge.lobFileId << ")"
+      << " lobId(" << fd.inDiskLarge.lobId << ")";
+  } else {
+    s << "unknown type !!!" ;
+  }
+  return s.str();
+}
+
+
+ostream& operator<<(ostream& os, const FLOB& flob){
+    os << flob.ToString();
+    return os;
+} 
 
 /*
  

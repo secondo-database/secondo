@@ -312,6 +312,14 @@ buffer and stores a pointer to it in member ~fd.inMemory.buffer~
 */    
     void* Malloc(size_t newSize = 0);
 
+/*
+3.14 ~ToString~
+
+This function may be helpful for debugging purposes.
+
+*/
+    string ToString() const;
+
 
   protected:
 
@@ -397,10 +405,13 @@ state to a ~InMemory~ state.
       }  
       type = state;
       memset(&fd, sizeof(FLOB_Descriptor), 0);
-    } 
+    }
+
+
 
 };
 
+    ostream& operator<<(ostream& os, const FLOB& flob); 
 #endif
 
 /*
