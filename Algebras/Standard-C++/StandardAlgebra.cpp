@@ -2869,7 +2869,7 @@ RelcountFun( Word* args, Word& result, int message, Word& local, Supplier s )
       if ( evaluable )
       {
         // evaluate the operator tree
-        qpp->Eval( tree, result, 1 );
+        qpp->EvalS( tree, result, 1 );
 
         // create the result list ( type, value )
         valueList = SecondoSystem::GetCatalog()->
