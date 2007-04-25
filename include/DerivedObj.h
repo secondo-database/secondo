@@ -310,7 +310,7 @@ int createObj(string& objName, ListExpr valueExpr) {
       }
       if ( evaluable )
       {
-          qp.Eval( tree, result, 1 );
+          qp.EvalP( tree, result, 1 );
 
         if( IsRootObject( tree ) && !IsConstantObject( tree ) )
         {
