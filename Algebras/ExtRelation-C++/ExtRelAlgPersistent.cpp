@@ -379,11 +379,15 @@ In this case we need to delete also all tuples stored in memory.
       for( size_t i = 0; i < relations.size(); i++ )
       {
         delete relations[i].second;
+        relations[i].second = 0;
         delete relations[i].first;
+        relations[i].first = 0;
       }
 
       delete lexiTupleCmp;
+      lexiTupleCmp = 0;
       delete tupleCmpBy;
+      tupleCmpBy = 0;
     }
 
     Tuple *NextResultTuple()
@@ -517,6 +521,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
     }
     case REQUEST:
     {
+      assert ( LocalInfo<SortByLocalInfo>::getPtr( local.addr ) != NULL );
       SortByLocalInfo *sli = LocalInfo<SortByLocalInfo>::getPtr( local.addr );
       result = SetWord( sli->NextResultTuple() );
       return result.addr != 0 ? YIELD : CANCEL;
@@ -524,11 +529,16 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE:
     {
-      SortByLocalInfo *sli = LocalInfo<SortByLocalInfo>::getPtr( local.addr );
-      delete sli;
+      if( LocalInfo<SortByLocalInfo>::getPtr( local.addr ) )
+      {
+        LocalInfo<SortByLocalInfo> *li =
+            static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
+        delete li->ptr;
+        li->ptr = 0;
       // The ~Progress~ part of the local value will not be deleted
       // this is an accepted memory leak introduced by progress  
       // delete local.addr !!!!
+      }
       return 0;
     }
   }
