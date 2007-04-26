@@ -999,10 +999,6 @@ ListExpr FeedTypeMap(ListExpr args)
 
 */
 
-#define USE_PROGRESS
-
-//comment out to not use progress
-
 
 #ifndef USE_PROGRESS
 

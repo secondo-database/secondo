@@ -3400,9 +3400,7 @@ Then call the operator's value mapping function.
         else 
         { 
 
-
-#define CHECK_PROGRESS
-#ifdef CHECK_PROGRESS 
+#ifdef USE_PROGRESS 
   
   // Example code which interrupts the evaluation of the
   // query tree in order to propagate a progress message.       

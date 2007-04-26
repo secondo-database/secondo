@@ -3210,7 +3210,6 @@ request on a NULL pointer.
 
 */
 
-#define USE_PROGRESS
 #ifndef USE_PROGRESS
 
 // standard version
