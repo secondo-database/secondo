@@ -853,7 +853,7 @@ int sim_create_trip_VM ( Word* args, Word& result,
           else
           {
             invalidUnitsCreated++;
-            cout << "Invalid unit up = "; up.Print(cout); cout << endl;
+//             cout << "Invalid unit up = "; up.Print(cout); cout << endl;
           }
           currentPosition = subsegments[i].end;
           if (stopAfterThis)
@@ -907,7 +907,12 @@ int sim_create_trip_VM ( Word* args, Word& result,
   }
   else
   { // some undef argument:
-    cout << "sim_create_trip_VM: undefined Argument." << endl;
+    cout << "sim_create_trip_VM: undefined Argument: " << endl;
+    cout << "  StartInstant:  " << instStart->IsDefined() << endl;
+    cout << "  StartPoint:    " << pointStart->IsDefined() << endl;
+    cout << "  StartVelocity: " << cVstart->IsDefined() << endl;
+    cout << "  LineIndex:     " << cLineIndex->IsDefined() << endl;
+    cout << "  VelocityIndex: " << cVmaxIndex->IsDefined() << endl;
     res->SetDefined( false );
   }
   res->EndBulkLoad();
@@ -1015,7 +1020,7 @@ const string sim_print_params_Spec  =
     "<text>sim_print_params( )"
     "</text--->"
     "<text>Prints the paramter settings to the console. Always "
-    "return 'TRUE'</text--->"
+    "returnS 'TRUE'</text--->"
     "<text>sim_print_params()</text--->"
     ") )";
 

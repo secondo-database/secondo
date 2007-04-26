@@ -222,6 +222,7 @@ using namespace std;
 #include "NList.h"
 #include "Profiles.h"
 #include "FLOBCache.h"
+#include <stdexcept>
 
 /************************************************************************** 
 1.2 Constants, Types, Global Data Structures
@@ -313,7 +314,7 @@ QueryProcessor::AllocateArgVectors( int idx )
   int size = argVectors.size();
   if ( idx >= size )
   {
-    size += MAXFUNCTIONS;
+    size = idx + MAXFUNCTIONS;
     argVectors.resize( size );
   }
 }
@@ -2527,7 +2528,7 @@ QueryProcessor::SubtreeX( const ListExpr expr )
       (*argVectors[i])[j].addr = 0;
     }
   }
-  
+
   bool first = true;  
   OpTree resultTree = Subtree( expr, first );
   if ( debugMode )
