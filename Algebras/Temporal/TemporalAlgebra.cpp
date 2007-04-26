@@ -2908,6 +2908,66 @@ void MPoint::Reverse(MPoint& result){
 }
 
 
+void MPoint::Sample(const DateTime& duration,
+                    MPoint& result) const{
+
+  result.Clear();
+  if(!IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  int size = GetNoComponents();
+  if(size==0){
+     return;
+  }  
+   
+  bool isFirst = true;
+  int currentUnit = 0;
+  Instant currentTime;
+  Instant lastTime;
+  Point lastPoint;
+  Point point;
+
+  const UPoint* unit; // the unit corresponsing the currentUnit
+
+  while(currentUnit < size ){
+     if(isFirst){ // set the start values
+         Get(currentUnit,unit);
+         currentTime = unit->timeInterval.start;
+         lastPoint = unit->p0;
+         isFirst=false; 
+     }
+     Interval<Instant> interval(unit->timeInterval);
+     lastTime = currentTime;
+     currentTime += duration; // the next sampling instant
+
+     // search the unit having endtime after currentTime
+     while(interval.end < currentTime && 
+           currentUnit < size){
+        currentUnit++;
+        if(currentUnit<size){
+           Get(currentUnit,unit);
+           interval = unit->timeInterval;
+        }
+     }
+
+     if(currentUnit<size){
+        if(interval.start>currentTime){ // gap detected
+            isFirst=true;
+        } else {
+            unit->TemporalFunction(currentTime, point, true);
+            Interval<Instant> newint(lastTime,currentTime,true,false);        
+            UPoint nextUnit(newint,lastPoint,point);
+            result.MergeAdd(nextUnit);
+            lastPoint = point;
+        }
+     }
+  }
+}
+
+
+
+
 void MPoint::MVelocity( MPoint& result ) const
 {
   const UPoint *uPoint;
@@ -5553,7 +5613,7 @@ ListExpr ReverseTM(ListExpr args){
 
 This operator consumes a stream of tuples having an attribute
 x of type mpoint. The attribute name must be given in the second
-argument. As third argument, a suration is given which determines 
+argument. As third argument, a duration is given which determines 
 a break between the two movements.
 
 */
@@ -5656,6 +5716,29 @@ ListExpr TranslateAppendSTM(ListExpr args){
                            ind,
                            nl->SymbolAtom("mpoint"));
 }
+
+
+/*
+~SampleMPointTypeMap~
+
+This is the type mapping of the ~samplempoint~ operator.
+
+*/
+
+ListExpr SampleMPointTypeMap(ListExpr args){
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("two argumnets required");
+    return nl->TypeError();
+  }
+  if(!nl->IsEqual(nl->First(args),"mpoint") ||
+     !nl->IsEqual(nl->Second(args),"duration")){
+     ErrorReporter::ReportError(" mpoint x duration expected");
+     return nl->TypeError();
+  }
+  return nl->SymbolAtom("mpoint");
+}
+
+
 
 
 /*
@@ -7753,6 +7836,21 @@ int ReverseVM( Word* args, Word& result, int message, Word&
 
 }
 
+/*
+16.3.45 Value mapping function for operator ~samplempoint~
+
+*/
+
+int SampleMPointVM( Word* args, Word& result, int message, 
+                    Word& local, Supplier s ){
+    
+   result = qp->ResultStorage(s); 
+   MPoint* res = (MPoint*) result.addr;
+   DateTime* duration = (DateTime*) args[1].addr;
+   ((MPoint*)args[0].addr)->Sample(*duration,*res);
+   return 0;
+
+}
 
 /*
 16.4 Definition of operators
@@ -8464,6 +8562,15 @@ const string ReverseSpec =
     "<text>query reverse(Train6) </text--->"
     ") )";
 
+const string SampleMPointSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint x duration -> mpoint</text--->"
+    "<text> samplempoint( _ , _ )<text--->"
+    "<text>simulation of an gps receiver </text--->"
+    "<text>query samplempoint(Train6,"
+    " [const duratione value (0 2000)] ) </text--->"
+    ") )";
+
 /*
 16.4.3 Operators
 
@@ -8847,6 +8954,12 @@ Operator temporalreverse("reverse",
                        Operator::SimpleSelect,
                        ReverseTM );
 
+Operator temporalsamplempoint("samplempoint",
+                       SampleMPointSpec,
+                       SampleMPointVM,
+                       Operator::SimpleSelect,
+                       SampleMPointTypeMap );
+
 /*
 6 Creating the Algebra
 
@@ -8971,6 +9084,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&temporaltranslateappend);
     AddOperator(&temporaltranslateappendS);
     AddOperator(&temporalreverse);
+    AddOperator(&temporalsamplempoint);
   }
   ~TemporalAlgebra() {};
 };

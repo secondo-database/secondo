@@ -2629,6 +2629,22 @@ Store the reverse of the movement of this instance of a mpoint into result.
 void Reverse(MPoint& result);
 
 
+/*
+3.10.5.8 ~Sample~
+
+This operator creates a new mpoint from the original one. 
+All units will have the length of the duration given as
+parameter. The starting time is the same as for the original
+mpoint. If gaps longer than the given duration exist,
+the next unit will also have the starting time of the unit
+directly after the gap. 
+
+*/
+  void Sample(const DateTime& duration, MPoint& result)const;
+
+
+
+
 
 private:
    void Simplify(const int min, const int max,

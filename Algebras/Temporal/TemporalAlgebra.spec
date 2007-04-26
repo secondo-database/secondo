@@ -59,3 +59,4 @@ operator approximate alias APPROXIMATE pattern _ op [_, _ ]
 operator translateappend alias TRANSLATEAPPEND pattern _ op [_, _ ]
 operator translateappendS alias TRANSLATEAPPENDS pattern _ op [_, _ ]
 operator reverse alias REVERSE pattern op ( _ )
+operator samplempoint alias SAMPLEMPOINT pattern op ( _ , _ )

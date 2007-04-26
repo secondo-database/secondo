@@ -391,3 +391,9 @@ Signature: mpoint -> mpoint
 Example  : query reverse(train5)
 Result   : file
 
+Operator : samplempoint 
+Number   : 1
+Signature: mpoint x duration -> mpoint
+Example  : query samplempoint(train7, [const duration value (0 60000)])
+Result   : file
+
