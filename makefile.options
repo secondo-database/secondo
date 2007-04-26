@@ -68,6 +68,7 @@ DEFAULTCCFLAGS += -D_REENTRANT -D_GLIBCPP_DEPRECATED
 # memory. This is needed if you want to restore large objects. 
 DEFAULTCCFLAGS += -DNL_PERSISTENT
 
+
 # Flag for compiling code of operator value mappings which supports progress measurement. 
 DEFAULTCCFLAGS += -DUSE_PROGRESS
 
