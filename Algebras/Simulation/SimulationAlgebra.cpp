@@ -603,6 +603,13 @@ struct Subsegment
 int sim_create_trip_VM ( Word* args, Word& result, 
                          int message, Word& local, Supplier s )
 {
+  if( message != REQUEST )
+  {
+    cout << "WARNING: sim_create_trip_VM received a message != REQUEST."
+         << endl;
+    return 0;
+  };
+
   result = qp->ResultStorage( s );
   MPoint*        res = ((MPoint*)result.addr);
   CcInt*  cLineIndex = (CcInt*) args[6].addr;
@@ -904,6 +911,7 @@ int sim_create_trip_VM ( Word* args, Word& result,
       cout << "sim_create_trip_VM: Something's wrong: subsegments.size() = "
            << subsegments.size() << "." << endl;
     }
+    qp->Close(args[0].addr);
   }
   else
   { // some undef argument:
@@ -916,7 +924,6 @@ int sim_create_trip_VM ( Word* args, Word& result,
     res->SetDefined( false );
   }
   res->EndBulkLoad();
-  qp->Close(args[0].addr);
 //   cout << "sim_create_trip_VM: Finished!" << endl;
 //   cout << "  tuplesReceived = " << tuplesReceived << endl;
 //   cout << "  tuplesAccepted = " << tuplesAccepted << endl;
