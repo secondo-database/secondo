@@ -162,6 +162,11 @@ ALGEBRA_DIRS += GSL
 ALGEBRAS     += GSLAlgebra
 ALGEBRA_DEPS += gsl gslcblas
 
+
+#ALGEBRA_DIRS += Chess
+#ALGEBRAS     += ChessAlgebra
+
+
 #ALGEBRA_DIRS += Simulation
 #ALGEBRAS     += SimulationAlgebra
 #ALGEBRA_DEPS += gsl gslcblas
