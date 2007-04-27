@@ -3054,7 +3054,7 @@ nr = 0 --> Startposition
 */
 ChessPosition* ChessGame::GetPosition(int nr) {
     string action;
-    char columns, lines, columne, linee;
+    int columns, lines, columne, linee;
     string figure;
     int posNr = 0;
         
@@ -3647,7 +3647,7 @@ getmoveValueMap (Word* args, Word& result, int message,
   if ( m1 < s1->GetNoChessMoves() ) 
      {
 //       cout << "come out getmoveValueMap -ok" << endl;
-       ((ChessMove*)result.addr) = s1->GetChessMove(m1);
+       ((ChessMove*)result.addr)->CopyFrom(s1->GetChessMove(m1));
 
 // uhuh eingefuegt fuer writeto-test  ANFANG
   /*
@@ -3989,7 +3989,7 @@ getposValueMap (Word* args, Word& result, int message,
          no == s1->GetNoChessMoves() ) && 
        s1->IsDefined() )
   { 
-     ((ChessPosition*)result.addr) = s1->GetPosition(no);
+     ((ChessPosition*)result.addr)->CopyFrom(s1->GetPosition(no));
   }
   else
   {  
@@ -4451,7 +4451,7 @@ piecesFun (Word* args, Word& result, int message,
   ChessPosition* p = ((ChessPosition*) args[0].addr);
   result = qp->ResultStorage(s);    
   if ( p->IsDefined() && (p->pieces())->IsDefined() )
-     ((ChessMaterial*)result.addr) = p->pieces();
+     ((ChessMaterial*)result.addr)->CopyFrom(p->pieces());
   else
   {
      int nullPlayer[6]; 
@@ -5071,7 +5071,7 @@ chessrangeFun (Word* args, Word& result, int message,
   int r2 = row2->GetIntval();
   result = qp->ResultStorage(s);    
   if ( p->IsDefined() )
-     ((ChessPosition*)result.addr) = p->chessrange(f1, r1, f2, r2);
+     ((ChessPosition*)result.addr)->CopyFrom( p->chessrange(f1, r1, f2, r2));
   else
   {
      char ChessField[8][8]; 
