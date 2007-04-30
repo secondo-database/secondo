@@ -603,21 +603,21 @@ struct Subsegment
 int sim_create_trip_VM ( Word* args, Word& result, 
                          int message, Word& local, Supplier s )
 {
-  cout << "sim_create_trip_VM received message: ";
-  if (message == OPEN) cout << "OPEN" << endl;
-  else if (message == REQUEST) cout << "REQUEST" << endl;
-  else if (message == CLOSE) cout << "CLOSE" << endl;
-  else if (message == YIELD) cout << "YIELD" << endl;
-  else if (message == CANCEL) cout << "CANCEL" << endl;
-  else if (message == CARDINALITY) cout << "CARDINALITY" << endl;
-  else if (message == PROGRESS) cout << "PROGRESS" << endl;
-  else cout << "(unknown message)" << endl;
   if( message != OPEN )
   {
-    cout << "sim_create_trip_VM: return lazy.";
+    cout << "sim_create_trip_VM received message: ";
+    if (message == OPEN) cout << "OPEN" << endl;
+    else if (message == REQUEST) cout << "REQUEST" << endl;
+    else if (message == CLOSE) cout << "CLOSE" << endl;
+    else if (message == YIELD) cout << "YIELD" << endl;
+    else if (message == CANCEL) cout << "CANCEL" << endl;
+    else if (message == CARDINALITY) cout << "CARDINALITY" << endl;
+    else if (message == PROGRESS) cout << "PROGRESS" << endl;
+    else cout << "(unknown message)" << endl;
+    if( message != OPEN )
+      cout << "sim_create_trip_VM: return lazy.";
     return 0;
   }
-
   else if( message == OPEN )
   {
     result = qp->ResultStorage( s );
@@ -940,7 +940,7 @@ int sim_create_trip_VM ( Word* args, Word& result,
 //   cout << "  tuplesAccepted = " << tuplesAccepted << endl;
 //   cout << "  units created  = " << res->GetNoComponents() << endl;
 //   cout << "  invalidUnitsCreated = " << invalidUnitsCreated << endl << endl;
-    cout << "sim_create_trip_VM: returned result.";
+//   cout << "sim_create_trip_VM: returned result.";
     return 0;
   }
   else
