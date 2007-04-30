@@ -18,14 +18,14 @@ Result   : TRUE
 Operator : sim_set_rng
 Number   : 1
 Signature: int x int -> bool
-Example  : query sim_set_rng( 14, 0 )
+Example  : query sim_set_rng( 14, 999 )
 Result   : TRUE
 
 
 Operator : sim_create_trip
 Number   : 1
 Signature: stream(tuple(a1: t1) ... (an,tn) x ai x aj x instant x point -> mpoint, for ti = line, tj = real, tk = point
-Example  : query [const rel(tuple([Vmax_s1: real, Part: line])) value ( (30.0 ( (8217.0 12743.0 8307.0 12748.0))) (30.0 ( (8307.0 12748.0 8398.0 12833.0))))] feed sim_create_trip[Part,Vmax_s1,now(),[const point value (8217.0 12743.0)], 100.0 ]
+Example  : query [const rel(tuple([Vmax_s1: real, Part: line])) value ( (30.0 ( (8217.0 12743.0 8307.0 12748.0))) (30.0 ( (8307.0 12748.0 8398.0 12833.0))))] feed sim_create_trip[Part,Vmax_s1,[const instant value "2006-04-30-12:15:32"],[const point value (8217.0 12743.0)], 100.0 ]
 Result   : file
 
 
