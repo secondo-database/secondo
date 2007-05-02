@@ -17,7 +17,7 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator remove alias REMOVE pattern _ op [list]
+
 operator head alias HEAD pattern _ op [ _ ]
 
 operator max alias MAX pattern _ op [ _ ]

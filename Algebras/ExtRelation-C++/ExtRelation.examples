@@ -160,13 +160,6 @@ Example  : query Orte feed project[BevT] sort rdup count
 Result   : 161
 
 
-Operator : remove
-Number   : 1
-Signature: ((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream (tuple ((aj1 Tj1) ... (ajn-k Tjn-k))))
-Example  : query Staedte feed remove[Kennzeichen] tuplesize
-Result   : 136.0
-
-
 Operator : sample
 Number   : 1
 Signature: (rel x) int real -> (stream x)

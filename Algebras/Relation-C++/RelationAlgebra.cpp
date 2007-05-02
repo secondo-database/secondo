@@ -2016,7 +2016,7 @@ reduce_vm( Word* args, Word& result, int message,
 /*
 5.9 Operator ~project~
 
-5.9.1 Type mapping function of operator ~filter~
+5.9.1 Type mapping function of operator ~project~
 
 Result type of project operation.
 
@@ -2360,6 +2360,239 @@ Operator relalgproject (
          Operator::SimpleSelect, // trivial selection function
          ProjectTypeMap          // type mapping
 );
+
+
+
+
+/*
+2.5 Operator ~remove~
+
+2.5.1 Type mapping function of operator ~remove~
+
+Result type of ~remove~ operation.
+
+----  ((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik))  ->
+
+    (APPEND
+      (n-k (j1 ... jn-k))
+      (stream (tuple ((aj1 Tj1) ... (ajn-k Tjn-k))))
+    )
+----
+
+The type mapping computes the number of attributes and the list of 
+attribute numbers for the given left attributes (after removal) and 
+asks the query processor to append it to the given arguments.
+
+*/
+ListExpr RemoveTypeMap(ListExpr args)
+{
+  bool firstcall = true;
+  int noAttrs=0, j=0;
+
+  // initialize all ListExpr with the empty list
+  ListExpr first = nl->TheEmptyList();
+  ListExpr second = first,
+           first2 = first,
+           attrtype = first,
+           newAttrList = first,
+           lastNewAttrList = first,
+           lastNumberList = first,
+           numberList = first,
+           outlist = first;
+
+  string attrname="", argstr="";
+  set<int> removeSet;
+  removeSet.clear();
+
+  CHECK_COND(nl->ListLength(args) == 2,
+    "Operator remove expects a list of length two.");
+
+  first = nl->First(args);
+  second = nl->Second(args);
+
+  nl->WriteToString(argstr, first);
+  CHECK_COND(nl->ListLength(first) == 2  &&
+             (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+             (nl->ListLength(nl->Second(first)) == 2) &&
+             (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple),
+    "Operator remove expects as first argument a list with structure "
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator remove gets as first argument '" + argstr + "'.");
+
+  nl->WriteToString(argstr, second);
+  CHECK_COND((!nl->IsAtom(second)) &&
+             (nl->ListLength(second) > 0),
+    "Operator remove expects as second argument a list with attribute names "
+    "(ai ... ak), not a single atom and not an empty list.\n"
+    "Operator remove gets '" + argstr + "'.");
+
+  while (!(nl->IsEmpty(second)))
+  {
+    first2 = nl->First(second);
+    second = nl->Rest(second);
+    nl->WriteToString(argstr, first2);
+    if (nl->AtomType(first2) == SymbolType)
+    {
+      attrname = nl->SymbolValue(first2);
+    }
+    else
+    {
+      nl->WriteToString(argstr, first2);
+      ErrorReporter::ReportError("Operator remove gets '" + argstr +
+      "' as attributename.\n"
+      "Atrribute name may not be the name of a Secondo object!");
+      return nl->SymbolAtom("typeerror");
+    }
+
+    j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
+    if (j)  removeSet.insert(j);
+    else
+    {
+      nl->WriteToString( argstr, nl->Second(nl->Second(first)) );
+      ErrorReporter::ReportError(
+        "Attributename '" + attrname + "' is not known.\n"
+        "Known Attribute(s): " + argstr);
+      return nl->SymbolAtom("typeerror");
+    }
+  }
+  // ** here: we need to generate new attr list according to 
+  // ** removeSet
+  ListExpr oldAttrList;
+  int i;
+  i=0;  // i is the index of the old attriblist
+  first = nl->First(args);
+  second = nl->Second(args);
+  oldAttrList=nl->Second(nl->Second(first));
+  noAttrs =0;
+  while (!(nl->IsEmpty(oldAttrList)))
+  {
+    i++;
+    first2 = nl->First(oldAttrList);
+    oldAttrList = nl->Rest(oldAttrList);
+
+    if (removeSet.find(i)==removeSet.end())  
+    // the attribute is not in the removal list
+    {
+      noAttrs++;
+      if (firstcall)
+      {
+        firstcall = false;
+        newAttrList = nl->OneElemList(first2);
+        lastNewAttrList = newAttrList;
+        numberList = nl->OneElemList(nl->IntAtom(i));
+        lastNumberList = numberList;
+      }
+      else
+      {
+        lastNewAttrList = nl->Append(lastNewAttrList, first2);
+        lastNumberList = nl->Append(lastNumberList, nl->IntAtom(i));
+      }
+    }
+  }
+
+  if (noAttrs>0)
+  {
+    outlist = nl->ThreeElemList(
+              nl->SymbolAtom("APPEND"),
+              nl->TwoElemList(nl->IntAtom(noAttrs), numberList),
+              nl->TwoElemList(nl->SymbolAtom("stream"),
+              nl->TwoElemList(nl->SymbolAtom("tuple"),
+                       newAttrList)));
+    return outlist;
+  }
+  else
+  {
+    ErrorReporter::ReportError("Do not remove all attributes!");
+    return nl->SymbolAtom("typeerror");
+  }
+}
+
+/*
+2.5.2 Value mapping function of operator ~remove~
+
+*/
+int Remove(Word* args, Word& result, int message, 
+           Word& local, Supplier s)
+{
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      ListExpr resultType = GetTupleResultType( s );
+      TupleType *tupleType = new TupleType( nl->Second( resultType ) );
+      local.addr = tupleType;
+      qp->Open(args[0].addr);
+
+      return 0;
+    }
+    case REQUEST :
+    {
+      Word elem1, elem2;
+      int noOfAttrs, index;
+      Supplier son;
+
+      qp->Request(args[0].addr, elem1);
+      if (qp->Received(args[0].addr))
+      {
+        TupleType *tupleType = (TupleType *)local.addr;
+        Tuple *t = new Tuple( tupleType );
+
+        noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
+        for (int i=1; i <= noOfAttrs; i++)
+        {
+          son = qp->GetSupplier(args[3].addr, i-1);
+          qp->Request(son, elem2);
+          index = ((CcInt*)elem2.addr)->GetIntval();
+          t->CopyAttribute(index-1, (Tuple*)elem1.addr, i-1);
+        }
+        ((Tuple*)elem1.addr)->DeleteIfAllowed();
+        result = SetWord(t);
+        return YIELD;
+      }
+      else return CANCEL;
+    }
+    case CLOSE :
+    {
+      ((TupleType*)local.addr)->DeleteIfAllowed();
+      qp->Close(args[0].addr);
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+2.5.3 Specification of operator ~remove~
+
+*/
+const string RemoveSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                           "( <text>((stream (tuple ((x1 T1) ... "
+                           "(xn Tn)))) (ai1 ... aik)) -> (stream "
+                           "(tuple ((aj1 Tj1) ... (ajn-k Tjn-k))))"
+                           "</text--->"
+                           "<text>_ remove [list]</text--->"
+                           "<text>Produces a removal tuple for each "
+                           "tuple of its input stream.</text--->"
+                           "<text>query cities feed remove[zipcode] "
+                           "consume</text--->"
+                              ") )";
+
+/*
+2.5.4 Definition of operator ~remove~
+
+*/
+Operator relalgremove (
+         "remove",                // name
+         RemoveSpec,              // specification
+         Remove,                  // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         RemoveTypeMap            // type mapping
+);
+
+
+
 
 /*
 5.10 Operator ~product~
@@ -4662,6 +4895,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgattr);
     AddOperator(&relalgfilter);
     AddOperator(&relalgproject);
+    AddOperator(&relalgremove);
     AddOperator(&relalgproduct);
     AddOperator(&relalgcount);
     AddOperator(&relalgcount2);
@@ -4685,6 +4919,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgattr);
     AddOperator(&relalgfilter);		relalgfilter.EnableProgress();
     AddOperator(&relalgproject);	relalgproject.EnableProgress();
+    AddOperator(&relalgremove);
     AddOperator(&relalgproduct);	relalgproduct.EnableProgress();
     AddOperator(&relalgcount);		relalgcount.EnableProgress();
     AddOperator(&relalgcount2);
