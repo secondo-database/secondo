@@ -603,351 +603,337 @@ struct Subsegment
 int sim_create_trip_VM ( Word* args, Word& result, 
                          int message, Word& local, Supplier s )
 {
-  if( message != OPEN )
-  {
-    cout << "sim_create_trip_VM received message: ";
-    if (message == OPEN) cout << "OPEN" << endl;
-    else if (message == REQUEST) cout << "REQUEST" << endl;
-    else if (message == CLOSE) cout << "CLOSE" << endl;
-    else if (message == YIELD) cout << "YIELD" << endl;
-    else if (message == CANCEL) cout << "CANCEL" << endl;
-    else if (message == CARDINALITY) cout << "CARDINALITY" << endl;
-    else if (message == PROGRESS) cout << "PROGRESS" << endl;
-    else cout << "(unknown message)" << endl;
-    if( message != OPEN )
-      cout << "sim_create_trip_VM: return lazy.";
-    return 0;
-  }
-  else if( message == OPEN )
-  {
-    result = qp->ResultStorage( s );
-    MPoint*        res = ((MPoint*)result.addr);
-    CcInt*  cLineIndex = (CcInt*) args[6].addr;
-    CcInt*  cVmaxIndex = (CcInt*) args[7].addr;
-    Instant* instStart = (Instant*) args[3].addr;
-    Point*  pointStart = (Point*) args[4].addr;
-    CcReal*    cVstart = (CcReal*) args[5].addr;
-    long    tuplesReceived = 0;
-    long    tuplesAccepted = 0;
-    long invalidUnitsCreated = 0;
+//   cout << "sim_create_trip_VM received message: ";
+//   if (message == OPEN) cout << "OPEN" << endl;
+//   else if (message == REQUEST) cout << "REQUEST" << endl;
+//   else if (message == CLOSE) cout << "CLOSE" << endl;
+//   else if (message == YIELD) cout << "YIELD" << endl;
+//   else if (message == CANCEL) cout << "CANCEL" << endl;
+//   else if (message == CARDINALITY) cout << "CARDINALITY" << endl;
+//   else if (message == PROGRESS) cout << "PROGRESS" << endl;
+//     else cout << "(unknown message)" << endl;
+  result = qp->ResultStorage( s );
+  MPoint*        res = ((MPoint*)result.addr);
+  CcInt*  cLineIndex = (CcInt*) args[6].addr;
+  CcInt*  cVmaxIndex = (CcInt*) args[7].addr;
+  Instant* instStart = (Instant*) args[3].addr;
+  Point*  pointStart = (Point*) args[4].addr;
+  CcReal*    cVstart = (CcReal*) args[5].addr;
+  long    tuplesReceived = 0;
+  long    tuplesAccepted = 0;
+  long invalidUnitsCreated = 0;
 
-    res->Clear();
-    res->SetDefined( true );
-    res->StartBulkLoad();
+  res->Clear();
+  res->SetDefined( true );
+  res->StartBulkLoad();
 
-    if( instStart->IsDefined() && pointStart->IsDefined() &&
-        cVstart->IsDefined() &&
-        cLineIndex->IsDefined() && cVmaxIndex->IsDefined() )
+  if( instStart->IsDefined() && pointStart->IsDefined() &&
+      cVstart->IsDefined() &&
+      cLineIndex->IsDefined() && cVmaxIndex->IsDefined() )
+  {
+    vector<Subsegment> subsegments(0);
+    int          lineIndex = cLineIndex->GetIntval();
+    int          VmaxIndex = cVmaxIndex->GetIntval();
+    Instant    currentInst = *instStart;
+    double     currentVmax = 0.0;
+    Instant    currentTime = *instStart;
+    Point  currentPosition = *pointStart;
+    double    currentSpeed = cVstart->GetRealval();
+    double       localVmax = 0.0;
+    double    lastMaxSpeed = -1.0;
+    double       lastAlpha = 0.0;
+    bool     stopAfterThis = false;
+    Point       startPoint(true,0,0);
+    Point         endPoint(true,0,0);
+    DateTime dummyDuration(0,0,durationtype);
+    Line*      currentLine = NULL;
+    Word      wActualTuple;
+    qp->Open(args[0].addr);
+    qp->Request(args[0].addr, wActualTuple);
+    while (qp->Received(args[0].addr))
     {
-      vector<Subsegment> subsegments(0);
-      int          lineIndex = cLineIndex->GetIntval();
-      int          VmaxIndex = cVmaxIndex->GetIntval();
-      Instant    currentInst = *instStart;
-      double     currentVmax = 0.0;
-      Instant    currentTime = *instStart;
-      Point  currentPosition = *pointStart;
-      double    currentSpeed = cVstart->GetRealval();
-      double       localVmax = 0.0;
-      double    lastMaxSpeed = -1.0;
-      double       lastAlpha = 0.0;
-      bool     stopAfterThis = false;
-      Point       startPoint(true,0,0);
-      Point         endPoint(true,0,0);
-      DateTime dummyDuration(0,0,durationtype);
-      Line*      currentLine = NULL;
-      Word      wActualTuple;
-      qp->Open(args[0].addr);
-      qp->Request(args[0].addr, wActualTuple);
-      while (qp->Received(args[0].addr))
-      {
-        tuplesReceived++;
+      tuplesReceived++;
       // speed == 0.0 signals to wait for a random duration before the
       // movement may be continued!
-        Tuple* tuple         = (Tuple*) (wActualTuple.addr);
-        currentLine          = (Line*)  (tuple->GetAttribute(lineIndex));
-        CcReal *CcurrentVmax = (CcReal*)(tuple->GetAttribute(VmaxIndex));
+      Tuple* tuple         = (Tuple*) (wActualTuple.addr);
+      currentLine          = (Line*)  (tuple->GetAttribute(lineIndex));
+      CcReal *CcurrentVmax = (CcReal*)(tuple->GetAttribute(VmaxIndex));
 
       // search for the first segment (starts with point currentPosition)
-        assert( currentPosition.IsDefined() );
-        if( currentLine->IsDefined()  &&
-            CcurrentVmax->IsDefined() &&
-            !currentLine->IsEmpty()   &&
-            currentLine->SelectInitialSegment(currentPosition,
-                                              sim_startpoint_tolerance) )
-        {// all args defined and current position found in currentLine
-          tuplesAccepted++;
-          currentVmax = CcurrentVmax->GetRealval();
-          startPoint = currentPosition;
-          endPoint = currentPosition;
-          while( currentLine->getWaypoint(endPoint) )
-          { // for each line segment:
-            assert( endPoint.IsDefined() );
-            Subsegment s;
-            double l =  startPoint.Distance(endPoint);
-            double incrX = sim_event_param_subsegmentlength
-                  * (endPoint.GetX() - startPoint.GetX()) / l;
-            double incrY = sim_event_param_subsegmentlength
-                  * (endPoint.GetY() - startPoint.GetY()) / l;
-            if(AlmostEqual(incrX, 0.0) && AlmostEqual(incrY, 0.0))
-            {
-              cout << "  X- and Y-Increment == 0.0! -> BREAK" << endl;
-              break;
-            }
-            Point interimStart = startPoint;
-            Point interimEnd   = startPoint;
-            while( interimEnd.Distance(endPoint) >=
-                   sim_event_param_subsegmentlength )
-            { // divide the remaining segment into subsegments
-              interimEnd.Translate(incrX,incrY);
-              s.start    = interimStart;
-              s.end      = interimEnd;
-              subsegments.push_back(s);
-              interimStart = interimEnd;
-            }
-          // add the last subsegment
-            s.start    = interimStart;
-            s.end      = endPoint;
-            assert( endPoint.IsDefined() );
-            subsegments.push_back(s);
-            startPoint = endPoint;
-            currentLine->SelectSubsequentSegment();
-          }
-        // iterate vector to determine the speed at the end of each subsegment:
-          for(unsigned int i=0 ; i<subsegments.size(); i++)
+      assert( currentPosition.IsDefined() );
+      if( currentLine->IsDefined()  &&
+          CcurrentVmax->IsDefined() &&
+          !currentLine->IsEmpty()   &&
+          currentLine->SelectInitialSegment(currentPosition,
+                                            sim_startpoint_tolerance) )
+      {// all args defined and current position found in currentLine
+        tuplesAccepted++;
+        currentVmax = CcurrentVmax->GetRealval();
+        startPoint = currentPosition;
+        endPoint = currentPosition;
+        while( currentLine->getWaypoint(endPoint) )
+        { // for each line segment:
+          assert( endPoint.IsDefined() );
+          Subsegment s;
+          double l =  startPoint.Distance(endPoint);
+          double incrX = sim_event_param_subsegmentlength
+                * (endPoint.GetX() - startPoint.GetX()) / l;
+          double incrY = sim_event_param_subsegmentlength
+                * (endPoint.GetY() - startPoint.GetY()) / l;
+          if(AlmostEqual(incrX, 0.0) && AlmostEqual(incrY, 0.0))
           {
-            localVmax = currentVmax; // base for further calculations
-            if ( lastMaxSpeed >= 0.0 )
-            { // Special Case:
+            cout << "  X- and Y-Increment == 0.0! -> BREAK" << endl;
+            break;
+          }
+          Point interimStart = startPoint;
+          Point interimEnd   = startPoint;
+          while( interimEnd.Distance(endPoint) >=
+                 sim_event_param_subsegmentlength )
+          { // divide the remaining segment into subsegments
+            interimEnd.Translate(incrX,incrY);
+            s.start    = interimStart;
+            s.end      = interimEnd;
+            subsegments.push_back(s);
+            interimStart = interimEnd;
+          }
+          // add the last subsegment
+          s.start    = interimStart;
+          s.end      = endPoint;
+          assert( endPoint.IsDefined() );
+          subsegments.push_back(s);
+          startPoint = endPoint;
+          currentLine->SelectSubsequentSegment();
+        }
+        // iterate vector to determine the speed at the end of each subsegment:
+        for(unsigned int i=0 ; i<subsegments.size(); i++)
+        {
+          localVmax = currentVmax; // base for further calculations
+          if ( lastMaxSpeed >= 0.0 )
+          { // Special Case:
             // Handle last subsegment of preceeding line:
-              localVmax = lastMaxSpeed; // recall lastMaxSpeed for
+            localVmax = lastMaxSpeed; // recall lastMaxSpeed for
                                       // reenqueued subsegment
             // check whether to stop at the crossing
-              double pWait = 0.0;
-              if ( AlmostEqual(lastMaxSpeed,sim_vmax_sidestreet) )
-              {
-                if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) )
-                {
-                  pWait = sim_dest_param_ss;}
-                  else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
-                  {
-                    pWait = sim_dest_param_sm;}
-                    else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
-                    {
-                      pWait = sim_dest_param_sf;}
-                      else
-                      { cout << " S->??? "; pWait = 0.0;}
-              }
-              else if ( AlmostEqual(lastMaxSpeed,sim_vmax_mainstreet) )
-              {
-                if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) )
-                {
-                  pWait = sim_dest_param_ms;}
-                  else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
-                  {
-                    pWait = sim_dest_param_mm;}
-                    else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
-                    {
-                      pWait = sim_dest_param_mf;}
-                      else
-                      { cout << " M->? "; pWait = 0.0;}
-              }
-              else if ( AlmostEqual(lastMaxSpeed,sim_vmax_freeway) )
-              {
-                if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) )
-                {
-                  pWait = sim_dest_param_fs;}
-                  else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
-                  {
-                    pWait = sim_dest_param_fm;}
-                    else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
-                    {
-                      pWait = sim_dest_param_ff;}
-                      else
-                      { cout << " F->? "; pWait = 0.0; }
-              }
-              else
-              {
-                cout << " ?->? ";
-                pWait = 0.0;
-              }
-              if(simRNG.NextReal() <= pWait)
-              { // Force waiting at the crossing...
-                stopAfterThis = true;
-              }
-              lastMaxSpeed = -1.0; // avoid double waits
-            }
-            if ( AlmostEqual(currentSpeed, 0.0) )
-            { // speed == 0.0 indicates, that we have to wait,
-            // before we may continue the voyage:
-            // Determine waiting duration using exponential distribution:
-              double waittime =
-                    gsl_ran_exponential(simRNG.GetGenerator(),
-                                        sim_dest_param_mu/86400000.0);
-              dummyDuration.ReadFrom(waittime);
-              if( dummyDuration > DateTime(0,0,durationtype) )
-              {
-                const Interval<Instant>
-                    interval( currentInst,
-                              currentInst + dummyDuration,
-                              true,
-                              false );
-                UPoint up( interval,
-                           subsegments[i].start, subsegments[i].start);
-                if( up.IsValid() )
-                {
-                  res->MergeAdd(up);
-                  currentInst += dummyDuration;
-                }
-                else
-                {
-                  invalidUnitsCreated++;
-//                 cout << "Invalid unit up = "; up.Print(cout); cout << endl;
-                }
-              }
-            }
-            if (i<subsegments.size()-1)
-            { // This is not the last subsegment for this line
-              if( simRNG.NextReal() <= (sim_event_param_propconst/currentVmax) )
-              {// An event occurrs
-                if( simRNG.NextReal() <= (sim_event_param_probstop) )
-                { // forced stop after this sub-segment
-                  stopAfterThis = true;
-                }
-                else
-                { // forced deceleration. Use binomial distrib.
-                // to determine amount of speed loss
-                  localVmax =
-                      localVmax * gsl_ran_binomial(simRNG.GetGenerator(),
-                      0.5,
-                      20)
-                    /20.0;
-                  localVmax = MAX(localVmax, 1.0);
-                }
-              }
-              else
-              { // no event: accelerate up to localVmax
-                localVmax =
-                  MIN(currentSpeed+sim_event_param_acceleration, currentVmax);
-              }
-            // calculate steepness of curves
-              double alpha =
-                    !AlmostEqual(subsegments[i].end, subsegments[i+1].end)
-                    ? subsegments[i].end.Direction(subsegments[i+1].end)
-                : lastAlpha;
-              double curveMax =
-                    (1.0-( fmod(fabs(lastAlpha-alpha), 180.0) )/180.0)
-                    * currentVmax;
-              localVmax = MIN( localVmax, curveMax );
-              lastAlpha = alpha;
-              currentSpeed = localVmax;
-            }
-            else if (i == subsegments.size()-1 )
-            { // This is the last subsegment. Delete all subsegments,
-            // but the last one
-              Subsegment lastSubSeg = subsegments[i];
-              subsegments.clear();
-              subsegments.push_back(lastSubSeg);
-              lastMaxSpeed = currentVmax; // prepare special treatment
-                                        // of this subsegment
-              currentPosition = subsegments.back().end; //required to find next
-                                            // subsegment within the next line
-              break; // this exits the for()-loop
-            }
-          // Create a unit for the current subsegment
-            double dist = subsegments[i].start.Distance(subsegments[i].end);
-            dummyDuration.ReadFrom(dist/currentSpeed/24000L);
-            // ^^^^ time used to travel the subsegment t=s/v ^^^
-            const Interval<Instant>
-                interval( currentInst,
-                          currentInst + dummyDuration,
-                          true,
-                          false );
-            UPoint up( interval, subsegments[i].start, subsegments[i].end);
-            if( up.IsValid() )
+            double pWait = 0.0;
+            if ( AlmostEqual(lastMaxSpeed,sim_vmax_sidestreet) )
             {
-              res->MergeAdd(up);
-              currentInst += dummyDuration;
+              if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) )
+              {
+                pWait = sim_dest_param_ss;}
+                else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
+                {
+                  pWait = sim_dest_param_sm;}
+                  else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
+                  {
+                    pWait = sim_dest_param_sf;}
+                    else
+                    { cout << " S->??? "; pWait = 0.0;}
+            }
+            else if ( AlmostEqual(lastMaxSpeed,sim_vmax_mainstreet) )
+            {
+              if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) )
+              {
+                pWait = sim_dest_param_ms;}
+                else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
+                {
+                  pWait = sim_dest_param_mm;}
+                  else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
+                  {
+                    pWait = sim_dest_param_mf;}
+                    else
+                    { cout << " M->? "; pWait = 0.0;}
+            }
+            else if ( AlmostEqual(lastMaxSpeed,sim_vmax_freeway) )
+            {
+              if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) )
+              {
+                pWait = sim_dest_param_fs;}
+                else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
+                {
+                  pWait = sim_dest_param_fm;}
+                  else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
+                  {
+                    pWait = sim_dest_param_ff;}
+                    else
+                    { cout << " F->? "; pWait = 0.0; }
             }
             else
             {
-              invalidUnitsCreated++;
-//             cout << "Invalid unit up = "; up.Print(cout); cout << endl;
+              cout << " ?->? ";
+              pWait = 0.0;
             }
-            currentPosition = subsegments[i].end;
-            if (stopAfterThis)
+            if(simRNG.NextReal() <= pWait)
+            { // Force waiting at the crossing...
+              stopAfterThis = true;
+            }
+            lastMaxSpeed = -1.0; // avoid double waits
+          }
+          if ( AlmostEqual(currentSpeed, 0.0) )
+          { // speed == 0.0 indicates, that we have to wait,
+            // before we may continue the voyage:
+            // Determine waiting duration using exponential distribution:
+            double waittime =
+                  gsl_ran_exponential(simRNG.GetGenerator(),
+                                      sim_dest_param_mu/86400000.0);
+            dummyDuration.ReadFrom(waittime);
+            if( dummyDuration > DateTime(0,0,durationtype) )
             {
-              currentSpeed = 0.0;
-              stopAfterThis = false;
+              const Interval<Instant>
+                  interval( currentInst,
+                            currentInst + dummyDuration,
+                            true,
+                            false );
+              UPoint up( interval,
+                         subsegments[i].start, subsegments[i].start);
+              if( up.IsValid() )
+              {
+                res->MergeAdd(up);
+                currentInst += dummyDuration;
+              }
+              else
+              {
+                invalidUnitsCreated++;
+//                 cout << "Invalid unit up = "; up.Print(cout); cout << endl;
+              }
             }
-          } // endfor(unsigned int i=0 ; i<subsegments.size(); i++)
-          assert( currentPosition.IsDefined() );
-        } // endif( currentLine->SelectInitialSegment(currentPosition) )
-        else
-        { // undef/empty/complex/cyclic line or undef vmax or cuppentPos
-        //            not found: do nothing
-          cout << "current position (= " ;
-          currentPosition.Print(cout);
-          cout << " ) NOT found in currentLine" << endl;
-        }
-        tuple->DeleteIfAllowed();
-        qp->Request(args[0].addr, wActualTuple);
-      }
-    // create and append the final unit
-      if( subsegments.size() == 1 )
-      { // there is a subsegment left. Nothing happens here.
-        currentSpeed = MAX(currentSpeed, 5.0);
-        double dist = subsegments[0].start.Distance(subsegments[0].end);
-        dummyDuration.ReadFrom(dist/currentSpeed/24000); // time used to travel
-                                                     // the subsegment t=s/v
-        const Interval<Instant>
-            interval( currentInst,
-                      currentInst + dummyDuration,
-                      true,
-                      false );
-        UPoint up( interval, subsegments[0].start, subsegments[0].end);
-        if( up.IsValid() )
-        {
-          res->MergeAdd(up);
-          currentInst += dummyDuration;
-        }
-        else
-        {
-          invalidUnitsCreated++;
-//         cout << "Invalid unit up = "; up.Print(cout); cout << endl;
-        }
-        currentPosition = subsegments.back().end; // set currentPosition to
-      } // endwhile (qp->Received(args[0].addr))
+          }
+          if (i<subsegments.size()-1)
+          { // This is not the last subsegment for this line
+            if( simRNG.NextReal() <= (sim_event_param_propconst/currentVmax) )
+            {// An event occurrs
+              if( simRNG.NextReal() <= (sim_event_param_probstop) )
+              { // forced stop after this sub-segment
+                stopAfterThis = true;
+              }
+              else
+              { // forced deceleration. Use binomial distrib.
+                // to determine amount of speed loss
+                localVmax =
+                    localVmax * gsl_ran_binomial(simRNG.GetGenerator(),
+                    0.5,
+                    20)
+                    /20.0;
+                localVmax = MAX(localVmax, 1.0);
+              }
+            }
+            else
+            { // no event: accelerate up to localVmax
+              localVmax =
+                  MIN(currentSpeed+sim_event_param_acceleration, currentVmax);
+            }
+            // calculate steepness of curves
+            double alpha =
+                  !AlmostEqual(subsegments[i].end, subsegments[i+1].end)
+                  ? subsegments[i].end.Direction(subsegments[i+1].end)
+              : lastAlpha;
+            double curveMax =
+                  (1.0-( fmod(fabs(lastAlpha-alpha), 180.0) )/180.0)
+                  * currentVmax;
+            localVmax = MIN( localVmax, curveMax );
+            lastAlpha = alpha;
+            currentSpeed = localVmax;
+          }
+          else if (i == subsegments.size()-1 )
+          { // This is the last subsegment. Delete all subsegments,
+            // but the last one
+            Subsegment lastSubSeg = subsegments[i];
+            subsegments.clear();
+            subsegments.push_back(lastSubSeg);
+            lastMaxSpeed = currentVmax; // prepare special treatment
+                                        // of this subsegment
+            currentPosition = subsegments.back().end; //required to find next
+                                            // subsegment within the next line
+            break; // this exits the for()-loop
+          }
+          // Create a unit for the current subsegment
+          double dist = subsegments[i].start.Distance(subsegments[i].end);
+          dummyDuration.ReadFrom(dist/currentSpeed/24000L);
+            // ^^^^ time used to travel the subsegment t=s/v ^^^
+          const Interval<Instant>
+              interval( currentInst,
+                        currentInst + dummyDuration,
+                        true,
+                        false );
+          UPoint up( interval, subsegments[i].start, subsegments[i].end);
+          if( up.IsValid() )
+          {
+            res->MergeAdd(up);
+            currentInst += dummyDuration;
+          }
+          else
+          {
+            invalidUnitsCreated++;
+//             cout << "Invalid unit up = "; up.Print(cout); cout << endl;
+          }
+          currentPosition = subsegments[i].end;
+          if (stopAfterThis)
+          {
+            currentSpeed = 0.0;
+            stopAfterThis = false;
+          }
+        } // endfor(unsigned int i=0 ; i<subsegments.size(); i++)
+        assert( currentPosition.IsDefined() );
+      } // endif( currentLine->SelectInitialSegment(currentPosition) )
       else
-      { // ( subsegments.size() != 1 )
-        cout << "sim_create_trip_VM: Something's wrong: subsegments.size() = "
-            << subsegments.size() << "." << endl;
+      { // undef/empty/complex/cyclic line or undef vmax or cuppentPos
+        //            not found: do nothing
+        cout << "current position (= " ;
+        currentPosition.Print(cout);
+        cout << " ) NOT found in currentLine" << endl;
       }
-      qp->Close(args[0].addr);
+      tuple->DeleteIfAllowed();
+      qp->Request(args[0].addr, wActualTuple);
     }
+    // create and append the final unit
+    if( subsegments.size() == 1 )
+    { // there is a subsegment left. Nothing happens here.
+      currentSpeed = MAX(currentSpeed, 5.0);
+      double dist = subsegments[0].start.Distance(subsegments[0].end);
+      dummyDuration.ReadFrom(dist/currentSpeed/24000); // time used to travel
+                                                     // the subsegment t=s/v
+      const Interval<Instant>
+          interval( currentInst,
+                    currentInst + dummyDuration,
+                    true,
+                    false );
+      UPoint up( interval, subsegments[0].start, subsegments[0].end);
+      if( up.IsValid() )
+      {
+        res->MergeAdd(up);
+        currentInst += dummyDuration;
+      }
+      else
+      {
+        invalidUnitsCreated++;
+//         cout << "Invalid unit up = "; up.Print(cout); cout << endl;
+      }
+      currentPosition = subsegments.back().end; // set currentPosition to
+    } // endwhile (qp->Received(args[0].addr))
     else
-    { // some undef argument:
-      cout << "sim_create_trip_VM: undefined Argument: " << endl;
-      cout << "  StartInstant:  " << instStart->IsDefined() << endl;
-      cout << "  StartPoint:    " << pointStart->IsDefined() << endl;
-      cout << "  StartVelocity: " << cVstart->IsDefined() << endl;
-      cout << "  LineIndex:     " << cLineIndex->IsDefined() << endl;
-      cout << "  VelocityIndex: " << cVmaxIndex->IsDefined() << endl;
-      res->SetDefined( false );
+    { // ( subsegments.size() != 1 )
+      cout << "sim_create_trip_VM: Something's wrong: subsegments.size() = "
+          << subsegments.size() << "." << endl;
     }
-    res->EndBulkLoad();
+    qp->Close(args[0].addr);
+  }
+  else
+  { // some undef argument:
+    cout << "sim_create_trip_VM: undefined Argument: " << endl;
+    cout << "  StartInstant:  " << instStart->IsDefined() << endl;
+    cout << "  StartPoint:    " << pointStart->IsDefined() << endl;
+    cout << "  StartVelocity: " << cVstart->IsDefined() << endl;
+    cout << "  LineIndex:     " << cLineIndex->IsDefined() << endl;
+    cout << "  VelocityIndex: " << cVmaxIndex->IsDefined() << endl;
+    res->SetDefined( false );
+  }
+  res->EndBulkLoad();
 //   cout << "sim_create_trip_VM: Finished!" << endl;
 //   cout << "  tuplesReceived = " << tuplesReceived << endl;
 //   cout << "  tuplesAccepted = " << tuplesAccepted << endl;
 //   cout << "  units created  = " << res->GetNoComponents() << endl;
 //   cout << "  invalidUnitsCreated = " << invalidUnitsCreated << endl << endl;
 //   cout << "sim_create_trip_VM: returned result.";
-    return 0;
-  }
-  else
-  {
-    cout << "sim_create_trip_VM: Something's wrong." << endl;
-    return 0;
-  }
+  return 0;
 }
 
 const string sim_create_trip_Spec  =
