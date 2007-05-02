@@ -2802,6 +2802,11 @@ ListExpr ExtendTypeMap( ListExpr args )
 2.18.2 Value mapping function of operator ~extend~
 
 */
+
+#ifndef USE_PROGRESS
+
+// standard version
+
 int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word t, value;
@@ -2861,6 +2866,184 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   return 0;
 }
+
+
+# else
+
+// progress version
+
+
+struct ExtendLocalInfo
+{
+  TupleType *resultTupleType;
+  int current, stableValue;
+  bool progressInitialized, stableState;
+  double Size;
+  double SizeExt;
+  int noAttrs, noNewAttrs;
+  double *attrSize;
+  double *attrSizeExt;
+  double *attrSizeTmp;
+  double *attrSizeExtTmp;
+};
+
+
+int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word t, value;
+  Tuple* tup;
+  Supplier supplier, supplier2, supplier3;
+  int nooffun;
+  ArgVectorPointer funargs;
+  ExtendLocalInfo *eli;
+
+
+  switch (message)
+  {
+    case OPEN :
+
+      qp->Open(args[0].addr);
+      eli = new ExtendLocalInfo;
+      eli->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+      eli->current = 0;
+      eli->stableValue = 50;
+      eli->stableState = false;
+      eli->noNewAttrs = qp->GetNoSons(args[1].addr);
+      eli->attrSizeTmp = new double[eli->noNewAttrs];
+      eli->attrSizeExtTmp = new double[eli->noNewAttrs];
+      for (int i = 0; i < eli->noNewAttrs; i++)
+      {
+        eli->attrSizeTmp[i] = 0.0;
+        eli->attrSizeExtTmp[i] = 0.0;
+      }
+      eli->progressInitialized = false;
+      local = SetWord(eli);
+      return 0;
+
+    case REQUEST :
+
+      eli = (ExtendLocalInfo*) local.addr;
+
+      qp->Request(args[0].addr,t);
+      if (qp->Received(args[0].addr))
+      {
+        tup = (Tuple*)t.addr;
+        Tuple *newTuple = new Tuple( eli->resultTupleType );
+        eli->current++;
+        for( int i = 0; i < tup->GetNoAttributes(); i++ ) {
+          //cout << (void*) tup << endl;
+          newTuple->CopyAttribute( i, tup, i );
+        }
+        supplier = args[1].addr;
+        nooffun = qp->GetNoSons(supplier);
+        for (int i=0; i < nooffun;i++)
+        {
+          supplier2 = qp->GetSupplier(supplier, i);
+          supplier3 = qp->GetSupplier(supplier2, 1);
+          funargs = qp->Argument(supplier3);
+          (*funargs)[0] = SetWord(tup);
+          qp->Request(supplier3,value);
+          newTuple->PutAttribute( tup->GetNoAttributes()+i,
+                                  ((StandardAttribute*)value.addr)->Clone() );
+
+          if (eli->current <= eli->stableValue)
+          {
+            eli->attrSizeTmp[i] += newTuple->GetSize(tup->GetNoAttributes()+i);
+            eli->attrSizeExtTmp[i] +=
+              newTuple->GetExtSize(tup->GetNoAttributes()+i);
+          }
+
+        }
+        tup->DeleteIfAllowed();
+        result = SetWord(newTuple);
+        return YIELD;
+      }
+      else
+        return CANCEL;
+
+    case CLOSE :
+
+      eli = (ExtendLocalInfo*) local.addr;
+      eli->resultTupleType->DeleteIfAllowed();
+      qp->Close(args[0].addr);
+      return 0;
+
+    case PROGRESS:
+
+      ProgressInfo p1;
+      ProgressInfo *pRes;
+      const double uExtend = 0.009;   //millisecs per tuple
+      const double vExtend = 0.006;   //millisecs per tuple and attribute
+
+      pRes = (ProgressInfo*) result.addr;
+      eli = (ExtendLocalInfo*) local.addr;
+
+      if ( !eli ) return CANCEL;
+
+      if ( qp->RequestProgress(args[0].addr, &p1) )
+      {
+        if ( !eli->progressInitialized )
+        {
+          eli->noAttrs = p1.noAttrs;
+          eli->attrSize = new double[eli->noAttrs + eli->noNewAttrs];
+          eli->attrSizeExt = new double[eli->noAttrs + eli->noNewAttrs];
+          for (int i = 0; i < eli->noAttrs; i++)
+          {
+            eli->attrSize[i] = p1.attrSize[i];
+            eli->attrSizeExt[i] = p1.attrSizeExt[i];
+          }
+          eli->Size = p1.Size;
+          eli->SizeExt = p1.SizeExt;
+          for (int j = 0; j < eli->noNewAttrs; j++)
+          {
+            eli->attrSize[j + eli->noAttrs] = 12;
+            eli->attrSizeExt[j + eli->noAttrs] = 12;
+            eli->Size += eli->attrSize[j + eli->noAttrs];
+            eli->SizeExt += eli->attrSizeExt[j + eli->noAttrs];
+          }
+          eli->progressInitialized = true;
+        }
+
+        if (!eli->stableState && (eli->current >= eli->stableValue))
+        {
+          eli->Size = p1.Size;
+          eli->SizeExt = p1.SizeExt;
+          for (int j = 0; j < eli->noNewAttrs; j++)
+          {
+            eli->attrSize[j + eli->noAttrs] = eli->attrSizeTmp[j] /
+              eli->stableValue;
+            eli->attrSizeExt[j + eli->noAttrs] = eli->attrSizeExtTmp[j] / 
+              eli->stableValue;
+            eli->Size += eli->attrSize[j + eli->noAttrs];
+            eli->SizeExt += eli->attrSizeExt[j + eli->noAttrs];
+          }
+          eli->stableState = true;
+        }
+
+        pRes->Card = p1.Card;
+
+        pRes->Size = eli->Size;
+        pRes->SizeExt = eli->SizeExt;
+        pRes->noAttrs = eli->noAttrs + eli->noNewAttrs;
+        pRes->attrSize = eli->attrSize;
+        pRes->attrSizeExt = eli->attrSizeExt;
+
+        pRes->Time = p1.Time + p1.Card * (uExtend + eli->noNewAttrs * vExtend);
+
+        pRes->Progress =
+          (p1.Progress * p1.Time +
+            eli->current * (uExtend + eli->noNewAttrs * vExtend))
+          / pRes->Time;
+
+        return YIELD;
+      }
+      else return CANCEL;
+  }
+  return 0;
+}
+
+#endif
+
 
 /*
 2.18.3 Specification of operator ~extend~
@@ -6125,8 +6308,9 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       ProgressInfo p1, p2;
       ProgressInfo *pRes;
-      const double uSymmJoin = 1.0;   	//millisecs per tuple
-      const double vSymmJoin = 0.0001;	//millisecs per tuple and byte
+      const double uSymmJoin = 1.0;   	 //millisecs per tuple
+      //const double vSymmJoin = 0.0001; //millisecs per tuple 
+                                         //and byte (not used)
       int i;
       pli = (SymmJoinLocalInfo*)local.addr;
       pRes = (ProgressInfo*) result.addr;
@@ -7062,6 +7246,9 @@ class ExtRelationAlgebra : public Algebra
  public:
   ExtRelationAlgebra() : Algebra()
   {
+
+#ifndef USE_PROGRESS 
+
     AddOperator(&extrelsample);
     AddOperator(&extrelgroup);
     AddOperator(&extrelcancel);
@@ -7083,11 +7270,6 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelsortmergejoin);
     AddOperator(&extrelhashjoin);
     AddOperator(&extrelloopjoin);
-
-#ifdef USE_PROGRESS 
-    extrelloopjoin.EnableProgress();
-#endif
-
     AddOperator(&extrelextendstream);
     AddOperator(&extrelprojectextendstream);
     AddOperator(&extrelloopsel);
@@ -7095,16 +7277,49 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelaggregate);
     AddOperator(&extrelaggregateB);
     AddOperator(&extrelsymmjoin);
-
-#ifdef USE_PROGRESS
-    extrelsymmjoin.EnableProgress();
-#endif
-
     AddOperator(&extrelsymmproductextend);
     AddOperator(&extrelsymmproduct);
     AddOperator(&extrelprojectextend);
     AddOperator(&krdup);
+
+#else
+
+    AddOperator(&extrelsample);
+    AddOperator(&extrelgroup);
+    AddOperator(&extrelcancel);
+    AddOperator(&extrelextract);
+    AddOperator(&extrelextend);		extrelextend.EnableProgress();
+    AddOperator(&extrelconcat);
+    AddOperator(&extrelmin);
+    AddOperator(&extrelmax);
+    AddOperator(&extrelavg);
+    AddOperator(&extrelsum);
+    AddOperator(&extrelhead);
+    AddOperator(&extrelsortby);
+    AddOperator(&extrelsort);
+    AddOperator(&extrelrdup);
+    AddOperator(&extrelmergesec);
+    AddOperator(&extrelmergediff);
+    AddOperator(&extrelmergeunion);
+    AddOperator(&extrelmergejoin);
+    AddOperator(&extrelsortmergejoin);
+    AddOperator(&extrelhashjoin);
+    AddOperator(&extrelloopjoin);	extrelloopjoin.EnableProgress();
+    AddOperator(&extrelextendstream);
+    AddOperator(&extrelprojectextendstream);
+    AddOperator(&extrelloopsel);
+    AddOperator(&extrelgroupby);
+    AddOperator(&extrelaggregate);
+    AddOperator(&extrelaggregateB);
+    AddOperator(&extrelsymmjoin);	extrelsymmjoin.EnableProgress();
+    AddOperator(&extrelsymmproductextend);
+    AddOperator(&extrelsymmproduct);
+    AddOperator(&extrelprojectextend);
+    AddOperator(&krdup);
+
+#endif
   }
+
   ~ExtRelationAlgebra() {};
 };
 
