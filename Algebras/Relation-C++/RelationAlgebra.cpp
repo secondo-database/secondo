@@ -2510,59 +2510,10 @@ ListExpr RemoveTypeMap(ListExpr args)
 /*
 2.5.2 Value mapping function of operator ~remove~
 
-*/
-int Remove(Word* args, Word& result, int message, 
-           Word& local, Supplier s)
-{
+The value mapping is the same as for project. The difference is treated in the type mapping.
 
-  switch (message)
-  {
-    case OPEN :
-    {
-      ListExpr resultType = GetTupleResultType( s );
-      TupleType *tupleType = new TupleType( nl->Second( resultType ) );
-      local.addr = tupleType;
-      qp->Open(args[0].addr);
 
-      return 0;
-    }
-    case REQUEST :
-    {
-      Word elem1, elem2;
-      int noOfAttrs, index;
-      Supplier son;
 
-      qp->Request(args[0].addr, elem1);
-      if (qp->Received(args[0].addr))
-      {
-        TupleType *tupleType = (TupleType *)local.addr;
-        Tuple *t = new Tuple( tupleType );
-
-        noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
-        for (int i=1; i <= noOfAttrs; i++)
-        {
-          son = qp->GetSupplier(args[3].addr, i-1);
-          qp->Request(son, elem2);
-          index = ((CcInt*)elem2.addr)->GetIntval();
-          t->CopyAttribute(index-1, (Tuple*)elem1.addr, i-1);
-        }
-        ((Tuple*)elem1.addr)->DeleteIfAllowed();
-        result = SetWord(t);
-        return YIELD;
-      }
-      else return CANCEL;
-    }
-    case CLOSE :
-    {
-      ((TupleType*)local.addr)->DeleteIfAllowed();
-      qp->Close(args[0].addr);
-      return 0;
-    }
-  }
-  return 0;
-}
-
-/*
 2.5.3 Specification of operator ~remove~
 
 */
@@ -2586,7 +2537,7 @@ const string RemoveSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 Operator relalgremove (
          "remove",                // name
          RemoveSpec,              // specification
-         Remove,                  // value mapping
+         Project,                  // value mapping
          Operator::SimpleSelect,  // trivial selection function
          RemoveTypeMap            // type mapping
 );
@@ -4919,7 +4870,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgattr);
     AddOperator(&relalgfilter);		relalgfilter.EnableProgress();
     AddOperator(&relalgproject);	relalgproject.EnableProgress();
-    AddOperator(&relalgremove);
+    AddOperator(&relalgremove);		relalgremove.EnableProgress();
     AddOperator(&relalgproduct);	relalgproduct.EnableProgress();
     AddOperator(&relalgcount);		relalgcount.EnableProgress();
     AddOperator(&relalgcount2);
