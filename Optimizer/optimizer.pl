@@ -3277,7 +3277,7 @@ traversePath([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
 
 */
 
-markupProgress(Term, _, _, _, Term) :- not(optimizerOption(progress)).
+markupProgress(Term, _, _, _, Term) :- optimizerOption(noprogress).
 
 markupProgress(project(Stream, Attrs), Sel, BBoxSel, ExpPET, 
 	project(Stream2, Attrs)) :-

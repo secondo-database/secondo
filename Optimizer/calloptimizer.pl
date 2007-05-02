@@ -45,7 +45,7 @@ The optimizer is started by loading this file.
 % http://gollem.science.uva.nl/SWI-Prolog/mailinglist/archive/2005/q3/0349.html
 
 % C. Duentgen, Feb/2006: The solution used deprecated predicates, which now
-% have been replaced by newer ones for more recent polog versions.                          
+% have been replaced by newer ones for more recent polog versions.
 getprompt :-
   current_prolog_flag(version,Version),
   ( (Version >=50407) 
@@ -71,7 +71,7 @@ getprompt :-
        )
      ; true).
 
- 
+
 /*
 
 2 Properties of the optimizer
@@ -264,8 +264,8 @@ optimizerOptionInfo(debug, none, no,
 optimizerOptionInfo(autosave, none, no,            
                     'Autosave option settings on \'halt.\'.',
                     true, true).
-optimizerOptionInfo(progress, none, no,
-                    'Send predicate data for progress estimation.',
+optimizerOptionInfo(noprogress, none, no,
+                    'Do not send predicate data for progress estimation.',
                     true, true).
 
 :- [calloptimizer_sec]. % include more options
@@ -598,7 +598,6 @@ defaultOptions :-
   delOption(useCounters),
   setOption(debug),
   debugLevel(selectivity),
-  setOption(progress),
   setOption(autosave).
 
 
@@ -647,9 +646,9 @@ initializeOptions :-
 */
 
 :- showOptions.
-:-   nl, write('NOTE: SWI-Prolog Version 5.4.7 shows '),
-     write('no prompt in the MSYS console!'), nl,
-     write('      A workaround is to type in the predicate "getprompt."'), nl, nl.
+%:-   nl, write('NOTE: SWI-Prolog Version 5.4.7 shows '),
+%     write('no prompt in the MSYS console!'), nl,
+%     write('      A workaround is to type in the predicate "getprompt."'), nl, nl.
 :- ( current_prolog_flag(windows,true), % query getprompt on windows systems
      getprompt
    ) ; true.
