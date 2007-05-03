@@ -303,7 +303,7 @@ QueryProcessor::AllocateValues( int idx )
   int size = values.size();
   if ( idx >= size )
   {
-    size += MAXVALUES;
+    size = idx + MAXVALUES;
     values.resize( size );
   }
 }
@@ -1466,12 +1466,12 @@ function index.
   }
   else if ( nl->IsAtom( expr ) ) // handle atoms
   {
-    switch (nl->AtomType( expr )) 
+    AllocateValues( valueno );
+    switch (nl->AtomType( expr ))
     {
       // case (ii): return ((<value> constant <index>) int)
       case IntType:
       {
-        AllocateValues( valueno );
         int algId, typeId;
         GetCatalog()->LookUpTypeExpr( nl->SymbolAtom( "int" ), 
                                       typeName, algId, typeId );
@@ -1495,7 +1495,6 @@ function index.
       // case (ii): return ((<value> constant <index>) real)
       case RealType:
       {
-        AllocateValues( valueno );
         int algId, typeId;
         GetCatalog()->LookUpTypeExpr( nl->SymbolAtom( "real" ), 
                                       typeName, algId, typeId );
@@ -1519,7 +1518,6 @@ function index.
       // case (ii): return ((<value> constant <index>) bool)
       case BoolType:
       {
-        AllocateValues( valueno );
         int algId, typeId;
         GetCatalog()->LookUpTypeExpr( nl->SymbolAtom( "bool" ), 
                                       typeName, algId, typeId );
@@ -1543,7 +1541,6 @@ function index.
       // case (ii): return ((<value> constant <index>) string)
       case StringType:
       {
-        AllocateValues( valueno );
         int algId, typeId;
         GetCatalog()->LookUpTypeExpr( nl->SymbolAtom( "string" ), 
                                       typeName, algId, typeId );
@@ -1567,7 +1564,6 @@ function index.
       // case (ii): return ((<value> constant <index>) text)
       case TextType:
       {
-        AllocateValues( valueno );
         int algId, typeId;
         GetCatalog()->LookUpTypeExpr( nl->SymbolAtom( "text" ), 
                                       typeName, algId, typeId );
@@ -1602,6 +1598,11 @@ function index.
                                        definedValue, hasNamedType );
           GetCatalog()->LookUpTypeExpr( typeExpr, typeName, 
                                         algId, typeId );
+//           values[valueno].isConstant = false;
+//           values[valueno].isList = false;
+//           values[valueno].algId = algId;
+//           values[valueno].typeInfo = typeExpr;
+//           values[valueno].typeId = typeId;
           values[valueno].isConstant = false;
           values[valueno].isList = false;
           values[valueno].algId = algId;
@@ -1622,11 +1623,14 @@ function index.
               NameIndex newvarnames;
               VarEntryTable newvartable; 
               functionList = 
-                values[valueno-1].value.list;
+//                 values[valueno-1].value.list;
+                  values[valueno-1].value.list;
+
               if (traceMode) {
                 cout << "Function object " << name << ": " << endl
                      << nl->ToString(functionList) << endl;
               }  
+//               values[valueno-1].isList = true;
               values[valueno-1].isList = true;
               return Annotate( functionList, newvarnames, 
                                newvartable, defined, 
@@ -2185,7 +2189,6 @@ will be processed.
   
   // Any other case which should never be reached
   return (nl->SymbolAtom( "exprerror" ));
-  
 } // end Annotate
 
 ListExpr 
