@@ -7227,6 +7227,229 @@ Operator extrelsymmproduct (
 );
 
 
+
+/*
+5.10.7 Operator ~addCounter~
+
+5.10.7.1 Type Mapping function 
+
+This operator receives a tuple stream, an attribute name
+as well as an initial value. It extends each tuple by
+a counter initialized with the given value and the given name.
+
+*/
+ListExpr AddCounterTypeMap(ListExpr args){
+
+if(nl->ListLength(args)!=3){
+   ErrorReporter::ReportError("three arguments required.");
+   return nl->TypeError();
+}
+ListExpr stream = nl->First(args);
+ListExpr nameL   = nl->Second(args);
+ListExpr init   = nl->Third(args);
+
+// check init
+if(!nl->IsEqual(init,"int")){
+  ErrorReporter::ReportError("the third argument has to be of type int");
+  return nl->TypeError();
+}
+
+if(nl->AtomType(nameL)!=SymbolType){
+  ErrorReporter::ReportError("The second argument can't be used as an"
+                             "attribute name.");
+  return nl->TypeError();   
+}
+string name = nl->SymbolValue(nameL);
+ // check for usualibity 
+if(SecondoSystem::GetCatalog()->IsTypeName(name)){
+   ErrorReporter::ReportError(""+name+" is a type and can't be "
+                              "used as an attribute name ");
+   return nl->TypeError();
+}
+if(SecondoSystem::GetCatalog()->IsOperatorName(name)){
+   ErrorReporter::ReportError(""+name+" is an operator and can't be "
+                              "used as an attribute name ");
+   return nl->TypeError();
+}
+// check streamlist
+if(nl->ListLength(stream)!=2 ||
+   !nl->IsEqual(nl->First(stream),"stream")){
+ ErrorReporter::ReportError("first argument is not a stream");
+ return nl->TypeError();
+}
+ListExpr tuple = nl->Second(stream);
+if(nl->ListLength(tuple)!=2 ||
+   !nl->IsEqual(nl->First(tuple),"tuple")){
+ ErrorReporter::ReportError("first argument is not a tuple stream");
+ return nl->TypeError();
+}
+set<string> usednames;
+ListExpr attributes = nl->Second(tuple);
+if(nl->AtomType(attributes)!=NoAtom){
+   ErrorReporter::ReportError("invalid representation in tuple stream"
+                              "(not a list)");
+   return nl->TypeError();
+}
+ListExpr last = nl->TheEmptyList();
+while(!nl->IsEmpty(attributes)){
+   last = nl->First(attributes);
+   if(nl->ListLength(last)!=2){
+      ErrorReporter::ReportError("invalid representation in tuple stream"
+                                 " wrong listlength");
+      return nl->TypeError();
+   }
+   if(nl->AtomType(nl->First(last))!=SymbolType){
+      ErrorReporter::ReportError("invalid representation in tuple stream"
+                                 "(syntax of attribute name)");
+      return nl->TypeError();
+   }
+   usednames.insert(nl->SymbolValue(nl->First(last)));
+   attributes = nl->Rest(attributes);
+}
+
+if(usednames.find(name)!=usednames.end()){
+  ErrorReporter::ReportError("Name" + name +" is already used.");
+  return  nl->TypeError(); 
+}
+
+// all fine, construct the result
+
+if(nl->IsEmpty(last)){ // stream without attributes
+  return nl->TwoElemList( nl->SymbolAtom("stream"),
+                          nl->TwoElemList(
+                              nl->SymbolAtom("tuple"),
+                              nl->OneElemList(
+                                 nl->TwoElemList(
+                                     nl->SymbolAtom(name),
+                                     nl->SymbolAtom("int")))));
+}
+
+// make a copy of the attributes 
+  attributes = nl->Second(tuple);
+  ListExpr reslist = nl->OneElemList(nl->First(attributes));
+  ListExpr lastlist = reslist;
+  attributes = nl->Rest(attributes);
+  while (!(nl->IsEmpty(attributes))) {
+    lastlist = nl->Append(lastlist,nl->First(attributes));
+    attributes = nl->Rest(attributes);
+  }
+  lastlist = nl->Append(lastlist,nl->TwoElemList(
+                        nl->SymbolAtom(name),
+                        nl->SymbolAtom("int")));
+
+  return nl->TwoElemList( nl->SymbolAtom("stream"),
+                nl->TwoElemList( nl->SymbolAtom("tuple"),
+                                 reslist));
+
+}
+
+/*
+5.10.7.2 Value mapping of the ~addcounter~ operator
+
+*/
+class AddCounterLocalInfo{
+public:
+  AddCounterLocalInfo(CcInt* init, Supplier s){
+     defined = init->IsDefined();
+     value = init->GetIntval();
+     tupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+  }
+  ~AddCounterLocalInfo(){
+     delete tupleType;
+     tupleType = 0;
+  }
+  Tuple* createTuple(Tuple* orig){
+    if(!defined){
+       return 0;
+    }
+    Tuple* result = new Tuple(tupleType);
+    int size = orig->GetNoAttributes();
+    for(int i=0;i<size;i++){
+       result->CopyAttribute(i,orig,i);
+    }
+    result->PutAttribute(size, new CcInt(true,value));
+    value++;
+    return result;  
+  }
+
+
+private:
+  bool  defined;
+  int value;
+  TupleType* tupleType;
+};
+
+
+int AddCounterValueMap(Word* args, Word& result, int message, 
+               Word& local, Supplier s){
+
+   Word orig;
+   switch(message){
+    case OPEN: {
+       CcInt* Init = ((CcInt*)args[2].addr);
+       qp->Open(args[0].addr);
+       local.addr = new AddCounterLocalInfo(Init,s); 
+       break;
+    }
+    case REQUEST: {
+       qp->Request(args[0].addr,orig);
+       if(!qp->Received(args[0].addr)){
+          return CANCEL;
+       }  else {
+          Tuple* tmp = ((AddCounterLocalInfo*)local.addr)->
+                          createTuple((Tuple*)orig.addr);
+          ((Tuple*)orig.addr)->DeleteIfAllowed();
+          result = SetWord(tmp);
+          return YIELD;
+       }     
+
+    }
+    case CLOSE: {
+       qp->Close(args[0].addr);
+       AddCounterLocalInfo* acli = (AddCounterLocalInfo*)local.addr;
+       delete acli;
+       local.addr=0;
+       return 0;
+    }
+    default: assert(false); // unknown message
+   }
+   return 0;
+}
+
+
+/*
+
+5.10.7.3 Specification of operator ~addcounter~
+
+*/
+const string AddCounterSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(stream (tuple(X))) x name x int "
+  " -> (stream (tuple(X (name int)))) "
+  "))</text--->"
+  "<text>_ symmproduct [_, _]</text--->"
+  "<text>Adds a counter with the given name to the stream "
+  "starting at the initial value </text--->"
+  "<text>query ten feed addCounter[ Cnt , 1] consume</text--->"
+  " ) )";
+
+/*
+
+5.10.7.4 Definition of operator ~addcounter~
+
+*/
+Operator extreladdcounter (
+         "addcounter",           // name
+         AddCounterSpec,         // specification
+         AddCounterValueMap,      // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         AddCounterTypeMap       // type mapping
+);
+
+
+
+
 /*
 
 3 Class ~ExtRelationAlgebra~
@@ -7281,6 +7504,8 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelsymmproduct);
     AddOperator(&extrelprojectextend);
     AddOperator(&krdup);
+    AddOperator(&extreladdcounter);
+
 
 #else
 
@@ -7316,6 +7541,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelsymmproduct);
     AddOperator(&extrelprojectextend);
     AddOperator(&krdup);
+    AddOperator(&extreladdcounter);
 
 #endif
   }

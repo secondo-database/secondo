@@ -59,4 +59,5 @@ operator symmjoin alias SYMMJOIN pattern _ _ op [ fun ] implicit parameters left
 
 operator symmproductextend alias SYMMPRODUCTEXTEND pattern _ _ op [ funlist ] implicit parameters lefttuple, righttuple types TUPLE, TUPLE2
 operator symmproduct alias SYMMPRODUCT pattern _ _ op
+operator addcounter alias ADDCOUNTER pattern _  op [_ , _]
 

@@ -222,3 +222,11 @@ Signature: stream(tuple((a1 t1)(a2 t2)...(an tn))) x ai1 x ai2 x ... -> stream(t
 Example  : query plz feed sortby[Ort] krdup[Ort] count
 Result   : 16788
 
+
+Operator : addcounter 
+Number   : 1
+Signature: stream(tuple((a1 t1)..(an tn))) x id x int -> stream(tuple((a1 t1)...(an tn)(id int))) 
+Example  : query ten feed addcounter[ Cnt , 1] consume
+Result   : file
+
+
