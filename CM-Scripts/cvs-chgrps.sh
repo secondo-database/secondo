@@ -10,8 +10,8 @@ function checkDir
 {
   if [ ! -d $1 ]; then
     echo "Error: $1 is not a directory!"
+    exit 2 
   fi
-  exit 2 
 }
 
 ##
@@ -36,9 +36,6 @@ while [ $# -ne 0 ]; do
   fi
 
 done
-
-
-exit 3
 
 ##
 ## change group memberships

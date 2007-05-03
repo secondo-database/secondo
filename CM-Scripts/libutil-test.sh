@@ -120,6 +120,12 @@ if [ "$1" == "isRunning" ]; then
   exit $?
 fi
 
+# sendMail test
+#
+# $2 : true | false defines if the mail will be send or printed 
+# $3 : list of recipients
+# $4 : attached file
+
 if [ "$1" == "sendMail" ]; then  
 
 LU_SENDMAIL_FROM="spieker@bassi"
