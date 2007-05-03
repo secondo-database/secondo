@@ -12376,11 +12376,12 @@ deletion of this object.
          return 0;
       }
       // construct a new Line
-      int maxSize = size - lastPos;
+      int maxSize = max(1,size - lastPos);
       Line* result = new Line(maxSize);
       set<Point> pointset;
       int pos = lastPos;
       bool done = false;
+      result->Clear();
       result->StartBulkLoad();
       const HalfSegment* hs1;
       const HalfSegment* hs2; // partner of hs1

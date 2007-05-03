@@ -3515,7 +3515,9 @@ simple( true ),
 cycle( false ),
 startsSmaller( false ),
 currentHS( -1 )
-{}
+{ del.refs=1;
+  del.isDelete=true;
+}
 
 inline Line::Line( const Line& cl ) :
 line( cl.Size() ),
@@ -3544,6 +3546,8 @@ currentHS ( cl.currentHS)
     cl.lrsArray.Get( i, lrs );
     lrsArray.Put( i, *lrs );
   }
+  del.refs=1;
+  del.isDelete=true;
 }
 
 inline void Line::Destroy()
