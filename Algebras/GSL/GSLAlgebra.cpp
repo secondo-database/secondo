@@ -174,6 +174,11 @@ GslRandomgen::~GslRandomgen()
   }
 }
 
+inline gsl_rng* GslRandomgen::GetGenerator()
+{
+  return me;
+}
+
 inline void GslRandomgen::SetDefined( const bool def )
 { // set defined flag and ensure proper settings
   if( def && !defined && me == NULL )
@@ -254,11 +259,6 @@ inline unsigned long int GslRandomgen::NextIntN(const unsigned long int n)
 { // returns a random integer from 0 to n-1
   assert( defined && me != NULL && n >= 1 );
   return gsl_rng_uniform_int (me, n);
-}
-
-inline gsl_rng* GslRandomgen::GetGenerator()
-{
-  return me;
 }
 
 void GslRandomgen::InitializeTables()
