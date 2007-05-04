@@ -46,7 +46,7 @@ Result   : 100000
 Operator : rng_exponential
 Number   : 1
 Signature:  real -> real
-Example  : query intstream(1, 100000) use[fun(i1:int) round(rng_exponential( 0.75 ), 0)] transformstream sort groupby[elem; cnt: group count] filter[.elem = 0] intstream(1, 100000) use[fun(i2:int) round(rng_exponential( 0.75 ), 0)] transformstream sort groupby[elem; cnt: group count] filter[.elem = 1] {g} symmjoin[.elem < ..elem_g] count
+Example  : query intstream(1, 100000) use[fun(i1:int) round(rng_exponential( 0.75 ), 0)] transformstream sortby[elem] groupby[elem; Cnt: group count] filter[.elem = 0] intstream(1, 100000) use[fun(i2:int) round(rng_exponential( 0.75 ), 0)] transformstream sort groupby[elem; Cnt: group count] filter[.elem = 1] {g} symmjoin[.elem < ..elem_g] count
 Result   : 1
 
 
