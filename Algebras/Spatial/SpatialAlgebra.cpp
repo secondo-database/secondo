@@ -1115,10 +1115,11 @@ void Points::EndBulkLoad( bool sort, bool remDup )
 {
   if( sort )
     Sort();
+  else
+    ordered = true;
   if( remDup )
     RemoveDuplicates();
   points.TrimToSize();	
-  ordered = true;
 }
 
 bool Points::operator==( const Points& ps ) const
@@ -1369,14 +1370,14 @@ void Points::RemoveDuplicates()
   int source = 0, target = 0;
   int size = Size();
 
-  Get(source, p1);
+  points.Get(source, p1);
   points.Put(target, *p1);
   source++;
   target++;
   p2 = p1;
   while(source < size)
   {
-    Get(source, p1);
+    points.Get(source, p1);
     source++;
     if( !AlmostEqual(*p1, *p2) )
     {
@@ -1655,7 +1656,7 @@ void Points::Minus( const Point& p, Points& ps ) const
     const Point *pi;
     Get( i, pi );
 
-    if( *pi != p )
+    if( !AlmostEqual(*pi, p) )
       ps += *pi;
   }
   ps.EndBulkLoad( false, false );
@@ -1666,20 +1667,35 @@ void Points::Minus( const Points& ps, Points& result ) const
   assert( ordered && ps.ordered );
   result.Clear();
 
-  object obj;
-  status stat;
-  const Point *p;
-  SelectFirst_pp( *this, ps, obj, stat );
-
   result.StartBulkLoad();
-  while( stat != endfirst && stat != endboth )
+  int size1 = this->Size();
+  int size2 = ps.Size();
+  int pos1 = 0, pos2 = 0;
+  const Point *p1, *p2;
+
+  while(pos1<size1 && pos2<size2)
   {
-    if( obj == first )
+    this->Get(pos1, p1);
+    ps.Get(pos2, p2);
+    if( AlmostEqual(*p1, *p2) )
     {
-      assert( GetPt( p ) );
-      result += *p;
+      pos1++;
     }
-    SelectNext_pp( *this, ps, obj, stat );
+    else if (*p1 < *p2)
+    {
+      result += *p1;
+      pos1++;
+    }
+    else
+    { // *p1 > *p2
+      pos2++;
+    }
+  }
+  while(pos1<size1)
+  {
+    this->Get(pos1, p1);
+    result += *p1;
+    pos1++;
   }
   result.EndBulkLoad( false, false );
 }
@@ -1741,7 +1757,7 @@ void Points::Union( const Point& p, Points& result ) const
   if( !inserted )
     result += p;        // += already avoids insertion of duplicates
 
-  result.EndBulkLoad( false, false );
+  result.EndBulkLoad( false, true );
 }
 
 void Points::Union( const Points& ps, Points& result ) const
@@ -12417,6 +12433,8 @@ deletion of this object.
       const HalfSegment* hs2; // partner of hs1
       int edgeno = 0;
       bool seconddir = false;
+      theLine->Get(pos,hs1);
+      Point firstPoint = hs1->GetSecPoint();
       while(!done){
         theLine->Get(pos,hs1);
         int partnerpos = hs1->GetAttr().partnerno;
@@ -12488,9 +12506,7 @@ deletion of this object.
  
         if(found){ // sp is a potential extension of the line
           if(ignoreCriticalPoints || !isCriticalPoint(partnerpos)){
-             const HalfSegment* hs4;
-             theLine->Get(partnerpos,hs4);
-             if(points!=0 && points->Contains(hs4->GetDomPoint())){
+             if(points!=0 && points->Contains(firstPoint)){
                  done = true;
              } else{
                  pos = sp;
@@ -12556,7 +12572,19 @@ line.
        }
        return count>2;
    }
-  
+  /*
+   bool AlmostEqual2(const Point& p1, const Point& p2 ){
+      double z1 = abs(p1.GetX());
+      double z2 = abs(p1.GetY());
+      double z3 = abs(p2.GetX());
+      double z4 = abs(p2.GetY());
+      double Min = min(min(z1,z2) , min(z3,z4));
+      double eps = max(FACTOR, FACTOR*Min);
+      if(abs(z1-z3)>eps) return false;
+      if(abs(z2-z4)>eps) return false;
+      return true;
+   }
+  */
    bool* used;
    Line* theLine;
    int lastPos;
