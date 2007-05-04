@@ -9571,6 +9571,26 @@ ListExpr SimplifyTypeMap(ListExpr args){
 
 
 
+/*
+10.1.11 Type Mapping for the ~segments~ operator
+
+*/
+ListExpr SegmentsTypeMap(ListExpr args){
+  if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError("Invalid number of arguments");
+     return nl->TypeError();
+  }
+  if(!nl->IsEqual(nl->First(args),"line")){
+     ErrorReporter::ReportError("line expected");
+     return nl->TypeError();
+  }
+  return nl->TwoElemList(
+               nl->SymbolAtom("stream"),
+               nl->SymbolAtom("line")
+         );
+}
+
+
 
 /*
 10.3 Selection functions
@@ -12583,6 +12603,90 @@ int SpatialPolylines(Word* args, Word& result, int message,
 }
 
 
+/*
+10.4.30 Value Mapping for the ~segments~ operator
+
+*/
+class SegmentsInfo{
+  public:
+    SegmentsInfo(Line* line){
+       this->theLine =(Line*) line->Copy(); // increase the ref counter of line
+       this->position = 0;
+       this->size = line->Size();
+    }
+    ~SegmentsInfo(){
+      if(theLine!=0){
+         theLine->DeleteIfAllowed(); // mark as free'd
+      }
+    }
+    Line* NextSegment(){
+       const HalfSegment* hs;
+       // search for a segment with left dominating point
+       bool found = false;
+       while((position<size) && !found){
+             theLine->Get(position,hs);
+             if(hs->IsLeftDomPoint()){
+                found=true;
+             } else {
+                position++;
+             }
+       }
+       position++; // for the next run
+       if(!found){ // no more segments available
+          return 0;
+       } else {
+          Line* res = new Line(2);
+          HalfSegment hs1 = *hs;
+          res->StartBulkLoad();
+          hs1.attr.edgeno = 0;
+          (*res) += hs1;
+          hs1.SetLeftDomPoint(false);
+          (*res) += hs1;
+          res->EndBulkLoad();
+          return res; 
+       }
+    }
+  private:
+     int position;
+     int size;
+     Line* theLine;
+};
+
+
+int SpatialSegments(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+
+ SegmentsInfo* si=0;
+ Line* res =0;
+ switch(message){
+    case OPEN:
+      local.addr = new SegmentsInfo((Line*)args[0].addr);
+      return 0;
+    case REQUEST:
+      si = (SegmentsInfo*) local.addr;
+      res = si->NextSegment();
+      if(res){
+         result = SetWord(res);
+         return YIELD; 
+      } else {
+         return CANCEL;
+      }
+
+    case CLOSE:
+      si = (SegmentsInfo*) local.addr;
+      delete si;
+ }
+ return 0;
+}
+
+
+
+
+/*
+10.4.31 Value Mappings for the simplify operator
+
+*/
+
 int SpatialSimplify_LReal(Word* args, Word& result, int message,
                     Word& local, Supplier s){
    result = qp->ResultStorage(s);
@@ -13122,6 +13226,15 @@ const string SpatialSpecSimplify  =
     "<text> query simplify(trajectory(train1),10.0) count</text--->"
     ") )";
 
+const string SpatialSpecSegments  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>line  -> stream( line ) </text--->"
+    "<text> segments( _ ) </text--->"
+    "<text>Returns a stream of segments of the line.</text--->"
+    "<text>query  (segments(PotsdamLine) count) = "
+                 "(no_segments(PotsdamLine)) </text--->"
+    ") )";
+
 /*
 10.5.3 Definition of the operators
 
@@ -13432,6 +13545,12 @@ Operator spatialpolylines (
   Operator::SimpleSelect,
   PolylinesMap );
 
+Operator spatialsegments (
+  "segments",
+  SpatialSpecSegments,
+  SpatialSegments,
+  Operator::SimpleSelect,
+  SegmentsTypeMap );
 
 /*
 11 Creating the Algebra
@@ -13497,6 +13616,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialrect2region );
     AddOperator( &spatialarea );
     AddOperator( &spatialpolylines );
+    AddOperator( &spatialsegments );
     AddOperator( &spatialsimplify);
   }
   ~SpatialAlgebra() {};
