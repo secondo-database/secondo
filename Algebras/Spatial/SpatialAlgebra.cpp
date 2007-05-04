@@ -12414,14 +12414,14 @@ deletion of this object.
 
 */
     Line* NextLine(){
-      // go to the first nonused halfsegment
+      // go to the first unused halfsegment
       while(lastPos<size && used[lastPos]){
         lastPos++;
       }     
       if(lastPos>=size){
          return 0;
       }
-      // construct a new Line
+      // unused segment found,  construct a new Line
       int maxSize = max(1,size - lastPos);
       Line* result = new Line(maxSize);
       set<Point> pointset;
@@ -12434,8 +12434,8 @@ deletion of this object.
       int edgeno = 0;
       bool seconddir = false;
       theLine->Get(pos,hs1);
-      Point firstPoint = hs1->GetSecPoint();
-      while(!done){
+      Point firstPoint = hs1->GetDomPoint();
+      while(!done){ // extension possible
         theLine->Get(pos,hs1);
         int partnerpos = hs1->GetAttr().partnerno;
         theLine->Get(partnerpos, hs2);
@@ -12458,66 +12458,69 @@ deletion of this object.
         // mark as used
         used[pos] = true;
         used[partnerpos] = true;  
-        // search for extension of the polyline
-        int sp = partnerpos-1;
-        bool found = false;
 
-        // search backwards
-        while(sp>0 && !found){
-          const HalfSegment* hs3;
-          if(!used[sp]){
-             theLine->Get(sp,hs3);
-             if(AlmostEqual(p,hs3->GetDomPoint())){
-               Point p3 = hs3->GetSecPoint(); // avoid cycles
-               if(pointset.find(p3)==pointset.end()){
-                   found = true;
-               } else {
-                   sp--;
-               }
-             } else {
-                sp = -1; // stop searching
-             }
-           } else {
-             sp --; // search next
-          }
-        } 
-        if(!found){
-           sp = partnerpos + 1;
-           // search forwards
-           while(sp<size && !found){
+
+        bool found = false;
+        int sp = partnerpos-1;
+        
+        if(points==0 || !points->Contains(p)){ // no enforced split
+
+            // search for extension of the polyline
+            // search left of partnerpos for an extension 
+            while(sp>0 && !found){
+              const HalfSegment* hs3;
               if(!used[sp]){
-                  const HalfSegment* hs3;
-                  theLine->Get(sp,hs3);
-                  if(AlmostEqual(p,hs3->GetDomPoint())){
-                     Point p3 = hs3->GetSecPoint(); // avoid cycles
-                     if(pointset.find(p3)==pointset.end()){
-                        found = true;
-                     } else {
-                       sp++;
-                     }
-                  } else {
-                     sp = size; // stop searching
-                  }
+                 theLine->Get(sp,hs3);
+                 if(AlmostEqual(p,hs3->GetDomPoint())){
+                   Point p3 = hs3->GetSecPoint(); // avoid cycles
+                   if(pointset.find(p3)==pointset.end()){
+                       found = true;
+                   } else {
+                       sp--;
+                   }
+                 } else {
+                    sp = -1; // stop searching
+                 }
                } else {
-                  sp ++; // search next
+                 sp --; // search next
+              }
+            }
+            // search on the right side of partnerpos for extension 
+            if(!found){
+               sp = partnerpos + 1;
+               while(sp<size && !found){
+                  if(!used[sp]){
+                      const HalfSegment* hs3;
+                      theLine->Get(sp,hs3);
+                      if(AlmostEqual(p,hs3->GetDomPoint())){
+                         Point p3 = hs3->GetSecPoint(); // avoid cycles
+                         if(pointset.find(p3)==pointset.end()){
+                            found = true;
+                         } else {
+                           sp++;
+                         }
+                      } else {
+                         sp = size; // stop searching
+                      }
+                   } else {
+                      sp ++; // search next
+                   }
                }
-           }
+            }
         }
- 
+		 
         if(found){ // sp is a potential extension of the line
           if(ignoreCriticalPoints || !isCriticalPoint(partnerpos)){
-             if(points!=0 && points->Contains(firstPoint)){
-                 done = true;
-             } else{
-                 pos = sp;
-             }
+             pos = sp;
           } else {
-                done = true;
+             done = true;
           }
         }  else { // no extension found
            done = true;
         }
-        if(done && !seconddir && (lastPos < (size-1))){
+
+        if(done && !seconddir && (lastPos < (size-1)) && 
+           (points==0 || !points->Contains(firstPoint))){
            // done means at this point, the line can't be extended
            // in the direction start from the first selected halfsegment.
            // but is is possible the extend the line by going into the
@@ -12534,8 +12537,7 @@ deletion of this object.
               Point p2 = hs->GetDomPoint();
               if(AlmostEqual(p,p2)){
                  if(pointset.find(hs->GetSecPoint())==pointset.end()){
-                    if(ignoreCriticalPoints || !isCriticalPoint(lastPos)
-                       || points==0 || !points->Contains(p2)){
+                    if(ignoreCriticalPoints || !isCriticalPoint(lastPos)){
                        pos = lastPos;
                        done = false;
                     }
