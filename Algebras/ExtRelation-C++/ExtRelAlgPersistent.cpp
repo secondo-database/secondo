@@ -44,11 +44,19 @@ May 2007, M. Spiekermann. The class ~MergeJoinLocalInfo~ was rearranged. Now it
 uses only one ~TupleBuffer~ and creates groups of equal tuples over the 2nd
 argument. A new implementation was needed since the old one did not work
 correctly when large groups of equal values appeared which must be stored
-temporarily on disk.
+temporarily on disk. Moreover, the sorting is now done by instantiation of
+~SortbyLocalInfo~ objects instead of calling the value mapping function of
+the ~sortby~ operator.
 
-[1] Implementation of the Module Extended Relation Algebra for Persistent storage
+[1] Implementation of the Module Extended Relation Algebra for Persistent Storage
 
 [TOC]
+
+0 Overview
+
+This file contains the implementation of algorithms for external sorting,
+merging and a simple hash-join. 
+
 
 1 Includes and defines
 
@@ -132,7 +140,7 @@ private:
 
 
 /*
-2.2.2 class SortByLocalInfo
+2.2.2 class ~SortByLocalInfo~
 
 An algorithm for external sorting is implemented inside this class. The
 constructor creates sorted partitions of the input stream and stores them
@@ -475,44 +483,60 @@ In this case we need to delete also all tuples stored in memory.
 };
 
 /*
-2.1.1 Value mapping function of operator ~sortBy~
+2.1.1 Value mapping function of operator ~sortby~
 
 The argument vector ~args~ contains in the first slot ~args[0]~ the stream and
-in ~args[2]~ the number of sort attributes. ~args[3]~ contains the index of the first
-sort attribute, ~args[4]~ a boolean indicating wether the stream is sorted in
-ascending order with regard to the sort first attribute. ~args[5]~ and ~args[6]~
-contain these values for the second sort attribute  and so on.
+in ~args[2]~ the number of sort attributes. ~args[3]~ contains the index of the
+first sort attribute, ~args[4]~ a boolean indicating wether the stream should
+be sorted in ascending order with regard to the sort first attribute. ~args[5]~
+and ~args[6]~ contain these values for the second sort attribute and so on.
 
 */
+
+void*
+CreateCompareObject(bool lexOrder, Word* args) {
+
+  void* tupleCmp = 0;
+
+  if(lexOrder) 
+  {
+     tupleCmp = new LexicographicalTupleCompare();
+  }	
+  else
+  {
+    SortOrderSpecification spec;
+    int nSortAttrs = StdTypes::GetInt( args[2] );
+    for(int i = 1; i <= nSortAttrs; i++)
+    {
+      int sortAttrIndex = StdTypes::GetInt( args[2 * i + 1] );
+      bool sortOrderIsAscending = StdTypes::GetBool( args[2 * i + 2] );
+      
+      spec.push_back(pair<int, bool>(sortAttrIndex, 
+				     sortOrderIsAscending));
+    };
+
+    tupleCmp = new TupleCompareBy( spec );
+  }
+  return tupleCmp;
+} 
 
 template<bool lexicographically> int
 SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 {
+  // args[0] : stream
+  // args[1] : ignored 
+  // args[2] : the number of sort attributes
+  // args[3] : the index of the first sort attribute
+  // args[4] : a boolean which indicates if sortorder should
+  //           be asc or desc.
+  // args[5] : Same as 3 but for the second sort attribute 
+  // args[6] : Same as 4
+  // ....
+  //
   switch(message)
   {
     case OPEN:
     {
-      void *tupleCmp;
-      SortOrderSpecification spec;
-      bool sortOrderIsAscending;
-      int nSortAttrs;
-      int sortAttrIndex;
-
-      if(lexicographically)
-        tupleCmp = new LexicographicalTupleCompare();
-      else
-      {
-        nSortAttrs = ((CcInt*)args[2].addr)->GetIntval();
-        for(int i = 1; i <= nSortAttrs; i++)
-        {
-          sortAttrIndex = ((CcInt*)args[2 * i + 1].addr)->GetIntval();
-          sortOrderIsAscending = ((CcBool*)args[2 * i + 2].addr)->GetBoolval();
-          spec.push_back(pair<int, bool>(sortAttrIndex, 
-                                         sortOrderIsAscending));
-        };
-
-        tupleCmp = new TupleCompareBy( spec );
-      }
 
       // create a ~Progress~ instance
       LocalInfo<SortByLocalInfo>* li = new LocalInfo<SortByLocalInfo>();
@@ -522,6 +546,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       // afterwards QueryProcessor request calls are
       // allowed.
 
+      void *tupleCmp = CreateCompareObject(lexicographically, args);
       li->ptr = new SortByLocalInfo( args[0], 
 		                     lexicographically,  
                                      tupleCmp, li       );
@@ -564,10 +589,6 @@ McGraw-Hill, 3rd. Edition, 1997.
 
 */
 
-static CcInt oneCcInt(true, 1);
-static CcBool trueCcBool(true, true);
-
-CPUTimeMeasurer mergeMeasurer;
 
 class MergeJoinLocalInfo
 {
@@ -577,14 +598,16 @@ private:
   size_t MAX_MEMORY;
   size_t MAX_TUPLES_IN_MEMORY;
 
+  // buffer related members
   TupleBuffer *grpB;
   GenericRelationIterator *iter;
 
-  Word localA;
-  Word localB;
+  // members needed for sorting the input streams
+  LocalInfo<SortByLocalInfo>* liA;
+  SortByLocalInfo* sliA;
 
-  ArgVector argsA;
-  ArgVector argsB;
+  LocalInfo<SortByLocalInfo>* liB;
+  SortByLocalInfo* sliB;
 
   Word streamA;
   Word streamB;
@@ -597,9 +620,8 @@ private:
   Tuple* ptB;
   Tuple* tmpB;
 
-  // the last compare value
+  // the last comparison result
   int cmp;
-
 
   // the indexes of the attributes which will
   // be merged and the result type
@@ -665,30 +687,16 @@ private:
     return CompareTuples<false>(t1, t2);
   }
 
-  void SetArgs(ArgVector& args, Word stream, Word attrIndex)
-  {
-    args[0] = SetWord(stream.addr);
-    args[2] = SetWord(&oneCcInt);
-    args[3] = SetWord(attrIndex.addr);
-    args[4] = SetWord(&trueCcBool);
-  }
-
-  inline Tuple* NextTuple(Word stream, ArgVector& args, Word& local)
+  inline Tuple* NextTuple(Word stream, SortByLocalInfo* sli)
   {
     bool yield = false;
     Word result = SetWord( 0 );
 
-    if(expectSorted)
-    {
-      qp->Request(stream.addr, result);
-      yield = qp->Received(stream.addr);
-    }
-    else
-    {
-      int errorCode = 
-        SortBy<false>(args, result, REQUEST, local, 0);
-      yield = (errorCode == YIELD);
-    }
+    if(!expectSorted)
+      return sli->NextResultTuple();
+
+    qp->Request(stream.addr, result);
+    yield = qp->Received(stream.addr);
 
     if(yield)
     {
@@ -703,28 +711,33 @@ private:
 
   inline Tuple* NextTupleA()
   {
-    return NextTuple(streamA, argsA, localA);
+    return NextTuple(streamA, sliA);
   }  
 
   inline Tuple* NextTupleB()
   {
-    return NextTuple(streamB, argsB, localB);
+    return NextTuple(streamB, sliB);
   }  
 
 
 public:
-  MergeJoinLocalInfo( Word streamA, Word attrIndexA,
-                      Word streamB, Word attrIndexB, 
-                      bool expectSorted, Supplier s  ) :
+  MergeJoinLocalInfo( Word _streamA, Word wAttrIndexA,
+                      Word _streamB, Word wAttrIndexB, 
+                      bool _expectSorted, Supplier s  ) :
     traceFlag( RTFlag::isActive("ERA:TraceMergeJoin") )
   {
-    this->expectSorted = expectSorted;
-    this->streamA = streamA;
-    this->streamB = streamB;
-    this->attrIndexA = ((CcInt*)attrIndexA.addr)->GetIntval() - 1;
-    this->attrIndexB = ((CcInt*)attrIndexB.addr)->GetIntval() - 1;
-    this->MAX_MEMORY = 0;
+    expectSorted = _expectSorted;
+    streamA = _streamA;
+    streamB = _streamB;
+    attrIndexA = StdTypes::GetInt( wAttrIndexA ) - 1;
+    attrIndexB = StdTypes::GetInt( wAttrIndexB ) - 1;
+    MAX_MEMORY = 0;
 
+    liA = 0;
+    sliA = 0;
+
+    liB = 0;
+    sliB = 0; 
 
     if(expectSorted)
     {
@@ -733,13 +746,28 @@ public:
     }
     else
     {
-      // send the open message to the sortby value mapping
-      // function for both input streams
-      SetArgs(argsA, streamA, attrIndexA);
-      SetArgs(argsB, streamB, attrIndexB);
-      Word result = SetWord(Address(0));
-      SortBy<false>(argsA, result, OPEN, localA, 0);
-      SortBy<false>(argsB, result, OPEN, localB, 0);
+      // sort the input streams
+
+      SortOrderSpecification specA;
+      SortOrderSpecification specB;
+	 
+      specA.push_back( pair<int, bool>(attrIndexA + 1, true) ); 
+      specB.push_back( pair<int, bool>(attrIndexB + 1, true) ); 
+
+
+      void* tupleCmpA = new TupleCompareBy( specA );
+      void* tupleCmpB = new TupleCompareBy( specB );
+
+      liA = new LocalInfo<SortByLocalInfo>();
+      sliA = new SortByLocalInfo( streamA, 
+				  false,  
+				  tupleCmpA, liA );
+
+      liB = new LocalInfo<SortByLocalInfo>();
+      sliB = new SortByLocalInfo( streamB, 
+				  false,  
+				  tupleCmpB, liB );
+
     }
 
     ListExpr resultType =
@@ -780,11 +808,11 @@ public:
     }
     else
     {
-      // send the close message to the sortby value mapping
-      // function for both input streams
-      Word result = SetWord(Address(0));
-      SortBy<false>(argsA, result, CLOSE, localA, 0);
-      SortBy<false>(argsB, result, CLOSE, localB, 0);
+      // delete the objects instantiated for sorting
+      delete sliA;
+      delete sliB;
+      delete liA;
+      delete liB;
     }
 
     delete grpB;
@@ -925,6 +953,9 @@ public:
 
 */
 
+
+//CPUTimeMeasurer mergeMeasurer;
+
 template<bool expectSorted> int
 MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -938,13 +969,13 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       local = SetWord(localInfo);
       return 0;
     case REQUEST:
-      mergeMeasurer.Enter();
+      //mergeMeasurer.Enter();
       localInfo = (MergeJoinLocalInfo*)local.addr;
       result = SetWord(localInfo->NextResultTuple());
-      mergeMeasurer.Exit();
+      //mergeMeasurer.Exit();
       return result.addr != 0 ? YIELD : CANCEL;
     case CLOSE:
-      mergeMeasurer.PrintCPUTimeAndReset("CPU Time for Merging Tuples : ");
+      //mergeMeasurer.PrintCPUTimeAndReset("CPU Time for Merging Tuples : ");
 
       localInfo = (MergeJoinLocalInfo*)local.addr;
       delete localInfo;
@@ -956,8 +987,14 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 2.3 Operator ~hashjoin~
 
-This operator computes the equijoin two streams via a hash join.
-The user can specify the number of hash buckets.
+This operator computes the equijoin two streams via a hash join.  The user can
+specify the number of hash buckets.
+
+The implementation loops for each tuple of the first argument over a (partial)
+hash-table of the second argument. If the hash-table of the second argument
+does not fit into memory it needs to materialize the second arguments and must
+scan it several times.
+
 
 2.3.1 Auxiliary definitions for value mapping function of operator ~hashjoin~
 
@@ -1119,9 +1156,9 @@ public:
       SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
     resultTupleType = new TupleType( nl->Second( resultType ) );
 
-    attrIndexA = ((CcInt*)attrIndexAWord.addr)->GetIntval() - 1;
-    attrIndexB = ((CcInt*)attrIndexBWord.addr)->GetIntval() - 1;
-    nBuckets = ((CcInt*)nBucketsWord.addr)->GetIntval();
+    attrIndexA = StdTypes::GetInt( attrIndexAWord ) - 1;
+    attrIndexB = StdTypes::GetInt( attrIndexBWord ) - 1;
+    nBuckets = StdTypes::GetInt( nBucketsWord );
     if(nBuckets > qp->MemoryAvailableForOperator() / 1024)
       nBuckets = qp->MemoryAvailableForOperator() / 1024;
     if(nBuckets < MIN_BUCKETS)
@@ -1287,20 +1324,25 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
 
 /*
-3 Initialization of the templates
+3 Instantiation of Template Functions
 
-The compiler cannot expand these template functions.
+The compiler cannot expand these template functions in
+the file ~ExtRelationAlgebra.cpp~.
 
 */
+
 template int
 SortBy<false>(Word* args, Word& result, int message, 
               Word& local, Supplier s);
+
 template int
 SortBy<true>(Word* args, Word& result, int message, 
              Word& local, Supplier s);
+
 template int
 MergeJoin<true>(Word* args, Word& result, int message, 
                 Word& local, Supplier s);
+
 template int
 MergeJoin<false>(Word* args, Word& result, int message, 
                  Word& local, Supplier s);
