@@ -61,15 +61,19 @@ reference counters. There are reference counters on tuples and also
 on attributes. Some assertions were removed, since the code is
 stable.
 
-April 2006, M. Spiekermann. Intorduced a bew function ~clearAll~ 
-in ~PrivateTupleBuffer~. This function will now call the tuples' 
-member functions ~DecReference~ and ~DeleteIfAllowed~ instead of 
-deleting the tuple pointer directly. 
+April 2006, M. Spiekermann. Introduction of a new function ~clearAll~ in class
+~PrivateTupleBuffer~. This function calls the tuples' member functions
+~DecReference~ and ~DeleteIfAllowed~ instead of deleting the tuple pointer
+directly and is called by the destructor.
 
-January 2007, M. Spiekermann. Fixed a memory leak in ~PrivateTupleBuffer~.
+January 2007, M. Spiekermann. A memory leak in ~PrivateTupleBuffer~ has been
+fixed.
 
-April 2007, T Behr, Concept of solid tuples has been removed.
+April 2007, T Behr. The concept of solid tuples has been removed.
 
+May 2007, M. Spiekermann. From now on the function TupleBuffer::Clear() 
+deletes a the pointer to a relation object and marks the buffer's state
+as memory only.
 
 [TOC]
 
@@ -776,6 +780,7 @@ struct PrivateTupleBuffer
     MAX_MEMORY_SIZE( maxMemorySize ),
     diskBuffer( 0 ),
     inMemory( true ),
+    traceFlag( RTFlag::isActive("RA:TupleBufferInfo") ),
     totalExtSize( 0 ),
     totalSize( 0 )
     {}
@@ -827,6 +832,11 @@ The buffer stored on disk.
 A flag that tells if the buffer fit in memory or not.
 
 */
+  const bool traceFlag;
+/*
+Switch trace messages on or off
+
+*/  
   double totalExtSize;
 /*
 The total size occupied by the tuples in the buffer,
@@ -848,7 +858,7 @@ taking into account the FLOBs.
 TupleBuffer::TupleBuffer( const size_t maxMemorySize ):
 privateTupleBuffer( new PrivateTupleBuffer( maxMemorySize ) )
 {
-  if (RTFlag::isActive("RA:TupleBufferInfo")) 
+  if (privateTupleBuffer->traceFlag) 
   {
     cmsg.info() << "New Instance of TupleBuffer with size " 
                 << maxMemorySize / 1024 << "kb " 
@@ -948,12 +958,14 @@ void TupleBuffer::Clear()
   }
   else
   {
-    privateTupleBuffer->diskBuffer->Clear();
+    delete privateTupleBuffer->diskBuffer;
+    privateTupleBuffer->inMemory = true;
   }
 }
 
 void TupleBuffer::AppendTuple( Tuple *t )
 {
+  
   if( privateTupleBuffer->inMemory )
   {
     if( privateTupleBuffer->totalExtSize + t->GetExtSize() <= 
@@ -966,7 +978,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
     }
     else
     {
-      if (RTFlag::isActive("RA:TupleBufferInfo")) 
+      if (privateTupleBuffer->traceFlag)
       {
         cmsg.info() << "Changing TupleBuffer's state from inMemory "
                     << "-> !inMemory" << endl;
