@@ -9525,14 +9525,21 @@ this operator is line -> stream(line)
 
 */
 ListExpr PolylinesMap(ListExpr args){
-  if(nl->ListLength(args)!=2){
-     ErrorReporter::ReportError("line x bool expected");
+  int len = nl->ListLength(args);
+  if( (len!=2) &&len!=3){
+     ErrorReporter::ReportError("line x bool [x points] expected");
      return nl->TypeError();
   }
   if(!nl->IsEqual(nl->First(args),"line") ||
      !nl->IsEqual(nl->Second(args),"bool")){
      ErrorReporter::ReportError("line  x bool expected");
      return nl->TypeError();
+  }
+  if(len==3){
+     if(!nl->IsEqual(nl->Third(args),"points")){
+       ErrorReporter::ReportError("line x bool [x points] expected");
+       return nl->TypeError();
+     }
   }
   return nl->TwoElemList(nl->SymbolAtom("stream"),
                          nl->SymbolAtom("line"));
@@ -12339,10 +12346,12 @@ public:
 Creates a LineSplitter from the given line. 
   
 */ 
-   LineSplitter(Line* line, bool ignoreCriticalPoints){
+   LineSplitter(Line* line, bool ignoreCriticalPoints,
+                Points* points = 0){
         this->theLine = line;
         size = line->Size();
         lastPos =0;
+        this->points = points;
         used = new bool[size];
         memset(used,false,size);
         this->ignoreCriticalPoints = ignoreCriticalPoints;
@@ -12355,6 +12364,7 @@ Creates a LineSplitter from the given line.
 
    ~LineSplitter(){
       delete [] used;
+      points = 0;
     }
 
 /*
@@ -12457,8 +12467,14 @@ deletion of this object.
         }
  
         if(found){ // sp is a potential extension of the line
-          if(ignoreCriticalPoints || !isCriticalPoint(partnerpos)){ 
-             pos = sp;
+          if(ignoreCriticalPoints || !isCriticalPoint(partnerpos)){
+             const HalfSegment* hs4;
+             theLine->Get(partnerpos,hs4);
+             if(points!=0 && points->Contains(hs4->GetDomPoint())){
+                 done = true;
+             } else{
+                 pos = sp;
+             }
           } else {
                 done = true;
           }
@@ -12482,7 +12498,8 @@ deletion of this object.
               Point p2 = hs->GetDomPoint();
               if(AlmostEqual(p,p2)){
                  if(pointset.find(hs->GetSecPoint())==pointset.end()){
-                    if(ignoreCriticalPoints || !isCriticalPoint(lastPos)){
+                    if(ignoreCriticalPoints || !isCriticalPoint(lastPos)
+                       || points==0 || !points->Contains(p2)){
                        pos = lastPos;
                        done = false;
                     }
@@ -12525,6 +12542,7 @@ line.
    int lastPos;
    int size;
    bool ignoreCriticalPoints;
+   Points* points;
 };
 
 int SpatialPolylines(Word* args, Word& result, int message,
@@ -12536,8 +12554,14 @@ int SpatialPolylines(Word* args, Word& result, int message,
    result = qp->ResultStorage(s);
    switch (message){
       case OPEN:
-          local = SetWord(new LineSplitter((Line*)args[0].addr,
+          if(qp->GetNoSons(s)==2){
+             local = SetWord(new LineSplitter((Line*)args[0].addr,
                                 ((CcBool*)args[1].addr)->GetBoolval()));
+          } else {
+            local = SetWord(new LineSplitter((Line*)args[0].addr,
+                            ((CcBool*)args[1].addr)->GetBoolval(),
+                            ((Points*)args[2].addr)));
+          }
           return 0;
       case REQUEST:
            localinfo = (LineSplitter*) local.addr; 
@@ -13081,8 +13105,8 @@ const string SpatialSpecArea  =
 
 const string SpatialSpecPolylines  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>line  -> stream( line ) </text--->"
-    "<text> _  polylines [ _ ] </text--->"
+    "( <text>line  x bool [ x points] -> stream( line ) </text--->"
+    "<text> _  polylines [ _ , _ ] </text--->"
     "<text>Returns a stream of simple line objects "
     " whose union is the original line. The boolean parameter"
     "indicates to ignore critical points as splitpoints.</text--->"
