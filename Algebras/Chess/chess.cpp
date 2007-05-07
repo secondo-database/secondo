@@ -404,7 +404,7 @@ SizeOfMove()
 bool
 MoveType( ListExpr type, ListExpr & errorInfo )
 {
-  return ( nl->IsEqual( type, "move" ) );
+  return ( nl->IsEqual( type, "chessmove" ) );
 }
 
 
@@ -1201,7 +1201,7 @@ ListExpr moveStrTypeMap( ListExpr args )
   if ( nl->ListLength( args ) == 1 )
   {
     ListExpr arg = nl->First( args );
-    if ( nl->IsEqual( arg, "move" ) )
+    if ( nl->IsEqual( arg, "chessmove" ) )
     {
       return nl->SymbolAtom( "string" );
     }
@@ -1214,7 +1214,7 @@ ListExpr moveIntTypeMap( ListExpr args )
   if ( nl->ListLength( args ) == 1 )
   {
     ListExpr arg = nl->First( args );
-    if ( nl->IsEqual( arg, "move" ) )
+    if ( nl->IsEqual( arg, "chessmove" ) )
     {
       return nl->SymbolAtom( "int" );
     }
@@ -1227,7 +1227,7 @@ ListExpr moveBoolTypeMap( ListExpr args )
   if ( nl->ListLength( args ) == 1 )
   {
     ListExpr arg = nl->First( args );
-    if ( nl->IsEqual( arg, "move" ) )
+    if ( nl->IsEqual( arg, "chessmove" ) )
     {
       return nl->SymbolAtom( "bool" );
     }
@@ -1420,7 +1420,8 @@ ListExpr moveNoTypeMap( ListExpr args )
   if ( nl->ListLength( args ) == 1 )
   {
     ListExpr arg = nl->First( args );
-    if ( ( nl->IsEqual( arg, "move" ) ) || ( nl->IsEqual( arg, "position" ) ) )
+    if ( ( nl->IsEqual( arg, "chessmove" ) ) || 
+         ( nl->IsEqual( arg, "position" ) ) )
       return nl->SymbolAtom( "int" );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -1430,7 +1431,7 @@ ValueMapping moveNoMap[] = { moveNoValueMapM, moveNoValueMapP };
 int moveNoSelect( ListExpr args )
 {
   ListExpr arg = nl->First( args );
-  if ( nl->IsEqual( arg, "move" ) )
+  if ( nl->IsEqual( arg, "chessmove" ) )
     return ( 0 );
   if ( nl->IsEqual( arg, "position" ) )
     return ( 1 );
@@ -1597,7 +1598,7 @@ ListExpr getmoveTypeMap( ListExpr args )
     ListExpr arg2 = nl->Second( args );
     if ( ( nl->IsEqual( arg1, "chessgame" ) )
          && ( nl->IsAtom( arg2 ) && nl->IsEqual( arg2, "int" ) ) )
-      return nl->SymbolAtom( "move" );
+      return nl->SymbolAtom( "chessmove" );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -1694,7 +1695,7 @@ ListExpr movesTypeMap( ListExpr args )
   {
     if ( nl->IsEqual( nl->First( args ), "chessgame" ) )
       return nl->TwoElemList( nl->SymbolAtom( "stream" ),
-                              nl->SymbolAtom( "move" ) );
+                              nl->SymbolAtom( "chessmove" ) );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -1927,7 +1928,7 @@ TypeConstructor materialTC(
 );
 
 TypeConstructor moveTC(
-  "move",
+  "chessmove",
   MoveProp,
   OutMove, InMove,
   0, 0,
