@@ -777,8 +777,6 @@ public:
     // read in the first tuple of both input streams
     ptA = NextTupleA();
     ptB = NextTupleB();
-    ptA->IncReference();
-    ptB->DecReference();
 
     // initialize the status for the result
     // set iteration   
@@ -786,16 +784,12 @@ public:
     cmp = 0;
     continueMerge = false;
 
-    if( ptA != 0 && ptB != 0 )
-    {
-      MAX_MEMORY = qp->MemoryAvailableForOperator();
-
-      cmsg.info("ERA:ShowMemInfo")
-        << "MergeJoin.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;
-      cmsg.send();
-    }
-
+    MAX_MEMORY = qp->MemoryAvailableForOperator();
     grpB = new TupleBuffer( MAX_MEMORY );
+
+    cmsg.info("ERA:ShowMemInfo")
+      << "MergeJoin.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;
+    cmsg.send();
 
   }
 
