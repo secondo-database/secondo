@@ -201,28 +201,30 @@ Redefinition of the copy operator ~=~.
 
 //  bool operator==( const Uncertain<Alpha>& c ) const;
 /*
-Returns ~true~ if the uncertain value is equal to ~c~ and ~false~ if they are different.
+Returns ~true~ if the uncertain value is equal to ~c~ and ~false~ if they are
+different.
 
 */
 
 //  bool operator!=( const Uncertain<Alpha>& c ) const;
 /*
-Returns ~true~ if the uncertain value is different to ~c~ and ~false~ if they are equal.
+Returns ~true~ if the uncertain value is different to ~c~ and ~false~ if they 
+are equal.
 
 */
 
 //  bool PossiblyIntersects( const Uncertain<Alpha>& c ) const;
 /*
-Returns ~true~ if the uncertain value may intersect ~c~ (if they may have the same values) 
-and ~false~ if they are distinct.
+Returns ~true~ if the uncertain value may intersect ~c~ (if they may have the 
+same values) and ~false~ if they are distinct.
 
 */
 
 //  void Intersection( const Uncertain<Alpha>& c, 
 //                      Uncertain<Alpha>& result ) const;
 /*
-Returns an uncertain value, representing the Intersection of this uncertain value and ~c~ into 
-~result~.
+Returns an uncertain value, representing the Intersection of this uncertain 
+value and ~c~ into ~result~.
 
 */
 
@@ -263,8 +265,9 @@ The flag that indicates if the value is defined or not.
 /*
 3.2 CBool
 
-This datatype represents an ~uncertain~ boolean value. To define a ~boolean uncertainty~ 
-a 3rd State (beyond the two known States TRUE and FALSE), called MAYBE, is introduced. 
+This datatype represents an ~uncertain~ boolean value. To define a ~boolean 
+uncertainty~ a 3rd State (beyond the two known States TRUE and FALSE), called 
+MAYBE, is introduced. 
 
 */
 
@@ -306,15 +309,15 @@ class CInt : public Uncertain<CcInt>
 
 //  void possibleMinimum ( int result ) const;
 /*
-Returns the minimal possible integer value by subtracting the epsylon value from the given 
-integer value and rounding up to the next integer.
+Returns the minimal possible integer value by subtracting the epsylon value 
+from the given integer value and rounding up to the next integer.
 
 */  
   
 //  void possibleMaximum ( int result ) const;
 /*
-Returns the maximal possible integer value by adding the epsylon value to the given integer
-value and rounding down to the next integer.
+Returns the maximal possible integer value by adding the epsylon value to the 
+given integer value and rounding down to the next integer.
 
 */
   
@@ -333,7 +336,8 @@ implements Uncertain
 /*
 3.5 CPoint
 
-CPoint represents a Point value containing an epsylon value. It implements Uncertain.
+CPoint represents a Point value containing an epsylon value. It implements 
+Uncertain.
 
 */
 class CPoint : public Uncertain<Point>
@@ -356,8 +360,8 @@ The default constructor which should not be used.
       {}
       
 /*
-The undefined constructor. Only the epsylon value is set. The point value is left
-undefined for later definition.
+The undefined constructor. Only the epsylon value is set. The point value is 
+left undefined for later definition.
 
 */
 
@@ -394,8 +398,8 @@ The destructor.
   
 //  inline const Rectangle<2> BoundingBox() const;
 /*
-Returns the bounding box of the uncertain point, i.e. a rectangle area, bounding
-the area where the point may be.
+Returns the bounding box of the uncertain point, i.e. a rectangle area, 
+bounding the area where the point may be.
 
 */
 
@@ -540,8 +544,8 @@ the implementation of an uncertain MPoint
 /*
 3.19 HierarchicalMapping
 
-a template class to bind all (uncertain) representations of one object to one HierarchicalMapping
-object. 
+a template class to bind all (uncertain) representations of one object to one 
+HierarchicalMapping object. 
 
 Attributes: 
 - uncertain : DBArray
@@ -554,8 +558,8 @@ Attributes:
 /*
 3.20 HMPointLine
 
-the HierarchicalMovingPoint Type, which binds all (uncertain) representations of one MPoint
-implements HierarchicalMapping
+the HierarchicalMovingPoint Type, which binds all (uncertain) representations 
+of one MPoint implements HierarchicalMapping
 
 */
 
@@ -564,8 +568,8 @@ implements HierarchicalMapping
 /*
 3.21 HLine
 
-the HierarchicalLine Type, which binds all (uncertain) representations of one Line
-implements HierarchicalMapping
+the HierarchicalLine Type, which binds all (uncertain) representations of one 
+Line implements HierarchicalMapping
 
 */
 
@@ -574,8 +578,8 @@ implements HierarchicalMapping
 /*
 3.22 HRegion
 
-the HierarchicalRegion Type, which binds all (uncertain) representations of one Region
-implements HierarchicalMapping
+the HierarchicalRegion Type, which binds all (uncertain) representations of 
+one Region implements HierarchicalMapping
 
 */
 
@@ -609,8 +613,18 @@ ListExpr OutUncertain( ListExpr typeInfo, Word value )
   
   if( uncertain->IsDefined() )
     return nl->TwoElemList(
-      nl->RealAtom( &uncertain->epsylon),
-      OutFun( nl->TheEmptyList(), SetWord(&uncertain->value) ));
+      nl->RealAtom( &uncertain->GetEpsylon()),
+      OutFun( nl->TheEmptyList(), SetWord( &uncertain->value ) ) );
+      // Up to now the previous line sems to contain an error:
+      // If the OutUncertain-function is mentioned in the typeconstructor
+      // ~uncertainpoint~ (see HierarchicalGeoAlgebra.cpp line 316)
+      // the compiler returns the following error message:
+      //     'HierarchicalGeoAlgebra.h: In function ‘ListExpr OutUncertain
+      //      (ListExpr, Word) [with Alpha = Point, ListExpr (* OutFun)
+      //      (ListExpr, Word) = OutPoint]’:
+      //      HierarchicalGeoAlgebra.cpp:328:   instantiated from here
+      //      HierarchicalGeoAlgebra.h:613: error: invalid lvalue in unary ‘&'
+      // I got no idea for the reason of this message. (Sascha Vaut)
   else
     return nl->SymbolAtom("undef");
 }
@@ -636,7 +650,7 @@ Word InUncertain( const ListExpr typeInfo, const ListExpr instance,
         correct = true;
        
         Alpha *value = (Alpha *)InFun( nl->TheEmptyList(),
-                                        nl->Second( instance ), errorPos, 
+                                        second, errorPos, 
                                         errorInfo, correct ).addr;
         if ( correct == false )
         {
@@ -701,7 +715,7 @@ void CloseUncertain( const ListExpr typeInfo, Word& w )
 
 */
 template <class Alpha>
-void CloneUncertain( const ListExpr typeInfo, Word& w )
+Word CloneUncertain( const ListExpr typeInfo, const Word& w )
 {
   Uncertain<Alpha> *uncertain = (Uncertain<Alpha> *)w.addr;
   return SetWord( new Uncertain<Alpha>( *uncertain ) );

@@ -314,17 +314,22 @@ TypeConstructor uncertainpoint(
         "cpoint",                //name
         CPointProperty,     //property function describing signature
         OutCPoint,
-        InCPoint,               //Out and In functions
+        // For consequent implementation, the Out-function in the previous line
+        // should be 'OutUncertain<Point, OutPoint>' instead of 'OutCPoint', 
+        // but the use of 'OutUncertain...' leads to a compiler error according
+        // to line 613 in 'HierarchicalGeoAlgebra.h'! See there for further 
+        // information! (Sascha Vaut)
+        InUncertain<Point, InPoint>,               //Out and In functions
         0,
         0,                         //SaveToList and RestoreFromList functions
-        CreateCPoint,
-        DeleteCPoint,        //object creation and deletion
+        CreateUncertain<Point>,
+        DeleteUncertain<Point>,        //object creation and deletion
         0,
         0,                         // object open and save
-        CloseCPoint,   
-        CloneCPoint,         //object close and clone
-        CastCPoint,           //cast function
-        SizeOfCPoint,       //sizeof function
+        CloseUncertain<Point>,   
+        CloneUncertain<Point>,         //object close and clone
+        CastUncertain<Point>,           //cast function
+        SizeOfUncertain<Point>,       //sizeof function
         CheckCPoint );      //kind checking function
 
 
@@ -348,11 +353,88 @@ ListExpr UncertainTypeMapReal( ListExpr args )
 {
   if ( nl->ListLength( args ) == 1 )
   {
-    if ( nl->IsEqual ( args, "cpoint" ) )
+    ListExpr arg1 = nl->First( args );
+    
+    if ( nl->IsEqual( arg1, "cpoint" ) )
       return nl->SymbolAtom("real");
+    if (nl->AtomType( args ) == SymbolType)
+    {
+      ErrorReporter::ReportError("Type mapping function got a "
+              "parameter of type " +nl->SymbolValue(args) + ".");
+      return nl->SymbolAtom("typeerror");
+    }
   }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 1.");
   return nl->SymbolAtom("typeerror");
 }
+
+/*
+Type mapping function ~UncertainTypeMapBase~
+
+This type mapping function is used for the Operation ~Val()~.
+
+*/
+
+ListExpr UncertainTypeMapBase( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 1 )
+  {
+    ListExpr arg1 = nl->First( args );
+    
+    if( nl->IsEqual( arg1, "cpoint") )
+      return nl->SymbolAtom( "point" );
+    if (nl->AtomType( args ) == SymbolType)
+    {
+      ErrorReporter::ReportError("Type mapping function got a "
+              "parameter of type " +nl->SymbolValue(args) + ".");
+      return nl->SymbolAtom("typeerror");
+    }
+  }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 1.");
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+16.2 Selection function
+
+A selection function is quite similar to a type mapping function. The only
+difference is that it doesn't return a type but the index of a value
+mapping function being able to deal with the respective combination of
+input parameter types.
+
+Note that a selection function does not need to check the correctness of
+argument types; it has already been checked by the type mapping function that it
+is applied to correct arguments.
+
+16.2.1 Selection function ~UncertainSimpleSelect~
+
+Is used for the ~epsylon~ and ~val~ operators.
+
+*/
+int UncertainSimpleSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  
+//  if( nl->SymbolValue( arg1 ) == "cbool" )
+//    return 0;
+    
+//  if( nl->SymbolValue( arg1 ) == "cintt" )
+//    return 1;
+    
+//  if( nl->SymbolValue( arg1 ) == "creal" )
+//    return 2;
+    
+  if( nl->SymbolValue( arg1 ) == "cpoint" )
+    return 3;
+    
+  // ...space for further possible argument types
+  
+  return -1; // This point should never be reached
+}
+
+
 
 /*
 Value mapping functions
@@ -360,7 +442,7 @@ Value mapping functions
 
 
 
-Definition fo operators
+Definition of operators
 
 Definition of operators is done in a way similar to definition of 
 type constructors: an instance of class ~Operator~ is defined.
@@ -377,6 +459,12 @@ ValueMapping arrays
 ValueMapping uncertainepsylonmap[] = { 
                                       UncertainEpsylon<Point> };
 
+
+ValueMapping uncertainvalmap[] = {
+                                      UncertainVal<CcBool>,
+                                      UncertainVal<CcInt>,
+                                      UncertainVal<CcReal>,
+                                      UncertainVal<Point> };
 /*
 Specification strings
 
@@ -401,6 +489,7 @@ const string UncertainSpecVal =
 
 
 
+
 /*
 Operators
 
@@ -412,6 +501,13 @@ Operator uncertainepsylon( "epsylon",
                               Operator::SimpleSelect,
                               UncertainTypeMapReal );
 
+Operator uncertainval( "val",
+                              UncertainSpecVal,
+                              4,
+                              uncertainvalmap,
+                              UncertainSimpleSelect,
+                              UncertainTypeMapBase );
+                              
 /*
 Creating the Algebra
  
@@ -425,6 +521,7 @@ class HierarchicalGeoAlgebra : public Algebra
     uncertainpoint.AssociateKind( "UNCERTAIN" );
     uncertainpoint.AssociateKind( "SPATIAL" );
     AddOperator( &uncertainepsylon );
+    AddOperator( &uncertainval );
   }
   ~HierarchicalGeoAlgebra() {};
 };

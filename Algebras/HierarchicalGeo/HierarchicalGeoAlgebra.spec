@@ -18,6 +18,7 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator epsylon alias EPSYLON pattern op ( _ )
+operator val alias VAL pattern op( _ )
 
 
 
