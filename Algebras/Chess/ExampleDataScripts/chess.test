@@ -290,7 +290,7 @@ query games feed extend[Result: .Match getposition[ 20 ]] project[Result] consum
 # tests for getmove operator
 #######################################################################
 #testcase getmove_neg
-#yields ((rel (tuple ((Result move))))\
+#yields ((rel (tuple ((Result chessmove))))\
 ((undef)\
  (undef)\
  (undef)\
@@ -298,7 +298,7 @@ query games feed extend[Result: .Match getposition[ 20 ]] project[Result] consum
 query games feed extend[Result: .Match getmove[ -1 ]] project[Result] consume;
 
 #testcase getmove_0
-#yields ((rel (tuple ((Result move))))\
+#yields ((rel (tuple ((Result chessmove))))\
 ((undef)\
  (undef)\
  (undef)\
@@ -306,7 +306,7 @@ query games feed extend[Result: .Match getmove[ -1 ]] project[Result] consume;
 query games feed extend[Result: .Match getmove[ 0 ]] project[Result] consume;
 
 #testcase getmove_200
-#yields ((rel (tuple ((Result move))))\
+#yields ((rel (tuple ((Result chessmove))))\
 ((undef)\
  (undef)\
  (undef)\
@@ -314,7 +314,7 @@ query games feed extend[Result: .Match getmove[ 0 ]] project[Result] consume;
 query games feed extend[Result: .Match getmove[ 200 ]] project[Result] consume;
 
 #testcase getmove_1
-#yields ((rel (tuple ((Result move))))\
+#yields ((rel (tuple ((Result chessmove))))\
 (((1 "Pawn" "none" "e" 2 "e" 4 FALSE))\
  ((1 "Pawn" "none" "d" 2 "d" 4 FALSE))\
  ((1 "Pawn" "none" "d" 2 "d" 4 FALSE))\
@@ -322,7 +322,7 @@ query games feed extend[Result: .Match getmove[ 200 ]] project[Result] consume;
 query games feed extend[Result: .Match getmove[ 1 ]] project[Result] consume;
 
 #testcase getmove_2
-#yields ((rel (tuple ((Result move))))\
+#yields ((rel (tuple ((Result chessmove))))\
 (((2 "pawn" "none" "e" 7 "e" 5 FALSE))\
  ((2 "pawn" "none" "e" 7 "e" 6 FALSE))\
  ((2 "knight" "none" "g" 8 "f" 6 FALSE))\
@@ -330,7 +330,7 @@ query games feed extend[Result: .Match getmove[ 1 ]] project[Result] consume;
 query games feed extend[Result: .Match getmove[ 2 ]] project[Result] consume;
 
 #testcase getmove_3
-#yields ((rel (tuple ((Result move))))\
+#yields ((rel (tuple ((Result chessmove))))\
 (((3 "Knight" "none" "g" 1 "f" 3 FALSE))\
  ((3 "Knight" "none" "g" 1 "f" 3 FALSE))\
  ((3 "Knight" "none" "g" 1 "f" 3 FALSE))\
@@ -338,7 +338,7 @@ query games feed extend[Result: .Match getmove[ 2 ]] project[Result] consume;
 query games feed extend[Result: .Match getmove[ 3 ]] project[Result] consume;
 
 #testcase getmove_4
-#yields ((rel (tuple ((Result move))))\
+#yields ((rel (tuple ((Result chessmove))))\
 (((4 "knight" "none" "b" 8 "c" 6 FALSE))\
  ((4 "knight" "none" "g" 8 "f" 6 FALSE))\
  ((4 "pawn" "none" "e" 7 "e" 6 FALSE))\
@@ -689,7 +689,7 @@ query games feed extendstream[Pos: .Match positions] project[Pos] head[10] consu
     (rel\
         (tuple\
             (\
-                (Moves move))))\
+                (Moves chessmove))))\
     (\
         ((1 "Pawn" "none" "e" 2 "e" 4 FALSE))\
         ((2 "pawn" "none" "e" 7 "e" 5 FALSE))\
@@ -711,7 +711,7 @@ query games feed extendstream[Moves: .Match moves] project [Moves] head [10] con
     (rel\
         (tuple\
             (\
-                (Moves move))))\
+                (Moves chessmove))))\
     (\
         ((33 "Queen" "none" "f" 3 "a" 3 TRUE))\
     )\
@@ -724,7 +724,7 @@ query games feed reduce [TRUE, 2] head[1] extendstream[Moves: .Match moves] proj
     (rel\
         (tuple\
             (\
-                (Moves move))))\
+                (Moves chessmove))))\
     (\
         ((21 "King" "none" "e" 1 "c" 1 FALSE))\
     )\
@@ -738,7 +738,7 @@ reduce [TRUE, 21] head[1] consume;
     (rel\
         (tuple\
             (\
-                (Moves move))))\
+                (Moves chessmove))))\
     (\
         ((57 "Pawn" "pawn" "e" 5 "f" 6 FALSE))\
     )\
