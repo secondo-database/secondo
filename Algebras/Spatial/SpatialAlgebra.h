@@ -906,7 +906,7 @@ as an attribute.
 5.7 Private member functions
 
 */
-    void Sort();
+    void Sort(const bool exact = true);
 /*
 Sorts the persistent array of points.
 

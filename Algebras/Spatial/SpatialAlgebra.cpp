@@ -1119,7 +1119,7 @@ void Points::EndBulkLoad( bool sort, bool remDup )
     ordered = true;
   if( remDup )
     RemoveDuplicates();
-  points.TrimToSize();	
+  points.TrimToSize();
 }
 
 bool Points::operator==( const Points& ps ) const
@@ -1352,41 +1352,89 @@ int PointHalfSegmentCompareAlmost( const void *a, const void *b )
   return 1;
 }
 
-void Points::Sort()
+void Points::Sort(const bool exact /*= true*/)
 {
   assert( !IsOrdered() );
-  points.Sort( PointCompare );
+  if(exact){
+      points.Sort( PointCompare );
+  } else{
+      points.Sort(PointCompareAlmost);
+  }
   ordered = true;
 }
 
+
+/*
+Function supporting the RemoveDuplicates function.
+This function checks whether in an array of points 
+a point exists which is AlmostEqual to the given one. 
+The search is restricted to the range in array given 
+by the indices __min__ and __max__.
+
+*/ 
+bool AlmostContains( const Point* points, const Point& p,
+                     int min, int max, int size){
+
+  if(min>max){
+     return false;
+  }
+  if(min==max){ // search around the position found
+     // search left of min
+     int pos = min;
+     double x = p.GetX();
+     while(pos>=0 && AlmostEqual(points[pos].GetX(),x)){
+        if(AlmostEqual(points[pos],p)){
+           return true;
+        }
+        pos--;
+     } 
+     // search right of min
+     pos=min+1;
+     while(pos<size &&AlmostEqual(points[pos].GetX(),x)){
+        if(AlmostEqual(points[pos],p)){
+          return  true;
+        }
+        pos++;
+    } 
+    return false; // no matching point found
+  } else {
+      int mid = (min+max)/2;
+      double x = points[mid].GetX();
+      double cx = p.GetX();
+      if(AlmostEqual(x,cx)){
+         return AlmostContains(points,p,mid,mid,size);
+      } else if(cx<x){
+         return AlmostContains(points,p,min,mid-1,size);
+      }else {
+         return AlmostContains(points,p,mid+1,max,size);
+      } 
+  }
+}
+
+
+
 void Points::RemoveDuplicates()
 {
-  assert( IsOrdered() );
-
-  if( Size() <= 1 )
-    return;
-
-  const Point *p1, *p2;
-  int source = 0, target = 0;
-  int size = Size();
-
-  points.Get(source, p1);
-  points.Put(target, *p1);
-  source++;
-  target++;
-  p2 = p1;
-  while(source < size)
-  {
-    points.Get(source, p1);
-    source++;
-    if( !AlmostEqual(*p1, *p2) )
-    {
-      points.Put(target, *p1);
-      target++;
-      p2 = p1;
-    }
-  }
-  points.Resize( target );
+ assert(IsOrdered());
+ Point allPoints[points.Size()];
+ const Point* pp;
+ Point p;
+ int elems=0;
+ for(int i=0;i<points.Size();i++){
+    points.Get(i,pp);
+    p = *pp;
+    bool found = AlmostContains(allPoints,p,0,elems-1,elems);
+    if(!found){
+      allPoints[elems] = p;
+      elems++;
+    } 
+ }
+ if(elems!=Size()){
+     points.Clear();
+     for(int i=0;i < elems; i++){
+        points.Append(allPoints[i]);
+     }
+ }
 }
 
 bool Points::Contains( const Point& p ) const
@@ -1749,13 +1797,13 @@ void Points::Union( const Point& p, Points& result ) const
 
     if( !inserted && *pi > p )
     {
-      result += p;      // += already avoids insertion of duplicates
+      result += p;     
       inserted = true;
     }
     result += *pi;
   }
   if( !inserted )
-    result += p;        // += already avoids insertion of duplicates
+    result += p;        
 
   result.EndBulkLoad( false, true );
 }
@@ -1777,11 +1825,12 @@ void Points::Union( const Points& ps, Points& result ) const
       assert( GetPt( p ) );
     else if( obj == second )
       assert( ps.GetPt( p ) );
-    result += *p;              // += already avoids insertion of duplicates
+    result += *p;              
     SelectNext_pp( *this, ps, obj, stat );
   }
-  result.EndBulkLoad( false, false );
+  result.EndBulkLoad( false, true );
 }
+
 
 double Points::Distance( const Point& p ) const
 {
@@ -5151,7 +5200,7 @@ void Region::EndBulkLoad( bool sort, bool setCoverageNo,
   if( computeRegion )
     ComputeRegion();
 
-  region.TrimToSize(); 	
+  region.TrimToSize();
   ordered = true;
 }
 
@@ -12508,7 +12557,7 @@ deletion of this object.
                }
             }
         }
-		 
+
         if(found){ // sp is a potential extension of the line
           if(ignoreCriticalPoints || !isCriticalPoint(partnerpos)){
              pos = sp;
