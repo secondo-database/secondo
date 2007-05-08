@@ -1242,7 +1242,7 @@ int sim_fillup_mpoint_VM ( Word* args, Word& result,
 const string sim_fillup_mpoint_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> mpoint x instant x instant x bool x bool -> mpoint</text--->"
-    "<text>M sim_fillup_mpoint( S, E, LC, RC )"
+    "<text>M sim_fillup_mpoint[ S, E, LC, RC ]"
     "</text--->"
     "<text>Fills up the definition of mpoint 'M', during the "
     "interval defined by starting instant 'S' and ending instant 'E', having "
@@ -1264,6 +1264,245 @@ Operator sim_fillup_mpoint(
     Operator::SimpleSelect,
     sim_fillup_mpoint_TM) ;
 
+
+/*
+5.6 Operator ~sim\_split\_mpoint~
+
+Creates a stream of mpoints from a single mpoint by splitting it into single
+trips. Endings of trips are identified by constant values for longer than a
+given duration. Or by definition time gaps.
+
+Undefined periods will be suppressed, but defined periods of constant value
+will result in separate trips.
+
+----
+    sim_split_mpoint: (mpoint x duration) --> (stream mpoint)
+
+----
+
+*/
+
+ListExpr sim_split_mpoint_TM ( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if ( nl->AtomType( arg1 ) == SymbolType &&
+         nl->SymbolValue( arg1 ) == "mpoint"  &&
+         nl->AtomType( arg2 ) == SymbolType &&
+         nl->SymbolValue( arg2 ) == "duration")
+    {
+      return nl->TwoElemList(nl->SymbolAtom("stream"),
+                             nl->SymbolAtom("mpoint"));
+    }
+  }
+  ErrorReporter::
+      ReportError("SimulationAlgebra: sim_split_mpoint expected "
+      "mpoint x duration");
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+struct SplitMpointLocalInfo
+{
+  SplitMpointLocalInfo():
+      pos( 0 ), size( 0 ), finished( true ), u1 ( UPoint(false) )
+      {}
+
+  int  pos;       // unit counter
+  int  size;      // number of units
+  bool finished;  // whether we are finished or not
+  UPoint u1;
+};
+
+int sim_split_mpoint_VM ( Word* args, Word& result,
+                           int message, Word& local, Supplier s )
+{
+  SplitMpointLocalInfo *sli;
+  MPoint               *mpoint = (MPoint*)(args[0].addr);
+  DateTime             *mindur = (DateTime*)(args[1].addr);
+  result = qp->ResultStorage( s );
+  MPoint *res = 0;
+  bool newtrip = false;
+
+  switch (message)
+  {
+    case OPEN :
+
+//       cout << "sim_split_mpoint_VM received OPEN" << endl;
+      sli = new SplitMpointLocalInfo;
+      sli->pos = 0;
+      local = SetWord(sli);
+
+      if ( !mpoint->IsDefined() ||
+            mpoint->IsEmpty()   ||
+           !mindur->IsDefined() ||
+            mindur->GetType() != durationtype ||
+            *mindur <= DateTime(0,0,durationtype)
+         )
+      { // argument undefined or invalid
+        // -> return empty stream
+        sli->finished = true;
+        sli->u1 = UPoint(false);
+        return 0;
+      }
+      sli->size = mpoint->GetNoComponents();
+      sli->finished = false;
+      return 0;
+
+    case REQUEST :
+
+//       cout << "sim_split_mpoint_VM received REQUEST" << endl;
+
+      if (local.addr == 0)
+        return CANCEL;
+      sli = (SplitMpointLocalInfo*) local.addr;
+
+      if (sli->finished || (sli->pos >= sli->size ) )
+      {
+        sli->finished = true;
+        return CANCEL;
+      }
+
+      newtrip = false;
+      res = new MPoint(true);
+      res->Clear();
+      res->StartBulkLoad();
+      while( sli->pos < sli->size && !newtrip)
+      {
+//         cout << "pos/size = " << sli->pos << "/" << sli->size << endl;
+        const UPoint *cu2;
+        mpoint->Get(sli->pos++, cu2);
+        UPoint u2 = *cu2;
+//         cout << " u1 = "; sli->u1.Print(cout);
+//         cout << " u2 = "; u2.Print(cout);
+        if ( !sli->u1.IsDefined() )
+        { // the last unit is undefined
+          // This means we just started a new trip
+          // Do nothing, but move u1 to u2 for next iteration
+          sli->u1 = u2;
+        } 
+        else // ELSE: Inside a running trip
+        if( sli->u1.timeInterval.end < u2.timeInterval.start ||
+            ( (sli->u1.timeInterval.end == u2.timeInterval.start) &&
+              !sli->u1.timeInterval.rc &&
+              !u2.timeInterval.lc
+            )
+          )
+        { // found GAP between sli->u1 and u2
+//           cout << " Adding "; sli->u1.Print(cout);
+          res->MergeAdd(sli->u1);
+          sli->u1 = u2;
+          newtrip = true;
+        }
+        else // ELSE: No Gap/consecutive units
+        {
+          if ( AlmostEqual(sli->u1.p0, sli->u1.p1) )
+          { // sli->u1 is constant
+            if ( AlmostEqual(u2.p0, u2.p1) )
+            { // sli->u1 is constant and u2 is constant
+              if ( AlmostEqual(sli->u1.p0, u2.p0) )
+              { // sli->u1 and u2 are equalvalue
+                if ( (u2.timeInterval.end - sli->u1.timeInterval.start)
+                      >= *mindur )
+                { // concatenation sli->u1+u2 is long enough
+                  newtrip = true;
+                } // in both cases: merge sli->u1 and u2:
+                sli->u1.timeInterval.end = u2.timeInterval.end;
+                sli->u1.timeInterval.rc = u2.timeInterval.rc;
+              }
+              else // sli->u1 and u2 have different values
+              {
+                if ( (sli->u1.timeInterval.end - sli->u1.timeInterval.start)
+                      >= *mindur )
+                { // sli->u1 is long enough;
+                  newtrip = true;
+                } // in both cases: Append sli->u1
+//                 cout << " Adding "; sli->u1.Print(cout);
+                res->MergeAdd( sli->u1 );
+                sli->u1 = u2;
+              }
+            }
+            else // sli->u1 is constant, u2 is nonconstant
+            {
+              if ( (sli->u1.timeInterval.end - u2.timeInterval.start )
+                    >= *mindur )
+              {
+                newtrip = true;
+              } // in both cases:
+//               cout << " Adding "; sli->u1.Print(cout);
+              res->MergeAdd( sli->u1 );
+              sli->u1 = u2;
+            }
+          }
+          else // sli->u1 is nonconstant
+          {
+            if (AlmostEqual(u2.p0, u2.p1))
+            { // sli->u1 is nonconstant and u2 is constant
+              if ( (u2.timeInterval.end - u2.timeInterval.start ) >= *mindur )
+              {
+                newtrip = true;
+              } // in both cases:
+//               cout << " Adding "; sli->u1.Print(cout);
+              res->MergeAdd( sli->u1 );
+              sli->u1 = u2;
+            }
+            else
+            { // sli->u1 and u2 are nonconstant
+//               cout << " Adding "; sli->u1.Print(cout);
+              res->MergeAdd( sli->u1 );
+              sli->u1 = u2;
+            }
+          }
+        } // end No Gap/consecutive unit
+      }
+      if ( !newtrip && sli->u1.IsDefined() )
+      { // insert the final unit
+//         cout << " Adding Final "; sli->u1.Print(cout);
+        res->MergeAdd( sli->u1 );
+      }
+      res->EndBulkLoad( false ); // do not sort units
+      result = SetWord( res );
+      return YIELD;
+
+    case CLOSE :
+
+//       cout << "sim_split_mpoint_VM received CLOSE" << endl;
+      if (local.addr != 0)
+      {
+        sli = (SplitMpointLocalInfo*) local.addr;
+        delete sli;
+        sli = 0;
+      }
+      return 0;
+
+  } // end switch
+  return 0;   // should not be reached
+}
+
+const string sim_split_mpoint_Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> mpoint x instant x instant x bool x bool -> mpoint</text--->"
+    "<text>M sim_split_mpoint[ D ]"
+    "</text--->"
+    "<text>Split a single mpoint into a stream of mpoints representing"
+    "single 'trips'. Endings of trips are recognized by 1) stationary "
+    "intervals with a duration about argument 'D', and included, undefined "
+    "intervals of any length. Such stationäry intervals are interpreted as "
+    "'pauses' and will be returned as separate trips. Definition gaps will "
+    "be ignored - no Trip is created for them. The duration D must be "
+    "positive ( > create_duration(0) ).</text--->"
+    "<text>query train7 sim_split_mpoint[create_duration(0,1000)] count"
+    "</text--->"
+    ") )";
+
+Operator sim_split_mpoint(
+    "sim_split_mpoint",
+    sim_split_mpoint_Spec,
+    sim_split_mpoint_VM,
+    Operator::SimpleSelect,
+    sim_split_mpoint_TM) ;
 
 /*
 6 Class ~SimulationAlgebra~
@@ -1296,6 +1535,7 @@ class SimulationAlgebra : public Algebra
       AddOperator( &sim_create_trip );
       AddOperator( &sim_print_params );
       AddOperator( &sim_fillup_mpoint );
+      AddOperator( &sim_split_mpoint );
     }
   ~SimulationAlgebra() {};
 
