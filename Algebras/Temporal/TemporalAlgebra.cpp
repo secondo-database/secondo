@@ -3964,7 +3964,7 @@ UPointProperty()
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> UNIT"),
                              nl->StringAtom("(upoint) "),
-      nl->StringAtom("( timeInterval (real1 real2 real3 real4) ) "),
+      nl->TextAtom("( timeInterval (real_x0 real_y0 real_x1 real_y1) ) "),
       nl->StringAtom("((i1 i2 TRUE FALSE) (1.0 2.2 2.5 2.1))"))));
 }
 
