@@ -6,14 +6,22 @@
 # Algebras
 # Format: algebra-name algebra-directory
 
+# Research in progress
 TopOpsAlgebra TopOps
 TopRelAlgebra TopRel
 PeriodicAlgebra Periodic
 RoseAlgebra Rose
 RemoteStreamAlgebra RemoteStream
 PartitionedStreamAlgebra PartitionedStream
+SimulationAlgebra Simulation
+
+# Student's algebras
+HierachicalGeoAlgebra HierachicalGeo
+TemporalNetAlgebra TemporalNet
+
 WebAlgebra Web
 GraphAlgebra Graph
+ChessAlgebra Chess
 
 # Directories
 
@@ -34,6 +42,20 @@ CM-Scripts/mkpublic.sh
 CM-Scripts/public-version.pd
 
 Data/Objects/KreisLaender
+
+# Viewers of the practical course developed 
+# in the winter term 2006/2007
+
+Javagui/viewer/ChessViewer.java
+Javagui/viewer/chess
+
+Javagui/viewer/hoese/algebras/Dspledge.java
+Javagui/viewer/hoese/algebras/Dsplpath.java
+Javagui/viewer/hoese/algebras/Dsplvertex.java
+Javagui/viewer/hoese/algebras/Dsplgraph.java
+
+Javagui/viewer/hoese/algebras/Dsplpage.java
+Javagui/viewer/hoese/algebras/Dsplhtml.java
 
 Javagui/viewer/hoese/algebras/periodic/BBox.java
 Javagui/viewer/hoese/algebras/periodic/LinearMove.java
