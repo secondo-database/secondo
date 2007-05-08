@@ -2576,6 +2576,60 @@ void MPoint::Distance( const Point& p, MReal& result ) const
 }
 
 
+
+
+/*   */
+string iv2string(Interval<Instant> iv){
+
+   string res ="";
+   res += iv.lc?"[":"(";
+   res += iv.start.ToString();
+   res += ", ";
+   res += iv.end.ToString();
+   res += iv.rc?"]":")";
+   return res;
+}
+
+void MPoint::MergeAdd(UPoint& unit){
+
+  int size = GetNoComponents();
+  if(size==0){ // the first unit
+     Add(unit);
+     return;
+  }
+  const UPoint* last;
+  Get(size-1,last);
+  if(last->timeInterval.end!=unit.timeInterval.start ||
+     !( (last->timeInterval.rc )  ^ (unit.timeInterval.lc))){
+     // intervals are not connected
+     Add(unit);
+     return;
+  }
+  
+  if(!AlmostEqual(last->p1, unit.p0)){
+    // jump in spatial dimension
+    Add(unit);
+    return;
+  }
+
+  Interval<Instant> complete(last->timeInterval.start,
+                             unit.timeInterval.end,
+                             last->timeInterval.lc,
+                             unit.timeInterval.rc);
+  UPoint upoint(complete,last->p0, unit.p1);
+  Point p;
+  upoint.TemporalFunction(last->timeInterval.end, p, true);
+  if(!AlmostEqual(p,last->p0)){
+     Add(unit);
+     return;
+  }
+  
+  units.Put(size-1,upoint); // overwrite the last unit by a connected one
+
+
+}
+
+
 /*
 This function checks whether the end point of the first unit is equal
 to the start point of the second unit and if the time difference is
@@ -2592,6 +2646,8 @@ static bool connected(const UPoint* u1, const UPoint* u2){
    }
    return true;
 }
+
+
 
 
 static bool IsBreakPoint(const UPoint* u,const DateTime& duration){

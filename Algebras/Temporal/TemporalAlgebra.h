@@ -2134,7 +2134,7 @@ is in bulk loads, i.e., in a non-ordered array.
 
 */
 
-    void MergeAdd( Unit& upi );
+   void MergeAdd( Unit& upi );
 /*
 Adds an unit ~upi~ to the mapping. If the new unit and the last
 unit in the Mapping are equalValue it merges the two units.
@@ -2377,7 +2377,7 @@ array of intervals.
 A flag indicating whether the unit set is ordered or not.
 
 */
-
+protected:
     DBArray< Unit > units;
 /*
 The database array of temporal units.
@@ -2556,6 +2556,14 @@ The constructor. Initializes space for ~n~ elements.
 */
 
 /*
+3.12.2
+ 
+MergeAdd  Overwrites the function defined in Mapping
+
+*/
+  void MergeAdd(UPoint& unit);
+
+/*
 3.10.5.3 Operation ~trajectory~
 
 *Precondition:* ~X.IsOrdered()~
@@ -2568,6 +2576,10 @@ The constructor. Initializes space for ~n~ elements.
   void Trajectory( Line& line ) const;
   void MSpeed(  MReal& result ) const;
   void MVelocity( MPoint& result ) const;
+
+
+
+
 
 /*
 3.10.5.3 Operation ~distance~
