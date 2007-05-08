@@ -611,7 +611,8 @@ int sim_create_trip_VM ( Word* args, Word& result,
 //   else if (message == CANCEL) cout << "CANCEL" << endl;
 //   else if (message == CARDINALITY) cout << "CARDINALITY" << endl;
 //   else if (message == PROGRESS) cout << "PROGRESS" << endl;
-//     else cout << "(unknown message)" << endl;
+//   else cout << "(unknown message)" << endl;
+
   result = qp->ResultStorage( s );
   MPoint*        res = ((MPoint*)result.addr);
   CcInt*  cLineIndex = (CcInt*) args[6].addr;
@@ -911,8 +912,8 @@ int sim_create_trip_VM ( Word* args, Word& result,
     } // endwhile (qp->Received(args[0].addr))
     else
     { // ( subsegments.size() != 1 )
-      cout << "sim_create_trip_VM: Something's wrong: subsegments.size() = "
-          << subsegments.size() << "." << endl;
+//       cout << "sim_create_trip_VM: Something's wrong: subsegments.size() = "
+//           << subsegments.size() << "." << endl;
     }
     qp->Close(args[0].addr);
   }
@@ -939,10 +940,9 @@ int sim_create_trip_VM ( Word* args, Word& result,
 const string sim_create_trip_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>stream(tuple(a1: t1) ... (an,tn) x ai x aj x instant x point -> "
-    "mpoint, "
-    "for ti = line, tj = real, tk = point</text--->"
+    "mpoint,\nfor ti = line, tj = real, tk = point</text--->"
     "<text>_ sim_create_trip [LineAttr, VmaxAttr, StartInst, StartPoint ] \n"
-    "<_ sim_create_trip [LineAttr, VmaxAttr, StartInst, StartPoint, Vstart ] \n"
+    " _ sim_create_trip [LineAttr, VmaxAttr, StartInst, StartPoint, Vstart ]"
     "</text--->"
     "<text>Creates a mpoint value representing a simulated vehicle, "
     "starting at instant 'StartInst' and 'StartPoint' and moving along a "
@@ -1028,10 +1028,9 @@ int sim_print_params_VM ( Word* args, Word& result,
 const string sim_print_params_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> -> bool</text--->"
-    "<text>sim_print_params( )"
-    "</text--->"
+    "<text>sim_print_params( )</text--->"
     "<text>Prints the paramter settings to the console. Always "
-    "returnS 'TRUE'</text--->"
+    "returns 'TRUE'</text--->"
     "<text>sim_print_params()</text--->"
     ") )";
 
@@ -1041,6 +1040,229 @@ Operator sim_print_params(
     sim_print_params_VM,
     Operator::SimpleSelect,
     sim_empty2bool_TM) ;
+
+
+/*
+5.5 Operator ~sim\_fillup\_mpoint~
+
+Fills the undefined intervals within an mpoint with the known positions.
+immedeately before/after the ``dark periods''.
+
+----
+    sim_fillup_mpoint: (mpoint x instant x instant x bool x bool) --> mpoint
+    
+----
+
+*/
+
+ListExpr sim_fillup_mpoint_TM ( ListExpr args )
+{
+  ListExpr arg1, arg2, arg3, arg4, arg5;
+  if ( nl->ListLength( args ) == 5 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    arg3 = nl->Third( args );
+    arg4 = nl->Fourth( args );
+    arg5 = nl->Fifth( args );
+    if ( nl->AtomType( arg1 ) == SymbolType &&
+         nl->SymbolValue( arg1 ) == "mpoint"  &&
+         nl->AtomType( arg2 ) == SymbolType &&
+         nl->SymbolValue( arg2 ) == "instant" &&
+         nl->AtomType( arg4 ) == SymbolType &&
+         nl->SymbolValue( arg4 ) == "bool" &&
+         nl->AtomType( arg5 ) == SymbolType &&
+         nl->SymbolValue( arg5 ) == "bool" )
+    {
+      return (nl->SymbolAtom( "mpoint" ));
+    }
+  }
+  ErrorReporter::
+      ReportError("SimulationAlgebra: sim_fillup_mpoint expected "
+                  "mpoint x instant x instant x bool x bool");
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+int sim_fillup_mpoint_VM ( Word* args, Word& result,
+                           int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  MPoint *res = ((MPoint*)result.addr);
+  res->Clear();
+
+  MPoint *Input  = (MPoint*) args[0].addr;
+  Instant *Start = (Instant*) args[1].addr;
+  Instant *End   = (Instant*) args[2].addr;
+  CcBool *LC = (CcBool*) args[3].addr;
+  CcBool *RC = (CcBool*) args[4].addr;
+
+  if( !Input->IsDefined() ||
+      !LC->IsDefined() || !RC->IsDefined() ||
+      !Start->IsDefined() || !End->IsDefined() ||
+      *Start > *End ||
+      ( *Start == *End && (!LC->GetBoolval() || !RC->GetBoolval()))
+    )
+  { // undefined arguments: return undefined and empty result
+    res->SetDefined(false);
+    return 0;
+  }
+  int size = Input->GetNoComponents();
+  if( size == 0 )
+  { // empty input: return defined and empty result
+    res->SetDefined(true);
+    return 0;
+  }
+
+  const UPoint *u1;
+  UPoint u2(true), resunit(true);
+  Interval<DateTime> gap(*Start,*Start,true,true);
+  res->SetDefined(true);
+
+  int pos = 0;
+  //test whether to insert a prequel unit
+  Input->Get(pos, u1);
+//   cout << "First Unit = "; u1->Print(cout);
+  if ( *Start < u1->timeInterval.start )
+  { // Start before first unit
+    gap = Interval<DateTime>( *Start, u1->timeInterval.start,
+                              LC->GetBoolval(), !u1->timeInterval.lc );
+    resunit = UPoint(gap, u1->p0, u1->p0);
+//     cout << "  Inserting prequel unit: "; resunit.Print(cout);
+    res->MergeAdd( resunit );
+    u2 = *u1;
+    pos++;
+  }
+  else if ( *Start == u1->timeInterval.start &&
+            LC->GetBoolval() &&
+            !u1->timeInterval.lc
+          )
+  { // extend first unit by changing lc to true
+    resunit = UPoint(Interval<DateTime>(u1->timeInterval.start,
+                                        u1->timeInterval.end,
+                                        true,
+                                        u1->timeInterval.rc),
+                      u1->p0, u1->p0);
+    u2 = resunit;
+//     cout << "  >>Extended first unit: "; resunit.Print(cout);
+    pos++;
+  }
+  else
+  { // just prepare insertion of first unit
+    u2 = *u1;
+    pos++;
+//     cout << "  >>Nothing to do" << endl;
+  }
+  while(pos < size)
+  {
+    Input->Get(pos, u1);
+//     cout << "pos/size = " << pos << "/" << size << endl;
+//     cout << "   u2 = "; u2.Print(cout);
+//     cout << "   u1 = "; u1->Print(cout);
+    if ( u2.timeInterval.end == u1->timeInterval.start )
+    { // Case 1): u2.end == u1.start
+      if ( !u2.timeInterval.rc && !u1->timeInterval.lc )
+      { // 1a) minimum gap between open intervals
+        // --> make u2 rightclosed and append it.
+        u2.timeInterval.rc = true;
+//         cout << "   Case 1a): Adding: "; u2.Print(cout);
+        res->MergeAdd( u2 );
+        u2 = *u1;
+        pos++;
+      }
+      else
+      { // 1b) u2.rc != u1->lc: No gap
+        // --> just add the original unit u2
+//         cout << "   Case 1b): Adding: "; u2.Print(cout);
+        res->MergeAdd( u2 );
+        u2 = *u1;
+        pos++;
+      }
+    }
+    else if( u2.timeInterval.end < u1->timeInterval.start )
+    { // Case 2) simple case: start and ending instant are not equal
+      // (large gap of at least nearly 1 tick/ms)
+      // --> append u2 and a unit for the gap
+//       cout << "   Case 2) : Adding: "; u2.Print(cout);
+      res->MergeAdd( u2 );
+      resunit = UPoint( Interval<DateTime>( u2.timeInterval.end,
+                                            u1->timeInterval.start,
+                                            !u2.timeInterval.rc,
+                                            !u1->timeInterval.lc),
+                        u2.p1, u2.p1);
+//       cout << "             Adding: "; resunit.Print(cout);
+      res->MergeAdd( resunit );
+      u2 = *u1;
+      pos++;
+    }
+    else
+    { // u2-timeInterval.end > u1->timeInterval.start
+      // --> Error!
+      cerr << "sim_fillup_mpoint_VM: Error calculating gap unit:" << endl;
+      cerr << "\tu2 = "; u2.Print(cerr);
+      cerr << "\tu1 = "; u1->Print(cerr); cerr << endl;
+      res->Clear();
+      res->SetDefined( false );
+      return 0;
+    }
+  }
+  // test whether to insert a sequel unit
+  if ( u2.timeInterval.end < *End )
+  {
+//     cout << "Adding last unit: "; u2.Print(cout);
+    res->MergeAdd( u2 );
+    resunit = UPoint( Interval<DateTime>( u2.timeInterval.end,
+                                          *End,
+                                          !u2.timeInterval.rc,
+                                          RC->GetBoolval() ),
+                      u2.p1, u2.p1);
+//     cout << "Adding Sequel unit: "; resunit.Print(cout); cout << endl;
+    res->MergeAdd( resunit );
+  }
+  else if ( u2.timeInterval.end == *End &&
+            !u2.timeInterval.rc &&
+            RC->GetBoolval() 
+          )
+  { // extend the last unit by right-closing the timeInterval
+    resunit = UPoint( Interval<DateTime>( u2.timeInterval.start,
+                                          u2.timeInterval.end,
+                                          u2.timeInterval.lc,
+                                          !u2.timeInterval.rc),
+                      u2.p0, u2.p1);
+    res->MergeAdd( resunit );
+//     cout << "Adding modified last unit: "; resunit.Print(cout); cout << endl;
+  }
+  else
+  { // just append u2
+//     cout << "Adding last unit: "; u2.Print(cout); cout << endl;
+    res->MergeAdd( u2 );
+  }
+  return 0;
+}
+
+const string sim_fillup_mpoint_Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> mpoint x instant x instant x bool x bool -> mpoint</text--->"
+    "<text>M sim_fillup_mpoint( S, E, LC, RC )"
+    "</text--->"
+    "<text>Fills up the definition of mpoint 'M', during the "
+    "interval defined by starting instant 'S' and ending instant 'E', having "
+    "closedness as specified by LC (leftclosed) and RC (rightclosed). "
+    "The mpoint will not be trimmed to the interval. "
+    "Gaps are filled using the last known position. For "
+    "periods before M's initial instant, M's initial position is used. "
+    "If M is empty, the result will be empty, too. An invalid interval "
+    "specification will produce an empty/undefined result</text--->"
+    "<text>query trains feed extract[Trip] sim_fillup_mpoint[six30 - "
+    "create_duration(-0.05), six30 - create_duration(0.5), TRUE, FALSE]"
+    "</text--->"
+    ") )";
+
+Operator sim_fillup_mpoint( 
+    "sim_fillup_mpoint",
+    sim_fillup_mpoint_Spec,
+    sim_fillup_mpoint_VM,
+    Operator::SimpleSelect,
+    sim_fillup_mpoint_TM) ;
 
 
 /*
@@ -1073,6 +1295,7 @@ class SimulationAlgebra : public Algebra
       AddOperator( &sim_set_dest_params );
       AddOperator( &sim_create_trip );
       AddOperator( &sim_print_params );
+      AddOperator( &sim_fillup_mpoint );
     }
   ~SimulationAlgebra() {};
 
