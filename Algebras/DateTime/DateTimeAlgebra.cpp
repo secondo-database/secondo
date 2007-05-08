@@ -1105,11 +1105,15 @@ int DateTime::Compare(const Attribute* arg) const{
 /*
 ~Adjacent~
 
-This function returns true if this is directly neighbooring with arg.
-Because we use a fixed time resolution, we can implement this function.
+We treat time as continuous. For this reason, in our discrete
+representation we never find adjacent instants and the result
+will be __false__.
 
 */
 bool DateTime::Adjacent(const Attribute* arg) const{
+  return false;
+  /*
+  // adjacent in discrete case: 
   const DateTime* T2 = (const DateTime*) arg;
   if(day==T2->day && abs(milliseconds-T2->milliseconds)==1)
     return true;
@@ -1120,6 +1124,7 @@ bool DateTime::Adjacent(const Attribute* arg) const{
        && (T2->milliseconds==MILLISECONDS-1))
      return true;
   return false;
+ */
 }
 
 /*
