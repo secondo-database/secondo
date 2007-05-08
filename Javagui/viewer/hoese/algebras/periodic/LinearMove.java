@@ -67,15 +67,20 @@ public boolean readFrom(ListExpr LE,Class linearClass){
      Reporter.debug("LinearMove.readFrom :: error in reading interval ");
      return false;
    }
+   boolean ok;
    if(len==3)
-       defined = readMap(ListExpr.twoElemList(Content.second(),Content.third()));
+       ok = readMap(ListExpr.twoElemList(Content.second(),Content.third()));
    else // len = 2
-       defined = readMap(Content.second());
+       ok = readMap(Content.second());
+
+   if(!ok){
+      defined = false;
+   }
 
 
-   if(!defined)
+   if(!ok)
       Reporter.debug("LinearMove.readFrom :: error in method readStartEnd");
-   return defined;
+   return ok;
 
 }
 

@@ -41,7 +41,6 @@ public class PMRealUnit extends LinearMove{
   /** returns a Double */
   public Object getObjectAt(Time T){
      if(!defined){
-        Reporter.debug("PMRealUnit.getObjectAt called on an undefined instance");
         return null;
      }
      if(!interval.contains(T)){
@@ -60,13 +59,22 @@ public class PMRealUnit extends LinearMove{
   }
 
   protected boolean readMap(ListExpr map){
-     if(map.listLength()!=4)
-          return false;
+     if(map.atomType()==ListExpr.SYMBOL_ATOM &&
+        map.symbolValue().equals("undefined")){
+        defined = false;
+        return true;
+      }
+
+     if(map.listLength()!=4){
+        defined = false;  
+        return false;
+     }
      Double A = LEUtils.readNumeric(map.first());
      Double B = LEUtils.readNumeric(map.second());
      Double C = LEUtils.readNumeric(map.third());
      if(A==null || B==null || C==null || map.fourth().atomType() !=ListExpr.BOOL_ATOM){
        Reporter.debug("PMRealUnit.readStartEnd : error in map");
+       defined = false;
        return false;
      }
      a = A.doubleValue();
@@ -82,6 +90,5 @@ public class PMRealUnit extends LinearMove{
   private double b;
   private double c;
   private boolean root;
-
 
 }
