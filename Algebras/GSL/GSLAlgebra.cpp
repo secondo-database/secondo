@@ -174,7 +174,7 @@ GslRandomgen::~GslRandomgen()
   }
 }
 
-inline gsl_rng* GslRandomgen::GetGenerator()
+gsl_rng* GslRandomgen::GetGenerator()
 {
   return me;
 }
@@ -241,7 +241,7 @@ inline unsigned long int GslRandomgen::MaxRand() const
   return gsl_rng_max(me);
 }
 
-inline double GslRandomgen::NextReal()
+double GslRandomgen::NextReal()
 { // returns a double precision floating point number 
       // uniformly distributed in the range [0,1)
   assert( defined && me != NULL );
