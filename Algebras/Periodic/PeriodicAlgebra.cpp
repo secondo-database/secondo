@@ -2702,14 +2702,15 @@ and the values are the same.
 
 */
 template <class T>
-bool LinearConstantMove<T>::CanSummarized(LinearConstantMove<T> LCM) {
-    if(!interval.CanAppended(&LCM.interval)) // no consecutive intervals
+bool LinearConstantMove<T>::CanSummarized(
+           const LinearConstantMove<T>* LCM) const{
+    if(!interval.CanAppended(&LCM->interval)) // no consecutive intervals
       return false;
-    if(!defined && ! LCM.defined) // both are not defined
+    if(!defined && ! LCM->defined) // both are not defined
       return true;
-    if(!defined || !LCM.defined) // only one is not defined
+    if(!defined || !LCM->defined) // only one is not defined
       return false;
-    return value==LCM.value;
+    return value==LCM->value;
 
 }
 
@@ -3289,7 +3290,9 @@ This function computes the representation of this unit in nested list format.
 ListExpr MovingRealUnit::ToListExpr()const{
  if(!defined)
       return nl->TwoElemList(nl->SymbolAtom("linear"),
-                             nl->SymbolAtom("undefined"));
+                             nl->TwoElemList(
+                               interval.ToListExpr(false),
+                               nl->SymbolAtom("undefined")));
  return nl->TwoElemList(nl->SymbolAtom("linear"),
                         nl->TwoElemList(
                             interval.ToListExpr(false),
@@ -3440,10 +3443,31 @@ void MovingRealUnit::Equalize(const MovingRealUnit* source){
 
 */
 /*
-~Constructor~
+~Constructors~
 
 */
 LinearPointMove::LinearPointMove(){}
+
+LinearPointMove::LinearPointMove(const LinearPointMove& source){
+    Equalize(&source);
+}
+
+/*
+~Destructor~
+
+*/
+
+LinearPointMove::~LinearPointMove(){}
+
+/*
+~Assigment operator~
+
+*/
+LinearPointMove& LinearPointMove::operator=(const LinearPointMove& source){
+    Equalize(&source);
+    return *this;
+}
+
 
 /*
 ~IsDefined~
@@ -3605,7 +3629,7 @@ LinearPointsMove::~LinearPointsMove(){}
 */
 LinearPointsMove& LinearPointsMove::operator=(const LinearPointsMove& source){
    Equalize(&source);
-    return *this;
+   return *this;
 }
 
 /*
@@ -5508,8 +5532,7 @@ bool PMSimple<T, Unit>::MinimizationRequired(){
         if( (CSM->arrayNumber==LINEAR) && (CSM2->arrayNumber==LINEAR)){
             linearMoves.Get(CSM->arrayIndex,LM);
             linearMoves.Get(CSM2->arrayIndex,LM2);
-            if( (LM->value==LM2->value) && 
-                (LM->interval.CanAppended(&LM2->interval)))
+            if( LM->CanSummarized(LM2))
                 return true;
         }
      } 
@@ -5616,7 +5639,7 @@ SubMove PMSimple<T, Unit>::MinimizeRec(SubMove SM,
                 LMdefined=true;
               }else{
                   
-                if(LM.CanSummarized(Summarization)){
+                if(LM.CanSummarized(&Summarization)){
                     // append the new summarization to LM
                     LM.interval.Append(&Summarization.interval);
                 } else{
@@ -7315,7 +7338,128 @@ of this unit.
    }
 
 
+/*
+~NearOverlap~
 
+This function checks whether this unit and the argument have an nearly 
+common part. I.e. first is checked if the speed difference between both
+units is smaller than the given epsilon value. Additionally, the distance
+between both units must be smaller than the given epsilon value.
+
+*/
+bool LinearPointMove::nearOverlap(const LinearPointMove& lpm,
+                 const double epsilonSpeed,
+                 const double epsilonDirection,
+                 const double epsilonSpatial) const{
+
+   if(epsilonSpeed<0 || epsilonSpatial<0 || epsilonDirection<0){
+       // not possible
+       return false;
+   }
+   double speed1 = this->Speed();
+   double speed2 = lpm.Speed();
+   if(abs(speed1-speed2)>epsilonSpeed){
+       return false;
+   }
+
+   if(speed1>epsilonSpeed || speed2>epsilonSpeed){
+      // check directions
+      double dir1 = this->Direction();
+      double dir2 = lpm.Direction();
+      if(abs(dir1-dir2)>epsilonDirection){
+          return false;
+      } 
+   } else if(speed1<=epsilonSpeed || speed2<epsilonSpeed){
+       // from one arguments, the direction is not evaluable
+       return false;
+   } 
+   
+   // direction and speed are nearly equal, check the distance
+   HalfSegment hs1;
+   this->GetHalfSegment(true,hs1);
+   HalfSegment hs2;
+   lpm.GetHalfSegment(true,hs2);
+   double dist = hs2.Distance(hs2);
+   return dist<=epsilonSpatial;
+
+}
+
+/*
+~Direction~
+
+Computes the direction as angle between 0 and 360 degrees. If the point
+is not moving, the direction will have instead the value -1.
+
+*/
+double LinearPointMove::Direction()const{
+   if(isStatic){
+     return -1;
+   }
+   double x = endX-startX;
+   double y = endY-startY;
+   double len = this->Length();
+   y = y/len;
+   double angle1 = asin(y);
+   angle1 = angle1*180.0 / PI;
+   if(y>=0 && x>=0){
+       return angle1;
+   }
+   if(y<0 && x>=0){ // don't allow negative values
+      return 360 + angle1;
+   }
+   return 180 - angle1;
+}
+
+/*
+~Speed~
+
+Computes the speed of this unit as distance / time. The optional argument is multiplied
+with the time value. Basically, the speed is given in units per day. 
+
+*/
+
+double LinearPointMove::Speed(unsigned int timefactor) const{
+  assert(timefactor>0);
+
+  double time = interval.GetLength()->ToDouble();
+  if(time<=0){
+     return 0; // no time no speed
+  }
+  time = time*(double) timefactor;
+  return this->Length()/time;
+}
+
+
+void LinearPointMove::Speed(MovingRealUnit& result) const{
+   MRealMap map(0,0,Speed(1),false);
+   MovingRealUnit unit(map,interval);
+   unit.SetDefined(true);
+   result.Equalize(&unit);
+}
+
+
+void LinearPointMove::Direction(MovingRealUnit& result) const{
+   double dir = Direction();
+   MRealMap map(0,0,dir,false);
+   MovingRealUnit unit(map,interval);
+   unit.SetDefined(dir>=0);
+   result.Equalize(&unit);
+}
+
+
+/*
+~Length~
+
+This function computes the length of the segment given by the spatial projection
+of this LinearPointMOve.
+
+*/
+double LinearPointMove::Length() const{
+   double distX = startX-endX;
+   double distY = startY-endY;
+   double dist = sqrt( distX*distX + distY*distY);
+   return dist;
+}
 
 
 /*
@@ -10021,6 +10165,7 @@ bool PMPoint::DistanceTo(const double x, const double y, PMReal& result)const {
    resInterval->Equalize(&interval);
    SubMove* SM =result.GetSubmove();
    SM->Equalize(&submove);
+   result.SetStartTime(startTime);
    
 
    // copy periodic moves
@@ -10080,6 +10225,89 @@ bool PMPoint::DistanceTo(const double x, const double y, PMReal& result)const {
   return true;
 }
 
+/*
+~Speed~ and ~Direction~
+
+This function computes the  speed of this PMPoint.
+
+
+*/
+void PMPoint::SpeedAndDirection(bool isSpeed, PMReal& result)const {
+   // special case: this pmpoint is not defined
+   if(!defined){
+     result.SetDefined(false);
+     return; 
+   }
+   // copying the tree structure as well as the interval and the
+   // submove into the result.
+   RelInterval* resInterval = result.GetInterval();
+   resInterval->Equalize(&interval);
+   SubMove* SM =result.GetSubmove();
+   SM->Equalize(&submove);
+   
+   result.SetStartTime(startTime);
+   
+
+   // copy periodic moves
+   DBArray<PeriodicMove>* resPMs = result.GetPeriodicMoves();   
+   resPMs->Clear();
+   int size;
+   if((size=periodicMoves.Size())>0){
+      PeriodicMove PM;
+      const SpatialPeriodicMove* SPM;
+      resPMs->Resize(size);
+      for(int i=0;i<size;i++){
+         periodicMoves.Get(i,SPM);
+         SPM->ToPeriodicMove(PM);
+         resPMs->Put(i,PM);
+      }
+   }
+   // copy composite moves
+   DBArray<CompositeMove>* resCMs = result.GetCompositeMoves();
+   resCMs->Clear();
+   if((size=compositeMoves.Size())>0){
+       CompositeMove CM;
+       const SpatialCompositeMove* SCM;
+       resCMs->Resize(size);
+       for(int i=0;i<size;i++){
+          compositeMoves.Get(i,SCM);
+          SCM->ToCompositeMove(CM);
+          resCMs->Put(i,CM);    
+       }
+   }
+
+   // copy composite submoves
+   DBArray<CSubMove>* resSMs = result.GetCompositeSubMoves();
+   resSMs->Clear();
+   if((size=compositeSubMoves.Size())>0){
+      const CSubMove* SM;
+      resSMs->Resize(size);
+      for(int i=0;i<size;i++){
+        compositeSubMoves.Get(i,SM);
+        resSMs->Put(i,*SM);
+      }
+   }
+  
+  // now, we build the linear moves for the 
+  // periodic moving real
+  DBArray<MovingRealUnit>* resLin = result.GetLinearMoves();
+  MovingRealUnit Unit;
+  resLin->Clear();
+  if((size=linearMoves.Size())>0){
+    resLin->Resize(size);
+    const LinearPointMove* LPM;
+    for(int i=0;i<size;i++){
+      linearMoves.Get(i,LPM);
+      if(isSpeed){
+         LPM->Speed(Unit);
+      } else {
+         LPM->Direction(Unit);
+      }
+      resLin->Put(i,Unit); 
+    }
+  }
+  result.Minimize();
+}
 /*
 ~CorrectDurationSums~
 
@@ -12819,6 +13047,19 @@ ListExpr EndTypeMap(ListExpr args){
 }
 
 
+ListExpr PMPoint_PMRealTypeMap(ListExpr args){
+   if(nl->ListLength(args)!=1){
+      ErrorReporter::ReportError("invalid number of arguments");
+      return nl->TypeError();
+   }
+   if(!nl->IsEqual(nl->First(args),"pmpoint")){
+      ErrorReporter::ReportError("pmpoint required");
+      return nl->TypeError();
+   }
+   return nl->SymbolAtom("pmreal"); 
+}
+
+
 /*
 5.2 Value Mappings
 
@@ -13462,6 +13703,17 @@ int Translate_T_Dur(Word* args, Word& result, int message,
   return 0;
 }
 
+template<bool isSpeed>
+int SpeedAndDirectionFun(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+
+  PMPoint* arg = (PMPoint*) args[0].addr;
+  result = qp->ResultStorage(s);
+  PMReal* res = (PMReal*) result.addr;
+  arg->SpeedAndDirection(isSpeed,*res); 
+  return 0;
+}
+
 
 /*
 5.3 Specifications of the Operators
@@ -13645,6 +13897,21 @@ const string TranslateSpec =
    " \" \" "
    " <text> query translate(o1,[const duration value (10 9)]) </text---> ))";
 
+const string SpeedSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \"pmpoint -> pmreal \" "
+   " \" speed( _ ) \" "
+   " \" Computes the Speed of the argument.  \"  "
+   " \" \" "
+   " <text> query speed(p1)  </text---> ))";
+
+const string DirectionSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \"pmpoint -> pmreal \" "
+   " \" direction( _ ) \" "
+   " \" Computes the Speed of the argument.  \"  "
+   " \" \" "
+   " <text> query direction(p1)  </text---> ))";
 
 /*
 5.4 ValueMappings of overloaded Operators
@@ -13947,6 +14214,19 @@ Operator createpmpoint(
         CreatePMPointMap);
 
 
+Operator pspeed(
+        "speed",      // name
+        SpeedSpec,    // specification
+        SpeedAndDirectionFun<true>, // value mapping
+        Operator::SimpleSelect, // selection function
+        PMPoint_PMRealTypeMap); // type mapping
+
+Operator pdirection(
+        "direction",      // name
+        DirectionSpec,    // specification
+        SpeedAndDirectionFun<false>, // value mapping
+        Operator::SimpleSelect, // selection function
+        PMPoint_PMRealTypeMap); // type mapping
 /*
 5.7.2 Overloaded Operators
 
@@ -14134,6 +14414,8 @@ class PeriodicMoveAlgebra : public Algebra
     AddOperator(&periodic::pnumberOfUnits);
     AddOperator(&periodic::pnumberOfFlatUnits);
     AddOperator(&periodic::ptranslate);
+    AddOperator(&periodic::pspeed);
+    AddOperator(&periodic::pdirection);
   }
   ~PeriodicMoveAlgebra() {};
 };

@@ -683,7 +683,7 @@ class LinearConstantMove{
 
    bool ReadFrom(const ListExpr value);
 
-   virtual bool CanSummarized(LinearConstantMove<T> LCM);
+   virtual bool CanSummarized(const LinearConstantMove<T>* LCM) const;
 
    virtual T* Initial()const;
 
@@ -895,12 +895,90 @@ class LinearPointMove{
  friend class PMPoint;
 
  public:
+/*
+~Standard Constructor~
+
+This constructor does nothing and should only be used within 
+the cast function.
+
+*/
    LinearPointMove();
+
+/*
+~Constructor~
+
+Creates an instance of LinearPointMove. The argument is ignored.
+
+*/
    LinearPointMove(int dummy);
+
+/*
+~Constructor~
+
+The implementation of the copy constructor.
+
+*/
+   LinearPointMove(const LinearPointMove& source);
+
+
+/*
+~Destructor~
+
+Destroys a LinearPointMove instance.
+
+*/
+   ~LinearPointMove();
+
+/*
+~Assignment operator~
+
+*/
+   LinearPointMove& operator=(const LinearPointMove& source);
+
+/*
+~ToListExpr~
+
+Converts this LinearPointMove into its external 
+representation.
+
+*/
    ListExpr ToListExpr()const;
+
+/*
+~ReadFrom~
+
+Reads this instance from the given ListExpr. If the list does
+not represent a valid LinearPointMove, this instance is not 
+changed and the result of the call will be __false__.
+
+*/
    bool ReadFrom(const ListExpr value);
+
+/*
+~At~
+
+Implementation of the atinstant operaton using relative intervals.
+This units has to be defined at the given duration.
+
+
+*/
    Point* At(const DateTime* duration)const;
+
+/*
+~IsDefinedAt~
+
+Checks if this LinearPointMOve is defined at the given duration.
+
+*/
    bool IsDefinedAt(const DateTime* duration)const;
+
+/*
+~GetHalfSegment~
+
+Returns the spatial projection of this LinearPointMove as a 
+halfsegment.
+
+*/
    bool GetHalfSegment(const bool LeftDominatingPoint,
                        HalfSegment& seg)const;
    bool Intersects(const PBBox* window)const;
@@ -926,6 +1004,20 @@ class LinearPointMove{
    void Toprel(Points& P, vector<LinearInt9MMove>& Result)const;  
 
    void DistanceTo(const double x, const double y,MovingRealUnit& result)const;
+
+   bool nearOverlap(const LinearPointMove& lpm,
+                    const double epsilonSpeed,
+                    const double epsilonDirection, 
+                    const double epsilonSpatial) const;
+
+   double Length()const;
+
+   double Speed(unsigned int timefactor=1)const;
+
+   void Speed(MovingRealUnit& result) const;
+
+   double Direction() const;
+   void LinearPointMove::Direction(MovingRealUnit& result) const;
  
  private:
    RelInterval interval;
@@ -1337,6 +1429,8 @@ class PMPoint : public StandardAttribute {
      bool DistanceTo(const double x, const double y, PMReal& result)const;
      bool CheckCorrectness();
      void PrintArrayContents();
+     void SpeedAndDirection(bool isSpeed,PMReal& result) const;
+
      inline size_t NumberOfNodes() const;
      inline size_t NumberOfPeriodicNodes()const;
      inline size_t NumberOfUnits() const;
