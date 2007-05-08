@@ -29,7 +29,7 @@ import viewer.hoese.algebras.periodic.*;
 import javax.swing.JPanel;
 import tools.Reporter;
 
-public class Dsplpmreal extends DsplGeneric implements Function,ExternDisplay {
+public class Dsplpmreal extends DsplGeneric implements Function,ExternDisplay,LabelAttribute {
 
 Class linearClass = (new PMRealUnit()).getClass();
 Time T = new Time();
@@ -98,6 +98,16 @@ public Double getValueAt(double x){
   if(!Move.isDefined()) return null;
   anInstant.readFrom(x);
   return (Double) Move.getObjectAt(anInstant);
+}
+
+public String getLabel(double time){
+  Double D = getValueAt(time);
+  if(D==null){
+     return "";
+  } else {
+     return ""+D;
+  }
+
 }
 
 
