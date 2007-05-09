@@ -143,7 +143,7 @@ SecondoTTY::SecondoTTY( const TTYParameter& t )
   iFileName = t.iFileName;
   oFileName = t.oFileName;
 
-  isStdInput    = true;
+  isStdInput    = iFileName.empty();
   quit          = false;
   nl            = 0;
   si            = 0;
@@ -193,7 +193,15 @@ SecondoTTY::ProcessFile( const string& fileName )
     oldBuffer = cin.rdbuf( fileInput.rdbuf() );
     cout << "*** Begin processing file '" << fileName << "'." << endl;
     isStdInput = false;
+    
+    StopWatch scriptTime;
+    scriptTime.start();
+     
     ProcessCommands();
+
+    cout << "Runtime for " << fileName << ": " 
+	 << scriptTime.diffTimes() << endl;
+
     isStdInput = saveIsStdInput;
     cout << "*** End processing file '" << fileName << "'." << endl;
     cin.rdbuf( oldBuffer );
@@ -578,60 +586,52 @@ SecondoTTY::Execute()
   cout << endl
        << "*** Secondo TTY ***"
        << endl << endl;
-    streambuf* oldInputBuffer  = 0;
-    streambuf* oldOutputBuffer = 0;
-    ifstream fileInput;
-    ofstream fileOutput;
 
-    si = new SecondoInterface();
+  streambuf* oldOutputBuffer = 0;
+  ofstream fileOutput;
+  bool useOutputFile = oFileName.length() > 0;
+
+  si = new SecondoInterface();
     
-     
-    if ( si->Initialize( user, pswd, host, port, parmFile ) )
+  if ( si->Initialize( user, pswd, host, port, parmFile ) )
+  {
+
+    // initialize the pointer to the nested list instance
+    nl = si->GetNestedList();
+    NList::setNLRef(nl);
+    DisplayTTY::Initialize( si );
+
+    if ( useOutputFile )
     {
-      if ( iFileName.length() > 0 )
+      fileOutput.open( oFileName.c_str() );
+      if ( fileOutput.is_open() )
       {
-        fileInput.open( iFileName.c_str() );
-        if ( fileInput.is_open() )
-        {
-          oldInputBuffer = cin.rdbuf( fileInput.rdbuf() );
-          isStdInput = false;
-        }
+	oldOutputBuffer = cout.rdbuf( fileOutput.rdbuf() );
+        cout << endl << "Redirecting output to " << oFileName << endl;
       }
-      if ( oFileName.length() > 0 )
+      else 
       {
-        fileOutput.open( oFileName.c_str() );
-        if ( fileOutput.is_open() )
-        {
-          oldOutputBuffer = cout.rdbuf( fileOutput.rdbuf() );
-        }
-      }
-      nl = si->GetNestedList();
-      NList::setNLRef(nl);
-      DisplayTTY::Initialize( si );
-      if ( isStdInput )
-      {
-        cout << endl << "Secondo TTY ready for operation." << endl
-             << "Type 'HELP' to get a list of available commands." << endl;
-      }
-      ProcessCommands();
-      if ( iFileName.length() > 0 )
-      {
-        if ( fileInput.is_open() )
-        {
-          cin.rdbuf( oldInputBuffer );
-        }
-      }
-      if ( oFileName.length() > 0 )
-      {
-        if ( fileOutput.is_open() )
-        {
-          cout.rdbuf( oldOutputBuffer );
-        }
-      }
+        cerr << "Error: Could not redirect ouput to " << oFileName << endl;
+	useOutputFile = false;
+      } 
     }
-    si->Terminate();
-    delete si;
-    cout << "SecondoTTY terminated." << endl;
+   
+    if ( isStdInput )
+    {
+      cout << endl << "Secondo TTY ready for operation." << endl
+	   << "Type 'HELP' to get a list of available commands." << endl;
+      ProcessCommands();
+    }
+    else 
+    {
+      ProcessFile(iFileName);  
+    } 
+
+    if ( useOutputFile )
+      cout.rdbuf( oldOutputBuffer );
+  }
+  si->Terminate();
+  delete si;
   return (rc);
 }
 
