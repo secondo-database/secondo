@@ -1061,7 +1061,7 @@ query the_unit(333, inst2, inst2, FALSE, TRUE)
 query the_unit(987654321, inst2, inst2, TRUE, TRUE)
 
 #testcase the_unit (T instant instant bool bool) --> uT (4)
-#yields (ubool undef)
+#yields (ubool ( ("2003-11-20-06:00" "2003-11-20-06:00:00.001" FALSE FALSE) FALSE))
 query the_unit(FALSE, inst1, inst1 + [const duration value (0 1)], FALSE, FALSE)
 
 #testcase the_unit (T instant instant bool bool) --> uT (4)
