@@ -1378,9 +1378,9 @@ int sim_trips_VM ( Word* args, Word& result,
 //         cout << " u1 = "; sli->u1.Print(cout);
 //         cout << " u2 = "; u2.Print(cout);
         if ( !sli->u1.IsDefined() )
-        { // the last unit is undefined
-          // This means we just started a new trip
-          // Do nothing, but move u1 to u2 for next iteration
+        { // sli->u1 is undefined
+          // This means we just started to process mpoint
+          // Do nothing, but move u2 to u1 for next iteration
           sli->u1 = u2;
         } 
         else // ELSE: Inside a running trip
@@ -1396,7 +1396,7 @@ int sim_trips_VM ( Word* args, Word& result,
           sli->u1 = u2;
           newtrip = true;
         }
-        else // ELSE: No Gap/consecutive units
+        else // ELSE: No Gap --- consecutive units
         {
           if ( AlmostEqual(sli->u1.p0, sli->u1.p1) )
           { // sli->u1 is constant
@@ -1426,7 +1426,7 @@ int sim_trips_VM ( Word* args, Word& result,
             }
             else // sli->u1 is constant, u2 is nonconstant
             {
-              if ( (sli->u1.timeInterval.end - u2.timeInterval.start )
+              if ( (sli->u1.timeInterval.end - sli->u1.timeInterval.start )
                     >= *mindur )
               {
                 newtrip = true;
@@ -1455,7 +1455,7 @@ int sim_trips_VM ( Word* args, Word& result,
               sli->u1 = u2;
             }
           }
-        } // end No Gap/consecutive unit
+        } // end No Gap --- consecutive unit
       }
       if ( !newtrip && sli->u1.IsDefined() )
       { // insert the final unit
@@ -1486,12 +1486,12 @@ const string sim_trips_Spec  =
     "( <text> mpoint x instant x instant x bool x bool -> mpoint</text--->"
     "<text>M sim_trips[ D ]"
     "</text--->"
-    "<text>Split a single mpoint into a stream of mpoints representing"
+    "<text>Splits a single mpoint 'M' into a stream of mpoints representing"
     "single 'trips'. Endings of trips are recognized by 1) stationary "
-    "intervals with a duration about argument 'D', and included, undefined "
-    "intervals of any length. Such stationäry intervals are interpreted as "
-    "'pauses' and will be returned as separate trips. Definition gaps will "
-    "be ignored - no Trip is created for them. The duration D must be "
+    "intervals with a duration of at least 'D', and 2) enclosed undefined "
+    "intervals of any length. Stationary intervals are interpreted as "
+    "'pauses' and will be returned as separate trips. For definition gaps, "
+    "no Trip will be created. The duration 'D' must be "
     "positive ( > create_duration(0) ).</text--->"
     "<text>query train7 sim_trips[create_duration(0,1000)] count"
     "</text--->"

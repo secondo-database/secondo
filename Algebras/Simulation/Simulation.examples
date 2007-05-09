@@ -46,5 +46,5 @@ Operator : sim_trips
 Number   : 1
 Signature: mpoint x duration -> stream(mpoint)
 Example  : query train1 sim_trips[create_duration(0,1)] count
-Result   : 23
+Result   : 45
 
