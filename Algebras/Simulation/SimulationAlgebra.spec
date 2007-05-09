@@ -22,4 +22,4 @@ operator sim_set_event_params alias SIM_SET_EVENT_PARAMS pattern op ( _ , _ , _ 
 operator sim_create_trip alias SIM_CREATE_TRIP pattern _ op[ _ ]
 operator sim_print_params alias SIM_PRINT_PARAMS pattern op ( _ )
 operator sim_fillup_mpoint alias SIM_FILLUP_MPOINT pattern _ op [ _, _, _, _ ]
-operator sim_split_mpoint alias SIM_SPLIT_MPOINT pattern _ op [ _ ]
+operator sim_trips alias SIM_TRIPS pattern _ op [ _ ]

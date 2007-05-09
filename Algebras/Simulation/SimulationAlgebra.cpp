@@ -1266,7 +1266,7 @@ Operator sim_fillup_mpoint(
 
 
 /*
-5.6 Operator ~sim\_split\_mpoint~
+5.6 Operator ~sim\_trips~
 
 Creates a stream of mpoints from a single mpoint by splitting it into single
 trips. Endings of trips are identified by constant values for longer than a
@@ -1276,13 +1276,13 @@ Undefined periods will be suppressed, but defined periods of constant value
 will result in separate trips.
 
 ----
-    sim_split_mpoint: (mpoint x duration) --> (stream mpoint)
+    sim_trips: (mpoint x duration) --> (stream mpoint)
 
 ----
 
 */
 
-ListExpr sim_split_mpoint_TM ( ListExpr args )
+ListExpr sim_trips_TM ( ListExpr args )
 {
   ListExpr arg1, arg2;
   if ( nl->ListLength( args ) == 2 )
@@ -1299,7 +1299,7 @@ ListExpr sim_split_mpoint_TM ( ListExpr args )
     }
   }
   ErrorReporter::
-      ReportError("SimulationAlgebra: sim_split_mpoint expected "
+      ReportError("SimulationAlgebra: sim_trips expected "
       "mpoint x duration");
   return (nl->SymbolAtom( "typeerror" ));
 }
@@ -1316,7 +1316,7 @@ struct SplitMpointLocalInfo
   UPoint u1;
 };
 
-int sim_split_mpoint_VM ( Word* args, Word& result,
+int sim_trips_VM ( Word* args, Word& result,
                            int message, Word& local, Supplier s )
 {
   SplitMpointLocalInfo *sli;
@@ -1330,7 +1330,7 @@ int sim_split_mpoint_VM ( Word* args, Word& result,
   {
     case OPEN :
 
-//       cout << "sim_split_mpoint_VM received OPEN" << endl;
+//       cout << "sim_trips_VM received OPEN" << endl;
       sli = new SplitMpointLocalInfo;
       sli->pos = 0;
       local = SetWord(sli);
@@ -1353,7 +1353,7 @@ int sim_split_mpoint_VM ( Word* args, Word& result,
 
     case REQUEST :
 
-//       cout << "sim_split_mpoint_VM received REQUEST" << endl;
+//       cout << "sim_trips_VM received REQUEST" << endl;
 
       if (local.addr == 0)
         return CANCEL;
@@ -1468,7 +1468,7 @@ int sim_split_mpoint_VM ( Word* args, Word& result,
 
     case CLOSE :
 
-//       cout << "sim_split_mpoint_VM received CLOSE" << endl;
+//       cout << "sim_trips_VM received CLOSE" << endl;
       if (local.addr != 0)
       {
         sli = (SplitMpointLocalInfo*) local.addr;
@@ -1481,10 +1481,10 @@ int sim_split_mpoint_VM ( Word* args, Word& result,
   return 0;   // should not be reached
 }
 
-const string sim_split_mpoint_Spec  =
+const string sim_trips_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> mpoint x instant x instant x bool x bool -> mpoint</text--->"
-    "<text>M sim_split_mpoint[ D ]"
+    "<text>M sim_trips[ D ]"
     "</text--->"
     "<text>Split a single mpoint into a stream of mpoints representing"
     "single 'trips'. Endings of trips are recognized by 1) stationary "
@@ -1493,16 +1493,16 @@ const string sim_split_mpoint_Spec  =
     "'pauses' and will be returned as separate trips. Definition gaps will "
     "be ignored - no Trip is created for them. The duration D must be "
     "positive ( > create_duration(0) ).</text--->"
-    "<text>query train7 sim_split_mpoint[create_duration(0,1000)] count"
+    "<text>query train7 sim_trips[create_duration(0,1000)] count"
     "</text--->"
     ") )";
 
-Operator sim_split_mpoint(
-    "sim_split_mpoint",
-    sim_split_mpoint_Spec,
-    sim_split_mpoint_VM,
+Operator sim_trips(
+    "sim_trips",
+    sim_trips_Spec,
+    sim_trips_VM,
     Operator::SimpleSelect,
-    sim_split_mpoint_TM) ;
+    sim_trips_TM) ;
 
 /*
 6 Class ~SimulationAlgebra~
@@ -1535,7 +1535,7 @@ class SimulationAlgebra : public Algebra
       AddOperator( &sim_create_trip );
       AddOperator( &sim_print_params );
       AddOperator( &sim_fillup_mpoint );
-      AddOperator( &sim_split_mpoint );
+      AddOperator( &sim_trips );
     }
   ~SimulationAlgebra() {};
 
