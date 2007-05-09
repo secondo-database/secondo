@@ -1,0 +1,15 @@
+
+( material 
+   (
+      ( "Pawn"  5 )
+      ( "Knight"  1 )
+      ( "Bishop"  0 )
+      ( "Rook"  0 )
+      ( "Queen"  0 )
+      ( "King"  1 )
+      ( "pawn"  4 )
+      ( "knight"  0 )
+      ( "bishop"  1 )
+      ( "rook"  0 )
+      ( "queen"  0 )
+      ( "king"  1 )))
