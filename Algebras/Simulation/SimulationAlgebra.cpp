@@ -1049,7 +1049,7 @@ Fills the undefined intervals within an mpoint with the known positions.
 immedeately before/after the ``dark periods''.
 
 ----
-    sim_fillup_mpoint: (mpoint x instant x instant x bool x bool) --> mpoint
+    sim_fillup_mpoint: (mpoint x instant x instant x bool x bool x bool) --> mpoint
     
 ----
 
@@ -1057,29 +1057,35 @@ immedeately before/after the ``dark periods''.
 
 ListExpr sim_fillup_mpoint_TM ( ListExpr args )
 {
-  ListExpr arg1, arg2, arg3, arg4, arg5;
-  if ( nl->ListLength( args ) == 5 )
+  ListExpr arg1, arg2, arg3, arg4, arg5, arg6;
+  if ( nl->ListLength( args ) == 6 )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
     arg3 = nl->Third( args );
     arg4 = nl->Fourth( args );
     arg5 = nl->Fifth( args );
+    arg6 = nl->Sixth( args );
+    
     if ( nl->AtomType( arg1 ) == SymbolType &&
          nl->SymbolValue( arg1 ) == "mpoint"  &&
          nl->AtomType( arg2 ) == SymbolType &&
          nl->SymbolValue( arg2 ) == "instant" &&
+         nl->AtomType( arg3 ) == SymbolType &&
+         nl->SymbolValue( arg3 ) == "instant" &&
          nl->AtomType( arg4 ) == SymbolType &&
          nl->SymbolValue( arg4 ) == "bool" &&
          nl->AtomType( arg5 ) == SymbolType &&
-         nl->SymbolValue( arg5 ) == "bool" )
+         nl->SymbolValue( arg5 ) == "bool" &&
+         nl->AtomType( arg6 ) == SymbolType &&
+         nl->SymbolValue( arg6 ) == "bool" )
     {
       return (nl->SymbolAtom( "mpoint" ));
     }
   }
   ErrorReporter::
       ReportError("SimulationAlgebra: sim_fillup_mpoint expected "
-                  "mpoint x instant x instant x bool x bool");
+                  "mpoint x instant x instant x bool x bool x bool");
   return (nl->SymbolAtom( "typeerror" ));
 }
 
@@ -1095,12 +1101,14 @@ int sim_fillup_mpoint_VM ( Word* args, Word& result,
   Instant *End   = (Instant*) args[2].addr;
   CcBool *LC = (CcBool*) args[3].addr;
   CcBool *RC = (CcBool*) args[4].addr;
+  CcBool *CONN = (CcBool*) args[5].addr;
 
   if( !Input->IsDefined() ||
       !LC->IsDefined() || !RC->IsDefined() ||
       !Start->IsDefined() || !End->IsDefined() ||
       *Start > *End ||
-      ( *Start == *End && (!LC->GetBoolval() || !RC->GetBoolval()))
+      ( *Start == *End && (!LC->GetBoolval() || !RC->GetBoolval())) ||
+      !CONN->IsDefined()
     )
   { // undefined arguments: return undefined and empty result
     res->SetDefined(false);
@@ -1118,6 +1126,7 @@ int sim_fillup_mpoint_VM ( Word* args, Word& result,
   Interval<DateTime> gap(*Start,*Start,true,true);
   res->SetDefined(true);
 
+  bool connect = CONN->GetBoolval();
   int pos = 0;
   //test whether to insert a prequel unit
   Input->Get(pos, u1);
@@ -1188,7 +1197,7 @@ int sim_fillup_mpoint_VM ( Word* args, Word& result,
                                             u1->timeInterval.start,
                                             !u2.timeInterval.rc,
                                             !u1->timeInterval.lc),
-                        u2.p1, u2.p1);
+                        (connect ? u1->p0 : u2.p1), u2.p1);
 //       cout << "             Adding: "; resunit.Print(cout);
       res->MergeAdd( resunit );
       u2 = *u1;
@@ -1241,8 +1250,9 @@ int sim_fillup_mpoint_VM ( Word* args, Word& result,
 
 const string sim_fillup_mpoint_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "( <text> mpoint x instant x instant x bool x bool -> mpoint</text--->"
-    "<text>M sim_fillup_mpoint[ S, E, LC, RC ]"
+    "( <text> mpoint x instant x instant x bool x bool x bool -> mpoint"
+    "</text--->"
+    "<text>M sim_fillup_mpoint[ S, E, LC, RC, CONN ]"
     "</text--->"
     "<text>Fills up the definition of mpoint 'M', during the "
     "interval defined by starting instant 'S' and ending instant 'E', having "
@@ -1251,9 +1261,11 @@ const string sim_fillup_mpoint_Spec  =
     "Gaps are filled using the last known position. For "
     "periods before M's initial instant, M's initial position is used. "
     "If M is empty, the result will be empty, too. An invalid interval "
-    "specification will produce an empty/undefined result</text--->"
+    "specification will produce an empty/undefined result. If 'CONN' = TRUE, "
+    "temporal gaps will be filled units connecting even the spatial positions."
+    "</text--->"
     "<text>query trains feed extract[Trip] sim_fillup_mpoint[six30 - "
-    "create_duration(-0.05), six30 - create_duration(0.5), TRUE, FALSE]"
+    "create_duration(-0.05), six30 - create_duration(0.5), TRUE, FALSE, FALSE]"
     "</text--->"
     ") )";
 
