@@ -101,11 +101,13 @@ class SecondoTTY : public Application
   SecondoTTY( const TTYParameter& t );
   virtual ~SecondoTTY() {};
   bool AbortOnSignal( int sig );
+  int  Execute();
+
+ private:
   void Usage();
   void ProcessFile( const string& fileName );
   void ProcessCommand();
   void ProcessCommands();
-  int  Execute();
   void ShowPrompt( const bool first );
   void TypeOutputList ( ListExpr list );
   void TypeOutputListFormatted ( ListExpr list );
@@ -114,7 +116,9 @@ class SecondoTTY : public Application
   void ShowQueryResult( ListExpr list );
   ListExpr CallSecondo();
   void CallSecondo2();
- private:
+  bool MatchQuery(string& w, istringstream& is) const;
+  string ReadCommand(istringstream& is) const; 
+
   string parmFile;
   string user;
   string pswd;
@@ -125,6 +129,10 @@ class SecondoTTY : public Application
 
   string            cmd;
   string            prompt;
+  const string      prompt_first;
+  const string      prompt_next;
+  
+  int               errorCode;
   bool              isStdInput;
   bool              quit;
   NestedList*       nl;
@@ -133,7 +141,11 @@ class SecondoTTY : public Application
 };
 
 SecondoTTY::SecondoTTY( const TTYParameter& t )
-  : Application( t.numArgs, (const char**)t.argValues )
+  : Application( t.numArgs, (const char**)t.argValues ),
+    cmd(""),
+    prompt(""), 
+    prompt_first("Secondo => "),
+    prompt_next("Secondo -> ")
 {
   parmFile = t.parmFile;
   user = t.user;
@@ -147,6 +159,7 @@ SecondoTTY::SecondoTTY( const TTYParameter& t )
   quit          = false;
   nl            = 0;
   si            = 0;
+  errorCode     = 0;
 }
 
 bool
@@ -163,7 +176,7 @@ SecondoTTY::Usage()
   "The following internal commands are available:\n" << 
   "\n" <<
   "  ?, HELP  - display this message\n" <<
-  "  @{FILE}  - read commands from file 'FILE' (may be nested)\n" <<
+  "  @FILE    - read commands from file 'FILE' (may be nested)\n" <<
   "  DEBUG n  - set debug level to n, with\n" <<
   "             0: debug and trace turned off\n" <<
   "             1: debug mode (show annotated query and operator tree)\n" <<
@@ -173,11 +186,14 @@ SecondoTTY::Usage()
   "  Q, QUIT  - exit the program\n" <<
   "  # ...    - comment line (first character on line has to be '#')\n" <<
   "\n" <<
-  "Additionally you may enter any valid SECONDO command. Internal\n" <<
-  "commands are restricted to ONE line, while SECONDO commands may\n" << 
-  "span several lines; a semicolon as the last character on a line ends a\n" <<
-  "command, but is not part of the command, alternatively you may enter\n" <<
-  "an empty line.";
+  "  REPEAT n <query> - execute <query> n times.\n" <<
+  "\n" <<
+  "Moreover, you may enter any valid SECONDO command introduced by the \n" <<
+  "keywords query, let, restore, etc. refer to the \"User Manual\" for \n" <<
+  "details. Internal commands are restricted to ONE line, while SECONDO \n" <<
+  "commands may span several lines; a semicolon as the last character on \n" <<
+  "a line terminates a command, but is not part of the command. \n" <<
+  "Alternatively, you may enter an empty line.\n";
 
   cout << cmdList.str() << endl << endl;
 }
@@ -212,23 +228,57 @@ SecondoTTY::ProcessFile( const string& fileName )
   }
 }
 
-void
-SecondoTTY::ProcessCommand()
+string
+SecondoTTY::ReadCommand(istringstream& is) const
 {
-  string cmdWord;
-  istringstream is( cmd );
-  is >> cmdWord;
+  string cmdWord = parse<string>(is);
   transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(),
              ToUpperProperFunction );
+  return cmdWord;
+}
 
+bool
+SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
+{
+  bool isQuery = false;
+  size_t pos = cmd.find("query");
+
+  if (pos == string::npos)
+    return isQuery;
+
+  if ( cmdWord == "QUERY" ) 
+  {
+    isQuery = true;
+  }
+  else 
+  {   
+    if ( cmdWord == "(" ) 
+    {
+      cmdWord = ReadCommand(is);
+      if (cmdWord == "QUERY")
+	isQuery = true;
+      else
+	isQuery = false;
+    }
+  }
+  return isQuery;
+}    
+
+void
+
+SecondoTTY::ProcessCommand()
+{
+  istringstream is(cmd);
+  string cmdWord = ReadCommand(is);
+
+  // analyse command
   if ( cmdWord == "?" || cmdWord == "HELP" )
   {
     Usage();
   }
   else if ( cmdWord == "DEBUG" )
   {
-    int debugLevel;
-    is >> debugLevel;
+    int debugLevel = parse<int>(is);
     si->SetDebugLevel( debugLevel );
     cout << "*** Debug level set to " << debugLevel << "." << endl;
   }
@@ -241,40 +291,66 @@ SecondoTTY::ProcessCommand()
   {
     ProcessFile( cmd.substr( 1, ( cmd.length() - 1 ) ) );
   }
+  else if ( cmdWord == "REPEAT" )
+  {
+    int repeatCtr = parse<int>(is);
+    cmdWord = ReadCommand(is);
+
+    isQuery = MatchQuery(cmdWord, is);
+    const string err = 
+              "Syntax Error: Expecting REPEAT n { query ... | ( query ...]}!"; 
+
+    if (!isQuery) 
+    {
+     cerr << err << endl;
+    } 
+    else 
+    {
+      // remove repeat <n> from the cmd
+      cmd = cmd.substr(6);
+      size_t pos = cmd.find_first_of("(q");
+      if ( pos != string::npos )
+      { 
+        cmd = cmd.substr( pos );
+        cout << "Repeating next query " << repeatCtr << " times ..." << endl;
+
+        while (repeatCtr > 0) {
+          CallSecondo2();
+	  if (errorCode > 0) // exit loop on failure
+	    break;
+          repeatCtr--;
+        }
+      }
+      else
+      {
+        // should never happen !
+        cerr << err << endl; 
+      }   
+    }
+  }
   else
   {
-    isQuery = (    cmdWord == "QUERY" 
-                || cmdWord == "(QUERY" 
-                || cmdWord == "( QUERY" );
-
+    isQuery = MatchQuery(cmdWord,is);
     CallSecondo2();
   }
+  cmd="";
 }
+
+
 
 void
 SecondoTTY::ShowPrompt( const bool first )
 {
-  if ( isStdInput ) // Display input prompt
-  {
-    if ( first )
-    {
-      prompt = "Secondo => ";
-      #ifdef READLINE
-         rl_set_prompt(prompt.c_str());
-      #else
-         cout << prompt;  // First line of command
-      #endif
-    }
-    else
-    {
-      prompt = "Secondo -> ";
-      #ifdef READLINE
-         rl_set_prompt(prompt.c_str());
-      #else
-         cout <<  prompt; // Continuation line of command
-      #endif
-    }
-  }
+  if ( !isStdInput ) // don't show command prompt
+    return;
+
+  prompt = first ? prompt_first : prompt_next;
+    
+  #ifdef READLINE
+    rl_set_prompt( prompt.c_str() );
+  #else
+    cout << prompt;
+  #endif
 }
 
 bool
@@ -465,7 +541,8 @@ This function gives a query to secondo and receives the result from secondo.
 ListExpr
 SecondoTTY::CallSecondo()
 {
-  int errorCode = 0, errorPos = 0;
+  errorCode = 0;
+  int errorPos = 0;
   ListExpr cmdList = nl->TheEmptyList();
   ListExpr outList = nl->TheEmptyList();
   string errorMessage = "";
