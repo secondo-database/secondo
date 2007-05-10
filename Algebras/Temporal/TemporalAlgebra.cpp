@@ -2965,15 +2965,16 @@ void MPoint::Reverse(MPoint& result){
 
 
 void MPoint::Sample(const DateTime& duration,
-                    MPoint& result) const{
+                    MPoint& result,
+                    const bool KeepEndPoint /*=false*/) const{
 
   result.Clear();
-  if(!IsDefined()){
+  if(!IsDefined() || !duration.IsDefined()){
     result.SetDefined(false);
     return;
   }
   int size = GetNoComponents();
-  if(size==0){
+  if(size==0){  // empty
      return;
   }  
    
@@ -2984,7 +2985,7 @@ void MPoint::Sample(const DateTime& duration,
   Point lastPoint;
   Point point;
 
-  const UPoint* unit; // the unit corresponsing the currentUnit
+  const UPoint* unit; // the unit corresponding the currentUnit
 
   while(currentUnit < size ){
      if(isFirst){ // set the start values
@@ -2996,8 +2997,8 @@ void MPoint::Sample(const DateTime& duration,
      Interval<Instant> interval(unit->timeInterval);
      lastTime = currentTime;
      currentTime += duration; // the next sampling instant
-
-     // search the unit having endtime after currentTime
+     
+    // search the unit having endtime after currentTime
      while(interval.end < currentTime && 
            currentUnit < size){
         currentUnit++;
@@ -3019,6 +3020,19 @@ void MPoint::Sample(const DateTime& duration,
         }
      }
   }
+
+  if(KeepEndPoint){
+     Get(size-1,unit);
+     if(lastTime < unit->timeInterval.end){ // gap between end of the unit
+                                              // and last sample point
+        Interval<Instant> newint(lastTime,unit->timeInterval.end,
+                                 true,unit->timeInterval.rc);
+        UPoint nextUnit(newint,lastPoint,unit->p1);
+        result.MergeAdd(nextUnit);
+     }
+  }
+
+
 }
 
 
@@ -5782,13 +5796,20 @@ This is the type mapping of the ~samplempoint~ operator.
 */
 
 ListExpr SampleMPointTypeMap(ListExpr args){
-  if(nl->ListLength(args)!=2){
-    ErrorReporter::ReportError("two argumnets required");
+
+  int len = nl->ListLength(args);
+
+  if(len!=2 && len!=3){
+    ErrorReporter::ReportError("two or three arguments required");
     return nl->TypeError();
   }
   if(!nl->IsEqual(nl->First(args),"mpoint") ||
      !nl->IsEqual(nl->Second(args),"duration")){
-     ErrorReporter::ReportError(" mpoint x duration expected");
+     ErrorReporter::ReportError(" mpoint x duration [ x bool] expected");
+     return nl->TypeError();
+  }
+  if(len==3 && !nl->IsEqual(nl->Third(args),"bool")){
+     ErrorReporter::ReportError(" mpoint x duration [ x bool] expected");
      return nl->TypeError();
   }
   return nl->SymbolAtom("mpoint");
@@ -6348,6 +6369,21 @@ int TemporalTheRangeSelect(ListExpr args)
 
   return -1; // should never occur
 }
+
+/*
+
+16.2.34 Selection function for ~samplempoint~
+
+*/
+int SampleMPointSelect(ListExpr args){
+  if(nl->ListLength(args)==2){
+     return  0;
+  } else {
+     return 1;
+  }
+
+}
+
 
 
 /*
@@ -7896,14 +7932,24 @@ int ReverseVM( Word* args, Word& result, int message, Word&
 16.3.45 Value mapping function for operator ~samplempoint~
 
 */
-
+template <bool keepEndPoint>
 int SampleMPointVM( Word* args, Word& result, int message, 
                     Word& local, Supplier s ){
     
    result = qp->ResultStorage(s); 
    MPoint* res = (MPoint*) result.addr;
    DateTime* duration = (DateTime*) args[1].addr;
-   ((MPoint*)args[0].addr)->Sample(*duration,*res);
+   if(keepEndPoint){
+      CcBool* B = (CcBool*) args[2].addr;
+      if(!B->IsDefined()){
+        res->SetDefined(false);
+        return 0;
+      } else {
+         ((MPoint*)args[0].addr)->Sample(*duration,*res, B->GetBoolval());
+      }
+   } else {
+      ((MPoint*)args[0].addr)->Sample(*duration,*res);
+   }
    return 0;
 
 }
@@ -8097,6 +8143,9 @@ ValueMapping approximatemap[] = { ApproximateMPoint, ApproximateMReal };
 ValueMapping minmap[] = { VM_Min<UReal>, VM_Min<MReal> };
 
 ValueMapping maxmap[] = { VM_Max<UReal>, VM_Max<MReal> };
+
+ValueMapping samplempointmap[] = { SampleMPointVM<false>, 
+                                   SampleMPointVM<true>};
 
 ValueMapping temporaltherangemap[] = {
   TemporalTheRangeTM<Instant>, // 0 
@@ -8620,8 +8669,8 @@ const string ReverseSpec =
 
 const string SampleMPointSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>mpoint x duration -> mpoint</text--->"
-    "<text> samplempoint( _ , _ )<text--->"
+    "( <text>mpoint x duration [x bool] -> mpoint</text--->"
+    "<text> samplempoint( _ , _ )</text--->"
     "<text>simulation of an gps receiver </text--->"
     "<text>query samplempoint(Train6,"
     " [const duratione value (0 2000)] ) </text--->"
@@ -8836,6 +8885,14 @@ Operator temporalbox3d( "box3d",
                         Box3dSelect,
                         Box3dTypeMap );
 
+
+Operator temporalsamplempoint("samplempoint",
+                       SampleMPointSpec,
+                       2,
+                       samplempointmap,
+                       SampleMPointSelect,
+                       SampleMPointTypeMap );
+
 Operator temporaldistance( "distance",
                            TemporalSpecDistance,
                            MPointDistance,
@@ -9010,11 +9067,6 @@ Operator temporalreverse("reverse",
                        Operator::SimpleSelect,
                        ReverseTM );
 
-Operator temporalsamplempoint("samplempoint",
-                       SampleMPointSpec,
-                       SampleMPointVM,
-                       Operator::SimpleSelect,
-                       SampleMPointTypeMap );
 
 /*
 6 Creating the Algebra

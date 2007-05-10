@@ -2652,7 +2652,8 @@ the next unit will also have the starting time of the unit
 directly after the gap. 
 
 */
-  void Sample(const DateTime& duration, MPoint& result)const;
+  void Sample(const DateTime& duration, MPoint& result, 
+              const bool KeepEndPoint = false )const;
 
 
 
