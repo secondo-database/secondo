@@ -20,16 +20,21 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-Feb. 2007, M. Spiekermann: Documentation of the Client-Server-Protocol. New protocol tag
-__<Message>__ introduced. 
+
+//characters  [1]  verbatim:  [\verb@] [@]
+
+
+Feb. 2007, M. Spiekermann: Documentation of the Client-Server-Protocol. New
+protocol tag __<Message>__ introduced. 
 
 
 1 Protocol Overview
 
-The client and the server interchange messages as byte sequences which will be sent over
-a TCP-IP socket. A message is a simple tag of the pattern __<tag/>__ or a pair of
-start and end tags __<tag>...</tag>__. After each tag a newline symbol __\n__ must be
-sent. Between a paired tag some message dependet data will be delivered.
+The client and the server interchange messages as byte sequences which will be
+sent over a TCP-IP socket. A message is a simple tag of the pattern "<tag/>"[1]
+or a pair of start and end tags "<tag>...</tag>". After each tag a newline
+symbol "\n" must be sent. Between a paired tag some message dependent data
+will be delivered.
 
 
 2 Connecting
@@ -42,8 +47,8 @@ Server:
     <SecondoOK/>\n
 ----
 
-Then the client needs to send an authorization, currently the user and password will
-be ignored since there is no user management implemented yet.
+Then the client needs to send an authorization, currently the user and password
+will be ignored since there is no user management implemented yet.
 
 Client:
 
@@ -94,12 +99,12 @@ The most interesting one is to send a Secondo command to the server.
 ----
 
 "cmdLevel" is an integer, it values could be 0 (list-syntax) or 1 (SOS-syntax).
-The command itself can be wrapped into several lines. Every command which is known
-by the SecondoInterface (see "SecondoInterface.h") can be used. Note: The command cannot
-contain the line "</Secondo>".
+The command itself can be wrapped into several lines. Every command which is
+known by the SecondoInterface (see "SecondoInterface.h") can be used. Note: The
+command cannot contain the line "</Secondo>".
 
-The response will
-be a list which may be returned in text or binary representation.
+The response will be a list which may be returned in text or binary
+representation.
 
 ----
     <SecondoResponse>\n
@@ -181,7 +186,7 @@ It is possible to interchange objects or databases between the client and the
 server site. Hence you can use the client to restore objects or databases or to
 save object or databases. Some special messages are needed since the usual
 Secondo-commands for this purpose assume that the files are on the server's
-site. All of the requests below will return a __<SecondoResponse>__ message.
+site. All of the requests below will return a "<SecondoResponse>" message.
 
 
 The save requests will return a Secondo result list which is the list
@@ -241,11 +246,12 @@ The client can close the connection by sending
 #include <iostream>
 #include <list>
 
+//#define TRACE_ON 1
+#include "LogMsg.h"
 #include "ErrorCodes.h"
 #include "NestedList.h"
 #include "Messages.h"
 #include "NList.h"
-#include "LogMsg.h"
 #include "SecondoSystem.h"
 
 using namespace std;
@@ -372,7 +378,7 @@ struct CSProtocol {
  { 
     ignoreMsg = value; 
     msgHandler->ignoreMsg(value);
-    cerr << "IgnoreMsg: " << value << endl; 
+    SHOW(IgnoreMsg) 
  }
  
  bool nextLine(const string& exp, string& errMsg)
