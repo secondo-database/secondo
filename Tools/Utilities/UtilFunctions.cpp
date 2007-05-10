@@ -2,8 +2,8 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2002-2007, University in Hagen, Faculty of Mathematics of Computer
-Science, Database Systems for New Applications.
+Copyright (C) 2002-2007, University in Hagen, Faculty of Mathematics
+and Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -712,7 +712,7 @@ bool removeSuffix(const string& suf, string& s)
 
 bool hasPrefix(const string& pre, const string& s)
 {
-  return (s.rfind(pre) == 0);
+  return ( s.find(pre) == 0);
 }  
 
 
