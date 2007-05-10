@@ -42,14 +42,14 @@ using namespace std;
 class StopWatch {
 
      
-  public:
+  public:	  
     StopWatch();
     ~StopWatch() {};
      
-    // define start time. Differences are computed with respect to this time
+    // Reset the start time. Differences are computed with respect to this time
     void start();
           
-    // return difference (now-start) in real time formatted as string 
+    // return the real time difference (now-start) formatted as string 
     const string diffReal();
 
     // return used CPU time since start formatted as string
