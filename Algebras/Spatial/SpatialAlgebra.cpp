@@ -9194,7 +9194,15 @@ ListExpr SpatialComponentsMap( ListExpr args )
     if( SpatialTypeOfSymbol( nl->First( args ) ) == stregion )
       return nl->TwoElemList( nl->SymbolAtom("stream"),
                               nl->SymbolAtom("region") );
+    
+    if( SpatialTypeOfSymbol( nl->First( args ) ) == stline )
+      return nl->TwoElemList( nl->SymbolAtom("stream"),
+                              nl->SymbolAtom("line") );
+
+    ErrorReporter::ReportError("point, line or region expected");
+    return nl->TypeError();
   }
+  ErrorReporter::ReportError("Wrong number of arguments");
   return (nl->SymbolAtom( "typeerror" ));
 }
 
@@ -9609,6 +9617,7 @@ ListExpr PolylinesMap(ListExpr args){
   return nl->TwoElemList(nl->SymbolAtom("stream"),
                          nl->SymbolAtom("line"));
 }
+
 
 /*
 10.1.10 Type mapping for the ~simplify~ operator
@@ -10258,6 +10267,8 @@ SpatialComponentsSelect( ListExpr args )
   if ( SpatialTypeOfSymbol( arg1 ) == stregion )
     return 1;
 
+  if ( SpatialTypeOfSymbol( arg1 ) == stline )
+    return 2;
   return -1; // This point should never be reached
 }
 
@@ -12234,6 +12245,145 @@ SpatialComponents_ps( Word* args, Word& result, int message,
   return 0;
 }
 
+
+class LineComponentsLi{
+public:
+  LineComponentsLi(Line* theLine){
+    this->theLine = (Line*)theLine->Copy();
+    size = theLine->Size();
+    used = new bool[size];
+    for(int i=0;i<size;i++){
+       used[i] = false;
+    }
+    pos = 0;
+  }
+
+  ~LineComponentsLi(){
+     theLine->DeleteIfAllowed();
+     delete[] used; 
+   }
+
+  Line* NextLine(){
+     // search next unused part
+     while(pos<size && used[pos]){
+         pos++;
+     }
+     // all segments are used already
+     if(pos>=size){
+        return 0;
+     }
+     Line* result = new Line(size-pos);
+     result->StartBulkLoad();
+     int edgeno = 0;
+     // pos points to an unused segments
+     stack<int> criticalPoints;
+     bool done=false;
+     const HalfSegment* hs=0;
+     int hspos = pos;
+     const HalfSegment* hsp=0;
+     int hsppos = -1;
+     criticalPoints.push(pos); // mark to search an extension here
+     while(!done){
+        theLine->Get(hspos,hs);
+        hsppos = hs->attr.partnerno;
+        theLine->Get(hsppos,hsp);
+        used[hspos]=true;
+        used[hsppos]=true;
+        HalfSegment hs1 = *hs;
+        hs1.attr.edgeno = edgeno;
+        hs1.SetLeftDomPoint(false);
+        (*result) += hs1;  
+        hs1.SetLeftDomPoint(true);
+        (*result) += hs1;
+        edgeno++;
+        // search an extension of result 
+        Point p = hsp->GetDomPoint();
+        criticalPoints.push(hsppos);
+
+        // search within the stack
+        bool found = false;
+        while(!criticalPoints.empty() && !found){
+          int k = criticalPoints.top(); 
+          const HalfSegment* tmp;
+          theLine->Get(k,tmp);
+          Point p = tmp->GetDomPoint(); 
+          // search left of k
+          int m = k-1;
+          while(m>0 && isDomPoint(p,m) && !found){
+             found = !used[m];
+             if(!found) m--;
+          }
+          if(found){
+              hspos=m;
+          } else { // search right of k
+             m = k+1;
+             while(m<size && isDomPoint(p,m) &&!found){
+                found = !used[m];
+                if(!found) m++;
+             }
+             if(found){
+               hspos = m;
+             }
+          } 
+
+          if(!found){
+             criticalPoints.pop();
+          }
+        }
+        done = !found; // no extension found
+     }
+     result->EndBulkLoad();
+     return result;
+  }
+
+
+private:
+   bool isDomPoint(const Point& p,int pos){
+     const HalfSegment* hs;
+     theLine->Get(pos,hs);
+     return AlmostEqual(p,hs->GetDomPoint());
+   }
+
+
+   Line* theLine;
+   int pos;
+   int size;
+   bool* used;
+};
+
+
+int
+SpatialComponents_l( Word* args, Word& result, int message,
+                      Word& local, Supplier s ){
+
+   switch(message){
+     case OPEN:{
+       local.addr = new LineComponentsLi((Line*) args[0].addr);
+       return 0;  
+     }
+
+     case REQUEST:{
+         LineComponentsLi* li = (LineComponentsLi*) local.addr;
+         Line* res = li->NextLine();
+         if(res==0){
+            return CANCEL;
+         } else {
+            result.addr = res;
+            return YIELD;
+         }
+     }
+     case CLOSE:{
+       if(local.addr){
+          LineComponentsLi* li = (LineComponentsLi*) local.addr;
+          delete li;
+          return 0; 
+       }
+     }
+   }
+   return 0;
+}
+
+
 /*
 10.4.28 Value mapping functions of operator ~vertices~
 
@@ -12939,7 +13089,8 @@ ValueMapping spatialscalemap[] = {
 
 ValueMapping spatialcomponentsmap[] = {
   SpatialComponents_ps,
-  SpatialComponents_r };
+  SpatialComponents_r,
+  SpatialComponents_l };
 
 ValueMapping spatialverticesmap[] = {
   SpatialVertices_l,
@@ -13193,7 +13344,7 @@ const string SpatialSpecScale  =
 const string SpatialSpecComponents  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>points -> stream(point), region -> "
-  "stream(region)</text--->"
+  "stream(region), line -> stream(line)</text--->"
   "<text>components( _ )</text--->"
   "<text>Returns the components of a points or region "
   "object.</text--->"
@@ -13529,7 +13680,7 @@ Operator spatialscale (
 Operator spatialcomponents (
   "components",
   SpatialSpecComponents,
-  2,
+  3,
   spatialcomponentsmap,
   SpatialComponentsSelect,
   SpatialComponentsMap );

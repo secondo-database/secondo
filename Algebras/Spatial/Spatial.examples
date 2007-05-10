@@ -99,6 +99,11 @@ Signature: points -> stream(point), region -> stream(region)
 Example  : query components(tiergarten) count
 Result   : 1
 
+Operator : components
+Number   : 3
+Signature: line -> stream(line)
+Example  : query components(BGrenzenLine) count
+Result   : 1
 
 Operator : crossings
 Number   : 1
