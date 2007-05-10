@@ -44,22 +44,21 @@ using namespace std;
 #include <fstream>
 #include <sstream>
 
+//#define TRACE_ON 1
+#include "LogMsg.h"
 #include "SecondoInterface.h"
 #include "SocketIO.h"
 #include "Profiles.h"
-#include "LogMsg.h"
 #include "CSProtocol.h"
 
 
-SecondoInterface::SecondoInterface() : 
-  initialized( false ), 
-  activeTransaction( false ),
-  isCSImpl( true ), 
-  server( 0 )
+SecondoInterface::SecondoInterface(bool isServer /*= false*/)
 {
+  Init();
+
+  serverInstance = isServer; 
   nl = new NestedList();
   al = nl;
-  csp = 0;
 }
 
 SecondoInterface::~SecondoInterface()
@@ -232,11 +231,9 @@ SecondoInterface::Secondo( const string& commandText,
 {
 /*
 ~Secondo~ reads a command and executes it; it possibly returns a result.
-The command is one of a set of SECONDO commands. 
+The command is one of the set of SECONDO commands. 
 
-Error Codes: see definition module.
-
-If value 0 is returned, the command was executed without error.
+For an explanation of the error codes refer to SecondoInterface.h
 
 */
 

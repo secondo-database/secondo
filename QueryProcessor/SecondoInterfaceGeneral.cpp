@@ -36,8 +36,6 @@ extend to support additional parameters for error messages.
 
 */
 
-#include <map>
-
 #include "SecondoInterface.h"
 #include "SecondoSystem.h"
 #include "QueryProcessor.h"
@@ -46,12 +44,50 @@ extend to support additional parameters for error messages.
 
 using namespace std;
 
+SecondoInterface::ErrorMap SecondoInterface::errors;
+
+void
+SecondoInterface::Init() {
+
+  initialized = false; 
+  activeTransaction = false;
+  server = 0;
+  serverInstance = false; 
+  nl = 0;
+  al = 0;
+  csp = 0;
+  derivedObjPtr = 0;
+  printQueryAnalysis = false;
+  
+  cmdReal = 0.0;
+  cmdCPU = 0.0;
+  queryReal = 0.0;
+  queryCPU = 0.0;
+  commitReal = 0.0;
+  outObjReal = 0.0;
+  copyReal = 0.0;
+
+  InitErrorMessages();
+} 
+
 NestedList*
 SecondoInterface::GetNestedList()
 {
   return (al);
 }
 
+bool
+SecondoInterface::ServerInstance()
+{
+  return serverInstance;	
+}       	
+
+void 
+SecondoInterface::showTimes(double real, double cpu) 
+{
+  cmsg.info() << "Times (elapsed / cpu): " << real << " / " << cpu << endl;
+  cmsg.send(); 
+} 
 
 void
 SecondoInterface::InitRTFlags(const string& configFile) {
@@ -64,20 +100,10 @@ SecondoInterface::InitRTFlags(const string& configFile) {
 	
 }
 
-/*
-1.4 Procedure ~GetErrorMessage~
-
-Todo: Translation of the ~params~ list.
-
-*/
-string
-SecondoInterface::GetErrorMessage( const int errorCode, 
-		                   const ListExpr params /* = 0*/ )
+void
+SecondoInterface::InitErrorMessages() 
 {
 
-  typedef map<int,string> ErrorMap;
-  static ErrorMap errors;
-  
   errors[ERR_NO_ERROR]            
    = "No Error!";
                            
@@ -261,7 +287,18 @@ after the error number have the following meaning:
 
  errors[ERR_SYSTEM_ERROR]
   = "Unexpected fatal system error.";
+} 
 
+/*
+1.4 Procedure ~GetErrorMessage~
+
+Todo: Translation of the ~params~ list.
+
+*/
+string
+SecondoInterface::GetErrorMessage( const int errorCode, 
+		                   const ListExpr params /* = 0*/ )
+{
   ErrorMap::const_iterator errPos = errors.find( errorCode );
   if ( errPos != errors.end() )
   {

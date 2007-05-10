@@ -125,6 +125,7 @@ in the treatment of the database state in database commands.
 
 #include <string>
 #include <list>
+#include <map>
 
 #include "NestedList.h"
 #include "AlgebraTypes.h"
@@ -160,7 +161,7 @@ struct SecErrInfo {
 class SecondoInterface
 {
  public:
-  SecondoInterface();
+  SecondoInterface(bool isServer=false);
 /*
 Constructs a "Secondo"[3] interface. Depending on the implementation of
 the interface different member variables are initialized.
@@ -871,10 +872,17 @@ Sets the debug level of the query processor.
 
 */
 
+
  protected:
  private:
+  void Init();                // Inititalize to  default values
+  void InitErrorMessages();
+
+  void showTimes(double real, double cpu); 
+
   void StartCommand();
   bool FinishCommand( SI_Error& errorCode, string& errorMessage );
+  
   void constructErrMsg(int& errorCode, string& errorMessage);
 	
   // implementation of SECONDO commands
@@ -894,21 +902,22 @@ Sets the debug level of the query processor.
   SI_Error Command_Update( const ListExpr list, string& errorMessage );
 
 
-  bool        initialized;       // state of interface
-  bool        activeTransaction; // state of transaction block
-  bool        isCSImpl;          // CS-Implementation or not
+  bool initialized;       // state of interface
+  bool activeTransaction; // state of transaction block
 
-  NestedList  *nl, *al;          // References of
-                                 // nested list containers
-  Socket*     server;            // used in C/S version only
+  NestedList*  nl;        // pointer to nested list instances 
+  NestedList*  al;  
+
+  Socket*     server;     // used in C/S version only
+  CSProtocol* csp;
   
-  bool ServerInstance() { return !isCSImpl; }
+  bool ServerInstance();  // check if the current instance 
+  bool serverInstance;    // was create by the server 
   
-  static bool errMsgInitialized;
+  typedef map<int,string> ErrorMap;
+  static ErrorMap errors;
 
   DerivedObj* derivedObjPtr;
-
-  CSProtocol* csp;
 
   // members for tracking query times
   bool printQueryAnalysis;
@@ -922,12 +931,6 @@ Sets the debug level of the query processor.
   double outObjReal;
   double copyReal;
  
-  inline void showTimes(double real, double cpu) 
-  {
-    cmsg.info() << "Times (elapsed / cpu): " << real << " / " << cpu << endl;
-    cmsg.send(); 
-  } 
-  
 };
 
 /*

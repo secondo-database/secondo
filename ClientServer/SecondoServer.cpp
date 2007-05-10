@@ -455,7 +455,7 @@ SecondoServer::Execute()
   parmFile = (GetArgCount() > 1) ? GetArgValues()[1] : "SecondoConfig.ini";
   registrar = SmiProfile::GetParameter( "Environment", "RegistrarName", 
                                         "SECONDO_REGISTRAR", parmFile );
-  si = new SecondoInterface();
+  si = new SecondoInterface(true);
   if ( si->Initialize( "", "", "", "", parmFile, true ) )
   {
     map<string,ExecCommand> commandTable;

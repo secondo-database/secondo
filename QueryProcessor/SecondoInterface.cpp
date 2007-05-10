@@ -187,14 +187,12 @@ DerivedObj::ObjRecord::id = 0;
 
 */
 
-SecondoInterface::SecondoInterface() : 
-  initialized( false ), 
-  activeTransaction( false ), 
-  isCSImpl( false ), 
-  nl( 0 ), 
-  server( 0 ), 
-  derivedObjPtr(0)
-{}
+SecondoInterface::SecondoInterface(bool isServer/* =false*/)
+{
+  Init();	
+
+  serverInstance = isServer;	
+}
 
 
 /*
@@ -210,6 +208,7 @@ SecondoInterface::~SecondoInterface()
     Terminate();
   }
 }
+
 
 
 /*
@@ -1402,7 +1401,13 @@ SecondoInterface::constructErrMsg(int& errorCode, string& errorMessage)
 
     cmsg.error() << "" ; // be sure to use the error channel 
     cmsg.send(); // flush cmsg buffer
-    errorMessage += cmsg.getErrorMsg();
+
+    if ( ServerInstance() ) 
+    {
+      // append all stacked error messages which were
+      // send to cmsg.error 	    
+      errorMessage += cmsg.getErrorMsg();
+    }
 
     errorMessage += GetErrorMessage(errorCode);
   } 
