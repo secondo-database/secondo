@@ -28,6 +28,18 @@ Signature:((stream T)) -> int
 Example  : query intstream (1,10) count
 Result   : 10
 
+Operator : echo 
+Number   : 1
+Signature:stream(T) x bool x string  -> stream(T)
+Example  : query intstream (1,10) echo [TRUE, "Test"]  count
+Result   : 10
+
+Operator : echo 
+Number   : 2
+Signature: T x string  -> T , T # stream
+Example  : query  3 + 5 echo["Test"]
+Result   : 8
+
 
 Operator : feed
 Number   : 1

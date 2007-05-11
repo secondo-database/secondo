@@ -2602,6 +2602,145 @@ Operator namedtransformstream (
 
 
 
+/*
+5.29 The ~echo~ operator
+
+*/
+ListExpr EchoTypeMap(ListExpr args){
+  int len = nl->ListLength(args);
+  if(len!=2 && len!=3){
+     ErrorReporter::ReportError("Wrong number of parameters");
+     return nl->TypeError();
+  }
+  if(len==2){  // T x string -> T , T # stream(...)
+     // check for string
+     if(!nl->IsEqual(nl->Second(args),"string")){
+        ErrorReporter::ReportError("string as second argument expected");
+        return nl->TypeError();
+     } 
+     // check for T# stream
+     if(nl->ListLength(nl->First(args))==2 &&
+        nl->IsEqual(nl->First(nl->First(args)),"stream")){
+        ErrorReporter::ReportError("If the first argument is a stream, two "
+                                   "further parameters are required");
+        return nl->TypeError();
+     }
+     return nl->First(args);
+  } else { // len==3
+     // first argument has to be a stream
+     if(nl->ListLength(nl->First(args))!=2 ||
+        !nl->IsEqual(nl->First(nl->First(args)),"stream")){
+        ErrorReporter::ReportError("If the first argument is a stream, two "
+                                   "further parameters are required");
+        return nl->TypeError();
+     }
+     if(!nl->IsEqual(nl->Second(args),"bool")){
+       ErrorReporter::ReportError("bool expected as second argument.");
+       return nl->TypeError();
+     }
+     if(!nl->IsEqual(nl->Third(args),"string")){
+       ErrorReporter::ReportError("last parameter must be of type string.");
+       return nl->TypeError();
+     }
+     return nl->First(args);
+  }
+}
+
+/*
+5.28.2 Value Mapping for the echo operator
+
+*/
+
+int Echo_Stream(Word* args, Word& result, int message,
+                         Word& local, Supplier s)
+{
+   bool each = ((CcBool*) args[1].addr)->GetBoolval();
+   CcString* s1 = (CcString*) args[2].addr;
+  string m;
+  if(s1->IsDefined()){
+       m = (string)(char*) s1->GetStringval();
+  } else {
+      m = "undefined";
+  }
+   Word elem;
+   switch(message){
+     case OPEN:
+            cout << "OPEN: " << m << endl;
+            qp->Open(args[0].addr);
+            return 0;
+     case REQUEST:
+            if(each){
+               cout << "REQUEST: " << m << endl;
+            }
+            qp->Request(args[0].addr,elem);
+            if(qp->Received(args[0].addr)){
+                result = SetWord(elem.addr);
+                return YIELD;
+            } else{
+                return CANCEL;
+            }
+     case CLOSE:
+           cout << "CLOSE: " << m   << endl;     
+           qp->Close(args[0].addr); 
+           return 0;
+   }   
+   return 0;
+}
+
+
+
+int Echo_Other(Word* args, Word& result, int message,
+               Word& local, Supplier s)
+{
+   CcString* s1 = (CcString*) args[1].addr;
+   string m = s1->IsDefined()?(string)(char*)s1->GetStringval():"undefined";
+   result = SetWord(args[0].addr);
+   cout << m << endl;
+   return 0;
+}
+
+/*
+5.29.3 Selection function and VM array
+
+*/
+ValueMapping echovm[] = {Echo_Stream, Echo_Other};
+
+int EchoSelect(ListExpr args){
+  if(nl->ListLength(args)==2){
+     return 1;
+  } else {
+     return 0;
+  }
+}
+
+/*
+5.29.4 Specification
+
+*/
+
+const string EchoSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "("
+  "<text>stream(T) x bool x string  -> stream(T) \n"
+  " T x string -> T , T # stream</text--->"
+  "<text>_ echo [ _ ] </text--->"
+  "<text> prints the given string if operator mapping is called </text--->"
+  "<text>query Staedte feed echo[TRUE, \"called\"] count</text--->"
+  ") )";
+
+/*
+5.29.5 Creatinmg the operator instance
+
+*/
+
+Operator echo( "echo", 
+               EchoSpec, 
+               2, 
+               echovm,
+               EchoSelect,
+               EchoTypeMap);
+
 
 /*
 5.28 Operator ~count~
@@ -3286,6 +3425,7 @@ public:
     AddOperator( &streamuse2 );
     AddOperator( &streamaggregateS );
     AddOperator( &streamfilter );
+    AddOperator( &echo );
     AddOperator( &STREAMELEM );
     AddOperator( &STREAMELEM2 );
   }
