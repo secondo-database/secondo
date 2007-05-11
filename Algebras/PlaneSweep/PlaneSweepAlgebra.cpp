@@ -3033,8 +3033,8 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
         const vector<HalfSegment>& vs2,const bool isline1, const bool isline2,
         vector<HalfSegmentCheck>& vsc1, vector<HalfSegmentCheck>& vsc2)
 {
-  unsigned int i = 0, j = 0, k, l, hscurrindex;
-  HalfSegment hs1, hs2, hscurr;
+  unsigned int i = 0, j = 0, k, l, hscurrindex, hscurrindexi, hscurrindexj;
+  HalfSegment hs1, hs2, hscurr, hscurri, hscurrj;
   State status;
   
   //if ( true ) printsegvector(vs1);
@@ -3046,13 +3046,17 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
       //cout << "if1" << endl;
       hs1 = vs1[i];
       hs2 = vs2[j];
-      if ( hs1.GetLeftPoint() == hs2.GetLeftPoint() && 
-           hs1.GetRightPoint() == hs2.GetRightPoint() )
+      if ( AlmostEqual(hs1.GetLeftPoint(), hs2.GetLeftPoint()) && 
+           AlmostEqual(hs1.GetRightPoint(), hs2.GetRightPoint()) )
       {
-        i++;   
+      	hscurrindexi = i;
+        i++;
+	hscurrindexj = j;
         j++;   
-        hscurr = hs1;    
-        status = BOTH; 
+        hscurri = hs1; 
+	hscurrj = hs2;   
+        status = BOTH;
+	//cout << "STATUS IS BOTH" << endl; 
       }
       else if ( hs1 < hs2) 
       {
@@ -3071,7 +3075,24 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
       //cout << hscurr << endl;
       //if (status == FIRST) cout << "FIRST1" << endl;
       //else cout << "SECOND1" << endl;
-      if ( status == FIRST )
+      if ( status == BOTH )
+      {
+        k = hscurrindexj;
+        while ( (k < vs2.size()) && (xoverlaps(hscurri, vs2[k])) )
+        {
+          checksegments(hscurri, vs2[k], hscurrindexi, k, vsc1, vsc2);
+          k++;
+        }
+        k = hscurrindexi;
+        while ( (k < vs1.size()) && (xoverlaps(hscurrj, vs1[k])) )
+        {
+          checksegments(hscurrj, vs1[k], hscurrindexj, k, vsc1, vsc2);
+          k++;
+        }
+
+        cout << "TREAT BOTH CASE" << endl;
+      }
+      else if ( status == FIRST )
       {
         k = j;
         /*while ( (jleft < vs2.size()) && (!(xoverlaps(hscurr, vs2[jleft]))) )
