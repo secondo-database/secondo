@@ -2899,12 +2899,15 @@ streamPrintstreamType( ListExpr args )
   if (     nl->IsAtom(stream)
            || !(nl->ListLength(stream) == 2)
            || !nl->IsEqual(nl->First(stream), "stream")
-           || !am->CheckKind("DATA", nl->Second(stream), errorInfo) )
+           || ( ( !am->CheckKind("DATA", nl->Second(stream), errorInfo) ) &&
+                ( !(nl->ListLength(nl->Second(stream)) == 2 &&
+                    TypeOfRelAlgSymbol(nl->First(nl->Second(stream)))
+                    == tuple)) ) )
     {
       nl->WriteToString(out, stream);
       ErrorReporter::ReportError("Operator printstream expects a (stream T), "
-                                 "T in kind DATA, as its first argument. "
-                                 "The argument provided "
+                                 "T in kind DATA, or (stream (tuple X) ) as "
+                                 "its first argument. The argument provided "
                                  "has type '" + out + "' instead.");
       return nl->SymbolAtom("typeerror");
     }
@@ -2955,6 +2958,50 @@ An example for a pure stream operator (input and output are streams).
   return -1;
 }
 
+int
+    streamPrintTupleStreamFun (Word* args, Word& result,
+                          int message, Word& local, Supplier s)
+
+/*
+Print the elements of a Tuple-type stream.
+
+*/
+{
+  Word tupleWord;
+
+  switch(message)
+  {
+    case OPEN:
+      qp->Open(args[0].addr);
+      return 0;
+
+    case REQUEST:
+      qp->Request(args[0].addr, tupleWord);
+      if(qp->Received(args[0].addr))
+      {
+        cout << "Tuple: (" << endl;
+        Tuple* tuple = (Tuple*) (tupleWord.addr);
+        for(int i = 0; i < tuple->GetNoAttributes(); i++)
+        {
+          ((Attribute*) (tuple->GetAttribute(i)))->Print(cout);
+          cout << endl;
+        }
+        cout << "       )" << endl;
+        result = tupleWord;
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+
+    case CLOSE:
+      qp->Close(args[0].addr);
+      return 0;
+  }
+  return 0;
+}
+
 /*
 5.29.3 Specification for operator ~printstream~
 
@@ -2962,9 +3009,10 @@ An example for a pure stream operator (input and output are streams).
 const string streamPrintstreamSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in kind DATA:\n"
-  "((stream T)) -> (stream T)</text--->"
+  "((stream T)) -> (stream T)\n"
+  "((stream tuple(X))) -> (stream tuple(X))</text--->"
   "<text>_ printstream</text--->"
-  "<text>Prints the elements of an arbitrary stream.</text--->"
+  "<text>Prints the elements of an arbitrary stream or tuplestream.</text--->"
   "<text>query intstream (1,10) printstream count</text--->"
   ") )";
 
@@ -2975,18 +3023,34 @@ const string streamPrintstreamSpec  =
 Uses the same function as for ~count~.
 
 */
+int
+    streamPrintstreamSelect (ListExpr args )
+{
+  ListExpr streamType = nl->Second(nl->First(args));
+  
+  if( (nl->ListLength(streamType) == 2) &&
+      (nl->IsEqual(nl->First(streamType),"tuple")))
+    return 0;
+  else
+    return 1;
+}
 
+ValueMapping streamprintstreammap[] = {
+  streamPrintTupleStreamFun,
+  streamPrintstreamFun
+};
 
 /*
 5.29.5 Definition of operator ~printstream~
 
 */
 Operator streamprintstream (
-  "printstream",         //name
-  streamPrintstreamSpec, //specification
-  streamPrintstreamFun,  //value mapping
-  streamCountSelect,     //trivial selection function
-  streamPrintstreamType  //type mapping
+  "printstream",           //name
+  streamPrintstreamSpec,   //specification
+  2,
+  streamprintstreammap,    //value mapping
+  streamPrintstreamSelect, //own selection function
+  streamPrintstreamType    //type mapping
 );
 
 
