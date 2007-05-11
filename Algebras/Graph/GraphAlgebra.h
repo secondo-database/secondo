@@ -88,7 +88,7 @@ class Vertex: public StandardAttribute
 3.2.2 GetPos
 
 */        
-                Point const & GetPos() const{return pos;}
+        Point const & GetPos() const{return pos;}
         
 /*
 3.3 Set functions
@@ -96,7 +96,7 @@ class Vertex: public StandardAttribute
 3.3.1 SetKey
 
 */
-                void SetKey(int nKey){key = nKey;}
+        void SetKey(int nKey){key = nKey;}
 /*
 3.3.2 SetPos
 
@@ -121,15 +121,28 @@ as an attribute.
         
           size_t HashValue() const;
           void CopyFrom(const StandardAttribute* arg);
+          inline virtual ostream& Print( ostream& os ) const
+          {
+            if( defined )
+            {
+              os << "Vertex: ( " << key << " @"; pos.Print(os); os << " )";
+            }
+            else
+            {
+              os << "Vertex: ( undefined )";
+            }
+            return os;
+          }
+          
 
     private:
 /*
 3.5 Attributes
 
 */
-                int key;
+        int key;
         bool defined;
-        Point pos;            
+        Point pos;
 };
 
 /*
@@ -158,24 +171,24 @@ class Edge: public StandardAttribute
 4.2.2 GetTarget
 
 */
-                int GetTarget() const{return target;}
+        int GetTarget() const{return target;}
 /*
 4.2.3 GetCost
 
 */
-                float GetCost() const{return cost;}
+        float GetCost() const{return cost;}
 /*
 4.3 Set funtions
 
 4.3.1 SetSource
 
 */
-                void SetSource(int nSource){source = nSource;}
+        void SetSource(int nSource){source = nSource;}
 /*
 4.3.2 SetTarget
 
 */
-                void SetTarget(int nTarget){target = nTarget;}
+        void SetTarget(int nTarget){target = nTarget;}
 /*
 4.3.3 SetCost
 
@@ -190,15 +203,24 @@ as an attribute.
 
 */
         //Implementations from Attribute:        
-          Edge* Clone() const;
-          bool IsDefined() const;
-          void SetDefined(bool);
-          int Compare(const Attribute*) const;
-          bool Adjacent(const Attribute*) const;
-          size_t Sizeof() const;
- 
-          size_t HashValue() const;
-          void CopyFrom(const StandardAttribute* arg);
+        Edge* Clone() const;
+        bool IsDefined() const;
+        void SetDefined(bool);
+        int Compare(const Attribute*) const;
+        bool Adjacent(const Attribute*) const;
+        size_t Sizeof() const;
+        size_t HashValue() const;
+        void CopyFrom(const StandardAttribute* arg);
+        inline virtual ostream& Print( ostream& os ) const
+        {
+          if(defined)
+             os << "Edge: ( " << source << " --> "
+                << target <<", " << cost << " )";
+          else
+            os << "Edge: ( undefined )";
+          return os;
+        }
+
                 
     private:
 /*
@@ -222,6 +244,12 @@ struct pathStruct
         int key;
         Point pos;
         float cost;
+        inline ostream& Print( ostream& os ) const
+        {
+          os << "pathStruct: ( " << key << " @"; pos.Print(os);
+          os << ": " << cost << " )";
+          return os;
+        }
 };
 
 class Path: public StandardAttribute
@@ -325,6 +353,27 @@ as an attribute.
         
         size_t HashValue() const;
         void CopyFrom(const StandardAttribute* arg);
+        inline virtual ostream& Print( ostream& os ) const
+        {
+          os << "Path: ( ";
+          if (defined)
+          {
+            os << endl;
+            for( int i = 0; i < myPath.Size(); i++)
+            {
+              const pathStruct *ps;
+              myPath.Get(i, ps);
+              os << "\t\t"; ps->Print(os); os << endl;
+            }
+            os << "      Cost = " << cost << " )" << endl;
+          }
+          else
+          {
+            os << " undefined )" << endl;
+          }
+          return os;
+        }
+
     
     protected:
 /*
