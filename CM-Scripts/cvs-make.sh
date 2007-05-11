@@ -108,10 +108,11 @@ opt_sdkDir="secondo-sdk"
 opt_coModule="secondo"
 opt_coModuleOpt="std"
 
-baseDir=$HOME/${0%/*}
 
-# include function definitions
-# libutil.sh must be in the search PATH 
+# Include function definitions of libutil.sh. It must be in the same direcory
+# as this script file or in the search path. 
+
+baseDir=$HOME/${0%/*}
 if [ -s $baseDir/libutil.sh ]; 
 then
   if ! source $baseDir/libutil.sh; then exit 1; fi
@@ -119,10 +120,10 @@ else
   if ! source libutil.sh; then exit 1; fi
 fi
 
+
 ##
 ## Function Definitions
 ##
-
 
 # checkOpt
 # 
