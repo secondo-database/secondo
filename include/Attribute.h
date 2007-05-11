@@ -313,7 +313,7 @@ functions.
 */
     inline virtual ostream& Print( ostream& os ) const
     {
-      return os;
+      return os << "< No Print()-function for this datatype! >";
     }
 /*
 Prints the attribute. Used for debugging purposes.
