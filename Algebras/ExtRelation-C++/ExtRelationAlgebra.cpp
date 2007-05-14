@@ -7471,11 +7471,17 @@ is defined.
 
 */
 
+
 class ExtRelationAlgebra : public Algebra
 {
  public:
   ExtRelationAlgebra() : Algebra()
   {
+
+#ifndef USE_PROGRESS
+
+// no support for progress queries
+
     AddOperator(&extrelsample);
     AddOperator(&extrelgroup);
     AddOperator(&extrelcancel);
@@ -7510,10 +7516,44 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&krdup);
     AddOperator(&extreladdcounter);
 
-#ifdef USE_PROGRESS 
-    extrelextend.EnableProgress();
-    extrelsymmjoin.EnableProgress();
-    extrelloopjoin.EnableProgress();
+#else
+
+// support for progress queries
+
+    AddOperator(&extrelsample);
+    AddOperator(&extrelgroup);
+    AddOperator(&extrelcancel);
+    AddOperator(&extrelextract);
+    AddOperator(&extrelextend);		extrelextend.EnableProgress();
+    AddOperator(&extrelconcat);
+    AddOperator(&extrelmin);
+    AddOperator(&extrelmax);
+    AddOperator(&extrelavg);
+    AddOperator(&extrelsum);
+    AddOperator(&extrelhead);
+    AddOperator(&extrelsortby);		extrelsortby.EnableProgress();
+    AddOperator(&extrelsort);		extrelsort.EnableProgress();
+    AddOperator(&extrelrdup);
+    AddOperator(&extrelmergesec);
+    AddOperator(&extrelmergediff);
+    AddOperator(&extrelmergeunion);
+    AddOperator(&extrelmergejoin);
+    AddOperator(&extrelsortmergejoin);
+    AddOperator(&extrelhashjoin);
+    AddOperator(&extrelloopjoin);	extrelloopjoin.EnableProgress();
+    AddOperator(&extrelextendstream);
+    AddOperator(&extrelprojectextendstream);
+    AddOperator(&extrelloopsel);
+    AddOperator(&extrelgroupby);
+    AddOperator(&extrelaggregate);
+    AddOperator(&extrelaggregateB);
+    AddOperator(&extrelsymmjoin);	extrelsymmjoin.EnableProgress();
+    AddOperator(&extrelsymmproductextend);
+    AddOperator(&extrelsymmproduct);
+    AddOperator(&extrelprojectextend);
+    AddOperator(&krdup);
+    AddOperator(&extreladdcounter);
+
 #endif
   }
 
