@@ -2071,7 +2071,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
     case PROGRESS:
       ProgressInfo p1;
       ProgressInfo* pRes;
-      const double uRdup = 0.01;  // time per tupel
+      const double uRdup = 0.01;  // time per tuple
       const double vRdup = 0.1;   // time per comparison
       const double wRdup = 0.9;   // default selectivity (= 10% duplicates)
 
