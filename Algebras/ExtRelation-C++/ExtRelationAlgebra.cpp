@@ -5485,18 +5485,22 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
   ArgVectorPointer vector;
 
   qp->Open(args[0].addr);
-  result = qp->ResultStorage(s);
   int index = ((CcInt*)args[4].addr)->GetIntval();
-
-  Word iterWord = args[3];
-
+  result = qp->ResultStorage(s);
+  // Get the initial value
+  Attribute* tmpres = ((Attribute*)args[3].addr)->Clone();
   qp->Request( args[0].addr, t );
+  Word fctres;
   while( qp->Received( args[0].addr ) )
   {
     vector = qp->Argument(args[2].addr);
-    (*vector)[0] = iterWord;
+    (*vector)[0] = SetWord(tmpres);
     (*vector)[1] = SetWord( ((Tuple*)t.addr)->GetAttribute( index-1 ) );
-    qp->Request(args[2].addr, iterWord);
+    qp->Request(args[2].addr, fctres);
+
+    delete tmpres; //delete intermediate result
+    tmpres = (Attribute*) fctres.addr;
+
     qp->ReInitResultStorage( args[2].addr );
 
     ((Tuple*)t.addr)->DeleteIfAllowed();
@@ -5504,7 +5508,9 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
   }
 
   ((StandardAttribute*)result.addr)->
-    CopyFrom( (const StandardAttribute*)iterWord.addr );  
+    CopyFrom( (const StandardAttribute*)tmpres ); 
+  
+  delete tmpres; 
   qp->Close(args[0].addr);
 
   return 0;
