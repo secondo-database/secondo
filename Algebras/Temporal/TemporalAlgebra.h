@@ -249,6 +249,14 @@ Compares this and the argument;
 
 */
 
+  ostream& Print(ostream& os) const{
+    os << (lc?"[":"(");
+    start.Print(os) << ", ";
+    end.Print(os) << (rc?"]":")");
+    return os;
+  }
+
+
 /*
 
 3.2.3 Attributes
@@ -700,7 +708,19 @@ The second constructor.
 
   ostream& Print( ostream &os ) const
   {
-    return os << "Temporal Algebra---Intime" << endl;
+    os << "intime: (";
+    if ( defined )
+    {
+      instant.Print(os);
+      os << ", ";
+      value.Print(os);
+    }
+    else
+    {
+      os << " undefined";
+    }
+    os << " ) ";
+    return os;
   }
 
   size_t HashValue() const
@@ -1023,13 +1043,13 @@ The destructor.
     {
       if( IsDefined() )
         {
-          os << "TemporalUnit: " << "( ";
-          os << " NO SPECIFIC Print()-Method!";
-          os << " )" << endl;
+          os << "TemporalUnit: ( ";
+          TemporalUnit<Alpha>::timeInterval.Print(os);
+          os << ", NO SPECIFIC Print()-Method! ) ";
           return os;
         }
       else
-        return os << "TemporalUnit: (undef)" << endl;
+        return os << "TemporalUnit: (undef) ";
     }
 
     virtual size_t HashValue() const
@@ -1124,21 +1144,15 @@ The destructor.
     {
       if( IsDefined() )
         {
-          os << "SpatialTemporalUnit: " << "( (";
-          os << TemporalUnit<Alpha>::timeInterval.start.ToString();
-          os << " ";
-          os << TemporalUnit<Alpha>::timeInterval.end.ToString();
-          os << " "
-             << (TemporalUnit<Alpha>::timeInterval.lc ? "TRUE " : "FALSE ");
-          os << " "
-             << (TemporalUnit<Alpha>::timeInterval.rc ? "TRUE) " : "FALSE) ");
+          os << "SpatialTemporalUnit: " << "( ";
+          TemporalUnit<Alpha>::timeInterval.Print(os);
+          os << ", ";
           // print specific stuff:
-          os << " NO SPECIFIC Print()-Method!";
-          os << " )" << endl;
+          os << " NO SPECIFIC Print()-Method! ) ";
           return os;
         }
       else
-      return os << "SpatialTemporalUnit: (undef)" << endl;
+      return os << "SpatialTemporalUnit: (undef) ";
     }
 
     virtual size_t HashValue() const
@@ -1343,18 +1357,15 @@ Returns ~true~ if the value of this temporal unit is equal to the value of the t
   {
     if( StandardTemporalUnit<Alpha>::IsDefined() )
       {
-        os << "ConstUnit: " << "( (";
-        os << TemporalUnit<Alpha>::timeInterval.start.ToString();
-        os << " ";
-        os << TemporalUnit<Alpha>::timeInterval.end.ToString();
-        os<<" "<<(TemporalUnit<Alpha>::timeInterval.lc ? "TRUE " : "FALSE ");
-        os<<" "<<(TemporalUnit<Alpha>::timeInterval.rc ? "TRUE) " : "FALSE) ");
+        os << "ConstUnit: ( ";
+        TemporalUnit<Alpha>::timeInterval.Print(os);
+        os << ", ";
         constValue.Print(os);
-        os << " )" << endl;
+        os << " ) " << endl;
         return os;
       }
     else
-      return os << "ConstUnit: (undef)" << endl;
+      return os << "ConstUnit: (undef) ";
   }
 
   virtual size_t HashValue() const
@@ -1582,22 +1593,17 @@ Equality is calculated with respect to temporal evolution.
   {
     if( IsDefined() )
       {
-        os << "UReal: " << "( (";
-        os << timeInterval.start.ToString();
-        os << " ";
-        os << timeInterval.end.ToString();
-        os << " "
-           << (timeInterval.lc ? "TRUE " : "FALSE ");
-        os << " "
-           << (timeInterval.rc ? "TRUE) " : "FALSE) ");
+        os << "UReal: " << "( ";
+        timeInterval.Print(os);
+        os << ", ";
         // print specific stuff:
-        os << " ( " << a << " " << b << " " << c
-           << (timeInterval.rc ? "TRUE) " : "FALSE) ");
-        os << " )" << endl;
+        os << " ( " << a << ", " << b << ", " << c
+           << (r ? ", TRUE) " : ", FALSE) ");
+        os << " ) ";
         return os;
       }
     else
-      return os << "UReal: (undef)" << endl;
+      return os << "UReal: (undef) ";
   }
 
   virtual size_t HashValue() const
@@ -1963,20 +1969,17 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 
     if(IsDefined())
       {
-        os << "UPoint: " << "( (";
-        os << timeInterval.start.ToString();
-        os << " ";
-        os << timeInterval.end.ToString();
-        os << " " << (timeInterval.lc ? "TRUE " : "FALSE ");
-        os << " " << (timeInterval.rc ? "TRUE) " : "FALSE) ");
+        os << "UPoint: " << "( ";
+        timeInterval.Print(os);
+        os << ", ";
         p0.Print(os);
-        os << " ";
+        os << ", ";
         p1.Print(os);
-        os << " )" << endl;
+        os << " ) ";
         return os;
       }
     else
-      return os << "UPoint: (undef)" << endl;
+      return os << "UPoint: (undef) ";
   }
 
   inline virtual size_t HashValue() const
@@ -4660,15 +4663,15 @@ inline ostream& Mapping<Unit, Alpha>::Print( ostream &os ) const
   {
     return os << "(Mapping: undefined)";
   }
-  os << "( Mapping: defined, contains " << GetNoComponents() << " units )";
-//   os << "(Mapping : (";
-//   for(int i=0; i<GetNoComponents(); i++)
-//   {
-//     const Unit *unit;
-//     Get( i , unit );
-//     os << "\n\t" << *unit;
-//   }
-//   os << ") )" << endl;
+  os << "(Mapping: defined, contains " << GetNoComponents() << " units: ";
+  for(int i=0; i<GetNoComponents(); i++)
+  {
+    const Unit *unit;
+    Get( i , unit );
+    os << "\n\t";
+    unit->Print(os);
+  }
+  os << "\n)" << endl;
   return os;
 }
 

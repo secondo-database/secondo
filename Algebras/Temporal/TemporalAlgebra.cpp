@@ -2968,11 +2968,13 @@ void MPoint::Sample(const DateTime& duration,
                     MPoint& result,
                     const bool KeepEndPoint /*=false*/) const{
 
+  
   result.Clear();
   if(!IsDefined() || !duration.IsDefined()){
     result.SetDefined(false);
     return;
   }
+  result.SetDefined( true );
   int size = GetNoComponents();
   if(size==0){  // empty
      return;
@@ -2986,13 +2988,16 @@ void MPoint::Sample(const DateTime& duration,
   Point point;
 
   const UPoint* unit; // the unit corresponding the currentUnit
-
+  bool lc;
   while(currentUnit < size ){
      if(isFirst){ // set the start values
          Get(currentUnit,unit);
          currentTime = unit->timeInterval.start;
          lastPoint = unit->p0;
-         isFirst=false; 
+         isFirst=false;
+         lc = unit->timeInterval.lc;
+     } else {
+         lc = true;
      }
      Interval<Instant> interval(unit->timeInterval);
      lastTime = currentTime;
@@ -3013,7 +3018,7 @@ void MPoint::Sample(const DateTime& duration,
             isFirst=true;
         } else {
             unit->TemporalFunction(currentTime, point, true);
-            Interval<Instant> newint(lastTime,currentTime,true,false);        
+            Interval<Instant> newint(lastTime,currentTime,lc,false);
             UPoint nextUnit(newint,lastPoint,point);
             result.MergeAdd(nextUnit);
             lastPoint = point;
@@ -3026,13 +3031,11 @@ void MPoint::Sample(const DateTime& duration,
      if(lastTime < unit->timeInterval.end){ // gap between end of the unit
                                               // and last sample point
         Interval<Instant> newint(lastTime,unit->timeInterval.end,
-                                 true,unit->timeInterval.rc);
+                                 lc,unit->timeInterval.rc);
         UPoint nextUnit(newint,lastPoint,unit->p1);
         result.MergeAdd(nextUnit);
      }
   }
-
-
 }
 
 
