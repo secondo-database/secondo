@@ -1431,6 +1431,11 @@ scan it several times.
 2.3.1 Auxiliary definitions for value mapping function of operator ~hashjoin~
 
 */
+
+#ifndef USE_PROGRESS
+
+// standard version
+
 class HashJoinLocalInfo
 {
 private:
@@ -1753,6 +1758,450 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   return 0;
 }
+
+
+
+
+#else
+
+// with support for progress queries
+
+
+class HashJoinLocalInfo : protected ProgressWrapper
+{
+private:
+  size_t nBuckets;
+
+  int attrIndexA;
+  int attrIndexB;
+
+  Word streamA;
+  Word streamB;
+  bool streamAClosed;
+  bool streamBClosed;
+
+  Tuple *tupleA;
+  TupleBuffer* relA;
+  GenericRelationIterator* iterTuplesRelA;
+  size_t relA_Mem;
+  bool firstPassA;
+  bool memInfoShown;
+  bool showMemInfo;
+  size_t hashA;
+
+  vector< vector<Tuple*> > bucketsB;
+  vector<Tuple*>::iterator iterTuplesBucketB;
+  size_t bucketsB_Mem;
+  bool remainTuplesB, bFitsInMemory;
+  Word wTupleB;
+
+  TupleType *resultTupleType;
+
+  int CompareTuples(Tuple* a, Tuple* b)
+  {
+    /* tuples with NULL-Values in the join attributes
+       are never matched with other tuples. */
+    if(!((Attribute*)a->GetAttribute(attrIndexA))->IsDefined())
+    {
+      return -1;
+    }
+    if(!((Attribute*)b->GetAttribute(attrIndexB))->IsDefined())
+    {
+      return 1;
+    }
+
+    return ((Attribute*)a->GetAttribute(attrIndexA))->
+      Compare((Attribute*)b->GetAttribute(attrIndexB));
+  }
+
+  size_t HashTuple(Tuple* tuple, int attrIndex)
+  {
+    return
+      (((StandardAttribute*)tuple->GetAttribute(attrIndex))->HashValue() %
+      nBuckets);
+  }
+
+  void ClearBucket( vector<Tuple*>& bucket )
+  {
+    vector<Tuple*>::iterator i = bucket.begin();
+    while( i != bucket.end() )
+    {
+      (*i)->DecReference();
+      (*i)->DeleteIfAllowed();
+      i++;
+    }
+    bucket.clear();
+  }
+
+  void ClearBucketsB()
+  {
+    vector< vector<Tuple*> >::iterator iterBuckets = bucketsB.begin();
+
+    while(iterBuckets != bucketsB.end() )
+    {
+      ClearBucket( *iterBuckets );
+      iterBuckets++;
+    }
+  }
+
+  bool FillHashBucketsB()
+  {
+    if( firstPassA )
+    {
+      qp->Request(streamB.addr, wTupleB);
+      if(qp->Received(streamB.addr))
+      {
+        // reserve 3/4 of memory for buffering tuples of B;
+        // Before retrieving the allowed memory size from the
+        // configuration file it was set to 12MB for B and 4MB for A (see below)
+        bucketsB_Mem = (3 * qp->MemoryAvailableForOperator())/4;
+        relA_Mem = qp->MemoryAvailableForOperator()/4;
+
+	if (showMemInfo) {
+        cmsg.info()
+          << "HashJoin.MAX_MEMORY ("
+          << qp->MemoryAvailableForOperator()/1024
+          << " kb - A: " << relA_Mem/1024 << "kb B: "
+          << bucketsB_Mem/1024 << "kb)" << endl
+          << "Stream A is stored in a Tuple Buffer" << endl;
+        cmsg.send();
+	}
+      }
+    }
+
+    size_t b = 0, i = 0;
+    while(qp->Received(streamB.addr) )
+    {
+      progress->incCtrB();
+      Tuple* tupleB = (Tuple*)wTupleB.addr;
+      b += tupleB->GetExtSize();
+      i++;
+      if( b > bucketsB_Mem )
+      {
+        if (showMemInfo) {
+        cmsg.info()
+          << "HashJoin - Stream B does not fit in memory" << endl
+          << "Memory used up to now: " << b / 1024 << "kb" << endl
+          << "Tuples in memory: " << i << endl;
+        cmsg.send();
+	}
+
+        break;
+      }
+
+      size_t hashB = HashTuple(tupleB, attrIndexB);
+      tupleB->IncReference();
+      bucketsB[hashB].push_back( tupleB );
+      qp->Request(streamB.addr, wTupleB);
+    }
+
+    bool remainTuples = false;
+    if( b > bucketsB_Mem && qp->Received(streamB.addr) )
+      remainTuples = true;
+
+    if( !remainTuples )
+    {
+      qp->Close(streamB.addr);
+      streamBClosed = true;
+    }
+    else progress->setCtr(1);
+
+    return remainTuples;
+  }
+
+public:
+  static const size_t MIN_BUCKETS = 3;
+  static const size_t DEFAULT_BUCKETS = 97;
+
+  HashJoinLocalInfo(Word streamA, Word attrIndexAWord,
+    Word streamB, Word attrIndexBWord, Word nBucketsWord,
+    Supplier s, Progress* p) : ProgressWrapper(p)
+  {
+    memInfoShown = false;
+    showMemInfo = RTFlag::isActive("ERA:ShowMemInfo");
+    this->streamA = streamA;
+    this->streamB = streamB;
+
+    ListExpr resultType =
+      SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
+    resultTupleType = new TupleType( nl->Second( resultType ) );
+
+    attrIndexA = StdTypes::GetInt( attrIndexAWord ) - 1;
+    attrIndexB = StdTypes::GetInt( attrIndexBWord ) - 1;
+    nBuckets = StdTypes::GetInt( nBucketsWord );
+    if(nBuckets > qp->MemoryAvailableForOperator() / 1024)
+      nBuckets = qp->MemoryAvailableForOperator() / 1024;
+    if(nBuckets < MIN_BUCKETS)
+      nBuckets = MIN_BUCKETS;
+
+    bucketsB.resize(nBuckets);
+    relA = 0;
+    iterTuplesRelA = 0;
+    firstPassA = true;
+    tupleA = 0;
+
+    qp->Open(streamA.addr);
+    qp->Open(streamB.addr);
+    streamBClosed = false;
+    remainTuplesB = FillHashBucketsB();
+    bFitsInMemory  = !remainTuplesB;
+
+    if( !bFitsInMemory )
+      // reserve 1/4 of the allowed memory for buffering tuples of A
+      relA = new TupleBuffer( relA_Mem );
+
+    streamAClosed = false;
+    NextTupleA();
+/*
+At this moment we have a tuple of the stream A and a hash table in memory
+of the stream B. There is a possibility that the stream B does not fit in
+memory, which is kept in the variable ~bFitsInMemory~. The iterator for the
+bucket that the tuple coming from A hashes is also initialized.
+
+*/
+  }
+
+  ~HashJoinLocalInfo()
+  {
+    ClearBucketsB();
+
+    // delete tuple buffer and its iterator if necessary
+    if( !bFitsInMemory )
+    {
+      if ( iterTuplesRelA )
+        delete iterTuplesRelA;
+      relA->Clear();
+      delete relA;
+    }
+
+    // close open streams if necessary
+    if ( !streamAClosed )
+      qp->Close(streamA.addr);
+    if ( !streamBClosed )
+      qp->Close(streamB.addr);
+
+    resultTupleType->DeleteIfAllowed();
+  }
+
+  bool NextTupleA()
+  {
+    if( tupleA != 0 )
+    {
+      if( firstPassA && !bFitsInMemory ) {
+        relA->AppendTuple( tupleA );
+      }
+      tupleA->DeleteIfAllowed();
+    }
+
+    if( firstPassA )
+    {
+      Word wTupleA;
+      qp->Request( streamA.addr, wTupleA );
+      if( qp->Received(streamA.addr) )
+      {
+        progress->incCtrA();
+        tupleA = (Tuple*)wTupleA.addr;
+        if (!memInfoShown && showMemInfo)
+        {
+          cmsg.info()
+            << "TupleBuffer for relA can hold "
+            << relA_Mem / tupleA->GetExtSize() << " tuples" << endl;
+          cmsg.send();
+          memInfoShown = true;
+        }
+      }
+      else
+      {
+        tupleA = 0;
+        qp->Close(streamA.addr);
+        streamAClosed = true;
+        return false;
+      }
+    }
+    else
+    {
+      if( (tupleA = iterTuplesRelA->GetNextTuple()) == 0 )
+      {
+        delete iterTuplesRelA;
+        iterTuplesRelA = 0;
+        return false;
+      }
+    }
+
+    hashA = HashTuple( tupleA, attrIndexA );
+    iterTuplesBucketB = bucketsB[hashA].begin();
+    return true;
+  }
+
+  Tuple* NextResultTuple()
+  {
+    while( tupleA != 0 )
+    {
+      while( iterTuplesBucketB != bucketsB[hashA].end() )
+      {
+        Tuple *tupleB = *iterTuplesBucketB++;
+
+        if( CompareTuples( tupleA, tupleB ) == 0 )
+        {
+          Tuple *result = new Tuple( resultTupleType );
+          Concat( tupleA, tupleB, result );
+          return result;
+        }
+      }
+
+      if( !NextTupleA() )
+      {
+        if( remainTuplesB )
+        {
+          firstPassA = false;
+          ClearBucketsB();
+          remainTuplesB = FillHashBucketsB();
+          iterTuplesRelA = relA->MakeScan();
+          NextTupleA();
+        }
+      }
+    }
+
+    return 0;
+  }
+};
+
+/*
+2.3.2 Value Mapping Function of Operator ~hashjoin~
+
+*/
+int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+
+  switch(message)
+  {
+    case OPEN:
+    {
+
+      LocalInfo<HashJoinLocalInfo>* li = new LocalInfo<HashJoinLocalInfo>();
+      local.addr = li;
+      li->ptr = new HashJoinLocalInfo(args[0], args[5], args[1],
+                                      args[6], args[4], s, li);
+      return 0;
+    }
+    case REQUEST:
+    {
+      assert (LocalInfo<HashJoinLocalInfo>::getPtr(local.addr) != NULL);
+      HashJoinLocalInfo *hli = LocalInfo<HashJoinLocalInfo>::getPtr(local.addr);
+      result = SetWord( hli->NextResultTuple() );
+      LocalInfo<HashJoinLocalInfo> *li =
+          static_cast<LocalInfo<HashJoinLocalInfo>*>(local.addr);
+      li->incRtrn();
+
+      return result.addr != 0 ? YIELD : CANCEL;
+    }
+    case CLOSE:
+    {
+
+      if(LocalInfo<HashJoinLocalInfo>::getPtr( local.addr))
+      {
+        LocalInfo<HashJoinLocalInfo> *li =
+            static_cast<LocalInfo<HashJoinLocalInfo>*>(local.addr);
+        delete li->ptr;
+        li->ptr = 0;
+      }
+
+      return 0;
+    }
+
+    case PROGRESS:
+    {
+      ProgressInfo p1, p2;
+      ProgressInfo *pRes;
+      const double uHashJoin = 0.0025;  //millisecs per tuple left
+      const double vHashJoin = 0.2500;  //millisecs per tuple right
+      const double oHashJoin = 0.7500;  //offset due to paging
+      int i;
+
+      pRes = (ProgressInfo*) result.addr;
+
+      if(!local.addr) return CANCEL;
+      else
+      {
+       if (qp->RequestProgress(args[0].addr, &p1)
+         && qp->RequestProgress(args[1].addr, &p2))
+        {
+          LocalInfo<HashJoinLocalInfo> *li =
+              static_cast<LocalInfo<HashJoinLocalInfo>*>(local.addr);
+          if (!li->getPrInit())
+          {
+            li->setNoAtt(p1.noAttrs + p2.noAttrs);
+            double* AttSize = li->initAttSize(li->getNoAtt());
+            double* AttSExt = li->initAttSExt(li->getNoAtt());
+            for (i = 0; i < p1.noAttrs; i++)
+            {
+              AttSize[i] = p1.attrSize[i];
+              AttSExt[i] = p1.attrSizeExt[i];
+            }
+            for (int j = 0; j < p2.noAttrs; j++)
+            {
+              AttSize[j+i] = p2.attrSize[j];
+              AttSExt[j+i] = p2.attrSizeExt[j];
+            }
+            li->setPrInit(true);
+          }
+          pRes->Size = p1.Size + p2.Size;
+          pRes->SizeExt = p1.SizeExt + p2.SizeExt;
+          pRes->noAttrs = li->getNoAtt();
+          pRes->attrSize = li->getAttSize();
+          pRes->attrSizeExt = li->getAttSExt();
+
+          pRes->Time = p1.Time + p2.Time +
+            p1.Card * uHashJoin *
+            p2.Card * (vHashJoin + oHashJoin) *
+            qp->GetPredCost(s);
+
+          if (!li->getCtrA())
+          {
+            pRes->Progress =
+              (p1.Progress * p1.Time + p2.Progress * p2.Time +
+              li->getCtrB() * vHashJoin *
+              qp->GetPredCost(s))
+              / pRes->Time;
+          }
+          else
+          {
+            pRes->Progress =
+              (p1.Progress * p1.Time + p2.Progress * p2.Time +
+              li->getCtrA() * uHashJoin *
+              li->getCtrB() * (vHashJoin + oHashJoin) *
+              qp->GetPredCost(s))
+              / pRes->Time;
+          }
+
+          if (li->getRtrn() > 50 ) 	// stable state assumed now
+          {
+            pRes->Card = p1.Card * p2.Card *
+              ((double) li->getRtrn() / 
+                (double) (li->getCtrA() * li->getCtrB()));
+          }
+          else
+          {
+            pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
+          }
+          return YIELD;
+        }
+        else
+        {
+          return CANCEL;
+        }
+      }
+    }
+
+  }
+  return 0;
+}
+
+
+#endif
+
+
+
 
 
 /*

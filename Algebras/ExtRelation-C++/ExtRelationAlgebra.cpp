@@ -7539,7 +7539,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelmergeunion);
     AddOperator(&extrelmergejoin);
     AddOperator(&extrelsortmergejoin);
-    AddOperator(&extrelhashjoin);
+    AddOperator(&extrelhashjoin);	extrelhashjoin.EnableProgress();
     AddOperator(&extrelloopjoin);	extrelloopjoin.EnableProgress();
     AddOperator(&extrelextendstream);
     AddOperator(&extrelprojectextendstream);
