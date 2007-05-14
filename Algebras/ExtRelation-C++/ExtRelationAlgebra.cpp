@@ -1869,6 +1869,11 @@ This operator removes duplicates from a sorted stream.
 2.13.1 Value mapping function of operator ~rdup~
 
 */
+
+#ifndef USE_PROGRESS
+
+// standard version
+
 int RdupValueMapping(Word* args, Word& result, int message, 
                      Word& local, Supplier s)
 {
@@ -1948,6 +1953,162 @@ int RdupValueMapping(Word* args, Word& result, int message,
   }
   return 0;
 }
+
+# else
+
+// progress version
+
+
+struct RdupLocalInfo
+{
+  Tuple* localTuple;
+  int current, returned, stableValue;
+};
+
+
+int RdupValueMapping(Word* args, Word& result, int message,
+                     Word& local, Supplier s)
+{
+  Word tuple;
+  LexicographicalTupleCompareAlmost cmp;
+
+  Tuple* currentTuple;
+  RdupLocalInfo* rli;
+
+
+  Tuple* lastOutputTuple;
+
+  switch(message)
+  {
+    case OPEN:
+      qp->Open(args[0].addr);
+
+      rli = new RdupLocalInfo;
+      rli->current = 0;
+      rli->returned = 0;
+      rli->stableValue = 50;
+      rli->localTuple = 0;
+      local = SetWord(rli);
+
+      return 0;
+    case REQUEST:
+      while(true)
+      {
+
+        rli = (RdupLocalInfo*) local.addr;
+
+        qp->Request(args[0].addr, tuple);
+        if(qp->Received(args[0].addr))
+        {
+          // stream deliverd a new tuple
+
+          rli->current++;
+          if(rli->localTuple != 0)
+
+          {
+            // there is a last tuple
+
+            currentTuple = (Tuple*)tuple.addr;
+            lastOutputTuple = rli->localTuple;
+            if(cmp(currentTuple, lastOutputTuple)
+              || cmp(lastOutputTuple, currentTuple))
+            {
+              // tuples are not equal. Return the tuple
+              // stored in local info and store the current one
+              // there.
+              lastOutputTuple->DecReference();
+              lastOutputTuple->DeleteIfAllowed();
+
+              rli->returned++;
+              rli->localTuple = currentTuple;
+
+              currentTuple->IncReference();
+              result = SetWord(currentTuple);
+              return YIELD;
+            }
+            else
+            {
+              // tuples are equal
+              currentTuple->DeleteIfAllowed();
+            }
+          }
+          else
+          {
+            // no last tuple stored
+            currentTuple = (Tuple*)tuple.addr;
+            rli->returned++;
+            rli->localTuple = currentTuple;
+            currentTuple->IncReference();
+            result = SetWord(currentTuple);
+            return YIELD;
+          }
+        }
+        else
+        {
+          // last tuple of the stream
+          lastOutputTuple = rli->localTuple;
+          if(lastOutputTuple != 0)
+          {
+            lastOutputTuple->DecReference();
+            lastOutputTuple->DeleteIfAllowed();
+            rli->localTuple = 0;
+          }
+          return CANCEL;
+        }
+      }
+    case CLOSE:
+      rli = (RdupLocalInfo*) local.addr;
+      if(rli->localTuple != 0)
+      {
+        rli->localTuple->DecReference();
+        rli->localTuple->DeleteIfAllowed();
+        rli->localTuple = 0;
+      }
+      qp->Close(args[0].addr);
+      return 0;
+
+
+    case PROGRESS:
+      ProgressInfo p1;
+      ProgressInfo* pRes;
+      const double uRdup = 0.01;  // time per tupel
+      const double vRdup = 0.1;   // time per comparison
+      const double wRdup = 0.9;   // default selectivity (= 10% duplicates)
+
+      pRes = (ProgressInfo*) result.addr;
+      rli = (RdupLocalInfo*) local.addr;
+
+      if ( qp->RequestProgress(args[0].addr, &p1) )
+      {
+        pRes->CopySizes(p1);
+        pRes->Time = p1.Time + p1.Card * uRdup * vRdup;
+
+        if (rli)
+        {
+          if (rli->returned > rli->stableValue)
+          {
+            pRes->Card =  p1.Card *
+              ((double) rli->returned / (double) (rli->current));
+            pRes->Progress = (p1.Progress * p1.Time
+              + rli->current * uRdup * vRdup) / pRes->Time;
+            return YIELD;
+          }
+        }
+
+        pRes->Card = p1.Card * wRdup;
+        pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
+        return YIELD;
+      }
+      else return CANCEL;
+
+  }
+  return 0;
+}
+
+
+#endif
+
+
 
 /*
 2.13.2 Specification of operator ~rdup~
@@ -7533,7 +7694,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelhead);
     AddOperator(&extrelsortby);		extrelsortby.EnableProgress();
     AddOperator(&extrelsort);		extrelsort.EnableProgress();
-    AddOperator(&extrelrdup);
+    AddOperator(&extrelrdup);		extrelrdup.EnableProgress();
     AddOperator(&extrelmergesec);
     AddOperator(&extrelmergediff);
     AddOperator(&extrelmergeunion);
