@@ -49,6 +49,8 @@ messages. This is still work in progress!
 
 using namespace std;
 
+#include "StandardTypes.h"
+
 /*
 Class ~Progress~
 
@@ -61,14 +63,54 @@ class Progress {
 
 public:
 
-  Progress() : ctr(0) {}
+  Progress() : ctr(0),
+    ctrA(0), ctrB(0), rtrn(0),
+    noAtt(0), prInit(0), attSize(0), attSExt(0),
+    PtrA(SetWord(0)), PtrB(SetWord(0))
+    {}
+
   virtual ~Progress() {}
 
   void setCtr(long value);
   long getCtr();
 
+  long getCtrA();
+  void setCtrA(long value);
+  void incCtrA();
+
+  long getCtrB();
+  void setCtrB(long value);
+  void incCtrB();
+
+  long getRtrn();
+  void setRtrn(long value);
+  void incRtrn();
+
+  bool getPrInit();
+  void setPrInit(bool value);
+
+  long getNoAtt();
+  void setNoAtt(long value);
+
+  double* getAttSize();
+  double* initAttSize(int value);
+
+  double* getAttSExt();
+  double* initAttSExt(int value);
+
+  Word getPtrA();
+  void setPtrA(void* value);
+
+  Word getPtrB();
+  void setPtrB(void* value);
+
+
 private:
   long ctr;
+  long ctrA, ctrB, rtrn, noAtt;
+  bool prInit;
+  double *attSize, *attSExt;
+  Word PtrA, PtrB;
 
 };
 
