@@ -5635,8 +5635,8 @@ int AggregateB(Word* args, Word& result, int message,
    while(!theStack.empty()){
      AggrStackEntry top = theStack.top();
      theStack.pop();
-     (*vector)[0] = SetWord(tmpResult.value);
-     (*vector)[1] = SetWord(top.value);
+     (*vector)[0] = SetWord(top.value);
+     (*vector)[1] = SetWord(tmpResult.value);
      qp->Request(args[2].addr, resultWord);
      qp->ReInitResultStorage(args[2].addr);
      tmpResult.destroy(); // destroy temporarly result
