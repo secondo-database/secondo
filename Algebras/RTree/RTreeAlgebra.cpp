@@ -1188,6 +1188,10 @@ WindowIntersectsSelection( ListExpr args )
 
 */
 
+#ifndef USE_PROGRESS
+
+// standard version
+
 template <unsigned dim>
 struct WindowIntersectsLocalInfo
 {
@@ -1263,6 +1267,172 @@ int WindowIntersects( Word* args, Word& result,
   }
   return 0;
 }
+
+
+
+# else
+
+// progress version
+
+template <unsigned dim>
+struct WindowIntersectsLocalInfo
+{
+  Relation* relation;
+  R_Tree<dim, TupleId>* rtree;
+  BBox<dim> *searchBox;
+  bool first;
+
+  int returned, total, defaultValue;
+  bool progressInitialized;
+  double Size;
+  double SizeExt;
+  int noAttrs;
+  double *attrSize;
+  double *attrSizeExt;
+
+};
+
+template <unsigned dim>
+int WindowIntersects( Word* args, Word& result,
+                      int message, Word& local,
+                      Supplier s )
+{
+  WindowIntersectsLocalInfo<dim> *localInfo;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      localInfo = new WindowIntersectsLocalInfo<dim>;
+      localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
+      localInfo->relation = (Relation*)args[1].addr;
+      localInfo->first = true;
+      localInfo->searchBox =
+        new BBox<dim> (
+          (((StandardSpatialAttribute<dim> *)args[2].addr)->
+            BoundingBox()) );
+
+      assert(localInfo->rtree != 0);
+      assert(localInfo->relation != 0);
+      localInfo->progressInitialized = false;
+      local = SetWord(localInfo);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
+      R_TreeLeafEntry<dim, TupleId> e;
+
+      if(localInfo->first)
+      {
+        localInfo->first = false;
+        if( localInfo->rtree->First( *localInfo->searchBox, e ) )
+        {
+          Tuple *tuple = localInfo->relation->GetTuple(e.info);
+          result = SetWord(tuple);
+          localInfo->returned++;
+          return YIELD;
+        }
+        else
+          return CANCEL;
+      }
+      else
+      {
+        if( localInfo->rtree->Next( e ) )
+        {
+          Tuple *tuple = localInfo->relation->GetTuple(e.info);
+          result = SetWord(tuple);
+          localInfo->returned++;
+          return YIELD;
+        }
+        else
+          return CANCEL;
+      }
+    }
+
+    case CLOSE :
+    {
+      localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
+      delete localInfo->searchBox;
+      return 0;
+    }
+
+
+    case PROGRESS :
+    {
+      ProgressInfo *pRes;
+      pRes = (ProgressInfo*) result.addr;
+      localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
+
+      // values taken from feed operator
+      const double uWinIntSec = 0.00194;    //milliseconds per tuple
+      const double vWinIntSec = 0.0000106;  //milliseconds per Byte
+
+      if (!localInfo) return CANCEL;
+      else
+      {
+        if (!localInfo->progressInitialized)
+        {
+          localInfo->returned = 0;
+          localInfo->total = localInfo->relation->GetNoTuples();
+          localInfo->defaultValue = 50;
+          localInfo->Size = 0;
+          localInfo->SizeExt = 0;
+          localInfo->noAttrs = 
+            nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
+          localInfo->attrSize = new double[localInfo->noAttrs];
+          localInfo->attrSizeExt = new double[localInfo->noAttrs];
+          for ( int i = 0;  i < localInfo->noAttrs; i++)
+          {
+            localInfo->attrSize[i] = localInfo->relation->GetTotalSize(i)
+                                  / (localInfo->total + 0.001);
+            localInfo->attrSizeExt[i] = localInfo->relation->GetTotalExtSize(i)
+                                  / (localInfo->total + 0.001);
+
+            localInfo->Size += localInfo->attrSize[i];
+            localInfo->SizeExt += localInfo->attrSizeExt[i];
+          }
+          localInfo->progressInitialized = true;
+        }
+
+        pRes->Size = localInfo->Size;
+        pRes->SizeExt = localInfo->SizeExt;
+        pRes->noAttrs = localInfo->noAttrs;
+        pRes->attrSize = localInfo->attrSize;
+        pRes->attrSizeExt = localInfo->attrSizeExt;
+
+        if (fabs(qp->GetSelectivity(s) - 0.1) < 0.000001) // default
+          pRes->Card = (double) localInfo->defaultValue;
+        else                                              // annotated
+          pRes->Card = localInfo->total * qp->GetSelectivity(s);
+
+        if ((double) localInfo->returned > pRes->Card) // there are more tuples
+            pRes->Card = (double) localInfo->returned; // than calculated
+
+        if (!localInfo->searchBox)         // rtree has been finished, but
+            pRes->Card = pRes->Card * 1.1; // there are some tuples more (10%)
+
+        if (pRes->Card > (double) localInfo->total) // more than all cannot be
+            pRes->Card = (double) localInfo->total;
+
+        pRes->Time = (pRes->Card + 1.0)
+               * (uWinIntSec + localInfo->SizeExt * vWinIntSec)
+               * qp->GetPredCost(s);
+        pRes->Progress = (localInfo->returned + 1)
+               * (uWinIntSec + localInfo->SizeExt * vWinIntSec)
+               * qp->GetPredCost(s)
+               / pRes->Time;
+
+        return YIELD;
+      }
+    }
+  }
+  return 0;
+}
+
+#endif
+
 
 /*
 5.1.4 Definition of value mapping vectors
@@ -3652,6 +3822,8 @@ class RTreeAlgebra : public Algebra
     AddTypeConstructor( &rtree4 );
     AddTypeConstructor( &rtree8 );
 
+#ifndef USE_PROGRESS
+
     AddOperator( &creatertree );
     AddOperator( &bulkloadrtree );
     AddOperator( &windowintersects );
@@ -3664,6 +3836,25 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreenoofnodes );
     AddOperator( &rtreenoofentries );
     AddOperator( &rtreebbox );
+
+#else
+
+    AddOperator( &creatertree );
+    AddOperator( &bulkloadrtree );
+    AddOperator( &windowintersects );	windowintersects.EnableProgress();
+    AddOperator( &windowintersectsS );
+    AddOperator( &gettuples );
+    AddOperator( &gettuplesdbl );
+    AddOperator( &gettuples2 );
+    AddOperator( &rtreenodes );
+    AddOperator( &rtreetreeheight );
+    AddOperator( &rtreenoofnodes );
+    AddOperator( &rtreenoofentries );
+    AddOperator( &rtreebbox );
+
+#endif
+
+
   }
   ~RTreeAlgebra() {};
 };
