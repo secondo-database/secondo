@@ -680,6 +680,12 @@ string DateTime::ToString() const{
   return tmp.str();
 }
 
+ostream& DateTime::Print(ostream &os) const
+{
+  os << ToString();
+  return os;
+}
+
 
 /*
 ~ReadFrom~

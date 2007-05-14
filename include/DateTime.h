@@ -552,7 +552,8 @@ an attribute of a relation.
      void WriteTo( char *dest ) const;
      void ReadFrom( const char *src );
      SmiSize SizeOfChars() const;
-    
+
+     ostream& Print(ostream &os) const;
 
 /*
 ~WriteToSmiRecord~

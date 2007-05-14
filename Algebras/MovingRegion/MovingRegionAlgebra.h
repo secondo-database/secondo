@@ -703,6 +703,12 @@ The assignment operator
 */
     URegionEmb& operator=(const URegionEmb&);
 
+    ostream& Print(ostream &os) const
+    {
+      os << "( URegionEmb NOT IMPLEMENTED YET )";
+      return os;
+    };
+
 };
 
 
