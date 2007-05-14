@@ -2873,7 +2873,6 @@ Operator streamcount (
 
 For every stream element, the operator calls the ~print~ function
 and passes on the element.
-
 */
 
 /*
@@ -2913,8 +2912,57 @@ streamPrintstreamType( ListExpr args )
       return nl->SymbolAtom("typeerror");
     }
 
-  // return the input type as result
-  return stream;
+  // append list of attribute names for tuplestream signature
+    if ( nl->ListLength(nl->Second(stream)) == 2 &&
+         TypeOfRelAlgSymbol(nl->First(nl->Second(stream))) == tuple
+       )
+  {
+    ListExpr tupleType = nl->Second(nl->Second(stream));
+    bool firstcall = true;
+    int noAttrs = 0;
+    ListExpr attrList, lastofAttrList, currAttrList;
+
+    while( !nl->IsEmpty(tupleType) )
+    {
+      currAttrList = nl->First(tupleType);
+      tupleType = nl->Rest(tupleType);
+      if ( nl->AtomType(nl->First(currAttrList)) != SymbolType )
+      { // ERROR!
+        nl->WriteToString(out, stream);
+        ErrorReporter::ReportError("Operator printstream expects a "
+            "(stream (tuple T)), where T is a list (AttrName AttrType)+ as "
+            "its first argument. The argument provided "
+            "has type '" + out + "' instead.");
+        return nl->SymbolAtom("typeerror");
+      }
+      if (firstcall)
+      {
+        firstcall = false;
+        attrList = nl->OneElemList(nl->StringAtom(
+            nl->SymbolValue(nl->First(currAttrList))));
+        lastofAttrList = attrList;
+      }
+      else
+      {
+        lastofAttrList = nl->Append(lastofAttrList, nl->StringAtom(
+            nl->SymbolValue(nl->First(currAttrList))));
+      }
+      noAttrs++;
+    }
+    // return stream@(noAttrs,attrList)
+    ListExpr reslist =
+        nl->ThreeElemList(
+          nl->SymbolAtom("APPEND"),
+          nl->TwoElemList(
+            nl->IntAtom(noAttrs),
+            attrList),
+          stream);
+    return reslist;
+  }
+  else
+  { // return stream
+    return stream;
+  }
 }
 
 /*
@@ -2968,8 +3016,9 @@ Print the elements of a Tuple-type stream.
 
 */
 {
-  Word tupleWord;
-
+  Word tupleWord, elem;
+  Supplier son;
+  string attrName;
   switch(message)
   {
     case OPEN:
@@ -2984,6 +3033,10 @@ Print the elements of a Tuple-type stream.
         Tuple* tuple = (Tuple*) (tupleWord.addr);
         for(int i = 0; i < tuple->GetNoAttributes(); i++)
         {
+          son = qp->GetSupplier(args[2].addr, i);
+          qp->Request(son, elem);
+          attrName = (string)(char*)((CcString*)elem.addr)->GetStringval();
+          cout << attrName << ": ";
           ((Attribute*) (tuple->GetAttribute(i)))->Print(cout);
           cout << endl;
         }
