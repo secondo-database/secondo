@@ -2612,10 +2612,13 @@ ListExpr EchoTypeMap(ListExpr args){
      ErrorReporter::ReportError("Wrong number of parameters");
      return nl->TypeError();
   }
-  if(len==2){  // T x string -> T , T # stream(...)
-     // check for string
-     if(!nl->IsEqual(nl->Second(args),"string")){
-        ErrorReporter::ReportError("string as second argument expected");
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  if(len==2){  // T x S -> T , T # stream(...)
+     // check for kind DATA
+     ListExpr typeToPrint = nl->Second(args);   
+     if(! SecondoSystem::GetAlgebraManager()
+           ->CheckKind("DATA",typeToPrint,errorInfo)){
+        ErrorReporter::ReportError("last arg has to be in kind DATA");
         return nl->TypeError();
      } 
      // check for T# stream
@@ -2638,10 +2641,12 @@ ListExpr EchoTypeMap(ListExpr args){
        ErrorReporter::ReportError("bool expected as second argument.");
        return nl->TypeError();
      }
-     if(!nl->IsEqual(nl->Third(args),"string")){
-       ErrorReporter::ReportError("last parameter must be of type string.");
-       return nl->TypeError();
-     }
+     ListExpr typeToPrint = nl->Third(args);   
+     if(! SecondoSystem::GetAlgebraManager()
+           ->CheckKind("DATA",typeToPrint,errorInfo)){
+        ErrorReporter::ReportError("last arg has to be in kind DATA");
+        return nl->TypeError();
+     } 
      return nl->First(args);
   }
 }
@@ -2655,22 +2660,18 @@ int Echo_Stream(Word* args, Word& result, int message,
                          Word& local, Supplier s)
 {
    bool each = ((CcBool*) args[1].addr)->GetBoolval();
-   CcString* s1 = (CcString*) args[2].addr;
-  string m;
-  if(s1->IsDefined()){
-       m = (string)(char*) s1->GetStringval();
-  } else {
-      m = "undefined";
-  }
+   Attribute* s1 = (Attribute*) args[2].addr;
    Word elem;
    switch(message){
      case OPEN:
-            cout << "OPEN: " << m << endl;
+            cout << "OPEN: ";
+            s1->Print(cout) << endl;
             qp->Open(args[0].addr);
             return 0;
      case REQUEST:
             if(each){
-               cout << "REQUEST: " << m << endl;
+               cout << "REQUEST: ";
+               s1->Print(cout) << endl;
             }
             qp->Request(args[0].addr,elem);
             if(qp->Received(args[0].addr)){
@@ -2680,7 +2681,8 @@ int Echo_Stream(Word* args, Word& result, int message,
                 return CANCEL;
             }
      case CLOSE:
-           cout << "CLOSE: " << m   << endl;     
+           cout << "CLOSE: ";
+           s1->Print(cout)  << endl;     
            qp->Close(args[0].addr); 
            return 0;
    }   
@@ -2692,10 +2694,9 @@ int Echo_Stream(Word* args, Word& result, int message,
 int Echo_Other(Word* args, Word& result, int message,
                Word& local, Supplier s)
 {
-   CcString* s1 = (CcString*) args[1].addr;
-   string m = s1->IsDefined()?(string)(char*)s1->GetStringval():"undefined";
+   Attribute* s1 = (Attribute*) args[1].addr;
    result = SetWord(args[0].addr);
-   cout << m << endl;
+   s1->Print(cout) << endl;
    return 0;
 }
 
