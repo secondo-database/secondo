@@ -5683,16 +5683,25 @@ int TemporalConcatValueMap(Word* args, Word& result, int message,
     const UPoint *up2;
 
     pResult->Clear();
+    pResult->SetDefined(true);
     pResult->StartBulkLoad();
     if(p1->GetNoComponents() > 0 && p2->GetNoComponents() > 0){
       p1->Get(p1->GetNoComponents() - 1, up1);
       p2->Get(0, up2);
-      if(!(up1->timeInterval.end < up2->timeInterval.start
-        || (up1->timeInterval.end == up2->timeInterval.start
-        && !(up1->timeInterval.rc && up2->timeInterval.lc)))){
+      if(!( up1->timeInterval.end < up2->timeInterval.start
+           || (up1->timeInterval.end == up2->timeInterval.start
+               && !(up1->timeInterval.rc && up2->timeInterval.lc)))){
         if(TLA_DEBUG)
-         cout<<"DefTime of mpoints are not disjunct! Last interval of first "
-         <<"mpoint ends after first interval of of second mpoint begins."<<endl;
+        {
+          cout<<"DefTime of mpoints are not disjunct! Last interval of first "
+            <<"mpoint ends after first interval of of second mpoint begins."
+            << endl;
+          cout << "first interval ";
+          up1->timeInterval.Print(cout);
+          cout << endl << "second interval";
+          up2->timeInterval.Print(cout);
+          cout<< endl;
+        }
         pResult->EndBulkLoad(false);
         return 0;
       }
