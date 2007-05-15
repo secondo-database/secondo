@@ -1177,11 +1177,7 @@ ListExpr IndexQueryTypeMap(ListExpr args)
   return resultType;
 }
 
-struct IndexQueryLocalInfo
-{
-  Relation* relation;
-  BTreeIterator* iter;
-};
+
 
 /*
 
@@ -1189,6 +1185,19 @@ struct IndexQueryLocalInfo
 ~rightrange~ and ~exactmatch~
 
 */
+
+#ifndef USE_PROGRESS
+
+// standard version
+
+
+struct IndexQueryLocalInfo
+{
+  Relation* relation;
+  BTreeIterator* iter;
+};
+
+
 template<int operatorId>
 int
 IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -1276,6 +1285,195 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   return 0;
 }
+
+
+
+# else
+
+// progress version
+
+
+struct IndexQueryLocalInfo
+{
+  Relation* relation;
+  BTreeIterator* iter;
+  bool first;
+
+  int returned, total, defaultValue;
+  bool progressInitialized;
+  double Size;
+  double SizeExt;
+  int noAttrs;
+  double *attrSize;
+  double *attrSizeExt;
+
+};
+
+template<int operatorId>
+int
+IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  BTree* btree;
+  StandardAttribute* key;
+  StandardAttribute* secondKey;
+  Tuple* tuple;
+  SmiRecordId id;
+  IndexQueryLocalInfo* localInfo;
+
+  switch (message)
+  {
+    case OPEN :
+      localInfo = new IndexQueryLocalInfo;
+
+      local = SetWord(localInfo);
+      localInfo->progressInitialized = false;
+      localInfo->relation = (Relation*)args[1].addr;
+
+      btree = (BTree*)args[0].addr;
+      key = (StandardAttribute*)args[2].addr;
+      if(operatorId == RANGE)
+      {
+        secondKey = (StandardAttribute*)args[3].addr;
+        assert(secondKey != 0);
+      }
+
+      assert(btree != 0);
+      assert(localInfo->relation != 0);
+      assert(key != 0);
+
+      switch(operatorId)
+      {
+        case EXACTMATCH:
+          localInfo->iter = btree->ExactMatch(key);
+          break;
+        case RANGE:
+          localInfo->iter = btree->Range(key, secondKey);
+          break;
+        case LEFTRANGE:
+          localInfo->iter = btree->LeftRange(key);
+          break;
+        case RIGHTRANGE:
+          localInfo->iter = btree->RightRange(key);
+          break;
+        default:
+          assert(false);
+      }
+
+      if(localInfo->iter == 0)
+      {
+        delete localInfo;
+        return -1;
+      }
+
+      return 0;
+
+    case REQUEST :
+      localInfo = (IndexQueryLocalInfo*)local.addr;
+      assert(localInfo != 0);
+
+      if(localInfo->iter->Next())
+      {
+        id = localInfo->iter->GetId();
+        tuple = localInfo->relation->GetTuple( id );
+        if(tuple == 0)
+        {
+          cerr << "Could not find tuple for the given tuple id. "
+               << "Maybe the given btree and the given relation "
+               << "do not match." << endl;
+          assert(false);
+        }
+
+        result = SetWord(tuple);
+
+        localInfo->returned++;
+
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+
+    case CLOSE :
+      localInfo = (IndexQueryLocalInfo*)local.addr;
+      delete localInfo->iter;
+
+      return 0;
+
+
+    case PROGRESS :
+      ProgressInfo *pRes;
+      pRes = (ProgressInfo*) result.addr;
+      localInfo = (IndexQueryLocalInfo*)local.addr;
+
+      /* values taken from feed */
+      const double uIndexQuery = 0.00194;    //milliseconds per tuple
+      const double vIndexQuery = 0.0000106;  //milliseconds per Byte
+
+      if (!localInfo) return CANCEL;
+      else
+      {
+        if (!localInfo->progressInitialized)
+        {
+          localInfo->returned = 0;
+          localInfo->total = localInfo->relation->GetNoTuples();
+          localInfo->defaultValue = 50;
+          localInfo->Size = 0;
+          localInfo->SizeExt = 0;
+          localInfo->noAttrs = 
+            nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
+          localInfo->attrSize = new double[localInfo->noAttrs];
+          localInfo->attrSizeExt = new double[localInfo->noAttrs];
+          for ( int i = 0;  i < localInfo->noAttrs; i++)
+          {
+            localInfo->attrSize[i] = localInfo->relation->GetTotalSize(i)
+                                  / (localInfo->total + 0.001);
+            localInfo->attrSizeExt[i] = localInfo->relation->GetTotalExtSize(i)
+                                  / (localInfo->total + 0.001);
+
+            localInfo->Size += localInfo->attrSize[i];
+            localInfo->SizeExt += localInfo->attrSizeExt[i];
+          }
+          localInfo->progressInitialized = true;
+        }
+
+        pRes->Size = localInfo->Size;
+        pRes->SizeExt = localInfo->SizeExt;
+        pRes->noAttrs = localInfo->noAttrs;
+        pRes->attrSize = localInfo->attrSize;
+        pRes->attrSizeExt = localInfo->attrSizeExt;
+
+        if (fabs(qp->GetSelectivity(s) - 0.1) < 0.000001) // default
+          pRes->Card = (double) localInfo->defaultValue;
+        else                                              // annotated
+          pRes->Card = localInfo->total * qp->GetSelectivity(s);
+
+        if ((double) localInfo->returned > pRes->Card) // there are more tuples
+            pRes->Card = (double) localInfo->returned; // than calculated
+
+        if (!localInfo->iter)              // btree has been finished, but
+            pRes->Card = pRes->Card * 1.1; // there are some tuples more (10%)
+
+        if (pRes->Card > (double) localInfo->total) // more than all cannot be
+            pRes->Card = (double) localInfo->total;
+        pRes->Time = (pRes->Card + 1.0)
+               * (uIndexQuery + localInfo->SizeExt * vIndexQuery)
+               * qp->GetPredCost(s);
+        pRes->Progress = (localInfo->returned + 1)
+               * (uIndexQuery + localInfo->SizeExt * vIndexQuery)
+               * qp->GetPredCost(s)
+               / pRes->Time;
+
+        return YIELD;
+      }
+
+  }
+  return 0;
+}
+
+#endif
+
+
 
 /*
 
@@ -2295,6 +2493,8 @@ class BTreeAlgebra : public Algebra
   {
     AddTypeConstructor( &cppbtree );
 
+#ifndef USE_PROGRESS
+
     AddOperator(&createbtree);
     AddOperator(&exactmatch);
     AddOperator(&leftrange);
@@ -2307,6 +2507,23 @@ class BTreeAlgebra : public Algebra
     AddOperator(&insertbtree);
     AddOperator(&deletebtree);
     AddOperator(&updatebtree);
+
+#else
+
+    AddOperator(&createbtree);
+    AddOperator(&exactmatch);
+    AddOperator(&leftrange);		leftrange.EnableProgress();
+    AddOperator(&rightrange);
+    AddOperator(&cpprange);		cpprange.EnableProgress();
+    AddOperator(&exactmatchs);		exactmatch.EnableProgress();
+    AddOperator(&leftranges);
+    AddOperator(&rightranges);		rightrange.EnableProgress();
+    AddOperator(&cppranges);
+    AddOperator(&insertbtree);
+    AddOperator(&deletebtree);
+    AddOperator(&updatebtree);
+
+#endif
   }
   ~BTreeAlgebra() {};
 };
