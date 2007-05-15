@@ -3117,6 +3117,7 @@ ifthenelseFunS(Word* args, Word& result, int message, Word& local, Supplier s)
     } else {
        ((StandardAttribute*)result.addr)
             ->CopyFrom((StandardAttribute*)res.addr);
+       ((StandardAttribute*)res.addr)->DeleteIfAllowed();
     }
     qp->Close(args[index].addr);
     return 0;
