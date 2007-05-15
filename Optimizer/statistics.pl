@@ -265,9 +265,10 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
          Query = count(loopsel(Rel1Query, fun([param(t, tuple)], 
                        filter(Rel2Query, Pred2))))
        )
-    ;  ( Rel2S = rel(BaseName, _, _),
-         sampleS(Rel1, Rel1S),
+    ;  ( sampleS(Rel1, Rel1S),
+	 sampleJ(Rel1, Rel1J),   
          sampleJ(Rel2, Rel2S),
+         Rel1J = rel(BaseName, _, _),
          possiblyRename(Rel1S, Rel1Query),
          possiblyRename(Rel2S, Rel2Query),
          card(BaseName, JoinSize),
