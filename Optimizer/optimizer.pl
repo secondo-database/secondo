@@ -2126,17 +2126,17 @@ join00(Arg1S, Arg2S, pr(X = Y, Rel1, Rel2)) => pjoin2(Arg1S, Arg2S, Fields) :-
   try_pjoin2(X, Y, Rel1, Rel2, Fields).
 
 
-/* 
-join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_smj(Arg1S, Arg2S, Fields) :-
+  /* 
+  join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_smj(Arg1S, Arg2S, Fields) :-
   fail,
   try_pjoin2_smj(X, Y, Fields).
 
 
-join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_hj(Arg1S, Arg2S, Fields) :-
+  join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_hj(Arg1S, Arg2S, Fields) :-
   fail,
   try_pjoin2_hj(X, Y, Fields).
 
-*/
+  */
 
 
 
@@ -2167,22 +2167,6 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _))
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y),
   orderTest(sortRightThenMergejoin).
-
-
-
-/*
-The rules below will be used only if option ~adaptiveJoin~ is set. For
-details refer to ~adaptiveJoin.pl~.
-
-*/
-
-/*
-join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2(Arg1S, Arg2S, Fields) :-
-  fail,
-  optimizerOption(adaptiveJoin),
-  try_pjoin2(X, Y, Fields).
-*/
-
 
 /*
 
