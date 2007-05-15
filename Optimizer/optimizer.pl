@@ -981,13 +981,14 @@ Arguments:
 
 */
 
-plan_to_atom(rel(Name, _, l), Result) :-
-  atom_concat(Name, ' ', Result),
-  !.
+rel_to_atom(rel(Name, _, l), Name).
+rel_to_atom(rel(Name, _, u), Name2) :-
+  upper(Name, Name2).
 
-plan_to_atom(rel(Name, _, u), Result) :-
-  upper(Name, Name2),
-  atom_concat(Name2, ' ', Result),
+
+plan_to_atom(Rel, Result) :-
+  rel_to_atom(Rel, Name),
+  atom_concat(Name, ' ', Result),
   !.
 
 plan_to_atom(res(N), Result) :-
@@ -995,6 +996,11 @@ plan_to_atom(res(N), Result) :-
   atom_concat(Res1, ') ', Result),
   !.
 
+plan_to_atom(pr(P,_), Result) :-
+   plan_to_atom(P, Result).	
+
+plan_to_atom(pr(P,_,_), Result) :-
+   plan_to_atom(P, Result).	
 
 plan_to_atom(Term, Result) :-
     is_list(Term), Term = [First | _], atomic(First), !,
@@ -2115,11 +2121,12 @@ The following two rules are used for the ~adaptiveJoin~ extension. If used, the 
 
 */
 
-join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2(Arg1S, Arg2S, Fields) :-
+join00(Arg1S, Arg2S, pr(X = Y, Rel1, Rel2)) => pjoin2(Arg1S, Arg2S, Fields) :-
   optimizerOption(adaptiveJoin), 
-  try_pjoin2_smj(X, Y, Fields).
+  try_pjoin2(X, Y, Rel1, Rel2, Fields).
 
 
+/* 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_smj(Arg1S, Arg2S, Fields) :-
   fail,
   try_pjoin2_smj(X, Y, Fields).
@@ -2129,7 +2136,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_hj(Arg1S, Arg2S, Fields) :-
   fail,
   try_pjoin2_hj(X, Y, Fields).
 
-
+*/
 
 
 
@@ -2169,11 +2176,12 @@ details refer to ~adaptiveJoin.pl~.
 
 */
 
+/*
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2(Arg1S, Arg2S, Fields) :-
   fail,
   optimizerOption(adaptiveJoin),
   try_pjoin2(X, Y, Fields).
-
+*/
 
 
 /*
@@ -2452,11 +2460,15 @@ writeNodeSizes :-
 
 edgeSelInfo(Source, Target, Sel, Pred) :-
  edgeSelectivity(Source, Target, Sel),
- edge(Source, Target, join(_, _, pr(Pred,_,_)), _, _, _).
+ edge(Source, Target, join(_, _, P), _, _, _),
+ plan_to_atom(P, Pred), !.
+
 
 edgeSelInfo(Source, Target, Sel, Pred) :-
  edgeSelectivity(Source, Target, Sel),
- edge(Source, Target, select(_, pr(Pred,_)), _, _, _).
+ edge(Source, Target, select(_, P), _, _, _),
+ plan_to_atom(P, Pred), !.
+
 
 writeEdgeSels :-
  findall([Source-Target, Sel, Pred], edgeSelInfo(Source, Target, Sel, Pred), L),
@@ -2474,8 +2486,8 @@ last computed best plan which is stored in ~path/1~.
 Moreover if option ~useCounters~ is swichted on the real
 sizes for the POG-nodes traversed by the path are computed.
 
-After a query the use can investigate the plan by using
-the predicates ~checkSizes/0~ and ~showPredOrder/0~.
+After a query was processed one can investigate the plan by using
+the predicates ~explainPlan/0~, ~checkSizes/0~ or ~showPredOrder/0~.
 
 */
 
@@ -2494,7 +2506,8 @@ createPathInfo([H|T]) :-
   H = costEdge(Src, Tgt, _, ResNode, SizeEst, _),
   edgeSelectivity(Src, Tgt, Sel),
   getRealSize(ResNode, SizeReal),
-  assert(pathInfo(Src, Tgt, Sel, SizeEst, SizeReal)),
+  SizeEstInt is ceil(SizeEst),
+  assert(pathInfo(Src, Tgt, Sel, SizeEstInt, SizeReal)),
   createPathInfo(T). 
 
 createPathInfo([]).
@@ -2509,7 +2522,7 @@ getRealSize(_, -1).
 checkSizes :-
   computeNodeSizes, !,
   findall([Src-Tgt, Sel, SzEst, SzReal], pathInfo(Src, Tgt, Sel, SzEst, SzReal), L),
-  Format = [ ['Edge-Ids', 'l'],
+  Format = [ ['Edge', 'l'],
              ['Selectivity', 'l'], 
              ['Size-Est', 'l'], 
              ['Size-Real', 'l'] 
@@ -2547,17 +2560,31 @@ computeObservedNodeSizes :-
 
 
 showPredOrder :-
-  findall([Src-Tgt, Pred], edgePredicate(Src, Tgt, Pred), L),
-  Format = [ ['Edge-Ids', 'l'],
-             ['Predicate', 'l']
+  findall([Src-Tgt, Op, Pred], edgePredicate(Src, Tgt, Pred, Op), L),
+  Format = [ ['Edge',    'l'],
+	     ['Operator   ', 'l'],
+             ['Predicate',   'l']
              ],
   showTuples(L, Format).
 
-edgePredicate(Source, Target, Pred) :-
+edgePredicate(Source, Target, PlanFragment, Op) :-
   pathInfo(Source, Target, _, _, _),
-  edgeSelInfo(Source, Target, _, Pred).
+  path(X), member(costEdge(Source,Target,Term,_,_,_),X),
+  firstOp(Term, Op),
+  %write('F1:'),write(F1), nl, write(F2), nl,
+  edgeSelInfo(Source, Target, _, PlanFragment).
 
 
+firstOp(Term, F1) :-
+  Term =.. [ F1 | [ Arg1, _] ],
+  Arg1 =.. [ _ | _ ], !.
+
+firstOp(Term, F1) :-
+  Term =.. [ F1 | _ ].
+ 
+
+explainPlan :-
+  showPredOrder, checkSizes.	
 
 
 /*
