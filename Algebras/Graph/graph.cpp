@@ -1542,6 +1542,7 @@ Word InGraph( const ListExpr typeInfo, const ListExpr instance,
                                   second, 0, errorInfo, correct ).addr;
              if (correct) {
                correct = graph->AddVertex(nl->IntValue(first),*p);
+               delete p;
              }
            }
          }       
@@ -1694,7 +1695,44 @@ void* CastGraph (void* addr) {
 }
 
 /*
-4.13 Creation of the type constructor instance
+4.13 ~Open~-function
+
+*/
+bool
+    OpenGraph( SmiRecord& valueRecord,
+                    size_t& offset,
+                    const ListExpr typeInfo,
+                    Word& value )
+{
+  // This Open function is implemented in the Attribute class
+  // and uses the same method of the Tuple manager to open objects
+  Graph *bf =
+      (Graph*)Attribute::Open( valueRecord, offset, typeInfo );
+  value = SetWord( bf );
+  return true;
+}
+
+/*
+4.14 ~Save~-function
+
+*/
+bool
+    SaveGraph( SmiRecord& valueRecord,
+                    size_t& offset,
+                    const ListExpr typeInfo,
+                    Word& value )
+{
+  Graph *bf = (Graph *)value.addr;
+
+  // This Save function is implemented in the Attribute class
+  // and uses the same method of the Tuple manager to save objects
+  Attribute::Save( valueRecord, offset, typeInfo, bf );
+  return true;
+}
+
+
+/*
+4.15 Creation of the type constructor instance
 
 */
 TypeConstructor graphCon(
@@ -1703,7 +1741,8 @@ TypeConstructor graphCon(
     OutGraph, InGraph,            //Out and In functions
     0, 0,                      //SaveToList and RestoreFromList functions
     CreateGraph, DeleteGraph,      //object creation and deletion
-    0, 0, CloseGraph, CloneGraph, //object open, save, close, and clone
+    OpenGraph, SaveGraph, CloseGraph, CloneGraph,
+                                    //^^^ object open, save, close, and clone
     CastGraph,              //cast function
     SizeOfGraph,           //sizeof function
     CheckGraph                    //kind checking function

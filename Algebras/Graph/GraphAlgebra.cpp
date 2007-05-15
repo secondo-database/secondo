@@ -995,6 +995,7 @@ int edgesFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
             localInfo = ((EdgeStruct*) local.addr);
             delete localInfo->tType;
+            delete localInfo->edges;
             delete localInfo;
 
             return 0;
@@ -1062,6 +1063,7 @@ int verticesFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
             localInfo = ((VertexStruct*) local.addr);
             delete localInfo->tType;
+            delete localInfo->vertices;
             delete localInfo;
 
             return 0;
