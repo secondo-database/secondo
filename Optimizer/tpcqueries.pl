@@ -158,6 +158,7 @@ groupby [
 
 
 tpc(No) :- tpcQuery(No, X), sql(X).
+tpcOptimize(No) :- tpcQuery(No, X), optimize(X).
 tpcAfterLookup(No) :- tpcQuery(No, X), callLookup(X,Y), !, write(Y).
 
 % a variant of TPC-3 which includes some correlated predicates
