@@ -337,6 +337,13 @@ Is a display function for graph.
 
 */
 
+  static void DisplayPosition( ListExpr type,
+                               ListExpr numType,
+                               ListExpr value );
+
+  static void DisplayMove( ListExpr type,
+                               ListExpr numType,
+                               ListExpr value );
 
   static SecondoInterface* si; // Ref. to Secondo interface
   static NestedList*       nl; // Ref. to nested list container

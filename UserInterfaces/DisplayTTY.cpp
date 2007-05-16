@@ -494,6 +494,10 @@ DisplayTTY::DisplayXPoint( ListExpr type, ListExpr numType, ListExpr value)
      cout << "xpoint (" << x << "," << y << ")";
   }
 }
+/*
+DisplayPoint
+
+*/
 
 void
 DisplayTTY::DisplayPoint( ListExpr type, ListExpr numType, ListExpr value)
@@ -521,6 +525,10 @@ DisplayTTY::DisplayPoint( ListExpr type, ListExpr numType, ListExpr value)
   }
 }
 
+/*
+DisplayRect
+
+*/
 void DisplayTTY::DisplayRect( ListExpr type, ListExpr numType, ListExpr value)
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
@@ -575,6 +583,11 @@ void DisplayTTY::DisplayRect( ListExpr type, ListExpr numType, ListExpr value)
     }
   }
 }
+
+/*
+DisplayRect3
+
+*/
 
 void DisplayTTY::DisplayRect3( ListExpr type, ListExpr numType, ListExpr value)
 {
@@ -631,6 +644,11 @@ void DisplayTTY::DisplayRect3( ListExpr type, ListExpr numType, ListExpr value)
   }
 }
 
+/*
+DisplayRect4
+
+*/
+
 void DisplayTTY::DisplayRect4( ListExpr type, ListExpr numType, ListExpr value)
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
@@ -685,6 +703,11 @@ void DisplayTTY::DisplayRect4( ListExpr type, ListExpr numType, ListExpr value)
     }
   }
 }
+
+/*
+DisplayRect8
+
+*/
 
 void DisplayTTY::DisplayRect8( ListExpr type, ListExpr numType, ListExpr value)
 {
@@ -741,6 +764,11 @@ void DisplayTTY::DisplayRect8( ListExpr type, ListExpr numType, ListExpr value)
   }
 }
 
+/*
+DisplayMP3
+
+*/
+
 void
 DisplayTTY::DisplayMP3( ListExpr type, ListExpr numType, ListExpr value)
 {
@@ -751,6 +779,10 @@ DisplayTTY::DisplayMP3( ListExpr type, ListExpr numType, ListExpr value)
   cout << "mp3 file";
 }
 
+/*
+DisplayID3
+
+*/
 void
 DisplayTTY::DisplayID3( ListExpr type, ListExpr numType, ListExpr value)
 {
@@ -781,6 +813,11 @@ DisplayTTY::DisplayID3( ListExpr type, ListExpr numType, ListExpr value)
     }
 }
 
+/*
+DisplayLyrics
+
+*/
+
 void
 DisplayTTY::DisplayLyrics( ListExpr type, ListExpr numType, ListExpr value)
 {
@@ -803,6 +840,10 @@ DisplayTTY::DisplayLyrics( ListExpr type, ListExpr numType, ListExpr value)
     }
 }
 
+/*
+DisplayMidi
+
+*/
 void
 DisplayTTY::DisplayMidi (ListExpr type, ListExpr numType, ListExpr value)
 {
@@ -812,7 +853,10 @@ DisplayTTY::DisplayMidi (ListExpr type, ListExpr numType, ListExpr value)
   cout << noOfTracks << " tracks";
 }
 
+/*
+DisplayArray
 
+*/
 void
 DisplayTTY::DisplayArray( ListExpr type, ListExpr numType, ListExpr value)
 {
@@ -841,6 +885,10 @@ DisplayTTY::DisplayArray( ListExpr type, ListExpr numType, ListExpr value)
   }
 }
 
+/*
+DisplayInstant
+
+*/
 void
 DisplayTTY::DisplayInstant( ListExpr type, ListExpr numType, ListExpr value )
 {
@@ -856,6 +904,10 @@ DisplayTTY::DisplayInstant( ListExpr type, ListExpr numType, ListExpr value )
   }
 }
 
+/*
+DisplayDuration
+
+*/
 void
 DisplayTTY::DisplayDuration( ListExpr type, ListExpr numType, ListExpr value )
 {
@@ -893,6 +945,10 @@ DisplayTTY::DisplayDuration( ListExpr type, ListExpr numType, ListExpr value )
   }
 }
 
+/*
+DisplayTid
+
+*/
 void
 DisplayTTY::DisplayTid( ListExpr type, ListExpr numType, ListExpr value )
 {
@@ -906,7 +962,10 @@ DisplayTTY::DisplayTid( ListExpr type, ListExpr numType, ListExpr value )
     cout << nl->IntValue( value );
   }
 }
+/*
+DisplayHtml
 
+*/
 void
 DisplayTTY::DisplayHtml( ListExpr type, ListExpr numType, ListExpr value)
 {
@@ -937,7 +996,10 @@ DisplayTTY::DisplayHtml( ListExpr type, ListExpr numType, ListExpr value)
     cout << "-------------End of html content:" << endl;
     }
 }
+/*
+DisplayPage
 
+*/
 void
 DisplayTTY::DisplayPage( ListExpr type, ListExpr numType, ListExpr value)
 {
@@ -980,6 +1042,10 @@ DisplayTTY::DisplayPage( ListExpr type, ListExpr numType, ListExpr value)
   }
 }
 
+/*
+DisplayUrl
+
+*/
 void
 DisplayTTY::DisplayUrl( ListExpr type, ListExpr numType, ListExpr value)
 {
@@ -1001,7 +1067,10 @@ DisplayTTY::DisplayUrl( ListExpr type, ListExpr numType, ListExpr value)
       cout << "- Path: " << path << endl;
       }
 }
+/*
+DisplayVertex
 
+*/
 void
 DisplayTTY::DisplayVertex( ListExpr type, ListExpr numType, ListExpr value)
 {
@@ -1038,7 +1107,10 @@ DisplayTTY::DisplayVertex( ListExpr type, ListExpr numType, ListExpr value)
       cout << "vertex "<<key<<": (" << x << "," << y << ")";
    }
  }
+/*
+DisplayEdge
 
+*/
 void
 DisplayTTY::DisplayEdge( ListExpr type, ListExpr numType, ListExpr value)
 {
@@ -1070,7 +1142,10 @@ DisplayTTY::DisplayEdge( ListExpr type, ListExpr numType, ListExpr value)
      cout << "edge "<<key1<<"---" << cost << "---->" << key2;
   }
 }
+/*
+DisplayPath
 
+*/
 void
 DisplayTTY::DisplayPath( ListExpr type, ListExpr numType, ListExpr value)
 {
@@ -1148,7 +1223,10 @@ DisplayTTY::DisplayPath( ListExpr type, ListExpr numType, ListExpr value)
    cout <<"********************END PATH****************************"<<endl;
   }
 }
+/*
+DisplayGraph
 
+*/
 void
 DisplayTTY::DisplayGraph( ListExpr type, ListExpr numType, ListExpr value)
 {
@@ -1227,6 +1305,219 @@ DisplayTTY::DisplayGraph( ListExpr type, ListExpr numType, ListExpr value)
      cout <<"********************END GRAPH****************************"<<endl;
   }
 }
+
+/*
+DisplayPosition
+
+*/
+void
+DisplayTTY::DisplayPosition( ListExpr type, ListExpr numType, ListExpr value )
+{
+  string agents[ 64 ];
+
+  if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+       nl->SymbolValue( value ) == "undef" )
+  {
+    cout << "UNDEFINED";
+  }
+  else if ( nl->ListLength( value ) != 2 )
+    cout << "Incorrect Data Format";
+  else
+  {
+    ListExpr rowList, agent;
+    ListExpr moveNoExpr = nl->First( value );
+    ListExpr agentList = nl->Second( value );
+
+    int moveNumber;
+    if ( nl->IsAtom( moveNoExpr ) && nl->AtomType( moveNoExpr ) == IntType )
+      moveNumber = nl->IntValue( moveNoExpr );
+    else
+    {
+      cout << "Incorrect Data Format";
+      return ;
+    }
+
+    if ( nl->ListLength( agentList ) != 8 )
+      cout << "Incorrect Data Format";
+    else
+    {
+      int row = 7;
+      while ( !nl->IsEmpty( agentList ) )
+      {
+        int file = 0;
+        rowList = nl->First( agentList );
+        agentList = nl->Rest( agentList );
+
+        if ( nl->ListLength( rowList ) != 8 )
+          cout << "Incorrect Data Format";
+        else
+        {
+          while ( !nl->IsEmpty( rowList ) )
+          {
+            agent = nl->First( rowList );
+            rowList = nl->Rest( rowList );
+            if ( nl->IsAtom( agent )
+                 && nl->AtomType( agent ) == StringType )
+            {
+              agents[ ( row * 8 ) + file ] = nl->StringValue( agent );
+            }
+            else
+            {
+              cout << "Incorrect Data Format";
+              return ;
+            }
+            file++;
+          }
+          row--;
+        }
+      }
+
+      cout << "Position: (after move number " 
+           << moveNumber << ")" << endl << endl;
+      cout << "        a b c d e f g h" << endl;
+      cout << "       ----------------" << endl;
+      for ( int row = 7; row >= 0; row-- )
+      {
+        cout << "      " << row + 1 << "|";
+        for ( int file = 0; file < 8; file++ )
+        {
+          cout << agents[ ( row * 8 ) + file ] << " ";
+        }
+        cout << endl;
+      }
+      cout << endl;
+    }
+  }
+}
+/*
+DisplayMove
+
+*/
+
+void
+DisplayTTY::DisplayMove( ListExpr type, ListExpr numType, ListExpr value )
+{
+  if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+       nl->SymbolValue( value ) == "undef" )
+  {
+    cout << "UNDEFINED";
+  }
+  else if ( nl->ListLength( value ) != 8 )
+    cout << "Incorrect Data Format";
+  else
+  {
+    int moveNumber;
+    string agent, captured, startfile, endfile;
+    int startrow, endrow;
+    bool check;
+    ListExpr current = nl->First( value );
+    ListExpr rest = nl->Rest( value );
+
+    // read moveNumber
+    if ( nl->IsAtom( current ) && nl->AtomType( current ) == IntType )
+      moveNumber = nl->IntValue( current );
+    else
+    {
+      cout << "Incorrect Data Format";
+      return ;
+    }
+
+    // read agent
+    current = nl->First( rest );
+    rest = nl->Rest( rest );
+    if ( nl->IsAtom( current ) && nl->AtomType( current ) == StringType )
+      agent = nl->StringValue( current );
+    else
+    {
+      cout << "Incorrect Data Format";
+      return ;
+    }
+
+    // read captured
+    current = nl->First( rest );
+    rest = nl->Rest( rest );
+    if ( nl->IsAtom( current ) && nl->AtomType( current ) == StringType )
+      captured = nl->StringValue( current );
+    else
+    {
+      cout << "Incorrect Data Format";
+      return ;
+    }
+
+    // read startfile
+    current = nl->First( rest );
+    rest = nl->Rest( rest );
+    if ( nl->IsAtom( current ) && nl->AtomType( current ) == StringType )
+      startfile = nl->StringValue( current );
+    else
+    {
+      cout << "Incorrect Data Format";
+      return ;
+    }
+    // read startrow
+    current = nl->First( rest );
+    rest = nl->Rest( rest );
+    if ( nl->IsAtom( current ) && nl->AtomType( current ) == IntType )
+      startrow = nl->IntValue( current );
+    else
+    {
+      cout << "Incorrect Data Format";
+      return ;
+    }
+
+    // read endfile
+    current = nl->First( rest );
+    rest = nl->Rest( rest );
+    if ( nl->IsAtom( current ) && nl->AtomType( current ) == StringType )
+      endfile = nl->StringValue( current );
+    else
+    {
+      cout << "Incorrect Data Format";
+      return ;
+    }
+
+    // read endrow
+    current = nl->First( rest );
+    rest = nl->Rest( rest );
+    if ( nl->IsAtom( current ) && nl->AtomType( current ) == IntType )
+      endrow = nl->IntValue( current );
+    else
+    {
+      cout << "Incorrect Data Format";
+      return ;
+    }
+
+    // read check
+    current = nl->First( rest );
+    rest = nl->Rest( rest );
+    if ( nl->IsAtom( current ) && nl->AtomType( current ) == BoolType )
+      check = nl->BoolValue( current );
+    else
+    {
+      cout << "Incorrect Data Format";
+      return ;
+    }
+
+    cout << "Move number: " << moveNumber;
+    if ( check )
+      cout << " (Check!)" << endl;
+    else
+      cout << endl;
+    
+    cout << agent << " moves from "
+    << startfile << startrow << " to " << endfile << endrow;
+
+    if ( ( captured != "none" ) && ( captured != "None" ) )
+      cout << " and captures " << captured << endl;
+    else
+      cout << endl;
+
+    
+    cout << endl;
+  }
+}
+
+
 
 
 
@@ -1535,6 +1826,7 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "edge",  &DisplayEdge);
   InsertDisplayFunction( "path",  &DisplayPath);
   InsertDisplayFunction( "graph",  &DisplayGraph);
-
+  InsertDisplayFunction( "position", &DisplayPosition );
+  InsertDisplayFunction( "move", &DisplayMove );
 }
 
