@@ -139,6 +139,13 @@ Signature: mregion x periods -> mregion
 Example  : query mrain2 atperiods [const periods value(("2003-11-20-06:32" "2003-11-20-06:33" TRUE TRUE))];
 Result   : file
 
+Operator : concatS
+Number   : 1
+Signature: stream(mpoint) -> mpoint
+Example  : query train6 = train6 feed concatS;
+Result   : ( mbool ( ( ("2003-11-20-06:06" "2003-11-20-06:45:40" TRUE FALSE) TRUE)))
+
+
 
 Operator : deftime
 Number   : 1

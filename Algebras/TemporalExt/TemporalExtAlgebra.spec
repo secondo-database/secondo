@@ -41,3 +41,4 @@ operator mdirection alias MDIRECTION pattern op ( _ )
 operator locations alias LOCATIONS pattern op ( _ )
 operator atmin alias ATMIN pattern op ( _ )
 operator atmax alias ATMAX pattern op ( _ )
+operator concatS alias CONCATS pattern  _ op 

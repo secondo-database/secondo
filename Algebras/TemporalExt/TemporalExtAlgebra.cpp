@@ -2881,6 +2881,33 @@ MovingExtTypeMapMoving( ListExpr args )
     return nl->SymbolAtom( "typeerror" );
 }
 
+
+/*
+9.1.19 Type mapping for the concatS operator
+
+This operator concatenates a stream of stream of mpoints which are
+sorted in time dimension.
+
+*/
+
+ListExpr
+ConcatSTypeMap(ListExpr args){
+
+  if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError("one argumnet required.");
+     return nl->TypeError();
+  }
+  ListExpr arg = nl->First(args);
+  if(  nl->ListLength(arg)!=2  ||
+       !nl->IsEqual(nl->First(arg),"stream") ||
+       !nl->IsEqual(nl->Second(arg),"mpoint")){
+     ErrorReporter::ReportError("stream(mpoint) expected.");
+     return nl->TypeError();
+  }
+  return nl->SymbolAtom("mpoint");
+}
+
+
 /*
 9.2 Selection function
 
@@ -4730,6 +4757,68 @@ int MappingAtmaxExt_r( Word* args, Word& result,
     return 0;
 }
 
+
+int ConcatSValueMap(Word* args, Word& result,
+                   int message, Word& local, Supplier s){
+
+
+   result = qp->ResultStorage(s);
+   MPoint* res = (MPoint*) result.addr;
+   res->Clear();
+   res->SetDefined(true);
+   Word next;
+   MPoint* mp;
+   qp->Open(args[0].addr);
+   qp->Request(args[0].addr,next);
+   if(!qp->Received(args[0].addr)){
+      qp->Close(args[0].addr);
+      return 0;
+   } 
+   mp = (MPoint*) next.addr;
+   if(!mp->IsDefined()){ // undefined starting mpoint
+      res->SetDefined(false);
+      qp->Close(args[0].addr);
+      return 0;
+   }  
+   res->CopyFrom(mp);
+ 
+   qp->Request(args[0].addr,next);
+   while(qp->Received(args[0].addr)){
+     mp = (MPoint*) next.addr;
+     if(!mp->IsDefined()){
+        res->Clear();
+        res->SetDefined(false);
+        qp->Close(args[0].addr);
+        return 0;
+     }
+     // check whether res is before mp
+     if(mp->GetNoComponents()>0 && res->GetNoComponents()>0){
+        const UPoint* last;
+        const UPoint* first;
+        res->Get(res->GetNoComponents()-1,last);
+        mp->Get(mp->GetNoComponents()-1,first);
+        if(!last->timeInterval.Before(first->timeInterval)){
+           // overlapping or wrong order
+           res->Clear();
+           res->SetDefined(false);
+           qp->Close(args[0].addr);
+           return 0;
+        }
+     }
+     int size = mp->GetNoComponents();
+     const UPoint* up;
+     for(int p=0; p< size;p++){
+        mp->Get(p,up);
+        UPoint up1 = *up;
+        res->MergeAdd(up1);
+     }
+     qp->Request(args[0].addr,next);
+   }
+   qp->Close(args[0].addr);
+   return 0;
+}
+
+
 /*
 9.4 Definition of operators
 
@@ -5077,6 +5166,14 @@ const string TemporalSpecAtmaxExt  =
     "<text>atmax ( mi1 )</text--->"
     ") )";
 
+const string TemporalSpecConcatS  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>stream(mpoint) -> mpoint</text--->"
+    "<text> _ concatS </text--->"
+    "<text>Concatenates all mpoints within the stream if possible.</text--->"
+    "<text>query train6 feed concatS    </text--->"
+    ") )";
+
 /*
 9.6 Operators
 
@@ -5273,6 +5370,13 @@ Operator temporalatmaxext(
     MovingAtMinMaxSelect,
     MovingExtTypeMapMoving);
 
+Operator temporalconcatS(
+    "concatS",
+    TemporalSpecConcatS,
+    ConcatSValueMap,
+    Operator::SimpleSelect,
+    ConcatSTypeMap);
+
 class TemporalExtAlgebra : public Algebra
 {
   public:
@@ -5328,6 +5432,7 @@ class TemporalExtAlgebra : public Algebra
         AddOperator( &neverext );
         AddOperator( &setunitoftimeext );
         AddOperator( &setunitofdistanceext );
+        AddOperator( &temporalconcatS );
 
     }
     ~TemporalExtAlgebra() {}
