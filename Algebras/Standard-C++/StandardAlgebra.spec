@@ -71,5 +71,5 @@ operator bool2int alias BOOL2INT pattern op( _ , _ )
 operator floor alias FLOOR pattern op( _ , _ )
 operator ceil alias CEIL pattern op( _ , _ )
 operator num2string alias NUM2STRING pattern op( _ )
-
+operator char alias CHAR pattern op ( _ )
 

@@ -363,3 +363,16 @@ Signature:  real -> string
 Example  : query num2string(-684.25)
 Result   : "-684.25"
 
+
+Operator : char
+Number   : 1
+Signature: int -> string
+Example  : query isempty(char(-1))
+Result   : TRUE
+
+Operator : char
+Number   : 2
+Signature: int -> string
+Example  : query char(67)
+Result   : "C"
+

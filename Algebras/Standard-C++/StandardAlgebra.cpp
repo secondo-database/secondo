@@ -1033,10 +1033,10 @@ CcMathTypeMap2( ListExpr args )
 }
 
 /*
-4.2.4 Type mapping functions IntInt, IntBool, BoolInt and EmptyInt
+4.2.4 Type mapping functions IntInt, IntBool, BoolInt, EmptyInt, IntString
 
 Used for operators ~randint~, ~randmax~, ~initseq~, ~nextseq~ and ~log~.
-And for ~int2bool~, ~bool2int~.
+And for ~int2bool~, ~bool2int~, ~char~.
 
 */
 
@@ -1124,6 +1124,21 @@ BoolInt( ListExpr args )
     arg1 = nl->First( args );
     if ( nl->IsEqual( arg1, "bool" ) )
       return (nl->SymbolAtom( "int" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+
+
+ListExpr
+IntString( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if ( nl->IsEqual( arg1, "int" ) )
+      return (nl->SymbolAtom( "string" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
 }
@@ -3585,6 +3600,55 @@ int CcNum2String( Word* args, Word& result, int message,
 }
 
 /*
+4.25 Operator ~char~
+
+*/
+int CcCharFun( Word* args, Word& result, int message,
+                      Word& local, Supplier s )
+{
+  CcInt* Cccode = (CcInt*) args[0].addr;
+  result = qp->ResultStorage( s );
+  CcString* res = (CcString*) result.addr;
+  
+  int code = 0;
+  if ( !Cccode->IsDefined() )
+    res->SetDefined( false );
+  else{
+    code = Cccode->GetIntval();
+    if ( code == 34 )
+    { // Accepted, but mapped Code: 34: map <"> to "''"
+      ostringstream os;
+      os << "''";
+      string s = os.str().substr(0,48);
+      STRING S;
+      strcpy(S,s.c_str());
+      res->Set( true, &S);
+    }
+    else if ( (code == 0)                 ||
+              (code >=32 && code <= 126)  ||
+              (code >= 128 && code <= 255)
+            )
+    { // Accepted characters:
+      //         0: <NUL> results in an empty string
+      //  32 - 126: --> <space> - <~>.
+      // 127 - 255: --> <&#x80;> - <&yuml;>
+      char ch = (char) code;
+      ostringstream os;
+      os << ch;
+      string s = os.str().substr(0,48);
+      STRING S;
+      strcpy(S,s.c_str());
+      res->Set( true, &S);
+    }
+    else
+    { // illegal code --> return undef
+      res->SetDefined( false );
+    }
+  }
+  return 0;
+}
+
+/*
 5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -3692,14 +3756,19 @@ ValueMapping ccbool2intvaluemap[] = { CcBool2intValueMap };
 ValueMapping ccfloorvaluemap[] = { CcFloorValueMap };
 ValueMapping ccceilvaluemap[] = { CcCeilValueMap };
 
-ValueMapping ccnum2stringvaluemap[] = 
-{ CcNum2String<CcReal>, 
-  CcNum2String<CcInt> 
+ValueMapping ccnum2stringvaluemap[] =
+{
+  CcNum2String<CcReal>,
+  CcNum2String<CcInt>
 };
 
 ValueMapping ccifthenelsemap[] =
-  { ifthenelseFun, ifthenelseFunS };
+{
+  ifthenelseFun,
+  ifthenelseFunS
+};
 
+ValueMapping cccharvaluemap[] = { CcCharFun };
 
 const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
@@ -4130,6 +4199,16 @@ const string CCnum2stringSpec =
              "<text>query num2string(12.345)</text--->"
              ") )";
 
+const string CCcharSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>int -> string</text--->"
+    "<text>char( Code )</text--->"
+    "<text>Returns a string corresponding with a single charater "
+    "using ANSI-Coding. 'Code'. Code must be in {0, 32 - 126, 128 - 255}, "
+    "otherwise an undefined string is returned. For '0', the string will be "
+    "empty, and '34' ('\"') will be mapped to \"''\".</text--->"
+    "<text>query char(25)</text--->"
+    ") )";
 
 Operator ccplus( "+", CCSpecAdd, 5, ccplusmap,
                  CcMathSelectCompute, CcMathTypeMap );
@@ -4269,6 +4348,9 @@ Operator ccfloor( "floor", CCfloorSpec, 1, ccfloorvaluemap,
 Operator ccnum2string( "num2string", CCnum2stringSpec, 2, ccnum2stringvaluemap,
                  ccnum2stringSelect, NumStringTypeMap);
 
+Operator ccchar( "char", CCcharSpec, 1, cccharvaluemap,
+                 Operator::SimpleSelect, IntString);
+
 /*
 6 Class ~CcAlgebra~
 
@@ -4351,6 +4433,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccbool2int );
     AddOperator( &ccceil );
     AddOperator( &ccfloor );
+    AddOperator( &ccchar );
     static SetOptionInfo setoption_oi;
     static Operator setoption_op( setoption_oi,
                                   setoption_vm,
