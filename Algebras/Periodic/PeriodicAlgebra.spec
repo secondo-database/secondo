@@ -42,3 +42,9 @@ operator start alias START pattern op(_)
 operator toprel alias TOPREL pattern op(_,_)
 operator trajectory alias TRAJECTORY pattern op(_)
 operator union alias UNION pattern _ infixop _
+operator speed alias SPEED pattern op( _ )
+# direction has pattern op ( _ ) but this results in a conflict to
+# an existing pattern. Because the translation is the same for both,
+# we have to use the same pattern
+operator direction alias DIRECTION pattern op( _, _ )
+
