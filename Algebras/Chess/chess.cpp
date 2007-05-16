@@ -995,7 +995,11 @@ int readpgnValueMap( Word * args, Word & result,
     cout << "Parsing file '" << filename << "' - please wait..." << endl;
     return 0;
   case REQUEST:
+    
     file = ( ifstream* ) local.addr;
+    if(!(*file)){
+         return CANCEL;
+    }
 
     if ( file->is_open() )
     {
