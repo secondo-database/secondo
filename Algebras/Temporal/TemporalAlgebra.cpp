@@ -5819,6 +5819,51 @@ ListExpr SampleMPointTypeMap(ListExpr args){
 }
 
 
+/*
+~GPSTypeMap~
+
+The GPS operatzor works very similar to the SampleMPoint operator.
+The main differnce is the type of the result. The GPS operator
+produces a stream of tuples consisting of the attributes Time
+of type instant and Position of the point. Thus the gps operator can be
+used to export data coming from an mpoint to a relation. In contrast to
+the SampleMPoint operator, the gps operator does not support the kepping
+of the final endpoint.
+
+*/
+
+ListExpr GPSTypeMap(ListExpr args){
+
+  int len = nl->ListLength(args);
+
+  if(len!=2){
+    ErrorReporter::ReportError("two arguments required");
+    return nl->TypeError();
+  }
+  if(!nl->IsEqual(nl->First(args),"mpoint") ||
+     !nl->IsEqual(nl->Second(args),"duration")){
+     ErrorReporter::ReportError(" mpoint x duration expected");
+     return nl->TypeError();
+  }
+  
+  return nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+             nl->TwoElemList(
+                 nl->SymbolAtom("tuple"), 
+                 nl->TwoElemList(
+                     nl->TwoElemList(
+                         nl->SymbolAtom("Time"),
+                         nl->SymbolAtom("instant")
+                     ),
+                     nl->TwoElemList(
+                         nl->SymbolAtom("Position"),
+                         nl->SymbolAtom("point")
+                     )
+                 )
+             )
+         );
+}
+
 
 
 /*
@@ -7954,8 +7999,129 @@ int SampleMPointVM( Word* args, Word& result, int message,
       ((MPoint*)args[0].addr)->Sample(*duration,*res);
    }
    return 0;
-
 }
+
+
+/*
+16.3.46 Value mapping for the gps operator
+
+*/
+
+class GPSLI{
+  public:
+
+/*
+~Constructor~
+
+*/
+      GPSLI(const MPoint* mp,
+            const DateTime* duration,
+            ListExpr tupleType){
+
+         if(!mp->IsDefined() || !duration->IsDefined()){
+             tupleType=0;
+             size=0;
+             unit=0;
+         } else {
+            this->theMPoint = mp;
+            this->duration = duration;
+            this->size = mp->GetNoComponents();
+            this->unit = 0;
+            this->tupleType = new TupleType(nl->Second(tupleType));
+            if(size>0){
+               const UPoint* up;
+               mp->Get(0,up);
+               instant = up->timeInterval.start;
+            } 
+         }
+      }
+
+/*
+~Destructor~
+
+*/
+
+      ~GPSLI(){
+         if(tupleType){
+           delete tupleType;
+         }
+         tupleType=0;
+      }
+
+/*
+~NextTuple~
+
+*/
+      Tuple* NextTuple(){
+        // search the unit containing instant
+       bool done = false;
+       const UPoint* up;
+       while(unit<size  && !done){
+         theMPoint->Get(unit,up);
+         if((instant< up->timeInterval.end) ||
+            (instant==up->timeInterval.end && up->timeInterval.rc) ){
+             done = true;
+         } else {
+             unit++;
+         }
+       }
+       if(!done){
+          return 0;
+       }
+       if(instant<up->timeInterval.start){ // gap
+          instant = up->timeInterval.start;
+       }
+       Point p;
+       up->TemporalFunction(instant,p,true);
+       // construct the result from instant,p      
+       Tuple* res = new Tuple(tupleType);
+       res->PutAttribute(0,instant.Clone());
+       res->PutAttribute(1,p.Clone()); 
+       instant += *duration;
+       return res;  
+      }
+
+  private:
+     const MPoint* theMPoint;
+     const DateTime* duration;
+     Instant instant;
+     int size;
+     int unit;
+     TupleType* tupleType;
+     
+
+};
+
+
+int GPSVM( Word* args, Word& result, int message, 
+                    Word& local, Supplier s ){
+  Tuple* t;
+  GPSLI* li;
+  switch(message){
+       case OPEN:
+             local = SetWord(new GPSLI((MPoint*)args[0].addr,
+                                       (DateTime*)args[1].addr,
+                                       GetTupleResultType(s)));
+             return 0;
+       case REQUEST:
+             li = (GPSLI*) local.addr;
+              t = li->NextTuple();
+              result= SetWord(t);
+              if(t){
+                 return YIELD;
+              } else {
+                 return CANCEL;
+              }    
+       case CLOSE:
+              li = (GPSLI*) local.addr;
+              delete li;
+              return 0;
+  } 
+  return 0;
+}
+
+
+
 
 /*
 16.4 Definition of operators
@@ -8679,6 +8845,16 @@ const string SampleMPointSpec =
     " [const duratione value (0 2000)] ) </text--->"
     ") )";
 
+const string GPSSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint x duration -> "
+    "stream(tuple([Time: instant, Position:point])</text--->"
+    "<text> gps( _ , _ )</text--->"
+    "<text>simulation of an gps receiver </text--->"
+    "<text>query samplempoint(Train6,"
+    " [const duratione value (0 2000)] ) count </text--->"
+    ") )";
+
 /*
 16.4.3 Operators
 
@@ -8901,6 +9077,12 @@ Operator temporaldistance( "distance",
                            MPointDistance,
                            Operator::SimpleSelect,
                            MovingBaseTypeMapMReal );
+
+Operator temporalgps( "gps",
+                      GPSSpec,
+                      GPSVM,
+                      Operator::SimpleSelect,
+                      GPSTypeMap );
 
 Operator temporalsimplify( "simplify",
                            TemporalSpecSimplify,
@@ -9196,6 +9378,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&temporaltranslateappendS);
     AddOperator(&temporalreverse);
     AddOperator(&temporalsamplempoint);
+    AddOperator(&temporalgps);
   }
   ~TemporalAlgebra() {};
 };

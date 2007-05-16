@@ -397,3 +397,10 @@ Signature: mpoint x duration -> mpoint
 Example  : query samplempoint(train7, [const duration value (0 60000)])
 Result   : file
 
+Operator : gps 
+Number   : 1
+Signature: mpoint x duration -> stream(tuple([Time: instant, Position : point]))
+Example  : query gps(train7, [const duration value (0 60000)]) count
+Result   : 56
+
+ 
