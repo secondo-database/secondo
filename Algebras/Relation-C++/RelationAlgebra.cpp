@@ -1067,13 +1067,18 @@ int
 Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   GenericRelation* r;
-  FeedLocalInfo* fli;   
+  FeedLocalInfo* fli; 
+  Supplier sonOfFeed;  
 
 
   switch (message)
   {
     case OPEN :
       r = (GenericRelation*)args[0].addr;
+
+      fli = (FeedLocalInfo*) local.addr;
+      if ( fli ) delete fli;
+      
       fli = new FeedLocalInfo;
         fli->current = 0;
         fli->total = r->GetNoTuples();
@@ -1101,17 +1106,29 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       delete fli->rit;
       return 0;
 
-    case PROGRESS :
+    case CLOSEPROGRESS: 
+
+      sonOfFeed = qp->GetSupplierSon(s, 0);
+      if ( !qp->IsObjectNode(sonOfFeed) )
+        qp->CloseProgress(sonOfFeed);
+
+      fli = (FeedLocalInfo*) local.addr;
+      if ( fli ) delete fli;
+      return 0;
+
+
+    case REQUESTPROGRESS :
 
       GenericRelation* rr;
       rr = (GenericRelation*)args[0].addr;
+
 
       ProgressInfo p1;
       ProgressInfo *pRes;
       const double uFeed = 0.00194;    //milliseconds per tuple
       const double vFeed = 0.0000106;  //milliseconds per Byte
 
-      Supplier sonOfFeed;
+ 
  
       pRes = (ProgressInfo*) result.addr;
       fli = (FeedLocalInfo*) local.addr;
@@ -1336,8 +1353,11 @@ Consume(Word* args, Word& result, int message,
   Word actual;
   consumeLocalInfo* cli;
 
-  if (message != PROGRESS)     //normal evaluation
+  if ( message <= CLOSE )     //normal evaluation
   {
+
+    cli = (consumeLocalInfo*) local.addr;
+    if ( cli ) delete cli;		//needed if consume used in a loop
 
     cli = new consumeLocalInfo;
       cli->state = 0;
@@ -1367,7 +1387,7 @@ Consume(Word* args, Word& result, int message,
     return 0;
   }
 
-  else //message == PROGRESS
+  else if ( message == REQUESTPROGRESS )
   {
 
     	//cout << "consume was asked for progress" << endl;
@@ -1415,6 +1435,14 @@ Consume(Word* args, Word& result, int message,
     }
     else return CANCEL;			//no progress available
   }
+  else if ( message == CLOSEPROGRESS )
+  {
+    qp->CloseProgress(args[0].addr);
+    return 0;
+  }
+
+  return 0;
+
 }
 
 #endif
@@ -1713,6 +1741,9 @@ Filter(Word* args, Word& result, int message,
 
     case OPEN:
 
+      fli = (FilterLocalInfo*) local.addr;
+      if ( fli ) delete fli;
+
       fli = new FilterLocalInfo;
         fli->current = 0;
         fli->returned = 0;
@@ -1758,7 +1789,16 @@ Filter(Word* args, Word& result, int message,
       qp->Close(args[0].addr);
       return 0;
 
-    case PROGRESS:
+
+    case CLOSEPROGRESS:
+      qp->CloseProgress(args[0].addr);
+
+      fli = (FilterLocalInfo*) local.addr;
+      if ( fli ) delete fli;
+      return 0;
+
+
+    case REQUESTPROGRESS:
 
       ProgressInfo p1;
       ProgressInfo* pRes;
@@ -1904,7 +1944,7 @@ ListExpr reduce_tm(ListExpr args)
 }
 
 /*
-5.8.2 Value mapping function of operator ~filter~
+5.8.2 Value mapping function of operator ~reduce~
 
 */
 int
@@ -2223,6 +2263,9 @@ Project(Word* args, Word& result, int message,
   {
     case OPEN:
 
+      pli = (ProjectLocalInfo*) local.addr;
+      if ( pli ) delete pli;
+
       pli = new ProjectLocalInfo;
         pli->tupleType = new TupleType(nl->Second(GetTupleResultType(s)));
         pli->k = 0;
@@ -2266,7 +2309,16 @@ Project(Word* args, Word& result, int message,
       qp->Close(args[0].addr);
       return 0;
 
-    case PROGRESS:
+
+    case CLOSEPROGRESS:
+      qp->CloseProgress(args[0].addr);
+
+      pli = (ProjectLocalInfo*) local.addr;
+      if ( pli ) delete pli;
+      return 0;
+
+
+    case REQUESTPROGRESS:
 
       ProgressInfo p1;
       ProgressInfo *pRes;
@@ -2786,7 +2838,7 @@ Product(Word* args, Word& result, int message,
 
   switch (message)
   {
-    case OPEN :
+    case OPEN:
     {
       long MAX_MEMORY = qp->MemoryAvailableForOperator();
       cmsg.info("RA:ShowMemInfo")
@@ -2796,6 +2848,9 @@ Product(Word* args, Word& result, int message,
 
       qp->Open(args[0].addr);
       qp->Request(args[0].addr, r);
+
+      pli = (ProductLocalInfo*)local.addr;
+      if ( pli ) delete pli;
       pli = new ProductLocalInfo;
 
       pli->currentTuple =
@@ -2842,7 +2897,7 @@ Product(Word* args, Word& result, int message,
       return 0;
     }
 
-    case REQUEST :
+    case REQUEST:
     {
       Tuple *resultTuple, *rightTuple;
       pli = (ProductLocalInfo*)local.addr;
@@ -2895,7 +2950,7 @@ Product(Word* args, Word& result, int message,
       }
     }
 
-    case CLOSE :
+    case CLOSE:
     {
       pli = (ProductLocalInfo*)local.addr;
       if(pli->currentTuple != 0)
@@ -2914,7 +2969,20 @@ Product(Word* args, Word& result, int message,
       return 0;
     }
 
-    case PROGRESS :
+
+    case CLOSEPROGRESS:
+    {
+      qp->CloseProgress(args[0].addr);
+      qp->CloseProgress(args[1].addr);
+
+      pli = (ProductLocalInfo*)local.addr;
+      if ( pli ) delete pli;
+
+      return 0;
+    }
+
+
+    case REQUESTPROGRESS:
     {
       ProgressInfo p1, p2;
       ProgressInfo *pRes;
@@ -3101,7 +3169,7 @@ TCountStream(Word* args, Word& result, int message,
   int count = 0;
 
 
-  if (message != PROGRESS)
+  if ( message <= CLOSE )
   {
 
     qp->Open(args[0].addr);
@@ -3117,7 +3185,7 @@ TCountStream(Word* args, Word& result, int message,
     qp->Close(args[0].addr);
     return 0;
   }
-  else  //message == PROGRESS
+  else if ( message == REQUESTPROGRESS )
   {
     ProgressInfo p1;
     ProgressInfo* pRes;
@@ -3131,6 +3199,13 @@ TCountStream(Word* args, Word& result, int message,
     }
     else return CANCEL;			
   }
+  else if ( message == CLOSEPROGRESS )
+  {
+    qp->CloseProgress(args[0].addr);
+    return 0;
+  }
+
+  return 0;
 }
 
 
@@ -3139,7 +3214,10 @@ int
 TCountRel(Word* args, Word& result, int message, 
           Word& local, Supplier s)
 {
-  if ( message != PROGRESS ) 		//normal evaluation
+  Supplier sonOfCount;
+  sonOfCount = qp->GetSupplierSon(s, 0);
+
+  if ( message <= CLOSE ) 		//normal evaluation
   {
     GenericRelation* rel = (GenericRelation*)args[0].addr;
     result = qp->ResultStorage(s);
@@ -3147,14 +3225,13 @@ TCountRel(Word* args, Word& result, int message,
     return 0;
   }
 
-  else	//message == PROGRESS
+  else if ( message == REQUESTPROGRESS )
   {
-    Supplier sonOfCount;
+
     ProgressInfo p1;
     ProgressInfo* pRes;
     
     pRes = (ProgressInfo*) result.addr; 
-    sonOfCount = qp->GetSupplierSon(s, 0);
 
     if ( qp->IsObjectNode(sonOfCount) )
     {
@@ -3170,6 +3247,12 @@ TCountRel(Word* args, Word& result, int message,
       else return CANCEL;
     }
   }
+  else if ( message == CLOSEPROGRESS && !qp->IsObjectNode(sonOfCount) )
+  {
+    qp->CloseProgress(sonOfCount);
+    return 0;
+  }
+  return 0;
 }
 
 #endif
@@ -4636,7 +4719,13 @@ Rename(Word* args, Word& result, int message,
       qp->Close(args[0].addr);
       return 0;
 
-    case PROGRESS:
+
+    case CLOSEPROGRESS:
+      qp->CloseProgress(args[0].addr);
+      return 0;
+
+
+    case REQUESTPROGRESS:
 
       ProgressInfo p1;
       ProgressInfo *pRes;
