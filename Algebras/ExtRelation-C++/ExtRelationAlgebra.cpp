@@ -2068,7 +2068,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
       return 0;
 
 
-    case PROGRESS:
+    case REQUESTPROGRESS:
       ProgressInfo p1;
       ProgressInfo* pRes;
       const double uRdup = 0.01;  // time per tuple
@@ -3129,7 +3129,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Close(args[0].addr);
       return 0;
 
-    case PROGRESS:
+    case REQUESTPROGRESS:
 
       ProgressInfo p1;
       ProgressInfo *pRes;
@@ -3632,7 +3632,7 @@ int Loopjoin(Word* args, Word& result, int message,
       return 0;
 
 
-    case PROGRESS:
+    case REQUESTPROGRESS:
 
       ProgressInfo p1;
       ProgressInfo *pRes;
@@ -6472,7 +6472,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
     }
 
-    case PROGRESS :
+    case REQUESTPROGRESS :
     {
       ProgressInfo p1, p2;
       ProgressInfo *pRes;
@@ -7685,30 +7685,30 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelgroup);
     AddOperator(&extrelcancel);
     AddOperator(&extrelextract);
-    AddOperator(&extrelextend);		extrelextend.EnableProgress();
+    AddOperator(&extrelextend);		//extrelextend.EnableProgress();
     AddOperator(&extrelconcat);
     AddOperator(&extrelmin);
     AddOperator(&extrelmax);
     AddOperator(&extrelavg);
     AddOperator(&extrelsum);
     AddOperator(&extrelhead);
-    AddOperator(&extrelsortby);		extrelsortby.EnableProgress();
-    AddOperator(&extrelsort);		extrelsort.EnableProgress();
-    AddOperator(&extrelrdup);		extrelrdup.EnableProgress();
+    AddOperator(&extrelsortby);		//extrelsortby.EnableProgress();
+    AddOperator(&extrelsort);		//extrelsort.EnableProgress();
+    AddOperator(&extrelrdup);		//extrelrdup.EnableProgress();
     AddOperator(&extrelmergesec);
     AddOperator(&extrelmergediff);
     AddOperator(&extrelmergeunion);
     AddOperator(&extrelmergejoin);
     AddOperator(&extrelsortmergejoin);
-    AddOperator(&extrelhashjoin);	extrelhashjoin.EnableProgress();
-    AddOperator(&extrelloopjoin);	extrelloopjoin.EnableProgress();
+    AddOperator(&extrelhashjoin);	//extrelhashjoin.EnableProgress();
+    AddOperator(&extrelloopjoin);	//extrelloopjoin.EnableProgress();
     AddOperator(&extrelextendstream);
     AddOperator(&extrelprojectextendstream);
     AddOperator(&extrelloopsel);
     AddOperator(&extrelgroupby);
     AddOperator(&extrelaggregate);
     AddOperator(&extrelaggregateB);
-    AddOperator(&extrelsymmjoin);	extrelsymmjoin.EnableProgress();
+    AddOperator(&extrelsymmjoin);	//extrelsymmjoin.EnableProgress();
     AddOperator(&extrelsymmproductextend);
     AddOperator(&extrelsymmproduct);
     AddOperator(&extrelprojectextend);

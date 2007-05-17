@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
-(~executable~, ~descriptive~, and ~hibrid~). Only the executable 
+(~executable~, ~descriptive~, and ~hybrid~). Only the executable 
 level remains. Models are also removed from type constructors.
 
 [1] Implementation of BTree Algebra
@@ -1401,7 +1401,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
 
 
-    case PROGRESS :
+    case REQUESTPROGRESS :
       ProgressInfo *pRes;
       pRes = (ProgressInfo*) result.addr;
       localInfo = (IndexQueryLocalInfo*)local.addr;
@@ -2512,12 +2512,12 @@ class BTreeAlgebra : public Algebra
 
     AddOperator(&createbtree);
     AddOperator(&exactmatch);
-    AddOperator(&leftrange);		leftrange.EnableProgress();
+    AddOperator(&leftrange);		//leftrange.EnableProgress();
     AddOperator(&rightrange);
-    AddOperator(&cpprange);		cpprange.EnableProgress();
-    AddOperator(&exactmatchs);		exactmatch.EnableProgress();
+    AddOperator(&cpprange);		//cpprange.EnableProgress();
+    AddOperator(&exactmatchs);		//exactmatch.EnableProgress();
     AddOperator(&leftranges);
-    AddOperator(&rightranges);		rightrange.EnableProgress();
+    AddOperator(&rightranges);		//rightrange.EnableProgress();
     AddOperator(&cppranges);
     AddOperator(&insertbtree);
     AddOperator(&deletebtree);

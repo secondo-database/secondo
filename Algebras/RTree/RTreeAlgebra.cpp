@@ -1359,7 +1359,7 @@ int WindowIntersects( Word* args, Word& result,
     }
 
 
-    case PROGRESS :
+    case REQUESTPROGRESS :
     {
       ProgressInfo *pRes;
       pRes = (ProgressInfo*) result.addr;
@@ -3841,7 +3841,8 @@ class RTreeAlgebra : public Algebra
 
     AddOperator( &creatertree );
     AddOperator( &bulkloadrtree );
-    AddOperator( &windowintersects );	windowintersects.EnableProgress();
+    AddOperator( &windowintersects ); 
+				//windowintersects.EnableProgress();
     AddOperator( &windowintersectsS );
     AddOperator( &gettuples );
     AddOperator( &gettuplesdbl );

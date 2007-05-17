@@ -978,7 +978,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
     }
 
-    case PROGRESS:
+    case REQUESTPROGRESS:
     {
       ProgressInfo p1;
       ProgressInfo *pRes;
@@ -2109,7 +2109,7 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
     }
 
-    case PROGRESS:
+    case REQUESTPROGRESS:
     {
       ProgressInfo p1, p2;
       ProgressInfo *pRes;
