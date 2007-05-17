@@ -3192,7 +3192,10 @@ QueryProcessor::EvalP( void* node,
                       const int message)
 {
   progressView = new ProgressView();
+  allowProgress = true;
   Eval( node, result, 1 );
+  allowProgress = false;
+  CloseProgress( node );
   progressView->FinishProgressView();
   delete progressView;
 }
@@ -3325,7 +3328,7 @@ request the next element.
  
 *Operator:* Here we need to distinguish between operators which return a stream (called ~stream operator~) and those which compute an object. 
 
-  * If an operator is not a stream operator and the message is not a PROGRESS message, then evaluate all subtrees that are not functions or streams and copy the results to the argument vector.
+  * If an operator is not a stream operator and the message is not one related to progress, then evaluate all subtrees that are not functions or streams and copy the results to the argument vector.
 
   * If it is a stream operator, then evaluate all subtrees that are not functions or streams ~only on the OPEN message~. Store the results in a vector ~sonresults~ and copy them to the argument vector.
 
@@ -3342,8 +3345,8 @@ Then call the operator's value mapping function.
           {
             if ( ((OpNode*)(tree->u.op.sons[i].addr))->evaluable ) 
             {
-              if ( !tree->u.op.isStream && message != PROGRESS)  
-			//no stream operator, no PROGRESS query
+              if ( !tree->u.op.isStream && message <= CLOSE)  
+			//no stream operator, normal evaluation
               {
                         if ( traceNodes ) 
                         cerr << fn << "Simple op: compute result for son[" 
@@ -3420,7 +3423,7 @@ Then call the operator's value mapping function.
   // branch.
   static const int progressDelta = 100;
   static int progressCtr = progressDelta;
-  static bool allowProgress = true;
+  //static bool allowProgress = true;
   ProgressInfo progress;
 
   progressCtr--;
@@ -3591,6 +3594,32 @@ QueryProcessor::Close( const Supplier s )
 
 
 
+
+/*
+~CloseProgress~ deallocates data structures for operators that support progress. No effect when called for an operator not supporting progress.
+
+*/
+void
+QueryProcessor::CloseProgress( const Supplier s )
+{
+  Word result;
+  OpTree tree = (OpTree) s;
+  bool trace = false;
+
+	if ( trace ) cout << "CloseProgress called with Supplier = " << 
+        (void*) s << endl;
+
+  if ( tree->nodetype == Operator )
+  {
+    if ( tree->u.op.supportsProgress ) 
+      Eval( tree, result, CLOSEPROGRESS );
+  }
+}
+
+
+
+
+
 /*
 ~RequestProgress~ evaluates the subtree ~s~ for a PROGRESS message. It returns true iff a progress info has been received. In ~p~ the address of a ProgressInfo must be passed.
 
@@ -3611,7 +3640,7 @@ QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
     else
     {
       result = SetWord(p);
-      Eval(tree, result, PROGRESS);
+      Eval(tree, result, REQUESTPROGRESS);
 
 	if (tree->u.op.received && trace)
         {

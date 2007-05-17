@@ -369,6 +369,15 @@ is closed already.
 
 
 
+  void QueryProcessor::CloseProgress( const Supplier s );
+
+/*
+~CloseProgress~ deallocates data structures for operators that support progress. No effect when called for an operator not supporting progress.
+
+*/
+
+
+
 
   bool RequestProgress( const Supplier s, ProgressInfo* p );
 /*
@@ -413,12 +422,6 @@ get its son number ~no~.
 Check whether an argument node is of type OBJECT.
 
 */
-
-
-
-
-
-
 
 
 
@@ -780,6 +783,13 @@ The maximum memory available per operator.
 
 /*
 Stores the current tree during query evaluation. Used for progress evaluation.
+
+*/
+
+  bool allowProgress;
+
+/*
+Progress queries are admitted.
 
 */
 
