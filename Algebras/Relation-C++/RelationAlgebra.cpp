@@ -3638,7 +3638,8 @@ TupleSizeTypeMap(ListExpr args)
   CHECK_COND( nl->ListLength(first) == 2 && 
     nl->ListLength(nl->Second(first)) == 2 &&
     (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
-    TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
+    ((TypeOfRelAlgSymbol(nl->First(first)) == rel)
+     || TypeOfRelAlgSymbol(nl->First(first)) == trel)) &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
     "Operator tuplesize expects a list with structure " 
     "(stream (tuple ((a1 t1)...(an tn)))) or "
@@ -4383,7 +4384,7 @@ struct DumpStreamInfo : OperatorInfo {
     name =      "dumpstream";
     signature = "stream(tuple(y)) x string -> stream(tuple(y))";
     syntax =    "_ dumpstream[ f, s ]";
-    meaning =   "Appends the tuples' values in a file specified by f. "
+    meaning =   "Appends the tuples' values to a file specified by f. "
                 "The attribute values are separated by s.";
     example =   "plz feed dumpstream[\"plz.txt\", \"|\"] count";
   }
@@ -4397,6 +4398,9 @@ struct DumpStreamInfo : OperatorInfo {
 The type mapping uses the wrapper class ~NList~ which hides calls
 to class NestedList. Moreover, there are some useful functions for
 handling streams of tuples.
+
+(stream(tuple(x))) -> (APPEND (list of attr names) stream(tuple(x))
+
 
 */
 
@@ -4420,7 +4424,16 @@ static ListExpr dumpstream_tm(ListExpr args)
   if ( !l.third().isSymbol(Symbols::STRING()) ) 
     return l.typeError(err1);
 
-  return l.first().listExpr();
+  NList attrNames;
+  while ( !attrs.isEmpty() ) {
+    cout << attrs.first().first() << endl;
+    attrNames.append( attrs.first().first().toStringAtom() );
+    attrs.rest();
+  }	  
+
+  NList result( NList(Symbols::APPEND()), attrNames, l.first() );
+
+  return result.listExpr();
 }
 
 /*
@@ -4440,11 +4453,14 @@ static int dumpstream_vm( Word* args, Word& result, int message,
 
     ofstream os;
     const string colsep;
-    int tuples;
+    int maxAttr;
+    int ctr;
     
-    Info(const string& fileName, const string& sep) :
+    Info(const string& fileName, const string& sep, int max) :
       colsep(sep)
     {
+      maxAttr = max;
+      ctr = 0;       
       os.open(fileName.c_str(), ios_base::app);
     }
     ~Info()
@@ -4457,12 +4473,27 @@ static int dumpstream_vm( Word* args, Word& result, int message,
       for( int i = 0; i < t.GetNoAttributes(); i++)
       {
         os << *t.GetAttribute(i);
-        if (i < t.GetNoAttributes() - 1)
+        if (i < maxAttr - 1)
           os << colsep;
         else
           os << endl;
       }
     }  
+
+    void appendToHeadLine(Word w) 
+    {
+      if (ctr == maxAttr)
+        return;
+
+      string attrStr = StdTypes::GetString( w );
+      //cerr << attrStr << endl;
+      os << attrStr;
+      if (ctr < maxAttr - 1)
+        os << colsep;
+      else
+        os << endl;
+      ctr++;
+    }	    
     
   };
 
@@ -4478,8 +4509,15 @@ static int dumpstream_vm( Word* args, Word& result, int message,
                 
        string name = StdTypes::GetString(args[1]);          
        string colsep = StdTypes::GetString(args[2]);
-      
-       local.addr = new Info(name, colsep);
+
+       int max = qp->GetNoSons( s );
+       pi = new Info(name, colsep, max-3);
+       local.addr = pi;
+
+       for (int i=3; i < max; i++) 
+       {
+	 pi->appendToHeadLine( args[i] );      
+       }	  
        return 0;
      }
                 
@@ -4491,7 +4529,6 @@ static int dumpstream_vm( Word* args, Word& result, int message,
       {
         Tuple* t = static_cast<Tuple*>(elem.addr);
         pi->appendTuple(*t);
-        cerr << *t << endl;
         result = elem; 
         return YIELD;
       }
