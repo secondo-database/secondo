@@ -145,7 +145,7 @@ Operator : readpgn
 Number   : 1
 Signature: text -> stream(game)
 Example  : query readpgn('sochi84.pgn') transformstream count
-Result   : 105
+Result   : 3
 
 
 Operator : startfile
