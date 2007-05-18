@@ -3122,6 +3122,7 @@ bool MPoint::Append(const MPoint& p){
   const UPoint* up;
   UPoint u;
   if(size2>0){ // process the first unit of p
+     units.Resize(size1+size2);
      p.Get(0,up);
      this->MergeAdd(*up);
   }
