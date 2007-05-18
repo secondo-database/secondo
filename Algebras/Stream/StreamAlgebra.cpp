@@ -201,7 +201,7 @@ int MappingStreamFeed( Word* args, Word& result, int message,
       if ( linfo->finished )
         return CANCEL;
       argValue = args[0];
-      result = SetWord(((Attribute*) (argValue.addr))->Clone());
+      result = SetWord(((Attribute*) (argValue.addr))->Copy());
       linfo->finished = true;
       return YIELD;
 
@@ -2261,7 +2261,7 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
         }
       // create tuple, copy and pass result, delete value
       newTuple = new Tuple( sli->resultTupleType );
-      newTuple->PutAttribute( 0, ((Attribute*)value.addr)->Clone() );
+      newTuple->PutAttribute( 0, ((Attribute*)value.addr)->Copy() );
       ((Attribute*)(value.addr))->DeleteIfAllowed();
       result = SetWord(newTuple);
       return YIELD;
@@ -2339,7 +2339,7 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
         }
       // extract, copy and pass value, delete tuple
       tupleptr = (Tuple*)tuple.addr;
-      result.addr = tupleptr->GetAttribute(0)->Clone();
+      result.addr = tupleptr->GetAttribute(0)->Copy();
       tupleptr->DeleteIfAllowed();
 #ifdef GSA_DEBUG
       cout<< "Transformstream_TS_S: REQUEST return YIELD" << endl;
@@ -2512,7 +2512,6 @@ ListExpr ProjecttransformstreamTM(ListExpr args){
 int Projecttransformstream(Word* args, Word& result, int message,
                          Word& local, Supplier s)
 {
-  TransformstreamLocalInfo *sli;
   Word   tuple;
   Tuple* tupleptr;
   int pos;
@@ -2521,43 +2520,24 @@ int Projecttransformstream(Word* args, Word& result, int message,
     {
     case OPEN:
       qp->Open( args[0].addr );
-      sli = new TransformstreamLocalInfo;
-      sli->finished = false;
-      local = SetWord(sli);
       return 0;
 
     case REQUEST:
-      if (local.addr == 0) {
-        return CANCEL;
-      }
-      sli = (TransformstreamLocalInfo*) (local.addr);
-      if (sli->finished) {
-        return CANCEL;
-      }
-
       qp->Request( args[0].addr, tuple );
       if (!qp->Received( args[0].addr ))
         { // input stream consumed
-          qp->Close( args[0].addr );
-          sli->finished = true;
           result.addr = 0;
           return CANCEL;
         }
         // extract, copy and pass value, delete tuple
         tupleptr = (Tuple*)tuple.addr;
         pos = ((CcInt*)args[2].addr)->GetIntval();
-        result.addr = tupleptr->GetAttribute(pos)->Clone();
+        result.addr = tupleptr->GetAttribute(pos)->Copy();
         tupleptr->DeleteIfAllowed();
         return YIELD;
 
     case CLOSE:
-      if (local.addr != 0)
-        {
-          sli = (TransformstreamLocalInfo*) (local.addr);
-          if (!sli->finished)
-            qp->Close( args[0].addr );
-          delete sli;
-        }
+      qp->Close(args[0].addr);
       return 0;
 
     }
