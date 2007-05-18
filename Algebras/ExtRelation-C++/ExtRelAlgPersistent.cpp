@@ -1256,6 +1256,9 @@ public:
     Tuple* resultTuple = 0;
     Tuple* tmpA = 0;
 
+    if ( ptB == 0)
+      return 0;	    
+
     while( ptA != 0 ) {
      
       if (!continueMerge && ptB != 0) {
@@ -2054,6 +2057,12 @@ bucket that the tuple coming from A hashes is also initialized.
         if( remainTuplesB )
         {
           firstPassA = false;
+	  if (showMemInfo) {
+            cmsg.info() 
+	      << "Create a hash table for the remaining tuples of B " << endl
+              << "and initialize new scan over A." << endl;
+	    cmsg.send();
+          }		  
           ClearBucketsB();
           remainTuplesB = FillHashBucketsB();
           iterTuplesRelA = relA->MakeScan();
