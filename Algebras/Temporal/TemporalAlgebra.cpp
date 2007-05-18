@@ -2590,7 +2590,7 @@ string iv2string(Interval<Instant> iv){
    return res;
 }
 
-void MPoint::MergeAdd(UPoint& unit){
+void MPoint::MergeAdd(const UPoint& unit){
 
   int size = GetNoComponents();
   if(size==0){ // the first unit
@@ -3091,6 +3091,47 @@ void MPoint::MSpeed( MReal& result ) const
             }
         }
   result.EndBulkLoad( true );
+}
+
+
+bool MPoint::Append(const MPoint& p){
+  if(!IsDefined()){
+     return false;
+  }
+  if(!p.IsDefined()){
+     Clear();
+     SetDefined(false);
+     return false;
+  }
+  int size1 = this->GetNoComponents();
+  int size2 = p.GetNoComponents();
+  if(size1>0 && size2>0){
+    // check whether p starts after the end of this
+    const UPoint* u1;
+    const UPoint* u2;
+    this->Get(size1-1,u1);
+    p.Get(0,u2);
+    if((u1->timeInterval.end > u2->timeInterval.start) || 
+       ( (u1->timeInterval.end == u2->timeInterval.start) &&
+         (u1->timeInterval.rc  && u2->timeInterval.lc))){
+      this->Clear();
+      this->SetDefined(false);
+      return false;
+    }
+  }
+  const UPoint* up;
+  UPoint u;
+  if(size2>0){ // process the first unit of p
+     p.Get(0,up);
+     this->MergeAdd(*up);
+  }
+  StartBulkLoad();
+  for(int i=1; i<size2; i++){
+     p.Get(i,up);
+     this->Add(*up);
+  }
+  EndBulkLoad(false);
+  return true;
 }
 
 

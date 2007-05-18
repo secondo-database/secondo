@@ -2564,7 +2564,7 @@ The constructor. Initializes space for ~n~ elements.
 MergeAdd  Overwrites the function defined in Mapping
 
 */
-  void MergeAdd(UPoint& unit);
+  void MergeAdd(const UPoint& unit);
 
 /*
 3.10.5.3 Operation ~trajectory~
@@ -2658,6 +2658,20 @@ directly after the gap.
   void Sample(const DateTime& duration, MPoint& result, 
               const bool KeepEndPoint = false )const;
 
+
+
+
+/*
+3.10.5.8 ~Append~
+
+The ~Append~ function appends all units of the argument to this 
+MPoint. If this mpoint or the argument is undefined or if the
+argument starts before this mpoint ends, this mpoint will be set
+to be undefined. The return value is the defined state of this 
+mpoint after the operation (indicating the success). 
+
+*/
+   bool Append(const MPoint& p);
 
 
 

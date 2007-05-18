@@ -4768,66 +4768,15 @@ int ConcatSValueMap(Word* args, Word& result,
    res->SetDefined(true);
 
    Word next;
-   MPoint* mp;
-   
    qp->Open(args[0].addr);
-   
-   qp->Request(args[0].addr,next);
-   if(!qp->Received(args[0].addr)){
-      // stream is empty
-      qp->Close(args[0].addr);
-      return 0;
-   }
-   // process the first argument 
-   mp = (MPoint*) next.addr;
-   if(!mp->IsDefined()){ // undefined starting mpoint
-      res->SetDefined(false);
-      qp->Close(args[0].addr);
-      return 0;
-   }  
-   res->CopyFrom(mp);
- 
-   qp->Request(args[0].addr,next);
-   while(qp->Received(args[0].addr)){
-     mp = (MPoint*) next.addr;
-     if(!mp->IsDefined()){
-        // undefined argument found
-        res->Clear();
-        res->SetDefined(false);
-        qp->Close(args[0].addr);
-        return 0;
-     }
-     // check whether res is before mp
-     if(mp->GetNoComponents()>0 && res->GetNoComponents()>0){
-        const UPoint* last;
-        const UPoint* first;
-        res->Get(res->GetNoComponents()-1,last);
-        mp->Get(mp->GetNoComponents()-1,first);
-        if(!last->timeInterval.Before(first->timeInterval)){
-           // overlapping or wrong order
-           res->Clear();
-           res->SetDefined(false);
-           qp->Close(args[0].addr);
-           return 0;
-        }
-     }
-     // append the units of mp to res
-     int size = mp->GetNoComponents();
-     const UPoint* up;
-     res->StartBulkLoad();
-     for(int p=0; p< size;p++){
-        mp->Get(p,up);
-        UPoint up1 = *up;
-        if(p){
-           res->Add(up1);
-        } else { // special handling of the first unit
-           res->MergeAdd(up1);
-        }
-     }
-     res->EndBulkLoad(false);
-     qp->Request(args[0].addr,next);
+   qp->Request(args[0].addr, next);
+   bool d = true;
+   while(qp->Received(args[0].addr) && d){
+      d = res->Append(* ((MPoint*) next.addr));
+      qp->Request(args[0].addr, next);
    }
    qp->Close(args[0].addr);
+
    return 0;
 }
 
