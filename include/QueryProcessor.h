@@ -369,7 +369,7 @@ is closed already.
 
 
 
-  void QueryProcessor::CloseProgress( const Supplier s );
+  void CloseProgress( const Supplier s );
 
 /*
 ~CloseProgress~ deallocates data structures for operators that support progress. No effect when called for an operator not supporting progress.
