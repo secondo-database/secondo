@@ -112,32 +112,62 @@ in file ``storedTypeSizes.pl'' for each Secondo datatype are used.
 */
 
 % query Secondo for root attr size of an attribute
-getAttrSize(Rel, Attr, AttrSize) :-
+
+
+convertNames(Rel, Attr, RelE, AttrE) :-
   secAttr(Rel, Attr, AttrE),
-  secRelation(Rel, RelE),
-  concat_atom(['query ', RelE, ' attrsize[ ', AttrE, ' ]'],QueryAtom),
+  secRelation(Rel, RelE).
+
+attrQuery(RelE, AttrE, QueryAtom) :-
+  sub_atom(RelE, _, _, _, 'SEC2'),
+  concat_atom(['query ', RelE, ' feed attrsize[ ', AttrE, ' ]'],QueryAtom).
+
+attrQuery(RelE, AttrE, QueryAtom) :-
+  concat_atom(['query ', RelE, ' attrsize[ ', AttrE, ' ]'],QueryAtom).
+
+
+getAttrSize(Rel, Attr, AttrSize) :-
+  convertNames(Rel, Attr, RelE, AttrE),
+  attrQuery(RelE, AttrE, QueryAtom),
+  write(QueryAtom), nl,
   secondo(QueryAtom, [real, AttrSize]), !.
+
 getAttrSize(Rel, Attr, _) :-
   write('\nERROR: Something\'s wrong in getAttrSize('), write(Rel),
   write(','), write(Attr), write(').'),
   fail, !.
 
+
+rootAttrQuery(RelE, AttrE, QueryAtom) :-
+  sub_atom(RelE, _, _, _, 'SEC2'),
+  concat_atom(['query ', RelE, ' feed rootattrsize[ ', AttrE, ' ]'],QueryAtom).
+
+rootAttrQuery(RelE, AttrE, QueryAtom) :-
+  concat_atom(['query ', RelE, ' rootattrsize[ ', AttrE, ' ]'],QueryAtom).
+
 % query Secondo for root attr size of an attribute
 getRootAttrSize(Rel, Attr, RootAttrSize) :-
-  secAttr(Rel, Attr, AttrE),
-  secRelation(Rel, RelE),
-  concat_atom(['query ', RelE, ' rootattrsize[ ', AttrE, ' ]'],QueryAtom),
+  convertNames(Rel, Attr, RelE, AttrE),
+  rootAttrQuery(RelE, AttrE, QueryAtom),
   secondo(QueryAtom, [int, RootAttrSize]), !.
+
 getRootAttrSize(Rel, Attr, _) :-
   write('\nERROR: Something\'s wrong in getRootAttrSize('), write(Rel),
   write(','), write(Attr), write(').'),
   fail, !.
 
+
+extAttrQuery(RelE, AttrE, QueryAtom) :-
+  sub_atom(RelE, _, _, _, 'SEC2'),
+  concat_atom(['query ', RelE, ' feed extattrsize[ ', AttrE, ' ]'],QueryAtom).
+
+extAttrQuery(RelE, AttrE, QueryAtom) :-
+  concat_atom(['query ', RelE, ' extattrsize[ ', AttrE, ' ]'],QueryAtom).
+
 % query Secondo for the extattrsize of an attribute
 getExtAttrSize(Rel, Attr, ExtAttrSize) :- 
-  secAttr(Rel, Attr, AttrE),
-  secRelation(Rel, RelE),
-  concat_atom(['query ', RelE, ' extattrsize[ ', AttrE, ' ]'],QueryAtom),
+  convertNames(Rel, Attr, RelE, AttrE),
+  extAttrQuery(RelE, AttrE, QueryAtom),
   secondo(QueryAtom, [real, ExtAttrSize]), !.
 getExtAttrSize(Rel, Attr, _) :- 
   write('\nERROR: Something\'s wrong in getExtAttrSize('), write(Rel),
@@ -317,13 +347,15 @@ hasSampleS(Rel) :-
   getSecondoList(ObjList),
   getSpelledRel(Rel, SpelledRel),
   concat_atom([SpelledRel, '_sample_s'], '', ORel),
-  member(['OBJECT', ORel, _ , [[rel | _]]], ObjList).
+  member(['OBJECT', ORel, _ , [[Type | _]]], ObjList),
+  member(Type, [rel, trel]).
 
 hasSampleJ(Rel) :-
   getSecondoList(ObjList),
   getSpelledRel(Rel, SpelledRel),
   concat_atom([SpelledRel, '_sample_j'], '', ORel),
-  member(['OBJECT', ORel, _ , [[rel | _]]], ObjList).
+  member(['OBJECT', ORel, _ , [[Type | _]]], ObjList),
+  member(Type, [rel, trel]).
 
 getSizeSampleJ(Rel, Size) :-
   getSpelledRel(Rel, SpelledRel),
@@ -398,16 +430,26 @@ Create a random order sample ~Sample~ for relation ~Rel~ with desired sample siz
 
 */
 
-createSample(Sample, Rel, SampleSize, SampleCard) :-
+
+
+sampleQuery(Sample, Rel, SampleSize, QueryAtom) :-
+  sub_atom(Rel, _, _, _, 'SEC2'),
+  concat_atom(['let ', Sample, ' = ', Rel, 
+    ' feed head[', SampleSize, '] 
+      extend[xxxNo: randint(20000)] sortby[xxxNo asc] remove[xxxNo]
+      consume'], '', QueryAtom).    
+
+sampleQuery(Sample, Rel, SampleSize, QueryAtom) :-
   concat_atom(['let ', Sample, ' = ', Rel, 
     ' sample[', SampleSize, ', 0.00001] 
       extend[xxxNo: randint(20000)] sortby[xxxNo asc] remove[xxxNo]
-      consume'], '', QueryAtom),    
+      consume'], '', QueryAtom).    
+
+createSample(Sample, Rel, SampleSize, SampleCard) :-
+  sampleQuery(Sample, Rel, SampleSize, QueryAtom),
   tryCreate(QueryAtom),
   card(Rel, Card),
   SampleCard is truncate(min(Card, max(SampleSize, Card*0.00001))).
-
-
 
 
 /*
@@ -1224,12 +1266,16 @@ getSpelledRel(_, _) :-
   write('ERROR: Relation Name Not Known!'),!,fail.
 
 tryDeleteFile(Name, ObjList) :-
-  member(['OBJECT', Name, _ , [[rel | _]]], ObjList),
+  member(['OBJECT', Name, _ , [[Type | _]]], ObjList),
+  member(Type, [rel, trel]),
   concat_atom(['delete ', Name], '', QueryAtom),
   secondo(QueryAtom).
 
 tryDeleteFile(Name, ObjList) :- 
   not(member(['OBJECT', Name, _ , [[rel | _]]], ObjList)).
+
+tryDeleteFile(Name, ObjList) :- 
+  not(member(['OBJECT', Name, _ , [[trel | _]]], ObjList)).
 
 deleteSampleAndSmallFiles(SpelledRel, ObjList) :-
   sampleNameS(SpelledRel, SampleS),
@@ -1285,12 +1331,14 @@ retractStoredInformation(SpelledRel) :-
   %retractall(storedNoIndex(DB, LFSpelledRel, _)).
   
 updateRel2(_, SpelledRel, ObjList) :-
-  member(['OBJECT', SpelledRel, _ , [[rel | _]]], ObjList),
+  member(['OBJECT', SpelledRel, _ , [[Type | _]]], ObjList),
+  member(Type, [rel, trel]),
 % not(concat_atom([_, 'sample', _], '_', SpelledRel)), % ignore sample relations
   retractStoredInformation(SpelledRel), !.
 
 updateRel2(_, SpelledRel, ObjList) :-
-  not(member(['OBJECT', SpelledRel, _ , [[rel | _]]], ObjList)),
+  not(member(['OBJECT', SpelledRel, _ , [[Type | _]]], ObjList)),
+  member(Type, [rel, trel]),
   deleteSampleAndSmallFiles(SpelledRel, ObjList),
   retractStoredInformation(SpelledRel).
     	
@@ -1380,7 +1428,8 @@ deleteSamples(_) :- !.
 deleteSamplesAll :-
   getSecondoList(ObjList),
   findall( X, 
-           ( member(['OBJECT', X1, _ , [[rel | _]]], ObjList),
+           ( member(['OBJECT', X1, _ , [[Type | _]]], ObjList),
+             member(Type, [rel, trel]),
              downcase_atom(X1,X),
              deleteSampleS(X,ObjList), 
              deleteSampleJ(X,ObjList)
@@ -1393,21 +1442,20 @@ deleteSamplesAll :-
   write('        using \'updateRel(<relation name>).\'.\n'), !.
 
 deleteSampleJ(Rel, ObjList) :-
-  member(['OBJECT', Obj, _ , [[rel | _]]], ObjList),
+  member(['OBJECT', Obj, _ , [[Type | _]]], ObjList),
+  member(Type, [rel, trel]),
   downcase_atom(Obj, ObjS),
   concat_atom([Rel, 'sample_j'], '_', ObjS), 
   tryDeleteFile(Obj, ObjList), !.
 deleteSampleJ(_, _) :- !.
 
 deleteSampleS(Rel, ObjList) :-
-  member(['OBJECT', Obj, _ , [[rel | _]]], ObjList),
+  member(['OBJECT', Obj, _ , [[Type | _]]], ObjList),
+  member(Type, [rel, trel]),
   downcase_atom(Obj, ObjS),
   concat_atom([Rel, 'sample_s'], '_', ObjS), 
   tryDeleteFile(Obj, ObjList), !.
 deleteSampleS(_, _) :- !.
-
-
-
 
 
 /*
@@ -1427,6 +1475,14 @@ predicate ~card/2~, see section about cardinalities of
 relations. The predicate returns the average total tuplesize, including Flobs.
 
 */
+
+tupleSizeQuery(RelE, QueryAtom) :-
+  sub_atom(RelE, _, _, _, 'SEC2'),
+  concat_atom(['query ', RelE, ' feed tuplesize'],QueryAtom).
+
+tupleSizeQuery(RelE, QueryAtom) :-
+  concat_atom(['query ', RelE, ' tuplesize'],QueryAtom).
+
 tuplesize(Rel, Size) :-
   spelled(Rel, Rel2, _),
   databaseName(DB),
@@ -1434,18 +1490,11 @@ tuplesize(Rel, Size) :-
   !.
 
 tuplesize(Rel, Size) :-
-  ( spelled(Rel, Rel2, l)
-    % First letter of Rel is written in lower case.
-    -> Query = (tuplesize(rel(Rel2, _, l))) 
-    % First letter of Rel is written in upper case.
-    ;  (   spelled(Rel, Rel2, u),
-           Query = (tuplesize(rel(Rel2, _, u)))
-       )
-  ),
-  plan_to_atom(Query, QueryAtom1),
-  atom_concat('query ', QueryAtom1, QueryAtom),
+  secRelation(Rel, RelE),
+  tupleSizeQuery(RelE, QueryAtom), 
   secondo(QueryAtom, [real, Size]),
   databaseName(DB),
+  spelled(Rel, Rel2, _),
   assert(storedTupleSize(DB, Rel2, Size)),
   !.
 
@@ -1505,10 +1554,11 @@ writeStoredTupleSize(Stream) :-
 % try to create/delete samples and ignore error codes.
 
 tryCreate(QueryAtom) :- 
+  write('tryCreate: '), write(QueryAtom), nl,	
   secondo(QueryAtom), !.
   
 tryCreate(_) :-
-  write('Using existing object!' ), nl.
+  write('tryCreate: Using existing object!' ), nl.
 
 tryDelete(QueryAtom) :- 
   secondo(QueryAtom), !.

@@ -301,6 +301,7 @@ If both, ~Granularity~ and ~BBoxType~ are ~none~, a standard index will be creat
 
 getSmallIndexCreateQuery(Granularity,BBoxType,Type,Rel,Attr,IndexName,QueryAtom)
   :-
+  optimizerOption(entropy),
   indexCreateQuery(Granularity,BBoxType,Type,Rel,Attr,IndexName,QueryList), !,
   concat_atom(QueryList, QueryAtom), !.
 
