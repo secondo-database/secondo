@@ -128,7 +128,9 @@ struct Symbols {
     static const string& TYPEERROR() { 
        static string s("typeerror"); return s; 
     }  
-
+    static const string& APPEND() {
+       static string s("APPEND"); return s;
+    }  
 };  
 
 
@@ -221,7 +223,7 @@ c)~.
   NList(const NList& a, const NList& b) : 
     nl(nlGlobal),
     l( nl->TwoElemList(a.l, b.l) ),
-    e( b.l ), 
+    e( b.l ),	
     len(2)
   {}
   NList(const NList& a, const NList& b, const NList& c) : 
@@ -438,7 +440,10 @@ used to convert a symbol or text atom into a string atom.
 
 */  
   inline string convertToString() const { return nl->ToString(l); } 
-  inline NList toStringAtom() const { return NList( str(), true); } 
+  inline NList toStringAtom() { 
+    const string& s = str();
+    return NList(s, true);
+  }
   
 /*
 Comparison between ~NList/NList~ and ~NList/string~ instances
@@ -480,17 +485,21 @@ to a given ~ostream~ reference.
 Construction of bigger lists
 
 */
-  inline void makeHead(NList head) 
+  inline void makeHead(const NList& head) 
   {
     l = nl->OneElemList( head.l );
     e = l;
     len = 1;
   } 
   
-  inline void append(NList tail)
+  inline void append(const NList& tail)
   {
-     e = nl->Append(e, tail.l);
-     len++;
+     if (len == 0) {
+       makeHead(tail);	     
+     } else {	     
+       e = nl->Append(e, tail.l);
+       len++;
+     }  
   }
 
 /*

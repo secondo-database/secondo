@@ -277,6 +277,33 @@ NestedList::NodeType2Text( NodeType type ) const
 }
 
 
+
+ListExpr 
+NestedList::First( const ListExpr list ) const
+{
+  assert( !IsEmpty( list ) && !IsAtom( list ) );
+  return ((*nodeTable)[list].n.left);
+};
+
+
+ListExpr 
+NestedList::Rest( const ListExpr list ) const
+{
+  assert( !IsEmpty( list ) && !IsAtom( list ) );
+  return ((*nodeTable)[list].n.right);
+};
+
+ListExpr 
+NestedList::End( ListExpr list ) const
+{
+  ListExpr last = Empty();
+  while ( !IsEmpty(list) ) {
+     last = list;	  
+     list = Rest(list);	  
+  }	  
+  return last;
+}
+
 /*
 4.2 Cons
 

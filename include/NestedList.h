@@ -667,28 +667,23 @@ Returns "true"[4] if ~atom~ is a symbol atom and has the same value as ~str~.
 1.3.4 Traversal
 
 */
-  inline ListExpr First( const ListExpr list ) const
-  {
-    assert( !IsEmpty( list ) && !IsAtom( list ) );
-    return ((*nodeTable)[list].n.left);
-  };
+  ListExpr First( const ListExpr list ) const;
 /*
 Returns (a pointer to) the left son of ~list~. Result can be the empty list.
 
 *Precondition*: ~list~ is no atom and is not empty.
 
 */
-  inline ListExpr Rest( const ListExpr list ) const
-  {
-    assert( !IsEmpty( list ) && !IsAtom( list ) );
-    return ((*nodeTable)[list].n.right);
-  };
+  ListExpr Rest( const ListExpr list ) const;
+
 /*
 Returns (a pointer to) the right son of ~list~. Result can be the empty list.
 
 *Precondition*: ~list~ is no atom and is not empty.
 
 */
+  ListExpr End( const ListExpr list) const;
+
 
   inline void Replace( ListExpr oldList, ListExpr newList )
   {
