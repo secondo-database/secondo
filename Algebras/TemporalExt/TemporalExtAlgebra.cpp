@@ -4773,6 +4773,7 @@ int ConcatSValueMap(Word* args, Word& result,
    bool d = true;
    while(qp->Received(args[0].addr) && d){
       d = res->Append(* ((MPoint*) next.addr));
+      ((MPoint*)next.addr)->DeleteIfAllowed();
       qp->Request(args[0].addr, next);
    }
    qp->Close(args[0].addr);
