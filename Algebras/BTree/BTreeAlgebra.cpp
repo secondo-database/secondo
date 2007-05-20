@@ -48,6 +48,7 @@ using namespace std;
 #include "BTreeAlgebra.h"
 #include "DateTime.h"
 #include "TupleIdentifier.h"
+#include "Progress.h"
 
 #include <iostream>
 #include <string>
@@ -1293,21 +1294,18 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 // progress version
 
 
-struct IndexQueryLocalInfo
+
+class IndexQueryLocalInfo: public ProgressLocalInfo
 {
+
+public:
+
   Relation* relation;
   BTreeIterator* iter;
   bool first;
-
-  int returned, total, defaultValue;
-  bool progressInitialized;
-  double Size;
-  double SizeExt;
-  int noAttrs;
-  double *attrSize;
-  double *attrSizeExt;
-
 };
+
+
 
 template<int operatorId>
 int
@@ -1323,6 +1321,8 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
   switch (message)
   {
     case OPEN :
+      localInfo = (IndexQueryLocalInfo*)local.addr;
+      if ( localInfo ) delete localInfo;
       localInfo = new IndexQueryLocalInfo;
 
       local = SetWord(localInfo);
@@ -1398,6 +1398,12 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       localInfo = (IndexQueryLocalInfo*)local.addr;
       delete localInfo->iter;
 
+      return 0;
+
+
+    case CLOSEPROGRESS:
+      localInfo = (IndexQueryLocalInfo*)local.addr;
+      if ( localInfo ) delete localInfo;
       return 0;
 
 
@@ -2512,12 +2518,12 @@ class BTreeAlgebra : public Algebra
 
     AddOperator(&createbtree);
     AddOperator(&exactmatch);
-    AddOperator(&leftrange);		//leftrange.EnableProgress();
+    AddOperator(&leftrange);		leftrange.EnableProgress();
     AddOperator(&rightrange);
-    AddOperator(&cpprange);		//cpprange.EnableProgress();
-    AddOperator(&exactmatchs);		//exactmatch.EnableProgress();
+    AddOperator(&cpprange);		cpprange.EnableProgress();
+    AddOperator(&exactmatchs);		exactmatch.EnableProgress();
     AddOperator(&leftranges);
-    AddOperator(&rightranges);		//rightrange.EnableProgress();
+    AddOperator(&rightranges);		rightrange.EnableProgress();
     AddOperator(&cppranges);
     AddOperator(&insertbtree);
     AddOperator(&deletebtree);

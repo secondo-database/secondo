@@ -79,6 +79,7 @@ when the Tuplebuffer needs to be flushed on disk.
 #include "Counter.h"
 #include "TupleIdentifier.h"
 #include "LogMsg.h"
+#include "Progress.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -1983,6 +1984,9 @@ int RdupValueMapping(Word* args, Word& result, int message,
     case OPEN:
       qp->Open(args[0].addr);
 
+      rli = (RdupLocalInfo*) local.addr;
+      if ( rli ) delete rli;
+
       rli = new RdupLocalInfo;
       rli->current = 0;
       rli->returned = 0;
@@ -1991,12 +1995,13 @@ int RdupValueMapping(Word* args, Word& result, int message,
       local = SetWord(rli);
 
       return 0;
+
     case REQUEST:
+
+      rli = (RdupLocalInfo*) local.addr;
+
       while(true)
       {
-
-        rli = (RdupLocalInfo*) local.addr;
-
         qp->Request(args[0].addr, tuple);
         if(qp->Received(args[0].addr))
         {
@@ -2065,6 +2070,14 @@ int RdupValueMapping(Word* args, Word& result, int message,
         rli->localTuple = 0;
       }
       qp->Close(args[0].addr);
+      return 0;
+
+
+    case CLOSEPROGRESS:
+      qp->CloseProgress(args[0].addr);
+
+      rli = (RdupLocalInfo*) local.addr;
+      if ( rli ) delete rli;
       return 0;
 
 
@@ -3034,8 +3047,22 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 // progress version
 
 
-struct ExtendLocalInfo
+class ExtendLocalInfo
 {
+public:
+
+  ExtendLocalInfo() {};
+
+  ~ExtendLocalInfo() {
+    delete attrSizeTmp;
+    delete attrSizeExtTmp;
+    if ( progressInitialized )
+    {
+      delete attrSize;
+      delete attrSizeExt;
+    }
+  }
+
   TupleType *resultTupleType;
   int current, stableValue;
   bool progressInitialized, stableState;
@@ -3064,6 +3091,10 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN :
 
       qp->Open(args[0].addr);
+
+      eli = (ExtendLocalInfo*) local.addr;
+      if ( local.addr ) delete eli;
+
       eli = new ExtendLocalInfo;
       eli->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
       eli->current = 0;
@@ -3128,6 +3159,15 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       eli->resultTupleType->DeleteIfAllowed();
       qp->Close(args[0].addr);
       return 0;
+
+
+    case CLOSEPROGRESS:
+      qp->CloseProgress(args[0].addr);
+
+      eli = (ExtendLocalInfo*) local.addr;
+      if ( local.addr ) delete eli;
+      return 0;
+
 
     case REQUESTPROGRESS:
 
@@ -3457,8 +3497,17 @@ int Loopjoin(Word* args, Word& result, int message,
 
 
 
-struct LoopjoinLocalInfo
+class LoopjoinLocalInfo
 {
+public:
+
+  ~LoopjoinLocalInfo(){
+    delete attrSize;
+    delete attrSizeExt;
+    delete attrSizeD;
+    delete attrSizeExtD;
+  }
+
   Word tuplex;
   Word streamy;
   TupleType *resultTupleType;
@@ -3501,6 +3550,9 @@ int Loopjoin(Word* args, Word& result, int message,
   switch ( message )
   {
     case OPEN:
+
+      localinfo=(LoopjoinLocalInfo *) local.addr;
+      if ( local.addr ) delete localinfo;
 
       localinfo = new LoopjoinLocalInfo;
         resultType = GetTupleResultType( s );
@@ -3629,6 +3681,13 @@ int Loopjoin(Word* args, Word& result, int message,
       }
 
       qp->Close(args[0].addr);
+      return 0;
+
+    case CLOSEPROGRESS:
+      qp->CloseProgress(args[0].addr);
+
+      localinfo = (LoopjoinLocalInfo *) local.addr;
+      if ( local.addr ) delete localinfo;
       return 0;
 
 
@@ -6216,8 +6275,9 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
 // with support for progress queries
 
-struct SymmJoinLocalInfo
+class SymmJoinLocalInfo: public ProgressLocalInfo
 {
+public:
   TupleType *resultTupleType;
 
   TupleBuffer *rightRel;
@@ -6228,11 +6288,6 @@ struct SymmJoinLocalInfo
   Tuple *currTuple;
   bool rightFinished;
   bool leftFinished;
-  int currentL, currentR, returned;
-  bool progressInitialized;
-  int noAttrs;
-  double *attrSize;
-  double *attrSizeExt;
 };
 
 int
@@ -6245,10 +6300,15 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN :
     {
+
       long MAX_MEMORY = qp->MemoryAvailableForOperator();
       cmsg.info("ERA:ShowMemInfo") << "SymmJoin.MAX_MEMORY ("
                                    << MAX_MEMORY/1024 << " MB): " << endl;
       cmsg.send();
+
+      pli = (SymmJoinLocalInfo*) local.addr;
+      if ( pli ) delete pli;
+
       pli = new SymmJoinLocalInfo;
       pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
       pli->rightIter = 0;
@@ -6265,14 +6325,15 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Open(args[0].addr);
       qp->Open(args[1].addr);
 
-      pli->currentL = 0;
-      pli->currentR = 0;
+      pli->readFirst = 0;
+      pli->readSecond = 0;
       pli->returned = 0;
       pli->progressInitialized = false;
 
       local = SetWord(pli);
       return 0;
     }
+
     case REQUEST :
     {
       pli = (SymmJoinLocalInfo*)local.addr;
@@ -6291,7 +6352,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             {
               pli->currTuple = (Tuple*)r.addr;
               pli->leftIter = pli->leftRel->MakeScan();
-              pli->currentL++;
+              pli->readFirst++;
             }
             else
             {
@@ -6371,7 +6432,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             {
               pli->currTuple = (Tuple*)l.addr;
               pli->rightIter = pli->rightRel->MakeScan();
-              pli->currentR++;
+              pli->readSecond++;
             }
             else
             {
@@ -6472,6 +6533,16 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
     }
 
+
+    case CLOSEPROGRESS:
+      qp->CloseProgress(args[0].addr);
+      qp->CloseProgress(args[1].addr);
+
+      pli = (SymmJoinLocalInfo*) local.addr;
+      if ( pli ) delete pli;
+      return 0;
+
+
     case REQUESTPROGRESS :
     {
       ProgressInfo p1, p2;
@@ -6480,7 +6551,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       //const double vSymmJoin = 0.0001; //millisecs per tuple 
                                          //and byte (not used)
       int i;
-      pli = (SymmJoinLocalInfo*)local.addr;
+      pli = (SymmJoinLocalInfo*) local.addr;
       pRes = (ProgressInfo*) result.addr;
 
       if (!pli) return CANCEL;
@@ -6516,14 +6587,15 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
         pRes->Progress =
           (p1.Progress * p1.Time + p2.Progress * p2.Time +
-          pli->currentL * pli->currentR *
+          pli->readFirst * pli->readSecond *
           qp->GetPredCost(s) * uSymmJoin)
           / pRes->Time;
 
         if (pli->returned > 50 ) 	// stable state assumed now
         {
           pRes->Card = p1.Card * p2.Card *
-            ((double) pli->returned / (double) (pli->currentL * pli->currentR));
+            ((double) pli->returned / 
+              (double) (pli->readFirst * pli->readSecond));
         }
         else
         {
@@ -7685,30 +7757,30 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelgroup);
     AddOperator(&extrelcancel);
     AddOperator(&extrelextract);
-    AddOperator(&extrelextend);		//extrelextend.EnableProgress();
+    AddOperator(&extrelextend);		extrelextend.EnableProgress();
     AddOperator(&extrelconcat);
     AddOperator(&extrelmin);
     AddOperator(&extrelmax);
     AddOperator(&extrelavg);
     AddOperator(&extrelsum);
     AddOperator(&extrelhead);
-    AddOperator(&extrelsortby);		//extrelsortby.EnableProgress();
-    AddOperator(&extrelsort);		//extrelsort.EnableProgress();
-    AddOperator(&extrelrdup);		//extrelrdup.EnableProgress();
+    AddOperator(&extrelsortby);		extrelsortby.EnableProgress();
+    AddOperator(&extrelsort);		extrelsort.EnableProgress();
+    AddOperator(&extrelrdup);		extrelrdup.EnableProgress();
     AddOperator(&extrelmergesec);
     AddOperator(&extrelmergediff);
     AddOperator(&extrelmergeunion);
     AddOperator(&extrelmergejoin);
     AddOperator(&extrelsortmergejoin);
-    AddOperator(&extrelhashjoin);	//extrelhashjoin.EnableProgress();
-    AddOperator(&extrelloopjoin);	//extrelloopjoin.EnableProgress();
+    AddOperator(&extrelhashjoin);	extrelhashjoin.EnableProgress();
+    AddOperator(&extrelloopjoin);	extrelloopjoin.EnableProgress();
     AddOperator(&extrelextendstream);
     AddOperator(&extrelprojectextendstream);
     AddOperator(&extrelloopsel);
     AddOperator(&extrelgroupby);
     AddOperator(&extrelaggregate);
     AddOperator(&extrelaggregateB);
-    AddOperator(&extrelsymmjoin);	//extrelsymmjoin.EnableProgress();
+    AddOperator(&extrelsymmjoin);	extrelsymmjoin.EnableProgress();
     AddOperator(&extrelsymmproductextend);
     AddOperator(&extrelsymmproduct);
     AddOperator(&extrelprojectextend);

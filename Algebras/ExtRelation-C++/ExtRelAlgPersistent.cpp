@@ -604,7 +604,7 @@ class SortByLocalInfo : protected ProgressWrapper
       tupleCmpBy( lexicographic ? 0 : (TupleCompareBy*)tupleCmp ),
       lexicographic( lexicographic )
       {
-        // Note: Is is not possible to define a Cmp object using the
+        // Note: It is not possible to define a Cmp object using the
         // constructor
         // mergeTuples( PairTupleCompareBy( tupleCmpBy )).
         // It does only work if mergeTuples is a local variable which
@@ -627,7 +627,7 @@ class SortByLocalInfo : protected ProgressWrapper
         TupleBuffer *rel=0;
         TupleAndRelPos lastTuple(0, tupleCmpBy);
 
-        qp->Open(stream.addr);
+        //qp->Open(stream.addr);
         qp->Request(stream.addr, wTuple);
         TupleAndRelPos minTuple(0, tupleCmpBy);
         while(qp->Received(stream.addr)) // consume the stream completely
@@ -733,7 +733,7 @@ class SortByLocalInfo : protected ProgressWrapper
           minTuple.tuple->DeleteIfAllowed();
         }
 
-        qp->Close(stream.addr);
+        //qp->Close(stream.addr);
 
         // the lastRun and NextRun runs in memory having
         // less than MAX_TUPLE elements
@@ -933,53 +933,64 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
   // args[6] : Same as 4
   // ....
   //
+
+  LocalInfo<SortByLocalInfo>* li;
+
+
   switch(message)
   {
     case OPEN:
     {
+      qp->Open(args[0].addr);
 
-      // create a ~Progress~ instance
-      LocalInfo<SortByLocalInfo>* li = new LocalInfo<SortByLocalInfo>();
+      li = static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
+      if ( li ) delete li;
+
+      li = new LocalInfo<SortByLocalInfo>();
       local.addr = li;
 
       // at this point the local value is well defined
-      // afterwards QueryProcessor request calls are
+      // afterwards progress request calls are
       // allowed.
 
       void *tupleCmp = CreateCompareObject(lexicographically, args);
+
       li->ptr = new SortByLocalInfo( args[0],
 		                     lexicographically,
                                      tupleCmp, li       );
       return 0;
     }
+
     case REQUEST:
     {
-      assert ( LocalInfo<SortByLocalInfo>::getPtr( local.addr ) != NULL );
-      SortByLocalInfo *sli = LocalInfo<SortByLocalInfo>::getPtr( local.addr );
+      li = static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
+      SortByLocalInfo* sli = li->ptr;
       result = SetWord( sli->NextResultTuple() );
-      LocalInfo<SortByLocalInfo> *li =
-          static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
       li->incCtrB();
       return result.addr != 0 ? YIELD : CANCEL;
     }
 
     case CLOSE:
-    {
-      if( LocalInfo<SortByLocalInfo>::getPtr( local.addr ) )
-      {
-        LocalInfo<SortByLocalInfo> *li =
-            static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
-        delete li->ptr;
-        li->ptr = 0;
-      // The ~Progress~ part of the local value will not be deleted
-      // this is an accepted memory leak introduced by progress
-      // delete local.addr !!!!
-      }
+      qp->Close(args[0].addr);
+
+      li = static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
+      delete li->ptr;
       return 0;
-    }
+
+
+    case CLOSEPROGRESS:
+      qp->CloseProgress(args[0].addr);
+
+      li = static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
+      if ( li ) delete li;
+      return 0;
+
 
     case REQUESTPROGRESS:
-    {
+
+      li = static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
+
+
       ProgressInfo p1;
       ProgressInfo *pRes;
       const double uSortBy = 0.07;   //millisecs per tuple input and sort
@@ -987,16 +998,16 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       const double oSortBy = 0.02;   //offset due to placing in relations
       pRes = (ProgressInfo*) result.addr;
 
-      if(!local.addr) return CANCEL;
+      li = static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
+
+      if( !li ) return CANCEL;
       else
       {
         if (qp->RequestProgress(args[0].addr, &p1))
         {
-          LocalInfo<SortByLocalInfo> *li =
-              static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
           pRes->CopySizes(p1);
           pRes->Card = p1.Card;
-          pRes->Time =                             //li->getCtr() = 0 or 1
+          pRes->Time =                       //li->getCtr() = 0 or 1
             p1.Time + p1.Card * (uSortBy + oSortBy * li->getCtr() + vSortBy);
           pRes->Progress =
             (p1.Progress * p1.Time +
@@ -1007,7 +1018,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
         }
         else return CANCEL;
       }
-    }
+
   }
   return 0;
 }
@@ -1020,7 +1031,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 2.2 Operator ~mergejoin~
 
 This operator computes the equijoin of two streams. It uses a text book
-algorithm as outlined in A.Silberschatz, H. F. Korth, S. Sudarshan,
+algorithm as outlined in A. Silberschatz, H. F. Korth, S. Sudarshan,
 McGraw-Hill, 3rd. Edition, 1997.
 
 2.2.1 Auxiliary definitions for value mapping function of operator ~mergejoin~
@@ -1177,12 +1188,7 @@ public:
     liB = 0;
     sliB = 0; 
 
-    if(expectSorted)
-    {
-      qp->Open(streamA.addr);
-      qp->Open(streamB.addr);
-    }
-    else
+    if( !expectSorted )
     {
       // sort the input streams
 
@@ -1233,12 +1239,7 @@ public:
 
   ~MergeJoinLocalInfo()
   {
-    if(expectSorted)
-    {
-      qp->Close(streamA.addr);
-      qp->Close(streamB.addr);
-    }
-    else
+    if( !expectSorted )
     {
       // delete the objects instantiated for sorting
       delete sliA;
@@ -1399,18 +1400,26 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
   switch(message)
   {
     case OPEN:
+      qp->Open(args[0].addr);
+      qp->Open(args[1].addr);
+
       localInfo = new MergeJoinLocalInfo
         (args[0], args[4], args[1], args[5], expectSorted, s);
       local = SetWord(localInfo);
       return 0;
+
     case REQUEST:
       //mergeMeasurer.Enter();
       localInfo = (MergeJoinLocalInfo*)local.addr;
       result = SetWord(localInfo->NextResultTuple());
       //mergeMeasurer.Exit();
       return result.addr != 0 ? YIELD : CANCEL;
+
     case CLOSE:
       //mergeMeasurer.PrintCPUTimeAndReset("CPU Time for Merging Tuples : ");
+
+      qp->Close(args[0].addr);
+      qp->Close(args[1].addr);
 
       localInfo = (MergeJoinLocalInfo*)local.addr;
       delete localInfo;
@@ -2082,43 +2091,47 @@ bucket that the tuple coming from A hashes is also initialized.
 int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
 
+  LocalInfo<HashJoinLocalInfo>* li;
+  HashJoinLocalInfo *hli;
+
   switch(message)
   {
     case OPEN:
-    {
+      li = static_cast<LocalInfo<HashJoinLocalInfo>*>( local.addr );
+      if ( li ) delete li;
 
-      LocalInfo<HashJoinLocalInfo>* li = new LocalInfo<HashJoinLocalInfo>();
+      li = new LocalInfo<HashJoinLocalInfo>();
       local.addr = li;
       li->ptr = new HashJoinLocalInfo(args[0], args[5], args[1],
                                       args[6], args[4], s, li);
       return 0;
-    }
+
     case REQUEST:
-    {
-      assert (LocalInfo<HashJoinLocalInfo>::getPtr(local.addr) != NULL);
-      HashJoinLocalInfo *hli = LocalInfo<HashJoinLocalInfo>::getPtr(local.addr);
+      li = static_cast<LocalInfo<HashJoinLocalInfo>*>( local.addr );
+      hli = li->ptr;
       result = SetWord( hli->NextResultTuple() );
-      LocalInfo<HashJoinLocalInfo> *li =
-          static_cast<LocalInfo<HashJoinLocalInfo>*>(local.addr);
+
       li->incRtrn();
 
       return result.addr != 0 ? YIELD : CANCEL;
-    }
+
     case CLOSE:
-    {
-
-      if(LocalInfo<HashJoinLocalInfo>::getPtr( local.addr))
-      {
-        LocalInfo<HashJoinLocalInfo> *li =
-            static_cast<LocalInfo<HashJoinLocalInfo>*>(local.addr);
-        delete li->ptr;
-        li->ptr = 0;
-      }
-
+      li = static_cast<LocalInfo<HashJoinLocalInfo>*>( local.addr );
+      delete li->ptr;
       return 0;
-    }
+
+
+    case CLOSEPROGRESS:
+      qp->CloseProgress(args[0].addr);
+      qp->CloseProgress(args[1].addr);
+
+      li = static_cast<LocalInfo<HashJoinLocalInfo>*>( local.addr );
+      if ( li ) delete li;
+      return 0;
+    
 
     case REQUESTPROGRESS:
+
     {
       ProgressInfo p1, p2;
       ProgressInfo *pRes;
@@ -2129,15 +2142,15 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
       pRes = (ProgressInfo*) result.addr;
 
-      if(!local.addr) return CANCEL;
+      li = static_cast<LocalInfo<HashJoinLocalInfo>*>( local.addr );
+
+      if( !li ) return CANCEL;
       else
       {
        if (qp->RequestProgress(args[0].addr, &p1)
          && qp->RequestProgress(args[1].addr, &p2))
         {
-          LocalInfo<HashJoinLocalInfo> *li =
-              static_cast<LocalInfo<HashJoinLocalInfo>*>(local.addr);
-          if (!li->getPrInit())
+          if ( !li->getPrInit() )
           {
             li->setNoAtt(p1.noAttrs + p2.noAttrs);
             double* AttSize = li->initAttSize(li->getNoAtt());

@@ -78,6 +78,7 @@ using namespace std;
 #include "CPUTimeMeasurer.h"
 #include "TupleIdentifier.h"
 #include "Messages.h"
+#include "Progress.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -1275,21 +1276,13 @@ int WindowIntersects( Word* args, Word& result,
 // progress version
 
 template <unsigned dim>
-struct WindowIntersectsLocalInfo
+class WindowIntersectsLocalInfo: public ProgressLocalInfo
 {
+public:
   Relation* relation;
   R_Tree<dim, TupleId>* rtree;
   BBox<dim> *searchBox;
   bool first;
-
-  int returned, total, defaultValue;
-  bool progressInitialized;
-  double Size;
-  double SizeExt;
-  int noAttrs;
-  double *attrSize;
-  double *attrSizeExt;
-
 };
 
 template <unsigned dim>
@@ -1303,6 +1296,9 @@ int WindowIntersects( Word* args, Word& result,
   {
     case OPEN :
     {
+      localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
+      if ( localInfo ) delete localInfo;
+
       localInfo = new WindowIntersectsLocalInfo<dim>;
       localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
       localInfo->relation = (Relation*)args[1].addr;
@@ -1355,6 +1351,14 @@ int WindowIntersects( Word* args, Word& result,
     {
       localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
       delete localInfo->searchBox;
+      return 0;
+    }
+
+
+    case CLOSEPROGRESS :
+    {
+      localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
+      if ( localInfo ) delete localInfo;
       return 0;
     }
 
@@ -3842,7 +3846,7 @@ class RTreeAlgebra : public Algebra
     AddOperator( &creatertree );
     AddOperator( &bulkloadrtree );
     AddOperator( &windowintersects ); 
-				//windowintersects.EnableProgress();
+				windowintersects.EnableProgress();
     AddOperator( &windowintersectsS );
     AddOperator( &gettuples );
     AddOperator( &gettuplesdbl );
