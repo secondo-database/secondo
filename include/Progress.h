@@ -51,6 +51,54 @@ using namespace std;
 
 #include "StandardTypes.h"
 
+
+
+class ProgressLocalInfo
+{
+  
+public:
+
+  ProgressLocalInfo()  {
+    progressInitialized = false;
+  }
+
+  ~ProgressLocalInfo() 
+  {
+    if ( progressInitialized )
+    {
+      delete attrSize;
+      delete attrSizeExt;
+
+	//cout << "attrSize and attrSizeExt deleted" << endl;
+    }
+  }
+
+  int returned;        	//current number of tuples returned
+  int read;		//no of tuples read from arg stream
+  int readFirst;	//no of tuples read from first arg stream
+  int readSecond;	//no of tuples read from second argument stream
+  int total;          	//total number of tuples in argument relation
+  int defaultValue;	//default assumption of result size, needed for 
+			//some operators
+  int state;		//to keep state info if needed
+
+  bool progressInitialized;
+
+			//the following only defined if progressInitialized
+  double Size;		//total tuplesize
+  double SizeExt;	//size of root and extension part of tuple
+  int noAttrs;		//no of attributes
+  double *attrSize;	//full size of each attribute
+  double *attrSizeExt;	//size of root and ext. part of each attribute
+};
+
+
+
+
+
+
+
+
 /*
 Class ~Progress~
 
@@ -169,12 +217,6 @@ class LocalInfo : public Progress {
   public:
     LocalInfo() : Progress(), ptr(0) {}
     ~LocalInfo() {}   
-  
-     inline static T* getPtr(void* valuePtr)
-     {	     
-       return 
-	 static_cast<LocalInfo*>( valuePtr )->ptr;
-     }  
 
     T* ptr;  
 };	
