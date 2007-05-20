@@ -71,6 +71,7 @@ RelationAlgebra.h header file.
 #include "QueryProcessor.h"
 #include "Algebra.h"
 #include "StandardTypes.h"
+#include "Progress.h"
 
 #include "LogMsg.h"
 #include "NList.h"
@@ -1046,21 +1047,12 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 // version with support for progress queries
 
 
-
-struct FeedLocalInfo
+class FeedLocalInfo: public ProgressLocalInfo
 {
-  int current;        	//current number of tuples processed
-  int total;          	//total number of tuples in argument relation
+public:
   GenericRelationIterator* rit;
-  bool progressInitialized;
-
-			//the following only defined if progressInitialized
-  double tuplesize;	//total tuplesize
-  double tuplesizeExt;	//size of root and extension part of tuple
-  int noAttrs;		//no of attributes
-  double *attrSize;	//full size of each attribute
-  double *attrSizeExt;	//size of root and ext. part of each attribute
 };
+
 
 
 int
@@ -1080,7 +1072,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( fli ) delete fli;
       
       fli = new FeedLocalInfo;
-        fli->current = 0;
+        fli->returned = 0;
         fli->total = r->GetNoTuples();
         fli->rit = r->MakeScan();
         fli->progressInitialized = false;
@@ -1092,7 +1084,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       Tuple *t;
       if ((t = fli->rit->GetNextTuple()) != 0)
       {
-        fli->current++;
+        fli->returned++;
         result = SetWord(t);
         return YIELD;
       }
@@ -1138,8 +1130,8 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       {
         if ( !fli->progressInitialized )
         {
-          fli->tuplesize =  0;
-          fli->tuplesizeExt =  0;
+          fli->Size =  0;
+          fli->SizeExt =  0;
 
           fli->noAttrs = nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
           fli->attrSize = new double[fli->noAttrs];
@@ -1149,8 +1141,8 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
             fli->attrSize[i] = rr->GetTotalSize(i) / (fli->total + 0.001); 
             fli->attrSizeExt[i] = rr->GetTotalExtSize(i) / (fli->total + 0.001);
 
-            fli->tuplesize += fli->attrSize[i];
-            fli->tuplesizeExt += fli->attrSizeExt[i];
+            fli->Size += fli->attrSize[i];
+            fli->SizeExt += fli->attrSizeExt[i];
           }
           fli->progressInitialized = true;
         }
@@ -1161,17 +1153,17 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
           pRes->Card = (double) fli->total;
 
-          pRes->Size = fli->tuplesize;			//copy all sizes
-          pRes->SizeExt = fli->tuplesizeExt;
+          pRes->Size = fli->Size;			//copy all sizes
+          pRes->SizeExt = fli->SizeExt;
           pRes->noAttrs = fli->noAttrs;
           pRes->attrSize = fli->attrSize;
           pRes->attrSizeExt = fli->attrSizeExt;
 
-          pRes->Time = (fli->total + 1) * (uFeed + fli->tuplesizeExt * vFeed);
+          pRes->Time = (fli->total + 1) * (uFeed + fli->SizeExt * vFeed);
             
  		//any time value created must be > 0; so we add 1 to the total
 
-          pRes->Progress = fli->current * (uFeed + fli->tuplesizeExt * vFeed) 
+          pRes->Progress = fli->returned * (uFeed + fli->SizeExt * vFeed) 
             / pRes->Time;
           return YIELD;
 	}
@@ -1181,17 +1173,17 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
           {
             pRes->Card = (double) fli->total;
 
-            pRes->Size = fli->tuplesize;
-            pRes->SizeExt = fli->tuplesizeExt;
+            pRes->Size = fli->Size;
+            pRes->SizeExt = fli->SizeExt;
             pRes->noAttrs = fli->noAttrs;
             pRes->attrSize = fli->attrSize;
             pRes->attrSizeExt = fli->attrSizeExt;
 
             pRes->Time = p1.Time + 
-              (fli->total + 1) * (uFeed + fli->tuplesizeExt * vFeed);
+              (fli->total + 1) * (uFeed + fli->SizeExt * vFeed);
             pRes->Progress = 
               (p1.Progress * p1.Time 
-                + fli->current * (uFeed + fli->tuplesizeExt * vFeed)) 
+                + fli->returned * (uFeed + fli->SizeExt * vFeed)) 
                 / pRes->Time;
             return YIELD;
           }
@@ -2237,18 +2229,14 @@ Project(Word* args, Word& result, int message,
 
 // progress version
 
-struct ProjectLocalInfo
-{
-  TupleType *tupleType;
-  int k;		//the current no of tuples read.
-  bool progressInitialized;
 
-  double Size;		//these fields as in ProgressInfo
-  double SizeExt;
-  int noAttrs;
-  double *attrSize;
-  double *attrSizeExt;
+
+class ProjectLocalInfo: public ProgressLocalInfo
+{
+public:
+  TupleType *tupleType;
 };
+
 
 int
 Project(Word* args, Word& result, int message, 
@@ -2268,7 +2256,7 @@ Project(Word* args, Word& result, int message,
 
       pli = new ProjectLocalInfo;
         pli->tupleType = new TupleType(nl->Second(GetTupleResultType(s)));
-        pli->k = 0;
+        pli->read = 0;
         pli->progressInitialized = false;
       local = SetWord(pli);
 
@@ -2283,7 +2271,7 @@ Project(Word* args, Word& result, int message,
       qp->Request(args[0].addr, elem1);
       if (qp->Received(args[0].addr))
       {
-        pli->k++;
+        pli->read++;
         Tuple *t = new Tuple( pli->tupleType );
 
         noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
@@ -2369,7 +2357,7 @@ Project(Word* args, Word& result, int message,
 
         pRes->Progress = 
           (p1.Progress * p1.Time +  
-            pli->k * (uProject + pli->noAttrs * vProject)) 
+            pli->read * (uProject + pli->noAttrs * vProject)) 
           / pRes->Time;
 
         return YIELD;
@@ -2816,17 +2804,13 @@ Product(Word* args, Word& result, int message,
 // progress version
 
 
-struct ProductLocalInfo
+class ProductLocalInfo: public ProgressLocalInfo
 {
+public:
   TupleType *resultTupleType;
   Tuple* currentTuple;
   TupleBuffer *rightRel;
   GenericRelationIterator *iter;
-  int currentA, currentB;
-  bool progressInitialized;
-  int noAttrs;
-  double *attrSize;
-  double *attrSizeExt;
 };
 
 int
@@ -2869,8 +2853,8 @@ Product(Word* args, Word& result, int message,
         pli->rightRel = 0;
       }
 
-      pli->currentA = 0;
-      pli->currentB = 0;
+      pli->readFirst = 0;
+      pli->readSecond = 0;
       pli->progressInitialized = false;
       local = SetWord(pli);
 
@@ -2880,7 +2864,7 @@ Product(Word* args, Word& result, int message,
         pli->rightRel->AppendTuple( t );
         t->DeleteIfAllowed();
         qp->Request(args[1].addr, u);
-        pli->currentA++;
+        pli->readFirst++;
       }
       if( pli->rightRel )
       {
@@ -2918,7 +2902,7 @@ Product(Word* args, Word& result, int message,
           Concat(pli->currentTuple, rightTuple, resultTuple);
           rightTuple->DeleteIfAllowed();
           result = SetWord(resultTuple);
-          pli->currentB++;
+          pli->readSecond++;
           return YIELD;
         }
         else
@@ -2939,7 +2923,7 @@ Product(Word* args, Word& result, int message,
             Concat(pli->currentTuple, rightTuple, resultTuple);
             rightTuple->DeleteIfAllowed();
             result = SetWord(resultTuple);
-            pli->currentB++;
+            pli->readSecond++;
             return YIELD;
           }
           else
@@ -3029,8 +3013,8 @@ Product(Word* args, Word& result, int message,
 
         pRes->Progress =
           (p1.Progress * p1.Time + p2.Progress * p2.Time +
-           pli->currentA * p2.Size * uProduct +
-           pli->currentB * pRes->Size * vProduct)
+           pli->readFirst * p2.Size * uProduct +
+           pli->readSecond * pRes->Size * vProduct)
           / pRes->Time;
 
         return YIELD;
