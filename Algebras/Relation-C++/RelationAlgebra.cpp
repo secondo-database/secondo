@@ -4415,7 +4415,15 @@ static ListExpr dumpstream_tm(ListExpr args)
     attrs.rest();
   }	  
 
-  NList result( NList(Symbols::APPEND()), attrNames, l.first() );
+
+// the following line can be compiled using newer gcc compilers (4.1.x),
+// to be compatible with older ones, this line is replaced by  
+// two lines.
+//  NList result( NList(Symbols::APPEND()), attrNames, l.first() );
+   NList tmp(Symbols::APPEND());
+   NList result(tmp,attrNames, l.first() );
+
+
 
   return result.listExpr();
 }
