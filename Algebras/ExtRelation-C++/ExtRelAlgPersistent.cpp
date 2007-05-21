@@ -191,17 +191,44 @@ or 2N (sorted in opposite order) comparisons in that case.
 */
 
 
+void*
+CreateCompareObject(bool lexOrder, Word* args) {
+
+  void* tupleCmp = 0;
+
+  if(lexOrder) 
+  {
+     tupleCmp = new LexicographicalTupleCompare();
+  }	
+  else
+  {
+    SortOrderSpecification spec;
+    int nSortAttrs = StdTypes::GetInt( args[2] );
+    for(int i = 1; i <= nSortAttrs; i++)
+    {
+      int sortAttrIndex = StdTypes::GetInt( args[2 * i + 1] );
+      bool sortOrderIsAscending = StdTypes::GetBool( args[2 * i + 2] );
+      
+      spec.push_back(pair<int, bool>(sortAttrIndex, 
+				     sortOrderIsAscending));
+    };
+
+    tupleCmp = new TupleCompareBy( spec );
+  }
+  return tupleCmp;
+} 
+
 #ifndef USE_PROGRESS
 
 // standard version
 
 
-class SortByLocalInfo : protected ProgressWrapper
+class SortByLocalInfo
 {
   public:
-    SortByLocalInfo( Word stream, const bool lexicographic, 
-		     void *tupleCmp, Progress* p            ):
-      ProgressWrapper(p),	    
+    SortByLocalInfo( Word stream, 
+		     const bool lexicographic, 
+		     void *tupleCmp ):
       stream( stream ),
       currentIndex( 0 ),
       lexiTupleCmp( lexicographic ? 
@@ -233,13 +260,10 @@ class SortByLocalInfo : protected ProgressWrapper
         TupleBuffer *rel=0;
         TupleAndRelPos lastTuple(0, tupleCmpBy);
 
-        qp->Open(stream.addr);
         qp->Request(stream.addr, wTuple);
         TupleAndRelPos minTuple(0, tupleCmpBy);
         while(qp->Received(stream.addr)) // consume the stream completely
         {
-          // set progress counter
-	  progress->setCtr(10);
 
           c++; // tuple counter;
           Tuple *t = static_cast<Tuple*>( wTuple.addr );
@@ -339,8 +363,6 @@ class SortByLocalInfo : protected ProgressWrapper
         {
           minTuple.tuple->DeleteIfAllowed();
         }
-
-        qp->Close(stream.addr);
 
         // the lastRun and NextRun runs in memory having 
         // less than MAX_TUPLE elements
@@ -500,32 +522,6 @@ and ~args[6]~ contain these values for the second sort attribute and so on.
 
 */
 
-void*
-CreateCompareObject(bool lexOrder, Word* args) {
-
-  void* tupleCmp = 0;
-
-  if(lexOrder) 
-  {
-     tupleCmp = new LexicographicalTupleCompare();
-  }	
-  else
-  {
-    SortOrderSpecification spec;
-    int nSortAttrs = StdTypes::GetInt( args[2] );
-    for(int i = 1; i <= nSortAttrs; i++)
-    {
-      int sortAttrIndex = StdTypes::GetInt( args[2 * i + 1] );
-      bool sortOrderIsAscending = StdTypes::GetBool( args[2 * i + 2] );
-      
-      spec.push_back(pair<int, bool>(sortAttrIndex, 
-				     sortOrderIsAscending));
-    };
-
-    tupleCmp = new TupleCompareBy( spec );
-  }
-  return tupleCmp;
-} 
 
 template<bool lexicographically> int
 SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -544,40 +540,33 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN:
     {
-
-      // create a ~Progress~ instance
-      LocalInfo<SortByLocalInfo>* li = new LocalInfo<SortByLocalInfo>();
+      qp->Open(args[0].addr);      
+      void *tupleCmp = CreateCompareObject(lexicographically, args);
+      SortByLocalInfo* li = new SortByLocalInfo( args[0], 
+		                     lexicographically,  
+                                     tupleCmp );
       local.addr = li;
-
       // at this point the local value is well defined
       // afterwards QueryProcessor request calls are
       // allowed.
 
-      void *tupleCmp = CreateCompareObject(lexicographically, args);
-      li->ptr = new SortByLocalInfo( args[0], 
-		                     lexicographically,  
-                                     tupleCmp, li       );
       return 0;
     }
     case REQUEST:
     {
-      assert ( LocalInfo<SortByLocalInfo>::getPtr( local.addr ) != NULL );
-      SortByLocalInfo *sli = LocalInfo<SortByLocalInfo>::getPtr( local.addr );
+      SortByLocalInfo* sli = static_cast<SortByLocalInfo*>( local.addr );
       result = SetWord( sli->NextResultTuple() );
       return result.addr != 0 ? YIELD : CANCEL;
     }
 
     case CLOSE:
     {
-      if( LocalInfo<SortByLocalInfo>::getPtr( local.addr ) )
+      if( local.addr )
       {
-        LocalInfo<SortByLocalInfo> *li =
-            static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
-        delete li->ptr;
-        li->ptr = 0;
-      // The ~Progress~ part of the local value will not be deleted
-      // this is an accepted memory leak introduced by progress  
-      // delete local.addr !!!!
+	qp->Close(args[0].addr);      
+        SortByLocalInfo *li = static_cast<SortByLocalInfo*>( local.addr );
+        delete li;
+	local.addr = 0;
       }
       return 0;
     }
@@ -627,7 +616,6 @@ class SortByLocalInfo : protected ProgressWrapper
         TupleBuffer *rel=0;
         TupleAndRelPos lastTuple(0, tupleCmpBy);
 
-        //qp->Open(stream.addr);
         qp->Request(stream.addr, wTuple);
         TupleAndRelPos minTuple(0, tupleCmpBy);
         while(qp->Received(stream.addr)) // consume the stream completely
@@ -732,8 +720,6 @@ class SortByLocalInfo : protected ProgressWrapper
         {
           minTuple.tuple->DeleteIfAllowed();
         }
-
-        //qp->Close(stream.addr);
 
         // the lastRun and NextRun runs in memory having
         // less than MAX_TUPLE elements
@@ -893,33 +879,6 @@ and ~args[6]~ contain these values for the second sort attribute and so on.
 
 */
 
-void*
-CreateCompareObject(bool lexOrder, Word* args) {
-
-  void* tupleCmp = 0;
-
-  if(lexOrder)
-  {
-     tupleCmp = new LexicographicalTupleCompare();
-  }
-  else
-  {
-    SortOrderSpecification spec;
-    int nSortAttrs = StdTypes::GetInt( args[2] );
-    for(int i = 1; i <= nSortAttrs; i++)
-    {
-      int sortAttrIndex = StdTypes::GetInt( args[2 * i + 1] );
-      bool sortOrderIsAscending = StdTypes::GetBool( args[2 * i + 2] );
-
-      spec.push_back(pair<int, bool>(sortAttrIndex,
-				     sortOrderIsAscending));
-    };
-
-    tupleCmp = new TupleCompareBy( spec );
-  }
-  return tupleCmp;
-}
-
 template<bool lexicographically> int
 SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -935,7 +894,6 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
   //
 
   LocalInfo<SortByLocalInfo>* li;
-
 
   switch(message)
   {
@@ -982,7 +940,10 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->CloseProgress(args[0].addr);
 
       li = static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
-      if ( li ) delete li;
+      if ( li ) { 
+        delete li;
+	local.addr = 0;
+      }	
       return 0;
 
 
@@ -1186,10 +1147,7 @@ public:
     attrIndexB = StdTypes::GetInt( wAttrIndexB ) - 1;
     MAX_MEMORY = 0;
 
-    liA = 0;
     sliA = 0;
-
-    liB = 0;
     sliB = 0; 
 
     if( !expectSorted )
@@ -1206,15 +1164,13 @@ public:
       void* tupleCmpA = new TupleCompareBy( specA );
       void* tupleCmpB = new TupleCompareBy( specB );
 
-      liA = new LocalInfo<SortByLocalInfo>();
       sliA = new SortByLocalInfo( streamA, 
 				  false,  
-				  tupleCmpA, liA );
+				  tupleCmpA );
 
-      liB = new LocalInfo<SortByLocalInfo>();
       sliB = new SortByLocalInfo( streamB, 
 				  false,  
-				  tupleCmpB, liB );
+				  tupleCmpB );
 
     }
 
@@ -1248,8 +1204,6 @@ public:
       // delete the objects instantiated for sorting
       delete sliA;
       delete sliB;
-      delete liA;
-      delete liB;
     }
 
     delete grpB;
@@ -1261,7 +1215,7 @@ public:
     Tuple* resultTuple = 0;
     Tuple* tmpA = 0;
 
-    if ( ptB == 0)
+    if ( !continueMerge && ptB == 0)
       return 0;	    
 
     while( ptA != 0 ) {
@@ -1427,6 +1381,7 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
       localInfo = (MergeJoinLocalInfo*)local.addr;
       delete localInfo;
+      local.addr = 0;
       return 0;
   }
   return 0;
@@ -1663,7 +1618,7 @@ public:
     Tuple* resultTuple = 0;
     Tuple* tmpA = 0;
 
-    if ( ptB == 0)
+    if ( !continueMerge && ptB == 0)
       return 0;	    
 
     while( ptA != 0 ) {
@@ -1801,7 +1756,8 @@ public:
 template<bool expectSorted> int
 MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  LocalInfo<MergeJoinLocalInfo>* li;
+  typedef LocalInfo<MergeJoinLocalInfo> LocalType;
+  LocalType* li;
   MergeJoinLocalInfo* mli;
 
   switch(message)
@@ -1810,13 +1766,13 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Open(args[0].addr);
       qp->Open(args[1].addr);
 
-      li = static_cast<LocalInfo<MergeJoinLocalInfo>*>( local.addr );
+      li = static_cast<LocalType*>( local.addr );
       if ( li ) {
         delete li->ptr;
         delete li;
       }
 
-      li = new LocalInfo<MergeJoinLocalInfo>();
+      li = new LocalType();
       local.addr = li;
       li->ptr = new MergeJoinLocalInfo
         (args[0], args[4], args[1], args[5], expectSorted, s, li);
@@ -1828,7 +1784,7 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     case REQUEST:
       //mergeMeasurer.Enter();
 
-      li = static_cast<LocalInfo<MergeJoinLocalInfo>*>( local.addr );
+      li = static_cast<LocalType*>( local.addr );
       mli = li->ptr;
       result = SetWord(mli->NextResultTuple());
 
@@ -1858,7 +1814,7 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->CloseProgress(args[0].addr);
       qp->CloseProgress(args[1].addr);
 
-      li = static_cast<LocalInfo<MergeJoinLocalInfo>*>( local.addr );
+      li = static_cast<LocalType*>( local.addr );
       if ( li ) {
         delete li->ptr;
         delete li;
@@ -1870,16 +1826,17 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     case REQUESTPROGRESS:
     {
       ProgressInfo p1, p2;
-      ProgressInfo *pRes;
-      const double uMergeJoin = 0.05; //millisecs per tuple merge
-      const double uSortBy = 0.07;        //millisecs per tuple sort
-      int i;
-      pRes = (ProgressInfo*) result.addr;
+      ProgressInfo* pRes = static_cast<ProgressInfo*>( result.addr );
+      const double uMergeJoin = 0.05;  //millisecs per tuple merge
+      const double uSortBy = 0.07;     //millisecs per tuple sort
+      int i = 0;
 
-      LocalInfo<SortByLocalInfo>* liA;
-      LocalInfo<SortByLocalInfo>* liB;
 
-      li = static_cast<LocalInfo<MergeJoinLocalInfo>*>( local.addr );
+      typedef LocalInfo<SortByLocalInfo> LocalSBY;
+      LocalSBY* liA;
+      LocalSBY* liB;
+
+      li = static_cast<LocalType*>( local.addr );
 
 
       if( !li ) return CANCEL;
@@ -1887,9 +1844,9 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       {
 
         liA =
-          static_cast<LocalInfo<SortByLocalInfo>*> ((li->getPtrA()).addr);
+          static_cast<LocalSBY*> ((li->getPtrA()).addr);
         liB =
-          static_cast<LocalInfo<SortByLocalInfo>*> ((li->getPtrB()).addr);
+          static_cast<LocalSBY*> ((li->getPtrB()).addr);
 
         	cout << "got to point 1" << endl;
 
@@ -2350,6 +2307,7 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSE:
       localInfo = (HashJoinLocalInfo*)local.addr;
       delete localInfo;
+      local.addr = 0;
       return 0;
   }
   return 0;
@@ -2675,23 +2633,24 @@ bucket that the tuple coming from A hashes is also initialized.
 int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
 
-  LocalInfo<HashJoinLocalInfo>* li;
-  HashJoinLocalInfo *hli;
+  typedef LocalInfo<HashJoinLocalInfo>  LocalType;
+  LocalType* li;
+  HashJoinLocalInfo* hli;
 
   switch(message)
   {
     case OPEN:
-      li = static_cast<LocalInfo<HashJoinLocalInfo>*>( local.addr );
+      li = static_cast<LocalType*>( local.addr );
       if ( li ) delete li;
 
-      li = new LocalInfo<HashJoinLocalInfo>();
+      li = new LocalType();
       local.addr = li;
       li->ptr = new HashJoinLocalInfo(args[0], args[5], args[1],
                                       args[6], args[4], s, li);
       return 0;
 
     case REQUEST:
-      li = static_cast<LocalInfo<HashJoinLocalInfo>*>( local.addr );
+      li = static_cast<LocalType*>( local.addr );
       hli = li->ptr;
       result = SetWord( hli->NextResultTuple() );
 
@@ -2700,7 +2659,7 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       return result.addr != 0 ? YIELD : CANCEL;
 
     case CLOSE:
-      li = static_cast<LocalInfo<HashJoinLocalInfo>*>( local.addr );
+      li = static_cast<LocalType*>( local.addr );
       delete li->ptr;
       return 0;
 
@@ -2709,8 +2668,11 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->CloseProgress(args[0].addr);
       qp->CloseProgress(args[1].addr);
 
-      li = static_cast<LocalInfo<HashJoinLocalInfo>*>( local.addr );
-      if ( li ) delete li;
+      li = static_cast<LocalType*>( local.addr );
+      if ( li ) { 
+	delete li;
+	local.addr = 0;
+      }	
       return 0;
     
 
@@ -2718,15 +2680,14 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
     {
       ProgressInfo p1, p2;
-      ProgressInfo *pRes;
+      ProgressInfo* pRes = static_cast<ProgressInfo*>( result.addr );
       const double uHashJoin = 0.0025;  //millisecs per tuple left
       const double vHashJoin = 0.2500;  //millisecs per tuple right
       const double oHashJoin = 0.7500;  //offset due to paging
-      int i;
+      int i = 0;
 
-      pRes = (ProgressInfo*) result.addr;
 
-      li = static_cast<LocalInfo<HashJoinLocalInfo>*>( local.addr );
+      li = static_cast<LocalType*>( local.addr );
 
       if( !li ) return CANCEL;
       else
