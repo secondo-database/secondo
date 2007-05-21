@@ -269,6 +269,15 @@ query duplicates feed ten feed rename[A] hashjoin[no, no_A, 23] sort rdup consum
 #yields (int 0)
 query Employee feed head[0] Dept feed rename[A] hashjoin[DeptNr, DeptNr_A, 17] count;
 
+#testcase HashJoin4
+#yields (int 0)
+query Employee feed Dept feed head[0] rename[A] hashjoin[DeptNr, DeptNr_A, 17] count;
+
+
+#testcase HashJoin5
+#yields (int 0)
+query Employee feed head[0] Dept feed head[0] rename[A] hashjoin[DeptNr, DeptNr_A, 17] count;
+
 #testcase MergeJoin1
 #yields ((rel(tuple((EName string)(EmpNr int)(DeptNr int)\
     (Leader_A string)(DeptNr_A int))))\
@@ -281,7 +290,32 @@ query duplicates feed ten feed rename[A] mergejoin[no, no_A] sort rdup consume
 
 #testcase MergeJoin3
 #yields (int 0)
+query duplicates feed head[0] ten feed head[0] rename[A] mergejoin[no, no_A] sort rdup consume
+
+#testcase MergeJoin4
+#yields (int 0)
+query duplicates feed ten feed head[0] rename[A] mergejoin[no, no_A] sort rdup consume
+
+#testcase MergeJoin5
+#yields (int 0)
+query duplicates feed head[0] ten feed rename[A] mergejoin[no, no_A] sort rdup consume
+
+#testcase SortMergeJoin1
+#yields (int 0)
 query Employee feed head[0] Dept feed rename[A] sortmergejoin[DeptNr, DeptNr_A] count;
+
+#testcase SortMergeJoin2
+#yields (int 0)
+query Employee feed Dept feed head[0] rename[A] sortmergejoin[DeptNr, DeptNr_A] count;
+
+#testcase SortMergeJoin3
+#yields (int 0)
+query Employee feed head[0] Dept feed head[0] rename[A] sortmergejoin[DeptNr, DeptNr_A] count;
+
+#testcase SortMergeJoin
+#yields (int 10)
+query Employee feed Dept feed rename[A] sortmergejoin[DeptNr, DeptNr_A] count;
+
 
 #testcase Max1
 #yields (string "Wuppertal")
