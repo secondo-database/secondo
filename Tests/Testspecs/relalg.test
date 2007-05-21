@@ -290,15 +290,15 @@ query duplicates feed ten feed rename[A] mergejoin[no, no_A] sort rdup consume
 
 #testcase MergeJoin3
 #yields (int 0)
-query duplicates feed head[0] ten feed head[0] rename[A] mergejoin[no, no_A] sort rdup consume
+query duplicates feed head[0] ten feed head[0] rename[A] mergejoin[no, no_A] count 
 
 #testcase MergeJoin4
 #yields (int 0)
-query duplicates feed ten feed head[0] rename[A] mergejoin[no, no_A] sort rdup consume
+query duplicates feed ten feed head[0] rename[A] mergejoin[no, no_A] sort rdup count
 
 #testcase MergeJoin5
 #yields (int 0)
-query duplicates feed head[0] ten feed rename[A] mergejoin[no, no_A] sort rdup consume
+query duplicates feed head[0] ten feed rename[A] mergejoin[no, no_A] sort rdup count
 
 #testcase SortMergeJoin1
 #yields (int 0)
