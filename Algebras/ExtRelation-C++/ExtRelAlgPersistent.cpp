@@ -1808,8 +1808,6 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
 
 
-
-
     case CLOSEPROGRESS:
       qp->CloseProgress(args[0].addr);
       qp->CloseProgress(args[1].addr);
@@ -1820,7 +1818,6 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
         delete li;
       }
       return 0;
-
 
 
     case REQUESTPROGRESS:
@@ -1848,15 +1845,11 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
         liB =
           static_cast<LocalSBY*> ((li->getPtrB()).addr);
 
-        	cout << "got to point 1" << endl;
-
         if (qp->RequestProgress(args[0].addr, &p1)
          && qp->RequestProgress(args[1].addr, &p2))
         {
           if ( !li->getPrInit() )
           {
-
-        	cout << "got to point 2" << endl;
 
             li->setNoAtt(p1.noAttrs + p2.noAttrs);
             double* AttSize = li->initAttSize(li->getNoAtt());
@@ -1873,8 +1866,6 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             }
             li->setPrInit(true);
           }
-
-        	cout << "got to point 3" << endl;
 
           pRes->Size = p1.Size + p2.Size;
           pRes->SizeExt = p1.SizeExt + p2.SizeExt;
@@ -1896,9 +1887,6 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
           else
           {
 
-        	cout << "got to point 4" << endl;
-
-
             pRes->Time =
               p1.Time + 
 	      p2.Time +
@@ -1908,14 +1896,6 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
             long liACtrA = (liA ? liA->getCtrA() : 0);
             long liBCtrA = (liB ? liB->getCtrA() : 0);
-
-        	cout << "got to point 5" << endl;
-
-		cout << "liACtrA = " << liACtrA << endl;
-		cout << "liBCtrA = " << liBCtrA << endl;
-		cout << "li->getRtrn() = " << li->getRtrn() << endl;
-		cout << "li->getCtrA() = " << li->getCtrA() << endl;
-		cout << "li->getCtrB() = " << li->getCtrB() << endl;
 
             pRes->Progress =
               (p1.Progress * p1.Time + 
@@ -1929,18 +1909,12 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
           if (li->getRtrn() > 50 ) 	// stable state assumed now
           {
-
-        	cout << "got to point 6" << endl;
-
             pRes->Card = p1.Card * p2.Card *
               ((double) li->getRtrn()
              /  ((double) li->getCtrA() * (double) li->getCtrB()));
           }
           else
           {
-
-        	cout << "got to point 7" << endl;
-
             pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
           }
           return YIELD;
@@ -1952,13 +1926,6 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   return 0;
 }
-
-
-
-
-
-
-
 
 
 #endif
