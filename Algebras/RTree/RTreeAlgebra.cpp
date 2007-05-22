@@ -2047,24 +2047,25 @@ template<int TidIndexPos>
       qp->Request(args[0].addr, wTuple);
       if( qp->Received(args[0].addr) )
       {
-        Tuple *sTuple = (Tuple*)wTuple.addr,
-        *resultTuple = new Tuple( localInfo->resultTupleType ),
-        *relTuple = localInfo->relation->
+        Tuple* sTuple = (Tuple*)wTuple.addr;
+        Tuple* resultTuple = new Tuple( localInfo->resultTupleType );
+        Tuple* relTuple = localInfo->relation->
             GetTuple(((TupleIdentifier *)sTuple->
             GetAttribute(localInfo->tidIndex))->GetTid());
-
         int j = 0;
 
         // Copy the attributes from the stream tuple
         for( int i = 0; i < sTuple->GetNoAttributes(); i++ )
         {
           if( i != localInfo->tidIndex )
-            resultTuple->CopyAttribute( j++, sTuple, i );
+            resultTuple->CopyAttribute( i, sTuple, j++ );
         }
         sTuple->DeleteIfAllowed();
 
         for( int i = 0; i < relTuple->GetNoAttributes(); i++ )
-          resultTuple->CopyAttribute( j++, relTuple, i );
+        {
+          resultTuple->CopyAttribute( i, relTuple, j++ );
+        }
         relTuple->DeleteIfAllowed();
 
         result = SetWord( resultTuple );
