@@ -71,7 +71,12 @@ bool TupleIdentifier::Adjacent( const Attribute* arg ) const
 }
 
 TupleIdentifier::TupleIdentifier(bool DEFINED, TupleId TID) 
-{defined = DEFINED, tid = TID;}
+{
+  defined = DEFINED;
+  tid = TID;
+  del.refs = 1;
+  del.isDelete = true;
+}
 
 TupleIdentifier::~TupleIdentifier() {}
 
@@ -82,6 +87,14 @@ void TupleIdentifier::SetTid(TupleId TID)
 
 TupleIdentifier* TupleIdentifier::Clone() const 
 { return new TupleIdentifier( *this ); }
+
+
+ostream& TupleIdentifier::Print(ostream& out) const
+{
+  out << tid;
+  return  out;
+}
+
 
 /*
 2.2 List Representation

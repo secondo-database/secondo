@@ -62,13 +62,14 @@ class TupleIdentifier: public StandardAttribute
   inline TupleIdentifier() {};
 /*
 This constructor should not be used.
-
+  
 */
   TupleIdentifier( bool DEFINED, TupleId TID = 0 );
   ~TupleIdentifier();
   TupleId      GetTid() const;
   void     SetTid( const TupleId tid);
   TupleIdentifier*   Clone() const;
+  ostream& Print( ostream& os ) const;
   inline bool IsDefined() const 
   { 
     return (defined); 
