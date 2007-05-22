@@ -1579,7 +1579,11 @@ public:
 
     // read in the first tuple of both input streams
     ptA = NextTupleA();
+    if (ptA)
+      ptA->IncReference();	    
     ptB = NextTupleB();
+    if (ptB)
+      ptB->IncReference(); 
 
     // initialize the status for the result
     // set iteration   
@@ -1607,6 +1611,22 @@ public:
       delete liB;
     }
 
+    if (ptA) {
+      ptA->DecReference();
+      ptA->DeleteIfAllowed();
+    }	      
+
+    if (ptB) {
+      ptB->DecReference();
+      ptB->DeleteIfAllowed();
+    }	      
+
+    if (tmpB) {
+      tmpB->DecReference();
+      tmpB->DeleteIfAllowed();
+    }	      
+
+
     delete grpB;
     resultTupleType->DeleteIfAllowed();
   }
@@ -1616,7 +1636,6 @@ public:
   Tuple* NextResultTuple()
   {
     Tuple* resultTuple = 0;
-    Tuple* tmpA = 0;
 
     if ( !continueMerge && ptB == 0)
       return 0;	    
@@ -1625,28 +1644,41 @@ public:
      
       if (!continueMerge && ptB != 0) {
 
-      tmpB = ptB;	    
+      //save ptB in tmpB	      
+      if (tmpB) {
+        tmpB->DecReference();
+        tmpB->DeleteIfAllowed();
+      }	
+      tmpB = ptB;
+      tmpB->IncReference();
+
       grpB->AppendTuple(tmpB);
 
       // advance the tuple pointer
-      tmpB->IncReference();
+      ptB->DecReference();
+      ptB->DeleteIfAllowed();
       ptB = NextTupleB();
+      if (ptB)
+        ptB->IncReference();
       
       // collect a group of tuples from B which
       // have the same attribute value
       bool done = false;
       while ( !done && ptB != 0 ) {
       
-        ptB->IncReference();
-        Tuple* tmpB2 = ptB;
-        int cmp = CompareTuplesB( tmpB, tmpB2 );
+        int cmp = CompareTuplesB( tmpB, ptB );
      
         if ( cmp == 0) 
 	{
 	  // append equal tuples to group	
-          grpB->AppendTuple(tmpB2);
+          grpB->AppendTuple(ptB);
+
+	  // release tuple of input B
           ptB->DecReference();
+	  ptB->DeleteIfAllowed();
           ptB = NextTupleB();
+	  if (ptB)
+            ptB->IncReference();
 	}
         else
 	{
@@ -1654,10 +1686,7 @@ public:
 	}	
       } // end collect group	        
 
-      tmpA = ptA;
-      tmpA->IncReference();
-
-      cmp = CompareTuples( tmpA, tmpB );
+      cmp = CompareTuples( ptA, tmpB );
 
       while ( ptA != 0 && cmp < 0 ) 
       {
@@ -1665,11 +1694,11 @@ public:
 	// value of the tuples in grpB 	      
         
         ptA->DecReference();
+	ptA->DeleteIfAllowed();
         ptA = NextTupleA();
-	tmpA = ptA;
 	if (ptA) {
           ptA->IncReference();
-          cmp = CompareTuples( tmpA, tmpB );
+          cmp = CompareTuples( ptA, tmpB );
 	}  
       }	      
 
@@ -1699,18 +1728,16 @@ public:
           {
 	    // Iteration over the group finished.	  
             // Continue with the next tuple of argument A
-	    ptA->DecReference(); 
-	    ptA->DeleteIfAllowed();
 	    continueMerge = false;
 	    delete iter;
 	    iter = 0;
 	   
+	    ptA->DecReference(); 
+	    ptA->DeleteIfAllowed();
             ptA = NextTupleA();
-	    tmpA = ptA;
-
 	    if (ptA) {
-	      ptA->IncReference(); 
-              cmp = CompareTuples( tmpA, tmpB );
+	      ptA->IncReference();
+              cmp = CompareTuples( ptA, tmpB );
 	    }  
           }		  
         }	  
@@ -1736,8 +1763,7 @@ public:
 
      Tuple* result = new Tuple( resultTupleType );
      Concat( ptA, t, result );
-     t->DeleteIfAllowed();
-     ptA->DeleteIfAllowed();
+
      return result;  
     }
     return 0;
@@ -1757,8 +1783,7 @@ template<bool expectSorted> int
 MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   typedef LocalInfo<MergeJoinLocalInfo> LocalType;
-  LocalType* li;
-  MergeJoinLocalInfo* mli;
+  LocalType* li = static_cast<LocalType*>( local.addr );
 
   switch(message)
   {
@@ -1766,7 +1791,6 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Open(args[0].addr);
       qp->Open(args[1].addr);
 
-      li = static_cast<LocalType*>( local.addr );
       if ( li ) {
         delete li->ptr;
         delete li;
@@ -1774,26 +1798,24 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
       li = new LocalType();
       local.addr = li;
+
       li->ptr = new MergeJoinLocalInfo
         (args[0], args[4], args[1], args[5], expectSorted, s, li);
 
       return 0;
 
-
-
-    case REQUEST:
+    case REQUEST: {
       //mergeMeasurer.Enter();
 
-      li = static_cast<LocalType*>( local.addr );
-      mli = li->ptr;
-      result = SetWord(mli->NextResultTuple());
+      MergeJoinLocalInfo* mli = li->ptr;
+      result.addr = mli->NextResultTuple();
 
       //mergeMeasurer.Exit();
 
       li->incRtrn();
       return result.addr != 0 ? YIELD : CANCEL;
 
-
+    }
 
     case CLOSE:
       //mergeMeasurer.PrintCPUTimeAndReset("CPU Time for Merging Tuples : ");
@@ -1812,7 +1834,6 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->CloseProgress(args[0].addr);
       qp->CloseProgress(args[1].addr);
 
-      li = static_cast<LocalType*>( local.addr );
       if ( li ) {
         delete li->ptr;
         delete li;
@@ -1832,9 +1853,6 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       typedef LocalInfo<SortByLocalInfo> LocalSBY;
       LocalSBY* liA;
       LocalSBY* liB;
-
-      li = static_cast<LocalType*>( local.addr );
-
 
       if( !li ) return CANCEL;
       else
