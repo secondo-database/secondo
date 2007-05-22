@@ -76,6 +76,7 @@ merging and a simple hash-join.
 #include "StopWatch.h"
 #include "Counter.h"
 #include "Progress.h"
+#include "RTuple.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -266,7 +267,7 @@ class SortByLocalInfo
         {
 
           c++; // tuple counter;
-          Tuple *t = static_cast<Tuple*>( wTuple.addr );
+          Tuple* t = static_cast<Tuple*>( wTuple.addr );
           TupleAndRelPos nextTuple(t, tupleCmpBy); 
           if( MAX_MEMORY > (size_t)t->GetSize() )
           {
@@ -1030,9 +1031,9 @@ private:
   Word resultA;
   Word resultB;
 
-  Tuple* ptA;
-  Tuple* ptB;
-  Tuple* tmpB;
+  RTuple ptA;
+  RTuple ptB;
+  RTuple tmpB;
 
   // the last comparison result
   int cmp;
@@ -1179,8 +1180,8 @@ public:
     resultTupleType = new TupleType( nl->Second( resultType ) );
 
     // read in the first tuple of both input streams
-    ptA = NextTupleA();
-    ptB = NextTupleB();
+    ptA = RTuple( NextTupleA() );
+    ptB = RTuple( NextTupleB() );
 
     // initialize the status for the result
     // set iteration   
@@ -1213,7 +1214,6 @@ public:
   Tuple* NextResultTuple()
   {
     Tuple* resultTuple = 0;
-    Tuple* tmpA = 0;
 
     if ( !continueMerge && ptB == 0)
       return 0;	    
@@ -1222,28 +1222,28 @@ public:
      
       if (!continueMerge && ptB != 0) {
 
-      tmpB = ptB;	    
-      grpB->AppendTuple(tmpB);
+      //save ptB in tmpB	      
+      tmpB = ptB;
+
+      grpB->AppendTuple(tmpB.tuple);
 
       // advance the tuple pointer
-      tmpB->IncReference();
-      ptB = NextTupleB();
+      ptB = RTuple( NextTupleB() );
       
       // collect a group of tuples from B which
       // have the same attribute value
       bool done = false;
       while ( !done && ptB != 0 ) {
       
-        ptB->IncReference();
-        Tuple* tmpB2 = ptB;
-        int cmp = CompareTuplesB( tmpB, tmpB2 );
+        int cmp = CompareTuplesB( tmpB.tuple, ptB.tuple );
      
         if ( cmp == 0) 
 	{
 	  // append equal tuples to group	
-          grpB->AppendTuple(tmpB2);
-          ptB->DecReference();
-          ptB = NextTupleB();
+          grpB->AppendTuple(ptB.tuple);
+
+	  // release tuple of input B
+          ptB = RTuple( NextTupleB() );
 	}
         else
 	{
@@ -1251,22 +1251,16 @@ public:
 	}	
       } // end collect group	        
 
-      tmpA = ptA;
-      tmpA->IncReference();
-
-      cmp = CompareTuples( tmpA, tmpB );
+      cmp = CompareTuples( ptA.tuple, tmpB.tuple );
 
       while ( ptA != 0 && cmp < 0 ) 
       {
         // skip tuples from A while they are smaller than the 
 	// value of the tuples in grpB 	      
         
-        ptA->DecReference();
-        ptA = NextTupleA();
-	tmpA = ptA;
-	if (ptA) {
-          ptA->IncReference();
-          cmp = CompareTuples( tmpA, tmpB );
+        ptA = RTuple( NextTupleA() );
+	if (ptA != 0) {
+          cmp = CompareTuples( ptA.tuple, tmpB.tuple );
 	}  
       }	      
 
@@ -1296,18 +1290,13 @@ public:
           {
 	    // Iteration over the group finished.	  
             // Continue with the next tuple of argument A
-	    ptA->DecReference(); 
-	    ptA->DeleteIfAllowed();
 	    continueMerge = false;
 	    delete iter;
 	    iter = 0;
 	   
-            ptA = NextTupleA();
-	    tmpA = ptA;
-
-	    if (ptA) {
-	      ptA->IncReference(); 
-              cmp = CompareTuples( tmpA, tmpB );
+            ptA = RTuple( NextTupleA() );
+	    if (ptA != 0) {
+              cmp = CompareTuples( ptA.tuple, tmpB.tuple );
 	    }  
           }		  
         }	  
@@ -1325,16 +1314,13 @@ public:
     return 0;  
   }
 
-
   inline Tuple* NextConcat() 
   {
     Tuple* t = iter->GetNextTuple();
     if( t != 0 ) {
 
      Tuple* result = new Tuple( resultTupleType );
-     Concat( ptA, t, result );
-     t->DeleteIfAllowed();
-     ptA->DeleteIfAllowed();
+     Concat( ptA.tuple, t, result );
      return result;  
     }
     return 0;
@@ -1418,9 +1404,9 @@ private:
   Word resultA;
   Word resultB;
 
-  Tuple* ptA;
-  Tuple* ptB;
-  Tuple* tmpB;
+  RTuple ptA;
+  RTuple ptB;
+  RTuple tmpB;
 
   // the last comparison result
   int cmp;
@@ -1578,12 +1564,8 @@ public:
     resultTupleType = new TupleType( nl->Second( resultType ) );
 
     // read in the first tuple of both input streams
-    ptA = NextTupleA();
-    if (ptA)
-      ptA->IncReference();	    
-    ptB = NextTupleB();
-    if (ptB)
-      ptB->IncReference(); 
+    ptA = RTuple( NextTupleA() );
+    ptB = RTuple( NextTupleB() );
 
     // initialize the status for the result
     // set iteration   
@@ -1611,26 +1593,9 @@ public:
       delete liB;
     }
 
-    if (ptA) {
-      ptA->DecReference();
-      ptA->DeleteIfAllowed();
-    }	      
-
-    if (ptB) {
-      ptB->DecReference();
-      ptB->DeleteIfAllowed();
-    }	      
-
-    if (tmpB) {
-      tmpB->DecReference();
-      tmpB->DeleteIfAllowed();
-    }	      
-
-
     delete grpB;
     resultTupleType->DeleteIfAllowed();
   }
-
 
 
   Tuple* NextResultTuple()
@@ -1645,40 +1610,27 @@ public:
       if (!continueMerge && ptB != 0) {
 
       //save ptB in tmpB	      
-      if (tmpB) {
-        tmpB->DecReference();
-        tmpB->DeleteIfAllowed();
-      }	
       tmpB = ptB;
-      tmpB->IncReference();
 
-      grpB->AppendTuple(tmpB);
+      grpB->AppendTuple(tmpB.tuple);
 
       // advance the tuple pointer
-      ptB->DecReference();
-      ptB->DeleteIfAllowed();
-      ptB = NextTupleB();
-      if (ptB)
-        ptB->IncReference();
+      ptB = RTuple( NextTupleB() );
       
       // collect a group of tuples from B which
       // have the same attribute value
       bool done = false;
       while ( !done && ptB != 0 ) {
       
-        int cmp = CompareTuplesB( tmpB, ptB );
+        int cmp = CompareTuplesB( tmpB.tuple, ptB.tuple );
      
         if ( cmp == 0) 
 	{
 	  // append equal tuples to group	
-          grpB->AppendTuple(ptB);
+          grpB->AppendTuple(ptB.tuple);
 
 	  // release tuple of input B
-          ptB->DecReference();
-	  ptB->DeleteIfAllowed();
-          ptB = NextTupleB();
-	  if (ptB)
-            ptB->IncReference();
+          ptB = RTuple( NextTupleB() );
 	}
         else
 	{
@@ -1686,19 +1638,16 @@ public:
 	}	
       } // end collect group	        
 
-      cmp = CompareTuples( ptA, tmpB );
+      cmp = CompareTuples( ptA.tuple, tmpB.tuple );
 
       while ( ptA != 0 && cmp < 0 ) 
       {
         // skip tuples from A while they are smaller than the 
 	// value of the tuples in grpB 	      
         
-        ptA->DecReference();
-	ptA->DeleteIfAllowed();
-        ptA = NextTupleA();
-	if (ptA) {
-          ptA->IncReference();
-          cmp = CompareTuples( ptA, tmpB );
+        ptA = RTuple( NextTupleA() );
+	if (ptA != 0) {
+          cmp = CompareTuples( ptA.tuple, tmpB.tuple );
 	}  
       }	      
 
@@ -1732,12 +1681,9 @@ public:
 	    delete iter;
 	    iter = 0;
 	   
-	    ptA->DecReference(); 
-	    ptA->DeleteIfAllowed();
-            ptA = NextTupleA();
-	    if (ptA) {
-	      ptA->IncReference();
-              cmp = CompareTuples( ptA, tmpB );
+            ptA = RTuple( NextTupleA() );
+	    if (ptA != 0) {
+              cmp = CompareTuples( ptA.tuple, tmpB.tuple );
 	    }  
           }		  
         }	  
@@ -1762,7 +1708,7 @@ public:
     if( t != 0 ) {
 
      Tuple* result = new Tuple( resultTupleType );
-     Concat( ptA, t, result );
+     Concat( ptA.tuple, t, result );
 
      return result;  
     }
