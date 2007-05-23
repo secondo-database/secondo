@@ -49,9 +49,6 @@ messages. This is still work in progress!
 
 using namespace std;
 
-#include "StandardTypes.h"
-
-
 
 class ProgressLocalInfo
 {
@@ -114,7 +111,7 @@ public:
   Progress() : ctr(0),
     ctrA(0), ctrB(0), rtrn(0),
     noAtt(0), prInit(0), attSize(0), attSExt(0),
-    PtrA(SetWord(0)), PtrB(SetWord(0))
+    PtrA(0), PtrB(0)
     {}
 
   virtual ~Progress() {}
@@ -146,10 +143,10 @@ public:
   double* getAttSExt();
   double* initAttSExt(int value);
 
-  Word getPtrA();
+  void* getPtrA();
   void setPtrA(void* value);
 
-  Word getPtrB();
+  void* getPtrB();
   void setPtrB(void* value);
 
 
@@ -158,7 +155,8 @@ private:
   long ctrA, ctrB, rtrn, noAtt;
   bool prInit;
   double *attSize, *attSExt;
-  Word PtrA, PtrB;
+  void* PtrA;
+  void* PtrB;
 
 };
 

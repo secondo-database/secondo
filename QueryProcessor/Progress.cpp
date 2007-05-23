@@ -73,13 +73,13 @@ Progress::getAttSExt() { return attSExt; }
 double*
 Progress::initAttSExt(int value) { return (attSExt = new double[value]); }
 
-Word
+void*
 Progress::getPtrA() { return PtrA; }
 void
-Progress::setPtrA(void* value) { PtrA = SetWord(value); }
+Progress::setPtrA(void* value) { PtrA = value; }
 
-Word
+void*
 Progress::getPtrB() { return PtrB; }
 void
-Progress::setPtrB(void* value) { PtrB = SetWord(value); }
+Progress::setPtrB(void* value) { PtrB =  value; }
 
