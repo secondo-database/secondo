@@ -2620,7 +2620,16 @@ void MakeRealm::printsegvector(const vector<HalfSegment>& v) const
 
 bool MakeRealm::onsegment(const Point& pi, const Point& pj, 
                 const Point& pk)
-{  return ( ((min(pi.GetX(), pj.GetX()) <= pk.GetX()) and 
+{ 
+  //cout << "pi.GetX(): " << pi.GetX() << endl;
+  //cout << "pj.GetX(): " << pj.GetX() << endl;
+  //cout << "pi.Gety(): " << pi.GetY() << endl;
+  //cout << "pj.GetY(): " << pj.GetY() << endl;
+  //cout << "pk.GetX(): " << pk.GetX() << endl;
+  //cout << "pk.GetY(): " << pk.GetY() << endl;
+
+ 
+  return ( ((min(pi.GetX(), pj.GetX()) <= pk.GetX()) and 
               (pk.GetX() <= max(pi.GetX(), pj.GetX()))) and 
               ((min(pi.GetY(), pj.GetY()) <= pk.GetY()) and 
               (pk.GetY() <= max(pi.GetY(), pj.GetY()))) ); 
@@ -2632,8 +2641,11 @@ double MakeRealm::direction(const Point& pi, const Point& pj, const Point& pk)
   double cross2 = pj.GetY() - pi.GetY();
   double cross3 = pj.GetX() - pi.GetX();
   double cross4 = pk.GetY() - pi.GetY();
-
-  return cross1 * cross2 - cross3 * cross4;
+  
+  if ( AlmostEqual(cross1 * cross2 - cross3 * cross4, 0.0) )
+    return 0.0;
+  else
+    return cross1 * cross2 - cross3 * cross4;
 }
 
 int MakeRealm::intersects(const Point& p1, const Point& p2, 
@@ -2645,76 +2657,140 @@ int MakeRealm::intersects(const Point& p1, const Point& p2,
   d2 = direction(p3, p4, p2);
   d3 = direction(p1, p2, p3);
   d4 = direction(p1, p2, p4);
+  
+  //cout << "d1: " << d1 << endl;
+  //cout << "d2: " << d1 << endl;
+  //cout << "d3: " << d1 << endl;
+  //cout << "d4: " << d1 << endl;
+  
+  //if (d1 != 0) cout << "d1 != 0" << endl;
+  //else cout << "d1 == 0" << endl;
+  //if (!AlmostEqual(d1, 0.0)) cout << "!AlmostEqual(d1, 0.0)" << endl;
+  //else cout << "AlmostEqual(d1, 0.0)" << endl;
+  
 
-  if ( (!(((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and
-     ((d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0)))) and (d1 != 0) 
-              and (d2 != 0) and (d3 != 0) and (d4 != 0) )
+  if ( (!(((d1 > 0.0 and d2 < 0.0) or (d1 < 0.0 and d2 > 0.0)) and
+       ((d3 > 0.0 and d4 < 0.0) or (d3 < 0.0 and d4 > 0.0)))) and 
+       (!AlmostEqual(d1, 0.0)) and (!AlmostEqual(d2, 0.0)) and 
+       (!AlmostEqual(d3, 0.0)) and (!AlmostEqual(d4, 0.0)) )
     return 0;
 
-  if ( ((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and
-     ((d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0)) )
+  if ( ((d1 > 0.0 and d2 < 0.0) or (d1 < 0.0 and d2 > 0.0)) and
+     ((d3 > 0.0 and d4 < 0.0) or (d3 < 0.0 and d4 > 0.0)) )
     return 1;
-  
-  if ( (d1 == 0.0) and (d2 == 0.0) and (d3 == 0.0) and (d4 == 0.0) )
+    
+  //if ( AlmostEqual(d1, 0.0) and AlmostEqual(d2, 0.0) and 
+  //AlmostEqual(d3, 0.0) and AlmostEqual(d4, 0.0) )
+    //cout << " all d's ate almost equal " << endl;
+    
+  if ( AlmostEqual(d1, 0.0) and AlmostEqual(d2, 0.0) and 
+       AlmostEqual(d3, 0.0) and AlmostEqual(d4, 0.0) )
   {
-    if ( (p1 == p3) and (p2 == p4) )
+  //if ( (d1 == 0.0) and (d2 == 0.0) and (d3 == 0.0) and (d4 == 0.0) )
+  //{
+  
+    //cout << " all d's are 0 " << endl;
+    //if ( p1 == p3 ) cout << "p1 == p3" << endl;
+    //else cout << "p1 != p3" << endl;
+    //if ( AlmostEqual(p1, p3) ) cout << "p1 almost equal p3" << endl;
+    //else cout << "p1 not almost equal p3" << endl;
+
+    //if ( onsegment(p1, p2, p4) ) cout << "onsegment(p1, p2, p4)" << endl;
+    //else cout << "not onsegment(p1, p2, p4)" << endl;
+
+
+    if ( (AlmostEqual(p1, p3)) and (AlmostEqual(p2, p4)) )
+    {
+      //cout << "case(11)" << endl;
       return 14; // case (11)
+    }
 
-    if ( p2 == p3 ) // case (1)
+    if ( AlmostEqual(p2, p3) ) // case (1)
+    {
+      //cout << "case(1)" << endl;
       return 14;  
-
+    }
+    
     if (  (onsegment(p3, p4, p2)) and (onsegment(p1, p2, p3)) 
           and (p2 != p3) and (p2 != p4) 
           and (p1 != p3) and (p1 != p4) ) // case (2)
+    {
+      //cout << "case(2)" << endl;
       return 2; 
-
-    if ( (p1 == p3) and (onsegment(p3, p4, p2)) ) // case (3)
+    }
+    
+    if ( (AlmostEqual(p1, p3)) and (onsegment(p3, p4, p2)) ) // case (3)
+    {
+      //cout << "case(3)" << endl;
       return 3;
-
+    }
+    
     if (  (onsegment(p3, p4, p1)) and (onsegment(p3, p4, p2)) 
           and (p2 != p3) and (p2 != p4) 
           and (p1 != p3) and (p1 != p4) ) // case (4)
+    {
+      //cout << "case(4)" << endl;
       return 4; 
+    }
     
-    if ( (p2 == p4) and (onsegment(p3, p4, p1)) ) // case (5)
+    if ( (AlmostEqual(p2, p4)) and (onsegment(p3, p4, p1)) ) // case (5)
+    {
+      //cout << "case(5)" << endl;
       return 5;
-
+    }
+    
     if (  (onsegment(p3, p4, p1)) and (onsegment(p1, p2, p4)) 
           and (p2 != p3) and (p2 != p4) 
           and (p1 != p3) and (p1 != p4) ) // case (6)
+    {
+      //cout << "case(6)" << endl;
       return 6; 
-
-    if ( p1 == p4 ) // case (7)
+    }
+    
+    if ( AlmostEqual(p1, p4) ) // case (7)
+    {
+      //cout << "case(11)" << endl;
       return 14;  
-
-    if ( (p1 == p3) and (onsegment(p1, p2, p4)) ) // case (8)
+    }
+    
+    if ( (AlmostEqual(p1, p3)) and (onsegment(p1, p2, p4)) ) // case (8)
+    {
+      //cout << "case(8)" << endl;
       return 7;
+    }
     
     if (  (onsegment(p1, p2, p3)) and (onsegment(p1, p2, p4)) 
           and (p2 != p3) and (p2 != p4) 
           and (p1 != p3) and (p1 != p4) ) // case (9)
+    {
+      //cout << "case(9)" << endl;
       return 8; 
-    
-    if ( (p2 == p4) and (onsegment(p1, p2, p3)) ) // case (10)
+    }
+        
+    if ( (AlmostEqual(p2, p4)) and (onsegment(p1, p2, p3)) ) // case (10)
+    {
+      //cout << "case(10)" << endl;
       return 9;
+    }
   }
   
-  if ( ((d4 == 0.0) and (onsegment(p1, p2, p4))) and 
-     (p4 != p1) and (p4 != p2) )
+  //cout << "GO HEEEEEEEEEEEERE" << endl;
+  if ( ((AlmostEqual(d4, 0.0)) and (onsegment(p1, p2, p4))) and 
+     (!(AlmostEqual(p4, p1))) and (!(AlmostEqual(p4, p2))) )
     return 10;
 
-  if ( ((d3 == 0.0) and (onsegment(p1, p2, p3))) and 
-    (p3 != p1) and (p3 != p2) )
+  if ( ((AlmostEqual(d3, 0.0)) and (onsegment(p1, p2, p3))) and 
+    (!(AlmostEqual(p3, p1))) and (!(AlmostEqual(p3, p2))) )
     return 11;
 
-  if ( ((d1 == 0.0) and (onsegment(p3, p4, p1))) and
-    (p3 != p1) and (p4 != p1) )
+  if ( ((AlmostEqual(d1, 0.0)) and (onsegment(p3, p4, p1))) and
+    (!(AlmostEqual(p3, p1))) and (!(AlmostEqual(p4, p1))) )
     return 12;
 
-  if ( ((d2 == 0.0) and (onsegment(p3, p4, p2))) and 
-  (p3 != p2) and (p4 != p2) )
+  if ( ((AlmostEqual(d2, 0.0)) and (onsegment(p3, p4, p2))) and 
+  (!(AlmostEqual(p3, p2))) and (!(AlmostEqual(p4, p2))) )
     return 13;
-
+  //cout << "other" << endl;
   return 14;
 }
 
@@ -2725,13 +2801,14 @@ void MakeRealm::hsintersection(const HalfSegment& seg1,
   
   //Precondition: the two half segments properly intersect
   
-  if ( seg1.GetLeftPoint().GetX() == seg1.GetRightPoint().GetX() )
+  if ( AlmostEqual(seg1.GetLeftPoint().GetX(), seg1.GetRightPoint().GetX()) )
   {
       m2 = (seg2.GetRightPoint().GetY() - seg2.GetLeftPoint().GetY()) / 
            (seg2.GetRightPoint().GetX() - seg2.GetLeftPoint().GetX());
       a2 = seg2.GetLeftPoint().GetY() - (m2 * seg2.GetLeftPoint().GetX());
       p.Set(seg1.GetLeftPoint().GetX(), m2 * seg1.GetLeftPoint().GetX() + a2);
-  } else if ( seg2.GetLeftPoint().GetX() == seg2.GetRightPoint().GetX() )
+  } 
+  else if (AlmostEqual(seg2.GetLeftPoint().GetX(), seg2.GetRightPoint().GetX()))
   {
       m1 = (seg1.GetRightPoint().GetY() - seg1.GetLeftPoint().GetY()) /
            (seg1.GetRightPoint().GetX() - seg1.GetLeftPoint().GetX());
@@ -2914,13 +2991,21 @@ void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2,
 {
   Point ispoint;
   
+  //if ( intersects(hs1.GetLeftPoint(), hs1.GetRightPoint(),
+                   //hs2.GetLeftPoint(), hs2.GetRightPoint()) ) 
+                   //cout << " they intersect " << endl;
+                   
+  //cout << " they intersect" << intersects(hs1.GetLeftPoint(), 
+  //hs1.GetRightPoint(), 
+  //hs2.GetLeftPoint(), hs2.GetRightPoint()) << endl;
+                   
   switch ( intersects(hs1.GetLeftPoint(), hs1.GetRightPoint(), 
                       hs2.GetLeftPoint(), hs2.GetRightPoint()) )
   {
-    case 0: // cout << "Segments do not intersect, do nothing" << endl;
+    case 0: //cout << "Segments do not intersect, do nothing" << endl;
             break;
                 
-    case 1: // cout << "Segments intersect properly" << endl;
+    case 1: //cout << "Segments intersect properly" << endl;
             hsintersection(hs1, hs2, ispoint);
             vsc1[i].splitsegment = true;
             insertpoint(vsc1[i].pointlist, ispoint);
@@ -2931,7 +3016,7 @@ void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2,
     // cases 2 - 9 cover overlapping halfsegments
 
     case 2: // p1----p3----p2----p4 (2)
-            // cout << "Segments overlap case(2)" << endl;
+            //cout << "Segments overlap case(2)" << endl;
             vsc1[i].splitsegment = true;
             insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());
             vsc2[j].splitsegment = true;
@@ -2939,26 +3024,26 @@ void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2,
             break;
 
     case 3: // p1,p3----p2----p4 (3)
-            // cout << "Segments overlap case(3)" << endl;
+            //cout << "Segments overlap case(3)" << endl;
             vsc2[j].splitsegment = true;
             insertpoint(vsc2[j].pointlist, hs1.GetRightPoint());
             break;
 
         case 4: // p3----p1----p2----p4 (4)
-                // cout << "Segments overlap case(4)" << endl;
+                //cout << "Segments overlap case(4)" << endl;
                 vsc2[j].splitsegment = true;
                 insertpoint(vsc2[j].pointlist, hs1.GetLeftPoint());
                 insertpoint(vsc2[j].pointlist, hs1.GetRightPoint()); 
                 break;
 
         case 5: // p3----p1----p2,p4 (5)
-                // cout << "Segments overlap case(5)" << endl;
+                //cout << "Segments overlap case(5)" << endl;
                 vsc2[j].splitsegment = true;
                 insertpoint(vsc2[j].pointlist, hs1.GetLeftPoint());  
                 break;
 
         case 6: // p3----p1----p4----p2 (6)
-                // cout << "Segments overlap case(6)" << endl;
+                //cout << "Segments overlap case(6)" << endl;
                 vsc1[i].splitsegment = true;
                 insertpoint(vsc1[i].pointlist, hs2.GetRightPoint());
                 vsc2[j].splitsegment = true;
@@ -2966,20 +3051,20 @@ void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2,
                 break;
 
         case 7: // p1,p3----p4----p2 (8)
-                // cout << "Segments overlap case(8)" << endl;
+                //cout << "Segments overlap case(8)" << endl;
                 vsc1[i].splitsegment = true;
                 insertpoint(vsc1[i].pointlist, hs2.GetRightPoint()); 
                 break;
 
         case 8: // p1----p3----p4----p2 (9)
-                // cout << "Segments overlap case(9)" << endl;
+                //cout << "Segments overlap case(9)" << endl;
                 vsc1[i].splitsegment = true;
                 insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());
                 insertpoint(vsc1[i].pointlist, hs2.GetRightPoint()); 
                 break;
 
         case 9: // p1----p3----p2,p4 (10)
-                // cout << "Segments overlap case(10)" << endl;
+                //cout << "Segments overlap case(10)" << endl;
                 vsc1[i].splitsegment = true;
                 insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());  
                 break;
@@ -2987,7 +3072,7 @@ void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2,
         case 10: // p1---p4----p2 (12)
                  //       |
                  //      p3
-                 // cout << "Segments overlap case(12)" << endl;
+                 //cout << "Segments overlap case(12)" << endl;
                  vsc1[i].splitsegment = true;
                  insertpoint(vsc1[i].pointlist, hs2.GetRightPoint());        
                  break;
@@ -2995,7 +3080,7 @@ void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2,
         case 11: //      p4 (13)
                  //       |
                  // p1---p3----p2               
-                 // cout << "Segments overlap case(13)" << endl;        
+                 //cout << "Segments overlap case(13)" << endl;        
                  vsc1[i].splitsegment = true;
                  insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint()); 
                  break;
@@ -3003,7 +3088,7 @@ void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2,
         case 12: //      p2 (14)
                  //       |
                  // p3---p1----p4               
-                 // cout << "Segments overlap case(14)" << endl;
+                 //cout << "Segments overlap case(14)" << endl;
                  vsc2[j].splitsegment = true;
                  insertpoint(vsc2[j].pointlist, hs1.GetLeftPoint());
                  break;
@@ -3011,7 +3096,7 @@ void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2,
         case 13: // p3---p2----p4 (15)
                  //       |
                  //      p1
-                 // cout << "Segments overlap case(15)" << endl;
+                 //cout << "Segments overlap case(15)" << endl;
                  vsc2[j].splitsegment = true;
                  insertpoint(vsc2[j].pointlist, hs1.GetRightPoint());
                  break;
@@ -3022,7 +3107,7 @@ void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2,
         case 14: // p1----p2,p3----p4 (1)
                  // p3----p4,p1----p2 (7)
                  // p1,p3----p2,p4 (11)
-                 // cout << "Do nothing case(1, 7, 11)" << endl;        
+                 //cout << "Do nothing case(1, 7, 11)" << endl;        
                  break;
                 
         default: cout << "should not happen " << endl;
@@ -3049,17 +3134,18 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
       if ( AlmostEqual(hs1.GetLeftPoint(), hs2.GetLeftPoint()) && 
            AlmostEqual(hs1.GetRightPoint(), hs2.GetRightPoint()) )
       {
-      	hscurrindexi = i;
+        hscurrindexi = i;
         i++;
-	hscurrindexj = j;
+        hscurrindexj = j;
         j++;   
         hscurri = hs1; 
-	hscurrj = hs2;   
+        hscurrj = hs2;   
         status = BOTH;
-	//cout << "STATUS IS BOTH" << endl; 
+        //cout << "STATUS IS BOTH" << endl; 
       }
       else if ( hs1 < hs2) 
       {
+        //cout << "hs1 < hs2" << endl;
         hscurrindex = i;
         i++; 
         hscurr = hs1; 
@@ -3067,6 +3153,7 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
       }
       else if ( hs1 > hs2) 
       {
+        //cout << "hs1 > hs2" << endl;
         hscurrindex = j;
         j++;
         hscurr = hs2; 
@@ -3077,20 +3164,40 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
       //else cout << "SECOND1" << endl;
       if ( status == BOTH )
       {
-        k = hscurrindexj;
+        k = hscurrindexj + 1;
+        if ( isline1 )
+        {
+          l = hscurrindexi + 1;
+          while ( (l < vs1.size()) && (xoverlaps(hscurri, vs1[l])) )
+          {
+            checksegmentsline(hscurri, vs1[l], hscurrindexi, l, vsc1);
+            l++;
+          }
+        }
+        if ( isline2 )
+        {
+          l = hscurrindexj + 1;
+          while ( (l < vs2.size()) && (xoverlaps(hscurrj, vs2[l])) )
+          {
+            checksegmentsline(hscurrj, vs2[l], hscurrindexj, l, vsc2);
+            l++;
+          }
+        }
         while ( (k < vs2.size()) && (xoverlaps(hscurri, vs2[k])) )
         {
           checksegments(hscurri, vs2[k], hscurrindexi, k, vsc1, vsc2);
+          //cout << "index ki = " << k << endl;
           k++;
         }
-        k = hscurrindexi;
+        k = hscurrindexi + 1;
         while ( (k < vs1.size()) && (xoverlaps(hscurrj, vs1[k])) )
         {
           checksegments(hscurrj, vs1[k], hscurrindexj, k, vsc1, vsc2);
+          //cout << "index kj = " << k << endl;
           k++;
         }
 
-        cout << "TREAT BOTH CASE" << endl;
+        //cout << "TREAT BOTH CASE" << endl;
       }
       else if ( status == FIRST )
       {
@@ -3143,6 +3250,10 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
         if ( isline2 )
         {
           l = hscurrindex + 1;
+          //if ( l < vs2.size() ) cout << "l < vs2.size()" << endl;
+          //else cout << "l >= vs2.size()" << endl;
+          //if ( xoverlaps(hscurr, vs2[l]) ) 
+          //cout << "xoverlaps(hscurr, vs2[l])" << endl;
           while ( (l < vs2.size()) && (xoverlaps(hscurr, vs2[l])) )
           {
             //cout << "realm the line second" << l << endl;
@@ -3153,10 +3264,18 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
           }
         }
 
+          //if ( k < vs1.size() ) cout << "k < vs1.size()" << endl;
+          //else cout << "k >= vs1.size()" << endl;
+          //if ( xoverlaps(hscurr, vs1[k]) ) 
+          //cout << "xoverlaps(hscurr, vs1[k])" << endl;
+          //else cout << "not xoverlaps(hscurr, vs1[k])" << endl;
         while ( (k < vs1.size()) && (xoverlaps(hscurr, vs1[k])) )
         {
           //cout << "realm the two segments " << k << endl;
+          //cout << hscurr << endl;
+          //cout << vs1[k] << endl;
           checksegments(vs1[k], hscurr, k, hscurrindex, vsc1, vsc2);
+          //checksegments(hscurr, vs1[k], k, hscurrindex, vsc1, vsc2);
           //printsegcheckvector(vsc1);
           //printsegcheckvector(vsc2);
           k++;
