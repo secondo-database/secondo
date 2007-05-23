@@ -1805,9 +1805,9 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       {
 
         liA =
-          static_cast<LocalSBY*> ((li->getPtrA()).addr);
+          static_cast<LocalSBY*> (li->getPtrA());
         liB =
-          static_cast<LocalSBY*> ((li->getPtrB()).addr);
+          static_cast<LocalSBY*> (li->getPtrB());
 
         if (qp->RequestProgress(args[0].addr, &p1)
          && qp->RequestProgress(args[1].addr, &p2))
