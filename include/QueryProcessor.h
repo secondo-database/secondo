@@ -170,6 +170,7 @@ such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 #include "StopWatch.h"
 #include "FLOBCache.h"
 #include "ProgressView.h"
+#include "Progress.h"
 
 struct OpNode;
 typedef OpNode* OpTree;
@@ -185,8 +186,9 @@ struct VarEntry
 
 typedef vector<VarEntry>  VarEntryTable;
 
-struct ProgressInfo
+class ProgressInfo
 {
+public:
   double Card;		//expected cardinality
   double Size;		//expected total tuple size (including FLOBs)
   double SizeExt;	//expected size of tuple root and extension part 
@@ -198,6 +200,12 @@ struct ProgressInfo
   double Time;		//expected time, in millisecond
   double Progress;	//a number between 0 and 1
 
+  double BTime;		//expected time, in millisecond of blocking ops
+  double BProgress;	//a number between 0 and 1
+				//defaults hold for non-blocking operations
+
+
+
   void CopySizes(ProgressInfo p)	//copy the size fields
   {
     Size = p.Size;
@@ -207,12 +215,26 @@ struct ProgressInfo
     attrSizeExt = p.attrSizeExt;
   }
 
+
+  void CopySizes(ProgressLocalInfo* pli)	//copy the size fields
+  {
+    Size = pli->Size;
+    SizeExt = pli->SizeExt;
+    noAttrs = pli->noAttrs;
+    attrSize = pli->attrSize;
+    attrSizeExt = pli->attrSizeExt;
+  }
+
+
+
   void Copy(ProgressInfo p)		//copy all fields
   {
     Card = p.Card;
     CopySizes(p);
     Time = p.Time;
     Progress = p.Progress;
+    BTime = p.BTime;
+    BProgress = p.BProgress;
   }
 };	
 
