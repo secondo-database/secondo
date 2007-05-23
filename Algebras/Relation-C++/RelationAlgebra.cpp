@@ -1146,71 +1146,45 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
           }
           fli->progressInitialized = true;
         }
+      }
 
-        if ( qp->IsObjectNode(sonOfFeed) )
-        {
-			//fli defined, an object node
-
+      if ( qp->IsObjectNode(sonOfFeed) )
+      {
+        if ( !fli ) return CANCEL;
+        else		//an object node, fli defined
+        {			
           pRes->Card = (double) fli->total;
-
-          pRes->Size = fli->Size;			//copy all sizes
-          pRes->SizeExt = fli->SizeExt;
-          pRes->noAttrs = fli->noAttrs;
-          pRes->attrSize = fli->attrSize;
-          pRes->attrSizeExt = fli->attrSizeExt;
+          pRes->CopySizes(fli);		//copy all sizes
 
           pRes->Time = (fli->total + 1) * (uFeed + fli->SizeExt * vFeed);
             
- 		//any time value created must be > 0; so we add 1 to the total
+ 		//any time value created must be > 0; so we add 1
 
           pRes->Progress = fli->returned * (uFeed + fli->SizeExt * vFeed) 
             / pRes->Time;
           return YIELD;
 	}
-        else		//fli defined, not an object node
-        {
-	  if ( qp->RequestProgress(sonOfFeed, &p1) )
-          {
-            pRes->Card = (double) fli->total;
-
-            pRes->Size = fli->Size;
-            pRes->SizeExt = fli->SizeExt;
-            pRes->noAttrs = fli->noAttrs;
-            pRes->attrSize = fli->attrSize;
-            pRes->attrSizeExt = fli->attrSizeExt;
-
-            pRes->Time = p1.Time + 
-              (fli->total + 1) * (uFeed + fli->SizeExt * vFeed);
-            pRes->Progress = 
-              (p1.Progress * p1.Time 
-                + fli->returned * (uFeed + fli->SizeExt * vFeed)) 
-                / pRes->Time;
-            return YIELD;
-          }
-          else return CANCEL;
-        }
       }
-      else 		//fli not defined
+      else 	//not an object node
       {
-        if ( qp->IsObjectNode(sonOfFeed) )
+	if ( qp->RequestProgress(sonOfFeed, &p1) )
         {
-          return CANCEL;
-        }
-        else 		//fli not defined, not an object node
-        {
-	  if ( qp->RequestProgress(sonOfFeed, &p1) )
-          {
-            pRes->Card = p1.Card;
+          pRes->Card = p1.Card;
 
-            pRes->CopySizes(p1);
+          pRes->CopySizes(p1);
 
-            pRes->Time = p1.Time + p1.Card * (uFeed + p1.SizeExt * vFeed);
-	    pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
-            return YIELD;
-          }
-          else return CANCEL;
+          pRes->Time = p1.Time + p1.Card * (uFeed + p1.SizeExt * vFeed);
+
+
+	  pRes->Progress = 
+	    ((p1.Progress * p1.Time) +
+	    (fli ? fli->returned : 0) * (uFeed + p1.SizeExt * vFeed))
+		/ pRes->Time;
+          return YIELD;
         }
-      }                 
+        else return CANCEL;
+      }
+
   }
   return 0;
 }
