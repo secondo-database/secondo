@@ -4397,7 +4397,7 @@ int RangeRangevaluesRealExt(
     bool start=true;
     clock3 = clock();
     inter = (*iter).second;
-    while(iter != intermap.end())
+    while(iter != intermap.begin())
     {
         if(start)
         {
