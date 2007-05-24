@@ -290,8 +290,7 @@ Operator : rangevalues
 Number   : 4
 Signature: mreal -> rreal
 Example  : query rangevalues(distance(train7,mehringdamm))
-Result   : crashes
-Remark   : The URealAtMin operator returns an empty result vector
+Result   : (rreal((0.0 13680.865506246306 TRUE TRUE)))
 
 
 Operator : setunitofdistance
