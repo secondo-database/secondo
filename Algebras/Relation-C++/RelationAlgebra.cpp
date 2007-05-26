@@ -1162,6 +1162,11 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
           pRes->Progress = fli->returned * (uFeed + fli->SizeExt * vFeed) 
             / pRes->Time;
+
+	  pRes->BTime = 0.001;		//time must not be 0
+
+          pRes->BProgress = 1.0;
+
           return YIELD;
 	}
       }
@@ -1175,11 +1180,15 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
           pRes->Time = p1.Time + p1.Card * (uFeed + p1.SizeExt * vFeed);
 
-
 	  pRes->Progress = 
 	    ((p1.Progress * p1.Time) +
 	    (fli ? fli->returned : 0) * (uFeed + p1.SizeExt * vFeed))
 		/ pRes->Time;
+
+          pRes->BTime = p1.Time;
+
+	  pRes->BProgress = p1.Progress;
+
           return YIELD;
         }
         else return CANCEL;
@@ -1384,6 +1393,7 @@ Consume(Word* args, Word& result, int message,
         pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
       }
       else 
+      {
         if ( cli->state == 0 )	//working
         {
           pRes->Progress = 
@@ -1396,6 +1406,10 @@ Consume(Word* args, Word& result, int message,
         {
           pRes->Progress = 1.0;
         }
+      }
+      
+      pRes->BTime = pRes->Time;		//completely blocking
+      pRes->BProgress = pRes->Progress;
   
       return YIELD;			//successful
     }
@@ -1786,14 +1800,16 @@ Filter(Word* args, Word& result, int message,
             pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter; 
             pRes->Progress = (p1.Progress * p1.Time 
               + fli->current * qp->GetPredCost(s) * uFilter) / pRes->Time;
+	    pRes->CopyBlocking(p1);
             return YIELD;
           }
         }
-			//filter not yet started
+		//filter not yet started	
  
 	pRes->Card = p1.Card * qp->GetSelectivity(s);
         pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter;
         pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
+	pRes->CopyBlocking(p1);
         return YIELD;
       }
       else return CANCEL;
@@ -2317,12 +2333,7 @@ Project(Word* args, Word& result, int message,
         }
 
         pRes->Card = p1.Card;
-
-        pRes->Size = pli->Size;
-        pRes->SizeExt = pli->SizeExt;
-        pRes->noAttrs = pli->noAttrs;
-        pRes->attrSize = pli->attrSize;
-        pRes->attrSizeExt = pli->attrSizeExt;
+        pRes->CopySizes(pli);
 
         pRes->Time = p1.Time + p1.Card * (uProject + pli->noAttrs * vProject);
 
@@ -2333,6 +2344,8 @@ Project(Word* args, Word& result, int message,
           (p1.Progress * p1.Time +  
             pli->read * (uProject + pli->noAttrs * vProject)) 
           / pRes->Time;
+
+	pRes->CopyBlocking(p1);		//non-blocking operator
 
         return YIELD;
       }
@@ -2794,6 +2807,8 @@ Product(Word* args, Word& result, int message,
   Word r, u;
   ProductLocalInfo* pli;
 
+  pli = (ProductLocalInfo*)local.addr;
+
   switch (message)
   {
     case OPEN:
@@ -2804,12 +2819,11 @@ Product(Word* args, Word& result, int message,
         << MAX_MEMORY/1024 << " MB): " << endl;
       cmsg.send();
 
-      qp->Open(args[0].addr);
-      qp->Request(args[0].addr, r);
-
-      pli = (ProductLocalInfo*)local.addr;
       if ( pli ) delete pli;
       pli = new ProductLocalInfo;
+
+      qp->Open(args[0].addr);
+      qp->Request(args[0].addr, r);
 
       pli->currentTuple =
         qp->Received(args[0].addr) ? (Tuple*)r.addr : 0;
@@ -2827,8 +2841,8 @@ Product(Word* args, Word& result, int message,
         pli->rightRel = 0;
       }
 
-      pli->readFirst = 0;
       pli->readSecond = 0;
+      pli->returned = 0;
       pli->progressInitialized = false;
       local = SetWord(pli);
 
@@ -2838,7 +2852,7 @@ Product(Word* args, Word& result, int message,
         pli->rightRel->AppendTuple( t );
         t->DeleteIfAllowed();
         qp->Request(args[1].addr, u);
-        pli->readFirst++;
+        pli->readSecond++;
       }
       if( pli->rightRel )
       {
@@ -2858,7 +2872,6 @@ Product(Word* args, Word& result, int message,
     case REQUEST:
     {
       Tuple *resultTuple, *rightTuple;
-      pli = (ProductLocalInfo*)local.addr;
 
       if (pli->currentTuple == 0)
       {
@@ -2876,7 +2889,7 @@ Product(Word* args, Word& result, int message,
           Concat(pli->currentTuple, rightTuple, resultTuple);
           rightTuple->DeleteIfAllowed();
           result = SetWord(resultTuple);
-          pli->readSecond++;
+          pli->returned++;
           return YIELD;
         }
         else
@@ -2897,7 +2910,7 @@ Product(Word* args, Word& result, int message,
             Concat(pli->currentTuple, rightTuple, resultTuple);
             rightTuple->DeleteIfAllowed();
             result = SetWord(resultTuple);
-            pli->readSecond++;
+            pli->returned++;
             return YIELD;
           }
           else
@@ -2910,7 +2923,6 @@ Product(Word* args, Word& result, int message,
 
     case CLOSE:
     {
-      pli = (ProductLocalInfo*)local.addr;
       if(pli->currentTuple != 0)
         pli->currentTuple->DeleteIfAllowed();
       if( pli->iter != 0 )
@@ -2933,7 +2945,6 @@ Product(Word* args, Word& result, int message,
       qp->CloseProgress(args[0].addr);
       qp->CloseProgress(args[1].addr);
 
-      pli = (ProductLocalInfo*)local.addr;
       if ( pli ) delete pli;
 
       return 0;
@@ -2944,10 +2955,11 @@ Product(Word* args, Word& result, int message,
     {
       ProgressInfo p1, p2;
       ProgressInfo *pRes;
-      const double uProduct = 0.000006; //millisecs per byte (right input)
-      const double vProduct = 0.000009; //millisecs per byte (total output)
-      int i;
-      pli = (ProductLocalInfo*)local.addr;
+      const double uProduct = 0.0003; //millisecs per byte (right input)
+				      //if writing to disk
+      const double vProduct = 0.000042; //millisecs per byte (total output)
+					//if reading from disk
+ 
       pRes = (ProgressInfo*) result.addr;
 
       if (!pli) return CANCEL;
@@ -2955,31 +2967,10 @@ Product(Word* args, Word& result, int message,
       if (qp->RequestProgress(args[0].addr, &p1)
        && qp->RequestProgress(args[1].addr, &p2))
       {
+        pli->SetJoinSizes(p1, p2);
+
         pRes->Card = p1.Card * p2.Card;
-        pRes->Size = p1.Size + p2.Size;
-        pRes->SizeExt = p1.SizeExt + p2.SizeExt;
-
-        if ( !pli->progressInitialized )
-        {
-          pli->noAttrs = p1.noAttrs + p2.noAttrs;
-          pli->attrSize = new double[pli->noAttrs];
-          pli->attrSizeExt = new double[pli->noAttrs];
-          for (i = 0; i < p1.noAttrs; i++)
-          {
-            pli->attrSize[i] = p1.attrSize[i];
-            pli->attrSizeExt[i] = p1.attrSizeExt[i];
-          }
-          for (int j = 0; j < p2.noAttrs; j++)
-          {
-            pli->attrSize[j+i] = p2.attrSize[j];
-            pli->attrSizeExt[j+i] = p2.attrSizeExt[j];
-          }
-          pli->progressInitialized = true;
-        }
-
-        pRes->noAttrs = pli->noAttrs;
-        pRes->attrSize = pli->attrSize;
-        pRes->attrSizeExt = pli->attrSizeExt;
+        pRes->CopySizes(pli);
 
         pRes->Time = p1.Time + p2.Time +
           p2.Card * p2.Size * uProduct +
@@ -2987,9 +2978,18 @@ Product(Word* args, Word& result, int message,
 
         pRes->Progress =
           (p1.Progress * p1.Time + p2.Progress * p2.Time +
-           pli->readFirst * p2.Size * uProduct +
-           pli->readSecond * pRes->Size * vProduct)
+           pli->readSecond * p2.Size * uProduct +
+           pli->returned * pRes->Size * vProduct)
           / pRes->Time;
+
+
+        pRes->BTime = p1.BTime + p2.BTime +
+          p2.Card * p2.Size * uProduct;
+
+        pRes->BProgress =
+          (p1.BProgress * p1.BTime + p2.BProgress * p2.BTime +
+           pli->readSecond * p2.Size * uProduct)
+          / pRes->BTime;
 
         return YIELD;
       }
