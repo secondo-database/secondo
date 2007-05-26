@@ -808,6 +808,9 @@ ListExpr HeadTypeMap( ListExpr args )
 2.8.3 Value mapping function of operator ~head~
 
 */
+
+#ifndef USE_PROGRESS
+
 struct HeadLocalInfo
 {
   HeadLocalInfo( const int maxTuples = 0 ):
@@ -862,6 +865,120 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   return 0;
 }
+
+#else
+
+struct HeadLocalInfo
+{
+  HeadLocalInfo( const int maxTuples = 0 ):
+    numTuples( 0 ),
+    maxTuples( maxTuples )
+    {}
+
+  int numTuples;
+  int maxTuples;
+};
+
+int Head(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  HeadLocalInfo *hli;
+  Word tupleWord;
+
+  hli = (HeadLocalInfo*)local.addr;
+
+  switch(message)
+  {
+    case OPEN:
+
+      if ( hli ) delete hli;
+
+      hli = 
+        new HeadLocalInfo( ((CcInt*)args[1].addr)->GetIntval() );
+      local = SetWord( hli );
+
+      qp->Open(args[0].addr);
+      return 0;
+
+    case REQUEST:
+
+
+      if(hli->numTuples >= hli->maxTuples)
+      {
+        return CANCEL;
+      }
+
+      qp->Request(args[0].addr, tupleWord);
+      if(qp->Received(args[0].addr))
+      {
+        result = tupleWord;
+        hli->numTuples++;
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+
+    case CLOSE:
+
+      qp->Close(args[0].addr);
+      return 0;
+
+
+    case CLOSEPROGRESS:
+
+      qp->CloseProgress(args[0].addr);
+      if ( hli ) delete hli;
+      return 0;
+
+    case REQUESTPROGRESS:
+
+      ProgressInfo p1;
+      ProgressInfo* pRes;
+      const double uHead = 0.00056; 		
+
+      pRes = (ProgressInfo*) result.addr;
+
+      if ( !hli ) {
+
+        cout << "Too bad! hli does not exist."  << endl;
+
+        return CANCEL;
+      }
+      
+      
+      if ( qp->RequestProgress(args[0].addr, &p1) )
+      {
+        pRes->Card = (p1.Card < hli->maxTuples ? p1.Card : hli->maxTuples);
+        pRes->CopySizes(p1);
+
+        double perTupleTime = 
+	  (p1.Time - p1.BTime) / (p1.Card + 1);
+
+        pRes->Time = p1.BTime + (double) pRes->Card * (perTupleTime + uHead);
+
+        pRes->Progress = 
+	  (p1.BProgress * p1.BTime 
+          + (double) hli->numTuples * (perTupleTime + uHead))
+          / pRes->Time;
+
+        pRes->CopyBlocking(p1);
+        return YIELD;
+      }
+      else 
+      {
+
+	cout << "Oh no!. Head's predecessor did not answer. " << endl;
+        return CANCEL;
+      }
+
+  }
+  return 0;
+}
+
+#endif 
+
+
 /*
 2.8.4 Specification of operator ~head~
 
@@ -3047,7 +3164,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 // progress version
 
 
-class ExtendLocalInfo
+class ExtendLocalInfo: public ProgressLocalInfo
 {
 public:
 
@@ -3056,21 +3173,12 @@ public:
   ~ExtendLocalInfo() {
     delete attrSizeTmp;
     delete attrSizeExtTmp;
-    if ( progressInitialized )
-    {
-      delete attrSize;
-      delete attrSizeExt;
-    }
   }
 
   TupleType *resultTupleType;
-  int current, stableValue;
-  bool progressInitialized, stableState;
-  double Size;
-  double SizeExt;
-  int noAttrs, noNewAttrs;
-  double *attrSize;
-  double *attrSizeExt;
+  int stableValue;
+  bool stableState;
+  int noOldAttrs, noNewAttrs;
   double *attrSizeTmp;
   double *attrSizeExtTmp;
 };
@@ -3085,19 +3193,18 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
   ArgVectorPointer funargs;
   ExtendLocalInfo *eli;
 
+  eli = (ExtendLocalInfo*) local.addr;
+
 
   switch (message)
   {
     case OPEN :
 
-      qp->Open(args[0].addr);
-
-      eli = (ExtendLocalInfo*) local.addr;
-      if ( local.addr ) delete eli;
+      if ( eli ) delete eli;
 
       eli = new ExtendLocalInfo;
       eli->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
-      eli->current = 0;
+      eli->read = 0;
       eli->stableValue = 50;
       eli->stableState = false;
       eli->noNewAttrs = qp->GetNoSons(args[1].addr);
@@ -3109,19 +3216,21 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
         eli->attrSizeExtTmp[i] = 0.0;
       }
       eli->progressInitialized = false;
+
       local = SetWord(eli);
+
+      qp->Open(args[0].addr);
+
       return 0;
 
     case REQUEST :
-
-      eli = (ExtendLocalInfo*) local.addr;
 
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
         Tuple *newTuple = new Tuple( eli->resultTupleType );
-        eli->current++;
+        eli->read++;
         for( int i = 0; i < tup->GetNoAttributes(); i++ ) {
           //cout << (void*) tup << endl;
           newTuple->CopyAttribute( i, tup, i );
@@ -3138,7 +3247,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           newTuple->PutAttribute( tup->GetNoAttributes()+i,
                                   ((StandardAttribute*)value.addr)->Clone() );
 
-          if (eli->current <= eli->stableValue)
+          if (eli->read <= eli->stableValue)
           {
             eli->attrSizeTmp[i] += newTuple->GetSize(tup->GetNoAttributes()+i);
             eli->attrSizeExtTmp[i] +=
@@ -3155,7 +3264,6 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE :
 
-      eli = (ExtendLocalInfo*) local.addr;
       eli->resultTupleType->DeleteIfAllowed();
       qp->Close(args[0].addr);
       return 0;
@@ -3164,8 +3272,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSEPROGRESS:
       qp->CloseProgress(args[0].addr);
 
-      eli = (ExtendLocalInfo*) local.addr;
-      if ( local.addr ) delete eli;
+      if ( eli ) delete eli;
       return 0;
 
 
@@ -3173,11 +3280,10 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
       ProgressInfo p1;
       ProgressInfo *pRes;
-      const double uExtend = 0.009;   //millisecs per tuple
-      const double vExtend = 0.006;   //millisecs per tuple and attribute
+      const double uExtend = 0.0012;   //millisecs per tuple
+      const double vExtend = 0.00085;   //millisecs per tuple and attribute
 
       pRes = (ProgressInfo*) result.addr;
-      eli = (ExtendLocalInfo*) local.addr;
 
       if ( !eli ) return CANCEL;
 
@@ -3185,10 +3291,11 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       {
         if ( !eli->progressInitialized )
         {
-          eli->noAttrs = p1.noAttrs;
-          eli->attrSize = new double[eli->noAttrs + eli->noNewAttrs];
-          eli->attrSizeExt = new double[eli->noAttrs + eli->noNewAttrs];
-          for (int i = 0; i < eli->noAttrs; i++)
+          eli->noOldAttrs = p1.noAttrs;
+          eli->noAttrs = eli->noOldAttrs + eli->noNewAttrs;
+          eli->attrSize = new double[eli->noAttrs];
+          eli->attrSizeExt = new double[eli->noAttrs];
+          for (int i = 0; i < eli->noOldAttrs; i++)
           {
             eli->attrSize[i] = p1.attrSize[i];
             eli->attrSizeExt[i] = p1.attrSizeExt[i];
@@ -3197,44 +3304,42 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           eli->SizeExt = p1.SizeExt;
           for (int j = 0; j < eli->noNewAttrs; j++)
           {
-            eli->attrSize[j + eli->noAttrs] = 12;
-            eli->attrSizeExt[j + eli->noAttrs] = 12;
-            eli->Size += eli->attrSize[j + eli->noAttrs];
-            eli->SizeExt += eli->attrSizeExt[j + eli->noAttrs];
+            eli->attrSize[j + eli->noOldAttrs] = 12;
+            eli->attrSizeExt[j + eli->noOldAttrs] = 12;
+            eli->Size += eli->attrSize[j + eli->noOldAttrs];
+            eli->SizeExt += eli->attrSizeExt[j + eli->noOldAttrs];
           }
           eli->progressInitialized = true;
         }
 
-        if (!eli->stableState && (eli->current >= eli->stableValue))
+        if (!eli->stableState && (eli->read >= eli->stableValue))
         {
           eli->Size = p1.Size;
           eli->SizeExt = p1.SizeExt;
           for (int j = 0; j < eli->noNewAttrs; j++)
           {
-            eli->attrSize[j + eli->noAttrs] = eli->attrSizeTmp[j] /
+            eli->attrSize[j + eli->noOldAttrs] = eli->attrSizeTmp[j] /
               eli->stableValue;
-            eli->attrSizeExt[j + eli->noAttrs] = eli->attrSizeExtTmp[j] / 
+            eli->attrSizeExt[j + eli->noOldAttrs] = eli->attrSizeExtTmp[j] / 
               eli->stableValue;
-            eli->Size += eli->attrSize[j + eli->noAttrs];
-            eli->SizeExt += eli->attrSizeExt[j + eli->noAttrs];
+            eli->Size += eli->attrSize[j + eli->noOldAttrs];
+            eli->SizeExt += eli->attrSizeExt[j + eli->noOldAttrs];
           }
           eli->stableState = true;
         }
 
         pRes->Card = p1.Card;
 
-        pRes->Size = eli->Size;
-        pRes->SizeExt = eli->SizeExt;
-        pRes->noAttrs = eli->noAttrs + eli->noNewAttrs;
-        pRes->attrSize = eli->attrSize;
-        pRes->attrSizeExt = eli->attrSizeExt;
+        pRes->CopySizes(eli);
 
         pRes->Time = p1.Time + p1.Card * (uExtend + eli->noNewAttrs * vExtend);
 
         pRes->Progress =
           (p1.Progress * p1.Time +
-            eli->current * (uExtend + eli->noNewAttrs * vExtend))
+            eli->read * (uExtend + eli->noNewAttrs * vExtend))
           / pRes->Time;
+
+	pRes->CopyBlocking(p1);		//non-blocking operator
 
         return YIELD;
       }
@@ -6296,6 +6401,8 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
   Word r, l;
   SymmJoinLocalInfo* pli;
 
+  pli = (SymmJoinLocalInfo*) local.addr;
+
   switch (message)
   {
     case OPEN :
@@ -6306,7 +6413,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
                                    << MAX_MEMORY/1024 << " MB): " << endl;
       cmsg.send();
 
-      pli = (SymmJoinLocalInfo*) local.addr;
+
       if ( pli ) delete pli;
 
       pli = new SymmJoinLocalInfo;
@@ -6336,8 +6443,6 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case REQUEST :
     {
-      pli = (SymmJoinLocalInfo*)local.addr;
-
       while( 1 )
         // This loop will end in some of the returns.
       {
@@ -6505,8 +6610,6 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     }
     case CLOSE :
     {
-      pli = (SymmJoinLocalInfo*)local.addr;
-
       if( pli->currTuple != 0 )
         pli->currTuple->DeleteIfAllowed();
 
@@ -6538,7 +6641,6 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->CloseProgress(args[0].addr);
       qp->CloseProgress(args[1].addr);
 
-      pli = (SymmJoinLocalInfo*) local.addr;
       if ( pli ) delete pli;
       return 0;
 
@@ -6547,11 +6649,9 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       ProgressInfo p1, p2;
       ProgressInfo *pRes;
-      const double uSymmJoin = 1.0;   	 //millisecs per tuple
-      //const double vSymmJoin = 0.0001; //millisecs per tuple 
-                                         //and byte (not used)
-      int i;
-      pli = (SymmJoinLocalInfo*) local.addr;
+      const double uSymmJoin = 0.2;  //millisecs per tuple pair
+
+
       pRes = (ProgressInfo*) result.addr;
 
       if (!pli) return CANCEL;
@@ -6559,36 +6659,22 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       if (qp->RequestProgress(args[0].addr, &p1)
        && qp->RequestProgress(args[1].addr, &p2))
       {
-        if ( !pli->progressInitialized )
-        {
-          pli->noAttrs = p1.noAttrs + p2.noAttrs;
-          pli->attrSize = new double[pli->noAttrs];
-          pli->attrSizeExt = new double[pli->noAttrs];
-          for (i = 0; i < p1.noAttrs; i++)
-          {
-            pli->attrSize[i] = p1.attrSize[i];
-            pli->attrSizeExt[i] = p1.attrSizeExt[i];
-          }
-          for (int j = 0; j < p2.noAttrs; j++)
-          {
-            pli->attrSize[j+i] = p2.attrSize[j];
-            pli->attrSizeExt[j+i] = p2.attrSizeExt[j];
-          }
-          pli->progressInitialized = true;
-        }
+        pli->SetJoinSizes(p1, p2);
 
-        pRes->Size = p1.Size + p2.Size;
-        pRes->SizeExt = p1.SizeExt + p2.SizeExt;
-        pRes->noAttrs = pli->noAttrs;
-        pRes->attrSize = pli->attrSize;
-        pRes->attrSizeExt = pli->attrSizeExt;
+        pRes->CopySizes(pli);
+
+        double predCost = 
+	  (qp->GetPredCost(s) == 0.1 ? 0.004 : qp->GetPredCost(s));
+
+		//the default value of 0.1 is only suitable for selections
+
         pRes->Time = p1.Time + p2.Time +
-          p1.Card * p2.Card * qp->GetPredCost(s) * uSymmJoin;
+          p1.Card * p2.Card * predCost * uSymmJoin;
 
         pRes->Progress =
           (p1.Progress * p1.Time + p2.Progress * p2.Time +
           pli->readFirst * pli->readSecond *
-          qp->GetPredCost(s) * uSymmJoin)
+          predCost * uSymmJoin)
           / pRes->Time;
 
         if (pli->returned > 50 ) 	// stable state assumed now
@@ -6601,6 +6687,9 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
         {
           pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
         }
+
+        pRes->CopyBlocking(p1, p2);	//non-blocking oprator
+
         return YIELD;
       }
       else
@@ -7763,7 +7852,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelmax);
     AddOperator(&extrelavg);
     AddOperator(&extrelsum);
-    AddOperator(&extrelhead);
+    AddOperator(&extrelhead);		extrelhead.EnableProgress();
     AddOperator(&extrelsortby);		extrelsortby.EnableProgress();
     AddOperator(&extrelsort);		extrelsort.EnableProgress();
     AddOperator(&extrelrdup);		extrelrdup.EnableProgress();
