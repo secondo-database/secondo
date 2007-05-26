@@ -50,25 +50,57 @@ messages. This is still work in progress!
 using namespace std;
 
 
+class ProgressLocalInfo;
+
+class ProgressInfo
+{
+public:
+
+  ProgressInfo();
+
+  double Card;		//expected cardinality
+  double Size;		//expected total tuple size (including FLOBs)
+  double SizeExt;	//expected size of tuple root and extension part 
+    			//   (no FLOBs)
+  int noAttrs;		//no of attributes
+  double *attrSize;	//for each attribute, the complete size
+  double *attrSizeExt;	//for each attribute, the root and extension size
+
+  double Time;		//expected time, in millisecond
+  double Progress;	//a number between 0 and 1
+
+  double BTime;		//expected time, in millisecond of blocking ops
+  double BProgress;	//a number between 0 and 1
+
+
+  void CopySizes(ProgressInfo p);	//copy the size fields
+
+  void CopySizes(ProgressLocalInfo* pli);  //copy the size fields
+
+  void CopyBlocking(ProgressInfo p);	//copy BTime, BProgress 
+					//for non blocking unary op.
+
+  void CopyBlocking(ProgressInfo p1,ProgressInfo p2); //copy BTime, BProgress
+					//for non-blocking binary op. (join)
+
+  void Copy(ProgressInfo p);		//copy all fields
+
+};	
+
+
+
+
+
+
+
 class ProgressLocalInfo
 {
   
 public:
 
-  ProgressLocalInfo()  {
-    progressInitialized = false;
-  }
+  ProgressLocalInfo(); 
 
-  ~ProgressLocalInfo() 
-  {
-    if ( progressInitialized )
-    {
-      delete attrSize;
-      delete attrSizeExt;
-
-	//cout << "attrSize and attrSizeExt deleted" << endl;
-    }
-  }
+  ~ProgressLocalInfo();
 
   int returned;        	//current number of tuples returned
   int read;		//no of tuples read from arg stream
@@ -87,7 +119,14 @@ public:
   int noAttrs;		//no of attributes
   double *attrSize;	//full size of each attribute
   double *attrSizeExt;	//size of root and ext. part of each attribute
+
+  void SetJoinSizes( ProgressInfo& p1, ProgressInfo& p2 ) ;
+
+			//set the sizes for a join of first and second argument
+			//only done once
 };
+
+
 
 
 
