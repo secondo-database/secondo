@@ -584,7 +584,7 @@ class SortByLocalInfo : protected ProgressWrapper
 {
   public:
     SortByLocalInfo( Word stream, const bool lexicographic,
-		     void *tupleCmp, Progress* p            ):
+		     void *tupleCmp, ProgressLocalInfo* p            ):
       ProgressWrapper(p),
       stream( stream ),
       currentIndex( 0 ),
@@ -621,7 +621,7 @@ class SortByLocalInfo : protected ProgressWrapper
         TupleAndRelPos minTuple(0, tupleCmpBy);
         while(qp->Received(stream.addr)) // consume the stream completely
         {
-          progress->incCtrA();
+          progress->read++;
           c++; // tuple counter;
           Tuple *t = static_cast<Tuple*>( wTuple.addr );
           TupleAndRelPos nextTuple(t, tupleCmpBy);
@@ -634,7 +634,7 @@ class SortByLocalInfo : protected ProgressWrapper
           }
           else
           { // memory is completely used
-            progress->setCtr(1);
+            progress->state = 1;
             if ( newRelation )
             { // create new relation
               r++;
@@ -896,13 +896,14 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 
   LocalInfo<SortByLocalInfo>* li;
 
+  li = static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
+
   switch(message)
   {
     case OPEN:
     {
       qp->Open(args[0].addr);
 
-      li = static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
       if ( li ) delete li;
 
       li = new LocalInfo<SortByLocalInfo>();
@@ -922,17 +923,15 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case REQUEST:
     {
-      li = static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
       SortByLocalInfo* sli = li->ptr;
       result = SetWord( sli->NextResultTuple() );
-      li->incCtrB();
+      li->returned++;
       return result.addr != 0 ? YIELD : CANCEL;
     }
 
     case CLOSE:
       qp->Close(args[0].addr);
 
-      li = static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
       delete li->ptr;
       return 0;
 
@@ -940,42 +939,46 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSEPROGRESS:
       qp->CloseProgress(args[0].addr);
 
-      li = static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
-      if ( li ) { 
-        delete li;
-	local.addr = 0;
-      }	
+      if ( li ) delete li;
       return 0;
 
 
     case REQUESTPROGRESS:
 
-      li = static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
-
-
       ProgressInfo p1;
       ProgressInfo *pRes;
-      const double uSortBy = 0.07;   //millisecs per tuple input and sort
-      const double vSortBy = 0.02;   //millisecs per tuple output
-      const double oSortBy = 0.02;   //offset due to placing in relations
+      const double uSortBy = 0.038;   //millisecs per tuple input and sort
+      const double vSortBy = 0.0024;   //millisecs per tuple output
+      const double oSortBy = 0.0;   //offset due to placing in relations
+				    //not yet measurable
       pRes = (ProgressInfo*) result.addr;
-
-      li = static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
 
       if( !li ) return CANCEL;
       else
       {
         if (qp->RequestProgress(args[0].addr, &p1))
         {
-          pRes->CopySizes(p1);
           pRes->Card = p1.Card;
-          pRes->Time =                       //li->getCtr() = 0 or 1
-            p1.Time + p1.Card * (uSortBy + oSortBy * li->getCtr() + vSortBy);
+          pRes->CopySizes(p1);
+
+          pRes->Time =                       //li->state = 0 or 1
+            p1.Time 
+	    + p1.Card * (uSortBy + oSortBy * li->state)
+            + p1.Card * vSortBy;
+
           pRes->Progress =
-            (p1.Progress * p1.Time +
-             li->getCtrA() * (uSortBy + oSortBy * li->getCtr()) +
-               li->getCtrB() * vSortBy)
+            (p1.Progress * p1.Time 
+             + li->read * (uSortBy + oSortBy * li->state) 
+             + li->returned * vSortBy)
             / pRes->Time;
+
+	  pRes->BTime = p1.BTime + p1.Card * (uSortBy + oSortBy * li->state);
+
+	  pRes->BProgress = 
+	    (p1.BProgress * p1.BTime
+	    + li->read * (uSortBy + oSortBy * li->state))
+	    / pRes->BTime;
+
           return YIELD;
         }
         else return CANCEL;
@@ -1499,13 +1502,13 @@ private:
 
   inline Tuple* NextTupleA()
   {
-    progress->incCtrA();
+    progress->readFirst++;
     return NextTuple(streamA, sliA);
   }  
 
   inline Tuple* NextTupleB()
   {
-    progress->incCtrB();
+    progress->readSecond++;
     return NextTuple(streamB, sliB);
   }  
 
@@ -1514,7 +1517,7 @@ public:
   MergeJoinLocalInfo( Word _streamA, Word wAttrIndexA,
                       Word _streamB, Word wAttrIndexB, 
                       bool _expectSorted, Supplier s,
-                      Progress* p ) :
+                      ProgressLocalInfo* p ) :
     ProgressWrapper(p), 
     traceFlag( RTFlag::isActive("ERA:TraceMergeJoin") )
   {
@@ -1546,13 +1549,13 @@ public:
       void* tupleCmpB = new TupleCompareBy( specB );
 
       liA = new LocalInfo<SortByLocalInfo>();
-      progress->setPtrA((Word*) liA);
+      progress->firstLocalInfo = liA;
       sliA = new SortByLocalInfo( streamA, 
 				  false,  
 				  tupleCmpA, liA );
 
       liB = new LocalInfo<SortByLocalInfo>();
-      progress->setPtrB((Word*) liB);
+      progress->secondLocalInfo = liB;
       sliB = new SortByLocalInfo( streamB, 
 				  false,  
 				  tupleCmpB, liB );
@@ -1755,10 +1758,10 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
       MergeJoinLocalInfo* mli = li->ptr;
       result.addr = mli->NextResultTuple();
+      li->returned++;
 
       //mergeMeasurer.Exit();
 
-      li->incRtrn();
       return result.addr != 0 ? YIELD : CANCEL;
 
     }
@@ -1791,51 +1794,27 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       ProgressInfo p1, p2;
       ProgressInfo* pRes = static_cast<ProgressInfo*>( result.addr );
-      const double uMergeJoin = 0.05;  //millisecs per tuple merge
-      const double uSortBy = 0.07;     //millisecs per tuple sort
-      int i = 0;
+      const double uMergeJoin = 0.041;  //millisecs per tuple merge
+      const double uSortBy = 0.035;     //millisecs per tuple sort
 
-
-      typedef LocalInfo<SortByLocalInfo> LocalSBY;
-      LocalSBY* liA;
-      LocalSBY* liB;
+      LocalInfo<SortByLocalInfo>* liFirst;
+      LocalInfo<SortByLocalInfo>* liSecond;
 
       if( !li ) return CANCEL;
       else
       {
 
-        liA =
-          static_cast<LocalSBY*> (li->getPtrA());
-        liB =
-          static_cast<LocalSBY*> (li->getPtrB());
+        liFirst = static_cast<LocalInfo<SortByLocalInfo>*> 
+	  (li->firstLocalInfo);
+        liSecond = static_cast<LocalInfo<SortByLocalInfo>*> 
+	  (li->secondLocalInfo);
 
         if (qp->RequestProgress(args[0].addr, &p1)
          && qp->RequestProgress(args[1].addr, &p2))
         {
-          if ( !li->getPrInit() )
-          {
+	  li->SetJoinSizes(p1, p2);
 
-            li->setNoAtt(p1.noAttrs + p2.noAttrs);
-            double* AttSize = li->initAttSize(li->getNoAtt());
-            double* AttSExt = li->initAttSExt(li->getNoAtt());
-            for (i = 0; i < p1.noAttrs; i++)
-            {
-              AttSize[i] = p1.attrSize[i];
-              AttSExt[i] = p1.attrSizeExt[i];
-            }
-            for (int j = 0; j < p2.noAttrs; j++)
-            {
-              AttSize[j+i] = p2.attrSize[j];
-              AttSExt[j+i] = p2.attrSizeExt[j];
-            }
-            li->setPrInit(true);
-          }
-
-          pRes->Size = p1.Size + p2.Size;
-          pRes->SizeExt = p1.SizeExt + p2.SizeExt;
-          pRes->noAttrs = li->getNoAtt();
-          pRes->attrSize = li->getAttSize();
-          pRes->attrSizeExt = li->getAttSExt();
+	  pRes->CopySizes(li);
 
           if ( expectSorted )
           {
@@ -1844,13 +1823,14 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
             pRes->Progress =
               (p1.Progress * p1.Time + p2.Progress * p2.Time +
-                (((double) li->getCtrA()) + ((double) li->getCtrB())) 
+                (((double) li->readFirst) + ((double) li->readSecond)) 
                 * uMergeJoin)
               / pRes->Time;
+
+	    pRes->CopyBlocking(p1, p2);	   //non-blocking in this case
           }
           else
           {
-
             pRes->Time =
               p1.Time + 
 	      p2.Time +
@@ -1858,24 +1838,36 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
               p2.Card * uSortBy +
               (p1.Card + p2.Card) * uMergeJoin;
 
-            long liACtrA = (liA ? liA->getCtrA() : 0);
-            long liBCtrA = (liB ? liB->getCtrA() : 0);
+            long readFirst = (liFirst ? liFirst->read : 0);
+            long readSecond = (liSecond ? liSecond->read : 0);
 
             pRes->Progress =
               (p1.Progress * p1.Time + 
               p2.Progress * p2.Time +
-              ((double) liACtrA) * uSortBy + 
-              ((double) liBCtrA) * uSortBy +
-              (((double) li->getCtrA()) + ((double) li->getCtrB())) 
+              ((double) readFirst) * uSortBy + 
+              ((double) readSecond) * uSortBy +
+              (((double) li->readFirst) + ((double) li->readSecond)) 
                 * uMergeJoin)
               / pRes->Time;
+
+            pRes->BTime = p1.BTime + p2.BTime               
+	      + p1.Card * uSortBy 
+              + p2.Card * uSortBy;
+
+	    pRes->BProgress = 
+	      (p1.BProgress + p2.BProgress 
+              + ((double) readFirst) * uSortBy
+              + ((double) readSecond) * uSortBy)
+	      / pRes->BTime;
           }
 
-          if (li->getRtrn() > 50 ) 	// stable state assumed now
+
+
+          if (li->returned > 50 ) 	// stable state assumed now
           {
             pRes->Card = p1.Card * p2.Card *
-              ((double) li->getRtrn()
-             /  ((double) li->getCtrA() * (double) li->getCtrB()));
+              ((double) li->returned
+             /  ((double) li->readFirst * (double) li->readSecond));
           }
           else
           {
@@ -2357,7 +2349,7 @@ private:
     size_t b = 0, i = 0;
     while(qp->Received(streamB.addr) )
     {
-      progress->incCtrB();
+      progress->readSecond++;
       Tuple* tupleB = (Tuple*)wTupleB.addr;
       b += tupleB->GetExtSize();
       i++;
@@ -2389,7 +2381,7 @@ private:
       qp->Close(streamB.addr);
       streamBClosed = true;
     }
-    else progress->setCtr(1);
+    else progress->state = 1;
 
     return remainTuples;
   }
@@ -2400,7 +2392,7 @@ public:
 
   HashJoinLocalInfo(Word streamA, Word attrIndexAWord,
     Word streamB, Word attrIndexBWord, Word nBucketsWord,
-    Supplier s, Progress* p) : ProgressWrapper(p)
+    Supplier s, ProgressLocalInfo* p) : ProgressWrapper(p)
   {
     memInfoShown = false;
     showMemInfo = RTFlag::isActive("ERA:ShowMemInfo");
@@ -2484,7 +2476,7 @@ bucket that the tuple coming from A hashes is also initialized.
       qp->Request( streamA.addr, wTupleA );
       if( qp->Received(streamA.addr) )
       {
-        progress->incCtrA();
+        progress->readFirst++;
         tupleA = (Tuple*)wTupleA.addr;
         if (!memInfoShown && showMemInfo)
         {
@@ -2568,10 +2560,12 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
   LocalType* li;
   HashJoinLocalInfo* hli;
 
+  li = static_cast<LocalType*>( local.addr );
+
   switch(message)
   {
     case OPEN:
-      li = static_cast<LocalType*>( local.addr );
+
       if ( li ) delete li;
 
       li = new LocalType();
@@ -2581,16 +2575,15 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
 
     case REQUEST:
-      li = static_cast<LocalType*>( local.addr );
+
       hli = li->ptr;
       result = SetWord( hli->NextResultTuple() );
-
-      li->incRtrn();
+      li->returned++;
 
       return result.addr != 0 ? YIELD : CANCEL;
 
     case CLOSE:
-      li = static_cast<LocalType*>( local.addr );
+
       delete li->ptr;
       return 0;
 
@@ -2599,11 +2592,8 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->CloseProgress(args[0].addr);
       qp->CloseProgress(args[1].addr);
 
-      li = static_cast<LocalType*>( local.addr );
-      if ( li ) { 
-	delete li;
-	local.addr = 0;
-      }	
+      if ( li ) delete li;
+
       return 0;
     
 
@@ -2614,11 +2604,7 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       ProgressInfo* pRes = static_cast<ProgressInfo*>( result.addr );
       const double uHashJoin = 0.0025;  //millisecs per tuple left
       const double vHashJoin = 0.2500;  //millisecs per tuple right
-      const double oHashJoin = 0.7500;  //offset due to paging
-      int i = 0;
-
-
-      li = static_cast<LocalType*>( local.addr );
+      const double wHashJoin = 0.7500;  //millisecs per tuple returned
 
       if( !li ) return CANCEL;
       else
@@ -2626,62 +2612,55 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
        if (qp->RequestProgress(args[0].addr, &p1)
          && qp->RequestProgress(args[1].addr, &p2))
         {
-          if ( !li->getPrInit() )
-          {
-            li->setNoAtt(p1.noAttrs + p2.noAttrs);
-            double* AttSize = li->initAttSize(li->getNoAtt());
-            double* AttSExt = li->initAttSExt(li->getNoAtt());
-            for (i = 0; i < p1.noAttrs; i++)
-            {
-              AttSize[i] = p1.attrSize[i];
-              AttSExt[i] = p1.attrSizeExt[i];
-            }
-            for (int j = 0; j < p2.noAttrs; j++)
-            {
-              AttSize[j+i] = p2.attrSize[j];
-              AttSExt[j+i] = p2.attrSizeExt[j];
-            }
-            li->setPrInit(true);
-          }
-          pRes->Size = p1.Size + p2.Size;
-          pRes->SizeExt = p1.SizeExt + p2.SizeExt;
-          pRes->noAttrs = li->getNoAtt();
-          pRes->attrSize = li->getAttSize();
-          pRes->attrSizeExt = li->getAttSExt();
+	  li->SetJoinSizes(p1, p2);
 
-          pRes->Time = p1.Time + p2.Time +
-            p1.Card * uHashJoin *
-            p2.Card * (vHashJoin + oHashJoin) *
-            qp->GetPredCost(s);
+	  double defaultSelectivity = 
+	    (p1.Card < p2.Card ? 1 / p2.Card : 1 / p1.Card);
 
-          if (!li->getCtrA())
-          {
-            pRes->Progress =
-              (p1.Progress * p1.Time + p2.Progress * p2.Time +
-              li->getCtrB() * vHashJoin *
-              qp->GetPredCost(s))
-              / pRes->Time;
-          }
-          else
-          {
-            pRes->Progress =
-              (p1.Progress * p1.Time + p2.Progress * p2.Time +
-              li->getCtrA() * uHashJoin *
-              li->getCtrB() * (vHashJoin + oHashJoin) *
-              qp->GetPredCost(s))
-              / pRes->Time;
-          }
-
-          if (li->getRtrn() > 50 ) 	// stable state assumed now
+          if (li->returned > 50 ) 	// stable state assumed now
           {
             pRes->Card = p1.Card * p2.Card *
-              ((double) li->getRtrn() / 
-                (double) (li->getCtrA() * li->getCtrB()));
+              ((double) li->returned / 
+                (double) (li->readFirst * li->readSecond));
           }
           else
           {
-            pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
+            pRes->Card = p1.Card * p2.Card * 
+              (qp->GetSelectivity(s) == 0.1 ? defaultSelectivity : 
+	        qp->GetSelectivity(s));
           }
+
+	  pRes->CopySizes(li);
+
+          pRes->Time = p1.Time + p2.Time
+	    + p2.Card * vHashJoin	//reading into hashtable
+	    + p1.Card * uHashJoin	//probing
+            + pRes->Card * wHashJoin;	//output tuples
+
+	  pRes->Progress = (p1.Progress * p1.Time + p2.Progress * p2.Time
+	    + li->readSecond * vHashJoin
+	    + li->readFirst * uHashJoin
+	    + (li->returned < pRes->Card ? li->returned : pRes->Card ) 
+		* wHashJoin)
+            / pRes->Time;
+
+	  pRes->BTime = p1.BTime + p2.BTime 
+	    + (p2.Card * vHashJoin < 4500.0 ? p2.Card * vHashJoin : 4500.0);
+
+		//this is an absolute time, because results are produced
+		//when the buffer has been filled once
+
+	  pRes->BProgress = (p1.BProgress * p1.BTime + p2.Progress * p2.BTime
+	    + (li->readSecond * vHashJoin < 4500.0 ? 
+			li->readSecond * vHashJoin : 4500.0))
+            / pRes->BTime;
+
+	
+		cout << "li->readFirst = " << li->readFirst << endl;
+		cout << "li->readSecond = " << li->readSecond << endl;
+		cout << "li->returned = " << li->returned << endl;
+		cout << "li->state = " << li->state << endl;
+
           return YIELD;
         }
         else
