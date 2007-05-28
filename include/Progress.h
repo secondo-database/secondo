@@ -111,6 +111,9 @@ public:
 			//some operators
   int state;		//to keep state info if needed
 
+  void* firstLocalInfo;	//pointers to localinfos of first and second arg
+  void* secondLocalInfo;
+
   bool progressInitialized;
 
 			//the following only defined if progressInitialized
@@ -129,82 +132,13 @@ public:
 
 
 
-
-
-
-
-
-
-/*
-Class ~Progress~
-
-This class collects useful information and operations for the
-handling of progress messages.
-
-*/
-
-class Progress {
-
-public:
-
-  Progress() : ctr(0),
-    ctrA(0), ctrB(0), rtrn(0),
-    noAtt(0), prInit(0), attSize(0), attSExt(0),
-    PtrA(0), PtrB(0)
-    {}
-
-  virtual ~Progress() {}
-
-  void setCtr(long value);
-  long getCtr();
-
-  long getCtrA();
-  void setCtrA(long value);
-  void incCtrA();
-
-  long getCtrB();
-  void setCtrB(long value);
-  void incCtrB();
-
-  long getRtrn();
-  void setRtrn(long value);
-  void incRtrn();
-
-  bool getPrInit();
-  void setPrInit(bool value);
-
-  long getNoAtt();
-  void setNoAtt(long value);
-
-  double* getAttSize();
-  double* initAttSize(int value);
-
-  double* getAttSExt();
-  double* initAttSExt(int value);
-
-  void* getPtrA();
-  void setPtrA(void* value);
-
-  void* getPtrB();
-  void setPtrB(void* value);
-
-
-private:
-  long ctr;
-  long ctrA, ctrB, rtrn, noAtt;
-  bool prInit;
-  double *attSize, *attSExt;
-  void* PtrA;
-  void* PtrB;
-
-};
-
 /*
 Class ~ProgressWrapper~
 
 This class is useful if operator implementations are encapsulated into their
-own classes. By inherting from this class it is possible to access a ~Progress~
+own classes. By inheriting from this class, it is possible to access a ~ProgressLocalInfo~
 object inside the implementation of a special class, e.g. ~SortByLocalInfo~
+
 
 */
 
@@ -212,51 +146,51 @@ class ProgressWrapper {
 
 public:	
 
-  ProgressWrapper(Progress* p) : progress(p) {}
+  ProgressWrapper(ProgressLocalInfo* p) : progress(p) {}
   ~ProgressWrapper(){}
 
 protected:
 
   // the pointer address can only be assigned once, but
   // the object pointed to may be modified.
-  Progress* const progress;
+  ProgressLocalInfo* const progress;
 
 };	
+
+
 
 /* 
 Class ~LocalInfo~
 
-This class inherits from class ~Progress~ and has an additional
-pointer to some class ~T~. It is a template class and offers
-a function which casts the internal pointer to the appropriate
-type.
+This class inherits from class ~ProgressLocalinfo~ and has an additional
+pointer to some class ~T~. 
 
 In operator implementations you may define the local.addr pointer
 like this:
 
-----
-    local.addr = new LocalInfo<SortByLocalInfo>;
+----	local.addr = new LocalInfo<SortByLocalInfo>;
 ----
 
 Moreover, the ~SortByLocalInfo~ class must inherit from class ~ProgressWrapper~
 
-----
-    SortByLocalInfo : protected ProgressWrapper { ... }
+----	SortByLocalInfo : protected ProgressWrapper { ... }
 ----
 
 Refer to the ~sortby~ operator for implementation details.
 
+
 */
 
 template<class T>
-class LocalInfo : public Progress {
+class LocalInfo : public ProgressLocalInfo {
 
   public:
-    LocalInfo() : Progress(), ptr(0) {}
+    LocalInfo() : ProgressLocalInfo(), ptr(0) {}
     ~LocalInfo() {}   
 
     T* ptr;  
 };	
+
 
 
 

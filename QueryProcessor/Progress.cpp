@@ -89,6 +89,9 @@ ProgressLocalInfo::ProgressLocalInfo()  {
   readFirst = 0;
   readSecond = 0;
   returned = 0;
+  state = 0;
+  firstLocalInfo = 0;
+  secondLocalInfo = 0;
   progressInitialized = false;
 }
 
@@ -98,8 +101,6 @@ ProgressLocalInfo::~ProgressLocalInfo()
   {
     delete attrSize;
     delete attrSizeExt;
-
-	//cout << "attrSize and attrSizeExt deleted" << endl;
   }
 }
 
@@ -144,65 +145,4 @@ void ProgressLocalInfo::SetJoinSizes( ProgressInfo& p1, ProgressInfo& p2 )
 
 
 
-
-
-
-long
-Progress::getCtr() { return ctr; }
-
-void
-Progress::setCtr(long value) { ctr = value; }
-
-
-
-long
-Progress::getCtrA() { return ctrA; }
-void
-Progress::setCtrA(long value) { ctrA = value; }
-void
-Progress::incCtrA() { ctrA++; }
-
-long
-Progress::getCtrB() { return ctrB; }
-void
-Progress::setCtrB(long value) { ctrB = value; }
-void
-Progress::incCtrB() { ctrB++; }
-
-long
-Progress::getRtrn() { return rtrn; }
-void
-Progress::setRtrn(long value) { rtrn = value; }
-void
-Progress::incRtrn() { rtrn++; }
-
-bool
-Progress::getPrInit() { return prInit; }
-void
-Progress::setPrInit(bool value) { prInit = value; }
-
-long
-Progress::getNoAtt() { return noAtt; }
-void
-Progress::setNoAtt(long value) { noAtt = value; }
-
-double*
-Progress::getAttSize() { return attSize; }
-double*
-Progress::initAttSize(int value) { return (attSize = new double[value]); }
-
-double*
-Progress::getAttSExt() { return attSExt; }
-double*
-Progress::initAttSExt(int value) { return (attSExt = new double[value]); }
-
-void*
-Progress::getPtrA() { return PtrA; }
-void
-Progress::setPtrA(void* value) { PtrA = value; }
-
-void*
-Progress::getPtrB() { return PtrB; }
-void
-Progress::setPtrB(void* value) { PtrB =  value; }
 
