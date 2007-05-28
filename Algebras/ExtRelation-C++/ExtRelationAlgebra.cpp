@@ -2080,7 +2080,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
 struct RdupLocalInfo
 {
   Tuple* localTuple;
-  int current, returned, stableValue;
+  int read, returned, stableValue;
 };
 
 
@@ -2093,29 +2093,29 @@ int RdupValueMapping(Word* args, Word& result, int message,
   Tuple* currentTuple;
   RdupLocalInfo* rli;
 
+  rli = (RdupLocalInfo*) local.addr;
+
 
   Tuple* lastOutputTuple;
 
   switch(message)
   {
     case OPEN:
-      qp->Open(args[0].addr);
 
-      rli = (RdupLocalInfo*) local.addr;
       if ( rli ) delete rli;
 
       rli = new RdupLocalInfo;
-      rli->current = 0;
+      rli->read = 0;
       rli->returned = 0;
       rli->stableValue = 50;
       rli->localTuple = 0;
       local = SetWord(rli);
 
+      qp->Open(args[0].addr);
+
       return 0;
 
     case REQUEST:
-
-      rli = (RdupLocalInfo*) local.addr;
 
       while(true)
       {
@@ -2124,7 +2124,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
         {
           // stream deliverd a new tuple
 
-          rli->current++;
+          rli->read++;
           if(rli->localTuple != 0)
 
           {
@@ -2179,8 +2179,8 @@ int RdupValueMapping(Word* args, Word& result, int message,
         }
       }
     case CLOSE:
-      rli = (RdupLocalInfo*) local.addr;
-      if(rli->localTuple != 0)
+
+      if (rli->localTuple != 0 )
       {
         rli->localTuple->DecReference();
         rli->localTuple->DeleteIfAllowed();
@@ -2193,7 +2193,6 @@ int RdupValueMapping(Word* args, Word& result, int message,
     case CLOSEPROGRESS:
       qp->CloseProgress(args[0].addr);
 
-      rli = (RdupLocalInfo*) local.addr;
       if ( rli ) delete rli;
       return 0;
 
@@ -2206,21 +2205,22 @@ int RdupValueMapping(Word* args, Word& result, int message,
       const double wRdup = 0.9;   // default selectivity (= 10% duplicates)
 
       pRes = (ProgressInfo*) result.addr;
-      rli = (RdupLocalInfo*) local.addr;
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
         pRes->CopySizes(p1);
         pRes->Time = p1.Time + p1.Card * uRdup * vRdup;
 
+	pRes->CopyBlocking(p1);		//non-blocking operator
+
         if (rli)
         {
           if (rli->returned > rli->stableValue)
           {
             pRes->Card =  p1.Card *
-              ((double) rli->returned / (double) (rli->current));
+              ((double) rli->returned / (double) (rli->read));
             pRes->Progress = (p1.Progress * p1.Time
-              + rli->current * uRdup * vRdup) / pRes->Time;
+              + rli->read * uRdup * vRdup) / pRes->Time;
             return YIELD;
           }
         }
@@ -3602,13 +3602,11 @@ int Loopjoin(Word* args, Word& result, int message,
 
 
 
-class LoopjoinLocalInfo
+class LoopjoinLocalInfo: public ProgressLocalInfo
 {
 public:
 
   ~LoopjoinLocalInfo(){
-    delete attrSize;
-    delete attrSizeExt;
     delete attrSizeD;
     delete attrSizeExtD;
   }
@@ -3616,16 +3614,9 @@ public:
   Word tuplex;
   Word streamy;
   TupleType *resultTupleType;
-  int k1;		//no of tuples read from first argument
-  int kRes;		//no of tuples returned
   int startPhase;	//during the start phase, tuple sizes are measured.
                         //Decremented for each result tuple. 
                         //Init with STARTPHASE.
-  int Size;	        //aggregated total size over tuples in start phase
-  int SizeExt;	        //aggregated root and ext. size over such tuples
-  int noAttrs;		//no of attributes
-  int *attrSize;	//for each attribute, the size
-  int *attrSizeExt;	//for each attribute, the root and extension size
   double *attrSizeD;	//to be returned to RequestProgress
   double *attrSizeExtD;
 
@@ -3650,27 +3641,28 @@ int Loopjoin(Word* args, Word& result, int message,
 
   ListExpr resultType;
 
-  LoopjoinLocalInfo *localinfo = 0;
+  LoopjoinLocalInfo* localinfo;
+
+  localinfo = (LoopjoinLocalInfo *) local.addr;
 
   switch ( message )
   {
     case OPEN:
 
-      localinfo=(LoopjoinLocalInfo *) local.addr;
-      if ( local.addr ) delete localinfo;
+      if ( localinfo ) delete localinfo;
 
       localinfo = new LoopjoinLocalInfo;
         resultType = GetTupleResultType( s );
         localinfo->resultTupleType = 
           new TupleType( nl->Second( resultType ) );
-        localinfo->k1 = 0;
-        localinfo->kRes = 0;
+        localinfo->readFirst = 0;
+        localinfo->returned = 0;
         localinfo->startPhase = STARTPHASE;
         localinfo->Size = 0;
         localinfo->SizeExt = 0;
         localinfo->noAttrs = localinfo->resultTupleType->GetNoAttributes();
-        localinfo->attrSize = new int[localinfo->noAttrs];
-        localinfo->attrSizeExt = new int[localinfo->noAttrs];
+        localinfo->attrSize = new double[localinfo->noAttrs];
+        localinfo->attrSizeExt = new double[localinfo->noAttrs];
         for ( int i = 0; i < localinfo->noAttrs; i++ )
         {
           localinfo->attrSize[i] = 0;
@@ -3687,7 +3679,7 @@ int Loopjoin(Word* args, Word& result, int message,
       qp->Request(args[0].addr, tuplex);
       if (qp->Received(args[0].addr))
       {
-        localinfo->k1++;
+        localinfo->readFirst++;
         funargs = qp->Argument(args[1].addr);
         (*funargs)[0] = tuplex;
         streamy=args[1];
@@ -3706,8 +3698,6 @@ int Loopjoin(Word* args, Word& result, int message,
 
     case REQUEST:
 
-      localinfo=(LoopjoinLocalInfo *) local.addr;
-
       if ( localinfo->tuplex.addr == 0) return CANCEL;
 
       tuplex=localinfo->tuplex;
@@ -3724,7 +3714,7 @@ int Loopjoin(Word* args, Word& result, int message,
           qp->Request(args[0].addr, tuplex);
           if (qp->Received(args[0].addr))
           {
-            localinfo->k1++;
+            localinfo->readFirst++;
             funargs = qp->Argument(args[1].addr);
             ctuplex=(Tuple*)tuplex.addr;
             (*funargs)[0] = tuplex;
@@ -3752,7 +3742,7 @@ int Loopjoin(Word* args, Word& result, int message,
       tuplexy = SetWord(ctuplexy);
       Concat(ctuplex, ctupley, ctuplexy);
       ctupley->DeleteIfAllowed();
-      localinfo->kRes++;
+      localinfo->returned++;
       if ( localinfo->startPhase )
       {
         localinfo->Size += ctuplexy->GetSize();
@@ -3768,8 +3758,6 @@ int Loopjoin(Word* args, Word& result, int message,
       return YIELD;
 
     case CLOSE:
-
-      localinfo=(LoopjoinLocalInfo *) local.addr;
 
       if ( localinfo->tuplex.addr != 0 )
       {
@@ -3791,8 +3779,7 @@ int Loopjoin(Word* args, Word& result, int message,
     case CLOSEPROGRESS:
       qp->CloseProgress(args[0].addr);
 
-      localinfo = (LoopjoinLocalInfo *) local.addr;
-      if ( local.addr ) delete localinfo;
+      if ( localinfo ) delete localinfo;
       return 0;
 
 
@@ -3803,7 +3790,7 @@ int Loopjoin(Word* args, Word& result, int message,
       static clock_t clocksPerMilliSecond = CLOCKS_PER_SEC / 1000 ; 
 
       pRes = (ProgressInfo*) result.addr;
-      localinfo=(LoopjoinLocalInfo *) local.addr;
+
 
       if ( localinfo ) 
       {
@@ -3811,8 +3798,8 @@ int Loopjoin(Word* args, Word& result, int message,
         {
           if ( qp->RequestProgress(args[0].addr, &p1) )
           {
-            pRes->Card = ((double) localinfo->kRes) * 
-              (p1.Card / (double) localinfo->k1);
+            pRes->Card = ((double) localinfo->returned) * 
+              (p1.Card / (double) localinfo->readFirst);
 
 	    pRes->Size = localinfo->Size / STARTPHASE;
 	    pRes->SizeExt = localinfo->SizeExt / STARTPHASE;
@@ -3828,8 +3815,11 @@ int Loopjoin(Word* args, Word& result, int message,
 
             pRes->Time = 
               ((clock() - localinfo->startTime) / clocksPerMilliSecond)
-              * (p1.Card / localinfo->k1);
-            pRes->Progress =  localinfo->k1 / p1.Card;
+              * (p1.Card / localinfo->readFirst);
+            pRes->Progress =  localinfo->readFirst / p1.Card;
+
+	    pRes->CopyBlocking(p1);
+
             return YIELD;
           }
         }
