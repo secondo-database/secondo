@@ -2334,6 +2334,9 @@ private:
         bucketsB_Mem = (3 * qp->MemoryAvailableForOperator())/4;
         relA_Mem = qp->MemoryAvailableForOperator()/4;
 
+	progress->memoryFirst = relA_Mem;
+	progress->memorySecond = bucketsB_Mem;
+
 	if (showMemInfo) {
         cmsg.info()
           << "HashJoin.MAX_MEMORY ("
@@ -2503,6 +2506,7 @@ bucket that the tuple coming from A hashes is also initialized.
         iterTuplesRelA = 0;
         return false;
       }
+      else progress->readFirst++;
     }
 
     hashA = HashTuple( tupleA, attrIndexA );
@@ -2553,6 +2557,9 @@ bucket that the tuple coming from A hashes is also initialized.
 2.3.2 Value Mapping Function of Operator ~hashjoin~
 
 */
+
+double minimum(double a, double b) {return (a < b ? a : b);}
+
 int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
 
@@ -2600,11 +2607,13 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     case REQUESTPROGRESS:
 
     {
+      bool trace = false;
+
       ProgressInfo p1, p2;
       ProgressInfo* pRes = static_cast<ProgressInfo*>( result.addr );
-      const double uHashJoin = 0.0025;  //millisecs per tuple left
-      const double vHashJoin = 0.2500;  //millisecs per tuple right
-      const double wHashJoin = 0.7500;  //millisecs per tuple returned
+      const double uHashJoin = 0.023;  //millisecs per probe tuple
+      const double vHashJoin = 0.0067;  //millisecs per tuple right
+      const double wHashJoin = 0.0025;  //millisecs per tuple returned
 
       if( !li ) return CANCEL;
       else
@@ -2615,13 +2624,17 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 	  li->SetJoinSizes(p1, p2);
 
 	  double defaultSelectivity = 
-	    (p1.Card < p2.Card ? 1 / p2.Card : 1 / p1.Card);
+	    minimum( 1 / p1.Card, 1 / p2.Card);
 
-          if (li->returned > 50 ) 	// stable state assumed now
+	  int noPasses = 1 + (int) (p2.Card * p2.SizeExt) / li->memorySecond;
+
+	  double firstBuffer = 
+	    minimum(((double) li->memorySecond / p2.SizeExt), p2.Card);
+
+          if (li->returned > 50 || li->readFirst > 1000) // stable state  
           {
-            pRes->Card = p1.Card * p2.Card *
-              ((double) li->returned / 
-                (double) (li->readFirst * li->readSecond));
+            pRes->Card = p1.Card * noPasses *
+              ((double) li->returned / (double) li->readFirst);
           }
           else
           {
@@ -2634,32 +2647,35 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
           pRes->Time = p1.Time + p2.Time
 	    + p2.Card * vHashJoin	//reading into hashtable
-	    + p1.Card * uHashJoin	//probing
+	    + p1.Card * noPasses * uHashJoin	//probing
             + pRes->Card * wHashJoin;	//output tuples
 
 	  pRes->Progress = (p1.Progress * p1.Time + p2.Progress * p2.Time
 	    + li->readSecond * vHashJoin
 	    + li->readFirst * uHashJoin
-	    + (li->returned < pRes->Card ? li->returned : pRes->Card ) 
-		* wHashJoin)
+	    + minimum(li->returned, pRes->Card) * wHashJoin)
             / pRes->Time;
 
-	  pRes->BTime = p1.BTime + p2.BTime 
-	    + (p2.Card * vHashJoin < 4500.0 ? p2.Card * vHashJoin : 4500.0);
+	  pRes->BTime = 
+	    p1.BTime 
+	    + p2.Time * (firstBuffer / p2.Card)
+	    + firstBuffer * vHashJoin;
 
-		//this is an absolute time, because results are produced
-		//when the buffer has been filled once
-
-	  pRes->BProgress = (p1.BProgress * p1.BTime + p2.Progress * p2.BTime
-	    + (li->readSecond * vHashJoin < 4500.0 ? 
-			li->readSecond * vHashJoin : 4500.0))
+	  pRes->BProgress = 
+	    (p1.BProgress * p1.BTime 
+            + p2.Time * minimum((double) li->readSecond, firstBuffer) / p2.Card 
+	    + minimum((double) li->readSecond, firstBuffer) * vHashJoin)
             / pRes->BTime;
 
-	
+	      if ( trace ) {
+		cout << "Number of passes: " << noPasses << endl;
+		cout << "No first buffer = " << firstBuffer << endl;
 		cout << "li->readFirst = " << li->readFirst << endl;
 		cout << "li->readSecond = " << li->readSecond << endl;
 		cout << "li->returned = " << li->returned << endl;
 		cout << "li->state = " << li->state << endl;
+		cout << "li->memorySecond = " << li->memorySecond << endl;
+	      }
 
           return YIELD;
         }
