@@ -3426,8 +3426,13 @@ Then call the operator's value mapping function.
   //static bool allowProgress = true;
   ProgressInfo progress;
 
-  progressCtr--;
+  if (allowProgress)
+    progressCtr--;
+
   if (allowProgress && progressCtr == 0) {
+
+    if ( clock() < lastClock ) lastClock = 0;
+
     if ( (clock() - lastClock) > clockDelta / 10) {
      
       allowProgress = false;
@@ -3440,7 +3445,8 @@ Then call the operator's value mapping function.
         //cout << "   Time: " << progress.Time;
         //cout << "   Size: " << progress.Size << endl;
 
-        if ( progressView ) progressView->ModifyProgressView(progress.Progress);
+        if ( progressView ) progressView->ModifyProgressView(progress);
+
       }
 
       allowProgress = true;
@@ -3657,6 +3663,9 @@ QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
 	    for ( int i = 0; i < p->noAttrs; i++ ) 
               cout << p->attrSizeExt[i] << " ";
 	  cout << endl;
+
+	  cout << "BlockingTime = " << p->BTime << endl;
+	  cout << "BlockingProgress = " << p->BProgress << endl;
 
 	  cout << "Time = " << p->Time << endl;
 	  cout << "Progress = " << p->Progress << endl;
