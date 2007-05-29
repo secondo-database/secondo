@@ -110,6 +110,8 @@ public:
   int defaultValue;	//default assumption of result size, needed for 
 			//some operators
   int state;		//to keep state info if needed
+  int memoryFirst,
+    memorySecond;	//size of buffers for first and second argument
 
   void* firstLocalInfo;	//pointers to localinfos of first and second arg
   void* secondLocalInfo;
