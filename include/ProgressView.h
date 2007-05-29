@@ -50,6 +50,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NList.h"
 #include "Messages.h"          // msg->Send(msgList)
 #include "Profiles.h"          // SmiProfile::GetParameter
+#include "Progress.h"
 
 using namespace std;
 
@@ -101,13 +102,13 @@ class ProgressView
   }
 
   void
-  ModifyProgressView(const double progress)
+  ModifyProgressView(ProgressInfo progress)
   {
     if (PROGTYPEPROG)
     {
       if (!initialized) InitProgressView();
 
-      actMaxPoints = (int) (progress * PROGRESS_NORM);
+      actMaxPoints = (int) (progress.Progress * PROGRESS_NORM);
       while (pointCounter < actMaxPoints)
       {
         pointCounter++;
@@ -120,10 +121,16 @@ class ProgressView
 
       if (DETPROT & 2)
       {
-        sprintf (progstr, "%5.2f", progress * 100.0);
-        progstr [2] = ',';
-	    ofs << clock() - startClock << ";" << progstr << endl;
-	  }
+	ofs << clock() - startClock << ";" ;
+
+	sprintf (progstr, "%6.2f", progress.Progress * 100.0);
+        progstr [3] = ',';
+
+        ofs << (int) progress.Card << ";";
+        ofs << (int) progress.Time << ";";
+	ofs << progstr << ";" ;
+	ofs << endl;
+      }
     }
   }
 
@@ -154,7 +161,7 @@ class ProgressView
     bool initialized;
     clock_t startClock;
     int pointCounter, actMaxPoints;
-    char progstr [5];
+    char progstr [6];
     string fileName, parmFile;
     ofstream ofs;
     NList msgList;
