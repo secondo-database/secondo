@@ -40,7 +40,8 @@ LIB_SDBUTILS_BASENAMES:=\
 	Tools/Utilities/UtilFunctions \
 	Tools/Utilities/WinUnix \
 	Tools/Utilities/Base64 \
-	Tools/Utilities/PolySolver
+	Tools/Utilities/PolySolver \
+	Tools/Utilities/Environment
 
 # The following libraries have interdependencies :-(
 # they are only usable in the framework of the Secondo
