@@ -64,6 +64,8 @@ be replaced by template implementations.
 December 06, 2006 C. Duentgen added operators int2real, real2int, int2bool, bool2int,
 ceil, floor.7
 
+May 2007, M. Spiekermann. New operator abs and introduction of generic type mappings.
+
 \begin{center}
 \footnotesize
 \tableofcontents
@@ -235,11 +237,16 @@ using namespace std;
 #include <errno.h>
 #include <time.h>       //needed for random number generator
 
-#include <NList.h>
+#include "NList.h"
+#include "TypeMapUtils.h"
+#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
+
+using namespace symbols;
+using namespace mappings;
 
 /*
 4.1 Type investigation auxiliaries
@@ -741,7 +748,7 @@ long CcString::stringsDeleted = 0;
 
 bool CcString::Adjacent( const Attribute* arg ) const
 {
-  const STRING *a = GetStringval(),
+  const ::STRING_T *a = GetStringval(),
                *b = ((CcString *)arg)->GetStringval();
 
   if( strcmp( *a, *b ) == 0 )
@@ -821,13 +828,13 @@ InCcString( ListExpr typeInfo, ListExpr value,
   {
     correct = true;
     string s = nl->StringValue( value );
-    return (SetWord( new CcString( true, (STRING*)s.c_str() ) ));
+    return (SetWord( new CcString( true, (STRING_T*)s.c_str() ) ));
   }
   else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
         && nl->SymbolValue( value ) == "undef" )
   {
     correct = true;
-    return (SetWord( new CcString( false, (STRING*)"" ) ));
+    return (SetWord( new CcString( false, (STRING_T*)"" ) ));
   }
   else
   {
@@ -844,7 +851,7 @@ Word
 CreateCcString( const ListExpr typeInfo )
 {
   char p[MAX_STRINGSIZE+1] = "";
-  return (SetWord( new CcString( false, (STRING*)&p ) ));
+  return (SetWord( new CcString( false, (STRING_T*)&p ) ));
 }
 
 void
@@ -925,34 +932,15 @@ It is for the operators +, - and [*].
 ListExpr
 CcMathTypeMap( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccint )
-    {
-      return (nl->SymbolAtom( "int" ));
-    }
-    if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccreal )
-    {
-      return (nl->SymbolAtom( "real" ));
-    }
-    if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccint )
-    {
-      return (nl->SymbolAtom( "real" ));
-    }
-    if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccreal )
-    {
-      return (nl->SymbolAtom( "real" ));
-    }
-    if ( TypeOfSymbol( arg1 ) == ccstring && TypeOfSymbol( arg2 ) == ccstring )
-    {
-      return (nl->SymbolAtom( "string" ));
-    }
-
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string m[5][3] = 
+  { 
+    {INT,    INT,    INT},
+    {INT,    REAL,   REAL},
+    {REAL,   INT,    REAL},
+    {REAL,   REAL,   REAL},
+    {STRING, STRING, STRING}
+  };  
+  return SimpleMaps<5,3>(m, args);	 
 }
 
 /*
@@ -968,21 +956,14 @@ of int is called div in this program).
 ListExpr
 CcMathTypeMapdiv( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccint )
-      return (nl->SymbolAtom( "real" ));
-    if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccreal )
-      return (nl->SymbolAtom( "real" ));
-    if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccint )
-      return (nl->SymbolAtom( "real" ));
-    if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccreal )
-      return (nl->SymbolAtom( "real" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string m[4][3] = 
+  { 
+    {INT,  INT,  REAL},
+    {INT,  REAL, REAL},
+    {REAL, INT,  REAL},
+    {REAL, REAL, REAL}
+  };  
+  return SimpleMaps<4,3>(m, args);	 
 }
 
 /*
@@ -995,15 +976,8 @@ It is for the operators mod and div which have ~int~ as input and ~int~ as resul
 ListExpr
 CcMathTypeMap1( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccint )
-      return (nl->SymbolAtom( "int" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string mapping[] = {INT, INT, INT};
+  return SimpleMap(mapping, 3, args);	 
 }
 
 /*
@@ -1015,21 +989,14 @@ It is for the operators ~intersection~ and ~minus~.
 ListExpr
 CcMathTypeMap2( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccint )
-      return (nl->SymbolAtom( "int" ));
-    if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccreal )
-      return (nl->SymbolAtom( "real" ));
-    if ( TypeOfSymbol( arg1 ) == ccbool && TypeOfSymbol( arg2 ) == ccbool )
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == ccstring && TypeOfSymbol( arg2 ) == ccstring )
-      return (nl->SymbolAtom( "string" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string m[4][3] = 
+  { 
+    {INT, INT, INT},
+    {REAL, REAL, REAL},
+    {BOOL, BOOL, BOOL},
+    {STRING, STRING, STRING}
+  };  
+  return SimpleMaps<4,3>(m, args);	 
 }
 
 /*
@@ -1043,66 +1010,36 @@ And for ~int2bool~, ~bool2int~, ~char~.
 ListExpr
 IntInt( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-    if ( nl->IsEqual( arg1, "int" ) )
-      return (nl->SymbolAtom( "int" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string mapping[] = {INT, INT};
+  return SimpleMap(mapping, 2, args);	 
 }
 
 ListExpr
 RealReal( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-    if ( nl->IsEqual( arg1, "real" ) )
-      return (nl->SymbolAtom( "real" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string mapping[] = {REAL, REAL};
+  return SimpleMap(mapping, 2, args);	 
 }
 
 ListExpr
 RealInt( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-    if ( nl->IsEqual( arg1, "real" ) )
-      return (nl->SymbolAtom( "int" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string mapping[] = {REAL, INT};
+  return SimpleMap(mapping, 2, args);	 
 }
 
 ListExpr
 IntReal( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-    if ( nl->IsEqual( arg1, "int" ) )
-      return (nl->SymbolAtom( "real" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string mapping[] = {INT, REAL};
+  return SimpleMap(mapping, 2, args);	 
 }
 
 ListExpr
 IntBool( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-    if ( nl->IsEqual( arg1, "int" ) )
-      return (nl->SymbolAtom( "bool" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string mapping[] = {INT, BOOL};
+  return SimpleMap(mapping, 2, args);	 
 }
 
 ListExpr
@@ -1118,29 +1055,15 @@ EmptyInt( ListExpr args )
 ListExpr
 BoolInt( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-    if ( nl->IsEqual( arg1, "bool" ) )
-      return (nl->SymbolAtom( "int" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string mapping[] = {BOOL, INT};
+  return SimpleMap(mapping, 2, args);	 
 }
-
-
 
 ListExpr
 IntString( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-    if ( nl->IsEqual( arg1, "int" ) )
-      return (nl->SymbolAtom( "string" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string mapping[] = {INT, STRING};
+  return SimpleMap(mapping, 2, args);	 
 }
 
 /*
@@ -1153,27 +1076,17 @@ It is for the Compare operators which have ~bool~ as resulttype.
 ListExpr
 CcMathTypeMapBool( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccint)
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccreal)
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccint)
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccreal)
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == ccbool && TypeOfSymbol( arg2 ) == ccbool)
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == ccstring && TypeOfSymbol( arg2 ) == ccstring)
-      return (nl->SymbolAtom( "bool" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string m[6][3] = 
+  { 
+    {INT,    INT,    BOOL},
+    {INT,    REAL,   BOOL},
+    {REAL,   INT,    BOOL},
+    {REAL,   REAL,   BOOL},
+    {BOOL,   BOOL,   BOOL},
+    {STRING, STRING, BOOL}
+  };  
+  return SimpleMaps<6,3>(m, args);	 
 }
-
 /*
 4.2.6 Type mapping function CcMathTypeMapBool1
 
@@ -1184,14 +1097,8 @@ It is for the  operator ~not~ which have ~bool~ as input and resulttype.
 ListExpr
 CcMathTypeMapBool1( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-    if ( TypeOfSymbol( arg1 ) == ccbool )
-      return (nl->SymbolAtom( "bool" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string mapping[] = {BOOL, BOOL};
+  return SimpleMap(mapping, 2, args);	 
 }
 
 /*
@@ -1204,15 +1111,8 @@ It is for the  operators and and or  which have bool as input and resulttype.
 ListExpr
 CcMathTypeMapBool2( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    if ( TypeOfSymbol( arg1 ) == ccbool && TypeOfSymbol( arg2 ) == ccbool )
-      return (nl->SymbolAtom( "bool" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string mapping[] = {BOOL, BOOL, BOOL};
+  return SimpleMap(mapping, 3, args);	 
 }
 
 /*
@@ -1225,15 +1125,8 @@ It is for the  operators ~starts~ and ~contains~  which have ~string~ as input a
 ListExpr
 CcMathTypeMapBool3( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    if ( TypeOfSymbol( arg1 ) == ccstring && TypeOfSymbol( arg2 ) == ccstring )
-      return (nl->SymbolAtom( "bool" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string mapping[] = {STRING, STRING, BOOL};
+  return SimpleMap(mapping, 3, args);	 
 }
 
 /*
@@ -1246,20 +1139,14 @@ It is for the  operators ~isempty~ which have ~bool~, ~int~, ~real~, and ~string
 ListExpr
 CcMathTypeMapBool4( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-    if ( TypeOfSymbol( arg1 ) == ccbool )
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == ccint )
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == ccreal )
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == ccstring )
-      return (nl->SymbolAtom( "bool" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string m[4][2] = 
+  { 
+    {BOOL,   BOOL},
+    {INT,    BOOL},
+    {REAL,   BOOL},
+    {STRING, BOOL}
+  };  
+  return SimpleMaps<4,2>(m, args);	 
 }
 
 /*
@@ -1272,14 +1159,8 @@ string ---> string.
 ListExpr
 CcStringMapCcString( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-    if ( TypeOfSymbol( arg1 ) == ccstring )
-      return (nl->SymbolAtom( "string" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string mapping[] = {STRING, STRING};
+  return SimpleMap(mapping, 2, args);	 
 }
 
 /*
@@ -1292,24 +1173,8 @@ string x int x int -> string.
 ListExpr
 SubStrTypeMap( ListExpr args )
 {
-  if ( nl->ListLength( args ) == 3 )
-  {
-    ListExpr arg1 = nl->First( args );
-    ListExpr arg2 = nl->Second( args );
-    ListExpr arg3 = nl->Third( args );
-
-    if (    (TypeOfSymbol( arg1 ) == ccstring)
-         && (TypeOfSymbol( arg2 ) == ccint)
-         && (TypeOfSymbol( arg3 ) == ccint)
-        )
-    {
-      return (nl->SymbolAtom( "string" ));
-    }
-  }
-  ErrorReporter::ReportError(
-        "Expecting an argument list of type (string int int).");
-  return (nl->SymbolAtom( "typeerror" ));
-
+  const string mapping[] = {STRING, INT, INT, STRING};
+  return SimpleMap(mapping, 4, args);	 
 }
 
 
@@ -1323,14 +1188,8 @@ string ---> int.
 static ListExpr
 CcStringMapCcInt( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-    if ( TypeOfSymbol( arg1 ) == ccstring )
-      return (nl->SymbolAtom( "int" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string mapping[] = {STRING, INT};
+  return SimpleMap(mapping, 2, args);	 
 }
 
 /*
@@ -1412,26 +1271,15 @@ Type mapping for ~between~ is
 ListExpr
 CcBetweenTypeMap( ListExpr args )
 {
-  ListExpr arg1, arg2, arg3;
-  if ( nl->ListLength( args ) == 3 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    arg3 = nl->Second( args );
-    if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccint
-                                       && TypeOfSymbol( arg3 ) == ccint)
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccreal
-                                        && TypeOfSymbol( arg3 ) == ccreal)
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == ccstring && TypeOfSymbol( arg2 ) == ccstring
-                                          && TypeOfSymbol( arg3 ) == ccstring)
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == ccbool && TypeOfSymbol( arg2 ) == ccbool
-                                        && TypeOfSymbol( arg3 ) == ccbool)
-      return (nl->SymbolAtom( "bool" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  using namespace symbols;	
+  const string m[4][4] = 
+  { 
+    {INT,    INT,    INT,    BOOL},
+    {REAL,   REAL,   REAL,   BOOL},
+    {BOOL,   BOOL,   BOOL,   BOOL},
+    {STRING, STRING, STRING, BOOL},
+  };  
+  return SimpleMaps<4,4>(m, args);	 
 }
 
 /*
@@ -1497,15 +1345,8 @@ It is for the  operators ~round~, which has ~real~ and ~int~ as input and ~real~
 ListExpr
 CcRoundTypeMap( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccint )
-      return (nl->SymbolAtom( "real" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+  const string map[] = { REAL, INT, REAL };
+  return SimpleMap(map, 3, args);	 
 }
 
 /*
@@ -1517,22 +1358,12 @@ For operator ~num2string~
 ListExpr
 NumStringTypeMap( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-    if ( TypeOfSymbol( arg1 ) == ccreal || TypeOfSymbol( arg1 ) == ccint )
-      return (nl->SymbolAtom( "string" ));
-    else
-    {
-       ErrorReporter::ReportError("Operator num2string expects an argument "
-                                  "of type 'int' or 'real'");
-    }
-  }
-  else
-    ErrorReporter::ReportError("Operator num2string expects an argument "
-                               "list of length 1.");
-  return (nl->SymbolAtom( "typeerror" ));
+  const string maps[2][2] = 
+  { 
+    {REAL, STRING}, 
+    {INT,  STRING}  
+  };
+  return SimpleMaps<2,2>(maps, args);	 
 }
 
 /*
@@ -1815,11 +1646,12 @@ CcPlus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
   // compute result value
   if ( wstr1->IsDefined() && wstr2->IsDefined() )
   {
-    wres->Set( true, (STRING*)(str1 + str2).substr(0,MAX_STRINGSIZE).c_str() );
+    wres->Set( true, 
+	       (STRING_T*)(str1 + str2).substr(0,MAX_STRINGSIZE).c_str() );
   }
   else
   {
-    STRING str = "";
+    STRING_T str = "";
     wres->Set( false, &str );
   }
   return (0);
@@ -2014,7 +1846,7 @@ CcDivision_ii( Word* args, Word& result, int message, Word& local, Supplier s )
        ((CcInt*)args[1].addr)->GetIntval() )
   {
     ((CcReal *)result.addr)->
-      Set( true, ((REAL )((CcInt*)args[0].addr)->GetIntval()) /
+      Set( true, ((SEC_STD_REAL )((CcInt*)args[0].addr)->GetIntval()) /
                           ((CcInt*)args[1].addr)->GetIntval() );
   }
   else
@@ -2568,11 +2400,11 @@ SubStrFun( Word* args, Word& result, int message, Word& local, Supplier s )
   {
     int n = min( static_cast<long unsigned int>(p2-p1),
         static_cast<long unsigned int>(str1.length()-p1) );
-    wres->Set( true, (STRING*)(str1.substr(p1-1, n+1).c_str()) );
+    wres->Set( true, (STRING_T*)(str1.substr(p1-1, n+1).c_str()) );
   }
   else
   {
-    STRING str = "";
+    STRING_T str = "";
     wres->Set( false, &str );
   }
   return (0);
@@ -2691,7 +2523,7 @@ UpperFun( Word* args, Word& result, int message, Word& local, Supplier s )
            lastChar= newStr + strlen(newStr) -1;
            *lastChar=*lastChar+1;
        }
-      ((CcString *)result.addr)->Set( true, (STRING *)&newStr );
+      ((CcString *)result.addr)->Set( true, (STRING_T *)&newStr );
   }
   else
   {
@@ -2782,7 +2614,7 @@ CcSetIntersection_ss( Word* args, Word& result, int message, Word& local,
       return (0);
     }
   }
-  STRING nullStr = "";
+  STRING_T nullStr = "";
   ((CcString*)result.addr)->Set( false, &nullStr );
   return (0);
 }
@@ -2856,7 +2688,7 @@ CcSetMinus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
     if( strcmp( *((CcString*)args[0].addr)->GetStringval(),
         *((CcString*)args[1].addr)->GetStringval() ) == 0 )
     {
-      STRING nullStr = "";
+      STRING_T nullStr = "";
       ((CcString*)result.addr)->Set( false, &nullStr );
       return (0);
     }
@@ -2993,13 +2825,13 @@ are separated by a space character.
 
 */
 {
-  struct Subword {int start, nochr, strlength; STRING* subw;}* subword;
+  struct Subword {int start, nochr, strlength; STRING_T* subw;}* subword;
 
   CcString* elem, *str;
   //CcString* str;
   int i;
   string teststr, tmpstr;
-  STRING outstr;
+  STRING_T outstr;
   Word arg0;
 
   switch( message )
@@ -3014,7 +2846,7 @@ are separated by a space character.
       subword->start = 0;
       subword->nochr = 0;
 
-      subword->subw = (STRING*)malloc(strlen(*str->GetStringval()) + 1);
+      subword->subw = (STRING_T*)malloc(strlen(*str->GetStringval()) + 1);
       // copy input string to allocated memory
       strcpy(*subword->subw, *str->GetStringval());
       trim( *subword->subw ); //remove spaces from the end of the string
@@ -3322,7 +3154,7 @@ ccelapsedfun(Word* args, Word& result, int message, Word& local, Supplier s)
   // reset timer
   elapsedTime.start();
 
-  resStr->Set(true, (STRING*) estr.str().c_str());
+  resStr->Set(true, (STRING_T*) estr.str().c_str());
 
   return 0;
 }
@@ -3375,13 +3207,13 @@ static ListExpr setoption_tm(ListExpr args)
   if ( !l.checkLength(2, err1) )
     return l.typeError( err1 );
 
-  if ( !l.first().isSymbol(Symbols::STRING()) )
+  if ( !l.first().isSymbol( STRING ) )
     return l.typeError(err1);
 
-  if ( !l.second().isSymbol(Symbols::INT()) )
+  if ( !l.second().isSymbol( INT ) )
     return l.typeError(err1);
 
-  return NList(Symbols::BOOL()).listExpr();
+  return NList( BOOL ).listExpr();
 }
 
 int
@@ -3411,6 +3243,36 @@ setoption_vm( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
+
+/*
+4.18 Operator ~abs~
+
+*/
+
+struct AbsInfo : OperatorInfo {
+
+  AbsInfo() : OperatorInfo()
+  {
+    name =      "abs";
+    signature = "real -> real";
+    syntax =    "abs(_)";
+    meaning =   "Returns the absolute value of its argument";
+  }
+
+};
+
+int
+abs_vm( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  // args[0] : real
+  double arg0 = StdTypes::GetReal(args[0]);
+
+  CcReal& res = qp->ResultStorage<CcReal>( result, s );
+  res.Set( true, abs(arg0) );
+  return (0);
+}
+
+
 
 /*
 4.17 Operator ~round~ rounds a real with a given precision
@@ -3592,7 +3454,7 @@ int CcNum2String( Word* args, Word& result, int message,
       os.precision(47);
       os << arg->GetValue();
       string s = os.str().substr(0,48);
-      STRING S;
+      STRING_T S;
       strcpy(S,s.c_str());
       res->Set( true, &S);
     }
@@ -3620,7 +3482,7 @@ int CcCharFun( Word* args, Word& result, int message,
       ostringstream os;
       os << "''";
       string s = os.str().substr(0,48);
-      STRING S;
+      STRING_T S;
       strcpy(S,s.c_str());
       res->Set( true, &S);
     }
@@ -3636,7 +3498,7 @@ int CcCharFun( Word* args, Word& result, int message,
       ostringstream os;
       os << ch;
       string s = os.str().substr(0,48);
-      STRING S;
+      STRING_T S;
       strcpy(S,s.c_str());
       res->Set( true, &S);
     }
@@ -4425,7 +4287,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccbetween );
     //AddOperator( &ccelapsedtime );
     AddOperator( &ccldistance );
-    AddOperator( &cchashvalue );
+    AddOperator( &cchashvalue ) ;
     AddOperator( &ccround );
     AddOperator( &ccint2real );
     AddOperator( &ccreal2int );
@@ -4434,13 +4296,10 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccceil );
     AddOperator( &ccfloor );
     AddOperator( &ccchar );
-    static SetOptionInfo setoption_oi;
-    static Operator setoption_op( setoption_oi,
-                                  setoption_vm,
-                                  setoption_tm );
-    AddOperator(&setoption_op);
     AddOperator( &ccnum2string );
 
+    AddOperator( SetOptionInfo(), setoption_vm, setoption_tm );
+    AddOperator( AbsInfo(), abs_vm, RealReal );
 
 
   }
@@ -4537,9 +4396,9 @@ StdTypes::GetInt(const Word& w) {
 }
 
 
-REAL
+SEC_STD_REAL
 StdTypes::GetReal(const Word& w) {
-   return Attribute::GetValue<CcReal, REAL>(w);
+   return Attribute::GetValue<CcReal, SEC_STD_REAL>(w);
 }
 
 

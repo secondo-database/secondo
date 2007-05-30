@@ -376,3 +376,14 @@ Signature: int -> string
 Example  : query char(67)
 Result   : "C"
 
+Operator : abs 
+Number   : 1 
+Signature: real -> real 
+Example  : query abs(-3.1)
+Result   : 3.1
+
+Operator : abs 
+Number   : 2 
+Signature: real -> real 
+Example  : query abs(4.5)
+Result   : 4.5 

@@ -73,3 +73,4 @@ operator ceil alias CEIL pattern op( _ , _ )
 operator num2string alias NUM2STRING pattern op( _ )
 operator char alias CHAR pattern op ( _ )
 
+operator abs alias ABS pattern op ( _ )
