@@ -1036,6 +1036,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSE :
       rit = (GenericRelationIterator*)local.addr;
       delete rit;
+      local.addr = 0;
       return 0;
   }
   return 0;

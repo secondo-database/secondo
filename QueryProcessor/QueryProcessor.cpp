@@ -3575,7 +3575,7 @@ QueryProcessor::Received( const Supplier s )
 void
 QueryProcessor::Open( const Supplier s )
 {
-  Word result;
+  Word result = SetWord( 0 );
   OpTree tree = (OpTree) s;
   Eval( tree, result, OPEN );
 }
@@ -3809,6 +3809,7 @@ QueryProcessor::ResultStorage( const Supplier s )
   OpTree tree = (OpTree) s;
   return (tree->u.op.resultWord);
 }
+
 
 /*
 Function ~ChangeResultStorage~. 
