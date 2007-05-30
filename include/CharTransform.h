@@ -171,6 +171,13 @@ string translate(const string& s,  const string& from, const string& to);
 
 string hexStr(const string& s);
 
+static inline string int2Str(const int i) 
+{
+   stringstream s; 
+   s << i;
+   return s.str();
+}   
+
 
 /*
 A simple word wrapping algorithm which tries to fold a given
