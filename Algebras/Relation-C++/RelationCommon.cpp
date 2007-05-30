@@ -62,6 +62,7 @@ to this implementation file.
 
 */
 #include "LogMsg.h"
+#include "CharTransform.h"
 
 #include "RelationAlgebra.h"
 #include "OldRelationAlgebra.h"
@@ -93,11 +94,6 @@ A ~TupleType~ is a collection (an array) of all attribute types
 metadata of a tuple attributes.
 
 */
-
-inline string int2Str(int i) {
-  stringstream ss; ss << i;
-  return ss.str();  
-}
 
 TupleType::TupleType( const ListExpr typeInfo )
 {
