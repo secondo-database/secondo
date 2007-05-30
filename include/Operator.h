@@ -80,6 +80,15 @@ struct OperatorInfo {
     remark("")
   {}
 
+  OperatorInfo(const OperatorInfo& o) :
+    name(o.name),  
+    signature(o.signature),  
+    syntax(o.syntax),
+    meaning(o.meaning),
+    example(o.example),
+    remark(o.remark)
+  {}
+
   OperatorInfo( const string& _name,
                 const string& _signature, 
                 const string& _syntax, 
