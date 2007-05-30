@@ -2353,24 +2353,24 @@ int WeekdayFun(Word* args, Word& result, int message,
     result = qp->ResultStorage(s);
     DateTime* T = (DateTime*) args[0].addr;
     int day = T->GetWeekday();
-    STRING* WD;
+    STRING_T* WD;
     switch(day){
-       case 0 :  WD = (STRING*) "Monday";
+       case 0 :  WD = (STRING_T*) "Monday";
                  break;
-       case 1 : WD =  (STRING*) "Tuesday";
+       case 1 : WD =  (STRING_T*) "Tuesday";
                  break;
-       case 2 : WD =  (STRING*) "Wednesday";
+       case 2 : WD =  (STRING_T*) "Wednesday";
                 break;
-       case 3 : WD = (STRING*) "Thursday";
+       case 3 : WD = (STRING_T*) "Thursday";
                 break;
-       case 4 : WD = (STRING*) "Friday";
+       case 4 : WD = (STRING_T*) "Friday";
                 break;
-       case 5 : WD = (STRING*) "Saturday";
+       case 5 : WD = (STRING_T*) "Saturday";
                 break;
-       case 6 :  WD = (STRING*) "Sunday";
+       case 6 :  WD = (STRING_T*) "Sunday";
                  break;
 
-       default : WD = (STRING*)"Errorsday";
+       default : WD = (STRING_T*)"Errorsday";
                  break;
     }
     ((CcString*)result.addr)->Set(true,WD);
