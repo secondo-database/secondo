@@ -251,7 +251,7 @@ class CcInt : public StandardAttribute
 */
 
 
-#define REAL double
+#define SEC_STD_REAL double
 class CcReal : public StandardAttribute
 {
  public:
@@ -260,7 +260,7 @@ class CcReal : public StandardAttribute
      realsCreated++; 
   }
 
-  inline CcReal( bool d, REAL v = 0.0 ) 
+  inline CcReal( bool d, SEC_STD_REAL v = 0.0 ) 
   { 
     defined = d; 
     realval = v; 
@@ -295,24 +295,24 @@ class CcReal : public StandardAttribute
     return sizeof( *this );
   }
 
-  inline REAL GetRealval() const
+  inline SEC_STD_REAL GetRealval() const
   { 
     return realval;
   }
   
-  inline REAL GetValue() const
+  inline SEC_STD_REAL GetValue() const
   { 
     return realval;
   }
 
   
-  inline void Set( REAL v ) 
+  inline void Set( SEC_STD_REAL v ) 
   { 
     defined = true, 
     realval = v; 
   }
 
-  inline void Set( bool d, REAL v ) 
+  inline void Set( bool d, SEC_STD_REAL v ) 
   { 
     defined = d;
     realval = v; 
@@ -330,7 +330,7 @@ class CcReal : public StandardAttribute
 
     unsigned long h = 0;
     char* s = (char*)&realval;
-    for(unsigned int i = 1; i <= sizeof(REAL) / sizeof(char); i++)
+    for(unsigned int i = 1; i <= sizeof(SEC_STD_REAL) / sizeof(char); i++)
     {
       h = 5 * h + *s;
       s++;
@@ -389,7 +389,7 @@ class CcReal : public StandardAttribute
 
  private:
   bool  defined;
-  REAL  realval;
+  SEC_STD_REAL  realval;
 };
 
 
@@ -516,7 +516,7 @@ class CcBool : public StandardAttribute
 
 */
 
-typedef char STRING[MAX_STRINGSIZE+1];
+typedef char STRING_T[MAX_STRINGSIZE+1];
 
 class CcString : public StandardAttribute
 {
@@ -526,7 +526,7 @@ class CcString : public StandardAttribute
     stringsCreated++; 
   }
 
-  inline CcString( bool d, const STRING* v ) 
+  inline CcString( bool d, const STRING_T* v ) 
   { 
     defined = d; 
     strcpy( stringval, *v); 
@@ -568,7 +568,7 @@ class CcString : public StandardAttribute
     return sizeof( *this );
   }
 
-  inline const STRING* GetStringval() const
+  inline const STRING_T* GetStringval() const
   { 
     return &stringval; 
   }
@@ -583,7 +583,7 @@ class CcString : public StandardAttribute
     return (new CcString( this->defined, &this->stringval )); 
   }
 
-  inline void Set( bool d, const STRING* v ) 
+  inline void Set( bool d, const STRING_T* v ) 
   { 
     defined = d; 
     strcpy( stringval, *v); 
@@ -658,7 +658,7 @@ class CcString : public StandardAttribute
 
  private:
   bool   defined;
-  STRING stringval;
+  STRING_T stringval;
 };
 
 void ShowStandardTypesStatistics( const bool reset );
@@ -689,7 +689,7 @@ into the corresponding C++ type
 struct StdTypes
 {
   static int GetInt(const Word& w); 
-  static REAL GetReal(const Word& w); 
+  static SEC_STD_REAL GetReal(const Word& w); 
   static bool GetBool(const Word& w); 
   static string GetString(const Word& w); 
 };

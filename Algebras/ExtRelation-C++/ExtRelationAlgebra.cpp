@@ -1313,7 +1313,7 @@ AvgSumValueMapping(Word* args, Word& result, int message,
   int nProcessedItems = 0;
 
   int attributeIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
-  const STRING *attributeType = ((CcString*)args[3].addr)->GetStringval();
+  const STRING_T *attributeType = ((CcString*)args[3].addr)->GetStringval();
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, currentTupleWord);

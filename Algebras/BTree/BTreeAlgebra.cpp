@@ -160,7 +160,7 @@ void KeyToAttr(
 
     case SmiKey::String:
       key.GetKey(strval);
-      ((CcString*)attr)->Set(true, (STRING*)strval.c_str());
+      ((CcString*)attr)->Set(true, (STRING_T*)strval.c_str());
       break;
 
     case SmiKey::Composite:

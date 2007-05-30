@@ -4311,7 +4311,7 @@ int RangeRangevaluesStringExt(
 
     set<string>::iterator iter;
     CcString minmaxcc;
-    STRING minmax;
+    STRING_T minmax;
     Interval<CcString> inter;
 
     clock3 = clock();

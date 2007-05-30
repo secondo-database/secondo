@@ -137,7 +137,7 @@ Picture::Picture(string imgdataB64,
 
     assert( len <= size );
 
-    STRING name;
+    STRING_T name;
     CImageConverter *converter;
     ImageType imgType;
 
@@ -791,9 +791,9 @@ static bool OpenPicture(SmiRecord& rec, size_t& offset,
 
     bool isDefined;
     bool isPortrait;
-    STRING filename;
-    STRING category;
-    STRING date;
+    STRING_T filename;
+    STRING_T category;
+    STRING_T date;
 
     unsigned int pos = 0;
 
@@ -810,25 +810,25 @@ static bool OpenPicture(SmiRecord& rec, size_t& offset,
 
     pos += sizeof(bool);
 
-    if (rec.Read(filename, sizeof(STRING), pos) != sizeof(STRING)) {
+    if (rec.Read(filename, sizeof(STRING_T), pos) != sizeof(STRING_T)) {
         cerr << "OpenPicture() could not read filename" << endl;
         return false;
     }
-    pos += sizeof(STRING);
+    pos += sizeof(STRING_T);
     if (PA_DEBUG) cerr << "OpenPicture() filename=" << filename << endl;
 
-    if (rec.Read(category, sizeof(STRING), pos) != sizeof(STRING)) {
+    if (rec.Read(category, sizeof(STRING_T), pos) != sizeof(STRING_T)) {
         cerr << "OpenPicture() could not read category" << endl;
         return false;
     }
-    pos += sizeof(STRING);
+    pos += sizeof(STRING_T);
     if (PA_DEBUG) cerr << "OpenPicture() category=" << category << endl;
 
-    if (rec.Read(date, sizeof(STRING), pos) != sizeof(STRING)) {
+    if (rec.Read(date, sizeof(STRING_T), pos) != sizeof(STRING_T)) {
         cerr << "OpenPicture() could not read date" << endl;
         return false;
     }
-    pos += sizeof(STRING);
+    pos += sizeof(STRING_T);
     if (PA_DEBUG) cerr << "OpenPicture() date=" << date << endl;
 
     if (rec.Read(&isPortrait, sizeof(bool), pos) != sizeof(bool)) {
@@ -885,30 +885,30 @@ static bool SavePicture(SmiRecord& rec, size_t& offset,
 
     pos += sizeof(bool);
 
-    if (rec.Write(p->GetFilename().c_str(), sizeof(STRING), pos) 
-        != sizeof(STRING)) {
+    if (rec.Write(p->GetFilename().c_str(), sizeof(STRING_T), pos) 
+        != sizeof(STRING_T)) {
         cerr << "SavePicture() could not write filename of " 
              << (int) p 
              << endl;
         return false;
     }
-    pos += sizeof(STRING);
-    if (rec.Write(p->GetCategory().c_str(), sizeof(STRING), pos) 
-        != sizeof(STRING)) {
+    pos += sizeof(STRING_T);
+    if (rec.Write(p->GetCategory().c_str(), sizeof(STRING_T), pos) 
+        != sizeof(STRING_T)) {
         cerr << "SavePicture() could not write category of " 
              << (int) p 
              << endl;
         return false;
     }
-    pos += sizeof(STRING);
-    if (rec.Write(p->GetDate().c_str(), sizeof(STRING), pos) 
-        != sizeof(STRING)) {
+    pos += sizeof(STRING_T);
+    if (rec.Write(p->GetDate().c_str(), sizeof(STRING_T), pos) 
+        != sizeof(STRING_T)) {
         cerr << "SavePicture() could not write date of " 
              << (int) p 
              << endl;
         return false;
     }
-    pos += sizeof(STRING);
+    pos += sizeof(STRING_T);
 
     bool isPortrait = p->IsPortrait();
 
@@ -1091,9 +1091,9 @@ int PictureFilenameValueMap(Word* args,
 
     if (p->IsDefined())
         ((CcString*) result.addr)->Set(true, 
-                                       (STRING*) p->GetFilename().c_str());
+                                       (STRING_T*) p->GetFilename().c_str());
     else
-        ((CcString*) result.addr)->Set(false, (STRING*) "");
+        ((CcString*) result.addr)->Set(false, (STRING_T*) "");
 
     return 0;
 }
@@ -1111,9 +1111,9 @@ int PictureCategoryValueMap(Word* args,
 
     if (p->IsDefined())
         ((CcString*) result.addr)->Set(true, 
-                                       (STRING*) p->GetCategory().c_str());
+                                       (STRING_T*) p->GetCategory().c_str());
     else
-        ((CcString*) result.addr)->Set(false, (STRING*) "");
+        ((CcString*) result.addr)->Set(false, (STRING_T*) "");
 
     return 0;
 }

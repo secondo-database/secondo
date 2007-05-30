@@ -301,9 +301,9 @@ only once even if used multiple times.
 */
 
  private:
-    STRING filename;
-    STRING category;
-    STRING date;
+    STRING_T filename;
+    STRING_T category;
+    STRING_T date;
     bool isPortrait;
     bool isDefined;
     bool isGrayscale;

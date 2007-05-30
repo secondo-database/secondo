@@ -622,7 +622,7 @@ The length of a string is three characters or more.
 
   int textcursor, stringcursor, state;
   string tmpstr;
-  STRING outstr;
+  STRING_T outstr;
   char c;
   CcString* mystring;
 

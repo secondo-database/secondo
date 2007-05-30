@@ -173,7 +173,7 @@ FunVector::load( Word suppl, Word* funNames )
   int noOfFuns = qp->GetNoSons(funSupplier);
 
   for (int i=0; i<noOfFuns; i++) {
-    const STRING* name = ((CcString*)funNames[i].addr)->GetStringval();
+    const STRING_T* name = ((CcString*)funNames[i].addr)->GetStringval();
     //cerr << "Function " << i << "/" << noOfFuns << *name << endl;
     supplier1 = qp->GetSupplier(funSupplier, i);
     supplier2 = qp->GetSupplier(supplier1, 1);
