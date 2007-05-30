@@ -577,7 +577,7 @@ ignored.
 This function sets a new name for this cluster.
 
 */
-      void SetName(const STRING* newname){
+      void SetName(const STRING_T* newname){
            strcpy(name,*newname);
       }
 
@@ -891,7 +891,7 @@ the given value.
 This function returns the name of this cluster.
 
 */
-      const STRING* GetName() const { return &name; } 
+      const STRING_T* GetName() const { return &name; } 
 
 
 /*
@@ -951,7 +951,7 @@ clusters.
    private:
       unsigned char  BitVector[64];
       bool defined;
-      STRING name;
+      STRING_T name;
       void SetValueAt(const int pos, const bool value, 
                       unsigned char bitvector[]) const;
 };
@@ -1204,7 +1204,7 @@ Note that this function creates a new STRING object. The caller of this
 function has to destroy this object to avoid memory holes.
 
 */
-   const STRING* GetNameOf(Int9M* Matrix) {
+   const STRING_T* GetNameOf(Int9M* Matrix) {
        if(unSpecified.Contains(*Matrix)){
           return unSpecified.GetName();
        }
@@ -1253,7 +1253,7 @@ If no cluster assignet to this name is part of this predicate
 group, the result will be __NULL__.  
 
 */
-Cluster* GetClusterOf(const STRING* name) const;
+Cluster* GetClusterOf(const STRING_T* name) const;
    
 
 /*

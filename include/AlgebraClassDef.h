@@ -31,13 +31,12 @@ AlgebraClassDef.h and AlgebraInit.h
 #include <vector>
 
 #include "NestedList.h"
+#include "Operator.h"
 // forward declarations
 
-class Operator;
 class TypeConstructor;
 class QueryProcessor;
 class AlgebraManager;
-class NestedList;
 
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
@@ -129,6 +128,7 @@ Returns a reference to the operator identified by ~index~.
  protected:
   void AddTypeConstructor( TypeConstructor* tc );
   void AddOperator( Operator* op );
+  void AddOperator( OperatorInfo oi, ValueMapping vm, TypeMapping tm);
 /*
 Are used by the subclassed algebra to add its type constructors and
 operators to the list of type constructors and operators within the

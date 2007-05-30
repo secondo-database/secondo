@@ -400,7 +400,7 @@ Check whether an argument node is of type OBJECT.
 
   Supplier GetSupplier( const Supplier s, const int no );
 /*
->From a given supplier ~s~ that must represent an argument list, get its son
+From a given supplier ~s~ that must represent an argument list, get its son
 number ~no~. Can be used to traverse the operator tree in order to access
 arguments within (nested) argument lists. Values or function or stream
 evaluation can then be obtained from the returned supplier by the usual
@@ -408,6 +408,13 @@ calls to ~request~ etc.
 
 */
   Word ResultStorage( const Supplier s );
+
+  template<class T>
+  inline T& ResultStorage( Word& result, const Supplier s )
+  {
+    result = ResultStorage(s);	  
+    return *static_cast<T*>( result.addr );
+  }
 /*
 For each operator in an operator tree, the query processor allocates a
 storage block for the result value (which it also destroys after
@@ -415,6 +422,10 @@ execution of the query). The operator's evaluation function can call
 this procedure ~resultStorage~ to get the address of that storage block.
 As a parameter ~s~, the operator's node address has to be given which is
 passed to the evaluation function in parameter ~opTreeNode~. 
+
+The secondo variant returns directly a reference to the allocated result
+value. This version should be preferred, the old variant is provided for
+compatibility only.
 
 */
   
