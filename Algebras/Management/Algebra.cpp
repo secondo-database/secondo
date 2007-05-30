@@ -476,3 +476,10 @@ Algebra::AddOperator( Operator* op )
   opsNum++;
 }
 
+void
+Algebra::AddOperator( OperatorInfo oi, ValueMapping vm, TypeMapping tm )
+{
+  Operator* newOp = new Operator(oi, vm, tm);
+  AddOperator(newOp);
+}
+
