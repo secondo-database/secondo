@@ -41,15 +41,25 @@ namespace mappings {
 bool
 CheckSimpleMap(const string map[], size_t n, ListExpr args, ListExpr& res) {
 
+  assert(n>=1);
+
+  stringstream err;
   NList l(args);
   size_t i = 0;
-  assert(n >= 2);
 
+  if ( n == 1 ) { // operator maps (empty) -> map[0]
+    if( !l.isEmpty() ) {
+      err << "Expecting an empty input list but got " << l << "!";
+      res = l.typeError( err.str() );
+      return false;    
+    }	    
+  }	  
+  else
+  {	  
   if (l.length() < n-1) {
-    stringstream err;
     err << "Expecting a list of length " << n-1 
 	<< " but got " << l << "!";
-    res = l.typeError(err.str());
+    res = l.typeError( err.str() );
     return false;
   }	  
 
@@ -65,6 +75,7 @@ CheckSimpleMap(const string map[], size_t n, ListExpr args, ListExpr& res) {
       return false;
     } 
     i++;
+  }
   }
   res = NList(map[i]).listExpr();
   return true;
@@ -95,5 +106,22 @@ SimpleMaps(const string map[n][m], ListExpr args)
   // to do: more precise error messages
   return NList().typeError(err.str());
 }	
+
+template<int n, int m>
+int
+SimpleSelect(const string map[n][m], ListExpr args) 
+{ 	
+  ListExpr res; // dummy arg	
+  bool ok = false;	
+  for(size_t i = 0; i < n; i++ ) {
+    ok = CheckSimpleMap(map[i], m, args, res);
+    if (ok)
+      return i;	    
+  }
+  string err="SimpleSelect failed!";
+  // to do: more precise error messages
+  NList().typeError(err);
+  return -1;
+}
 
 }
