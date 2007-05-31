@@ -1503,7 +1503,7 @@ int TopPred(Word* args, Word& result, int message,
     type2* p2 = (type2*) args[1].addr;
     CcString* name = (CcString*) args[2].addr;
     PredicateGroup* pg = (PredicateGroup*) args[3].addr;
-    const STRING* n = name->GetStringval(); 
+    const STRING_T* n = name->GetStringval(); 
     Cluster* theCluster = pg->GetClusterOf(n);
     if(!theCluster){// name not found within group
         ((CcBool*)result.addr)->Set(true,false);
@@ -1531,7 +1531,7 @@ int TopPredSym(Word* args, Word& result, int message,
     type1* p2 = (type1*) args[1].addr;
     CcString* name = (CcString*) args[2].addr;
     PredicateGroup* pg = (PredicateGroup*) args[3].addr;
-    const STRING* n = name->GetStringval(); 
+    const STRING_T* n = name->GetStringval(); 
     Cluster* theCluster = pg->GetClusterOf(n);
     if(!theCluster){// name not found within group
         ((CcBool*)result.addr)->Set(true,false);

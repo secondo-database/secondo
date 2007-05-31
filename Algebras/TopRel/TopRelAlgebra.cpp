@@ -77,7 +77,7 @@ static const unsigned short P8 = 256;
 static const unsigned short P9 = 512;
 
 // The name of the unspecified cluster
-static const STRING UNSPECIFIED = "unspecified";
+static const STRING_T UNSPECIFIED = "unspecified";
 
 extern NestedList *nl;
 extern QueryProcessor* qp;
@@ -555,7 +555,7 @@ bool Cluster::ReadFrom(const ListExpr LE){
    The second case is a list containing valid matrices.
    */
    unsigned char TMP[64];
-   STRING TMPname;
+   STRING_T TMPname;
    // initialize the temporary bitvector
    //for(int i=0;i<64;i++)
    //   TMP[i]=0;
@@ -1009,7 +1009,7 @@ bool PredicateGroup::ReadFrom(const ListExpr instance){
          return  false;
       }
       // check whether name already used
-      const STRING* name = CurrentCluster.GetName();
+      const STRING_T* name = CurrentCluster.GetName();
       for(int i=0;i<pos;i++)
          if(strcmp(*(AllClusters[i].GetName()),*name)==0){
               ErrorReporter::ReportError("non disjoint names found");
@@ -1050,7 +1050,7 @@ DBArray. Remember to reorder the clusters after calling this function.
 bool PredicateGroup::Add(Cluster* C){
    if(C->IsEmpty())
      return false;
-   const STRING* name = C->GetName();
+   const STRING_T* name = C->GetName();
 
    if(strcmp(*name,UNSPECIFIED)==0){
       return false;
@@ -1092,7 +1092,7 @@ bool PredicateGroup::AddWithPriority(const Cluster *C){
    if(C->IsEmpty()){
        return false;
    }
-   const STRING* name = C->GetName();
+   const STRING_T* name = C->GetName();
    if(strcmp(*name,UNSPECIFIED)==0){ // name conflict
       return false;
    }
@@ -1124,7 +1124,7 @@ no cluster found with this name. The Caller of this function
 has to remove the result.
 
 */
-Cluster* PredicateGroup::GetClusterOf(const STRING* name)const{
+Cluster* PredicateGroup::GetClusterOf(const STRING_T* name)const{
    if(strcmp((*name),UNSPECIFIED)==0){
      Cluster* res = new Cluster();
      res->Equalize(unSpecified);
@@ -1134,7 +1134,7 @@ Cluster* PredicateGroup::GetClusterOf(const STRING* name)const{
    const Cluster* tmp;
    for(int i=0;i<size;i++){
       theClusters.Get(i,tmp);
-      const STRING* n;
+      const STRING_T* n;
       n  = tmp->GetName();
       if(strcmp(*n,*name)==0){
          Cluster* res = new Cluster();
@@ -2128,7 +2128,7 @@ int Restrict_Cluster_String_Fun(Word* args, Word& result, int message,
     result = qp->ResultStorage(s);
     Cluster* cluster = (Cluster*) args[0].addr;
     CcString* cond = (CcString*) args[1].addr;
-    const STRING* cond_c = cond->GetStringval();
+    const STRING_T* cond_c = cond->GetStringval();
     string cond_s(*cond_c);
     Cluster* res = (Cluster*) result.addr;
     res->Equalize(cluster);
@@ -2283,7 +2283,7 @@ int CreateCluster_string_Fun(Word* args, Word& result, int message,
    CcString* arg1 = (CcString*) args[0].addr;
    CcString*  arg2 = (CcString*) args[1].addr;
    Cluster* res = (Cluster*) result.addr;
-   const STRING* cond;
+   const STRING_T* cond;
    cond  = arg2->GetStringval();
    struct tree* t=0;
    if(!parseString((char*)cond,&t)){

@@ -1636,7 +1636,7 @@ const string Chessgame::GetPGN( int moveNumber ) const
   return result;
 }
 
-void Chessgame::GetMetainfoValue( string key, STRING* result )
+void Chessgame::GetMetainfoValue( string key, STRING_T* result )
 {
   if ( key.size() == 0 )
   {

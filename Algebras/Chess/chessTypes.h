@@ -538,7 +538,7 @@ public:
 
   */
 
-  void GetMetainfoValue( string key, STRING* result );
+  void GetMetainfoValue( string key, STRING_T* result );
   /*
   searches key in metainfos and returns respective value in result, if the
   key was found - otherwhise it returns "key ... not found"

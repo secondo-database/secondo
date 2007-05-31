@@ -1121,7 +1121,7 @@ int agentValueMap( Word * args, Word & result,
 {
   Move * move = ( ( Move* ) args[ 0 ].addr );
   result = qp->ResultStorage( s );
-  STRING resultString;
+  STRING_T resultString;
   int len = ( move->GetAgent() ).string::copy( resultString, 48, 0 );
   resultString[ len ] = '\0';
   ( ( CcString* ) result.addr ) ->Set( true, &resultString );
@@ -1133,7 +1133,7 @@ int capturedValueMap( Word * args, Word & result,
 {
   Move * move = ( ( Move* ) args[ 0 ].addr );
   result = qp->ResultStorage( s );
-  STRING resultString;
+  STRING_T resultString;
   int len = ( move->GetCaptured() ).string::copy( resultString, 48, 0 );
   resultString[ len ] = '\0';
   ( ( CcString* ) result.addr ) ->Set( true, &resultString );
@@ -1163,7 +1163,7 @@ int startfileValueMap( Word * args, Word & result,
 {
   Move * move = ( ( Move* ) args[ 0 ].addr );
   result = qp->ResultStorage( s );
-  STRING resultString;
+  STRING_T resultString;
   int len = ( move->GetStartFile() ).string::copy( resultString, 48, 0 );
   resultString[ len ] = '\0';
   ( ( CcString* ) result.addr ) ->Set( true, &resultString );
@@ -1175,7 +1175,7 @@ int endfileValueMap( Word * args, Word & result,
 {
   Move * move = ( ( Move* ) args[ 0 ].addr );
   result = qp->ResultStorage( s );
-  STRING resultString;
+  STRING_T resultString;
   int len = ( move->GetEndFile() ).string::copy( resultString, 48, 0 );
   resultString[ len ] = '\0';
   ( ( CcString* ) result.addr ) ->Set( true, &resultString );
@@ -1627,7 +1627,7 @@ int getkeyValueMap( Word * args, Word & result,
   Chessgame * game = ( ( Chessgame* ) args[ 0 ].addr );
   CcString * key = ( ( CcString* ) args[ 1 ].addr );
   result = qp->ResultStorage( s );
-  STRING resultStr;
+  STRING_T resultStr;
   game->GetMetainfoValue( key->GetValue(), &resultStr );
   ( ( CcString* ) result.addr ) ->Set( true, &resultStr ) ;
 
@@ -1805,7 +1805,7 @@ int movingpointsValueMap( Word * args, Word & result,
   Move mv;
   string startfile, endfile, argstr;
   CcString* ki;
-  STRING hilfstr;
+  STRING_T hilfstr;
   CcBool* iw;
   MPoint* mp;
   int i;
