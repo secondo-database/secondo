@@ -238,50 +238,28 @@ using namespace std;
 #include <time.h>       //needed for random number generator
 
 #include "NList.h"
-#include "TypeMapUtils.h"
-#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
-using namespace symbols;
-using namespace mappings;
-
 /*
 4.1 Type investigation auxiliaries
 
 Within this algebra module, we have to handle with values of four different
-types: ~ccint~ and ~ccreal~, ~ccbool~ and ~CcString~.
+types defined in namespace symbols: ~INT~ and ~REAL~, ~BOOL~ and ~STRING~.
+They are constant values of the C++-string class.
 
-Later on we will
-examine nested list type descriptions. In particular, we
-are going to check whether they describe one of the four types just introduced.
-In order to simplify dealing with list expressions describing these types, we
-declare an enumeration, ~CcType~, containing the four types, and a function,
-~TypeOfSymbol~, taking a nested list as  argument and returning the
-corresponding ~CcType~ type name.
+Moreover, for type mappings some auxiliary helper functions are defined in the
+file "TypeMapUtils.h" which defines a namespace mappings.
 
 */
 
-enum CcType { ccint, ccreal, ccerror, ccbool, ccstring, ccconst, ccset };
+#include "TypeMapUtils.h"
+#include "Symbols.h"
 
-
-CcType
-TypeOfSymbol( ListExpr symbol )
-{
-  if ( nl->AtomType( symbol ) == SymbolType )
-  {
-    string s = nl->SymbolValue( symbol );
-    if ( s == "int"    ) return (ccint);
-    if ( s == "real"   ) return (ccreal);
-    if ( s == "bool"   ) return (ccbool);
-    if ( s == "string" ) return (ccstring);
-    if ( s == "const"  ) return (ccconst);
-    if ( s == "set"    ) return (ccset);
-  }
-  return (ccerror);
-}
+using namespace symbols;
+using namespace mappings;
 
 /*
 3 Type constructors
@@ -295,7 +273,7 @@ during ~TypeConstructor~ instantiation.
 
 Each instance of below defined class CcInt will be the main memory
 representation of a
-value of type ~ccint~. It consists of a boolean flag, ~defined~,
+value of type ~INT~. It consists of a boolean flag, ~defined~,
 and an integer value, ~intval~. ~defined~ may be used to indicate whether
 an instance of class CcInt represents a valid value or not. E.g., a
 division by zero might result in a CcInt object with ~defined~ set to false.
@@ -418,7 +396,7 @@ SizeOfCcInt()
 }
 
 /*
-3.2.5 {\em Cast}-function of type constructor {\tt ccint}
+3.2.5 {\em Cast}-function of type constructor {\tt INT}
 
 */
 
@@ -429,7 +407,7 @@ CastInt( void* addr )
 }
 
 /*
-3.2.6 {\em Type check} function of type constructor {\tt ccint}
+3.2.6 {\em Type check} function of type constructor {\tt INT}
 
 */
 
@@ -455,8 +433,8 @@ TypeConstructor ccInt( "int",            CcIntProperty,
 /*
 3.2 Type constructor *ccreal*
 
-The following type constructor, ~ccreal~, is defined in the same way as
-~ccint~.
+The following type constructor, ~REAL~, is defined in the same way as
+~INT~.
 
 */
 long CcReal::realsCreated = 0;
@@ -558,7 +536,7 @@ SizeOfCcReal()
 }
 
 /*
-3.3.6 {\em Cast}-function of type constructor {\tt ccreal}
+3.3.6 {\em Cast}-function of type constructor {\tt REAL}
 
 */
 
@@ -570,7 +548,7 @@ CastReal( void* addr )
 
 
 /*
-3.3.7 {\em Type check} function of type constructor {\tt ccreal}
+3.3.7 {\em Type check} function of type constructor {\tt REAL}
 
 */
 
@@ -594,7 +572,7 @@ TypeConstructor ccReal( "real",       CcRealProperty,
 
 Each instance of below defined class CcBool will be the main memory
 representation of a
-value of type ~ccbool~. It consists of a boolean flag, ~defined~,
+value of type ~BOOL~. It consists of a boolean flag, ~defined~,
 and an boolean value, ~boolval~. ~defined~ may be used to indicate whether
 an instance of class CcBool represents a valid value or not. E.g., a
 division by zero might result in a CcBool object with ~defined~ set to false.
@@ -710,7 +688,7 @@ SizeOfCcBool()
 }
 
 /*
-3.3.6 {\em Cast}-function of type constructor {\tt ccreal}
+3.3.6 {\em Cast}-function of type constructor {\tt REAL}
 
 */
 
@@ -721,7 +699,7 @@ CastBool( void* addr )
 }
 
 /*
-3.2.5 {\em Type check} function of type constructor {\tt ccreal}
+3.2.5 {\em Type check} function of type constructor {\tt REAL}
 
 */
 
@@ -748,8 +726,8 @@ long CcString::stringsDeleted = 0;
 
 bool CcString::Adjacent( const Attribute* arg ) const
 {
-  const ::STRING_T *a = GetStringval(),
-               *b = ((CcString *)arg)->GetStringval();
+  const STRING_T* a = GetStringval();	
+  const STRING_T* b = ((CcString *)arg)->GetStringval();
 
   if( strcmp( *a, *b ) == 0 )
     return 1;
@@ -881,7 +859,7 @@ SizeOfCcString()
 }
 
 /*
-3.3.6 {\em Cast}-function of type constructor {\tt ccreal}
+3.3.6 {\em Cast}-function of type constructor {\tt REAL}
 
 */
 
@@ -892,7 +870,7 @@ CastString( void* addr )
 }
 
 /*
-3.2.5 {\em Type check} function of type constructor {\tt ccreal}
+3.2.5 {\em Type check} function of type constructor {\tt REAL}
 
 */
 bool
@@ -917,7 +895,7 @@ operator is defined by creating an instance of class ~Operator~. Again we
 have to define some functions before we are able to create an ~Operator~
 instance.
 
-4.2 Type mapping function
+4.2 Type Mapping
 
 A type mapping function takes a nested list as argument. Its contents are
 type descriptions of an operator's input parameters. A nested list describing
@@ -925,45 +903,75 @@ the output type of the operator is returned.
 
 4.2.1 Type mapping function CcMathTypeMap
 
-It is for the operators +, - and [*].
+The function below is used for the operators +, - and [*]. For ~simple~
+type mappings - those which map a list of atomic types to an atomic result
+type - a generic function called ~SimpleMap~ or ~SimpleMaps~ can be used.
 
 */
+
+const string maps_arith[5][3] = 
+{ 
+  {INT,    INT,    INT},
+  {INT,    REAL,   REAL},
+  {REAL,   INT,    REAL},
+  {REAL,   REAL,   REAL},
+  {STRING, STRING, STRING}
+};  
 
 ListExpr
 CcMathTypeMap( ListExpr args )
 {
-  const string m[5][3] = 
-  { 
-    {INT,    INT,    INT},
-    {INT,    REAL,   REAL},
-    {REAL,   INT,    REAL},
-    {REAL,   REAL,   REAL},
-    {STRING, STRING, STRING}
-  };  
-  return SimpleMaps<5,3>(m, args);	 
+  return SimpleMaps<5,3>(maps_arith, args);	 
 }
+
+
+/*
+4.2.2 Selection Function
+
+A selection function is quite similar to a type mapping function and is needed
+for operators which accept different variants of input parameters. The only
+difference is that it doesn't return a type but the index of a value mapping
+function being able to deal with the respective combination of input parameter
+types.
+
+Note that a selection function does not need to check the correctness of
+argument types; it has already been checked by the type mapping function that it
+is applied to correct arguments.
+
+4.3.1 Selection function  CcMathSelectCompute
+
+*/
+
+int
+CcMathSelectCompute( ListExpr args )
+{
+  return SimpleSelect<5,3>(maps_arith, args);	
+}
+
 
 /*
 4.2.2 Type mapping function CcMathTypeMapdiv
 
 It is for the operators /. the only difference between CCMathTypeMap and
-CcMathTypeMapdiv is that the latter give as resulttype ccreal if the input type
-is ccint ("normal division of int with result real", the other division
+CcMathTypeMapdiv is that the latter give as resulttype REAL if the input type
+is INT ("normal division of int with result real", the other division
 of int is called div in this program).
 
 */
 
+
+const string maps_div[4][3] = 
+{ 
+  {INT,  INT,  REAL},
+  {INT,  REAL, REAL},
+  {REAL, INT,  REAL},
+  {REAL, REAL, REAL}
+};  
+
 ListExpr
 CcMathTypeMapdiv( ListExpr args )
 {
-  const string m[4][3] = 
-  { 
-    {INT,  INT,  REAL},
-    {INT,  REAL, REAL},
-    {REAL, INT,  REAL},
-    {REAL, REAL, REAL}
-  };  
-  return SimpleMaps<4,3>(m, args);	 
+  return SimpleMaps<4,3>(maps_div, args);	 
 }
 
 /*
@@ -986,17 +994,26 @@ CcMathTypeMap1( ListExpr args )
 It is for the operators ~intersection~ and ~minus~.
 
 */
+
+
+const string maps_set[4][3] = 
+{ 
+  {INT, INT, INT},
+  {REAL, REAL, REAL},
+  {BOOL, BOOL, BOOL},
+  {STRING, STRING, STRING}
+};  
+
 ListExpr
 CcMathTypeMap2( ListExpr args )
 {
-  const string m[4][3] = 
-  { 
-    {INT, INT, INT},
-    {REAL, REAL, REAL},
-    {BOOL, BOOL, BOOL},
-    {STRING, STRING, STRING}
-  };  
-  return SimpleMaps<4,3>(m, args);	 
+  return SimpleMaps<4,3>(maps_set, args);	 
+}
+
+int
+CcMathSelectSet( ListExpr args )
+{
+  return SimpleSelect<4,3>(maps_set, args);	 
 }
 
 /*
@@ -1042,14 +1059,22 @@ IntBool( ListExpr args )
   return SimpleMap(mapping, 2, args);	 
 }
 
+/* 
+~EmptyInt~
+
+Some operators create integer result without any kind of input, they map
+
+----
+  () -> (int)
+----
+
+*/
+
 ListExpr
 EmptyInt( ListExpr args )
 {
-  if ( !nl->IsEmpty( args ) ) {
-    return (nl->SymbolAtom( "typeerror" ));
-  } else {
-    return (nl->SymbolAtom( "int" ));
-  }
+  const string mapping[] = {INT};
+  return SimpleMap(mapping, 1, args);	 
 }
 
 ListExpr
@@ -1073,20 +1098,35 @@ It is for the Compare operators which have ~bool~ as resulttype.
 
 */
 
+const string maps_comp[6][3] = 
+{ 
+  {INT,    INT,    BOOL},
+  {INT,    REAL,   BOOL},
+  {REAL,   INT,    BOOL},
+  {REAL,   REAL,   BOOL},
+  {BOOL,   BOOL,   BOOL},
+  {STRING, STRING, BOOL}
+};  
+
+
 ListExpr
 CcMathTypeMapBool( ListExpr args )
 {
-  const string m[6][3] = 
-  { 
-    {INT,    INT,    BOOL},
-    {INT,    REAL,   BOOL},
-    {REAL,   INT,    BOOL},
-    {REAL,   REAL,   BOOL},
-    {BOOL,   BOOL,   BOOL},
-    {STRING, STRING, BOOL}
-  };  
-  return SimpleMaps<6,3>(m, args);	 
+  return SimpleMaps<6,3>(maps_comp, args);	 
 }
+
+/*
+4.3.3 Selection function  CcMathSelectCompare
+
+*/
+
+int
+CcMathSelectCompare( ListExpr args )
+{
+  return SimpleSelect<6,3>(maps_comp, args);
+}
+
+
 /*
 4.2.6 Type mapping function CcMathTypeMapBool1
 
@@ -1136,18 +1176,34 @@ It is for the  operators ~isempty~ which have ~bool~, ~int~, ~real~, and ~string
 
 */
 
+
+const string maps_isempty[4][2] = 
+{ 
+  {BOOL,   BOOL},
+  {INT,    BOOL},
+  {REAL,   BOOL},
+  {STRING, BOOL}
+};  
+
 ListExpr
 CcMathTypeMapBool4( ListExpr args )
 {
-  const string m[4][2] = 
-  { 
-    {BOOL,   BOOL},
-    {INT,    BOOL},
-    {REAL,   BOOL},
-    {STRING, BOOL}
-  };  
-  return SimpleMaps<4,2>(m, args);	 
+  return SimpleMaps<4,2>(maps_isempty, args);	 
 }
+
+
+/*
+4.3.3 Selection function  CcMathSelectIsEmpty
+
+It is used for the ~isempty~ operator.
+
+*/
+int
+CcMathSelectIsEmpty( ListExpr args )
+{
+  return SimpleSelect<4,2>(maps_isempty, args);	 
+}
+
 
 /*
 4.2.10 Type mapping function for the ~upper~ operator:
@@ -1268,18 +1324,29 @@ Type mapping for ~between~ is
 ----
 
 */
+
+const string maps_between[4][4] = 
+{ 
+  {INT,    INT,    INT,    BOOL},
+  {REAL,   REAL,   REAL,   BOOL},
+  {STRING, STRING, STRING, BOOL},
+  {BOOL,   BOOL,   BOOL,   BOOL},
+};  
+
 ListExpr
 CcBetweenTypeMap( ListExpr args )
 {
-  using namespace symbols;	
-  const string m[4][4] = 
-  { 
-    {INT,    INT,    INT,    BOOL},
-    {REAL,   REAL,   REAL,   BOOL},
-    {BOOL,   BOOL,   BOOL,   BOOL},
-    {STRING, STRING, STRING, BOOL},
-  };  
-  return SimpleMaps<4,4>(m, args);	 
+  return SimpleMaps<4,4>(maps_between, args);	 
+}
+
+/*
+4.3.3 Selection function  CcBetweenSelect
+
+*/
+int
+CcBetweenSelect( ListExpr args )
+{
+  return SimpleSelect<4,4>(maps_between, args);	 
 }
 
 /*
@@ -1306,7 +1373,7 @@ CcHashValueTypeMap( ListExpr args )
   CHECK_COND(am->CheckKind("DATA", arg1, errorInfo),
   "Object type of first argument does not belong to kind DATA!");
 
-  CHECK_COND(TypeOfSymbol( arg2 ) == ccint,
+  CHECK_COND(nl->SymbolValue( arg2 ) == INT,
   "Object type of second argument must be int!");
 
   return (nl->SymbolAtom( "int" ));
@@ -1320,25 +1387,16 @@ Type mapping for ~ldistance~ is string x string [->] int
 
 */
 
-ListExpr CcLDistTypeMap(ListExpr args){
-   if(nl->ListLength(args)!=2){
-       ErrorReporter::ReportError("two arguments expected\n");
-       return nl->SymbolAtom("typeerror");
-   }
-   ListExpr arg1 = nl->First(args);
-   ListExpr arg2 = nl->Second(args);
-   if(!nl->IsEqual(arg1,"string") ||
-      !nl->IsEqual(arg2,"string")){
-       ErrorReporter::ReportError("string x string required");
-       return nl->SymbolAtom("typeerror");
-   }
-   return nl->SymbolAtom("int");
+ListExpr CcLDistTypeMap(ListExpr args)
+{
+  const string mapping[] = {STRING, STRING, INT};
+  return SimpleMap(mapping, 3, args);	 
 }
 
 /*
 4.2.16 Type mapping function CcRoundTypeMap
 
-It is for the  operators ~round~, which has ~real~ and ~int~ as input and ~real~ resulttype.
+It is for the  operator ~round~.
 
 */
 
@@ -1355,172 +1413,23 @@ CcRoundTypeMap( ListExpr args )
 For operator ~num2string~
 
 */
+
+const string maps_num2str[2][2] = 
+{ 
+  {REAL, STRING}, 
+  {INT,  STRING}  
+};
+
 ListExpr
 NumStringTypeMap( ListExpr args )
 {
-  const string maps[2][2] = 
-  { 
-    {REAL, STRING}, 
-    {INT,  STRING}  
-  };
-  return SimpleMaps<2,2>(maps, args);	 
-}
-
-/*
-4.3 Selection function
-
-A selection function is quite similar to a type mapping function. The only
-difference is that it doesn't return a type but the index of a value
-mapping function being able to deal with the respective combination of
-input parameter types.
-
-Note that a selection function does not need to check the correctness of
-argument types; it has already been checked by the type mapping function that it
-is applied to correct arguments.
-
-*/
-
-/*
-4.3.1 Selection function  CcMathSelectCompute
-
-It is used for the  operators +, - [*] and / .
-
-*/
-
-int
-CcMathSelectCompute( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  ListExpr arg2 = nl->Second( args );
-  if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccint )
-    return (0);
-  if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccreal )
-    return (1);
-  if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccint )
-    return (2);
-  if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccreal )
-    return (3);
-  if ( TypeOfSymbol( arg1 ) == ccstring && TypeOfSymbol( arg2 ) == ccstring )
-    return (4);
-  return (-1); // This point should never be reached
-}
-
-/*
-4.3.3 Selection function  CcMathSelectCompare
-
-It is used for the  all compare operators .
-
-*/
-
-int
-CcMathSelectCompare( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  ListExpr arg2 = nl->Second( args );
-  if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccint )
-    return (0);
-  if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccreal )
-    return (1);
-  if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccint )
-    return (2);
-  if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccreal )
-    return (3);
-  if ( TypeOfSymbol( arg1 ) == ccbool && TypeOfSymbol( arg2 ) == ccbool )
-    return (4);
-  if ( TypeOfSymbol( arg1 ) == ccstring && TypeOfSymbol( arg2 ) == ccstring )
-    return (5);
-  return (-1); // This point should never be reached
-}
-
-/*
-4.3.4 Selection function  CcMathSelectSet
-
-It is used for the set operators ~intersection~ and ~minus~.
-
-*/
-
-int
-CcMathSelectSet( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  ListExpr arg2 = nl->Second( args );
-  if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccint )
-    return (0);
-  if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccreal )
-    return (1);
-  if ( TypeOfSymbol( arg1 ) == ccbool && TypeOfSymbol( arg2 ) == ccbool )
-    return (2);
-  if ( TypeOfSymbol( arg1 ) == ccstring && TypeOfSymbol( arg2 ) == ccstring )
-    return (3);
-  return (-1); // This point should never be reached
-}
-
-
-/*
-4.3.3 Selection function  CcMathSelectIsEmpty
-
-It is used for the ~isempty~ operator.
-
-*/
-int
-CcMathSelectIsEmpty( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  if ( TypeOfSymbol( arg1 ) == ccbool )
-    return (0);
-  if ( TypeOfSymbol( arg1 ) == ccint )
-    return (1);
-  if ( TypeOfSymbol( arg1 ) == ccreal )
-    return (2);
-  if ( TypeOfSymbol( arg1 ) == ccstring )
-    return (3);
-  return (-1); // This point should never be reached
-}
-
-/*
-4.3.3 Selection function  CcBetweenSelect
-
-It is used for the ~between~ operator.
-
-*/
-int
-CcBetweenSelect( ListExpr args )
-{
-  ListExpr arg1, arg2, arg3;
-  if ( nl->ListLength( args ) == 3 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    arg3 = nl->Second( args );
-    if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccint
-                                       && TypeOfSymbol( arg3 ) == ccint)
-      return ( 0 );
-    if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccreal
-                                        && TypeOfSymbol( arg3 ) == ccreal)
-      return ( 1 );
-    if ( TypeOfSymbol( arg1 ) == ccstring && TypeOfSymbol( arg2 ) == ccstring
-                                          && TypeOfSymbol( arg3 ) == ccstring)
-      return ( 2 );
-    if ( TypeOfSymbol( arg1 ) == ccbool && TypeOfSymbol( arg2 ) == ccbool
-                                        && TypeOfSymbol( arg3 ) == ccbool)
-      return ( 3 );
-  }
-  return ( -1 );
+  return SimpleMaps<2,2>(maps_num2str, args);	 
 }
 
 int
 ccnum2stringSelect( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-    if ( TypeOfSymbol( arg1 ) == ccreal )
-      return ( 0 );
-    if ( TypeOfSymbol( arg1 ) == ccint )
-      return ( 1 );
-  }
-  return ( -1 );
+  return SimpleSelect<2,2>(maps_num2str, args);	 
 }
 
 int ifthenelseSelect(ListExpr args)
@@ -1535,7 +1444,6 @@ int ifthenelseSelect(ListExpr args)
 }
 
 
-
 /*
 4.4 Value mapping functions of operator ~+~
 
@@ -1545,9 +1453,9 @@ one value mapping function. In the case of overloaded operators --- like in
 this example --- there are several value mapping functions, one for each
 possible combination of input parameter types. We have to provide
 four functions for each of the operators ~+~, ~-~,  ~[*]~ ....., since
-each of them accepts four input parameter combinations: ~ccint~ $\times$
-~ccint~, ~ccint~ $\times$ ~ccreal~,  ~ccreal~ $\times$ ~ccint~, and
-~ccreal~ $\times$ ~ccreal~.
+each of them accepts four input parameter combinations: ~INT~ $\times$
+~INT~, ~INT~ $\times$ ~REAL~,  ~REAL~ $\times$ ~INT~, and
+~REAL~ $\times$ ~REAL~.
 
 */
 
@@ -3173,9 +3081,9 @@ As a side effect internal configuration parameter of SECONDO are changed.
 
 */
 
-struct SetOptionInfo : OperatorInfo {
+struct setoptionInfo : OperatorInfo {
 
-  SetOptionInfo() : OperatorInfo()
+  setoptionInfo() : OperatorInfo()
   {
     name =      "setoption";
     signature = "string x int -> bool";
@@ -3249,9 +3157,9 @@ setoption_vm( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-struct AbsInfo : OperatorInfo {
+struct absInfo : OperatorInfo {
 
-  AbsInfo() : OperatorInfo()
+  absInfo() : OperatorInfo()
   {
     name =      "abs";
     signature = "real -> real";
@@ -3278,6 +3186,7 @@ abs_vm( Word* args, Word& result, int message, Word& local, Supplier s )
 4.17 Operator ~round~ rounds a real with a given precision
 
 */
+
 int
 CcRoundValueMap( Word* args, Word& result, int message,
                  Word& local, Supplier s )
@@ -4298,8 +4207,8 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccchar );
     AddOperator( &ccnum2string );
 
-    AddOperator( SetOptionInfo(), setoption_vm, setoption_tm );
-    AddOperator( AbsInfo(), abs_vm, RealReal );
+    AddOperator( setoptionInfo(), setoption_vm, setoption_tm );
+    AddOperator( absInfo(), abs_vm, RealReal );
 
 
   }
