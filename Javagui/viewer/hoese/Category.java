@@ -100,8 +100,12 @@ public class Category
  public static final int RENDER_COLOR=0;
  /** represents a attribute depending render method **/
  public static final int RENDER_POINTSIZE=1;
+ public static final int RENDER_LINE_COLOR = 2;
+
  /** represents a attribute depending render method **/
- public static final int RENDER_LINEWIDTH=2;
+ public static final int RENDER_LINEWIDTH=3; // should have the biggest number
+                                             // of all rendering methods
+
 
  /** the attribute depending render method used in this category **/
  private int attrRenderMethod = RENDER_COLOR;
@@ -159,8 +163,34 @@ public class Category
    * @return The outline-color of the cat.
       * @see <a href="Categorysrc.html#">Source</a>
    */
-  public Color getLineColor () {
-    return  LineColor;
+  public Color getLineColor (RenderAttribute renderAttribute, double time) {
+    if(renderAttribute==null || attrRenderMethod!=RENDER_LINE_COLOR){
+        return  LineColor;
+    } else {
+        if(Double.isInfinite(minValue) || Double.isInfinite(maxValue)){
+           Reporter.debug("try to compute render depening color with"+
+                               "unbounded range");
+           return LineColor;
+        }
+        double value = renderAttribute.isDefined(time)?renderAttribute.getRenderValue(time):minValue;
+        if(value<minValue){
+             value = minValue;
+        }
+        if(value>maxValue){
+             value = maxValue;
+        }
+        double r1 = minColor.getRed();
+        double g1 = minColor.getGreen();
+        double b1 = minColor.getBlue();
+        double r2 = maxColor.getRed();
+        double g2 = maxColor.getGreen();
+        double b2 = maxColor.getBlue();
+        double delta = (maxValue>minValue)?(value-minValue)/ (maxValue-minValue):0;
+        int r = (int)(r1 + delta*(r2-r1));
+        int g = (int)(g1 + delta*(g2-g1));
+        int b = (int)(b1 + delta*(b2-b1));
+        return new Color(r,g,b);
+    }
   }
 
   /**
@@ -584,7 +614,7 @@ public class Category
     Color c1, c2;
     String Name = "";
     ListExpr l = ListExpr.oneElemList(ListExpr.stringAtom(cat.getName()));
-    ListExpr le = ListExpr.append(l, color2list(cat.getLineColor()));
+    ListExpr le = ListExpr.append(l, color2list(cat.getLineColor(null,0)));
     le = ListExpr.append(le, ListExpr.intAtom(cat.getLineStyle()));
     le = ListExpr.append(le, ListExpr.realAtom(cat.getLineWidth(null,0)));
     le = ListExpr.append(le, ListExpr.boolAtom(cat.getPointasRect()));

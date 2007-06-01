@@ -73,6 +73,14 @@ public class ViewConfig extends javax.swing.JDialog {
   static String RENDER_BLUE_RED   ="blue -> red";
   static String RENDER_BLUE_GREEN ="blue -> green";
 
+  static String RENDER_LINE_WHITE_BLACK="white -> black (border)";
+  static String RENDER_LINE_WHITE_RED  ="white -> red (border)";
+  static String RENDER_LINE_WHITE_BLUE ="white -> blue (border)";
+  static String RENDER_LINE_WHITE_GREEN="white -> green (border)";
+  static String RENDER_LINE_GREEN_RED  ="green -> red (border)";
+  static String RENDER_LINE_BLUE_RED   ="blue -> red (border)";
+  static String RENDER_LINE_BLUE_GREEN ="blue -> green (border)";
+  
   static String RENDER_POINTSIZE ="pointsize";
   static String RENDER_LINEWIDTH ="linewidth";
 
@@ -132,7 +140,7 @@ public class ViewConfig extends javax.swing.JDialog {
     
     String MainType = TypeList.symbolValue();
     // process relations
-    if(MainType.equals("rel") ){
+    if(MainType.equals("rel")  || MainType.equals("trel") || MainType.equals("mrel")){
        // standard
         RefAList.add("Tuple-No.");
         RefMList.add("Tuple-No.");
@@ -475,6 +483,12 @@ public class ViewConfig extends javax.swing.JDialog {
     RendTypeCB.addItem(RENDER_BLUE_GREEN);
     RendTypeCB.addItem(RENDER_POINTSIZE);
     RendTypeCB.addItem(RENDER_LINEWIDTH);
+    RendTypeCB.addItem(RENDER_LINE_WHITE_RED);
+    RendTypeCB.addItem(RENDER_LINE_WHITE_GREEN);
+    RendTypeCB.addItem(RENDER_LINE_WHITE_BLUE);
+    RendTypeCB.addItem(RENDER_LINE_GREEN_RED);
+    RendTypeCB.addItem(RENDER_LINE_BLUE_RED);
+    RendTypeCB.addItem(RENDER_LINE_BLUE_GREEN);
     searchForImageDirs();
     LinkCheckBox = new JCheckBox("manual link");
     LinkCheckBox.addActionListener(new ActionListener(){
@@ -918,6 +932,42 @@ public class ViewConfig extends javax.swing.JDialog {
     }
     if(RendType.equals(RENDER_LINEWIDTH)){
        NewCat.setRenderMethod(Category.RENDER_LINEWIDTH); 
+    }
+    if (RendType.equals(RENDER_LINE_WHITE_BLACK)) {
+      NewCat.setColorRange(Color.WHITE,Color.BLACK);
+      NewCat.setRenderMethod(Category.RENDER_LINE_COLOR);
+    }
+    if (RendType.equals(RENDER_LINE_WHITE_BLUE)) {
+      NewCat.setColorRange(Color.WHITE,Color.BLUE);
+      NewCat.setRenderMethod(Category.RENDER_LINE_COLOR);
+    }
+    if (RendType.equals(RENDER_LINE_WHITE_RED)) {
+      NewCat.setColorRange(Color.WHITE,Color.RED);
+      NewCat.setRenderMethod(Category.RENDER_LINE_COLOR);
+    }
+    if (RendType.equals(RENDER_LINE_WHITE_GREEN)) {
+      NewCat.setColorRange(Color.WHITE,Color.GREEN);
+      NewCat.setRenderMethod(Category.RENDER_LINE_COLOR);
+    }
+    if (RendType.equals(RENDER_LINE_GREEN_RED)) {
+      NewCat.setColorRange(Color.GREEN,Color.RED);
+      NewCat.setRenderMethod(Category.RENDER_LINE_COLOR);
+    }
+    if (RendType.equals(RENDER_LINE_BLUE_RED)) {
+      NewCat.setColorRange(Color.BLUE,Color.RED);
+      NewCat.setRenderMethod(Category.RENDER_LINE_COLOR);
+    }
+    if (RendType.equals(RENDER_LINE_BLUE_GREEN)) {
+      NewCat.setColorRange(Color.BLUE,Color.GREEN);
+      NewCat.setRenderMethod(Category.RENDER_LINE_COLOR);
+    }
+    if (RendType.equals(RENDER_POINTSIZE)) {
+       NewCat.setRenderMethod(Category.RENDER_POINTSIZE); 
+      NewCat.setRenderMethod(Category.RENDER_LINE_COLOR);
+    }
+    if(RendType.equals(RENDER_LINEWIDTH)){
+       NewCat.setRenderMethod(Category.RENDER_LINEWIDTH); 
+      NewCat.setRenderMethod(Category.RENDER_LINE_COLOR);
     }
     return  NewCat;
   }

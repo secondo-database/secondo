@@ -282,10 +282,18 @@ public class Layer extends JComponent {
            }
            // switch line color if this object is selected
            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
-           Color aktLineColor = cat.getLineColor();
-           if (dg.getSelected()){
-                 aktLineColor = new Color(Color.white.getRGB() ^ cat.getLineColor().getRGB());
+           boolean isColorRendering = cat.getRenderMethod() == Category.RENDER_COLOR;
+           if(isColorRendering && dg.isLineType(i)){
+                 cat.setRenderMethod(Category.RENDER_LINE_COLOR);
            }
+           Color aktLineColor = cat.getLineColor(dg.getRenderAttribute(),time);
+           if (dg.getSelected()){
+                 aktLineColor = new Color(Color.white.getRGB() ^ cat.getLineColor(dg.getRenderAttribute(),time).getRGB());
+           }
+           if(isColorRendering){
+               cat.setRenderMethod(Category.RENDER_COLOR);
+           }
+              
            g2.setColor(aktLineColor);
            
            // paint the border
@@ -358,7 +366,7 @@ public class Layer extends JComponent {
     }
     if(C==null){
         Category cat = dg.getCategory();
-        g2.setPaint(cat.getLineColor());
+        g2.setPaint(cat.getLineColor(null,0));
     } else {
         g2.setPaint(C);
     }
