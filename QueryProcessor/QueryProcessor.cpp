@@ -2748,15 +2748,27 @@ QueryProcessor::Subtree( const ListExpr expr,
                   algebraManager->getOperator(node->u.op.algebraId, opId)
                                                       ->GetValueMapping(funId);
 
+      //check whether this operator does not use automatic evaluation
+      //of arguments, but uses explicit requests instead
+      //
+      bool requestsArguments = 
+        algebraManager->getOperator(node->u.op.algebraId, opId)
+							->RequestsArguments();
       node->u.op.noSons = 0;
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
       while ( !nl->IsEmpty( list ) )
       {
         node->u.op.sons[node->u.op.noSons].addr = 
           Subtree( nl->First( list ), first, node );
+
+        if ( requestsArguments ) {
+          ((OpNode*) node->u.op.sons[node->u.op.noSons].addr)
+						->evaluable = false;
+        }
         node->u.op.noSons++;
         list = nl->Rest( list );
       }
+
 
       if( !nl->IsAtom(nl->Second(expr)) &&
           TypeOfSymbol(nl->First(nl->Second(expr))) == QP_STREAM )
@@ -3669,6 +3681,7 @@ QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
 
 	  cout << "Time = " << p->Time << endl;
 	  cout << "Progress = " << p->Progress << endl;
+
           cout << "=================" << endl;
         }
 
