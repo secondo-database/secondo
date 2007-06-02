@@ -2835,20 +2835,22 @@ ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
 {
     result = qp->ResultStorage( s );
 
-    if (!((CcBool*)args[0].addr)->IsDefined() )
+    Word res;
+
+    qp->Request(args[0].addr, res);
+    CcBool* arg1 = (CcBool*) res.addr;
+
+    if ( !arg1->IsDefined() )
     {
-        ((StandardAttribute*)result.addr)->SetDefined( false );
+      ((StandardAttribute*)result.addr)->SetDefined( false );
+      return 0;
     }
-    else if(((CcBool*)args[0].addr)->GetBoolval())
-    {
-        ((StandardAttribute*)result.addr)->CopyFrom(
-                (StandardAttribute*)args[1].addr );
-    }
-    else
-    {
-        ((StandardAttribute*)result.addr)->CopyFrom(
-                (StandardAttribute*)args[2].addr );
-    }
+
+    int index = ( arg1->GetBoolval() ? 1 : 2 );
+    qp->Request(args[index].addr, res);
+
+    ((StandardAttribute*)result.addr)->CopyFrom(
+                (StandardAttribute*) res.addr );
 
     return 0;
 }
@@ -2856,17 +2858,20 @@ ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
 int
 ifthenelseFunS(Word* args, Word& result, int message, Word& local, Supplier s)
 {
+    Word res;
+
     result = qp->ResultStorage( s );
-    CcBool* arg1 = (CcBool*) args[0].addr;
+    qp->Request(args[0].addr, res);
+    CcBool* arg1 = (CcBool*) res.addr;
     if(!arg1->IsDefined()){
         ((StandardAttribute*)result.addr)->SetDefined(false);
         return 0;
     }
     bool cond = arg1->GetBoolval();
-    int index = cond?1:2;
+    int index = (cond ? 1 : 2);
     qp->Open(args[index].addr);
-    Word res;
-    qp->Request(args[index].addr,res);
+
+    qp->Request(args[index].addr, res);
     if(!qp->Received(args[index].addr)){
         ((StandardAttribute*)result.addr)->SetDefined(false);
     } else {
@@ -4192,7 +4197,8 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccoprelcount );
     AddOperator( &ccoprelcount2 );
     AddOperator( &ccopkeywords );
-    AddOperator( &ccopifthenelse );
+    AddOperator( &ccopifthenelse );	
+         		ccopifthenelse.SetRequestsArguments();
     AddOperator( &ccbetween );
     //AddOperator( &ccelapsedtime );
     AddOperator( &ccldistance );
