@@ -27,7 +27,7 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
-January 2006, M. Spiekermann. New costructors for operators and type constructors
+January 2006, M. Spiekermann. New constructors for operators and type constructors
 added.
 
 */
@@ -130,6 +130,7 @@ Operator::Operator( const string& nm,
   valueMap       = new ValueMapping[numOfFunctions];
   typeMap        = tm;
   supportsProgress = false;
+  requestsArgs   = false;
 
   for ( int i = 0; i < numOfFunctions; i++ )
     AddValueMapping( i, vms[i] );
@@ -148,6 +149,7 @@ Operator::Operator( const string& nm,
   valueMap       = new ValueMapping[1];
   typeMap        = tm;
   supportsProgress = false;
+  requestsArgs   = false;
 
   AddValueMapping( 0, vm );
 }
@@ -165,6 +167,7 @@ Operator::Operator( const OperatorInfo& oi,
   valueMap       = new ValueMapping[1];
   typeMap        = tm;
   supportsProgress = false;
+  requestsArgs   = false;
 
   AddValueMapping( 0, vm );
 }
@@ -186,6 +189,7 @@ Operator::Operator( const OperatorInfo& oi,
   valueMap       = new ValueMapping[max];
   typeMap        = tm;
   supportsProgress = false;
+  requestsArgs   = false;
 
   for ( int i = 0; i < max; i++ ) {
     //cout << "Adding " << i << endl;

@@ -56,6 +56,8 @@ An operator instance consists of
 
   * a boolean telling whether this operator supports progress queries, default is false.
 
+  * a boolean indicating whether this operator does not want automatic evaluation of its arguments (example: ifthenelse operator), default is false.
+
 All properties of operators are set in the constructor. Only the value mapping
 functions have to be registered later on since their number is arbitrary. This
 number is set in the constructor (~noF~).
@@ -254,6 +256,22 @@ Checks the ~supportsProgress~ field.
 */
 
 
+
+  void SetRequestsArguments() { requestsArgs = true; }
+/*
+Sets the ~requestsArgs~ field.
+
+*/
+
+
+
+  bool RequestsArguments() { return requestsArgs; }
+/*
+Checks the ~requestsArgs~ field.
+
+*/
+
+
     private:
 
     bool AddValueMapping( const int index, ValueMapping f );
@@ -268,7 +286,9 @@ Adds a value mapping function to the list of overloaded operator functions.
     SelectFunction selectFunc;
     ValueMapping*  valueMap;       // Array of size numOfFunctions
     TypeMapping    typeMap;
-    bool           supportsProgress; //Operator supports progress queries.
+    bool           supportsProgress;  //Operator supports progress queries.
+    bool	   requestsArgs;   //operator explicitly asks for evaluation
+			           //of its arguments
 };
 
 #endif
