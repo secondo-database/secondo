@@ -939,13 +939,7 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
 
       pRes = (ProgressInfo*) result.addr;
 
-      if ( !hli ) {
-
-        cout << "Too bad! hli does not exist."  << endl;
-
-        return CANCEL;
-      }
-      
+      if ( !hli )  return CANCEL;
       
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
@@ -967,8 +961,6 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
       }
       else 
       {
-
-	cout << "Oh no!. Head's predecessor did not answer. " << endl;
         return CANCEL;
       }
 
