@@ -78,6 +78,14 @@ TupleIdentifier::TupleIdentifier(bool DEFINED, TupleId TID)
   del.isDelete = true;
 }
 
+TupleIdentifier::TupleIdentifier(const TupleIdentifier& source){
+   defined = source.defined;
+   tid = source.tid;
+   del.refs = 1;
+   del.isDelete=true;
+}
+
+
 TupleIdentifier::~TupleIdentifier() {}
 
 TupleId TupleIdentifier::GetTid() const {return tid;}

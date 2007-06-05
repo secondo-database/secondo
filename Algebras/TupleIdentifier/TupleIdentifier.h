@@ -65,6 +65,7 @@ This constructor should not be used.
   
 */
   TupleIdentifier( bool DEFINED, TupleId TID = 0 );
+  TupleIdentifier(const TupleIdentifier& source);
   ~TupleIdentifier();
   TupleId      GetTid() const;
   void     SetTid( const TupleId tid);
