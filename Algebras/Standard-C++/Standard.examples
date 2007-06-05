@@ -117,11 +117,6 @@ Signature: (bool x T x T) ->  T
 Example  : query ifthenelse(3 < 5,[const string value "less"],[const string value "greater"])
 Result   : "less"
 
-Operator : ifthenelse
-Number   : 2
-Signature: (bool x stream(T) x stream(T)) ->  T, T in kind DATA
-Example  : query ifthenelse(3 < 5,intstream(1,6), intstream(100,200))
-Result   : 1
 
 Operator : intersection
 Number   : 1

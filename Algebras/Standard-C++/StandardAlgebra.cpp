@@ -1300,16 +1300,6 @@ ListExpr ifthenelseType(ListExpr args)
     {
       return arg2;
     }
-    // extension to streams  of kind data
-    if(nl->Equal(arg2,arg3) &&
-       nl->IsEqual(arg1,"bool")  &&
-       nl->ListLength(arg2)==2    &&
-       nl->IsEqual(nl->First(arg2),"stream") &&
-       SecondoSystem::GetAlgebraManager()
-          ->CheckKind("DATA",nl->Second(arg2),errorInfo)){
-       return nl->Second(arg2);
-    } 
-
   }
   ErrorReporter::ReportError("Incorrect input for operator ifthenelse.");
   return (nl->SymbolAtom( "typeerror" ));
@@ -1432,16 +1422,6 @@ ccnum2stringSelect( ListExpr args )
   return SimpleSelect<2,2>(maps_num2str, args);	 
 }
 
-int ifthenelseSelect(ListExpr args)
-{
-  if(nl->ListLength(nl->Second(args))==2 &&
-     nl->IsEqual(nl->First(nl->Second(args)),"stream")){
-      return 1;
-  } else {
-      return 0;
- }
-
-}
 
 
 /*
@@ -2855,33 +2835,6 @@ ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
     return 0;
 }
 
-int
-ifthenelseFunS(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-    Word res;
-
-    result = qp->ResultStorage( s );
-    qp->Request(args[0].addr, res);
-    CcBool* arg1 = (CcBool*) res.addr;
-    if(!arg1->IsDefined()){
-        ((StandardAttribute*)result.addr)->SetDefined(false);
-        return 0;
-    }
-    bool cond = arg1->GetBoolval();
-    int index = (cond ? 1 : 2);
-    qp->Open(args[index].addr);
-
-    qp->Request(args[index].addr, res);
-    if(!qp->Received(args[index].addr)){
-        ((StandardAttribute*)result.addr)->SetDefined(false);
-    } else {
-       ((StandardAttribute*)result.addr)
-            ->CopyFrom((StandardAttribute*)res.addr);
-       ((StandardAttribute*)res.addr)->DeleteIfAllowed();
-    }
-    qp->Close(args[index].addr);
-    return 0;
-}
 
 /*
 4.21 Value mapping functions of operator ~between~
@@ -3538,11 +3491,6 @@ ValueMapping ccnum2stringvaluemap[] =
   CcNum2String<CcInt>
 };
 
-ValueMapping ccifthenelsemap[] =
-{
-  ifthenelseFun,
-  ifthenelseFunS
-};
 
 ValueMapping cccharvaluemap[] = { CcCharFun };
 
@@ -3837,8 +3785,7 @@ const string CCSpecKeywords  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
 const string CCSpecIfthenelse  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
-                             "( <text>(bool x T x T) ->  T ,"
-                                "bool x stream(t) x stream(T) -> T</text--->"
+                             "( <text>(bool x T x T) ->  T </text--->"
              "<text>ifthenelse(_, _, _)</text--->"
              "<text>Returns the second argument, if the boolean value "
              "expression, given"
@@ -4082,8 +4029,8 @@ Operator ccoprelcount2( "relcount2", CCSpecRelcount2, 1, ccoprelcountmap2,
 Operator ccopkeywords( "keywords", CCSpecKeywords, 1, cckeywordsmap,
                        Operator::SimpleSelect, keywordsType );
 
-Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, 2, ccifthenelsemap,
-                         ifthenelseSelect, ifthenelseType );
+Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, ifthenelseFun,
+                         Operator::SimpleSelect, ifthenelseType );
 
 Operator ccbetween( "between", CCSpecBetween, 4, ccbetweenmap,
                     CcBetweenSelect, CcBetweenTypeMap );
