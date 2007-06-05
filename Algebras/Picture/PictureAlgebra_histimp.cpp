@@ -107,7 +107,6 @@ Histogram::Histogram( unsigned char * rgbData,
                 }
         
          }
-         cerr << endl;
     }
     else
     {

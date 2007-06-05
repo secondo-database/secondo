@@ -650,9 +650,11 @@ static Word InPicture(const ListExpr typeInfo,
         ListExpr isportrait = nl->Fourth(instance);
         ListExpr imgdata = nl->Fifth(instance);
 
-        cerr << nl->StringValue(filename) << endl;
-        cerr << nl->StringValue(category) << endl;
-        cerr << nl->StringValue(date) << endl;
+        if(PA_DEBUG){
+           cerr << nl->StringValue(filename) << endl;
+           cerr << nl->StringValue(category) << endl;
+           cerr << nl->StringValue(date) << endl;
+        }
 
         if (nl->IsAtom(filename)
             && nl->AtomType(filename) == StringType
