@@ -318,7 +318,7 @@ Returns how many pages are necessary to store the whole DBArray.
     }
 
 #ifdef _PAGED_DBARRAY_
-    void SaveToLob( SmiRecordId& lobFileId, SmiRecordId lobId = 0 ) const
+    void SaveToLob( SmiFileId& lobFileId, SmiRecordId lobId = 0 ) const
     {
       if( type == InDiskLarge )
       {

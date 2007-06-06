@@ -474,7 +474,7 @@ Picture* Picture::Clone(void) const {
 
     Picture* p = new Picture;
 
-    if (PA_DEBUG) cerr << "Picture::Clone() address is " << (int) p << endl;
+    if (PA_DEBUG) cerr << "Picture::Clone() address is " << (void*) p << endl;
 
     p->CopyFrom((const StandardAttribute*) this);
 
@@ -616,7 +616,7 @@ static ListExpr OutPicture(ListExpr typeInfo, Word value) {
 
     Picture* p = (Picture*) value.addr;
 
-    if (PA_DEBUG) cerr << "OutPicture() #1 p=" << (unsigned int) p << endl;
+    if (PA_DEBUG) cerr << "OutPicture() #1 p=" << (void*) p << endl;
     if (PA_DEBUG) cerr << "OutPicture() filename=" << p->GetFilename() << endl;
 
     if (p->IsDefined()) {
@@ -698,7 +698,7 @@ static Word InPicture(const ListExpr typeInfo,
                                 nl->StringValue(date));
                 if (PA_DEBUG) 
                     cerr << "InPicture() created picture at " 
-                         << (int) pic 
+                         << (void*) pic 
                          << endl;
                 return SetWord(pic);
             } else
@@ -746,14 +746,14 @@ static Word CreatePicture(const ListExpr typeInfo) {
     if (PA_DEBUG) cerr << "CreatePicture() called" << endl;
 
     Picture* p = new Picture(false);
-    if (PA_DEBUG) cerr << "CreatePicture() address is " << (int) p << endl;
+    if (PA_DEBUG) cerr << "CreatePicture() address is " << (void*) p << endl;
     return SetWord(p);
 }
 
 static void DeletePicture(const ListExpr typeInfo, Word& w) {
     if (PA_DEBUG) 
         cerr << "DeletePicture() called for " 
-             << (int) w.addr 
+             << (void*) w.addr 
              << endl;
 
     delete (Picture*) w.addr;
@@ -765,7 +765,7 @@ static void DeletePicture(const ListExpr typeInfo, Word& w) {
 static void ClosePicture(const ListExpr typeInfo, Word& w) {
     if (PA_DEBUG) 
         cerr << "ClosePicture() called for " 
-             << (int) w.addr 
+             << (void*) w.addr 
              << endl;
 
     delete (Picture*) w.addr;
@@ -878,7 +878,7 @@ static bool SavePicture(SmiRecord& rec, size_t& offset,
 
     if (rec.Write(&isDefined, sizeof(bool), pos) != sizeof(bool)) {
         cerr << "SavePicture() could not write defined flag of " 
-             << (int) p 
+             << (void*) p 
              << endl;
         return false;
     }
@@ -890,7 +890,7 @@ static bool SavePicture(SmiRecord& rec, size_t& offset,
     if (rec.Write(p->GetFilename().c_str(), sizeof(STRING_T), pos) 
         != sizeof(STRING_T)) {
         cerr << "SavePicture() could not write filename of " 
-             << (int) p 
+             << (void*) p 
              << endl;
         return false;
     }
@@ -898,7 +898,7 @@ static bool SavePicture(SmiRecord& rec, size_t& offset,
     if (rec.Write(p->GetCategory().c_str(), sizeof(STRING_T), pos) 
         != sizeof(STRING_T)) {
         cerr << "SavePicture() could not write category of " 
-             << (int) p 
+             << (void*) p 
              << endl;
         return false;
     }
@@ -906,7 +906,7 @@ static bool SavePicture(SmiRecord& rec, size_t& offset,
     if (rec.Write(p->GetDate().c_str(), sizeof(STRING_T), pos) 
         != sizeof(STRING_T)) {
         cerr << "SavePicture() could not write date of " 
-             << (int) p 
+             << (void*) p 
              << endl;
         return false;
     }
@@ -916,7 +916,7 @@ static bool SavePicture(SmiRecord& rec, size_t& offset,
 
     if (rec.Write(&isPortrait, sizeof(bool), pos) != sizeof(bool)) {
         cerr << "SavePicture() could not write portrait flag of " 
-             << (int) p 
+             << (void*) p 
              << endl;
         return false;
     }
@@ -928,7 +928,7 @@ static bool SavePicture(SmiRecord& rec, size_t& offset,
     if (rec.Write(&jpegSize, sizeof(unsigned int), pos) 
         != sizeof(unsigned int)) {
         cerr << "SavePicture() could not write JPEG data size of " 
-             << (int) p 
+             << (void*) p 
              << endl;
         return false;
     }
@@ -936,7 +936,7 @@ static bool SavePicture(SmiRecord& rec, size_t& offset,
 
     if (rec.Write(jpegData, jpegSize, pos) != jpegSize) {
         cerr << "SavePicture() could not write JPEG data of " 
-             << (int) p 
+             << (void*) p 
              << endl;
         return false;
     }
@@ -965,7 +965,7 @@ static bool CheckPicture(ListExpr type, ListExpr& errorInfo) {
 static void* CastPicture(void* addr) {
     if (PA_DEBUG) 
         cerr << "CastPicture() called, addr=" 
-             << (unsigned int) addr
+             << (void*) addr
              << endl;
 
     return new (addr) Picture;

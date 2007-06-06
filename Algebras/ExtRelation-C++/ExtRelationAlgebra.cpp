@@ -1351,7 +1351,7 @@ AvgSumValueMapping(Word* args, Word& result, int message,
     if(isAvg)
     {
       CcReal* resultAttr = (CcReal*)(qp->ResultStorage(s).addr);
-      float nItems = (float)nProcessedItems;
+      SEC_STD_REAL nItems = (SEC_STD_REAL)nProcessedItems;
 
       if(strcmp(*attributeType, "real") == 0)
       {
@@ -1361,7 +1361,7 @@ AvgSumValueMapping(Word* args, Word& result, int message,
       else
       {
         CcInt* accumulatedInt = (CcInt*)accumulated;
-        resultAttr->Set(((float)accumulatedInt->GetIntval()) / nItems);
+        resultAttr->Set(((SEC_STD_REAL)accumulatedInt->GetIntval()) / nItems);
       }
       accumulated->DeleteIfAllowed();
       result = SetWord(resultAttr);

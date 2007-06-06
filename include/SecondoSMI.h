@@ -229,9 +229,13 @@ using namespace std;
 #include <vector>
 #include <map>
 
+#include <db_cxx.h>
+
 #include "ErrorCodes.h"
 #include "SecondoConfig.h"
 #include "CacheInfo.h"
+
+
 
 class IndexableStandardAttribute;
 
@@ -281,13 +285,13 @@ Is the type for the unique file identifiers.
 
 */
 
-typedef unsigned long SmiRecordId;
+typedef db_recno_t SmiRecordId;
 /*
 Is the type for record identifiers.
 
 */
 
-typedef unsigned long SmiSize;
+typedef size_t SmiSize;
 /*
 Is the type for record sizes or offsets.
 

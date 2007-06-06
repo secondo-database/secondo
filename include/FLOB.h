@@ -243,7 +243,7 @@ Saves the FLOB to the LOB file. The FLOB must be a LOB. The type is
 set to ~InDiskLarge~.
 
 */
-    virtual void SaveToLob( SmiRecordId& lobFileId, 
+    virtual void SaveToLob( SmiFileId& lobFileId, 
                             SmiRecordId lobId = 0 ) const;
 
 /*
