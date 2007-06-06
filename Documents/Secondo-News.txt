@@ -6,6 +6,39 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+
+2007-06-06  First changes for Linux x86_64 systems 
+===============================================================================
+
+We have managed to install and compile secondo on a Linux 64 bit system. The
+following problems and limitations still arise:
+
+ - Some tests fail due to floating point precision errors
+ 
+ - Some tests,e.g those for operator tuplesize, need to provide new platform
+   dependent results.
+ 
+ - Some system constants defined in limits.h INT_MAX and LONG_MAX may exceed
+   numbers representable in nested lists.
+
+ - The Jpl directory does not compile
+
+ 
+However, but all operations work without system crashes!
+
+
+Needed SDK-Changes:
+
+  Berkeley-DB 4.2.52 must be replaced by version 4.3.29 since the older one
+  does not compile on a x86_64 platform.
+
+
+Best Regards
+
+
+Markus
+
+
 2007-04-24  Changes in the RelationAlgebra 
 ===============================================================================
 
