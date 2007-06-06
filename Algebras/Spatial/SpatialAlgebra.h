@@ -3120,7 +3120,9 @@ inline Point::Point( const bool d, const Coord& x, const Coord& y ) :
   defined( d ),
   x( x ),
   y( y )
-{}
+{ del.refs=1;
+  del.isDelete=true;
+}
 
 inline Point::Point( const Point& p ) :
   defined( p.IsDefined() )
@@ -3130,6 +3132,8 @@ inline Point::Point( const Point& p ) :
     x = p.x;
     y = p.y;
   }
+  del.refs=1;
+  del.isDelete=true;
 }
 
 inline const Rectangle<2> Point::BoundingBox() const
