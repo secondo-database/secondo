@@ -3012,17 +3012,16 @@ int UpdateSearchSave(Word* args, Word& result, int message,
                 for (int i = 0; i < nextTup->GetNoAttributes(); i++)
                 {
                   newTuple->CopyAttribute( i, nextTup, i );
-                  auxTuple->CopyAttribute( i, nextTup, i );
                 }
                 const TupleId& tid = nextTup->GetTupleId();
                 StandardAttribute* tidAttr =
                   new TupleIdentifier(true,tid);
                 newTuple->PutAttribute(
                   newTuple->GetNoAttributes() - 1, tidAttr);
-                auxTuple->CopyAttribute(
-                  newTuple->GetNoAttributes() - 1,
-                  newTuple,
-                  auxTuple->GetNoAttributes() - 1 );
+		for (int i = 0; i < newTuple->GetNoAttributes(); i++)
+		{
+		  auxTuple->CopyAttribute(i, newTuple, i);
+		}
                 auxRelation->AppendTuple(auxTuple);
                 auxTuple->DeleteIfAllowed();
                 delete changedIndices;
