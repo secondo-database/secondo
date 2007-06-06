@@ -2708,9 +2708,12 @@ int UpdateDirectSave(Word* args, Word& result, int message,
         Tuple *newTuple = new Tuple( resultTupleType );
         assert( newTuple->GetNoAttributes() ==
                 2 * tup->GetNoAttributes() + 1);
+
         for (int i = 0; i < tup->GetNoAttributes(); i++)
-          newTuple->PutAttribute(
-            tup->GetNoAttributes()+i, tup->GetAttribute(i)->Clone());
+        {
+          newTuple->CopyAttribute(i, tup , tup->GetNoAttributes()+i);
+        }
+
         noOfAttrs = ((CcInt*)args[4].addr)->GetIntval();
         // Get the supplier for the updatefunctions
         supplier = args[3].addr;
@@ -2733,19 +2736,22 @@ int UpdateDirectSave(Word* args, Word& result, int message,
           (*newAttrs)[i-1] = newAttribute;
         }
         relation->UpdateTuple(tup,*changedIndices,*newAttrs);
-        Tuple *auxTuple = new Tuple( auxRelation->GetTupleType() );
         for (int i = 0; i < tup->GetNoAttributes(); i++)
         {
           newTuple->CopyAttribute( i, tup, i );
-          auxTuple->CopyAttribute( i, tup, i );
         }
         const TupleId& tid = tup->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
-        newTuple->PutAttribute(
-          newTuple->GetNoAttributes() - 1, tidAttr);
-        auxTuple->CopyAttribute( newTuple->GetNoAttributes() - 1,
+		    newTuple->PutAttribute(
+       			newTuple->GetNoAttributes() - 1, tidAttr);
+
+				// copy newTuple into auxTuple		 
+        Tuple *auxTuple = new Tuple( auxRelation->GetTupleType() );
+        for (int i=0; i< newTuple->GetNoAttributes(); i++){ 
+            auxTuple->CopyAttribute( i,
                                  newTuple,
-                                 auxTuple->GetNoAttributes() - 1 );
+                                 i);
+        }
         auxRelation->AppendTuple(auxTuple);
         auxTuple->DeleteIfAllowed();
         tup->DeleteIfAllowed();
