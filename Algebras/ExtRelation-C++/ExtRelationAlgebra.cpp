@@ -3163,8 +3163,8 @@ public:
   ExtendLocalInfo() {};
 
   ~ExtendLocalInfo() {
-    delete attrSizeTmp;
-    delete attrSizeExtTmp;
+    delete [] attrSizeTmp;
+    delete [] attrSizeExtTmp;
   }
 
   TupleType *resultTupleType;
