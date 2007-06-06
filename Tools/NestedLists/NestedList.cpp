@@ -1353,12 +1353,13 @@ NestedList::GetBinaryType(const ListExpr list) const {
 long
 NestedList::ReadInt(istream& in, const int len /*= 4*/) const{
 
+  static bool debug = RTFlag::isActive("NL:BinaryListDebug");
   static char buffer[4] = { 0, 0, 0, 0 };
   long result = 0;
   
   in.read(buffer,len);
 
-  if( RTFlag::isActive("NL:BinaryListDebug") ) {
+  if( debug ) {
     cerr << "Hex-Value: ";
     for (int i=0; i<len; i++) {
       cerr << setiosflags(ios::showbase | ios::hex) 
@@ -1371,7 +1372,7 @@ NestedList::ReadInt(istream& in, const int len /*= 4*/) const{
     result += (unsigned char) 255 & buffer[i];    
   }
   
-  if( RTFlag::isActive("NL:BinaryListDebug") ) {
+  if( debug ) {
     cerr << "   =>  Int-Value: " << setiosflags(ios::dec) 
          << result << endl;
   }
@@ -1472,6 +1473,7 @@ NestedList::ReadBinarySubLists( ListExpr& LE, istream& in,
 bool
 NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
 
+  static bool debug = RTFlag::isActive("NL:BinaryListDebug");
   static unsigned long len = 0;
   static unsigned long pos = 0; 
   static string str = "";
@@ -1479,7 +1481,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
   byte typeId = 255 & in.get();
   pos++;
 
-  if( RTFlag::isActive("NL:BinaryListDebug") ) {
+  if( debug ) {
     cerr << "TypeId: " << (unsigned int) (255 & typeId) << endl;
   }
     
@@ -1590,6 +1592,9 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
       case BIN_SHORTLIST      : { len = 255 & in.get();
                                   pos++;
                                   ListExpr LE = 0;
+  if( debug ) {
+    cerr << "len: " << len << endl;
+  }
                                   bool ok = ReadBinarySubLists(LE, in, len);
                                   if (!ok) {
                                     result = 0;
@@ -1638,6 +1643,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
                      }
   }
 
+
 }
 
 
@@ -1651,6 +1657,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
 bool
 NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
 
+  static bool debug = RTFlag::isActive("NL:BinaryListDebug");
   static const int floatLen=sizeof(float);
   static const int doubleLen=sizeof(double);
   static const int longLen=sizeof(long);
@@ -1721,7 +1728,7 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
                            } else {
                              len = (typeId == BIN_STRING) ? 2 : 4;
                            }
-                           os.write(pv+4-len,len);
+                           os.write(pv+longLen-len,len);
                            os << value;
                            return true;
           }
@@ -1736,7 +1743,7 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
                            } else {
                              len = (typeId == BIN_SYMBOL) ? 2 : 4;
                            }
-                           os.write(pv+4-len,len);
+                           os.write(pv+longLen-len,len);
                            os << value;
                            return true;
           }
@@ -1750,7 +1757,7 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
                            } else {
                              len = (typeId == BIN_TEXT) ? 2 : 4;
                            }
-                           os.write(pv+4-len,len);
+                           os.write(pv+longLen-len,len);
                            string value="";
                            while ( GetNextText(list, value, 1024) ) {
                               os << value;
@@ -1761,6 +1768,12 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
           case BIN_SHORTLIST:
           case BIN_LIST:
           case BIN_LONGLIST: {
+                           
+  if (debug) {
+    cerr << "TypeId: " << (unsigned int) (255 & typeId) << endl;
+    cerr << "ListLength: " << ListLength(list) << endl;
+    cerr << "sizeof(long): " << sizeof(long) << endl;
+   }
                            pv = hton(ListLength(list));
                            if (typeId == BIN_SHORTLIST) {
                              len = 1;
@@ -1768,7 +1781,15 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
                              len = (typeId == BIN_LIST) ? 2 : 4;
                            }
                            
-                           os.write(pv+4-len,len);
+  if (debug) {
+    cerr << "len: " << len << endl;
+  }
+
+                           int offset=longLen-len;
+  if (debug) {
+    cerr << "offset: " << offset << endl;
+  }
+                           os.write(pv+offset,len);
 
                            while( !IsEmpty(list) ){
                             
