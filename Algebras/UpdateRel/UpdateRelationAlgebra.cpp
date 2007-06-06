@@ -2742,10 +2742,10 @@ int UpdateDirectSave(Word* args, Word& result, int message,
         }
         const TupleId& tid = tup->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
-		    newTuple->PutAttribute(
-       			newTuple->GetNoAttributes() - 1, tidAttr);
+                    newTuple->PutAttribute(
+                        newTuple->GetNoAttributes() - 1, tidAttr);
 
-				// copy newTuple into auxTuple		 
+                                // copy newTuple into auxTuple           
         Tuple *auxTuple = new Tuple( auxRelation->GetTupleType() );
         for (int i=0; i< newTuple->GetNoAttributes(); i++){ 
             auxTuple->CopyAttribute( i,
@@ -3018,10 +3018,10 @@ int UpdateSearchSave(Word* args, Word& result, int message,
                   new TupleIdentifier(true,tid);
                 newTuple->PutAttribute(
                   newTuple->GetNoAttributes() - 1, tidAttr);
-		for (int i = 0; i < newTuple->GetNoAttributes(); i++)
-		{
-		  auxTuple->CopyAttribute(i, newTuple, i);
-		}
+                for (int i = 0; i < newTuple->GetNoAttributes(); i++)
+                {
+                  auxTuple->CopyAttribute(i, newTuple, i);
+                }
                 auxRelation->AppendTuple(auxTuple);
                 auxTuple->DeleteIfAllowed();
                 delete changedIndices;
