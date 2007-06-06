@@ -5684,15 +5684,12 @@ static int Inter_ll( Word* args, Word& result, int message,
       else if (line1->BoundingBox().IsDefined() &&
          line2->BoundingBox().IsDefined() ) {
          if (line1->BoundingBox().Intersects(line2->BoundingBox())) {
-            Line* res = new Line(0);
+            Line* res = 0;
             MakeOp mo;
             res = mo.Intersection( line1, line2 );
-            if ( res->IsEmpty() )
-              {
-                ((Line *)result.addr)->Clear();
-              }
-            else
-               result.addr = res;
+
+            ((Line*)result.addr)->CopyFrom(res);              
+            delete res;
             return(0);
          }
          else   {
@@ -5701,16 +5698,11 @@ static int Inter_ll( Word* args, Word& result, int message,
          }
       }
       else  {
-         Line* res = new Line(0);
+         Line* res = 0;
          MakeOp mo;
          res = mo.Intersection( line1, line2 );
-         if ( res->IsEmpty() ) {
-            ((Line *)result.addr)->Clear();
-            ((Line *)result.addr)->SetDefined( false );
-            return (0);
-         }
-         else 
-            result.addr = res;
+         ((Line*)result.addr)->CopyFrom(res);
+         delete res;
          return(0);
       }
    }
@@ -6266,10 +6258,11 @@ Word& local, Supplier s )
          return(0);
       }
       else {
-         Line* res = new Line(0);
+         Line* res = 0;
          MakeOp mo;
          res = mo.Union( line1, line2 );
-         result.addr = res;
+         ((Line*)result.addr)->CopyFrom(res);
+         delete res;
          return(0);
       }
    }
