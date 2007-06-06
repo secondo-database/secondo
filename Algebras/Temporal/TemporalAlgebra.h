@@ -1834,7 +1834,10 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
 */
   UPoint() {};
 
-  UPoint(bool is_defined):SpatialTemporalUnit<Point, 3>(is_defined) {};
+  UPoint(bool is_defined):SpatialTemporalUnit<Point, 3>(is_defined) {
+    del.refs=1;
+    del.isDelete=true;
+  };
 
   UPoint( const Interval<Instant>& interval,
           const double x0, const double y0,
@@ -1842,14 +1845,26 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
     SpatialTemporalUnit<Point, 3>( interval ),
     p0( true, x0, y0 ),
     p1( true, x1, y1 )
-    {}
+    { del.refs=1;
+      del.isDelete=true;
+    }
 
   UPoint( const Interval<Instant>& interval,
           const Point& p0, const Point& p1 ):
     SpatialTemporalUnit<Point, 3>( interval ),
     p0( p0 ),
     p1( p1 )
-    {}
+    { del.refs=1;
+      del.isDelete=true;
+    }
+
+  UPoint(const UPoint& source){
+     *((TemporalUnit<Point>*)this) = *((TemporalUnit<Point>*)&source);
+     p0 = source.p0;
+     p1 = source.p1;
+     del.refs=1;
+     del.isDelete=true;
+  }
 
 /*
 3.6.2 Operator redefinitions
