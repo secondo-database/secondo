@@ -99,8 +99,8 @@ ProgressLocalInfo::~ProgressLocalInfo()
 {
   if ( progressInitialized )
   {
-    delete attrSize;
-    delete attrSizeExt;
+    delete [] attrSize;
+    delete [] attrSizeExt;
   }
 }
 
