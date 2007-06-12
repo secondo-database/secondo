@@ -2688,8 +2688,16 @@ mpoint after the operation (indicating the success).
 */
    bool Append(const MPoint& p);
 
+/*
+3.10.5.9 ~Disturb~
 
+The ~disturb~ operation changes the position of the moving point
+using a random generator. 
 
+*/
+   void Disturb(MPoint& result, 
+                const double maxDerivation,
+                double maxDerivationPerStep);
 
 private:
    void Simplify(const int min, const int max,

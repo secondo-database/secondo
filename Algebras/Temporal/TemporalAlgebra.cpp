@@ -3135,6 +3135,66 @@ bool MPoint::Append(const MPoint& p){
   return true;
 }
 
+void MPoint::Disturb(MPoint& result, 
+                     const double maxDerivation,
+                     double maxDerivationPerStep){
+
+   assert(IsOrdered());
+   result.Clear();
+   if(!IsDefined()){
+        result.SetDefined(false);
+        return;
+   }
+   int size = GetNoComponents();
+   if(size>0){
+      result.Resize(size);
+   } 
+   if(maxDerivationPerStep>maxDerivation){
+       maxDerivationPerStep=maxDerivation;
+   }
+   if(maxDerivationPerStep<=0){
+      result.CopyFrom(this);
+      return;
+   } 
+
+    double errx = 2*maxDerivation * (double)rand()/(double)RAND_MAX  - 
+                  maxDerivation;  
+    double erry = 2*maxDerivation * (double)rand()/(double)RAND_MAX  - 
+                  maxDerivation;  
+
+   
+   
+   const UPoint* unit1; 
+   Point lastPoint;
+   for(int i=0;i<size;i++){
+      Get(i,unit1);
+      Point p0(true,unit1->p0.GetX()+errx,unit1->p0.GetY()+erry);
+
+      double dx = 2*maxDerivationPerStep * (double)rand()/(double)RAND_MAX  - 
+                  maxDerivationPerStep;  
+      double dy = 2*maxDerivationPerStep * (double)rand()/(double)RAND_MAX  - 
+                  maxDerivationPerStep;  
+
+      errx += dx;
+      erry += dy;
+      if(errx>maxDerivation){
+        errx = maxDerivation;
+      }
+      if(errx < -maxDerivation){
+        errx = -maxDerivation;
+      }
+      if(erry>maxDerivation){
+        erry = maxDerivation;
+      }
+      if(erry < -maxDerivation){
+        erry = -maxDerivation;
+      }
+
+      Point p1(true,unit1->p1.GetX()+errx,unit1->p1.GetY()+erry);
+      UPoint unit(unit1->timeInterval, p0,p1);  
+      result.MergeAdd(unit);
+   }
+}
 
 /*
 4 Type Constructors
@@ -5906,6 +5966,25 @@ ListExpr GPSTypeMap(ListExpr args){
          );
 }
 
+/*
+~DisturbTypeMap~
+
+*/
+ListExpr DisturbTypeMap(ListExpr args){
+   int len=nl->ListLength(args);
+   if(len!=3){
+     ErrorReporter::ReportError("invalid number of arguments");
+     return nl->TypeError();
+   }
+   if(nl->IsEqual(nl->First(args),"mpoint") &&
+      nl->IsEqual(nl->Second(args),"real") &&
+      nl->IsEqual(nl->Third(args),"real")){
+      return nl->SymbolAtom("mpoint");
+   }
+   ErrorReporter::ReportError("mpoint x real x real expected");
+   return nl->TypeError();
+}
+
 
 
 /*
@@ -8163,6 +8242,26 @@ int GPSVM( Word* args, Word& result, int message,
 }
 
 
+/*
+16.3.47 ~Disturb~
+
+*/
+int DisturbVM(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   MPoint* mp = (MPoint*) args[0].addr;
+   CcReal* md = (CcReal*) args[1].addr;
+   CcReal* mdps = (CcReal*) args[2].addr;
+   if(!mp->IsDefined() ||
+      !md->IsDefined() ||
+      !mdps->IsDefined()){
+      ((MPoint*)result.addr)->SetDefined(false);
+      return 0;
+   }
+   mp->Disturb(*((MPoint*)result.addr),md->GetRealval(), mdps->GetRealval());
+   return 0;
+}
 
 
 /*
@@ -8897,6 +8996,14 @@ const string GPSSpec =
     " [const duratione value (0 2000)] ) count </text--->"
     ") )";
 
+const string DisturbSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint x real x real  -> mpoint </text---> "
+    "<text> _ disturb [ _ , _ ]</text--->"
+    "<text>disturbs an existing mpoint </text--->"
+    "<text>query train 6 disturb [200.0 , 10.0] </text--->"
+    ") )";
+
 /*
 16.4.3 Operators
 
@@ -9125,6 +9232,12 @@ Operator temporalgps( "gps",
                       GPSVM,
                       Operator::SimpleSelect,
                       GPSTypeMap );
+
+Operator temporaldisturb( "disturb",
+                      DisturbSpec,
+                      DisturbVM,
+                      Operator::SimpleSelect,
+                      DisturbTypeMap );
 
 Operator temporalsimplify( "simplify",
                            TemporalSpecSimplify,
@@ -9421,6 +9534,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&temporalreverse);
     AddOperator(&temporalsamplempoint);
     AddOperator(&temporalgps);
+    AddOperator(&temporaldisturb);
   }
   ~TemporalAlgebra() {};
 };

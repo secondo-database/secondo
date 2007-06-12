@@ -61,3 +61,4 @@ operator translateappendS alias TRANSLATEAPPENDS pattern _ op [_, _ ]
 operator reverse alias REVERSE pattern op ( _ )
 operator samplempoint alias SAMPLEMPOINT pattern op ( _ , _ )
 operator gps alias GPS pattern op(_, _)
+operator disturb alias DISTURB pattern _ op [_, _]

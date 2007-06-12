@@ -118,6 +118,11 @@ Signature: (mpoint point) -> mreal
 Example  : query distance(train7, mehringdamm)
 Result   : file
 
+Operator : disturb
+Number   : 1
+Signature: mpoint x real x real -> mpoint
+Example  : query maximum(distance(train7, train7 disturb[2000.0,200.0])) < 2829.0
+Result   : TRUE
 
 Operator : equal
 Number   : 1
