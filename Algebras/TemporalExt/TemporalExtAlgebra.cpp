@@ -2893,14 +2893,22 @@ sorted in time dimension.
 ListExpr
 ConcatSTypeMap(ListExpr args){
 
-  if(nl->ListLength(args)!=1){
-     ErrorReporter::ReportError("one argumnet required.");
+  int len = nl->ListLength(args);
+  if((len!=1) && (len!=2)){
+     ErrorReporter::ReportError("one or two arguments required.");
      return nl->TypeError();
   }
-  ListExpr arg = nl->First(args);
-  if(  nl->ListLength(arg)!=2  ||
-       !nl->IsEqual(nl->First(arg),"stream") ||
-       !nl->IsEqual(nl->Second(arg),"mpoint")){
+  if(len==2){
+    if(!nl->IsEqual(nl->Second(args),"int")){
+       ErrorReporter::ReportError("stream(mpoint) or "
+                                  "stream(mpoint) x int required");
+       return nl->TypeError();
+    }
+  } 
+  ListExpr stream = nl->First(args);
+  if(  nl->ListLength(stream)!=2  ||
+       !nl->IsEqual(nl->First(stream),"stream") ||
+       !nl->IsEqual(nl->Second(stream),"mpoint")){
      ErrorReporter::ReportError("stream(mpoint) expected.");
      return nl->TypeError();
   }
@@ -4768,16 +4776,31 @@ int ConcatSValueMap(Word* args, Word& result,
    res->SetDefined(true);
 
    Word next;
+   bool autoresize=true;
+   if(qp->GetNoSons(s)==2){
+     CcInt* size = (CcInt*)args[1].addr;
+     if(!size->IsDefined()){
+       res->SetDefined(false);
+       return 0;
+     }
+     int isize = size->GetIntval();
+     if(isize>0){
+       res->Resize(isize);
+       autoresize=false;
+     }
+   }
+
+   
    qp->Open(args[0].addr);
    qp->Request(args[0].addr, next);
    bool d = true;
    while(qp->Received(args[0].addr) && d){
-      d = res->Append(* ((MPoint*) next.addr));
+      d = res->Append(* ((MPoint*) next.addr),autoresize);
       ((MPoint*)next.addr)->DeleteIfAllowed();
       qp->Request(args[0].addr, next);
    }
    qp->Close(args[0].addr);
-
+   res->TrimToSize();
    return 0;
 }
 
@@ -5137,6 +5160,15 @@ const string TemporalSpecConcatS  =
     "<text>query train6 feed concatS    </text--->"
     ") )";
 
+const string TemporalSpecConcatS2  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>stream(mpoint) x int -> mpoint</text--->"
+    "<text> _ concatS2 [ _ ] </text--->"
+    "<text>Concatenates all mpoints within the stream if possible."
+    " In a first step, the size of the result is set to the int arg</text--->"
+    "<text>query train6 feed concatS2 [1000]   </text--->"
+    ") )";
+
 /*
 9.6 Operators
 
@@ -5340,6 +5372,13 @@ Operator temporalconcatS(
     Operator::SimpleSelect,
     ConcatSTypeMap);
 
+Operator temporalconcatS2(
+    "concatS2",
+    TemporalSpecConcatS2,
+    ConcatSValueMap,
+    Operator::SimpleSelect,
+    ConcatSTypeMap);
+
 class TemporalExtAlgebra : public Algebra
 {
   public:
@@ -5396,6 +5435,7 @@ class TemporalExtAlgebra : public Algebra
         AddOperator( &setunitoftimeext );
         AddOperator( &setunitofdistanceext );
         AddOperator( &temporalconcatS );
+        AddOperator( &temporalconcatS2 );
 
     }
     ~TemporalExtAlgebra() {}
