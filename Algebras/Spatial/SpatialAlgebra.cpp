@@ -9664,7 +9664,21 @@ ListExpr SegmentsTypeMap(ListExpr args){
          );
 }
 
+/*
+10.1.12 Type Mapping for the ~get~ operator
 
+Signatur is points x int -> point
+
+*/
+ListExpr GetTypeMap(ListExpr args){
+   if( (nl->ListLength(args)==2) &&
+       (nl->IsEqual(nl->First(args),"points")) &&
+       (nl->IsEqual(nl->Second(args),"int"))){
+      return nl->SymbolAtom("point");
+   }
+   ErrorReporter::ReportError("points x int expected");
+   return nl->TypeError();
+}
 
 /*
 10.3 Selection functions
@@ -12937,6 +12951,33 @@ int SpatialSimplify_LRealPs(Word* args, Word& result, int message,
 
 
 /*
+10.4.32 Value Mapping for the ~get~ operator
+
+*/
+int SpatialGet(Word* args, Word& result, int message,
+               Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   Points* ps = (Points*) args[0].addr;
+   CcInt*  index = (CcInt*) args[1].addr;
+   if(!ps->IsDefined() || !index->IsDefined()){
+      ((Point*)result.addr)->SetDefined(false);
+      return 0;
+   }
+   int i = index->GetIntval();
+   if(i<0 || i >= ps->Size()){
+      ((Point*)result.addr)->SetDefined(false);
+      return 0;
+   }
+
+   const Point* p;
+   ps->Get(i,p);
+   ((Point*)result.addr)->CopyFrom(p);
+   return 0;
+}
+
+
+/*
 10.5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -13465,6 +13506,14 @@ const string SpatialSpecSegments  =
                  "(no_segments(PotsdamLine)) </text--->"
     ") )";
 
+const string SpatialSpecGet  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>points x int -> point </text--->"
+    "<text> _ get _  </text--->"
+    "<text>Returns a point from a points value.</text--->"
+    "<text>query  vertices(BGrenzenLine) get [1]    </text--->"
+    ") )";
+
 /*
 10.5.3 Definition of the operators
 
@@ -13782,6 +13831,12 @@ Operator spatialsegments (
   Operator::SimpleSelect,
   SegmentsTypeMap );
 
+Operator spatialget (
+  "get",
+  SpatialSpecGet,
+  SpatialGet,
+  Operator::SimpleSelect,
+  GetTypeMap );
 /*
 11 Creating the Algebra
 
@@ -13847,6 +13902,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialarea );
     AddOperator( &spatialpolylines );
     AddOperator( &spatialsegments );
+    AddOperator( &spatialget );
     AddOperator( &spatialsimplify);
   }
   ~SpatialAlgebra() {};

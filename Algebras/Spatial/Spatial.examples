@@ -127,6 +127,13 @@ Example  : query distance(mehringdamm, alexanderplatz)
 Result   : 3455.4536605198455
 
 
+Operator : get
+Number   : 1
+Signature: points x int -> point
+Example  : query get([const points value ((0.0 -1.2)(1.0 2.0))],1)
+Result   : (point (1.0 2.0))
+
+
 Operator : getx
 Number   : 1
 Signature: point -> real
