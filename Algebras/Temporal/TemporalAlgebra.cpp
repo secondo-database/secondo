@@ -3094,7 +3094,7 @@ void MPoint::MSpeed( MReal& result ) const
 }
 
 
-bool MPoint::Append(const MPoint& p){
+bool MPoint::Append(const MPoint& p, const bool autoresize /*=true*/){
   if(!IsDefined()){
      return false;
   }
@@ -3122,7 +3122,9 @@ bool MPoint::Append(const MPoint& p){
   const UPoint* up;
   UPoint u;
   if(size2>0){ // process the first unit of p
-     units.Resize(size1+size2);
+     if(autoresize){
+        units.Resize(size1+size2);
+     }
      p.Get(0,up);
      this->MergeAdd(*up);
   }

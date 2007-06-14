@@ -2362,6 +2362,15 @@ Changes the unit's array to have space for ~n~ entries.
 */
     void Resize(const size_t n);
 
+/*
+3.10.5.4 ~TrimToSize~
+
+Changes the unit's array to have space to contain exactly the
+number of actually contained elements.
+
+*/
+    void TrimToSize();
+
 
 /*
 3.10.4.4 ~ExtendDefTime~
@@ -2686,7 +2695,7 @@ to be undefined. The return value is the defined state of this
 mpoint after the operation (indicating the success). 
 
 */
-   bool Append(const MPoint& p);
+   bool Append(const MPoint& p, const bool autoresize = true);
 
 /*
 3.10.5.9 ~Disturb~
@@ -4693,6 +4702,11 @@ inline Mapping<Unit, Alpha>* Mapping<Unit, Alpha>::Clone() const
 
   Mapping<Unit, Alpha> *result = new Mapping<Unit, Alpha>( GetNoComponents() );
 
+
+  if(GetNoComponents()>0){
+     result->units.Resize(GetNoComponents());
+  }
+
   result->StartBulkLoad();
   const Unit *unit;
   for( int i = 0; i < GetNoComponents(); i++ )
@@ -5114,6 +5128,10 @@ void Mapping<Unit, Alpha>::Resize(size_t n){
    units.Resize(n);
 }
 
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::TrimToSize(){
+   units.TrimToSize();
+}
 template <class Unit, class Alpha>
 void Mapping<Unit, Alpha>::ExtendDefTime(Unit u,
                                          Mapping<Unit,Alpha>& result){
