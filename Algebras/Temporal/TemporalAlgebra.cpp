@@ -3196,6 +3196,20 @@ void MPoint::Disturb(MPoint& result,
    }
 }
 
+double MPoint::Length() const{
+  if(!IsDefined()){
+    return -1;
+  }
+  double res = 0;
+  const UPoint* unit;
+  int size = GetNoComponents();
+  for(int i=0;i<size;i++){
+     Get(i,unit);
+     res += unit->p0.Distance(unit->p1);
+  }
+  return res;
+}
+
 /*
 4 Type Constructors
 
@@ -5985,6 +5999,26 @@ ListExpr DisturbTypeMap(ListExpr args){
    return nl->TypeError();
 }
 
+/*
+~LengthTypeMap~
+
+*/
+
+ListExpr LengthTypeMap(ListExpr args){
+  if(nl->ListLength(args)==1){
+     if(nl->IsEqual(nl->First(args),"mpoint")){
+       return nl->SymbolAtom("real");
+     } else {
+       ErrorReporter::ReportError("mpoint expected");
+       return nl->TypeError();
+     }
+  } else {
+    ErrorReporter::ReportError("one argument required");
+    return nl->TypeError();
+  }
+
+}
+
 
 
 /*
@@ -8263,6 +8297,23 @@ int DisturbVM(Word* args, Word& result, int message,
    return 0;
 }
 
+/*
+16.3.48 ~Length~
+
+*/
+int LengthVM(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   CcReal* res = (CcReal*)result.addr;
+   MPoint* mp = (MPoint*) args[0].addr;
+   if(!mp->IsDefined()){
+      res->SetDefined(false);
+  } else {
+      res->Set(true, mp->Length());
+  }
+  return 0;
+}
 
 /*
 16.4 Definition of operators
@@ -9004,6 +9055,14 @@ const string DisturbSpec =
     "<text>query train 6 disturb [200.0 , 10.0] </text--->"
     ") )";
 
+
+const string LengthSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint -> real </text---> "
+    "<text> length(_) </text--->"
+    "<text>computes the length of the movement </text--->"
+    "<text>query length(train6) </text--->"
+    ") )";
 /*
 16.4.3 Operators
 
@@ -9238,6 +9297,12 @@ Operator temporaldisturb( "disturb",
                       DisturbVM,
                       Operator::SimpleSelect,
                       DisturbTypeMap );
+
+Operator temporallength( "length",
+                      LengthSpec,
+                      LengthVM,
+                      Operator::SimpleSelect,
+                      LengthTypeMap );
 
 Operator temporalsimplify( "simplify",
                            TemporalSpecSimplify,
@@ -9535,6 +9600,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&temporalsamplempoint);
     AddOperator(&temporalgps);
     AddOperator(&temporaldisturb);
+    AddOperator(&temporallength);
   }
   ~TemporalAlgebra() {};
 };

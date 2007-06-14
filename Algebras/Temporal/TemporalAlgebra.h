@@ -2699,6 +2699,17 @@ using a random generator.
                 const double maxDerivation,
                 double maxDerivationPerStep);
 
+
+/*
+3.10.5.10 ~length~
+
+Determines the drive distnace of this moving point.
+Will return a value smaller than zero if this mpoint is not defined
+
+*/
+  double Length() const; 
+
+
 private:
    void Simplify(const int min, const int max,
                  bool* useleft, bool* useright,

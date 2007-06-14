@@ -193,6 +193,12 @@ Example  : query isempty(train7)
 Result   : file
 
 
+Operator : length
+Number   : 1
+Signature: mpoint -> real
+Example  : query length(train7)
+Result   : 31662.1260235619 
+
 Operator : maximum
 Number   : 1
 Signature: rT -> T
