@@ -120,6 +120,9 @@ ALGEBRAS     += DateTimeAlgebra
 ALGEBRA_DIRS += Network
 ALGEBRAS     += NetworkAlgebra
 
+#ALGEBRA_DIRS += TemporalNet 
+#ALGEBRAS     += TemporalNet 
+
 ALGEBRA_DIRS += PlugJoin
 ALGEBRAS     += PlugJoinAlgebra
 
