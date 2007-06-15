@@ -66,7 +66,6 @@ AlgebraManager::AlgebraManager( NestedList& nlRef,
   algebra.resize( maxAlgebraId+1 );
   for ( j = 0; j <= maxAlgebraId; j++ )
     algebra[j] = 0;
-  InitOpPtrField();
 
 }
 
@@ -125,15 +124,15 @@ AlgebraManager::GetAlgebraId(const string& algName)
 const string& 
 AlgebraManager::GetAlgebraName( const int algId ) {
   
-	static const string unknown("UnknownAlgebra");
-	assert( algId >= 0 && algId <= maxAlgebraId );
-	map<int, string>::const_iterator it = algebraNames.find(algId);
+  static const string unknown("UnknownAlgebra");
+  assert( algId >= 0 && algId <= maxAlgebraId );
+  map<int, string>::const_iterator it = algebraNames.find(algId);
 	
-	if ( it != algebraNames.end() ) {
-	  return it->second;
-	} else {
-		return unknown;
-	}    
+  if ( it != algebraNames.end() ) {
+    return it->second;
+  } else {
+    return unknown;
+  }  
 }
 
 void
@@ -202,6 +201,7 @@ AlgebraManager::LoadAlgebras()
       }
     }
   }
+  InitOpPtrField();
 }
 
 void
@@ -284,10 +284,18 @@ AlgebraManager::Specs( int algebraId, int operatorId )
 void
 AlgebraManager::InitOpPtrField() {
 
-  for ( int alg = 0; alg < MAX_ALG; alg++ ) {
-    for ( int op = 0; op < MAX_OP; op++ ) {      
-        opPtrField[alg][op] = 0;
-      }}
+  opPtrField.resize(maxAlgebraId+1);	
+  for ( int alg = 0; alg <= maxAlgebraId; alg++ ) {
+
+    int numOps = 0;
+    if (algebra[alg] != 0) {
+    numOps = algebra[alg]->GetNumOps();
+    opPtrField[alg].resize(numOps+1);
+    for ( int op = 0; op < numOps; op++ ) {      
+      opPtrField[alg][op] = algebra[alg]->GetOperator( op );
+    }
+    }
+  }
 }
 
 int

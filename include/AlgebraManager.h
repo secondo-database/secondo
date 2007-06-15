@@ -481,18 +481,11 @@ the list may contain further information to describe the error.
 
   inline Operator* getOperator(const int algebraId, const int opId) {
   
-  assert( algebraId < MAX_ALG );
-  assert( (opId < MAX_OP) );
+  assert( algebraId <= maxAlgebraId + 1);
+  assert( algebra[algebraId] != 0 );
+  assert( opPtrField[algebraId].size() >= (size_t)opId);
   
-  Operator* op = opPtrField[algebraId][opId];
-  
-  if ( op == 0 ) {
-  
-    op = algebra[algebraId]->GetOperator( opId );
-    opPtrField[algebraId][opId] = op;
-  }  
-
-  return op;
+  return (opPtrField[algebraId])[opId];
   }
 
   void UpdateOperatorUsage(SystemInfoRel* table);
@@ -517,13 +510,10 @@ Is an array for references to all loaded algebra modules.
   multimap<string,TypeCheckFunction> kindTable;
   GetAlgebraEntryFunction getAlgebraEntry;
   
-  static const int MAX_ALG=50;
-  static const int MAX_OP=100;
-  Operator* opPtrField[MAX_ALG][MAX_OP];
+  vector< vector<Operator*> > opPtrField;
 
   void InitOpPtrField();
   
-
 };
 
 #endif
