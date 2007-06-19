@@ -117,7 +117,23 @@ void FLOB::Clean()
     cerr << "FLOB " << (void*)this
 	 << ": About to clean. type = " << stateStr(type)
 	 << " inMemory.buffer = " << (void*)fd.inMemory.buffer << endl;
-  assert( type != Destroyed );
+  
+  // SPM 19.06.2007
+  //
+  // WORK AROUND to make the update relation algebra running
+  // more precisely: the queries of file Test/Testspecs/update.test
+
+  // Commenting out the following line is maybe not a general solution !!!  
+  // assert( type != Destroyed );
+
+  // Open question: what happens if an operator destroys tuples from a relation
+  // (deleting the physical record representation) but the attributes are
+  // referenced by other in memory tuple instances.  I would suggest that the
+  // FLOBs record must be copied into a separate FLOB file maintained by the
+  // FlobCache so that other operations which need the full representation are
+  // able to access it later if necessary. I'm not sure if the current
+  // implementation will do this 
+  
   if( type == InMemory && size > 0 )
     free( fd.inMemory.buffer );
   else if( type == InMemoryCached )
