@@ -487,3 +487,11 @@ Algebra::AddOperator( OperatorInfo oi, ValueMapping vm, TypeMapping tm )
   AddOperator(newOp);
 }
 
+void
+Algebra::AddOperator( OperatorInfo oi, ValueMapping vms[], 
+		      SelectFunction sf, TypeMapping tm   )
+{
+  Operator* newOp = new Operator(oi, vms, sf, tm);
+  AddOperator(newOp);
+}
+

@@ -128,7 +128,12 @@ Returns a reference to the operator identified by ~index~.
  protected:
   void AddTypeConstructor( TypeConstructor* tc );
   void AddOperator( Operator* op );
+
   void AddOperator( OperatorInfo oi, ValueMapping vm, TypeMapping tm);
+  
+  void AddOperator( OperatorInfo oi, ValueMapping vms[], 
+		    SelectFunction sf,TypeMapping tm    );
+
 /*
 Are used by the subclassed algebra to add its type constructors and
 operators to the list of type constructors and operators within the
