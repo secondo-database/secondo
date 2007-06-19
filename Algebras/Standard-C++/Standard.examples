@@ -382,3 +382,16 @@ Number   : 2
 Signature: real -> real 
 Example  : query abs(4.5)
 Result   : 4.5 
+
+Operator : abs 
+Number   : 3 
+Signature: int -> int 
+Example  : query abs(3)
+Result   : 3 
+
+Operator : abs 
+Number   : 4 
+Signature: int -> int 
+Example  : query abs(-4)
+Result   : 4 
+

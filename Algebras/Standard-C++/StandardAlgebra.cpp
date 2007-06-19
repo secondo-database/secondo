@@ -2994,14 +2994,9 @@ Map any type to a string
 ListExpr
 CcElapsedTypeMap( ListExpr args )
 {
-  NList list(args);
-  if ( list.hasLength(1) )
-   if ( list.first().str() == "typeerror" )
-     return list.typeError("elapsedtime: input has a typeerror");
-
-  return (nl->SymbolAtom( "string" ));
+  const string mapping[] = {STRING};
+  return SimpleMap(mapping, 1, args);	 
 }
-
 
 
 int
@@ -3065,21 +3060,8 @@ handling streams of tuples.
 
 static ListExpr setoption_tm(ListExpr args)
 {
-  NList l(args);
-
-  const string opName = "setoption";
-  string err1 = opName + "expects (string int)!";
-
-  if ( !l.checkLength(2, err1) )
-    return l.typeError( err1 );
-
-  if ( !l.first().isSymbol( STRING ) )
-    return l.typeError(err1);
-
-  if ( !l.second().isSymbol( INT ) )
-    return l.typeError(err1);
-
-  return NList( BOOL ).listExpr();
+  const string mapping[] = {STRING, INT, BOOL};
+  return SimpleMap(mapping, 3, args);	 
 }
 
 int
@@ -3120,24 +3102,38 @@ struct absInfo : OperatorInfo {
   absInfo() : OperatorInfo()
   {
     name =      "abs";
-    signature = "real -> real";
+    signature = "real -> real, int -> int";
     syntax =    "abs(_)";
     meaning =   "Returns the absolute value of its argument";
   }
 
 };
 
+const string maps_abs[2][2] = { {REAL, REAL}, {INT, INT} };
+
+static ListExpr 
+abs_tm(ListExpr args)
+{
+  return SimpleMaps<2,2>(maps_abs, args);	 
+}
+
+int
+abs_sf( ListExpr args )
+{
+  return SimpleSelect<2,2>(maps_abs, args);
+}
+
+template<class S, class T>
 int
 abs_vm( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   // args[0] : real
-  double arg0 = StdTypes::GetReal(args[0]);
+  T arg0 = Attribute::GetValue<S,T>(args[0]);
 
-  CcReal& res = qp->ResultStorage<CcReal>( result, s );
+  S& res = qp->ResultStorage<S>( result, s );
   res.Set( true, abs(arg0) );
   return (0);
 }
-
 
 
 /*
@@ -3489,6 +3485,13 @@ ValueMapping ccnum2stringvaluemap[] =
 {
   CcNum2String<CcReal>,
   CcNum2String<CcInt>
+};
+
+
+ValueMapping abs_vms[] =
+{
+  abs_vm<CcReal, double>,
+  abs_vm<CcInt, int>
 };
 
 
@@ -4161,7 +4164,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccnum2string );
 
     AddOperator( setoptionInfo(), setoption_vm, setoption_tm );
-    AddOperator( absInfo(), abs_vm, RealReal );
+    AddOperator( absInfo(), abs_vms, abs_sf, abs_tm );
 
 
   }
