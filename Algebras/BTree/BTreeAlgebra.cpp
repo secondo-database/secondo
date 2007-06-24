@@ -1303,6 +1303,8 @@ public:
   Relation* relation;
   BTreeIterator* iter;
   bool first;
+  int completeCalls;
+  int completeReturned;
 };
 
 
@@ -1316,18 +1318,26 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
   StandardAttribute* secondKey;
   Tuple* tuple;
   SmiRecordId id;
-  IndexQueryLocalInfo* localInfo;
+  IndexQueryLocalInfo* ili;
+
+  ili = (IndexQueryLocalInfo*)local.addr;
 
   switch (message)
   {
     case OPEN :
-      localInfo = (IndexQueryLocalInfo*)local.addr;
-      if ( localInfo ) delete localInfo;
-      localInfo = new IndexQueryLocalInfo;
 
-      local = SetWord(localInfo);
-      localInfo->progressInitialized = false;
-      localInfo->relation = (Relation*)args[1].addr;
+      //local info kept over many calls of OPEN!
+      //useful for loopjoin
+
+      if ( !ili ) 	//first time
+      {
+        ili = new IndexQueryLocalInfo;
+        ili->completeCalls = 0;
+        ili->completeReturned = 0;
+
+        ili->relation = (Relation*)args[1].addr;
+        local = SetWord(ili);
+      }
 
       btree = (BTree*)args[0].addr;
       key = (StandardAttribute*)args[2].addr;
@@ -1338,43 +1348,43 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
       assert(btree != 0);
-      assert(localInfo->relation != 0);
+      assert(ili->relation != 0);
       assert(key != 0);
 
       switch(operatorId)
       {
         case EXACTMATCH:
-          localInfo->iter = btree->ExactMatch(key);
+          ili->iter = btree->ExactMatch(key);
           break;
         case RANGE:
-          localInfo->iter = btree->Range(key, secondKey);
+          ili->iter = btree->Range(key, secondKey);
           break;
         case LEFTRANGE:
-          localInfo->iter = btree->LeftRange(key);
+          ili->iter = btree->LeftRange(key);
           break;
         case RIGHTRANGE:
-          localInfo->iter = btree->RightRange(key);
+          ili->iter = btree->RightRange(key);
           break;
         default:
           assert(false);
       }
 
-      if(localInfo->iter == 0)
+      if(ili->iter == 0)
       {
-        delete localInfo;
+        delete ili;
         return -1;
       }
 
       return 0;
 
     case REQUEST :
-      localInfo = (IndexQueryLocalInfo*)local.addr;
-      assert(localInfo != 0);
 
-      if(localInfo->iter->Next())
+      assert(ili != 0);
+
+      if(ili->iter->Next())
       {
-        id = localInfo->iter->GetId();
-        tuple = localInfo->relation->GetTuple( id );
+        id = ili->iter->GetId();
+        tuple = ili->relation->GetTuple( id );
         if(tuple == 0)
         {
           cerr << "Could not find tuple for the given tuple id. "
@@ -1385,7 +1395,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 
         result = SetWord(tuple);
 
-        localInfo->returned++;
+        ili->returned++;
 
         return YIELD;
       }
@@ -1395,80 +1405,86 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
     case CLOSE :
-      localInfo = (IndexQueryLocalInfo*)local.addr;
-      delete localInfo->iter;
+      delete ili->iter;
+
+      ili->completeCalls++;
+      ili->completeReturned += ili->returned;
+      ili->returned = 0;
 
       return 0;
 
 
     case CLOSEPROGRESS:
-      localInfo = (IndexQueryLocalInfo*)local.addr;
-      if ( localInfo ) delete localInfo;
+      if ( ili ) delete ili;
       return 0;
 
 
     case REQUESTPROGRESS :
       ProgressInfo *pRes;
       pRes = (ProgressInfo*) result.addr;
-      localInfo = (IndexQueryLocalInfo*)local.addr;
 
-      /* values taken from feed */
-      const double uIndexQuery = 0.00194;    //milliseconds per tuple
-      const double vIndexQuery = 0.0000106;  //milliseconds per Byte
+      const double uIndexQuery = 0.15;	//ms per search
+      const double vIndexQuery = 0.018;	//ms per result tuple
 
-      if (!localInfo) return CANCEL;
+      if ( !ili ) return CANCEL;
       else
       {
-        if (!localInfo->progressInitialized)
+        if (!ili->progressInitialized )
         {
-          localInfo->returned = 0;
-          localInfo->total = localInfo->relation->GetNoTuples();
-          localInfo->defaultValue = 50;
-          localInfo->Size = 0;
-          localInfo->SizeExt = 0;
-          localInfo->noAttrs = 
+          ili->total = ili->relation->GetNoTuples();
+          ili->defaultValue = 50;
+          ili->Size = 0;
+          ili->SizeExt = 0;
+          ili->noAttrs = 
             nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
-          localInfo->attrSize = new double[localInfo->noAttrs];
-          localInfo->attrSizeExt = new double[localInfo->noAttrs];
-          for ( int i = 0;  i < localInfo->noAttrs; i++)
+          ili->attrSize = new double[ili->noAttrs];
+          ili->attrSizeExt = new double[ili->noAttrs];
+          for ( int i = 0;  i < ili->noAttrs; i++)
           {
-            localInfo->attrSize[i] = localInfo->relation->GetTotalSize(i)
-                                  / (localInfo->total + 0.001);
-            localInfo->attrSizeExt[i] = localInfo->relation->GetTotalExtSize(i)
-                                  / (localInfo->total + 0.001);
+            ili->attrSize[i] = ili->relation->GetTotalSize(i)
+                                  / (ili->total + 0.001);
+            ili->attrSizeExt[i] = ili->relation->GetTotalExtSize(i)
+                                  / (ili->total + 0.001);
 
-            localInfo->Size += localInfo->attrSize[i];
-            localInfo->SizeExt += localInfo->attrSizeExt[i];
+            ili->Size += ili->attrSize[i];
+            ili->SizeExt += ili->attrSizeExt[i];
           }
-          localInfo->progressInitialized = true;
+          ili->progressInitialized = true;
         }
 
-        pRes->Size = localInfo->Size;
-        pRes->SizeExt = localInfo->SizeExt;
-        pRes->noAttrs = localInfo->noAttrs;
-        pRes->attrSize = localInfo->attrSize;
-        pRes->attrSizeExt = localInfo->attrSizeExt;
+        pRes->CopySizes(ili);
 
-        if (fabs(qp->GetSelectivity(s) - 0.1) < 0.000001) // default
-          pRes->Card = (double) localInfo->defaultValue;
-        else                                              // annotated
-          pRes->Card = localInfo->total * qp->GetSelectivity(s);
 
-        if ((double) localInfo->returned > pRes->Card) // there are more tuples
-            pRes->Card = (double) localInfo->returned; // than calculated
+        if ( ili->completeCalls > 0 )     //called in a loopjoin
+        {
+          pRes->Card = 
+            (double) ili->completeReturned / (double) ili->completeCalls;
+          
+        }
+        else	//single or first call
+        {
+          if ( fabs(qp->GetSelectivity(s) - 0.1) < 0.000001 ) // default
+            pRes->Card = (double) ili->defaultValue;
+          else                                              // annotated
+            pRes->Card = ili->total * qp->GetSelectivity(s);
+ 
+        if ( (double) ili->returned > pRes->Card )   // there are more tuples
+            pRes->Card = (double) ili->returned * 1.1;   // than expected
 
-        if (!localInfo->iter)              // btree has been finished, but
-            pRes->Card = pRes->Card * 1.1; // there are some tuples more (10%)
+        if ( !ili->iter )  // btree has been finished
+            pRes->Card = (double) ili->returned; 
+ 
+        if ( pRes->Card > (double) ili->total ) // more than all cannot be
+            pRes->Card = (double) ili->total;
 
-        if (pRes->Card > (double) localInfo->total) // more than all cannot be
-            pRes->Card = (double) localInfo->total;
-        pRes->Time = (pRes->Card + 1.0)
-               * (uIndexQuery + localInfo->SizeExt * vIndexQuery)
-               * qp->GetPredCost(s);
-        pRes->Progress = (localInfo->returned + 1)
-               * (uIndexQuery + localInfo->SizeExt * vIndexQuery)
-               * qp->GetPredCost(s)
-               / pRes->Time;
+        }
+
+
+        pRes->Time = uIndexQuery + pRes->Card * vIndexQuery;
+
+        pRes->Progress = 
+	  (uIndexQuery + (double) ili->returned * vIndexQuery)
+	  / pRes->Time;
 
         return YIELD;
       }
