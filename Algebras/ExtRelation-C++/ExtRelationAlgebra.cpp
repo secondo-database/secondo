@@ -5395,6 +5395,11 @@ ListExpr GroupByTypeMap(ListExpr args)
 2.21.2 Value mapping function of operator ~groupby~
 
 */
+
+
+#ifndef USE_PROGRESS
+
+
 struct GroupByLocalInfo
 {
   Tuple *t;
@@ -5582,6 +5587,333 @@ int GroupByValueMapping
   }
   return 0;
 }
+
+#else
+
+//progress version
+
+
+class GroupByLocalInfo: public ProgressLocalInfo
+{
+public:
+  Tuple *t;
+  TupleType *resultTupleType;
+  long MAX_MEMORY;
+
+  //new for progress
+
+  int stableValue;
+  bool stableState;
+
+  int noGroupAttrs;
+  int noAggrAttrs;
+  double *attrSizeTmp;
+  double *attrSizeExtTmp;
+};
+
+int GroupByValueMapping
+(Word* args, Word& result, int message, Word& local, Supplier supplier)
+{
+  Tuple *s = 0;
+  Word sWord =SetWord(Address(0));
+  TupleBuffer* tp = 0;
+  GenericRelationIterator* relIter = 0;
+  int i = 0, j = 0, k = 0;
+  int numberatt = 0;
+  bool ifequal = false;
+  Word value = SetWord(Address(0));
+  Supplier  value2;
+  Supplier supplier1;
+  Supplier supplier2;
+  int noOffun = 0;
+  ArgVectorPointer vector;
+  const int indexOfCountArgument = 3;
+  const int startIndexOfExtraArguments = indexOfCountArgument +1;
+  int attribIdx = 0;
+  Word nAttributesWord = SetWord(Address(0));
+  Word attribIdxWord = SetWord(Address(0));
+  GroupByLocalInfo *gbli;
+
+  gbli = (GroupByLocalInfo *)local.addr;
+
+
+  // The argument vector contains the following values:
+  // args[0] = stream of tuples
+  // args[1] = list of identifiers
+  // args[2] = list of functions
+  // args[3] = Number of extra arguments
+  // args[4 ...] = args added by APPEND
+
+  switch(message)
+  {
+    case OPEN:
+    {
+
+      if (gbli) delete gbli;
+      gbli = new GroupByLocalInfo;
+        gbli->stableValue = 5;
+        gbli->stableState = false;
+
+        numberatt = ((CcInt*)args[indexOfCountArgument].addr)->GetIntval();
+        value2 = (Supplier)args[2].addr; // list of functions
+        noOffun  =  qp->GetNoSons(value2);
+
+        gbli->noAttrs = numberatt + noOffun;
+        gbli->noGroupAttrs = numberatt;
+        gbli->noAggrAttrs = noOffun;
+        gbli->attrSizeTmp = new double[gbli->noAttrs];
+        gbli->attrSizeExtTmp = new double[gbli->noAttrs];
+
+        for (int i = 0; i < gbli->noAttrs; i++)
+        {
+          gbli->attrSizeTmp[i] = 0.0;
+          gbli->attrSizeExtTmp[i] = 0.0;
+        }
+        gbli->progressInitialized = false;
+
+      local = SetWord(gbli);	//from now, progress queries possible
+
+      // Get the first tuple pointer and store it in the
+      // GroupBylocalInfo structure
+      qp->Open (args[0].addr);
+      qp->Request(args[0].addr, sWord);
+      if (qp->Received(args[0].addr))
+      {
+        gbli->read++;
+        gbli->t = (Tuple*)sWord.addr;
+        gbli->t->IncReference();
+        ListExpr resultType = GetTupleResultType( supplier );
+        gbli->resultTupleType = new TupleType( nl->Second( resultType ) );
+        gbli->MAX_MEMORY = qp->MemoryAvailableForOperator();
+
+
+        cmsg.info("ERA:ShowMemInfo") 
+          << "GroupBy.MAX_MEMORY (" 
+          << gbli->MAX_MEMORY / 1024 << " MB): = " 
+          << gbli->MAX_MEMORY / gbli->t->GetExtSize() 
+          << " Tuples" << endl;
+        cmsg.send();
+      }
+      else 
+      {
+        gbli->t = 0;
+      }
+
+      return 0;
+    }
+    case REQUEST:
+    {
+      Counter::getRef("GroupBy:Request")++;
+
+      if(gbli->t == 0) 
+        return CANCEL;
+      else
+      {
+        tp = new TupleBuffer(gbli->MAX_MEMORY);
+        tp->AppendTuple(gbli->t);
+      }
+
+      // get number of attributes
+      numberatt = ((CcInt*)args[indexOfCountArgument].addr)->GetIntval();
+
+      ifequal = true;
+      // Get next tuple
+      qp->Request(args[0].addr, sWord);
+      while ((qp->Received(args[0].addr)) && ifequal)
+      {
+        gbli->read++;
+        s = (Tuple*)sWord.addr;
+        for (k = 0; k < numberatt; k++) // check if  tuples t = s
+        {
+          // loop over all grouping attributes
+          attribIdx = 
+            ((CcInt*)args[startIndexOfExtraArguments+k].addr)->GetIntval();
+          j = attribIdx - 1;
+          if (((Attribute*)gbli->t->GetAttribute(j))->
+               Compare((Attribute *)s->GetAttribute(j)))
+          {
+            ifequal = false;
+            break;
+          }
+        }
+
+        if (ifequal) // store in tuple buffer
+        {
+          tp->AppendTuple(s);
+          s->DeleteIfAllowed();
+          qp->Request(args[0].addr, sWord); 
+          // get next tuple
+        }
+        else
+        { 
+          // store tuple pointer in local info
+          gbli->t->DecReference();
+          gbli->t->DeleteIfAllowed();
+          gbli->t = s; 
+          gbli->t->IncReference();
+        }
+      }
+      if (ifequal) 
+      // last group finished, stream ends
+      {
+        gbli->t->DecReference();
+        gbli->t->DeleteIfAllowed();
+        gbli->t = 0;
+      }
+
+      // create result tuple
+      Tuple *t = new Tuple( gbli->resultTupleType );
+      relIter = tp->MakeScan();
+      s = relIter->GetNextTuple();
+
+      // copy in grouping attributes
+      for(i = 0; i < numberatt; i++)
+      {
+        attribIdx = 
+          ((CcInt*)args[startIndexOfExtraArguments+i].addr)->GetIntval();
+        t->CopyAttribute(attribIdx - 1, s, i);
+      }
+      s->DeleteIfAllowed();
+      value2 = (Supplier)args[2].addr; // list of functions
+      noOffun  =  qp->GetNoSons(value2);
+      delete relIter;
+
+      for(i = 0; i < noOffun; i++)
+      {
+        // prepare arguments for function i
+        supplier1 = qp->GetSupplier(value2, i);
+        supplier2 = qp->GetSupplier(supplier1, 1);
+        vector = qp->Argument(supplier2);
+        // The group was stored in a relation identified by symbol group
+        // which is a typemap operator. Here it is stored in the 
+        // argument vector
+        (*vector)[0] = SetWord(tp);
+
+        // compute value of function i and put it into the result tuple
+        qp->Request(supplier2, value);
+        t->PutAttribute(numberatt + i, (Attribute*)value.addr);
+        qp->ReInitResultStorage(supplier2);
+      }
+
+      if ( gbli->returned < gbli->stableValue )
+      {
+        for (int i = 0; i < gbli->noAttrs; i++) 
+        {
+          gbli->attrSizeTmp[i] += t->GetSize(i);
+          gbli->attrSizeExtTmp[i] += t->GetExtSize(i);
+        }
+      }
+
+      gbli->returned++;
+      result = SetWord(t);
+      delete tp;
+      return YIELD;
+    }
+    case CLOSE:
+    {
+
+
+      if( gbli->resultTupleType != 0 )
+        gbli->resultTupleType->DeleteIfAllowed();
+      if( gbli->t != 0 )
+      {
+        gbli->t->DecReference();
+        gbli->t->DeleteIfAllowed();
+      }
+      qp->Close(args[0].addr);
+      return 0;
+    }
+
+    case CLOSEPROGRESS:
+      qp->CloseProgress(args[0].addr);
+
+      if (gbli) delete gbli;
+      return 0;
+
+
+    case REQUESTPROGRESS:
+
+      ProgressInfo p1;
+      ProgressInfo *pRes;
+      const double uGroup = 0.013;  //millisecs per tuple and new attribute
+
+      pRes = (ProgressInfo*) result.addr;
+
+      if ( !gbli ) return CANCEL;
+
+      if ( qp->RequestProgress(args[0].addr, &p1) )
+      {
+        if ( !gbli->progressInitialized )
+        {
+          gbli->attrSize = new double[gbli->noAttrs];
+          gbli->attrSizeExt = new double[gbli->noAttrs];
+          for (int i = 0; i < gbli->noGroupAttrs; i++)
+          {
+            gbli->attrSize[i] = 56;	//guessing string attributes
+            gbli->attrSizeExt[i] = 56;
+          }
+          for (int j = 0; j < gbli->noAggrAttrs; j++)
+          {				//guessing int attributes
+            gbli->attrSize[j + gbli->noGroupAttrs] = 12;
+            gbli->attrSizeExt[j + gbli->noGroupAttrs] = 12; 
+
+          }
+
+          gbli->Size = 0.0;
+	  gbli->SizeExt = 0.0;
+          for (int i = 0; i < gbli->noAttrs; i++)
+          {
+            gbli->Size += gbli->attrSize[i];
+            gbli->SizeExt += gbli->attrSizeExt[i];
+          }
+          gbli->progressInitialized = true;
+        }
+
+        if (!gbli->stableState && (gbli->returned >= gbli->stableValue))
+        {
+          gbli->Size = 0.0;
+          gbli->SizeExt = 0.0;
+          for (int i = 0; i < gbli->noAttrs; i++)
+          {
+            gbli->attrSize[i] = gbli->attrSizeTmp[i] / gbli->stableValue;
+            gbli->attrSizeExt[i] = gbli->attrSizeExtTmp[i] / 
+              gbli->stableValue;
+            gbli->Size += gbli->attrSize[i];
+            gbli->SizeExt += gbli->attrSizeExt[i];
+          }
+          gbli->stableState = true;
+        }
+
+	//As long as we have not seen 5 result tuples (groups), we guess groups 
+	//of size 10
+
+        pRes->Card = (gbli->returned < 5 ? p1.Card/10.0 : 
+          p1.Card * (double) gbli->returned / (double) gbli->read);
+
+        pRes->CopySizes(gbli);
+
+        pRes->Time = p1.Time + p1.Card * gbli->noAggrAttrs * uGroup;
+
+        pRes->Progress = (p1.Progress * p1.Time 
+          + gbli->read * gbli->noAggrAttrs * uGroup)
+          / pRes->Time;
+
+	pRes->CopyBlocking(p1);		//non-blocking operator
+
+        return YIELD;
+      }
+      else return CANCEL;
+
+  }
+  return 0;
+}
+
+#endif
+
+
+
+
+
 
 /*
 2.21.3 Specification of operator ~groupby~
@@ -7805,7 +8137,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelextendstream);
     AddOperator(&extrelprojectextendstream);
     AddOperator(&extrelloopsel);
-    AddOperator(&extrelgroupby);
+    AddOperator(&extrelgroupby);	extrelgroupby.EnableProgress();	
     AddOperator(&extrelaggregate);
     AddOperator(&extrelaggregateB);
     AddOperator(&extrelsymmjoin);	extrelsymmjoin.EnableProgress();
