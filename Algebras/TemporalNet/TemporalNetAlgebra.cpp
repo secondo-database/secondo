@@ -76,7 +76,7 @@ void UGPoint::TemporalFunction( const Instant& t,
     }
   else
     {
-    	return;
+return;
 //      Instant t0 = timeInterval.start;
 //      Instant t1 = timeInterval.end;
 //
@@ -162,7 +162,7 @@ ListExpr UGPointProperty()
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> UNIT"),
                              nl->StringAtom("(ugpoint) "),
-						     nl->TextAtom("( " + 
+nl->TextAtom("( " + 
 "timeInterval " + 
 "(" + 
 "<nid> " + 
