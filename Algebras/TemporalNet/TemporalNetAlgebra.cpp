@@ -405,8 +405,7 @@ MGPointProperty()
             nl->FourElemList(nl->StringAtom("-> MAPPING"),
                              nl->StringAtom("(mgpoint) "),
                              nl->StringAtom("( u1 ... un ) "),
-nl->StringAtom("(((i1 i2 TRUE FALSE) " + 
-"(1 1 0 0.1 2.4)) ...)"))));
+nl->StringAtom("(((i1 i2 TRUE FALSE) (1 1 0 0.1 2.4)) ...)"))));
 }
 
 /*
