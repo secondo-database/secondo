@@ -1,4 +1,7 @@
 
+\def\MM#1{\ifmmode#1\else\mbox{$#1$}\fi}
+
+\newcommand{\tc}[1]{\MM{\underline{\smash{\mathit{#1}}}}}
 \DeclareFixedFont{\secop}{T1}{pcr}{b}{it}{8}
 
 % define a lstlanguage for secondo queries and scripts
