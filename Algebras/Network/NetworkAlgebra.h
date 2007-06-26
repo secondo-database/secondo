@@ -541,10 +541,10 @@ The simple constructor.
 
 */
     GPoint( bool defined,
-            SmiRecordId nid = 0, 
-            TupleId rid = 0, 
-            double d = 0.0, 
-            Side side = None ):
+              SmiRecordId nid = 0, 
+              TupleId rid = 0, 
+              double d = 0.0, 
+              Side side = None ):
     nid( nid ), rloc( rid, d, side ),
     defined( defined )
     {}

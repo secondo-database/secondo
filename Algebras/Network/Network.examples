@@ -1,34 +1,31 @@
-Database: networktest
+Database: berlintest
 Restore : No
 
 Operator : junctions
 Number   : 1
 Signature: network -> rel
-Example  : query junctions(Net)
-Result   : bug
-Remark   : impossible to create a network
+Example  : query junctions(X_NETWORK)
+Result   : ()
 
 
 Operator : routes
 Number   : 1
 Signature: network -> rel
-Example  : query routes(Net)
-Result   : bug
-Remark   : impossible to create a network
+Example  : query routes(X_NETWORK)
+Result   : (2)
 
 
 Operator : sections
 Number   : 1
 Signature: network -> rel
-Example  : query sections(Net)
-Result   : bug
-Remark   : impossible to create a network
+Example  : query sections(X_NETWORK)
+Result   : (3)
 
 
 Operator : thenetwork
 Number   : 1
 Signature: rel x rel -> network
-Example  : query thenetwork(Routes, Junctions)
-Result   : crashes
+Example  : query thenetwork(X_ROUTES, X_JUNCTIONS)
+Result   : (X)
 
 
