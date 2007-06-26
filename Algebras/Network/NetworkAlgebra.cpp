@@ -1,5 +1,4 @@
 /*
----- 
 This file is part of SECONDO.
 
 Copyright (C) 2004, University in Hagen, Department of Computer Science, 
@@ -18,7 +17,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
 
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
@@ -35,6 +33,7 @@ level remains. Models are also removed from type constructors.
 [TOC]
 
 1 Overview
+
 
 This file contains the implementation of the type constructors ~network~,
 ~gpoint~, and ~gline~ and the temporal corresponding ~moving~(~gpoint~)
@@ -83,7 +82,8 @@ Network::Network():
 routes( 0 ),
 junctions( 0 ),
 sections( 0 ),
-routesBTree( 0 )
+routesBTree( 0 ),
+adjacencyList( 0 )
 {}
 
 Network::Network( Relation *routes, Relation *junctions, 
@@ -91,7 +91,8 @@ Network::Network( Relation *routes, Relation *junctions,
 routes( routes ),
 junctions( junctions ),
 sections( sections ),
-routesBTree( routesBTree )
+routesBTree( routesBTree ),
+adjacencyList(0)
 {}
 
 Network::~Network()
@@ -120,7 +121,7 @@ void Network::Load( const Relation *routes, const Relation *junctions )
   FillRoutes( routes );
   FillJunctions( junctions );
   FillSections();
-  FillAdjacencyLists();
+//  FillAdjacencyLists();
 }
 
 void Network::FillRoutes( const Relation *routes )
@@ -130,6 +131,8 @@ void Network::FillRoutes( const Relation *routes )
 
   string querystring = "(consume (sort (feed (" + routesTypeInfo + 
                        " (ptr " + strRoutesPtr.str() + ")))))";
+
+  std::cout << querystring;
 
   Word resultWord;
   assert( QueryProcessor::ExecuteQuery( querystring, resultWord ) );
@@ -379,7 +382,8 @@ void Network::FillSections()
         indices.push_back( POS_JS2RC );
         vector<Attribute*> attrs;
         attrs.push_back( new TupleIdentifier( true, sTuple->GetTupleId() ) );
-        junctions->UpdateTuple( jTuple, indices, attrs );
+        // GeŠndert mts.
+        junctions->UpdateTuple( lastJunction, indices, attrs );
       }       
 
       sTuple->DeleteIfAllowed();
@@ -747,9 +751,9 @@ ListExpr NetworkProp()
 
   return (nl->TwoElemList(
             nl->TwoElemList(nl->StringAtom("Creation"),
-                             nl->StringAtom("Example Creation")),
+                            nl->StringAtom("Example Creation")),
             nl->TwoElemList(examplelist,
-                             nl->StringAtom("(let n = thenetwork( r, j ))"))));
+                            nl->StringAtom("(let n = thenetwork( r, j ))"))));
 }
 
 /*
@@ -954,7 +958,7 @@ int SizeOfNetwork()
 3.14 Type Constructor object for type constructor ~network~
 
 */
-TypeConstructor network( "network",            NetworkProp,
+TypeConstructor network( "network",          NetworkProp,
                          OutNetwork,           InNetwork,
                          0,                    0,
                          CreateNetwork,        DeleteNetwork,
@@ -1094,7 +1098,7 @@ GPointProperty()
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("gpoint"),
+                             nl->StringAtom("gpoint2"),
                              nl->StringAtom("(<nid> <rid> <pos> <side>)"),
                              nl->StringAtom("(1 1 0.0 0)"))));
 }
@@ -1109,7 +1113,7 @@ type constructor ~gpoint~ does not have arguments, this is trivial.
 bool
 CheckGPoint( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "gpoint" ));
+  return (nl->IsEqual( type, "gpoint2" ));
 }
 
 /*
@@ -1233,8 +1237,7 @@ ListExpr NetworkRoutesTypeMap(ListExpr args)
 4.2.2 Value mapping function of operator ~routes~
 
 */
-int
-NetworkRoutesValueMapping( Word* args, Word& result, int message, 
+int NetworkRoutesValueMapping( Word* args, Word& result, int message, 
                            Word& local, Supplier s )
 {
   Network *network = (Network*)args[0].addr;
@@ -1296,8 +1299,7 @@ ListExpr NetworkJunctionsTypeMap(ListExpr args)
 4.3.2 Value mapping function of operator ~junctions~
 
 */
-int
-NetworkJunctionsValueMapping( Word* args, Word& result, int message, 
+int NetworkJunctionsValueMapping( Word* args, Word& result, int message, 
                               Word& local, Supplier s )
 {
   Network *network = (Network*)args[0].addr;
@@ -1359,8 +1361,7 @@ ListExpr NetworkSectionsTypeMap(ListExpr args)
 4.4.2 Value mapping function of operator ~sections~
 
 */
-int
-NetworkSectionsValueMapping( Word* args, Word& result, int message, 
+int NetworkSectionsValueMapping( Word* args, Word& result, int message, 
                              Word& local, Supplier s )
 {
   Network *network = (Network*)args[0].addr;
