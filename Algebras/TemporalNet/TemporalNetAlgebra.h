@@ -60,7 +60,7 @@ This class will be used in the ~ugpoint~ type constructor, i.e., the type constr
 for the temporal unit of gpoint values.
 
 */
-struct UGPoint : public SpatialTemporalUnit<GPoint2, 3>
+struct UGPoint : public SpatialTemporalUnit<GPoint, 3>
 {
 /*
 3.8.1 Constructors and Destructor
@@ -69,7 +69,7 @@ struct UGPoint : public SpatialTemporalUnit<GPoint2, 3>
   UGPoint() {};
 
   UGPoint(bool is_defined):
-    SpatialTemporalUnit<GPoint2, 3>(is_defined) {};
+    SpatialTemporalUnit<GPoint, 3>(is_defined) {};
 
   UGPoint( const Interval<Instant>& interval,
            const int in_NetworkID, 
@@ -77,7 +77,7 @@ struct UGPoint : public SpatialTemporalUnit<GPoint2, 3>
            const Side in_Side,
            const double in_Position0, 
            const double in_Position1 ):
-    SpatialTemporalUnit<GPoint2, 3>( interval ),
+    SpatialTemporalUnit<GPoint, 3>( interval ),
     p0( true, 			 // defined
         in_NetworkID,    // NetworkID 
         in_RouteID,      // RouteID 
@@ -91,9 +91,9 @@ struct UGPoint : public SpatialTemporalUnit<GPoint2, 3>
     {}
 
   UGPoint( const Interval<Instant>& interval,
-           const GPoint2& p0, 
-           const GPoint2& p1 ):
-    SpatialTemporalUnit<GPoint2, 3>( interval ),
+           const GPoint& p0, 
+           const GPoint& p1 ):
+    SpatialTemporalUnit<GPoint, 3>( interval ),
     p0( p0 ),
     p1( p1 )
     {}
@@ -105,7 +105,7 @@ struct UGPoint : public SpatialTemporalUnit<GPoint2, 3>
 
   virtual UGPoint& operator=( const UGPoint& i )
   {
-    *((TemporalUnit<GPoint2>*)this) = *((TemporalUnit<GPoint2>*)&i);
+    *((TemporalUnit<GPoint>*)this) = *((TemporalUnit<GPoint>*)&i);
     p0 = i.p0;
     p1 = i.p1;
 
@@ -139,7 +139,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   {
     UGPoint *res;
     res = new UGPoint( );
-    res->defined = TemporalUnit<GPoint2>::defined;
+    res->defined = TemporalUnit<GPoint>::defined;
     return res;
   }
 
@@ -147,7 +147,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   {
     const UGPoint* i = (const UGPoint*)right;
 
-    TemporalUnit<GPoint2>::defined = i->defined;
+    TemporalUnit<GPoint>::defined = i->defined;
     if(i->defined)
       {
         timeInterval.CopyFrom( i->timeInterval );
@@ -157,8 +157,8 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
     else
       {
         timeInterval = Interval<Instant>();
-        p0 = GPoint2( false, 0, 0, 0.0, None);
-        p1 = GPoint2( false, 0, 0, 0.0, None);
+        p0 = GPoint( false, 0, 0, 0.0, None);
+        p1 = GPoint( false, 0, 0, 0.0, None);
       }
   }
 
@@ -174,16 +174,16 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   }
 
   virtual void TemporalFunction( const Instant& t,
-                                 GPoint2& result,
+                                 GPoint& result,
                                  bool ignoreLimits = false ) const;
-  virtual bool Passes( const GPoint2& val ) const;
-  virtual bool At( const GPoint2& val, TemporalUnit<GPoint2>& result ) const;
+  virtual bool Passes( const GPoint& val ) const;
+  virtual bool At( const GPoint& val, TemporalUnit<GPoint>& result ) const;
 
 /*
 3.8.4 Attributes
 
 */
-  GPoint2 p0, p1;
+  GPoint p0, p1;
 };
 
 
@@ -191,7 +191,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 3.12 Class ~MGPoint~
 
 */
-class MGPoint : public Mapping< UGPoint, GPoint2 >
+class MGPoint : public Mapping< UGPoint, GPoint >
 {
   public:
 /*
@@ -205,7 +205,7 @@ The simple constructor. This constructor should not be used.
 */
 
     MGPoint( const int n ):
-      Mapping< UGPoint, GPoint2 >( n )
+      Mapping< UGPoint, GPoint >( n )
       {}
 /*
 The constructor. Initializes space for ~n~ elements.
