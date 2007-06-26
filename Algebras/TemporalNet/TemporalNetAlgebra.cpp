@@ -54,7 +54,7 @@ extern QueryProcessor* qp;
 
 */
 void UGPoint::TemporalFunction( const Instant& t,
-                                GPoint2& result,
+                                GPoint& result,
                                 bool ignoreLimits ) const
 {
   throw SecondoException("Method UGPoint::TemporalFunction not implemented.");
@@ -89,7 +89,7 @@ return;
 }
 
 
-bool UGPoint::Passes( const GPoint2& p ) const
+bool UGPoint::Passes( const GPoint& p ) const
 {
   throw SecondoException("Method UGPoint::Passes not implemented.");
 /*
@@ -142,7 +142,7 @@ return false;
 }
 
 
-bool UGPoint::At( const GPoint2& p, TemporalUnit<GPoint2>& result ) const
+bool UGPoint::At( const GPoint& p, TemporalUnit<GPoint>& result ) const
 {
   throw SecondoException("Method UGPoint::At not implemented.");
 //  assert( IsDefined() );
