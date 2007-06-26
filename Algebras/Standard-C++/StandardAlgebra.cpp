@@ -3128,10 +3128,14 @@ int
 abs_vm( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   // args[0] : real
-  T arg0 = Attribute::GetValue<S,T>(args[0]);
-
-  S& res = qp->ResultStorage<S>( result, s );
-  res.Set( true, abs(arg0) );
+  S* arg0 = static_cast<S*>(args[0].addr);
+  result = qp->ResultStorage(s);
+  S* res = static_cast<S*>(result.addr);
+  if(!arg0->IsDefined()){
+     res->Set(false,0);
+  } else {
+     res->Set(true,abs(arg0->GetValue()));
+  }
   return (0);
 }
 
