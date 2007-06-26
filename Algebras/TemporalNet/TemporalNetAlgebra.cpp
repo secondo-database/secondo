@@ -162,16 +162,8 @@ ListExpr UGPointProperty()
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> UNIT"),
                              nl->StringAtom("(ugpoint) "),
-nl->TextAtom("( " + 
-"timeInterval " + 
-"(" + 
-"<nid> " + 
-"<rid> " + 
-"<side> " + 
-"<pos1> " + 
-"<pos2> ) ) "),
-nl->StringAtom("((i1 i2 TRUE FALSE) " + 
-"(1 1 0 0.0 0.3))"))));
+nl->TextAtom("( timeInterval (<nid> <rid> <side> <pos1> <pos2> ) ) "),
+nl->StringAtom("((i1 i2 TRUE FALSE) (1 1 0 0.0 0.3))"))));
 }
 
 /*
