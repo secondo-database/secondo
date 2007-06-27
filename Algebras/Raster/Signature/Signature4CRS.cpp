@@ -49,11 +49,11 @@ Signature4CRS::Signature4CRS( unsigned long id,  Coordinate min, Coordinate max,
 //map( &(attr_map.header) ),
 sizeOfBlock( sizeOfBlock )
 {
-	//cout << "Signature4CRS::Signature4CRS 2" << endl;
-	MBR mbr;
-	mbr.min = min;
-	mbr.max = max;
-	unsigned potency = 0x1lu >> sizeOfBlock;
+  //cout << "Signature4CRS::Signature4CRS 2" << endl;
+  MBR mbr;
+  mbr.min = min;
+  mbr.max = max;
+  unsigned potency = 0x1lu >> sizeOfBlock;
   map = new RasterMap4CRS::Header( id, mbr, dx, dy, potency ) ;
   register unsigned i, j, step;
   Weight current;
@@ -126,7 +126,7 @@ Signature4CRS::Weight Signature4CRS::RasterMap4CRS::block( int x, int y ) const
 }
 
 Signature4CRS::Weight Signature4CRS::block( Coordinate min, 
-	         unsigned long sizeOfBlock ) const
+           unsigned long sizeOfBlock ) const
 {
   return block( min.x, min.y, sizeOfBlock );
 }
@@ -172,7 +172,7 @@ Signature4CRS::Weight Signature4CRS::resolutionChange(int x, int y,
 }
 
 Signature4CRS::Weight Signature4CRS::block( long minX, long minY, 
-	       unsigned long sizeOfBlock ) const
+         unsigned long sizeOfBlock ) const
 {
 
   Coordinate min=map->mbr.min;
@@ -284,9 +284,9 @@ int existsIntersection( const Signature4CRS* a, const Signature4CRS* b )
       if( blockA == Signature4CRS::Empty || blockB == Signature4CRS::Empty )
         continue; // Does not have intersection
       else if( (blockA == Signature4CRS::Full 
-      	                 || blockB == Signature4CRS::Full) ||
+                         || blockB == Signature4CRS::Full) ||
                (blockA == Signature4CRS::Strong 
-               	         && blockB == Signature4CRS::Strong) )
+                         && blockB == Signature4CRS::Strong) )
         return 2;
       else
         maybe = 1;
