@@ -429,7 +429,7 @@ void ClipCel::evaluateNewSegmentsTopEdge(bool &consideredLeftVertex,
     {
       dpAux = vTurningPointsTOP[begin];
       if (!( (dpAux.x == dp.x) && (dpAux.y == dp.y) && 
-      	     (dpAux.direction==dp.direction) ) )
+             (dpAux.direction==dp.direction) ) )
         break;
       begin++;
     }
@@ -482,7 +482,7 @@ void ClipCel::evaluateNewSegmentsTopEdge(bool &consideredLeftVertex,
 }
 //---------------------------------------------------------------------------
 bool ClipCel::GetAcceptedPoint(vector <TurningPoint>vTurningPoint,int &i,
-	                    const int &end, TurningPoint &ep)
+	                   const int &end, TurningPoint &ep)
 {
   //id is the indice of the current point in the scan
   //ep is the correct edge point that will be returned.
