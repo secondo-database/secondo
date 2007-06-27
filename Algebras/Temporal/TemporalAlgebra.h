@@ -5755,7 +5755,9 @@ template <class Mapping, class Unit,
 ListExpr OutMapping( ListExpr typeInfo, Word value )
 {
   Mapping* m = (Mapping*)(value.addr);
-
+  if(! m->IsDefined()){
+    return nl->SymbolAtom("undef");
+  } else
   if( m->IsEmpty() )
     return (nl->TheEmptyList());
   else
@@ -5802,7 +5804,18 @@ Word InMapping( const ListExpr typeInfo, const ListExpr instance,
   m->StartBulkLoad();
 
   ListExpr rest = instance;
-  while( !nl->IsEmpty( rest ) )
+  if (nl->AtomType( rest ) != NoAtom)
+  { if(nl->IsEqual(rest,"undef")){
+       m->EndBulkLoad();
+       m->SetDefined(false);
+       return SetWord( Address( m ) );
+    } else {
+      correct = false;
+      delete m;
+      return SetWord( Address( 0 ) );
+    }
+  }
+  else while( !nl->IsEmpty( rest ) )
   {
     ListExpr first = nl->First( rest );
     rest = nl->Rest( rest );

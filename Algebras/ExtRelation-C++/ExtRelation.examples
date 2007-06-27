@@ -86,7 +86,7 @@ Result   : 7
 
 Operator : loopjoin
 Number   : 1
-Signature: ((stream tuple1) (map tuple1 rel(tuple2))) -> (stream tuple1*tuple2)
+Signature: ((stream tuple1) (fun (tuple1 -> stream(tuple2)))) -> (stream tuple1*tuple2)
 Example  : query Orte feed {o} loopjoin[plz_Ort plz exactmatch[.Ort_o]] count
 Result   : 10052
 
