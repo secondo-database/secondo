@@ -190,8 +190,8 @@ void ClipCel::addTurningPoint(const RealCoordinate &p,const Segment &s)
 //---------------------------------------------------------------------------
 double ClipCel::trapezoidArea(Segment s)
 {
-	//If the segment has 'insideAbove' positive, then the area of the 
-	//trapeze must be considered negative
+  //If the segment has 'insideAbove' positive, then the area of the 
+  //trapeze must be considered negative
   int x = -1;
   if (!s.insideAbove)
     x=1;
@@ -209,8 +209,8 @@ double ClipCel::trapezoidArea(Segment s)
 //superior edge) and ymin and ymax
 double ClipCel::rectangleArea(double x1,double x2)
 {
-	//If the segment has 'insideAbove' positive, then the area of the
-	//rectangle must be considered negative
+  //If the segment has 'insideAbove' positive, then the area of the
+  //rectangle must be considered negative
   //  double area = fabs((x1-x2) * (this->max.y-this->min.y));
   //bug - fabs(any value) = 0
   double area = (x1-x2) * (this->max.y-this->min.y);
@@ -383,7 +383,7 @@ void ClipCel::evaluateVerticesBottomEdge(bool &considerLeftVertex,
     {
       dpAux = vTurningPointsBOTTOM[begin];
       if (!( (dpAux.x == dp.x) && (dpAux.y == dp.y) && 
-      	      (dpAux.direction==dp.direction) ) )
+           (dpAux.direction==dp.direction) ) )
         break;
       begin++;
     }
