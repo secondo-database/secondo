@@ -157,19 +157,19 @@ long linesCross( Coordinate ai, Coordinate af,
            r2 = a1 * bf.x + b1 * bf.y + c1;
 
     if( r1 != 0 && r2 != 0 && SAME_SIGNAL( r1, r2 ) )
-    	// If they have the same signal, then they are 
-    	//on the same side of the segment
+      // If they have the same signal, then they are 
+      //on the same side of the segment
       return 0; 
   }
 
   {
-  	// Side of the segment where the point is located.
+    // Side of the segment where the point is located.
     double r1 = a2 * ai.x + b2 * ai.y + c2, 
            r2 = a2 * af.x + b2 * af.y + c2;
 
     if( r1 != 0 && r2 != 0 && SAME_SIGNAL( r1, r2 ) )
-    	// If they have the same signal, then they are
-    	// on the same side of the segment
+      // If they have the same signal, then they are
+      // on the same side of the segment
       return 0; 
   }
 
