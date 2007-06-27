@@ -31,7 +31,7 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 #include <math.h>
 #include <stdlib.h>
 #include "coord.h"
-#define SAME_SIGNAL( a, b )	\
+#define SAME_SIGNAL( a, b ) \
   (((a) > 0 && (b) > 0) || ((a) < 0 && (b) < 0))
 
 //---------------------------------------------------------------------------
