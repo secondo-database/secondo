@@ -50,7 +50,7 @@ class Segment
     {
 
       //pre-condition: segment.p1 comes before segment.p2 accordingly with the
-      //		     cycle direction
+      //         cycle direction
     
       if ( ( ( c1 < c2 ) && ( clockwise) ) ||
            ( ( c1 > c2 ) && ( !clockwise) ) )
