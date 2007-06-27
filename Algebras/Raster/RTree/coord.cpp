@@ -31,7 +31,6 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 #include <math.h>
 #include <stdlib.h>
 #include "coord.h"
-
 #define SAME_SIGNAL( a, b )	\
   (((a) > 0 && (b) > 0) || ((a) < 0 && (b) < 0))
 
@@ -153,7 +152,7 @@ long linesCross( Coordinate ai, Coordinate af,
   c2 = (double) bf.x * (double) bi.y - (double) bi.x * (double) bf.y;
 
   {
-  	// Side of the segment where the point is located.
+    // Side of the segment where the point is located.
     double r1 = a1 * bi.x + b1 * bi.y + c1, 
            r2 = a1 * bf.x + b1 * bf.y + c1;
 
