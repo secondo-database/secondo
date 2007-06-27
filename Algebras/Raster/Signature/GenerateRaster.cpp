@@ -44,16 +44,16 @@ unsigned is_equal(long double a, long double b);
 //#define DEBUGMESSAGES
 
 Signature4CRS* GeraRasterSecondo::generateRaster(const long id, 
-	           const Region *region, const Line *line, const Points *points,
+             const Region *region, const Line *line, const Points *points,
              int potency, SignatureType signatureType)
 {
   Rectangle<2> RectMBR;
   if (region != NULL)
-  	RectMBR = region->BoundingBox();
+    RectMBR = region->BoundingBox();
   else if (line != NULL)
-  	RectMBR = line->BoundingBox();
+    RectMBR = line->BoundingBox();
   else
-  	RectMBR = points->BoundingBox();
+    RectMBR = points->BoundingBox();
   MBR mbr(Coordinate((long int)RectMBR.MinD(CoordinateX), 
                      (long int)RectMBR.MinD(CoordinateY)), 
           Coordinate((long int)RectMBR.MaxD(CoordinateX), 
@@ -126,8 +126,8 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
     RealCoordinate entryPoint, coord;
     unsigned       cornerCoordinate;
     long double    xCurrentCell, yCurrentCell;
-	Point          lp, rp;
-	bool           insideAbove;
+  Point          lp, rp;
+  bool           insideAbove;
 
     uchar numberOfVectors  = 0;
     int matrixPosition;
@@ -135,11 +135,11 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
   unsigned nCurrentSegment = 0;
   bool endOfParts = false;
   if (region != NULL)
-  	region->SelectFirst();
+    region->SelectFirst();
   else if (line != NULL)
-  	line->SelectFirst();
+    line->SelectFirst();
   else
-  	points->SelectFirst();
+    points->SelectFirst();
   while(!endOfParts)
   {
     #ifdef DEBUGMESSAGES
@@ -147,13 +147,13 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
     #endif
     if (region != NULL){
 
-    	region->GetHs(hs);
+      region->GetHs(hs);
       lp = hs->GetLeftPoint();
       rp = hs->GetRightPoint();
       insideAbove = hs->GetAttr().insideAbove;
     }
     else if (line != NULL){
-  	  line->GetHs(hs);
+      line->GetHs(hs);
       lp = hs->GetLeftPoint();
       rp = hs->GetRightPoint();
     }
@@ -223,7 +223,7 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
             rasterMap4CRS.block(currentCell.x,currentCell.y,
                                clipCel[matrixPosition].evaluateType(blockArea));
         }
-		    else
+        else
           calculatedGrid[matrixPosition] = 1;
 
         if ( isIntersectionPoint )
@@ -237,18 +237,18 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
             coord = sInside.p2;
         }
 
-		if ( is_equal(entryPoint.x, xCurrentCell) || 
-			       is_equal(entryPoint.x, xCurrentCell + cellSize) )
+    if ( is_equal(entryPoint.x, xCurrentCell) || 
+             is_equal(entryPoint.x, xCurrentCell + cellSize) )
         {
-        	if(!is_equal(coord.x, entryPoint.x) && !is_equal(coord.y,
-        		     entryPoint.y)){
+          if(!is_equal(coord.x, entryPoint.x) && !is_equal(coord.y,
+                 entryPoint.y)){
            if(insideAbove)
              swapMatrix[matrixPosition] += 1;
            else
              swapMatrix[matrixPosition] -= 1;
           }
         }
-		
+    
         // Find out the next cell
 
         cornerCoordinate = 0;
@@ -281,8 +281,8 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
             cornerCoordinate = 1;
           }
           else
-          	//do not change swapMatrix on the inferior corners, so it
-          	//will not count the swap twice
+            //do not change swapMatrix on the inferior corners, so it
+            //will not count the swap twice
             //lower right corner
            if ( is_equal(coord.y,yCurrentCell) &&
                  is_equal(coord.x,xCurrentCell + cellSize) )
@@ -379,7 +379,7 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
       //calculates the swapMatrix of the endCell
       //checl of the right point is exactly in the border of the cell
       if (!is_equal(currentCell.x * cellSize + plane.min.x, rp.GetX())) 
-	    {
+      {
         xCurrentCell = currentCell.x * cellSize + plane.min.x;
         yCurrentCell = currentCell.y * cellSize + plane.min.y;
         
@@ -421,7 +421,7 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
         }
 
         if (is_equal(entryPoint.x, xCurrentCell) || is_equal(entryPoint.x,
-        	        xCurrentCell + cellSize))
+                  xCurrentCell + cellSize))
         {
            if(insideAbove)
              swapMatrix[matrixPosition] += 1;
@@ -431,17 +431,17 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
       }
     }
     if (region != NULL) {
-  	  region->SelectNext();
-  	  endOfParts = region->EndOfHs();
-  	}
+      region->SelectNext();
+      endOfParts = region->EndOfHs();
+    }
     else if (line != NULL) {
-  	  line->SelectNext();
-  	  endOfParts = line->EndOfHs();
-  	}
+      line->SelectNext();
+      endOfParts = line->EndOfHs();
+    }
     else {
-  	  points->SelectNext();
-  	  endOfParts = points->EndOfPt();
-  	}
+      points->SelectNext();
+      endOfParts = points->EndOfPt();
+    }
   }
 
   #ifdef DEBUGMESSAGES
@@ -457,36 +457,36 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
   #endif
   if (region != NULL)
   {
-	  for(unsigned posx=0; posx<numberOfCellsX; posx++)
-	  {
-	    Signature4CRS::Weight currentFilling = Signature4CRS::Empty;
-	    int accumulatedSwap = 0;
-	    for(unsigned posy=0; posy<numberOfCellsY; posy++)
-	    {
-	      int matrixPosition = posy * numberOfCellsX + posx;
-	      accumulatedSwap += swapMatrix[matrixPosition];
-	      if (calculatedGrid[matrixPosition])
-	      {
-	        if (signatureType == SIGNAT_3CRS)
-	          rasterMap4CRS.block(posx,posy,Signature4CRS::Weak);
-	        else
-	          rasterMap4CRS.block(posx,posy,
-	                  clipCel[matrixPosition].evaluateType(blockArea));
-	      }
-	      else
-	      {
-	        if (accumulatedSwap == 2)
-	          currentFilling = Signature4CRS::Full;
-	        else
-	          currentFilling = Signature4CRS::Empty;
-	        if ( (rasterMap4CRS.block(posx,posy) == Signature4CRS::Empty) &&
-	             (!calculatedGrid[matrixPosition]))
-	        {
-	          rasterMap4CRS.block(posx,posy,currentFilling);
-	        }
-	      }
-	    }
-	  }
+    for(unsigned posx=0; posx<numberOfCellsX; posx++)
+    {
+      Signature4CRS::Weight currentFilling = Signature4CRS::Empty;
+      int accumulatedSwap = 0;
+      for(unsigned posy=0; posy<numberOfCellsY; posy++)
+      {
+        int matrixPosition = posy * numberOfCellsX + posx;
+        accumulatedSwap += swapMatrix[matrixPosition];
+        if (calculatedGrid[matrixPosition])
+        {
+          if (signatureType == SIGNAT_3CRS)
+            rasterMap4CRS.block(posx,posy,Signature4CRS::Weak);
+          else
+            rasterMap4CRS.block(posx,posy,
+                    clipCel[matrixPosition].evaluateType(blockArea));
+        }
+        else
+        {
+          if (accumulatedSwap == 2)
+            currentFilling = Signature4CRS::Full;
+          else
+            currentFilling = Signature4CRS::Empty;
+          if ( (rasterMap4CRS.block(posx,posy) == Signature4CRS::Empty) &&
+               (!calculatedGrid[matrixPosition]))
+          {
+            rasterMap4CRS.block(posx,posy,currentFilling);
+          }
+        }
+      }
+    }
   }
   return new Signature4CRS( rasterMap4CRS );
 }
@@ -511,7 +511,7 @@ Plane GeraRasterSecondo::minimumPlane(const int potencyInicial, const MBR &mbr)
 
 
     if (( dx * dy <= (double) PRODUCT ) && (dx <= MAX_DIMENSION_GRID) &&
-    	          (dy <= MAX_DIMENSION_GRID))
+                (dy <= MAX_DIMENSION_GRID))
     {
       long ldx = (long)dx, ldy = (long)dy;
       return Plane( Coordinate( (lmin.x / factor) * factor, 
