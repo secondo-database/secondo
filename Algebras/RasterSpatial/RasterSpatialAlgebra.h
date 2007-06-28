@@ -1299,3 +1299,17 @@ void CRasterPoints::FLOBToRaster4CRS(){
   rasterDefined = true;
   
 }
+
+int CRasterPoints::NumOfFLOBs(void) const {
+  return 2;
+}
+
+FLOB *CRasterPoints::GetFLOB(const int i){
+
+    assert(i == 0 || i == 1);
+
+    return
+        i == 0
+        ? Points::GetFLOB(0)
+        : &rasterFLOB;
+}
