@@ -1340,4 +1340,8 @@ void CRasterPoints::SelectFirst_pp( const Points& P1, const Points& P2,
     obj = first; 
     stat = endsecond; 
   }
-  
+  else //both defined
+  {
+    stat = endnone;
+    if( *p1 < *p2 ) 
+      obj = first;
