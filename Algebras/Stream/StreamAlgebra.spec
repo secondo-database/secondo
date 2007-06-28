@@ -27,6 +27,7 @@ operator use2 alias USE2 pattern _ _ op [ _ ] implicit parameters streamelem1, s
 operator aggregateS alias AGGREGATES pattern _ op [ _ ; _ ] implicit parameter streamelem type STREAMELEM
 
 operator echo alias ECHO pattern _ op [_ , _]
+operator ensure alias ENSURE pattern _ op [_]
 
 # Operator signatures already defined elsewhere:
 #operator feed alias FEED pattern op ( _ )

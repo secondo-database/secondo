@@ -134,3 +134,14 @@ Signature: ((stream X) (map X (stream Y))) -> (stream Y)
 Example  : query intstream(1,5) use[ fun(i:int) intstream(i,5) ] count;
 Result   : 15
 
+Operator : ensure 
+Number   : 1
+Signature: stream(T) -> bool 
+Example  : query intstream(1,5) ensure[5];
+Result   : TRUE 
+
+Operator : ensure 
+Number   : 2
+Signature: stream(T) -> bool 
+Example  : query intstream(1,5) ensure[6];
+Result   : FALSE 

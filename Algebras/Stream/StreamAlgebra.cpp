@@ -126,13 +126,15 @@ This file contains the implementation of the stream operators.
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
 #include "SecondoSystem.h"
-
+#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
 // #define GSA_DEBUG
+
+using namespace symbols;
 
 /*
 4 General Selection functions
@@ -3504,6 +3506,127 @@ Operator STREAMELEM2 (
 
 
 /*
+6.3 Operator ~ensure~
+
+6.3.1 The Specification
+
+*/
+
+struct ensure_Info : OperatorInfo {
+
+  ensure_Info(const string& opName) : OperatorInfo()
+  {
+    name =      opName;
+    signature = "stream(T) x int -> bool";
+    syntax =    "ensure[n]";
+    meaning =   "Returns true if at least n tuples are received"
+	        ", otherwise false.";
+  }
+
+};
+
+
+/*
+6.3.2 Type mapping of operator ~ensure~
+
+*/
+
+ListExpr ensure_tm( ListExpr args )
+{
+  ListExpr first, second, errorInfo;
+  string argstr;
+
+  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+
+  CHECK_COND(nl->ListLength(args) == 2,
+  "Operator head expects a list of length two.");
+
+  first = nl->First(args);
+  second = nl->Second(args);
+
+  // check for first arg == stream of something
+  nl->WriteToString(argstr, first);
+  CHECK_COND( ( nl->ListLength(first) == 2 ) &&
+              ( TypeOfRelAlgSymbol( nl->First(first) ) == stream ), 
+    "Operator head expects as first argument a list with structure "
+    "(stream (tuple ((a1 t1)...(an tn)))) or "
+    "(stream T), where T in kind DATA.\n"
+    "Operator head gets as first argument '" + argstr + "'." );
+
+  // check for second argument type == int
+  nl->WriteToString(argstr, second);
+  CHECK_COND((nl->IsAtom(second)) &&
+             (nl->AtomType(second) == SymbolType) &&
+       (nl->SymbolValue(second) == "int"),
+    "Operator head expects a second argument of type integer.\n"
+    "Operator head gets '" + argstr + "'.");
+
+
+  // check for correct stream input type
+  nl->WriteToString(argstr, first);
+  CHECK_COND( 
+    ( ( nl->ListLength( nl->Second(first) ) == 2) &&
+      ( TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)) ||
+    ( (nl->IsAtom(nl->Second(first))) &&
+      (am->CheckKind("DATA", nl->Second(first), errorInfo))),
+    "Operator head expects as first argument a list with structure "
+    "(stream (tuple ((a1 t1)...(an tn)))) or "
+    "(stream T), where T in kind DATA.\n"
+    "Operator head gets as first argument '" + argstr + "'." );
+
+  return nl->SymbolAtom(BOOL);
+}
+
+int 
+ensure_sf( ListExpr args )
+{
+  NList list(args);
+  list = list.first();
+
+  int num = 0;
+  NList attrs;
+  if ( list.checkStreamTuple(attrs) ) {
+    num = 0;  
+  } else { 
+    num = 1;
+  }
+  return num;  
+}
+
+/*
+6.3.3 Value mapping function of operator ~ensure~
+
+*/
+
+template<class T>
+int ensure_vm(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word elem = SetWord( 0 );
+  int num = StdTypes::GetInt(args[1]);
+
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, elem);
+  while (num && qp->Received(args[0].addr))
+  {
+    static_cast<T*>( elem.addr )->DeleteIfAllowed();
+    qp->Request(args[0].addr, elem);
+    num--;
+  }
+
+  bool ensure = (num == 0);
+  CcBool& res = qp->ResultStorage<CcBool>( result, s );
+  res.Set( true, ensure );
+  return 0;
+}
+
+
+ValueMapping ensure_vms[] =
+{
+  ensure_vm<Tuple>,
+  ensure_vm<Attribute>
+};
+
+/*
 7 Creating the Algebra
 
 */
@@ -3523,6 +3646,7 @@ public:
     AddOperator( &streamuse2 );
     AddOperator( &streamaggregateS );
     AddOperator( &streamfilter );
+    AddOperator( ensure_Info("ensure"), ensure_vms, ensure_sf, ensure_tm );
     AddOperator( &echo );
     AddOperator( &STREAMELEM );
     AddOperator( &STREAMELEM2 );
