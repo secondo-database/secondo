@@ -2944,7 +2944,7 @@ The user can specify the number of hash buckets.
 
 */
 const string HashJoinSpec  = "( ( \"Signature\" \"Syntax\" "
-                             "\"Meaning\" \"Example\" ) "
+                             "\"Meaning\" \"Example\" \"Remark\" ) "
                           "( <text>((stream (tuple ((x1 t1) ... "
                           "(xn tn)))) (stream (tuple ((y1 d1) ... "
                           "(ym dm)))) xi yj nbuckets) -> (stream "
@@ -2959,7 +2959,11 @@ const string HashJoinSpec  = "( ( \"Signature\" \"Syntax\" "
                           "<text>query Employee feed Dept feed "
                           "rename[A] hashjoin[DeptNr, DeptNr_A, 17] "
                           "sort consume</text--->"
-                              ") )";
+                          "<text>The hash table is created from the 2nd "
+                          "argument. If it does not fit into memory, "
+                          "the 1st argument will also be materialized."
+                          "</text--->"
+                          ") )";
 
 /*
 2.17.1 Value Mapping Function of Operator ~hashjoin~

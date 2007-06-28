@@ -2584,6 +2584,8 @@ Result type of product operation.
         -> (stream (tuple (x1 ... xn y1 ... ym)))
 ----
 
+The right argument stream will be materialized.
+
 */
 ListExpr ProductTypeMap(ListExpr args)
 {
@@ -3012,7 +3014,7 @@ Product(Word* args, Word& result, int message,
 */
 const string ProductSpec  = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
+  "\"Example\" \"Remark\" ) "
   "( <text>((stream (tuple (x1 ... xn))) (stream "
   "(tuple (y1 ... ym)))) -> (stream (tuple (x1 "
   "... xn y1 ... ym)))</text--->"
@@ -3021,6 +3023,8 @@ const string ProductSpec  =
   "its two argument streams.</text--->"
   "<text>query ten feed twenty feed product count"
   "</text--->"
+  "<text>The right argument stream (2nd argument) "
+  "will be materialized.</text--->"
   " ) )";
 
 /*
