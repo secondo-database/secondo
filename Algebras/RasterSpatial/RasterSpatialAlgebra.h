@@ -43,7 +43,7 @@ class Raster4CRS;
 extern long compareSignatures4CRS( Signature4CRS *assinat4crs1, 
                             Signature4CRS *assinat4crs2, MBR &mbrIntersection);
 
-							//1.2 RasterRegion
+//1.2 RasterRegion
 
 class CRasterRegion: public Region
 {
