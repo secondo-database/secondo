@@ -56,8 +56,9 @@ typedef unsigned char uchar;
 
 #define N_CORES      (1 << N_BITS_COLORS)
 
-#define MAX_BITS ((PRODUCT + sizeof( GroupOfBits ) * 8 - 1)
-         /(sizeof( GroupOfBits ) * 8))
+#define MAX_BITS_NUMERATOR ((PRODUCT + sizeof( GroupOfBits ) * 8 - 1)
+#define MAX_BITS_DENOMINATOR (sizeof( GroupOfBits ) * 8))
+#define MAX_BITS MAX_BITS_NUMERATOR / MAX_BITS_DENOMINATOR
 
 typedef unsigned long GroupOfBits;
 
