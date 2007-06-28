@@ -1313,3 +1313,16 @@ FLOB *CRasterPoints::GetFLOB(const int i){
         ? Points::GetFLOB(0)
         : &rasterFLOB;
 }
+
+//auxiliary functions for Intersection test of two Points
+void CRasterPoints::SelectFirst_pp( const Points& P1, const Points& P2, 
+                     object& obj, status& stat )
+{
+  P1.SelectFirst();
+  P2.SelectFirst();
+
+  const Point *p1, *p2;
+  bool gotP1 = P1.GetPt( p1 ),
+       gotP2 = P2.GetPt( p2 );
+
+ 
