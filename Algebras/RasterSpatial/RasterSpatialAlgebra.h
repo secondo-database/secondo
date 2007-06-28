@@ -1325,4 +1325,19 @@ void CRasterPoints::SelectFirst_pp( const Points& P1, const Points& P2,
   bool gotP1 = P1.GetPt( p1 ),
        gotP2 = P2.GetPt( p2 );
 
- 
+  if( !gotP1 && !gotP2 ) 
+  {
+    obj = none; 
+    stat = endboth;
+  }
+  else if( !gotP1 ) 
+  { 
+    obj = second; 
+    stat = endfirst; 
+  }
+  else if( !gotP2 ) 
+  {
+    obj = first; 
+    stat = endsecond; 
+  }
+  
