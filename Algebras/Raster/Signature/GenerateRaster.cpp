@@ -27,6 +27,7 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 //---------------------------------------------------------------------------
 #ifndef GERARASTERSECONDOCPP
 #define GERARASTERSECONDOCPP
+#define MAX_VECTORS_PART 255
 
 #include "GenerateRaster.h"
 //#include "Segment.cpp"
@@ -370,7 +371,7 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
         //though, since now we are storing the signature 4crs and not 4drs;
         //we are not storing vectors anymore
         
-        if ( numberOfVectors >= MAX_VETORES_POR_PARTE )
+        if ( numberOfVectors >= MAX_VECTORS_PART )
         {
           return NULL;
         }
