@@ -842,3 +842,166 @@ FLOB *CRasterLine::GetFLOB(const int i){
         ? Line::GetFLOB(i)
         : &rasterFLOB;
 }
+
+//1.4 RasterPoints
+
+enum object {none, first, second, both};
+enum status {endnone, endfirst, endsecond, endboth};
+
+class CRasterPoints: public Points
+{
+  private:
+    Raster4CRS *rasterSignature;
+ 
+   //potency dx dy signature...   
+    DBArray<unsigned long> rasterFLOB;
+
+    void SelectFirst_pp( const Points& P1, const Points& P2, 
+            object& obj, status& stat );
+    void SelectNext_pp( const Points& P1, const Points& P2, 
+            object& obj, status& stat );
+
+  public:
+    bool rasterDefined;
+    CRasterPoints(){};
+    CRasterPoints(Points p);
+    CRasterPoints(const CRasterPoints& rp);
+    CRasterPoints(const int initsize);
+    Raster4CRS *getRaster();
+    Raster4CRS *readRaster() const;
+    void setRaster(Raster4CRS *raster);
+    Raster4CRS *calculateRaster(int signatureType) const;
+
+    bool Intersects(CRasterRegion &rr2);
+    int preIntersects( const Region& r) const;
+    bool MBRIntersects( const Region& r) const;
+    bool ExactIntersects( const Region& r) const;
+    
+    bool Intersects(CRasterLine &rl2);
+    int preIntersects( const Line& l) const;
+    bool MBRIntersects( const Line& l) const;
+    bool ExactIntersects( const Line& l) const;
+        
+    bool Intersects(CRasterPoints &rp2);
+    int preIntersects( const Points& ps) const;
+    bool MBRIntersects( const Points& ps) const;
+    bool ExactIntersects( const Points& ps) ;
+
+    void Raster4CRSToFLOB();
+    void FLOBToRaster4CRS();
+
+    virtual CRasterPoints* Clone() const
+    {
+      return new CRasterPoints(*(const CRasterPoints *)this);
+    }
+
+    int NumOfFLOBs(void) const;
+    FLOB *GetFLOB(const int i);
+
+  CRasterPoints& operator=( CRasterPoints& rp );
+};
+
+CRasterPoints& CRasterPoints::operator=( CRasterPoints& rp )
+{
+  Points::operator=((Points) rp);
+
+  rasterFLOB.Clear();
+  if( rp.rasterFLOB.Size() > 0 )
+  {
+    rasterFLOB.Resize( rp.rasterFLOB.Size() );
+    for( int i = 0; i < rp.rasterFLOB.Size(); i++ )
+    {
+      const unsigned long *hs;
+      rp.rasterFLOB.Get( i, hs );
+      rasterFLOB.Put( i, *hs );
+    }
+  }
+
+  setRaster(rp.getRaster()->Clone());
+
+  return *this;
+}
+
+CRasterPoints::CRasterPoints(Points p) : Points(p), rasterFLOB(0){
+  rasterDefined = false;
+  rasterFLOB.Clear();
+  //rasterSignature = calculateRaster();
+  rasterSignature = NULL;
+};
+
+CRasterPoints::CRasterPoints(const CRasterPoints& rp) : 
+       Points(rp), rasterFLOB(0){
+  rasterDefined = false;
+  rasterFLOB.Clear();
+  rasterFLOB.Clear();
+  if( rp.rasterFLOB.Size() > 0 )
+  {
+    rasterFLOB.Resize( rp.rasterFLOB.Size() );
+    for( int i = 0; i < rp.rasterFLOB.Size(); i++ )
+    {
+      const unsigned long *hs;
+      rp.rasterFLOB.Get( i, hs );
+      rasterFLOB.Put( i, *hs );
+    }
+  }
+  
+  setRaster(rp.readRaster()->Clone());
+};
+
+CRasterPoints::CRasterPoints(const int initsize) : 
+      Points(initsize), rasterFLOB(0){
+  rasterDefined = false;
+  rasterSignature = NULL;
+};
+
+Raster4CRS *CRasterPoints::getRaster(){
+    if (IsEmpty())
+      return NULL;
+  if (rasterDefined)
+    return rasterSignature;
+  else {
+    rasterDefined = true;
+    rasterSignature = calculateRaster(3);
+    return rasterSignature;
+  }
+};
+
+Raster4CRS *CRasterPoints::readRaster() const{
+
+  if (!IsEmpty() && rasterDefined)
+    return rasterSignature;
+  else 
+    return NULL;
+};
+
+void CRasterPoints::setRaster(Raster4CRS *raster){
+  rasterDefined = true;
+  rasterSignature = raster;
+  Raster4CRSToFLOB();
+};
+
+Raster4CRS *CRasterPoints::calculateRaster(int signatureType) const{
+  Raster4CRS* raster;
+  Signature4CRS* signature;
+
+  const CRasterPoints *rp = this;
+  int potency =0;
+  do
+  {
+    SignatureType type;
+  if (signatureType == 3)
+    type = SIGNAT_3CRS;
+  else if (signatureType == 4)
+    type = SIGNAT_4CRS;
+  else
+    cout << "Invalid signatureType" << std::endl;
+    
+  signature = GeraRasterSecondo::generateRaster( 1, 
+                  NULL, NULL, rp, potency, type);
+    potency++;
+  } while (signature==NULL);
+  raster = new Raster4CRS(signature->fullMap(), signatureType);
+  raster->signatureType = signatureType;
+
+  return raster;
+};
