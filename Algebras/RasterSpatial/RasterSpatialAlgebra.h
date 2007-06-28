@@ -1223,3 +1223,79 @@ void CRasterPoints::Raster4CRSToFLOB(){
     }
   }
 }
+
+void CRasterPoints::FLOBToRaster4CRS(){
+  unsigned long potency, dx, dy, signatureType;
+  const unsigned long *l;
+
+  rasterFLOB.Get(0, l);
+  signatureType = *l;
+  rasterFLOB.Get(1, l);
+  potency = *l;
+  rasterFLOB.Get(2, l);
+  dx = *l;
+  rasterFLOB.Get(3, l);
+  dy = *l;
+  
+  long cellSize = 1l << potency;
+  
+  long numElements = dx * dy;
+  Signature4CRS::Weight *filling = new Signature4CRS::Weight[numElements];
+
+  const unsigned long *pFLOBelement;
+  unsigned long FLOBelement;
+  int positionInElement = -1;
+  unsigned int currentCell = 0;
+  Signature4CRS::Weight ocup;
+  
+  int positionInFLOB = 0;
+  long int minXcell = (long int)((this->BoundingBox().MinD(0) 
+     - ((long int)this->BoundingBox().MinD(0) % cellSize)) 
+     - (cellSize * (this->BoundingBox().MinD(0) < 0 
+        && ((long int)this->BoundingBox().MinD(0) % cellSize != 0) ? 1 : 0)));
+  long int minYcell = (long int)((this->BoundingBox().MinD(1) 
+     - ((long int)this->BoundingBox().MinD(1) % cellSize)) 
+     - (cellSize * (this->BoundingBox().MinD(1) < 0 
+        && ((long int)this->BoundingBox().MinD(1) % cellSize != 0) ? 1 : 0)));
+  for( long i=minXcell; i <= this->BoundingBox().MaxD(0); i+=cellSize)
+    for(long j=minYcell; j <= this->BoundingBox().MaxD(1); j+=cellSize)
+    {
+      if (positionInElement < 0){
+         // add 4 to consider potency, dx e dy
+        rasterFLOB.Get(positionInFLOB + 4, pFLOBelement);
+        FLOBelement = *pFLOBelement;
+        positionInElement = 0;
+        if (dx * dy - currentCell < sizeof(unsigned long) * 4)
+          positionInElement = (dx * dy - currentCell) - 1;
+        else
+          positionInElement = sizeof(unsigned long) * 4 - 1;
+        positionInFLOB++;
+      }
+      switch ( (FLOBelement >> (positionInElement * 2)) & 3 ) {
+        case 0:
+          ocup = Signature4CRS::Empty;
+          break;
+        case 1:
+          ocup = Signature4CRS::Weak;
+          break;
+        case 2:
+          ocup = Signature4CRS::Strong;
+          break;
+        default:
+          ocup = Signature4CRS::Full;
+      }
+      filling[currentCell] = ocup;
+      
+      positionInElement--;
+      currentCell++;
+    }
+  
+  Coordinate x ((long int)this->BoundingBox().MinD(0), 
+       (long int)this->BoundingBox().MinD(1));
+  Coordinate y ((long int)this->BoundingBox().MaxD(0), 
+       (long int)this->BoundingBox().MaxD(1));
+  rasterSignature = new Raster4CRS(1,  x,   y, cellSize, 
+       dx, dy, filling, signatureType);
+  rasterDefined = true;
+  
+}
