@@ -27,3 +27,18 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 
 */
 
+#ifndef __RASTERSPATIAL_ALGEBRA_H__
+#define __RASTERSPATIAL_ALGEBRA_H__
+
+
+#include "../Raster/RasterAlgebra.h"
+
+#include "SpatialAlgebra.h"
+#include <fstream>
+
+#include "DBArray.h"
+#include "./../Raster/Signature/GenerateRaster.h"
+
+class Raster4CRS;
+extern long compareSignatures4CRS( Signature4CRS *assinat4crs1, 
+                            Signature4CRS *assinat4crs2, MBR &mbrIntersection);
