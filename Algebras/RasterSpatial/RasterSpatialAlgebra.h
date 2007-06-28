@@ -1005,3 +1005,221 @@ Raster4CRS *CRasterPoints::calculateRaster(int signatureType) const{
 
   return raster;
 };
+
+bool CRasterPoints::Intersects(CRasterRegion &rr2)
+{
+  int result;
+  result = preIntersects(rr2);
+  if(result == 0 || result == 1)
+    return result == 1;
+
+  //MBR test  
+  if(!MBRIntersects(rr2))
+    return false;
+
+  //Raster Signature test
+  MBR mbrIntersection;
+  int rasterIntersects = compareSignatures4CRS( this->getRaster(), 
+       rr2.getRaster(), mbrIntersection);
+
+  if (rasterIntersects == 0 || rasterIntersects == 1)
+    return rasterIntersects == 1;
+
+  //exact test
+  return ExactIntersects(rr2);
+}
+
+int CRasterPoints::preIntersects( const Region& r) const
+{
+  assert( IsOrdered() && r.IsOrdered() );
+
+  if( IsEmpty() && r.IsEmpty() )
+    return 1;
+
+  if( IsEmpty() || r.IsEmpty() )
+    return 0;
+  
+  return 2;
+}
+
+bool CRasterPoints::MBRIntersects( const Region& r) const
+{
+  if( !BoundingBox().Intersects( r.BoundingBox() ) )
+    return false;
+  return true;
+}
+
+bool CRasterPoints::ExactIntersects( const Region& r) const
+{
+  const Point *p;
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, p );
+    if( r.Contains( *p ) )
+      return true;
+  }
+  return false;
+}
+
+bool CRasterPoints::Intersects(CRasterLine &rl2)
+{
+  int result;
+  result = preIntersects(rl2);
+  if(result == 0 || result == 1)
+    return result == 1;
+
+  //MBR test  
+  if(!MBRIntersects(rl2))
+    return false;
+
+  //Raster Signature test
+  MBR mbrIntersection;
+  int rasterIntersects = compareSignatures4CRS( this->getRaster(), 
+         rl2.getRaster(), mbrIntersection);
+
+  if (rasterIntersects == 0 || rasterIntersects == 1)
+    return rasterIntersects == 1;
+
+  //exact test
+  return ExactIntersects(rl2);
+}
+
+int CRasterPoints::preIntersects( const Line& l) const
+{
+  assert( IsOrdered() && l.IsOrdered() );
+
+  if( IsEmpty() && l.IsEmpty() )
+    return 1;
+
+  if( IsEmpty() || l.IsEmpty() )
+    return 0;
+
+  return 2;
+}
+
+bool CRasterPoints::MBRIntersects( const Line& l) const
+{
+  if( !BoundingBox().Intersects( l.BoundingBox() ) )
+    return false;
+  return true;
+}
+
+bool CRasterPoints::ExactIntersects( const Line& l) const
+{
+  const Point *p;
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, p );
+    if( l.Contains( *p ) )
+      return true;
+  }
+
+  return false;
+}
+
+bool CRasterPoints::Intersects(CRasterPoints &rp2)
+{
+  int result;
+  result = preIntersects(rp2);
+  if(result == 0 || result == 1)
+    return result == 1;
+
+  //MBR test  
+  if(!MBRIntersects(rp2))
+    return false;
+
+  //Raster Signature test
+  MBR mbrIntersection;
+  int rasterIntersects = compareSignatures4CRS( this->getRaster(), 
+           rp2.getRaster(), mbrIntersection);
+
+  if (rasterIntersects == 0 || rasterIntersects == 1)
+    return rasterIntersects == 1;
+
+  //exact test
+  return ExactIntersects(rp2);
+}
+
+
+int CRasterPoints::preIntersects( const Points& ps) const
+{
+  assert( IsOrdered() && ps.IsOrdered() );
+
+  if( IsEmpty() && ps.IsEmpty() )
+    return 1;
+
+  if( IsEmpty() || ps.IsEmpty() )
+    return 0;
+  
+  return 2;
+}
+
+bool CRasterPoints::MBRIntersects( const Points& ps) const
+{
+  if( !BoundingBox().Intersects( ps.BoundingBox() ) )
+    return false;
+  return true;
+}
+
+bool CRasterPoints::ExactIntersects( const Points& ps) 
+{
+  object obj;
+  status stat;
+  SelectFirst_pp( *this, ps, obj, stat );
+
+  while( stat != endboth )
+  {
+    if( obj == both )
+      return true;
+    SelectNext_pp( *this, ps, obj, stat );
+  }
+  return false;
+} 
+
+
+void CRasterPoints::Raster4CRSToFLOB(){
+  if (rasterDefined) {
+    Signature4CRS::Weight filling;
+
+    rasterFLOB.Clear();
+    
+    rasterFLOB.Append(rasterSignature->signatureType);
+    rasterFLOB.Append(rasterSignature->map->potency);
+    rasterFLOB.Append(rasterSignature->map->dx);
+    rasterFLOB.Append(rasterSignature->map->dy);
+    
+    long cellSize = 1l << rasterSignature->map->potency;
+    long computedCells = 0;
+    unsigned long FLOBelement = 0;
+
+    long minXcell = rasterSignature->map->mbr.min.x 
+           - (rasterSignature->map->mbr.min.x % cellSize) 
+           - (cellSize * (rasterSignature->map->mbr.min.x < 0 
+              && (rasterSignature->map->mbr.min.x % cellSize != 0) ? 1 : 0));
+    long minYcell = rasterSignature->map->mbr.min.y 
+           - (rasterSignature->map->mbr.min.y % cellSize) 
+           - (cellSize * (rasterSignature->map->mbr.min.y < 0 
+              && (rasterSignature->map->mbr.min.y % cellSize != 0) ? 1 : 0));
+    for( long i=minXcell; i <= rasterSignature->map->mbr.max.x; i+=cellSize)
+      for(long j=minYcell; j <= rasterSignature->map->mbr.max.y; j+=cellSize)
+      {
+        filling = rasterSignature->block(i,j,cellSize);
+        FLOBelement = (FLOBelement << 2) | filling;
+        computedCells++;
+        if (computedCells == (sizeof (unsigned long) * 4) ) {
+          rasterFLOB.Append(FLOBelement);
+          FLOBelement = 0;
+          computedCells = 0;
+        }
+      }
+      
+    if (computedCells > 0) 
+      rasterFLOB.Append(FLOBelement);
+
+
+  } else {
+    if (rasterFLOB.Size() > 0) {
+      rasterFLOB.Clear();
+    }
+  }
+}
