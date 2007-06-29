@@ -70,7 +70,7 @@ DEFAULTCCFLAGS += -DNL_PERSISTENT
 
 
 # Flag for compiling code of operator value mappings which supports progress measurement. 
-DEFAULTCCFLAGS += -DUSE_PROGRESS
+#DEFAULTCCFLAGS += -DUSE_PROGRESS
 
 # The next flag activates trace messages. Alternatively you may define it
 # only in some subordinated makefiles to avoid to much messages.

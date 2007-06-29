@@ -4809,14 +4809,21 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
                           nl->First(third),
                           nl->Second(nl->Third(nl->Second(third))));
 
-  nl->WriteToString(argstr, nl->Second(nl->Second(first)));
+  nl->WriteToString(argstr, newAttrList);
   nl->WriteToString(argstr2, appendAttr);
-  CHECK_COND( AttributesAreDisjoint( nl->Second(nl->Second(first)), 
+// Original code did not allow to use a removed attribute name:
+//  CHECK_COND( AttributesAreDisjoint( nl->Second(nl->Second(first)), 
+//                                     nl->OneElemList(appendAttr) ),
+//    "Operator projectextendstream: new attribute name '" + 
+//    argstr2 + "' must be different\n"
+//    "from the attribute names in first argument list.\n"
+//    "First argument list: '" + argstr + "'.\n" );
+  CHECK_COND( AttributesAreDisjoint( newAttrList, 
                                      nl->OneElemList(appendAttr) ),
     "Operator projectextendstream: new attribute name '" + 
     argstr2 + "' must be different\n"
-    "from the attribute names in first argument list.\n"
-    "First argument list: '" + argstr + "'.\n" );
+    "from the attribute names in projection list.\n"
+    "Projection list: '" + argstr + "'.\n" );
 
 
   lastNewAttrList =
