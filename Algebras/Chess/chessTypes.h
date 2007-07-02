@@ -22,9 +22,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //paragraph [1] title: [{\Large \bf ]   [}]
 
-[1] Datatypes for ChessAlgebra
+[1] Datatypes of the Chess Algebra
 
-Following classes are defined in this file:\\
+The following classes are defined in this file:
 
 1 Defines and includes
 
@@ -49,38 +49,44 @@ Following classes are defined in this file:\\
 namespace ChessAlgebra
 {
 /*
-2 auxiliary functions declaration
+2 Auxiliary Constants, Types, and Functions
 
 */
 
-/*
-this constant contains the number of moves, after which the whole position is
-stored - this feature is used to regard faster move calculations (see class
-chessgame for details)
-
-*/
 const char POS_STORE_INTERVALL = 20;
-
 /*
-these arrays are used in EncodeAgent() and DecodeAgent()
+The abovec onstant contains the number of moves, after which the whole position is
+stored again. This feature is used to enable faster move calculations (refer to class
+~Chessgame~ for details).
+
+The following array constants define agente names and piece values. 
+They are used in the functions ~EncodeAgent~ and ~DecodeAgent~.
 
 */
 const string AGENT_NAMES[ 14 ] =
-  {
-    "Pawn", "Knight", "Bishop", "Rook", "Queen", "King",
-    "pawn", "knight", "bishop", "rook", "queen", "king",
-    "none", "undef"
-  };
+{
+  "Pawn", "Knight", "Bishop", "Rook", "Queen", "King",
+  "pawn", "knight", "bishop", "rook", "queen", "king",
+  "none", "undef"
+};
 const string AGENT_SHORTNAMES[ 14 ] =
-  {
-    "P", "N", "B", "R", "Q", "K",
-    "p", "n", "b", "r", "q", "k",
-    "-", "x"
-  };
+{
+  "P", "N", "B", "R", "Q", "K",
+  "p", "n", "b", "r", "q", "k",
+  "-", "x"
+};
+
+const int PIECE_WEIGHT[ 14 ] =
+{
+  1, 3, 3, 5, 9, 0,
+  1, 3, 3, 5, 9, 0,
+  0, 0  
+};	
+
 
 /*
-these constants correspondent to the agent id's,
-which are delivered from ~EncodeAgent()~
+The enumeration below correspondent to the agent's array indices,
+which are returned by function ~EncodeAgent~.
 
 */
 enum
@@ -91,12 +97,12 @@ enum
 };
 
 /*
-casteling state constants
+The possible castling states (castling is king's move which is allowed only once a game)
 
 */
 enum
 {
-  NO_CASTELLING, KINGSIDE_CASTELLING, QUEENSIDE_CASTELLING
+  NO_CASTLING, KINGSIDE_CASTLING, QUEENSIDE_CASTLING
 };
 
 /*
@@ -197,6 +203,7 @@ public:
   ~Material();
 
   int Compare( const Attribute* arg ) const;
+  int ComparePieceValues( const Attribute* arg ) const;
   bool Adjacent( const Attribute *arg ) const;
   bool IsDefined() const;
   void SetDefined( bool defined );
@@ -216,6 +223,7 @@ public:
   return value of -1 indicates invalid input value
 
   */
+  int PieceValue() const;
 
   bool IsEqual ( const Material* mat );
   /*
@@ -352,6 +360,7 @@ public:
   ~Position();
 
   int Compare( const Attribute* arg ) const;
+  int ComparePieceValues( const Attribute* arg ) const;
   bool Adjacent( const Attribute *arg ) const;
   bool IsDefined() const;
   void SetDefined( bool defined );
@@ -400,7 +409,11 @@ public:
 
   */
 
-  void GetMaterial( Material* result );
+  void GetMaterial( Material* result ) const;
+  /*
+  copies the local material array into the given Material instance.
+  */
+
 
   void Range( Position* result, char startfile, char startrow,
               char endfile, char endrow );
@@ -423,11 +436,11 @@ public:
   */
 
   void MakeMove( const int &startpos, const int &endpos,
-                 const char &newag, const int &castelling );
+                 const char &newag, const int &castling );
   /*
   applies a move to the current position - the agent on startpos moves to
   endpos, newag is equal to agent on startpos, except a pawn was transfered into
-  another agent, castelling contains the castelling state
+  another agent, castling contains the castling state
 
   */
 
@@ -654,7 +667,7 @@ public:
   const string GetNewAgent() const;
   const char GetNewAgentID() const;
   const bool IsCheck() const;
-  const int GetCasteling() const;
+  const int GetCastling() const;
   const bool OutputAgent() const;
   const bool OutputFile() const;
   const bool OutputRow() const;
@@ -803,14 +816,14 @@ inline bool Move::GetCaptures()
 // function only called once in Chessgame::GetMove(), thus the definition
 // as inline function doesn't matter, although this function is relative big
 inline void Position::MakeMove( const int &startpos, const int &endpos,
-                                const char &newag, const int &castelling )
+                                const char &newag, const int &castling )
 {
-  if ( castelling )
+  if ( castling )
   {
-    // white king castelling?
+    // white king castling?
     if ( startpos == 4 )
     {
-      if ( castelling == KINGSIDE_CASTELLING )
+      if ( castling == KINGSIDE_CASTLING )
       {
         gamefield[ 7 ] = NONE;
         gamefield[ 5 ] = WHITE_ROOK;
@@ -821,10 +834,10 @@ inline void Position::MakeMove( const int &startpos, const int &endpos,
         gamefield[ 3 ] = WHITE_ROOK;
       }
     }
-    // black king castelling
+    // black king castling
     else
     {
-      if ( castelling == KINGSIDE_CASTELLING )
+      if ( castling == KINGSIDE_CASTLING )
       {
         gamefield[ 63 ] = NONE;
         gamefield[ 61 ] = BLACK_ROOK;
@@ -931,14 +944,14 @@ inline const char MoveData::GetNewAgentID() const
 inline const bool MoveData::IsCheck() const
   { return ( data & 0x01 ); }
 
-inline const int MoveData::GetCasteling() const
+inline const int MoveData::GetCastling() const
 {
   if ( data & 0x02 )
-    return KINGSIDE_CASTELLING;
+    return KINGSIDE_CASTLING;
   else if ( data & 0x04 )
-    return QUEENSIDE_CASTELLING;
+    return QUEENSIDE_CASTLING;
   else
-    return NO_CASTELLING;
+    return NO_CASTLING;
 }
 
 inline const bool MoveData::OutputAgent() const
@@ -1016,12 +1029,12 @@ inline void MoveData::SetCheck( const bool &value )
 
 inline void MoveData::SetCastelling( const int &value )
 {
-  if ( value == KINGSIDE_CASTELLING )
+  if ( value == KINGSIDE_CASTLING )
   {
     data |= 0x02; // set bit 1
     data &= 0xFB; // reset bit 2
   }
-  else if ( value == QUEENSIDE_CASTELLING )
+  else if ( value == QUEENSIDE_CASTLING )
   {
     data &= 0xFD; // reset bit 1
     data |= 0x04; // set bit 2
