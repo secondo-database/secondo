@@ -3614,8 +3614,9 @@ int ensure_vm(Word* args, Word& result, int message, Word& local, Supplier s)
   }
 
   bool ensure = (num == 0);
-  CcBool& res = qp->ResultStorage<CcBool>( result, s );
-  res.Set( true, ensure );
+  result = qp->ResultStorage(s);	  
+  CcBool* res = static_cast<CcBool*>( result.addr ); 
+  res->Set( true, ensure );
   return 0;
 }
 
