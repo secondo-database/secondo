@@ -73,9 +73,9 @@ class CRasterRegion: public Region
 Do not use this constructor.
 
 */
-	CRasterRegion(){};
+    CRasterRegion(){};
 
-	CRasterRegion(const Region& rr);
+    CRasterRegion(const Region& rr);
     CRasterRegion(const CRasterRegion& rr);
     CRasterRegion(int i);
     Raster4CRS *getRaster() ;
