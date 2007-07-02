@@ -1119,7 +1119,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       ProgressInfo p1;
       ProgressInfo *pRes;
       const double uFeed = 0.00194;    //milliseconds per tuple
-      const double vFeed = 0.0000106;  //milliseconds per Byte
+      const double vFeed = 0.0000196;  //milliseconds per Byte
 
  
  

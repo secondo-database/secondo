@@ -902,8 +902,6 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN:
     {
-      qp->Open(args[0].addr);
-
       if ( li ) delete li;
 
       li = new LocalInfo<SortByLocalInfo>();
@@ -912,6 +910,8 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       // at this point the local value is well defined
       // afterwards progress request calls are
       // allowed.
+
+      qp->Open(args[0].addr);
 
       void *tupleCmp = CreateCompareObject(lexicographically, args);
 
@@ -947,9 +947,9 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 
       ProgressInfo p1;
       ProgressInfo *pRes;
-      const double uSortBy = 0.038;   //millisecs per tuple input and sort
-      const double vSortBy = 0.0024;   //millisecs per tuple output
-      const double oSortBy = 0.0;   //offset due to placing in relations
+      const double uSortBy = 0.000396;   //millisecs per byte input and sort
+      const double vSortBy = 0.000194;   //millisecs per byte output
+      const double oSortBy = 0.00004;   //offset due to writing to disk
 				    //not yet measurable
       pRes = (ProgressInfo*) result.addr;
 
@@ -963,20 +963,21 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 
           pRes->Time =                       //li->state = 0 or 1
             p1.Time 
-	    + p1.Card * (uSortBy + oSortBy * li->state)
-            + p1.Card * vSortBy;
+	    + p1.Card * p1.Size * (uSortBy + oSortBy * li->state)
+            + p1.Card * p1.Size * vSortBy;
 
           pRes->Progress =
             (p1.Progress * p1.Time 
-             + li->read * (uSortBy + oSortBy * li->state) 
-             + li->returned * vSortBy)
+             + li->read * p1.Size * (uSortBy + oSortBy * li->state) 
+             + li->returned * p1.Size * vSortBy)
             / pRes->Time;
 
-	  pRes->BTime = p1.BTime + p1.Card * (uSortBy + oSortBy * li->state);
+	  pRes->BTime = p1.Time + p1.Card * p1.Size *  
+            (uSortBy + oSortBy * li->state);
 
 	  pRes->BProgress = 
-	    (p1.BProgress * p1.BTime
-	    + li->read * (uSortBy + oSortBy * li->state))
+	    (p1.Progress * p1.Time
+	    + li->read * p1.Size * (uSortBy + oSortBy * li->state))
 	    / pRes->BTime;
 
           return YIELD;
@@ -1737,8 +1738,6 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
   switch(message)
   {
     case OPEN:
-      qp->Open(args[0].addr);
-      qp->Open(args[1].addr);
 
       if ( li ) {
         delete li->ptr;
@@ -1747,6 +1746,9 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
       li = new LocalType();
       local.addr = li;
+
+      qp->Open(args[0].addr);
+      qp->Open(args[1].addr);
 
       li->ptr = new MergeJoinLocalInfo
         (args[0], args[4], args[1], args[5], expectSorted, s, li);
@@ -1794,8 +1796,9 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       ProgressInfo p1, p2;
       ProgressInfo* pRes = static_cast<ProgressInfo*>( result.addr );
-      const double uMergeJoin = 0.041;  //millisecs per tuple merge
-      const double uSortBy = 0.035;     //millisecs per tuple sort
+      const double uMergeJoin = 0.041;  //millisecs per tuple merge (merge)
+      const double vMergeJoin = 0.000076; //millisecs per byte merge (sortmerge)
+      const double uSortBy = 0.00043;     //millisecs per byte sort
 
       LocalInfo<SortByLocalInfo>* liFirst;
       LocalInfo<SortByLocalInfo>* liSecond;
@@ -1834,9 +1837,9 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             pRes->Time =
               p1.Time + 
 	      p2.Time +
-              p1.Card * uSortBy + 
-              p2.Card * uSortBy +
-              (p1.Card + p2.Card) * uMergeJoin;
+              p1.Card * p1.Size * uSortBy + 
+              p2.Card * p2.Size * uSortBy +
+              (p1.Card * p1.Size + p2.Card * p2.Size) * vMergeJoin;
 
             long readFirst = (liFirst ? liFirst->read : 0);
             long readSecond = (liSecond ? liSecond->read : 0);
@@ -1844,20 +1847,21 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             pRes->Progress =
               (p1.Progress * p1.Time + 
               p2.Progress * p2.Time +
-              ((double) readFirst) * uSortBy + 
-              ((double) readSecond) * uSortBy +
-              (((double) li->readFirst) + ((double) li->readSecond)) 
-                * uMergeJoin)
+              ((double) readFirst) * p1.Size * uSortBy + 
+              ((double) readSecond) * p2.Size * uSortBy +
+              (((double) li->readFirst) * p1.Size + 
+                ((double) li->readSecond) * p2.Size) 
+                * vMergeJoin)
               / pRes->Time;
 
-            pRes->BTime = p1.BTime + p2.BTime               
-	      + p1.Card * uSortBy 
-              + p2.Card * uSortBy;
+            pRes->BTime = p1.Time + p2.Time               
+	      + p1.Card * p1.Size * uSortBy 
+              + p2.Card * p2.Size * uSortBy;
 
 	    pRes->BProgress = 
-	      (p1.BProgress + p2.BProgress 
-              + ((double) readFirst) * uSortBy
-              + ((double) readSecond) * uSortBy)
+	      (p1.Progress * p1.Time + p2.Progress * p2.Time 
+              + ((double) readFirst) * p1.Size * uSortBy
+              + ((double) readSecond) * p2.Size * uSortBy)
 	      / pRes->BTime;
           }
 
@@ -1865,9 +1869,9 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
           if (li->returned > 50 ) 	// stable state assumed now
           {
-            pRes->Card = p1.Card * p2.Card *
-              ((double) li->returned
-             /  ((double) li->readFirst * (double) li->readSecond));
+            pRes->Card = ((double) li->returned * (p1.Card + p2.Card)
+           /  ((double) li->readFirst + (double) li->readSecond));
+
           }
           else
           {
@@ -2402,6 +2406,9 @@ public:
     this->streamA = streamA;
     this->streamB = streamB;
 
+    qp->Open(streamA.addr);
+    qp->Open(streamB.addr);
+
     ListExpr resultType =
       SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
     resultTupleType = new TupleType( nl->Second( resultType ) );
@@ -2420,8 +2427,7 @@ public:
     firstPassA = true;
     tupleA = 0;
 
-    qp->Open(streamA.addr);
-    qp->Open(streamB.addr);
+
     streamBClosed = false;
     remainTuplesB = FillHashBucketsB();
     bFitsInMemory  = !remainTuplesB;
@@ -2631,7 +2637,7 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 	  double firstBuffer = 
 	    minimum(((double) li->memorySecond / p2.SizeExt), p2.Card);
 
-          if (li->returned > 50 || li->readFirst > 1000) // stable state  
+          if ( li->returned > 50 ) // stable state  
           {
             pRes->Card = p1.Card * noPasses *
               ((double) li->returned / (double) li->readFirst);
