@@ -179,6 +179,26 @@ int Material::Compare( const Attribute* arg ) const
   return 0;
 }
 
+int Material::ComparePieceValues( const Attribute* arg ) const
+{
+  const Material* mat = ( Material* ) arg;
+  if ( !defined && !mat->defined )
+    return 0;
+  if ( !defined && mat->defined )
+    return -1;
+  if ( defined && !mat->defined )
+    return 1;
+
+  if (PieceValue() < mat->PieceValue())
+    return -1;	  
+
+  if (PieceValue() > mat->PieceValue())
+    return 1;
+
+  return 0;  
+}
+
+
 bool Material::Adjacent( const Attribute *arg ) const
 {
   //TODO ?
@@ -269,6 +289,36 @@ int Material::Count ( string type ) const
     if ( type == DecodeAgent( i ) )
       return material[ i ];
 
+  set<char> agents;
+  map<char, int> str2agent;
+  str2agent['P'] = WHITE_PAWN;
+  str2agent['N'] = WHITE_KNIGHT;
+  str2agent['B'] = WHITE_BISHOP;
+  str2agent['R'] = WHITE_ROOK;
+  str2agent['Q'] = WHITE_QUEEN;
+  str2agent['K'] = WHITE_KING;
+
+  str2agent['p'] = BLACK_PAWN;
+  str2agent['n'] = BLACK_KNIGHT;
+  str2agent['b'] = BLACK_BISHOP;
+  str2agent['r'] = BLACK_ROOK;
+  str2agent['q'] = BLACK_QUEEN;
+  str2agent['k'] = BLACK_KING;
+
+  for ( size_t i = 0; i < type.length(); i++ )
+  {
+    agents.insert( type[i] );
+  }	  
+
+  int sum = 0;
+  set<char>::iterator it = agents.begin();
+  for(; it != agents.end(); it++) {
+    map<char,int>::iterator it2 = str2agent.find( *it ); 	  
+    if ( it2 != str2agent.end() )
+      sum += material[ it2->second ];	    
+  }	  
+  return sum;
+
   // unknown type string
   return -1;
 }
@@ -281,6 +331,17 @@ bool Material::IsEqual ( const Material* mat )
 
   return true;
 }
+
+int Material::PieceValue() const
+{
+  int value = 0;	
+  for ( int i = WHITE_PAWN; i <= BLACK_KING; i++ )
+  {
+    value += material[ i ] * PIECE_WEIGHT[ i ];
+  }	  
+  return value;
+}
+
 
 /*
 3.2 Class Move
@@ -337,6 +398,12 @@ Move::Move( int moveNumber,
   SetDefined ( true );
 }
 
+/*
+Two moves are equal if they move the same agent from the same
+start field to the same end field.
+
+*/   
+
 int Move::Compare( const Attribute* arg ) const
 {
   const Move * move = ( Move* ) arg;
@@ -376,13 +443,14 @@ int Move::Compare( const Attribute* arg ) const
     return cmp;
 
   // compare check state
+  /*
   if ( check && !move->check )
     return 1;
   if ( !check && move->check )
     return -1;
+  */  
 
-  // compare move numbers
-  return ( moveNumber - move->moveNumber );
+  return cmp;
 }
 
 bool Move::Adjacent( const Attribute *arg ) const
@@ -491,6 +559,18 @@ Position::Position( int moveNumber )
   defined = true;
 }
 
+/*
+Two positions are equal, if they have the same pieces at
+the same fields.
+
+First the pieces (material) are compared. 
+
+Afterwards all 64 fields are compared. If some field of
+the local position p1 has a piece but the argument's position p2 
+does not have a piece on that field then p1 < p2 yields. 
+
+*/
+
 int Position::Compare( const Attribute* arg ) const
 {
   const Position* pos = ( Position* ) arg;
@@ -566,10 +646,35 @@ int Position::Compare( const Attribute* arg ) const
     if (cmp != 0)
       return cmp;
   }
-
-  // compare move numbers
-  return ( moveNumber - pos->moveNumber );
+  return cmp;
 }
+
+
+int Position::ComparePieceValues( const Attribute* arg ) const
+{
+  const Position* pos = ( Position* ) arg;
+  if ( !defined && !pos->defined )
+    return 0;
+  if ( !defined && pos->defined )
+    return -1;
+  if ( defined && !pos->defined )
+    return 1;
+
+  Material* localMat = 0;
+  GetMaterial(localMat);
+  Material* argMat = 0;
+  pos->GetMaterial(argMat);
+
+  if (localMat->PieceValue() < argMat->PieceValue())
+    return -1;	  
+
+  if (localMat->PieceValue() > argMat->PieceValue())
+    return 1;
+
+  return 0;  
+}
+
+
 
 bool Position::Adjacent( const Attribute *arg ) const
 {
@@ -787,7 +892,7 @@ string Position::GetAgentShort( char file, char row )
   return GetAgent( file, row, true );
 }
 
-void Position::GetMaterial( Material* result )
+void Position::GetMaterial( Material* result ) const
 {
   for ( int i = WHITE_PAWN; i <= BLACK_KING; i++ )
   {
@@ -842,8 +947,10 @@ void Position::Range( Position* result, char startfile, char startrow,
   {
     for ( char file = startfile; file <= endfile; file++ )
     {
-      char pos = EncodePosition( file, row );
-      result->gamefield[ ( int ) pos ] = gamefield[ ( int ) pos ];
+      int pos = (int) EncodePosition( file, row );
+      char agentId = gamefield[ pos ];
+      result->gamefield[ pos ] = agentId;
+      result->material[ ( int ) agentId ]++;
     }
   }
 
@@ -1320,25 +1427,25 @@ int Chessgame::AddMove( char startfile, char startrow,
        && ( endpos == 6 )
        && ( curpos->gamefield[ startpos ] == WHITE_KING ) )
   {
-    newmove->SetCastelling( KINGSIDE_CASTELLING );
+    newmove->SetCastelling( KINGSIDE_CASTLING );
   }
   else if ( ( startpos == 4 )
             && ( endpos == 2 )
             && ( curpos->gamefield[ startpos ] == WHITE_KING ) )
   {
-    newmove->SetCastelling( QUEENSIDE_CASTELLING );
+    newmove->SetCastelling( QUEENSIDE_CASTLING );
   }
   else if ( ( startpos == 60 )
             && ( endpos == 62 )
             && ( curpos->gamefield[ startpos ] == BLACK_KING ) )
   {
-    newmove->SetCastelling( KINGSIDE_CASTELLING );
+    newmove->SetCastelling( KINGSIDE_CASTLING );
   }
   else if ( ( startpos == 60 )
             && ( endpos == 58 )
             && ( curpos->gamefield[ startpos ] == BLACK_KING ) )
   {
-    newmove->SetCastelling( QUEENSIDE_CASTELLING );
+    newmove->SetCastelling( QUEENSIDE_CASTLING );
   }
 
   // White en passant capture
@@ -1526,7 +1633,7 @@ void Chessgame::GetPosition( Position* result, int moveNumber,
       currentMove->GetStartPos(),
       currentMove->GetEndPos(),
       currentMove->GetNewAgentID(),
-      currentMove->GetCasteling() );
+      currentMove->GetCastling() );
   }
 
   result->defined = defined;
@@ -1581,9 +1688,9 @@ const string Chessgame::GetPGN( int moveNumber ) const
   int startpos = move->GetStartPos();
   int endpos = move->GetEndPos();
 
-  if ( move->GetCasteling() )
+  if ( move->GetCastling() )
   {
-    if ( move->GetCasteling() == QUEENSIDE_CASTELLING )
+    if ( move->GetCastling() == QUEENSIDE_CASTLING )
       result = "O-O-O";
     else
       result = "O-O";
@@ -2225,11 +2332,11 @@ MovingChessPieces::MovingChessPieces() :
   mcp[ 16 ] = new MovingChessPiece( "king", "e", 8 , 
                                     startOfGame.ToDouble() , 
                                     moveDuration ); 
-                                   // king must be first for castelling
+                                   // king must be first for castling
   mcp[ 17 ] = new MovingChessPiece( "rook", "a", 8 , 
                                     startOfGame.ToDouble() , 
                                     moveDuration ); 
-                                   // rooks must be next for castelling
+                                   // rooks must be next for castling
   mcp[ 18 ] = new MovingChessPiece( "rook", "h", 8 , 
                                      startOfGame.ToDouble() , 
                                      moveDuration );
@@ -2278,7 +2385,7 @@ MovingChessPieces::MovingChessPieces() :
 
 MovingChessPieces::~MovingChessPieces()
 {
-  for ( i = 0;i < 48;i++ ) delete mcp[ i ];
+  //for ( i = 0;i < 48;i++ ) delete mcp[ i ];
 }
 
 void MovingChessPieces::realizeMove( Move* mv, const MoveData* mvdata )

@@ -27,6 +27,7 @@ operator endfile alias ENDFILE pattern _ op
 operator check alias CHECK pattern _ op
 operator captures alias CAPTURES pattern _ op
 operator cnt alias CNT pattern _ op [ _ ]
+operator piececount alias PIECECOUNT pattern _ op [ _ ]
 operator pieces alias PIECES pattern _ op
 operator moveNo alias MOVENO pattern _ op
 operator posrange alias POSRANGE pattern _ op [_, _, _, _]
