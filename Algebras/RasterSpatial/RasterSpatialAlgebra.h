@@ -30,6 +30,12 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 #ifndef __RASTERSPATIAL_ALGEBRA_H__
 #define __RASTERSPATIAL_ALGEBRA_H__
 
+/*
+1 Preliminaries
+
+1.1 Includes and global declarations
+
+*/
 
 #include "../Raster/RasterAlgebra.h"
 
@@ -43,7 +49,13 @@ class Raster4CRS;
 extern long compareSignatures4CRS( Signature4CRS *assinat4crs1, 
                             Signature4CRS *assinat4crs2, MBR &mbrIntersection);
 
-//1.2 RasterRegion
+/*
+
+2 Data structures
+
+2.1 RasterRegion
+
+*/
 
 class CRasterRegion: public Region
 {
@@ -56,8 +68,14 @@ class CRasterRegion: public Region
     DBArray<unsigned long> rasterFLOB;
     
     bool rasterDefined;
-    CRasterRegion(){};
-    CRasterRegion(const Region& rr);
+
+/*
+Do not use this constructor.
+
+*/
+	CRasterRegion(){};
+
+	CRasterRegion(const Region& rr);
     CRasterRegion(const CRasterRegion& rr);
     CRasterRegion(int i);
     Raster4CRS *getRaster() ;
@@ -104,6 +122,13 @@ CRasterRegion& CRasterRegion::operator=( CRasterRegion& r )
   return *this;
 }
 
+/*
+2.1.1 Constructors.
+
+
+*/
+
+
 CRasterRegion::CRasterRegion(const Region& rr) : Region(rr), rasterFLOB(0){
   rasterDefined = false;
   rasterFLOB.Clear();
@@ -133,11 +158,17 @@ CRasterRegion::CRasterRegion(const CRasterRegion& rr) :
   }
 };
 
+
 CRasterRegion::CRasterRegion(int i) : Region(i), rasterFLOB(0){
   //rasterFLOB.Clear();
   rasterDefined = false;
   rasterSignature = NULL;
 };
+
+/*
+2.1.2 getRaster.
+
+*/
 
 Raster4CRS *CRasterRegion::getRaster() {
 
@@ -196,6 +227,11 @@ Raster4CRS *CRasterRegion::calculateRaster(int signatureType) const{
 
   return raster;
 };
+
+/*
+2.1.3 Intersect functions.
+
+*/
 
 bool CRasterRegion::Intersects(CRasterRegion &rr2)
 {
@@ -268,6 +304,11 @@ bool CRasterRegion::ExactIntersects(const Region &r) const
   return false;
 }
 
+/*
+2.1.4. Function that converts a Raster4CRS to a FLOB
+
+*/
+
 void CRasterRegion::Raster4CRSToFLOB(){
   if (rasterDefined) {
     Signature4CRS::Weight filling;
@@ -316,6 +357,11 @@ void CRasterRegion::Raster4CRSToFLOB(){
     }
   }
 }
+
+/*
+2.1.5. Function that converts a FLOB to Raster4CRS
+
+*/
 
 void CRasterRegion::FLOBToRaster4CRS(){
   unsigned long potency, dx, dy, signatureType;
@@ -417,8 +463,10 @@ FLOB *CRasterRegion::GetFLOB(const int i){
         : &rasterFLOB;
 }
 
-//1.3 RasterLine
+/*
+2.2. RasterLine
 
+*/
 
 class CRasterLine: public Line
 {
@@ -843,7 +891,10 @@ FLOB *CRasterLine::GetFLOB(const int i){
         : &rasterFLOB;
 }
 
-//1.4 RasterPoints
+/*
+2.3. RasterPoints
+
+*/
 
 enum object {none, first, second, both};
 enum status {endnone, endfirst, endsecond, endboth};
@@ -1345,3 +1396,9 @@ void CRasterPoints::SelectFirst_pp( const Points& P1, const Points& P2,
     stat = endnone;
     if( *p1 < *p2 ) 
       obj = first;
+    else if( *p1 > *p2 ) 
+      obj = second;
+    else 
+      obj = both;
+  }
+}
