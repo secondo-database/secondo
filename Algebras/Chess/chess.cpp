@@ -1247,10 +1247,14 @@ ListExpr moveBoolTypeMap( ListExpr args )
 */
 const string countSpec =
   "(" "(" "\"Signature\"" "\"Syntax\"" "\"Meaning\"" "\"Example\"" ")" "("
-  "<text>material string -> bool</text--->"
-  "<text>_ count( _ )</text--->"
-  "<text>Returns number of respective figures in game.</text--->"
-  "<text>query mat1 count [\"Pawn\"],\n"
+  "<text>material x string -> bool, position x string -> bool</text--->"
+  "<text>_ piececount[ _ ]</text--->"
+  "<text>Returns number of respective figures for the given "
+  "material or position. The regerded figures can be specified by names "
+  "or by a sequence of their first letter, or the special "
+  "sets constants \"all\", "
+  "\"white\" and \"black\"</text--->"
+  "<text>query mat1 piececount [\"Pawn\"],\n"
   "query mat1 count [\"all\"],\n"
   "query mat1 count [\"white\"]</text--->"
   ")" ")";
@@ -1268,19 +1272,48 @@ int countValueMap( Word * args, Word & result,
   return 0;
 }
 
+
+int countValueMap2( Word * args, Word & result, 
+                    int message, Word & local, Supplier s )
+{
+  Position * pos = ( ( Position* ) args[ 0 ].addr );
+  CcString * value = ( ( CcString* ) args[ 1 ].addr );
+  result = qp->ResultStorage( s );
+
+  Material mat;
+  pos->GetMaterial(&mat);
+
+  ( ( CcInt* ) result.addr ) ->Set( true, 
+                            mat.Count( *value->GetStringval() ) );
+
+  return 0;
+}
+
+
 ListExpr countTypeMap( ListExpr args )
 {
   if ( nl->ListLength( args ) == 2 )
   {
     ListExpr arg1 = nl->First( args );
     ListExpr arg2 = nl->Second( args );
-    if ( nl->IsEqual( arg1, "material" )
+    if ( nl->IsEqual( arg1, "material" ) || nl->IsEqual( arg1, "position" ) 
          && nl->IsAtom( arg2 ) && nl->IsEqual( arg2, "string" ) )
     {
       return nl->SymbolAtom( "int" );
     }
   }
   return nl->SymbolAtom( "typeerror" );
+}
+
+int countSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  if ( nl->IsEqual( arg1, "material" )
+       && nl->IsAtom( arg2 ) && nl->IsEqual( arg2, "string" ) )
+    return 0;
+
+  return 1;  
 }
 
 
@@ -1819,9 +1852,9 @@ int movingpointsValueMap( Word * args, Word & result,
     resultType = GetTupleResultType( s );
     resultTupleType = new TupleType( nl->Second( resultType ) );
     /*
-     As the result will be a stream of tuples with an attribute of type mpoint,
+     The result is a stream of tuples with an attribute of type mpoint,
      these mpoints must be completely created from the chessgame before
-     the first tuple can be written. Therefor this work is done when the
+     the first tuple can be written. Therefore, this work is done when the
      stream is opened.
      1st step: create the movingpoints for the start position of the game
     */
@@ -2064,11 +2097,18 @@ Operator capturesOp (
   moveBoolTypeMap
 );
 
-Operator countOp (
-  "cnt",
-  countSpec,
+ValueMapping countValueMaps[] =
+{
   countValueMap,
-  Operator::SimpleSelect,
+  countValueMap2
+};
+
+Operator countOp (
+  "piececount",
+  countSpec,
+  2,
+  countValueMaps,
+  countSelect,
   countTypeMap
 );
 
