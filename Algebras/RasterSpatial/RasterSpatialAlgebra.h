@@ -1402,3 +1402,77 @@ void CRasterPoints::SelectFirst_pp( const Points& P1, const Points& P2,
       obj = both;
   }
 }
+
+void CRasterPoints::SelectNext_pp( const Points& P1, const Points& P2, 
+                    object& obj, status& stat )
+{
+  // 1. get the current elements
+  const Point *p1, *p2;
+  bool gotP1 = P1.GetPt( p1 ),
+       gotP2 = P2.GetPt( p2 );
+
+  //2. move the pointers
+  if( !gotP1 && !gotP2 )
+  {
+    //do nothing
+  }
+  else if( !gotP1 )
+  {
+    P2.SelectNext();
+    gotP2 = P2.GetPt( p2 );
+  }
+  else if( !gotP2 )
+  {
+    P1.SelectNext();
+    gotP1 = P1.GetPt( p1 );
+  }
+  else //both currently defined
+  {
+    if( *p1 < *p2 ) //then hs1 is the last output
+    {
+      P1.SelectNext();
+      gotP1 = P1.GetPt( p1 );
+    }
+    else if( *p1 > *p2 )
+    {
+      P2.SelectNext();
+      gotP2 = P2.GetPt( p2 );
+    }
+    else
+    {
+      P1.SelectNext();
+      gotP1 = P1.GetPt( p1 );
+      P2.SelectNext();
+      gotP2 = P2.GetPt( p2 );
+    }
+  }
+
+  //3. generate the outputs
+  if( !gotP1 && !gotP2 ) 
+  {
+    obj = none; 
+    stat = endboth;
+  }
+  else if( !gotP1 ) 
+  {
+    obj = second; 
+    stat = endfirst; 
+  }
+  else if( !gotP2 ) 
+  {
+    obj = first; 
+    stat = endsecond; 
+  }
+  else //both defined
+  {
+    stat = endnone;
+    if( *p1 < *p2 ) 
+      obj = first;
+    else if( *p1 > *p2 ) 
+      obj = second;
+    else 
+      obj = both;
+  }
+}
+
+#endif
