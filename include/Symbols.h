@@ -29,28 +29,38 @@ types or reserved words.
 
 #include <string>
 
-#undef INT
-#undef REAL
-#undef BOOL
-#undef STRING
-#undef TEXT 
-
 namespace symbols {
 
  typedef const std::string Sym;
 
  // standard types
+#undef INT
+#undef REAL
+#undef BOOL
+#undef STRING
+#undef TEXT 
  Sym INT("int");	
  Sym REAL("real");
  Sym BOOL("bool");
  Sym STRING("string");
  Sym TEXT("text");
 
- // standard types
+ // relation algebra
+#undef REL 
+#undef TUPLE 
  Sym REL("rel");
  Sym TUPLE("TUPLE");
 
+ // chess algebra
+#undef MATERIAL 
+#undef POSITION 
+ Sym MATERIAL("material");
+ Sym POSITION("position");
+
  // some reserved words of the query processor
+#undef MAP 
+#undef STREAM 
+#undef APPEND 
  Sym MAP("map"); 
  Sym STREAM("stream"); 
  Sym APPEND("APPEND"); 
