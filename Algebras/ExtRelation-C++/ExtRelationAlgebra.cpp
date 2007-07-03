@@ -1075,7 +1075,9 @@ MaxMinTypeMap( ListExpr args )
     CHECK_COND( (nl->SymbolValue(attrtype) == "real"
           || nl->SymbolValue(attrtype) == "string"
           || nl->SymbolValue(attrtype) == "bool"
-          || nl->SymbolValue(attrtype) == "int"),
+          || nl->SymbolValue(attrtype) == "int"
+          || nl->SymbolValue(attrtype) == "instant"
+          || nl->SymbolValue(attrtype) == "duration"),
     errorMessage5);
     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
            nl->OneElemList(nl->IntAtom(j)), attrtype);
