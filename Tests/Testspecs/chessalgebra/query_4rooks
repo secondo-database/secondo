@@ -1,0 +1,4 @@
+query wjc2 feed filter[ fun(t: TUPLE) allFiles feed 
+ filter[ fun(s: TUPLE) attr(t, Match) positions 
+  filter[. posrange[attr(s,File), 1, attr(s,File), 8] 
+   piececount["Rr"] > 3 ] ensure[1]] ensure[1]] count
