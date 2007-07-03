@@ -43,12 +43,18 @@ Example  : query sochichess getmove[81] check
 Result   : FALSE
 
 
-Operator : cnt
+Operator : piececount
 Number   : 1
 Signature: material x string -> bool
-Example  : query (sochichess getposition[81] pieces) cnt ["Pawn"]
+Example  : query (sochichess getposition[81] pieces) piececount["Pawn"]
 Result   : 5
 
+
+Operator : piececount
+Number   : 2
+Signature: position x string -> bool
+Example  : query sochichess getposition[81] piececount["Pawn"]
+Result   : 5
 
 Operator : endfile
 Number   : 1

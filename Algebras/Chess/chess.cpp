@@ -44,6 +44,12 @@ using namespace std;
 #include "chessTypes.h"
 #include "pgnparser.h"
 
+#include "TypeMapUtils.h"
+#include "Symbols.h"
+
+using namespace symbols;
+using namespace mappings;
+
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
@@ -1242,28 +1248,46 @@ ListExpr moveBoolTypeMap( ListExpr args )
 
 
 /*
-3.3 Operator count
+3.3 Operator piececount
 
 */
-const string countSpec =
-  "(" "(" "\"Signature\"" "\"Syntax\"" "\"Meaning\"" "\"Example\"" ")" "("
-  "<text>material x string -> bool, position x string -> bool</text--->"
-  "<text>_ piececount[ _ ]</text--->"
-  "<text>Returns number of respective figures for the given "
-  "material or position. The regerded figures can be specified by names "
-  "or by a sequence of their first letter, or the special "
-  "sets constants \"all\", "
-  "\"white\" and \"black\"</text--->"
-  "<text>query mat1 piececount [\"Pawn\"],\n"
-  "query mat1 count [\"all\"],\n"
-  "query mat1 count [\"white\"]</text--->"
-  ")" ")";
 
-int countValueMap( Word * args, Word & result, 
+struct piececountInfo : OperatorInfo {
+
+  piececountInfo() : OperatorInfo()
+  {
+    name =      "piececount";
+    signature = "material x string -> int, position x string -> int";
+    syntax =    "_ piececount[_]";
+    meaning =   "Returns number of respective figures for the given "
+                "material or position. The regerded figures can be specified "
+		"by names or by a sequence of their first letter, or the "
+		"special set constants \"all\", \"white\" and \"black\"";
+  }
+
+};
+
+const string maps_pc[2][3] = { {MATERIAL, STRING, INT}, 
+	                       {POSITION, STRING, INT} };
+
+static ListExpr 
+piececount_tm(ListExpr args)
+{
+  return SimpleMaps<2,3>(maps_pc, args);	 
+}
+
+int
+piececount_sf( ListExpr args )
+{
+  return SimpleSelect<2,3>(maps_pc, args);
+}
+
+
+int piececount_vm( Word * args, Word & result, 
                    int message, Word & local, Supplier s )
 {
-  Material * material = ( ( Material* ) args[ 0 ].addr );
-  CcString * value = ( ( CcString* ) args[ 1 ].addr );
+  Material* material = ( ( Material* ) args[ 0 ].addr );
+  CcString* value = ( ( CcString* ) args[ 1 ].addr );
   result = qp->ResultStorage( s );
 
   ( ( CcInt* ) result.addr ) ->Set( true, 
@@ -1273,11 +1297,11 @@ int countValueMap( Word * args, Word & result,
 }
 
 
-int countValueMap2( Word * args, Word & result, 
+int piececount_vm2( Word * args, Word & result, 
                     int message, Word & local, Supplier s )
 {
-  Position * pos = ( ( Position* ) args[ 0 ].addr );
-  CcString * value = ( ( CcString* ) args[ 1 ].addr );
+  Position* pos = ( ( Position* ) args[ 0 ].addr );
+  CcString* value = ( ( CcString* ) args[ 1 ].addr );
   result = qp->ResultStorage( s );
 
   Material mat;
@@ -1288,34 +1312,6 @@ int countValueMap2( Word * args, Word & result,
 
   return 0;
 }
-
-
-ListExpr countTypeMap( ListExpr args )
-{
-  if ( nl->ListLength( args ) == 2 )
-  {
-    ListExpr arg1 = nl->First( args );
-    ListExpr arg2 = nl->Second( args );
-    if ( nl->IsEqual( arg1, "material" ) || nl->IsEqual( arg1, "position" ) 
-         && nl->IsAtom( arg2 ) && nl->IsEqual( arg2, "string" ) )
-    {
-      return nl->SymbolAtom( "int" );
-    }
-  }
-  return nl->SymbolAtom( "typeerror" );
-}
-
-int countSelect( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  ListExpr arg2 = nl->Second( args );
-  if ( nl->IsEqual( arg1, "material" )
-       && nl->IsAtom( arg2 ) && nl->IsEqual( arg2, "string" ) )
-    return 0;
-
-  return 1;  
-}
-
 
 
 /*
@@ -2097,20 +2093,11 @@ Operator capturesOp (
   moveBoolTypeMap
 );
 
-ValueMapping countValueMaps[] =
+ValueMapping piececount_vms[] =
 {
-  countValueMap,
-  countValueMap2
+  piececount_vm,
+  piececount_vm2
 };
-
-Operator countOp (
-  "piececount",
-  countSpec,
-  2,
-  countValueMaps,
-  countSelect,
-  countTypeMap
-);
 
 Operator equalOp (
   "=",
@@ -2241,7 +2228,8 @@ public:
     AddOperator( &endfileOp );
     AddOperator( &checkOp );
     AddOperator( &capturesOp );
-    AddOperator( &countOp );
+    AddOperator( piececountInfo(), piececount_vms, 
+		                   piececount_sf, piececount_tm );
     AddOperator( &equalOp );
     AddOperator( &lessOp );
     AddOperator( &piecesOp );
