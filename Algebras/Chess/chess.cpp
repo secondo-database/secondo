@@ -20,7 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] title: [{\Large \bf ]   [}]
+//characters [1] verbatim:  [\verb@]         [@]
+//paragraph  [1] title:     [{\Large \bf ]   [}]
 
 
 [1] chess Algebra
@@ -1286,11 +1287,11 @@ piececount_sf( ListExpr args )
 int piececount_vm( Word * args, Word & result, 
                    int message, Word & local, Supplier s )
 {
-  Material* material = ( ( Material* ) args[ 0 ].addr );
-  CcString* value = ( ( CcString* ) args[ 1 ].addr );
+  Material* material = static_cast<Material*>( args[ 0 ].addr );
+  CcString* value = static_cast<CcString*>( args[ 1 ].addr );
   result = qp->ResultStorage( s );
 
-  ( ( CcInt* ) result.addr ) ->Set( true, 
+  static_cast<CcInt*>( result.addr )->Set( true, 
                             material->Count( *value->GetStringval() ) );
 
   return 0;
@@ -1300,14 +1301,14 @@ int piececount_vm( Word * args, Word & result,
 int piececount_vm2( Word * args, Word & result, 
                     int message, Word & local, Supplier s )
 {
-  Position* pos = ( ( Position* ) args[ 0 ].addr );
-  CcString* value = ( ( CcString* ) args[ 1 ].addr );
+  Position* pos = static_cast<Position*>( args[ 0 ].addr );
+  CcString* value = static_cast<CcString*>( args[ 1 ].addr );
   result = qp->ResultStorage( s );
 
   Material mat;
   pos->GetMaterial(&mat);
 
-  ( ( CcInt* ) result.addr ) ->Set( true, 
+  static_cast<CcInt*>( result.addr )->Set( true, 
                             mat.Count( *value->GetStringval() ) );
 
   return 0;
@@ -1315,18 +1316,9 @@ int piececount_vm2( Word * args, Word & result,
 
 
 /*
-3.3 Operators equal and less than
+3.3 Operators exact equal "(=)"[1] and piecevalue equal "(tilde)" and piecvalue less "(<)" 
 
 */
-
-const string lessSpec =
-  "(" "(" "\"Signature\"" "\"Syntax\"" "\"Meaning\"" "\"Example\"" ")" "("
-  "<text>material material -> bool</text--->"
-  "<text>_ < _</text--->"
-  "<text>Returns true, if mat2 have more figures than mat1.</text--->"
-  "<text>query mat1 < mat2 [\"Pawn\"]</text--->"
-  ")" ")";
-
 
 struct equalInfo : OperatorInfo {
 
@@ -1337,6 +1329,35 @@ struct equalInfo : OperatorInfo {
     syntax =    "_ = _";
     meaning =   "Returns true if both values are exactly equal. In the case "
 	        "of positions the move must not be equal";
+  }
+
+};
+
+
+struct approxequalInfo : OperatorInfo {
+
+  approxequalInfo() : OperatorInfo()
+  {
+    name =      "~";
+    signature = "material x material -> bool, position x string -> bool";
+    syntax =    "_ ~ _";
+    meaning =   "Returns true if both weighted sums of material are equal. "
+	        "In the case of positions the material of the whole board "
+		"is used.";
+  }
+
+};
+
+
+struct lessInfo : OperatorInfo {
+
+  lessInfo() : OperatorInfo()
+  {
+    name =      "<";
+    signature = "material x material -> bool, position x string -> bool";
+    syntax =    "_ < _";
+    meaning =   "Returns true if the weighted sum of the material, or"
+	        "the material given by the position is less than the other";
   }
 
 };
@@ -1374,17 +1395,35 @@ int equal_vm( Word * args, Word & result,
   return 0;
 }
 
-int lessValueMap( Word * args, Word & result,
-                  int message, Word & local, Supplier s )
+
+template<class T>
+int approxequal_vm( Word * args, Word & result,
+                      int message, Word & local, Supplier s )
 {
-  Material * mat1 = ( ( Material* ) args[ 0 ].addr );
-  Material * mat2 = ( ( Material* ) args[ 1 ].addr );
+  T* arg1 = static_cast<T*>( args[0].addr );
+  T* arg2 = static_cast<T*>( args[1].addr );
   result = qp->ResultStorage( s );
 
-  ( ( CcBool* ) result.addr ) ->Set( true, ( mat1->Compare( mat2 ) < 0 ) );
+  static_cast<CcBool*>( result.addr )->Set( true, 
+		              arg1->ComparePieceValues( arg2 ) == 0 );
+  return 0;
+}
+
+template<class T>
+int less_vm( Word * args, Word & result,
+                  int message, Word & local, Supplier s )
+{
+  T* arg1 = static_cast<T*>( args[ 0 ].addr );
+  T* arg2 = static_cast<T*>( args[ 1 ].addr );
+  result = qp->ResultStorage( s );
+
+  static_cast<CcBool*>( result.addr )->Set( true, 
+		              ( arg1->ComparePieceValues( arg2 ) < 0 ) );
 
   return 0;
 }
+
+
 
 ListExpr MatMatBoolTypeMap( ListExpr args )
 {
@@ -2134,13 +2173,17 @@ ValueMapping equal_vms[] =
   equal_vm<Position>
 };
 
-Operator lessOp (
-  "<",
-  lessSpec,
-  lessValueMap,
-  Operator::SimpleSelect,
-  MatMatBoolTypeMap
-);
+ValueMapping approxequal_vms[] =
+{
+  approxequal_vm<Material>,
+  approxequal_vm<Position>
+};
+
+ValueMapping less_vms[] =
+{
+  less_vm<Material>,
+  less_vm<Position>
+};
 
 Operator piecesOp (
   "pieces",
@@ -2259,7 +2302,9 @@ public:
 		                   piececount_sf, piececount_tm );
 
     AddOperator( equalInfo(), equal_vms, equal_sf, equal_tm );
-    AddOperator( &lessOp );
+    AddOperator( approxequalInfo(), approxequal_vms, equal_sf, equal_tm );
+    AddOperator( lessInfo(), less_vms, equal_sf, equal_tm );
+  
     AddOperator( &piecesOp );
     AddOperator( &moveNoOp );
     AddOperator( &rangeOp );

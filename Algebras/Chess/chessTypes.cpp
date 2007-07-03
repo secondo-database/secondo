@@ -660,15 +660,15 @@ int Position::ComparePieceValues( const Attribute* arg ) const
   if ( defined && !pos->defined )
     return 1;
 
-  Material* localMat = 0;
-  GetMaterial(localMat);
-  Material* argMat = 0;
-  pos->GetMaterial(argMat);
+  Material localMat ;
+  GetMaterial(&localMat);
+  Material argMat;
+  pos->GetMaterial(&argMat);
 
-  if (localMat->PieceValue() < argMat->PieceValue())
+  if (localMat.PieceValue() < argMat.PieceValue())
     return -1;	  
 
-  if (localMat->PieceValue() > argMat->PieceValue())
+  if (localMat.PieceValue() > argMat.PieceValue())
     return 1;
 
   return 0;  

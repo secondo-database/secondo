@@ -7,6 +7,25 @@ Signature: material x material -> bool
 Example  : query (sochichess getposition[81] pieces) < (sochichess getposition[25] pieces)
 Result   : TRUE
 
+Operator : <
+Number   : 2 
+Signature: position x position -> bool
+Example  : query (sochichess getposition[25]) < (sochichess getposition[1])
+Result   : TRUE
+
+
+Operator : ~
+Number   : 1
+Signature: material x material -> bool
+Example  : query (sochichess getposition[1] pieces) ~ (sochichess getposition[1] pieces)
+Result   : TRUE
+
+Operator : ~
+Number   : 2 
+Signature: position x position -> bool
+Example  : query (sochichess getposition[1]) ~ (sochichess getposition[1])
+Result   : TRUE
+
 
 Operator : =
 Number   : 1

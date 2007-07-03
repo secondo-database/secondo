@@ -38,3 +38,7 @@ operator getkey alias GETKEY pattern _ op [ _ ]
 operator moves alias MOVES pattern _ op
 operator positions alias POSITIONS pattern _ op
 operator movingpoints alias MOVINGPOINTS pattern _ op
+
+operator = alias EQUAL       pattern  _ infixop _
+operator < alias LESS        pattern  _ infixop _
+operator ~ alias APPROXEQUAL pattern  _ infixop _
