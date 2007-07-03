@@ -1498,7 +1498,7 @@ ListExpr AttrTypeMap(ListExpr args)
 
   nl->WriteToString(argstr, args); 
   CHECK_COND(nl->ListLength(args) == 2,
-  "Operator attr expects a list of length two.");
+  "Operator attr expects a list of length two. But got " + argstr + "!");
   
   first = nl->First(args);  
   nl->WriteToString(argstr, first);  
