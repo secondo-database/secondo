@@ -26,6 +26,9 @@ This file contains some functions which can be used for simple type mappings.
 
 */
 
+#ifndef SEC_TYPEMAP_UTILS
+#define SEC_TYPEMAP_UTILS
+
 
 #include <string>
 #include <sstream>
@@ -39,56 +42,10 @@ using namespace std;
 namespace mappings {
 
 bool
-CheckSimpleMap(const string map[], size_t n, ListExpr args, ListExpr& res) {
+CheckSimpleMap(const string map[], size_t n, ListExpr args, ListExpr& res);
 
-  assert(n>=1);
-
-  stringstream err;
-  NList l(args);
-  size_t i = 0;
-
-  if ( n == 1 ) { // operator maps (empty) -> map[0]
-    if( !l.isEmpty() ) {
-      err << "Expecting an empty input list but got " << l << "!";
-      res = l.typeError( err.str() );
-      return false;    
-    }	    
-  }	  
-  else
-  {	  
-  if (l.length() < n-1) {
-    err << "Expecting a list of length " << n-1 
-	<< " but got " << l << "!";
-    res = l.typeError( err.str() );
-    return false;
-  }	  
-
-  while ( i < n-1 ) {
-  
-    NList sym = l.elem(i+1);
-    if ( !sym.isSymbol(map[i]) )
-    {
-      string err = "Symbol number " + int2Str(i) + " has incorrect type."
-                   " Expected " + map[i] + " but got " + sym.str() + "!";
-                   
-      res = l.typeError(err);
-      return false;
-    } 
-    i++;
-  }
-  }
-  res = NList(map[i]).listExpr();
-  return true;
-}
-
-
-inline ListExpr
-SimpleMap(const string map[], size_t n, ListExpr args) 
-{
-  ListExpr res;	
-  CheckSimpleMap(map, n, args, res);	
-  return res;  
-}
+ListExpr
+SimpleMap(const string map[], size_t n, ListExpr arg);
 
 template<int n, int m>
 ListExpr
@@ -125,3 +82,5 @@ SimpleSelect(const string map[n][m], ListExpr args)
 }
 
 }
+
+#endif
