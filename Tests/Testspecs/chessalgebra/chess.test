@@ -63,6 +63,11 @@ query wjc2 count;
 #yields (int 4)
 @query_4corners;
 
+#testcase pawn promotions 
+#yields (int 8)
+@query_pawnpro;
+
+
 #teardown
 close database;
 delete database chesstest;
