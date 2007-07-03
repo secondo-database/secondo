@@ -1318,30 +1318,59 @@ int piececount_vm2( Word * args, Word & result,
 3.3 Operators equal and less than
 
 */
-const string equalSpec =
-  "(" "(" "\"Signature\"" "\"Syntax\"" "\"Meaning\"" "\"Example\"" ")" "("
-  "<text>material material -> bool</text--->"
-  "<text>_ = _</text--->"
-  "<text>Returns true, if both materials are equal.</text--->"
-  "<text>query mat1 = mat2 [\"Pawn\"]</text--->"
-  ")" ")";
 
 const string lessSpec =
   "(" "(" "\"Signature\"" "\"Syntax\"" "\"Meaning\"" "\"Example\"" ")" "("
   "<text>material material -> bool</text--->"
-  "<text>_ = _</text--->"
+  "<text>_ < _</text--->"
   "<text>Returns true, if mat2 have more figures than mat1.</text--->"
   "<text>query mat1 < mat2 [\"Pawn\"]</text--->"
   ")" ")";
 
-int equalValueMap( Word * args, Word & result,
+
+struct equalInfo : OperatorInfo {
+
+  equalInfo() : OperatorInfo()
+  {
+    name =      "=";
+    signature = "material x material -> bool, position x string -> bool";
+    syntax =    "_ = _";
+    meaning =   "Returns true if both values are exactly equal. In the case "
+	        "of positions the move must not be equal";
+  }
+
+};
+
+/* 
+3.4 Type Mappings 
+
+*/
+
+const string maps_equal[2][3] = { {MATERIAL, MATERIAL, BOOL}, 
+	                          {POSITION, POSITION, BOOL} };
+
+static ListExpr 
+equal_tm(ListExpr args)
+{
+  return SimpleMaps<2,3>(maps_equal, args);	 
+}
+
+int
+equal_sf( ListExpr args )
+{
+  return SimpleSelect<2,3>(maps_equal, args);
+}
+
+
+template<class T>
+int equal_vm( Word * args, Word & result,
                    int message, Word & local, Supplier s )
 {
-  Material * mat1 = ( ( Material* ) args[ 0 ].addr );
-  Material * mat2 = ( ( Material* ) args[ 1 ].addr );
+  T* arg1 = static_cast<T*>( args[0].addr );
+  T* arg2 = static_cast<T*>( args[1].addr );
   result = qp->ResultStorage( s );
 
-  ( ( CcBool* ) result.addr ) ->Set( true, mat1->IsEqual( mat2 ) );
+  static_cast<CcBool*>( result.addr )->Set( true, arg1->Compare( arg2 ) == 0 );
   return 0;
 }
 
@@ -2099,13 +2128,11 @@ ValueMapping piececount_vms[] =
   piececount_vm2
 };
 
-Operator equalOp (
-  "=",
-  equalSpec,
-  equalValueMap,
-  Operator::SimpleSelect,
-  MatMatBoolTypeMap
-);
+ValueMapping equal_vms[] =
+{
+  equal_vm<Material>,
+  equal_vm<Position>
+};
 
 Operator lessOp (
   "<",
@@ -2125,7 +2152,7 @@ Operator piecesOp (
 
 Operator moveNoOp (
   "moveNo",
-  lessSpec,
+  moveNoSpec,
   2, moveNoMap,
   moveNoSelect,
   moveNoTypeMap
@@ -2230,7 +2257,8 @@ public:
     AddOperator( &capturesOp );
     AddOperator( piececountInfo(), piececount_vms, 
 		                   piececount_sf, piececount_tm );
-    AddOperator( &equalOp );
+
+    AddOperator( equalInfo(), equal_vms, equal_sf, equal_tm );
     AddOperator( &lessOp );
     AddOperator( &piecesOp );
     AddOperator( &moveNoOp );

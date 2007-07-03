@@ -10,8 +10,15 @@ Result   : TRUE
 
 Operator : =
 Number   : 1
-Signature: material material -> bool
+Signature: material x material -> bool
 Example  : query (sochichess getposition[80] pieces) = (sochichess getposition[81] pieces)
+Result   : TRUE
+
+
+Operator : =
+Number   : 2
+Signature: position x position -> bool
+Example  : query (sochichess getposition[80]) = (sochichess getposition[80])
 Result   : TRUE
 
 
