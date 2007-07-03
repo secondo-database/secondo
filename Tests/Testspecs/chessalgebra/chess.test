@@ -56,7 +56,7 @@ query wjc2 count;
 @query_lostqueen;
 
 #testcase samepos 
-#yields (int 10)
+#yields (int 5)
 @query_samepos;
 
 #testcase 4corners 
