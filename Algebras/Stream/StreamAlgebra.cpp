@@ -3612,6 +3612,7 @@ int ensure_vm(Word* args, Word& result, int message, Word& local, Supplier s)
     qp->Request(args[0].addr, elem);
     num--;
   }
+  qp->Close(args[0].addr);
 
   bool ensure = (num == 0);
   result = qp->ResultStorage(s);	  
