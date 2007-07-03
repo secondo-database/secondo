@@ -24,7 +24,7 @@
 
 include ./makefile.env
 
-# The code of the tools below should be independent
+# The code of the tools below should be indipendent
 # of any other Secondo-realted code such as the query processor,
 # storage manager, nested lists, etc. It should be useable for
 # any other kind of program.
@@ -43,9 +43,9 @@ LIB_SDBUTILS_BASENAMES:=\
 	Tools/Utilities/PolySolver \
 	Tools/Utilities/Environment
 
-# The following libraries have interdependencies :-(
-# they are only usable in the framework of the Secondo
-# applications. For example the Nestedlist module uses
+# The following libraries have interdependencies to Nested lists
+# and Berkeley-DB thus they are only usable in the framework of 
+# the Secondo applications. For example the Nestedlist module uses
 # SMI-Records for implementing a persistent representation. 
 
 #libSDBNL
@@ -75,7 +75,8 @@ LIB_SDBSYS_BASENAMES:=\
 	QueryProcessor/QueryProcessor \
 	QueryProcessor/Progress \
 	QueryProcessor/SecondoSystem \
-	QueryProcessor/SecondoCatalog
+	QueryProcessor/SecondoCatalog \
+	QueryProcessor/TypeMapUtils
 
 
 LIB_SDBNL_OBJECTS   := $(addsuffix .$(OBJEXT), $(LIB_SDBNL_BASENAMES))
