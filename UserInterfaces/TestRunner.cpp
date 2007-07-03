@@ -451,7 +451,26 @@ TestRunner::ProcessCommand()
 {
   string cmdWord = "";
   istringstream is( cmd );
+
   is >> cmdWord;
+
+  string query="";
+  if ( cmdWord[0] == '@' ) {
+    string queryFile = parse<string>( cmdWord.substr(1) );
+    cout << "Reding file " << queryFile << endl;
+    CFile f(queryFile);
+    f.open();
+    while (!f.eof()) {
+      string line = "";	    
+      getline(f.ios(), line);
+      query += line;      
+    }
+    cout << "QUERY:" << query << endl;
+    cmd = query;
+    ProcessCommand();
+    return;
+  } 
+  
   transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), 
              ToUpperProperFunction );
 
