@@ -2582,6 +2582,7 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( li ) delete li;
 
       li = new LocalType();
+      li->memorySecond = 12288;	 //default, reset by constructor below
       local.addr = li;
       li->ptr = new HashJoinLocalInfo(args[0], args[5], args[1],
                                       args[6], args[4], s, li);
