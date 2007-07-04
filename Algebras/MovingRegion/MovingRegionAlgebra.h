@@ -952,7 +952,11 @@ Create ~MRegion()~ instance, determine its units by the units in ~mp~ and
 set each unit to the constant value of ~r~.
 
 */
-    MRegion(MPoint& mp, Region& r);
+//    MRegion(MPoint& mp, Region& r);
+// original signature replaced with 
+// 'call by copy' for 2nd arg due to problems when reading r 
+// directly from disk ( raised assert( type == InMemory ) ):
+    MRegion(MPoint& mp, Region r);
 
 /*
 Constructs a continuesly moving region from the parameters. ~dummy~ is not

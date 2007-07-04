@@ -6427,7 +6427,11 @@ MRegion::MRegion(const int n) :
         cerr << "MRegion::MRegion(int) called" << endl;
 }
 
-MRegion::MRegion(MPoint& mp, Region& r) :
+//MRegion::MRegion(MPoint& mp, Region& r) :
+// original signature replaced with 
+// 'call by copy' for 2nd arg due to problems when reading r 
+// directly from disk ( raised assert( type == InMemory ) ):
+MRegion::MRegion(MPoint& mp, Region r) :
     Mapping<URegionEmb, Region>(0),
     msegmentdata(0) {
 

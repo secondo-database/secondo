@@ -72,7 +72,6 @@ Only enable debug output if you know what you are doing!
 
 */
 const bool TLA_DEBUG = false;
-
 //const bool TLA_DEBUG = true;
 
 /*
@@ -4975,11 +4974,10 @@ int TemporalMPointMPointIntersection( Word* args, Word& result, int message,
   MPoint *op2 = (MPoint*) args[1].addr;
   MPoint *res = (MPoint*) result.addr;
   UPoint resunit( false );
+  UPoint lastresunit( false );
 
   if(TLA_DEBUG)
     cout<<"TemporalMPointMPointIntersection called"<<endl;
-
-  MPoint un(1);  //part of the Result
 
   RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(*op1, *op2);
 
@@ -4987,6 +4985,7 @@ int TemporalMPointMPointIntersection( Word* args, Word& result, int message,
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
 
   res->Clear();
+  res->SetDefined( true );
   res->StartBulkLoad();
 
   for(unsigned int i = 0; i < rp.Size(); i++)
@@ -5004,9 +5003,10 @@ int TemporalMPointMPointIntersection( Word* args, Word& result, int message,
     rp.Get(i, iv, u1Pos, u2Pos);
 
     if (TLA_DEBUG)
-      cout << "rp:" << i << ": (" << iv->start.ToString()<< " "
-           << iv->end.ToString() << " " << iv->lc << " " << iv->rc << ") "
-           << u1Pos << " " << u2Pos << endl;
+      { cout << "rp:" << i << ": " ; 
+        iv->Print(cout); 
+        cout << "(" << u1Pos << " " << u2Pos << ")" << endl;
+      }
 
     if (u1Pos == -1 || u2Pos == -1 )
       continue;
@@ -5014,16 +5014,18 @@ int TemporalMPointMPointIntersection( Word* args, Word& result, int message,
     else
     {
       if(TLA_DEBUG)
-        cout<<"Both operators existant in interval iv #"<<i<<" ["
-        << iv->start.ToString()<< " "<< iv->end.ToString()<< " "<< iv->lc
-        << " "<< iv->rc<< "] "<< u1Pos<< " "<< u2Pos<< endl;
-
+      {
+        cout<<"Both operators existant in interval iv #"<<i<<": ";
+        iv->Print(cout);
+        cout << "(" << u1Pos<< " "<< u2Pos<< ")" << endl;
+      }
       op1->Get(u1Pos, u1transfer);
       op2->Get(u2Pos, u2transfer);
 
       if (TLA_DEBUG)
       {
-        cout << "Actual partition #" << i << ":" << endl << " u1=";
+        cout << "Actual partition #" << i << "/" << rp.Size()-1 << ":" 
+             << endl << " u1=";
         u1transfer->Print(cout);
         cout << endl << " u2="; u2transfer->Print(cout); cout << endl;
       }
@@ -5034,9 +5036,65 @@ int TemporalMPointMPointIntersection( Word* args, Word& result, int message,
 
       // create intersection of  u1 x u2
       u1.Intersection(u2, resunit);
-      if ( resunit.IsDefined() )
-        res->MergeAdd(resunit);
+
+      if ( resunit.IsDefined() && lastresunit.IsDefined() )
+      { // Check for conflicting timeIntervals:
+        if ( (lastresunit.timeInterval.end == resunit.timeInterval.start) &&
+             lastresunit.timeInterval.rc && resunit.timeInterval.lc 
+           )
+        { // We have a conflict!
+          // solution1: change closedness flag for one non-instant unit
+          // solution2: drop a [x, x]-type unit
+          if (TLA_DEBUG)
+          { cout << "\n We have a conflict! \n" << endl;
+            cout << "lastresunit: "; lastresunit.timeInterval.Print(cout); 
+            cout << endl;
+            cout << "resunit:     "; resunit.timeInterval.Print(cout); 
+            cout << endl;
+          }
+          if (lastresunit.timeInterval.start == lastresunit.timeInterval.end)
+          { // drop lastresunit
+            if (TLA_DEBUG)
+              cout << "Dropping lastresunit.\n" << endl;
+            // do not add lastresunit
+            lastresunit = resunit; // queue up resunit
+          }
+          else if (resunit.timeInterval.start == resunit.timeInterval.end)
+          { // drop resunit
+            // do not add lastresunit
+            // let lastresunit in the queue, do not queue up resunit
+            if (TLA_DEBUG)
+              cout << "Dropping resunit.\n" << endl;
+          }
+          else
+          { // set closednessflags to pattern |A,B[   ]B,C|
+            if (TLA_DEBUG)
+              cout << "Changing closedness.\n" << endl;
+            lastresunit.timeInterval.rc = false;
+            resunit.timeInterval.lc = true;
+            res->MergeAdd(lastresunit); // add lastresunit
+            lastresunit = resunit;      // queue up resunit
+          }
+        } 
+        else
+        { // else: No conflict.
+          if (TLA_DEBUG)
+            cout << "No conflict.\n" << endl;
+          if ( lastresunit.IsDefined() ) 
+            res->MergeAdd(lastresunit); // Add lastresunit
+          if ( resunit.IsDefined() )
+            lastresunit = resunit;      // queue up resunit
+        }
+      }
+      else if ( resunit.IsDefined() )
+        // lastresunit undefined, but resunit defined
+        lastresunit = resunit; // ignore lastresunit, queue up resunit
+      // else: lastresunit defined, but resunit undefined - Do nothing!
     }
+  }
+  if (lastresunit.IsDefined() )
+  { // possibly insert the last result unit
+    res->MergeAdd(lastresunit);
   }
   res->EndBulkLoad( false );
 

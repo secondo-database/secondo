@@ -4838,33 +4838,39 @@ bool Mapping<Unit, Alpha>::IsValid() const
   bool result = true;
   const Unit *lastunit, *unit;
 
-  if( GetNoComponents() == 1 )
+  Get( 0, lastunit );
+  if ( !lastunit->IsValid() )
   {
-    Get( 0, unit );
-    return( unit->IsValid() );
+    cerr << "Mapping<Unit, Alpha>::IsValid(): "
+            "unit is invalid: i=0" << endl;
+    return false;
   }
+  if ( GetNoComponents() == 1 )
+    return true;
 
   for( int i = 1; i < GetNoComponents(); i++ )
   {
-    Get( i-1, lastunit );
-    if( !lastunit->IsValid() )
-    {
-      result = false;
-      break;
-    }
     Get( i, unit );
     if( !unit->IsValid() )
     {
       result = false;
+      cerr << "Mapping<Unit, Alpha>::IsValid(): "
+              "unit is invalid: i=" << i << endl;
       break;
     }
     if( (!lastunit->Disjoint( *unit )) && (!lastunit->TU_Adjacent( *unit )) )
+    // CD: For what reason do we need the && (!lastunit->TU_Adjacent( *unit )) ?
+    // The !lastunit->Disjoint( *unit ) part should be sufficent!
     {
       result = false;
+      cerr << "Mapping<Unit, Alpha>::IsValid(): "
+              "unit and lastunit not disjoint: i=" << i << endl;
+      cerr << "\n\tlastunit = "; lastunit->timeInterval.Print(cerr); 
+      cerr << "\n\tunit     = "; unit->timeInterval.Print(cerr); cerr << endl;
       break;
     }
+    lastunit = unit;
   }
-
   return result;
 }
 
