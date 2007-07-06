@@ -2033,8 +2033,8 @@ template<int TidIndexPos>
       localInfo->resultTupleType =
           new TupleType(nl->Second(GetTupleResultType(s)));
       localInfo->tidIndex = ((CcInt*)args[TidIndexPos].addr)->GetIntval() - 1;
-      cerr << "GetTuples<" << TidIndexPos << ">(): localInfo->tidIndex = " 
-          << localInfo->tidIndex << endl;
+//    cerr << "GetTuples<" << TidIndexPos << ">(): localInfo->tidIndex = " 
+//         << localInfo->tidIndex << endl;
       local = SetWord(localInfo);
       return 0;
     }
