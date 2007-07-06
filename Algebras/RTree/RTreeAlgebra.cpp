@@ -2291,7 +2291,7 @@ const string gettuples2Spec  =
 */
 Operator gettuples2 (
          "gettuples2",           // name
-         gettuplesSpec,          // specification
+         gettuples2Spec,         // specification
          GetTuples<3>,           // value mapping
          Operator::SimpleSelect, // trivial selection function
          GetTuples2TypeMap       // type mapping
