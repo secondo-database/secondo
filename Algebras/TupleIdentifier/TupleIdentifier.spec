@@ -19,3 +19,7 @@
 
 operator tupleid alias TUPLEID pattern op( _ )
 operator addtupleid alias ADDTUPLEID pattern _ op
+
+#Already defined in the StandardAlgebra:
+#operator = alias EQ pattern _ infixop _
+#operator # alias NE pattern _ infixop _

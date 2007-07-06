@@ -320,7 +320,7 @@ Operator tidtupleid (
 
 Appends the tuple identifier as an attribute in the stream of tuples.
 
-3.1.1 Type mapping function of operator ~addtupleid~
+3.2.1 Type mapping function of operator ~addtupleid~
 
 Operator ~addtupleid~ accepts a stream of tuples and returns the same stream
 with the tuple identifier attribute in the end.
@@ -384,7 +384,7 @@ AddTupleIdTypeMap(ListExpr args)
 }
 
 /*
-3.1.2 Value mapping function of operator ~addtupleid~
+3.2.2 Value mapping function of operator ~addtupleid~
 
 */
 int
@@ -434,25 +434,27 @@ TIDAddTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
+
 /*
-3.1.3 Specification of operator ~addtupleid~
+3.2.3 Specification of operator ~addtupleid~
 
 */
 const string AddTupleIdSpec  = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" \"Comment\" \" \" \" \" ) "
+  "\"Example\" \"Comment\" ) "
   "( <text>(stream (tuple ((x1 t1) ... (xn tn)))) ->"
   "(stream (tuple ((x1 t1) ... (xn tn) (id tid))))</text--->"
   "<text>_ addtupleid</text--->"
   "<text>Appends the tuple identifier in the tuple type</text--->"
   "<text>query cities feed addtupleid consume</text--->"
-  "<text>Apply addtupleid directly after a feed, because other </text--->"
-  "<text>operators my corrupt the tid </text--->"
-  "<text>(in-memory tuples all have tid=0).</text--->"
+  "<text>Apply addtupleid directly after a feed, because other "
+  "operators my corrupt the tid. All in-memory tuples all have tid=0."
+  "</text--->"
   ") )";
 
+
 /*
-3.1.4 Definition of operator ~addtupleid~
+3.2.4 Definition of operator ~addtupleid~
 
 */
 Operator tidaddtupleid (
@@ -461,6 +463,160 @@ Operator tidaddtupleid (
          TIDAddTupleId,            // value mapping
          Operator::SimpleSelect,         // trivial selection function
          AddTupleIdTypeMap         // type mapping
+);
+
+
+/*
+3.3 Operator ~=~
+
+Compares two TupleIdentifiers and returns TRUE, iff they are equal.
+
+3.3.1 Type mapping function of operator ~=~
+
+----    (tid tid) -> bool
+----
+
+*/
+
+ListExpr
+EqualTupleIdTypeMap(ListExpr args)
+{
+  ListExpr first;
+  ListExpr second;
+  string argstr;
+
+  CHECK_COND(nl->ListLength(args) == 2,
+  "Operator '=' expects a list of length two.");
+
+  first = nl->First(args);
+  second = nl->Second(args);
+
+  nl->WriteToString(argstr, args);
+  CHECK_COND(  nl->AtomType( first ) == SymbolType &&
+               nl->SymbolValue( first ) == "tid" &&
+               nl->AtomType( second ) == SymbolType &&
+               nl->SymbolValue( second ) == "tid",
+               "Operators '=' and '#' expect a list with structure "
+               "(tid tid)\n"
+               "Operator '='/'#' gets a list with structure '" + argstr + "'.");
+
+  return nl->SymbolAtom("bool");
+}
+
+
+/*
+3.3.2 Value mapping function of operator ~=~
+
+*/
+
+int
+TIDEqualTupleId( Word* args, Word& result, 
+                 int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  const TupleIdentifier* a = static_cast<const TupleIdentifier*>(args[0].addr);
+  const TupleIdentifier* b = static_cast<const TupleIdentifier*>(args[1].addr);
+
+  ((CcBool *)result.addr)->Set( true, a->Compare(b) == 0 );
+  return (0);
+}
+
+/*
+3.3.3 Specification of operator ~=~
+
+*/
+
+const string EqualTupleIdSpec = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" \"Result\" \"Comment\" ) "
+  "( <text>(tid tid) -> bool</text--->"
+  "<text>_ = _</text--->"
+  "<text>Returns TRUE, iff both tuple identifiers are equal (i.e "
+  "both refer to the same tuple).</text--->"
+  "<text>query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A}\n"
+  "plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B}\n"
+  "symmjoin[.id_A = ..id_B] count</text--->"
+  "<text>2336</text--->"
+  "<text>Caution: Only compare TIDs referring to the same relation! "
+  "All in-memory tuples have tid=0.</text--->"
+  ") )";
+
+/*
+3.3.4 Definition of operator ~=~
+
+*/
+
+Operator tidequal (
+         "=",                      // name
+         EqualTupleIdSpec,         // specification
+         TIDEqualTupleId,          // value mapping
+         Operator::SimpleSelect,   // trivial selection function
+         EqualTupleIdTypeMap       // type mapping
+);
+
+/*
+3.3 Operator ~\#~
+
+Compares two TupleIdentifiers and returns TRUE, iff they are not equal.
+
+3.3.1 Type mapping function of operator ~\#~
+
+----    (tid tid) -> bool
+----
+
+Uses ~EqualTupleIdTypeMap~
+
+*/
+
+
+/*
+3.3.2 Value mapping function of operator ~\#~
+
+*/
+
+int
+TIDNEqualTupleId( Word* args, Word& result, 
+                  int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  const TupleIdentifier* a = static_cast<const TupleIdentifier*>(args[0].addr);
+  const TupleIdentifier* b = static_cast<const TupleIdentifier*>(args[1].addr);
+
+  ((CcBool *)result.addr)->Set( true, a->Compare(b) != 0 );
+  return (0);
+}
+
+/*
+3.3.3 Specification of operator ~\#~
+
+*/
+
+const string NEqualTupleIdSpec = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" \"Result\" \"Comment\" ) "
+  "( <text>(tid tid) -> bool</text--->"
+  "<text>_ # _</text--->"
+  "<text>Returns TRUE, iff both tuple identifiers are different (i.e "
+  "both refer to different tuples).</text--->"
+  "<text>query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A}\n"
+  "plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B}\n"
+  "symmjoin[.id_A # ..id_B] count</text--->"
+  "<text>338720</text--->"
+  "<text>Caution: Only compare TIDs referring to the same relation! "
+  "All in-memory tuples have tid=0.</text--->"
+  ") )";
+
+/*
+3.3.4 Definition of operator ~\#~
+
+*/
+
+Operator tidnequal (
+         "#",                      // name
+         NEqualTupleIdSpec,        // specification
+         TIDNEqualTupleId,         // value mapping
+         Operator::SimpleSelect,   // trivial selection function
+         EqualTupleIdTypeMap       // type mapping
 );
 
 
@@ -479,6 +635,8 @@ class TupleIdentifierAlgebra : public Algebra
 
     AddOperator( &tidtupleid );
     AddOperator( &tidaddtupleid );
+    AddOperator( &tidequal );
+    AddOperator( &tidnequal );
   }
   ~TupleIdentifierAlgebra() {};
 };
