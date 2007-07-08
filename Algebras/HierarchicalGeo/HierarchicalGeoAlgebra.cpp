@@ -53,6 +53,7 @@ type constructors are implemented in the HierarchicalGeoAlgebra.h file.
 #include "SpatialAlgebra.h"
 #include "PolySolver.h"
 #include "RelationAlgebra.h"
+#include "TypeMapUtils.h"
 #include <math.h>
 
 extern NestedList* nl;
@@ -87,21 +88,21 @@ Some functions of template class ~uncertain~
 
 */
 template <class Alpha>
-void Uncertain<Alpha>::Epsylon(CcReal& result)
+void Uncertain<Alpha>::Epsilon(CcReal& result)
 {
-  result = (CcReal)epsylon;
+  result = (CcReal)epsilon;
 }
 
 /*
 Type Constructor ~CPoint~
 
-Type ~cpoint~ represents an (epsylon, (x, y))-pair.
+Type ~cpoint~ represents an (epsilon, (x, y))-pair.
 
 List Representation
 
 The list representation of a ~cpoint~ is
 
-----    ( epsylon ( x y ) )
+----    ( epsilon ( x y ) )
 ----
 
 For example:
@@ -124,7 +125,7 @@ ListExpr CPointProperty()
             nl->FiveElemList(
                   nl->StringAtom("-> UNCERTAIN"),
                   nl->StringAtom("cpoint"),
-                  nl->StringAtom("(<epsylon>(<x> <y>))"),
+                  nl->StringAtom("(<epsilon>(<x> <y>))"),
                   nl->StringAtom("( 20.5 ( 329.456 22.289) )"),
                   nl->StringAtom(" All 3 values must be of type real." ))));
 }
@@ -156,7 +157,7 @@ ListExpr OutCPoint( ListExpr typeInfo, Word value )
             nl->RealAtom( cpoint->value.GetY() ));
                   
       return nl->TwoElemList(
-            nl->RealAtom( cpoint->GetEpsylon() ),
+            nl->RealAtom( cpoint->GetEpsilon() ),
             coordinates );
     }
 }
@@ -171,9 +172,9 @@ Word InCPoint( const ListExpr typeInfo, const ListExpr instance,
 {
   string errmsg;
   if ( nl->ListLength( instance ) == 2 )    
-  // 2 arguments are necessary: epsylon and a point
+  // 2 arguments are necessary: epsilon and a point
   {
-    ListExpr first = nl->First( instance );               // the epsylon value
+    ListExpr first = nl->First( instance );               // the epsilon value
     ListExpr second = nl->Second( instance );    // the point representation
     
     if ( nl->IsAtom( first ) && nl->AtomType( first ) == RealType )
@@ -201,24 +202,6 @@ Word InCPoint( const ListExpr typeInfo, const ListExpr instance,
         CPoint cpoint( nl->RealValue( first ), (StandardAttribute*) p );
         delete p;
         correct = cpoint.IsValid();
-      }
-      // the other possibility for the second argument: a name 
-      // for a point-object
-      else if ( nl->ListLength( second ) == 1 &&
-                    nl->IsAtom( second ) &&
-                    nl->AtomType( second == RealType ) )
-      {
-        correct = true;
-        Point *p = (Point *)InPoint( nl->TheEmptyList(), second,
-                                        errorPos, errorInfo, correct ).addr;
-        if ( !correct )
-        {
-          errmsg = "InCPoint(): Second instant must be a representation" 
-                         "of a point value.";
-          errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-          delete p;
-          return SetWord( Address(0) );
-        }
       }
       else
       {
@@ -396,6 +379,39 @@ ListExpr UncertainTypeMapBase( ListExpr args )
   return nl->SymbolAtom( "typeerror" );
 }
 
+
+/*
+Type mapping function ~CertainToUncertain~
+
+This type mapping function is used for the ~<certaintype>to<uncertaintype>~ 
+Operations.
+
+*/
+
+ListExpr CertainToUncertain( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 2 )
+  {
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+    if ( nl->IsEqual( first, "real" ) && nl->IsEqual( second, "point" ))
+      return nl->SymbolAtom("cpoint");
+    if ( (nl->AtomType(first) == SymbolType) && (nl->AtomType(second) == 
+            SymbolType))
+      ErrorReporter::ReportError("Type mapping function got parameters of "
+        "type "
+          + nl->SymbolValue(first) + " and "
+          + nl->SymbolValue(second));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong types "
+        "as parameters.");
+  }
+  ErrorReporter::ReportError("Type mapping function got a parameter of length "
+    "!= 2.");
+  return nl->SymbolAtom("typeerror");
+}
+
+
 /*
 16.2 Selection function
 
@@ -410,7 +426,7 @@ is applied to correct arguments.
 
 16.2.1 Selection function ~UncertainSimpleSelect~
 
-Is used for the ~epsylon~ and ~val~ operators.
+Is used for the ~epsilon~ and ~val~ operators.
 
 */
 int UncertainSimpleSelect( ListExpr args )
@@ -439,9 +455,37 @@ int UncertainSimpleSelect( ListExpr args )
 /*
 Value mapping functions
 
+Value mapping functions for class cpoint
+
+
+Value mapping function for operator ~tocpoint~
+
+*/
+
+int ToCPoint( Word* args, Word& result, int message, Word& local,
+                                        Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcReal* epsilon = (CcReal*)args[0].addr;
+  Point* p = (Point*)args[1].addr;
+  
+  if ( epsilon >= 0 )
+    if ( p->IsDefined() )
+    {
+      CPoint cp( epsilon->GetValue(), (StandardAttribute*) p );
+      ((CPoint*)result.addr)->Set(cp);
+    }
+    else
+    {
+      ((CPoint*)result.addr)->SetDefined( false );
+      cerr << "Result object is set to state: defined = false." << endl;
+    }
+  return 0;
+}
 
 
 
+/*
 Definition of operators
 
 Definition of operators is done in a way similar to definition of 
@@ -456,8 +500,8 @@ ValueMapping arrays
 
 */
 
-ValueMapping uncertainepsylonmap[] = { 
-                                      UncertainEpsylon<Point> };
+ValueMapping uncertainepsilonmap[] = { 
+                                      UncertainEpsilon<Point> };
 
 
 ValueMapping uncertainvalmap[] = {
@@ -470,12 +514,12 @@ Specification strings
 
 */
 
-const string UncertainSpecEpsylon  =
+const string UncertainSpecEpsilon  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>uT -> epsylon</text--->"
-  "<text>epsylon ( _ )</text--->"
-  "<text>Returns an uncertain values' epsylon value.</text--->"
-  "<text>epsylon ( i1 )</text--->"
+  "( <text>uT -> epsilon</text--->"
+  "<text>epsilon ( _ )</text--->"
+  "<text>Returns an uncertain values' epsilon value.</text--->"
+  "<text>epsilon ( i1 )</text--->"
   ") )";
 
 
@@ -488,6 +532,13 @@ const string UncertainSpecVal =
   ") )";
 
 
+const string CPointSpecToCPoint =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>point, real -> cpoint</text--->"
+  "<text>toCPoint ( _, _ )</text--->"
+  "<text>Builds a new CPoint from the given Real- and Point-values.</text--->"
+  "<text>cpt = tocpoint ( 50.0, alexanderplatz )</text--->"
+  ") )";
 
 
 /*
@@ -495,9 +546,9 @@ Operators
 
 */
 
-Operator uncertainepsylon( "epsylon",
-                              UncertainSpecEpsylon,
-                              UncertainEpsylon<Point>,
+Operator uncertainepsilon( "epsilon",
+                              UncertainSpecEpsilon,
+                              UncertainEpsilon<Point>,
                               Operator::SimpleSelect,
                               UncertainTypeMapReal );
 
@@ -507,6 +558,12 @@ Operator uncertainval( "val",
                               uncertainvalmap,
                               UncertainSimpleSelect,
                               UncertainTypeMapBase );
+                             
+Operator tocpoint( "tocpoint",
+                              CPointSpecToCPoint,
+                              ToCPoint,
+                              Operator::SimpleSelect,
+                              CertainToUncertain );
                               
 /*
 Creating the Algebra
@@ -520,8 +577,9 @@ class HierarchicalGeoAlgebra : public Algebra
     AddTypeConstructor( &uncertainpoint );
     uncertainpoint.AssociateKind( "UNCERTAIN" );
     uncertainpoint.AssociateKind( "SPATIAL" );
-    AddOperator( &uncertainepsylon );
+    AddOperator( &uncertainepsilon );
     AddOperator( &uncertainval );
+    AddOperator( &tocpoint );
   }
   ~HierarchicalGeoAlgebra() {};
 };

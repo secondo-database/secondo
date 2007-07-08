@@ -32,18 +32,7 @@ April 2007 Sascha Vaut
 
 The type system of the HierarchicalGeo Algebra can be seen below.
 
-\begin{displaymath}
-\begin{array}{lll}
-        & \to \textrm{BASE}     & {\underline{\smash{\mathit{int}}}}, {\underline{\smash{\mathit{real}}}},
-                                  {\underline{\smash{\mathit{bool}}}}, {\underline{\smash{\mathit{string}}}} \\
-        & \to \textrm{SPATIAL}  & {\underline{\smash{\mathit{point}}}}, {\underline{\smash{\mathit{points}}}},
-                                  {\underline{\smash{\mathit{line}}}}, {\underline{\smash{\mathit{region}}}} \\
-        & \to \textrm{TIME}     & {\underline{\smash{\mathit{instant}}}} \\
-\textrm{BASE} \cup \textrm{TIME}        & \to \textrm{RANGE}    & {\underline{\smash{\mathit{range}}}} \\
-\textrm{BASE} \cup \textrm{SPATIAL}     & \to \textrm{TEMPORAL} & {\underline{\smash{\mathit{intime}}}},
-                                                                  {\underline{\smash{\mathit{moving}}}}
-\end{array}
-\end{displaymath}
+
 
 2 Defines, includes, and constants
 
@@ -81,7 +70,7 @@ using namespace datetime;
 
 3.1 Uncertain
 
-This class represents an epsylon-value of type real. It will be used in type 
+This class represents an epsilon-value of type real. It will be used in type 
 constructors of all ~uncertain~ Datatypes.
 
 */
@@ -101,8 +90,8 @@ The simple constructor. This constructor should not be used.
 
 */
 
-  Uncertain( const double& epsylon, const Alpha& alpha ):
-    epsylon ( epsylon ),
+  Uncertain( const double& epsilon, const Alpha& alpha ):
+    epsilon ( epsilon ),
     value (),
     defined ( true )
   {
@@ -113,14 +102,14 @@ The simple constructor. This constructor should not be used.
 The creation of the uncertain, setting all attributes.
 
 */
-  Uncertain( const double& epsylon):
-    epsylon ( epsylon ),
+  Uncertain( const double& epsilon):
+    epsilon ( epsilon ),
     value (),
     defined ( false )
   {}
 
 /*
-The creation of an uncertain value, setting only the epsylon value.
+The creation of an uncertain value, setting only the epsilon value.
 
 
 3.1.2 Member functions
@@ -135,7 +124,7 @@ The creation of an uncertain value, setting only the epsylon value.
     defined = u->defined;
     if ( defined )
     {
-      epsylon = u->epsylon;
+      epsilon = u->epsilon;
       value.CopyFrom( &u->value );
     }
   }
@@ -143,7 +132,7 @@ The creation of an uncertain value, setting only the epsylon value.
   
   bool IsValid()
   {
-    if (epsylon > 0 && defined)
+    if (epsilon > 0 && defined)
       return true;
     return false;
   }
@@ -152,21 +141,21 @@ The creation of an uncertain value, setting only the epsylon value.
 Checks if the Uncertain is valid or not. This function should be used for debugging purposes
 only. An uncertain is valid if the following conditions are true:
 
-  1 ~alpha~ and ~epsylon~ are defined
+  1 ~alpha~ and ~epsilon~ are defined
   
-  2 ~epsylon~ $>=$ 0
+  2 ~epsilon~ $>=$ 0
   
   3 ~defined~ $==$ TRUE
   
 */
 
-  double GetEpsylon()
+  double GetEpsilon()
   {
-    return epsylon;
+    return epsilon;
   }
 
 /*
-Returns the epsylon value of the Uncertain value.
+Returns the epsilon value of the Uncertain value.
 
 */
 
@@ -177,14 +166,14 @@ Returns the epsylon value of the Uncertain value.
 
 /*
 Checks if the Uncertain value is defined or not. If it is not defined, only the
-epsylon value is set. The Alpha value is left to be set later.
+epsilon value is set. The Alpha value is left to be set later.
 
 */
 
   // +++++ evtl. auf "protected" setzen! +++++++++++++++++++++++++++++
-  void SetDefined( bool defined )
+  void SetDefined( bool def )
   {
-    this->defined = defined;
+    this->defined = def;
   }
   
 /*
@@ -228,9 +217,9 @@ value and ~c~ into ~result~.
 
 */
 
-  void Epsylon( CcReal& result);
+  void Epsilon( CcReal& result);
 /*
-Returns the uncertain value's ~epsylon value~.
+Returns the uncertain value's ~epsilon value~.
 
 */
 
@@ -242,7 +231,7 @@ Returns the uncertain value's ~epsylon value~.
   // +++++ daher ausgeschaltet: ++++++++++++++++++++++++
   //protected:
 
-  double epsylon;
+  double epsilon;
 /*
 The possible difference between the original value and the given value.
 
@@ -288,7 +277,7 @@ erforderlich sind.
 /*
 3.3 CInt
 
-pair: double epsylon, CcInt intvalue
+pair: double epsilon, CcInt intvalue
 implements Uncertain
 
 */
@@ -309,14 +298,14 @@ class CInt : public Uncertain<CcInt>
 
 //  void possibleMinimum ( int result ) const;
 /*
-Returns the minimal possible integer value by subtracting the epsylon value 
+Returns the minimal possible integer value by subtracting the epsilon value 
 from the given integer value and rounding up to the next integer.
 
 */  
   
 //  void possibleMaximum ( int result ) const;
 /*
-Returns the maximal possible integer value by adding the epsylon value to the 
+Returns the maximal possible integer value by adding the epsilon value to the 
 given integer value and rounding down to the next integer.
 
 */
@@ -326,7 +315,7 @@ given integer value and rounding down to the next integer.
 /*
 3.4 CReal
 
-pair: double epsylon, CcReal realvalue
+pair: double epsilon, CcReal realvalue
 implements Uncertain
 
 */
@@ -336,7 +325,7 @@ implements Uncertain
 /*
 3.5 CPoint
 
-CPoint represents a Point value containing an epsylon value. It implements 
+CPoint represents a Point value containing an epsilon value. It implements 
 Uncertain.
 
 */
@@ -355,33 +344,34 @@ The default constructor which should not be used.
 
 */
   
-  CPoint(const double epsylon):
-      Uncertain<Point>( epsylon ) 
+  CPoint(const double epsilon):
+      Uncertain<Point>( epsilon ) 
       {}
       
 /*
-The undefined constructor. Only the epsylon value is set. The point value is 
+The undefined constructor. Only the epsilon value is set. The point value is 
 left undefined for later definition.
 
 */
 
 /* +++++ noch ausgeschaltet ++++++++++++++++++++
-  CPoint( const double epsylon, const double x, const double y):
-    Uncertain<Point>( epsylon, value(true, x, y) ) {}
+  CPoint( const double epsilon, const double x, const double y):
+    Uncertain<Point>( epsilon, value(true, x, y) ) {}
 +++++ noch ausgeschaltet ++++++++++++++++++++++
 
 */
 
 /*
 This constructor creates an uncertain point value from the given coordinates
-and the epsylon value.
+and the epsilon value.
 
 */
   
-  CPoint( const double epsylon, const StandardAttribute* point):
-      Uncertain<Point>( epsylon ) 
+  CPoint( const double epsilon, const StandardAttribute* point):
+      Uncertain<Point>( epsilon ) 
       {
         value.CopyFrom(point);
+        SetDefined( true );
       }
 /*
 The copy-constructor.
@@ -396,6 +386,21 @@ The destructor.
 
 */
   
+  int ToCPoint( Word* args, Word& result, int message, Word& local,
+                                        Supplier s );
+
+/*
+Transforms a given Point and a given positive real-value to a new cpoint-value.
+
+*/
+    
+  void Set( CPoint cp )
+  {
+    this->epsilon = cp.epsilon;
+    this->value = cp.value;
+    this->defined = true;
+  }
+  
 //  inline const Rectangle<2> BoundingBox() const;
 /*
 Returns the bounding box of the uncertain point, i.e. a rectangle area, 
@@ -407,7 +412,7 @@ bounding the area where the point may be.
   virtual CPoint& operator=( const CPoint& cp )
   {
     *((Uncertain<Point>*)this) = *((Uncertain<Point>*)&cp);
-    // +++++ hier ggf. noch Epsylon-Wert kopieren +++++++
+    // +++++ hier ggf. noch epsilon-Wert kopieren +++++++
   }
   
 +++++ noch ausgeschaltet +++++++++++++++++++++++++++++
@@ -424,7 +429,7 @@ Redefinition of the copy operator ~=~.
   virtual bool operator==( const CPoint& cp ) const
   {
     return *((Uncertain<Point>*)this) == *((Uncertain<Point>*)&cp) &&
-    // +++++ hier noch die Punkt- und Epsylonwerte vergleichen +++++
+    // +++++ hier noch die Punkt- und epsilonwerte vergleichen +++++
   }
   
 +++++ noch ausgeschaltet ++++++++++++++++++++++++++++++
@@ -587,13 +592,13 @@ one Region implements HierarchicalMapping
 /*
 5.1 Type Constructor ~uncertain~
 
-Type ~uncertain~ represents a pair ( epsylon ( <Alpha> )).
+Type ~uncertain~ represents a pair ( epsilon ( <Alpha> )).
 
 5.1.1 List Representation
 
 The list representation of an ~uncertain~ is
 
-----    ( epsylon ( <Alpha> ) )
+----    ( epsilon ( <Alpha> ) )
 ----
 
 For example a cpoint:
@@ -613,7 +618,7 @@ ListExpr OutUncertain( ListExpr typeInfo, Word value )
   
   if( uncertain->IsDefined() )
     return nl->TwoElemList(
-      nl->RealAtom( &uncertain->GetEpsylon()),
+      nl->RealAtom( &uncertain->GetEpsilon()),
       OutFun( nl->TheEmptyList(), SetWord( &uncertain->value ) ) );
       // Up to now the previous line sems to contain an error:
       // If the OutUncertain-function is mentioned in the typeconstructor
@@ -642,7 +647,7 @@ Word InUncertain( const ListExpr typeInfo, const ListExpr instance,
   string errmsg;
   if ( nl->ListLength( instance ) == 2 )
   {
-    ListExpr first = nl->First( instance );             // the epsylon value
+    ListExpr first = nl->First( instance );             // the epsilon value
     ListExpr second = nl->Second( instance );  // the Alpha-Object
     {
       if ( nl->IsAtom(first) && nl->AtomType(first) == RealType )
@@ -746,18 +751,18 @@ void* CastUncertain(void* addr)
 5.4 Value mapping functions for class Uncertain
 
 
-5.4.1 Value mapping functions of operator ~epsylon~
+5.4.1 Value mapping functions of operator ~epsilon~
 
 */
 template <class Alpha>
-int UncertainEpsylon( Word* args, Word& result, int message, Word& local, 
+int UncertainEpsilon( Word* args, Word& result, int message, Word& local, 
                                   Supplier s )
 {
   result = qp->ResultStorage( s );
   Uncertain<Alpha>* u = (Uncertain<Alpha>*)args[0].addr;
 
   if( u->IsDefined() )
-    ((CcReal*)result.addr)->Set( u->epsylon );
+    ((CcReal*)result.addr)->Set( u->epsilon );
   else
     ((CcReal*)result.addr)->SetDefined( false );
 
@@ -786,7 +791,6 @@ int UncertainVal( Word* args, Word& result, int message,
 
   return 0;
 }
-
 
 
 

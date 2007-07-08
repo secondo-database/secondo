@@ -46,7 +46,7 @@ open database berlin
 
 
 
-# 1 - Creating, updating and deleting a cpoint-object
+# 1 - Creating, updating, querying and deleting a cpoint-object
 
 #testcase createcpoint
 #yields success 
@@ -54,11 +54,47 @@ create ctest1 : cpoint;
 
 #testcase updatecpoint
 #yields success
-update ctest1 := (50.0 (9876.5 8765.4));
+update ctest1 := [const cpoint value(50.0 (9876.5 8765.4))];
 
 #testcase letcpoint
 #yields success
-let ctest2 = (50.0 (8888.8 7777.7);
+let ctest2 = [const cpoint value(50.0 (8888.8 7777.7))];
+
+
+#testcase querycpoint
+#yields success
+query ctest2
+
+
+#testcase queryepsilon
+#yields (real 50.0)
+query epsilon(ctest2)
+
+
+#testcase queryval
+#yields success
+query val(ctest2)
+
+
+#testcase tocpoint with wrong arguments (first argument is not a real)
+#yields error
+let calex = tocpoint(33, alexanderplatz)
+
+
+#testcase tocpoint with too many arguments
+#yields error
+let calex = tocpoint(44.5, true, alexanderplatz)
+
+
+#testcase tocpoint
+#yields success
+let calex = tocpoint(44.5, alexanderplatz)
+
+
+#testcase query tocpoint-object
+#yields success
+query calex
+
 
 #testcase deletecpoint
 #yields success
@@ -68,4 +104,5 @@ delete ctest1;
 #teardown
 
 delete ctest2;
+delete calex;
 close database;
