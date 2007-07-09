@@ -911,19 +911,30 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       // afterwards progress request calls are
       // allowed.
 
+      li->ptr = 0;
+
       qp->Open(args[0].addr);
 
-      void *tupleCmp = CreateCompareObject(lexicographically, args);
-
-      li->ptr = new SortByLocalInfo( args[0],
-		                     lexicographically,
-                                     tupleCmp, li       );
       return 0;
     }
 
     case REQUEST:
     {
+      if ( li->ptr == 0 )
+      {
+        void *tupleCmp = CreateCompareObject(lexicographically, args);
+
+	//Sorting is done in the following constructor. It was moved from
+	//OPEN to REQUEST to avoid long delays in the OPEN method, which are
+	//a problem for progress estimation 
+    
+        li->ptr = new SortByLocalInfo( args[0],
+		                     lexicographically,
+                                     tupleCmp, li       );
+      }
+
       SortByLocalInfo* sli = li->ptr;
+
       result = SetWord( sli->NextResultTuple() );
       li->returned++;
       return result.addr != 0 ? YIELD : CANCEL;
@@ -1750,13 +1761,20 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Open(args[0].addr);
       qp->Open(args[1].addr);
 
-      li->ptr = new MergeJoinLocalInfo
-        (args[0], args[4], args[1], args[5], expectSorted, s, li);
+      li->ptr = 0;
 
       return 0;
 
     case REQUEST: {
       //mergeMeasurer.Enter();
+
+      if ( li->ptr == 0 )	//first request;
+				//constructor put here to avoid delays in OPEN
+				//which are a problem for progress estimation
+      {
+        li->ptr = new MergeJoinLocalInfo
+          (args[0], args[4], args[1], args[5], expectSorted, s, li);
+      }
 
       MergeJoinLocalInfo* mli = li->ptr;
       result.addr = mli->NextResultTuple();
@@ -2584,11 +2602,20 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       li = new LocalType();
       li->memorySecond = 12288;	 //default, reset by constructor below
       local.addr = li;
-      li->ptr = new HashJoinLocalInfo(args[0], args[5], args[1],
-                                      args[6], args[4], s, li);
+
+      li->ptr = 0;
+
       return 0;
 
     case REQUEST:
+
+      if ( li->ptr == 0 )	//first request;
+				//constructor moved here to avoid delays in OPEN
+				//which are a problem for progress estimation
+      {
+        li->ptr = new HashJoinLocalInfo(args[0], args[5], args[1],
+                                      args[6], args[4], s, li);
+      }
 
       hli = li->ptr;
       result = SetWord( hli->NextResultTuple() );
