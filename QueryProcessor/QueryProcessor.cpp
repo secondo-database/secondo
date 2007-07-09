@@ -224,6 +224,7 @@ using namespace std;
 #include "FLOBCache.h"
 #include <stdexcept>
 
+
 /************************************************************************** 
 1.2 Constants, Types, Global Data Structures
 
@@ -3647,7 +3648,7 @@ QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
 {
   Word result;
   OpTree tree = (OpTree) s;
-  bool trace = false;	//set to true for tracing
+  bool trace = true;	//set to true for tracing
 
 	if ( trace ) cout << "RequestProgress called with Supplier = " << 
         (void*) s << "  ProgressInfo* = " << (void*) p << endl;
@@ -3660,29 +3661,37 @@ QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
       result = SetWord(p);
       Eval(tree, result, REQUESTPROGRESS);
 
-	if (tree->u.op.received && trace)
+        if (trace)
         {
-	  cout << "Return from supplier " << (void*) s << endl;
-	  cout << "Cardinality = " << p->Card << endl;
-	  cout << "Size = " << p->Size << endl;
-	  cout << "SizeExt = " << p->SizeExt << endl;
-	  cout << "noAttrs = " << p->noAttrs << endl;
-          cout << "attrSize[i] = ";		
-	    for ( int i = 0; i < p->noAttrs; i++ ) 
-              cout << p->attrSize[i] << " ";
-	  cout << endl;
-          cout << "attrSizeExt[i] = ";		
-	    for ( int i = 0; i < p->noAttrs; i++ ) 
-              cout << p->attrSizeExt[i] << " ";
-	  cout << endl;
 
-	  cout << "BlockingTime = " << p->BTime << endl;
-	  cout << "BlockingProgress = " << p->BProgress << endl;
+	  if (tree->u.op.received)
+          {
+	    cout << "Return from supplier " << (void*) s << endl;
+	    cout << "Cardinality = " << p->Card << endl;
+	    cout << "Size = " << p->Size << endl;
+	    cout << "SizeExt = " << p->SizeExt << endl;
+	    cout << "noAttrs = " << p->noAttrs << endl;
+            cout << "attrSize[i] = ";		
+	      for ( int i = 0; i < p->noAttrs; i++ ) 
+                cout << p->attrSize[i] << " ";
+	    cout << endl;
+            cout << "attrSizeExt[i] = ";		
+	      for ( int i = 0; i < p->noAttrs; i++ ) 
+                cout << p->attrSizeExt[i] << " ";
+	    cout << endl;
 
-	  cout << "Time = " << p->Time << endl;
-	  cout << "Progress = " << p->Progress << endl;
+	    cout << "BlockingTime = " << p->BTime << endl;
+	    cout << "BlockingProgress = " << p->BProgress << endl;
 
-          cout << "=================" << endl;
+	    cout << "Time = " << p->Time << endl;
+	    cout << "Progress = " << p->Progress << endl;
+
+            cout << "=================" << endl;
+          }
+          else
+          {
+	    cout << "CANCEL from supplier " << (void*) s << endl;
+          }
         }
 
       return (tree->u.op.received);
