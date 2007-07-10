@@ -1371,16 +1371,35 @@ int sim_trips_VM ( Word* args, Word& result,
         return CANCEL;
       sli = (SplitMpointLocalInfo*) local.addr;
 
-      if (sli->finished || (sli->pos >= sli->size ) )
+      // special case: last unit of the mpoint is stationary and was scheduled 
+      // to form an own trip
+      if ( sli->pos >= sli->size )
       {
-        sli->finished = true;
-        return CANCEL;
+        if ( sli->pos == sli->size && sli->u1.IsDefined() )
+        {
+          res = new MPoint(true);
+          res->Clear();
+          res->StartBulkLoad();
+          res->MergeAdd( sli->u1 );
+          res->EndBulkLoad( false ); // do not sort units
+          result = SetWord( res );
+          sli->u1.SetDefined( false );
+          sli->finished = true;
+          return YIELD;
+        }
+        else
+        {
+          sli->finished = true;
+          return CANCEL;
+        }
       }
 
+      // else: normal case
       newtrip = false;
       res = new MPoint(true);
       res->Clear();
       res->StartBulkLoad();
+
       while( sli->pos < sli->size && !newtrip)
       {
 //         cout << "pos/size = " << sli->pos << "/" << sli->size << endl;
