@@ -2155,7 +2155,8 @@ ListExpr GetTuples2TypeMap(ListExpr args)
              "\nOperator gettuples2 expects a first argument with structure "
              "(stream (tuple ((id tid) (a1 t1)...(an tn))))\n"
              "but gets it with structure '" + streamDescriptionStr + "'.");
-  cerr << "GetTuples2TypeMap: Stream type is: " << streamDescriptionStr << endl;
+  //cerr << "GetTuples2TypeMap: Stream type is: " << streamDescriptionStr 
+  //     << endl;
 
   // Handle the rel part of arguments
   nl->WriteToString (relDescriptionStr, relDescription);
@@ -2164,7 +2165,8 @@ ListExpr GetTuples2TypeMap(ListExpr args)
              "\nOperator gettuples2 expects a second argument with structure "
              "(rel (tuple ((a1 t1)...(an tn))))\n"
              "but gets it with structure '" + relDescriptionStr + "'.");
-  cerr << "GetTuples2TypeMap: Relation type is: " << relDescriptionStr << endl;
+  // cerr << "GetTuples2TypeMap: Relation type is: " << relDescriptionStr 
+  //      << endl;
 
   ListExpr sTupleDescription = nl->Second(streamDescription),
   sAttrList = nl->Second(sTupleDescription),
@@ -2252,7 +2254,7 @@ ListExpr GetTuples2TypeMap(ListExpr args)
 
   string restypeStr;
   nl->WriteToString(restypeStr, restype);
-  cerr << "GetTuples2TypeMap returns '" << restypeStr << "'." << endl;
+  // cerr << "GetTuples2TypeMap returns '" << restypeStr << "'." << endl;
 
   return restype;
 }
