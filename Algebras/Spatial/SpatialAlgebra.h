@@ -3182,6 +3182,8 @@ inline Point& Point::operator=( const Point& p )
     x = p.x;
     y = p.y;
   }
+  del.refs=1;
+  del.isDelete=true;
   return *this;
 }
 
@@ -3262,7 +3264,9 @@ inline Points::Points( const int initsize ) :
 points( initsize ),
 bbox( false ),
 ordered( true )
-{}
+{ del.refs=1;
+  del.isDelete=true;
+}
 
 inline Points::Points( const Points& ps ) :
 points( ps.Size() ),
@@ -3277,6 +3281,8 @@ ordered( true )
     ps.Get( i, p );
     points.Put( i, *p );
   }
+  del.refs=1;
+  del.isDelete=true;
 }
 
 inline const Rectangle<2> Points::BoundingBox() const
@@ -3815,7 +3821,9 @@ region( initsize ),
 bbox( false ),
 noComponents( 0 ),
 ordered( true )
-{}
+{ del.refs=1;
+  del.isDelete=true;
+}
 
 inline void Region::Destroy()
 {

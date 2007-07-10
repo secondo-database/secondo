@@ -1004,7 +1004,10 @@ Use this constructor when declaring temporal object variables etc.
 
     StandardTemporalUnit( const Interval<Instant>& interval ):
       TemporalUnit<Alpha>( interval )
-      {}
+      {
+        del.refs=1;
+        del.isDelete=true;
+      }
 /*
 This constructor sets the time interval of the temporal unit.
 
@@ -1096,7 +1099,8 @@ The simple constructor. This constructor should not be used.
 
 */
 
-    SpatialTemporalUnit( bool is_defined):TemporalUnit<Alpha>(is_defined) {}
+    SpatialTemporalUnit( bool is_defined):TemporalUnit<Alpha>(is_defined) 
+    {}
 
 /*
 Use this constructor when declaring temporal object variables etc.
@@ -1213,7 +1217,8 @@ struct ConstTemporalUnit : public StandardTemporalUnit<Alpha>
 */
   ConstTemporalUnit() {}
 
-  ConstTemporalUnit(bool is_defined):StandardTemporalUnit<Alpha>(is_defined) {}
+  ConstTemporalUnit(bool is_defined):StandardTemporalUnit<Alpha>(is_defined) 
+  {}
 
   ConstTemporalUnit( const Interval<Instant>& interval, const Alpha& a ):
     StandardTemporalUnit<Alpha>( interval )
@@ -1237,7 +1242,6 @@ struct ConstTemporalUnit : public StandardTemporalUnit<Alpha>
   {
     *((TemporalUnit<Alpha>*)this) = *((TemporalUnit<Alpha>*)&i);
     constValue.CopyFrom( &i.constValue );
-
     return *this;
   }
 /*
@@ -1429,7 +1433,11 @@ struct UReal : public StandardTemporalUnit<CcReal>
 */
   UReal() {};
 
-  UReal(bool is_defined):StandardTemporalUnit<CcReal>(is_defined) {};
+  UReal(bool is_defined):StandardTemporalUnit<CcReal>(is_defined) 
+  {
+    del.refs=1;
+    del.isDelete=true;
+  };
 
   UReal( const Interval<Instant>& interval,
          const double a,
@@ -1439,7 +1447,10 @@ struct UReal : public StandardTemporalUnit<CcReal>
     StandardTemporalUnit<CcReal>( interval ),
     a( a ), b( b ), c( c ),
     r( r )
-    {}
+    {
+      del.refs=1;
+      del.isDelete=true;
+    }
 
   // linear approximation between v1 and v2
   UReal(const Interval<Instant>& interval,
@@ -1455,6 +1466,8 @@ struct UReal : public StandardTemporalUnit<CcReal>
           return;
        }
        b = (v2-v1) / diff.ToDouble();
+       del.refs=1;
+       del.isDelete=true;
   }
 
 /*
@@ -1469,7 +1482,8 @@ struct UReal : public StandardTemporalUnit<CcReal>
     b = i.b;
     c = i.c;
     r = i.r;
-
+    del.refs=1;
+    del.isDelete=true;
     return *this;
   }
 /*
@@ -2472,7 +2486,10 @@ public:
 
    MReal( const int n ):
       Mapping< UReal, CcReal >( n )
-      {}
+      {
+        del.refs=1;
+        del.isDelete=true;
+      }
 
 /*
 3.11.2 Operation ~Simplify~
@@ -2576,7 +2593,10 @@ The simple constructor. This constructor should not be used.
 
     MPoint( const int n ):
       Mapping< UPoint, Point >( n )
-      {}
+      {
+        del.refs=1;
+        del.isDelete=true;
+      }
 /*
 The constructor. Initializes space for ~n~ elements.
 
@@ -2803,7 +2823,6 @@ Interval<Alpha>& Interval<Alpha>::operator=( const Interval<Alpha>& i )
   end.CopyFrom( &i.end );
   lc = i.lc;
   rc = i.rc;
-
   return *this;
 }
 
@@ -3023,7 +3042,10 @@ Range<Alpha>::Range( const int n ):
 canDestroy( false ),
 ordered( true ),
 intervals( n )
-{}
+{
+  del.refs=1;
+  del.isDelete=true;
+}
 
 template <class Alpha>
 void Range<Alpha>::Destroy()
@@ -4524,7 +4546,10 @@ Mapping<Unit, Alpha>::Mapping( const int n ):
 canDestroy( false ),
 ordered( true ),
 units( n )
-{}
+{
+  del.refs=1;
+  del.isDelete=true;
+}
 
 template <class Unit, class Alpha>
 void Mapping<Unit, Alpha>::Destroy()

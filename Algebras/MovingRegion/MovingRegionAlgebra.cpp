@@ -5887,7 +5887,8 @@ Assignment operator
        U.segments.Get(i+start, seg);
        segments.Put(i, *seg);
      }
-
+   del.refs=1;
+   del.isDelete=true;
    return *this;
  }
 
@@ -6425,6 +6426,8 @@ MRegion::MRegion(const int n) :
 
     if (MRA_DEBUG)
         cerr << "MRegion::MRegion(int) called" << endl;
+    del.refs=1;
+    del.isDelete=true;
 }
 
 //MRegion::MRegion(MPoint& mp, Region& r) :
@@ -6471,6 +6474,8 @@ MRegion::MRegion(MPoint& mp, Region r) :
                msegmentdata.Size());
         Add(ur);
     }
+    del.refs=1;
+    del.isDelete=true;
 }
 
 MRegion::MRegion(MPoint& mp, Region& r,int dummy) :
@@ -6533,6 +6538,8 @@ MRegion::MRegion(MPoint& mp, Region& r,int dummy) :
         r.Translate(tx,ty);
         Add(ur);
     }
+    del.refs=1;
+    del.isDelete=true;
 }
 
 /*

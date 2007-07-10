@@ -1103,6 +1103,8 @@ Points& Points::operator=( const Points& ps )
   }
   bbox = ps.BoundingBox();
   ordered = true;
+  del.refs=1;
+  del.isDelete=true;
   return *this;
 }
 
@@ -3439,6 +3441,8 @@ Line& Line::operator=( const Line& l )
   startsSmaller = l.startsSmaller;
   ordered = true;
   currentHS = l.currentHS;
+  del.refs=1;
+  del.isDelete=true;
   return *this;
 }
 
@@ -5160,6 +5164,8 @@ ordered( true )
     }
   }
   EndBulkLoad( false, false, false, false );
+  del.refs=1;
+  del.isDelete=true;
 }
 
 void Region::StartBulkLoad()
@@ -6051,7 +6057,8 @@ Region& Region::operator=( const Region& r )
 
   bbox = r.bbox;
   noComponents = r.noComponents;
-
+  del.refs=1;
+  del.isDelete=true;
   return *this;
 }
 
