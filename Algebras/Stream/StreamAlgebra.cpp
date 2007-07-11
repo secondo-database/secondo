@@ -203,7 +203,7 @@ int MappingStreamFeed( Word* args, Word& result, int message,
       if ( linfo->finished )
         return CANCEL;
       argValue = args[0];
-      result = SetWord(((Attribute*) (argValue.addr))->Copy());
+      result = SetWord(((Attribute*) (argValue.addr))->Clone());
       linfo->finished = true;
       return YIELD;
 
