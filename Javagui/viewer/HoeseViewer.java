@@ -1956,9 +1956,15 @@ public boolean canDisplay(SecondoObject o){
          for(int i=0;i<count;i++){
             QR = (QueryResult)CB.getItemAt(i);
             SO = new SecondoObject(IDManager.getNextID());
-            SO.setName(QR.getCommand());
+            String name = QR.getCommand();
+            SO.setName(name);
             SO.fromList(QR.getListExpr());
             VC.addObject(SO);
+            String name2 = SO.getName(); // may be changed because of name conflicts
+            if(!name.equals(name2)){
+              QR.setCommand(name2);
+              VC.updateMarks();
+            }
          }
       }
       GraphDisplay.updateBackground(); 

@@ -1084,6 +1084,11 @@ private void setViewer(SecondoViewer SV){
   MainMenu.revalidate();
 }
 
+/** scans the displayed objects newly **/
+public void updateMarks(){
+   OList.updateMarks();
+}
+
 
 /** executes a gui-command
   *

@@ -272,6 +272,13 @@ public class QueryResult extends JList {
     */
   public String getCommand(){return command;}
 
+  /** Sets the command 
+    **/
+  public void setCommand(String command){
+      this.command=command;
+  }
+
+
   /** return the ListExpr */
   public  ListExpr getListExpr(){return LEResult;}
 

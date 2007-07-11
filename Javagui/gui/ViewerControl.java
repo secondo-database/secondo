@@ -61,6 +61,9 @@ public void updateObject(SecondoObject SO);
 /** allow a viewer to add a object */
 public boolean addObject(SecondoObject SO);
 
+/** updates the marks indicating displayed objects **/
+public void updateMarks();
+
 
 /** returns all loaded Viewers */
 public SecondoViewer[] getViewers();
