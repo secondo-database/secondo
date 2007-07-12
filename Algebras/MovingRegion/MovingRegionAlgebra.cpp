@@ -8029,6 +8029,7 @@ static int AtValueMap_MPoint(Word* args,
             MRegion* mr = new MRegion(*mp, *r);
 
             mr->Intersection(*mp, *res);
+            delete mr;
         }
     } catch (invalid_argument& e) {
         cerr << "-----------------------------------------------------------"
