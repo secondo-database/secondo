@@ -111,6 +111,13 @@ public QueryViewer(){
     return RelSplitter.selectObject(O);
  }
 
+ public void updateMarks(){
+     if(VC!=null){
+       VC.updateMarks();
+     }
+ }
+
+
  /** get the MenuExtension for MainWindow
    *
    **/
