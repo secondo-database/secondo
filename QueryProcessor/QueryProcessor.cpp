@@ -3648,7 +3648,7 @@ QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
 {
   Word result;
   OpTree tree = (OpTree) s;
-  bool trace = true;	//set to true for tracing
+  bool trace = false;	//set to true for tracing
 
 	if ( trace ) cout << "RequestProgress called with Supplier = " << 
         (void*) s << "  ProgressInfo* = " << (void*) p << endl;
