@@ -2424,9 +2424,6 @@ public:
     this->streamA = streamA;
     this->streamB = streamB;
 
-    qp->Open(streamA.addr);
-    qp->Open(streamB.addr);
-
     ListExpr resultType =
       SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
     resultTupleType = new TupleType( nl->Second( resultType ) );
@@ -2600,10 +2597,13 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( li ) delete li;
 
       li = new LocalType();
-      li->memorySecond = 12288;	 //default, reset by constructor below
+      li->memorySecond = 12582912;	 //default, reset by constructor below
       local.addr = li;
 
       li->ptr = 0;
+
+      qp->Open(args[0].addr);
+      qp->Open(args[1].addr);
 
       return 0;
 
