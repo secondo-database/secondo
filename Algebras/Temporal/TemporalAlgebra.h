@@ -693,7 +693,19 @@ The second constructor.
 
   int Compare( const Attribute* arg ) const
   {
-    return 0;
+    //    return 0; // Original implementation
+    Intime<Alpha>* other = (Intime<Alpha>*) arg;
+    if (!IsDefined() && !other->IsDefined())
+      return 0;
+    if (!IsDefined())
+      return -1;
+    if (!other->IsDefined())
+      return 1;
+
+    int cmp = instant.Compare( &(other->instant) );
+    if(cmp)
+      return cmp;
+    return value.Compare( &(other->value) );
   }
 
   bool Adjacent( const Attribute* arg ) const
@@ -3005,31 +3017,53 @@ void Interval<Alpha>::Intersection( const Interval<Alpha>& i,
 
 template <class Alpha>
 int  Interval<Alpha>::CompareTo( const Interval<Alpha>& i) const{
-   if(start<i.start){
-      return -1;
-   }
-   if(start>i.start){
-      return 1;
-   }
-   if(!lc && i.lc){
-      return -1;
-   }
-   if(lc && !i.lc){
-      return 1;
-   }
-   if(end<i.end){
-       return -1;
-   }
-   if(end>i.end){
-       return 1;
-   }
-   if(rc && !i.rc){
-      return 1;
-   }
-   if(!rc && i.rc){
-      return -1;
-   }
-   return 0;
+//    if(start<i.start){
+//       return -1;
+//    }
+//    if(start>i.start){
+//       return 1;
+//    }
+//    if(!lc && i.lc){
+//       return -1;
+//    }
+//    if(lc && !i.lc){
+//       return 1;
+//    }
+//    if(end<i.end){
+//        return -1;
+//    }
+//    if(end>i.end){
+//        return 1;
+//    }
+//    if(rc && !i.rc){
+//       return 1;
+//    }
+//    if(!rc && i.rc){
+//       return -1;
+//    }
+//    return 0;
+  int cmp = start.Compare( &(i.start) );
+  if( cmp != 0 ){
+    return cmp;
+  }
+  if(!lc && i.lc){
+    return -1;
+  }
+  if(lc && !i.lc){
+    return 1;
+  }
+  cmp = end.Compare( &(i.end) );
+    if( cmp != 0 ){
+    return cmp;
+  }
+  if(rc && !i.rc){
+    return 1;
+  }
+  if(!rc && i.rc){
+    return -1;
+  }
+  return 0;
+  
 }
 /*
 4.2 Range
@@ -3162,6 +3196,30 @@ inline size_t Range<Alpha>::Sizeof() const
 template <class Alpha>
 inline int Range<Alpha>::Compare( const Attribute* arg ) const
 {
+  //    return 0; // Original implementation
+  Range<Alpha>* other = (Range<Alpha>*) arg;
+  if (!IsDefined() && !other->IsDefined())
+    return 0;
+  if (!IsDefined())
+    return -1;
+  if (!other->IsDefined())
+    return 1;
+
+  int cmp = 0;
+  const Interval<Alpha> *my_interval, *other_interval;
+  int maxindex = MIN(GetNoComponents(),other->GetNoComponents());
+  for( int i = 0; i < maxindex; i++ )
+  {
+    Get( i, my_interval );
+    other->Get( i, other_interval );
+    cmp = my_interval->CompareTo(*other_interval);
+    if ( cmp != 0 )
+      return cmp;
+  }
+  if ( GetNoComponents() < other->GetNoComponents() )
+    return -1;
+  if ( GetNoComponents() > other->GetNoComponents() )
+    return 1;
   return 0;
 }
 
