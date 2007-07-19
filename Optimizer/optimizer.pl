@@ -2467,7 +2467,7 @@ The dynamic predicates below are used to display
 the edge selectivites and estimated sizes of the 
 last computed best plan which is stored in ~path/1~.
 
-Moreover if option ~useCounters~ is swichted on the real
+Moreover if option ~useCounters~ is switched on, the real
 sizes for the POG-nodes traversed by the path are computed.
 
 After a query was processed one can investigate the plan by using
@@ -2480,7 +2480,7 @@ the predicates ~explainPlan/0~, ~checkSizes/0~ or ~showPredOrder/0~.
            nodeSizeCounter/4,
            nodeSizeCounter/2,
            path/1.
-           
+
 
 sizeAndSel(Src, Tgt, Sel, Size) :-
   costEdge(Src, Tgt, _, _, Size, _),
@@ -2960,12 +2960,6 @@ before calling ~bestPlan/2~. Hence a clause sequence ~pog, assignCosts,
 bestPlan~ will unify a best plan according to the assigned costs.
 
 */
-
-
-% assignCosts :-
-%   optimizerOption(entropy),
-%   assignEntropyCost.
-
 
 assignCosts :-
   deleteSizes,
@@ -3852,9 +3846,7 @@ lookupAttr(Term, Result) :-
   !.
 
 /*
-Generic lookup functionality for lookupAttr/2 on functors of arbitrary arity
-using Univ (=../2) rather than (functor/3 and arg/3) was introduced by
-C. D[ue]ntgen.
+Generic lookupAttr/2-rule for functors of arbitrary arity using Univ (=../2):
 
 */
 
@@ -3976,8 +3968,7 @@ lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
 
 /*
 
-Generic lookup for operators of arbitrary arity using (=../2) implemented
-on Feb/16/2006 by C. D[ue]ntgen. See also  ~lookupAttrs~.
+Generic rule for operators of arbitrary arity using (=../2):
 
 */
 
@@ -4086,6 +4077,18 @@ only the cost for evaluating the essential part, the conjunctive query.
 
 
 % special handling for the entropy optimizer
+translate1(Query groupby Attrs,
+        groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields),
+        select Select2, Cost) :-
+  optimizerOption(entropy),
+  translate1(Query, Stream, SelectClause, Cost),
+  makeList(Attrs, Attrs2),
+  attrnames(Attrs2, AttrNamesGroup),
+  attrnamesSort(Attrs2, AttrNamesSort),
+  SelectClause = (select Select),
+  makeList(Select, SelAttrs),
+  translateFields(SelAttrs, Attrs2, Fields, Select2),
+  !.
 
 translate1(Query, Stream3, Select2, Cost2) :-
   optimizerOption(entropy),
@@ -4095,19 +4098,18 @@ translate1(Query, Stream3, Select2, Cost2) :-
   retractall(removeHiddenAttributes),
   translate(Query, Stream1, Select, Cost1),
   translateEntropy(Stream1, Stream2, Cost1, Cost2),
-% Hook for CSE substitution:
+  % Hook for CSE substitution:
   rewritePlanforCSE(Stream2, Stream3, Select, Select2),
   !.
 
 % default handling
-
 translate1(Query, Stream2, Select2, Cost) :-
   translate(Query, Stream, Select, Cost),
   rewritePlanforCSE(Stream, Stream2, Select, Select2), % Hook for CSE substitution
   !.
 
 % the main predicate which does the translation of a query
-
+%   translate(+Query, -Stream, -SelectClause, -Cost)
 translate(Query groupby Attrs,
         groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields),
         select Select2, Cost) :-
@@ -4208,7 +4210,7 @@ from a relation into a stream. The system predicate ~setof~ is used
 to find all goal for query ~usedAttr(Rel,X)~.
 
 */
-
+%   usedAttrList(+Rel, -ResList) 
 usedAttrList(Rel, ResList) :-
   setof(X, usedAttr(Rel, X), R1),
   %nl, write('AttrList: '), write(R1), nl,
@@ -4482,7 +4484,7 @@ queryToStream(Query, Stream2, Cost) :-
   !.
 
 /*
-----    finish(Stream, Select, Sort, Stream2) :-
+----    finish(+Stream, +Select, +Sort, -Stream2) :-
 ----
 
 Given a ~Stream~, a ~Select~ clause, and a set of attributes for sorting,
@@ -4643,10 +4645,6 @@ Optimize ~Query~ and print the best ~Plan~.
 */
 
 optimize(Query) :-
- %rewriteQuery(Query, RQuery),
- % callLookup(RQuery, Query2), !,
- % queryToPlan(Query2, Plan, Cost), !,
- % plan_to_atom(Plan, SecondoQuery),
   optimize(Query, SecondoQuery, Cost),
   write('The plan is: '), nl, nl,
   write(SecondoQuery), nl, nl,

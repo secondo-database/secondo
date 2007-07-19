@@ -401,7 +401,11 @@ idAttr(rel(RelName, Var, _), ArgNo, attr(Var:IdAttr, ArgNo, l)) :-
 
 
 /*
-The clause ~translateEntropy~ runs a plan given as ~Stream1~ with ~Cost1~ on 
+
+----  translateEntropy(+Stream1, -Stream2, +Cost1, -Cost2)
+----
+
+The clause ~translateEntropy~ runs a plan given as ~Stream1~ with ~Cost1~ on
 the small database. Conditional selectivities are computed along
 the path of the first plan. Then the iterative scaling algorithm computes the
 remaining conditional selectivites. The new selectivites are assigned to the
@@ -411,44 +415,37 @@ POG and a second plan is computed and returned as ~Stream2~ with costs ~Cost2~.
 
 translateEntropy(Stream1, Stream2, Cost1, Cost2) :-
   % limit application to queries with a maximum of 8 predicates:
-  highNode(HN), HN > 1, HN < 256, !, 
-  
-  nl, 
-  write('*** Using Entropy-approach ************' ), 
-  nl, !,
+  highNode(HN), HN > 1, HN < 256, !,
+  nl, write('*** Using Entropy-approach ************' ), nl, !,
 
-  assert(removeHiddenAttributes),		% show first plan without
-						% self join modifications
+  % show first plan without self join modifications:
+  assert(removeHiddenAttributes),
   plan_to_atom(Stream1, FirstQuery),
   retractall(removeHiddenAttributes),
 
-
   prepare_query_small(Stream1, PlanSmall),
   plan_to_atom(PlanSmall, SmallQuery),
-  
-  write('The plan on the small database is: '), nl, 
+  write('The plan on the small database is: '), nl,
   write(SmallQuery), nl, nl,
+
   write('Executing the query in the small database...'),
-  
   deleteEntropyNodes, !,
   query(SmallQuery, _), !, nl,
-  
-  write('First Plan:'), nl, 
-  write( FirstQuery ), nl, nl,
-  write('Estimated Cost: '), 
-  write(Cost1), nl, nl, !,
- 
+  write('First Plan:'), nl, write( FirstQuery ), nl, nl,
+  write('Estimated Cost: '), write(Cost1), nl, nl, !,
+
   % compute a new plan based on the cost annotations of
   % the new selectivities computed by maximize_entropy 
   deleteCounters,
   retract(buildingSmallPlan),
+  % entropySaveUsedAttrs, !, % save original set (loosing attrs used in select clause!)
   retractall(selfJoin(_, _, _)),
-  retractall(usedAttr(_, _)),
+  retractall(usedAttr(_,_)),
   assert(removeHiddenAttributes),
   assignEntropyCost,
   bestPlan(Stream2, Cost2), !,
-
   warn_plan_changed(Stream1, Stream2),
+  % entropyLoadUsedAttrs, !, % reload original set (lost attrs used in select clause!)
   !.
 
 translateEntropy(Stream1, Stream1, Cost1, Cost1) :-
@@ -462,23 +459,22 @@ translateEntropy(Stream1, Stream1, Cost1, Cost1) :-
 
 
 assignEntropyCost :-
- 
+
   createSmallResultSizes, !,
   createSmallSelectivity, !,
-  
+
   createMarginalProbabilities( MP ),!,
   createJointProbabilities( JP ),!,
- 
+
   % store selectivities of the first query and  delete the
   % cost annotations in the POG 
   saveFirstSizes,
   deleteSizes,
   deleteCostEdges,
-  
-  nl, 
-  write('Marginal Sel.: MP ='), write( MP ), nl,
-  write('Conditional Sel.: JP =') , write( JP ), nl, nl,
-  
+
+  nl, write('Marginal Sel.: MP ='), write( MP ),
+  nl, write('Conditional Sel.: JP =') , write( JP ), nl, nl,
+
   feasible(MP, JP, MP2, JP2), !,
 
   % call the predicate implemented in C++ which computes the 
@@ -486,7 +482,7 @@ assignEntropyCost :-
   write('calling maximize_entropy with:'), nl,
   write( MP2 ), write(', ') , write( JP2 ), nl, nl,
   maximize_entropy(MP2, JP2, Result), !,
-  
+
   createEntropyNode(Result),
   assignEntropySizes,
   createCostEdges.
@@ -749,23 +745,45 @@ Delete facts stored during the ~entropy~ optimization
 procedure.
 
 */
- 
+
 deleteEntropyNodes :-
   retractall(entropy_node(_,_)).
- 
+
 deleteFirstSizes :-
   retractall(firstResultSize(_,_)),
   retractall(firstEdgeSelectivity(_,_,_)).
-  
+
 deleteSmallSelectivity :-
   retractall(small_cond_sel(_,_,_,_)).
- 
+
 deleteSmallResults :-
   deleteSmallResultCounter,
   deleteSmallResultSize,
   deleteSmallSelectivity,
   deleteFirstSizes.
- 
+
+% save the set of used attributes for later reloading
+entropySaveUsedAttrs :-
+  retractall(entropySavedUsedAttr(_,_)), !,
+  not(entropySaveUsedAttrs1).
+
+entropySaveUsedAttrs1 :-
+  usedAttr(X, Y),
+  assert(entropySavedUsedAttr(X,Y)),
+  retractall(usedAttr(X, Y)),
+  fail.
+
+% reload the saved set uf used attributes
+entropyLoadUsedAttrs :-
+  retractall(usedAttr(_,_)), !,
+  not(entropyLoadUsedAttrs1).
+
+entropyLoadUsedAttrs1 :-
+  entropySavedUsedAttr(X, Y),
+  assert(usedAttr(X,Y)),
+  retractall(entropySavedUsedAttr(X, Y)),
+  fail.
+
 /*
 6 Example Queries
 
