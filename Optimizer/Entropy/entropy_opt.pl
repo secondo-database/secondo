@@ -438,14 +438,12 @@ translateEntropy(Stream1, Stream2, Cost1, Cost2) :-
   % the new selectivities computed by maximize_entropy 
   deleteCounters,
   retract(buildingSmallPlan),
-  % entropySaveUsedAttrs, !, % save original set (loosing attrs used in select clause!)
   retractall(selfJoin(_, _, _)),
   retractall(usedAttr(_,_)),
   assert(removeHiddenAttributes),
   assignEntropyCost,
   bestPlan(Stream2, Cost2), !,
   warn_plan_changed(Stream1, Stream2),
-  % entropyLoadUsedAttrs, !, % reload original set (lost attrs used in select clause!)
   !.
 
 translateEntropy(Stream1, Stream1, Cost1, Cost1) :-
@@ -761,28 +759,6 @@ deleteSmallResults :-
   deleteSmallResultSize,
   deleteSmallSelectivity,
   deleteFirstSizes.
-
-% save the set of used attributes for later reloading
-entropySaveUsedAttrs :-
-  retractall(entropySavedUsedAttr(_,_)), !,
-  not(entropySaveUsedAttrs1).
-
-entropySaveUsedAttrs1 :-
-  usedAttr(X, Y),
-  assert(entropySavedUsedAttr(X,Y)),
-  retractall(usedAttr(X, Y)),
-  fail.
-
-% reload the saved set uf used attributes
-entropyLoadUsedAttrs :-
-  retractall(usedAttr(_,_)), !,
-  not(entropyLoadUsedAttrs1).
-
-entropyLoadUsedAttrs1 :-
-  entropySavedUsedAttr(X, Y),
-  assert(usedAttr(X,Y)),
-  retractall(entropySavedUsedAttr(X, Y)),
-  fail.
 
 /*
 6 Example Queries
