@@ -127,7 +127,7 @@ void Network::Load( const Relation *routes, const Relation *junctions )
 void Network::FillRoutes( const Relation *routes )
 {
   ostringstream strRoutesPtr;
-  strRoutesPtr << (int)routes;
+  strRoutesPtr << (size_t)routes;
 
   string querystring = "(consume (sort (feed (" + routesTypeInfo + 
                        " (ptr " + strRoutesPtr.str() + ")))))";
@@ -139,7 +139,7 @@ void Network::FillRoutes( const Relation *routes )
   this->routes = (Relation *)resultWord.addr;
 
   ostringstream strThisRoutesPtr;
-  strThisRoutesPtr << (int)this->routes;
+  strThisRoutesPtr << (size_t)this->routes;
 
   querystring = "(createbtree (" + routesTypeInfo + 
                 " (ptr " + strThisRoutesPtr.str() + "))" + " id)";
@@ -253,7 +253,7 @@ void Network::FillJunctions( const Relation *junctions )
   }
 
   ostringstream strJunctionsPtr;
-  strJunctionsPtr << (int)unJunctions;
+  strJunctionsPtr << (size_t)unJunctions;
 
   string querystring = "(consume (sortby (feed (" + junctionsInternalTypeInfo +
                        " (ptr " + strJunctionsPtr.str() + 
@@ -275,7 +275,7 @@ Relation *Network::GetJunctionsInternal()
 Relation *Network::GetJunctions()
 {
   ostringstream strJunctionsPtr;
-  strJunctionsPtr << (int)junctions;
+  strJunctionsPtr << (size_t)junctions;
 
   string querystring = "(consume (feed (" + junctionsInternalTypeInfo +
                        " (ptr " + strJunctionsPtr.str() + "))))";
@@ -403,7 +403,7 @@ Relation *Network::GetSectionsInternal()
 Relation *Network::GetSections()
 {
   ostringstream strSectionsPtr;
-  strSectionsPtr << (int)sections;
+  strSectionsPtr << (size_t)sections;
 
   string querystring = "(consume (feed (" + sectionsInternalTypeInfo +
                        " (ptr " + strSectionsPtr.str() + "))))";
