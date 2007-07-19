@@ -45,7 +45,12 @@ ifeq ($(platform),linux)
 
 JNI_H_DIR := $(J2SDK_ROOT)/include
 
+ifdef J2SDK_LIB
+LIBJAVA_DIR := $(J2SDK_ROOT)/$(J2SDK_LIB)
+else
+# assume the default directory for 32bit systems
 LIBJAVA_DIR := $(J2SDK_ROOT)/jre/lib/i386
+endif
 
 LIBJVM_DIR := $(LIBJAVA_DIR)/client
 

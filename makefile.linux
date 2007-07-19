@@ -51,3 +51,5 @@ DLLOBJEXT := lo
 DLLEXT := so
 DLLPREF := lib
 DLLFLAGS := -s -shared
+
+DEFAULTCCFLAGS := -fPIC

@@ -16,7 +16,7 @@ ENTROPY_OBJS := IterScale Iterative_scaling.o
 allEntropy: $(ENTROPY_OBJS) 
 
 Iterative_scaling.o: Iterative_scaling.cpp
-	gcc -c $<
+	gcc -fPIC -c $<
 
 IterScale: Iterative_scaling.cpp
 	g++ -o $@ -DSTAND_ALONE $<
