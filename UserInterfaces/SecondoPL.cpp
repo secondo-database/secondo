@@ -237,7 +237,7 @@ TermToListExpr(term_t t, NestedList* nl, bool& error)
   double realValue;
   char* charValue;
   char* strValue;
-  unsigned int len;
+  size_t len;
 
   term_t head;
   term_t list;
