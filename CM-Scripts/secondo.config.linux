@@ -30,21 +30,36 @@ export SECONDO_LDFLAGS="-L$SECONDO_SDK/auxtools/lib"
 
 
 #SWI Prolog
-export SWI_HOME_DIR="$SECONDO_SDK/swi/lib/pl-5.4.7"
+arch="$CPU-$OSTYPE"
+export SWI_HOME_DIR="$SECONDO_SDK/swi/lib/pl-5.6.37"
 export PL_INCLUDE_DIR="$SWI_HOME_DIR/include"
-export PL_LIB_DIR="$SWI_HOME_DIR/lib/i686-linux"
+export PL_LIB_DIR="$SWI_HOME_DIR/lib/$arch"
 
-export PL_VERSION="50407"
+export PL_VERSION="50637"
 # If the OptimizerServer crashes at runtime try to use it
 # with the jpl libraries provided by SWI-Prolog instead of
 # compiling it (see also Jpl/readme.txt).
 
-#export PL_DLL_DIR=PL_LIB_DIR
-#export JPL_JAR=$SWI_HOME_DIR/lib/jpl.jar
-#export JPL_DLL=$PL_DLL_DIR/libjpl.so
+export PL_DLL_DIR=$PL_LIB_DIR
+export JPL_JAR=$SWI_HOME_DIR/lib/jpl.jar
+export JPL_DLL=$PL_DLL_DIR/libjpl.so
 
 #JAVA
-export J2SDK_ROOT="$SECONDO_SDK/j2sdk1.4.2_01"
+export J2SDK_ROOT="$SECONDO_SDK/jdk1.5.0_12"
+
+#check for 32 or 64 bit installation
+LIBx64="jre/amd64/lib"
+if [ ! -e $J2SDK_ROOT/$J2SDK_LIB ]; then
+ LIBx32="jre/i386/lib"
+ if [ ! -e $J2SDK_ROOT/$J2SDK_LIB ]; then
+   echo "Error: No subdirectory $LIBx64 or $LIBx32 found! Please check your java configuration in secondo.config.linux!"
+ else
+   export J2SDK_LIB=$LIBx32
+ fi
+else
+ export J2SDK_LIB=$LIBx64
+fi
+
 
 #PD System
 export PD_DVI_VIEWER=xdvi
