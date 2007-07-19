@@ -57,8 +57,8 @@ PATH=.:${J2SDK_ROOT}/bin:$binPaths:${PATH}
 if [ $SECONDO_PLATFORM != "win32" ]; then
 
    checkVar "PL_LIB_DIR" $PL_LIB_DIR
-   pathList=${J2SDK_ROOT}/jre/lib/i386
-   pathList=${pathList}:${J2SDK_ROOT}/jre/lib/i386/client
+   pathList=${J2SDK_ROOT}/$J2SDK_LIB
+   pathList=${pathList}:${J2SDK_ROOT}/$J2SDK_JVMLIB
    pathList=${pathList}:${libPaths}
    pathList=${pathList}:${SECONDO_BUILD_DIR}/lib
    pathList=${pathList}:${PL_LIB_DIR}

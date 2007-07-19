@@ -31,14 +31,14 @@ export SECONDO_LDFLAGS="-L$SECONDO_SDK/auxtools/lib"
 
 #SWI Prolog
 arch="$CPU-$OSTYPE"
+export PL_VERSION="50637"
 export SWI_HOME_DIR="$SECONDO_SDK/swi/lib/pl-5.6.37"
+
 export PL_INCLUDE_DIR="$SWI_HOME_DIR/include"
 export PL_LIB_DIR="$SWI_HOME_DIR/lib/$arch"
 
-export PL_VERSION="50637"
-# If the OptimizerServer crashes at runtime try to use it
-# with the jpl libraries provided by SWI-Prolog instead of
-# compiling it (see also Jpl/readme.txt).
+# libraries provided by the prolog-jpl package
+# (see also Jpl/readme.txt).
 
 export PL_DLL_DIR=$PL_LIB_DIR
 export JPL_JAR=$SWI_HOME_DIR/lib/jpl.jar
@@ -48,16 +48,20 @@ export JPL_DLL=$PL_DLL_DIR/libjpl.so
 export J2SDK_ROOT="$SECONDO_SDK/jdk1.5.0_12"
 
 #check for 32 or 64 bit installation
-LIBx64="jre/amd64/lib"
-if [ ! -e $J2SDK_ROOT/$J2SDK_LIB ]; then
- LIBx32="jre/i386/lib"
- if [ ! -e $J2SDK_ROOT/$J2SDK_LIB ]; then
+LIBx64="jre/lib/amd64"
+if [ ! -e $J2SDK_ROOT/$LIBx64 ]; then
+ LIBx32="jre/lib/i386"
+ if [ ! -e $J2SDK_ROOT/$LIBx32 ]; then
    echo "Error: No subdirectory $LIBx64 or $LIBx32 found! Please check your java configuration in secondo.config.linux!"
  else
+   # Note jdk 1.4.2 has a client and server directory which both
+   # contain libjvm.so whereas jdk 1.5 has only the server directory.
    export J2SDK_LIB=$LIBx32
+   export J2SDK_JVMLIB=$J2SDK_LIB/client
  fi
 else
  export J2SDK_LIB=$LIBx64
+ export J2SDK_JVMLIB=$J2SDK_LIB/server
 fi
 
 
