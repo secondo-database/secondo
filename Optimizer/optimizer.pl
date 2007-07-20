@@ -3540,11 +3540,12 @@ Example:
 
 When using ~groupby~, the ~select list~ may contain
 
-  * attributes from the ~<groupby-attr-list>~
+  * attributes from the ~$<$groupby-attr-list$>$~
 
   * aggregation functions like ~count([*])~, ~count(distinct [*])~,
-    ~count(<attr>)~, ~count(distinct <attr>)~, ~max(<attr>)~,
-    ~aggrop(distinct <attr>)~ (where ~aggrop~ is one of ~max~, ~min~, ~avg~,
+    ~count($<$attr$>$)~, ~count(distinct $<$attr$>$)~, ~count($<$expr$>$)~,
+    ~count(all $<$expr$>$)~, ~count(distinct $<$expr$>$)~, ~max($<$attr$>$)~,
+    ~aggrop(distinct $<$attr$>$)~ (where ~aggrop~ is one of ~max~, ~min~, ~avg~,
     ~sum~). Also, user defined aggregation functions can be applied using the
     ~aggregate~ functor (explained below).
 
@@ -4295,8 +4296,43 @@ translateFields([count(distinct attr(A,B,C)) as NewAttr | Select], GroupAttrs,
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
-% case: count(expr) / count(all expr) with rename
 % case: count(distinct expr) with rename
+translateFields([count(distinct Expr) as NewAttr | Select], GroupAttrs,
+  [field(NewAttr,count(CountStream))|Fields],
+  [NewAttr | Select2]) :-
+  compound(Expr),
+  newVariable(ExpAttrName),
+  Expr \= attr(_,_,_),
+  AttrExtStream = extend(feed(group),
+                         [newattr(attrname(attr(ExpAttrName, 1, l)), Expr)]),
+  CountStream = rdup(sort(filter(AttrExtStream,
+                                 not(isempty(attr(ExpAttrName, 1, l)))))),
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
+
+% case: count(expr) / count(all expr) with rename
+translateFields([count(all Expr) as NewAttr | Select], GroupAttrs,
+  [field(NewAttr,count(CountStream))|Fields],
+  [NewAttr | Select2]) :-
+  compound(Expr),
+  Expr \= attr(_,_,_),
+  newVariable(ExpAttrName),
+  AttrExtStream = extend(feed(group),
+                         [newattr(attrname(attr(ExpAttrName, 1, l)), Expr)]),
+  CountStream = filter(AttrExtStream ,not(isempty(attr(ExpAttrName, 1, l)))),
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
+translateFields([count(Expr) as NewAttr | Select], GroupAttrs,
+  [field(NewAttr,count(CountStream))|Fields],
+  [NewAttr | Select2]) :-
+  compound(Expr),
+  Expr \= attr(_,_,_),
+  newVariable(ExpAttrName),
+  AttrExtStream = extend(feed(group),
+                         [newattr(attrname(attr(ExpAttrName, 1, l)), Expr)]),
+  CountStream = filter(AttrExtStream ,not(isempty(attr(ExpAttrName, 1, l)))),
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
 
 % case: aggrop(attr) / aggrop(all attr)with rename
 % case: aggrop(distinct attr) with rename
