@@ -3538,6 +3538,19 @@ Example:
         orderby [ort asc, plz desc]
 ----
 
+When using ~groupby~, the ~select list~ may contain
+
+  * attributes from the ~<groupby-attr-list>~
+
+  * aggregation functions like ~count([*])~, ~count(distinct [*])~,
+    ~count(<attr>)~, ~count(distinct <attr>)~, ~max(<attr>)~,
+    ~aggrop(distinct <attr>)~ (where ~aggrop~ is one of ~max~, ~min~, ~avg~,
+    ~sum~). Also, user defined aggregation functions can be applied using the
+    ~aggregate~ functor (explained below).
+
+If only a single value is created using an aggregation function in the select
+list of a groupby query, it is not required to name it using the ~as~ directive.
+
 This example also shows that the where-clause may be omitted. It is also
 possible to combine grouping and ordering:
 
@@ -3568,6 +3581,7 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(950,  fx, select).
 :- op(950, xfx, where).
 :- op(940,  fx, distinct).
+:- op(940,  fx, all).
 :- op(935,  fx, nonempty).
 :- op(930, xfx, as).
 :- op(930, xf , asc).
@@ -3777,6 +3791,9 @@ duplicateAttrs(Rel) :-
 */
 
 lookupAttrs(distinct X, distinct Y) :-
+  lookupAttrs(X, Y).
+
+lookupAttrs(all X, Y) :-
   lookupAttrs(X, Y).
 
 lookupAttrs([], []).
@@ -4238,35 +4255,62 @@ which will translate to a corresponding projection operation.
 
 translateFields([], _, [], []).
 
-% special case: count(*)
+% case: count(*) / count(all *) with rename
 translateFields([count(*) as NewAttr | Select], GroupAttrs,
         [field(NewAttr , count(feed(group))) | Fields], [NewAttr | Select2]) :-
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
+translateFields([count(all *) as NewAttr | Select], GroupAttrs,
+        [field(NewAttr , count(feed(group))) | Fields], [NewAttr | Select2]) :-
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
 
-% translateFields([sum(attr(Name, Var, Case)) as NewAttr | Select], GroupAttrs,
-%        [field(NewAttr, sum(feed(group), attrname(attr(Name, Var, Case)))) | Fields],
-%         [NewAttr| Select2]) :-
-%   translateFields(Select, GroupAttrs, Fields, Select2),
-%   !.
+% case: count(distinct *) with rename
+translateFields([count(distinct *) as NewAttr | Select], GroupAttrs,
+        [field(NewAttr , count(rdup(sort(feed(group))))) | Fields],
+        [NewAttr | Select2]) :-
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
 
-% translateFields([sum(Expr) as NewAttr | Select], GroupAttrs,
-%         [field(NewAttr,
-%           sum(
-%             extend(feed(group), field(attr(xxxExprField, 0, l), Expr)),
-%             attrname(attr(xxxExprField, 0, l))
-%             ))
-%         | Fields],
-%         [NewAttr| Select2]) :-
-%   translateFields(Select, GroupAttrs, Fields, Select2),
-%   !.
+% case: count(attr) / count(all attr) with rename
+% (does not count rows, where the attr is undefined)
+translateFields([count(attr(A,B,C)) as NewAttr | Select], GroupAttrs,
+  [field(NewAttr,count(filter(feed(group),not(isempty(attr(A,B,C))))))|Fields],
+  [NewAttr | Select2]) :-
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
+translateFields([count(all attr(A,B,C)) as NewAttr | Select], GroupAttrs,
+  [field(NewAttr,count(filter(feed(group),not(isempty(attr(A,B,C))))))|Fields],
+  [NewAttr | Select2]) :-
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
 
+% case: count(distinct attr) with rename
+% (does only count rows with defined and distinct attr values)
+translateFields([count(distinct attr(A,B,C)) as NewAttr | Select], GroupAttrs,
+  [field(NewAttr,count(rdup(sort(project(filter(feed(group),
+  not(isempty(attr(A,B,C)))),AttrName)))))|Fields],
+  [NewAttr | Select2]) :-
+  attrnames([attr(A,B,C)], AttrName),
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
+
+% case: count(expr) / count(all expr) with rename
+% case: count(distinct expr) with rename
+
+% case: aggrop(attr) / aggrop(all attr)with rename
+% case: aggrop(distinct attr) with rename
+% case: aggrop(expr) / aggrop(all expr) with rename
+% case: aggrop(distinct expr) with rename
+
+% case: attribute without rename
 translateFields([Attr | Select], GroupAttrs, Fields, [Attr | Select2]) :-
   member(Attr, GroupAttrs),
   !,
   translateFields(Select, GroupAttrs, Fields, Select2).
 
 
+% case: attribute with rename
 translateFields([Attr as Name | Select], GroupAttrs, Fields, [Attr as Name | Select2]) :-
   member(Attr, GroupAttrs),
   !,
@@ -4279,7 +4323,7 @@ property ~isAggregationOP(Op)~ is declared in file ``operators.pl''.
 
 */
 
-% simple/predefined aggregation functions
+% case: simple/predefined aggregation functions (always with rename!)
 translateFields([Term as NewAttr | Select], GroupAttrs,
         [field(NewAttr, Term2) | Fields],
         [NewAttr| Select2]) :-
@@ -4290,7 +4334,8 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
-% simple/predefined aggregation functions
+% case: simple/predefined aggregation functions
+%       over expression (always with rename!)
 translateFields([Term as NewAttr | Select], GroupAttrs,
         [field(NewAttr, Term2) | Fields],
         [NewAttr| Select2]) :-
@@ -4303,8 +4348,7 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
-
-% simple/predefined aggregation functions
+% case: ERROR simple/predefined aggregation functions (missing new name)
 translateFields([Term | Select], GroupAttrs,
         Fields,
         Select2) :-
@@ -4347,7 +4391,7 @@ The SQL-syntax is as follows:
   
 */
 
-% complex/user defined arbitrary aggregation functions
+% case: complex/user defined arbitrary aggregation functions over attribute
 translateFields([Term as NewAttr | Select], GroupAttrs,
         [field(NewAttr, Term2) | Fields],
         [NewAttr| Select2]) :-
@@ -4365,7 +4409,7 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
-% complex/arbitrary aggregation functions
+% case: complex/arbitrary aggregation functions over expression
 translateFields([Term as NewAttr | Select], GroupAttrs,
         [field(NewAttr, Term2) | Fields],
         [NewAttr| Select2]) :-
@@ -4384,7 +4428,8 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
   !.
 
 
-% complex/user defined arbitrary aggregation functions
+% case: ERROR complex/user defined arbitrary aggregation functions
+%       missing new name
 translateFields([Term | Select], GroupAttrs,
         Fields,
         Select2) :-
@@ -4397,7 +4442,7 @@ translateFields([Term | Select], GroupAttrs,
   write('*****'), nl,
   !.
 
-% general error case
+% case: ERROR (general error case)
 translateFields([Attr | Select], GroupAttrs, Fields, Select2) :-
   not(member(Attr, GroupAttrs)),
   !,
@@ -4437,7 +4482,8 @@ Check whether ~Query~ is a counting query.
 
 countQuery(select count(*) from _) :- !.
 
-countQuery(select distinct count(*) from _) :- !.
+countQuery(select count(distinct *) from _) :- !.
+countQuery(select distinct count(*) from _) :- !. % This is deprecated!
 
 countQuery(Query groupby _) :-
   countQuery(Query).
@@ -4510,7 +4556,10 @@ selectClause(select count(*), [], count(*), duplicates).
 
 selectClause(select distinct *, [], *, distinct).
 
-selectClause(select distinct count(*), [], count(*), distinct).
+selectClause(select count(distinct *), [], count(*), distinct).
+selectClause(select distinct count(*), [], count(*), distinct) :-
+  write('\n*** WARNING: \'select distinct count(*)\' is deprecated.'),
+  write('\n***          Use \'select count(distinct *)\' instead!'), !.
 
 selectClause(select distinct Attrs, Extend, Project, distinct) :-
   makeList(Attrs, Attrs2),
