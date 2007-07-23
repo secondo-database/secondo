@@ -1004,6 +1004,10 @@ plan_to_atom(pr(P,_,_), Result) :-
 
 plan_to_atom(Term, Result) :-
     is_list(Term), Term = [First | _], atomic(First), !,
+    write('Term: '), write(Term), nl,
+    write('First: '), write(First), nl,
+    write('TermRes: '), write(TermRes), nl,
+    write('Result: '), write(Result), nl,
     atom_codes(TermRes, Term),
     concat_atom(['"', TermRes, '"'], '', Result).
 
@@ -4256,13 +4260,28 @@ which will translate to a corresponding projection operation.
 
 translateFields([], _, [], []).
 
+% case: attribute without rename
+translateFields([Attr | Select], GroupAttrs, Fields, [Attr | Select2]) :-
+  member(Attr, GroupAttrs),
+  !,
+  translateFields(Select, GroupAttrs, Fields, Select2).
+
+% case: attribute with rename
+translateFields([Attr as Name | Select], GroupAttrs, Fields, [Attr as Name | Select2]) :-
+  member(Attr, GroupAttrs),
+  !,
+  translateFields(Select, GroupAttrs, Fields, Select2).
+
+/*
+  Aggregations using ~count~ need a translation different from other
+  simple aggregation operators:
+
+*/
+
 % case: count(*) / count(all *) with rename
-translateFields([count(*) as NewAttr | Select], GroupAttrs,
+translateFields([count(Term) as NewAttr | Select], GroupAttrs,
         [field(NewAttr , count(feed(group))) | Fields], [NewAttr | Select2]) :-
-  translateFields(Select, GroupAttrs, Fields, Select2),
-  !.
-translateFields([count(all *) as NewAttr | Select], GroupAttrs,
-        [field(NewAttr , count(feed(group))) | Fields], [NewAttr | Select2]) :-
+  ( Term = * ; Term = (all *) ),
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
@@ -4275,14 +4294,10 @@ translateFields([count(distinct *) as NewAttr | Select], GroupAttrs,
 
 % case: count(attr) / count(all attr) with rename
 % (does not count rows, where the attr is undefined)
-translateFields([count(attr(A,B,C)) as NewAttr | Select], GroupAttrs,
+translateFields([count(Term) as NewAttr | Select], GroupAttrs,
   [field(NewAttr,count(filter(feed(group),not(isempty(attr(A,B,C))))))|Fields],
   [NewAttr | Select2]) :-
-  translateFields(Select, GroupAttrs, Fields, Select2),
-  !.
-translateFields([count(all attr(A,B,C)) as NewAttr | Select], GroupAttrs,
-  [field(NewAttr,count(filter(feed(group),not(isempty(attr(A,B,C))))))|Fields],
-  [NewAttr | Select2]) :-
+  ( Term = attr(A,B,C) ; Term = (all attr(A,B,C)) ),
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
@@ -4298,8 +4313,7 @@ translateFields([count(distinct attr(A,B,C)) as NewAttr | Select], GroupAttrs,
 
 % case: count(distinct expr) with rename
 translateFields([count(distinct Expr) as NewAttr | Select], GroupAttrs,
-  [field(NewAttr,count(CountStream))|Fields],
-  [NewAttr | Select2]) :-
+  [field(NewAttr,count(CountStream))|Fields], [NewAttr | Select2]) :-
   compound(Expr),
   newVariable(ExpAttrName),
   Expr \= attr(_,_,_),
@@ -4311,9 +4325,9 @@ translateFields([count(distinct Expr) as NewAttr | Select], GroupAttrs,
   !.
 
 % case: count(expr) / count(all expr) with rename
-translateFields([count(all Expr) as NewAttr | Select], GroupAttrs,
-  [field(NewAttr,count(CountStream))|Fields],
-  [NewAttr | Select2]) :-
+translateFields([count(Term) as NewAttr | Select], GroupAttrs,
+  [field(NewAttr,count(CountStream))|Fields], [NewAttr | Select2]) :-
+  (Term = (all Expr) ; Term = Expr),
   compound(Expr),
   Expr \= attr(_,_,_),
   newVariable(ExpAttrName),
@@ -4322,72 +4336,79 @@ translateFields([count(all Expr) as NewAttr | Select], GroupAttrs,
   CountStream = filter(AttrExtStream ,not(isempty(attr(ExpAttrName, 1, l)))),
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
-translateFields([count(Expr) as NewAttr | Select], GroupAttrs,
-  [field(NewAttr,count(CountStream))|Fields],
-  [NewAttr | Select2]) :-
-  compound(Expr),
-  Expr \= attr(_,_,_),
-  newVariable(ExpAttrName),
-  AttrExtStream = extend(feed(group),
-                         [newattr(attrname(attr(ExpAttrName, 1, l)), Expr)]),
-  CountStream = filter(AttrExtStream ,not(isempty(attr(ExpAttrName, 1, l)))),
-  translateFields(Select, GroupAttrs, Fields, Select2),
-  !.
-
-% case: aggrop(attr) / aggrop(all attr)with rename
-% case: aggrop(distinct attr) with rename
-% case: aggrop(expr) / aggrop(all expr) with rename
-% case: aggrop(distinct expr) with rename
-
-% case: attribute without rename
-translateFields([Attr | Select], GroupAttrs, Fields, [Attr | Select2]) :-
-  member(Attr, GroupAttrs),
-  !,
-  translateFields(Select, GroupAttrs, Fields, Select2).
-
-
-% case: attribute with rename
-translateFields([Attr as Name | Select], GroupAttrs, Fields, [Attr as Name | Select2]) :-
-  member(Attr, GroupAttrs),
-  !,
-  translateFields(Select, GroupAttrs, Fields, Select2).
-
 
 /*
-Generic rule for aggregate functions, similar to sum. For operators, the
-property ~isAggregationOP(Op)~ is declared in file ``operators.pl''.
+  Generic rules for simple predifined aggregation functions, similar to sum,
+  min, max, avg.
+  For these operators, the property ~isAggregationOP(Op)~ is declared in file
+  ``operators.pl''. For ``count'', there are special cases (see above).
+  These aggregation functions are expected to ignore undefined values and
+  therefore we can do without filter(X,not(isempty(Y))).
 
 */
 
-% case: simple/predefined aggregation functions (always with rename!)
+% case: simple predefined aggregation functions (always with rename!)
+%       aggrop(distinct attr) with rename
 translateFields([Term as NewAttr | Select], GroupAttrs,
-        [field(NewAttr, Term2) | Fields],
-        [NewAttr| Select2]) :-
+  [field(NewAttr, Term2) | Fields], [NewAttr | Select2]) :-
   compound(Term),
-  Term =.. [AggrOp, attr(Name, Var, Case)],
+  Term =.. [AggrOp, (distinct attr(Name, Var, Case))],
+  isAggregationOP(AggrOp),
+  attrnames([attr(Name, Var, Case)], AttrName),
+  AggStream = rdup(sort(project(feed(group),AttrName))),
+  Term2 =.. [AggrOp, AggStream, attrname(attr(Name, Var, Case))],
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
+
+% case: simple predefined aggregation functions (always with rename!)
+%       aggrop(attr) / aggrop(all attr) with rename
+translateFields([Term as NewAttr | Select], GroupAttrs,
+        [field(NewAttr, Term2) | Fields], [NewAttr| Select2]) :-
+  compound(Term),
+  (  Term =.. [AggrOp, (all attr(Name, Var, Case))]
+   ; Term =.. [AggrOp, attr(Name, Var, Case)]
+  ),
   isAggregationOP(AggrOp),
   Term2 =.. [AggrOp, feed(group), attrname(attr(Name, Var, Case))],
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
-% case: simple/predefined aggregation functions
+% case: simple predefined aggregation functions
 %       over expression (always with rename!)
+%       aggrop(distinct expr) with rename
 translateFields([Term as NewAttr | Select], GroupAttrs,
-        [field(NewAttr, Term2) | Fields],
-        [NewAttr| Select2]) :-
+  [field(NewAttr, Term2) | Fields], [NewAttr | Select2]) :-
   compound(Term),
-  Term =.. [AggrOp, Expr],
+  ( Term =.. [AggrOp, (distinct Expr)] ; Term =.. [AggrOp, Expr] ),
   isAggregationOP(AggrOp),
-  Term2 =.. [AggrOp, 
-             extend(feed(group), field(attr(xxxExprField, 0, l), Expr)),
-             attrname(attr(xxxExprField, 0, l))],
+  Expr \= attr(_,_,_),
+  newVariable(ExpAttrName),
+  AttrExtStream = extend(feed(group),
+                         [newattr(attrname(attr(ExpAttrName, 1, l)), Expr)]),
+  AggStream = rdup(sort(project(AttrExtStream,
+                                [attrname(attr(ExpAttrName, 1, l))]))),
+  Term2 =.. [AggrOp, AggStream, attrname(attr(ExpAttrName, 1, l))],
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
-% case: ERROR simple/predefined aggregation functions (missing new name)
-translateFields([Term | Select], GroupAttrs,
-        Fields,
-        Select2) :-
+% case: simple predefined aggregation functions
+%       over expression (always with rename!)
+%       aggrop(expr) / aggrop(all expr) with rename
+translateFields([Term as NewAttr | Select], GroupAttrs,
+  [field(NewAttr, Term2) | Fields], [NewAttr | Select2]) :-
+  compound(Term),
+  ( Term =.. [AggrOp, (all Expr)] ; Term =.. [AggrOp, Expr] ),
+  isAggregationOP(AggrOp),
+  Expr \= attr(_,_,_),
+  newVariable(ExpAttrName),
+  AttrExtStream = extend(feed(group),
+                         [newattr(attrname(attr(ExpAttrName, 1, u)), Expr)]),
+  Term2 =.. [AggrOp, AttrExtStream, attrname(attr(ExpAttrName, 1, u))],
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
+
+% case: ERROR simple predefined aggregation functions (missing new name)
+translateFields([Term | Select], GroupAttrs, Fields, Select2) :-
   compound(Term),
   Term =.. [AggrOp, _],
   isAggregationOP(AggrOp),
@@ -4517,6 +4538,7 @@ Check whether ~Query~ is a counting query.
 
 
 countQuery(select count(*) from _) :- !.
+countQuery(select count(all *) from _) :- !.
 
 countQuery(select count(distinct *) from _) :- !.
 countQuery(select distinct count(*) from _) :- !. % This is deprecated!
