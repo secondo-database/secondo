@@ -171,7 +171,7 @@ getExtAttrSize(Rel, Attr, ExtAttrSize) :-
   secondo(QueryAtom, [real, ExtAttrSize]), !.
 getExtAttrSize(Rel, Attr, _) :- 
   write('\nERROR: Something\'s wrong in getExtAttrSize('), write(Rel),
-  write(','), write(Attr), write(').'),
+  write(','), write(Attr), write(').'),   %' (avoiding error in syntax-markup)
   fail, !.
 
 
@@ -477,7 +477,7 @@ writeErrorSampleFileS(Rel, MemorySize) :-
   spelling(Rel, Rel2),
   (Rel2 = lc(Rel) -> Rel3 = Rel; upper(Rel,Rel3)),
   write('ERROR: Couldn\'t create sample files for relation \''),
-  write(Rel3), write('\'!'),nl,
+  write(Rel3), write('\'!'),nl,   %' (avoiding error in syntax-markup)
   write('Sample file needs more than '), write(MemorySize),
   write(' KB in main memory.'),nl,
   write('Please create the file manually, e.g.: '),
@@ -1329,7 +1329,7 @@ retractStoredInformation(SpelledRel) :-
   retractall(storedAttrSize(DB, DCSpelledRel, _, _, _, _, _)).
   %retractall(storedIndex(DB, LFSpelledRel, _, _, _)),
   %retractall(storedNoIndex(DB, LFSpelledRel, _)).
-  
+
 updateRel2(_, SpelledRel, ObjList) :-
   member(['OBJECT', SpelledRel, _ , [[Type | _]]], ObjList),
   member(Type, [rel, trel]),
@@ -1341,17 +1341,17 @@ updateRel2(_, SpelledRel, ObjList) :-
   member(Type, [rel, trel]),
   deleteSampleAndSmallFiles(SpelledRel, ObjList),
   retractStoredInformation(SpelledRel).
-    	
+
 updateRel(Rel) :-
   retract(storeupdateRel(0)),
   assert(storeupdateRel(1)),
-  %retractall(storedSecondoList(_)),
+  retractall(storedSecondoList(_)), % trying to avoid problem with new relations
   getSecondoList(ObjList),
   getSpelledRel(Rel, SpelledRel),
   updateRel2(Rel,SpelledRel, ObjList),
   retract(storeupdateRel(1)),
-  assert(storeupdateRel(0)).  
-  
+  assert(storeupdateRel(0)).
+
 /*
 1.5.3 Deleting \_small and \_sample\_j, \_sample\_2 Objects
 
