@@ -1397,11 +1397,14 @@ Consume(Word* args, Word& result, int message,
       {
         if ( cli->state == 0 )	//working
         {
-          pRes->Progress = 
-            (p1.Progress * p1.Time + 
-              cli->current *  (uConsume + p1.SizeExt * vConsume 
-                  + (p1.Size - p1.SizeExt) * wConsume) ) 
-                / pRes->Time;
+
+	  pRes->Progress = p1.Progress;
+
+          //pRes->Progress = 
+          //  (p1.Progress * p1.Time + 
+          //    cli->current *  (uConsume + p1.SizeExt * vConsume 
+          //        + (p1.Size - p1.SizeExt) * wConsume) ) 
+          //      / pRes->Time;
         }
         else 			//finished
         {
