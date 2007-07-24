@@ -3850,6 +3850,20 @@ lookupAttr(*, *) :- assert(isStarQuery), !.
 lookupAttr(count(T), count(T2)) :-
   lookupAttr(T, T2), !.
 
+/*
+Special clause for ~aggregate~
+Here, only descend into the aggregation attribute/expression (1st argument)
+
+*/
+
+lookupAttr(Term, Result) :-
+  compound(Term),
+  Term =.. [AggrOp, Term2, Op, Type, Default],
+  member(AggrOp,[aggregate]),
+  lookupAttr(Term2, Term2Res),
+  Result =.. [AggrOp, Term2Res, Op, Type, Default],
+  !.
+
 lookupAttr(T, T2) :-
   compound(T),
   T =.. [Op, Expr],
@@ -3871,20 +3885,6 @@ lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
   write(' doubly defined in query.'),
   nl.
 
-
-/*
-Special clause for ~aggregate~
-Here, only descend into the attribute name (1st argument)
-
-*/
-
-lookupAttr(Term, Result) :-
-  compound(Term),
-  Term =.. [AggrOp, Attr, Op, Type, Default],
-  member(AggrOp,[aggregate]),
-  lookupAttr(Attr, AttrRes),
-  Result =.. [AggrOp, AttrRes, Op, Type, Default],
-  !.
 
 /*
 Generic lookupAttr/2-rule for functors of arbitrary arity using Univ (=../2):
@@ -4406,10 +4406,10 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
   Expr \= attr(_,_,_),
   newVariable(ExpAttrName),
   AttrExtStream = extend(feed(group),
-                         [newattr(attrname(attr(ExpAttrName, 1, l)), Expr)]),
+                         [newattr(attrname(attr(ExpAttrName, 0, l)), Expr)]),
   AggStream = rdup(sort(project(AttrExtStream,
-                                [attrname(attr(ExpAttrName, 1, l))]))),
-  Term2 =.. [AggrOp, AggStream, attrname(attr(ExpAttrName, 1, l))],
+                                [attrname(attr(ExpAttrName, 0, l))]))),
+  Term2 =.. [AggrOp, AggStream, attrname(attr(ExpAttrName, 0, l))],
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
@@ -4446,36 +4446,66 @@ Generic rules for user defined aggregation functions, using
 ~aggregate~. 
 
 The SQL-syntax is as follows:
-  
+
   aggregate(ARGUMENT, FUNCTION, TYPE, DEFAULTVALUE)
-  
-  ARGUMENT is either a valid attribute, or an expression.
-  
+
+  ARGUMENT is either a valid attribute, or an expression. Additional, you may
+  use preceeding ~all~ or ~distinct~ to aggregate over all resp. only distinct
+  attribute resp. expression values.
+
   FUNCTION is the operator name (only the name!) used as the aggregation 
   function. The operator must have signature TYPE x TYPE [->] TYPE. It must 
   be a commutative and associative function. If you want to use
   an infix operator, you must enclose it in round parentheses, eg. ([star]) for
   the multiplication [star]: TYPE x TYPE [->] TYPE.
-  
+
   TYPE is the datatype processed by the aggregation function.
 
   DEFAULTVALUE is a value of type TYPE. If you give a constant expression,
   you should enclose the list expression in single quotes, eg.
   '[const region value ()]'.
-  
+
   Otherwise, you can use user defined aggregation in the select clause of 
   a query, just like ordinary aggregation operator, like ~sum~, ~avg~, 
-  ~min~, or ~max~. 
+  ~min~, or ~max~.
+
+  No filtering for definedness of attribute values is done. If required, you
+  have to insert an additional consition into the where-clause
+  (e.g. ~not(isempty(ARGUMENT))~).
+
   As usual for SQL, aggregation is only allowed in the context of grouping!
   
 */
 
-% case: complex/user defined arbitrary aggregation functions over attribute
+% case: complex/user defined arbitrary aggregation functions
+%       over distinct attribute (without defined-filtering)
 translateFields([Term as NewAttr | Select], GroupAttrs,
         [field(NewAttr, Term2) | Fields],
         [NewAttr| Select2]) :-
   compound(Term),
-  Term =.. [AggrOp, attr(Name, Var, Case), FunOp, Type, Default],
+  Term =.. [AggrOp, (distinct attr(Name, Var, Case)), FunOp, Type, Default],
+  member(AggrOp, [aggregate]),
+  newVariable(Var1),
+  newVariable(Var2),
+  AggrFun =.. [FunOp, Var1, Var2],
+  attrnames([attr(Name, Var, Case)], AttrName),
+  Term2 =..[AggrOp, 
+            rdup(sort(project(feed(group), AttrName))),
+            attrname(attr(Name, Var, Case)), 
+            fun([ param(Var1, Type), param(Var2, Type)], AggrFun), 
+            Default],
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
+
+% case: complex/user defined arbitrary aggregation functions over
+%       all attribute (without defined-filtering)
+translateFields([Term as NewAttr | Select], GroupAttrs,
+        [field(NewAttr, Term2) | Fields],
+        [NewAttr| Select2]) :-
+  compound(Term),
+  (   Term =.. [AggrOp, (all attr(Name, Var, Case)), FunOp, Type, Default]
+    ; Term =.. [AggrOp,      attr(Name, Var, Case) , FunOp, Type, Default]
+  ),
   member(AggrOp, [aggregate]),
   newVariable(Var1),
   newVariable(Var2),
@@ -4488,19 +4518,48 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
-% case: complex/arbitrary aggregation functions over expression
+% case: complex/arbitrary aggregation functions over distinct expression
+%       over distinct attribute (without defined-filtering)
 translateFields([Term as NewAttr | Select], GroupAttrs,
         [field(NewAttr, Term2) | Fields],
         [NewAttr| Select2]) :-
   compound(Term),
-  Term =.. [AggrOp, Expr, FunOp, Type, Default],
+  Term =.. [AggrOp, (distinct Expr), FunOp, Type, Default],
   member(AggrOp, [aggregate]),
+  Expr \= attr(_,_,_),
+  newVariable(ExprAttr),
+  newVariable(Var1),
+  newVariable(Var2),
+  AggrFun =.. [FunOp, Var1, Var2],
+  attrnames([attr(ExprAttr, 0, l)], ExprAttrName),
+  ExtStream  = extend(feed(group), field(attr(ExprAttr, 0, l), Expr)),
+  AggrStream = rdup(sort(project(ExtStream, ExprAttrName) ) ),
+  Term2 =.. [AggrOp, 
+             AggrStream,
+             attrname(attr(ExprAttr, 0, l)),
+             fun([param(Var1, Type),param(Var2, Type)],AggrFun),
+             Default],
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
+
+% case: complex/arbitrary aggregation functions over all expression
+%       over distinct attribute (without defined-filtering)
+translateFields([Term as NewAttr | Select], GroupAttrs,
+        [field(NewAttr, Term2) | Fields],
+        [NewAttr| Select2]) :-
+  compound(Term),
+  (   Term =.. [AggrOp, (all Expr), FunOp, Type, Default]
+    ; Term =.. [AggrOp, Expr, FunOp, Type, Default]
+  ),
+  Expr \= attr(_,_,_),
+  member(AggrOp, [aggregate]),
+  newVariable(ExpAttrName),
   newVariable(Var1),
   newVariable(Var2),
   AggrFun =.. [FunOp, Var1, Var2],
   Term2 =.. [AggrOp, 
-             extend(feed(group), field(attr(xxxExprField, 0, l), Expr)), 
-             attrname(attr(xxxExprField, 0, l)),
+             extend(feed(group), field(attr(ExpAttrName, 0, l), Expr)),
+             attrname(attr(ExpAttrName, 0, l)),
              fun([param(Var1, Type),param(Var2, Type)],AggrFun),
              Default],
   translateFields(Select, GroupAttrs, Fields, Select2),
