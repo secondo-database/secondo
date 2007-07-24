@@ -3553,14 +3553,27 @@ When using ~groupby~, the ~select list~ may contain
     ~sum~). Also, user defined aggregation functions can be applied using the
     ~aggregate~ functor (explained below).
 
-This example also shows that the where-clause may be omitted. It is also
+Example using a user defined aggregation function: 
+
+----  select
+        aggregate((distinct b:no*1), (*), 'int', '[const int value 0]' ) as fac
+      from [ten as a, ten as b]
+      where [a:no < b:no]
+      groupby a:no.
+----
+
+The next example also shows that the where-clause may be omitted. It is also
 possible to combine grouping and ordering:
 
-----    select [ort, min(plz) as minplz, max(plz) as maxplz,  count(*) as cntplz]
+----    select [ort,
+                min(plz) as minplz,
+                max(plz) as maxplz,
+                count(distinct *) as cntplz]
         from plz
         where plz > 40000
         groupby ort
         orderby cntplz desc
+        first 2.
 ----
 
 Simple aggregations:
@@ -3575,8 +3588,29 @@ Such queries may have the following syntax:
 
   * select $<$AggrOp$>$(distinct $<$Attr$>$) from ...
 
+  * select aggregate($<$Attr$>$, $<$AggrOp$>$, $<$Type$>$, $<$Defaultvalue$>$ )
+
 where $<$AggrOp$>$ is one od ~max~, ~min~, ~avg~, ~sum~, ~extract~. By now, you
 are not allowed to use expressions instead of attributes here.
+The last syntax is for user defined aggregation functions, where ~Attr~ is the
+attribute to aggregate over (possibly with preceding ~all~ or ~distinct~), ~AggrOp~
+is a associative and commutative bijection operator name (infix operator must be passed in
+round paranthesis), ~Type~ is the datatype of  ~Attr~, and ~DefaultValue~ is the value that
+will be returned, if the query yields no value for ~Attr~.
+
+Examples:
+
+----    select sum(no)
+        from ten.
+
+        select avg(no*10)
+        from ten
+        where no > 5.
+
+        select aggregate(distinct no, (*), 'int', '[const int value 0]' )
+        from ten
+        where no > 5.
+----
 
 Currently only this basic part of SQL has been implemented.
 
@@ -4404,12 +4438,12 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
   Term =.. [AggrOp, (distinct Expr)],
   isAggregationOP(AggrOp),
   Expr \= attr(_,_,_),
-  newVariable(ExpAttrName),
+  newVariable(ExprAttr),
+  attrnames([attr(ExprAttr, 0, l)], ExprAttrName),
   AttrExtStream = extend(feed(group),
-                         [newattr(attrname(attr(ExpAttrName, 0, l)), Expr)]),
-  AggStream = rdup(sort(project(AttrExtStream,
-                                [attrname(attr(ExpAttrName, 0, l))]))),
-  Term2 =.. [AggrOp, AggStream, attrname(attr(ExpAttrName, 0, l))],
+                         [newattr(attrname(attr(ExprAttr, 0, l)), Expr)]),
+  AggStream = rdup(sort(project(AttrExtStream, ExprAttrName))),
+  Term2 =.. [AggrOp, AggStream, attrname(attr(ExprAttr, 0, l))],
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
@@ -4422,10 +4456,10 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
   ( Term =.. [AggrOp, (all Expr)]; Term =.. [AggrOp, Expr] ),
   isAggregationOP(AggrOp),
   Expr \= attr(_,_,_),
-  newVariable(ExpAttrName),
+  newVariable(ExprAttr),
   AttrExtStream = extend(feed(group),
-                         [newattr(attrname(attr(ExpAttrName, 1, u)), Expr)]),
-  Term2 =.. [AggrOp, AttrExtStream, attrname(attr(ExpAttrName, 1, u))],
+                         [newattr(attrname(attr(ExprAttr, 0, u)), Expr)]),
+  Term2 =.. [AggrOp, AttrExtStream, attrname(attr(ExprAttr, 0, u))],
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
@@ -4604,19 +4638,25 @@ names have been looked up already.
 
 */
 
+% case: count query
 queryToPlan(Query, count(Stream), Cost) :-
   countQuery(Query),
-%   write('queryToPlan: Is countQuery!'), nl,
   queryToStream(Query, Stream, Cost), !.
 
+% case: predefined aggregation query
 queryToPlan(Query, Stream2, Cost) :-
   aggrQuery(Query, Op, AggrAttr),
-%   write('queryToPlan: Is aggrQuery!'), nl,
   queryToStream(Query, Stream, Cost),
   Stream2 =.. [Op, Stream, attrname(AggrAttr)], !.
 
+% case: userdefined aggregation query
+queryToPlan(Query, Stream2, Cost) :-
+  userDefAggrQuery(Query, AggrOp, AttrName, Fun, Default),
+  queryToStream(Query, Stream, Cost),
+  Stream2 =.. [AggrOp, Stream, AttrName, Fun, Default], !.
+
+% case: ordinary consume query
 queryToPlan(Query, consume(Stream), Cost) :-
-%   write('queryToPlan: Is consume Query!'), nl,
   queryToStream(Query, Stream, Cost), !.
 
 /*
@@ -4673,6 +4713,39 @@ aggrQuery(Query first _, X, Y)   :- aggrQuery(Query, X, Y).
 
 
 /*
+Check whether ~Query~ is a user defined aggregation query.
+If so, return the arguments for the aggregate operator
+
+----  userDefAggrQuery(+Query, -AggrOp, -AttrName, -AggrFun, -Default)
+----
+
+*/
+userDefAggrQuery(select all T from R, A, B, C, D) :-
+    userDefAggrQuery(select T from R, A, B, C, D), !.
+userDefAggrQuery(select distinct T from R, A, B, C, D) :-
+         userDefAggrQuery(select T from R, A, B, C, D), !.
+
+userDefAggrQuery(select T from _, AggrOp, AttrName, AggregFun, Default) :-
+  compound(T),
+  (   T =.. [AggrOp, (distinct attr(Name, Var, Case)), FunOp, Type, Default]
+    ; T =.. [AggrOp, (all      attr(Name, Var, Case)), FunOp, Type, Default]
+    ; T =.. [AggrOp,           attr(Name, Var, Case) , FunOp, Type, Default]
+  ),
+  member(AggrOp,[aggregate]),
+  newVariable(Var1),
+  newVariable(Var2),
+  AggrFun =.. [FunOp, Var1, Var2],
+  AttrName = attrname(attr(Name, Var, Case)),
+  AggregFun = fun([ param(Var1, Type), param(Var2, Type)], AggrFun), !.
+
+userDefAggrQuery(Query groupby _, A, B, C, D) :-
+          userDefAggrQuery(Query, A, B, C, D).
+userDefAggrQuery(Query orderby _, A, B, C, D) :-
+          userDefAggrQuery(Query, A, B, C, D).
+userDefAggrQuery(Query first _,   A, B, C, D) :-
+          userDefAggrQuery(Query, A, B, C, D).
+
+/*
 
 ----    queryToStream(+Query, -Plan, -Cost) :-
 ----
@@ -4726,7 +4799,7 @@ The ~Select~ clause contains attribute lists ~Extend~ for extension, ~Project~ f
 
 */
 
-
+% count queries
 selectClause(select count(all Attr), Ext, Pro, duplicates ) :-
   selectClause(select count(Attr), Ext, Pro, _ ), !.
 selectClause(select count(distinct Attr), Ext, Pro, distinct ) :-
@@ -4737,30 +4810,40 @@ selectClause(select count(Attr), Extend, Project, duplicates) :-
   makeList(Attr, Attrs2),
   extendProject(Attrs2, Extend, Project), !.
 
+% single predefined aggregation function query
 selectClause(select T, Extend, Project, distinct) :-
   compound(T),
   T =.. [Op, (distinct Attr)],
   isAggregationOP(Op),
   makeList(Attr, Attrs2),
-  extendProject(Attrs2, Extend, Project),
-%   write('selectClause: Case aggr succeeded!'),nl,
-%   write('Extend  = '), write(Extend),nl,
-%   write('Project = '), write(Project),nl,
-%   write('Rdup    = distinct'),nl,
-  !.
+  extendProject(Attrs2, Extend, Project), !.
 
 selectClause(select T, Extend, Project, duplicates) :-
   compound(T),
   ( T =.. [Op, (all Attr)] ; T =.. [Op, Attr] ),
   isAggregationOP(Op),
   makeList(Attr, Attrs2),
-  extendProject(Attrs2, Extend, Project),
-%   write('selectClause: Case aggr succeeded!'),nl,
-%   write('Extend  = '), write(Extend),nl,
-%   write('Project = '), write(Project),nl,
-%   write('Rdup    = duplicates'),nl,
-  !.
+  extendProject(Attrs2, Extend, Project), !.
 
+% single userdefined aggregation function query
+selectClause(select T, Extend, Project, distinct) :-
+  compound(T),
+  T =.. [Op, (distinct Attr), _Fun, _Type, _Default],
+  member(Op,[aggregate]),
+  makeList(Attr, Attrs2),
+  extendProject(Attrs2, Extend, Project), !.
+
+selectClause(select T, Extend, Project, duplicates) :-
+  compound(T),
+  (   T =.. [Op, (all Attr), _Fun, _Type, _Default]
+    ; T =.. [Op, Attr, _Fun, _Type, _Default]
+  ),
+  Attr = attr(_,_,_),
+  member(Op,[aggregate]),
+  makeList(Attr, Attrs2),
+  extendProject(Attrs2, Extend, Project), !.
+
+% generic cases - using recursion
 selectClause(select distinct T, Ext, Pro, distinct) :-
   selectClause(select T, Ext, Pro, _), !.
 selectClause(select all T, Ext, Pro, Rdup) :-
