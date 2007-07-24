@@ -3835,8 +3835,9 @@ lookupAttr(Attr, Attr2) :-
 
 lookupAttr(*, *) :- assert(isStarQuery), !.
 
-lookupAttr(count(*), count(*)) :- !.
-
+%lookupAttr(count(*), count(*)) :- !.
+lookupAttr(count(T), count(T2)) :-
+  lookupAttr(T, T2), !.
 
 lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
   lookupAttr(Expr, Expr2),
@@ -4279,9 +4280,12 @@ translateFields([Attr as Name | Select], GroupAttrs, Fields, [Attr as Name | Sel
 */
 
 % case: count(*) / count(all *) with rename
-translateFields([count(Term) as NewAttr | Select], GroupAttrs,
+translateFields([count(*) as NewAttr | Select], GroupAttrs,
         [field(NewAttr , count(feed(group))) | Fields], [NewAttr | Select2]) :-
-  ( Term = * ; Term = (all *) ),
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
+translateFields([count(all *) as NewAttr | Select], GroupAttrs,
+        [field(NewAttr , count(feed(group))) | Fields], [NewAttr | Select2]) :-
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
@@ -4365,8 +4369,8 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
 translateFields([Term as NewAttr | Select], GroupAttrs,
         [field(NewAttr, Term2) | Fields], [NewAttr| Select2]) :-
   compound(Term),
-  (  Term =.. [AggrOp, (all attr(Name, Var, Case))]
-   ; Term =.. [AggrOp, attr(Name, Var, Case)]
+  (   Term =.. [AggrOp, (all attr(Name, Var, Case))]
+    ; Term =.. [AggrOp, attr(Name, Var, Case)]
   ),
   isAggregationOP(AggrOp),
   Term2 =.. [AggrOp, feed(group), attrname(attr(Name, Var, Case))],
@@ -4379,7 +4383,7 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
 translateFields([Term as NewAttr | Select], GroupAttrs,
   [field(NewAttr, Term2) | Fields], [NewAttr | Select2]) :-
   compound(Term),
-  ( Term =.. [AggrOp, (distinct Expr)] ; Term =.. [AggrOp, Expr] ),
+  Term =.. [AggrOp, (distinct Expr)],
   isAggregationOP(AggrOp),
   Expr \= attr(_,_,_),
   newVariable(ExpAttrName),
@@ -4397,7 +4401,7 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
 translateFields([Term as NewAttr | Select], GroupAttrs,
   [field(NewAttr, Term2) | Fields], [NewAttr | Select2]) :-
   compound(Term),
-  ( Term =.. [AggrOp, (all Expr)] ; Term =.. [AggrOp, Expr] ),
+  ( Term =.. [AggrOp, (all Expr)]; Term =.. [AggrOp, Expr] ),
   isAggregationOP(AggrOp),
   Expr \= attr(_,_,_),
   newVariable(ExpAttrName),
@@ -4514,7 +4518,7 @@ translateFields([Attr | Select], GroupAttrs, Fields, Select2) :-
 
 /*
 
-----    queryToPlan(Query, Plan, Cost) :-
+----    queryToPlan(+Query, -Plan, -Cost) :-
 ----
 
 Translate the ~Query~ into a ~Plan~. The ~Cost~ for evaluating the conjunctive
@@ -4527,9 +4531,13 @@ queryToPlan(Query, count(Stream), Cost) :-
   countQuery(Query),
   queryToStream(Query, Stream, Cost), !.
 
+queryToPlan(Query, Stream2, Cost) :-
+  aggrQuery(Query, Op, AggrAttr),
+  queryToStream(Query, Stream, Cost),
+  Stream2 =.. [Op, Stream, attrName(AggrAttr)], !.
+
 queryToPlan(Query, consume(Stream), Cost) :-
   queryToStream(Query, Stream, Cost), !.
-
 
 /*
 Check whether ~Query~ is a counting query.
@@ -4537,26 +4545,43 @@ Check whether ~Query~ is a counting query.
 */
 
 
-countQuery(select count(*) from _) :- !.
-countQuery(select count(all *) from _) :- !.
+countQuery(select count(_) from _) :- !.
+countQuery(select all count(_) from _) :- !.      % This is deprecated!
+countQuery(select distinct count(_) from _) :- !. % This is deprecated!
 
-countQuery(select count(distinct *) from _) :- !.
-countQuery(select distinct count(*) from _) :- !. % This is deprecated!
+countQuery(Query groupby _) :- countQuery(Query).
+countQuery(Query orderby _) :- countQuery(Query).
+countQuery(Query first _)   :- countQuery(Query).
 
-countQuery(Query groupby _) :-
-  countQuery(Query).
+/*
+Check whether ~Query~ is an aggregation query.
+If so, return the aggregation operator and the aggregation attribute
 
-countQuery(Query orderby _) :-
-  countQuery(Query).
+---- aggrQuery(+Query, -AggrOp, -AggrAttr)
+----
 
-countQuery(Query first _) :-
-  countQuery(Query).
+*/
+aggrQuery(select T, AggrOp, AggrAttr) :-
+  compound(T),
+  T =.. [AggrOp, AggrAttr],
+  isAggregationOP(AggrOp), !.
+aggrQuery(select all T, AggrOp, AggrAttr) :-
+  compound(T),
+  T =.. [AggrOp, AggrAttr],
+  isAggregationOP(AggrOp), !.
+aggrQuery(select distinct T, AggrOp, AggrAttr) :-
+  compound(T),
+  T =.. [AggrOp, AggrAttr],
+  isAggregationOP(AggrOp), !.
 
+aggrQuery(Query groupby _, X, Y) :- aggrQuery(Query, X, Y).
+aggrQuery(Query orderby _, X, Y) :- aggrQuery(Query, X, Y).
+aggrQuery(Query first _, X, Y)   :- aggrQuery(Query, X, Y).
 
 
 /*
 
-----    queryToStream(Query, Plan, Cost) :-
+----    queryToStream(+Query, -Plan, -Cost) :-
 ----
 
 Same as ~queryToPlan~, but returns a stream plan, if possible.
@@ -4608,21 +4633,23 @@ The ~Select~ clause contains attribute lists ~Extend~ for extension, ~Project~ f
 
 */
 
-selectClause(select *, [], *, duplicates).
+
+selectClause(select count(all Attr), Ext, Pro, duplicates ) :-
+  selectClause(select count(Attr), Ext, Pro, _ ), !.
+selectClause(select count(distinct Attr), Ext, Pro, distinct ) :-
+  selectClause(select count(Attr), Ext, Pro, _ ), !.
 
 selectClause(select count(*), [], count(*), duplicates).
-
-selectClause(select distinct *, [], *, distinct).
-
-selectClause(select count(distinct *), [], count(*), distinct).
-selectClause(select distinct count(*), [], count(*), distinct) :-
-  write('\n*** WARNING: \'select distinct count(*)\' is deprecated.'),
-  write('\n***          Use \'select count(distinct *)\' instead!'), !.
-
-selectClause(select distinct Attrs, Extend, Project, distinct) :-
-  makeList(Attrs, Attrs2),
+selectClause(select count(Attr), Extend, Project, duplicates) :-
+  makeList(Attr, Attrs2),
   extendProject(Attrs2, Extend, Project), !.
 
+selectClause(select distinct T, Ext, Pro, distinct) :-
+  selectClause(select T, Ext, Pro, _), !.
+selectClause(select all T, Ext, Pro, Rdup) :-
+  selectClause(select T, Ext, Pro, Rdup), !.
+
+selectClause(select *, [], *, duplicates).
 selectClause(select Attrs, Extend, Project, duplicates) :-
   makeList(Attrs, Attrs2),
   extendProject(Attrs2, Extend, Project), !.
