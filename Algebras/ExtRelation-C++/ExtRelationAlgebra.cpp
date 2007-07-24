@@ -3332,10 +3332,12 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
         pRes->Time = p1.Time + p1.Card * (uExtend + eli->noNewAttrs * vExtend);
 
-        pRes->Progress =
-          (p1.Progress * p1.Time +
-            eli->read * (uExtend + eli->noNewAttrs * vExtend))
-          / pRes->Time;
+	pRes->Progress = p1.Progress;
+
+        //pRes->Progress =
+        //  (p1.Progress * p1.Time +
+        //    eli->read * (uExtend + eli->noNewAttrs * vExtend))
+        //  / pRes->Time;
 
 	pRes->CopyBlocking(p1);		//non-blocking operator
 
