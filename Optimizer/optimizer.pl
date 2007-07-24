@@ -3553,9 +3553,6 @@ When using ~groupby~, the ~select list~ may contain
     ~sum~). Also, user defined aggregation functions can be applied using the
     ~aggregate~ functor (explained below).
 
-If only a single value is created using an aggregation function in the select
-list of a groupby query, it is not required to name it using the ~as~ directive.
-
 This example also shows that the where-clause may be omitted. It is also
 possible to combine grouping and ordering:
 
@@ -3566,7 +3563,22 @@ possible to combine grouping and ordering:
         orderby cntplz desc
 ----
 
-Currently only a basic part of this language has been implemented.
+Simple aggregations:
+
+If only a single value is created using an aggregation function in the select
+list of a non-groupby query, it is not allowed to name it using the ~as~ directive.
+Such queries may have the following syntax:
+
+  * select $<$AggrOp$>$($<$Attr$>$) from ...
+
+  * select $<$AggrOp$>$(all $<$Attr$>$) from ...
+
+  * select $<$AggrOp$>$(distinct $<$Attr$>$) from ...
+
+where $<$AggrOp$>$ is one od ~max~, ~min~, ~avg~, ~sum~, ~extract~. By now, you
+are not allowed to use expressions instead of attributes here.
+
+Currently only this basic part of SQL has been implemented.
 
 
 11.2 Structure
@@ -3835,9 +3847,15 @@ lookupAttr(Attr, Attr2) :-
 
 lookupAttr(*, *) :- assert(isStarQuery), !.
 
-%lookupAttr(count(*), count(*)) :- !.
 lookupAttr(count(T), count(T2)) :-
   lookupAttr(T, T2), !.
+
+lookupAttr(T, T2) :-
+  compound(T),
+  T =.. [Op, Expr],
+  isAggregationOP(Op),
+  lookupAttr(Expr, Expr2),
+  T2 =.. [Op, Expr2], !.
 
 lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
   lookupAttr(Expr, Expr2),
@@ -4529,14 +4547,17 @@ names have been looked up already.
 
 queryToPlan(Query, count(Stream), Cost) :-
   countQuery(Query),
+%   write('queryToPlan: Is countQuery!'), nl,
   queryToStream(Query, Stream, Cost), !.
 
 queryToPlan(Query, Stream2, Cost) :-
   aggrQuery(Query, Op, AggrAttr),
+%   write('queryToPlan: Is aggrQuery!'), nl,
   queryToStream(Query, Stream, Cost),
-  Stream2 =.. [Op, Stream, attrName(AggrAttr)], !.
+  Stream2 =.. [Op, Stream, attrname(AggrAttr)], !.
 
 queryToPlan(Query, consume(Stream), Cost) :-
+%   write('queryToPlan: Is consume Query!'), nl,
   queryToStream(Query, Stream, Cost), !.
 
 /*
@@ -4561,17 +4582,30 @@ If so, return the aggregation operator and the aggregation attribute
 ----
 
 */
-aggrQuery(select T, AggrOp, AggrAttr) :-
+aggrQuery(select all T from R, AggrOp, AggrAttr) :-
+  aggrQuery(select T from R, AggrOp, AggrAttr), !.
+aggrQuery(select distinct T from R, AggrOp, AggrAttr) :-
+  aggrQuery(select T from R, AggrOp, AggrAttr), !.
+aggrQuery(select T from _, AggrOp, AggrAttr) :-
   compound(T),
-  T =.. [AggrOp, AggrAttr],
+  (   T =.. [AggrOp, (distinct AggrAttr)]
+    ; T =.. [AggrOp, (all AggrAttr)]
+    ; T =.. [AggrOp, AggrAttr]
+  ),
   isAggregationOP(AggrOp), !.
-aggrQuery(select all T, AggrOp, AggrAttr) :-
+aggrQuery(select all T from _, AggrOp, AggrAttr) :-
   compound(T),
-  T =.. [AggrOp, AggrAttr],
+  (   T =.. [AggrOp, (distinct AggrAttr)]
+    ; T =.. [AggrOp, (all AggrAttr)]
+    ; T =.. [AggrOp, AggrAttr]
+  ),
   isAggregationOP(AggrOp), !.
-aggrQuery(select distinct T, AggrOp, AggrAttr) :-
+aggrQuery(select distinct T from _, AggrOp, AggrAttr) :-
   compound(T),
-  T =.. [AggrOp, AggrAttr],
+  (   T =.. [AggrOp, (distinct AggrAttr)]
+    ; T =.. [AggrOp, (all AggrAttr)]
+    ; T =.. [AggrOp, AggrAttr]
+  ),
   isAggregationOP(AggrOp), !.
 
 aggrQuery(Query groupby _, X, Y) :- aggrQuery(Query, X, Y).
@@ -4626,7 +4660,7 @@ finish(Stream, Select, Sort, Stream2) :-
   finish2(Stream, Extend, Project, Rdup, Sort, Stream2).
 
 /*
-----	selectClause(Select, Extend, Project, Rdup) :-
+----	selectClause(+Select, -Extend, -Project, -Rdup) :-
 ----
 
 The ~Select~ clause contains attribute lists ~Extend~ for extension, ~Project~ for projection, and possibly a ~distinct~ keyword indicating duplicate removal returned in ~Rdup~.
@@ -4644,6 +4678,30 @@ selectClause(select count(Attr), Extend, Project, duplicates) :-
   makeList(Attr, Attrs2),
   extendProject(Attrs2, Extend, Project), !.
 
+selectClause(select T, Extend, Project, distinct) :-
+  compound(T),
+  T =.. [Op, (distinct Attr)],
+  isAggregationOP(Op),
+  makeList(Attr, Attrs2),
+  extendProject(Attrs2, Extend, Project),
+%   write('selectClause: Case aggr succeeded!'),nl,
+%   write('Extend  = '), write(Extend),nl,
+%   write('Project = '), write(Project),nl,
+%   write('Rdup    = distinct'),nl,
+  !.
+
+selectClause(select T, Extend, Project, duplicates) :-
+  compound(T),
+  ( T =.. [Op, (all Attr)] ; T =.. [Op, Attr] ),
+  isAggregationOP(Op),
+  makeList(Attr, Attrs2),
+  extendProject(Attrs2, Extend, Project),
+%   write('selectClause: Case aggr succeeded!'),nl,
+%   write('Extend  = '), write(Extend),nl,
+%   write('Project = '), write(Project),nl,
+%   write('Rdup    = duplicates'),nl,
+  !.
+
 selectClause(select distinct T, Ext, Pro, distinct) :-
   selectClause(select T, Ext, Pro, _), !.
 selectClause(select all T, Ext, Pro, Rdup) :-
@@ -4655,7 +4713,7 @@ selectClause(select Attrs, Extend, Project, duplicates) :-
   extendProject(Attrs2, Extend, Project), !.
 
 /*
-----	finish2(Stream, Extend, Project, Rdup, Sort, Stream5) :-
+----	finish2(+Stream, +Extend, +Project, +Rdup, +Sort, -Stream5) :-
 ----
 
 Apply extension, projection, duplicate removal and sorting as specified to ~Stream~ to obtain ~Stream5~.
