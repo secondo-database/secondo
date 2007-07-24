@@ -29,3 +29,10 @@ Example  : query thenetwork(X_ROUTES, X_JUNCTIONS)
 Result   : (X)
 
 
+Operator : shortest_path
+Number   : 1
+Signature: gpoint x gpoint -> gline
+Example  : shortest_path(X_GPOINT, X_GPOINT)
+Result   : (X)
+
+
