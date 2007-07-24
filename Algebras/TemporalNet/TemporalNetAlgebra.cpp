@@ -35,19 +35,25 @@ May 2007 Martin Scheppokat
 2 Defines, includes, and constants
 
 */
+#include "NestedList.h"
+#include "TupleIdentifier.h"
+#include "DBArray.h"
+
+#include "GPoint.h"
+#include "NetworkAlgebra.h"
+#include "TemporalNetAlgebra.h"
+
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
 
-extern NestedList* nl;
-extern QueryProcessor* qp;
 
 #include "DateTime.h"
-#include "TemporalNetAlgebra.h"
 
+extern NestedList* nl;
+extern QueryProcessor* qp;
 
 /*
 3.1 Class ~UPoint~
@@ -185,25 +191,27 @@ ListExpr OutUGPoint( ListExpr typeInfo, Word value )
   UGPoint* ugpoint = (UGPoint*)(value.addr);
 
   if( !(((UGPoint*)value.addr)->IsDefined()) )
+  {
     return (nl->SymbolAtom("undef"));
+  }
   else
-    {
-      ListExpr timeintervalList = nl->FourElemList(
-          OutDateTime( nl->TheEmptyList(),
-          SetWord(&ugpoint->timeInterval.start) ),
-          OutDateTime( nl->TheEmptyList(), 
-                       SetWord(&ugpoint->timeInterval.end) ),
-          nl->BoolAtom( ugpoint->timeInterval.lc ),
-          nl->BoolAtom( ugpoint->timeInterval.rc));
+  {
+    ListExpr timeintervalList = 
+        nl->FourElemList(OutDateTime( nl->TheEmptyList(),
+                                      SetWord(&ugpoint->timeInterval.start) ),
+                         OutDateTime( nl->TheEmptyList(), 
+                                      SetWord(&ugpoint->timeInterval.end) ),
+          		           nl->BoolAtom( ugpoint->timeInterval.lc ),
+          		           nl->BoolAtom( ugpoint->timeInterval.rc));
 
-      ListExpr pointsList = 
-        nl->FiveElemList(nl->IntAtom( ugpoint->p0.GetNetworkId() ),
-nl->IntAtom( ugpoint->p0.GetRouteId() ),
-nl->IntAtom( ugpoint->p0.GetSide() ),
-nl->RealAtom( ugpoint->p0.GetPosition()),
-nl->RealAtom( ugpoint->p1.GetPosition()));
+    ListExpr pointsList = 
+         nl->FiveElemList(nl->IntAtom( ugpoint->p0.GetNetworkId() ),
+                          nl->IntAtom( ugpoint->p0.GetRouteId() ),
+                          nl->IntAtom( ugpoint->p0.GetSide() ),
+                          nl->RealAtom( ugpoint->p0.GetPosition()),
+                          nl->RealAtom( ugpoint->p1.GetPosition()));
       return nl->TwoElemList( timeintervalList, pointsList );
-    }
+  }
 }
 
 /*

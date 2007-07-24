@@ -38,7 +38,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "TemporalAlgebra.h"
-#include "../Network/NetworkAlgebra.h"
+
+#ifndef __NETWORK_ALGEBRA_H__
+#error NetworkAlgebra.h is needed by TemporalNetAlgebra.h. \
+Please include in *.cpp-File.
+#endif
+
+#ifndef GPOINT_H_
+#error GPoint.h is needed by TemporalNetAlgebra.h. Please include in *.cpp-File.
+#endif
+
 
 using namespace datetime;
 
