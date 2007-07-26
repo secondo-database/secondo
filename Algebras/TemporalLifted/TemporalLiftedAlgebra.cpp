@@ -1222,6 +1222,7 @@ static void MovingRealCompareMS(MReal& op1,CcReal& op2, MBool&
   const UReal *up1;
 
   mop2->Clear();
+  mop2->Resize(op1.GetNoComponents());
   mop2->StartBulkLoad();
   for (int i = 0; i < op1.GetNoComponents(); i++) {
     op1.Get(i, up1);
