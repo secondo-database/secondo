@@ -553,6 +553,18 @@ Returns ~0~ if the set is empty.
 Clears the point set.
 
 */
+    inline void Resize(const int newSize);
+/*
+Sets the new capacity of the points array to the
+maximum of its original size and the argument.
+
+*/
+    inline void TrimToSize();
+/*
+Sets the new capacity of the points array to the amount really required.
+
+*/
+
     inline void Get( const int i, Point const*& p ) const;
 /*
 Retrieves the point ~p~ at position ~i~ in the point set.
@@ -1472,6 +1484,12 @@ Sets the new capacity of the halfsegment array to the
 maximum of its original size and the argument.
 
 */
+    inline void TrimToSize();
+/*
+Sets the new capacity of the halfsegment array to the
+amount really required.
+
+*/
 
     inline void Put( const int i, const HalfSegment& hs );
 /*
@@ -2129,6 +2147,23 @@ must be ordered.
 /*
 Marks the end of a bulk load and sorts the half segments set if the argument ~sort~ is set to true.
 
+*/
+
+     inline void Resize(const int newSize);
+/*
+Sets the new capacity of the halfsegment array to the
+maximum of its original size and the argument.
+
+*/
+     inline void TrimToSize();
+/*
+Sets the new capacity of the halfsegment array to the
+amount really required.
+
+*/
+
+
+/*
 6.2 Member functions
 
 */
@@ -3365,6 +3400,16 @@ inline bool Points::GetPt( const Point*& p ) const
   return false;
 }
 
+inline void Points::Resize(const int newSize){
+  if(newSize>Size()){
+    points.Resize(newSize);
+  }
+}
+
+inline void Points::TrimToSize(){
+  points.TrimToSize();
+}
+
 /*
 11.3 Class ~HalfSegment~
 
@@ -3668,6 +3713,10 @@ inline void Line::Resize(const int newSize){
    }
 }
 
+inline void Line::TrimToSize(){
+  line.TrimToSize();
+}
+
 inline void Line::Put( const int i, const HalfSegment& hs )
 {
   line.Put( i, hs );
@@ -3899,6 +3948,16 @@ inline bool Region::GetHs( const HalfSegment*& hs ) const
     return true;
   }
   return false;
+}
+
+inline void Region::Resize(const int newSize){
+  if(newSize>Size()){
+    region.Resize(newSize);
+  }
+}
+
+inline void Region::TrimToSize(){
+  region.TrimToSize();
 }
 
 /*

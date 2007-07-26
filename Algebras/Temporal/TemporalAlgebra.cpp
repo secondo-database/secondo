@@ -2542,7 +2542,11 @@ void MPoint::Trajectory( Line& line ) const
   const UPoint *unit;
   int edgeno = 0;
 
-  for( int i = 0; i < GetNoComponents(); i++ )
+  int size = GetNoComponents();
+  if (size>0)
+    line.Resize(size);
+
+  for( int i = 0; i < size; i++ )
   {
     Get( i, unit );
 
@@ -2564,6 +2568,7 @@ void MPoint::Distance( const Point& p, MReal& result ) const
   const UPoint *uPoint;
   UReal uReal(true);
   result.Clear();
+  result.Resize(GetNoComponents());
   result.StartBulkLoad();
   for( int i = 0; i < GetNoComponents(); i++ )
   {

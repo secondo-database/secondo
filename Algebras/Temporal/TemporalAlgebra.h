@@ -3143,6 +3143,7 @@ void Range<Alpha>::EndBulkLoad( const bool sort )
    //   cout<<"invalid range found!!!"<<endl;
   }
   //assert( IsValid() );
+  intervals.TrimToSize();
 }
 
 template <class Alpha>
@@ -4660,6 +4661,7 @@ void Mapping<Unit, Alpha>::EndBulkLoad( const bool sort )
   if( sort )
     units.Sort( UnitCompare<Unit> );
   ordered = true;
+  units.TrimToSize();
   assert( IsValid() );
 }
 

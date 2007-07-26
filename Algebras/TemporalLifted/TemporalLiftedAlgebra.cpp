@@ -91,8 +91,9 @@ void MPerimeter(MRegion& reg, MReal& res) {
       cout<< "MPerimeter() called" << endl;
 
     int nocomponents = reg.GetNoComponents();
-
+    res.Resize(nocomponents);
     res.Clear();
+    
     res.StartBulkLoad();
     for(int n = 0; n < nocomponents; n++){
       const URegionEmb *ur;
@@ -141,8 +142,10 @@ void MArea(MRegion& reg, MReal& res) {
       cout<< "MArea() called" << endl;
 
     res.Clear();
+    int size = reg.GetNoComponents();
+    res.Resize(size);
     res.StartBulkLoad();
-    for(int n = 0; n < reg.GetNoComponents(); n++){
+    for(int n = 0; n < size; n++){
       const URegionEmb *ur;
       UReal ures(true);
       double at = 0.0, bt = 0.0, ct = 0.0;
@@ -200,8 +203,10 @@ void RCenter(MRegion& reg, MPoint& res) {
       cout<< "RCenter() called" << endl;
 
     res.Clear();
+    int size = reg.GetNoComponents();
+    res.Resize(size);
     res.StartBulkLoad();
-    for(int n = 0; n < reg.GetNoComponents(); n++){
+    for(int n = 0; n < size; n++){
       const URegionEmb *ur;
       double Ainitial = 0.0, Axinitial = 0.0, Ayinitial = 0.0,
              Afinal = 0.0, Axfinal = 0.0, Ayfinal = 0.0;
@@ -301,8 +306,8 @@ void RCenter(MRegion& reg, MPoint& res) {
 /*
 1.1 Method ~NComponents()~
 
-It gets for each URegion the last segment and givs the FaceNo of this segment,
-because the last segment ist on the last face .
+It gets for each URegion the last segment and gives the FaceNo of this segment,
+because the last segment is on the last face .
 
 */
 void NComponents(MRegion& reg, MInt& res) {
@@ -310,8 +315,10 @@ void NComponents(MRegion& reg, MInt& res) {
       cout<< "NComponents() called" << endl;
 
     res.Clear();
+    int size = reg.GetNoComponents();
+    res.Resize(size);
     res.StartBulkLoad();
-    for(int n = 0; n < reg.GetNoComponents(); n++){
+    for(int n = 0; n < size; n++){
       const URegionEmb *ur;
       reg.Get(n, ur);
       if(!ur->IsValid())
@@ -409,6 +416,7 @@ void DistanceMPoint( MPoint& p1, MPoint& p2, MReal& result)
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
 
   result.Clear();
+  result.Resize(rp.Size());
   result.StartBulkLoad();
   for( unsigned int i = 0; i < rp.Size(); i++ )
   {
@@ -617,6 +625,7 @@ static void MRealDistanceMM(MReal& op1, MReal& op2, MReal& result)
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
 
   result.Clear();
+  result.Resize(rp.Size());
   result.StartBulkLoad();
   for(unsigned int i = 0; i < rp.Size(); i++)
   {
@@ -683,6 +692,7 @@ static void MovingRealCompareMM2(MReal& op1, MReal& op2, MBool&
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
   //cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
   result.Clear();
+  result.Resize(rp.Size());
   result.StartBulkLoad();
   
   for(unsigned int i = 0; i < rp.Size(); i++)
@@ -722,7 +732,8 @@ static void MovingRealCompareMM2(MReal& op1, MReal& op2, MBool&
     //if ( (u1.a == u2.a) && (u1.b == u2.b) && (u1.c == u2.c) )
     if ( u1 == u2 )
     {
-      cout << "equalureal" << endl;
+      if(TLA_DEBUG)
+        cout << "equalureal" << endl;
       uBool.timeInterval.start = iv->start;
       uBool.timeInterval.end = iv->end;
       uBool.timeInterval.lc = iv->lc;
@@ -1050,6 +1061,7 @@ static void MovingRealIntersectionMM(MReal& op1, MReal& op2,
    cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
 
  result.Clear();
+ result.Resize(rp.Size());
  result.StartBulkLoad();
  for(unsigned int i = 0; i < rp.Size(); i++)
  {
@@ -1206,7 +1218,7 @@ static void MovingRealCompareMS(MReal& op1,CcReal& op2, MBool&
 {
   if(TLA_DEBUG)
     cout<<"MovingRealCompareMS called"<<endl;
-  MReal *mop2 = new MReal(0);
+  MReal *mop2 = new MReal(op1.GetNoComponents());
   const UReal *up1;
 
   mop2->Clear();
@@ -1684,7 +1696,7 @@ static void MPointInsideLine(MPoint& mp, Line& ln, Periods& pResult)
 
 Checks whether the two mpoints are crossing. It returns -1.0 if the mpoints are
 not crossing and 2.0 if both mpoints are equal all the time. In all other cases
-it return thr fraction of iv when mpoints are crossing (0.0 .. 1.0).
+it return the fraction of iv when mpoints are crossing (0.0 .. 1.0).
 
 */
 double MPointInMPoint(double startx1, double starty1, double endx1,
@@ -1764,6 +1776,7 @@ void MovingPointCompareMM( MPoint& p1, MPoint& p2, MBool& result,
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
 
   result.Clear();
+  result.Resize(rp.Size());
   result.StartBulkLoad();
   for( unsigned int i = 0; i < rp.Size(); i++ )
   {
@@ -2244,6 +2257,7 @@ void MovingRegionCompareMM( MRegion *mr1, MRegion *mr2, MBool *result,
   UBool uBool(true);
 
   result->Clear();
+  result->Resize(rp.Size());
   result->StartBulkLoad();
 
   for( unsigned int i = 0; i < rp.Size(); i++ ){
@@ -2852,6 +2866,7 @@ static void TransformMBool2MPoint(MPoint *mp, MBool *mBool, MPoint *endResult)
   const UPoint *up;
 
   endResult->Clear();
+  endResult->Resize(mBool->GetNoComponents());
   endResult->StartBulkLoad();
 
 
@@ -3020,6 +3035,7 @@ there is no mBool at all.
 static void TransformMBool2MPoint(Point *p, MBool *mBool, MPoint *endResult)
 {
   endResult->Clear();
+  endResult->Resize(mBool->GetNoComponents());
   endResult->StartBulkLoad();
   const UBool *ub;
   UPoint newUp(true);
@@ -3077,6 +3093,7 @@ static void MovingBoolMMOperators( MBool& op1, MBool& op2,
   if(TLA_DEBUG)
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
   result.Clear();
+  result.Resize(rp.Size());
   result.StartBulkLoad();
   for(unsigned int i = 0; i < rp.Size(); i++)
   {
@@ -3144,6 +3161,7 @@ static void MovingBoolMSOperators( MBool& op1, CcBool& op2,
   const UBool *u1transfer;
 
   result.Clear();
+  result.Resize(op1.GetNoComponents());
   result.StartBulkLoad();
   for( int i = 0; i < op1.GetNoComponents(); i++)
   {
@@ -3191,6 +3209,7 @@ static void MovingCompareBoolMM( Mapping1& op1, Mapping2& op2,
   if(TLA_DEBUG)
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
   result.Clear();
+  result.Resize(rp.Size());
   result.StartBulkLoad();
   for(unsigned int i = 0; i < rp.Size(); i++)
   {
@@ -3253,6 +3272,7 @@ static void MovingIntersectionMM( Mapping1& op1, Mapping2& op2,
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
 
   result.Clear();
+  result.Resize(rp.Size());
   result.StartBulkLoad();
 
   for(unsigned int i = 0; i < rp.Size(); i++)
@@ -3318,6 +3338,7 @@ static void MovingCompareBoolMS( Mapping1& op1, Operator2& op2,
   const Unit1 *u1;
 
   result.Clear();
+  result.Resize(op1.GetNoComponents());
   result.StartBulkLoad();
   for(int i = 0; i < op1.GetNoComponents(); i++)
   {
@@ -3348,6 +3369,7 @@ static void MRealABS(MReal& op, MReal& result)
   vector<UReal> partResult;
   int numPartResult = 0;
   result.Clear();
+  result.Resize(op.GetNoComponents());
   result.StartBulkLoad();
   for(int i = 0; i < op.GetNoComponents(); i++)
   {
@@ -3400,7 +3422,7 @@ void copyMRegionMPoint(MRegion& reg, MPoint& pt, MRegion& result) {
     Interval<Instant>* iv;
     int regPos;
     int ptPos;
-    Periods* per = new Periods(0);
+    Periods* per = new Periods(rp.Size());
     Interval<Instant> newper;
     per->Clear();
     per->StartBulkLoad();

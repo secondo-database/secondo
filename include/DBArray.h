@@ -162,7 +162,10 @@ The destructor.
         nElements = index + 1;
         if( nElements > maxElements )
         {
-          maxElements = nElements + 16;
+          if (nElements <= 9)
+            maxElements = 16;
+          else
+            maxElements = nElements * 2;
           FLOB::Resize( maxElements * sizeof( DBArrayElement ) );
         }
 
@@ -221,16 +224,16 @@ Returns the element ~index~ of the array.
 
     void TrimToSize() 
     {
-      if (maxElements > nElements) { 	    
-	if (nElements == 0) {
-	  FLOB::Clean();	
-	} else { 	
-          FLOB::Resize(nElements * sizeof(DBArrayElement));	    
-	}  
+      if (maxElements > nElements) {
+        if (nElements == 0) {
+          FLOB::Clean();
+        } else {
+          FLOB::Resize(nElements * sizeof(DBArrayElement));
+        }  
       }
 
       maxElements = nElements;
-    }	    
+    }
 /*
 Returns the number of components of this array.
 
