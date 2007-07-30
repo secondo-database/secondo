@@ -179,7 +179,7 @@ Operator : initial
 Number   : 1
 Signature: mstring -> istring
 Example  : query val(initial(train7upsights))
-Result   : "Flughafen Schönefeld"
+Result   : "Flughafen Schï¿½efeld"
 
 
 Operator : inst
@@ -335,3 +335,26 @@ Example  : query velocity_new(train7 at thecenter)
 Result   : file
 
 
+Operator : everNearerThan
+Number   : 1
+Signature: mpoint x mpoint x real -> bool
+Example  : query everNearerThan(train6, train7, 3127.3)
+Result   : TRUE
+
+Operator : everNearerThan
+Number   : 2
+Signature: mpoint x mpoint x real -> bool
+Example  : query everNearerThan(train6, train7, 3127.2)
+Result   : FALSE
+
+Operator : everNearerThan
+Number   : 1
+Signature: mpoint x point x real -> bool
+Example  : query everNearerThan(train6, mehringdamm, 0.0001)
+Result   : TRUE
+
+Operator : everNearerThan
+Number   : 1
+Signature: point x mpoint x real -> bool
+Example  : query everNearerThan(train5, mehringdamm, 0.0001)
+Result   : FALSE

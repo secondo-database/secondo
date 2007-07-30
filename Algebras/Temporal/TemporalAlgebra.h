@@ -6501,6 +6501,12 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
     int addu = 0;
     int subu = 0;
 
+    // avoiding to much resizes:
+    int mysize = (mr.GetNoComponents() + mp.GetNoComponents() + 1) * 2;
+    iv.reserve(mysize);
+    vur.reserve(mysize);
+    vup.reserve(mysize);
+
     if(mr.GetNoComponents() > 0 && mp.GetNoComponents() > 0){
        mr.Get(0, ur);
        mp.Get(0, up);

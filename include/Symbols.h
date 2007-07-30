@@ -57,6 +57,12 @@ namespace symbols {
  Sym MATERIAL("material");
  Sym POSITION("position");
 
+ // spatial, temporal, temporalunit algebra
+#undef MPOINT
+#undef POINT
+ Sym MPOINT("mpoint");
+ Sym POINT("point");
+
  // some reserved words of the query processor
 #undef MAP 
 #undef STREAM 

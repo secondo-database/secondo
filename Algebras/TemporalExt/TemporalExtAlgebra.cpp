@@ -47,6 +47,12 @@ inclusion of header files concerning Secondo.
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
+#include "TypeMapUtils.h"
+#include "Symbols.h"
+
+using namespace symbols;
+using namespace mappings;
+
 /*
 
 2 Type definitions, Auxiliary Functions
@@ -2309,7 +2315,7 @@ For example:
         )
 ----
 
-7.2 function Describing the Signature of the Type Constructor
+7.2 Function describing the Signature of the Type Constructor
 
 */
 ListExpr
@@ -2917,6 +2923,25 @@ ConcatSTypeMap(ListExpr args){
 
 
 /*
+9.1.20 Type mapping for ~evernearerthan~
+
+*/
+
+
+const string mapsEverNearerThan[3][4] = 
+{ 
+  {MPOINT,    MPOINT,    REAL,   BOOL},
+  {MPOINT,    POINT,     REAL,   BOOL},
+  {POINT,     MPOINT,    REAL,   BOOL}
+};
+
+ListExpr
+EverNearerThan_tm( ListExpr args )
+{
+  return SimpleMaps<3,4>(mapsEverNearerThan, args);  
+}
+
+/*
 9.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -3150,6 +3175,17 @@ MovingAtMinMaxSelect( ListExpr args )
 
     return -1; // This point should never be reached
 }
+
+/*
+9.2.9 Selection Function for ~everNearerThan~
+
+*/
+int
+EverNearerThan_sf( ListExpr args )
+{
+  return SimpleSelect<3,4>(mapsEverNearerThan, args);
+}
+
 
 /*
 9.3 Value mapping functions
@@ -4804,6 +4840,78 @@ int ConcatSValueMap(Word* args, Word& result,
    return 0;
 }
 
+static bool EverNearerThan(MPoint* arg0, MPoint* arg1, double dist){
+  RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(*arg0, *arg1);
+  unsigned int size = rp.Size();
+  unsigned int pos = 0;
+  while(pos < size){
+    Interval<Instant>* iv;
+    int u1Pos;
+    int u2Pos;
+    const UPoint *u1transfer;
+    const UPoint *u2transfer;
+    rp.Get(pos, iv, u1Pos, u2Pos);
+    pos++;
+    if (u1Pos == -1 || u2Pos == -1){
+      continue;
+    }
+    arg0->Get(u1Pos, u1transfer);
+    arg1->Get(u2Pos, u2transfer);
+    UPoint u1(true);
+    UPoint u2(true);
+    u1 = *u1transfer;
+    u2 = *u2transfer;
+    if(u1.IsDefined() && u2.IsDefined())
+    { // do not need to test for overlapping deftimes anymore...
+      UReal uReal(true);
+      bool correct = false;
+      u1.Distance( u2, uReal );
+      if(uReal.Min(correct) < dist && correct)
+        return true;
+    }
+  }
+  return false;
+}
+
+static bool EverNearerThan(Point* arg0, MPoint* arg1, double dist){
+  for(int i = 0; i< arg1->GetNoComponents(); i++){
+    const UPoint *upoint;
+    arg1->Get(i, upoint);
+    UReal ureal(false);
+    upoint->Distance(*arg0, ureal);
+    bool correct = false;
+    if( ureal.Min(correct) < dist && correct ){
+      return true;
+    }
+  }
+  return false;
+}
+
+static bool EverNearerThan(MPoint* arg0, Point* arg1, double dist){
+   return EverNearerThan(arg1,arg0,dist);
+}
+
+
+template<class S, class T>
+int
+EverNearerThan_vm( Word* args, Word& result, int message, 
+                   Word& local, Supplier s )
+{
+  // args[0] : S*
+  S* arg0 = static_cast<S*>(args[0].addr);
+  T* arg1 = static_cast<T*>(args[1].addr);
+  CcReal* arg2 = static_cast<CcReal*>(args[2].addr);
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+
+  if(!arg0->IsDefined() || !arg1->IsDefined() || !arg2->IsDefined()){
+     res->Set(false,false);
+  } else {
+     res->Set(true,EverNearerThan(arg0, arg1, arg2->GetRealval()));
+  }
+  return (0);
+}
+
 
 /*
 9.4 Definition of operators
@@ -4918,6 +5026,14 @@ ValueMapping temporalatmaxextmap[] = {
     MappingAtmaxExt<MInt, UInt, CcInt>,
     MappingAtmaxExt<MString, UString, CcString>,
     MappingAtmaxExt_r,};
+
+
+ValueMapping EverNearerThan_vms[] =
+{
+  EverNearerThan_vm<MPoint,MPoint>,
+  EverNearerThan_vm<MPoint, Point>,
+  EverNearerThan_vm<Point, MPoint>
+};
 
 /*
 9.5 Specification strings
@@ -5169,6 +5285,21 @@ const string TemporalSpecConcatS2  =
     "<text>query train6 feed concatS2 [1000]   </text--->"
     ") )";
 
+struct EverNearerThanInfo : OperatorInfo {
+
+  EverNearerThanInfo() : OperatorInfo()
+  {
+    name =      "everNearerThan";
+    signature = "mpoint x mpoint x real -> bool, mpoint x point x real -> bool,"
+                " point x mpoint x real -> bool";
+    syntax =    "everNearerThan(P1, P2, D)";
+    meaning =   "Returns true, iff the distance between P1 and P2 ever becomes "
+                "smaller than D";
+  }
+
+};
+
+
 /*
 9.6 Operators
 
@@ -5379,6 +5510,8 @@ Operator temporalconcatS2(
     Operator::SimpleSelect,
     ConcatSTypeMap);
 
+
+
 class TemporalExtAlgebra : public Algebra
 {
   public:
@@ -5436,6 +5569,9 @@ class TemporalExtAlgebra : public Algebra
         AddOperator( &setunitofdistanceext );
         AddOperator( &temporalconcatS );
         AddOperator( &temporalconcatS2 );
+
+        AddOperator( EverNearerThanInfo(), EverNearerThan_vms, 
+                     EverNearerThan_sf, EverNearerThan_tm );
 
     }
     ~TemporalExtAlgebra() {}
