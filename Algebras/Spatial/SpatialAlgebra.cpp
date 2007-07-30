@@ -56,6 +56,7 @@ using namespace std;
 #include "SpatialAlgebra.h"
 #include "SecondoConfig.h"
 #include <vector>
+#include <stdexcept>
 #include <iostream>
 #include <string.h>
 #include <string>
@@ -3925,31 +3926,38 @@ static double maxDist(vector<Point>& orig, // points
                       int min, int max, // range
                       int& index){  // resultindex
 
-// search the point with the largest distance to the segment between
-// orig[min] and orig[max]
- double maxdist = 0.0;
- int maxindex = -1;
- if(!AlmostEqual(orig[min],orig[max])){
-     HalfSegment hs(true,orig[min],orig[max]);
-     for(int i=min+1; i<max; i++){
-        double dist = hs.Distance(orig[i]);
+  // search the point with the largest distance to the segment between
+  // orig[min] and orig[max]
+  double maxdist = 0.0;
+  int maxindex = -1;
+
+  try{
+    if(!AlmostEqual(orig.at(min),orig.at(max))){
+      HalfSegment hs(true,orig.at(min),orig.at(max));
+      for(int i=min+1; i<max; i++){
+        double dist = hs.Distance(orig.at(i));
         if(dist>maxdist){
           maxdist = dist;
           maxindex = i;
+        }
       }
-     }
- } else { // special case of a cycle
-   Point p = orig[min];
-   for(int i=min+1; i<max; i++){
-      double dist = p.Distance(orig[i]);
-      if(dist>maxdist){
-        maxdist = dist;
-        maxindex = i;
+   } else { // special case of a cycle
+      Point p = orig[min];
+      for(int i=min+1; i<max; i++){
+        double dist = p.Distance(orig.at(i));
+        if(dist>maxdist){
+          maxdist = dist;
+          maxindex = i;
+        }
       }
-   }
- }
- index = maxindex;
- return maxdist;
+    }
+    index = maxindex;
+    return maxdist;
+  } catch (out_of_range){
+      cerr << "min=" << min << " max=" << max << " size=" 
+           << orig.size() << endl;
+      assert(false);
+  }
 }
                  
 
@@ -3981,7 +3989,9 @@ if(min+1>=max){ // no inner points, nothing to do
        return false; // all ok, stop recursion
    } else {
      bool ins = douglas_peucker(orig,epsilon,use,min,index,cycle);
-     douglas_peucker(orig,epsilon,use,index,max,cycle && !ins);
+     if(index>=0){
+        douglas_peucker(orig,epsilon,use,index,max,cycle && !ins);
+     }
      return true;
    }
 }
@@ -6879,7 +6889,7 @@ void Region::GetClippedHSIn(const Rectangle<2> &window,
       else
         if ( inside )
         {
-          bool hsOnEdge = ClippedHSOnEdge(window, hsInside, true, pointsOnEdge);
+          bool hsOnEdge = ClippedHSOnEdge(window,hsInside,true,pointsOnEdge);
           if (!hsOnEdge)
           {
             //Add the clipped segment to the new region if it was not rejected
