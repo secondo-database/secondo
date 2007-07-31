@@ -60,6 +60,8 @@ August 2006, Christian D[ue]ntgen added signature ((stream T) int) -> (stream T)
 January 2007, M. Spiekermann. Reference counting in groupby corrected, since it causes a segmentation fault, 
 when the Tuplebuffer needs to be flushed on disk.
 
+July 2007, C. Duentgen. Changed groupbyTypeMap. It will now accept an empty list of grouping attributes (argument 1)). The result will then be constructed from a single group containing ALL tuples from the input stream (argument 0). Logically, the result tuples contain no original attributes from the input stream, but only those created by aggregation functions from argument 2.
+
 [TOC]
 
 1 Includes and defines
@@ -5196,7 +5198,7 @@ Result type of ~groupby~ operation.
 
 ----   Let X = tuple ((x1 t1) ... (xn tn)), R = rel(X):
 
-       ( (stream X) (xi1 ... xik) ( (y1 (map R T1)) ... (ym (map R Tm)) )
+       ( (stream X) (xi1 ... xik) ( (y1 (map R T1)) ... (ym (map R Tm)) ) )
 
         -> ( APPEND (m p1 ... pm) 
                (stream (tuple (xj1 tj1)... (xjl tjl) (y1 T1) ... (ym Tm))))
@@ -5237,8 +5239,11 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
     // check input list structure
     listOk = listOk && (nl->ListLength(first) == 2);
     listOk = listOk && !nl->IsEmpty( third );
-    listOk = listOk && !nl->IsAtom(second) && 
-             ( nl->ListLength(second) > 0 );
+// Original implementation:
+//     listOk = listOk && !nl->IsAtom(second) &&
+//              ( nl->ListLength(second) > 0 );
+    // Also allow for an empty grouping attr-list:
+    listOk = listOk && !nl->IsAtom(second);
 
   }
 
@@ -5246,10 +5251,10 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
   {
     stringstream errMsg;
     errMsg << "groupby: Invalid input list structure. "
-           << "The structure should be a three elem list "
-           << "like (stream (" << tupleSymbolStr
-           << "((x1 t1) ... (xn tn)) (xi1 ... xik) "
-           << "( (y1 (map R T1)) ... (ym (map R Tm))!";
+        << "The structure should be a three elem list "
+        << "like (stream (" << tupleSymbolStr
+        << "((x1 t1) ... (xn tn)) (xi1 ... xik) "
+        << "( (y1 (map R T1)) ... (ym (map R Tm))!";
 
     ErrorReporter::ReportError(errMsg.str());
     return nl->SymbolAtom("typeerror");
@@ -5264,7 +5269,7 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
   if ( !listOk ) {
 
     ErrorReporter::ReportError( "groupby: Input is not of type (stream "
-                                + tupleSymbolStr + "(...))." );
+        + tupleSymbolStr + "(...))." );
     return nl->SymbolAtom("typeerror");
   }
 
@@ -5272,7 +5277,7 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
   // out of the input stream
 
   ListExpr rest = second;
-        ListExpr lastlistp = nl->TheEmptyList();
+  ListExpr lastlistp = nl->TheEmptyList();
   bool firstcall = true;
 
   while (!nl->IsEmpty(rest))
@@ -5282,7 +5287,7 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
     string attrname = nl->SymbolValue(first2);
 
     // calculate index of attribute in tuple
-    int j = FindAttribute(nl->Second(nl->Second(first)), 
+    int j = FindAttribute(nl->Second(nl->Second(first)),
                           attrname, attrtype);
     if (j)
     {
@@ -5303,7 +5308,7 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
     else // grouping attribute not in input stream
     {
       string errMsg = "groupby: Attribute " + attrname
-                + " not present in input stream!";
+          + " not present in input stream!";
 
       ErrorReporter::ReportError(errMsg);
       return nl->SymbolAtom("typeerror");
@@ -5311,93 +5316,108 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
     rest = nl->Rest(rest);
   } // end while
 
+  // compute output tuple with attribute names and their types
+  //loopok = true;
+  rest = third;
+  ListExpr groupType = nl->TwoElemList( nl->SymbolAtom(relSymbolStr),
+                                        nl->Second(first) );
 
-
-    // compute output tuple with attribute names and their types
-    //loopok = true;
-    rest = third;
-    ListExpr groupType = nl->TwoElemList( nl->SymbolAtom(relSymbolStr),
-                                          nl->Second(first) );
-
-    while (!(nl->IsEmpty(rest))) // check functions y1 .. ym
-    {
+  while (!(nl->IsEmpty(rest))) // check functions y1 .. ym
+  {
       // iterate over elements of the 3rd input list
-      ListExpr firstr = nl->First(rest);
-      rest = nl->Rest(rest);
+    ListExpr firstr = nl->First(rest);
+    rest = nl->Rest(rest);
 
-      ListExpr newAttr = nl->First(firstr);
-      ListExpr mapDef = nl->Second(firstr); 
-      ListExpr mapOut = nl->Third(mapDef);
+    ListExpr newAttr = nl->First(firstr);
+    ListExpr mapDef = nl->Second(firstr);
+    ListExpr mapOut = nl->Third(mapDef);
 
       // check list structure
-      bool listOk = true;
-      listOk = listOk && ( nl->IsAtom(newAttr) );
-      listOk = listOk && ( nl->ListLength(mapDef) == 3 );
-      listOk = listOk && ( nl->AtomType(newAttr) == SymbolType );
-      listOk = listOk && ( TypeOfRelAlgSymbol(nl->First(mapDef)) == ccmap );
-      listOk = listOk && ( nl->Equal(groupType, nl->Second(mapDef)) );
+    bool listOk = true;
+    listOk = listOk && ( nl->IsAtom(newAttr) );
+    listOk = listOk && ( nl->ListLength(mapDef) == 3 );
+    listOk = listOk && ( nl->AtomType(newAttr) == SymbolType );
+    listOk = listOk && ( TypeOfRelAlgSymbol(nl->First(mapDef)) == ccmap );
+    listOk = listOk && ( nl->Equal(groupType, nl->Second(mapDef)) );
 
-      if( !listOk ) 
+    if( !listOk )
         // Todo: there could be more fine grained error messages
-      { 
-        ErrorReporter::ReportError(
+    {
+      ErrorReporter::ReportError(
           "groupby: Function definition is not correct!");
-        return nl->SymbolAtom("typeerror");
-      }
+      return nl->SymbolAtom("typeerror");
+    }
 
-      // Check if mapOut is of kind DATA or 
-      // if the function returns a typeerror
-      ListExpr typeConstructor = nl->TheEmptyList();
-      if ( nl->IsAtom(mapOut) ) // function returns a simple type
-      {
-        typeConstructor = mapOut;
+    // Check if mapOut is of kind DATA or
+    // if the function returns a typeerror
+    ListExpr typeConstructor = nl->TheEmptyList();
+    if ( nl->IsAtom(mapOut) ) // function returns a simple type
+    {
+      typeConstructor = mapOut;
 
-      } else { // function returns a complex type
+    } else { // function returns a complex type
 
-        typeConstructor = nl->First(mapOut);
-      }
+      typeConstructor = nl->First(mapOut);
+    }
 
-      // check if the Type Constructor belongs to KIND DATA
-      // If the functions result type is typeerror this check will also fail
-      ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
-      if ( !am->CheckKind("DATA", typeConstructor, errorInfo) ) {
+    // check if the Type Constructor belongs to KIND DATA
+    // If the functions result type is typeerror this check will also fail
+    ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
+    if ( !am->CheckKind("DATA", typeConstructor, errorInfo) ) {
 
-        stringstream errMsg;
-        errMsg << "groupby: The aggregate function for attribute \""
-              << nl->SymbolValue(newAttr) << "\""
-              << " returns a type which is not usable in tuples."
-              << " The type constructor \""
-              << nl->SymbolValue(typeConstructor) << "\""
-              << " belongs not to kind DATA!"
-              << ends;
+      stringstream errMsg;
+      errMsg << "groupby: The aggregate function for attribute \""
+          << nl->SymbolValue(newAttr) << "\""
+          << " returns a type which is not usable in tuples."
+          << " The type constructor \""
+          << nl->SymbolValue(typeConstructor) << "\""
+          << " belongs not to kind DATA!"
+          << ends;
 
-        ErrorReporter::ReportError(errMsg.str());
-        return nl->SymbolAtom("typeerror");
+      ErrorReporter::ReportError(errMsg.str());
+      return nl->SymbolAtom("typeerror");
 
-      }
+    }
 
+    if (    (nl->EndOfList( lastlistn ) == true)
+         && (nl->IsEmpty( lastlistn ) == false)
+         && (nl->IsAtom( lastlistn ) == false)
+       )
+    { // list already contains group-attributes (not empty)
       lastlistn = nl->Append(lastlistn,(nl->TwoElemList(newAttr,mapOut)));
-
+    }
+    else
+    { // no group attribute (list is still empty)
+      listn = nl->OneElemList(nl->TwoElemList(newAttr,mapOut));
+      lastlistn = listn;
+    }
   } // end of while check functions
 
-
-  if ( !CompareNames(listn) ) 
-  { // check if attribute names are uniqe
+  if ( !CompareNames(listn) )
+  { // check if attribute names are unique
     ErrorReporter::ReportError("groupby: Attribute names are not unique");
     return nl->SymbolAtom("typeerror");
   }
 
   // Type mapping is correct, return result type.
-  return
-      nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
-        nl->Cons(nl->IntAtom(nl->ListLength(listp)), listp),
-        nl->TwoElemList(
-          nl->SymbolAtom("stream"),
-          nl->TwoElemList(
-            nl->SymbolAtom(tupleSymbolStr),
-            listn)));
 
+  ListExpr result =
+    nl->ThreeElemList(
+      nl->SymbolAtom("APPEND"),
+      nl->Cons(nl->IntAtom(nl->ListLength(listp)), listp),
+      nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom(tupleSymbolStr),
+          listn
+        )
+      )
+    );
+
+//  string resstring;
+//  nl->WriteToString(resstring, result);
+//  cout << "groupbyTypeMap: result = " << resstring << endl;
+  return result;
 }
 
 
@@ -5945,7 +5965,10 @@ const string GroupBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "<text>Groups a relation according to attributes "
                             "ai1, ..., aik and feeds the groups to other "
                             "functions. The results of those functions are "
-                            "appended to the grouping attributes.</text--->"
+                            "appended to the grouping attributes. The empty "
+                            "list is allowed for the grouping attributes (this "
+                            "results in a single group with all input tuples)."
+                            "</text--->"
                             "<text>query Employee feed sortby[DeptNr asc] "
                             "groupby[DeptNr; anz : group feed count] consume"
                             "</text--->"
