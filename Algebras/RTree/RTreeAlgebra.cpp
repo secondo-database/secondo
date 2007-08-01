@@ -1233,28 +1233,35 @@ int WindowIntersects( Word* args, Word& result,
       localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
       R_TreeLeafEntry<dim, TupleId> e;
 
-      if(localInfo->first)
-      {
-        localInfo->first = false;
-        if( localInfo->rtree->First( *localInfo->searchBox, e ) )
-        {
-          Tuple *tuple = localInfo->relation->GetTuple(e.info);
-          result = SetWord(tuple);
-          return YIELD;
-        }
-        else
-          return CANCEL;
+      if ( !localInfo->searchBox->IsDefined() )
+      { // search box is undefined -> no result!
+        return CANCEL;
       }
       else
       {
-        if( localInfo->rtree->Next( e ) )
+        if(localInfo->first)
         {
-          Tuple *tuple = localInfo->relation->GetTuple(e.info);
-          result = SetWord(tuple);
-          return YIELD;
+          localInfo->first = false;
+          if( localInfo->rtree->First( *localInfo->searchBox, e ) )
+          {
+            Tuple *tuple = localInfo->relation->GetTuple(e.info);
+            result = SetWord(tuple);
+            return YIELD;
+          }
+          else
+            return CANCEL;
         }
         else
-          return CANCEL;
+        {
+          if( localInfo->rtree->Next( e ) )
+          {
+            Tuple *tuple = localInfo->relation->GetTuple(e.info);
+            result = SetWord(tuple);
+            return YIELD;
+          }
+          else
+            return CANCEL;
+        }
       }
     }
 
@@ -1320,30 +1327,37 @@ int WindowIntersects( Word* args, Word& result,
       localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
       R_TreeLeafEntry<dim, TupleId> e;
 
-      if(localInfo->first)
-      {
-        localInfo->first = false;
-        if( localInfo->rtree->First( *localInfo->searchBox, e ) )
-        {
-          Tuple *tuple = localInfo->relation->GetTuple(e.info);
-          result = SetWord(tuple);
-          localInfo->returned++;
-          return YIELD;
-        }
-        else
-          return CANCEL;
+      if ( !localInfo->searchBox->IsDefined() )
+      { // search box is undefined -> no result!
+        return CANCEL;
       }
       else
       {
-        if( localInfo->rtree->Next( e ) )
+        if(localInfo->first)
         {
-          Tuple *tuple = localInfo->relation->GetTuple(e.info);
-          result = SetWord(tuple);
-          localInfo->returned++;
-          return YIELD;
+          localInfo->first = false;
+          if( localInfo->rtree->First( *localInfo->searchBox, e ) )
+          {
+            Tuple *tuple = localInfo->relation->GetTuple(e.info);
+            result = SetWord(tuple);
+            localInfo->returned++;
+            return YIELD;
+          }
+          else
+            return CANCEL;
         }
         else
-          return CANCEL;
+        {
+          if( localInfo->rtree->Next( e ) )
+          {
+            Tuple *tuple = localInfo->relation->GetTuple(e.info);
+            result = SetWord(tuple);
+            localInfo->returned++;
+            return YIELD;
+          }
+          else
+            return CANCEL;
+        }
       }
     }
 
@@ -1719,30 +1733,37 @@ int WindowIntersectsSStandard( Word* args, Word& result,
         (WindowIntersectsSLocalInfo<dim, TupleId>*)local.addr;
       R_TreeLeafEntry<dim, TupleId> e;
 
-      if(localInfo->first)
-      {
-        localInfo->first = false;
-        if( localInfo->rtree->First( *localInfo->searchBox, e ) )
-        {
-          Tuple *tuple = new Tuple( localInfo->resultTupleType );
-          tuple->PutAttribute(0, new TupleIdentifier(true, e.info));
-          result = SetWord(tuple);
-          return YIELD;
-        }
-        else
-          return CANCEL;
+      if ( !localInfo->searchBox->IsDefined() )
+      { // search box is undefined -> no result!
+        return CANCEL;
       }
       else
       {
-        if( localInfo->rtree->Next( e ) )
+        if(localInfo->first)
         {
-          Tuple *tuple = new Tuple( localInfo->resultTupleType );
-          tuple->PutAttribute(0, new TupleIdentifier(true, e.info));
-          result = SetWord(tuple);
-          return YIELD;
+          localInfo->first = false;
+          if( localInfo->rtree->First( *localInfo->searchBox, e ) )
+          {
+            Tuple *tuple = new Tuple( localInfo->resultTupleType );
+            tuple->PutAttribute(0, new TupleIdentifier(true, e.info));
+            result = SetWord(tuple);
+            return YIELD;
+          }
+          else
+            return CANCEL;
         }
         else
-          return CANCEL;
+        {
+          if( localInfo->rtree->Next( e ) )
+          {
+            Tuple *tuple = new Tuple( localInfo->resultTupleType );
+            tuple->PutAttribute(0, new TupleIdentifier(true, e.info));
+            result = SetWord(tuple);
+            return YIELD;
+          }
+          else
+            return CANCEL;
+        }
       }
     }
 
@@ -1790,6 +1811,12 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
         local.addr;
       R_TreeLeafEntry<dim, TwoLayerLeafInfo> e;
 
+      if ( !localInfo->searchBox->IsDefined() )
+      { // search box is undefined -> no result!
+        return CANCEL;
+      }
+      else
+      {
       if(localInfo->first)
       {
         localInfo->first = false;
@@ -1822,6 +1849,8 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
           return CANCEL;
       }
     }
+}
+
     case CLOSE :
     {
       WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo> *localInfo =
