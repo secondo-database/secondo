@@ -7424,7 +7424,7 @@ SymmProductExtend(Word* args, Word& result,
             // XRIS: We must calculate the new attribute's values here
             // and extend rightTuple
             resultTuple = new Tuple( pli->resultTupleType );
-            Concat( rightTuple, pli->currTuple, resultTuple );
+            Concat( pli->currTuple, rightTuple, resultTuple );
             supplier = args[2].addr;           // get list of ext-functions
             nooffun = qp->GetNoSons(supplier); // get num of ext-functions
             for(i = 0; i< nooffun; i++)
@@ -7676,8 +7676,8 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
         {
           if( pli->currTuple == 0 )
           {
-            qp->Request(args[0].addr, r);
-            if( qp->Received( args[0].addr ) )
+            qp->Request(args[1].addr, r);
+            if( qp->Received( args[1].addr ) )
             {
               pli->currTuple = (Tuple*)r.addr;
               pli->leftIter = pli->leftRel->MakeScan();
@@ -7737,8 +7737,8 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
         {
           if( pli->currTuple == 0 )
           {
-            qp->Request(args[1].addr, l);
-            if( qp->Received( args[1].addr ) )
+            qp->Request(args[0].addr, l);
+            if( qp->Received( args[0].addr ) )
             {
               pli->currTuple = (Tuple*)l.addr;
               pli->rightIter = pli->rightRel->MakeScan();
