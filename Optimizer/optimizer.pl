@@ -1002,6 +1002,8 @@ plan_to_atom(pr(P,_), Result) :-
 plan_to_atom(pr(P,_,_), Result) :-
    plan_to_atom(P, Result).	
 
+plan_to_atom([], '').
+
 plan_to_atom(Term, Result) :-
     is_list(Term), Term = [First | _], atomic(First), !,
     write('Term: '), write(Term), nl,
@@ -1211,7 +1213,9 @@ plan_to_atom(project(Stream, Fields), Result) :-
   !.
 
 
-
+% Ignore sortby with empty sort list
+plan_to_atom(sortby(Stream, []), Result) :-
+  plan_to_atom(Stream, Result), !.
 
 
 
@@ -2778,7 +2782,13 @@ cost(sort(X), Sel, S, C) :-
     A * SizeX * log(SizeX + 1).                 % sorting the arguments
              %   individual cost of ordering predicate still not applied!
 
-cost(sortby(X, _), Sel, S, C) :-
+
+% Sortby with empty sorting list is ignored:
+cost(sortby(X, []), Sel, S, C) :-
+  cost(X, Sel, S, C).
+
+cost(sortby(X, Y), Sel, S, C) :-
+  Y \= [],
   cost(sort(X), Sel, S, C).
 
 cost(mergejoin(X, Y, _, _), Sel, S, C) :-
@@ -3503,7 +3513,7 @@ The second query can be written as:
 
 ----    select *
         from [staedte as s, plz as p]
-        where [sname = p:ort, p:plz > 40000]
+        where [s:sname = p:ort, p:plz > 40000]
 ----
 
 Note that all relation names and attribute names are written just in lower
@@ -3576,6 +3586,17 @@ possible to combine grouping and ordering:
         first 2.
 ----
 
+Finally, it is possible to use an empty attribute list with groupby. In this
+case, only a single group is created, e.g. all tuples belong to the same group:
+
+----    select [min(plz) as minplz,
+                max(plz) as maxplz,
+                avg(plz) as avgplz,
+                count(distinct ort) as ortcnt]
+        from plz
+        groupby [].
+----
+
 Simple aggregations:
 
 If only a single value is created using an aggregation function in the select
@@ -3603,7 +3624,7 @@ Examples:
 ----    select sum(no)
         from ten.
 
-        select avg(no*10)
+        select avg(distinct no)
         from ten
         where no > 5.
 

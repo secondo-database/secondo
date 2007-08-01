@@ -117,6 +117,7 @@ isCommutativeOP(p_intersects).
 isCommutativeOP(adjacent).
 isCommutativeOP(attached).
 isCommutativeOP(overlaps).
+isCommutativeOP(everNearerThan).
 
 
 /*

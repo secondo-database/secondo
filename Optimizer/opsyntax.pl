@@ -95,7 +95,7 @@ secondoOp(distance, prefix, 2).
 secondoOp(intersection_new, prefix, 2).
 secondoOp(intersection, prefix, 2).
 secondoOp(theperiod, prefix, 2).
-
+secondoOp(everNearerThan, prefix, 3).
 secondoOp(union_new, prefix, 2).
 secondoOp(minus_new, prefix, 2).
 secondoOp(feed, postfix, 1).
