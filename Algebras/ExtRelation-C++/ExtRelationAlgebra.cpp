@@ -7724,7 +7724,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
             // We match the tuples.
           {
             Tuple *resultTuple = new Tuple( pli->resultTupleType );
-            Concat( pli->currTuple, leftTuple, resultTuple );
+            Concat( leftTuple, pli->currTuple, resultTuple );
             leftTuple->DeleteIfAllowed();
             leftTuple = 0;
             result = SetWord( resultTuple );
@@ -7785,7 +7785,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
             // We match the tuples.
           {
             Tuple *resultTuple = new Tuple( pli->resultTupleType );
-            Concat( rightTuple, pli->currTuple, resultTuple );
+            Concat( pli->currTuple, rightTuple, resultTuple );
             rightTuple->DeleteIfAllowed();
             rightTuple = 0;
             result = SetWord( resultTuple );
