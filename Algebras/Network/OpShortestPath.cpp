@@ -130,28 +130,11 @@ int OpShortestPath::ValueMapping( Word* args,
   Tuple* pFromSection = pNetwork->GetSectionIdOnRoute(pGPoint1);
   Tuple* pToSection = pNetwork->GetSectionIdOnRoute(pGPoint2);
   pGLine->SetNetworkId(1);
-  
-  CcInt* pFromRouteId = (CcInt*)pFromSection->GetAttribute( SECTION_RID ); 
-  int iFromRouteId = pFromRouteId->GetIntval();
-  CcReal* pMeas1 = (CcReal*)pFromSection->GetAttribute( SECTION_MEAS1 ); 
-  float fMeas1 = pMeas1->GetRealval();
-  CcReal* pMeas2= (CcReal*)pFromSection->GetAttribute( SECTION_MEAS2 ); 
-  float fMeas2 = pMeas2->GetRealval();
-  pGLine->AddRouteInterval(iFromRouteId, 
-                           fMeas1, 
-                           fMeas2);
 
-  CcInt* pToRouteId = (CcInt*)pToSection->GetAttribute( SECTION_RID ); 
-  int iToRouteId = pToRouteId->GetIntval();
-  pMeas1 = (CcReal*)pToSection->GetAttribute( SECTION_MEAS1 ); 
-  fMeas1 = pMeas1->GetRealval();
-  pMeas2= (CcReal*)pToSection->GetAttribute( SECTION_MEAS2 ); 
-  fMeas2 = pMeas2->GetRealval();
-  pGLine->AddRouteInterval(iToRouteId, 
-                           fMeas1, 
-                           fMeas2);
-
-  Dijkstra(pNetwork, pFromSection->GetTupleId(), pToSection->GetTupleId());
+  Dijkstra(pNetwork, 
+           pFromSection->GetTupleId(), 
+           pToSection->GetTupleId(),
+           pGLine);
 
   SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "network" ),
                                            xValue);
@@ -161,7 +144,8 @@ int OpShortestPath::ValueMapping( Word* args,
 
 void OpShortestPath::Dijkstra(Network* in_pNetwork,
                               int in_iStartSegmentId,
-                              int in_iEndSegmentId)
+                              int in_iEndSegmentId,
+                              GLine* in_pGLine )
 {
   Relation* pSections = in_pNetwork->GetSectionsInternal();
 
@@ -182,7 +166,6 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
     float fMeas1 = xMeas1->GetRealval();
     CcReal* xMeas2 = (CcReal*)pSection->GetAttribute(SECTION_MEAS2); 
     float fMeas2 = xMeas2->GetRealval();
-    float fLength = fMeas2 - fMeas1;
     
     float fD = float(1e29);
     if(iSegmentId == in_iStartSegmentId)
@@ -193,13 +176,19 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
     xQ.push(new DijkstraStruct(iSegmentId,
                                 true,
                                 iRouteId,
-                                fLength,
-                                fD));
+                                fMeas1,
+                                fMeas2,
+                                fD,
+                                -1,
+                                true));
     xQ.push(new DijkstraStruct(iSegmentId,
                            false,
                            iRouteId,
-                           fLength,
-                           fD));
+                           fMeas1,
+                           fMeas2,
+                           fD,
+                           -1,
+                           true));
 
     pSection->DeleteIfAllowed();
   }
@@ -221,12 +210,12 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
   while(! xQ.isEmtpy())
   {
     DijkstraStruct* pCurrent = xQ.pop();
-    int iCurrentSectionTid = pCurrent->m_iSegmentId;
-    bool bCurrentDirectionUp = pCurrent->m_bDirectionUp;
+    int iCurrentSectionTid = pCurrent->m_iSectionTid;
+    bool bCurrentUpDownFlag = pCurrent->m_bUpDownFlag;
     cout << "Section: " 
          << iCurrentSectionTid 
          << " " 
-         << bCurrentDirectionUp << endl;
+         << bCurrentUpDownFlag << endl;
 //    
 //    S = S with u
 //    
@@ -235,31 +224,66 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
     vector<DirectedSection> xAdjacentSections;
     xAdjacentSections.clear();
     in_pNetwork->GetAdjacentSections(iCurrentSectionTid,
-                                     bCurrentDirectionUp,
+                                     bCurrentUpDownFlag,
                                      xAdjacentSections);
                                      
-    for(size_t i = 0;  i < xAdjacentSections.size(); ++ i) {
+    for(size_t i = 0;  i < xAdjacentSections.size(); i++) 
+    {
       DirectedSection xAdjacentSection = xAdjacentSections[i];
       int iAdjacentSectionTid = xAdjacentSection.getSectionTid();
-      bool bUpDownFlag = xAdjacentSection.getUpDownFlag();
+      bool bAdjacentUpDownFlag = xAdjacentSection.getUpDownFlag();
       
-      cout << "(" <<iCurrentSectionTid << ", " << bCurrentDirectionUp 
+      cout << "(" <<iCurrentSectionTid << ", " << bCurrentUpDownFlag
            << ")->(" 
-           << iAdjacentSectionTid << ", " << bUpDownFlag << ")" << endl;
+           << iAdjacentSectionTid << ", " << bAdjacentUpDownFlag << ")" 
+           << endl;
 
-//      //relax(u,v,w)
-//      if(d[v] > d[u] + w(u,v)
-//      {
-//        d[v] = d[u] + w(u,v)
-//        pi[v] = u
-//      }
+      DijkstraStruct* pAdjacent = xQ.get(iAdjacentSectionTid,
+                                         bAdjacentUpDownFlag);
 
-    }                                     
-   
+      // Relax
+      if(pAdjacent->m_fD > pCurrent->m_fD + pCurrent->Length())
+      {
 
-//    {
-//    }
+        // Calculate new distance
+        pAdjacent->m_fD = pCurrent->m_fD + pCurrent->Length();
+
+        cout << "(" << iAdjacentSectionTid << ", " << bAdjacentUpDownFlag << ")"
+             << " = " << pAdjacent->m_fD
+             << endl;
+
+        
+        // Set current as predecessor of adjacent section
+        pAdjacent->m_iPiSectionTid = pCurrent->m_iSectionTid;
+        pAdjacent->m_bPiUpDownFlag = pCurrent->m_bUpDownFlag;
+      }
+    }    
   }
+    
+  DijkstraStruct* pStruct = xQ.get(in_iEndSegmentId,
+                                   false);
+  cout << "(" << pStruct->m_iSectionTid 
+       << ", " 
+       << pStruct->m_bUpDownFlag << ")" 
+       << endl;
+  in_pGLine->AddRouteInterval(pStruct->m_iRouteId, 
+                              pStruct->m_fMeas1, 
+                              pStruct->m_fMeas2);
+  while(pStruct->m_iSectionTid != in_iStartSegmentId)
+  {
+    pStruct = xQ.get(pStruct->m_iPiSectionTid,
+                     pStruct->m_bPiUpDownFlag);
+    cout << "(" << pStruct->m_iSectionTid 
+         << ", " 
+         << pStruct->m_bUpDownFlag << ")" 
+         << endl;
+    in_pGLine->AddRouteInterval(pStruct->m_iRouteId, 
+                                pStruct->m_fMeas1, 
+                                pStruct->m_fMeas2);
+  }
+  
+      
+                                         
 }
 
 

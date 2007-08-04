@@ -48,17 +48,23 @@ struct DijkstraStruct
   {
   }
 
-  DijkstraStruct(int in_iSegmentId,
-                 bool in_bDirectionUp,
+  DijkstraStruct(int in_iSectionTid,
+                 bool in_bUpDownFlag,
                  int in_iRouteId,
-                 float in_fLength,
-                 float in_fD)
+                 float in_fMeas1,
+                 float in_fMeas2,
+                 float in_fD,
+                 int in_iPiSectionTid,
+                 bool in_bPiUpDownFlag)
   {
-    m_iSegmentId = in_iSegmentId;
-    m_bDirectionUp = in_bDirectionUp;
+    m_iSectionTid = in_iSectionTid;
+    m_bUpDownFlag = in_bUpDownFlag;
     m_iRouteId = in_iRouteId;
-    m_fLength = in_fLength;
+    m_fMeas1 = in_fMeas1;
+    m_fMeas2 = in_fMeas2;
     m_fD = in_fD;
+    m_iPiSectionTid = in_iPiSectionTid;
+    m_bPiUpDownFlag = in_bPiUpDownFlag;
   }
   
 /*
@@ -68,28 +74,43 @@ struct DijkstraStruct
 */
 
   DijkstraStruct( const DijkstraStruct& in_xDikstraStruct):
-    m_iSegmentId(in_xDikstraStruct.m_iSegmentId),
-    m_bDirectionUp(in_xDikstraStruct.m_bDirectionUp),
+    m_iSectionTid(in_xDikstraStruct.m_iSectionTid),
+    m_bUpDownFlag(in_xDikstraStruct.m_bUpDownFlag),
     m_iRouteId(in_xDikstraStruct.m_iRouteId),
-    m_fLength(in_xDikstraStruct.m_fLength), 
-    m_fD(in_xDikstraStruct.m_fD)
+    m_fMeas1(in_xDikstraStruct.m_fMeas1), 
+    m_fMeas2(in_xDikstraStruct.m_fMeas2), 
+    m_fD(in_xDikstraStruct.m_fD),
+    m_iPiSectionTid(in_xDikstraStruct.m_iPiSectionTid),
+    m_bPiUpDownFlag(in_xDikstraStruct.m_bPiUpDownFlag)
   {
   }
     
-  int m_iSegmentId;
+  int m_iSectionTid;
   
-  bool m_bDirectionUp;
+  bool m_bUpDownFlag;
   
   int m_iRouteId;
 
-  float m_fLength;
+  float m_fMeas1;
+
+  float m_fMeas2;
   
   float m_fD;
+
+  int m_iPiSectionTid;
+  
+  bool m_bPiUpDownFlag;
+
+  float Length()
+  {
+    return m_fMeas2 - m_fMeas1;
+  }
+  
   
   bool operator== (const DijkstraStruct& in_xOther) 
   {
-    bool bReturn = (m_iSegmentId == in_xOther.m_iSegmentId &&
-                    m_bDirectionUp == in_xOther.m_bDirectionUp); 
+    bool bReturn = (m_iSectionTid == in_xOther.m_iSectionTid &&
+                    m_bUpDownFlag == in_xOther.m_bUpDownFlag); 
     return bReturn;
   }
 };
@@ -98,11 +119,25 @@ struct DijkstraStruct
 class PriorityQueue
 {
   public:
+  
+  PriorityQueue()
+  {
+  }
 
   void push(DijkstraStruct* in_pStruct)
   {
     // TODO: Zweite Datenstruktur befüllen
-    m_xElements.push_back(in_pStruct);
+    m_xQueue.push_back(in_pStruct);
+    size_t iIndex = 2 * (in_pStruct->m_iSectionTid - 1);
+    if(in_pStruct->m_bUpDownFlag)
+    {
+      iIndex++;
+    }
+    if(m_xElements.size() < iIndex + 1)
+    {
+      m_xElements.resize(iIndex + 1);
+    }
+    m_xElements[iIndex] = in_pStruct;
     
   }
   
@@ -118,40 +153,40 @@ class PriorityQueue
     // ----------------------------------------------------------
     DijkstraStruct* pMinDijkstraStruct;
 
-//    for(size_t i = 0; i < m_xElements.size(); ++i) 
+//    for(size_t i = 0; i < m_xQueue.size(); ++i) 
 //    {
-//      DijkstraStruct xCurrentStruct = m_xElements[i];
+//      DijkstraStruct xCurrentStruct = m_xQueue[i];
 //      cout << "Before " << i << ": " 
 //             << xCurrentStruct.m_iSegmentId << " "
 //             << xCurrentStruct.m_bDirectionUp << endl;
 //    }
 
-    for(size_t i = 0; i < m_xElements.size(); ++i) 
+    for(size_t i = 0; i < m_xQueue.size(); ++i) 
     {
-      DijkstraStruct* pCurrentStruct = m_xElements[i];
+      DijkstraStruct* pCurrentStruct = m_xQueue[i];
       if(i == 0 ||
-         pCurrentStruct->m_fLength < pMinDijkstraStruct->m_fLength)
+         pCurrentStruct->m_fD < pMinDijkstraStruct->m_fD)
       {
         pMinDijkstraStruct = pCurrentStruct;
       }
     }
     
-    std::vector<DijkstraStruct*>::iterator xIt = m_xElements.begin();
-    while(xIt != m_xElements.end()) 
+    std::vector<DijkstraStruct*>::iterator xIt = m_xQueue.begin();
+    while(xIt != m_xQueue.end()) 
     {
       DijkstraStruct* pCurrent = *xIt;
-      if(pCurrent->m_iSegmentId == pMinDijkstraStruct->m_iSegmentId &&
-         pCurrent->m_bDirectionUp == pMinDijkstraStruct->m_bDirectionUp)
+      if(pCurrent->m_iSectionTid == pMinDijkstraStruct->m_iSectionTid &&
+         pCurrent->m_bUpDownFlag == pMinDijkstraStruct->m_bUpDownFlag)
       {
-        m_xElements.erase (xIt);
+        m_xQueue.erase (xIt);
         break;
       }
       xIt++;
     }
 
-//    for(size_t i = 0; i < m_xElements.size(); ++i) 
+//    for(size_t i = 0; i < m_xQueue.size(); ++i) 
 //    {
-//      DijkstraStruct xCurrentStruct = m_xElements[i];
+//      DijkstraStruct xCurrentStruct = m_xQueue[i];
 //      cout << "After " << i << ": "
 //           << xCurrentStruct.m_iSegmentId << " " 
 //           << xCurrentStruct.m_bDirectionUp << endl;
@@ -161,14 +196,19 @@ class PriorityQueue
   
   bool isEmtpy()
   {
-    return m_xElements.empty();
+    return m_xQueue.empty();
   }
 
-  // TODO: Methode zum Zugriff auf d
-  
-  // TODO: Methode zum Zugriff auf pi
-  
-  // TODO: Methode zur durchführung von Relas mit setzen von pi und d
+  DijkstraStruct* get(int in_iSectionTid,
+                      bool in_bUpDownFlag)
+  {
+    size_t iIndex = 2 * (in_iSectionTid - 1);
+    if(in_bUpDownFlag)
+    {
+      iIndex++;
+    }
+    return m_xElements[iIndex];
+  }
 
   private:
   
@@ -176,6 +216,7 @@ class PriorityQueue
   vector<DijkstraStruct*> m_xElements;
   
   // TODO: Zweite Datenstruktur mit allen Elementen in sortiert
+  vector<DijkstraStruct*> m_xQueue;
 };
 
 class OpShortestPath
@@ -201,7 +242,8 @@ class OpShortestPath
 
   static void Dijkstra(Network* in_pNetwork,
                        int in_iStartSegmentId,
-                       int in_iEndSegmentId);
+                       int in_iEndSegmentId,
+                       GLine* in_pGLine );
 
 
 /*
