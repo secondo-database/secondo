@@ -47,6 +47,11 @@ This file contains the implementation of the type ~network~,
 Please include in *.cpp-File.
 #endif
 
+#ifndef GPOINT_H_
+#error GPoint.h is needed by Network.h. \
+Please include in *.cpp-File.
+#endif
+
 #ifndef _RELATION_ALGEBRA_H_
 #error RelationAlgebra.h is needed by Network.h. \
 Please include in *.cpp-File.
@@ -62,6 +67,31 @@ Please include in *.cpp-File.
 #error DBArray.h is needed by Network.h. \
 Please include in *.cpp-File.
 #endif
+
+    enum PositionRoutesRelation { ROUTE_ID = 0, 
+                                  ROUTE_LENGTH, 
+                                  ROUTE_CURVE, 
+                                  ROUTE_DUAL, 
+                                  ROUTE_STARTSSMALLER };
+    enum PositionJunctionsRelation { JUNCTION_ROUTE1_ID = 0, 
+                                     JUNCTION_ROUTE1_MEAS, 
+                                     JUNCTION_ROUTE2_ID, 
+                                     JUNCTION_ROUTE2_MEAS, 
+                                     JUNCTION_CC, 
+                                     JUNCTION_POS, 
+                                     JUNCTION_ROUTE1_RC, 
+                                     JUNCTION_ROUTE2_RC, 
+                                     JUNCTION_SECTION_AUP_RC, 
+                                     JUNCTION_SECTION_ADOWN_RC, 
+                                     JUNCTION_SECTION_BUP_RC, 
+                                     JUNCTION_SECTION_BDOWN_RC};
+    enum PositionSectionsRelation { SECTION_RID = 0, 
+                                    SECTION_MEAS1, 
+                                    SECTION_MEAS2, 
+                                    SECTION_DUAL, 
+                                    SECTION_CURVE, 
+                                    SECTION_RRC };
+
 
 /*
 3 Class ConnectivityCode
@@ -101,7 +131,6 @@ between to routes.
     BDOWN_BUP   = 0x4000,
     BDOWN_BDOWN = 0x8000 
   };
-
 
 /*
 3.1.2 Constructor. 
@@ -210,10 +239,10 @@ class DirectedSection
 4.1.2 Constructor giving a section
 
 */
-  DirectedSection( bool in_bUpDown, 
-                  TupleIdentifier in_xSection ):
-    m_bUpDown( in_bUpDown ), 
-    m_xSection( in_xSection )
+  DirectedSection( int in_iSectionTid,
+                   bool in_bUpDown):
+    m_iSectionTid( in_iSectionTid ),
+    m_bUpDown( in_bUpDown )
   {
   }
   
@@ -222,8 +251,8 @@ class DirectedSection
 
 */
   DirectedSection( const DirectedSection& in_xSection ):
-    m_bUpDown( in_xSection.m_bUpDown ), 
-    m_xSection( in_xSection.m_xSection )
+    m_iSectionTid( in_xSection.m_iSectionTid),
+    m_bUpDown( in_xSection.m_bUpDown )
   {
   }
     
@@ -235,8 +264,18 @@ class DirectedSection
   DirectedSection& operator=( const DirectedSection& in_xSection )
   {
     m_bUpDown = in_xSection.m_bUpDown;
-    m_xSection = in_xSection.m_xSection;
+    m_iSectionTid = in_xSection.m_iSectionTid;
     return *this;
+  }
+    
+  bool getUpDownFlag()
+  {
+    return m_bUpDown;
+  }
+  
+  int getSectionTid()
+  {
+    return m_iSectionTid;
   }
   
   
@@ -245,20 +284,23 @@ class DirectedSection
 
 */
   private:
-/*
-4.2.1 Direction-flag
 
-A flag indicating the direction: ~true~ means up and ~false~ means down.
-
-*/
-  bool m_bUpDown;
 /*
 4.2.2 Section-pointer
 
 A pointer to the section.
 
 */
-  TupleIdentifier m_xSection;
+  int m_iSectionTid;
+
+/*
+
+4.2.1 Direction-flag
+
+A flag indicating the direction: ~true~ means up and ~false~ means down.
+
+*/
+  bool m_bUpDown;
 };
 
 
@@ -314,6 +356,101 @@ The higher index in the adjacency lists sub-array.
   int m_iHigh;
 };
 
+/*
+6.6 Private parts - A helper struct
+
+*/
+struct JunctionSortEntry
+{
+  JunctionSortEntry()
+  {
+  }
+  
+  JunctionSortEntry(bool in_bFirstRoute,
+                    Tuple* in_pJunction):
+    m_bFirstRoute(in_bFirstRoute),
+    m_pJunction(in_pJunction)
+  {
+  }                        
+  
+  bool m_bFirstRoute;
+  
+  Tuple* m_pJunction;
+  
+  bool operator<(const JunctionSortEntry& in_xOther) const 
+  {
+    CcReal* xMeas1;
+    if(m_bFirstRoute)
+    {
+      xMeas1 = (CcReal*)m_pJunction->GetAttribute(JUNCTION_ROUTE1_MEAS);
+    }
+    else
+    {
+      xMeas1 = (CcReal*)m_pJunction->GetAttribute(JUNCTION_ROUTE2_MEAS);
+    }
+
+    CcReal* xMeas2;
+    if(in_xOther.m_bFirstRoute)
+    {
+      xMeas2 = 
+          (CcReal*)in_xOther.m_pJunction->GetAttribute(JUNCTION_ROUTE1_MEAS);
+    }
+    else
+    {
+      xMeas2 = 
+          (CcReal*)in_xOther.m_pJunction->GetAttribute(JUNCTION_ROUTE2_MEAS);
+    }
+    
+    return (xMeas1->GetRealval() < xMeas2->GetRealval());
+  }
+  
+  float getRouteMeas()
+  {
+    CcReal* pMeas;
+    if(m_bFirstRoute)
+    {
+      pMeas = (CcReal*)m_pJunction->GetAttribute(JUNCTION_ROUTE1_MEAS);
+    }
+    else
+    {
+      pMeas = (CcReal*)m_pJunction->GetAttribute(JUNCTION_ROUTE2_MEAS);
+    }
+    return pMeas->GetRealval();
+ 
+  }
+
+  int getUpSectionId()
+  {
+    TupleIdentifier* pTid;
+    if(m_bFirstRoute)
+    {
+      pTid = 
+      (TupleIdentifier*)m_pJunction->GetAttribute(JUNCTION_SECTION_AUP_RC);
+    }
+    else
+    {
+      pTid = 
+      (TupleIdentifier*)m_pJunction->GetAttribute(JUNCTION_SECTION_BUP_RC);
+    }
+    return pTid->GetTid(); 
+  }
+
+  int getDownSectionId()
+  {
+    TupleIdentifier* pTid;
+    if(m_bFirstRoute)
+    {
+      pTid = 
+      (TupleIdentifier*)m_pJunction->GetAttribute(JUNCTION_SECTION_ADOWN_RC);
+    }
+    else
+    {
+      pTid = 
+      (TupleIdentifier*)m_pJunction->GetAttribute(JUNCTION_SECTION_BDOWN_RC);
+    }
+    return pTid->GetTid(); 
+  }
+};
 
 /*
 6 Class ~Network~
@@ -457,6 +594,12 @@ Returns the ~junctions~ relation (in internal representation).
 */
     Relation *GetJunctionsInternal();
 
+    void GetJunctionsOnRoute(CcInt* in_pRouteId,
+                             vector<JunctionSortEntry>& inout_xJunctions);
+
+    Tuple* GetSectionIdOnRoute(GPoint* in_xGPoint);
+
+
 /*
 6.3.5 GetSections
  
@@ -478,6 +621,10 @@ Returns the ~sections~ relation (in internal representation).
 6.4 Public parts - Get-Methods for Type-Infos
 
 */
+
+void GetAdjacentSections(int in_iSectionId,
+                         bool in_bUpDown,
+                         vector<DirectedSection> &inout_xSections);
 
 
 /*
@@ -638,29 +785,6 @@ These enumerators are used to store the positions of each attribute in
 the relations to avoid using numbers.
 
 */
-    enum PositionRoutesRelation { ROUTE_ID = 0, 
-                                  ROUTE_LENGTH, 
-                                  ROUTE_CURVE, 
-                                  ROUTE_DUAL, 
-                                  ROUTE_STARTSSMALLER };
-    enum PositionJunctionsRelation { JUNCTION_ROUTE1_ID = 0, 
-                                     JUNCTION_ROUTE1_MEAS, 
-                                     JUNCTION_ROUTE2_ID, 
-                                     JUNCTION_ROUTE2_MEAS, 
-                                     JUNCTION_CC, 
-                                     JUNCTION_POS, 
-                                     JUNCTION_ROUTE1_RC, 
-                                     JUNCTION_ROUTE2_RC, 
-                                     JUNCTION_SECTION_AUP_RC, 
-                                     JUNCTION_SECTION_ADOWN_RC, 
-                                     JUNCTION_SECTION_BUP_RC, 
-                                     JUNCTION_SECTION_BDOWN_RC};
-    enum PositionSectionsRelation { SECTION_RID = 0, 
-                                    SECTION_MEAS1, 
-                                    SECTION_MEAS2, 
-                                    SECTION_DUAL, 
-                                    SECTION_CURVE, 
-                                    SECTION_RRC };
 
 /*
 6.5.2 Type-Info
@@ -711,69 +835,6 @@ The internal ~sections~ relation type info as string.
 */
 
 
-/*
-6.6 Private parts - A helper struct
-
-*/
-struct JunctionSortEntry
-{
-  JunctionSortEntry()
-  {
-  }
-  
-  JunctionSortEntry(bool in_bFirstRoute,
-                    Tuple* in_pJunction):
-    m_bFirstRoute(in_bFirstRoute),
-    m_pJunction(in_pJunction)
-  {
-  }                        
-  
-  bool m_bFirstRoute;
-  
-  Tuple* m_pJunction;
-  
-  bool operator<(const JunctionSortEntry& in_xOther) const 
-  {
-    CcReal* xMeas1;
-    if(m_bFirstRoute)
-    {
-      xMeas1 = (CcReal*)m_pJunction->GetAttribute(JUNCTION_ROUTE1_MEAS);
-    }
-    else
-    {
-      xMeas1 = (CcReal*)m_pJunction->GetAttribute(JUNCTION_ROUTE2_MEAS);
-    }
-
-    CcReal* xMeas2;
-    if(in_xOther.m_bFirstRoute)
-    {
-      xMeas2 = 
-          (CcReal*)in_xOther.m_pJunction->GetAttribute(JUNCTION_ROUTE1_MEAS);
-    }
-    else
-    {
-      xMeas2 = 
-          (CcReal*)in_xOther.m_pJunction->GetAttribute(JUNCTION_ROUTE2_MEAS);
-    }
-    
-    return (xMeas1->GetRealval() < xMeas2->GetRealval());
-  }
-  
-  float getRouteMeas()
-  {
-    CcReal* xMeas;
-    if(m_bFirstRoute)
-    {
-      xMeas = (CcReal*)m_pJunction->GetAttribute(JUNCTION_ROUTE1_MEAS);
-    }
-    else
-    {
-      xMeas = (CcReal*)m_pJunction->GetAttribute(JUNCTION_ROUTE2_MEAS);
-    }
-    return xMeas->GetRealval();
- 
-  }
-};
 
 /*
 6.6 Private parts - private methods

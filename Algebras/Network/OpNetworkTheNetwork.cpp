@@ -45,6 +45,7 @@ This file contains the implementation of ~gline~
 #include "TupleIdentifier.h"
 
 #include "StandardTypes.h"
+#include "GPoint.h"
 #include "Network.h"
 
 

@@ -55,9 +55,9 @@ and ~moving~(~gline~).
 #include "BTreeAlgebra.h"
 #include "DBArray.h"
 
-#include "Network.h"
 #include "GPoint.h"
 #include "GLine.h"
+#include "Network.h"
 
 #include "NetworkAlgebra.h"
 
@@ -214,6 +214,7 @@ Operator shortest_path (
           Operator::SimpleSelect,        // trivial selection function
           OpShortestPath::TypeMap        // type mapping
 );
+
 
 /*
 5 Creating the Algebra

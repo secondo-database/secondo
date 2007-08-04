@@ -45,9 +45,9 @@ This file contains the implementation of ~gline~
 #include "TupleIdentifier.h"
 
 #include "StandardTypes.h"
-#include "Network.h"
 #include "GLine.h"
 #include "GPoint.h"
+#include "Network.h"
 
 #include "OpShortestPath.h"
 
@@ -93,17 +93,176 @@ int OpShortestPath::ValueMapping( Word* args,
 {
   // Get values
   GLine* pGLine = (GLine*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pGLine ); 
 
   GPoint* pGPoint1 = (GPoint*)args[0].addr;
   GPoint* pGPoint2 = (GPoint*)args[1].addr;
-   
-  pGLine->SetNetworkId(1);
-  pGLine->AddRouteInterval(1, 1.5, 2.5);
 
-  // Set result
-  result = SetWord( pGLine ); 
+  bool bDefined;
+  Word xValue;
+
+  bool bIsObject = SecondoSystem::GetCatalog()->IsObjectName("X_NETWORK");
+
+  if(!bIsObject)
+  {
+    // Fehlerbehandlung
+    cerr << "X_NETWORK is not a secondo-object" << endl;
+    return 0;
+  }
+  
+  
+  
+
+  bool bOk = SecondoSystem::GetCatalog()->GetObject("X_NETWORK",
+                                                    xValue,
+                                                    bDefined);
+                                         
+
+  if(!bDefined || !bOk)
+  {
+    // Fehlerbehandlung
+    cerr << "Could not load object." << endl;
+    return 0;
+  }           
+  
+  Network* pNetwork = (Network*)xValue.addr;
+  
+  Tuple* pFromSection = pNetwork->GetSectionIdOnRoute(pGPoint1);
+  Tuple* pToSection = pNetwork->GetSectionIdOnRoute(pGPoint2);
+  pGLine->SetNetworkId(1);
+  
+  CcInt* pFromRouteId = (CcInt*)pFromSection->GetAttribute( SECTION_RID ); 
+  int iFromRouteId = pFromRouteId->GetIntval();
+  CcReal* pMeas1 = (CcReal*)pFromSection->GetAttribute( SECTION_MEAS1 ); 
+  float fMeas1 = pMeas1->GetRealval();
+  CcReal* pMeas2= (CcReal*)pFromSection->GetAttribute( SECTION_MEAS2 ); 
+  float fMeas2 = pMeas2->GetRealval();
+  pGLine->AddRouteInterval(iFromRouteId, 
+                           fMeas1, 
+                           fMeas2);
+
+  CcInt* pToRouteId = (CcInt*)pToSection->GetAttribute( SECTION_RID ); 
+  int iToRouteId = pToRouteId->GetIntval();
+  pMeas1 = (CcReal*)pToSection->GetAttribute( SECTION_MEAS1 ); 
+  fMeas1 = pMeas1->GetRealval();
+  pMeas2= (CcReal*)pToSection->GetAttribute( SECTION_MEAS2 ); 
+  fMeas2 = pMeas2->GetRealval();
+  pGLine->AddRouteInterval(iToRouteId, 
+                           fMeas1, 
+                           fMeas2);
+
+  Dijkstra(pNetwork, pFromSection->GetTupleId(), pToSection->GetTupleId());
+
+  SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "network" ),
+                                           xValue);
+ 
   return 0;
 }
+
+void OpShortestPath::Dijkstra(Network* in_pNetwork,
+                              int in_iStartSegmentId,
+                              int in_iEndSegmentId)
+{
+  Relation* pSections = in_pNetwork->GetSectionsInternal();
+
+//  int iSectionCount = pSections->GetNoTuples();
+  vector<int> xPi;
+  PriorityQueue xQ;
+   
+  GenericRelationIterator* pSectionsIt = pSections->MakeScan();
+  Tuple* pSection;
+
+  //InitializeSingleSource
+  while( (pSection = pSectionsIt->GetNextTuple()) != 0 )
+  {
+    int iSegmentId = pSectionsIt->GetTupleId();
+    CcInt* xRouteId = (CcInt*)pSection->GetAttribute(SECTION_RID); 
+    int iRouteId = xRouteId->GetIntval();
+    CcReal* xMeas1 = (CcReal*)pSection->GetAttribute(SECTION_MEAS1); 
+    float fMeas1 = xMeas1->GetRealval();
+    CcReal* xMeas2 = (CcReal*)pSection->GetAttribute(SECTION_MEAS2); 
+    float fMeas2 = xMeas2->GetRealval();
+    float fLength = fMeas2 - fMeas1;
+    
+    float fD = float(1e29);
+    if(iSegmentId == in_iStartSegmentId)
+    {
+      fD = 0;
+    }
+
+    xQ.push(new DijkstraStruct(iSegmentId,
+                                true,
+                                iRouteId,
+                                fLength,
+                                fD));
+    xQ.push(new DijkstraStruct(iSegmentId,
+                           false,
+                           iRouteId,
+                           fLength,
+                           fD));
+
+    pSection->DeleteIfAllowed();
+  }
+  delete pSectionsIt;
+
+//  for each vertex v in V[G]
+//  {
+//    do d[v] = infty;
+//    pi[v] = NIL
+//  }
+//  d[s] = 0;
+//  
+//  
+//  
+//  // Priority Queue with all vertices of the Graph which are not
+//  // in S keyed by their d-values.
+//  Q = Vertices(G);
+//  
+  while(! xQ.isEmtpy())
+  {
+    DijkstraStruct* pCurrent = xQ.pop();
+    int iCurrentSectionTid = pCurrent->m_iSegmentId;
+    bool bCurrentDirectionUp = pCurrent->m_bDirectionUp;
+    cout << "Section: " 
+         << iCurrentSectionTid 
+         << " " 
+         << bCurrentDirectionUp << endl;
+//    
+//    S = S with u
+//    
+//    for each adjazent vertex v in adj[u]
+
+    vector<DirectedSection> xAdjacentSections;
+    xAdjacentSections.clear();
+    in_pNetwork->GetAdjacentSections(iCurrentSectionTid,
+                                     bCurrentDirectionUp,
+                                     xAdjacentSections);
+                                     
+    for(size_t i = 0;  i < xAdjacentSections.size(); ++ i) {
+      DirectedSection xAdjacentSection = xAdjacentSections[i];
+      int iAdjacentSectionTid = xAdjacentSection.getSectionTid();
+      bool bUpDownFlag = xAdjacentSection.getUpDownFlag();
+      
+      cout << "(" <<iCurrentSectionTid << ", " << bCurrentDirectionUp 
+           << ")->(" 
+           << iAdjacentSectionTid << ", " << bUpDownFlag << ")" << endl;
+
+//      //relax(u,v,w)
+//      if(d[v] > d[u] + w(u,v)
+//      {
+//        d[v] = d[u] + w(u,v)
+//        pi[v] = u
+//      }
+
+    }                                     
+   
+
+//    {
+//    }
+  }
+}
+
+
 
 /*
 4.1.3 Specification of the operator

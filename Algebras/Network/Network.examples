@@ -32,7 +32,13 @@ Result   : (X)
 Operator : shortest_path
 Number   : 1
 Signature: gpoint x gpoint -> gline
-Example  : shortest_path(X_GPOINT, X_GPOINT)
+Example  : query shortest_path(X_GPOINT, X_GPOINT)
+Result   : (X)
+
+Operator : this
+Number   : 1
+Signature: network -> network
+Example  : query this(X_NETWORK)
 Result   : (X)
 
 
