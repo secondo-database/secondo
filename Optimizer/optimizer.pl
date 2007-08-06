@@ -1384,7 +1384,7 @@ plan_to_atom(counter(Term,N), Result) :-
 
 
 /*
-Aggregation operators
+User defined Aggregation operators
 
 */
 
@@ -1395,6 +1395,43 @@ plan_to_atom(aggregate(Term, AttrName, AggrFunction, DefaultVal), Result) :-
   concat_atom( [ TermRes, ' aggregateB[ ', AttrNameRes, ' ; ', AggrFunRes, 
                  ' ; ', DefaultVal, ' ] ' ], Result ),
   !.
+
+/*
+Simple, predefined aggregation functions, when used without a groupby
+
+*/
+plan_to_atom(simpleAggrNoGroupby(AggrOp, Stream, Expr), Result) :-
+  isAggregationOP(AggrOp),
+  Expr \= attr(_, _, _),
+  newVariable(ExprAttrName),
+  ExprAttr = attr(ExprAttrName, *, l),
+  Term1 =.. [AggrOp, extend(Stream, [field(ExprAttr, Expr)]), attrname(ExprAttr)],
+  plan_to_atom(Term1, Result),
+  !.
+
+plan_to_atom(simpleAggrNoGroupby(AggrOp, Stream, Expr), Result) :-
+  isAggregationOP(AggrOp),
+  Expr = attr(_, _, _),
+  Term1 =.. [AggrOp, Stream, attrname(Expr)],
+  plan_to_atom(Term1, Result),
+  !.
+
+
+plan_to_atom(simpleUserAggrNoGroupby(Stream, Expr, Fun, Default),
+  Result) :-
+  Expr \= attr(_, _, _),
+  newVariable(ExprAttrName),
+  ExprAttr = attr(ExprAttrName, *, l),
+  Stream1 = extend(Stream, [field(ExprAttr, Expr)]),
+  plan_to_atom(aggregate(Stream1, attrname(ExprAttr), Fun, Default), Result),
+  !.
+
+plan_to_atom(simpleUserAggrNoGroupby(Stream, Expr, Fun, Default),
+  Result) :-
+  Expr = attr(_, _, _),
+  plan_to_atom(aggregate(Stream, attrname(Expr), Fun, Default), Result),
+  !.
+
 
 /*
 Translation of operators driven by predicate ~secondoOp~ in
@@ -2911,6 +2948,12 @@ cost(gettuples(X, _), Sel, Size, Cost) :-
   Cost is   CostX            % expected to include cost of 'windowintersectsS'
           + Size * C * 0.75. % other 0.25 applied in 'windowintersectsS'
 
+% for simple aggregation queries
+cost(simpleAggrNoGroupby(_, Stream, _), Sel, Size, Cost) :-
+  cost(Stream, Sel, Size, Cost).
+
+cost(simpleUserAggrNoGroupby(Stream, _, _, _),
+  Sel, Size, Cost) :- cost(Stream, Sel, Size, Cost).
 
 /*
 
@@ -3611,13 +3654,15 @@ Such queries may have the following syntax:
 
   * select aggregate($<$Attr$>$, $<$AggrOp$>$, $<$Type$>$, $<$Defaultvalue$>$ )
 
-where $<$AggrOp$>$ is one od ~max~, ~min~, ~avg~, ~sum~, ~extract~. By now, you
-are not allowed to use expressions instead of attributes here.
+where $<$AggrOp$>$ is one of ~max~, ~min~, ~avg~, ~sum~, ~extract~. It is also
+allowed to use expressions instead of attributes here.
 The last syntax is for user defined aggregation functions, where ~Attr~ is the
 attribute to aggregate over (possibly with preceding ~all~ or ~distinct~), ~AggrOp~
 is a associative and commutative bijection operator name (infix operator must be passed in
 round paranthesis), ~Type~ is the datatype of  ~Attr~, and ~DefaultValue~ is the value that
 will be returned, if the query yields no value for ~Attr~.
+Note: If using an expression instead of an attribute, ensure that $<$Type$>$ and 
+$<$Defaultvalue$>$ match the evaluated expression's type!
 
 Examples:
 
@@ -3628,7 +3673,7 @@ Examples:
         from ten
         where no > 5.
 
-        select aggregate(distinct no, (*), 'int', '[const int value 0]' )
+        select aggregate(distinct no+1.1, (*), 'real', '[const real value 0.0]' )
         from ten
         where no > 5.
 ----
@@ -4321,7 +4366,7 @@ renameAttributes(Var, [attrname(attr(Attr,Arg,Case))|AttrNames],
 
 
 /*
-----    translateFields(Select, GroupAttrs, Fields, Select2) :-
+----    translateFields(+Select, +GroupAttrs, -Fields, -Select2) :-
 ----
 
 Translate the ~Select~ clause of a query containing ~groupby~. Grouping
@@ -4657,6 +4702,11 @@ Translate the ~Query~ into a ~Plan~. The ~Cost~ for evaluating the conjunctive
 query is also returned. The ~Query~ must be such that relation and attribute
 names have been looked up already.
 
+The predicate differentiates between normal consume-queries, simple count
+queries and predefined/user-defined aggregation queries (at most one unnamed
+aggregation, without an expression, but respecting all and distinct) that come
+without a groupby clause.
+
 */
 
 % case: count query
@@ -4664,17 +4714,17 @@ queryToPlan(Query, count(Stream), Cost) :-
   countQuery(Query),
   queryToStream(Query, Stream, Cost), !.
 
-% case: predefined aggregation query
+% case: predefined aggregation query (New Method)
 queryToPlan(Query, Stream2, Cost) :-
-  aggrQuery(Query, Op, AggrAttr),
-  queryToStream(Query, Stream, Cost),
-  Stream2 =.. [Op, Stream, attrname(AggrAttr)], !.
+  aggrQuery(Query, Op, Query1, AggrExpr),
+  queryToStream(Query1, Stream, Cost),
+  Stream2 =.. [simpleAggrNoGroupby, Op, Stream, AggrExpr], !.
 
-% case: userdefined aggregation query
+% case: userdefined aggregation query (New Method)
 queryToPlan(Query, Stream2, Cost) :-
-  userDefAggrQuery(Query, AggrOp, AttrName, Fun, Default),
-  queryToStream(Query, Stream, Cost),
-  Stream2 =.. [AggrOp, Stream, AttrName, Fun, Default], !.
+  userDefAggrQuery(Query, Query1, AggrExpr, Fun, Default),
+  queryToStream(Query1, Stream, Cost),
+  Stream2 =.. [simpleUserAggrNoGroupby, Stream, AggrExpr, Fun, Default], !.
 
 % case: ordinary consume query
 queryToPlan(Query, consume(Stream), Cost) :-
@@ -4695,76 +4745,106 @@ countQuery(Query orderby _) :- countQuery(Query).
 countQuery(Query first _)   :- countQuery(Query).
 
 /*
-Check whether ~Query~ is an aggregation query.
-If so, return the aggregation operator and the aggregation attribute
-
----- aggrQuery(+Query, -AggrOp, -AggrAttr)
+----    aggrQuery(+Query, -Op, -Query1, -AggrAttr)
 ----
 
+If ~Query~ is a simple predefined aggrgation query, it returns the aggregation
+functor in ~Op~, the aggregation expression in ~AggrAttr~ and the modified query
+in ~Query1~.
+
 */
-aggrQuery(select all T from R, AggrOp, AggrAttr) :-
-  aggrQuery(select T from R, AggrOp, AggrAttr), !.
-aggrQuery(select distinct T from R, AggrOp, AggrAttr) :-
-  aggrQuery(select T from R, AggrOp, AggrAttr), !.
-aggrQuery(select T from _, AggrOp, AggrAttr) :-
+aggrQuery(select all T from F, AggrOp, select T1 from F, AggrExpr) :-
+  aggrQuery(select T from F, AggrOp, select T1 from F, AggrExpr), !.
+
+aggrQuery(select distinct T from F, AggrOp, select distinct T1 from F, AggrExpr) :-
+  aggrQuery(select T from F, AggrOp, select T1 from F, AggrExpr), !.
+
+aggrQuery(select T from F, AggrOp, select * from F, AggrExpr) :-
   compound(T),
-  (   T =.. [AggrOp, (distinct AggrAttr)]
-    ; T =.. [AggrOp, (all AggrAttr)]
-    ; T =.. [AggrOp, AggrAttr]
-  ),
-  isAggregationOP(AggrOp), !.
-aggrQuery(select all T from _, AggrOp, AggrAttr) :-
-  compound(T),
-  (   T =.. [AggrOp, (distinct AggrAttr)]
-    ; T =.. [AggrOp, (all AggrAttr)]
-    ; T =.. [AggrOp, AggrAttr]
-  ),
-  isAggregationOP(AggrOp), !.
-aggrQuery(select distinct T from _, AggrOp, AggrAttr) :-
-  compound(T),
-  (   T =.. [AggrOp, (distinct AggrAttr)]
-    ; T =.. [AggrOp, (all AggrAttr)]
-    ; T =.. [AggrOp, AggrAttr]
-  ),
+  T =.. [AggrOp, all AggrExpr],
   isAggregationOP(AggrOp), !.
 
-aggrQuery(Query groupby _, X, Y) :- aggrQuery(Query, X, Y).
-aggrQuery(Query orderby _, X, Y) :- aggrQuery(Query, X, Y).
-aggrQuery(Query first _, X, Y)   :- aggrQuery(Query, X, Y).
+aggrQuery(select T from F, AggrOp, select distinct * from F, AggrExpr) :-
+  compound(T),
+  T =.. [AggrOp, distinct AggrExpr],
+  isAggregationOP(AggrOp), !.
+
+aggrQuery(select T from F, AggrOp, select * from F, AggrExpr) :-
+  compound(T),
+  T =.. [AggrOp, AggrExpr],
+  isAggregationOP(AggrOp), !.
+
+aggrQuery(Query groupby G, _, _, _) :-
+  aggrQuery(Query, _, _, _), !,
+  % This is not allowed, simple aggregations have no groupby!
+  % Send an error!
+  write('ERROR: Expected a simple aggregation, but found a \'groupby\'!\n'),
+  throw(error_SQL(optimizer_aggrQuery(Query groupby G, undef, undef))),
+  fail.
+aggrQuery(Query orderby Order, AggrOp, Query1 orderby Order, AggrExpr) :-
+  aggrQuery(Query, AggrOp, Query1, AggrExpr), !.
+aggrQuery(Query first N, AggrOp, Query1 first N, AggrExpr)   :-
+  aggrQuery(Query, AggrOp, Query1, AggrExpr), !.
 
 
 /*
-Check whether ~Query~ is a user defined aggregation query.
-If so, return the arguments for the aggregate operator
-
-----  userDefAggrQuery(+Query, -AggrOp, -AttrName, -AggrFun, -Default)
+----  userDefAggrQuery(Query, Query1, AggrExpr, Fun, Default)
 ----
 
-*/
-userDefAggrQuery(select all T from R, A, B, C, D) :-
-    userDefAggrQuery(select T from R, A, B, C, D), !.
-userDefAggrQuery(select distinct T from R, A, B, C, D) :-
-         userDefAggrQuery(select T from R, A, B, C, D), !.
+Check, whether ~Query~ is a simple user defined aggregation query.
+If so, return the arguments for the aggregate operator and the modified
+~Query1~, agreegation is performed over ~AggrExpr~ using the function with
+operator name ~Fun~, and ~Default~ as result for the empty aggregation.
 
-userDefAggrQuery(select T from _, AggrOp, AttrName, AggregFun, Default) :-
+*/
+
+userDefAggrQuery(select all T from F, select T1 from F, A, B, C)
+  :- userDefAggrQuery(select T from F, select T1 from F, A, B, C), !.
+
+userDefAggrQuery(select distinct T from F, select distinct T1 from F, A, B, C)
+  :- userDefAggrQuery(select T from F, select T1 from F, A, B, C), !.
+
+userDefAggrQuery(select T from F, select * from F, AggrExpr, Fun, Default) :-
   compound(T),
-  (   T =.. [AggrOp, (distinct attr(Name, Var, Case)), FunOp, Type, Default]
-    ; T =.. [AggrOp, (all      attr(Name, Var, Case)), FunOp, Type, Default]
-    ; T =.. [AggrOp,           attr(Name, Var, Case) , FunOp, Type, Default]
-  ),
+  T =.. [AggrOp, all AggrExpr, FunOp, Type, Default],
   member(AggrOp,[aggregate]),
   newVariable(Var1),
   newVariable(Var2),
   AggrFun =.. [FunOp, Var1, Var2],
-  AttrName = attrname(attr(Name, Var, Case)),
-  AggregFun = fun([ param(Var1, Type), param(Var2, Type)], AggrFun), !.
+  Fun = fun([ param(Var1, Type), param(Var2, Type)], AggrFun), !.
 
-userDefAggrQuery(Query groupby _, A, B, C, D) :-
-          userDefAggrQuery(Query, A, B, C, D).
-userDefAggrQuery(Query orderby _, A, B, C, D) :-
-          userDefAggrQuery(Query, A, B, C, D).
-userDefAggrQuery(Query first _,   A, B, C, D) :-
-          userDefAggrQuery(Query, A, B, C, D).
+userDefAggrQuery(select T from F, select distinct * from F,
+                                                  AggrExpr, Fun, Default) :-
+  compound(T),
+  T =.. [AggrOp, distinct AggrExpr, FunOp, Type, Default],
+  member(AggrOp,[aggregate]),
+  newVariable(Var1),
+  newVariable(Var2),
+  AggrFun =.. [FunOp, Var1, Var2],
+  Fun = fun([ param(Var1, Type), param(Var2, Type)], AggrFun), !.
+
+userDefAggrQuery(select T from F, select * from F, AggrExpr, Fun, Default) :-
+  compound(T),
+  T =.. [AggrOp, AggrExpr, FunOp, Type, Default],
+  member(AggrOp,[aggregate]),
+  newVariable(Var1),
+  newVariable(Var2),
+  AggrFun =.. [FunOp, Var1, Var2],
+  Fun = fun([ param(Var1, Type), param(Var2, Type)], AggrFun), !.
+
+userDefAggrQuery(Query groupby G, _, _, _, _) :-
+  userDefAggrQuery(Query, _, _, _, _), !,
+  % This is not allowed, simple aggregations have no groupby!
+  % Send an error!
+  write('ERROR: Expected a simple aggregation, but found a \'groupby\'!\n'),
+  throw(error_SQL(optimizer_userDefAggrQuery(Query groupby G,
+                                             undef, undef, undef, undef))),
+  fail.
+userDefAggrQuery(Query orderby Order, Query1 orderby Order, AggrExpr, Fun, Default) :-
+  userDefAggrQuery(Query, Query1, AggrExpr, Fun, Default), !.
+userDefAggrQuery(Query first N, Query1 first N, AggrExpr, Fun, Default) :-
+  userDefAggrQuery(Query, Query1, AggrExpr, Fun, Default), !.
+
 
 /*
 
@@ -4931,7 +5011,7 @@ fSort(Stream, SortAttrs, sortby(Stream, AttrNames)) :-
 
 
 /*
-----	extendProject(Attrs, ExtendAttrs, ProjectAttrs) :-
+----	extendProject(+Attrs, -ExtendAttrs, -ProjectAttrs) :-
 ----
 
 Construct the extension and projection attribute lists from ~Attrs~.
