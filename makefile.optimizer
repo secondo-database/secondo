@@ -54,7 +54,8 @@ ifeq ($(platform),win32)
 PLLDFLAGS := $(PL_LIB_DIR)/libpl.lib -lm
 endif
 
-ifeq ($(platform),linux)
+platform2 := $(subst 64,,$(platform))
+ifeq ($(platform2),linux)
 ifdef GMP_LIB
 PLLDFLAGS := -L$(PL_LIB_DIR) -l$(PL_LIB) -lreadline -lncurses -lm -l$(GMP_LIB)
 else

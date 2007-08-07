@@ -41,18 +41,19 @@ OS_DIR := win32
 
 endif
 
-ifeq ($(platform),linux)
+platform2 := $(subst 64,,$(platform))
+ifeq ($(platform2),linux)
 
 JNI_H_DIR := $(J2SDK_ROOT)/include
 
 ifdef J2SDK_LIB
 LIBJAVA_DIR := $(J2SDK_ROOT)/$(J2SDK_LIB)
+LIBJVM_DIR := $(J2SDK_ROOT)/$(J2SDK_JVMLIB)
 else
 # assume the default directory for 32bit systems
 LIBJAVA_DIR := $(J2SDK_ROOT)/jre/lib/i386
-endif
-
 LIBJVM_DIR := $(LIBJAVA_DIR)/client
+endif
 
 LIBVERIFY_DIR := $(LIBJAVA_DIR)
 
