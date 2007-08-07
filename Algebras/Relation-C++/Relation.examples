@@ -158,4 +158,15 @@ Example  : query Trains tuplesize
 Result   : file_platform
 Remark   : On Linux and Windows this operator returns other values, Maybe it depends on Berkeley-DB or different page sizes.
 
+Operator : tconsume
+Number   : 1
+Signature: (stream x) -> (trel x)
+Example  : query Orte feed tconsume count
+Result   : 506
+
+Operator : tconsume
+Number   : 2
+Signature: (stream x) -> (trel x)
+Example  : query plz feed tconsume feed filter[.Ort = "Unna"] count
+Result   : 16
 

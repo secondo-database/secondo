@@ -179,8 +179,7 @@ Operator : initial
 Number   : 1
 Signature: mstring -> istring
 Example  : query val(initial(train7upsights))
-Result   : "Flughafen Schï¿½nefeld"
-
+Result   : "Flughafen Schönefeld"
 
 Operator : inst
 Number   : 1
@@ -358,3 +357,9 @@ Number   : 4
 Signature: point x mpoint x real -> bool
 Example  : query everNearerThan(train5, mehringdamm, 0.0001)
 Result   : FALSE
+
+Operator : concatS2
+Number   : 1
+Signature: stream(mpoint) x int -> mpoint
+Example  : query train6 = (train6 feed concatS2[10])
+Result   : ( mbool ( ( ("2003-11-20-06:06" "2003-11-20-06:45:40" TRUE FALSE) TRUE)))
