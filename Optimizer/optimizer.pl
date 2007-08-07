@@ -2948,12 +2948,23 @@ cost(gettuples(X, _), Sel, Size, Cost) :-
   Cost is   CostX            % expected to include cost of 'windowintersectsS'
           + Size * C * 0.75. % other 0.25 applied in 'windowintersectsS'
 
-% for simple aggregation queries
+/*
+The following code fragment may be needed, when also the non-conjunctive
+part of the query will be assigned with costs. At the moment, it is obsolete
+and therefore commented out:
+
+----
+
+% Dummy-Costs for simple aggregation queries
 cost(simpleAggrNoGroupby(_, Stream, _), Sel, Size, Cost) :-
   cost(Stream, Sel, Size, Cost).
 
 cost(simpleUserAggrNoGroupby(Stream, _, _, _),
   Sel, Size, Cost) :- cost(Stream, Sel, Size, Cost).
+
+----
+
+*/
 
 /*
 
@@ -5128,7 +5139,7 @@ sqlToPlan(QueryText, Plan) :-
 We can now formulate the previous example queries in the user level language.
 They are stored as prolog facts sqlExample/2. Examples can be called by
 testing the predicates example/1 or example/2. Moreover, they are also
-present as facts with name ~example<No>~.
+present as facts with name ~example$<$No$>$~.
 
 Below we present some generic rules for evaluating SQL examples.
 
@@ -5253,6 +5264,74 @@ sqlExample( 21,
     p2:plz = p3:plz * 5]
   ).
 
+% Example: user defined aggregation with grouping
+sqlExample( 100,
+  select aggregate((distinct b:no*1), (*), 'int', '[const int value 0]' ) as fac
+  from [ten as a, ten as b]
+  where [a:no < b:no]
+  groupby a:no
+  ).
+
+
+
+% Example: predefined aggregations with groupby, omitting the where-clause, but
+%          with ordering and output restriczion:
+sqlExample( 101,
+  select [ort,
+          min(plz) as minplz,
+          max(plz) as maxplz,
+          count(distinct *) as cntplz]
+  from plz
+  where plz > 40000
+  groupby ort
+  orderby cntplz desc
+  first 2
+  ).
+
+% Example: Aggregations with empty groupby.
+sqlExample( 102,
+  select [min(plz) as minplz,
+          max(plz) as maxplz,
+          avg(plz) as avgplz,
+          count(distinct ort) as ortcnt]
+  from plz
+  where plz > 40000
+  groupby []
+  ).
+
+% Example: Simple aggregation over attribute without groupby
+sqlExample( 103,
+  select sum(no)
+  from ten
+  ).
+
+% Example: Simple distinct aggregation over attribute without groupby
+sqlExample( 104,
+  select avg(distinct no)
+  from ten
+  where no > 5
+  ).
+
+% Example: Simple distinct aggregation over expression without groupby
+sqlExample( 105,
+  select aggregate(distinct no+1.1, (*), 'real', '[const real value 0.0]' )
+  from ten
+  where no > 5
+  ).
+
+% Example: Mixed Aggregations with empty groupby.
+sqlExample( 106,
+  select [min(plz) as minplz,
+          max(plz) as maxplz,
+          avg(plz) as avgplz,
+          count(distinct ort) as diffOrtCnt,
+          count(all ort) as allOrtCnt,
+          aggregate(plz*2.0,(+),'real','[const real value 0.0]') as mydoublesum]
+  from plz
+  where [plz >= 40000, plz <50000]
+  groupby []
+  ).
+
 example14 :- example(14).
 example15 :- example(15).
 example16 :- example(16).
@@ -5261,6 +5340,13 @@ example18 :- example(18).
 example19 :- example(19).
 example20 :- example(20).
 example21 :- example(21).
+example100 :- example(100).
+example101 :- example(101).
+example102 :- example(102).
+example103 :- example(103).
+example104 :- example(104).
+example105 :- example(105).
+example106 :- example(106).
 
 
 
