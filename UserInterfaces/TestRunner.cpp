@@ -906,7 +906,30 @@ TestRunner::ProcessExamples()
 
      if ( info.resultType == ExampleInfo::List ) 
      { 
-       resultOk = nl->ReadFromString(info.result, expectedResult);
+       ListExpr list = nl->Empty(); 	     
+       resultOk = nl->ReadFromString(info.result, list);
+       // Anaylize list and extract a platform specific result if necessary!
+       if ( nl->HasLength(list,1) ) {
+       ListExpr list1 = nl->First(list);
+       if( nl->IsEqual(list1,"platform") )
+       {     
+         ListExpr list2 = nl->Rest(list);
+	 string token = WinUnix::getPlatformStr();	 
+	 while ( !nl->IsEmpty(list2) ) {
+           //cout << nl->ToString(list2) << endl;
+	   if ( nl->HasLength(list2, 1) ) {
+	     ListExpr tmpList = nl->First(list2);
+             if( nl->HasLength(tmpList, 1) 
+		  && nl->IsEqual(nl->First(tmpList), token) ) {
+	       list = nl->Second(tmpList);
+               break;	     
+	     }
+           }	     
+           list2 = nl->Rest(list2);		   
+         }		 
+       }	       
+       expectedResult = list;        
+       }
      }
 
      bool simpleFile =  info.resultType == ExampleInfo::File;
@@ -937,6 +960,7 @@ TestRunner::ProcessExamples()
        if (resultOk)
        {
           expectedResult = objList;
+	  // check if result is formatted in OBJECT representation.
           if ( nl->ListLength(objList) == 5 
                && nl->IsEqual(nl->First(objList),"OBJECT") ) 
           {
