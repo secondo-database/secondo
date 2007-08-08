@@ -524,16 +524,16 @@ a list, and -1, if it is an atom.
 bool
 NestedList::HasLength( ListExpr list, const int n ) const
 {
+  if ( IsAtom(list) )
+    return false;
+
   int result = 0;
   while ( !IsEmpty( list ) && (result < n) )
   {
     result++;
     list = Rest( list );
   }
-  if ( !IsEmpty( list ) )
-    return false;
-  else
-    return true;
+  return (result == n); 
 }
 
 
