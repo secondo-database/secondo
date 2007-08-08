@@ -2603,3 +2603,4 @@ NestedList::ReportTableSizes( const bool onOff,
   return msg;
 }
 
+const double Tolerance::MINERR = 1e-10;

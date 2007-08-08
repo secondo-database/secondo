@@ -435,7 +435,7 @@ struct Tolerance
   Tolerance(double d = 0.0, bool b = false) : 
     value(d), isRelative(b), trace(false) {}
 
-  void relative(double v = minErr() ) {
+  void relative(double v = MINERR ) {
     isRelative = true;
     value = v;
   }
@@ -446,10 +446,10 @@ struct Tolerance
     value = v;
   }
 
-  // double values have only 16 correct decimal digits thus their
+  // 4 byte double values have only 16 correct decimal digits thus their
   // ~natural~ relative error is about 1e-15  = 2^(-50)
-  inline static const double minErr() { return 1e-15; }
-
+  inline static const double minErr() { return MINERR; }
+  static const double MINERR;
 
 /*
 The function below returns true if ~d1~ and ~d2~ differ only by a specified tolerance.
@@ -482,7 +482,7 @@ $d1 - err < d2  or d2 - err < d1$
     // test the relative error
 
 
-    err = max( err, minErr() ) * fabs(d1);
+    err = max( err, MINERR ) * fabs(d1);
 
     if (trace) {
       cout << "d1: " << d1 << endl;
@@ -643,13 +643,16 @@ subexpressions.
   bool Equal( const ListExpr list1, const ListExpr list2 ) const
   {
     static Tolerance t;
+    equalErr = "";
     return EqualTemp<true>(list1, list2, t);
   }
   bool Equal( const ListExpr list1, const ListExpr list2, const Tolerance& t )
   {
+    equalErr = "";	  
     return EqualTemp<false>(list1, list2, t);
   }
 
+  const string& EqualErr() { return equalErr; }
   
 /*
 Tests for deep equality of two nested lists. Returns "true"[4] if ~list1~ is
@@ -1105,7 +1108,8 @@ Approximate or exact comparison of lists. This is implmented by using
 template functions
 
 */
-  
+  mutable string equalErr;
+
   template<bool EXACT>
   bool EqualTemp( const ListExpr list1, 
                   const ListExpr list2, 
@@ -1139,7 +1143,14 @@ template functions
            }
            else
            {
-             return t.approxEqual( r1, r2 ); 
+             bool eq = t.approxEqual( r1, r2 );
+	     if (!eq) {
+	       stringstream errMsg;	     
+	       errMsg << "Tolerance::approxEqual failed: " 
+		      << r1 << " <> " << r2;
+               equalErr = errMsg.str();	       
+	     }
+             return eq;	     
            }               
          }  
          case SymbolType:
@@ -1163,7 +1174,7 @@ template functions
              EqualTemp<EXACT>( Rest( list1 ), Rest( list2 ), t ));
    }
    else
-   {
+   {  
      return false;
    }
   }

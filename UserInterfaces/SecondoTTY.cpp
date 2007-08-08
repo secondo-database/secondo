@@ -419,7 +419,7 @@ SecondoTTY::GetCommand()
     }
   }
   // remove spaces from the end of cmd
-  unsigned int end = cmd.find_last_not_of(" \t");
+  size_t end = cmd.find_last_not_of(" \t");
   if(end==string::npos)
      end = 0;
   else

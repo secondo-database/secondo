@@ -1092,6 +1092,8 @@ TestRunner::VerifyResult(ListExpr outList, ListExpr expectedResult)
     else
       nl->WriteListExpr(outList, cout);
 
+    if (nl->EqualErr() != "")
+      cout << endl << endl << nl->EqualErr() << endl;
     ShowCommand(cmd);
     cout << color(red)
          << leftArrow
