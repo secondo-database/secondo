@@ -46,8 +46,8 @@ Result   : file
 Operator : extend
 Number   : 1
 Signature: (stream(tuple(x)) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> dn))] -> stream(tuple(x@[a1:d1, ... , an:dn])))
-Example  : query ten feed extend [Mult5: .no * 5, mod2 : .no mod 2] tuplesize
-Result   : 36.0
+Example  : query ten feed extend [Mult5: .no * 5, mod2 : .no mod 2] sum[Mult5]
+Result   : 275
 
 
 Operator : extendstream
