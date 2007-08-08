@@ -332,6 +332,7 @@ Number   : 1
 Signature: mpoint -> mpoint
 Example  : query velocity_new(train7 at thecenter)
 Result   : file
+Tolerance: %0.0001
 
 
 Operator : everNearerThan
