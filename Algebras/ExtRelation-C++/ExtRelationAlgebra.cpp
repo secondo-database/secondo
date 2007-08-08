@@ -82,6 +82,7 @@ July 2007, C. Duentgen. Changed groupbyTypeMap. It will now accept an empty list
 #include "TupleIdentifier.h"
 #include "LogMsg.h"
 #include "Progress.h"
+#include "RTuple.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -1993,14 +1994,14 @@ int RdupValueMapping(Word* args, Word& result, int message,
 {
   Word tuple;
   LexicographicalTupleCompareAlmost cmp;
-  Tuple* currentTuple;
-  Tuple* lastOutputTuple;
+  Tuple* current;
+  RTuple* lastOutput;
 
   switch(message)
   {
     case OPEN:
       qp->Open(args[0].addr);
-      local = SetWord(0);
+      local.addr = 0;
       return 0;
     case REQUEST:
       while(true)
@@ -2008,58 +2009,46 @@ int RdupValueMapping(Word* args, Word& result, int message,
         qp->Request(args[0].addr, tuple);
         if(qp->Received(args[0].addr))
         {
-          // stream deliverd a new tuple
+          // stream delivered a new tuple
           if(local.addr != 0)
           {
             // there is a last tuple
-            currentTuple = (Tuple*)tuple.addr;
-            lastOutputTuple = (Tuple*)local.addr;
-            if(cmp(currentTuple, lastOutputTuple)
-              || cmp(lastOutputTuple, currentTuple))
+            current = (Tuple*)tuple.addr;
+            lastOutput = (RTuple*)local.addr;
+            if(cmp(current, lastOutput->tuple)
+              || cmp(lastOutput->tuple, current))
             {
               // tuples are not equal. Return the tuple
-              // stored in local info and stor the current one
+              // stored in local info and store the current one
               // there.
-              lastOutputTuple->DecReference();
-              lastOutputTuple->DeleteIfAllowed();
-              local = SetWord(currentTuple);
-              currentTuple->IncReference();
-              result = SetWord(currentTuple);
+              
+	      *lastOutput = RTuple( current );
+              result = tuple;
               return YIELD;
             }
             else
             {
               // tuples are equal
-              currentTuple->DeleteIfAllowed();
+              current->DeleteIfAllowed();
             }
           }
           else
           {
             // no last tuple stored
-            currentTuple = (Tuple*)tuple.addr;
-            local = SetWord(currentTuple);
-            currentTuple->IncReference();
-            result = SetWord(currentTuple);
+	    local.addr = new RTuple( (Tuple*)tuple.addr );
+	    result = tuple; 	    
             return YIELD;
           }
         }
-        else
+	else
         {
-          // last tuple of the stream
-          lastOutputTuple = (Tuple*)local.addr;
-          if(lastOutputTuple != 0)
-          {
-            lastOutputTuple->DecReference();
-            lastOutputTuple->DeleteIfAllowed();
-            local = SetWord(0);
-          }
           return CANCEL;
         }
       }
     case CLOSE:
       if( local.addr != 0 ){
-         ((Tuple*)local.addr)->DecReference();
-         ((Tuple*)local.addr)->DeleteIfAllowed();
+         lastOutput = (RTuple*)local.addr;
+	 delete lastOutput;
          local = SetWord(0);
       }
       qp->Close(args[0].addr);
