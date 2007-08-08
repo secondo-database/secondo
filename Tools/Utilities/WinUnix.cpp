@@ -48,6 +48,7 @@ September 2003, M. Spiekermann: Implementation of getpagesize()
 #include "CharTransform.h"
 #include "WinUnix.h"
 #include "LogMsg.h"
+#include "Environment.h"
 
 using namespace std;
 
@@ -93,11 +94,8 @@ WinUnix::getpid() {
 string
 WinUnix::getPlatformStr() { 
 
-  if (win32)
-    return "win32";
-  else
-    return "linux";
-
+  Environment& env = Environment::getInstance();
+  return env.getString("SECONDO_PLATFORM", "unknown");
 }
 
     

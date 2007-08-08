@@ -40,7 +40,8 @@ Environment::instance = 0;
 Environment::Environment()
 {
   keyMap["SEC_pScale"] = Float; 
-  keyMap["SEC_pMinRead"] = Int; 
+  keyMap["SEC_pMinRead"] = Int;
+  keyMap["SECONDO_PLATFORM"] = String; 
 
   init(); 
 }
