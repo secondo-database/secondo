@@ -16,9 +16,9 @@ PartitionedStreamAlgebra PartitionedStream
 SimulationAlgebra Simulation
 
 # Student's algebras
-HierachicalGeoAlgebra HierachicalGeo
+HierarchicalGeoAlgebra HierachicalGeo
 TemporalNetAlgebra TemporalNet
-
+NetworkAlgebra Network
 WebAlgebra Web
 GraphAlgebra Graph
 ChessAlgebra Chess
@@ -28,6 +28,8 @@ ChessAlgebra Chess
 Optimizer/Entropy
 Data/Databases/spatial
 Data/Objects/Distrikte
+
+Tests/Testspecs/chessalgebra
 
 # Files by Name
 
@@ -42,6 +44,9 @@ CM-Scripts/mkpublic.sh
 CM-Scripts/public-version.pd
 
 Data/Objects/KreisLaender
+
+Algebras/Relation-C++/Measurements-feed-project-consume.sxc
+Algebras/Relation-C++/Measurements-feed-project-consume.xls
 
 # Viewers of the practical course developed 
 # in the winter term 2006/2007
@@ -90,6 +95,8 @@ Optimizer/adaptiveJoin.pl
 bin/geo
 
 Tests/Testspecs/partstream.test
+
+
 
 # Files by Extension
 
