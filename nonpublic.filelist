@@ -3,8 +3,10 @@
 # This file contains a list of files which will not be exported
 # into the public available version of SECONDO.
 
-# Algebras
-# Format: algebra-name algebra-directory
+###                                        ###
+### Algebras                               ###
+### Format: algebra-name algebra-directory ###
+###                                        ###
 
 # Research in progress
 TopOpsAlgebra TopOps
@@ -23,18 +25,26 @@ WebAlgebra Web
 GraphAlgebra Graph
 ChessAlgebra Chess
 
-# Directories
+###             ###
+### Directories ###
+###             ###
 
 Optimizer/Entropy
 Data/Databases/spatial
 Data/Objects/Distrikte
 
+# chessalgebra
 Tests/Testspecs/chessalgebra
+Javagui/viewer/chess
 
-# Files by Name
+###               ###
+### Files by Name ###
+###               ###
 
 nonpublic.filelist
 makefile.nonpublic
+Javagui/viewer/makefile.nonpublic
+
 Optimizer/calloptimizer_sec.pl
 
 CM-Scripts/cvs-make.sh
@@ -52,7 +62,6 @@ Algebras/Relation-C++/Measurements-feed-project-consume.xls
 # in the winter term 2006/2007
 
 Javagui/viewer/ChessViewer.java
-Javagui/viewer/chess
 
 Javagui/viewer/hoese/algebras/Dspledge.java
 Javagui/viewer/hoese/algebras/Dsplpath.java
@@ -96,9 +105,9 @@ bin/geo
 
 Tests/Testspecs/partstream.test
 
-
-
-# Files by Extension
+###                    ###
+### Files by Extension ###
+###                    ###
 
 .sda
 .sxd
