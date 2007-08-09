@@ -1730,6 +1730,20 @@ created. We remove them in a final step.
                   const Points& importantPoint = Points(0)) const;
 
 
+
+/*
+~Realminize~
+
+Removes overlapping segments and splits the line at all crossings 
+of the segments. May be that simple segments are represented by
+many parts in the result.
+
+*/
+   void Realminize();
+
+
+
+
 /*
 
 6.4.6 Operation ~atposition~

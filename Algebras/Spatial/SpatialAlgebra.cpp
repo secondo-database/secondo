@@ -56,6 +56,7 @@ using namespace std;
 #include "SpatialAlgebra.h"
 #include "SecondoConfig.h"
 #include <vector>
+#include <queue>
 #include <stdexcept>
 #include <iostream>
 #include <string.h>
@@ -800,6 +801,307 @@ void SelectNext_rr( const Region& R1, const Region& R2,
       obj = both;
   }
 }
+
+
+/*
+3 Auxiliary classes
+
+3.1 Class Event
+
+Used for realmization of lines. 
+
+*/
+
+class RealmEvent{
+   public:
+/*
+~Constructor~
+
+*/  
+  RealmEvent(const unsigned char type,
+             const int seg1,
+             const int seg2,
+             const double x_pos){
+        assert(type=='i');
+        this->type = type;
+        this->seg1 = seg1;
+        this->seg2 = seg2;
+        this->x_pos = x_pos;
+  }
+
+  RealmEvent(const unsigned char type,
+             const int seg1,
+             const double x_pos){
+        assert((type=='l') || (type=='r') || (type=='v'));
+        this->type = type;
+        this->seg1 = seg1;
+        this->x_pos = x_pos;
+  }
+
+  RealmEvent(const RealmEvent& src){
+      *this = src;
+  }
+
+  RealmEvent(){}
+
+  RealmEvent& operator=(const RealmEvent& src){
+     this->type = src.type;
+     this->seg1 = src.seg1;
+     this->seg2 = src.seg2;
+     this->x_pos = src.x_pos;
+     return *this;
+  }
+
+  ~RealmEvent(){}
+
+  bool operator==(const RealmEvent& c) const{
+      return compareTo(c)==0;
+  }
+  bool operator<(const RealmEvent& c) const{
+      return compareTo(c)<0;
+  }
+  bool operator>(const RealmEvent& c) const{
+      return compareTo(c)>0;
+  }
+  bool operator!=(const RealmEvent& c) const{
+      return compareTo(c)!=0;
+  }
+  bool operator<=(const RealmEvent& c) const{
+      return compareTo(c)<=0;
+  }
+  bool operator>=(const RealmEvent& c) const{
+      return compareTo(c)>=0;
+  }
+
+  int compareTo(const RealmEvent& c) const{
+		if(AlmostEqual(x_pos,c.x_pos)){
+			 if(type==c.type){
+					 return 0;
+			 }
+			 if(type=='v'){
+					return 1;
+			 } else if(c.type=='v'){
+					return -1;
+			 } else if(type=='r'){
+					return 1;
+			 } else {
+					return -1;
+			 }
+		} else {
+			 if(x_pos<c.x_pos){
+					return 1;
+			 } else {
+					return -1;
+			 }
+		}
+  }
+  unsigned char type; // l(eft), r(ight), i(ntersection), or v(ertical)
+  int seg1; // >=0
+  int seg2; // >=0 if type = 'i', -1 otherwise 
+  double x_pos;  // x-position of this event
+};
+
+class RealmSegment{
+
+public:
+  RealmSegment(double x1, double y1, double x2, double y2){
+     if(x1<x2){
+        this->x1 = x1;
+        this->y1 = y1;
+        this->x2 = x2;
+        this->y2 = y2;
+     } else {
+        this->x1 = x2;
+        this->y1 = y2;
+        this->x2 = x1;
+        this->y2 = y1;
+     }
+  }
+  RealmSegment(const HalfSegment* hs){
+     Point p1 = hs->GetDomPoint();
+     Point p2 = hs->GetSecPoint();
+     RealmSegment(p1.GetX(),p1.GetY(), p2.GetX(), p2.GetY());
+  }
+
+
+  RealmSegment(const RealmSegment& src){
+      *this = src;
+  }
+
+  RealmSegment(){}
+
+  ~RealmSegment(){}
+
+  
+
+  RealmSegment& operator=(const RealmSegment& s){
+     this->x1 = s.x1;
+     this->x2 = s.x2;
+     this->y1 = s.y1;
+     this->y2 = s.y2;
+     return *this;
+  }
+  
+  ostream& operator<<(ostream& o){
+     o << "(" << x1 << ", " << y1 << ") -> (" << x2 << ", " << y2 << ")";
+     return o;
+  }
+
+  bool operator<(const RealmSegment& s) const{
+     return compareTo(s,currentX) < 0;
+  }
+
+
+/* 
+~CompareTo~
+
+At the first level, the y-value at position x is used to determine the order
+of the segments. If the y-values are equal, the slope is used at the second
+stage. This corresponds to the y-value for each x-value  which is greater
+than the given x parameter. If both, y value and slope , are equal the segments are
+treat to be equal. In this case this segment and s are overlapping.
+
+As a special case each vertical segment is smaller than all non-vertical segments.
+overlapping vertical segments are also equal to each other and non-overlapping
+vertical segments are ordered by their covered y range.
+
+*/
+
+  int compareTo(const RealmSegment& s, const double x) const{
+     double y_this;
+     bool vert_this;
+     if(AlmostEqual(y1,y2)){ // horizontal (for numerical robustness)
+         y_this = y1;
+     } else if((vert_this=AlmostEqual(x1,x2))){ // vertical
+         y_this = min(y1,y2);
+     } else {
+         y_this = y1 + ((x-x1)/(x2-x1)) * (y2-y1);
+     }
+     double y_s;
+     bool vert_s;
+     if(AlmostEqual(s.y1,s.y2)){ // horizontal (for numerical robustness)
+         y_s = s.y1;
+     } else if((vert_s=AlmostEqual(s.x1,s.x2))){ // vertical
+         y_s = min(s.y1,s.y2);
+     } else {
+         y_s = s.y1 + ((x-s.x1)/(s.x2-s.x1)) * (s.y2-s.y1);
+     }
+  
+     if(vert_this && vert_s){ // both segments are vertical
+        double y_this_max = max(y1,y2); // check for overlapping
+                                       // or adjacent segments
+        if( (y_this <= y_s) && (y_s <= y_this_max)){
+           return 0;
+        }
+        double y_s_max = max(s.y1,s.y2);
+        if( (y_s <= y_this) && (y_this <= y_s_max)){
+           return 0;
+        }
+        if(y_this<y_s){
+             return -1;
+        } else {
+             return 1;
+        }
+     } else if(vert_this){
+        return -1; 
+     } else if(vert_s){
+        return 1;
+     }
+
+     if(!AlmostEqual(y_this,y_s)){ // the first order criterion is the
+                                   // current y- value
+        if(y_this<y_s){
+          return -1;
+        } else {
+          return 1;
+        }
+     } else {
+        // both segments are non-vertical and have the same y value
+        double m_this = (y2-y1) / (x2-x1);
+        double m_s = (s.y2-s.y1) / (s.x2-s.x1);
+        if(AlmostEqual(m_this,m_s)){ // segments are overlapping
+           return 0; 
+        } else if(m_this<m_s){
+           return -1;
+        } else {
+           return 1;
+        }
+     }
+  }
+
+
+/*
+~Split~
+
+Reduces this segment to the part right from the given x-value. The left part
+is returned in the parameter __left__. If both parts exist, the return value 
+will be 0, if only the left part exists (this will be empty), the return value is
+-1, otherwise (there is no left part) the result will be 1.  
+
+*Precondition*: The segment cannot be vertical.
+  
+*/
+ int Split(const double x, RealmSegment& left){
+
+    assert(!AlmostEqual(x1,x2));
+
+    if(AlmostEqual(x,x1) || (x < x1)){ // left is empty
+       return 1;
+    }else if(AlmostEqual(x,x2) || (x>x2)){
+       left = *this;
+       return -1;
+    } else { // the normal case, a proper split
+        double  y = y1 + ((x-x1)/(x2-x1)) * (y2-y1);
+        left.x1 = x1;
+        left.y1 = y1;
+        left.x2 = x;
+        left.y2 = y;
+        this->x1 = x;
+        this->y1 = y;
+        return 0; 
+    }
+ }
+
+/*
+~SplitVert~
+
+works like split but for vertical segments. 
+
+*/
+ 
+int SplitVert(const double y, RealmSegment& lower){
+   assert(AlmostEqual(x1,x2));
+   
+   double y_min = min(y1,y2);
+   double y_max = max(y1,y2);  
+      
+   if(AlmostEqual(y,y_min) || y < y_min){ // only upper
+       return 1;
+   } else if(AlmostEqual(y,y_max || y_max<y)){ // only lower
+       lower = *this;
+       return -1;
+   } else { // proper split
+       lower.x1 = x1;
+       lower.x2 = x2;
+       lower.y1 = y_min;
+       lower.y2 = y;
+       this->y1 = y;
+       this->y2 = y_max;
+       return 0;
+   }
+}
+
+
+  double x1, y1, x2, y2;
+  double currentX;
+
+};
+
+
+
+
+
+
 
 
 /*
@@ -4162,6 +4464,314 @@ void Line::Simplify(Line& result, const double epsilon,
 
    // TODO:
    // recomputing realmization to avoid selfcuts
+}
+
+/*
+~RealmSSSE~
+
+Class representing an entry for the sweep status structure.  
+
+*/
+
+class RealmSSS; // forward declaration
+
+class RealmSSSE{
+public:
+
+    RealmSSSE(RealmSegment& s, int index){
+       this->seg = s;
+       this->index=index;
+    }
+
+    RealmSSSE(){}
+
+    void Set(RealmSegment& s, int index){
+       this->seg = s;
+       this->index=index;
+    }
+
+
+/*
+~remove~
+
+Removes s from S. The current position of the sweep line is x. 
+The neighbours of s are checked for intersection. If there is
+one, a corresponding event is inserted into Q;
+
+*/   
+
+   static void remove(double x,RealmSegment& s, RealmSSS& S, 
+                 priority_queue<RealmEvent>& Q){
+
+       bool implemented = false;
+       assert(implemented);    
+   }
+  
+/*
+~Swap~
+
+The segments given as parameters are swapped inside ~S~. After that,
+boths are cheked for intersections with the new neighbours. If they
+are any, the according events are inserted into ~Q~.
+
+
+*/
+   static  void swap(double x_pos, RealmSegment& seg1, 
+                RealmSegment& seg2, RealmSSS& S,
+                priority_queue<RealmEvent>& Q) {
+       bool implemented = false;
+       assert(implemented);    
+   }
+
+/*
+~processVertical~
+
+Processes all vertical segments given in set segs. Overlapping vertical 
+segments are merged. Then, the vertical segments are checked for 
+intersections with non-vertical segments from ~segments~ using ~S~. 
+The vertical segments are split at the intersection points and
+inserted into the result set. The non-vertical segments are split at
+the same intersection points. Their left parts are inserted into the 
+result set. They are replaced by the remaining right parts.
+The result set is returned in ~segs~.
+ 
+*/
+
+
+  static void processVertical(double x_pos, multiset<RealmSegment>& segs,
+                              vector<RealmSegment>&  segments,
+                              RealmSSS& S){
+       bool implemented = false;
+       assert(implemented);    
+  }
+
+
+
+
+   RealmSegment seg; // copy for fast ordering
+   int index; // position of the 'original'
+
+static double currentX;
+
+};
+
+
+class RealmSSS{
+  public:
+     RealmSSS(){}
+
+/*
+
+Does all the things needed to insert a new segment into the 
+sweep status structure. It checks for overlapping segments already 
+stored here and extends them. Also if a split is needed, it shortens
+the involved segments and returns the left parts in the corresponding
+parameter.
+
+*/
+     void insert(double x, RealmSSSE entry, priority_queue<RealmEvent> Q,
+                 multiset<RealmSegment>& leftParts){
+         assert(false);
+      }
+
+   class iterator{
+     public:
+      void operator++();
+      RealmSSSE& operator*();    
+   };
+
+     void remove(double x, RealmSSSE entry, priority_queue<RealmEvent> Q){
+         assert(false);
+     }
+     RealmSSS::iterator& tail(double y){assert(false);} 
+     set<RealmSSSE>& intersects(const Point& p) { assert(false);}
+     void extend(double x,RealmSSSE old, RealmSSSE replacement,
+                 priority_queue<RealmEvent> Q){
+       assert(false);
+     } 
+
+};
+
+
+void Line::Realminize(){
+
+   priority_queue<RealmEvent> Q;
+  
+   RealmSSS S;
+   // fill the vector an the sweep event structure
+
+   int size = Size();
+
+   
+   vector<RealmSegment> segments(size/2+2);
+ 
+   const HalfSegment* hs;
+   int indexes[size];
+
+   for(int i=0;i<size;i++){
+      Get(i,hs);
+      if(hs->IsLeftDomPoint()){ 
+          // create the segment
+          RealmSegment s(hs); 
+          indexes[i] = segments.size();
+          segments.push_back(s);
+          RealmEvent evt('l',indexes[i],s.x1); 
+          Q.push(evt);
+      } else {
+          int index = indexes[hs->GetAttr().partnerno];
+          RealmEvent evt('r',index,hs->GetDomPoint().GetX());
+          Q.push(evt);
+      }
+   }
+
+   Clear();
+   StartBulkLoad();
+   while(!Q.empty()){
+      // build the group G
+      multiset<RealmEvent> G;
+      RealmEvent t;
+      bool done = false;
+      bool first = true;
+      double lastX;
+      do{
+        RealmEvent evt = Q.top();
+        if(first){
+           lastX = evt.x_pos;
+           first=false;
+           G.insert(evt);
+           Q.pop();   
+        } else {
+          double currentX = evt.x_pos;
+          if(AlmostEqual(lastX,currentX)){
+             G.insert(evt);
+             Q.pop();
+          } else {
+             done = true;
+          }
+
+        }  
+      }while(!done && !Q.empty());
+    
+      multiset<RealmSegment> segs; // set of  segments
+      multiset<RealmSegment>::iterator it;
+      HalfSegment hs;
+      RealmSegment s;
+      RealmSSSE entry;
+      RealmSegment seg1;
+      RealmSegment seg2;
+      int left1, left2;
+      // process the group found in the last step
+      if(G.size()==1){ // a single element group
+         RealmEvent e = *(G.begin());
+         G.erase(e);
+         switch(e.type){
+            case 'l':
+                      s = segments[e.seg1];
+                      entry.Set(s,e.seg1);
+                      S.insert(e.x_pos,entry,Q,segs);
+                      for(it=segs.begin(); it!=segs.end(); it++){
+                         hs.Set(true,Point(it->x1,it->y1),Point(it->x2,it->y2));
+                         *this +=hs;
+                         hs.SetLeftDomPoint(false);
+                         *this += hs; 
+                      }
+                      break;
+            case 'r': {
+                      s = segments[e.seg1];
+                      hs.Set(true,Point(s.x1,s.y1),Point(s.x2,s.y2));
+                      *this += (hs);
+                      hs.SetLeftDomPoint(false);
+                      *this += (hs); 
+                      RealmSSSE::remove(e.x_pos,s,S,Q);
+                      break;
+                      }
+            case 'v': segs.clear(); 
+                      segs.insert(segments[e.seg1]);
+                      RealmSSSE::processVertical(e.x_pos, segs, segments, S);
+                      // insert the (new) elements of v into the line
+                      for(it=segs.begin(); it!=segs.end(); it++){
+                         hs.Set(true,Point(it->x1,it->y1),Point(it->x2,it->y2));
+                         *this += (hs);
+                         hs.SetLeftDomPoint(false);
+                         *this += (hs); 
+                      } 
+                      break;
+            case 'i': 
+                      left1 = segments[e.seg1].Split(e.x_pos,seg1); 
+                      assert(left1<1); // a left part must exist
+                      left2 = segments[e.seg2].Split(e.x_pos,seg2); 
+                      assert(left2<1);
+                      // insert the left parts into the line
+                      hs.Set(true,Point(seg1.x1,seg1.y1),
+                                     Point(seg1.x2,seg1.y2));
+                      *this += (hs);
+                      hs.SetLeftDomPoint(false);
+                      *this += (hs); 
+                      hs.Set(true,Point(seg2.x1,seg2.y1),
+                             Point(seg2.x2,seg2.y2));
+                      *this += hs;
+                      hs.SetLeftDomPoint(false);
+                      *this += (hs); 
+                      RealmSSSE::swap(e.x_pos,segments[e.seg1], 
+                                      segments[e.seg2],S,Q); 
+                      break;
+            default: assert(false);
+         } 
+      } else { // G contains more than one element
+         multiset<RealmEvent> V;
+         multiset<RealmEvent>::iterator it;
+         multiset<RealmEvent> G2;
+         for(it=G.begin(); it!=G.end(); it++){
+              RealmEvent e = *it;
+              if(e.type=='v'){
+                  V.insert(e);
+              } else {
+                  G2.insert(e);; 
+              }
+         }
+
+          
+         multiset<RealmEvent> V2;
+         if(!V.empty()){
+            it = V.begin();
+            RealmEvent last = *it;
+            it++;
+            while(it!=V.end()){
+                RealmEvent next = *it;
+                it++;
+                if(segments[last.seg1].compareTo(segments[next.seg1],
+                                                 next.x_pos)==0){
+                    double y_min = min(min(segments[last.seg1].y1,
+                                       segments[last.seg1].y2),
+                                       min(segments[next.seg1].y1,
+                                       segments[next.seg1].y2));
+                    double y_max = max(max(segments[last.seg1].y1,
+                                       segments[last.seg1].y2),
+                                       max(segments[next.seg1].y1,
+                                       segments[next.seg1].y2));
+                    segments[last.seg1].y1 = y_min;
+                    segments[last.seg1].y2 = y_max;
+                } else {
+                    V2.insert(last);
+                    last = next; 
+                }
+            }
+            V2.insert(last);
+         }    
+         // build groups with the same event position (x,y)
+         while(!G.empty()){
+             it = G.begin();
+              
+
+
+         }         
+
+
+
+      }
+    }
+   EndBulkLoad(true,false);
+
 }
 
 
