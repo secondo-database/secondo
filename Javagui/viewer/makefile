@@ -45,11 +45,14 @@ VIEWER_CLASSES := \
 		MidiViewer.class \
                 TreeViewer.class \
                 PictureViewer.class\
-                UpdateViewer.class \
-    ChessViewer.class
+                UpdateViewer.class
 
-VIEWER_DIRS := fuzzy2d midi relsplit viewer3d hoese pictureviewer update chess
+VIEWER_DIRS := fuzzy2d midi relsplit viewer3d hoese pictureviewer update
 
+INC_FILES := $(shell ls ./makefile.n*c 2>/dev/null)
+ifdef INC_FILES
+include $(INC_FILES)
+endif
 
 # compile all viewers
 .PHONY: viewers
