@@ -1482,7 +1482,7 @@ int Chessgame::AddMove( char startfile, char startrow,
 
   ostringstream endposstr;
   endposstr << endfile << ( ( int ) endrow );
-  unsigned int pos = pgn.find( endposstr.str() );
+  size_t pos = pgn.find( endposstr.str() );
   pos--;
   if ( pgn[ pos ] == 'x' )
     pos--;
