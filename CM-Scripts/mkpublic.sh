@@ -84,13 +84,13 @@ while read <&3 line; do
      
     else
       # look for a section header
-      if [ `expr match "$line" '# Algebras'` -gt 1 ]; then
+      if [ `expr match "$line" '### Algebras'` -gt 1 ]; then
         section=1
-      elif [ `expr match "$line" '# Directories'` -gt 1 ]; then
+      elif [ `expr match "$line" '### Directories'` -gt 1 ]; then
         section=2
-      elif [ `expr match "$line" '# Files by Name'` -gt 1 ]; then
+      elif [ `expr match "$line" '### Files by Name'` -gt 1 ]; then
         section=3
-      elif [ `expr match "$line" '# Files by Extension'` -gt 1 ]; then
+      elif [ `expr match "$line" '### Files by Extension'` -gt 1 ]; then
         section=4
       fi
 

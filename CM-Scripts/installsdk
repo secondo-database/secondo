@@ -6,12 +6,12 @@
 # 04/22/09 M. Spiekermann, error handling for starting xterm &
 # 05/16/02 M. Spiekermann, MSYS-Mingw and Linux script merged into this version
 # 05/12/10 M. Spiekermann, Compilation of 3rd party packages improved and un-install function added  
-# 05/18/10 M. Spiekermann, Code restructured into many new functions. Easier to test and maintain.
-
+# 05/18/10 M. Spiekermann, Code restructured into many new functions. Easier to test and maintain.   
 # 06/27/09 M. Spiekermann, tools version check implemented and new packages
 #                          added in order to support Mac-OSX.   
 # 07/02/04 C. Duentgen,    Added Package GSL - GNU Scientific Library, which is needed by the new
 #                          GSL-Algebra
+# 07/08/07 M. Spiekermann, Integration of new platform linux64
 
 startDir=$PWD
 
@@ -59,9 +59,18 @@ function setCheckPoint {
   showMsg "info" "-> OK!"
 }
 
+
+# $1 name
+function rmCheckPoint {
+
+  local file="$sdk/_DONE_$1"
+  checkCmd rm $file
+  showMsg "checkpoint $file removed!"
+}
+
 # $1 = package info
-# $2 = package file 
-# $3 = package dir 
+# $2 = package dir 
+# $3 = package file 
 # $4 = make targets
 # $5 = configure options
 # $6 = optional configure cmd
@@ -84,18 +93,25 @@ function installPackage {
   # an error, e.g. for gcc 3.2.3. A solution is to start the
   # configure script with bash which turns off posix compatibility mode.
   if [ "$opt_platform" != "win32" ]; then
+    #local bashCmd="linux32 bash --login"
     local bashCmd="bash"
   fi
 
+  local file=${pckgFiles##*/}
+  local cp1="PCKG_${file}_uncompressed"
+  local cp2="PCKG_${file}_installed"
+
   if [ "$confCmd" != "" ]; then
-    conf=$confCmd
+    if [ "$confCmd" == "-ignoreCheckPoint" ]; then
+      rmCheckPoint $cp2	    
+    else	    
+      conf=$confCmd
+    fi   
   fi
   
   printx "%s\n" "Installing package \"$pckgInfo\" ..."
 
-  local file=${pckgFiles##*/}
-  local name="PCKG_$file"
-  if ! checkPoint "$name"; then
+  if ! checkPoint "$cp1"; then
     
     # extract files for package
     printx "%s\n" "Uncompressing $pckgFiles"
@@ -103,7 +119,12 @@ function installPackage {
     if [ $? -ne 0 ]; then
       return 1
     fi
+    setCheckPoint "$cp1" 
+  else
+    showMsg "info" "-> $file already uncompressed!"
+  fi  
 
+  if ! checkPoint "$cp2"; then
     # compile package if necessary
     if [ "$compileDir" != "" ]; then
       printx "%s\n" "Compiling package ..."
@@ -127,9 +148,9 @@ function installPackage {
         fi
       done
     fi
-    setCheckPoint "$name" 
+    setCheckPoint "$cp2" 
   else
-    showMsg "info" "-> already done!"
+    showMsg "info" "-> already installed!"
   fi
 
   return 0
@@ -318,7 +339,10 @@ function installJava {
     checkInstDir $javaInstDir
   else
     assert cd $sdk
-    local j2file=$j2dir/j2sdk*.bin
+    local j2file=$j2dir/j*i586*.bin
+    if [ "$opt_platform" == "linux64" ]; then
+      j2file=$j2dir/j*amd64*.bin
+    fi  
     startupXterm "JAVA 2 SDK Installation" $j2file
     if [ $? -ne 0 ]; then
      printx "Running $j2file directly"
@@ -358,7 +382,7 @@ function usageMsg {
   printf "%s\n"   "  -h print this message and exit."
   printf "%s\n"   "  -t test mode installing below directory /tmp"
   printf "%s\n"   "  -d name of the the sdk root directory [default = $sdkName]"
-  printf "%s\n"   "  -p platform name. one of {linux, win32, mac_osx}."
+  printf "%s\n"   "  -p platform name, one of {linux, linux64, win32, mac_osx}."
   printf "%s\n"   "  -s Use the system's gcc, don't install the provided one."
   printf "%s\n"   "The script installs or compiles all 3rd party tools"
   printf "%s\n\n" "which are needed to compile SECONDO."
@@ -392,13 +416,15 @@ while [ $numOfArgs -ne $OPTIND ]; do
 done
 
 if [ "$opt_platform" != "linux" ]; then
+ if [ "$opt_platform" != "linux64" ]; then
   if [ "$opt_platform" != "mac_osx" ]; then
     if [ "$opt_platform" != "win32" ]; then
-      printf "%s\n" "Error: Option -p must be set to one of {linux, mac_osx or win32}!"
+      printf "%s\n" "Error: Option -p must be set to one of {linux, linux64, mac_osx or win32}!"
       usageMsg
       exit 1
     fi
   fi
+ fi 
 fi
 
 
@@ -560,13 +586,15 @@ fi
 
 if [ "$opt_platform" != "mac_osx" ]; then
 
-printSep "JAVA 2 SDK Version 1.4.2"
+printSep "JAVA SDK"
+javaVersion=
 
 if [ "$opt_platform" == "win32" ]; then
   javaInstDir="$sdk/j2sdk1.4.2"
 else  
-  javaInstDir="$sdk/j2sdk1.4.2_01"
+  javaVersion="jdk1.5.0_12"
 fi
+javaInstDir="$sdk/$javaVersion"
 
 if [ ! -d $javaInstDir ]; then
 
@@ -596,20 +624,6 @@ will be installed adjust the variable \$J2SDK_ROOT in the file \n\
 else  
   showMsg "info" "-> J2SDK seems to be already installed!"
 fi
-fi
-
-check="UNCOMP_JCVS"
-if [ -e $cdpath/extras/jcvs/jcvs*.*gz ]; then
-  printx "%s\n" "Uncompressing JCVS, a java cvs client ... "
-  if ! checkPoint "$check"; then
-    assert cd $sdk
-    checkCmd tar -xzf $cdpath/extras/jcvs/jcvs*.*gz
-    if [ $? -eq 0 ]; then
-      setCheckPoint "$check"
-    fi
-  else
-    showMsg "info" "-> already done!"
-  fi
 fi
 
 ##
@@ -696,14 +710,18 @@ SEP=""
 for dir in gcc auxtools bison flex; do
   cFlags=$cFlags"-I$sdk/$dir/include "
   ldFlags=$ldFlags"-L$sdk/$dir/lib "
+  ldFlags=$ldFlags"-L$sdk/$dir/lib64 "
   binPaths=$binPaths$SEP"$sdk/$dir/bin"
   libPaths=$libPaths$SEP"$sdk/$dir/lib"
+  libPaths=$libPaths$SEP"$sdk/$dir/lib64"
   incPaths=$incPaths$SEP"$sdk/$dir/include"
   SEP=":"
 done 
 
-export PATH=".:$binPaths:$PATH"
-export LD_LIBRARY_PATH="$libPaths:$LD_LIBRARY_PATH"
+jlib="$javaInstDir/jre/lib/amd64"
+jbin="$javaInstDir/bin"
+export PATH=".:$binPaths:$jbin:$PATH"
+export LD_LIBRARY_PATH="$libPaths:$jlib:$LD_LIBRARY_PATH"
 export LIBRARY_PATH=$libPaths
 export C_INCLUDE_PATH=$incPaths
 export CPLUS_INCLUDE_PATH=$incPaths
@@ -744,11 +762,10 @@ configureFlags="CFLAGS=\"$cFlags\" LDFLAGS=\"$ldFlags\""
 
 printSep "Compiling auxiliary packages ..."
 
-installPackage "Lib curses"   auxtools $platformdir/gnu/ncurses-*     $temp/ncurses-*  "all install"
+installPackage "Lib curses"   auxtools $platformdir/gnu/ncurses-*     $temp/ncurses-*  "all install" --with-shared
 installPackage "Lib readline" auxtools $platformdir/gnu/readline-*    $temp/readline-* "all install" --with-curses
 installPackage "Lib jpeg"     auxtools $platformdir/non-gnu/jpeg*     $temp/jpeg*      "all install install-lib" 
 installPackage "Lib gsl"      auxtools $platformdir/gnu/gsl-*         $temp/gsl-*      "all install"
-
 if [ "$opt_platform" == "mac_osx" ]; then
  installPackage "Findutils" auxtools $platformdir/gnu/findutils-* $temp/findutils-* "all install"
 fi 
@@ -767,7 +784,8 @@ printSep "Compiling SWI-Prolog"
 
 configureFlags=""
 if [ "$opt_platform" != "mac_osx" ]; then
-installPackage "SWI-Prolog"   swi $platformdir/prolog/pl-*       $temp/pl-*       "all install"
+installPackage "SWI-Prolog"   swi $platformdir/prolog/pl-*       $temp/pl-*           "all install"
+installPackage "SWI-Prolog"   swi $platformdir/prolog/pl-*       $temp/pl-*/packages  "all install" "--without-xpce --without-zlib" -ignoreCheckPoint
 fi
 
 finish

@@ -329,6 +329,8 @@ mkcp1252: $(fileList)
           -or -name "*.pdf" \
           -or -name "*.png" \
           -or -name "*.sxd" \
+          -or -name "*.sxc" \
+          -or -name "*.xls" \
           -or -name "*.sda" \
           -or -name "*.vsd" \
           -or -name "*.zip" \

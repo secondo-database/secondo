@@ -32,6 +32,9 @@ if [ "$SECONDO_PLATFORM" != "win32" ]; then
   if [ "$SECONDO_PLATFORM" == "linux" ]; then
     plcmd="pl"
   fi
+  if [ "$SECONDO_PLATFORM" == "linux64" ]; then
+    plcmd="pl"
+  fi
   echo "--"
   echo "halt." | $plcmd > /tmp/pl$$-version 2>&1;  cat /tmp/pl$$-version | head -n1
   echo "--"

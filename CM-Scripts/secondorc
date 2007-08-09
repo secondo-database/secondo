@@ -78,12 +78,14 @@ checkDir "Testing if variable SECONDO_BUILD_DIR points to an existing directory.
 checkDir "SECONDO_BUILD_DIR seems not to point to a secondo source tree" ${buildDir}/Algebras/Standard-C++
 
 if [ "$platform" != "linux" ]; then
+ if [ "$platform" != "linux64" ]; then
   if [ "$platform" != "mac_osx" ]; then
     if [ "$platform" != "win32" ]; then
-      printf "%s\n" "Error: SECONDO_PLATFORM must be set to linux, mac_osx or win32!"
+      printf "%s\n" "Error: SECONDO_PLATFORM must be set to linux, linux64, mac_osx or win32!"
       let ERR++
     fi
   fi
+ fi
 fi 
 
 echo "ERR="$ERR

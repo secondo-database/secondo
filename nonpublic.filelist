@@ -103,6 +103,7 @@ Documents/Secondo-Ideas.txt
 Optimizer/adaptiveJoin.pl
 
 bin/geo
+bin/chesstest
 
 Tests/Testspecs/partstream.test
 

@@ -91,10 +91,11 @@ function showValue2
 function printl {
   if [ -n "$LU_LOG_INIT" ]; then
     printf "$1" "$2" >> $LU_LOG
-  fi  
-  if [ "$LU_LOG_SCREEN" != "false" ]; then
-    printf "$1" "$2"
-  fi  
+  else 
+    if [ "$LU_LOG_SCREEN" != "false" ]; then
+      printf "$1" "$2"
+    fi  
+ fi   
 }
 
 # print to screen and into log-file if $LU_LOG is nonzero
