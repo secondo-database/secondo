@@ -1,0 +1,73 @@
+# SECONDO ENVIRONMENT SETUP FOR LINUX 
+#
+# Since Feb 2005. M. Spiekermann
+
+# Note: If you plan to try other versions of Berkeley DB, bison, flex, etc
+# rename the old one and configure it for installation within the directory
+# structure of installsdk which is
+#
+# $SECONDO_SDK 
+#          |-gcc 
+#          |-flex 
+#          |-bison 
+#          |-swi       SWI-Prolog
+#          |-bdb       Berkeley-DB 
+#          |-auxtools  Auxiliary tools, readline, jpeg-lib, etc 
+#
+# If you plan to use another directory layout please be careful. Study the
+# settings made in the file "secondo.setroot". There the following variables
+# are set: 
+#
+# C_INCLUDE_PATH       // list of paths for compiling C-code 
+# CPLUS_INCLUDE_PATH   // list of paths for compiling C++-code 
+# LIBRARY_PATH         // list of paths for the linker 
+# LD_LIBRARY_PATH      // list of paths for shared obejcts (runtime linker)
+
+# For some strange reason the jpee library is not found although it
+# is defined in LIBRARY_PATH. Therefore we define some special additional
+# linker flags
+export SECONDO_LDFLAGS="-L$SECONDO_SDK/auxtools/lib"
+
+
+#SWI Prolog
+arch="$CPU-$OSTYPE"
+export PL_VERSION="50637"
+export SWI_HOME_DIR="$SECONDO_SDK/swi/lib/pl-5.6.37"
+
+export PL_INCLUDE_DIR="$SWI_HOME_DIR/include"
+export PL_LIB_DIR="$SWI_HOME_DIR/lib/$arch"
+
+# libraries provided by the prolog-jpl package
+# (see also Jpl/readme.txt).
+
+export PL_DLL_DIR=$PL_LIB_DIR
+export JPL_JAR=$SWI_HOME_DIR/lib/jpl.jar
+export JPL_DLL=$PL_DLL_DIR/libjpl.so
+
+#JAVA
+export J2SDK_ROOT="$SECONDO_SDK/jdk1.5.0_12"
+
+#check for 32 or 64 bit installation
+LIBx64="jre/lib/amd64"
+if [ ! -e $J2SDK_ROOT/$LIBx64 ]; then
+ LIBx32="jre/lib/i386"
+ if [ ! -e $J2SDK_ROOT/$LIBx32 ]; then
+   echo "Error: No subdirectory $LIBx64 or $LIBx32 found! Please check your java configuration in secondo.config.linux!"
+ else
+   # Note jdk 1.4.2 has a client and server directory which both
+   # contain libjvm.so whereas jdk 1.5 has only the server directory.
+   export J2SDK_LIB=$LIBx32
+   export J2SDK_JVMLIB=$J2SDK_LIB/client
+ fi
+else
+ export J2SDK_LIB=$LIBx64
+ export J2SDK_JVMLIB=$J2SDK_LIB/server
+fi
+
+
+#PD System
+export PD_DVI_VIEWER=xdvi
+export PD_PS_VIEWER=gv
+
+#Readline support
+export readline=true
