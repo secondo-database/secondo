@@ -117,8 +117,8 @@ ALGEBRAS     += StreamAlgebra
 ALGEBRA_DIRS += DateTime
 ALGEBRAS     += DateTimeAlgebra
 
-ALGEBRA_DIRS += Network
-ALGEBRAS     += NetworkAlgebra
+#ALGEBRA_DIRS += Network
+#ALGEBRAS     += NetworkAlgebra
 
 #ALGEBRA_DIRS += TemporalNet 
 #ALGEBRAS     += TemporalNet 
