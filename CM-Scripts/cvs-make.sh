@@ -295,7 +295,7 @@ let numOfArgs++
 
 while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
 
-  getopts "ehnm:r:w:c:s:t:d:g:f:o:" optKey
+  getopts "behnm:r:w:c:s:t:d:g:f:o:" optKey
   if [ "$optKey" == "?" ]; then
     optKey="h"
   fi
@@ -307,7 +307,8 @@ while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
       printf "%s\n"   "Global-Options:"
       printf "%s\n"   "  -h print this message and exit."
       printf "%s\n"   "  -n send no mails. Just print the message to stdout."
-      printf "%s\n"   "  -e exit before compile (for testing only)"
+      printf "%s\n"   "  -e exit before compile (for testing only)."
+      printf "%s\n"   "  -b build only, don't run tests."
       printf "%s\n"   "SDK-Settings:"
       printf "%s\n"   "  -s<sdk-root>      => \"${opt_sdkRootDir}\" "
       printf "%s\n"   "  -d<sdk-dir>       => \"${opt_sdkDir}\" "
@@ -322,11 +323,14 @@ while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
       printf "%s\n"   "Test-Run Options:"
       printf "%s\n"   "  -w<seconds> (timeout for tests!) => \"${opt_waitMax}\" "
       printf "%s\n"   "  -l<log-root>                     => \"${opt_logRoot}\" "
+      printf "%s\n"   "  -x<log-root>                     => \"${opt_logRoot}\" "
       printf "%s\n\n" "The script checks out a local copy of <cvs-module> into the directoy"
       printf "%s\n"   "into <build-root>/<checkout-dir> and runs make, various tests, etc."
       printf "%s\n\n" "In case of a failure an email will be sent to the CVS users."
       exit 0;;
    
+   b) opt_runTests="no";;
+
    r) opt_rootDir=$OPTARG;;
    
    s) opt_sdkRootDir=$OPTARG;;
@@ -605,7 +609,7 @@ fi
 cleanModule
 
 if [[ ($[errors] == 0) 
-      && $("$opt_runTest" == yes) && ("$opt_mkStable" == "yes") ]]; then	
+      && ("$opt_runTests" == "yes") && ("$opt_mkStable" == "yes") ]]; then	
 
   # Move label for stable version
   cd $cbuildDir
