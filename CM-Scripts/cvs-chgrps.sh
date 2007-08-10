@@ -50,4 +50,4 @@ chgrp -fR cvs-dipl $cvsHome/students
 #chgrp -R cvs-pub $cvsHome/secondo-data
 
 # allow write access for group members
-chmod -R g+w $lockRoot
+chmod -fR g+w $lockRoot
