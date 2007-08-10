@@ -5216,7 +5216,13 @@ void Mapping<Unit, Alpha>::Final( Intime<Alpha>& result ) const
 
 template <class Unit, class Alpha>
 void Mapping<Unit, Alpha>::Resize(size_t n){
-   units.Resize(n);
+   if (n>0)
+   {
+      units.Resize(n);
+   } else
+   {
+     units.Clear();
+   }
 }
 
 template <class Unit, class Alpha>
