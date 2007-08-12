@@ -201,7 +201,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 
 */
 class MGPoint : public Mapping< UGPoint, GPoint >
-{
+{ 
   public:
 /*
 3.12.1 Constructors and Destructor
