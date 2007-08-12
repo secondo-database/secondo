@@ -1,3 +1,9 @@
-Database: berlintest
-Restore : No
+Database: networktest
+Restore : Yes
+
+Operator : mpoint2mgpoint
+Number   : 1
+Signature: mpoint -> mgpoint
+Example  : query mpoint2mgpoint(X_MPOINT)
+Result   : file
 

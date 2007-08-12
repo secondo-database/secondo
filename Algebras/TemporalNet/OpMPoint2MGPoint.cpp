@@ -50,6 +50,7 @@ This file contains the implementation of ~gline~
 #include "NetworkAlgebra.h"
 #include "GPoint.h"
 #include "TemporalNetAlgebra.h"
+#include "Network.h"
 
 #include "OpMPoint2MGPoint.h"
 
@@ -90,9 +91,79 @@ int OpMPoint2MGPoint::ValueMapping( Word* args,
 
   MPoint* pMPoint = (MPoint*)args[0].addr;
 
+  bool bIsObject = SecondoSystem::GetCatalog()->IsObjectName("X_NETWORK");
+
+  if(!bIsObject)
+  {
+    // Fehlerbehandlung
+    cerr << "X_NETWORK is not a secondo-object" << endl;
+    return 0;
+  }
+
   bool bDefined;
   Word xValue;
  
+  bool bOk = SecondoSystem::GetCatalog()->GetObject("X_NETWORK",
+                                                    xValue,
+                                                    bDefined);
+                                         
+
+  if(!bDefined || !bOk)
+  {
+    // Fehlerbehandlung
+    cerr << "Could not load object." << endl;
+    return 0;
+  }           
+  
+  Network* pNetwork = (Network*)xValue.addr;
+  
+  Relation* pSections = pNetwork->GetSectionsInternal();   
+  GenericRelationIterator* pSectionsIt = pSections->MakeScan();
+  Tuple* pSection;
+
+  const UPoint *pFirstUnit;
+  pMPoint->Get(0, pFirstUnit);
+  
+  Point pStart = pFirstUnit->p0;
+
+ 
+  // Find first section
+  // TODO: Support this search with a BTree
+  while( (pSection = pSectionsIt->GetNextTuple()) != 0 )
+  {
+    int iSegmentId = pSectionsIt->GetTupleId();
+//    CcInt* xRouteId = (CcInt*)pSection->GetAttribute(SECTION_RID); 
+//    int iRouteId = xRouteId->GetIntval();
+//    CcReal* xMeas1 = (CcReal*)pSection->GetAttribute(SECTION_MEAS1); 
+//    float fMeas1 = xMeas1->GetRealval();
+//    CcReal* xMeas2 = (CcReal*)pSection->GetAttribute(SECTION_MEAS2); 
+//    float fMeas2 = xMeas2->GetRealval();
+    Line *pCurve = (Line*)pSection->GetAttribute( SECTION_CURVE );
+
+    Point pSectionStart = pCurve->StartPoint(true);
+    if(pStart == pSectionStart)
+    {
+      cout << iSegmentId << endl;
+    }
+    
+    Point pSectionEnd = pCurve->EndPoint(true);
+    if(pStart == pSectionEnd)
+    {
+      cout << iSegmentId << endl;
+    }
+    
+    pSection->DeleteIfAllowed(); 
+  }
+  delete pSectionsIt;
+
+
+  for (int i = 0; i < pMPoint->GetNoComponents(); i++) 
+  {
+    const UPoint *pCurrentUnit;
+
+    pMPoint->Get(i, pCurrentUnit);
+  }
+
   return 0;
 }
 
