@@ -1,44 +1,38 @@
-Database: berlintest
-Restore : No
+Database: networktest
+Restore : Yes
 
 Operator : junctions
 Number   : 1
 Signature: network -> rel
 Example  : query junctions(X_NETWORK)
-Result   : ()
+Result   : file
 
 
 Operator : routes
 Number   : 1
 Signature: network -> rel
 Example  : query routes(X_NETWORK)
-Result   : (2)
+Result   : file
 
 
 Operator : sections
 Number   : 1
 Signature: network -> rel
 Example  : query sections(X_NETWORK)
-Result   : (3)
+Result   : file
 
 
 Operator : thenetwork
 Number   : 1
 Signature: rel x rel -> network
 Example  : query thenetwork(X_ROUTES, X_JUNCTIONS)
-Result   : (X)
+Result   : file
 
 
 Operator : shortest_path
 Number   : 1
 Signature: gpoint x gpoint -> gline
 Example  : query shortest_path(X_GPOINT, X_GPOINT)
-Result   : (X)
-
-Operator : this
-Number   : 1
-Signature: network -> network
-Example  : query this(X_NETWORK)
-Result   : (X)
+Result   : file
 
 
