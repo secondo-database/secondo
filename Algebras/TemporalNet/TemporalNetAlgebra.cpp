@@ -42,6 +42,7 @@ May 2007 Martin Scheppokat
 #include "GPoint.h"
 #include "NetworkAlgebra.h"
 #include "TemporalNetAlgebra.h"
+#include "OpMPoint2MGPoint.h"
 
 #include <iostream>
 #include <sstream>
@@ -448,6 +449,20 @@ TypeConstructor movinggpoint(
         CheckMGPoint );  //kind checking function
 
 
+/*
+4.4.4 Definition 
+
+*/
+Operator mpoint2mgpoint (
+          "mpoint2mgpoint",                // name
+          OpMPoint2MGPoint::Spec,          // specification
+          OpMPoint2MGPoint::ValueMapping,  // value mapping
+          Operator::SimpleSelect,          // trivial selection function
+          OpMPoint2MGPoint::TypeMap        // type mapping
+);
+
+
+
 
 /*
 6 Creating the Algebra
@@ -464,6 +479,8 @@ class TemporalNetAlgebra : public Algebra
 
     movinggpoint.AssociateKind( "TEMPORAL" );
     movinggpoint.AssociateKind( "DATA" );
+
+    AddOperator(&mpoint2mgpoint);
 
   }
   ~TemporalNetAlgebra() {};

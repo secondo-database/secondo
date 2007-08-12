@@ -212,10 +212,10 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
     DijkstraStruct* pCurrent = xQ.pop();
     int iCurrentSectionTid = pCurrent->m_iSectionTid;
     bool bCurrentUpDownFlag = pCurrent->m_bUpDownFlag;
-    cout << "Section: " 
-         << iCurrentSectionTid 
-         << " " 
-         << bCurrentUpDownFlag << endl;
+//    cout << "Section: " 
+//         << iCurrentSectionTid 
+//         << " " 
+//         << bCurrentUpDownFlag << endl;
 //    
 //    S = S with u
 //    
@@ -233,10 +233,10 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
       int iAdjacentSectionTid = xAdjacentSection.getSectionTid();
       bool bAdjacentUpDownFlag = xAdjacentSection.getUpDownFlag();
       
-      cout << "(" <<iCurrentSectionTid << ", " << bCurrentUpDownFlag
-           << ")->(" 
-           << iAdjacentSectionTid << ", " << bAdjacentUpDownFlag << ")" 
-           << endl;
+//      cout << "(" <<iCurrentSectionTid << ", " << bCurrentUpDownFlag
+//           << ")->(" 
+//           << iAdjacentSectionTid << ", " << bAdjacentUpDownFlag << ")" 
+//           << endl;
 
       DijkstraStruct* pAdjacent = xQ.get(iAdjacentSectionTid,
                                          bAdjacentUpDownFlag);
@@ -248,9 +248,9 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
         // Calculate new distance
         pAdjacent->m_fD = pCurrent->m_fD + pCurrent->Length();
 
-        cout << "(" << iAdjacentSectionTid << ", " << bAdjacentUpDownFlag << ")"
-             << " = " << pAdjacent->m_fD
-             << endl;
+//      cout << "(" << iAdjacentSectionTid << ", " << bAdjacentUpDownFlag << ")"
+//             << " = " << pAdjacent->m_fD
+//             << endl;
 
         
         // Set current as predecessor of adjacent section
@@ -262,10 +262,10 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
     
   DijkstraStruct* pStruct = xQ.get(in_iEndSegmentId,
                                    false);
-  cout << "(" << pStruct->m_iSectionTid 
-       << ", " 
-       << pStruct->m_bUpDownFlag << ")" 
-       << endl;
+//  cout << "(" << pStruct->m_iSectionTid 
+//       << ", " 
+//       << pStruct->m_bUpDownFlag << ")" 
+//       << endl;
   in_pGLine->AddRouteInterval(pStruct->m_iRouteId, 
                               pStruct->m_fMeas1, 
                               pStruct->m_fMeas2);
@@ -273,10 +273,10 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
   {
     pStruct = xQ.get(pStruct->m_iPiSectionTid,
                      pStruct->m_bPiUpDownFlag);
-    cout << "(" << pStruct->m_iSectionTid 
-         << ", " 
-         << pStruct->m_bUpDownFlag << ")" 
-         << endl;
+//    cout << "(" << pStruct->m_iSectionTid 
+//         << ", " 
+//         << pStruct->m_bUpDownFlag << ")" 
+//         << endl;
     in_pGLine->AddRouteInterval(pStruct->m_iRouteId, 
                                 pStruct->m_fMeas1, 
                                 pStruct->m_fMeas2);

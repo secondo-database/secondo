@@ -648,21 +648,21 @@ void Network::FillSections()
   GenericRelationIterator *pSectionsIter = m_pSections->MakeScan();
   Tuple *pCurrentSection;
 
-  while( (pCurrentSection = pSectionsIter->GetNextTuple()) != 0 )
-  {
-    CcInt* xRouteId = (CcInt*)pCurrentSection->GetAttribute( SECTION_RID );
-    int iRouteId = xRouteId->GetIntval();
-    CcReal* xStartPos = (CcReal*)pCurrentSection->GetAttribute( SECTION_MEAS1 );
-    float fStartPos = xStartPos->GetRealval();
-    CcReal* xEndPos = (CcReal*)pCurrentSection->GetAttribute( SECTION_MEAS2 );
-    float fEndPos = xEndPos->GetRealval();
-
-    cout << "Route:" << iRouteId << " "
-         << "Section:" << pCurrentSection->GetTupleId() << " "
-         << "Start:" << fStartPos << " "
-         << "End:" << fEndPos 
-         << endl;
-  }
+//  while( (pCurrentSection = pSectionsIter->GetNextTuple()) != 0 )
+//  {
+//    CcInt* xRouteId = (CcInt*)pCurrentSection->GetAttribute( SECTION_RID );
+//    int iRouteId = xRouteId->GetIntval();
+//  CcReal* xStartPos = (CcReal*)pCurrentSection->GetAttribute( SECTION_MEAS1 );
+//    float fStartPos = xStartPos->GetRealval();
+//    CcReal* xEndPos = (CcReal*)pCurrentSection->GetAttribute( SECTION_MEAS2 );
+//    float fEndPos = xEndPos->GetRealval();
+//
+//    cout << "Route:" << iRouteId << " "
+//         << "Section:" << pCurrentSection->GetTupleId() << " "
+//         << "Start:" << fStartPos << " "
+//         << "End:" << fEndPos 
+//         << endl;
+//  }
   delete pSectionsIter;
 }
 
@@ -935,36 +935,36 @@ void Network::FillAdjacencyLists()
   }
   delete pJunctionsIt;
 
-  cout << "AdjacencyList" << endl;
-  cout << "-------------" << endl;
-  for (int i = 0; i < m_xAdjacencyList.Size(); ++i) 
-  {
-    const AdjacencyListEntry* xEntry;
-    m_xAdjacencyList.Get(i, xEntry);
-    cout << i << ": " 
-         << "High:" << xEntry->m_iHigh << " " 
-         << "Low:" << xEntry->m_iLow 
-         << endl;
-    
-  }
-  cout << "-------------" << endl;
-
-  cout << "SubAdjacencyList" << endl;
-  cout << "----------------" << endl;
-  for (int i = 0; i < m_xSubAdjacencyList.Size(); ++i) 
-  {
-    const DirectedSection* xEntry;
-    m_xSubAdjacencyList.Get(i, xEntry);
-
-    bool bUpDownFlag = ((DirectedSection*)xEntry)->getUpDownFlag();
-    int iSectionTid = ((DirectedSection*)xEntry)->getSectionTid();
-    cout << i << ": " 
-         << "Tid:" << iSectionTid << " "
-         << "UpDownFlag:" << bUpDownFlag 
-         << endl;
-         
-  }
-  cout << "----------------" << endl;
+//  cout << "AdjacencyList" << endl;
+//  cout << "-------------" << endl;
+//  for (int i = 0; i < m_xAdjacencyList.Size(); ++i) 
+//  {
+//    const AdjacencyListEntry* xEntry;
+//    m_xAdjacencyList.Get(i, xEntry);
+//    cout << i << ": " 
+//         << "High:" << xEntry->m_iHigh << " " 
+//         << "Low:" << xEntry->m_iLow 
+//         << endl;
+//    
+//  }
+//  cout << "-------------" << endl;
+//
+//  cout << "SubAdjacencyList" << endl;
+//  cout << "----------------" << endl;
+//  for (int i = 0; i < m_xSubAdjacencyList.Size(); ++i) 
+//  {
+//    const DirectedSection* xEntry;
+//    m_xSubAdjacencyList.Get(i, xEntry);
+//
+//    bool bUpDownFlag = ((DirectedSection*)xEntry)->getUpDownFlag();
+//    int iSectionTid = ((DirectedSection*)xEntry)->getSectionTid();
+//    cout << i << ": " 
+//         << "Tid:" << iSectionTid << " "
+//         << "UpDownFlag:" << bUpDownFlag 
+//         << endl;
+//         
+//  }
+//  cout << "----------------" << endl;
 }
 
 void Network::GetAdjacentSections(int in_iSectionId,
@@ -1227,25 +1227,39 @@ ListExpr Network::Save( SmiRecord& valueRecord,
                         size_t& offset,
                         const ListExpr typeInfo )
 {
-  if( !m_pRoutes->Save( valueRecord, offset, 
-                     SecondoSystem::GetCatalog()->
-                       NumericType( GetRoutesTypeInfo() ) ) )
-    return false;
-
-  if( !m_pJunctions->Save( valueRecord, offset, 
+  if( !m_pRoutes->Save( valueRecord, 
+                        offset, 
                         SecondoSystem::GetCatalog()->
-                          NumericType( GetJunctionsIntTypeInfo() ) ) )
+                          NumericType( GetRoutesTypeInfo() ) ) )
     return false;
 
-  if( !m_pSections->Save(valueRecord, offset, 
+  if( !m_pJunctions->Save( valueRecord, 
+                           offset, 
+                           SecondoSystem::GetCatalog()->
+                             NumericType( GetJunctionsIntTypeInfo() ) ) )
+    return false;
+
+  if( !m_pSections->Save(valueRecord, 
+                         offset, 
                          SecondoSystem::GetCatalog()->
-                         NumericType( GetSectionsInternalTypeInfo() ) ) )
+                           NumericType( GetSectionsInternalTypeInfo() ) ) )
     return false;
 
-  if( !m_pBTreeRoutes->Save( valueRecord, offset,
+  if( !m_pBTreeRoutes->Save( valueRecord, 
+                             offset,
                              SecondoSystem::GetCatalog()->
-                             NumericType( GetRoutesBTreeTypeInfo() ) ) )
+                               NumericType( GetRoutesBTreeTypeInfo() ) ) )
     return false;
+
+//  Attribute::Save( valueRecord, 
+//                   offset, 
+//                   typeInfo, // AlgebraId und TypId
+//                   m_xAdjacencyList );
+//
+//  Attribute::Save( valueRecord, 
+//                   offset, 
+//                   typeInfo, 
+//                   m_xSubAdjacencyList );
     
 //  if( !m_pBTreeJunctionsByRoute1->Save( valueRecord, offset,
 //                                        SecondoSystem::GetCatalog()->
@@ -1369,10 +1383,10 @@ ListExpr Network::OutNetwork(ListExpr typeInfo, Word value)
 
 */
 Word Network::InNetwork(ListExpr in_xTypeInfo, 
-               ListExpr in_xValue,
-               int in_iErrorPos, 
-               ListExpr& inout_xErrorInfo, 
-               bool& inout_bCorrect)
+                        ListExpr in_xValue,
+                        int in_iErrorPos, 
+                        ListExpr& inout_xErrorInfo, 
+                        bool& inout_bCorrect)
 {
   Network* pNetwork = new Network(in_xValue,
                                   in_iErrorPos,
