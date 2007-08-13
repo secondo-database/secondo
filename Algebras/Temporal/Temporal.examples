@@ -7,6 +7,18 @@ Signature: (instant instant) -> bool, (rT rT)) -> bool
 Example  : query [const instant value "2007-12-24"] # [const instant value "2007-12-25"]
 Result   : TRUE
 
+Operator : #
+Number   : 2
+Signature: (iT iT) -> bool, T in {bool, int, real, point}
+Example  : query [const ipoint value ("2007-12-24" (1.1 -2.2))] # [const ipoint value ("2007-12-24" (1.1 -2.2))]
+Result   : FALSE
+
+Operator : #
+Number   : 3
+Signature: (instant instant) -> bool, (rT rT)) -> bool
+Example  : query [const instant value "2007-12-24"] # [const instant value "2007-12-25"]
+Result   : TRUE
+
 
 Operator : <=
 Number   : 1
@@ -28,6 +40,11 @@ Signature: (instant instant) -> bool, (rT rT) -> bool
 Example  : query [const instant value "2007-12-24"] = [const instant value "2007-12-24"]
 Result   : TRUE
 
+Operator : =
+Number   : 2
+Signature: (iT iT) -> bool, T in {bool, int, real, point}
+Example  : query [const ireal value ("2007-12-24" -686.684)] # [const ireal value ("2007-12-24" -873.354)]
+Result   : TRUE
 
 Operator : >=
 Number   : 1
@@ -192,6 +209,17 @@ Signature: instant -> bool, rT -> bool, uT -> bool
 Example  : query isempty(train7)
 Result   : file
 
+Operator : isempty
+Number   : 2
+Signature: instant -> bool, rT -> bool, uT -> bool
+Example  : query isempty([const iint value ("2007-08-13-15:01:42.543" -999)])
+Result   : FALSE
+
+Operator : isempty
+Number   : 3
+Signature: instant -> bool, rT -> bool, uT -> bool
+Example  : query isempty([const ipoint value undef])
+Result   : TRUE
 
 Operator : length
 Number   : 1

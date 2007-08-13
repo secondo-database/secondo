@@ -752,6 +752,16 @@ The second constructor.
     }
   }
 
+  bool operator==(const Intime<Alpha>& other) const
+  {
+    return (Compare((Attribute*) (&other) ) == 0);
+  }
+
+  bool operator!=(const Intime<Alpha>& other) const
+  {
+    return (Compare((Attribute*) (&other) ) != 0);
+  }
+
 /*
 3.4.3 Attributes:
 

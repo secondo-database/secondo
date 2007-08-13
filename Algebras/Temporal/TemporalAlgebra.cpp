@@ -4645,11 +4645,15 @@ TemporalTypeMapBool( ListExpr args )
         nl->IsEqual( arg1, "ubool" ) ||
         nl->IsEqual( arg1, "uint" ) ||
         nl->IsEqual( arg1, "ureal" ) ||
-        nl->IsEqual( arg1, "upoint" )) // ||
+        nl->IsEqual( arg1, "upoint" ) ||
 //        nl->IsEqual( arg1, "mbool" ) ||
 //        nl->IsEqual( arg1, "mint" ) ||
 //        nl->IsEqual( arg1, "mreal" ) ||
-//        nl->IsEqual( arg1, "mpoint" ) )
+//        nl->IsEqual( arg1, "mpoint" ) ||
+        nl->IsEqual( arg1, "ibool" ) ||
+        nl->IsEqual( arg1, "iint" ) ||
+        nl->IsEqual( arg1, "ireal" ) ||
+        nl->IsEqual( arg1, "ipoint" ))
       return nl->SymbolAtom( "bool" );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -4672,7 +4676,11 @@ TemporalTemporalTypeMapBool( ListExpr args )
     if( (nl->IsEqual( arg1, "instant" ) && nl->IsEqual( arg2, "instant" )) ||
         (nl->IsEqual( arg1, "rint" ) && nl->IsEqual( arg2, "rint" )) ||
         (nl->IsEqual( arg1, "rreal" ) && nl->IsEqual( arg2, "rreal" )) ||
-        (nl->IsEqual( arg1, "periods" ) && nl->IsEqual( arg2, "periods" )) )
+        (nl->IsEqual( arg1, "periods" ) && nl->IsEqual( arg2, "periods" )) ||
+        (nl->IsEqual( arg1, "ibool" ) && nl->IsEqual( arg2, "ibool" )) ||
+        (nl->IsEqual( arg1, "iint" ) && nl->IsEqual( arg2, "iint" )) ||
+        (nl->IsEqual( arg1, "ireal" ) && nl->IsEqual( arg2, "ireal" )) ||
+        (nl->IsEqual( arg1, "ipoint" ) && nl->IsEqual( arg2, "ipoint" )))
       return nl->SymbolAtom( "bool" );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -6155,6 +6163,18 @@ TemporalSimpleSelect( ListExpr args )
 //  if( nl->SymbolValue( arg1 ) == "mpoint" )
 //    return 11;
 
+  if( nl->SymbolValue( arg1 ) == "ibool" )
+    return 8;
+
+  if( nl->SymbolValue( arg1 ) == "iint" )
+    return 9;
+
+  if( nl->SymbolValue( arg1 ) == "ireal" )
+    return 10;
+
+  if( nl->SymbolValue( arg1 ) == "ipoint" )
+    return 11;
+
   return (-1); // This point should never be reached
 }
 
@@ -6183,6 +6203,20 @@ TemporalDualSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "periods" &&
     nl->SymbolValue( arg2 ) == "periods" )
     return 3;
+
+  if( nl->SymbolValue( arg1 ) == "ibool" &&
+      nl->SymbolValue( arg2 ) == "ibool" )
+    return 4;
+
+  if( nl->SymbolValue( arg1 ) == "iint" && nl->SymbolValue( arg2 ) == "iint" )
+    return 5;
+
+  if( nl->SymbolValue( arg1 ) == "ireal" && nl->SymbolValue( arg2 ) == "ireal" )
+    return 6;
+
+  if( nl->SymbolValue( arg1 ) == "ipoint" &&
+      nl->SymbolValue( arg2 ) == "ipoint" )
+    return 7;
 
   return -1; // This point should never be reached
 }
@@ -6621,7 +6655,7 @@ int InstantIsEmpty( Word* args, Word& result, int message, Word&
 
 template <class Range>
 int RangeIsEmpty( Word* args, Word& result, int message, Word&
- local, Supplier s )
+                  local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Range*)args[0].addr)->IsEmpty() )
@@ -6630,6 +6664,81 @@ int RangeIsEmpty( Word* args, Word& result, int message, Word&
     ((CcBool *)result.addr)->Set( true, false );
   return 0;
 }
+
+template <class ValueType>
+int IntimeIsEmpty( Word* args, Word& result, int message, Word&
+                   local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( ((Intime<ValueType> *)args[0].addr)->IsDefined() )
+    ((CcBool*)result.addr)->Set( true, false );
+  else
+    ((CcBool *)result.addr)->Set( true, true );
+  return 0;
+}
+
+/*
+16.3.2 Value mapping for operator ~IntimeComparePredicates~
+
+template parameter ~OPType~ gives the character of the operator: 
+
+----
+
+  0  =,
+  1  #,
+  2  <,
+  3  >,
+  4 <=,
+  5 >=-
+
+----
+
+*/
+template <class ValueType, int OPType>
+int IntimeComparePredicates( Word* args, Word& result, int message, Word&
+                             local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Intime<ValueType>* arg0 = (Intime<ValueType> *)args[0].addr;
+  Intime<ValueType>* arg1 = (Intime<ValueType> *)args[1].addr;
+  bool boolres = false;
+  int comparevalue = arg0->Compare((Attribute*) arg1);
+  switch (OPType)
+  {
+    case 0: // is_equal
+      boolres = (comparevalue == 0);
+      break;
+
+    case 1: // is_not_equal
+      boolres = (comparevalue != 0);
+      break;
+
+    case 2: // less_than
+      boolres = (comparevalue > 0);
+      break;
+
+    case 3: // bigger_than
+      boolres = (comparevalue < 0);
+      break;
+
+    case 4: // less_or_equal
+      boolres = (comparevalue >= 0);
+    break;
+
+    case 5: // bigger_or_equal
+      boolres = (comparevalue <= 0);
+      break;
+
+    default:
+      assert( false );
+  }
+  if( boolres )
+    ((CcBool*)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+  return 0;
+}
+
 
 /*
 16.3.2 Value mapping functions of operator $=$ (~equal~)
@@ -6661,6 +6770,7 @@ int RangeEqual( Word* args, Word& result, int message, Word&
     ((CcBool *)result.addr)->Set( true, false );
   return 0;
 }
+
 
 /*
 16.3.3 Value mapping functions of operator $\#$ (~not equal~)
@@ -8346,13 +8456,22 @@ ValueMapping temporalisemptymap[] = { InstantIsEmpty,
                                       UnitIsEmpty<UBool>,
                                       UnitIsEmpty<UInt>,
                                       UnitIsEmpty<UReal>,
-                                      UnitIsEmpty<UPoint> };
+                                      UnitIsEmpty<UPoint>,
+                                      IntimeIsEmpty<CcBool>,
+                                      IntimeIsEmpty<CcInt>,
+                                      IntimeIsEmpty<CcReal>,
+                                      IntimeIsEmpty<Point>};
 
 
 ValueMapping temporalequalmap[] = { InstantEqual,
                                     RangeEqual<RInt>,
                                     RangeEqual<RReal>,
-                                    RangeEqual<Instant>};
+                                    RangeEqual<Instant>,
+                                    IntimeComparePredicates<CcBool,0>,
+                                    IntimeComparePredicates<CcInt, 0>,
+                                    IntimeComparePredicates<CcReal,0>,
+                                    IntimeComparePredicates<Point, 0>
+};
 
 ValueMapping temporalequalmap2[] = { MappingEqual<MBool>,
                                     MappingEqual<MInt>,
@@ -8362,7 +8481,11 @@ ValueMapping temporalequalmap2[] = { MappingEqual<MBool>,
 ValueMapping temporalnotequalmap[] = { InstantNotEqual,
                                        RangeNotEqual<RInt>,
                                        RangeNotEqual<RReal>,
-                                       RangeNotEqual<Periods>};
+                                       RangeNotEqual<Periods>,
+                                       IntimeComparePredicates<CcBool, 1>,
+                                       IntimeComparePredicates<CcInt,  1>,
+                                       IntimeComparePredicates<CcReal, 1>,
+                                       IntimeComparePredicates<Point,  1>};
 
 ValueMapping temporalnotequalmap2[] = { MappingNotEqual<MBool>,
                                        MappingNotEqual<MInt>,
@@ -8531,8 +8654,10 @@ ValueMapping temporaltherangemap[] = {
 const string TemporalSpecIsEmpty  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>instant -> bool,\n"
-  "rT -> bool \n"
-  "uT -> bool</text--->"
+  "rT -> bool, \n"
+  "uT -> bool, \n"
+  "iT -> bool, \n"
+  "For T in {bool,int,real,point}</text--->"
   "<text>isempty ( _ )</text--->"
   "<text>Returns whether the instant/range/unit type value is "
   "empty or not.</text--->"
@@ -8542,7 +8667,8 @@ const string TemporalSpecIsEmpty  =
 const string TemporalSpecEQ  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(instant instant) -> bool, \n"
-  "(rT rT) -> bool</text--->"
+  "(rT rT) -> bool, \n"
+  "(iT iT) -> bool</text--->"
   "<text>_ = _</text--->"
   "<text>Is-Equal predicate for instant and range type values.</text--->"
   "<text>query i1 = i2</text--->"
@@ -8559,7 +8685,8 @@ const string TemporalSpecEQ2  =
 const string TemporalSpecNE  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(instant instant) -> bool,\n"
-  "(rT rT)) -> bool</text--->"
+  "(rT rT)) -> bool, \n"
+  "(iT iT) -> bool </text--->"
   "<text>_ # _</text--->"
   "<text>Not-Equal predicate for instant and rage type values.</text--->"
   "<text>query i1 # i2</text--->"
@@ -9076,14 +9203,14 @@ const string LengthSpec =
 */
 Operator temporalisempty( "isempty",
                           TemporalSpecIsEmpty,
-                          8,//12
+                          12,
                           temporalisemptymap,
                           TemporalSimpleSelect,
                           TemporalTypeMapBool );
 
 Operator temporalequal( "=",
                         TemporalSpecEQ,
-                        4,
+                        8,
                         temporalequalmap,
                         TemporalDualSelect,
                         TemporalTemporalTypeMapBool );
@@ -9097,7 +9224,7 @@ Operator temporalequal2( "equal",
 
 Operator temporalnotequal( "#",
                            TemporalSpecNE,
-                           4,
+                           8,
                            temporalnotequalmap,
                            TemporalDualSelect,
                            TemporalTemporalTypeMapBool );
