@@ -270,7 +270,7 @@ Base64::decode(const string& text, char* bytes) {
   
   string byteStr = byteStream.str();
   int length=byteStr.length();
-  cout << "length = " << length << endl;
+  //cout << "length = " << length << endl;
   byteStr.copy(bytes, length);
 
   return length;

@@ -249,6 +249,10 @@ InBinaryFile( const ListExpr typeInfo, const ListExpr instance,
   {
     string encoded;
     nl->Text2String( instance, encoded );
+    //ofstream f; 
+    //f.open("binfile.base64");
+    //f << encoded << endl;
+    //f.close();
     binFile->Decode( encoded );
 
     correct = true;
