@@ -499,8 +499,10 @@ ste
    TestCase("Text Atoms");
    cout << endl << " Short text (one fragment only)" << endl; 
    TextAtomVar = nl.TextAtom();
-   Chars = "1__4__7__10__4__7__20__4__7__30__4__7__40__4__7__50__4__7";
-   nl.AppendText (TextAtomVar, Chars);
+   string TextChars 
+	     = "1__4__7__10__4__7__20__4__7__30__4__7__40__4__7__50__4__7";
+   int TextSize=TextChars.length();
+   nl.AppendText (TextAtomVar, TextChars);
 
    ListExpr textList = nl.OneElemList(TextAtomVar);
    s1="";
@@ -510,9 +512,36 @@ ste
    TextScan1 = nl.CreateTextScan(TextAtomVar);
    Chars = "";
    Position = 0;
-   nl.GetText (TextScan1, 30, Chars);
-   cout << "(TextScan1, 30, Chars): " << Chars << endl;
+   int sum = 0;
+   for (int i=1; i<TextSize; i++) {
+     nl.GetText (TextScan1, i, Chars);
+     sum += i;
+     //cout << "(TextScan1, i,  Chars): " << Chars << endl;
+     //cout << "(SubStr 0,i TextChars): " << TextChars.substr(0,sum) << endl;
+     string subText = TextChars.substr(0,sum);
+
+     bool endOfText = false;
+     if (sum >= TextSize)
+       endOfText = true;	     
+
+     bool rc = CheckResult("EndOfText", nl.EndOfText(TextScan1), endOfText);
+     if (!rc) {
+       cerr << "End of text check after retrieving " 
+	    << sum << " characters failed" << endl;
+     } 	     
+
+     rc = CheckResult("Equal-Strings?", Chars == subText, true);
+     if (!rc) {
+       cerr << "Test nl.GetText(TextScan1, " << i << ", Chars) failed!" << endl;
+       cerr << "Expected: <" << subText << ">" << endl;
+       cerr << "Computed: <" << Chars << ">" << endl;
+       exit(1);
+     }	     
+   }
+   exit(1);
+
    nl.GetText (TextScan1, 17, Chars);
+
    cout << "(TextScan1, 17, Chars): " << Chars << endl;
    CheckResult("EndOfText", nl.EndOfText(TextScan1), false);
    nl.GetText (TextScan1, 10, Chars);
