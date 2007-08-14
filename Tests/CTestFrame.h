@@ -115,7 +115,7 @@ public:
       cout << " -> OK ]";
     
     } else {
-      cout << endl << " -> ERROR ] " 
+      cout << " -> ERROR ] " 
            << CBool(expected) << " expected!" << endl;
       errCtr++;
     }
