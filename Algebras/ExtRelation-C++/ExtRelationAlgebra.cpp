@@ -2042,6 +2042,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
         }
 	else
         {
+          result.addr = 0;		
           return CANCEL;
         }
       }
