@@ -56,7 +56,8 @@ public:
              return (int)ceil( (3*(double)letters)/4 );
    }
    int sizeEncoded(int bytes) {
-             return ( (int)ceil( 4*(double)bytes/3 ) + (int)ceil( 4*(double)bytes/(3*72) ) );
+             return ( (int)ceil( 4*(double)bytes/3 ) 
+			     + (int)ceil( 4*(double)bytes/(3*72) ) );
    }
 /*
 These functions calculate the decoded or encoded size for a given
@@ -94,7 +95,7 @@ private:
    static char base64Alphabet[];
    
    /* internal helper functions */
-   int  getIndex(char b);
+   unsigned int  getIndex(char b);
    bool isAllowed(char b);
 
    /* these functions implement the encoding logic */
@@ -105,6 +106,7 @@ private:
    bool endReached;
    int  currentPos;
    int  filled;
+   int Pos;
 
 };
 
