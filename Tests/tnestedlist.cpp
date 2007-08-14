@@ -521,7 +521,7 @@ ste
      string subText = TextChars.substr(0,sum);
 
      bool endOfText = false;
-     if (sum >= TextSize)
+     if (sum >= TextSize) 
        endOfText = true;	     
 
      bool rc = CheckResult("EndOfText", nl.EndOfText(TextScan1), endOfText);
@@ -538,20 +538,9 @@ ste
        exit(1);
      }	     
    }
-   exit(1);
-
-   nl.GetText (TextScan1, 17, Chars);
-
-   cout << "(TextScan1, 17, Chars): " << Chars << endl;
-   CheckResult("EndOfText", nl.EndOfText(TextScan1), false);
-   nl.GetText (TextScan1, 10, Chars);
-   cout << "(TextScan1, 10, Chars): " << Chars << endl;
-   
-   CheckResult("EndOfText", nl.EndOfText(TextScan1), true);
-   CheckResult("EndOfText", nl.EndOfText(TextScan1), true);
    nl.DestroyTextScan(TextScan1);
 
-   cout << "After Text with one fragment: Memory-Usage: " 
+   cout << "Memory-Usage: " 
         << nl.ReportTableSizes(true,true) << endl;
 
    cout << endl << "Text in several fragments!" << endl; 
@@ -566,16 +555,16 @@ ste
      "40++4++7++50++4++7++60++4++7++70++4++7+";
    nl.AppendText (TextAtomVar2, Chars);
    textList = nl.OneElemList(TextAtomVar2);
-   int textLen = nl.TextLength(TextAtomVar2);
-
-   cout << "Chars.length() == Text Length: " 
-        << textLen << " == " <<  2 * Chars.length() << endl;
 
    s1 = "";
    nl.WriteToString(s1, textList);
    cout << endl << "A list with a bigger text atom: " 
                 << s1 << endl;
    
+   int textLen = nl.TextLength(TextAtomVar2);
+   int charLen = 2 * Chars.length();
+   CheckResult("Equal-Length?", textLen == charLen, true);
+
    TextScan1 = nl.CreateTextScan (TextAtomVar2);
    Chars = "";
    Position = 0;
@@ -585,9 +574,11 @@ ste
      cout << endl <<  "GetText(TextScan1, 50, Chars): " 
                   << Chars << endl;
    }
-   cout << "After While" << endl;
    nl.DestroyTextScan (TextScan1);
 
+   string str = nl.Text2String(TextAtomVar2);
+   CheckResult("Equal-String",  textLen == charLen, true);
+   
    cout << "After Text with more than one fragment, Memory-Usage: " 
         << nl.ReportTableSizes(true,true) << endl;
    
@@ -733,9 +724,9 @@ File [->] ListExpr [->] String [->] File
 */
 
 ListExpr 
-TestFile(const string& fileBaseName, NestedList& nl) {
+TestFile(const string& dir, const string& fileBaseName, NestedList& nl) {
    
-   string fileIn = fileBaseName;
+   string fileIn = dir+"/"+fileBaseName;
    string fileOut = filePrefix + fileBaseName + ".nl";
    string fileBinOut = filePrefix + fileBaseName + ".bnl";
 
@@ -767,9 +758,9 @@ TestInputOutput() {
 
    TestCase("Input/OutPut of Complex Expressions");
 
-   ListExpr sList = TestFile("simpleList.nl", nl);
+   ListExpr sList = TestFile(".", "simpleList.nl", nl);
    nl.WriteListExpr(sList); 
-   TestFile("../bin/opt", nl);
+   TestFile("../bin", "opt", nl);
 
 }
 
@@ -835,21 +826,21 @@ TestRun_Persistent() {
    rc = SmiEnvironment::StartUp( SmiEnvironment::MultiUser,
    "SecondoConfig.ini", cerr );
    listDB();
-   pause();
+   //pause();
    
    assert( openDB("PARRAY") ); 
    //cout << "Begin Transaction: " 
    //<< SmiEnvironment::BeginTransaction() << endl;
    
-   pause();
+   //pause();
    TestBasicOperations();
    
-   pause();
+   //pause();
    TestInputOutput();
 
    cout << endl << "Test list copy function" << endl;
    
-   pause();
+   //pause();
    TestNLCopy();
    
    //cout << "Commit: " 
@@ -857,7 +848,7 @@ TestRun_Persistent() {
    
    assert( closeDB() );
 
-   pause();
+   //pause();
    
    rc = SmiEnvironment::ShutDown();
    cout << "ShutDown rc=" << rc << endl;
