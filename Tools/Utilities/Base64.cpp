@@ -41,11 +41,12 @@ Base64::Base64() {
   currentPos = 5; // needed to fill the outbuffer for encoding
   endReached = false;
   filled = 3;
+  Pos = 0;
 }
 
 
 
-int
+unsigned int
 Base64::getIndex(char b){
  
  if(b>='A' && b<='Z')
@@ -60,13 +61,13 @@ Base64::getIndex(char b){
      return 63;
   if(b=='=')
      return 0;
-  return -1;
+  return 1000;
 }
 
 
 bool
 Base64::isAllowed(char b){
-  return getIndex(b)>=0;
+  return getIndex(b)!=1000;
 }
 
 /*
@@ -82,7 +83,6 @@ Base64::getNext(char& byte, istream& in) {
   static char inbuffer[5] = {0,0,0,0,0};
   static char outbuffer[3] = {0,0,0};
   char ch = 0;
-  //static int k = 0;    
 
   if( currentPos<filled ) {  //  data is in the buffer
       byte = outbuffer[currentPos];
@@ -95,14 +95,21 @@ Base64::getNext(char& byte, istream& in) {
 
   // fill the inbuffer
   for(int i=0;i<4;i++){ // get the next allowed input bytes
-      in.get(ch);
+      in.get(ch); Pos++;
 
       bool endOfFile = false;
-      while( !(endOfFile=in.eof()) && !isAllowed(ch) ) { // override not allowed bytes
-	in.get(ch);
+      while( !(endOfFile=in.eof()) && !isAllowed(ch) ) { 
+	// skip chars not in alphabet 
+        //cout << "Pos " << Pos 
+        //     << " - Skipping " << (unsigned int) ch 
+        //     << "<" << ch << ">" << endl;
+	in.get(ch); Pos++;
       }
       if( endOfFile && (i>0) ) { // not a full quadrupel found
-	  cerr << "Base64::decode - unexpected end of input!" << endl;
+	  cerr << "Base64::decode - unexpected end of input! "
+               << " Pos = " << Pos++
+               << " i = " << i
+               << " ch = " << (unsigned int) ch << endl;
 	  exit(1);
       }
       if( endOfFile ){ // end of input
@@ -155,9 +162,12 @@ Base64::decodeStream(istream& in, ostream& out) {
     ios_base::iostate s = in.rdstate();
     cerr << "End of input stream not reached!" << endl;
     cerr << "Stream Status:" << endl;
-    if (s & ios_base::eofbit) cerr << "eofbit: End of file reached" << endl;
-    if (s & ios_base::failbit) cerr << "failbit: last I/O operation caused an error" << endl;
-    if (s & ios_base::badbit) cerr << "badbit: Illegal operation" << endl;
+    if (s & ios_base::eofbit) 
+      cerr << "eofbit: End of file reached" << endl;
+    if (s & ios_base::failbit) 
+      cerr << "failbit: last I/O operation caused an error" << endl;
+    if (s & ios_base::badbit) 
+      cerr << "badbit: Illegal operation" << endl;
     exit(1);
   }
   */
@@ -168,7 +178,8 @@ void
 Base64::encode2(const char* buffer, string& text, int length) {
 
   assert (length <= 54 );
-  // 54 bytes of binary data are expanded to 54 * 4/3 = 72 letters of the base64 alphabet.
+  // 54 bytes of binary data are expanded to 54 * 4/3 = 72 letters 
+  // of the base64 alphabet.
 
   if(length==0){
      text = "";
@@ -254,10 +265,12 @@ Base64::decode(const string& text, char* bytes) {
   stringstream byteStream;
   
   base64Stream << text;
+  //cout << base64Stream.str() << endl;
   decodeStream(base64Stream, byteStream);  
   
   string byteStr = byteStream.str();
   int length=byteStr.length();
+  cout << "length = " << length << endl;
   byteStr.copy(bytes, length);
 
   return length;
