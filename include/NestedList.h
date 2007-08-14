@@ -346,8 +346,8 @@ arrays as the template data type.
 
 */
 
-const unsigned int TEXTSIZE = 64;
-const unsigned int TextFragmentSize = TEXTSIZE - sizeof(TextsEntry);
+const Cardinal TEXTSIZE = 64;
+const Cardinal TextFragmentSize = TEXTSIZE - sizeof(TextsEntry);
   
 struct TextRecord
 {
@@ -937,7 +937,7 @@ Creates a text scan. Current position is 0 (the first character in the ~atom~).
   void GetText( TextScan textScan, 
                 const Cardinal noChars, string& textBuffer ) const;
   bool GetNextText( const ListExpr textAtom, 
-                    string& textFragment, const int size) const;
+                    string& textFragment, Cardinal size) const;
 
 
 /*
@@ -1209,7 +1209,7 @@ prototypes for functions used for the binary encoding/decoding of lists
   CTable<NodeRecord>   *nodeTable;   // storage for nodes
 
   CTable<TextRecord>   *textTable  ; // storage for text atoms
-  unsigned int UsedBytesOfTextFragment(const TextRecord& fragment) const;
+  Cardinal UsedBytesOfTextFragment(const TextRecord& fragment) const;
   void AppendShortText( const ListExpr atom,
                         const string&  textBuffer );
 
