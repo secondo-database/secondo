@@ -361,6 +361,9 @@ struct TextRecord
   // definition to shrink the size of a node record. A future 
   // improvement could be a meta record which stores the length 
   // and/or other information about a text atom.
+  
+  Cardinal used() const;
+ 
 };
 typedef TextRecord* Text;
 
@@ -1209,9 +1212,6 @@ prototypes for functions used for the binary encoding/decoding of lists
   CTable<NodeRecord>   *nodeTable;   // storage for nodes
 
   CTable<TextRecord>   *textTable  ; // storage for text atoms
-  Cardinal UsedBytesOfTextFragment(const TextRecord& fragment) const;
-  void AppendShortText( const ListExpr atom,
-                        const string&  textBuffer );
 
   static bool          doDestroy;
   static const bool    isPersistent;

@@ -794,8 +794,7 @@ NestedList::SophisticatedCopy( const ListExpr list,
 const ListExpr
 NestedList::SimpleCopy(const ListExpr list, NestedList* target) const
 {
-  cout << "SimpleCopy" << endl;
-
+  //cout << "NestedList::SimpleCopy" << endl;
   stringstream ss;
   ListExpr temp = list;
   WriteBinaryTo(temp, ss);
@@ -2052,7 +2051,7 @@ NestedList::TextAtom()
 */
 
 void
-NestedList::AppendShortText( const ListExpr atom,
+NestedList::AppendText( const ListExpr atom,
                         const string& textBuffer )
 {
   assert( AtomType( atom ) == TextType );
@@ -2063,9 +2062,10 @@ NestedList::AppendShortText( const ListExpr atom,
   TextRecord lastTextRec;
   (*textTable).Get(atomContentRec.t.last, lastTextRec);
 
-  Cardinal lastFragmentLength = UsedBytesOfTextFragment(lastTextRec);
+  Cardinal lastFragmentLength = lastTextRec.used();
   Cardinal emptyFragmentLength = TextFragmentSize - lastFragmentLength;
 
+  /*
   cerr << "(emptyFragmentLength, TextFragmentSize, " 
        << "lastFragmentLength, textBuffer.length() ): "
        << emptyFragmentLength << ","
@@ -2073,6 +2073,7 @@ NestedList::AppendShortText( const ListExpr atom,
        << lastFragmentLength << ","
        << textBuffer.length()
        << endl;
+  */     
 
 /*
 There are two cases: Either there is enough space in the current fragment
@@ -2090,13 +2091,7 @@ empty or it is filled with up to TextFragmentSize-1 characters.
     /* --> Append new text.                                 */
     textBuffer.copy( lastTextRec.field + lastFragmentLength,
                      emptyFragmentLength );
-    //atomContentRec.t.length += textLength;
-
-    //char buffer[200];
-    //char* bufptr = buffer;
-    //cerr << "enough space -> field value: " 
-    //     << strncat(bufptr, lastTextRec.field, textLength) << endl;
-
+   
     (*textTable).Put(atomContentRec.t.last, lastTextRec);
     (*nodeTable).Put(atom, atomContentRec);
   }
@@ -2109,77 +2104,52 @@ empty or it is filled with up to TextFragmentSize-1 characters.
 
     textBuffer.copy( lastTextRec.field + lastFragmentLength,
                      emptyFragmentLength );
-    //atomContentRec.t.length += emptyFragmentLength;
     textLength         -= emptyFragmentLength;
     textStart          += emptyFragmentLength;
-    (*textTable).Put(atomContentRec.t.last, lastTextRec);
 
     /* Step 2/2: Create new (empty) fragments and append them */
 
-      TextRecord newTextRec;
+    TextRecord newTextRec;
+    //TextRecord* plastRec = &lastTextRec;
     while ( textLength > 0 )
     {
+      // create a new text record	    
       newFragmentID = textTable->EmptySlot();
       (*textTable).Get(newFragmentID, newTextRec);
 
       memset( newTextRec.field, 0, TextFragmentSize );
       newTextRec.next  = TheEmptyList();
 
+      // let the last one point to it and save it
       lastTextRec.next = newFragmentID;
       (*textTable).Put(atomContentRec.t.last, lastTextRec);
 
+      // compute how much bytes must be copied
       emptyFragmentLength = (textLength <= TextFragmentSize) 
                           ? textLength 
                           : TextFragmentSize;
      
       textBuffer.copy( newTextRec.field, TextFragmentSize, textStart );
-      (*textTable).Put(newFragmentID, newTextRec);
+      char test[TextFragmentSize+1];
+      //textBuffer.copy( test1, TextFragmentSize, textStart );
+      test[TextFragmentSize] = 0;
+      //cerr << textLength << ", " << textStart << ":" << test1 << endl;
+      //cerr << "substr: " 
+      //     << textBuffer.substr(textStart, TextFragmentSize) << endl;
 
       textLength -= emptyFragmentLength;
       textStart  += emptyFragmentLength;
 
-      atomContentRec.t.last    = newFragmentID;
-      //atomContentRec.t.length += emptyFragmentLength;
+      atomContentRec.t.last = newFragmentID;
+      lastTextRec = newTextRec;
     }
-      cout << "textLength: " << textLength << endl;
-      cout << "textStart: " << textStart << endl;
-      cout << "field: " << string(newTextRec.field) << endl;
+      //cout << "textLength: " << textLength << endl;
+      //cout << "textStart: " << textStart << endl;
+      //cout << "field: " << string(newTextRec.field) << endl;
+    (*textTable).Put(atomContentRec.t.last, lastTextRec);
     (*nodeTable).Put(atom, atomContentRec);
   }
 }
-
-
-void
-NestedList::AppendText( const ListExpr atom,
-                        const string& textBuffer ){
-
-  cout << "AppendText" << endl;
-  AppendShortText(atom, textBuffer);
-  /*
-  size_t length = textBuffer.length();
-  
-  if(length<=TextFragmentSize+1){
-     AppendShortText(atom,textBuffer);
-  } else{
-     char buffer[TextFragmentSize+1];
-     size_t pos =0;
-     size_t i;
-     while(pos<length){
-         for(i=0;i<TextFragmentSize && pos<length;i++){
-            buffer[i]=textBuffer[pos];
-            pos++;
-         }
-         buffer[i]=0;
-         AppendShortText(atom,string(buffer));
-     }
-  }
-  */
-}
-
-
-
-
-
 
 /*
 9 Reading Atoms
@@ -2316,35 +2286,36 @@ NestedList::GetText ( TextScan       textScan,
                       const Cardinal noChars,
                       string&        textBuffer ) const
 {
-  Cardinal pos=0; // position in text
+  // load the current fragment
   TextRecord fragment;
   (*textTable).Get(textScan->currentFragment, fragment);
-  Cardinal fragmentRestLength = 0;
-  Cardinal BytesToCopy = 0;
-  while(fragment.next && pos<noChars){
-      fragmentRestLength = TextFragmentSize - textScan->currentPosition;
-      BytesToCopy = min(noChars - pos, fragmentRestLength);
-      textBuffer.append( &fragment.field[textScan->currentPosition],
-                         BytesToCopy);
-      
-      pos += BytesToCopy;
-      if(pos<noChars){ // get the next Fragment
-         textScan->currentFragment = fragment.next;
-         textScan->currentPosition = 0;
-         (*textTable).Get(textScan->currentFragment,fragment);
-      }else{
-        textScan->currentPosition += BytesToCopy;
+
+  Cardinal sum=0; // already retrieved bytes in this call
+  Cardinal curPos = textScan->currentPosition;
+
+  while( sum < noChars) {
+
+      Cardinal n = min( fragment.used() - curPos, noChars );
+      textBuffer.append( &fragment.field[curPos], n);
+      sum += n;
+      textScan->currentPosition += n;
+
+      if (sum >= noChars) // all bytes retrieved
+        return;
+
+      if( fragment.next != 0 )
+      { 
+	// get the next Fragment
+        textScan->currentFragment = fragment.next;
+        textScan->currentPosition = 0;
+	curPos = 0;
+        (*textTable).Get(textScan->currentFragment,fragment);
       }
-  }
-  if(pos<noChars){ // copy the content of the last fragment into the buffer
-     Cardinal used = UsedBytesOfTextFragment(fragment);
-     Cardinal curPos = textScan->currentPosition;
-     assert (used >= curPos);
-     fragmentRestLength = used - curPos;
-                             
-     BytesToCopy = min(noChars - pos, fragmentRestLength);
-     textBuffer.append(&fragment.field[curPos],BytesToCopy);
-     curPos += BytesToCopy;
+      else 
+      {
+	// more characters requested than stored      
+        return;
+      }		
   }
 }  
 
@@ -2359,12 +2330,12 @@ to save memory in the NodeRecord representation.
 
 
 Cardinal 
-NestedList::UsedBytesOfTextFragment(const TextRecord& fragment) const {
+TextRecord::used() const {
 
-  Cardinal usedLength = 0;
+  static Cardinal usedLength = 0;
   for ( usedLength = 0;
         usedLength < TextFragmentSize &&
-        fragment.field[usedLength];
+        field[usedLength];
         usedLength++ );
           
   return usedLength;      
@@ -2387,8 +2358,7 @@ NestedList::TextLength ( const ListExpr textAtom ) const
     textTable->Get(tnext, fragment);
     textLength += TextFragmentSize;     
   }
-  textLength = textLength - TextFragmentSize 
-               + UsedBytesOfTextFragment(fragment);
+  textLength = textLength - TextFragmentSize + fragment.used();
   return (textLength);
 }
 
@@ -2409,22 +2379,18 @@ NestedList::EndOfText( const TextScan textScan ) const
   else
   {
     TextRecord fragment = (*textTable)[textScan->currentFragment];
-    Cardinal fragmentLength;
-    for ( fragmentLength = 0;
-          fragmentLength < TextFragmentSize &&
-          fragment.field[fragmentLength];
-          fragmentLength++ );
+    Cardinal used = fragment.used();
 
     cerr << "fragment.next == 0, textScan->currentPosition"
 	 << " >= usedFragmentLength: "
          << fragment.next << ","
          << textScan->currentPosition << ","
-         << fragmentLength
+         << used
          << endl;
 
 
     return ((fragment.next == 0) &&
-            (textScan->currentPosition >= fragmentLength));
+            (textScan->currentPosition >= used));
   }
 }
 
