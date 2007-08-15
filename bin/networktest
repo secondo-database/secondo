@@ -1,0 +1,62 @@
+
+(DATABASE NETWORKTEST 
+    (TYPES) 
+    (OBJECTS 
+        (OBJECT X_JUNCTIONS 
+            () 
+            (rel 
+                (tuple 
+                    (
+                        (r1id int) 
+                        (r1meas real) 
+                        (r2id int) 
+                        (r2meas real) 
+                        (cc int)))) 
+            (
+                (1 0.0 2 0.0 2))) 
+        (OBJECT X_NETWORK 
+            () 
+            network 
+            (
+                ("Routes: " 
+                    (
+                        (1 2.414200067520142 
+                            (
+                                (1.0 1.0 2.0 2.0) 
+                                (2.0 2.0 3.0 2.0)) 
+                            FALSE 
+                            FALSE) 
+                        (2 1.0 
+                            (
+                                (1.0 1.0 1.0 2.0)) 
+                            FALSE 
+                            FALSE))) 
+                ("Junctions: " 
+                    (
+                        (1 0.0 2 0.0 2 
+                            (1.0 1.0)) 
+                        (2 0.0 1 0.0 2 
+                            (1.0 1.0)))) 
+                ("Sections: " 2))) 
+        (OBJECT X_ROUTES 
+            () 
+            (rel 
+                (tuple 
+                    (
+                        (id int) 
+                        (lengt real) 
+                        (geometry line) 
+                        (dual bool) 
+                        (startSmaller bool)))) 
+            (
+                (1 2.4142 
+                    (
+                        (1.0 1.0 2.0 2.0) 
+                        (2.0 2.0 3.0 2.0)) 
+                    TRUE 
+                    TRUE) 
+                (2 1.0 
+                    (
+                        (1.0 1.0 1.0 2.0)) 
+                    TRUE 
+                    TRUE)))))
