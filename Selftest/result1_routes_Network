@@ -1,0 +1,22 @@
+
+(
+    (rel 
+        (tuple 
+            (
+                (id int) 
+                (length real) 
+                (curve line) 
+                (dual bool) 
+                (startsSmaller bool)))) 
+    (
+        (1 2.4142 
+            (
+                (1.0 1.0 2.0 2.0) 
+                (2.0 2.0 3.0 2.0)) 
+            TRUE 
+            TRUE) 
+        (2 1.0 
+            (
+                (1.0 1.0 1.0 2.0)) 
+            TRUE 
+            TRUE)))

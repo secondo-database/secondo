@@ -1,0 +1,21 @@
+
+(
+    (rel 
+        (tuple 
+            (
+                (rid int) 
+                (meas1 real) 
+                (meas2 real) 
+                (dual bool) 
+                (curve line) 
+                (rrc int)))) 
+    (
+        (1 0.0 2.414213562373095 TRUE 
+            (
+                (1.0 1.0 2.0 2.0) 
+                (2.0 2.0 3.0 2.0)) 
+            1) 
+        (2 0.0 1.0 TRUE 
+            (
+                (1.0 1.0 1.0 2.0)) 
+            2)))
