@@ -13,6 +13,7 @@ Number   : 1
 Signature: network -> rel
 Example  : query routes(X_NETWORK)
 Result   : file
+Tolerance: %0.00001
 
 
 Operator : sections
@@ -20,6 +21,7 @@ Number   : 1
 Signature: network -> rel
 Example  : query sections(X_NETWORK)
 Result   : file
+Tolerance: %0.00001
 
 
 Operator : thenetwork
