@@ -113,14 +113,14 @@ m_xSubAdjacencyList( 0 )
   // Create two b-trees for the junctions sorted by first and second id
   Word xResult;
   ostringstream xThisJunctionsPtrStream;
-  xThisJunctionsPtrStream << (int)m_pJunctions;
+  xThisJunctionsPtrStream << (long)m_pJunctions;
   string strQuery = "(createbtree (" + junctionsInternalTypeInfo + 
                 " (ptr " + xThisJunctionsPtrStream.str() + "))" + " r1id)";
   assert( QueryProcessor::ExecuteQuery( strQuery, xResult ) );
   m_pBTreeJunctionsByRoute1 = (BTree*)xResult.addr;
   
   ostringstream xThisJunctionsPtrStream2;
-  xThisJunctionsPtrStream2 << (int)m_pJunctions;
+  xThisJunctionsPtrStream2 << (long)m_pJunctions;
   strQuery = "(createbtree (" + junctionsInternalTypeInfo + 
                 " (ptr " + xThisJunctionsPtrStream2.str() + "))" + " r2id)";
   assert( QueryProcessor::ExecuteQuery( strQuery, xResult ) );
@@ -330,7 +330,7 @@ void Network::Load( const Relation* in_pRoutes,
 void Network::FillRoutes( const Relation *routes )
 {
   ostringstream xRoutesPtrStream;
-  xRoutesPtrStream << (int)routes;
+  xRoutesPtrStream << (long)routes;
 
   string strQuery = "(consume (sort (feed (" + routesTypeInfo + 
                        " (ptr " + xRoutesPtrStream.str() + ")))))";
@@ -341,7 +341,7 @@ void Network::FillRoutes( const Relation *routes )
 
   // Create B-Tree for the routes
   ostringstream xThisRoutesPtrStream;
-  xThisRoutesPtrStream << (int)m_pRoutes;
+  xThisRoutesPtrStream << (long)m_pRoutes;
   strQuery = "(createbtree (" + routesTypeInfo + 
                 " (ptr " + xThisRoutesPtrStream.str() + "))" + " id)";
 
@@ -435,7 +435,7 @@ void Network::FillJunctions( const Relation *in_pJunctions )
 
   // Sort the table which is now containing all junctions twice  
   ostringstream xJunctionsStream;
-  xJunctionsStream << (int)pIntJunctions;
+  xJunctionsStream << (long)pIntJunctions;
   string strQuery = "(consume (sortby (feed (" + junctionsInternalTypeInfo +
                     " (ptr " + xJunctionsStream.str() + 
                     "))) ((r1id asc)(meas1 asc))))";
@@ -450,14 +450,14 @@ void Network::FillJunctions( const Relation *in_pJunctions )
   
   // Create two b-trees for the junctions sorted by first and second id
   ostringstream xThisJunctionsPtrStream;
-  xThisJunctionsPtrStream << (int)m_pJunctions;
+  xThisJunctionsPtrStream << (long)m_pJunctions;
   strQuery = "(createbtree (" + junctionsInternalTypeInfo + 
                 " (ptr " + xThisJunctionsPtrStream.str() + "))" + " r1id)";
   assert( QueryProcessor::ExecuteQuery( strQuery, xResult ) );
   m_pBTreeJunctionsByRoute1 = (BTree*)xResult.addr;
   
   ostringstream xThisJunctionsPtrStream2;
-  xThisJunctionsPtrStream2 << (int)m_pJunctions;
+  xThisJunctionsPtrStream2 << (long)m_pJunctions;
   strQuery = "(createbtree (" + junctionsInternalTypeInfo + 
                 " (ptr " + xThisJunctionsPtrStream2.str() + "))" + " r2id)";
   assert( QueryProcessor::ExecuteQuery( strQuery, xResult ) );
@@ -472,7 +472,7 @@ Relation *Network::GetJunctionsInternal()
 Relation *Network::GetJunctions()
 {
   ostringstream strJunctionsPtr;
-  strJunctionsPtr << (int)m_pJunctions;
+  strJunctionsPtr << (long)m_pJunctions;
 
   string querystring = "(consume (feed (" + junctionsInternalTypeInfo +
                        " (ptr " + strJunctionsPtr.str() + "))))";
@@ -729,7 +729,7 @@ Relation* Network::GetSectionsInternal()
 Relation *Network::GetSections()
 {
   ostringstream strSectionsPtr;
-  strSectionsPtr << (int)m_pSections;
+  strSectionsPtr << (long)m_pSections;
 
   string querystring = "(consume (feed (" + sectionsInternalTypeInfo +
                        " (ptr " + strSectionsPtr.str() + "))))";
