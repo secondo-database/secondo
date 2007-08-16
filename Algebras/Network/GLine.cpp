@@ -209,7 +209,7 @@ ListExpr GLine::Out(ListExpr in_xTypeInfo,
     }
   }
   return nl->TwoElemList(xNetworkId,
-                            xRouteIntervals);
+                         xRouteIntervals);
 }
 
 /*
