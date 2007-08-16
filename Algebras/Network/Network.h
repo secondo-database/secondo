@@ -479,12 +479,13 @@ The simple constructor.
 The constructor that receives all information to create a network.
 
 */
-  Network( Relation* in_pRoutes, 
-           Relation* in_pJunctions, 
-           Relation* in_pSections, 
-           BTree* in_pBTreeRoutes,
-           BTree* in_pBTreeJunctionsByRoute1,
-           BTree* in_pBTreeJunctionsByRoute2);
+  Network(int in_iNetworkId,
+          Relation* in_pRoutes, 
+          Relation* in_pJunctions, 
+          Relation* in_pSections, 
+          BTree* in_pBTreeRoutes,
+          BTree* in_pBTreeJunctionsByRoute1,
+          BTree* in_pBTreeJunctionsByRoute2);
 
 /*
 6.2.3 List-Constructor 
@@ -492,10 +493,10 @@ The constructor that receives all information to create a network.
 The constructor that receives a list containing a network
 
 */
-  Network( ListExpr in_xValue,
-           int in_iErrorPos,
-           ListExpr& inout_xErrorInfo, 
-           bool& inout_bCorrect);
+  Network(ListExpr in_xValue,
+          int in_iErrorPos,
+          ListExpr& inout_xErrorInfo, 
+          bool& inout_bCorrect);
 
 /*
 6.2.4 The destructor.
@@ -519,8 +520,9 @@ Loads a network given two relations containing the routes and junctions.
 This function corresponds to the operator ~thenetwork~.
 
 */
-    void Load( const Relation *in_pRoutes, 
-               const Relation *in_pJunctions );
+    void Load(int in_iId,
+              const Relation *in_pRoutes, 
+              const Relation *in_pJunctions);
 
 /*
 6.2.6 Out-Method
@@ -528,7 +530,7 @@ This function corresponds to the operator ~thenetwork~.
 Outputs a network
 
 */
-  ListExpr Out( ListExpr typeInfo );
+  ListExpr Out(ListExpr typeInfo);
     
 /*
 6.2.7 Save-Method
@@ -707,10 +709,10 @@ the network
 
 */
   static Word InNetwork(ListExpr in_xTypeInfo, 
-             ListExpr in_xValue,
-             int in_iErrorPos, 
-             ListExpr& inout_xErrorInfo, 
-             bool& inout_bCorrect);
+                        ListExpr in_xValue,
+                        int in_iErrorPos, 
+                        ListExpr& inout_xErrorInfo, 
+                        bool& inout_bCorrect);
 
 /*
 6.4.4 CreateNetwork
@@ -879,6 +881,21 @@ Given that all relations are set up, the adjacency lists are created.
 6.6 Private parts - relations holding the network
 
 */
+
+  
+
+/*
+6.6.1 The ID of the network
+
+*/
+  int m_iId;
+
+/*
+6.6.1 True if all values of this network have been defined
+
+*/
+  int m_bDefined;
+
 
 /*
 6.6.1 The ~routes~ relation.

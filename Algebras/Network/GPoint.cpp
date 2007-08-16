@@ -178,7 +178,8 @@ ListExpr GPoint::GPointProperty()
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
                              nl->StringAtom("gpoint"),
-                             nl->StringAtom("(<nid> <rid> <pos> <side>)"),
+                             nl->StringAtom("(<network_id> <route_id> "
+                                            "<position> <side>)"),
                              nl->StringAtom("(1 1 0.0 0)"))));
 }
 

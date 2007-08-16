@@ -22,9 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of GLine in Module Network Algebra
-
-March 2004 Victor Almeida
+[1] Implementation of the operator thenetwork in Module Network Algebra
 
 Mai-Oktober 2007 Martin Scheppokat
 
@@ -51,42 +49,59 @@ This file contains the implementation of ~gline~
 
 #include "OpNetworkTheNetwork.h"
 
-ListExpr OpNetworkTheNetwork::TypeMap(ListExpr args)
+ListExpr OpNetworkTheNetwork::TypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(args) != 2 )
-    return (nl->SymbolAtom( "typeerror" ));
+  if(nl->ListLength(in_xArgs) != 3)
+    return (nl->SymbolAtom("typeerror"));
 
-  ListExpr rel1Desc = nl->First(args),
-           rel2Desc = nl->Second(args);
+  ListExpr xIdDesc = nl->First(in_xArgs);
+  ListExpr xRoutesRelDesc = nl->Second(in_xArgs);
+  ListExpr xJunctionsRelDesc = nl->Third(in_xArgs);
 
-  if( !IsRelDescription( rel1Desc ) ||
-      !IsRelDescription( rel2Desc ) )
-    return (nl->SymbolAtom( "typeerror" ));
+  if(!nl->IsEqual(xIdDesc, "int"))
+  {
+    return (nl->SymbolAtom("typeerror"));
+  }
 
-  if( !CompareSchemas( rel1Desc, Network::GetRoutesTypeInfo() ) )
-    return (nl->SymbolAtom( "typeerror" ));
+  if(!IsRelDescription(xRoutesRelDesc) ||
+     !IsRelDescription(xJunctionsRelDesc))
+  {
+    return (nl->SymbolAtom("typeerror"));
+  }
+
+  if(!CompareSchemas(xRoutesRelDesc, Network::GetRoutesTypeInfo()))
+  {
+    return (nl->SymbolAtom("typeerror"));
+  }
   
-  if( !CompareSchemas( rel2Desc, Network::GetJunctionsTypeInfo() ) )
-    return (nl->SymbolAtom( "typeerror" ));
+  if(!CompareSchemas(xJunctionsRelDesc, Network::GetJunctionsTypeInfo()))
+  {
+    return (nl->SymbolAtom("typeerror"));
+  }
   
-  return nl->SymbolAtom( "network" );
+  return nl->SymbolAtom("network");
 }
 
 /*
 4.1.2 Value mapping function of operator ~thenetwork~
 
 */
-int OpNetworkTheNetwork::ValueMapping( Word* args, Word& result, 
-                               int message, Word& local, Supplier s )
+int OpNetworkTheNetwork::ValueMapping(Word* args, Word& result, 
+                               int message, Word& local, Supplier s)
 {
-  Network *network = (Network*)qp->ResultStorage(s).addr;
+  Network* pNetwork = (Network*)qp->ResultStorage(s).addr;
 
-  Relation *routes = (Relation*)args[0].addr,
-           *junctions = (Relation*)args[1].addr;
+  CcInt* pId = (CcInt*)args[0].addr;
+  int iId = pId->GetIntval();
+
+  Relation* pRoutes = (Relation*)args[1].addr;
+  Relation* pJunctions = (Relation*)args[2].addr;
  
-  network->Load( routes, junctions );
+  pNetwork->Load(iId,
+                 pRoutes, 
+                 pJunctions);
 
-  result = SetWord( network ); 
+  result = SetWord(pNetwork); 
   return 0;
 }
 
@@ -95,10 +110,10 @@ int OpNetworkTheNetwork::ValueMapping( Word* args, Word& result,
 
 */
 const string OpNetworkTheNetwork::Spec  = 
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>rel x rel -> network" "</text--->"
-  "<text>thenetwork(_, _)</text--->"
+  "((\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\") "
+  "(<text>int x rel x rel -> network" "</text--->"
+  "<text>thenetwork(_, _, _)</text--->"
   "<text>Creates a network.</text--->"
-  "<text>let n = thenetwork(r, j)</text--->"
-  ") )";
+  "<text>let n = thenetwork(1, r, j)</text--->"
+  "))";

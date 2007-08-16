@@ -105,32 +105,35 @@ class GPoint : public StandardAttribute
 The simple constructor.
 
 */
-    GPoint( bool defined,
-              SmiRecordId nid = 0, 
-              TupleId rid = 0, 
-              double d = 0.0, 
-              Side side = None ):
-    nid( nid ), rloc( rid, d, side ),
-    defined( defined )
+    GPoint( bool in_bDefined,
+            int in_iNetworkId = 0, 
+            TupleId in_xRid = 0, 
+            double in_dLocation = 0.0, 
+            Side in_xSide = None ):
+    m_iNetworkId( in_iNetworkId ), 
+    m_xRouteLocation( in_xRid, in_dLocation, in_xSide ),
+    m_bDefined( in_bDefined )
     {}
 /*
 The constructor.
 
 */
-    GPoint( const GPoint& gp ):
-    nid( gp.nid ), rloc( gp.rloc ), defined( gp.defined )
+    GPoint( const GPoint& in_xOther ):
+    m_iNetworkId( in_xOther.m_iNetworkId ), 
+    m_xRouteLocation( in_xOther.m_xRouteLocation ), 
+    m_bDefined( in_xOther.m_bDefined )
     {}
 /*
 The copy constructor.
 
 */
-    GPoint& operator=( const GPoint& gp )
+    GPoint& operator=( const GPoint& in_xOther )
     {
-      defined = gp.defined;
-      if( defined )
+      m_bDefined = in_xOther.m_bDefined;
+      if( m_bDefined )
       {
-        nid = gp.nid; 
-        rloc = gp.rloc; 
+        m_iNetworkId = in_xOther.m_iNetworkId; 
+        m_xRouteLocation = in_xOther.m_xRouteLocation; 
       }
       return *this;
     }
@@ -139,9 +142,9 @@ The assignement operator redefinition.
 
 */
 
-    SmiRecordId GetNetworkId() const
+    int GetNetworkId() const
     {
-      return nid;
+      return m_iNetworkId;
     }
 /*
 Returns the network id.
@@ -149,7 +152,7 @@ Returns the network id.
 */
     TupleId GetRouteId() const
     {
-      return rloc.rid;
+      return m_xRouteLocation.rid;
     }
 /*
 Returns the route id.
@@ -157,7 +160,7 @@ Returns the route id.
 */
     double GetPosition() const
     {
-      return rloc.d;
+      return m_xRouteLocation.d;
     }
 /*
 Returns the relative position of the graph point in the route.
@@ -165,7 +168,7 @@ Returns the relative position of the graph point in the route.
 */
     Side GetSide() const
     {
-      return rloc.side;
+      return m_xRouteLocation.side;
     }
 /*
 Returns the side on the route of the graph point.
@@ -175,12 +178,12 @@ Returns the side on the route of the graph point.
 
     bool IsDefined() const
     {
-      return defined;
+      return m_bDefined;
     }
 
-    void SetDefined( bool d )
+    void SetDefined( bool in_bDefined )
     {
-      defined = d;
+      m_bDefined = in_bDefined;
     }
 
     size_t Sizeof() const
@@ -245,17 +248,17 @@ Returns the side on the route of the graph point.
 
   private:
     
-    SmiRecordId nid;
+    int m_iNetworkId;
 /*
 The network id.
 
 */
-    RLoc rloc;
+    RLoc m_xRouteLocation;
 /*
 The route location.
 
 */
-    bool defined;
+    bool m_bDefined;
 /*
 A flag indicating whether the instance is defined or not.
 

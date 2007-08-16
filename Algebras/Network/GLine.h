@@ -119,7 +119,7 @@ The constructor.
 
   private:
     
-    SmiRecordId m_iNetworkId;
+    int m_iNetworkId;
 /*
 The network id.
 
