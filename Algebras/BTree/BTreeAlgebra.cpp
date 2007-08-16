@@ -738,7 +738,10 @@ OpenBTree( SmiRecord& valueRecord,
            Word& value )
 {
   value = SetWord( BTree::Open( valueRecord, offset, typeInfo ) );
-  return value.addr != 0;
+  bool rc  = value.addr != 0;
+  if (rc)
+    offset += sizeof(SmiFileId);
+  return rc;  
 }
 
 BTree *BTree::Open( SmiRecord& valueRecord, size_t& offset, 
@@ -768,10 +771,12 @@ bool BTree::Save(SmiRecord& record, size_t& offset, const ListExpr typeInfo)
     return false;
 
   assert( file != 0 );
+  const size_t n = sizeof(SmiFileId);
   SmiFileId fileId = file->GetFileId();
-  if( record.Write( &fileId, sizeof(SmiFileId) ) != sizeof(SmiFileId) )
+  if( record.Write( &fileId, n) != n )
     return false;
 
+  offset += n;
   return true;
 }
 
