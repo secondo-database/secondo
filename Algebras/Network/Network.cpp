@@ -105,29 +105,12 @@ m_pRoutes( routes ),
 m_pJunctions( junctions ),
 m_pSections( sections ),
 m_pBTreeRoutes(in_pBTreeRoutes),
-//m_pBTreeJunctionsByRoute1( in_pBTreeJunctionsByRoute1 ),
-//m_pBTreeJunctionsByRoute2( in_pBTreeJunctionsByRoute2 ),
+m_pBTreeJunctionsByRoute1( in_pBTreeJunctionsByRoute1 ),
+m_pBTreeJunctionsByRoute2( in_pBTreeJunctionsByRoute2 ),
 m_xAdjacencyList( 0 ),
 m_xSubAdjacencyList( 0 )
 {
-  // Create two b-trees for the junctions sorted by first and second id
-  Word xResult;
-  ostringstream xThisJunctionsPtrStream;
-  xThisJunctionsPtrStream << (long)m_pJunctions;
-  string strQuery = "(createbtree (" + junctionsInternalTypeInfo + 
-                " (ptr " + xThisJunctionsPtrStream.str() + "))" + " r1id)";
-  assert( QueryProcessor::ExecuteQuery( strQuery, xResult ) );
-  m_pBTreeJunctionsByRoute1 = (BTree*)xResult.addr;
-  
-  ostringstream xThisJunctionsPtrStream2;
-  xThisJunctionsPtrStream2 << (long)m_pJunctions;
-  strQuery = "(createbtree (" + junctionsInternalTypeInfo + 
-                " (ptr " + xThisJunctionsPtrStream2.str() + "))" + " r2id)";
-  assert( QueryProcessor::ExecuteQuery( strQuery, xResult ) );
-  m_pBTreeJunctionsByRoute2 = (BTree*)xResult.addr;
-
   FillAdjacencyLists();
-
 }
 
 
@@ -310,10 +293,10 @@ void Network::Destroy()
   assert( m_pBTreeRoutes != 0 );
   m_pBTreeRoutes->DeleteFile(); 
   delete m_pBTreeRoutes; m_pBTreeRoutes = 0;
-//  m_pBTreeJunctionsByRoute1->DeleteFile(); 
-//  delete m_pBTreeJunctionsByRoute1; m_pBTreeJunctionsByRoute1 = 0;
-//  m_pBTreeJunctionsByRoute2->DeleteFile(); 
-//  delete m_pBTreeJunctionsByRoute2; m_pBTreeJunctionsByRoute2 = 0;
+  m_pBTreeJunctionsByRoute1->DeleteFile(); 
+  delete m_pBTreeJunctionsByRoute1; m_pBTreeJunctionsByRoute1 = 0;
+  m_pBTreeJunctionsByRoute2->DeleteFile(); 
+  delete m_pBTreeJunctionsByRoute2; m_pBTreeJunctionsByRoute2 = 0;
   m_xAdjacencyList.Destroy();
   m_xSubAdjacencyList.Destroy();  
 }
@@ -645,9 +628,9 @@ void Network::FillSections()
   delete pRoutesIt;
 
 
-  GenericRelationIterator *pSectionsIter = m_pSections->MakeScan();
-  Tuple *pCurrentSection;
-
+//  GenericRelationIterator *pSectionsIter = m_pSections->MakeScan();
+//  Tuple *pCurrentSection;
+//
 //  while( (pCurrentSection = pSectionsIter->GetNextTuple()) != 0 )
 //  {
 //    CcInt* xRouteId = (CcInt*)pCurrentSection->GetAttribute( SECTION_RID );
@@ -663,7 +646,7 @@ void Network::FillSections()
 //         << "End:" << fEndPos 
 //         << endl;
 //  }
-  delete pSectionsIter;
+//  delete pSectionsIter;
 }
 
 void Network::GetJunctionsOnRoute(CcInt* in_pRouteId,
@@ -935,36 +918,36 @@ void Network::FillAdjacencyLists()
   }
   delete pJunctionsIt;
 
-//  cout << "AdjacencyList" << endl;
-//  cout << "-------------" << endl;
-//  for (int i = 0; i < m_xAdjacencyList.Size(); ++i) 
-//  {
-//    const AdjacencyListEntry* xEntry;
-//    m_xAdjacencyList.Get(i, xEntry);
-//    cout << i << ": " 
-//         << "High:" << xEntry->m_iHigh << " " 
-//         << "Low:" << xEntry->m_iLow 
-//         << endl;
-//    
-//  }
-//  cout << "-------------" << endl;
-//
-//  cout << "SubAdjacencyList" << endl;
-//  cout << "----------------" << endl;
-//  for (int i = 0; i < m_xSubAdjacencyList.Size(); ++i) 
-//  {
-//    const DirectedSection* xEntry;
-//    m_xSubAdjacencyList.Get(i, xEntry);
-//
-//    bool bUpDownFlag = ((DirectedSection*)xEntry)->getUpDownFlag();
-//    int iSectionTid = ((DirectedSection*)xEntry)->getSectionTid();
-//    cout << i << ": " 
-//         << "Tid:" << iSectionTid << " "
-//         << "UpDownFlag:" << bUpDownFlag 
-//         << endl;
-//         
-//  }
-//  cout << "----------------" << endl;
+  cout << "AdjacencyList" << endl;
+  cout << "-------------" << endl;
+  for (int i = 0; i < m_xAdjacencyList.Size(); ++i) 
+  {
+    const AdjacencyListEntry* xEntry;
+    m_xAdjacencyList.Get(i, xEntry);
+    cout << i << ": " 
+         << "High:" << xEntry->m_iHigh << " " 
+         << "Low:" << xEntry->m_iLow 
+         << endl;
+    
+  }
+  cout << "-------------" << endl;
+
+  cout << "SubAdjacencyList" << endl;
+  cout << "----------------" << endl;
+  for (int i = 0; i < m_xSubAdjacencyList.Size(); ++i) 
+  {
+    const DirectedSection* xEntry;
+    m_xSubAdjacencyList.Get(i, xEntry);
+
+    bool bUpDownFlag = ((DirectedSection*)xEntry)->getUpDownFlag();
+    int iSectionTid = ((DirectedSection*)xEntry)->getSectionTid();
+    cout << i << ": " 
+         << "Tid:" << iSectionTid << " "
+         << "UpDownFlag:" << bUpDownFlag 
+         << endl;
+         
+  }
+  cout << "----------------" << endl;
 }
 
 void Network::GetAdjacentSections(int in_iSectionId,
@@ -1227,29 +1210,59 @@ ListExpr Network::Save( SmiRecord& valueRecord,
                         size_t& offset,
                         const ListExpr typeInfo )
 {
+  // Save routes
+  ListExpr xType = GetRoutesTypeInfo();
+  ListExpr xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
   if( !m_pRoutes->Save( valueRecord, 
                         offset, 
-                        SecondoSystem::GetCatalog()->
-                          NumericType( GetRoutesTypeInfo() ) ) )
+                        xNumericType ) )
     return false;
 
+  // Save junctions
+  xType = GetJunctionsIntTypeInfo();
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
   if( !m_pJunctions->Save( valueRecord, 
                            offset, 
-                           SecondoSystem::GetCatalog()->
-                             NumericType( GetJunctionsIntTypeInfo() ) ) )
+                           xNumericType ) )
     return false;
 
+  // Save sections
+  xType = GetSectionsInternalTypeInfo();
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
   if( !m_pSections->Save(valueRecord, 
                          offset, 
-                         SecondoSystem::GetCatalog()->
-                           NumericType( GetSectionsInternalTypeInfo() ) ) )
+                         xNumericType ) )
     return false;
 
+  // Save btree for routes
+  xType = GetRoutesBTreeTypeInfo();
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
   if( !m_pBTreeRoutes->Save( valueRecord, 
                              offset,
-                             SecondoSystem::GetCatalog()->
-                               NumericType( GetRoutesBTreeTypeInfo() ) ) )
+                             xNumericType))
+  {
     return false;
+  }
+
+  // Save first btree for junctions
+  xType = GetJunctionsBTreeTypeInfo();
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  if( !m_pBTreeJunctionsByRoute1->Save( valueRecord, 
+                                        offset,
+                                        xNumericType))
+  {
+    return false;
+  }
+    
+  // Save second btree for junctions
+  xType = GetJunctionsBTreeTypeInfo();
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  if( !m_pBTreeJunctionsByRoute2->Save( valueRecord, 
+                                        offset,
+                                        xNumericType))
+  {                                                  
+    return false;
+  }
 
 //  Attribute::Save( valueRecord, 
 //                   offset, 
@@ -1261,15 +1274,6 @@ ListExpr Network::Save( SmiRecord& valueRecord,
 //                   typeInfo, 
 //                   m_xSubAdjacencyList );
     
-//  if( !m_pBTreeJunctionsByRoute1->Save( valueRecord, offset,
-//                                        SecondoSystem::GetCatalog()->
-//                                      NumericType(GetRoutesBTreeTypeInfo())))
-//    return false;
-//    
-//  if( !m_pBTreeJunctionsByRoute2->Save( valueRecord, offset,
-//                                        SecondoSystem::GetCatalog()->
-//                                      NumericType(GetRoutesBTreeTypeInfo())))
-//    return false;
 
   return true; 
 }
@@ -1279,42 +1283,61 @@ ListExpr Network::Save( SmiRecord& valueRecord,
 3.12 ~Open~-function of type constructor ~network~
 
 */
-Network *Network::Open( SmiRecord& valueRecord, size_t& offset, 
-                        const ListExpr typeInfo )
+Network *Network::Open( SmiRecord& in_xValueRecord, 
+                        size_t& inout_iOffset, 
+                        const ListExpr in_xTypeInfo )
 {
-  Relation *pRoutes = 0, 
-           *pJunctions = 0,  
-           *pSections = 0;
-  BTree *pBTreeRoutes = 0;
-//  BTree *pBTreeJunctionsByRoute1 = 0;
-//  BTree *pBTreeJunctionsByRoute2 = 0;
+  Relation* pRoutes = 0;
+  Relation* pJunctions = 0;  
+  Relation* pSections = 0;
+  BTree* pBTreeRoutes = 0;
+  BTree* pBTreeJunctionsByRoute1 = 0;
+  BTree* pBTreeJunctionsByRoute2 = 0;
 
-  if(!(pRoutes = Relation::Open(valueRecord, offset, 
-                                SecondoSystem::GetCatalog()->
-                                NumericType( GetRoutesTypeInfo())))) 
+  // Open routes
+  ListExpr xType = GetRoutesTypeInfo();
+  ListExpr xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  pRoutes = Relation::Open(in_xValueRecord, 
+                           inout_iOffset, 
+                           xNumericType);
+  if(!pRoutes)
+  { 
     return 0;
+  }
 
-  if(!(pJunctions = Relation::Open( valueRecord, offset, 
-                                    SecondoSystem::GetCatalog()->
-                                    NumericType( GetJunctionsIntTypeInfo())))) 
+  // Open junctions
+  xType = GetJunctionsIntTypeInfo();
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  pJunctions = Relation::Open( in_xValueRecord, 
+                               inout_iOffset, 
+                               xNumericType);
+  if(!pJunctions) 
   {  
     pRoutes->Delete(); 
     return 0;
   }
 
-  if( !( pSections = Relation::Open( valueRecord, offset, 
-                           SecondoSystem::GetCatalog()->
-                           NumericType( GetSectionsInternalTypeInfo() ) ) ) ) 
+  // Open sections  
+  xType = GetSectionsInternalTypeInfo();
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  pSections = Relation::Open( in_xValueRecord, 
+                              inout_iOffset, 
+                              xNumericType);
+  if(!pSections) 
   {
     pRoutes->Delete(); 
     pJunctions->Delete(); 
     return 0;
   }
 
-  if( !( pBTreeRoutes = 
-           BTree::Open( valueRecord, offset, 
-                        SecondoSystem::GetCatalog()->
-                        NumericType( GetRoutesBTreeTypeInfo() ) ) ) ) 
+  // Open btree for routes
+  xType = GetRoutesBTreeTypeInfo();
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  pBTreeRoutes = BTree::Open( in_xValueRecord, 
+                              inout_iOffset, 
+                              xNumericType);
+         
+  if(!pBTreeRoutes) 
   {
     pRoutes->Delete(); 
     pJunctions->Delete(); 
@@ -1322,39 +1345,44 @@ Network *Network::Open( SmiRecord& valueRecord, size_t& offset,
     return 0;
   }
 
-//  cout << "BTree1 " << offset << endl;
-//  if( !( pBTreeJunctionsByRoute1 = 
-//           BTree::Open( valueRecord, offset, 
-//                        SecondoSystem::GetCatalog()->
-//                        NumericType( GetJunctionsBTreeTypeInfo() ) ) ) ) 
-//  {
-//    pRoutes->Delete(); 
-//    pJunctions->Delete(); 
-//    pSections->Delete();
-//    delete pBTreeRoutes;
-//    return 0;
-//  }
-//
-//  cout << "BTree2 " << offset << endl;
-//  if( !( pBTreeJunctionsByRoute2 = 
-//           BTree::Open( valueRecord, offset, 
-//                        SecondoSystem::GetCatalog()->
-//                        NumericType( GetJunctionsBTreeTypeInfo() ) ) ) ) 
-//  {
-//    pRoutes->Delete(); 
-//    pJunctions->Delete(); 
-//    pSections->Delete();
-//    delete pBTreeRoutes;
-//    delete pBTreeJunctionsByRoute1;
-//    return 0;
-//  }
+  // Open first btree for junctions  
+  xType = GetJunctionsBTreeTypeInfo();
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  pBTreeJunctionsByRoute1 = BTree::Open( in_xValueRecord, 
+                                         inout_iOffset, 
+                                         xNumericType);
+  if(!pBTreeJunctionsByRoute1) 
+  {
+    pRoutes->Delete(); 
+    pJunctions->Delete(); 
+    pSections->Delete();
+    delete pBTreeRoutes;
+    return 0;
+  }
+
+  // Open second btree for junctions
+  xType = GetJunctionsBTreeTypeInfo();
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  pBTreeJunctionsByRoute2 = BTree::Open( in_xValueRecord, 
+                                         inout_iOffset, 
+                                         xNumericType); 
+  if( !pBTreeJunctionsByRoute2 ) 
+  {
+    pRoutes->Delete(); 
+    pJunctions->Delete(); 
+    pSections->Delete();
+    delete pBTreeRoutes;
+    delete pBTreeJunctionsByRoute1;
+    return 0;
+  }
   
+  // Create network
   return new Network(pRoutes, 
                      pJunctions, 
                      pSections, 
                      pBTreeRoutes,
-                     0,
-                     0);
+                     pBTreeJunctionsByRoute1,
+                     pBTreeJunctionsByRoute2);
 }
 
 
