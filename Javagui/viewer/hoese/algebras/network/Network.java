@@ -70,12 +70,12 @@ public class Network
 		}
 		
 		// Split into the three parts
-		ListExpr xRouteList = in_xValue.first().second();
-		ListExpr xJunctionList = in_xValue.second().second();
-		ListExpr xSectionList = in_xValue.third();
+    ListExpr xIdList = in_xValue.first();
+		ListExpr xRouteList = in_xValue.second();
+		ListExpr xJunctionList = in_xValue.third();
 		
-    // TODO: Transfer Network-ID
-    m_lNetworkId = 1;
+    // Transfer Network-ID
+    m_lNetworkId = xIdList.intValue();
     
 		// Read routes from list
 		while(!xRouteList.isEmpty()){
