@@ -49,10 +49,11 @@
 # which may or may not suceed
 delete database mytestdb;
 
-# the SETUP directive may specify the name of the test
+# the SETUP directive may specify the name of the test and a
+# some algebra modules which are needed for it.
 # the SETUP directive must appear exactly once in a test spec
 
-#setup exampletest
+#setup exampletest StandardAlgebra RelationAlgebra
 
 # if a command between the SETUP directive and the first
 # TESTCASE directive fails, then the whole test has failed 

@@ -173,6 +173,8 @@ class TestRunner : public Application
 
   typedef vector< string > StringVec; 
   StringVec errMsg;
+
+  map<string, bool> algModules;
  
 /* 
 the following variables and constants are 
@@ -594,16 +596,45 @@ TestRunner::GetCommand()
           // check for TestRunner directives
           if(command.find("setup") == 0)
           {
+	    istringstream spec(restOfLine);
+            spec >> testName;
+            cout << endl << "### Starting test " << testName << endl << endl;
             if(state != START)
             {
               cout
                 << "Setup directive must appear just once in a test file."
                 << endl;
-              exit(1);
+	      quit = true;
+              return false;
             }
             state = SETUP;
-            testName = restOfLine;
-            cout << "Starting test " << restOfLine << endl;
+
+	    ListExpr result = nl->Empty();
+	    SecErrInfo err;
+            bool rc = si->Secondo( "list algebras", result, err);
+	    if (!rc) {
+              cout << "Internal command list algebras failed!" << endl;
+              quit = true;
+              return false;	      
+            }	
+	    ListExpr algList = nl->Second(nl->Second(result));
+            //cout << nl->ToString(algList) << endl;
+            while ( !nl->IsEmpty(algList) ) {
+               algModules[ nl->SymbolValue(nl->First(algList)) ] = true;       
+	       algList = nl->Rest(algList); 
+	    }	    
+	      	    
+
+
+	    string alg="";
+	    while ( spec >> alg ) {
+              if (algModules.find(alg) == algModules.end()) {
+	        cout << "Needed algebra module " << alg << " unknown!"
+		     << " The test will not be executed." << endl;	
+                quit = true;
+                return false;		
+	      }
+	    }	    
           }
           else if(command.find("description") == 0) {
             cout << "description: " << endl << restOfLine << endl;
@@ -614,7 +645,8 @@ TestRunner::GetCommand()
                    << "Stop directive found! Test will not be executed." 
                    << endl
                    << "Reason: " << restOfLine << endl << endl;
-              exit(0);
+              quit = true;
+	      return false;
             } else {
               cout << "Warning: stop directives after setup are ignored!" 
                    << endl;
@@ -789,7 +821,8 @@ TestRunner::ProcessExamples()
   char* buildDir = getenv(envVar);
   if (buildDir == 0) {
     cerr << "Variable " << envVar << " not defined!" << endl;
-    exit(1);
+    quit = true;
+    return;
   }
 
   // parse example file
@@ -1362,7 +1395,15 @@ TestRunner::Execute()
           oldInputBuffer = cin.rdbuf( fileInput.rdbuf() );
           isStdInput = false;
         }
+	else
+	{
+	  cout << "ERROR: Could not open file " << iFileName << endl;
+	}	
       }
+
+      if (isStdInput)
+        cout << "Reading from stdin ..." << endl; 
+
       if ( oFileName.length() > 0 )
       {
         fileOutput.open( oFileName.c_str() );
