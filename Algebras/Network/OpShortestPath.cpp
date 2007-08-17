@@ -48,8 +48,10 @@ This file contains the implementation of ~gline~
 #include "GLine.h"
 #include "GPoint.h"
 #include "Network.h"
+#include "NetworkManager.h"
 
 #include "OpShortestPath.h"
+#include "Messages.h"
 
 
 /*
@@ -98,34 +100,17 @@ int OpShortestPath::ValueMapping( Word* args,
   GPoint* pGPoint1 = (GPoint*)args[0].addr;
   GPoint* pGPoint2 = (GPoint*)args[1].addr;
 
-  bool bDefined;
-  Word xValue;
-
-  bool bIsObject = SecondoSystem::GetCatalog()->IsObjectName("X_NETWORK");
-
-  if(!bIsObject)
+  // TODO: Check wether both points belong to the same network
+  
+  Network* pNetwork = NetworkManager::GetNetwork(pGPoint1->GetNetworkId());
+  
+  if(pNetwork == 0)
   {
-    // Fehlerbehandlung
-    cerr << "X_NETWORK is not a secondo-object" << endl;
+    static MessageCenter* xMessageCenter= MessageCenter::GetInstance(); 
+    NList xMessage( NList("simple"), NList("Error loading network.")); 
+    xMessageCenter->Send(xMessage);
     return 0;
   }
-  
-  
-  
-
-  bool bOk = SecondoSystem::GetCatalog()->GetObject("X_NETWORK",
-                                                    xValue,
-                                                    bDefined);
-                                         
-
-  if(!bDefined || !bOk)
-  {
-    // Fehlerbehandlung
-    cerr << "Could not load object." << endl;
-    return 0;
-  }           
-  
-  Network* pNetwork = (Network*)xValue.addr;
   
   Tuple* pFromSection = pNetwork->GetSectionIdOnRoute(pGPoint1);
   Tuple* pToSection = pNetwork->GetSectionIdOnRoute(pGPoint2);
@@ -136,8 +121,7 @@ int OpShortestPath::ValueMapping( Word* args,
            pToSection->GetTupleId(),
            pGLine);
 
-  SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "network" ),
-                                           xValue);
+  NetworkManager::CloseNetwork(pNetwork);
  
   return 0;
 }

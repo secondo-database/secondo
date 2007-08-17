@@ -52,6 +52,7 @@ This file contains the implementation of ~gline~
 */
   GLine::GLine() 
   {
+    m_bDefined = false;
   }
 /*
 The simple constructor. Should not be used.
@@ -69,6 +70,7 @@ The simple constructor. Should not be used.
     inout_xErrorInfo = nl->Append(inout_xErrorInfo, 
                                   nl->StringAtom(strErrorMessage));
     inout_bCorrect = false;
+    m_bDefined = false;
     return;
   }   
 
@@ -83,6 +85,7 @@ The simple constructor. Should not be used.
     string strErrorMessage = "GLine(): Error while reading network-id.";
         inout_xErrorInfo = nl->Append(inout_xErrorInfo, 
                                       nl->StringAtom(strErrorMessage));
+    m_bDefined = false;
     inout_bCorrect = false;
     return;
   }   
@@ -107,6 +110,7 @@ The simple constructor. Should not be used.
           inout_xErrorInfo = nl->Append(inout_xErrorInfo, 
                                         nl->StringAtom(strErrorMessage));
       inout_bCorrect = false;
+      m_bDefined = false;
       return;
     }
     
@@ -121,11 +125,13 @@ The simple constructor. Should not be used.
                                               fEnd));
   }
   inout_bCorrect = true;
+  m_bDefined = true;
 }
 
 void GLine::SetNetworkId(int in_iNetworkId)
 {
   m_iNetworkId = in_iNetworkId;
+  m_bDefined = true;
 }
   
 void GLine::AddRouteInterval(int in_iRouteId,
@@ -136,6 +142,11 @@ void GLine::AddRouteInterval(int in_iRouteId,
                                             fStart,
                                             fEnd));
 }   
+
+bool GLine::IsDefined()
+{
+  return m_bDefined;
+}
 
 
 /*
@@ -174,6 +185,11 @@ ListExpr GLine::Out(ListExpr in_xTypeInfo,
                     Word in_xValue)
 {
   GLine *pGline = (GLine*)in_xValue.addr;
+
+  if(!pGline->IsDefined())
+  {
+    return nl->SymbolAtom( "undef" );
+  }
 
   ListExpr xLast, xNext;
   bool bFirst = true;

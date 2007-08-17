@@ -91,6 +91,7 @@ The constructor.
                           float fStart,
                           float fEnd);
     
+    bool IsDefined();
 
     static ListExpr Out( ListExpr typeInfo, Word value );
 
@@ -124,7 +125,15 @@ The constructor.
 The network id.
 
 */
+
+    bool m_bDefined;
+/*
+True if all members are defined
+
+*/
+
     vector<RouteInterval> m_xRouteIntervals;
+
 /*
 The array of route intervals.
 

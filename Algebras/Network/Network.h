@@ -565,6 +565,12 @@ is only done via the ~thenetwork~ operator.
 */
 
 /*
+Returns the id of this network
+
+*/
+    int GetId();
+
+/*
 6.3.1 GetRoutes
 Returns a copy of the ~routes~ relation in external representation.  
 This function is used in the ~routes~ operator.
