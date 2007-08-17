@@ -22,6 +22,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //paragraph [1] title: [{\Large \bf ]   [}]
 
+August 2007. M. Spiekermann. Some bug fixes for bugs recognized using a 64bit linux
+platform. 
+
+  1) Member mpoint in Class Movingchesspiece wasn't initialized correctly.
+  2) Some moves of the pgn file were not recognized which lead to reading 
+     uninitialized data
+  3) After fixing 1-2 creating movingpoints from a match fails. Needs still
+     to be fixed !!!  
+
 
 [1] Datatypes for ChessAlgebra (implementation)
 
@@ -1419,6 +1428,7 @@ int Chessgame::AddMove( char startfile, char startrow,
   newmove->SetEndFile( endfile );
   newmove->SetEndRow( endrow );
   newmove->SetCheck( pgn[ pgn.size() - 1 ] == '+' );
+  bool castling = false;
 
   // calculate castelling state
   int startpos = newmove->GetStartPos();
@@ -1428,26 +1438,32 @@ int Chessgame::AddMove( char startfile, char startrow,
        && ( curpos->gamefield[ startpos ] == WHITE_KING ) )
   {
     newmove->SetCastelling( KINGSIDE_CASTLING );
+    castling = true;
   }
   else if ( ( startpos == 4 )
             && ( endpos == 2 )
             && ( curpos->gamefield[ startpos ] == WHITE_KING ) )
   {
     newmove->SetCastelling( QUEENSIDE_CASTLING );
+    castling = true;
   }
   else if ( ( startpos == 60 )
             && ( endpos == 62 )
             && ( curpos->gamefield[ startpos ] == BLACK_KING ) )
   {
     newmove->SetCastelling( KINGSIDE_CASTLING );
+    castling = true;
   }
   else if ( ( startpos == 60 )
             && ( endpos == 58 )
             && ( curpos->gamefield[ startpos ] == BLACK_KING ) )
   {
     newmove->SetCastelling( QUEENSIDE_CASTLING );
+    castling = true;
   }
 
+  if (castling == false)
+  {
   // White en passant capture
   if ( startpos >= 32 && startpos <= 39 &&
        ( endpos == startpos + 7 || endpos == startpos + 9 ) &&
@@ -1483,9 +1499,28 @@ int Chessgame::AddMove( char startfile, char startrow,
   ostringstream endposstr;
   endposstr << endfile << ( ( int ) endrow );
   size_t pos = pgn.find( endposstr.str() );
-  pos--;
+  bool ok = (pos != string::npos);
+  if (!ok) {
+    cout << "Could not find field <" << endposstr.str() << ">"
+         << " in move <" << pgn << ">" << endl;
+    assert(false);	 
+  } 
+
+  /*
+  ok = (pos > 0);
+  if (!ok) {
+    cout << "Found <" << endposstr.str() << ">"
+         << "at pos=0 in move <" << pgn << ">" << endl;
+    assert(false);	 
+  } 
+  */
+
+  // check if the move captures an agent and remove the x symbol
+  if (pos > 0) {
+    pos--;
   if ( pgn[ pos ] == 'x' )
     pos--;
+  }
 
   // check, if start row is contained in pgn notation
   if ( pos >= 0 )
@@ -1525,6 +1560,8 @@ int Chessgame::AddMove( char startfile, char startrow,
     newAgent = DecodeAgent( curpos->gamefield[ startpos ] );
   //cout << pgn << "," << pos << "," << newAgent << "\n";
   newmove->SetNewAgent( newAgent );
+  
+  } // end of !castling
 
   // save move
   moves.Append( *newmove );
@@ -2091,8 +2128,12 @@ void MovingChessPiece::adjustTime(const Instant newEndInstant)
   upoint.timeInterval.start = upoint.timeInterval.end;   
   // new interval end is specified time
   upoint.timeInterval.end   = newEndInstant;   
+
+
   if ( movedInLastInterval ) // if piece was moved in last interval
   {
+    //cout << "adjust time " << upoint.timeInterval.start 
+    //     << " ~ "  << upoint.timeInterval.end << endl;
     upoint.p0.Set( upoint.p1.GetX(), upoint.p1.GetY() ); // create new UPoint
     mpoint.Add( upoint );
   }
@@ -2391,13 +2432,16 @@ MovingChessPieces::~MovingChessPieces()
 void MovingChessPieces::realizeMove( Move* mv, const MoveData* mvdata )
 {
   //cout << "MovingChessPieces::realizeMove entered" << endl;
+  //cout << mv->GetMoveNumber() << " - " << mv->GetAgent()<< ": " 
+  //    << mv->GetStartFile() << mv->GetStartRow() << "-"
+  //     << mv->GetEndFile() << mv->GetEndRow() << endl;
   upref.timeInterval.end.Add(totalMoveDuration);
   for ( i = 0;i < 48;i++ )
   {
     if ( *( mcp[i]->getKind() ) == AGENT_NAMES[ UNDEF ] ) 
           continue; //this mcp wasn't used yet
 
-    if (    mcp[i]->getActRow() == mv->GetStartRow() && 
+    if (  mcp[i]->getActRow() == mv->GetStartRow() && 
          (mcp[i]->getActFile())[0] == tolower((mv->GetStartFile())[0]))
     { // this mcp represents the piece being moved,
       // detect if another piece was captured
@@ -2405,58 +2449,77 @@ void MovingChessPieces::realizeMove( Move* mv, const MoveData* mvdata )
       {
         if ( *( mcp[j]->getKind() ) == AGENT_NAMES[ UNDEF ] )
               continue; //this mcp wasn't used yet
-    if ( mcp[j]->getActRow() == mv->GetEndRow() && 
-        (mcp[j]->getActFile())[0] == tolower((mv->GetEndFile())[0]) )
+
+        if ( mcp[j]->getActRow() == mv->GetEndRow() && 
+             (mcp[j]->getActFile())[0] == tolower((mv->GetEndFile())[0]) )
         {
-            mcp[j]->extendInterval(waitBeforeMoveDuration);
-            mcp[j]->extendInterval(moveDuration);
-            mcp[j]->removePiece(); 
-            // this mcp represents the piece being captured
-      break;
+          mcp[j]->extendInterval(waitBeforeMoveDuration);
+          mcp[j]->extendInterval(moveDuration);
+          mcp[j]->removePiece(); 
+          // this mcp represents the piece being captured
+          break;
         }
       }
-      if (j<48) TargetOffset = true; 
-      // another piece was captured, step besides of it
-      else      TargetOffset = false;
 
-     // next lines recognize a pawn's 
-     // promotion when he reaches the other baseline
+      if (j<48) 
+        TargetOffset = true; // another piece was captured, step besides of it
+      else      
+        TargetOffset = false;
+
+      // next lines recognize a pawn's 
+      // promotion when it reaches the other baseline
       if (   ( *( mcp[i]->getKind() ) == "Pawn" && mv->GetEndRow() == 8 )
           || ( *( mcp[i]->getKind() ) == "pawn" && mv->GetEndRow() == 1 ) )
       {
-        for ( j = 32;j < 48;j++ ) { 
-          if ( *(mcp[j]->getKind())==AGENT_NAMES[UNDEF] ) break; } 
-          // find unused mcp
-        mcp[i]->extendInterval(waitBeforeMoveDuration);
-    mcp[i]->appendMove( mv->GetEndFile() , mv->GetEndRow() , TargetOffset );
-    delete mcp[j];
-        mcp[j] = new MovingChessPiece( 
+          
+	  // remove the pawn		
+          mcp[i]->extendInterval(waitBeforeMoveDuration);
+          mcp[i]->appendMove( mv->GetEndFile(), 
+			      mv->GetEndRow(), TargetOffset );
+          mcp[i]->removePiece(); 
+          
+	  // create a new moving piece
+          
+	  // find unused mcp
+          for ( j = 32;j < 48;j++ ) { 
+            if ( *(mcp[j]->getKind())==AGENT_NAMES[UNDEF] ) break; } 
+	  cout << "unused mcp: " << j 
+	       << ", ptr " << (void*) mcp[j] << endl;
+	  delete mcp[j];
+          mcp[j] = new MovingChessPiece( 
                         AGENT_NAMES[(int)mvdata->GetNewAgentID()],
                         mv->GetEndFile(), mv->GetEndRow(), 
                         mcp[i]->getCurrentTime() , moveDuration );
-        mcp[i]->removePiece(); // remove the pawn
-    mcp[j]->centerPiece(); // and put the officer in the fields's center
+
+          mcp[j]->centerPiece(); // and put the officer in the fields's center
       }
       else
-      {       // move wasn't pawn's promotion, execute move
-        mcp[i]->extendInterval(waitBeforeMoveDuration);
-    mcp[i]->appendMove( mv->GetEndFile() , mv->GetEndRow() , TargetOffset );
-    if (TargetOffset) mcp[i]->centerPiece(); // if another piece was captured
+      { 
+        // move wasn't pawn's promotion, execute move
+	mcp[i]->extendInterval(waitBeforeMoveDuration);
+	mcp[i]->appendMove( mv->GetEndFile() , mv->GetEndRow() , TargetOffset );
 
-    // next lines recognize castelling 
-    //if the king was moved over more than one file
-        if ( ( *( mcp[i]->getKind() ) == "King" || 
-               *( mcp[i] ->getKind() ) == "king" )
-             && ( abs( (mv->GetEndFile())[0] - (mv->GetStartFile())[0] ) > 1 )
-           )
-        {   // castelling! look which rook has to move
-          if ( ( mv->GetEndFile() ) [ 0 ] == 'g' ) j = 2;// white kingside rook
-          else j = 1;                                   // white queenside rook
-          if ( mv->GetStartRow() == 8 ) j += 16;            // black rooks
-          mcp[j]->extendInterval(waitBeforeMoveDuration);
-      mcp[j]->extendInterval(moveDuration);
-      mcp[j]->applyCastelling();
-        }
+	if (TargetOffset) 
+	  mcp[i]->centerPiece(); // if another piece was captured
+
+	// next lines recognize castelling 
+	//if the king was moved over more than one file
+	if ( ( *( mcp[i]->getKind() ) == "King" || 
+	       *( mcp[i] ->getKind() ) == "king" )
+	     && ( abs( (mv->GetEndFile())[0] - (mv->GetStartFile())[0] ) > 1 )
+	   )
+	{ // castelling! look which rook has to move
+	  if ( ( mv->GetEndFile() ) [ 0 ] == 'g' ) 
+	   j = 2; // white kingside rook
+	  else 
+	   j = 1; // white queenside rook
+	  if ( mv->GetStartRow() == 8 ) 
+	    j += 16;  // black rooks
+
+	  mcp[j]->extendInterval(waitBeforeMoveDuration);
+	  mcp[j]->extendInterval(moveDuration);
+	  mcp[j]->applyCastelling();
+	}
       }
     }
   }

@@ -1896,19 +1896,19 @@ const string movingpointsSpec =
 int movingpointsValueMap( Word * args, Word & result, 
                           int message, Word & local, Supplier s )
 {
-  MovingChessPieces * mcps;
-  MovingChessPiece* mcp;
-  Chessgame* game;
+  MovingChessPieces * mcps = 0;
+  MovingChessPiece* mcp = 0;
+  Chessgame* game = 0;
   Move mv;
   string startfile, endfile, argstr;
-  CcString* ki;
+  CcString* ki = 0;
   STRING_T hilfstr;
-  CcBool* iw;
-  MPoint* mp;
-  int i;
+  CcBool* iw = 0;
+  MPoint* mp = 0;
+  int i = 0;
   ListExpr resultType;
-  TupleType* resultTupleType;
-  Tuple* tup;
+  TupleType* resultTupleType = 0;
+  Tuple* tup = 0;
   switch ( message )
   {
   case OPEN:
