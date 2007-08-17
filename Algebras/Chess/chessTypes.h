@@ -698,7 +698,8 @@ private:
 class MovingChessPiece
 {
 public:
-  MovingChessPiece() : kind( AGENT_NAMES[ UNDEF ] ) {} // Standardconstructor
+  // Standardconstructor
+  MovingChessPiece() : kind( AGENT_NAMES[ UNDEF ]), mpoint(1) {} 
   ~MovingChessPiece();
 
   MovingChessPiece( string k, string file, int row, 
