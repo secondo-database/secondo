@@ -338,18 +338,22 @@ opened( false )
   }
 }
 
-BTree::BTree( SmiKey::KeyDataType keyType, SmiRecord& record ):
+BTree::BTree( SmiKey::KeyDataType keyType, SmiRecord& record,
+              size_t& offset):
 temporary( false ),
 file( 0 ),
 opened( false )
 {
   SmiFileId fileId;
-  if( record.Read( &fileId, sizeof(SmiFileId) ) != sizeof(SmiFileId) )
+  if( record.Read( &fileId, sizeof(SmiFileId), offset ) != sizeof(SmiFileId) )
     return;
- 
+    
   this->file = new SmiKeyedFile( keyType,false );
   if( file->Open( fileId ) )
+  {
     opened = true;
+    offset += sizeof(SmiFileId);
+  }
   else 
   {
     delete file; file = 0;
@@ -739,15 +743,14 @@ OpenBTree( SmiRecord& valueRecord,
 {
   value = SetWord( BTree::Open( valueRecord, offset, typeInfo ) );
   bool rc  = value.addr != 0;
-  if (rc)
-    offset += sizeof(SmiFileId);
   return rc;  
 }
 
 BTree *BTree::Open( SmiRecord& valueRecord, size_t& offset, 
                     const ListExpr typeInfo )
 {
-  return new BTree( ExtractKeyTypeFromTypeInfo( typeInfo ), valueRecord );
+  return new BTree( ExtractKeyTypeFromTypeInfo( typeInfo ), valueRecord,
+                    offset );
 }
 
 /*
@@ -773,7 +776,7 @@ bool BTree::Save(SmiRecord& record, size_t& offset, const ListExpr typeInfo)
   assert( file != 0 );
   const size_t n = sizeof(SmiFileId);
   SmiFileId fileId = file->GetFileId();
-  if( record.Write( &fileId, n) != n )
+  if( record.Write( &fileId, n, offset) != n )
     return false;
 
   offset += n;

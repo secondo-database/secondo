@@ -95,7 +95,8 @@ class BTree
 Creates a B-Tree.
 
 */
-    BTree( SmiKey::KeyDataType keyType, SmiRecord& record );
+    BTree( SmiKey::KeyDataType keyType, SmiRecord& record,
+              size_t& offset);
 /*
 Opens a B-Tree given the information in the root record ~record~.
 
@@ -111,7 +112,8 @@ The destructor.
 
 */
 
-    static BTree *Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo );
+    static BTree *Open( SmiRecord& valueRecord, 
+		        size_t& offset, const ListExpr typeInfo );
 /*
 Opens a B-Tree. This function corresponds to the ~open~-function of the type constructor.
 
