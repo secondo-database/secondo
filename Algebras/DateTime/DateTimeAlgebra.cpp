@@ -3001,3 +3001,8 @@ InitializeDateTimeAlgebra( NestedList* nlRef,
 
 } // end of namespace
 
+
+ostream& operator<<(ostream& o, const datetime::DateTime& DT) {
+   return DT.Print(o);
+} 
+
