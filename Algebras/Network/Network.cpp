@@ -64,7 +64,7 @@ string Network::routesBTreeTypeInfo =
       "(dual bool) (startsSmaller bool))) int)";
 string Network::junctionsTypeInfo =
       "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
-      "(meas2 int) (cc int))))";
+      "(meas2 real) (cc int))))";
 string Network::junctionsInternalTypeInfo =
       "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
       "(meas2 real) (cc int) (pos point) (r1rc tid) (r2rc tid) "
@@ -452,7 +452,7 @@ void Network::FillJunctions(const Relation *in_pJunctions)
   }
   delete pJunctionsIter;
 
-  // Sort the table which is now containing all junctions twice  
+  // Sort the table which is now containing all junctions 
   ostringstream xJunctionsStream;
   xJunctionsStream << (long)pIntJunctions;
   string strQuery = "(consume (sortby (feed (" + junctionsInternalTypeInfo +
@@ -732,7 +732,17 @@ Tuple* Network::GetSectionIdOnRoute(GPoint* in_xGPoint)
     }
     iSectionId = xCurrentEntry.getUpSectionId();
   }
+  for(size_t i = 0; i < xJunctions.size(); i++)
+  {
+    // Get next junction
+    JunctionSortEntry xCurrentEntry = xJunctions[i];
+    xCurrentEntry.m_pJunction->DeleteIfAllowed();
+  }
   
+  if(iSectionId == 0)
+  {
+    return 0;
+  }
   Tuple* pSection = m_pSections->GetTuple(iSectionId);
   
   
@@ -1250,9 +1260,6 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
                         inout_iOffset);
   inout_iOffset += sizeof(int);
   
-  cout << "Write Offset: " << inout_iOffset << endl;
-  
-  
   // Save routes
   ListExpr xType = GetRoutesTypeInfo();
   ListExpr xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
@@ -1262,7 +1269,6 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
   {                      
     return false;
   }
-  cout << "Write Offset: " << inout_iOffset << endl;
 
   // Save junctions
   xType = GetJunctionsIntTypeInfo();
@@ -1273,7 +1279,6 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
   {
     return false;
   }
-  cout << "Write Offset: " << inout_iOffset << endl;
 
   // Save sections
   xType = GetSectionsInternalTypeInfo();
@@ -1284,7 +1289,6 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
   {
     return false;
   }
-  cout << "Write Offset: " << inout_iOffset << endl;
 
   // Save btree for routes
   xType = GetRoutesBTreeTypeInfo();
@@ -1295,7 +1299,6 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
   {
     return false;
   }
-  cout << "Write Offset: " << inout_iOffset << endl;
   
   // Save first btree for junctions
   xType = GetJunctionsBTreeTypeInfo();
@@ -1306,7 +1309,6 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
   {
     return false;
   }
-    cout << "Write Offset: " << inout_iOffset << endl;
       
   // Save second btree for junctions
   xType = GetJunctionsBTreeTypeInfo();
@@ -1317,7 +1319,6 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
   {                                                  
     return false;
   }
-  cout << "Write Offset: " << inout_iOffset << endl;
 
 //  Attribute::Save(valueRecord, 
 //                   offset, 
@@ -1354,8 +1355,6 @@ Network *Network::Open(SmiRecord& in_xValueRecord,
   // Read network id
   in_xValueRecord.Read( &iId, sizeof( int ), inout_iOffset );
   inout_iOffset += sizeof( int );
-  cout << "Read Offset: " << inout_iOffset << endl;
-
 
   // Open routes
   ListExpr xType = GetRoutesTypeInfo();
@@ -1367,7 +1366,6 @@ Network *Network::Open(SmiRecord& in_xValueRecord,
   { 
     return 0;
   }
-  cout << "Read Offset: " << inout_iOffset << endl;
 
   // Open junctions
   xType = GetJunctionsIntTypeInfo();
@@ -1380,7 +1378,6 @@ Network *Network::Open(SmiRecord& in_xValueRecord,
     pRoutes->Delete(); 
     return 0;
   }
-  cout << "Read Offset: " << inout_iOffset << endl;
 
   // Open sections  
   xType = GetSectionsInternalTypeInfo();
@@ -1394,7 +1391,6 @@ Network *Network::Open(SmiRecord& in_xValueRecord,
     pJunctions->Delete(); 
     return 0;
   }
-  cout << "Read Offset: " << inout_iOffset << endl;
 
   // Open btree for routes
   xType = GetRoutesBTreeTypeInfo();
@@ -1410,7 +1406,6 @@ Network *Network::Open(SmiRecord& in_xValueRecord,
     pSections->Delete();
     return 0;
   }
-  cout << "Read Offset: " << inout_iOffset << endl;
 
   // Open first btree for junctions  
   xType = GetJunctionsBTreeTypeInfo();
@@ -1426,7 +1421,6 @@ Network *Network::Open(SmiRecord& in_xValueRecord,
     delete pBTreeRoutes;
     return 0;
   }
-  cout << "Read Offset: " << inout_iOffset << endl;
 
   // Open second btree for junctions
   xType = GetJunctionsBTreeTypeInfo();
@@ -1443,7 +1437,6 @@ Network *Network::Open(SmiRecord& in_xValueRecord,
     delete pBTreeJunctionsByRoute1;
     return 0;
   }
-  cout << "Read Offset: " << inout_iOffset << endl;
   
   // Create network
   return new Network(iId,

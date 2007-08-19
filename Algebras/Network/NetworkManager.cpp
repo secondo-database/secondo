@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of Module Network Algebra
+[1] Implementation of Network Manager
 
 Mai-July 2007 Martin Scheppokat
 
@@ -57,45 +57,50 @@ Loads a network with a given id.
 */
 Network* NetworkManager::GetNetwork(int in_iNetworkId)
 {
-
+  // Search in all objects in the current database for a network
   ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
-  
   xObjectList = nl->Rest(xObjectList);
   while(!nl->IsEmpty(xObjectList))
   {
+    // Next element in list
     ListExpr xCurrent = nl->First(xObjectList);
     xObjectList = nl->Rest(xObjectList);
     
-    ListExpr xObjectName = nl->Second(xCurrent);
-    string strObjectName = nl->SymbolValue(xObjectName);
-
+    // Type of object is at fourth position in list
     ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
     if(nl->IsAtom(xObjectType) &&
        nl->SymbolValue(xObjectType) == "network")
     {
+      // Get name of the network
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+      
+      // Load object to find out the id of the network. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
       Word xValue;
       bool bDefined;
       bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
                                                         xValue,
                                                         bDefined);
-
       if(!bDefined || !bOk)
       {
+        // Undefined network
         continue;
-      }           
+      }
   
       Network* pNetwork = (Network*)xValue.addr;
       if(pNetwork->GetId() == in_iNetworkId)
       {
+        // This is the network we have been looking for
         return pNetwork;
       }
       
       SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("network"),
-                                                               xValue);
+                                               xValue);
     } 
   }
   return 0;
-  
 }
 
 /*

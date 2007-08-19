@@ -24,8 +24,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Implementation of GLine in Module Network Algebra
 
-March 2004 Victor Almeida
-
 Mai-Oktober 2007 Martin Scheppokat
 
 [TOC]
@@ -100,49 +98,91 @@ int OpShortestPath::ValueMapping( Word* args,
   GPoint* pGPoint1 = (GPoint*)args[0].addr;
   GPoint* pGPoint2 = (GPoint*)args[1].addr;
 
-  // TODO: Check wether both points belong to the same network
-  
-  Network* pNetwork = NetworkManager::GetNetwork(pGPoint1->GetNetworkId());
-  
-  if(pNetwork == 0)
+  // Check wether both points belong to the same network
+  if(pGPoint1->GetNetworkId() != pGPoint2->GetNetworkId())
   {
-    static MessageCenter* xMessageCenter= MessageCenter::GetInstance(); 
-    NList xMessage( NList("simple"), NList("Error loading network.")); 
-    xMessageCenter->Send(xMessage);
+    sendMessage("Both gpoints belong to different networks.");
     return 0;
   }
   
-  Tuple* pFromSection = pNetwork->GetSectionIdOnRoute(pGPoint1);
+  // Load the network
+  Network* pNetwork = NetworkManager::GetNetwork(pGPoint1->GetNetworkId());
+  if(pNetwork == 0)
+  {
+    ostringstream xStream;
+    xStream << pGPoint1->GetNetworkId() << char(0);
+    string strMessage = "Network with id '" +
+                        xStream.str() +
+                        "' does not exist on this database.";   
+    sendMessage(strMessage);
+    return 0;
+  }
+  
+  // Get sections where the path should start or end 
+  Tuple* pFromSection = pNetwork->GetSectionIdOnRoute(pGPoint1);  
   Tuple* pToSection = pNetwork->GetSectionIdOnRoute(pGPoint2);
+    
+  if(pToSection == 0 ||
+     pFromSection == 0)
+  {
+    sendMessage("Start or End not found. Possibly the route has no " 
+                "junctions or is not part of the network.");   
+    if(pFromSection != 0)
+    {
+      pFromSection->DeleteIfAllowed();
+    }
+    if(pToSection != 0)
+    {
+      pToSection->DeleteIfAllowed();
+    }
+    NetworkManager::CloseNetwork(pNetwork);
+    return 0;
+  }
+
   pGLine->SetNetworkId(1);
 
+  // Calculate the shortest path
   Dijkstra(pNetwork, 
            pFromSection->GetTupleId(), 
            pToSection->GetTupleId(),
            pGLine);
 
+  // Cleanup and return
   NetworkManager::CloseNetwork(pNetwork);
- 
   return 0;
 }
 
+/*
+Modified version of dikstras algorithm calculating shortest path in graphs.
+
+Whereas sedgewick's version of disktra operates on the nodes of the graph this
+version will process an array of edges. This change is necessary to take into
+account that not all transitions between connecting edges are possible. The 
+preceding edge has to be known when looking for the next one. 
+
+*/ 
 void OpShortestPath::Dijkstra(Network* in_pNetwork,
                               int in_iStartSegmentId,
                               int in_iEndSegmentId,
                               GLine* in_pGLine )
 {
-  Relation* pSections = in_pNetwork->GetSectionsInternal();
-
-//  int iSectionCount = pSections->GetNoTuples();
-  vector<int> xPi;
+  // Specialized data structure with all edges of the graph. This 
+  // structure will not only support the access to the remaining edges 
+  // with the fewest weight but also to all edges by their index.
   PriorityQueue xQ;
-   
+
+  /////////////////////////////////////////
+  //
+  // InitializeSingleSource
+  //
+  // Get all Sections and fill them into Q. All weights but
+  // the one for the starting segment are set to infinity 
+  Relation* pSections = in_pNetwork->GetSectionsInternal();
   GenericRelationIterator* pSectionsIt = pSections->MakeScan();
   Tuple* pSection;
-
-  //InitializeSingleSource
   while( (pSection = pSectionsIt->GetNextTuple()) != 0 )
   {
+    // Get values
     int iSegmentId = pSectionsIt->GetTupleId();
     CcInt* xRouteId = (CcInt*)pSection->GetAttribute(SECTION_RID); 
     int iRouteId = xRouteId->GetIntval();
@@ -151,12 +191,14 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
     CcReal* xMeas2 = (CcReal*)pSection->GetAttribute(SECTION_MEAS2); 
     float fMeas2 = xMeas2->GetRealval();
     
+    // Set weights
     float fD = float(1e29);
     if(iSegmentId == in_iStartSegmentId)
     {
       fD = 0;
     }
 
+    // Put one struct for each direction in the map (up and down)
     xQ.push(new DijkstraStruct(iSegmentId,
                                 true,
                                 iRouteId,
@@ -178,71 +220,49 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
   }
   delete pSectionsIt;
 
-//  for each vertex v in V[G]
-//  {
-//    do d[v] = infty;
-//    pi[v] = NIL
-//  }
-//  d[s] = 0;
-//  
-//  
-//  
-//  // Priority Queue with all vertices of the Graph which are not
-//  // in S keyed by their d-values.
-//  Q = Vertices(G);
-//  
+  /////////////////////////////////
+  //
+  // Now dikstras algorithm will handle each node in
+  // the queue recalculation their weights.
+  //
   while(! xQ.isEmtpy())
   {
     DijkstraStruct* pCurrent = xQ.pop();
+    
+    // Get values
     int iCurrentSectionTid = pCurrent->m_iSectionTid;
     bool bCurrentUpDownFlag = pCurrent->m_bUpDownFlag;
-//    cout << "Section: " 
-//         << iCurrentSectionTid 
-//         << " " 
-//         << bCurrentUpDownFlag << endl;
-//    
-//    S = S with u
-//    
-//    for each adjazent vertex v in adj[u]
 
+    // Get all adjacent sections
     vector<DirectedSection> xAdjacentSections;
     xAdjacentSections.clear();
     in_pNetwork->GetAdjacentSections(iCurrentSectionTid,
                                      bCurrentUpDownFlag,
                                      xAdjacentSections);
-                                     
+                                
+    // Iterate over adjacent sections                                     
     for(size_t i = 0;  i < xAdjacentSections.size(); i++) 
     {
+      // Load the structure belonging to the adjacent section
       DirectedSection xAdjacentSection = xAdjacentSections[i];
       int iAdjacentSectionTid = xAdjacentSection.getSectionTid();
       bool bAdjacentUpDownFlag = xAdjacentSection.getUpDownFlag();
-      
-//      cout << "(" <<iCurrentSectionTid << ", " << bCurrentUpDownFlag
-//           << ")->(" 
-//           << iAdjacentSectionTid << ", " << bAdjacentUpDownFlag << ")" 
-//           << endl;
-
       DijkstraStruct* pAdjacent = xQ.get(iAdjacentSectionTid,
                                          bAdjacentUpDownFlag);
 
-      // Relax
+      // Relax the weight if a shorter path has been found
       if(pAdjacent->m_fD > pCurrent->m_fD + pCurrent->Length())
       {
-
         // Calculate new distance
         pAdjacent->m_fD = pCurrent->m_fD + pCurrent->Length();
 
-//      cout << "(" << iAdjacentSectionTid << ", " << bAdjacentUpDownFlag << ")"
-//             << " = " << pAdjacent->m_fD
-//             << endl;
-
-        
         // Set current as predecessor of adjacent section
         pAdjacent->m_iPiSectionTid = pCurrent->m_iSectionTid;
         pAdjacent->m_bPiUpDownFlag = pCurrent->m_bUpDownFlag;
       }
     }    
   }
+  // Now all weights and all predecessors have been found.
     
   // Find the route starting at the end looking at the pi-entries pointing
   // at a predecessor.  
@@ -255,31 +275,27 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
     // parts or the ConnectivityCode prevents driving on all path from 
     // start to end.
     // Return empty GLine
+    string strMessage = "Destination is not reachable from the start. Either "
+                        "the points are located in disjoint parts of the "
+                        "network or the ConnectityCode prevents reaching the "
+                        "destination.";   
+    sendMessage(strMessage);
     return;
   }
- 
-//  cout << "(" << pStruct->m_iSectionTid 
-//       << ", " 
-//       << pStruct->m_bUpDownFlag << ")" 
-//       << endl;
+
+  // Add last interval of the route 
   in_pGLine->AddRouteInterval(pStruct->m_iRouteId, 
                               pStruct->m_fMeas1, 
                               pStruct->m_fMeas2);
+  // Add all predecessors until the start is reached.
   while(pStruct->m_iSectionTid != in_iStartSegmentId)
   {
     pStruct = xQ.get(pStruct->m_iPiSectionTid,
                      pStruct->m_bPiUpDownFlag);
-//    cout << "(" << pStruct->m_iSectionTid 
-//         << ", " 
-//         << pStruct->m_bUpDownFlag << ")" 
-//         << endl;
     in_pGLine->AddRouteInterval(pStruct->m_iRouteId, 
                                 pStruct->m_fMeas1, 
                                 pStruct->m_fMeas2);
   }
-  
-      
-                                         
 }
 
 
@@ -296,3 +312,34 @@ const string OpShortestPath::Spec  =
   "<text>Calculates the shortest path between two gpoints.</text--->"
   "<text>let n = shortestpath(x, y)</text--->"
   ") )";
+
+  
+/*
+Sending a message via the message-center
+
+*/
+void OpShortestPath::sendMessage(string in_strMessage)
+{
+  // Get message-center and initialize message-list
+  static MessageCenter* xMessageCenter= MessageCenter::GetInstance();
+  NList xMessage;
+  xMessage.append(NList("simple")); 
+
+  // Split the string into parts of maximum length. Append each part
+  // to the message
+  size_t iCurrentPos = 0;
+  int iRemainingLength = in_strMessage.length(); 
+  while(iRemainingLength > 0)  
+  {
+    int iSubstrLength = MAX_STRINGSIZE <? iRemainingLength;
+    string strCurrentPart = in_strMessage.substr(iCurrentPos, 
+                                                 iSubstrLength);    
+    xMessage.append(NList(strCurrentPart));
+    
+    // Calculate next position
+    iCurrentPos += iSubstrLength;
+    iRemainingLength -= iSubstrLength;
+  }
+    
+  xMessageCenter->Send(xMessage);
+}

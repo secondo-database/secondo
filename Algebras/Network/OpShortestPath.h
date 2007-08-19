@@ -239,18 +239,28 @@ class OpShortestPath
                            Word& in_xLocal, 
                            Supplier in_xSupplier );
 
-
-  static void Dijkstra(Network* in_pNetwork,
-                       int in_iStartSegmentId,
-                       int in_iEndSegmentId,
-                       GLine* in_pGLine );
-
-
 /*
 4.1.3 Specification of the operator
 
 */
   static const string Spec;    
+
+  private:
+
+/*
+Dikstra's Algorithm
+
+*/
+  static void Dijkstra(Network* in_pNetwork,
+                       int in_iStartSegmentId,
+                       int in_iEndSegmentId,
+                       GLine* in_pGLine );
+
+/*
+Sending a message via the message-center
+
+*/
+  static void sendMessage(string in_strMessage);
 };
 
 #endif /*OPSHORTESTPATH_H_*/
