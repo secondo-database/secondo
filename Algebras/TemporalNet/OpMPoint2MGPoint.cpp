@@ -24,8 +24,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Implementation of GLine in Module Network Algebra
 
-March 2004 Victor Almeida
-
 Mai-Oktober 2007 Martin Scheppokat
 
 [TOC]
@@ -91,7 +89,7 @@ int OpMPoint2MGPoint::ValueMapping( Word* args,
 
   MPoint* pMPoint = (MPoint*)args[0].addr;
 
-  bool bIsObject = SecondoSystem::GetCatalog()->IsObjectName("X_NETWORK");
+  bool bIsObject = SecondoSystem::GetCatalog()->IsObjectName("X_NETWORK_M2MG");
 
   if(!bIsObject)
   {
@@ -103,7 +101,7 @@ int OpMPoint2MGPoint::ValueMapping( Word* args,
   bool bDefined;
   Word xValue;
  
-  bool bOk = SecondoSystem::GetCatalog()->GetObject("X_NETWORK",
+  bool bOk = SecondoSystem::GetCatalog()->GetObject("X_NETWORK_M2MG",
                                                     xValue,
                                                     bDefined);
                                          
@@ -124,7 +122,7 @@ int OpMPoint2MGPoint::ValueMapping( Word* args,
   const UPoint *pFirstUnit;
   pMPoint->Get(0, pFirstUnit);
   
-  Point pStart = pFirstUnit->p0;
+  Point xStart = pFirstUnit->p0;
 
  
   // Find first section
@@ -140,14 +138,22 @@ int OpMPoint2MGPoint::ValueMapping( Word* args,
 //    float fMeas2 = xMeas2->GetRealval();
     Line *pCurve = (Line*)pSection->GetAttribute( SECTION_CURVE );
 
-    Point pSectionStart = pCurve->StartPoint(true);
-    if(pStart == pSectionStart)
+    Point xSectionStart = pCurve->StartPoint(true);
+    cout << "Start: (" 
+         << xSectionStart.GetX() << ", " 
+         << xSectionStart.GetY() << ")" 
+         << endl;
+    if(xStart == xSectionStart)
     {
       cout << iSegmentId << endl;
     }
     
-    Point pSectionEnd = pCurve->EndPoint(true);
-    if(pStart == pSectionEnd)
+    Point xSectionEnd = pCurve->EndPoint(true);
+    cout << "End: (" 
+         << xSectionEnd.GetX() << ", " 
+         << xSectionEnd.GetY() << ")" 
+         <<endl;
+    if(xStart == xSectionEnd)
     {
       cout << iSegmentId << endl;
     }
