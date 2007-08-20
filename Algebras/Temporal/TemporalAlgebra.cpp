@@ -2532,7 +2532,186 @@ void MReal::Simplify(const int min, const int max,
 /*
 3.2 Class ~MPoint~
 
+We need to overwrite some methods from template class ~Mapping~, as we need
+to maintain the object's MBR in ~bbox~.
+
 */
+
+void MPoint::Clear()
+{
+  Mapping<UPoint, Point>::Clear(); // call super
+  bbox.SetDefined(false);          // invalidate bbox
+}
+
+void MPoint::Add( const UPoint& unit )
+{
+  assert( unit.IsValid() );
+  units.Append( unit );
+  if(units.Size() == 1)
+  {
+    bbox = unit.BoundingBox();
+  } else {
+    bbox.Union(unit.BoundingBox());
+  }
+}
+
+void MPoint::Restrict( const vector< pair<int, int> >& intervals )
+{
+  units.Restrict( intervals ); // call super
+  bbox.SetDefined(false);      // invalidate bbox
+  RestoreBoundingBox();        // recalculate it
+}
+
+ostream& MPoint::Print( ostream &os ) const
+{
+  if( !IsDefined() )
+  {
+    return os << "(MPoint: undefined)";
+  }
+  os << "(MPoint: defined, MBR = ";
+  bbox.Print(os);
+  os << ", contains " << GetNoComponents() << " units: ";
+  for(int i=0; i<GetNoComponents(); i++)
+  {
+    const UPoint *unit;
+    Get( i , unit );
+    os << "\n\t";
+    unit->Print(os);
+  }
+  os << "\n)" << endl;
+  return os;
+}
+
+void MPoint::EndBulkLoad(const bool sort)
+{
+  Mapping<UPoint, Point>::EndBulkLoad( sort ); // call super
+  RestoreBoundingBox();                        // recalculate, if necessary
+}
+
+bool MPoint::operator==( const MPoint& r ) const
+{
+  assert( IsOrdered() && r.IsOrdered() );
+
+  if(bbox != r.bbox)
+    return false;
+  return Mapping<UPoint, Point>::operator==(r);
+}
+
+inline MPoint* MPoint::Clone() const
+{
+  assert( IsOrdered() );
+  MPoint *result = new MPoint( GetNoComponents() );
+  if(GetNoComponents()>0){
+    result->units.Resize(GetNoComponents());
+  }
+  result->StartBulkLoad();
+  const UPoint *unit;
+  for( int i = 0; i < GetNoComponents(); i++ )
+  {
+    Get( i, unit );
+    result->Add( *unit );
+  }
+  result->EndBulkLoad( false );
+  return result;
+}
+
+inline void MPoint::CopyFrom( const StandardAttribute* right )
+{
+  const MPoint *r = (const MPoint*)right;
+  assert( r->IsOrdered() );
+  Clear();
+  StartBulkLoad();
+  const UPoint *unit;
+  for( int i = 0; i < r->GetNoComponents(); i++ )
+  {
+    r->Get( i, unit );
+    Add( *unit );
+  }
+  EndBulkLoad( false );
+}
+
+// bool MPoint::Present( const Instant& t ) const
+// {
+//   assert( t.IsDefined() && IsOrdered() );
+// 
+//   if(bbox.IsDefined())
+//   { // do MBR-check
+//     double instd = t.ToDouble();
+//     double mint = bbox.MinD(2);
+//     double maxt = bbox.MaxD(2);
+//     if( (instd < mint && !AlmostEqual(instd,mint)) ||
+//         (instd > maxt && !AlmostEqual(instd,mint)) )
+//       return false;
+//   }
+//   int pos = Position(t);
+//   if( pos == -1 )         //not contained in any unit
+//     return false;
+//   return true;
+// }
+// 
+// bool MPoint::Present( const Periods& t ) const
+// {
+//   assert( t.IsOrdered() && IsOrdered() );
+// 
+//   Periods defTime( 0 );
+//   DefTime( defTime );
+//   if(bbox.IsDefined())
+//   { // do MBR-check
+//     double MeMin = bbox.MinD(2);
+//     double MeMax = bbox.MaxD(2);
+//     Instant tmin; t.Minimum(tmin);
+//     Instant tmax; t.Maximum(tmax);
+//     double pmin = tmin.ToDouble();
+//     double pmax = tmax.ToDouble();
+//     if( (pmin < MeMin && !AlmostEqual(pmin,MeMin)) ||
+//          (pmax > MeMax && !AlmostEqual(pmax,MeMax)) )
+//       return false;
+//   }
+//
+//  return t.Intersects( defTime );
+//}
+
+
+/*
+
+RestoreBoundingBox() checks, whether the MPoint's MBR ~bbox~ is ~undefined~
+and thus may needs to be recalculated and if, does so.
+
+*/
+
+void MPoint::RestoreBoundingBox()
+{
+  if(!IsDefined() || GetNoComponents() == 0)
+  { // invalidate bbox
+    bbox.SetDefined(false);
+  }
+  else if(!bbox.IsDefined())
+  { // construct bbox
+    const UPoint *unit;
+    int size = GetNoComponents();
+    bool isfirst = true;
+    for( int i = 0; i < size; i++ )
+    {
+      Get( i, unit );
+      if (isfirst)
+      {
+        bbox = unit->BoundingBox();
+        isfirst = false;
+      }
+      else
+      {
+        bbox.Union(unit->BoundingBox());
+      }
+    }
+  } // else: bbox unchanged and still correct
+}
+
+// Class functions
+Rectangle<3u> MPoint::BoundingBox() const
+{
+  return bbox;
+}
+
 void MPoint::Trajectory( Line& line ) const
 {
   line.Clear();
@@ -2596,10 +2775,10 @@ string iv2string(Interval<Instant> iv){
 }
 
 void MPoint::MergeAdd(const UPoint& unit){
-
   int size = GetNoComponents();
   if(size==0){ // the first unit
      Add(unit);
+     bbox = unit.BoundingBox();
      return;
   }
   const UPoint* last;
@@ -2608,15 +2787,15 @@ void MPoint::MergeAdd(const UPoint& unit){
      !( (last->timeInterval.rc )  ^ (unit.timeInterval.lc))){
      // intervals are not connected
      Add(unit);
+     bbox.Union(unit.BoundingBox());
      return;
   }
-  
   if(!AlmostEqual(last->p1, unit.p0)){
     // jump in spatial dimension
     Add(unit);
+    bbox.Union(unit.BoundingBox());
     return;
   }
-
   Interval<Instant> complete(last->timeInterval.start,
                              unit.timeInterval.end,
                              last->timeInterval.lc,
@@ -2626,12 +2805,10 @@ void MPoint::MergeAdd(const UPoint& unit){
   upoint.TemporalFunction(last->timeInterval.end, p, true);
   if(!AlmostEqual(p,last->p0)){
      Add(unit);
+     bbox.Union(unit.BoundingBox());
      return;
   }
-  
   units.Put(size-1,upoint); // overwrite the last unit by a connected one
-
-
 }
 
 
@@ -2890,12 +3067,12 @@ void MPoint::TranslateAppend(MPoint& mp, const DateTime& dur){
    int newSize = GetNoComponents()+mp.GetNoComponents(); 
    Resize(newSize);
    const UPoint* lastUnit;
-   
+
    StartBulkLoad();
 
    const UPoint* firstUnit;
    mp.Get(0,firstUnit);
-  
+
    // add a staying unit 
    if(!dur.IsZero() && !dur.LessThanZero()){
      Get(GetNoComponents()-1,lastUnit);
@@ -2905,9 +3082,9 @@ void MPoint::TranslateAppend(MPoint& mp, const DateTime& dur){
      Interval<Instant> gapInterval(interval.end,interval.end +dur,
                                    !interval.rc,!firstUnit->timeInterval.lc);
      UPoint gap(gapInterval,lastPoint,lastPoint);
-     Add(gap);    
+     Add(gap);
    }
-   
+
    Get(GetNoComponents()-1,lastUnit);
    Instant end = lastUnit->timeInterval.end;
    DateTime timediff = end - firstUnit->timeInterval.start;
@@ -7462,30 +7639,13 @@ int MPointBBox(Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage( s );
   Rectangle<3>* res = (Rectangle<3>*) result.addr;
   MPoint*       arg = (MPoint*)       args[0].addr;
-  const UPoint *uPoint;
-  double min[3], max[3];
-  Rectangle<3> accubbox; 
 
   if( !arg->IsDefined() || (arg->GetNoComponents() < 1) )
-  {
+  { // empty/undefined MPoint --> undef
     res->SetDefined(false);
   }
-  else
-  {
-   arg->Get( 0, uPoint );
-   accubbox = uPoint->BoundingBox();
-   min[2] = uPoint->timeInterval.start.ToDouble(); // mintime
-   for( int i = 1; i < arg->GetNoComponents(); i++ )
-   { // calculate spatial bbox
-     arg->Get( i, uPoint );
-     accubbox = accubbox.Union( uPoint->BoundingBox() );
-   }
-   max[2] = uPoint->timeInterval.end.ToDouble(); // maxtime
-   min[0] = accubbox.MinD(0); // minX
-   max[0] = accubbox.MaxD(0); // maxX
-   min[1] = accubbox.MinD(1); // minY
-   max[1] = accubbox.MaxD(1); // maxY
-   res->Set( true, min, max );
+  else { // returned MBR
+    *res = arg->BoundingBox();
   }
   return 0;
 }

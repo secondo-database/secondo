@@ -688,6 +688,11 @@ Use it carefully to avoid inconsistencies.
     bool operator==(const URegionEmb& ur) const;
     bool Before(const URegionEmb& ur) const;
 
+    bool EqualValue( URegionEmb& i )
+    {
+      return false;
+    }
+
 /*
 This method is not implemented since it is not required by the current
 version of the algebra but is required by the ~Mapping~ template.. Calls

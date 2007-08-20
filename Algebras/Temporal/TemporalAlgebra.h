@@ -1959,7 +1959,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   void USpeed( UReal& result ) const;
   void UVelocity( UPoint& result ) const;
   void Intersection(const UPoint &other, UPoint &result) const;
-  virtual bool EqualValue( UPoint& i )
+  virtual bool EqualValue( const UPoint& i )
   {
   return   AlmostEqual( p0, i.p0 ) &&
            AlmostEqual( p1, i.p1 );
@@ -2160,7 +2160,7 @@ loads, i.e., into non-ordered mappings.
 
 */
 
-    void EndBulkLoad( const bool sort = true );
+    virtual void EndBulkLoad( const bool sort = true );
 /*
 Marks the end of a bulk load and sorts the unit set if the flag ~sort~ is set to true.
 
@@ -2179,7 +2179,7 @@ Returns the unit ~upi~ at the position ~i~ in the mapping.
 
 */
 
-    void Add( const Unit& upi );
+    virtual void Add( const Unit& upi );
 /*
 Adds an unit ~upi~ to the mapping. We will assume that the only way of adding units
 is in bulk loads, i.e., in a non-ordered array.
@@ -2188,7 +2188,7 @@ is in bulk loads, i.e., in a non-ordered array.
 
 */
 
-   void MergeAdd( Unit& upi );
+   virtual void MergeAdd( Unit& upi );
 /*
 Adds an unit ~upi~ to the mapping. If the new unit and the last
 unit in the Mapping are equalValue it merges the two units.
@@ -2201,7 +2201,7 @@ Without defining the function ~equalValue~ for units
 
 */
 
-    void Clear();
+    virtual void Clear();
 /*
 Remove all units in the mapping.
 
@@ -2232,7 +2232,7 @@ purposes only. The ~mapping~ is valid, if the following conditions are true:
     inline ostream& Print( ostream &os ) const;
     inline size_t HashValue() const;
     inline void CopyFrom( const StandardAttribute* right );
-    inline void Restrict( const vector< pair<int, int> >& intervals );
+    inline virtual void Restrict( const vector< pair<int, int> >& intervals );
 
     inline int NumOfFLOBs() const;
     inline FLOB *GetFLOB(const int i);
@@ -2440,7 +2440,7 @@ array of intervals.
 A flag indicating whether the unit set is ordered or not.
 
 */
-protected:
+  protected:
     DBArray< Unit > units;
 /*
 The database array of temporal units.
@@ -2618,6 +2618,7 @@ The simple constructor. This constructor should not be used.
       {
         del.refs=1;
         del.isDelete=true;
+        bbox = Rectangle<3>(false);
       }
 /*
 The constructor. Initializes space for ~n~ elements.
@@ -2625,12 +2626,23 @@ The constructor. Initializes space for ~n~ elements.
 */
 
 /*
-3.12.2
+3.12.2 Modifications of Inherited Functions
  
-MergeAdd  Overwrites the function defined in Mapping
+Overwrites the function defined in Mapping, mostly in order to
+maintain the object's bounding box. Also, some methods can be improved
+using a check on bbox.
 
 */
+  
+  void Clear();
+  void Add( const UPoint& unit );
   void MergeAdd(const UPoint& unit);
+  void EndBulkLoad( const bool sort = true );
+  void Restrict( const vector< pair<int, int> >& intervals );
+  ostream& Print( ostream &os ) const;
+  bool operator==( const MPoint& r ) const;
+  inline MPoint* Clone() const;
+  inline void CopyFrom( const StandardAttribute* right );
 
 /*
 3.10.5.3 Operation ~trajectory~
@@ -2698,7 +2710,7 @@ original object. The movement is continued at the last position of this mpoint.
 
 */
 
-void TranslateAppend(MPoint& mp, const DateTime& dur);
+  void TranslateAppend(MPoint& mp, const DateTime& dur);
 
 
 /*
@@ -2707,7 +2719,7 @@ void TranslateAppend(MPoint& mp, const DateTime& dur);
 Store the reverse of the movement of this instance of a mpoint into result.
 
 */
-void Reverse(MPoint& result);
+  void Reverse(MPoint& result);
 
 
 /*
@@ -2723,9 +2735,6 @@ directly after the gap.
 */
   void Sample(const DateTime& duration, MPoint& result, 
               const bool KeepEndPoint = false )const;
-
-
-
 
 /*
 3.10.5.8 ~Append~
@@ -2758,16 +2767,26 @@ Determines the drive distnace of this moving point.
 Will return a value smaller than zero if this mpoint is not defined
 
 */
-  double Length() const; 
+  double Length() const;
 
+/*
+3.10.5.11 ~BoundingBox~
+
+Returns the MPoint's minimum bounding rectangle
+
+*/
+  // return the stored bbox
+  Rectangle<3> BoundingBox() const;
+
+  // recompute bbox, if necessary
+  void RestoreBoundingBox();
 
 private:
    void Simplify(const int min, const int max,
                  bool* useleft, bool* useright,
                  const double epsilon) const;
 
-
-
+   Rectangle<3> bbox;
 };
 
 /*
@@ -6246,6 +6265,7 @@ int MappingPresent_p( Word* args, Word& result,
   return 0;
 }
 
+
 /*
 6.11 Value mapping functions of operator ~passes~
 
@@ -6268,6 +6288,7 @@ int MappingPasses( Word* args, Word& result,
 
   return 0;
 }
+
 
 /*
 6.12 Value mapping functions of operator ~initial~
