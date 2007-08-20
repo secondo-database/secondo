@@ -349,22 +349,6 @@ as an attribute.
     }
 
     inline int Compare( const Attribute *arg ) const
-//     { // Original implementation:
-//       if( !defined )
-//         return -1;
-//       const Point* p = (const Point*)arg;
-//       if( !p )
-//         return -2;
-//       if( !defined && !p->defined )
-//         return 0;
-//       if( !p->defined )
-//         return 1;
-//       if( *this > *p )
-//         return 1;
-//       if( *this < *p )
-//         return -1;
-//       return 0;
-//     }
     { // CD: Implementation following guidelines from Attribute.h:
       const Point* p = (const Point*)arg;
       if( !defined && !p->defined )
