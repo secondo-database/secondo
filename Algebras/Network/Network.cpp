@@ -964,18 +964,18 @@ void Network::FillAdjacencyLists()
   }
   delete pJunctionsIt;
 
-//  cout << "AdjacencyList" << endl;
-//  cout << "-------------" << endl;
-//  for (int i = 0; i < m_xAdjacencyList.Size(); ++i) 
-//  {
-//    const AdjacencyListEntry* xEntry;
-//    m_xAdjacencyList.Get(i, xEntry);
-//    cout << i << ": " 
-//         << "High:" << xEntry->m_iHigh << " " 
-//         << "Low:" << xEntry->m_iLow 
-//         << endl;
-//    
-//  }
+  cout << "AdjacencyList" << endl;
+  cout << "-------------" << endl;
+  for (int i = 0; i < m_xAdjacencyList.Size(); ++i) 
+  {
+    const AdjacencyListEntry* xEntry;
+    m_xAdjacencyList.Get(i, xEntry);
+    cout << i << ": " 
+         << "High:" << xEntry->m_iHigh << " " 
+         << "Low:" << xEntry->m_iLow 
+         << endl;
+    
+  }
 //  cout << "-------------" << endl;
 //
 //  cout << "SubAdjacencyList" << endl;
@@ -1250,8 +1250,8 @@ ListExpr Network::Out(ListExpr typeInfo)
 
 */
 ListExpr Network::Save(SmiRecord& in_xValueRecord, 
-                        size_t& inout_iOffset,
-                        const ListExpr in_xTypeInfo)
+                       size_t& inout_iOffset,
+                       const ListExpr in_xTypeInfo)
 {
   // Save id of the network
   int iId = m_iId;
@@ -1320,17 +1320,18 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
     return false;
   }
 
-//  Attribute::Save(valueRecord, 
-//                   offset, 
-//                   typeInfo, // AlgebraId und TypId
-//                   m_xAdjacencyList);
+//  cout << "AdjacencyLists Size: " << m_xAdjacencyList.Size() << endl;
+//  cout << "AdjacencyLists StructSize: " << sizeof(AdjacencyListEntry) << endl;
+//  SaveFLOB(in_xValueRecord, 
+//           inout_iOffset,
+//           &m_xAdjacencyList);
 //
-//  Attribute::Save(valueRecord, 
-//                   offset, 
-//                   typeInfo, 
-//                   m_xSubAdjacencyList);
+//  cout << "SubAdjacencyLists Size: " << m_xSubAdjacencyList.Size() << endl;
+//  cout << "SubAdjacencyLists StructSize: " << sizeof(DirectedSection) << endl;
+//  SaveFLOB(in_xValueRecord, 
+//           inout_iOffset,
+//           &m_xSubAdjacencyList);
     
-    // Read network id
 
   return true; 
 }
@@ -1437,6 +1438,32 @@ Network *Network::Open(SmiRecord& in_xValueRecord,
     delete pBTreeJunctionsByRoute1;
     return 0;
   }
+  
+//    DBArray<AdjacencyListEntry> xAdjacencyList(24);
+//    DBArray<DirectedSection> xSubAdjacencyList(48);
+//  
+//  
+//DBArray<AdjacencyListEntry>* xNewList = 
+//(DBArray<AdjacencyListEntry>*)OpenFLOB(in_xValueRecord, 
+//           inout_iOffset, 
+//           &xAdjacencyList); 
+//  
+//  cout << "New AdjacencyList" << endl;
+//  cout << "-------------" << endl;
+//  for (int i = 0; i < xNewList->Size(); ++i) 
+//  {
+//    const AdjacencyListEntry* xEntry;
+//    xNewList->Get(i, xEntry);
+//    cout << i << ": " 
+//         << "High:" << xEntry->m_iHigh << " " 
+//         << "Low:" << xEntry->m_iLow 
+//         << endl;
+//    
+//  }
+//  
+//  OpenFLOB(in_xValueRecord, 
+//           inout_iOffset, 
+//           &xSubAdjacencyList); 
   
   // Create network
   return new Network(iId,
@@ -1578,4 +1605,81 @@ int Network::SizeOfNetwork()
 {
   return 0;
 }
+
+
+void Network::SaveFLOB(SmiRecord& in_xValueRecord, 
+                       size_t& inout_iOffset,
+                       FLOB* in_pFLOB)
+    {
+      size_t iFLOBSize = sizeof(FLOB);
+      in_xValueRecord.Write(in_pFLOB,
+                            iFLOBSize,
+                            inout_iOffset);
+      inout_iOffset += iFLOBSize;                               
+      cout << "Write Flob himself Size: " << iFLOBSize << endl;
+      
+      // Größe bestimmen
+      size_t iSize = in_pFLOB->Size();
+      cout << "Write Flob Size: " << iSize << endl;
+
+      // Move FLOB data to extension tuple
+      char* pElement = 0;
+      if( iSize > 0 )
+      { 
+        pElement = (char*)malloc(iSize);
+      }
+      
+      size_t iWritten = in_pFLOB->WriteTo(pElement);
+      cout << "Write Flob Size: " << iWritten << endl;
+
+      // Write the extension element
+      if(iSize > 0)
+      {
+        in_xValueRecord.Write(pElement, 
+                              iSize, 
+                              inout_iOffset );
+        // count Offset
+        inout_iOffset += iSize;
+        free( pElement );
+      }
+    }
+    
+/*
+Read a flob from a file
+
+*/
+    FLOB* Network::OpenFLOB(SmiRecord& in_xValueRecord, 
+                            size_t& inout_iOffset,
+                            FLOB* in_pFLOB)
+    {
+      
+      // Read the element
+      size_t iFLOBSize = sizeof(FLOB);
+      
+      FLOB* pNewFlob = 
+        (FLOB*)(SetWord( new DBArray<AdjacencyListEntry>())).addr;
+      in_xValueRecord.Read(pNewFlob, 
+                           iFLOBSize, 
+                           inout_iOffset);
+      pNewFlob = new (pNewFlob) DBArray<AdjacencyListEntry>;
+      inout_iOffset += iFLOBSize;                        
+            
+      // TODO: Calculate size
+      size_t iSize = pNewFlob->Size();
+      cout << "Read Flob Size: " << iSize << endl; 
+      cout << "Flob Elem Size: " 
+           << ((DBArray<AdjacencyListEntry>*)pNewFlob)->Size() << endl;  
+      char* pFLOB = (char*)malloc(iSize);
+
+      in_xValueRecord.Read(pFLOB, 
+                           iSize, 
+                           inout_iOffset);
+      size_t iRead = pNewFlob->ReadFrom(pFLOB);
+      assert(iSize == iRead);
+      inout_iOffset += iRead;
+      cout << "Flob Elem Size: " 
+           << ((DBArray<AdjacencyListEntry>*)pNewFlob)->Size() << endl;  
+
+      return pNewFlob;
+    }
 

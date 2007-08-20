@@ -883,6 +883,18 @@ Given that all relations are set up, the adjacency lists are created.
 */
   void FillAdjacencyLists();
 
+void SaveFLOB(SmiRecord& in_xValueRecord, 
+                       size_t& inout_iOffset,
+                       FLOB* in_pFLOB);
+
+/*
+Read a flob from a file
+
+*/
+    static FLOB* OpenFLOB(SmiRecord& in_xValueRecord, 
+                            size_t& inout_iOffset,
+                            FLOB* in_pFLOB);
+
 /*
 6.6 Private parts - relations holding the network
 
