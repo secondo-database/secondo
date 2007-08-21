@@ -148,10 +148,18 @@ public class Dsplgpoint extends DisplayGraph
   * will be added.
   */
   public void init(ListExpr in_xType, 
-           ListExpr in_xValue, 
-           QueryResult inout_xQueryResult)
+                   ListExpr in_xValue, 
+                   QueryResult inout_xQueryResult)
   {
-    try {
+    try 
+    {
+      if(isUndefined(in_xValue))
+      {
+        inout_xQueryResult.addEntry(new String("" + AttrName + ": undefined"));
+        return;
+      }
+
+      
       AttrName = in_xType.symbolValue();
       m_xGPoint= new GPoint(in_xValue);
       inout_xQueryResult.addEntry(this);
@@ -161,7 +169,7 @@ public class Dsplgpoint extends DisplayGraph
       xEx.printStackTrace();
       err = true;
       Reporter.writeError("Error in ListExpr :parsing aborted");
-      inout_xQueryResult.addEntry(new String("(" + AttrName + ": GA(graph))"));
+      inout_xQueryResult.addEntry(new String("(" + AttrName + ": error)"));
       return;
     }
   }

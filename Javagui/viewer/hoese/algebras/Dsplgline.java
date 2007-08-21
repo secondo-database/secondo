@@ -152,6 +152,12 @@ public class Dsplgline extends DisplayGraph
     try 
     {
       AttrName = in_xType.symbolValue();
+      if(isUndefined(in_xValue))
+      {
+        inout_xQueryResult.addEntry(AttrName + ": undefined");
+        return;
+      }
+
       m_xGLine = new GLine(in_xValue);
       inout_xQueryResult.addEntry(this);
     }
@@ -160,7 +166,7 @@ public class Dsplgline extends DisplayGraph
       xEx.printStackTrace();
       err = true;
       Reporter.writeError("GLine: Error in ListExpr :parsing aborted");
-      inout_xQueryResult.addEntry(new String("(" + AttrName + ": GA(graph))"));
+      inout_xQueryResult.addEntry(AttrName + ": error");
       return;
     }
   }
