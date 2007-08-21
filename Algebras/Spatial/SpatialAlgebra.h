@@ -3657,47 +3657,94 @@ inline int Line::Size() const
   return line.Size();
 }
 
+// Original Implementation:
+// inline Point Line::StartPoint( bool startsSmaller ) const
+// {
+//   if( IsEmpty() )
+//     return Point( false );
+// 
+//   if( startsSmaller && this->startsSmaller )
+//     pos = 0;
+//   else
+//     pos = Size() - 1;
+// 
+//   const LRS *lrs;
+//   Get( pos, lrs );
+// 
+//   const HalfSegment* hs;
+//   Get( lrs->hsPos, hs );
+// 
+//   return pos == 0 ?
+//          hs->GetDomPoint() :
+//          hs->GetSecPoint();
+// }
+
+// Changes proposed by M. Scheppokat:
 inline Point Line::StartPoint( bool startsSmaller ) const
 {
   if( IsEmpty() )
     return Point( false );
 
-  if( startsSmaller && this->startsSmaller )
-    pos = 0;
-  else
-    pos = Size() - 1;
+  // Find out which end should be the start of the line. This
+  // depends on the orientation of the curve and the parameter
+  // to this function.
+  bool startPointSmaller = startsSmaller && this->startsSmaller;
 
+  if( startPointSmaller )
+  {
+    // Start is at the smaller end of the array
+    pos = 0;
+  }
+  else
+  {
+    // Start is at the bigger end of the array
+    pos = lrsArray.Size()-1;
+  }
+
+  // Read entry from linear referencing system. 
   const LRS *lrs;
   Get( pos, lrs );
 
+  // Get half-segment 
   const HalfSegment* hs;
   Get( lrs->hsPos, hs );
 
-  return pos == 0 ?
+  // Return one end of the half-segment depending
+  // on the start.
+  return startPointSmaller ?
          hs->GetDomPoint() :
-         hs->GetSecPoint();
+      hs->GetSecPoint();
 }
 
+// Original Implementation:
+// inline Point Line::EndPoint( bool startsSmaller ) const
+// {
+//   if( IsEmpty() )
+//     return Point( false );
+// 
+//   if( startsSmaller && this->startsSmaller )
+//     pos = Size()-1;
+//   else
+//     pos = 0;
+// 
+//   const LRS *lrs;
+//   Get( pos, lrs );
+// 
+//   const HalfSegment* hs;
+//   Get( lrs->hsPos, hs );
+// 
+//   return pos == 0 ?
+//          hs->GetDomPoint() :
+//          hs->GetSecPoint();
+// }
+
+// Changes proposed by M. Scheppokat:
 inline Point Line::EndPoint( bool startsSmaller ) const
 {
-  if( IsEmpty() )
-    return Point( false );
-
-  if( startsSmaller && this->startsSmaller )
-    pos = Size()-1;
-  else
-    pos = 0;
-
-  const LRS *lrs;
-  Get( pos, lrs );
-
-  const HalfSegment* hs;
-  Get( lrs->hsPos, hs );
-
-  return pos == 0 ?
-         hs->GetDomPoint() :
-         hs->GetSecPoint();
+  // The end is opposite to the start.
+  return StartPoint(!startsSmaller);
 }
+
 inline void Line::Get( const int i, const HalfSegment*& hs ) const
 {
   assert(i>=0);
