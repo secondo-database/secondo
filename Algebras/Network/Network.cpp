@@ -964,18 +964,18 @@ void Network::FillAdjacencyLists()
   }
   delete pJunctionsIt;
 
-  cout << "AdjacencyList" << endl;
-  cout << "-------------" << endl;
-  for (int i = 0; i < m_xAdjacencyList.Size(); ++i) 
-  {
-    const AdjacencyListEntry* xEntry;
-    m_xAdjacencyList.Get(i, xEntry);
-    cout << i << ": " 
-         << "High:" << xEntry->m_iHigh << " " 
-         << "Low:" << xEntry->m_iLow 
-         << endl;
-    
-  }
+//  cout << "AdjacencyList" << endl;
+//  cout << "-------------" << endl;
+//  for (int i = 0; i < m_xAdjacencyList.Size(); ++i) 
+//  {
+//    const AdjacencyListEntry* xEntry;
+//    m_xAdjacencyList.Get(i, xEntry);
+//    cout << i << ": " 
+//         << "High:" << xEntry->m_iHigh << " " 
+//         << "Low:" << xEntry->m_iLow 
+//         << endl;
+//    
+//  }
 //  cout << "-------------" << endl;
 //
 //  cout << "SubAdjacencyList" << endl;
