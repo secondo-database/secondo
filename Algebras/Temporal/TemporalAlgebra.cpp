@@ -1444,19 +1444,19 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
 }
 
 void UPoint::AtInterval( const Interval<Instant>& i,
- TemporalUnit<Point>& result ) const
+                         TemporalUnit<Point>& result ) const
 {
-  TemporalUnit<Point>::AtInterval( i, result );
-
-  UPoint *pResult = (UPoint*)&result;
-
   assert( IsDefined() );
   assert( i.IsValid() );
+
+  TemporalUnit<Point>::AtInterval( i, result );
+  UPoint *pResult = (UPoint*)&result;
+
   if( timeInterval.start == result.timeInterval.start )
     {
       pResult->p0 = p0;
       pResult->timeInterval.start = timeInterval.start;
-      pResult->timeInterval.lc = pResult->timeInterval.lc && timeInterval.lc;
+      pResult->timeInterval.lc = (pResult->timeInterval.lc && timeInterval.lc);
     }
   else
     TemporalFunction( result.timeInterval.start, pResult->p0 );
@@ -1465,10 +1465,11 @@ void UPoint::AtInterval( const Interval<Instant>& i,
     {
       pResult->p1 = p1;
       pResult->timeInterval.end = timeInterval.end;
-      pResult->timeInterval.rc = pResult->timeInterval.rc && timeInterval.rc;
+      pResult->timeInterval.rc = (pResult->timeInterval.rc && timeInterval.rc);
     }
   else
     TemporalFunction( result.timeInterval.end, pResult->p1 );
+
   pResult->SetDefined ( true );
 }
 
@@ -2545,14 +2546,21 @@ void MPoint::Clear()
 
 void MPoint::Add( const UPoint& unit )
 {
+//   cout << "CALLED: MPoint::Add" << endl;
   assert( unit.IsValid() );
   units.Append( unit );
   if(units.Size() == 1)
   {
+//     cout << "        MPoint::Add FIRST ADD" << endl;
+//     cout << "\t Old bbox = "; bbox.Print(cout);
     bbox = unit.BoundingBox();
+//     cout << "\n\t New bbox = "; bbox.Print(cout);
   } else {
-    bbox.Union(unit.BoundingBox());
+//     cout << "\t Old bbox = "; bbox.Print(cout);
+    bbox = bbox.Union(unit.BoundingBox());
+//     cout << "\n\t New bbox = "; bbox.Print(cout);
   }
+  RestoreBoundingBox(false);
 }
 
 void MPoint::Restrict( const vector< pair<int, int> >& intervals )
@@ -2630,47 +2638,219 @@ inline void MPoint::CopyFrom( const StandardAttribute* right )
   EndBulkLoad( false );
 }
 
-// bool MPoint::Present( const Instant& t ) const
-// {
-//   assert( t.IsDefined() && IsOrdered() );
-// 
-//   if(bbox.IsDefined())
-//   { // do MBR-check
-//     double instd = t.ToDouble();
-//     double mint = bbox.MinD(2);
-//     double maxt = bbox.MaxD(2);
-//     if( (instd < mint && !AlmostEqual(instd,mint)) ||
-//         (instd > maxt && !AlmostEqual(instd,mint)) )
-//       return false;
-//   }
-//   int pos = Position(t);
-//   if( pos == -1 )         //not contained in any unit
-//     return false;
-//   return true;
-// }
-// 
-// bool MPoint::Present( const Periods& t ) const
-// {
-//   assert( t.IsOrdered() && IsOrdered() );
-// 
-//   Periods defTime( 0 );
-//   DefTime( defTime );
-//   if(bbox.IsDefined())
-//   { // do MBR-check
-//     double MeMin = bbox.MinD(2);
-//     double MeMax = bbox.MaxD(2);
-//     Instant tmin; t.Minimum(tmin);
-//     Instant tmax; t.Maximum(tmax);
-//     double pmin = tmin.ToDouble();
-//     double pmax = tmax.ToDouble();
-//     if( (pmin < MeMin && !AlmostEqual(pmin,MeMin)) ||
-//          (pmax > MeMax && !AlmostEqual(pmax,MeMax)) )
-//       return false;
-//   }
-//
-//  return t.Intersects( defTime );
-//}
+bool MPoint::Present( const Instant& t ) const
+{
+  cout << "CALLED: MPoint::Present(Instant): " << endl;
+  assert( IsDefined() );
+  assert( t.IsDefined() );
+  assert( IsOrdered() );
 
+  if(bbox.IsDefined())
+  { // do MBR-check
+    double instd = t.ToDouble();
+    double mint = bbox.MinD(2);
+    double maxt = bbox.MaxD(2);
+    if( (instd < mint && !AlmostEqual(instd,mint)) ||
+        (instd > maxt && !AlmostEqual(instd,mint))
+      )
+    {
+      cout << "\tEarly abort." << endl;
+      return false;
+    }
+  }
+  cout << "\tNeed to inquire." << endl;
+  int pos = Position(t);
+  if( pos == -1 )         //not contained in any unit
+    return false;
+  return true;
+}
+
+bool MPoint::Present( const Periods& t ) const
+{
+  cout << "CALLED: MPoint::Present(Periods)" << endl;
+  assert( IsDefined() );
+  assert( IsOrdered() );
+  assert( t.IsDefined() );
+  assert( t.IsOrdered() );
+
+  Periods defTime( 0 );
+  DefTime( defTime );
+  if(bbox.IsDefined())
+  { // do MBR-check
+    double MeMin = bbox.MinD(2);
+    double MeMax = bbox.MaxD(2);
+    Instant tmin; t.Minimum(tmin);
+    Instant tmax; t.Maximum(tmax);
+    double pmin = tmin.ToDouble();
+    double pmax = tmax.ToDouble();
+    if( (pmin < MeMin && !AlmostEqual(pmin,MeMin)) ||
+         (pmax > MeMax && !AlmostEqual(pmax,MeMax))
+      )
+    {
+      cout << "\tEarly abort." << endl;
+      return false;
+    }
+  }
+  cout << "\tNeed to inquire." << endl;
+  return t.Intersects( defTime );
+}
+
+void MPoint::AtInstant( const Instant& t, Intime<Point>& result ) const
+{
+  cout << "CALLED: MPoint::AtInstant(...)" << endl;
+  assert( IsOrdered() );
+  assert( t.IsDefined() );
+  if( IsDefined() && t.IsDefined() )
+  {
+    if( !bbox.IsDefined() )
+    { // result is undefined
+      result.SetDefined(false);
+    } else if( IsEmpty() )
+    { // result is undefined
+      result.SetDefined(false);
+    } else
+    { // compute result
+      double instd = t.ToDouble();
+      double mind = bbox.MinD(2);
+      double maxd = bbox.MaxD(2);
+      if( (mind > instd && !AlmostEqual(mind,instd)) ||
+           (maxd < instd && !AlmostEqual(maxd,instd))
+        )
+      {
+        cout << "\tEarly abort." << endl;
+        result.SetDefined(false);
+      } else
+      {
+        cout << "\tNeed to inquire." << endl;
+        int pos = Position( t );
+        if( pos == -1 )  // not contained in any unit
+          result.SetDefined( false );
+        else
+        {
+          const UPoint *posUnit;
+          units.Get( pos, posUnit );
+          result.SetDefined( true );
+          posUnit->TemporalFunction( t, result.value );
+          result.instant.CopyFrom( &t );
+        }
+      }
+    }
+  } else
+  {
+    result.SetDefined(false);
+  }
+}
+
+void MPoint::AtPeriods( const Periods& p, MPoint& result ) const
+{
+  cout << "CALLED: MPoint::AtPeriods(...)" << endl;
+  assert( IsOrdered() );
+  assert( p.IsOrdered() );
+
+  result.Clear();
+  result.SetDefined(true);
+  if( IsDefined() && p.IsDefined() )
+  {
+    if( !bbox.IsDefined())
+    { // result is undefined
+      result.SetDefined(false);
+    } else if( IsEmpty() || p.IsEmpty())
+    { // result is defined but empty
+      result.SetDefined(true);
+    } else
+    { // compute result
+      Instant perMinInst; p.Minimum(perMinInst);
+      Instant perMaxInst; p.Maximum(perMaxInst);
+      double permind = perMinInst.ToDouble();
+      double permaxd = perMaxInst.ToDouble();
+      double mind = bbox.MinD(2);
+      double maxd = bbox.MaxD(2);
+      if( (mind > permaxd && !AlmostEqual(mind,permaxd)) ||
+          (maxd < permind && !AlmostEqual(maxd,permind)))
+      {
+        cout << "\tEarly abort." << endl;
+        result.SetDefined(true);
+      } else
+      {
+        cout << "\tNeed to inquire." << endl;
+        result.StartBulkLoad();
+        const UPoint *unit;
+        const Interval<Instant> *interval;
+        int i = 0, j = 0;
+        Get( i, unit );
+        p.Get( j, interval );
+
+        while( 1 )
+        {
+          if( unit->timeInterval.Before( *interval ) )
+          {
+            if( ++i == GetNoComponents() )
+              break;
+            Get( i, unit );
+          }
+          else if( interval->Before( unit->timeInterval ) )
+          {
+            if( ++j == p.GetNoComponents() )
+              break;
+            p.Get( j, interval );
+          }
+          else
+          { // we have overlapping intervals, now
+            UPoint r;
+            unit->AtInterval( *interval, r );
+            result.Add( r );
+            cout << "\n\tunit = "; unit->Print(cout); cout << endl;
+            cout << "\tinterval =       "; interval->Print(cout); cout << endl;
+            cout << "\tr    = "; r.Print(cout); cout << endl;
+
+            if( interval->end == unit->timeInterval.end )
+            { // same ending instant
+              if( interval->rc == unit->timeInterval.rc )
+              { // same ending instant and rightclosedness: Advance both
+                if( ++i == GetNoComponents() )
+                  break;
+                Get( i, unit );
+                if( ++j == p.GetNoComponents() )
+                  break;
+                p.Get( j, interval );
+              }
+              else if( interval->rc == true )
+              { // Advanve in mapping
+                if( ++i == GetNoComponents() )
+                  break;
+                Get( i, unit );
+              }
+              else
+              { // Advance in periods
+                assert( unit->timeInterval.rc == true );
+                if( ++j == p.GetNoComponents() )
+                  break;
+                p.Get( j, interval );
+              }
+            }
+            else if( interval->end > unit->timeInterval.end )
+            { // Advance in mpoint
+              if( ++i == GetNoComponents() )
+                break;
+              Get( i, unit );
+            }
+            else
+            { // Advance in periods
+              assert( interval->end < unit->timeInterval.end );
+              if( ++j == p.GetNoComponents() )
+                break;
+              p.Get( j, interval );
+            }
+          }
+        }
+        result.EndBulkLoad();
+      }
+    }
+  } else
+  {
+    result.SetDefined(false);
+  }
+}
 
 /*
 
@@ -2679,13 +2859,13 @@ and thus may needs to be recalculated and if, does so.
 
 */
 
-void MPoint::RestoreBoundingBox()
+void MPoint::RestoreBoundingBox(const bool force)
 {
   if(!IsDefined() || GetNoComponents() == 0)
   { // invalidate bbox
     bbox.SetDefined(false);
   }
-  else if(!bbox.IsDefined())
+  else if(force || !bbox.IsDefined())
   { // construct bbox
     const UPoint *unit;
     int size = GetNoComponents();
@@ -2700,7 +2880,7 @@ void MPoint::RestoreBoundingBox()
       }
       else
       {
-        bbox.Union(unit->BoundingBox());
+        bbox = bbox.Union(unit->BoundingBox());
       }
     }
   } // else: bbox unchanged and still correct
@@ -2787,13 +2967,13 @@ void MPoint::MergeAdd(const UPoint& unit){
      !( (last->timeInterval.rc )  ^ (unit.timeInterval.lc))){
      // intervals are not connected
      Add(unit);
-     bbox.Union(unit.BoundingBox());
+     bbox = bbox.Union(unit.BoundingBox());
      return;
   }
   if(!AlmostEqual(last->p1, unit.p0)){
     // jump in spatial dimension
     Add(unit);
-    bbox.Union(unit.BoundingBox());
+    bbox = bbox.Union(unit.BoundingBox());
     return;
   }
   Interval<Instant> complete(last->timeInterval.start,
@@ -2805,7 +2985,7 @@ void MPoint::MergeAdd(const UPoint& unit){
   upoint.TemporalFunction(last->timeInterval.end, p, true);
   if(!AlmostEqual(p,last->p0)){
      Add(unit);
-     bbox.Union(unit.BoundingBox());
+     bbox = bbox.Union(unit.BoundingBox());
      return;
   }
   units.Put(size-1,upoint); // overwrite the last unit by a connected one
@@ -7644,8 +7824,42 @@ int MPointBBox(Word* args, Word& result, int message, Word& local,
   { // empty/undefined MPoint --> undef
     res->SetDefined(false);
   }
-  else { // returned MBR
+  else { // return MBR
     *res = arg->BoundingBox();
+  }
+  return 0;
+}
+
+int MPointBBoxOld(Word* args, Word& result, int message, Word& local,
+               Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Rectangle<3>* res = (Rectangle<3>*) result.addr;
+  MPoint*       arg = (MPoint*)       args[0].addr;
+  const UPoint *uPoint;
+  double min[3], max[3];
+  Rectangle<3> accubbox;
+
+  if( !arg->IsDefined() || (arg->GetNoComponents() < 1) )
+  {
+    res->SetDefined(false);
+  }
+  else
+  {
+    arg->Get( 0, uPoint );
+    accubbox = uPoint->BoundingBox();
+    min[2] = uPoint->timeInterval.start.ToDouble(); // mintime
+    for( int i = 1; i < arg->GetNoComponents(); i++ )
+    { // calculate spatial bbox
+      arg->Get( i, uPoint );
+      accubbox = accubbox.Union( uPoint->BoundingBox() );
+    }
+    max[2] = uPoint->timeInterval.end.ToDouble(); // maxtime
+    min[0] = accubbox.MinD(0); // minX
+    max[0] = accubbox.MaxD(0); // maxX
+    min[1] = accubbox.MinD(1); // minY
+    max[1] = accubbox.MaxD(1); // maxY
+    res->Set( true, min, max );
   }
   return 0;
 }
@@ -7710,28 +7924,18 @@ int MPointBBox2d(Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage( s );
   Rectangle<2>* res = (Rectangle<2>*) result.addr;
   MPoint*       arg = (MPoint*)       args[0].addr;
-  const UPoint *uPoint;
-  double min[2], max[2];
-  Rectangle<3> accubbox; 
-
-  if( !arg->IsDefined() || (arg->GetNoComponents() < 1) )
+  Rectangle<3> accubbox = arg->BoundingBox();
+  if( accubbox.IsDefined() )
   {
-    res->SetDefined(false);
-  }
-  else
-  {
-    arg->Get( 0, uPoint );
-    accubbox = uPoint->BoundingBox();
-    for( int i = 1; i < arg->GetNoComponents(); i++ )
-    { // calculate spatial bbox
-      arg->Get( i, uPoint );
-      accubbox = accubbox.Union( uPoint->BoundingBox() );
-    }
+    double min[2], max[2];
     min[0] = accubbox.MinD(0); // minX
     max[0] = accubbox.MaxD(0); // maxX
     min[1] = accubbox.MinD(1); // minY
     max[1] = accubbox.MaxD(1); // maxY
     res->Set( true, min, max );
+  } else
+  {
+    res->SetDefined(false);
   }
   return 0;
 }
@@ -8593,6 +8797,101 @@ int LengthVM(Word* args, Word& result, int message,
 }
 
 /*
+16.3.49 Some specialized valuemappings for type MPoint
+
+*/
+
+// specialized case MPoint: use MBR
+// All other cases: template<>MappingNotEqual()
+int MPointNotEqual( Word* args, Word& result,
+                    int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( *((MPoint*)args[0].addr) != *((MPoint*)args[1].addr) )
+    ((CcBool*)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+  return 0;
+}
+
+// specialized case MPoint: use MBR
+// All other cases: template<>MappingEqual()
+int MPointEqual( Word* args, Word& result,
+                 int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( *((MPoint*)args[0].addr) == *((MPoint*)args[1].addr) )
+    ((CcBool*)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+  return 0;
+}
+
+// specialized case MPoint: use MBR
+// All other cases: template<>MappingPresent_i()
+int MPointPresent_i( Word* args, Word& result,
+                     int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MPoint *m = ((MPoint*)args[0].addr);
+  Instant* inst = ((Instant*)args[1].addr);
+
+  if( !inst->IsDefined() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( m->Present( *inst ) )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+
+  return 0;
+}
+
+// specialized case MPoint: use MBR
+// All other cases: template<>MappingPresent_p()
+int MPointPresent_p( Word* args, Word& result,
+                         int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MPoint *m = ((MPoint*)args[0].addr);
+  Periods* periods = ((Periods*)args[1].addr);
+
+  if( periods->IsEmpty() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( m->Present( *periods ) )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+
+  return 0;
+}
+
+int MPointAtInstant( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  MPoint* mp = ((MPoint*)args[0].addr);
+  Instant* inst = (Instant*) args[1].addr;
+  Intime<Point>* pResult = (Intime<Point>*)result.addr;
+
+  mp->AtInstant(*inst, *pResult);
+  return 0;
+}
+
+int MPointAtPeriods( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  MPoint* mp = ((MPoint*)args[0].addr);
+  MPoint* pResult = (MPoint*)result.addr;
+  Periods* per = (Periods*)args[1].addr;
+
+  mp->AtPeriods(*per,*pResult);
+  return 0;
+}
+
+/*
 16.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -8636,7 +8935,7 @@ ValueMapping temporalequalmap[] = { InstantEqual,
 ValueMapping temporalequalmap2[] = { MappingEqual<MBool>,
                                     MappingEqual<MInt>,
                                     MappingEqual<MReal>,
-                                    MappingEqual<MPoint> };
+                                    MPointEqual };
 
 ValueMapping temporalnotequalmap[] = { InstantNotEqual,
                                        RangeNotEqual<RInt>,
@@ -8650,7 +8949,7 @@ ValueMapping temporalnotequalmap[] = { InstantNotEqual,
 ValueMapping temporalnotequalmap2[] = { MappingNotEqual<MBool>,
                                        MappingNotEqual<MInt>,
                                        MappingNotEqual<MReal>,
-                                       MappingNotEqual<MPoint> };
+                                       MPointNotEqual };
 
 ValueMapping temporalintersectsmap[] = { RangeIntersects<RInt>,
                                          RangeIntersects<RReal>,
@@ -8708,6 +9007,13 @@ ValueMapping temporalbboxmap[] = { UPointBBox,
                                    MPointBBox,
                                    IPointBBox };
 
+ValueMapping temporalbboxoldmap[] = { UPointBBox,
+                                      RangeBBox<RInt>,
+                                      RangeBBox<RReal>,
+                                      RangeBBox<Periods>,
+                                      MPointBBoxOld,
+                                      IPointBBox };
+
 ValueMapping temporalbbox2dmap[] = { UPointBBox2d,
                                      MPointBBox2d,
                                      IPointBBox2d };
@@ -8725,12 +9031,12 @@ ValueMapping temporalvalmap[] = { IntimeVal<CcBool>,
 ValueMapping temporalatinstantmap[] = { MappingAtInstant<MBool, CcBool>,
                                         MappingAtInstant<MInt, CcInt>,
                                         MappingAtInstant<MReal, CcReal>,
-                                        MappingAtInstant<MPoint, Point> };
+                                        MPointAtInstant };
 
 ValueMapping temporalatperiodsmap[] = { MappingAtPeriods<MBool>,
                                         MappingAtPeriods<MInt>,
                                         MappingAtPeriods<MReal>,
-                                        MappingAtPeriods<MPoint> };
+                                        MPointAtPeriods };
 
 ValueMapping temporaldeftimemap[] = { MappingDefTime<MBool>,
                                       MappingDefTime<MInt>,
@@ -8740,11 +9046,11 @@ ValueMapping temporaldeftimemap[] = { MappingDefTime<MBool>,
 ValueMapping temporalpresentmap[] = { MappingPresent_i<MBool>,
                                       MappingPresent_i<MInt>,
                                       MappingPresent_i<MReal>,
-                                      MappingPresent_i<MPoint>,
+                                      MPointPresent_i,
                                       MappingPresent_p<MBool>,
                                       MappingPresent_p<MInt>,
                                       MappingPresent_p<MReal>,
-                                      MappingPresent_p<MPoint> };
+                                      MPointPresent_p };
 
 ValueMapping temporalpassesmap[] = { MappingPasses<MBool, CcBool, CcBool>,
                                      MappingPasses<MInt, CcInt, CcInt>,
@@ -9161,6 +9467,19 @@ const string TemporalSpecBBox  =
   "all intervals of a range-value (for range-value).</text--->"
   "<text>query bbox( upoint1 )</text--->"
   ") )";
+
+const string TemporalSpecBBoxOld  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>upoint -> rect3,\n"
+    "mpoint -> rect3,\n"
+    "ipoint -> rect3,\n"
+    "rT -> rT</text--->"
+    "<text>bboxOld ( _ )</text--->"
+    "<text>Returns the 3d bounding box of the spatio-temporal object, \n"
+    "resp. the range value with the smallest closed interval that contains "
+    "all intervals of a range-value (for range-value).</text--->"
+    "<text>query bbox( upoint1 )</text--->"
+    ") )";
 
 const string TemporalSpecBBox2d  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -9674,6 +9993,13 @@ Operator temporalbbox2d( "bbox2d",
                          TemporalBBox2dSelect,
                          TemporalBBox2dTypeMap );
 
+Operator temporalbboxold( "bboxold",
+                          TemporalSpecBBoxOld,
+                          6,
+                          temporalbboxoldmap,
+                          TemporalBBoxSelect,
+                          TemporalBBoxTypeMap );
+
 Operator temporaltranslate( "translate",
                        MPointSpecTranslate,
                        MPointTranslate,
@@ -9862,6 +10188,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalunits );
     AddOperator( &temporalbbox );
     AddOperator( &temporalbbox2d );
+    AddOperator( &temporalbboxold);
 
     AddOperator( &temporalat );
     AddOperator( &temporaldistance );

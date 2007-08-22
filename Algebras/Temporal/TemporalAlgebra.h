@@ -2226,12 +2226,12 @@ purposes only. The ~mapping~ is valid, if the following conditions are true:
     inline bool IsDefined() const;
     inline void SetDefined( bool Defined );
     inline virtual size_t Sizeof() const;
-    inline int Compare( const Attribute* arg ) const;
+    inline virtual int Compare( const Attribute* arg ) const;
     inline bool Adjacent( const Attribute* arg ) const;
     inline Mapping<Unit, Alpha>* Clone() const;
-    inline ostream& Print( ostream &os ) const;
+    inline virtual ostream& Print( ostream &os ) const;
     inline size_t HashValue() const;
-    inline void CopyFrom( const StandardAttribute* right );
+    inline virtual void CopyFrom( const StandardAttribute* right );
     inline virtual void Restrict( const vector< pair<int, int> >& intervals );
 
     inline int NumOfFLOBs() const;
@@ -2618,7 +2618,7 @@ The simple constructor. This constructor should not be used.
       {
         del.refs=1;
         del.isDelete=true;
-        bbox = Rectangle<3>(false);
+        bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
       }
 /*
 The constructor. Initializes space for ~n~ elements.
@@ -2643,6 +2643,10 @@ using a check on bbox.
   bool operator==( const MPoint& r ) const;
   inline MPoint* Clone() const;
   inline void CopyFrom( const StandardAttribute* right );
+  bool Present( const Instant& t ) const;
+  bool Present( const Periods& t ) const;
+  void AtInstant( const Instant& t, Intime<Point>& result ) const;
+  void AtPeriods( const Periods& p, MPoint& result ) const;
 
 /*
 3.10.5.3 Operation ~trajectory~
@@ -2657,10 +2661,6 @@ using a check on bbox.
   void Trajectory( Line& line ) const;
   void MSpeed(  MReal& result ) const;
   void MVelocity( MPoint& result ) const;
-
-
-
-
 
 /*
 3.10.5.3 Operation ~distance~
@@ -2779,7 +2779,7 @@ Returns the MPoint's minimum bounding rectangle
   Rectangle<3> BoundingBox() const;
 
   // recompute bbox, if necessary
-  void RestoreBoundingBox();
+  void RestoreBoundingBox(const bool force = false);
 
 private:
    void Simplify(const int min, const int max,
@@ -3002,42 +3002,45 @@ void Interval<Alpha>::Intersection( const Interval<Alpha>& i,
   assert( Intersects( i ) );
 
   if( Inside( i ) )
-    result = *this;
-  else if( i.Inside( *this ) )
-    result = i;
-  else
-    // Normal intersection
   {
+    result = *this;
+  }
+  else if( i.Inside( *this ) )
+  {
+    result = i;
+  }
+  else
+  { // Normal intersection
     int comp = start.Compare( &i.start );
     if( comp < 0 )
-    {
+    { // this starts smaller
       result.start.CopyFrom( &i.start );
       result.lc = i.lc;
     }
     else if( comp == 0 )
-    {
+    { // equal start
       result.start.CopyFrom( &i.start );
-      result.lc = lc || i.lc;
+      result.lc = (lc && i.lc);
     }
     else
-    {
+    { // i starts smaller
       result.start.CopyFrom( &start );
       result.lc = lc;
     }
 
     comp = end.Compare( &i.end );
     if( comp > 0 )
-    {
+    { // i ends smaller
       result.end.CopyFrom( &i.end );
       result.rc = i.rc;
     }
     else if( comp == 0 )
-    {
+    { // equal end
       result.end.CopyFrom( &i.end );
-      result.rc = rc || i.rc;
+      result.rc = (rc && i.rc);
     }
     else
-    {
+    { // this ends smaller
       result.end.CopyFrom( &this->end );
       result.rc = rc;
     }
@@ -5120,9 +5123,7 @@ void Mapping<Unit, Alpha>::AtPeriods( const Periods& periods,
       }
     }
   }
-
   result.EndBulkLoad( false );
-
 // VTA - The merge of the result is not implemented yet.
 }
 

@@ -277,7 +277,7 @@ Operator : distance
 Number   : 1
 Signature: (uT uT) -> ureal
 Example  : query distance(the_unit(alexanderplatz, mehringdamm, six30, nine, TRUE, FALSE), the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE))
-Result   : (ureal (("2003-11-20-06:30" "2003-11-20-09:00" TRUE TRUE)(4.4016205824E9 -4.58502144E8 1.194016E7 TRUE)))
+Result   : (ureal (("2003-11-20-06:30" "2003-11-20-09:00" FALSE FALSE)(4401620582.4 -458502144.0 11940160.0 TRUE)))
 
 
 Operator : distance

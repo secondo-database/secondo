@@ -64,14 +64,14 @@ Operator : extattrsize
 Number   : 1
 Signature: stream|rel(tuple X) x ident -> real
 Example  : query Trains extattrsize[Trip]
-Result   : (platform (linux (real 48.0)) (linux64 (real 88.0)) (win32 (real 48.0)))
+Result   : (platform (linux (real 104.0)) (linux64 (real 88.0)) (win32 (real 104.0)))
 
 
 Operator : exttuplesize
 Number   : 1
 Signature: ((stream/rel (tuple x))) -> real
 Example  : query Trains exttuplesize
-Result   : (platform (linux (real 80.0)) (linux64 (real 136.0)) (win32 (real 80.0)))
+Result   : (platform (linux (real 136.0)) (linux64 (real 136.0)) (win32 (real 136.0)))
 
 
 Operator : feed
@@ -134,14 +134,14 @@ Operator : rootattrsize
 Number   : 1
 Signature: stream|rel(tuple X) x ident -> int
 Example  : query Trains rootattrsize[Trip]
-Result   : (platform (linux (int 48)) (linux64 (int 88)) (win32 (int 48)))
+Result   : (platform (linux (int 104)) (linux64 (int 88)) (win32 (int 104)))
 
 
 Operator : roottuplesize
 Number   : 1
 Signature: ((stream|rel (tuple x))) -> int
 Example  : query Trains feed project[Id, Trip] roottuplesize
-Result   : (platform (linux (int 60)) (linux64 (int 104)) (win32 (int 60)))
+Result   : (platform (linux (int 116)) (linux64 (int 104)) (win32 (int 116)))
 
 
 Operator : sizecounters
@@ -155,7 +155,7 @@ Operator : tuplesize
 Number   : 1
 Signature: ((stream/rel (tuple x))) -> real
 Example  : query Trains tuplesize
-Result   : (platform (linux (real 10718.97508896797)) (linux64 (real 17011.615234375)) (win32 (real 11085.83629893239)))  
+Result   : (platform (linux (real 10774.97508896797)) (linux64 (real 17011.615234375)) (win32 (real 11085.83629893239)))
 Remark   : On Linux and Windows this operator returns other values, Maybe it depends on Berkeley-DB or different page sizes.
 
 
