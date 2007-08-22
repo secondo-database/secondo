@@ -57,7 +57,17 @@ public class Route
    * All segments of this route
    */
 	private Segment[] m_xSegments;
-	
+
+  /**
+   * First segment of route
+   */
+  private Segment m_xFirstSegment;
+  
+  /**  
+   * Last segment of route 
+   */ 
+  private Segment m_xLastSegment;
+  
   /**
    * Flag indication wether this route has to distinct sides
    */
@@ -120,8 +130,11 @@ public class Route
 			xLineList = xLineList.rest();
 		}
 		m_xSegments = (Segment[])xSegments.toArray(new Segment[0]);
+    
+    maintainSegmentsOrdering();
 	}
 	
+
   /**
    * Constructor to copy only part of the route. Needed by 
    * <code>getPartOfRoute</code>
@@ -185,6 +198,7 @@ public class Route
       dCurrentPosition += xCurrentSegment.getLength();
     }
     m_xSegments = (Segment[])xSegments.toArray(new Segment[0]);
+    maintainSegmentsOrdering();
   }
 
   /**
@@ -237,20 +251,22 @@ public class Route
   {
 		
 		// Look for segment
-		Segment xSegment = null;
+		Segment xSegment = m_xFirstSegment;
 		double dDistanceOnRoute = 0;
-		for (int i = 0; i < m_xSegments.length; i++) 
+		while(xSegment != null) 
     {
-			xSegment = m_xSegments[i];
 			dDistanceOnRoute += xSegment.getLength();
 			if(dDistanceOnRoute > in_dDistance)
       {
 				break;
 			}
+      xSegment = xSegment.getNextSegment();
 		}
 
 		// Calculate offset for this segment
-		double dDistanceOnSegment = in_dDistance - dDistanceOnRoute + xSegment.getLength();
+		double dDistanceOnSegment = in_dDistance - 
+                                  dDistanceOnRoute + 
+                                  xSegment.getLength();
 		
 		return xSegment.getPointOnSegment(dDistanceOnSegment);
   }
@@ -312,4 +328,146 @@ public class Route
                      in_dStart,
                      in_dEnd);
   }
+
+  /**
+   * Maintain a linear ordering of the segments
+   *
+   */
+  private void maintainSegmentsOrdering() 
+  {
+    
+    // Start at any segment
+    System.out.println(m_iId);
+    Segment xStartSegment = m_xSegments[0];
+    
+    // Follow from the end of this segment until
+    // one end of the route is reached. We don't
+    // know yet in which direction we are traveling.
+    Segment xCurrentSegment = xStartSegment;
+    xCurrentSegment.setStarts(Segment.STARTS_SMALLER);
+    int iSegmentCount = 0;
+    while(xCurrentSegment != null) 
+    {
+      iSegmentCount++;
+      for (int i = 0; i < m_xSegments.length; i++) 
+      {
+        Segment xOtherSegment = m_xSegments[i];
+        // Don't compare a segment to itself and
+        // don't build circles by using the start again
+        if(xOtherSegment == xCurrentSegment ||
+            xOtherSegment.getPreviousSegment() != null ||
+            xOtherSegment.getNextSegment() != null)
+        {
+          continue;
+        }
+        Point2D.Double xCurrentEndPoint;
+        if(xCurrentSegment.getStarts() == Segment.STARTS_SMALLER)
+        {
+          xCurrentEndPoint = xCurrentSegment.getPoint2();
+        }
+        else
+        {
+          xCurrentEndPoint = xCurrentSegment.getPoint1();
+        }
+        
+        if(xCurrentEndPoint.x == xOtherSegment.getPoint1().x &&
+            xCurrentEndPoint.y == xOtherSegment.getPoint1().y)
+        {
+          xCurrentSegment.setNextSegment(xOtherSegment);
+          xOtherSegment.setPreviousSegment(xCurrentSegment);
+          xOtherSegment.setStarts(Segment.STARTS_SMALLER);
+        }
+        if(xCurrentEndPoint.x == xOtherSegment.getPoint2().x &&
+            xCurrentEndPoint.y == xOtherSegment.getPoint2().y)
+        {
+          xCurrentSegment.setNextSegment(xOtherSegment);
+          xOtherSegment.setPreviousSegment(xCurrentSegment);
+          xOtherSegment.setStarts(Segment.STARTS_BIGGER);
+        }
+      }
+      // Update last segment and current segment
+      m_xLastSegment = xCurrentSegment;
+      xCurrentSegment = xCurrentSegment.getNextSegment();
+    }
+  
+
+    // Follow from the other end of the start segment 
+    // until we find the other end of the route
+    xCurrentSegment = xStartSegment;
+    iSegmentCount = 0;
+    while(xCurrentSegment != null) 
+    {
+      iSegmentCount++;
+      for (int i = 0; i < m_xSegments.length; i++) 
+      {
+        Segment xOtherSegment = m_xSegments[i];
+        // Don't compare a segment to itself and
+        // don't build circles by using the start again
+        if(xOtherSegment == xCurrentSegment ||
+            xOtherSegment.getPreviousSegment() != null ||
+            xOtherSegment.getNextSegment() != null)
+        {
+          continue;
+        }
+
+        Point2D.Double xCurrentStartPoint;
+        if(xCurrentSegment.getStarts() == Segment.STARTS_SMALLER)
+        {
+          xCurrentStartPoint = xCurrentSegment.getPoint1();
+        }
+        else
+        {
+          xCurrentStartPoint = xCurrentSegment.getPoint2();
+        }
+        
+        if(xCurrentStartPoint.x == xOtherSegment.getPoint2().x &&
+            xCurrentStartPoint.y == xOtherSegment.getPoint2().y)
+        {
+          xCurrentSegment.setPreviousSegment(xOtherSegment);
+          xOtherSegment.setNextSegment(xCurrentSegment);
+          xOtherSegment.setStarts(Segment.STARTS_SMALLER);
+        }
+        if(xCurrentStartPoint.x == xOtherSegment.getPoint1().x &&
+            xCurrentStartPoint.y == xOtherSegment.getPoint1().y)
+        {
+          xCurrentSegment.setPreviousSegment(xOtherSegment);
+          xOtherSegment.setNextSegment(xCurrentSegment);
+          xOtherSegment.setStarts(Segment.STARTS_BIGGER);
+        }
+      }
+      // Update last segment and current segment
+      m_xFirstSegment = xCurrentSegment;
+      xCurrentSegment = xCurrentSegment.getPreviousSegment();
+    }
+  
+    // Maybe we mixed-up start and end of the route. This can be 
+    // corrected in O(n) time
+    // TODO: Change ordering!
+    
+    xCurrentSegment = m_xFirstSegment;
+    while(xCurrentSegment != null)
+    {
+//      if(xCurrentSegment.getStarts() == Segment.STARTS_SMALLER)
+//      {
+//        System.out.println("Segment (" + 
+//                           xCurrentSegment.getPoint1().x + ", " +
+//                           xCurrentSegment.getPoint1().y + ") - (" +
+//                           xCurrentSegment.getPoint2().x + ", " +
+//                           xCurrentSegment.getPoint2().y + ")");
+//      }
+//      else
+//      {
+//        System.out.println("Segment (" + 
+//                           xCurrentSegment.getPoint2().x + ", " +
+//                           xCurrentSegment.getPoint2().y + ") - (" +
+//                           xCurrentSegment.getPoint1().x + ", " +
+//                           xCurrentSegment.getPoint1().y + ")");        
+//      }
+      
+      xCurrentSegment = xCurrentSegment.getNextSegment();
+    }
+
+    
+  }
+  
 }

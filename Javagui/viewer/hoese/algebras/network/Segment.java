@@ -28,6 +28,16 @@ import java.awt.geom.Point2D;
  */
 public class Segment 
 {
+  /**
+   * Define for orientation of this segment
+   */
+  public static final int STARTS_SMALLER = 1;
+  
+  /**
+   * Define for orientation of this segment
+   */
+  public static final int STARTS_BIGGER = 2;
+  
   /** 
    * Starting point of the segment.
    */
@@ -38,6 +48,23 @@ public class Segment
    */
 	private Point2D.Double m_xPoint2;
 	
+  /**
+   * Next segment in a sequence 
+   * where connecting segments follow
+   * one another 
+   */
+  private Segment m_xNextSegment;
+  
+  /**
+   * Previous segment
+   */
+  private Segment m_xPreviousSegment;
+  
+  /**
+   * Direction of the segment i.e. if 
+   * it starts with point1 or point2
+   */
+  private int m_iStarts;
   /**
    * Constructor
    * 
@@ -101,7 +128,71 @@ public class Segment
   {
 		return m_xPoint2.y - m_xPoint1.y;
 	}
+  
+  /**
+   * Set's the next segment in a sequential ordering of segments.
+   * 
+   * The ordering has to be maintained by the Route.
+   *  
+   * @param in_xSegment The next segment
+   */
+  public void setNextSegment(Segment in_xSegment)
+  {
+    m_xNextSegment = in_xSegment;
+  }
 
+  /**
+   * Returns the next segment in a sequential ordering of segments
+   * 
+   * @return Next segment or null, iff this is the last segment
+   */
+  public Segment getNextSegment()
+  {
+    return m_xNextSegment;
+  }
+
+  /**
+   * Set's the previous segment in a sequential ordering of segments.
+   * 
+   * The ordering has to be maintained by the Route.
+   *  
+   * @param in_xSegment The previous segment
+   */
+  public void setPreviousSegment(Segment in_xSegment)
+  {
+    m_xPreviousSegment = in_xSegment;
+  }
+
+  /**
+   * Returns the previous segment in a sequential ordering of segments
+   * 
+   * @return Previous segment or null, iff this is the first segment
+   */
+  public Segment getPreviousSegment()
+  {
+    return m_xPreviousSegment;
+  }
+
+  /**
+   * Sets the orientation of the segment
+   * 
+   * @param in_iStarts STARTS_SMALLER or STARTS_BIGGER
+   */
+  public void setStarts(int in_iStarts)
+  {
+    m_iStarts = in_iStarts;
+  }
+  
+  /**
+   * Returns the orientation of the segment
+   * 
+   * @return STARTS_SMALLER or STARTS_BIGGER
+   */
+  public int getStarts()
+  {
+    return m_iStarts;
+  }
+  
   /**
    * Returns a Sub-Segment of this segment
    * 
@@ -124,10 +215,20 @@ public class Segment
    */
   public Point2D.Double getPointOnSegment(double in_dDistanceOnSegment) 
   {
-    // Calculate position on this segment   
-    double dX = m_xPoint1.x + in_dDistanceOnSegment * getXLength() / getLength();
-    double dY = m_xPoint1.y + in_dDistanceOnSegment * getYLength() / getLength();
-    
+    // Calculate position on this segment
+    double dX = 0;
+    double dY = 0;
+    switch(m_iStarts)
+    {
+    case STARTS_SMALLER:
+      dX = m_xPoint1.x + in_dDistanceOnSegment * getXLength() / getLength();
+      dY = m_xPoint1.y + in_dDistanceOnSegment * getYLength() / getLength();
+      break;
+    case STARTS_BIGGER:
+      dX = m_xPoint2.x - in_dDistanceOnSegment * getXLength() / getLength();
+      dY = m_xPoint2.y - in_dDistanceOnSegment * getYLength() / getLength();
+      break;
+    }
     
     return new Point2D.Double(dX, dY);
   }
