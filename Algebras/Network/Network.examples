@@ -7,34 +7,28 @@ Signature: network -> rel
 Example  : query junctions(X_NETWORK)
 Result   : file
 
-
 Operator : routes
 Number   : 1
 Signature: network -> rel
 Example  : query routes(X_NETWORK)
 Result   : file
-Tolerance: %0.00001
-
 
 Operator : sections
 Number   : 1
 Signature: network -> rel
 Example  : query sections(X_NETWORK)
 Result   : file
-Tolerance: %0.00001
-
 
 Operator : thenetwork
 Number   : 1
 Signature: rel x rel -> network
-Example  : query thenetwork(X_ROUTES, X_JUNCTIONS)
+Example  : query thenetwork(1, X_ROUTES, X_JUNCTIONS)
 Result   : file
-
 
 Operator : shortest_path
 Number   : 1
 Signature: gpoint x gpoint -> gline
-Example  : query shortest_path(X_GPOINT, X_GPOINT)
+Example  : query shortest_path(X_GPOINT, X_GPOINT2)
 Result   : file
 
 
