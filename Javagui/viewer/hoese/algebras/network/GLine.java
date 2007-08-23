@@ -47,8 +47,10 @@ public class GLine
    * a text in secondo list-format.
    * 
    * @param in_xValue GLine in secondo's text-format
+   * @throws NetworkNotAvailableException 
    */
   public GLine(ListExpr in_xValue) 
+    throws NetworkNotAvailableException 
   {
     // Initialize members
     m_xRouteIntervals = new Vector();
@@ -84,6 +86,9 @@ public class GLine
       xRouteIntervalList = xRouteIntervalList.rest();
     }
 
+    // Check if the network is available. This will throw an exception
+    // if it is not.
+    NetworkManager.getInstance().getNetwork(m_iNetworkId);
   }
 
   /**

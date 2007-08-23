@@ -58,9 +58,11 @@ public class RouteInterval
    * 
    * @param in_lNetworkId
    * @param in_xValue
+   * @throws NetworkNotAvailableException 
    */
   public RouteInterval(long in_lNetworkId,
                        ListExpr in_xValue) 
+    throws NetworkNotAvailableException 
   {
     m_lNetworkId = in_lNetworkId;
     
@@ -92,6 +94,11 @@ public class RouteInterval
     m_iRouteId = xRouteIdList.intValue();
     m_dStart = xStartList.realValue();
     m_dEnd = xEndList.realValue();
+    
+    
+    // Check if the network is available. This will throw an exception
+    // if it is not.
+    NetworkManager.getInstance().getNetwork(m_lNetworkId);
   }
 
   /**
