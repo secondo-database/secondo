@@ -367,10 +367,13 @@ class CcReal : public StandardAttribute
         Attribute::GenericCompare<CcReal>(this, rhs, defined, rhs->defined);
   }
 
-
   inline bool Adjacent( const Attribute *arg ) const
   {
-    return( realval == ((const CcReal *)arg)->realval );
+    // original implementation:
+    //    return( realval == ((const CcReal *)arg)->realval );
+    // '==' changed to 'CompareAlmost() == 0' to avoid
+    // problems with 64bit environments:
+    return( CompareAlmost(arg) == 0 );
   }
 
   inline ostream& Print( ostream &os ) const { return (os << realval); }
