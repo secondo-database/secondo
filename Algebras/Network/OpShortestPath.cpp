@@ -325,21 +325,23 @@ void OpShortestPath::sendMessage(string in_strMessage)
   NList xMessage;
   xMessage.append(NList("simple")); 
 
-  // Split the string into parts of maximum length. Append each part
-  // to the message
-  size_t iCurrentPos = 0;
-  int iRemainingLength = in_strMessage.length(); 
-  while(iRemainingLength > 0)  
-  {
-    int iSubstrLength = MAX_STRINGSIZE <? iRemainingLength;
-    string strCurrentPart = in_strMessage.substr(iCurrentPos, 
-                                                 iSubstrLength);    
-    xMessage.append(NList(strCurrentPart));
-    
-    // Calculate next position
-    iCurrentPos += iSubstrLength;
-    iRemainingLength -= iSubstrLength;
-  }
+  xMessage.append(NList().textAtom(in_strMessage));
+
+//  // Split the string into parts of maximum length. Append each part
+//  // to the message
+//  size_t iCurrentPos = 0;
+//  int iRemainingLength = in_strMessage.length(); 
+//  while(iRemainingLength > 0)  
+//  {
+//    int iSubstrLength = MAX_STRINGSIZE <? iRemainingLength;
+//    string strCurrentPart = in_strMessage.substr(iCurrentPos, 
+//                                                 iSubstrLength);    
+//    xMessage.append(NList(strCurrentPart));
+//    
+//    // Calculate next position
+//    iCurrentPos += iSubstrLength;
+//    iRemainingLength -= iSubstrLength;
+//  }
     
   xMessageCenter->Send(xMessage);
 }
