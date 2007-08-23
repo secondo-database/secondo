@@ -220,6 +220,8 @@ public MainWindow(String Title){
   progressView = new ProgressView();
   this.getContentPane().add(progressView,BorderLayout.EAST);
   ComPanel.addMessageListener(progressView);
+  ErrorHandler errorHandler = new ErrorHandler(ComPanel);
+  ComPanel.addMessageListener(errorHandler);
 
   progressTimer = new ProgressTimer();
   ComPanel.addMessageListener(progressTimer);
