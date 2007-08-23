@@ -31,6 +31,7 @@ import viewer.hoese.CurrentState;
 import viewer.hoese.Interval;
 import viewer.hoese.QueryResult;
 import viewer.hoese.algebras.network.MGPoint;
+import viewer.hoese.algebras.network.NetworkNotAvailableException;
 
 
 /**
@@ -62,47 +63,57 @@ public class Dsplmovinggpoint extends DisplayTimeGraph
   public Shape getRenderObject (int num,
                                 AffineTransform in_xAt) 
   {
-    if(num != 0)
+    try
     {
+      if(num != 0)
+      {
         return null;
-    }
-    if(Intervals == null)
-    {
-       return null;
-    }
-    if(RefLayer == null)
-    {
-       return null;    
-    }
+      }
+      if(Intervals == null)
+      {
+        return null;
+      }
+      if(RefLayer == null)
+      {
+        return null;    
+      }
 
-    double dTime = RefLayer.getActualTime();
+      double dTime = RefLayer.getActualTime();
  
-    Point2D.Double xPoint = m_xMovingPoint.getPointAtTime(dTime);
+      Point2D.Double xPoint = m_xMovingPoint.getPointAtTime(dTime);
     
-    if(xPoint == null)
-    {
-      return null;
-    }
+      if(xPoint == null)
+      {
+        return null;
+      }
     
-    double dPointSize = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
-    double dPointSizeX = Math.abs(dPointSize/in_xAt.getScaleY());
-    double dPointSizeY = Math.abs(dPointSize/in_xAt.getScaleX());
-    Shape xShape;
-    if (Cat.getPointasRect())
-    {
-    	xShape = new Rectangle2D.Double(xPoint.getX()- dPointSizeX/2, 
+      double dPointSize = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
+      double dPointSizeX = Math.abs(dPointSize/in_xAt.getScaleY());
+      double dPointSizeY = Math.abs(dPointSize/in_xAt.getScaleX());
+      Shape xShape;
+      if (Cat.getPointasRect())
+      {
+        xShape = new Rectangle2D.Double(xPoint.getX()- dPointSizeX/2, 
+                                        xPoint.getY() - dPointSizeY/2, 
+                                        dPointSizeX, 
+                                        dPointSizeY);
+      }
+      else 
+      {
+        xShape = new Ellipse2D.Double(xPoint.getX()- dPointSizeX/2,
                                       xPoint.getY() - dPointSizeY/2, 
                                       dPointSizeX, 
                                       dPointSizeY);
+      }
+      return  xShape;
     }
-    else 
+    catch(NetworkNotAvailableException xEx)
     {
-    	xShape = new Ellipse2D.Double(xPoint.getX()- dPointSizeX/2,
-                                    xPoint.getY() - dPointSizeY/2, 
-                                    dPointSizeX, 
-                                    dPointSizeY);
+      // If the network is availabe is checked in init. Their is no possibility
+      // to output an error message here. But it will propably never happen.
+      return null;
+
     }
-    return  xShape;
   }
 
 
@@ -130,39 +141,49 @@ public class Dsplmovinggpoint extends DisplayTimeGraph
                     ListExpr in_xValue, 
                     QueryResult inout_xQueryResult) 
   {
-    AttrName = in_xType.symbolValue();
-    m_xMovingPoint = new MGPoint(in_xValue);
-    Intervals = m_xMovingPoint.getIntervals();
-    
-    if (err)
+    try
     {
-      Reporter.writeError("Dsplmovingpoint Error in ListExpr :parsing aborted");
-      inout_xQueryResult.addEntry("(" + AttrName + ": GTA(mpoint))");
-      return;
-    }
-    else
-    {
+      AttrName = in_xType.symbolValue();
+      m_xMovingPoint = new MGPoint(in_xValue);
+      Intervals = m_xMovingPoint.getIntervals();
       inout_xQueryResult.addEntry(this);
+      m_xBounds = null;
+      TimeBounds = null;
+      if(Intervals==null)
+      {
+        // empty moving point
+        return;
+      }
+      for (int j = 0; j < Intervals.size(); j++) 
+      {
+        Interval xInterval = (Interval)Intervals.elementAt(j);
+        if (TimeBounds == null) 
+        {
+          TimeBounds = xInterval;
+        }
+        else 
+        {
+          TimeBounds = TimeBounds.union(xInterval);
+        }
+      }
     }
-
-    m_xBounds = null;
-    TimeBounds = null;
-    if(Intervals==null)
+    catch(NetworkNotAvailableException xNEx)
     {
-      // empty moving point
+      err = true;
+      Reporter.writeError(xNEx.getMessage());
+      inout_xQueryResult.addEntry(new String("(" + 
+                                             AttrName + ": " + 
+                                             xNEx.getMessage() + 
+                                             ")"));
       return;
     }
-    for (int j = 0; j < Intervals.size(); j++) 
+    catch(Exception xEx)
     {
-      Interval xInterval = (Interval)Intervals.elementAt(j);
-      if (TimeBounds == null) 
-      {
-        TimeBounds = xInterval;
-      }
-      else 
-      {
-        TimeBounds = TimeBounds.union(xInterval);
-      }
+      xEx.printStackTrace();
+      err = true;
+      Reporter.writeError("Error in ListExpr :parsing aborted");
+      inout_xQueryResult.addEntry(new String("(" + AttrName + ": error)"));
+      return;
     }
   }
 

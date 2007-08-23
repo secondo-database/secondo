@@ -79,7 +79,8 @@ public class Dsplgpoint extends DisplayGraph
     }
     catch (NetworkNotAvailableException xEx) 
     {
-      JOptionPane.showMessageDialog(null, xEx.getMessage());
+      // If the network is availabe is checked in init. Their is no possibility
+      // to output an error message here. But it will propably never happen.
       return null;
     }
   }
@@ -132,7 +133,8 @@ public class Dsplgpoint extends DisplayGraph
    }
    catch (NetworkNotAvailableException xEx) 
    {
-     JOptionPane.showMessageDialog(null, xEx.getMessage());
+     // If the network is availabe is checked in init. Their is no possibility
+     // to output an error message here. But it will propably never happen.
      return null;
    }
      
@@ -163,6 +165,16 @@ public class Dsplgpoint extends DisplayGraph
       AttrName = in_xType.symbolValue();
       m_xGPoint= new GPoint(in_xValue);
       inout_xQueryResult.addEntry(this);
+    }
+    catch(NetworkNotAvailableException xNEx)
+    {
+      err = true;
+      Reporter.writeError(xNEx.getMessage());
+      inout_xQueryResult.addEntry(new String("(" + 
+                                             AttrName + ": " + 
+                                             xNEx.getMessage() + 
+                                             ")"));
+      return;
     }
     catch(Exception xEx)
     {
