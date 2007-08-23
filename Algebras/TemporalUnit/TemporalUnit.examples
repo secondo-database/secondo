@@ -559,9 +559,6 @@ Signature: (instant) -> rect
 Example  : query queryrect2d(six30)
 Result   : (platform (linux (rect (-2.147483648E9 1417.2708333333333 1417.2708333333333 2.147483648E9))) (linux64 (rect (-9.223372036854776e+18 1417.270833333333 1417.270833333333 9.223372036854776e+18))) (win32 (rect (-2.147483648E9 1417.2708333333333 1417.2708333333333 2.147483648E9))) )
 
-
-(platform (linux (real 56.0)) (linux64 (real 64.0)) (win32 (real 56.0)))
-
 Operator : sometimes
 Number   : 1
 Signature: ubool -> bool
