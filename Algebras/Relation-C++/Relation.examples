@@ -134,7 +134,7 @@ Operator : rootattrsize
 Number   : 1
 Signature: stream|rel(tuple X) x ident -> int
 Example  : query Trains rootattrsize[Trip]
-Result   : (platform (linux (int 104)) (linux64 (int 88)) (win32 (int 104)))
+Result   : (platform (linux (int 104)) (linux64 (int 152)) (win32 (int 104)))
 
 
 Operator : roottuplesize
@@ -155,7 +155,7 @@ Operator : tuplesize
 Number   : 1
 Signature: ((stream/rel (tuple x))) -> real
 Example  : query Trains tuplesize
-Result   : (platform (linux (real 10774.97508896797)) (linux64 ((real 17075.615234375)) (win32 (real 11085.83629893239)))
+Result   : (platform (linux (real 10774.97508896797)) (linux64 (real 17075.615234375)) (win32 (real 11085.83629893239)))
 Remark   : On Linux and Windows this operator returns other values, Maybe it depends on Berkeley-DB or different page sizes.
 
 
