@@ -52,14 +52,20 @@ public class GPoint
    * Constructor. 
    * 
    * @param in_xList List in secondo-format
+   * @throws NetworkNotAvailableException 
    */
   public GPoint(ListExpr in_xList) 
+    throws NetworkNotAvailableException 
   {
     // TODO: Check format before reading out the values
     
     m_iNetworkId = in_xList.first().intValue();
     m_iRouteId = in_xList.second().intValue();
     m_dDistance = in_xList.third().realValue();
+    
+    // Check if the network is available. This will throw an exception
+    // if it is not.
+    NetworkManager.getInstance().getNetwork(m_iNetworkId);
   }
 
   /**

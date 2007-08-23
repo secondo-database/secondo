@@ -49,10 +49,13 @@ public class MGPoint
    * Constructor.
    * 
    * @param in_xList List in secondo-format
+   * @throws NetworkNotAvailableException 
    */
   public MGPoint(ListExpr in_xList) 
+    throws NetworkNotAvailableException 
   {
     m_xUGPoints = new HashMap();
+    int iNetworkId = 0;
     
     // Read out all units
     ListExpr xRestList = in_xList;    
@@ -69,7 +72,7 @@ public class MGPoint
       Interval xInterval = LEUtils.readInterval(xIntervalList);
 
       // Read unit
-      int iNetworkId = xPointList.first().intValue();
+      iNetworkId = xPointList.first().intValue();
       int iRouteId = xPointList.second().intValue();
       int iSideId = xPointList.third().intValue();
       double dPos1 = xPointList.fourth().realValue();
@@ -85,7 +88,11 @@ public class MGPoint
       m_xUGPoints.put(xInterval, xUGPoint);
       
       xRestList = xRestList.rest();
+    
     }
+    // Check if the network is available. This will throw an exception
+    // if it is not.
+    NetworkManager.getInstance().getNetwork(iNetworkId);
   }
 
   /**
@@ -93,44 +100,39 @@ public class MGPoint
    * 
    * @param in_dTime
    * @return 
+   * @throws NetworkNotAvailableException 
    */
   public Point2D.Double getPointAtTime(double in_dTime) 
+    throws NetworkNotAvailableException 
   {
-    try
-    {
-      // Search for a interval the time fits into
-      Vector xIntervals = getIntervals();
-      int iIntervalIndex = IntervalSearch.getTimeIndex( in_dTime, 
+    // Search for a interval the time fits into
+    Vector xIntervals = getIntervals();
+    int iIntervalIndex = IntervalSearch.getTimeIndex( in_dTime, 
                                                         xIntervals);
-      if(iIntervalIndex<0){
-        return null;
-      }
-  
-      // Get Unit
-      Interval xInterval = (Interval)xIntervals.get(iIntervalIndex);
-      UGPoint xGPoint = (UGPoint)m_xUGPoints.get(xInterval);
-      
-      // Calculate the position between start and end
-      double t1 = xInterval.getStart();
-      double t2 = xInterval.getEnd();
-      double dTimeDelta = (in_dTime-t1)/(t2-t1);
-      double dDistanceDelta = xGPoint.getPos2() - xGPoint.getPos1();
-      double dDistanceOnRoute = xGPoint.getPos1() + dDistanceDelta * dTimeDelta; 
-      
-      // Get Network and find the points absolute position.
-      long lNetworkId = xGPoint.getNetworkId();
-      Network xNetwork = NetworkManager.getInstance().getNetwork(lNetworkId);
-      int iRouteId = xGPoint.getRouteId();
-      Route xRoute = xNetwork.getRouteById(iRouteId);
-      Point2D.Double xPoint = xRoute.getPointOnRoute(dDistanceOnRoute);
-      
-      return xPoint;
-    }
-    catch (NetworkNotAvailableException xEx) 
+    if(iIntervalIndex<0)
     {
-      JOptionPane.showMessageDialog(null, xEx.getMessage());
       return null;
     }
+  
+    // Get Unit
+    Interval xInterval = (Interval)xIntervals.get(iIntervalIndex);
+    UGPoint xGPoint = (UGPoint)m_xUGPoints.get(xInterval);
+      
+    // Calculate the position between start and end
+    double t1 = xInterval.getStart();
+    double t2 = xInterval.getEnd();
+    double dTimeDelta = (in_dTime-t1)/(t2-t1);
+    double dDistanceDelta = xGPoint.getPos2() - xGPoint.getPos1();
+    double dDistanceOnRoute = xGPoint.getPos1() + dDistanceDelta * dTimeDelta; 
+      
+    // Get Network and find the points absolute position.
+    long lNetworkId = xGPoint.getNetworkId();
+    Network xNetwork = NetworkManager.getInstance().getNetwork(lNetworkId);
+    int iRouteId = xGPoint.getRouteId();
+    Route xRoute = xNetwork.getRouteById(iRouteId);
+    Point2D.Double xPoint = xRoute.getPointOnRoute(dDistanceOnRoute);
+      
+    return xPoint;
   }
 
   /**
