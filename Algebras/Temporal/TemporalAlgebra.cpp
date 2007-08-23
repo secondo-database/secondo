@@ -2640,7 +2640,6 @@ inline void MPoint::CopyFrom( const StandardAttribute* right )
 
 bool MPoint::Present( const Instant& t ) const
 {
-  cout << "CALLED: MPoint::Present(Instant): " << endl;
   assert( IsDefined() );
   assert( t.IsDefined() );
   assert( IsOrdered() );
@@ -2654,11 +2653,9 @@ bool MPoint::Present( const Instant& t ) const
         (instd > maxt && !AlmostEqual(instd,mint))
       )
     {
-      cout << "\tEarly abort." << endl;
       return false;
     }
   }
-  cout << "\tNeed to inquire." << endl;
   int pos = Position(t);
   if( pos == -1 )         //not contained in any unit
     return false;
@@ -2667,7 +2664,6 @@ bool MPoint::Present( const Instant& t ) const
 
 bool MPoint::Present( const Periods& t ) const
 {
-  cout << "CALLED: MPoint::Present(Periods)" << endl;
   assert( IsDefined() );
   assert( IsOrdered() );
   assert( t.IsDefined() );
@@ -2687,17 +2683,14 @@ bool MPoint::Present( const Periods& t ) const
          (pmax > MeMax && !AlmostEqual(pmax,MeMax))
       )
     {
-      cout << "\tEarly abort." << endl;
       return false;
     }
   }
-  cout << "\tNeed to inquire." << endl;
   return t.Intersects( defTime );
 }
 
 void MPoint::AtInstant( const Instant& t, Intime<Point>& result ) const
 {
-  cout << "CALLED: MPoint::AtInstant(...)" << endl;
   assert( IsOrdered() );
   assert( t.IsDefined() );
   if( IsDefined() && t.IsDefined() )
@@ -2717,11 +2710,9 @@ void MPoint::AtInstant( const Instant& t, Intime<Point>& result ) const
            (maxd < instd && !AlmostEqual(maxd,instd))
         )
       {
-        cout << "\tEarly abort." << endl;
         result.SetDefined(false);
       } else
       {
-        cout << "\tNeed to inquire." << endl;
         int pos = Position( t );
         if( pos == -1 )  // not contained in any unit
           result.SetDefined( false );
@@ -2743,7 +2734,6 @@ void MPoint::AtInstant( const Instant& t, Intime<Point>& result ) const
 
 void MPoint::AtPeriods( const Periods& p, MPoint& result ) const
 {
-  cout << "CALLED: MPoint::AtPeriods(...)" << endl;
   assert( IsOrdered() );
   assert( p.IsOrdered() );
 
@@ -2768,11 +2758,9 @@ void MPoint::AtPeriods( const Periods& p, MPoint& result ) const
       if( (mind > permaxd && !AlmostEqual(mind,permaxd)) ||
           (maxd < permind && !AlmostEqual(maxd,permind)))
       {
-        cout << "\tEarly abort." << endl;
         result.SetDefined(true);
       } else
       {
-        cout << "\tNeed to inquire." << endl;
         result.StartBulkLoad();
         const UPoint *unit;
         const Interval<Instant> *interval;
