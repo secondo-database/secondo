@@ -120,16 +120,16 @@ extern AlgebraManager *am;
 using namespace std;
 
 
-static long min_long = numeric_limits<long>::min();
-static long max_long = numeric_limits<long>::max();
+static LONGTYPE min_LONGTYPE = numeric_limits<LONGTYPE>::min();
+static LONGTYPE max_LONGTYPE = numeric_limits<LONGTYPE>::max();
 static int min_int = numeric_limits<int>::min();
 static int max_int = numeric_limits<int>::max();
 
 static string begin_of_time="begin of time";
 static string end_of_time="end of time";
 
-static long MAX_REPRESENTABLE = 2450000;
-static long MIN_REPRESENTABLE = -2450000;
+static LONGTYPE MAX_REPRESENTABLE = 2450000;
+static LONGTYPE MIN_REPRESENTABLE = -2450000;
 
 
 namespace datetime{
@@ -194,12 +194,14 @@ DateTime::DateTime(const TimeType type){
 The Value of MilliSeconds has to be greater than or equals to zero.
 
 */
-DateTime::DateTime(const long Day,const long MilliSeconds,const TimeType type){
+DateTime::DateTime(const LONGTYPE Day,
+                   const LONGTYPE MilliSeconds,
+                   const TimeType type){
    assert(MilliSeconds>=0);
    day = Day;
    milliseconds = MilliSeconds;
    if(milliseconds>=MILLISECONDS){
-      long dif = milliseconds / MILLISECONDS;
+      LONGTYPE dif = milliseconds / MILLISECONDS;
       day += dif;
       milliseconds -= dif*MILLISECONDS;
    }
@@ -250,9 +252,9 @@ void DateTime::Set(const int year,const int month, const int day,
             const int millisecond){
 
    assert(type==instanttype);
-   long ms = ((hour*60+minute)*60+second)*1000+millisecond;
-   long d = ToJulian(year,month,day);
-   long dif = ms / MILLISECONDS;
+   LONGTYPE ms = ((hour*60+minute)*60+second)*1000+millisecond;
+   LONGTYPE d = ToJulian(year,month,day);
+   LONGTYPE dif = ms / MILLISECONDS;
    ms = ms - dif;
    d = d + dif;
    if(ms < 0){
@@ -329,7 +331,7 @@ Sets this instant to the mimimum possible value.
 */
 void DateTime::ToMinimum(){
    defined = true;
-   day = min_long;
+   day = min_LONGTYPE;
    milliseconds = 0;
 }
 
@@ -342,7 +344,7 @@ Sets this instant to the maximum possible value.
 */
 void DateTime::ToMaximum(){
    defined = true;
-   day = max_long;
+   day = max_LONGTYPE;
    milliseconds = MILLISECONDS-1;
 }
 
@@ -357,7 +359,7 @@ bool DateTime::IsMinimum()const {
   if(!defined){
      return false;
   }
-  return day==min_long && milliseconds==0;
+  return day==min_LONGTYPE && milliseconds==0;
 }
 
 /*
@@ -370,7 +372,7 @@ bool DateTime::IsMaximum()const{
   if(!defined){
      return false;
   }
-  return day==max_long && milliseconds==MILLISECONDS-1;
+  return day==max_LONGTYPE && milliseconds==MILLISECONDS-1;
 }
 
 
@@ -381,7 +383,7 @@ This functions yields the day-part of a duration.
 The function can't applied to an instant.
 
 */
-long DateTime::GetDay()const{
+LONGTYPE DateTime::GetDay()const{
    assert(type!=instanttype);
    return day;
 }
@@ -393,7 +395,7 @@ This function returns the milliseconds of the day
 of this Time instance.
 
 */
-long DateTime::GetAllMilliSeconds()const{
+LONGTYPE DateTime::GetAllMilliSeconds()const{
    return milliseconds;
 }
 
@@ -407,7 +409,7 @@ This functions cannot applied to durations.
 
 int DateTime::GetGregDay()const{
     assert(type!=durationtype);
-    long y;
+    LONGTYPE y;
     int m,d;
     ToGregorian(day,y,m,d);
     return d;
@@ -415,14 +417,14 @@ int DateTime::GetGregDay()const{
 
 int DateTime::GetMonth()const{
    assert(type!=durationtype);
-   long y;
+   LONGTYPE y;
    int m,d;
    ToGregorian(day,y,m,d);
    return m;
 }
-long DateTime::GetYear()const{
+LONGTYPE DateTime::GetYear()const{
    assert(type!=durationtype);
-   long y;
+   LONGTYPE y;
    int m,d;
    ToGregorian(day,y,m,d);
    return y;
@@ -470,7 +472,9 @@ This algorithm is from Press et al., Numerical Recipes
 in C, 2nd ed., Cambridge University Press 1992
 
 */
-long DateTime::ToJulian(const int year, const int month, const int day) const{
+LONGTYPE DateTime::ToJulian(const int year,
+                            const int month,
+                            const int day) const{
   int jy = year;
   if (year < 0)
      jy++;
@@ -503,7 +507,7 @@ This algorithm is from Press et al., Numerical Recipes
 in C, 2nd ed., Cambridge University Press 1992
 
 */
-void DateTime::ToGregorian(const long Julian, long &year,
+void DateTime::ToGregorian(const LONGTYPE Julian, LONGTYPE &year,
                            int &month, int &day) const{
   int j=(int)(Julian+NULL_DAY);
    int ja = j;
@@ -615,7 +619,7 @@ string DateTime::ToString() const{
     }
 
     int day,month;
-    long year;
+    LONGTYPE year;
     ToGregorian(this->day,year,month,day);
     if(!(day>0 && month>0 && month<13 && day<32)){
        cmsg.error() << "error in ToString function of instant detected \n"
@@ -637,13 +641,13 @@ string DateTime::ToString() const{
     if(day<10)
        tmp << "0";
     tmp << day;
-    long value = milliseconds;
-    long ms = value % 1000;
+    LONGTYPE value = milliseconds;
+    LONGTYPE ms = value % 1000;
     value = value / 1000;
-    long sec = value % 60;
+    LONGTYPE sec = value % 60;
     value = value / 60;
-    long min = value % 60;
-    long hour = value / 60;
+    LONGTYPE min = value % 60;
+    LONGTYPE hour = value / 60;
 
     if(milliseconds==0) // without time
        return tmp.str();
@@ -796,8 +800,8 @@ bool DateTime::ReadFrom(const string Time){
           next = Time[pos]==':';
    }
    // initialize seconds and milliseconds with zero
-   long seconds = 0;
-   long mseconds = 0;
+   LONGTYPE seconds = 0;
+   LONGTYPE mseconds = 0;
    if(!done){ // we have to read seconds
      pos++; // read over the ':'
      if(pos==len) return false;
@@ -828,7 +832,7 @@ bool DateTime::ReadFrom(const string Time){
    this->day = ToJulian(year,month,day);
    milliseconds = ((hour*60+minute)*60+seconds)*1000+mseconds;
    if(milliseconds>MILLISECONDS){
-      long dif = milliseconds/MILLISECONDS;
+      LONGTYPE dif = milliseconds/MILLISECONDS;
       this->day += dif;
       milliseconds -= dif*MILLISECONDS;
    }
@@ -844,8 +848,8 @@ This functions reads the value of this instance from the given double.
 
 */
 bool DateTime::ReadFrom(const double Time){
-   day = (long) Time;
-   long dms =  (long) ((Time - (double) day)*MILLISECONDS+0.5);
+   day = (LONGTYPE) Time;
+   LONGTYPE dms =  (LONGTYPE) ((Time - (double) day)*MILLISECONDS+0.5);
    if( dms<0 ){
       day--;
       dms += MILLISECONDS;
@@ -864,9 +868,9 @@ or the day is not included in the given month/year.
 
 */
 bool DateTime::IsValid(const int year,const int month,const int day)const {
-   long jday = ToJulian(year,month,day);
+   LONGTYPE jday = ToJulian(year,month,day);
    int m=0,d=0;
-   long y = 0;
+   LONGTYPE y = 0;
    ToGregorian(jday,y,m,d);
    return year==y && month==m && day==d;
 }
@@ -998,7 +1002,7 @@ bool DateTime::ReadFrom(const ListExpr LE, const bool typeincluded){
   day = nl->IntValue(DayList);
   milliseconds = nl->IntValue(MSecList);
   if(milliseconds>MILLISECONDS){
-      long dif = milliseconds/MILLISECONDS;
+      LONGTYPE dif = milliseconds/MILLISECONDS;
       day += dif;
       milliseconds -= dif*MILLISECONDS;
   }
@@ -1197,10 +1201,10 @@ a duration type.
 */
 void DateTime::Add(const DateTime* P2){
    assert(type==durationtype || P2->type==durationtype);
-   long d1 = day;
-   long d2 = P2->day;
-   long ms1 = milliseconds;
-   long ms2 = P2->milliseconds;
+   LONGTYPE d1 = day;
+   LONGTYPE d2 = P2->day;
+   LONGTYPE ms1 = milliseconds;
+   LONGTYPE ms2 = P2->milliseconds;
    // transform negative values
    if(d1<0){
       ms1 -= MILLISECONDS;
@@ -1210,8 +1214,8 @@ void DateTime::Add(const DateTime* P2){
       ms2 -= MILLISECONDS;
       d2++;
    }
-   long d = d1+d2;
-   long ms = ms1+ms2;
+   LONGTYPE d = d1+d2;
+   LONGTYPE ms = ms1+ms2;
    while(ms<0){ // this loop is excuted maximum two times
      d--;
      ms += MILLISECONDS;
@@ -1273,10 +1277,10 @@ the type of this instance.
 */
 void DateTime::Minus(const DateTime* P2) {
    assert(type==instanttype || P2->type==durationtype);
-   long d1 = day;
-   long d2 = P2->day;
-   long ms1 = milliseconds;
-   long ms2 = P2->milliseconds;
+   LONGTYPE d1 = day;
+   LONGTYPE d2 = P2->day;
+   LONGTYPE ms1 = milliseconds;
+   LONGTYPE ms2 = P2->milliseconds;
    // transform negative values
    if(d1<0){
       ms1 -= MILLISECONDS;
@@ -1286,8 +1290,8 @@ void DateTime::Minus(const DateTime* P2) {
       ms2 -= MILLISECONDS;
       d2++;
    }
-   long d = d1-d2;
-   long ms = ms1-ms2;
+   LONGTYPE d = d1-d2;
+   LONGTYPE ms = ms1-ms2;
 
    while(ms<0){ // this loop is excuted maximum two times
      d--;
@@ -1336,12 +1340,12 @@ double DateTime::operator/(const DateTime T2)const{
 This Operator divides a DateTime by an integer
 
 */
-DateTime DateTime::operator/(const long divisor)const{
+DateTime DateTime::operator/(const LONGTYPE divisor)const{
   assert(type==durationtype);
   assert(divisor != 0);
-  ldiv_t Q = div(day,divisor);
-  long nday = (long) Q.quot;
-  long nms  = (long) ((Q.rem*MILLISECONDS)+milliseconds)/abs(divisor);
+  LDIV_T Q = div(day,divisor);
+  LONGTYPE nday = (LONGTYPE) Q.quot;
+  LONGTYPE nms  = (LONGTYPE) ((Q.rem*MILLISECONDS)+milliseconds)/abs(divisor);
   return DateTime(nday, nms, durationtype);
 }
 
@@ -1351,7 +1355,7 @@ DateTime DateTime::operator/(const long divisor)const{
 Computes a multiple of a duration.
 
 */
-void DateTime::Mul(const long factor){
+void DateTime::Mul(const LONGTYPE factor){
    assert(type==durationtype);
    bool of;
    BigInt<2> d(day);
@@ -1386,8 +1390,8 @@ void DateTime::Mul(const double factor){
    d = d*factor;
    ms = ms*factor;
 
-   double dms = d - (((double)( (long)(day))));
-   d = (double) ((long) day);
+   double dms = d - (((double)( (LONGTYPE)(day))));
+   d = (double) ((LONGTYPE) day);
    ms = ms + dms*MILLISECONDS;
 
    while(ms<0){
@@ -1399,8 +1403,8 @@ void DateTime::Mul(const double factor){
      d = d + 1.0;
    }
 
-   day = (long) d;
-   milliseconds=(long) ms;
+   day = (LONGTYPE) d;
+   milliseconds=(LONGTYPE) ms;
 }
 
 /*
@@ -1411,7 +1415,7 @@ DateTime. This DateTime, the dividend, and ~remainder~ must be of
 type ~duration~.
 
 */
- long DateTime::Div(DateTime dividend, DateTime& remainder,bool& overflow){
+ LONGTYPE DateTime::Div(DateTime dividend, DateTime& remainder,bool& overflow){
    // first, create a bigint from this and the divident
    BigInt<2> MyValue(day);
    BigInt<2> MyMillis(milliseconds);
@@ -1427,11 +1431,11 @@ type ~duration~.
    // create values for result and remainder
    BigInt<2> Result(0), biremainder(0);
    Result = MyValue.Div(DivValue,biremainder);
-   long result = Result.ToLong(overflow);
+   LONGTYPE result = Result.ToLong(overflow);
    // the biremainder must be devided into day and milliseconds
    // We store the results into DivValue and DivMillis
    DivValue = biremainder.Div(BIMILLISECONDS,DivMillis);
-   long l1 = DivMillis.ToLong(of);
+   LONGTYPE l1 = DivMillis.ToLong(of);
    remainder.day = DivValue.ToLong( of);
    remainder.milliseconds = l1;
    if(remainder.milliseconds<0){
@@ -1452,7 +1456,7 @@ This operator has the same functionality like the ~Mul~ function
 returning the result in a new instance.
 
 */
-DateTime DateTime::operator*(const long factor)const{
+DateTime DateTime::operator*(const LONGTYPE factor)const{
    DateTime Result(*this);
    Result.Mul(factor);
    return Result;
@@ -2329,7 +2333,7 @@ int DivFun(Word* args, Word& result, int message, Word& local, Supplier s){
   DateTime* T2 = (DateTime*) args[1].addr;
   DateTime Remainder(durationtype);
   bool overflow=false;
-  long res = T1->Div( (*T2),Remainder,overflow);
+  LONGTYPE res = T1->Div( (*T2),Remainder,overflow);
   ((CcInt*) result.addr)->Set(true,res);
   return 0;
 }
