@@ -4495,7 +4495,7 @@ int RangeRangevaluesRealExt(
     //cout << "Time to scan and build intervals: "
           //<< time2 << " milliseconds" << endl;
 
-    pResult->EndBulkLoad( false );
+    pResult->EndBulkLoad( true );
 
     return 0;
 }
