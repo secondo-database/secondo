@@ -48,7 +48,7 @@ For more detailed information see SpatialAlgebra.h.
 */
 
 
-//#define __TRACE__ cout <<  __FILE__ << "::" << __LINE__;
+// #define __TRACE__ cout <<  __FILE__ << "::" << __LINE__;
 // don't print out traces
 #define __TRACE__
 
@@ -4742,10 +4742,16 @@ parameter.
                  multiset<RealmSegment>& leftParts){
 
     assert(!AlmostEqual(entry.getSegment().x1, entry.getSegment().x2)); 
+//     __TRACE__
+//     cout << " entry = "  << entry << endl;
 
-
-    assert(AlmostEqual(x, entry.getSegment().x1)); // only allow left events
-
+    if(!(AlmostEqual(x, entry.getSegment().x1))){
+      __TRACE__
+      cout.precision(24);
+//       cout << "\nx = " << x << "entry.getSegment() = "
+//            << entry.getSegment() << endl;
+      (*segments)[entry.getIndex()].x1 = x;
+    } // only allow left events
     leftParts.clear();
       // left event
       // iterate C, check whether entry lies on a segment. Is so, split it.
@@ -4758,6 +4764,7 @@ parameter.
       RealmSegment entry_seg = entry.getSegment();
       if(e_seg.Contains(entry_seg.x1,entry_seg.y1)){ // intersects or overlaps
         if(e_seg.compareTo(entry_seg,x) == 0){ // overlaps
+//           cout << "overlaps segment e_seg" << e_seg << endl;
            // extend the overlapped segment:
           if(entry_seg.x2 > e_seg.x2){
             e_seg.x2 = entry_seg.x2;
@@ -4765,6 +4772,8 @@ parameter.
             (*segments)[e.getIndex()] = e_seg;
             assert(i!=C.end());
             *i = e; 
+//             cout << "\t ignoring segment " << entry << endl;
+//             cout << "\t merging segments to " << e << endl;
             (*ignore)[entry.getIndex()]=true;
            // entry.seg.x1 = e.seg.x2;
            // entry.seg.y1 = e.seg.y2;
@@ -4773,11 +4782,13 @@ parameter.
             isExtend = true;
           } else{
             if(e.getIndex()!=entry.getIndex()){
-               (*ignore)[e.getIndex()]=true;
+//               cout << "\t ignoring segment " << entry << endl;
+              (*ignore)[entry.getIndex()]=true;
             }
           }
         } else { // intersects
-           if(!AlmostEqual(e_seg.x1,x)){
+//           cout << "truely intersects segment e_seg" << e_seg << endl;
+          if(!AlmostEqual(e_seg.x1,x)){
               e_seg.Split(entry_seg.x1, leftpart);
               leftParts.insert(leftpart);
               (*segments)[e.getIndex()] = e_seg; // modify segment
@@ -4786,6 +4797,7 @@ parameter.
            }
         }
       } else {
+//         cout << "no intersection with segment e_seg" << e_seg << endl;
         checkIntersection(entry, e, Q,x);
       }
     }
@@ -5034,8 +5046,13 @@ ostream& operator<<(ostream& o, const RealmSSS& s){
 }
 
 static void insertSegment(Line& line,const RealmSegment& s, int& edgeno){
+  Point p1(true,s.x1,s.y1);
+  Point p2(true,s.x2,s.y2);
+  if(AlmostEqual(p1,p2)){
+    return;
+  }
   HalfSegment hs;
-  hs.Set(true,Point(true,s.x1,s.y1),Point(true,s.x2,s.y2));
+  hs.Set(true,p1,p2);
   hs.attr.edgeno = edgeno;
   line += (hs);
   hs.SetLeftDomPoint(false);
