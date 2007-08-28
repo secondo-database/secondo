@@ -65,6 +65,10 @@ static int ValueMapping( Word* args, Word& result, int message,
 */
 static const string Spec;
 
+private:
+
+static void sendMessage(string in_strMessage);
+
 
 };
 

@@ -44,6 +44,7 @@ This file contains the implementation of ~gline~
 
 #include "StandardTypes.h"
 #include "GPoint.h"
+#include "SpatialAlgebra.h"
 #include "Network.h"
 
 

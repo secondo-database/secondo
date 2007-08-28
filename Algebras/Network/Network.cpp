@@ -46,10 +46,10 @@ This file contains the implementation of ~gline~
 #include "BTreeAlgebra.h"
 #include "DBArray.h"
 #include "GPoint.h"
+#include "SpatialAlgebra.h"
 
 #include "Network.h"
 
-#include "SpatialAlgebra.h"
 #include "StandardTypes.h"
 #include "Algebra.h"
 
@@ -97,25 +97,105 @@ m_xSubAdjacencyList(0)
 {
 }
 
-Network::Network(int in_iId,
-                 Relation* routes, 
-                 Relation* junctions, 
-                 Relation* sections, 
-                 BTree* in_pBTreeRoutes,
-                 BTree* in_pBTreeJunctionsByRoute1,
-                 BTree* in_pBTreeJunctionsByRoute2):
-m_iId(in_iId),                 
-m_bDefined(true),
-m_pRoutes(routes),
-m_pJunctions(junctions),
-m_pSections(sections),
-m_pBTreeRoutes(in_pBTreeRoutes),
-m_pBTreeJunctionsByRoute1(in_pBTreeJunctionsByRoute1),
-m_pBTreeJunctionsByRoute2(in_pBTreeJunctionsByRoute2),
+Network::Network(SmiRecord& in_xValueRecord, 
+                 size_t& inout_iOffset, 
+                 const ListExpr in_xTypeInfo):
 m_xAdjacencyList(0),
 m_xSubAdjacencyList(0)
 {
-  FillAdjacencyLists();
+  // Read network id
+  in_xValueRecord.Read( &m_iId, sizeof( int ), inout_iOffset );
+  inout_iOffset += sizeof( int );
+
+  // Open routes
+  ListExpr xType = GetRoutesTypeInfo();
+  ListExpr xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  m_pRoutes = Relation::Open(in_xValueRecord, 
+                             inout_iOffset, 
+                             xNumericType);
+  if(!m_pRoutes)
+  { 
+    return;
+  }
+
+  // Open junctions
+  xType = GetJunctionsIntTypeInfo();
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  m_pJunctions = Relation::Open(in_xValueRecord, 
+                                inout_iOffset, 
+                                xNumericType);
+  if(!m_pJunctions) 
+  {  
+    m_pRoutes->Delete(); 
+    return;
+  }
+
+  // Open sections  
+  xType = GetSectionsInternalTypeInfo();
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  m_pSections = Relation::Open(in_xValueRecord, 
+                               inout_iOffset, 
+                               xNumericType);
+  if(!m_pSections) 
+  {
+    m_pRoutes->Delete(); 
+    m_pJunctions->Delete(); 
+    return;
+  }
+
+  // Open btree for routes
+  xType = GetRoutesBTreeTypeInfo();
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  m_pBTreeRoutes = BTree::Open(in_xValueRecord, 
+                               inout_iOffset, 
+                               xNumericType);
+         
+  if(!m_pBTreeRoutes) 
+  {
+    m_pRoutes->Delete(); 
+    m_pJunctions->Delete(); 
+    m_pSections->Delete();
+    return;
+  }
+
+  // Open first btree for junctions  
+  xType = GetJunctionsBTreeTypeInfo();
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  m_pBTreeJunctionsByRoute1 = BTree::Open(in_xValueRecord, 
+                                          inout_iOffset, 
+                                          xNumericType);
+  if(!m_pBTreeJunctionsByRoute1) 
+  {
+    m_pRoutes->Delete(); 
+    m_pJunctions->Delete(); 
+    m_pSections->Delete();
+    delete m_pBTreeRoutes;
+    return;
+  }
+
+  // Open second btree for junctions
+  xType = GetJunctionsBTreeTypeInfo();
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  m_pBTreeJunctionsByRoute2 = BTree::Open(in_xValueRecord, 
+                                          inout_iOffset, 
+                                          xNumericType); 
+  if(!m_pBTreeJunctionsByRoute2) 
+  {
+    m_pRoutes->Delete(); 
+    m_pJunctions->Delete(); 
+    m_pSections->Delete();
+    delete m_pBTreeRoutes;
+    delete m_pBTreeJunctionsByRoute1;
+    return;
+  }
+
+  OpenAdjacencyList(in_xValueRecord,
+                    inout_iOffset);
+
+  OpenSubAdjacencyList(in_xValueRecord,
+                       inout_iOffset);
+  
+  m_bDefined = true;
 }
 
 
@@ -712,7 +792,7 @@ void Network::GetJunctionsOnRoute(CcInt* in_pRouteId,
        inout_xJunctions.end());
 } 
 
-Tuple* Network::GetSectionIdOnRoute(GPoint* in_xGPoint)
+Tuple* Network::GetSectionOnRoute(GPoint* in_xGPoint)
 {
   vector<JunctionSortEntry> xJunctions;
   CcInt xRouteId(true, in_xGPoint->GetRouteId());
@@ -748,6 +828,27 @@ Tuple* Network::GetSectionIdOnRoute(GPoint* in_xGPoint)
   
   // Return the section
   return pSection;
+}
+
+Point* Network::GetPointOnRoute(GPoint* in_pGPoint)
+{
+  CcInt* pRouteId = new CcInt(true, in_pGPoint->GetRouteId());
+
+  BTreeIterator* pRoutesIter = m_pBTreeRoutes->ExactMatch(pRouteId);
+  delete pRouteId;
+
+  assert(pRoutesIter->Next());
+  Tuple* pRoute = m_pRoutes->GetTuple(pRoutesIter->GetId());
+  assert(pRoute != 0);
+  Line* pLine = (Line*)pRoute->GetAttribute(ROUTE_CURVE);
+  assert(pLine != 0);
+  Point* pPoint = new Point(false);
+  pLine->AtPosition(in_pGPoint->GetPosition(),true, *pPoint);
+
+  pRoute->DeleteIfAllowed();
+  delete pRoutesIter;
+
+  return pPoint;
 }
 
 Relation* Network::GetSectionsInternal()
@@ -1320,18 +1421,11 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
     return false;
   }
 
-//  cout << "AdjacencyLists Size: " << m_xAdjacencyList.Size() << endl;
-//  cout << "AdjacencyLists StructSize: " << sizeof(AdjacencyListEntry) << endl;
-//  SaveFLOB(in_xValueRecord, 
-//           inout_iOffset,
-//           &m_xAdjacencyList);
-//
-//  cout << "SubAdjacencyLists Size: " << m_xSubAdjacencyList.Size() << endl;
-//  cout << "SubAdjacencyLists StructSize: " << sizeof(DirectedSection) << endl;
-//  SaveFLOB(in_xValueRecord, 
-//           inout_iOffset,
-//           &m_xSubAdjacencyList);
-    
+  SaveAdjacencyList(in_xValueRecord,
+                    inout_iOffset);    
+
+  SaveSubAdjacencyList(in_xValueRecord,
+                       inout_iOffset);    
 
   return true; 
 }
@@ -1342,137 +1436,13 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
 
 */
 Network *Network::Open(SmiRecord& in_xValueRecord, 
-                        size_t& inout_iOffset, 
-                        const ListExpr in_xTypeInfo)
+                       size_t& inout_iOffset, 
+                       const ListExpr in_xTypeInfo)
 {
-  int iId = 0;
-  Relation* pRoutes = 0;
-  Relation* pJunctions = 0;  
-  Relation* pSections = 0;
-  BTree* pBTreeRoutes = 0;
-  BTree* pBTreeJunctionsByRoute1 = 0;
-  BTree* pBTreeJunctionsByRoute2 = 0;
-
-  // Read network id
-  in_xValueRecord.Read( &iId, sizeof( int ), inout_iOffset );
-  inout_iOffset += sizeof( int );
-
-  // Open routes
-  ListExpr xType = GetRoutesTypeInfo();
-  ListExpr xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  pRoutes = Relation::Open(in_xValueRecord, 
-                           inout_iOffset, 
-                           xNumericType);
-  if(!pRoutes)
-  { 
-    return 0;
-  }
-
-  // Open junctions
-  xType = GetJunctionsIntTypeInfo();
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  pJunctions = Relation::Open(in_xValueRecord, 
-                              inout_iOffset, 
-                              xNumericType);
-  if(!pJunctions) 
-  {  
-    pRoutes->Delete(); 
-    return 0;
-  }
-
-  // Open sections  
-  xType = GetSectionsInternalTypeInfo();
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  pSections = Relation::Open(in_xValueRecord, 
-                             inout_iOffset, 
-                             xNumericType);
-  if(!pSections) 
-  {
-    pRoutes->Delete(); 
-    pJunctions->Delete(); 
-    return 0;
-  }
-
-  // Open btree for routes
-  xType = GetRoutesBTreeTypeInfo();
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  pBTreeRoutes = BTree::Open(in_xValueRecord, 
-                             inout_iOffset, 
-                             xNumericType);
-         
-  if(!pBTreeRoutes) 
-  {
-    pRoutes->Delete(); 
-    pJunctions->Delete(); 
-    pSections->Delete();
-    return 0;
-  }
-
-  // Open first btree for junctions  
-  xType = GetJunctionsBTreeTypeInfo();
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  pBTreeJunctionsByRoute1 = BTree::Open(in_xValueRecord, 
-                                        inout_iOffset, 
-                                        xNumericType);
-  if(!pBTreeJunctionsByRoute1) 
-  {
-    pRoutes->Delete(); 
-    pJunctions->Delete(); 
-    pSections->Delete();
-    delete pBTreeRoutes;
-    return 0;
-  }
-
-  // Open second btree for junctions
-  xType = GetJunctionsBTreeTypeInfo();
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  pBTreeJunctionsByRoute2 = BTree::Open(in_xValueRecord, 
-                                        inout_iOffset, 
-                                        xNumericType); 
-  if(!pBTreeJunctionsByRoute2) 
-  {
-    pRoutes->Delete(); 
-    pJunctions->Delete(); 
-    pSections->Delete();
-    delete pBTreeRoutes;
-    delete pBTreeJunctionsByRoute1;
-    return 0;
-  }
-  
-//    DBArray<AdjacencyListEntry> xAdjacencyList(24);
-//    DBArray<DirectedSection> xSubAdjacencyList(48);
-//  
-//  
-//DBArray<AdjacencyListEntry>* xNewList = 
-//(DBArray<AdjacencyListEntry>*)OpenFLOB(in_xValueRecord, 
-//           inout_iOffset, 
-//           &xAdjacencyList); 
-//  
-//  cout << "New AdjacencyList" << endl;
-//  cout << "-------------" << endl;
-//  for (int i = 0; i < xNewList->Size(); ++i) 
-//  {
-//    const AdjacencyListEntry* xEntry;
-//    xNewList->Get(i, xEntry);
-//    cout << i << ": " 
-//         << "High:" << xEntry->m_iHigh << " " 
-//         << "Low:" << xEntry->m_iLow 
-//         << endl;
-//    
-//  }
-//  
-//  OpenFLOB(in_xValueRecord, 
-//           inout_iOffset, 
-//           &xSubAdjacencyList); 
-  
   // Create network
-  return new Network(iId,
-                     pRoutes, 
-                     pJunctions, 
-                     pSections, 
-                     pBTreeRoutes,
-                     pBTreeJunctionsByRoute1,
-                     pBTreeJunctionsByRoute2);
+  return new Network(in_xValueRecord,
+                     inout_iOffset,
+                     in_xTypeInfo);
 }
 
 
@@ -1588,6 +1558,7 @@ bool Network::SaveNetwork(SmiRecord& valueRecord,
   Network *n = (Network*)value.addr;
   return n->Save(valueRecord, offset, typeInfo);
 }
+
 bool Network::OpenNetwork(SmiRecord& valueRecord, 
                            size_t& offset, 
                            const ListExpr typeInfo, 
@@ -1607,79 +1578,125 @@ int Network::SizeOfNetwork()
 }
 
 
-void Network::SaveFLOB(SmiRecord& in_xValueRecord, 
-                       size_t& inout_iOffset,
-                       FLOB* in_pFLOB)
-    {
-      size_t iFLOBSize = sizeof(FLOB);
-      in_xValueRecord.Write(in_pFLOB,
-                            iFLOBSize,
-                            inout_iOffset);
-      inout_iOffset += iFLOBSize;                               
-      cout << "Write Flob himself Size: " << iFLOBSize << endl;
-      
-      // Größe bestimmen
-      size_t iSize = in_pFLOB->Size();
-      cout << "Write Flob Size: " << iSize << endl;
+void Network::SaveAdjacencyList(SmiRecord& in_xValueRecord, 
+                                size_t& inout_iOffset)
+{
+  int iSize = m_xAdjacencyList.Size();
+  in_xValueRecord.Write(&iSize, 
+                        sizeof(int), 
+                        inout_iOffset);
+  inout_iOffset += sizeof(int);
 
-      // Move FLOB data to extension tuple
-      char* pElement = 0;
-      if( iSize > 0 )
-      { 
-        pElement = (char*)malloc(iSize);
-      }
-      
-      size_t iWritten = in_pFLOB->WriteTo(pElement);
-      cout << "Write Flob Size: " << iWritten << endl;
+  for (int i = 0; i < m_xAdjacencyList.Size(); ++i) 
+  {
+    // Read current entry
+    const AdjacencyListEntry* xEntry;
+    m_xAdjacencyList.Get(i, xEntry);
 
-      // Write the extension element
-      if(iSize > 0)
-      {
-        in_xValueRecord.Write(pElement, 
-                              iSize, 
-                              inout_iOffset );
-        // count Offset
-        inout_iOffset += iSize;
-        free( pElement );
-      }
-    }
-    
-/*
-Read a flob from a file
+    // Write high
+    in_xValueRecord.Write(&xEntry->m_iHigh, 
+                          sizeof(int), 
+                          inout_iOffset);
+    inout_iOffset += sizeof(int);
 
-*/
-    FLOB* Network::OpenFLOB(SmiRecord& in_xValueRecord, 
-                            size_t& inout_iOffset,
-                            FLOB* in_pFLOB)
-    {
-      
-      // Read the element
-      size_t iFLOBSize = sizeof(FLOB);
-      
-      FLOB* pNewFlob = 
-        (FLOB*)(SetWord( new DBArray<AdjacencyListEntry>())).addr;
-      in_xValueRecord.Read(pNewFlob, 
-                           iFLOBSize, 
-                           inout_iOffset);
-      pNewFlob = new (pNewFlob) DBArray<AdjacencyListEntry>;
-      inout_iOffset += iFLOBSize;                        
-            
-      // TODO: Calculate size
-      size_t iSize = pNewFlob->Size();
-      cout << "Read Flob Size: " << iSize << endl; 
-      cout << "Flob Elem Size: " 
-           << ((DBArray<AdjacencyListEntry>*)pNewFlob)->Size() << endl;  
-      char* pFLOB = (char*)malloc(iSize);
+    // Write low
+    in_xValueRecord.Write(&xEntry->m_iLow, 
+                          sizeof(int), 
+                          inout_iOffset);
+    inout_iOffset += sizeof(int);    
+  }
+}
 
-      in_xValueRecord.Read(pFLOB, 
-                           iSize, 
-                           inout_iOffset);
-      size_t iRead = pNewFlob->ReadFrom(pFLOB);
-      assert(iSize == iRead);
-      inout_iOffset += iRead;
-      cout << "Flob Elem Size: " 
-           << ((DBArray<AdjacencyListEntry>*)pNewFlob)->Size() << endl;  
+void Network::SaveSubAdjacencyList(SmiRecord& in_xValueRecord, 
+                                   size_t& inout_iOffset)
+{
+  int iSize = m_xSubAdjacencyList.Size();
+  in_xValueRecord.Write(&iSize, 
+                        sizeof(int), 
+                        inout_iOffset);
+  inout_iOffset += sizeof(int);
 
-      return pNewFlob;
-    }
+  for (int i = 0; i < m_xSubAdjacencyList.Size(); ++i) 
+  {
+    // Read current entry
+    const DirectedSection* xEntry;
+    m_xSubAdjacencyList.Get(i, xEntry);
+
+    // Write high
+    int iSectionTid = ((DirectedSection*)xEntry)->getSectionTid();
+    in_xValueRecord.Write(&iSectionTid, 
+                          sizeof(int), 
+                          inout_iOffset);
+    inout_iOffset += sizeof(int);
+
+    // Write low
+    bool bUpDownFlag = ((DirectedSection*)xEntry)->getUpDownFlag();
+    in_xValueRecord.Write(&bUpDownFlag, 
+                          sizeof(bool), 
+                          inout_iOffset);
+    inout_iOffset += sizeof(bool);    
+  }
+}
+
+void Network::OpenAdjacencyList(SmiRecord& in_xValueRecord, 
+                         size_t& inout_iOffset)
+{
+  // Read length from record
+  int iSize;
+  in_xValueRecord.Read( &iSize, 
+                        sizeof( int ), 
+                        inout_iOffset );
+  inout_iOffset += sizeof( int );
+  
+  for (int i = 0; i < iSize; ++i) 
+  {
+  // Read high
+  int iHigh;
+  in_xValueRecord.Read( &iHigh, 
+                        sizeof( int ), 
+                        inout_iOffset );
+  inout_iOffset += sizeof( int );
+
+  // Read low
+  int iLow;
+  in_xValueRecord.Read( &iLow, 
+                        sizeof( int ), 
+                        inout_iOffset );
+  inout_iOffset += sizeof( int );
+
+    m_xAdjacencyList.Append(AdjacencyListEntry(iLow, iHigh));  
+  }
+}
+
+void Network::OpenSubAdjacencyList(SmiRecord& in_xValueRecord, 
+                            size_t& inout_iOffset)
+{
+  // Read length from record
+  int iSize;
+  in_xValueRecord.Read( &iSize, 
+                        sizeof( int ), 
+                        inout_iOffset );
+  inout_iOffset += sizeof( int );
+  
+  for (int i = 0; i < iSize; ++i) 
+  {
+  // Read SectionTid
+  int iSectionTid;
+  in_xValueRecord.Read( &iSectionTid, 
+                        sizeof( int ), 
+                        inout_iOffset );
+  inout_iOffset += sizeof( int );
+
+  // Read UpDownFlag
+  bool bUpDownFlag;
+  in_xValueRecord.Read( &bUpDownFlag, 
+                        sizeof( bool ), 
+                        inout_iOffset );
+  inout_iOffset += sizeof( bool );
+
+    m_xSubAdjacencyList.Append(DirectedSection(iSectionTid, 
+                                               bUpDownFlag));
+  }
+}
+
 

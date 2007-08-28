@@ -43,6 +43,7 @@ This file contains the implementation of ~gline~
 #include "BTreeAlgebra.h"
 #include "DBArray.h"
 #include "TupleIdentifier.h"
+#include "SpatialAlgebra.h"
 
 #include "StandardTypes.h"
 #include "GPoint.h"

@@ -54,6 +54,7 @@ struct DijkstraStruct
                  float in_fMeas1,
                  float in_fMeas2,
                  float in_fD,
+                 float in_fHeuristicDistanceToEnd,
                  int in_iPiSectionTid,
                  bool in_bPiUpDownFlag)
   {
@@ -63,6 +64,7 @@ struct DijkstraStruct
     m_fMeas1 = in_fMeas1;
     m_fMeas2 = in_fMeas2;
     m_fD = in_fD;
+    m_fHeuristicDistanceToEnd = in_fHeuristicDistanceToEnd;
     m_iPiSectionTid = in_iPiSectionTid;
     m_bPiUpDownFlag = in_bPiUpDownFlag;
   }
@@ -80,6 +82,7 @@ struct DijkstraStruct
     m_fMeas1(in_xDikstraStruct.m_fMeas1), 
     m_fMeas2(in_xDikstraStruct.m_fMeas2), 
     m_fD(in_xDikstraStruct.m_fD),
+    m_fHeuristicDistanceToEnd(in_xDikstraStruct.m_fHeuristicDistanceToEnd),
     m_iPiSectionTid(in_xDikstraStruct.m_iPiSectionTid),
     m_bPiUpDownFlag(in_xDikstraStruct.m_bPiUpDownFlag)
   {
@@ -97,6 +100,8 @@ struct DijkstraStruct
   
   float m_fD;
 
+  float m_fHeuristicDistanceToEnd;
+
   int m_iPiSectionTid;
   
   bool m_bPiUpDownFlag;
@@ -104,6 +109,11 @@ struct DijkstraStruct
   float Length()
   {
     return m_fMeas2 - m_fMeas1;
+  }
+  
+  float DistanceEstimation()
+  {
+    return m_fD + m_fHeuristicDistanceToEnd;
   }
   
   
@@ -165,7 +175,8 @@ class PriorityQueue
     {
       DijkstraStruct* pCurrentStruct = m_xQueue[i];
       if(i == 0 ||
-         pCurrentStruct->m_fD < pMinDijkstraStruct->m_fD)
+         pCurrentStruct->DistanceEstimation() < 
+         pMinDijkstraStruct->DistanceEstimation())
       {
         pMinDijkstraStruct = pCurrentStruct;
       }
@@ -179,6 +190,8 @@ class PriorityQueue
          pCurrent->m_bUpDownFlag == pMinDijkstraStruct->m_bUpDownFlag)
       {
         m_xQueue.erase (xIt);
+        m_xS.push_back(pCurrent);
+
         break;
       }
       xIt++;
@@ -210,6 +223,16 @@ class PriorityQueue
     return m_xElements[iIndex];
   }
 
+  int getSSize()
+  {
+    return m_xS.size();
+  }
+
+  DijkstraStruct* getS(int in_iIndex)
+  {
+    return m_xS[in_iIndex];
+  }
+
   private:
   
   // TODO: Auf Pointer umbauen
@@ -217,6 +240,9 @@ class PriorityQueue
   
   // TODO: Zweite Datenstruktur mit allen Elementen in sortiert
   vector<DijkstraStruct*> m_xQueue;
+  
+  vector<DijkstraStruct*> m_xS;
+  
 };
 
 class OpShortestPath
@@ -253,8 +279,11 @@ Dikstra's Algorithm
 */
   static void Dijkstra(Network* in_pNetwork,
                        int in_iStartSegmentId,
+                       GPoint* in_pFromGPoint,
                        int in_iEndSegmentId,
-                       GLine* in_pGLine );
+                       GPoint* in_pToGPoint,
+                       Point* in_pToPoint,
+                       GLine* in_pGLine);
 
 /*
 Sending a message via the message-center

@@ -57,13 +57,13 @@ and ~moving~(~gline~).
 
 #include "GPoint.h"
 #include "GLine.h"
+#include "SpatialAlgebra.h"
 #include "Network.h"
 
 #include "NetworkAlgebra.h"
 
 #include "Algebra.h"
 #include "StandardTypes.h"
-#include "SpatialAlgebra.h"
 
 #include "OpNetworkJunctions.h"
 #include "OpNetworkTheNetwork.h"

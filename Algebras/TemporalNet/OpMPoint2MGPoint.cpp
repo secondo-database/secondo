@@ -109,6 +109,7 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
 
   // New units are added to the moving point unsorted in a bulk-load.
   // The bulk load has to be ended before the point can be used.
+  pMGPoint->Clear();
   pMGPoint->StartBulkLoad();
 
   // Get input values
@@ -119,13 +120,12 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
   // Load the network
   Network* pNetwork = NetworkManager::GetNetwork(iNetworkId);
   
-  Relation* pSections = pNetwork->GetSectionsInternal();   
-  GenericRelationIterator* pSectionsIt = pSections->MakeScan();
   
   // This section will be valid as long as the moving point 
   // moves somewhere over it. If not it is to be replaced
   // by an adjacent section 
   Tuple* pCurrentSection;
+  int iCurrentSectionTid;
   // The direction the point is moving
   bool bCurrentMovingUp;
   // Line of the current section. 
@@ -133,6 +133,8 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
   
   if(pMPoint->GetNoComponents() == 0)
   {
+    string strMessage = "MPoint is Empty.";   
+    sendMessage(strMessage);
     pMGPoint->EndBulkLoad();
     return 0;
   }
@@ -140,37 +142,72 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
 
   /////////////////////
   // 
-  // Find first section
+  // Find first and second point of the mpoint.
   //
+  // The second point must not be equal to the first one.
   const UPoint *pFirstUnit;
   pMPoint->Get(0, pFirstUnit);  
-  Point xStart = pFirstUnit->p0;
+  Point xFirstPoint = pFirstUnit->p0;
+  Point xSecondPoint = pFirstUnit->p1;
+  for (int i = 0; i < pMPoint->GetNoComponents(); i++) 
+  {
+    // Get start and end of current unit
+    const UPoint *pCurrentUnit;
+    pMPoint->Get(i, pCurrentUnit);
+  
+    Point xSecondPoint = pCurrentUnit->p1;
+    
+    if(xFirstPoint == xSecondPoint)
+    {
+      break;
+    }
+  }
+  
+  // If start-point and end-point are still equal the mpoint does not 
+  // move. Thus we can take any section the point lies on and just proceed.
+    
+  /////////////////////
+  // 
+  // Find first section
+  //
+  Relation* pSections = pNetwork->GetSectionsInternal();   
+  GenericRelationIterator* pSectionsIt = pSections->MakeScan();
   while( (pCurrentSection = pSectionsIt->GetNextTuple()) != 0 )
   {
     // TODO: Maybe support this search with a BTree
     pCurrentSectionCurve = (Line*)pCurrentSection->GetAttribute(SECTION_CURVE);
 
-    Point xSectionStart = pCurrentSectionCurve->StartPoint(true);
-    if(xSectionStart.IsDefined() &&
-       xStart == xSectionStart)
+    double dFirstPos;
+    bool bFirstOnLine = pCurrentSectionCurve->AtPoint(xFirstPoint, 
+                                                      true, 
+                                                      dFirstPos);
+
+    double dSecondPos;
+    bool bSecondOnLine = pCurrentSectionCurve->AtPoint(xSecondPoint, 
+                                                       true, 
+                                                       dSecondPos);
+
+
+    if(bFirstOnLine && bSecondOnLine)
     {
-      bCurrentMovingUp = true;
+      bCurrentMovingUp = dFirstPos < dSecondPos;
+      iCurrentSectionTid = pCurrentSection->GetTupleId();
+      pCurrentSection->DeleteIfAllowed(); 
       break;
     }
-    
-    Point xSectionEnd = pCurrentSectionCurve->EndPoint(true);
-    if(xSectionEnd.IsDefined() && 
-       xStart == xSectionEnd)
-    {
-      // TODO: Their might be anoter
-      bCurrentMovingUp = false;
-      break;
-    }
-    
+        
     pCurrentSection->DeleteIfAllowed(); 
   }
   // TODO: Fehlerbehandlung wenn kein Segment gefunden wurde
   delete pSectionsIt;
+
+  pMGPoint->EndBulkLoad();
+  NetworkManager::CloseNetwork(pNetwork);
+  
+  return 0;
+
+  pSections = pNetwork->GetSectionsInternal();   
+  pCurrentSection = pSections->GetTuple(iCurrentSectionTid);
 
 
   /////////////////////
@@ -239,7 +276,7 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
           // New section found
           
           // Delete the last
-          pCurrentSection->DeleteIfAllowed();
+//          pCurrentSection->DeleteIfAllowed();
           
           // Take the new one
           pCurrentSection = pNextSection;
@@ -313,7 +350,12 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
   // Units were added to the moving point. They are sorted and 
   // the bulk-load is ended:
   pMGPoint->EndBulkLoad();
+  NetworkManager::CloseNetwork(pNetwork);
+  
+  delete pSectionsIt;
   return 0;
+
+
 }
 
 
@@ -329,3 +371,18 @@ const string OpMPoint2MGPoint::Spec  =
   "<text>Finds a path in a network for a moving point.</text--->"
   "<text>mpoint2mgpoint(1, x)</text--->"
   ") )";
+
+/*
+Sending a message via the message-center
+
+*/
+void OpMPoint2MGPoint::sendMessage(string in_strMessage)
+{
+  // Get message-center and initialize message-list
+  static MessageCenter* xMessageCenter= MessageCenter::GetInstance();
+  NList xMessage;
+  xMessage.append(NList("error")); 
+
+  xMessage.append(NList().textAtom(in_strMessage));
+  xMessageCenter->Send(xMessage);  
+}

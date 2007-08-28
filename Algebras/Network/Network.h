@@ -479,13 +479,9 @@ The simple constructor.
 The constructor that receives all information to create a network.
 
 */
-  Network(int in_iNetworkId,
-          Relation* in_pRoutes, 
-          Relation* in_pJunctions, 
-          Relation* in_pSections, 
-          BTree* in_pBTreeRoutes,
-          BTree* in_pBTreeJunctionsByRoute1,
-          BTree* in_pBTreeJunctionsByRoute2);
+  Network(SmiRecord& in_xValueRecord, 
+          size_t& inout_iOffset, 
+          const ListExpr in_xTypeInfo);
 
 /*
 6.2.3 List-Constructor 
@@ -605,7 +601,9 @@ Returns the ~junctions~ relation (in internal representation).
     void GetJunctionsOnRoute(CcInt* in_pRouteId,
                              vector<JunctionSortEntry>& inout_xJunctions);
 
-    Tuple* GetSectionIdOnRoute(GPoint* in_xGPoint);
+    Tuple* GetSectionOnRoute(GPoint* in_xGPoint);
+
+    Point* GetPointOnRoute(GPoint* in_xGPoint);
 
 
 /*
@@ -883,25 +881,28 @@ Given that all relations are set up, the adjacency lists are created.
 */
   void FillAdjacencyLists();
 
-void SaveFLOB(SmiRecord& in_xValueRecord, 
-                       size_t& inout_iOffset,
-                       FLOB* in_pFLOB);
+  void SaveAdjacencyList(SmiRecord& in_xValueRecord, 
+                         size_t& inout_iOffset);
+
+  void SaveSubAdjacencyList(SmiRecord& in_xValueRecord, 
+                            size_t& inout_iOffset);
 
 /*
 Read a flob from a file
 
 */
-    static FLOB* OpenFLOB(SmiRecord& in_xValueRecord, 
-                            size_t& inout_iOffset,
-                            FLOB* in_pFLOB);
+  void OpenAdjacencyList(SmiRecord& in_xValueRecord, 
+                         size_t& inout_iOffset);
+
+  void OpenSubAdjacencyList(SmiRecord& in_xValueRecord, 
+                            size_t& inout_iOffset);
 
 /*
 6.6 Private parts - relations holding the network
 
 */
 
-  
-
+ 
 /*
 6.6.1 The ID of the network
 

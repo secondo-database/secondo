@@ -45,6 +45,7 @@ This file contains the implementation of the type ~network~,
 #include "DBArray.h"
 #include "GPoint.h"
 #include "RelationAlgebra.h"
+#include "SpatialAlgebra.h"
 #include "Network.h"
 #include "NetworkManager.h"
 

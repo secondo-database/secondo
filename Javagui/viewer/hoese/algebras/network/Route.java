@@ -149,7 +149,10 @@ public class Route
   {
     if(in_dStart >= in_dEnd)
     {
-      throw new RuntimeException("End > Start");
+//      throw new RuntimeException("End > Start");
+      double dTemp = in_dStart;
+      in_dStart = in_dEnd;
+      in_dEnd = dTemp;
     }
     
     Vector xSegments = new Vector();
@@ -337,7 +340,6 @@ public class Route
   {
     
     // Start at any segment
-    System.out.println(m_iId);
     Segment xStartSegment = m_xSegments[0];
     
     // Follow from the end of this segment until
@@ -465,9 +467,6 @@ public class Route
 //      }
       
       xCurrentSegment = xCurrentSegment.getNextSegment();
-    }
-
-    
-  }
-  
+    } 
+  }  
 }
