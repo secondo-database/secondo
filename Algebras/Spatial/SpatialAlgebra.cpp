@@ -48,7 +48,7 @@ For more detailed information see SpatialAlgebra.h.
 */
 
 
-// #define __TRACE__ cout <<  __FILE__ << "::" << __LINE__;
+//#define __TRACE__ cout <<  __FILE__ << "::" << __LINE__;
 // don't print out traces
 #define __TRACE__
 
@@ -4741,32 +4741,50 @@ parameter.
   void insert(double x, RealmSSSE entry, priority_queue<RealmEvent> &Q,
                  multiset<RealmSegment>& leftParts){
 
+    // don't allow vertical segments to insert
     assert(!AlmostEqual(entry.getSegment().x1, entry.getSegment().x2)); 
-//     __TRACE__
-//     cout << " entry = "  << entry << endl;
 
-    if(!(AlmostEqual(x, entry.getSegment().x1))){
-      __TRACE__
+    // insert is only allowed at left events
+    // for this reason, we force that the x coordinate __x__ of the event
+    // is the same as the left cooridinate of the segment of the entry
+
+    if(!AlmostEqual(x,entry.getSegment().x1)){
+      cout << "try to insert an segment at an event position so that"  
+           << " the event is not the left endpoint" << endl;
       cout.precision(24);
-//       cout << "\nx = " << x << "entry.getSegment() = "
-//            << entry.getSegment() << endl;
-      (*segments)[entry.getIndex()].x1 = x;
-    } // only allow left events
+      cout << "x_position = " << x << endl;
+      cout << "segment = " << entry.getSegment() << endl;
+      if((*ignore)[entry.getIndex()]){
+         cout << "The segment shoud be ignored " << endl;
+      }else {
+         cout << "The segment is active " << endl;
+      }
+
+    }
+
+//    assert(AlmostEqual(x,entry.getSegment().x1));   
+ 
     leftParts.clear();
       // left event
       // iterate C, check whether entry lies on a segment. Is so, split it.
     bool isExtend = false;
+
+
+    RealmSegment entry_seg = entry.getSegment();
+    __TRACE__
+//    cout << "insert segment entry_seg: " << entry_seg << endl;
+
     for(vector<RealmSSSE>::iterator i=C.begin(); i!=C.end() && !isExtend; i++){
       assert(i!=C.end());
       RealmSSSE e = *i;
       RealmSegment leftpart;
       RealmSegment e_seg = e.getSegment();
-      RealmSegment entry_seg = entry.getSegment();
       if(e_seg.Contains(entry_seg.x1,entry_seg.y1)){ // intersects or overlaps
         if(e_seg.compareTo(entry_seg,x) == 0){ // overlaps
 //           cout << "overlaps segment e_seg" << e_seg << endl;
            // extend the overlapped segment:
           if(entry_seg.x2 > e_seg.x2){
+//            cout << "extend the existing segment " << endl;
             e_seg.x2 = entry_seg.x2;
             e_seg.y2 = entry_seg.y2;
             (*segments)[e.getIndex()] = e_seg;
@@ -4775,33 +4793,40 @@ parameter.
 //             cout << "\t ignoring segment " << entry << endl;
 //             cout << "\t merging segments to " << e << endl;
             (*ignore)[entry.getIndex()]=true;
-           // entry.seg.x1 = e.seg.x2;
-           // entry.seg.y1 = e.seg.y2;
-           // (*segments)[entry.index] = e.seg;
-           // Q.push(RealmEvent('l',entry.index,entry.seg.x1));
             isExtend = true;
           } else{
+//            cout << "segment is a part of an existing one," 
+//                   << " ignore it if not equal" << endl;
             if(e.getIndex()!=entry.getIndex()){
 //               cout << "\t ignoring segment " << entry << endl;
+               isExtend = true;
               (*ignore)[entry.getIndex()]=true;
             }
           }
         } else { // intersects
-//           cout << "truely intersects segment e_seg" << e_seg << endl;
+//          cout << "truely intersects segment e_seg" << e_seg << endl;
           if(!AlmostEqual(e_seg.x1,x)){
-              e_seg.Split(entry_seg.x1, leftpart);
-              leftParts.insert(leftpart);
-              (*segments)[e.getIndex()] = e_seg; // modify segment
-              assert(i!=C.end());
+//              cout << "segment splits the existing one" << endl;
+              int parts =  e_seg.Split(entry_seg.x1, leftpart);
+              if(parts<1){ // there is a left part
+                  leftParts.insert(leftpart);
+              }
+              if(parts>=0){ // there is a right part
+                 (*segments)[e.getIndex()] = e_seg; // modify segment
+              } else {
+                 (*ignore)[e.getIndex()]=true;
+              }
               *i = e;
            }
         }
       } else {
-//         cout << "no intersection with segment e_seg" << e_seg << endl;
+//        cout << "no intersection with segment e_seg" << e_seg << endl;
         checkIntersection(entry, e, Q,x);
       }
     }
     if(!isExtend){
+//      cout << "Segment is not a part or an extension of an" 
+//           << "  existing one, insert a new segment to C" << endl;
       assert((entry.getIndex() >=0) && 
              (entry.getIndex()< (int)segments->size()));
       C.push_back(entry);
@@ -4855,7 +4880,6 @@ parameter.
        assert(right.getIndex() < (int)segments->size());
         
        RealmEvent e('i',left.getIndex(),right.getIndex(),x);
-//       cout << "CheckIntersection Q.push: " << e << endl;
        if(!AlmostEqual(x,currentX) && x > currentX){
           Q.push(e);
        }
@@ -4969,8 +4993,8 @@ The result set is returned in ~segments~.
   void processVertical(double x_pos, RealmSegment& seg,
                        multiset<RealmSegment>&  segments){
 
-    __TRACE__;
-    //cout << "process vertical segment " << seg << " at " << x_pos << endl;
+    __TRACE__
+//    cout << "process vertical segment " << seg << " at " << x_pos << endl;
 
     segments.clear();
     RealmSegment::currentX = x_pos;
@@ -5028,9 +5052,7 @@ The result set is returned in ~segments~.
   ostream& Print(ostream& o) const{
     o << "[RealmSSS: C={" << endl;
     for_each(C.begin(), C.end(), print<RealmSSSE>(o));
-    o << "\t}\n\n  segments={";
-    for_each(segments->begin(), segments->end(), print<RealmSegment>(o));
-    o << "\t}\n]" << endl;
+    o << endl;
     return o;
   }
   
@@ -5046,6 +5068,8 @@ ostream& operator<<(ostream& o, const RealmSSS& s){
 }
 
 static void insertSegment(Line& line,const RealmSegment& s, int& edgeno){
+//  cout << "insert segment s=" << s << "into result " << endl;
+
   Point p1(true,s.x1,s.y1);
   Point p2(true,s.x2,s.y2);
   if(AlmostEqual(p1,p2)){
@@ -5145,6 +5169,12 @@ void Line::Realminize(){
       }while(!done && !Q.empty());
       
 
+//      cout << "process events at position " << lastX << endl;
+//      cout << " >>>>>>>>> content of SSS <<<<<<<<<<< " << endl;
+//      S.Print(cout);
+//      cout << " >>>>>>>>>>>><<<<<<<<<<<" << endl;
+
+
 //      cout << "Group created" << endl;
 //      cout << "there are " << Q.size() << "events in this queue" << endl; 
       
@@ -5215,13 +5245,20 @@ void Line::Realminize(){
                        
                         // insert the left parts into the line
                         // if there are ones
-                        if(left1<1){
+                        if(left1<1 && !ignore[e.getSeg1()]){
                           insertSegment(*this, seg1, edgeno);
                         }
-                        if(left2<1){
+                        if(left2<1 && !ignore[e.getSeg2()]){
                           insertSegment(*this, seg2, edgeno);
                         }
-                        if(left1>=0 && left2 >=0){ // existing right parts
+                        if(left1<0){ // no right part
+                          ignore[e.getSeg1()] = true;
+                        }
+                        if(left2<0){
+                          ignore[e.getSeg2()] = true;
+                        }
+                        if(!ignore[e.getSeg1()] && 
+                           !ignore[e.getSeg2()]){ // existing right parts
                             S.swap(e.x_pos, segments[e.getSeg1()],
                                    segments[e.getSeg2()], Q);
                         }
@@ -5358,29 +5395,41 @@ void Line::Realminize(){
                  }
                }
              } else if (e_ij.getType() == 'i'){
+
                // output leftern parts
                RealmSegment leftpart1, leftpart2;
                s2 = segments[e_ij.getSeg2()];
 
+//               cout << "output the left parts of s1 = " << s1 << endl;
+//               cout << " and                     s2 = " << s2 << endl;
+ 
                // remove both segments from S
                S.remove(e_ij.x_pos,s1,Q);
                S.remove(e_ij.x_pos,s2,Q);
            
+//               cout << " after removing the segments SS is " << endl;
+//               cout << S.Print(cout);
+//               cout << " xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" << endl;
+
+
                // split the segments at the position of this event    
                int left1 = s1.Split(e_ij.x_pos, leftpart1);
                int left2 = s2.Split(e_ij.x_pos, leftpart2);
 
                // if there are leftParts, insert them into the result
-               if(left1<1){
+               if(left1<1 && !ignore[e_ij.getSeg1()]){
                  insertSegment(*this, leftpart1,edgeno);
                }
-               if(left2 < 1){
+               if(left2 < 1 && !ignore[e_ij.getSeg2()]){
                  insertSegment(*this, leftpart2,edgeno);
                }
 
-               if(left1>=0){ // there is a right part
+               segments[e_ij.getSeg1()] = s1;
+               if(left1<0){ // no right part
+                  ignore[e_ij.getSeg1()] = true;
+               }
+               if(!ignore[e_ij.getSeg1()]){ // there is a right part
                  // trim the original segment 
-                 segments[e_ij.getSeg1()] = s1;
                  // create a new left event
                  RealmEvent n1('l',e_ij.getSeg1(),e_ij.x_pos);
                  LeftEvents.push_back(n1);
@@ -5388,9 +5437,12 @@ void Line::Realminize(){
                  ignore[e_ij.getSeg1()] = true;
                }
                
-               if(left2>=0){ // there is a right part
+               segments[e_ij.getSeg2()] = s2;
+               if(left2<0){
+                  ignore[e_ij.getSeg2()]=true;
+               }
+               if(!ignore[e_ij.getSeg2()]){ // there is a right part
                  // trim the original segment 
-                 segments[e_ij.getSeg2()] = s2;
                  // create a new left event
                  RealmEvent n2('l',e_ij.getSeg2(),e_ij.x_pos);
                  LeftEvents.push_back(n2);
