@@ -883,7 +883,7 @@ Signature: mreal x real -> mreal
 Example  : query (distance(train7, mehringdamm)) minus 3000.0
 Result   : file
 Remark   : On linux64 the a pair (0.0361728, 0.0) produces a big relative error
-
+Tolerance: %0.0001
 
 Operator : minus
 Number   : 10
@@ -918,7 +918,7 @@ Number   : 14
 Signature: mreal x mreal -> mreal
 Example  : query (distance(train1, mehringdamm)) minus (distance(train7, mehringdamm))
 Result   : file
-
+Tolerance: %0.0001
 
 Operator : minus
 Number   : 15
