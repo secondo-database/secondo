@@ -2166,7 +2166,7 @@ int MappingUnitStreamInstantFinal( Word* args, Word& result, int message,
             {
               if(Mode == 0)
                 { // initial-mode
-                  if ( U->timeInterval.Before((*SavedUnit).timeInterval.start) )
+                  if ( U->timeInterval.start < SavedUnit->timeInterval.start)
                     {
                       SavedUnit->DeleteIfAllowed();
                       SavedUnit = U;
@@ -2176,7 +2176,7 @@ int MappingUnitStreamInstantFinal( Word* args, Word& result, int message,
                 }
               else // (Mode == 1)
                 { // final-mode
-                  if ( U->timeInterval.After((*SavedUnit).timeInterval.end) )
+                  if ( U->timeInterval.end > SavedUnit->timeInterval.end)
                     {
                       SavedUnit->DeleteIfAllowed();
                       SavedUnit = U;
