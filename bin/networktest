@@ -16,7 +16,7 @@
         (OBJECT X_GPOINT2 
             () 
             gpoint 
-            (1 5 0.5 0)) 
+            (1 5 0.5 1)) 
         (OBJECT X_GPOINT2_DISJOINT 
             () 
             gpoint 
@@ -72,6 +72,16 @@
                 (
                     ("2007-01-02" "2007-01-04" TRUE TRUE) 
                     (1 2 1 0.0 1.0)))) 
+        (OBJECT X_MPOINT 
+            () 
+            mpoint 
+            (
+                (
+                    ("2007-01-01" "2007-01-03" TRUE FALSE) 
+                    (0.0 0.0 1.0 1.0)) 
+                (
+                    ("2007-01-03" "2007-01-05" TRUE TRUE) 
+                    (1.0 1.0 2.0 3.0)))) 
         (OBJECT X_NETWORK 
             () 
             network 
