@@ -1022,8 +1022,8 @@ This functions extends this relinterval to be factor[mul]oldlength.
 
 */
 void RelInterval::Mul(const long factor){
-    __TRACE__
-  length.Mul(factor);
+   __TRACE__
+  length.Mul((int)factor);
 }
 
 /*

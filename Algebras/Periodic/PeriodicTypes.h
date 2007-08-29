@@ -111,7 +111,7 @@ static bool GetNumeric(const ListExpr List, double &value);
 
 2.1.1 The Class PBBox
 
-This class is the implementation of the minimal bounding box. This class is
+This class is the implementation of the minimum bounding box. This class is
 also an algebra class.
 
 */
@@ -523,7 +523,7 @@ These submoves are stored in an  array and
 all moves in range [minIndex,maxIndex] of this array are
 part of this composite move. To accerelate some operations,
 the whole relinterval of all submoves are also stored here.
-For spatial data types additionally the minimal bounding box is
+For spatial data types additionally the minimum bounding box is
 stored.
 
 */
@@ -604,7 +604,7 @@ public:
 A Periodic Move is determined by the number of repeatations 
 and the repeated submove. To accelerate operations
 also the whole relinterval is stored. For Spatial types also the
-minimal bounding box is contained as member.
+minimum bounding box is contained as member.
 
 */
 class PeriodicMove{
@@ -799,8 +799,8 @@ computing the value at time ~t~ is given by:
 
 [start_formula]
   v = \left\{ \begin{array}{ll}
-          a^2+bt+t & \mbox{if root = false} \\
-          \sqrt{a^2+bt+t}   & \mbox{if root = true}
+          at^2+bt+c & \mbox{if root = false} \\
+          \sqrt{at^2+bt+c}   & \mbox{if root = true}
       \end{array}
       \right.
 [end_formula]
@@ -882,10 +882,10 @@ Flag for the defined state of this unit.
 
 The LinearPointMove class is the unit type for moving points.
 This class defines a point moving from
-(startX,startY) to (endX,endY) while a defined duration.
+(startX,startY) to (endX,endY) during a defined duration.
 The bounding box is stored in the member __bbox__.
 The __isStatic__ flag indicates whether the start and
-the end point are equals. If the __defined__ flag is not
+the end points are equals. If the __defined__ flag is not
 set, all values without the relinterval are ignored. The defined
 flag is needed to represent gaps in the definition time.
 
