@@ -32,7 +32,7 @@ DEBUG = -ggdb
 # Note: The flags below print out all defined symbols the preprocessor knows
 # gcc -dM -E <file>
 
-# Uncomment one of the next lines to comile with code optimizations. 
+# Uncomment one of the next lines to compile with code optimizations. 
 #OPTIMIZE = -O1 -finline-functions -Winline
 
 # Use more optimizations
@@ -70,7 +70,7 @@ DEFAULTCCFLAGS += -DNL_PERSISTENT
 
 
 # Flag for compiling code of operator value mappings which supports progress measurement. 
-#DEFAULTCCFLAGS += -DUSE_PROGRESS
+DEFAULTCCFLAGS += -DUSE_PROGRESS
 
 # The next flag activates trace messages. Alternatively you may define it
 # only in some subordinated makefiles to avoid to much messages.
