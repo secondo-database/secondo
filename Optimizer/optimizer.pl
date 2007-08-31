@@ -1006,10 +1006,6 @@ plan_to_atom([], '').
 
 plan_to_atom(Term, Result) :-
     is_list(Term), Term = [First | _], atomic(First), !,
-    write('Term: '), write(Term), nl,
-    write('First: '), write(First), nl,
-    write('TermRes: '), write(TermRes), nl,
-    write('Result: '), write(Result), nl,
     atom_codes(TermRes, Term),
     concat_atom(['"', TermRes, '"'], '', Result).
 
