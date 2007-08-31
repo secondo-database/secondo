@@ -126,6 +126,7 @@ Number   : 1
 Signature: graph -> graph
 Example  : query placenodes(sightsgraphrel feed constgraph[id_s1,id_s2,distance(.geoData_s1,.geoData_s2)])
 Result   : file 
+Tolerance : %0.001
 
 
 Operator : pos
