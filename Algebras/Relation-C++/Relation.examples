@@ -155,8 +155,8 @@ Operator : tuplesize
 Number   : 1
 Signature: ((stream/rel (tuple x))) -> real
 Example  : query Trains tuplesize
-Result   : (platform (linux (real 10774.97508896797)) (linux64 (real 17075.615234375)) (win32 (real 11085.83629893239)))
-Remark   : On Linux and Windows this operator returns other values, Maybe it depends on Berkeley-DB or different page sizes.
+Result   : (platform (linux (real 10774.97508896797)) (linux64 (real 17075.615234375)) (win32 (real 11141.83629893239)))
+Remark   : On Linux and Windows this operator returns different values. Maybe it depends on Berkeley-DB or different page sizes.
 
 
 Operator : tconsume
