@@ -2787,9 +2787,9 @@ void MPoint::AtPeriods( const Periods& p, MPoint& result ) const
             UPoint r;
             unit->AtInterval( *interval, r );
             result.Add( r );
-            cout << "\n\tunit = "; unit->Print(cout); cout << endl;
-            cout << "\tinterval =       "; interval->Print(cout); cout << endl;
-            cout << "\tr    = "; r.Print(cout); cout << endl;
+//          cout << "\n\tunit = "; unit->Print(cout); cout << endl;
+//          cout << "\tinterval =       "; interval->Print(cout); cout << endl;
+//          cout << "\tr    = "; r.Print(cout); cout << endl;
 
             if( interval->end == unit->timeInterval.end )
             { // same ending instant
