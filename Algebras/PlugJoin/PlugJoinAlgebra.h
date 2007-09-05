@@ -1836,14 +1836,18 @@ void R_TreePnJ<dim>::InsertEntry( const R_TreeEntryPnJ<dim>& entry )
         ArrayIndex node1recno = header.nodeCount;
         *rtree[node1recno] = *n1;
         delete n1;
-        assert( nodePtr->Insert( R_TreeEntryPnJ<dim>( n1Box, node1recno ) ) );
+        int InsertedEntry =
+            nodePtr->Insert( R_TreeEntryPnJ<dim>( n1Box, node1recno ) );
+        assert( InsertedEntry );
 
         BBox<dim> n2Box( n2->BoundingBox() );
         header.nodeCount++;
         ArrayIndex node2recno = header.nodeCount;
         *rtree[node2recno] = *n2;;
         delete n2;
-        assert( nodePtr->Insert( R_TreeEntryPnJ<dim>( n2Box, node2recno ) ) );
+        InsertedEntry =
+            nodePtr->Insert( R_TreeEntryPnJ<dim>( n2Box, node2recno ) );
+        assert( InsertedEntry );
 
         header.nodeCount++;
         header.height += 1;

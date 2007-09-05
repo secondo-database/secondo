@@ -1058,7 +1058,8 @@ string
 NestedList::ToString( const ListExpr list ) const
 {
    string listStr;
-   assert( WriteToString(listStr, list) );
+   int Success = WriteToString(listStr, list);
+   assert( Success );
    return listStr;
 }
 

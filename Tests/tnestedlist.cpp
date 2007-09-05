@@ -827,8 +827,9 @@ TestRun_Persistent() {
    "SecondoConfig.ini", cerr );
    listDB();
    //pause();
-   
-   assert( openDB("PARRAY") ); 
+
+   int OpendeDB = openDB("PARRAY");
+   assert( OpendeDB ); 
    //cout << "Begin Transaction: " 
    //<< SmiEnvironment::BeginTransaction() << endl;
    
@@ -845,8 +846,9 @@ TestRun_Persistent() {
    
    //cout << "Commit: " 
    //<< SmiEnvironment::CommitTransaction() << endl;
-   
-   assert( closeDB() );
+
+   int ClosedDB = closeDB();
+   assert( ClosedDB );
 
    //pause();
    

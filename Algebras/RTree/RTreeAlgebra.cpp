@@ -2881,7 +2881,8 @@ int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
   static MessageCenter* msg = MessageCenter::GetInstance();
   int count = 0; // counter for progress indicator
 
-  assert(rtree->InitializeBulkLoad());
+  bool BulkLoadInitialized = rtree->InitializeBulkLoad();
+  assert(BulkLoadInitialized);
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, wTuple);
@@ -2915,7 +2916,8 @@ int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
     qp->Request(args[0].addr, wTuple);
   }
   qp->Close(args[0].addr);
-  assert( rtree->FinalizeBulkLoad() );
+  int FinalizedBulkLoad = rtree->FinalizeBulkLoad();
+  assert( FinalizedBulkLoad );
 
   // build a two elem list (simple count)
   NList msgList( NList("simple"), NList(count) );
@@ -2945,7 +2947,8 @@ template<unsigned dim>
   static MessageCenter* msg = MessageCenter::GetInstance();
   int count = 0; // counter for progress indicator
 
-  assert(rtree->InitializeBulkLoad());
+  bool BulkLoadInitialized = rtree->InitializeBulkLoad();
+  assert(BulkLoadInitialized);
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, wTuple);
   while (qp->Received(args[0].addr))
@@ -2988,7 +2991,8 @@ template<unsigned dim>
     qp->Request(args[0].addr, wTuple);
   }
   qp->Close(args[0].addr);
-  assert( rtree->FinalizeBulkLoad() );
+  int FinalizedBulkLoad = rtree->FinalizeBulkLoad();
+  assert( FinalizedBulkLoad );
 
   // build a two elem list (simple count)
   NList msgList( NList("simple"), NList(count) );
@@ -3017,7 +3021,8 @@ template<unsigned dim>
   static MessageCenter* msg = MessageCenter::GetInstance();
   int count = 0; // counter for progress indicator
 
-  assert(rtree->InitializeBulkLoad());
+  bool BulkLoadInitialized = rtree->InitializeBulkLoad();
+  assert(BulkLoadInitialized);
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, wTuple);
   while (qp->Received(args[0].addr))
@@ -3049,7 +3054,8 @@ template<unsigned dim>
   }
   qp->Close(args[0].addr);
 
-  assert( rtree->FinalizeBulkLoad() );
+  int FinalizedBulkLoad = rtree->FinalizeBulkLoad();
+  assert( FinalizedBulkLoad );
         // build a two elem list (simple count)
   NList msgList( NList("simple"), NList(count) );
       // send the message, the message center will call 
@@ -3077,7 +3083,8 @@ int CreateRTreeBulkLoadStreamL2Rect(Word* args, Word& result, int message,
   static MessageCenter* msg = MessageCenter::GetInstance();
   int count = 0; // counter for progress indicator
 
-  assert(rtree->InitializeBulkLoad());
+  bool BulkLoadInitialized = rtree->InitializeBulkLoad();
+  assert(BulkLoadInitialized);
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, wTuple);
@@ -3123,7 +3130,8 @@ int CreateRTreeBulkLoadStreamL2Rect(Word* args, Word& result, int message,
   }
   qp->Close(args[0].addr);
 
-  assert( rtree->FinalizeBulkLoad() );
+  int FinalizedBulkLoad = rtree->FinalizeBulkLoad();
+  assert( FinalizedBulkLoad );
         // build a two elem list (simple count)
   NList msgList( NList("simple"), NList(count) );
       // send the message, the message center will call 

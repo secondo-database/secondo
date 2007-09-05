@@ -425,7 +425,8 @@ void Network::FillRoutes(const Relation *routes)
                        " (ptr " + xRoutesPtrStream.str() + ")))))";
 
   Word xResult;
-  assert(QueryProcessor::ExecuteQuery(strQuery, xResult));
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted); // no query with side effects, please!
   m_pRoutes = (Relation *)xResult.addr;
 
   // Create B-Tree for the routes
@@ -434,7 +435,8 @@ void Network::FillRoutes(const Relation *routes)
   strQuery = "(createbtree (" + routesTypeInfo + 
                 " (ptr " + xThisRoutesPtrStream.str() + "))" + " id)";
 
-  assert(QueryProcessor::ExecuteQuery(strQuery, xResult));
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted); // no query with side effects, please!
   m_pBTreeRoutes = (BTree*)xResult.addr;
 }
 
@@ -487,7 +489,8 @@ void Network::FillJunctions(const Relation *in_pJunctions)
     CcInt* pR1Id = (CcInt*)pCurrentJunction->GetAttribute(JUNCTION_ROUTE1_ID);
     BTreeIterator* pRoutesIter = m_pBTreeRoutes->ExactMatch(pR1Id);
     // TODO: Fehlerbehandlung verbessern
-    assert(pRoutesIter->Next());
+    int NextIter = pRoutesIter->Next();
+    assert(NextIter);  // no query with side effects, please!
     TupleIdentifier *pR1RC = new TupleIdentifier(true, pRoutesIter->GetId());
     pNewJunction->PutAttribute(JUNCTION_ROUTE1_RC, pR1RC);
     
@@ -509,7 +512,8 @@ void Network::FillJunctions(const Relation *in_pJunctions)
     CcInt* pR2Id = (CcInt*)pCurrentJunction->GetAttribute(JUNCTION_ROUTE2_ID);
     pRoutesIter = m_pBTreeRoutes->ExactMatch(pR2Id);
     // TODO: Fehlerbehandlung verbessern
-    assert(pRoutesIter->Next());
+    NextIter = pRoutesIter->Next();
+    assert(NextIter); // no query with side effects, please!
     TupleIdentifier *pR2RC = new TupleIdentifier(true, pRoutesIter->GetId());
     pNewJunction->PutAttribute(JUNCTION_ROUTE2_RC, pR2RC);
     delete pRoutesIter;
@@ -541,7 +545,8 @@ void Network::FillJunctions(const Relation *in_pJunctions)
 
 
   Word xResult;
-  assert(QueryProcessor::ExecuteQuery(strQuery, xResult));
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted); // no query with side effects, please!
   m_pJunctions = (Relation *)xResult.addr;
   
   // Delete internal table
@@ -552,14 +557,16 @@ void Network::FillJunctions(const Relation *in_pJunctions)
   xThisJunctionsPtrStream << (long)m_pJunctions;
   strQuery = "(createbtree (" + junctionsInternalTypeInfo + 
                 " (ptr " + xThisJunctionsPtrStream.str() + "))" + " r1id)";
-  assert(QueryProcessor::ExecuteQuery(strQuery, xResult));
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted); // no query with side effects, please!
   m_pBTreeJunctionsByRoute1 = (BTree*)xResult.addr;
   
   ostringstream xThisJunctionsPtrStream2;
   xThisJunctionsPtrStream2 << (long)m_pJunctions;
   strQuery = "(createbtree (" + junctionsInternalTypeInfo + 
                 " (ptr " + xThisJunctionsPtrStream2.str() + "))" + " r2id)";
-  assert(QueryProcessor::ExecuteQuery(strQuery, xResult));
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted); // no query with side effects, please!
   m_pBTreeJunctionsByRoute2 = (BTree*)xResult.addr;
 }
 
@@ -577,7 +584,8 @@ Relation *Network::GetJunctions()
                        " (ptr " + strJunctionsPtr.str() + "))))";
 
   Word resultWord;
-  assert(QueryProcessor::ExecuteQuery(querystring, resultWord));
+  int QueryExecuted = QueryProcessor::ExecuteQuery(querystring, resultWord);
+  assert(QueryExecuted); // no ASSERT with side effects, please
   return (Relation *)resultWord.addr;
 }
 
@@ -837,7 +845,8 @@ Point* Network::GetPointOnRoute(GPoint* in_pGPoint)
   BTreeIterator* pRoutesIter = m_pBTreeRoutes->ExactMatch(pRouteId);
   delete pRouteId;
 
-  assert(pRoutesIter->Next());
+  int NextSuccess = pRoutesIter->Next();
+  assert(NextSuccess); // No ASSERT with side effect, please!
   Tuple* pRoute = m_pRoutes->GetTuple(pRoutesIter->GetId());
   assert(pRoute != 0);
   Line* pLine = (Line*)pRoute->GetAttribute(ROUTE_CURVE);
@@ -865,7 +874,8 @@ Relation *Network::GetSections()
                        " (ptr " + strSectionsPtr.str() + "))))";
 
   Word resultWord;
-  assert(QueryProcessor::ExecuteQuery(querystring, resultWord));
+  int QueryExecuted = QueryProcessor::ExecuteQuery(querystring, resultWord);
+  assert(QueryExecuted); // No ASSERT with side effect, please!
   return (Relation *)resultWord.addr;
 }
 

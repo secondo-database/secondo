@@ -1519,7 +1519,9 @@ void SpatialJoinLocalInfo<dim>::BufferInsert
     {
       SmiRecordId nextRecno;
       SmiRecord*  nextRecord = new SmiRecord();
-      assert( hdr.file.AppendRecord( nextRecno, *nextRecord ) );
+      unsigned int RecordAppended =
+          hdr.file.AppendRecord( nextRecno, *nextRecord );
+      assert( RecordAppended );
 
       Write ( mm, nodeNo, p->second.actualRId, nextRecno);
 
@@ -1533,7 +1535,9 @@ void SpatialJoinLocalInfo<dim>::BufferInsert
   {
     SmiRecordId firstRecno;
     SmiRecord*  firstRecord = new SmiRecord();
-    assert( hdr.file.AppendRecord( firstRecno, *firstRecord ) );
+    unsigned int RecordAppended =
+        hdr.file.AppendRecord( firstRecno, *firstRecord );
+    assert( RecordAppended );
 
     delete firstRecord;
 

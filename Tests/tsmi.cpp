@@ -210,7 +210,8 @@ void TestFileScan( )
 
  
   SmiKeyedFile kf( SmiKey::Integer, true );
-  assert( kf.Create() ); 
+  int FKcreated = kf.Create();
+  assert( FKcreated ); 
   SmiKey key;
   cout << "Integer KeyedFile created FileId=" << kf.GetFileId() << endl;
   cout << "KeyedFile name   =" << kf.GetName() << endl;

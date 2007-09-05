@@ -253,11 +253,17 @@ bool FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId,
     file->SelectRecord( key.recordId, record );
 
     if( pageno == -1 )
-      assert( record.Read( buf, key.size, 0 ) == (unsigned int)key.size );
+    {
+      unsigned int RecordRead = record.Read( buf, key.size, 0 );
+      assert( RecordRead == (unsigned int)key.size );
+    }
     else
-      assert( record.Read( buf, 
-                           FLOB::PAGE_SIZE, 
-                           pageno * FLOB::PAGE_SIZE ) == FLOB::PAGE_SIZE );
+    {
+      unsigned int RecordRead = record.Read( buf,
+                                     FLOB::PAGE_SIZE,
+                                     pageno * FLOB::PAGE_SIZE );
+      assert( RecordRead == FLOB::PAGE_SIZE );
+    }
 
     if( !Insert( key, buf ) )
       return false;
@@ -311,10 +317,16 @@ void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
   if( pageno == -1 )
   {
     if( append )
-      assert( file->AppendRecord( lobId, record ) );
+    {
+      unsigned int RecordAppended = file->AppendRecord( lobId, record );
+      assert( RecordAppended );
+    }
     else
-      assert( file->SelectRecord( lobId, record, SmiFile::Update ) );
-
+    {
+      unsigned int RecordSelected =
+          file->SelectRecord( lobId, record, SmiFile::Update );
+      assert( RecordSelected );
+    }
     record.Write( flob, size, 0 );
   }
   else
@@ -322,10 +334,15 @@ void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
     if( append )
     {
       assert( pageno == 0 );
-      assert( file->AppendRecord( lobId, record ) );
+      unsigned int RecordAppended = file->AppendRecord( lobId, record );
+      assert( RecordAppended );
     }
     else
-      assert( file->SelectRecord( lobId, record, SmiFile::Update ) );
+    {
+      unsigned int RecordSelected =
+          file->SelectRecord( lobId, record, SmiFile::Update );
+      assert( RecordSelected );
+    }
 
     assert( size <= FLOB::PAGE_SIZE );
     record.Write( flob, size, pageno * FLOB::PAGE_SIZE );

@@ -87,9 +87,11 @@ main( int argc, char** argv )
 
   DbEnv bdb(DB_CXX_NO_EXCEPTIONS);
   const int CACHE_SIZE = 300 * pageSize;
-  assert( !bdb.set_cachesize( 0 ,CACHE_SIZE, 0 ) );
+  int SetCachesizeSuccess = bdb.set_cachesize( 0 ,CACHE_SIZE, 0 );
+  assert( !SetCachesizeSuccess );
   //assert( !bdb.set_flags(DB_DIRECT_DB | DB_REGION_INIT, 1) );
-  assert( !bdb.open( 0, DB_CREATE | DB_INIT_MPOOL, 0) );
+  int BDBopened = bdb.open( 0, DB_CREATE | DB_INIT_MPOOL, 0);
+  assert( !BDBopened );
   cout << "Environment opened. Cache size: " 
        << CACHE_SIZE << " bytes." << endl;        
 
@@ -99,7 +101,8 @@ main( int argc, char** argv )
 
   Db db1(&bdb, 0);
   Db db2(&bdb, 0);
-  assert( !db1.set_pagesize(4096) );
+  int DBsetPagesizeSuccess = db1.set_pagesize(4096);
+  assert( !DBsetPagesizeSuccess );
 
   u_int32_t openFlags;
 
@@ -110,12 +113,14 @@ main( int argc, char** argv )
     openFlags = DB_RDONLY;
   }
 
-  assert( !db1.open( 0, (DATABASE).c_str(), 
-		     0, DB_BTREE, openFlags, 0664) );
+  int DBopenSuccess = db1.open( 0, (DATABASE).c_str(),
+                                0, DB_BTREE, openFlags, 0664);
+  assert( !DBopenSuccess );
   cout << "Database " << DATABASE << " opened." << endl;
 
-  assert( !db2.open( 0, (DATABASE2).c_str(), 
-		     0, DB_RECNO, openFlags, 0664) );
+  DBopenSuccess = db2.open( 0, (DATABASE2).c_str(),
+                            0, DB_RECNO, openFlags, 0664);
+  assert( !DBopenSuccess );
   cout << "Database " << DATABASE << " opened." << endl;
 
 
@@ -132,7 +137,8 @@ main( int argc, char** argv )
 
       Dbt key( (void*) &j, sizeof(int) );
       Dbt data( (void*) dummyRec, recSize );
-      assert( !db1.put(0, &key, &data, 0) );
+      int DBputSuccess = db1.put(0, &key, &data, 0);
+      assert( !DBputSuccess );
 
     } // end of for j ...
   }
@@ -144,7 +150,8 @@ main( int argc, char** argv )
 
       Dbt key( (void*) &j, sizeof(int) );
       Dbt data( (void*) dummyRec, recSize );
-      assert( !db2.put(0, &key, &data, 0) );
+      int DBputSuccess = db2.put(0, &key, &data, 0);
+      assert( !DBputSuccess );
 
     } // end of for j ...
   }
@@ -158,14 +165,16 @@ main( int argc, char** argv )
       int keyval = (int)(TEST_MAX * 1.0 * rand() / (RAND_MAX + 1.0)) + 1;
       //cout << keyval << ", ";
       Dbt key( (void *) &(keyval), sizeof(int) );  
-      Dbt data;      
-      assert( !db1.get(0, &key, &data, 0) ); 
+      Dbt data;
+      int DBgetSuccess = db1.get(0, &key, &data, 0);
+      assert( !DBgetSuccess ); 
     }
   } 
 
   if ( mode == 3 ) {
     Dbc* cursor = 0;
-    assert( !db1.cursor(0, &cursor, 0) );
+    int DBcursorSuccess = !db1.cursor(0, &cursor, 0);
+    assert( !DBcursorSuccess );
     Dbt key;
     Dbt data;
     int rc = 0;
@@ -178,7 +187,8 @@ main( int argc, char** argv )
   }
 
     Dbc* cursor = 0;
-    assert( !db1.cursor(0, &cursor, 0) );
+    int DBcursorSuccess = db1.cursor(0, &cursor, 0);
+    assert( !DBcursorSuccess );
     Dbt key;
     int rc = 0;
     
@@ -207,7 +217,8 @@ main( int argc, char** argv )
 
   /*
   if ( mode == 4 ) {
-    assert( !db1.cursor(0, &cursor, 0) );
+    DBcursorSuccess = db1.cursor(0, &cursor, 0);
+    assert( !DBcursorSuccess );
     cout << "Bulk retrieval of " << DATABASE << "..." << endl;
 
     for (;;) {
@@ -243,7 +254,8 @@ main( int argc, char** argv )
   if ( mode == 6 ) {
 
 
-    assert( !db2.cursor(0, &cursor, 0) );
+    DBcursorSuccess = !db2.cursor(0, &cursor, 0);
+    assert( DBcursorSuccess );
     db_recno_t recno = 0;
 
     cout << "Bulk retrieval of " << DATABASE2 << "..." << endl;
@@ -260,7 +272,7 @@ main( int argc, char** argv )
        break;
      }
 
-      int ctr = 0;		  
+      int ctr = 0;
       DbMultipleRecnoDataIterator it(buf);
       while ( it.next(recno, retdata) ) {};
      }
@@ -276,7 +288,8 @@ main( int argc, char** argv )
   assert ( !db1.close(DB_NOSYNC) );
   assert ( !db2.close(DB_NOSYNC) );
 
-  cout << "Time: " << runTime.diffTimes() << endl;       
-  assert( !bdb.close(0) );
+  cout << "Time: " << runTime.diffTimes() << endl;
+  int BDBclosed = bdb.close(0);
+  assert( !BDBclosed );
 
 }

@@ -241,7 +241,8 @@ The lexicographical order on CcTuple. To be used in conjunction with
 STL algorithms.
 
 */
-bool LexicographicalCcTupleCmp::operator()(const CcTuple* aConst, const CcTuple* bConst) const
+bool LexicographicalCcTupleCmp::operator()
+    (const CcTuple* aConst, const CcTuple* bConst) const
 {
   CcTuple* a = (CcTuple*)aConst;
   CcTuple* b = (CcTuple*)bConst;
@@ -412,7 +413,8 @@ Word InCcTuple(ListExpr typeInfo, ListExpr value,
   {
     correct = false;
 
-    cout << "Error in reading tuple: an atom instead of a list of values." << endl;
+    cout << "Error in reading tuple: an atom instead of a list of values."
+         << endl;
     cout << "Tuple no." << errorPos << endl;
     cout << "The tuple is: " << endl;
     nl->WriteListExpr(value);
@@ -444,8 +446,9 @@ Word InCcTuple(ListExpr typeInfo, ListExpr value,
         nl->WriteListExpr(value);
 
         errorInfo = nl->Append(errorInfo,
-          nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(2),
-            nl->IntAtom(errorPos)));
+          nl->FourElemList(nl->IntAtom(71),
+                           nl->SymbolAtom("tuple"), nl->IntAtom(2),
+                           nl->IntAtom(errorPos)));
         delete tupleaddr;
         return SetWord(Address(0));
 
@@ -468,16 +471,18 @@ Word InCcTuple(ListExpr typeInfo, ListExpr value,
         {
           correct = false;
 
-	  cout << "Error in reading tuple: wrong attribute value representation." << endl;
-	  cout << "Tuple no." << errorPos << endl;
-	  cout << "The tuple is: " << endl;
-	  nl->WriteListExpr(value);
-	  cout << endl << "The attribute is: " << endl;
-	  nl->WriteListExpr(firstvalue);
-	  cout << endl;
+    cout << "Error in reading tuple: wrong attribute value representation."
+         << endl;
+    cout << "Tuple no." << errorPos << endl;
+    cout << "The tuple is: " << endl;
+    nl->WriteListExpr(value);
+    cout << endl << "The attribute is: " << endl;
+    nl->WriteListExpr(firstvalue);
+    cout << endl;
 
           errorInfo = nl->Append(errorInfo,
-            nl->FiveElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(3),
+            nl->FiveElemList(nl->IntAtom(71),
+                             nl->SymbolAtom("tuple"), nl->IntAtom(3),
           nl->IntAtom(errorPos), nl->IntAtom(attrno)));
           delete tupleaddr;
           return SetWord(Address(0));
@@ -1170,7 +1175,8 @@ OpenCcRel( SmiRecord& valueRecord,
   SmiKey mykey;
   SmiRecordId recId = 0;
   mykey = valueRecord.GetKey();
-  assert( mykey.GetKey(recId) );
+  int GotKey =  mykey.GetKey(recId);
+  assert( GotKey );
 
   static bool firsttime = true;
   const int cachesize = 20;
@@ -1214,7 +1220,8 @@ OpenCcRel( SmiRecord& valueRecord,
   valueString.assign( buffer, valueLength );
   delete []buffer;
   nl->ReadFromString( valueString, valueList );
-  value = RestoreFromListCcRel( typeInfo, nl->First(valueList), 1, errorInfo, correct);
+  value = RestoreFromListCcRel( typeInfo, nl->First(valueList), 1,
+                                errorInfo, correct);
 
   cache[current++] = value;
   if ( current == cachesize ) current = 0;
