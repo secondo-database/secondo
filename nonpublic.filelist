@@ -105,6 +105,8 @@ bin/sochi84.pgn
 
 Tests/Testspecs/partstream.test
 
+Tools/Generators/TPC-H/postgres
+
 ###                    ###
 ### Files by Extension ###
 ###                    ###
