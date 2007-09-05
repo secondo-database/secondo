@@ -2605,39 +2605,6 @@ bool MPoint::operator==( const MPoint& r ) const
   return Mapping<UPoint, Point>::operator==(r);
 }
 
-inline MPoint* MPoint::Clone() const
-{
-  assert( IsOrdered() );
-  MPoint *result = new MPoint( GetNoComponents() );
-  if(GetNoComponents()>0){
-    result->units.Resize(GetNoComponents());
-  }
-  result->StartBulkLoad();
-  const UPoint *unit;
-  for( int i = 0; i < GetNoComponents(); i++ )
-  {
-    Get( i, unit );
-    result->Add( *unit );
-  }
-  result->EndBulkLoad( false );
-  return result;
-}
-
-inline void MPoint::CopyFrom( const StandardAttribute* right )
-{
-  const MPoint *r = (const MPoint*)right;
-  assert( r->IsOrdered() );
-  Clear();
-  StartBulkLoad();
-  const UPoint *unit;
-  for( int i = 0; i < r->GetNoComponents(); i++ )
-  {
-    r->Get( i, unit );
-    Add( *unit );
-  }
-  EndBulkLoad( false );
-}
-
 bool MPoint::Present( const Instant& t ) const
 {
   assert( IsDefined() );

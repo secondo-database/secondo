@@ -2228,7 +2228,7 @@ purposes only. The ~mapping~ is valid, if the following conditions are true:
     inline virtual size_t Sizeof() const;
     inline virtual int Compare( const Attribute* arg ) const;
     inline bool Adjacent( const Attribute* arg ) const;
-    inline Mapping<Unit, Alpha>* Clone() const;
+    inline Attribute* Clone() const;
     inline virtual ostream& Print( ostream &os ) const;
     inline size_t HashValue() const;
     inline virtual void CopyFrom( const StandardAttribute* right );
@@ -2641,12 +2641,44 @@ using a check on bbox.
   void Restrict( const vector< pair<int, int> >& intervals );
   ostream& Print( ostream &os ) const;
   bool operator==( const MPoint& r ) const;
-  inline MPoint* Clone() const;
-  inline void CopyFrom( const StandardAttribute* right );
   bool Present( const Instant& t ) const;
   bool Present( const Periods& t ) const;
   void AtInstant( const Instant& t, Intime<Point>& result ) const;
   void AtPeriods( const Periods& p, MPoint& result ) const;
+
+
+  virtual Attribute* Clone() const
+  {
+    assert( IsOrdered() );
+    MPoint *result = new MPoint( GetNoComponents() );
+    if(GetNoComponents()>0){
+      result->units.Resize(GetNoComponents());
+    }
+    result->StartBulkLoad();
+    const UPoint *unit;
+    for( int i = 0; i < GetNoComponents(); i++ )
+    {
+      Get( i, unit );
+      result->Add( *unit );
+    }
+    result->EndBulkLoad( false );
+    return (Attribute*) result;
+  }
+
+  void CopyFrom( const StandardAttribute* right )
+  {
+    const MPoint *r = (const MPoint*)right;
+    assert( r->IsOrdered() );
+    Clear();
+    StartBulkLoad();
+    const UPoint *unit;
+    for( int i = 0; i < r->GetNoComponents(); i++ )
+    {
+      r->Get( i, unit );
+      Add( *unit );
+    }
+    EndBulkLoad( false );
+  }
 
 /*
 3.10.5.3 Operation ~trajectory~
@@ -4820,7 +4852,7 @@ inline bool Mapping<Unit, Alpha>::Adjacent( const Attribute *arg ) const
 }
 
 template <class Unit, class Alpha>
-inline Mapping<Unit, Alpha>* Mapping<Unit, Alpha>::Clone() const
+inline Attribute* Mapping<Unit, Alpha>::Clone() const
 {
   assert( IsOrdered() );
 
