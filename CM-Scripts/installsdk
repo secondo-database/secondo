@@ -102,11 +102,12 @@ function installPackage {
   local cp2="PCKG_${file}_installed"
 
   if [ "$confCmd" != "" ]; then
-    if [ "$confCmd" == "-ignoreCheckPoint" ]; then
-      rmCheckPoint $cp2	    
-    else	    
+    if [ "$confCmd" != "-noCheckPoint" ]; then
       conf=$confCmd
-    fi   
+    else
+      conf="configure"
+      local nocp="true"
+    fi      
   fi
   
   printx "%s\n" "Installing package \"$pckgInfo\" ..."
@@ -148,7 +149,9 @@ function installPackage {
         fi
       done
     fi
-    setCheckPoint "$cp2" 
+    if [ "$nocp" != "true" ]; then
+      setCheckPoint "$cp2" 
+    fi   
   else
     showMsg "info" "-> already installed!"
   fi
@@ -335,7 +338,7 @@ function installJava {
 
   if [ "$opt_platform" == "win32" ]; then
     assert cd $j2dir
-    j2sdk*windows*.exe
+    jdk*windows*.exe
     checkInstDir $javaInstDir
   else
     assert cd $sdk
@@ -419,7 +422,7 @@ if [ "$opt_platform" != "linux" ]; then
  if [ "$opt_platform" != "linux64" ]; then
   if [ "$opt_platform" != "mac_osx" ]; then
     if [ "$opt_platform" != "win32" ]; then
-      printf "%s\n" "Error: Option -p must be set to one of {linux, linux64, mac_osx or win32}!"
+      showMsg "err" "Option -p must be set to one of {linux, linux64, mac_osx or win32}!"
       usageMsg
       exit 1
     fi
@@ -473,6 +476,7 @@ if [ ! -w "$HOME" ]; then
   fi  
 fi
 
+
 # Set up variables for important directories
 # Do some OS-specific settings
 if [ "$opt_platform" == "win32" ]; then
@@ -520,6 +524,11 @@ for xdir in "$sdk" "$prologdir" "$build"; do
     showMsg "warn" "Directory $xdir already exists."
   fi 
 done
+
+if [ "$opt_platform" == "linux64" ]; then
+  showMsg "em" "Note: Platform linux64 can use only the system's compiler!"
+  opt_gcc="no"
+fi
 
 printx "\n%s\n" "This procedure will install various 3rd party tools on your computer."
 printx "%s\n"   "We assume that you have read the installation guide. What would you like to do now?"
@@ -590,7 +599,7 @@ printSep "JAVA SDK"
 javaVersion=
 
 if [ "$opt_platform" == "win32" ]; then
-  javaInstDir="$sdk/j2sdk1.4.2"
+  javaInstDir="$sdk/jdk1.5.0"
 else  
   javaVersion="jdk1.5.0_12"
 fi
@@ -598,7 +607,7 @@ javaInstDir="$sdk/$javaVersion"
 
 if [ ! -d $javaInstDir ]; then
 
-  j2dir=$platformdir/j2sdk
+  j2dir=$cdpath/j2sdk
   if [ ! -e $j2dir ]; then
     showMsg "warn" "The script needs Sun's J2SDK installation kit in directory \n\
   \"$j2dir\" \n\
@@ -608,7 +617,7 @@ will be installed adjust the variable \$J2SDK_ROOT in the file \n\
 \$sdk/secondo.config"
   else
     printx "%s\n" "Installing Java SDK. If you don't want to install it since "
-    printx "%s\n" "you have already a SDK of this version or higher omit this step."
+    printx "%s\n" "you have already a SDK of an appropriate version omit this step."
     opt1="Install Java 2 SDK"
     opt2="Don't install"
     
@@ -707,13 +716,11 @@ binPaths=""
 libPaths=""
 incPaths=""
 SEP=""
-for dir in gcc auxtools bison flex; do
+for dir in gcc auxtools bison flex bdb; do
   cFlags=$cFlags"-I$sdk/$dir/include "
   ldFlags=$ldFlags"-L$sdk/$dir/lib "
-  ldFlags=$ldFlags"-L$sdk/$dir/lib64 "
   binPaths=$binPaths$SEP"$sdk/$dir/bin"
   libPaths=$libPaths$SEP"$sdk/$dir/lib"
-  libPaths=$libPaths$SEP"$sdk/$dir/lib64"
   incPaths=$incPaths$SEP"$sdk/$dir/include"
   SEP=":"
 done 
@@ -782,10 +789,10 @@ installPackage "Berkeley-DB"  bdb $platformdir/non-gnu/db-*      $temp/db-*/buil
 
 printSep "Compiling SWI-Prolog"
 
-configureFlags=""
+configureFlags="CFLAGS=\"-I$sdk/auxtools/include\" LDFLAGS=\"-L$sdk/auxtools/lib\""
 if [ "$opt_platform" != "mac_osx" ]; then
-installPackage "SWI-Prolog"   swi $platformdir/prolog/pl-*       $temp/pl-*           "all install"
-installPackage "SWI-Prolog"   swi $platformdir/prolog/pl-*       $temp/pl-*/packages  "all install" "--without-xpce --without-zlib" -ignoreCheckPoint
+installPackage "SWI-Prolog 1/2"   swi $platformdir/prolog/pl-*       $temp/pl-*           "all install" "" -noCheckPoint
+installPackage "SWI-Prolog 2/2"   swi $platformdir/prolog/pl-*       $temp/pl-*/packages  "all install" "--without-xpce --without-zlib" 
 fi
 
 finish

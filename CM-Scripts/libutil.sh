@@ -239,10 +239,10 @@ function initLogFile {
   fi
 
   if [ -n "$LU_LOG" ]; then
-    checkCmd touch $LU_LOG
+    touch $LU_LOG
     if [ $? -ne 0 ]; then
       varValue LU_LOG
-      showMsg "err" "Can't touch log-file $LU_VARVALUE!"
+      showMsg "err" "Can't touch log-file $LU_LOG!"
       exit 1
     fi
   else
