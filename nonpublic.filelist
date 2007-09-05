@@ -101,6 +101,7 @@ Optimizer/adaptiveJoin.pl
 bin/geo
 bin/chesstest
 bin/networktest
+bin/sochi84.pgn
 
 Tests/Testspecs/partstream.test
 
