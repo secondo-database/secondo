@@ -17,11 +17,11 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# file: viewer/hoese/algebras/makefile
+# file: viewer/hoese/algebras/makefile/network
 #
-# last change: 05-2003; Thomas Behr
+# last change: 09-2007; Thomas Behr
 
-include ../../../makefile.inc
+include ../../../../makefile.inc
 
 
 JAVAFILES =$(shell find -maxdepth 1  -name "*.java")
@@ -30,8 +30,6 @@ CLASSFILES = $(subst ./,,$(TMPFILES))
 
 .PHONY: all
 all: $(CLASSFILES)
-	make -C periodic all
-	make -C network all
 
 %.class: %.java
 	$(JAVAC) -classpath $(CLASSPATH):$(JARS) $<
@@ -40,5 +38,3 @@ all: $(CLASSFILES)
 .PHONY: clean
 clean:
 	rm -f *.class
-	make -C periodic clean
-	make -C network clean
