@@ -2105,7 +2105,8 @@ void Points::Intersection( const Points& ps, Points& result ) const
   {
     if( obj == both )
     {
-      assert( ps.GetPt( p ) );
+      int GotPt = ps.GetPt( p );
+      assert( GotPt );
       result += *p;
     }
     SelectNext_pp( *this, ps, obj, stat );
@@ -2280,9 +2281,15 @@ void Points::Union( const Points& ps, Points& result ) const
   while( stat != endboth )
   {
     if( obj == first || obj == both )
-      assert( GetPt( p ) );
+    {
+      int GotPt = GetPt( p );
+      assert( GotPt );
+    }
     else if( obj == second )
-      assert( ps.GetPt( p ) );
+    {
+      int GotPt = ps.GetPt( p );
+      assert( GotPt );
+    }
     result += *p;              
     SelectNext_pp( *this, ps, obj, stat );
   }

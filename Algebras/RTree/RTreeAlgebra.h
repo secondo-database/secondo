@@ -41,6 +41,7 @@ dimensions. The desired dimensions are passed as a parameter to the template.
 1 Defines and Includes
 
 */
+
 #ifndef __RTREEPNJ_ALGEBRA_H__
 #define __RTREEPNJ_ALGEBRA_H__
 
@@ -177,7 +178,7 @@ const int BULKLOAD_INITIAL_SEQ_LENGTH = 20;
 /*
 Specifies the minimum number of the first N entries, that will be inserted 
 without ~leaf skipping~. This holds only for the first N entries on each level.
-After that, ~BULKLOAD_MIN_ENTRIES_FACTOR~ will control the skipping behaviour.
+After that, ~BULKLOAD\_MIN\_ENTRIES\_FACTOR~ will control the skipping behaviour.
 
 */
 
@@ -203,6 +204,7 @@ template<unsigned dim>
 struct R_TreeEntry
 {
   BBox<dim> box;
+
 /*
 If it is a leaf entry, then the bounding box spatially constains the spatial
 object. If it is an internal entry, the bounding box contains all bounding
@@ -1324,7 +1326,8 @@ void R_TreeNode<dim, LeafInfo>::Read( SmiRecordFile& file,
                                       const SmiRecordId pointer )
 {
   SmiRecord record;
-  assert( file.SelectRecord( pointer, record, SmiFile::ReadOnly ) );
+  int RecordSelected = file.SelectRecord( pointer, record, SmiFile::ReadOnly );
+  assert( RecordSelected );
   Read( record );
 }
 
@@ -1335,7 +1338,8 @@ void R_TreeNode<dim, LeafInfo>::Read( SmiRecord& record )
   char buffer[Size() + 1];
   memset( buffer, 0, Size() + 1 );
 
-  assert( record.Read( buffer, Size(), offset ) );
+  int RecordRead = record.Read( buffer, Size(), offset );
+  assert( RecordRead );
 
   // Reads leaf, count
   memcpy( &leaf, buffer + offset, sizeof( leaf ) );
@@ -1365,7 +1369,8 @@ void R_TreeNode<dim, LeafInfo>::Write( SmiRecordFile& file,
   if( modified )
   {
     SmiRecord record;
-    assert( file.SelectRecord( pointer, record, SmiFile::Update ) );
+    int RecordSelected = file.SelectRecord( pointer, record, SmiFile::Update );
+    assert( RecordSelected );
     Write( record );
   }
 }
@@ -1393,7 +1398,8 @@ void R_TreeNode<dim, LeafInfo>::Write( SmiRecord& record )
     for( int i = 0; i < count; i++ )
       entries[i]->Write( buffer, offset );
 
-    assert( record.Write( buffer, Size(), 0 ) );
+    int RecordWritten = record.Write( buffer, Size(), 0 );
+    assert( RecordWritten );
     modified = false;
   }
 }
@@ -1875,13 +1881,15 @@ R_Tree<dim, LeafInfo>::R_Tree( const int pageSize ) :
   // Creating a new page for the R-Tree header.
   SmiRecordId headerRecno;
   SmiRecord headerRecord;
-  assert( file.AppendRecord( headerRecno, headerRecord ) );
+  int AppendedRecord = file.AppendRecord( headerRecno, headerRecord );
+  assert( AppendedRecord );
   assert( headerRecno == 1 );
 
   // Creating the root node.
   SmiRecordId rootRecno;
   SmiRecord rootRecord;
-  assert( file.AppendRecord( rootRecno, rootRecord ) );
+  AppendedRecord = file.AppendRecord( rootRecno, rootRecord );
+  assert( AppendedRecord );
   header.rootRecordId = path[ 0 ] = rootRecno;
   header.nodeCount = 1;
   nodePtr->Write( rootRecord );
@@ -1951,16 +1959,25 @@ template <unsigned dim, class LeafInfo>
 void R_Tree<dim, LeafInfo>::ReadHeader()
 {
   SmiRecord record;
-  assert( file.SelectRecord( (SmiRecordId)1, record, SmiFile::ReadOnly ) );
-  assert( record.Read( &header, sizeof( Header ), 0 ) == sizeof( Header ) );
+
+  int RecordSelected = file.SelectRecord( (SmiRecordId)1, record,
+                                           SmiFile::ReadOnly );
+  assert( RecordSelected );
+  int RecordRead = record.Read( &header, sizeof( Header ), 0 )
+      == sizeof( Header );
+  assert( RecordRead );
 }
 
 template <unsigned dim, class LeafInfo>
 void R_Tree<dim, LeafInfo>::WriteHeader()
 {
   SmiRecord record;
-  assert( file.SelectRecord( (SmiRecordId)1, record, SmiFile::Update ) );
-  assert( record.Write( &header, sizeof( Header ), 0 ) == sizeof( Header ) );
+  int RecordSelected =
+      file.SelectRecord( (SmiRecordId)1, record, SmiFile::Update );
+  assert( RecordSelected );
+  int RecordWritten =
+      record.Write( &header, sizeof( Header ), 0 ) == sizeof( Header );
+  assert( RecordWritten );
 }
 
 /*
@@ -2236,17 +2253,23 @@ void R_Tree<dim, LeafInfo>::InsertEntry( const R_TreeEntry<dim>& entry )
         BBox<dim> n1Box( n1->BoundingBox() );
         SmiRecordId node1recno;
         SmiRecord *node1record = new SmiRecord();
-        assert( file.AppendRecord( node1recno, *node1record ) );
+        int RecordAppended = file.AppendRecord( node1recno, *node1record );
+        assert( RecordAppended );
         PutNode( *node1record, &n1 );
-        assert(nodePtr->Insert( R_TreeInternalEntry<dim>(n1Box,node1recno)));
+        int EntryInserted =
+            nodePtr->Insert( R_TreeInternalEntry<dim>(n1Box,node1recno));
+        assert(EntryInserted);
         delete node1record;
 
         BBox<dim> n2Box( n2->BoundingBox() );
         SmiRecordId node2recno;
         SmiRecord *node2record = new SmiRecord();
-        assert( file.AppendRecord( node2recno, *node2record ) );
+        RecordAppended = file.AppendRecord( node2recno, *node2record );
+        assert( RecordAppended );
         PutNode( *node2record, &n2 );
-        assert(nodePtr->Insert(R_TreeInternalEntry<dim>(n2Box,node2recno)));
+        EntryInserted =
+            nodePtr->Insert(R_TreeInternalEntry<dim>(n2Box,node2recno));
+        assert(EntryInserted);
         delete node2record;
 
         header.height += 1;
@@ -2256,7 +2279,8 @@ void R_Tree<dim, LeafInfo>::InsertEntry( const R_TreeEntry<dim>& entry )
       { // splitting non-root node
         SmiRecordId newNoderecno;
         SmiRecord *newNoderecord = new SmiRecord();
-        assert( file.AppendRecord( newNoderecno, *newNoderecord ) );
+        int RecordAppended = file.AppendRecord( newNoderecno, *newNoderecord );
+        assert( RecordAppended );
         R_TreeInternalEntry<dim> newEntry( n2->BoundingBox(), newNoderecno );
         PutNode( *newNoderecord, &n2 );
         delete newNoderecord;
@@ -2703,7 +2727,8 @@ bool R_Tree<dim, LeafInfo>::Remove( const R_TreeLeafEntry<dim,
 
         // Remove node from the tree
         nodePtr->Clear();
-        assert( file.DeleteRecord( path[ currLevel ] ) );
+        int RecordDeleted = file.DeleteRecord( path[ currLevel ] );
+        assert( RecordDeleted );
       }
       else
         sonBox = nodePtr->BoundingBox();
@@ -2860,7 +2885,8 @@ void R_Tree<dim, LeafInfo>::InsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
   assert(file.IsOpen());
   SmiRecordId recId;
   SmiRecord *rec = new SmiRecord();
-  assert(file.AppendRecord(recId, *rec));
+  int RecordAppended = file.AppendRecord(recId, *rec);
+  assert(RecordAppended);
   // Possible signature for write are:
   bli->node[bli->currentLevel]->Write(file, recId);
   //bli->node[bli->currentLevel]->Write(*rec);
@@ -2932,7 +2958,8 @@ bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
       assert(file.IsOpen());
       SmiRecordId recId;
       SmiRecord *rec = new SmiRecord();
-      assert(file.AppendRecord(recId, *rec));
+      int RecordAppended = file.AppendRecord(recId, *rec);
+      assert(RecordAppended);
       bli->node[i]->Write(*rec);
       rootId = recId;
 
@@ -2954,14 +2981,16 @@ bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
 // Correctly, it should be:
           R_TreeInternalEntry<dim> entry( bli->node[i]->BoundingBox(), 
                                           recId );
-          assert( bli->node[i+1]->Insert(entry) );
+          int EntryInserted = bli->node[i+1]->Insert(entry);
+          assert( EntryInserted );
         }
         else
         { // inner level
           assert( bli->node[i]->IsLeaf() == false );
           R_TreeInternalEntry<dim> entry( bli->node[i]->BoundingBox(), 
                                           recId );
-          assert( bli->node[i+1]->Insert(entry) );
+          int EntryInserted = bli->node[i+1]->Insert(entry);
+          assert( EntryInserted );
         }
       }
       else 
@@ -3221,6 +3250,7 @@ bool OpenRTree( SmiRecord& valueRecord,
 6.9 ~Save~-function
 
 */
+
 template <unsigned dim>
 bool SaveRTree( SmiRecord& valueRecord,
                 size_t& offset,
@@ -3257,4 +3287,3 @@ int SizeOfRTree()
 
 
 #endif
-
