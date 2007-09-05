@@ -3314,18 +3314,52 @@ void MPoint::Reverse(MPoint& result){
 }
 
 
+/*
+~isCut~
+
+Helping function for the Sample operator. This function returns __true__
+iff
+    * there is a gap in the definition time between u1 and u2
+    * there is a spatial jump between u1 and u2
+    * the direction is changed
+
+*/
+
+bool isCut(const UPoint* u1, const UPoint* u2){
+   DateTime end = u1->timeInterval.end;
+   DateTime start = u2->timeInterval.start;
+   if(end!=start){ // gap in definition time
+     return true;
+   }
+   if(!AlmostEqual(u1->p1,u2->p0)){ // jump
+     return true;
+   }
+   Point p1 = u1->p0;
+   Point p2 = u1->p1;
+   Point p3 = u2->p1;
+   double dx1 = p2.GetX()-p1.GetX();
+   double dy1 = p2.GetY()-p1.GetY();
+   double dx2 = p3.GetX()-p2.GetX();
+   double dy2 = p3.GetY()-p2.GetY();
+   return !AlmostEqual(dx1*dy2, dx2*dy1);
+}
+
+
 void MPoint::Sample(const DateTime& duration,
                     MPoint& result,
-                    const bool KeepEndPoint /*=false*/) const{
+                    const bool KeepEndPoint, /*=false*/
+                    const bool exactPath /*=false*/    ) const{
 
-  
+ 
   result.Clear();
+  // special case: undefined parameter
   if(!IsDefined() || !duration.IsDefined()){
     result.SetDefined(false);
     return;
   }
   result.SetDefined( true );
   int size = GetNoComponents();
+  // special case: empty mpoint
   if(size==0){  // empty
      return;
   }  
@@ -3339,7 +3373,8 @@ void MPoint::Sample(const DateTime& duration,
 
   const UPoint* unit; // the unit corresponding the currentUnit
   bool lc;
-  while(currentUnit < size ){
+  while(currentUnit < size ){ // there are remaining units
+     bool cut = false;
      if(isFirst){ // set the start values
          Get(currentUnit,unit);
          currentTime = unit->timeInterval.start;
@@ -3353,17 +3388,35 @@ void MPoint::Sample(const DateTime& duration,
      lastTime = currentTime;
      currentTime += duration; // the next sampling instant
      
-    // search the unit having endtime after currentTime
+     // search the unit having endtime after currentTime
      while(interval.end < currentTime && 
-           currentUnit < size){
+           currentUnit < size && 
+           (!cut || !exactPath)){
         currentUnit++;
         if(currentUnit<size){
            Get(currentUnit,unit);
-           interval = unit->timeInterval;
+           if(exactPath && (currentUnit>0)){
+              const UPoint* lastUnit;
+              Get(currentUnit-1,lastUnit);
+              cut = isCut(lastUnit,unit);
+              if(!cut){
+                interval = unit->timeInterval;
+              }
+           }else{
+              interval = unit->timeInterval;
+           }
         }
      }
 
-     if(currentUnit<size){
+     if(cut){ // cut detected
+       const UPoint* lastUnit;
+       Get(currentUnit-1,lastUnit);
+       currentTime = lastUnit->timeInterval.end;
+       Interval<Instant> newint(lastTime,currentTime,lc,false);
+       UPoint nextUnit(newint,lastPoint,lastUnit->p1);
+       result.MergeAdd(nextUnit);
+       isFirst = true;
+     } else if(currentUnit<size){
         if(interval.start>currentTime){ // gap detected
             isFirst=true;
         } else {
@@ -3374,9 +3427,10 @@ void MPoint::Sample(const DateTime& duration,
             lastPoint = point;
         }
      }
+     
   }
 
-  if(KeepEndPoint){
+  if(KeepEndPoint || exactPath){
      Get(size-1,unit);
      if(lastTime < unit->timeInterval.end){ // gap between end of the unit
                                               // and last sample point
@@ -6278,17 +6332,24 @@ ListExpr SampleMPointTypeMap(ListExpr args){
 
   int len = nl->ListLength(args);
 
-  if(len!=2 && len!=3){
-    ErrorReporter::ReportError("two or three arguments required");
+  if(len!=2 && len!=3 && len!=4){
+    ErrorReporter::ReportError("two up to four arguments required");
     return nl->TypeError();
   }
   if(!nl->IsEqual(nl->First(args),"mpoint") ||
      !nl->IsEqual(nl->Second(args),"duration")){
-     ErrorReporter::ReportError(" mpoint x duration [ x bool] expected");
+     ErrorReporter::ReportError(" mpoint x durationi"
+                                " [ x bool [x bool]] expected");
      return nl->TypeError();
   }
   if(len==3 && !nl->IsEqual(nl->Third(args),"bool")){
-     ErrorReporter::ReportError(" mpoint x duration [ x bool] expected");
+     ErrorReporter::ReportError(" mpoint x duration "
+                                "[ x bool [ x bool]] expected");
+     return nl->TypeError();
+  }
+  if(len==4 && !nl->IsEqual(nl->Fourth(args),"bool")){
+     ErrorReporter::ReportError(" mpoint x duration "
+                                "[ x bool [ x bool]] expected");
      return nl->TypeError();
   }
   return nl->SymbolAtom("mpoint");
@@ -6965,12 +7026,14 @@ int TemporalTheRangeSelect(ListExpr args)
 
 */
 int SampleMPointSelect(ListExpr args){
-  if(nl->ListLength(args)==2){
+  int len = nl->ListLength(args);
+  if(len==2){
      return  0;
-  } else {
+  } else if(len==3) {
      return 1;
+  } else {
+     return 2;
   }
-
 }
 
 
@@ -8604,24 +8667,37 @@ int ReverseVM( Word* args, Word& result, int message, Word&
 16.3.45 Value mapping function for operator ~samplempoint~
 
 */
-template <bool keepEndPoint>
+template <bool keepEndPoint, bool exactPath>
 int SampleMPointVM( Word* args, Word& result, int message, 
                     Word& local, Supplier s ){
-    
+   
+ 
    result = qp->ResultStorage(s); 
    MPoint* res = (MPoint*) result.addr;
    DateTime* duration = (DateTime*) args[1].addr;
+   bool ke = false; // keep end point
+   bool ep = false; // exact path
    if(keepEndPoint){
-      CcBool* B = (CcBool*) args[2].addr;
-      if(!B->IsDefined()){
+     CcBool* KE = (CcBool*) args[2].addr;
+     if(!KE->IsDefined()){
+        res->SetDefined(false);
+        return true;
+     } else {
+       ke = KE->GetBoolval();
+     }
+   }
+   if(exactPath){
+     CcBool* EP = (CcBool*) args[3].addr;
+     if(!EP->IsDefined()){
         res->SetDefined(false);
         return 0;
-      } else {
-         ((MPoint*)args[0].addr)->Sample(*duration,*res, B->GetBoolval());
-      }
-   } else {
-      ((MPoint*)args[0].addr)->Sample(*duration,*res);
+     } else {
+        ep = EP->GetBoolval();
+     }
    }
+
+  ((MPoint*)args[0].addr)->Sample(*duration,*res,ke,ep);
+   
    return 0;
 }
 
@@ -9089,8 +9165,9 @@ ValueMapping minmap[] = { VM_Min<UReal>, VM_Min<MReal> };
 
 ValueMapping maxmap[] = { VM_Max<UReal>, VM_Max<MReal> };
 
-ValueMapping samplempointmap[] = { SampleMPointVM<false>, 
-                                   SampleMPointVM<true>};
+ValueMapping samplempointmap[] = { SampleMPointVM<false,false>, 
+                                   SampleMPointVM<true,false>,
+                                   SampleMPointVM<true,true>};
 
 ValueMapping temporaltherangemap[] = {
   TemporalTheRangeTM<Instant>, // 0 
@@ -9635,7 +9712,7 @@ const string SampleMPointSpec =
     "<text> samplempoint( _ , _ )</text--->"
     "<text>simulation of an gps receiver </text--->"
     "<text>query samplempoint(Train6,"
-    " [const duratione value (0 2000)] ) </text--->"
+    " [const duration value (0 2000)] ) </text--->"
     ") )";
 
 const string GPSSpec =
@@ -9876,7 +9953,7 @@ Operator temporalbox3d( "box3d",
 
 Operator temporalsamplempoint("samplempoint",
                        SampleMPointSpec,
-                       2,
+                       3,
                        samplempointmap,
                        SampleMPointSelect,
                        SampleMPointTypeMap );

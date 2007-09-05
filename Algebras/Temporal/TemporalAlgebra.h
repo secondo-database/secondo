@@ -2731,10 +2731,17 @@ parameter. The starting time is the same as for the original
 mpoint. If gaps longer than the given duration exist,
 the next unit will also have the starting time of the unit
 directly after the gap. 
+If __KeepEndPoint__ is set to __true__, the last position will be
+part of the resuolt even if at the corresponding time no 
+sample point exist. If the parameter __exactPath__ is set to
+__true__, additional sample points are inserted to be sure that the
+path of the object is the same as in the original, i.e. no shortcuts
+for corners.
 
 */
   void Sample(const DateTime& duration, MPoint& result, 
-              const bool KeepEndPoint = false )const;
+              const bool KeepEndPoint = false,
+              const bool exactPath = false  )const;
 
 /*
 3.10.5.8 ~Append~
