@@ -3381,7 +3381,9 @@ void MPoint::Sample(const DateTime& duration,
        currentTime = lastUnit->timeInterval.end;
        Interval<Instant> newint(lastTime,currentTime,lc,false);
        UPoint nextUnit(newint,lastPoint,lastUnit->p1);
-       result.MergeAdd(nextUnit);
+       if(nextUnit.IsValid()){
+          result.MergeAdd(nextUnit);
+       }
        isFirst = true;
      } else if(currentUnit<size){
         if(interval.start>currentTime){ // gap detected
@@ -3390,7 +3392,9 @@ void MPoint::Sample(const DateTime& duration,
             unit->TemporalFunction(currentTime, point, true);
             Interval<Instant> newint(lastTime,currentTime,lc,false);
             UPoint nextUnit(newint,lastPoint,point);
-            result.MergeAdd(nextUnit);
+            if(nextUnit.IsValid()){
+               result.MergeAdd(nextUnit);
+            }
             lastPoint = point;
         }
      }
