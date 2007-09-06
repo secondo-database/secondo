@@ -3289,6 +3289,7 @@ iff
     * there is a gap in the definition time between u1 and u2
     * there is a spatial jump between u1 and u2
     * the direction is changed
+    * the first unit is a break
 
 */
 
@@ -3308,7 +3309,15 @@ bool isCut(const UPoint* u1, const UPoint* u2){
    double dy1 = p2.GetY()-p1.GetY();
    double dx2 = p3.GetX()-p2.GetX();
    double dy2 = p3.GetY()-p2.GetY();
-   return !AlmostEqual(dx1*dy2, dx2*dy1);
+
+   bool res = !AlmostEqual(dx1*dy2, dx2*dy1);
+
+   if(!res){
+      if(AlmostEqual(dx1,0) && AlmostEqual(dy1,0)){ // first unit is a break
+        res = !( AlmostEqual(dx2,0) && AlmostEqual(dy2,0));
+      }
+   }
+   return res;
 }
 
 
