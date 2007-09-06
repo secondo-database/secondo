@@ -77,17 +77,6 @@ using namespace std;
 #include <unistd.h>
 #endif
 
-
-ostream& operator<<(ostream& os, const SmiCatalogEntry& e) {
-  
-  os << "ctglentry = (" 
-     << e.fileId << ", "
-     << e.fileName << ", "
-     << e.isKeyed << ", "
-     << e.isFixed << ")" << endl;  
-  return os;
-}	
-
 /* --- Prototypes of internal functions --- */
 
 static int getfilename( Db* dbp, const Dbt* pkey, const Dbt* pdata, Dbt* skey );
@@ -408,12 +397,8 @@ SmiEnvironment::Implementation::InsertIntoCatalog(
 
   if ( dbctl )
   {
-    //cerr << tid << endl;
-    //cerr << entry << endl;
-
-    SmiFileId fid = entry.fileId;
-    Dbt key( (void*) &fid, sizeof( SmiFileId ) );
-    Dbt data( (void*) &entry, sizeof( SmiCatalogEntry ) );
+    Dbt key( (void*) &entry.fileId, sizeof( entry.fileId ) );
+    Dbt data( (void*) &entry, sizeof( entry ) );
 
     rc = dbctl->put( tid, &key, &data, DB_NOOVERWRITE );
     if ( rc == 0 || rc == DB_KEYEXIST )
@@ -485,14 +470,14 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
   bool   ok = true;
   int    rc = 0;
   DbEnv* dbenv = instance.impl->bdbEnv;
-  //DbTxn* ptid  = instance.impl->usrTxn;
-  //DbTxn* tid = 0;
+  DbTxn* ptid  = instance.impl->usrTxn;
+  DbTxn* tid = 0;
 
-  //if ( useTransactions )
-  //{
-  //  rc = dbenv->txn_begin( ptid, &tid, 0 );
-  //  SetBDBError( rc );
-  //}
+  if ( useTransactions )
+  {
+    rc = dbenv->txn_begin( ptid, &tid, 0 );
+    SetBDBError( rc );
+  }
 
   if ( rc == 0 )
   {
@@ -502,15 +487,15 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
     {
       if ( it->second.updateOnCommit )
       {
-        ok = InsertIntoCatalog( it->second.entry, 0 );
+        ok = InsertIntoCatalog( it->second.entry, tid );
       }
       else
       {
-        ok = DeleteFromCatalog( it->first.c_str(), 0 );
+        ok = DeleteFromCatalog( it->first.c_str(), tid );
       }
     }
     instance.impl->bdbFilesToCatalog.clear();
-    /*if ( useTransactions )
+    if ( useTransactions )
     {
       if ( ok )
       {
@@ -522,16 +507,16 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
         rc = tid->abort();
         SetBDBError( rc );
       }
-    }*/
+    }
   }
-  /*else
+  else
   {
     if ( tid != 0 )
     {
       rc = tid->abort();
       SetBDBError( rc );
     }
-  }*/
+  }
   return (ok);
 }
 

@@ -196,8 +196,6 @@ struct SmiCatalogEntry
   bool      isKeyed;
   bool      isFixed;
 };
-
-ostream& operator<<(ostream& os, const SmiCatalogEntry& e);
 /*
 Defines the structure of the entries in the file catalog.
 The identifier ~fileId~, the name ~fileName~ and the type is stored for each
@@ -361,10 +359,12 @@ catalog. The function returns "true"[4] if the deletion was successful.
 
   bool      listStarted;
   Dbc*      listCursor;
-  
-  // The flag below influences the initialitation of Berkeley-DB handles
+
+  // Influences the initialitation of Berkeley-DB
   static u_int32_t AutoCommitFlag; 
+
 /*
+
 Are needed to support listing the names of all existing "Secondo"[3] databases.
 
 */

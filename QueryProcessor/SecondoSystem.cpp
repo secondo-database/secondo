@@ -169,15 +169,15 @@ Precondition: DBState = dbClosed.
   }
   if ( SmiEnvironment::CreateDatabase( dbname ) )
   {
-    //SmiEnvironment::BeginTransaction();
+    SmiEnvironment::BeginTransaction();
     if ( catalog->Open() )
     {
       ok = true;
-      //SmiEnvironment::CommitTransaction();
+      SmiEnvironment::CommitTransaction();
     }
     else
     {
-      //SmiEnvironment::AbortTransaction();
+      SmiEnvironment::AbortTransaction();
       SmiEnvironment::CloseDatabase();
       SmiEnvironment::EraseDatabase( dbname );
     }
