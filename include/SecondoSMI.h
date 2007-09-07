@@ -526,9 +526,10 @@ Returns whether the ~SmiFile~ handle is open and can be used to access the
 records of the ~SmiFile~.
 
 */
+  ostream& Print(ostream& os) const;
+
  protected:
-  SmiFile();
-  SmiFile( const bool isTemporary );
+  SmiFile( const bool isTemporary = false);
   SmiFile( SmiFile &smiFile );
   ~SmiFile();
   bool CheckName( const string& name );
@@ -551,11 +552,14 @@ Checks whether the given name ~name~ is valid.
   class Implementation;
   Implementation* impl;
  private:
+  bool trace;
 
   friend class SmiEnvironment;
   friend class SmiFileIterator;
   friend class SmiRecord;
 };
+
+ostream& operator<<(const ostream& os, const SmiFile& f);
 
 /**************************************************************************
 1.3 Class "SmiEnvironment"[1]
@@ -755,8 +759,9 @@ Allows to set an SmiError code and a system error code or an error message.
 */
   static bool GetCacheStatistics(CacheInfo& ci, vector<FileInfo*>& fi);
 
-  
+
  private:
+
   SmiEnvironment();
 /*
 Creates an instance of the ~Storage Management Interface~ environment.

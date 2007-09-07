@@ -175,6 +175,8 @@ SmiEnvironment::Implementation::FreeDbHandle( DbHandleIndex idx )
 void
 SmiEnvironment::Implementation::CloseDbHandles()
 {
+  static bool traceHandles = 
+	        RTFlag::isActive("SMI:traceHandles") ? true : false; 
   SmiEnvironment::Implementation& env = (*(instance.impl));
   unsigned int size = env.dbHandles.size();
   int closed = 0;
@@ -184,16 +186,27 @@ SmiEnvironment::Implementation::CloseDbHandles()
     flag = DB_NOSYNC;
   }
 
+  if (traceHandles) 
+    cerr << "CloseDbHandles (size = " << size << ")" << endl;
   for ( DbHandleIndex idx = 1; idx < size; idx++ )
   {
     if ( !instance.impl->dbHandles[idx].inUse &&
           instance.impl->dbHandles[idx].handle != 0 )
     {
       closed++;
-      instance.impl->dbHandles[idx].handle->close( flag );
+      const char* f;
+      const char* d;
+      instance.impl->dbHandles[idx].handle->get_dbname(&f, &d);
+
+      if (traceHandles) 
+        cerr << "closing handle for idx = " 
+             << idx << " (" << f << ")" << endl;
+      int rc = instance.impl->dbHandles[idx].handle->close( flag );
+      SetBDBError(rc);
       delete instance.impl->dbHandles[idx].handle;
       instance.impl->dbHandles[idx].handle = 0;
-      instance.impl->dbHandles[idx].nextFree = instance.impl->firstFreeDbHandle;
+      instance.impl->dbHandles[idx].nextFree = 
+	                              instance.impl->firstFreeDbHandle;
       instance.impl->firstFreeDbHandle = idx;
     }
   }
@@ -694,6 +707,7 @@ SmiEnvironment::Implementation::DeleteDatabase( const string& dbname )
 SmiEnvironment::SmiEnvironment()
 {
   impl = new Implementation();
+
 }
 
 SmiEnvironment::~SmiEnvironment()
@@ -973,7 +987,7 @@ Transactions, logging and locking are enabled.
     }
     else
     {
-      dbctlg->close( 0 );
+      rc = dbctlg->close( 0 );
       SetBDBError(rc);
       delete dbctlg;
       instance.impl->bdbDatabases = 0;

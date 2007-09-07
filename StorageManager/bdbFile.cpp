@@ -72,11 +72,18 @@ static void BdbInitCatalogEntry( SmiCatalogEntry& entry );
 /* --- Implementation of class SmiFile --- */
 
 
+ostream& operator<<(ostream& os, const SmiFile& f)
+{
+  return f.Print(os);
+}	
+
+
 SmiFile::Implementation::Implementation()
 {
   bdbHandle = SmiEnvironment::Implementation::AllocateDbHandle();
   bdbFile   = SmiEnvironment::Implementation::GetDbHandle( bdbHandle );
-	noHandle = false;
+  noHandle = false;
+  bdbName = "undefined";
 /*
 The constructor cannot allocate a Berkeley DB handle by itself since handles
 must stay open until the enclosing transaction has been terminated, that is
@@ -92,7 +99,8 @@ SmiFile::Implementation::Implementation( bool isTemp )
   bdbHandle = 0;
   bdbFile   = new Db( SmiEnvironment::Implementation::GetTempEnvironment(), 
                       DB_CXX_NO_EXCEPTIONS );
-	noHandle = false;
+  noHandle = false;
+  bdbName = "undefined";
 /*
 The constructor cannot allocate a Berkeley DB handle by itself since handles
 must stay open until the enclosing transaction has been terminated, that is
@@ -138,10 +146,11 @@ SmiFile::Implementation::CheckDbHandles() {
 
 
 
-SmiFile::SmiFile( const bool isTemporary )
+SmiFile::SmiFile( const bool isTemporary /* = false */)
   : opened( false ), fileContext( "" ), fileName( "" ), fileId( 0 ),
     fixedRecordLength( 0 ), uniqueKeys( true ), keyDataType( SmiKey::Unknown )
 {
+  trace = RTFlag::isActive("SMI:traceHandles") ? true : false; 
   if ( !isTemporary )
   {
     impl = new Implementation();
@@ -197,6 +206,7 @@ SmiFile::Create( const string& context /* = "Default" */ )
                                                       fileId, 
                                                       impl->isTemporaryFile );
 
+      impl->bdbName = bdbName;
       // --- Find out the appropriate Berkeley DB file type
       // --- and set required flags or options if necessary
 
@@ -252,6 +262,8 @@ SmiFile::Create( const string& context /* = "Default" */ )
       u_int32_t flags = (!impl->isTemporaryFile) ? 
                            DB_CREATE | DB_DIRTY_READ | commitFlag : DB_CREATE;
       rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, flags, 0 );
+      if (trace)
+        cerr << "Creating " << *this << endl;	      
       if ( rc == 0 )
       {
         ctrCreate++;
@@ -333,6 +345,7 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
       string bdbName =
         SmiEnvironment::Implementation::ConstructFileName( fileId );
 
+      impl->bdbName = bdbName;
       // --- Find out the appropriate Berkeley DB file type
       // --- and set required flags or options if necessary
 
@@ -385,6 +398,10 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
       rc = impl->bdbFile->open( 0, bdbName.c_str(), 
                                 0, bdbType, 
                                 DB_CREATE | DB_DIRTY_READ | commitFlag, 0 );
+
+      if (trace)
+        cerr << "opening by name = " << name << ", " << *this << endl;
+
       if ( rc == 0 )
       {
         if ( !existing )
@@ -470,6 +487,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
                                                       fileid, 
                                                       impl->isTemporaryFile );
 
+      impl->bdbName = bdbName;
       // --- Find out the appropriate Berkeley DB file type
       // --- and set required flags or options if necessary
 
@@ -523,6 +541,9 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
                             DB_DIRTY_READ | commitFlag : 0;
 
       rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, flags, 0 );
+      fileId = fileid;
+      if (trace)
+        cerr << "opening by id =" << fileid << ", "<< *this << endl;
       SmiEnvironment::SetBDBError( rc );
       if ( rc == 0 )
       {
@@ -545,10 +566,12 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
   if( rc == 0 )
   {
     ctr++;
-    fileId = fileid;
     return true;
   }
-  return false;
+  else {
+    fileId = -1;	  
+    return false;
+  }
 }
 
 bool
@@ -567,11 +590,14 @@ SmiFile::Close()
     if ( !impl->isTemporaryFile )
     {
       SmiEnvironment::Implementation::FreeDbHandle( impl->bdbHandle );
-			impl->noHandle = true;
+      impl->noHandle = true;
     }
     else
     {
-      impl->bdbFile->close( 0 );
+      rc = impl->bdbFile->close( 0 );
+      if (trace)
+        cerr << "closing " << *this << endl;	      
+      SmiEnvironment::SetBDBError( rc );
       impl->bdbFile = new Db( SmiEnvironment::instance.impl->tmpEnv, 
                               DB_CXX_NO_EXCEPTIONS );
     }
@@ -647,6 +673,15 @@ SmiFile::IsOpen()
 {
   return (opened);
 }
+
+ostream&
+SmiFile::Print(ostream& os) const 
+{
+  os << "Smifile = (" << fileId << ", " << impl->bdbName << ")";
+  return os;
+}  
+
+
 
 // --- Key comparison function for integer keys
 

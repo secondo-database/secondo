@@ -400,6 +400,7 @@ class SmiFile::Implementation
 	  void CheckDbHandles();   // reallocate Db-Handles if necessary
     DbHandleIndex bdbHandle; // Index in handle array
     Db*           bdbFile;   // Berkeley DB handle
+    string        bdbName;
     bool          isSystemCatalogFile;
     bool          isTemporaryFile;
 		bool					noHandle;
