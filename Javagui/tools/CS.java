@@ -41,20 +41,27 @@ private class Connection extends Thread{
 }
 
 
-private InputStream in1;
-private OutputStream out1;
-private InputStream in2;
-private OutputStream out2;
-private static Vector set;
+private InputStream in1;    // input stream from the SecondoServer
+private OutputStream out1;  // output stream to the SecondoServer
+
+private InputStream in2;    // input stream from the Secondo-Client
+private OutputStream out2;  // output stream to the Secondo-Client
 
 
-public CS() throws IOException{
+private static Vector set;  // set of free SecondoServer connections
+
+/** Creates a new SecondoServerWrapper.
+*/
+public CS() {
   in1=null;
   in2 = null;
   out1=null;
   out2=null;
 }
 
+
+/** reads the next line from the inputstream 
+  **/
 private synchronized String nextLine(InputStream in){
    try{
      int next;
@@ -71,6 +78,8 @@ private synchronized String nextLine(InputStream in){
    }
 }
 
+/** Writes s to out.
+  **/
 private synchronized void sendString(String s,OutputStream out) throws IOException{
    int size = s.length();
    for(int i=0;i<size;i++){
@@ -79,11 +88,24 @@ private synchronized void sendString(String s,OutputStream out) throws IOExcepti
 }
 
 
+/** Callback function, called if the connection to a client is finished.
+  **/
 private void disconnectClient(){
    set.add(this);
+   try{
+     in2.close();
+     out2.close();
+   }catch(Exception e){
+    System.err.println("Error in closing streams to the client");
+   }
+   in2=null;
+   out2=null;
 }
 
-
+/** Connects this instance with an SecondoServer.
+  * Performs the protocol up to the place where the 
+  * server is ready to receive secondo queries.
+  **/
 public boolean connectWithServer(Socket server) throws IOException{
     in1 = server.getInputStream();
     out1 = server.getOutputStream();
@@ -132,7 +154,11 @@ public boolean connectWithServer(Socket server) throws IOException{
     return true;
 }
 
-
+/** Connects this instance to a SecondoClient.
+  * The protocol intro is performed.
+  * After that, the streams between client and server are
+  * connected.
+  */
 public boolean connectClient(Socket client)throws IOException{
     in2 = client.getInputStream();
     out2 = client.getOutputStream();
@@ -168,7 +194,6 @@ public boolean connectClient(Socket client)throws IOException{
 
     System.out.println("SecondoIntro finished, connect the real server with the client"); 
 
-
     Connection c1 = new Connection(in1, out2,this);
     Connection c2 = new Connection(in2, out1,this);
     c1.start();
@@ -176,6 +201,10 @@ public boolean connectClient(Socket client)throws IOException{
     return true;
 }
 
+/** If a client tries to connect whith this instance but no connection
+  * to a secondo server is avaiable, a new connection can be 
+  * created using this function.
+  **/
 private static void addNewServer() throws IOException, UnknownHostException{
    System.out.println("Start"); 
    Socket client = new Socket("127.0.0.1",1234);
@@ -189,15 +218,12 @@ private static void addNewServer() throws IOException, UnknownHostException{
    set.add(cs); 
 }
 
-
+/** Main fucntion **/
 public static void main(String[] args) throws IOException, UnknownHostException{
 
    set = new Vector();  // empty connections
    addNewServer();
-
-
    ServerSocket ss = new ServerSocket(1236);
-   
    while(true){
       Socket server = ss.accept(); // wait for new clients
       System.out.println("a new client is connected" );
@@ -208,10 +234,6 @@ public static void main(String[] args) throws IOException, UnknownHostException{
       set.remove(cs);
       cs.connectClient(server);
    }
-
-
-
-
 }
 
 }
