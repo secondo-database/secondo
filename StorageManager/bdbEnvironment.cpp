@@ -911,6 +911,20 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
       SetBDBError(rc);
     }
 
+  // --- Set log buffer size
+  u_int32_t lBufSize = 0;
+  lBufSize = SmiProfile::GetParameter( "BerkeleyDB", 
+                                       "LogBufSize", 
+                                       0 , parmFile.c_str() );
+  if ( lBufSize > 0 )
+  {	  
+    cout << "Log buffer size: " << lBufSize << " kb." << endl;
+    rc = dbenv->set_lg_max( 4 * lBufSize * 1024 );
+    SetBDBError(rc);
+    rc = dbenv->set_lg_bsize( lBufSize * 1024 );
+    SetBDBError(rc);
+  }
+
   // --- Open Berkeley DB environment
 
   if ( rc == 0 )
@@ -922,6 +936,7 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
     switch ( mode )
     {
       case SmiEnvironment::SingleUserSimple:
+        cout << "SMI-Mode: SingleUserSimple" << endl;
         singleUserMode  = true;
         useTransactions = false;
         flags = DB_CREATE | DB_INIT_MPOOL | DB_INIT_LOCK;
@@ -934,6 +949,7 @@ Using this mode is not recommended except for read-only databases.
 */
         break;
       case SmiEnvironment::SingleUser:
+        cout << "SMI-Mode: SingleUser" << endl;
         singleUserMode  = true;
         useTransactions = true;
         flags = DB_CREATE   | DB_RECOVER  |
@@ -947,6 +963,7 @@ it is created. Transactions and logging are enabled, locking is disabled.
 */
         break;
       case SmiEnvironment::MultiUserMaster:
+        cout << "SMI-Mode: MultiUserMaster" << endl;
         singleUserMode  = false;
         useTransactions = true;
         flags = DB_CREATE   | DB_RECOVER    | DB_INIT_LOCK |
@@ -959,6 +976,7 @@ it is created. Transactions, logging and locking are enabled.
         break;
       case SmiEnvironment::MultiUser:
       default:
+        cout << "SMI-Mode: MultiUser" << endl;
         singleUserMode  = false;
         useTransactions = true;
         flags = DB_CREATE     | DB_INIT_LOCK | DB_INIT_LOG |
@@ -1390,7 +1408,6 @@ SmiEnvironment::AbortTransaction()
     instance.impl->txnMustAbort = false;
     instance.impl->usrTxn = 0;
     if ( singleUserMode && useTransactions )
-    
     {
       rc = instance.impl->bdbEnv->txn_checkpoint( 0, 0, 0 );
       SetBDBError( rc );
