@@ -18,25 +18,18 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-//paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
-//paragraph [10] Footnote: [{\footnote{] [}}]
-//[TOC] [\tableofcontents]
-
-[1] Implementation of GLine in Module Network Algebra
+1 Implementation of datatype for type-constructor Network
 
 March 2004 Victor Almeida
-
 Mai-Oktober 2007 Martin Scheppokat
 
-[TOC]
-
-1 Overview
+1.1 Overview
 
 
 This file contains the implementation of ~gline~
 
 
-2 Defines, includes, and constants
+1.1 Defines, includes, and constants
 
 */
 #include <sstream>
@@ -277,8 +270,8 @@ m_xSubAdjacencyList(0)
       delete pRoutes;
 
       string strErrorMessage = "Network(): Error while reading out routes.";
-      inout_xErrorInfo = 
-          nl->Append(inout_xErrorInfo, nl->StringAtom(strErrorMessage));
+      inout_xErrorInfo = nl->Append(inout_xErrorInfo, 
+                                    nl->StringAtom(strErrorMessage));
       inout_bCorrect = false;
       return;
     }
@@ -334,8 +327,8 @@ m_xSubAdjacencyList(0)
       delete pJunctions;
 
       string strErrorMessage = "Network(): Error while reading out junctions.";
-      inout_xErrorInfo = 
-          nl->Append(inout_xErrorInfo, nl->StringAtom(strErrorMessage));
+      inout_xErrorInfo = nl->Append(inout_xErrorInfo, 
+                         nl->StringAtom(strErrorMessage));
       inout_bCorrect = false;
       return;
     }
@@ -589,6 +582,11 @@ Relation *Network::GetJunctions()
   return (Relation *)resultWord.addr;
 }
 
+
+/*
+Method FillSections 
+ 
+*/
 void Network::FillSections()
 {
   // The method will iterate over routes
@@ -598,12 +596,16 @@ void Network::FillSections()
   ListExpr xSectionsNumInt = 
     SecondoSystem::GetCatalog()->NumericType(GetSectionsInternalTypeInfo());
   m_pSections = new Relation(xSectionsNumInt);
-
+ 
+  /////////////////////////////////////////////////////////////////////
+  //
   // Iterate over all Routes
+  //
   Tuple* pRoute;
+  int iSectionTid;
   while((pRoute = pRoutesIt->GetNextTuple()) != 0)
   {
-    // Current position on route - starting at the beginning of the route (0)
+    // Current position on route - starting at the beginning of the route
     float fCurrentPosOnRoute = 0;
     Line* pRouteCurve = (Line*)pRoute->GetAttribute(ROUTE_CURVE);
     int iTupleId = pRoute->GetTupleId();
@@ -611,25 +613,24 @@ void Network::FillSections()
     int iRouteId = xRouteId->GetIntval();
     bool bDual = ((CcBool*)pRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
     
-    // Now we need to find all junctions belonging to this route
+    /////////////////////////////////////////////////////////////////////
     //
-    // The junctions can have this route as their first as well as
-    // their second parameter. Thus we have to look up via both 
-    // b-trees.
+    // We need to find all junctions belonging to this route
     //
     vector<JunctionSortEntry> xJunctions;
     GetJunctionsOnRoute(xRouteId,
                         xJunctions);
 
-    Tuple* pLastJunction = 0;
-    JunctionSortEntry xLastEntry;
-
+    /////////////////////////////////////////////////////////////////////
+    //
     // Now that we found all relevant junctions we can iterate over them.
+    //
+    JunctionSortEntry xCurrentEntry;
+    xCurrentEntry.m_pJunction = 0;
     for(size_t i = 0; i < xJunctions.size(); i++)
     {
       // Get next junction
-      JunctionSortEntry xCurrentEntry = xJunctions[i];
-      Tuple* pJunction = xCurrentEntry.m_pJunction;
+      xCurrentEntry = xJunctions[i];
     
       // Find values for the new section      
       float fStartPos = fCurrentPosOnRoute;
@@ -637,19 +638,29 @@ void Network::FillSections()
 
       // If the first junction is at the very start of the route, no 
       // section will be added
-      if(xCurrentEntry.getRouteMeas() > fCurrentPosOnRoute)
+      if(xCurrentEntry.getRouteMeas() == 0)
       {
+        continue;
+      }
 
-        // Calculate line
+      /////////////////////////////////////////////////////////////////////
+      //
+      // Create a new section
+      //
+      // Section will only be created if the length is > 0. Otherwise the
+      // one before remains valid.
+      if(fStartPos != fEndPos)
+      {
+        // A line for the section
         Line* pLine = new Line(0);
         bool bStartSmaller = ((CcBool*)pRoute->GetAttribute(
                                   ROUTE_STARTSSMALLER))->GetBoolval();
         pRouteCurve->SubLine(fStartPos,
-                              fEndPos,
-                              bStartSmaller,
-                              *pLine);
+                             fEndPos,
+                             bStartSmaller,
+                             *pLine);
       
-        // Create a new Section
+        // The new section
         Tuple* pNewSection = new Tuple(nl->Second(xSectionsNumInt));
         pNewSection->PutAttribute(SECTION_RID, new CcInt(true, iRouteId));
         pNewSection->PutAttribute(SECTION_DUAL, new CcBool(true, bDual));
@@ -658,46 +669,39 @@ void Network::FillSections()
         pNewSection->PutAttribute(SECTION_RRC, new CcInt(true, iTupleId));
         pNewSection->PutAttribute(SECTION_CURVE, pLine);
         m_pSections->AppendTuple(pNewSection);
-        
-        // Store ID of new section in Junction
-        vector<int> xIndices;
-        if(xCurrentEntry.m_bFirstRoute)
-        {
-          xIndices.push_back(JUNCTION_SECTION_ADOWN_RC);
-        }
-        else
-        {
-          xIndices.push_back(JUNCTION_SECTION_BDOWN_RC);
-        } 
-        vector<Attribute*> xAttrs;
-        xAttrs.push_back(new TupleIdentifier(true, pNewSection->GetTupleId()));
-        m_pJunctions->UpdateTuple(pJunction, xIndices, xAttrs);
-        if(pLastJunction != 0)
-        {
-          vector<int> xIndicesLast;
-          if(xLastEntry.m_bFirstRoute)
-          {
-            xIndicesLast.push_back(JUNCTION_SECTION_AUP_RC);
-          }
-          else
-          {
-            xIndicesLast.push_back(JUNCTION_SECTION_BUP_RC);
-          } 
-          vector<Attribute*> xAttrsLast;
-          xAttrsLast.push_back(new TupleIdentifier(true, 
-                                                   pNewSection->GetTupleId()));
-          m_pJunctions->UpdateTuple(pLastJunction, xIndicesLast, xAttrsLast);
-        }  
+        iSectionTid = pNewSection->GetTupleId();
         pNewSection->DeleteIfAllowed();
       }
-      // Update for next loop
-      fCurrentPosOnRoute = fEndPos;
-      pLastJunction = pJunction;
-      xLastEntry = xCurrentEntry;
-    } // End While-Junctions
+      
+      /////////////////////////////////////////////////////////////////////
+      //
+      // Store ID of new section in junction behind that section.
+      //
+      vector<int> xIndices;
+      vector<Attribute*> xAttrs;
+      if(xCurrentEntry.m_bFirstRoute)
+      {
+        xIndices.push_back(JUNCTION_SECTION_ADOWN_RC);
+        xAttrs.push_back(new TupleIdentifier(true, iSectionTid));
+      }
+      else
+      {
+        xIndices.push_back(JUNCTION_SECTION_BDOWN_RC);
+        xAttrs.push_back(new TupleIdentifier(true, iSectionTid));
+      } 
+      m_pJunctions->UpdateTuple(xCurrentEntry.m_pJunction,
+                                xIndices, 
+                                xAttrs);
 
-    // One part is missing, 
-    //if the last junction was not at the end of the route
+      // Update position for next loop
+      fCurrentPosOnRoute = fEndPos;
+    } // End junctions-loop
+
+    /////////////////////////////////////////////////////////////////////
+    //
+    // The last section of the route is still missing, if the last 
+    // junction is not at the end of the route.
+    //
     if(fCurrentPosOnRoute < pRouteCurve->Length())
     {
       // Find values for the new section      
@@ -727,26 +731,72 @@ void Network::FillSections()
       m_pSections->AppendTuple(pNewSection);
 
       // Store ID of new section in Junction
-      if(pLastJunction != 0)
+      if(xCurrentEntry.m_pJunction != 0)
       {
         vector<int> xIndicesLast;
-        if(xLastEntry.m_bFirstRoute)
+        vector<Attribute*> xAttrsLast;
+        if(xCurrentEntry.m_bFirstRoute)
         {
           xIndicesLast.push_back(JUNCTION_SECTION_AUP_RC);
+          xAttrsLast.push_back(new TupleIdentifier(true, 
+                                                   pNewSection->GetTupleId()));
         }
         else
         {
           xIndicesLast.push_back(JUNCTION_SECTION_BUP_RC);
+          xAttrsLast.push_back(new TupleIdentifier(true, 
+                                                   pNewSection->GetTupleId()));
         } 
-        vector<Attribute*> xAttrsLast;
-        xAttrsLast.push_back(new TupleIdentifier(true, 
-                                                  pNewSection->GetTupleId()));
-        m_pJunctions->UpdateTuple(pLastJunction, xIndicesLast, xAttrsLast);
+        m_pJunctions->UpdateTuple(xCurrentEntry.m_pJunction, 
+                                  xIndicesLast, 
+                                  xAttrsLast);
       }       
 
       pNewSection->DeleteIfAllowed();
     } // end if
 
+    ////////////////////////////////////////////////////////////////////
+    //
+    // Fill Up-Pointers of all sections but the last 
+    //
+    for(int i = xJunctions.size()-2; i >= 0; i--)
+    {
+      // Get next junction
+      JunctionSortEntry xEntry = xJunctions[i];
+      JunctionSortEntry xEntryBehind = xJunctions[i + 1];    
+
+      vector<int> xIndices;
+      if(xEntry.m_bFirstRoute)
+      {
+        xIndices.push_back(JUNCTION_SECTION_AUP_RC);
+      }
+      else
+      {
+        xIndices.push_back(JUNCTION_SECTION_BUP_RC);
+      } 
+      vector<Attribute*> xAttrs;
+      if(xEntryBehind.m_bFirstRoute)
+      {
+        Tuple* pJunction = xEntryBehind.m_pJunction;
+        CcInt* xTid;
+        xTid = (CcInt*)pJunction->GetAttribute(JUNCTION_SECTION_ADOWN_RC);
+        int iTid = xTid->GetIntval();
+        xAttrs.push_back(new TupleIdentifier(true, iTid));
+      }
+      else
+      {
+        Tuple* pJunction = xEntryBehind.m_pJunction;
+        CcInt* xTid;
+        xTid = (CcInt*)pJunction->GetAttribute(JUNCTION_SECTION_BDOWN_RC);
+        int iTid = xTid->GetIntval();
+        xAttrs.push_back(new TupleIdentifier(true, iTid));
+      } 
+      m_pJunctions->UpdateTuple(xEntry.m_pJunction, 
+                                xIndices, 
+                                xAttrs);
+
+    }
+    
     pRoute->DeleteIfAllowed();
   } // End while Routes
   delete pRoutesIt;
@@ -898,182 +948,149 @@ void Network::FillAdjacencyLists()
   GenericRelationIterator* pJunctionsIt = m_pJunctions->MakeScan();
   Tuple* pCurrentJunction;
 
+  /////////////////////////////////////////////////////////////////////////
+  //
+  // In a first step all pairs of adjacent sections will be collected
+  //
+  vector<DirectedSectionPair> xList;
   while((pCurrentJunction = pJunctionsIt->GetNextTuple()) != 0)
   {
+    //////////////////////////////////
+    //
     // Retrieve the connectivity code
-    int iCc = 
-       ((CcInt*)pCurrentJunction->GetAttribute(JUNCTION_CC))->GetIntval();
+    //
+    CcInt* pCc = (CcInt*)pCurrentJunction->GetAttribute(JUNCTION_CC); 
+    int iCc = pCc->GetIntval();
     ConnectivityCode xCc(iCc);
-       
-    // Retrieve the four sections, possibly less than four
+
+    //////////////////////////////////
+    //
+    // Retrieve the four sections - if they exist
+    //
     TupleIdentifier* pTid;
-    Tuple* pSectionAUp = 0;
-    Tuple* pSectionADown = 0;
-    Tuple* pSectionBUp = 0;
-    Tuple* pSectionBDown = 0;
-     
-    pTid = 
-    (TupleIdentifier*)pCurrentJunction->GetAttribute(JUNCTION_SECTION_AUP_RC); 
+    Tuple* pAUp = 0;
+    Tuple* pADown = 0;
+    Tuple* pBUp = 0;
+    Tuple* pBDown = 0;
+    
+    // First section     
+    Attribute* pAttr = pCurrentJunction->GetAttribute(JUNCTION_SECTION_AUP_RC);
+    pTid = (TupleIdentifier*)pAttr; 
     if(pTid->GetTid() > 0)
     {
-      pSectionAUp = m_pSections->GetTuple(pTid->GetTid());
+      pAUp = m_pSections->GetTuple(pTid->GetTid());
     }  
-    pTid = 
-   (TupleIdentifier*)pCurrentJunction->GetAttribute(JUNCTION_SECTION_ADOWN_RC);
+
+    // First section     
+    pAttr = pCurrentJunction->GetAttribute(JUNCTION_SECTION_ADOWN_RC);  
+    pTid = (TupleIdentifier*)pAttr; 
     if(pTid->GetTid() > 0)
     {
-      pSectionADown = m_pSections->GetTuple(pTid->GetTid());
+      pADown = m_pSections->GetTuple(pTid->GetTid());
     }  
-    pTid =
-    (TupleIdentifier*)pCurrentJunction->GetAttribute(JUNCTION_SECTION_BUP_RC); 
+    
+    // First section     
+    pAttr = pCurrentJunction->GetAttribute(JUNCTION_SECTION_BUP_RC);  
+    pTid = (TupleIdentifier*)pAttr; 
     if(pTid->GetTid() > 0)
     {
-      pSectionBUp = m_pSections->GetTuple(pTid->GetTid());
+      pBUp = m_pSections->GetTuple(pTid->GetTid());
     }  
-    pTid = 
-  (TupleIdentifier*)pCurrentJunction->GetAttribute(JUNCTION_SECTION_BDOWN_RC); 
+    
+    // First section     
+    pAttr = pCurrentJunction->GetAttribute(JUNCTION_SECTION_BDOWN_RC);  
+    pTid = (TupleIdentifier*)pAttr; 
     if(pTid->GetTid() > 0)
     {
-      pSectionBDown = m_pSections->GetTuple(pTid->GetTid());
+      pBDown = m_pSections->GetTuple(pTid->GetTid());
     }  
         
+    //////////////////////////////////
+    //
     // If a section is existing and the transition is possible
     // it will be added to the list.
     //
+
     // First section
-    // 
-    int iLow = m_xSubAdjacencyList.Size();
-    if(pSectionAUp != 0 && pSectionAUp != 0 && xCc.IsPossible(xCc.AUP_AUP))
-    {
-      m_xSubAdjacencyList.Append(DirectedSection(pSectionAUp->GetTupleId(), 
-                                                   true));  
-    }
-    if(pSectionAUp != 0 && pSectionADown != 0 && xCc.IsPossible(xCc.AUP_ADOWN))
-    {
-      m_xSubAdjacencyList.Append(DirectedSection(pSectionADown->GetTupleId(), 
-                                                   false));  
-    }
-    if(pSectionAUp != 0 && pSectionBUp != 0 && xCc.IsPossible(xCc.AUP_BUP))
-    {
-      m_xSubAdjacencyList.Append(DirectedSection(pSectionBUp->GetTupleId(), 
-                                                   true));  
-    }
-    if(pSectionAUp != 0 && pSectionBDown != 0 && xCc.IsPossible(xCc.AUP_BDOWN))
-    {
-      m_xSubAdjacencyList.Append(DirectedSection(pSectionBDown->GetTupleId(), 
-                                                   false));  
-    }
-    // Mark the part of the sub-adjacency-list in the adjacency-list 
-    int iHigh = m_xSubAdjacencyList.Size()-1;
-    if(iHigh >= iLow)
-    {
-      m_xAdjacencyList.Put((2 * (pSectionAUp->GetTupleId() - 1) + 1),
-                            AdjacencyListEntry(iLow, iHigh));
-    }
+    FillAdjacencyPair(pAUp, true, pAUp, true, xCc, AUP_AUP, xList);
+    FillAdjacencyPair(pAUp, true, pADown, false, xCc, AUP_ADOWN, xList);
+    FillAdjacencyPair(pAUp, true, pBUp, true, xCc, AUP_BUP, xList);
+    FillAdjacencyPair(pAUp, true, pBDown, false, xCc, AUP_BDOWN, xList);
 
-    //
     // Second section
-    // 
-    iLow = m_xSubAdjacencyList.Size();
-    if(pSectionADown != 0 && pSectionAUp != 0 && xCc.IsPossible(xCc.ADOWN_AUP))
-    {
-      m_xSubAdjacencyList.Append(DirectedSection(pSectionAUp->GetTupleId(), 
-                                                   true));  
-    }
-    if(pSectionADown != 0 && 
-    pSectionADown != 0 && xCc.IsPossible(xCc.ADOWN_ADOWN))
-    {
-      m_xSubAdjacencyList.Append(DirectedSection(pSectionADown->GetTupleId(), 
-                                                   false));  
-    }
-    if(pSectionADown != 0 && pSectionBUp != 0 && xCc.IsPossible(xCc.ADOWN_BUP))
-    {
-      m_xSubAdjacencyList.Append(DirectedSection(pSectionBUp->GetTupleId(), 
-                                                   true));  
-    }
-    if(pSectionADown != 0 
-    && pSectionBDown != 0 && xCc.IsPossible(xCc.ADOWN_BDOWN))
-    {
-      m_xSubAdjacencyList.Append(DirectedSection(pSectionBDown->GetTupleId(), 
-                                                   false));  
-    }
-    // Mark the part of the sub-adjacency-list in the adjacency-list 
-    iHigh = m_xSubAdjacencyList.Size()-1;
-    if(iHigh >= iLow)
-    {
-      m_xAdjacencyList.Put((2 * (pSectionADown->GetTupleId() - 1)),
-                            AdjacencyListEntry(iLow, iHigh));
-    }
+    FillAdjacencyPair(pADown, false, pAUp, true, xCc, ADOWN_AUP, xList);
+    FillAdjacencyPair(pADown, false, pADown, false, xCc, ADOWN_ADOWN, xList);
+    FillAdjacencyPair(pADown, false, pBUp, true, xCc, ADOWN_BUP, xList);
+    FillAdjacencyPair(pADown, false, pBDown, false, xCc, ADOWN_BDOWN, xList);
 
-    //
     // Third section
-    // 
-    iLow = m_xSubAdjacencyList.Size();
-    if(pSectionBUp != 0 && pSectionAUp != 0 && xCc.IsPossible(xCc.BUP_AUP))
-    {
-      m_xSubAdjacencyList.Append(DirectedSection(pSectionAUp->GetTupleId(), 
-                                                   true));  
-    }
-    if(pSectionBUp != 0 && pSectionADown != 0 && xCc.IsPossible(xCc.BUP_ADOWN))
-    {
-      m_xSubAdjacencyList.Append(DirectedSection(pSectionADown->GetTupleId(), 
-                                                   false));  
-    }
-    if(pSectionBUp != 0 && pSectionBUp != 0 && xCc.IsPossible(xCc.BUP_BUP))
-    {
-      m_xSubAdjacencyList.Append(DirectedSection(pSectionBUp->GetTupleId(), 
-                                                   true));  
-    }
-    if(pSectionBUp != 0 && pSectionBDown != 0 && xCc.IsPossible(xCc.BUP_BDOWN))
-    {
-      m_xSubAdjacencyList.Append(DirectedSection(pSectionBDown->GetTupleId(), 
-                                                   false));  
-    }
-    // Mark the part of the sub-adjacency-list in the adjacency-list 
-    iHigh = m_xSubAdjacencyList.Size()-1;
-    if(iHigh >= iLow)
-    {
-      m_xAdjacencyList.Put((2 * (pSectionBUp->GetTupleId() - 1) + 1),
-                            AdjacencyListEntry(iLow, iHigh));
-    }
+    FillAdjacencyPair(pBUp, true, pAUp, true, xCc, BUP_AUP, xList);
+    FillAdjacencyPair(pBUp, true, pADown, false, xCc, BUP_ADOWN, xList);
+    FillAdjacencyPair(pBUp, true, pBUp, true, xCc, BUP_BUP, xList);
+    FillAdjacencyPair(pBUp, true, pBDown, false, xCc, BUP_BDOWN, xList);
 
-    //
     // Fourth section
-    // 
-    iLow = m_xSubAdjacencyList.Size();
-    if(pSectionBDown != 0 && pSectionAUp != 0 && xCc.IsPossible(xCc.BDOWN_AUP))
-    {
-      m_xSubAdjacencyList.Append(DirectedSection(pSectionAUp->GetTupleId(), 
-                                                   true));  
-    }
-    if(pSectionBDown != 0 
-    && pSectionADown != 0 && xCc.IsPossible(xCc.BDOWN_ADOWN))
-    {
-      m_xSubAdjacencyList.Append(DirectedSection(pSectionADown->GetTupleId(), 
-                                                   false));  
-    }
-    if(pSectionBDown != 0 && pSectionBUp != 0 && xCc.IsPossible(xCc.BDOWN_BUP))
-    {
-      m_xSubAdjacencyList.Append(DirectedSection(pSectionBUp->GetTupleId(), 
-                                                   true));  
-    }
-    if(pSectionBDown != 0 
-    && pSectionBDown != 0 && xCc.IsPossible(xCc.BDOWN_BDOWN))
-    {
-      m_xSubAdjacencyList.Append(DirectedSection(pSectionBDown->GetTupleId(), 
-                                                   false));  
-    }
-    // Mark the part of the sub-adjacency-list in the adjacency-list 
-    iHigh = m_xSubAdjacencyList.Size()-1;
-    if(iHigh >= iLow)
-    {
-      m_xAdjacencyList.Put((2 * (pSectionBDown->GetTupleId() - 1)),
-                            AdjacencyListEntry(iLow, iHigh));
-    }
+    FillAdjacencyPair(pBDown, false, pAUp, true, xCc, BDOWN_AUP, xList);
+    FillAdjacencyPair(pBDown, false, pADown, false, xCc, BDOWN_ADOWN, xList);
+    FillAdjacencyPair(pBDown, false, pBUp, true, xCc, BDOWN_BUP, xList);
+    FillAdjacencyPair(pBDown, false, pBDown, false, xCc, BDOWN_BDOWN, xList);
         
     pCurrentJunction->DeleteIfAllowed();
   }
   delete pJunctionsIt;
+
+
+  /////////////////////////////////////////////////////////////////////////
+  //
+  // Now - as the second step the adjacency lists are filled.
+  //
+  // Sort the list by the first directed section
+  sort(xList.begin(),
+       xList.end());
+
+  DirectedSectionPair xLastPair;
+  int iLow = 0; 
+  for(size_t i = 0; i < xList.size(); i++)
+  {
+    // Get next
+    DirectedSectionPair xPair = xList[i];
+
+    cout << xPair.m_iFirstSectionTid 
+         << (xPair.m_bFirstUpDown ? " (Up) " : " (Down) ") 
+         << " -> " 
+         << xPair.m_iSecondSectionTid  
+         << (xPair.m_bSecondUpDown ? " (Up) " : " (Down) ")
+         << endl; 
+
+    // Entry in adjacency list if all sections adjacent to one section have 
+    // been found. This is the case every time the first section changes. Never
+    // at the first entry and always at the last. 
+    if(i == xList.size() -1 ||
+       (
+        i != 0 &&
+        (
+         xLastPair.m_iFirstSectionTid != xPair.m_iFirstSectionTid ||
+         xLastPair.m_bFirstUpDown != xPair.m_bFirstUpDown
+        )
+       )
+      )
+    {
+      int iHigh = m_xSubAdjacencyList.Size()-1;
+      int iIndex = 2 * (xLastPair.m_iFirstSectionTid - 1);
+      iIndex += xLastPair.m_bFirstUpDown ? 1 : 0;
+      m_xAdjacencyList.Put(iIndex, AdjacencyListEntry(iLow, iHigh));
+      
+      iLow = iHigh + 1;
+    }                                                   
+
+    // Append new entry to sub-list
+    m_xSubAdjacencyList.Append(DirectedSection(xPair.m_iSecondSectionTid, 
+                                               xPair.m_bSecondUpDown));
+                                                 
+    xLastPair = xPair;
+  }
+
+
 
 //  cout << "AdjacencyList" << endl;
 //  cout << "-------------" << endl;
@@ -1105,6 +1122,25 @@ void Network::FillAdjacencyLists()
 //         
 //  }
 //  cout << "----------------" << endl;
+}
+
+void Network::FillAdjacencyPair(Tuple* in_pFirstSection,
+                                    bool in_bFirstUp,
+                                    Tuple* in_pSecondSection,
+                                    bool in_bSecondUp,
+                                    ConnectivityCode in_xCc,
+                                    Transition in_xTransition,
+                                    vector<DirectedSectionPair> &inout_xPairs)
+{
+  if(in_pFirstSection != 0 && 
+     in_pSecondSection != 0 && 
+     in_xCc.IsPossible(in_xTransition))
+    {
+      inout_xPairs.push_back(DirectedSectionPair(in_pFirstSection->GetTupleId(),
+                                                in_bFirstUp,
+                                                in_pSecondSection->GetTupleId(),
+                                                in_bSecondUp));
+    }
 }
 
 void Network::GetAdjacentSections(int in_iSectionId,
