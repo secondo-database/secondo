@@ -20,20 +20,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
-//[TOC] [\tableofcontents]
 
-[1] Implementation of Network Manager
+1 Implementation of a class managing networks
+
 
 Mai-July 2007 Martin Scheppokat
 
-[TOC]
-
-1 Overview
+1.1 Overview
 
 
 This file contains the implementation of the type ~network~,
 
-2 Defines, includes, and constants
+2.1 Defines, includes, and constants
 
 */
 

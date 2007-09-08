@@ -20,15 +20,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
-//[TOC] [\tableofcontents]
 
-[1] Implementation of GLine in Module Network Algebra
+1 Implementation of operator sections
+
 
 March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
 
-[TOC]
 
 1 Overview
 

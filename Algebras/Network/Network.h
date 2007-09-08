@@ -20,22 +20,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
-//[TOC] [\tableofcontents]
 
-[1] Implementation of Module Network Algebra
+1 Declaration of datatype for type-constructor Network
 
 Mai-July 2007 Martin Scheppokat
 
 Parts of the source taken from Victor Almeida
 
-[TOC]
 
-1 Overview
+1.1 Overview
 
 
 This file contains the implementation of the type ~network~,
 
-2 Defines, includes, and constants
+2.1 Defines, includes, and constants
 
 */
 
@@ -94,7 +92,7 @@ Please include in *.cpp-File.
 
 
 /*
-3 Class ConnectivityCode
+3.1 Class ConnectivityCode
 
 */
 

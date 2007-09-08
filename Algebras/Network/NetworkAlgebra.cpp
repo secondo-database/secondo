@@ -20,9 +20,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
-//[TOC] [\tableofcontents]
 
-[1] Implementation of Module Network Algebra
+1 Implementation of the NetworkAlgebra
+
 
 March 2004 Victor Almeida
 
@@ -30,16 +30,14 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
-[TOC]
-
-1 Overview
+1.1 Overview
 
 
 This file contains the implementation of the type constructors ~network~,
 ~gpoint~, and ~gline~ and the temporal corresponding ~moving~(~gpoint~)
 and ~moving~(~gline~).
 
-2 Defines, includes, and constants
+2.1 Defines, includes, and constants
 
 */
 
@@ -94,10 +92,7 @@ TypeConstructor network( "network",          Network::NetworkProp,
 
 4.1 List Representation
 
-The list representation of a graph point is
-
-----    (nid rid pos side)
-----
+The list representation of a graph point is (nid rid pos side)
 
 3.3 ~Out~-function
 
@@ -217,7 +212,7 @@ Operator shortest_path (
 
 
 /*
-5 Creating the Algebra
+5.1 Creating the Algebra
 
 */
 
@@ -242,7 +237,7 @@ class NetworkAlgebra : public Algebra
 NetworkAlgebra networkAlgebra;
 
 /*
-6 Initialization
+6.1 Initialization
 
 Each algebra module needs an initialization function. The algebra manager
 has a reference to this function if this algebra is included in the list

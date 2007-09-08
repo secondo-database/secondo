@@ -47,7 +47,6 @@ public class Route
 	
 	/**
    * Length of the route
-   * -------------------
    * The member length is not used at the moment. The length is calculated 
    * via the length of the segments
 	 */

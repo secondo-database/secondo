@@ -85,17 +85,6 @@ return;
 bool UGPoint::Passes( const GPoint& p ) const
 {
   throw SecondoException("Method UGPoint::Passes not implemented.");
-/*
-VTA - I could use the spatial algebra like this
-
-----    HalfSegment hs;
-        hs.Set( true, p0, p1 );
-        return hs.Contains( p );
-----
-but the Spatial Algebra admit rounding errors (floating point operations). It
-would then be very hard to return a true for this function.
-
-*/
   assert( p.IsDefined() );
   assert( IsDefined() );
 

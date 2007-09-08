@@ -20,21 +20,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
-//[TOC] [\tableofcontents]
 
-[1] Implementation of the operator thenetwork in Module Network Algebra
+1 Implementation of operator thenetwork
+
 
 Mai-Oktober 2007 Martin Scheppokat
 
-[TOC]
-
-1 Overview
+1.1 Overview
 
 
 This file contains the implementation of ~gline~
 
 
-2 Defines, includes, and constants
+2.2 Defines, includes, and constants
 
 */
 #include "RelationAlgebra.h"
