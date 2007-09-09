@@ -68,12 +68,15 @@ ListExpr OpNetworkTheNetwork::TypeMap(ListExpr in_xArgs)
     return (nl->SymbolAtom("typeerror"));
   }
 
-  if(!CompareSchemas(xRoutesRelDesc, Network::GetRoutesTypeInfo()))
+  ListExpr xType;
+  nl->ReadFromString(Network::routesTypeInfo, xType);
+  if(!CompareSchemas(xRoutesRelDesc, xType))
   {
     return (nl->SymbolAtom("typeerror"));
   }
   
-  if(!CompareSchemas(xJunctionsRelDesc, Network::GetJunctionsTypeInfo()))
+  nl->ReadFromString(Network::junctionsTypeInfo, xType);
+  if(!CompareSchemas(xJunctionsRelDesc, xType))
   {
     return (nl->SymbolAtom("typeerror"));
   }

@@ -47,7 +47,7 @@ This file contains the implementation of ~gline~
 
 
 
-enum Side { Up, Down, None };
+enum Side { Down, Up, None };
 
 struct RLoc
 {

@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 Declaration of datatype for type-constructor Network
 
-Mai-July 2007 Martin Scheppokat
+Mai-September 2007 Martin Scheppokat
 Parts of the source taken from Victor Almeida
 
 1.1 Overview
@@ -546,6 +546,50 @@ class Network
 {
   public:
 
+  static string routesTypeInfo;
+/*
+The internal and external (they are equal) ~routes~ relation type info 
+as string.
+
+*/
+
+  static string routesBTreeTypeInfo;
+/*
+The B-Tree in the ~routes~ relation type info as string.
+
+*/
+
+  static string junctionsBTreeTypeInfo;
+/*
+The B-Tree in the ~junctions~ relation type info as string.
+
+*/
+
+  static string junctionsTypeInfo;
+/*
+The external ~junctions~ relation type info as string.
+
+*/
+
+  static string junctionsInternalTypeInfo;
+/*
+The internal ~junctions~ relation type info as string.
+
+*/
+
+  static string sectionsTypeInfo;
+/*
+The external ~sections~ relation type info as string.
+
+*/
+
+  static string sectionsInternalTypeInfo;
+/*
+The internal ~sections~ relation type info as string.
+
+*/
+
+
 /*
 
 1.1.1 Constructor
@@ -656,13 +700,6 @@ This function is used in the ~routes~ operator.
     Relation *GetRoutes();
 
 /*
-1.1.1 GetRoutesInternal
-Returns the ~routes~ relation (in internal representation).
-
-*/
-    Relation *GetRoutesInternal();
-
-/*
 1.1.1 GetJunctions
 
 Returns a copy of the ~junctions~ relation in external representation.  
@@ -670,14 +707,6 @@ This function is used in the ~junctions~ operator.
 
 */  
     Relation *GetJunctions();
-
-/*
-1.1.1 GetJunctionsInternal
- 
-Returns the ~junctions~ relation (in internal representation).
-
-*/
-    Relation *GetJunctionsInternal();
 
 /*
 1.1.1 GetJunctionsOnRoute
@@ -726,63 +755,6 @@ Returns the ~sections~ relation (in internal representation).
     void GetAdjacentSections(int in_iSectionId,
                              bool in_bUpDown,
                              vector<DirectedSection> &inout_xSections);
-
-
-/*
-1.1.1 Method GetRoutesTypeInfo
-
-Returns the internal and external (they are equal) ~routes~ relation type info.
-
-*/
-    static ListExpr GetRoutesTypeInfo();
-
-/*
-1.1.1 GetRoutesBTreeTypeInfo
-
-Returns the B-Tree in the ~routes~ relation type info.
-
-*/
-    static ListExpr GetRoutesBTreeTypeInfo();
-
-/*
-1.1.1 GetRoutesBTreeTypeInfo
-
-Returns the B-Tree in the ~junctions~ relation type info.
-
-*/
-    static ListExpr GetJunctionsBTreeTypeInfo();
-
-/*
-1.1.1 GetJunctionsTypeInfo
-
-Returns the external ~junctions~ relation type info.
-
-*/
-    static ListExpr GetJunctionsTypeInfo();
-
-/*
-1.1.1 GetJunctionsIntTypeInfo
-
-Returns the internal ~junctions~ relation type info.
-
-*/
-    static ListExpr GetJunctionsIntTypeInfo();
-
-/*
-1.1.1 GetSectionsTypeInfo
-
-Returns the external ~sections~ relation type info.
-
-*/
-    static ListExpr GetSectionsTypeInfo();
-
-/*
-1.1.1 GetSectionsInternalTypeInfo
-
-Returns the internal ~sections~ relation type info.
-
-*/
-    static ListExpr GetSectionsInternalTypeInfo();
 
 
 /*
@@ -945,48 +917,6 @@ Read a flob from a file
 
 /*
 1.1 Private fields of Class ~Network~
-
-*/
-  static string routesTypeInfo;
-/*
-The internal and external (they are equal) ~routes~ relation type info 
-as string.
-
-*/
-
-  static string routesBTreeTypeInfo;
-/*
-The B-Tree in the ~routes~ relation type info as string.
-
-*/
-
-  static string junctionsBTreeTypeInfo;
-/*
-The B-Tree in the ~junctions~ relation type info as string.
-
-*/
-
-  static string junctionsTypeInfo;
-/*
-The external ~junctions~ relation type info as string.
-
-*/
-
-  static string junctionsInternalTypeInfo;
-/*
-The internal ~junctions~ relation type info as string.
-
-*/
-
-  static string sectionsTypeInfo;
-/*
-The external ~sections~ relation type info as string.
-
-*/
-
-  static string sectionsInternalTypeInfo;
-/*
-The internal ~sections~ relation type info as string.
 
 */
 

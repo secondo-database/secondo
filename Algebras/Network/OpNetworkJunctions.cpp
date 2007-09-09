@@ -65,7 +65,11 @@ ListExpr OpNetworkJunctions::TypeMap(ListExpr args)
     if( nl->IsAtom( arg1 ) &&
         nl->AtomType( arg1 ) == SymbolType &&
         nl->SymbolValue( arg1 ) == "network" )
-      return Network::GetJunctionsIntTypeInfo();
+    {
+      ListExpr xType;
+      nl->ReadFromString(Network::junctionsInternalTypeInfo, xType);
+      return xType;
+    }
   }
   return (nl->SymbolAtom( "typeerror" ));
 }

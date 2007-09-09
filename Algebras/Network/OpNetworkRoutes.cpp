@@ -65,7 +65,11 @@ ListExpr OpNetworkRoutes::TypeMap(ListExpr args)
     if( nl->IsAtom( arg1 ) && 
         nl->AtomType( arg1 ) == SymbolType &&
         nl->SymbolValue( arg1 ) == "network" ) 
-      return Network::GetRoutesTypeInfo();
+    {
+      ListExpr xType;
+      nl->ReadFromString(Network::routesTypeInfo, xType);
+      return xType;
+    }
   }
   return (nl->SymbolAtom( "typeerror" ));
 }
