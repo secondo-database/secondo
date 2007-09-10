@@ -4755,19 +4755,18 @@ parameter.
     // for this reason, we force that the x coordinate __x__ of the event
     // is the same as the left cooridinate of the segment of the entry
 
-    if(!AlmostEqual(x,entry.getSegment().x1)){
-      cout << "try to insert an segment at an event position so that"  
-           << " the event is not the left endpoint" << endl;
-      cout.precision(24);
-      cout << "x_position = " << x << endl;
-      cout << "segment = " << entry.getSegment() << endl;
-      if((*ignore)[entry.getIndex()]){
-         cout << "The segment shoud be ignored " << endl;
-      }else {
-         cout << "The segment is active " << endl;
-      }
-
-    }
+//     if(!AlmostEqual(x,entry.getSegment().x1)){
+//       cout << "try to insert an segment at an event position so that"
+//            << " the event is not the left endpoint" << endl;
+//       cout.precision(24);
+//       cout << "x_position = " << x << endl;
+//       cout << "segment = " << entry.getSegment() << endl;
+//       if((*ignore)[entry.getIndex()]){
+//          cout << "The segment shoud be ignored " << endl;
+//       }else {
+//          cout << "The segment is active " << endl;
+//       }
+//     }
 
 //    assert(AlmostEqual(x,entry.getSegment().x1));   
  
