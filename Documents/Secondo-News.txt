@@ -6,6 +6,15 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+2007-09-10  Changes in representation of type movingregion and uregion
+===============================================================================
+
+In order to establish a proper use of the defined flag within mapping types, 
+I needed to change the representations of datatypes movingregion and uregion. 
+You need to restore any database containing objects of these types!
+
+Christian
+
 
 2007-06-06  First changes for Linux x86_64 systems 
 ===============================================================================

@@ -404,6 +404,7 @@ private:
 */
     unsigned int segmentsStartPos;
     unsigned int segmentsNum;
+    bool defined;
 
     Rectangle<3> bbox;
 
@@ -537,14 +538,17 @@ leave this attribute public to mimic a ~Unit~'s behaviour.
 The default constructor does nothing.
 
 */
-    URegionEmb() { }
+    URegionEmb() { };
 
+
+    URegionEmb( const bool Defined );
 /*
 Constructor, which creates an empty unit for the specified interval.
 The ~URegionEmb~ instance will store its segments starting at ~pos~
 in the moving segments array.
 
 */
+
     URegionEmb(
         const Interval<Instant>& tiv,
         unsigned int pos);
@@ -714,6 +718,21 @@ The assignment operator
       return os;
     };
 
+    bool IsDefined() const
+    {
+      return defined;
+    }
+
+    void SetDefined( const bool Defined )
+    {
+      defined = Defined;
+    }
+
+    bool GetDefined() const
+    {
+      return defined;
+    }
+
 };
 
 
@@ -780,7 +799,10 @@ Create a URegion object by copying data from a given MRegion object.
 Set and get the ~uremb~ attribute. Required for function ~InURegion()~.
 
 */
-    void SetEmbedded(const URegionEmb* p) { uremb = *p; }
+    void SetEmbedded(const URegionEmb* p) {
+      uremb = *p;
+      SetDefined( p->IsDefined() );
+    }
     URegionEmb* GetEmbedded(void) { return &uremb; }
 
 /*
@@ -831,6 +853,12 @@ Returns the ~sizeof~ of a ~URegion~ instance.
 
 */
     virtual size_t Sizeof() const;
+
+    virtual void SetDefined( bool Defined )
+    {
+      defined = Defined;
+      uremb.SetDefined(Defined);
+    }
 
 /*
 Clone ~URegion~ instance. Please note that resulting instance will have

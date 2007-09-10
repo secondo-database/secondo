@@ -2548,6 +2548,7 @@ void MPoint::Add( const UPoint& unit )
 {
 //   cout << "CALLED: MPoint::Add" << endl;
   assert( unit.IsValid() );
+  assert( unit.IsDefined() );
   units.Append( unit );
   if(units.Size() == 1)
   {
@@ -2910,6 +2911,9 @@ string iv2string(Interval<Instant> iv){
 }
 
 void MPoint::MergeAdd(const UPoint& unit){
+  assert( unit.IsValid() );
+  assert( unit.IsDefined() );
+
   int size = GetNoComponents();
   if(size==0){ // the first unit
      Add(unit);
@@ -2943,6 +2947,8 @@ void MPoint::MergeAdd(const UPoint& unit){
      bbox = bbox.Union(unit.BoundingBox());
      return;
   }
+  assert( upoint.IsValid() );
+  assert( upoint.IsDefined() );
   units.Put(size-1,upoint); // overwrite the last unit by a connected one
 }
 

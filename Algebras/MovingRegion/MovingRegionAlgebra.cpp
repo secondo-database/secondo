@@ -2777,10 +2777,22 @@ The class definition has been moved to ~MovingRegionAlgebra.h~.
 
 */
 
+URegionEmb::URegionEmb( const bool Defined ) :
+    segmentsStartPos(0),
+    segmentsNum(0),
+    defined(Defined),
+    bbox(false)
+    {
+      if (MRA_DEBUG)
+        cerr << "URegionEmb::URegionEmb(bool) called"
+            << endl;
+    }
+
 URegionEmb::URegionEmb(const Interval<Instant>& tiv,
                        unsigned int pos) :
     segmentsStartPos(pos),
     segmentsNum(0),
+    defined(true),
     bbox(false),
     timeInterval(tiv) {
 
@@ -2798,6 +2810,7 @@ URegionEmb::URegionEmb(
     unsigned int pos) :
     segmentsStartPos(pos),
     segmentsNum(0),
+    defined(true),
     timeInterval(tiv) {
 
     if (MRA_DEBUG)
@@ -2958,7 +2971,9 @@ bool URegionEmb::TU_Adjacent(const URegionEmb& ur) const {
 
 */
 bool URegionEmb::operator==(const URegionEmb& ur) const {
-    return timeInterval == ur.timeInterval;
+    return (!defined && !ur.defined) ||
+           (defined && ur.defined && timeInterval == ur.timeInterval);
+    
 }
 
 /*
@@ -5773,6 +5788,7 @@ URegion::URegion(int i, MRegion& mr) {
 URegionEmb& URegionEmb::operator=(const URegionEmb& U) {
   segmentsStartPos = U.segmentsStartPos;
   segmentsNum = U.segmentsNum;
+  defined = U.defined;
   bbox = U.bbox;
   timeInterval = U.timeInterval;
   return *this;
@@ -5876,6 +5892,7 @@ Assignment operator
    timeInterval = U.timeInterval; // copy units copy of deftime!
    uremb = U.uremb;      // copy bbox, timeInterval, segmentsNum
    uremb.SetStartPos(0); // set uremb.segmentsStartPos = 0
+   defined = U.defined;
 
    int start = U.uremb.GetStartPos();
    int numsegs = U.uremb.GetSegmentsNum();
@@ -6583,7 +6600,7 @@ void MRegion::AddURegion(URegion& U ) {
   if ( !U.IsDefined() )
     return;
 
-  URegionEmb tmp;
+  URegionEmb tmp(true);
   int start=0, end=0;
 
   StartBulkLoad();

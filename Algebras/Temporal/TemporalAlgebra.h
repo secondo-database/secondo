@@ -1151,7 +1151,7 @@ The destructor.
       return TemporalUnit<Alpha>::defined;
     }
 
-    void SetDefined( bool Defined )
+    virtual void SetDefined( bool Defined )
     {
       TemporalUnit<Alpha>::defined = Defined;
     }
@@ -4746,13 +4746,35 @@ template <class Unit, class Alpha>
 void Mapping<Unit, Alpha>::Get( const int i, const Unit*& unit ) const
 {
   units.Get( i, unit );
-  assert( unit->IsValid() );
+  if ( !unit->IsDefined() )
+  {
+    cout << "\nMapping::Get(): Unit is undefined:";
+    unit->Print(cout); cout << endl;
+    assert( false );
+  }
+  if ( !unit->IsValid() )
+  {
+    cout << "\nMapping::Get(): Unit is invalid:";
+    unit->Print(cout); cout << endl;
+    assert( false );
+  }
 }
 
 template <class Unit, class Alpha>
 void Mapping<Unit, Alpha>::Add( const Unit& unit )
 {
-  assert( unit.IsValid() );
+  if ( !unit.IsDefined() )
+  {
+    cout << "\nMapping::Add(): Unit is undefined:";
+    unit.Print(cout); cout << endl;
+    assert( false );
+  }
+  if ( !unit.IsValid() )
+  {
+    cout << "\nMapping::Add(): Unit is invalid:";
+    unit.Print(cout); cout << endl;
+    assert( false );
+  }
   units.Append( unit );
 }
 
@@ -4763,19 +4785,42 @@ void Mapping<Unit, Alpha>::MergeAdd( Unit& unit )
   const Unit *u1transfer;
   int size = units.Size();
 
-  assert( unit.IsValid() );
+  if ( !unit.IsDefined() )
+  {
+    cout << "\nMapping::MergeAdd(): unit is undefined:";
+    unit.Print(cout); cout << endl;
+    assert( false );
+  }
+  if ( !unit.IsValid() )
+  {
+    cout << "\nMapping::MergeAdd(): unit is invalid:";
+    unit.Print(cout); cout << endl;
+    assert( false );
+  }
 
   if (size > 0) {
       units.Get( size - 1, u1transfer );
       lastunit = *u1transfer;
-      assert( unit.IsValid() );
-
       if (lastunit.EqualValue(unit) &&
       (AlmostEqual(lastunit.timeInterval.end.ToDouble(),
        unit.timeInterval.start.ToDouble())) &&
       (lastunit.timeInterval.rc || unit.timeInterval.lc)) {
           lastunit.timeInterval.end = unit.timeInterval.end;
           lastunit.timeInterval.rc = unit.timeInterval.rc;
+          assert( lastunit.IsValid() );
+          assert( lastunit.IsDefined() );
+          if ( !lastunit.IsDefined() )
+          {
+            cout << "\nMapping::MergeAdd(): lastunit is undefined:";
+            lastunit.Print(cout); cout << endl;
+            assert( false );
+          }
+          if ( !lastunit.IsValid() )
+          {
+            cout << "\nMapping::MergeAdd(): lastunit is invalid:";
+            lastunit.Print(cout); cout << endl;
+            assert( false );
+          }
           units.Put(size - 1, lastunit);
       }
       else {
