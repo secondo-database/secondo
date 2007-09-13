@@ -156,6 +156,11 @@ The type operator ~ANY~ corresponds to the type of the first argument.
 ----    (t1 t2 ... tn)      -> t1 
 ----
 
+The type operator ~ANY2~ corresponds to the type of the second argument.
+
+----    (t1 t2 ... tn)      -> t2 
+----
+
 */
 ListExpr ANYTypeMap( ListExpr args )
 {
@@ -186,7 +191,7 @@ const string ANY2Spec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
    "( <text>(t1 t2 ... tn) -> t1 -> t2</text--->"
    "<text>type operator</text--->"
-   "<text>Simply returns the type of the first argument.</text--->"
+   "<text>Simply returns the type of the second argument.</text--->"
    "<text></text---> ))";
 
 Operator ANY2 (
@@ -427,10 +432,11 @@ WithinSelect( ListExpr Args )
 */
 const string WithinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                         "\"Example\" ) "
-                        "( <text>a x (a -> b) -> b</text--->"
+                        "( <text>a x (a -> b) -> b\n"
+                        " a x b x ( a x b -> c) -> c</text--->"
                         "<text>_ within [ fun ]</text--->"
                         "<text>Calls the function passing as argument "
-                        "its own first argument.</text--->"
+                        "its own first (and second) argument.</text--->"
                         "<text>query plz createbtree[Ort] "
                         "within[fun( index: ANY ) "
                         "Orte feed {o} loopjoin[index plz "
