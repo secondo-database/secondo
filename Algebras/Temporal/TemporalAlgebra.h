@@ -4748,13 +4748,13 @@ void Mapping<Unit, Alpha>::Get( const int i, const Unit*& unit ) const
   units.Get( i, unit );
   if ( !unit->IsDefined() )
   {
-    cout << "\nMapping::Get(): Unit is undefined:";
+    cout << "\nMapping::Get(" << i << ", Unit): Unit is undefined:";
     unit->Print(cout); cout << endl;
     assert( false );
   }
   if ( !unit->IsValid() )
   {
-    cout << "\nMapping::Get(): Unit is invalid:";
+    cout << "\nMapping::Get(" << i << ", Unit): Unit is invalid:";
     unit->Print(cout); cout << endl;
     assert( false );
   }
@@ -6564,50 +6564,44 @@ void TemporalUnit<Alpha>::AtInterval(const Interval<Instant> &i,
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
 unsigned int RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
-::Size(void) {
-
-        return iv.size();
-    }
+::Size(void)
+{
+  return iv.size();
+}
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
 void RefinementPartition<Mapping1, Mapping2, Unit1, Unit2>
 ::Get(unsigned int pos, Interval<Instant>*& civ, int& ur,
-     int& up) {
-
-        assert(pos < iv.size());
-
-        civ = iv[pos];
-        ur = vur[pos];
-        up = vup[pos];
-    }
+     int& up)
+{
+  assert(pos < iv.size());
+  civ = iv[pos];
+  ur = vur[pos];
+  up = vup[pos];
+}
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
 void RefinementPartition<Mapping1, Mapping2, Unit1,
- Unit2>::AddUnits(
-    const int urPos,
-    const int upPos,
-    const Instant& start,
-    const Instant& end,
-    const bool lc,
-    const bool rc) {
-    if(REFINEMENT_DEBUG){
-      cout<<"RP::AddUnits()                ["<<start.ToString()<<" "
-      <<end.ToString()<<" "<<lc<<" "<<rc<<"] "<<urPos<<" "<<upPos<<endl;
-    }
+ Unit2>::AddUnits( const int urPos,      const int upPos,
+                   const Instant& start, const Instant& end,
+                   const bool lc,        const bool rc)
+{
+  if(REFINEMENT_DEBUG){
+    cout<<"RP::AddUnits()                ["<<start.ToString()<<" "
+    <<end.ToString()<<" "<<lc<<" "<<rc<<"] "<<urPos<<" "<<upPos<<endl;
+  }
 
-    Interval<Instant>* civ = new Interval<Instant>(start, end,
-     lc, rc);
+  Interval<Instant>* civ = new Interval<Instant>(start, end, lc, rc);
 
-    iv.push_back(civ);
-    vur.push_back(urPos);
-    vup.push_back(upPos);
+  iv.push_back(civ);
+  vur.push_back(urPos);
+  vup.push_back(upPos);
 }
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
 RefinementPartition<Mapping1, Mapping2, Unit1,
- Unit2>::RefinementPartition(
-    Mapping1& mr,
-    Mapping2& mp) {
+ Unit2>::RefinementPartition( Mapping1& mr, Mapping2& mp )
+{
     if(REFINEMENT_DEBUG)
       cout << "RP::RP() called" << endl;
 
