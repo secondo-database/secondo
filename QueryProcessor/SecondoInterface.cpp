@@ -273,7 +273,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
               cmsg.info() << "accept user " << u << endl;
               cmsg.send();
             } else {
-              cmsg.error() << "password for user " << u << "is wrong" << endl;
+              cmsg.error() << "password for user " << u << " is wrong" << endl;
               cmsg.send();
               ok = false;
             }
