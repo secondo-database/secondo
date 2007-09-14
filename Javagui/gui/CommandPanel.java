@@ -36,7 +36,7 @@ import tools.Reporter;
  * be scrolled. It offers copy'n'paste ability with Ctrl-C, Ctrl-V.
  * Mouse selection is possible too.When releasing the button the
  * selected text will be copied. Enter finishes the input.
- * @author  Thomas Höse
+ * @author  Thomas Hoese
  * @version 0.99 1.1.02
  *
  * modified by Thomas Behr
@@ -64,10 +64,12 @@ public class CommandPanel extends JScrollPane {
    * The constructor sets up the internal textarea.
    * @param   ResultViewer Link for show results
    */
-  public CommandPanel (ResultProcessor aRV) {
+  public CommandPanel (ResultProcessor aRV,String user, String passwd) {
     super();
     RV = aRV;
     Secondointerface = new ESInterface();
+    Secondointerface.setUserName(user);
+    Secondointerface.setPassWd(passwd);
     SystemArea = new JTextArea();
     SystemArea.setLineWrap(true);
     SystemArea.setWrapStyleWord(true);

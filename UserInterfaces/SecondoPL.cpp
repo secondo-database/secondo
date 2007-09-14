@@ -659,30 +659,24 @@ PL_extension predicates[] =
   { 0, 0, 0, 0 } /* terminating line */
 };
 
+
 /*
-
-7 Function GetConfigFileNameFromArgV
-
-Attempts to retrieve the configuration file name via the
-enviroment. If it is found, it is returned. Otherwise,
-search the arguments of the main function for two sucessive
-strings of the form -c FileName. These two strings are then
-removed from the argument vector and the argument count is
-reduced by 2. Returns the FileName on success and NULL otherwise.
+6 GetParameterFromArg
 
 */
-char* GetConfigFileNameFromArgV(int& argc, char** argv)
+char* GetParameterFromArg(int& argc, char** argv, 
+                                string envVar, string option)
 {
   int i = 0;
   int j;
   char* result;
 
-  if((result = getenv("SECONDO_CONFIG")) != 0)
+  if((result = getenv(envVar.c_str())) != 0)
   {
     return result;
   }
 
-  while(i < argc - 1 && strcmp(argv[i], "-c") != 0)
+  while(i < argc - 1 && strcmp(argv[i], option.c_str()) != 0)
   {
     ++i;
   }
@@ -703,6 +697,24 @@ char* GetConfigFileNameFromArgV(int& argc, char** argv)
   }
 }
 
+
+/*
+
+7 Function GetConfigFileNameFromArgV
+
+Attempts to retrieve the configuration file name via the
+enviroment. If it is found, it is returned. Otherwise,
+search the arguments of the main function for two sucessive
+strings of the form -c FileName. These two strings are then
+removed from the argument vector and the argument count is
+reduced by 2. Returns the FileName on success and NULL otherwise.
+
+*/
+char* GetConfigFileNameFromArgV(int& argc, char** argv)
+{
+  return GetParameterFromArg(argc,argv,"SECONDO_CONFIG","-u");
+}
+
 /*
 
 8 Function StartSecondoC
@@ -712,10 +724,8 @@ configuration file. Return true iff successful.
 
 */
 bool
-StartSecondoC(char* configFileName)
+StartSecondoC(char* configFileName, string user, string pswd)
 {
-  string user = "";
-  string pswd = "";
   string host = "";
   string port = "";
   string configFile = configFileName;
@@ -748,7 +758,7 @@ This function registers the secondo predicate at the prolog engine.
 
 */
 
-int registerSecondo(){
+int registerSecondo(const char*  user, const char*  pswd){
   cout << "register secondo" << endl;
   char* configFile;
   atexit(handle_exit);
@@ -758,7 +768,7 @@ int registerSecondo(){
   //configFile = GetConfigFileNameFromArgV(argc, argv);
   int argnumber =0;
   configFile = GetConfigFileNameFromArgV(argnumber,0);
-  if(configFile == 0 || !StartSecondoC(configFile))
+  if(configFile == 0 || !StartSecondoC(configFile,user,pswd))
   {
     cout << "SECONDO_CONFIG not defined" << endl;
     return -1;

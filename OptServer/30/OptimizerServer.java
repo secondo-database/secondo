@@ -39,7 +39,7 @@ static {
   }
 
 
-  public static native int registerSecondo();
+  public static native int registerSecondo(String user, String passwd);
 
    
 
@@ -55,10 +55,10 @@ static {
       * register the secondo predicate
       * loads the optimizer prolog code
       */
-    private boolean initialize(){
+    private boolean initialize(String user, String passwd){
       // later here is to invoke the init function which
       // registers the Secondo(command,Result) predicate to prolog
-    if(registerSecondo()!=0){
+    if(registerSecondo(user,passwd)!=0){
        System.err.println("error in registering the secondo predicate ");
        return false;
     }
@@ -610,25 +610,49 @@ static {
      */
    public static void main(String[] args){
        if(args.length<1){
-        System.err.println("usage:  java OptimizerServer -classpath .:<jplclasses> OptimizerServer  PortNumber");
+        System.err.println("usage:  java OptimizerServer -classpath .:<jplclasses> OptimizerServer Port [-u user][ -s passwd ] ");
               System.exit(1);
        }
        // process options
        Runtime rt = Runtime.getRuntime();
-       for(int i=0;i<args.length-1;i++){
-           if(args[i].equals("-trace_methods")){
+       String user = "";
+       String passwd = "";
+       int pos = 1;
+       while(pos<args.length){
+           if(args[pos].equals("-trace_methods")){
                rt.traceMethodCalls(true); 
                System.out.println("enable method tracing");
-           }
-           if(args[i].equals("-trace_instructions")){
+               pos++;
+           } else if(args[pos].equals("-trace_instructions")){
                rt.traceInstructions(true);
                System.out.println("enable instruction tracing");
+               pos++;
+           } else if(args[pos].equals("-u")){
+               if(pos==args.length-1){
+                  System.err.println("missing username for -u option");
+                  System.exit(-1);
+               }
+               pos++; 
+               user = args[pos];
+               pos++;
+           }else if(args[pos].equals("-s")){
+               if(pos==args.length-1){
+                  System.err.println("missing passwd for -s option");
+                  System.exit(-1);
+               }
+               pos++;
+               passwd = args[pos];
+               pos++;
+           }else{
+               System.out.println("unknown option " + args[pos]);
+               System.exit(-1);
            }
        }
+
        System.out.println("\n\n");
        printLicence(System.out);
        System.out.println("\n");
-       String arg = args[args.length-1];
+       String arg = args[0];
        OptimizerServer OS = new OptimizerServer();
        try{
           int P = Integer.parseInt(arg);
@@ -649,7 +673,7 @@ static {
            System.exit(1);
         }
 
-       if(! OS.initialize()){
+       if(! OS.initialize(user,passwd)){
           System.out.println("initialization failed");
           System.exit(1);
        }

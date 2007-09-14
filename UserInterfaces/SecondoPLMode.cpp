@@ -33,6 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SWI-Prolog.h"
 #include <stdlib.h>
 #include "SecondoConfig.h"
+#include "Application.h"
+#include <string>
 
 using namespace std;
 
@@ -48,7 +50,8 @@ Secondo.
 extern PL_extension predicates[];
 extern void handle_exit(void);
 extern char* GetConfigFileNameFromArgV(int&, char**);
-extern bool StartSecondoC(char*);
+extern char* GetParameterFromArg(int&, char**,string,string);
+extern bool StartSecondoC(char*, string, string);
 
 /*
 2 SecondoPLMode
@@ -67,7 +70,15 @@ SecondoPLMode(int argc, char **argv)
   /* Start Secondo and remove Secondo command line arguments
      from the argument vector .*/
   configFile = GetConfigFileNameFromArgV(argc, argv);
-  if(configFile == 0 || !StartSecondoC(configFile))
+  char* user = GetParameterFromArg(argc,argv,"SECONDO_USER","-u");
+  if(!user){
+    user = "";
+  }
+  char* passwd = GetParameterFromArg(argc,argv,"SECONDO_PASSWD","-s");
+  if(!passwd){
+    passwd ="";
+  }
+  if(configFile == 0 || !StartSecondoC(configFile,user, passwd))
   {
     cout << "Usage : SecondoPL [-c ConfigFileName] [prolog engine options]" 
          << endl;

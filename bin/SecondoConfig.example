@@ -91,6 +91,15 @@ RTFlags += SI:NoCommandEcho
 #RTFlags += SI:ResultList
 
 
+# passwords: uncomment this line if you want to 
+# restrict the access to secondo 
+#RTFlags += SI:UsePasswd
+
+#File containing the passwords, default is "passwd"
+ 
+#PASSWD_FILE=passwd
+
+
 ###
 ### CLIENT / SERVER
 ###

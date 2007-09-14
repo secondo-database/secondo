@@ -65,7 +65,7 @@ int
 main( const int argc, char* argv[] )
 {
   TTYParameter tp(argc,argv);
- 
+
 #ifndef SEC_TTYCS
   if ( tp.isServerMode() )
     return SecondoServerMode(tp.numArgs, (const char**)tp.argValues);

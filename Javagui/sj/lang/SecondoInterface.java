@@ -51,7 +51,7 @@ import tools.Reporter;
 
 */
  
-public class SecondoInterface extends Object {
+public class SecondoInterface{
 
 /*
 3.1 Public fields.
@@ -139,6 +139,7 @@ not accessible by the user code.
     String secHost = host;
     int secPort = port;
     String line;
+
     if ( !initialized )
     {
       Reporter.writeInfo( "Initializing the Secondo system ..." );
@@ -175,64 +176,56 @@ not accessible by the user code.
            return false;
         }
             if ( line.equals( "<SecondoOk/>" ) ) {
-              outSocketStream.write( "<Connect>\n" +
-                                    "((" + user + ") (" + pswd + "))\n" +
-                                    "</Connect>\n" );
+              outSocketStream.write( "<Connect>\n" 
+                                    + user +"\n"
+                                    + pswd +"\n"
+                                    + "</Connect>\n" );
               outSocketStream.flush();
               line = inSocketStream.readLine();
+
               if(line==null){
-            initialized = false;
-            Reporter.writeError("failed");
-        return false;
-          }
-              if ( line.equals( "<SecondoIntro>" ) )
-              {
-                do
-                {
-          line = inSocketStream.readLine();
-          if(line==null){
-             initialized = false;
-             Reporter.writeError("failed");
-             return false;
-          }
-                  if ( !line.equals( "</SecondoIntro>" ) )
-                  {
+                 initialized = false;
+                 Reporter.writeError("failed");
+                return false;
+              }
+              if ( line.equals( "<SecondoIntro>" ) ) {
+                do {
+                  line = inSocketStream.readLine();
+                  if(line==null){
+                     initialized = false;
+                     Reporter.writeError("failed");
+                     return false;
+                  } 
+                  if ( !line.equals( "</SecondoIntro>" ) ) {
                      Reporter.writeInfo( line );
                   }
-                }
-                while ( !line.equals( "</SecondoIntro>" ) );
-                initialized = true;
-              }
-              else if ( line.equals( "<SecondoError>" ) )
-              {
-                line = inSocketStream.readLine();
-        if(line==null){
-          initialized = false;
-          Reporter.writeError("SecondoError");
-          return false;
-        }
-                Reporter.writeError( "Server-Error: " + line );
-                line = inSocketStream.readLine();
-              }
-              else
-              {
+                } while ( !line.equals( "</SecondoIntro>" ) );
+                   initialized = true;
+              } else if ( line.equals("<SecondoError>") ) {
+                initialized = false;
+                do{
+                   line = inSocketStream.readLine();
+                   if(line==null){
+                      initialized = false;
+                      Reporter.writeError("SecondoError, connection lost");
+                   }
+                   Reporter.writeError( "Server-Error: " + line );
+                } while(line!=null && !line.equals("</SecondoError>"));
+              } else {
                 Reporter.writeError( "Unidentifiable response from server: " + line );
               }
-            }
-            else if ( line.equals( "<SecondoError>" ) )
-            {
-              line = inSocketStream.readLine();
-              Reporter.writeError( "Server-Error: " + line );
-              line = inSocketStream.readLine();
             }
             else
             {
               Reporter.writeError( "Unidentifiable response from server: " + line );
             }
           } catch (IOException e) {
+             Reporter.debug(e);
+             initialized = false;
           }
         } else {
           Reporter.writeError( "failed." );
+          initialized = false;
         }
         if ( !initialized && serverSocket != null ) {
           closeSocket( serverSocket );

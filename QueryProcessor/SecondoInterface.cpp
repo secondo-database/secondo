@@ -225,7 +225,6 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   bool ok = false;
   cout << endl << "Initializing the SECONDO Interface ..." << endl;
 
-
   stringstream version;
   version << "Version: " << SECONDO_VERSION_MAJOR << "." 
           << SECONDO_VERSION_MINOR << endl;
@@ -244,6 +243,51 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   {
     ok = true;
   }
+  
+  // check username and password if enabled
+  if(RTFlag::isActive("SI:UsePasswd")){
+     // get the name of the file containing the passwords
+     string passwd = SmiProfile::GetParameter( "Environment",
+                                               "PASSWD_FILE", 
+                                               "passwd",
+                                                parmFile );
+     cout << "try to open file '" << passwd << "'" << endl;
+     ifstream pwd(passwd.c_str());
+     if(!pwd){
+       cmsg.error() << "password file not found" << endl;
+       cmsg.send(); 
+       ok = false;
+     }
+     string line;
+     bool userok = false;
+
+    while(!pwd.eof()&& !userok){
+       pwd >> line;
+       string::size_type posOfSpace = line.find(':');
+       if (posOfSpace != string::npos) {
+         string u = line.substr(0,posOfSpace);
+         string p = line.substr(posOfSpace+1);
+         if(u==user){
+            userok = true;
+            if(p==pswd){
+              cmsg.info() << "accept user " << u << endl;
+              cmsg.send();
+            } else {
+              cmsg.error() << "password for user " << u << "is wrong" << endl;
+              cmsg.send();
+              ok = false;
+            }
+         }
+       }
+     } 
+     if(!userok){
+       cmsg.error() << "user " << user << " is not valid " << endl;
+       cmsg.send();
+       ok =  false;
+     }  
+     pwd.close();
+  }
+
 
 
   // create directory tmp below current dir
@@ -327,58 +371,58 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     ok = SecondoSystem::StartUp();
   }
 
+  if(ok){
+    // set the maximum memory which may be allocated by operators
+    QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
 
-  // set the maximum memory which may be allocated by operators
-  QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
 
+    long keyVal = 
+      SmiProfile::GetParameter("QueryProcessor", "MaxMemPerOperator", 
+                               16 * 1024, parmFile);
+    qp.SetMaxMemPerOperator(keyVal*1024);
+    cmsg.info() << "Memory usage per operator limited by " 
+                << keyVal << "kb" << endl;
 
-  long keyVal = 
-    SmiProfile::GetParameter("QueryProcessor", "MaxMemPerOperator", 
-                             16 * 1024, parmFile);
-  qp.SetMaxMemPerOperator(keyVal*1024);
-  cmsg.info() << "Memory usage per operator limited by " 
-              << keyVal << "kb" << endl;
+    keyVal = 
+      SmiProfile::GetParameter("System", "FLOBCacheSize", 
+                               16*1024, parmFile);
+    SecondoSystem::InitializeFLOBCache( keyVal*1024 );
+    
+    cmsg.info() << "FLOB Cache size " 
+                << keyVal << "kb" << endl;
+    cmsg.send();
 
-  keyVal = 
-    SmiProfile::GetParameter("System", "FLOBCacheSize", 
-                             16*1024, parmFile);
-  SecondoSystem::InitializeFLOBCache( keyVal*1024 );
-  
-  cmsg.info() << "FLOB Cache size " 
-              << keyVal << "kb" << endl;
-  cmsg.send();
+    SystemTables& st = SystemTables::getInstance();
 
-  SystemTables& st = SystemTables::getInstance();
+    // create sytem tables
+    cmdTimesRel = new CmdTimesRel("SEC2COMMANDS");
+    cmdCtrRel = new CmdCtrRel("SEC2COUNTERS");
+    cacheInfoRel = new CacheInfoRel("SEC2CACHEINFO");
+    fileInfoRel = new FileInfoRel("SEC2FILEINFO");
+    typeInfoRel = new TypeInfoRel("SEC2TYPEINFO");
+    operatorInfoRel = new OperatorInfoRel("SEC2OPERATORINFO");
+    operatorUsageRel = new OperatorUsageRel("SEC2OPERATORUSAGE");
 
-  // create sytem tables
-  cmdTimesRel = new CmdTimesRel("SEC2COMMANDS");
-  cmdCtrRel = new CmdCtrRel("SEC2COUNTERS");
-  cacheInfoRel = new CacheInfoRel("SEC2CACHEINFO");
-  fileInfoRel = new FileInfoRel("SEC2FILEINFO");
-  typeInfoRel = new TypeInfoRel("SEC2TYPEINFO");
-  operatorInfoRel = new OperatorInfoRel("SEC2OPERATORINFO");
-  operatorUsageRel = new OperatorUsageRel("SEC2OPERATORUSAGE");
+    // The next table is currently only a dummy. This is necessary
+    // that the catalog recognizes it as a system table. In the future
+    // I try to change the implementation of class ~DerivedObj~ in order
+    // to make it to a subclass of SystemInfoRel
+    devObjRel = new DerivedObjRel("SEC_DERIVED_OBJ");
 
-  // The next table is currently only a dummy. This is necessary
-  // that the catalog recognizes it as a system table. In the future
-  // I try to change the implementation of class ~DerivedObj~ in order
-  // to make it to a subclass of SystemInfoRel
-  devObjRel = new DerivedObjRel("SEC_DERIVED_OBJ");
-
-  st.insert(cmdCtrRel);
-  st.insert(cmdTimesRel);
-  st.insert(cacheInfoRel);
-  st.insert(fileInfoRel);
-  st.insert(typeInfoRel);
-  st.insert(operatorInfoRel);
-  st.insert(operatorUsageRel);
-  st.insert(devObjRel);
-  
-  // add size information into typeInfoRel
-  SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
-  ctlg.Initialize(typeInfoRel);
-  ctlg.Initialize(operatorInfoRel);
-  
+    st.insert(cmdCtrRel);
+    st.insert(cmdTimesRel);
+    st.insert(cacheInfoRel);
+    st.insert(fileInfoRel);
+    st.insert(typeInfoRel);
+    st.insert(operatorInfoRel);
+    st.insert(operatorUsageRel);
+    st.insert(devObjRel);
+    
+    // add size information into typeInfoRel
+    SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
+    ctlg.Initialize(typeInfoRel);
+    ctlg.Initialize(operatorInfoRel);
+  } 
   initialized = ok;
   return (ok);
 }

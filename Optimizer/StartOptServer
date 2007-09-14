@@ -20,7 +20,14 @@
 if [ -z $1 ]; then
   PORT=1235
 else
-  PORT=$1
+# check for integer
+  x=$1
+  if [ "${x/[0-9]*/x}" == "x" ]; then 
+     PORT=$x  
+     shift
+  else
+     PORT=1235
+  fi 
 fi
 
 echo "Start optimizer server on port $PORT"
@@ -49,7 +56,7 @@ LIB_PATH=$PL_DLL_DIR:$LIB_PATH
 fi
 
 
-cmd="$JAVA -Djava.library.path=$LIB_PATH -classpath $CLASSPATH  OptimizerServer $PORT"
+cmd="$JAVA -Djava.library.path=$LIB_PATH -classpath $CLASSPATH  OptimizerServer $PORT $*"
 
 echo $cmd
 $cmd

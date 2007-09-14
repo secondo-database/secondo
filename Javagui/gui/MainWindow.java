@@ -59,6 +59,7 @@ private JPanel PanelTopRight;
 private JSplitPane HSplitPane;
 private JSplitPane VSplitPane;
 private ServerDialog ServerDlg;
+private  UserDialog ud;
 private Vector VCLs;
 
 private Vector ListOfObjects=null;
@@ -95,6 +96,7 @@ private JMenu ServerMenu;
 private JMenuItem MI_Connect;
 private JMenuItem MI_Disconnect;
 private JMenuItem MI_Settings;
+private JMenuItem MI_User;
 
 private JMenu OptimizerMenu;
 private JMenuItem MI_OptimizerEnable;
@@ -196,15 +198,17 @@ public Frame getMainFrame(){ return this; }
 
 
 /* creates a new MainWindow */
-public MainWindow(String Title){
+public MainWindow(String Title,String user,String passwd){
+
   super(Title);
   String StartScript=null;
   setSize(800,600);
   ServerDlg = new ServerDialog(this);
+  ud = new UserDialog(this);
   MyHelp = new HelpScreen(this);
   this.getContentPane().setLayout(new BorderLayout());
   PanelTop = new JPanel(new BorderLayout(),true);
-  ComPanel = new CommandPanel(this);
+  ComPanel = new CommandPanel(this,user, passwd);
   ComPanel.addSecondoChangeListener(this);
   OList = new ObjectList(this,this);
   PanelTopRight = new JPanel();
@@ -254,8 +258,6 @@ public MainWindow(String Title){
   AllViewers = new Vector(10);
   DefaultContentPane = getContentPane();
 
-  String UserName="";
-  String PassWd="";
   String ServerName = "localhost";
   int ServerPort = 2550;
   boolean StartConnection = false;
@@ -684,14 +686,22 @@ public MainWindow(String Title){
    String ShowLicence = Config.getProperty("SHOW_LICENCE");
    if(ShowLicence==null || !ShowLicence.toLowerCase().equals("false")){
        showLicence();
-   } 
+   }
 
+   String usePassWd = Config.getProperty("USE_PASSWD");
+   if(user.equals("") &&  usePassWd!=null && usePassWd.toLowerCase().equals("true")){
+      StringBuffer u = new StringBuffer();
+      StringBuffer p = new StringBuffer();
+      showUserSettings(u,p);
+      user = u.toString();
+      passwd = p.toString();
+   }
   } // config -file readed
 
 
 
 
-  ComPanel.setConnection(UserName,PassWd,ServerName,ServerPort);
+  ComPanel.setConnection(user,passwd,ServerName,ServerPort);
   if (StartConnection){
       if (!ComPanel.connect()){
          Reporter.showWarning("I can't find a Secondo-server");
@@ -782,7 +792,13 @@ public MainWindow(String Title){
     Toolkit.getDefaultToolkit().addAWTEventListener(SnapshotKL,AWTEvent.KEY_EVENT_MASK);
 }
 
-
+private void showUserSettings(StringBuffer u, StringBuffer p){
+    ud.show();
+    if(ud.getResultValue()==UserDialog.OK){
+       u.append(ud.getUserName());
+       p.append(ud.getPassword());
+    }
+}
 
 public void addViewerChangeListener(ViewerChangeListener VCL){
   if(VCLs.indexOf(VCL)<0)
@@ -1260,7 +1276,13 @@ public boolean execGuiCommand(String command){
   else if(command.startsWith("serverSettings")){
      showServerSettings();
      ComPanel.showPrompt();
-
+  } else if(command.startsWith("serverSettings")){
+     StringBuffer u = new StringBuffer();
+     StringBuffer p = new StringBuffer();
+     showUserSettings(u,p);
+     ComPanel.setConnection(u.toString(),p.toString(), ComPanel.getHostName(),
+                            ComPanel.getPort());
+     ComPanel.showPrompt();
   }else if(command.startsWith("renameObject")){
      command = command.substring(12).trim(); //remove "rename"
      int pos = command.indexOf("->");
@@ -1957,15 +1979,42 @@ public static void main(String[] args){
      Reporter.writeInfo("start Javagui with \""+allArgs+"\"");  
   }
 
-  if(args.length>0){
-     if(args[0].equals("--testmode")){
+
+  int argspos = 0;
+  String user ="";
+  String passwd = "";
+  while(argspos < args.length){
+     if(args[argspos].equals("--testmode")){
         Environment.TESTMODE = Environment.SIMPLE_TESTMODE;
-     } else if(args[0].equals("--testmode2")){
+        argspos++;
+     } else if(args[argspos].equals("--testmode2")){
         Environment.TESTMODE = Environment.EXTENDED_TESTMODE;
-     } else if(args[0].equals("--testrunner")){
+        argspos++;
+     } else if(args[argspos].equals("--testrunner")){
         Environment.TESTMODE = Environment.TESTRUNNER_MODE;
+        argspos++;
+     } else if(args[argspos].equals("-u")){
+        if(argspos+1 == args.length){
+          Reporter.writeError("missing argument after -u option");
+          System.exit(1);
+        } else {
+          argspos++;
+          user = args[argspos];
+          argspos++;  
+        }
+     } else if(args[argspos].equals("-s")){
+        if(argspos+1 == args.length){
+          Reporter.writeError("missing argument after -s option");
+          System.exit(1);
+        } else {
+          argspos++;
+          passwd = args[argspos];
+          argspos++;  
+        }
+     } else {
+         Reporter.writeError("unknown argument "+ args[argspos]); 
+         System.exit(1);
      }
- 
   }
 
   File testfile=null;
@@ -1980,7 +2029,7 @@ public static void main(String[] args){
      }
   }
   // start Javagui
-  MainWindow SecGui = new MainWindow("Secondo-GUI");
+  MainWindow SecGui = new MainWindow("Secondo-GUI",user,passwd);
   SecGui.setVisible(true);
 
 
@@ -2359,6 +2408,7 @@ private void createMenuBar(){
    MI_Connect = ServerMenu.add("Connect");
    MI_Disconnect = ServerMenu.add("Disconnect");
    MI_Settings = ServerMenu.add("Settings");
+   MI_User = ServerMenu.add("User settings");
 
    MI_Connect.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
@@ -2375,6 +2425,14 @@ private void createMenuBar(){
        showServerSettings();
     }});
 
+   MI_User.addActionListener(new ActionListener(){
+     public void actionPerformed(ActionEvent evt){
+       StringBuffer u = new StringBuffer();
+       StringBuffer p = new StringBuffer();
+       showUserSettings(u,p);
+       ComPanel.setConnection(u.toString(), p.toString(),
+                              ComPanel.getHostName(), ComPanel.getPort());  
+    }});
 
 
    OptimizerMenu = new JMenu("Optimizer");
@@ -2785,7 +2843,10 @@ private void showServerSettings(){
        ServerDlg.set(ComPanel.getHostName(),ComPanel.getPort());
        ServerDlg.show();
        if (ServerDlg.getResultValue()==ServerDialog.OK){
-          ComPanel.setConnection("","",ServerDlg.getHostName(),ServerDlg.getPortAddress());
+          ComPanel.setConnection(ComPanel.getUserName(),
+                                 ComPanel.getPassWd(),
+                                 ServerDlg.getHostName(),
+                                 ServerDlg.getPortAddress());
           if (!ComPanel.connect()){
              Reporter.showError("I can't find a SecondoServer ");
           }

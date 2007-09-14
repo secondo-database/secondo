@@ -107,6 +107,7 @@ class SecondoServer : public Application
   bool              quit;
   string            registrar;
   string            user;
+  string            pswd;
 
   CSProtocol* csp;
 };
@@ -417,29 +418,12 @@ SecondoServer::Connect()
 {
   iostream& iosock = client->GetSocketStream();
   string line;
-  getline( iosock, line );
-  ListExpr userinfo;
-  user = "-UNKNOWN-";
-  if ( nl->ReadFromString( line, userinfo ) )
-  {
-    if ( nl->First( userinfo ) != nl->TheEmptyList() )
-    {
-      user = nl->SymbolValue( nl->First( nl->First( userinfo ) ) );
-    }
-  }
-  nl->Destroy( userinfo );
-
+  getline( iosock, user );
+  getline( iosock, pswd );
+  cout << "user = " << user << endl;
+  cout << "passwd = " << pswd << endl;
   getline( iosock, line ); //eat up </USER> ?
   
-  iosock << "<SecondoIntro>" << endl
-         << "You are connected with a Secondo server." << endl
-         << "</SecondoIntro>" << endl;
-  Messenger messenger( registrar );
-  string answer;
-  ostringstream os;
-  os << "LOGIN " << user << " " << GetOwnProcessId();
-  messenger.Send( os.str(), answer );
-  SmiEnvironment::SetUser( user );
 }
 
 void
@@ -456,44 +440,96 @@ SecondoServer::Execute()
   registrar = SmiProfile::GetParameter( "Environment", "RegistrarName", 
                                         "SECONDO_REGISTRAR", parmFile );
   si = new SecondoInterface(true);
-  if ( si->Initialize( "", "", "", "", parmFile, true ) )
-  {
-    map<string,ExecCommand> commandTable;
-    map<string,ExecCommand>::iterator cmdPos;
-    commandTable["<Secondo>"]     = &SecondoServer::CallSecondo;
-    commandTable["<NumericType>"] = &SecondoServer::CallNumericType;
-    commandTable["<GetTypeId>"]   = &SecondoServer::CallGetTypeId;
-    commandTable["<LookUpType>"]  = &SecondoServer::CallLookUpType;
-    commandTable["<DbSave/>"]      = &SecondoServer::CallDbSave;
-    commandTable["<ObjectSave>"]  = &SecondoServer::CallObjectSave;
-    commandTable["<ObjectRestore>"]   = &SecondoServer::CallObjectRestore;
-    commandTable["<DbRestore>"]   = &SecondoServer::CallDbRestore;
-    commandTable["<Connect>"]     = &SecondoServer::Connect;
-    commandTable["<Disconnect/>"] = &SecondoServer::Disconnect;
+  cout << "Initialize the secondo interface " << endl;
+
+  map<string,ExecCommand> commandTable;
+  map<string,ExecCommand>::iterator cmdPos;
+  commandTable["<Secondo>"]     = &SecondoServer::CallSecondo;
+  commandTable["<NumericType>"] = &SecondoServer::CallNumericType;
+  commandTable["<GetTypeId>"]   = &SecondoServer::CallGetTypeId;
+  commandTable["<LookUpType>"]  = &SecondoServer::CallLookUpType;
+  commandTable["<DbSave/>"]      = &SecondoServer::CallDbSave;
+  commandTable["<ObjectSave>"]  = &SecondoServer::CallObjectSave;
+  commandTable["<ObjectRestore>"]   = &SecondoServer::CallObjectRestore;
+  commandTable["<DbRestore>"]   = &SecondoServer::CallDbRestore;
+  commandTable["<Connect>"]     = &SecondoServer::Connect;
+  commandTable["<Disconnect/>"] = &SecondoServer::Disconnect;
+
+  string logMsgList = SmiProfile::GetParameter( "Environment", 
+                                                "RTFlags", "", parmFile );
+  RTFlag::initByString(logMsgList);
 
 
-    string logMsgList = SmiProfile::GetParameter( "Environment", 
-                                                  "RTFlags", "", parmFile );
-    RTFlag::initByString(logMsgList);
+  client = GetSocket();
+  if(!client){
+    rc = -2;
+  } else {
+    iostream& iosock = client->GetSocketStream();
+    csp = new CSProtocol(nl, iosock, true);
+    //si->SetProtocolPtr(csp);
+    
+    ios_base::iostate s = iosock.exceptions();
+    iosock.exceptions(ios_base::failbit|ios_base::badbit|ios_base::eofbit);
+    iosock << "<SecondoOk/>" << endl;
+    quit = false;
+    // first connect to get the user and password information
+    try {
+        string cmd;
+        getline( iosock, cmd );
+        cmdPos = commandTable.find( cmd );
+        if ( cmdPos != commandTable.end() )
+        {
+           (*this.*(cmdPos->second))();
+        }
+        else
+        {
+          iosock << "<SecondoError>" << endl
+                 << "SECONDO-0080 Protocol-Error: Start tag \"" 
+                 << cmd << "\" unknown!" << endl
+                 << "</SecondoError>" << endl;
+        }
+        if ( Application::Instance()->ShouldAbort() )
+        {
+          iosock << "<SecondoError>" << endl
+                 << "SECONDO-9999 Server going down. Disconnecting." << endl
+                 << "</SecondoError>" << endl;
+          quit = true;
+        }
+    
+      } catch (ios_base::failure) {
+        cerr << endl 
+             << "I/O error on socket stream object!" 
+             << endl;
+        if ( !client->IsOk() ) {
+           cerr << "Socket Error: " << client->GetErrorText() << endl;  
+         }
+       quit = true; 
+      }
 
-    nl = si->GetNestedList();
-    NList::setNLRef(nl);
-    client = GetSocket();
-    if ( client != 0 )
+    cout << "Try to initialize the secondo system " << endl; 
+    if ( si->Initialize( user, pswd, "", "", parmFile, true ) )
     {
-      quit = false;
+       cout << "initialization successful" << endl;
+       iosock << "<SecondoIntro>" << endl
+              << "You are connected with a Secondo server." << endl
+              << "</SecondoIntro>" << endl;
+       Messenger messenger( registrar );
+       string answer;
+       ostringstream os;
+       os << "LOGIN " << user << " " << GetOwnProcessId();
+       messenger.Send( os.str(), answer );
+       SmiEnvironment::SetUser( user );
 
-      iostream& iosock = client->GetSocketStream();
-      csp = new CSProtocol(nl, iosock, true);
-      //si->SetProtocolPtr(csp);
-      
-      ios_base::iostate s = iosock.exceptions();
-      iosock.exceptions(ios_base::failbit|ios_base::badbit|ios_base::eofbit);
-      iosock << "<SecondoOk/>" << endl;
+      // initialization successfull, send ok and wait for further requests
+
+
+
+      nl = si->GetNestedList();
+      NList::setNLRef(nl);
+
 
       do {
       try {
-
         string cmd;
         getline( iosock, cmd );
         cmdPos = commandTable.find( cmd );
@@ -532,21 +568,16 @@ SecondoServer::Execute()
 
       client->Close();
       delete client;
-      Messenger messenger( registrar );
-      string answer;
-      ostringstream os;
       os << "LOGOUT " << user << " " << GetOwnProcessId();
       messenger.Send( os.str(), answer );
-    }
-    else
-    {
-      rc = -2;
+    } else {
+       iosock << "<SecondoError>" << endl
+              << "Initialization failed (username, password correct?)" << endl
+              << "</SecondoError>" << endl;
+      rc = -1;
     }
   }
-  else
-  {
-    rc = -1;
-  }
+
   si->Terminate();
   delete si;
   return (rc);

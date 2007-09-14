@@ -395,11 +395,11 @@ CheckConfiguration()
       }
     }
   }
-  else
-  {
-    user = "SECONDO";
-    pswd = "SECONDO";
-  }
+//  else
+//  {
+//    user = "SECONDO";
+//    pswd = "SECONDO";
+//  }
 
   // check if parmfile is no present try default
   if ( parmFile.empty() )

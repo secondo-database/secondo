@@ -46,13 +46,11 @@ public class ESInterface extends SecondoInterface implements UpdateInterface{
 
   /* set the UserName for Secondo-Server */
   public void setUserName(String UserName){
-   Reporter.writeWarning("UserName is not supported by Secondo-Server");
    this.UserName = UserName;
   }
 
   /* set the Passwd for secondo-Server */
   public void setPassWd(String PassWd){
-   Reporter.writeWarning("Warning: PassWd is not supported by Secondo-Server");
    this.PassWd = PassWd;
   }
 
@@ -108,6 +106,7 @@ public class ESInterface extends SecondoInterface implements UpdateInterface{
    */
   public boolean connect() {
     terminate();   // terminate old connection
+    System.out.println("connect with user " + UserName);
     return initialize(UserName,PassWd,databasesServerAddress,databasesServerPort);
   }
 

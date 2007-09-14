@@ -138,7 +138,8 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
         if ( line == "<SecondoOk/>" )
         {
           iosock << "<Connect>" << endl
-                 << "((" << user << ") (" << pswd << "))" << endl
+                 << user <<  endl
+                 << pswd  << endl
                  << "</Connect>" << endl;
           getline( iosock, line );
           if ( line == "<SecondoIntro>" )
