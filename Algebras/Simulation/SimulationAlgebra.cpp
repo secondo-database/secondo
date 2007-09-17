@@ -1282,10 +1282,11 @@ Operator sim_fillup_mpoint(
 
 Creates a stream of mpoints from a single mpoint by splitting it into single
 trips. Endings of trips are identified by constant values for longer than a
-given duration. Or by definition time gaps.
+given duration. Or by definition time gaps of any duration.
 
 Undefined periods will be suppressed, but defined periods of constant value
-will result in separate trips.
+will result in separate trips, if their duration is longer than the given
+minimum pause duration.
 
 ----
     sim_trips: (mpoint x duration) --> (stream mpoint)
@@ -1368,33 +1369,40 @@ int sim_trips_VM ( Word* args, Word& result,
 //       cout << "sim_trips_VM received REQUEST" << endl;
 
       if (local.addr == 0)
+      {
+        result = SetWord( 0 );
         return CANCEL;
+      }
       sli = (SplitMpointLocalInfo*) local.addr;
 
-      // special case: last unit of the mpoint is stationary and was scheduled 
-      // to form an own trip
       if ( sli->pos >= sli->size )
       {
         if ( sli->pos == sli->size && sli->u1.IsDefined() )
-        {
+        { // special case: last unit of the mpoint is stationary and
+          // was scheduled to form an own trip
           res = new MPoint(true);
           res->Clear();
           res->StartBulkLoad();
+//           cout << " => Finished. Final single unit trip" << endl;
+//           cout << " Adding (0)"; sli->u1.Print(cout); cout << endl;
           res->MergeAdd( sli->u1 );
           res->EndBulkLoad( false ); // do not sort units
+          assert( res->IsValid() );           // XRIS: only for debugging
           result = SetWord( res );
           sli->u1.SetDefined( false );
           sli->finished = true;
           return YIELD;
         }
         else
-        {
+        { // We have just finished the complete mpoint
+//           cout << " => Finished." << endl;
           sli->finished = true;
+          result = SetWord( 0 );
           return CANCEL;
         }
       }
 
-      // else: normal case
+      // else: regular case
       newtrip = false;
       res = new MPoint(true);
       res->Clear();
@@ -1406,8 +1414,10 @@ int sim_trips_VM ( Word* args, Word& result,
         const UPoint *cu2;
         mpoint->Get(sli->pos++, cu2);
         UPoint u2 = *cu2;
-//         cout << " u1 = "; sli->u1.Print(cout);
-//         cout << " u2 = "; u2.Print(cout);
+//         cout << endl;
+//         cout << " u1 = "; sli->u1.Print(cout);  cout << endl;
+//         cout << " u2 = "; u2.Print(cout); cout << endl;
+        assert( u2.IsDefined() );
         if ( !sli->u1.IsDefined() )
         { // sli->u1 is undefined
           // This means we just started to process mpoint
@@ -1422,7 +1432,8 @@ int sim_trips_VM ( Word* args, Word& result,
             )
           )
         { // found GAP between sli->u1 and u2
-//           cout << " Adding "; sli->u1.Print(cout);
+//           cout << " => Gap between u1, u2." << endl;
+//           cout << " Adding (1)"; sli->u1.Print(cout); cout << endl;
           res->MergeAdd(sli->u1);
           sli->u1 = u2;
           newtrip = true;
@@ -1434,67 +1445,139 @@ int sim_trips_VM ( Word* args, Word& result,
             if ( AlmostEqual(u2.p0, u2.p1) )
             { // sli->u1 is constant and u2 is constant
               if ( AlmostEqual(sli->u1.p0, u2.p0) )
-              { // sli->u1 and u2 are equalvalue
-                if ( (u2.timeInterval.end - sli->u1.timeInterval.start)
+              { // sli->u1 and u2 are constant AND equalvalue
+                  // extend u1 by u2
+                sli->u1.timeInterval.end = u2.timeInterval.end;
+                sli->u1.timeInterval.rc  = u2.timeInterval.rc;
+                if ( (sli->u1.timeInterval.end - sli->u1.timeInterval.start)
                       >= *mindur )
                 { // concatenation sli->u1+u2 is long enough
-                  newtrip = true;
-                } // in both cases: merge sli->u1 and u2:
-                sli->u1.timeInterval.end = u2.timeInterval.end;
-                sli->u1.timeInterval.rc = u2.timeInterval.rc;
+                  if(res->GetNoComponents() == 0)
+                  { // this is a new trip. We can use it for the pause.
+                    // We do not need re-visit current unit u2
+//                     cout << " => merged u1, u2. Immediate Pause." << endl;
+//                     cout << " Adding (2)"; sli->u1.Print(cout); cout << endl;
+                    res->MergeAdd( sli->u1 );
+                    newtrip = true;
+                  }
+                  else
+                  { // this trip was already used. We need to close it and
+                    // create a new trip.
+                    // We do not need re-visit current unit u2
+//                     cout << " => merged u1, u2. Deferred Pause." << endl;
+                    newtrip = true;
+                  }
+                }
+                else
+                { // extended u1 is not long enough for a pause.
+                  // still do not add anything (u1 might be needed to extended
+                  // further)
+//                   cout << " => merged u1, u2. No pause yet." << endl;
+                }
               }
-              else // sli->u1 and u2 have different values
+              else // sli->u1 and u2 are constant BUT have different values
               {
                 if ( (sli->u1.timeInterval.end - sli->u1.timeInterval.start)
                       >= *mindur )
-                { // sli->u1 is long enough;
-                  newtrip = true;
-                } // in both cases: Append sli->u1
-//                 cout << " Adding "; sli->u1.Print(cout);
-                res->MergeAdd( sli->u1 );
-                sli->u1 = u2;
+                { // sli->u1 is long enough to form a separate pause trip;
+                  // u1 needs to form a separate trip.
+                  if(res->GetNoComponents() == 0)
+                  { // the current trip is empty, so we can use it for u1
+//                     cout << " => Immediate Pause u1." << endl;
+//                     cout << " Adding (3)"; sli->u1.Print(cout); cout << endl;
+                    res->MergeAdd( sli->u1 );
+                    sli->u1 = u2;
+                    newtrip = true;
+                  }
+                  else
+                  { // The current trip was already used. We need to close it
+                    // and start a new one for u1.
+//                     cout << " => Deferred Pause u1. Revisit u2" << endl;
+                    sli->pos--; // re-visit u2
+                    newtrip = true;
+                  }
+                }
+                else
+                { // sli->u1 is not long enough for a pause.
+//                   cout << " => No pause u1." << endl;
+//                   cout << " Adding (4)"; sli->u1.Print(cout); cout << endl;
+                  res->MergeAdd( sli->u1 );
+                  sli->u1 = u2;
+                }
               }
             }
             else // sli->u1 is constant, u2 is nonconstant
             {
               if ( (sli->u1.timeInterval.end - sli->u1.timeInterval.start )
                     >= *mindur )
-              {
-                newtrip = true;
-              } // in both cases:
-//               cout << " Adding "; sli->u1.Print(cout);
-              res->MergeAdd( sli->u1 );
-              sli->u1 = u2;
+              { // u1 is a pause.
+                if(res->GetNoComponents() == 0)
+                { // the current trip is empty, so we can use it for u1
+//                   cout << " => Immediate Pause u1" << endl;
+//                   cout << " Adding (5)"; sli->u1.Print(cout); cout << endl;
+                  res->MergeAdd( sli->u1 );
+                  sli->u1 = u2;
+                  newtrip = true;
+                }
+                else
+                { // The current trip was already used. We need to close it
+                    // and start a new one for u1.
+//                   cout << " => Deferred Pause u1, revisit u2" << endl;
+                  sli->pos--; // re-visit current unit u2
+                  newtrip = true;
+                }
+              }
+              else
+              { // u1 is not a pause
+//                 cout << " => Continue u1, u2." << endl;
+//                 cout << " Adding (6)"; sli->u1.Print(cout); cout << endl;
+                res->MergeAdd( sli->u1 );
+                sli->u1 = u2;
+              }
             }
-          }
+          } // end sli->u1 is constant
           else // sli->u1 is nonconstant
           {
             if (AlmostEqual(u2.p0, u2.p1))
             { // sli->u1 is nonconstant and u2 is constant
-              if ( (u2.timeInterval.end - u2.timeInterval.start ) >= *mindur )
-              {
-                newtrip = true;
-              } // in both cases:
-//               cout << " Adding "; sli->u1.Print(cout);
+              // Add u1 to current trip.
+//               cout << " => Continue u1." << endl;
+//               cout << " Adding (7)"; sli->u1.Print(cout); cout << endl;
               res->MergeAdd( sli->u1 );
               sli->u1 = u2;
+              if ( (u2.timeInterval.end - u2.timeInterval.start ) >= *mindur )
+              { // start a new trip for current unit u2
+//                 cout << " => Deferred Pause u2. No revisit." << endl;
+                newtrip = true;
+              }
+              else
+              {
+//                 cout << " => Continue u2." << endl;
+              }
             }
             else
             { // sli->u1 and u2 are nonconstant
-//               cout << " Adding "; sli->u1.Print(cout);
+//               cout << " => Continue u1, u2." << endl;
+//               cout << " Adding (8)"; sli->u1.Print(cout); cout << endl;
               res->MergeAdd( sli->u1 );
               sli->u1 = u2;
             }
           }
         } // end No Gap --- consecutive unit
-      }
+      } // end while( sli->pos < sli->size && !newtrip )
       if ( !newtrip && sli->u1.IsDefined() )
       { // insert the final unit
-//         cout << " Adding Final "; sli->u1.Print(cout);
+//         cout << " => Global final unit append." << endl;
+//         cout << " Adding Final (9)"; sli->u1.Print(cout); cout << endl;
         res->MergeAdd( sli->u1 );
+        sli->u1.SetDefined( false ); // invalidate unit (for additional safety)
+        sli->finished = true;        // we have finished
       }
       res->EndBulkLoad( false ); // do not sort units
+      assert( res->IsValid() );                    // XRIS: only for debugging
       result = SetWord( res );
+//       cout << endl
+//            << "===================================================" << endl;
       return YIELD;
 
     case CLOSE :
@@ -1545,12 +1628,12 @@ The last steps in adding an algebra to the Secondo system are
   * ``Bunching'' all
 type constructors and operators in one instance of class ~Algebra~.
 
-Therefore, a new subclass ~GSLAlgebra~ of class ~Algebra~ is declared. The only
+Therefore, a new subclass ~SimulationAlgebra~ of class ~Algebra~ is declared. The only
 specialization with respect to class ~Algebra~ takes place within the
 constructor: all type constructors and operators are registered at the actual
 algebra.
 
-After declaring the new class, its only instance ~ccalgebra1~ is defined.
+After declaring the new class, its only instance ~simulationAlgebra~ is defined.
 
 */
 
