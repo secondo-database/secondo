@@ -47,14 +47,16 @@ Server:
     <SecondoOK/>\n
 ----
 
-Then the client needs to send an authorization, currently the user and password
-will be ignored since there is no user management implemented yet.
+Then the client needs to send an authorization. Currently username and
+password are send unencrypted. If authorization is decativated 
+(see SecondoConfig.ini) the received information is ignored.
 
 Client:
 
 ----
     <Connnect>
-    ((user)(passwd))\n
+    user\n
+    password\n
     </Connect>
 ----
 
