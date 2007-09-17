@@ -3308,8 +3308,9 @@ request the next element.
       {
         const int argIndex = tree->u.iobj.argIndex;
         
-        if ( (*tree->u.iobj.vector)[MAXARG-argIndex].addr == 0 )
+        if ( (*tree->u.iobj.vector)[MAXARG-argIndex].addr == 0 ) {
           result = (*tree->u.iobj.vector)[argIndex-1];
+	}  
         else 
         {
           // A stream! Request next element 
@@ -3329,6 +3330,7 @@ request the next element.
                                             caller );
         
           tree->u.iobj.received = (status == YIELD); 
+	  cerr << "iobj = " << (status == YIELD) << endl;
         } 
                         if (traceNodes) 
                         cerr << fn << 
@@ -3553,15 +3555,25 @@ void
 QueryProcessor::Request( const Supplier s, Word& result )
 {
   OpTree tree = (OpTree) s;
+  //cerr << "nodetype = " << tree->nodetype << endl;
   Eval( tree, result, REQUEST );
 
-  // increment counter
-  int counterIndex = tree->u.op.counterNo;
-  if ( (tree->nodetype == Operator) && counterIndex ) 
-  {
-    assert ( (counterIndex > 0) || (counterIndex < NO_COUNTERS) );
-    counter[counterIndex]++;
+  if (tree->nodetype == Operator) {
+    if (tree->u.op.isStream && !tree->u.op.received) 
+    {
+      // no result received, for safeness override 
+      // the result pointer with null.
+      result.addr = 0;	  
+    }  
+    int counterIndex = tree->u.op.counterNo;
+    if ( counterIndex ) 
+    {
+      // increment counter
+      assert ( (counterIndex > 0) || (counterIndex < NO_COUNTERS) );
+      counter[counterIndex]++;
+    }
   }
+  // Do nothing for all other node types
 
 }
 
@@ -3577,8 +3589,12 @@ QueryProcessor::Received( const Supplier s )
   OpTree tree = (OpTree) s;
   if ( tree->nodetype == Operator )
     return (tree->u.op.received);
-  else
+  else if ( tree->nodetype == IndirectObject)
     return (tree->u.iobj.received);
+  else
+    cerr << "Call of QueryProcessor::Received() not allowed "
+	 << "for this node type" << endl;
+    abort(); 
 }
 
 /*
