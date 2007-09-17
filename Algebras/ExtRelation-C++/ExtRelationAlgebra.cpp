@@ -5430,6 +5430,7 @@ struct GroupByLocalInfo
   Tuple *t;
   TupleType *resultTupleType;
   long MAX_MEMORY;
+  GroupByLocalInfo() : t(0), resultTupleType(0), MAX_MEMORY(0) {}
 };
 
 int GroupByValueMapping
@@ -5634,6 +5635,14 @@ public:
   int noAggrAttrs;
   double *attrSizeTmp;
   double *attrSizeExtTmp;
+
+  // initialization
+  GroupByLocalInfo() : ProgressLocalInfo(), 
+    t(0), resultTupleType(0), MAX_MEMORY(0),  
+    stableValue(0), stableState(0),
+    noGroupAttrs(0), noAggrAttrs(0),
+    attrSizeTmp(0), attrSizeExtTmp(0) 
+  {}			      	      
 };
 
 int GroupByValueMapping
