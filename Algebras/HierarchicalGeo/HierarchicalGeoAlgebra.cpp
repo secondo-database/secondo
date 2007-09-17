@@ -94,7 +94,9 @@ void Uncertain<Alpha>::Epsilon(CcReal& result)
 }
 
 /*
-Type Constructor ~CPoint~
+4 Type Constructors
+
+4.1 Type Constructor ~CPoint~
 
 Type ~cpoint~ represents an (epsilon, (x, y))-pair.
 
@@ -300,8 +302,8 @@ TypeConstructor uncertainpoint(
         // For consequent implementation, the Out-function in the previous line
         // should be 'OutUncertain<Point, OutPoint>' instead of 'OutCPoint', 
         // but the use of 'OutUncertain...' leads to a compiler error according
-        // to line 613 in 'HierarchicalGeoAlgebra.h'! See there for further 
-        // information! (Sascha Vaut)
+        // to this template-function in 'HierarchicalGeoAlgebra.h'! See there 
+        // for further information! (Sascha Vaut)
         InUncertain<Point, InPoint>,               //Out and In functions
         0,
         0,                         //SaveToList and RestoreFromList functions
@@ -314,6 +316,288 @@ TypeConstructor uncertainpoint(
         CastUncertain<Point>,           //cast function
         SizeOfUncertain<Point>,       //sizeof function
         CheckCPoint );      //kind checking function
+
+
+/*
+4.2 The Type Constructor ~cupoint~
+
+Type ~cupoint~ represents a pair (epsilon, (tinterval, (x0, y0, x1, y1)))
+consisting of an uncertainty-value and a value of type upoint.
+
+4.2.1 List Representation
+
+The list representation of an ~upoint~ is
+
+----   ( epsilon ( timeinterval (x0 yo x1 y1) ) )
+----
+
+For example:
+
+----    ( 37.5 ( ( (instant 6.37)  (instant 9.9)   TRUE FALSE)   
+----                    (1.0 2.3 4.1 2.1) ) )
+
+4.2.2 function Describing the Signature of the Type Constructor
+
+*/
+ListExpr CUPointProperty()
+{
+  return (nl->TwoElemList(
+          nl->FourElemList(nl->StringAtom("Signature"),
+                  nl->StringAtom("Example Type List"),
+                  nl->StringAtom("List Rep"),
+                  nl->StringAtom("Example List")),
+          nl->FourElemList(nl->StringAtom("-> UNCERTAIN UNIT"),
+                  nl->StringAtom("(cupoint) "),
+                  nl->TextAtom("( epsilon ( timeInterval "
+                          "(real_x0 real_y0 real_x1 real_y1) ) ) "),
+                  nl->StringAtom("(0.7 ((i1 i2 TRUE FALSE)" 
+                          "(1.0 2.2 2.5 2.1)))"))));
+}
+
+
+/*
+4.2.3 Kind Checking Function
+
+*/
+bool CheckCUPoint( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "cupoint" ));
+}
+
+/*
+4.2.4 ~Out~-function
+
+*/
+ListExpr OutCUPoint( ListExpr typeInfo, Word value )
+{
+  CUPoint* cupoint = (CUPoint*)(value.addr);
+  
+  if( !(((CUPoint*)value.addr)->value.IsValid()) )
+    return (nl->SymbolAtom("undef"));
+  else
+    {
+      ListExpr timeintervalList = nl->FourElemList(
+          OutDateTime( nl->TheEmptyList(),
+          SetWord(&cupoint->value.timeInterval.start) ),
+          OutDateTime( nl->TheEmptyList(), 
+                  SetWord(&cupoint->value.timeInterval.end) ),
+          nl->BoolAtom( cupoint->value.timeInterval.lc ),
+          nl->BoolAtom( cupoint->value.timeInterval.rc));
+
+      ListExpr pointsList = nl->FourElemList(
+          nl->RealAtom( cupoint->value.p0.GetX() ),
+          nl->RealAtom( cupoint->value.p0.GetY() ),
+          nl->RealAtom( cupoint->value.p1.GetX() ),
+          nl->RealAtom( cupoint->value.p1.GetY() ));
+      
+      ListExpr unitpointList = nl->TwoElemList(
+          timeintervalList, pointsList );
+          
+      return nl->TwoElemList( nl->RealAtom( cupoint->GetEpsilon() ), 
+          unitpointList );
+    }
+}
+
+/*
+4.2.5 ~In~-function
+
+The Nested list form is like this:  
+  ( 37.4 ( ( 6.37  9.9  TRUE FALSE)   (1.0 2.3 4.1 2.1) ) )
+
+*/
+Word InCUPoint( const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  string errmsg;
+  if ( nl->ListLength( instance ) == 2 )    
+  // 2 arguments are necessary: epsilon and a upoint
+  {
+    ListExpr first = nl->First( instance );               // the epsilon value
+    ListExpr second = nl->Second( instance );    // the upoint representation
+    
+    if ( nl->IsAtom( first ) && nl->AtomType( first ) == RealType )
+    {
+      if ( nl->ListLength( second ) == 2 )
+      // the upoint also consists of two components...
+      {
+        ListExpr tintvl = nl->First( second );        // the time-interval
+        ListExpr endpoints = nl->Second( second );     // the two point values
+      
+        if( nl->ListLength( tintvl ) == 4 &&
+            nl->IsAtom( nl->Third( tintvl ) ) &&
+            nl->AtomType( nl->Third( tintvl ) ) == BoolType &&
+            nl->IsAtom( nl->Fourth( tintvl ) ) &&
+            nl->AtomType( nl->Fourth( tintvl ) ) == BoolType )
+        {
+          correct = true;
+          Instant *start = (Instant *)InInstant( nl->TheEmptyList(),
+             nl->First( tintvl ), errorPos, errorInfo, correct ).addr;
+    
+          if( !correct )
+          {
+            errmsg = "InCUPoint(): Error in time-interval defining instant.";
+            errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+            delete start;
+            return SetWord( Address(0) );
+          }
+      
+          Instant *end = (Instant *)InInstant( nl->TheEmptyList(),
+              nl->Second( tintvl ), errorPos, errorInfo, correct ).addr;
+      
+          if( !correct )
+          {
+            errmsg = "InCUPoint(): Error in time-interval defining instant.";
+            errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+            delete start;
+            delete end;
+            return SetWord( Address(0) );
+          }
+    
+          Interval<Instant> tinterval( *start, *end,
+                                       nl->BoolValue( nl->Third( tintvl ) ),
+                                       nl->BoolValue( nl->Fourth( tintvl ) ) );
+          delete start;
+          delete end;
+        
+          correct = tinterval.IsValid();
+          if (!correct)
+          {
+            errmsg = "InCUPoint(): Non valid time interval.";
+            errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+            return SetWord( Address(0) );
+          }
+
+          if( nl->ListLength( endpoints ) == 4 &&
+              nl->IsAtom( nl->First( endpoints ) ) &&
+              nl->AtomType( nl->First( endpoints ) ) == RealType &&
+              nl->IsAtom( nl->Second( endpoints ) ) &&
+              nl->AtomType( nl->Second( endpoints ) ) == RealType &&
+              nl->IsAtom( nl->Third( endpoints ) ) &&
+              nl->AtomType( nl->Third( endpoints ) ) == RealType &&
+              nl->IsAtom( nl->Fourth( endpoints ) ) &&
+              nl->AtomType( nl->Fourth( endpoints ) ) == RealType )
+          {
+            CUPoint *cupoint = new CUPoint( nl->RealValue( first ), 
+                               tinterval,
+                               nl->RealValue( nl->First( endpoints ) ),
+                               nl->RealValue( nl->Second( endpoints ) ),
+                               nl->RealValue( nl->Third( endpoints ) ),
+                               nl->RealValue( nl->Fourth( endpoints ) ) );
+    
+            correct = cupoint->value.IsValid();
+            if( correct )
+              return SetWord( cupoint );
+        
+            errmsg = errmsg + "InCUPoint(): Error in start/end point.";
+            errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+            delete cupoint;
+          }
+        }
+      }
+    }
+  }
+  else if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType
+            && nl->SymbolValue( instance ) == "undef" )
+  {
+    CUPoint *cupoint = new CUPoint(true);
+    cupoint->SetDefined(false);
+    cupoint->value.timeInterval=
+      Interval<DateTime>(DateTime(instanttype),
+                         DateTime(instanttype),true,true);
+    correct = cupoint->value.timeInterval.IsValid();
+    if ( correct )
+      return (SetWord( cupoint ));
+  }
+  errmsg = "InCUPoint(): Error in representation.";
+  errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+  correct = false;
+  return SetWord( Address(0) );
+}
+
+
+/*
+4.2.6 ~Create~-function
+
+*/
+Word CreateCUPoint( const ListExpr typeInfo )
+{
+  return (SetWord( new CUPoint() ));
+}
+
+/*
+4.2.7 ~Delete~-function
+
+*/
+void DeleteCUPoint( const ListExpr typeInfo, Word& w )
+{
+  delete (CUPoint *)w.addr;
+  w.addr = 0;
+}
+
+/*
+4.2.8 ~Close~-function
+
+*/
+void CloseCUPoint( const ListExpr typeInfo, Word& w )
+{
+  delete (CUPoint *)w.addr;
+  w.addr = 0;
+}
+
+/*
+4.2.9 ~Clone~-function
+
+*/
+Word CloneCUPoint( const ListExpr typeInfo, const Word& w )
+{
+  CUPoint *cupoint = (CUPoint *)w.addr;
+  return SetWord( new CUPoint( *cupoint ) );
+}
+
+/*
+4.2.10 ~Sizeof~-function
+
+*/
+int SizeOfCUPoint()
+{
+  return sizeof(CUPoint);
+}
+
+/*
+4.2.11 ~Cast~-function
+
+*/
+void* CastCUPoint( void* addr ) 
+{
+  return (new (addr) CUPoint);
+}
+
+/*
+Creation of the type constructor ~cpoint~
+
+*/
+
+TypeConstructor uncertainunitpoint(
+        "cupoint",                //name
+        CUPointProperty,     //property function describing signature
+        OutCUPoint,
+        // For consequent implementation, the Out-function in the previous line
+        // should be 'OutUncertain<Point, OutPoint>' instead of 'OutCPoint',
+        // but the use of 'OutUncertain...' leads to a compiler error according
+        // to this template-function in 'HierarchicalGeoAlgebra.h'! See there 
+        // for further information! (Sascha Vaut)
+        InCUPoint,               //Out and In functions
+        0,
+        0,                         //SaveToList and RestoreFromList functions
+        CreateUncertain<UPoint>,
+        DeleteUncertain<UPoint>,        //object creation and deletion
+        0,
+        0,                         // object open and save
+        CloseUncertain<UPoint>,   
+        CloneUncertain<UPoint>,         //object close and clone
+        CastUncertain<UPoint>,           //cast function
+        SizeOfUncertain<UPoint>,       //sizeof function
+        CheckCUPoint );      //kind checking function
 
 
 /*
@@ -338,7 +622,8 @@ ListExpr UncertainTypeMapReal( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
     
-    if ( nl->IsEqual( arg1, "cpoint" ) )
+    if ( nl->IsEqual( arg1, "cpoint" ) || 
+          nl->IsEqual( arg1, "cupoint" ) )
       return nl->SymbolAtom("real");
     if (nl->AtomType( args ) == SymbolType)
     {
@@ -355,7 +640,9 @@ ListExpr UncertainTypeMapReal( ListExpr args )
 /*
 Type mapping function ~UncertainTypeMapBase~
 
-This type mapping function is used for the Operation ~Val()~.
+This type mapping function is used for the Operation ~Val()~. The keyword
+'base' indicates a reduction of an uncertain type to its particular base type.
+So in this case a 'base type' can also be a spatial or temporal type.
 
 */
 
@@ -367,10 +654,14 @@ ListExpr UncertainTypeMapBase( ListExpr args )
     
     if( nl->IsEqual( arg1, "cpoint") )
       return nl->SymbolAtom( "point" );
+      
+    if( nl->IsEqual( arg1, "cupoint") )
+      return nl->SymbolAtom( "upoint" );
     if (nl->AtomType( args ) == SymbolType)
     {
       ErrorReporter::ReportError("Type mapping function got a "
-              "parameter of type " +nl->SymbolValue(args) + ".");
+              "parameter of type " +nl->SymbolValue(args) + 
+              "which is no uncertain type.");
       return nl->SymbolAtom("typeerror");
     }
   }
@@ -394,8 +685,14 @@ ListExpr CertainToUncertain( ListExpr args )
   {
     ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
-    if ( nl->IsEqual( first, "real" ) && nl->IsEqual( second, "point" ))
-      return nl->SymbolAtom("cpoint");
+    if ( nl->IsEqual( first, "real" ) )
+    {
+      // find out if the second argument is of an implemented uncertain type
+      if ( nl->IsEqual( second, "point" ) )
+        return nl->SymbolAtom("cpoint");
+      if ( nl->IsEqual( second, "upoint" ) )
+        return nl->SymbolAtom("cupoint");
+    }
     if ( (nl->AtomType(first) == SymbolType) && (nl->AtomType(second) == 
             SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of "
@@ -421,8 +718,8 @@ mapping function being able to deal with the respective combination of
 input parameter types.
 
 Note that a selection function does not need to check the correctness of
-argument types; it has already been checked by the type mapping function that it
-is applied to correct arguments.
+argument types; it has already been checked by the type mapping function that
+it is applied to correct arguments.
 
 16.2.1 Selection function ~UncertainSimpleSelect~
 
@@ -433,17 +730,11 @@ int UncertainSimpleSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   
-//  if( nl->SymbolValue( arg1 ) == "cbool" )
-//    return 0;
-    
-//  if( nl->SymbolValue( arg1 ) == "cintt" )
-//    return 1;
-    
-//  if( nl->SymbolValue( arg1 ) == "creal" )
-//    return 2;
-    
   if( nl->SymbolValue( arg1 ) == "cpoint" )
-    return 3;
+    return 0;
+    
+  if( nl->SymbolValue( arg1 ) == "cupoint" )
+    return 1;
     
   // ...space for further possible argument types
   
@@ -501,14 +792,13 @@ ValueMapping arrays
 */
 
 ValueMapping uncertainepsilonmap[] = { 
-                                      UncertainEpsilon<Point> };
+                                      UncertainEpsilon<Point>,
+                                      UncertainEpsilon<UPoint> };
 
 
 ValueMapping uncertainvalmap[] = {
-                                      UncertainVal<CcBool>,
-                                      UncertainVal<CcInt>,
-                                      UncertainVal<CcReal>,
-                                      UncertainVal<Point> };
+                                      UncertainVal<Point>,
+                                      UncertainVal<UPoint> };
 /*
 Specification strings
 
@@ -548,13 +838,14 @@ Operators
 
 Operator uncertainepsilon( "epsilon",
                               UncertainSpecEpsilon,
-                              UncertainEpsilon<Point>,
-                              Operator::SimpleSelect,
+                              2,
+                              uncertainepsilonmap,
+                              UncertainSimpleSelect,
                               UncertainTypeMapReal );
 
 Operator uncertainval( "val",
                               UncertainSpecVal,
-                              4,
+                              2,
                               uncertainvalmap,
                               UncertainSimpleSelect,
                               UncertainTypeMapBase );
@@ -576,7 +867,10 @@ class HierarchicalGeoAlgebra : public Algebra
   {
     AddTypeConstructor( &uncertainpoint );
     uncertainpoint.AssociateKind( "UNCERTAIN" );
-    uncertainpoint.AssociateKind( "SPATIAL" );
+    //uncertainpoint.AssociateKind( "SPATIAL" );
+    AddTypeConstructor( &uncertainunitpoint );
+    uncertainunitpoint.AssociateKind( "UNCERTAIN" );
+    //uncertainunitpoint.AssociateKind( "TEMPORAL" );
     AddOperator( &uncertainepsilon );
     AddOperator( &uncertainval );
     AddOperator( &tocpoint );

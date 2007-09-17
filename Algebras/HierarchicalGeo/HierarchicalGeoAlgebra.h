@@ -111,11 +111,11 @@ The creation of the uncertain, setting all attributes.
 /*
 The creation of an uncertain value, setting only the epsilon value.
 
-
 3.1.2 Member functions
 
 */
 
+  
 /* +++++ noch ausgeschaltet +++++++++++++++++++++++++++++++++++++
   void CopyFrom( const Uncertain<Alpha>& uncertain )
   {
@@ -132,7 +132,7 @@ The creation of an uncertain value, setting only the epsilon value.
   
   bool IsValid()
   {
-    if (epsilon > 0 && defined)
+    if (epsilon >= 0 && defined)
       return true;
     return false;
   }
@@ -271,59 +271,9 @@ Ebenso ist fraglich, welche Operationen für diesen neuen Typ ggf. noch
 erforderlich sind. 
 +++++++++++++++++++++++++++++++++++++++++++++++++
 
-*/
 
 
-/*
-3.3 CInt
-
-pair: double epsilon, CcInt intvalue
-implements Uncertain
-
-*/
-
-class CInt : public Uncertain<CcInt>
-{
-
-/* 
-3.3.1 Constructors
-
-*/
-
-
-/*
-3.3.2 Member Functions
-
-*/
-
-//  void possibleMinimum ( int result ) const;
-/*
-Returns the minimal possible integer value by subtracting the epsilon value 
-from the given integer value and rounding up to the next integer.
-
-*/  
-  
-//  void possibleMaximum ( int result ) const;
-/*
-Returns the maximal possible integer value by adding the epsilon value to the 
-given integer value and rounding down to the next integer.
-
-*/
-  
-};
-
-/*
-3.4 CReal
-
-pair: double epsilon, CcReal realvalue
-implements Uncertain
-
-*/
-
-
-
-/*
-3.5 CPoint
+3.3 CPoint
 
 CPoint represents a Point value containing an epsilon value. It implements 
 Uncertain.
@@ -333,7 +283,7 @@ class CPoint : public Uncertain<Point>
 {
   public:
 /*
-3.5.1 Constructors and Destructor
+3.3.1 Constructors and Destructor
   
 */
 
@@ -382,9 +332,11 @@ The copy-constructor.
 /*
 The destructor.
 
-3.5.2 Member functions
+3.3.2 Member functions
 
 */
+  
+  
   
   int ToCPoint( Word* args, Word& result, int message, Word& local,
                                         Supplier s );
@@ -407,139 +359,140 @@ Returns the bounding box of the uncertain point, i.e. a rectangle area,
 bounding the area where the point may be.
 
 */
-
-/* +++++ noch ausgeschaltet ++++++++++++++++++++++++++++  
-  virtual CPoint& operator=( const CPoint& cp )
-  {
-    *((Uncertain<Point>*)this) = *((Uncertain<Point>*)&cp);
-    // +++++ hier ggf. noch epsilon-Wert kopieren +++++++
-  }
-  
-+++++ noch ausgeschaltet +++++++++++++++++++++++++++++
-
-*/
-
-
-/*
-Redefinition of the copy operator ~=~.
-
-*/
-  
-/* +++++ noch ausgeschaltet ++++++++++++++++++++++++++++
-  virtual bool operator==( const CPoint& cp ) const
-  {
-    return *((Uncertain<Point>*)this) == *((Uncertain<Point>*)&cp) &&
-    // +++++ hier noch die Punkt- und epsilonwerte vergleichen +++++
-  }
-  
-+++++ noch ausgeschaltet ++++++++++++++++++++++++++++++
-
-*/
-  
   
 };
 
 
 /*
-3.6 CHalfSegment
+3.4 CUPoint
+
+This class will be used in the ~cupoint~ type constructor, i.e., the type constructor
+for the uncertain temporal unit of point values.
 
 */
-
-
+class CUPoint : public Uncertain< UPoint >
+{
+  public:
 /*
-3.7 CPoints
+3.4.1 Constructors and Destructor
 
 */
-
-
-
+  CUPoint() {}
 /*
-3.8 CLine
+The simple constructor. This constructor should not be used.
 
 */
-
-
+  
+  CUPoint( const bool is_defined ):
+      Uncertain<UPoint>(is_defined) 
+  {
+    SetDefined( is_defined );
+    
+  }
+  
+  CUPoint( const double epsilon ):
+      Uncertain<UPoint>(epsilon) 
+  {
+    SetDefined( true );
+    
+  }
 /*
-3.9 CRegion
+The simple constructor, only defining the epsilon-value. 
+  
+*/
+  
+  CUPoint( const double epsilon, const StandardAttribute* upoint):
+      Uncertain<UPoint>( epsilon ) 
+  {
+    value.CopyFrom(upoint);
+    SetDefined( true );
+  }
+/*
+The copy-constructor.
+  
+*/
+  CUPoint( const double epsilon, const Interval<Instant>& interval,
+      const Point& p0, const Point& p1 ):
+    Uncertain<UPoint> (epsilon)
+    {
+      value.timeInterval = interval;
+      value.p0 = p0;
+      value.p1 = p1;
+      SetDefined( true );
+    }
+
+  CUPoint( const double epsilon, const Interval<Instant>& interval,
+      const double x0, const double y0,
+      const double x1, const double y1 ):
+    Uncertain<UPoint> (epsilon)
+    {
+      value.timeInterval = interval;
+      value.p0.Set( (Coord&) x0, (Coord&) y0);
+      value.p0.SetDefined( true );
+      value.p1.Set( (Coord&) x1, (Coord&) y1);
+      value.p1.SetDefined( true );
+    }
+  
+  inline virtual ~CUPoint() {}
+  
+/*
+The destructor.
+
+3.4.2 Operator redefinitions
 
 */
-
-
+  
+  
+  
 /*
-3.10 SpatialUncertainUnit
-
-a template class to connect the uncertain object to the objects it generalizes.
-implements Uncertain
-Attributes: 
-- origin : Interval
+3.4.3 The Temporal Functions
 
 */
-
-
-
+  
+  
+  
 /*
-3.11 CUBool
-
-the implementation of an uncertain UBool
+3.4.4 Functions to be part of relations
 
 */
+  
+  inline virtual size_t Sizeof() const
+  {
+    return sizeof( *this );
+  }
+  
+  
+   inline virtual void CopyFrom( const StandardAttribute* right )
+  {
+    const CUPoint* i = (const CUPoint*)right;
+    
+    defined = i->defined;
+    if( IsDefined () )
+      epsilon = i->epsilon;
+    else
+      epsilon = 0.0;
 
-
-
-/*
-3.12 CUInt
-
-the implementation of an uncertain UInt
-
-*/
-
-
-/*
-3.13 CUReal
-
-the implementation of an uncertain UReal
-
-*/
-
-
-/*
-3.14 CUPoint
-
-the implementation of an uncertain UPoint
-
-*/
-
-
-
-/*
-3.15 CMBool
-
-the implementation of an uncertain MBool
-
-*/
-
-
-
-/*
-3.16 CMInt
-
-the implementation of an uncertain MInt
-
-*/
-
-
+    value.SetDefined( i->value.IsDefined() );
+    if(i->value.IsDefined() )
+      {
+        const UPoint u = i->value;
+        value = u;
+      }
+    else
+      {
+        value.timeInterval = Interval<Instant>();
+        value.p0 = Point( false, 0.0, 0.0);
+        value.p1 = Point( false, 0.0, 0.0);
+      }
+  }
+  
+  
+  
+  
+};
 
 /*
-3.17 CMReal
-
-the implementation of an uncertain MReal 
-
-*/
-
-
-
-/*
-3.18 CMPoint
+3.5 CMPoint
 
 the implementation of an uncertain MPoint
 
@@ -547,13 +500,14 @@ the implementation of an uncertain MPoint
 
 
 /*
-3.19 HierarchicalMapping
+3.6 HierarchicalMapping
 
 a template class to bind all (uncertain) representations of one object to one 
 HierarchicalMapping object. 
 
 Attributes: 
-- uncertain : DBArray
+- iDX: DBArray
+- eLEM: DBArray
 - canDestroy : bool
 - ordered : bool
 
@@ -561,40 +515,34 @@ Attributes:
 
 
 /*
-3.20 HMPointLine
+3.7 HMPoint
 
-the HierarchicalMovingPoint Type, which binds all (uncertain) representations 
-of one MPoint implements HierarchicalMapping
-
-*/
-
-
-
-/*
-3.21 HLine
-
-the HierarchicalLine Type, which binds all (uncertain) representations of one 
-Line implements HierarchicalMapping
+the HierarchicalMovingPoint Type, containing a set of CUPoints from which
+every Generalization of the corresponding MPoint can be extracted. This
+type also contains the UPoints of the origin MPoint as CUPoint-Objects with
+an epsilon-value = 0.
 
 */
 
-
-
 /*
-3.22 HRegion
+3.8 HCMPoint
 
-the HierarchicalRegion Type, which binds all (uncertain) representations of 
-one Region implements HierarchicalMapping
+the type HierarchicalUncertainMovingPoint is a restricted variation of the
+type HierarchicalMovingPoint. It just contains those UPoints of the origin
+MPoint, that are necessary to build a particular minimal Generalization of
+this MPoint.
 
 */
 
-
 /*
-5.1 Type Constructor ~uncertain~
+4 Type Constructors
+
+
+4.1 Type Constructor ~uncertain~
 
 Type ~uncertain~ represents a pair ( epsilon ( <Alpha> )).
 
-5.1.1 List Representation
+4.1.1 List Representation
 
 The list representation of an ~uncertain~ is
 
@@ -606,36 +554,9 @@ For example a cpoint:
 ----    ( 20.5 ( 329.456 22.289 ) )
 ----
 
-5.2 Function describing the signature of the Type Constructor
+4.2 Function describing the signature of the Type Constructor
 
-5.2.3 ~Out~-function
-
-*/
-template <class Alpha, ListExpr (*OutFun)( ListExpr, Word )>
-ListExpr OutUncertain( ListExpr typeInfo, Word value )
-{
-  Uncertain<Alpha>* uncertain = (Uncertain<Alpha>*)(value.addr);
-  
-  if( uncertain->IsDefined() )
-    return nl->TwoElemList(
-      nl->RealAtom( &uncertain->GetEpsilon()),
-      OutFun( nl->TheEmptyList(), SetWord( &uncertain->value ) ) );
-      // Up to now the previous line sems to contain an error:
-      // If the OutUncertain-function is mentioned in the typeconstructor
-      // ~uncertainpoint~ (see HierarchicalGeoAlgebra.cpp line 316)
-      // the compiler returns the following error message:
-      //     'HierarchicalGeoAlgebra.h: In function ‘ListExpr OutUncertain
-      //      (ListExpr, Word) [with Alpha = Point, ListExpr (* OutFun)
-      //      (ListExpr, Word) = OutPoint]’:
-      //      HierarchicalGeoAlgebra.cpp:328:   instantiated from here
-      //      HierarchicalGeoAlgebra.h:613: error: invalid lvalue in unary ‘&'
-      // I got no idea for the reason of this message. (Sascha Vaut)
-  else
-    return nl->SymbolAtom("undef");
-}
-
-/*
-5.2.2 ~In~-function
+4.2.2 ~In~-function
 
 */
 template <class Alpha, Word (*InFun)( const ListExpr,
@@ -682,8 +603,36 @@ Word InUncertain( const ListExpr typeInfo, const ListExpr instance,
   return SetWord(Address (0) );
 }
 
+
 /*
-5.2.3 ~Create~-function
+4.2.3 ~Out~-function
+
+*/
+template <class Alpha, ListExpr (*OutFun)( ListExpr, Word )>
+ListExpr OutUncertain( ListExpr typeInfo, Word value )
+{
+  Uncertain<Alpha>* uncertain = (Uncertain<Alpha>*)(value.addr);
+  
+  if( uncertain->IsDefined() )
+    return nl->TwoElemList(
+      nl->RealAtom( &uncertain->GetEpsilon()),
+      OutFun( nl->TheEmptyList(), SetWord( &uncertain->value ) ) );
+      // Up to now the previous line sems to contain an error:
+      // If the OutUncertain-function is mentioned in the typeconstructor
+      // ~uncertainpoint~ (see HierarchicalGeoAlgebra.cpp line 316)
+      // the compiler returns the following error message:
+      //     'HierarchicalGeoAlgebra.h: In function ‘ListExpr OutUncertain
+      //      (ListExpr, Word) [with Alpha = Point, ListExpr (* OutFun)
+      //      (ListExpr, Word) = OutPoint]’:
+      //      HierarchicalGeoAlgebra.cpp:328:   instantiated from here
+      //      HierarchicalGeoAlgebra.h:613: error: invalid lvalue in unary ‘&'
+      // I got no idea for the reason of this message. (Sascha Vaut)
+  else
+    return nl->SymbolAtom("undef");
+}
+
+/*
+4.2.4 ~Create~-function
 
 */
 template <class Alpha>
@@ -694,7 +643,7 @@ Word CreateUncertain( const ListExpr typeInfo )
 
 
 /*
-5.2.4 ~Delete~-function
+4.2.5 ~Delete~-function
 
 */
 template <class Alpha>
@@ -705,7 +654,7 @@ void DeleteUncertain( const ListExpr typeInfo, Word& w )
 }
 
 /*
-5.2.5 ~Close~-function
+4.2.6 ~Close~-function
 
 */
 template <class Alpha>
@@ -716,7 +665,7 @@ void CloseUncertain( const ListExpr typeInfo, Word& w )
 }
 
 /*
-5.2.6 ~Clone~-function
+4.2.7 ~Clone~-function
 
 */
 template <class Alpha>
@@ -727,7 +676,7 @@ Word CloneUncertain( const ListExpr typeInfo, const Word& w )
 }
 
 /*
-5.2.7 ~Sizeof~-function
+4.2.8 ~Sizeof~-function
 
 */
 template <class Alpha>
@@ -737,7 +686,7 @@ int SizeOfUncertain()
 }
 
 /*
-5.2.8 ~Cast~-function
+4.2.9 ~Cast~-function
 
 */
 template <class Alpha>
@@ -748,10 +697,10 @@ void* CastUncertain(void* addr)
 
 
 /*
-5.4 Value mapping functions for class Uncertain
+4.3 Value mapping functions for class Uncertain
 
 
-5.4.1 Value mapping functions of operator ~epsilon~
+4.3.1 Value mapping functions of operator ~epsilon~
 
 */
 template <class Alpha>
@@ -773,7 +722,7 @@ int UncertainEpsilon( Word* args, Word& result, int message, Word& local,
 
 
 /*
-6.5 Value mapping functions of operator ~val~
+4.4 Value mapping functions of operator ~val~
 
 */
 template <class Alpha>

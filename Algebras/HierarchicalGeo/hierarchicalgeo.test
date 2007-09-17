@@ -101,6 +101,27 @@ query calex
 delete ctest1;
 
 
+#testcase createcupoint
+#yields success 
+create cuptest : cupoint;
+
+
+#testcase updatecupoint
+#yields success
+update cuptest := [const cupoint value(50.0 (
+							("2003-11-20-07:01:44.586" "2003-11-20-07:01:50" TRUE FALSE)
+			        (-3544.0 14312.0 -3560.0 14235.0)))];
+
+
+#testcase querycpoint
+#yields success
+query cuptest;
+
+#testcase deletecpoint
+#yields success
+delete cuptest;
+
+
 #teardown
 
 delete ctest2;
