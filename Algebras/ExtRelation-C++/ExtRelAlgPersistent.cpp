@@ -1507,7 +1507,7 @@ private:
     }
     else
     {
-      assert( result.addr == 0 );	    
+      result.addr = 0;	    
       return static_cast<Tuple*>( result.addr );
     }
   }
