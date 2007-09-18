@@ -3330,7 +3330,7 @@ request the next element.
                                             caller );
         
           tree->u.iobj.received = (status == YIELD); 
-	  cerr << "iobj = " << (status == YIELD) << endl;
+	  //cerr << "iobj = " << (status == YIELD) << endl;
         } 
                         if (traceNodes) 
                         cerr << fn << 
