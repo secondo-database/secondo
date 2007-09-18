@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
   op(800, xfx, #),
   op(800, xfx, div),
   op(800, xfx, mod),
+  op(800, xfx, and),
   op(800, xfx, starts),
   op(800, xfx, contains),
   op(200, xfx, :).
@@ -80,6 +81,8 @@ Currently implemented:
   * postfixbrackets, 2 or 3 arguments, of which the last one is put into
 the brackets: \_ \# [ \_ ] or \_ \_ \# [ \_ ]
 
+  * postfixbrackets2: \_ \# [\_ , \_] 
+
   * prefix, 2 arguments: \# (\_, \_)
 
   * prefix, either 1 or 3 arguments, does not need a rule here, is
@@ -117,6 +120,7 @@ secondoOp(loopsel, postfixbrackets, 2).
 secondoOp(sum, postfixbrackets, 2).
 secondoOp(min, postfixbrackets, 2).
 secondoOp(max, postfixbrackets, 2).
+secondoOp(memshuffle, postfix, 1).
 secondoOp(avg, postfixbrackets, 2).
 secondoOp(extract, postfixbrackets, 2).
 secondoOp(tuplesize, postfix, 1).
