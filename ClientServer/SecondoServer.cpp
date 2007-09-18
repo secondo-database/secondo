@@ -513,11 +513,11 @@ SecondoServer::Execute()
        iosock << "<SecondoIntro>" << endl
               << "You are connected with a Secondo server." << endl
               << "</SecondoIntro>" << endl;
-       Messenger messenger( registrar );
-       string answer;
-       ostringstream os;
-       os << "LOGIN " << user << " " << GetOwnProcessId();
-       messenger.Send( os.str(), answer );
+       //Messenger messenger( registrar );
+       //string answer;
+       //ostringstream os;
+       //os << "LOGIN " << user << " " << GetOwnProcessId();
+       //messenger.Send( os.str(), answer );
        SmiEnvironment::SetUser( user );
 
       // initialization successfull, send ok and wait for further requests
@@ -568,8 +568,8 @@ SecondoServer::Execute()
 
       client->Close();
       delete client;
-      os << "LOGOUT " << user << " " << GetOwnProcessId();
-      messenger.Send( os.str(), answer );
+      //os << "LOGOUT " << user << " " << GetOwnProcessId();
+      //messenger.Send( os.str(), answer );
     } else {
        iosock << "<SecondoError>" << endl
               << "Initialization failed (username, password correct?)" << endl
