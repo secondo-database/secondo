@@ -781,7 +781,7 @@ CcRel::CcRel ()
 {
   currentId = 1;
   NoOfTuples = 0;
-  TupleList = new CTable<CcTuple*>(100);
+  TupleList = new CcRep;
 };
 
 CcRel::~CcRel ()
@@ -793,16 +793,16 @@ void CcRel::AppendTuple (CcTuple* t)
 {
   t->SetId(currentId);
   currentId++;
-  TupleList->Add(t);
+  TupleList->push_back(t);
   NoOfTuples++;
 };
 
 void CcRel::Empty()
 {
-  CTable<CcTuple*>::Iterator iter = TupleList->Begin();
+  CcRep::iterator iter = TupleList->begin();
   Word w;
 
-  while(iter != TupleList->End())
+  while(iter != TupleList->end())
   {
     w = SetWord(*iter);
     DeleteCcTuple(w);
@@ -812,12 +812,12 @@ void CcRel::Empty()
 
   currentId = 1;
   NoOfTuples = 0;
-  TupleList = new CTable<CcTuple*>(100);
+  TupleList = new CcRep;
 }
 
 CcRelIT* CcRel::MakeNewScan()
 {
-  return new CcRelIT(TupleList->Begin(), this);
+  return new CcRelIT(TupleList->begin(), this);
 }
 
 CcTuple* CcRel::GetTupleById(SmiRecordId id)
@@ -835,7 +835,7 @@ int CcRel::GetNoTuples ()
   return NoOfTuples;
 };
 
-CcRelIT::CcRelIT (CTable<CcTuple*>::Iterator rs, CcRel* r)
+CcRelIT::CcRelIT (CcRep::iterator rs, CcRel* r)
 {
   this->rs = rs;
   this->r = r;
@@ -847,7 +847,7 @@ CcTuple* CcRelIT::GetTuple() {return ((CcTuple*)(*rs));};
 
 void CcRelIT::Next() { rs++; };
 
-bool CcRelIT::EndOfScan() { return ( rs == (r->TupleList)->End() ); };
+bool CcRelIT::EndOfScan() { return ( rs == (r->TupleList)->end() ); };
 
 CcRelIT& CcRelIT::operator=(CcRelIT& right)
 {
@@ -859,7 +859,7 @@ CcRelIT& CcRelIT::operator=(CcRelIT& right)
 
 CcTuple* CcRelIT::GetNextTuple()
 {
-  if( rs == (r->TupleList)->End() )
+  if( rs == (r->TupleList)->end() )
   {
     return 0;
   }

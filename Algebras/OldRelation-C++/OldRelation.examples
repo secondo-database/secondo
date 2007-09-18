@@ -247,3 +247,8 @@ Example  : query Staedte feed sum[Bev]
 Result   : 18851000
 
 
+Operator : mconsume
+Number   : 1
+Signature: (stream tuple(x)) -> (mrel mtuple(x))
+Example  : query Staedte2 feed mconsume count
+Result   : 116

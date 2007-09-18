@@ -32,6 +32,11 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
+September 2007, M. Spiekermann. Implementation of operator mconsume moved from
+module RelationAlgebra into this module. This removes linker dependencies and
+allows to switch off this module. Moreover, the tuples are organized in class
+vector instead of class CTable.
+
 1 Defines, includes, and constants
 
 */
@@ -62,7 +67,8 @@ enum CcRelationType { mrel, mtuple, mstream, mmap, mbool, merror };
 
 const int MaxSizeOfAttr = 35;  //changed by DZM, original value: 20
 
-int CcFindAttribute( ListExpr list, string attrname, ListExpr& attrtype, NestedList* nl);
+int CcFindAttribute( ListExpr list, string attrname, 
+		     ListExpr& attrtype, NestedList* nl);
 bool CcIsTupleDescription(ListExpr a, NestedList* nl);
 
 ListExpr CcTupleProp ();
@@ -141,20 +147,21 @@ ListExpr CcRelProp ();
 
 (Figure needs to be redrawn, doesn't work.)
 
-Figure 2: Main memory representation of a relation (~Compact Table~) [relation.eps]
+Figure 2: Main memory representation of a relation (~vector~) [relation.eps]
 
 */
-typedef CTable<CcTuple*>* CcRelation;
+typedef vector<CcTuple*> CcRep;
+typedef CcRep* CcRelation;
 
 class CcRel;
 
 class CcRelIT
 {
-  CTable<CcTuple*>::Iterator rs;
+  CcRep::iterator rs;
   CcRel* r;
   public :
 
-  CcRelIT (CTable<CcTuple*>::Iterator rs, CcRel* r);
+  CcRelIT (CcRep::iterator rs, CcRel* r);
   ~CcRelIT ();
   CcRelIT& operator=(CcRelIT& right);
 
