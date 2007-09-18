@@ -213,7 +213,7 @@ An edge, representing a predicate.
 predicate order graph, e.g. 0 and 1.
 
 ~Term~ is either a selection or a join, for example,
-select(arg(0), pr(p, a) or join(res(4), res(1), pr(q, a, b))
+select(arg(0), pr(p, a)) or join(res(4), res(1), pr(q, a, b))
 
 ~Result~ is the number of the node into which the result of this predicate
 application should be written. Normally it is the same as Target,
@@ -2333,6 +2333,7 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   setNodeTupleSize(Result, TupleSize),
   setPredNoPET(Source, Target, CalcPET, ExpPET),
   assert(edgeSelectivity(Source, Target, Sel)),
+  assert(edgeInputCards(Source, Target, Arg, undefined)),
   !.
 
 assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
@@ -2348,6 +2349,7 @@ assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   setNodeTupleSize(Result, TupleSize),
   setPredNoPET(Source, Target, CalcPET, ExpPET),
   assert(edgeSelectivity(Source, Target, Sel)),
+  assert(edgeInputCards(Source, Target, Arg1, Arg2)),
   !.
 
 % Versions for standard cost functions:
@@ -2359,6 +2361,7 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   Size is Card * Sel,
   setNodeSize(Result, Size),
   assert(edgeSelectivity(Source, Target, Sel)),
+  assert(edgeInputCards(Source, Target, Arg, undefined)),
   assert(edgeInfoProgress(Source, Target, BBoxSel, ExpPET)),
   !.
 
@@ -2370,6 +2373,7 @@ assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   Size is Card1 * Card2 * Sel,
   setNodeSize(Result, Size),
   assert(edgeSelectivity(Source, Target, Sel)),
+  assert(edgeInputCards(Source, Target, Arg1, Arg2)),
   assert(edgeInfoProgress(Source, Target, BBoxSel, ExpPET)),
   !.
 
@@ -2485,14 +2489,14 @@ writeNodeSizes :-
 
 edgeSelInfo(Source, Target, Sel, Pred) :-
  edgeSelectivity(Source, Target, Sel),
- edge(Source, Target, join(_, _, P), _, _, _),
- plan_to_atom(P, Pred), !.
+ edge(Source, Target, join(_, _, pr(Pred, _, _)), _, _, _).
+ %plan_to_atom(P, Pred).
 
 
 edgeSelInfo(Source, Target, Sel, Pred) :-
  edgeSelectivity(Source, Target, Sel),
- edge(Source, Target, select(_, P), _, _, _),
- plan_to_atom(P, Pred), !.
+ edge(Source, Target, select(_, pr(Pred, _)), _, _, _).
+ %plan_to_atom(P, Pred).
 
 
 writeEdgeSels :-
@@ -2516,7 +2520,7 @@ the predicates ~explainPlan/0~, ~checkSizes/0~ or ~showPredOrder/0~.
 
 */
 
-:- dynamic pathInfo/5,
+:- dynamic pathInfo/10,
            observedNodeSizes/2,
            nodeSizeCounter/4,
            nodeSizeCounter/2,
@@ -2527,36 +2531,82 @@ sizeAndSel(Src, Tgt, Sel, Size) :-
   costEdge(Src, Tgt, _, _, Size, _),
   edgeSelectivity(Src,Tgt, Sel).
 
-createPathInfo([H|T]) :-
-  H = costEdge(Src, Tgt, _, ResNode, SizeEst, _),
-  edgeSelectivity(Src, Tgt, Sel),
-  getRealSize(ResNode, SizeReal),
-  SizeEstInt is ceil(SizeEst),
-  assert(pathInfo(Src, Tgt, Sel, SizeEstInt, SizeReal)),
-  createPathInfo(T). 
+getSize(undefined, 1).
+getSize(Arg, Card) :- resSize(Arg, Card).
 
-createPathInfo([]).
-
+getRealSize(undefined, 1).
+getRealSize(res(N), S) :- getRealSize(N, S).
+getRealSize(arg(N), S) :- resSize(arg(N), S).
 
 getRealSize(ResNode, SizeReal) :-
   nodeSizeCounter(ResNode, SizeReal).
 
 getRealSize(_, -1).
- 
+
+
+createPathInfo([H|T]) :-
+  H = costEdge(Src, Tgt, _, ResNode, SizeEst, _),
+  edgeSelectivity(Src, Tgt, SelEst),
+  edgeInputCards(Src, Tgt, A1, A2),
+  getSize(A1, C1),
+  getSize(A2, C2),
+  getRealSize(ResNode, SizeReal),
+  SizeEstInt is ceil(SizeEst),
+  C1c is ceil(C1),
+  C2c is ceil(C2),
+  getRealSize(A1, C1Real),
+  getRealSize(A2, C2Real),
+  SelReal is SizeReal / (C1Real * C2Real),
+  %showValue('SelEst: ', SelEst),
+  %showValue('SelReal: ', SelReal),
+  relativeError(SelEst, SelReal, SelErr),
+  %showValue('SizeEstInt: ', SizeEstInt),
+  %showValue('SelReal: ', SizeReal),
+  relativeError(SizeEstInt, SizeReal, SizeErr),
+  assert(pathInfo(Src, Tgt, C1c, C2c, SelEst, SelReal, SelErr, SizeEstInt, SizeReal, SizeErr)),
+  createPathInfo(T). 
+
+createPathInfo([]).
+
+relativeError(A, B, Err) :-
+  B > 0, A >= B,	
+  Err is round((A / B) * 100 - 100),
+  %showValue('err: ', Err), 
+  !.
+
+relativeError(A, B, Err) :-
+  A > 0, B >= A,	
+  Err is round((B / A) * 100 - 100),
+  %showValue('err: ', Err), 
+  !.
+
+relativeError(_, 0, inf).
+relativeError(0, _, inf).
+
+
 
 checkSizes :-
   computeNodeSizes, !,
-  findall([Src-Tgt, Sel, SzEst, SzReal], pathInfo(Src, Tgt, Sel, SzEst, SzReal), L),
+  findall([Src-Tgt, C1, C2, Sel, SelErr, SelReal, SzEst, SzReal, SizeErr], pathInfo(Src, Tgt, C1, C2, Sel, SelErr, SelReal, SzEst, SzReal, SizeErr), L),
   Format = [ ['Edge', 'l'],
-             ['Selectivity', 'l'], 
-             ['Size-Est', 'l'], 
-             ['Size-Real', 'l'] 
+             ['Arg1', 'l'],
+	     ['Arg2', 'l'],
+	     ['Sel-Est', 'l'], 
+	     ['Sel-Real', 'l'], 
+	     ['E1', 'l'], 
+             ['Sz-Est', 'l'], 
+             ['Sz-Real', 'l'], 
+             ['E2', 'l'] 
              ],
-  showTuples(L, Format).
+  current_prolog_flag(float_format, FF),
+  set_prolog_flag(float_format, '%.7f'),  
+  showTuples(L, Format),
+  set_prolog_flag(float_format, FF).  
+
 
 
 computeNodeSizes :-
-  pathInfo(_,_,_,_,_).
+	pathInfo(_,_,_,_,_,_,_,_,_,_).
 
 computeNodeSizes :-
   optimizerOption(useCounters),
@@ -2593,8 +2643,10 @@ showPredOrder :-
   showTuples(L, Format).
 
 edgePredicate(Source, Target, PlanFragment, Op) :-
-  pathInfo(Source, Target, _, _, _),
-  path(X), member(costEdge(Source,Target,Term,_,_,_),X),
+  pathInfo(Source, Target, _, _, _, _, _, _, _, _),
+  path(X), 
+  %showValue('X:', X),
+  member(costEdge(Source,Target,Term,_,_,_),X),
   firstOp(Term, Op),
   %write('F1:'),write(F1), nl, write(F2), nl,
   edgeSelInfo(Source, Target, _, PlanFragment).
@@ -2609,7 +2661,7 @@ firstOp(Term, F1) :-
  
 
 explainPlan :-
-  showPredOrder, checkSizes.	
+  checkSizes, showPredOrder.	
 
 
 /*
@@ -2623,11 +2675,12 @@ Delete node sizes and selectivities of edges.
 deleteSizes :-
   retractall(resultSize(_, _)),
   retractall(edgeSelectivity(_, _, _)),
+  retractall(edgeInputCards(_, _, _, _)),
   retractall(edgeInfoProgress(_, _, _, _)),
   retractall(nodeTupleSize(_, _)),
   retractall(nodeSizeCounter(_, _, _, _)),
   retractall(nodeSizeCounter(_, _)),
-  retractall(pathInfo(_, _, _, _, _)),
+  retractall(pathInfo(_, _, _, _, _, _, _, _, _, _)),
   retractall(path(_)).
 
 deleteSizesNawra :-
@@ -2722,9 +2775,10 @@ cost(filter(X, _), Sel, S, C) :-
 
 cost(filter(X, _), Sel, S, C) :- 	% 'normal' filter
   cost(X, 1, SizeX, CostX),
-  filterTC(A),
+  %filterTC(A),
   S is SizeX * Sel,
-  C is CostX + A * SizeX.
+  %C is CostX + A * SizeX.
+  C is CostX.
 
 cost(product(X, Y), _, S, C) :-
   cost(X, 1, SizeX, CostX),
@@ -3014,6 +3068,14 @@ writeCostEdges2 :-
   fail.
 
 writeCostEdges :- not(writeCostEdges2).
+
+writeCostEdges2(Src) :-
+  costEdge(Src, Target, Plan, Result, Size, Cost),
+  costEdgeInfo(Src, Target, Plan, Result, Size, Cost), nl,
+  fail.
+
+writeCostEdges(Src) :- not(writeCostEdges2(Src)). 
+
 
 /*
 ----    assignCosts
