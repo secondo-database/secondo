@@ -23,10 +23,10 @@ Result   : 41267
 
 Operator : memshuffle
 Number   : 2
-Signature: stream(ptuple(y)) -> stream(ptuple(y)), stream(tuple(y)) -> stream(tuple(y))
+Signature: stream(ptuple(y)) -> stream(ptuple(y))
 Example  : query plz pfeed[1000] memshuffle pdelete count
 Result   : crashes
-Remark   : Currently, this overloaded is not implemented yet!  
+Remark   : Currently, this overloaded operator is not implemented yet!  
 
 Operator : pcreate2
 Number   : 1
@@ -98,6 +98,6 @@ Number   : 2
 Signature: stream(ptuple(y)) -> stream(ptuple(y))
 Example  : query plz pfeed[1000] shuffle pdelete count
 Result   : crashes
-Remark   : Currently, this overloaded is not implemented yet!  
+Remark   : Currently, this overloaded operator is not implemented yet!  
 
 

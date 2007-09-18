@@ -54,6 +54,12 @@ for query processing.
 #include <queue>
 #include <algorithm>
 
+//#undef TRACE_ON
+#define TRACE_ON 1
+#include "LogMsg.h"
+
+#include "CharTransform.h"
+#include "StopWatch.h"
 #include "Algebra.h"
 #include "NList.h"
 #include "QueryProcessor.h"
@@ -63,7 +69,7 @@ for query processing.
 #include "CostFunction.h"
 
 #include "SystemInfoRel.h"
-
+#include "Environment.h"
 
 /*
 Dependencies with other algebras: RelationAlgebra, StandardAlgebra
@@ -72,13 +78,150 @@ Dependencies with other algebras: RelationAlgebra, StandardAlgebra
 #include "RelationAlgebra.h" 
 #include "StandardTypes.h"
 
-#include "LogMsg.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
+inline int
+nextInt(const double d) 
+{
+  return static_cast<int>( ceil(d) );	
+}	
 
-//extern InObject InRel;
+inline int
+previousInt(const double d) 
+{
+  return static_cast<int>( floor(d) );
+}	
+
+
+// a system table which stores some internals about
+// the adaptive processing
+
+class PJoinTuple : public InfoTuple
+{
+   public:
+   int id;
+   string join;
+   int arg1_est;
+   int arg1_real;
+   int arg1_err;
+   int arg2_est;
+   int arg2_real;
+   int arg2_err;
+   int result_est;
+   int result_real;
+   int result_err;
+   float sel_est;
+   float sel_real;
+   int sel_err;
+   int probe_result;
+   float probe_seconds;
+   int probe_arg1;
+   int probe_arg2;
+   int probe_cpuOps;
+   string usedFunction;
+
+   
+   PJoinTuple() : join(""), usedFunction("") {
+     id=0;
+     arg1_est=0;
+     arg1_real=0;
+     arg1_err=0;
+     arg2_est=0;
+     arg2_real=0;
+     arg2_err=0;
+     result_est=0;
+     result_real=0;
+     result_err=0;
+     sel_est=0;
+     sel_real=0;
+     sel_err=0;
+     probe_result=0;
+     probe_arg1=0;
+     probe_arg2=0;
+     probe_seconds=0.0;
+     probe_cpuOps=0;
+   }
+   
+   virtual ~PJoinTuple() {} 
+
+   virtual NList valueList() const
+   {
+     NList list;
+     list.makeHead( NList().intAtom(id) );
+     list.append( NList().stringAtom(join) );
+     list.append( NList().intAtom(arg1_est) );
+     list.append( NList().intAtom(arg1_real) );
+     list.append( NList().intAtom(arg1_err) );
+     list.append( NList().intAtom(arg2_est) );
+     list.append( NList().intAtom(arg2_real) );
+     list.append( NList().intAtom(arg2_err) );
+     list.append( NList().intAtom(result_est) );
+     list.append( NList().intAtom(result_real) );
+     list.append( NList().intAtom(result_err) );
+     list.append( NList().realAtom(sel_est) );
+     list.append( NList().realAtom(sel_real) );
+     list.append( NList().intAtom(sel_err) );
+     list.append( NList().intAtom(probe_result) );
+     list.append( NList().realAtom(probe_seconds) );
+     list.append( NList().intAtom(probe_cpuOps) );
+     list.append( NList().intAtom(probe_arg1) );
+     list.append( NList().intAtom(probe_arg2) );
+     list.append( NList().stringAtom(usedFunction) );
+     return list;
+   } 
+   
+   virtual ostream& print(ostream& os) const
+   {
+      os << id << sep
+         << join << sep
+         << result_est << endl; 
+      return os;
+   } 
+};
+
+
+
+
+
+class PJoinRel : public SystemInfoRel
+{
+   public:
+   PJoinRel(const string& name) : SystemInfoRel(name) 
+   {}
+   virtual ~PJoinRel() {}
+   
+   virtual void initSchema()
+   { 
+     addAttribute("Id",    sym.INT()    );
+     addAttribute("Join",  sym.STRING() );
+     addAttribute("Arg1_guess", sym.INT() );
+     addAttribute("Arg1_value", sym.INT() );
+     addAttribute("Arg1_error", sym.INT() );
+     addAttribute("Arg2_guess", sym.INT() );
+     addAttribute("Arg2_value", sym.INT() );
+     addAttribute("Arg2_error", sym.INT() );
+     addAttribute("Result_guess", sym.INT() );
+     addAttribute("Result_value", sym.INT() );
+     addAttribute("Result_error", sym.INT() );
+     addAttribute("Sel_guess", sym.real() );
+     addAttribute("Sel_value", sym.real() );
+     addAttribute("Sel_error", sym.INT() );
+     addAttribute("Probe_Result", sym.INT() );
+     addAttribute("Probe_Seconds", sym.real() );
+     addAttribute("Probe_CPU_Ops", sym.INT() );
+     addAttribute("Probe_Arg1", sym.INT() );
+     addAttribute("Probe_Arg2", sym.INT() );
+     addAttribute("Used_Function", sym.STRING() );
+   } 
+}; 
+
+// the system relation instance pointer
+PJoinRel* pjoinRel = 0;
+
+
+// extern InObject InRel;
 
 ostream& operator<<(ostream& os, const CostResult& c)
 {
@@ -257,6 +400,7 @@ struct StreamOpAddr : public StreamBase<StreamOpAddr>
   inline void open() 
   {
     if (state == closed) {
+      TRACE("StreamOpAddr()::open");	    
       qp->Open(stream);
       state = opened;
     }   
@@ -265,6 +409,7 @@ struct StreamOpAddr : public StreamBase<StreamOpAddr>
   inline void close() 
   {
     if (state != closed) {
+      TRACE("StreamOpAddr()::close");	    
       qp->Close(stream);
       state = closed;
     }  
@@ -319,10 +464,13 @@ struct RelationAddr : public StreamBase<RelationAddr>
     int card = r->GetNoTuples();
     parts.init(tuples, card);
   }    
+
+  ~RelationAddr() {} 
   
   inline void open() 
   {
     if (state == closed) {
+      TRACE("RelationAddr()::open")	    
       rit = rel->MakeScan(); 
       state = opened;
     }   
@@ -331,7 +479,9 @@ struct RelationAddr : public StreamBase<RelationAddr>
   inline void close() 
   {
     if (state != closed) {
+      TRACE("RelationAddr()::close")	    
       delete rit;
+      rit = 0;
       state = closed;
     }  
   }
@@ -812,7 +962,8 @@ static int pshow_vm( Word* args, Word& result, int message,
 {
   // args[0]: Input stream(ptuple(y))) 
   static const string pre = "pshow: ";
-   
+  static const bool showall = RTFlag::isActive("pshow:all");
+
   switch (message)
   {
     case OPEN :
@@ -829,7 +980,11 @@ static int pshow_vm( Word* args, Word& result, int message,
         if (pt->marker) // marker tuple detected
         { 
           cerr << *(pt->marker) << endl;
-        }  
+        } 
+        else {	
+         if (showall)		
+          cerr << static_cast<void*>( pt->tuple ) << endl;
+	}  
         result.addr = pt;
         return YIELD;
       }
@@ -1322,6 +1477,7 @@ struct PTupleBuffer
     bool scanBuffer;
     bool bufferOnly;
     bool endReached;
+    bool markerRead;
     size_t maxSize;
     Marker lastMarker;
     int tuplesCurrentPart;
@@ -1336,6 +1492,7 @@ struct PTupleBuffer
      scanBuffer(false),
      bufferOnly(true),
      endReached(false),
+     markerRead(false),	
      maxSize(size),
      tuplesCurrentPart(0),
      tuplesCompleteParts(0),
@@ -1381,13 +1538,13 @@ struct PTupleBuffer
        tuplesCompleteParts = num;
     }   
 
-    double getTotalSize(bool useCtrs=false, int ctrNum = 0)
+    int getTotalSize(bool useCtrs=false, int ctrNum = 0)
     {
       if (!useCtrs)
-        return buf->GetTotalSize();
+        return nextInt( buf->GetTotalSize() );
 
       double f = (1.0 * qp->GetCounter(ctrNum+1)) / qp->GetCounter(ctrNum);
-      return f * buf->GetTotalSize(); 
+      return nextInt(f * buf->GetTotalSize()); 
     } 
     
     inline bool end() const { 
@@ -1397,6 +1554,11 @@ struct PTupleBuffer
     void setLastMarker(const Marker& m) {
       lastMarker = m;
     }  
+
+    const Marker& getLastMarker() { 
+      assert(markerRead); 
+      return lastMarker; 
+    } 
     
 /*
 The ~getNext~ function will remove marker tuples and stores the tuples in
@@ -1411,14 +1573,14 @@ th ~TupleBuffer~ until a memory overflow is reached.
         {
           if (pt->tuple) // save tuple
           { 
-            //TRACE( pre << "Tuple received!" )
+            TRACE( pre << "Tuple received!" )
             buf->AppendTuple(pt->tuple);
             tuplesCurrentPart++;
             return true;
           }  
           else // store last marker information
           { 
-            //TRACE( pre << "Marker: " << *(pt->marker) )
+            TRACE( pre << "Marker: " << *(pt->marker) )
             lastMarker = *(pt->marker);
             
             // delete the marker, since the join operator 
@@ -1426,9 +1588,11 @@ th ~TupleBuffer~ until a memory overflow is reached.
             // delete pt;
             tuplesCompleteParts += tuplesCurrentPart;
             tuplesCurrentPart = 0;
+	    markerRead=true;
             return true;
           }  
         }
+	//cerr << pre << ": End Reached!" << endl;
         endReached = true;
         return false;
     }
@@ -1506,9 +1670,16 @@ to estimate the cardinality of the input stream
     inline int readPartitions() { return lastMarker.num; }
     inline int partSize() { return lastMarker.tuples; }
     
+    int maxInputCard() { 
+      assert(markerRead);
+      return max(lastMarker.parts,1) * lastMarker.tuples;
+    }
+
     int estimateInputCard(const bool useCtrs = false, int ctrNum = 0) 
     {
       TRACE("Input cardinality estimation")
+      SHOW(useCtrs)
+      SHOW(ctrNum)
       SHOW(lastMarker.num)
       SHOW(lastMarker.parts)
      
@@ -1518,6 +1689,9 @@ to estimate the cardinality of the input stream
       // received tuples
       double received = getTuplesOfCompleteParts();
 
+      if (endReached)
+        received = getNoTuples();
+
       if (useCtrs)
       {
         // determine input selectivity by counters used in the
@@ -1526,8 +1700,8 @@ to estimate the cardinality of the input stream
         double Ctr2 = qp->GetCounter(ctrNum+1);
         SHOW(Ctr1) 
         SHOW(Ctr2) 
-        expected = Ctr1;
-        received = Ctr2;
+        expected = max(Ctr1,1.0);
+        received = max(Ctr2,1.0);
       } 
 
       SHOW(expected)
@@ -1567,12 +1741,6 @@ to estimate the cardinality of the input stream
 
 }; 
 
-static inline string int2Str(const int i) {
-
-   stringstream s; 
-   s << i;
-   return s.str();
-}   
 
 template<class StreamType>
   struct PJoinInfo {
@@ -1610,8 +1778,8 @@ template<class StreamType>
     float joinSel;
     bool isSelfJoin;
     bool useCtrs;
+    bool doProbeJoin;
     
-    long probeJoinCPU;
     int& instanceNum;
     int ctrNum;
     
@@ -1619,6 +1787,8 @@ template<class StreamType>
 
     PartCtr parts;
         
+    PJoinTuple* info;
+
     PJoinInfo( StreamOpAddr left, 
                StreamType right, 
                int& instanceCtr, 
@@ -1639,12 +1809,13 @@ template<class StreamType>
       joinSel(0.0),
       isSelfJoin(false),
       useCtrs(false),
-      probeJoinCPU(0),
+      doProbeJoin(true),
       instanceNum(instanceCtr),
       ctrNum(num)
     {
-      instanceNum++;
       TRACE_FILE("pjoin.traces")
+
+      info = new PJoinTuple();
 
       leftBuf = new PTupleBuffer<StreamOpAddr>( "left", leftIs, maxMem );
       rightBuf = new PTupleBuffer<StreamType>( "right", rightIs, maxMem );
@@ -1669,26 +1840,37 @@ template<class StreamType>
       const int resultErr = relErr(resultCard, resultTuples);
       const int leftErr = relErr(leftCard, leftTuples);
       const int rightErr = relErr(rightCard, rightTuples);
- 
-      const string pref = "PSA::pjoin2-" + int2Str(instanceNum) + ":";
-      Counter::getRef(pref+"Card_Result_real") = resultTuples;
-      Counter::getRef(pref+"Card_Result__est") = resultCard; 
-      Counter::getRef(pref+"Card_Result_%err") = resultErr;
+
+      const float joinExact = (resultTuples / (max(leftTuples,1) * 1.0)) 
+	                      / (max(rightTuples,1) * 1.0);
+      const int joinSelErr = relErr( joinSel, joinExact);
+
+
+      instanceNum++;
+      info->id = instanceNum;
+      
+      info->arg1_est  = leftCard;
+      info->arg1_real = leftTuples;
+      info->arg1_err  = leftErr;
+      
+      info->arg2_est  = rightCard;
+      info->arg2_real = rightTuples;
+      info->arg2_err  = rightErr;
+      
+      info->result_est  = resultCard;
+      info->result_real = resultTuples;
+      info->result_err  = resultErr;
+      
+      info->sel_est  = joinSel;
+      info->sel_real = joinExact;
+      info->sel_err  = joinSelErr;
+      
+      FunInfo& f = evalFuns->get(bestPos);
+      info->usedFunction = f.getName();
+
        
-      Counter::getRef(pref+"Card_Arg1_real") = leftTuples; 
-      Counter::getRef(pref+"Card_Arg1__est") = leftCard;
-      Counter::getRef(pref+"Card_Arg1_%err") = leftErr;
-      
-      Counter::getRef(pref+"Card_Arg2_real") = rightTuples;
-      Counter::getRef(pref+"Card_Arg2__est") = rightCard;
-      Counter::getRef(pref+"Card_Arg2_%err") = rightErr;
+      pjoinRel->append(info, false);
      
-      Counter::getRef("PSA:Usedjoin:CPU_Ops") = cpuOps() - probeJoinCPU; 
-      
-      // reset instance counter for next query
-      instanceNum=0;
-           
-      
       delete leftBuf;
       delete rightBuf;
       delete evalFuns;
@@ -1696,11 +1878,11 @@ template<class StreamType>
     } 
 
      
-    const int relErr(const int a, const int b) {
-      int c = b;
-      if (b == 0) // avoid infinte values!
-        c = 1;
-      return static_cast<int>( ceil(((abs(a - b) * 1.0) / c) * 100) );
+    int relErr(const float a, const float b) {
+      float c = b;
+      if (b == 0.0) // avoid infinite values!
+        c = 1.0;
+      return static_cast<int>( ceil(((abs(a - b) * 1.0) / c) * 100.0) );
     } 
 
     void setRequestedTuples() {
@@ -1726,10 +1908,10 @@ input, output, and result stream.
        int rightRead = max( rightBuf->getNoTuples(useCtrs, ctrNum), 1);
       
        //avg tuple size
-       leftAvgTupSize = static_cast<int>( leftBuf->getTotalSize() / leftRead );
+       leftAvgTupSize = nextInt( leftBuf->getTotalSize() / leftRead );
        rightAvgTupSize = 
-          static_cast<int>( 
-             rightBuf->getTotalSize(useCtrs, ctrNum) / rightRead );
+                   previousInt( 
+	                rightBuf->getTotalSize(useCtrs, ctrNum) / rightRead );
        
        // join selectivity
        if (resultTuples == 0)
@@ -1774,12 +1956,11 @@ The probe join will be stopped if
 
 */
   
-    inline bool stopLoading() 
+    inline bool stopLoading(const int n=1000) 
     { 
-      const double bufferSize = leftBuf->getTotalSize() 
+      const int bufferSize = leftBuf->getTotalSize() 
                                 + rightBuf->getTotalSize();
       const bool overFlow = bufferSize > 2*maxMem;
-      const int n = 500;
       
       bool stop = false;
       if (overFlow) 
@@ -1790,7 +1971,7 @@ The probe join will be stopped if
       else
       {
         int storedTuples = leftBuf->getNoTuples() + rightBuf->getNoTuples();
-        stop = (storedTuples >= 2*n);
+        stop = (storedTuples >= n);
         stop = ( stop || (leftBuf->end() && rightBuf->end()) );
       }
 
@@ -1798,6 +1979,9 @@ The probe join will be stopped if
       { 
         TRACE("*** Enough tuples read ***")
         SHOW(bufferSize) 
+	// assign values to the ~info~ tuple
+	info->probe_arg1 = leftBuf->getNoTuples();
+	info->probe_arg2 = rightBuf->getNoTuples();
         // reset streams 
         leftBuf->reset();
         leftBuf->showInfo();
@@ -1815,13 +1999,69 @@ The probe join will be stopped if
       return (cpu1 + cpu2 + cpu3 + cpu4);
     }  
 
+    // By default 0,25% of the cartesian product will
+    // be used as input for the probe join
+    int computeProbeSize( int est, double scaleP, int minVal, int maxVal  ) 
+    {
+      int ps = nextInt( est * scaleP );
+      SHOW(ps)
+      ps = min( max(ps, minVal), maxVal );
+      
+      SHOW(est)
+      SHOW(ps)
+
+      return ps;
+    }		
+
     void loadTupleBuffers() {
 
       TRACE("*** load TupleBuffers ***")
-      while ( !stopLoading() ) 
-      {
+
+     
+      int k=2;
+      for(int i=0; i < k; i++) { 
         leftBuf->storeNextTuple();
         rightBuf->storeNextTuple(); 
+      }
+
+      cerr << leftBuf->getLastMarker() << endl;;
+      cerr << rightBuf->getLastMarker() << endl;
+      int leftEst = leftBuf->maxInputCard();
+      int rightEst = rightBuf->maxInputCard();
+
+      // Define 0.2% of the square as sample size
+      Environment& env = Environment::getInstance();
+      double pScale = env.getFloat("SEC_pScale", 0.05);
+      int pMinRead = env.getInt("SEC_pMinRead", 500);
+      int pMaxRead = env.getInt("SEC_pMaxRead", 500);
+      SHOW(pScale)
+      SHOW(pMinRead)	      
+      SHOW(pMaxRead)    
+
+      int leftTuples = computeProbeSize(leftEst, pScale, pMinRead, pMaxRead); 
+      int rightTuples = computeProbeSize(rightEst, pScale, pMinRead, pMaxRead);
+      k = leftTuples + rightTuples;
+
+      // adapt the sample to the currently estimated
+      // input sizes
+      while ( !stopLoading(k) ) 
+      {
+        if (leftBuf->getNoTuples() < leftTuples || rightBuf->end() )
+          leftBuf->storeNextTuple();
+        if (rightBuf->getNoTuples() < rightTuples || leftBuf->end() )
+          rightBuf->storeNextTuple(); 
+
+	static int ctr=50;
+	ctr--; 
+	if (ctr == 0)
+	{ 
+	  ctr=50;
+	  int leftEst = leftBuf->estimateInputCard();
+	  int rightEst = rightBuf->estimateInputCard(useCtrs, ctrNum);
+	  leftTuples = computeProbeSize(leftEst, pScale, pMinRead, pMaxRead);
+	  rightTuples = computeProbeSize(rightEst, pScale, pMinRead, pMaxRead);
+          k = leftTuples + rightTuples;
+	}  
       } 
     } 
 
@@ -1850,11 +2090,27 @@ The probe join will be stopped if
      
     void runProbeJoin() 
     { 
-     
-      Supplier first = (evalFuns->get(0)).getSupplier();
-      qp->Open(first);
+      StopWatch probeTimer;
       
+      Supplier first = (evalFuns->get(0)).getSupplier();
+      info->join = (evalFuns->get(0)).getName();
+     
+      // open both input streams
+      // Recurses into the operator tree and calls 
+      // ~runProbeJoin~ for subordinated pjoins!
+      leftIs.open();
+      rightIs.open();
+      
+
       loadTupleBuffers();
+      // Loading the tuple buffers will cause
+      // requests to subtrees. Hence the time
+      // measurement can only start after the tuple
+      // buffers are filled. 
+      probeTimer.start();
+      cout << "* Start Probe Join *" << endl;
+
+      qp->Open(first);
 
       Tuple* t = nextTuple(first);
       int probeReceived = 0;
@@ -1864,19 +2120,36 @@ The probe join will be stopped if
         t = nextTuple(first);
       } 
       qp->Close(first);
+
+      cout << "* End Probe Join *" << probeTimer.diffTimes() << endl;
       TRACE( "\n*** Probe join finished! ***\n" )
 
-      probeJoinCPU = Counter::getRef("PSA::Probejoin:CPU_Ops") = cpuOps(); 
-        
       computeCards(probeReceived);
       computeBestFunction();
+
+      // assgin values to the info tuple	      
+      info->probe_cpuOps = cpuOps();
+      info->probe_seconds = probeTimer.diffSecondsReal(); 
+      info->probe_result = probeReceived;
+     
+      // open the chosen evaluation function 
       bestFun.open();
+      doProbeJoin=false;
       
     }
 
     
     inline void nextPTuple(Word& result)
     {
+      static int call=0;
+      call++;
+ 
+      /*
+      if (doProbeJoin) {
+	cout << call << "-pjoin: runProbeJoin()" << endl;
+        runProbeJoin();
+      }*/ 
+
       if ( parts.resetIfNeeded() )
       {
         result.addr = new PTuple( parts.newMarker() );
@@ -1899,11 +2172,12 @@ The probe join will be stopped if
        
       // initialize ouput partSize and expected parts.
       const int tuples = max( leftBuf->partSize(), rightBuf->partSize() );
-      const int numOfParts = max( resultCard / tuples, 1 ); 
-      parts.init(tuples, numOfParts);
+      //const int numOfParts = max( resultCard / tuples, 1 ); 
+      parts.init(tuples, resultCard);
 
-      SHOW(tuples)
-      SHOW(numOfParts) 
+      SHOW(parts.tuples)
+      SHOW(parts.parts)
+      //SHOW(numOfParts) 
      
       CostParams cp( leftCard, leftAvgTupSize, 
                      rightCard, rightAvgTupSize, joinSel );
@@ -1919,12 +2193,11 @@ The probe join will be stopped if
       const CostInfo ci = costFuns->findBest(cp);
       SHOW(ci)
       bestPos = ci.cf->index;
-      const string& functionName = ci.cf->name;
-      
       assert( bestPos < (int)evalFuns->size() );
+      
       FunInfo& f = evalFuns->get(bestPos);
       bestFun = StreamOpAddr(f.getSupplier());
-      cout << "Using " << functionName << endl;
+      cout << "Using " << f.getName() << endl;
 
       TRACE( "\n*** END Computing best function ***\n" )
     } 
@@ -1937,7 +2210,7 @@ static int pjoin2_vm( Word* args, Word& result, int message,
 {
   // args[0]: Input stream(ptuple(y1))) 
   // args[1]: Input stream(ptuple(y2))) 
-         // args[2]: A string which defines if the join is a self join or not 
+    // args[2]: A string which defines if the join is a self join or not 
   // args[2]: A list of map stream(tuple(y1)))x stream(tuple(y2)) 
   //          -> stream(tuple(z))
   // args[3]: A list of symbols for evaluation function names
@@ -2906,6 +3179,11 @@ InitializePartitionedStreamAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
 {
   nl = nlRef;
   qp = qpRef;
+
+  pjoinRel = new PJoinRel("SEC2PJOIN");
+  SystemTables& st = SystemTables::getInstance();
+  st.insert(pjoinRel);
+  
   return (&partStreamAlgebra);
 }
 
