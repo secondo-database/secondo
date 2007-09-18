@@ -177,19 +177,6 @@ Tuple *Tuple::Clone() const
   return result;
 }
 
-CcTuple *Tuple::CloneToMemoryTuple() const
-{
-  Counter::getRef("RA:ClonedTuples")++;
-  CcTuple *result = new CcTuple();
-
-  result->SetNoAttrs( this->GetNoAttributes() );
-  for( int i = 0; i < this->GetNoAttributes(); i++ )
-  {
-    Attribute *attr = GetAttribute( i )->Clone();
-    result->Put( i, attr );
-  }
-  return result;
-}
 
 void Tuple::InitCounters(const bool val)
 {

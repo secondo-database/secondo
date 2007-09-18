@@ -88,13 +88,6 @@ Example  : query Orte feed filter[.BevT > 200] count
 Result   : 39
 
 
-Operator : mconsume
-Number   : 1
-Signature: (stream tuple(x)) -> (mrel mtuple(x))
-Example  : query Staedte feed mconsume count
-Result   : 58
-
-
 Operator : product
 Number   : 1
 Signature: ((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))) -> (stream (tuple (x1 ... xn y1 ... ym)))

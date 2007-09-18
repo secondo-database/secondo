@@ -60,6 +60,9 @@ before.
 April 2007, T. Behr, M. Spiekermann. Removal of the main memory implementation
 of this algebmain memory implementation
 of this algebra module.
+
+September 2007, M. Spiekermann. Dependencies to algebra OldRelationAlgebra removed.
+
 [TOC]
 
 
@@ -990,11 +993,6 @@ Returns the tuple type.
     Tuple *Clone() const;
 /*
 Create a new tuple which is a clone of this tuple.
-
-*/
-    CcTuple* CloneToMemoryTuple() const;
-/*
-Creates a new memory tuple as used by module ~OldRelationAlgebra~.
 
 */
     inline bool DeleteIfAllowed() 

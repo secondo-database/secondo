@@ -66,7 +66,7 @@ RelationAlgebra.h header file.
 
 */
 #include "RelationAlgebra.h"
-#include "OldRelationAlgebra.h"
+//#include "OldRelationAlgebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
@@ -4788,114 +4788,6 @@ Operator relalgrename (
          RenameTypeMap           // type mapping
 );
 
-
-/*
-5.13 Operator ~mconsume~
-
-Collects objects from a stream of tuples into a
-main memory relation using the ~mrel~ type constructor
-of the old relational algebra.
-
-This operator is used to convert from a relation in
-the new relational algebra to the old one.
-
-5.6.1 Type mapping function of operator ~mconsume~
-
-Operator ~mconsume~ accepts a stream of tuples and returns a
-main memory relation.
-
-
-----    (stream tuple(x))             -> ( mrel mtuple(x) )
-----
-
-*/
-ListExpr MConsumeTypeMap(ListExpr args)
-{
-  ListExpr first;
-  string argstr;
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Operator mconsume expects a list of length one.");
-  
-  first = nl->First(args);
-  
-  nl->WriteToString(argstr, first);  
-  CHECK_COND( nl->ListLength(first) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(first) == stream) &&
-    nl->ListLength(nl->Second(first)) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
-  "Operator mconsume expects as argument a list with structure " 
-  "(stream (tuple ((a1 t1)...(an tn))))\n"
-  "Operator mconsume gets a list with structure '" + argstr + "'.");
-
-  return nl->TwoElemList(
-           nl->SymbolAtom("mrel"),
-           nl->TwoElemList(
-             nl->SymbolAtom("mtuple"),
-             nl->Second(nl->Second(first))));
-}
-/*
-
-5.6.2 Value mapping function of operator ~mconsume~
-
-*/
-int
-MConsume(Word* args, Word& result, int message, 
-         Word& local, Supplier s)
-{
-  Word actual;
-  CcRel* rel;
-
-  rel = (CcRel*)((qp->ResultStorage(s)).addr);
-  if(rel->GetNoTuples() > 0)
-  {
-    rel->Empty();
-  }
-
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr, actual);
-  while (qp->Received(args[0].addr))
-  {
-    CcTuple* tuple = ((Tuple*)actual.addr)->CloneToMemoryTuple();
-    rel->AppendTuple(tuple);
-    ((Tuple*)actual.addr)->DeleteIfAllowed();
-
-    qp->Request(args[0].addr, actual);
-  }
-
-  result = SetWord((void*) rel);
-
-
-  qp->Close(args[0].addr);
-
-  return 0;
-}
-/*
-
-5.6.3 Specification of operator ~mconsume~
-
-*/
-const string MConsumeSpec  = 
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>(stream tuple(x)) -> (mrel mtuple(x))</text--->"
-  "<text>_ mconsume</text--->"
-  "<text>Collects objects from a stream into an mrel."
-  "</text--->"
-  "<text>query cities feed mconsume</text--->"
-  ") )";
-
-/*
-5.6.4 Definition of operator ~mconsume~
-
-*/
-Operator relalgmconsume (
-   "mconsume",             // name
-   MConsumeSpec,           // specification
-   MConsume,               // value mapping
-   Operator::SimpleSelect, // trivial selection function
-   MConsumeTypeMap         // type mapping
-);
-
 /*
 
 6 Class ~RelationAlgebra~
@@ -4957,7 +4849,6 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgextattrsize);
     AddOperator(&relalgattrsize);
     AddOperator(&relalgrename);
-    AddOperator(&relalgmconsume);
 
 #else
 
@@ -4981,7 +4872,6 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgextattrsize);
     AddOperator(&relalgattrsize);
     AddOperator(&relalgrename);		relalgrename.EnableProgress();
-    AddOperator(&relalgmconsume);
 
 #endif
 
