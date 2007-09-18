@@ -100,7 +100,7 @@ createpjoin1(AttrStream, AttrRel, FilterOps, ProbeOps, MatchOps, Ctr, [F1, F2, F
               hashjoin( implicitArg(1), 
                         counter(FilterOps,Ctr3),
                         attrname(AttrStream), 
-                        attrname(AttrRel), 997) ),
+                        attrname(AttrRel), 9997) ),
   F3 = field( attr(smj, _, l), 
               sortmergejoin( implicitArg(1), 
                              counter(FilterOps,Ctr3),
@@ -110,22 +110,30 @@ createpjoin1(AttrStream, AttrRel, FilterOps, ProbeOps, MatchOps, Ctr, [F1, F2, F
                         counter(MatchOps,Ctr3) )).
 
 
-try_pjoin2(X, Y, [F1, F2, F3]) :- 
+
+                       
+
+try_pjoin2(X, Y, Rel1, Rel2, [F1, F2, F3]) :- 
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y),
   %not( possibleIndexJoin(Pred,_) ),
-  %Pred = pr(X = Y, _, _),
-  F1 = field( attr(symj, _, l), 
-              symmjoin(implicitArg(1), implicitArg(2), X = Y)),
-  F2 = field( attr(hj, _, l), 
+  rel_to_atom(Rel1, Atom1),
+  rel_to_atom(Rel2, Atom2),
+  concat_atom(['pj_', Atom1, '_', Atom2], FunName1),
+  %F1 = field( attr(FunName1, _, l), 
+  %            symmjoin(implicitArg(1), implicitArg(2), X = Y)),
+  F1 = field( attr(FunName1, _, l), 
               hashjoin( implicitArg(1), implicitArg(2), 
-                        attrname(Attr1), attrname(Attr2), 997)),
+                        attrname(Attr1), attrname(Attr2), 9997)),
+  F2 = field( attr(hj, _, l), 
+              memshuffle(hashjoin( implicitArg(1), implicitArg(2), 
+                        attrname(Attr1), attrname(Attr2), 9997))),
   F3 = field( attr(smj, _, l), 
               sortmergejoin( implicitArg(1), implicitArg(2), 
                              attrname(Attr1), attrname(Attr2))).
 
 
-try_pjoin2_hj(X, Y, [F1, F3]) :- 
+try_pjoin2_smj(X, Y, [F1, F3]) :- 
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y),
   F1 = field( attr(symj, _, l), 
@@ -135,14 +143,14 @@ try_pjoin2_hj(X, Y, [F1, F3]) :-
                              attrname(Attr1), attrname(Attr2))).
 
 
-try_pjoin2_smj(X, Y, [F1, F2]) :- 
+try_pjoin2_hj(X, Y, [F1, F2]) :- 
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y),
   F1 = field( attr(symj, _, l), 
               symmjoin(implicitArg(1), implicitArg(2), X = Y)),
   F2 = field( attr(hj, _, l), 
               hashjoin( implicitArg(1), implicitArg(2), 
-                        attrname(Attr1), attrname(Attr2), 997)).
+                        attrname(Attr1), attrname(Attr2), 9997)).
 
 
 
@@ -690,39 +698,58 @@ checkRelName(DB, Rel) :-
   not(sub_atom(Rel, _, _, _, '_small')),
   not(sub_atom(Rel, _, _, _, '_sample_s')),
   not(sub_atom(Rel, _, _, _, '_sample_j')),
-  not(sub_atom(Rel, _, _, _, 'SEC_')),
+  not(sub_atom(Rel, _, _, _, 'SEC2')),
   not(hasStoredOrder(DB, Rel, shuffled)).
- 
-shuffleRels([]).
 
-shuffleRels([Obj | ObjList]) :-
+
+getObjList(DB, ObjList) :-
+  databaseName(DB),
+  retractall(storedSecondoList(_)),
+  getSecondoList(ObjList).
+ 
+
+extractRels([], []).
+
+extractRels([Obj | ObjList], [Rel | Rels]) :-
   Obj = ['OBJECT', Rel, _, [[rel, [_|_]]]],
   atom(Rel), 
   databaseName(DB),
-  nonvar(DB),
-  checkRelName(DB, Rel),
+  checkRelName(DB, Rel), !,
+  extractRels(ObjList, Rels).
+
+% continue recursion if checkRelName failed ... 
+extractRels([_ | ObjList], Rels) :-
+  extractRels(ObjList, Rels).
+ 
+shuffleRels([]).
+
+shuffleRels([Rel | Rels]) :-
   atom_concat('update ', Rel, Plan1),
   atom_concat(Plan1, ' := ', Plan2 ),
   atom_concat(Plan2, Rel, Plan3 ),
   % MAX_INT (4 Byte) = 127 * 256 * 256 * 256 = 2130706432
   atom_concat(Plan3, ' feed extend[SortId: randint(2130706432)]', Plan4),
   atom_concat(Plan4, ' sortby[SortId asc] remove[SortId] consume', Plan5 ),
-  nl, write('Plan:'), write(Plan5), nl,
+  nl, write('Execute: '), write(Plan5), nl,
   secondo(Plan5, _),
+  databaseName(DB),
   changeStoredOrder(DB, Rel, shuffled),
-  shuffleRels(ObjList),
+  shuffleRels(Rels),
   !.
 
-shuffleRels([_ | ObjList]) :-
-  shuffleRels(ObjList),
-  !.
 
 shuffleRels :-
-  databaseName(DB),
-  retractall(storedSecondoList(_)),
-  getSecondoList(ObjList),
+  getObjList(DB, ObjList),
   write('\nRelations of database '), write(DB), write(' which need to be shuffled:\n'),
-  shuffleRels(ObjList).
+  extractRels(ObjList, Rels),
+  % increase memory usage for sortby
+  secondo('query setoption("MaxMemPerOperator", 64 * 1024 * 1024)'),
+  shuffleRels(Rels),
+  secondo('query setoption("MaxMemPerOperator", 16 * 1024 * 1024)').
 
-
-
+showUnshuffledRels :-
+  getObjList(DB, ObjList),
+  write('\nRelations of database '), write(DB), 
+  write(' which need to be shuffled:\n'),
+  extractRels(ObjList, Rels),
+  nl, write(Rels), nl.
