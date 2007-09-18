@@ -1,0 +1,17 @@
+Database: berlintest
+Restore : No
+
+Operator : epsilon
+Number   : 1
+Signature: uT -> epsilon
+Example  : query epsilon ( i1 )
+Result   :  24.7
+
+
+Operator : val
+Number   : 1
+Signature: uT -> x
+Example  : query val ( i1 )
+Result   : (point (9396,9871))
+
+
