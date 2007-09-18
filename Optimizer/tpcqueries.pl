@@ -69,8 +69,7 @@ where
         snationkey = nnationkey,
         nregionkey = rregionkey,
         rname = "ASIA", 
-        not(oorderdate < theInstant(1994,1,1)),
-        oorderdate < theInstant(1995,1,1) 
+	((oorderdate >= theInstant(1994,1,1)) and (oorderdate < theInstant(1995,1,1)))
        ]
 groupby [ nname ]
 orderby [ revenue desc ]
