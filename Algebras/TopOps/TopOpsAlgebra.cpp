@@ -2,7 +2,8 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2006, University in Hagen, Department of Computer Science,
+Copyright (C) 2007, 
+Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -81,6 +82,9 @@ many cases.
 #include "TopRel.h"
 #include "StandardTypes.h"
 
+#define __TRACE__ cout << __FILE__ << "@" << __LINE__ << endl;
+
+
 /*
 3.2 Instances of NestedList and the QueryProcessor
 
@@ -104,6 +108,10 @@ the comparison operators. The make it possible to insert
 dor the y value.
 
 */
+
+class AvlEntry;
+ostream& operator<<(ostream& o, const AvlEntry& e);
+
 
 class AvlEntry{
 public:
@@ -130,8 +138,8 @@ halfsegment.
      y1 = p1.GetY();
      x2 = p2.GetX();
      y2 = p2.GetY();
-     isVertical = x1==x2; 
-     if(!isVertical){
+     vertical = x1==x2; 
+     if(!vertical){
         slope = (y2-y1)/(x2-x1);
      } else{
         slope = 1.0;
@@ -153,7 +161,7 @@ point.
     y1 = P->GetY();
     y2 = y1;
    // set some dummy values 
-    isVertical = true;
+    vertical = true;
     slope = 0;
     insideAbove = false; 
  }
@@ -170,7 +178,7 @@ point.
     this->x2 = source.x2;
     this->y1 = source.y1;
     this->y2 = source.y2;
-    this->isVertical = source.isVertical;
+    this->vertical = source.vertical;
     this->slope = source.slope;
   }
 
@@ -184,7 +192,7 @@ point.
      this->x2 = source.x2;
      this->y1 = source.y1;
      this->y2 = source.y2;
-     this->isVertical = source.isVertical;
+     this->vertical = source.vertical;
      this->insideAbove = source.insideAbove;
      this->slope = source.slope;
      return *this;
@@ -195,6 +203,15 @@ point.
 
 */
    ~AvlEntry(){}
+
+
+/*
+3.3.5 isPoint
+
+*/
+  bool isPoint() const{
+    return AlmostEqual(x1,x2) && AlmostEqual(y1,y2);
+  }
 
 
 /*
@@ -209,45 +226,150 @@ the ~y1~ values for the comparison.
 
 
 */
+   int compareTo(const AvlEntry& c) const{
+
+     double ty = vertical? y1 : y1 + ((x-x1)/(x2-x1))*(y2-y1);
+     double cy = c.vertical? c.y1 : c.y1 + ((x-c.x1)/(c.x2-c.x1))*(c.y2-c.y1) ;
+
+     if(compexact){  // lexicographical compare of members
+      if(!AlmostEqual(ty,cy)){
+        if(ty<cy )
+           return -1;
+        else 
+           return 1;
+      }
+      if(!AlmostEqual(slope,c.slope)){
+         // if the current position is the last point of one 
+         // of the segments, we must use the y coordinates before
+         // the current x , otherwise the y coordinates after
+         // that
+         int f = 1;
+         if( (AlmostEqual(x2,x) && AlmostEqual(y2,ty))  ||
+             (AlmostEqual(c.x2,x) && AlmostEqual(c.y2,cy))) {
+             f = -1;
+         }
+
+         if(slope<c.slope){
+            return -f;
+         } else {
+            return f;
+         }
+      } 
+
+      if(!AlmostEqual(x1,c.x1)){
+        if(x1<c.x1) 
+           return -1; 
+        else 
+           return 1;
+       }     
+      if(!AlmostEqual(y1,c.y1)){
+        if(y1<c.y1) 
+           return -1; 
+        else 
+           return 1;
+      }     
+      if(!AlmostEqual(x2,c.x2)){
+        if(x2<c.x2) 
+           return -1; 
+        else 
+           return 1;
+      }     
+      if(!AlmostEqual(y2,c.y2)){
+        if(y2<c.y2) 
+           return -1; 
+        else 
+           return 1;
+      }  else {
+         return 0;
+      }    
+     } else { // comparison with y coordinate
+        if(AlmostEqual(ty,cy)){
+         if(isPoint() || c.isPoint()){
+            return 0;
+         }
+         int f = 1;
+         if( (AlmostEqual(x2,x) && AlmostEqual(y2,ty))  ||
+             (AlmostEqual(c.x2,x) && AlmostEqual(c.y2,cy))) {
+             f = -1;
+         }
+           if(AlmostEqual(slope,c.slope)){
+              return 0;
+           } else if(slope<c.slope){
+              return -f;
+           } else {
+              return f;
+           }
+        } else if (ty<cy){
+           return -1;
+        } else {
+           return 1;
+        }
+     }
+   }
+
+
 
    bool operator<(const AvlEntry& c)const{
-        if(compexact){
-            if(x1<c.x1){ return true; }
-            if(x1>c.x1){ return false; } 
-            if(y1<c.y1){ return true; }
-            if(y1>c.y1){ return false; } 
-            if(x2<c.x2){ return true; }
-            if(x2>c.x2){ return false; } 
-            return y2<c.y2;             
-        }    
-        double ty = isVertical? y1 : x1 + slope * (x-x1);
-        double cy = c.isVertical? c.y1 : c.x1 + c.slope*(x-c.x1);
-        return ty<cy;
+      return compareTo(c)<0;
    }
 
   bool operator>(const AvlEntry& c)const{
-        if(compexact){
-            if(x1<c.x1){ return false; }
-            if(x1>c.x1){ return true; } 
-            if(y1<c.y1){ return false; }
-            if(y1>c.y1){ return true; } 
-            if(x2<c.x2){ return false; }
-            if(x2>c.x2){ return true; } 
-            return y2>c.y2;             
-        }    
-        double ty = isVertical? y1 : x1 + slope * (x-x1);
-        double cy = c.isVertical? c.y1 : c.x1 + c.slope*(x-c.x1);
-        return ty>cy;
+      return compareTo(c)>0;
   }
   
   bool operator==(const AvlEntry& c)const{
-        if(compexact){
-           return (x1==c.x1) && (x2==c.x2) && (y1==c.y1) && (y2==c.y2);
-        }    
-        double ty = isVertical? y1 : x1 + slope * (x-x1);
-        double cy = c.isVertical? c.y1 : c.x1 + c.slope*(x-c.x1);
-        return ty==cy;
+      return compareTo(c)==0;
   }
+
+  bool isVertical()const{
+     return vertical;
+  }
+
+  bool isInsideAbove() const{
+     return insideAbove;
+  }
+
+  void Print(ostream& out) const{
+     out << "(" << x1 << ", " << y1 << ")->(" 
+                << x2 << ", " << y2 << ")" ;
+
+  }
+
+  bool Contains(const Point p) const{
+
+     __TRACE__
+
+     Point p1(true,x1,y1);
+     Point p2(true,x2,y2);
+     if(AlmostEqual(p1,p)){
+        return true;
+     }
+     if(AlmostEqual(p2,p)){
+        return true;
+     }
+
+     double x = p.GetX();
+     double y = p.GetY();
+     if(x<x1){
+       return false;
+     }
+     if(x>x2){
+       return false;
+     }
+     if(vertical){
+        if(y<min(y1,y2)){
+          return false;
+        } else if(y>max(y1,y2)){
+          return false;
+        } else {
+          return true;
+        }
+     } else {
+        double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+        return AlmostEqual(y,y1);
+     } 
+  }
+
  
   static bool compexact;
   static double x;
@@ -257,11 +379,8 @@ private:
   double x2;
   double y2;
   double slope; // redundant to avoid computations 
-  bool   isVertical;
+  bool   vertical;
   bool   insideAbove;
-
-
-
 };
 
 /*
@@ -272,6 +391,17 @@ private:
 
 bool AvlEntry::compexact=true;
 double AvlEntry::x = 0.0;
+
+
+/*
+3.3.6 Shift operator for the AVLEntry
+
+*/
+
+ostream& operator<<(ostream& o, const AvlEntry& entry){
+    entry.Print(o);
+    return o;
+}
 
 
 
@@ -645,7 +775,9 @@ int  NumberOfEndpoints(Line const* const line,
 /* 
 ~Contains~
 
-This fucntion checks if the halfsegment contains the point. 
+This function checks if the halfsegment contains the point.
+
+ 
 
 */
 
@@ -771,7 +903,7 @@ void GetInt9M(Points*  ps, Point* p,Int9M& res){
   if(size>1){
      res.SetIE(true);
   }
-  if(!(ps->Contains(p))){
+  if(!(ps->Contains(p))){ // Contains uses binary search
      res.SetEI(true);
      res.SetIE(true);
   } else{
@@ -1007,6 +1139,8 @@ __line__ and a pointset as 9-intersection matrix.
 
 ~complexity~ O(n * (m+1))
 
+should be changed to a plane sweep algorithm!
+
 */
 
 void GetInt9M(Line const* const line, Points const* const ps, Int9M& res){
@@ -1208,16 +1342,93 @@ void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
 #endif
      return;
   }
-  
 
-  if(reg->OnBorder(p)){
-     res.SetBI(true);
-  } else if (reg->InInterior(*p)){
-     res.SetII(true);
-  } else{
-     res.SetEI(true);
+  // the bounding boxes overlap, we perform a plane sweep algorithm
+
+  AVLTree<AvlEntry> sss; // sweep state structure
+  int size = reg->Size();
+  int pos = 0; // current pos within the halfsegments
+  double xpos = p->GetX();
+  
+  vector<HalfSegment> v; // vector containing all events having the
+                         // same x position
+  
+  bool done = false;
+  const HalfSegment* hs;
+  while(!done && pos<size){
+     reg->Get(pos,hs);
+     double cx = hs->GetDomPoint().GetX();
+     AvlEntry entry(hs);
+
+     if(AlmostEqual(cx,xpos)){
+        if(entry.isVertical()){
+           if(hs->Contains(*p)){
+              res.SetBI(true);
+              done = true;
+           }
+        } else {
+          if(hs->IsLeftDomPoint()){
+             AvlEntry::compexact = false;
+             sss.insert(entry);    
+             assert(sss.Check(cerr)); 
+             pos++;
+          } else {
+             // perform the point
+             AvlEntry pe(p);
+             AvlEntry::x = xpos;
+             AvlEntry::compexact=false;
+             const AvlEntry* sm = sss.GetNearestSmallerOrEqual(pe);
+             if(sm==NULL){ // nothing found, point is located in exterior
+                res.SetEI(true);
+             }  else if(sm->Contains(*p)){
+                res.SetBI(true);
+             } else if(sm->isInsideAbove()){
+                res.SetII(true);
+             }  else {
+                res.SetEI(true);
+             }          
+             done = true;
+          }
+        } 
+     } else if(cx>xpos){
+       // perform the point
+       AvlEntry pe(p);
+       AvlEntry::x = xpos;
+       AvlEntry::compexact=false;
+       const AvlEntry* sm = sss.GetNearestSmallerOrEqual(pe);
+       if(sm==NULL){ // nothing found, point is located in exterior
+          res.SetEI(true);
+       }  else if(sm->Contains(*p)){
+          res.SetBI(true);
+       } else if(sm->isInsideAbove()){
+          res.SetII(true);
+       }  else {
+          res.SetEI(true);
+       }          
+       done = true;
+     } else {
+       AvlEntry::x = cx;
+       if(hs->IsLeftDomPoint()){
+           AvlEntry::compexact = false;
+           sss.insert(entry);    
+           assert(sss.Check(cerr)); 
+           pos++;
+       } else {
+           AvlEntry::compexact= true;
+           sss.remove(entry);
+           assert(sss.Check(cerr)); 
+           pos++;
+       }
+     }
   }
+  if(!done){
+
+    res.SetEI(true);  
+  }
+
 }
+
+
 
 /*
 ~GetInt9M~
