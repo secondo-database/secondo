@@ -490,7 +490,7 @@ struct JunctionSortEntry
     return (xMeas1->GetRealval() < xMeas2->GetRealval());
   }
   
-  float getRouteMeas()
+  double getRouteMeas()
   {
     CcReal* pMeas;
     if(m_bFirstRoute)

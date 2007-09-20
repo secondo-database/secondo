@@ -615,7 +615,7 @@ void Network::FillSections()
   while((pRoute = pRoutesIt->GetNextTuple()) != 0)
   {
     // Current position on route - starting at the beginning of the route
-    float fCurrentPosOnRoute = 0;
+    double dCurrentPosOnRoute = 0;
     Line* pRouteCurve = (Line*)pRoute->GetAttribute(ROUTE_CURVE);
     int iTupleId = pRoute->GetTupleId();
     CcInt* xRouteId = (CcInt*)pRoute->GetAttribute(ROUTE_ID); 
@@ -642,8 +642,8 @@ void Network::FillSections()
       xCurrentEntry = xJunctions[i];
     
       // Find values for the new section      
-      float fStartPos = fCurrentPosOnRoute;
-      float fEndPos = xCurrentEntry.getRouteMeas(); 
+      double dStartPos = dCurrentPosOnRoute;
+      double dEndPos = xCurrentEntry.getRouteMeas(); 
 
       // If the first junction is at the very start of the route, no 
       // section will be added
@@ -658,14 +658,14 @@ void Network::FillSections()
       //
       // Section will only be created if the length is > 0. Otherwise the
       // one before remains valid.
-      if(fStartPos != fEndPos)
+      if(dEndPos - dStartPos > 0.01)
       {
         // A line for the section
         Line* pLine = new Line(0);
         bool bStartSmaller = ((CcBool*)pRoute->GetAttribute(
                                   ROUTE_STARTSSMALLER))->GetBoolval();
-        pRouteCurve->SubLine(fStartPos,
-                             fEndPos,
+        pRouteCurve->SubLine(dStartPos,
+                             dEndPos,
                              bStartSmaller,
                              *pLine);
       
@@ -673,13 +673,16 @@ void Network::FillSections()
         Tuple* pNewSection = new Tuple(nl->Second(xNumType));
         pNewSection->PutAttribute(SECTION_RID, new CcInt(true, iRouteId));
         pNewSection->PutAttribute(SECTION_DUAL, new CcBool(true, bDual));
-        pNewSection->PutAttribute(SECTION_MEAS1, new CcReal(true, fStartPos));
-        pNewSection->PutAttribute(SECTION_MEAS2, new CcReal(true, fEndPos));
+        pNewSection->PutAttribute(SECTION_MEAS1, new CcReal(true, dStartPos));
+        pNewSection->PutAttribute(SECTION_MEAS2, new CcReal(true, dEndPos));
         pNewSection->PutAttribute(SECTION_RRC, new CcInt(true, iTupleId));
         pNewSection->PutAttribute(SECTION_CURVE, pLine);
         m_pSections->AppendTuple(pNewSection);
         iSectionTid = pNewSection->GetTupleId();
         pNewSection->DeleteIfAllowed();
+
+        // Update position for next loop
+        dCurrentPosOnRoute = dEndPos;
       }
       
       /////////////////////////////////////////////////////////////////////
@@ -702,8 +705,6 @@ void Network::FillSections()
                                 xIndices, 
                                 xAttrs);
 
-      // Update position for next loop
-      fCurrentPosOnRoute = fEndPos;
     } // End junctions-loop
 
     /////////////////////////////////////////////////////////////////////
@@ -711,30 +712,30 @@ void Network::FillSections()
     // The last section of the route is still missing, if the last 
     // junction is not at the end of the route.
     //
-    if(fCurrentPosOnRoute < pRouteCurve->Length())
+    if(dCurrentPosOnRoute < pRouteCurve->Length())
     {
       // Find values for the new section      
       int iRouteId = ((CcInt*)pRoute->GetAttribute(ROUTE_ID))->GetIntval();
       bool bDual = ((CcBool*)pRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
-      float fStartPos = fCurrentPosOnRoute;
-      float fEndPos = pRouteCurve->Length();
+      double dStartPos = dCurrentPosOnRoute;
+      double dEndPos = pRouteCurve->Length();
       int iTupleId = pRoute->GetTupleId();
 
       // Calculate line
       Line* pLine = new Line(0);
       bool bStartSmaller = ((CcBool*)pRoute->GetAttribute(
                                 ROUTE_STARTSSMALLER))->GetBoolval();
-      pRouteCurve->SubLine(fStartPos,
-                            fEndPos,
-                            bStartSmaller,
-                            *pLine);
+      pRouteCurve->SubLine(dStartPos,
+                           dEndPos,
+                           bStartSmaller,
+                           *pLine);
       
       // Create a new Section
       Tuple* pNewSection = new Tuple(nl->Second(xNumType));
       pNewSection->PutAttribute(SECTION_RID, new CcInt(true, iRouteId));
       pNewSection->PutAttribute(SECTION_DUAL, new CcBool(true, bDual));
-      pNewSection->PutAttribute(SECTION_MEAS1, new CcReal(true, fStartPos));
-      pNewSection->PutAttribute(SECTION_MEAS2, new CcReal(true, fEndPos));
+      pNewSection->PutAttribute(SECTION_MEAS1, new CcReal(true, dStartPos));
+      pNewSection->PutAttribute(SECTION_MEAS2, new CcReal(true, dEndPos));
       pNewSection->PutAttribute(SECTION_RRC, new CcInt(true, iTupleId));
       pNewSection->PutAttribute(SECTION_CURVE, pLine);
       m_pSections->AppendTuple(pNewSection);
@@ -784,7 +785,7 @@ void Network::FillSections()
         xIndices.push_back(JUNCTION_SECTION_BUP_RC);
       } 
       vector<Attribute*> xAttrs;
-      if(xEntry.getRouteMeas() == xEntryBehind.getRouteMeas())
+      if(xEntryBehind.getRouteMeas() - xEntry.getRouteMeas() < 0.01 )
       {
         // Two junctions at the same place. In this case they do have
         // the same up-pointers
