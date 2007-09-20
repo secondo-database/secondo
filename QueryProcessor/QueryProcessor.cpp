@@ -2455,7 +2455,8 @@ arguments preceding this function argument in an operator application.
     }
     else
     {
-      cmsg.error() << fn << ": Branch should never be reached." << endl;
+      cmsg.error() << fn << "("<< __FILE__ << ":" << __LINE__ <<"):"
+          "Branch should never be reached." << endl;
       return (nl->TwoElemList(
                 nl->SymbolAtom( "functionerror" ),
                 nl->SymbolAtom( "typeerror" ) ));
@@ -2463,7 +2464,8 @@ arguments preceding this function argument in an operator application.
   }
   else
   {
-    cmsg.error() << fn <<": Branch should never be reached." << endl;
+    cmsg.error() << fn << "("<< __FILE__ << ":" << __LINE__ <<"):"
+        "Branch should never be reached." << endl;
     return (nl->TwoElemList(
               nl->SymbolAtom( "functionerror" ),
               nl->SymbolAtom( "typeerror" ) ));

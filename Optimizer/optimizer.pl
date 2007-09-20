@@ -5170,6 +5170,11 @@ Transform an SQL ~QueryText~ into a ~Plan~. The query is given as a text atom.
 */
 
 
+sqlToPlan(QueryText, Plan) :-
+  string(QueryText),
+  string_to_atom(QueryText,AtomText),
+  term_to_atom(Query, AtomText),
+  optimize(Query, Plan, _).
 
 sqlToPlan(QueryText, Plan) :-
   term_to_atom(sql Query, QueryText),
@@ -5185,9 +5190,26 @@ Transform an SQL ~QueryText~ into a ~Plan~. The query is given as a text atom.
 
 */
 sqlToPlan(QueryText, Plan) :-
+  string(QueryText),
+  string_to_atom(QueryText,AtomText),
+  term_to_atom(Query, AtomText),
+  optimize(Query, Plan, _).
+
+sqlToPlan(QueryText, Plan) :-
   term_to_atom(Query, QueryText),
   optimize(Query, Plan, _).
 
+
+
+/*
+----    sqlToPlanStr(QueryText, Plan)
+----
+
+The smae as the predicate before, but using a string-atom instead a simple atom.
+Thus, we can avoid problems when coding single quotes in queries, e.g. within
+the ~aggregate~ command.
+
+*/
 
 
 
