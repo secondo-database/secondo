@@ -3566,7 +3566,7 @@ QueryProcessor::Request( const Supplier s, Word& result )
       result.addr = 0;	  
     }  
     int counterIndex = tree->u.op.counterNo;
-    if ( counterIndex ) 
+    if ( tree->u.op.received && counterIndex ) 
     {
       // increment counter
       assert ( (counterIndex > 0) || (counterIndex < NO_COUNTERS) );
@@ -4020,7 +4020,7 @@ QueryProcessor::GetCounters()
   list = nl->OneElemList( 
            nl->TwoElemList( 
              nl->IntAtom(1), 
-             nl->IntAtom(counter[1]-1) ));
+             nl->IntAtom(counter[1]) ));
   last = list;
 
   for (int i = 2; i < NO_COUNTERS; i++) 
@@ -4028,7 +4028,7 @@ QueryProcessor::GetCounters()
     last = nl->Append( last,   
                        nl->TwoElemList( 
                          nl->IntAtom(i), 
-                         nl->IntAtom(counter[i]-1)));
+                         nl->IntAtom(counter[i])));
   }
   return list;
 }
