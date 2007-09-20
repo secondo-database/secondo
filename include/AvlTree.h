@@ -13,6 +13,19 @@ Additionally some specialized search functions are provided.
 #ifndef AVLTREE_H
 #define AVLTREE_H
 
+  /*
+#define __AVL_TRACE__ cout << __FILE__ << "@" << __LINE__ << ":" << \
+        __PRETTY_FUNCTION__ << endl;
+  */
+//#define __AVL_TRACE__ cout << __FUNCTION__ << endl;
+
+#define __AVL_TRACE__
+
+#include <iostream>
+#include <assert.h>
+
+using namespace std;
+
 
 /*
 0 Forward declaration of the AVLTree class
@@ -41,6 +54,7 @@ This constructor creates a new leaf with the given content.
 
 */
    AvlNode(const contenttype& content){
+      __AVL_TRACE__
       height=0;
       left=NULL;
       right = NULL;
@@ -53,6 +67,7 @@ Creates a depth copy of this node.
 
 */
   AvlNode(const AvlNode<contenttype>& source){
+     __AVL_TRACE__
      this->content = source.content;
      this->left = source.left==NULL?NULL:new AvlNode(source.left);
      this->right = source.right==NULL?NULL:new AvlNode(source.right);
@@ -66,6 +81,7 @@ Creates a depth copy of this node.
 
 */
   AvlNode<contenttype>& operator=(AvlNode<contenttype>&  source){
+     __AVL_TRACE__
      this->content = source.content;
      this->left = source.left?new AvlNode<contenttype>(source.left):NULL;
      this->right = source.right?new AvlNode<contenttype>(source.right):NULL;
@@ -80,6 +96,7 @@ Deletes the subtree represented by this tree.
 
 */
   ~AvlNode(){
+      __AVL_TRACE__
       if(left) delete left;
       if(right) delete right;
    }    
@@ -93,6 +110,7 @@ but keeping the subtrees in the memory
 
 */
    void cut(){
+      __AVL_TRACE__
       this->left = NULL;
       this->right = NULL; 
    }
@@ -105,6 +123,7 @@ returns the left subtree
 
 */
    AvlNode<contenttype> const* getLeftSon()const{
+      __AVL_TRACE__
       return left;
    }
 
@@ -115,6 +134,7 @@ Returns the right subtree.
 
 */
    AvlNode<contenttype> const* getRightSon()const{
+      __AVL_TRACE__
       return right;
    }
 
@@ -125,8 +145,9 @@ Computes the balance of this node.
 
 */
  int balance()const{
-      int h1 = left!=NULL?left->height+1:0;
-      int h2 = right!=NULL?right->height+1:0;
+      __AVL_TRACE__
+      int h1 = left?left->height+1:0;
+      int h2 = right?right->height+1:0;
       return h1-h2;
  }
 
@@ -141,6 +162,7 @@ are used to compute the new height.
 
 */
 void updateHeight(){
+   __AVL_TRACE__
    int h1 = left==NULL?0:left->height+1;
    int h2 = right==NULL?0:right->height+1;
    height = max(h1,h2);  
@@ -153,6 +175,7 @@ Returns true when this node have no sons
 
 */
 bool isLeaf()const{
+   __AVL_TRACE__
    return left==NULL && right==NULL;
 }
 
@@ -186,8 +209,22 @@ Creates an empty avl tree.
 
 */
    AVLTree(){
+     __AVL_TRACE__
      root = NULL;
    }
+/*
+2.2 Empty
+
+Removes all entries from the tree.
+
+*/
+ void  Empty(){
+      if(root){
+        delete root;
+      }
+      root=NULL;
+   }
+
 
 /*
 2.2 Copy Constructor
@@ -196,6 +233,7 @@ Creates a depth copy of the argument.
 
 */
    AVLTree(const AVLTree<contenttype>& T){
+      __AVL_TRACE__
       if(T.root==NULL)
         root = NULL;
       else
@@ -207,6 +245,7 @@ Creates a depth copy of the argument.
 
 */
    ~AVLTree(){
+      __AVL_TRACE__
       delete root;
    }
 
@@ -215,6 +254,7 @@ Creates a depth copy of the argument.
 
 */
     AVLTree<contenttype>& operator=(const AVLTree<contenttype> source){
+       __AVL_TRACE__
        delete root;
        source.root?new AvlNode<contenttype>(source.root) : NULL;
        return  *this;
@@ -226,6 +266,7 @@ Creates a depth copy of the argument.
 
 */
     bool IsEmpty()const{
+       __AVL_TRACE__
        return root==NULL;
     }
 
@@ -234,6 +275,7 @@ Creates a depth copy of the argument.
 
 */
     int Size() const{
+       __AVL_TRACE__
        return Size(root);
     }
 
@@ -242,8 +284,23 @@ Creates a depth copy of the argument.
 
 */
    int GetHeight() const{
+     __AVL_TRACE__
      return root->height;
    }
+
+
+/*
+2.8 check
+
+This function is for debugging only. 
+Error messages are written to out.
+
+*/
+   bool Check(ostream& out)const{
+     return Check(root,out);
+   }
+
+
 
 /* 
 2.1 Insert
@@ -252,6 +309,7 @@ Inserts an object into this tree.
 
 */
 void insert(const contenttype& x){
+   __AVL_TRACE__
    root = insert(root,x);
    root->updateHeight();
 }
@@ -263,6 +321,7 @@ Deletes x from the tree.
 
 */
 void remove(const contenttype& x){
+   __AVL_TRACE__
   root = remove(root,x);
   if(root!=NULL){
      root->updateHeight();
@@ -276,6 +335,7 @@ Checks whether x is contained in the tree
 
 */
 bool member(const contenttype& x) const{
+   __AVL_TRACE__
    return member(root,x);
 }
 
@@ -287,6 +347,7 @@ store din the tree which is smaller or equal to __pattern__.
 
 */
 contenttype const * GetNearestSmallerOrEqual(const contenttype& pattern)const {
+   __AVL_TRACE__
    return GetNearestSmallerOrEqual(root,pattern);
 }
  
@@ -299,6 +360,7 @@ returns the nearest entry to pattern which is greater or equal to it.
 */
 
 contenttype const* GetNearestGreaterOrEqual(const contenttype& pattern)const{
+   __AVL_TRACE__
    return GetNearestGreaterOrEqual(root,pattern);
 }
 
@@ -311,6 +373,7 @@ If the tree is empty, NULL is returned.
 
 */
 contenttype const* GetMin()const{
+   __AVL_TRACE__
    return GetMin(root);
 }
 
@@ -322,6 +385,7 @@ if the tree is empty.
 
 */
 contenttype const* GetMax()const{
+   __AVL_TRACE__
     return GetMax(root);
 }
 
@@ -333,6 +397,7 @@ than the argument or NULL if there is no such object.
 
 */
 contenttype const* GetNearestSmaller(const contenttype& pattern) const{
+   __AVL_TRACE__
    return GetNearestSmaller(root,pattern);
 }
 
@@ -343,12 +408,44 @@ This function works symmetrically to the ~GetNearestSmaller~ function.
 
 */
 contenttype const* GetNearestGreater(const contenttype& pattern) const{
+   __AVL_TRACE__
    return GetNearestGreater(root,pattern);
 }
 
 
+/*
+~print~
+
+Prints this tree to the give ostream. 
+The format is understand by the tree viewer of Secondo's Javagui.
+
+*/
+void Print(ostream& out)const{
+   out << "( tree (" << endl;
+   Print(root, out);
+   out << "))" << endl;
+} 
+
+
+
 
 private:
+
+
+void Print(const AvlNode<contenttype>* root, ostream& out)const{
+  if(!root){
+     out << " '' ";
+     return;
+  }
+  out << "'"<<root->content <<"'";
+  out << "(";
+  Print(root->getLeftSon(),out);
+  out << ")";
+  out << "(";
+  Print(root->getRightSon(),out);
+  out << ")";
+}
+
 
 /*
 2.11 rotateRight
@@ -359,6 +456,7 @@ operations exists
 
 */
 static AvlNode<contenttype>* rotateRight(AvlNode<contenttype>* root){
+   __AVL_TRACE__
    AvlNode<contenttype>* y = root->left;
    AvlNode<contenttype>* B = y->right;
    AvlNode<contenttype>* C = root->right;
@@ -377,6 +475,7 @@ Performs a left right double rotation around root
 
 */
 static AvlNode<contenttype>* rotateLeftRight(AvlNode<contenttype>* root){
+   __AVL_TRACE__
     AvlNode<contenttype>* x = root;
     AvlNode<contenttype>* z = root->left;
     AvlNode<contenttype>* y = z->right;
@@ -401,6 +500,7 @@ Performs a left rotation around root.
 
 */
 static AvlNode<contenttype>* rotateLeft(AvlNode<contenttype>* root){
+   __AVL_TRACE__
   AvlNode<contenttype>* y = root->right;
   AvlNode<contenttype>* B = y->left;
   root->right = B;
@@ -417,6 +517,7 @@ performs a right left double rotation around root
 
 */
 static AvlNode<contenttype>* rotateRightLeft(AvlNode<contenttype>* root){
+   __AVL_TRACE__
    AvlNode<contenttype>* x = root;
    AvlNode<contenttype>* z = x->right;
    AvlNode<contenttype>* y = z->left;
@@ -442,6 +543,7 @@ It returns the root of the new tree.
 */
 static  AvlNode<contenttype>* insert(AvlNode<contenttype>* root, 
                                   const contenttype& content){
+   __AVL_TRACE__
    if(root==NULL){ // leaf reached
       return new AvlNode<contenttype>(content);
    }
@@ -493,6 +595,7 @@ It returns the new root of the created tree.
 */
 static AvlNode<contenttype>* remove(AvlNode<contenttype>* root,
                                  const contenttype& x){
+   __AVL_TRACE__
    if(root==NULL){ // nothing found
       return NULL;
    }
@@ -505,9 +608,10 @@ static AvlNode<contenttype>* remove(AvlNode<contenttype>* root,
                            // get any unbalanced subtree when right is null
          return root; 
       }
-      if((root->balance())>1){ // we have to rotate
+      if(abs(root->balance())>1){ // we have to rotate
           // we know that the height of the left son is smaller than before
           int RB = root->right->balance();
+
           if(RB<=0){ // rotation is sufficient
              return rotateLeft(root);
           } else{
@@ -572,6 +676,7 @@ the result is the root of the tree with the deleted minimum.
 **/
 static AvlNode<contenttype>* deletemin(AvlNode<contenttype>* root,
                                     contenttype& value){
+   __AVL_TRACE__
    if(root->left==NULL){ // this node is to remove
        value = root->content; // save the value
        AvlNode<contenttype>* res = root->right;
@@ -604,12 +709,92 @@ Checks whether x is contained in the subtree given by __root__.
 */
 static bool member(AvlNode<contenttype>const* const root,
                   const contenttype& content){
+   __AVL_TRACE__
   if(root==NULL) return false;
   if(root->content==content) return true;
   return   content<root->content
           ? member(root->left,content) 
           : member(root->right,content);
 }
+
+/*
+2.1 Check
+
+*/
+static bool Check(AvlNode<contenttype>const* const root,
+                  ostream& out) {
+
+   if(!root){
+     return true;
+   } else {
+     if(!Check(root->left,out)){
+        return false;
+     } 
+     if(!Check(root->right,out)){
+        return false;
+     }
+     // check whether height is correct
+     int h1 = root->left?root->left->height + 1:0;
+     int h2 = root->right?root->right->height +1:0;     
+     int h = h1>h2?h1:h2;
+     if(!h==root->height){
+       out << "height not correct";
+       return false;
+     }
+     // check for balance
+     int diff = h1>h2?h1-h2:h2-h1;
+     if(diff>1){
+        out << "Balance is not correct h1 = " << h1 << ", h2 = " << h2;
+        return false;
+     }
+     return  CheckCmp(root->left,root->content,true,out) &&
+             CheckCmp(root->right,root->content,false,out); 
+     
+   }
+}
+/*
+2.1 CheckCmp
+
+This function helps to implement the ~Check~ function.
+
+
+*/
+static bool CheckCmp(AvlNode<contenttype>const* const root,
+                     contenttype content,
+                     bool smaller, ostream& out){
+
+  if(!root){
+    return true;
+  }
+  if(!CheckCmp(root->left,content,smaller,out)){
+      return false;
+  }
+  if(!CheckCmp(root->right,content,smaller,out)){
+      return false;
+  }
+  if(smaller){
+    if(root->content < content){
+      return true;
+    } else {
+      out << root->content << " should be smaller than " << content;
+      return false;
+    }
+  } else {
+    if((root->content < content) || (root->content==content)){
+      out << root->content << " should be greater than " << content;
+      return false;
+    } else {
+      return true;
+    }
+
+
+  }
+
+
+}
+                  
+
+
 
 /*
 2.1 GetNearestSmallerOrEqual
@@ -623,6 +808,7 @@ object, NULL is returned.
 static contenttype const*  GetNearestSmallerOrEqual(
                        AvlNode<contenttype> const* const root,
                        const contenttype& pattern) {
+   __AVL_TRACE__
    if(root==NULL) return NULL;
    contenttype value = root->content;   
  
@@ -653,6 +839,7 @@ The symmetric function to ~GetSmallerOrEqual~.
 static contenttype const* GetNearestGreaterOrEqual(
                              AvlNode<contenttype> const* const root,
                              const contenttype& pattern) {
+   __AVL_TRACE__
 
     if(root==NULL) return NULL;
     contenttype value = root->content;
@@ -682,6 +869,7 @@ returned.
 static contenttype const* GetNearestSmaller(
                              AvlNode<contenttype> const * const root,
                              const contenttype& pattern) {
+   __AVL_TRACE__
 
   if(root==NULL) return NULL;
   contenttype value = root->content;
@@ -712,6 +900,7 @@ stored objects (or the tree is empty), NULL is returned.
 static contenttype const* GetNearestGreater(
                              AvlNode<contenttype> const * const root,
                              const contenttype& pattern) {
+   __AVL_TRACE__
    if(root==NULL) return NULL;
    contenttype value = root->content;
    if(value==pattern){
@@ -739,6 +928,7 @@ Returns a pointer to the maximum entry or NULL if the tree is empty.
 
 static contenttype const* GetMax(
                             AvlNode<contenttype> const* const root) {
+   __AVL_TRACE__
    if(root==NULL) return NULL;
    AvlNode<contenttype> const* tmp; // create tmp to keep root constant
    tmp = root;
@@ -757,6 +947,7 @@ is empty.
 */
 static contenttype const* GetMin(
                              AvlNode<contenttype> const* const root) {
+   __AVL_TRACE__
    if(root==NULL) return NULL;
    AvlNode<contenttype> const* tmp; // create tmp to keep root constant
    tmp = root;
@@ -773,6 +964,7 @@ Computes the number of nodes in the given subtree.
 
 */
 static  int Size(AvlNode<contenttype> const * const root) {
+   __AVL_TRACE__
     if(root==NULL) return 0;
     return Size(root->left) + Size(root->right) + 1;
   }
