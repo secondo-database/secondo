@@ -4245,18 +4245,19 @@ Region* MakeOp::Intersection(const Region* reg1, const Region* reg2)
    }
    // initialisations
    SLine sweepline;
-   int i = 0;   int j = 0;    int counter = 0;
+   int i = 0; int j = 0; int counter = 0;
    SEntry oldEntry1, oldEntry2;
-   BinTreeNode<SEntry>* oldnode1;
-   BinTreeNode<SEntry>* oldnode2;
+   BinTreeNode<SEntry>* oldnode1 = 0;
+   BinTreeNode<SEntry>* oldnode2 = 0;
    HalfSegment hsAkt;
-   const HalfSegment *hs1, *hs2;
+   const HalfSegment *hs1 = 0;
+   const HalfSegment *hs2 = 0;
    Region* result = new Region(0);
-   result ->Clear();
+   result->Clear();
    result->StartBulkLoad();
    State status;
-   Coord aktSweep;
-   Coord oldSweep;
+   Coord aktSweep = 0;
+   Coord oldSweep = 0;
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size() ) {
      // select the first segment
@@ -4268,9 +4269,6 @@ Region* MakeOp::Intersection(const Region* reg1, const Region* reg2)
       }
       else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
       else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2; status = SECOND;}
- if (hsAkt.GetDomPoint().GetX() != aktSweep)
-// cout << " ======== neue Sweep ====== " << endl;
-// cout << " status = " << status << endl;
       aktSweep = hsAkt.GetDomPoint().GetX();
       if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
          hsAkt.SetLeftDomPoint(true);
