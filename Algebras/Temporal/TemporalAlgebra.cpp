@@ -2647,8 +2647,8 @@ bool MPoint::Present( const Periods& t ) const
     Instant tmax; t.Maximum(tmax);
     double pmin = tmin.ToDouble();
     double pmax = tmax.ToDouble();
-    if( (pmin < MeMin && !AlmostEqual(pmin,MeMin)) ||
-         (pmax > MeMax && !AlmostEqual(pmax,MeMax))
+    if( (pmax < MeMin && !AlmostEqual(pmax,MeMin)) ||
+        (pmin > MeMax && !AlmostEqual(pmin,MeMax))
       )
     {
       return false;
