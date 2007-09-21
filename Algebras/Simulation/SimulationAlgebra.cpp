@@ -1325,6 +1325,7 @@ struct SplitMpointLocalInfo
 
   int  pos;       // unit counter
   int  size;      // number of units
+  int trip;       // number of current trip
   bool finished;  // whether we are finished or not
   UPoint u1;
 };
@@ -1346,6 +1347,7 @@ int sim_trips_VM ( Word* args, Word& result,
 //       cout << "sim_trips_VM received OPEN" << endl;
       sli = new SplitMpointLocalInfo;
       sli->pos = 0;
+      sli->trip = 0;
       local = SetWord(sli);
 
       if ( !mpoint->IsDefined() ||
@@ -1370,23 +1372,33 @@ int sim_trips_VM ( Word* args, Word& result,
 
       if (local.addr == 0)
       {
+//         cout << "We have already finished!" << endl;
         result = SetWord( 0 );
         return CANCEL;
       }
       sli = (SplitMpointLocalInfo*) local.addr;
+      if ( sli->finished )
+      {
+//         cout << "We have already finished!" << endl;
+        result = SetWord( 0 );
+        return CANCEL;
+      }
 
       if ( sli->pos >= sli->size )
       {
         if ( sli->pos == sli->size && sli->u1.IsDefined() )
         { // special case: last unit of the mpoint is stationary and
           // was scheduled to form an own trip
+          sli->trip++;
           res = new MPoint(true);
           res->Clear();
           res->StartBulkLoad();
+//           cout << " Starting New Trip #" << sli->trip << ":" << endl;
 //           cout << " => Finished. Final single unit trip" << endl;
 //           cout << " Adding (0)"; sli->u1.Print(cout); cout << endl;
           res->MergeAdd( sli->u1 );
           res->EndBulkLoad( false ); // do not sort units
+//           cout << " Finished Trip " << sli->trip << "." << endl;
           assert( res->IsValid() );           // XRIS: only for debugging
           result = SetWord( res );
           sli->u1.SetDefined( false );
@@ -1395,7 +1407,7 @@ int sim_trips_VM ( Word* args, Word& result,
         }
         else
         { // We have just finished the complete mpoint
-//           cout << " => Finished." << endl;
+//           cout << "We have already finished!" << endl;
           sli->finished = true;
           result = SetWord( 0 );
           return CANCEL;
@@ -1404,9 +1416,11 @@ int sim_trips_VM ( Word* args, Word& result,
 
       // else: regular case
       newtrip = false;
+      sli->trip++;
       res = new MPoint(true);
       res->Clear();
       res->StartBulkLoad();
+//       cout << " Starting Trip " << sli->trip << ":" << endl;
 
       while( sli->pos < sli->size && !newtrip)
       {
@@ -1567,22 +1581,23 @@ int sim_trips_VM ( Word* args, Word& result,
       } // end while( sli->pos < sli->size && !newtrip )
       if ( !newtrip && sli->u1.IsDefined() )
       { // insert the final unit
-//         cout << " => Global final unit append." << endl;
-//         cout << " Adding Final (9)"; sli->u1.Print(cout); cout << endl;
+//          cout << " => Global final unit append." << endl;
+//          cout << " Adding Final (9)"; sli->u1.Print(cout); cout << endl;
         res->MergeAdd( sli->u1 );
         sli->u1.SetDefined( false ); // invalidate unit (for additional safety)
         sli->finished = true;        // we have finished
       }
       res->EndBulkLoad( false ); // do not sort units
+//       cout << " Finished Trip #" << sli->trip << "." << endl;
       assert( res->IsValid() );                    // XRIS: only for debugging
       result = SetWord( res );
-//       cout << endl
-//            << "===================================================" << endl;
+//        cout << endl
+//             << "===================================================" << endl;
       return YIELD;
 
     case CLOSE :
 
-//       cout << "sim_trips_VM received CLOSE" << endl;
+//        cout << "sim_trips_VM received CLOSE" << endl;
       if (local.addr != 0)
       {
         sli = (SplitMpointLocalInfo*) local.addr;
