@@ -2554,6 +2554,7 @@ void MPoint::Add( const UPoint& unit )
   {
 //     cout << "        MPoint::Add FIRST ADD" << endl;
 //     cout << "\t Old bbox = "; bbox.Print(cout);
+    bbox.SetDefined( true );
     bbox = unit.BoundingBox();
 //     cout << "\n\t New bbox = "; bbox.Print(cout);
   } else {
@@ -2621,6 +2622,12 @@ bool MPoint::Present( const Instant& t ) const
         (instd > maxt && !AlmostEqual(instd,mint))
       )
     {
+//       cout << __PRETTY_FUNCTION__<< "(" << __FILE__ << __LINE__
+//         << "): Bounding box check failed:" << endl;
+//       cout << "\tInstant : "; t.Print(cout); cout << endl;
+//       cout << "\tinstd   : " << instd << endl;
+//       cout << "\tmint/maxt :" << mint << "\t/\t" << maxt << endl;
+//       cout << "\tBBox = "; bbox.Print(cout); cout << endl;
       return false;
     }
   }
@@ -2636,9 +2643,7 @@ bool MPoint::Present( const Periods& t ) const
   assert( IsOrdered() );
   assert( t.IsDefined() );
   assert( t.IsOrdered() );
-
-  Periods defTime( 0 );
-  DefTime( defTime );
+  
   if(bbox.IsDefined())
   { // do MBR-check
     double MeMin = bbox.MinD(2);
@@ -2651,9 +2656,18 @@ bool MPoint::Present( const Periods& t ) const
         (pmin > MeMax && !AlmostEqual(pmin,MeMax))
       )
     {
+//       cout << __PRETTY_FUNCTION__<< "(" << __FILE__ << __LINE__
+//            << "): Bounding box check failed:" << endl;
+//       cout << "\tPeriod : "; t.Print(cout); cout << endl;
+//       cout << "\tpmin/pmax : " << pmin  << "\t/\t" << pmax << endl;
+//       cout << "\ttmin/tmax :" << tmin << "\t/\t" << tmax << endl;
+//       cout << "\tMPoint : " << MeMin << "\t---\t" << MeMax << endl;
+//       cout << "\tBBox = "; bbox.Print(cout); cout << endl;
       return false;
     }
   }
+  Periods defTime( 0 );
+  DefTime( defTime );
   return t.Intersects( defTime );
 }
 
@@ -2678,6 +2692,12 @@ void MPoint::AtInstant( const Instant& t, Intime<Point>& result ) const
            (maxd < instd && !AlmostEqual(maxd,instd))
         )
       {
+//         cout << __PRETTY_FUNCTION__<< "(" << __FILE__ << __LINE__
+//           << "): Bounding box check failed:" << endl;
+//         cout << "\tInstant : "; t.Print(cout); cout << endl;
+//         cout << "\tinstd   : " << instd << endl;
+//         cout << "\tmind/maxd :" << mind << "\t/\t" << maxd << endl;
+//         cout << "\tBBox = "; bbox.Print(cout); cout << endl;
         result.SetDefined(false);
       } else
       {
@@ -2726,6 +2746,15 @@ void MPoint::AtPeriods( const Periods& p, MPoint& result ) const
       if( (mind > permaxd && !AlmostEqual(mind,permaxd)) ||
           (maxd < permind && !AlmostEqual(maxd,permind)))
       {
+//         cout << __PRETTY_FUNCTION__<< "(" << __FILE__ << __LINE__
+//           << "): Bounding box check failed:" << endl;
+//         cout << "\tPeriod : "; p.Print(cout); cout << endl;
+//         cout << "\tperMinInst : "; perMinInst.Print(cout); cout << endl;
+//         cout << "\tperMaxInst : "; perMaxInst.Print(cout); cout << endl;
+//         cout << "\tpermind/permaxd : " << permind  << "\t/\t"
+//              << permaxd << endl;
+//         cout << "\tmind/maxd :" << mind << "\t/\t" << maxd << endl;
+//         cout << "\tBBox = "; bbox.Print(cout); cout << endl;
         result.SetDefined(true);
       } else
       {
@@ -2825,14 +2854,12 @@ void MPoint::RestoreBoundingBox(const bool force)
   { // construct bbox
     const UPoint *unit;
     int size = GetNoComponents();
-    bool isfirst = true;
     for( int i = 0; i < size; i++ )
     {
       Get( i, unit );
-      if (isfirst)
+      if (i == 0)
       {
         bbox = unit->BoundingBox();
-        isfirst = false;
       }
       else
       {
@@ -2916,23 +2943,20 @@ void MPoint::MergeAdd(const UPoint& unit){
 
   int size = GetNoComponents();
   if(size==0){ // the first unit
-     Add(unit);
-     bbox = unit.BoundingBox();
-     return;
+    Add(unit); // also adopts bbox
+    return;
   }
   const UPoint* last;
   Get(size-1,last);
   if(last->timeInterval.end!=unit.timeInterval.start ||
      !( (last->timeInterval.rc )  ^ (unit.timeInterval.lc))){
      // intervals are not connected
-     Add(unit);
-     bbox = bbox.Union(unit.BoundingBox());
-     return;
+    Add(unit); // also adopts bbox
+    return;
   }
   if(!AlmostEqual(last->p1, unit.p0)){
     // jump in spatial dimension
-    Add(unit);
-    bbox = bbox.Union(unit.BoundingBox());
+    Add(unit);  // also adopts bbox
     return;
   }
   Interval<Instant> complete(last->timeInterval.start,
@@ -2943,12 +2967,12 @@ void MPoint::MergeAdd(const UPoint& unit){
   Point p;
   upoint.TemporalFunction(last->timeInterval.end, p, true);
   if(!AlmostEqual(p,last->p0)){
-     Add(unit);
-     bbox = bbox.Union(unit.BoundingBox());
-     return;
+    Add(unit); // also adopts bbox
+    return;
   }
   assert( upoint.IsValid() );
   assert( upoint.IsDefined() );
+  bbox = bbox.Union(upoint.BoundingBox()); // update bbox
   units.Put(size-1,upoint); // overwrite the last unit by a connected one
 }
 
