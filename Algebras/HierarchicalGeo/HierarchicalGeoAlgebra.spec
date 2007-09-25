@@ -17,9 +17,14 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator epsylon alias EPSYLON pattern op ( _ )
-operator val alias VAL pattern op( _ )
-operator tocpoint alias TOCPOINT pattern op( _, _ )
+operator epsilon alias EPSILON pattern op ( _ )
+
+# During the implementation of the datatypes 'cupoint' and 'cmpoint' a re-
+# implementation of the uncertain-template became necessary.  So the following
+# two operators won't work anymore.
+
+#operator val alias VAL pattern op( _ )
+#operator tocpoint alias TOCPOINT pattern op( _, _ )
 
 
 

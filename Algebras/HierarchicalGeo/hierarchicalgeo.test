@@ -63,67 +63,108 @@ let ctest2 = [const cpoint value(50.0 (8888.8 7777.7))];
 
 #testcase querycpoint
 #yields success
-query ctest2
+query ctest2;
 
+#testcase deletecpoint
+#yields success
+delete ctest1;
 
 #testcase queryepsilon
 #yields (real 50.0)
 query epsilon(ctest2)
 
 
-#testcase queryval
-#yields success
-query val(ctest2)
-
-
-#testcase tocpoint with wrong arguments (first argument is not a real)
-#yields error
-let calex = tocpoint(33, alexanderplatz)
-
-
-#testcase tocpoint with too many arguments
-#yields error
-let calex = tocpoint(44.5, true, alexanderplatz)
-
-
-#testcase tocpoint
-#yields success
-let calex = tocpoint(44.5, alexanderplatz)
-
-
-#testcase query tocpoint-object
-#yields success
-query calex
-
-
-#testcase deletecpoint
-#yields success
-delete ctest1;
-
+# 2 - Creating, updating, querying and deleting a cupoint-object
 
 #testcase createcupoint
+#yields success
+create cuptest1 : cupoint;
+
+#textcase updatecupoint
+#yields success
+update cuptest1 := [const cupoint value(23.4 (
+            ("2003-11-20-07:01:44.586" "2003-11-20-07:01:50" TRUE FALSE)
+            (-3544.0 14312.0 -3560.0 14235.0)))];
+
+
+#testcase letcupoint
+#yields success
+let cuptest2 = [const cupoint value (44.5 (
+            ("2003-11-20-07:01:50" "2003-11-20-07:02" TRUE FALSE)
+            (-3560.0 14235.0 -3560.0 14235.0)))];
+            
+#testcase querycupoint
+#yields (cupoint (23.4 (\
+            ("2003-11-20-07:01:44.586" "2003-11-20-07:01:50" TRUE FALSE)\
+            (-3544.0 14312.0 -3560.0 14235.0))) )
+query cuptest1;
+
+#testcase queryepsiloncupoint
+#yields (real 44.5)
+query epsilon(cuptest2);
+
+
+#testcase deletecupoint
+#yields success
+delete cuptest1;
+
+
+# 3 - Creating, updating, querying and deleting a cmpoint-object
+
+#testcase createcmpoint
 #yields success 
-create cuptest : cupoint;
+create cmptest1 : cmpoint;
 
 
-#testcase updatecupoint
+#testcase updatecmpoint
 #yields success
-update cuptest := [const cupoint value(50.0 (
-							("2003-11-20-07:01:44.586" "2003-11-20-07:01:50" TRUE FALSE)
-			        (-3544.0 14312.0 -3560.0 14235.0)))];
+update cmptest1 := [const cmpoint value((34.5 (
+            ("2003-11-20-07:01:38.530" "2003-11-20-07:01:44.586" TRUE FALSE)
+            (-3512.0 14394.0 -3544.0 14312.0)))
+    (23.4 (
+            ("2003-11-20-07:01:44.586" "2003-11-20-07:01:50" TRUE FALSE)
+            (-3544.0 14312.0 -3560.0 14235.0)))
+    (44.5 (
+            ("2003-11-20-07:01:50" "2003-11-20-07:02" TRUE FALSE)
+            (-3560.0 14235.0 -3560.0 14235.0))))];
 
-
-#testcase querycpoint
+#testcase letcmpoint
 #yields success
-query cuptest;
+let cmptest2 = [const cmpoint value((22.25 (
+            ("2003-11-20-07:01:38.530" "2003-11-20-07:01:44.586" TRUE FALSE)
+            (-3412.0 14394.0 -3444.0 14312.0)))
+    (12.3 (
+            ("2003-11-20-07:01:44.586" "2003-11-20-07:01:50" TRUE FALSE)
+            (-3444.0 14312.0 -3460.0 14235.0)))
+    (15.0 (
+            ("2003-11-20-07:01:50" "2003-11-20-07:02" TRUE FALSE)
+            (-3460.0 14235.0 -3460.0 14235.0))))];
 
-#testcase deletecpoint
+#testcase querycmptest
+#yields (cmpoint ( (34.5 (\
+            ("2003-11-20-07:01:38.530" "2003-11-20-07:01:44.586" TRUE FALSE)\
+            (-3512.0 14394.0 -3544.0 14312.0)))\
+    (23.4 (\
+            ("2003-11-20-07:01:44.586" "2003-11-20-07:01:50" TRUE FALSE)\
+            (-3544.0 14312.0 -3560.0 14235.0)))\
+    (44.5 (\
+            ("2003-11-20-07:01:50" "2003-11-20-07:02" TRUE FALSE)\
+            (-3560.0 14235.0 -3560.0 14235.0)))) )
+query cmptest1;
+
+
+#testcase queryepsiloncmpoint
+#yields (real 44.5)
+query epsilon(cmptest1);
+
+#testcase deletecmpoint
 #yields success
-delete cuptest;
+delete cmptest1;
 
 
 #teardown
 
 delete ctest2;
-delete calex;
+delete cuptest2;
+delete cmptest2;
 close database;
