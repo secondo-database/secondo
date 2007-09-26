@@ -339,4 +339,9 @@ Signature: line  -> stream (line)
 Example  : query (segments(BGrenzenLine) count) = no_segments(BGrenzenLine)
 Result   : (bool TRUE)
 
+Operator : makeline 
+Number   : 1
+Signature: point x point -> line
+Example  : query makeline([const point value ( 0 0 )] , [const point value ( 100 100)])
+Result   : (line ( (0.0 0.0 100.0 100.0))) 
 

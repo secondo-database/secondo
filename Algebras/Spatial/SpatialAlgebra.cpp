@@ -11089,6 +11089,28 @@ ListExpr RealminizeTypeMap(ListExpr args){
 }
 
 /*
+10.1.14 Type Mapping for the ~makeline~ operator
+
+Signature is point x point -> line
+
+*/
+ListExpr MakeLineTypeMap(ListExpr args){
+  int len;
+  if((len = nl->ListLength(args))!=2){
+    ErrorReporter::ReportError("two arguments expected, but got " + len);
+    return nl->TypeError();
+  }
+  if(nl->IsEqual(nl->First(args),"point") &&
+     nl->IsEqual(nl->Second(args),"point")){
+     return nl->SymbolAtom("line");
+  } else {
+    ErrorReporter::ReportError("line x line expected");
+    return nl->TypeError();
+  }
+}
+
+
+/*
 10.3 Selection functions
 
 A selection function is quite similar to a type mapping function. The only
@@ -14403,6 +14425,37 @@ int SpatialRealminize(Word* args, Word& result, int message,
   return 0;
 }
 
+
+/*
+10.4.34 Value Mapping for the ~makeline~ operator
+
+*/
+int SpatialMakeLine(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  Point* p1 = (Point*) args[0].addr;
+  Point* p2 = (Point*) args[1].addr;
+  Line* res = (Line*) result.addr;
+  res->Clear();
+  if(!p1->IsDefined() || !p2->IsDefined()){
+       res->SetDefined(false);
+       return 0;
+  }
+  if(AlmostEqual(*p1,*p2)){
+     return 0;
+  }
+  res->StartBulkLoad();
+  HalfSegment h(true, *p1, *p2);
+  h.attr.edgeno = 0;
+  (*res) += h;
+  h.SetLeftDomPoint(false);
+  (*res) += h;
+  res->EndBulkLoad();
+  return 0;
+}
+
+
 /*
 10.5 Definition of operators
 
@@ -14948,6 +15001,15 @@ const string SpatialSpecRealminize  =
     "<text>query realminize(train7sections)</text--->"
     ") )";
 
+const string SpatialSpecMakeLine  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>point x point  -> line </text--->"
+    "<text> makeline( _, _ )  </text--->"
+    "<text>Create a segment from the arguments.</text--->"
+    "<text>query makeline([const point value (0 0)],"
+           " [ const point value (100 40)])</text--->"
+    ") )";
+
 /*
 10.5.3 Definition of the operators
 
@@ -15279,6 +15341,13 @@ Operator realminize (
   Operator::SimpleSelect,
   RealminizeTypeMap );
 
+Operator makeline (
+    "makeline",
+  SpatialSpecMakeLine,
+  SpatialMakeLine,
+  Operator::SimpleSelect,
+  MakeLineTypeMap );
+
 /*
 11 Creating the Algebra
 
@@ -15347,6 +15416,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialget );
     AddOperator( &spatialsimplify);
     AddOperator( &realminize);
+    AddOperator( &makeline);
   }
   ~SpatialAlgebra() {};
 };
