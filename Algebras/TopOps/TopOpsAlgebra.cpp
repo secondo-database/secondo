@@ -82,7 +82,8 @@ many cases.
 #include "TopRel.h"
 #include "StandardTypes.h"
 
-#define __TRACE__ cout << __FILE__ << "@" << __LINE__ << endl;
+//#define __TRACE__ cout << __FILE__ << "@" << __LINE__ << endl;
+#define __TRACE__
 
 
 /*
@@ -337,8 +338,6 @@ the ~y1~ values for the comparison.
 
   bool Contains(const Point p) const{
 
-     __TRACE__
-
      Point p1(true,x1,y1);
      Point p2(true,x2,y2);
      if(AlmostEqual(p1,p)){
@@ -366,7 +365,8 @@ the ~y1~ values for the comparison.
         }
      } else {
         double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
-        return AlmostEqual(y,y1);
+        bool res =  AlmostEqual(y,p.GetY());
+        return res;
      } 
   }
 
@@ -1355,6 +1355,7 @@ void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
   
   bool done = false;
   const HalfSegment* hs;
+  bool innercand = false;
   while(!done && pos<size){
      reg->Get(pos,hs);
      double cx = hs->GetDomPoint().GetX();
@@ -1365,9 +1366,12 @@ void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
            if(hs->Contains(*p)){
               res.SetBI(true);
               done = true;
+           } else {
+              pos++;
            }
         } else {
           if(hs->IsLeftDomPoint()){
+             AvlEntry::x = xpos;
              AvlEntry::compexact = false;
              sss.insert(entry);    
              assert(sss.Check(cerr)); 
@@ -1378,16 +1382,21 @@ void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
              AvlEntry::x = xpos;
              AvlEntry::compexact=false;
              const AvlEntry* sm = sss.GetNearestSmallerOrEqual(pe);
-             if(sm==NULL){ // nothing found, point is located in exterior
-                res.SetEI(true);
+             if(sm==NULL){ // nothing found, point is possible 
+                           //located in exterior
+                pos++;
              }  else if(sm->Contains(*p)){
                 res.SetBI(true);
+                done = true;
              } else if(sm->isInsideAbove()){
-                res.SetII(true);
+                AvlEntry::x = xpos;
+                AvlEntry::compexact = true;
+                sss.remove(*sm);
+                innercand = true;
+                pos++;
              }  else {
-                res.SetEI(true);
+                 pos++;
              }          
-             done = true;
           }
         } 
      } else if(cx>xpos){
@@ -1397,14 +1406,24 @@ void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
        AvlEntry::compexact=false;
        const AvlEntry* sm = sss.GetNearestSmallerOrEqual(pe);
        if(sm==NULL){ // nothing found, point is located in exterior
-          res.SetEI(true);
+          if(innercand){
+            res.SetII(true);
+          } else {
+            res.SetEI(true);
+          }
        }  else if(sm->Contains(*p)){
           res.SetBI(true);
        } else if(sm->isInsideAbove()){
           res.SetII(true);
-       }  else {
-          res.SetEI(true);
-       }          
+       }  else if(innercand){
+          res.SetII(true);
+       } else {
+          if(innercand){
+            res.SetII(true);
+          } else {
+            res.SetEI(true);
+          }
+       }         
        done = true;
      } else {
        AvlEntry::x = cx;
@@ -1422,8 +1441,11 @@ void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
      }
   }
   if(!done){
-
-    res.SetEI(true);  
+    if(innercand){
+      res.SetII(true);
+    } else {
+      res.SetEI(true);  
+    }
   }
 
 }
@@ -1480,33 +1502,155 @@ void GetInt9M(Region const* const reg, Points const* const ps, Int9M& res){
     return;
   }
 
-  // naive implementation 
-  int size = ps->Size();
-  Point const*   CurrentPoint;
-  bool ii = false;
-  bool ei = false;
-  bool bi = false;
-  bool done = ii && ei && bi;
-  for(int i=0;i<size && !done ;i++){
-     ps->Get(i,CurrentPoint);
-     pbox = CurrentPoint->BoundingBox();
-     if(!regbox.Intersects(pbox)){
-        res.SetEI(true),
-        ei = true;
-     } else {
-         if(!ii && reg->InnerContains(*CurrentPoint)){
-           res.SetII(true);
-           ii = true;
-         } else if(!bi && reg->OnBorder (*CurrentPoint)){
-           res.SetBI(true);
-           bi = true;
-         } else if(!ei && !reg->Contains(*CurrentPoint)){
-           ei = true;
-           res.SetEI(true);
-         }
+  AVLTree<AvlEntry> sss;
+  int size_reg = reg->Size(); 
+  int pos_reg = 0;
+  int size_poi = ps->Size();
+  int pos_poi = 0;
+  bool done = false;
+
+  vector<Point> cps; // all points located on the same x coordinate
+  // fill the vector
+  const Point* cp;
+  double x_poi;
+  ps->Get(pos_poi,cp);
+  cps.push_back(*cp);
+  x_poi = cp->GetX();
+  bool d = false;
+  pos_poi++;
+  while(pos_poi<size_poi && ! d){
+     ps->Get(pos_poi,cp);
+     if(AlmostEqual(cp->GetX(),x_poi)){ // p is part of this group
+       cps.push_back(*cp);
+       pos_poi++;
+     } else { // start of the next group
+       d = true;
      }
-     done = ii && ei && bi;
   }
+  const HalfSegment* hs;
+  while(!done){
+    reg->Get(pos_reg,hs);
+    Point p = hs->GetDomPoint();
+    double x_reg = p.GetX();
+    bool isLeft = hs->IsLeftDomPoint();
+    if(AlmostEqual(x_reg,x_poi)){
+      AvlEntry::x = x_poi;
+      AvlEntry e(hs);
+      if(e.isVertical()){
+        // check if there are points located on this vertical segment
+        vector<Point>::iterator it, it_first, it_last;
+        bool d = false;
+        bool first = true;
+        for(it = cps.begin();it!=cps.end() && !d; it++){
+           Point p = *it;
+           if(e.Contains(p)){
+              if(first){
+                 first = false;
+                 it_first = it;
+              }
+              it_last = it;
+           } 
+        }  
+        if(!first){ // there are points on this segment
+           res.SetBI(true);
+            it_last++;
+           cps.erase(it_first,it_last);
+        }
+        pos_reg++; // next hs
+      } else { // non-vertical segments
+        __TRACE__
+        if(isLeft){ // left endpoint
+           AvlEntry e(hs);
+           sss.insert(e);
+        } else { // right endpoint 
+           // check for points located at this point
+           bool d = false;
+           for(vector<Point>::iterator it = cps.begin();
+               it!=cps.end() && !d; it++){
+              if(AlmostEqual(p,*it)){
+                res.SetBI(true);
+                d = true; 
+                cps.erase(it);
+              }
+           }
+           AvlEntry::compexact=true;
+           sss.remove(e);
+        }
+        pos_reg++;
+      } 
+    } else if (x_reg<x_poi){
+      
+      AvlEntry::x = x_reg;
+      AvlEntry e(hs);
+      if(!e.isVertical()){ // ignore vertical segments
+         if(isLeft){
+           AvlEntry::compexact = false;
+           sss.insert(e);
+         } else {
+           AvlEntry::compexact = true;
+           sss.remove(e);
+         }
+      }
+      pos_reg++;
+    } else { // x_hs > x_poi
+       // check the current pointset again the content of sss
+       AvlEntry::x = x_poi;
+       bool full = false;
+       AvlEntry::compexact = false;
+       
+
+       for(vector<Point>::iterator i = cps.begin();i!=cps.end() && !full;i++){
+          Point cp = *i;
+          AvlEntry e(&cp);
+          const AvlEntry* seg = sss.GetNearestSmallerOrEqual(e);
+          if(seg==NULL){ // point under all segments
+            res.SetEI(true);
+          } else if(seg->Contains(*i)){ // on boundary
+            res.SetBI(true);
+          } else if(seg->isInsideAbove()){ 
+            res.SetII(true);
+          } else { 
+            res.SetEI(true);
+          }
+          full = res.GetEI() && res.GetII() && res.GetBI();
+       }
+       if(full || pos_poi >= size_poi){ 
+         cps.clear();
+         done = true;
+       } else { // build the next group of point
+         cps.clear();
+       }
+    }
+    if(cps.empty()){ // all points processed, get the next group
+       if(pos_poi>=size_poi){ // no points available
+         done = true;
+       } else {
+         ps->Get(pos_poi,cp);
+         cps.push_back(*cp);
+         x_poi = cp->GetX();
+         bool d = false;
+         pos_poi++;
+         while(pos_poi<size_poi && ! d){
+           ps->Get(pos_poi,cp);
+           if(AlmostEqual(cp->GetX(),x_poi)){ // p is part of this group
+              cps.push_back(*cp);
+              pos_poi++;
+            } else { // start of the next group
+              d = true;
+            }
+         }
+       }
+    }
+    if(res.GetII() && res.GetEI() && res.GetBI()){
+        done = true; // all possible intersections found
+    }
+    if(pos_reg>=size_reg){
+       done = true;
+    }
+  }
+  if(pos_poi<size_poi-1 || !cps.empty()){ // there are points right of reg
+    res.SetEI(true);
+  }  
 
 }
 
