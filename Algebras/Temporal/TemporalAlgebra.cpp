@@ -2783,6 +2783,8 @@ void MPoint::AtPeriods( const Periods& p, MPoint& result ) const
           { // we have overlapping intervals, now
             UPoint r;
             unit->AtInterval( *interval, r );
+            assert( r.IsDefined() );
+            assert( r.IsValid()   );
             result.Add( r );
 //          cout << "\n\tunit = "; unit->Print(cout); cout << endl;
 //          cout << "\tinterval =       "; interval->Print(cout); cout << endl;

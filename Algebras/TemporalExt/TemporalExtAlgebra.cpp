@@ -4826,7 +4826,6 @@ int ConcatSValueMap(Word* args, Word& result,
      }
    }
 
-   
    qp->Open(args[0].addr);
    qp->Request(args[0].addr, next);
    bool d = true;
@@ -4841,6 +4840,8 @@ int ConcatSValueMap(Word* args, Word& result,
 }
 
 static bool EverNearerThan(MPoint* arg0, MPoint* arg1, double dist){
+  assert( arg0->IsDefined() );
+  assert( arg1->IsDefined() );
   RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(*arg0, *arg1);
   unsigned int size = rp.Size();
   unsigned int pos = 0;
@@ -4874,6 +4875,8 @@ static bool EverNearerThan(MPoint* arg0, MPoint* arg1, double dist){
 }
 
 static bool EverNearerThan(Point* arg0, MPoint* arg1, double dist){
+  assert( arg0->IsDefined() );
+  assert( arg1->IsDefined() );
   for(int i = 0; i< arg1->GetNoComponents(); i++){
     const UPoint *upoint;
     arg1->Get(i, upoint);
@@ -4888,7 +4891,9 @@ static bool EverNearerThan(Point* arg0, MPoint* arg1, double dist){
 }
 
 static bool EverNearerThan(MPoint* arg0, Point* arg1, double dist){
-   return EverNearerThan(arg1,arg0,dist);
+  assert( arg0->IsDefined() );
+  assert( arg1->IsDefined() );
+  return EverNearerThan(arg1,arg0,dist);
 }
 
 

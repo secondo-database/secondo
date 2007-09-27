@@ -4748,13 +4748,15 @@ void Mapping<Unit, Alpha>::Get( const int i, const Unit*& unit ) const
   units.Get( i, unit );
   if ( !unit->IsDefined() )
   {
-    cout << "\nMapping::Get(" << i << ", Unit): Unit is undefined:";
+    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+         << " Get(" << i << ", Unit): Unit is undefined:";
     unit->Print(cout); cout << endl;
     assert( false );
   }
   if ( !unit->IsValid() )
   {
-    cout << "\nMapping::Get(" << i << ", Unit): Unit is invalid:";
+    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+      << " Get(" << i << ", Unit): Unit is invalid:";
     unit->Print(cout); cout << endl;
     assert( false );
   }
@@ -4765,13 +4767,15 @@ void Mapping<Unit, Alpha>::Add( const Unit& unit )
 {
   if ( !unit.IsDefined() )
   {
-    cout << "\nMapping::Add(): Unit is undefined:";
+    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+      << " Add(Unit): Unit is undefined:";
     unit.Print(cout); cout << endl;
     assert( false );
   }
   if ( !unit.IsValid() )
   {
-    cout << "\nMapping::Add(): Unit is invalid:";
+    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+      << " Add(Unit): Unit is invalid:";
     unit.Print(cout); cout << endl;
     assert( false );
   }
@@ -4787,13 +4791,15 @@ void Mapping<Unit, Alpha>::MergeAdd( Unit& unit )
 
   if ( !unit.IsDefined() )
   {
-    cout << "\nMapping::MergeAdd(): unit is undefined:";
+    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+         << " MergeAdd(Unit): Unit is undefined:";
     unit.Print(cout); cout << endl;
     assert( false );
   }
   if ( !unit.IsValid() )
   {
-    cout << "\nMapping::MergeAdd(): unit is invalid:";
+    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+      << " MergeAdd(Unit): Unit is invalid:";
     unit.Print(cout); cout << endl;
     assert( false );
   }
@@ -4807,24 +4813,24 @@ void Mapping<Unit, Alpha>::MergeAdd( Unit& unit )
       (lastunit.timeInterval.rc || unit.timeInterval.lc)) {
           lastunit.timeInterval.end = unit.timeInterval.end;
           lastunit.timeInterval.rc = unit.timeInterval.rc;
-          assert( lastunit.IsValid() );
-          assert( lastunit.IsDefined() );
           if ( !lastunit.IsDefined() )
           {
-            cout << "\nMapping::MergeAdd(): lastunit is undefined:";
+            cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+              << "\nMapping::MergeAdd(): lastunit is undefined:";
             lastunit.Print(cout); cout << endl;
             assert( false );
           }
           if ( !lastunit.IsValid() )
           {
-            cout << "\nMapping::MergeAdd(): lastunit is invalid:";
+            cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+              << "\nMapping::MergeAdd(): lastunit is invalid:";
             lastunit.Print(cout); cout << endl;
             assert( false );
           }
           units.Put(size - 1, lastunit);
       }
       else {
-          units.Append( unit);
+          units.Append( unit );
       }
   }
   else {

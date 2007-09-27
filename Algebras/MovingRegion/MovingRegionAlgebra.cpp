@@ -6215,7 +6215,7 @@ void MRegion::IntersectionRP(
 
 For each interval in the refinement partition, we have to check whether
 it maps to a region and point unit. If not, there is obviously no intersection
-during this interval and we can skip if. Otherwise, we check if the region
+during this interval and we can skip it. Otherwise, we check if the region
 and point unit, both restricted to this interval, intersect.
 
 */
@@ -8035,6 +8035,8 @@ static int AtValueMap_MPoint(Word* args,
 
     result = qp->ResultStorage(s);
     MPoint* res = (MPoint*) result.addr;
+    res->Clear();
+    res->SetDefined(true);
 
     try {
         MPoint* mp = (MPoint*) args[0].addr;
@@ -8072,6 +8074,8 @@ static int AtValueMap_MRegion(Word* args,
 
     result = qp->ResultStorage(s);
     MPoint* res = (MPoint*) result.addr;
+    res->Clear();
+    res->SetDefined(true);
 
     try {
         MRegion* mr = (MRegion*) args[0].addr;
