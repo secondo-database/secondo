@@ -333,18 +333,22 @@ Default open function.
 */
     bool DeleteIfAllowed();
 /*
-Deletes an attribute if allowed, i.e. if ~refs~ = 0.
+Decreases the Attribute's reference counter ~refs~. If ~refs~ becomes 0,
+it deletes the attribute.
 
 */
     Attribute* Copy();
 /*
-Copies this element if it is possible, otherwise
-clones it.
+Returns a new reference to this attribute, if possible (~refs~ < 255),
+otherwise it returns a reference to a fresh clone (having ~refs~ = 1).
 
 */
     virtual Attribute *Clone() const = 0;
 /*
 Clones this attribute. This function is implemented in the son classes.
+~refs~ of the new clone should be set to 1! A good way to ensure this, is
+to initialize ~refs~ with 1 within all constructors
+(except from the standard constructor).
 
 */
     inline void SetFreeAttr()

@@ -71,6 +71,7 @@ The hash function.
 Copies the contents of ~right~ into ~this~. Assumes that ~this~ and
 ~right~ are of the same type. This can be ensured by the type checking functions
 in the algebras.
+The reference counter if this attribute should not be affected.
 
 */
 };
