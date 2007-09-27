@@ -23,6 +23,7 @@ Additionally some specialized search functions are provided.
 
 #include <iostream>
 #include <assert.h>
+#include <stack>
 
 using namespace std;
 
@@ -427,10 +428,193 @@ void Print(ostream& out)const{
 } 
 
 
+class iterator;
+/*
+~begin~
+
+This function returns an iterator over this tree.
+
+*/
+iterator begin(){
+   iterator it(root);
+   return it;
+}
+
+
+/*
+~tail~
+
+This function creates an iterator which is positioned to the
+fisrt element within the tree which is equals to or greater than
+the given minimum.
+
+*/
+iterator tail(contenttype min){
+   iterator it(root,min);
+   return it;
+}
+
+
+/*
+~iterator~
+
+This inner class provides an iterator for sorted iterating 
+trough the tree.
+
+*/
+class iterator{
+
+  public:
+
+    iterator(const iterator& it){
+       this->thestack = it.thestack;
+    }
+
+    iterator& operator=(const iterator& it){
+       this->thestack = it.thestack;
+       return *this; 
+    }
+
+/*
+~Get~
+
+The ~Get~ function returns the value currently under this iterator.
+
+*/
+     contenttype const* Get() const{
+        if(thestack.empty()){
+          return 0;
+        } else {
+          const AvlNode<contenttype>* elem = thestack.top();
+          return &(elem->content);
+        }
+     }
+/*
+~Next~
+
+The ~Next~ function sets the iterator to the next element. 
+If no more elements are available, the result will be __false__
+otherwise   __true__.
+
+*/
+   bool Next(){
+     if(thestack.empty()){
+        return false;
+     }
+     const AvlNode<contenttype>* elem = thestack.top();
+     const AvlNode<contenttype>* son;
+     if( (son = elem->getRightSon())){
+        thestack.push(son);
+        while((son = son->getLeftSon())){
+          thestack.push(son);
+        }
+        return true;
+     } else { // there is no right son
+        // go up until the stack is empty or the entry is
+        // greater than the current element
+        contenttype content = elem->content;
+        thestack.pop();
+        while(!thestack.empty()){
+           const AvlNode<contenttype>* father = thestack.top();
+           if(father->content > content){
+              return true;
+           } else {
+              thestack.pop();
+           }
+        }
+        return false;
+     }
+   }
+
+  iterator(const AvlNode<contenttype>* root){
+     const AvlNode<contenttype>* son = root;
+     while(son){
+       thestack.push(son);
+       son = son->getLeftSon();   
+     }
+  }
+
+  iterator(const AvlNode<contenttype>* root, const contenttype min){
+     if(root){
+        tail(root,min);
+     }
+  }
+
+  iterator& operator++(int){
+      Next();
+      return *this;
+  }
+
+  
+  const contenttype* operator*(){
+     return Get();
+  } 
+
+
+
+  private:
+/*
+~Data member~
+
+ We manage stack to be able to go up in the tree.
+
+*/
+ 
+     stack<const AvlNode<contenttype>*> thestack;
+
+/*
+~tail~
+
+ This function support the contructor having a mimimum argument.
+
+*/
+ const AvlNode<contenttype>* tail(const AvlNode<contenttype>* root, 
+                                  const contenttype& min){
+   assert(root);
+   thestack.push(root);
+   if(root->content==min){
+       return root;
+   } else if(root->content < min){
+      const AvlNode<contenttype>* node = root->getRightSon();
+      if(node){
+        node = tail(node,min);
+        if(!node){
+           thestack.pop();
+           return 0;
+        } else {
+           return node;
+        }
+      } else {
+        // the subtree specified by root contains only
+        // elements smaller than min
+        thestack.pop();
+        return 0;
+      } 
+   } else { // root.content > min 
+      // in the left subtree may be an element nearer to min
+      const AvlNode<contenttype>* node = root->getLeftSon();
+      if(!node){ // no better element available
+         return root;
+      } else {
+         node = tail(node,min);
+         if(node){ // found a better element
+           return node;
+         } else {
+           return root;
+         }
+      }
+   }
+ } 
+
+
+
+};
+
+
+
 
 
 private:
-
 
 void Print(const AvlNode<contenttype>* root, ostream& out)const{
   if(!root){
