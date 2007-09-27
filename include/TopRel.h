@@ -491,7 +491,7 @@ an attribute type within secondo relations.
 2.1.22 Equal operator
 
 */
-       bool operator==(const Int9M I2) const; 
+       bool operator==(const Int9M& I2) const; 
 
 
 
@@ -939,7 +939,7 @@ clusters.
 
 */
       bool operator<(const Cluster C2)const;
-      bool operator==(const Cluster C2)const;
+      bool operator==(const Cluster& C2)const;
       bool operator>(const Cluster C2)const;
 
       Cluster& operator=(const Cluster& arg){
@@ -1030,6 +1030,12 @@ predicate cluster will be the same like this one of the argument.
     void Equalize(const PredicateGroup& PC){
         Equalize(&PC);
     }
+
+/*
+2.3.4 Check for equality
+
+*/
+   bool operator==(const PredicateGroup& p2) const;
 
 
 /*

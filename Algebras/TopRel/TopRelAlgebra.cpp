@@ -340,7 +340,7 @@ This function creates the sting repreentation of a matrix.
 2.1.15 Equal Operator
 
 */
-bool Int9M::operator==(const Int9M I2) const{
+bool Int9M::operator==(const Int9M& I2) const{
    return CompareTo(I2)==0;
 }
 
@@ -806,7 +806,7 @@ bool Cluster::Relax(string condition){
 2.3.12 Operators for comparisons between Clusters
 
 */
-bool Cluster::operator==(const Cluster C2)const{
+bool Cluster::operator==(const Cluster& C2)const{
       return CompareTo(&C2)==0;
 }
 
@@ -1227,6 +1227,13 @@ void PredicateGroup::SetToDefault(){
      sorted = true;
 }
 
+/*
+3.1.15 Equal Operator
+
+*/
+bool PredicateGroup::operator==(const PredicateGroup& I2) const{
+   return Compare(&I2)==0;
+}
 
 
 /*
@@ -1910,6 +1917,25 @@ ListExpr StdPGroup_TM(ListExpr args){
 }
 
 
+ListExpr TopRelEqualsTM(ListExpr args){
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("two arguments required");
+    return nl->TypeError();
+  }
+  if(!nl->Equal(nl->First(args),nl->Second(args))){
+    ErrorReporter::ReportError("cannot compare different types");
+    return nl->TypeError();
+  }
+  if(nl->IsEqual(nl->First(args),"int9m") ||
+     nl->IsEqual(nl->First(args),"cluster") ||
+     nl->IsEqual(nl->First(args),"predicategroup")){
+     return nl->SymbolAtom("bool");
+  }
+  ErrorReporter::ReportError("int9m, cluster, or predicategroup expected");
+  return nl->TypeError();
+}
+
+
 /*
 7.2 Value Mappings
 
@@ -2357,6 +2383,22 @@ int StdPGroup_Fun(Word* args, Word& result, int message,
 }
 
 
+template <class A>
+int TopRelEqualsFun(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   A* a1 = (A*) args[0].addr;
+   A* a2 = (A*) args[1].addr;
+   CcBool* res = (CcBool*) result.addr;
+   if(!a1->IsDefined() || !a2->IsDefined()){
+      res->Set(false,false);
+   } else {
+      res->Set(true, (*a1)==(*a2));
+   }
+   return 0;
+}
+
+
 
 /*
 7.3 Specification of operators
@@ -2565,6 +2607,15 @@ const string StdPGroup_Spec =
       " <text>Computes a default predicategroup.</text---> "
       " <text> query stdpgroup()  </text--->))";
 
+
+const string TopRelEqualsSpec =
+      "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      " ( \" t x t -> bool , t in {int9m, cluster, predicategroup}  \""
+      " \" _ = _  \" "
+      " <text>Check for equality</text---> "
+      " <text> query [const int9m value 3] = [const int9m value 4] "
+      "</text--->))";
+
 /*
 
 This specification is for debugging only.
@@ -2603,6 +2654,10 @@ ValueMapping RestrictMap[] = { Restrict_Cluster_String_Fun,
 
 ValueMapping RelaxMap[] = { Relax_Cluster_String_Fun,
                             Relax_Cluster_Text_Fun};
+
+ValueMapping TopRelEqualsMap[] = { TopRelEqualsFun<Int9M>,
+                                   TopRelEqualsFun<Cluster>,
+                                   TopRelEqualsFun<PredicateGroup>};
 /*
 7.6 Selection Functions
 
@@ -2661,10 +2716,26 @@ static int RelaxSelect(ListExpr args){
       return 1;
 }
 
+static int TopRelEqualsSelect(ListExpr args){
+  string a1 = nl->SymbolValue(nl->First(args));
+  if(a1=="int9m") return 0;
+  if(a1=="cluster") return 1;
+  if(a1=="prdicategroup") return 2;
+  return -1;
+}
+
 /*
 7.7 Definition of operators
 
 */
+Operator toprel_equals(
+         "=",     // name
+         TopRelEqualsSpec,   // specification
+         3,               // number of functions
+         TopRelEqualsMap,    // array of value mappings
+         TopRelEqualsSelect,
+         TopRelEqualsTM);
+
 Operator transpose(
          "transpose",     // name
          TransposeSpec,   // specification
@@ -2922,6 +2993,7 @@ class TopRelAlgebra : public Algebra
     AddOperator(&toprel::restrict_op);
     AddOperator(&toprel::relax_op);
     AddOperator(&toprel::stdpgroup);
+    AddOperator(&toprel::toprel_equals);
   }
   ~TopRelAlgebra() {};
 } toprelAlgebra;
