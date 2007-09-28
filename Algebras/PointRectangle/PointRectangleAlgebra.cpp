@@ -31,9 +31,11 @@ July 2002, R. H. Gueting
 
 2003 - 2006, V. Almeida. Code changes due to interface changes. 
 
-October 2006, M. Spiekermann. Introduction of a namespace, string constants and
-usage of the "static_cast<>" templates. Additonally some more comments and hints
-are made. 
+Oct. 2006, M. Spiekermann. Introduction of a namespace, string constants and
+usage of the "static_cast<>" templates. Additonally, more comments and hints
+ were documented.
+
+Sept. 2007, M. Spiekermann. Some code changes to demonstrate new programming interfaces. 
 
 The little example algebra provides two type constructors ~xpoint~ and
 ~xrectangle~ and two operators: (i) ~inside~, which checks whether a point is
@@ -62,12 +64,27 @@ which is implementd as class ~CcBool~.
    
 */  
 #include "StandardTypes.h"
-
 #include <string>
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
+/*
+1.2 Type investigation auxiliaries
+
+Within this algebra module, we have to handle with values of four different
+types defined in namespace symbols: ~INT~ and ~REAL~, ~BOOL~ and ~STRING~.
+They are constant values of the C++-string class.
+
+Moreover, for type mappings some auxiliary helper functions are defined in the
+file "TypeMapUtils.h" which defines a namespace mappings.
+
+*/
+#include "TypeMapUtils.h"
+#include "Symbols.h"
+
+using namespace symbols;
+using namespace mappings;
 
 /*
 First we introduce a new namespace ~PointRectangle~ in order 
@@ -76,25 +93,6 @@ to avoid name conflicts with other modules.
 */   
 
 namespace PointRectangle {
-
-
-/*
- 
-Now we define some string constants which correspond to the symbols for type
-constructors and operators used in SECONDO algebra modules. These constants will
-be used throughout the code below to avoid redundant use of string constants in
-the code. This is important (i) to avoid strange runtime errors, e.g. in the
-type mapping, which may be caused by a misspelled type name and (ii) to make
-type or operator renaming easier.
-
-*/
- 
-const string t_XPOINT = "xpoint";
-const string t_BOOL = "bool";
-const string t_XRECTANGLE = "xrectangle";
-const string o_INTERSECTS = "intersects";
-const string o_INSIDE = "inside";
-const string k_SIMPLE = "SIMPLE";
 
 /*
 2 Type Constructor ~xpoint~
@@ -106,26 +104,77 @@ const string k_SIMPLE = "SIMPLE";
  
 class XPoint
 {
- public:
-  // Warning: Do never initializations in the default constructor !!!
-  // It will be used in a special way in the cast function (see below).
-  XPoint() {} 
-  
+ public:  
+/*
+Constructors and destructor
+
+*/
   XPoint( int x, int y );
+  XPoint(const XPoint& rhs);
   ~XPoint();
-  int      GetX();
-  int      GetY();
-  void     SetX( int x );
-  void     SetY( int y );
-  XPoint*   Clone();
+  
+  int  GetX();
+  int  GetY();
+  void SetX( int x );
+  void SetY( int y );
+
+  // the members below should be always implemented.
+  XPoint* Clone();
+  size_t  SizeOf();  
+
+/*
+Below the mandatory set of algebra support functions is declared. 
+Note that these functions need to be static member functions of the class. 
+Their implementations do nothing which depends on the state of an instance.
+
+*/  
+  static Word     In( const ListExpr typeInfo, const ListExpr instance,
+                      const int errorPos, ListExpr& errorInfo, bool& correct );
+
+  static ListExpr Out( ListExpr typeInfo, Word value );
+
+  static Word     Create( const ListExpr typeInfo );
+
+  static void     Delete( const ListExpr typeInfo, Word& w );
+
+  static void     Close( const ListExpr typeInfo, Word& w );
+
+  static Word     Clone( const ListExpr typeInfo, const Word& w );
+
+  static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
+
+  static int      SizeOfObj();  
+  
+  static ListExpr Property();
+ 
+/*
+The cast function for type xpoint. It is needed for the type constructor. Note,
+that an empty standard constructor is needed for this function to work properly.
+
+*/
+  static void* Cast( void* addr );
+
  private:
+  inline XPoint() {}
+/* 
+Warning: Do never initializations in the default constructor!
+It will be used in a special way in the cast function (see above).
+In order to guarantee this we will make this constructor private.
+
+*/
+  
   int x;
   int y;
+
 };
 
-XPoint::XPoint(int X, int Y) {x = X; y = Y;}
+
+XPoint::XPoint(int X, int Y) : x(X), y(Y) {}
+
+XPoint::XPoint(const XPoint& rhs) : x(rhs.x), y(rhs.y) {}
 
 XPoint::~XPoint() {} 
+
 
 int XPoint::GetX() {return x;}
 
@@ -167,7 +216,7 @@ a pointer to a new instance of class ~XPoint~.
 */
 
 Word
-InXPoint( const ListExpr typeInfo, const ListExpr instance,
+XPoint::In( const ListExpr typeInfo, const ListExpr instance,
           const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   if ( nl->ListLength( instance ) == 2 )
@@ -202,7 +251,7 @@ to the object where the pointer belongs to.
 
 
 ListExpr
-OutXPoint( ListExpr typeInfo, Word value )
+XPoint::Out( ListExpr typeInfo, Word value )
 {
   XPoint* point = static_cast<XPoint*>( value.addr );
 
@@ -212,43 +261,46 @@ OutXPoint( ListExpr typeInfo, Word value )
 
 
 Word
-CreateXPoint( const ListExpr typeInfo )
+XPoint::Create( const ListExpr typeInfo )
 {
   return (SetWord( new XPoint( 0, 0 ) ));
 }
 
 void
-DeleteXPoint( const ListExpr typeInfo, Word& w )
+XPoint::Delete( const ListExpr typeInfo, Word& w )
 { 
   delete static_cast<XPoint*>( w.addr );
   w.addr = 0;
 }
 
 void
-CloseXPoint( const ListExpr typeInfo, Word& w )
+XPoint::Close( const ListExpr typeInfo, Word& w )
 {
   delete static_cast<XPoint*>( w.addr );
   w.addr = 0;
 }
 
 Word
-CloneXPoint( const ListExpr typeInfo, const Word& w )
+XPoint::Clone( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( static_cast<XPoint*>( w.addr )->Clone() );
 }
 
-int
-SizeOfXPoint()
+size_t
+XPoint::SizeOf()
 {
   return sizeof(XPoint);
 }
 
-/*
-The Cast function for XPoint. It is needed for the type constructor. Note,
-that an empty constructor is needed for this function to work properly.
+int
+XPoint::SizeOfObj()
+{
+  return XPoint().SizeOf();
+}
 
-*/
-void* CastXPoint( void* addr ) {
+void* 
+XPoint::Cast( void* addr )
+{	
   return (new (addr) XPoint);
 }
 
@@ -256,28 +308,29 @@ void* CastXPoint( void* addr ) {
 /*
 2.4 Functions Describing the Signature of the Type Constructors
 
-This one works for type constructors ~xpoint~.
+Generally, a property can be a list of any structure which describes the
+data type. However, currently a structure like the one below has been established
+to be the standard.
 
 */
-ListExpr
-XPointProperty()
-{
-  ConstructorInfo ci; 
-  
-  ci.name = t_XPOINT;
-  ci.signature = "-> " + k_SIMPLE;
-  ci.typeExample =  t_XPOINT;
-  ci.listRep = "(<x> <y>)";
-  ci.valueExample = "(-3 15)";
-  ci.remarks = "x- and y-coordinates must be of type int.";
 
-  // the list() function of class ~Constructorinfo~ will create a list with two
-  // sublist of the structure ((S1 S2 S3 S4 S5)(T1 T2 T3 T4 T5)). The Sn are
-  // string atoms and used as labels and Tn are text atoms wich contain the
-  // values above. The list typeconstructors command will use these
-  // descriptions. 
-  // 
-  return ci.list(); }
+ListExpr
+XPoint::Property()
+{
+
+  return (nl->TwoElemList(
+            nl->FiveElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List"),
+                             nl->StringAtom("Remarks")),
+            nl->FiveElemList(nl->StringAtom("-> DATA"),
+                             nl->StringAtom("xpoint"),
+                             nl->StringAtom("(<x> <y>)"),
+                             nl->StringAtom("(-3 15)"),
+                             nl->StringAtom("x- and y-coordinates must be "
+                             "of type int."))));
+}
 
 
 
@@ -289,27 +342,32 @@ type constructor ~xpoint~ does not have arguments, this is trivial.
 
 */
 bool
-CheckXPoint( ListExpr type, ListExpr& errorInfo )
+XPoint::KindCheck( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, t_XPOINT ));
+  //cerr << "KindCheck XPOINT" << endl;	
+  return (nl->IsEqual( type, XPOINT ));
 }
 /*
 2.6 Creation of the Type Constructor Instance
 
 */
 TypeConstructor xpointTC(
-      t_XPOINT,                        //name
-       XPointProperty,                 //property function describing signature
-       OutXPoint, InXPoint,            //Out and In functions
-       0, 0,                           //SaveToList, RestoreFromList functions
-       CreateXPoint, DeleteXPoint,     //object creation and deletion
-       0, 0, CloseXPoint, CloneXPoint, //object open, save, close, and clone
-       CastXPoint,                     //cast function
-       SizeOfXPoint,                   //sizeof function
-       CheckXPoint );                  //kind checking function
+  XPOINT,                             // name of the type in SECONDO
+  XPoint::Property,                   // property function describing signature
+  XPoint::Out, XPoint::In,            // Out and In functions
+  0, 0,                               // SaveToList, RestoreFromList functions
+  XPoint::Create, XPoint::Delete,     // object creation and deletion
+  0, 0,                               // object open, save
+  XPoint::Close, XPoint::Clone,       // close, and clone
+  XPoint::Cast,                       // cast function
+  XPoint::SizeOfObj,                  // sizeof function
+  XPoint::KindCheck );                // kind checking function
 
 /*
 3 Class ~XRectangle~
+
+After we have studied the old-style programming interface for a type we will show
+some more recent alternative programming interfaces for implementing a type.
 
 To define the Secondo type ~xrectangle~, we need to (i) define a data structure,
 that is, a class, (ii) to decide about a nested list representation, and (iii)
@@ -318,27 +376,60 @@ write conversion functions from and to nested list representation.
 The function for converting from the list representation is the most involved
 one, since it has to check that the given list structure is entirely correct.
 
-Later we need (iv) a property function, (v) a kind checking function. Finally
-the type constructor instance can be created.
-
 */
 
 
 class XRectangle
 {
  public:
-  XRectangle() {}
   XRectangle( int XLeft, int XRight, int YBottom, int YTop )
-        {xl = XLeft; xr = XRight; yb = YBottom; yt = YTop;}
+  {
+    xl = XLeft; xr = XRight; yb = YBottom; yt = YTop;
+  }
   ~XRectangle() {}
-  int GetXLeft() {return xl;}
-  int GetXRight() {return xr;}
+  
+  int GetXLeft()   {return xl;}
+  int GetXRight()  {return xr;}
   int GetYBottom() {return yb;}
-  int GetYTop() {return yt;}
+  int GetYTop()    {return yt;}
+  
   XRectangle* Clone() { return new XRectangle( *this ); }
+  size_t sizeOf()     { return sizeof(XRectangle); }
+
   bool intersects( XRectangle r);
 
+/*
+Here we will only implement the three support functions above, since the others
+have default implementations which can be generated at compile time using C++ template
+functionality.
+
+*/  
+  static Word     In( const ListExpr typeInfo, const ListExpr instance,
+                      const int errorPos, ListExpr& errorInfo, bool& correct );
+
+  static ListExpr Out( ListExpr typeInfo, Word value );
+
+  static Word     Create( const ListExpr typeInfo );
+
+
+/*
+In contrast to the example above, we will implement specific ~open~ and ~save~
+function instead of using the generic persistent mechanism.
+
+*/  
+
+  static bool     Open( SmiRecord& valueRecord, 
+                        size_t& offset, const ListExpr typeInfo, Word& value );
+
+  static bool     Save( SmiRecord& valueRecord, size_t& offset, 
+                        const ListExpr typeInfo, Word& w );
+
  private:
+  XRectangle() {}
+  // since we want to use some generated default implementations we need
+  // to allow access to private members for the class below.
+  friend class ConstructorFunctions<XRectangle>; 
+
   int xl;
   int xr;
   int yb;
@@ -346,26 +437,50 @@ class XRectangle
 
 };
 
+
 /*
 3.2 Implementation of Operations
 
-To implement rectangle intersection, we first introduce a function for
-interval intersection.
+To implement rectangle intersection, we first introduce an auxiliary function which
+tests if two intervals overlap.
 
 */
 
-int overlap ( int low1, int high1, int low2, int high2 )
+bool overlap ( int low1, int high1, int low2, int high2 )
 {
-  if ( high1 < low2 || high2 < low1 ) return false;
-  else return true;
+  if ( high1 < low2 || high2 < low1 ) 
+    return false; 
+  else 
+    return true;
 }
+
 
 bool
 XRectangle::intersects( XRectangle r )
 {
   return ( overlap(xl, xr, r.GetXLeft(), r.GetXRight())
-    && overlap(yb, yt, r.GetYBottom(), r.GetYTop()) );
+           && overlap(yb, yt, r.GetYBottom(), r.GetYTop()) );
 }
+
+/*
+Similar to the ~property~ function an operator needs to be described.
+This will now be done in a more structured way by creating a subclass of
+class ~OperatorInfo~.
+
+*/
+
+struct intersectsInfo : OperatorInfo {
+
+  intersectsInfo() : OperatorInfo()
+  {
+    name      = INTERSECTS;
+    signature = XRECTANGLE + " x " + XRECTANGLE + " -> " + BOOL;
+    syntax    = "_" + INTERSECTS + "_";
+    meaning   = "Intersection predicate for two xrectangles.";
+  }
+
+}; // don't forget the semicolon here otherwise the compiler returns strange
+   // error messages
 
 
 /*
@@ -388,8 +503,8 @@ compact, easier to read, understand, and maintain.
 */
 
 Word
-InXRectangle( const ListExpr typeInfo, const ListExpr instance,
-              const int errorPos, ListExpr& errorInfo, bool& correct )
+XRectangle::In( const ListExpr typeInfo, const ListExpr instance,
+                const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   correct = false;
   Word result = SetWord(Address(0));
@@ -426,7 +541,7 @@ InXRectangle( const ListExpr typeInfo, const ListExpr instance,
 }
 
 ListExpr
-OutXRectangle( ListExpr typeInfo, Word value )
+XRectangle::Out( ListExpr typeInfo, Word value )
 {
   XRectangle* rectangle = static_cast<XRectangle*>( value.addr );
   NList fourElems(
@@ -438,23 +553,95 @@ OutXRectangle( ListExpr typeInfo, Word value )
   return fourElems.listExpr();
 }
 
+/*
+The ~open~ and ~save~ functions have a ~SmiRecord~ as argument which contains the
+binary representation the type starting at the position indicated by ~offset~. The
+implementor has to read out or write in data there and adjust the offset. The argument 
+~typeinfo~ will be needed only for complex types whose constructors can be parameterized,
+e.g. rel(tuple(...)). 
+
+*/
+
+bool
+XRectangle::Open( SmiRecord& valueRecord, 
+                  size_t& offset, const ListExpr typeInfo, Word& value ) 
+{
+  //cerr << "OPEN XRectangle" << endl;	
+  size_t size = sizeof(int); 	
+  int xl = 0, xr = 0, yb = 0, yt = 0;
+
+  bool ok = true;
+  ok = ok && valueRecord.Read( &xl, size, offset );
+  offset += size;  
+  ok = ok && valueRecord.Read( &xr, size, offset );
+  offset += size;  
+  ok = ok && valueRecord.Read( &yb, size, offset );
+  offset += size;  
+  ok = ok && valueRecord.Read( &yt, size, offset );
+  offset += size;  
+
+  value.addr = new XRectangle(xl, xr, yb, yt); 
+
+  return ok;
+}	
+
+
+bool      
+XRectangle::Save( SmiRecord& valueRecord, size_t& offset, 
+                  const ListExpr typeInfo, Word& value )
+{
+  //cerr << "SAVE XRectangle" << endl;	
+  XRectangle* r = static_cast<XRectangle*>( value.addr );	
+  size_t size = sizeof(int); 	
+
+  bool ok = true;
+  ok = ok && valueRecord.Write( &r->xl, size, offset );
+  offset += size;  
+  ok = ok && valueRecord.Write( &r->xr, size, offset );	
+  offset += size;  
+  ok = ok && valueRecord.Write( &r->yb, size, offset );	
+  offset += size;  
+  ok = ok && valueRecord.Write( &r->yt, size, offset );	
+  offset += size;  
+
+  return ok;
+}	
+
 
 Word
-CreateXRectangle( const ListExpr typeInfo )
+XRectangle::Create( const ListExpr typeInfo )
 {
   return (SetWord( new XRectangle( 0, 0, 0, 0 ) ));
 }
 
-/*
 
-As you may have observed most implementations of the support functions needed for registering
-a secondo type are trivial to implement. Hence we offer a template class which provides default
-implementations (see below) hence only functions which need to do special things need to
-be implemented.
+/*
+The property function is deprecated. Similar as the operator descriptions
+this will be done by implementing a subclass of ~ConstructorInfo~. 
 
 */
+  
+struct xrectangleInfo : ConstructorInfo {
+
+  xrectangleInfo() : ConstructorInfo() {
+
+    name         = XRECTANGLE;
+    signature    = "-> " + SIMPLE;
+    typeExample  = XRECTANGLE;
+    listRep      =  "(<xleft> <xright> <ybottom> <ytop>)";
+    valueExample = "(4 12 8 2)";
+    remarks      = "all coordinates must be of type int.";
+  }
+};
+
 
 /*
+
+As you may have observed most implementations of the support functions needed
+for registering a secondo type are trivial to implement. Hence we offer a
+template class which provides default implementations (see below) hence only
+functions which need to do special things need to be implemented.
+
 4 Creating Operators
 
 4.1 Type Mapping Function
@@ -473,8 +660,8 @@ RectRectBool( ListExpr args )
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
     
-    if ( nl->IsEqual(arg1, t_XRECTANGLE) && nl->IsEqual(arg2, t_XRECTANGLE) )
-      return nl->SymbolAtom(t_BOOL);
+    if ( nl->IsEqual(arg1, XRECTANGLE) && nl->IsEqual(arg2, XRECTANGLE) )
+      return nl->SymbolAtom(BOOL);
     
     if ((nl->AtomType(arg1) == SymbolType) &&
         (nl->AtomType(arg2) == SymbolType))
@@ -504,12 +691,12 @@ insideTypeMap( ListExpr args )
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   
-  if ( nl->IsEqual(arg1, t_XPOINT) && nl->IsEqual(arg2, t_XRECTANGLE) )
-    return nl->SymbolAtom(t_BOOL);
+  if ( nl->IsEqual(arg1, XPOINT) && nl->IsEqual(arg2, XRECTANGLE) )
+    return nl->SymbolAtom(BOOL);
   
   // second alternative of expected arguments
-  if ( nl->IsEqual(arg1, t_XRECTANGLE) && nl->IsEqual(arg2, t_XRECTANGLE) )
-    return nl->SymbolAtom(t_BOOL);
+  if ( nl->IsEqual(arg1, XRECTANGLE) && nl->IsEqual(arg2, XRECTANGLE) )
+    return nl->SymbolAtom(BOOL);
   
   if ((nl->AtomType(arg1) == SymbolType) &&
       (nl->AtomType(arg2) == SymbolType))
@@ -545,19 +732,33 @@ int
 insideSelect( ListExpr args )
 {
   NList list(args);
-  if ( list.first().isSymbol( t_XRECTANGLE ) )
+  if ( list.first().isSymbol( XRECTANGLE ) )
     return 1;
   else
     return 0;
 }  
 
 
+struct insideInfo : OperatorInfo {
+
+  insideInfo() : OperatorInfo()
+  {
+    name      = INSIDE; 
+
+    signature = XPOINT + " x " + XRECTANGLE + " -> " + BOOL;
+    // since this is an overloaded operator we append 
+    // an alternative signature here
+    appendSignature( XRECTANGLE + " x " + XRECTANGLE 
+                                              + " -> " + BOOL );
+    syntax    = "_" + INSIDE + "_";
+    meaning   = "Inside predicate.";
+  }
+};  
+
+
 /*
 4.3 Value Mapping Function
 
-*/
-
-/*
 Intersects predicate for two rectangles.
 
 */
@@ -668,102 +869,51 @@ directly one can use the class ~OperatorInfo~ which gets the specifications
 encoded in C++-string and offers a function ~str()~ which returns the assembled
 list as a string.
 
-*/
-
-    OperatorInfo intersectsSpec;
-    OperatorInfo* oi = &intersectsSpec;
-
-    oi->name      = o_INTERSECTS;
-    oi->signature = t_XRECTANGLE + " x " + t_XRECTANGLE + " -> " + t_BOOL;
-    oi->syntax    = "_" + o_INTERSECTS + "_";
-    oi->meaning   = "Intersection predicate for two xrectangles.";
-    oi->example   = "r1 " + o_INTERSECTS + " r2";
-
-
-    OperatorInfo insideSpec;
-    oi = &insideSpec;
-    
-    oi->name      = o_INSIDE; 
-    oi->signature = t_XPOINT + " x " + t_XRECTANGLE + " -> " + t_BOOL;
-    oi->syntax    = "_" + o_INSIDE + "_";
-    oi->meaning   = "Inside predicate.";
-    oi->example   = "p " + o_INSIDE + " r";
-
-    // add the alternative signatures
-    oi->appendSignature( t_XRECTANGLE + " x " + t_XRECTANGLE 
-                                              + " -> " + t_BOOL );
-
-    // define an array of function pointers which must be null terminated!
-    ValueMapping insideFuns[] = { insideFun_PR, insideFun_RR, 0 };
-    
-
-/*
-5.2 Definition of the Operators
-
-The code below instatiates two objects of class ~Operator~.
-
-*/
-
-     static Operator intersectsOP (
-                           intersectsSpec,
-                           intersectsFun,    //value mapping
-                           RectRectBool      //type mapping
-     );
-
-     static Operator insideOP (
-                          insideSpec,
-                          insideFuns,  // array of 
-                          insideSelect,
-                          insideTypeMap  
-     );
-  
-/*
-5.3 Registration of Types and Operators
-
-*/
-
-  
-    ConstructorInfo ci;
-    ci.name         = t_XRECTANGLE;
-    ci.signature    = "-> " + k_SIMPLE;
-    ci.typeExample  = t_XRECTANGLE;
-    ci.listRep      =  "(<xleft> <xright> <ybottom> <ytop>)";
-    ci.valueExample = "(4 12 8 2)";
-    ci.remarks      = "all coordinates must be of type int.";
-
-/*
+5.2 Registration of Types
 
 The class ~ConstructorFunctions~ is a template class and will create many
 default implementations of functions used by a secondo type for deatails refer
 to "ConstructorFunctions.h". However some functions need to be implemented since
 the default may not be sufficient. The default kind check function assumes, that the
-type constructor does not have any arguments like function ~CheckXPoint~ does.
+type constructor does not have any arguments.
 
 */    
     ConstructorFunctions<XRectangle> cf;
 
     // re-assign some function pointers
-    cf.create = CreateXRectangle;
-    cf.in = InXRectangle;
-    cf.out = OutXRectangle;
+    cf.create = XRectangle::Create;
+    cf.in = XRectangle::In;
+    cf.out = XRectangle::Out;
 
     // the default implementations for open and save are only 
-    // suitable for a class which is derived from class ~Attribute~.
-    cf.open = 0;
-    cf.save = 0;
+    // suitable for a class which is derived from class ~Attribute~, hence
+    // open and save functions must be overwritten here.
+ 
+    cf.open = XRectangle::Open;
+    cf.save = XRectangle::Save;
     
-    static TypeConstructor xrectangleTC( ci, cf );
+    static TypeConstructor xrectangleTC( xrectangleInfo(), cf );
 
     AddTypeConstructor( &xpointTC );
     AddTypeConstructor( &xrectangleTC );
 
     //the lines below define that xpoint and xrectangle
     //can be used in places where types of kind SIMPLE are expected
-    xpointTC.AssociateKind( k_SIMPLE );
-    xrectangleTC.AssociateKind( k_SIMPLE );   
+    xpointTC.AssociateKind( SIMPLE );
+    xrectangleTC.AssociateKind( SIMPLE );   
 
-    AddOperator( &intersectsOP );
-    AddOperator( &insideOP );
+/*   
+5.3 Registration of Operators
+
+*/
+
+    AddOperator( intersectsInfo(), intersectsFun, RectRectBool );
+    
+    // the overloaded inside operator needs an array of function pointers 
+    // which must be null terminated!
+    ValueMapping insideFuns[] = { insideFun_PR, insideFun_RR, 0 };
+
+    AddOperator( insideInfo(), insideFuns, insideSelect, insideTypeMap );
   }
   ~PointRectangleAlgebra() {};
 };
@@ -809,10 +959,18 @@ InitializePointRectangleAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 }
 
 /*
- 
-In order to setup automated test procedures one can write a test specification
-for the ~TestRunner~ application. You will find the file example.test in
-directory bin and others in the directory "Tests/Testspecs". There is also one for
-this algebra.
+7 Examples and Tests
+
+The file "PointRectangle.examples" contains for every operator one example.
+This allows to verify that the examples are running and allow to provide a
+coarse regression for all algebra modules.
+
+In order to setup more comprehensive automated test procedures one can write a
+test specification for the ~TestRunner~ application. You will find the file
+example.test in directory bin and others in the directory "Tests/Testspecs".
+There is also one for this algebra. 
+
+Accurate testing is often treated as an unpopular daunting task. But it is
+absolutely inevitable if you want to provide a reliable algebra module.  
    
 */
