@@ -809,7 +809,7 @@ The simple constructor. This constructor should not be used.
 
 */
 
-  TemporalUnit( bool is_defined):defined(is_defined) {}
+  TemporalUnit( bool is_defined ):defined(is_defined) {}
 
 /*
 Use this constructor when declaring temporal object variables etc.
@@ -1044,12 +1044,12 @@ The destructor.
 3.6.4.1 Functions to be part of relations
 
 */
-    bool IsDefined() const
+    virtual bool IsDefined() const
     {
       return TemporalUnit<Alpha>::defined;
     }
 
-    void SetDefined( bool Defined )
+    virtual void SetDefined( bool Defined )
     {
       TemporalUnit<Alpha>::defined = Defined;
     }
@@ -1121,7 +1121,7 @@ The simple constructor. This constructor should not be used.
 
 */
 
-    SpatialTemporalUnit( bool is_defined):TemporalUnit<Alpha>(is_defined) 
+    SpatialTemporalUnit( bool is_defined ):TemporalUnit<Alpha>(is_defined) 
     {}
 
 /*
@@ -1146,7 +1146,7 @@ The destructor.
 3.6.4.1 Functions to be part of relations
 
 */
-    bool IsDefined() const
+    virtual bool IsDefined() const
     {
       return TemporalUnit<Alpha>::defined;
     }
@@ -1873,6 +1873,7 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
   UPoint(bool is_defined):SpatialTemporalUnit<Point, 3>(is_defined) {
     del.refs=1;
     del.isDelete=true;
+    TemporalUnit<Point>::defined = is_defined;
   };
 
   UPoint( const Interval<Instant>& interval,
@@ -1883,6 +1884,7 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
     p1( true, x1, y1 )
     { del.refs=1;
       del.isDelete=true;
+      TemporalUnit<Point>::defined = true;
     }
 
   UPoint( const Interval<Instant>& interval,
@@ -1892,6 +1894,7 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
     p1( p1 )
     { del.refs=1;
       del.isDelete=true;
+      TemporalUnit<Point>::defined = true;
     }
 
   UPoint(const UPoint& source){
@@ -1900,6 +1903,7 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
      p1 = source.p1;
      del.refs=1;
      del.isDelete=true;
+     TemporalUnit<Point>::defined = source.defined;
   }
 
 /*
@@ -1912,6 +1916,7 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
     *((TemporalUnit<Point>*)this) = *((TemporalUnit<Point>*)&i);
     p0 = i.p0;
     p1 = i.p1;
+    TemporalUnit<Point>::defined = i.defined;
 
     return *this;
   }
@@ -2050,7 +2055,6 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   {
     const UPoint* i = (const UPoint*)right;
 
-    TemporalUnit<Point>::defined = i->defined;
     if(i->defined)
       {
         timeInterval.CopyFrom( i->timeInterval );
@@ -2063,6 +2067,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
         p0 = Point( false, 0.0, 0.0);
         p1 = Point( false, 0.0, 0.0);
       }
+    TemporalUnit<Point>::defined = i->defined;
   }
 
   virtual const Rectangle<3> BoundingBox() const
