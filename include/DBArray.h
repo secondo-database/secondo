@@ -185,6 +185,8 @@ Copies element ~elem~ into the persistent array at index ~index~.
     inline void Get( int index, DBArrayElement const*& elem ) const
     {
       assert( type != InMemoryCached );
+      assert( index >= 0 );
+      assert( index < nElements );
 
       const char *buf;
       if( type == InMemoryPagedCached ||
@@ -203,6 +205,9 @@ Copies element ~elem~ into the persistent array at index ~index~.
 #else
     inline void Get( int index, DBArrayElement const*& elem ) const
     {
+      assert( index >= 0 );
+      assert( index < nElements );
+
       const char *buf;
       FLOB::Get( index * sizeof( DBArrayElement ), &buf );
       elem = (new ((void*)buf) DBArrayElement);
