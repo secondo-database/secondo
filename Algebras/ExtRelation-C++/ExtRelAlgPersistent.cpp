@@ -969,13 +969,14 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       {
         if (qp->RequestProgress(args[0].addr, &p1))
         {
-          pRes->Card = p1.Card;
+          pRes->Card = li->returned == 0 ? p1.Card : li->read;
+
           pRes->CopySizes(p1);
 
           pRes->Time =                       //li->state = 0 or 1
             p1.Time 
-	    + p1.Card * p1.Size * (uSortBy + oSortBy * li->state)
-            + p1.Card * p1.Size * vSortBy;
+	    + pRes->Card * p1.Size * (uSortBy + oSortBy * li->state)
+            + pRes->Card * p1.Size * vSortBy;
 
           pRes->Progress =
             (p1.Progress * p1.Time 
@@ -983,7 +984,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
              + li->returned * p1.Size * vSortBy)
             / pRes->Time;
 
-	  pRes->BTime = p1.Time + p1.Card * p1.Size *  
+	  pRes->BTime = p1.Time + pRes->Card * p1.Size *  
             (uSortBy + oSortBy * li->state);
 
 	  pRes->BProgress = 
