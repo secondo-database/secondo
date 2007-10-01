@@ -3749,16 +3749,16 @@ int Loopjoin(Word* args, Word& result, int message,
       {
         lli->SetJoinSizes(p1, p2);
 
-        if (lli->returned > 50 ) 	// stable state assumed now
+
+
+        if (lli->returned > 5) 
         {
           pRes->Card = p1.Card  *
             ((double) (lli->returned) / 
               (double) (lli->readFirst));
         }
         else
-        {
-          pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
-        }
+	  pRes->Card = p1.Card  * p2.Card;
 
         pRes->CopySizes(lli);
 
