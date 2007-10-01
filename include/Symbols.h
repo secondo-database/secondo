@@ -25,6 +25,13 @@ May 2007, M. Spiekermann. Initial version.
 This file should contain all symbols in nested lists which are 
 types or reserved words.
 
+Below we define some string constants which correspond to the symbols for type
+constructors and operators used in SECONDO algebra modules. These constants will
+be used throughout the code below to avoid redundant use of string constants in
+the code. This is important (i) to avoid strange runtime errors, e.g. in the
+type mapping, which may be caused by a misspelled type name and (ii) to make
+type or operator renaming easier.
+
 */
 
 #include <string>
@@ -44,6 +51,17 @@ namespace symbols {
  Sym BOOL("bool");
  Sym STRING("string");
  Sym TEXT("text");
+
+
+ // standard types
+#undef XPOINT 
+#undef XRECTANGLE
+#undef SIMPLE 
+ Sym XPOINT("xpoint");
+ Sym XRECTANGLE("xrectangle");
+ Sym INTERSECTS("intersects");
+ Sym INSIDE("inside");
+ Sym SIMPLE("SIMPLE");
 
  // relation algebra
 #undef REL 
