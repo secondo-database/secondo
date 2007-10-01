@@ -1797,7 +1797,7 @@ Filter(Word* args, Word& result, int message,
         
         if ( fli )		//filter was started
         {
-          if ( fli->returned > 50 ) 	//stable state assumed now
+          if ( fli->returned > 5 ) 	//stable state assumed now
           {
             pRes->Card =  p1.Card * 
               ( (double) fli->returned / (double) (fli->current)); 
