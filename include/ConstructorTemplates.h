@@ -53,14 +53,14 @@ struct ConstructorFunctions
   ObjectClone clone;
   ObjectCast cast;
   ObjectSizeof sizeOf;
-  TypeCheckFunction typeCheck;
+  TypeCheckFunction kindCheck;
 
   ConstructorFunctions() :
    out(Out),
    in(In),
    saveToList(0),
    restoreFromList(0),
-   create(Create),
+   create(0),
    deletion(Delete),
    open(Open),
    save(Save),
@@ -68,18 +68,19 @@ struct ConstructorFunctions
    clone(Clone),
    cast(Cast),
    sizeOf(SizeOf),
-   typeCheck(0)
+   kindCheck(0)
   {}
   
   static void* Cast( void* addr ) 
   { 
+    cerr << "CAST" << endl;	  
     return (new (addr)T ); 
   }
 
-  static Word Create( const ListExpr typeInfo )
+  /*static Word Create( const ListExpr typeInfo )
   {
     return (SetWord( new T() ));
-  }
+  }*/
 
   static void Delete( const ListExpr, Word& w )
   {
@@ -134,7 +135,7 @@ struct ConstructorFunctions
                   const int errorPos, ListExpr& errorInfo, bool& correct )
   {
     assert(false);
-    return SetWord(new T);
+    return SetWord(0);
   }
 
 };
