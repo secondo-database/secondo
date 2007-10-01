@@ -166,7 +166,7 @@ class TypeConstructor
     cloneFunc            = cf.clone;
     castFunc             = cf.cast;
     sizeofFunc           = cf.sizeOf;
-    typeCheckFunc        = cf.typeCheck;
+    typeCheckFunc        = cf.kindCheck;
   }
 
   
