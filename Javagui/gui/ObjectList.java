@@ -388,11 +388,13 @@ public boolean hideSelectedObject(){
   int[] indices = Content.getSelectedIndices();
   for(int i=0; i< indices.length; i++){
       int index = indices[i];
-      SecondoObject SO = (SecondoObject) Objects.get(index);
-      if (VC!=null)
-          VC.hideObject(this,SO);
-      markAsNoDisplayed(SO);
-      hidden=true;
+      if(index < Objects.size()){
+        SecondoObject SO = (SecondoObject) Objects.get(index);
+        if (VC!=null)
+            VC.hideObject(this,SO);
+        markAsNoDisplayed(SO);
+        hidden=true;
+      }
   }
   return hidden;
 }
@@ -661,12 +663,14 @@ public boolean saveSelectedObject(){
     // remove item in reverse order
     for(int i=indices.length; i>0; i--){
        int index = indices[i-1];
-       SecondoObject SO = (SecondoObject) Objects.get(index);
-       VC.hideObject(this,SO);
-       myListModel.remove(index);
-       Objects.remove(index);
-       SO.toListExpr().destroy();
-       removed = true;
+       if(index<Objects.size()){
+          SecondoObject SO = (SecondoObject) Objects.get(index);
+          VC.hideObject(this,SO);
+          myListModel.remove(index);
+          Objects.remove(index);
+          SO.toListExpr().destroy();
+          removed = true;
+       }
     }
    }
    if(Environment.MEASURE_MEMORY){ 
