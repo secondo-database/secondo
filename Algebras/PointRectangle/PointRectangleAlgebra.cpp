@@ -32,15 +32,19 @@ July 2002, R. H. Gueting
 2003 - 2006, V. Almeida. Code changes due to interface changes. 
 
 Oct. 2006, M. Spiekermann. Introduction of a namespace, string constants and
-usage of the "static_cast<>" templates. Additonally, more comments and hints
+usage of the "static_cast<>" templates. Additionally, more comments and hints
  were documented.
 
-Sept. 2007, M. Spiekermann. Some code changes to demonstrate new programming interfaces. 
+Sept. 2007, M. Spiekermann. Many code changes to demonstrate new programming interfaces. 
 
-The little example algebra provides two type constructors ~xpoint~ and
-~xrectangle~ and two operators: (i) ~inside~, which checks whether a point is
-within a rectangle, and (ii) ~intersects~ which checks two rectangles for
-intersection.
+0 Overview
+
+This little example algebra provides two type constructors ~xpoint~ and
+~xrectangle~ and two operators: 
+
+  1. ~inside~, which checks whether a point is within a rectangle, and 
+
+  2. ~intersects~ which checks two rectangles for intersection.
 
 1 Preliminaries
 
@@ -48,50 +52,44 @@ intersection.
 
 */
 
-
-/*
- 
-The file Algebra.h is included, since the new algebra must be a subclass of
-class Algebra. All of the data available in Secondo has a nested list
-represention. Therefore, conversion functions have to be written for this
-algebra, too, and NestedList.h is needed for this purpose. The result of an
-operation is passed directly to the query processor. An instance of
-QueryProcessor serves for this. Secondo provides some standard data types, e.g.
-CcInt, CcReal, CcString, CcBool, which is needed as the result type of the
-implemented operations. So StandardTypes.h needs to be included. 
-
-*/
-
-
 #include "Algebra.h"
 #include "NestedList.h"
-#include "NList.h"
+#include "NList.h" 
 #include "LogMsg.h"
 #include "QueryProcessor.h"
-#include "ConstructorTemplates.h"
+#include "ConstructorTemplates.h" 
+#include "StandardTypes.h"
 
 /*
-In the next line declarations of the types defined in the ~StandardAlgebra~
-are imported. We need this since we have an operator which maps to type ~bool~
-which is implementd as class ~CcBool~.
+The file "Algebra.h" is included, since the new algebra must be a subclass of
+class Algebra. All of the data available in Secondo has a nested list
+representation. Therefore, conversion functions have to be written for this
+algebra, too, and "NestedList.h" is needed for this purpose. The result of an
+operation is passed directly to the query processor. An instance of
+"QueryProcessor" serves for this. Secondo provides some standard data types, e.g.
+"CcInt", "CcReal", "CcString", "CcBool", which is needed as the result type of the
+implemented operations. To use them "StandardTypes.h" needs to be included. 
    
 */  
-#include "StandardTypes.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
 /*
-1.2 Type investigation auxiliaries
+The variables above define some global references to unique system-wide
+instances of the query processor and the nested list storage.
 
-Within this algebra module, we have to handle with values of four different
-types defined in namespace symbols: ~INT~ and ~REAL~, ~BOOL~ and ~STRING~.
-They are constant values of the C++-string class.
+1.2 Auxiliaries
+
+Within this algebra module implementation, we have to handle with values of
+four different types defined in namespace symbols: ~INT~ and ~REAL~, ~BOOL~ and
+~STRING~.  They are constant values of the C++-string class.
 
 Moreover, for type mappings some auxiliary helper functions are defined in the
-file "TypeMapUtils.h" which defines a namespace mappings.
+file "TypeMapUtils.h" which defines a namespace ~mappings~.
 
 */
+
 #include "TypeMapUtils.h"
 #include "Symbols.h"
 
@@ -102,8 +100,8 @@ using namespace mappings;
 using namespace std;
 
 /*
-First we introduce a new namespace ~prt~ in order 
-to avoid name conflicts with other modules.
+The implementation of the algebra will be embedded into
+a namespace in order to avoid name conflicts with other modules.
    
 */   
 
@@ -133,9 +131,7 @@ Constructors and destructor
   void SetX( int x );
   void SetY( int y );
 
-  // the members below should be always implemented.
   XPoint* Clone();
-  size_t  SizeOf();  
 
 /*
 Below the mandatory set of algebra support functions is declared. 
@@ -162,13 +158,6 @@ Their implementations do nothing which depends on the state of an instance.
   
   static ListExpr Property();
  
-/*
-The cast function for type xpoint. It is needed for the type constructor. Note,
-that an empty standard constructor is needed for this function to work properly.
-
-*/
-  static void* Cast( void* addr );
-
  private:
   inline XPoint() {}
 /* 
@@ -189,6 +178,14 @@ p1; since these will create an uninitialized class instance.
 };
 
 
+/*
+We recommend to separate strictly class declarations from their implementations.
+This makes life easier if you want to use the type provided in one algebra in
+another algebra. Only for the sake of a compact presentation, we did not out source
+the declarations in special header files.
+
+*/
+
 XPoint::XPoint(int X, int Y) : x(X), y(Y) {}
 
 XPoint::XPoint(const XPoint& rhs) : x(rhs.x), y(rhs.y) {}
@@ -196,15 +193,11 @@ XPoint::XPoint(const XPoint& rhs) : x(rhs.x), y(rhs.y) {}
 XPoint::~XPoint() {} 
 
 
-int XPoint::GetX() {return x;}
+int XPoint::GetX() { return x; }
+int XPoint::GetY() { return y; }
 
-int XPoint::GetY() {return y;}
-
-void XPoint::SetX(int X) {x = X;}
-
-void XPoint::SetY(int Y) {y = Y;}
-
-XPoint* XPoint::Clone() { return new XPoint( *this ); }
+void XPoint::SetX(int X) { x = X; }
+void XPoint::SetY(int Y) { y = Y; }
 
 
 /*
@@ -219,7 +212,7 @@ The list representation of an xpoint is
 
 The in functions gets a nested list representation of an ~xpoint~ value passed
 in the variable "instance".  It is represented by the C++ type "ListExpr".
-Morover ther is a global pointer variable "nl" which points to the (single)
+Moreover there is a global pointer variable "nl" which points to the (single)
 instance of class ~NestedList~.  This class provides a set of functions which
 can investigate and manipulate nested lists. For details refer to the file
 "NestedList.h".
@@ -229,7 +222,7 @@ error information if the retrieved list is not correct. In the latter case
 the boolean parameter "correct" needs to be set to false.
 
 The return value of the function is of type ~Word~ which can simply be
-regarded as a pointer. The query processor operates with this typeless
+regarded as a pointer. The query processor operates with this type-less
 abstraction for objects. If all integrity checks are correct we will return
 a pointer to a new instance of class ~XPoint~. 
 
@@ -265,7 +258,7 @@ a type cast in order to tell the compiler about the objects type.
 
 Note: At this point we can be sure that it is a pointer to type ~XPoint~ hence
 it is safe to do it. But in general type casts can be a source for ~strange~
-errors, e.g. segementation faults if you cast to a type which is not compatible
+errors, e.g. segmentation faults if you cast to a type which is not compatible
 to the object where the pointer belongs to. 
 
 */
@@ -304,33 +297,35 @@ XPoint::Close( const ListExpr typeInfo, Word& w )
 Word
 XPoint::Clone( const ListExpr typeInfo, const Word& w )
 {
-  return SetWord( static_cast<XPoint*>( w.addr )->Clone() );
+  XPoint* p = static_cast<XPoint*>( w.addr );
+  return SetWord( new XPoint(*p) );
 }
+/*
+Here a clone simply calls the copy constructor but for other
+types which may have also a disk part some code for copying
+the disk parts would be needed also. Often this is implemented
+in a special member function "Clone()".
 
-size_t
-XPoint::SizeOf()
-{
-  return sizeof(XPoint);
-}
+*/
 
 int
 XPoint::SizeOfObj()
 {
-  return XPoint().SizeOf();
+  return sizeof(XPoint);
 }
 
 
 /*
-2.4 Functions Describing the Signature of the Type Constructors
+2.4 Type Describtion
 
 At the user interface, the command "list type constructors" lists all type
 constructors of all currently linked algebra modules. The information listed is
 generated by the algebra module itself, to be more precise it is generated by
 the ~property~-functions
 
-Generally, a property can be a list of any structure which describes the
-data type. However, currently a structure like the one below has been established
-to be the standard.
+Generally, a property can be a list of any structure which describes the data
+type. However, currently a structure like the one below has been established to
+be the standard.
 
 */
 
@@ -402,20 +397,15 @@ one, since it has to check that the given list structure is entirely correct.
 class XRectangle
 {
  public:
-  XRectangle( int XLeft, int XRight, int YBottom, int YTop )
-  {
-    xl = XLeft; xr = XRight; yb = YBottom; yt = YTop;
-  }
+  XRectangle( int XLeft, int XRight, int YBottom, int YTop );
+  XRectangle( const XRectangle& rhs );
   ~XRectangle() {}
   
-  int GetXLeft()   {return xl;}
-  int GetXRight()  {return xr;}
-  int GetYBottom() {return yb;}
-  int GetYTop()    {return yt;}
+  int GetXLeft();
+  int GetXRight();
+  int GetYBottom();
+  int GetYTop();
   
-  XRectangle* Clone() { return new XRectangle( *this ); }
-  size_t sizeOf()     { return sizeof(XRectangle); }
-
   bool intersects( XRectangle r);
 
 /*
@@ -446,7 +436,7 @@ function instead of using the generic persistent mechanism.
 
  private:
   XRectangle() {}
-  // since we want to use some generated default implementations we need
+  // Since we want to use some default implementations we need
   // to allow access to private members for the class below.
   friend class ConstructorFunctions<XRectangle>; 
 
@@ -457,7 +447,21 @@ function instead of using the generic persistent mechanism.
 
 };
 
+XRectangle::XRectangle( int XLeft, int XRight, int YBottom, int YTop )
+{
+  xl = XLeft; xr = XRight; yb = YBottom; yt = YTop;
+}
 
+XRectangle::XRectangle( const XRectangle& rhs )
+{
+  xl = rhs.xl; xr = rhs.xr; yb = rhs.yb; yt = rhs.yt;
+}	
+
+int XRectangle::GetXLeft()   { return xl; }
+int XRectangle::GetXRight()  { return xr; }
+int XRectangle::GetYBottom() { return yb; }
+int XRectangle::GetYTop()    { return yt; }
+  
 /*
 3.2 Implementation of Operations
 
@@ -505,10 +509,6 @@ struct intersectsInfo : OperatorInfo {
 
 /*
 
- Note for older code. 
-The description is given as a character string containing a nested list. In the examples, there are many strings which are in C++ all concatenated into a single one. The list has the form 
-( (<heading 1> ... <heading k>) (<entry 1> ... <entry k>) )
-Headings are string atoms and entries are text atoms. Quotes for the string atom have to be escaped within another string, hence one needs to write \"Signature\" , for example. Standard headings for operator descriptions are Signature, Syntax, Meaning, and Example. This is followed by four text atoms including the description itself. 
 
 
 3.3 List Representation and ~In~/~Out~ Functions
@@ -524,8 +524,9 @@ in file "NList.h". It is a simple wrapper for calls like "nl->f(...)" and allows
 a more object-oriented access to a nested list.
 
 These class was implemented more recently hence you will find much code which uses
-the other interface. But as you can observe the code based on ~NList~ is much more
-compact, easier to read, understand, and maintain. 
+the older interface. But as you can observe the code based on ~NList~ is much more
+compact, easier to read, understand, and maintain. Thus we recommend to use this
+interface.
 
 */
 
@@ -535,19 +536,21 @@ XRectangle::In( const ListExpr typeInfo, const ListExpr instance,
 {
   correct = false;
   Word result = SetWord(Address(0));
-  
+  const string errMsg = "Expecting a list of four integer atoms!";
+
   NList list(instance);
   // When you check list structures it will be a good advice to detect
-  // errors as early as possible to avoid deep nestings of if-statements.
-  if ( list.length() != 4 )
+  // errors as early as possible to avoid deep nestings of if statements.
+  if ( list.length() != 4 ) {
+    cmsg.inFunError(errMsg);
     return result;
+  }  
 
   NList First = list.first();
   NList Second = list.second();
   NList Third = list.third();
   NList Fourth = list.fourth();
      
-  
   if ( First.isInt() && Second.isInt()
            && Third.isInt() && Fourth.isInt() )
   {
@@ -563,7 +566,10 @@ XRectangle::In( const ListExpr typeInfo, const ListExpr instance,
       result.addr = r;
     }
   }
-  
+  else
+  {	  
+    cmsg.inFunError(errMsg);
+  }  
   return result;
 }
 
@@ -681,68 +687,44 @@ returns a list expression for the result type, otherwise the symbol
 
 ListExpr
 RectRectBool( ListExpr args )
-{
-  if ( nl->ListLength(args) == 2 )
-  {
-    ListExpr arg1 = nl->First(args);
-    ListExpr arg2 = nl->Second(args);
+{	
+  NList list(args);
+  const string errMsg = "Expecting (xrectangle xrectangle)";
+
+  if ( list.length() != 2 )
+    return list.typeError(errMsg);
     
-    if ( nl->IsEqual(arg1, XRECTANGLE) && nl->IsEqual(arg2, XRECTANGLE) )
-      return nl->SymbolAtom(BOOL);
+  if ( list.first().isSymbol(XRECTANGLE) && list.second().isSymbol(XRECTANGLE) )
+    return NList(BOOL).listExpr();
     
-    if ((nl->AtomType(arg1) == SymbolType) &&
-        (nl->AtomType(arg2) == SymbolType))
-      cmsg.typeError("Type mapping function got parameters of type "
-                                 +nl->SymbolValue(arg1)+" and "
-                                 +nl->SymbolValue(arg2));
-    else
-      cmsg.typeError("Type mapping functions got wrong "
-                                 "types as parameters.");
-  }
-  cmsg.typeError("Type mapping function got a "
-                             "parameter of length != 2.");
-  
-  return nl->TypeError(); 
+  return list.typeError(errMsg);
 }
 
 ListExpr
 insideTypeMap( ListExpr args )
 {
-  if ( nl->ListLength(args) != 2 )
-  {
-   cmsg.typeError("Type mapping function got a "
-                               "parameter of length != 2.");
-    return nl->TypeError();
-  } 
+  NList list(args);
+  const string errMsg = "Expecting (xrectangle xrectangle) "
+	                "or (xpoint xrectangle)";
+
+  if ( list.length() != 2 )
+    return list.typeError(errMsg);	  
   
-  ListExpr arg1 = nl->First(args);
-  ListExpr arg2 = nl->Second(args);
+  NList arg1 = list.first();
+  NList arg2 = list.second();
   
-  if ( nl->IsEqual(arg1, XPOINT) && nl->IsEqual(arg2, XRECTANGLE) )
-    return nl->SymbolAtom(BOOL);
+  if ( arg1.isSymbol(XPOINT) && arg2.isSymbol(XRECTANGLE) )
+    return NList(BOOL).listExpr();
   
   // second alternative of expected arguments
-  if ( nl->IsEqual(arg1, XRECTANGLE) && nl->IsEqual(arg2, XRECTANGLE) )
-    return nl->SymbolAtom(BOOL);
+  if ( arg1.isSymbol(XRECTANGLE) && arg2.isSymbol(XRECTANGLE) )
+    return NList(BOOL).listExpr();
   
-  if ((nl->AtomType(arg1) == SymbolType) &&
-      (nl->AtomType(arg2) == SymbolType))
-  { 
-    cmsg.typeError("Type mapping function got parameters of type "
-                               +nl->SymbolValue(arg1)+" and "
-                               +nl->SymbolValue(arg2));
-  }  
-  else
-  { 
-    cmsg.typeError("Type mapping function got wrong "
-                               "types as parameters.");
-  }  
-  return nl->TypeError();
-  
+  return list.typeError(errMsg);
 }
 
 /*
-4.3 Selection function
+4.3 Selection Function
 
 A selection function is quite similar to a type mapping function. The only
 difference is that it doesn't return a type but the index of a value
@@ -813,7 +795,7 @@ Inside predicate for xpoint and xrectangle.
 int
 insideFun_PR (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  cout << "insideFun_PR" << endl;
+  //cout << "insideFun_PR" << endl;
   XPoint* p = static_cast<XPoint*>( args[0].addr );
   XRectangle* r = static_cast<XRectangle*>( args[1].addr );
 
@@ -838,7 +820,7 @@ Inside predicate for xrectangle and xrectangle.
 int
 insideFun_RR (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  cout << "insideFun_RR" << endl;
+  //cout << "insideFun_RR" << endl;
   XRectangle* r1 = static_cast<XRectangle*>( args[0].addr );
   XRectangle* r2 = static_cast<XRectangle*>( args[1].addr );
 
@@ -879,27 +861,11 @@ class PointRectangleAlgebra : public Algebra
   {
 
 /*
-5.1 Specification of Operators
-
-Each operator specification consist of a two elem list (labels entries). The
-~label~ list is typically a list with four strings ("Example" ) and the
-~entries~ list has four text atoms.  Text atoms can be notated by using singele
-quotes, e.g.  (1 symbol "string" 'this is a text atom'). 
-
-In constrast to the specification of a type operator we will pass the
-specification as a textual nested list stored in a C++ string object. As a
-consequence this string will be parsed by the nested list parser at startup time
-of secondo. If the parse fails, SECONDO aborts directly. 
-
-To avoid errors by concatenating strings to a list which cannot be parsed
-directly one can use the class ~OperatorInfo~ which gets the specifications
-encoded in C++-string and offers a function ~str()~ which returns the assembled
-list as a string.
 
 5.2 Registration of Types
 
 The class ~ConstructorFunctions~ is a template class and will create many
-default implementations of functions used by a secondo type for deatails refer
+default implementations of functions used by a secondo type for details refer
 to "ConstructorFunctions.h". However some functions need to be implemented since
 the default may not be sufficient. The default kind check function assumes, that the
 type constructor does not have any arguments.
@@ -911,7 +877,6 @@ type constructor does not have any arguments.
     cf.create = XRectangle::Create;
     cf.in = XRectangle::In;
     cf.out = XRectangle::Out;
-    cf.cast = 0;
 
     // the default implementations for open and save are only 
     // suitable for a class which is derived from class ~Attribute~, hence
@@ -964,7 +929,7 @@ dynamically at runtime (if it is built as dynamic link library). The name
 of the Initialization function defines the name of the algebra module by
 convention it must start with "Initialize<AlgebraName>". 
 
-In order to link the algebra togehter with the system you must create an 
+In order to link the algebra together with the system you must create an 
 entry in the file makefile.algebra for it and to 
 
 */
@@ -993,5 +958,37 @@ There is also one for this algebra.
 
 Accurate testing is often treated as an unpopular daunting task. But it is
 absolutely inevitable if you want to provide a reliable algebra module.  
-   
+
+
+8 Some Notes about old Programming Interfaces
+
+8.1 Specification of Operators
+
+Each operator specification consist of a two elem list (labels entries). The
+~label~ list is typically a list with four strings ("Example" ) and the
+~entries~ list has four text atoms.  Text atoms can be notated by using single
+quotes, e.g.  (1 symbol "string" 'this is a text atom'). 
+
+In contrast to the specification of a type operator we will pass the
+specification as a textual nested list stored in a C++ string object. As a
+consequence this string will be parsed by the nested list parser at startup time
+of secondo. If the parse fails, SECONDO aborts directly. 
+
+To avoid errors by concatenating strings to a list which cannot be parsed
+directly one can use the class ~OperatorInfo~ which gets the specifications
+encoded in C++-string and offers a function ~str()~ which returns the assembled
+list as a string.
+
+
+The description is given as a character string containing a nested list. In the
+examples, there are many strings which are in C++ all concatenated into a
+single one. The list has the form ( (<heading 1> ... <heading k>) (<entry 1>
+... <entry k>) ) Headings are string atoms and entries are text atoms. Quotes
+for the string atom have to be escaped within another string, hence one needs
+to write \"Signature\" , for example. Standard headings for operator
+descriptions are Signature, Syntax, Meaning, and Example. This is followed by
+four text atoms including the description itself. 
+
+
+
 */

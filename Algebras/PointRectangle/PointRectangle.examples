@@ -1,17 +1,22 @@
-Database : berlintest
-Restore  : NO
+Database : prttest
+Restore  : YES
 
 Operator : inside
 Number   : 1
 Signature: xpoint x xrectangle -> bool, xrectangle x xrectangle -> bool
-Example  : query [const xpoint value (3 5)] inside [const xrectangle value (0 8 0 10)]
+Example  : query p1 inside r1
 Result   : TRUE
 
+
+Operator : inside
+Number   : 2
+Signature: xrectangle x xrectangle -> bool
+Example  : query r2 inside r1
+Result   : TRUE
 
 Operator : intersects
 Number   : 1
 Signature: xrectangle x xrectangle -> bool
-Example  : query [const xrectangle value (0 8 0 10)] intersects [const xrectangle value (5 7 2 3)]
+Example  : query r1 intersects r2
 Result   : TRUE
-
 
