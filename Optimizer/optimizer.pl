@@ -254,7 +254,8 @@ Example call:
 
 createPredicateFacts(Preds) :-
   optimizerOption(adaptiveJoin),
-  storePredicates(Preds), !.
+  storePredicates(Preds), 
+  !.
 
 createPredicateFacts(_).
 
@@ -3406,6 +3407,8 @@ traversePath([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
 ----	markupProgress(Term+, Sel+, BBoxSel+, ExpPET+, Term2-) :-
 ----
 
+Attach progress information to the right operators in a term.
+
 */
 
 markupProgress(Term, _, _, _, Term) :- optimizerOption(noprogress).
@@ -3415,19 +3418,74 @@ markupProgress(project(Stream, Attrs), Sel, BBoxSel, ExpPET,
   markupProgress(Stream, Sel, BBoxSel, ExpPET, Stream2),
   !.
 
-markupProgress(filter(windowintersects(Index, Rel, Range), Pred), 
-  Sel, BBoxSel, ExpPET,
- 
-  predinfo(Sel2, ExpPET, 
-    filter(
-      predinfo(BBoxSel, 0.1, 
-        windowintersects(Index, Rel, Range)),
-      Pred)
-  )) :-
-  Sel2 is (Sel / BBoxSel) * 0.999.  %must be real
+markupProgress(remove(Stream, Attrs), Sel, BBoxSel, ExpPET, 
+	remove(Stream2, Attrs)) :-
+  markupProgress(Stream, Sel, BBoxSel, ExpPET, Stream2),
+  !.
+
+markupProgress(rename(Stream, Var), Sel, BBoxSel, ExpPET, 
+	rename(Stream2, Var)) :-
+  markupProgress(Stream, Sel, BBoxSel, ExpPET, Stream2),
+  !.
+
+
+
+% filter - windowintersects combinations
+
+markupProgress(filter(Stream, Pred), Sel, BBoxSel, ExpPET,
+    predinfo(Sel2, ExpPET, filter(Stream2, Pred))) :-
+  BBoxSel \= noBBox,
+  Sel2 is (Sel / BBoxSel) * 0.999,			%must be real
+  markupProgressBBoxIndex(Stream, BBoxSel, Stream2),
+  !.
+
+
+% loopjoin
+
+markupProgress(loopjoin(Stream, Expr), Sel, BBoxSel, ExpPET,
+    loopjoin(Stream, Expr2)) :-
+  markupProgress(Expr, Sel, BBoxSel, ExpPET, Expr2),
+  !.
+
+% loopjoin with filter - windowintersects
+
+markupProgress(filter(loopjoin(Stream, Expr), Pred), Sel, BBoxSel, ExpPET,
+    predinfo(Sel2, ExpPET, filter(loopjoin(Stream, Expr2), Pred))) :-
+  BBoxSel \= noBBox,
+  Sel2 is (Sel / BBoxSel) * 0.999,
+  markupProgressBBoxIndex(Expr, BBoxSel, Expr2),
+  !.
   
+
 markupProgress(Stream, Sel, _, ExpPET, predinfo(Sel2, ExpPET, Stream)) :-
   Sel2 is Sel * 0.999.              %must be real
+
+
+
+
+/*
+----	markupProgressBBoxIndex(Stream+, Sel+, Stream2-)
+----
+
+Marks up a bbox index access operator (like windowintersects) with ~Sel~. Succeeds if such an operator exists in the term ~Stream~.
+
+*/
+
+markupProgressBBoxIndex(rename(Stream, Var), Sel, rename(Stream2, Var)) :-
+  markupProgressBBoxIndex(Stream, Sel, Stream2),
+  !.
+
+markupProgressBBoxIndex(windowintersects(Index, Rel, Arg), Sel, 
+  predinfo(Sel, 0.01, windowintersects(Index, Rel, Arg)) ).
+
+
+
+
+
+
+
+
+
 
 
 
