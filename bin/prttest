@@ -1,0 +1,16 @@
+
+(DATABASE PRTTEST 
+    (TYPES) 
+    (OBJECTS 
+        (OBJECT p1 
+            () 
+            xpoint 
+            (3 5)) 
+        (OBJECT r1 
+            () 
+            xrectangle 
+            (0 8 0 10)) 
+        (OBJECT r2 
+            () 
+            xrectangle 
+            (5 7 2 3))))
