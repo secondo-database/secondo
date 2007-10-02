@@ -526,6 +526,13 @@ otherwise   __true__.
      }
    }
 
+/*
+~Constructor~
+
+Creates an iterator for the given tree. The position 
+is set to the smallest entry in the tree.
+
+*/
   iterator(const AvlNode<contenttype>* root){
      const AvlNode<contenttype>* son = root;
      while(son){
@@ -534,21 +541,72 @@ otherwise   __true__.
      }
   }
 
+/*
+~Contructor~
+
+Creates a new iterator for root. The position is set to the first
+entry within the tree which is equals to or greater than min.
+
+*/
   iterator(const AvlNode<contenttype>* root, const contenttype min){
      if(root){
         tail(root,min);
      }
   }
 
+/*
+~Increment operator~
+
+This operator sets this iterator to the next position 
+in the tree.
+
+*/
   iterator& operator++(int){
       Next();
       return *this;
   }
 
-  
+/*
+~Dereference operator~
+
+This operator returns the element currently under the 
+iterator's cursor. If no more elements exist, NULL
+is returned.
+
+*/  
   const contenttype* operator*(){
      return Get();
   } 
+
+
+/*
+~hasNext~
+
+This function checks whether after the current element
+further elements exist.
+
+*/
+  bool hasNext(){
+    int size = thestack.size();
+    if(size==0){ // no elements
+      return false;
+    } 
+    if(size>1){ 
+       return true;
+    }
+    return (thestack.top()->getRightSon()!=0);
+  }
+
+/*
+~onEnd~
+
+The ~onEnd~ function checks whether the iterator does not have
+any elements, i.e. whether Get or [*] would return NULL. 
+
+*/
+  bool onEnd(){
+   return thestack.empty();
+  }
 
 
 
