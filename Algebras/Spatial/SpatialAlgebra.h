@@ -1160,6 +1160,10 @@ Sets the value of the "attr" attribute of a half segment.
 Sets the value of the dominating point flag of a half segment.
 
 */
+
+    inline bool IsVertical()const;
+
+
     HalfSegment& operator=( const HalfSegment& hs );
     bool operator==( const HalfSegment& hs ) const;
     bool operator!=( const HalfSegment& hs ) const;
@@ -3477,6 +3481,11 @@ HalfSegment::SetLeftDomPoint( bool ldp )
 {
   this->ldp = ldp;
 }
+
+inline bool HalfSegment::IsVertical()const{
+  return AlmostEqual(lp.GetX(),rp.GetX());
+}
+
 
 inline const Rectangle<2>
 HalfSegment::BoundingBox() const
