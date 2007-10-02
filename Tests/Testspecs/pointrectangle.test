@@ -39,6 +39,15 @@ query p1;
 #yields (xrectangle (0 2 0 2)) 
 query r1;
 
+#testcase in1
+#yields error
+let p5 = [ const xpoint value (0 0 0) ];
+
+#testcase in2
+#yields error
+let r5 = [ const xrectangle value (1 1 2 1 2) ];
+
+
 #testcase inside1; 
 #yields (bool TRUE) 
 query p2 inside r1;
