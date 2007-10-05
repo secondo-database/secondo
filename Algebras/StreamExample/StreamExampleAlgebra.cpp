@@ -51,6 +51,8 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "StandardTypes.h"  //We need integers, for example
+#include "Symbols.h"
+
 #include <string>
 #include <iostream>    //for testing
 
@@ -58,6 +60,7 @@ extern NestedList* nl;
 extern QueryProcessor *qp;
 extern AlgebraManager* am;
 
+using namespace symbols;
 
 /*
 
@@ -100,26 +103,22 @@ Type mapping for ~intstream~ is
 
 */
 ListExpr
-intstreamType( ListExpr args ){
-  ListExpr arg1, arg2;
-  if ( nl->ListLength(args) == 2 )
-  {
-    arg1 = nl->First(args);
-    arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, "int") && nl->IsEqual(arg2, "int") )
-      return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("int"));
-    if ((nl->AtomType(arg1) == SymbolType) &&
-        (nl->AtomType(arg2) == SymbolType))
-      ErrorReporter::ReportError("Type mapping function got parameters of type "
-                                 +nl->SymbolValue(arg1)+" and "
-                                 +nl->SymbolValue(arg2));
-    else
-      ErrorReporter::ReportError("Type mapping functions got wrong "
-                                 "types as parameters.");
-  }
-  ErrorReporter::ReportError("Type mapping function got a "
-                             "parameter of length != 2.");
-  return nl->SymbolAtom("typeerror");
+intstreamType( ListExpr args )
+{  
+  const string errMsg = "Type mapping function expects (int int) "
+                        " but got " + nl->ToString(args);
+
+  if ( nl->ListLength(args) != 2 )
+    ErrorReporter::ReportError( errMsg );
+
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  
+  if ( nl->IsEqual(arg1, INT) && nl->IsEqual(arg2, INT) )
+    return nl->TwoElemList(nl->SymbolAtom(STREAM), nl->SymbolAtom(INT));
+
+  ErrorReporter::ReportError( errMsg );
+  return nl->TypeError();
 }
 
 /*
@@ -310,28 +309,33 @@ This is illustrated in the value mapping functions below.
 
 */
 {
-  struct Range {int current, last;}* range;
-
-  CcInt* i1;
-  CcInt* i2;
-  CcInt* elem;
+  struct Range {  // an auxiliary record type
+    int current;
+    int last;
+    Range(CcInt* i1, CcInt* i2) {
+      current = i1->GetIntval();	    
+      current = i2->GetIntval();	    
+    }	    
+  };
+  
+  Range* range = 0;
+  CcInt* i1 = 0;
+  CcInt* i2 = 0;
+  CcInt* elem = 0;
 
   switch( message )
   {
-    case OPEN:
+    case OPEN: // initialize the local storage
 
       i1 = ((CcInt*)args[0].addr);
       i2 = ((CcInt*)args[1].addr);
 
-      range = new Range;
-      range->current = i1->GetIntval();
-      range->last =  i2->GetIntval();
-
+      range = new Range(i1, i2);
       local.addr = range;
 
       return 0;
 
-    case REQUEST:
+    case REQUEST: // return the next stream element
 
       range = ((Range*) local.addr);
 
@@ -341,15 +345,19 @@ This is illustrated in the value mapping functions below.
         result.addr = elem;
         return YIELD;
       }
-      else return CANCEL;
+      else 
+      {
+        result.addr = 0;	      
+        return CANCEL;
+      }	
 
-    case CLOSE:
+    case CLOSE: // free the local storage
 
       range = ((Range*) local.addr);
       delete range;
       return 0;
   }
-  /* should not happen */
+  /* should never happen */
   return -1;
 }
 
