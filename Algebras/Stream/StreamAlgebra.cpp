@@ -3256,40 +3256,148 @@ Operator streamfilter (
   streamFilterType    //type mapping
 );
 
+
+
 /*
-5.41 Operator ~~
+5.41 Operator ~realstream~
 
 ----
-     (insert signature here)
+     real x real x real -> stream(real)
 
 ----
 
+The ~realstream~ operator takes three arguments of type ~real~.
+It produces a stream of real values in range provided by the first
+two arguments with a stepwide taken from the third argument.
+
 */
 
 /*
-5.41.1 Type mapping function for ~~
+5.41.1 Type mapping function for ~realstream~
 
 */
+
+ListExpr realstreamTypeMap( ListExpr args ){
+  ListExpr arg1, arg2, arg3;
+  if ( nl->ListLength(args) == 3 )
+  {
+    arg1 = nl->First(args);
+    arg2 = nl->Second(args);
+    arg3 = nl->Third(args);
+    if ( nl->IsEqual(arg1, "real") && nl->IsEqual(arg2, "real") &&
+         nl->IsEqual(arg3, "real") ){
+      return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("real"));
+    }
+  }
+  ErrorReporter::ReportError("real x real x real expected");
+  return nl->TypeError();
+}
 
 /*
-5.41.2 Value mapping for operator ~~
+5.41.2 Value mapping for operator ~realstream~
 
 */
+
+int
+realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  struct RangeAndDiff {
+    double first, last, diff;
+    int iter;
+
+    RangeAndDiff(Word* args) {
+      
+      CcReal* r1 = ((CcReal*)args[0].addr);
+      CcReal* r2 = ((CcReal*)args[1].addr);
+      CcReal* r3 = ((CcReal*)args[2].addr);
+
+      iter = 0;
+      bool defined = r1->IsDefined() && r2->IsDefined() && r3->IsDefined();
+
+      if (defined) {
+        first = r1->GetRealval();
+        last =  r2->GetRealval();
+        diff = r3->GetRealval();
+      }	      
+      else {
+        first = 0;
+        last = -1;
+        diff = 1; 	
+      }
+    }	    
+  };
+  
+  RangeAndDiff* range_d = 0;
+  double current = 0;
+  double cd = 0;
+  CcReal* elem = 0;
+  
+  switch( message )
+  {
+    case OPEN:
+
+      range_d = new RangeAndDiff(args);
+      local.addr = range_d;
+      return 0;
+
+    case REQUEST:
+      range_d = ((RangeAndDiff*) local.addr);
+      cd = (double) range_d->iter * range_d->diff;
+      current = range_d->first + cd;
+      if(range_d->diff == 0.0){ // don't allow endless loops
+        return CANCEL;
+      } else if(range_d->diff < 0.0){
+         if(current < range_d->last){
+            return CANCEL;
+         } else {
+            elem = new CcReal(true,current);
+            result.addr = elem;
+            range_d->iter++;
+            return YIELD;
+         }
+      } else { // diff > 0.0
+         if(current > range_d->last){
+            return CANCEL;
+         } else {
+            elem = new CcReal(true,current);
+            result.addr = elem;
+            range_d->iter++;
+            return YIELD;
+         }
+      }
+      // should never happen
+      return -1; 
+    case CLOSE:
+      range_d = ((RangeAndDiff*) local.addr);
+      if(range_d){
+         delete range_d;
+      }
+      range_d = 0;
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
 
 /*
 5.41.3 Specification for operator ~~
 
 */
 
-/*
-5.41.4 Selection Function of operator ~~
+struct realstreamInfo : OperatorInfo 
+{
+  realstreamInfo() : OperatorInfo()
+  {
+    name      = REALSTREAM; 
+    signature = REAL + " x " + REAL + " -> stream(real)";
+    syntax    = REALSTREAM + "(_ , _, _)";
+    meaning   = "Creates a stream of reals containing the numbers "
+                "between the first and the second argument. The third "
+		"argument defines the step width.";
+  }
+};
 
-*/
 
-/*
-5.41.5 Definition of operator ~~
-
-*/
 
 /*
 5.41 Operator ~~
@@ -3650,6 +3758,7 @@ public:
     AddOperator( &streamfilter );
     AddOperator( ensure_Info("ensure"), ensure_vms, ensure_sf, ensure_tm );
     AddOperator( &echo );
+    AddOperator( realstreamInfo(), realstreamFun, realstreamTypeMap );
     AddOperator( &STREAMELEM );
     AddOperator( &STREAMELEM2 );
   }

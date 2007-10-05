@@ -123,30 +123,6 @@ intstreamType( ListExpr args )
   return nl->TypeError();
 }
 
-/*
-Type Mapping for ~realstream~ is
-
-real x real x real -> stream(real)
-
-*/
-
-ListExpr realstreamTypeMap( ListExpr args ){
-  ListExpr arg1, arg2, arg3;
-  if ( nl->ListLength(args) == 3 )
-  {
-    arg1 = nl->First(args);
-    arg2 = nl->Second(args);
-    arg3 = nl->Third(args);
-    if ( nl->IsEqual(arg1, "real") && nl->IsEqual(arg2, "real") &&
-         nl->IsEqual(arg3, "real") ){
-      return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("real"));
-    }
-    ErrorReporter::ReportError("real x real x real expected");
-  }
-  ErrorReporter::ReportError("Type mapping function got a "
-                             "parameter of length != 3.");
-  return nl->SymbolAtom("typeerror");
-}
 
 
 /*
@@ -349,88 +325,6 @@ This is illustrated in the value mapping functions below.
 }
 
 /*
-Works like the intstream operator.
-
-*/
-int
-realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  struct RangeAndDiff {
-    double first, last, diff;
-    int iter;
-
-    RangeAndDiff(Word* args) {
-      
-      CcReal* r1 = ((CcReal*)args[0].addr);
-      CcReal* r2 = ((CcReal*)args[1].addr);
-      CcReal* r3 = ((CcReal*)args[2].addr);
-
-      iter = 0;
-      bool defined = r1->IsDefined() && r2->IsDefined() && r3->IsDefined();
-
-      if (defined) {
-        first = r1->GetRealval();
-        last =  r2->GetRealval();
-        diff = r3->GetRealval();
-      }	      
-      else {
-	first = 0;
-        last = -1;
-        diff = 1; 	
-      }
-    }	    
-  };
-  
-  RangeAndDiff* range_d = 0;
-  double current = 0;
-  double cd = 0;
-  CcReal* elem = 0;
-  
-  switch( message )
-  {
-    case OPEN:
-
-      range_d = new RangeAndDiff(args);
-      local.addr = range_d;
-      return 0;
-
-    case REQUEST:
-      range_d = ((RangeAndDiff*) local.addr);
-      cd = (double) range_d->iter * range_d->diff;
-      current = range_d->first + cd;
-      if(range_d->diff == 0.0){ // don't allow endless loops
-        return CANCEL;
-      } else if(range_d->diff < 0.0){
-         if(current < range_d->last){
-            return CANCEL;
-         } else {
-            elem = new CcReal(true,current);
-            result.addr = elem;
-            range_d->iter++;
-            return YIELD;
-         }
-      } else { // diff > 0.0
-         if(current > range_d->last){
-            return CANCEL;
-         } else {
-            elem = new CcReal(true,current);
-            result.addr = elem;
-            range_d->iter++;
-            return YIELD;
-         }
-      }
-      // should never happen
-      return -1; 
-    case CLOSE:
-      range_d = ((RangeAndDiff*) local.addr);
-      delete range_d;
-      return 0;
-  }
-  /* should not happen */
-  return -1;
-}
-
-/*
 3 Value mapping for ~count~
 
 Count the number of elements in a stream. An example for consuming a stream.
@@ -591,18 +485,6 @@ struct intstreamInfo : OperatorInfo
   }
 };
 
-struct realstreamInfo : OperatorInfo 
-{
-  realstreamInfo() : OperatorInfo()
-  {
-    name      = REALSTREAM; 
-    signature = REAL + " x " + REAL + " -> stream(real)";
-    syntax    = REALSTREAM + "(_ , _, _)";
-    meaning   = "Creates a stream of reals containing the numbers "
-                "between the first and the second argument. The third "
-		"argument defines the step width.";
-  }
-};
 
 struct countInfo :  OperatorInfo 
 {
@@ -649,7 +531,6 @@ class StreamExampleAlgebra : public Algebra
   StreamExampleAlgebra() : Algebra()
   {
     AddOperator( intstreamInfo(), intstreamFun, intstreamType );
-    AddOperator( realstreamInfo(), realstreamFun, realstreamTypeMap );
     AddOperator( countInfo(), countFun, countType);
     AddOperator( printintSInfo(), printintstreamFun, printintstreamType );
     AddOperator( filterInfo(), filterFun, filterType );
