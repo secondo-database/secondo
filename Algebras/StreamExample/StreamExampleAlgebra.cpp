@@ -48,6 +48,7 @@ using namespace std;
 
 #include "Algebra.h"
 #include "NestedList.h"
+#include "NList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "StandardTypes.h"  //We need integers, for example
@@ -58,9 +59,10 @@ using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
-extern AlgebraManager* am;
 
 using namespace symbols;
+
+namespace ste {
 
 /*
 
@@ -195,23 +197,24 @@ Type mapping for ~printintstream~ is
 ListExpr
 printintstreamType( ListExpr args )
 {
-  ListExpr arg11, arg12;
-  string out;
+  ListExpr arg11 = nl->Empty(), arg12 = nl->Empty();
 
   if ( nl->ListLength(args) == 1 )
-  {
-    arg11 = nl->First(nl->First(args));
-    arg12 = nl->Second(nl->First(args));
+  {     	  
+    ListExpr arg = nl->First(args);
+    if ( nl->ListLength(arg) == 2 ) 
+    {    
+      arg11 = nl->First(arg);
+      arg12 = nl->Second(arg);
 
-    if ( nl->IsEqual(arg11, "stream") && nl->IsEqual(arg12, "int") )
-      return nl->First(args);
+      if ( nl->IsEqual(arg11, STREAM) && nl->IsEqual(arg12, INT) )
+        return nl->First(args);
+    }
   }
-  nl->WriteToString(out, nl->First(args));
+
   ErrorReporter::ReportError("Operator printintstream expects a "
-     "(stream int) as its first argument. "
-     "The argument provided "
-     "has type '" + out + "' instead.");  
-  return nl->SymbolAtom("typeerror");
+                             "(stream int) as argument.");  
+  return nl->TypeError();
 }
 
 
@@ -290,9 +293,6 @@ Is used to select one of several evaluation functions for an overloaded
 operator, based on the types of the arguments. In case of a non-overloaded
 operator, we can use the simpleSelect function provided by the Operator class.
 
-*/
-
-/*
 4.3 Value Mapping Function
 
 */
@@ -312,9 +312,19 @@ This is illustrated in the value mapping functions below.
   struct Range {  // an auxiliary record type
     int current;
     int last;
+
     Range(CcInt* i1, CcInt* i2) {
-      current = i1->GetIntval();	    
-      current = i2->GetIntval();	    
+
+      if (i1->IsDefined() && i2->IsDefined()) 
+      {	    
+        current = i1->GetIntval();	    
+        last = i2->GetIntval();	
+      }
+      else
+      {
+        current = 1;
+        last = 0;
+      }	
     }	    
   };
   
@@ -329,7 +339,6 @@ This is illustrated in the value mapping functions below.
 
       i1 = ((CcInt*)args[0].addr);
       i2 = ((CcInt*)args[1].addr);
-
       range = new Range(i1, i2);
       local.addr = range;
 
@@ -361,38 +370,49 @@ This is illustrated in the value mapping functions below.
   return -1;
 }
 
-int
-realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 Works like the intstream operator.
 
 */
+int
+realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  struct RangeAndDiff {double first, last, diff;
-                       int iter;
-         }* range_d;
+  struct RangeAndDiff {
+    double first, last, diff;
+    int iter;
 
-  CcReal* r1;
-  CcReal* r2;
-  CcReal* r3;
-  double current;
-  double cd;
-  CcReal* elem;
+    RangeAndDiff(Word* args) {
+      
+      CcReal* r1 = ((CcReal*)args[0].addr);
+      CcReal* r2 = ((CcReal*)args[1].addr);
+      CcReal* r3 = ((CcReal*)args[2].addr);
+
+      iter = 0;
+      bool defined = r1->IsDefined() && r2->IsDefined() && r3->IsDefined();
+
+      if (defined) {
+        first = r1->GetRealval();
+        last =  r2->GetRealval();
+        diff = r3->GetRealval();
+      }	      
+      else {
+	first = 0;
+        last = -1;
+        diff = 1; 	
+      }
+    }	    
+  };
   
-
+  RangeAndDiff* range_d = 0;
+  double current = 0;
+  double cd = 0;
+  CcReal* elem = 0;
+  
   switch( message )
   {
     case OPEN:
 
-      r1 = ((CcReal*)args[0].addr);
-      r2 = ((CcReal*)args[1].addr);
-      r3 = ((CcReal*)args[2].addr);
-
-      range_d = new RangeAndDiff();
-      range_d->first = r1->GetRealval();
-      range_d->last =  r2->GetRealval();
-      range_d->diff = r3->GetRealval();
-      range_d->iter = 0;
+      range_d = new RangeAndDiff(args);
       local.addr = range_d;
       return 0;
 
@@ -400,10 +420,10 @@ Works like the intstream operator.
       range_d = ((RangeAndDiff*) local.addr);
       cd = (double) range_d->iter * range_d->diff;
       current = range_d->first + cd;
-      if(range_d->diff==0.0){ // don't allow endless loops
+      if(range_d->diff == 0.0){ // don't allow endless loops
         return CANCEL;
-      } else if(range_d->diff<0.0){
-         if(current<range_d->last){
+      } else if(range_d->diff < 0.0){
+         if(current < range_d->last){
             return CANCEL;
          } else {
             elem = new CcReal(true,current);
@@ -411,8 +431,8 @@ Works like the intstream operator.
             range_d->iter++;
             return YIELD;
          }
-      } else {
-         if(current>range_d->last){
+      } else { // diff > 0.0
+         if(current > range_d->last){
             return CANCEL;
          } else {
             elem = new CcReal(true,current);
@@ -421,7 +441,7 @@ Works like the intstream operator.
             return YIELD;
          }
       }
-
+      // should never happen
       return -1; 
     case CLOSE:
       range_d = ((RangeAndDiff*) local.addr);
@@ -432,14 +452,16 @@ Works like the intstream operator.
   return -1;
 }
 
-int
-countFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
+3 Value mapping for ~count~
+
 Count the number of elements in a stream. An example for consuming a stream.
 
 */
+int
+countFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word elem;
+  Word elem = SetWord(Address(0));
   int count = 0;
 
   qp->Open(args[0].addr);
@@ -459,16 +481,19 @@ Count the number of elements in a stream. An example for consuming a stream.
   return 0;
 }
 
-int
-printintstreamFun (Word* args, Word& result, 
-                   int message, Word& local, Supplier s)
 /*
-Print the elements of an Attribute-type stream. 
+3 Value mapping ~printintstream~
+
+The next function prints the elements of a "stream(int)". 
 An example for a pure stream operator (input and output are streams).
 
 */
+
+int
+printintstreamFun (Word* args, Word& result, 
+                   int message, Word& local, Supplier s)
 {
-  Word elem;
+  Word elem = SetWord(Address(0));
 
   switch( message )
   {
@@ -486,7 +511,11 @@ An example for a pure stream operator (input and output are streams).
         result = elem;
         return YIELD;
       }
-      else return CANCEL;
+      else 
+      {
+	result = SetWord(Address(0));      
+	return CANCEL;
+      }	      
 
     case CLOSE:
 
@@ -497,16 +526,19 @@ An example for a pure stream operator (input and output are streams).
   return -1;
 }
 
-int
-filterFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
+3 Value mapping for ~filter~
+
 Filter the elements of a stream by a predicate. An example for a stream
 operator and also for one calling a parameter function.
 
 */
+int
+filterFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word elem, funresult;
-  ArgVectorPointer funargs;
+  Word elem = SetWord(Address(0));
+  Word funresult = SetWord(Address(0));
+  ArgVectorPointer funargs = 0;
 
   switch( message )
   {
@@ -517,26 +549,42 @@ operator and also for one calling a parameter function.
 
     case REQUEST:
 
-      funargs = qp->Argument(args[1].addr);  //Get the argument vector for
-       //the parameter function.
+      // Get the argument vector for the parameter function.
+      funargs = qp->Argument(args[1].addr);  
+
+      // Loop over stream elements until the function yields true.
       qp->Request(args[0].addr, elem);
       while ( qp->Received(args[0].addr) )
       {
+        // Supply the argument for the parameter function.
         (*funargs)[0] = elem;     
-          //Supply the argument for the
-          //parameter function.
+
+        // Instruct the parameter function to be evaluated.
         qp->Request(args[1].addr, funresult);
-          //Ask the parameter function
-          //to be evaluated.
-        if ( ((CcBool*) funresult.addr)->GetBoolval() )
+	CcBool* b = static_cast<CcBool*>( funresult.addr );
+
+        bool funRes = b->IsDefined() && b->GetBoolval();
+
+        if ( funRes )
         {
+	  // TRUE: Element passes the filter condition	
           result = elem;
           return YIELD;
         }
-        //consume the stream object:
-        ((Attribute*) elem.addr)->DeleteIfAllowed(); 
-        qp->Request(args[0].addr, elem); // get next element
+	else
+        {
+           // FALSE: Element is rejected by the filter condition
+	   
+          // consume the stream object (allow deletion)
+          static_cast<Attribute*>(elem.addr)->DeleteIfAllowed(); 
+
+	  // Get next stream element
+          qp->Request(args[0].addr, elem);
+	}  
       }
+
+      // End of Stream reached
+      result = SetWord(Address(0));
       return CANCEL;
 
     case CLOSE:
@@ -544,101 +592,72 @@ operator and also for one calling a parameter function.
       qp->Close(args[0].addr);
       return 0;
   }
-  /* should not happen */
+  /* should never happen */
   return -1;
 }
 
 /*
-4.4 Definition of Operators
+4.4 Description of Operators
 
 */
 
-const string intstreamSpec  = 
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(int int) -> (stream int)</text--->"
-  "<text>intstream ( _ , _ )</text--->"
-  "<text>Creates a stream of integers containing the numbers "
-  "between the first and the second argument.</text--->"
-  "<text>query intstream (1,10) printintstream count</text--->"
-  ") )";
+struct intstreamInfo : OperatorInfo 
+{
+  intstreamInfo() : OperatorInfo()
+  {
+    name      = INTSTREAM; 
+    signature = INT + " x " + INT + " -> stream(int)";
+    syntax    = INTSTREAM + "(_ , _)";
+    meaning   = "Creates a stream of integers containing the numbers "
+                "between the first and the second argument.";
+  }
+};
 
-const string realstreamSpec  = 
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>real x real x real -> stream (real)</text--->"
-  "<text>realstream ( _ , _ , _ )</text--->"
-  "<text>Creates a stream of reals containing the numbers "
-  "between the first and the second argument.</text--->"
-  "<text>query realstream (2.0 , 10.0, 0.5) count</text--->"
-  ") )";
+struct realstreamInfo : OperatorInfo 
+{
+  realstreamInfo() : OperatorInfo()
+  {
+    name      = REALSTREAM; 
+    signature = REAL + " x " + REAL + " -> stream(real)";
+    syntax    = REALSTREAM + "(_ , _, _)";
+    meaning   = "Creates a stream of reals containing the numbers "
+                "between the first and the second argument. The third "
+		"argument defines the step width.";
+  }
+};
 
-const string countSpec  = 
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>((stream int)) -> int</text--->"
-  "<text>_ count</text--->"
-  "<text>Counts the number of elements of an int stream.</text--->"
-  "<text>query intstream (1,10) count</text--->"
-  ") )";
+struct countInfo :  OperatorInfo 
+{
+  countInfo() : OperatorInfo()
+  {
+    name      = COUNT; 
+    signature = "stream(int)  -> " + INT;
+    syntax    = "_" + COUNT;
+    meaning   = "Counts the number of elements of an int stream.";
+  }
+};
 
-const string printintstreamSpec  = 
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>((stream int)) -> (stream int)</text--->"
-  "<text>_ printintstream</text--->"
-  "<text>Prints the elements of an integer stream.</text--->"
-  "<text>query intstream (1,10) printintstream count</text--->"
-  ") )";
+struct printintSInfo :  OperatorInfo 
+{
+  printintSInfo() : OperatorInfo()
+  {
+    name      = PRINT_INTSTREAM; 
+    signature = "stream(int)  -> stream(int)";
+    syntax    = "_" + PRINT_INTSTREAM;
+    meaning   = "Prints the elements int stream.";
+  }
+};
 
-const string filterSpec  = 
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>((stream int) (map int bool)) -> (stream int)</text--->"
-  "<text>_ filter [ fun ]</text--->"
-  "<text>Filters the elements of an int stream by a predicate.</text--->"
-  "<text>query intstream (1,10) filter[. > 7] printintstream count</text--->"
-  ") )";
-/*
-Used to explain the signature and the meaning of operators.
-
-*/
-
-Operator intstream (
-  "intstream",     //name
-  intstreamSpec,   //specification
-  intstreamFun,    //value mapping
-  Operator::SimpleSelect,    //trivial selection function
-  intstreamType    //type mapping
-);
-
-Operator realstream (
-  "realstream",     //name
-  realstreamSpec,   //specification
-  realstreamFun,    //value mapping
-  Operator::SimpleSelect,    //trivial selection function
-  realstreamTypeMap    //type mapping
-);
-
-Operator cppcount (
-  "count",     //name
-  countSpec,   //specification
-  countFun,    //value mapping
-  Operator::SimpleSelect,//trivial selection function
-  countType    //type mapping
-);
-
-Operator printintstream (
-  "printintstream",   //name
-  printintstreamSpec, //specification
-  printintstreamFun,  //value mapping
-  Operator::SimpleSelect,       //trivial selection function
-  printintstreamType  //type mapping
-);
-
-Operator sfilter (
-  "filter",     //name
-  filterSpec,   //specification
-  filterFun,    //value mapping
-  Operator::SimpleSelect, //trivial selection function
-  filterType    //type mapping
-);
-
+struct filterInfo :  OperatorInfo 
+{
+  filterInfo() : OperatorInfo()
+  {
+    name      = FILTER; 
+    signature = "stream(int) x (int -> bool) -> stream(int)";
+    syntax    = "_" + FILTER + "[ function ]";
+    meaning   = "Filters the elements of an int stream by a predicate.";
+  }
+};
 
 
 /*
@@ -651,31 +670,19 @@ class StreamExampleAlgebra : public Algebra
  public:
   StreamExampleAlgebra() : Algebra()
   {
-    AddOperator( &intstream );
-    AddOperator( &realstream );
-    AddOperator( &cppcount );
-    AddOperator( &printintstream );
-    AddOperator( &sfilter );
+    AddOperator( intstreamInfo(), intstreamFun, intstreamType );
+    AddOperator( realstreamInfo(), realstreamFun, realstreamTypeMap );
+    AddOperator( countInfo(), countFun, countType);
+    AddOperator( printintSInfo(), printintstreamFun, printintstreamType );
+    AddOperator( filterInfo(), filterFun, filterType );
   }
   ~StreamExampleAlgebra() {};
 };
 
-StreamExampleAlgebra streamExampleAlgebra;
+} // end of namespace ste
 
 /*
 6 Initialization
-
-Each algebra module needs an initialization function. The algebra manager
-has a reference to this function if this algebra is included in the list
-of required algebras, thus forcing the linker to include this module.
-
-The algebra manager invokes this function to get a reference to the instance
-of the algebra class and to provide references to the global nested list
-container (used to store constructor, type, operator and object information)
-and to the query processor.
-
-The function has a C interface to make it possible to load the algebra
-dynamically at runtime.
 
 */
 
@@ -683,8 +690,6 @@ extern "C"
 Algebra*
 InitializeStreamExampleAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
-  nl = nlRef;
-  qp = qpRef;
-  return (&streamExampleAlgebra);
+  return (new ste::StreamExampleAlgebra);
 }
 
