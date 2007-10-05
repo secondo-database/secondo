@@ -94,7 +94,7 @@ FunInfo::request( Word* arguments, int n, Word& funresult, string info = "" )
     (*funargs)[i] = arguments[i];
   }
 
-  if (info != "") {
+  if (trace && info != "") {
     cout << info << ", ";
   }
 

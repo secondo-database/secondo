@@ -1281,8 +1281,6 @@ tieFun( Word* args, Word& result, int message, Word& local, Supplier s )
     (*funargs)[0] = partResult;
     (*funargs)[1] = array->getElement(i);
 
-
-
     qp->Request(args[1].addr, funresult);
 
     if (funresult.addr != partResult.addr) {
@@ -1870,7 +1868,10 @@ loopFun( Word* args, Word& result, int message, Word& local, Supplier s )
   Word a[n];
   string info;
 
-  cout << "Processing ..." << endl;
+  bool trace = false;
+  if (trace)
+    cout << "Processing ..." << endl;
+
   for (int i=0; i<n; i++) {
     info = toString(i);
     f.request(array->getElement(i), funresult, info);
