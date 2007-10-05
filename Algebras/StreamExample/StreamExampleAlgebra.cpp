@@ -228,60 +228,42 @@ Type mapping for ~filter~ is
 ListExpr
 filterType( ListExpr args )
 {
-  ListExpr stream, map, errorInfo;
-  string out, out2;
-
-  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  ListExpr stream = nl->Empty();
+  ListExpr map = nl->Empty();
 
   if ( nl->ListLength(args) == 2 )
   {
     stream = nl->First(args);
     map = nl->Second(args);
 
-    // test first argument for stream(T), T in kind DATA
+    // test first argument for stream(int)
     if ( nl->IsAtom(stream)
          || !(nl->ListLength(stream) == 2)
-         || !nl->IsEqual(nl->First(stream), "stream")
-         || !nl->IsEqual(nl->Second(stream), "int") )
+         || !nl->IsEqual(nl->First(stream), STREAM)
+         || !nl->IsEqual(nl->Second(stream), INT) )
     {
-      nl->WriteToString(out, stream);
-      ErrorReporter::ReportError("Operator filter expects a (stream int) "
-           "as its first argument. "
-           "The argument provided "
-           "has type '" + out + "' instead.");
-      return nl->SymbolAtom("typeerror");
+      ErrorReporter::ReportError("Operator " + FILTER + 
+		            "expects a (stream int) as its first argument.");
+
+      return nl->TypeError();
     }
 
     // test second argument for map T' bool. T = T'
     if ( nl->IsAtom(map)
          || !nl->ListLength(map) == 3
-         || !nl->IsEqual(nl->First(map), "map")
-         || !nl->IsEqual(nl->Third(map), "bool") )
+         || !nl->IsEqual(nl->First(map), MAP)
+         || !nl->IsEqual(nl->Second(map), INT)
+         || !nl->IsEqual(nl->Third(map), BOOL) )
     {
-      nl->WriteToString(out, map);
-      ErrorReporter::ReportError("Operator filter expects a "
-           "(map int bool) as its second argument. "
-           "The second argument provided "
-           "has type '" + out + "' instead.");
-      return nl->SymbolAtom("typeerror");
-    }
-    
-    if ( !( nl->Equal( nl->Second(stream), nl->Second(map) ) ) )
-    {
-      nl->WriteToString(out, nl->Second(stream));
-      nl->WriteToString(out2, nl->Second(map));
-      ErrorReporter::ReportError("Operator filter: the stream base type "
-            "must match the map's argument type, "
-            "i.e. 1st: (stream int), 2nd: (map int bool). "
-            "The actual types are 1st: '" + out +
-            "', 2nd: '" + out2 + "'.");
-      return nl->SymbolAtom("typeerror");
+      ErrorReporter::ReportError("Operator " + FILTER + " expects a "
+                                 "(map int bool) as its second argument. ");
+      return nl->TypeError();
     }
   }
   else 
   { // wrong number of arguments
     ErrorReporter::ReportError("Operator filter expects two arguments.");
-    return nl->SymbolAtom("typeerror");      
+    return nl->TypeError();
   }
   return stream; // return type of first argument
 }

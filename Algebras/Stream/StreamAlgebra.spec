@@ -29,8 +29,7 @@ operator aggregateS alias AGGREGATES pattern _ op [ _ ; _ ] implicit parameter s
 operator echo alias ECHO pattern _ op [_ , _]
 operator ensure alias ENSURE pattern _ op [_]
 
-# Operator signatures already defined elsewhere:
-#operator feed alias FEED pattern op ( _ )
-#operator filter alias FILTER pattern _ op [ fun ] implicit parameter streamelem type STREAMELEM
-#operator count alias COUNT pattern _ op
+operator feed alias FEED pattern _ op
+operator filter alias FILTER pattern _ op [ fun ] implicit parameter streamelem type STREAMELEM
+operator count alias COUNT pattern _ op
 

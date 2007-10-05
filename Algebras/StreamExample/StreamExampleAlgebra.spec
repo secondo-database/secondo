@@ -18,8 +18,7 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator intstream alias INTSTREAM pattern op (_, _)
-operator printintstream alias PRINTINTSTREAM pattern _ op
+operator printintstream alias PRINTX pattern _ op
 
-# already defined in other algebras:
-# operator filter alias FILTER pattern _ op [ fun ] implicit parameter elem type TUPLE
-# operator count alias COUNT pattern _ op
+operator filterintstream alias FILTERX pattern _ op [ fun ] implicit parameter elem type STREAMELEM
+operator countintstream alias COUNTX pattern _ op

@@ -2,31 +2,31 @@ Database : berlintest
 Restore  : NO
 
 
-Operator : count
+Operator : countintstream
 Number   : 1
 Signature: ((stream int)) -> int
-Example  : query intstream (1,10) count
+Example  : query intstream (1,10) countintstream
 Result   : 10
 
 
-Operator : filter
+Operator : filterintstream
 Number   : 1
 Signature: ((stream int) (map int bool)) -> (stream int)
-Example  : query intstream (1,10) filter[. > 7] printintstream count
+Example  : query intstream (1,10) filterintstream[. > 7] printintstream countintstream
 Result   : 3
 
 
 Operator : intstream
 Number   : 1
 Signature: (int int) -> (stream int)
-Example  : query intstream (1, 335) count
+Example  : query intstream (1, 335) countintstream
 Result   : 335
 
 
 Operator : printintstream
 Number   : 1
 Signature: ((stream int)) -> (stream int)
-Example  : query intstream (1, 5) printintstream count
+Example  : query intstream (1, 5) printintstream countintstream
 Result   : 5
 
 
@@ -35,3 +35,4 @@ Number   : 1
 Signature: real x real x real -> stream(real)
 Example  : query realstream(0.0, 1.0, 0.1) count
 Result   : 11
+Remark   : Here we use the generic count operator of the StreamAlgebra.

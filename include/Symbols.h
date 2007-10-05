@@ -53,7 +53,7 @@ namespace symbols {
  Sym TEXT("text");
 
 
- // standard types
+ // point rectangle types
 #undef XPOINT 
 #undef XRECTANGLE
 #undef SIMPLE 
@@ -62,6 +62,18 @@ namespace symbols {
  Sym INTERSECTS("intersects");
  Sym INSIDE("inside");
  Sym SIMPLE("SIMPLE");
+
+
+ // stream example types
+#undef INTSTREAM 
+#undef REALSTREAM
+#undef COUNT
+ Sym INTSTREAM("intstream");
+ Sym PRINT_INTSTREAM("printintstream");
+ Sym REALSTREAM("realstream");
+ Sym COUNT("countintstream");
+ Sym FILTER("filterintstream");
+
 
  // relation algebra
 #undef REL 
