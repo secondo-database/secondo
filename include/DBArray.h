@@ -264,9 +264,14 @@ sort is done in memory using an STL vector.
     {
       const DBArrayElement *elem;
 
+      if(nElements == 0)
+      {
+        result = 0;
+        return false;
+      }
+
       Get( 0, elem );
-      if( nElements == 0 ||
-          cmp( key, elem ) < 0 )
+      if( cmp( key, elem ) < 0 )
       {
         result = 0;
         return false;
