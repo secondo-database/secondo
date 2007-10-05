@@ -309,10 +309,12 @@ Error messages are written to out.
 Inserts an object into this tree.
 
 */
-void insert(const contenttype& x){
+bool insert(const contenttype& x){
    __AVL_TRACE__
-   root = insert(root,x);
+   bool success;
+   root = insert(root,x,success);
    root->updateHeight();
+   return success;
 }
 
 /*
@@ -321,12 +323,14 @@ void insert(const contenttype& x){
 Deletes x from the tree. 
 
 */
-void remove(const contenttype& x){
-   __AVL_TRACE__
-  root = remove(root,x);
+bool remove(const contenttype& x){
+  __AVL_TRACE__
+  bool found = false;
+  root = remove(root,x,found);
   if(root!=NULL){
      root->updateHeight();
   }
+  return found;
 }
 
 /*
@@ -338,6 +342,12 @@ Checks whether x is contained in the tree
 bool member(const contenttype& x) const{
    __AVL_TRACE__
    return member(root,x);
+}
+
+
+const contenttype* getMember(const contenttype& x) const{
+   __AVL_TRACE__
+   return getMember(root,x);
 }
 
 /*
@@ -784,16 +794,18 @@ It returns the root of the new tree.
 
 */
 static  AvlNode<contenttype>* insert(AvlNode<contenttype>* root, 
-                                  const contenttype& content){
+                                  const contenttype& content,bool& success){
    __AVL_TRACE__
    if(root==NULL){ // leaf reached
+      success=true;
       return new AvlNode<contenttype>(content);
    }
    contenttype c = root->content;
    if(c==content){ // an AVL tree represents a set, do nothing
+      success=false;
       return root;
    } else if(content<c){ // perform the left subtree
-      root->left = insert(root->left,content);
+      root->left = insert(root->left,content,success);
       root->updateHeight();
       if(abs(root->balance())>1){ // rotation or double rotation required
          // check where the overhang is
@@ -810,7 +822,7 @@ static  AvlNode<contenttype>* insert(AvlNode<contenttype>* root,
       }
    } else{
    // content > c => insert at right 
-      root->right = insert(root->right,content);
+      root->right = insert(root->right,content,success);
       root->updateHeight();
       if(abs(root->balance())>1){
         if(root->right->balance()<0){ // LeftRotation
@@ -836,14 +848,15 @@ It returns the new root of the created tree.
 
 */
 static AvlNode<contenttype>* remove(AvlNode<contenttype>* root,
-                                 const contenttype& x){
+                                 const contenttype& x, bool& found){
    __AVL_TRACE__
    if(root==NULL){ // nothing found
+      found = false;
       return NULL;
    }
    contenttype  value = root->content;
    if(x<value){
-      root->left = remove(root->left,x);
+      root->left = remove(root->left,x,found);
       root->updateHeight();
       if(root->right==NULL){ // because we have deleted  
                             // in the left part, we cannot 
@@ -863,7 +876,7 @@ static AvlNode<contenttype>* remove(AvlNode<contenttype>* root,
         return root;
       }
    } else if(x>value){
-       root->right = remove(root->right,x);
+       root->right = remove(root->right,x,found);
        root->updateHeight();
        if(abs(root->balance())>1){ // we have to rotate
           int LB = root->left->balance();
@@ -876,6 +889,7 @@ static AvlNode<contenttype>* remove(AvlNode<contenttype>* root,
          return root;
        }
    } else { // value == x , value found , we have a lot to do
+      found = true;
       if(root->isLeaf()){
         delete root; // free the memory
         return NULL; // delete a single leaf
@@ -958,6 +972,18 @@ static bool member(AvlNode<contenttype>const* const root,
           ? member(root->left,content) 
           : member(root->right,content);
 }
+
+
+static const contenttype* getMember(AvlNode<contenttype>const* const root,
+                  const contenttype& content){
+   __AVL_TRACE__
+  if(root==NULL) return 0;
+  if(root->content==content) return &root->content;
+  return   content<root->content
+          ? getMember(root->left,content) 
+          : getMember(root->right,content);
+}
+
 
 /*
 2.1 Check
