@@ -54,7 +54,11 @@ extern QueryProcessor* qp;
 enum realmkind { PLANESWEEP, QUADRATIC, OVERLAPPING };
 enum State {FIRST, SECOND, BOTH};
 
-struct HalfSegmentCheck { bool splitsegment; list<Point> pointlist; };
+struct HalfSegmentCheck { 
+  bool splitsegment; 
+  list<Point> pointlist;
+  HalfSegmentCheck() : splitsegment(false) {}; 
+};
 
 const bool PSA_DEBUG = false;
 const realmkind kindofrealm = OVERLAPPING;
@@ -3551,7 +3555,7 @@ void MakeRealm::REALM2(const T* obj1, const U* obj2, const bool isline1,
      readhalfsegments(vl2, obj2);
      if ( PSA_DEBUG ) printsegvector(vl2);
   
-     HalfSegmentCheck sc = { false, list<Point>() };
+     HalfSegmentCheck sc;
      vector<HalfSegmentCheck> scl1(vl1.size(), sc), scl2(vl2.size(), sc);
      if ( kindofrealm == OVERLAPPING )
        dorealm2(vl1, vl2, isline1, isline2, scl1, scl2);   
