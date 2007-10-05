@@ -159,8 +159,8 @@ Type mapping for ~count~ is
 ListExpr
 countType( ListExpr args )
 {
-  ListExpr arg1;
-  string outstr;
+  ListExpr arg1 = nl->Empty();
+  const string errMsg = "Operator count expects (stream int)";
 
   if ( nl->ListLength(args) == 1 )
   {
@@ -168,23 +168,19 @@ countType( ListExpr args )
 
     if ( !nl->IsAtom(arg1) && nl->ListLength(arg1) == 2 )
     {
-      if ( nl->IsEqual(nl->First(arg1), "stream")
-           && ( nl->IsAtom(nl->Second(arg1) ) )
-           && ( nl->IsEqual(nl->Second(arg1), "int")))
-       return nl->SymbolAtom("int");
+      if ( nl->IsEqual(nl->First(arg1), STREAM)
+           && ( nl->IsEqual(nl->Second(arg1), INT))) 
+      {
+        return nl->SymbolAtom(INT);
+      } 
       else
       {
-        nl->WriteToString(outstr, arg1);
-        ErrorReporter::ReportError("Operator count expects a (stream int), "
-          "The argument provided has type '" + outstr + "' instead.");
+        ErrorReporter::ReportError(errMsg);
       }
     }
   }
-  nl->WriteToString(outstr, nl->First(args));
-  ErrorReporter::ReportError("Operator count expects only a single "
-     "argument of type (stream int), The argument provided "
-     "has type '" + outstr + "' instead.");
-  return nl->SymbolAtom("typeerror");
+  ErrorReporter::ReportError(errMsg);
+  return nl->TypeError();
 }
 
 /*
