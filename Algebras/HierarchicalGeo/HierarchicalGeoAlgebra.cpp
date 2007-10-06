@@ -53,7 +53,9 @@ these type constructors are implemented in the HierarchicalGeoAlgebra.h file.
 #include "SpatialAlgebra.h"
 #include "PolySolver.h"
 #include "RelationAlgebra.h"
+//#include "StreamAlgebra.h"
 #include "TemporalAlgebra.h"
+#include "MovingRegionAlgebra.h"
 #include "TypeMapUtils.h"
 #include <math.h>
 
@@ -75,6 +77,233 @@ extern QueryProcessor* qp;
 3.1 Class ~CUPoint~
 
 */
+//virtual void CUPoint::TemporalFunction( const Instant& t,
+//                                 Point& result,
+//                                 bool ignoreLimits = false ) const 
+//{
+//  
+//}
+
+void CUPoint::UTrajectory( Region& result ) const
+{
+  result.SetDefined( true );
+  result.Clear();    // clear the result region
+  
+  if (AlmostEqual( p0, p1 ) )
+  {
+    // p0 almost equals p1, so the trajectory of this cupoint can be
+    // represented as a circular region whose center is defined by p0 and
+    // whose radius is defined by the uncertainty-value epsilon.
+    Circle( p0, epsilon, 16, result );
+  }
+  else
+  {
+    Coord x1, y1, x2, y2, x3, y3, x4, y4;
+    
+    if (AlmostEqual(p0.GetX(), p1.GetX()) )
+    {
+      // The uncertain unit point moves along the y-axis.
+      x1 = p0.GetX() + epsilon;
+      y1 = p0.GetY();
+      x2 = p0.GetX() - epsilon;
+      y2 = p0.GetY();
+      x3 = p1.GetX() - epsilon;
+      y3 = p1.GetY();
+      x4 = p1.GetX() + epsilon;
+      y4 = p1.GetY();
+    }
+    else if (AlmostEqual(p0.GetY(), p1.GetY()) )
+    {
+      // The uncertain unit point moves along the x-axis.
+      x1 = p0.GetX();
+      y1 = p0.GetY() - epsilon;
+      x2 = p0.GetX();
+      y2 = p0.GetY() + epsilon;
+      x3 = p1.GetX();
+      y3 = p1.GetY() + epsilon;
+      x4 = p1.GetX();
+      y4 = p1.GetY() - epsilon;
+    }
+    else
+    {
+      // Create 4 halfsegments as the edges of a rectangular box
+      // that defines the uncertainty-area of this cupoint's trajectory.  
+      
+      // To determine the edge-points of these halfsegments, the trigonometric
+      // functions sin(alpha) and cos(alpha) are used:
+      double lengthX = fabs(p1.GetX() - p0.GetX());
+      double lengthY = fabs(p1.GetY() - p0.GetY());
+      double length = p0.Distance(p1);
+      double sinalpha = lengthY / length;
+      double cosalpha = lengthX / length;
+      Point pleft;
+      Point pright;
+      
+      if ( p0.GetX() < p1.GetX() )
+      {
+        pleft.Set( p0.GetX(), p0.GetY() );
+        pright.Set( p1.GetX(), p1.GetY() ); 
+      }
+      else
+      {
+        pleft.Set( p1.GetX(), p1.GetY() );
+        pright.Set( p0.GetX(), p0.GetY() );
+      }
+      
+      if (pleft.GetY() < pright.GetY() )
+      {
+        x1 = pleft.GetX() + epsilon * sinalpha;
+        y1 = pleft.GetY() - epsilon * cosalpha;
+        x2 = pleft.GetX() - epsilon * sinalpha;
+        y2 = pleft.GetY() + epsilon * cosalpha;
+        y3 = y2 + lengthY;
+        y4 = y1 + lengthY;
+      }
+      else
+      {
+        x1 = pleft.GetX() + epsilon * sinalpha;
+        y1 = pleft.GetY() + epsilon * cosalpha;
+        x2 = pleft.GetX() - epsilon * sinalpha;
+        y2 = pleft.GetY() - epsilon * cosalpha;
+        y3 = y2 - lengthY;
+        y4 = y1 - lengthY;
+      }
+      x3 = x2 + lengthX;
+      x4 = x1 + lengthX;
+      
+    }
+    
+    // Create points of the coordinates:
+    Point ep1(true, x1, y1);
+    Point ep2(true, x2, y2);
+    Point ep3(true, x3, y3);
+    Point ep4(true, x4, y4);
+    
+    if( AlmostEqual(ep1, ep2) ||
+        AlmostEqual(ep2, ep3) ||
+        AlmostEqual(ep3, ep4) ||
+        AlmostEqual(ep4, ep1) )
+    { // one interval is (almost) empty, so will be the region
+      result.SetDefined( true );
+      return;
+    }
+    
+    HalfSegment hs;
+    int partnerno = 0;
+    
+    result.StartBulkLoad();
+    // Create halfsegments of the points and insert them to region 'result':
+    hs.Set(true, ep1, ep2);
+    hs.attr.faceno = 0;         // only one face
+    hs.attr.cycleno = 0;        // only one cycle
+    hs.attr.edgeno = partnerno;
+    hs.attr.partnerno = partnerno++;
+    hs.attr.insideAbove = (hs.GetLeftPoint() == ep2);
+    result += hs;
+    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+    result += hs;
+    
+    hs.Set(true, ep2, ep3);
+    hs.attr.faceno = 0;         // only one face
+    hs.attr.cycleno = 0;        // only one cycle
+    hs.attr.edgeno = partnerno;
+    hs.attr.partnerno = partnerno++;
+    hs.attr.insideAbove = (hs.GetLeftPoint() == ep3);
+    result += hs;
+    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+    result += hs;
+    
+    hs.Set(true, ep3, ep4);
+    hs.attr.faceno = 0;         // only one face
+    hs.attr.cycleno = 0;        // only one cycle
+    hs.attr.edgeno = partnerno;
+    hs.attr.partnerno = partnerno++;
+    hs.attr.insideAbove = (hs.GetLeftPoint() == ep4);
+    result += hs;
+    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+    result += hs;
+    
+    hs.Set(true, ep4, ep1);
+    hs.attr.faceno = 0;         // only one face
+    hs.attr.cycleno = 0;        // only one cycle
+    hs.attr.edgeno = partnerno;
+    hs.attr.partnerno = partnerno++;
+    hs.attr.insideAbove = (hs.GetLeftPoint() == ep1);
+    result += hs;
+    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+    result += hs;
+    
+    result.EndBulkLoad();
+    result.SetDefined( true );
+  }
+  return;
+}
+
+void CUPoint::TemporalFunction( const Instant& t,
+                               Point& result,
+                               bool ignoreLimits ) const
+{
+  if( !IsDefined() ||
+      !t.IsDefined() ||
+      (!timeInterval.Contains( t ) && !ignoreLimits) )
+    {
+      result.SetDefined(false);
+    }
+  else if( t == timeInterval.start )
+    {
+      result = p0;
+      result.SetDefined(true);
+    }
+  else if( t == timeInterval.end )
+    {
+      result = p1;
+      result.SetDefined(true);
+    }
+  else
+    {
+      Instant t0 = timeInterval.start;
+      Instant t1 = timeInterval.end;
+
+      double x = (p1.GetX() - p0.GetX()) * ((t - t0) / (t1 - t0)) + p0.GetX();
+      double y = (p1.GetY() - p0.GetY()) * ((t - t0) / (t1 - t0)) + p0.GetY();
+
+      result.Set( x, y );
+      result.SetDefined(true);
+    }
+}
+
+
+void CUPoint::AtInterval( const Interval<Instant>& i,
+                           TemporalUnit<Point>& result ) const
+{
+  assert( IsDefined() );
+  assert( i.IsValid() );
+
+  
+  TemporalUnit<Point>::AtInterval( i, result );
+  UPoint *pResult = (UPoint*)&result;
+
+  if( timeInterval.start == result.timeInterval.start )
+    {
+      pResult->p0 = p0;
+      pResult->timeInterval.start = timeInterval.start;
+      pResult->timeInterval.lc = (pResult->timeInterval.lc && timeInterval.lc);
+    }
+  else
+    TemporalFunction( result.timeInterval.start, pResult->p0 );
+
+  if( timeInterval.end == result.timeInterval.end )
+    {
+      pResult->p1 = p1;
+      pResult->timeInterval.end = timeInterval.end;
+      pResult->timeInterval.rc = (pResult->timeInterval.rc && timeInterval.rc);
+      
+    }
+  else
+    TemporalFunction( result.timeInterval.end, pResult->p1 );
+
+  pResult->SetDefined ( true );
+}
 
 /*
 3.2 Class ~CMPoint~
@@ -266,6 +495,323 @@ Rectangle<3u> CMPoint::BoundingBox() const
   return bbox;
 }
 
+
+//TODO: Aufruf von aggregateS über QueryProcessor::ExecuteQuery(...) einbauen.
+// Siehe StandardAlgebra.cpp - RelcountFun2()
+/*void CMPoint::Trajectory( Region& region ) const
+{
+  Region unitregion;
+
+  region.Clear();
+  region.StartBulkLoad();
+
+  // create a subquery to determine the trajectory-region of the
+  const CUPoint *unit;
+  int edgeno = 0;
+  int size = GetNoComponents();
+  if (size > 0 )
+    region.Resize(size);
+  
+  for( int i = 0; i < size; i++ )
+  {
+    Get( i, unit );
+    
+    if( !AlmostEqual( unit->p0, unit->p1 ) )
+    {
+      region
+    }
+  
+}*/
+
+bool CMPoint::Present( const Instant& t ) const
+{
+  assert( IsDefined() );
+  assert( t.IsDefined() );
+  assert( IsOrdered() );
+
+  if(bbox.IsDefined())
+  { // do MBR-check
+    double instd = t.ToDouble();
+    double mint = bbox.MinD(2);
+    double maxt = bbox.MaxD(2);
+    if( (instd < mint && !AlmostEqual(instd,mint)) ||
+        (instd > maxt && !AlmostEqual(instd,mint))
+      )
+    {
+      return false;
+    }
+  }
+  int pos = Position(t);
+  if( pos == -1 )         //not contained in any unit
+    return false;
+  return true;
+}
+
+bool CMPoint::Present( const Periods& t ) const
+{
+  assert( IsDefined() );
+  assert( IsOrdered() );
+  assert( t.IsDefined() );
+  assert( t.IsOrdered() );
+
+  Periods defTime( 0 );
+  DefTime( defTime );
+  if(bbox.IsDefined())
+  { // do MBR-check
+    double MeMin = bbox.MinD(2);
+    double MeMax = bbox.MaxD(2);
+    Instant tmin; t.Minimum(tmin);
+    Instant tmax; t.Maximum(tmax);
+    double pmin = tmin.ToDouble();
+    double pmax = tmax.ToDouble();
+    if( (pmin < MeMin && !AlmostEqual(pmin,MeMin)) ||
+         (pmax > MeMax && !AlmostEqual(pmax,MeMax))
+      )
+    {
+      return false;
+    }
+  }
+  return t.Intersects( defTime );
+}
+
+void CMPoint::AtInstant( const Instant& t, IRegion& result ) const
+{
+  // +++++ nur zu Testzwecken +++
+  cout << "Start der Berechnung atInstant() ...";
+  assert( IsOrdered() );
+  // +++++ nur zu Testzwecken +++
+  cout << "  CMPoint ist sortiert ...";
+  assert( t.IsDefined() );
+  // +++++ nur zu Testzwecken +++
+  cout << "  Instant ist definiert ...";
+  if( IsDefined() && t.IsDefined() )
+  {
+    // +++++ nur zu Testzwecken +++
+    cout << "    Instant und CMPoint sind definiert, pruefe bbox ...";
+    if( !bbox.IsDefined() )
+    { // result is undefined
+      result.SetDefined(false);
+    } else if( IsEmpty() )
+    { // result is undefined
+      result.SetDefined(false);
+    } else
+    { // compute result
+      // +++++ nur zu Testzwecken +++
+      cout << "Ergebnis wird berechnet ...";
+      double instd = t.ToDouble();
+      double mind = bbox.MinD(2);
+      double maxd = bbox.MaxD(2);
+      if( (mind > instd && !AlmostEqual(mind,instd)) ||
+           (maxd < instd && !AlmostEqual(maxd,instd))
+        )
+      {
+        result.SetDefined(false);
+      } else
+      {
+        // +++++ nur zu Testzwecken +++
+        cout << "  Pruefe, ob Zeitpunkt in CMPoint enthalten ist ...";
+        int pos = Position( t );
+        if( pos == -1 )  // not contained in any unit
+          result.SetDefined( false );
+        else
+        {
+          // +++++ nur zu Testzwecken +++
+          cout << "  Berechne Ergebnis vom Typ instant<region> ...";
+          const CUPoint *posUnit;
+          units.Get( pos, posUnit );
+          result.SetDefined( true );
+          Point respoint;
+          posUnit->TemporalFunction( t, respoint );
+          Circle(respoint, posUnit->epsilon, 16, result.value);
+          result.instant.CopyFrom( &t );
+        }
+      }
+    }
+  } else
+  {
+    result.SetDefined(false);
+  }
+}
+
+void CMPoint::AtPeriods( const Periods& p, CMPoint& result ) const
+{
+  assert( IsOrdered() );
+  assert( p.IsOrdered() );
+
+  result.Clear();
+  result.SetDefined(true);
+  if( IsDefined() && p.IsDefined() )
+  {
+    if( !bbox.IsDefined())
+    { // result is undefined
+      result.SetDefined(false);
+    } else if( IsEmpty() || p.IsEmpty())
+    { // result is defined but empty
+      result.SetDefined(true);
+    } else
+    { // compute result
+      Instant perMinInst; p.Minimum(perMinInst);
+      Instant perMaxInst; p.Maximum(perMaxInst);
+      double permind = perMinInst.ToDouble();
+      double permaxd = perMaxInst.ToDouble();
+      double mind = bbox.MinD(2);
+      double maxd = bbox.MaxD(2);
+      if( (mind > permaxd && !AlmostEqual(mind,permaxd)) ||
+          (maxd < permind && !AlmostEqual(maxd,permind)))
+      {
+        result.SetDefined(true);
+      } else
+      {
+        result.StartBulkLoad();
+        const CUPoint *unit;
+        const Interval<Instant> *interval;
+        int i = 0, j = 0;
+        Get( i, unit );
+        p.Get( j, interval );
+
+        while( 1 )
+        {
+          if( unit->timeInterval.Before( *interval ) )
+          {
+            if( ++i == GetNoComponents() )
+              break;
+            Get( i, unit );
+          }
+          else if( interval->Before( unit->timeInterval ) )
+          {
+            if( ++j == p.GetNoComponents() )
+              break;
+            p.Get( j, interval );
+          }
+          else
+          { // we have overlapping intervals, now
+            CUPoint r;
+            unit->AtInterval( *interval, r );
+            r.epsilon = unit->epsilon;
+            r.UncertainSetDefined(true);
+            result.Add( r );
+//          cout << "\n\tunit = "; unit->Print(cout); cout << endl;
+//          cout << "\tinterval =       "; interval->Print(cout); cout << endl;
+//          cout << "\tr    = "; r.Print(cout); cout << endl;
+
+            if( interval->end == unit->timeInterval.end )
+            { // same ending instant
+              if( interval->rc == unit->timeInterval.rc )
+              { // same ending instant and rightclosedness: Advance both
+                if( ++i == GetNoComponents() )
+                  break;
+                Get( i, unit );
+                if( ++j == p.GetNoComponents() )
+                  break;
+                p.Get( j, interval );
+              }
+              else if( interval->rc == true )
+              { // Advanve in mapping
+                if( ++i == GetNoComponents() )
+                  break;
+                Get( i, unit );
+              }
+              else
+              { // Advance in periods
+                assert( unit->timeInterval.rc == true );
+                if( ++j == p.GetNoComponents() )
+                  break;
+                p.Get( j, interval );
+              }
+            }
+            else if( interval->end > unit->timeInterval.end )
+            { // Advance in mpoint
+              if( ++i == GetNoComponents() )
+                break;
+              Get( i, unit );
+            }
+            else
+            { // Advance in periods
+              assert( interval->end < unit->timeInterval.end );
+              if( ++j == p.GetNoComponents() )
+                break;
+              p.Get( j, interval );
+            }
+          }
+        }
+        result.EndBulkLoad();
+      }
+    }
+  } else
+  {
+    result.SetDefined(false);
+  }
+}
+
+/*
+4 Implementation of some auxiliary functions
+
+4.1 Circle
+
+This function computes a circular shaped region around a given Point p with
+the given radius, built from n HalfSegments.
+
+*/
+
+void Circle( const Point p, const double radius, const int n, Region& result)
+{
+  double x = p.GetX();
+  double y = p.GetY();
+  double valueX, valueY;
+  double angle;
+  int partnerno = 0;
+  HalfSegment hs;
+  
+  result.Clear();            // clear the result region
+  if (!p.IsDefined() || radius<=0.0 || n<3 )
+  { // Nothing to do
+    result.SetDefined( false );
+  }
+  else
+  {
+    result.StartBulkLoad();
+    if (n<101)
+    {
+      //  Calculate a polygon with (n) vertices and (n) edges.
+      //  To get the vertices, divide 360 degree in n parts using
+      //  a standardised circle around p with circumference U = 2 * PI * r.
+
+      for( int i = 0; i < n; i++ )
+      {
+        // The first point/vertex of the segment
+        angle = i * 2 * PI/n; // angle to starting vertex
+        valueX = x + radius * cos(angle);
+        valueY = y + radius * sin(angle);
+        Point v1(true, valueX ,valueY);
+
+        // The second point/vertex of the segment
+        if ((i+1) >= n)            // angle to end vertex
+          angle = 0 * 2 * PI/n;    // for inner vertex
+        else
+          angle = (i+1) * 2 * PI/n;// for ending = starting vertex
+        valueX = x + radius * cos(angle);
+        valueY = y + radius * sin(angle);
+        Point v2(true, valueX ,valueY);
+
+        // Create a halfsegment for this segment
+        hs.Set(true, v1, v2);
+        hs.attr.faceno = 0;         // only one face
+        hs.attr.cycleno = 0;        // only one cycle
+        hs.attr.edgeno = partnerno;
+        hs.attr.partnerno = partnerno++;
+        hs.attr.insideAbove = (hs.GetLeftPoint() == v1);
+
+        // Add halfsegments 2 times with opposite LeftDomPoints
+        result += hs;
+        hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+        result += hs;
+      }
+    }
+    result.EndBulkLoad();
+    result.SetDefined( true );
+  }
+  return;
+}
 
 
 /*
@@ -588,7 +1134,7 @@ ListExpr OutCUPoint( ListExpr typeInfo, Word value )
                   SetWord(&cupoint->timeInterval.end) ),
           nl->BoolAtom( cupoint->timeInterval.lc ),
           nl->BoolAtom( cupoint->timeInterval.rc));
-
+      
       ListExpr pointsList = nl->FourElemList(
           nl->RealAtom( cupoint->p0.GetX() ),
           nl->RealAtom( cupoint->p0.GetY() ),
@@ -816,7 +1362,7 @@ void* CastCUPoint( void* addr )
 }
 
 /*
-Creation of the type constructor ~cpoint~
+Creation of the type constructor ~cupoint~
 
 */
 
@@ -1036,8 +1582,7 @@ ListExpr CertainToUncertain( ListExpr args )
 It is for the ~no\_components~ operator.
 
 */
-ListExpr
-UncertainTempSetValueTypeMapInt( ListExpr args )
+ListExpr UncertainTempSetValueTypeMapInt( ListExpr args )
 {
   if ( nl->ListLength( args ) == 1 )
   {
@@ -1050,35 +1595,127 @@ UncertainTempSetValueTypeMapInt( ListExpr args )
 }
 
 /*
-5.1.11 Type mapping function ~UncertainMovingTypeMapeIntime~
+5.1.8 Type mapping function ~UncertainMovingTypeMapSpatial~
 
-It is for the operators ~initial~ and ~final~.
+This is for the operator ~trajectory~.
 
 */
-/*ListExpr
-UncertainMovingTypeMapIntime( ListExpr args )
+ListExpr UncertainMovingTypeMapSpatial( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 1 )
+  {
+    ListExpr arg1 = nl->First( args );
+
+    if( nl->IsEqual( arg1, "cmpoint" ) ||
+        nl->IsEqual( arg1, "cupoint") )         // for debugging purposes only!
+      return nl->SymbolAtom( "region" );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+
+/*
+5.1.9 Type mapping function ~UncertainMovingTypeMapTemporal~
+
+This is defined for the operators ~deftime~.
+
+*/
+ListExpr UncertainMovingTypeMapPeriods( ListExpr args )
 {
   if ( nl->ListLength( args ) == 1 )
   {
     ListExpr arg1 = nl->First( args );
 
     if( nl->IsEqual( arg1, "cmpoint" ) )
-      return nl->SymbolAtom( "cipoint" );
+      return nl->SymbolAtom( "periods" );
   }
   return nl->SymbolAtom( "typeerror" );
-}*/
+}
 
 /*
-5.1.12 Type Mapping Function ~UncertainMovingTypeMapUnits~
+5.1.10 Type mapping function ~UncertainMovingTypeMapBool~
+
+It is for the operators ~present~, ~definitely_passes~ and ~possibly_passes~.
+
+*/
+ListExpr UncertainMovingInstantPeriodsTypeMapBool( ListExpr args )
+{
+   if ( nl->ListLength( args ) == 2 )
+  {
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg2, "instant" ) ||
+        nl->IsEqual( arg2, "periods" ) )
+    {
+      if( nl->IsEqual( arg1, "cmpoint") )
+
+        return nl->SymbolAtom( "bool" );
+    }
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+5.1.11 Type mapping function ~UncertainMovingTypeMapCMPoint~
+
+It is for the operators ~atperiods~, ~definitely_at~, ~possibly_at~
+
+*/
+
+
+/*
+5.1.12 Type mapping function ~UncertainMovingTypeMapeIRegion~
+
+It is for the operator ~atinstant~.
+
+*/
+ListExpr UncertainMovingInstantTypeMapIntime( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 2 )
+  {
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg2, "instant" ) )
+    {
+      if( nl->IsEqual( arg1, "cmpoint" ) )
+        return nl->SymbolAtom( "iregion" );
+    }
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+5.1.13 Type mapping function ~UncertainMovingPeriodsTypeMapMoving~
+
+It is for the operator ~atperiods~.
+
+*/
+ListExpr UncertainMovingPeriodsTypeMapMoving( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 2 )
+  {
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg2, "periods" ) )
+    {
+      if( nl->IsEqual( arg1, "cmpoint" ) )
+        return nl->SymbolAtom( "cmpoint" );
+    }
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+5.1.14 Type Mapping Function ~UncertainMovingTypeMapUnits~
 
 It is used for the operator ~units~
 
 Type mapping for ~units~ is
 
-----    (mbool)  -> (stream ubool)
-        (mint)   -> (stream uint)
-  (mreal)  -> (stream ureal)
-  (mpoint) -> (stream upoint)
+----    (mpoint) -> (stream upoint)
 ----
 
 */
@@ -1091,7 +1728,12 @@ ListExpr UncertainMovingTypeMapUnits( ListExpr args )
     if( nl->IsEqual( arg1, "cmpoint" ) )
       return nl->TwoElemList(nl->SymbolAtom("stream"),
        nl->SymbolAtom("cupoint"));
+    else
+      ErrorReporter::ReportError("Type mapping function got wrong "
+                            "types as parameters.");
   }
+  ErrorReporter::ReportError("Type mapping function got a "
+                      "parameter of length != 1.");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -1115,11 +1757,36 @@ ListExpr UncertainTemporalBBoxTypeMap( ListExpr args )
     if( nl->IsEqual( arg1, "cmpoint" ) )
       return (nl->SymbolAtom( "rect3" ));
 
-    if( nl->IsEqual( arg1, "cipoint" ) )
-      return (nl->SymbolAtom( "rect3" ));
+    //if( nl->IsEqual( arg1, "cipoint" ) )
+    //  return (nl->SymbolAtom( "rect3" ));
 
   }
   return nl->SymbolAtom( "typeerror" );
+}
+
+
+/*
+5.1.19 Type Mapping Function ~MovingTypeMapUnits~
+
+It is used for the operator ~units~
+
+Type mapping for ~units~ is
+
+----    (cmpoint) -> (stream cupoint)
+----
+
+*/
+ListExpr UncertainTemporalTypeMapUnits( ListExpr args )
+{
+  if ( nl->ListLength(args) == 1 )
+  {
+    ListExpr arg1 = nl->First(args);
+
+    if( nl->IsEqual( arg1, "cmpoint" ) )
+      return nl->TwoElemList(nl->SymbolAtom("stream"),
+       nl->SymbolAtom("cupoint"));
+  }
+  return nl->SymbolAtom("typeerror");
 }
 
 /*
@@ -1156,7 +1823,22 @@ int UncertainSimpleSelect( ListExpr args )
   return -1; // This point should never be reached
 }
 
+/*
+5.2.2 Selection function ~UncertainMovingInstantPeriodsSelect~
 
+*/
+int UncertainMovingInstantPeriodsSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->Second( args );
+  
+  if( nl->SymbolValue( arg1 ) == "instant" )
+    return 0;
+    
+  if( nl->SymbolValue( arg1 ) == "periods" )
+    return 1;
+    
+  return -1; // This point should never be reached
+}
 
 /*
 6 Value mapping functions
@@ -1189,6 +1871,181 @@ int ToCPoint( Word* args, Word& result, int message, Word& local,
   return 0;
 }
 
+/*
+6.2 Value mapping functions for class cupoint
+
+6.2.1 Value mapping function for operator ~trajectory~
+
+*/
+int CUPointTrajectory( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  Region *region = ((Region*)result.addr);
+  CUPoint *cupoint = ((CUPoint*)args[0].addr);
+  cupoint->UTrajectory( *region );
+
+  return 0;
+}
+
+/*
+6.3 Value mapping functions for class cmpoint
+
+*/
+
+/*
+6.3.2 Value mapping function for operator ~trajectory~
+
+*/
+/*int MPointTrajectory( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  Region *region = ((Region*)result.addr);
+  CMPoint *mpoint = ((CMPoint*)args[0].addr);
+  cmpoint->Trajectory( *region );
+
+  return 0;
+}*/
+
+/*
+6.3.3 Value mapping function for operator ~present~
+
+*/
+
+// If the second argument is an Instant:
+int CMPointPresent_i( Word* args, Word& result,
+                     int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  CMPoint *m = ((CMPoint*)args[0].addr);
+  Instant* inst = ((Instant*)args[1].addr);
+
+  if( !inst->IsDefined() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( m->Present( *inst ) )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+
+  return 0;
+}
+
+// If the second argument is a Period:
+int CMPointPresent_p( Word* args, Word& result,
+                         int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  CMPoint *m = ((CMPoint*)args[0].addr);
+  Periods* periods = ((Periods*)args[1].addr);
+
+  if( periods->IsEmpty() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( m->Present( *periods ) )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+
+  return 0;
+}
+
+/*
+6.3.4 Value mapping function for operator ~atinstant~
+
+*/
+int CMPointAtInstant( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  // +++++ nur zu Testzwecken +++
+  cout << "Aufruf der value mapping function CMPointAtInstant()";
+  result = qp->ResultStorage( s );
+  CMPoint* cmp = ((CMPoint*)args[0].addr);
+  Instant* inst = (Instant*) args[1].addr;
+  IRegion* pResult = (IRegion*)result.addr;
+
+  cmp->AtInstant(*inst, *pResult);
+  return 0;
+}
+
+/*
+6.3.5 Value mapping function for operator ~atperiods~
+
+*/
+int CMPointAtPeriods( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CMPoint* cmp = ((CMPoint*)args[0].addr);
+  CMPoint* pResult = (CMPoint*)result.addr;
+  Periods* per = (Periods*)args[1].addr;
+
+  cmp->AtPeriods(*per,*pResult);
+  return 0;
+}
+
+/*
+6.3.6 Value mapping function for operator ~units~
+
+*/
+
+int UncertainMappingUnits(Word* args, Word& result, int message, 
+                Word& local, Supplier s)
+{
+  CMPoint* m;
+  const CUPoint* unit;
+  UnitsLocalInfo *localinfo;
+
+  switch( message )
+  {
+    case OPEN:
+
+      localinfo = new UnitsLocalInfo;
+      localinfo->mWord = args[0];
+      localinfo->unitIndex = 0;
+      local = SetWord(localinfo);
+      return 0;
+
+    case REQUEST:
+      
+      if( local.addr == 0 )
+        return CANCEL;
+      localinfo = (UnitsLocalInfo *) local.addr;
+      m = (CMPoint*)localinfo->mWord.addr;
+      if( (0 <= localinfo->unitIndex)
+          && (localinfo->unitIndex < m->GetNoComponents()) )
+      {
+        
+        // +++++ nur zu Testzwecken +++
+        cout << "  hole UNIT Nr.:" << localinfo->unitIndex << ".\n";
+        
+        m->Get( localinfo->unitIndex++, unit );
+        CUPoint *aux = new CUPoint( *unit );
+
+        // +++++ nur zu Testzwecken +++
+        cout << "  gebe UNIT aus...\n";
+
+        result = SetWord( aux );
+        return YIELD;
+      }
+      return CANCEL;
+
+    case CLOSE:
+
+
+      // +++++ nur zu Testzwecken +++
+      cout << "  schliesse STREAM. \n";
+        
+      if( local.addr != 0 )
+        delete (UnitsLocalInfo *)local.addr;
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
 
 
 /*
@@ -1215,6 +2072,10 @@ ValueMapping uncertainepsilonmap[] = {
 /*ValueMapping uncertainvalmap[] = {
                                       UncertainVal<Point>,
                                       UncertainVal<UPoint> };*/
+                                      
+ValueMapping uncertaintemporalpresentmap[] = {
+                                      CMPointPresent_i,
+                                      CMPointPresent_p };
 /*
 Specification strings
 
@@ -1246,6 +2107,57 @@ const string CPointSpecToCPoint =
   "<text>cpt = tocpoint ( 50.0, alexanderplatz )</text--->"
   ") )";
 
+const string TemporalSpecDefTime  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>uncertain moving point -> periods</text--->"
+  "<text>deftime( _ )</text--->"
+  "<text>get the defined time of the corresponding uncertain moving point "
+  "objects.</text--->"
+  "<text>deftime( cmp1 )</text--->"
+  ") )";
+
+const string UncertainMovingSpecTrajectory = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>cmpoint -> region</text--->"
+  "<text>trajectory ( _ )</text--->"
+  "<text>Returns a Region-Object from the uncertain trajectory.</text--->"
+  "<text>query trajectory ( mobilphone )</text--->"
+  ") )";
+
+const string UncertainTemporalSpecPresent  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(cmT instant) -> bool,\n"
+  "(cmT periods) -> bool</text--->"
+  "<text>_ present _ </text--->"
+  "<text>whether the moving object is present at the given "
+  "instant or period.</text--->"
+  "<text>mpoint1 present instant1</text--->"
+  ") )";
+
+const string UncertainTemporalSpecAtInstant =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(cmpoint instant) -> iregion</text--->"
+  "<text>_ atinstant _ </text--->"
+  "<text>From an uncertain moving point Get the intime region "
+  "representing the uncertain point of the instant.</text--->"
+  "<text>cmpoint1 atinstant instant1</text--->"
+  ") )";
+
+const string UncertainTemporalSpecAtPeriods =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(cmpoint periods) -> cmpoint</text--->"
+  "<text>_ atperiods _ </text--->"
+  "<text>Restrict the uncertain moving point to the given periods.</text--->"
+  "<text>cmpoint1 atperiods periods1</text--->"
+  ") )";
+
+const string UncertainTemporalSpecUnits  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>For cmpoint -> (stream cupoint)</text--->"
+  "<text> units( _ )</text--->"
+  "<text>get the stream of units of the uncertain moving point value.</text--->"
+  "<text>units( cmpoint1 )</text--->"
+  ") )";
 
 /*
 Operators
@@ -1271,7 +2183,43 @@ Operator tocpoint( "tocpoint",
                               ToCPoint,
                               Operator::SimpleSelect,
                               CertainToUncertain );
+
+Operator uncertaintrajectory( "trajectory",
+                              UncertainMovingSpecTrajectory,
+                              CUPointTrajectory,
+                              Operator::SimpleSelect,
+                              UncertainMovingTypeMapSpatial);    
                               
+Operator uncertaintemporaldeftime( "deftime",
+                              TemporalSpecDefTime,
+                              MappingDefTime<CMPoint>,
+                              Operator::SimpleSelect,
+                              UncertainMovingTypeMapPeriods );    
+                              
+Operator uncertaintemporalpresent( "present",
+                          UncertainTemporalSpecPresent,
+                          2,
+                          uncertaintemporalpresentmap,
+                          UncertainMovingInstantPeriodsSelect,
+                          UncertainMovingInstantPeriodsTypeMapBool);
+
+Operator uncertaintemporalatinstant( "atinstant",
+                            UncertainTemporalSpecAtInstant,
+                            CMPointAtInstant,
+                            Operator::SimpleSelect,
+                            UncertainMovingInstantTypeMapIntime );
+
+Operator uncertaintemporalatperiods( "atperiods",
+                            UncertainTemporalSpecAtPeriods,
+                            CMPointAtPeriods,
+                            Operator::SimpleSelect,
+                            UncertainMovingPeriodsTypeMapMoving );
+
+Operator uncertaintemporalunits( "units",
+                            UncertainTemporalSpecUnits,
+                            UncertainMappingUnits,
+                            Operator::SimpleSelect,
+                            UncertainTemporalTypeMapUnits );
 /*
 Creating the Algebra
  
@@ -1282,20 +2230,29 @@ class HierarchicalGeoAlgebra : public Algebra
   HierarchicalGeoAlgebra() : Algebra()
   {
     AddTypeConstructor( &uncertainpoint );
+    uncertainpoint.AssociateKind( "DATA" );
     uncertainpoint.AssociateKind( "UNCERTAIN" );
     uncertainpoint.AssociateKind( "SPATIAL" );
     
     AddTypeConstructor( &uncertainunitpoint );
+    uncertainunitpoint.AssociateKind( "DATA" );
     uncertainunitpoint.AssociateKind( "UNCERTAIN" );
-    //uncertainunitpoint.AssociateKind( "TEMPORAL" );
+    uncertainunitpoint.AssociateKind( "TEMPORAL" );
     
     AddTypeConstructor( &uncertainmovingpoint );
-    uncertainunitpoint.AssociateKind( "UNCERTAIN" );
-    //uncertainunitpoint.AssociateKind( "TEMPORAL" );
+    uncertainmovingpoint.AssociateKind( "DATA" );
+    uncertainmovingpoint.AssociateKind( "UNCERTAIN" );
+    uncertainmovingpoint.AssociateKind( "TEMPORAL" );
     
     AddOperator( &uncertainepsilon );
     //AddOperator( &uncertainval );
     //AddOperator( &tocpoint );
+    AddOperator( &uncertaintrajectory );
+    AddOperator( &uncertaintemporaldeftime );
+    AddOperator( &uncertaintemporalpresent );
+    AddOperator( &uncertaintemporalatinstant );
+    AddOperator( &uncertaintemporalatperiods );
+    AddOperator( &uncertaintemporalunits );
   }
   ~HierarchicalGeoAlgebra() {};
 };

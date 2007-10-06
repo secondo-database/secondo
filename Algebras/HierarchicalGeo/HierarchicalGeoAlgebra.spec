@@ -18,6 +18,12 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator epsilon alias EPSILON pattern op ( _ )
+operator trajectory alias TRAJECTORY pattern op ( _ )
+operator deftime alias DEFTIME pattern op ( _ )
+operator present alias PRESENT pattern _ infixop _
+operator atinstant alias ATINSTANT pattern _ infixop _
+operator atperiods alias ATPERIODS pattern _ infixop _
+operator units alias UNITS pattern op ( _ )
 
 # During the implementation of the datatypes 'cupoint' and 'cmpoint' a re-
 # implementation of the uncertain-template became necessary.  So the following

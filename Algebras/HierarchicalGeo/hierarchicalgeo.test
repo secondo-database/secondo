@@ -74,7 +74,7 @@ delete ctest1;
 query epsilon(ctest2)
 
 
-# 2 - Creating, updating, querying and deleting a cupoint-object
+# 2 - Tests about the datatype CUPoint (uncertain unit point)
 
 #testcase createcupoint
 #yields success
@@ -103,6 +103,15 @@ query cuptest1;
 #yields (real 44.5)
 query epsilon(cuptest2);
 
+# tolerance_real 0.001
+
+#testcase querytrajectorycupoint
+#yields (region ( (( \
+            (-3537.089385881461 14230.23935291043)\
+                (-3582.910614118539 14239.76064708957)\
+                (-3566.910614118539 14316.76064708957)\
+                (-3521.089385881461 14307.23935291043))) ))
+query trajectory( cuptest1);
 
 #testcase deletecupoint
 #yields success
@@ -153,9 +162,35 @@ let cmptest2 = [const cmpoint value((22.25 (
 query cmptest1;
 
 
+#testcase querydeftime
+#yields (periods ( ("2003-11-20-07:01:38.530" "2003-11-20-07:02" TRUE FALSE) ) )
+query deftime (cmptest1);
+
+
 #testcase queryepsiloncmpoint
 #yields (real 44.5)
 query epsilon(cmptest1);
+
+
+#testcase querycmptestpresent1
+#yields (bool TRUE )
+query cmptest1 present ( [const instant value"2003-11-20-07:01:45"] );
+
+
+#testcase querycmptestpresent2
+#yields (bool FALSE )
+query cmptest1 present ( [const instant value"2003-11-21-07:01:45"] );
+
+
+#testcase querycmptestatperiods
+#yields (cmpoint ( (23.4 (\
+            ("2003-11-20-07:01:46" "2003-11-20-07:01:50" TRUE FALSE)\
+            (-3548.178795714814 14291.88954562246 -3560.0 14235.0)))\
+    (44.5 (\
+            ("2003-11-20-07:01:50" "2003-11-20-07:01:53" TRUE FALSE)\
+            (-3560.0 14235.0 -3560.0 14235.0)))) )
+query cmptest atperiods ([const periods value(("2003-11-20-07:01:46" "2003-11-20-07:01:53" TRUE FALSE))]);
+
 
 #testcase deletecmpoint
 #yields success

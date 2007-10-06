@@ -1,17 +1,35 @@
-Database: berlintest
+Database: HierGeoTest
 Restore : No
 
 Operator : epsilon
 Number   : 1
 Signature: uT -> epsilon
-Example  : query epsilon ( i1 )
-Result   :  24.7
+Example  : query epsilon ( cmptest )
+Result   :  44.5
 
 
-Operator : val
-Number   : 1
-Signature: uT -> x
-Example  : query val ( i1 )
-Result   : (point (9396,9871))
+Operator : trajectory
+Number   : 2
+Signature: cupoint -> region
+Example  : query trajectory ( cuptest )
+Result   : (region ( ( ( (-3504.4 14235.0) (-3615.6 14235.0) (-3615.6 14312.0) (-3504.4 14312.0))) ) )
 
+Operator : deftime
+Number   : 3
+Signature: cmpoint -> periods
+Example  : query deftime ( cmptest )
+Result   : (periods ( ("2003-11-20-07:01:38.530" "2003-11-20-07:02" TRUE FALSE)) )
+
+Operator : present
+Number   : 4
+Signature: cmpoint -> bool
+Example  : query cmptest present ( seven1 )
+Result   : TRUE
+
+
+Operator : atperiods
+Number   : 6
+Signature: cmpoint -> cmpoint
+Example  : query cmptest atperiods ( one43one56 )
+Result   : (cmpoint ( (23.4 ( ("2003-11-20-07:01:45" "2003-11-20-07:01:50" TRUE FALSE) (-3545.223494643517 14306.11193202808 -3560.0 14235.0))) (44.5 ( ("2003-11-20-07:01:50" "2003-11-20-07:01:56" TRUE FALSE) (-3560.0 14235.0 -3560.0 14235.0))) ) )
 

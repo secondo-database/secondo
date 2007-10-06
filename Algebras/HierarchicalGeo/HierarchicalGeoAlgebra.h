@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Header file of the Temporal Algebra
 
-April 2007 Sascha Vaut
+September - November 2007 Sascha Vaut
 
 1 Overview
 
@@ -51,6 +51,7 @@ The type system of the HierarchicalGeo Algebra can be seen below.
 #include "StandardTypes.h"
 #include "TemporalAlgebra.h"
 #include "SpatialAlgebra.h"
+#include "MovingRegionAlgebra.h"
 #include "DBArray.h"
 #include "RectangleAlgebra.h"
 #include "DateTime.h"
@@ -164,42 +165,6 @@ Sets the argument ~defined~ to the given boolean value.
 
 */
 
-
-//  Uncertain<Alpha>& operator=( const Uncertain<Alpha>& c);
-/*
-Redefinition of the copy operator ~=~.
-
-*/
-
-//  bool operator==( const Uncertain<Alpha>& c ) const;
-/*
-Returns ~true~ if the uncertain value is equal to ~c~ and ~false~ if they are
-different.
-
-*/
-
-//  bool operator!=( const Uncertain<Alpha>& c ) const;
-/*
-Returns ~true~ if the uncertain value is different to ~c~ and ~false~ if they 
-are equal.
-
-*/
-
-//  bool PossiblyIntersects( const Uncertain<Alpha>& c ) const;
-/*
-Returns ~true~ if the uncertain value may intersect ~c~ (if they may have the 
-same values) and ~false~ if they are distinct.
-
-*/
-
-//  void Intersection( const Uncertain<Alpha>& c, 
-//                      Uncertain<Alpha>& result ) const;
-/*
-Returns an uncertain value, representing the Intersection of this uncertain 
-value and ~c~ into ~result~.
-
-*/
-
 /*
 3.1.3 Attributes
 
@@ -232,16 +197,8 @@ MAYBE, is introduced.
 #define CBool int
 #define maybe 2
 
+
 /*
-+++++++++++++++++++++++++++++++++++++++++++++++++ 
-Ob der Integer-Wert 2 fuer maybe praktikabel ist, ist noch fraglich.
-Alternative: -1
-Ebenso ist fraglich, welche Operationen fuer diesen neuen Typ ggf. noch
-erforderlich sind. 
-+++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-
 3.3 CPoint
 
 CPoint represents a Point value containing an epsilon value. It implements 
@@ -357,10 +314,30 @@ The simple constructor. This constructor should not be used.
   
   CUPoint( const bool is_defined ):
       Uncertain<Point>(is_defined),
-      SpatialTemporalUnit<Point, 3>(false) {}
+      SpatialTemporalUnit<Point, 3>(false) {
+    del.refs=1;
+    del.isDelete=true;
+    
+    // +++++ nur zu Testzwecken: +++
+    cout << "del.refs = " << int(del.refs) << "\n";
+    if (del.isDelete)
+      cout << "del.isDelete = TRUE \n";
+    else
+      cout << "del.isDelete = FALSE \n";
+  }
   
   CUPoint( const double epsilon ):
-      Uncertain<Point>(epsilon) {}
+      Uncertain<Point>(epsilon) {
+    del.refs=1;
+    del.isDelete=true;
+    
+    // +++++ nur zu Testzwecken: +++
+    cout << "del.refs = " << int(del.refs) << "\n";
+    if (del.isDelete)
+      cout << "del.isDelete = TRUE \n";
+    else
+      cout << "del.isDelete = FALSE \n";
+  }
 /*
 The simple constructor, only defining the epsilon-value. 
   
@@ -384,6 +361,13 @@ The copy-constructor.
     {
       del.refs=1;
       del.isDelete=true;
+      
+      // +++++ nur zu Testzwecken: +++
+    cout << "del.refs = " << int(del.refs) << "\n";
+    if (del.isDelete)
+      cout << "del.isDelete = TRUE \n";
+    else
+      cout << "del.isDelete = FALSE \n";
     }
 
   CUPoint( const double epsilon, const Interval<Instant>& interval,
@@ -396,6 +380,13 @@ The copy-constructor.
     {
       del.refs=1;
       del.isDelete=true;
+      
+      // +++++ nur zu Testzwecken: +++
+    cout << "del.refs = " << int(del.refs) << "\n";
+    if (del.isDelete)
+      cout << "del.isDelete = TRUE \n";
+    else
+      cout << "del.isDelete = FALSE \n";
     }
   
   //inline virtual ~CUPoint() {}
@@ -409,11 +400,11 @@ The destructor.
   //virtual CUPoint& operator=( const CUPoint& i )
   //{
   //  epsilon = i.epsilon;
-  //  SetDefined( i.defined);
-  //  value.timeInterval.CopyFrom( i.value.timeInterval );
-  //  value.p0 = i.value.p0;
-  //  value.p1 = i.value.p1;
-    
+  //  UncertainSetDefined( i.IsDefined());
+  //  timeInterval.CopyFrom( i.timeInterval );
+  //  p0 = i.p0;
+  //  p1 = i.p1;
+  //  
   //  return *this;
   //}
 /*
@@ -445,21 +436,20 @@ they are equal.
 3.4.3 The Temporal Functions
 
 */
+// +++++ Todo: Funktionen in .cpp-Datei implementieren  +++
 
-  // +++++ Todo: Funktionen in .cpp-Datei implementieren  +++
   virtual void TemporalFunction( const Instant& t,
                                  Point& result,
-                                 bool ignoreLimits = false ) const {}
-                                 
+                                 bool ignoreLimits = false ) const;
   virtual bool Passes( const Point& val ) const {return false;}
   bool Passes( const Region& val ) const {return false;}
   virtual bool At( const Point& val, TemporalUnit<Point>& result ) const 
   {return false;}
   virtual void AtInterval( const Interval<Instant>& i,
-                           TemporalUnit<Point>& result ) const {}
+                           TemporalUnit<Point>& result ) const;
   void Distance( const Point& p, UReal& result ) const {}
   //  void UTrajectory( UPoint& unit,Line& line ) const;
-  void UTrajectory( Line& line ) const {}
+  void UTrajectory( Region& region ) const;
   void USpeed( UReal& result ) const {}
   void UVelocity( UPoint& result ) const {}
   void Intersection(const UPoint &other, UPoint &result) const {}
@@ -487,6 +477,12 @@ they are equal.
   bool UnitIsDefined() const
   {
     return SpatialTemporalUnit<Point, 3>::IsDefined();
+  }
+  
+  void SetDefined( bool def )
+  {
+    UnitSetDefined( def );
+    UncertainSetDefined( def );
   }
   
   bool IsDefined() const
@@ -572,6 +568,7 @@ they are equal.
   {
     CUPoint *res;
     res = new CUPoint(epsilon, timeInterval, p0, p1 );
+    res->SetDefined( IsDefined() );
     return res;
   }
   
@@ -673,10 +670,11 @@ using a check on bbox.
   void Restrict( const vector< pair<int, int> >& intervals );
   ostream& Print( ostream &os ) const;
   //bool operator==( const CMPoint& r ) const;
-  //bool Present( const Instant& t ) const;
-  //bool Present( const Periods& t ) const;
-  //void AtInstant( const Instant& t, Intime<Point>& result ) const;
-  //void AtPeriods( const Periods& p, MPoint& result ) const;
+  bool Present( const Instant& t ) const;
+  bool Present( const Periods& t ) const;
+  void AtInstant( const Instant& t, IRegion& result ) const;
+  void AtPeriods( const Periods& p, CMPoint& result ) const;
+  void Trajectory( Region& region );
   
   virtual Attribute* Clone() const
   {
@@ -823,6 +821,14 @@ MPoint, that are necessary to build a particular minimal Generalization of
 this MPoint.
 
 */
+
+
+/*
+3.9 Some auxiliary functions
+
+*/
+void Circle( const Point p, const double radius, const int n, Region& result);
+
 
 /*
 4 Type Constructors
