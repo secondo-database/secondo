@@ -1,23 +1,23 @@
 Database: networktest
-Restore : Yes
+Restore : NO
 
 Operator : junctions
 Number   : 1
 Signature: network -> rel
-Example  : query junctions(X_NETWORK)
-Result   : file
+Example  : query junctions(X_NETWORK) count
+Result   : 2063
 
 Operator : routes
 Number   : 1
 Signature: network -> rel
-Example  : query routes(X_NETWORK)
-Result   : file
+Example  : query routes(X_NETWORK) count
+Result   : 852
 
 Operator : sections
 Number   : 1
 Signature: network -> rel
-Example  : query sections(X_NETWORK)
-Result   : file
+Example  : query sections(X_NETWORK) count
+Result   : 2639
 
 Operator : thenetwork
 Number   : 1
