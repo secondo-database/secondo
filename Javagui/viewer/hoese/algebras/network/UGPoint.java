@@ -71,11 +71,11 @@ public class UGPoint
    * @param in_dPos2
    */
   public UGPoint(Interval in_xInterval, 
-                long in_lNetworkId, 
-                int in_iRouteId, 
-                int in_iSideId, 
-                double in_dPos1, 
-                double in_dPos2) 
+                 long in_lNetworkId, 
+                 int in_iRouteId, 
+                 int in_iSideId, 
+                 double in_dPos1, 
+                 double in_dPos2) 
   {
     m_xInterval = in_xInterval;
     m_lNetworkId = in_lNetworkId;

@@ -64,12 +64,9 @@ string Network::junctionsBTreeTypeInfo =
       "(btree (tuple ((r1id int) (meas1 real) (r2id int) "
       "(meas2 real) (cc int) (pos point) (r1rc tid) (r2rc tid) "
       "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))) int)";
-string Network::sectionsTypeInfo =
-      "(rel (tuple ((rid int) (meas1 real) (meas2 real) "
-      "(dual bool) (curve line))))";
 string Network::sectionsInternalTypeInfo =
       "(rel (tuple ((rid int) (meas1 real) (meas2 real) "
-      "(dual bool) (curve line) (rrc int))))";
+      "(dual bool) (curve line)(curveStartsSmaller bool) (rrc int))))";
 
 
 /*
@@ -445,7 +442,7 @@ void Network::FillRoutes(const Relation *routes)
 
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
-  assert(QueryExecuted); // no query with side effects, please!
+  assert(QueryExecuted);
   m_pRoutes = (Relation *)xResult.addr;
 
   // Create B-Tree for the routes
@@ -662,12 +659,40 @@ void Network::FillSections()
       {
         // A line for the section
         Line* pLine = new Line(0);
+        
+        // Take start from the route
         bool bStartSmaller = ((CcBool*)pRoute->GetAttribute(
                                   ROUTE_STARTSSMALLER))->GetBoolval();
+
         pRouteCurve->SubLine(dStartPos,
                              dEndPos,
                              bStartSmaller,
                              *pLine);
+
+        // Find out, if the orientation of the subline differs from the position
+        // of the line. If so, the direction has to be changed.
+        bool bLineStartsSmaller;
+        Point* pStartPoint = new Point(false);
+        pRouteCurve->AtPosition(dStartPos, bStartSmaller, *pStartPoint);
+        Point* pEndPoint = new Point(false);
+        pRouteCurve->AtPosition(dEndPos, bStartSmaller, *pEndPoint);
+        if(pStartPoint->GetX() < pEndPoint->GetX() ||
+           (
+             pStartPoint->GetX() == pEndPoint->GetX() &&
+             pStartPoint->GetY() < pEndPoint->GetY()
+           )
+          )
+        {
+          // Normal orientation
+          bLineStartsSmaller = true;
+        }
+        else
+        {
+          // Opposite orientation
+          bLineStartsSmaller = false;
+        }
+
+
       
         // The new section
         Tuple* pNewSection = new Tuple(nl->Second(xNumType));
@@ -677,6 +702,8 @@ void Network::FillSections()
         pNewSection->PutAttribute(SECTION_MEAS2, new CcReal(true, dEndPos));
         pNewSection->PutAttribute(SECTION_RRC, new CcInt(true, iTupleId));
         pNewSection->PutAttribute(SECTION_CURVE, pLine);
+        pNewSection->PutAttribute(SECTION_CURVE_STARTS_SMALLER, 
+                                  new CcBool(true, bLineStartsSmaller));
         m_pSections->AppendTuple(pNewSection);
         iSectionTid = pNewSection->GetTupleId();
         pNewSection->DeleteIfAllowed();
@@ -729,6 +756,29 @@ void Network::FillSections()
                            dEndPos,
                            bStartSmaller,
                            *pLine);
+
+      // Find out, if the orientation of the subline differs from the position
+      // of the line. If so, the direction has to be changed.
+      bool bLineStartsSmaller;
+      Point* pStartPoint = new Point(false);
+      pRouteCurve->AtPosition(dStartPos, bStartSmaller, *pStartPoint);
+      Point* pEndPoint = new Point(false);
+      pRouteCurve->AtPosition(dEndPos, bStartSmaller, *pEndPoint);
+      if(pStartPoint->GetX() < pEndPoint->GetX() ||
+         (
+           pStartPoint->GetX() == pEndPoint->GetX() &&
+           pStartPoint->GetY() < pEndPoint->GetY()
+         )
+        )
+      {
+        // Normal orientation
+        bLineStartsSmaller = true;
+      }
+      else
+      {
+        // Opposite orientation
+        bLineStartsSmaller = false;
+      }
       
       // Create a new Section
       Tuple* pNewSection = new Tuple(nl->Second(xNumType));
@@ -738,6 +788,8 @@ void Network::FillSections()
       pNewSection->PutAttribute(SECTION_MEAS2, new CcReal(true, dEndPos));
       pNewSection->PutAttribute(SECTION_RRC, new CcInt(true, iTupleId));
       pNewSection->PutAttribute(SECTION_CURVE, pLine);
+      pNewSection->PutAttribute(SECTION_CURVE_STARTS_SMALLER, 
+                                new CcBool(true, bLineStartsSmaller));
       m_pSections->AppendTuple(pNewSection);
 
       // Store ID of new section in Junction
@@ -896,6 +948,8 @@ void Network::FillAdjacencyLists()
     //
     // Retrieve the four sections - if they exist
     //
+    // (This should also be possible without loading the Section itself)
+    //
     TupleIdentifier* pTid;
     Tuple* pAUp = 0;
     Tuple* pADown = 0;
@@ -910,7 +964,7 @@ void Network::FillAdjacencyLists()
       pAUp = m_pSections->GetTuple(pTid->GetTid());
     }  
 
-    // First section     
+    // Second section     
     pAttr = pCurrentJunction->GetAttribute(JUNCTION_SECTION_ADOWN_RC);  
     pTid = (TupleIdentifier*)pAttr; 
     if(pTid->GetTid() > 0)
@@ -918,7 +972,7 @@ void Network::FillAdjacencyLists()
       pADown = m_pSections->GetTuple(pTid->GetTid());
     }  
     
-    // First section     
+    // Third section     
     pAttr = pCurrentJunction->GetAttribute(JUNCTION_SECTION_BUP_RC);  
     pTid = (TupleIdentifier*)pAttr; 
     if(pTid->GetTid() > 0)
@@ -926,7 +980,7 @@ void Network::FillAdjacencyLists()
       pBUp = m_pSections->GetTuple(pTid->GetTid());
     }  
     
-    // First section     
+    // Fourth section     
     pAttr = pCurrentJunction->GetAttribute(JUNCTION_SECTION_BDOWN_RC);  
     pTid = (TupleIdentifier*)pAttr; 
     if(pTid->GetTid() > 0)
@@ -1016,12 +1070,12 @@ void Network::FillAdjacencyLists()
       // Append new entry to sub-list
       m_xSubAdjacencyList.Append(DirectedSection(xPair.m_iSecondSectionTid, 
                                                  xPair.m_bSecondUpDown));
-      cout << xPair.m_iFirstSectionTid 
-           << (xPair.m_bFirstUpDown ? " (Up) " : " (Down) ") 
-           << " -> " 
-           << xPair.m_iSecondSectionTid  
-           << (xPair.m_bSecondUpDown ? " (Up) " : " (Down) ")
-           << endl; 
+//      cout << xPair.m_iFirstSectionTid 
+//           << (xPair.m_bFirstUpDown ? " (Up) " : " (Down) ") 
+//           << " -> " 
+//           << xPair.m_iSecondSectionTid  
+//           << (xPair.m_bSecondUpDown ? " (Up) " : " (Down) ")
+//           << endl; 
     }                                            
     xLastPair = xPair;
   }

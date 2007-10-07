@@ -68,7 +68,7 @@ public class Route
   private Segment m_xLastSegment;
   
   /**
-   * Flag indication wether this route has to distinct sides
+   * Flag indication wether this route has two distinct sides
    */
 	private boolean m_bIsDualRoute;
 	

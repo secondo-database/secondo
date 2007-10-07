@@ -90,6 +90,7 @@ Please include in *.cpp-File.
                                     SECTION_MEAS2, 
                                     SECTION_DUAL, 
                                     SECTION_CURVE, 
+                                    SECTION_CURVE_STARTS_SMALLER, 
                                     SECTION_RRC };
 
 
@@ -574,12 +575,6 @@ The external ~junctions~ relation type info as string.
   static string junctionsInternalTypeInfo;
 /*
 The internal ~junctions~ relation type info as string.
-
-*/
-
-  static string sectionsTypeInfo;
-/*
-The external ~sections~ relation type info as string.
 
 */
 

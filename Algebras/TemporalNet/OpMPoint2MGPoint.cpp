@@ -211,7 +211,7 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
 
   /////////////////////
   // 
-  // Process all units off the MPoint
+  // Process all units of the MPoint
   // finding one section after another
   //
   // New units are added to the moving point unsorted in a bulk-load.
@@ -408,16 +408,31 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
     CcReal* xMeas1; 
     xMeas1 = (CcReal*)pCurrentSection->GetAttribute(SECTION_MEAS1); 
     float fMeas1 = xMeas1->GetRealval();
+    CcBool* xCurveStartsSmaller;
+    xCurveStartsSmaller = 
+        (CcBool*)pCurrentSection->GetAttribute(SECTION_CURVE_STARTS_SMALLER);
+    bool bCurveStartsSmaller = xCurveStartsSmaller->GetBoolval();
     double dFrom;
     double dTo;
 
-    dFrom = fMeas1 + dStartPositionOnLine;
-    dTo = fMeas1 + dEndPositionOnLine;
+    if(bCurveStartsSmaller)
+    {
+      dFrom = fMeas1 + dStartPositionOnLine;
+      dTo = fMeas1 + dEndPositionOnLine;
+    }
+    else
+    {
+      double dLength = pCurrentSectionCurve->Length();
+      dFrom = fMeas1 + dLength - dStartPositionOnLine;
+      dTo = fMeas1 + dLength - dEndPositionOnLine;
+    }
 
     /////////////////////
     // 
     // Create new unit for mgpoint
     //
+     
+    
     cout << "New Unit " 
          << " Section: " << pCurrentSection->GetTupleId()
          << " Route: " << iRouteId

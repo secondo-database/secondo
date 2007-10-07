@@ -116,19 +116,19 @@ public class MGPoint
   
     // Get Unit
     Interval xInterval = (Interval)xIntervals.get(iIntervalIndex);
-    UGPoint xGPoint = (UGPoint)m_xUGPoints.get(xInterval);
+    UGPoint xUGPoint = (UGPoint)m_xUGPoints.get(xInterval);
       
     // Calculate the position between start and end
     double t1 = xInterval.getStart();
     double t2 = xInterval.getEnd();
     double dTimeDelta = (in_dTime-t1)/(t2-t1);
-    double dDistanceDelta = xGPoint.getPos2() - xGPoint.getPos1();
-    double dDistanceOnRoute = xGPoint.getPos1() + dDistanceDelta * dTimeDelta; 
+    double dDistanceDelta = xUGPoint.getPos2() - xUGPoint.getPos1();
+    double dDistanceOnRoute = xUGPoint.getPos1() + dDistanceDelta * dTimeDelta; 
       
     // Get Network and find the points absolute position.
-    long lNetworkId = xGPoint.getNetworkId();
+    long lNetworkId = xUGPoint.getNetworkId();
     Network xNetwork = NetworkManager.getInstance().getNetwork(lNetworkId);
-    int iRouteId = xGPoint.getRouteId();
+    int iRouteId = xUGPoint.getRouteId();
     Route xRoute = xNetwork.getRouteById(iRouteId);
     Point2D.Double xPoint = xRoute.getPointOnRoute(dDistanceOnRoute);
       
