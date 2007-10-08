@@ -60,7 +60,7 @@ struct ConstructorFunctions
    in(In),
    saveToList(0),
    restoreFromList(0),
-   create(0),
+   create(Create),
    deletion(Delete),
    open(Open),
    save(Save),
@@ -77,10 +77,10 @@ struct ConstructorFunctions
     return (new (addr)T ); 
   }
 
-  /*static Word Create( const ListExpr typeInfo )
+  static Word Create( const ListExpr typeInfo )
   {
     return (SetWord( new T() ));
-  }*/
+  }
 
   static void Delete( const ListExpr, Word& w )
   {
