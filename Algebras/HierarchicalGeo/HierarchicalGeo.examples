@@ -1,4 +1,4 @@
-Database: HierGeoTest
+Database: hiergeo
 Restore : No
 
 Operator : epsilon
@@ -12,7 +12,7 @@ Operator : trajectory
 Number   : 2
 Signature: cupoint -> region
 Example  : query trajectory ( cuptest )
-Result   : (region ( ( ( (-3504.4 14235.0) (-3615.6 14235.0) (-3615.6 14312.0) (-3504.4 14312.0))) ) )
+Result   : file
 
 Operator : deftime
 Number   : 3
@@ -26,10 +26,16 @@ Signature: cmpoint -> bool
 Example  : query cmptest present ( seven1 )
 Result   : TRUE
 
+Operator : atinstant
+Number   : 5
+Signature: cmpoint -> intimeregion
+Example  : query cmptest atinstant ( seven1 )
+Result   : file
+
 
 Operator : atperiods
 Number   : 6
 Signature: cmpoint -> cmpoint
 Example  : query cmptest atperiods ( one43one56 )
-Result   : (cmpoint ( (23.4 ( ("2003-11-20-07:01:45" "2003-11-20-07:01:50" TRUE FALSE) (-3545.223494643517 14306.11193202808 -3560.0 14235.0))) (44.5 ( ("2003-11-20-07:01:50" "2003-11-20-07:01:56" TRUE FALSE) (-3560.0 14235.0 -3560.0 14235.0))) ) )
+Result   : file
 

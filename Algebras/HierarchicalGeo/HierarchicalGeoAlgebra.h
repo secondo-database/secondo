@@ -672,7 +672,7 @@ using a check on bbox.
   //bool operator==( const CMPoint& r ) const;
   bool Present( const Instant& t ) const;
   bool Present( const Periods& t ) const;
-  void AtInstant( const Instant& t, IRegion& result ) const;
+  void AtInstant( const Instant& t, Intime<Region>& result ) const;
   void AtPeriods( const Periods& p, CMPoint& result ) const;
   void Trajectory( Region& region );
   

@@ -574,20 +574,12 @@ bool CMPoint::Present( const Periods& t ) const
   return t.Intersects( defTime );
 }
 
-void CMPoint::AtInstant( const Instant& t, IRegion& result ) const
+void CMPoint::AtInstant( const Instant& t, Intime<Region>& result ) const
 {
-  // +++++ nur zu Testzwecken +++
-  cout << "Start der Berechnung atInstant() ...";
   assert( IsOrdered() );
-  // +++++ nur zu Testzwecken +++
-  cout << "  CMPoint ist sortiert ...";
   assert( t.IsDefined() );
-  // +++++ nur zu Testzwecken +++
-  cout << "  Instant ist definiert ...";
   if( IsDefined() && t.IsDefined() )
   {
-    // +++++ nur zu Testzwecken +++
-    cout << "    Instant und CMPoint sind definiert, pruefe bbox ...";
     if( !bbox.IsDefined() )
     { // result is undefined
       result.SetDefined(false);
@@ -596,8 +588,6 @@ void CMPoint::AtInstant( const Instant& t, IRegion& result ) const
       result.SetDefined(false);
     } else
     { // compute result
-      // +++++ nur zu Testzwecken +++
-      cout << "Ergebnis wird berechnet ...";
       double instd = t.ToDouble();
       double mind = bbox.MinD(2);
       double maxd = bbox.MaxD(2);
@@ -608,15 +598,11 @@ void CMPoint::AtInstant( const Instant& t, IRegion& result ) const
         result.SetDefined(false);
       } else
       {
-        // +++++ nur zu Testzwecken +++
-        cout << "  Pruefe, ob Zeitpunkt in CMPoint enthalten ist ...";
         int pos = Position( t );
         if( pos == -1 )  // not contained in any unit
           result.SetDefined( false );
         else
         {
-          // +++++ nur zu Testzwecken +++
-          cout << "  Berechne Ergebnis vom Typ instant<region> ...";
           const CUPoint *posUnit;
           units.Get( pos, posUnit );
           result.SetDefined( true );
@@ -1680,7 +1666,7 @@ ListExpr UncertainMovingInstantTypeMapIntime( ListExpr args )
     if( nl->IsEqual( arg2, "instant" ) )
     {
       if( nl->IsEqual( arg1, "cmpoint" ) )
-        return nl->SymbolAtom( "iregion" );
+        return nl->SymbolAtom( "intimeregion" );
     }
   }
   return nl->SymbolAtom( "typeerror" );
@@ -1960,12 +1946,10 @@ int CMPointPresent_p( Word* args, Word& result,
 int CMPointAtInstant( Word* args, Word& result, int message,
                           Word& local, Supplier s )
 {
-  // +++++ nur zu Testzwecken +++
-  cout << "Aufruf der value mapping function CMPointAtInstant()";
   result = qp->ResultStorage( s );
   CMPoint* cmp = ((CMPoint*)args[0].addr);
   Instant* inst = (Instant*) args[1].addr;
-  IRegion* pResult = (IRegion*)result.addr;
+  Intime<Region>* pResult = (Intime<Region>*)result.addr;
 
   cmp->AtInstant(*inst, *pResult);
   return 0;
