@@ -4,19 +4,19 @@ Restore : NO
 Operator : junctions
 Number   : 1
 Signature: network -> rel
-Example  : query junctions(X_NETWORK) count
+Example  : query junctions(X_NETWORK)
 Result   : file
 
 Operator : routes
 Number   : 1
 Signature: network -> rel
-Example  : query routes(X_NETWORK) count
+Example  : query routes(X_NETWORK)
 Result   : file
 
 Operator : sections
 Number   : 1
 Signature: network -> rel
-Example  : query sections(X_NETWORK) count
+Example  : query sections(X_NETWORK)
 Result   : file
 
 Operator : thenetwork
