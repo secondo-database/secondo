@@ -5,19 +5,19 @@ Operator : junctions
 Number   : 1
 Signature: network -> rel
 Example  : query junctions(X_NETWORK) count
-Result   : 2063
+Result   : file
 
 Operator : routes
 Number   : 1
 Signature: network -> rel
 Example  : query routes(X_NETWORK) count
-Result   : 852
+Result   : file
 
 Operator : sections
 Number   : 1
 Signature: network -> rel
 Example  : query sections(X_NETWORK) count
-Result   : 2639
+Result   : file
 
 Operator : thenetwork
 Number   : 1
