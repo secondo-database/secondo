@@ -33,44 +33,17 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hybrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
+October 2007, M. Spiekermann revised the code in order to improve the example
+code, e.g. limiting the scope of variables, careful value assignments,
+C++-style cast operations, etc., and to use newer programming interfaces which
+simplifies type mappings and operator registration.
+
+
+0 Overview
+
 This little algebra demonstrates the use of streams and parameter functions
 in algebra operators. It does not introduce any type constructors, but has
-several operators to manipulate streams.
-
-
-1 Preliminaries
-
-1.1 Includes
-
-*/
-
-using namespace std;
-
-#include "Algebra.h"
-#include "NestedList.h"
-#include "NList.h"
-#include "QueryProcessor.h"
-#include "AlgebraManager.h"
-#include "StandardTypes.h"  //We need integers, for example
-#include "Symbols.h"
-
-#include <string>
-#include <iostream>    //for testing
-
-extern NestedList* nl;
-extern QueryProcessor *qp;
-
-using namespace symbols;
-
-namespace ste {
-
-/*
-
-2 Creating Operators
-
-2.1 Overview
-
-This algebra provides the following operators:
+several operators to manipulate streams. It provides the following operators:
 
   * intstream: int x int [->] (stream int)
 
@@ -78,7 +51,7 @@ This algebra provides the following operators:
 the second argument. If the second argument is smaller than the first, the
 stream will be empty.
 
-  * count: (stream T) [->] int
+  * countintstream: (stream T) [->] int
 
     Returns the number of elements in an int stream.
 
@@ -86,16 +59,44 @@ stream will be empty.
 
     Prints out all elements of the int stream
 
-  * filter: (stream int) x (int [->] bool) [->] (stream int)
+  * filterintstream: (stream int) x (int [->] bool) [->] (stream int)
 
     Filters the elements of an int stream by a predicate.
 
+1 Preliminaries
 
-2.2 Type Mapping Function
+1.1 Includes
 
-Checks whether the correct argument types are supplied for an operator; if so,
-returns a list expression for the result type, otherwise the symbol
-~typeerror~.
+*/
+
+#include "Algebra.h"
+#include "NestedList.h"
+#include "NList.h"
+#include "QueryProcessor.h"
+#include "AlgebraManager.h"
+#include "StandardTypes.h"  //We need the SECONDO type int, for example
+#include "Symbols.h"
+
+#include <string>
+#include <iostream>    // 
+
+extern NestedList* nl;
+extern QueryProcessor *qp;
+
+using namespace symbols;
+using namespace std;
+
+namespace ste {
+
+/*
+
+2 Algebra Implementation 
+
+2.2 Type Mapping Functions
+
+These functions check whether the correct argument types are supplied for an
+operator; if so, returns a list expression for the result type, otherwise the
+symbol ~typeerror~.
 
 
 Type mapping for ~intstream~ is
@@ -107,23 +108,12 @@ Type mapping for ~intstream~ is
 ListExpr
 intstreamType( ListExpr args )
 {  
-  const string errMsg = "Type mapping function expects (int int) "
-                        " but got " + nl->ToString(args);
-
-  if ( nl->ListLength(args) != 2 )
-    ErrorReporter::ReportError( errMsg );
-
-  ListExpr arg1 = nl->First(args);
-  ListExpr arg2 = nl->Second(args);
-  
-  if ( nl->IsEqual(arg1, INT) && nl->IsEqual(arg2, INT) )
-    return nl->TwoElemList(nl->SymbolAtom(STREAM), nl->SymbolAtom(INT));
-
-  ErrorReporter::ReportError( errMsg );
-  return nl->TypeError();
+  NList type(args);
+  if ( type != NList(INT, INT) ) {
+    return NList::typeError("Expecting a list of two integers.");
+  }  
+  return NList(STREAM, INT).listExpr();
 }
-
-
 
 /*
 Type mapping for ~count~ is
@@ -135,28 +125,11 @@ Type mapping for ~count~ is
 ListExpr
 countType( ListExpr args )
 {
-  ListExpr arg1 = nl->Empty();
-  const string errMsg = "Operator count expects (stream int)";
-
-  if ( nl->ListLength(args) == 1 )
-  {
-    arg1 = nl->First(args);
-
-    if ( !nl->IsAtom(arg1) && nl->ListLength(arg1) == 2 )
-    {
-      if ( nl->IsEqual(nl->First(arg1), STREAM)
-           && ( nl->IsEqual(nl->Second(arg1), INT))) 
-      {
-        return nl->SymbolAtom(INT);
-      } 
-      else
-      {
-        ErrorReporter::ReportError(errMsg);
-      }
-    }
-  }
-  ErrorReporter::ReportError(errMsg);
-  return nl->TypeError();
+  NList type(args);
+  if ( type.first() != NList(STREAM, INT) ) {
+    return NList::typeError("Expecting a stream of integers.");
+  }  
+  return NList(INT).listExpr();
 }
 
 /*
@@ -169,106 +142,71 @@ Type mapping for ~printintstream~ is
 ListExpr
 printintstreamType( ListExpr args )
 {
-  ListExpr arg11 = nl->Empty(), arg12 = nl->Empty();
-
-  if ( nl->ListLength(args) == 1 )
-  {     	  
-    ListExpr arg = nl->First(args);
-    if ( nl->ListLength(arg) == 2 ) 
-    {    
-      arg11 = nl->First(arg);
-      arg12 = nl->Second(arg);
-
-      if ( nl->IsEqual(arg11, STREAM) && nl->IsEqual(arg12, INT) )
-        return nl->First(args);
-    }
-  }
-
-  ErrorReporter::ReportError("Operator printintstream expects a "
-                             "(stream int) as argument.");  
-  return nl->TypeError();
+  NList type(args);
+  if ( type.first() != NList(STREAM, INT) ) {
+    return NList::typeError("Expecting a stream of integers.");
+  }  
+  return NList(STREAM, INT).listExpr();
 }
 
 
 /*
 Type mapping for ~filter~ is
 
-----    ((stream int) (map int bool)) -> (stream x)
+----    ((stream int) (map int bool)) -> (stream int)
 ----
 
 */
 ListExpr
 filterType( ListExpr args )
 {
-  ListExpr stream = nl->Empty();
-  ListExpr map = nl->Empty();
+  NList type(args);
 
-  if ( nl->ListLength(args) == 2 )
+  if ( type.hasLength(2) )
   {
-    stream = nl->First(args);
-    map = nl->Second(args);
-
     // test first argument for stream(int)
-    if ( nl->IsAtom(stream)
-         || !(nl->ListLength(stream) == 2)
-         || !nl->IsEqual(nl->First(stream), STREAM)
-         || !nl->IsEqual(nl->Second(stream), INT) )
+    if ( type.first() != NList(STREAM, INT) )
     {
-      ErrorReporter::ReportError("Operator " + FILTER + 
-		            "expects a (stream int) as its first argument.");
-
-      return nl->TypeError();
+       return NList::typeError("Expecting (stream int) "
+		               "as first argument.");
     }
-
     // test second argument for map T' bool. T = T'
-    if ( nl->IsAtom(map)
-         || !nl->ListLength(map) == 3
-         || !nl->IsEqual(nl->First(map), MAP)
-         || !nl->IsEqual(nl->Second(map), INT)
-         || !nl->IsEqual(nl->Third(map), BOOL) )
+    if ( type.second() != NList(MAP, INT, BOOL) )
     {
-      ErrorReporter::ReportError("Operator " + FILTER + " expects a "
-                                 "(map int bool) as its second argument. ");
-      return nl->TypeError();
+      return NList::typeError("Expecting (map int bool) "
+		              "as it second argument.");
     }
+    // return the type of the first argument
+    return type.first().listExpr(); 
   }
   else 
   { // wrong number of arguments
-    ErrorReporter::ReportError("Operator filter expects two arguments.");
-    return nl->TypeError();
+    return NList::typeError("Expecting two arguments.");
   }
-  return stream; // return type of first argument
 }
 
 /*
-4.2 Selection Function
+2.3 Value Mapping Functions
 
-Is used to select one of several evaluation functions for an overloaded
-operator, based on the types of the arguments. In case of a non-overloaded
-operator, we can use the simpleSelect function provided by the Operator class.
+2.3.1 Operator ~intstream~
 
-4.3 Value Mapping Function
+Creates an integer stream. An example for creating a stream.
 
 */
 
 int
 intstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
-/*
-Create integer stream. An example for creating a stream.
-
-Note that for any operator that produces a stream its arguments are NOT
-evaluated automatically. To get the argument value, the value mapping function
-needs to use ~qp->Request~ to ask the query processor for evaluation explicitly.
-This is illustrated in the value mapping functions below.
-
-*/
 {
-  struct Range {  // an auxiliary record type
+  // An auxiliary type which keeps the state of this
+  // operation during two requests	
+  struct Range {  
     int current;
     int last;
 
     Range(CcInt* i1, CcInt* i2) {
 
+      // Do a proper initialization even if one of the
+      // arguments has an undefined value	    
       if (i1->IsDefined() && i2->IsDefined()) 
       {	    
         current = i1->GetIntval();	    
@@ -276,56 +214,56 @@ This is illustrated in the value mapping functions below.
       }
       else
       {
+	// this initialization will create an empty stream      
         current = 1;
         last = 0;
       }	
     }	    
   };
   
-  Range* range = 0;
-  CcInt* i1 = 0;
-  CcInt* i2 = 0;
-  CcInt* elem = 0;
+  Range* range = static_cast<Range*>(local.addr);
 
   switch( message )
   {
-    case OPEN: // initialize the local storage
+    case OPEN: { // initialize the local storage
 
-      i1 = ((CcInt*)args[0].addr);
-      i2 = ((CcInt*)args[1].addr);
+      CcInt* i1 = static_cast<CcInt*>( args[0].addr );
+      CcInt* i2 = static_cast<CcInt*>( args[1].addr );
       range = new Range(i1, i2);
       local.addr = range;
 
       return 0;
-
-    case REQUEST: // return the next stream element
-
-      range = ((Range*) local.addr);
+    }
+    case REQUEST: { // return the next stream element
 
       if ( range->current <= range->last )
       {
-        elem = new CcInt(true, range->current++);
+        CcInt* elem = new CcInt(true, range->current++);
         result.addr = elem;
         return YIELD;
       }
       else 
       {
-        result.addr = 0;	      
+	// you should always set the result to null 
+	// before you return a CANCEL      
+        result.addr = 0;       
         return CANCEL;
       }	
+    }
+    case CLOSE: { // free the local storage
 
-    case CLOSE: // free the local storage
-
-      range = ((Range*) local.addr);
       delete range;
       return 0;
+    }  
+    default: {
+      /* should never happen */
+      return -1;
+    }		     
   }
-  /* should never happen */
-  return -1;
 }
 
 /*
-3 Value mapping for ~count~
+2.3.2 Value mapping for ~count~
 
 Count the number of elements in a stream. An example for consuming a stream.
 
@@ -333,28 +271,33 @@ Count the number of elements in a stream. An example for consuming a stream.
 int
 countFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word elem = SetWord(Address(0));
-  int count = 0;
+  qp->Open(args[0].addr); // open the argument stream
 
-  qp->Open(args[0].addr);
+  Word elem = SetWord(Address(0)); // retrieve the first element
   qp->Request(args[0].addr, elem);
 
+  int count = 0;
   while ( qp->Received(args[0].addr) )
   {
     count++;
-    ((Attribute*) elem.addr)->DeleteIfAllowed();// consume the stream objects
+    // consume the stream objects. This will free their
+    // memory representation if they are not used any more
+    static_cast<Attribute*>(elem.addr)->DeleteIfAllowed();
     qp->Request(args[0].addr, elem);
   }
-  result = qp->ResultStorage(s);
-  ((CcInt*) result.addr)->Set(true, count);
 
-  qp->Close(args[0].addr);
+  // Assign a value to the operations result object which is provided
+  // by the query processor
+  result = qp->ResultStorage(s);
+  static_cast<CcInt*>(result.addr)->Set(true, count);
+
+  qp->Close(args[0].addr); // close the underlying stream
 
   return 0;
 }
 
 /*
-3 Value mapping ~printintstream~
+2.3.3 Value mapping ~printintstream~
 
 The next function prints the elements of a "stream(int)". 
 An example for a pure stream operator (input and output are streams).
@@ -365,41 +308,43 @@ int
 printintstreamFun (Word* args, Word& result, 
                    int message, Word& local, Supplier s)
 {
-  Word elem = SetWord(Address(0));
-
   switch( message )
   {
-    case OPEN:
+    case OPEN: {
 
       qp->Open(args[0].addr);
       return 0;
+    }
+    case REQUEST: {
 
-    case REQUEST:
-
+      Word elem = SetWord(Address(0));
       qp->Request(args[0].addr, elem);
       if ( qp->Received(args[0].addr) )
       {
-        cout << ((CcInt*) elem.addr)->GetIntval() << endl;
+        cout << static_cast<CcInt*>(elem.addr)->GetIntval() << endl;
         result = elem;
         return YIELD;
       }
       else 
       {
-	result = SetWord(Address(0));      
+	result.addr = 0;      
 	return CANCEL;
       }	      
-
-    case CLOSE:
+    }
+    case CLOSE: {
 
       qp->Close(args[0].addr);
       return 0;
+    }
+    default: {
+      /* should not happen */
+      return -1;
+    } 		     
   }
-  /* should not happen */
-  return -1;
 }
 
 /*
-3 Value mapping for ~filter~
+2.3.4 Value mapping for ~filter~
 
 Filter the elements of a stream by a predicate. An example for a stream
 operator and also for one calling a parameter function.
@@ -408,23 +353,21 @@ operator and also for one calling a parameter function.
 int
 filterFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word elem = SetWord(Address(0));
-  Word funresult = SetWord(Address(0));
-  ArgVectorPointer funargs = 0;
 
   switch( message )
   {
-    case OPEN:
+    case OPEN: {
 
       qp->Open(args[0].addr);
       return 0;
-
-    case REQUEST:
+    }
+    case REQUEST: {
 
       // Get the argument vector for the parameter function.
-      funargs = qp->Argument(args[1].addr);  
+      ArgVectorPointer funargs = qp->Argument(args[1].addr);  
 
       // Loop over stream elements until the function yields true.
+      Word elem = SetWord(Address(0));
       qp->Request(args[0].addr, elem);
       while ( qp->Received(args[0].addr) )
       {
@@ -432,6 +375,7 @@ filterFun (Word* args, Word& result, int message, Word& local, Supplier s)
         (*funargs)[0] = elem;     
 
         // Instruct the parameter function to be evaluated.
+        Word funresult = SetWord(Address(0));
         qp->Request(args[1].addr, funresult);
 	CcBool* b = static_cast<CcBool*>( funresult.addr );
 
@@ -456,20 +400,23 @@ filterFun (Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
       // End of Stream reached
-      result = SetWord(Address(0));
+      result.addr = 0;
       return CANCEL;
-
-    case CLOSE:
+    }
+    case CLOSE: {
 
       qp->Close(args[0].addr);
       return 0;
+    }
+    default: {
+      /* should never happen */
+      return -1;
+    } 		     
   }
-  /* should never happen */
-  return -1;
 }
 
 /*
-4.4 Description of Operators
+2.4 Description of Operators
 
 */
 
@@ -521,7 +468,7 @@ struct filterInfo :  OperatorInfo
 
 
 /*
-5 Creating the Algebra
+2.4 The algebra class 
 
 */
 
@@ -541,7 +488,7 @@ class StreamExampleAlgebra : public Algebra
 } // end of namespace ste
 
 /*
-6 Initialization
+3 Initialization
 
 */
 

@@ -690,40 +690,32 @@ returns a list expression for the result type, otherwise the symbol
 ListExpr
 RectRectBool( ListExpr args )
 {	
-  NList list(args);
-  const string errMsg = "Expecting (xrectangle xrectangle)";
+  NList type(args);
+  if ( type != NList(XRECTANGLE, XRECTANGLE) ) {
+    return NList::typeError("Expecting two rectangles");
+  }  
 
-  if ( list.length() != 2 )
-    return list.typeError(errMsg);
-    
-  if ( list.first().isSymbol(XRECTANGLE) && list.second().isSymbol(XRECTANGLE) )
-    return NList(BOOL).listExpr();
-    
-  return list.typeError(errMsg);
+  return NList(BOOL).listExpr();
 }
 
 ListExpr
 insideTypeMap( ListExpr args )
 {
-  NList list(args);
-  const string errMsg = "Expecting (xrectangle xrectangle) "
-	                "or (xpoint xrectangle)";
+  NList type(args);
+  const string errMsg = "Expecting two rectangles "
+	                "or a point and a rectangle";
 
-  if ( list.length() != 2 )
-    return list.typeError(errMsg);	  
-  
-  NList arg1 = list.first();
-  NList arg2 = list.second();
-  
-  // first alternative: xpoint x xrecangle -> bool
-  if ( arg1.isSymbol(XPOINT) && arg2.isSymbol(XRECTANGLE) )
+  // first alternative: xpoint x xrectangle -> bool
+  if ( type == NList(XPOINT, XRECTANGLE) ) {
     return NList(BOOL).listExpr();
+  }  
   
   // second alternative: xrectangle x xrectangle -> bool
-  if ( arg1.isSymbol(XRECTANGLE) && arg2.isSymbol(XRECTANGLE) )
+  if ( type == NList(XRECTANGLE, XRECTANGLE) ) {
     return NList(BOOL).listExpr();
+  }  
   
-  return list.typeError(errMsg);
+  return NList::typeError(errMsg);
 }
 
 /*
@@ -743,8 +735,8 @@ is applied to correct arguments.
 int
 insideSelect( ListExpr args )
 {
-  NList list(args);
-  if ( list.first().isSymbol( XRECTANGLE ) )
+  NList type(args);
+  if ( type.first().isSymbol( XRECTANGLE ) )
     return 1;
   else
     return 0;
