@@ -20,8 +20,8 @@ ALGEBRA_DEP_DIRS := $(SECONDO_SDK)/lib
 ALGEBRA_DIRS += FText
 ALGEBRAS     += FTextAlgebra
 
-ALGEBRA_DIRS += OldRelation-C++
-ALGEBRAS     += OldRelationAlgebra
+#ALGEBRA_DIRS += OldRelation-C++
+#ALGEBRAS     += OldRelationAlgebra
 
 ALGEBRA_DIRS += Relation-C++
 ALGEBRAS     += RelationAlgebra
@@ -165,10 +165,11 @@ ALGEBRA_DIRS += GSL
 ALGEBRAS     += GSLAlgebra
 ALGEBRA_DEPS += gsl gslcblas
 
-
 #ALGEBRA_DIRS += Chess
 #ALGEBRAS     += ChessAlgebra
 
+#ALGEBRA_DIRS += HierarchicalGeo
+#ALGEBRAS     += HierarchicalGeoAlgebra
 
 #ALGEBRA_DIRS += Simulation
 #ALGEBRAS     += SimulationAlgebra
