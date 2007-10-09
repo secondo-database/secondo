@@ -244,13 +244,28 @@ c)~.
     e( nl->Empty() ),
     len(0)
   {
-   
     if (isStr)
       l = nl->StringAtom(s);
     else 
       l = nl->SymbolAtom(s);
   }
  
+  NList(const string& s1, const string& s2) :
+    nl(nlGlobal),
+    len(2)
+  {
+    e = nl->SymbolAtom(s2); 	  
+    l = nl->TwoElemList(nl->SymbolAtom(s1), e);
+  }
+
+  NList(const string& s1, const string& s2, const string& s3) :
+    nl(nlGlobal),
+    len(3)
+  {
+    e = nl->SymbolAtom(s3); 	  
+    l = nl->ThreeElemList(nl->SymbolAtom(s1), nl->SymbolAtom(s2), e);
+  }
+
   NList(const int n) :
     nl(nlGlobal),
     l( nl->IntAtom(n) ),
@@ -454,6 +469,11 @@ Comparison between ~NList/NList~ and ~NList/string~ instances
     return nl->Equal(l,rhs.l);
   }
   
+  inline bool operator!=(const NList& rhs) const 
+  { 
+    return !(*this == rhs);
+  }
+
   inline bool operator==(const string& rhs) const
   {
     if( !hasStringValue() ) 
@@ -519,6 +539,23 @@ The functions below may be useful for implementing type mapping
 functions.
 
 */
+ 
+  inline bool checkStream(NList& type)
+  {
+    return ( hasLength(2) && first().isSymbol(sym.STREAM()) 
+		          && second() == type );
+  }
+
+  inline NList& streamOf(NList& type) 
+  {
+    l = nl->OneElemList( nl->SymbolAtom(sym.STREAM()) );
+    e = l;
+    len = 1;
+    append(type);
+    return *this;
+  } 
+
+
   inline bool checkStreamTuple(NList& attrs)
   {
     return checkDepth3(sym.STREAM(), sym.TUPLE(), attrs);
