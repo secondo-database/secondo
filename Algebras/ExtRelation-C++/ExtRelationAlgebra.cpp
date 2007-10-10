@@ -57,10 +57,18 @@ June 2006, Christian D[ue]ntgen added operators ~symmproduct~ and ~symmproductex
 
 August 2006, Christian D[ue]ntgen added signature ((stream T) int) -> (stream T) to operator ~head~.
 
-January 2007, M. Spiekermann. Reference counting in groupby corrected, since it causes a segmentation fault, 
-when the Tuplebuffer needs to be flushed on disk.
+January 2007, M. Spiekermann. Reference counting in groupby corrected, since it
+causes a segmentation fault, when the Tuplebuffer needs to be flushed on disk.
 
-July 2007, C. Duentgen. Changed groupbyTypeMap. It will now accept an empty list of grouping attributes (argument 1)). The result will then be constructed from a single group containing ALL tuples from the input stream (argument 0). Logically, the result tuples contain no original attributes from the input stream, but only those created by aggregation functions from argument 2.
+July 2007, C. Duentgen. Changed groupbyTypeMap. It will now accept an empty
+list of grouping attributes (argument 1)). The result will then be constructed
+from a single group containing ALL tuples from the input stream (argument 0).
+Logically, the result tuples contain no original attributes from the input
+stream, but only those created by aggregation functions from argument 2.
+
+October 2007, M. Spiekermann, T. Behr. Reimplementation of the operators ~avg~
+and ~sum~ in order to provide better example code since these should be used as
+examples for the practical course.
 
 [TOC]
 
@@ -73,6 +81,10 @@ July 2007, C. Duentgen. Changed groupbyTypeMap. It will now accept an empty list
 #include <sstream>
 #include <stack>
 
+#define TRACE_ON
+#include "LogMsg.h"
+#define TRACE_OFF
+
 #include "RelationAlgebra.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
@@ -80,13 +92,15 @@ July 2007, C. Duentgen. Changed groupbyTypeMap. It will now accept an empty list
 #include "StandardTypes.h"
 #include "Counter.h"
 #include "TupleIdentifier.h"
-#include "LogMsg.h"
 #include "Progress.h"
 #include "RTuple.h"
+#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
+
+using namespace symbols;
 
 /*
 2 Operators
@@ -1223,236 +1237,200 @@ Type mapping for ~sum~ is
 
 */
 
-template<bool isAvg> ListExpr
+template<bool isAvg>
+ListExpr
 AvgSumTypeMap( ListExpr args )
 {
-  ListExpr first, second, attrtype;
-  string  attrname, argstr;
-  int j;
 
-  const char* errorMessage1 =
-  isAvg ?
-    "Operator avg expects a list of length two."
-  : "Operator sum expects a list of length two.";
-  CHECK_COND(nl->ListLength(args) == 2,
-    errorMessage1);
-
-  first = nl->First(args);
-  second = nl->Second(args);
-
-  nl->WriteToString(argstr, first);
-  string errorMessage2 =
-  isAvg ?
-    "Operator avg expects as first argument a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator avg gets as first argument '" + argstr + "'."
-  : "Operator sum expects as first argument a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator sum gets as first argument '" + argstr + "'.";
-  CHECK_COND(nl->ListLength(first) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(first)))),
-    errorMessage2);
-
-  nl->WriteToString(argstr, second);
-  string errorMessage3 =
-  isAvg ?
-    "Operator max expects as second argument an atom (attributename).\n"
-    "Operator max gets '" + argstr + "'.\n"
-    "Atrributename may not be the name of a Secondo object!"
-  : "Operator min expects as second argument an atom (attributename).\n"
-    "Operator min gets '" + argstr + "'.\n"
-    "Atrributename may not be the name of a Secondo object!";
-  CHECK_COND((nl->IsAtom(second)) &&
-             (nl->AtomType(second) == SymbolType),
-       errorMessage3);
-
-  attrname = nl->SymbolValue(second);
-  nl->WriteToString(argstr, nl->Second(nl->Second(first)));
-  j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
-  string errorMessage4 =
-    "Attributename '" + attrname + "' is not known.\n"
-    "Known Attribute(s): " + argstr;
-  string errorMessage5 =
-    "Attribute type is not of type real or int.";
-  if ( j )
+  NList type(args);
+  if ( !type.hasLength(2) ) 
   {
-    CHECK_COND( (nl->SymbolValue(attrtype) == "real"
-          || nl->SymbolValue(attrtype) == "int"),
-    errorMessage5);
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-             nl->TwoElemList(nl->IntAtom(j),
-             nl->StringAtom(nl->SymbolValue(attrtype))),
-             isAvg ? nl->SymbolAtom("real") : attrtype);
+    return NList::typeError("Expecting two arguments.");
+  } 
+
+  NList first = type.first();
+  if ( 
+    !first.hasLength(2)  ||
+    !first.first().isSymbol(STREAM) ||
+    !first.second().hasLength(2) ||
+    !first.second().first().isSymbol(TUPLE) ||
+    !IsTupleDescription( first.second().second().listExpr() ) )
+  {	  
+    return NList::typeError("Error in first argument!");
+  }
+
+  NList second = type.second();
+  if ( !second.isSymbol() ) { 
+    return NList::typeError( "Second argument must be an attribute name. "
+                             "Perhaps the attribute's name may be the name "
+			     "of a Secondo object!" );
+  }     
+
+  string attrname = type.second().str();
+  ListExpr attrtype = nl->Empty();
+  int j = FindAttribute(first.second().second().listExpr(), attrname, attrtype);
+
+  if ( j != 0 )
+  {
+    if ( nl->SymbolValue(attrtype) != REAL && 
+	 nl->SymbolValue(attrtype) != INT ) 
+    {
+      return NList::typeError("Attribute type is not of type real or int.");
+    }	    
+    NList resType = isAvg ? NList(REAL) : NList(attrtype);     
+    return NList( NList(APPEND), NList(j).enclose(), resType ).listExpr();
   }
   else
   {
-    nl->WriteToString( argstr, nl->Second(nl->Second(first)) );
-    ErrorReporter::ReportError(errorMessage4);
-    return nl->SymbolAtom("typeerror");
+    return NList::typeError( "Attribute name '" + attrname + "' is not known.");
   }
+}
+
+/*
+Since the list structure has been already checked the selection function can
+trust to have a list of the correct format. Hence we can ommit many checks and
+access elements directly.
+
+*/
+
+int
+AvgSumSelect( ListExpr args )
+{
+  NList type(args);
+  NList first = type.first();
+  string attrname = type.second().str();
+  ListExpr attrtype = nl->Empty();
+  FindAttribute(first.second().second().listExpr(), attrname, attrtype);
+
+  if ( nl->SymbolValue(attrtype) == INT ) 
+  {
+    return 0;
+  }	    
+  return 1;
 }
 /*
 
 2.10.2 Value mapping function of operators ~avg~ and ~sum~
 
+Here we use template functions which may be instantiated with the
+following values:
+
+----
+    T = int, real
+    R = CcInt, CcReal
+----
+
 */
-template<bool isAvg> int
-AvgSumValueMapping(Word* args, Word& result, int message, 
+template<class T, class R> int
+SumValueMapping(Word* args, Word& result, int message, 
                    Word& local, Supplier s)
 {
-  bool definedValueFound = false;
-  Word currentTupleWord;
-  Attribute* accumulated = 0;
-  int nProcessedItems = 0;
-
-  int attributeIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
-  const STRING_T *attributeType = ((CcString*)args[3].addr)->GetStringval();
+  T sum = 0;
+  int number = 0;
+  
+  Word currentTupleWord = SetWord(Address(0));
+  int attributeIndex = static_cast<CcInt*>( args[2].addr)->GetIntval() - 1;
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, currentTupleWord);
   while(qp->Received(args[0].addr))
   {
-    Tuple* currentTuple = (Tuple*)currentTupleWord.addr;
-    Attribute* currentAttr = 
-      (Attribute*)currentTuple->GetAttribute(attributeIndex);
-    if(currentAttr->IsDefined())
-    {
-      nProcessedItems++;
+    Tuple* currentTuple = static_cast<Tuple*>( currentTupleWord.addr );
+    R* currentAttr = 
+      static_cast<R*>( currentTuple->GetAttribute(attributeIndex) );
 
-      if(definedValueFound)
-      {
-        if(strcmp(*attributeType, "real") == 0)
-        {
-          CcReal* accumulatedReal = (CcReal*)accumulated;
-          CcReal* currentReal = (CcReal*)currentAttr;
-          accumulatedReal->Set(currentReal->GetRealval()
-            + accumulatedReal->GetRealval());
-        }
-        else
-        {
-          CcInt* accumulatedInt = (CcInt*)accumulated;
-          CcInt* currentInt = (CcInt*)currentAttr;
-          accumulatedInt->Set(currentInt->GetIntval()
-            + accumulatedInt->GetIntval());
-        }
-      }
-      else
-      {
-        definedValueFound = true;
-        accumulated = currentAttr->Clone();
-      }
+    if( currentAttr->IsDefined() ) // process only defined elements
+    {
+      number++;
+      sum += currentAttr->GetValue();     
     }
     currentTuple->DeleteIfAllowed();
     qp->Request(args[0].addr, currentTupleWord);
   }
   qp->Close(args[0].addr);
 
-  if(definedValueFound)
-  {
-    if(isAvg)
-    {
-      CcReal* resultAttr = (CcReal*)(qp->ResultStorage(s).addr);
-      SEC_STD_REAL nItems = (SEC_STD_REAL)nProcessedItems;
-
-      if(strcmp(*attributeType, "real") == 0)
-      {
-        CcReal* accumulatedReal = (CcReal*)accumulated;
-        resultAttr->Set(accumulatedReal->GetRealval() / nItems);
-      }
-      else
-      {
-        CcInt* accumulatedInt = (CcInt*)accumulated;
-        resultAttr->Set(((SEC_STD_REAL)accumulatedInt->GetIntval()) / nItems);
-      }
-      accumulated->DeleteIfAllowed();
-      result = SetWord(resultAttr);
-    }
-    else
-    {
-      if(strcmp(*attributeType, "real") == 0)
-      {
-        CcReal* resultAttr = (CcReal*)(qp->ResultStorage(s).addr);
-        CcReal* accumulatedReal = (CcReal*)accumulated;
-        resultAttr->Set(accumulatedReal->GetRealval());
-        result = SetWord(resultAttr);
-      }
-      else
-      {
-        CcInt* resultAttr = (CcInt*)(qp->ResultStorage(s).addr);
-        CcInt* accumulatedInt = (CcInt*)accumulated;
-        resultAttr->Set(accumulatedInt->GetIntval());
-        result = SetWord(resultAttr);
-      }
-      accumulated->DeleteIfAllowed();
-    }
-    return 0;
-  }
-  else
-  {
-    ((StandardAttribute*)qp->ResultStorage(s).addr)->SetDefined(false);
-    result = qp->ResultStorage(s);
-    return 0;
-  }
+  result = qp->ResultStorage(s);
+  static_cast<R*>( result.addr )->Set(true, sum);         	    
+  return 0;	  
 }
 
+template<class T, class R> int
+AvgValueMapping(Word* args, Word& result, int message, 
+                   Word& local, Supplier s)
+{
+  T sum = 0;
+  int number = 0;
+  
+  Word currentTupleWord = SetWord(Address(0));
+  int attributeIndex = static_cast<CcInt*>( args[2].addr )->GetIntval() - 1;
+
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, currentTupleWord);
+  while(qp->Received(args[0].addr))
+  {
+    Tuple* currentTuple = static_cast<Tuple*>( currentTupleWord.addr );
+    R* currentAttr = 
+      static_cast<R*>( currentTuple->GetAttribute(attributeIndex) );
+
+    if( currentAttr->IsDefined() ) // process only defined elements
+    {
+      number++;
+      sum += currentAttr->GetValue();     
+    }
+    currentTuple->DeleteIfAllowed();
+    qp->Request(args[0].addr, currentTupleWord);
+  }
+  qp->Close(args[0].addr);
+
+  result = qp->ResultStorage(s);
+  if ( number == 0 ) {
+    static_cast<Attribute*>( result.addr )->SetDefined(false);  
+  }	
+  else
+  {
+    SEC_STD_REAL sumreal = sum;
+    static_cast<CcReal*>( result.addr )->Set(true, sumreal / number);         
+  }
+  return 0;	  
+}
+
+
 /*
-2.10.3 Specification of operator ~avg~
+2.10.3 Operator Descriptions for ~avg~ and ~sum~
 
 */
-const string AvgOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" ) "
-                          "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-                          "))) x ai) -> real</text--->"
-                          "<text>_ avg [ _ ]</text--->"
-                          "<text>Returns the average value of attribute "
-                          "ai over the input stream.</text--->"
-                          "<text>query cities feed avg [population]"
-                          "</text--->"
-                              ") )";
 
-/*
-2.10.4 Definition of operator ~avg~
+struct avgInfo : OperatorInfo {
 
-*/
-Operator extrelavg (
-         "avg",             // name
-         AvgOpSpec,           // specification
-         AvgSumValueMapping<true>,               // value mapping
-         Operator::SimpleSelect,          // trivial selection function
-         AvgSumTypeMap<true>         // type mapping
-);
+  avgInfo() : OperatorInfo() {
+ 
+    name      = "avg";	  
+    signature = "((stream (tuple([a1:d1, ...,"
+	                        " ai:int, ..., an:dn]))) x ai) -> real";
+    appendSignature( "((stream (tuple([a1:d1, ...,"
+		                      " ai:real, ..., an:dn]))) x ai) -> real");
+    syntax    = "_ avg [ _ ]";
+    meaning   = "Returns the average value of attribute "
+                "ai over the input stream. ";
+  }	  
 
-/*
-2.10.5 Specification of operator ~sum~
+};
 
-*/
-const string SumOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" ) "
-                          "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-                          "))) x ai) -> di</text--->"
-                          "<text>_ sum [ _ ]</text--->"
-                          "<text>Returns the sum of the values of attribute"
-                          " ai over the input stream.</text--->"
-                          "<text>query cities feed sum[population]"
-                          "</text--->"
-                              ") )";
+struct sumInfo : OperatorInfo {
 
-/*
-2.10.6 Definition of operator ~sum~
+  sumInfo() : OperatorInfo() {
+ 
+    name      = "sum";	  
+    signature = "((stream (tuple([a1:d1, ..., "
+	                          "ai:int, ..., an:dn]))) x ai) -> int";
+    appendSignature( "((stream (tuple([a1:d1, ...,"
+		                     " ai:real, ..., an:dn]))) x ai) -> real" );
+    syntax    = "_ sum [ _ ]";
+    meaning   = "Returns the sum of the values of attribute "
+                "ai over the input stream. ";
+  }	  
 
-*/
-Operator extrelsum (
-         "sum",             // name
-         SumOpSpec,           // specification
-         AvgSumValueMapping<false>,               // value mapping
-         Operator::SimpleSelect,          // trivial selection function
-         AvgSumTypeMap<false>         // type mapping
-);
-
+};	
 
 /*
 2.10 Operator ~krdup~
@@ -1992,18 +1970,19 @@ This operator removes duplicates from a sorted stream.
 int RdupValueMapping(Word* args, Word& result, int message, 
                      Word& local, Supplier s)
 {
-  Word tuple;
+  Word tuple = SetWord(Address(0));
   LexicographicalTupleCompareAlmost cmp;
-  Tuple* current;
-  RTuple* lastOutput;
+  Tuple* current = 0;
+  RTuple* lastOutput = 0;
 
   switch(message)
   {
-    case OPEN:
+    case OPEN: {
       qp->Open(args[0].addr);
       local.addr = 0;
       return 0;
-    case REQUEST:
+    }  
+    case REQUEST: {
       while(true)
       {
         qp->Request(args[0].addr, tuple);
@@ -2013,8 +1992,8 @@ int RdupValueMapping(Word* args, Word& result, int message,
           if(local.addr != 0)
           {
             // there is a last tuple
-            current = (Tuple*)tuple.addr;
-            lastOutput = (RTuple*)local.addr;
+            current = static_cast<Tuple*>(tuple.addr);
+            lastOutput = static_cast<RTuple*>(local.addr);
             if(cmp(current, lastOutput->tuple)
               || cmp(lastOutput->tuple, current))
             {
@@ -2035,7 +2014,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
           else
           {
             // no last tuple stored
-	    local.addr = new RTuple( (Tuple*)tuple.addr );
+	    local.addr = new RTuple( static_cast<Tuple*>(tuple.addr) );
 	    result = tuple; 	    
             return YIELD;
           }
@@ -2046,14 +2025,16 @@ int RdupValueMapping(Word* args, Word& result, int message,
           return CANCEL;
         }
       }
-    case CLOSE:
-      if( local.addr != 0 ){
-         lastOutput = (RTuple*)local.addr;
+    }  
+    case CLOSE: {
+      if( local.addr != 0 ){ // check if local is present
+         lastOutput = static_cast<RTuple*>(local.addr);
 	 delete lastOutput;
          local = SetWord(0);
       }
       qp->Close(args[0].addr);
       return 0;
+    }  
   }
   return 0;
 }
@@ -8106,11 +8087,6 @@ class ExtRelationAlgebra : public Algebra
  public:
   ExtRelationAlgebra() : Algebra()
   {
-
-#ifndef USE_PROGRESS
-
-// no support for progress queries
-
     AddOperator(&extrelsample);
     AddOperator(&extrelgroup);
     AddOperator(&extrelcancel);
@@ -8119,8 +8095,15 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelconcat);
     AddOperator(&extrelmin);
     AddOperator(&extrelmax);
-    AddOperator(&extrelavg);
-    AddOperator(&extrelsum);
+    
+    ValueMapping avgFuns[] = { AvgValueMapping<int,CcInt>, 
+	                       AvgValueMapping<SEC_STD_REAL,CcReal>, 0 };
+    ValueMapping sumFuns[] = { SumValueMapping<int,CcInt>, 
+	                       SumValueMapping<SEC_STD_REAL,CcReal>, 0 };
+
+    AddOperator(avgInfo(), avgFuns, AvgSumSelect, AvgSumTypeMap<true>);
+    AddOperator(sumInfo(), sumFuns, AvgSumSelect, AvgSumTypeMap<false>);
+
     AddOperator(&extrelhead);
     AddOperator(&extrelsortby);
     AddOperator(&extrelsort);
@@ -8145,45 +8128,19 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&krdup);
     AddOperator(&extreladdcounter);
 
-#else
-
+#ifdef USE_PROGRESS
 // support for progress queries
-
-    AddOperator(&extrelsample);
-    AddOperator(&extrelgroup);
-    AddOperator(&extrelcancel);
-    AddOperator(&extrelextract);
-    AddOperator(&extrelextend);		extrelextend.EnableProgress();
-    AddOperator(&extrelconcat);
-    AddOperator(&extrelmin);
-    AddOperator(&extrelmax);
-    AddOperator(&extrelavg);
-    AddOperator(&extrelsum);
-    AddOperator(&extrelhead);		extrelhead.EnableProgress();
-    AddOperator(&extrelsortby);		extrelsortby.EnableProgress();
-    AddOperator(&extrelsort);		extrelsort.EnableProgress();
-    AddOperator(&extrelrdup);		extrelrdup.EnableProgress();
-    AddOperator(&extrelmergesec);
-    AddOperator(&extrelmergediff);
-    AddOperator(&extrelmergeunion);
-    AddOperator(&extrelmergejoin);	extrelmergejoin.EnableProgress();
-    AddOperator(&extrelsortmergejoin);	
-				    extrelsortmergejoin.EnableProgress();
-    AddOperator(&extrelhashjoin);	extrelhashjoin.EnableProgress();
-    AddOperator(&extrelloopjoin);	extrelloopjoin.EnableProgress();
-    AddOperator(&extrelextendstream);
-    AddOperator(&extrelprojectextendstream);
-    AddOperator(&extrelloopsel);
-    AddOperator(&extrelgroupby);	extrelgroupby.EnableProgress();	
-    AddOperator(&extrelaggregate);
-    AddOperator(&extrelaggregateB);
-    AddOperator(&extrelsymmjoin);	extrelsymmjoin.EnableProgress();
-    AddOperator(&extrelsymmproductextend);
-    AddOperator(&extrelsymmproduct);
-    AddOperator(&extrelprojectextend);
-    AddOperator(&krdup);
-    AddOperator(&extreladdcounter);
-
+   extrelextend.EnableProgress();
+   extrelhead.EnableProgress();
+   extrelsortby.EnableProgress();
+   extrelsort.EnableProgress();
+   extrelrdup.EnableProgress();
+   extrelmergejoin.EnableProgress();
+   extrelsortmergejoin.EnableProgress();
+   extrelhashjoin.EnableProgress();
+   extrelloopjoin.EnableProgress();
+   extrelgroupby.EnableProgress();	
+   extrelsymmjoin.EnableProgress();
 #endif
   }
 

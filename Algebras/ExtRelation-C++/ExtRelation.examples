@@ -24,10 +24,15 @@ Result   : 96
 
 Operator : avg
 Number   : 1
-Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> real
+Signature: ((stream (tuple([a1:d1, ..., ai:int, ..., an:dn]))) x ai) -> real
 Example  : query Staedte feed avg [Bev]
 Result   : 325017.2413793103
 
+Operator : avg
+Number   : 2
+Signature: ((stream (tuple([a1:d1, ..., ai:real, ..., an:dn]))) x ai) -> real
+Example  : query Staedte feed extend[BevR: .Bev * 1.0] avg [BevR]
+Result   : 325017.2413793103
 
 Operator : cancel
 Number   : 1
@@ -190,9 +195,15 @@ Result   : 10052
 
 Operator : sum
 Number   : 1
-Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di
+Signature: ((stream (tuple([a1:d1, ..., ai:int, ..., an:dn]))) x ai) -> int
 Example  : query Staedte feed sum[Bev]
 Result   : 18851000
+
+Operator : sum
+Number   : 2
+Signature: ((stream (tuple([a1:d1, ..., ai:real, ..., an:dn]))) x ai) -> real
+Example  : query Staedte feed extend[BevR: .Bev * 1.0] sum[BevR];
+Result   : 18851000.0
 
 
 Operator : symmjoin
