@@ -79,7 +79,7 @@ namespace symbols {
 #undef REL 
 #undef TUPLE 
  Sym REL("rel");
- Sym TUPLE("TUPLE");
+ Sym TUPLE("tuple");
 
  // chess algebra
 #undef MATERIAL 
