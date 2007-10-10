@@ -662,7 +662,7 @@ this is done by implementing a subclass of ~ConstructorInfo~.
   
 struct xrectangleInfo : ConstructorInfo {
 
-  xrectangleInfo() : ConstructorInfo() {
+  xrectangleInfo() {
 
     name         = XRECTANGLE;
     signature    = "-> " + SIMPLE;
@@ -673,6 +673,28 @@ struct xrectangleInfo : ConstructorInfo {
   }
 };
 
+
+struct xrectangleFunctions : ConstructorFunctions<XRectangle> {
+
+  xrectangleFunctions()
+  {
+    // re-assign some function pointers
+    create = XRectangle::Create;
+    in = XRectangle::In;
+    out = XRectangle::Out;
+
+    // the default implementations for open and save are only 
+    // suitable for a class which is derived from class ~Attribute~, hence
+    // open and save functions must be overwritten here.
+ 
+    open = XRectangle::Open;
+    save = XRectangle::Save;
+  }  
+};    
+
+xrectangleInfo xri;
+xrectangleFunctions xrf;
+TypeConstructor xrectangleTC( xri, xrf );
 
 /*
 
@@ -850,7 +872,7 @@ This is now done by creating a subclass of class ~OperatorInfo~.
 */
 struct intersectsInfo : OperatorInfo {
 
-  intersectsInfo() : OperatorInfo()
+  intersectsInfo()
   {
     name      = INTERSECTS;
     signature = XRECTANGLE + " x " + XRECTANGLE + " -> " + BOOL;
@@ -864,7 +886,7 @@ struct intersectsInfo : OperatorInfo {
 
 struct insideInfo : OperatorInfo {
 
-  insideInfo() : OperatorInfo()
+  insideInfo()
   {
     name      = INSIDE; 
 
@@ -903,22 +925,7 @@ the default may not be sufficient. The default kind check function assumes, that
 type constructor does not have any arguments.
 
 */    
-    ConstructorFunctions<XRectangle> cf;
-
-    // re-assign some function pointers
-    cf.create = XRectangle::Create;
-    cf.in = XRectangle::In;
-    cf.out = XRectangle::Out;
-
-    // the default implementations for open and save are only 
-    // suitable for a class which is derived from class ~Attribute~, hence
-    // open and save functions must be overwritten here.
- 
-    cf.open = XRectangle::Open;
-    cf.save = XRectangle::Save;
     
-    static TypeConstructor xrectangleTC( xrectangleInfo(), cf );
-
     AddTypeConstructor( &xpointTC );
     AddTypeConstructor( &xrectangleTC );
 
