@@ -64,9 +64,6 @@ Therefore we need to change internally the name of the Polygon
 class since Windows defines an API function 'Polygon'.
 
 */
-#ifdef SECONDO_WIN32
-#define Polygon SecondoPolygon
-#endif
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -131,11 +128,6 @@ class Polygon : public Attribute
 {
 
   public:
-    Polygon() {}
-/*
-This constructor should not be used.
-
-*/
     Polygon( const int n, const int *X = 0, const int *Y = 0 );
     ~Polygon();
 
@@ -162,7 +154,36 @@ This constructor should not be used.
 
     friend ostream& operator <<( ostream& os, const Polygon& p );
 
+    static Word     In( const ListExpr typeInfo, const ListExpr instance,
+                        const int errorPos, ListExpr& errorInfo, 
+                        bool& correct );
+
+    static ListExpr Out( ListExpr typeInfo, Word value );
+
+    static Word     Create( const ListExpr typeInfo );
+
+    static void     Delete( const ListExpr typeInfo, Word& w );
+
+    static void     Close( const ListExpr typeInfo, Word& w );
+
+    static bool     Save( SmiRecord& valueRecord, size_t& offset,
+                          const ListExpr typeInfo, Word& value    );
+
+    static bool     Open( SmiRecord& valueRecord, size_t& offset,
+                          const ListExpr typeInfo, Word& value    );
+
+    static Word     Clone( const ListExpr typeInfo, const Word& w );
+
+    static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
+
+    static int      SizeOfObj();  
+  
+    static ListExpr Property();
+  
+    static void* Cast(void* addr);
+
   private:
+    Polygon() {} // this constructor is reserved for the cast function.
     DBArray<Vertex> vertices;
     PolygonState state;
 };
@@ -471,7 +492,7 @@ The list representation of a polygon is
 */
 
 ListExpr
-OutPolygon( ListExpr typeInfo, Word value )
+Polygon::Out( ListExpr typeInfo, Word value )
 {
   Polygon* polygon = (Polygon*)(value.addr);
 
@@ -500,7 +521,7 @@ OutPolygon( ListExpr typeInfo, Word value )
 }
 
 Word
-InPolygon( const ListExpr typeInfo, const ListExpr instance,
+Polygon::In( const ListExpr typeInfo, const ListExpr instance,
            const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   Polygon* polygon = new Polygon( 0 );
@@ -539,7 +560,7 @@ InPolygon( const ListExpr typeInfo, const ListExpr instance,
 */
 
 ListExpr
-PolygonProperty()
+Polygon::Property()
 {
   return (nl->TwoElemList(
          nl->FiveElemList(nl->StringAtom("Signature"),
@@ -565,7 +586,7 @@ type constructor ~polygon~ does not have arguments, this is trivial.
 
 */
 bool
-CheckPolygon( ListExpr type, ListExpr& errorInfo )
+Polygon::KindCheck( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "polygon" ));
 }
@@ -575,7 +596,7 @@ CheckPolygon( ListExpr type, ListExpr& errorInfo )
 3.5 ~Create~-function
 
 */
-Word CreatePolygon(const ListExpr typeInfo)
+Word Polygon::Create(const ListExpr typeInfo)
 {
   Polygon* polygon = new Polygon( 0 );
   return ( SetWord(polygon) );
@@ -585,7 +606,7 @@ Word CreatePolygon(const ListExpr typeInfo)
 3.6 ~Delete~-function
 
 */
-void DeletePolygon(const ListExpr typeInfo, Word& w)
+void Polygon::Delete(const ListExpr typeInfo, Word& w)
 {
   Polygon* polygon = (Polygon*)w.addr;
 
@@ -598,7 +619,7 @@ void DeletePolygon(const ListExpr typeInfo, Word& w)
 
 */
 bool
-OpenPolygon( SmiRecord& valueRecord,
+Polygon::Open( SmiRecord& valueRecord,
              size_t& offset,
              const ListExpr typeInfo,
              Word& value )
@@ -613,7 +634,7 @@ OpenPolygon( SmiRecord& valueRecord,
 
 */
 bool
-SavePolygon( SmiRecord& valueRecord,
+Polygon::Save( SmiRecord& valueRecord,
              size_t& offset,
              const ListExpr typeInfo,
              Word& value )
@@ -627,7 +648,7 @@ SavePolygon( SmiRecord& valueRecord,
 3.8 ~Close~-function
 
 */
-void ClosePolygon(const ListExpr typeInfo, Word& w)
+void Polygon::Close(const ListExpr typeInfo, Word& w)
 {
   Polygon* polygon = (Polygon*)w.addr;
   delete polygon;
@@ -637,7 +658,7 @@ void ClosePolygon(const ListExpr typeInfo, Word& w)
 3.9 ~Clone~-function
 
 */
-Word ClonePolygon(const ListExpr typeInfo, const Word& w)
+Word Polygon::Clone(const ListExpr typeInfo, const Word& w)
 {
   return SetWord( ((Polygon*)w.addr)->Clone() );
 }
@@ -646,7 +667,7 @@ Word ClonePolygon(const ListExpr typeInfo, const Word& w)
 3.9 ~SizeOf~-function
 
 */
-int SizeOfPolygon()
+int Polygon::SizeOfObj()
 {
   return sizeof(Polygon);
 }
@@ -655,7 +676,7 @@ int SizeOfPolygon()
 3.10 ~Cast~-function
 
 */
-void* CastPolygon(void* addr)
+void* Polygon::Cast(void* addr)
 {
   return (new (addr) Polygon);
 }
@@ -665,16 +686,16 @@ void* CastPolygon(void* addr)
 
 */
 TypeConstructor polygon(
-        "polygon",                      //name
-        PolygonProperty,                //property function describing signature
-        OutPolygon,     InPolygon,      //Out and In functions
-        0,              0,              //SaveTo and RestoreFrom List functions
-        CreatePolygon,  DeletePolygon,  //object creation and deletion
-        OpenPolygon,    SavePolygon,    //object open and save
-        ClosePolygon,   ClonePolygon,   //object close and clone
-        CastPolygon,                    //cast function
-        SizeOfPolygon,                  //sizeof function
-        CheckPolygon );                 //kind checking function
+        "polygon",                          //name
+        Polygon::Property,                  //property function
+        Polygon::Out,   Polygon::In,        //Out and In functions
+        0,              0,                  //SaveTo and RestoreFrom functions
+        Polygon::Create,  Polygon::Delete,  //object creation and deletion
+        Polygon::Open,    Polygon::Save,    //object open and save
+        Polygon::Close,   Polygon::Clone,   //object close and clone
+        Polygon::Cast,                      //cast function
+        Polygon::SizeOfObj,                 //sizeof function
+        Polygon::KindCheck );               //kind checking function
 
 /*
 4 PolygonAlgebra
