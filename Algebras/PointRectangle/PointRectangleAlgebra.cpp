@@ -35,7 +35,7 @@ July 2002, R. H. G[ue]ting
 
 Oct. 2006, M. Spiekermann. Introduction of a namespace, string constants and
 usage of the "static_cast<>" templates. Additionally, more comments and hints
- were documented.
+ were given.
 
 Sept. 2007, M. Spiekermann. Many code changes to demonstrate new programming interfaces. 
 
@@ -48,7 +48,7 @@ This little example algebra provides two type constructors ~xpoint~ and
 
   1. ~inside~, which checks whether either a point or a rectangle is within a rectangle, and 
 
-  2. ~intersects~ which checks two rectangles for intersection.
+  2. ~intersects~, which checks two rectangles for intersection.
 
 1 Preliminaries
 
@@ -86,7 +86,7 @@ instances of the query processor and the nested list storage.
 1.2 Auxiliaries
 
 Within this algebra module implementation, we have to handle values of
-four different types defined in namespace symbols: ~INT~ and ~REAL~, ~BOOL~ and
+four different types defined in namespace ~symbols~: ~INT~ and ~REAL~, ~BOOL~ and
 ~STRING~.  They are constant values of the C++-string class.
 
 Moreover, for type mappings some auxiliary helper functions are defined in the
@@ -104,8 +104,8 @@ using namespace mappings;
 using namespace std;
 
 /*
-The implementation of the algebra will be embedded into
-a namespace in order to avoid name conflicts with other modules.
+The implementation of the algebra is embedded into
+a namespace ~prt~ in order to avoid name conflicts with other modules.
    
 */   
 
@@ -113,6 +113,8 @@ namespace prt {
 
 /*
 2 Type Constructor ~xpoint~
+
+In this section we describe what is needed to implement the Secondo type ~xpoint~. Here the more traditional programming interfaces are shown. Some more recent alternatives are presented in the next section.
 
 2.1 Data Structure - Class ~XPoint~
 
@@ -144,7 +146,8 @@ Their implementations do nothing which depends on the state of an instance.
 
 */  
   static Word     In( const ListExpr typeInfo, const ListExpr instance,
-                      const int errorPos, ListExpr& errorInfo, bool& correct );
+                        const int errorPos, ListExpr& errorInfo, 
+                        bool& correct );
 
   static ListExpr Out( ListExpr typeInfo, Word value );
 
@@ -168,10 +171,11 @@ Their implementations do nothing which depends on the state of an instance.
 Warning: Never do initializations in the default constructor!
 It will be used in a special way in the cast function which is needed
 for making a class persistent when acting as an attribute in a tuple.
-In order to guarantee this we will make this constructor private.
-
+In order to guarantee this, we make this constructor private.
 One always needs to provide at least a second constructor, here 
-"XPoint( int x, int y )" in order to construct an instance. Moreover, 
+"XPoint( int x, int y )" in order to construct an instance. 
+
+Moreover, 
 avoid declarations like "XPoint p1;" since these will create an uninitialized
 class instance. Instead you should use only properly initialized variables 
 like "XPoint(0,0) p1;"
@@ -187,8 +191,8 @@ like "XPoint(0,0) p1;"
 /*
 We recommend to separate class declarations from their implementations.
 This makes life easier if you want to use the type provided in one algebra in
-another algebra. Only for the sake of a compact presentation, we did not out source
-the declarations in special header files in this example algebra.
+another algebra. Only for the sake of a compact presentation, we did not move
+the declarations to special header files in this example algebra.
 
 */
 
@@ -218,13 +222,13 @@ The list representation of an xpoint is
 
 The ~In~-function gets a nested list representation of an ~xpoint~ value passed
 in the variable "instance".  It is represented by the C++ type "ListExpr".
-Moreover there is a global pointer variable "nl" which points to the (single)
+Moreover, there is a global pointer variable "nl" which points to the (single)
 instance of class ~NestedList~.  This class provides a set of functions which
 can investigate and manipulate nested lists. For details refer to the file
 "NestedList.h".
 
 The parameter "errorInfo" can be used to return specific 
-error information if the retrieved list is not correct. In the latter case
+error information if the retrieved list is not correct. In the latter case,
 the boolean parameter "correct" needs to be set to false.
 
 The return value of the function is of type ~Word~ which can simply be
@@ -259,13 +263,13 @@ XPoint::In( const ListExpr typeInfo, const ListExpr instance,
 
 /*
 The ~Out~-function will get a pointer to an ~XPoint~ representation.
-Before we can use member function of class ~XPoint~ we need to do
+Before we can use a member function of class ~XPoint~, we need to do
 a type cast in order to tell the compiler about the object's type.
 
 Note: At this point we can be sure that it is a pointer to type ~XPoint~, hence
 it is safe to do it. But in general, type casts can be a source for ~strange~
 errors, e.g. segmentation faults, if you cast to a type which is not compatible
-to the object where the pointer belongs to. 
+to the object that the pointer belongs to. 
 
 */
 
@@ -278,6 +282,12 @@ XPoint::Out( ListExpr typeInfo, Word value )
   return nl->TwoElemList(nl->IntAtom(point->GetX()),
                          nl->IntAtom(point->GetY()));
 }
+
+
+/*
+2.4 Support Functions for Persistent Sorage
+
+*/
 
 
 Word
@@ -307,8 +317,8 @@ XPoint::Clone( const ListExpr typeInfo, const Word& w )
   return SetWord( new XPoint(*p) );
 }
 /*
-Here, a clone simply calls the copy constructor but for other
-types, which may have also a disk part some code for copying
+Here, a clone simply calls the copy constructor, but for other
+types, which may have also a disk part, some code for copying
 the disk parts would be needed also. Often this is implemented
 in a special member function "Clone()".
 
@@ -324,13 +334,13 @@ XPoint::SizeOfObj()
 /*
 2.4 Type Description
 
-At the user interface, the command "list type constructors" lists all type
+At the user interface, the command ~list type constructors~ lists all type
 constructors of all currently linked algebra modules. The information listed is
 generated by the algebra module itself, to be more precise it is generated by
 the ~property~-functions.
 
-Generally, a property can be a list of any structure which describes the data
-type. However, currently a structure like the one below has been established to
+Generally, a property list consists of two sublists providing labels and contents.
+Currently a structure like the one below has been established to
 be the standard.
 
 */
@@ -341,21 +351,24 @@ XPoint::Property()
 
   return (nl->TwoElemList(
             nl->FiveElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List"),
-                             nl->StringAtom("Remarks")),
+               nl->StringAtom("Example Type List"),
+               nl->StringAtom("List Rep"),
+               nl->StringAtom("Example List"),
+               nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("xpoint"),
-                             nl->StringAtom("(<x> <y>)"),
-                             nl->StringAtom("(-3 15)"),
-                             nl->StringAtom("x- and y-coordinates must be "
-                             "of type int."))));
+               nl->StringAtom("xpoint"),
+               nl->StringAtom("(<x> <y>)"),
+               nl->StringAtom("(-3 15)"),
+               nl->StringAtom("x- and y-coordinates must be "
+                 "of type int."))));
 }
 
-
-
 /*
+This is an older technique for creating property lists. A more recent technique is shown below for type ~XRectangle~.
+
+
+
+
 2.5 Kind Checking Function
 
 This function checks whether the type constructor is applied correctly. Since
@@ -365,37 +378,35 @@ type constructor ~xpoint~ does not have arguments, this is trivial.
 bool
 XPoint::KindCheck( ListExpr type, ListExpr& errorInfo )
 {
-  //cerr << "KindCheck XPOINT" << endl;	
   return (nl->IsEqual( type, XPOINT ));
 }
+
 /*
 2.6 Creation of the Type Constructor Instance
 
 */
 TypeConstructor xpointTC(
-  XPOINT,                             // name of the type in SECONDO
-  XPoint::Property,                   // property function describing signature
-  XPoint::Out, XPoint::In,            // Out and In functions
-  0, 0,                               // SaveToList, RestoreFromList functions
-  XPoint::Create, XPoint::Delete,     // object creation and deletion
-  0, 0,                               // object open, save
-  XPoint::Close, XPoint::Clone,       // close, and clone
-  0,                                  // cast function
-  XPoint::SizeOfObj,                  // sizeof function
-  XPoint::KindCheck );                // kind checking function
+  XPOINT,                          // name of the type in SECONDO
+  XPoint::Property,                // property function describing signature
+  XPoint::Out, XPoint::In,         // Out and In functions
+  0, 0,                            // SaveToList, RestoreFromList functions
+  XPoint::Create, XPoint::Delete,  // object creation and deletion
+  0, 0,                            // object open, save
+  XPoint::Close, XPoint::Clone,    // close, and clone
+  0,                               // cast function
+  XPoint::SizeOfObj,               // sizeof function
+  XPoint::KindCheck );             // kind checking function
 
 /*
-3 Class ~XRectangle~
-
-After we have studied the old-style programming interface for a type we will show
-some more recent alternative programming interfaces for implementing a type.
+3 Type Constructor ~xrectangle~
 
 To define the Secondo type ~xrectangle~, we need to (i) define a data structure,
 that is a class, to (ii) decide about a nested list representation, and (iii)
-write conversion functions from and to nested list representation.
-
-The function for converting from the list representation is the most involved
+write conversion functions from and to nested list representation. The function for converting from the list representation is the most involved
 one, since it has to check that the given list structure is entirely correct.
+
+After we have described the traditional programming interface in the previous section, here in some places we use more recent alternative programming interfaces for implementing a type.
+
 
 3.1 Data Structure - Class ~XRectangle~
 
@@ -417,7 +428,7 @@ class XRectangle
   bool intersects( const XRectangle& r) const;
 
 /*
-Here we will only implement the three support functions above, since the others
+Here we will only implement the following three support functions, since the others
 have default implementations which can be generated at compile time using C++ template
 functionality.
 
@@ -432,12 +443,13 @@ functionality.
 
 /*
 In contrast to the example above, we will implement specific ~open~ and ~save~
-function instead of using the generic persistent mechanism.
+functions instead of using the generic persistent mechanism.
 
 */  
 
   static bool     Open( SmiRecord& valueRecord, 
-                        size_t& offset, const ListExpr typeInfo, Word& value );
+                        size_t& offset, const ListExpr typeInfo, 
+                        Word& value );
 
   static bool     Save( SmiRecord& valueRecord, size_t& offset, 
                         const ListExpr typeInfo, Word& w );
@@ -507,13 +519,13 @@ The list representation of an xrectangle is
 ----    (XLeft XRight YBottom YTop)
 ----
 
-In contrast to the code examples above we will use here the class
+In contrast to the code examples above, we use here the class
 ~NList~ instead of the static functions "nl->f(...)". Its interface is described
-in file "NList.h". It is a simple wrapper for calls like "nl->f(...)" and allows
+in file "NList.h". It is a simple wrapper for calls like "nl->f(...)" and provides
 a more object-oriented access to a nested list.
 
-These class was implemented more recently hence you will find much code which uses
-the older interface. But as you can observe, the code based on ~NList~ is much more
+This class was implemented more recently; hence there is a lot of code which uses
+the older interface. But as you can observe, the code based on ~NList~ is more
 compact, easier to read, understand, and maintain. Thus we recommend to use this
 interface.
 
@@ -576,7 +588,9 @@ XRectangle::Out( ListExpr typeInfo, Word value )
 }
 
 /*
-The ~open~ and ~save~ functions need a ~SmiRecord~ as argument which contains the
+4.4 Storage Management: ~Open~, ~Save~, and ~Create~
+
+The ~open~ and ~save~ functions need an ~SmiRecord~ as argument which contains the
 binary representation of the type, starting at the position indicated by ~offset~. The
 implementor has to read out or write in data there and adjust the offset. The argument 
 ~typeinfo~ will be needed only for complex types whose constructors can be parameterized,
@@ -586,7 +600,8 @@ e.g. rel(tuple(...)).
 
 bool
 XRectangle::Open( SmiRecord& valueRecord, 
-                  size_t& offset, const ListExpr typeInfo, Word& value ) 
+                  size_t& offset, const ListExpr typeInfo, 
+                  Word& value ) 
 {
   //cerr << "OPEN XRectangle" << endl;	
   size_t size = sizeof(int); 	
@@ -638,8 +653,10 @@ XRectangle::Create( const ListExpr typeInfo )
 
 
 /*
-The property function is deprecated. Similar as the operator descriptions
-this will be done by implementing a subclass of ~ConstructorInfo~. 
+4.5 Type Description
+
+The property function is deprecated. Instead
+this is done by implementing a subclass of ~ConstructorInfo~. 
 
 */
   
@@ -666,24 +683,12 @@ functions which need to do special things need to be implemented.
 
 
 
+5 Creating Operators
 
+5.1 Type Mapping Functions
 
-
-
-
-
-
-
-
-
-
-4 Creating Operators
-
-4.1 Type Mapping Functions
-
-A type mapping function checks whether the correct argument types are supplied for an operator; if so, it
-returns a list expression for the result type, otherwise the symbol
-~typeerror~.
+A type mapping function checks whether the correct argument types are supplied for an operator; if so, it returns a list expression for the result type, otherwise the symbol
+~typeerror~. Again we use interface ~NList.h~ for manipulating list expressions.
 
 */
 
@@ -719,7 +724,7 @@ insideTypeMap( ListExpr args )
 }
 
 /*
-4.3 Selection Function
+5.2 Selection Function
 
 A selection function is quite similar to a type mapping function. The only
 difference is that it doesn't return a type but the index of a value
@@ -727,8 +732,7 @@ mapping function being able to deal with the respective combination of
 input parameter types.
 
 Note that a selection function does not need to check the correctness of
-argument types; it has already been checked by the type mapping function that it
-is applied to correct arguments.
+argument types; this has already been checked by the type mapping function.
 
 */
 
@@ -744,32 +748,28 @@ insideSelect( ListExpr args )
 
 
 
-
-
-
-
-
-
 /*
-4.3 Value Mapping Functions
+5.3 Value Mapping Functions
 
-4.3.1 The ~intersects~ predicate for two rectangles
+5.3.1 The ~intersects~ predicate for two rectangles
 
 */
 int
-intersectsFun (Word* args, Word& result, int message, Word& local, Supplier s)
+intersectsFun (Word* args, Word& result, int message, 
+              Word& local, Supplier s)
 {
   XRectangle *r1 = static_cast<XRectangle*>( args[0].addr );
   XRectangle *r2 = static_cast<XRectangle*>( args[1].addr );
 
-  result = qp->ResultStorage(s);  //query processor has provided
-                                  //a CcBool instance to take the result
+  result = qp->ResultStorage(s);  
+                                //query processor has provided
+                                //a CcBool instance for the result
 
   CcBool* b = static_cast<CcBool*>( result.addr );
   b->Set(true, r1->intersects(*r2));
-                                     //the first argument says the boolean
-                                     //value is defined, the second is the
-                                     //real boolean value)
+                               //the first argument says the boolean
+                               //value is defined, the second is the
+                               //real boolean value)
   return 0;
 }
 
@@ -778,19 +778,23 @@ intersectsFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 int
-insideFun_PR (Word* args, Word& result, int message, Word& local, Supplier s)
+insideFun_PR (Word* args, Word& result, int message, 
+             Word& local, Supplier s)
 {
   //cout << "insideFun_PR" << endl;
   XPoint* p = static_cast<XPoint*>( args[0].addr );
   XRectangle* r = static_cast<XRectangle*>( args[1].addr );
 
-  result = qp->ResultStorage(s);   //query processor has provided
-                                   //a CcBool instance to take the result
+  result = qp->ResultStorage(s);   
+                                //query processor has provided
+                                //a CcBool instance for the result
 
   CcBool* b = static_cast<CcBool*>( result.addr );
   
-  bool res = ( p->GetX() >= r->GetXLeft() && p->GetX() <= r->GetXRight()
-        && p->GetY() >= r->GetYBottom() && p->GetY() <= r->GetYTop() );
+  bool res = ( p->GetX() >= r->GetXLeft() 
+            && p->GetX() <= r->GetXRight()
+            && p->GetY() >= r->GetYBottom() 
+            && p->GetY() <= r->GetYTop() );
 
   b->Set(true, res); //the first argument says the boolean
                      //value is defined, the second is the
@@ -799,18 +803,20 @@ insideFun_PR (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 /*
-4.3.3. The ~inside~ predicate for two rectangles
+4.3.3 The ~inside~ predicate for two rectangles
 
 */
 int
-insideFun_RR (Word* args, Word& result, int message, Word& local, Supplier s)
+insideFun_RR (Word* args, Word& result, int message, 
+             Word& local, Supplier s)
 {
   //cout << "insideFun_RR" << endl;
   XRectangle* r1 = static_cast<XRectangle*>( args[0].addr );
   XRectangle* r2 = static_cast<XRectangle*>( args[1].addr );
 
-  result = qp->ResultStorage(s);   //query processor has provided
-                                   //a CcBool instance to take the result
+  result = qp->ResultStorage(s);   
+                                //query processor has provided
+                                //a CcBool instance for the result
 
   CcBool* b = static_cast<CcBool*>( result.addr );
   
@@ -838,14 +844,10 @@ insideFun_RR (Word* args, Word& result, int message, Word& local, Supplier s)
 
 4.4 Operator Descriptions
 
-
-Similar to the ~property~ function of a type constructor, an operator needs to be described.
-This will now be done in a more structured way by creating a subclass of
-class ~OperatorInfo~.
+Similar to the ~property~ function of a type constructor, an operator needs to be described, e.g. for the ~list operators~ command.
+This is now done by creating a subclass of class ~OperatorInfo~.
 
 */
-
-
 struct intersectsInfo : OperatorInfo {
 
   intersectsInfo() : OperatorInfo()
@@ -856,19 +858,8 @@ struct intersectsInfo : OperatorInfo {
     meaning   = "Intersection predicate for two xrectangles.";
   }
 
-}; // don't forget the semicolon here otherwise the compiler returns strange
-   // error messages
-
-
-
-
-
-
-
-
-
-
-
+}; // Don't forget the semicolon here. Otherwise the compiler 
+   // returns strange error messages
 
 
 struct insideInfo : OperatorInfo {
@@ -886,8 +877,6 @@ struct insideInfo : OperatorInfo {
     meaning   = "Inside predicate.";
   }
 };  
-
-
 
 
 /*
