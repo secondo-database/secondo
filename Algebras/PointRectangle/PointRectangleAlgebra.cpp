@@ -22,12 +22,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //paragraph [1] title: [{\Large \bf ]   [}]
 //characters    [2]    verbatim:   [\verb@]    [@]
+//[ue] [\"{u}]
+//[toc] [\tableofcontents]
 
 ""[2]
 
 [1] PointRectangle Algebra
 
-July 2002, R. H. Gueting
+July 2002, R. H. G[ue]ting
 
 2003 - 2006, V. Almeida. Code changes due to interface changes. 
 
@@ -37,12 +39,14 @@ usage of the "static_cast<>" templates. Additionally, more comments and hints
 
 Sept. 2007, M. Spiekermann. Many code changes to demonstrate new programming interfaces. 
 
+[toc]
+
 0 Overview
 
 This little example algebra provides two type constructors ~xpoint~ and
 ~xrectangle~ and two operators: 
 
-  1. ~inside~, which checks whether a point is within a rectangle, and 
+  1. ~inside~, which checks whether either a point or a rectangle is within a rectangle, and 
 
   2. ~intersects~ which checks two rectangles for intersection.
 
@@ -119,7 +123,7 @@ class XPoint
 {
  public:  
 /*
-Constructors and destructor
+Constructors and destructor:
 
 */
   XPoint( int x, int y );
@@ -161,15 +165,15 @@ Their implementations do nothing which depends on the state of an instance.
  private:
   inline XPoint() {}
 /* 
-Warning: Do never initializations in the default constructor!
+Warning: Never do initializations in the default constructor!
 It will be used in a special way in the cast function which is needed
 for making a class persistent when acting as an attribute in a tuple.
 In order to guarantee this we will make this constructor private.
 
-One needs always provide at least a second constructor, here 
+One always needs to provide at least a second constructor, here 
 "XPoint( int x, int y )" in order to construct an instance. Moreover, 
 avoid declarations like "XPoint p1;" since these will create an uninitialized
-class instance. Instead you should use only proper initialized variables 
+class instance. Instead you should use only properly initialized variables 
 like "XPoint(0,0) p1;"
 
 */
@@ -181,7 +185,7 @@ like "XPoint(0,0) p1;"
 
 
 /*
-We recommend to separate strictly class declarations from their implementations.
+We recommend to separate class declarations from their implementations.
 This makes life easier if you want to use the type provided in one algebra in
 another algebra. Only for the sake of a compact presentation, we did not out source
 the declarations in special header files in this example algebra.
@@ -318,7 +322,7 @@ XPoint::SizeOfObj()
 
 
 /*
-2.4 Type Describtion
+2.4 Type Description
 
 At the user interface, the command "list type constructors" lists all type
 constructors of all currently linked algebra modules. The information listed is
@@ -393,6 +397,8 @@ write conversion functions from and to nested list representation.
 The function for converting from the list representation is the most involved
 one, since it has to check that the given list structure is entirely correct.
 
+3.1 Data Structure - Class ~XRectangle~
+
 */
 
 
@@ -465,7 +471,7 @@ int XRectangle::GetYBottom() const { return yb; }
 int XRectangle::GetYTop()    const { return yt; }
   
 /*
-3.2 Implementation of Operations
+3.2 Auxiliary Functions for Operations
 
 To implement rectangle intersection, we first introduce an auxiliary function which
 tests if two intervals overlap.
@@ -488,25 +494,6 @@ XRectangle::intersects( const XRectangle& r ) const
            && overlap(yb, yt, r.GetYBottom(), r.GetYTop()) );
 }
 
-/*
-Similar to the ~property~ function an operator needs to be described.
-This will now be done in a more structured way by creating a subclass of
-class ~OperatorInfo~.
-
-*/
-
-struct intersectsInfo : OperatorInfo {
-
-  intersectsInfo() : OperatorInfo()
-  {
-    name      = INTERSECTS;
-    signature = XRECTANGLE + " x " + XRECTANGLE + " -> " + BOOL;
-    syntax    = "_" + INTERSECTS + "_";
-    meaning   = "Intersection predicate for two xrectangles.";
-  }
-
-}; // don't forget the semicolon here otherwise the compiler returns strange
-   // error messages
 
 
 /*
@@ -677,11 +664,24 @@ for registering a secondo type are trivial to implement. Hence, we offer a
 template class which provides default implementations (see below). Thus only
 functions which need to do special things need to be implemented.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 4 Creating Operators
 
-4.1 Type Mapping Function
+4.1 Type Mapping Functions
 
-Checks whether the correct argument types are supplied for an operator; if so, it
+A type mapping function checks whether the correct argument types are supplied for an operator; if so, it
 returns a list expression for the result type, otherwise the symbol
 ~typeerror~.
 
@@ -743,21 +743,11 @@ insideSelect( ListExpr args )
 }  
 
 
-struct insideInfo : OperatorInfo {
 
-  insideInfo() : OperatorInfo()
-  {
-    name      = INSIDE; 
 
-    signature = XPOINT + " x " + XRECTANGLE + " -> " + BOOL;
-    // since this is an overloaded operator we append 
-    // an alternative signature here
-    appendSignature( XRECTANGLE + " x " + XRECTANGLE 
-                                              + " -> " + BOOL );
-    syntax    = "_" + INSIDE + "_";
-    meaning   = "Inside predicate.";
-  }
-};  
+
+
+
 
 
 /*
@@ -845,6 +835,64 @@ insideFun_RR (Word* args, Word& result, int message, Word& local, Supplier s)
 
 
 /*
+
+4.4 Operator Descriptions
+
+
+Similar to the ~property~ function of a type constructor, an operator needs to be described.
+This will now be done in a more structured way by creating a subclass of
+class ~OperatorInfo~.
+
+*/
+
+
+struct intersectsInfo : OperatorInfo {
+
+  intersectsInfo() : OperatorInfo()
+  {
+    name      = INTERSECTS;
+    signature = XRECTANGLE + " x " + XRECTANGLE + " -> " + BOOL;
+    syntax    = "_" + INTERSECTS + "_";
+    meaning   = "Intersection predicate for two xrectangles.";
+  }
+
+}; // don't forget the semicolon here otherwise the compiler returns strange
+   // error messages
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct insideInfo : OperatorInfo {
+
+  insideInfo() : OperatorInfo()
+  {
+    name      = INSIDE; 
+
+    signature = XPOINT + " x " + XRECTANGLE + " -> " + BOOL;
+    // since this is an overloaded operator we append 
+    // an alternative signature here
+    appendSignature( XRECTANGLE + " x " + XRECTANGLE 
+                                              + " -> " + BOOL );
+    syntax    = "_" + INSIDE + "_";
+    meaning   = "Inside predicate.";
+  }
+};  
+
+
+
+
+/*
+
+
 5 Implementation of the Algebra Class
 
 */
