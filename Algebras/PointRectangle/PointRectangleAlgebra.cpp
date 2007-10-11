@@ -39,6 +39,8 @@ usage of the "static_cast<>" templates. Additionally, more comments and hints
 
 Sept. 2007, M. Spiekermann. Many code changes to demonstrate new programming interfaces. 
 
+Oct. 2007 RHG Revision of text.
+
 [toc]
 
 0 Overview
@@ -46,7 +48,8 @@ Sept. 2007, M. Spiekermann. Many code changes to demonstrate new programming int
 This little example algebra provides two type constructors ~xpoint~ and
 ~xrectangle~ and two operators: 
 
-  1. ~inside~, which checks whether either a point or a rectangle is within a rectangle, and 
+  1. ~inside~, which checks whether either a point or a rectangle is 
+     within a rectangle, and 
 
   2. ~intersects~, which checks two rectangles for intersection.
 
@@ -114,7 +117,9 @@ namespace prt {
 /*
 2 Type Constructor ~xpoint~
 
-In this section we describe what is needed to implement the Secondo type ~xpoint~. Here the more traditional programming interfaces are shown. Some more recent alternatives are presented in the next section.
+In this section we describe what is needed to implement the Secondo type
+~xpoint~. Here the more traditional programming interfaces are shown. Some more
+recent alternatives are presented in the next section.
 
 2.1 Data Structure - Class ~XPoint~
 
@@ -364,9 +369,9 @@ XPoint::Property()
 }
 
 /*
-This is an older technique for creating property lists. A more recent technique is shown below for type ~XRectangle~.
 
-
+This is an older technique for creating property lists. A more recent technique
+is shown below for type ~XRectangle~.
 
 
 2.5 Kind Checking Function
@@ -400,12 +405,15 @@ TypeConstructor xpointTC(
 /*
 3 Type Constructor ~xrectangle~
 
-To define the Secondo type ~xrectangle~, we need to (i) define a data structure,
-that is a class, to (ii) decide about a nested list representation, and (iii)
-write conversion functions from and to nested list representation. The function for converting from the list representation is the most involved
+To define the Secondo type ~xrectangle~, we need to (i) define a data
+structure, that is a class, to (ii) decide about a nested list representation,
+and (iii) write conversion functions from and to nested list representation.
+The function for converting from the list representation is the most involved
 one, since it has to check that the given list structure is entirely correct.
 
-After we have described the traditional programming interface in the previous section, here in some places we use more recent alternative programming interfaces for implementing a type.
+After we have described the traditional programming interface in the previous
+section, here in some places we use more recent alternative programming
+interfaces for implementing a type.
 
 
 3.1 Data Structure - Class ~XRectangle~
@@ -593,7 +601,7 @@ XRectangle::Out( ListExpr typeInfo, Word value )
 The ~open~ and ~save~ functions need an ~SmiRecord~ as argument which contains the
 binary representation of the type, starting at the position indicated by ~offset~. The
 implementor has to read out or write in data there and adjust the offset. The argument 
-~typeinfo~ will be needed only for complex types whose constructors can be parameterized,
+~typeinfo~ is needed only for complex types whose constructors can be parameterized,
 e.g. rel(tuple(...)). 
 
 */
@@ -673,6 +681,20 @@ struct xrectangleInfo : ConstructorInfo {
   }
 };
 
+/*
+4.6 Creation of the Type Constructor Instance
+
+Here we also use a new programming interface. As you may have observed, most
+implementations of the support functions needed for registering a Secondo type
+are trivial to implement. Hence, we offer a template class
+~ConstructorFunctions~ which will create many default implementations of
+functions used by a Secondo type. For details refer to
+"ConstructorFunctions.h". However, some functions need to be implemented since
+the default may not be sufficient. The default kind check function assumes that
+the type constructor does not have any arguments.
+
+
+*/
 
 struct xrectangleFunctions : ConstructorFunctions<XRectangle> {
 
@@ -698,10 +720,6 @@ TypeConstructor xrectangleTC( xri, xrf );
 
 /*
 
-As you may have observed, most implementations of the support functions needed
-for registering a secondo type are trivial to implement. Hence, we offer a
-template class which provides default implementations (see below). Thus only
-functions which need to do special things need to be implemented.
 
 
 
@@ -709,8 +727,10 @@ functions which need to do special things need to be implemented.
 
 5.1 Type Mapping Functions
 
-A type mapping function checks whether the correct argument types are supplied for an operator; if so, it returns a list expression for the result type, otherwise the symbol
-~typeerror~. Again we use interface ~NList.h~ for manipulating list expressions.
+A type mapping function checks whether the correct argument types are supplied
+for an operator; if so, it returns a list expression for the result type,
+otherwise the symbol ~typeerror~. Again we use interface ~NList.h~ for
+manipulating list expressions.
 
 */
 
@@ -754,7 +774,10 @@ mapping function being able to deal with the respective combination of
 input parameter types.
 
 Note that a selection function does not need to check the correctness of
-argument types; this has already been checked by the type mapping function.
+argument types; this has already been checked by the type mapping function. 
+A selection function is only called if the type mapping was successful. This
+makes programming easier as one can rely on a correct structure of the list
+~args~.
 
 */
 
@@ -866,8 +889,9 @@ insideFun_RR (Word* args, Word& result, int message,
 
 4.4 Operator Descriptions
 
-Similar to the ~property~ function of a type constructor, an operator needs to be described, e.g. for the ~list operators~ command.
-This is now done by creating a subclass of class ~OperatorInfo~.
+Similar to the ~property~ function of a type constructor, an operator needs to
+be described, e.g. for the ~list operators~ command.  This is now done by
+creating a subclass of class ~OperatorInfo~.
 
 */
 struct intersectsInfo : OperatorInfo {
@@ -918,11 +942,6 @@ class PointRectangleAlgebra : public Algebra
 
 5.2 Registration of Types
 
-The class ~ConstructorFunctions~ is a template class and will create many
-default implementations of functions used by a secondo type for details refer
-to "ConstructorFunctions.h". However, some functions need to be implemented since
-the default may not be sufficient. The default kind check function assumes, that the
-type constructor does not have any arguments.
 
 */    
     
@@ -964,21 +983,22 @@ container (used to store constructor, type, operator and object information)
 and to the query processor.
 
 The function has a C interface to make it possible to load the algebra
-dynamically at runtime (if it is built as dynamic link library). The name
-of the initialization function defines the name of the algebra module by
+dynamically at runtime (if it is built as a dynamic link library). The name
+of the initialization function defines the name of the algebra module. By
 convention it must start with "Initialize<AlgebraName>". 
 
-In order to link the algebra together with the system you must create an 
+To link the algebra together with the system you must create an 
 entry in the file "makefile.algebra" and to define an algebra ID in the
 file "Algebras/Management/AlgebraList.i.cfg".
 
 */
 
-} // end of namespace ~PointRectangle~
+} // end of namespace ~prt~
 
 extern "C"
 Algebra*
-InitializePointRectangleAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
+InitializePointRectangleAlgebra( NestedList* nlRef, 
+                               QueryProcessor* qpRef )
 {
   // The C++ scope-operator :: must be used to qualify the full name 
   return new prt::PointRectangleAlgebra; 
@@ -988,15 +1008,15 @@ InitializePointRectangleAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 7 Examples and Tests
 
 The file "PointRectangle.examples" contains for every operator one example.
-This allows to verify that the examples are running and allow to provide a
-coarse regression for all algebra modules. The command "Selftest <file>" will
-execute the examples. Without any arguments the examples for all active algebras
-are executed. This helps to detect side effects, if you have touched central parts
-of "Secondo" or existing types and operators. 
+This allows one to verify that the examples are running and to provide a coarse
+regression test for all algebra modules. The command "Selftest <file>" will
+execute the examples. Without any arguments, the examples for all active
+algebras are executed. This helps to detect side effects, if you have touched
+central parts of Secondo or existing types and operators. 
 
 In order to setup more comprehensive automated test procedures one can write a
 test specification for the ~TestRunner~ application. You will find the file
-"example.test" in directory bin and others in the directory "Tests/Testspecs".
+"example.test" in directory "bin" and others in the directory "Tests/Testspecs".
 There is also one for this algebra. 
 
 Accurate testing is often treated as an unpopular daunting task. But it is
