@@ -97,7 +97,7 @@ do
       else
         {
           cat "$PD_HEADER"
-          pdtabs <$F | maketex | linebreaks
+          pdtabs <$F | maketex
         } >"$TEMPDIR"/tmp.tex
 
         latex -interaction=nonstopmode "$TEMPDIR"/tmp.tex >/dev/null
@@ -119,6 +119,7 @@ do
                  echo -e "LaTeX Error in \"$F\" \n"
                  LATEXFAILED=$(expr $LATEXFAILED + 1)
                  LATEXOK=1
+                 cat $TEXLOG
               fi
            else
              echo -e "LaTeX Error in \"$F\" (If the file contains figures we can't avoid this) \n"
