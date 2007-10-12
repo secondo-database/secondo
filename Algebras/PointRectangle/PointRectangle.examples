@@ -3,10 +3,9 @@ Restore  : YES
 
 Operator : inside
 Number   : 1
-Signature: xpoint x xrectangle -> bool, xrectangle x xrectangle -> bool
+Signature: xpoint x xrectangle -> bool
 Example  : query p1 inside r1
 Result   : TRUE
-
 
 Operator : inside
 Number   : 2
