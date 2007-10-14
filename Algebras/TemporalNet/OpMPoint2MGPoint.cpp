@@ -114,17 +114,7 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
   CcInt* pNetworkId = (CcInt*)args[0].addr;
   int iNetworkId = pNetworkId->GetIntval();
   MPoint* pMPoint = (MPoint*)args[1].addr;  
-  
-  // This section will be valid as long as the moving point 
-  // moves somewhere over it. If not it is to be replaced
-  // by an adjacent section 
-  Tuple* pCurrentSection;
-  int iCurrentSectionTid;
-  // The direction the point is moving
-  bool bCurrentMovingUp;
-  // Line of the current section. 
-  Line* pCurrentSectionCurve;
-  
+
   if(pMPoint->GetNoComponents() == 0)
   {
     string strMessage = "MPoint is Empty.";   
@@ -132,8 +122,7 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
     sendMessage(strMessage);
     return 0;
   }
-  
-
+    
   /////////////////////
   // 
   // Find first and second point of the mpoint.
@@ -159,54 +148,75 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
   // If start-point and end-point are still equal the mpoint does not 
   // move. Thus we can take any section the point lies on and just proceed.
 
-  cout << "First: " << xFirstPoint << endl;
-  cout << "Second: " << xSecondPoint << endl;
-  
     
   // Load the network
   Network* pNetwork = NetworkManager::GetNetwork(iNetworkId);
-    
+        
     
   /////////////////////
   // 
   // Find first section
   //
+  int iStartSectionTid;
+  Tuple* pStartSection;
+  Line* pStartSectionCurve;
+  bool bStartMovingUp;
   Relation* pSections = pNetwork->GetSectionsInternal();   
   GenericRelationIterator* pSectionsIt = pSections->MakeScan();
-  while( (pCurrentSection = pSectionsIt->GetNextTuple()) != 0 )
+  while( (pStartSection = pSectionsIt->GetNextTuple()) != 0 )
   {
     // TODO: Maybe support this search with a BTree
-    pCurrentSectionCurve = (Line*)pCurrentSection->GetAttribute(SECTION_CURVE);
+    pStartSectionCurve = (Line*)pStartSection->GetAttribute(SECTION_CURVE);
     
-
     double dFirstPos;
-    bool bFirstOnLine = pCurrentSectionCurve->AtPoint(xFirstPoint, 
-                                                      true, 
-                                                      dFirstPos);
+    bool bFirstOnLine = pStartSectionCurve->AtPoint(xFirstPoint, 
+                                                    true, 
+                                                    dFirstPos);
 
     double dSecondPos;
-    bool bSecondOnLine = pCurrentSectionCurve->AtPoint(xSecondPoint, 
-                                                       true, 
-                                                       dSecondPos);
+    bool bSecondOnLine = pStartSectionCurve->AtPoint(xSecondPoint, 
+                                                     true, 
+                                                     dSecondPos);
 
 
     if(bFirstOnLine && bSecondOnLine)
     {
-      bCurrentMovingUp = dFirstPos < dSecondPos;
-      iCurrentSectionTid = pCurrentSection->GetTupleId();
-      cout << "Section: (" << iCurrentSectionTid 
-           << ", " << bCurrentMovingUp << ")" << endl;
-      pCurrentSection->DeleteIfAllowed(); 
+      iStartSectionTid = pStartSection->GetTupleId();
+      bStartMovingUp = dFirstPos < dSecondPos;
+      pStartSection->DeleteIfAllowed(); 
       break;
     }
         
-    pCurrentSection->DeleteIfAllowed(); 
+    pStartSection->DeleteIfAllowed(); 
   }
   // TODO: Fehlerbehandlung wenn kein Segment gefunden wurde
   delete pSectionsIt;
 
+  // This section will be valid as long as the moving point 
+  // moves somewhere over it. If not it is to be replaced
+  // by an adjacent section.
+  // All of the following value are always up to date 
   pSections = pNetwork->GetSectionsInternal();   
-  pCurrentSection = pSections->GetTuple(iCurrentSectionTid);
+  int iCurrentSectionTid = iStartSectionTid;
+  Tuple* pCurrentSection = pSections->GetTuple(iCurrentSectionTid);
+  Line* pCurrentSectionCurve = 
+     (Line*)pCurrentSection->GetAttribute(SECTION_CURVE);;
+  CcBool* xCurrentCurveStartsSmaller;
+  xCurrentCurveStartsSmaller = 
+      (CcBool*)pCurrentSection->GetAttribute(SECTION_CURVE_STARTS_SMALLER);
+  bool bCurrentCurveStartsSmaller = xCurrentCurveStartsSmaller->GetBoolval();
+  bool bCurrentMovingUpOnCurve = bStartMovingUp;
+  bool bCurrentMovingUp = bCurrentCurveStartsSmaller ? 
+                          bCurrentMovingUpOnCurve : 
+                          !bCurrentMovingUpOnCurve;
+  CcInt* xCurrentRouteId = (CcInt*)pCurrentSection->GetAttribute(SECTION_RID);
+  int iCurrentRouteId = xCurrentRouteId->GetIntval();
+  CcReal* xCurrentMeas1; 
+  xCurrentMeas1 = (CcReal*)pCurrentSection->GetAttribute(SECTION_MEAS1); 
+  float fCurrentMeas1 = xCurrentMeas1->GetRealval();
+  CcReal* xCurrentMeas2; 
+  xCurrentMeas2 = (CcReal*)pCurrentSection->GetAttribute(SECTION_MEAS2); 
+  float fCurrentMeas2 = xCurrentMeas2->GetRealval();      
 
 
   /////////////////////
@@ -225,46 +235,32 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
     pMPoint->Get(i, pCurrentUnit);
     Point xStart = pCurrentUnit->p0;
     Point xEnd = pCurrentUnit->p1;
-    cout << "Unit " << i << " "  
-         << "Start: " << xStart << " "
-         << "End: " << xEnd << " " 
-         << endl;
     
-    // TODO: Check if start = last_end
-
-    // The 
-    // start-point of the unit has to be on the same segment 
-    // because we either have been following the segment for 
-    // some units or just changed at a crossing. In the later
-    // case the start is at the crossing.
-    // Calculate position of Start-Point on segment.
-    double dStartPositionOnLine;
-    bool bStartPointOnLine; 
-    bStartPointOnLine = pCurrentSectionCurve->AtPoint(xStart, 
-                                                      true, 
-                                                      dStartPositionOnLine);
-    // TODO: FEhlerbehandlung, wenn der Startpunkt nicht auf der Linie lag.
     
-    // We know, that the start is on the current section.
-    // Check wether the end is on it to.
-    double dEndPositionOnLine;
-    bool bEndPointOnLine = pCurrentSectionCurve->AtPoint(xEnd, 
-                                                         true, 
-                                                         dEndPositionOnLine);
+    // Check wether start (should be) and end-positions are on line. If so
+    // the positions on that line are beeing calculated
+    double dStartPositionOnCurve;
+    bool bStartPointOnCurve; 
+    bStartPointOnCurve = pCurrentSectionCurve->AtPoint(xStart, 
+                                                       true, 
+                                                       dStartPositionOnCurve);
+    double dEndPositionOnCurve;
+    bool bEndPointOnCurve = pCurrentSectionCurve->AtPoint(xEnd, 
+                                                          true, 
+                                                          dEndPositionOnCurve);
     
     // Maybe the direction changed. If this is the case we have to find 
     // the adjacent section in the opposite direction
-    bool bChangedDirection = (bCurrentMovingUp && 
-                             dStartPositionOnLine > dEndPositionOnLine) ||
-                             (!bCurrentMovingUp && 
-                             dStartPositionOnLine < dEndPositionOnLine);
+    bool bChangedDirection = (bCurrentMovingUpOnCurve && 
+                             dStartPositionOnCurve > dEndPositionOnCurve) ||
+                             (!bCurrentMovingUpOnCurve && 
+                             dStartPositionOnCurve < dEndPositionOnCurve);
                              
     /////////////////////
     // 
     // Find alternative next segment
     //
-    if(!bEndPointOnLine ||
-       bChangedDirection)
+    if(!bEndPointOnCurve || bChangedDirection)
     {
       cout << "Off-Line." << endl;
       
@@ -274,74 +270,46 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
       // die Bewegung linear ist und die Länge bis zum Ende sowie die Länge
       // der Unit des MPoint bekannt sind sollte dies kein Problem sein.
       // Danach UNIT einfüben und neue Start-Zeit merken.
-      if(bCurrentMovingUp)
+      if(bCurrentMovingUpOnCurve && 
+         dStartPositionOnCurve < pCurrentSectionCurve->Length())
       {
         // For a change to another segment the end of the last one has
         // to be reached.
-        if(dStartPositionOnLine < pCurrentSectionCurve->Length())
-        {
-          // End not reached. Invent pseudo-segment
-          CcInt* xRouteId;
-          xRouteId = (CcInt*)pCurrentSection->GetAttribute(SECTION_RID);
-          int iRouteId = xRouteId->GetIntval();
-          CcReal* xMeas1; 
-          xMeas1 = (CcReal*)pCurrentSection->GetAttribute(SECTION_MEAS1); 
-          float fMeas1 = xMeas1->GetRealval();      
-          CcReal* xMeas2; 
-          xMeas2 = (CcReal*)pCurrentSection->GetAttribute(SECTION_MEAS2); 
-          float fMeas2 = xMeas2->GetRealval();      
-          cout << "New PseudoUnit " 
-               << " Section: " << pCurrentSection->GetTupleId()
-               << " Route: " << iRouteId
-               << " From: " << fMeas1 + dStartPositionOnLine
-               << " To: " << fMeas2
-               << endl;
+        // End not reached. Invent pseudo-segment
+        cout << "New PseudoUnit " 
+             << " Section: " << iCurrentSectionTid
+             << " Route: " << iCurrentRouteId
+             << " From: " << fCurrentMeas1 + dStartPositionOnCurve
+             << " To: " << fCurrentMeas2
+             << endl;
 //          pMGPoint->Add(UGPoint(pCurrentUnit->timeInterval,
 //                                iNetworkId,
 //                                iRouteId,
 //                                bCurrentMovingUp ? Up : Down,
 //                                dStartPositionOnLine,
 //                                fMeas2));         
-          xStart = pCurrentSectionCurve->EndPoint(true);
-        }
+        xStart = pCurrentSectionCurve->EndPoint(true);
       }
-      else // Moving down
+      else if (!bCurrentMovingUpOnCurve &&
+               dStartPositionOnCurve > 0) 
       {
         // For a change to another segment the start of the last one has
         // to be reached.
-        if(dStartPositionOnLine > 0)
-        {
-          // Start not reached. Invent pseudo-segment
-          CcInt* xRouteId;
-          xRouteId = (CcInt*)pCurrentSection->GetAttribute(SECTION_RID);
-          int iRouteId = xRouteId->GetIntval();
-          CcReal* xMeas1; 
-          xMeas1 = (CcReal*)pCurrentSection->GetAttribute(SECTION_MEAS1); 
-          float fMeas1 = xMeas1->GetRealval();      
-          cout << "New PseudoUnit " 
-               << " Section: " << pCurrentSection->GetTupleId()
-               << " Route: " << iRouteId
-               << " From: " << fMeas1 + dStartPositionOnLine
-               << " To: " << fMeas1
-               << endl;
+        // Start not reached. Invent pseudo-segment
+        cout << "New PseudoUnit " 
+             << " Section: " << iCurrentSectionTid
+             << " Route: " << iCurrentRouteId
+             << " From: " << fCurrentMeas1 + dStartPositionOnCurve
+             << " To: " << fCurrentMeas1
+             << endl;
 //          pMGPoint->Add(UGPoint(pCurrentUnit->timeInterval,
 //                                iNetworkId,
 //                                iRouteId,
 //                                bCurrentMovingUp ? Up : Down,
 //                                dStartPositionOnLine,
 //                                fMeas1));         
-          xStart = pCurrentSectionCurve->StartPoint(true);
-        }
+        xStart = pCurrentSectionCurve->StartPoint(true);
       }
-      // iv.start.ToDouble() 
-      // double starttime,
-      // Instant start(instanttype);
-      // start.ReadFrom(starttime);
-//                      Interval<Instant> iv(start,
-//                                     end,
-//                                     true,
-//                                     rc);
-//      
       
       // Find new section:
       vector<DirectedSection> xAdjacentSections;
@@ -356,36 +324,47 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
         // Load the structure belonging to the adjacent section
         DirectedSection xAdjacentSection = xAdjacentSections[i];
         int iNextSectionTid = xAdjacentSection.getSectionTid();
-        bool bNextUpDownFlag = xAdjacentSection.getUpDownFlag();
+        bool bNextMovingUp = xAdjacentSection.getUpDownFlag();
 
         // Load section and curve     
         Tuple* pNextSection = pSections->GetTuple(iNextSectionTid);
         Line* pNextSectionCurve;
         pNextSectionCurve = (Line*)pNextSection->GetAttribute(SECTION_CURVE);
         
-        // Check wether the end is on this section (if so dPositionOnLine
+        // Check wether the end is on this section (if so dPositionOnCurve
         // will reflect the position on the segment)
-        bool bPointOnNextLine;
-        double dNextEndPositionOnLine;
-        bPointOnNextLine = pNextSectionCurve->AtPoint(xEnd, 
-                                                      true, 
-                                                      dNextEndPositionOnLine);
-        if(bPointOnNextLine)
+        bool bNextEndOnCurve;
+        double dNextEndPositionOnCurve;
+        bNextEndOnCurve = pNextSectionCurve->AtPoint(xEnd, 
+                                                     true, 
+                                                     dNextEndPositionOnCurve);
+        if(bNextEndOnCurve)
         {
           // New section found
           
-          // Delete the last
-//          pCurrentSection->DeleteIfAllowed();
-          
           // Take the new one
+          bNewSectionFound = true;
           pCurrentSection = pNextSection;
           pCurrentSectionCurve = pNextSectionCurve;
-          bCurrentMovingUp = bNextUpDownFlag;
-          dEndPositionOnLine = dNextEndPositionOnLine;
+          xCurrentCurveStartsSmaller = 
+        (CcBool*)pCurrentSection->GetAttribute(SECTION_CURVE_STARTS_SMALLER);
+          bCurrentCurveStartsSmaller = xCurrentCurveStartsSmaller->GetBoolval();
+          bCurrentMovingUp = bNextMovingUp;         
+          bCurrentMovingUpOnCurve = bCurrentCurveStartsSmaller ? 
+                                    bCurrentMovingUp : 
+                                    !bCurrentMovingUp;
+          
+          
+          dEndPositionOnCurve = dNextEndPositionOnCurve;
           pCurrentSectionCurve->AtPoint(xStart, 
                                         true, 
-                                        dStartPositionOnLine);
-          bNewSectionFound = true;
+                                        dStartPositionOnCurve);
+          xCurrentRouteId = (CcInt*)pCurrentSection->GetAttribute(SECTION_RID);
+          iCurrentRouteId = xCurrentRouteId->GetIntval();
+          xCurrentMeas1 = (CcReal*)pCurrentSection->GetAttribute(SECTION_MEAS1);
+          fCurrentMeas1 = xCurrentMeas1->GetRealval();
+          xCurrentMeas2 = (CcReal*)pCurrentSection->GetAttribute(SECTION_MEAS2);
+          fCurrentMeas2 = xCurrentMeas2->GetRealval();      
           break;
         }
       }
@@ -393,6 +372,7 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
       {
         // Propably we changed the direction on the route
         bCurrentMovingUp = !bCurrentMovingUp;
+        bCurrentMovingUpOnCurve = !bCurrentMovingUpOnCurve;
       }
     }
 
@@ -401,47 +381,34 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
     /////////////////////
     // 
     // Calculate points on route
-    //
-    CcInt* xRouteId;
-    xRouteId = (CcInt*)pCurrentSection->GetAttribute(SECTION_RID);
-    int iRouteId = xRouteId->GetIntval();
-    CcReal* xMeas1; 
-    xMeas1 = (CcReal*)pCurrentSection->GetAttribute(SECTION_MEAS1); 
-    float fMeas1 = xMeas1->GetRealval();
-    CcBool* xCurveStartsSmaller;
-    xCurveStartsSmaller = 
-        (CcBool*)pCurrentSection->GetAttribute(SECTION_CURVE_STARTS_SMALLER);
-    bool bCurveStartsSmaller = xCurveStartsSmaller->GetBoolval();
+    //  
     double dFrom;
     double dTo;
-
-    if(bCurveStartsSmaller)
+    if(bCurrentCurveStartsSmaller)
     {
-      dFrom = fMeas1 + dStartPositionOnLine;
-      dTo = fMeas1 + dEndPositionOnLine;
+      dFrom = fCurrentMeas1 + dStartPositionOnCurve;
+      dTo = fCurrentMeas1 + dEndPositionOnCurve;
     }
     else
     {
       double dLength = pCurrentSectionCurve->Length();
-      dFrom = fMeas1 + dLength - dStartPositionOnLine;
-      dTo = fMeas1 + dLength - dEndPositionOnLine;
+      dFrom = fCurrentMeas1 + dLength - dStartPositionOnCurve;
+      dTo = fCurrentMeas1 + dLength - dEndPositionOnCurve;
     }
 
     /////////////////////
     // 
     // Create new unit for mgpoint
     //
-     
-    
     cout << "New Unit " 
-         << " Section: " << pCurrentSection->GetTupleId()
-         << " Route: " << iRouteId
+         << " Section: " << iCurrentSectionTid
+         << " Route: " << iCurrentRouteId
          << " From: " << dFrom 
          << " To: " << dTo
          << endl;
     pMGPoint->Add(UGPoint(pCurrentUnit->timeInterval,
                           iNetworkId,
-                          iRouteId,
+                          iCurrentRouteId,
                           bCurrentMovingUp ? Up : Down,
                           dFrom,
                           dTo));         
