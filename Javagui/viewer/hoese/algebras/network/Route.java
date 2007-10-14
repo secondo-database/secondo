@@ -258,7 +258,7 @@ public class Route
 		while(xSegment != null) 
     {
 			dDistanceOnRoute += xSegment.getLength();
-			if(dDistanceOnRoute > in_dDistance)
+			if(dDistanceOnRoute >= (in_dDistance - 0.01))
       {
 				break;
 			}
@@ -267,8 +267,8 @@ public class Route
 
 		// Calculate offset for this segment
 		double dDistanceOnSegment = in_dDistance - 
-                                  dDistanceOnRoute + 
-                                  xSegment.getLength();
+                                dDistanceOnRoute + 
+                                xSegment.getLength();
 		
 		return xSegment.getPointOnSegment(dDistanceOnSegment);
   }
