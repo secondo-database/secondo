@@ -9,33 +9,43 @@ Result   :  44.5
 
 
 Operator : trajectory
-Number   : 2
+Number   : 1
 Signature: cupoint -> region
 Example  : query trajectory ( cuptest )
 Result   : file
 
 Operator : deftime
-Number   : 3
+Number   : 1
 Signature: cmpoint -> periods
 Example  : query deftime ( cmptest )
 Result   : (periods ( ("2003-11-20-07:01:38.530" "2003-11-20-07:02" TRUE FALSE)) )
 
 Operator : present
-Number   : 4
-Signature: cmpoint -> bool
+Number   : 1
+Signature: (cmpoint instant) -> bool
 Example  : query cmptest present ( seven1 )
 Result   : TRUE
 
+Operator : present
+Number   : 2
+Signature: (cmpoint periods) -> bool
+Example  : query cmptest present ( one43one56 )
+Result   : TRUE
+
 Operator : atinstant
-Number   : 5
+Number   : 1
 Signature: cmpoint -> intimeregion
 Example  : query cmptest atinstant ( seven1 )
 Result   : file
 
-
 Operator : atperiods
-Number   : 6
+Number   : 1
 Signature: cmpoint -> cmpoint
 Example  : query cmptest atperiods ( one43one56 )
 Result   : file
 
+Operator : d_passes
+Number   : 1
+Signature: (cupoint point) -> bool
+Example  : query cupmehring d_passes mehringdamm
+Result   : TRUE

@@ -24,6 +24,7 @@ operator present alias PRESENT pattern _ infixop _
 operator atinstant alias ATINSTANT pattern _ infixop _
 operator atperiods alias ATPERIODS pattern _ infixop _
 operator units alias UNITS pattern op ( _ )
+operator d_passes alias D_PASSES pattern _ infixop _
 
 # During the implementation of the datatypes 'cupoint' and 'cmpoint' a re-
 # implementation of the uncertain-template became necessary.  So the following

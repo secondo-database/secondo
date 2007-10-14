@@ -165,6 +165,7 @@ Sets the argument ~defined~ to the given boolean value.
 
 */
 
+
 /*
 3.1.3 Attributes
 
@@ -317,26 +318,12 @@ The simple constructor. This constructor should not be used.
       SpatialTemporalUnit<Point, 3>(false) {
     del.refs=1;
     del.isDelete=true;
-    
-    // +++++ nur zu Testzwecken: +++
-    cout << "del.refs = " << int(del.refs) << "\n";
-    if (del.isDelete)
-      cout << "del.isDelete = TRUE \n";
-    else
-      cout << "del.isDelete = FALSE \n";
   }
   
   CUPoint( const double epsilon ):
       Uncertain<Point>(epsilon) {
     del.refs=1;
     del.isDelete=true;
-    
-    // +++++ nur zu Testzwecken: +++
-    cout << "del.refs = " << int(del.refs) << "\n";
-    if (del.isDelete)
-      cout << "del.isDelete = TRUE \n";
-    else
-      cout << "del.isDelete = FALSE \n";
   }
 /*
 The simple constructor, only defining the epsilon-value. 
@@ -361,13 +348,6 @@ The copy-constructor.
     {
       del.refs=1;
       del.isDelete=true;
-      
-      // +++++ nur zu Testzwecken: +++
-    cout << "del.refs = " << int(del.refs) << "\n";
-    if (del.isDelete)
-      cout << "del.isDelete = TRUE \n";
-    else
-      cout << "del.isDelete = FALSE \n";
     }
 
   CUPoint( const double epsilon, const Interval<Instant>& interval,
@@ -380,15 +360,18 @@ The copy-constructor.
     {
       del.refs=1;
       del.isDelete=true;
-      
-      // +++++ nur zu Testzwecken: +++
-    cout << "del.refs = " << int(del.refs) << "\n";
-    if (del.isDelete)
-      cout << "del.isDelete = TRUE \n";
-    else
-      cout << "del.isDelete = FALSE \n";
     }
   
+  
+  CUPoint( const CUPoint& source )
+  {
+    *((Uncertain<Point>*)this) = *((Uncertain<Point>*)&source);
+    *((TemporalUnit<Point>*)this) = *((TemporalUnit<Point>*)&source);
+    p0 = source.p0;
+    p1 = source.p1;
+    del.refs=1;
+    del.isDelete=true;
+  }
   //inline virtual ~CUPoint() {}
   
 /*
@@ -449,7 +432,7 @@ they are equal.
                            TemporalUnit<Point>& result ) const;
   void Distance( const Point& p, UReal& result ) const {}
   //  void UTrajectory( UPoint& unit,Line& line ) const;
-  void UTrajectory( Region& region ) const;
+  
   void USpeed( UReal& result ) const {}
   void UVelocity( UPoint& result ) const {}
   void Intersection(const UPoint &other, UPoint &result) const {}
@@ -463,9 +446,71 @@ they are equal.
   void Translate(const double x, const double y, 
                  const DateTime& duration) {}
   
+/*
+3.4.4 Additional Uncertain-Temporal Functions
+
+*/
+  void UTrajectory( Region& region ) const;
   
 /*
-3.4.4 Functions to be part of relations
+The only difference of this function to the function 'UTrajectory()' of the
+TemporalAlgebra is the result-Type. To include the uncertainty of an uncertain
+spatio-temporal object, the trajectory of such an object is defined as a
+region-value, which represents the area, the uncertain object may possibly
+pass.
+
+*/
+  bool D_Passes( const Point& p ) const;
+  bool D_Passes( const Region& r ) const;
+
+/*
+The function-name D\_Passes() is a shorthand for 'Definitely\_Passes'. It returns
+TRUE, if there is a point in time, when the uncertain spatio-temporal object
+lies on or inside the given spatial object, and FALSE, when there may be no
+such point in time. Refering to a (certain) point-object, this will never occur if
+the uncertainty-value epsilon is greater than 0.
+
+*/
+  
+  bool P_Passes( const Point& val ) const {return false;}
+  bool P_Passes( const Region& val ) const {return false;}
+
+/*
+P\_Passes() stands for 'Possibly\_Passes' and returns TRUE if there may be a
+point in time, when the uncertain spatio-temporal object lies on or inside the
+given spatial object. FALSE is only returned when there is certainly no such
+point in time.
+
+*/
+
+  bool D_At( const Point& val, CUPoint& result ) const 
+  {return false;}
+  
+  bool D_At( const Region& val, CUPoint& result ) const 
+  {return false;}
+  
+/*
+The function D\_At ('Definitely\_At') returns that part of the CUPoint, which
+lies definitely on or inside the given spatal object. Refering to a (certain)
+point-object, the returned CUPoint is empty if the uncertainty-value epsilon
+is greater than 0.
+
+*/
+
+  bool P_At( const Point& val, CUPoint& result ) const 
+  {return false;}
+  
+  bool P_At( const Region& val, CUPoint& result ) const 
+  {return false;}
+
+/*
+The function P\_At is a shorthand for 'Possibly\_At' and returns that part of the
+CUPoint, which possibly lies on or inside the given spatal object.
+
+*/
+
+/*
+3.4.5 Functions to be part of relations
 
 */
   
@@ -479,11 +524,14 @@ they are equal.
     return SpatialTemporalUnit<Point, 3>::IsDefined();
   }
   
-  void SetDefined( bool def )
+  // This SetDefined-Function leads to errors when a CUPoint is casted
+  // to a UPoint-object.
+  
+  /*void SetDefined( bool def )
   {
     UnitSetDefined( def );
     UncertainSetDefined( def );
-  }
+  }*/
   
   bool IsDefined() const
   {
@@ -539,24 +587,29 @@ they are equal.
     return false;
   }
   
-  inline virtual ostream& Print( ostream &os ) const
+  ostream& Print( ostream& os ) const
   {
-// +++++++ ueberarbeiten! ++++++++++++++++++
-    if(UnitIsDefined())
-      {
-        os << "CUPoint: " << "( ";
-        //epsilon.Print(os);
-        //os << ", ";
-        timeInterval.Print(os);
-        os << ", ";
-        p0.Print(os);
-        os << ", ";
-        p1.Print(os);
-        os << " ) ";
-        return os;
-      }
+
+    if(IsDefined())
+    {
+      
+      // +++++ nur zu Testzwecken +++
+      cout << "Die UNIT ist definiert. \n";
+      
+      os << "CUPoint: " << "( ";
+      os << epsilon << "( ";
+      timeInterval.Print(os);
+      os << ", ";
+      p0.Print(os);
+      os << ", ";
+      p1.Print(os);
+      os << " ) ) ";
+      return os;
+    }
     else
-      return os << "UPoint: (undef) ";
+    {
+      return os << "CUPoint: (undef) ";
+    }
   }
   
   inline virtual size_t HashValue() const
@@ -607,12 +660,20 @@ they are equal.
                                timeInterval.start.ToDouble(),
                                timeInterval.end.ToDouble() );
   }
+  
+  virtual const Rectangle<2> BBox2D() const
+  {
+    return Rectangle<2>( true, MIN( p0.GetX(), p1.GetX() )-epsilon,
+                               MAX( p0.GetX(), p1.GetX() )+epsilon,
+                               MIN( p0.GetY(), p1.GetY() )-epsilon,
+                               MAX( p0.GetY(), p1.GetY() )+epsilon);
+  }
 /*
 For this is an uncertain UPoint-value, the returned Rectangle<3> is enlarged by
 the epsilon-value.
 
 
-3.4.4 Attributes
+3.4.5 Attributes
 
 */
 
@@ -829,6 +890,8 @@ this MPoint.
 */
 void Circle( const Point p, const double radius, const int n, Region& result);
 
+bool FindDefPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
+                    const double epsilon, Point* defPP);
 
 /*
 4 Type Constructors
