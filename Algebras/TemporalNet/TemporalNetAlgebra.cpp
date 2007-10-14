@@ -44,6 +44,7 @@ May 2007 Martin Scheppokat
 #include "TemporalAlgebra.h"
 #include "TemporalNetAlgebra.h"
 #include "OpMPoint2MGPoint.h"
+#include "OpUnits.h"
 
 #include <iostream>
 #include <sstream>
@@ -120,6 +121,11 @@ Operator mpoint2mgpoint (
           OpMPoint2MGPoint::TypeMap        // type mapping
 );
 
+Operator units("units",
+               OpUnits::Spec,
+               MappingUnits<MGPoint, UGPoint>,
+               Operator::SimpleSelect,
+               OpUnits::TypeMap );
 
 
 
@@ -139,8 +145,10 @@ class TemporalNetAlgebra : public Algebra
 
     movinggpoint.AssociateKind( "TEMPORAL" );
     movinggpoint.AssociateKind( "DATA" );
-
+    unitgpoint.AssociateKind( "DATA" );
+    
     AddOperator(&mpoint2mgpoint);
+    AddOperator(&units);
 
   }
 

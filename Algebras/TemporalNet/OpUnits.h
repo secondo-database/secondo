@@ -22,13 +22,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of Operator MPoint2MGPoint
-
-The operator translates moving points into network based moving points
+[1] Implementation of Operator Units
 
 Mai-Oktober 2007 Martin Scheppokat
-
-[TOC]
 
 1 Overview
 
@@ -40,10 +36,10 @@ This file contains the implementation of ~gline~
 
 */
 
-#ifndef OPMPOINT2MGPOINT_H_
-#define OPMPOINT2MGPOINT_H_
+#ifndef OPUNITS_H_
+#define OPUNITS_H_
 
-class OpMPoint2MGPoint
+class OpUnits
 {
 public:
 /*
@@ -53,13 +49,6 @@ public:
 
 */
 static ListExpr TypeMap(ListExpr args);
-
-/*
-4.4.2 Value mapping function of operator ~sections~
-
-*/
-static int ValueMapping( Word* args, Word& result, int message, 
-                             Word& local, Supplier s );
 
 /*
 4.4.3 Specification of operator ~sections~
@@ -74,4 +63,4 @@ static void sendMessage(string in_strMessage);
 
 };
 
-#endif /*OPMPOINT2MGPOINT_H_*/
+#endif /*OPUNIT_H_*/
