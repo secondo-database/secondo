@@ -45,6 +45,7 @@ May 2007 Martin Scheppokat
 #include "TemporalNetAlgebra.h"
 #include "OpMPoint2MGPoint.h"
 #include "OpUnits.h"
+#include "OpSimplify.h"
 
 #include <iostream>
 #include <sstream>
@@ -127,6 +128,12 @@ Operator units("units",
                Operator::SimpleSelect,
                OpUnits::TypeMap );
 
+Operator simplify("simplify",
+                  OpSimplify::Spec,
+                  OpSimplify::ValueMapping,
+                  Operator::SimpleSelect,
+                  OpSimplify::TypeMap );
+
 
 
 /*
@@ -149,7 +156,7 @@ class TemporalNetAlgebra : public Algebra
     
     AddOperator(&mpoint2mgpoint);
     AddOperator(&units);
-
+    AddOperator(&simplify);
   }
 
 
