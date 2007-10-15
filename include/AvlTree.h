@@ -70,9 +70,9 @@ Creates a depth copy of this node.
   AvlNode(const AvlNode<contenttype>& source){
      __AVL_TRACE__
      this->content = source.content;
-     this->left = source.left==NULL?NULL:new AvlNode(source.left);
-     this->right = source.right==NULL?NULL:new AvlNode(source.right);
-     this->heigth = source.height;
+     this->left = source.left==NULL?NULL:new AvlNode(*source.left);
+     this->right = source.right==NULL?NULL:new AvlNode(*source.right);
+     this->height = source.height;
    }
 
 /*
@@ -238,7 +238,7 @@ Creates a depth copy of the argument.
       if(T.root==NULL)
         root = NULL;
       else
-        root = new AvlNode<contenttype>(T.root);
+        root = new AvlNode<contenttype>(*T.root);
    }
 
 /*
@@ -1248,6 +1248,12 @@ AvlNode<contenttype>*  root;
 
 
 } ;
+
+template<class T>
+ostream& operator<<(ostream& o,const AVLTree<T>& tree){
+    tree.Print(o);
+    return o;
+}
 
 
 #endif
