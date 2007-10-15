@@ -634,15 +634,19 @@ int Cluster::CompareTo(const Cluster* C)const{
       return 1;
    }
    for(int i=0;i<64;i++){
-      if(BitVector[i]<C->BitVector[i])
+      if(BitVector[i]<C->BitVector[i]){
           return -1;
-      if(BitVector[i]>C->BitVector[i])
+      }
+      if(BitVector[i]>C->BitVector[i]){
           return 1;
+      }
    }
-   if(name<C->name)
+   if(string(name)<string(C->name)){
       return -1;
-   if(name>C->name)
+   }
+   if(string(name)>string(C->name)){
       return 1;
+   }
    return 0;
 }
 
@@ -879,7 +883,8 @@ are sorted.
 */
 int PredicateGroup::Compare(const Attribute* right) const{
    int cmp;
-   PredicateGroup* PG = (PredicateGroup*) right;
+   const PredicateGroup* PG = static_cast<const PredicateGroup*>(right);
+   
    if(!defined && !PG->defined)
       return 0;
    if(!defined && PG->defined)
@@ -2720,7 +2725,7 @@ static int TopRelEqualsSelect(ListExpr args){
   string a1 = nl->SymbolValue(nl->First(args));
   if(a1=="int9m") return 0;
   if(a1=="cluster") return 1;
-  if(a1=="prdicategroup") return 2;
+  if(a1=="predicategroup") return 2;
   return -1;
 }
 

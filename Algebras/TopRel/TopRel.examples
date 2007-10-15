@@ -1,6 +1,26 @@
 Database: berlintest
 Restore : No
 
+
+Operator : = 
+Number   : 1
+Signature: int9m x int9m -> bool
+Example  : query [const int9m value 3] =  [const int9m value 1] 
+Result   : FALSE
+
+ 
+Operator : = 
+Number   : 2
+Signature: cluster x cluster -> bool
+Example  : query [const cluster value ("example" 3 1)] =  [const cluster value ("example" 3 1)] 
+Result   : TRUE
+
+Operator : = 
+Number   : 3
+Signature: predicategroup x predicategroup -> bool
+Example  : query  [const predicategroup value ( ("c1" 1 2 6) ("c2" 3 4 5))] = [const predicategroup value ( ("c1" 1 2 6) ("c2" 3 4 5))]
+Result   : TRUE
+
 Operator : +
 Number   : 1
 Signature: cluster x int9m -> cluster
