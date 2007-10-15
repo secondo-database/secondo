@@ -106,6 +106,8 @@ Use this constructor when declaring uncertain object variables etc.
 The creation of an uncertain value, setting the epsilon value.
 
 */
+  Uncertain( const Uncertain& rhs) : 
+	  epsilon(rhs.epsilon), defined(rhs.defined) {}
 
   virtual ~Uncertain() {}
 
@@ -299,8 +301,8 @@ This class will be used in the ~cupoint~ type constructor, i.e., the type
 constructor for the uncertain temporal unit of point values.
 
 */
-class CUPoint : public Uncertain<Point>, 
-                         public SpatialTemporalUnit<Point, 3>
+class CUPoint : public SpatialTemporalUnit<Point, 3>,
+                public Uncertain<Point>   
 {
   public:
 /*
@@ -314,14 +316,17 @@ The simple constructor. This constructor should not be used.
 */
   
   CUPoint( const bool is_defined ):
-      Uncertain<Point>(is_defined),
-      SpatialTemporalUnit<Point, 3>(false) {
+      SpatialTemporalUnit<Point, 3>(false),
+      Uncertain<Point>(is_defined)
+  {
     del.refs=1;
     del.isDelete=true;
   }
   
   CUPoint( const double epsilon ):
-      Uncertain<Point>(epsilon) {
+      SpatialTemporalUnit<Point, 3>(false),
+      Uncertain<Point>(epsilon)
+  {
     del.refs=1;
     del.isDelete=true;
   }
@@ -341,8 +346,8 @@ The copy-constructor.
 */
   CUPoint( const double epsilon, const Interval<Instant>& interval,
       const Point& p0, const Point& p1 ):
-    Uncertain<Point> (epsilon),
     SpatialTemporalUnit<Point, 3>( interval ),
+    Uncertain<Point> (epsilon),
     p0( p0 ),
     p1( p1 )
     {
@@ -353,8 +358,8 @@ The copy-constructor.
   CUPoint( const double epsilon, const Interval<Instant>& interval,
       const double x0, const double y0,
       const double x1, const double y1 ):
-    Uncertain<Point> (epsilon),
     SpatialTemporalUnit<Point, 3>( interval ),
+    Uncertain<Point> (epsilon),
     p0( true, x0, y0 ),
     p1( true, x1, y1 )
     {
@@ -363,12 +368,16 @@ The copy-constructor.
     }
   
   
-  CUPoint( const CUPoint& source )
+  CUPoint( const CUPoint& source ) : 
+    SpatialTemporalUnit<Point, 3>(source), 
+    Uncertain<Point>(source), 
+    p0(source.p0), 
+    p1(source.p1) 
   {
-    *((Uncertain<Point>*)this) = *((Uncertain<Point>*)&source);
-    *((TemporalUnit<Point>*)this) = *((TemporalUnit<Point>*)&source);
-    p0 = source.p0;
-    p1 = source.p1;
+    //*((Uncertain<Point>*)this) = *((Uncertain<Point>*)&source);
+    //*((TemporalUnit<Point>*)this) = *((TemporalUnit<Point>*)&source);
+    //p0 = source.p0;
+    //p1 = source.p1;
     del.refs=1;
     del.isDelete=true;
   }

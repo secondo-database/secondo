@@ -2390,11 +2390,11 @@ int UncertainMappingUnits(Word* args, Word& result, int message,
       {
         m->Get( localinfo->unitIndex++, unit );
         CUPoint* aux = new CUPoint( *unit );
-        Attribute* attr = (Attribute*)aux;
-        
-        SHOW( attr->NoRefs() )
-        SHOW( (void*)attr )
-        SHOW( (void*)aux )
+
+        //Attribute* attr = static_cast<Attribute*>(aux);
+        //SHOW( attr->NoRefs() )
+        //SHOW( (void*)attr )
+        //SHOW( (void*)aux )
 
         result = SetWord( aux );
         return YIELD;
