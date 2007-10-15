@@ -2614,12 +2614,12 @@ const string StdPGroup_Spec =
 
 
 const string TopRelEqualsSpec =
-      "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      " ( \" t x t -> bool , t in {int9m, cluster, predicategroup}  \""
-      " \" _ = _  \" "
-      " <text>Check for equality</text---> "
-      " <text> query [const int9m value 3] = [const int9m value 4] "
-      "</text--->))";
+    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    " ( <text>t x t -> bool , t in {int9m, cluster, predicategroup}</text--->"
+    " \" _ = _  \" "
+    " <text>Check for equality</text---> "
+    " <text> query [const int9m value 3] = [const int9m value 4] "
+    "</text--->))";
 
 /*
 
