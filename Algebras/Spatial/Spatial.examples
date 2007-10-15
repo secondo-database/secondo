@@ -345,3 +345,9 @@ Signature: point x point -> line
 Example  : query makeline([const point value ( 0 0 )] , [const point value ( 100 100)])
 Result   : (line ( (0.0 0.0 100.0 100.0))) 
 
+Operator : realminize 
+Number   : 1
+Signature: line -> line
+Example  : query trajectory(train1) = realminize(trajectory(train1))
+Result   : TRUE
+Remark   : just a correction of the internal line representation 
