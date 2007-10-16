@@ -252,7 +252,11 @@ intstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
     }
     case CLOSE: { // free the local storage
 
-      delete range;
+      if (range != 0) {			
+        delete range;
+	local.addr = 0;
+      }	
+
       return 0;
     }  
     default: {
@@ -282,7 +286,7 @@ countFun (Word* args, Word& result, int message, Word& local, Supplier s)
     count++;
     // consume the stream objects. This will free their
     // memory representation if they are not used any more
-    static_cast<Attribute*>(elem.addr)->DeleteIfAllowed();
+    static_cast<CcInt*>( elem.addr )->DeleteIfAllowed();
     qp->Request(args[0].addr, elem);
   }
 
@@ -392,7 +396,7 @@ filterFun (Word* args, Word& result, int message, Word& local, Supplier s)
            // FALSE: Element is rejected by the filter condition
 	   
           // consume the stream object (allow deletion)
-          static_cast<Attribute*>(elem.addr)->DeleteIfAllowed(); 
+          static_cast<CcInt*>( elem.addr )->DeleteIfAllowed(); 
 
 	  // Get next stream element
           qp->Request(args[0].addr, elem);
