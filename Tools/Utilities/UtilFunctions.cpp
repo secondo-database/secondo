@@ -57,9 +57,7 @@ using namespace std;
 */
 
 
-StopWatch::StopWatch() :
-startCPU(0),
-stopCPU(0)
+StopWatch::StopWatch()
 {
   start();
 }
@@ -70,10 +68,12 @@ StopWatch::start() {
 
 #ifndef SECONDO_WIN32
   gettimeofday(&startReal, 0);
+  //cout << startReal.tv_sec << endl;
 #else
   time(&startReal);
 #endif 
   startCPU=clock();
+  stopCPU=startCPU;
 }
 
 
@@ -82,6 +82,7 @@ StopWatch::diffSecondsReal() {
 
 #ifndef SECONDO_WIN32
   gettimeofday(&stopReal, 0);
+  //cout << stopReal.tv_sec << endl;
   double diffSec = (stopReal.tv_sec - startReal.tv_sec)*1.0;
   diffSec += (stopReal.tv_usec - startReal.tv_usec)*1.0 / 1000000;
   return diffSec;
