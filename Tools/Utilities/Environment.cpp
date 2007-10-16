@@ -41,6 +41,7 @@ Environment::Environment()
 {
   keyMap["SEC_pScale"] = Float; 
   keyMap["SEC_pMinRead"] = Int;
+  keyMap["SEC_pMaxRead"] = Int;
   keyMap["SECONDO_PLATFORM"] = String; 
 
   init(); 
