@@ -952,7 +952,7 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
 
       ProgressInfo p1;
       ProgressInfo* pRes;
-      const double uHead = 0.00056; 		
+      const double uHead = 0.00056;     
 
       pRes = (ProgressInfo*) result.addr;
 
@@ -964,12 +964,12 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
         pRes->CopySizes(p1);
 
         double perTupleTime = 
-	  (p1.Time - p1.BTime) / (p1.Card + 1);
+    (p1.Time - p1.BTime) / (p1.Card + 1);
 
         pRes->Time = p1.BTime + (double) pRes->Card * (perTupleTime + uHead);
 
         pRes->Progress = 
-	  (p1.BProgress * p1.BTime 
+    (p1.BProgress * p1.BTime 
           + (double) hli->numTuples * (perTupleTime + uHead))
           / pRes->Time;
 
@@ -1255,7 +1255,7 @@ AvgSumTypeMap( ListExpr args )
     !first.second().hasLength(2) ||
     !first.second().first().isSymbol(TUPLE) ||
     !IsTupleDescription( first.second().second().listExpr() ) )
-  {	  
+  {    
     return NList::typeError("Error in first argument!");
   }
 
@@ -1263,7 +1263,7 @@ AvgSumTypeMap( ListExpr args )
   if ( !second.isSymbol() ) { 
     return NList::typeError( "Second argument must be an attribute name. "
                              "Perhaps the attribute's name may be the name "
-			     "of a Secondo object!" );
+           "of a Secondo object!" );
   }     
 
   string attrname = type.second().str();
@@ -1273,10 +1273,10 @@ AvgSumTypeMap( ListExpr args )
   if ( j != 0 )
   {
     if ( nl->SymbolValue(attrtype) != REAL && 
-	 nl->SymbolValue(attrtype) != INT ) 
+   nl->SymbolValue(attrtype) != INT ) 
     {
       return NList::typeError("Attribute type is not of type real or int.");
-    }	    
+    }      
     NList resType = isAvg ? NList(REAL) : NList(attrtype);     
     return NList( NList(APPEND), NList(j).enclose(), resType ).listExpr();
   }
@@ -1305,7 +1305,7 @@ AvgSumSelect( ListExpr args )
   if ( nl->SymbolValue(attrtype) == INT ) 
   {
     return 0;
-  }	    
+  }      
   return 1;
 }
 /*
@@ -1350,8 +1350,8 @@ SumValueMapping(Word* args, Word& result, int message,
   qp->Close(args[0].addr);
 
   result = qp->ResultStorage(s);
-  static_cast<R*>( result.addr )->Set(true, sum);         	    
-  return 0;	  
+  static_cast<R*>( result.addr )->Set(true, sum);               
+  return 0;    
 }
 
 template<class T, class R> int
@@ -1385,13 +1385,13 @@ AvgValueMapping(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   if ( number == 0 ) {
     static_cast<Attribute*>( result.addr )->SetDefined(false);  
-  }	
+  }  
   else
   {
     SEC_STD_REAL sumreal = sum;
     static_cast<CcReal*>( result.addr )->Set(true, sumreal / number);         
   }
-  return 0;	  
+  return 0;    
 }
 
 
@@ -1404,15 +1404,15 @@ struct avgInfo : OperatorInfo {
 
   avgInfo() : OperatorInfo() {
  
-    name      = "avg";	  
+    name      = "avg";    
     signature = "((stream (tuple([a1:d1, ...,"
-	                        " ai:int, ..., an:dn]))) x ai) -> real";
+                          " ai:int, ..., an:dn]))) x ai) -> real";
     appendSignature( "((stream (tuple([a1:d1, ...,"
-		                      " ai:real, ..., an:dn]))) x ai) -> real");
+                          " ai:real, ..., an:dn]))) x ai) -> real");
     syntax    = "_ avg [ _ ]";
     meaning   = "Returns the average value of attribute "
                 "ai over the input stream. ";
-  }	  
+  }    
 
 };
 
@@ -1420,17 +1420,17 @@ struct sumInfo : OperatorInfo {
 
   sumInfo() : OperatorInfo() {
  
-    name      = "sum";	  
+    name      = "sum";    
     signature = "((stream (tuple([a1:d1, ..., "
-	                          "ai:int, ..., an:dn]))) x ai) -> int";
+                            "ai:int, ..., an:dn]))) x ai) -> int";
     appendSignature( "((stream (tuple([a1:d1, ...,"
-		                     " ai:real, ..., an:dn]))) x ai) -> real" );
+                         " ai:real, ..., an:dn]))) x ai) -> real" );
     syntax    = "_ sum [ _ ]";
     meaning   = "Returns the sum of the values of attribute "
                 "ai over the input stream. ";
-  }	  
+  }    
 
-};	
+};  
 
 /*
 2.10 Operator ~krdup~
@@ -2001,7 +2001,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
               // stored in local info and store the current one
               // there.
               
-	      *lastOutput = RTuple( current );
+        *lastOutput = RTuple( current );
               result = tuple;
               return YIELD;
             }
@@ -2014,14 +2014,14 @@ int RdupValueMapping(Word* args, Word& result, int message,
           else
           {
             // no last tuple stored
-	    local.addr = new RTuple( static_cast<Tuple*>(tuple.addr) );
-	    result = tuple; 	    
+      local.addr = new RTuple( static_cast<Tuple*>(tuple.addr) );
+      result = tuple;       
             return YIELD;
           }
         }
-	else
+  else
         {
-          result.addr = 0;		
+          result.addr = 0;    
           return CANCEL;
         }
       }
@@ -2029,7 +2029,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
     case CLOSE: {
       if( local.addr != 0 ){ // check if local is present
          lastOutput = static_cast<RTuple*>(local.addr);
-	 delete lastOutput;
+   delete lastOutput;
          local = SetWord(0);
       }
       qp->Close(args[0].addr);
@@ -2178,7 +2178,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
         pRes->CopySizes(p1);
         pRes->Time = p1.Time + p1.Card * uRdup * vRdup;
 
-	pRes->CopyBlocking(p1);		//non-blocking operator
+  pRes->CopyBlocking(p1);    //non-blocking operator
 
         if (rli)
         {
@@ -3305,14 +3305,14 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
         pRes->Time = p1.Time + p1.Card * (uExtend + eli->noNewAttrs * vExtend);
 
-	pRes->Progress = p1.Progress;
+  pRes->Progress = p1.Progress;
 
         //pRes->Progress =
         //  (p1.Progress * p1.Time +
         //    eli->read * (uExtend + eli->noNewAttrs * vExtend))
         //  / pRes->Time;
 
-	pRes->CopyBlocking(p1);		//non-blocking operator
+  pRes->CopyBlocking(p1);    //non-blocking operator
 
         return YIELD;
       }
@@ -3739,7 +3739,7 @@ int Loopjoin(Word* args, Word& result, int message,
               (double) (lli->readFirst));
         }
         else
-	  pRes->Card = p1.Card  * p2.Card;
+    pRes->Card = p1.Card  * p2.Card;
 
         pRes->CopySizes(lli);
 
@@ -3749,8 +3749,8 @@ int Loopjoin(Word* args, Word& result, int message,
           (p1.Progress * p1.Time + (double) lli->readFirst * p2.Time)
           / pRes->Time;
 
-        pRes->CopyBlocking(p1);	//non-blocking operator;
-				//second argument assumed not to block
+        pRes->CopyBlocking(p1);  //non-blocking operator;
+        //second argument assumed not to block
 
         return YIELD;
       }
@@ -4706,19 +4706,25 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
     "Operator projectextendstream gets as second argument '" + 
     argstr + "'.\n" );
 
-  nl->WriteToString(argstr, third);
-  CHECK_COND( !nl->IsAtom(third) &&
-    nl->ListLength(third) == 1 &&
-    nl->ListLength(nl->First(third)) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(nl->First(third)))) == ccmap &&
-    nl->ListLength(nl->Third(nl->Second(nl->First(third)))) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(nl->Third(nl->Second(nl->First(third)))) == 
-      stream),
-    "Operator projectextendstream expects as third argument a list "
-    "with length two"
-    " and structure (<attrname>(map (tuple (...)) (stream <type(DATA)>))).\n"
-    "Operator projectextendstream gets as third argument '" + 
-    argstr + "'.\n" );
+
+  NList Third = NList(third);
+  if(!Third.isNoAtom() ||
+     !Third.hasLength(1) ){
+     return NList::typeError("map has to be enclosed in a list");
+  }
+
+  Third = Third.first();
+
+  if(!Third.hasLength(2) ||
+     !Third.second().hasLength(3) ||
+     !Third.second().first().isSymbol(MAP) ||
+     !Third.second().third().hasLength(2) ||
+     !Third.second().third().first().isSymbol(STREAM)){
+    return NList::typeError("Operator projectextendstream expects as third "
+                     "argument a list with length two and structure "
+                     "(<attrname>(map (tuple (...)) (stream <type(DATA)>))).");
+  }
+  
   third = nl->First(third);
 
   ListExpr secondRest = second;
@@ -5639,7 +5645,7 @@ public:
     stableValue(0), stableState(0),
     noGroupAttrs(0), noAggrAttrs(0),
     attrSizeTmp(0), attrSizeExtTmp(0) 
-  {}			      	      
+  {}                    
 };
 
 int GroupByValueMapping
@@ -5702,7 +5708,7 @@ int GroupByValueMapping
         }
         gbli->progressInitialized = false;
 
-      local = SetWord(gbli);	//from now, progress queries possible
+      local = SetWord(gbli);  //from now, progress queries possible
 
       // Get the first tuple pointer and store it in the
       // GroupBylocalInfo structure
@@ -5880,18 +5886,18 @@ int GroupByValueMapping
           gbli->attrSizeExt = new double[gbli->noAttrs];
           for (int i = 0; i < gbli->noGroupAttrs; i++)
           {
-            gbli->attrSize[i] = 56;	//guessing string attributes
+            gbli->attrSize[i] = 56;  //guessing string attributes
             gbli->attrSizeExt[i] = 56;
           }
           for (int j = 0; j < gbli->noAggrAttrs; j++)
-          {				//guessing int attributes
+          {        //guessing int attributes
             gbli->attrSize[j + gbli->noGroupAttrs] = 12;
             gbli->attrSizeExt[j + gbli->noGroupAttrs] = 12; 
 
           }
 
           gbli->Size = 0.0;
-	  gbli->SizeExt = 0.0;
+    gbli->SizeExt = 0.0;
           for (int i = 0; i < gbli->noAttrs; i++)
           {
             gbli->Size += gbli->attrSize[i];
@@ -5915,8 +5921,8 @@ int GroupByValueMapping
           gbli->stableState = true;
         }
 
-	//As long as we have not seen 5 result tuples (groups), we guess groups 
-	//of size 10
+  //As long as we have not seen 5 result tuples (groups), we guess groups 
+  //of size 10
 
         pRes->Card = (gbli->returned < 5 ? p1.Card/10.0 : 
           p1.Card * (double) gbli->returned / (double) gbli->read);
@@ -5929,7 +5935,7 @@ int GroupByValueMapping
           + gbli->read * gbli->noAggrAttrs * uGroup)
           / pRes->Time;
 
-	pRes->CopyBlocking(p1);		//non-blocking operator
+  pRes->CopyBlocking(p1);    //non-blocking operator
 
         return YIELD;
       }
@@ -6968,9 +6974,9 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
         pRes->CopySizes(pli);
 
         double predCost = 
-	  (qp->GetPredCost(s) == 0.1 ? 0.004 : qp->GetPredCost(s));
+    (qp->GetPredCost(s) == 0.1 ? 0.004 : qp->GetPredCost(s));
 
-		//the default value of 0.1 is only suitable for selections
+    //the default value of 0.1 is only suitable for selections
 
         pRes->Time = p1.Time + p2.Time +
           p1.Card * p2.Card * predCost * uSymmJoin;
@@ -6981,7 +6987,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
           predCost * uSymmJoin)
           / pRes->Time;
 
-        if (pli->returned > 50 ) 	// stable state assumed now
+        if (pli->returned > 50 )   // stable state assumed now
         {
           pRes->Card = p1.Card * p2.Card *
             ((double) pli->returned / 
@@ -6992,7 +6998,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
           pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
         }
 
-        pRes->CopyBlocking(p1, p2);	//non-blocking oprator
+        pRes->CopyBlocking(p1, p2);  //non-blocking oprator
 
         return YIELD;
       }
@@ -8113,9 +8119,9 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelmax);
     
     ValueMapping avgFuns[] = { AvgValueMapping<int,CcInt>, 
-	                       AvgValueMapping<SEC_STD_REAL,CcReal>, 0 };
+                         AvgValueMapping<SEC_STD_REAL,CcReal>, 0 };
     ValueMapping sumFuns[] = { SumValueMapping<int,CcInt>, 
-	                       SumValueMapping<SEC_STD_REAL,CcReal>, 0 };
+                         SumValueMapping<SEC_STD_REAL,CcReal>, 0 };
 
     AddOperator(avgInfo(), avgFuns, AvgSumSelect, AvgSumTypeMap<true>);
     AddOperator(sumInfo(), sumFuns, AvgSumSelect, AvgSumTypeMap<false>);
@@ -8155,7 +8161,7 @@ class ExtRelationAlgebra : public Algebra
    extrelsortmergejoin.EnableProgress();
    extrelhashjoin.EnableProgress();
    extrelloopjoin.EnableProgress();
-   extrelgroupby.EnableProgress();	
+   extrelgroupby.EnableProgress();  
    extrelsymmjoin.EnableProgress();
 #endif
   }
