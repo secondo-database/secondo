@@ -4049,76 +4049,92 @@ For instance,
 
 */
 
+
+
 ListExpr ExtendStreamTypeMap(ListExpr args)
 {
-  ListExpr first, second;
-  ListExpr listX, listY, list, outlist, errorInfo;
-  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-  string argstr, argstr2;
+  NList Args(args);
+  if(!Args.hasLength(2)){
+     return NList::typeError("expecting two arguments");
+  }
+  NList Stream = Args.first();
 
-  CHECK_COND(nl->ListLength(args) == 2,
-    "Operator extendstream expects a list of length two.");
 
-  first = nl->First(args);
-  second  = nl->Second(args);
+  // check the tuple stream
+  if(!Stream.hasLength(2) ||
+     !Stream.first().isSymbol(STREAM) ||
+     !Stream.second().hasLength(2) ||
+     !Stream.second().first().isSymbol(TUPLE) ||
+     !IsTupleDescription(Stream.second().second().listExpr())
+     ){
+     return NList::typeError("first argument is not a tuple stream");
+  }
 
-  nl->WriteToString(argstr, first);
-  CHECK_COND(nl->ListLength(first) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator extendstream expects as first argument a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator extendstream gets as first argument '" + argstr + "'." );
+  // second argument must be a list of length one 
+  NList Second = Args.second();
+  if(!Second.isNoAtom() ||
+     !Second.hasLength(1)){
+     return NList::typeError("error in second argument");
+  }
 
-  nl->WriteToString(argstr, second);
-  CHECK_COND( !nl->IsAtom(second) &&
-    nl->ListLength(second) == 1 &&
-    nl->ListLength(nl->First(second)) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(nl->First(second)))) == ccmap &&
-    nl->ListLength(nl->Third(nl->Second(nl->First(second)))) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(nl->Third(nl->Second(nl->First(second)))) == 
-      stream),
-    "Operator extendstream expects as second argument a list with length two"
-    " and structure (<attrname>(map (tuple (...)) (stream <type(DATA)>))).\n"
-    " Operator extendstream gets as second argument '" + argstr + "'.\n" );
-  second = nl->First(second);
+  // check for ( <attrname> <map> ) 
+  NList  NameMap = Second.first();
+  if(!NameMap.hasLength(2)){
+    return NList::typeError("expecting (attrname map) as second argument");
+  }
 
-  CHECK_COND((nl->Equal(nl->Second(first), nl->Second(nl->Second(second)))),
-    "Operator extendstream: Input tuple for mapping and the first argument "
-    "tuple must have the same description. " );
+  // attrname must be an identifier
+  if(!NameMap.first().isSymbol()){
+    return NList::typeError("invalid representation of <attrname>");
+  }
+  
+  // check map 
+  NList Map = NameMap.second();
 
-  nl->WriteToString(argstr,
-                   nl->Second(nl->Third(nl->Second(second))));
-  CHECK_COND((nl->IsAtom(nl->Second(nl->Third(nl->Second(second)))))  &&
-             (am->CheckKind("DATA",
-         nl->Second(nl->Third(nl->Second(second))), errorInfo)),
-    "Operator extendstream: Objects in the second "
-    "stream must be of kind DATA.\n"
-    "Operator extendstream: Objects are of type '" + argstr + "'.\n" );
+  // Map must have format (map <tuple> <stream>)
+  if(!Map.hasLength(3) ||
+     !Map.first().isSymbol(MAP) ||
+     !Map.second().hasLength(2) ||
+     !Map.second().first().isSymbol(TUPLE) ||
+     !Map.third().hasLength(2) ||
+     !Map.third().first().isSymbol(STREAM)){
+     return NList::typeError("expecting (map ( (tuple(...) (stream DATA))))"
+                             " as second argument");
+  }
 
-  listX = nl->Second(nl->Second(first));
+  // the argumenttype for map must be equal to the tuple type from the stream
+  if(Stream.second() != Map.second()){
+     return NList::typeError("different tuple descriptions detected");
+  }
 
-  listY = nl->OneElemList(nl->TwoElemList(
-    nl->First(second),
-    nl->Second(nl->Third(nl->Second(second)))));
+  NList  typelist  = Map.third().second();
 
-  nl->WriteToString(argstr, listX);
-  nl->WriteToString(argstr2, listY);
-  CHECK_COND( (AttributesAreDisjoint(listX, listY)),
-  "New Attribute name must be different from argument"
-  " names in first argument list.\n"
-  "First argument list: '" + argstr + "'.\n"
-  "New attribute name and type: '" + argstr2 + "'.\n" );
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  // check for Kind Data
+  if(!am->CheckKind("DATA",typelist.listExpr(),errorInfo)){
+    return NList::typeError("stream elements not in kind DATA");
+  }
 
-  list = ConcatLists(listX, listY);
-  outlist = nl->TwoElemList(
-    nl->SymbolAtom("stream"),
-    nl->TwoElemList(nl->SymbolAtom("tuple"), list));
-  return outlist;
+  // check if argname is already used in the original tuple
+
+  string attrname = NameMap.first().str();
+  ListExpr attrtype=nl->TheEmptyList();
+  int index = FindAttribute(Stream.second().second().listExpr(),
+                            attrname,attrtype);
+  if(index){ // attrname already used
+    return NList::typeError("attrname already used in the original stream");
+  }
+ 
+  ListExpr attrlist = ConcatLists(Stream.second().second().listExpr(),
+                                  nl->OneElemList(
+                                    nl->TwoElemList(
+                                      nl->SymbolAtom(attrname),
+                                      Map.third().second().listExpr())));
+
+  return  nl->TwoElemList(nl->SymbolAtom(STREAM),
+                  nl->TwoElemList( nl->SymbolAtom(TUPLE),attrlist));
 }
+
 /*
 2.19.2 Value mapping function of operator ~extendstream~
 
