@@ -2693,7 +2693,7 @@ deleteSizesNawra :-
 
 8.1 The Costs of Terms
 
-----    cost(Term, Sel, Size, Cost) :-
+----    cost(+Term, +Sel, -Size, -Cost) :-
 ----
 
 The cost of an executable ~Term~ representing a predicate with selectivity ~Sel~
@@ -2749,7 +2749,7 @@ For ~filter~, there are several special cases to distinguish:
 For the first three cases, the edge is the translation of a spatial predicate, that
 makes use of bounding box checks. The first argument of filter will already reduce
 the set of possible candidates, so that the cardinality of tuples processed by filter
-will be smaller than the cardinality passed down in the 3rd argument of ~cost~. Also, the selectivity passed with the second argument of ~cost~ if the ~total~ selectivity. To
+will be smaller than the cardinality passed down in the 3rd argument of ~cost~. Also, the selectivity passed with the second argument of ~cost~ is the ~total~ selectivity. To
 get the selectivity of the preselection, one can analyse the predicate and lookup
 the table ~storedBBoxSel/3~ for that selectivity, which should be passed to the recursive call of ~cost~.
 

@@ -60,7 +60,8 @@ spatialjoinTC(10.0, 0.7).
 /*
 1.2 General Constants
 
-A fact with the value of the buffer size in bytes. This is the amount of mainmemory, operators are allowed to use to keep their internal data (e.g. hashtables, tuple buffers etc.).
+A fact with the value of the buffer size in bytes. This is the amount of mainmemory, operators are allowed to use to keep their internal data (e.g. hashtables, tuple buffers etc.). This should be equal to the setting for ~MaxMemPerOperator~
+in file ~SecondoConfig.ini~.
 
 */
 
