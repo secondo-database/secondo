@@ -8572,14 +8572,14 @@ ListExpr TUCompareValuePredicatesTypeMap( ListExpr args )
         }
       else if
         (
-         ((nl->IsEqual( arg1, "ubool" ))  && (nl->IsEqual( arg1, "bool" )))   ||
-         ((nl->IsEqual( arg1, "uint" ))   && (nl->IsEqual( arg1, "int" )))    ||
-         ((nl->IsEqual( arg1, "ureal" ))  && (nl->IsEqual( arg1, "real" )))   ||
-         ((nl->IsEqual( arg1, "ustring" ))&& (nl->IsEqual( arg1, "string" ))) ||
-         ((nl->IsEqual( arg1, "bool" ))   && (nl->IsEqual( arg1, "ubool" )))  ||
-         ((nl->IsEqual( arg1, "int" ))    && (nl->IsEqual( arg1, "uint" )))   ||
-         ((nl->IsEqual( arg1, "real" ))   && (nl->IsEqual( arg1, "ureal" )))  ||
-         ((nl->IsEqual( arg1, "string" )) && (nl->IsEqual( arg1, "ustring" )))
+         ((nl->IsEqual( arg1, "ubool" ))  && (nl->IsEqual( arg2, "bool" )))   ||
+         ((nl->IsEqual( arg1, "uint" ))   && (nl->IsEqual( arg2, "int" )))    ||
+         ((nl->IsEqual( arg1, "ureal" ))  && (nl->IsEqual( arg2, "real" )))   ||
+         ((nl->IsEqual( arg1, "ustring" ))&& (nl->IsEqual( arg2, "string" ))) ||
+         ((nl->IsEqual( arg1, "bool" ))   && (nl->IsEqual( arg2, "ubool" )))  ||
+         ((nl->IsEqual( arg1, "int" ))    && (nl->IsEqual( arg2, "uint" )))   ||
+         ((nl->IsEqual( arg1, "real" ))   && (nl->IsEqual( arg2, "ureal" )))  ||
+         ((nl->IsEqual( arg1, "string" )) && (nl->IsEqual( arg2, "ustring" )))
         )
         return nl->TwoElemList(nl->SymbolAtom( "stream" ),
                                nl->SymbolAtom( "ubool" ));
