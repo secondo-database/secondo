@@ -3321,7 +3321,7 @@ iff
     * there is a gap in the definition time between u1 and u2
     * there is a spatial jump between u1 and u2
     * the direction is changed
-    * the first unit is a break
+    * the first unit is a break (stationary unit)
 
 */
 
@@ -3379,7 +3379,7 @@ void MPoint::Sample(const DateTime& duration,
   Point lastPoint;
   Point point;
 
-  const UPoint* unit; // the unit corresponding the currentUnit
+  const UPoint* unit; // the unit corresponding to the currentUnit
   bool lc;
   while(currentUnit < size ){ // there are remaining units
      bool cut = false;
@@ -3396,7 +3396,7 @@ void MPoint::Sample(const DateTime& duration,
      lastTime = currentTime;
      currentTime += duration; // the next sampling instant
      
-     // search the unit having endtime after currentTime
+     // search the unit having endtime for currentTime
      while(interval.end < currentTime && 
            currentUnit < size && 
            (!cut || !exactPath)){
@@ -6376,7 +6376,7 @@ The main differnce is the type of the result. The GPS operator
 produces a stream of tuples consisting of the attributes Time
 of type instant and Position of the point. Thus the gps operator can be
 used to export data coming from an mpoint to a relation. In contrast to
-the SampleMPoint operator, the gps operator does not support the kepping
+the SampleMPoint operator, the gps operator does not support the keeping
 of the final endpoint.
 
 */
@@ -9720,9 +9720,14 @@ const string ReverseSpec =
 
 const string SampleMPointSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>mpoint x duration [x bool] -> mpoint</text--->"
-    "<text> samplempoint( _ , _ )</text--->"
-    "<text>simulation of an gps receiver </text--->"
+    "( <text>mpoint x duration [x bool [x bool] ] -> mpoint</text--->"
+    "<text> samplempoint( m, dur )\n"
+    " samplempoint( m, dur, ke)\n"
+    " samplempoint( m, dur, ke, ep )</text--->"
+    "<text>Simulation of a gps receiver. Resamples mpoint 'm' at intervals "
+    "defined by duration 'dur'. For 'ke' = TRUE, the endpoint will be kept, "
+    "for 'ep' = TRUE, the exact path will be kept (additional units); defaults "
+    "are 'ke' = FALSE, 'ep' = FALSE. The result is an mpoint value.</text--->"
     "<text>query samplempoint(Train6,"
     " [const duration value (0 2000)] ) </text--->"
     ") )";
@@ -9732,7 +9737,9 @@ const string GPSSpec =
     "( <text>mpoint x duration -> "
     "stream(tuple([Time: instant, Position:point])</text--->"
     "<text> gps( _ , _ )</text--->"
-    "<text>simulation of an gps receiver </text--->"
+    "<text>Simulation of a gps receiver. The result is a tuplestream with "
+    "attributes 'Time' (instant the position is taken) and 'Position' "
+    "(Position at that instant).</text--->"
     "<text>query samplempoint(Train6,"
     " [const duratione value (0 2000)] ) count </text--->"
     ") )";
