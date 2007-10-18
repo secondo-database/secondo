@@ -8565,10 +8565,24 @@ ListExpr TUCompareValuePredicatesTypeMap( ListExpr args )
           if( (nl->IsEqual( arg1, "ubool" ) )   ||
               (nl->IsEqual( arg1, "uint" ) )    ||
               (nl->IsEqual( arg1, "ureal" ) )   ||
-              (nl->IsEqual( arg1, "ustring" ) ) )
+              (nl->IsEqual( arg1, "ustring" ) )
+            )
             return nl->TwoElemList(nl->SymbolAtom( "stream" ),
                                 nl->SymbolAtom( "ubool" ));
         }
+      else if
+        (
+         ((nl->IsEqual( arg1, "ubool" ))  && (nl->IsEqual( arg1, "bool" )))   ||
+         ((nl->IsEqual( arg1, "uint" ))   && (nl->IsEqual( arg1, "int" )))    ||
+         ((nl->IsEqual( arg1, "ureal" ))  && (nl->IsEqual( arg1, "real" )))   ||
+         ((nl->IsEqual( arg1, "ustring" ))&& (nl->IsEqual( arg1, "string" ))) ||
+         ((nl->IsEqual( arg1, "bool" ))   && (nl->IsEqual( arg1, "ubool" )))  ||
+         ((nl->IsEqual( arg1, "int" ))    && (nl->IsEqual( arg1, "uint" )))   ||
+         ((nl->IsEqual( arg1, "real" ))   && (nl->IsEqual( arg1, "ureal" )))  ||
+         ((nl->IsEqual( arg1, "string" )) && (nl->IsEqual( arg1, "ustring" )))
+        )
+        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                               nl->SymbolAtom( "ubool" ));
     }
   if(arg1)
   // Error case:
@@ -8576,8 +8590,8 @@ ListExpr TUCompareValuePredicatesTypeMap( ListExpr args )
   nl->WriteToString(argstr2, arg2);
   ErrorReporter::ReportError(
     "CompareTemporalValueOperator (one of <, >, <=, >=) "
-    "expects two arguments of "
-    "type 'uT', where T in {bool, int, real, string}. The "
+    "expects two arguments of types '(uT x uT)', '(T x uT)', or '(uT x T)', "
+    "where T in {bool, int, real, string}. The "
     "passed arguments have types '" + argstr1 + "' and '"
     + argstr2 + "'.");
   return nl->SymbolAtom("typeerror");
